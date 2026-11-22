@@ -23,12 +23,10 @@ import all Statement.Data.AdviceHints
 in order: a buffer hint its function's buffer of its index (`Bridge.nbAt` before it), a callee
 frame's hint the block of the frame's next callee, any other hint nothing.
 
-`keepY_alloc`: each step keeps `YAlloc`, its advised sizes' track (`HeapAt`) by `HeapArith` (each step
-of the tree track pops what the hints at its offset pop, `heapArith_alignA` in `EndExecAHeap.lean`)
-from the honest pushes of `heap_sizes` at `main`'s entry (`HeapPopsA`), and the rest from two facts:
+`keepY_alloc`: each step keeps `YAlloc`, from two facts:
 
 * `SizesAt`: each hint at a frame's pc, run from the state the hints before it reach, reserves its
-  `treeSizes` entry (`Memory.rsz`: its size read off the reference memory and the streams);
+  `treeSizes` entry (`Memory.rsz`: its size read off the reference memory);
 * `CurArith`: the reference step from a state of the tree track, its frames chained, lands at a
   state of the track whose top frame's cursor is the old one moved by the offset's `treeSizes`, its
   frames chained (`Bridge.stepRule_at` with the allocation check's static facts).
@@ -75,11 +73,11 @@ whose written cells hold the reference's words. -/
 def SizesAt (A : String → FnAl) : Prop :=
   ∀ r : Ref, r.Ok → ∀ C, Ctx.of guestProgram r.adv = .ok C → ∀ done e st (s : St),
     RefTrack A r s.pc s.fp (done, e :: st) → ChainA A (memOf r.img) (e :: st) →
-    NcTop A e (s.pc - entOf A e.I.t.name) → HeapAt A r s e st → Fine (refMem r.img) s → OnRef guestProgram r.img r.n s →
+    NcTop A e (s.pc - entOf A e.I.t.name) → Fine (refMem r.img) s → OnRef guestProgram r.img r.n s →
     ∀ (i : ℕ) (h : Hint) (sx : St), ((C.hints[s.pc]?).getD [])[i]? = some h →
       (((C.hints[s.pc]?).getD []).take i).foldlM (runHint C) s = .ok sx →
       (∀ c v, sx.mem.get c = some v → refMem r.img c = v) →
-      rsz C (refMem r.img) sx h = (treeSizes A e (s.pc - entOf A e.I.t.name)).getD i 0
+      rsz (refMem r.img) sx h = (treeSizes A e (s.pc - entOf A e.I.t.name)).getD i 0
 
 /-- **Each allocation hint is ready where the tree puts the bump pointer**: at a state of the tree
 track on the reference run, its frames chained, no call before its buffers, the `i`-th hint at its pc, an allocation whose cells it reads are written,
@@ -88,12 +86,12 @@ words those hints reserve, has what it needs. -/
 def AllocReady (A : String → FnAl) : Prop :=
   ∀ r : Ref, r.Ok → ∀ C, Ctx.of guestProgram r.adv = .ok C → ∀ done e st (s : St),
     RefTrack A r s.pc s.fp (done, e :: st) → ChainA A (memOf r.img) (e :: st) →
-    NcTop A e (s.pc - entOf A e.I.t.name) → HeapAt A r s e st → Fine (refMem r.img) s → OnRef guestProgram r.img r.n s →
+    NcTop A e (s.pc - entOf A e.I.t.name) → Fine (refMem r.img) s → OnRef guestProgram r.img r.n s →
     ∀ (i : ℕ) (h : Hint) (sx : St), ((C.hints[s.pc]?).getD [])[i]? = some h →
       (((C.hints[s.pc]?).getD []).take i).foldlM (runHint C) s = .ok sx → MovesW (refMem r.img) s sx →
       isAllocHint h = true → Mode.HintIn sx h →
       sx.nextFree = cursorAt A e (s.pc - entOf A e.I.t.name) + ((treeSizes A e (s.pc - entOf A e.I.t.name)).take i).sum →
-      HintOk C (refMem r.img) sx h ∧ AllocB (2 ^ r.κ) C sx h
+      HintOk C (refMem r.img) sx h ∧ AllocB (2 ^ r.κ) sx h
 
 /-- **The cursor follows each step of the tree track**: from a state of the track at `(pc, fp)`, its
 frames chained, no call before its buffers, the reference step to registers short of the final ones
@@ -110,93 +108,9 @@ def CurArith (A : String → FnAl) : Prop :=
       ∃ off, pc = entOf A e.I.t.name + off ∧
         StepOff coreProgram (honestInsts coreProgram B2C.fs B2C.H r.hdr r.T) r.img A e off st pc' fp' (e' :: st')
 
-/-- **What the advised sizes' track becomes past a step**: the frames still chained, the entries they
-still pop those before less the advised sizes the hints at the step's offset pop. -/
-def HeapNext (A : String → FnAl) (M : ℕ → E) (e : Ent) (st : List Ent) (off : ℕ) (pc' : ℕ) : List Ent → Prop
-  | [] => False
-  | e' :: st' => ChainH A M (e' :: st') ∧ restH A (e' :: st') (pc' - entOf A e'.I.t.name) =
-      (restH A (e :: st) off).drop ((hintsAtOff (A e.I.t.name) off).countP isAdv)
-
-/-- **The advised sizes follow each step of the tree track.** -/
-def HeapArith (A : String → FnAl) : Prop :=
-  ∀ r : Ref, r.Ok → ∀ pc fp done e st off pc' fp' st'' done', RefTrack A r pc fp (done, e :: st) →
-    pc = entOf A e.I.t.name + off →
-    StepOff coreProgram (honestInsts coreProgram B2C.fs B2C.H r.hdr r.T) r.img A e off st pc' fp' st'' →
-    RefTrack A r pc' fp' (done', st'') → ChainH A (memOf r.img) (e :: st) → HeapNext A (memOf r.img) e st off pc' st''
-
-/-- **The hints at a frame's offset write its advised pointer cells there** and record them with their
-buffers' sizes, those whose buffers exist: at a state of the tree track as in `SizesAt`, past the
-offset's hints. -/
-def AdvWrites (A : String → FnAl) : Prop :=
-  ∀ r : Ref, r.Ok → ∀ C, Ctx.of guestProgram r.adv = .ok C → ∀ done e st (s : St),
-    RefTrack A r s.pc s.fp (done, e :: st) → ChainA A (memOf r.img) (e :: st) →
-    NcTop A e (s.pc - entOf A e.I.t.name) → HeapAt A r s e st → Fine (refMem r.img) s → OnRef guestProgram r.img r.n s →
-    s.pc < C.ops.size → ∀ s1, ((C.hints[s.pc]?).getD []).foldlM (runHint C) s = .ok s1 → Moves (refMem r.img) s s1 →
-    ∀ (k p : ℕ) (S : String), (bufsOf (A e.I.t.name).X (A e.I.t.name).d)[k]? = some (s.pc - entOf A e.I.t.name, .allocAdvice p S) →
-      ∀ n, e.I.t.bufs[k]? = some n → s1.mem.written (e.I.fp + p) = true ∧ (e.I.fp + p, n) ∈ s1.advised
-
-/-- The advised pointer cells written and recorded at frames `st` whose top is at `pc`. -/
-def WrNext (A : String → FnAl) (m : Mem) (adv : List (ℕ × ℕ)) (pc : ℕ) : List Ent → Prop
-  | [] => True
-  | e :: st => AdvWr A m adv (e :: st) (pc - entOf A e.I.t.name)
-
-/-- **The advised pointer cells stay written and recorded past each step of the tree track**, given those
-at the step's offset. -/
-def WrArith (A : String → FnAl) : Prop :=
-  ∀ r : Ref, r.Ok → ∀ pc fp done e st off pc' fp' st'' done' (m : Mem) (adv : List (ℕ × ℕ)),
-    RefTrack A r pc fp (done, e :: st) → pc = entOf A e.I.t.name + off →
-    StepOff coreProgram (honestInsts coreProgram B2C.fs B2C.H r.hdr r.T) r.img A e off st pc' fp' st'' →
-    RefTrack A r pc' fp' (done', st'') → AdvWr A m adv (e :: st) off →
-    (∀ (k p : ℕ) (S : String), (bufsOf (A e.I.t.name).X (A e.I.t.name).d)[k]? = some (off, .allocAdvice p S) →
-      ∀ n, e.I.t.bufs[k]? = some n → m.written (e.I.fp + p) = true ∧ (e.I.fp + p, n) ∈ adv) →
-    WrNext A m adv pc' st''
-
-/-- **The honest pushes of `heap_sizes` are the reference tree's advised sizes**, on alignment `A`. -/
-def HeapPopsA (A : String → FnAl) : Prop := ∀ r : Ref, r.Ok → heapStream r = r.T.heapPops fun f ↦ slotsOf (A f)
-
-/-- The advice's hints pop `heap_sizes` exactly when they are advised sizes. -/
-def heapHintOk (h : Hint) : Bool := popsOn Hints.heapSizeStream h == isAdv h
-
 end
 
 public section
-
-theorem adviceHints_heap : Data.adviceHints.all (fun p ↦ p.2.all heapHintOk) = true := by decide +kernel
-
-/-- **The executor's hints pop `heap_sizes` exactly at the advised sizes.** -/
-theorem hints_heap {adv : Advice} {C : Ctx} (hC : Ctx.of guestProgram adv = .ok C) (ha : adv.hints = Data.adviceHints)
-    (pc : ℕ) : ∀ h ∈ (C.hints[pc]?).getD [], popsOn Hints.heapSizeStream h = isAdv h := by
-  intro h hh
-  by_cases hpc : pc < 2 ^ guestProgram.logSize
-  · rw [Mode.ctx_hints hC (ha ▸ Mode.adviceHints_incr) hpc, ha] at hh
-    unfold Mode.hintsAt at hh
-    split at hh
-    · rename_i p hp
-      have := List.all_eq_true.mp (List.all_eq_true.mp adviceHints_heap p (List.mem_of_find?_eq_some hp)) h hh
-      simpa [heapHintOk] using this
-    · cases hh
-  · have hsz : C.hints.size = 2 ^ guestProgram.logSize := by
-      simp only [Ctx.of, bind_ok, pure_ok] at hC
-      obtain ⟨ops, -, rfl⟩ := hC
-      exact (foldl_set_size _ _).trans (Array.size_replicate ..)
-    rw [Array.getElem?_eq_none (by omega)] at hh
-    cases hh
-
-theorem advWrTop_mono {A : String → FnAl} {m m' : Mem} {adv adv' : List (ℕ × ℕ)} (h : m ≤ m')
-    (ha : ∀ x ∈ adv, x ∈ adv') {e : Ent} {off : ℕ} (hw : AdvWrTop A m adv e off) : AdvWrTop A m' adv' e off :=
-  fun k o p S hk ho n hn ↦ ⟨Mode.written_mono h (hw k o p S hk ho n hn).1, ha _ (hw k o p S hk ho n hn).2⟩
-
-/-- **Memory and the advised reservations growing keep the advised pointer cells written and
-recorded.** -/
-theorem advWr_mono {A : String → FnAl} {m m' : Mem} {adv adv' : List (ℕ × ℕ)} (h : m ≤ m')
-    (ha : ∀ x ∈ adv, x ∈ adv') : ∀ {st : List Ent} {off : ℕ}, AdvWr A m adv st off → AdvWr A m' adv' st off
-  | [], _, _ => trivial
-  | _ :: _, _, ⟨h1, h2⟩ => ⟨advWrTop_mono h ha h1, fun e' he' o ↦ advWrTop_mono h ha (h2 e' he' o)⟩
-
-theorem filter_heap {l : List Hint} (h : ∀ x ∈ l, popsOn Hints.heapSizeStream x = isAdv x) :
-    (l.filter (popsOn Hints.heapSizeStream)).length = l.countP isAdv := by
-  rw [← List.countP_eq_length_filter]
-  exact List.countP_congr fun x hx ↦ by rw [h x hx]
 
 /-! ## An instruction keeps the bump pointer -/
 
@@ -319,12 +233,10 @@ theorem refTrack_mainA {A : String → FnAl} (hP : ProgAl guestProgram coreProgr
 
 /-! ## The step -/
 
-/-- **Each step keeps the bump pointer's track**, from `SizesAt`, `CurArith` and `HeapArith`, the
-advised sizes' stream the tree's (`HeapPopsA`). -/
+/-- **Each step keeps the bump pointer's track**, from `SizesAt` and `CurArith`. -/
 theorem keepY_alloc {A : String → FnAl} (hP : ProgAl guestProgram coreProgram A)
     (hmain : entOf A "main" = mainEntry) (hJ : JumpCellsAt A) (hL : AlLayout A) (hAd : AdvAl A)
-    (hS : SizesAt A) (hCA : CurArith A) (hHA : HeapArith A) (hHP : HeapPopsA A) (hAW : AdvWrites A)
-    (hWA : WrArith A) {Y : Ref → St → Prop} (hD : DerefPow Y) (hY : ∀ r s, Y r s → YAlloc A r s) :
+    (hS : SizesAt A) (hCA : CurArith A) {Y : Ref → St → Prop} (hD : DerefPow Y) (hY : ∀ r s, Y r s → YAlloc A r s) :
     ∀ r, r.Ok → ∀ C, Ctx.of guestProgram r.adv = .ok C → ∀ s op s1 s', OnRun (XOf Y) r s →
       C.ops[s.pc]? = some op → ((C.hints[s.pc]?).getD []).foldlM (runHint C) s = .ok s1 →
       Moves (refMem r.img) s s1 → runOp C s1 op = .ok s' → YAlloc A r { s' with steps := s'.steps + 1 } := by
@@ -341,21 +253,17 @@ theorem keepY_alloc {A : String → FnAl} (hP : ProgAl guestProgram coreProgram 
   have hpcS : s.pc < C.ops.size := (Array.getElem?_eq_some_iff.mp hop).1
   have hsize := (ctx_of_spec hC).1
   have hnf' : s'.nextFree = s1.nextFree := runOp_nextFree e
-  have hhc : s'.cursor.getD Hints.heapSizeStream 0 =
-      s.cursor.getD Hints.heapSizeStream 0 + ((C.hints[s.pc]?).getD []).countP isAdv := by
-    rw [runOp_cursor e, hints_cursor _ _ s s1 e1, filter_heap (hints_heap hC rfl s.pc)]
   refine ⟨fun hlt ↦ ?_, fun hge hn ↦ ?_⟩
   · have hs : s.steps < proLen := by dsimp only at hlt; omega
     have hpc : s.pc < proLen := by
       rcases hon.1.1 with ⟨-, hpc, -⟩ | ⟨h, -⟩
       · omega
       · omega
-    show s'.nextFree = _ ∧ s'.cursor.getD Hints.heapSizeStream 0 = 0
-    rw [hhc, hints_pro hC rfl hpc, hnf', ← (hYs.1 hs).1, (hYs.1 hs).2]
+    show s'.nextFree = _
+    rw [hnf', ← hYs.1 hs]
     rw [hints_pro hC rfl hpc] at e1
     simp only [List.foldlM_nil, pure_ok] at e1
     rw [e1]
-    exact ⟨rfl, rfl⟩
   dsimp only at hge hn ⊢
   have hne1 : r1 ≠ Registers.final guestProgram := by
     rintro rfl
@@ -374,29 +282,16 @@ theorem keepY_alloc {A : String → FnAl} (hP : ProgAl guestProgram coreProgram 
     cases hset
     obtain ⟨hpc', hfp', -⟩ := Mode.runOp_next (⟨hm.fine.agree.wf, hm.fine.dl⟩ : s1.Good) hm.fine.fp
       (by rw [hm.pc]; exact hpcS) e (fun _ _ _ ↦ nofun) (fun _ _ _ _ _ ↦ nofun)
-    obtain ⟨e0, htr, hcur, hch, hnc0, hIt0, hnc0', hoff0⟩ := refTrack_mainA hP hmain hr
+    obtain ⟨e0, htr, hcur, hch, hnc0, -, -, -⟩ := refTrack_mainA hP hmain hr
     have h2 : s'.pc = mainEntry := by show s'.pc = proLen; rw [hpc', hm.pc]; omega
     have hnf1 : s1.nextFree = s.nextFree := by
       rw [hints_pro hC rfl (show s.pc < proLen by omega)] at e1
       simp only [List.foldlM_nil, pure_ok] at e1
       rw [e1]
-    refine ⟨[], e0, [], ?_, ?_, hch, by rw [h2]; exact hnc0, ?_, trivial,
-      ⟨fun _ _ _ _ _ ho _ _ ↦ absurd ho (by rw [h2, hoff0]; exact Nat.not_lt_zero _), fun _ h ↦ absurd h List.not_mem_nil⟩⟩
+    refine ⟨[], e0, [], ?_, ?_, hch, by rw [h2]; exact hnc0⟩
     · rw [h2, hfp', hm.fp, hfp]; exact htr
-    · rw [hnf', hnf1, (hYs.1 hpro).1, h2, hcur]
-    · rw [hhc, hints_pro hC rfl (show s.pc < proLen by omega), (hYs.1 hpro).2, h2, hoff0, hHP r hr]
-      obtain ⟨rd, hH, -⟩ := hr.honest
-      have hv := hH.valid
-      rcases hT : r.T with ⟨f, σ, bufs, kids⟩ | ⟨f, σ⟩
-      · rw [hT] at hIt0
-        have hb : advBefore (A f) 0 = 0 := by simp [advBefore]
-        simp only [List.countP_nil, Nat.add_zero, List.drop_zero]
-        simp only [restH, kidsH, List.flatMap_nil, List.append_nil]
-        rw [hIt0, hnc0']
-        simp only [Tree.name, Tree.bufs, Tree.kids, List.drop_zero, hb,
-          Tree.heapPops]
-      · rw [hT] at hv; exact hv.elim
-  obtain ⟨done, e0, st0, htr, hcur, hch, hnc, hha, hchH, hwr⟩ := hYs.2 (by omega) hon.2.2.1
+    · rw [hnf', hnf1, hYs.1 hpro, h2, hcur]
+  obtain ⟨done, e0, st0, htr, hcur, hch, hnc⟩ := hYs.2 (by omega) hon.2.2.1
   have hE := htr.track.ents e0 List.mem_cons_self
   obtain ⟨-, hat⟩ := htr.linked.top
   obtain ⟨off, hpc, p, hal', -, -, -⟩ := hat
@@ -431,28 +326,17 @@ theorem keepY_alloc {A : String → FnAl} (hP : ProgAl guestProgram coreProgram 
     have h2 : entOf A e0.I.t.name = (A e0.I.t.name).X.entry := rfl
     omega
   subst hoff'
-  have hHN := hHA r hr _ _ _ _ _ _ _ _ _ _ htr hpc0 hk' hts' hchH
-  obtain ⟨hchH', hrest⟩ := hHN
-  refine ⟨done', e', st', by rw [e_pc, e_fp]; exact hts', ?_, hch', by rw [e_pc]; exact hnc', ?_, hchH', ?_⟩
+  refine ⟨done', e', st', by rw [e_pc, e_fp]; exact hts', ?_, hch', by rw [e_pc]; exact hnc'⟩
   · have hlen : ((C.hints[s.pc]?).getD []).length = (treeSizes A e0 (s.pc - entOf A e0.I.t.name)).length := by
       rw [hoff, treeSizes, List.length_map, List.length_range, hhs]
     have hs1 := hints_nextFree _ _ s s1 ⟨hon.2.1.agree.wf, hon.2.1.dl⟩ e1 hm.fine.agree.get hlen
-      fun i h sx hi hx ↦ hS r hr C hC done e0 st0 s htr hch hnc ⟨hha, hchH, hwr⟩ hon.2.1 hon.2.2 i h sx hi hx fun c v hv ↦
+      fun i h sx hi hx ↦ hS r hr C hC done e0 st0 s htr hch hnc hon.2.1 hon.2.2 i h sx hi hx fun c v hv ↦
         hm.fine.agree.get c v ((hints_follows _ sx s1 (hints_follows _ s sx ⟨hon.2.1.agree.wf, hon.2.1.dl⟩ hx).good
           (by
             have := e1
             rw [← List.take_append_drop i ((C.hints[s.pc]?).getD []), List.foldlM_append, hx, ok_bind] at this
             exact this)).le.get _ _ hv)
     rw [e_pc, hcur', hnf', hs1, hcur]
-  · rw [hhc, ← List.drop_drop, hha, hoff, hhs, e_pc, hrest]
-  · have hle : s.mem ≤ s'.mem := Mem.le_trans hm.le hd.le
-    have ha1 : s'.advised = s1.advised := runOp_advised e
-    have hale : ∀ x ∈ s.advised, x ∈ s'.advised := fun x hx ↦ ha1 ▸ hints_advised _ s s1 e1 x hx
-    have hw1 := hAW r hr C hC done e0 st0 s htr hch hnc ⟨hha, hchH, hwr⟩ hon.2.1 hon.2.2 hpcS s1 e1 hm
-    rw [hoff] at hw1 hwr
-    rw [e_pc]
-    exact hWA r hr _ _ _ _ _ _ _ _ _ _ _ _ htr hpc0 hk' hts' (advWr_mono hle hale hwr)
-      fun k p S hk n hn ↦ ⟨Mode.written_mono hd.le (hw1 k p S hk n hn).1, ha1 ▸ (hw1 k p S hk n hn).2⟩
 
 /-! ## The allocation hints -/
 
@@ -481,7 +365,7 @@ theorem hintAllocW_of {A : String → FnAl} (hP : ProgAl guestProgram coreProgra
     ∀ r, r.Ok → ∀ C, Ctx.of guestProgram r.adv = .ok C → ∀ s, OnRun (XOf Y) r s → ∀ pre h post,
       (C.hints[s.pc]?).getD [] = pre ++ h :: post → ∀ s1, pre.foldlM (runHint C) s = .ok s1 →
       MovesW (refMem r.img) s s1 → isAllocHint h = true → Mode.HintIn s1 h →
-        HintOk C (refMem r.img) s1 h ∧ AllocB (2 ^ r.κ) C s1 h := by
+        HintOk C (refMem r.img) s1 h ∧ AllocB (2 ^ r.κ) s1 h := by
   intro r hr C hC s hon pre h post hl s1 e1 hm ha hin
   have hYs := hY r s hon.1.2.2
   by_cases hpro : s.steps < proLen
@@ -491,7 +375,7 @@ theorem hintAllocW_of {A : String → FnAl} (hP : ProgAl guestProgram coreProgra
       · omega
     rw [hints_pro hC rfl hpc] at hl
     simp at hl
-  obtain ⟨done, e, st, htr, hcur, hch, hnc, hha⟩ := hYs.2 (by omega) hon.2.2.1
+  obtain ⟨done, e, st, htr, hcur, hch, hnc⟩ := hYs.2 (by omega) hon.2.2.1
   have hpcS : s.pc < C.ops.size := by
     by_contra hge
     have hsz := (ctx_hints_size hC).trans (ctx_of_spec hC).1.symm
@@ -500,7 +384,7 @@ theorem hintAllocW_of {A : String → FnAl} (hP : ProgAl guestProgram coreProgra
   have hlen := hints_len hP hAd hC htr hpcS
   have hi : ((C.hints[s.pc]?).getD [])[pre.length]? = some h := by rw [hl]; simp
   have htake : ((C.hints[s.pc]?).getD []).take pre.length = pre := by rw [hl]; simp
-  refine hR r hr C hC done e st s htr hch hnc hha hon.2.1 hon.2.2 pre.length h s1 hi (by rw [htake]; exact e1) hm ha
+  refine hR r hr C hC done e st s htr hch hnc hon.2.1 hon.2.2 pre.length h s1 hi (by rw [htake]; exact e1) hm ha
     hin ?_
   have hs1 := hints_nextFree pre ((treeSizes A e (s.pc - entOf A e.I.t.name)).take pre.length) s s1
     ⟨hon.2.1.agree.wf, hon.2.1.dl⟩ e1 hm.2 (by
@@ -509,7 +393,7 @@ theorem hintAllocW_of {A : String → FnAl} (hP : ProgAl guestProgram coreProgra
       omega)
     fun j h' sx hj hx ↦ by
       have hjl : j < pre.length := (List.getElem?_eq_some_iff.mp hj).1
-      have h1 := hS r hr C hC done e st s htr hch hnc hha hon.2.1 hon.2.2 j h' sx (by rw [hl, List.getElem?_append_left hjl]; exact hj)
+      have h1 := hS r hr C hC done e st s htr hch hnc hon.2.1 hon.2.2 j h' sx (by rw [hl, List.getElem?_append_left hjl]; exact hj)
         (by rw [hl, List.take_append_of_le_length hjl.le]; exact hx) fun c v hv ↦
         hm.2 c v ((hints_follows _ sx s1 (hints_follows _ s sx ⟨hon.2.1.agree.wf, hon.2.1.dl⟩ hx).good
           (by
@@ -531,9 +415,8 @@ theorem hintAlloc_of {A : String → FnAl} (hP : ProgAl guestProgram coreProgram
 /-! ## On the deployed alignment -/
 
 /-- **Each step keeps `YAlloc alignA`**, from `SizesAt` and `CurArith` on the deployed alignment. -/
-theorem keepY_allocA (hS : SizesAt alignA) (hCA : CurArith alignA) (hHA : HeapArith alignA)
-    (hHP : HeapPopsA alignA) (hAW : AdvWrites alignA) (hWA : WrArith alignA) : KeepY (YAlloc alignA) :=
-  keepY_alloc progAl alignA_main jumpCells_at alLayout_alignA advAl_alignA hS hCA hHA hHP hAW hWA (derefPow_all _)
+theorem keepY_allocA (hS : SizesAt alignA) (hCA : CurArith alignA) : KeepY (YAlloc alignA) :=
+  keepY_alloc progAl alignA_main jumpCells_at alLayout_alignA advAl_alignA hS hCA (derefPow_all _)
     fun _ _ h ↦ h
 
 /-- **`hintAlloc` on the deployed alignment**, from `SizesAt` and `AllocReady`. -/

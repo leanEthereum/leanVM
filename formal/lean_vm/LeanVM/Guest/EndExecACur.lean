@@ -176,7 +176,7 @@ theorem curFacts_of {X : AlignCtx} {fs : ℕ} {loop : Bool} {P : B2C.Plumb} {bod
     (h : curChk X fs loop P body code d = true) : CurFacts X fs loop P body code d := by
   simp only [curChk, curCode, curBody, Exec.listSeq_eq, Bool.and_eq_true, Bool.or_eq_true, decide_eq_true_eq,
     List.all_eq_true, Bool.not_eq_true'] at h
-  obtain ⟨⟨haddr, ⟨⟨⟨⟨⟨hj, hbf⟩, -⟩, hfr⟩, hso⟩, hret⟩⟩, hcnt, harm⟩ := h
+  obtain ⟨⟨haddr, ⟨⟨⟨⟨hj, hbf⟩, hfr⟩, hso⟩, hret⟩⟩, hcnt, harm⟩ := h
   have hfr' : ∀ q ∈ frames X d, frameOk X code q.1 q.2 = true := hfr
   have hnil : frames X d = [] → ∀ off, pendIn code (frames X d) off = false := fun h0 off ↦ by rw [h0]; rfl
   refine ⟨haddr, hbf, fun q hq ↦ by

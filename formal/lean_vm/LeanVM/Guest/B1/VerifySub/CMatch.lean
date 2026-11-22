@@ -219,11 +219,11 @@ end
 theorem vs_honVals {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Digest}
     {c : Child} (S : ChildSegs bytecode seed c) (b sqE outE : ℕ) {Lin : Main.Layout}
     (hexp : ∀ q ∈ vsExpLin sqE, q ∈ Lin)
-    {outs : List (List E × Main.Layout)} (O : VsOuts S (bases b (vsSizes S.d)) sqE outs)
-    {rd : Reader} (hB : Main.MemL rd (bufL b (vsSizes S.d) S.ownW)) (hL : Main.MemL rd Lin) :
-    VsHonVals S (bases b (vsSizes S.d)) sqE outE outs
-      (vsσ rd (vsW (bases b (vsSizes S.d)) outs) (vsArgs seed c sqE outE)) := by
-  set bs := bases b (vsSizes S.d) with hbs
+    {outs : List (List E × Main.Layout)} (O : VsOuts S (bases b (vsSizes)) sqE outs)
+    {rd : Reader} (hB : Main.MemL rd (bufL b (vsSizes) S.ownW)) (hL : Main.MemL rd Lin) :
+    VsHonVals S (bases b (vsSizes)) sqE outE outs
+      (vsσ rd (vsW (bases b (vsSizes)) outs) (vsArgs seed c sqE outE)) := by
+  set bs := bases b (vsSizes) with hbs
   set w := vsW bs outs with hw
   set args := vsArgs seed c sqE outE with hargs
   have hl : args.length = 6 := rfl
@@ -426,7 +426,7 @@ theorem vs_callsMatch {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed
     (hexp : ∀ q ∈ vsExpLin sqE, q ∈ Lin) : VsCallsMatch S sqE outE Lin := by
   intro b outs O rd hB hL
   have V := vs_honVals hbl S b sqE outE hexp O hB hL
-  set bs := bases b (vsSizes S.d) with hbs
+  set bs := bases b (vsSizes) with hbs
   set w := vsW bs outs with hw
   set args := vsArgs seed c sqE outE with hargs
   set σ := vsσ rd w args with hσ

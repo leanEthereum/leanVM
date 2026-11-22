@@ -296,6 +296,17 @@ def arm_m(k, c, x):
     return N - 1 if N is not None else exp_m(at, EXP_FUEL, x)
 
 
+def top_prod(body, bs):
+    """`CoreMode.topProd`: `Σ a·M` over the bases `(x, a)`, `M` the bound the top-level atoms give (`exp_m`)."""
+    t = 0
+    for x, a in bs:
+        M = exp_m(top_atoms(body), EXP_FUEL, x)
+        if M is None:
+            return None
+        t += a * M
+    return t
+
+
 def arm_prod(k, c, bs):
     """`CoreMode.armProd`: `Σ a·armM` over the bases `(x, a)`."""
     t = 0
@@ -365,6 +376,10 @@ def res_fam(k, r, G):
     if r[0] == 'lt' and r[1][0] == 'mono' and r[2][0] == 'num':
         # `sel` of a selector's word times `g^c`: `e(x·g^c) < n`, `x` a top-level selector of `m` arms, `m + c <= n`
         c, n = r[1][1], r[2][1]
+        # `addr` of a product: `Σ a·M` over the bases `(x, a)`, `M` the bound the top-level atoms give (`topProd`)
+        M = top_prod(body, c[0])
+        if n < CAPE and M is not None and M + c[1] < n:
+            return True
         if len(c[0]) != 1 or c[0][0][1] != 1 or not n < CAPE:
             return False
         if any(x == c[0][0][0] and m + c[1] <= n for x, m in callc.top_sels(body)):

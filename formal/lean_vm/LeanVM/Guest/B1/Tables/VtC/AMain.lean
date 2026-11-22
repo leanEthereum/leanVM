@@ -187,6 +187,11 @@ theorem ownW_lengths (H : VtHonest) (B : VtBases) : (H.ownW B).map List.length =
     vtIdxBufW, zcRoundsW_len h5, zcCprodW, zcRkW]
   omega
 
+/-- Honest words padded to their allocation read their own prefix. -/
+theorem tbReads_unpad {rd : Reader} {p : E} {l pad : List E} {m : ℕ} (h : TbReadsAt rd p (l.take m ++ pad))
+    (hl : l.length ≤ m) : TbReadsAt rd p l := by
+  rw [List.take_of_length_le hl] at h; exact (tbReadsAt_append.mp h).1
+
 theorem tb_load_of {rd : Reader} {p : E} {l : List E} (h : TbReadsAt rd p l) {k : ℕ}
     (hk : k < l.length) : LoadHolds rd p k (l.getD k 0) := by
   rw [List.getD_eq_getElem _ _ hk]; exact h k hk
@@ -196,8 +201,8 @@ theorem vtAllocVars_P : ∀ i < 51, vtAllocVars.getD (12 + i) 0 = (vtPushSel.get
   decide
 theorem vtAllocVars_C : ∀ i < 45, vtAllocVars.getD (63 + i) 0 =
     (vtCountSel.getD i default).2.2.1 := by decide
-theorem vtAllocVars_Z : vtAllocVars.getD 108 0 = 2626 ∧ vtAllocVars.getD 109 0 = 2629 ∧
-    vtAllocVars.getD 110 0 = 2633 ∧ vtAllocVars.getD 111 0 = 2651 := by decide
+theorem vtAllocVars_Z : vtAllocVars.getD 108 0 = 2620 ∧ vtAllocVars.getD 109 0 = 2621 ∧
+    vtAllocVars.getD 110 0 = 2625 ∧ vtAllocVars.getD 111 0 = 2641 := by decide
 
 section
 variable (H : VtHonest) (B : VtBases)
@@ -233,10 +238,12 @@ theorem ownW_getD_C {i : ℕ} (hi : i < 45) : (H.ownW B).getD (63 + i) [] =
   simp [List.getD_eq_getElem?_getD, show 63 + i - 9 - 3 - 51 = i by omega, hi]
 
 theorem ownW_getD_Z {k : ℕ} (_hk : k < 4) : (H.ownW B).getD (108 + k) [] =
-    [zcRoundsW H.cap0 H.target (ofK (addressOfIndex B.cur) * gen ^ 13 * gen) H.xsR H.n,
-      zcCprodW H.cap0 H.target H.xsR H.n,
+    [(zcRoundsW H.cap0 H.target (ofK (addressOfIndex B.cur) * gen ^ 13 * gen) H.xsR H.n).take 245 ++
+        List.replicate (245 - 7 * (H.n + 1)) 0,
+      (zcCprodW H.cap0 H.target H.xsR H.n).take 35 ++ List.replicate (35 - (H.n + 1)) 0,
       (zcRkW H.cap0 H.target H.xsR H.n).take 34 ++ List.replicate (34 - H.n) 0,
-      (List.range (H.n + 1)).map (prefixProd 1 H.chiW ((H.point.map (1 + ·)).take H.n))].getD k
+      ((List.range (H.n + 1)).map (prefixProd 1 H.chiW ((H.point.map (1 + ·)).take H.n))).take 35 ++
+        List.replicate (35 - (H.n + 1)) 0].getD k
       [] := by
   unfold VtHonest.ownW
   rw [List.getD_append_right _ _ _ _ (by simp)]
@@ -324,7 +331,7 @@ set_option maxRecDepth 100000 in
 theorem vt_allocSz : (vtPre.filterMap LeanVM.Guest.Memory.Stmt.allocSz).map (fun x ↦ x.2) =
     [.inl 24, .inl 24, .inl 24, .inl 24, .inl 34, .inr (.n (val% «verify_tables» "g_bus_mu")), .inl 1728, .inl 864, .inl 153,
       .inr (.n (val% «verify_tables» "offset_bits@1~0")), .inr (.n (val% «verify_tables» "offset_bits@2~0")), .inr (.n (val% «verify_tables» "offset_bits@3~0"))] ++ List.replicate 96 (.inl 9) ++
-      [.inr (.n (val% «verify_tables» "zc_rounds~5")), .inr (.n (val% «verify_tables» "zc_cprod~1")), .inl 34, .inr (.n (val% «verify_tables» "zc_peq~1"))] := by decide +kernel
+      [.inl 245, .inl 35, .inl 34, .inl 35] := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem vt_bits_consts : tbStmtsEqb [.atom (.const (.n (val% «verify_tables» "offset_bits@1~0")) (word 17179869184 0))]
@@ -404,6 +411,8 @@ theorem vt_rel_completeF {H : VtHonest} (h : H.Ok) (hs : VtShape H) (B : VtBases
       vtRets.map (vtσ rd w (H.args B)) = H.retsH B) ∧ VtKbSh H (vtσ rd w (H.args B)) := by
   obtain ⟨hlm, hlmμ, h19, hμ33, hr, hτ31, hτμ, hwl, hll, hf, hfitP, hfitC, hbc⟩ := hs
   have hτ33 : ∀ t < 6, vtHt H.rows t < 33 := fun t ht ↦ by have := hτ31 t ht; omega
+  have hn34 : H.n ≤ 34 := by
+    obtain ⟨t, ht, e⟩ := vt_n_ex (H := H) hr; rw [← e]; exact (hτμ t ht).trans (by omega)
   have hl : (H.args B).length = 21 := rfl
   have p : ∀ i < 21, (vtσ rd w (H.args B)) (.n i) = (H.args B).getD i 0 := fun i hi ↦ vt_param hl hi
   have hx4 := h.hx4
@@ -449,14 +458,23 @@ theorem vt_rel_completeF {H : VtHonest} (h : H.Ok) (hs : VtShape H) (B : VtBases
       (offDigits (H.offC.getD i 0) (H.τ (vtCountSel.getD i default).2.2.2.1)) := fun i hi ↦
     vt_own_reads' hm hw (j := 63 + i) (by omega) (vtAllocVars_C i hi) (ownW_getD_C H B hi)
   have oZ := fun k (hk : k < 4) ↦ vt_own_reads hm hw (j := 108 + k) (by omega)
-  have oR : TbReadsAt rd (w 2626)
+  have oR : TbReadsAt rd (w 2620)
       (zcRoundsW H.cap0 H.target (ofK (addressOfIndex B.cur) * gen ^ 13 * gen) H.xsR H.n) := by
-    have := oZ 0 (by norm_num); rwa [vtAllocVars_Z.1, ownW_getD_Z H B (by norm_num)] at this
-  have oCp : TbReadsAt rd (w 2629) (zcCprodW H.cap0 H.target H.xsR H.n) := by
-    have := oZ 1 (by norm_num); rwa [vtAllocVars_Z.2.1, ownW_getD_Z H B (by norm_num)] at this
-  have oPe : TbReadsAt rd (w 2651)
+    have := oZ 0 (by norm_num)
+    rw [vtAllocVars_Z.1, ownW_getD_Z H B (by norm_num)] at this
+    simp only [List.getD_cons_zero] at this
+    exact tbReads_unpad this (by rw [zcRoundsW_len (cap0_length H)]; omega)
+  have oCp : TbReadsAt rd (w 2621) (zcCprodW H.cap0 H.target H.xsR H.n) := by
+    have := oZ 1 (by norm_num)
+    rw [vtAllocVars_Z.2.1, ownW_getD_Z H B (by norm_num)] at this
+    simp only [List.getD_cons_zero, List.getD_cons_succ] at this
+    exact tbReads_unpad this (by simp [zcCprodW]; omega)
+  have oPe : TbReadsAt rd (w 2641)
       ((List.range (H.n + 1)).map (prefixProd 1 H.chiW ((H.point.map (1 + ·)).take H.n))) := by
-    have := oZ 3 (by norm_num); rwa [vtAllocVars_Z.2.2.2, ownW_getD_Z H B (by norm_num)] at this
+    have := oZ 3 (by norm_num)
+    rw [vtAllocVars_Z.2.2.2, ownW_getD_Z H B (by norm_num)] at this
+    simp only [List.getD_cons_zero, List.getD_cons_succ] at this
+    exact tbReads_unpad this (by simp; omega)
   have hrows : ∀ t < 6, LoadHolds rd ((vtσ rd w (H.args B)) (.n (val% «verify_tables» "table_rows"))) t (eOfNat (vtRw H.rows t)) := by
     intro t ht
     rw [p 11 (by norm_num)]
@@ -576,7 +594,7 @@ theorem vt_rel_completeF {H : VtHonest} (h : H.Ok) (hs : VtShape H) (B : VtBases
     rw [h1897, mul_assoc, ← pow_succ]
     have := mXR
     rwa [List.length_append, hx4, hbcW] at this
-  have oRk : TbReadsAt rd (w 2633) (zcRkW H.cap0 H.target H.xsR H.n) := by
+  have oRk : TbReadsAt rd (w 2625) (zcRkW H.cap0 H.target H.xsR H.n) := by
     have := oZ 2 (by norm_num)
     rw [vtAllocVars_Z.2.2.1, ownW_getD_Z H B (by norm_num)] at this
     simp only [List.getD_cons_succ, List.getD_cons_zero] at this
@@ -594,7 +612,7 @@ theorem vt_rel_completeF {H : VtHonest} (h : H.Ok) (hs : VtShape H) (B : VtBases
     (by rw [show H.sB.squeeze.1 = H.ξ from rfl, hzt, p 16 (by norm_num)]; exact mChi)
     (zs1 := H.point.map (1 + ·)) (by rw [s699]; exact o699) (by simpa using hnμ)
     (by rw [show H.sB.squeeze.1 = H.ξ from rfl, hzt]; exact oPe)
-  obtain ⟨z2544, z2610, -, -, z2626, z2629, z2650, z2627, z2630, z2635, z2651, zRec, z2647, z2648⟩ := zOut
+  obtain ⟨z2544, z2610, -, -, z2627, z2630, z2635, z2651, zRec, z2647, z2648⟩ := zOut
   rw [show H.sB.squeeze.1 = H.ξ from rfl, hzt] at zRec z2648
   change _ = (zcRec H.cap0 H.target H.xsR H.n).1 at zRec
   change _ = (zcRec H.cap0 H.target H.xsR H.n).2 at z2648
@@ -694,10 +712,9 @@ theorem vt_rel_completeF {H : VtHonest} (h : H.Ok) (hs : VtShape H) (B : VtBases
       rw [g, word_g34, logG_gen_pow (by norm_num)]
     simp only [List.map_append, List.map_cons, List.map_nil, List.map_replicate, Sum.elim_inl,
       Sum.elim_inr, id]
-    rw [hb _ _ c1', hb _ _ c2', hb _ _ c3', p 9 (by norm_num), z2626, z2629, z2650]
+    rw [hb _ _ c1', hb _ _ c2', hb _ _ c3', p 9 (by norm_num)]
     simp only [VtHonest.args, List.getD_cons_succ, List.getD_cons_zero]
-    rw [logG_gen_pow (e := H.μ) (by unfold VtHonest.μ; omega),
-      logG_gen_pow (e := 7 * (H.n + 1)) (by omega), logG_gen_pow (e := H.n + 1) (by omega)]
+    rw [logG_gen_pow (e := H.μ) (by unfold VtHonest.μ; omega)]
     rfl
   · -- the allocations' pointers
     rw [show (vtPre.filterMap LeanVM.Guest.Memory.Stmt.allocSz).map Prod.fst =
@@ -795,26 +812,29 @@ theorem vt_rel_completeF {H : VtHonest} (h : H.Ok) (hs : VtShape H) (B : VtBases
         simp only [vt_alloc_var hl (v := 778) (by unfold vtAllocVars; simp)]
       · exact ⟨_, mL, by simp only [p 17 (by norm_num)]; rfl, le_rfl⟩
       · exact ⟨_, mB, by simp only [p 19 (by norm_num)]; rfl, le_rfl⟩
-    have mR108 : (w 2626, 7 * (H.n + 1)) ∈ H.bufs B := by
+    have mR108 : (w 2620, 245) ∈ H.bufs B := by
       have := own' 108 (by norm_num) _ vtAllocVars_Z.1 _ (ownW_getD_Z H B (k := 0) (by norm_num))
-      rwa [List.getD_cons_zero, zcRoundsW_len (cap0_length H) H.n] at this
-    have mR109 : (w 2629, H.n + 1) ∈ H.bufs B := by
+      have e : min 245 (7 * (H.n + 1)) + (245 - 7 * (H.n + 1)) = 245 := by omega
+      simpa [zcRoundsW_len (cap0_length H), List.length_take, e] using this
+    have mR109 : (w 2621, 35) ∈ H.bufs B := by
       have := own' 109 (by norm_num) _ vtAllocVars_Z.2.1 _ (ownW_getD_Z H B (k := 1) (by norm_num))
-      simpa [zcCprodW] using this
-    have mR110 : (w 2633, 34) ∈ H.bufs B := by
+      have e : min 35 (H.n + 1) + (34 - H.n) = 35 := by omega
+      simpa [zcCprodW, List.length_take, e] using this
+    have mR110 : (w 2625, 34) ∈ H.bufs B := by
       have := own' 110 (by norm_num) _ vtAllocVars_Z.2.2.1 _ (ownW_getD_Z H B (k := 2) (by norm_num))
       have e : min 34 H.n + (34 - H.n) = 34 := by omega
       simpa [zcRkW, List.length_take, e] using this
-    have mR111 : (w 2651, H.n + 1) ∈ H.bufs B := by
+    have mR111 : (w 2641, 35) ∈ H.bufs B := by
       have := own' 111 (by norm_num) _ vtAllocVars_Z.2.2.2 _ (ownW_getD_Z H B (k := 3) (by norm_num))
-      simpa using this
-    have LZ := vtZ_inBuf (rd := rd) hl hw.w2544 (bufs := H.bufs B) mR108 mR109
+      have e : min 35 (H.n + 1) + (34 - H.n) = 35 := by omega
+      simpa [List.length_take, e] using this
+    have LZ := vtZ_inBuf (rd := rd) hl hw.w2544 hn34 (bufs := H.bufs B) mR108 mR109
     have LF := vtF_loadsInBuf (rd := rd) (w := w) hl (bufs := H.bufs B)
       ⟨_, mF, 0, by rw [p 13 (by norm_num), pow_zero, mul_one]; rfl, by omega⟩
       ⟨_, mCu, 13 + 1 + 3 * H.n, by
         rw [z2647, h1897]; ring, by omega⟩
       hkbt z2544 (fun t ht ↦ vt_n_ge hr ht)
-      (BufWin.of_mem (by rw [z2630]; exact mR109)) (BufWin.of_mem (by rw [z2651]; exact mR111))
+      ⟨_, mR109, 0, by rw [z2630]; simp, by omega⟩ ⟨_, mR111, 0, by rw [z2651]; simp, by omega⟩
     have LT := vtZt_inBuf (rd := rd) (w := w) (args := H.args B) (bufs := H.bufs B)
       (by rw [p 15 (by norm_num)]; exact mP)
     intro d p' off hs

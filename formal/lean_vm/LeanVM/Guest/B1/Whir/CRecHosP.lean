@@ -51,8 +51,8 @@ theorem open_stacked_completeAtBP : open_stacked_completeAtBP_Spec := by
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
-/-- **`verify_sub` is complete on an honest child within its own bound by a node popping `childHints` past its
-advised sizes**, stream by stream, on segments whose query steps are the child's (`child_segments_steps`). -/
+/-- **`verify_sub` is complete on an honest child within its own bound by a node popping `childHints`**, stream by
+stream, on segments whose query steps are the child's (`child_segments_steps`). -/
 theorem verify_sub_completeBTS {bytecode : List K} (hbl : bytecode.length = 2 ^ 23)
     (hrf : Lift.RunsFit fs cert) (hcons : RunsConsec cert) (W : VsWordsOs fs) {Bvk κ : ℕ}
     (hκ : 16 ≤ κ) (hvk : VkCompleteAtBK fs cert κ Bvk) {seed : Digest} {c : Child}
@@ -63,7 +63,7 @@ theorem verify_sub_completeBTS {bytecode : List K} (hbl : bytecode.length = 2 ^ 
     (hexp : ∀ q ∈ vsExpLin sqE, q ∈ Lin) (hout : (outE, DeferredBytecodeClaim.cells c.freshClaim) ∈ Lin) :
     CompleteAtDTBR fs cert κ "verify_sub" Lin (vsArgs seed c sqE outE) (Returns [])
       (fun rd t ↦ vsTsAny fs W Bvk S.μs S.rate t ∧
-        SameStreams (t.pops coreProgram rd) ((Hints.childHints bytecode seed c).drop 4))
+        SameStreams (t.pops coreProgram rd) (Hints.childHints bytecode seed c))
       (vsBoundAt W Bvk S.μs S.rate) :=
   verify_sub_completeBTP hbl hrf hcons W hκ hvk S sqE outE Lin hst hexp hout
     fun bs pv ↦ vs_hos_of open_stacked_completeAtBP S hS hrz (by omega) hrf hcons W bs sqE pv

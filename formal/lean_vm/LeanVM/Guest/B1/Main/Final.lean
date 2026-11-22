@@ -167,7 +167,7 @@ theorem main_sound_C {bytecode : List K}
         exact h6
       rw [ite_neg' hne]
       obtain ⟨htab, hcall⟩ := MF.agg h6
-      have hwin : WinTabs rd (σ (.n (val% «main» "s56.e.s0#1"))) := by
+      have hwin : WinTabs rd (σ (.n (val% «main» "s63.e.s0#1"))) := by
         rw [htab, word_g236]; exact winTabs_of_expWinTab MF.win
       obtain ⟨out, hol, hor, hb⟩ := cw.agg _ _ _ _ _ _ hcall hwin (lg σ 6) (by omega) MF.kids.2
         MF.kids.1

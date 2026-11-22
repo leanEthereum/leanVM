@@ -4,22 +4,22 @@
 //! reserves in execution order, so a `HeapBuf` a function allocates after a call would land past
 //! that callee's subtree. Here its hint moves to just before the function's first call, which
 //! changes no instruction: every `HeapBuf` pointer is a fresh cell only its hint writes. A buffer
-//! whose size is not known there, or that not every run reaches, is reserved there from advice
-//! ([`RHint::AllocAdvice`] on [`HEAP_SIZE_STREAM`](crate::HEAP_SIZE_STREAM)), its own hint then
-//! marked late ([`RHint::AllocLate`]), which checks that the advice reserved it, at its size.
+//! whose size is not known there, or that not every run reaches, is a compile error.
 
 use super::*;
 use std::collections::HashSet;
 
 /// Where a frame or `HeapBuf` reservation was queued ([`FnLower::reserve`]). The arms of a
 /// `match` share cells, so two reservations may share a pointer cell, but then also their site.
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub(super) struct Site {
     depth: u32,
     /// Where the statement at depth `0` holding it starts.
     stmt_start: usize,
     /// The source line of its statement.
     line: u32,
+    /// The name its statement binds.
+    name: Option<String>,
 }
 
 impl FnLower<'_> {
@@ -29,6 +29,7 @@ impl FnLower<'_> {
             depth: self.depth,
             stmt_start: self.stmt_start,
             line: self.cur_line,
+            name: self.let_name.clone(),
         };
         let (ptr, _) = reservation(&hint).expect("a frame or `HeapBuf` reservation");
         self.reservations.insert(ptr, site);
@@ -36,17 +37,16 @@ impl FnLower<'_> {
     }
 
     /// Move the `HeapBuf` reservations that follow this function's first call to just before it,
-    /// keeping their order. One that cannot move, being in a branch, past a `return`, or sized by a
-    /// cell not written by then, is reserved there from advice instead, once per pointer cell.
-    /// The source lines of those, in order.
-    pub(super) fn hoist_heap_bufs(&mut self) -> Vec<u32> {
+    /// keeping their order. `Err` names one that cannot move, being in a branch, past a `return`, or
+    /// sized by a cell not written by then.
+    pub(super) fn hoist_heap_bufs(&mut self) -> Result<(), String> {
         // Each reservation in code order: where it is, whether a callee's frame, its site.
         let sites: Vec<(usize, usize, bool, Site)> = (self.code.iter().enumerate())
             .flat_map(|(i, ins)| ins.hints.iter().enumerate().map(move |(j, h)| (i, j, h)))
-            .filter_map(|(i, j, h)| reservation(h).map(|(ptr, frame)| (i, j, frame, self.reservations[&ptr])))
+            .filter_map(|(i, j, h)| reservation(h).map(|(ptr, frame)| (i, j, frame, self.reservations[&ptr].clone())))
             .collect();
-        let Some(&(i, j, _, first)) = sites.iter().find(|s| s.2) else {
-            return Vec::new();
+        let Some((i, j, _, first)) = sites.iter().find(|s| s.2).cloned() else {
+            return Ok(());
         };
         // The first call's reservation, or the start of the statement whose branch holds it.
         let at = if first.depth == 0 {
@@ -63,56 +63,35 @@ impl FnLower<'_> {
             written.extend(touched(&ins.op));
         }
         written.extend(self.code[at.0].hints[..at.1].iter().flat_map(hint_writes));
-        // The hints that go to `at`, in order: a moved one by where it was, or advice.
-        let mut hoisted: Vec<Result<(usize, usize), Off>> = Vec::new();
-        let mut advised = Vec::new();
-        for &(i, j, _, site) in sites.iter().filter(|s| !s.2 && (s.0, s.1) >= at) {
-            let (ptr, _) = reservation(&self.code[i].hints[j]).expect("a reservation");
+        let mut moved: Vec<(usize, usize)> = Vec::new();
+        for (i, j, _, site) in sites.iter().filter(|s| !s.2 && (s.0, s.1) >= at) {
+            let (i, j) = (*i, *j);
             let reached = site.depth == 0 && !self.returns.iter().any(|&r| at.0 <= r && r < i);
             // A runtime size must be written before `at`, or be a constant `g^k`.
             let sized = match self.code[i].hints[j] {
-                Hint::AllocBufferDyn { size, .. } if !written.contains(&size) => self
-                    .constant_exponent(size, i)
-                    .map(|k| Hint::AllocBuffer { ptr, size: k }),
+                Hint::AllocBufferDyn { ptr, size } if !written.contains(&size) => {
+                    (self.constant_exponent(size, i)).map(|k| Hint::AllocBuffer { ptr, size: k })
+                }
                 ref h => Some(h.clone()),
             };
-            match sized {
-                Some(h) if reached => {
-                    self.code[i].hints[j] = h;
-                    hoisted.push(Ok((i, j)));
-                }
-                _ => {
-                    // Its own hint stays, marked late: it checks the advised size.
-                    self.code[i].hints[j] = late(&self.code[i].hints[j]);
-                    if !hoisted.contains(&Err(ptr)) {
-                        hoisted.push(Err(ptr));
-                        advised.push(site.line);
-                    }
-                }
-            }
+            let Some(sized) = sized.filter(|_| reached) else {
+                return Err(format!(
+                    "line {}: `HeapBuf` `{}` in `{}` follows the function's first call (line {}): it must be \
+                     allocated on every path, its size computed before that call",
+                    site.line,
+                    site.name.as_deref().unwrap_or("?"),
+                    self.fn_name,
+                    first.line
+                ));
+            };
+            self.code[i].hints[j] = sized;
+            moved.push((i, j));
         }
-        let moved_ptrs: HashSet<Off> = (hoisted.iter().filter_map(|h| h.ok()))
-            .filter_map(|(i, j)| reservation(&self.code[i].hints[j]).map(|(ptr, _)| ptr))
-            .collect();
-        assert!(
-            hoisted
-                .iter()
-                .all(|h| h.err().is_none_or(|ptr| !moved_ptrs.contains(&ptr))),
-            "a `HeapBuf` pointer both moved and reserved from advice"
-        );
-        // Removed last first, so that `pop` yields them in order.
-        let moved = hoisted.iter().filter_map(|h| h.ok());
-        let mut taken: Vec<Hint> = moved.rev().map(|(i, j)| self.code[i].hints.remove(j)).collect();
-        let hints = hoisted.into_iter().map(|h| match h {
-            Ok(_) => taken.pop().expect("a moved hint"),
-            Err(ptr) => Hint::Resolved(RHint::AllocAdvice {
-                ptr,
-                stream: crate::HEAP_SIZE_STREAM.to_string(),
-            }),
-        });
-        let hints: Vec<Hint> = hints.collect();
+        // Removed last first, so that the earlier positions stay valid.
+        let mut hints: Vec<Hint> = moved.iter().rev().map(|&(i, j)| self.code[i].hints.remove(j)).collect();
+        hints.reverse();
         self.code[at.0].hints.splice(at.1..at.1, hints);
-        advised
+        Ok(())
     }
 
     /// The `k` with `g^k` in `cell` by a `SET` at depth `0` before instruction `before`.
@@ -134,16 +113,6 @@ fn reservation(h: &Hint) -> Option<(Off, bool)> {
         Hint::AllocBuffer { ptr, .. } | Hint::AllocBufferDyn { ptr, .. } => Some((ptr, false)),
         _ => None,
     }
-}
-
-/// A `HeapBuf` reservation's late form ([`RHint::AllocLate`]).
-fn late(h: &Hint) -> Hint {
-    let (ptr, size) = match *h {
-        Hint::AllocBuffer { ptr, size } => (ptr, BufSize::Cells(size)),
-        Hint::AllocBufferDyn { ptr, size } => (ptr, BufSize::Exp(size)),
-        _ => unreachable!("a `HeapBuf` reservation"),
-    };
-    Hint::Resolved(RHint::AllocLate { ptr, size })
 }
 
 /// The frame cells a hint writes, of those a `HeapBuf` size may be.

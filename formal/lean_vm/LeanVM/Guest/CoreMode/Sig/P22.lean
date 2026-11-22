@@ -37,6 +37,11 @@ noncomputable def Fn.«block_selector__L19».csig : Mode.Sig :=
     18, [((.fr 3), 1)]⟩, ⟨0, 18, [((.fr 4), 1)]⟩]]), [], [], [5, 6], [], [⟨⟨0, 0, [((.fr 2), 1)]⟩,
     (.num 0), (.num 19), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 19), 1, 0⟩, ⟨⟨0, 0, [((.fr
     4), 1)]⟩, (.num 0), (.num 19), 1, 0⟩], [], [], [], [], [], [], []⟩
+noncomputable def Fn.«claim_list_chain».csig : Mode.Sig :=
+  ⟨Fn.«claim_list_chain».entry, [0, 1, 2, 3, 4, 5, 6], none, [], [], [], [7, 8], [], [⟨⟨0, 0,
+    [((.fr 2), 1)]⟩, (.num 0), (.ex (.fr 3) 0), 4, 0⟩, ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.ex (.fr
+    3) 0), 4, 1⟩, ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.ex (.fr 3) 0), 4, 2⟩, ⟨⟨0, 0, [((.fr 2),
+    1)]⟩, (.num 0), (.ex (.fr 3) 0), 4, 3⟩], [], [], [], [], [], [], []⟩
 noncomputable def Fn.«da_levels__L32_L5_loop0».csig : Mode.Sig :=
   ⟨Fn.«da_levels__L32_L5_loop0».entry, [0, 1, 2, 3, 4], (some 5), [], [⟨⟨0, 0, [((.fr 4), 1)]⟩,
     (.ex (.fr 2) 0), (.ex (.fr 3) 0), 4, 0⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3)

@@ -95,7 +95,7 @@ structure VtBases where
 def vtAllocVars : List ℕ :=
   [34, 35, 36, 37, 665, 700, 702, 703, 778] ++ (List.range 3).map (fun b ↦ vtFwW b + 6) ++
     (List.range 51).map (fun i ↦ (vtPushSel.getD i default).2.2.1) ++
-    (List.range 45).map (fun i ↦ (vtCountSel.getD i default).2.2.1) ++ [2626, 2629, 2633, 2651]
+    (List.range 45).map (fun i ↦ (vtCountSel.getD i default).2.2.1) ++ [2620, 2621, 2625, 2641]
 
 theorem vtAllocVars_length : vtAllocVars.length = 112 := by decide
 
@@ -156,7 +156,7 @@ noncomputable def linL : TLay :=
 /-- The own buffers' sizes, in allocation order. -/
 def sizes : List ℕ :=
   [24, 24, 24, 24, 34, H.μ, 1728, 864, 153, 34, 34, 34] ++ List.replicate 96 9 ++
-    [7 * (H.n + 1), H.n + 1, 34, H.n + 1]
+    [245, 35, 34, 35]
 
 /-- **The own buffers' honest words**, in allocation order. -/
 noncomputable def ownW : List (List E) :=
@@ -167,10 +167,12 @@ noncomputable def ownW : List (List E) :=
       (H.τ (vtPushSel.getD i default).2.2.2.1)) ++
     (List.range 45).map (fun i ↦ offDigits (H.offC.getD i 0)
       (H.τ (vtCountSel.getD i default).2.2.2.1)) ++
-    [zcRoundsW H.cap0 H.target (ofK (addressOfIndex B.cur) * gen ^ 13 * gen) H.xsR H.n,
-      zcCprodW H.cap0 H.target H.xsR H.n, (zcRkW H.cap0 H.target H.xsR H.n).take 34 ++
-        List.replicate (34 - H.n) 0,
-      (List.range (H.n + 1)).map (prefixProd 1 H.chiW ((H.point.map (1 + ·)).take H.n))]
+    [(zcRoundsW H.cap0 H.target (ofK (addressOfIndex B.cur) * gen ^ 13 * gen) H.xsR H.n).take 245 ++
+        List.replicate (245 - 7 * (H.n + 1)) 0,
+      (zcCprodW H.cap0 H.target H.xsR H.n).take 35 ++ List.replicate (35 - (H.n + 1)) 0,
+      (zcRkW H.cap0 H.target H.xsR H.n).take 34 ++ List.replicate (34 - H.n) 0,
+      ((List.range (H.n + 1)).map (prefixProd 1 H.chiW ((H.point.map (1 + ·)).take H.n))).take 35 ++
+        List.replicate (35 - (H.n + 1)) 0]
 
 /-- The own buffers' bases. -/
 def ownB : List ℕ := LeanVM.Guest.Memory.bases B.own H.sizes

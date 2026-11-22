@@ -4,7 +4,7 @@
 use std::collections::HashMap;
 use std::mem::take;
 
-use super::hints::{BitsDest, BufSize, GPow, MAX_CELLS, MAX_INDEX, RHint, bounded_dlog};
+use super::hints::{BitsDest, GPow, MAX_CELLS, MAX_INDEX, RHint, bounded_dlog};
 use super::trace::{RowSet, Table};
 use super::*;
 use crate::keccak::Steps;
@@ -341,9 +341,7 @@ impl<'a> Plan<'a> {
                 .iter()
                 .flat_map(|&(hs, ..)| hs)
                 .map(|h| match h {
-                    RHint::WitnessStack { name, .. }
-                    | RHint::WitnessHeap { name, .. }
-                    | RHint::AllocAdvice { stream: name, .. } => {
+                    RHint::WitnessStack { name, .. } | RHint::WitnessHeap { name, .. } => {
                         let s = *index.entry(name).or_insert_with(|| {
                             names.push((name.as_str(), 0));
                             names.len() as u32 - 1
@@ -441,8 +439,6 @@ pub(super) struct Run<'w> {
     pub(super) next_free: u32,
     pub(super) steps: usize,
     pub(super) streams: Vec<Stream<'w>>,
-    /// Each `HeapBuf` reserved from advice: its pointer cell and cell count.
-    pub(super) advised: Vec<(u32, u32)>,
     /// Per-pc execution count, as an exponent of `g`.
     pub(super) bytecode_count: Vec<u32>,
     pub(super) rows: RowSet,
@@ -459,7 +455,6 @@ impl<'w> Run<'w> {
             next_free,
             steps: 0,
             streams,
-            advised: Vec::new(),
             bytecode_count: vec![0; pcs],
             rows: RowSet::new(),
             prof: None,
@@ -496,12 +491,6 @@ pub(super) trait Machine {
     /// Whether the walk has to stop: a segment met what it cannot run alone.
     #[inline(always)]
     fn abandoned(&self) -> bool {
-        false
-    }
-    /// A late `HeapBuf` hint whose advice this walk has not seen: a segment leaves it to its merge, which checks it
-    /// against the advice before the segment (whether it did).
-    #[inline(always)]
-    fn defer_late(&mut self, _cell: u32, _size: u32) -> bool {
         false
     }
     fn g_note(&mut self, k: usize);
@@ -947,7 +936,6 @@ pub(super) fn walk<M: Machine>(
     let (mut pc, mut fp, mut next_free, mut steps) = (r.pc, r.fp, r.next_free, r.steps);
     let (mut streams, mut bytecode_count, mut prof) =
         (take(&mut r.streams), take(&mut r.bytecode_count), r.prof.take());
-    let mut advised = take(&mut r.advised);
     let RowSet {
         mut xor,
         mut mul,
@@ -998,9 +986,7 @@ pub(super) fn walk<M: Machine>(
                     RHint::AllocFrames { .. } => "AllocFrames",
                     RHint::Alloc { .. } => "Alloc",
                     RHint::AllocDyn { .. } => "AllocDyn",
-                    RHint::AllocAdvice { .. } => "AllocAdvice",
                     RHint::AllocArm { .. } => "AllocArm",
-                    RHint::AllocLate { .. } => "AllocLate",
                     RHint::CellAddress { .. } => "CellAddress",
                     RHint::WitnessStack { .. } => "WitnessStack",
                     RHint::WitnessHeap { .. } => "WitnessHeap",
@@ -1026,14 +1012,11 @@ pub(super) fn walk<M: Machine>(
                     // A fresh region: write its base `g^{next_free}` into the
                     // pointer cell (once) and reserve `size` cells, the last below
                     // `MAX_CELLS`. `AllocDyn` and `AllocArm` read the size from a cell
-                    // at runtime, `AllocAdvice` pops it from a stream. `AllocLate`
-                    // reserves nothing: its buffer was reserved from advice, at its size.
+                    // at runtime.
                     RHint::Alloc { .. }
                     | RHint::AllocDyn { .. }
-                    | RHint::AllocAdvice { .. }
                     | RHint::AllocFrames { .. }
-                    | RHint::AllocArm { .. }
-                    | RHint::AllocLate { .. } => {
+                    | RHint::AllocArm { .. } => {
                         let dyn_size = |m: &mut M, size: u32| {
                             let sz = in_k("HeapBuf size", m.get(at(fp, size)?)).map_err(fail)?;
                             m.g_log(sz).ok_or_else(|| {
@@ -1043,7 +1026,6 @@ pub(super) fn walk<M: Machine>(
                                 })
                             })
                         };
-                        let late = matches!(h, RHint::AllocLate { .. });
                         let (ptr, size) = match *h {
                             RHint::Alloc { ptr, size } => (ptr, size),
                             RHint::AllocFrames {
@@ -1051,7 +1033,6 @@ pub(super) fn walk<M: Machine>(
                                 size,
                                 end,
                                 start_inverse,
-                                tail,
                             } => {
                                 let span =
                                     in_k("loop bound", m.get(at(fp, end)?)).map_err(fail)? * F64(start_inverse.0);
@@ -1067,39 +1048,12 @@ pub(super) fn walk<M: Machine>(
                                         value: span,
                                     })
                                 })?;
-                                let cells = size.checked_mul(n).and_then(|frames| frames.checked_add(tail));
+                                let cells = n.checked_add(1).and_then(|frames| size.checked_mul(frames));
                                 (ptr, cells.ok_or_else(|| fail(Fault::OutOfMemory))?)
                             }
                             // A runtime size is carried in the exponent:
                             // the cell holds g^k, allocate k cells.
                             RHint::AllocDyn { ptr, size } => (ptr, dyn_size(m, size)?),
-                            RHint::AllocLate { ptr, size } => match size {
-                                BufSize::Cells(n) => (ptr, n),
-                                BufSize::Exp(size) => (ptr, dyn_size(m, size)?),
-                            },
-                            // An empty entry: the run allocates no buffer here.
-                            RHint::AllocAdvice { ptr, .. } => {
-                                let sz = match streams[stream as usize].next().map_err(fail)? {
-                                    [] => {
-                                        m.hint(None);
-                                        continue;
-                                    }
-                                    &[size] => in_k("HeapBuf size advice", size).map_err(fail)?,
-                                    entry => {
-                                        return Err(fail(Fault::Witness(format!(
-                                            "a HeapBuf size advice holds {} values, not 0 or 1",
-                                            entry.len()
-                                        ))));
-                                    }
-                                };
-                                let cells = m.g_log(sz).ok_or_else(|| {
-                                    fail(Fault::NotAGPower {
-                                        what: "HeapBuf size advice",
-                                        value: sz,
-                                    })
-                                })?;
-                                (ptr, cells)
-                            }
                             RHint::AllocArm { ptr, sel, ref sizes } => {
                                 let x = in_k("dispatch selector", m.get(at(fp, sel)?)).map_err(fail)?;
                                 let bad = || {
@@ -1114,32 +1068,16 @@ pub(super) fn walk<M: Machine>(
                             _ => unreachable!(),
                         };
                         let cell = at(fp, ptr)?;
-                        if late {
-                            if !m.written(cell) {
-                                return Err(fail(Fault::Witness(format!(
-                                    "the HeapBuf at cell {cell} was not reserved from advice"
-                                ))));
-                            }
-                            if !advised.contains(&(cell, size)) && !m.defer_late(cell, size) {
-                                return Err(fail(Fault::Witness(format!(
-                                    "the HeapBuf at cell {cell} has {size} cells, not its advised size"
-                                ))));
-                            }
-                        } else {
-                            let base = next_free;
-                            next_free = run_at(base, size, 0).map_err(fail)?;
-                            m.g_grow(next_free as usize);
-                            // The base is about to become a pointer in memory.
-                            m.g_note(base as usize);
-                            if next_free > base {
-                                m.ensure(next_free as usize - 1);
-                            }
-                            let p = m.g_pow(base as usize);
-                            m.put(cell, F128::from(p))?;
-                            if matches!(h, RHint::AllocAdvice { .. }) {
-                                advised.push((cell, size));
-                            }
+                        let base = next_free;
+                        next_free = run_at(base, size, 0).map_err(fail)?;
+                        m.g_grow(next_free as usize);
+                        // The base is about to become a pointer in memory.
+                        m.g_note(base as usize);
+                        if next_free > base {
+                            m.ensure(next_free as usize - 1);
                         }
+                        let p = m.g_pow(base as usize);
+                        m.put(cell, F128::from(p))?;
                     }
                     RHint::Print { label, cell } => {
                         let c = at(fp, *cell)?;
@@ -1494,7 +1432,7 @@ pub(super) fn walk<M: Machine>(
         steps += 1;
     };
     (r.pc, r.fp, r.next_free, r.steps) = (pc, fp, next_free, steps);
-    (r.streams, r.bytecode_count, r.prof, r.advised) = (streams, bytecode_count, prof, advised);
+    (r.streams, r.bytecode_count, r.prof) = (streams, bytecode_count, prof);
     r.rows = RowSet {
         xor,
         mul,

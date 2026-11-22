@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Main.MainPushes
 
-  On an honest run, `main`'s entries (`mainOwnPops`) are `Hints.honestPushes`' but the advised `HeapBuf` sizes, stream by stream, given its callees' entries against their segments.
+  On an honest run, `main`'s entries (`mainOwnPops`) are `Hints.honestPushes`', stream by stream, given its callees' entries against their segments.
 -/
 
 module
@@ -13,9 +13,8 @@ public import LeanVM.Guest.B1.Main.MainHonestFit
 /-!
 # `main`'s entries against the honest pushes
 
-* `SameStreamsBut h a b`: `a` and `b` agree on every stream but `h`; `SameStreamsBut.sameStreams`: with `a` popping nothing of `h`, `a` is `b` without `h`, stream by stream;
 * `levelHints_names`, `childSeg_names`: the children's segment pops no LeanDA stream;
-* `main_pops_honest`: `main`'s entries at the honest oracle, its callees' agreeing with their segments of `honestPushes` (the children's but the advised sizes), agree with `honestPushes` on every stream but `heap_sizes`.
+* `main_pops_honest`: `main`'s entries at the honest oracle, its callees' agreeing with their segments of `honestPushes`, agree with `honestPushes` stream by stream.
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -25,51 +24,9 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier LeanVM.Protocol.KeccakHash LeanVM.
 
 @[expose] public section
 
-/-! ## Agreeing on all streams but one -/
-
-/-- **`a` and `b` agree on every stream but `h`.** -/
-def SameStreamsBut (h : String) (a b : List Pop) : Prop := ∀ s, s ≠ h → a.filter (·.1 == s) = b.filter (·.1 == s)
-
-section But
-
-variable {h : String} {a b c d : List Pop}
-
-theorem sameStreamsBut_of (e : SameStreams a b) : SameStreamsBut h a b := fun s _ => e s
-
-theorem SameStreamsBut.refl (a : List Pop) : SameStreamsBut h a a := fun _ _ => rfl
-
-theorem SameStreamsBut.symm (e : SameStreamsBut h a b) : SameStreamsBut h b a := fun s hs => (e s hs).symm
-
-theorem SameStreamsBut.trans (e : SameStreamsBut h a b) (e' : SameStreamsBut h b c) : SameStreamsBut h a c :=
-  fun s hs => (e s hs).trans (e' s hs)
-
-theorem SameStreamsBut.append (e : SameStreamsBut h a b) (e' : SameStreamsBut h c d) :
-    SameStreamsBut h (a ++ c) (b ++ d) :=
-  fun s hs => by rw [List.filter_append, List.filter_append, e s hs, e' s hs]
-
-theorem SameStreamsBut.cons (x : Pop) (e : SameStreamsBut h a b) : SameStreamsBut h (x :: a) (x :: b) :=
-  (SameStreamsBut.refl [x]).append e
-
-/-- Entries of the stream `h` alone vanish. -/
-theorem sameStreamsBut_drop (hx : ∀ p ∈ c, p.1 = h) : SameStreamsBut h (c ++ a) a := fun s hs => by
-  rw [List.filter_append, List.filter_eq_nil_iff.mpr fun p hp => by rw [hx p hp]; simpa using hs.symm,
-    List.nil_append]
-
-/-- **Without `h` on one side**, agreeing on every other stream is agreeing with the other side without `h`. -/
-theorem SameStreamsBut.sameStreams (e : SameStreamsBut h a b) (ha : ∀ p ∈ a, p.1 ≠ h) :
-    SameStreams a (b.filter (·.1 != h)) := fun s => by
-  by_cases hs : s = h
-  · subst hs
-    rw [List.filter_eq_nil_iff.mpr fun p hp => by simpa using ha p hp, List.filter_filter]
-    exact (List.filter_eq_nil_iff.mpr fun p _ => by simp only [Bool.and_eq_true, bne_iff_ne, beq_iff_eq]; tauto).symm
-  · rw [e s hs, List.filter_filter]
-    congr 1
-    funext p
-    by_cases hp : p.1 = s
-    · simp [hp, hs]
-    · simp [hp]
-
-end But
+/-- A push on both sides keeps them agreeing. -/
+theorem SameStreams.cons {a b : List Pop} (x : Pop) (e : SameStreams a b) : SameStreams (x :: a) (x :: b) :=
+  (SameStreams.refl [x]).append e
 
 /-! ## Stream names -/
 
@@ -90,7 +47,7 @@ theorem daHints_names (c : DaClaim) (w : Da.MatrixWitness) : ∀ p ∈ Hints.daH
 /-- The children's streams. -/
 def childNames : List String :=
   ["child_meta", "signers_split", "child_mono", "child_claim_gap", "child_claim_index", "child_defer", "child_da",
-    "heap_sizes", "stream", "zc_tau_max", "table_logs", "col_group_order", "block_group_order", "merkle_leaf_rows",
+    "stream", "zc_tau_max", "table_logs", "col_group_order", "block_group_order", "merkle_leaf_rows",
     "merkle_children", "merkle_caps", "merkle_cap_active"]
 
 theorem levelHints_names (first : Bool) (depth count : ℕ) (phase : List Opening) :
@@ -121,7 +78,7 @@ theorem childHints_names (bytecode : List K) (seed : Digest) (c : Child) :
     · revert hp
       revert p
       simp only [childNames] at hq ⊢
-      simp [Hints.heapSizeEntry, Hints.heapSizeStream]
+      simp
       intro a b h _
       simpa using hq (a, b) h
     · exact hq p hp
@@ -162,7 +119,7 @@ theorem childSeg_names (bytecode : List K) (seed : Digest) (s : NodeStatement) (
 
 theorem not_da_of_child {x : String} (h : x ∈ childNames) : x ∉ daNames := by
   simp only [childNames, List.mem_cons, List.not_mem_nil, or_false] at h
-  rcases h with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
+  rcases h with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
     simp [daNames]
 
 /-! ## `main`'s entries -/
@@ -217,9 +174,9 @@ theorem tail_sameStreams :
     · exact fun e => (leafSeg_names q hq).2 e.symm
     · exact fun e => hda q hq e.symm
 
-/-- **`main`'s entries are the honest pushes, but the advised sizes**, stream by stream, its callees' agreeing with
-their segments: the claim lists', the duplicates', the raw signatures', the DA check's, the children's (but the advised
-sizes), the batching's; `exponent_tables` and `statement_digest` popping nothing. -/
+/-- **`main`'s entries are the honest pushes**, stream by stream, its callees' agreeing with their segments: the claim
+lists', the duplicates', the raw signatures', the DA check's, the children's, the batching's; `exponent_tables` and
+`statement_digest` popping nothing. -/
 theorem main_pops_honest (fs : String → ℕ) (fp : ℕ) (hl : GuestLimits s w)
     {pe px ps p0 p1 p2 p3 pd p5 pa pst : List Pop} (he : pe = []) (hst : pst = [])
     (hx : SameStreams px (Hints.listPushes "claims"
@@ -234,9 +191,9 @@ theorem main_pops_honest (fs : String → ℕ) (fp : ℕ) (hl : GuestLimits s w)
     (h3 : SameStreams p3 ((w.sphincsSignatures.zip (sPlan s w).directSlots).flatMap
       (fun (c, slot) ↦ ("sp_raw_index", [Hints.count slot]) :: Hints.sphincsHints c.1.1 c.1.2 c.2)))
     (hd : w.daMatrix.isSome → SameStreams pd (daSeg w))
-    (h5 : SameStreamsBut Hints.heapSizeStream p5 (childSeg bytecode seed s w))
+    (h5 : SameStreams p5 (childSeg bytecode seed s w))
     (ha : w.children ≠ [] → SameStreams pa (Hints.batchPushes w.batchingHints)) :
-    SameStreamsBut Hints.heapSizeStream (mainOwnPops (hm fs fp seed s w) pe px ps p0 p1 p2 p3 pd p5 pa pst)
+    SameStreams (mainOwnPops (hm fs fp seed s w) pe px ps p0 p1 p2 p3 pd p5 pa pst)
       (Hints.honestPushes bytecode seed s w) := by
   have hb : MainBounds (2 ^ 23) (hm fs fp seed s w) := hData_bounds hl fs fp
   have hmeta : (hm fs fp seed s w).cnt.map (gen ^ ·) = [Hints.count s.claims.xmss.length,
@@ -277,7 +234,6 @@ theorem main_pops_honest (fs : String → ℕ) (fp : ℕ) (hl : GuestLimits s w)
       Hints.count (sPlan s w).duplicates.length, Hints.count w.sphincsSignatures.length,
       Hints.count w.children.length, Hints.count ((w.daMatrix.map fun _ ↦ 1).getD 0)]),
       ("fs_seed", Hints.digestCells seed)] ++
-    (Hints.nodeHeapSizes s w (xPlan s w).duplicates.length (sPlan s w).duplicates.length).map Hints.heapSizeEntry ++
     Hints.listPushes "claims" (s.claims.xmss.map fun c ↦ Hints.claimCells c.1.root c.1.parameter c.2) ++
     Hints.listPushes "claims" (s.claims.sphincs.map fun c ↦ Hints.claimCells c.1.publicSeed c.1.root c.2) ++
     ((xPlan s w).duplicates.map (fun c ↦ Hints.claimCells c.1.root c.1.parameter c.2) ++
@@ -290,17 +246,14 @@ theorem main_pops_honest (fs : String → ℕ) (fp : ℕ) (hl : GuestLimits s w)
     rfl
   rw [hH, mainOwnPops, he, hst, List.nil_append, List.append_nil, hmeta, hpick]
   simp only [List.map_append, List.map_map, List.append_assoc, List.cons_append, List.nil_append]
-  refine SameStreamsBut.cons _ (SameStreamsBut.cons _ ?_)
-  refine ((sameStreamsBut_of hx).append ((sameStreamsBut_of hs).append ((sameStreamsBut_of h0).append ((sameStreamsBut_of h1).append ((sameStreamsBut_of h2).append ((sameStreamsBut_of h3).append
-    ((sameStreamsBut_of hPD).append (h5.append (SameStreamsBut.cons _ (sameStreamsBut_of hLB)))))))))).trans ?_
-  refine (sameStreamsBut_of ?_).trans (sameStreamsBut_drop fun p hp => ?_).symm
-  · refine (SameStreams.refl _).append ((SameStreams.refl _).append ((SameStreams.refl _).append
-      ((SameStreams.refl _).append ((SameStreams.refl _).append ((SameStreams.refl _).append ?_)))))
-    exact tail_sameStreams
-  · obtain ⟨n, -, rfl⟩ := List.mem_map.mp hp
-    rfl
+  refine SameStreams.cons _ (SameStreams.cons _ ?_)
+  refine (hx.append (hs.append (h0.append (h1.append (h2.append (h3.append
+    (hPD.append (h5.append (SameStreams.cons _ hLB))))))))).trans ?_
+  refine (SameStreams.refl _).append ((SameStreams.refl _).append ((SameStreams.refl _).append
+    ((SameStreams.refl _).append ((SameStreams.refl _).append ((SameStreams.refl _).append ?_)))))
+  exact tail_sameStreams
 
-/-- **`main`'s node on an honest run pops the honest pushes, but the advised sizes**, stream by stream: at a valuation
+/-- **`main`'s node on an honest run pops the honest pushes**, stream by stream: at a valuation
 with `main`'s honest values, its callees popping entries agreeing with their segments (`main_pops_honest`). -/
 theorem main_tree_pops_honest (fs : String → ℕ) (fp : ℕ) (hl : GuestLimits s w) {rd : Reader} {σ : Val}
     {bufs : List ℕ} {ks : List Tree} {pe px ps p0 p1 p2 p3 pd p5 pa pst : List Pop}
@@ -319,9 +272,9 @@ theorem main_tree_pops_honest (fs : String → ℕ) (fp : ℕ) (hl : GuestLimits
     (h3 : SameStreams p3 ((w.sphincsSignatures.zip (sPlan s w).directSlots).flatMap
       (fun (c, slot) ↦ ("sp_raw_index", [Hints.count slot]) :: Hints.sphincsHints c.1.1 c.1.2 c.2)))
     (hd : w.daMatrix.isSome → SameStreams pd (daSeg w))
-    (h5 : SameStreamsBut Hints.heapSizeStream p5 (childSeg bytecode seed s w))
+    (h5 : SameStreams p5 (childSeg bytecode seed s w))
     (ha : w.children ≠ [] → SameStreams pa (Hints.batchPushes w.batchingHints)) :
-    SameStreamsBut Hints.heapSizeStream ((Memory.Tree.node "main" σ bufs ks).pops coreProgram rd)
+    SameStreams ((Memory.Tree.node "main" σ bufs ks).pops coreProgram rd)
       (Hints.honestPushes bytecode seed s w) := by
   have hb : MainBounds (2 ^ 23) (hm fs fp seed s w) := hData_bounds hl fs fp
   rw [main_pops hb.nd hb.nc hv hk]

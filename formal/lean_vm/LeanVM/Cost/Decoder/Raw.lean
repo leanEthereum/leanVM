@@ -80,7 +80,7 @@ theorem l2ArgsD_eq : l2ArgsD = l2Args := by
 
 /-- The words of `aggregate_claims`' call. -/
 def aggArgs (σ : Val) : List E :=
-  [σ (.n (val% «main» "meta[6]")), σ (.n (val% «main» "child_pi")), σ (.n (val% «main» "child_fresh")), σ (.n (val% «main» "child_carried")), σ (.n (val% «main» "defer_stmt")), σ (.n (val% «main» "s56.e.s0#1"))]
+  [σ (.n (val% «main» "meta[6]")), σ (.n (val% «main» "child_pi")), σ (.n (val% «main» "child_fresh")), σ (.n (val% «main» "child_carried")), σ (.n (val% «main» "defer_stmt")), σ (.n (val% «main» "s63.e.s0#1"))]
 
 cost_compile nRawXC := nRawXD
 cost_compile nRawSC := nRawSD

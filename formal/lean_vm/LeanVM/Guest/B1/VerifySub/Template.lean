@@ -141,7 +141,7 @@ def vsPushStep (b : ℕ) : List Stmt :=
 def vsPushT : List Stmt :=
   (List.range 54).flatMap vsPushStep ++
     [vsCall "log2_ceil_in_the_exponent__L0_L34" [252, 4] [253],
-      .atom (.hint (.allocDyn (.n (val% «verify_sub» "zeta")) (.n (val% «verify_sub» "g_bus_mu"))))]
+      vsAlloc (val% «verify_sub» "zeta") 34]
 
 /-- The last four words absorbed, the root's two words read. -/
 def vsRootsT : List Stmt :=

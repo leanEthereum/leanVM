@@ -13,7 +13,7 @@ public import LeanVM.Guest.Bridge.AllocCells
 /-!
 # The cells a hint writes
 
-`UsedOk B C s h`: the cells hint `h` writes from state `s` are below `B`: its frame cells (a pointer
+`UsedOk B s h`: the cells hint `h` writes from state `s` are below `B`: its frame cells (a pointer
 cell, a cell's address, a stack run, a destination cell), the runs from a buffer pointer it reads
 (`PtrAt`), and the cells an allocation reserves from the bump pointer, of the size it reads.
 `usedOk_run`: a hint run from `s.mem.used ≤ B` under `UsedOk B` keeps `used ≤ B` (`put_used`,
@@ -34,19 +34,16 @@ def DstB (B : ℕ) (s : St) : BitsDest → ℕ → ℕ → Prop
   | .heap ptr, pos, n => ∀ b, PtrAt s (s.fp + ptr) b → ∀ k < n, b + pos + k < B
 
 /-- **The cells hint `h` writes from `s` are below `B`.** -/
-def UsedOk (B : ℕ) (C : Ctx) (s : St) : Hint → Prop
+def UsedOk (B : ℕ) (s : St) : Hint → Prop
   | .frameAddress _ => True
   | .alloc p n => s.fp + p < B ∧ s.nextFree + n ≤ B
   | .allocDyn p c => s.fp + p < B ∧ ∀ n, PtrAt s (s.fp + c) n → s.nextFree + n ≤ B
-  | .allocAdvice p S => s.fp + p < B ∧ ∀ n, n < maxCells → StreamNext C s S [ofK (Parameters.g ^ n)] →
-      s.nextFree + n ≤ B
   | .allocArm p sel sizes => s.fp + p < B ∧
       ∀ k n, PtrAt s (s.fp + sel) k → sizes[k]? = some n → s.nextFree + n ≤ B
-  | .allocLate p b => s.fp + p < B ∧ (s.mem.written (s.fp + p) = false → ∀ n, BufOk s b n → s.nextFree + n ≤ B)
   | .cellAddress p _ => s.fp + p < B
-  | .allocFrames p size stop si tail => s.fp + p < B ∧
+  | .allocFrames p size stop si => s.fp + p < B ∧
       ∀ v n, n < maxCells → s.mem.peek (s.fp + stop) = ofK v → v * si = Parameters.g ^ n →
-        s.nextFree + (size * n + tail) ≤ B
+        s.nextFree + size * (n + 1) ≤ B
   | .witnessStack _ base len => ∀ k < len, s.fp + base + k < B
   | .witnessHeap _ ptr lo len => ∀ b, PtrAt s (s.fp + ptr) b → ∀ k < len, b + lo + k < B
   | .log2Ceil _ dst _ _ => s.fp + dst < B
@@ -67,14 +64,12 @@ def HeapB (B : ℕ) (s : St) : Hint → Prop
   | _ => True
 
 /-- **The cells allocation hint `h` reserves from `s` are below `B`**, of the size it reads. -/
-def AllocB (B : ℕ) (C : Ctx) (s : St) : Hint → Prop
+def AllocB (B : ℕ) (s : St) : Hint → Prop
   | .alloc _ n => s.nextFree + n ≤ B
   | .allocDyn _ c => ∀ n, PtrAt s (s.fp + c) n → s.nextFree + n ≤ B
-  | .allocAdvice _ S => ∀ n, n < maxCells → StreamNext C s S [ofK (Parameters.g ^ n)] → s.nextFree + n ≤ B
   | .allocArm _ sel sizes => ∀ k n, PtrAt s (s.fp + sel) k → sizes[k]? = some n → s.nextFree + n ≤ B
-  | .allocLate p b => s.mem.written (s.fp + p) = false → ∀ n, BufOk s b n → s.nextFree + n ≤ B
-  | .allocFrames _ size stop si tail => ∀ v n, n < maxCells → s.mem.peek (s.fp + stop) = ofK v →
-      v * si = Parameters.g ^ n → s.nextFree + (size * n + tail) ≤ B
+  | .allocFrames _ size stop si => ∀ v n, n < maxCells → s.mem.peek (s.fp + stop) = ofK v →
+      v * si = Parameters.g ^ n → s.nextFree + size * (n + 1) ≤ B
   | _ => True
 
 end
@@ -126,17 +121,6 @@ theorem logOr_sm {s s' : St} {x : K} {b k : ℕ} {f : Fault} (hs : s.Good) (h : 
   obtain ⟨D, rfl⟩ := St.logOr_dl h
   exact ⟨⟨rfl, rfl, rfl⟩, h2⟩
 
-theorem popEntry_sm {C : Ctx} {s s' : St} {name : String} {v : List E} (h : popEntry C s name = .ok (v, s')) :
-    Sm s s' := by
-  unfold popEntry at h
-  split at h
-  · dsimp only at h
-    split at h
-    · simp only [pure_ok, Prod.mk.injEq] at h
-      obtain ⟨-, rfl⟩ := h
-      exact ⟨rfl, rfl, rfl⟩
-    · simp at h
-  · simp at h
 
 theorem pop_sm {C : Ctx} {s s' : St} {name : String} {len : ℕ} {v : List E} (h : pop C s name len = .ok (v, s')) :
     Sm s s' ∧ v.length = len := by
@@ -186,21 +170,6 @@ theorem bitsBase_sm {B : ℕ} {s s' : St} {d : BitsDest} {len : ℕ} {what : Str
     obtain ⟨hsm, hp⟩ := heapBase_sm hs h1
     exact ⟨hsm, fun _ _ hn ↦ by simpa using hn _ hp⟩
 
-theorem bufSize_sm {s s' : St} {b : BufSize} {n : ℕ} (hs : s.Good) (h : bufSize s b = .ok (n, s')) :
-    Sm s s' ∧ BufOk s b n := by
-  cases b with
-  | cells k =>
-    simp only [bufSize, pure_ok, Prod.mk.injEq] at h
-    obtain ⟨rfl, rfl⟩ := h
-    exact ⟨Sm.refl _, rfl⟩
-  | exp c =>
-    simp only [bufSize, bind_ok] at h
-    obtain ⟨c', hc', p, hp, h⟩ := h
-    obtain ⟨rfl, -⟩ := cellAt_ok hc'
-    obtain ⟨hsm, h2, h3⟩ := logOr_sm hs h
-    exact ⟨hsm, ptrAt_of hp h2 h3⟩
-
-/-! ## Writes -/
 
 theorem withMem_used {s s' : St} {f : Mem → Except Fault Mem} (h : s.withMem f = .ok s') :
     ∃ m, f s.mem = .ok m ∧ s'.mem = m ∧ s'.fp = s.fp ∧ s'.nextFree = s.nextFree := by
@@ -252,14 +221,9 @@ theorem allocate_used {B p n : ℕ} {s s' : St} (e : allocate s p n = .ok s') (h
     rw [hm1, put_used hm]
     split_ifs <;> simp <;> omega
 
-theorem checkLate_used {B p n : ℕ} {s s' : St} (e : checkLate s p n = .ok s') (h : s.mem.used ≤ B) :
-    s'.mem.used ≤ B := by
-  rw [checkLate_eq e]
-  exact h
-
 /-- **A hint whose writes are below `B` keeps the memory's cells used below `B`.** -/
 theorem usedOk_run {B : ℕ} {C : Ctx} {s s' : St} {h : Hint} (hs : s.Good) (e : runHint C s h = .ok s')
-    (hu : UsedOk B C s h) (h0 : s.mem.used ≤ B) : s'.mem.used ≤ B := by
+    (hu : UsedOk B s h) (h0 : s.mem.used ≤ B) : s'.mem.used ≤ B := by
   cases h with
   | frameAddress o =>
     simp only [runHint, bind_ok, pure_ok] at e
@@ -274,36 +238,6 @@ theorem usedOk_run {B : ℕ} {C : Ctx} {s s' : St} {h : Hint} (hs : s.Good) (e :
     rw [← hsm.1] at h0
     exact allocate_used e h0 (by rw [hsm.2.1]; exact hu.1)
       (by rw [hsm.2.2]; exact hu.2 n (ptrAt_of hsz h2 h3))
-  | allocAdvice p S =>
-    simp only [runHint, bind_ok] at e
-    obtain ⟨⟨v, s1⟩, h1, e⟩ := e
-    have hsm1 := popEntry_sm h1
-    rcases v with _ | ⟨w, _ | ⟨w', v⟩⟩ <;> dsimp only at e
-    · simp only [pure_ok] at e; subst e; rw [hsm1.1]; exact h0
-    · simp only [bind_ok] at e
-      obtain ⟨sz, hsz, ⟨n, s2⟩, h2, e⟩ := e
-      obtain ⟨hsm2, hg, hlt⟩ := logOr_sm (s := s1) ⟨by rw [hsm1.1]; exact hs.wf, by
-        have := (popEntry_follows hs h1).good; exact this.dl⟩ h2
-      have hsm := hsm1.trans hsm2
-      rw [← hsm.1] at h0
-      have hsn : StreamNext C s S [ofK (Parameters.g ^ n)] := by
-        unfold popEntry at h1
-        split at h1
-        · rename_i entries hent
-          dsimp only at h1
-          split at h1
-          · rename_i e' he'
-            simp only [pure_ok, Prod.mk.injEq] at h1
-            obtain ⟨rfl, -⟩ := h1
-            obtain ⟨hl, rfl⟩ := inK_ok hsz
-            have hw : w = ofK (Parameters.g ^ n) := E.ext fun i ↦ by fin_cases i <;> simp [hg, hl]
-            exact ⟨entries, hent, by rw [he', hw]⟩
-          · simp at h1
-        · simp at h1
-      obtain ⟨s3, e3, rfl⟩ := allocateAdvised_ok e
-      have := allocate_used e3 h0 (by rw [hsm.2.1]; exact hu.1) (by rw [hsm.2.2]; exact hu.2 n hlt hsn)
-      exact this
-    · simp at e
   | allocArm p sel sizes =>
     simp only [runHint, bind_ok] at e
     obtain ⟨c, hc, x, hx, ⟨k, s1⟩, h1, e⟩ := e
@@ -314,18 +248,12 @@ theorem usedOk_run {B : ℕ} {C : Ctx} {s s' : St} {h : Hint} (hs : s.Good) (e :
       rw [← hsm.1] at h0
       exact allocate_used e h0 (by rw [hsm.2.1]; exact hu.1) (by rw [hsm.2.2]; exact hu.2 k n (ptrAt_of hx h2 h3) hn)
     · simp at e
-  | allocLate p b =>
-    simp only [runHint, bind_ok] at e
-    obtain ⟨⟨n, s1⟩, h1, e⟩ := e
-    obtain ⟨hsm, -⟩ := bufSize_sm hs h1
-    rw [← hsm.1] at h0
-    exact checkLate_used e h0
   | cellAddress p c =>
     simp only [runHint, bind_ok] at e
     obtain ⟨c', -, pc, hpc, e⟩ := e
     obtain ⟨rfl, -⟩ := cellAt_ok hpc
     exact withPut_used e h0 hu
-  | allocFrames p size stop si tail =>
+  | allocFrames p size stop si =>
     simp only [runHint, bind_ok] at e
     obtain ⟨c, hc, sp, hsp, e⟩ := e
     obtain ⟨rfl, -⟩ := cellAt_ok hc
@@ -419,8 +347,8 @@ theorem usedOk_run {B : ℕ} {C : Ctx} {s s' : St} {h : Hint} (hs : s.Good) (e :
 
 /-- **A hint's writes below `B`**: its frame cells within a frame ending at `B`, its runs from a
 pointer and its reservation below `B`. -/
-theorem usedOk_of {B fs : ℕ} {C : Ctx} {s : St} {h : Hint} (hc : Bridge.hintCellsOk fs h = true)
-    (hfs : s.fp + fs ≤ B) (hH : HeapB B s h) (hA : AllocB B C s h) : UsedOk B C s h := by
+theorem usedOk_of {B fs : ℕ} {s : St} {h : Hint} (hc : Bridge.hintCellsOk fs h = true)
+    (hfs : s.fp + fs ≤ B) (hH : HeapB B s h) (hA : AllocB B s h) : UsedOk B s h := by
   have hd : ∀ (d : BitsDest) (pos n : ℕ), Bridge.dstCellsOk fs d (pos + n) = true →
       (∀ ptr, d = .heap ptr → ∀ b, PtrAt s (s.fp + ptr) b → ∀ k < n, b + pos + k < B) → DstB B s d pos n := by
     intro d pos n hc' hh
@@ -450,45 +378,30 @@ theorem ptrAt_uniq {s : St} {c a b : ℕ} (ha : PtrAt s c a) (hb : PtrAt s c b) 
   gpow_inj (by have := ha.2; unfold maxCells at this; omega) (by have := hb.2; unfold maxCells at this; omega)
     (ofK_injective (ha.1.symm.trans hb.1))
 
-theorem streamNext_uniq {C : Ctx} {s : St} {S : String} {a b : List E} (ha : StreamNext C s S a)
-    (hb : StreamNext C s S b) : a = b := by
-  obtain ⟨e1, h1, h1'⟩ := ha
-  obtain ⟨e2, h2, h2'⟩ := hb
-  rw [h1] at h2
-  cases h2
-  exact Option.some.inj (h1'.symm.trans h2')
-
 /-! ## The allocations' reservations -/
 
-theorem allocB_dyn {B : ℕ} {C : Ctx} {s : St} {p c n : ℕ} (hp : PtrAt s (s.fp + c) n) (hb : s.nextFree + n ≤ B) :
-    AllocB B C s (.allocDyn p c) := fun n' hp' ↦ by rw [← ptrAt_uniq hp hp']; exact hb
+theorem allocB_dyn {B : ℕ} {s : St} {p c n : ℕ} (hp : PtrAt s (s.fp + c) n) (hb : s.nextFree + n ≤ B) :
+    AllocB B s (.allocDyn p c) := fun n' hp' ↦ by rw [← ptrAt_uniq hp hp']; exact hb
 
-theorem allocB_arm {B : ℕ} {C : Ctx} {s : St} {p sel k n : ℕ} {sizes : List ℕ} (hp : PtrAt s (s.fp + sel) k)
-    (hk : sizes[k]? = some n) (hb : s.nextFree + n ≤ B) : AllocB B C s (.allocArm p sel sizes) :=
+theorem allocB_arm {B : ℕ} {s : St} {p sel k n : ℕ} {sizes : List ℕ} (hp : PtrAt s (s.fp + sel) k)
+    (hk : sizes[k]? = some n) (hb : s.nextFree + n ≤ B) : AllocB B s (.allocArm p sel sizes) :=
   fun k' n' hp' hk' ↦ by
     rw [← ptrAt_uniq hp hp', hk] at hk'
     rw [← Option.some.inj hk']; exact hb
 
-theorem allocB_adv {B : ℕ} {C : Ctx} {s : St} {p : ℕ} {S : String} {e : List E} (hn : StreamNext C s S e)
-    (hb : ∀ n, n < maxCells → e = [ofK (Parameters.g ^ n)] → s.nextFree + n ≤ B) : AllocB B C s (.allocAdvice p S) :=
-  fun n hn' hs ↦ hb n hn' (streamNext_uniq hn hs)
-
-theorem allocB_frames {B : ℕ} {C : Ctx} {s : St} {p size stop tail n : ℕ} {v si : K}
+theorem allocB_frames {B : ℕ} {s : St} {p size stop n : ℕ} {v si : K}
     (hp : s.mem.peek (s.fp + stop) = ofK v) (hv : v * si = Parameters.g ^ n) (hn : n < maxCells)
-    (hb : s.nextFree + (size * n + tail) ≤ B) : AllocB B C s (.allocFrames p size stop si tail) :=
+    (hb : s.nextFree + size * (n + 1) ≤ B) : AllocB B s (.allocFrames p size stop si) :=
   fun v' n' hn' hp' hv' ↦ by
     obtain rfl : v' = v := ofK_injective (hp'.symm.trans hp)
     obtain rfl : n' = n := gpow_inj (by unfold maxCells at hn'; omega) (by unfold maxCells at hn; omega)
       (hv'.symm.trans hv)
     exact hb
 
-theorem allocB_late {B : ℕ} {C : Ctx} {s : St} {p : ℕ} {b : BufSize} (hw : s.mem.written (s.fp + p) = true) :
-    AllocB B C s (.allocLate p b) := fun h ↦ absurd hw (by rw [h]; decide)
-
 /-- **A list of hints each writing below `B`** keeps the memory's cells used below `B`. -/
 theorem hints_used {B : ℕ} {C : Ctx} :
     ∀ (l : List Hint) (s s1 : St), s.Good → l.foldlM (runHint C) s = .ok s1 → s.mem.used ≤ B →
-      (∀ i h sx, l[i]? = some h → (l.take i).foldlM (runHint C) s = .ok sx → UsedOk B C sx h) → s1.mem.used ≤ B
+      (∀ i h sx, l[i]? = some h → (l.take i).foldlM (runHint C) s = .ok sx → UsedOk B sx h) → s1.mem.used ≤ B
   | [], s, s1, _, e, h0, _ => by simp only [List.foldlM_nil, pure_ok] at e; subst e; exact h0
   | x :: l, s, s1, hs, e, h0, hu => by
     rw [List.foldlM_cons, bind_ok] at e

@@ -3,9 +3,8 @@
 Per module of alignment checks `align.py` writes, each function's `Bridge.allocChk` over its alignment context,
 plumbing, body, code and advice, by `decide +kernel`; per link module of `Guest/Checked`, each function's
 `Bridge.AllocJ` (`Bridge.allocJ_of`, reusing the `Checked` and `ProgAl` link equations); and the assembly over every
-function the check admits (`AllocChk/All.lean`). The check is mirrored here (`chk`) to choose those functions: the
-others are named in `allocJ_all`'s exclusions. Run after `progal.py`; `--check` writes nothing and fails when a file
-is stale.
+function (`AllocChk/All.lean`). The check is mirrored here (`chk`), so that a function failing it fails here, naming
+why. Run after `progal.py`; `--check` writes nothing and fails when a file is stale.
 
     python3 -I scripts/bridge-cert/alloc.py [--check]
 """
@@ -21,7 +20,7 @@ import align
 BR = os.path.join(data.ROOT, 'Bridge')
 OUT = os.path.join(BR, 'AllocChk')
 HEAD = genfiles.header('bridge-cert/alloc.py')
-ALLOC = ('alloc', 'allocDyn', 'allocAdvice', 'allocArm', 'allocFrames', 'allocLate')
+ALLOC = ('alloc', 'allocDyn', 'allocArm', 'allocFrames')
 
 
 def check_module(ctx_mod):
@@ -121,8 +120,7 @@ def chk(F, body, abody, A, locs, extra, pows, jt, fs, loop):
     hs = [(pc - A['entry'], h) for pc, l in A['hints'] for h in l]
     ptr = lambda h: h[1] if h[0] in ALLOC else None
     is_frame = lambda h: ptr(h) is not None and ptr(h) in F['sites']
-    is_late = lambda h: h[0] == 'allocLate'
-    is_buf = lambda h: ptr(h) is not None and not is_frame(h) and not is_late(h)
+    is_buf = lambda h: ptr(h) is not None and not is_frame(h)
     jumps = [i for i, c in enumerate(code) if c[0] == '.jump']
 
     def next_jump(a):
@@ -151,12 +149,6 @@ def chk(F, body, abody, A, locs, extra, pows, jt, fs, loop):
         if seen and is_buf(h):
             cur = cur or 'buffer after frame'
         seen = seen or is_frame(h)
-    seen = []
-    for _, h in hs:
-        if is_late(h) and h[1] not in seen:
-            cur = cur or 'late before advice'
-        if h[0] == 'allocAdvice':
-            seen.append(h[1])
     for a, h in frames:
         nj = next_jump(a)
         if h[0] not in ('alloc', 'allocArm', 'allocFrames') or nj >= len(code) or code[nj][1][2] != h[1]:
@@ -198,8 +190,6 @@ def chk(F, body, abody, A, locs, extra, pows, jt, fs, loop):
             ok = cell(c[1]) and cell(c[2]) and loc(c[1]) == h[1] and loc(c[2]) == h[2]
         elif c[0] == 'allocDyn' and h[0] == 'alloc':
             ok = cell(c[1]) and cell(c[2]) and loc(c[1]) == h[1] and pc_at(loc(c[2])) == h[2] and h[2] < 1 << 28
-        elif c[0] == 'allocDyn' and h[0] == 'allocAdvice':
-            ok = cell(c[1]) and loc(c[1]) == h[1]
         else:
             ok = False
         if not ok:
@@ -478,10 +468,10 @@ def fr_data(F, A, fb, np, locs, extra, fs, cal):
                     if c:
                         cs.add(c[0])
             elif h[0] == 'allocFrames' and st[0] == 'callIf' and len(st[3]) >= 2:
-                size, stop, tail = h[2], h[3], h[5]
+                size, stop = h[2], h[3]
                 b, a0, a1 = st[1], st[3][0], st[3][1]
                 c = cal(st[2])
-                ok = c is not None and c[3] and c[1] == size and tail == size and loc(a1) == stop and cell(a1) and \
+                ok = c is not None and c[3] and c[1] == size and loc(a1) == stop and cell(a1) and \
                     ((sp_const(a0, 0) and guard(b, a1, 0)) or (sp_const(a0, 1) and guard(b, a1, 1)))
                 if c:
                     cs.add(c[0])
@@ -499,7 +489,7 @@ def run(check):
         fss[key] = int(re.search(r'^def fs : ℕ := (\d+)$', blk, re.M).group(1))
     pows = align.pow_table()
     jt = align.jump_table(pows)
-    passed, failed = {}, {}
+    passed = {}
     fbs, byname, nps = {}, {}, {}
     for j, (k, _, _) in sorted(lk.items()):
         name = re.search(r'name := "([^"]*)"', cores[k]).group(1)
@@ -518,7 +508,9 @@ def run(check):
                        pows, jt, fss[k], is_loop(ab, name))
         if cur:
             sys.exit(f'bridge-cert: `{k}` fails the bump pointer check: {cur}')
-        (failed if why else passed)[j] = why or k
+        if why:
+            sys.exit(f'bridge-cert: `{k}` fails the allocation check: {why}')
+        passed[j] = k
         frd[j] = fr_data(F, adv[F['entry']], fbs[k], nps[k], bund[k]['locs'], extra, fss[k], byname.get)
         if frd[j][1]:
             sys.exit(f'bridge-cert: `{k}` fails the frame sizes check at offsets {frd[j][1]}')
@@ -553,15 +545,12 @@ def run(check):
 
         def thm(j, k):
             pre = [] if win else body_thm(j, k) + fr_thm(j, k)
-            if j in failed:
-                return pre + [(k, 'curCodeOk', f'Bridge.curCode alignCtx fs core.loop plumb code.code Fn.«{k}».advice = true',
-                               prf)]
             return (shape(k) if not win else []) + pre + [
                 (k, 'allocOk', f'Bridge.allocRest alignCtx fs core.loop plumb core.body code.code Fn.«{k}».advice = true',
                  prf)]
         def thm1(j, k):
             # the common case in one command (`Bridge/ChkLit.lean`)
-            if win or j in failed or prf != 'decide +kernel': return thm(j, k)
+            if win or prf != 'decide +kernel': return thm(j, k)
             return ['alloc_chk%% «%s» [%s]\n' % (k, ', '.join('«%s»' % lk[c][0] for c in frd[j][0]))]
         body = data.fn_thms([t for j, k in jks for t in thm1(j, k)])
         files[os.path.join(OUT, mod.split('AllocChk.')[1].strip('«»') + '.lean')] = (
@@ -587,8 +576,6 @@ def run(check):
                     + 'public import LeanVM.Guest.Bridge.AllocDefs\nimport all Statement.Data.AdviceHints\n' + f'public import {cm}\n'
                     + ''.join(f'public import {m}\n' for m in imps)
                     + '\n' + ns(k, body_thm(j, k)).rstrip('\n') + '\n')
-                if j in failed:
-                    continue
                 smod = f'LeanVM.Guest.Bridge.AllocChk.«S_{k}»'
                 shape_mods[k] = smod
                 files[os.path.join(OUT, f'S_{k}.lean')] = (
@@ -618,10 +605,6 @@ def run(check):
                 fe = f'fsEq{j}'
             body.append(f'theorem fok{j} : Bridge.FrJ {j} := Bridge.frJ_of Checked.code{j} Checked.core{j} Checked.cert{j} {pe} '
                         f'Bridge.ProgAl.tab{j} rfl {fe} Fn.«{k}».frOk\n')
-            if j in failed:
-                body.append(f'theorem cok{j} : Bridge.CurJ {j} := Bridge.curJ_of Checked.code{j} Checked.core{j} '
-                            f'Checked.cert{j} {pe} Bridge.ProgAl.tab{j} rfl {fe} Fn.«{k}».curBodyOk Fn.«{k}».curCodeOk\n')
-                continue
             body.append(f'theorem aok{j} : Bridge.AllocJ {j} := Bridge.allocJ_of Checked.code{j} Checked.core{j} '
                         f'Checked.cert{j} {pe} Bridge.ProgAl.tab{j} rfl {fe} Fn.«{k}».allocShapeOk Fn.«{k}».curBodyOk '
                         f'Fn.«{k}».allocOk\n')
@@ -641,66 +624,38 @@ end
 
 end LeanVM.Guest.Bridge.AllocChk
 ''')
-    excl = sorted(failed)
-    exl = '[' + ', '.join(str(j) for j in excl) + ']'
-    pred = f'fun j ↦ j ∉ allocExcl → Bridge.AllocJ j'
-
-    def leaf(j):
-        if j in failed:
-            return f'(fun h ↦ absurd (by decide : {j} ∈ allocExcl) h)'
-        return f'(fun _ ↦ aok{j})'
+    pred = 'fun j ↦ Bridge.AllocJ j'
     step = 256
     parts = [(lo, min(lo + step, n)) for lo in range(1, n, step)]
-    thms = ''.join(f'''theorem allocJ_{m} : ∀ j, {lo} ≤ j → j < {hi} → j ∉ allocExcl → Bridge.AllocJ j := fun j h1 h2 ↦
-  {progal.bisect(list(range(lo, hi + 1)), lambda a, la, lb: f"(at_of_bounds (P := {pred}) {la} {lb} {leaf(lo + a)})")}
+    thms = ''.join(f'''theorem allocJ_{m} : ∀ j, {lo} ≤ j → j < {hi} → Bridge.AllocJ j := fun j h1 h2 ↦
+  {progal.bisect(list(range(lo, hi + 1)), lambda a, la, lb: f"(at_of_bounds (P := {pred}) {la} {lb} aok{lo + a})")}
 
 ''' for m, (lo, hi) in enumerate(parts))
     top = progal.bisect([lo for lo, _ in parts] + [n], lambda a, la, lb: f'(allocJ_{a} j {la} {lb})')
-    cpred = 'fun j ↦ Bridge.CurJ j'
-
-    def cleaf(j):
-        return f'cok{j}' if j in failed else f'(Bridge.curJ_of_allocJ aok{j})'
-    cthms = ''.join(f'''theorem curJ_{m} : ∀ j, {lo} ≤ j → j < {hi} → Bridge.CurJ j := fun j h1 h2 ↦
-  {progal.bisect(list(range(lo, hi + 1)), lambda a, la, lb: f"(at_of_bounds (P := {cpred}) {la} {lb} {cleaf(lo + a)})")}
-
-''' for m, (lo, hi) in enumerate(parts))
-    ctop = progal.bisect([lo for lo, _ in parts] + [n], lambda a, la, lb: f'(curJ_{a} j {la} {lb})')
     fpred = 'fun j ↦ Bridge.FrJ j'
     fthms = ''.join(f'''theorem frJ_{m} : ∀ j, {lo} ≤ j → j < {hi} → Bridge.FrJ j := fun j h1 h2 ↦
   {progal.bisect(list(range(lo, hi + 1)), lambda a, la, lb: f"(at_of_bounds (P := {fpred}) {la} {lb} fok{lo + a})")}
 
 ''' for m, (lo, hi) in enumerate(parts))
     ftop = progal.bisect([lo for lo, _ in parts] + [n], lambda a, la, lb: f'(frJ_{a} j {la} {lb})')
-    why = ''.join(f'\n* `{j}` ({lk[j][0]}): {failed[j]}' for j in excl)
     files[os.path.join(OUT, 'All.lean')] = (
         HEAD(mod='LeanVM.Guest.Bridge.AllocChk.All',
-                    what="Every compiled function's allocation hints pass the check, but the excluded ones.")
+                    what="Every compiled function's allocation hints pass the check.")
         + 'public import LeanVM.Guest.Glob\n'
         + ''.join(f'public import LeanVM.Guest.Bridge.AllocChk.{m}\n' for m in sorted(groups)) + f'''
-/-!
-# The excluded functions
-
-The allocation check (`Bridge.allocChk`) does not admit these; they pass the bump pointer's check
-(`Bridge.curChk`), as every function does.
-{why}
--/
-
 namespace LeanVM.Guest.Bridge.AllocChk
 
 open LeanVM.Guest
 
 public section
 
-/-- The compiled functions the allocation check does not admit. -/
-@[expose] def allocExcl : List ℕ := {exl}
-
-{thms}/-- **Every compiled function's allocation hints pass the check**, but the excluded ones. -/
-theorem allocJ_all : ∀ j, 1 ≤ j → j < {n} → j ∉ allocExcl → Bridge.AllocJ j := fun j h1 h2 ↦
+{thms}/-- **Every compiled function's allocation hints pass the check.** -/
+theorem allocJ_all : ∀ j, 1 ≤ j → j < {n} → Bridge.AllocJ j := fun j h1 h2 ↦
   {top}
 
-{cthms}/-- **Every compiled function's allocation hints pass the bump pointer's check.** -/
+/-- **Every compiled function's allocation hints pass the bump pointer's check.** -/
 theorem curJ_all : ∀ j, 1 ≤ j → j < {n} → Bridge.CurJ j := fun j h1 h2 ↦
-  {ctop}
+  Bridge.curJ_of_allocJ (allocJ_all j h1 h2)
 
 {fthms}/-- **Every compiled function's frame hints pass the sizes check.** -/
 theorem frJ_all : ∀ j, 1 ≤ j → j < {n} → Bridge.FrJ j := fun j h1 h2 ↦
@@ -712,8 +667,7 @@ end LeanVM.Guest.Bridge.AllocChk
 ''')
     existing = set(glob.glob(os.path.join(OUT, '*.lean')))
     stale = genfiles.sync(files, existing, check)
-    print(f'bridge-cert: the allocation hints of {len(passed)} functions over {len(groups)} link modules, '
-          f'{len(failed)} excluded')
+    print(f'bridge-cert: the allocation hints of {len(passed)} functions over {len(groups)} link modules')
     genfiles.fail_if_stale(stale, check, data.LEAN_VM)
 
 

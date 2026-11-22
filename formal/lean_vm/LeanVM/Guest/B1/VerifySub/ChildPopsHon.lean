@@ -14,7 +14,7 @@ import LeanVM.Guest.Data.ValNames.«verify_sub»
 /-!
 # The honest valuation's own entries
 
-`vs_hon_ptrs`: the honest valuation points the stream and `dims_g` at their buffers' bases (`vs_alloc_bases`). `vs_hon_child_pops`: on a memory holding the own buffers, a valid `verify_sub` node of the honest valuation pops `childHints` past its sizes, stream by stream, given its `certify_placement`, `verify_tables` and `open_stacked` callees pop theirs (`vs_child_pops`).
+`vs_hon_ptrs`: the honest valuation points the stream and `dims_g` at their buffers' bases (`vs_alloc_bases`). `vs_hon_child_pops`: on a memory holding the own buffers, a valid `verify_sub` node of the honest valuation pops `childHints`, stream by stream, given its `certify_placement`, `verify_tables` and `open_stacked` callees pop theirs (`vs_child_pops`).
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -42,13 +42,13 @@ theorem vs_hon_ptrs {rd : Reader} {args : List E} (hl : args.length = 6) (bs : L
   exact ⟨h1, h3⟩
 
 /-- **The honest valuation pops the child's stream and heights**, then its callees' entries: on a memory holding
-the own buffers, a valid `verify_sub` node of `vsσ` pops `childHints` past its sizes, stream by stream, given its
+the own buffers, a valid `verify_sub` node of `vsσ` pops `childHints`, stream by stream, given its
 `certify_placement`, `verify_tables` and `open_stacked` callees pop theirs. -/
 theorem vs_hon_child_pops {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs bytecode seed c)
     {rd : Reader} {args : List E} (hl : args.length = 6) (b : ℕ) (outs : List (List E × Main.Layout))
-    (hB : Main.MemL rd (bufL b (vsSizes S.d) S.ownW)) (hst : c.proof.stream.length ≤ Coverage.childStreamCap)
+    (hB : Main.MemL rd (bufL b (vsSizes) S.ownW)) (hst : c.proof.stream.length ≤ Coverage.childStreamCap)
     {bufs : List ℕ} {kids : List Memory.Tree} {args' rets : List E}
-    (hv : (Memory.Tree.node "verify_sub" (vsσ rd (vsW (bases b (vsSizes S.d)) outs) args) bufs kids).Valid
+    (hv : (Memory.Tree.node "verify_sub" (vsσ rd (vsW (bases b (vsSizes)) outs) args) bufs kids).Valid
       coreProgram rd args' rets) :
     ∃ (tcp tvt tos : Memory.Tree), tcp.name = "certify_placement" ∧ tvt.name = "verify_tables" ∧
       tos.name ∈ vsOpen ∧ (∀ t ∈ [tcp, tvt, tos], t ∈ kids ∧ ∃ a r, t.Valid coreProgram rd a r) ∧
@@ -57,9 +57,9 @@ theorem vs_hon_child_pops {bytecode : List K} {seed : Digest} {c : Child} (S : C
           ("zc_tau_max", [Hints.count (S.layout.tableLogHeights.foldl max 0)])] →
         SameStreams (tos.pops coreProgram rd)
           (Hints.merkleHints true (Hints.childQueries bytecode seed c) c.proof.openings) →
-        SameStreams ((Memory.Tree.node "verify_sub" (vsσ rd (vsW (bases b (vsSizes S.d)) outs) args) bufs
-          kids).pops coreProgram rd) ((Hints.childHints bytecode seed c).drop 4)) := by
-  have hbl : (bases b (vsSizes S.d)).length = 15 := by rw [bases_length]; rfl
+        SameStreams ((Memory.Tree.node "verify_sub" (vsσ rd (vsW (bases b (vsSizes)) outs) args) bufs
+          kids).pops coreProgram rd) (Hints.childHints bytecode seed c)) := by
+  have hbl : (bases b (vsSizes)).length = 15 := by rw [bases_length]; rfl
   obtain ⟨p1, p3⟩ := vs_hon_ptrs (rd := rd) hl _ outs hbl
   have hm1 := hB _ (vs_own_mem S b (i := 1) (by norm_num))
   have hm3 := hB _ (vs_own_mem S b (i := 3) (by norm_num))

@@ -3,6 +3,7 @@
 //! (`LeanVM/Guest/Data/Advice.lean`).
 
 use super::*;
+use isa::{BitsDest, RHint};
 
 /// `LeanVM/Guest/Data/Advice.lean`.
 pub fn file() -> File {
@@ -39,92 +40,65 @@ end LeanVM.Guest.Data
 /// A function's entries per definition.
 const HINTS_PER_DEF: usize = 256;
 
-/// The next token.
-fn word<'a>(t: &mut dyn Iterator<Item = &'a str>) -> &'a str {
-    t.next().expect("a field")
-}
-
-/// The next token, a number.
-fn n<'a>(t: &mut dyn Iterator<Item = &'a str>) -> u64 {
-    word(t).parse().expect("a number")
-}
-
-/// The next two tokens, a run's start, as a Lean `BitsDest`.
-fn dest<'a>(t: &mut dyn Iterator<Item = &'a str>) -> String {
-    match (word(t), n(t)) {
-        ("s", v) => format!("(.stack {v})"),
-        ("h", v) => format!("(.heap {v})"),
-        (k, _) => panic!("not a destination: {k}"),
+/// A run's start as a Lean `BitsDest`.
+fn dest(d: &BitsDest) -> String {
+    match d {
+        BitsDest::Stack(v) => format!("(.stack {v})"),
+        BitsDest::Heap(v) => format!("(.heap {v})"),
     }
 }
 
-/// One hint of `export_hints`' tokens as a Lean `Hint`, its tokens consumed (`parseAdvice`).
-fn hint_lean<'a>(t: &mut dyn Iterator<Item = &'a str>) -> String {
-    let tag = t.next().expect("a hint");
-    match tag {
-        "fa" => format!("(.frameAddress {})", n(t)),
-        "af" => {
-            let (p, s, st) = (n(t), n(t), n(t));
-            let k = word(t);
-            format!("(.allocFrames {p} {s} {st} (LeanVM.Parameters.K.ofBits 0x{k}) {})", n(t))
+/// A hint as a Lean `Hint`, `None` for a `Print`, which the executor does not run.
+fn hint_lean(h: &RHint) -> Option<String> {
+    Some(match h {
+        RHint::FrameAddress { offset } => format!("(.frameAddress {offset})"),
+        RHint::AllocFrames {
+            ptr,
+            size,
+            end,
+            start_inverse,
+        } => format!("(.allocFrames {ptr} {size} {end} (LeanVM.Parameters.K.ofBits 0x{:x}))", start_inverse.0),
+        RHint::Alloc { ptr, size } => format!("(.alloc {ptr} {size})"),
+        RHint::AllocDyn { ptr, size } => format!("(.allocDyn {ptr} {size})"),
+        RHint::AllocArm { ptr, sel, sizes } => {
+            let sizes: Vec<String> = sizes.iter().map(u32::to_string).collect();
+            format!("(.allocArm {ptr} {sel} [{}])", sizes.join(", "))
         }
-        "al" => format!("(.alloc {} {})", n(t), n(t)),
-        "ad" => format!("(.allocDyn {} {})", n(t), n(t)),
-        "av" => {
-            let p = n(t);
-            format!("(.allocAdvice {p} \"{}\")", word(t))
+        RHint::CellAddress { ptr, cell } => format!("(.cellAddress {ptr} {cell})"),
+        RHint::WitnessStack { name, base, len } => format!("(.witnessStack \"{name}\" {base} {len})"),
+        RHint::WitnessHeap { name, ptr, lo, len } => format!("(.witnessHeap \"{name}\" {ptr} {lo} {len})"),
+        RHint::Log2Ceil {
+            bits,
+            dst,
+            nbits,
+            floor,
+        } => format!("(.log2Ceil {} {dst} {nbits} {floor})", dest(bits)),
+        RHint::BitDecompose { value, bits, nbits } => format!("(.bitDecompose {value} {} {nbits})", dest(bits)),
+        RHint::BitDecomposeExp { value, bits, nbits } => format!("(.bitDecomposeExp {value} {} {nbits})", dest(bits)),
+        RHint::DigitDecomposeExp {
+            value,
+            dst,
+            nbits,
+            ndigits,
+            digit_bits,
+            start,
+            start_cell,
+        } => {
+            let sc = start_cell.map_or("none".to_string(), |c| format!("(some {c})"));
+            format!("(.digitDecomposeExp {value} {} {nbits} {ndigits} {digit_bits} {start} {sc})", dest(dst))
         }
-        "aa" => {
-            let (p, sel, k) = (n(t), n(t), n(t));
-            let sizes: Vec<String> = (0..k).map(|_| n(t).to_string()).collect();
-            format!("(.allocArm {p} {sel} [{}])", sizes.join(", "))
-        }
-        "lt" => {
-            let p = n(t);
-            match (word(t), n(t)) {
-                ("c", v) => format!("(.allocLate {p} (.cells {v}))"),
-                ("e", v) => format!("(.allocLate {p} (.exp {v}))"),
-                (k, _) => panic!("not a size: {k}"),
-            }
-        }
-        "ca" => format!("(.cellAddress {} {})", n(t), n(t)),
-        "ws" => {
-            let s = word(t);
-            format!("(.witnessStack \"{s}\" {} {})", n(t), n(t))
-        }
-        "wh" => {
-            let s = word(t);
-            format!("(.witnessHeap \"{s}\" {} {} {})", n(t), n(t), n(t))
-        }
-        "lc" => {
-            let d = dest(t);
-            format!("(.log2Ceil {d} {} {} {})", n(t), n(t), n(t))
-        }
-        "bd" | "be" => {
-            let v = n(t);
-            let d = dest(t);
-            let c = if tag == "bd" { "bitDecompose" } else { "bitDecomposeExp" };
-            format!("(.{c} {v} {d} {})", n(t))
-        }
-        "dd" => {
-            let v = n(t);
-            let d = dest(t);
-            let (a, b, c, e) = (n(t), n(t), n(t), n(t));
-            let sc = match word(t) {
-                "-" => "none".to_string(),
-                x => format!("(some {})", x.parse::<u64>().expect("a number")),
-            };
-            format!("(.digitDecomposeExp {v} {d} {a} {b} {c} {e} {sc})")
-        }
-        "we" => {
-            let v = n(t);
-            let d = dest(t);
-            format!("(.windowsExp {v} {d} {} {} {} {})", n(t), n(t), n(t), n(t))
-        }
-        "fl" => format!("(.fieldLimbs {} {} {})", n(t), n(t), n(t)),
-        "iv" => format!("(.inverse {} {})", n(t), n(t)),
-        _ => panic!("not a hint: {tag}"),
-    }
+        RHint::WindowsExp {
+            value,
+            dest: d,
+            at,
+            start,
+            width,
+            count,
+        } => format!("(.windowsExp {value} {} {at} {start} {width} {count})", dest(d)),
+        RHint::FieldLimbs { value, base, len } => format!("(.fieldLimbs {value} {base} {len})"),
+        RHint::Inverse { value, dst } => format!("(.inverse {value} {dst})"),
+        RHint::Print { .. } => return None,
+    })
 }
 
 /// A hint module closes after the function that takes it past this many bytes of hints.
@@ -148,22 +122,15 @@ fn hints_header(module: &str, about: &str, imports: &str) -> String {
 /// and the mode walk's certificates' hints are checked against it.
 pub fn data_files() -> Vec<File> {
     let g = guest();
-    let advice = g.export_hints(&[]);
-    let mut t = advice.split_whitespace();
-    for w in ["leanvm-advice", "1", "main_frame"] {
-        assert_eq!(word(&mut t), w);
-    }
-    let main_frame = n(&mut t);
-    assert_eq!(word(&mut t), "hints");
-    let count = n(&mut t);
-    let mut entries = Vec::new();
-    for _ in 0..count {
-        let pc = n(&mut t);
-        let k = n(&mut t);
-        let hs: Vec<String> = (0..k).map(|_| hint_lean(&mut t)).collect();
-        entries.push((pc, format!("({pc}, [{}])", hs.join(", "))));
-    }
-    assert_eq!(t.next(), Some("streams"));
+    let main_frame = g.main_frame;
+    let mut pcs: Vec<(&u32, &Vec<RHint>)> = g.hints.iter().collect();
+    pcs.sort_by_key(|(pc, _)| **pc);
+    let entries: Vec<(u64, String)> = (pcs.into_iter())
+        .map(|(&pc, hs)| {
+            let hs: Vec<String> = hs.iter().filter_map(hint_lean).collect();
+            (u64::from(pc), format!("({pc}, [{}])", hs.join(", ")))
+        })
+        .collect();
     let mut files = Vec::new();
     let mut defs = String::new();
     let close = |files: &mut Vec<File>, defs: &mut String| {

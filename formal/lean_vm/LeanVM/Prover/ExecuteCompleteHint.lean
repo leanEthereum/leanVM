@@ -160,17 +160,6 @@ theorem pop_complete {C : Ctx} {M : ℕ → E} {s : St} (hs : Fine M s) {name : 
   simp only [h1, h2, hl, ne_eq, not_true_eq_false, ↓reduceIte]
   rfl
 
-theorem popEntry_complete {C : Ctx} {M : ℕ → E} {s : St} (hs : Fine M s) {name : String}
-    {e : List E} (h : StreamNext C s name e) :
-    ∃ s', popEntry C s name = .ok (e, s') ∧ Moves M s s' ∧ s'.mem = s.mem ∧
-      s'.nextFree = s.nextFree := by
-  obtain ⟨entries, h1, h2⟩ := h
-  refine ⟨{ s with cursor := s.cursor.insert name (s.cursor.getD name 0 + 1) }, ?_,
-    ⟨⟨hs.agree, hs.dl, hs.small, hs.fp⟩, Mem.le_refl _, rfl, rfl, rfl⟩, rfl, rfl⟩
-  unfold popEntry
-  simp only [h1, h2]
-  rfl
-
 /-- The word at `c` is `g^n`, with `n < 2^nbits`. -/
 def ExpAt (s : St) (c n nbits : ℕ) : Prop := s.mem.peek c = ofK (g ^ n) ∧ n < 2 ^ nbits
 
@@ -184,15 +173,6 @@ theorem expOf_complete {s : St} {c n nbits : ℕ} {what : String} (h : ExpAt s c
 and the reservation's last cell below `maxCells`. -/
 def AllocOk (M : ℕ → E) (s : St) (ptr size : ℕ) : Prop :=
   s.fp + ptr < maxCells ∧ s.nextFree + size ≤ maxCells ∧ M (s.fp + ptr) = ofK (g ^ s.nextFree)
-
-/-- A late hint's buffer: its pointer written, reserved from advice with `size` cells. -/
-def AllocLateOk (s : St) (ptr size : ℕ) : Prop :=
-  s.mem.written (s.fp + ptr) = true ∧ (s.fp + ptr, size) ∈ s.advised
-
-/-- A `HeapBuf`'s size is `n`: the constant, or the exponent of a pointer below `maxCells`. -/
-def BufOk (s : St) : BufSize → ℕ → Prop
-  | .cells k, n => n = k
-  | .exp c, n => PtrAt s (s.fp + c) n
 
 theorem allocate_complete {M : ℕ → E} {s : St} (hs : Fine M s) {ptr size : ℕ}
     (h : AllocOk M s ptr size) : ∃ s', allocate s ptr size = .ok s' ∧ Moves M s s' := by
@@ -223,26 +203,6 @@ theorem allocate_complete {M : ℕ → E} {s : St} (hs : Fine M s) {ptr size : �
   rw [St.withMem_eq e]
   rfl
 
-theorem checkLate_complete {M : ℕ → E} {s : St} (hs : Fine M s) {ptr size : ℕ}
-    (h : AllocLateOk s ptr size) : checkLate s ptr size = .ok s := by
-  unfold checkLate
-  rw [cellAt_eq (hs.lt_of_written h.1), ok_bind]
-  have h2 : s.advised.contains (s.fp + ptr, size) = true := List.elem_iff.mpr h.2
-  simp only [h.1, h2, ↓reduceIte]
-  rfl
-
-theorem bufSize_complete {M : ℕ → E} {s : St} (hs : Fine M s) {b : BufSize} {n : ℕ} (h : BufOk s b n) :
-    ∃ s', bufSize s b = .ok (n, s') ∧ Moves M s s' ∧ s'.mem = s.mem ∧ s'.nextFree = s.nextFree := by
-  cases b with
-  | cells k => exact ⟨s, by rw [show n = k from h]; rfl, ⟨hs, Mem.le_refl _, rfl, rfl, rfl⟩, rfl, rfl⟩
-  | exp c =>
-    have hp : PtrAt s (s.fp + c) n := h
-    obtain ⟨D', e, h1, h2⟩ := St.logOr_complete hs.dl hs.small
-      (f := .notAGPower "HeapBuf size" (g ^ n)) hp.2 (by unfold maxCells; norm_num)
-    refine ⟨{ s with dl := D' }, ?_, Moves.dl hs h1 h2, rfl, rfl⟩
-    simp only [bufSize]
-    rw [cellAt_eq (hp.lt hs), ok_bind, hp.1, inK_ofK, ok_bind, e]
-
 /-! ## The hints -/
 
 /-- `⌈log₂⌉` of the integer of the `nbits` bits from cell `b` (`log2Ceil`). -/
@@ -255,14 +215,11 @@ def HintOk (C : Ctx) (M : ℕ → E) (s : St) : Hint → Prop
   | .frameAddress offset => s.fp + offset < maxCells
   | .alloc ptr size => AllocOk M s ptr size
   | .allocDyn ptr size => ∃ n, PtrAt s (s.fp + size) n ∧ AllocOk M s ptr n
-  | .allocAdvice ptr stream => StreamNext C s stream [] ∨
-    ∃ n, StreamNext C s stream [ofK (g ^ n)] ∧ n < maxCells ∧ AllocOk M s ptr n
   | .allocArm ptr sel sizes => ∃ k n, PtrAt s (s.fp + sel) k ∧ sizes[k]? = some n ∧ AllocOk M s ptr n
-  | .allocLate ptr size => ∃ n, BufOk s size n ∧ AllocLateOk s ptr n
   | .cellAddress ptr cell => s.fp + cell < maxCells ∧ s.fp + ptr < maxCells ∧
     M (s.fp + ptr) = ofK (g ^ (s.fp + cell))
-  | .allocFrames ptr size stop startInverse tail => ∃ v n, s.mem.peek (s.fp + stop) = ofK v ∧
-    v * startInverse = g ^ n ∧ n < maxCells ∧ AllocOk M s ptr (size * n + tail)
+  | .allocFrames ptr size stop startInverse => ∃ v n, s.mem.peek (s.fp + stop) = ofK v ∧
+    v * startInverse = g ^ n ∧ n < maxCells ∧ AllocOk M s ptr (size * (n + 1))
   | .witnessStack name base len => ∃ e, StreamNext C s name e ∧ e.length = len ∧ 0 < len ∧
     RunOk M (s.fp + base) e
   | .witnessHeap name ptr lo len => ∃ b e, PtrAt s (s.fp + ptr) b ∧ StreamNext C s name e ∧
@@ -324,32 +281,6 @@ theorem runHint_complete {C : Ctx} {M : ℕ → E} {s : St} (hs : Fine M s) {h :
     simp only [runHint]
     rw [cellAt_eq (hp.lt hs), ok_bind, hp.1, inK_ofK, ok_bind, e, ok_bind]
     exact e'
-  | allocAdvice ptr stream =>
-    rcases hh with hn | ⟨n, hn, hlt, ha⟩
-    · obtain ⟨s1, e1, m1, -⟩ := popEntry_complete hs hn
-      refine ⟨s1, ?_, m1⟩
-      simp only [runHint]
-      rw [e1, ok_bind]
-      rfl
-    obtain ⟨s1, e1, m1, hmem, hnf⟩ := popEntry_complete hs hn
-    obtain ⟨D', e, h1, h2⟩ := St.logOr_complete m1.fine.dl m1.fine.small
-      (f := .notAGPower "HeapBuf size advice" (g ^ n)) hlt (by unfold maxCells; norm_num)
-    obtain ⟨s', e', hm⟩ := allocate_complete (Moves.dl m1.fine h1 h2).fine
-      (s := { s1 with dl := D' }) (by
-        unfold AllocOk at ha ⊢
-        dsimp only
-        rw [hnf, m1.fp]
-        exact ha)
-    refine ⟨{ s' with advised := (s'.fp + ptr, n) :: s'.advised }, ?_,
-      m1.trans ((Moves.dl m1.fine h1 h2).trans (hm.trans
-        ⟨⟨hm.fine.agree, hm.fine.dl, hm.fine.small, hm.fine.fp⟩, Mem.le_refl _, rfl, rfl, rfl⟩))⟩
-    simp only [runHint]
-    rw [e1, ok_bind]
-    dsimp only
-    rw [inK_ofK, ok_bind, e, ok_bind]
-    unfold allocateAdvised
-    rw [e', ok_bind]
-    rfl
   | allocArm ptr sel sizes =>
     obtain ⟨k, n, hp, hk, ha⟩ := hh
     obtain ⟨D', e, h1, h2⟩ := St.logOr_complete hs.dl hs.small
@@ -361,17 +292,6 @@ theorem runHint_complete {C : Ctx} {M : ℕ → E} {s : St} (hs : Fine M s) {h :
     rw [cellAt_eq (hp.lt hs), ok_bind, hp.1, inK_ofK, ok_bind, e, ok_bind]
     simp only [hk]
     exact e'
-  | allocLate ptr size =>
-    obtain ⟨n, hb, ha⟩ := hh
-    obtain ⟨s1, e1, m1, hmem, -⟩ := bufSize_complete hs hb
-    have e' := checkLate_complete m1.fine (s := s1) (by
-      unfold AllocLateOk at ha ⊢
-      rw [hmem, m1.fp, bufSize_advised e1]
-      exact ha)
-    refine ⟨s1, ?_, m1⟩
-    simp only [runHint]
-    rw [e1, ok_bind]
-    exact e'
   | cellAddress ptr cell =>
     obtain ⟨hc, hp, hM⟩ := hh
     obtain ⟨s', e, hm⟩ := put_moves hs hM hp
@@ -379,7 +299,7 @@ theorem runHint_complete {C : Ctx} {M : ℕ → E} {s : St} (hs : Fine M s) {h :
     simp only [runHint]
     rw [cellAt_eq hc, ok_bind, cellAt_eq hp, ok_bind]
     exact e
-  | allocFrames ptr size stop startInverse tail =>
+  | allocFrames ptr size stop startInverse =>
     obtain ⟨v, n, hv, hvn, hn, ha⟩ := hh
     obtain ⟨D', e, h1, h2⟩ := St.logOr_complete hs.dl hs.small
       (f := .notAGPower "loop bound" (g ^ n))

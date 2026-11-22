@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.Budget.FinalP
 
-  `MainComplete` with the tree's pops: `main`'s tree within the budget also pops the honest pushes but the advised sizes, stream by stream.
+  `MainComplete` with the tree's pops: `main`'s tree within the budget also pops the honest pushes, stream by stream.
 -/
 
 module
@@ -9,14 +9,13 @@ module
 public import LeanVM.Guest.Budget.Final
 public import LeanVM.Guest.B1.Main.MainHonestBudgetBR
 public import LeanVM.Guest.B1.Main.MainPushes
-public import LeanVM.Guest.B1.Main.NoHeapPops
 
 /-!
 # `main` within the budget, with its pops
 
-`MainCompleteP`: `MainComplete`, the tree popping `Hints.honestPushes` without the `heap_sizes` stream, stream by stream (`SameStreams`); `MainCompleteP.toMainComplete`. `MainSegs`: `main`'s callees' entries against their segments of the honest pushes (`main_pops_honest`'s hypotheses).
+`MainCompleteP`: `MainComplete`, the tree popping `Hints.honestPushes`, stream by stream (`SameStreams`); `MainCompleteP.toMainComplete`. `MainSegs`: `main`'s callees' entries against their segments of the honest pushes (`main_pops_honest`'s hypotheses).
 
-`mainComplete_of_boundsP`, `mainComplete_of_mainP`, `mainComplete_budgetP`: `mainComplete_of_bounds`, `mainComplete_of_main`, `mainComplete_budget` with the pops, from `main_honest_budgetBR` (route S `MainPopsS`, route R `MainGoalsRR`), the callees' entries against their segments; no tree pops a `heap_sizes` entry (`pops_noHeap`).
+`mainComplete_of_boundsP`, `mainComplete_of_mainP`, `mainComplete_budgetP`: `mainComplete_of_bounds`, `mainComplete_of_main`, `mainComplete_budget` with the pops, from `main_honest_budgetBR` (route S `MainPopsS`, route R `MainGoalsRR`), the callees' entries against their segments.
 -/
 
 namespace LeanVM.Guest.Budget
@@ -28,13 +27,12 @@ open LeanVM.Guest.End (MainComplete Budget work hdrOf bytecode bytecode_length w
 open LeanVM.Guest.B1 (LowDef DisjL Within)
 open LeanVM.Guest.B1.Main (Bmain mainBsH hm hData mainPredsH hDvNH VerifySubGoalsTB MainStatics hData_bounds childBv
   MainPops MainPopsS MainGoalsRR mainPredsHP main_honest_budgetBR main_tree_popsR kidsT_imp mTsR_imp mTsR
-  main_pops_honest SameStreamsBut childSeg daSeg LConsistent Layout MemL)
+  main_pops_honest childSeg daSeg LConsistent Layout MemL)
 open LeanVM.Protocol.Verifier (gen)
 
 @[expose] public section
 
-/-- **`MainComplete` with the pops**: the tree also pops `Hints.honestPushes` but the advised sizes, stream by
-stream. -/
+/-- **`MainComplete` with the pops**: the tree also pops `Hints.honestPushes`, stream by stream. -/
 def MainCompleteP (fs : String → ℕ) (cert : String → V → ℕ) (cnt : Tree → Opcode → ℕ) (b : Budget) : Prop :=
   ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w → ChildrenOk bytecode seed w →
     b.size (work s w) ≤ 2 ^ 30 →
@@ -47,7 +45,7 @@ def MainCompleteP (fs : String → ℕ) (cert : String → V → ℕ) (cnt : Tre
             t.LoadsIn coreProgram fs cert (fun i => i < 2) (0, t.block fs coreProgram.loop) ∧
             (∀ op, cnt t op ≤ (b.instrs op).eval (work s w)) ∧
             SameStreams (t.pops coreProgram rd)
-              ((Hints.honestPushes bytecode seed s w).filter (·.1 != Hints.heapSizeStream))
+              (Hints.honestPushes bytecode seed s w)
 
 theorem MainCompleteP.toMainComplete {fs : String → ℕ} {cert : String → V → ℕ} {cnt : Tree → Opcode → ℕ}
     {b : Budget} (h : MainCompleteP fs cert cnt b) : MainComplete fs cert cnt b := fun seed s w h1 h2 h3 h4 =>
@@ -75,7 +73,7 @@ structure MainSegs (fs : String → ℕ) (seed : Digest) (s : NodeStatement) (w 
     ((w.sphincsSignatures.zip (B1.Main.sPlan s w).directSlots).flatMap
       (fun (c, slot) ↦ ("sp_raw_index", [Hints.count slot]) :: Hints.sphincsHints c.1.1 c.1.2 c.2))
   da : w.daMatrix.isSome → SameStreams (q.pd rd) (daSeg w)
-  kids : SameStreamsBut Hints.heapSizeStream (if (hm fs 0 seed s w).nc = 0 then [] else q.p5 rd)
+  kids : SameStreams (if (hm fs 0 seed s w).nc = 0 then [] else q.p5 rd)
     (childSeg bytecode seed s w)
   agg : w.children ≠ [] → SameStreams (q.pa rd) (Hints.batchPushes w.batchingHints)
 
@@ -96,7 +94,7 @@ theorem mainComplete_of_boundsP (fs : String → ℕ) (cert : String → V → �
         t.BufsOk coreProgram → ∀ op, cnt t op ≤ (b.instrs op).eval (work s w))
     (hpops : ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w →
       ∀ (rd : Reader) (t : Tree), T seed s w rd t → t.Valid coreProgram rd [] [] →
-        SameStreams (t.pops coreProgram rd) ((Hints.honestPushes bytecode seed s w).filter (·.1 != Hints.heapSizeStream)))
+        SameStreams (t.pops coreProgram rd) (Hints.honestPushes bytecode seed s w))
     (hwords : ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w →
       Bm seed s w ≤ b.words.eval (work s w)) :
     MainCompleteP fs cert cnt b := by
@@ -115,8 +113,7 @@ theorem mainComplete_of_boundsP (fs : String → ℕ) (cert : String → V → �
     exact ⟨t, hn, hv, hb, hp, ht, hli, hcnt seed s w hrel hlim rd t hT hv hb, hpops seed s w hrel hlim rd t hT hv⟩
 
 /-- **`main` is complete within the budget `b`, with its pops**: `mainComplete_of_main`, the callees' pops from
-route S (`MainPopsS`) and route R (`MainGoalsRR`), their entries against their segments (`MainSegs`); no tree pops a `heap_sizes` entry
-(`pops_noHeap`). -/
+route S (`MainPopsS`) and route R (`MainGoalsRR`), their entries against their segments (`MainSegs`). -/
 theorem mainComplete_of_mainP (fs : String → ℕ) (cert : String → V → ℕ) (cnt : Tree → Opcode → ℕ)
     (b : Budget) {SB SK : String → ℕ} {Pvs : NodeWitness → ℕ → Tree → Prop} {Bvf : ℕ → ℕ → ℕ}
     {Q : Digest → NodeStatement → NodeWitness → MainPops}
@@ -180,8 +177,8 @@ theorem mainComplete_of_mainP (fs : String → ℕ) (cert : String → V → ℕ
     obtain ⟨σ, bufs, ks, rfl, hMV, hT, hc, -⟩ := hTt
     have e := main_tree_popsR (hData_bounds hlim fs 0) hv hMV _ _ hT hc
     have hg := hseg seed s w hrel hlim rd
-    exact ((B1.Main.sameStreamsBut_of e).trans (main_pops_honest fs 0 hlim rfl rfl hg.cx hg.cs hg.d0 hg.d1 hg.r2
-      hg.r3 hg.da hg.kids hg.agg)).sameStreams (B1.Main.pops_noHeap _ hv)
+    exact e.trans (main_pops_honest fs 0 hlim rfl rfl hg.cx hg.cs hg.d0 hg.d1 hg.r2
+      hg.r3 hg.da hg.kids hg.agg)
 
 /-- **`main` is complete within `mainBudget`, with its pops.** -/
 theorem mainComplete_budgetP (fs : String → ℕ) (cert : String → V → ℕ) (cnt : Tree → Opcode → ℕ)

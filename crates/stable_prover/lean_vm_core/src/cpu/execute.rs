@@ -1,7 +1,7 @@
 //! The write-once interpreter: run the program, with its hints, to the final memory image and the per-opcode
 //! [`Trace`].
 
-use super::hints::{BitsDest, BufSize, GPow, MAX_CELLS, MAX_INDEX, QuickMap, RHint, bounded_dlog};
+use super::hints::{BitsDest, GPow, MAX_CELLS, MAX_INDEX, QuickMap, RHint, bounded_dlog};
 use super::*;
 use isa::{pretty_f64, pretty_integer};
 use primitives::field::{F64, F128};
@@ -382,13 +382,11 @@ impl Mem {
     }
 }
 
-/// What the hints keep across the run: the next free cell, each witness stream's next entry, and each `HeapBuf`
-/// reserved from advice, its pointer cell and cell count.
+/// What the hints keep across the run: the next free cell and each witness stream's next entry.
 struct Advice<'a> {
     next_free: u32,
     witness: &'a [(String, Vec<Vec<F128>>)],
     streams: QuickMap<&'a str, Stream<'a>>,
-    advised: Vec<(u32, u32)>,
 }
 
 impl<'a> Advice<'a> {
@@ -452,9 +450,7 @@ fn hint_name(h: &RHint) -> &'static str {
         RHint::AllocFrames { .. } => "AllocFrames",
         RHint::Alloc { .. } => "Alloc",
         RHint::AllocDyn { .. } => "AllocDyn",
-        RHint::AllocAdvice { .. } => "AllocAdvice",
         RHint::AllocArm { .. } => "AllocArm",
-        RHint::AllocLate { .. } => "AllocLate",
         RHint::CellAddress { .. } => "CellAddress",
         RHint::WitnessStack { .. } => "WitnessStack",
         RHint::WitnessHeap { .. } => "WitnessHeap",
@@ -497,7 +493,6 @@ pub fn execute(
         next_free: program.main_frame,
         witness,
         streams: QuickMap::default(),
-        advised: Vec::new(),
     };
     // Each pc's hints, indexed by pc: a map lookup on every step costs more than most steps.
     let mut hints: Vec<&[RHint]> = vec![&[]; program.prog.len()];
@@ -751,42 +746,6 @@ fn apply_hint<'a>(h: &'a RHint, fp: u32, m: &mut Mem, g: &mut GPow, advice: &mut
             let cells = dyn_size(m, g, size)?;
             alloc(m, g, &mut advice.next_free, cell_at(fp, ptr)?, cells)?;
         }
-        // A `HeapBuf` reserved early from advice ([`RHint::AllocAdvice`]): reserved, and of its size.
-        RHint::AllocLate { ptr, size } => {
-            let cells = match size {
-                BufSize::Cells(n) => n,
-                BufSize::Exp(size) => dyn_size(m, g, size)?,
-            };
-            let cell = cell_at(fp, ptr)?;
-            if !m.written(cell) {
-                return Err(Fault::Witness(format!(
-                    "the HeapBuf at cell {cell} was not reserved from advice"
-                )));
-            }
-            if !advice.advised.contains(&(cell, cells)) {
-                return Err(Fault::Witness(format!(
-                    "the HeapBuf at cell {cell} has {cells} cells, not its advised size"
-                )));
-            }
-        }
-        // The size is the exponent of the stream's next entry; an empty entry allocates nothing.
-        RHint::AllocAdvice { ptr, stream: ref name } => {
-            const WHAT: &str = "HeapBuf size advice";
-            let size = match advice.stream(name).next()? {
-                [] => return Ok(()),
-                &[size] => in_k(WHAT, size)?,
-                entry => {
-                    return Err(Fault::Witness(format!(
-                        "a HeapBuf size advice holds {} values, not 0 or 1",
-                        entry.len()
-                    )));
-                }
-            };
-            let cells = g.log(size).ok_or(not_a_g_power(WHAT, size))?;
-            let cell = cell_at(fp, ptr)?;
-            alloc(m, g, &mut advice.next_free, cell, cells)?;
-            advice.advised.push((cell, cells));
-        }
         // A dispatched call's frame, sized by the arm `m[fp+sel] = g^k` selects.
         RHint::AllocArm { ptr, sel, ref sizes } => {
             const WHAT: &str = "dispatch selector";
@@ -800,14 +759,13 @@ fn apply_hint<'a>(h: &'a RHint, fp: u32, m: &mut Mem, g: &mut GPow, advice: &mut
             size,
             end,
             start_inverse,
-            tail,
         } => {
             let span = in_k("loop bound", m.get(cell_at(fp, end)?))? * F64(start_inverse.0);
             let n = (!span.is_zero())
                 .then(|| g.log(span))
                 .flatten()
                 .ok_or(not_a_g_power("loop bound", span))?;
-            let cells = size.checked_mul(n).and_then(|frames| frames.checked_add(tail));
+            let cells = n.checked_add(1).and_then(|frames| size.checked_mul(frames));
             let cells = cells.ok_or(Fault::OutOfMemory)?;
             alloc(m, g, &mut advice.next_free, cell_at(fp, ptr)?, cells)?;
         }

@@ -252,28 +252,28 @@ theorem coreOf_verify_sub : coreOf (fn_idx% «verify_sub») = fn% «verify_sub»
 table's relation (tag `0`) on that call's return cell. -/
 theorem main_cut : (certOf 1).cuts.length = 1 ∧ ((certOf 1).cutAt 1).known = [] ∧
     ((certOf 1).cutAt 1).knownIf = [] ∧
-    ((certOf 1).cutAt 1).sems = [(0, [(certOf 1).locs.getD 28 0])] := by
+    ((certOf 1).cutAt 1).sems = [(0, [(certOf 1).locs.getD 46 0])] := by
   decide +kernel
 
 /-- `main`'s statement `g_squares` is its call of `exponent_tables`, before its cut, after no `ret`. -/
-theorem main_exp : (coreOf 1).body[16]? = some (.call "exponent_tables" [] [.n (val% «main» "g_squares")]) := rfl
+theorem main_exp : (coreOf 1).body[34]? = some (.call "exponent_tables" [] [.n (val% «main» "g_squares")]) := rfl
 
-theorem main_exp_lt : 16 < ((certOf 1).cutAt 1).start := by decide +kernel
+theorem main_exp_lt : 34 < ((certOf 1).cutAt 1).start := by decide +kernel
 
 theorem main_exp_noRet : Stmt.noRetList ((coreOf 1).body.take (pos% «main» "g_squares")) = true := by decide +kernel
 
 /-- The statements before `main`'s cut, at its call of `exponent_tables` (wherever the cut is). -/
 theorem main_call : (coreOf 1).body.take ((certOf 1).cutAt 1).start =
     (coreOf 1).body.take (pos% «main» "g_squares") ++ .call "exponent_tables" [] [.n (val% «main» "g_squares")] ::
-      ((coreOf 1).body.take ((certOf 1).cutAt 1).start).drop 17 := by
+      ((coreOf 1).body.take ((certOf 1).cutAt 1).start).drop 35 := by
   have h1 := main_exp
   have h2 := main_exp_lt
   generalize (coreOf 1).body = l at h1 ⊢
   generalize ((certOf 1).cutAt 1).start = n at h2 ⊢
-  have h : (l.take n)[16]? = some (.call "exponent_tables" [] [.n (val% «main» "g_squares")]) := by
+  have h : (l.take n)[34]? = some (.call "exponent_tables" [] [.n (val% «main» "g_squares")]) := by
     rw [List.getElem?_take_of_lt h2, h1]
-  have hl : 16 < (l.take n).length := (List.getElem?_eq_some_iff.mp h).1
-  conv_lhs => rw [← List.take_append_drop 16 (l.take n)]
+  have hl : 34 < (l.take n).length := (List.getElem?_eq_some_iff.mp h).1
+  conv_lhs => rw [← List.take_append_drop 34 (l.take n)]
   rw [List.take_take, Nat.min_eq_left h2.le, List.drop_eq_getElem_cons hl]
   congr 2
   exact (List.getElem?_eq_some_iff.mp h).2

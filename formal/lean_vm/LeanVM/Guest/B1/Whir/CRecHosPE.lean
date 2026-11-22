@@ -12,7 +12,6 @@ public import LeanVM.Guest.B1.VerifySub.CompleteBTE
 public import LeanVM.Guest.B1.Exact.Terminal
 public import LeanVM.Guest.B1.Exact.VerifyTables
 public import LeanVM.Guest.B1.Place.ArmExactAll
-public import LeanVM.Guest.B1.VerifySub.HeapVs
 
 /-!
 # `verify_sub`, popping its hints, every node exact
@@ -23,8 +22,7 @@ callees' trees satisfying `armXT`: `Arm.armTs_xt`); `vs_hos_ofE`, `vs_hos_of`'s 
 (`VkCompleteAtBKE`) and `open_stacked` by trees exact on the memory, and `verify_tables`' own computed hints exact at
 its honest valuation (`VtOwnExact`; its callees are `vt_callees_ok`, the terminal `ChildSegs.term_kidBWE`);
 `vs_kids_exact_of_vk`: from `verify_keccak`'s alone. `verify_sub_completeBTPE`, `verify_sub_completeBTSE`:
-`verify_sub_completeBTP`, `verify_sub_completeBTS` by a tree also exact (`verify_sub_completeBTGE`), popping the
-child's advised sizes (`vs_heap`).
+`verify_sub_completeBTP`, `verify_sub_completeBTS` by a tree also exact (`verify_sub_completeBTGE`).
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -131,8 +129,8 @@ theorem vs_kids_exact_of_vk {fs : String → ℕ} {cert : String → V → ℕ} 
     (hvk : VkCompleteAtBKE fs cert κ Bvk) : VsKidsExact fs cert κ W Bvk :=
   ⟨hvk, vtOwnExact, open_stacked_completeAtBPE⟩
 
-/-- **`verify_sub` is complete on an honest child within its own bound by a node popping `childHints` past its
-advised sizes and exact at every node**, given its `open_stacked` callee's trees popping the child's Merkle hints and
+/-- **`verify_sub` is complete on an honest child within its own bound by a node popping `childHints` and exact at
+every node**, given its `open_stacked` callee's trees popping the child's Merkle hints and
 its other callees with computed hints exact. -/
 theorem verify_sub_completeBTPE {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) (W : VsWordsOs fs) {Bvk κ : ℕ}
     (hκ : 16 ≤ κ) (hK : VsKidsExact fs cert κ W Bvk) {seed : Digest} {c : Child}
@@ -143,8 +141,8 @@ theorem verify_sub_completeBTPE {bytecode : List K} (hbl : bytecode.length = 2 ^
       ((S.kids bs sqE).getD 14 noKid pv).args ((S.kids bs sqE).getD 14 noKid pv).Out
       (fun rd t => vsPos bytecode seed c rd t ∧ t.Every (ExactAt coreProgram rd)) (osBosAt fs W.Bnd S.μs)) :
     CompleteAtDTBR fs cert κ "verify_sub" Lin (vsArgs seed c sqE outE) (Returns [])
-      (fun rd t ↦ ((vsTsAny fs W Bvk S.μs S.rate t ∧ t.heapPops heapSlots = childHeapH bytecode c) ∧
-        SameStreams (t.pops coreProgram rd) ((Hints.childHints bytecode seed c).drop 4)) ∧
+      (fun rd t ↦ (vsTsAny fs W Bvk S.μs S.rate t ∧
+        SameStreams (t.pops coreProgram rd) (Hints.childHints bytecode seed c)) ∧
         t.Every (ExactAt coreProgram rd))
       (vsBoundAt W Bvk S.μs S.rate) := by
   refine CompleteAtDTBR.monoV (verify_sub_completeBTGE hbl W hκ hK.vk S sqE outE Lin hst hexp hout
@@ -155,13 +153,11 @@ theorem verify_sub_completeBTPE {bytecode : List K} (hbl : bytecode.length = 2 ^
   obtain ⟨tcp, tvt, tos, ncp, nvt, nos, hmem, himpl⟩ :=
     vs_hon_child_pops S (args := vsArgs seed c sqE outE) rfl b outs hB hst hv
   have hQ : ∀ t ∈ [tcp, tvt, tos],
-      VsKidQ (vsPcp S.logMem S.hs) (fun rd t ↦ vsPvt S.logMem S.rowsN S.H.n rd t ∧
-        t.heapPops heapSlots = (heapSlots "verify_tables").map (advEntry S.H.sizes)) (vsPos bytecode seed c) rd t := by
+      VsKidQ (vsPcp S.logMem S.hs) (fun rd t ↦ vsPvt S.logMem S.rowsN S.H.n rd t) (vsPos bytecode seed c) rd t := by
     intro t ht
     obtain ⟨hm, a, r, hvt'⟩ := hmem t ht
     exact hKq t hm ⟨a, r, hvt'⟩
-  obtain ⟨hmt, hvtv⟩ := hmem tvt (by simp)
-  refine ⟨⟨⟨hT, vs_heap hbl S hv (fun k hk hn hval => ((hKq k hk hval).2.1 hn).2) hmt nvt hvtv⟩, ?_⟩, hE⟩
+  refine ⟨⟨hT, ?_⟩, hE⟩
   have hlay : S.layout = Tables.layoutOf bytecode S.logMem S.rowsN := S.hlayout
   refine himpl ?_ ?_ ((hQ tos (by simp)).2.2 nos)
   · rw [(hQ tcp (by simp)).1 ncp, hlay, colGroupOrder_layoutOf hbl S.logMem S.hrowsL]
@@ -170,12 +166,12 @@ theorem verify_sub_completeBTPE {bytecode : List K} (hbl : bytecode.length = 2 ^
       have := S.nT_le hbl
       have e : S.H.n = S.nT := rfl
       omega
-    rw [((hQ tvt (by simp)).2.1 nvt).1, hlay, blockGroupOrder_eq hbl S.logMem S.hrowsL, count_eq_gen (by
+    rw [(hQ tvt (by simp)).2.1 nvt, hlay, blockGroupOrder_eq hbl S.logMem S.hrowsL, count_eq_gen (by
       show S.H.n < 2 ^ 64; exact hn)]
     rfl
 
-/-- **`verify_sub` is complete on an honest child within its own bound by a node popping `childHints` past its
-advised sizes and exact at every node**, on segments whose query steps are the child's. -/
+/-- **`verify_sub` is complete on an honest child within its own bound by a node popping `childHints` and exact at
+every node**, on segments whose query steps are the child's. -/
 theorem verify_sub_completeBTSE {bytecode : List K} (hbl : bytecode.length = 2 ^ 23)
     (hrf : Lift.RunsFit fs cert) (hcons : RunsConsec cert) (W : VsWordsOs fs) {Bvk κ : ℕ}
     (hκ : 16 ≤ κ) (hK : VsKidsExact fs cert κ W Bvk) {seed : Digest} {c : Child}
@@ -185,8 +181,8 @@ theorem verify_sub_completeBTSE {bytecode : List K} (hbl : bytecode.length = 2 ^
     (hst : c.proof.stream.length ≤ Coverage.childStreamCap)
     (hexp : ∀ q ∈ vsExpLin sqE, q ∈ Lin) (hout : (outE, DeferredBytecodeClaim.cells c.freshClaim) ∈ Lin) :
     CompleteAtDTBR fs cert κ "verify_sub" Lin (vsArgs seed c sqE outE) (Returns [])
-      (fun rd t ↦ ((vsTsAny fs W Bvk S.μs S.rate t ∧ t.heapPops heapSlots = childHeapH bytecode c) ∧
-        SameStreams (t.pops coreProgram rd) ((Hints.childHints bytecode seed c).drop 4)) ∧
+      (fun rd t ↦ (vsTsAny fs W Bvk S.μs S.rate t ∧
+        SameStreams (t.pops coreProgram rd) (Hints.childHints bytecode seed c)) ∧
         t.Every (ExactAt coreProgram rd))
       (vsBoundAt W Bvk S.μs S.rate) :=
   verify_sub_completeBTPE hbl W hκ hK S sqE outE Lin hst hexp hout

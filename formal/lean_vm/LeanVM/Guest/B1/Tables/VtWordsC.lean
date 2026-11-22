@@ -21,7 +21,7 @@ open LeanVM.Protocol.Verifier (gen)
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
 /-- `verify_tables`' own buffers. -/
-theorem VtHonest.sizes_sum (H : VtHonest) : H.sizes.sum = 3875 + H.μ + 9 * (H.n + 1) := by
+theorem VtHonest.sizes_sum (H : VtHonest) : H.sizes.sum = 4190 + H.μ := by
   simp only [VtHonest.sizes, List.sum_append, List.sum_cons, List.sum_nil, List.sum_replicate, smul_eq_mul]
   omega
 

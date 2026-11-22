@@ -13,8 +13,7 @@ public import LeanVM.Guest.Bridge.AllocIdx
 /-!
 # The allocation hints ready
 
-`allocReady_alignA : DynPow → AdvNext alignA → LateReady alignA → FrameReady alignA → ExclReady alignA →
-AllocReady alignA`, `sizesAt_alignA` likewise for `SizesAt alignA`, `frameReady_of : FrameSize alignA →
+`allocReady_alignA : DynPow → FrameReady alignA → AllocReady alignA`, `sizesAt_alignA` likewise for `SizesAt alignA`, `frameReady_of : FrameSize alignA →
 FramePtr alignA → FrameReady alignA`; `AllocGaps` gathers what is named. At the `i`-th hint of a
 frame's offset (`HintAt`), the bump pointer the frame's cursor moved by the words the hints before it
 reserve:
@@ -23,7 +22,7 @@ reserve:
   (`Bridge.bufsOf_idx`); no frame hint before it (`Bridge.buf_noFrame`), no call made
   (`NcTop`), so the bump pointer is the instance's cursor past the buffers before it, where the
   reference puts its base (`bufBase_ref`); its size is the path's (`Tree.BufsOk`, `allocs_of_shape`),
-  a constant's (`JumpCells.pcw`), a dynamic size's (`DynPow`), or the stream's (`AdvNext`); the
+  a constant's (`JumpCells.pcw`) or a dynamic size's (`DynPow`); the
   buffer ends within the instance's subtree, which ends within the tree (`endCur_chain`);
 * a callee frame's hint: nothing pending and no frame hint before it at its offset (`FrUniq`),
   every buffer hint before it (`Bridge.frame_allBufs`), so the bump pointer is the instance's cursor
@@ -32,20 +31,15 @@ reserve:
   (`Bridge.addrOk`); a next frame's address, in a loop helper whose tail callee's frame follows its
   own (`Memory.tail_pos`), within the tree.
 
-The words each hint reserves (`SizesAt`) follow the same way: a buffer's from its atom, a late hint's
-none, a frame's from its size (`rsz_of_sizeOk`).
+The words each hint reserves (`SizesAt`) follow the same way: a buffer's from its atom, a frame's from
+its size (`rsz_of_sizeOk`).
 
 What is named here, proved elsewhere: `DynPow`, every dynamic `HeapBuf`'s size is a power of `g`
 (what the path computes; `dynPow_guest`, `EndExecADyn.lean`), `FrameSize` and `FramePtr`
 (`EndExecAFrSize.lean`, `EndExecAFrame.lean`): a callee frame's hint reserves the next callee's
 block (`SizeOk`: a constant, a dispatch arm's by its selector, a loop chain's by its bound), its
 pointer cell the next callee's frame (the next call, reached by the straight code to the call site's
-jump, `FrameHolds.site`); `AdvNext`, an `allocAdvice` pops the `heap_sizes` entry of its buffer's
-size, empty when the path allocates none (`advNext_alignA`, `EndExecAHeap.lean`, from the advised
-sizes' track `HeapAt`); `LateReady`, a late hint finds its buffer reserved, its size cell a power,
-the size it was advised (`lateReady_alignA`, `EndExecALate.lean`); `ExclReady`, the buffer hints of the function the
-allocation check excludes (`claim_list_digest`, its one buffer in a branch; `exclReady_alignA`,
-`EndExecAExcl.lean`).
+jump, `FrameHolds.site`).
 -/
 
 namespace LeanVM.Guest.EndExec
@@ -64,7 +58,7 @@ the reference's words. -/
 structure HintAt (A : String → FnAl) (r : Ref) (C : Ctx) (e : Ent) (s sx : St) (i : ℕ) (h : Hint) : Prop where
   ok : r.Ok
   ctx : Ctx.of guestProgram r.adv = .ok C
-  track : ∃ done st, RefTrack A r s.pc s.fp (done, e :: st) ∧ ChainA A (memOf r.img) (e :: st) ∧ HeapAt A r s e st
+  track : ∃ done st, RefTrack A r s.pc s.fp (done, e :: st) ∧ ChainA A (memOf r.img) (e :: st)
   nc : NcTop A e (s.pc - entOf A e.I.t.name)
   fine : Fine (refMem r.img) s
   onref : OnRef guestProgram r.img r.n s
@@ -83,37 +77,23 @@ def DynPow : Prop :=
     I.t = .node f σ bufs kids → ∀ d s,
     Ev.atom (.hint (.allocDyn d s)) ∈ I.t.events coreProgram → I.t.val s = ofK (addressOfIndex (logG (I.t.val s)))
 
-/-- **An `allocAdvice` pops its buffer's size**: the next entry of its stream is the size of the
-buffer of its index, empty when the path allocates none. -/
-def AdvNext (A : String → FnAl) : Prop :=
-  ∀ r C e s sx i p S, HintAt A r C e s sx i (.allocAdvice p S) →
-    StreamNext C sx S (match e.I.t.bufs[bufIdx A e (s.pc - entOf A e.I.t.name) i]? with
-      | some n => [ofK (addressOfIndex n)]
-      | none => [])
-
-/-- **A late hint finds its buffer reserved**, and, once its size cell is written, its size a power below
-`maxCells` with which the advice reserved it. -/
-def LateReady (A : String → FnAl) : Prop :=
-  ∀ r C e s sx i p b, HintAt A r C e s sx i (.allocLate p b) → sx.mem.written (sx.fp + p) = true ∧
-    (Mode.HintIn sx (.allocLate p b) → ∃ n, BufOk sx b n ∧ (sx.fp + p, n) ∈ sx.advised)
-
 /-- **A callee frame's hint reserves the next callee's block**, and has what it needs where the tree
 puts the bump pointer, the cells it reads written. -/
 def FrameReady (A : String → FnAl) : Prop :=
   ∀ r C e s sx i h, HintAt A r C e s sx i h → isFrame (A e.I.t.name).X h = true →
-    rsz C (refMem r.img) sx h =
+    rsz (refMem r.img) sx h =
         (((e.I.t.kidsC coreProgram.loop)[e.nc]?).map (Tree.block B2C.fs coreProgram.loop)).getD 0 ∧
       (Mode.HintIn sx h → sx.nextFree = cursorAt A e (s.pc - entOf A e.I.t.name) +
           ((treeSizes A e (s.pc - entOf A e.I.t.name)).take i).sum →
-        HintOk C (refMem r.img) sx h ∧ AllocB (2 ^ r.κ) C sx h)
+        HintOk C (refMem r.img) sx h ∧ AllocB (2 ^ r.κ) sx h)
 
 /-- **A callee frame's hint reserves `B` words**, its size read off `M` at frame `fp`: a constant, a
 dispatch arm's by its selector, or a loop chain's by its bound. -/
 def SizeOk (M : ℕ → E) (fp : ℕ) : Hint → ℕ → Prop
   | .alloc _ n, B => n = B
   | .allocArm _ sel sizes, B => ∃ k, M (fp + sel) = ofK (Parameters.g ^ k) ∧ k < maxCells ∧ sizes[k]? = some B
-  | .allocFrames _ size stop si tail, B => ∃ v n, M (fp + stop) = ofK v ∧ v * si = Parameters.g ^ n ∧ n < maxCells ∧
-      size * n + tail = B
+  | .allocFrames _ size stop si, B => ∃ v n, M (fp + stop) = ofK v ∧ v * si = Parameters.g ^ n ∧ n < maxCells ∧
+      size * (n + 1) = B
   | _, _ => False
 
 /-- **A callee frame's hint reserves the next callee's block**, its sizes read off the reference. -/
@@ -127,16 +107,6 @@ def FramePtr (A : String → FnAl) : Prop :=
   ∀ r C e s sx i h p, HintAt A r C e s sx i h → isFrame (A e.I.t.name).X h = true → allocPtr h = some p →
     e.I.fp + p < maxCells ∧
       refMem r.img (e.I.fp + p) = ofK (addressOfIndex (e.I.curAt B2C.fs coreProgram.loop e.I.t.bufs.length e.nc))
-
-/-- **The buffer hints of the functions the allocation check excludes** reserve the buffers of
-their index, and have what they need where the tree puts the bump pointer. -/
-def ExclReady (A : String → FnAl) : Prop :=
-  ∀ r C e s sx i h j, HintAt A r C e s sx i h → B2C.idxOf e.I.t.name = some j → j ∈ AllocChk.allocExcl →
-    isBuf (A e.I.t.name).X h = true →
-    rsz C (refMem r.img) sx h = e.I.t.bufs.getD (bufIdx A e (s.pc - entOf A e.I.t.name) i) 0 ∧
-    (sx.nextFree = cursorAt A e (s.pc - entOf A e.I.t.name) +
-        ((treeSizes A e (s.pc - entOf A e.I.t.name)).take i).sum →
-      HintOk C (refMem r.img) sx h ∧ AllocB (2 ^ r.κ) C sx h)
 
 end
 
@@ -327,8 +297,7 @@ theorem compilesA_cases {X : AlignCtx} {fs : ℕ} {a : Core.Hint} {h : Hint} (hc
     (∃ d n, a = .alloc d n ∧ h = .alloc (X.locAt d.idx) n) ∨
     (∃ d nv n, a = .allocDyn d nv ∧ h = .alloc (X.locAt d.idx) n ∧ allocCellOk X fs nv = true ∧
       X.pcAt (X.locAt nv.idx) = some n ∧ n < 2 ^ 28) ∨
-    (∃ d nv, a = .allocDyn d nv ∧ h = .allocDyn (X.locAt d.idx) (X.locAt nv.idx) ∧ allocCellOk X fs nv = true) ∨
-    (∃ d nv S, a = .allocDyn d nv ∧ h = .allocAdvice (X.locAt d.idx) S) := by
+    (∃ d nv, a = .allocDyn d nv ∧ h = .allocDyn (X.locAt d.idx) (X.locAt nv.idx) ∧ allocCellOk X fs nv = true) := by
   cases a <;> cases h <;> simp only [compilesA, Bool.and_eq_true, Nat.beq_eq, beq_iff_eq, Nat.blt_eq,
     Bool.false_eq_true] at hc
   · obtain ⟨⟨-, rfl⟩, rfl⟩ := hc
@@ -336,9 +305,7 @@ theorem compilesA_cases {X : AlignCtx} {fs : ℕ} {a : Core.Hint} {h : Hint} (hc
   · obtain ⟨⟨⟨⟨-, hn⟩, rfl⟩, hpc⟩, hlt⟩ := hc
     exact Or.inr (Or.inl ⟨_, _, _, rfl, rfl, hn, hpc, hlt⟩)
   · obtain ⟨⟨⟨-, hn⟩, rfl⟩, rfl⟩ := hc
-    exact Or.inr (Or.inr (Or.inl ⟨_, _, rfl, rfl, hn⟩))
-  · obtain ⟨-, rfl⟩ := hc
-    exact Or.inr (Or.inr (Or.inr ⟨_, _, _, rfl, rfl⟩))
+    exact Or.inr (Or.inr ⟨_, _, rfl, rfl, hn⟩)
 
 /-- **A loop helper's path makes a call**, its last statements its conditional call and `ret []`. -/
 theorem loop_calls_ne {fn : Fn} {p : B2C.Plumb} (h : loopChk fn p = true) {σ : Val} {es : List Ev} {vs : List V}
@@ -368,11 +335,10 @@ theorem loop_calls_ne {fn : Fn} {p : B2C.Plumb} (h : loopChk fn p = true) {σ : 
 
 /-- **Each allocation hint is ready where the tree puts the bump pointer**, on the deployed
 alignment, given the facts named. -/
-theorem allocReady_alignA (hD : DynPow) (hA : AdvNext alignA) (hL : LateReady alignA) (hF : FrameReady alignA)
-    (hX : ExclReady alignA) : AllocReady alignA := by
-  intro r hr C hC done e st s htr hch hnc hha hfine hon i h sx hget hpre hm halloc hin hnf
+theorem allocReady_alignA (hD : DynPow) (hF : FrameReady alignA) : AllocReady alignA := by
+  intro r hr C hC done e st s htr hch hnc hfine hon i h sx hget hpre hm halloc hin hnf
   have hat : HintAt alignA r C e s sx i h :=
-    ⟨hr, hC, ⟨done, st, htr, hch, hha⟩, hnc, hfine, hon, hget, hpre, hm.2⟩
+    ⟨hr, hC, ⟨done, st, htr, hch⟩, hnc, hfine, hon, hget, hpre, hm.2⟩
   have hκ : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size
   obtain ⟨rd, hHon, hHX⟩ := hr.honest
   obtain ⟨hI, j, bufs, kids, vs, hj, hIt, hfn, hw, hFH⟩ := (htr.frames hr.name hHon hHX.covers) e List.mem_cons_self
@@ -391,107 +357,89 @@ theorem allocReady_alignA (hD : DynPow) (hA : AdvNext alignA) (hL : LateReady al
   by_cases hp : (allocPtr h).isSome = true
   · by_cases hfr : isFrame (alignA e.I.t.name).X h = true
     · exact (hF r C e s sx i h hat hfr).2 hin (by rw [hoff]; exact hnf)
-    · by_cases hlt : isLate h = true
-      · cases h <;> simp only [isLate, Bool.false_eq_true] at hlt
-        rename_i p b
-        obtain ⟨hwr, hbo⟩ := hL r C e s sx i p b hat
-        obtain ⟨n, hb, hadv⟩ := hbo hin
-        exact ⟨⟨n, hb, hwr, hadv⟩, allocB_late hwr⟩
-      · have hb : isBuf (alignA e.I.t.name).X h = true := by
-          unfold isBuf; simp only [hp, hfr, hlt, Bool.not_false, Bool.and_self]
-        by_cases hex : i0 + 1 ∈ AllocChk.allocExcl
-        · exact (hX r C e s sx i h (i0 + 1) hat hj hex hb).2 (by rw [hoff]; exact hnf)
-        · have hAJ : AllocJ (i0 + 1) := AllocChk.allocJ_all _ h1 (by have : nFns = fn_count% := rfl; omega) hex
-          have hidx := bufsOf_idx hU hget' hb
-          have hbo : bufsOf (alignA e.I.t.name).X (alignA e.I.t.name).d =
-              (allocHints (adviceOf (i0 + 1))).filter fun q ↦ isBuf (ctxOf (i0 + 1)) q.2 := by rw [hA2]; rfl
-          have hk : (((allocHints (adviceOf (i0 + 1))).filter fun q ↦ isBuf (ctxOf (i0 + 1)) q.2).map (·.2))[
-              bufIdx alignA e off i]? = some h := by
-            rw [List.getElem?_map, ← hbo]; unfold bufIdx; rw [hintsAtOff_eq, hidx]; rfl
-          obtain ⟨p, hpp⟩ := Option.isSome_iff_exists.mp hp
-          obtain ⟨hklt, hfpp, hptr⟩ := bufBase_ref hr htr hj hAJ hk hpp
-          have hnc0 : e.nc = 0 := hnc ⟨(off, h), List.mem_of_getElem? hidx, le_refl _⟩
-          obtain ⟨hfq, hcf⟩ := buf_noFrame hU hCF.first hget' hb
-          have hpend : pendAt (alignA e.I.t.name).X (alignA e.I.t.name).code (alignA e.I.t.name).d off = false := by
-            unfold pendAt pendIn
-            rw [List.any_eq_false]
-            intro q hq
-            have := hfq q hq
-            simp only [Bool.and_eq_true, decide_eq_true_eq, not_and]
-            omega
-          have hnfx : sx.nextFree = e.I.cur + (e.I.t.bufs.take (bufIdx alignA e off i)).sum := by
-            rw [hnf, cursorAt_unfold, hnc0, hpend, ← treeSizes_take_buf alignA e off i hcf]
-            simp only [List.take_zero, List.map_nil, List.sum_nil, Bool.cond_false, Nat.zero_mul, Nat.add_zero]
-            omega
-          obtain ⟨a, hca, hev, hbk⟩ := bufAtom hr htr hj hAJ hk
-          set k := bufIdx alignA e off i with hkdef
-          -- the buffer ends within the tree
-          have hn : ∃ f σ bufs kids, e.I.t = .node f σ bufs kids := ⟨_, _, _, _, hIt⟩
-          have he1 := curAt_le_endCur (fs := B2C.fs) (lp := coreProgram.loop) hn e.I.t.bufs.length 0
-          simp only [Inst.curAt, List.take_length, List.take_zero, List.map_nil, List.sum_nil, Nat.add_zero] at he1
-          have he2 := endCur_chain (A := alignA) hr st e s.pc s.fp htr.track.ents htr.linked hch
-          have he3 := le_two_pow_logMem (r.T.total B2C.fs)
-          have h2k : 2 ^ r.κ ≤ 2 ^ 28 := Nat.pow_le_pow_right (by norm_num) hκ
-          have hIP := insts_placed r.T (0, r.T.block B2C.fs coreProgram.loop) r.hdr (by omega) e.I hI
-          have hcur2 : 2 ≤ e.I.cur := by
-            have h2 := hHon.cells.two_le e.I hI
-            have hb2 : B2C.fs e.I.t.name ≤ e.I.t.block B2C.fs coreProgram.loop := by
-              rw [hIt]; simp only [Tree.block, Tree.name]; omega
-            have := hIP.2.2
-            omega
-          obtain ⟨n, hbn⟩ : ∃ n, e.I.t.bufs[k]? = some n := ⟨_, hbk⟩
-          have htk : (e.I.t.bufs.take (k + 1)).sum = (e.I.t.bufs.take k).sum + n := by
-            rw [List.take_add_one, List.sum_append, hbn]; simp
-          have hle : (e.I.t.bufs.take (k + 1)).sum ≤ e.I.t.bufs.sum :=
-            List.Sublist.sum_le_sum (List.take_sublist _ _) (fun _ _ ↦ Nat.zero_le _)
-          have hboundK : sx.nextFree + n ≤ 2 ^ r.κ := by
-            rw [hnfx]; unfold Ref.κ; omega
-          have hbound : sx.nextFree + n ≤ maxCells := by
-            unfold maxCells; omega
-          have hnlt : n < maxCells := by
-            rw [hnfx] at hbound; omega
-          rw [hbk] at hbn
-          obtain rfl := Option.some.inj hbn
-          rcases compilesA_cases hca with ⟨d, n', rfl, rfl⟩ | ⟨d, nv, n', rfl, rfl, hcn, hpc, hlt'⟩ |
-            ⟨d, nv, rfl, rfl, hcn⟩ | ⟨d, nv, S, rfl, rfl⟩
-          · simp only [allocPtr, Option.some.injEq] at hpp
-            subst hpp
-            exact ⟨⟨by rw [hsxfp]; exact hfpp, hbound, by rw [hsxfp, hptr, hnfx]⟩, hboundK⟩
-          · simp only [allocPtr, Option.some.injEq] at hpp
-            subst hpp
-            have hval := cellRef hr htr hj ⟨_, hev, by simp [atomUses, hintUses]⟩ hcn
-            have hJ := (jumpCells_at r hr _ _ _ _ _ htr).pcw ((ctxOf (i0 + 1)).locAt nv.idx) n' (by rw [hA2]; exact hpc)
-            have hw' := (refRd_img hκ r.img _ _ (by unfold maxCells at hval; omega) hJ).2
-            rw [hval.2] at hw'
-            have hsz : allocSizeOf e.σ (.allocDyn d nv) = n' := by
-              simp only [allocSizeOf]; rw [hw', logG_spec (by omega)]
-            rw [hsz] at hbound hboundK
-            exact ⟨⟨by rw [hsxfp]; exact hfpp, hbound, by rw [hsxfp, hptr, hnfx]⟩, hboundK⟩
-          · simp only [allocPtr, Option.some.injEq] at hpp
-            subst hpp
-            have hval := cellRef hr htr hj ⟨_, hev, by simp [atomUses, hintUses]⟩ hcn
-            have hevs : e.I.t.events coreProgram = e.pre ++ e.es := by rw [hIt]; exact events_node hE.find hw
-            have hpow := hD r hr e.I hI _ _ _ _ hIt d nv (by rw [hevs]; exact hev)
-            have hpt : PtrAt sx (sx.fp + (ctxOf (i0 + 1)).locAt nv.idx) (allocSizeOf e.σ (.allocDyn d nv)) := by
-              refine ⟨?_, hnlt⟩
-              obtain ⟨v, hv⟩ := Mem.get_of_written
-                (show sx.mem.written (sx.fp + (ctxOf (i0 + 1)).locAt nv.idx) = true from hin)
-              have hMv := hm.2 _ _ hv
-              unfold Mem.peek
-              rw [hv, Option.getD_some, ← hMv, hsxfp, hval.2]
-              exact hpow
-            exact ⟨⟨allocSizeOf e.σ (.allocDyn d nv), hpt, ⟨by rw [hsxfp]; exact hfpp, hbound,
-              by rw [hsxfp, hptr, hnfx]⟩⟩, allocB_dyn hpt hboundK⟩
-          · simp only [allocPtr, Option.some.injEq] at hpp
-            subst hpp
-            have hnx := hA r C e s sx i _ S hat
-            rw [hoff, ← hkdef, hbk] at hnx
-            refine ⟨Or.inr ⟨_, hnx, hnlt, by rw [hsxfp]; exact hfpp, hbound, by rw [hsxfp, hptr, hnfx]⟩,
-              allocB_adv hnx fun n' hn' he ↦ ?_⟩
-            have hgn : (Parameters.g ^ allocSizeOf e.σ (.allocDyn d nv)) = Parameters.g ^ n' :=
-              ofK_injective (List.cons.inj he).1
-            obtain rfl := gpow_inj (by unfold maxCells at hnlt; omega) (by unfold maxCells at hn'; omega) hgn
-            exact hboundK
+    · have hb : isBuf (alignA e.I.t.name).X h = true := by
+        unfold isBuf; simp only [hp, hfr, Bool.not_false, Bool.and_self]
+      have hAJ : AllocJ (i0 + 1) := AllocChk.allocJ_all _ h1 (by have : nFns = fn_count% := rfl; omega)
+      have hidx := bufsOf_idx hU hget' hb
+      have hbo : bufsOf (alignA e.I.t.name).X (alignA e.I.t.name).d =
+          (allocHints (adviceOf (i0 + 1))).filter fun q ↦ isBuf (ctxOf (i0 + 1)) q.2 := by rw [hA2]; rfl
+      have hk : (((allocHints (adviceOf (i0 + 1))).filter fun q ↦ isBuf (ctxOf (i0 + 1)) q.2).map (·.2))[
+          bufIdx alignA e off i]? = some h := by
+        rw [List.getElem?_map, ← hbo]; unfold bufIdx; rw [hintsAtOff_eq, hidx]; rfl
+      obtain ⟨p, hpp⟩ := Option.isSome_iff_exists.mp hp
+      obtain ⟨hklt, hfpp, hptr⟩ := bufBase_ref hr htr hj hAJ hk hpp
+      have hnc0 : e.nc = 0 := hnc ⟨(off, h), List.mem_of_getElem? hidx, le_refl _⟩
+      obtain ⟨hfq, hcf⟩ := buf_noFrame hU hCF.first hget' hb
+      have hpend : pendAt (alignA e.I.t.name).X (alignA e.I.t.name).code (alignA e.I.t.name).d off = false := by
+        unfold pendAt pendIn
+        rw [List.any_eq_false]
+        intro q hq
+        have := hfq q hq
+        simp only [Bool.and_eq_true, decide_eq_true_eq, not_and]
+        omega
+      have hnfx : sx.nextFree = e.I.cur + (e.I.t.bufs.take (bufIdx alignA e off i)).sum := by
+        rw [hnf, cursorAt_unfold, hnc0, hpend, ← treeSizes_take_buf alignA e off i hcf]
+        simp only [List.take_zero, List.map_nil, List.sum_nil, Bool.cond_false, Nat.zero_mul, Nat.add_zero]
+        omega
+      obtain ⟨a, hca, hev, hbk⟩ := bufAtom hr htr hj hAJ hk
+      set k := bufIdx alignA e off i with hkdef
+      -- the buffer ends within the tree
+      have hn : ∃ f σ bufs kids, e.I.t = .node f σ bufs kids := ⟨_, _, _, _, hIt⟩
+      have he1 := curAt_le_endCur (fs := B2C.fs) (lp := coreProgram.loop) hn e.I.t.bufs.length 0
+      simp only [Inst.curAt, List.take_length, List.take_zero, List.map_nil, List.sum_nil, Nat.add_zero] at he1
+      have he2 := endCur_chain (A := alignA) hr st e s.pc s.fp htr.track.ents htr.linked hch
+      have he3 := le_two_pow_logMem (r.T.total B2C.fs)
+      have h2k : 2 ^ r.κ ≤ 2 ^ 28 := Nat.pow_le_pow_right (by norm_num) hκ
+      have hIP := insts_placed r.T (0, r.T.block B2C.fs coreProgram.loop) r.hdr (by omega) e.I hI
+      have hcur2 : 2 ≤ e.I.cur := by
+        have h2 := hHon.cells.two_le e.I hI
+        have hb2 : B2C.fs e.I.t.name ≤ e.I.t.block B2C.fs coreProgram.loop := by
+          rw [hIt]; simp only [Tree.block, Tree.name]; omega
+        have := hIP.2.2
+        omega
+      obtain ⟨n, hbn⟩ : ∃ n, e.I.t.bufs[k]? = some n := ⟨_, hbk⟩
+      have htk : (e.I.t.bufs.take (k + 1)).sum = (e.I.t.bufs.take k).sum + n := by
+        rw [List.take_add_one, List.sum_append, hbn]; simp
+      have hle : (e.I.t.bufs.take (k + 1)).sum ≤ e.I.t.bufs.sum :=
+        List.Sublist.sum_le_sum (List.take_sublist _ _) (fun _ _ ↦ Nat.zero_le _)
+      have hboundK : sx.nextFree + n ≤ 2 ^ r.κ := by
+        rw [hnfx]; unfold Ref.κ; omega
+      have hbound : sx.nextFree + n ≤ maxCells := by
+        unfold maxCells; omega
+      have hnlt : n < maxCells := by
+        rw [hnfx] at hbound; omega
+      rw [hbk] at hbn
+      obtain rfl := Option.some.inj hbn
+      rcases compilesA_cases hca with ⟨d, n', rfl, rfl⟩ | ⟨d, nv, n', rfl, rfl, hcn, hpc, hlt'⟩ |
+        ⟨d, nv, rfl, rfl, hcn⟩
+      · simp only [allocPtr, Option.some.injEq] at hpp
+        subst hpp
+        exact ⟨⟨by rw [hsxfp]; exact hfpp, hbound, by rw [hsxfp, hptr, hnfx]⟩, hboundK⟩
+      · simp only [allocPtr, Option.some.injEq] at hpp
+        subst hpp
+        have hval := cellRef hr htr hj ⟨_, hev, by simp [atomUses, hintUses]⟩ hcn
+        have hJ := (jumpCells_at r hr _ _ _ _ _ htr).pcw ((ctxOf (i0 + 1)).locAt nv.idx) n' (by rw [hA2]; exact hpc)
+        have hw' := (refRd_img hκ r.img _ _ (by unfold maxCells at hval; omega) hJ).2
+        rw [hval.2] at hw'
+        have hsz : allocSizeOf e.σ (.allocDyn d nv) = n' := by
+          simp only [allocSizeOf]; rw [hw', logG_spec (by omega)]
+        rw [hsz] at hbound hboundK
+        exact ⟨⟨by rw [hsxfp]; exact hfpp, hbound, by rw [hsxfp, hptr, hnfx]⟩, hboundK⟩
+      · simp only [allocPtr, Option.some.injEq] at hpp
+        subst hpp
+        have hval := cellRef hr htr hj ⟨_, hev, by simp [atomUses, hintUses]⟩ hcn
+        have hevs : e.I.t.events coreProgram = e.pre ++ e.es := by rw [hIt]; exact events_node hE.find hw
+        have hpow := hD r hr e.I hI _ _ _ _ hIt d nv (by rw [hevs]; exact hev)
+        have hpt : PtrAt sx (sx.fp + (ctxOf (i0 + 1)).locAt nv.idx) (allocSizeOf e.σ (.allocDyn d nv)) := by
+          refine ⟨?_, hnlt⟩
+          obtain ⟨v, hv⟩ := Mem.get_of_written
+            (show sx.mem.written (sx.fp + (ctxOf (i0 + 1)).locAt nv.idx) = true from hin)
+          have hMv := hm.2 _ _ hv
+          unfold Mem.peek
+          rw [hv, Option.getD_some, ← hMv, hsxfp, hval.2]
+          exact hpow
+        exact ⟨⟨allocSizeOf e.σ (.allocDyn d nv), hpt, ⟨by rw [hsxfp]; exact hfpp, hbound,
+          by rw [hsxfp, hptr, hnfx]⟩⟩, allocB_dyn hpt hboundK⟩
   · cases h <;> simp only [isAllocHint, allocPtr, Option.isSome_some, Option.isSome_none, Bool.false_eq_true,
       not_false_eq_true, not_true_eq_false] at halloc hp
     all_goals refine ⟨?_, trivial⟩
@@ -575,37 +523,10 @@ theorem treeSizes_getD (A : String → FnAl) (e : Ent) {off i : ℕ} {h : Hint}
   rw [List.getD_eq_getElem?_getD, treeSizes, List.getElem?_map, List.getElem?_range hlt]
   simp only [Option.map_some, Option.getD_some, hi, bufIdx, List.countP_eq_length_filter]
 
-/-- **An `allocAdvice` reserves its buffer's size**: the stream's next entry, read as a power. -/
-theorem rsz_adv (hA : AdvNext alignA) {r : Ref} {C : Ctx} {e : Ent} {s sx : St} {i p : ℕ} {S : String}
-    (hat : HintAt alignA r C e s sx i (.allocAdvice p S)) :
-    rsz C (refMem r.img) sx (.allocAdvice p S) =
-      e.I.t.bufs.getD (bufIdx alignA e (s.pc - entOf alignA e.I.t.name) i) 0 := by
-  have hnx := hA r C e s sx i p S hat
-  obtain ⟨hr, -, ⟨done, st, htr, hch, -⟩, -⟩ := hat
-  obtain ⟨rd, hHon, hHX⟩ := hr.honest
-  obtain ⟨-, j, bufs, kids, vs, -, hIt, -⟩ := (htr.frames hr.name hHon hHX.covers) e List.mem_cons_self
-  simp only [rsz, advSize]
-  rw [List.getD_eq_getElem?_getD]
-  obtain ⟨es, h1', h2'⟩ := hnx
-  rw [h1', Option.bind_some, h2']
-  rcases hbk : e.I.t.bufs[bufIdx alignA e (s.pc - entOf alignA e.I.t.name) i]? with _ | n
-  · rfl
-  · have hn : n ≤ r.T.total B2C.fs := by
-      have hle : n ≤ e.I.t.bufs.sum := List.le_sum_of_mem (List.mem_of_getElem? hbk)
-      have hn : ∃ f σ bufs kids, e.I.t = .node f σ bufs kids := ⟨_, _, _, _, hIt⟩
-      have he1 := curAt_le_endCur (fs := B2C.fs) (lp := coreProgram.loop) hn e.I.t.bufs.length 0
-      simp only [Inst.curAt, List.take_length, List.take_zero, List.map_nil, List.sum_nil, Nat.add_zero] at he1
-      have he2 := endCur_chain (A := alignA) hr st e s.pc s.fp htr.track.ents htr.linked hch
-      omega
-    have := hHon.size
-    simp only [Option.getD_some]
-    exact logG_spec (by omega)
-
 /-- **Each hint reserves its `treeSizes` entry**, on the deployed alignment, given the facts named. -/
-theorem sizesAt_alignA (hA : AdvNext alignA) (hL : LateReady alignA) (hF : FrameReady alignA) (hX : ExclReady alignA) :
-    SizesAt alignA := by
-  intro r hr C hC done e st s htr hch hnc hha hfine hon i h sx hget hpre hag
-  have hat : HintAt alignA r C e s sx i h := ⟨hr, hC, ⟨done, st, htr, hch, hha⟩, hnc, hfine, hon, hget, hpre, hag⟩
+theorem sizesAt_alignA (hF : FrameReady alignA) : SizesAt alignA := by
+  intro r hr C hC done e st s htr hch hnc hfine hon i h sx hget hpre hag
+  have hat : HintAt alignA r C e s sx i h := ⟨hr, hC, ⟨done, st, htr, hch⟩, hnc, hfine, hon, hget, hpre, hag⟩
   have hκ : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size
   obtain ⟨rd, hHon, hHX⟩ := hr.honest
   obtain ⟨hI, j, bufs, kids, vs, hj, hIt, hfn, hw, hFH⟩ := (htr.frames hr.name hHon hHX.covers) e List.mem_cons_self
@@ -627,49 +548,30 @@ theorem sizesAt_alignA (hA : AdvNext alignA) (hL : LateReady alignA) (hF : Frame
   · simp only [isFrame_notBuf hfr, hfr, Bool.false_eq_true, ↓reduceIte]
     exact (hF r C e s sx i h hat hfr).1
   by_cases hp : (allocPtr h).isSome = true
-  · by_cases hlt : isLate h = true
-    · have hnb : isBuf (alignA e.I.t.name).X h = false := by unfold isBuf; simp [hlt]
-      simp only [hnb, hfr, Bool.false_eq_true, ↓reduceIte]
-      cases h <;> simp only [isLate, Bool.false_eq_true] at hlt
-      rename_i p b
-      obtain ⟨hwr, -⟩ := hL r C e s sx i p b hat
-      cases b <;> simp [rsz, hwr]
-    · have hb : isBuf (alignA e.I.t.name).X h = true := by
-        unfold isBuf; simp only [hp, hfr, hlt, Bool.not_false, Bool.and_self]
-      simp only [hb, ↓reduceIte]
-      have hidx := bufsOf_idx hU hget' hb
-      have hadv : ∀ p S, h = .allocAdvice p S →
-          rsz C (refMem r.img) sx h = e.I.t.bufs.getD (bufIdx alignA e off i) 0 := by
-        rintro p S rfl
-        have := rsz_adv hA hat
-        rwa [hoff] at this
-      by_cases hex : i0 + 1 ∈ AllocChk.allocExcl
-      · have := (hX r C e s sx i h (i0 + 1) hat hj hex hb).1
-        rw [hoff] at this
-        exact this
-      · have hAJ : AllocJ (i0 + 1) := AllocChk.allocJ_all _ h1 (by have : nFns = fn_count% := rfl; omega) hex
-        have hbo : bufsOf (alignA e.I.t.name).X (alignA e.I.t.name).d =
-            (allocHints (adviceOf (i0 + 1))).filter fun q ↦ isBuf (ctxOf (i0 + 1)) q.2 := by rw [hA2]; rfl
-        have hk : (((allocHints (adviceOf (i0 + 1))).filter fun q ↦ isBuf (ctxOf (i0 + 1)) q.2).map (·.2))[
-            bufIdx alignA e off i]? = some h := by
-          rw [List.getElem?_map, ← hbo]; unfold bufIdx; rw [hintsAtOff_eq, hidx]; rfl
-        obtain ⟨a, hca, hev, hbk⟩ := bufAtom hr htr hj hAJ hk
-        rw [List.getD_eq_getElem?_getD, hbk, Option.getD_some]
-        rcases compilesA_cases hca with ⟨d, n', rfl, rfl⟩ | ⟨d, nv, n', rfl, rfl, hcn, hpc, hlt'⟩ |
-          ⟨d, nv, rfl, rfl, hcn⟩ | ⟨d, nv, S, rfl, rfl⟩
-        · rfl
-        · have hval := cellRef hr htr hj ⟨_, hev, by simp [atomUses, hintUses]⟩ hcn
-          have hJ := (jumpCells_at r hr _ _ _ _ _ htr).pcw ((ctxOf (i0 + 1)).locAt nv.idx) n' (by rw [hA2]; exact hpc)
-          have hw' := (refRd_img hκ r.img _ _ (by unfold maxCells at hval; omega) hJ).2
-          rw [hval.2] at hw'
-          simp only [rsz, allocSizeOf]
-          rw [hw', logG_spec (by omega)]
-        · have hval := cellRef hr htr hj ⟨_, hev, by simp [atomUses, hintUses]⟩ hcn
-          simp only [rsz, allocSizeOf]
-          rw [hsxfp, hval.2]
-        · have := hadv _ S rfl
-          rw [List.getD_eq_getElem?_getD, hbk, Option.getD_some] at this
-          exact this
+  · have hb : isBuf (alignA e.I.t.name).X h = true := by
+      unfold isBuf; simp only [hp, hfr, Bool.not_false, Bool.and_self]
+    simp only [hb, ↓reduceIte]
+    have hidx := bufsOf_idx hU hget' hb
+    have hAJ : AllocJ (i0 + 1) := AllocChk.allocJ_all _ h1 (by have : nFns = fn_count% := rfl; omega)
+    have hbo : bufsOf (alignA e.I.t.name).X (alignA e.I.t.name).d =
+        (allocHints (adviceOf (i0 + 1))).filter fun q ↦ isBuf (ctxOf (i0 + 1)) q.2 := by rw [hA2]; rfl
+    have hk : (((allocHints (adviceOf (i0 + 1))).filter fun q ↦ isBuf (ctxOf (i0 + 1)) q.2).map (·.2))[
+        bufIdx alignA e off i]? = some h := by
+      rw [List.getElem?_map, ← hbo]; unfold bufIdx; rw [hintsAtOff_eq, hidx]; rfl
+    obtain ⟨a, hca, hev, hbk⟩ := bufAtom hr htr hj hAJ hk
+    rw [List.getD_eq_getElem?_getD, hbk, Option.getD_some]
+    rcases compilesA_cases hca with ⟨d, n', rfl, rfl⟩ | ⟨d, nv, n', rfl, rfl, hcn, hpc, hlt'⟩ |
+      ⟨d, nv, rfl, rfl, hcn⟩
+    · rfl
+    · have hval := cellRef hr htr hj ⟨_, hev, by simp [atomUses, hintUses]⟩ hcn
+      have hJ := (jumpCells_at r hr _ _ _ _ _ htr).pcw ((ctxOf (i0 + 1)).locAt nv.idx) n' (by rw [hA2]; exact hpc)
+      have hw' := (refRd_img hκ r.img _ _ (by unfold maxCells at hval; omega) hJ).2
+      rw [hval.2] at hw'
+      simp only [rsz, allocSizeOf]
+      rw [hw', logG_spec (by omega)]
+    · have hval := cellRef hr htr hj ⟨_, hev, by simp [atomUses, hintUses]⟩ hcn
+      simp only [rsz, allocSizeOf]
+      rw [hsxfp, hval.2]
   · have hnb : isBuf (alignA e.I.t.name).X h = false := by unfold isBuf; simp [hp]
     simp only [hnb, hfr, Bool.false_eq_true, ↓reduceIte]
     cases h <;> first | rfl | (simp only [allocPtr, Option.isSome_some, not_true_eq_false] at hp)
@@ -677,10 +579,10 @@ theorem sizesAt_alignA (hA : AdvNext alignA) (hL : LateReady alignA) (hF : Frame
 /-! ## The callee frames -/
 
 /-- **A frame hint's size read off `M` is its reserved words.** -/
-theorem rsz_of_sizeOk {C : Ctx} {M : ℕ → E} {s : St} {h : Hint} {B : ℕ} (hS : SizeOk M s.fp h B) :
-    rsz C M s h = B := by
+theorem rsz_of_sizeOk {M : ℕ → E} {s : St} {h : Hint} {B : ℕ} (hS : SizeOk M s.fp h B) :
+    rsz M s h = B := by
   cases h <;> simp only [SizeOk] at hS
-  · rename_i p size stop si tail
+  · rename_i p size stop si
     obtain ⟨v, n, hp, hvn, hn, hB⟩ := hS
     simp only [rsz]
     rw [hp, limb_ofK]
@@ -702,8 +604,8 @@ theorem peek_of_written {M : ℕ → E} {s : St} (hag : ∀ c v, s.mem.get c = s
 /-- **The callee frames' hints**, from their sizes and pointers. -/
 theorem frameReady_of (hS : FrameSize alignA) (hP : FramePtr alignA) : FrameReady alignA := by
   intro r C e s sx i h hat hfr
-  obtain ⟨hr, hC, ⟨done, st, htr, hch, hha⟩, hnc, hfine, hon, hget, hpre, hag⟩ := hat
-  have hat : HintAt alignA r C e s sx i h := ⟨hr, hC, ⟨done, st, htr, hch, hha⟩, hnc, hfine, hon, hget, hpre, hag⟩
+  obtain ⟨hr, hC, ⟨done, st, htr, hch⟩, hnc, hfine, hon, hget, hpre, hag⟩ := hat
+  have hat : HintAt alignA r C e s sx i h := ⟨hr, hC, ⟨done, st, htr, hch⟩, hnc, hfine, hon, hget, hpre, hag⟩
   have hSz := hS r C e s sx i h hat hfr
   refine ⟨rsz_of_sizeOk hSz, fun hin hnf ↦ ?_⟩
   have hκ : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size
@@ -823,17 +725,14 @@ theorem frameReady_of (hS : FrameSize alignA) (hP : FramePtr alignA) : FrameRead
 /-- **What the allocation track rests on and does not prove**, on the deployed alignment. -/
 structure AllocGaps : Prop where
   dynPow : DynPow
-  advNext : AdvNext alignA
-  late : LateReady alignA
   frameSize : FrameSize alignA
   framePtr : FramePtr alignA
-  excl : ExclReady alignA
 
 theorem AllocGaps.allocReady (G : AllocGaps) : AllocReady alignA :=
-  allocReady_alignA G.dynPow G.advNext G.late (frameReady_of G.frameSize G.framePtr) G.excl
+  allocReady_alignA G.dynPow (frameReady_of G.frameSize G.framePtr)
 
 theorem AllocGaps.sizesAt (G : AllocGaps) : SizesAt alignA :=
-  sizesAt_alignA G.advNext G.late (frameReady_of G.frameSize G.framePtr) G.excl
+  sizesAt_alignA (frameReady_of G.frameSize G.framePtr)
 
 end
 

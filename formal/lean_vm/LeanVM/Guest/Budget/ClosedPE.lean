@@ -18,9 +18,8 @@ public import LeanVM.Guest.B1.Main.VsDeployedE
 # `main` within the deployed budget, every node exact
 
 `MainExactHyp`: at the deployed instance, `main_loop2`, `main_loop3` and the children's loop complete by trees of their predicates
-whose every node is exact (`MainGoalsRE`), each child's `verify_sub` tree popping its advised sizes (`deployedVsH`).
-`mainCompletePE_deployed`: `mainCompleteP_deployed` with every node of `main`'s tree exact and the tree popping the
-honest advised sizes, from it; `aggregate_claims` by `mainGoalsRR_agE`, the other callees exact for free, the children's
+whose every node is exact (`MainGoalsRE`).
+`mainCompletePE_deployed`: `mainCompleteP_deployed` with every node of `main`'s tree exact, from it; `aggregate_claims` by `mainGoalsRR_agE`, the other callees exact for free, the children's
 loop's route R form its E form's.
 
 `MainExactHypL5`: `MainExactHyp`'s children's loop alone. `mainExactHyp_of_l5`: `main_loop2` is exact for free
@@ -51,14 +50,14 @@ def MainExactHyp : Prop :=
   ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w → ChildrenOk bytecode seed w →
     B1.Main.MainGoalsRE B2C.fs B2C.cert 0 seed s w Count.wSK
       (B1.Main.mainPredsHP B2C.fs Count.wSB Count.wSK (B1.Main.childBv (vsBoundAt Count.vsWordsOs vkBound) w)
-        (B1.Main.deployedVsH w) s w (mainPopsD seed s w))
+        (deployedVsT w) s w (mainPopsD seed s w))
       (B1.Main.mainBsH B2C.fs Count.wSB Count.wSK (B1.Main.childBv (vsBoundAt Count.vsWordsOs vkBound) w) s w)
 
 /-- **`main` is complete within the deployed budget with its pops, every node exact**, given the E forms of
 `main_loop2`, `main_loop3` and the children's loop (`MainExactHyp`). -/
 theorem mainCompletePE_deployed (hE : MainExactHyp) :
     MainCompletePE B2C.fs B2C.cert B2C.cnt (deployedBudget (vsBoundAt Count.vsWordsOs vkBound)) :=
-  mainComplete_budgetPE B2C.fs B2C.cert B2C.cnt (Pvs := B1.Main.deployedVsH) (Q := mainPopsD)
+  mainComplete_budgetPE B2C.fs B2C.cert B2C.cnt (Pvs := deployedVsT) (Q := mainPopsD)
     (B2C.ωArm B2C.xmssArmC) B2C.jtSets Count.mainCounts (B2C.two_le_fs _)
     B1.Sig.verify_lean_xmss_complete_holds B1.Sig.sphincs_complete Count.mainStatics
     (fun _ _ _ _ hl _ => ⟨B1.Main.mainPopsS_l1 hl fun _ => rfl, B1.Main.mainPopsS_l2 hl fun _ => rfl⟩)
@@ -77,11 +76,10 @@ theorem mainCompletePE_deployed (hE : MainExactHyp) :
         B1.Main.mainSegs_r2 hr hl (fun _ => rfl) rd, B1.Main.mainSegs_r3 hr hl (fun _ => rfl) rd,
         B1.Main.mainSegs_da hr (fun _ => rfl) rd, B1.Main.mainSegs_kids hl (fun _ => rfl) rd,
         B1.Main.mainSegs_agg (fun _ => rfl) rd⟩)
-    (fun _ _ _ h => h.2)
     (B2C.cnt_le_weight_arm B2C.xmssArmC B2C.xmssArmC_spec) l5C ccS vsCnt
     fun _ _ _ _ hl op _ _ _ _ _ hv hb hT =>
       l5_honest_weight_le op hl (fun _ hc _ _ _ _ hP hv hb => by
-        obtain ⟨-, h20, h30, d, hd, hF⟩ := hP.1 hc
+        obtain ⟨-, h20, h30, d, hd, hF⟩ := hP hc
         exact vs_weight_le_deployed op h20 h30 hd hF hv hb) hv hb hT
 
 /-- **The children's loop, every node exact**: `MainExactHyp`'s field still open, at the deployed instance. -/
@@ -101,7 +99,7 @@ def MainExactHypL5 : Prop :=
         (B1.Main.hm B2C.fs 0 seed s w).a394, (B1.Main.hm B2C.fs 0 seed s w).et,
         (B1.Main.hm B2C.fs 0 seed s w).a400] (B1.Returns [])
       (B1.Main.mainPredsHP B2C.fs Count.wSB Count.wSK (B1.Main.childBv (vsBoundAt Count.vsWordsOs vkBound) w)
-        (B1.Main.deployedVsH w) s w (mainPopsD seed s w)).withExact.P5
+        (deployedVsT w) s w (mainPopsD seed s w)).withExact.P5
       (B1.Main.mainBsH B2C.fs Count.wSB Count.wSK (B1.Main.childBv (vsBoundAt Count.vsWordsOs vkBound) w) s w).B5
 
 /-- **`MainExactHyp` from the children's loop alone**: `main_loop2` exact for free, `main_loop3` by
@@ -123,7 +121,7 @@ also exact on the memory. -/
 def VsExactHyp : Prop :=
   ∀ seed s w, NodeRelation bytecode seed s w → ChildrenOk bytecode seed w →
     VerifySubGoalsTBR B2C.fs B2C.cert 0 seed s w
-      (fun rd c t ↦ (B1.Main.deployedVsH w c t ∧ SameStreams (t.pops coreProgram rd) (pvH bytecode seed w c)) ∧
+      (fun rd c t ↦ (deployedVsT w c t ∧ SameStreams (t.pops coreProgram rd) (pvH bytecode seed w c)) ∧
         t.Every (ExactAt coreProgram rd))
       (B1.Main.childBv (vsBoundAt Count.vsWordsOs vkBound) w)
 

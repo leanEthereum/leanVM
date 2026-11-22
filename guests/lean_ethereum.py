@@ -2592,8 +2592,9 @@ def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, d
     # `h(0) + h(1) == claim` and a fold, with no eq to reapply. The tables still
     # waiting ride inside h, so nothing here is indexed by height; the heights enter
     # only the per-table weights below.
-    zc_rounds = HeapBuf((g_zc_n * GEN) ** ROUND_SLOTS)
-    zc_cprod = HeapBuf(g_zc_n * GEN)  # the challenges bound so far, multiplied
+    # Sized at their cap, n <= mu <= SIZE_BITS, so that they are reserved before the first call.
+    zc_rounds = HeapBuf((SIZE_BITS + 1) * ROUND_SLOTS)
+    zc_cprod = HeapBuf(SIZE_BITS + 1)  # the challenges bound so far, multiplied
     fs_store(zc_rounds, ROUND_FS, 1, sp)
     zc_rounds[GEN ** ROUND_CURSOR] = cursor
     zc_rounds[GEN ** ROUND_CLAIM] = bus_target
@@ -2614,7 +2615,7 @@ def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, d
     cursor = zc_last[GEN ** ROUND_CURSOR]
     claim = zc_last[GEN ** ROUND_CLAIM]
     # peq[g^tau] = eq(zeta[..tau], chi[..tau]), as a prefix chain.
-    zc_peq = HeapBuf(g_zc_n * GEN)
+    zc_peq = HeapBuf(SIZE_BITS + 1)
     # chi[i]: the variable round n - 1 - i binds, written in the order chi is read
     eq_prefix_chain_rev(zc_peq, chi, zc_rk, zeta1, g_zc_n)
     # Per table: every committed column's evaluation (pooled), its AIR constraint
@@ -3598,7 +3599,7 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_squares, defer_out):
     for b in unroll(SIDE_BLOCK_START[PUSH_SIDE], SIDE_BLOCK_START[PUSH_SIDE + 1]):
         push_total *= g_squares[kb[BLOCK_KAPPA_SRC[b]] * GEN ** BLOCK_KAPPA_ADJ[b]]  # g^(sum of 2^kappa)
     g_bus_mu = log2_ceil_in_the_exponent(push_total, g_squares, 0, SIZE_BITS)
-    zeta = HeapBuf(g_bus_mu)  # the ONE shared GKR point: exactly mu coords
+    zeta = HeapBuf(SIZE_BITS)  # the ONE shared GKR point: its first mu coords, mu <= SIZE_BITS
 
     # ---- commitment root (2 words), kept for the opening phase ----
     # The announcement's N_TABLES + 2 words, then the root's two, wait as one run.
@@ -4340,37 +4341,45 @@ def claim_list_digest(entries_ptr, n_g):
         keccak([0, 0], [0, 0], digest, len=0)
     else:
         bigs, groups, rest = list_split(n_g)
-        chain = HeapBuf((bigs * groups * GEN) ** KECCAK_STATE)
-        zero_state(chain)
-        for xq in mul_range(1, bigs):
-            st = chain * xq ** KECCAK_STATE
-            nxt = st * GEN ** KECCAK_STATE
-            blk = entries_ptr * xq ** (4 * CLAIM_BIG)
-            for j in unroll(0, CLAIM_BIG):
-                hint_witness(blk[4 * j:4 * j + 4], "claims")
-            keccak_cells(blk[0:4 * CLAIM_BIG], nxt[0:KECCAK_STATE], state=st[0:KECCAK_STATE], final=0)
-        mid = chain * bigs ** KECCAK_STATE
-        mid_entries = entries_ptr * bigs ** (4 * CLAIM_BIG)
-        for xq in mul_range(1, groups):
-            st = mid * xq ** KECCAK_STATE
-            nxt = st * GEN ** KECCAK_STATE
-            blk = mid_entries * xq ** (4 * CLAIM_GROUP)
-            for j in unroll(0, CLAIM_GROUP):
-                hint_witness(blk[4 * j:4 * j + 4], "claims")
-            keccak_cells(blk[0:4 * CLAIM_GROUP], nxt[0:KECCAK_STATE], state=st[0:KECCAK_STATE], final=0)
-        last = mid * groups ** KECCAK_STATE
-        d0, d1 = claim_list_tail(last, mid_entries * groups ** (4 * CLAIM_GROUP), rest)
-        # list_split's split checked again here, where the claims' cells are written: bigs, groups and
-        # rest g-powers below the memory size, and its identity, so those cells tile [0, n).
-        assert_gpow(bigs)
-        assert_gpow(groups)
-        assert_gpow(rest)
-        assert bigs ** CLAIM_BIG * groups ** CLAIM_GROUP * rest == n_g
+        d0, d1 = claim_list_chain(entries_ptr, n_g, bigs, groups, rest)
         digest[0] = d0
         digest[1] = d1
     # n_g a g-power below the memory size: the bound of the claims' cells written above.
     assert_gpow(n_g)
     return digest[0], digest[1]
+
+
+def claim_list_chain(entries_ptr, n_g, bigs, groups, rest):
+    # A non-empty list's hash, in a function of its own so that its buffer precedes its first call.
+    chain = HeapBuf((bigs * groups * GEN) ** KECCAK_STATE)
+    zero_state(chain)
+    for xq in mul_range(1, bigs):
+        st = chain * xq ** KECCAK_STATE
+        nxt = st * GEN ** KECCAK_STATE
+        blk = entries_ptr * xq ** (4 * CLAIM_BIG)
+        for j in unroll(0, CLAIM_BIG):
+            hint_witness(blk[4 * j:4 * j + 4], "claims")
+        keccak_cells(blk[0:4 * CLAIM_BIG], nxt[0:KECCAK_STATE], state=st[0:KECCAK_STATE], final=0)
+    mid = chain * bigs ** KECCAK_STATE
+    mid_entries = entries_ptr * bigs ** (4 * CLAIM_BIG)
+    for xq in mul_range(1, groups):
+        st = mid * xq ** KECCAK_STATE
+        nxt = st * GEN ** KECCAK_STATE
+        blk = mid_entries * xq ** (4 * CLAIM_GROUP)
+        for j in unroll(0, CLAIM_GROUP):
+            hint_witness(blk[4 * j:4 * j + 4], "claims")
+        keccak_cells(blk[0:4 * CLAIM_GROUP], nxt[0:KECCAK_STATE], state=st[0:KECCAK_STATE], final=0)
+    last = mid * groups ** KECCAK_STATE
+    d0, d1 = claim_list_tail(last, mid_entries * groups ** (4 * CLAIM_GROUP), rest)
+    # list_split's split checked again here, where the claims' cells are written: bigs, groups and
+    # rest g-powers below the memory size, and its identity, so those cells tile [0, n).
+    assert_gpow(bigs)
+    assert_gpow(groups)
+    assert_gpow(rest)
+    assert bigs ** CLAIM_BIG * groups ** CLAIM_GROUP * rest == n_g
+    # n_g a g-power below the memory size: the bound of the claims' cells written above.
+    assert_gpow(n_g)
+    return d0, d1
 
 
 def claim_list_tail(state, blk, rest):
@@ -4766,6 +4775,15 @@ def main():
     seed_0 = fs_seed[0]
     seed_1 = fs_seed[1]
 
+    # Every HeapBuf's size is computed before the first call (zkDSL.md, where a buffer is reserved).
+    lx_table_size = lx_slots_g ** 4
+    lean_sphincs_table_size = lean_sphincs_slots_g ** 4
+    da_digests_size = (n_children_g * GEN) ** 2
+    child_pi_size = n_children_g * n_children_g
+    child_fresh_size = n_children_g ** DEFER_SIZE
+    child_carried_size = n_children_g ** DEFER_STMT_CELLS
+    written_size = n_children_g * GEN
+
     # ---- the claim lists ----
     g_squares = exponent_tables()
 
@@ -4775,8 +4793,8 @@ def main():
     #
     # Each list's digest is a plain hash of its claims, 64 bytes a claim, its padding
     # binding its length; the statement carries the two digests side by side.
-    lx_table = HeapBuf(lx_slots_g ** 4)
-    lean_sphincs_table = HeapBuf(lean_sphincs_slots_g ** 4)
+    lx_table = HeapBuf(lx_table_size)
+    lean_sphincs_table = HeapBuf(lean_sphincs_table_size)
     xd_0, xd_1 = claim_list_digest(lx_table, n_lx_g)
     sd_0, sd_1 = claim_list_digest(lean_sphincs_table, n_lean_sphincs_g)
     # The duplicate slots ride the same tables but outside the hashed prefixes.
@@ -4824,7 +4842,7 @@ def main():
     # ---- data availability ----
     # One DA digest per child, read off its statement below, then the node's own:
     # H(root, challenge) of its blob matrix, or zeros without blobs.
-    da_digests = HeapBuf((n_children_g * GEN) ** 2)
+    da_digests = HeapBuf(da_digests_size)
     own_da = da_digests * n_children_g ** 2
     if n_direct_da_g == GEN:
         root_0, root_1, z = da_verify(byte_bits)
@@ -4834,10 +4852,10 @@ def main():
         own_da[GEN] = 0
 
     # ---- children ----
-    child_pi = HeapBuf(n_children_g * n_children_g)
-    child_fresh = HeapBuf(n_children_g ** DEFER_SIZE)
-    child_carried = HeapBuf(n_children_g ** DEFER_STMT_CELLS)
-    written = HeapBuf(n_children_g * GEN)  # loop-carried write count, one per child
+    child_pi = HeapBuf(child_pi_size)
+    child_fresh = HeapBuf(child_fresh_size)
+    child_carried = HeapBuf(child_carried_size)
+    written = HeapBuf(written_size)  # loop-carried write count, one per child
     written[GEN ** 0] = n_raw_x_g * n_raw_s_g
     for xc in mul_range(1, n_children_g):
         base = written[xc]

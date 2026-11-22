@@ -25,8 +25,7 @@ def DestIn (s : St) : BitsDest → Prop
 def HintIn (s : St) : Hint → Prop
   | .allocDyn _ size => s.mem.written (s.fp + size) = true
   | .allocArm _ sel _ => s.mem.written (s.fp + sel) = true
-  | .allocFrames _ _ stop _ _ => s.mem.written (s.fp + stop) = true
-  | .allocLate _ (.exp size) => s.mem.written (s.fp + size) = true
+  | .allocFrames _ _ stop _ => s.mem.written (s.fp + stop) = true
   | .witnessHeap _ ptr _ _ => s.mem.written (s.fp + ptr) = true
   | .log2Ceil bits _ nbits _ => match bits with
     | .stack base => ∀ j < nbits, s.mem.written (s.fp + base + j) = true
@@ -122,14 +121,6 @@ theorem allocate_written {s s' : St} {ptr size : ℕ} (hs : s.Good) (h : allocat
     split_ifs at hm
     · exact put_written (hs.wf.ensure _) hm
     · exact put_written hs.wf hm
-
-theorem checkLate_follows_written {s s' : St} {ptr size : ℕ} (hs : s.Good) (h : checkLate s ptr size = .ok s') :
-    St.Follows s s' ∧ s'.mem.written (s.fp + ptr) = true := by
-  have hw := (checkLate_written h).1
-  rw [checkLate_eq h]
-  exact ⟨St.Follows.refl hs, hw⟩
-
-/-! ## Runs -/
 
 theorem foldl_range_holds {s : St} (F : Abs → ℕ → Abs) (A : Abs) (n : ℕ) (hA : Holds s A)
     (hF : ∀ B k, k < n → Holds s B → Holds s (F B k)) : Holds s (foldlA F A (List.range n)) := by
@@ -270,9 +261,6 @@ theorem stepHint_sound {C : Ctx} {s s' : St} {A A' : Abs} {h : Hint} (hs : s.Goo
     obtain ⟨f2, hw2⟩ := allocate_written f1.good e
     exact (hH.follows (f1.trans f2)).addW (show s'.mem.written (s'.fp + ptr) = true by
       rw [f2.fp]; exact hw2)
-  | allocAdvice ptr stream =>
-    cases hstep
-    exact ⟨trivial, fun e _ ↦ hH.follows (runHint_follows hs e)⟩
   | allocArm ptr sel sizes =>
     simp only [stepHint] at hstep
     split_ifs at hstep with hw
@@ -286,7 +274,7 @@ theorem stepHint_sound {C : Ctx} {s s' : St} {A A' : Abs} {h : Hint} (hs : s.Goo
       exact (hH.follows (f1.trans f2)).addW (show s'.mem.written (s'.fp + ptr) = true by
         rw [f2.fp]; exact hw2)
     · simp at e
-  | allocFrames ptr size stop startInverse tail =>
+  | allocFrames ptr size stop startInverse =>
     simp only [stepHint] at hstep
     split_ifs at hstep with hw
     cases hstep
@@ -301,26 +289,6 @@ theorem stepHint_sound {C : Ctx} {s s' : St} {A A' : Abs} {h : Hint} (hs : s.Goo
       obtain ⟨f2, hw2⟩ := allocate_written f1.good e
       exact (hH.follows (f1.trans f2)).addW (show s'.mem.written (s'.fp + ptr) = true by
         rw [f2.fp]; exact hw2)
-  | allocLate ptr size =>
-    have key : ∀ s1 n, St.Follows s s1 → checkLate s1 ptr n = .ok s' → Holds s' (A.addW ptr) :=
-      fun s1 n f1 e ↦ by
-        obtain ⟨f2, hw2⟩ := checkLate_follows_written f1.good e
-        exact (hH.follows (f1.trans f2)).addW (show s'.mem.written (s'.fp + ptr) = true by
-          rw [f2.fp]; exact hw2)
-    cases size with
-    | cells k =>
-      cases hstep
-      refine ⟨trivial, fun e _ ↦ ?_⟩
-      simp only [runHint, bufSize] at e
-      exact key s k (St.Follows.refl hs) e
-    | exp c =>
-      simp only [stepHint] at hstep
-      split_ifs at hstep with hw
-      cases hstep
-      refine ⟨hH.written hw, fun e _ ↦ ?_⟩
-      simp only [runHint, bind_ok] at e
-      obtain ⟨⟨n, s1⟩, h1, e⟩ := e
-      exact key s1 n (bufSize_follows hs h1) e
   | cellAddress ptr cell =>
     cases hstep
     refine ⟨trivial, fun e _ ↦ ?_⟩

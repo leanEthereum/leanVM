@@ -13,7 +13,7 @@ public import LeanVM.Guest.Budget.FinalP
 /-!
 # The tree track on the honest tree
 
-`honest_of_mainP`: `End.honest_of_mainH` under `MainCompleteP`, which also gives the tree's pops on the memory B1's tree is valid on (`rd0`) agreeing with the honest pushes, other than the advised sizes, stream by stream; the honest memory's tree, its temporaries re-chosen, pops the same (`pops_retemp`). `track_deployed`: at the deployed instance, the track starts at `main`'s instance, at frame `0`, at its body, nothing done (`trackOk_init`). `honest_closed`: each instance's callees are instances at its callee frames, what a call's move needs (`EntOk.callee`); `honest_alloc`: every frame's allocations land at its instance's bases (`EntOk.alloc_at`).
+`honest_of_mainP`: `End.honest_of_mainH` under `MainCompleteP`, which also gives the tree's pops on the memory B1's tree is valid on (`rd0`) agreeing with the honest pushes, stream by stream; the honest memory's tree, its temporaries re-chosen, pops the same (`pops_retemp`). `track_deployed`: at the deployed instance, the track starts at `main`'s instance, at frame `0`, at its body, nothing done (`trackOk_init`). `honest_closed`: each instance's callees are instances at its callee frames, what a call's move needs (`EntOk.callee`); `honest_alloc`: every frame's allocations land at its instance's bases (`EntOk.alloc_at`).
 -/
 
 namespace LeanVM.Guest.Bridge
@@ -30,7 +30,7 @@ variable {fs : String → ℕ} {H : Inst → ℕ → E × E} {C : Inst → List 
   {cnt : Tree → Opcode → ℕ} {b : Budget}
 
 /-- **The honest memory's tree, with its pops**: `End.honest_of_mainH` under `MainCompleteP`, the
-tree's pops on `rd0` agreeing with the honest pushes, but the advised sizes, stream by stream. -/
+tree's pops on `rd0` agreeing with the honest pushes, stream by stream. -/
 theorem honest_of_mainP (hm : MainCompleteP fs cert cnt b) (hk : KFactsAll fs H C cert)
     (hc : CntRetemp fs cnt) :
     ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w → ChildrenOk bytecode seed w →
@@ -45,7 +45,7 @@ theorem honest_of_mainP (hm : MainCompleteP fs cert cnt b) (hk : KFactsAll fs H 
         (∀ a ∈ hintWords coreProgram fs H (hdrOf (statementDigest seed s)) T, ∃ v, rd0 a = some v ∧
           (honestX coreProgram fs H C (hdrOf (statementDigest seed s)) T X).read a = some v) ∧
         SameStreams (T.pops coreProgram rd0)
-          ((Hints.honestPushes bytecode seed s w).filter (·.1 != Hints.heapSizeStream)) := by
+          (Hints.honestPushes bytecode seed s w) := by
   intro seed s w hrel hlim hok hbs
   obtain ⟨N, L, hcons, hin, hN, hNb, hrelL⟩ := hm seed s w hrel hlim hok hbs
   set hdr := hdrOf (statementDigest seed s) with hhdr
@@ -127,7 +127,7 @@ theorem track_deployed (hm : MainCompleteP B2C.fs B2C.cert B2C.cnt b) :
         TrackOk coreProgram rd0 (honestInsts coreProgram B2C.fs B2C.H (hdrOf (statementDigest seed s)) T) T []
           [Ent.enter coreProgram I fn] ∧
         SameStreams (T.pops coreProgram rd0)
-          ((Hints.honestPushes bytecode seed s w).filter (·.1 != Hints.heapSizeStream)) := by
+          (Hints.honestPushes bytecode seed s w) := by
   intro seed s w hrel hlim hok hbs
   obtain ⟨rd, rd0, T, X, -, hname, hH, hX, -, -, -, hss⟩ :=
     honest_of_mainP hm B2C.kFactsAll (B2C.cntRetemp coreProgram_fresh) seed s w hrel hlim hok hbs

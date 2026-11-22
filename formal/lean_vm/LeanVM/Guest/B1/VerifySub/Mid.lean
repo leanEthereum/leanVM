@@ -234,7 +234,7 @@ theorem vsPushT_depth {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : Memory
   unfold vsPushT at h
   rw [holdsList_append] at h
   have h := ((holdsList_noRet _ vsPushStep_noRet _ _).1 h).2
-  simp only [Stmt.HoldsList, Stmt.Holds, vsCall, List.map_cons, List.map_nil, Atom.Holds,
+  simp only [Stmt.HoldsList, Stmt.Holds, vsCall, vsAlloc, List.map_cons, List.map_nil, Atom.Holds,
     true_and] at h
   obtain ⟨hc, hn⟩ := h
   have hr := (log2_holds.1 hκ hκ6 L _ _ hexp _).1 (hC _ _ _ hc)
@@ -254,7 +254,7 @@ theorem vsPushT_holds {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : Memory
   unfold vsPushT at h
   rw [holdsList_append] at h
   obtain ⟨hp, h⟩ := push_loop hexp hh hm hkbv 53 (by norm_num) h
-  simp only [Stmt.HoldsList, Stmt.Holds, vsCall, List.map_cons, List.map_nil, Atom.Holds,
+  simp only [Stmt.HoldsList, Stmt.Holds, vsCall, vsAlloc, List.map_cons, List.map_nil, Atom.Holds,
     true_and] at h
   obtain ⟨hc, hn⟩ := h
   rw [show vsPV 53 = 252 from rfl] at hp

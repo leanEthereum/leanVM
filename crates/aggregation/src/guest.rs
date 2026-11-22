@@ -5,7 +5,7 @@ use fiat_shamir_prover::merkle::hash_to_scalars;
 use isa::{CompiledProgram, Program};
 use primitives::field::F128;
 use std::sync::OnceLock;
-use zkdsl_compiler::{compile, parse_with_constants};
+use zkdsl_compiler::{compile, parse_with_replacements};
 
 /// The aggregation guest's zkDSL source.
 pub(super) const GUEST_SOURCE: &str =
@@ -19,20 +19,15 @@ pub(super) const GUEST_SOURCE: &str =
 /// itself. The guess converges in one or two rounds because the map's only
 /// size-dependent part is a handful of unrolled sumcheck rounds.
 pub fn unified_guest() -> &'static Program {
-    &guest().0
-}
-
-/// The unified guest, with its global scalar constants as the compiler substitutes them.
-fn guest() -> &'static (Program, Vec<(String, String)>) {
-    static GUEST: OnceLock<(Program, Vec<(String, String)>)> = OnceLock::new();
+    static GUEST: OnceLock<Program> = OnceLock::new();
     GUEST.get_or_init(|| {
         // A guess at the guest's own size: right, it compiles once; wrong, one more round.
         let mut guess = 19;
         for _ in 0..8 {
-            let (guest, constants) = compile_guest(guess);
+            let guest = compile_guest(guess);
             let actual = guest.prog.len().trailing_zeros() as usize;
             if actual == guess {
-                return (Program::from(guest), constants);
+                return Program::from(guest);
             }
             guess = actual;
         }
@@ -45,17 +40,7 @@ pub(super) fn fs_seed() -> [F128; 2] {
     hash_to_scalars(&unified_guest().bytecode().fiat_shamir_iv())
 }
 
-/// A global constant of the guest, at its deployed size, as the compiler substitutes it: what the host reads
-/// rather than restates.
-pub(super) fn guest_constant(name: &str) -> usize {
-    let (_, value) = (guest().1.iter().find(|(n, _)| n == name)).unwrap_or_else(|| panic!("no guest constant {name}"));
-    value
-        .parse()
-        .unwrap_or_else(|_| panic!("the guest constant {name} is no count"))
-}
-
-/// The guest compiled for an inner bytecode of `2^kbc` slots, and its global scalar constants.
-pub(super) fn compile_guest(kbc: usize) -> (CompiledProgram, Vec<(String, String)>) {
+pub(super) fn compile_guest(kbc: usize) -> CompiledProgram {
     let replacements = placeholder_map(kbc);
     // `DBG_PLACEHOLDERS=path`: dump the baked guest constants, to read alongside
     // a `DBG_PROF_DUMP` profile (the guest's shape is entirely in these).
@@ -63,9 +48,9 @@ pub(super) fn compile_guest(kbc: usize) -> (CompiledProgram, Vec<(String, String
         let dump: String = replacements.iter().map(|(k, v)| format!("{k} = {v}\n")).collect();
         std::fs::write(&path, dump).expect("write DBG_PLACEHOLDERS");
     }
-    let (ast, constants) =
-        parse_with_constants(GUEST_SOURCE, &replacements).expect("the repository aggregation guest must parse");
-    let guest = compile(&ast);
+    let guest = compile(
+        &parse_with_replacements(GUEST_SOURCE, &replacements).expect("the repository aggregation guest must parse"),
+    );
     // `DBG_DISASM=path`: dump the guest's disassembly, to read alongside a
     // `DBG_PROF_DUMP` per-pc profile. Function boundaries lead the dump, so the
     // pc a failed guest check reports can be resolved to a source function
@@ -80,5 +65,5 @@ pub(super) fn compile_guest(kbc: usize) -> (CompiledProgram, Vec<(String, String
         dump += &zkdsl_compiler::disassemble(&guest.prog);
         std::fs::write(&path, dump).expect("write DBG_DISASM");
     }
-    (guest, constants)
+    guest
 }

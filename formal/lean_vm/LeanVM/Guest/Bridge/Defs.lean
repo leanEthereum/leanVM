@@ -18,7 +18,7 @@ The executor runs the compiler's hints (`Prover.Exec.Hint`, by pc); the core IR 
 
 The cell map is the certificate's (`Cert.locs`) but for the values only hints touch, which the certificate places at cell `0` (`log2_ceil_in_the_exponent`'s bit buffer): `locOf locs extra` reads those from `extra`, generated per function, and `cellsFresh` checks that each such cell is no certificate cell, no header cell and no plumbing cell (`plumbCells`), so the reference memory can hold the hint's word there.
 
-A **flow** hint is a witness or computed one (it pops or writes words the instructions read); allocations and plumbing (frame addresses, callee frames, dispatch frames, loop frames, advised sizes) are not, and are bridged apart (allocations by the bump pointer, plumbing by `B2C`'s fixed cells).
+A **flow** hint is a witness or computed one (it pops or writes words the instructions read); allocations and plumbing (frame addresses, callee frames, dispatch frames, loop frames) are not, and are bridged apart (allocations by the bump pointer, plumbing by `B2C`'s fixed cells).
 
 `prefixOk loc body code adv`: the **prefix class**. The body's flow hints are all among its leading atoms (`atomPrefix`), the rest of the body has no witness hint (`Stmt.noWitList`), and the function's ISA flow hints (`isaFlow`, from the advice by function: entry, length, hints by pc) sit at offsets up to its first jump and compile those leading flow hints one for one, in order (`pairsOk`). The frame's run passes those offsets in order before it can branch, call or return, so its flow hints run in body order.
 -/

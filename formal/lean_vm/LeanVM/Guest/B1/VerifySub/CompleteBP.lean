@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.VerifySub.CompleteBP
 
-  `verify_sub` complete within its child's bound by a node popping `Hints.childHints` past its advised sizes, stream by stream, given its `open_stacked` callee complete by trees popping the child's Merkle hints.
+  `verify_sub` complete within its child's bound by a node popping `Hints.childHints`, stream by stream, given its `open_stacked` callee complete by trees popping the child's Merkle hints.
 -/
 
 module
@@ -15,7 +15,7 @@ import LeanVM.Guest.Data.ValNames.«certify_placement»
 /-!
 # `verify_sub`'s pops
 
-`cp_honest_pops`, `vt_honest_pops`: `certify_placement`'s and `verify_tables`' honest nodes (`Tables.cpQn`, `Tables.vtQn`: the honest valuation, its own buffers held) pop their group orders and `verify_tables` its round count; `cp_kidBP`, `vt_kidBWP`: so on the honest child, from `certify_placement_completeAtBR` and `verify_tables_completeAtTBWR'`. `verify_sub_completeBTP`: `verify_sub_completeBTG` with them; its tree pops `childHints.drop 4`, stream by stream (`vs_hon_child_pops`, its callees' entries by `VsKidQ` and the group orders' equalities `colGroupOrder_layoutOf`, `blockGroupOrder_eq`).
+`cp_honest_pops`, `vt_honest_pops`: `certify_placement`'s and `verify_tables`' honest nodes (`Tables.cpQn`, `Tables.vtQn`: the honest valuation, its own buffers held) pop their group orders and `verify_tables` its round count; `cp_kidBP`, `vt_kidBWP`: so on the honest child, from `certify_placement_completeAtBR` and `verify_tables_completeAtTBWR'`. `verify_sub_completeBTP`: `verify_sub_completeBTG` with them; its tree pops `childHints`, stream by stream (`vs_hon_child_pops`, its callees' entries by `VsKidQ` and the group orders' equalities `colGroupOrder_layoutOf`, `blockGroupOrder_eq`).
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -111,8 +111,8 @@ end ChildSegs
 
 /-! ## `verify_sub` -/
 
-/-- **`verify_sub` is complete on an honest child within its own bound by a node popping `childHints` past its
-advised sizes**, stream by stream, given its `open_stacked` callee complete by trees popping the child's Merkle
+/-- **`verify_sub` is complete on an honest child within its own bound by a node popping `childHints`**, stream by
+stream, given its `open_stacked` callee complete by trees popping the child's Merkle
 hints. -/
 theorem verify_sub_completeBTP {bytecode : List K} (hbl : bytecode.length = 2 ^ 23)
     (hrf : Lift.RunsFit fs cert) (hcons : RunsConsec cert) (W : VsWordsOs fs) {Bvk κ : ℕ}
@@ -125,7 +125,7 @@ theorem verify_sub_completeBTP {bytecode : List K} (hbl : bytecode.length = 2 ^ 
       (osBosAt fs W.Bnd S.μs)) :
     CompleteAtDTBR fs cert κ "verify_sub" Lin (vsArgs seed c sqE outE) (Returns [])
       (fun rd t ↦ vsTsAny fs W Bvk S.μs S.rate t ∧
-        SameStreams (t.pops coreProgram rd) ((Hints.childHints bytecode seed c).drop 4))
+        SameStreams (t.pops coreProgram rd) (Hints.childHints bytecode seed c))
       (vsBoundAt W Bvk S.μs S.rate) := by
   refine CompleteAtDTBR.monoV (verify_sub_completeBTG hbl hrf hcons W hκ hvk S sqE outE Lin hst hexp hout
     (fun _ _ ↦ S.cp_kidBP hbl (by omega) _ _) (fun B ↦ S.vt_kidBWP hbl (by omega) W B) hos) le_rfl

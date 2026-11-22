@@ -57,8 +57,6 @@ Choices the witness does not fix, made as the Rust makes them:
   deployed lists are strictly sorted, where the first free match is the slot `binary_search`
   finds.
 * **A leaf's deferred value** (`leaf_defer`) is the statement's, which the guest does not check.
-* **The advised `HeapBuf` sizes** (`heap_sizes`) are those of the buffers the run allocates; the
-  guest does not check them, a wrong one only failing the run.
 
 What the bump allocator hands out is not a hint: the interpreter's allocator chooses it.
 -/
@@ -106,10 +104,6 @@ def lxDigitGroup : ℕ := 4
 /-- `LX_WINDOW` (`aggregation/hints.rs`): the leaf index bits a leanXMSS path dispatch covers. -/
 def lxWindow : ℕ := guest_const% LX_WINDOW
 
-/-- `HEAP_SIZE_STREAM` (`zkdsl_compiler/src/lib.rs`): the stream of the `HeapBuf` sizes the guest
-takes as advice. -/
-def heapSizeStream : String := "heap_sizes"
-
 /-! ## Encodings -/
 
 /-- `count(n)`: `g^n` (`aggregation/cells.rs`). -/
@@ -144,15 +138,6 @@ def exponentBytes (bytes : List UInt8) : Entry :=
 `claimGroup`, then the rest (`list_split`, `aggregation/statement.rs`). -/
 def listSplit (n : ℕ) : Entry :=
   [count (n / claimBig), count (n % claimBig / claimGroup), count (n % claimBig % claimGroup)]
-
-/-- The cells of the sponge chain the guest hashes a list of `n` claims through, no chain for an
-empty list (`list_chain_cells`, `aggregation/statement.rs`). -/
-def listChainCells (n : ℕ) : Option ℕ :=
-  if n = 0 then none else
-    some ((n / claimBig + n % claimBig / claimGroup + 1) * guest_const% KECCAK_STATE)
-
-/-- An advised `HeapBuf` size's entry: `[g^n]`, or `[]` where the run allocates no buffer. -/
-def heapSizeEntry (n : Option ℕ) : String × Entry := (heapSizeStream, (n.map count).toList)
 
 /-- A list's split, if it is not empty, then one push per item. -/
 def listPushes (item : String) (entries : List Entry) : List (String × Entry) :=
@@ -444,19 +429,14 @@ def colGroupOrder (layout : Layout) : Entry :=
   (runHeads (((List.range columns.length).mergeSort fun i j ↦ offset i ≤ offset j).map
     (groups.getD · 0))).map count
 
-/-- A child's hints (`gen_verify`): the advised `HeapBuf` sizes, `verify_sub`'s `zeta` (the push
-side's depth) and `verify_tables`' three sized by the table sumcheck's rounds
-(`aggregation/child.rs`); its proof stream, padded; the Merkle caps; the tables' log
-heights; the two layout orders; and every query's leaf and path. -/
+/-- A child's hints (`gen_verify`, `aggregation/child.rs`): its proof stream, padded; the Merkle
+caps; the tables' log heights; the two layout orders; and every query's leaf and path. -/
 def childHints (bytecode : List K) (seed : Digest) (c : Child) : List (String × Entry) :=
   match announcedLayoutAndRate bytecode c.proof.stream with
   | none => []
   | some (layout, _) =>
     let queries := merkleHints true (childQueries bytecode seed c) c.proof.openings
     let rounds := layout.tableLogHeights.foldl max 0
-    let mu := (busLayout [0, layout.logMemory, layout.logBytecode] layout.push).depth
-    [mu, (rounds + 1) * guest_const% ROUND_SLOTS, rounds + 1, rounds + 1].map
-        (heapSizeEntry ∘ some) ++
     [("stream", c.proof.stream ++ List.replicate (childStreamCap - c.proof.stream.length) 0),
       ("zc_tau_max", [count rounds]),
       ("table_logs", layout.tableLogHeights.map count),
@@ -498,14 +478,6 @@ def daPick (s : NodeStatement) (w : NodeWitness) : ℕ :=
   if w.daMatrix.isSome || s.claims.daDigest == zeroDigest then w.children.length
   else (w.children.findIdx? fun c ↦ c.statement.claims.daDigest == s.claims.daDigest).getD w.children.length
 
-/-- The `HeapBuf` sizes the guest takes as advice before a child's: `main`'s two coverage tables,
-`da_digests`, `child_pi`, `child_fresh`, `child_carried` and `written`; then each claim list's
-chain (`heap_sizes`, `aggregation/node.rs`). -/
-def nodeHeapSizes (s : NodeStatement) (w : NodeWitness) (xDups sDups : ℕ) : List (Option ℕ) :=
-  let (x, sp, n) := (s.claims.xmss.length, s.claims.sphincs.length, w.children.length)
-  [4 * (x + xDups), 4 * (sp + sDups), 2 * (n + 1), 2 * n, guest_const% DEFER_SIZE * n,
-      guest_const% DEFER_STMT_CELLS * n, n + 1].map some ++ [listChainCells x, listChainCells sp]
-
 /-- **Every push of an honest run**, in the order `aggregate` makes them. -/
 def honestPushes (bytecode : List K) (seed : Digest) (s : NodeStatement) (w : NodeWitness) :
     List (String × Entry) :=
@@ -520,7 +492,6 @@ def honestPushes (bytecode : List K) (seed : Digest) (s : NodeStatement) (w : No
       count s.claims.sphincs.length, count sr.duplicates.length, count rawS.length,
       count w.children.length, count ((w.daMatrix.map fun _ ↦ 1).getD 0)]),
     ("fs_seed", digestCells seed)] ++
-  (nodeHeapSizes s w xr.duplicates.length sr.duplicates.length).map heapSizeEntry ++
   listPushes "claims" (s.claims.xmss.map xCells) ++
   listPushes "claims" (s.claims.sphincs.map sCells) ++
   (xr.duplicates.map xCells ++ sr.duplicates.map sCells).map ("dup_claims", ·) ++

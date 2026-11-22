@@ -1,9 +1,8 @@
 /-
   LeanVM.Guest.EndExecYAdv
 
-  Facts of the guest's advice the hint track reads, decided by the kernel: every advised size is
-  popped from `heap_sizes`, every heap witness run's offset and length are small, and every run a
-  hint writes or reads is nonempty.
+  Facts of the guest's advice the hint track reads, decided by the kernel: every heap witness run's
+  offset and length are small, and every run a hint writes or reads is nonempty.
 -/
 
 module
@@ -16,8 +15,7 @@ public import LeanVM.Guest.Mode.HintsCtx
 /-!
 # The advice's streams
 
-`advHintOk h`: an `allocAdvice` pops `heap_sizes`, a heap witness run's offset and length are below
-`2^30`. `adviceHints_ok`: every hint of the advice passes it. `posHintOk h`: the run a hint writes or
+`advHintOk h`: a heap witness run's offset and length are below `2^30`. `adviceHints_ok`: every hint of the advice passes it. `posHintOk h`: the run a hint writes or
 reads is nonempty, so its last cell bounds it (`runAt`); `hints_pos`: every hint the executor runs
 passes it.
 -/
@@ -30,7 +28,6 @@ open LeanVM.Prover.Exec
 
 /-- What the hint track reads of an advice hint's constants. -/
 def advHintOk : Hint → Bool
-  | .allocAdvice _ S => S == Hints.heapSizeStream
   | .witnessHeap _ _ lo len => Nat.blt (lo + len) (2 ^ 30)
   | _ => true
 

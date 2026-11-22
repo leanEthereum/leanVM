@@ -87,7 +87,7 @@ theorem splice_inK_mid (c : V) : ∀ (xs ys : List Ev) (ks : List (List Pop)),
 
 /-- `main`'s straight blocks on its path under `σ`. -/
 noncomputable def mPath (σ : Val) : List Stmt :=
-  mPre ++ (if σ (.n (val% «main» "s43#1")) = 0 then mDa else mDaZ) ++ mMid ++ (if σ (.n (val% «main» "s56#1")) = 0 then mLeaf else mAgg) ++ mPost
+  mPre ++ (if σ (.n (val% «main» "s50#1")) = 0 then mDa else mDaZ) ++ mMid ++ (if σ (.n (val% «main» "s63#1")) = 0 then mLeaf else mAgg) ++ mPost
 
 theorem splice_blocks (f : Stmt → List Ev) (c c' : V) (A B C D F : List Stmt) (ks : List (List Pop)) :
     splice rd σ (A.flatMap f ++ (.inK c :: B.flatMap f ++ (C.flatMap f ++ (.inK c' :: D.flatMap f ++
@@ -131,20 +131,20 @@ theorem mPath_popS {m : MainIn} (hnd : m.nd ≤ 1) (hnc : m.nc ≤ 16) (hv : MVa
       some ("fs_seed", .stack [.n (val% «main» "fs_seed[0]"), .n (val% «main» "fs_seed[1]")]), none, none, none, none, none, none, none] ++
       (if m.nd = 1 then [none] else []) ++ [none, some ("da_pick", .stack [.n (val% «main» "da_pick")])] ++
       (if m.nc = 0 then [some ("leaf_defer", .stack [.n (val% «main» "leaf_value")])] else [none]) ++ [none] := by
-  have h368 : σ (.n (val% «main» "s43#1")) = 0 ↔ m.nd = 1 := by
+  have h368 : σ (.n (val% «main» "s50#1")) = 0 ↔ m.nd = 1 := by
     rw [hv.v389, e_add_eq_zero_iff]
     constructor
     · intro h
       exact Digest.gen_pow_inj' (a := m.nd) (b := 1) (by omega) (by norm_num) (by rw [h, pow_one])
     · intro h; rw [h, pow_one]
-  have h418 : σ (.n (val% «main» "s56#1")) = 0 ↔ m.nc = 0 := by
+  have h418 : σ (.n (val% «main» "s63#1")) = 0 ↔ m.nc = 0 := by
     rw [hv.v451, add_comm, e_add_eq_zero_iff, eq_comm, gen_pow_eq_one_iff (by omega)]
   obtain ⟨b1, b2, b2', b3, b4, b5, b6⟩ := mBlocks_popS
-  have e1 : (if σ (.n (val% «main» "s43#1")) = 0 then mDa else mDaZ).filterMap Stmt.popS = if m.nd = 1 then [none] else [] := by
+  have e1 : (if σ (.n (val% «main» "s50#1")) = 0 then mDa else mDaZ).filterMap Stmt.popS = if m.nd = 1 then [none] else [] := by
     by_cases h : m.nd = 1
     · rw [ite_pos' (h368.mpr h), ite_pos' h, b2]
     · rw [ite_neg' (fun h' => h (h368.mp h')), ite_neg' h, b2']
-  have e2 : (if σ (.n (val% «main» "s56#1")) = 0 then mLeaf else mAgg).filterMap Stmt.popS =
+  have e2 : (if σ (.n (val% «main» "s63#1")) = 0 then mLeaf else mAgg).filterMap Stmt.popS =
       if m.nc = 0 then [some ("leaf_defer", .stack [.n (val% «main» "leaf_value")])] else [none] := by
     by_cases h : m.nc = 0
     · rw [ite_pos' (h418.mpr h), ite_pos' h, b4]

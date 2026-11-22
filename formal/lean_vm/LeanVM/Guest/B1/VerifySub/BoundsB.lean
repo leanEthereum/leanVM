@@ -60,8 +60,8 @@ structure VsWordsOs (fs : String → ℕ) extends VsWords fs where
   (`open_stacked_completeAtB_Spec`). -/
   hfs : ∀ f, fs f < 2 ^ 32
 
-/-- `verify_sub`'s own buffers: `8679 + d` words, the bus depth `d ≤ 31`. -/
-abbrev vsOwnBufs : ℕ := 8710
+/-- `verify_sub`'s own buffers: `8713` words. -/
+abbrev vsOwnBufs : ℕ := 8713
 
 /-- The buffers `verify_sub` hands `ring_switch_target`, beside its frame. -/
 abbrev rstBufs : ℕ := 72

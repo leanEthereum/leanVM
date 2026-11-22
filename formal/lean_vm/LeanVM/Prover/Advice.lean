@@ -70,21 +70,14 @@ def many {α : Type} (n : ℕ) (p : P α) : P (List α) := (List.range n).mapM f
 def hint : P Hint := do
   match ← tok with
   | "fa" => .frameAddress <$> nat
-  | "af" => return .allocFrames (← nat) (← nat) (← nat) (K.ofBits (← hex)) (← nat)
+  | "af" => return .allocFrames (← nat) (← nat) (← nat) (K.ofBits (← hex))
   | "al" => return .alloc (← nat) (← nat)
   | "ad" => return .allocDyn (← nat) (← nat)
-  | "av" => return .allocAdvice (← nat) (← tok)
   | "aa" => do
     let ptr ← nat
     let sel ← nat
     let n ← nat
     return .allocArm ptr sel (← many n nat)
-  | "lt" => do
-    let ptr ← nat
-    match ← tok with
-    | "c" => return .allocLate ptr (.cells (← nat))
-    | "e" => return .allocLate ptr (.exp (← nat))
-    | t => throw s!"advice: not a size: `{t}`"
   | "ca" => return .cellAddress (← nat) (← nat)
   | "ws" => return .witnessStack (← tok) (← nat) (← nat)
   | "wh" => return .witnessHeap (← tok) (← nat) (← nat) (← nat)

@@ -2,7 +2,7 @@
   LeanVM.Guest.Budget.ClosedP
 
   `main` within the deployed budget with its tree's pops (`MainCompleteP`), every family's pops instantiated:
-  each child's `verify_sub` popping its hints past the advised sizes (`verify_sub_completeBTS`), its claim lists'
+  each child's `verify_sub` popping its hints (`verify_sub_completeBTS`), its claim lists'
   digests their slots' pushes.
 -/
 
@@ -20,7 +20,7 @@ public import LeanVM.Guest.B1.Main.MainGoalsHClTBP
 
 * `completeAtDTBR_lin_mono`: `completeAtDTB_lin_mono` by a predicate of the memory;
 * `vs_completeR`: `verify_sub` on a child `VsChildOk` holds of, at its announced stack log and rate, by a tree popping
-  its hints past the advised sizes, stream by stream (`child_segments_steps`, `verify_sub_completeBTS`);
+  its hints, stream by stream (`child_segments_steps`, `verify_sub_completeBTS`);
 * `verifySubGoalsTBR_deployed`: so for each child at the deployed instance (`VerifySubGoalsTBR`, `pvH`);
 * `mainPopsD`: `main`'s callees' honest entries; `ChildListPopsHyp`, `childListPopsHyp`: each child's claim lists'
   digests popping their slots' pushes; `mainCompleteP_deployed`: `MainCompleteP` within the deployed budget.
@@ -51,7 +51,7 @@ theorem completeAtDTBR_lin_mono {fs : String → ℕ} {cert : String → V → �
   exact ⟨t, ⟨hn', hv, hb, hp, ht, loadsIn_mono t _ hr hlo, hdd⟩, hT⟩
 
 /-- **`verify_sub` on a child `VsChildOk` holds of**, at its announced stack log (in `[20, 30]`) and rate, by a tree
-popping the child's hints past its advised sizes, stream by stream. -/
+popping the child's hints, stream by stream. -/
 theorem vs_completeR {bc : List K} (hbl : bc.length = 2 ^ 23) {fs : String → ℕ} {cert : String → V → ℕ}
     (hrf : Lift.RunsFit fs cert) (hcons : RunsConsec cert) (W : VsWordsOs fs)
     {Bvk κ : ℕ} (hκ : 16 ≤ κ) (hvk : VkCompleteAtBK fs cert κ Bvk) (seed : Digest) (c : Child)
@@ -60,19 +60,19 @@ theorem vs_completeR {bc : List K} (hbl : bc.length = 2 ^ 23) {fs : String → �
     CompleteAtDTBR fs cert κ "verify_sub" Lin (vsArgs seed c sqE outE) (Returns [])
       (fun rd t ↦ (20 ≤ (childShape bc c).1 ∧ (childShape bc c).1 ≤ 30 ∧
         vsTsAny fs W Bvk (childShape bc c).1 (childShape bc c).2 t) ∧
-        SameStreams (t.pops coreProgram rd) ((Hints.childHints bc seed c).drop 4))
+        SameStreams (t.pops coreProgram rd) (Hints.childHints bc seed c))
       (vsBoundAt W Bvk (childShape bc c).1 (childShape bc c).2) := by
   obtain ⟨S, hS⟩ := B1.VerifySub.child_segments_steps hbl seed c hok.1 hok.2.2.1 hok.2.2.2
   rw [childShape_of S.hann]
   exact (B1.VerifySub.verify_sub_completeBTS hbl hrf hcons W hκ hvk S hS hok.2.2.1 sqE outE Lin hok.2.1 hexp
     hout).mono le_rfl fun _ _ h ↦ ⟨⟨S.hmu20, S.hmu30, h.1⟩, h.2⟩
 
-/-- `verify_sub`'s honest entries for child `c`: its hints past the advised sizes. -/
+/-- `verify_sub`'s honest entries for child `c`: its hints. -/
 def pvH (bc : List K) (seed : Digest) (w : NodeWitness) (c : ℕ) : List Pop :=
-  (w.children[c]?.map fun ch => (Hints.childHints bc seed ch).drop 4).getD []
+  (w.children[c]?.map fun ch => Hints.childHints bc seed ch).getD []
 
 /-- **Each child's `verify_sub` call at the deployed instance**, within `vsBoundAt LeanVM.Guest.Count.vsWordsOs vkBound` at its
-announced stack log and rate, by a tree of `deployedVsT` popping its hints past the advised sizes. -/
+announced stack log and rate, by a tree of `deployedVsT` popping its hints. -/
 theorem verifySubGoalsTBR_deployed {seed : Digest} {s : NodeStatement} {w : NodeWitness}
     (hr : NodeRelation bytecode seed s w) (hok : ChildrenOk bytecode seed w) :
     VerifySubGoalsTBR LeanVM.Guest.B2C.fs LeanVM.Guest.B2C.cert 0 seed s w
@@ -147,7 +147,7 @@ open LeanVM.Guest.B1.VerifySub (vsBoundAt vkBound)
 @[expose] public section
 
 /-- **`main`'s callees' honest entries**: the claim lists', the duplicates', the raw signatures', the DA check's,
-the children's (their claim lists' slots' pushes, `verify_sub`'s hints past the advised sizes), the batching's. -/
+the children's (their claim lists' slots' pushes, `verify_sub`'s hints), the batching's. -/
 noncomputable def mainPopsD (seed : Digest) (s : NodeStatement) (w : NodeWitness) : MainPops :=
   B1.Main.mainPopsH
     (fun _ => Hints.listPushes "claims" (s.claims.xmss.map fun c ↦ Hints.claimCells c.1.root c.1.parameter c.2))
@@ -172,8 +172,8 @@ def ChildListPopsHyp : Prop :=
 theorem childListPopsHyp : ChildListPopsHyp := fun _ _ _ _ hl =>
   B1.Main.childListGoalsTBR_honest B2C.cert hl Count.mainStatics.ls
 
-/-- **`main` is complete within the deployed budget with its pops**: its tree pops the honest pushes but the advised
-sizes, stream by stream. -/
+/-- **`main` is complete within the deployed budget with its pops**: its tree pops the honest pushes, stream by
+stream. -/
 theorem mainCompleteP_deployed :
     MainCompleteP B2C.fs B2C.cert B2C.cnt (deployedBudget (vsBoundAt Count.vsWordsOs vkBound)) :=
   mainComplete_budgetP B2C.fs B2C.cert B2C.cnt (Pvs := deployedVsT) (Q := mainPopsD)

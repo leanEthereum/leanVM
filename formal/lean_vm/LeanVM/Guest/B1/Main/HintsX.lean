@@ -352,13 +352,13 @@ def mHAtoms : List Atom := [
   .touch (.n (val% «main» "s10#0")) (.n (val% «main» "meta[0]")), .touch (.n (val% «main» "s11#0")) (.n (val% «main» "meta[1]")), .touch (.n (val% «main» "s13#0")) (.n (val% «main» "meta[3]")), .touch (.n (val% «main» "s14#0")) (.n (val% «main» "meta[4]")),
   .rangeCheck (.n (val% «main» "meta[6]")) (.n (val% «main» "s16#1")) (.n (val% «main» "s16#2")) (.n (val% «main» "s16#3")) (.n (val% «main» "s16#0")),
   .mul (.n (val% «main» "lx_slots_g")) (.n (val% «main» "meta[0]")) (.n (val% «main» "meta[1]")), .mul (.n (val% «main» "lean_sphincs_slots_g")) (.n (val% «main» "meta[3]")) (.n (val% «main» "meta[4]")),
-  .mul (.n (val% «main» "lx_table~0")) (.n (val% «main» "lx_slots_g")) (.n (val% «main» "lx_slots_g")), .mul (.n (val% «main» "lx_table~1")) (.n (val% «main» "lx_table~0")) (.n (val% «main» "lx_table~0")),
-  .mul (.n (val% «main» "lean_sphincs_table~0")) (.n (val% «main» "lean_sphincs_slots_g")) (.n (val% «main» "lean_sphincs_slots_g")), .mul (.n (val% «main» "lean_sphincs_table~1")) (.n (val% «main» "lean_sphincs_table~0")) (.n (val% «main» "lean_sphincs_table~0")),
-  .const (.n (val% «main» "s31#0")) (word 1 0), .add (.n (val% «main» "s31#1")) (.n (val% «main» "s31#0")) (.n (val% «main» "meta[1]")), .const (.n (val% «main» "s31#2")) (word 1 0),
-  .const (.n (val% «main» "s32#0")) (word 1 0), .add (.n (val% «main» "s32#1")) (.n (val% «main» "s32#0")) (.n (val% «main» "meta[4]")), .const (.n (val% «main» "s32#2")) (word 1 0),
-  .mul (.n (val% «main» "child_carried~0")) (.n (val% «main» "meta[6]")) (.n (val% «main» "meta[6]")), .mul (.n (val% «main» "child_carried~1")) (.n (val% «main» "child_carried~0")) (.n (val% «main» "meta[6]")), .mul (.n (val% «main» "child_carried~2")) (.n (val% «main» "child_carried~1")) (.n (val% «main» "child_carried~1")),
-  .mul (.n (val% «main» "child_carried~3")) (.n (val% «main» "child_carried~2")) (.n (val% «main» "child_carried~2")), .mul (.n (val% «main» "child_carried~4")) (.n (val% «main» "child_carried~3")) (.n (val% «main» "child_carried~3")),
-  .const (.n (val% «main» "s49#0")) (word 1 0), .add (.n (val% «main» "s49#1")) (.n (val% «main» "s49#0")) (.n (val% «main» "meta[6]")), .const (.n (val% «main» "s49#2")) (word 1 0)]
+  .mul (.n (val% «main» "lx_table_size~0")) (.n (val% «main» "lx_slots_g")) (.n (val% «main» "lx_slots_g")), .mul (.n (val% «main» "lx_table_size")) (.n (val% «main» "lx_table_size~0")) (.n (val% «main» "lx_table_size~0")),
+  .mul (.n (val% «main» "lean_sphincs_table_size~0")) (.n (val% «main» "lean_sphincs_slots_g")) (.n (val% «main» "lean_sphincs_slots_g")), .mul (.n (val% «main» "lean_sphincs_table_size")) (.n (val% «main» "lean_sphincs_table_size~0")) (.n (val% «main» "lean_sphincs_table_size~0")),
+  .const (.n (val% «main» "s38#0")) (word 1 0), .add (.n (val% «main» "s38#1")) (.n (val% «main» "s38#0")) (.n (val% «main» "meta[1]")), .const (.n (val% «main» "s38#2")) (word 1 0),
+  .const (.n (val% «main» "s39#0")) (word 1 0), .add (.n (val% «main» "s39#1")) (.n (val% «main» "s39#0")) (.n (val% «main» "meta[4]")), .const (.n (val% «main» "s39#2")) (word 1 0),
+  .mul (.n (val% «main» "child_carried_size~0")) (.n (val% «main» "meta[6]")) (.n (val% «main» "meta[6]")), .mul (.n (val% «main» "child_carried_size~1")) (.n (val% «main» "child_carried_size~0")) (.n (val% «main» "meta[6]")), .mul (.n (val% «main» "child_carried_size~2")) (.n (val% «main» "child_carried_size~1")) (.n (val% «main» "child_carried_size~1")),
+  .mul (.n (val% «main» "child_carried_size~3")) (.n (val% «main» "child_carried_size~2")) (.n (val% «main» "child_carried_size~2")), .mul (.n (val% «main» "child_carried_size")) (.n (val% «main» "child_carried_size~3")) (.n (val% «main» "child_carried_size~3")),
+  .const (.n (val% «main» "s56#0")) (word 1 0), .add (.n (val% «main» "s56#1")) (.n (val% «main» "s56#0")) (.n (val% «main» "meta[6]")), .const (.n (val% «main» "s56#2")) (word 1 0)]
 
 theorem mHAtoms_mem : ∀ a ∈ mHAtoms, a ∈ atomsIn mPre ∨ a ∈ atomsIn mMid := by decide +kernel
 
@@ -389,10 +389,10 @@ theorem mEvs_alloc {σ : Val} {d s : V} (h : ((d, .inr s) : V × (ℕ ⊕ V)) �
 
 /-- **`main`'s calls of its loop helpers writing into its buffers.** -/
 theorem mEvs_callsX {σ : Val} {c : Call} (hc : c ∈ calls (mEvs σ)) (hx : c.f ∈ hintsX) :
-    c = ⟨name% «main_loop0», [.n (val% «main» "s31#2"), .n (val% «main» "meta[1]"), .n (val% «main» "lx_table"), .n (val% «main» "meta[0]")], [], decide (σ (.n (val% «main» "s31#1")) ≠ 0)⟩ ∨
-      c = ⟨name% «main_loop1», [.n (val% «main» "s32#2"), .n (val% «main» "meta[4]"), .n (val% «main» "lean_sphincs_table"), .n (val% «main» "meta[3]")], [], decide (σ (.n (val% «main» "s32#1")) ≠ 0)⟩ ∨
-      c = ⟨name% «main_loop4», [.n (val% «main» "s49#2"), .n (val% «main» "meta[6]"), .n (val% «main» "written"), .n (val% «main» "lx_table"), .n (val% «main» "cover"), .n (val% «main» "lx_slots_g"), .n (val% «main» "lean_sphincs_table"), .n (val% «main» "sp_cover"), .n (val% «main» "lean_sphincs_slots_g"),
-        .n (val% «main» "child_carried"), .n (val% «main» "da_digests"), .n (val% «main» "fs_seed[0]"), .n (val% «main» "fs_seed[1]"), .n (val% «main» "child_pi"), .n (val% «main» "g_squares"), .n (val% «main» "child_fresh")], [], decide (σ (.n (val% «main» "s49#1")) ≠ 0)⟩ := by
+    c = ⟨name% «main_loop0», [.n (val% «main» "s38#2"), .n (val% «main» "meta[1]"), .n (val% «main» "lx_table"), .n (val% «main» "meta[0]")], [], decide (σ (.n (val% «main» "s38#1")) ≠ 0)⟩ ∨
+      c = ⟨name% «main_loop1», [.n (val% «main» "s39#2"), .n (val% «main» "meta[4]"), .n (val% «main» "lean_sphincs_table"), .n (val% «main» "meta[3]")], [], decide (σ (.n (val% «main» "s39#1")) ≠ 0)⟩ ∨
+      c = ⟨name% «main_loop4», [.n (val% «main» "s56#2"), .n (val% «main» "meta[6]"), .n (val% «main» "written"), .n (val% «main» "lx_table"), .n (val% «main» "cover"), .n (val% «main» "lx_slots_g"), .n (val% «main» "lean_sphincs_table"), .n (val% «main» "sp_cover"), .n (val% «main» "lean_sphincs_slots_g"),
+        .n (val% «main» "child_carried"), .n (val% «main» "da_digests"), .n (val% «main» "fs_seed[0]"), .n (val% «main» "fs_seed[1]"), .n (val% «main» "child_pi"), .n (val% «main» "g_squares"), .n (val% «main» "child_fresh")], [], decide (σ (.n (val% «main» "s56#1")) ≠ 0)⟩ := by
   obtain ⟨s1, s2, s2', s3, s4, s5, s6⟩ := mBlocks_straight
   have e1 := (straight_parts σ _ s1).2.2.2
   have e2 := (straight_parts σ _ s2).2.2.2
@@ -534,14 +534,14 @@ theorem main_hintsIn {κ : ℕ} (hκ : κ ≤ 30) {M : MemoryImage κ} {t : Tree
     obtain ⟨β, hβ, hz⟩ := alloc_words hp'.1.1 hbo.1 (mEvs_alloc hm) rfl rfl
     rw [hs, gen_pow_eq_ofK, logG_spec hn] at hz
     exact ⟨β, by rw [hβ, gen_pow_eq_ofK], fun i h1 h2 => Or.inl ⟨_, hz, h1, h2⟩⟩
-  obtain ⟨β0, hβ0, hQ0⟩ := hbuf (d := .n (val% «main» "lx_table")) (s := .n (val% «main» "lx_table~1")) (Or.inl (by rw [s1]; exact List.mem_cons_self))
+  obtain ⟨β0, hβ0, hQ0⟩ := hbuf (d := .n (val% «main» "lx_table")) (s := .n (val% «main» "lx_table_size")) (Or.inl (by rw [s1]; exact List.mem_cons_self))
     (n := 4 * (a + b)) (by rw [m30, m29, m22, h0, h1, ← pow_add, ← pow_add, ← pow_add]; exact congrArg (gen ^ ·) (by ring))
     (by have := pow30 (lt_of_lt_of_le ha h2κ) (lt_of_lt_of_le hb1 h2κ); omega)
-  obtain ⟨β1, hβ1, hQ1⟩ := hbuf (d := .n (val% «main» "lean_sphincs_table")) (s := .n (val% «main» "lean_sphincs_table~1"))
+  obtain ⟨β1, hβ1, hQ1⟩ := hbuf (d := .n (val% «main» "lean_sphincs_table")) (s := .n (val% «main» "lean_sphincs_table_size"))
     (Or.inl (by rw [s1]; exact List.mem_cons_of_mem _ List.mem_cons_self))
     (n := 4 * (a' + b')) (by rw [m33, m32, m23, h3, h4, ← pow_add, ← pow_add, ← pow_add]; exact congrArg (gen ^ ·) (by ring))
     (by have := pow30 (lt_of_lt_of_le ha' h2κ) (lt_of_lt_of_le hb' h2κ); omega)
-  obtain ⟨β4, hβ4, hQ4⟩ := hbuf (d := .n (val% «main» "child_carried")) (s := .n (val% «main» "child_carried~4"))
+  obtain ⟨β4, hβ4, hQ4⟩ := hbuf (d := .n (val% «main» "child_carried")) (s := .n (val% «main» "child_carried_size"))
     (Or.inr (by rw [s3]; exact List.mem_cons_of_mem _ (List.mem_cons_of_mem _ List.mem_cons_self)))
     (n := 24 * c6) (by rw [m394, m393, m392, m391, m390, h6, ← pow_add, ← pow_add, ← pow_add,
       ← pow_add, ← pow_add]; exact congrArg (gen ^ ·) (by ring))

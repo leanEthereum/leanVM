@@ -100,54 +100,34 @@ theorem atom_on_path {e : Ent} (h : EntOk P Is e) {a : Atom} {ps : List Stmt} (h
   obtain ⟨es', -, he⟩ := pre_eq_ret h2
   exact ⟨vs, h1, List.mem_append_right _ (by rw [he]; exact List.mem_cons_self)⟩
 
-/-- **The cursor at a hint**: the hints before it moved the cursor of a stream but `heap_sizes` by the
-entries of the atoms the frame moved past, the flow ones paired with the flow hints before it. -/
-theorem cursor_past {X : AlignCtx} {S : String} (hS : S ≠ Hints.heapSizeStream) {C : Ctx} {s s1 : St}
-    {pre : List Hint} (e1 : pre.foldlM (runHint C) s = .ok s1) (hadv : ∀ h ∈ pre, advHintOk h = true)
+/-- **The cursor at a hint**: the hints before it moved the cursor of a stream by the entries of the
+atoms the frame moved past, the flow ones paired with the flow hints before it. -/
+theorem cursor_past {X : AlignCtx} {S : String} {C : Ctx} {s s1 : St}
+    {pre : List Hint} (e1 : pre.foldlM (runHint C) s = .ok s1)
     {done : List Pop} (hcur : CurOk s done) {rd : Reader} {σ : Val} {as0 as1 bs : List Atom}
     (h0 : ∀ a ∈ as0, ∀ rd σ, a.pops rd σ = []) (hb : ∀ a ∈ bs, flowAtom a = false)
     (hpair : List.Forall₂ (Pairs X) (as1.filter flowAtom) (pre.filter isaFlowHint)) :
     s1.cursor.getD S 0 =
       ((done ++ (as0 ++ as1 ++ bs).flatMap (fun a ↦ a.pops rd σ)).filter (·.1 == S)).length := by
-  rw [hints_cursor S pre s s1 e1, hcur S hS, List.filter_append, List.length_append, List.flatMap_append,
+  rw [hints_cursor S pre s s1 e1, hcur S, List.filter_append, List.length_append, List.flatMap_append,
     List.flatMap_append, List.flatMap_eq_nil_iff.mpr (fun a ha ↦ h0 a ha rd σ),
     List.flatMap_eq_nil_iff.mpr (fun a ha ↦ flowAtom_pops (hb a ha) rd σ), List.nil_append, List.append_nil,
-    flatMap_flow rd σ as1, count_pairs rd σ S hpair, filter_flow hS hadv]
+    flatMap_flow rd σ as1, count_pairs rd σ S hpair, filter_flow]
 
 /-! ## The witness hints -/
 
-/-- A stream's next entry, read off the honest pushes: where the pushes with no `heap_sizes` entry
-have `(S, w)` at the cursor among those of `S`, it is the executor's stream's next. -/
+/-- A stream's next entry, read off the honest pushes: where they have `(S, w)` at the cursor among those
+of `S`, it is the executor's stream's next. -/
 theorem streamNext_of {r : Ref} {C : Ctx} (hC : Ctx.of guestProgram r.adv = .ok C) (hSh : PushShape) {s1 : St}
     {S : String} {w : List E}
-    (h : (((Hints.honestPushes End.bytecode r.seed r.s r.w).filter (·.1 != Hints.heapSizeStream)).filter
-      (·.1 == S))[s1.cursor.getD S 0]? = some (S, w)) :
-    S ≠ Hints.heapSizeStream ∧ StreamNext C s1 S w := by
+    (h : ((Hints.honestPushes End.bytecode r.seed r.s r.w).filter (·.1 == S))[s1.cursor.getD S 0]? = some (S, w)) :
+    StreamNext C s1 S w := by
   rw [hSh] at h
   have hmem := List.mem_of_getElem? h
-  rw [List.mem_filter, List.mem_filter] at hmem
-  have hS : S ≠ Hints.heapSizeStream := by
-    have := hmem.1.2
-    simpa using this
-  rw [List.filter_filter] at h
-  have hf : (Hints.honestPushes bytecodeShape r.seed r.s r.w).filter
-      (fun p ↦ (p.1 == S) && (p.1 != Hints.heapSizeStream)) =
-      (Hints.honestPushes bytecodeShape r.seed r.s r.w).filter (·.1 == S) :=
-    List.filter_congr fun p _ ↦ by
-      by_cases hp : p.1 = S
-      · subst hp; simp [hS]
-      · simp [hp]
-  rw [hf] at h
-  refine ⟨hS, _, streams_guest hC ⟨_, hmem.1.1, rfl⟩, ?_⟩
+  rw [List.mem_filter] at hmem
+  refine ⟨_, streams_guest hC ⟨_, hmem.1, rfl⟩, ?_⟩
   rw [List.getElem?_toArray, List.getElem?_map, h]
   rfl
-
-theorem ne_heap_of_get {qs : List (String × List E)} {S : String} {w : List E} {i : ℕ}
-    (h : ((qs.filter (·.1 != Hints.heapSizeStream)).filter (·.1 == S))[i]? = some (S, w)) :
-    S ≠ Hints.heapSizeStream := by
-  have hmem := List.mem_of_getElem? h
-  rw [List.mem_filter, List.mem_filter] at hmem
-  simpa using hmem.1.2
 
 /-- **Each witness hint pops the next entry of its stream, the reference's words at its
 destination**, after the hints of its pc before it, a buffer's below `2^κ`. -/
@@ -185,7 +165,6 @@ theorem witness_core {A : String → FnAl} (hP : ProgAl guestProgram coreProgram
   have hE1 := htr1.ents e1 List.mem_cons_self
   have hσ1 : e1.σ = e.σ := by simp only [Ent.σ, hI1]
   obtain ⟨hc, rfl, hcomp⟩ := ha
-  have hadv : ∀ x ∈ pre, advHintOk x = true := fun x hx ↦ hints_adv hC rfl s.pc x (by rw [hL]; simp [hx])
   have hhadv : advHintOk h = true := hints_adv hC rfl s.pc h (by rw [hL]; simp)
   have hhpos : posHintOk h = true := hints_pos hC rfl (pc_lt_of_hints hC hne) h (by rw [hL]; simp)
   obtain ⟨vs0, hwalk, hon1⟩ := atom_on_path hE1 hp1'
@@ -195,9 +174,8 @@ theorem witness_core {A : String → FnAl} (hP : ProgAl guestProgram coreProgram
   | witnessStack S base len =>
     obtain ⟨vs, rfl⟩ := compiles_wStack hcomp
     have hn := htr1.witness_next hp1' hr.pops
-    have hS := ne_heap_of_get hn
-    rw [← cursor_past hS ef hadv hcur hpops hb2 (by rw [has1]; exact hp1)] at hn
-    obtain ⟨-, hnext⟩ := streamNext_of hC hSh hn
+    rw [← cursor_past ef hcur hpops hb2 (by rw [has1]; exact hp1)] at hn
+    have hnext := streamNext_of hC hSh hn
     obtain ⟨-, rfl, hloc⟩ := compiles_stack hcomp
     have hcells := hW r hr s.pc s.fp done e st' htr _ _ hwalk S (.stack vs) hon1
     refine ⟨trivial, fun _ ↦ ⟨_, hnext, by simp [Dest.words], by simpa [posHintOk] using hhpos,
@@ -212,9 +190,8 @@ theorem witness_core {A : String → FnAl} (hP : ProgAl guestProgram coreProgram
   | witnessHeap S ptr lo len =>
     obtain ⟨pv, rfl, rfl⟩ := compiles_wHeap hcomp
     have hn := htr1.witness_next hp1' hr.pops
-    have hS := ne_heap_of_get hn
-    rw [← cursor_past hS ef hadv hcur hpops hb2 (by rw [has1]; exact hp1)] at hn
-    obtain ⟨-, hnext⟩ := streamNext_of hC hSh hn
+    rw [← cursor_past ef hcur hpops hb2 (by rw [has1]; exact hp1)] at hn
+    have hnext := streamNext_of hC hSh hn
     obtain ⟨b, hb, hσp, -, hc2⟩ := hW r hr s.pc s.fp done e st' htr _ _ hwalk S (.heap pv lo len) hon1
     have hlo : lo + len < 2 ^ 30 := by simpa [advHintOk] using hhadv
     have hwords : (Dest.heap pv lo len).words r.rd0 e1.σ =

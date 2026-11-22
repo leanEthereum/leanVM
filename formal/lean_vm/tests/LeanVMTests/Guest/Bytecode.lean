@@ -91,12 +91,12 @@ example : guestProgram.fetch (addressOfIndex Data.f1.entryPc) = some (OffsetInst
 
 /-- `main`'s `KECCAK`, both layouts even: the digest of the DA claim it checks directly
 (`keccak([root_0, root_1], [z_0, z_1], own_da[0:2])`), written in place, two cells,
-`KECCAK fp[380..+2] even = keccak_f(fp[375], fp[376], fp[377], fp[383], tail = fp[382..+4],
-b8 = fp[387], cap = fp[383..+4]) even`. -/
-example : guestProgram.fetch (addressOfIndex (Data.f1.entryPc + 722)) =
-    some (OffsetInstruction.keccak 375 376 377 383 382 387 383 380 false
+`KECCAK fp[384..+2] even = keccak_f(fp[379], fp[380], fp[381], fp[387], tail = fp[386..+4],
+b8 = fp[391], cap = fp[387..+4]) even`. -/
+example : guestProgram.fetch (addressOfIndex (Data.f1.entryPc + 726)) =
+    some (OffsetInstruction.keccak 379 380 381 387 386 391 387 384 false
         false .two).toLeanIsaInstruction :=
-  guest_fetch_of (f := Data.f1) (mem_functions (j := 1) rfl) (i := 722) (by decide +kernel) rfl
+  guest_fetch_of (f := Data.f1) (mem_functions (j := 1) rfl) (i := 726) (by decide +kernel) rfl
     (by decide +kernel)
 
 /-- The first instruction of the program, in `__jump_tables`: `SET fp[Data.mainCells]`, the jump

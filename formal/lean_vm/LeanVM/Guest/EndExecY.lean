@@ -19,10 +19,10 @@ public import LeanVM.Guest.Bridge.Cells
 
 `YCur A r s`: in the prologue every cursor is `0`; past it, on the reference run, a state of the
 tree track at the state's pc and frame (`RefTrack`) whose entries done agree with the cursor on every
-stream but `heap_sizes` (`CurOk`). `initY_cur`: it holds initially. `keepY_cur`: each step keeps it,
+stream (`CurOk`). `initY_cur`: it holds initially. `keepY_cur`: each step keeps it,
 by the step rule with its entries (`Bridge.stepD_of`): the hints at a pc move the cursor by the
 entries they pop (`hints_cursor`), the flow ones compiling the atoms the track moves past one for one
-(`count_pairs`), the advised sizes on `heap_sizes` alone (`adviceHints_ok`). `hintWitness_cur`: a
+(`count_pairs`). `hintWitness_cur`: a
 witness hint, the `j`-th flow hint of its pc, compiles the `j`-th flow atom the track moves past;
 the track past the atoms before it pops that atom's entry next (`TrackOk.witness_next`), which the
 honest pushes put at the cursor (`Ref.Ok.pops`, `streams_guest`); its words are the reference's at
@@ -70,9 +70,9 @@ def PushShape : Prop :=
 
 /-! ## The track -/
 
-/-- The entries done agree with the cursor on every stream but `heap_sizes`. -/
+/-- The entries done agree with the cursor on every stream. -/
 def CurOk (s : St) (done : List Pop) : Prop :=
-  ∀ S, S ≠ Hints.heapSizeStream → s.cursor.getD S 0 = (done.filter (·.1 == S)).length
+  ∀ S, s.cursor.getD S 0 = (done.filter (·.1 == S)).length
 
 /-- **The witness streams' track**: in the prologue every cursor `0`; past it, on the reference run,
 a state of the tree track at the state's pc and frame whose entries done are the cursor's. -/
@@ -122,18 +122,14 @@ theorem flatMap_flow (rd : Reader) (σ : Val) : ∀ as : List Atom,
     · rw [flowAtom_pops hf, List.nil_append]; rfl
     · rfl
 
-/-- The hints that are no flow hints pop no stream but `heap_sizes`. -/
-theorem filter_flow {S : String} (hS : S ≠ Hints.heapSizeStream) :
-    ∀ {l : List Hint}, (∀ h ∈ l, advHintOk h = true) →
-      (l.filter (popsOn S)).length = ((l.filter isaFlowHint).filter (popsOn S)).length
-  | [], _ => rfl
-  | h :: l, hl => by
-    have ih := filter_flow hS (fun x hx ↦ hl x (List.mem_cons_of_mem _ hx))
-    have hh := hl h List.mem_cons_self
+/-- The hints that are no flow hints pop no stream. -/
+theorem filter_flow {S : String} :
+    ∀ {l : List Hint}, (l.filter (popsOn S)).length = ((l.filter isaFlowHint).filter (popsOn S)).length
+  | [] => rfl
+  | h :: l => by
+    have ih := filter_flow (S := S) (l := l)
     have key : isaFlowHint h = false → popsOn S h = false := fun hf ↦ by
-      cases h <;> simp only [isaFlowHint, popsOn, advHintOk, beq_iff_eq, Bool.true_eq_false] at hf hh ⊢
-      subst hh
-      exact beq_false_of_ne (Ne.symm hS)
+      cases h <;> simp_all [isaFlowHint, popsOn]
     by_cases hf : isaFlowHint h = true
     · rw [List.filter_cons_of_pos hf, List.filter_cons, List.filter_cons]
       split <;> simp [ih]

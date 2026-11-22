@@ -572,7 +572,7 @@ theorem frameSize_alignA : FrameSize alignA := by
   intro r C e s sx i h hat hfr
   obtain ⟨p, hp⟩ := Option.isSome_iff_exists.mp (isFrame_ptr hfr)
   obtain ⟨off, c, s0, hpcE, hqm, hc, hsite, hkC⟩ := frame_next hat hfr hp
-  obtain ⟨hr, hC, ⟨done, st, htr, hch, -⟩, -, hfine, -, hget, hpre, hag⟩ := hat
+  obtain ⟨hr, hC, ⟨done, st, htr, hch⟩, -, hfine, -, hget, hpre, hag⟩ := hat
   have hκ : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size
   obtain ⟨rd, hHon, hHX⟩ := hr.honest
   obtain ⟨hI, j, bufs, kids, vs, hj, hIt, hfn, hw, hFH⟩ := (htr.frames hr.name hHon hHX.covers) e List.mem_cons_self
@@ -691,7 +691,7 @@ theorem frameSize_alignA : FrameSize alignA := by
         · rw [hk] at hkv'; exact hkv'.elim
       · cases hq
     · cases hq
-  case allocFrames.callIf q size stop si tail b f args =>
+  case allocFrames.callIf q size stop si b f args =>
     obtain ⟨hcf, hca, hcr, htk⟩ := hco
     rcases args with _ | ⟨a0, _ | ⟨a1, rest⟩⟩
     · simp at hq
@@ -700,7 +700,7 @@ theorem frameSize_alignA : FrameSize alignA := by
     split at hq
     · rename_i k' lp ep hcal
       simp only [Bool.and_eq_true, beq_iff_eq, Bool.or_eq_true] at hq
-      obtain ⟨⟨⟨⟨⟨⟨rfl, rfl⟩, rfl⟩, rfl⟩, rfl⟩, hcell⟩, hstart⟩ := hq
+      obtain ⟨⟨⟨⟨⟨rfl, rfl⟩, rfl⟩, rfl⟩, hcell⟩, hstart⟩ := hq
       obtain ⟨c', -, hfsf, hfindf, hlpf, hepf⟩ := cal hcal
       obtain ⟨e0, hsc, hsi, hg⟩ : ∃ e0, spConst sp' a0 e0 = true ∧
           addressOfIndex e0 * si = 1 ∧ guardOk sp' b a1 e0 = true := by

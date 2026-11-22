@@ -16,8 +16,8 @@ import LeanVM.Guest.Data.ValNames.«verify_tables»
 # The table phase's evaluations and final check, complete
 
 `vtF_complete`: the window (`vtF_window`) and the final check `assert air_acc == claim`, which
-holds since `air_acc` (`σ 5941`) is `termsPure`'s terminal value over the six tables
-(`vt_asm_finalF`) and the table sumcheck's final claim `σ 2648` is it (`hfin`, the
+holds since `air_acc` (`σ 5931`) is `termsPure`'s terminal value over the six tables
+(`vt_asm_finalF`) and the table sumcheck's final claim `σ 2640` is it (`hfin`, the
 specification's check of the honest run). It also gives what follows: the evaluations' values,
 the sponge after them (`vt_evals_fsF`), and `VtF`.
 -/
@@ -30,7 +30,7 @@ open LeanVM.Protocol.EndToEnd.Complete (blockSel termsPure)
 
 @[expose] public section
 
-theorem vtF_split : tbStmtsEqb ((vtPre.drop vtFLo).take (5523 - vtFLo))
+theorem vtF_split : tbStmtsEqb ((vtPre.drop vtFLo).take (5513 - vtFLo))
     ((vtPre.drop vtFLo).take (vtFHi - vtFLo) ++ [.atom (.assertEq (.n (val% «verify_tables» "air_acc@6")) (.n (val% «verify_tables» "claim")))]) =
       true := by
   simp only [vtPre_drop]; decide +kernel

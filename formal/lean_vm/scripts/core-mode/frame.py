@@ -231,10 +231,7 @@ class Walk:
         """A hint as the bridge reads it (`data.isa_hint`: its constructor's name and arguments, a run's start
         `('stack', base)` or `('heap', ptr)`)."""
         t = h[0]
-        if t in ('frameAddress', 'allocAdvice'): return
-        if t == 'allocLate':
-            if h[2][0] == 'exp': self.reqW(A, h[2][1], i)
-            self.addW(A, h[1]); return
+        if t == 'frameAddress': return
         if t in ('alloc', 'allocDyn', 'allocArm', 'allocFrames'):
             if t in ('allocDyn', 'allocArm'): self.reqW(A, h[2], i)
             if t == 'allocFrames': self.reqW(A, h[3], i)

@@ -175,15 +175,15 @@ LeanVM/Guest/B1/Digest/ChildMono.lean@child_claim_list_mono_sound child_claim_li
 LeanVM/Guest/B1/Digest/ClaimList.lean@tail_sound claim_list_tail
 LeanVM/Guest/B1/Digest/ClaimList.lean@claim_list_digest_sound claim_list_digest
 LeanVM/Guest/B1/Digest/ClaimListAt.lean claim_list_digest
-LeanVM/Guest/B1/Digest/ClaimListCBig2.lean claim_list_digest_loop0
-LeanVM/Guest/B1/Digest/ClaimListCBig5.lean claim_list_digest_loop0
+LeanVM/Guest/B1/Digest/ClaimListCBig2.lean claim_list_chain_loop0
+LeanVM/Guest/B1/Digest/ClaimListCBig5.lean claim_list_chain_loop0
 LeanVM/Guest/B1/Digest/ClaimListCChk.lean@clSplitS claim_list_digest
 LeanVM/Guest/B1/Digest/ClaimListCChk.lean@clBigS claim_list_digest
 LeanVM/Guest/B1/Digest/ClaimListCChk.lean@clGrpS claim_list_digest
 LeanVM/Guest/B1/Digest/ClaimListCChk.lean@clDispS claim_list_digest
 LeanVM/Guest/B1/Digest/ClaimListCLast.lean@tail_rel_of claim_list_tail
 LeanVM/Guest/B1/Digest/ClaimListDefs.lean@clOk claim_list_last__L
-LeanVM/Guest/B1/Digest/ClaimListDefs.lean@bigWin claim_list_digest_loop0
+LeanVM/Guest/B1/Digest/ClaimListDefs.lean@bigWin claim_list_chain_loop0
 LeanVM/Guest/B1/Digest/ClaimListPops.lean@clLastWitOk claim_list_last__L
 LeanVM/Guest/B1/Digest/ClaimListPops.lean@tail_pops claim_list_tail
 LeanVM/Guest/B1/Digest/ClaimListPops.lean@cl_valid_pops claim_list_digest
@@ -439,7 +439,6 @@ LeanVM/Guest/CoreMode/Fn/column_selector/CsQ.lean check_opening_terminal
 LeanVM/Guest/CoreMode/Fn/child_claim_list_mono/MonoDefs.lean child_claim_list_mono
 LeanVM/Guest/CoreMode/Fn/child_claim_list_mono/MonoReplay.lean@loop0_facts child_claim_list_mono_loop0
 LeanVM/Guest/CoreMode/Fn/child_claim_list_mono/MonoReplay.lean@loop1_facts child_claim_list_mono_loop1
-LeanVM/Guest/CoreMode/Fam/ResCld.lean@cl_zero_callees claim_list_digest
 LeanVM/Guest/EndExecAExcl.lean claim_list_digest
 LeanVM/Guest/CoreMode/Fn/certify_placement/ResCp.lean certify_placement
 LeanVM/Guest/CoreMode/Fn/column_selector/ResCs.lean column_selector__L

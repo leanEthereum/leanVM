@@ -210,6 +210,8 @@ struct FnLower<'a> {
     /// Where the frame and `HeapBuf` reservations sit, by pointer cell, and what
     /// moving one needs to know ([`Self::hoist_heap_bufs`]).
     reservations: HashMap<Off, hoist::Site>,
+    /// The name the statement being lowered binds, for a `HeapBuf`'s diagnostics.
+    let_name: Option<String>,
     /// The branch nesting of the code being emitted: `0` at a statement's top level, outside every branch's body.
     /// A branch's exit jumps sit at `0` too (an `if`'s first arm's, a `match` arm's), though only the runs that took
     /// that branch run them.
@@ -1091,7 +1093,9 @@ impl FnLower<'_> {
             Expr::HeapBufDyn(e) => {
                 // Evaluate the size first (its cell must be written when the
                 // alloc hint fires), then allocate before the pointer is read.
+                let name = self.let_name.clone();
                 let size = self.expr(e);
+                self.let_name = name;
                 let arr = self.fresh();
                 self.reserve(Hint::AllocBufferDyn { ptr: arr, size });
                 arr
@@ -1256,6 +1260,10 @@ impl FnLower<'_> {
         // Every diagnostic raised while lowering this statement, and every
         // instruction it emits, is attributed to this line.
         self.cur_line = s.line;
+        self.let_name = match &s.kind {
+            StmtKind::Let(name, _) => Some(name.clone()),
+            _ => None,
+        };
         match &s.kind {
             StmtKind::Let(name, e) => match e {
                 // `x = StackBuf(n)`: bind a run of `n` consecutive frame cells.
@@ -1778,6 +1786,7 @@ pub(crate) fn lower_func(
 
             pending: Vec::new(),
             reservations: HashMap::new(),
+            let_name: None,
             depth: 0,
             code_depth: Vec::new(),
             stmt_start: 0,
@@ -1822,7 +1831,7 @@ pub(crate) fn lower_func(
             let last = f.body.last().map_or(0, |s| s.line);
             lowerer.stmt(&Stmt::new(last, StmtKind::Return(vec![])));
         }
-        let advised = lowerer.hoist_heap_bufs();
+        let hoisted = lowerer.hoist_heap_bufs();
         let (rebound, dbg_loops, code, frame_size) = (lowerer.rebound, lowerer.dbg_loops, lowerer.code, lowerer.next);
         let settled = own.len();
         for name in rebound {
@@ -1831,12 +1840,14 @@ pub(crate) fn lower_func(
             }
         }
         if own.len() == settled {
+            if let Err(e) = hoisted {
+                panic!("{e}");
+            }
             dbg_loops.iter().for_each(|line| eprintln!("{line}"));
             return Lowered {
                 name: f.name.clone(),
                 code,
                 frame_size,
-                advised,
             };
         }
         // The pass is abandoned, so everything it left for later goes with it: the helpers and specializations

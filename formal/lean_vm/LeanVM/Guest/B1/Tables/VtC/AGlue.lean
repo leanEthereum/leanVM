@@ -135,7 +135,7 @@ theorem vt_leaves_good (hl : args.length = 21) {leaves : List E} (hll : leaves.l
 theorem vtPermCap_38 : vtPermCap 38 = [.n (val% «verify_tables» "nxt[8]@41"), .n (val% «verify_tables» "nxt[9]@41"), .n (val% «verify_tables» "nxt[10]@41"), .n (val% «verify_tables» "nxt[11]@41"), .n (val% «verify_tables» "nxt[12]@41")] := by
   decide +kernel
 
-theorem vtEvB_152 : vtEvB 152 = 4686 := by decide +kernel
+theorem vtEvB_152 : vtEvB 152 = 4676 := by decide +kernel
 
 /-- **The sponge after the evaluations**, from the evaluations' sponge facts: the last
 permutation's capacity and the last evaluation waiting, its rate cells `σ4688`, `σ4689`. -/
@@ -150,7 +150,7 @@ theorem vt_evalFs_good (hl : args.length = 21)
         [vtσ rd w args (.n (val% «verify_tables» "rate[0]@42")), vtσ rd w args (.n (val% «verify_tables» "rate[1]@42")), 0, 0, 0, 0, 0, 0] ∧
       (vtEvalFs (vtσ rd w args)).cap = [vtσ rd w args (.n (val% «verify_tables» "nxt[8]@41")), vtσ rd w args (.n (val% «verify_tables» "nxt[9]@41")),
         vtσ rd w args (.n (val% «verify_tables» "nxt[10]@41")), vtσ rd w args (.n (val% «verify_tables» "nxt[11]@41")), vtσ rd w args (.n (val% «verify_tables» "nxt[12]@41"))] := by
-  have g := vt_goodL (rd := rd) (w := w) hl 4262 [.atom (.copy (.n (val% «verify_tables» "rate[0]@42")) (.n (val% «verify_tables» "x@161"))),
+  have g := vt_goodL (rd := rd) (w := w) hl 4252 [.atom (.copy (.n (val% «verify_tables» "rate[0]@42")) (.n (val% «verify_tables» "x@161"))),
     .atom (.const (.n (val% «verify_tables» "rate[1]@42")) (word 0 1))] (by rw [vtPre_drop]; decide +kernel)
   generalize vtσ rd w args = σ at g hF ⊢
   simp only [GoodL, GoodS, fixNe, Good, and_true] at g

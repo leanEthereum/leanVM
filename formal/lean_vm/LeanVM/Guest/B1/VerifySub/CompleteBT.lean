@@ -238,8 +238,8 @@ theorem vs_kidsDepBPR {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed
 /-- The honest valuation, its own buffers held. -/
 def vsQn {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs bytecode seed c) (sqE outE : ℕ)
     (rd : Reader) (σ : Val) : Prop :=
-  ∃ b outs, σ = vsσ rd (vsW (bases b (vsSizes S.d)) outs) (vsArgs seed c sqE outE) ∧
-    Main.MemL rd (bufL b (vsSizes S.d) S.ownW)
+  ∃ b outs, σ = vsσ rd (vsW (bases b (vsSizes)) outs) (vsArgs seed c sqE outE) ∧
+    Main.MemL rd (bufL b (vsSizes) S.ownW)
 
 /-- **`verify_sub` is complete on an honest child within its own bound, generic in what its `certify_placement`,
 `verify_tables` and `open_stacked` callees' trees satisfy**: by a node of `vsTsAny` whose valuation is the honest one,
@@ -266,9 +266,9 @@ theorem verify_sub_completeBTG {bytecode : List K} (hbl : bytecode.length = 2 ^ 
   have hd := S.d_bounds hbl
   obtain ⟨hkr, hkm, hσ⟩ := vs_obligations hbl S fs (κ := κ) (by omega) hexp hout (vs_callsMatch hbl S hexp)
   have h := completeAt_flatDepRBPR (fs := fs) (cert := cert) find_vs vs_not_loop κ Lin _ []
-    (vs_body.trans vsT_splitPre) vs_cflat vs_caddrs vs_notIte (vsSizes S.d) (fun _ ↦ S.ownW)
+    (vs_body.trans vsT_splitPre) vs_cflat vs_caddrs vs_notIte (vsSizes) (fun _ ↦ S.ownW)
     (fun _ ↦ S.ownW_fits hbl hst)
-    (fun fp ↦ S.kids (bases (fp + fs "verify_sub") (vsSizes S.d)) sqE)
+    (fun fp ↦ S.kids (bases (fp + fs "verify_sub") (vsSizes)) sqE)
     (vsNames S.μs S.rate (S.d - 20)) (vsBsAt W Bvk S.μs S.rate) (vsPsR W Pcp Pvt Pos) (vsQn S sqE outE)
     (fun _ ↦ vs_names S _ sqE)
     (fun fp ↦ vs_kidsDepBPR hbl S hκ hrf hcons W hvk _ sqE (hcp _ _) hvt (hos _))

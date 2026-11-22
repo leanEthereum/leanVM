@@ -168,8 +168,7 @@ theorem progOk_of {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} (h : Mo
 
 /-- An allocation hint: a frame's or a buffer's base, or a cell's address. -/
 def isAllocHint : Prover.Exec.Hint → Bool
-  | .frameAddress .. | .allocFrames .. | .alloc .. | .allocDyn .. | .allocAdvice .. | .allocArm .. | .allocLate ..
-  | .cellAddress .. => true
+  | .frameAddress .. | .allocFrames .. | .alloc .. | .allocDyn .. | .allocArm .. | .cellAddress .. => true
   | _ => false
 
 /-- A witness hint: an entry popped from a stream. -/
@@ -228,9 +227,8 @@ structure ExecGaps (Ks : List Mode.Cert) (Km : Mode.Cert) (E0 : Mode.Env) (X Pro
   (the exactness track: `Budget.mainExactHyp_of_l5`, the children's loop's E form). -/
   mainExact : Budget.MainExactHyp
   /-- Each allocation hint's needs once its inputs are written, after the pc's hints before it: a
-  reservation at the bump pointer, below `maxCells`, of the size the tree allocates there, an
-  `allocAdvice`'s size the next entry of `heap_sizes` (the allocation track: `AllocInv` in `X`, the
-  compiler's reservation order, `Tree.heapPops` against the `heap_sizes` pushes). -/
+  reservation at the bump pointer, below `maxCells`, of the size the tree allocates there (the
+  allocation track: `AllocInv` in `X`, the compiler's reservation order). -/
   hintAlloc : ∀ r, r.Ok → ∀ C, Ctx.of guestProgram r.adv = .ok C → ∀ s, OnRun X r s → ∀ pre h post,
     (C.hints[s.pc]?).getD [] = pre ++ h :: post → ∀ s1, pre.foldlM (runHint C) s = .ok s1 →
     Moves (refMem r.img) s s1 → isAllocHint h = true → HintIn s1 h → HintOk C (refMem r.img) s1 h

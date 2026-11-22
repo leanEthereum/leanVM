@@ -5,14 +5,12 @@ use super::child::gen_verify;
 use super::coverage::plan_coverage;
 use super::deferred::{DeferredBytecodeClaim, aggregate_deferred_claims, bytecode_sums};
 use super::error::AggregateError;
-use super::guest::{fs_seed, guest_constant, unified_guest};
+use super::guest::{fs_seed, unified_guest};
 #[cfg(test)]
 use super::hints::FORGE;
 use super::hints::{Hints, lean_sphincs_hints, lean_xmss_hints};
 use super::proof::{AggregateProof, is_sorted};
-use super::statement::{
-    lean_sphincs_claim_cells, lean_xmss_claim_cells, list_chain_cells, list_split, statement_digest,
-};
+use super::statement::{lean_sphincs_claim_cells, lean_xmss_claim_cells, list_split, statement_digest};
 use super::{AggregateClaims, MAX_LOG_INV_RATE, MAX_RECURSIONS, MIN_LOG_INV_RATE, OutputClaims};
 use fiat_shamir_prover::merkle::hash_to_scalars;
 use isa::{Prover, Stats};
@@ -22,7 +20,6 @@ use lean_vm_core::cpu::{from_scalar, public_input_bytes, to_scalar};
 use lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
 use primitives::field::F128;
 use std::sync::{Mutex, PoisonError};
-use zkdsl_compiler::HEAP_SIZE_STREAM;
 
 /// Aggregate leanXMSS and leanSPHINCS signatures, blobs and the claims of child proofs, on the prover `P`, also
 /// returning the prover's statistics (what the CLI's benchmarks report).
@@ -138,13 +135,6 @@ pub fn aggregate<P: Prover>(
         ],
     );
     hints.push("fs_seed", fs_seed().to_vec());
-    let lists = [
-        (cover.lean_xmss.signers.len(), cover.lean_xmss.dups.len()),
-        (cover.lean_sphincs.signers.len(), cover.lean_sphincs.dups.len()),
-    ];
-    for size in heap_sizes(lists, children.len()) {
-        hints.push(HEAP_SIZE_STREAM, size.map(count).into_iter().collect());
-    }
     // Both lists in the guest's order, leanXMSS first: each one's split, its declared claims, then its duplicates.
     let lean_xmss_cells: Vec<[F128; 4]> = cover.lean_xmss.signers.iter().map(lean_xmss_claim_cells).collect();
     let lean_sphincs_cells: Vec<[F128; 4]> = cover
@@ -299,25 +289,4 @@ fn sorted_claims<K: Ord + Copy, S>(raw: &mut Vec<(K, [u8; 32], S)>) -> Vec<(K, [
     raw.sort_by_key(|(pk, message, _)| (*pk, *message));
     raw.dedup_by_key(|(pk, message, _)| (*pk, *message));
     raw.iter().map(|(pk, message, _)| (*pk, *message)).collect()
-}
-
-/// The `HeapBuf` sizes the guest takes as advice ([`HEAP_SIZE_STREAM`]) before a child's, in the order it pops them:
-/// `main`'s two coverage tables (each scheme's declared claims and duplicates, a claim's four cells a slot),
-/// `da_digests` (a digest's two cells per child and the node's own), `child_pi` (a statement digest per child), `child_fresh`, `child_carried` and
-/// `written`; then each claim list's chain (`claim_list_digest`), `None` for an empty list, whose branch allocates
-/// none. A child's follow in [`gen_verify`]. `guest_allocates_late_only_where_known` pins the buffers and their order.
-fn heap_sizes(lists: [(usize, usize); 2], children: usize) -> Vec<Option<usize>> {
-    const CLAIM_CELLS: usize = 4;
-    const DIGEST_CELLS: usize = 2;
-    let main = [
-        CLAIM_CELLS * (lists[0].0 + lists[0].1),
-        CLAIM_CELLS * (lists[1].0 + lists[1].1),
-        DIGEST_CELLS * (children + 1),
-        DIGEST_CELLS * children,
-        guest_constant("DEFER_SIZE") * children,
-        guest_constant("DEFER_STMT_CELLS") * children,
-        children + 1,
-    ];
-    let chains = lists.map(|(declared, _)| list_chain_cells(declared));
-    (main.map(Some).into_iter()).chain(chains).collect()
 }
