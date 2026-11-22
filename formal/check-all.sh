@@ -108,13 +108,14 @@ build() {
 
 # Every built module of the projects $2... (default: $1) replayed by the kernel from its `.olean`, in the workspace $1
 # (`tools/kernel-check.py`): what `debug.skipKernelTC` or meta code added without the kernel fails here, which
-# `#print axioms` cannot see. Each project once per run; a module unchanged since it passed is skipped.
+# `#print axioms` cannot see. Each project once per run; a module unchanged since it passed is skipped, and so is a
+# module whose source is gone (another branch's), which nothing built imports.
 kernel_check() {
   local dir=$1 p todo=(); shift
   for p in "${@:-$dir}"; do once "kernel:$p" && todo+=("$p"); done
   [ ${#todo[@]} -gt 0 ] || return 0
   step "${todo[*]}: every module checked again by the kernel (kernel-check)"
-  python3 -I tools/kernel-check.py "$dir" "${todo[@]}" || fail "the kernel rejects a module of ${todo[*]}"
+  python3 -I tools/kernel-check.py "$dir" "${todo[@]}" --allow-stale || fail "the kernel rejects a module of ${todo[*]}"
 }
 
 # Each theorem after the module $2 depends on Lean's three axioms only, asked from outside (`bg`), in the workspace
@@ -145,11 +146,9 @@ lakefiles() {
 statement() {
   no_escapes Statement
   lakefiles
-  step "Statement: imports only Mathlib, VCVio, CompPoly and itself"
-  if grep -rnE '^[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import([[:space:]]|$)' --include='*.lean' --exclude-dir=.lake Statement \
-      | grep -vE ':[0-9]+:[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import[[:space:]]+((Mathlib|VCVio|CompPoly|Statement)\.|all[[:space:]]+Statement\.Data\.)'; then
-    fail "Statement imports more than Mathlib, VCVio, CompPoly and itself, or \`import all\` beyond Statement.Data"
-  fi
+  step "Statement: imports only Mathlib, VCVio, CompPoly and itself (statement-imports, Lean's header parser)"
+  python3 -I tools/statement-imports.py Statement \
+    || fail "Statement imports more than Mathlib, VCVio, CompPoly and itself, or \`import all\` beyond Statement.Data"
   cache_get Statement
   export_guest
   if once "build:Statement"; then

@@ -5,10 +5,11 @@ import Lean.Replay
 
 `lake env lean --run ../tools/KernelCheck.lean MODULE...`, from a project's directory after building it: each module's
 declarations, read from its `.olean` (its private part included), replayed by the kernel into the environment of the
-module's imports, as the toolchain's `leanchecker` does (`replayFromImports`), but for exactly the modules named,
-one after another; `leanchecker MODULE` also checks every module under `MODULE`. A declaration that was added without
-the kernel (`debug.skipKernelTC`, which `#print axioms` cannot see, or meta code adding it) fails here. Prints
-`ok MODULE` for each module checked; stops at the first failure. `tools/kernel-check.py` runs it over every module.
+module's imports, as the toolchain's `leanchecker` does (`replayFromImports`), but for exactly the modules named
+(`leanchecker MODULE` also checks every module under `MODULE`), and with the imports at the level the module's build
+saw. A declaration that was added without the kernel (`debug.skipKernelTC`, which `#print axioms` cannot see, or
+meta code adding it) fails here. Prints `ok MODULE` for each module checked; stops at the first failure.
+`tools/kernel-check.py` runs it over every module.
 -/
 
 open Lean
@@ -24,8 +25,13 @@ unsafe def replayModule (module : Name) : IO Unit := do
   let parts ← readModuleDataParts files
   let some (mod, _) := parts[0]? | throw <| IO.userError s!"{module}: no module data"
   let some (last, _) := parts.back? | throw <| IO.userError s!"{module}: no module data"
-  let (_, s) ← importModulesCore mod.imports |>.run
-  let env ← finalizeImport s mod.imports {} 0 false false (isModule := true)
+  -- The imports at the level the module was built against (`processHeaderCore`): a `module` sees what its imports
+  -- export, and what they keep private only through `import all`. With every private part loaded, as
+  -- `leanchecker` does, the kernel unfolds definitions the build could not, and a check the build did in seconds
+  -- can run out of memory.
+  let level := if mod.isModule then OLeanLevel.exported else .private
+  let (_, s) ← importModulesCore mod.imports (globalLevel := level) |>.run
+  let env ← finalizeImport s mod.imports {} 0 false false (level := level)
   let mut consts : Std.HashMap Name ConstantInfo := {}
   for name in last.constNames, ci in last.constants do
     consts := consts.insert name ci
