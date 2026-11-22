@@ -245,6 +245,9 @@ mod tests {
         for (lane_vars, lanes_count, qkeccak_vars) in [
             (6usize, 1usize, 6usize),
             (6, 3, 7),
+            (8, 10, 10),
+            (8, 11, 10),
+            (8, 12, 10),
             (8, 13, 10),
             (8, 13, 8),
             (8, 5, 6),

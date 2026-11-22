@@ -42,10 +42,7 @@ impl Coef for F128 {
     }
     #[inline(always)]
     fn scale8(v: [Self; 8], k: [F64; 8]) -> [Self; 8] {
-        F128x8::from_array(&v)
-            .mul_base_unreduced(F64x8::from_array(&k))
-            .reduce_lanes()
-            .to_array()
+        F128x8::from_array(&v).mul_base_even(F64x8::from_array(&k)).to_array()
     }
 }
 

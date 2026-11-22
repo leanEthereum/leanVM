@@ -23,13 +23,20 @@
 //! Where the stack's blocks under a lane `X F` repeat, its blocks repeat past their first few words (one more per
 //! round, from multiplying by `X`), so a block of `X F` is a repeat when those words are too.
 
-use primitives::field::{F64, F64x8, F128, F128x8, mul_base_splat8};
+#[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
+use primitives::field::F64x8;
+#[cfg(not(all(
+    target_arch = "x86_64",
+    not(all(target_feature = "vpclmulqdq", target_feature = "avx2"))
+)))]
+use primitives::field::F128x8;
+use primitives::field::{Acc8, F64, F128, msg_lone8_ext};
 use primitives::multilinear::interp;
 use primitives::stream::Stream;
 
 use crate::stack_open::{SWEEP, Terms};
 use crate::whir::{FoldChallenges, FoldTable, InitialBasis};
-use crate::xmul::{exponents8, mul_x_block, multiples, sums8, x_at};
+use crate::xmul::{coeff, exponents8, mul_x_block, multiples, sums8, x_at};
 
 /// The words of a block of a round-`r` lane `X F` that can differ from the block before when the stack's blocks under
 /// it repeat: its first `r`. Later rounds skip no blocks.
@@ -40,6 +47,10 @@ const COLS: usize = 1 << 13;
 
 /// A later round's projection slots per pair: the limbs of `X F`, of its first lane and of its second.
 const SLOTS: usize = 6;
+
+/// Lane-count threshold at or below which a post-stack round lifts `A`'s rows per block in L1 instead of projecting
+/// through `Terms::project_rows`.
+const LIFT_MAX_LANES: usize = 4;
 
 /// `sum_t a[t] * p[t]`.
 fn dot(a: &[F128], p: &[F128]) -> F128 {
@@ -59,8 +70,19 @@ fn outside<T: Copy + Default>(lane: &[T]) -> impl Fn(usize) -> T + '_ {
 enum Pairs {
     /// Round 1's: the committed lanes two by two.
     Stack,
+    /// Round 2's: the stack folded once under the round-1 challenges, fused into round 3 without materializing.
+    FoldedStack(FoldChallenges),
     /// A later round's, `len` coefficients each, a missing `G` zero.
     Stored { f: Vec<F128>, g: Vec<F128>, len: usize },
+}
+
+/// Precomputed challenges for fusing two rounds directly from four `F64` stack lanes.
+struct FusedTables {
+    ch0: FoldChallenges,
+    a01: F128,
+    c_x0: F128,
+    cx_b0: [F128; 64],
+    cx_b01: [F128; 64],
 }
 
 /// A round's folded lanes `P = G + alpha F + beta X F`, one coefficient longer than its pairs, read anywhere.
@@ -72,12 +94,14 @@ struct Folded<'a> {
     ch: FoldChallenges,
     /// `beta A_t` for every `t`: the challenges of `X F`.
     cx: [F128; 64],
+    fused: Option<FusedTables>,
 }
 
 impl Folded<'_> {
     fn count(&self) -> usize {
         match self.pairs {
             Pairs::Stack => self.n_stack.div_ceil(2),
+            Pairs::FoldedStack(_) => self.n_stack.div_ceil(4),
             Pairs::Stored { f, len, .. } => f.len() / len,
         }
     }
@@ -85,6 +109,7 @@ impl Folded<'_> {
     fn len(&self) -> usize {
         1 + match self.pairs {
             Pairs::Stack => self.lane_block,
+            Pairs::FoldedStack(_) => self.lane_block + 1,
             Pairs::Stored { len, .. } => *len,
         }
     }
@@ -93,14 +118,33 @@ impl Folded<'_> {
         (l < self.n_stack).then(|| &self.stack[l * self.lane_block..(l + 1) * self.lane_block])
     }
 
+    /// Round 1's folded lane `k` at column `c`, zero past the stack.
+    fn p1_at(&self, k: usize, c: usize, ch0: FoldChallenges) -> F128 {
+        self.stack_lane(2 * k).map_or(F128::ZERO, |f| {
+            let g = self.stack_lane(2 * k + 1).map_or(F64::ZERO, |g| outside(g)(c));
+            F128::from(g) + ch0.alpha.mul_base(outside(f)(c)) + ch0.beta.mul_base(x_at(f, c))
+        })
+    }
+
     /// `P_i[c]`, zero past the lanes.
     fn at(&self, i: usize, c: usize) -> F128 {
         let FoldChallenges { alpha, beta } = self.ch;
         match self.pairs {
-            Pairs::Stack => self.stack_lane(2 * i).map_or(F128::ZERO, |f| {
-                let g = self.stack_lane(2 * i + 1).map_or(F64::ZERO, |g| outside(g)(c));
-                F128::from(g) + alpha.mul_base(outside(f)(c)) + beta.mul_base(x_at(f, c))
-            }),
+            Pairs::Stack => self.p1_at(i, c, self.ch),
+            Pairs::FoldedStack(ch0) => {
+                let ch0 = *ch0;
+                let f_c = self.p1_at(2 * i, c, ch0);
+                let g_c = self.p1_at(2 * i + 1, c, ch0);
+                let xf_c = if c == 0 {
+                    F128::ZERO
+                } else if c & 1 == 1 {
+                    self.p1_at(2 * i, c - 1, ch0) + f_c
+                } else {
+                    let far = c + (1usize << c.trailing_zeros()) - 1;
+                    (self.p1_at(2 * i, c - 1, ch0) + self.p1_at(2 * i, far, ch0)).mul_base(coeff(c))
+                };
+                g_c + alpha * f_c + beta * xf_c
+            }
             Pairs::Stored { f, g, len } => match (f.get(i * len..(i + 1) * len), g.get(i * len..(i + 1) * len)) {
                 (Some(f), Some(g)) => outside(g)(c) + alpha * outside(f)(c) + beta * x_at(f, c),
                 _ => F128::ZERO,
@@ -114,48 +158,285 @@ impl Folded<'_> {
     /// `A_t` folded into its challenge.
     fn block(&self, i: usize, first: usize, out: &mut [F128]) {
         let n = out.len();
-        let alpha = self.ch.alpha;
-        let out = out.as_chunks_mut::<8>().0;
-        let cx = |t0: usize| F128x8::from_array(&exponents8(t0).map(|t| self.cx[t]));
+        #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
+        let (alpha_v, cx_base) = (
+            F128x8::splat(self.ch.alpha),
+            F128x8::from_array(&exponents8(0).map(|t| self.cx[t])),
+        );
         match self.pairs {
             Pairs::Stack => {
+                let out = out.as_chunks_mut::<8>().0;
                 let f = self.stack_lane(2 * i).expect("a folded lane has its first");
                 let g = self
                     .stack_lane(2 * i + 1)
                     .map(|g| g[first..first + n].as_chunks::<8>().0);
                 let (fb, f8) = (&f[first..first + n], f[first..first + n].as_chunks::<8>().0);
-                for (q, o) in out.iter_mut().enumerate() {
-                    let (sf, t0) = sums8(fb, q, first, outside(f));
-                    let sum = mul_base_splat8(alpha, &f8[q]) ^ cx(t0).mul_base_unreduced(F64x8::from_array(&sf));
-                    *o = sum.reduce_lanes().to_array();
+                #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
+                if let Some(g) = g {
+                    for (q, o) in out.iter_mut().enumerate() {
+                        let (sf, t0) = sums8(fb, q, first, outside(f));
+                        let sum = alpha_v.mul_base_unreduced(F64x8::from_array(&f8[q]))
+                            ^ cx_base
+                                .with_lane0(self.cx[t0])
+                                .mul_base_unreduced(F64x8::from_array(&sf));
+                        *o = (sum.reduce_lanes() + F128x8::from(F64x8::from_array(&g[q]))).to_array();
+                    }
+                } else {
+                    for (q, o) in out.iter_mut().enumerate() {
+                        let (sf, t0) = sums8(fb, q, first, outside(f));
+                        let sum = alpha_v.mul_base_unreduced(F64x8::from_array(&f8[q]))
+                            ^ cx_base
+                                .with_lane0(self.cx[t0])
+                                .mul_base_unreduced(F64x8::from_array(&sf));
+                        *o = sum.reduce_lanes().to_array();
+                    }
+                }
+                #[cfg(not(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2")))]
+                {
+                    // Narrow targets keep one unreduced element in registers rather than spilling eight-lane `Prod8`s.
+                    let alpha = self.ch.alpha;
+                    let (cx0, cx1, cx2) = (self.cx[0], self.cx[1], self.cx[2]);
                     if let Some(g) = g {
-                        o.iter_mut().zip(g[q]).for_each(|(o, g)| *o += F128::from(g));
+                        for (q, o) in out.iter_mut().enumerate() {
+                            let (sf, t0) = sums8(fb, q, first, outside(f));
+                            let cx = [self.cx[t0], cx0, cx1, cx0, cx2, cx0, cx1, cx0];
+                            for j in 0..8 {
+                                let acc = alpha.mul_base_unreduced(f8[q][j]) ^ cx[j].mul_base_unreduced(sf[j]);
+                                o[j] = acc.reduce() + F128::from(g[q][j]);
+                            }
+                        }
+                    } else {
+                        for (q, o) in out.iter_mut().enumerate() {
+                            let (sf, t0) = sums8(fb, q, first, outside(f));
+                            let cx = [self.cx[t0], cx0, cx1, cx0, cx2, cx0, cx1, cx0];
+                            for j in 0..8 {
+                                let acc = alpha.mul_base_unreduced(f8[q][j]) ^ cx[j].mul_base_unreduced(sf[j]);
+                                o[j] = acc.reduce();
+                            }
+                        }
+                    }
+                }
+            }
+            Pairs::FoldedStack(_) => {
+                // Q = s3 + a0*s2 + b0*(X s2) + a1*s1 + b1*(X s1)
+                //     + (a1*a0)*s0 + (a1*b0 + b1*a0)*(X s0) + (b1*b0)*(X^2 s0).
+                let t = self.fused.as_ref().expect("fused tables for FoldedStack");
+                let s0 = self.stack_lane(4 * i).expect("a folded lane has its first");
+                let sub = n.min(256);
+                let mut xs0 = [F64::ZERO; 256];
+                #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
+                {
+                    let a0_v = F128x8::splat(t.ch0.alpha);
+                    let a01_v = F128x8::splat(t.a01);
+                    let c_x0_v = F128x8::splat(t.c_x0);
+                    let cx_b0_base = F128x8::from_array(&exponents8(0).map(|e| t.cx_b0[e]));
+                    let cx_b01_base = F128x8::from_array(&exponents8(0).map(|e| t.cx_b01[e]));
+                    if let (Some(s1), Some(s2), Some(s3)) = (
+                        self.stack_lane(4 * i + 1),
+                        self.stack_lane(4 * i + 2),
+                        self.stack_lane(4 * i + 3),
+                    ) {
+                        for (off, dst) in out.chunks_mut(sub).enumerate() {
+                            let sub_first = first + off * sub;
+                            let s0_b = &s0[sub_first..sub_first + sub];
+                            let s1_b = &s1[sub_first..sub_first + sub];
+                            let s2_b = &s2[sub_first..sub_first + sub];
+                            let s3_8 = s3[sub_first..sub_first + sub].as_chunks::<8>().0;
+                            let s0_8 = s0_b.as_chunks::<8>().0;
+                            let s1_8 = s1_b.as_chunks::<8>().0;
+                            let s2_8 = s2_b.as_chunks::<8>().0;
+                            let xs0_b = &mut xs0[..sub];
+                            mul_x_block(s0_b, sub_first, outside(s0), xs0_b);
+                            let xs0_8 = xs0_b.as_chunks::<8>().0;
+                            for (q, o) in dst.as_chunks_mut::<8>().0.iter_mut().enumerate() {
+                                let (s_xs0, t0) = sums8(xs0_b, q, sub_first, |c| x_at(s0, c));
+                                let (sf1, _) = sums8(s1_b, q, sub_first, outside(s1));
+                                let (sf2, _) = sums8(s2_b, q, sub_first, outside(s2));
+                                let mut sum = a01_v.mul_base_unreduced(F64x8::from_array(&s0_8[q]));
+                                sum ^= c_x0_v.mul_base_unreduced(F64x8::from_array(&xs0_8[q]));
+                                sum ^= cx_b01_base
+                                    .with_lane0(t.cx_b01[t0])
+                                    .mul_base_unreduced(F64x8::from_array(&s_xs0));
+                                sum ^= alpha_v.mul_base_unreduced(F64x8::from_array(&s1_8[q]));
+                                sum ^= cx_base
+                                    .with_lane0(self.cx[t0])
+                                    .mul_base_unreduced(F64x8::from_array(&sf1));
+                                sum ^= a0_v.mul_base_unreduced(F64x8::from_array(&s2_8[q]));
+                                sum ^= cx_b0_base
+                                    .with_lane0(t.cx_b0[t0])
+                                    .mul_base_unreduced(F64x8::from_array(&sf2));
+                                *o = (sum.reduce_lanes() + F128x8::from(F64x8::from_array(&s3_8[q]))).to_array();
+                            }
+                        }
+                    } else {
+                        let s1 = self.stack_lane(4 * i + 1);
+                        let s2 = self.stack_lane(4 * i + 2);
+                        for (off, dst) in out.chunks_mut(sub).enumerate() {
+                            let sub_first = first + off * sub;
+                            let s0_b = &s0[sub_first..sub_first + sub];
+                            let s0_8 = s0_b.as_chunks::<8>().0;
+                            let xs0_b = &mut xs0[..sub];
+                            mul_x_block(s0_b, sub_first, outside(s0), xs0_b);
+                            let xs0_8 = xs0_b.as_chunks::<8>().0;
+                            let s1_b = s1.map(|s| &s[sub_first..sub_first + sub]);
+                            let s2_b = s2.map(|s| &s[sub_first..sub_first + sub]);
+                            for (q, o) in dst.as_chunks_mut::<8>().0.iter_mut().enumerate() {
+                                let (s_xs0, t0) = sums8(xs0_b, q, sub_first, |c| x_at(s0, c));
+                                let mut sum = a01_v.mul_base_unreduced(F64x8::from_array(&s0_8[q]));
+                                sum ^= c_x0_v.mul_base_unreduced(F64x8::from_array(&xs0_8[q]));
+                                sum ^= cx_b01_base
+                                    .with_lane0(t.cx_b01[t0])
+                                    .mul_base_unreduced(F64x8::from_array(&s_xs0));
+                                if let (Some(s1), Some(s1_b)) = (s1, s1_b) {
+                                    let (sf1, _) = sums8(s1_b, q, sub_first, outside(s1));
+                                    let s1_8 = s1_b.as_chunks::<8>().0;
+                                    sum ^= alpha_v.mul_base_unreduced(F64x8::from_array(&s1_8[q]));
+                                    sum ^= cx_base
+                                        .with_lane0(self.cx[t0])
+                                        .mul_base_unreduced(F64x8::from_array(&sf1));
+                                }
+                                if let (Some(s2), Some(s2_b)) = (s2, s2_b) {
+                                    let (sf2, _) = sums8(s2_b, q, sub_first, outside(s2));
+                                    let s2_8 = s2_b.as_chunks::<8>().0;
+                                    sum ^= a0_v.mul_base_unreduced(F64x8::from_array(&s2_8[q]));
+                                    sum ^= cx_b0_base
+                                        .with_lane0(t.cx_b0[t0])
+                                        .mul_base_unreduced(F64x8::from_array(&sf2));
+                                }
+                                *o = sum.reduce_lanes().to_array();
+                            }
+                        }
+                    }
+                }
+                #[cfg(not(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2")))]
+                {
+                    let (a0, a1, a01, c_x0) = (t.ch0.alpha, self.ch.alpha, t.a01, t.c_x0);
+                    if let (Some(s1), Some(s2), Some(s3)) = (
+                        self.stack_lane(4 * i + 1),
+                        self.stack_lane(4 * i + 2),
+                        self.stack_lane(4 * i + 3),
+                    ) {
+                        for (off, dst) in out.chunks_mut(sub).enumerate() {
+                            let sub_first = first + off * sub;
+                            let s0_b = &s0[sub_first..sub_first + sub];
+                            let s1_b = &s1[sub_first..sub_first + sub];
+                            let s2_b = &s2[sub_first..sub_first + sub];
+                            let s3_8 = s3[sub_first..sub_first + sub].as_chunks::<8>().0;
+                            let s0_8 = s0_b.as_chunks::<8>().0;
+                            let s1_8 = s1_b.as_chunks::<8>().0;
+                            let s2_8 = s2_b.as_chunks::<8>().0;
+                            let xs0_b = &mut xs0[..sub];
+                            mul_x_block(s0_b, sub_first, outside(s0), xs0_b);
+                            let xs0_8 = xs0_b.as_chunks::<8>().0;
+                            for (q, o) in dst.as_chunks_mut::<8>().0.iter_mut().enumerate() {
+                                let (s_xs0, t0) = sums8(xs0_b, q, sub_first, |c| x_at(s0, c));
+                                let (sf1, _) = sums8(s1_b, q, sub_first, outside(s1));
+                                let (sf2, _) = sums8(s2_b, q, sub_first, outside(s2));
+                                let exps = exponents8(t0);
+                                for j in 0..8 {
+                                    let e = exps[j] & 63;
+                                    let mut acc = a01.mul_base_unreduced(s0_8[q][j]);
+                                    acc ^= c_x0.mul_base_unreduced(xs0_8[q][j]);
+                                    acc ^= t.cx_b01[e].mul_base_unreduced(s_xs0[j]);
+                                    acc ^= a1.mul_base_unreduced(s1_8[q][j]);
+                                    acc ^= self.cx[e].mul_base_unreduced(sf1[j]);
+                                    acc ^= a0.mul_base_unreduced(s2_8[q][j]);
+                                    acc ^= t.cx_b0[e].mul_base_unreduced(sf2[j]);
+                                    o[j] = acc.reduce() + F128::from(s3_8[q][j]);
+                                }
+                            }
+                        }
+                    } else {
+                        let s1 = self.stack_lane(4 * i + 1);
+                        let s2 = self.stack_lane(4 * i + 2);
+                        for (off, dst) in out.chunks_mut(sub).enumerate() {
+                            let sub_first = first + off * sub;
+                            let s0_b = &s0[sub_first..sub_first + sub];
+                            let s0_8 = s0_b.as_chunks::<8>().0;
+                            let xs0_b = &mut xs0[..sub];
+                            mul_x_block(s0_b, sub_first, outside(s0), xs0_b);
+                            let xs0_8 = xs0_b.as_chunks::<8>().0;
+                            let s1_b = s1.map(|s| &s[sub_first..sub_first + sub]);
+                            let s2_b = s2.map(|s| &s[sub_first..sub_first + sub]);
+                            for (q, o) in dst.as_chunks_mut::<8>().0.iter_mut().enumerate() {
+                                let (s_xs0, t0) = sums8(xs0_b, q, sub_first, |c| x_at(s0, c));
+                                let sf1 = s1.zip(s1_b).map(|(s, b)| sums8(b, q, sub_first, outside(s)).0);
+                                let sf2 = s2.zip(s2_b).map(|(s, b)| sums8(b, q, sub_first, outside(s)).0);
+                                let s1_8 = s1_b.map(|b| b.as_chunks::<8>().0[q]);
+                                let s2_8 = s2_b.map(|b| b.as_chunks::<8>().0[q]);
+                                let exps = exponents8(t0);
+                                for j in 0..8 {
+                                    let e = exps[j] & 63;
+                                    let mut acc = a01.mul_base_unreduced(s0_8[q][j]);
+                                    acc ^= c_x0.mul_base_unreduced(xs0_8[q][j]);
+                                    acc ^= t.cx_b01[e].mul_base_unreduced(s_xs0[j]);
+                                    if let (Some(k), Some(sf)) = (s1_8, sf1) {
+                                        acc ^= a1.mul_base_unreduced(k[j]);
+                                        acc ^= self.cx[e].mul_base_unreduced(sf[j]);
+                                    }
+                                    if let (Some(k), Some(sf)) = (s2_8, sf2) {
+                                        acc ^= a0.mul_base_unreduced(k[j]);
+                                        acc ^= t.cx_b0[e].mul_base_unreduced(sf[j]);
+                                    }
+                                    o[j] = acc.reduce();
+                                }
+                            }
+                        }
                     }
                 }
             }
             Pairs::Stored { f, g, len } => {
+                let out = out.as_chunks_mut::<8>().0;
                 let (f, g) = (&f[i * len..(i + 1) * len], &g[i * len..(i + 1) * len]);
-                let (fb, alpha) = (&f[first..first + n], F128x8::splat(alpha));
+                let fb = &f[first..first + n];
                 let (f8, g8) = (fb.as_chunks::<8>().0, g[first..first + n].as_chunks::<8>().0);
-                for (q, o) in out.iter_mut().enumerate() {
-                    let (sf, t0) = sums8(fb, q, first, outside(f));
-                    let sum =
-                        alpha.mul_unreduced(F128x8::from_array(&f8[q])) ^ cx(t0).mul_unreduced(F128x8::from_array(&sf));
-                    *o = (F128x8::from_array(&g8[q]) + sum.reduce_lanes()).to_array();
+                #[cfg(all(
+                    target_arch = "x86_64",
+                    not(all(target_feature = "vpclmulqdq", target_feature = "avx2"))
+                ))]
+                {
+                    let alpha = self.ch.alpha;
+                    let (cx0, cx1, cx2) = (self.cx[0], self.cx[1], self.cx[2]);
+                    for (q, o) in out.iter_mut().enumerate() {
+                        let (sf, t0) = sums8(fb, q, first, outside(f));
+                        let cx = [self.cx[t0 & 63], cx0, cx1, cx0, cx2, cx0, cx1, cx0];
+                        for j in 0..8 {
+                            let acc = alpha.mul_unreduced(f8[q][j]) ^ cx[j].mul_unreduced(sf[j]);
+                            o[j] = g8[q][j] + acc.reduce();
+                        }
+                    }
+                }
+                #[cfg(not(all(
+                    target_arch = "x86_64",
+                    not(all(target_feature = "vpclmulqdq", target_feature = "avx2"))
+                )))]
+                {
+                    #[cfg(not(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2")))]
+                    let (alpha_v, cx_base) = (
+                        F128x8::splat(self.ch.alpha),
+                        F128x8::from_array(&exponents8(0).map(|t| self.cx[t])),
+                    );
+                    for (q, o) in out.iter_mut().enumerate() {
+                        let (sf, t0) = sums8(fb, q, first, outside(f));
+                        let sum = alpha_v.mul_unreduced(F128x8::from_array(&f8[q]))
+                            ^ cx_base.with_lane0(self.cx[t0]).mul_unreduced(F128x8::from_array(&sf));
+                        *o = (F128x8::from_array(&g8[q]) + sum.reduce_lanes()).to_array();
+                    }
                 }
             }
         }
     }
 }
 
-/// What a round's table leaves for its fold: the projections of `X F` per pair, and the pairs.
+/// What a round's table leaves for its fold: the projections of `X F` per pair (when projecting), and the pairs.
 struct Pending {
-    pxf: Vec<F128>,
+    pxf: Option<Vec<F128>>,
     pairs: Pairs,
 }
 
 pub(crate) struct LaneRounds {
-    /// The committed lanes, read until round 2's table (or `finish` after one round), then freed unless `keep_stack`.
+    /// The committed lanes, read until round 3's table (or `finish` after one or two rounds), then freed unless
+    /// `keep_stack`.
     stack: Vec<F64>,
     keep_stack: bool,
     lane_block: usize,
@@ -201,6 +482,16 @@ impl LaneRounds {
     }
 
     fn view<'a>(&'a self, pairs: &'a Pairs, ch: FoldChallenges) -> Folded<'a> {
+        let fused = match pairs {
+            Pairs::FoldedStack(ch0) => Some(FusedTables {
+                ch0: *ch0,
+                a01: ch.alpha * ch0.alpha,
+                c_x0: ch.alpha * ch0.beta + ch.beta * ch0.alpha,
+                cx_b0: multiples(ch0.beta),
+                cx_b01: multiples(ch.beta * ch0.beta),
+            }),
+            _ => None,
+        };
         Folded {
             pairs,
             stack: &self.stack,
@@ -208,6 +499,7 @@ impl LaneRounds {
             n_stack: self.n_stack,
             ch,
             cx: multiples(ch.beta),
+            fused,
         }
     }
 
@@ -252,8 +544,9 @@ impl LaneRounds {
         rows.chunks_exact(nt).skip(1).step_by(4).flatten().copied().collect()
     }
 
-    /// A later round's pairs, the last fold's lanes, written out, `X F`'s projection per pair onto the terms `needs`
-    /// marks for it, and each lane's onto the terms `fresh` marks for it, as `(index into p, value)`.
+    /// A later round's pairs, the last fold's lanes (written out, or kept virtual when folding the stack once),
+    /// `X F`'s projection per pair onto the terms `needs` marks for it, and each lane's onto the terms `fresh` marks
+    /// for it, as `(index into p, value)`.
     fn write_pairs(&self, folded: &Folded, needs: &[bool], fresh: &[bool]) -> (Pairs, Vec<F128>, Vec<(usize, F128)>) {
         let (nt, lb, terms) = (self.n_terms, self.lane_block, &self.terms);
         let (count, len) = (folded.count(), folded.len());
@@ -261,12 +554,18 @@ impl LaneRounds {
         let (low, block) = (terms.low_vars(), 1usize << terms.low_vars());
         // The stack lanes under a pair's `F`, and the words of `X F` a repeat of theirs leaves free.
         let (group, head) = (1usize << (self.round - 1), self.round);
-        // SAFETY: the pass writes every low coefficient and the loop after it every high one, before any is read.
-        let (mut f, mut g) = unsafe {
-            (
-                primitives::uninit_vec(n_pairs * len),
-                primitives::uninit_vec(n_pairs * len),
-            )
+        // Round 2 keeps the once-folded stack virtual so round 3 fuses both folds directly from `stack`.
+        let store = !matches!(folded.pairs, Pairs::Stack);
+        // SAFETY: when `store`, the pass writes every low coefficient and the loop after every high one before reads.
+        let (mut f, mut g) = if store {
+            unsafe {
+                (
+                    primitives::uninit_vec(n_pairs * len),
+                    primitives::uninit_vec(n_pairs * len),
+                )
+            }
+        } else {
+            (Vec::new(), Vec::new())
         };
         let (fp, gp) = (parallel::SendPtr(f.as_mut_ptr()), parallel::SendPtr(g.as_mut_ptr()));
         let live = |m: usize, slot: usize| match slot {
@@ -283,6 +582,7 @@ impl LaneRounds {
                         .contains(&true)
                         .then(|| [0; 2].map(|_| vec![F64::ZERO; SWEEP << low]))
                 });
+                let need_pb = store || limbs[2].is_some();
                 let mut tags = [false; SWEEP];
                 let stacked = 2 * m * group..((2 * m + 1) * group).min(self.n_stack);
                 let repeats = |b: usize| {
@@ -298,15 +598,19 @@ impl LaneRounds {
                     for (k, b) in sweep.clone().enumerate() {
                         let first = b << low;
                         folded.block(2 * m, first, &mut pa);
-                        if 2 * m + 1 < count {
-                            folded.block(2 * m + 1, first, &mut pb);
-                        } else {
-                            pb.fill(F128::ZERO);
+                        if need_pb {
+                            if 2 * m + 1 < count {
+                                folded.block(2 * m + 1, first, &mut pb);
+                            } else {
+                                pb.fill(F128::ZERO);
+                            }
                         }
-                        // SAFETY: each task owns its blocks of its pair.
-                        unsafe {
-                            stream.copy(fp.slice(m * len + first, block), &pa);
-                            stream.copy(gp.slice(m * len + first, block), &pb);
+                        if store {
+                            // SAFETY: `store` allocated `f` and `g`, and each task owns its blocks of its pair.
+                            unsafe {
+                                stream.copy(fp.slice(m * len + first, block), &pa);
+                                stream.copy(gp.slice(m * len + first, block), &pb);
+                            }
                         }
                         let outside = |c: usize| match last {
                             Some((before, _)) if c + 1 == first => before,
@@ -337,12 +641,17 @@ impl LaneRounds {
                 }
             })
         });
-        for m in 0..n_pairs {
-            for c in lb..len {
-                f[m * len + c] = folded.at(2 * m, c);
-                g[m * len + c] = folded.at(2 * m + 1, c);
+        let pairs = if store {
+            for m in 0..n_pairs {
+                for c in lb..len {
+                    f[m * len + c] = folded.at(2 * m, c);
+                    g[m * len + c] = folded.at(2 * m + 1, c);
+                }
             }
-        }
+            Pairs::Stored { f, g, len }
+        } else {
+            Pairs::FoldedStack(folded.ch)
+        };
         // A projection from its limbs' in slots `slot` and `slot + 1` of pair `m`.
         let join = |m: usize, slot: usize, t: usize| {
             rows[(m * SLOTS + slot) * nt + t] + F128::Y * rows[(m * SLOTS + slot + 1) * nt + t]
@@ -355,13 +664,129 @@ impl LaneRounds {
                 (i, join(l / 2, 2 + 2 * (l % 2), t))
             })
             .collect();
-        (Pairs::Stored { f, g, len }, pxf, own)
+        (pairs, pxf, own)
+    }
+
+    /// A late round's pairs written out and its table computed directly by lifting `A`'s rows per block in L1.
+    fn write_pairs_lifted(&self, folded: &Folded) -> (Pairs, FoldTable) {
+        let (nt, lb, terms) = (self.n_terms, self.lane_block, &self.terms);
+        let (count, len) = (folded.count(), folded.len());
+        let n_pairs = count.div_ceil(2);
+        let (low, block) = (terms.low_vars(), 1usize << terms.low_vars());
+        let n_blocks = 1usize << (terms.lane_vars() - low);
+        let a_rows = (2 * n_pairs).min(self.a.len() / nt);
+        let lift = terms.prepare_lift_rows(&self.a[..a_rows * nt], a_rows);
+        // SAFETY: the pass writes every low coefficient and the loop after every high one before reads.
+        let (mut f, mut g) = unsafe {
+            (
+                primitives::uninit_vec(n_pairs * len),
+                primitives::uninit_vec(n_pairs * len),
+            )
+        };
+        let (fp, gp) = (parallel::SendPtr(f.as_mut_ptr()), parallel::SendPtr(g.as_mut_ptr()));
+        let want = (8 * parallel::num_threads()).div_ceil(n_pairs.max(1));
+        let per = (n_blocks / want.next_power_of_two()).max(1);
+        let n_ranges = n_blocks.div_ceil(per);
+        let parts = tracing::info_span!("LiftTable", pairs = n_pairs).in_scope(|| {
+            parallel::map_collect(n_pairs * n_ranges, |t| {
+                let (m, k) = (t / n_ranges, t % n_ranges);
+                let blocks = k * per..((k + 1) * per).min(n_blocks);
+                let has_b = 2 * m + 1 < count;
+                let has_w1 = 2 * m + 1 < a_rows;
+                let stream = Stream::new();
+                let [mut pa, mut pb, mut xf, mut w0, mut w1] = [0; 5].map(|_| vec![F128::ZERO; block]);
+                let mut scratch = lift.scratch();
+                let mut last_pa: Option<F128> = None;
+                let [mut u0, mut w, mut c0, mut c1] = [Acc8::ZERO; 4];
+                for b in blocks {
+                    let first = b << low;
+                    folded.block(2 * m, first, &mut pa);
+                    if has_b {
+                        folded.block(2 * m + 1, first, &mut pb);
+                    }
+                    // SAFETY: each task owns its blocks of its pair.
+                    unsafe {
+                        stream.copy(fp.slice(m * len + first, block), &pa);
+                        stream.copy(gp.slice(m * len + first, block), &pb);
+                    }
+                    let outside = |c: usize| match last_pa {
+                        Some(before) if c + 1 == first => before,
+                        _ => folded.at(2 * m, c),
+                    };
+                    mul_x_block(&pa, first, outside, &mut xf);
+                    last_pa = Some(pa[block - 1]);
+                    lift.lift_row(2 * m, b, &mut w0, &mut scratch);
+                    let pa8 = pa.as_chunks::<8>().0;
+                    let pb8 = pb.as_chunks::<8>().0;
+                    let xf8 = xf.as_chunks::<8>().0;
+                    let w0_8 = w0.as_chunks::<8>().0;
+                    if has_w1 {
+                        lift.lift_row(2 * m + 1, b, &mut w1, &mut scratch);
+                        let w1_8 = w1.as_chunks::<8>().0;
+                        if has_b {
+                            for j in 0..pa8.len() {
+                                u0 ^= msg_lone8_ext(&w0_8[j], &pb8[j]);
+                                let w01: [F128; 8] = core::array::from_fn(|i| w0_8[j][i] + w1_8[j][i]);
+                                w ^= msg_lone8_ext(&w01, &pa8[j]);
+                                c0 ^= msg_lone8_ext(&w0_8[j], &xf8[j]);
+                                c1 ^= msg_lone8_ext(&w1_8[j], &xf8[j]);
+                            }
+                        } else {
+                            for j in 0..pa8.len() {
+                                let w01: [F128; 8] = core::array::from_fn(|i| w0_8[j][i] + w1_8[j][i]);
+                                w ^= msg_lone8_ext(&w01, &pa8[j]);
+                                c0 ^= msg_lone8_ext(&w0_8[j], &xf8[j]);
+                                c1 ^= msg_lone8_ext(&w1_8[j], &xf8[j]);
+                            }
+                        }
+                    } else if has_b {
+                        for j in 0..pa8.len() {
+                            u0 ^= msg_lone8_ext(&w0_8[j], &pb8[j]);
+                            w ^= msg_lone8_ext(&w0_8[j], &pa8[j]);
+                            c0 ^= msg_lone8_ext(&w0_8[j], &xf8[j]);
+                        }
+                    } else {
+                        for j in 0..pa8.len() {
+                            w ^= msg_lone8_ext(&w0_8[j], &pa8[j]);
+                            c0 ^= msg_lone8_ext(&w0_8[j], &xf8[j]);
+                        }
+                    }
+                }
+                [u0.reduce(), w.reduce(), c0.reduce(), c1.reduce()]
+            })
+        });
+        for m in 0..n_pairs {
+            for c in lb..len {
+                f[m * len + c] = folded.at(2 * m, c);
+                g[m * len + c] = folded.at(2 * m + 1, c);
+            }
+        }
+        let mut table = [F128::ZERO; 4];
+        for part in parts {
+            for (s, v) in table.iter_mut().zip(part) {
+                *s += v;
+            }
+        }
+        (Pairs::Stored { f, g, len }, table)
     }
 
     /// The round's table.
     pub(crate) fn table(&mut self) -> FoldTable {
         let (nt, n_pairs) = (self.n_terms, self.n_lanes.div_ceil(2));
         self.round += 1;
+        if self.n_lanes <= LIFT_MAX_LANES
+            && let Some((pairs, ch)) = self.folded.take()
+        {
+            let (written, table) = self.write_pairs_lifted(&self.view(&pairs, ch));
+            if matches!(pairs, Pairs::Stack | Pairs::FoldedStack(_)) && !self.keep_stack {
+                self.stack = Vec::new();
+            }
+            self.pending = Some(Pending {
+                pxf: None,
+                pairs: written,
+            });
+            return table;
+        }
         // A pair needs the terms some row of `A` weighs, a ring's only where its own rows weigh them.
         let weighs = |l: usize, t: usize| self.a.get(l * nt + t).is_some_and(|a| !a.is_zero());
         let ring = |t: usize| t >= self.terms.n_claims();
@@ -390,8 +815,8 @@ impl LaneRounds {
                 for (i, value) in own {
                     self.p[i] = value;
                 }
-                // Round 2 read the stack's pairs last.
-                if matches!(pairs, Pairs::Stack) && !self.keep_stack {
+                // Round 3 read the stack's pairs last.
+                if matches!(pairs, Pairs::FoldedStack(_)) && !self.keep_stack {
                     self.stack = Vec::new();
                 }
                 (written, pxf)
@@ -413,7 +838,7 @@ impl LaneRounds {
                 *s += v;
             }
         }
-        self.pending = Some(Pending { pxf, pairs });
+        self.pending = Some(Pending { pxf: Some(pxf), pairs });
         table
     }
 
@@ -430,14 +855,18 @@ impl LaneRounds {
                 interp(self.a[2 * m * nt + t], a1, alpha)
             })
             .collect();
-        let zero = vec![F128::ZERO; nt];
-        let mut p = Vec::with_capacity(n_pairs * nt);
-        for (m, xf) in pxf.chunks_exact(nt).enumerate() {
-            let f = self.row(&self.p, 2 * m).expect("a pair's first lane is present");
-            let g = self.row(&self.p, 2 * m + 1).unwrap_or(&zero);
-            p.extend(f.iter().zip(g).zip(xf).map(|((&f, &g), &xf)| g + alpha * f + beta * xf));
+        if let Some(pxf) = pxf {
+            let zero = vec![F128::ZERO; nt];
+            let mut p = Vec::with_capacity(n_pairs * nt);
+            for (m, xf) in pxf.chunks_exact(nt).enumerate() {
+                let f = self.row(&self.p, 2 * m).expect("a pair's first lane is present");
+                let g = self.row(&self.p, 2 * m + 1).unwrap_or(&zero);
+                p.extend(f.iter().zip(g).zip(xf).map(|((&f, &g), &xf)| g + alpha * f + beta * xf));
+            }
+            self.p = p;
+        } else {
+            self.p = Vec::new();
         }
-        self.p = p;
         self.folded = Some((pairs, *ch));
         self.n_lanes = n_pairs;
     }
