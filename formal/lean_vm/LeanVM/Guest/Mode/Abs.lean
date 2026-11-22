@@ -251,12 +251,6 @@ def Abs.mono (A : Abs) (o : ℕ) : Option Mono :=
   | some _ => none
   | none => some (.root o)
 
-/-- The word of the heap cell a product names, if known: a frame cell's, or a recorded one. -/
-def Abs.hvGet (A : Abs) (k : Mono) : Option Val :=
-  match k.ownCell with
-  | some d => if A.hasW d then some ((A.v.get d).getD (.m (.root d))) else none
-  | none => ((((buckets (monoKey ·.1) A.hv).get (monoKey k)).getD []).find? fun p ↦ p.1.beq k).map (·.2)
-
 /-- Exponents in order. -/
 def Abs.addLt (A : Abs) (a b : Idx) : Abs := { A with lt := (a, b) :: A.lt }
 
@@ -644,20 +638,6 @@ noncomputable def entryAbs (E : Env) (G : Sig) : Abs :=
   match G.self with
   | some o => ((A.addW o).addV o (.m (.own 0))).addNz o
   | none => A
-
-/-! ## Table calls -/
-
-/-! ## Jumps -/
-
-/-- Where a `JUMP` goes. -/
-inductive Go where
-  /-- Offsets of the function (a forward jump, a table jump's arms, a call's return point). -/
-  | to (ts : List ℕ)
-  /-- Nowhere in the function (a return, a tail call, halting). -/
-  | out
-  deriving Repr
-
-/-! ## The pass -/
 
 end
 

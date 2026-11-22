@@ -165,12 +165,6 @@ section Linked
 
 variable {M : ℕ → E} {ent : String → ℕ} {al : String → ℕ → Option (List Stmt)}
 
-theorem linked_cons_cons {pc fp : ℕ} {e e' : Ent} {st : List Ent} :
-    Linked M ent al pc fp (e :: e' :: st) ↔ e.I.fp = fp ∧ AtPc ent al e pc ∧ ∃ r,
-      M (fp + 0) = ofK (addressOfIndex r) ∧ M (fp + 1) = ofK (addressOfIndex e'.I.fp) ∧
-        Linked M ent al r e'.I.fp (e' :: st) := by
-  rw [Linked]
-
 /-- **The top frame is at the registers**: the instance at frame `fp`, at pc `pc`. -/
 theorem Linked.top {pc fp : ℕ} {e : Ent} {st : List Ent} (h : Linked M ent al pc fp (e :: st)) :
     e.I.fp = fp ∧ AtPc ent al e pc := by

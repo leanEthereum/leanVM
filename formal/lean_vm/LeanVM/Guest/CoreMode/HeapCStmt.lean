@@ -84,13 +84,6 @@ theorem ew_append_right {es1 es2 : List Ev} {x : K} (h : EW sigOf rd σ es2 x) :
   let ⟨e, he, hx⟩ := h
   ⟨e, List.mem_append_right _ he, hx⟩
 
-theorem ew_append {es1 es2 : List Ev} {x : K} (h : EW sigOf rd σ (es1 ++ es2) x) :
-    EW sigOf rd σ es1 x ∨ EW sigOf rd σ es2 x := by
-  obtain ⟨e, he, hx⟩ := h
-  rcases List.mem_append.mp he with he | he
-  · exact Or.inl ⟨e, he, hx⟩
-  · exact Or.inr ⟨e, he, hx⟩
-
 theorem covC_append {W : K → Prop} {es1 es2 : List Ev} (h1 : CovC sigOf H rd σ W es1)
     (h2 : (∀ e ∈ es1, EvM sigOf rd σ e) → CovC sigOf H rd σ (fun x ↦ W x ∨ EW sigOf rd σ es1 x) es2) :
     CovC sigOf H rd σ W (es1 ++ es2) := by

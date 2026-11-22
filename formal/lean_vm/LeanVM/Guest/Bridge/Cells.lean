@@ -143,10 +143,6 @@ theorem runOk_vals {loc : ℕ → ℕ} {base : ℕ} {vs : List V} (hc : consecut
   rw [consecutive_get hc k hk, ← Nat.add_assoc] at h1 h2
   exact ⟨h1, by rw [List.getElem_map, h2]⟩
 
-theorem destOk_len {loc : ℕ → ℕ} {d : Dest} {bd : Prover.Exec.BitsDest} {pos n : ℕ}
-    (h : destOk loc d bd pos n = true) (rd : Reader) (σ : Val) : (d.words rd σ).length = n := by
-  cases d <;> cases bd <;> simp_all [destOk, Dest.words]
-
 /-- **A compiled destination's run holds the words the reference holds at its cells.** -/
 theorem destOk_run {loc : ℕ → ℕ} {d : Dest} {bd : Prover.Exec.BitsDest} {pos n : ℕ}
     (h : destOk loc d bd pos n = true) {M : ℕ → E} {st : St} {rd : Reader} {σ : Val}

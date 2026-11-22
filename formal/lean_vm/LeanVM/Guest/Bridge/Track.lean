@@ -358,9 +358,6 @@ theorem enter_ok {J : Inst} {fn : Fn} (hJ : J ∈ Is) (hf : P.find? J.t.name = s
       rw [Tree.pops, popsKids_eq_map]
   · rw [hJt] at hv; exact hv.elim
 
-private theorem drop_of {es pre es' : List Ev} (h : es = pre ++ es') : es = pre ++ es.drop pre.length := by
-  rw [h, List.drop_left]
-
 /-- The top frame past the events `evs` of its first statement. -/
 private theorem top_adv {T : Tree} {done : List Pop} {e : Ent} {st : List Ent}
     (h : TrackOk P rd Is T done (e :: st)) {ps : List Stmt} {evs : List Ev}
@@ -369,7 +366,7 @@ private theorem top_adv {T : Tree} {done : List Pop} {e : Ent} {st : List Ent}
   have he := h.ents e List.mem_cons_self
   obtain ⟨vs, -, h2⟩ := he.path
   obtain ⟨rest, h3, -⟩ := hw vs h2
-  refine ⟨drop_of h3, he.adv fun vs' h' ↦ ?_⟩
+  refine ⟨by rw [h3, List.drop_left], he.adv fun vs' h' ↦ ?_⟩
   obtain ⟨rest', h3', h4'⟩ := hw vs' h'
   rw [h3', List.drop_left]
   exact h4'

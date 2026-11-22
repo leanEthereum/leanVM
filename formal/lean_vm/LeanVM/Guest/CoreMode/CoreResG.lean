@@ -95,9 +95,6 @@ noncomputable def glOk (Cf : CFun) : Bool :=
     ((Cf.gl.isEmpty || Res.anyLink.fams.any fun F ↦ Cf.fn.name == F.1 && decide (Cf.gl = [(2, F.2.1, 0), (5, F.2.2, 1)]))
       && Nat.beq Cf.H.sig.ghosts 0 && Cf.H.sig.gw.isEmpty) || (Cf.gl.isEmpty && gwSlots Cf) || alGl Cf
 
-theorem resOk_nil {Cf : CFun} (h : Cf.H.res = []) : resOk Cf = true := by
-  simp [resOk, h]
-
 end
 
 end LeanVM.Guest.CoreMode
