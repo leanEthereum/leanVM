@@ -34,10 +34,16 @@ instruction reading an unwritten cell fails here, where the Rust reads zero and 
 such programs, and the differential tests compare the two on them (`lake exe leanvm-execute`,
 `lake exe guest-run --rust`). Elsewhere they differ:
 * an instruction that does not decode (`decode`: an operand no `g^o` with `o < 2^28`) fails here
-  before the run, reached or not, where the Rust faults only on reaching it;
+  before the run, reached or not. The Rust faults on reaching it, but for a `DEREF` whose offset
+  `o2` (a `u32`) is `2^28` or more: when the pointer has no logarithm in range, the Rust reads the
+  cell of the product `p·g^o2`'s logarithm (`Op::Deref`), which a pointer such as `g^(-c)` brings
+  in range, and runs on; on such a program the two differ even where the instruction is reached;
 * a stream given twice is a fault in the Rust, and here the last one counts;
-* a hint asking more bits or digits than a word holds, or more than two limbs, makes the Rust
-  panic; between `65` and `128` the two can differ: `bounded_dlog`'s giant steps
+* a hint asking more than two limbs (`FieldLimbs`), or more bits than a word holds in
+  `BitDecompose` or `WindowsExp`, makes the Rust panic (an `assert!`); `Log2Ceil`,
+  `BitDecomposeExp` and `DigitDecomposeExp` have no such check, and a release build has no
+  overflow checks, so their shifts wrap there for counts past `127`; between `65` and `128` the two
+  can differ: `bounded_dlog`'s giant steps
   (`1u64 << (nbits - 17)`) wrap in the Rust for `nbits` from `81`, `2^(nbits - 81)` of them where
   this takes `2^(nbits - 17)`, and `DigitDecomposeExp`'s mask wraps to `0` at `digit_bits = 128`;
 * hints at a `pc` outside the program are dropped here, where the Rust panics, and two lists at one
