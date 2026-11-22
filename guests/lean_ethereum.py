@@ -768,7 +768,6 @@ def g_power_of_word(value):
     return g_value
 
 
-@inline
 def assert_small_g_power(x, g_squares):
     # x = g^e with e < 2^(4 SEL_TAB_NIBBLES): hinted g-power digits, each range-checked
     # below 16, whose weighted product is x. A g-power past that, a "negative"
@@ -864,7 +863,6 @@ def query_window_split(word, wins, tabs, parts, at: Const, start: Const, width: 
     return
 
 
-@inline
 def decode_query_windows(squeezed_word, positions_out, win_ptrs_out, tabs, depth: Const, cap_depth: Const):
     # The squeezed word's bits are advice HERE, in windows: a window of w bits is hinted as g^n, n the integer
     # they spell, range checked below 2^w and read back as n's bit pattern. Each depth-bit group is a query
@@ -1000,7 +998,6 @@ def eqtree_frame(point_ptr, out, n_coords: Const, count: Const):
     return
 
 
-@inline
 def eq_prefix_chain(chain, seed, a, b1, count_g):
     # Prefix products of eq(a_k, b_k) = a_k + b1_k, b1 = 1 + b, from `seed`, so a
     # reader picks the partial product up at its own certified length. Entry t is
@@ -1237,7 +1234,6 @@ def opening_round(fs0, fs1, fs2, fs3, fs4, cursor, claim, tabs, alphas, coefs):
     return sp[8], sp[9], sp[10], sp[11], sp[12], cursor, out
 
 
-@inline
 def opening_message(fs0, fs1, fs2, fs3, fs4, cursor, out, n: Const, nonce: Const):
     # n stream words into out, then, with `nonce`, a grinding nonce, then the
     # permutation the next challenge comes from. Returns that output's first cell (the
@@ -1265,7 +1261,6 @@ def opening_message(fs0, fs1, fs2, fs3, fs4, cursor, out, n: Const, nonce: Const
     return sp[0], sp[1], sp[8], sp[9], sp[10], sp[11], sp[12], cursor
 
 
-@inline
 def squeeze_point_from(fs0, fs1, fs2, fs3, fs4, first, point, n: Const):
     # n challenges whose first, `first`, a permutation already drew, the sponge its
     # capacity: the other n - 1 are fresh squeezes.
@@ -1282,7 +1277,6 @@ def squeeze_point_from(fs0, fs1, fs2, fs3, fs4, first, point, n: Const):
     return out[0], out[1], out[2], out[3], out[4]
 
 
-@inline
 def opening_tail_round(fs0, fs1, fs2, fs3, fs4, cursor, claim, tabs):
     # One round of the closing sumcheck: h(0) + h(1) == claim fixes h's linear
     # coefficient, so c0 and c2 are sent and h(r) = c0 + r (claim + (1 + r) c2). Then
@@ -3172,7 +3166,6 @@ def keccak_layer(fs0, fs1, fs2, fs3, fs4, p0, p1, cursor, y_g, step_g, rem_g, cl
     return sp[8], sp[9], sp[10], sp[11], sp[12], cursor
 
 
-@inline
 def keccak_plain_rounds(fs0, fs1, fs2, fs3, fs4, p0, p1, cursor, value, point, tabs, n: Const, k0: Const):
     # n rounds of a degree-2 sumcheck with no equality factor, each grinding for its
     # degree. With k0 = 1 one scalar already waits in the sponge, rate cells p0 and p1,
