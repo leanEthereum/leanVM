@@ -299,15 +299,17 @@ def bigTrie(name, typ, entries, val, defs):
 
 def wrap(text, width=100):
     """Long lines broken at spaces (no generated string literal holds one), the rest indented: Lean's
-    positions are slow to compute on very long lines."""
+    positions are slow to compute on very long lines. Linear in the line's length."""
     out = []
     for line in text.split('\n'):
-        while len(line) > width:
-            k = line.rfind(' ', 0, width)
-            if k <= 4: k = line.find(' ', width)
+        p, pre = 0, ''
+        while len(pre) + len(line) - p > width:
+            d = p - len(pre)  # the piece's column 0 in the line
+            k = line.rfind(' ', p, d + width)
+            if k < 0 or k - d <= 4: k = line.find(' ', d + width)
             if k < 0: break
-            out.append(line[:k]); line = '    ' + line[k + 1:]
-        out.append(line)
+            out.append(pre + line[p:k]); p, pre = k + 1, '    '
+        out.append(pre + line[p:])
     return '\n'.join(out)
 
 

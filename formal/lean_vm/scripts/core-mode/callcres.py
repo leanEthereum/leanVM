@@ -9,6 +9,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import infer as I  # noqa: E402
 import fnrules as R  # noqa: E402
+import heapc  # noqa: E402
 from pmap import pmap  # noqa: E402
 sys.modules.setdefault('infer', I)
 
@@ -30,13 +31,7 @@ def top_atoms(body):
 
 
 def has_ret(s):
-    if s[0] == 'ret':
-        return True
-    if s[0] == 'ite':
-        return any(has_ret(t) for t in s[2] + s[3])
-    if s[0] == 'match':
-        return any(has_ret(t) for a in s[2] for t in a)
-    return False
+    return not heapc.noret(s)
 
 
 def rc_bound(atoms, v):

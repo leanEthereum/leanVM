@@ -49,6 +49,8 @@ as they are. `--report` appends one row per literal: file, line, class, literal,
 from `lean_vm`; then `scripts/val-names/gen.py` writes the names' data.
 """
 import os, re, subprocess, sys
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+import coredata  # noqa: E402
 
 SPATH = {}
 
@@ -77,11 +79,7 @@ def load_names(dump):
 
 def compiled_names():
     """Compiled name -> stable name, from `Data/NameStrings.lean`."""
-    t = {}
-    p = os.path.join("LeanVM", "Guest", "Data", "NameStrings.lean")
-    for m in re.finditer(r'abbrev «([^»]+)» : String := "([^"]+)"', open(p, encoding="utf-8").read()):
-        t[m.group(2)] = m.group(1)
-    return t
+    return {c: s for s, c in coredata.name_strings(os.path.join("LeanVM", "Guest", "Data"))[0]}
 
 
 def mask_comments(src):

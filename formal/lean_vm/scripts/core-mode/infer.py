@@ -34,6 +34,7 @@ import sys, os, collections, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.setrecursionlimit(100000)
 import coreir
+from heapc import stmts  # noqa: E402
 if __name__ == '__main__':
     # `rules.py` and `objs.py` import this module by name: one instance, one `SIGS`
     sys.modules.setdefault('infer', sys.modules[__name__])
@@ -186,15 +187,6 @@ def hint_heap_dest(h):
 
 
 # ---- the call graph
-
-def stmts(ss):
-    for s in ss:
-        yield s
-        if s[0] == 'ite':
-            yield from stmts(s[2]); yield from stmts(s[3])
-        elif s[0] == 'match':
-            for a in s[2]:
-                yield from stmts(a)
 
 
 def callees(key):
