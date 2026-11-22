@@ -326,7 +326,7 @@ fn resolve(op: &LOp, entry: &HashMap<String, u32>, sentinel: u32, pc0: u32, fram
             o3: *dst,
             mode: DerefMode::Cell,
         },
-        LOp::Jump { oc, od, of, .. } => Op::Jump {
+        LOp::Jump { oc, od, of } => Op::Jump {
             oc: *oc,
             od: *od,
             of: *of,

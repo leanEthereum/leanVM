@@ -77,8 +77,6 @@ pub(crate) enum LOp {
         oc: Off,
         od: Off,
         of: Off,
-        /// Taken on every path, its condition a cell the lowering set to 1 there: it never falls through.
-        always: bool,
     },
     /// `dst = m[x·g^(base+first)]`: slot `x = g^j` of the jump table at `first`, a
     /// `DEREF` whose `base`, where the tables start, is fixed at assembly ([`JumpTables`]).

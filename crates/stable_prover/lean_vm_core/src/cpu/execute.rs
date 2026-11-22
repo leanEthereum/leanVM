@@ -119,8 +119,6 @@ pub enum Fault {
     NotInK { what: &'static str, value: F128 },
     /// A word that has to be an address or a count is not a g-power in its range.
     NotAGPower { what: &'static str, value: F64 },
-    /// A fused dispatch's selector `g^arm` names an arm past its `arms`.
-    ArmOutOfRange { arm: u32, arms: usize },
     /// A `MUL` asked to solve `a·x = c` for `x` with `a = 0`.
     BackSolveThroughZero,
     /// The advice does not fit the program: a witness stream is missing, given
@@ -187,7 +185,6 @@ impl std::fmt::Display for Fault {
             ),
             Self::NotInK { what, value } => write!(f, "{what} is not a K-valued word ({})", word(*value)),
             Self::NotAGPower { what, value } => write!(f, "{what} is not a g-power in range (0x{:016x})", value.0),
-            Self::ArmOutOfRange { arm, arms } => write!(f, "dispatch selector g^{arm} is past its {arms} arms"),
             Self::BackSolveThroughZero => write!(f, "cannot back-solve MUL through a zero operand"),
             Self::Witness(problem) => write!(f, "{problem}"),
             Self::OutOfMemory => write!(
@@ -720,12 +717,10 @@ fn apply_hint<'a>(h: &'a RHint, fp: u32, m: &mut Mem, g: &mut GPow, advice: &mut
         // The frame of the arm `m[fp + x] = g^j` selects.
         RHint::AllocSwitch { ptr, x, ref sizes } => {
             let sel = in_k("dispatch selector", m.get(fp + x))?;
-            let arm = g.log(sel).ok_or(not_a_g_power("dispatch selector", sel))?;
-            let size = sizes
-                .get(arm as usize)
-                .copied()
-                .ok_or(Fault::ArmOutOfRange { arm, arms: sizes.len() })?;
-            alloc(m, g, &mut advice.next_free, fp + ptr, size)?;
+            let arm = g
+                .log_below(sel, sizes.len())
+                .ok_or(not_a_g_power("dispatch selector", sel))?;
+            alloc(m, g, &mut advice.next_free, fp + ptr, sizes[arm as usize])?;
         }
         RHint::AllocFrames {
             ptr,

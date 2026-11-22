@@ -441,7 +441,6 @@ impl FnLower<'_> {
             oc: one,
             od: dest,
             of: one,
-            always: true,
         });
     }
 
@@ -670,12 +669,7 @@ impl FnLower<'_> {
             first: first as u32,
             dst: entry,
         });
-        self.emit(LOp::Jump {
-            oc: one,
-            od: entry,
-            of,
-            always: true,
-        });
+        self.emit(LOp::Jump { oc: one, od: entry, of });
     }
 
     /// The dispatch every `match` lowers through: read slot `x` of the match's jump
@@ -736,7 +730,6 @@ impl FnLower<'_> {
                     oc: one,
                     od: join,
                     of: sfp,
-                    always: true,
                 });
             }
             arms_end = arms_end.max(self.next);
@@ -835,7 +828,6 @@ impl FnLower<'_> {
             oc: x,
             od: bdest,
             of: sfp,
-            always: false,
         });
         self.branch(a_block);
         if b_block.is_empty() {
@@ -848,7 +840,6 @@ impl FnLower<'_> {
                 oc: one,
                 od: edest,
                 of: sfp,
-                always: true,
             });
             self.patch_local(bset, self.code.len());
             self.branch(b_block);

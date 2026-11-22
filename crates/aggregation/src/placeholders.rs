@@ -382,18 +382,6 @@ fn bus_placeholders(ph: &mut Placeholders, sides: &[Vec<Block>; 3], kbc: usize, 
             .enumerate()
             .flat_map(|(s, blocks)| std::iter::repeat_n(s, blocks.len())),
     );
-    // A pull block reads its `Index` coordinates off its push twin's, at the same places.
-    let index = coord_kind(&Coord::Index);
-    assert!(
-        (sblk[1]..sblk[2]).all(|b| {
-            let (pull, push) = (block_coords[b].clone(), block_coords[b - sblk[1]].clone());
-            pull.len() == push.len()
-                && pull
-                    .zip(push)
-                    .all(|(p, q)| (coordinates[p].0 == index) == (coordinates[q].0 == index))
-        }),
-        "a pull block's Index coordinates must sit where its push twin's do"
-    );
     ph.list("BLOCK_COORD_OFF", block_coords.iter().map(|r| r.start));
     ph.list("BLOCK_COORD_COUNT", block_coords.iter().map(|r| r.len()));
     ph.list("COORD_TYPE", coordinates.iter().map(|c| c.0));
@@ -411,7 +399,9 @@ fn bus_placeholders(ph: &mut Placeholders, sides: &[Vec<Block>; 3], kbc: usize, 
     ph.list("COORD_CLAIM_SLOT", coord_claims.iter().map(|c| c.1));
     // A pull table-block coordinate's difference from its push twin's, as merged terms
     // appended after every coordinate's own: the guest counts a pull block's form as
-    // push's plus these, the two blocks sharing eq_hi.
+    // push's plus these, the two blocks sharing eq_hi. A pull block also reads its `Index` coordinates off its push
+    // twin's, at the same places.
+    let index = coord_kind(&Coord::Index);
     let (mut diff_off, mut diff_count) = (vec![0usize; coordinates.len()], vec![0usize; coordinates.len()]);
     for b in sblk[1]..sblk[2] {
         let (pull, push) = (block_coords[b].clone(), block_coords[b - sblk[1]].clone());
@@ -420,6 +410,11 @@ fn bus_placeholders(ph: &mut Placeholders, sides: &[Vec<Block>; 3], kbc: usize, 
             "pull block {b} must mirror its push twin"
         );
         for (p, q) in pull.zip(push) {
+            assert_eq!(
+                coordinates[p].0 == index,
+                coordinates[q].0 == index,
+                "pull block {b}'s Index coordinates must sit where its push twin's do"
+            );
             let merged = coord_difference(&terms[coordinates[p].3.clone()], &terms[coordinates[q].3.clone()]);
             diff_off[p] = terms.len();
             diff_count[p] = merged.len();

@@ -33,14 +33,14 @@ use zkdsl_compiler::parse;
 #[rustfmt::skip]
 const GOLDEN: &[(&str, &str)] = &[
     ("conditionals", "d4f4126abc9ea51be42e477278b4ba53d17b161104cabff7deec50de43994292"),
-    ("const_params", "c88e2d1d861fa655b13567944f2829890ae658c2bbc0cabef82eacd4014ecb0d"),
+    ("const_params", "9ed29b06cd46c24112514b7b5333d16aab7abb62e2f925f50c01a901b4a613a9"),
     ("fibonacci", "4e4706f35420171cac8a0465fc0d3f452355f9cc1535b86108ba1450fff53e71"),
     ("hash_heap_chain", "95b378f997c069969c03cdc0976578d55dd03e8794779db9ec6ecf04b282c37e"),
     ("hash_slices", "237e03d5e2a594fa019a49f704fa32fa5233afb1ac9ceeabd9df5de9e4616c11"),
     ("heapbuf_dyn", "8e84360adbc674b70c24786ff14f5639291aed55279e27a1fa7a32982baca423"),
     ("hint", "6b27c03837b8c85f6422ebc1632fafb9bae171499dc1e199ca3037f069f5af3e"),
     ("identities", "745e533161ccd8b952945b289ab47cb42416e61a2c4a3654a5c459516b3bc5cf"),
-    ("inline", "63a424527a72ce3af473fcc7c50b36d4241dfef1d28bb1f01286d586f782ef78"),
+    ("inline", "79ff322bd9b4366b01e3e14432e5a2382106a405fdca39de1bd48447f7a979de"),
     ("match", "cea7b8ac3bc4118004c6f554ac82c84c1df05e851ced181969736998cfa4b2b0"),
     ("match_arms", "f2a91b915f7e6fafe11706a05eadf2ef8beb13be7ff394719a25461641e8c192"),
     ("nested", "f4ee869b2cc79d260ed70855c1bd6ea9f1de3c7a0d274c49f68134d3630a83d1"),

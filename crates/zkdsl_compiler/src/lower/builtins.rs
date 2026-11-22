@@ -522,12 +522,7 @@ impl FnLower<'_> {
                 let a = self.expr(&args[0]);
                 let b = self.expr(&args[1]);
                 let zero = self.zero();
-                self.emit(LOp::Jump {
-                    oc: zero,
-                    od: a,
-                    of: b,
-                    always: false,
-                });
+                self.emit(LOp::Jump { oc: zero, od: a, of: b });
             }
             "assert_gpow" => {
                 // One `DEREF` through `x`: the memory bus then proves `x = g^e` with

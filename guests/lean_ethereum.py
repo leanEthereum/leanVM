@@ -1114,30 +1114,37 @@ def sumcheck_round4(rd, msg_cursor, claim, tabs):
     return msg_cursor, c0 + y * (claim + y1 * (c2 + y1 * c3)), y
 
 
+@inline
+def gkr_round_run(rd, rd_next, pt, npt, tabs, n: Const):
+    # n GKR rounds, from the round record at `rd` (ROUND_SLOTS consecutive fields) to the
+    # one at `rd_next`. The prover sends every coefficient but c0, which the round's
+    # pulled-out eq factor leaves fixed: c0 + r (c1 + ... + c4) == claim, r being the
+    # previous point's coordinate pt[q], then the round's grind; the challenge goes to
+    # npt[2 + q].
+    sp = fs_load(rd, ROUND_FS, 1)
+    cur = rd[GEN ** ROUND_CURSOR]
+    claim = rd[GEN ** ROUND_CLAIM]
+    for q in unroll(0, n):
+        rate = StackBuf(8)
+        c1, cur = fs_next(rate, 0, cur)
+        c2, cur = fs_next(rate, 1, cur)
+        c3, cur = fs_next(rate, 2, cur)
+        c4, cur = fs_next(rate, 3, cur)
+        sp, rk, cur = fs_grind_squeeze(sp, rate, 4, cur, tabs, ROUND5_GRIND_BITS)
+        c0 = claim + pt[GEN ** q] * (c1 + c2 + c3 + c4)
+        npt[GEN ** (2 + q)] = rk
+        claim = c0 + rk * (c1 + rk * (c2 + rk * (c3 + rk * c4)))
+    fs_store(rd_next, ROUND_FS, 1, sp)
+    rd_next[GEN ** ROUND_CURSOR] = cur
+    rd_next[GEN ** ROUND_CLAIM] = claim
+    return
+
+
 def gkr_rounds(rd, pt, npt, tabs, n: Const):
-    # n GKR rounds, from the round record at `rd` (ROUND_SLOTS consecutive fields) to
-    # the one (n + 1) // 2 further: a record per pair of rounds, or for the odd one.
-    # The prover sends every coefficient but c0, which the round's pulled-out eq factor
-    # leaves fixed: c0 + r (c1 + ... + c4) == claim, r being the previous point's
-    # coordinate pt[q], then the round's grind; the challenge goes to npt[2 + q].
+    # n GKR rounds, the next record (n + 1) // 2 further: one per pair of rounds, or for
+    # the odd one.
     if const(n != 0):
-        sp = fs_load(rd, ROUND_FS, 1)
-        cur = rd[GEN ** ROUND_CURSOR]
-        claim = rd[GEN ** ROUND_CLAIM]
-        for q in unroll(0, n):
-            rate = StackBuf(8)
-            c1, cur = fs_next(rate, 0, cur)
-            c2, cur = fs_next(rate, 1, cur)
-            c3, cur = fs_next(rate, 2, cur)
-            c4, cur = fs_next(rate, 3, cur)
-            sp, rk, cur = fs_grind_squeeze(sp, rate, 4, cur, tabs, ROUND5_GRIND_BITS)
-            c0 = claim + pt[GEN ** q] * (c1 + c2 + c3 + c4)
-            npt[GEN ** (2 + q)] = rk
-            claim = c0 + rk * (c1 + rk * (c2 + rk * (c3 + rk * c4)))
-        rd_next = rd * GEN ** (ROUND_SLOTS * ((n + 1) // 2))
-        fs_store(rd_next, ROUND_FS, 1, sp)
-        rd_next[GEN ** ROUND_CURSOR] = cur
-        rd_next[GEN ** ROUND_CLAIM] = claim
+        gkr_round_run(rd, rd * GEN ** (ROUND_SLOTS * ((n + 1) // 2)), pt, npt, tabs, n)
     return 0
 
 
@@ -1313,7 +1320,7 @@ def walk_window(n0, n1, path, lvl0: Const, width: Const, k: Const):
 
 
 @inline
-def walk_path(n0, n1, wins, cap, flags, path_depth: Const, cap_depth: Const):
+def walk_path(n0, n1, wins, cap, flags, path_depth: Const):
     # The path, a window of QW levels a dispatch (`decode_query_windows`): each arm knows its
     # levels' order bits, so it hashes the running node against its hinted sibling.
     # Sized to the depth, a multiple of QW but where the depth caps the cap.
@@ -1348,16 +1355,17 @@ def walk_path(n0, n1, wins, cap, flags, path_depth: Const, cap_depth: Const):
             n0, n1 = match(log(w), range(0, 2), lambda k: walk_window(n0, n1, path, QW * i, 1, k))
     # The reached cap leaf is node 2*parent + bit at cells 2*node, 2*node + 1, where
     # parent = 2^(cap_depth-1) + q: the child bit and q are the last two windows, g^bit
-    # and g^q, the constant parts folded into the address immediates. Every cap is at
-    # least two levels deep (`decode_query_windows` gives q cap_depth - 1 bits).
+    # and g^q, the constant parts folded into `cap` and `flags` by `level_queries`, so
+    # one copy serves every cap depth. Every cap is at least two levels deep
+    # (`decode_query_windows` gives q cap_depth - 1 bits).
     wb = wins[GEN ** ((path_depth + QW - 1) // QW)]
     q = wins[GEN ** ((path_depth + QW - 1) // QW + 1)]
     flags_q = flags * q
-    flags_q[GEN ** (2 ** (cap_depth - 1))] = 1  # the cap check propagates this obligation to the root
+    flags_q[GEN ** 0] = 1  # the cap check propagates this obligation to the root
     q2 = q * q
     leaf = cap * q2 * q2 * (wb * wb)
-    leaf[GEN ** (2 ** (cap_depth + 1))] = n0
-    leaf[GEN ** (2 ** (cap_depth + 1) + 1)] = n1
+    leaf[GEN ** 0] = n0
+    leaf[GEN ** 1] = n1
     return
 
 
@@ -1399,7 +1407,7 @@ def novel_eval(coefs, ws, n: Const, nbits: Const):
 
 
 @inline
-def opening_query(cap, flags, coefs, hs, x, wins, base: Const, folds: Const, leaf_cells: Const, depth: Const, cap_depth: Const, mu: Const, vanish: Const, n_hs: Const, hs_bits: Const, final: Const):
+def opening_query(cap, flags, coefs, hs, x, wins, base: Const, folds: Const, leaf_cells: Const, path_depth: Const, mu: Const, vanish: Const, n_hs: Const, hs_bits: Const, final: Const):
     # One query: hash the hinted row up its Merkle path into the shared cap, then fold
     # it at its point x round by round as the prover folded the lanes. A row is one
     # hinted word a lane: a K lane at level 0, whose leaf image lists the lanes from the
@@ -1423,7 +1431,7 @@ def opening_query(cap, flags, coefs, hs, x, wins, base: Const, folds: Const, lea
         keccak_cells(packed_row[0:leaf_cells], leaf_hash_state)
     else:
         keccak_cells(row[0:leaf_cells], leaf_hash_state)
-    walk_path(leaf_hash_state[0], leaf_hash_state[1], wins, cap, flags, depth - cap_depth, cap_depth)
+    walk_path(leaf_hash_state[0], leaf_hash_state[1], wins, cap, flags, path_depth)
     # Round j takes the lane pairs (F, G) to G + t F, t = alpha + beta x.
     for j in unroll(0, folds):
         t = coefs[GEN ** (2 * j)] + coefs[GEN ** (2 * j + 1)] * x
@@ -1451,7 +1459,7 @@ def opening_query(cap, flags, coefs, hs, x, wins, base: Const, folds: Const, lea
     return out
 
 
-def opening_queries(cap, flags, lam_inv, coefs, hs, positions, query_win_ptrs, n_iters_g, odd_g, base: Const, folds: Const, leaf_cells: Const, depth: Const, cap_depth: Const, mu: Const, vanish: Const, n_hs: Const, hs_bits: Const, final: Const):
+def opening_queries(cap, flags, lam_inv, coefs, hs, positions, query_win_ptrs, n_iters_g, odd_g, base: Const, folds: Const, leaf_cells: Const, path_depth: Const, mu: Const, vanish: Const, n_hs: Const, hs_bits: Const, final: Const):
     # Specialize by row and path shape so opening configurations share query code.
     # Base-field rows (level 0) run two queries an iteration, sharing the loop
     # overhead and the challenge reads; an odd count, odd_g = g, runs its first query
@@ -1465,7 +1473,7 @@ def opening_queries(cap, flags, lam_inv, coefs, hs, positions, query_win_ptrs, n
     # an iteration carries no pointer it does not read.
     if const(base == 1):
         if odd_g != 1:
-            chain[GEN ** 0] = opening_query(cap, flags, coefs, hs, positions[GEN ** 0], query_win_ptrs[GEN ** 0], base, folds, leaf_cells, depth, cap_depth, mu, vanish, n_hs, hs_bits, final) * lam_inv
+            chain[GEN ** 0] = opening_query(cap, flags, coefs, hs, positions[GEN ** 0], query_win_ptrs[GEN ** 0], base, folds, leaf_cells, path_depth, mu, vanish, n_hs, hs_bits, final) * lam_inv
         else:
             chain[GEN ** 0] = 0
         loop_pos = positions * odd_g
@@ -1479,12 +1487,12 @@ def opening_queries(cap, flags, lam_inv, coefs, hs, positions, query_win_ptrs, n
             sq = xi * xi
             pair_pos = loop_pos * sq
             pair_wins = loop_wins * sq
-            d0 = opening_query(cap, flags, coefs, hs, pair_pos[GEN ** 0], pair_wins[GEN ** 0], base, folds, leaf_cells, depth, cap_depth, mu, vanish, n_hs, hs_bits, final)
-            d1 = opening_query(cap, flags, coefs, hs, pair_pos[GEN ** 1], pair_wins[GEN ** 1], base, folds, leaf_cells, depth, cap_depth, mu, vanish, n_hs, hs_bits, final)
+            d0 = opening_query(cap, flags, coefs, hs, pair_pos[GEN ** 0], pair_wins[GEN ** 0], base, folds, leaf_cells, path_depth, mu, vanish, n_hs, hs_bits, final)
+            d1 = opening_query(cap, flags, coefs, hs, pair_pos[GEN ** 1], pair_wins[GEN ** 1], base, folds, leaf_cells, path_depth, mu, vanish, n_hs, hs_bits, final)
             if final == 0:
                 chain[xi * GEN] = ((chain[xi] + d0) * lam_inv + d1) * lam_inv
         else:
-            d = opening_query(cap, flags, coefs, hs, loop_pos[xi], loop_wins[xi], base, folds, leaf_cells, depth, cap_depth, mu, vanish, n_hs, hs_bits, final)
+            d = opening_query(cap, flags, coefs, hs, loop_pos[xi], loop_wins[xi], base, folds, leaf_cells, path_depth, mu, vanish, n_hs, hs_bits, final)
             if final == 0:
                 chain[xi * GEN] = (chain[xi] + d) * lam_inv
     if final == 0:
@@ -1586,7 +1594,8 @@ def level_queries(lam, lam_inv, coefs, hs, positions, win_ptrs, n_queries: Const
     else:
         pairs = n_queries
         odd = 0
-    batched = opening_queries(cap, flags, lam_inv, coefs, hs, positions, win_ptrs, GEN ** pairs, GEN ** odd, base, folds, leaf_cells, depth, cap_depth, mu, mu * (mu + 1) // 2, n_hs, hs_bits, final)
+    # The cap leaf and flag a query reaches, offset past the levels above it.
+    batched = opening_queries(cap * GEN ** (2 ** (cap_depth + 1)), flags * GEN ** (2 ** (cap_depth - 1)), lam_inv, coefs, hs, positions, win_ptrs, GEN ** pairs, GEN ** odd, base, folds, leaf_cells, depth - cap_depth, mu, mu * (mu + 1) // 2, n_hs, hs_bits, final)
     return root_0, root_1, batched, lam ** n_queries
 
 
@@ -1648,15 +1657,17 @@ def open_stacked(m_idx: Const, rate_sel, fs0, fs1, fs2, fs3, fs4, target, commit
     query_win_ptrs = HeapBuf(pos_total)
 
     claim = target
+    rates = StackBuf(4 * LIG_MAX_LEVELS)  # each level's `level_rate`
     for lvl in unroll(0, n_levels):
         ml = m_idx * LIG_MAX_LEVELS + lvl
         folds = LIG_FOLDS[ml]
         mu = LIG_LOG_MSG_COLS[ml]
         folds_off = LIG_FOLDS_OFF[ml]
         vanish = mu * (mu + 1) // 2
-        pos_g, squeezes_g, batches_g, rest_g = match(log(rate_sel), range(0, LIG_N_RATES), lambda r: level_rate(ml, r))
-        level_pos = query_positions * pos_g
-        level_wins = query_win_ptrs * pos_g
+        rates[4 * lvl], rates[4 * lvl + 1], rates[4 * lvl + 2], rates[4 * lvl + 3] = match(log(rate_sel), range(0, LIG_N_RATES), lambda r: level_rate(ml, r))
+        squeezes_g = rates[4 * lvl + 1]
+        level_pos = query_positions * rates[4 * lvl]
+        level_wins = query_win_ptrs * rates[4 * lvl]
         for j in unroll(0, folds):
             fs0, fs1, fs2, fs3, fs4, cursor, claim = opening_round(fs0, fs1, fs2, fs3, fs4, cursor, claim, tabs, fold_challenges * GEN ** (folds_off + j), round_coefs * GEN ** (2 * (folds_off + j)))
 
@@ -1824,9 +1835,8 @@ def open_stacked(m_idx: Const, rate_sel, fs0, fs1, fs2, fs3, fs4, target, commit
     inner_chain[GEN ** 1] = claim
     for lvl in unroll(0, last):
         ml = m_idx * LIG_MAX_LEVELS + lvl
-        pos_g, squeezes_g, batches_g, rest_g = match(log(rate_sel), range(0, LIG_N_RATES), lambda r: level_rate(ml, r))
         # level_scales carries the lam^(n + 2) that the chains' 1/lam steps leave out.
-        h, h_high = level_residual(query_positions * pos_g, basis_d * GEN ** (lvl * LIG_LOG_MSG_COLS_CAP), level_hs * GEN ** (lvl * 2 ** HIGH_BITS_CAP), level_lam_invs[GEN ** lvl], batches_g, rest_g, LIG_LOG_MSG_COLS[ml], LIG_FOLDS[ml], LIG_HIGH_BITS[ml])
+        h, h_high = level_residual(query_positions * rates[4 * lvl], basis_d * GEN ** (lvl * LIG_LOG_MSG_COLS_CAP), level_hs * GEN ** (lvl * 2 ** HIGH_BITS_CAP), level_lam_invs[GEN ** lvl], rates[4 * lvl + 2], rates[4 * lvl + 3], LIG_LOG_MSG_COLS[ml], LIG_FOLDS[ml], LIG_HIGH_BITS[ml])
         # accumulate lam^(n+2) * prod_t b_t * (the level's residual chain) into the total,
         # and lam^(n+2) * (the challenges after the level) * (its high chain) into the claim
         acc = inner_chain * GEN ** (2 * lvl)
@@ -2035,25 +2045,7 @@ def verify_bus_gkr(fs0, fs1, fs2, fs3, fs4, cursor, g_bus_mu, zeta, tabs):
             step = x8 ** 8
             rd = head * x8 ** ROUND_SLOTS
             pt = point_row * step
-            npt = pt * x_layer
-            round_sp = fs_load(rd, ROUND_FS, 1)
-            cur = rd[GEN ** ROUND_CURSOR]
-            claim = rd[GEN ** ROUND_CLAIM]
-            for q in unroll(0, 8):
-                # As in gkr_rounds.
-                rate = StackBuf(8)
-                c1, cur = fs_next(rate, 0, cur)
-                c2, cur = fs_next(rate, 1, cur)
-                c3, cur = fs_next(rate, 2, cur)
-                c4, cur = fs_next(rate, 3, cur)
-                round_sp, rk, cur = fs_grind_squeeze(round_sp, rate, 4, cur, tabs, ROUND5_GRIND_BITS)
-                c0 = claim + pt[GEN ** q] * (c1 + c2 + c3 + c4)
-                npt[GEN ** (2 + q)] = rk  # nextrow[round * g^2]
-                claim = c0 + rk * (c1 + rk * (c2 + rk * (c3 + rk * c4)))
-            rd_next = rd * GEN ** ROUND_SLOTS
-            fs_store(rd_next, ROUND_FS, 1, round_sp)
-            rd_next[GEN ** ROUND_CURSOR] = cur
-            rd_next[GEN ** ROUND_CLAIM] = claim
+            gkr_round_run(rd, rd * GEN ** ROUND_SLOTS, pt, pt * x_layer, tabs, 8)
         octet = half ** 8
         rem_head = head * half ** ROUND_SLOTS
         rem_row = point_row * octet

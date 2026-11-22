@@ -131,12 +131,7 @@ impl FnLower<'_> {
             self.copy_next_frame(nfp, one, Abi::end(callee_arg_cells, 0));
             self.copy_next_frame(1, one, Abi::RET_FP);
             self.copy_next_frame(0, one, Abi::RET_PC);
-            self.emit(LOp::Jump {
-                oc,
-                od: entry,
-                of: nfp,
-                always: cond.is_none(),
-            });
+            self.emit(LOp::Jump { oc, od: entry, of: nfp });
             return;
         }
         let nfp = self.fresh();
@@ -184,12 +179,7 @@ impl FnLower<'_> {
             self.deref(nfp, 1, 0, DerefMode::Fp); // retfp
             self.deref(nfp, 0, 0, DerefMode::Pc); // retpc = g²·pc
         }
-        self.emit(LOp::Jump {
-            oc,
-            od: entry,
-            of: nfp,
-            always: cond.is_none(),
-        });
+        self.emit(LOp::Jump { oc, od: entry, of: nfp });
 
         for (i, &d) in dsts.iter().enumerate() {
             self.deref(nfp, Abi::ret(callee_arg_cells, i as u32), d, DerefMode::Cell);
@@ -450,12 +440,7 @@ impl FnLower<'_> {
             ret += shape.cells();
         }
         let one = self.one();
-        self.emit(LOp::Jump {
-            oc: one,
-            od: 0,
-            of: 1,
-            always: true,
-        });
+        self.emit(LOp::Jump { oc: one, od: 0, of: 1 });
     }
 
     /// If `callee` declares `Const` parameters, monomorphize: the constant
