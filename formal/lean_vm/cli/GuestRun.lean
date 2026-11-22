@@ -1,4 +1,4 @@
-import Statement.Prover.Guest
+import Statement.LeanVmGuestProver
 import LeanVM.Guest.Bytecode
 import LeanVM.Cli.GuestCase
 import Statement.Prover.Prove
@@ -11,17 +11,17 @@ import LeanVM.Facts.Verifier
 `lake exe guest-run [--rust DIR] [--prove] <case>...` reads cases written by the exporter's test
 `guest_diff` (`scripts/guest-export`, format `leanvm-guest-diff 5`: a real aggregation's seed,
 statement and witness) and, from the statement and the witness alone, runs the statement's
-witness generation and prover (`Statement/Prover/Guest.lean`) on the guest program, as
+witness generation and prover (`Statement/LeanVmGuestProver.lean`) on the guest program, as
 `guestArray` (equal to `guestProgram`, its instructions read from an array):
 
 * checks that the case's seed is the deployed one (`deployedSeed guestProgram`), the seed the end
   theorem's prover runs at;
-* runs the guest (`LeanVM.Prover.guestExecution`: the honest streams, the compiler's hints, the
+* runs the guest (`LeanVM.Guest.guestExecution`: the honest streams, the compiler's hints, the
   statement's executor);
 * with `--rust DIR`, compares the execution with the Rust interpreter's, `DIR/<case>/memory.bin`
   and `trace.txt` (`LEANVM_GUEST_EXEC=DIR` on the exporter writes them): the memory's size, every
   cell and the step count;
-* with `--prove`, runs the guest's prover end to end (`LeanVM.Prover.guestProve`, at inverse rate
+* with `--prove`, runs the guest's prover end to end (`LeanVM.Guest.guestProve`, at inverse rate
   `2`, its `prove` compiled as `leanvm-prove` runs it) and verifies the proof with the deployed
   verifier (`Verifier.verify`) on the guest's bytecode and the statement's digest.
 
@@ -70,7 +70,7 @@ def main (args : List String) : IO UInt32 := do
       ok := false
       continue
     let digest := statementDigest c.seed c.statement
-    let (r, time) ← timed fun _ => LeanVM.Prover.guestExecution guestArray c.statement c.witness
+    let (r, time) ← timed fun _ => LeanVM.Guest.guestExecution guestArray c.statement c.witness
     match r with
     | .error (pc, _) =>
       IO.println s!"{c.name}: FAIL: the guest stops at pc {pc} ({time} s)"
@@ -83,7 +83,7 @@ def main (args : List String) : IO UInt32 := do
         | some d => IO.println s!"  as the Rust interpreter's: DIFFERS: {d}"; ok := false
       if prove then
         let (π, time) ← timed fun _ =>
-          LeanVM.Prover.guestProve (m := Id) keccakF1600 guestArray c.statement c.witness 2 (2 ^ 64)
+          LeanVM.Guest.guestProve (m := Id) keccakF1600 guestArray c.statement c.witness 2 (2 ^ 64)
         match π with
         | none => IO.println s!"  proved: FAIL, no proof ({time} s)"; ok := false
         | some π =>

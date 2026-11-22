@@ -16,7 +16,7 @@ public import LeanVM.Prover.End
 /-!
 # The executor on honest children
 
-`guestExecution_complete_on_honest_children : AdviceComplete guestAdvice`, given
+`honestExecution_complete_on_honest_children : AdviceComplete honestAdvice`, given
 `ExecGaps`: a node within the deployed limits, under the deployed seed, whose children carry honest
 proofs, has acceptable children (`acceptableChildren_of_honest`) and is within the budget
 (`budget_of_limits`), so the executor runs the guest to completion on its advice
@@ -38,25 +38,25 @@ open scoped ENNReal
 variable {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {X Pro : Ref → St → Prop}
 
 /-- **The executor runs the guest program to completion on the guest's advice** on every node within
-the deployed limits whose children carry honest proofs (`AdviceComplete guestAdvice`). -/
-theorem guestExecution_complete_on_honest_children (G : ExecGaps Ks Km E0 X Pro) :
-    AdviceComplete guestAdvice := by
+the deployed limits whose children carry honest proofs (`AdviceComplete honestAdvice`). -/
+theorem honestExecution_complete_on_honest_children (G : ExecGaps Ks Km E0 X Pro) :
+    AdviceComplete honestAdvice := by
   intro statement witness hrel hlim hon
   have hok := acceptableChildren_of_honest hrel hon
   exact execute_guest_complete G _ _ _ hrel (GuestLimits.of_limits hlim) hok (budget_of_limits hlim hok)
 
-/-- **`guestExecution` on honest children**: `guestExecution_complete_on_honest_children` with
-`guestExecution`. -/
-theorem guestExecution_ok_on_honest_children (G : ExecGaps Ks Km E0 X Pro) (statement : NodeStatement)
+/-- **`honestExecution` on honest children**: `honestExecution_complete_on_honest_children` with
+`honestExecution`. -/
+theorem honestExecution_ok_on_honest_children (G : ExecGaps Ks Km E0 X Pro) (statement : NodeStatement)
     (witness : NodeWitness)
     (hrel : NodeRelation (bytecodeWords guestProgram) (deployedSeed guestProgram) statement witness)
     (hlim : DeployedLimits statement witness) (hon : ∀ child ∈ witness.children, HonestChild child) :
-    ∃ t, guestExecution (deployedSeed guestProgram) statement witness = .ok t ∧
+    ∃ t, honestExecution (deployedSeed guestProgram) statement witness = .ok t ∧
       ValidExecution guestProgram
         (PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) statement)) t ∧
       t.committedSize ≤ 2 ^ 30 :=
-  let ⟨t, he, hv, hsz⟩ := guestExecution_complete_on_honest_children G statement witness hrel hlim hon
-  ⟨t, guestExecution_of_execute he, hv, hsz⟩
+  let ⟨t, he, hv, hsz⟩ := honestExecution_complete_on_honest_children G statement witness hrel hlim hon
+  ⟨t, honestExecution_of_execute he, hv, hsz⟩
 
 open OracleComp OracleSpec in
 /-- **The composed prover's proof is accepted**, in the random-permutation model: on every node within
@@ -69,7 +69,7 @@ theorem guest_prover_complete (G : ExecGaps Ks Km E0 X Pro) (statement : NodeSta
     (witness : NodeWitness)
     (hrel : NodeRelation (bytecodeWords guestProgram) (deployedSeed guestProgram) statement witness)
     (hlim : DeployedLimits statement witness) (hon : ∀ child ∈ witness.children, HonestChild child) :
-    ∃ t, guestRun guestAdvice statement witness = .ok t ∧ ∀ ρ, 1 ≤ ρ ∧ ρ ≤ 4 →
+    ∃ t, guestRun honestAdvice statement witness = .ok t ∧ ∀ ρ, 1 ≤ ρ ∧ ρ ≤ 4 →
       Pr{let v ← completenessExperiment leanVmHonestProver guestProgram
           (PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) statement)) t ρ (2 ^ 35)}[
           v = false] ≤ (2 : ℝ≥0∞)⁻¹ ^ 256 ∧
@@ -82,7 +82,7 @@ theorem guest_prover_complete (G : ExecGaps Ks Km E0 X Pro) (statement : NodeSta
             verifierRefusingZero Common.queryPermutation guestProgram
               (PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) statement)) proof)}[
           accepted = false] ≤ (2 : ℝ≥0∞)⁻¹ ^ 100 := by
-  obtain ⟨t, he, hv, hsz⟩ := guestExecution_complete_on_honest_children G statement witness hrel hlim hon
+  obtain ⟨t, he, hv, hsz⟩ := honestExecution_complete_on_honest_children G statement witness hrel hlim hon
   exact ⟨t, he, fun ρ hρ ↦ ⟨LeanVM.completeness_holds _ _ t ρ hv hsz hρ,
     honest_proof_rarely_refused _ _ t ρ hv hsz hρ⟩⟩
 

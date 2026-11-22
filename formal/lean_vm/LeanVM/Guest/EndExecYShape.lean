@@ -13,7 +13,7 @@ public import LeanVM.Protocol.Extraction.Fast.AfterRoot
 /-!
 # The honest pushes and the bytecode's length
 
-`guestAdvice` builds its streams from `bytecodeShape`, `2^23` zero words, and `Ref.Ok.pops` is
+`honestAdvice` builds its streams from `bytecodeShape`, `2^23` zero words, and `Ref.Ok.pops` is
 about `End.bytecode`. The pushes read the bytecode only in a child's hints, through the deferring
 verifier: its announced layout keeps the words (`buildLayout_len`) but nothing reads them, the
 bytecode check comparing the proof's point and value with the claim's (`claimedBytecodeValue`).

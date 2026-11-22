@@ -303,7 +303,7 @@ theorem streams_group {adv : Advice} {C : Ctx} {prog : LeanIsaProgram} (hC : Ctx
 /-- **The guest's streams**: stream `S`, wherever some honest push is on it, is the honest pushes on
 `S`, in order. -/
 theorem streams_guest {seed s w} {C : Ctx}
-    (hC : Ctx.of guestProgram (guestAdvice seed s w) = .ok C) {S : String}
+    (hC : Ctx.of guestProgram (honestAdvice seed s w) = .ok C) {S : String}
     (hS : ∃ p ∈ Hints.honestPushes bytecodeShape seed s w, p.1 = S) :
     C.streams[S]? = some (((Hints.honestPushes bytecodeShape seed s w).filter (·.1 == S)).map (·.2)).toArray :=
   streams_group hC rfl hS

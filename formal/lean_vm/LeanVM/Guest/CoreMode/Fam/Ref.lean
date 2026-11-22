@@ -62,7 +62,7 @@ noncomputable abbrev Ref.img (r : Ref) : MemoryImage r.κ :=
 abbrev Ref.input (r : Ref) : PublicInput := publicInputOf (statementDigest r.seed r.s)
 
 /-- The guest's advice on the node. -/
-abbrev Ref.adv (r : Ref) : Advice := guestAdvice r.seed r.s r.w
+abbrev Ref.adv (r : Ref) : Advice := honestAdvice r.seed r.s r.w
 
 /-- **The reference execution.** -/
 noncomputable abbrev Ref.exec (r : Ref) : Execution guestProgram := ⟨r.κ, r.img, r.n⟩

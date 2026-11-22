@@ -118,7 +118,7 @@ fn hints_header(module: &str, about: &str, imports: &str) -> String {
 /// with its entry and length (`adviceFn{j}`, in parts `adviceFn{j}p{k}` past `HINTS_PER_DEF`
 /// entries), in modules of about `HINT_MODULE_BYTES` bytes (`AdviceHints00`, ...), and in
 /// `AdviceHints`, which imports them, the records of the functions in parts, `main`'s frame size and
-/// the table of the functions' hints. The guest's prover (`Statement/Prover/Guest.lean`) runs on it,
+/// the table of the functions' hints. The guest's prover (`Statement/LeanVmGuestProver.lean`) runs on it,
 /// and the mode walk's certificates' hints are checked against it.
 pub fn data_files() -> Vec<File> {
     let g = guest();

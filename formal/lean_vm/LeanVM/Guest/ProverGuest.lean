@@ -1,13 +1,13 @@
 /-
   LeanVM.Guest.ProverGuest
 
-  `Statement/Prover/Guest.lean`'s witness generation is the honest hint generator the proofs use
+  `Statement/LeanVmGuestProver.lean`'s witness generation is the honest hint generator the proofs use
   (`LeanVM.Guest.Hints`).
 -/
 
 module
 
-public import Statement.Prover.Guest
+public import Statement.LeanVmGuestProver
 public import LeanVM.Guest.Hints
 public import LeanVM.Guest.AcceptableChild
 import LeanVM.Wire.ReadWrite
@@ -16,10 +16,10 @@ import LeanVM.Protocol.Verifier.Load
 /-!
 # The statement's witness generation is the proofs' hint generator
 
-`Statement/Prover/Guest.lean` writes the guest's witness generation with the statement's own
+`Statement/LeanVmGuestProver.lean` writes the guest's witness generation with the statement's own
 definitions; the proofs reason about `LeanVM.Guest.Hints`, the same pushes written with
 `lean_vm`'s helpers. They agree function by function (`honestPushes_eq`); `EndExecFinal.lean` takes
-the statement's advice to `guestAdvice` (`guestAdvice_eq`). The only differences
+the statement's advice to `honestAdvice` (`EndExec.prover_guestAdvice_eq`). The only differences
 are of form: a cell of 16 bytes read lane by lane (`littleEndianLane`) rather than by
 `laneOfBytes` (equal for 16 bytes or more, `cellOfBytes_eq`), and the coverage plan's own
 structure (`coveragePlan_eq`).
@@ -41,17 +41,17 @@ theorem lane_eq {b : List UInt8} (h : 8 ≤ b.length) : littleEndianLane b 0 = l
   exact LeanVM.Wire.littleEndianLane_wordBytes_append _ _
 
 theorem cellOfBytes_eq {b : List UInt8} (h : 16 ≤ b.length) :
-    Prover.Guest.cellOfBytes b = Hints.cellOfBytes b := by
-  rw [Prover.Guest.cellOfBytes, Hints.cellOfBytes, kOfBytes, kOfBytes, lane_eq (by omega),
+    Prover.cellOfBytes b = Hints.cellOfBytes b := by
+  rw [Prover.cellOfBytes, Hints.cellOfBytes, kOfBytes, kOfBytes, lane_eq (by omega),
     LeanVM.Wire.littleEndianLane_eq_drop b 1, Nat.mul_one, lane_eq (by simp; omega)]
 
-theorem cell128_eq : Prover.Guest.cell128 = Hints.cell128 := by
+theorem cell128_eq : Prover.cell128 = Hints.cell128 := by
   funext v
-  rw [Prover.Guest.cell128, Hints.cell128, cellOfBytes_eq (by simp [HashSig.littleEndianBytes])]
+  rw [Prover.cell128, Hints.cell128, cellOfBytes_eq (by simp [HashSig.littleEndianBytes])]
 
-theorem cellsOfBytes_eq : Prover.Guest.cellsOfBytes = Hints.cellsOfBytes := by
+theorem cellsOfBytes_eq : Prover.cellsOfBytes = Hints.cellsOfBytes := by
   funext b
-  rw [Prover.Guest.cellsOfBytes, Hints.cellsOfBytes]
+  rw [Prover.cellsOfBytes, Hints.cellsOfBytes]
   refine List.map_congr_left fun i hi ↦ cellOfBytes_eq ?_
   rw [List.mem_range] at hi
   rw [List.length_drop]
@@ -61,153 +61,153 @@ theorem cellsOfBytes_eq : Prover.Guest.cellsOfBytes = Hints.cellsOfBytes := by
       _ ≤ b.length := by rw [Nat.mul_comm]; exact Nat.div_mul_le_self _ _
   omega
 
-theorem ordered_eq : Prover.Guest.ordered = Hints.ordered := by
+theorem ordered_eq : Prover.ordered = Hints.ordered := by
   funext r a b
-  simp only [Prover.Guest.ordered, Hints.ordered, cell128_eq]
+  simp only [Prover.ordered, Hints.ordered, cell128_eq]
 
 /-! ## Coverage -/
 
-theorem takeSlot_eq : @Prover.Guest.takeSlot = @Coverage.takeSlot := rfl
+theorem takeSlot_eq : @Prover.takeSlot = @Coverage.takeSlot := rfl
 
-theorem takeSlots_eq : @Prover.Guest.takeSlots = @Coverage.takeSlots := by
+theorem takeSlots_eq : @Prover.takeSlots = @Coverage.takeSlots := by
   funext α _ d st l
   induction l generalizing st with
   | nil => rfl
-  | cons c l ih => simp only [Prover.Guest.takeSlots, Coverage.takeSlots, takeSlot_eq, ih]
+  | cons c l ih => simp only [Prover.takeSlots, Coverage.takeSlots, takeSlot_eq, ih]
 
-theorem takeSlotsAll_eq : @Prover.Guest.takeSlotsAll = @Coverage.takeSlotsAll := by
+theorem takeSlotsAll_eq : @Prover.takeSlotsAll = @Coverage.takeSlotsAll := by
   funext α _ d st l
   induction l generalizing st with
   | nil => rfl
-  | cons c l ih => simp only [Prover.Guest.takeSlotsAll, Coverage.takeSlotsAll, takeSlots_eq, ih]
+  | cons c l ih => simp only [Prover.takeSlotsAll, Coverage.takeSlotsAll, takeSlots_eq, ih]
 
 theorem coveragePlan_eq {α : Type} [BEq α] (d r : List α) (c : List (List α)) :
-    Prover.Guest.coveragePlan d r c = ⟨(Coverage.coveragePlan d r c).duplicates,
+    Prover.coveragePlan d r c = ⟨(Coverage.coveragePlan d r c).duplicates,
       (Coverage.coveragePlan d r c).directSlots, (Coverage.coveragePlan d r c).childSlots⟩ := by
-  simp only [Prover.Guest.coveragePlan, Coverage.coveragePlan, takeSlots_eq, takeSlotsAll_eq]
+  simp only [Prover.coveragePlan, Coverage.coveragePlan, takeSlots_eq, takeSlotsAll_eq]
 
 /-! ## Signatures -/
 
-theorem xmssLayer_eq : Prover.Guest.xmssLayer = Hints.xmssLayer := by
+theorem xmssLayer_eq : Prover.xmssLayer = Hints.xmssLayer := by
   funext p lay key m part
-  simp only [Prover.Guest.xmssLayer, Hints.xmssLayer, cell128_eq]
+  simp only [Prover.xmssLayer, Hints.xmssLayer, cell128_eq]
   rfl
 
-theorem xmssHints_eq : Prover.Guest.xmssHints = Hints.xmssHints := by
+theorem xmssHints_eq : Prover.xmssHints = Hints.xmssHints := by
   funext pk m σ
-  simp only [Prover.Guest.xmssHints, Hints.xmssHints, xmssLayer_eq]
+  simp only [Prover.xmssHints, Hints.xmssHints, xmssLayer_eq]
   rfl
 
-theorem sphincsForsNodes_eq : Prover.Guest.sphincsForsNodes = Hints.sphincsForsNodes := by
+theorem sphincsForsNodes_eq : Prover.sphincsForsNodes = Hints.sphincsForsNodes := by
   funext p i t l o
-  simp only [Prover.Guest.sphincsForsNodes, Hints.sphincsForsNodes, ordered_eq]
+  simp only [Prover.sphincsForsNodes, Hints.sphincsForsNodes, ordered_eq]
 
-theorem sphincsLayer_eq : Prover.Guest.sphincsLayer = Hints.sphincsLayer := by
+theorem sphincsLayer_eq : Prover.sphincsLayer = Hints.sphincsLayer := by
   funext p i σ lay d
-  simp only [Prover.Guest.sphincsLayer, Hints.sphincsLayer, ordered_eq, cell128_eq]
+  simp only [Prover.sphincsLayer, Hints.sphincsLayer, ordered_eq, cell128_eq]
   rfl
 
-theorem sphincsHints_eq : Prover.Guest.sphincsHints = Hints.sphincsHints := by
+theorem sphincsHints_eq : Prover.sphincsHints = Hints.sphincsHints := by
   funext pk m σ
-  simp only [Prover.Guest.sphincsHints, Hints.sphincsHints, sphincsLayer_eq, sphincsForsNodes_eq,
+  simp only [Prover.sphincsHints, Hints.sphincsHints, sphincsLayer_eq, sphincsForsNodes_eq,
     cell128_eq]
   rfl
 
 /-! ## Children -/
 
-theorem recordQueries_eq : @Prover.Guest.recordQueries = @Hints.recordQueries := by
+theorem recordQueries_eq : @Prover.recordQueries = @Hints.recordQueries := by
   funext α p
   induction p with
   | ret => rfl
   | fail => rfl
-  | read k ih => simp only [Prover.Guest.recordQueries, Hints.recordQueries, ih]
-  | sample k ih => simp only [Prover.Guest.recordQueries, Hints.recordQueries, ih]
-  | grind b k ih => simp only [Prover.Guest.recordQueries, Hints.recordQueries, ih]
-  | commit h w k ih => simp only [Prover.Guest.recordQueries, Hints.recordQueries, ih]
-  | query i ps k ih => simp only [Prover.Guest.recordQueries, Hints.recordQueries, ih]
+  | read k ih => simp only [Prover.recordQueries, Hints.recordQueries, ih]
+  | sample k ih => simp only [Prover.recordQueries, Hints.recordQueries, ih]
+  | grind b k ih => simp only [Prover.recordQueries, Hints.recordQueries, ih]
+  | commit h w k ih => simp only [Prover.recordQueries, Hints.recordQueries, ih]
+  | query i ps k ih => simp only [Prover.recordQueries, Hints.recordQueries, ih]
 
-theorem childQueries_eq : Prover.Guest.childQueries = Hints.childQueries := by
+theorem childQueries_eq : Prover.childQueries = Hints.childQueries := by
   funext b seed c
-  simp only [Prover.Guest.childQueries, Hints.childQueries, recordQueries_eq]
+  simp only [Prover.childQueries, Hints.childQueries, recordQueries_eq]
   rfl
 
-theorem climbSteps_eq : Prover.Guest.climbSteps = Hints.climbSteps := by
+theorem climbSteps_eq : Prover.climbSteps = Hints.climbSteps := by
   funext i n ss
   induction ss generalizing i n with
   | nil => rfl
-  | cons s ss ih => simp only [Prover.Guest.climbSteps, Hints.climbSteps, ih]; rfl
+  | cons s ss ih => simp only [Prover.climbSteps, Hints.climbSteps, ih]; rfl
 
-theorem levelHints_eq : Prover.Guest.levelHints = Hints.levelHints := by
+theorem levelHints_eq : Prover.levelHints = Hints.levelHints := by
   funext f d c ph
-  simp only [Prover.Guest.levelHints, Hints.levelHints, climbSteps_eq]
+  simp only [Prover.levelHints, Hints.levelHints, climbSteps_eq]
   rfl
 
-theorem merkleHints_eq : Prover.Guest.merkleHints = Hints.merkleHints := by
+theorem merkleHints_eq : Prover.merkleHints = Hints.merkleHints := by
   funext f qs phs
   induction qs generalizing f phs with
   | nil => cases phs <;> rfl
   | cons q qs ih =>
     cases phs with
     | nil => rfl
-    | cons ph phs => simp only [Prover.Guest.merkleHints, Hints.merkleHints, levelHints_eq, ih]
+    | cons ph phs => simp only [Prover.merkleHints, Hints.merkleHints, levelHints_eq, ih]
 
-theorem runHeads_eq : Prover.Guest.runHeads = Hints.runHeads := by
+theorem runHeads_eq : Prover.runHeads = Hints.runHeads := by
   funext l
   induction l with
   | nil => rfl
   | cons a l ih =>
     cases l with
     | nil => rfl
-    | cons b l => simp only [Prover.Guest.runHeads, Hints.runHeads, ← ih]
+    | cons b l => simp only [Prover.runHeads, Hints.runHeads, ← ih]
 
-theorem runGroups_eq : Prover.Guest.runGroups = Hints.runGroups := by
+theorem runGroups_eq : Prover.runGroups = Hints.runGroups := by
   funext n p l
   induction l generalizing n p with
   | nil => rfl
-  | cons k ks ih => simp only [Prover.Guest.runGroups, Hints.runGroups, ih]
+  | cons k ks ih => simp only [Prover.runGroups, Hints.runGroups, ih]
 
-theorem blockGroupOrder_eq : Prover.Guest.blockGroupOrder = Hints.blockGroupOrder := by
+theorem blockGroupOrder_eq : Prover.blockGroupOrder = Hints.blockGroupOrder := by
   funext L
-  simp only [Prover.Guest.blockGroupOrder, Hints.blockGroupOrder, runGroups_eq, runHeads_eq]
+  simp only [Prover.blockGroupOrder, Hints.blockGroupOrder, runGroups_eq, runHeads_eq]
   rfl
 
-theorem colGroupOrder_eq : Prover.Guest.colGroupOrder = Hints.colGroupOrder := by
+theorem colGroupOrder_eq : Prover.colGroupOrder = Hints.colGroupOrder := by
   funext L
-  simp only [Prover.Guest.colGroupOrder, Hints.colGroupOrder, runGroups_eq, runHeads_eq]
+  simp only [Prover.colGroupOrder, Hints.colGroupOrder, runGroups_eq, runHeads_eq]
   rfl
 
-theorem childHints_eq : Prover.Guest.childHints = Hints.childHints := by
+theorem childHints_eq : Prover.childHints = Hints.childHints := by
   funext b seed c
-  simp only [Prover.Guest.childHints, Hints.childHints, merkleHints_eq, childQueries_eq,
+  simp only [Prover.childHints, Hints.childHints, merkleHints_eq, childQueries_eq,
     colGroupOrder_eq, blockGroupOrder_eq]
   rfl
 
 /-! ## The node -/
 
-theorem increasing_eq : Prover.Guest.increasing = Hints.increasing := by
+theorem increasing_eq : Prover.increasing = Hints.increasing := by
   funext l
   induction l with
   | nil => rfl
   | cons a l ih =>
     cases l with
     | nil => rfl
-    | cons b l => simp only [Prover.Guest.increasing, Hints.increasing, ← ih]
+    | cons b l => simp only [Prover.increasing, Hints.increasing, ← ih]
 
-theorem slotGaps_eq : Prover.Guest.slotGaps = Hints.slotGaps := by
+theorem slotGaps_eq : Prover.slotGaps = Hints.slotGaps := by
   funext n l
   induction l generalizing n with
   | nil => rfl
-  | cons o os ih => simp only [Prover.Guest.slotGaps, Hints.slotGaps, ih]
+  | cons o os ih => simp only [Prover.slotGaps, Hints.slotGaps, ih]
 
-theorem childSlotPushes_eq : Prover.Guest.childSlotPushes = Hints.childSlotPushes := by
+theorem childSlotPushes_eq : Prover.childSlotPushes = Hints.childSlotPushes := by
   funext l
-  simp only [Prover.Guest.childSlotPushes, Hints.childSlotPushes, increasing_eq, slotGaps_eq]
+  simp only [Prover.childSlotPushes, Hints.childSlotPushes, increasing_eq, slotGaps_eq]
   rfl
 
 /-- **The statement's honest pushes are the proofs'.** -/
 theorem honestPushes_eq (bytecode : List K) (seed : Digest) (s : NodeStatement) (w : NodeWitness) :
-    Prover.Guest.honestPushes bytecode seed s w = Hints.honestPushes bytecode seed s w := by
-  simp only [Prover.Guest.honestPushes, Hints.honestPushes, coveragePlan_eq, cellsOfBytes_eq,
+    Prover.honestPushes bytecode seed s w = Hints.honestPushes bytecode seed s w := by
+  simp only [Prover.honestPushes, Hints.honestPushes, coveragePlan_eq, cellsOfBytes_eq,
     xmssHints_eq, sphincsHints_eq, childSlotPushes_eq, childHints_eq]
   rfl
 

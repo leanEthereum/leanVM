@@ -80,9 +80,9 @@ structure Theorems
   /-- The same execution is made from the statement and the witness: on every node
   `guestCompleteOnHonestChildren` covers, the executor (`Prover/Execute.lean`) runs the guest
   program to completion, within `2^30` committed words, on the advice the guest's witness
-  generation makes (`LeanVM.Prover.guestExecution`, `Prover/Guest.lean`)
+  generation makes (`LeanVM.Guest.guestExecution`, `LeanVmGuestProver.lean`)
   (`LeanVmGuestCompleteness.lean`). With `leanVmCompleteness` and `honestProofRarelyRefused`, the
-  guest's prover (`LeanVM.Prover.guestProve`) makes a proof the verifier accepts,
+  guest's prover (`LeanVM.Guest.guestProve`) makes a proof the verifier accepts,
   `Statement.Corollaries`' `guestProverComplete`. -/
   guestExecutionComplete : LeanVM.Guest.Completeness.GuestExecutionComplete
   /-- The same honest prover's proof of an execution of the guest program is rarely refused: it
