@@ -379,7 +379,19 @@ pub fn dot_base(w: &[Weights8], k: &[F64]) -> F128Unreduced {
     ))]
     // SAFETY: both features are enabled at compile time; the lengths match.
     return unsafe { x86_64::dot_base_ymm(w, k) };
-    #[cfg(not(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2")))]
+    #[cfg(all(
+        target_arch = "x86_64",
+        target_feature = "pclmulqdq",
+        not(all(target_feature = "vpclmulqdq", target_feature = "avx2"))
+    ))]
+    // SAFETY: pclmulqdq is enabled at compile time; the lengths match.
+    return unsafe { x86_64::dot_base_xmm(w, k) };
+    #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
+    return aarch64::dot_base(w, k);
+    #[cfg(not(any(
+        all(target_arch = "x86_64", target_feature = "pclmulqdq"),
+        all(target_arch = "aarch64", target_feature = "aes")
+    )))]
     w.iter()
         .zip(k.as_chunks::<8>().0)
         .fold(F128Unreduced::ZERO, |acc, (w, k)| {
@@ -469,8 +481,29 @@ impl BitXor for F128Unreduced {
 }
 
 impl BitXorAssign for F128Unreduced {
-    #[inline]
+    #[inline(always)]
     fn bitxor_assign(&mut self, rhs: Self) {
+        #[cfg(target_arch = "x86_64")]
+        // SAFETY: SSE2 is part of the x86-64 baseline; `[u64; 2]` and `__m128i` are 16 bytes.
+        unsafe {
+            use core::arch::x86_64::*;
+            for (a, b) in self.coeffs.iter_mut().zip(rhs.coeffs) {
+                let va = core::mem::transmute::<[u64; 2], __m128i>(*a);
+                let vb = core::mem::transmute::<[u64; 2], __m128i>(b);
+                *a = core::mem::transmute::<__m128i, [u64; 2]>(_mm_xor_si128(va, vb));
+            }
+        }
+        #[cfg(target_arch = "aarch64")]
+        // SAFETY: NEON is part of the aarch64 baseline; `[u64; 2]` and `uint64x2_t` are 16 bytes.
+        unsafe {
+            use core::arch::aarch64::*;
+            for (a, b) in self.coeffs.iter_mut().zip(rhs.coeffs) {
+                let va = core::mem::transmute::<[u64; 2], uint64x2_t>(*a);
+                let vb = core::mem::transmute::<[u64; 2], uint64x2_t>(b);
+                *a = core::mem::transmute::<uint64x2_t, [u64; 2]>(veorq_u64(va, vb));
+            }
+        }
+        #[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
         for (acc, x) in self.coeffs.as_flattened_mut().iter_mut().zip(rhs.coeffs.as_flattened()) {
             *acc ^= x;
         }
@@ -638,6 +671,36 @@ pub mod aarch64 {
     pub fn reduce(u: F128Unreduced) -> F128 {
         // SAFETY: a `[u64; 2]` and a 128-bit register hold the same bits.
         reduce2(u.coeffs.map(|c| unsafe { transmute::<[u64; 2], uint64x2_t>(c) }))
+    }
+
+    /// The mixed inner product over packed weights, keeping accumulators in NEON registers.
+    #[inline(always)]
+    pub fn dot_base(w: &[super::Weights8], k: &[F64]) -> F128Unreduced {
+        use crate::field::gf2_64::aarch64::{pmull_hi_asm, pmull_lo_asm};
+        // SAFETY: module cfg enables aes (PMULL); `k.len() == 8 * w.len()` is asserted by caller.
+        unsafe {
+            let mut acc0 = [vdupq_n_u64(0); 2];
+            let mut acc1 = [vdupq_n_u64(0); 2];
+            for (w, k) in w.iter().zip(k.as_chunks::<8>().0) {
+                let kp = k.as_ptr().cast::<u64>();
+                let lop = w.lo.as_ptr();
+                let hip = w.hi.as_ptr();
+                for j in 0..4 {
+                    let kv = vld1q_u64(kp.add(2 * j));
+                    let kv_swap = vextq_u64::<1>(kv, kv);
+                    let lo = vld1q_u64(lop.add(2 * j));
+                    let hi = vld1q_u64(hip.add(2 * j));
+                    let e0 = pmull_lo_asm(lo, kv);
+                    let o0 = pmull_lo_asm(hi, kv_swap);
+                    let e1 = pmull_hi_asm(lo, kv_swap);
+                    let o1 = pmull_hi_asm(hi, kv);
+                    let slot = j & 1;
+                    acc0[slot] = xor3(acc0[slot], e0, o0);
+                    acc1[slot] = xor3(acc1[slot], e1, o1);
+                }
+            }
+            unreduced([veorq_u64(acc0[0], acc0[1]), veorq_u64(acc1[0], acc1[1])])
+        }
     }
 }
 
@@ -1017,13 +1080,15 @@ pub mod x86_64 {
     #[inline]
     #[target_feature(enable = "vpclmulqdq", enable = "avx512f")]
     pub fn dot_base(w: &[super::Weights8], k: &[F64]) -> F128Unreduced {
-        let xor = |x, y| _mm512_xor_si512(x, y);
         let mut acc = [_mm512_setzero_si512(); 2];
         for (b, w) in w.iter().enumerate() {
             let kv = crate::simd::load(&k[8 * b..], 0);
             let (lo, hi) = (crate::simd::load(&w.lo, 0), crate::simd::load(&w.hi, 0));
             let [e0, e1, o0, o1] = mul_by_pairs(lo, hi, kv);
-            acc = [xor(acc[0], xor(e0, o0)), xor(acc[1], xor(e1, o1))];
+            acc = [
+                _mm512_ternarylogic_epi64::<0x96>(acc[0], e0, o0),
+                _mm512_ternarylogic_epi64::<0x96>(acc[1], e1, o1),
+            ];
         }
         // Fold the four 128-bit lanes of each sum into one.
         let lanes = acc.map(|a| {
@@ -1032,6 +1097,43 @@ pub mod x86_64 {
             bits::<__m128i, [u64; 2]>(q)
         });
         F128Unreduced { coeffs: lanes }
+    }
+
+    /// [`super::dot_base`] in four 128-bit pairs for PCLMULQDQ targets without VPCLMULQDQ.
+    ///
+    /// # Safety
+    ///
+    /// Callable only where pclmulqdq is enabled; `k.len() == 8 * w.len()`.
+    #[cfg(not(all(target_feature = "vpclmulqdq", target_feature = "avx2")))]
+    #[inline]
+    #[target_feature(enable = "pclmulqdq")]
+    pub fn dot_base_xmm(w: &[super::Weights8], k: &[F64]) -> F128Unreduced {
+        let mut acc0 = _mm_setzero_si128();
+        let mut acc1 = _mm_setzero_si128();
+        for (w, k) in w.iter().zip(k.as_chunks::<8>().0) {
+            let kp = k.as_ptr().cast::<__m128i>();
+            let lop = w.lo.as_ptr().cast::<__m128i>();
+            let hip = w.hi.as_ptr().cast::<__m128i>();
+            for j in 0..4 {
+                // SAFETY: `k` has 8 `F64`s (4 `m128i`); `w.lo`/`w.hi` are 64-byte aligned with 8 `u64`s.
+                let (kv, lo, hi) = unsafe {
+                    (
+                        _mm_loadu_si128(kp.add(j)),
+                        _mm_load_si128(lop.add(j)),
+                        _mm_load_si128(hip.add(j)),
+                    )
+                };
+                let e0 = _mm_clmulepi64_si128::<0x00>(lo, kv);
+                let e1 = _mm_clmulepi64_si128::<0x01>(lo, kv);
+                let o0 = _mm_clmulepi64_si128::<0x10>(hi, kv);
+                let o1 = _mm_clmulepi64_si128::<0x11>(hi, kv);
+                acc0 = _mm_xor_si128(acc0, _mm_xor_si128(e0, o0));
+                acc1 = _mm_xor_si128(acc1, _mm_xor_si128(e1, o1));
+            }
+        }
+        F128Unreduced {
+            coeffs: [bits::<__m128i, [u64; 2]>(acc0), bits::<__m128i, [u64; 2]>(acc1)],
+        }
     }
 
     /// The four products of `mul_by_pairs` on two lanes, for a machine with VPCLMULQDQ but no AVX-512.
