@@ -18,7 +18,6 @@ LV = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '
 GUEST = os.path.join(LV, 'LeanVM', 'Guest')
 OUT = os.path.join(GUEST, 'CoreMode', 'Pows')
 
-NS = re.compile(r'^namespace LeanVM\.Guest\.Fn\.«([^»]+)»$(.*?)^end LeanVM\.Guest\.Fn\.«\1»$', re.M | re.S)
 SET = re.compile(r'\(\.set \d+ (\d+) 0\)')  # read by `frame_gen.py`
 WORD = re.compile(r'\(word (\d+) 0\)')
 

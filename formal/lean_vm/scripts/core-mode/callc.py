@@ -6,7 +6,7 @@ witnesses come from `infer.py`'s pass (`heapOkC`'s format, no extra feature) run
 not grow.
 
 `results()` returns `{name: dict(pass, sig, cs)}` for the functions whose certificate is complete, and the reasons of the
-others. Usage (a census): python3 -I scripts/core-mode/callc.py [--fn NAME]"""
+others. Usage: python3 -I scripts/core-mode/callc.py --emit [--check] [--why]"""
 import os, re, sys, collections
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -1248,18 +1248,6 @@ def emit(R, check):
     genfiles.fail_if_stale(stale, check)
 
 
-if __name__ == '__main__':
-    if '--emit' in sys.argv:
-        R, _ = results('why' if '--why' in sys.argv else True)
-        emit(R, '--check' in sys.argv)
-    elif '--fn' in sys.argv:
-        k = sys.argv[sys.argv.index('--fn') + 1]
-        I.F.clear()
-        I.F.update({'ptr', 'pfr'})
-        try:
-            r = infer_one(k, route.sigs())
-            print('ok', k, ldata(k, r))
-        except No as e:
-            print('no', k, e)
-    else:
-        results(True)
+if __name__ == '__main__' and '--emit' in sys.argv:
+    R, _ = results('why' if '--why' in sys.argv else True)
+    emit(R, '--check' in sys.argv)

@@ -21,7 +21,6 @@ import compiled as C  # noqa: E402
 LV = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
 GUEST = os.path.join(LV, 'LeanVM', 'Guest')
 STMT = os.path.join(LV, '..', 'Statement', 'Data')
-NSRE = re.compile(r'^namespace LeanVM\.Guest\.Fn\.«([^»]+)»$', re.M)
 
 
 def header(mod, what):

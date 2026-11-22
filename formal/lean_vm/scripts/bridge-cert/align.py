@@ -20,7 +20,6 @@ import data
 from data import parse, as_list, head, defs
 
 OUT = os.path.join(data.ROOT, 'Bridge', 'Align')
-FUEL = 1 << 20
 HALT = data.HALT
 
 

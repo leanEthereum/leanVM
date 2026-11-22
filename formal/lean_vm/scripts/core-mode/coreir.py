@@ -1,5 +1,5 @@
-"""The guest's core IR and compiled code, read back from the generated data for the core-mode census
-(`formal/notes/core-mode.md`). A measurement, not a proof.
+"""The guest's core IR and compiled code, read back from the generated data for the core route's
+generators (`formal/notes/core-mode.md`).
 
 `load()` returns a dict: `core`, each core function by stable name, `(params, body)`, statements as tuples
   ('a', atom)              atom = (kind, operands...) as `Core.Atom`, values by number
@@ -80,7 +80,3 @@ def load():
     os.replace(tmp, CACHE)
     return out
 
-
-if __name__ == '__main__':
-    d = load()
-    print(len(d['core']), 'core functions,', len(d['comp']), 'compiled')

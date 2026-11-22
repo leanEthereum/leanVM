@@ -3,7 +3,7 @@ with calls, on the bodies it does not close without residuals (its own candidate
 the check without calls leaves uncovered), with the inference's index rules (`idx`, `rules`) on, each certificate's
 residuals of a family the honest instances make true (`CoreMode.resFam`, sound in `EndExecCoreRes.lean`).
 
-`extend(out, why, S)` adds them to `callc.results()`'s. Usage (a census): python3 -I scripts/core-mode/callcres.py"""
+`extend(out, why, S)` adds them to `callc.results()`'s."""
 import os, re, sys, collections
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -706,17 +706,3 @@ def extend(out, why, S, verbose=False):
         print('calls with residuals: %d of %d candidates' % (len(got), len(cands)), dict(lost.most_common()))
     return got
 
-
-if __name__ == '__main__':
-    import callc, route
-    I.F.clear()
-    I.F.update({'ptr', 'pfr'})
-    out, why, S = {}, collections.Counter(), route.sigs()
-    for k in callc.candidates():
-        try:
-            out[k] = callc.infer_one(k, S)
-        except callc.No:
-            pass
-    got = extend(out, why, S, True)
-    for k in sorted(got):
-        print(k, len(got[k]['cert'].res))

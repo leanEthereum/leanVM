@@ -143,11 +143,9 @@ def cutLit(c):
 def fnData(D, n, cuts):
     """The function's `FFun` literal, its callees' packs, and the walk (with its cut states)."""
     f = D['fns'][n]
-    rt = ROUTE.get(n)
-    O_ = set(rt['O']) if rt else set(D['O'].get(n, []))
-    S_ = set(rt['S']) if rt else set()
-    # a function on the core route: its own residual divisors, not the mode walk's
-    F, entry, ln, sig, tgt, nzr = RUN.inputs(D, n, RUN.own_nz(D, n, O_, S_) if rt else None)
+    rt = ROUTE[n]
+    O_, S_ = set(rt['O']), set(rt['S'])
+    F, entry, ln, sig, tgt, nzr = RUN.inputs(D, n, RUN.own_nz(D, n, O_, S_))
     w = FR.Walk(F, entry, ln, sig, D['fsig'], f['hints'], nzr, tgt, O_, D['halt'], S=S_)
     w.cutAt = set(cuts)
     w.run(f['ops'])
@@ -160,12 +158,11 @@ def fnData(D, n, cuts):
     JT0[0] = jt0Of(D['fns'][n]['ns'])
     CALLEES.clear(); CALLEES.update(w.used); CALLEES.update(pc for ps in tgt[2].values() for pc in ps)
     sigs = {pc: byentry[pc] for pc in sorted(w.used)}
-    if rt and rt.get('kind') == 'lc':
+    if rt.get('kind') == 'lc':
         # a loop helper on the core route: its walk is told its environment's callees, its own entry
         # among them (`CoreMode.LoopOkC.fsigs`)
         sigs[entry] = n
-    packs = {D['fns'][byentry[pc]]['pack'] for pc in w.used}
-    if rt: packs |= {D['fns'][m]['pack'] for m in MG.calleesOf(n)}
+    packs = {D['fns'][byentry[pc]]['pack'] for pc in w.used} | {D['fns'][m]['pack'] for m in MG.calleesOf(n)}
     fx = D['facts'][n]
     facts = '{ env := %s, fpOne := %s, pows := fpows, scaled := %s }' % (
         lst(sorted(fx['env'].items()), lambda p: '(%d, %s)' % (p[0], sym(p[1]))),
@@ -186,14 +183,11 @@ def fnData(D, n, cuts):
             defs.append('/-- `%s`: its walk at offset %d. -/\nnoncomputable def %s : Option CoreMode.FSt × List (ℕ × List ℕ × '
                         'CoreMode.FSt) :=\n  %s\n\n' % (n, i, cn[i], cutLit(w.cutSt[i])))
         cutT = MG.trie(cn, lambda x: x)
-    if rt:
-        O, S = '%s.pairO' % MG.fnq(n), '%s.pairS' % MG.fnq(n)
-    else:
-        O, S = MG.bigTrie('frameO', 'Unit', {i: () for i in D['O'].get(n, [])}, lambda _: '()', defs), '.nil'
+    O, S = '%s.pairO' % MG.fnq(n), '%s.pairS' % MG.fnq(n)
     nzT, tidxT = MG.trie(nzr, lambda os: lst(os)), MG.trie(tidx, str)
     armsT = MG.trie({k: names[('frameArm', k)] for k in tarms}, lambda x: x)
     callsT = MG.trie({k: names[('frameCallee', k)] for k in tcalls}, lambda x: x)
-    if rt and cutT == '.nil':
+    if cutT == '.nil':
         # one `frame_fn%` (`CoreMode/FrameLit.lean`): the clauses that are not the defaults
         f = D['fns'][n]
         q = lambda m: MG.fnq(m)[3:]
@@ -211,8 +205,7 @@ def fnData(D, n, cuts):
         if n == 'main': cl.append('main')
         assert ln == f['count']
         return ('frame_fn%% %s %d [%s]%s\n' % (q(n), ln, ', '.join(callees), ''.join(' ' + c for c in cl))), defs, packs
-    if rt:
-        defs += envDefs(D, n, nzr)
+    defs += envDefs(D, n, nzr)
     lit = ('⟨%s, %s.entry, %d, %s.csig, %s, %d, %s, %s, %s, %s, %s, %s, %s, %s⟩' % (
         facts, MG.fnq(n), ln, MG.fnq(n), sigTrie(sigs.values()), D['halt'], hints, nzT, tidxT, armsT, callsT, O, S, cutT))
     return lit, defs, packs
@@ -240,9 +233,9 @@ def envDefs(D, n, nzr):
                 'true' if n == 'main' else 'false')]
 
 
-def imports(pack, packs, gens=(), glue=(), env=False):
+def imports(pack, packs, gens, glue):
     out = ['public import LeanVM.Guest.CoreMode.Frame', 'public import LeanVM.Guest.CoreMode.FrameLit', 'public import LeanVM.Guest.CoreMode.GlueP.«%s»' % pack,
-           'public import LeanVM.Guest.CoreMode.%s' % ('Env' if env else 'SigTrie'),
+           'public import LeanVM.Guest.CoreMode.Env',
            *['public import LeanVM.Guest.CoreMode.GlueA.«%s»' % q for q in sorted(set(glue) or {pack})],
            'public import LeanVM.Guest.Pack.«%s».Bundle' % pack]
     out += ['public import %s' % pair_mod(g, n) for g, n in sorted(set(gens))]
@@ -350,22 +343,18 @@ def main(argv):
             cur.append(n); size += c
         if cur: groups.append(cur)
         for k, g in enumerate(groups):
-            body = []; packs = set(); gens = set(); env = False
+            body = []; packs = set(); gens = set()
             for n in g:
                 lit, defs, ps = fnData(D, n, [])
                 packs |= ps
-                if n in ROUTE: env = True
                 ns_ = D['fns'][n]['ns']
-                if n in ROUTE: gens.add((gen_pack[n], ns_))
-                if lit.startswith('frame_fn% '):
-                    body.append(qual(ns_, ''.join(defs)) + lit)
-                else:
-                    body.append(qual(ns_, funDef(D, n, lit, defs)) + 'theorem Fn.«%s».frameOk : CoreMode.frameOk frameFun '
-                                'code.chunks.flatten = true := by\n  decide +kernel\n' % ns_)
+                gens.add((gen_pack[n], ns_))
+                # one `frame_fn%` a function: a short one has no cuts
+                body.append(qual(ns_, ''.join(defs)) + lit)
                 stats['fns'] += 1
             mod = 'LeanVM.Guest.CoreMode.Pack.«%s».Frame%d' % (p, k)
             files[os.path.join(OUT, p, 'Frame%d.lean' % k)] = (
-                header(mod, 'The kernel\'s checks of compiled functions\' frame walks.') + imports(p, packs, gens, {gen_pack.get(D['fns'][n]['ns'], p) for n in g}, env) +
+                header(mod, 'The kernel\'s checks of compiled functions\' frame walks.') + imports(p, packs, gens, {gen_pack.get(D['fns'][n]['ns'], p) for n in g}) +
                 '\nset_option linter.style.nameCheck false\n\nnamespace LeanVM.Guest\n\nopen LeanVM.Guest.Exec\n\n'
                 '@[expose] public section\n\n' + ''.join(body) + 'end\n\nend LeanVM.Guest\n')
         for k, n in enumerate(long_):
@@ -376,7 +365,7 @@ def main(argv):
             files[os.path.join(OUT, p, 'FrameD%d.lean' % k)] = (
                 header(mod, 'The frame walk\'s data of `%s`, checked in windows.' % n) +
                 'public import LeanVM.Guest.CoreMode.TrieOf\npublic import LeanVM.Guest.CoreMode.FrameSlice\n' +
-                imports(p, packs, [(gen_pack[n], ns_)] if n in ROUTE else [], {gen_pack.get(ns_, p)}, n in ROUTE) +
+                imports(p, packs, [(gen_pack[n], ns_)], {gen_pack.get(ns_, p)}) +
                 ns(ns_, funDef(D, n, lit, defs)))
             bounds = [0] + cuts + [D['fns'][n]['count']]
             # the windows over slices of the code's chunks (`CoreMode/FrameSlice.lean`): none walks the code before it

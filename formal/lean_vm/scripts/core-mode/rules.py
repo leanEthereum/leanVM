@@ -167,7 +167,3 @@ def run(P, st, r, site, conds):
             P.stats['rule-' + rule.__name__] += 1
             return w
     return None
-
-
-def term(P, st, a, b, cond):
-    return None

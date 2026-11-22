@@ -19,7 +19,6 @@ import os, re, subprocess, sys
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 import genfiles  # noqa: E402
 
-ROOT = os.getcwd()
 OUT = os.path.join("LeanVM", "Guest", "Data", "ValNames")
 SKIP = (os.path.join("LeanVM", "Guest", "Data"), os.path.join("LeanVM", "Guest", "Pack"))
 CITE = re.compile(r'\b(valf|val|pos)%((?:\s+«?[A-Za-z0-9_]+»?)+)\s+"([^"]+)"')

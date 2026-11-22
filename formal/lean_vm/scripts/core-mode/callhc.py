@@ -3,8 +3,7 @@ uncovered (atoms, branches and `match`es, one final `ret`), checked by `heapOkC`
 freely (preconditions only, no translation of their mode signature), every caller a body with calls (`callc.py`)
 re-inferred with that signature as its callee's (`CFun.hcs`). A leaf joins only when every caller then passes.
 
-`extend(out, why, S)` adds them to `callc.results()`'s and replaces their callers'. Usage (a census):
-python3 -I scripts/core-mode/callc.py"""
+`extend(out, why, S)` adds them to `callc.results()`'s and replaces their callers'."""
 import os, sys, collections
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)

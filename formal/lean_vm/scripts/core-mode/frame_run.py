@@ -1,14 +1,13 @@
-"""The frame walk's (`frame.py`) inputs for a function (`inputs`), its residual divisors from its own walk (`own_nz`),
-and a run of it (`run`), for `frame_gen.py`."""
+"""The frame walk's (`frame.py`) inputs for a function (`inputs`) and its residual divisors from its own walk (`own_nz`),
+for `frame_gen.py`."""
 import os, sys, collections
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import frame as FR  # noqa: E402
-import frame_data as FD  # noqa: E402
 
 
-def inputs(D, n, nzr=None):
-    """The walk's inputs; its residual divisors `nzr` if given, else none (`D['R']`)."""
+def inputs(D, n, nzr):
+    """The walk's inputs, its residual divisors `nzr`."""
     f = D['fns'][n]
     fx = D['facts'][n]
     F = FR.Facts(fx['env'], fx['fpOne'], fx['arms'], fx['scaled'], D['pows'])
@@ -25,9 +24,6 @@ def inputs(D, n, nzr=None):
             tab[ids[key]] = [pc - entry for pc in pcs] if local else list(pcs)
         idx[i] = ids[key]
     tgt = (idx, arms, calls)
-    if nzr is None:
-        nzr = {i: [r[1] for r in rs if r[0] == 'nz'] for i, rs in D['R'].get(n, {}).items()}
-        nzr = {i: v for i, v in nzr.items() if v}
     return F, entry, ln, D['fsig'][entry], tgt, nzr
 
 
@@ -45,12 +41,3 @@ def own_nz(D, n, O, S=frozenset()):
         return False
     FR.Walk(F, entry, ln, sig, D['fsig'], f['hints'], {}, tgt, set(O), D['halt'], need=need, S=set(S)).run(f['ops'])
     return {i: sorted(xs) for i, xs in sorted(nz.items())}
-
-
-def run(D, n, O=None, need=None):
-    f = D['fns'][n]
-    F, entry, ln, sig, tgt, nzr = inputs(D, n)
-    w = FR.Walk(F, entry, ln, sig, D['fsig'], f['hints'], nzr, tgt, set(D['O'].get(n, []) if O is None else O),
-                D['halt'], need=need)
-    w.run(f['ops'])
-    return w

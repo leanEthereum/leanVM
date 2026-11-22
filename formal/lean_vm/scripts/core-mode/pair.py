@@ -8,11 +8,9 @@ as a read (the oracle `O`) or a store (`S`) by the heap certificate (`heapOk`'s 
 jumps skip the reads at the head first. Every other instruction leaves the position. The certificate is the pair
 `(O, S)` the pass finds; the kernel's check recomputes the pass and compares.
 
-usage (from formal/lean_vm): python3 -I scripts/core-mode/pair.py [--fn NAME] [--emit [--mods FILE]] [--check]
-  [--oracle FILE.json] (compare O and S with `heap.py --oracle`'s export) [--all] (every function, reads by the def-use
-  designation: a measurement, nothing emitted)
+usage (from formal/lean_vm): python3 -I scripts/core-mode/pair.py [--fn NAME] [--emit] [--check]
 """
-import os, sys, glob, re, collections, json
+import os, sys, glob, re, collections
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 sys.path.append(os.path.join(HERE, '..'))
@@ -249,7 +247,7 @@ def count_loads(body):
 def collect():
     """Each function passing `heapOk`, with what its pairing reads and the pass's result; computed once while its
     inputs are unchanged (`memo.py`)."""
-    if '--all' in sys.argv or '--fn' in sys.argv:
+    if '--fn' in sys.argv:
         return _collect()
     import memo
     return memo.cached('pair.collect', _collect)
@@ -270,12 +268,6 @@ def _collect():
     for k, r in LCR.items():
         reads[k] = set(r['cert'].reads)
     ok = sorted(set(ok) | set(CR) | set(LCR))
-    if '--all' in sys.argv:
-        # every function, its reads by the def-use designation (`heap.reads_of`), a measurement only
-        for k, (params, b) in heap.CORE.items():
-            if k not in reads:
-                reads[k] = heap.reads_of(params, b)
-        ok = sorted(reads)
     only = sys.argv[sys.argv.index('--fn') + 1] if '--fn' in sys.argv else None
     if only:
         ok = [only]
@@ -522,11 +514,8 @@ def emit(out, check):
         set(glob.glob(os.path.join(GUEST, 'CoreMode', 'AlignOk', '*.lean')))
     stale = genfiles.sync(files, existing, check)
     lines = sum(t.count('\n') for t in files.values())
-    mods = sorted('LeanVM.Guest.' + os.path.relpath(p, GUEST)[:-5].replace('/', '.') for p in files)
-    mods = [re.sub(r'\.([^.«»]*[^A-Za-z0-9_.][^.]*?)(?=\.|$)', lambda m: '.«' + m.group(1) + '»', x) for x in mods]
     print(f'pair: {len(files)} modules, {lines} lines' + (f'; {len(stale)} stale' if check else ''))
     genfiles.fail_if_stale(stale, check, data.LEAN_VM, 10)
-    return mods
 
 
 def main():
@@ -537,19 +526,8 @@ def main():
     print('  failures by cause:', dict(by.most_common()))
     for k, r in sorted(fails.items())[:20]:
         print('   ', k, r)
-    if '--oracle' in sys.argv:
-        orc = json.load(open(sys.argv[sys.argv.index('--oracle') + 1]))
-        same = [k for k in out if k in orc and sorted(orc[k]['reads']) == out[k]['O'] and sorted(orc[k]['stores']) == out[k]['S']]
-        diff = [k for k in out if k in orc and k not in same]
-        print(f'  against the oracle: {len(same)} equal, {len(diff)} differ, {len([k for k in out if k not in orc])} not in it,'
-              f' {len([k for k in orc if k not in out])} only in it')
-        for k in diff[:10]:
-            print('   differ:', k, set(orc[k]['reads']) ^ set(out[k]['O']), set(orc[k]['stores']) ^ set(out[k]['S']))
-    if '--emit' in sys.argv and '--all' not in sys.argv:
-        mods = emit(out, '--check' in sys.argv)
-        if '--mods' in sys.argv:
-            with open(sys.argv[sys.argv.index('--mods') + 1], 'w') as fh:
-                fh.write('\n'.join(mods) + '\n')
+    if '--emit' in sys.argv:
+        emit(out, '--check' in sys.argv)
     return out
 
 
