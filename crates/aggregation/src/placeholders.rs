@@ -6,7 +6,6 @@ use super::child::{
     MU_CAP, QUERY_WINDOW_BITS, QUERY_WINDOWS_CAP, block_groups, col_groups, merkle_cap_depth, whir_levels,
 };
 use super::claim_pool::{ClaimSite, claim_pool, coord_difference, coord_kind, coord_scale, push_coord_terms};
-use super::coverage::CLAIMS_LABEL;
 use super::deferred::{BATCH_LAM_GRIND_BITS, RECURSION_AGG_LABEL};
 use super::hints::{DIGIT_GROUP, LX_DIGIT_GROUP, LX_WINDOW};
 use super::statement::{BIG_GROUPS, CLAIM_GROUP, STATEMENT_HEADER};
@@ -866,10 +865,6 @@ fn bytecode_placeholders(ph: &mut Placeholders, sides: &[Vec<Block>; 3], kbc: us
     let agg_seed = FiatShamirState::<F128>::from_label(RECURSION_AGG_LABEL).capacity_cells();
     for (c, cell) in agg_seed.iter().enumerate() {
         ph.set(&format!("AGG_SEED_{c}"), cell);
-    }
-    let claims_seed = FiatShamirState::<F128>::from_label(CLAIMS_LABEL).capacity_cells();
-    for (c, cell) in claims_seed.iter().enumerate() {
-        ph.set(&format!("CLAIMS_SEED_{c}"), cell);
     }
     // A child's words: its statement's two, its fresh claim, and its carried claim's cells.
     let child_words = 2 + 2 * defer_size;

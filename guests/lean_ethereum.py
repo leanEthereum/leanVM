@@ -396,7 +396,7 @@ STMT_CELLS = STMT_DEFER_OFF + DEFER_STMT_CELLS
 # half cells, XORed into the previous KECCAK_STATE-cell sponge state before a KECCAK,
 # and the last output's first two cells are the digest. A hash of runtime length
 # carries that state through a heap run between loop frames, KECCAK_STATE cells a
-# step (`claim_list_hash`).
+# step (`claim_list_digest`).
 KECCAK_STATE = KECCAK_STATE_PLACEHOLDER
 # Claims a declared claim list absorbs a loop frame: 68 cells, four block pairs. The
 # list's bulk goes CLAIM_BIG claims a frame, BIG_GROUPS of those groups, so that the
@@ -405,14 +405,8 @@ KECCAK_STATE = KECCAK_STATE_PLACEHOLDER
 CLAIM_GROUP = CLAIM_GROUP_PLACEHOLDER
 BIG_GROUPS = BIG_GROUPS_PLACEHOLDER
 CLAIM_BIG = CLAIM_GROUP * BIG_GROUPS
-# A claim list's walk record: the sponge state, then the running product of its factors.
-CLAIM_REC = KECCAK_STATE + 1
-# The coverage transcript's initial capacity (fiat_shamir's state from CLAIMS_LABEL).
-CLAIMS_SEED_0 = CLAIMS_SEED_0_PLACEHOLDER
-CLAIMS_SEED_1 = CLAIMS_SEED_1_PLACEHOLDER
-CLAIMS_SEED_2 = CLAIMS_SEED_2_PLACEHOLDER
-CLAIMS_SEED_3 = CLAIMS_SEED_3_PLACEHOLDER
-CLAIMS_SEED_4 = CLAIMS_SEED_4_PLACEHOLDER
+# A child list's walk record: the sponge state, then a coverage slot and a table entry.
+MONO_REC = KECCAK_STATE + 2
 
 # --------------------------------------------------------- WOTS+C (host-supplied)
 # Both schemes' one-time keys: chains of CHAIN_LENGTH positions, whose digits are
@@ -4365,300 +4359,197 @@ def list_split(n_g):
     return bigs, groups, rest
 
 
-def coverage_raw(n_lx_g, n_xdup_g, n_sp_g, n_sdup_g):
-    # A node without children: its tables, each scheme's declared claims and then its
-    # duplicate slots, which the raw signatures take one-to-one (`raw_signatures`).
-    # Returns the declared digests and the tables.
-    lx_slots_g = n_lx_g * n_xdup_g
-    sp_slots_g = n_sp_g * n_sdup_g
-    tx = HeapBuf(lx_slots_g ** 4)
-    x_0, x_1, x_p = claim_list_hash(tx, n_lx_g, 0, 1, 0)
-    dx_0, dx_1, dx_p = claim_list_hash(tx * n_lx_g ** 4, n_xdup_g, 0, 1, 0)
-    ts = HeapBuf(sp_slots_g ** 4)
-    s_0, s_1, s_p = claim_list_hash(ts, n_sp_g, 0, 1, 0)
-    ds_0, ds_1, ds_p = claim_list_hash(ts * n_sp_g ** 4, n_sdup_g, 0, 1, 0)
-    return x_0, x_1, s_0, s_1, tx, ts
-
-
-def coverage_committed(n_lx_g, n_xdup_g, n_raw_x_g, n_sp_g, n_sdup_g, n_raw_s_g, n_children_g, n_total_g, ch, g_squares):
-    # A node with children: each scheme's slots are, with multiplicity, its sources (the
-    # raw signatures' claims, then the children's lists). Both sides are committed before
-    # the challenges are drawn: the slots and the children's lists by their digests, the
-    # raw signatures by their slot indices, all absorbed into one transcript, hinted here
-    # and checked against what the lists hash to (the children's in `main`'s loop). Each
-    # side is then a product of alpha + c0 + beta1 c1 + beta2 c2 + beta3 c3 over its
-    # claims c, which differs between two different multisets, both of degree at most
-    # n_total in the challenges (`main`'s count), except with probability n_total / |E|
-    # per scheme. Returns the declared digests, each scheme's slot product, the tables
-    # (`raw_signatures`), the children's commitments and the raw signatures' indices.
-    #
-    # The commitments, in groups of four cells: the counts the two sides' layout depends on
-    # (the children's, then each scheme's raw signatures', then a zero), the two declared
-    # digests, the two duplicate digests, each child's two list digests, then the raw
-    # indices of each scheme, padded to whole groups.
-    lx_slots_g = n_lx_g * n_xdup_g
-    sp_slots_g = n_sp_g * n_sdup_g
-    rx_groups = hint_witness("raw_groups")
-    rs_groups = hint_witness("raw_groups")
-    assert log(rx_groups ** 4 / n_raw_x_g) < 4
-    assert log(rs_groups ** 4 / n_raw_s_g) < 4
-    n_groups = GEN ** 3 * n_children_g * rx_groups * rs_groups
-    commits = HeapBuf(n_groups ** 4)
-    hint_witness(commits[0:4], "claim_commits")
-    for xg in mul_range(GEN, n_groups):
-        group = commits * xg ** 4
-        hint_witness(group[0:4], "claim_commits")
-    assert commits[GEN ** 0] == n_children_g
-    assert commits[GEN ** 1] == n_raw_x_g
-    assert commits[GEN ** 2] == n_raw_s_g
-    assert commits[GEN ** 3] == 0
-    child_commits = commits * GEN ** 12
-    raw_x_idx = child_commits * n_children_g ** 4
-    raw_s_idx = raw_x_idx * rx_groups ** 4
-    absorbed = observe_groups(commits, n_groups)
-    # The challenges, after a grind for the 2 n_total factors both products have together.
-    g_log_total = log2_ceil_in_the_exponent(n_total_g, g_squares, 0, SIZE_BITS)
-    done = match(log(g_log_total), range(0, SIZE_BITS), lambda log_n: claim_challenges(absorbed, ch, log_n))  # a match needs a target
-    # The slots, in a table each where raw signatures read them, without any in a frame block alone.
-    lx_list = StackBuf(4)  # the declared digest, the slots' product, then the table
-    if n_raw_x_g == 1:
-        fx_0, fx_1, fx_p = claim_list_hash(0, n_lx_g, ch, 0, 1)
-        fdx_0, fdx_1, fdx_p = claim_list_hash(0, n_xdup_g, ch, 0, 1)
-        assert fdx_0 == commits[GEN ** 8]
-        assert fdx_1 == commits[GEN ** 9]
-        lx_list[0] = fx_0
-        lx_list[1] = fx_1
-        lx_list[2] = fx_p * fdx_p
-        lx_list[3] = 0
-    else:
-        tx = HeapBuf(lx_slots_g ** 4)
-        hx_0, hx_1, hx_p = claim_list_hash(tx, n_lx_g, ch, 1, 1)
-        hdx_0, hdx_1, hdx_p = claim_list_hash(tx * n_lx_g ** 4, n_xdup_g, ch, 1, 1)
-        assert hdx_0 == commits[GEN ** 8]
-        assert hdx_1 == commits[GEN ** 9]
-        lx_list[0] = hx_0
-        lx_list[1] = hx_1
-        lx_list[2] = hx_p * hdx_p
-        lx_list[3] = tx
-    sp_list = StackBuf(4)
-    if n_raw_s_g == 1:
-        fs_0, fs_1, fs_p = claim_list_hash(0, n_sp_g, ch, 0, 1)
-        fds_0, fds_1, fds_p = claim_list_hash(0, n_sdup_g, ch, 0, 1)
-        assert fds_0 == commits[GEN ** 10]
-        assert fds_1 == commits[GEN ** 11]
-        sp_list[0] = fs_0
-        sp_list[1] = fs_1
-        sp_list[2] = fs_p * fds_p
-        sp_list[3] = 0
-    else:
-        ts = HeapBuf(sp_slots_g ** 4)
-        hs_0, hs_1, hs_p = claim_list_hash(ts, n_sp_g, ch, 1, 1)
-        hds_0, hds_1, hds_p = claim_list_hash(ts * n_sp_g ** 4, n_sdup_g, ch, 1, 1)
-        assert hds_0 == commits[GEN ** 10]
-        assert hds_1 == commits[GEN ** 11]
-        sp_list[0] = hs_0
-        sp_list[1] = hs_1
-        sp_list[2] = hs_p * hds_p
-        sp_list[3] = ts
-    assert lx_list[0] == commits[GEN ** 4]
-    assert lx_list[1] == commits[GEN ** 5]
-    assert sp_list[0] == commits[GEN ** 6]
-    assert sp_list[1] == commits[GEN ** 7]
-    return lx_list[0], lx_list[1], sp_list[0], sp_list[1], lx_list[2], sp_list[2], lx_list[3], sp_list[3], child_commits, raw_x_idx, raw_s_idx
-
-
-def raw_signatures(n_raw_x_g, n_raw_s_g, tx, ts, lx_slots_g, sp_slots_g, n_total_g, x_idx, s_idx, ch, n_children_g, byte_bits, lx_tags: StackBuf(LX_N_TAGS)):
-    # Each raw signature is verified against the slot its hinted index names, an offset into
-    # its scheme's table bounded by that table's size, so no signature reaches the other
-    # scheme's claims. The bound is small by `assert_gpow(n_total_g)` (its log below the
-    # memory size). Without children the signature marks its slot, write-once memory
-    # rejecting a second mark and `main`'s count a missed one, so the signatures take the
-    # slots one-to-one; with them its index is the one the coverage transcript committed,
-    # and the slot's claim is a factor of its scheme's source product. Returns the two
-    # source products, 1 without children.
-    mark_run = StackBuf(1)
-    if n_children_g == 1:
-        marks_buf = HeapBuf(n_total_g)
-        mark_run[0] = marks_buf
-    else:
-        mark_run[0] = 0
-    marks = mark_run[0]
-    sp_marks = marks * lx_slots_g
-    px = HeapBuf(n_raw_x_g * GEN)
-    px[GEN ** 0] = 1
-    for xi in mul_range(1, n_raw_x_g):
-        idx = hint_witness("raw_index")
-        assert log(idx) < log(lx_slots_g)
-        signer = tx * (idx ** 4)
-        verify_lean_xmss(signer, lx_tags)
-        if n_children_g == 1:
-            marks[idx] = xi
-            px[xi * GEN] = 1
-        else:
-            assert idx == x_idx[xi]
-            px[xi * GEN] = px[xi] * heap_claim_factor(signer, ch)
-    ps = HeapBuf(n_raw_s_g * GEN)
-    ps[GEN ** 0] = 1
-    for xj in mul_range(1, n_raw_s_g):
-        off = hint_witness("sp_raw_index")
-        assert log(off) < log(sp_slots_g)
-        signer = ts * (off ** 4)
-        verify_sig_lean_sphincs(signer, byte_bits)
-        if n_children_g == 1:
-            sp_marks[off] = n_raw_x_g * xj
-            ps[xj * GEN] = 1
-        else:
-            assert off == s_idx[xj]
-            ps[xj * GEN] = ps[xj] * heap_claim_factor(signer, ch)
-    return px[n_raw_x_g], ps[n_raw_s_g]
-
-
-def observe_groups(cells, n_groups_g):
-    # The coverage transcript (CLAIMS_SEED, fiat_shamir's state from its label) observing
-    # n groups of four cells: the first waits in the initial rate, and each later one
-    # permutes the rate the previous left. Returns the record (capacity, then the full
-    # rate waiting) after the last.
-    chain = HeapBuf(n_groups_g ** PEND_SLOTS)
-    seed = [CLAIMS_SEED_0, CLAIMS_SEED_1, CLAIMS_SEED_2, CLAIMS_SEED_3, CLAIMS_SEED_4]
-    rate = StackBuf(8)
-    for k in unroll(0, 4):
-        fs_pack(rate, k, cells[GEN ** k], DS_OBSERVE)
-    for j in unroll(0, FS_CELLS):
-        chain[GEN ** j] = seed[j]
-    for j in unroll(0, 8):
-        chain[GEN ** (FS_CELLS + j)] = rate[j]
-    for xg in mul_range(GEN, n_groups_g):
-        row = chain * (xg * INV_GEN) ** PEND_SLOTS
-        row_cap = fs_load(row, 0, 1)
-        st = fs_perm_pending(row_cap, row, FS_CELLS)
-        group = cells * xg ** 4
-        next_rate = StackBuf(8)
-        for k in unroll(0, 4):
-            fs_pack(next_rate, k, group[GEN ** k], DS_OBSERVE)
-        nxt = row * GEN ** PEND_SLOTS
-        fs_store(nxt, 0, 1, st)
-        for j in unroll(0, 8):
-            nxt[GEN ** (FS_CELLS + j)] = next_rate[j]
-    return chain * (n_groups_g * INV_GEN) ** PEND_SLOTS
-
-
-def claim_challenges(rec, ch, log_n: Const):
-    # The multiset challenges alpha, beta1, beta2, beta3 into ch, drawn from the full rate
-    # waiting in `rec` after the grind for 2^(log_n + 1) factors, none below 2^4.
-    cap = fs_load(rec, 0, 1)
-    full = fs_perm_pending(cap, rec, FS_CELLS)
-    if const((log_n + 1) // 4 == 0):
-        st = full
-    else:
-        nonce = hint_witness("claims_nonce")
-        nonce_rate = StackBuf(8)
-        st = fs_absorb_nonce(full, nonce_rate, 0, nonce)
-        grind_check(st[1], log_n + 1 - 3)
-    ch[GEN ** 0] = st[0]
-    no_rate = StackBuf(8)
-    for i in unroll(1, 4):
-        st, c = squeeze(st, no_rate, 0)
-        ch[GEN ** i] = c
-    return 0
-
-
-@inline
-def claim_factor(blk, j: Const, fa, fb1, fb2, fb3):
-    # Claim j of a frame block as a factor of its scheme's multiset product.
-    return fa + blk[4 * j] + fb1 * blk[4 * j + 1] + fb2 * blk[4 * j + 2] + fb3 * blk[4 * j + 3]
-
-
-@inline
-def heap_claim_factor(claim, ch):
-    # The claim at a table's slot as a factor of its scheme's multiset product.
-    return ch[GEN ** 0] + claim[GEN ** 0] + ch[GEN ** 1] * claim[GEN ** 1] + ch[GEN ** 2] * claim[GEN ** 2] + ch[GEN ** 3] * claim[GEN ** 3]
-
-
-@inline
-def claim_block(blk, table, ch, prod, n: Const, in_table: Const, factors: Const):
-    # n claims of a list, hinted into the frame block blk, stored in the table too with
-    # in_table, and with `factors` multiplied into prod as factors. Returns the product.
-    for j in unroll(0, n):
-        hint_witness(blk[4 * j:4 * j + 4], "claims")
-    if const(in_table == 1):
-        for c in unroll(0, 4 * n):
-            table[GEN ** c] = blk[c]
-    if const(factors == 1):
-        fa = ch[GEN ** 0]
-        fb1 = ch[GEN ** 1]
-        fb2 = ch[GEN ** 2]
-        fb3 = ch[GEN ** 3]
-        for j in unroll(0, n):
-            prod = prod * claim_factor(blk, j, fa, fb1, fb2, fb3)
-    return prod
-
-
-def claim_list_hash(table, n_g, ch, in_table: Const, factors: Const):
-    # One claim list, hinted a frame block at a time: its hash, 64 bytes a claim, the
-    # claimed pubkey then the message it signed, an empty list hashing the empty string
-    # and the padding binding the length; with `factors`, the product of its claims'
-    # factors (else 1). With in_table it is stored at `table` too, where raw signatures
-    # read their claims.
-    # A walk record is the sponge state, then the running product.
-    out = StackBuf(3)
+def claim_list_digest(entries_ptr, n_g):
+    # The hash of one scheme's declared claims: 64 bytes a claim, the claimed pubkey
+    # then the message it signed. An empty list hashes the empty string, and the
+    # padding binds the length.
+    digest = StackBuf(2)
     if n_g == 1:
-        digest = StackBuf(2)
         keccak([0, 0], [0, 0], digest, len=0)
-        out[0] = digest[0]
-        out[1] = digest[1]
-        out[2] = 1
     else:
         bigs, groups, rest = list_split(n_g)
-        chain = HeapBuf((bigs * groups * GEN) ** CLAIM_REC)
+        chain = HeapBuf((bigs * groups * GEN) ** KECCAK_STATE)
         zero_state(chain)
-        chain[GEN ** KECCAK_STATE] = 1
         for xq in mul_range(1, bigs):
-            rec = chain * xq ** CLAIM_REC
-            nxt = rec * GEN ** CLAIM_REC
-            blk = StackBuf(4 * CLAIM_BIG)
-            if const(in_table == 1):
-                blk_table = table * xq ** (4 * CLAIM_BIG)
-            else:
-                blk_table = 0
-            nxt[GEN ** KECCAK_STATE] = claim_block(blk, blk_table, ch, rec[GEN ** KECCAK_STATE], CLAIM_BIG, in_table, factors)
-            keccak_cells(blk, nxt[0:KECCAK_STATE], state=rec[0:KECCAK_STATE], final=0)
-        mid = chain * bigs ** CLAIM_REC
-        if const(in_table == 1):
-            mid_table = table * bigs ** (4 * CLAIM_BIG)
-        else:
-            mid_table = 0
+            st = chain * xq ** KECCAK_STATE
+            nxt = st * GEN ** KECCAK_STATE
+            blk = entries_ptr * xq ** (4 * CLAIM_BIG)
+            for j in unroll(0, CLAIM_BIG):
+                hint_witness(blk[4 * j:4 * j + 4], "claims")
+            keccak_cells(blk[0:4 * CLAIM_BIG], nxt[0:KECCAK_STATE], state=st[0:KECCAK_STATE], final=0)
+        mid = chain * bigs ** KECCAK_STATE
+        mid_entries = entries_ptr * bigs ** (4 * CLAIM_BIG)
         for xq in mul_range(1, groups):
-            rec = mid * xq ** CLAIM_REC
-            nxt = rec * GEN ** CLAIM_REC
-            blk = StackBuf(4 * CLAIM_GROUP)
-            if const(in_table == 1):
-                blk_table = mid_table * xq ** (4 * CLAIM_GROUP)
-            else:
-                blk_table = 0
-            nxt[GEN ** KECCAK_STATE] = claim_block(blk, blk_table, ch, rec[GEN ** KECCAK_STATE], CLAIM_GROUP, in_table, factors)
-            keccak_cells(blk, nxt[0:KECCAK_STATE], state=rec[0:KECCAK_STATE], final=0)
-        last = mid * groups ** CLAIM_REC
-        if const(in_table == 1):
-            last_table = mid_table * groups ** (4 * CLAIM_GROUP)
+            st = mid * xq ** KECCAK_STATE
+            nxt = st * GEN ** KECCAK_STATE
+            blk = mid_entries * xq ** (4 * CLAIM_GROUP)
+            for j in unroll(0, CLAIM_GROUP):
+                hint_witness(blk[4 * j:4 * j + 4], "claims")
+            keccak_cells(blk[0:4 * CLAIM_GROUP], nxt[0:KECCAK_STATE], state=st[0:KECCAK_STATE], final=0)
+        last = mid * groups ** KECCAK_STATE
+        d0, d1 = match(log(rest), range(0, CLAIM_GROUP), lambda k: claim_list_last(last, mid_entries * groups ** (4 * CLAIM_GROUP), k))
+        digest[0] = d0
+        digest[1] = d1
+    return digest[0], digest[1]
+
+
+def claim_list_last(state, blk, k: Const):
+    digest = StackBuf(2)
+    if const(k == 0):
+        keccak_cells([0], digest, state=state[0:KECCAK_STATE], len=0)
+    else:
+        for j in unroll(0, k):
+            hint_witness(blk[4 * j:4 * j + 4], "claims")
+        keccak_cells(blk[0:4 * k], digest, state=state[0:KECCAK_STATE])
+    return digest[0], digest[1]
+
+
+@inline
+def child_claims(entries_ptr, region, marks, last_g, blk, n: Const):
+    # n of a child's claims, each read at a hinted index into THIS node's table and
+    # marked in the coverage table. The index is an offset into the scheme's region
+    # (`region`, the coverage table from the scheme's origin) and bounded by that
+    # region's size, last_g * GEN, so a child's claim can only ever land on a slot of
+    # its own scheme. The bound so written is its own range-check target, last_g.
+    for j in unroll(0, n):
+        off_hint = hint_witness("child_claim_index")
+        assert log(off_hint) < log(last_g * GEN)  # precondition as in the raw loops
+        region[off_hint] = marks * (GEN ** j)
+        entry = entries_ptr * (off_hint ** 4)
+        for c in unroll(0, 4):
+            blk[4 * j + c] = entry[GEN ** c]
+    return
+
+
+def child_claim_list_digest(entries_ptr, region, base, limit_g, n_g):
+    # The hash of one of a child's declared claim lists, over the same 64n bytes the
+    # child hashed (`claim_list_digest`), so the digest it rebuilds is the one the
+    # child's statement carries. The coverage marks lie in [base, base + n): the claims'
+    # running count, or `base` alone along a strictly increasing gap walk.
+    # A list whose slots strictly increase (no duplicate slot among them) takes the
+    # cheaper walk; either walk is sound on its own, so the choice is the prover's.
+    digest = StackBuf(2)
+    if n_g == 1:
+        keccak([0, 0], [0, 0], digest, len=0)
+    else:
+        bigs, groups, rest = list_split(n_g)
+        mono = hint_witness("child_mono")
+        if mono == GEN:
+            d0, d1 = child_claim_list_mono(entries_ptr, region, base, limit_g, bigs, groups, rest)
+            digest[0] = d0
+            digest[1] = d1
         else:
-            last_table = 0
-        d0, d1, p = match(log(rest), range(0, CLAIM_GROUP), lambda k: claim_list_hash_last(last, last_table, ch, in_table, factors, k))
-        out[0] = d0
-        out[1] = d1
-        out[2] = p
-    return out[0], out[1], out[2]
+            d0, d1 = child_claim_list_any(entries_ptr, region, base, limit_g, bigs, groups, rest)
+            digest[0] = d0
+            digest[1] = d1
+    return digest[0], digest[1]
 
 
-def claim_list_hash_last(rec, table, ch, in_table: Const, factors: Const, k: Const):
+def child_claim_list_any(entries_ptr, region, base, limit_g, bigs, groups, rest):
+    last_g = limit_g / GEN
+    chain = HeapBuf((bigs * groups * GEN) ** KECCAK_STATE)
+    zero_state(chain)
+    for xq in mul_range(1, bigs):
+        st = chain * xq ** KECCAK_STATE
+        nxt = st * GEN ** KECCAK_STATE
+        blk = StackBuf(4 * CLAIM_BIG)
+        child_claims(entries_ptr, region, base * xq ** CLAIM_BIG, last_g, blk, CLAIM_BIG)
+        keccak_cells(blk, nxt[0:KECCAK_STATE], state=st[0:KECCAK_STATE], final=0)
+    mid = chain * bigs ** KECCAK_STATE
+    mid_base = base * bigs ** CLAIM_BIG
+    for xq in mul_range(1, groups):
+        st = mid * xq ** KECCAK_STATE
+        nxt = st * GEN ** KECCAK_STATE
+        blk = StackBuf(4 * CLAIM_GROUP)
+        child_claims(entries_ptr, region, mid_base * xq ** CLAIM_GROUP, last_g, blk, CLAIM_GROUP)
+        keccak_cells(blk, nxt[0:KECCAK_STATE], state=st[0:KECCAK_STATE], final=0)
+    last = mid * groups ** KECCAK_STATE
+    d0, d1 = match(log(rest), range(0, CLAIM_GROUP), lambda k: child_claim_list_last(last, entries_ptr, region, mid_base * groups ** CLAIM_GROUP, last_g, k))
+    return d0, d1
+
+
+@inline
+def child_claims_mono(cov, ent, mark, blk, out, n: Const):
+    # n of a child's claims at strictly increasing offsets into THIS node's table: each
+    # hinted gap g^e, e >= 0 by the DEREF through it, moves the offset on by e + 1.
+    # cov and ent are the coverage slot and the table entry the next claim takes at
+    # gap zero; out receives them for the claim after the last. Every claim of the list
+    # writes the same mark, its first count: the walk cannot revisit a slot, and any
+    # other writer's value differs, so a slot written twice still conflicts.
+    for j in unroll(0, n):
+        gap = hint_witness("child_claim_gap")
+        assert_gpow(gap)
+        cov = cov * gap
+        gap2 = gap * gap
+        ent = ent * (gap2 * gap2)
+        cov[GEN ** j] = mark
+        for c in unroll(0, 4):
+            blk[4 * j + c] = ent[GEN ** (4 * j + c)]
+    out[0] = cov * GEN ** n
+    out[1] = ent * GEN ** (4 * n)
+    return
+
+
+def child_claim_list_mono(entries_ptr, region, base, limit_g, bigs, groups, rest):
+    # The walk of a list at strictly increasing offsets o_j = e_0 + ... + e_j + j, every
+    # e_j in [0, 2^h): its first offset is at least zero, and the count of claims, a
+    # memory address (`assert_gpow`, below 2^30), keeps the sum below 2^60, short
+    # of wrapping, so bounding its last offset below the region's size
+    # (child_claim_list_mono_last) bounds them all. A record carries the sponge state,
+    # then the walk's coverage slot and table entry.
+    chain = HeapBuf((bigs * groups * GEN) ** MONO_REC)
+    zero_state(chain)
+    chain[GEN ** KECCAK_STATE] = region
+    chain[GEN ** (KECCAK_STATE + 1)] = entries_ptr
+    for xq in mul_range(1, bigs):
+        rec = chain * xq ** MONO_REC
+        nxt = rec * GEN ** MONO_REC
+        blk = StackBuf(4 * CLAIM_BIG)
+        walk = StackBuf(2)
+        child_claims_mono(rec[GEN ** KECCAK_STATE], rec[GEN ** (KECCAK_STATE + 1)], base, blk, walk, CLAIM_BIG)
+        nxt[GEN ** KECCAK_STATE] = walk[0]
+        nxt[GEN ** (KECCAK_STATE + 1)] = walk[1]
+        keccak_cells(blk, nxt[0:KECCAK_STATE], state=rec[0:KECCAK_STATE], final=0)
+    mid = chain * bigs ** MONO_REC
+    for xq in mul_range(1, groups):
+        rec = mid * xq ** MONO_REC
+        nxt = rec * GEN ** MONO_REC
+        blk = StackBuf(4 * CLAIM_GROUP)
+        walk = StackBuf(2)
+        child_claims_mono(rec[GEN ** KECCAK_STATE], rec[GEN ** (KECCAK_STATE + 1)], base, blk, walk, CLAIM_GROUP)
+        nxt[GEN ** KECCAK_STATE] = walk[0]
+        nxt[GEN ** (KECCAK_STATE + 1)] = walk[1]
+        keccak_cells(blk, nxt[0:KECCAK_STATE], state=rec[0:KECCAK_STATE], final=0)
+    last = mid * groups ** MONO_REC
+    d0, d1 = match(log(rest), range(0, CLAIM_GROUP), lambda k: child_claim_list_mono_last(last, region, base, limit_g, k))
+    return d0, d1
+
+
+def child_claim_list_mono_last(rec, region, mark, limit_g, k: Const):
     digest = StackBuf(2)
     if const(k == 0):
         keccak_cells([0], digest, state=rec[0:KECCAK_STATE], len=0)
-        p = rec[GEN ** KECCAK_STATE]
+        cov_end = rec[GEN ** KECCAK_STATE]
     else:
         blk = StackBuf(4 * CLAIM_GROUP)
-        p = claim_block(blk, table, ch, rec[GEN ** KECCAK_STATE], k, in_table, factors)
+        walk = StackBuf(2)
+        child_claims_mono(rec[GEN ** KECCAK_STATE], rec[GEN ** (KECCAK_STATE + 1)], mark, blk, walk, k)
         keccak_cells(blk[0:4 * k], digest, state=rec[0:KECCAK_STATE])
-    return digest[0], digest[1], p
+        cov_end = walk[0]
+    # The offset after the last claim is at most the region's size.
+    assert log(cov_end / region) < log(limit_g * GEN)
+    return digest[0], digest[1]
+
+
+def child_claim_list_last(state, entries_ptr, region, marks, last_g, k: Const):
+    digest = StackBuf(2)
+    if const(k == 0):
+        keccak_cells([0], digest, state=state[0:KECCAK_STATE], len=0)
+    else:
+        blk = StackBuf(4 * CLAIM_GROUP)
+        child_claims(entries_ptr, region, marks, last_g, blk, k)
+        keccak_cells(blk[0:4 * k], digest, state=state[0:KECCAK_STATE])
+    return digest[0], digest[1]
 
 
 
@@ -4877,8 +4768,36 @@ def main():
     seed_0 = fs_seed[0]
     seed_1 = fs_seed[1]
 
-    # ---- the claim lists and their coverage ----
+    # ---- the claim lists ----
     g_squares = exponent_tables()
+
+    # One table per scheme: its declared list (strictly sorted, checked by the outer
+    # verifier, which holds it) followed by its own duplicate slots. The coverage
+    # indices below run over one space: leanXMSS, then leanSPHINCS.
+    #
+    # Each list's digest is a plain hash of its claims, 64 bytes a claim, its padding
+    # binding its length; the statement carries the two digests side by side.
+    lx_table = HeapBuf(lx_slots_g ** 4)
+    lean_sphincs_table = HeapBuf(lean_sphincs_slots_g ** 4)
+    xd_0, xd_1 = claim_list_digest(lx_table, n_lx_g)
+    sd_0, sd_1 = claim_list_digest(lean_sphincs_table, n_lean_sphincs_g)
+    # The duplicate slots ride the same tables but outside the hashed prefixes.
+    for xd in mul_range(1, n_xdup_g):
+        dup = lx_table * ((n_lx_g * xd) ** 4)
+        hint_witness(dup[0:4], "dup_claims")
+    for xd in mul_range(1, n_sdup_g):
+        dup = lean_sphincs_table * ((n_lean_sphincs_g * xd) ** 4)
+        hint_witness(dup[0:4], "dup_claims")
+
+    # ---- coverage ----
+    # Every one of the n_total slots is written exactly once: write-once memory
+    # rejects a second write (each writer's marks lie in its own range of counts, and a
+    # gap-walked child list never revisits a slot, so two writes to one slot disagree),
+    # and the count below rejects a missed one. So every
+    # declared claim is covered by a direct check of its own kind or by a verified
+    # child. Each writer is confined to its own region.
+    cover = HeapBuf(n_total_g)
+    sp_cover = cover * lx_slots_g  # the leanSPHINCS region
     # byte_bits[g^v] = v, read at a hinted byte's exponent (sp_from_bytes, da_verify).
     byte_bits = HeapBuf(SP_BYTE_VALUES)
     for v in unroll(0, SP_BYTE_VALUES):
@@ -4889,48 +4808,20 @@ def main():
     for i in unroll(1, LX_V):
         if const(LX_TAG_SLOT[i] != 0):
             lx_tags[LX_TAG_SLOT[i] - 1] = i
-    # Each scheme's slots, its declared claims (strictly sorted, checked by the outer
-    # verifier, which holds them) and then its duplicate slots, must be covered, with
-    # multiplicity, by its sources: the raw signatures' claims, then the children's
-    # lists. Without children, the raw signatures take their slots one-to-one
-    # (`coverage_raw`); with them, the two sides are multisets that agree
-    # (`coverage_committed`, the children's half in the loop below). The statement
-    # carries the two declared digests side by side.
-    ch = HeapBuf(4)  # the multiset challenges
-    # The declared digests, the slot products, the tables, the children's commitments, then the raw indices.
-    cov = StackBuf(11)
-    if n_children_g == 1:
-        r0, r1, r2, r3, r4, r5 = coverage_raw(n_lx_g, n_xdup_g, n_lean_sphincs_g, n_sdup_g)
-        cov[0] = r0
-        cov[1] = r1
-        cov[2] = r2
-        cov[3] = r3
-        cov[4] = 1
-        cov[5] = 1
-        cov[6] = r4
-        cov[7] = r5
-        cov[8] = 0
-        cov[9] = 0
-        cov[10] = 0
-    else:
-        c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10 = coverage_committed(n_lx_g, n_xdup_g, n_raw_x_g, n_lean_sphincs_g, n_sdup_g, n_raw_s_g, n_children_g, n_total_g, ch, g_squares)
-        cov[0] = c0
-        cov[1] = c1
-        cov[2] = c2
-        cov[3] = c3
-        cov[4] = c4
-        cov[5] = c5
-        cov[6] = c6
-        cov[7] = c7
-        cov[8] = c8
-        cov[9] = c9
-        cov[10] = c10
-    xd_0 = cov[0]
-    xd_1 = cov[1]
-    sd_0 = cov[2]
-    sd_1 = cov[3]
-    child_commits = cov[8]
-    raw_x_p, raw_s_p = raw_signatures(n_raw_x_g, n_raw_s_g, cov[6], cov[7], lx_slots_g, lean_sphincs_slots_g, n_total_g, cov[9], cov[10], ch, n_children_g, byte_bits, lx_tags)
+    for xi in mul_range(1, n_raw_x_g):
+        idx = hint_witness("raw_index")
+        # The runtime bound is small by `assert_gpow(n_total_g)` above (its log below
+        # the memory size). Without it this degenerates to what DEREF alone gives and an
+        # index could reach past `cover`, which is the whole bijection. The bound is the
+        # leanXMSS region, so a raw leanXMSS signature covers no leanSPHINCS claim.
+        assert log(idx) < log(lx_slots_g)
+        cover[idx] = xi
+        verify_lean_xmss(lx_table * (idx ** 4), lx_tags)
+    for xj in mul_range(1, n_raw_s_g):
+        off_hint = hint_witness("sp_raw_index")
+        assert log(off_hint) < log(lean_sphincs_slots_g)
+        sp_cover[off_hint] = n_raw_x_g * xj
+        verify_sig_lean_sphincs(lean_sphincs_table * (off_hint ** 4), byte_bits)
 
     # ---- data availability ----
     # One DA digest per child, read off its statement below, then the node's own:
@@ -4945,32 +4836,26 @@ def main():
         own_da[GEN] = 0
 
     # ---- children ----
-    # Each child's two lists, hinted and hashed here, must hash to the digests the
-    # transcript committed: they are what the child's statement carries, so a lie
-    # about any claim changes the public input its proof has to satisfy. A record per
-    # child: both schemes' running source products, then the running source count.
     child_pi = HeapBuf(n_children_g * n_children_g)
     child_fresh = HeapBuf(n_children_g ** DEFER_SIZE)
     child_carried = HeapBuf(n_children_g ** DEFER_STMT_CELLS)
-    sources = HeapBuf((n_children_g * GEN) ** 3)
-    sources[GEN ** 0] = raw_x_p
-    sources[GEN ** 1] = raw_s_p
-    sources[GEN ** 2] = n_raw_x_g * n_raw_s_g
+    written = HeapBuf(n_children_g * GEN)  # loop-carried write count, one per child
+    written[GEN ** 0] = n_raw_x_g * n_raw_s_g
     for xc in mul_range(1, n_children_g):
-        rec = sources * xc ** 3
+        base = written[xc]
+        # The child's two list lengths, then its two lists, rebuilt from THIS node's
+        # tables through hinted indices: everything hinted there is pinned by the
+        # list digests, which the child's statement carries, so a lie about any of it
+        # changes the public input its proof has to satisfy.
         child_meta = StackBuf(2)
         hint_witness(child_meta, "child_meta")  # n_lean_xmss, n_lean_sphincs
         nsub_x_g = child_meta[0]
         nsub_s_g = child_meta[1]
         assert_gpow(nsub_x_g)
         assert_gpow(nsub_s_g)
-        cx_0, cx_1, cx_p = claim_list_hash(0, nsub_x_g, ch, 0, 1)
-        cs_0, cs_1, cs_p = claim_list_hash(0, nsub_s_g, ch, 0, 1)
-        committed = child_commits * xc ** 4
-        assert cx_0 == committed[GEN ** 0]
-        assert cx_1 == committed[GEN ** 1]
-        assert cs_0 == committed[GEN ** 2]
-        assert cs_1 == committed[GEN ** 3]
+        nsub_g = nsub_x_g * nsub_s_g
+        cx_0, cx_1 = child_claim_list_digest(lx_table, cover, base, lx_slots_g, nsub_x_g)
+        cs_0, cs_1 = child_claim_list_digest(lean_sphincs_table, sp_cover, base * nsub_x_g, lean_sphincs_slots_g, nsub_s_g)
         carried = child_carried * xc ** DEFER_STMT_CELLS
         hint_witness(carried[0:DEFER_STMT_CELLS], "child_defer")
         child_da = da_digests * xc ** 2
@@ -4980,16 +4865,8 @@ def main():
         child_pi[pi] = pi_0
         child_pi[pi * GEN] = pi_1
         verify_sub(pi_0, pi_1, seed_0, seed_1, g_squares, child_fresh * xc ** DEFER_SIZE)
-        nxt = rec * GEN ** 3
-        nxt[GEN ** 0] = rec[GEN ** 0] * cx_p
-        nxt[GEN ** 1] = rec[GEN ** 1] * cs_p
-        nxt[GEN ** 2] = rec[GEN ** 2] * nsub_x_g * nsub_s_g
-    # As many sources as slots: without children, every slot a raw signature's; with
-    # them, neither product has a degree above n_total, and each scheme's multisets agree.
-    all_sources = sources * n_children_g ** 3
-    assert all_sources[GEN ** 2] == n_total_g
-    assert all_sources[GEN ** 0] == cov[4]
-    assert all_sources[GEN ** 1] == cov[5]
+        written[xc * GEN] = base * nsub_g
+    assert written[n_children_g] == n_total_g
 
     # The published DA digest: a child's or the node's own, its own if it has blobs.
     da_pick = hint_witness("da_pick")

@@ -5,7 +5,7 @@ use super::guest::{GUEST_SOURCE, compile_guest, unified_guest};
 use super::hints::{FORGE, Forgery, Hints};
 use super::placeholders::placeholder_map;
 use super::proof::{AggregateProof, decode, encode};
-use super::statement::CLAIM_GROUP;
+use super::statement::{CLAIM_GROUP, claim_list_digest, list_split};
 use super::*;
 use fiat_shamir_prover::merkle::hash_to_scalars;
 use isa::Program;
@@ -315,8 +315,8 @@ fn guest_column_selectors_match_native_eq() {
 /// The right leaf holds more claims than one loop frame of its list hashes
 /// ([`CLAIM_GROUP`]), so both that leaf and the parent rebuilding it run the
 /// list's group loop and then a partial last group, while the left leaf's list is
-/// a partial group alone. The leaves share three signers, so the parent takes three
-/// duplicate slots.
+/// a partial group alone. The leaves share three signers, so the parent rebuilds the
+/// right list on the walk that allows repeated slots (`child_claim_list_any`).
 #[test]
 fn aggregate_two_to_one() {
     let big = 2 * CLAIM_GROUP + 3;
@@ -324,7 +324,10 @@ fn aggregate_two_to_one() {
     let left = prove(&[], &signers[..SMALL_LEAF_SIZE], &[]);
     let right = prove(&[], &signers[SMALL_LEAF_SIZE - 3..], &[]);
     let cover = super::coverage::plan_coverage(&[], &[], &[left.clone(), right.clone()], None).unwrap();
-    assert_eq!(cover.lean_xmss.dups.len(), 3);
+    assert!(
+        !cover.lean_xmss.children[1].is_sorted_by(|a, b| a < b),
+        "the right list takes the repeated-slot walk"
+    );
     // A child whose claims are out of order, or whose proof the replay cannot walk, is refused before proving.
     let node_of = |left: Node| aggregate(&[left, right.clone()], vec![], vec![], None, OutputClaims::All).err();
     let mut unsorted = left.clone();
@@ -673,31 +676,44 @@ fn aggregate_two_messages() {
     assert_eq!(node.0.lean_xmss, expected);
 }
 
-/// Coverage rides on hints the transcript commits: a child's claim other than the one its list digest commits, a
-/// commitment the lists do not hash to, counts other than the node's, or a raw signature named to another slot fails
-/// the guest's run. The groups: the counts, the declared digests, the duplicate digests, the child's, the raw slots.
+/// A child list walked by gaps (`child_claim_list_mono`) moves strictly forward. A
+/// child may declare a claim twice, and a gap of `g^-1` would walk the copy back onto
+/// the slot it just covered, with the same coverage mark, so write-once memory alone
+/// would not see it: only the gap's `assert_gpow` does.
 #[test]
-fn forged_coverage_hints_are_rejected() {
-    let signers = get_signers::<StableProver>(SMALL_LEAF_SIZE + 1);
-    let child = prove(&[], &signers[..SMALL_LEAF_SIZE], &[]);
-    // The node's declared list, then the child's: its last claim is the last entry.
-    let child_claim = 2 * SMALL_LEAF_SIZE;
-    let forgeries: [Forgery; 5] = [
-        Box::new(move |hints: &mut Hints| hints.entry_mut("claims", child_claim)[0] += F128::ONE),
-        Box::new(|hints: &mut Hints| hints.entry_mut("claim_commits", 3)[1] += F128::ONE),
-        Box::new(|hints: &mut Hints| hints.entry_mut("claim_commits", 0)[1] *= count(1)),
-        Box::new(|hints: &mut Hints| hints.entry_mut("claim_commits", 4)[0] *= count(1)),
-        Box::new(|hints: &mut Hints| hints.entry_mut("raw_index", 0)[0] *= count(1)),
-    ];
-    for forgery in forgeries {
-        assert_forgery_rejected(
-            forgery,
-            std::slice::from_ref(&child),
-            signers[SMALL_LEAF_SIZE..].to_vec(),
-            vec![],
-            &[],
-        );
-    }
+fn a_child_walk_cannot_step_back() {
+    let guest = guest_snippet(
+        r#"    n_c = hint_witness("n")
+    table = HeapBuf(GEN ** 8)
+    hint_witness(table[0:8], "claims")
+    cover = HeapBuf(GEN ** 2)
+    d0, d1 = child_claim_list_digest(table, cover, GEN ** 3, GEN ** 2, n_c)
+    public = GEN ** 0
+    assert public[1] == d0
+    assert public[GEN] == d1
+    return
+"#,
+        20,
+    );
+    let claim = |i: u64| [1, 2, 3, 4].map(|k| F128::new(i * 7919 + k, k));
+    let table: Vec<F128> = [claim(0), claim(1)].concat();
+    let walk = |child: &[[F128; 4]], gaps: &[F128]| {
+        let mut hints = Hints::default();
+        hints.push("n", vec![count(child.len())]);
+        hints.push("claims", table.clone());
+        hints.push("signers_split", list_split(child.len()));
+        hints.push("child_mono", vec![count(1)]);
+        for &gap in gaps {
+            hints.push("child_claim_gap", vec![gap]);
+        }
+        execute(&guest, &hints.0, claim_list_digest(child.iter().copied()))
+    };
+    assert!(walk(&[claim(0), claim(1)], &[count(0), count(0)]).is_ok());
+    let back = count(1).inv();
+    assert!(
+        walk(&[claim(0), claim(0)], &[count(0), back]).is_err(),
+        "a walk revisited a slot"
+    );
 }
 
 /// Three levels, both schemes. Each node has a child of one scheme only, so it rebuilds a list empty on one side,

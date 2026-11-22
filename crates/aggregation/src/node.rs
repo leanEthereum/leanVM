@@ -2,7 +2,7 @@
 
 use super::cells::count;
 use super::child::gen_verify;
-use super::coverage::{claim_commitments, plan_coverage};
+use super::coverage::plan_coverage;
 use super::deferred::{DeferredBytecodeClaim, aggregate_deferred_claims, bytecode_sums};
 use super::error::AggregateError;
 use super::guest::{fs_seed, unified_guest};
@@ -135,62 +135,51 @@ pub fn aggregate<P: Prover>(
         ],
     );
     hints.push("fs_seed", fs_seed().to_vec());
-    // Each raw signature's slot rides its own hint (`raw_signatures`), a stream of its own per loop: the executor runs
-    // a loop that pops one in parallel segments. With children, the coverage transcript's commitments carry the slots
-    // too, then its nonce (`coverage_committed`).
-    for (name, slots) in [
-        ("raw_index", &cover.lean_xmss.raw),
-        ("sp_raw_index", &cover.lean_sphincs.raw),
-    ] {
-        for &slot in slots {
-            hints.push(name, vec![count(slot)]);
+    // Both lists in the guest's order, leanXMSS first: each one's split, its declared claims, then its duplicates.
+    let lean_xmss_cells: Vec<[F128; 4]> = cover.lean_xmss.signers.iter().map(lean_xmss_claim_cells).collect();
+    let lean_sphincs_cells: Vec<[F128; 4]> = cover
+        .lean_sphincs
+        .signers
+        .iter()
+        .map(lean_sphincs_claim_cells)
+        .collect();
+    for cells in [&lean_xmss_cells, &lean_sphincs_cells] {
+        if !cells.is_empty() {
+            hints.push("signers_split", list_split(cells.len()));
+        }
+        for claim in cells {
+            hints.push("claims", claim.to_vec());
         }
     }
-    if !children.is_empty() {
-        let (commitments, raw_groups, nonce) = claim_commitments(&cover, children);
-        for groups in raw_groups {
-            hints.push("raw_groups", vec![count(groups)]);
-        }
-        for group in commitments {
-            hints.push("claim_commits", group.to_vec());
-        }
-        if let Some(nonce) = nonce {
-            hints.push("claims_nonce", vec![F128::new(nonce, 0)]);
-        }
+    let dups = cover.lean_xmss.dups.iter().map(lean_xmss_claim_cells);
+    for claim in dups.chain(cover.lean_sphincs.dups.iter().map(lean_sphincs_claim_cells)) {
+        hints.push("dup_claims", claim.to_vec());
     }
-    // Every list in the guest's order: leanXMSS's declared claims and duplicates, then leanSPHINCS's, each non-empty
-    // one its split, then its claims.
-    let lists = [
-        cover
-            .lean_xmss
-            .signers
-            .iter()
-            .map(lean_xmss_claim_cells)
-            .collect::<Vec<_>>(),
-        cover.lean_xmss.dups.iter().map(lean_xmss_claim_cells).collect(),
-        cover
-            .lean_sphincs
-            .signers
-            .iter()
-            .map(lean_sphincs_claim_cells)
-            .collect(),
-        cover.lean_sphincs.dups.iter().map(lean_sphincs_claim_cells).collect(),
-    ];
-    for cells in &lists {
-        push_list(&mut hints, cells);
-    }
+    // Each slot is hinted as an offset into its scheme's region, which is how one range check keeps a scheme's
+    // writers off the other's claims.
     let raw = [
-        P::map_collect(raw_lean_xmss.len(), |i| {
-            let (pk, message, sig) = &raw_lean_xmss[i];
-            lean_xmss_hints(pk, sig, message)
-        }),
-        P::map_collect(raw_lean_sphincs.len(), |i| {
-            let (pk, message, sig) = &raw_lean_sphincs[i];
-            lean_sphincs_hints(pk, sig, message)
-        }),
+        (
+            "raw_index",
+            &cover.lean_xmss.raw,
+            P::map_collect(raw_lean_xmss.len(), |i| {
+                let (pk, message, sig) = &raw_lean_xmss[i];
+                lean_xmss_hints(pk, sig, message)
+            }),
+        ),
+        (
+            "sp_raw_index",
+            &cover.lean_sphincs.raw,
+            P::map_collect(raw_lean_sphincs.len(), |i| {
+                let (pk, message, sig) = &raw_lean_sphincs[i];
+                lean_sphincs_hints(pk, sig, message)
+            }),
+        ),
     ];
-    for signature in raw.into_iter().flatten() {
-        hints.extend(signature?);
+    for (name, offsets, signatures) in raw {
+        for (&offset, signature) in offsets.iter().zip(signatures) {
+            hints.push(name, vec![count(offset)]);
+            hints.extend(signature?);
+        }
     }
 
     // Each child's fresh claim, the one its verification raises.
@@ -207,18 +196,26 @@ pub fn aggregate<P: Prover>(
             "child_meta",
             vec![count(claims.lean_xmss.len()), count(claims.lean_sphincs.len())],
         );
-        push_list(
-            &mut hints,
-            &claims.lean_xmss.iter().map(lean_xmss_claim_cells).collect::<Vec<_>>(),
-        );
-        push_list(
-            &mut hints,
-            &claims
-                .lean_sphincs
-                .iter()
-                .map(lean_sphincs_claim_cells)
-                .collect::<Vec<_>>(),
-        );
+        for offsets in [&cover.lean_xmss.children[i], &cover.lean_sphincs.children[i]] {
+            if offsets.is_empty() {
+                continue;
+            }
+            hints.push("signers_split", list_split(offsets.len()));
+            // Strictly increasing slots go as gaps (`child_claim_list_mono`).
+            if offsets.is_sorted_by(|a, b| a < b) {
+                hints.push("child_mono", vec![count(1)]);
+                let mut next = 0;
+                for &offset in offsets {
+                    hints.push("child_claim_gap", vec![count(offset - next)]);
+                    next = offset + 1;
+                }
+            } else {
+                hints.push("child_mono", vec![count(0)]);
+                for &offset in offsets {
+                    hints.push("child_claim_index", vec![count(offset)]);
+                }
+            }
+        }
         hints.push("child_defer", carried[i].cells());
         let child_da = verifier::da::digest(claims.da_commitment);
         hints.push("child_da", hash_to_scalars(&child_da).to_vec());
@@ -291,14 +288,4 @@ fn sorted_claims<K: Ord + Copy, S>(raw: &mut Vec<(K, [u8; 32], S)>) -> Vec<(K, [
     raw.sort_by_key(|(pk, message, _)| (*pk, *message));
     raw.dedup_by_key(|(pk, message, _)| (*pk, *message));
     raw.iter().map(|(pk, message, _)| (*pk, *message)).collect()
-}
-
-/// One claim list as `claim_list_hash` reads it: its split, if it is not empty, then its claims.
-fn push_list(hints: &mut Hints, cells: &[[F128; 4]]) {
-    if !cells.is_empty() {
-        hints.push("signers_split", list_split(cells.len()));
-    }
-    for claim in cells {
-        hints.push("claims", claim.to_vec());
-    }
 }
