@@ -126,24 +126,17 @@ impl FnLower<'_> {
             let one = self.one();
             self.set(entry, KVal::Entry(callee.to_string()));
             for &(off, ao) in &arg_offs {
-                self.emit(LOp::MulNextFrame { a: ao, b: one, c: off });
+                self.copy_next_frame(ao, one, off);
             }
-            self.emit(LOp::MulNextFrame {
-                a: nfp,
-                b: one,
-                c: Abi::end(callee_arg_cells, 0),
+            self.copy_next_frame(nfp, one, Abi::end(callee_arg_cells, 0));
+            self.copy_next_frame(1, one, Abi::RET_FP);
+            self.copy_next_frame(0, one, Abi::RET_PC);
+            self.emit(LOp::Jump {
+                oc,
+                od: entry,
+                of: nfp,
+                always: cond.is_none(),
             });
-            self.emit(LOp::MulNextFrame {
-                a: 1,
-                b: one,
-                c: Abi::RET_FP,
-            });
-            self.emit(LOp::MulNextFrame {
-                a: 0,
-                b: one,
-                c: Abi::RET_PC,
-            });
-            self.emit(LOp::Jump { oc, od: entry, of: nfp });
             return;
         }
         let nfp = self.fresh();
@@ -191,7 +184,12 @@ impl FnLower<'_> {
             self.deref(nfp, 1, 0, DerefMode::Fp); // retfp
             self.deref(nfp, 0, 0, DerefMode::Pc); // retpc = g²·pc
         }
-        self.emit(LOp::Jump { oc, od: entry, of: nfp });
+        self.emit(LOp::Jump {
+            oc,
+            od: entry,
+            of: nfp,
+            always: cond.is_none(),
+        });
 
         for (i, &d) in dsts.iter().enumerate() {
             self.deref(nfp, Abi::ret(callee_arg_cells, i as u32), d, DerefMode::Cell);
@@ -452,7 +450,12 @@ impl FnLower<'_> {
             ret += shape.cells();
         }
         let one = self.one();
-        self.emit(LOp::Jump { oc: one, od: 0, of: 1 });
+        self.emit(LOp::Jump {
+            oc: one,
+            od: 0,
+            of: 1,
+            always: true,
+        });
     }
 
     /// If `callee` declares `Const` parameters, monomorphize: the constant

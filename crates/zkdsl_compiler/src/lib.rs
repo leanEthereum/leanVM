@@ -306,23 +306,14 @@ fn resolve(op: &LOp, entry: &HashMap<String, u32>, sentinel: u32, pc0: u32, fram
         }
     };
     match op {
-        LOp::MulNextFrame { a, b, c } => Op::Mul {
-            a: *a,
-            b: *b,
-            c: frame_size.checked_add(*c).expect("frame offset overflow"),
-        },
         LOp::Set { o, k: kv } => Op::Set {
             o: *o,
             k: resolve_kval(kv),
         },
         LOp::Xor { a, b, c } => Op::Xor { a: *a, b: *b, c: *c },
-        LOp::Mul { a, b, c } => Op::Mul { a: *a, b: *b, c: *c },
-        LOp::Solve { x, b, c } => Op::Mul { a: *x, b: *b, c: *c },
-        LOp::Copy { src, one, dst } => Op::Mul {
-            a: *src,
-            b: *one,
-            c: *dst,
-        },
+        LOp::Mul { a, b, c } | LOp::Solve { x: a, b, c } | LOp::Copy { src: a, one: b, dst: c } => {
+            Op::Mul { a: *a, b: *b, c: *c }
+        }
         LOp::Deref { o1, o2, o3, mode } => Op::Deref {
             o1: *o1,
             o2: *o2,
@@ -335,7 +326,7 @@ fn resolve(op: &LOp, entry: &HashMap<String, u32>, sentinel: u32, pc0: u32, fram
             o3: *dst,
             mode: DerefMode::Cell,
         },
-        LOp::Jump { oc, od, of } => Op::Jump {
+        LOp::Jump { oc, od, of, .. } => Op::Jump {
             oc: *oc,
             od: *od,
             of: *of,

@@ -382,19 +382,18 @@ fn bus_placeholders(ph: &mut Placeholders, sides: &[Vec<Block>; 3], kbc: usize, 
             .enumerate()
             .flat_map(|(s, blocks)| std::iter::repeat_n(s, blocks.len())),
     );
-    // The guest's `block_index_mle` slots: one per push block up to the last framework block with an `Index`
-    // coordinate, which its pull twin reads back.
-    let index_mle_len = (sblk[0]..sblk[1])
-        .filter(|&b| {
-            bks[b].0 < 2
-                && block_coords[b]
-                    .clone()
-                    .any(|ci| coordinates[ci].0 == coord_kind(&Coord::Index))
-        })
-        .map(|b| b + 1)
-        .max()
-        .unwrap_or(1);
-    ph.set("INDEX_MLE_LEN", index_mle_len);
+    // A pull block reads its `Index` coordinates off its push twin's, at the same places.
+    let index = coord_kind(&Coord::Index);
+    assert!(
+        (sblk[1]..sblk[2]).all(|b| {
+            let (pull, push) = (block_coords[b].clone(), block_coords[b - sblk[1]].clone());
+            pull.len() == push.len()
+                && pull
+                    .zip(push)
+                    .all(|(p, q)| (coordinates[p].0 == index) == (coordinates[q].0 == index))
+        }),
+        "a pull block's Index coordinates must sit where its push twin's do"
+    );
     ph.list("BLOCK_COORD_OFF", block_coords.iter().map(|r| r.start));
     ph.list("BLOCK_COORD_COUNT", block_coords.iter().map(|r| r.len()));
     ph.list("COORD_TYPE", coordinates.iter().map(|c| c.0));
@@ -662,6 +661,11 @@ impl OpeningShape {
     fn folds_before(&self, lv: usize) -> usize {
         self.folds[..lv].iter().sum()
     }
+
+    /// The query positions of the levels before `lv`, as many as each squeezes, the levels one after another.
+    fn positions_before(&self, lv: usize) -> usize {
+        (0..lv).map(|l| self.squeezes(l) * self.positions(l)).sum()
+    }
 }
 
 /// The stacked opening's candidate tables, one per committed size and rate: every size the native verifier accepts of
@@ -685,14 +689,15 @@ fn opening_placeholders(ph: &mut Placeholders, kbc: usize) {
     );
     // A high part's index bits; the guest's HIGH_BITS_CAP is 3.
     assert!(cands.iter().all(|c| c.folds.iter().all(|&k| k <= 8)));
-    let per_candidate: [(&str, Scalar); 5] = [
+    let per_candidate: [(&str, Scalar); 6] = [
         ("LIG_N_LEVELS", OpeningShape::levels),
         ("LIG_YR_LEVEL", |c| c.levels() - 1),
         ("LIG_YR_LOG_LEN", OpeningShape::yr_log_len),
         ("LIG_YR_LEN", |c| 1 << c.yr_log_len()),
         ("LIG_TOTAL_FOLDS", |c| c.folds.iter().sum()),
+        ("LIG_POS_TOTAL", |c| c.positions_before(c.levels())),
     ];
-    let per_level: [(&str, Level); 11] = [
+    let per_level: [(&str, Level); 12] = [
         ("LIG_QUERIES", |c, lv| c.queries[lv]),
         ("LIG_FOLDS", |c, lv| c.folds[lv]),
         // 128-bit cells per leaf row: level 0's committed rows are base-field
@@ -713,6 +718,7 @@ fn opening_placeholders(ph: &mut Placeholders, kbc: usize) {
             c.folds[lv].next_power_of_two().trailing_zeros() as usize
         }),
         ("LIG_FOLDS_OFF", OpeningShape::folds_before),
+        ("LIG_POS_OFF", OpeningShape::positions_before),
     ];
     // `open_stacked` has one arm per size and reads these at the size's first-rate row: a rate changes none of them.
     const SIZE_ONLY: [&str; 8] = [
@@ -736,28 +742,6 @@ fn opening_placeholders(ph: &mut Placeholders, kbc: usize) {
     for (name, f) in per_candidate {
         table(name, cands.iter().map(|c| vec![f(c)]).collect());
     }
-    // A level's query positions, as many as its rate squeezes, the levels one after another.
-    let positions: Vec<Vec<usize>> = cands
-        .iter()
-        .map(|c| (0..c.levels()).map(|lv| c.squeezes(lv) * c.positions(lv)).collect())
-        .collect();
-    let pos_off = |row: &Vec<usize>| -> Vec<usize> {
-        let mut offs: Vec<usize> = row
-            .iter()
-            .scan(0, |at, &n| {
-                let off = *at;
-                *at += n;
-                Some(off)
-            })
-            .collect();
-        offs.resize(maxlev, 0);
-        offs
-    };
-    table("LIG_POS_OFF", positions.iter().map(pos_off).collect());
-    table(
-        "LIG_POS_TOTAL",
-        positions.iter().map(|row| vec![row.iter().sum()]).collect(),
-    );
     for (name, f) in per_level {
         let padded = |c: &OpeningShape| {
             let mut row = c.per_level(f);

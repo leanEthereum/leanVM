@@ -41,12 +41,6 @@ pub(crate) struct LInstr {
 
 #[derive(Clone, Debug)]
 pub(crate) enum LOp {
-    /// A copy into the next loop frame, outside this frame's own allocation.
-    MulNextFrame {
-        a: Off,
-        b: Off,
-        c: Off,
-    },
     Set {
         o: Off,
         k: KVal,
@@ -83,6 +77,8 @@ pub(crate) enum LOp {
         oc: Off,
         od: Off,
         of: Off,
+        /// Taken on every path, its condition a cell the lowering set to 1 there: it never falls through.
+        always: bool,
     },
     /// `dst = m[x·g^(base+first)]`: slot `x = g^j` of the jump table at `first`, a
     /// `DEREF` whose `base`, where the tables start, is fixed at assembly ([`JumpTables`]).
@@ -150,6 +146,14 @@ pub(crate) struct Lowered {
     pub(crate) rets: std::ops::Range<u32>,
     /// The frame keeps its layout and its copies (an `addr()` names its cells by offset).
     pub(crate) fixed: bool,
+}
+
+impl Lowered {
+    /// Whether the caller writes cell `x` before the call: the return target, its frame, the arguments and a loop
+    /// frame's own pointer, every kept cell outside the return area.
+    pub(crate) fn caller_writes(&self, x: Off) -> bool {
+        x < self.keep && !self.rets.contains(&x)
+    }
 }
 
 /// The jump tables every `match` dispatches through: one cell per arm, holding the

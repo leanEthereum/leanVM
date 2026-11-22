@@ -115,7 +115,6 @@ COORD_KIND_PROD = 5
 NO_TABLE = NO_TABLE_PLACEHOLDER
 SIDE_BLOCK_START = SIDE_BLOCK_START_PLACEHOLDER
 N_BLOCKS = N_BLOCKS_PLACEHOLDER
-INDEX_MLE_LEN = INDEX_MLE_LEN_PLACEHOLDER
 N_COORDS = N_COORDS_PLACEHOLDER
 BLOCK_KAPPA_SRC = BLOCK_KAPPA_SRC_PLACEHOLDER
 BLOCK_KAPPA_ADJ = BLOCK_KAPPA_ADJ_PLACEHOLDER
@@ -1462,25 +1461,30 @@ def opening_queries(cap, flags, lam_inv, coefs, hs, positions, query_win_ptrs, n
     # sum_k lam^(k - n) v_k, which the caller scales by lam^n. The final level's
     # queries are checks, with nothing to sum.
     chain = HeapBuf(n_iters_g * GEN)
+    # The loop's positions and window pointers, past a base row's odd first query: one pair, so
+    # an iteration carries no pointer it does not read.
     if const(base == 1):
         if odd_g != 1:
             chain[GEN ** 0] = opening_query(cap, flags, coefs, hs, positions[GEN ** 0], query_win_ptrs[GEN ** 0], base, folds, leaf_cells, depth, cap_depth, mu, vanish, n_hs, hs_bits, final) * lam_inv
         else:
             chain[GEN ** 0] = 0
+        loop_pos = positions * odd_g
+        loop_wins = query_win_ptrs * odd_g
     else:
         chain[GEN ** 0] = 0
-    pair_base = positions * odd_g
-    pair_wins_base = query_win_ptrs * odd_g
+        loop_pos = positions
+        loop_wins = query_win_ptrs
     for xi in mul_range(1, n_iters_g):
         if base == 1:
-            pair_pos = pair_base * xi * xi
-            pair_wins = pair_wins_base * xi * xi
+            sq = xi * xi
+            pair_pos = loop_pos * sq
+            pair_wins = loop_wins * sq
             d0 = opening_query(cap, flags, coefs, hs, pair_pos[GEN ** 0], pair_wins[GEN ** 0], base, folds, leaf_cells, depth, cap_depth, mu, vanish, n_hs, hs_bits, final)
             d1 = opening_query(cap, flags, coefs, hs, pair_pos[GEN ** 1], pair_wins[GEN ** 1], base, folds, leaf_cells, depth, cap_depth, mu, vanish, n_hs, hs_bits, final)
             if final == 0:
                 chain[xi * GEN] = ((chain[xi] + d0) * lam_inv + d1) * lam_inv
         else:
-            d = opening_query(cap, flags, coefs, hs, positions[xi], query_win_ptrs[xi], base, folds, leaf_cells, depth, cap_depth, mu, vanish, n_hs, hs_bits, final)
+            d = opening_query(cap, flags, coefs, hs, loop_pos[xi], loop_wins[xi], base, folds, leaf_cells, depth, cap_depth, mu, vanish, n_hs, hs_bits, final)
             if final == 0:
                 chain[xi * GEN] = (chain[xi] + d) * lam_inv
     if final == 0:
@@ -1587,6 +1591,15 @@ def level_queries(lam, lam_inv, coefs, hs, positions, win_ptrs, n_queries: Const
 
 
 @inline
+def level_rate(ml: Const, r: Const):
+    # A level's values that its rate sets, as g-powers: where its query positions start, its
+    # squeezes, its queries in residual batches and the rest. Bound once, they leave the level's
+    # rate dispatches the same runtime arguments in every arm, which fuses them.
+    q = LIG_QUERIES[ml + r * LIG_RATE_STRIDE]
+    return GEN ** LIG_POS_OFF[ml + r * LIG_RATE_STRIDE], GEN ** LIG_SQUEEZES[ml + r * LIG_RATE_STRIDE], GEN ** (q // RES_BATCH), GEN ** (q % RES_BATCH)
+
+
+@inline
 def positions_total(m_idx: Const, r: Const):
     # Every level's query positions at rate r, as the g-power a HeapBuf takes.
     return GEN ** LIG_POS_TOTAL[m_idx + r * LIG_N_LOG_SIZES]
@@ -1594,11 +1607,12 @@ def positions_total(m_idx: Const, r: Const):
 
 def open_stacked(m_idx: Const, rate_sel, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, commit_root_1, cursor, tabs):
     # The stacked WHIR opening, one specialization per committed log-size m_idx, the
-    # rate g^rate_sel dispatched per level by a `match` into `level_positions`,
-    # `level_queries` and `level_residual`, which read the tables a rate changes (query
-    # counts, tree and cap depths, squeezes) at `ml + r * LIG_RATE_STRIDE`. Every other
-    # LIG_* table is read at the size's first-rate row `ml`, which `opening_placeholders`
-    # checks does not vary by rate. Only the executed arm pops the opening's hint streams.
+    # rate g^rate_sel dispatched per level by a `match` into `level_rate` (query positions'
+    # offsets, squeezes, query counts), `level_positions` and `level_queries` (tree and cap
+    # depths, query counts), which read the tables a rate changes at `ml + r *
+    # LIG_RATE_STRIDE`, and once into `positions_total` (LIG_POS_TOTAL). Every other LIG_*
+    # table is read at the size's first-rate row `ml`, which `opening_placeholders` checks
+    # does not vary by rate. Only the executed arm pops the opening's hint streams.
     # The opening's scalars (round tables, level roots, high parts, OOD values,
     # nonces, the final lane, the closing rounds) ride the SHARED stream, walked on in
     # protocol order. A Merkle root is its two F128 scalars, exactly the root's two cells.
@@ -1640,6 +1654,9 @@ def open_stacked(m_idx: Const, rate_sel, fs0, fs1, fs2, fs3, fs4, target, commit
         mu = LIG_LOG_MSG_COLS[ml]
         folds_off = LIG_FOLDS_OFF[ml]
         vanish = mu * (mu + 1) // 2
+        pos_g, squeezes_g, batches_g, rest_g = match(log(rate_sel), range(0, LIG_N_RATES), lambda r: level_rate(ml, r))
+        level_pos = query_positions * pos_g
+        level_wins = query_win_ptrs * pos_g
         for j in unroll(0, folds):
             fs0, fs1, fs2, fs3, fs4, cursor, claim = opening_round(fs0, fs1, fs2, fs3, fs4, cursor, claim, tabs, fold_challenges * GEN ** (folds_off + j), round_coefs * GEN ** (2 * (folds_off + j)))
 
@@ -1671,7 +1688,7 @@ def open_stacked(m_idx: Const, rate_sel, fs0, fs1, fs2, fs3, fs4, target, commit
         # The nonce, a raw transport word, is bound by its DS_POW_NONCE absorb above;
         # its permutation draws the first query word, word0.
         grind_check(pow0, tabs, QUERY_GRIND_BITS)
-        fs0, fs1, fs2, fs3, fs4 = match(log(rate_sel), range(0, LIG_N_RATES), lambda r: level_positions(word0, fs0, fs1, fs2, fs3, fs4, query_positions * GEN ** LIG_POS_OFF[ml + r * LIG_RATE_STRIDE], query_win_ptrs * GEN ** LIG_POS_OFF[ml + r * LIG_RATE_STRIDE], tabs, GEN ** LIG_SQUEEZES[ml + r * LIG_RATE_STRIDE], LIG_TREE_DEPTH[ml + r * LIG_RATE_STRIDE], LIG_CAP_DEPTH[ml + r * LIG_RATE_STRIDE]))
+        fs0, fs1, fs2, fs3, fs4 = match(log(rate_sel), range(0, LIG_N_RATES), lambda r: level_positions(word0, fs0, fs1, fs2, fs3, fs4, level_pos, level_wins, tabs, squeezes_g, LIG_TREE_DEPTH[ml + r * LIG_RATE_STRIDE], LIG_CAP_DEPTH[ml + r * LIG_RATE_STRIDE]))
         if const(lvl != last):
             # The level's batching challenge, the query message's last squeeze.
             sp = fs_cap(fs0, fs1, fs2, fs3, fs4)
@@ -1712,10 +1729,8 @@ def open_stacked(m_idx: Const, rate_sel, fs0, fs1, fs2, fs3, fs4, target, commit
                         sc = sc * VANISH_INVS_BY_COLS[vanish + i]
                 hs[GEN ** c] = sent[GEN ** (2 + c)] * sc
 
-        if const(lvl == last):
-            root_0, root_1, batched, lam_pow = match(log(rate_sel), range(0, LIG_N_RATES), lambda r: level_queries(lam, lam_inv, round_coefs * GEN ** (2 * folds_off), hs, query_positions * GEN ** LIG_POS_OFF[ml + r * LIG_RATE_STRIDE], query_win_ptrs * GEN ** LIG_POS_OFF[ml + r * LIG_RATE_STRIDE], LIG_QUERIES[ml + r * LIG_RATE_STRIDE], 1 // (lvl + 1), folds, LIG_LEAF_CELLS[ml], LIG_TREE_DEPTH[ml + r * LIG_RATE_STRIDE], LIG_CAP_DEPTH[ml + r * LIG_RATE_STRIDE], mu, n_hs, hs_bits, 1))
-        else:
-            root_0, root_1, batched, lam_pow = match(log(rate_sel), range(0, LIG_N_RATES), lambda r: level_queries(lam, lam_inv, round_coefs * GEN ** (2 * folds_off), hs, query_positions * GEN ** LIG_POS_OFF[ml + r * LIG_RATE_STRIDE], query_win_ptrs * GEN ** LIG_POS_OFF[ml + r * LIG_RATE_STRIDE], LIG_QUERIES[ml + r * LIG_RATE_STRIDE], 1 // (lvl + 1), folds, LIG_LEAF_CELLS[ml], LIG_TREE_DEPTH[ml + r * LIG_RATE_STRIDE], LIG_CAP_DEPTH[ml + r * LIG_RATE_STRIDE], 0, 0, 0, 0))
+        fin = (lvl + 1) // (last + 1)  # 1 at the final level, whose queries are checks
+        root_0, root_1, batched, lam_pow = match(log(rate_sel), range(0, LIG_N_RATES), lambda r: level_queries(lam, lam_inv, round_coefs * GEN ** (2 * folds_off), hs, level_pos, level_wins, LIG_QUERIES[ml + r * LIG_RATE_STRIDE], 1 // (lvl + 1), folds, LIG_LEAF_CELLS[ml], LIG_TREE_DEPTH[ml + r * LIG_RATE_STRIDE], LIG_CAP_DEPTH[ml + r * LIG_RATE_STRIDE], mu * fin, n_hs, hs_bits, fin))
         level_roots[GEN ** (2 * lvl)] = root_0
         level_roots[GEN ** (2 * lvl + 1)] = root_1
 
@@ -1809,8 +1824,9 @@ def open_stacked(m_idx: Const, rate_sel, fs0, fs1, fs2, fs3, fs4, target, commit
     inner_chain[GEN ** 1] = claim
     for lvl in unroll(0, last):
         ml = m_idx * LIG_MAX_LEVELS + lvl
+        pos_g, squeezes_g, batches_g, rest_g = match(log(rate_sel), range(0, LIG_N_RATES), lambda r: level_rate(ml, r))
         # level_scales carries the lam^(n + 2) that the chains' 1/lam steps leave out.
-        h, h_high = match(log(rate_sel), range(0, LIG_N_RATES), lambda r: level_residual(query_positions * GEN ** LIG_POS_OFF[ml + r * LIG_RATE_STRIDE], basis_d * GEN ** (lvl * LIG_LOG_MSG_COLS_CAP), level_hs * GEN ** (lvl * 2 ** HIGH_BITS_CAP), level_lam_invs[GEN ** lvl], GEN ** (LIG_QUERIES[ml + r * LIG_RATE_STRIDE] // RES_BATCH), GEN ** (LIG_QUERIES[ml + r * LIG_RATE_STRIDE] % RES_BATCH), LIG_LOG_MSG_COLS[ml], LIG_FOLDS[ml], LIG_HIGH_BITS[ml]))
+        h, h_high = level_residual(query_positions * pos_g, basis_d * GEN ** (lvl * LIG_LOG_MSG_COLS_CAP), level_hs * GEN ** (lvl * 2 ** HIGH_BITS_CAP), level_lam_invs[GEN ** lvl], batches_g, rest_g, LIG_LOG_MSG_COLS[ml], LIG_FOLDS[ml], LIG_HIGH_BITS[ml])
         # accumulate lam^(n+2) * prod_t b_t * (the level's residual chain) into the total,
         # and lam^(n+2) * (the challenges after the level) * (its high chain) into the claim
         acc = inner_chain * GEN ** (2 * lvl)
@@ -2368,7 +2384,6 @@ def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, d
         shared_g[t] = HeapBuf(len1 ** 4)
         shared_selector_tables(shared_eq[t], shared_g[t], zeta * tau_g, zeta1 * tau_g, g_squares * tau_g, shared_len[t])
     block_eq_hi = StackBuf(N_BLOCKS)         # every block's eq_hi, reused below
-    block_index_mle = HeapBuf(INDEX_MLE_LEN)  # per push framework block with an Index coord
     # A framework coordinate's value at zeta, and a table coordinate's at the table
     # sumcheck's point (a pull one's less its push twin's), by coordinate index.
     coord_vals = StackBuf(N_COORDS)
@@ -2450,12 +2465,10 @@ def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, d
                         coord_vals[ci] = COORD_CONST[ci] * rawv
                     if COORD_TYPE[ci] == COORD_KIND_INDEX:
                         if s == PULL_SIDE:
-                            coord_vals[ci] = block_index_mle[GEN ** (b - SIDE_BLOCK_START[PULL_SIDE])]
+                            # The push twin's, at the same place (placeholders.rs checks it).
+                            coord_vals[ci] = coord_vals[BLOCK_COORD_OFF[b - SIDE_BLOCK_START[PULL_SIDE]] + i]
                         else:
-                            coord_val = match(log(kappa_g), range(0, SIZE_BITS), lambda n: index_mle(zeta, n))
-                            coord_vals[ci] = coord_val
-                            if s == PUSH_SIDE:
-                                block_index_mle[GEN ** b] = coord_val
+                            coord_vals[ci] = match(log(kappa_g), range(0, SIZE_BITS), lambda n: index_mle(zeta, n))
                     if COORD_TYPE[ci] == COORD_KIND_PUBLIC:
                         # The public slots carry no value of their own here: their
                         # weighted sum IS bc_share, added once per block below

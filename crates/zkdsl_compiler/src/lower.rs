@@ -206,6 +206,8 @@ struct FnLower<'a> {
     cur_line: u32,
     /// Hints queued to attach to the next emitted instruction.
     pending: Vec<Hint>,
+    /// The copies into the next loop frame, their targets offsets past this frame's end until it is laid out.
+    next_frame_copies: Vec<usize>,
     /// The `match` the one being lowered enters directly, its arms ending in the next
     /// one's dispatch rather than a join ([`Self::lower_match_dispatch`]).
     chain_next: Option<ChainNext>,
@@ -361,9 +363,11 @@ impl FnLower<'_> {
     /// check writes into it.
     fn pure(&mut self, op: PureOp, a: Off, b: Off) -> Off {
         // `x·1` is `x`.
-        let one = self.scope.const_cells.get(&F128::ONE).copied();
-        if op == PureOp::Mul && one.is_some_and(|o| o == a || o == b) {
-            return if one == Some(a) { b } else { a };
+        if op == PureOp::Mul
+            && let Some(&one) = self.scope.const_cells.get(&F128::ONE)
+            && (a == one || b == one)
+        {
+            return if a == one { b } else { a };
         }
         let key = (op, a.min(b), a.max(b));
         if let Some(&o) = self.scope.pure_cells.get(&key) {
@@ -437,7 +441,14 @@ impl FnLower<'_> {
             oc: one,
             od: dest,
             of: one,
+            always: true,
         });
+    }
+
+    /// Cell `off` of the next loop frame `= src`, `one` holding 1.
+    fn copy_next_frame(&mut self, src: Off, one: Off, off: Off) {
+        self.next_frame_copies.push(self.code.len());
+        self.emit(LOp::Copy { src, one, dst: off });
     }
 
     /// `dst = src` (no MOV: multiply by `1`).
@@ -659,7 +670,12 @@ impl FnLower<'_> {
             first: first as u32,
             dst: entry,
         });
-        self.emit(LOp::Jump { oc: one, od: entry, of });
+        self.emit(LOp::Jump {
+            oc: one,
+            od: entry,
+            of,
+            always: true,
+        });
     }
 
     /// The dispatch every `match` lowers through: read slot `x` of the match's jump
@@ -720,6 +736,7 @@ impl FnLower<'_> {
                     oc: one,
                     od: join,
                     of: sfp,
+                    always: true,
                 });
             }
             arms_end = arms_end.max(self.next);
@@ -818,6 +835,7 @@ impl FnLower<'_> {
             oc: x,
             od: bdest,
             of: sfp,
+            always: false,
         });
         self.branch(a_block);
         if b_block.is_empty() {
@@ -830,6 +848,7 @@ impl FnLower<'_> {
                 oc: one,
                 od: edest,
                 of: sfp,
+                always: true,
             });
             self.patch_local(bset, self.code.len());
             self.branch(b_block);
@@ -1694,6 +1713,7 @@ pub(crate) fn lower_func(
         heap_sizes: HashMap::new(),
 
         pending: Vec::new(),
+        next_frame_copies: Vec::new(),
         chain_next: None,
         chain_in: None,
         inline_calls: Vec::new(),
@@ -1733,6 +1753,12 @@ pub(crate) fn lower_func(
         // layout placed next: append the implicit bare return.
         let last = f.body.last().map_or(0, |s| s.line);
         lowerer.stmt(&Stmt::new(last, StmtKind::Return(vec![])));
+    }
+    // A next-frame copy's target, now past this frame's end.
+    for &i in &lowerer.next_frame_copies {
+        if let LOp::Copy { dst, .. } = &mut lowerer.code[i].op {
+            *dst = lowerer.next.checked_add(*dst).expect("frame offset overflow");
+        }
     }
     Lowered {
         name: f.name.clone(),
