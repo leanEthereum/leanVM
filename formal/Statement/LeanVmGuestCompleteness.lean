@@ -44,8 +44,8 @@ structure DeployedLimits (statement : NodeStatement) (witness : NodeWitness) : P
       (witness.children.map (·.statement.claims.xmss)).flatten) ∧
     statement.claims.sphincs.Subperm (witness.sphincsSignatures.map (·.1) ++
       (witness.children.map (·.statement.claims.sphincs)).flatten)
-  /-- At most `MAX_RECURSIONS = 16` children (`lean_ethereum.py`). -/
-  atMostSixteenChildren : witness.children.length ≤ 16
+  /-- At most `MAX_RECURSIONS` children (`Batch.maxRecursions`, `lean_ethereum.py`). -/
+  atMostSixteenChildren : witness.children.length ≤ Batch.maxRecursions
   /-- At most `2^17` claims in the children's lists, in all. -/
   atMost2Pow17ChildClaims :
     (witness.children.map fun child ↦
@@ -256,7 +256,8 @@ adversary's private coins are free. The factor `max(2M - 3, 8) · 2^-130` bounds
 a challenge: a sumcheck round's is bad at no more than `2` values, `2/|E| = 8 · 2^-130`; the
 batching's one challenge `λ` combines the children's `2n` claims, `n < M`, with its powers, a
 nonzero combination of degree at most `2M - 3` vanishes at no more than `2M - 3` values of `λ`, and
-a query reaches `λ` only by passing the proof of work of `batchLambdaGrindBits = 2` bits before it.
+a query reaches `λ` only by passing the proof of work of `batchLambdaGrindBits` bits before it, `2`
+at `maxRecursions = 16`.
 
 This is the batching run outside the circuit, with Keccak-f[1600] = `π`; it does not compose with
 the guest program's in-circuit statements, whose `KECCAK` instruction computes the deployed
