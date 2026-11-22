@@ -580,6 +580,20 @@ def split_limbs(word):
     return lo[0], hi
 
 
+def is_zero(word):
+    # 1 if the word is zero, else 0.
+    lo, hi = split_limbs(word)
+    z = StackBuf(1)
+    if lo == 0:
+        if hi == 0:
+            z[0] = 1
+        else:
+            z[0] = 0
+    else:
+        z[0] = 0
+    return z[0]
+
+
 @inline
 def challenge_from_state(state):
     # A challenge is the sponge's first two lanes, its first cell.
@@ -1504,6 +1518,41 @@ def level_residual(positions, row_d, hs, lam_inv, n_queries: Const, n_cols: Cons
     return h, h_high
 
 
+def level_residual_slow(positions, fold_cs, tail_cs, lam, zero, rate_sel, q0, q1, q2, q3, prefix_len: Const, yr_log: Const, vanish: Const):
+    # On a level with a zero challenge (zero = 1), where b_t = 0 leaves the factored chains
+    # nothing to divide by: lam^2 sum_q lam^q prod_t (a_t + b_t chain_t), unfactored, the
+    # challenges read at runtime, over the rate's g^n_queries (q0..q3); 0 otherwise, walking
+    # no query.
+    nq = StackBuf(1)
+    if rate_sel == GEN ** 0:
+        nq[0] = q0
+    elif rate_sel == GEN ** 1:
+        nq[0] = q1
+    elif rate_sel == GEN ** 2:
+        nq[0] = q2
+    else:
+        nq[0] = q3
+    n_queries_g = 1 + zero * (1 + nq[0])
+    acc = HeapBuf(n_queries_g * GEN)
+    acc[GEN ** 0] = 0
+    pw = HeapBuf(n_queries_g * GEN)
+    pw[GEN ** 0] = lam * lam
+    for xq in mul_range(1, n_queries_g):
+        chain = positions[xq]
+        prod = 1
+        for t in unroll(0, prefix_len):
+            c = fold_cs[GEN ** t]
+            prod *= 1 + c + c * VANISH_INVS_BY_COLS[vanish + t] * chain
+            chain *= chain + VANISH_BY_COLS[vanish + t]
+        for j in unroll(0, yr_log):
+            c = tail_cs[GEN ** j]
+            prod *= 1 + c + c * VANISH_INVS_BY_COLS[vanish + prefix_len + j] * chain
+            chain *= chain + VANISH_BY_COLS[vanish + prefix_len + j]
+        acc[xq * GEN] = acc[xq] + pw[xq] * prod
+        pw[xq * GEN] = pw[xq] * lam
+    return acc[n_queries_g]
+
+
 def level_positions(word0, fs0, fs1, fs2, fs3, fs4, positions, win_ptrs, tabs, squeezes: Const, depth: Const, cap_depth: Const):
     # A level's query positions, FIELD_BITS // depth a word: the first word, word0, drawn
     # by the query nonce's permutation, the rest one squeeze each. Row k of sqz is the
@@ -1634,7 +1683,7 @@ def open_stacked(m_idx: Const, rate_sel, fs0, fs1, fs2, fs3, fs4, target, commit
             sp = fs_cap(fs0, fs1, fs2, fs3, fs4)
             no_rate = StackBuf(8)
             sp, lam = squeeze(sp, no_rate, 0)
-            lam_inv = 1 / lam
+            lam_inv = 1 / (lam + is_zero(lam))  # any value at lam = 0, which scales every use
             fs0 = sp[8]
             fs1 = sp[9]
             fs2 = sp[10]
@@ -1734,9 +1783,7 @@ def open_stacked(m_idx: Const, rate_sel, fs0, fs1, fs2, fs3, fs4, target, commit
     # vanishing inverse alone, so they hoist out of the query loop (one row a level,
     # alphas then tail coords). Factoring b_t = c_t * inv_t out of every coordinate
     # leaves (a_t / b_t) + chain_t per query, so a query is one add and one multiply
-    # a coordinate, and the level's product of the b_t scales its sum once. A zero
-    # challenge makes b_t zero and the division unsatisfiable, which rejects rather
-    # than accepts.
+    # a coordinate, and the level's product of the b_t scales its sum once.
     basis_d = HeapBuf(GEN ** (n_levels * LIG_LOG_MSG_COLS_CAP))
     level_scale = HeapBuf(GEN ** n_levels)
     level_after = HeapBuf(GEN ** n_levels)  # the product of the challenges after the level
@@ -1747,17 +1794,23 @@ def open_stacked(m_idx: Const, rate_sel, fs0, fs1, fs2, fs3, fs4, target, commit
         scale = level_scales[GEN ** lvl]
         after = GEN ** 0
         for t in unroll(0, prefix_len):
+            after *= fold_challenges[GEN ** (LIG_RESIDUAL_FOLD_OFF[ml] + t)]
+        for j in unroll(0, yr_log):
+            after *= tail_challenges[GEN ** j]
+        # On a level with a zero challenge every division takes 1, and the scale, from the
+        # true coef_b, is zero: level_residual_slow sums that level.
+        zero = is_zero(after)
+        nonzero = 1 + zero
+        for t in unroll(0, prefix_len):
             fold_c = fold_challenges[GEN ** (LIG_RESIDUAL_FOLD_OFF[ml] + t)]
             coef_b = fold_c * VANISH_INVS_BY_COLS[vanish + t]
-            basis_d[GEN ** (lvl * LIG_LOG_MSG_COLS_CAP + t)] = (1 + fold_c) / coef_b
+            basis_d[GEN ** (lvl * LIG_LOG_MSG_COLS_CAP + t)] = (1 + fold_c) / (coef_b * nonzero + zero)
             scale *= coef_b
-            after *= fold_c
         for j in unroll(0, yr_log):
             tail_c = tail_challenges[GEN ** j]
             coef_b = tail_c * VANISH_INVS_BY_COLS[vanish + prefix_len + j]
-            basis_d[GEN ** (lvl * LIG_LOG_MSG_COLS_CAP + prefix_len + j)] = (1 + tail_c) / coef_b
+            basis_d[GEN ** (lvl * LIG_LOG_MSG_COLS_CAP + prefix_len + j)] = (1 + tail_c) / (coef_b * nonzero + zero)
             scale *= coef_b
-            after *= tail_c
         level_scale[GEN ** lvl] = scale
         level_after[GEN ** lvl] = after
     # Per level: the glued weights' sum, then the claim's correction.
@@ -1768,10 +1821,13 @@ def open_stacked(m_idx: Const, rate_sel, fs0, fs1, fs2, fs3, fs4, target, commit
         ml = m_idx * LIG_MAX_LEVELS + lvl
         # level_scales carries the lam^(n + 2) that the chains' 1/lam steps leave out.
         h, h_high = match(log(rate_sel), range(0, LIG_N_RATES), lambda r: level_residual(query_positions * GEN ** (lvl * LIG_LEVEL_POSITIONS_CAP), basis_d * GEN ** (lvl * LIG_LOG_MSG_COLS_CAP), level_hs * GEN ** (lvl * 2 ** HIGH_BITS_CAP), level_lam_invs[GEN ** lvl], LIG_QUERIES[ml + r * LIG_RATE_STRIDE], LIG_LOG_MSG_COLS[ml], LIG_FOLDS[ml], LIG_HIGH_BITS[ml]))
-        # accumulate lam^(n+2) * prod_t b_t * (the level's residual chain) into the total,
-        # and lam^(n+2) * (the challenges after the level) * (its high chain) into the claim
+        # accumulate lam^(n+2) * prod_t b_t * (the level's residual chain), or on a level with
+        # a zero challenge its slow sum, into the total, and lam^(n+2) * (the challenges after
+        # the level) * (its high chain) into the claim
+        zero = is_zero(level_after[GEN ** lvl])
+        slow = level_residual_slow(query_positions * GEN ** (lvl * LIG_LEVEL_POSITIONS_CAP), fold_challenges * GEN ** LIG_RESIDUAL_FOLD_OFF[ml], tail_challenges, ood_scalars[GEN ** (lvl + 1)], zero, rate_sel, GEN ** LIG_QUERIES[ml], GEN ** LIG_QUERIES[ml + LIG_RATE_STRIDE], GEN ** LIG_QUERIES[ml + 2 * LIG_RATE_STRIDE], GEN ** LIG_QUERIES[ml + 3 * LIG_RATE_STRIDE], LIG_RESIDUAL_PREFIX_LEN[ml], yr_log, LIG_LOG_MSG_COLS[ml] * (LIG_LOG_MSG_COLS[ml] + 1) // 2)
         acc = inner_chain * GEN ** (2 * lvl)
-        acc[GEN ** 2] = acc[GEN ** 0] + level_scale[GEN ** lvl] * h
+        acc[GEN ** 2] = acc[GEN ** 0] + level_scale[GEN ** lvl] * h + slow
         acc[GEN ** 3] = acc[GEN ** 1] + level_scales[GEN ** lvl] * level_after[GEN ** lvl] * h_high
 
     # The OOD claims' eq weights at the same terminal point, each glued with its level's
