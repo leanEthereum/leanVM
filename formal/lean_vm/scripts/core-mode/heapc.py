@@ -1624,6 +1624,7 @@ def hint_heap(h):
 
 
 def stmts(ss):
+    """The statements of a block, nested ones included (`stmtsOf`)."""
     for s in ss:
         yield s
         if s[0] == 'ite':
@@ -1660,14 +1661,9 @@ def values(params, body):
     return out
 
 
-def _noret(s):
-    if s[0] == 'ret':
-        return False
-    if s[0] == 'ite':
-        return all(map(_noret, s[2])) and all(map(_noret, s[3]))
-    if s[0] == 'match':
-        return all(_noret(t) for a in s[2] for t in a)
-    return True
+def noret(s):
+    """No `ret` in the statement, nested ones included."""
+    return all(t[0] != 'ret' for t in stmts([s]))
 
 
 def atomDst(a):
@@ -1686,7 +1682,7 @@ def atomDst(a):
 def fa_past_ok(body, kp, i):
     """`CoreMode.faAt`'s second case: a top-level `frameAddr kp run`, the run nonempty and `i` past it."""
     for s in body:
-        if not _noret(s):
+        if not noret(s):
             break
         if s[0] == 'a' and s[1][0] == 'frameAddr' and s[1][1] == kp and s[1][2] and len(s[1][2]) <= i:
             return True
@@ -1698,7 +1694,7 @@ def fa_pairs(body):
     top-level atoms before the first statement with a `ret` inside)."""
     top = []
     for s in body:
-        if not _noret(s):
+        if not noret(s):
             break
         if s[0] == 'a':
             top.append(s[1])

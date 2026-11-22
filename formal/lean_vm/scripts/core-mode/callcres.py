@@ -3,12 +3,13 @@ with calls, on the bodies it does not close without residuals (its own candidate
 the check without calls leaves uncovered), with the inference's index rules (`idx`, `rules`) on, each certificate's
 residuals of a family the honest instances make true (`CoreMode.resFam`, sound in `EndExecCoreRes.lean`).
 
-`extend(out, why, S)` adds them to `callc.results()`'s. Usage (a census): python3 -I scripts/core-mode/callcres.py"""
+`extend(out, why, S)` adds them to `callc.results()`'s."""
 import os, re, sys, collections
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import infer as I  # noqa: E402
 import fnrules as R  # noqa: E402
+import heapc  # noqa: E402
 from pmap import pmap  # noqa: E402
 sys.modules.setdefault('infer', I)
 
@@ -30,13 +31,7 @@ def top_atoms(body):
 
 
 def has_ret(s):
-    if s[0] == 'ret':
-        return True
-    if s[0] == 'ite':
-        return any(has_ret(t) for t in s[2] + s[3])
-    if s[0] == 'match':
-        return any(has_ret(t) for a in s[2] for t in a)
-    return False
+    return not heapc.noret(s)
 
 
 def rc_bound(atoms, v):
@@ -689,6 +684,7 @@ def extend(out, why, S, verbose=False):
         return r, err
     try:
         cands = [k for k in callc.candidates() if k not in out] + [k for k in leaf_candidates() if k not in out]
+        callc.fa_past_all(cands)
         # each candidate on its own, in worker processes (`pmap.py`)
         for k, (r, err) in zip(cands, pmap(one, cands)):
             if r is None:
@@ -706,17 +702,3 @@ def extend(out, why, S, verbose=False):
         print('calls with residuals: %d of %d candidates' % (len(got), len(cands)), dict(lost.most_common()))
     return got
 
-
-if __name__ == '__main__':
-    import callc, route
-    I.F.clear()
-    I.F.update({'ptr', 'pfr'})
-    out, why, S = {}, collections.Counter(), route.sigs()
-    for k in callc.candidates():
-        try:
-            out[k] = callc.infer_one(k, S)
-        except callc.No:
-            pass
-    got = extend(out, why, S, True)
-    for k in sorted(got):
-        print(k, len(got[k]['cert'].res))

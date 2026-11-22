@@ -8,9 +8,9 @@ the log `CORE_MEMO_LOG`. What the process
 read before (from `memo`'s import on, `coreir.py` importing it first), the scripts (`scripts/**/*.py`), the guest's
 exported data (`Pack/`, `Data/`, the statement's), the parses the environment names and its `CORE_*`, `MODE_*`,
 `FRAME_*` variables count as inputs too. So a result is reused only when nothing it read changed: the regeneration's
-steps share one computation of the bodies with calls (`callc.results`) and of the core route's pairings
-(`pair.collect`) instead of one each, and a step that wrote a file one read computes it again. A computation inside
-another is stored on its own, its inputs the enclosing one's too.
+steps share one computation of the bodies with calls (`callc.results`), of the core route's pairings (`pair.collect`)
+and of the route (`route.route_sub`) instead of one each, and a step that wrote a file one read computes it again. A
+computation inside another is stored on its own, its inputs the enclosing one's too.
 """
 import os
 import sys
@@ -122,16 +122,19 @@ def _relevant(rec):
 
 
 def _fixed():
-    """The inputs every computation has: the scripts, the guest's exported data (`Pack/`, `Data/`, the statement's)
-    and the environment's settings (the core IR's parse, `coreir.py`, is keyed by the digest of what it reads)."""
+    """The inputs every computation has: the scripts and the guest's exported data (`Pack/`, `Data/`, the statement's;
+    the core IR's parse, `coreir.py`, is keyed by the digest of what it reads)."""
     lv = os.path.join(FORMAL, 'lean_vm')
     pats = [os.path.join(SCRIPTS, '**', '*.py'), os.path.join(lv, 'LeanVM', 'Guest', 'Pack', '**', '*.lean'),
             os.path.join(lv, 'LeanVM', 'Guest', 'Data', '**', '*.lean'), os.path.join(FORMAL, 'Statement', 'Data', '*.lean')]
     recs = [('f', p) for pat in pats for p in sorted(glob.glob(pat, recursive=True))]
-    recs += [('g', pat, True) for pat in pats]
-    env = sorted((k, v) for k, v in os.environ.items() if k.startswith(('CORE_', 'MODE_', 'FRAME_'))
-                 and k not in ('CORE_MEMO', 'CORE_MEMO_LOG', 'CORE_MODE_JOBS'))
-    return recs, json.dumps(env)
+    return recs + [('g', pat, True) for pat in pats]
+
+
+def _env():
+    """The environment's settings, which every computation reads."""
+    return json.dumps(sorted((k, v) for k, v in os.environ.items() if k.startswith(('CORE_', 'MODE_', 'FRAME_'))
+                             and k not in ('CORE_MEMO', 'CORE_MEMO_LOG', 'CORE_MODE_JOBS')))
 
 
 def _lookup(d, name, env):
@@ -141,7 +144,7 @@ def _lookup(d, name, env):
                 entry = pickle.load(fh)
         except Exception:
             continue
-        if entry['env'] == env and all(_digest(r) == h for r, h in entry['deps']):
+        if entry['env'] == env and all(_digest_now(r) == h for r, h in entry['deps']):
             return entry
     return None
 
@@ -169,14 +172,14 @@ def cached(name, f):
     if not d:
         return f()
     os.makedirs(d, exist_ok=True)
-    fixed, env = _fixed()
+    env = _env()
     outer = _STATE['log']
     _STATE['log'] = None
     _STATE['busy'] = True
     try:
         entry = _lookup(d, name, env)
         # the inputs every computation has, digested before it runs
-        deps = {r: _digest(r) for r in fixed if _relevant(r)}
+        deps = None if entry is not None else {r: _digest_now(r) for r in _fixed() if _relevant(r)}
     finally:
         _STATE['busy'] = False
         _STATE['log'] = outer

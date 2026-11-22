@@ -6,7 +6,7 @@ witnesses come from `infer.py`'s pass (`heapOkC`'s format, no extra feature) run
 not grow.
 
 `results()` returns `{name: dict(pass, sig, cs)}` for the functions whose certificate is complete, and the reasons of the
-others. Usage (a census): python3 -I scripts/core-mode/callc.py [--fn NAME]"""
+others. Usage: python3 -I scripts/core-mode/callc.py --emit [--check] [--why]"""
 import os, re, sys, collections
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -21,26 +21,9 @@ CORE, STABLE = I.CORE, I.STABLE
 
 
 def kinds(body, acc):
-    for s in body:
-        acc[s[0]] += 1
-        if s[0] == 'ite':
-            kinds(s[2], acc); kinds(s[3], acc)
-        if s[0] == 'match':
-            for a in s[2]:
-                kinds(a, acc)
+    """`acc` counting the kinds of the body's statements, nested ones included."""
+    acc.update(s[0] for s in I.stmts(body))
     return acc
-
-
-def stmts_of(body):
-    """`stmtsOf`: the statements of a body, nested ones included."""
-    for s in body:
-        yield s
-        if s[0] == 'ite':
-            yield from stmts_of(s[2])
-            yield from stmts_of(s[3])
-        elif s[0] == 'match':
-            for a in s[2]:
-                yield from stmts_of(a)
 
 
 def top_ok(s):
@@ -404,23 +387,16 @@ def const_pow(body, v, k=0):
     return False
 
 
-JT_RUN = [None]
-
-
 def jt_run():
     """The jump table's cells `[jtLo, jtHi)` as a run (`Mode.jtRng`; `sigOk` takes it among the own preconditions)."""
-    import importlib.util
-    spec = importlib.util.spec_from_file_location('compiled', os.path.join(HERE, 'compiled.py'))
-    md = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(md)
-    jt = md.load()['jt']
+    jt = I.D['jt']
     return (((), 0), 1, ((), min(jt)), ((), max(jt) + 1))
 
 
 def jt_sym(files):
     """The jump table's end in the printed certificates as the glue's `CoreMode.jtHi` (`GlueG`), not its value: a
     function whose run it is changes with the table's length only through the glue."""
-    _, _, (_, lo), (_, hi) = JT_RUN[0] or jt_run()
+    _, _, (_, lo), (_, hi) = jt_run()
     pats = [(f'(.num {lo}), (.num {hi})⟩', f'(.num {lo}), (.num CoreMode.jtHi)⟩'),
             (f'⟨[], {lo}⟩, ⟨[], {hi}⟩⟩', f'⟨[], {lo}⟩, ⟨[], CoreMode.jtHi⟩⟩')]
     for path, text in list(files.items()):
@@ -670,9 +646,7 @@ def own_sig(G, np, nr, gl=None):
         h.pre = list(h.pre) + [((), o) for o in G['entry'] if ((), o) not in h.pre]
     if 'jt' in I.F:
         # the jump table's cells, which every frame's entry has written (`entryAbs`)
-        if JT_RUN[0] is None:
-            JT_RUN[0] = jt_run()
-        h.preR = list(h.preR) + [JT_RUN[0]]
+        h.preR = list(h.preR) + [jt_run()]
     return h
 
 
@@ -821,7 +795,7 @@ def infer_one(k, S, allow=None, hcsig=None):
     cs = {}
     hcs = set()
     arg_res = set()
-    for s in stmts_of(body):
+    for s in I.stmts(body):
         if s[0] == 'call':
             calls = [(s[1], s[2], len(s[3]))]
         elif s[0] == 'callIf':
@@ -913,24 +887,35 @@ def infer_one(k, S, allow=None, hcsig=None):
 FA_PAST = {}
 
 
+def fa_past_all(ks):
+    """`fa_past` of each of `ks` not yet known, their walks in one interpreter (`fa_past.py`): before the workers fork
+    (`pmap.py`), whose own results would be lost."""
+    import subprocess, json, heapc
+    req = {}
+    for k in ks:
+        if k in FA_PAST or k not in I.D['comp']:
+            continue
+        FA_PAST[k] = []
+        locs = I.D['comp'][k]['locs']
+        fas = []
+        for s in CORE[k][1]:
+            if not heapc.noret(s):
+                break
+            if s[0] == 'a' and s[1][0] == 'frameAddr' and s[1][2] and s[1][2][0] < len(locs):
+                fas.append([s[1][1], locs[s[1][2][0]], len(s[1][2])])
+        if fas:
+            req[k] = fas
+    if req:
+        r = subprocess.run([sys.executable, '-I', os.path.join(HERE, 'fa_past.py')], input=json.dumps(req),
+                           capture_output=True, text=True, check=True)
+        got = json.loads(r.stdout)
+        for k in req:
+            FA_PAST[k] = [tuple(p) for p in got.get(k, [])]
+
+
 def fa_past(k):
     """The frame walk's cells past `k`'s top-level frame runs written at every return (`fa_past.py`), as `(kp, i)`."""
-    if k in FA_PAST:
-        return FA_PAST[k]
-    FA_PAST[k] = []
-    import subprocess, json, heapc
-    body = CORE[k][1]
-    locs = I.D['comp'][k]['locs']
-    fas = []
-    for s in body:
-        if not heapc._noret(s):
-            break
-        if s[0] == 'a' and s[1][0] == 'frameAddr' and s[1][2] and s[1][2][0] < len(locs):
-            fas.append([s[1][1], locs[s[1][2][0]], len(s[1][2])])
-    if fas:
-        r = subprocess.run([sys.executable, '-I', os.path.join(HERE, 'fa_past.py')], input=json.dumps({k: fas}),
-                           capture_output=True, text=True, check=True)
-        FA_PAST[k] = [tuple(p) for p in json.loads(r.stdout).get(k, [])]
+    fa_past_all([k])
     return FA_PAST[k]
 
 
@@ -947,20 +932,14 @@ def has_fa(body):
     return False
 
 
-_FNS = {}
-
-
 def dsp_of(k, body):
     """`CFun.dsp`: each dispatch's callees by its call site's callee frame cell (`callsB`: every site of a dispatch's
     arguments and returns lists that dispatch's callees)."""
     ds = [s for s in body if s[0] == 'dispatch']
     if not ds:
         return []
-    if not _FNS:
-        sys.path.insert(0, os.path.join(HERE, '..', 'bridge-cert'))
-        import align
-        _FNS.update(align.functions())
-    sites = _FNS[k]['sites']
+    import align
+    sites = align.functions()[k]['sites']
     out = {}
     for s in ds:
         qs = [q for q, si in sites.items() if si[0] == list(s[3]) and si[1] == list(s[4]) and si[4] != 0]
@@ -997,6 +976,11 @@ def _results(verbose=False):
         except No as e:
             return None, e
     cs = candidates()
+    # what the workers read, computed before they fork: the frame walks' cells (`fa_past`) and the dispatches' sites
+    # (`dsp_of`)
+    fa_past_all(cs)
+    import align
+    align.functions()
     # each candidate on its own, in worker processes (`pmap.py`)
     for k, (r, e) in zip(cs, pmap(one, cs)):
         if e is None:
@@ -1020,16 +1004,8 @@ def _results(verbose=False):
 
 GUEST = os.path.normpath(os.path.join(HERE, '..', '..', 'LeanVM', 'Guest'))
 GEN = os.path.join(GUEST, 'CoreMode', 'Gen')
-HEADER = """/-
-  LeanVM.Guest.CoreMode.Gen.«{pack}».DataC
-
-  Generated by `scripts/core-mode/callc.py --emit`; do not edit.
-  The heap certificates of `{first}` and {more} more (bodies with calls), their callees' heap signatures.
--/
-
-module
-
-public import LeanVM.Guest.CoreMode.Defs
+head = genfiles.header('core-mode/callc.py --emit')
+HEADER = """public import LeanVM.Guest.CoreMode.Defs
 public import LeanVM.Guest.CoreMode.WitOf
 
 set_option maxRecDepth 100000
@@ -1100,7 +1076,7 @@ def sig_file(pack, ks, R, copies):
     """`Gen/<pack>/Sig.lean`: the own heap signatures of the pack's functions `ks` that their callers name, each
     with its auxiliary declarations, and the callees' copies `copies` (`[(callee, text)]`) that callers share."""
     EM = _em()
-    out = [SIG_HEADER.format(pack=pack)]
+    out = [head(f'LeanVM.Guest.CoreMode.Gen.«{pack}».Sig', SIG_WHAT) + SIG_HEADER]
     names = sorted(set(ks) | {c for c, _ in copies})
     cp = dict(copies)
     for k in names:
@@ -1117,17 +1093,10 @@ def sig_file(pack, ks, R, copies):
     return ''.join(out)
 
 
-SIG_HEADER = """/-
-  LeanVM.Guest.CoreMode.Gen.«{pack}».Sig
-
-  Generated by `scripts/core-mode/callc.py --emit`; do not edit.
-  The heap signatures of the pack's functions that their callers name: `«f».sig`, `f`'s own, its contract
-  (`CFun.hc`) or what its callers' copies (`csigs`) equal; `«f».csig`, the copy two callers or more hold.
--/
-
-module
-
-public import LeanVM.Guest.CoreMode.Defs
+SIG_WHAT = ("The heap signatures of the pack's functions that their callers name: `«f».sig`, `f`'s own, its "
+            "contract\n  (`CFun.hc`) or what its callers' copies (`csigs`) equal; `«f».csig`, the copy two callers or "
+            "more hold.")
+SIG_HEADER = """public import LeanVM.Guest.CoreMode.Defs
 
 set_option maxRecDepth 100000
 set_option linter.all false
@@ -1218,7 +1187,8 @@ def emit(R, check):
     files = {}
     shared, refs = sig_shared(R)
     for pack, ks in sorted(packs.items()):
-        out = [HEADER.format(pack=pack, first=ks[0], more=len(ks) - 1)]
+        out = [head(f'LeanVM.Guest.CoreMode.Gen.«{pack}».DataC', f'The heap certificates of `{ks[0]}` and '
+                    f"{len(ks) - 1} more (bodies with calls), their callees' heap signatures.") + HEADER]
         used = set()
         for k in ks:
             out.append(f'\nnamespace LeanVM.Guest.Fn.«{k}»\n@[expose] public section\n{ldata(k, R[k], shared, used, refs)}'
@@ -1248,18 +1218,6 @@ def emit(R, check):
     genfiles.fail_if_stale(stale, check)
 
 
-if __name__ == '__main__':
-    if '--emit' in sys.argv:
-        R, _ = results('why' if '--why' in sys.argv else True)
-        emit(R, '--check' in sys.argv)
-    elif '--fn' in sys.argv:
-        k = sys.argv[sys.argv.index('--fn') + 1]
-        I.F.clear()
-        I.F.update({'ptr', 'pfr'})
-        try:
-            r = infer_one(k, route.sigs())
-            print('ok', k, ldata(k, r))
-        except No as e:
-            print('no', k, e)
-    else:
-        results(True)
+if __name__ == '__main__' and '--emit' in sys.argv:
+    R, _ = results('why' if '--why' in sys.argv else True)
+    emit(R, '--check' in sys.argv)

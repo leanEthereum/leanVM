@@ -1,29 +1,24 @@
 """The guest's compiled code, read from the generated data (no inference): each compiled function's code, hints,
-arguments and returned words (`Pack/*/{Bundle,Sig}.lean`), the advice's hints, the powers of `g`, the jump table;
-from them (`derive`) each function's operations, table jumps, callees, loop helpers and frame signature (its entry and
-return cells by the frame layout, a loop's self cell); and the Lean literals the core route's generators print."""
-import re, glob, os, collections
+arguments and returned words (`Pack/*/{Bundle,Sig}.lean`), the advice's hints (`data.advice`), the powers of `g`, the
+jump table; from them (`derive`) each function's operations, table jumps, callees, loop helpers and frame signature
+(its entry and return cells by the frame layout, a loop's self cell); and the Lean literals the core route's
+generators print."""
+import re, glob, os, sys, collections
 HERE = os.path.dirname(os.path.abspath(__file__))
 LEAN_VM = os.path.normpath(os.path.join(HERE, '..', '..'))
 ROOT = os.path.join(LEAN_VM, 'LeanVM', 'Guest')
 STATEMENT = os.path.normpath(os.path.join(LEAN_VM, '..', 'Statement'))
-
-
-def bridge_data():
-    """`scripts/bridge-cert/data.py`, the packs' one reader, one instance a process."""
-    import sys, importlib.util
-    if 'bridge_data' not in sys.modules:
-        spec = importlib.util.spec_from_file_location('bridge_data', os.path.join(HERE, '..', 'bridge-cert', 'data.py'))
-        m = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(m)
-        sys.modules['bridge_data'] = m
-    return sys.modules['bridge_data']
+# the bridge's readers (`scripts/bridge-cert/`: `data`, the packs' one reader, and `align`) after this directory's
+# modules, whose `pair.py` is not the bridge's
+BRIDGE = os.path.join(os.path.dirname(HERE), 'bridge-cert')
+if BRIDGE not in sys.path:
+    sys.path.append(BRIDGE)
+import data as BD  # noqa: E402
 
 
 def load():
     ins_re=re.compile(r'\(\.(\w+) ([^()]*)\)')
     fns={}
-    BD = bridge_data()
     for name, (pack, blk) in BD.bundle_blocks().items():
         chunks={}
         for m in re.finditer(r'def (c\d+) : List OffsetInstruction := \[(.*?)\]\n', blk, re.S):
@@ -43,41 +38,8 @@ def load():
         s=open(b).read()
         for m in re.finditer(r'def sig : Check.Sig :=\s*⟨"([^"]*)", (\d+|Fn\.«[^»]+»\.entry), (\d+), (\d+),',s):
             fns[m.group(1)]['nargs']=int(m.group(3)); fns[m.group(1)]['nret']=int(m.group(4))
-    # advice
-    t=open(ROOT+'/Data/Advice.lean').read()
-    s=t[t.index('"leanvm-advice'):].split('"')[1].replace('\\n','\n')
-    toks=s.split()
-    pos = [0]
-    def tok():
-        pos[0] += 1; return toks[pos[0]-1]
-    assert tok()=='leanvm-advice'; tok(); tok(); mainFrame=int(tok()); tok()
-    nh=int(tok())
-    hints={}
-    def dest():
-        k=tok(); return (k,int(tok()))
-    for _ in range(nh):
-        pc=int(tok()); n=int(tok()); L=[]
-        for _ in range(n):
-            tag=tok()
-            if tag=='fa': h=(tag,int(tok()))
-            elif tag=='af': h=(tag,int(tok()),int(tok()),int(tok()),tok(),int(tok()))
-            elif tag in('al','ad','ca'): h=(tag,int(tok()),int(tok()))
-            elif tag=='aa':
-                p=int(tok()); sl=int(tok()); n2=int(tok()); h=(tag,p,sl,[int(tok()) for _ in range(n2)])
-            elif tag=='av': h=(tag,int(tok()),tok())
-            elif tag=='lt': h=(tag,int(tok()),tok(),int(tok()))
-            elif tag=='ws': h=(tag,tok(),int(tok()),int(tok()))
-            elif tag=='wh': h=(tag,tok(),int(tok()),int(tok()),int(tok()))
-            elif tag=='lc': h=(tag,dest(),int(tok()),int(tok()),int(tok()))
-            elif tag in('bd','be'): h=(tag,int(tok()),dest(),int(tok()))
-            elif tag=='dd':
-                h=(tag,int(tok()),dest(),int(tok()),int(tok()),int(tok()),int(tok()),tok())
-            elif tag=='we': h=(tag,int(tok()),dest(),int(tok()),int(tok()),int(tok()),int(tok()))
-            elif tag=='fl': h=(tag,int(tok()),int(tok()),int(tok()))
-            elif tag=='iv': h=(tag,int(tok()),int(tok()))
-            else: raise Exception(tag)
-            L.append(h)
-        hints[pc]=L
+    # the hints by pc, as the bridge reads them (`data.isa_hint`)
+    hints = {pc: hs for A in BD.advice().values() for pc, hs in A['hints']}
     g = open(os.path.join(ROOT, 'Data', 'Pows.lean')).read()
     pows = {int(k): int(e) for k, e in re.findall(r'\.node (\d+) (\d+)', g)}
     t = open(os.path.join(STATEMENT, 'Data', 'Bytecode00.lean')).read()
@@ -86,7 +48,7 @@ def load():
     n0 = int(re.search(r'def f0 : CompiledFunction :=\s*⟨"[^"]*", \d+, (\d+)', t0).group(1))
     f0 = [(int(a), int(b)) for a, b, _ in re.findall(r'\.set (\d+) (\d+) (\d+)', blk)][:n0]
     jt = {s: pows.get(k) for s, k in f0}
-    return dict(fns=fns, hints=hints, mainFrame=mainFrame, pows=pows, jt=jt)
+    return dict(fns=fns, hints=hints, pows=pows, jt=jt)
 
 
 def _jt_lo():
@@ -95,7 +57,7 @@ def _jt_lo():
     return int(re.search(r'abbrev mainCells : ℕ := (\d+)', t).group(1))
 
 
-JT_LO, HALT = _jt_lo(), bridge_data().HALT
+JT_LO, HALT = _jt_lo(), BD.HALT
 
 
 def conv(op, a):
@@ -305,15 +267,17 @@ def bigTrie(name, typ, entries, val, defs):
 
 def wrap(text, width=100):
     """Long lines broken at spaces (no generated string literal holds one), the rest indented: Lean's
-    positions are slow to compute on very long lines."""
+    positions are slow to compute on very long lines. Linear in the line's length."""
     out = []
     for line in text.split('\n'):
-        while len(line) > width:
-            k = line.rfind(' ', 0, width)
-            if k <= 4: k = line.find(' ', width)
+        p, pre = 0, ''
+        while len(pre) + len(line) - p > width:
+            d = p - len(pre)  # the piece's column 0 in the line
+            k = line.rfind(' ', p, d + width)
+            if k < 0 or k - d <= 4: k = line.find(' ', d + width)
             if k < 0: break
-            out.append(line[:k]); line = '    ' + line[k + 1:]
-        out.append(line)
+            out.append(pre + line[p:k]); p, pre = k + 1, '    '
+        out.append(pre + line[p:])
     return '\n'.join(out)
 
 

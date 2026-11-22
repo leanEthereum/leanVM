@@ -49,8 +49,9 @@ as they are. `--report` appends one row per literal: file, line, class, literal,
 from `lean_vm`; then `scripts/val-names/gen.py` writes the names' data.
 """
 import os, re, subprocess, sys
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+import coredata  # noqa: E402
 
-DUMP = None
 SPATH = {}
 
 
@@ -78,11 +79,7 @@ def load_names(dump):
 
 def compiled_names():
     """Compiled name -> stable name, from `Data/NameStrings.lean`."""
-    t = {}
-    p = os.path.join("LeanVM", "Guest", "Data", "NameStrings.lean")
-    for m in re.finditer(r'abbrev «([^»]+)» : String := "([^"]+)"', open(p, encoding="utf-8").read()):
-        t[m.group(2)] = m.group(1)
-    return t
+    return {c: s for s, c in coredata.name_strings(os.path.join("LeanVM", "Guest", "Data"))[0]}
 
 
 def mask_comments(src):
@@ -133,8 +130,6 @@ def functions(code, cnames):
         if n in cnames: fs.add(cnames[n])
     return fs
 
-
-FAMILY = 6
 
 DECL = re.compile(r'^(?:@\[[^\]]*\]\s*)?(?:(?:private|protected|noncomputable|partial|nonrec)\s+)*'
                   r'(?:theorem|lemma|def|abbrev|instance|structure|inductive|example)\b\s*([^\s:({\[]*)', re.M)
@@ -310,7 +305,6 @@ POS = re.compile(r'(\.drop|\.take|\bdrop|\btake)\s+(\d+)(?![\w.])')
 POSD = re.compile(r'(\.take)\s+\((\d+)\s*-\s*(\d+)\)')
 # a position on a body or an aligned list (`getD k`), or a lemma's position argument (`vtPre_drop k`)
 POSG = re.compile(r'(\.getD)\s+(\d+)(?![\w.])')
-PCITE = re.compile(r'\(pos%\s+«([A-Za-z0-9_]+)»\s+"([^"]+)"\)')
 
 
 def paren_span(s, i):

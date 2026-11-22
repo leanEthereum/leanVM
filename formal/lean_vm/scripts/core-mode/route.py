@@ -7,9 +7,8 @@ the heap check then names (`HCert.sig.pre`), its pairing's oracle and stores. Wh
 route; the kernel's checks (`CoreMode.CoreOk`) confirm it.
 
 `route()` returns `{name: dict(post=[(cell, wit)], pre=[cell], O=[..], S=[..], pack, bpack, j)}`, cells as
-`(bases, off)`, bases `((value number, exponent), ...)`, witnesses `('ev', n)` or `('pre', k)`.
-Usage (a census): python3 -I scripts/core-mode/route.py"""
-import os, re, sys, glob, json, collections
+`(bases, off)`, bases `((value number, exponent), ...)`, witnesses `('ev', n)` or `('pre', k)`."""
+import os, re, sys, glob, json
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import heap  # noqa: E402
@@ -117,10 +116,6 @@ def run_points(G, np):
     return out
 
 
-def straight(body):
-    return all(s[0] in ('ret', 'a') for s in body)
-
-
 def no_ret(ss):
     """A block with no `ret` and no call: atoms, branches and `match`es (`CoreMode.blockB`)."""
     for s in ss:
@@ -208,7 +203,7 @@ def ptr_vals(body):
     return out
 
 
-def route(verbose=False):
+def route():
     import pair
     S = sigs()
     global NZR
@@ -217,12 +212,12 @@ def route(verbose=False):
     AL = pair.AL
     fns = AL.functions()
     pows = AL.pow_table()
-    out = {}; why = collections.Counter()
+    out = {}
     for k, pf in sorted(P.items()):
         params, body = heap.CORE[k]
         if any(p in pf['extra'] for p in ptr_vals(body)):
             # `CoreMode.ptrCellB`: a dereferenced pointer at its certificate cell, no hint-only value
-            why['hint-only pointer'] += 1; continue
+            continue  # hint-only pointer
         if pf.get('kind') in ('c', 'lc'):
             # a body with calls (`callc.py`) or a loop helper (`loopcc.py`), its
             # certificate by the check with calls
@@ -231,20 +226,20 @@ def route(verbose=False):
         F = fns[k]
         ns = F.get('ns', k)
         G = S.get(ns) or S.get(k)
-        if not branchy(body): why['not straight'] += 1; continue
-        if not sel_ok(body, params): why['selector'] += 1; continue
-        if k in CALLS: why['callees'] += 1; continue
-        if F['name'] == 'main' or F['stat'].get(1) == ('fpg', 0, 0): why['main'] += 1; continue
+        if not branchy(body): continue  # not straight
+        if not sel_ok(body, params): continue  # selector
+        if k in CALLS: continue  # callees
+        if F['name'] == 'main' or F['stat'].get(1) == ('fpg', 0, 0): continue  # main
         ex, locs = pf['extra'], pf['locs']
         loc = lambda v: ex[v] if v in ex else (locs[v] if v < len(locs) else 0)
         cells = promised(G, len(params), body, loc)
-        if cells is None: why['signature'] += 1; continue
+        if cells is None: continue  # signature
         f = heap.Fn(k)
         stf = f.block([{}, {}, 0], f.body)
         rets = [s[1] for s in body if s[0] == 'ret'][0]
         if not all(o < 2 ** 28 and o in G['ret'] and mono_cell(G, len(params), m) is not None and
                    any(f.mono(stf[0], v) == mono_cell(G, len(params), m) for v in rets) for o, m in G['retV']):
-            why['returned product'] += 1; continue
+            continue  # returned product
         post = []
         for c in cells:
             w = f.witness(stf[1], subst(f, stf[0], c))
@@ -253,12 +248,8 @@ def route(verbose=False):
         else:
             pre_ok = all(any(mono_cell(G, len(params), m) == c for m in G['pre']) or c in run_points(G, len(params))
                          for c in f.pre)
-            if not pre_ok: why['precondition'] += 1; continue
+            if not pre_ok: continue  # precondition
             out[k] = dict(post=post, pre=list(f.pre), O=pf['O'], S=pf['S'], j=pf['j'], bpack=pf['bpack'], kind='m1')
-            continue
-        why['unwritten promise'] += 1
-    if verbose:
-        print('route', len(out), 'of', len(P), dict(why), 'by check', dict(collections.Counter(r['kind'] for r in out.values())))
     return out
 
 
@@ -280,8 +271,13 @@ def _cell(c):
 
 
 def route_sub():
-    """`route()` in a fresh interpreter (the generators' own `data` modules clash with the pairing's), its reads
-    recorded as the caller's (`memo.follow`)."""
+    """`route()` in a fresh interpreter, which leaves the caller's state as it was, its reads recorded as the caller's
+    (`memo.follow`); computed once while what it reads is unchanged (`memo.py`)."""
+    import memo
+    return memo.cached('route', _route_sub)
+
+
+def _route_sub():
     import subprocess
     r = subprocess.run([sys.executable, '-I', os.path.abspath(__file__), '--dump'], check=True, stdout=subprocess.PIPE,
                        text=True)
@@ -292,11 +288,8 @@ def route_sub():
     return R
 
 
-if __name__ == '__main__':
-    if '--dump' in sys.argv:
-        import memo
-        memo.follow()
-        out, sys.stdout = sys.stdout, open(os.devnull, 'w')
-        json.dump(route(), out)
-    else:
-        route(verbose=True)
+if __name__ == '__main__' and '--dump' in sys.argv:
+    import memo
+    memo.follow()
+    out, sys.stdout = sys.stdout, open(os.devnull, 'w')
+    json.dump(route(), out)

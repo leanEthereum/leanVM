@@ -3,24 +3,12 @@ uncovered (atoms, branches and `match`es, one final `ret`), checked by `heapOkC`
 freely (preconditions only, no translation of their mode signature), every caller a body with calls (`callc.py`)
 re-inferred with that signature as its callee's (`CFun.hcs`). A leaf joins only when every caller then passes.
 
-`extend(out, why, S)` adds them to `callc.results()`'s and replaces their callers'. Usage (a census):
-python3 -I scripts/core-mode/callc.py"""
+`extend(out, why, S)` adds them to `callc.results()`'s and replaces their callers'."""
 import os, sys, collections
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import infer as I  # noqa: E402
 sys.modules.setdefault('infer', I)
-
-
-def kinds(body, acc):
-    for s in body:
-        acc[s[0]] += 1
-        if s[0] == 'ite':
-            kinds(s[2], acc); kinds(s[3], acc)
-        if s[0] == 'match':
-            for a in s[2]:
-                kinds(a, acc)
-    return acc
 
 
 def callees_of(body, acc):
@@ -53,11 +41,12 @@ def m1_pre(k, S):
 def candidates(out, S):
     """Leaves of atoms, branches and `match`es with one final `ret`, not loop helpers nor `main`, not already in `out`,
     the route without calls not taking them for their preconditions."""
+    import callc
     res = []
     for k, (params, body) in sorted(I.CORE.items()):
         if k in out or k in I.IS_LOOP or k == 'main':
             continue
-        acc = kinds(body, collections.Counter())
+        acc = callc.kinds(body, collections.Counter())
         if not set(acc) <= {'a', 'ret', 'ite', 'match'} or acc['ret'] != 1 or body[-1][0] != 'ret':
             continue
         if not (acc['ite'] or acc['match']):
@@ -72,11 +61,12 @@ def eq_candidates(out, S):
     """Leaves of atoms and one final `ret`, not loop helpers nor `main`, not in `out`, whose mode signature has orders at
     return (`postT`, `postC`), which no mode contract on the core route states: on a heap contract with their equations
     at return (`retEq`) instead, joined with their callers."""
+    import callc
     res = []
     for k, (params, body) in sorted(I.CORE.items()):
         if k in out or k in I.IS_LOOP or k == 'main' or k not in S:
             continue
-        acc = kinds(body, collections.Counter())
+        acc = callc.kinds(body, collections.Counter())
         if set(acc) <= {'a', 'ret'} and acc['ret'] == 1 and body[-1][0] == 'ret' and (S[k]['postT'] or S[k]['postC']):
             res.append(k)
     return res

@@ -1,7 +1,7 @@
 """The guest's generated data as the bridge's certificates read it: each compiled function's core body
 (`Pack/*/Core*.lean`), code and certificate cells (`Pack/*/Bundle.lean`, `Cells*.lean`) and plumbing
 (`Bundle.lean`'s `plumb`), and its advice (`Statement/Data/AdviceHints*.lean`), parsed from the Lean text."""
-import re, glob, os
+import re, glob, os, functools
 HERE = os.path.dirname(os.path.abspath(__file__))
 LEAN_VM = os.path.normpath(os.path.join(HERE, '..', '..'))
 ROOT = os.path.join(LEAN_VM, 'LeanVM', 'Guest')
@@ -363,6 +363,7 @@ def own_packs():
             if not re.fullmatch(r'P\d+', os.path.basename(os.path.dirname(d)))}
 
 
+@functools.cache
 def core_texts():
     """Each function's core text, by stable name: its block of its pack's `Core.lean`, or, with a pack of its own,
     all its pack's core modules."""
@@ -380,6 +381,7 @@ def core_texts():
     return out
 
 
+@functools.cache
 def bundle_blocks():
     """Each compiled function's part of its pack's `Bundle.lean`, from its name to the next function, by stable
     name: `(pack, text)`."""
@@ -417,6 +419,7 @@ def body_of(text):
     return outline(core_body(text))
 
 
+@functools.cache
 def bundles():
     """Each compiled function's code, certificate cells and plumbing cells, by stable name."""
     out = {}
@@ -459,6 +462,7 @@ def bundles():
     return out
 
 
+@functools.cache
 def advice():
     """The advice by function: its index in `Data.adviceFns`, keyed by entry pc, with its hints by pc."""
     t = advice_text()
