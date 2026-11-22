@@ -352,6 +352,18 @@ def main():
     }
 }
 
+/// A stream name is one word of the hints' text form (`isa::CompiledProgram::export_hints`).
+#[test]
+fn a_stream_name_has_no_whitespace() {
+    for src in [
+        "def main():\n    x = hint_witness(\"a b\")\n    return\n",
+        "def main():\n    rb = StackBuf(1)\n    hint_witness(rb[0:1], \"\")\n    return\n",
+    ] {
+        let err = parse(src).expect_err("a stream name must be one word");
+        assert!(err.contains("no whitespace"), "{err}");
+    }
+}
+
 /// The scalar hint binds like any other statement that binds.
 ///
 /// Three `StmtKind` walkers have a catch-all arm, and each silently swallowed
