@@ -32,10 +32,10 @@ KINDS = {
             'the parameters whose nonzero values the core route\'s residuals are (`CoreMode.coreNzs`)'),
     'stCallers': ('Data', 'List (String × String)', None,
                   'the callees whose facts are carried, and their callers (`Res.termCallers`, `Res.callersG`)'),
-    'mlLoops': ('Data', 'List (String × ℕ × ℕ × ℕ × ℕ × ℕ × List (ℕ × ℕ × ℕ))', None,
+    'mlLoops': ('Data', 'List (String × ℕ × ℕ × ℕ × ℕ × ℕ × List (ℕ × ℕ × ℕ))', 'EndExec.MlLoopOk',
                 'the specializations of a ghost family over a caller\'s table: name, index, entry, first gap, the gaps\' '
                 'stride, the parameter bounding the reads, the caller\'s cells linked (`CoreMode.mlK`)'),
-    'cmLoops': ('Data', 'List (String × ℕ × ℕ × ℕ × ℕ × List ℕ)', None,
+    'cmLoops': ('Data', 'List (String × ℕ × ℕ × ℕ × ℕ × List ℕ)', 'EndExec.CmLoopOk',
                 'the frame loops over a caller\'s table: name, claims a frame, entry, first gap, the gaps\' stride, the '
                 'caller\'s cells linked (`CoreMode.cmK`)'),
     'glCallers': ('Data', 'List (String × List String)', None,

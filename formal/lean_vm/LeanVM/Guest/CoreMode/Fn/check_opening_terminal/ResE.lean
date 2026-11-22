@@ -9,6 +9,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.Fam.ResF
+public import LeanVM.Guest.EndExecCoreFn
 public import LeanVM.Guest.CoreMode.Fam.TermDefs
 public import LeanVM.Guest.B1.Terminal.HoldsOf
 public import LeanVM.Guest.CoreMode.Fn.check_opening_terminal.Data
@@ -18,14 +19,46 @@ import LeanVM.Guest.Data.ValNames.«check_opening_terminal»
 /-!
 # `check_opening_terminal`'s facts and families
 
-`ExpQ r J`, `DimQ r J`: at an instance `J` of a function listed in `Res.expFacts`
-(`Res.dimFacts`), each listed parameter holds its fact (`ExpH`, `DimH`) on the reference memory.
+`TermFront rd args`: what `verify_sub`'s front (`B1.VerifySub.vs_front`) gives of
+`check_opening_terminal`'s arguments, read by name: `kappa_base` reads `[1, g^log_mem, g^τ_0, …,
+g^τ_5]`, `g_log_mem = g^log_mem`, `tau_keccak_g = g^τ_5`, the heights below `31`, `log_mem ≤ 30`;
+`col_offsets` holds `certify_placement`'s offsets (`PCtx`, `KappasBelow`), the stack at most `2^30`;
+`g_squares·g^34` the selector's nibble shares; `verify_tables`' context (`TCtx`) on
+`[zeta, chi, rm, g_bus_mu, g_zc_n]`.
 `TermQ r J`: at an instance of `check_opening_terminal`, `Res.TermFront` of its arguments.
 `expH_of_front`, `dimH_of_front`: its own facts (`Own.check_opening_terminal.expFacts`, `dimFacts`) from `TermFront`:
 `kappa_base`'s words are `g`-powers of `[0, log_mem, τ_0, …, τ_5]`, `tau_keccak_g = g^τ_5`, `gmv = g^sl`, `sl ≤ 30`;
 a pooled claim's low point, of length its source's exponent plus its adjustment (`claimLowDim`), is a prefix of the
 bus point (`g_bus_mu`) or of the tables' point (`g_zc_n`), at most `40` long.
 -/
+
+namespace LeanVM.Guest.Res
+
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.B1
+open LeanVM.Protocol LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
+
+@[expose] public section
+
+/-! ## What `verify_sub` hands the terminal -/
+
+/-- **What `verify_sub`'s front gives of `check_opening_terminal`'s arguments.** -/
+def TermFront (rd : Reader) : List E → Prop
+  | [gsq, zeta, chi, rm, gmu, gzcn, glm, gtau, kb, _lam, off, _zv, _ct, _pt, _pt1, _, _, _, _oz, gm] =>
+      ∃ (logMem : ℕ) (hs : List ℕ) (layout : Layout) (bus : BusResult) (claims : List ColumnClaim),
+        hs.length = 6 ∧ (∀ h ∈ hs, h < 31) ∧ logMem ≤ 30 ∧
+        layout.logMemory = logMem ∧ layout.tableLogHeights = hs ∧ bus.point.length ≤ 40 ∧
+        ReadsAt rd kb (1 :: gen ^ logMem :: hs.map (gen ^ ·)) ∧
+        glm = gen ^ logMem ∧ gtau = gen ^ hs.getD 5 0 ∧
+        Tables.PCtx rd (columnKappas logMem Tables.guestLogBytecode hs) off ∧
+        Tables.KappasBelow (columnKappas logMem Tables.guestLogBytecode hs) ∧
+        (stackOffsets (Tables.committedKappas (columnKappas logMem Tables.guestLogBytecode hs))).2 ≤ 30 ∧
+        Tables.GTabsAt rd (gsq * gen ^ 34) ∧
+        Tables.TCtx rd layout bus claims [zeta, chi, rm, gmu, gzcn] ∧ ∃ sl ≤ 30, gm = gen ^ sl
+  | _ => False
+
+end
+
+end LeanVM.Guest.Res
 
 namespace LeanVM.Guest.EndExec
 
@@ -38,26 +71,6 @@ open LeanVM.Protocol.Verifier (gen Layout BusResult ColumnClaim)
 open LeanVM.Prover.Exec
 
 @[expose] public section
-
-/-- An exponent fact: the word `x` (offset `none`), or the word read at `x·g^k`, is `g^e`, `e < b`. -/
-def ExpH (rd : Reader) : Option ℕ → ℕ → E → Prop
-  | none, b, x => ∃ e < b, x = gen ^ e
-  | some k, b, x => ∃ e < b, LoadHolds rd x k (gen ^ e)
-
-/-- A dimension fact: `gb = g^m`, and for each pair `(k, c)` the word at `kb·g^k` is `g^e`, `e + c ≤ m`. -/
-def DimH (rd : Reader) (kb gb : E) (ps : List (ℕ × ℕ)) : Prop :=
-  ∃ m < 2 ^ 33, gb = gen ^ m ∧ ∀ p ∈ ps, ∃ e, LoadHolds rd kb p.1 (gen ^ e) ∧ e + p.2 ≤ m
-
-/-- **The exponent facts at an instance.** -/
-def ExpQ (r : Ref) (J : Inst) : Prop :=
-  ∀ f σ bufs kids, J.t = .node f σ bufs kids → ∀ fn, coreProgram.find? f = some fn → ∀ c ∈ expFacts,
-    c.1 = f → ∀ v, fn.params[c.2.1]? = some v → ExpH r.img.read c.2.2.1 c.2.2.2 (σ v)
-
-/-- **The dimension facts at an instance.** -/
-def DimQ (r : Ref) (J : Inst) : Prop :=
-  ∀ f σ bufs kids, J.t = .node f σ bufs kids → ∀ fn, coreProgram.find? f = some fn → ∀ c ∈ dimFacts,
-    c.1 = f → ∀ vk vb, fn.params[c.2.1]? = some vk → fn.params[c.2.2.1]? = some vb →
-      DimH r.img.read (σ vk) (σ vb) c.2.2.2
 
 /-- **What `verify_sub` hands `check_opening_terminal`, at its instances.** -/
 def TermQ (r : Ref) (J : Inst) : Prop :=

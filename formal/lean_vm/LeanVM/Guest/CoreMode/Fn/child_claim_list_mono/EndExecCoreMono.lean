@@ -10,7 +10,11 @@ module
 public import LeanVM.Guest.CoreMode.Fn.child_claim_list_mono.ResMR
 public import LeanVM.Guest.EndExecCoreLink
 import LeanVM.Guest.ValRef
+public import LeanVM.Guest.GuestConst
+import LeanVM.Guest.Data.Consts
 import LeanVM.Guest.Data.ValNames.«child_claim_list_mono_last__L»
+import LeanVM.Guest.Data.ValNames.child_claim_list_mono_loop0
+import LeanVM.Guest.Data.ValNames.child_claim_list_mono_loop1
 
 /-!
 # The ghost family, sound
@@ -150,28 +154,10 @@ theorem ml_inst {r : Ref} (hr : r.Ok) (hO : MonoOk) {I : Inst}
 
 /-! ## The frame loops (`cm`) -/
 
+/-- **A frame loop's entry** in the `cmLoops` registry, `child_claim_list_mono`'s own. -/
 theorem cmK_spec {fn : Fn} {p : ℕ × ℕ × ℕ × ℕ × List ℕ} (h : CoreMode.cmK fn = some p) :
-    (fn.name = name% «child_claim_list_mono_loop0» ∧ p = (136, 12, 13, 10, [2, 5])) ∨
-      (fn.name = name% «child_claim_list_mono_loop1» ∧ p = (17, 12, 13, 10, [2, 5])) := by
-  have hm := CoreMode.lookup_memL h
-  simp only [CoreMode.FnReg.cmLoops, CoreMode.Own.child_claim_list_mono.cmLoops, List.append_nil, List.mem_cons,
-    List.not_mem_nil, or_false] at hm
-  rcases hm with hm | hm
-  · exact Or.inl ⟨congrArg Prod.fst hm, congrArg Prod.snd hm⟩
-  · exact Or.inr ⟨congrArg Prod.fst hm, congrArg Prod.snd hm⟩
-
-theorem cmK_name {fn : Fn} {p : ℕ × ℕ × ℕ × ℕ × List ℕ} (h : CoreMode.cmK fn = some p) :
-    fn.name = name% «child_claim_list_mono_loop0» ∨ fn.name = name% «child_claim_list_mono_loop1» :=
-  (cmK_spec h).imp (·.1) (·.1)
-
-/-- **A frame loop is not of the families `ml`, `st`.** -/
-theorem cmK_mlK {fn : Fn} {p : ℕ × ℕ × ℕ × ℕ × List ℕ} (h : CoreMode.cmK fn = some p) : CoreMode.mlK fn = none := by
-  unfold CoreMode.mlK
-  rcases cmK_name h with h | h <;> rw [h] <;> decide +kernel
-
-theorem cmK_stK {fn : Fn} {p : ℕ × ℕ × ℕ × ℕ × List ℕ} (h : CoreMode.cmK fn = some p) : CoreMode.stK fn = none := by
-  unfold CoreMode.stK
-  rcases cmK_name h with h | h <;> rw [h] <;> decide +kernel
+    (fn.name, p) ∈ CoreMode.Own.child_claim_list_mono.cmLoops := by
+  simpa only [CoreMode.FnReg.cmLoops, List.append_nil] using CoreMode.lookup_memL h
 
 /-- **A frame loop's reads at an honest instance**: the record at offset `O`, the next at `O'`, at most `L`
 (`MonoQ`); claim `jj`'s entry `ent · Π_{i ≤ jj} gap_i^4 · g^(4jj)` lies `4o` words into the caller's table, `o < L`. -/
@@ -236,12 +222,17 @@ theorem cm_inst {r : Ref} (hr : r.Ok) (hO : MonoOk) {I : Inst}
     ∃ a, I.hdr.2 = ofK (addressOfIndex a) ∧ a + 5 < maxCells ∧
       ∀ x, CoreMode.cmSub fn x = true →
         x.Holds (setG σ [refMem r.img (a + 2), refMem r.img (a + 5), ofK (Parameters.g ^ a)]) := by
-  obtain ⟨m, rfl, hcases⟩ : ∃ m, p = (m, 12, 13, 10, [2, 5]) ∧ ((f = name% «child_claim_list_mono_loop0» ∧ m = 136) ∨
-      (f = name% «child_claim_list_mono_loop1» ∧ m = 17)) := by
-    rw [← find_name' hf]
-    rcases cmK_spec hk with ⟨h0, rfl⟩ | ⟨h1, rfl⟩
-    · exact ⟨136, rfl, Or.inl ⟨h0, rfl⟩⟩
-    · exact ⟨17, rfl, Or.inr ⟨h1, rfl⟩⟩
+  obtain ⟨m, rfl, hcases⟩ : ∃ m, p = (m, val% «child_claim_list_mono_loop0» «child_claim_list_mono_loop1» "s4#1",
+      val% «child_claim_list_mono_loop0» «child_claim_list_mono_loop1» "gap@1", 10, [2, 5]) ∧
+      ((f = name% «child_claim_list_mono_loop0» ∧ m = guest_const% CLAIM_BIG) ∨
+        (f = name% «child_claim_list_mono_loop1» ∧ m = guest_const% CLAIM_GROUP)) := by
+    have hm := cmK_spec hk
+    rw [find_name' hf] at hm
+    simp only [CoreMode.Own.child_claim_list_mono.cmLoops, List.mem_cons, List.not_mem_nil, or_false,
+      Prod.mk.injEq] at hm
+    rcases hm with ⟨h0, rfl⟩ | ⟨h1, rfl⟩
+    · exact ⟨_, rfl, Or.inl ⟨h0, rfl⟩⟩
+    · exact ⟨_, rfl, Or.inr ⟨h1, rfl⟩⟩
   obtain ⟨aP, L, hh2, ha5, hm5, hL, hrd⟩ : ∃ aP L, I.hdr.2 = ofK (addressOfIndex aP) ∧ aP + 5 < maxCells ∧
       refMem r.img (aP + 5) = gen ^ L ∧ L < 2 ^ 33 ∧ ∀ jj < m, ∃ o < L, σ (.n 12) *
         ((List.range (jj + 1)).map fun i ↦ σ (.n (13 + 10 * i)) ^ 4).prod * gen ^ (4 * jj) =
@@ -328,8 +319,12 @@ theorem cmGlF {r : Ref} {Cf : CFun} {fp a : ℕ} {σ : Val} {p : ℕ × ℕ × �
     GlF r.img Cf.gl fp (Cf.fn.params.map (setG σ [refMem r.img (a + 2), refMem r.img (a + 5),
       ofK (Parameters.g ^ a)]) ++ ownG Cf.H.sig (setG σ [refMem r.img (a + 2), refMem r.img (a + 5),
       ofK (Parameters.g ^ a)])) := by
-  obtain ⟨m, rfl⟩ : ∃ m, p = (m, 12, 13, 10, [2, 5]) := by
-    rcases cmK_spec hk with ⟨-, rfl⟩ | ⟨-, rfl⟩ <;> exact ⟨_, rfl⟩
+  obtain ⟨m, rfl⟩ : ∃ m, p = (m, val% «child_claim_list_mono_loop0» «child_claim_list_mono_loop1» "s4#1",
+      val% «child_claim_list_mono_loop0» «child_claim_list_mono_loop1» "gap@1", 10, [2, 5]) := by
+    have hm := cmK_spec hk
+    simp only [CoreMode.Own.child_claim_list_mono.cmLoops, List.mem_cons, List.not_mem_nil, or_false,
+      Prod.mk.injEq] at hm
+    rcases hm with ⟨-, rfl⟩ | ⟨-, rfl⟩ <;> exact ⟨_, rfl⟩
   dsimp only at hgl
   rw [ownG_setG (by rw [hgh]; rfl), hgl]
   intro d b k hm

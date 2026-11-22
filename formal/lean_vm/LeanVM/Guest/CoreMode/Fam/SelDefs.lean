@@ -16,9 +16,6 @@ public import LeanVM.Guest.CoreMode.Fam.EfDefs
 public import LeanVM.Guest.CoreMode.Gen.FnData
 import LeanVM.Guest.Data.Consts
 import LeanVM.Guest.ValRef
-import LeanVM.Guest.Data.ValNames.«rs_eq_run»
-import LeanVM.Guest.Data.ValNames.«shared_selector_tables»
-import LeanVM.Guest.Data.ValNames.«verify_keccak»
 
 /-!
 # The selectors' checks
@@ -39,9 +36,7 @@ completeness check reads it).
 parameter's word, or the word read through it, is `g^e`, `e` below a bound `b`), `b + t ≤ N`.
 
 `splits`: the frame's splits `[n] = [s]^S·[r]`, `[s]` and `[r]` powers of `g`. `nzB nzs j o`: residual
-`nz o` is the cell of a parameter of function `j`, its loop counter or listed in `nzs`. `ResOk exc nzs K`: certificate `K` is listed in `exc`, or each of its residuals
-is a name, a selector's bound, an exponent fact's bound or such a divisor at its function's index, or a run inside others
-(`sub`), decided per certificate. `allV p t`: every value stored in `t` satisfies `p`
+`nz o` is the cell of a parameter of function `j`, its loop counter or listed in `nzs`. `allV p t`: every value stored in `t` satisfies `p`
 (`allV_get`).
 -/
 
@@ -175,23 +170,6 @@ noncomputable def ltFactB (j : ℕ) : Mode.Res → Bool
     | some (p, b) => inFr j (cellJ j p) && decide (b ≤ 2 ^ 33) && decide (N ≤ 2 ^ 33) && decide (b + t ≤ N)
     | none => false
   | _ => false
-
-/-- **An order residual an exponent fact bounds** (`ltFactB`), or `verify_sub`'s exponent facts decide
-(`vsB`). -/
-noncomputable def ltExpB (j : ℕ) (x : Mode.Res) : Bool := ltFactB j x || vsB j x
-
-/-- A residual the families take at function `j`: a name, a selector's bound (`ltSelB`) or one an
-exponent fact gives or `verify_sub`'s exponent facts decide (`ltExpB`), a run inside others, or a nonzero divisor at a parameter (`nzB`). -/
-noncomputable def famB (nzs : List (String × V)) (j : ℕ) : Mode.Res → Bool
-  | .name _ => true
-  | .lt a b => ltSelB j (.lt a b) || ltExpB j (.lt a b)
-  | .sub _ _ => true
-  | .nz o => nzB nzs j o
-
-/-- **A certificate's residuals in the families**: it is listed in `exc`, or each of its residuals
-is in the families at its function's index `j`. -/
-def ResOk (exc : List Mode.Cert) (nzs : List (String × V)) (K : Mode.Cert) : Prop :=
-  K ∈ exc ∨ ∃ j, j < nFns ∧ (fnOf j).entryPc = K.F.entry ∧ allV (fun l ↦ l.all (famB nzs j)) K.F.res = true
 
 /-! ## Soundness -/
 

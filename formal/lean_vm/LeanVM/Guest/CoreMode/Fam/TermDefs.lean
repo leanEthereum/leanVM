@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.CoreMode.Fam.TermDefs
 
-  `check_opening_terminal`'s residual families: what `verify_sub` hands it (`TermFront`), and the
-  checks of its claims' low dimensions.
+  The dimension facts' family: a claim's low point inside its chain, by a function's dimension facts; and the
+  callers' registries the facts carried down read.
 -/
 
 module
@@ -15,18 +15,11 @@ public import LeanVM.Guest.B1.Selectors.ColumnSelector
 import LeanVM.Guest.Data.Consts
 
 /-!
-# `check_opening_terminal`'s families
-
-`TermFront rd args`: what `verify_sub`'s front (`B1.VerifySub.vs_front`) gives of
-`check_opening_terminal`'s arguments, read by name: `kappa_base` reads `[1, g^log_mem, g^τ_0, …,
-g^τ_5]`, `g_log_mem = g^log_mem`, `tau_keccak_g = g^τ_5`, the heights below `31`, `log_mem ≤ 30`;
-`col_offsets` holds `certify_placement`'s offsets (`PCtx`, `KappasBelow`), the stack at most `2^30`;
-`g_squares·g^34` the
-selector's nibble shares; `verify_tables`' context (`TCtx`) on `[zeta, chi, rm, g_bus_mu, g_zc_n]`.
+# The dimension facts' family
 
 `dimFacts`: function, base parameter, bound parameter, pairs `(k, c)`: the word at `[base]·g^k` is
-`g^e`, the bound's `g^m`, `e + c ≤ m` (`FnReg.dimFacts`; at `check_opening_terminal`, the pooled claims' `kappa_base`
-sources and adjustments, its own data). `dimB j w`: the point `[T]·B·g^d` inside `[T]·g^i`, `i` below `[M]`'s exponent
+`g^e`, the bound's `g^m`, `e + c ≤ m` (`FnReg.dimFacts`, each function's own
+data). `dimB j w`: the point `[T]·B·g^d` inside `[T]·g^i`, `i` below `[M]`'s exponent
 plus `t ≥ 1`, `B` the word at `[K]·g^k` (or a product of it and a constant `g^c` the code writes),
 `(k, c + d)` a pair of such a fact on `K`, `M`.
 -/
@@ -39,27 +32,10 @@ open LeanVM.Guest.B2C (cellJ fsN)
 
 @[expose] public section
 
-/-! ## What `verify_sub` hands the terminal -/
-
-/-- **What `verify_sub`'s front gives of `check_opening_terminal`'s arguments.** -/
-def TermFront (rd : Reader) : List E → Prop
-  | [gsq, zeta, chi, rm, gmu, gzcn, glm, gtau, kb, _lam, off, _zv, _ct, _pt, _pt1, _, _, _, _oz, gm] =>
-      ∃ (logMem : ℕ) (hs : List ℕ) (layout : Layout) (bus : BusResult) (claims : List ColumnClaim),
-        hs.length = 6 ∧ (∀ h ∈ hs, h < 31) ∧ logMem ≤ 30 ∧
-        layout.logMemory = logMem ∧ layout.tableLogHeights = hs ∧ bus.point.length ≤ 40 ∧
-        ReadsAt rd kb (1 :: gen ^ logMem :: hs.map (gen ^ ·)) ∧
-        glm = gen ^ logMem ∧ gtau = gen ^ hs.getD 5 0 ∧
-        Tables.PCtx rd (columnKappas logMem Tables.guestLogBytecode hs) off ∧
-        Tables.KappasBelow (columnKappas logMem Tables.guestLogBytecode hs) ∧
-        (stackOffsets (Tables.committedKappas (columnKappas logMem Tables.guestLogBytecode hs))).2 ≤ 30 ∧
-        Tables.GTabsAt rd (gsq * gen ^ 34) ∧
-        Tables.TCtx rd layout bus claims [zeta, chi, rm, gmu, gzcn] ∧ ∃ sl ≤ 30, gm = gen ^ sl
-  | _ => False
-
 /-! ## The claims' low dimensions -/
 
 /-- **Dimension facts at listed parameters**: function, base parameter, bound parameter, pairs; each function's own
-(`FnReg.dimFacts`: `check_opening_terminal`'s, `CoreMode/Fn/check_opening_terminal/Data.lean`). -/
+(`FnReg.dimFacts`). -/
 abbrev dimFacts : List (String × ℕ × ℕ × List (ℕ × ℕ)) := CoreMode.FnReg.dimFacts
 
 /-- The shape `dimB` reads: `[T]·B` and `[T]` up to `[o] + t`, as `(B, o, t)`. -/

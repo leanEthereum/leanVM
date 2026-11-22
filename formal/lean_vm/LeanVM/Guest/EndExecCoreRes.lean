@@ -9,8 +9,6 @@
 module
 
 public import LeanVM.Guest.CoreMode.Fam.ResF
-public import LeanVM.Guest.CoreMode.Fn.column_selector.ResCs
-public import LeanVM.Guest.CoreMode.Fn.column_selector.CsQ
 public import LeanVM.Guest.CoreMode.CoreRes
 public import LeanVM.Guest.EndExecCoreFn
 public import LeanVM.Guest.EndExecCoreSplit

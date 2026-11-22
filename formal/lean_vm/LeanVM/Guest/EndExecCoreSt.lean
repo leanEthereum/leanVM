@@ -7,8 +7,7 @@
 
 module
 
-public import LeanVM.Guest.CoreMode.Fn.keccak_layer.ResStB
-public import LeanVM.Guest.CoreMode.Fn.child_claim_list_mono.EndExecCoreMono
+public import LeanVM.Guest.EndExecCoreLink
 
 /-!
 # The stream-cursor family, sound
@@ -17,7 +16,8 @@ At an honest instance of a stream-cursor loop (`stK`, each its function's own, `
 caller's frame `a`, whose cell `D` holds the proof stream, and the cursor the body loads from its record is
 `M (a + D)·g^q` with room for an iteration's words (`EndExec.StOk`, proved by the loop's function); with its ghost words
 that stream and the frame's address (`setG σ [M (a + D), g^a]`), each read of the family (`stSub`) lies in the stream,
-`q + c < 8192` (`stSub_holds`; `st_inst`, `EndExecCoreResAll`). `stGlF`: its linked cells hold.
+`q + c < 8192` (`stSub_holds`; `st_inst`, `EndExecCoreResAll`). `stGlF`: its linked cells hold. `stK_mlK`, `cmK_mlK`,
+`cmK_stK`: the ghost families' functions are distinct, by their registries.
 -/
 
 namespace LeanVM.Guest.EndExec
@@ -73,6 +73,15 @@ theorem stK_mlK {fn : Fn} {p : ℕ × ℕ × ℕ} (hk : stK fn = some p) : CoreM
   have hmk : ∀ n ∈ CoreMode.stLoops.map (·.1),
       CoreMode.FnReg.mlLoops.lookup n = none := by decide +kernel
   exact hmk _ (List.mem_map_of_mem (f := (·.1)) (CoreMode.lookup_memL hk))
+
+/-- **A frame loop is not of the families `ml`, `st`.** -/
+theorem cmK_mlK {fn : Fn} {p : ℕ × ℕ × ℕ × ℕ × List ℕ} (hk : CoreMode.cmK fn = some p) : CoreMode.mlK fn = none := by
+  have hm : ∀ n ∈ CoreMode.FnReg.cmLoops.map (·.1), CoreMode.FnReg.mlLoops.lookup n = none := by decide +kernel
+  exact hm _ (List.mem_map_of_mem (f := (·.1)) (CoreMode.lookup_memL hk))
+
+theorem cmK_stK {fn : Fn} {p : ℕ × ℕ × ℕ × ℕ × List ℕ} (hk : CoreMode.cmK fn = some p) : CoreMode.stK fn = none := by
+  have hm : ∀ n ∈ CoreMode.FnReg.cmLoops.map (·.1), CoreMode.stLoops.lookup n = none := by decide +kernel
+  exact hm _ (List.mem_map_of_mem (f := (·.1)) (CoreMode.lookup_memL hk))
 
 /-- **A stream-cursor loop's linked cells** at its frame: the caller's cell `D` its first ghost word, the caller's
 frame its second. -/

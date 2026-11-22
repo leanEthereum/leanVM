@@ -32,7 +32,7 @@ def render():
         for k, (a, m) in enumerate(ranges):
             mod = 'LeanVM.Guest.CoreMode.Gen.%s%d' % (stem, k)
             t = [header(mod, 'The callers\' check of `%s`, functions %d to %d.' % (lst, a, a + m - 1))]
-            t.append('public import LeanVM.Guest.CoreMode.Fn.child_claim_list_mono.MonoDefs\npublic import LeanVM.Guest.CoreMode.Fam.TermDefs\n\n'
+            t.append('public import LeanVM.Guest.CoreMode.Fam.LinkDefs\npublic import LeanVM.Guest.CoreMode.Fam.TermDefs\n\n'
                      'namespace LeanVM.Guest.Res\n\nopen LeanVM.Guest.Memory\n\n'
                      'public section\n\ntheorem %s_%d : RangeOk (fun _ fn => %s %s fn) %d %d := by\n'
                      '  unfold RangeOk; decide +kernel\n\nend\n\nend LeanVM.Guest.Res\n' % (lst, a, chk, lst, a, m))

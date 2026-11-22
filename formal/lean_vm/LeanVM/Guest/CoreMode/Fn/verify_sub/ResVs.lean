@@ -31,6 +31,31 @@ import LeanVM.Guest.Data.ValNames.«verify_sub»
 tables' log-heights, the stack's log, the bus depth and the cursors its reads take.
 -/
 
+namespace LeanVM.Guest.Res
+
+open LeanVM.Guest LeanVM.Guest.Core
+
+@[expose] public section
+
+/-- **`verify_sub`'s exponent facts**: the tables' log-heights `dims[1..6]` (`[[75]·g^t]`), the
+keccak table's (`t = 6`) at least `9` and at most `24`; the stack's log less `20` (`[202]`); the bus
+depth (`log2_ceil`'s return, `[[168]·g^4]`); the table sumcheck's depth (`verify_tables`' return,
+`[[499]·g^29]`), at least the keccak table's; the stack's log (`[[199]·g^4]`); the cursors
+`verify_bus_gkr`, `verify_tables` and `verify_keccak` return, in the stream `[27]`. -/
+def vsFacts : EFacts where
+  pows := ((List.range 5).map fun t ↦ (.hp 75 (t + 1), 0, 30)) ++
+    [(.hp 75 6, 9, 24), (.fr 202, 0, 10), (.hp 168 4, 20, 33), (.hp 499 29, 9, 33), (.hp 199 4, 20, 30)]
+  les := [(.hp 75 6, .hp 499 29, 0), (.hp 199 4, .fr 202, 20)]
+  curs := [(.hp 485 17, .fr 27, 14), (.hp 499 28, .fr 27, 49), (.hp 512 20, .fr 27, 207)]
+
+/-- **A residual of `verify_sub` its exponent facts take.** -/
+noncomputable def vsB (j : ℕ) (x : Mode.Res) : Bool :=
+  (coreOf j).name == name% «verify_sub» && efFamB vsFacts x
+
+end
+
+end LeanVM.Guest.Res
+
 namespace LeanVM.Guest.EndExec
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Mode LeanVM.Guest.Core LeanVM.Guest.Memory

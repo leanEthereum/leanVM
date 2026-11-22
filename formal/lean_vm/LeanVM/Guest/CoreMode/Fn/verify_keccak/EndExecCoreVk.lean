@@ -9,7 +9,8 @@ module
 public import LeanVM.Guest.CoreMode.Fn.verify_keccak.ResVk
 public import LeanVM.Guest.CoreMode.CoreRes
 public import LeanVM.Guest.CoreMode.Fn.verify_keccak.Fam
-public import LeanVM.Guest.CoreMode.Fn.verify_tables.EndExecCoreVt
+public import LeanVM.Guest.EndExecCoreFn
+public import LeanVM.Guest.CoreMode.HeapCSound
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_keccak»
 

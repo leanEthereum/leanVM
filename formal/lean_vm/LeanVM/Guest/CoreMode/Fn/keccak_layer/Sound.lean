@@ -9,6 +9,7 @@ module
 public import LeanVM.Guest.EndExecCoreRes
 public import LeanVM.Guest.EndExecCoreSt
 public import LeanVM.Guest.CoreMode.Fn.keccak_layer.ResStP
+public import LeanVM.Guest.CoreMode.Fn.keccak_layer.ResStB
 public import LeanVM.Guest.CoreMode.Fn.keccak_layer.ResStL
 public import LeanVM.Guest.CoreMode.Fn.keccak_layer.Data
 public import LeanVM.Guest.CoreMode.Fn.keccak_layer.Fam

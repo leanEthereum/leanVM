@@ -15,7 +15,6 @@ public import LeanVM.Guest.CoreMode.Fam.ResS
 public import LeanVM.Guest.B1.Exact.RsEqRun
 public import LeanVM.Guest.B1.Exact.SharedTables
 public import LeanVM.Guest.CoreMode.Fam.SubDefs
-public import LeanVM.Guest.CoreMode.Fn.verify_keccak.ResVk
 public import LeanVM.Guest.CoreMode.Fam.FamDefs
 public import LeanVM.Guest.CoreMode.Fam.ExpDefs
 public import LeanVM.Guest.CoreMode.Fam.ResExp
