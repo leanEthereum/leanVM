@@ -57,6 +57,11 @@ def idxC : CIdx → CCell
   | .val v => baseC v
   | .mono c => c
 
+theorem idxC_vals : ∀ i : CIdx, (idxC i).vals = i.vals
+  | .num _ => rfl
+  | .val _ => rfl
+  | .mono _ => rfl
+
 /-- **The cells of a run** `base · g^(S · j)`, `j` from the exponent of `lo` to below that of `hi`. -/
 def RunSet (w : ℕ → E) (base : CCell) (S : ℕ) (lo hi : CCell) (x : K) : Prop :=
   ∃ ylo yhi j, rep (lo.valW w) = some ylo ∧ rep (hi.valW w) = some yhi ∧ ylo ≤ j ∧ j < yhi ∧
@@ -395,8 +400,6 @@ def CRes.Holds (σ : Val) : CRes → Prop
 
 /-- **The residuals hold** at the instance. -/
 def ResF (H : HCert) (σ : Val) : Prop := ∀ r ∈ H.res, r.Holds σ
-
-theorem resF_nil {H : HCert} (h : H.res = []) (σ : Val) : ResF H σ := fun r hr ↦ by rw [h] at hr; cases hr
 
 /-! ## Monomials at a site -/
 

@@ -605,11 +605,6 @@ theorem idxC_mapN (nv : List ℕ) : ∀ i : CIdx, idxC (i.mapN nv) = (idxC i).ma
   | .val _ => rfl
   | .mono _ => rfl
 
-theorem idxC_vals : ∀ i : CIdx, (idxC i).vals = i.vals
-  | .num _ => rfl
-  | .val _ => rfl
-  | .mono _ => rfl
-
 theorem mapN_runSet {nv : List ℕ} {w : ℕ → E} {q : CRun} (h : q.vals.all (nv.contains ·) = true) (x : K) :
     (q.mapN nv).Set (slotW (nv.map w)) x ↔ q.Set w x := by
   simp only [CRun.vals, List.all_append, Bool.and_eq_true] at h

@@ -1261,26 +1261,6 @@ theorem preSet_const {rd : Reader} {G : HSig} {ws : List E} {x : K} (hR : G.preR
 
 /-! ## `heapOk`'s statement -/
 
-/-- **`heapOk`'s statement, a special case**: on a path entering no call, of a function with no
-precondition run or pointer fact, `ReadsOkC` is `ReadsWritten`. -/
-theorem readsWritten_of_C {sigOf : String → HSig} {H : HCert} {rd : Reader} {σ : Val} {f : Fn}
-    (hpar : f.params = (List.range f.params.length).map V.n) (hpov : preOver f.params.length H.sig.pre = true)
-    (hR : H.sig.preR = []) (hP : H.sig.preP = []) (hPR : H.sig.prePR = []) {es : List Ev}
-    (hnc : ∀ g a r, Ev.call g a r ∉ es)
-    (h : ReadsOkC sigOf H rd σ (f.params.map σ) es) : ReadsWritten H σ es := by
-  intro es1 a es2 x he hr
-  rcases h es1 (.atom a) es2 he x hr with ((⟨c, hc, hx⟩ | ⟨r, hr', -⟩) | (⟨p, hp, -⟩ | ⟨p, hp, -⟩)) |
-    ⟨e, he1, hx⟩
-  · exact Or.inl ⟨c, hc, by rw [← addr_pre hpar hpov hc _, hx]⟩
-  · rw [hR] at hr'; simp at hr'
-  · rw [hP] at hp; simp at hp
-  · rw [hPR] at hp; simp at hp
-  · cases e with
-    | atom b => exact Or.inr ⟨b, he1, hx⟩
-    | call g a' r => exact absurd (by rw [he]; exact List.mem_append_left _ he1) (hnc g a' r)
-    | inK _ => exact hx.elim
-    | skip _ _ => exact hx.elim
-
 end
 
 end LeanVM.Guest.CoreMode

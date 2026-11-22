@@ -267,9 +267,6 @@ def CRes.vals : CRes → List ℕ
 theorem valW_vals {w w' : ℕ → E} {c : CCell} (h : ∀ k ∈ c.vals, w' k = w k) : c.valW w' = c.valW w :=
   valW_congr fun b hb ↦ h b.1 (List.mem_map.mpr ⟨b, hb, rfl⟩)
 
-theorem idxC_vals (i : CIdx) : (idxC i).vals = i.vals := by
-  cases i <;> simp [idxC, CIdx.vals, CCell.vals, baseC]
-
 theorem runSet_vals {w w' : ℕ → E} {r : CRun} (h : ∀ k ∈ r.vals, w' k = w k) (x : K) :
     r.Set w' x ↔ r.Set w x := by
   simp only [CRun.vals, List.mem_append] at h

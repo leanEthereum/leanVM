@@ -39,28 +39,6 @@ open LeanVM.Guest.Check (getF)
 
 @[expose] public section
 
-/-- Every call statement of a statement passes `p`, by the recursor (which the kernel reduces faster
-than structural recursion). -/
-noncomputable def callsS (p : Stmt → Bool) (s : Stmt) : Bool :=
-  Stmt.rec (motive_1 := fun _ => Bool) (motive_2 := fun _ => Bool) (motive_3 := fun _ => Bool)
-    (fun _ => true) (fun _ _ _ bz bn => bz && bn) (fun _ _ ba => ba) (fun f args rets => p (.call f args rets))
-    (fun c f args => p (.callIf c f args)) (fun x fs args rets => p (.dispatch x fs args rets)) (fun _ => true)
-    true (fun _ _ b bs => b && bs) true (fun _ _ b bs => b && bs) s
-
-/-- Every call statement of a block passes `p`. -/
-noncomputable def callsAll (p : Stmt → Bool) (ss : List Stmt) : Bool :=
-  Stmt.rec_1 (motive_1 := fun _ => Bool) (motive_2 := fun _ => Bool) (motive_3 := fun _ => Bool)
-    (fun _ => true) (fun _ _ _ bz bn => bz && bn) (fun _ _ ba => ba) (fun f args rets => p (.call f args rets))
-    (fun c f args => p (.callIf c f args)) (fun x fs args rets => p (.dispatch x fs args rets)) (fun _ => true)
-    true (fun _ _ b bs => b && bs) true (fun _ _ b bs => b && bs) ss
-
-/-- Every call statement of a list of arms passes `p`. -/
-noncomputable def callsArms (p : Stmt → Bool) (as : List (List Stmt)) : Bool :=
-  Stmt.rec_2 (motive_1 := fun _ => Bool) (motive_2 := fun _ => Bool) (motive_3 := fun _ => Bool)
-    (fun _ => true) (fun _ _ _ bz bn => bz && bn) (fun _ _ ba => ba) (fun f args rets => p (.call f args rets))
-    (fun c f args => p (.callIf c f args)) (fun x fs args rets => p (.dispatch x fs args rets)) (fun _ => true)
-    true (fun _ _ b bs => b && bs) true (fun _ _ b bs => b && bs) as
-
 /-- A call statement's arguments. -/
 def stArgs : Stmt → List V
   | .call _ args _ | .callIf _ _ args | .dispatch _ _ args _ => args
@@ -152,12 +130,6 @@ def spWord (sp : List Atom) (v : V) : Option E :=
 
 /-- `g⁻¹`. -/
 def gInv : K := K.ofBits 0x800000000000000d
-
-/-- The inverse of `g^e`, `e ≤ 1`. -/
-def startInv : ℕ → Option K
-  | 0 => some 1
-  | 1 => some gInv
-  | _ => none
 
 /-- `p` and `q` the same value, or products of the same two values by atoms of `sp`. -/
 def spEqPtr (sp : List Atom) (p q : V) : Bool :=

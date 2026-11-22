@@ -16,14 +16,6 @@ open LeanVM.Guest.Bridge (stmtsOf)
 
 @[expose] public section
 
-/-- `faRetOk` at offset `i`: a return's walk state has the frame run cells. -/
-noncomputable def faRetI (Cf : CFun) (code : List OffsetInstruction) (i : ℕ) : Bool :=
-  match code[i]? with
-  | some (.jump _ 0 1) => match retSt Cf.frame code i with
-    | some A => (stmtsOf Cf.fn.body).all (faRetAt Cf.X Cf.fn.body Cf.H.fas A)
-    | none => false
-  | _ => true
-
 /-- `faRetAt`'s check of a frame run's values `k ∈ [B·c, B·c + B)` only, and of its cells past the run at chunk `0`. -/
 noncomputable def faRetAtC (X : Bridge.AlignCtx) (body : List Stmt) (fas : List (ℕ × ℕ)) (A : FSt) (B c : ℕ) :
     Stmt → Bool

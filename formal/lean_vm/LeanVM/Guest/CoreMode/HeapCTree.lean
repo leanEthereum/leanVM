@@ -215,17 +215,6 @@ theorem writes_congr {σ σ' : Val} {a : Atom} (h : ∀ v ∈ atomUses a, σ' v 
       exact ⟨p, off, len, hh, k, hk, by rw [cellAt, cellAt, h p (by simpa [atomUses] using hintHeap_uses hh)]⟩
   | _ => simp [Writes]
 
-/-- An event's writes depend only on the values it names. -/
-theorem evW_congr {sigOf : String → HSig} {rd : Reader} {σ σ' : Val} {e : Ev} (h : ∀ v ∈ e.uses, σ' v = σ v)
-    (x : K) : EvW sigOf rd σ' e x ↔ EvW sigOf rd σ e x := by
-  cases e with
-  | atom a => exact writes_congr h x
-  | call g a r =>
-    show PostSet _ _ ((a ++ r).map σ') x ↔ PostSet _ _ ((a ++ r).map σ) x
-    rw [List.map_congr_left (l := a ++ r) h]
-  | inK _ => simp [EvW]
-  | skip _ _ => simp [EvW]
-
 /-- An event's check depends only on the values it names. -/
 theorem holds_congr {rd : Reader} {σ σ' : Val} {e : Ev} (h : ∀ v ∈ e.uses ++ e.tmps, σ' v = σ v) :
     e.Holds rd σ' ↔ e.Holds rd σ := by

@@ -311,15 +311,6 @@ theorem winsOk_chain {pows : PowTree} {sigOf : String → HSig} {f : Fn} {H : HC
     · rw [htake, noRetListS_append, hwn, hn]; rfl
     · rw [htake, noGhostL_append, hwg, hg]; rfl
 
-/-- **A state by its entries**: each trie from its `(key, value)` list (`insL`; a trie's shape depends only on
-its keys, so this is the pass's trie of those entries), the serials, the guarantees under selectors, the
-equations. What the generated windows state their cut points' states with. -/
-noncomputable def mkCSt (env sc : List (ℕ × CCell)) (rs : List (ℕ × PRun)) (ad sv : List (ℕ × (CCell × CCell)))
-    (src : List (ℕ × CCell)) (pf : List (ℕ × (CCell × List ℕ))) (pr : List (ℕ × (PRun × List ℕ))) (n nr nc nt : ℕ)
-    (cd : List CdE) (eqs : List (CCell × CCell)) (dq : List (CCell × PRun) := []) : CSt :=
-  ⟨insL env .nil, insL sc .nil, insL rs .nil, insL ad .nil, insL sv .nil, insL src .nil, insL pf .nil, insL pr .nil,
-    n, nr, nc, nt, cd, eqs, dq⟩
-
 /-! ## The context stated
 
 Every window builds `cxOf`'s tries from the certificate (`withCx`), which for a large certificate costs more than

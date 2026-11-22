@@ -184,30 +184,6 @@ theorem visit_hs (X : AlignCtx) (ins : OffsetInstruction) (i i' : ℕ) (h1 : Lis
     simp only [Option.bind_some]
     cases insStep X i ins tabs z <;> rfl
 
-theorem stepI_i (X : AlignCtx) (ins : OffsetInstruction) {st : St} {p : St × Option (ℕ × Zip)}
-    (h : stepI X ins st = some p) : p.1.i = st.i + 1 := by
-  unfold stepI at h
-  rw [natSeq_eq] at h
-  generalize spanP st.i st.pend = S at h
-  generalize hintsAt (Nat.add X.entry st.i) st.hs = H at h
-  obtain ⟨here, rest⟩ := S
-  obtain ⟨h1, hs'⟩ := H
-  simp only [Bool.cond_eq_ite] at h
-  have hv : ∀ c, visit X ins st.i st.i.succ h1 hs' rest st.tabs c = some p → p.1.i = st.i + 1 := by
-    intro c hc
-    simp only [visit] at hc
-    obtain ⟨z, -, hc⟩ := Option.bind_eq_some_iff.mp hc
-    obtain ⟨q, -, rfl⟩ := Option.map_eq_some_iff.mp hc
-    rfl
-  split at h
-  · split at h
-    · exact hv _ h
-    · cases h
-  · cases h; rfl
-  · split at h
-    · exact hv _ h
-    · cases h
-
 theorem stepI_hs (X : AlignCtx) (ins : OffsetInstruction) (st : St) {rest : List (ℕ × List Prover.Exec.Hint)}
     (hr : ∀ q ∈ rest, X.entry + st.i < q.1) :
     stepI X ins (st.addHs rest) = (stepI X ins st).map fun p ↦ (p.1.addHs rest, p.2) := by

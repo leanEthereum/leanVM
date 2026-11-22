@@ -85,13 +85,6 @@ theorem prefix_splice {body : List Stmt} (hw : Stmt.noWitList (atomPrefix body).
   rw [splice_append_of_calls_nil _ _ (calls_atoms _), evPops, List.flatMap_map]
   exact congrArg (· ++ _) (flatMap_pops_atoms rd σ _)
 
-/-- An instance calling nothing on a prefix function pops its leading flow hints' entries. -/
-theorem prefix_pops_leaf {body : List Stmt} (hw : Stmt.noWitList (atomPrefix body).2 = true)
-    {σ : Val} {es : List Ev} {vs : List V} (h : walk σ body = .ret es vs) (rd : Reader) :
-    splice rd σ es [] = (flowOf (atomPrefix body).1).flatMap (Core.Hint.pops rd σ) := by
-  obtain ⟨es', -, h3, h⟩ := prefix_splice hw h rd []
-  rw [h, splice_nil_of es' [] h3 (fun _ h ↦ (List.not_mem_nil h).elim), List.append_nil]
-
 /-! ## The pairing -/
 
 theorem pairsOk_get {loc : ℕ → ℕ} : ∀ {hs : List Core.Hint} {hs' : List Prover.Exec.Hint},

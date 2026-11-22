@@ -196,17 +196,6 @@ theorem pair_fallC {X : AlignCtx} {O S : Exec.Trie Unit} {body : List Stmt}
 
 /-! ## Bodies of atoms, calls and one return -/
 
-/-- Not a conditional call or a dispatch. -/
-@[expose] def NoCD (s : Stmt) : Prop := (∀ c f a, s ≠ .callIf c f a) ∧ ∀ x fs a r, s ≠ .dispatch x fs a r
-
-/-- **Atoms, calls and returns.** -/
-@[expose] def straightC (body : List Stmt) : Bool :=
-  body.all fun s ↦ match s with
-    | .atom _ => true
-    | .ret _ => true
-    | .call .. => true
-    | _ => false
-
 /-- **At a return jump** (`od = 0`, `of = 1`, never zero, not forward, cell `0` no constant pc) of
 a body of atoms, calls and returns, the events past the position write nothing new but its flow
 hints' atoms. -/

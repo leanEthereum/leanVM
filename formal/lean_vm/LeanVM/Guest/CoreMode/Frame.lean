@@ -522,15 +522,6 @@ def envOk (Fn : FFun) : Bool :=
     | .fpg 0, some o => p.1 == o
     | _, _ => false
 
-/-- `p` of the value, if any. -/
-def optAll {α : Type} (p : α → Bool) : Option α → Bool
-  | some a => p a
-  | none => true
-
-/-- Every value of the trie satisfies `p`. -/
-noncomputable def trieAll {α : Type} (p : α → Bool) (t : Trie α) : Bool :=
-  Trie.rec (motive := fun _ ↦ Bool) true (fun v _ _ al ar ↦ optAll p v && al && ar) t
-
 /-- Every table's arms: increasing offsets in the function. -/
 noncomputable def armsOk (Fn : FFun) : Bool :=
   trieAll (fun ts ↦ incrF ts && ts.all fun t ↦ decide (t < Fn.len)) Fn.arms
