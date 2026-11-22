@@ -1,19 +1,22 @@
 //! A run's reservations in the order of the proof's memory model
 //! (`formal/lean_vm/LeanVM/Guest/Memory/Alloc.lean`): each call instance's frame, then its
 //! `HeapBuf`s in the order it allocates them, then its callees' subtrees. The interpreter
-//! reserves in execution order, so a `HeapBuf` a function allocates after a call would land past
+//! reserves in execution order, so a `HeapBuf` some run allocates after a call would land past
 //! that callee's subtree. Here its hint moves to just before the function's first call, which
 //! changes no instruction: every `HeapBuf` pointer is a fresh cell only its hint writes. A buffer
 //! whose size is not known there, or that not every run reaches, is a compile error.
+//!
+//! Control flow inside a function only runs forward (a loop is a function of its own), so code
+//! order is execution order, and two instructions in different arms of one branch never run together.
 
 use super::*;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
+use std::ops::Range;
 
 /// Where a frame or `HeapBuf` reservation was queued ([`FnLower::reserve`]). The arms of a
 /// `match` share cells, so two reservations may share a pointer cell, but then also their site.
 #[derive(Clone)]
 pub(super) struct Site {
-    depth: u32,
     /// Where the statement at depth `0` holding it starts.
     stmt_start: usize,
     /// The source line of its statement.
@@ -26,7 +29,6 @@ impl FnLower<'_> {
     /// Queue a reservation.
     pub(super) fn reserve(&mut self, hint: Hint) {
         let site = Site {
-            depth: self.depth,
             stmt_start: self.stmt_start,
             line: self.cur_line,
             name: self.let_name.clone(),
@@ -36,37 +38,45 @@ impl FnLower<'_> {
         self.pending.push(hint);
     }
 
-    /// Move the `HeapBuf` reservations that follow this function's first call to just before it,
-    /// keeping their order. `Err` names one that cannot move, being in a branch, past a `return`, or
-    /// sized by a cell not written by then.
+    /// Move the `HeapBuf` reservations that some run reaches after a call to just before this
+    /// function's first call, keeping their order. `Err` names one that cannot move, being in a
+    /// branch, past a `return`, or sized by a cell not written by then.
     pub(super) fn hoist_heap_bufs(&mut self) -> Result<(), String> {
         // Each reservation in code order: where it is, whether a callee's frame, its site.
         let sites: Vec<(usize, usize, bool, Site)> = (self.code.iter().enumerate())
             .flat_map(|(i, ins)| ins.hints.iter().enumerate().map(move |(j, h)| (i, j, h)))
             .filter_map(|(i, j, h)| reservation(h).map(|(ptr, frame)| (i, j, frame, self.reservations[&ptr].clone())))
             .collect();
-        let Some((i, j, _, first)) = sites.iter().find(|s| s.2).cloned() else {
+        let frames: Vec<(usize, usize)> = sites.iter().filter(|s| s.2).map(|s| (s.0, s.1)).collect();
+        let late: Vec<&(usize, usize, bool, Site)> = (sites.iter())
+            .filter(|&&(i, j, frame, _)| !frame && frames.iter().any(|&f| f < (i, j) && self.runs_on_to(f.0, i)))
+            .collect();
+        if late.is_empty() {
             return Ok(());
-        };
+        }
+        let (i, j, _, first) = sites
+            .iter()
+            .find(|s| s.2)
+            .cloned()
+            .expect("a call precedes a late `HeapBuf`");
         // The first call's reservation, or the start of the statement whose branch holds it.
-        let at = if first.depth == 0 {
+        let at = if self.code_path[i].is_empty() {
             (i, j)
         } else {
             (first.stmt_start, 0)
         };
-        assert_eq!(self.code_depth[at.0], 0, "a statement at depth 0 starts at depth 0");
-        // The cells every run reaching `at` has written: the arguments, what the hints before it
-        // at depth `0` write, and what the instructions there surely write or read.
-        let mut written: HashSet<Off> = (2..2 + self.arg_cells).collect();
-        for (ins, _) in self.code[..at.0].iter().zip(&self.code_depth).filter(|(_, d)| **d == 0) {
-            written.extend(ins.hints.iter().flat_map(hint_writes));
-            written.extend(touched(&ins.op));
-        }
+        assert!(
+            self.code_path[at.0].is_empty(),
+            "a statement at depth 0 starts at depth 0"
+        );
+        // The cells every run reaching `at` has written: the arguments, then what the code before it
+        // surely writes.
+        let mut written = self.written_in(0..at.0, 0);
+        written.extend(2..2 + self.arg_cells);
         written.extend(self.code[at.0].hints[..at.1].iter().flat_map(hint_writes));
         let mut moved: Vec<(usize, usize)> = Vec::new();
-        for (i, j, _, site) in sites.iter().filter(|s| !s.2 && (s.0, s.1) >= at) {
-            let (i, j) = (*i, *j);
-            let reached = site.depth == 0 && !self.returns.iter().any(|&r| at.0 <= r && r < i);
+        for &&(i, j, _, ref site) in &late {
+            let reached = self.code_path[i].is_empty() && !self.returns.iter().any(|&r| at.0 <= r && r < i);
             // A runtime size must be written before `at`, or be a constant `g^k`.
             let sized = match self.code[i].hints[j] {
                 Hint::AllocBufferDyn { ptr, size } if !written.contains(&size) => {
@@ -94,10 +104,52 @@ impl FnLower<'_> {
         Ok(())
     }
 
+    /// Whether some run executes instruction `a`, then goes on to instruction `b`, from `a` on: they
+    /// are in no two arms of one branch, and no `return` that every run through `a` takes lies
+    /// between them.
+    fn runs_on_to(&self, a: usize, b: usize) -> bool {
+        let (pa, pb) = (&self.code_path[a], &self.code_path[b]);
+        let apart = pa.iter().zip(pb).find(|(x, y)| x != y).is_some_and(|(x, y)| x.0 == y.0);
+        !apart && !(self.returns.iter()).any(|&r| a <= r && r < b && pa.starts_with(&self.code_path[r]))
+    }
+
+    /// The cells written on every run through `code[range]`, whose instructions all lie in the
+    /// arms of the path of length `level` they share: what the instructions at that level write or
+    /// read ([`touched`], [`hint_writes`]), and what every arm of a branch there does. A run that
+    /// returns inside the range never leaves it, so the writes of an arm that returns count.
+    fn written_in(&self, range: Range<usize>, level: usize) -> HashSet<Off> {
+        let mut written = HashSet::new();
+        // Each branch at this level, what each of its arms writes.
+        let mut arms: HashMap<u32, Vec<Option<HashSet<Off>>>> = HashMap::new();
+        let mut k = range.start;
+        while k < range.end {
+            let Some(&(branch, arm)) = self.code_path[k].get(level) else {
+                let ins = &self.code[k];
+                written.extend(ins.hints.iter().flat_map(hint_writes).chain(touched(&ins.op)));
+                k += 1;
+                continue;
+            };
+            let end = (k..range.end)
+                .find(|&e| self.code_path[e].get(level) != Some(&(branch, arm)))
+                .unwrap_or(range.end);
+            let n = self.branches[branch as usize] as usize;
+            arms.entry(branch).or_insert_with(|| vec![None; n])[arm as usize] =
+                Some(self.written_in(k..end, level + 1));
+            k = end;
+        }
+        for each in arms.into_values() {
+            let every: Option<Vec<HashSet<Off>>> = each.into_iter().collect();
+            if let Some((one, rest)) = every.as_deref().and_then(<[_]>::split_first) {
+                written.extend(one.iter().filter(|o| rest.iter().all(|w| w.contains(o))));
+            }
+        }
+        written
+    }
+
     /// The `k` with `g^k` in `cell` by a `SET` at depth `0` before instruction `before`.
     fn constant_exponent(&self, cell: Off, before: usize) -> Option<u32> {
-        let set = (self.code[..before].iter().zip(&self.code_depth)).find_map(|(ins, &d)| match &ins.op {
-            LOp::Set { o, k: KVal::Const(v) } if *o == cell && d == 0 => Some(*v),
+        let set = (self.code[..before].iter().zip(&self.code_path)).find_map(|(ins, p)| match &ins.op {
+            LOp::Set { o, k: KVal::Const(v) } if *o == cell && p.is_empty() => Some(*v),
             _ => None,
         })?;
         u32::try_from(super::eval::small_gpow(set)?).ok()
@@ -117,13 +169,34 @@ fn reservation(h: &Hint) -> Option<(Off, bool)> {
 
 /// The frame cells a hint writes, of those a `HeapBuf` size may be.
 fn hint_writes(h: &Hint) -> Vec<Off> {
-    match *h {
-        Hint::Resolved(RHint::WitnessStack { base, len, .. } | RHint::FieldLimbs { base, len, .. }) => {
-            (base..base + len).collect()
+    let Hint::Resolved(h) = h else { return Vec::new() };
+    let (base, len) = match *h {
+        RHint::WitnessStack { base, len, .. } | RHint::FieldLimbs { base, len, .. } => (base, len),
+        RHint::Log2Ceil { dst, .. } | RHint::Inverse { dst, .. } => (dst, 1),
+        RHint::BitDecompose {
+            bits: BitsDest::Stack(base),
+            nbits,
+            ..
         }
-        Hint::Resolved(RHint::Log2Ceil { dst, .. } | RHint::Inverse { dst, .. }) => vec![dst],
-        _ => Vec::new(),
-    }
+        | RHint::BitDecomposeExp {
+            bits: BitsDest::Stack(base),
+            nbits,
+            ..
+        } => (base, nbits),
+        RHint::DigitDecomposeExp {
+            dst: BitsDest::Stack(base),
+            ndigits,
+            ..
+        } => (base, ndigits),
+        RHint::WindowsExp {
+            dest: BitsDest::Stack(base),
+            at,
+            count,
+            ..
+        } => (base + at, count),
+        _ => return Vec::new(),
+    };
+    (base..base + len).collect()
 }
 
 /// The frame cells written once an instruction has run: those it writes on every run, and those it

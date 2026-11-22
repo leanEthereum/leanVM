@@ -119,7 +119,7 @@ fn hints_header(module: &str, about: &str, imports: &str) -> String {
 /// entries), in modules of about `HINT_MODULE_BYTES` bytes (`AdviceHints00`, ...), and in
 /// `AdviceHints`, which imports them, the records of the functions in parts, `main`'s frame size and
 /// the table of the functions' hints. The guest's prover (`Statement/Prover/Guest.lean`) runs on it,
-/// and the mode walk's certificates' hints are checked against it.
+/// and the core route's generated certificates (`scripts/core-mode`) read their hints from it.
 pub fn data_files() -> Vec<File> {
     let g = guest();
     let main_frame = g.main_frame;

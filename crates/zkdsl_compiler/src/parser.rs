@@ -672,10 +672,9 @@ impl Parser<'_> {
             let [dest, name] = parts.as_slice() else {
                 return Err("hint_witness(dest, \"name\") takes two arguments".into());
             };
-            let name = string_lit(name).ok_or("hint_witness's second argument is a string literal: \"name\"")?;
             return Ok(StmtKind::HintWitness {
                 dest: parse_expr(dest)?,
-                name: name.to_string(),
+                name: stream_name(name)?,
             });
         }
         if let Some(rest) = line.strip_prefix("assert ") {
@@ -744,10 +743,9 @@ impl Parser<'_> {
                             .into(),
                     );
                 };
-                let stream = string_lit(stream).ok_or("hint_witness's argument is a string literal: \"stream\"")?;
                 return Ok(StmtKind::LetHintWitness {
                     name: binding_name(lhs, "binding name")?,
-                    stream: stream.to_string(),
+                    stream: stream_name(stream)?,
                 });
             }
             let rhs_expr = parse_expr(rhs)?;
@@ -874,6 +872,18 @@ type Aug<'a> = Option<(&'a str, &'static str, &'a str)>;
 /// `log x` takes the rest of the side, and a parenthesised one only its group,
 /// which must end the side: `log(x) * 2` is `2·log x` in Python and was read
 /// here as `log(2x)`, so it is rejected rather than read either way.
+/// A `hint_witness` stream name: a string literal, not empty and with no whitespace, since the
+/// hints' text form ([`isa::CompiledProgram::export_hints`]) separates its fields with spaces.
+fn stream_name(s: &str) -> Result<String, String> {
+    let name = string_lit(s).ok_or("hint_witness's stream name is a string literal: \"name\"")?;
+    if name.is_empty() || name.contains(char::is_whitespace) {
+        return Err(format!(
+            "hint_witness's stream name {s} must be non-empty, with no whitespace"
+        ));
+    }
+    Ok(name.to_string())
+}
+
 fn strip_log(s: &str) -> Result<Option<&str>, String> {
     let Some(r) = s.trim().strip_prefix("log").filter(|r| r.starts_with([' ', '('])) else {
         return Ok(None);

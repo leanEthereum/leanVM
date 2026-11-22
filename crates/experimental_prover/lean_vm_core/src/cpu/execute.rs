@@ -174,8 +174,7 @@ pub enum Fault {
     /// A `MUL` asked to solve `a·x = c` for `x` with `a = 0`.
     BackSolveThroughZero,
     /// The advice does not fit the program: a witness stream is missing, given
-    /// twice or exhausted, an entry has the wrong length, or a `HeapBuf` the run
-    /// reaches was not reserved from advice at its size.
+    /// twice or exhausted, or an entry has the wrong length.
     Witness(String),
     /// The program allocates or accesses a cell past any memory a stack can hold (`MAX_CELLS`).
     OutOfMemory,
@@ -266,8 +265,8 @@ pub(super) struct Stream<'a> {
 }
 
 impl<'a> Stream<'a> {
-    /// The next entry, whatever its length.
-    fn next(&mut self) -> Result<&'a [F128], Fault> {
+    /// The next entry, of `len` values.
+    fn pop(&mut self, len: u32) -> Result<&'a [F128], Fault> {
         let name = self.name;
         let entries = self
             .entries
@@ -279,21 +278,14 @@ impl<'a> Stream<'a> {
                 entries.len()
             ))
         })?;
-        self.next += 1;
-        Ok(entry)
-    }
-
-    /// The next entry, of `len` values.
-    fn pop(&mut self, len: u32) -> Result<&'a [F128], Fault> {
-        let entry = self.next()?;
         if entry.len() != len as usize {
             return Err(Fault::Witness(format!(
-                "witness `{}` entry {} holds {} values, the destination {len}",
-                self.name,
-                self.next - 1,
+                "witness `{name}` entry {} holds {} values, the destination {len}",
+                self.next,
                 entry.len()
             )));
         }
+        self.next += 1;
         Ok(entry)
     }
 

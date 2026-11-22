@@ -343,22 +343,6 @@ fn guest_diff() {
     export("pass", vec![right, left], vec![], vec![], &[]);
 }
 
-/// The benchmark's sizes (`cargo leanvm aggregate --xmss 900`, `recursion --n 2`): a leaf of 900 leanXMSS signatures and
-/// a node over two such leaves, for the Lean executor's speed. Only with `LEANVM_EXEC_BENCH` set, since the module's
-/// name puts it under the `guest_diff` filter.
-#[test]
-#[ignore]
-fn exec_bench() {
-    if std::env::var_os("LEANVM_EXEC_BENCH").is_none() {
-        return;
-    }
-    StableProver::init();
-    let xmss = get_signers::<StableProver>(1800);
-    let a = export("xmss900", vec![], xmss[..900].to_vec(), vec![], &[]);
-    let b = export("xmss900b", vec![], xmss[900..].to_vec(), vec![], &[]);
-    export("node2x900", vec![a, b], vec![], vec![], &[]);
-}
-
 /// The smallest case: a leaf of one leanXMSS signature.
 #[test]
 #[ignore]
