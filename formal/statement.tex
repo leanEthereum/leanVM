@@ -229,8 +229,10 @@ $2^{-256}$ each); and a fresh permutation answer that passes the final query's p
 (\lean{Statement/Prover/}), its Keccak-256 and Keccak-f[1600] calls answered here from $\pi$; with
 the deployed Keccak it is \texttt{lake exe leanvm-prove}. It runs the execution once to obtain the
 witness, then plays the honest moves against the verifier's own program. Its only search is the
-proof-of-work nonce search within its fuel, and it sees hash answers only as the challenges the
-verifier samples. On the test corpus ($17$ programs at $4$ rates) its proofs are byte-identical to
+proof-of-work nonce search within its fuel, for the smallest passing nonce as the Rust's, and
+before the Keccak GKR's $s$ the smallest whose challenge also lies outside $K$, as the Rust's
+\texttt{grind\_sample} steps past the others (\lean{LeanVM.Prover.Script.grindSample}); it sees hash answers only
+as the challenges the verifier samples. On the test corpus ($17$ programs at $4$ rates) its proofs are byte-identical to
 the Rust prover's, and both verifiers reject every mutation of them.
 
 For every program $\mathit{prog}$, public input $x$ and valid execution of $\mathit{prog}$ on $x$ of committed size at
@@ -244,7 +246,7 @@ specification's honest prover at the execution's witness). Completeness is not p
 because the proof of work is bounded: for any fuel $f \le 2^{64}$ the rejection probability is at
 most
 \[
-\delta(f) = Q_f\,(1-2^{-27})^{f} + (Q_f\cdot 2^{30})^2/2^{508}, \qquad
+\delta(f) = Q_f\,\bigl(1-2^{-27}(1-2^{-64})\bigr)^{f} + (Q_f\cdot 2^{30})^2/2^{508}, \qquad
 Q_f = 13710 + 54825\,(2^{29} + 2f + 2)
 \]
 (\lean{LeanVM.Rpm.completenessRpm}, \lean{lean_vm}). The \emph{committed size} (\lean{Execution.committedSize}) of an
