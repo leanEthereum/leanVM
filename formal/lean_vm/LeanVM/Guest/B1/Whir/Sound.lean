@@ -97,10 +97,6 @@ theorem semOk_of {m ri μ r : ℕ} (hm : m < ligNSizes) {cfg : List Whir.Level}
     rw [osCfgR_levels_getD hy] at hi ⊢
     exact hsScale_final hm hi
 
-set_option maxRecDepth 100000 in
-/-- Every arm's `level_residual_slow` specializations are entries of `lrsTable`, by the kernel. -/
-theorem slowIn_all : ∀ m < ligNSizes, ∀ ri < 4, slowInB (osCfgR m ri) = true := by decide +kernel
-
 /-- **`open_stacked` is sound with its witness named**, at every size and rate. -/
 theorem open_stacked_sound_w : open_stacked_sound_w_Spec open_stacked_osW := by
   intro κ hκ hwb L C V hU hle μ r h1 h2 h3 h4 root fs target root0 root1 cur tabs rets fn σ hfs
@@ -133,7 +129,7 @@ theorem open_stacked_sound_w : open_stacked_sound_w_Spec open_stacked_osW := by
     simpa [osParams, rateSel] using this
   have hcal := callees_of hκ hwb L hle (σ := σ) (by rw [h10]; exact hwt)
   have hsem := semOk_of hm hC
-  have hFS := finStatic_of hcal hsem hle hC (slowIn_all m hm ri hri)
+  have hFS := finStatic_of hcal hsem hle hC (lsIn_all m hm ri hri)
   have hrate : ∀ i < (osCfgR m ri).levels.length,
       LvRate σ (osCfgR m ri) i ((osCfgR m ri).levels.getD i default) := fun i _ ↦
     ⟨ri, hri, h0, osCfgR_lvAt_length m ri i, osCfgR_lvAt_getD i hri⟩

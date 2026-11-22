@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.Whir.SlowLevel
+import LeanVM.Guest.B1.Common.Vc
 
 /-!
 # The slow residual, completely
@@ -72,7 +73,7 @@ theorem rqsSig_lt3 {k : ℕ} (hk : k < 3) (hn : 1 ≤ n) :
   have h1 : ¬ (k = 11 * n) := by omega
   simp only [rqsSig, h1, hk, ↓reduceIte]
 
-theorem rqsSig_head {k : ℕ} (h3 : 3 ≤ k) (h11 : k < 11) (hn : 1 ≤ n) :
+theorem rqsSig_head {k : ℕ} (h3 : 3 ≤ k) (h11 : k < 11) (_hn : 1 ≤ n) :
     rqsSig x fc tc cs vo n k = [cs 0, word 1 0, word 1 0 + cs 0, cs 0 * x, rqsPr x cs vo n 1,
       word (vanishVal vo) 0, x + word (vanishVal vo) 0, rqsCh x vo n 1].getD (k - 3) 0 := by
   have h1 : ¬ (k = 11 * n) := by omega
@@ -130,7 +131,7 @@ theorem rqsSteps_complete {pre yr vo : ℕ} {x fc tc : E} {cs : ℕ → E}
     simp only [rqsStep, allOk_cons, allOk_nil, and_true, StmtOk, Atom.Holds, rqsV, V.n]
     rw [h0, hb 1 (by omega), hb 2 (by omega), hb 3 (by omega), hb 4 (by omega), hb 5 (by omega),
       hb 6 (by omega), hb 7 (by omega), hb 8 (by omega), hb 9 (by omega), hb 10 (by omega), hch, hpr, hpt]
-    simp only [rqsBlk, List.getD_cons_zero, List.getD_cons_succ, true_and, and_true]
+    simp only [rqsBlk, List.getD_cons_zero, List.getD_cons_succ, true_and]
     refine ⟨?_, ?_, ?_⟩
     · by_cases hp : t < pre
       · simp only [hp, ↓reduceIte]
@@ -169,7 +170,7 @@ theorem rqs_complete {pre yr vo : ℕ} {f : Fn} (hpre : 1 ≤ pre) (hinv : vanis
         rqsSig_head x fc tc cs vo _ (show 3 ≤ 10 by omega) (by omega) hn,
         rqsSig_lt3 x fc tc cs vo _ (show 0 < 3 by omega) hn,
         rqsSig_lt3 x fc tc cs vo _ (show 1 < 3 by omega) hn]
-      simp only [List.getD_cons_zero, List.getD_cons_succ, Nat.reduceSub, true_and, and_true]
+      simp only [List.getD_cons_zero, List.getD_cons_succ, Nat.reduceSub, true_and]
       refine ⟨hf 0 hpre, ?_, ?_⟩
       · simp only [rqsPr, Finset.prod_range_one, rqsFac, residualChain, Nat.add_zero, hinv, word_one,
           mul_one]
@@ -223,7 +224,7 @@ theorem lrsLoop_step_complete {P : Program} {rq self : String} {fn : Fn} (hf : P
     ring
   have hg : gen ^ j * word 2 0 = gen ^ (j + 1) := by rw [word_gen, pow_succ]
   refine ⟨rfl, la, rfl, lp, rfl, lq, relN_mono P (by omega) _ _ _ (hrq j hj), rfl, rfl, rfl, la1, rfl,
-    lp, rfl, rfl, lp1, rfl, rfl, rfl, rfl, rfl, ⟨?_, fun hne ↦ ?_, rfl⟩⟩
+    lp, rfl, rfl, lp1, rfl, rfl, rfl, rfl, rfl, ⟨?_, fun hne ↦ ?_, trivial⟩⟩
   · show IsInK (gen ^ j * word 2 0 + gen ^ Q)
     rw [hg]
     exact isInK_add (gen_pow_isInK _) (gen_pow_isInK _)

@@ -138,6 +138,7 @@ theorem finStatic_run :
   have hs1 := hR.fin_s1
   have hm11 : μ - minOpenLog < 11 := hR.m11
   have hHS := honStatic_all _ _ hm11 hR.r4
+  set Lf := Ls.getD (osCfgR (μ - minOpenLog) (r - 1)).yrLevel default
   refine ⟨cn2, by rw [osCfgR_len]; exact osNLevels_le _ hm11, cyr, cyl, ?_, fun i hi ↦ hR.lvFin hi,
     hs1, ?_, clane, cmu, fun i hi ↦ ?_, fun i hi ↦ (hHS.mid hi).1⟩
   · show (lvsRecs μ Ls (osCfgR (μ - minOpenLog) (r - 1)).yrLevel).length = _

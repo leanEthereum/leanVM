@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Whir.Facts
 public import LeanVM.Guest.B1.Whir.Open
-public import LeanVM.Guest.B1.Whir.HelperTables
+public import LeanVM.Guest.B1.Place.LsTable
 
 /-!
 # The checked facts, used
@@ -44,22 +44,6 @@ structure Callees (rd : Reader) (C : CallRel) (σ : Val) : Prop where
   ffm : ∀ p ∈ foldFinalMsgNames, ∀ a r, C p.1 a r → MeaningFoldFinalMsg p.2 rd a r
   iz : ∀ a r, C "is_zero" a r → IsZeroRet a r
   slow : ∀ e ∈ lrsTable, ∀ a r, C e.1 a r → SlowRet e.2.1 e.2.2.1 e.2.2.2.1 e.2.2.2.2.1 rd a r
-
-/-- Every non-final level's `level_residual_slow` is an entry of `lrsTable` at the level's shape. -/
-def slowInB (c : OsCfg) : Bool :=
-  (List.range c.yrLevel).all fun l ↦ lrsTable.any fun e ↦
-    e.1 == osSlowName c (c.levels.getD l default) && e.2.1 == (c.levels.getD l default).queries &&
-      e.2.2.1 == (c.levels.getD l default).prefixLen && e.2.2.2.1 == c.yrLog &&
-      e.2.2.2.2.1 == (c.levels.getD l default).vanish
-
-theorem slowIn_of {c : OsCfg} (h : slowInB c = true) {l : ℕ} (hl : l < c.yrLevel) :
-    ∃ e ∈ lrsTable, e.1 = osSlowName c (c.levels.getD l default) ∧
-      e.2.1 = (c.levels.getD l default).queries ∧ e.2.2.1 = (c.levels.getD l default).prefixLen ∧
-      e.2.2.2.1 = c.yrLog ∧ e.2.2.2.2.1 = (c.levels.getD l default).vanish := by
-  obtain ⟨e, he, hb⟩ := List.any_eq_true.mp (List.all_eq_true.mp h l (List.mem_range.mpr hl))
-  simp only [Bool.and_eq_true, beq_iff_eq] at hb
-  obtain ⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩ := hb
-  exact ⟨e, he, h1, h2, h3, h4, h5⟩
 
 /-- A candidate's semantic facts. -/
 structure SemOk (c : OsCfg) : Prop where
@@ -172,7 +156,7 @@ theorem midOk_of {c : OsCfg} {logN : ℕ} :
 /-- **The finish's static facts** from the checked facts. -/
 theorem finStatic_of {rd : Reader} {C : CallRel} {σ : Val} {m ri μ r : ℕ} {cfg : List Whir.Level}
     (hcal : Callees rd C σ) (hsem : SemOk (osCfgR m ri)) (hle : CallRel.Le C (coreProgram.Rel rd))
-    (h : CandOk m ri μ r cfg) (hsl : slowInB (osCfgR m ri) = true) : FinStaticS rd C (osCfgR m ri) := by
+    (h : CandOk m ri μ r cfg) (hsl : lsInB (osCfgR m ri) = true) : FinStaticS rd C (osCfgR m ri) := by
   obtain ⟨-, -, -, -, hn2, hyr, hyl, hyn, hnF, hla, h40, hffm, hlen, hlv⟩ := h
   refine ⟨hn2, hyr, hyl, hyn, fun i hi ↦ ?_, fun i hi a r hc ↦ ?_, hlen, hnF, hla, h40,
     fun a r hc ↦ hcal.ffm _ hffm a r hc, hcal.iz, fun i hi a r hc ↦ ?_⟩
@@ -184,11 +168,11 @@ theorem finStatic_of {rd : Reader} {C : CallRel} {σ : Val} {m ri μ r : ℕ} {c
     obtain ⟨-, -, -, h1, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -,
       -, hlr, -, -, -, -, -, h2, h3, h4, -, -⟩ := hm
     exact lr_sound (lrOk_fn hlr).1 (lrOk_fn hlr).2.1 (lrOk_fn hlr).2.2 hlr.2.1 hlr.2.2 h1 h2 h3 h4
-  · obtain ⟨e, he, h1, h2, h3, h4, h5⟩ := slowIn_of hsl hi
+      (hle _ _ _ hc)
+  · obtain ⟨e, he, h1, h2, h3, h4, h5⟩ := lsIn_of hsl hi
     rw [← h1] at hc
     have := hcal.slow e he a r hc
     rwa [h2, h3, h4, h5] at this
-      (hle _ _ _ hc)
 
 end
 end LeanVM.Guest.B1.Whir

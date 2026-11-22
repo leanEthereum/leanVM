@@ -92,13 +92,15 @@ theorem popsBy_after {rd : Reader} {T : Tree → Prop} {p : List Pop} : ∀ (cs 
   | c :: cs, h => by
     obtain ⟨hz, hp⟩ := h c List.mem_cons_self
     refine ⟨fun _ t _ _ hn hv hT ↦ ?_, fun hf ↦ ?_, popsBy_after cs fun c' hc' ↦ h c' (List.mem_cons_of_mem _ hc')⟩
-    · cases hq : lqNameB c.f
+    · show t.pops coreProgram rd = if lqNameB c.f = true then p else []
+      cases hq : lqNameB c.f
       · simp only [Bool.false_eq_true, ↓reduceIte]
         exact pops_nil_of_noWitness (hz hq) hv hn rd
       · simp only [↓reduceIte]
         exact (hp hq).2 t hn hT
-    · cases hq : lqNameB c.f
-      · rfl
+    · show (if lqNameB c.f = true then p else []) = []
+      cases hq : lqNameB c.f
+      · simp
       · rw [(hp hq).1] at hf
         cases hf
 
@@ -158,8 +160,8 @@ theorem osLvKOf_B {m ri : ℕ} (hm : m < 11) (hri : ri < 4) {σ : Val}
   rw [e]
   have hq : lqNameB (osQueriesName (osCfgR m ri) i (osLvA (osCfgR m ri) i)) = true :=
     List.any_eq_true.mpr ⟨_, (armLv_ok hm hri i hi').2.1, by simp⟩
-  have h1 : ((lvIzF (osCfgR m ri) i (osLvA (osCfgR m ri) i) (osLvSt (osCfgR m ri) i)).map
-      (Main.mkCall σ)).filter (fun c ↦ lqNameB c.f) = [] :=
+  have h1 : ∀ s, ((lvIzF (osCfgR m ri) i (osLvA (osCfgR m ri) i) s).map
+      (Main.mkCall σ)).filter (fun c ↦ lqNameB c.f) = [] := fun s ↦
     List.filter_eq_nil_iff.mpr fun c hc ↦ by
       obtain ⟨x, hx, rfl⟩ := List.mem_map.mp hc
       rw [mkCall_f', lvIzF_f hx, lqNameB_of_kind osKindOf_isZero]

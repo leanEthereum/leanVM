@@ -85,15 +85,11 @@ def lane_groups(rows):
     return groups, slots
 
 
-PART = 512  # entries per part of a list literal
-
-
-def list_def(name, ty, doc, lines, per):
-    """`def name : ty` of the entries `lines` (`per` entries a line), in parts of `PART` entries
-    joined by `++` when longer: a literal of more than `PART` entries exceeds the elaborator's
-    recursion depth."""
+def list_def(name, ty, doc, lines, per, part):
+    """`def name : ty` of the entries `lines` (`per` entries a line), in parts of `part` entries
+    joined by `++` when longer: a longer literal exceeds the elaborator's recursion depth."""
     lit = lambda ls: "[\n    " + ",\n    ".join(ls) + "]"
-    pl = PART // per
+    pl = part // per
     parts = [lines[i:i + pl] for i in range(0, len(lines), pl)]
     if len(parts) <= 1:
         return f"/-- {doc} -/\ndef {name} : {ty} := {lit(lines)}\n\n"
@@ -111,9 +107,9 @@ def lanes_file(groups, slots):
                    "of `16` bits of its group's numbers.")
             + "\n\nnamespace LeanVM.Cost.Decoder\n\n@[expose] public section\n\n"
             + list_def("guestSlotsList", "List Nat", "Each function's slot, `4·(g + 1) + k`: lane `k` of group `g`.",
-                       lines, 16)
+                       lines, 16, 512)
             + list_def("guestLaneGroups", "List (List Nat)", "The groups' functions, lane by lane.",
-                       ["[" + ", ".join(map(str, g)) + "]" for g in groups], 1)
+                       ["[" + ", ".join(map(str, g)) + "]" for g in groups], 1, 256)
             + "end\n\nend LeanVM.Cost.Decoder\n")
 
 

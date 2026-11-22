@@ -180,7 +180,7 @@ theorem acceptableChild_of_accepted {bytecode : List K} (hbl : bytecode.length =
     AcceptableChild bytecode seed child where
   deferredClaimShaped := hshape
   verifies := hv
-  stackLogAtLeastMinimum layout _ h :=
+  stackLogAtLeastMinimum _ _ h :=
     let ⟨_, _, hb⟩ := built_of_announced h
     stackLog_ge_of_buildLayout hbl hb
   streamWithinCap := stream_le_of_verifyDeferred hv

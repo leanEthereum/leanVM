@@ -154,8 +154,8 @@ end HonRun
 
 /-- **Every accepting run has its honest data** (`Place/OsProtoSpec`). -/
 theorem os_honest_proved : B1.os_honest_Spec := by
-  intro μ r h1 h2 h3 h4 S root target cur tabs xs os w s' roots' hrun hnz hca
-  obtain ⟨cfg, Ls, hR⟩ := honRun_of h1 h2 h3 h4 hrun hnz hca
+  intro μ r h1 h2 h3 h4 S root target cur tabs xs os w s' roots' hrun hca
+  obtain ⟨cfg, Ls, hR⟩ := honRun_of h1 h2 h3 h4 hrun hca
   exact hR.osHonest_run
 
 end

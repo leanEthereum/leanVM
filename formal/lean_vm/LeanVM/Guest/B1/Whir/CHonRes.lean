@@ -115,7 +115,7 @@ theorem finRes_eq (hHS : HonStatic h.c) (hF : FinStatic h.c h.G h.T h.recs)
   rfl
 
 /-- **A non-final level's zero flag** is the one of the stored product of its coordinates. -/
-theorem finZ_eq (hHS : HonStatic h.c) (hF : FinStatic h.c h.G h.T h.recs) {l : ℕ}
+theorem finZ_eq (hHS : HonStatic h.c) {l : ℕ}
     (hl : l < h.c.yrLevel) : finZ h.c h.G h.T h.recs l = osZA h.c h.own l := by
   have hy := hHS.yr
   have hsz := hHS.fin (k := 5) (by omega)
@@ -137,7 +137,10 @@ theorem finSlow_eq (hHS : HonStatic h.c) (hF : FinStatic h.c h.G h.T h.recs)
   have hR := hrun l hl
   have hr : h.recs.getD l default = (h.L l).osRec h.logN := h.recs_getD hL hy hl
   unfold finSlow resSlow osSlowRetA
-  rw [finZ_eq h hHS hF hl]
+  rw [finZ_eq h hHS hl]
+  have hpe : (osLvA h.c l).prefixLen = (finLv h.c l).prefixLen := rfl
+  have hpo : (osLvA h.c l).posOff = (h.c.levels.getD l default).posOff := rfl
+  have hqe : (finLv h.c l).queries = (h.c.levels.getD l default).queries := rfl
   refine slowVal_congr _ _ (fun k hk ↦ ?_) (fun t ht ↦ ?_)
   · have hQ : k < (h.c.levels.getD l default).squeezes * sqPer (h.c.levels.getD l default) :=
       lt_of_lt_of_le hk hR.Q
@@ -162,13 +165,13 @@ theorem finSlow_eq (hHS : HonStatic h.c) (hF : FinStatic h.c h.G h.T h.recs)
       rw [List.getD_eq_getElem?_getD, List.getElem?_drop, List.getElem?_append_left (by omega),
         h.own_word (hHS.headLt (j := 2) (by omega)) (by rw [h2]; show _ < h.c.nFolds; omega),
         ownW_fch, OsHD.fchC, List.getD_eq_getElem?_getD]
-      rfl
     · have h1' : ¬ t < (osLvA h.c l).prefixLen := h1
       simp only [h1', ↓reduceIte]
       have h0 := hHS.fin (k := 0) (by omega)
       rw [List.getD_eq_getElem?_getD, List.getElem?_drop, List.getElem?_append_right (by omega),
         show osIxTchA h.c = 12 + h.c.yrLevel + 0 by unfold osIxTchA; omega,
-        h.own_word (hHS.finLt (k := 0) (by omega)) (by rw [h0]; have := hHS.ylog; show _ < yrLogCap; omega),
+        h.own_word (hHS.finLt (k := 0) (by omega))
+          (by rw [h0, List.getD_cons_zero]; have := hHS.ylog; omega),
         h.ownW_fin (by omega), List.getD_eq_getElem?_getD]
       simp only [List.getD_cons_zero]
       congr 2
@@ -200,7 +203,7 @@ theorem fld_slowEq : ∀ l < (hdOf μ r Ls).c.yrLevel,
   have hHS := honStatic_all _ _ hR.m11 hR.r4
   have hlam : (hdOf μ r Ls).lamAt l = ((hdOf μ r Ls).recs.getD l default).lam := by
     rw [(hdOf μ r Ls).recs_getD hR.len hHS.yr hl, LvAt.osRec_lam]; rfl
-  refine ⟨hlam, (hdOf μ r Ls).finZ_eq hHS hR.finStatic_run hl, ?_⟩
+  refine ⟨hlam, (hdOf μ r Ls).finZ_eq hHS hl, ?_⟩
   rw [hlam]
   exact (hdOf μ r Ls).finSlow_eq hHS hR.finStatic_run hR.len hR.recRun_run hl
 
