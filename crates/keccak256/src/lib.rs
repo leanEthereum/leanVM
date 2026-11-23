@@ -14,6 +14,8 @@
 //! rate: a message block is XORed into them before each permutation, and the digest is read off the first
 //! `OUT_LEN / 8` of them after the last one.
 
+#![cfg_attr(not(test), no_std)]
+
 /// Digest length in bytes. Keccak-256 throughout.
 pub const OUT_LEN: usize = 32;
 /// A digest, a Merkle node.
@@ -117,7 +119,7 @@ fn absorb(state: &mut [u64; STATE_LANES], block: &[u64; RATE_LANES]) {
 /// A full block of message bytes, as rate lanes.
 #[inline]
 fn block_of(bytes: &[u8; RATE]) -> [u64; RATE_LANES] {
-    std::array::from_fn(|i| u64::from_le_bytes(bytes[8 * i..8 * i + 8].try_into().unwrap()))
+    core::array::from_fn(|i| u64::from_le_bytes(bytes[8 * i..8 * i + 8].try_into().unwrap()))
 }
 
 /// The final block: the last `tail.len() < RATE` message bytes, then the padding, as rate lanes.
@@ -358,7 +360,7 @@ mod tests {
     #[test]
     fn keccak_f_many_matches_keccak_f() {
         let states: Vec<[u64; STATE_LANES]> = (0..2 * LANES as u64 + 1)
-            .map(|l| std::array::from_fn(|i| (l << 32) ^ (i as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15)))
+            .map(|l| core::array::from_fn(|i| (l << 32) ^ (i as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15)))
             .collect();
         let mut got = states.clone();
         keccak_f_many(&mut got);
@@ -372,7 +374,7 @@ mod tests {
     /// offset of a batch, ranges ending inside one, and a range up to `u64::MAX`, not of whole batches, with no hit.
     #[test]
     fn first_nonce_matches_keccak_f() {
-        let template: [u64; STATE_LANES] = std::array::from_fn(|i| (i as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15));
+        let template: [u64; STATE_LANES] = core::array::from_fn(|i| (i as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15));
         let lanes = LANES as u64;
         for at in [0, 4, 8, 12] {
             let pass = |nonce: u64, mask: u64| {

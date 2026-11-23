@@ -7,8 +7,12 @@
 //! `Th(P, A, M) = H(P | A | M)` truncated to 16 bytes, `H` the leanVM hash, with
 //! a 16-byte address `A` (the `hash` module).
 //!
+//! The default `std` feature provides the cached signing API. Verification works without std.
+//!
 //! [leanXMSS specification]: https://github.com/leanEthereum/leanVM/releases/download/doc-latest/leanXMSS.pdf
 
+#![cfg_attr(not(any(feature = "std", test)), no_std)]
+#![cfg_attr(not(feature = "std"), allow(dead_code))]
 #![cfg_attr(not(test), warn(unused_crate_dependencies))]
 
 mod hash;
@@ -21,9 +25,9 @@ use internals::*;
 use tree::*;
 use wots::*;
 
-pub use scheme::{
-    LeanXmssExpandedSecretKey, LeanXmssPublicKey, LeanXmssSignature, MAX_CACHED_BOTTOM_TREES, key_gen, sign, verify,
-};
+#[cfg(feature = "std")]
+pub use scheme::{LeanXmssExpandedSecretKey, MAX_CACHED_BOTTOM_TREES, key_gen, sign};
+pub use scheme::{LeanXmssPublicKey, LeanXmssSignature, verify};
 
 /// How many bytes in a [`SecretKey`].
 pub const SECRET_KEY_LEN: usize = 32;

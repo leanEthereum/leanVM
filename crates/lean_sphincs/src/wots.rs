@@ -47,7 +47,7 @@ impl OtsKey {
 /// The starts of the `v` chains of a one-time key, one `PRF` each.
 fn wots_secrets(sk: &ExpandedKey, key: &OtsKey) -> [Digest; V] {
     let adrs = key.adrs(WOTS_PRF);
-    std::array::from_fn(|i| prf(&sk.pk_seed, &sk.sk_seed, &adrs.with_chain(i as u32)))
+    core::array::from_fn(|i| prf(&sk.pk_seed, &sk.sk_seed, &adrs.with_chain(i as u32)))
 }
 
 /// `chain`: `steps` steps of chain `i` from position `start`; a step's hash
@@ -84,7 +84,7 @@ fn encode(encoder: &keccak256::Hasher, c: u32) -> Option<[u8; V]> {
 /// most significant first; a codeword if they sum to `T`.
 fn codeword(digest: &Digest) -> Option<[u8; V]> {
     let d = u128::from_be_bytes(*digest);
-    let x: [u8; V] = std::array::from_fn(|i| ((d >> (W * (V - 1 - i))) & (CHAIN_LEN as u128 - 1)) as u8);
+    let x: [u8; V] = core::array::from_fn(|i| ((d >> (W * (V - 1 - i))) & (CHAIN_LEN as u128 - 1)) as u8);
     (x.iter().map(|&chunk| chunk as usize).sum::<usize>() == TARGET_SUM).then_some(x)
 }
 
@@ -97,7 +97,7 @@ pub(crate) fn wots_sign(sk: &ExpandedKey, key: &OtsKey, message: &Digest) -> Opt
     let encoder = encoder(pk_seed, key, message);
     let (c, x) = (0..MAX_ENCODING_ATTEMPTS).find_map(|c| encode(&encoder, c as u32).map(|x| (c as u32, x)))?;
     let secrets = wots_secrets(sk, key);
-    let signature = std::array::from_fn(|i| chain(pk_seed, key, i, 0, x[i] as usize, secrets[i]));
+    let signature = core::array::from_fn(|i| chain(pk_seed, key, i, 0, x[i] as usize, secrets[i]));
     Some((c, signature))
 }
 
@@ -111,7 +111,7 @@ pub fn wots_leaf(
     signature: &[Digest; V],
 ) -> Option<([u8; V], Digest)> {
     let x = encode(&encoder(pk_seed, key, message), c)?;
-    let ends = std::array::from_fn(|i| {
+    let ends = core::array::from_fn(|i| {
         let start = x[i] as usize;
         chain(pk_seed, key, i, start, CHAIN_LEN - 1 - start, signature[i])
     });
@@ -122,6 +122,6 @@ pub fn wots_leaf(
 /// tree spends its hashes on.
 pub(crate) fn wots_public_leaf(sk: &ExpandedKey, key: &OtsKey) -> Digest {
     let secrets = wots_secrets(sk, key);
-    let ends = std::array::from_fn(|i| chain(&sk.pk_seed, key, i, 0, CHAIN_LEN - 1, secrets[i]));
+    let ends = core::array::from_fn(|i| chain(&sk.pk_seed, key, i, 0, CHAIN_LEN - 1, secrets[i]));
     wots_leaf_hash(&sk.pk_seed, key, &ends)
 }
