@@ -43,7 +43,7 @@ theorem deployedBudget_size_mono {Bvf Bvf' : ℕ → ℕ → ℕ} (u : End.Work)
 
 /-- **`verify_sub`'s words for a child of announced stack log `μ`** at the deployed instance:
 entry `μ - 20` for the guest's opening arms (`20 ≤ μ ≤ 30`, whatever the rate `1 ≤ r ≤ 4`); `0`
-elsewhere, where no child of a node within `Limits`, its caps agreeing and no zero challenge, is
+elsewhere, where no child of a node within `Limits`, its caps agreeing, is
 (`B1.Main.childShape_bounds`). -/
 noncomputable def deployedBvAt (μ r : ℕ) : ℕ :=
   if 20 ≤ μ ∧ μ ≤ 30 ∧ 1 ≤ r ∧ r ≤ 4 then Count.vsFixed + Count.osCs.getD (μ - 20) 0 else 0

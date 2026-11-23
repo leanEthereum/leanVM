@@ -139,12 +139,12 @@ theorem gw_kidsT_true : ∀ (cs : List Call) (ks : List Tree), KidsT cs (cs.map 
 
 variable {fs : String → ℕ}
 
-/-- A call's bound: its callee's valid trees within `w` when entered, its frame within `w` when
-not. -/
+/-- A call's bound: its callee's valid trees within `w` when entered, its tail frame within `w`
+when not. -/
 abbrev CallW (fs : String → ℕ) (rd : Reader) (σ : Val) (c : Call) (w : ℕ) : Prop :=
   (c.taken = true → ∀ (t : Tree) (rets : List E), t.name = c.f →
     t.Valid coreProgram rd (c.args.map σ) rets → t.BufsOk coreProgram → t.total fs ≤ w) ∧
-  (c.taken = false → fs c.f ≤ w)
+  (c.taken = false → fs (tailKey c.f) ≤ w)
 
 theorem gw_kids_total {rd : Reader} {σ : Val} : ∀ (cs : List Call) (Ws : List ℕ) (ks : List Tree),
     Tree.KidsValid coreProgram rd σ cs ks → Tree.BufsOkKids coreProgram ks →
@@ -236,6 +236,7 @@ theorem gl_chk : ∀ p < 4, ∀ o < 2, glChk p o = true := by decide +kernel
 
 /-- **`gkr_layer__L{p}_L{o}` within `glWB` at `x_m = g^m`.** -/
 theorem gl_totalLeOn {Kg : ℕ → ℕ → ℕ}
+    (htk : ∀ f, fs (tailKey f) ≤ fs f)
     (hK : ∀ p < 4, ∀ o < 2, TotalLeOn coreProgram fs (glLoopName p o) LoopPre
       (fun a ↦ logG (a.getD 1 0) * Kg p o + fs (glLoopName p o)))
     {p o m : ℕ} (hp : p < 4) (ho : o < 2) (hm : m < 2 ^ 62) :
@@ -268,7 +269,7 @@ theorem gl_totalLeOn {Kg : ℕ → ℕ → ℕ}
     rw [flatCalls, gw_callSF hnd, hcs]; rfl
   refine (htot [fs (glLoopName p o) + m * Kg p o] ?_).trans (by simp [glWB])
   rw [hcalls]
-  refine .cons ⟨fun ht t' rets' htn htv htb ↦ ?_, fun _ ↦ by simp⟩ .nil
+  refine .cons ⟨fun ht t' rets' htn htv htb ↦ ?_, fun _ ↦ (htk _).trans (by simp)⟩ .nil
   simp only [decide_eq_true_eq] at ht
   have hm0 : 0 < m := by
     rcases Nat.eq_zero_or_pos m with h0 | h0
@@ -308,6 +309,7 @@ theorem gl_last_chk : ∀ o < 2, (∀ r < 4, glLastChk r o = true) ∧ glslChk o
 
 /-- The layer calls' frames: each entered, `gkr_layer__L{p}_L{o}` at `x_m = σ hd[3]`. -/
 theorem glc_calls_W {Kg : ℕ → ℕ → ℕ}
+    (htk : ∀ f, fs (tailKey f) ≤ fs f)
     (hK : ∀ p < 4, ∀ o < 2, TotalLeOn coreProgram fs (glLoopName p o) LoopPre
       (fun a ↦ logG (a.getD 1 0) * Kg p o + fs (glLoopName p o)))
     {rd : Reader} {σ : Val} {o m r : ℕ} (ho : o < 2) (hr : r ≤ 4) (hm : m < 2 ^ 62)
@@ -317,10 +319,11 @@ theorem glc_calls_W {Kg : ℕ → ℕ → ℕ}
   rw [glcCalls, List.map_map]
   refine gw_f2_map _ fun p hp ↦ ⟨fun _ t rets htn htv htb ↦ ?_, fun ht ↦ by simp [Main.mkCall] at ht⟩
   have hp4 : p < 4 := by have := List.mem_range.mp hp; omega
-  exact gl_totalLeOn hK hp4 ho hm rd t _ rets htn (by simp [Main.mkCall, hx]) htv htb
+  exact gl_totalLeOn htk hK hp4 ho hm rd t _ rets htn (by simp [Main.mkCall, hx]) htv htb
 
 /-- **`gkr_last_layers__L{r}_L{o}` within `glsLast` at `x_m = g^n`.** -/
 theorem glLast_totalLeOn {Kg : ℕ → ℕ → ℕ}
+    (htk : ∀ f, fs (tailKey f) ≤ fs f)
     (hK : ∀ p < 4, ∀ o < 2, TotalLeOn coreProgram fs (glLoopName p o) LoopPre
       (fun a ↦ logG (a.getD 1 0) * Kg p o + fs (glLoopName p o)))
     {r o n : ℕ} (hr : r < 4) (ho : o < 2) (hn : n < 2 ^ 62) :
@@ -343,11 +346,12 @@ theorem glLast_totalLeOn {Kg : ℕ → ℕ → ℕ}
     exact h3
   refine (htot _ ?_).trans (le_of_eq (by rfl))
   rw [flatCalls, gw_callSF hnd, hcs]
-  exact glc_calls_W hK ho (by omega) hn h3' 4 9
+  exact glc_calls_W htk hK ho (by omega) hn h3' 4 9
 
 /-- **`gkr_layers__L{o}`'s loop from `g^c` below `g^n` within `glsIter` per iteration** and its
 phantom frame. -/
 theorem glsl_total {Kg : ℕ → ℕ → ℕ}
+    (htk : ∀ f, fs (tailKey f) ≤ fs f)
     (hK : ∀ p < 4, ∀ o < 2, TotalLeOn coreProgram fs (glLoopName p o) LoopPre
       (fun a ↦ logG (a.getD 1 0) * Kg p o + fs (glLoopName p o)))
     {rd : Reader} {o n : ℕ} (ho : o < 2) (hn : n < 2 ^ 62) :
@@ -385,13 +389,13 @@ theorem glsl_total {Kg : ℕ → ℕ → ℕ}
   refine (htot ((List.range 4).map (fun p ↦ glWB fs Kg p o c) ++
     [Budget.iterSum (glsIter fs Kg o) (c + 1) k + fs (glcLsLN o)]) ?_).trans ?_
   · rw [flatCalls, gw_callSF hnd, hcs, List.map_append]
-    refine List.rel_append (glc_calls_W hK ho le_rfl (by omega) h0' 10 11) (.cons ⟨?_, ?_⟩ .nil)
+    refine List.rel_append (glc_calls_W htk hK ho le_rfl (by omega) h0' 10 11) (.cons ⟨?_, ?_⟩ .nil)
     · intro ht t' rets' htn htv htb
       have ht' : σ (.n (valf% «gkr_layers» «_loop0» "s6#2")) ≠ 0 := by simpa [Main.mkCall] using ht
       have hc1 : c + 1 ≠ n := fun h ↦ ht' (by rw [e19', h]; exact e_add_self _)
       exact ih (c + 1) t' _ rets' (by omega) (by omega) htn (by simp [Main.mkCall, e21'])
         (by simp [Main.mkCall, h1']) htv htb
-    · intro _; simp [Main.mkCall]
+    · intro _; exact (htk _).trans (by simp [Main.mkCall])
   · rw [List.sum_append, Budget.iterSum_succ, glsIter, glWs]
     simp only [List.sum_cons, List.sum_nil, add_zero]
     omega
@@ -412,6 +416,7 @@ theorem gls_calls (o : ℕ) (σ : Val) : flatCalls (glcLsBody o).dropLast σ =
 
 /-- **`gkr_layers__L{o}` within `glsKL` at `n_four = g^n`, `n ≤ 3`, and `rem_g = g^r`, `r < 4`.** -/
 theorem gls_totalLeOn {Kg : ℕ → ℕ → ℕ}
+    (htk : ∀ f, fs (tailKey f) ≤ fs f)
     (hK : ∀ p < 4, ∀ o < 2, TotalLeOn coreProgram fs (glLoopName p o) LoopPre
       (fun a ↦ logG (a.getD 1 0) * Kg p o + fs (glLoopName p o))) :
     ∀ o < 2, TotalLeOn coreProgram fs (glcLsN o)
@@ -460,7 +465,7 @@ theorem gls_totalLeOn {Kg : ℕ → ℕ → ℕ}
     omega
   refine (htot [Budget.iterSum (glsIter fs Kg o) 0 n + fs (glcLsLN o), glsLast fs Kg o n r] ?_).trans hB
   rw [gls_calls]
-  refine .cons ⟨fun ht t' rets' htn htv htb ↦ ?_, fun _ ↦ by simp⟩
+  refine .cons ⟨fun ht t' rets' htn htv htb ↦ ?_, fun _ ↦ (htk _).trans (by simp)⟩
     (.cons ⟨fun _ t' rets' htn htv htb ↦ ?_, fun ht ↦ by simp at ht⟩ .nil)
   · simp only [decide_eq_true_eq] at ht
     have hn0 : 0 < n := by
@@ -468,13 +473,13 @@ theorem gls_totalLeOn {Kg : ℕ → ℕ → ℕ}
       · exfalso; apply ht
         rw [e10, e9, h3', h0, pow_zero]; exact e_add_self 1
       · exact h0
-    exact glsl_total (rd := rd) (n := n) hK ho (by omega) n 0 t' _ rets' (by omega) hn0 htn
+    exact glsl_total (rd := rd) (n := n) htk hK ho (by omega) n 0 t' _ rets' (by omega) hn0 htn
       (by simp [e11]) (by simp [h3']) htv htb
   · have htn' : t'.name = glcLastN r o := by
       rw [htn]
       show [glcLastN 0 o, glcLastN 1 o, glcLastN 2 o, glcLastN 3 o].getD (logG (σ (.n (valf% «gkr_layers» "rem_g")))) "" = _
       rw [hlog, hlast]
-    exact glLast_totalLeOn hK hr ho (by omega) rd t' _ rets' htn' (by simp [h3']) htv htb
+    exact glLast_totalLeOn htk hK hr ho (by omega) rd t' _ rets' htn' (by simp [h3']) htv htb
 
 end
 end LeanVM.Guest.B1.Tables

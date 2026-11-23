@@ -492,6 +492,32 @@ theorem prodW_append (w : ℕ → E) : ∀ (l l' : List (ℕ × ℕ)),
   | [], l' => by simp [CoreMode.prodW]
   | (b, e) :: l, l' => by simp only [List.cons_append, CoreMode.prodW, prodW_append w l l']; ring
 
+/-- **`vtSubP1`**: `[B]·[J]·g^o` is one of `cs` where the arms hold. -/
+theorem vtSubP1_sound {σ : Core.Val} {s : List ℤ} {as : List Atom} (hb : VtBox s vtUB)
+    (hF : ∀ v F, vtF as CoreMode.vtFuel v = some F → VtV σ s v F)
+    (hbase : ∀ x F, vtBaseN x = some F → VtV σ s (V.n x) F) {arms : List (ℕ × ℕ)}
+    (ha : ∀ p ∈ arms, σ (V.n p.1) = ofK (addressOfIndex p.2)) {co B J : ℕ} {cs : List CoreMode.CCell}
+    (h : CoreMode.vtSubP1 as arms co B J cs = true) :
+    ∃ c' ∈ cs, (⟨[(B, 1), (J, 1)], co⟩ : CoreMode.CCell).addrW (CoreMode.vw σ) = c'.addrW (CoreMode.vw σ) := by
+  simp only [CoreMode.vtSubP1, Bool.and_eq_true, List.all_eq_true, List.mem_range, List.contains_iff_mem] at h
+  obtain ⟨hall, hl⟩ := h
+  obtain ⟨A, Bn, -, hBn, a0, hab, a1, -⟩ := vtLt_sound hb hF hbase ha hl
+  have eB : Bn = ((cs.length : ℤ), []) := by
+    simp only [CoreMode.vtI, CoreMode.vtM, CoreMode.idxC, Option.some.injEq] at hBn; exact hBn.symm
+  rw [eB, vtEv_nil] at hab
+  -- `σ J = g^e`, `e < |cs|`
+  have hJ : CoreMode.vw σ J = gen ^ (vtEv A s).toNat := by
+    have := (CoreMode.rep_spec a1).2
+    simp only [CoreMode.idxC, CoreMode.baseC, CoreMode.CCell.valW, CoreMode.prodW, pow_one, mul_one] at this
+    rw [show (addressOfIndex 0 : K) = 1 from pow_zero _,
+      show ofK (1 : K) = 1 from _root_.map_one (algebraMap K E), mul_one] at this
+    rw [this, ← ofK_gpow]
+  refine ⟨⟨[(B, 1)], co + (vtEv A s).toNat⟩, hall (vtEv A s).toNat (by omega), ?_⟩
+  simp only [CoreMode.CCell.addrW, CoreMode.CCell.valW, CoreMode.prodW, pow_one, mul_one, hJ,
+    Parameters.addressOfIndex, ← ofK_gpow, mul_assoc, ← CoreMode.ofK_mul', ← pow_add]
+  refine congrArg (·.limb 0) (mul_gpow_congr _ ?_)
+  omega
+
 /-- **The exponent family holds** where its arms hold (`vtExpR`). -/
 theorem vtExpR_sound {σ : Core.Val} {s : List ℤ} {as : List Atom} (hb : VtBox s vtUB)
     (hF : ∀ v F, vtF as CoreMode.vtFuel v = some F → VtV σ s v F)
@@ -509,24 +535,14 @@ theorem vtExpR_sound {σ : Core.Val} {s : List ℤ} {as : List Atom} (hb : VtBox
     simp only at h
     split at h
     · rename_i _ B J
-      simp only [Bool.and_eq_true, List.all_eq_true, List.mem_range, List.contains_iff_mem] at h
-      obtain ⟨hall, hl⟩ := h
-      obtain ⟨A, Bn, -, hBn, a0, hab, a1, -⟩ := vtLt_sound hb hF hbase ha hl
-      have eB : Bn = ((cs.length : ℤ), []) := by
-        simp only [CoreMode.vtI, CoreMode.vtM, CoreMode.idxC, Option.some.injEq] at hBn; exact hBn.symm
-      rw [eB, vtEv_nil] at hab
-      -- `σ J = g^e`, `e < |cs|`
-      have hJ : CoreMode.vw σ J = gen ^ (vtEv A s).toNat := by
-        have := (CoreMode.rep_spec a1).2
-        simp only [CoreMode.idxC, CoreMode.baseC, CoreMode.CCell.valW, CoreMode.prodW, pow_one, mul_one] at this
-        rw [show (addressOfIndex 0 : K) = 1 from pow_zero _,
-          show ofK (1 : K) = 1 from _root_.map_one (algebraMap K E), mul_one] at this
-        rw [this, ← ofK_gpow]
-      refine ⟨⟨[(B, 1)], co + (vtEv A s).toNat⟩, hall (vtEv A s).toNat (by omega), ?_⟩
-      simp only [CoreMode.CCell.addrW, CoreMode.CCell.valW, CoreMode.prodW, pow_one, mul_one, hJ,
-        Parameters.addressOfIndex, ← ofK_gpow, mul_assoc, ← CoreMode.ofK_mul', ← pow_add]
-      refine congrArg (·.limb 0) (mul_gpow_congr _ ?_)
-      omega
+      simp only [Bool.or_eq_true] at h
+      rcases h with h | h
+      · exact vtSubP1_sound hb hF hbase ha h
+      · obtain ⟨c', hc', e⟩ := vtSubP1_sound hb hF hbase ha h
+        refine ⟨c', hc', ?_⟩
+        rw [← e]
+        simp only [CoreMode.CCell.addrW, CoreMode.CCell.valW, CoreMode.prodW]
+        exact congrArg (fun e : E ↦ e.limb 0) (by ring)
     · cases h
   | .subR q r, arms, ha, h => by
     simp only [vtExpR, Bool.and_eq_true, Nat.beq_eq, decide_eq_true_eq] at h

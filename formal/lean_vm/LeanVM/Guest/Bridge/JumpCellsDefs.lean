@@ -20,6 +20,7 @@ public import LeanVM.Guest.Renumber
 - its hint-only cells' values without a certificate cell; each branch's and conditional call's condition at a certificate cell in `[2, n)`, its number below `2^30`, each `match` selector a numbered value;
 - a loop helper's body `pre ++ [callIf c f args, ret []]`, `pre` without `ret`, no site of the final call's arguments; `main` no loop helper;
 - each jump's frame cell, if a next frame `fp·g^S`, `S ≠ 0`, only in a loop helper with `S = n`;
+- each cell past the frame holding the next frame's address (`Plumb.nxt`) a loop helper's, not `main`'s, at `n` plus one of its self frame pointer cells (`nxtChk`).
 -/
 
 namespace LeanVM.Guest.Bridge
@@ -93,6 +94,11 @@ def nextChk (p : Plumb) (n : ℕ) (loop : Bool) (q : ℕ) : Bool :=
     | .fpg S => S == 0 || (loop && S == n)
     | _ => true
 
+/-- A cell past the frame holding the next frame's address (`Plumb.nxt`): only a loop helper's,
+not `main`'s, a self frame pointer cell of the next frame. -/
+def nxtChk (n : ℕ) (C : Check.Cert) (loop main : Bool) (o : ℕ) : Bool :=
+  loop && !main && C.facts.env.any fun q ↦ Nat.beq (n + q.1) o
+
 /-- A numbered value, `V.n v.idx`. -/
 def numbered (v : V) : Bool := v.path.isEmpty && Nat.beq v.tag 0
 
@@ -156,7 +162,8 @@ noncomputable def jcDataD (p : Plumb) (n : ℕ) (C : Check.Cert) (extra : List (
     | .fpg S => S == 0 || (fn.loop && S == n)
     | _ => true) || code.all (fun
     | .jump _ _ q => nextChk p n fn.loop q
-    | _ => true))
+    | _ => true)) &&
+  p.nxt.all (nxtChk n C fn.loop main)
 
 end
 

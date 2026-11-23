@@ -83,7 +83,7 @@ theorem res_of_top {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A : S
   obtain ⟨done, e0, st, htr⟩ := trackAt_X hP hmain hJ hL hr hon' hge (by omega)
   obtain ⟨e, st', hst, hE, hfp, hat⟩ := htr.top
   obtain ⟨rd, hH, hXh⟩ := hr.honest
-  obtain ⟨hI, j, -, -, vs, hj, -, hfn, hw, hF⟩ :=
+  obtain ⟨hI, j, _, _, vs, hj, hIt, hfn, hw, hF⟩ :=
     htr.frames hr.name hH hXh.covers e (by rw [hst]; exact List.mem_cons_self)
   -- the frame's function is `K`'s
   have hent : entryOf e.I.t.name = K.F.entry := by
@@ -102,7 +102,7 @@ theorem res_of_top {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A : S
   have hfb : e.I.fp + fsN j ≤ 2 ^ 62 := by
     obtain ⟨_, -, -, -, -, -, hfs, -⟩ := fn_of_idx hj
     have h2 := hH.cells.two_le e.I hI
-    have hwi := honest_within hI (by omega)
+    have hwi := honest_within_node hI hIt (by omega)
     have hle := le_two_pow_logMem (r.T.total B2C.fs)
     have h28 : 2 ^ logMem (r.T.total B2C.fs) ≤ 2 ^ 28 :=
       Nat.pow_le_pow_right (by norm_num) (logMemorySize_le_28 (e := r.exec) hr.size)

@@ -7,18 +7,16 @@
 module
 
 public import LeanVM.Guest.B1.Opening.QueriesPlaced2
-import LeanVM.Guest.ValRef
-import LeanVM.Guest.Data.ValNames.«opening_queries__L_loop0»
 
 /-!
 # One iteration, placed: its statements by kind
 
 An iteration's body is flat: its atoms and its path's `match`es of quiet arms (`oqLoop1A`,
-`oqLoop0A`), then the tail's `callIf` and `ret []`. `AtomsOk.matchOk`, `AtomsOk.evs_holds`: a body
+`oqLoop0A`; no call, the walk inline), then the tail's `callIf` and `ret []`. `AtomsOk.matchOk`, `AtomsOk.evs_holds`: a body
 holding statement by statement (`BlockOk`) walks (`walk_flatM`) with every event holding.
 `oqLoop1A_ok`, `oqLoop0A_ok`: its atoms by kind, its loads through the challenges, the final
 coefficients, the positions, the window pointers and windows, the flags, the cap leaves and the
-chain; no `frameAddr`, no `HeapBuf`.
+chain; no `frameAddr`, no `HeapBuf`. `oqQueryT_callS`: a query calls nothing.
 -/
 
 namespace LeanVM.Guest.B1
@@ -126,33 +124,33 @@ theorem oqGuardA_ok {L : V → ℕ → Prop} {F : V → List V → Prop} (g : �
 /-! ## A level-0 iteration's atoms by kind -/
 
 /-- The loads of a level-0 iteration: its queries', the points and the window pointers at
-`positions·x²`, `qptrs·x²` offsets `odd`, `odd + 1`, the chain (non-final levels). -/
-def OqIt1L (s : Oq) (odd : ℕ) (p : V) (off : ℕ) : Prop :=
-  OqQLoad s (.n (valf% «opening_queries» «_loop0» "coefs")) (.n (valf% «opening_queries» «_loop0» "hs")) p off ∨ (p = .n 11 ∧ (off = odd ∨ off = odd + 1)) ∨
-    (p = .n 13 ∧ (off = odd ∨ off = odd + 1)) ∨ (s.final ≠ 1 ∧ p = .n (oqC1 s) ∧ off = 0) ∨
+`positions·x²`, `qptrs·x²` offsets `0`, `1`, the chain (non-final levels). -/
+def OqIt1L (s : Oq) (p : V) (off : ℕ) : Prop :=
+  OqQLoad s (.n oqCoefs) (.n oqHs) (.n 14) (oqCh s 15 true) p off ∨
+    OqQLoad s (.n oqCoefs) (.n oqHs) (.n (oqE1 s + 1)) (oqCh s (oqE1 s + 2) false) p off ∨
+    (p = .n 11 ∧ off < 2) ∨ (p = .n 12 ∧ off < 2) ∨ (s.final ≠ 1 ∧ p = .n (oqC1 s) ∧ off = 0) ∨
     (s.final ≠ 1 ∧ p = .n (oqC1 s + 6) ∧ off = 1)
 
-theorem oqLoop1A_ok (s : Oq) (odd : ℕ) (walk : String) :
-    AtomsOk (AtomKind (OqIt1L s odd) fun _ _ ↦ False) (oqLoop1A s odd walk) := by
+theorem oqLoop1A_ok (s : Oq) : AtomsOk (AtomKind (OqIt1L s) fun _ _ ↦ False) (oqLoop1A s) := by
   unfold oqLoop1A
   dsimp only
   refine atomsOk_append (atomsOk_append (atomsOk_append (atomsOk_append (atomsOk_append ?_ ?_) ?_)
     ?_) ?_) (oqGuardA_ok _)
-  · exact atomsOk_cons trivial (atomsOk_cons trivial (atomsOk_cons trivial (atomsOk_cons trivial
-      (atomsOk_cons (Or.inr (Or.inl ⟨rfl, Or.inl rfl⟩))
-      (atomsOk_cons (Or.inr (Or.inr (Or.inl ⟨rfl, Or.inl rfl⟩))) atomsOk_nil)))))
-  · exact (oqQuery_atoms_ok _ _ _ _ _ _ _ _ _ _).mono fun a ha ↦
+  · exact atomsOk_cons trivial (atomsOk_cons trivial (atomsOk_cons trivial
+      (atomsOk_cons (Or.inr (Or.inr (Or.inl ⟨rfl, by omega⟩)))
+      (atomsOk_cons (Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, by omega⟩)))) atomsOk_nil))))
+  · exact (oqQuery_atoms_ok _ _ _ _ _ _ _ _ _).mono fun a ha ↦
       AtomKind.mono (fun p off h ↦ Or.inl h) (fun p run h ↦ h) ha
-  · exact atomsOk_cons (Or.inr (Or.inl ⟨rfl, Or.inr rfl⟩))
-      (atomsOk_cons (Or.inr (Or.inr (Or.inl ⟨rfl, Or.inr rfl⟩))) atomsOk_nil)
-  · exact (oqQuery_atoms_ok _ _ _ _ _ _ _ _ _ _).mono fun a ha ↦
-      AtomKind.mono (fun p off h ↦ Or.inl h) (fun p run h ↦ h) ha
+  · exact atomsOk_cons (Or.inr (Or.inr (Or.inl ⟨rfl, by omega⟩)))
+      (atomsOk_cons (Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, by omega⟩)))) atomsOk_nil)
+  · exact (oqQuery_atoms_ok _ _ _ _ _ _ _ _ _).mono fun a ha ↦
+      AtomKind.mono (fun p off h ↦ Or.inr (Or.inl h)) (fun p run h ↦ h) ha
   · split
     · exact atomsOk_nil
     · rename_i h
-      exact atomsOk_cons trivial (atomsOk_cons (Or.inr (Or.inr (Or.inr (Or.inl ⟨h, rfl, rfl⟩))))
+      exact atomsOk_cons trivial (atomsOk_cons (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨h, rfl, rfl⟩)))))
         (atomsOk_cons trivial (atomsOk_cons trivial (atomsOk_cons trivial (atomsOk_cons trivial
-        (atomsOk_cons trivial (atomsOk_cons (Or.inr (Or.inr (Or.inr (Or.inr ⟨h, rfl, rfl⟩))))
+        (atomsOk_cons trivial (atomsOk_cons (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr ⟨h, rfl, rfl⟩)))))
         atomsOk_nil)))))))
 
 /-! ## A deeper iteration's atoms by kind -/
@@ -160,17 +158,17 @@ theorem oqLoop1A_ok (s : Oq) (odd : ℕ) (walk : String) :
 /-- The loads of a deeper iteration: its query's, its point `positions[x]`, its window pointer
 `qptrs[x]`, the chain (non-final levels). -/
 def OqIt0L (s : Oq) (p : V) (off : ℕ) : Prop :=
-  OqQLoad s (.n (valf% «opening_queries» «_loop0» "coefs")) (.n (valf% «opening_queries» «_loop0» "hs")) p off ∨ (p = .n 10 ∧ off = 0) ∨ (p = .n 12 ∧ off = 0) ∨
-    (s.final ≠ 1 ∧ p = .n (oqC0 s) ∧ off = 0) ∨ (s.final ≠ 1 ∧ p = .n (oqC0 s + 4) ∧ off = 1)
+  OqQLoad s (.n oqCoefs) (.n oqHs) (.n 13) (oqCh s 14 true) p off ∨ (p = .n 10 ∧ off = 0) ∨
+    (p = .n 12 ∧ off = 0) ∨ (s.final ≠ 1 ∧ p = .n (oqC0 s) ∧ off = 0) ∨
+    (s.final ≠ 1 ∧ p = .n (oqC0 s + 4) ∧ off = 1)
 
-theorem oqLoop0A_ok (s : Oq) (walk : String) :
-    AtomsOk (AtomKind (OqIt0L s) fun _ _ ↦ False) (oqLoop0A s walk) := by
+theorem oqLoop0A_ok (s : Oq) : AtomsOk (AtomKind (OqIt0L s) fun _ _ ↦ False) (oqLoop0A s) := by
   unfold oqLoop0A
   dsimp only
   refine atomsOk_append (atomsOk_append (atomsOk_append ?_ ?_) ?_) (oqGuardA_ok _)
   · exact atomsOk_cons trivial (atomsOk_cons (Or.inr (Or.inl ⟨rfl, rfl⟩)) (atomsOk_cons trivial
       (atomsOk_cons (Or.inr (Or.inr (Or.inl ⟨rfl, rfl⟩))) atomsOk_nil)))
-  · exact (oqQuery_atoms_ok _ _ _ _ _ _ _ _ _ _).mono fun a ha ↦
+  · exact (oqQuery_atoms_ok _ _ _ _ _ _ _ _ _).mono fun a ha ↦
       AtomKind.mono (fun p off h ↦ Or.inl h) (fun p run h ↦ h) ha
   · split
     · exact atomsOk_nil
@@ -181,26 +179,10 @@ theorem oqLoop0A_ok (s : Oq) (walk : String) :
 
 /-! ## The calls -/
 
-/-- A query's one call: `walk_path`'s. -/
-theorem oqQueryT_callS (s : Oq) (x bp cap flags coefs hs : V) (b : ℕ) (emit : Bool) (pr : ℕ)
-    (walk : String) :
-    (oqQueryT s x bp cap flags coefs hs b emit pr walk).filterMap Stmt.callS =
-      [(none, walk, [.n (oqOut s (oqKL s b emit) (s.B - 1) 0), .n (oqOut s (oqKL s b emit) (s.B - 1) 1),
-        bp, cap, flags], [])] := by
-  have h1 : AllAtoms (oqPrepT s b ++ (if emit then oqPadT (oqK1 s b) else []) ++
-      oqLeafT s b (oqPr s b emit pr) (oqKL s b emit)) := by
-    refine allAtoms_append (allAtoms_append (oqPrepT_atoms _ _) ?_) (oqLeafT_atoms _ _ _ _)
-    split
-    · exact oqPadT_atoms _
-    · exact allAtoms_nil
-  have h2 : AllAtoms (oqFoldT s coefs x b (oqCh s b emit) ++
-      (if s.final = 1 then oqFinT s x hs (oqVal s (oqCh s b emit)) else [])) := by
-    refine allAtoms_append (oqFoldT_atoms _ _ _ _ _) ?_
-    split
-    · exact oqFinT_atoms _ _ _ _
-    · exact allAtoms_nil
-  rw [QD.oqQueryT_eq, List.filterMap_append, List.filterMap_append, callS_atoms h1, callS_atoms h2]
-  rfl
+/-- A query calls nothing (its walk is inline). -/
+theorem oqQueryT_callS (s : Oq) (x bp cap flags coefs hs : V) (b : ℕ) (emit : Bool) (pr : ℕ) :
+    (oqQueryT s x bp cap flags coefs hs b emit pr).filterMap Stmt.callS = [] :=
+  callS_flat (oqQueryT_flat _ _ _ _ _ _ _ _ _ _)
 
 end
 end LeanVM.Guest.B1

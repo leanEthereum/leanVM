@@ -105,7 +105,7 @@ theorem mBlocks_loads : mPre.filterMap B1.Stmt.loadS = (List.range 256).map (fun
     mMid.filterMap B1.Stmt.loadS = [(.n (val% «main» "written"), 0), (.n (val% «main» "s57#0"), 0)] ∧
     mLeaf.filterMap B1.Stmt.loadS = (List.range 24).map (fun k => (.n (val% «main» "defer_stmt"), k)) ∧
     mAgg.filterMap B1.Stmt.loadS = [] ∧
-    mPost.filterMap B1.Stmt.loadS = [(.n (val% «main» "da"), 0), (.n (val% «main» "da"), 1), (.n (val% «main» "s66#0"), 0), (.n (val% «main» "s67#2"), 0)] := by
+    mPost.filterMap B1.Stmt.loadS = [(.n (val% «main» "da"), 0), (.n (val% «main» "da"), 1), (.n (val% «main» "s66#0"), 0), (.n (val% «main» "s67#0"), 0)] := by
   decide +kernel
 
 set_option maxRecDepth 100000 in

@@ -18,7 +18,7 @@ The verifier evaluates coefficients `cs` at `x` as `novelEval cs (subspaceAt μ 
 normalized `Ŵ_i(x) = W_i(x)/W_i(β_i)`. The guest folds them over the unnormalized chain
 `W_0 = x`, `W_(i+1) = W_i (W_i + W_i(β_i))` (`wsChain` in `opening_query`, `residualChain` in
 `residual_query`), coefficient `c` scaled by `Π_(i < bits, c_i = 1) W_i(β_i)⁻¹` (`hsNorm`, from
-`LIG_VANISH_INVS`, `open_stacked`'s `hs`), possibly times one more scalar `s` (the high part's
+`VANISH_INVS_BY_COLS`, `open_stacked`'s `hs`), possibly times one more scalar `s` (the high part's
 `W_μ(β_μ)⁻¹`):
 
 * `chain_vanishing`: a chain by the roots of `subspaceRoots μ` is `W_i(x)`, `i ≤ μ`

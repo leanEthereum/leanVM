@@ -18,13 +18,14 @@ public import LeanVM.Guest.B1.Whir.RateCfg
 # The finish, honestly
 
 The finish's own buffers' honest words, from all `α`s `G`, the tail challenges `T` and the
-non-final levels' records (S1a-3's `OsRec`): the point zero-padded and one plus it one-padded
+non-final levels' records (`OsRec`): the point zero-padded and one plus it one-padded
 (`finPtC`, `finPt1C`), each level's basis row (`finBdC`), scale (`finLsC`), product of
 coordinates (`finLaC`) and the inner chain (`finIchC`).
 
-`osFinishA_complete`: on memory holding the levels' records (`RecStored`), `λ⁻¹` in `level_lam_invs`,
+`osFinishA_complete`: on memory holding the levels' records (`RecStored`), `μ` in `level_lam_invs`,
 `G` and `T`, and those buffers at the pointers `PT`, `PT1`, `BD`, `LS`, `LA`, `ICH`, with
-`fold_final_msg` returning `Y` and each `level_residual` returning its level's chains, the
+`fold_final_msg` returning `Y`, each `level_residual` returning its level's chains and each
+`level_residual_slow` its level's slow sum (`finSlow`), the
 statements of `osFinishA` hold at values fixed before the memory and the callees, allocating
 exactly those buffers in order (`AllocsAt`). What they return is `osFinish_sound`'s.
 -/
@@ -50,14 +51,25 @@ def finX (G T : List E) (recs : List OsRec) (i t : ℕ) : E := (ptFrom G T (recs
 def finBeta (c : OsCfg) (recs : List OsRec) (i : ℕ) : E :=
   (recs.getD i default).lam ^ 2 * (recs.getD i default).lam ^ (finLv c i).queries
 
-/-- Non-final level `i`'s basis row. -/
+/-- Non-final level `i`'s basis row, at its zero flag. -/
 def finD (c : OsCfg) (G T : List E) (recs : List OsRec) (i : ℕ) : ℕ → E :=
-  dOf (finLv c i) (finX G T recs i)
+  dZ (finLv c i) ((finLv c i).prefixLen + c.yrLog) (finX G T recs i)
+
+/-- Non-final level `i`'s positions. -/
+def finPos (recs : List OsRec) (i : ℕ) : ℕ → E := fun k ↦ eOfNat ((recs.getD i default).qs.getD k 0)
+
+/-- Non-final level `i`'s zero flag: the product of its coordinates zero. -/
+def finZ (c : OsCfg) (G T : List E) (recs : List OsRec) (i : ℕ) : E :=
+  zeroOf (∏ t ∈ Finset.range ((finLv c i).prefixLen + c.yrLog), finX G T recs i t)
+
+/-- Non-final level `i`'s slow sum. -/
+def finSlow (c : OsCfg) (G T : List E) (recs : List OsRec) (i : ℕ) : E :=
+  resSlow c (finLv c i) (finPos recs i) (finX G T recs i) (recs.getD i default).lam (finZ c G T recs i)
 
 /-- Non-final level `i`'s chains. -/
 def finRes (c : OsCfg) (G T : List E) (recs : List OsRec) (li : ℕ → E) (i : ℕ) : E × E :=
   resAll (finLv c i) (finD c G T recs i) (hsvOf (finLv c i) (recs.getD i default))
-    (fun k ↦ eOfNat ((recs.getD i default).qs.getD k 0)) (li i)
+    (finPos recs i) (li i)
 
 /-- `point`: the rotated point, zero-padded. -/
 def finPtC (c : OsCfg) (G T : List E) : List E :=
@@ -89,7 +101,8 @@ def finLaC (c : OsCfg) (G T : List E) (recs : List OsRec) : List E :=
 
 /-- The inner chain's sums after `j` levels, from the claim `cl`. -/
 def finIch (c : OsCfg) (G T : List E) (recs : List OsRec) (li : ℕ → E) (cl : E) (j : ℕ) : E × E :=
-  (∑ i ∈ Finset.range j, (finLsC c G T recs).getD i 0 * (finRes c G T recs li i).1,
+  (∑ i ∈ Finset.range j, ((finLsC c G T recs).getD i 0 * (finRes c G T recs li i).1 +
+      finSlow c G T recs i),
     cl + ∑ i ∈ Finset.range j,
       finBeta c recs i * (finLaC c G T recs).getD i 0 * (finRes c G T recs li i).2)
 
@@ -112,8 +125,6 @@ structure FinStatic (c : OsCfg) (G T : List E) (recs : List OsRec) : Prop where
   Tl : T.length = c.yrLog
   lane : (c.levels.headD default).folds ≤ c.nFolds
   mu40 : c.nFolds + c.yrLog ≤ pointCap
-  Gnz : ∀ x ∈ G, x ≠ 0
-  Tnz : ∀ x ∈ T, x ≠ 0
   recF : ∀ i < c.yrLevel, (recs.getD i default).F = (finLv c i).foldsOff + (finLv c i).folds
   cols : ∀ i < c.yrLevel, (finLv c i).logCols ≤ ligColsCap
 
@@ -135,7 +146,11 @@ structure FinMem (C : CallRel) (rd : Reader) (σ : Val) (c : OsCfg) (tch : ℕ) 
   rate : ∀ i < c.yrLevel, LvRate σ c i (finLv c i)
   res : ∀ i < c.yrLevel, C (osResidualName (finLv c i))
     [σ (.n osQpos) * gen ^ (finLv c i).posOff, BD * gen ^ (i * ligColsCap),
-      σ (.n osHs) * gen ^ (i * hsStride), li i] [(finRes c G T recs li i).1, (finRes c G T recs li i).2]
+      σ (.n osHs) * gen ^ (i * hsStride), li i, gen ^ ((finLv c i).queries / resBatch),
+      gen ^ ((finLv c i).queries % resBatch)] [(finRes c G T recs li i).1, (finRes c G T recs li i).2]
+  slow : ∀ i < c.yrLevel, C (osSlowName c (finLv c i))
+    [σ (.n osQpos) * gen ^ (finLv c i).posOff, σ (.n osFch) * gen ^ (finLv c i).resFoldOff,
+      σ (.n tch), (recs.getD i default).lam, finZ c G T recs i] [finSlow c G T recs i]
 
 /-- The finish's buffers and their sizes, in allocation order. -/
 def finAllocs (c : OsCfg) (PT PT1 BD LS LA ICH : E) : List (E × ℕ) :=
@@ -146,16 +161,12 @@ def finAllocs (c : OsCfg) (PT PT1 BD LS LA ICH : E) : List (E × ℕ) :=
 def finEnd (c : OsCfg) (st : OsSt) (tch : ℕ) : ℕ :=
   let pts := osPtBlks c (st.k + 1) (st.k + 1 + 1) tch 0 pointCap (st.k + 1 + 2)
   let bs := osBases c tch (pts.2 + 1) (pts.2 + 3) (pts.2 + 5) 0 (c.levels.take c.yrLevel) (pts.2 + 6)
-  let rs := osResiduals c (bs.2 + 1) (pts.2 + 1) (pts.2 + 3) (pts.2 + 5) 0 (c.levels.take c.yrLevel)
+  let rs := osResiduals c st.rts tch (bs.2 + 1) (pts.2 + 1) (pts.2 + 3) (pts.2 + 5) 0 (c.levels.take c.yrLevel)
     st.mats (bs.2 + 3)
   (osOodWeights c tch (c.levels.headD default).logCols 1 c.levels.tail none rs.2).2.2 + 6
 
 
 /-! ## The honest words, read back -/
-
-theorem readsAt_getD' {rd : Reader} {p : E} {xs : List E} (h : ReadsAt rd p xs) {j : ℕ}
-    (hj : j < xs.length) : LoadHolds rd p j (xs.getD j 0) := by
-  rw [List.getD_eq_getElem _ _ hj]; exact h j hj
 
 theorem rotPt_length {c : OsCfg} {G T : List E} {recs : List OsRec} (hS : FinStatic c G T recs) :
     (rotPt G T (c.levels.headD default).folds).length = c.nFolds + c.yrLog := by
@@ -230,25 +241,6 @@ theorem finX_src {c : OsCfg} {tch : ℕ} {σ : Val} {rd : Reader} {G T : List E}
     have := htch (t - (finLv c i).prefixLen) (by omega)
     convert this using 2
     omega
-
-/-- Non-final level `i`'s coordinates are not zero, nor their coefficients. -/
-theorem finX_ne {c : OsCfg} {G T : List E} {recs : List OsRec} (hS : FinStatic c G T recs) {i : ℕ}
-    (hi : i < c.yrLevel) (hrF : (recs.getD i default).F = (finLv c i).foldsOff + (finLv c i).folds) :
-    ∀ t < (finLv c i).prefixLen + c.yrLog, finX G T recs i t * invW (finLv c i) t ≠ 0 := by
-  intro t ht
-  have hL := hS.lv i hi
-  have hp1 := hL.pre
-  have hp2 := hL.cols
-  have hp3 := hL.le
-  have hG := hS.Gl
-  have hT := hS.Tl
-  refine mul_ne_zero ?_ (invW_ne hL.mu64 hL.inv t (by omega))
-  simp only [finX, ptFrom]
-  rw [hrF, List.getD_eq_getElem _ _ (by simp only [List.length_drop, List.length_append]; omega),
-    List.getElem_drop]
-  by_cases h : (finLv c i).foldsOff + (finLv c i).folds + t < G.length
-  · rw [List.getElem_append_left h]; exact hS.Gnz _ (List.getElem_mem _)
-  · rw [List.getElem_append_right (by omega)]; exact hS.Tnz _ (List.getElem_mem _)
 
 theorem finBdC_get {c : OsCfg} {G T : List E} {recs : List OsRec} {i t : ℕ} (hi : i < c.yrLevel)
     (hy : c.yrLevel < c.levels.length) (ht : t < (finLv c i).prefixLen + c.yrLog)

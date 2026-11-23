@@ -25,11 +25,11 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier LeanVM.Node
 @[expose] public section
 
 /-- **The honest valuation's stream and `dims_g` pointers** are their buffers' bases. -/
-theorem vs_hon_ptrs {rd : Reader} {args : List E} (hl : args.length = 6) (bs : List ℕ)
+theorem vs_hon_ptrs {rd : Reader} {args : List E} (hl : args.length = 6) (gw : E × E) (bs : List ℕ)
     (outs : List (List E × Main.Layout)) (hbs : bs.length = 15) :
-    vsσ rd (vsW bs outs) args (.n (val% «verify_sub» "stream")) = ofK (addressOfIndex (bs.getD 1 0)) ∧
-      vsσ rd (vsW bs outs) args (.n (val% «verify_sub» "dims_g")) = ofK (addressOfIndex (bs.getD 3 0)) := by
-  have h := vs_alloc_bases (rd := rd) hl bs outs hbs
+    vsσ rd (vsW gw bs outs) args (.n (val% «verify_sub» "stream")) = ofK (addressOfIndex (bs.getD 1 0)) ∧
+      vsσ rd (vsW gw bs outs) args (.n (val% «verify_sub» "dims_g")) = ofK (addressOfIndex (bs.getD 3 0)) := by
+  have h := vs_alloc_bases (rd := rd) hl gw bs outs hbs
   rw [vs_allocs] at h
   have h1 := congrArg (·[1]?) h
   have h3 := congrArg (·[3]?) h
@@ -48,7 +48,7 @@ theorem vs_hon_child_pops {bytecode : List K} {seed : Digest} {c : Child} (S : C
     {rd : Reader} {args : List E} (hl : args.length = 6) (b : ℕ) (outs : List (List E × Main.Layout))
     (hB : Main.MemL rd (bufL b (vsSizes) S.ownW)) (hst : c.proof.stream.length ≤ Coverage.childStreamCap)
     {bufs : List ℕ} {kids : List Memory.Tree} {args' rets : List E}
-    (hv : (Memory.Tree.node "verify_sub" (vsσ rd (vsW (bases b (vsSizes)) outs) args) bufs kids).Valid
+    (hv : (Memory.Tree.node "verify_sub" (vsσ rd (vsW S.gw (bases b (vsSizes)) outs) args) bufs kids).Valid
       coreProgram rd args' rets) :
     ∃ (tcp tvt tos : Memory.Tree), tcp.name = "certify_placement" ∧ tvt.name = "verify_tables" ∧
       tos.name ∈ vsOpen ∧ (∀ t ∈ [tcp, tvt, tos], t ∈ kids ∧ ∃ a r, t.Valid coreProgram rd a r) ∧
@@ -57,10 +57,10 @@ theorem vs_hon_child_pops {bytecode : List K} {seed : Digest} {c : Child} (S : C
           ("zc_tau_max", [Hints.count (S.layout.tableLogHeights.foldl max 0)])] →
         SameStreams (tos.pops coreProgram rd)
           (Hints.merkleHints true (Hints.childQueries bytecode seed c) c.proof.openings) →
-        SameStreams ((Memory.Tree.node "verify_sub" (vsσ rd (vsW (bases b (vsSizes)) outs) args) bufs
+        SameStreams ((Memory.Tree.node "verify_sub" (vsσ rd (vsW S.gw (bases b (vsSizes)) outs) args) bufs
           kids).pops coreProgram rd) (Hints.childHints bytecode seed c)) := by
   have hbl : (bases b (vsSizes)).length = 15 := by rw [bases_length]; rfl
-  obtain ⟨p1, p3⟩ := vs_hon_ptrs (rd := rd) hl _ outs hbl
+  obtain ⟨p1, p3⟩ := vs_hon_ptrs (rd := rd) hl _ _ outs hbl
   have hm1 := hB _ (vs_own_mem S b (i := 1) (by norm_num))
   have hm3 := hB _ (vs_own_mem S b (i := 3) (by norm_num))
   have hh : S.layout.tableLogHeights = S.hs := by rw [S.hlayout]; rfl

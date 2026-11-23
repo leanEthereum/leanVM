@@ -20,7 +20,7 @@ import LeanVM.Guest.Data.ValNames.«column_selector__L»
 `column_selector(offset, sel_eq, sel_g, κ)` hints the `g`-power digits `g^u_k` of
 `offset`'s exponent's nibbles `κ / 4 .. 7` (`hint_decompose_digits_exponent`) and, for each
 (`j = κ / 4 + k`, the first `4j + 4 - κ` wide, the others four), range-checks `u_k < 16`, reads
-the nibble's eq weight at `sel_eq·g^u` (offset `64j + 16(w - 1)`, the strided level-`w - 1`
+the nibble's eq weight at `sel_eq·g^u` (offset `32j + selEqOff (w - 1)`, the strided level-`w - 1`
 table) and its share `g^(u·16^j)` at `sel_g·g^u` (offset `16j`), and multiplies them up; then
 asserts the rebuilt power is `offset`. So `offset = g^o`, `o = Σ u_k 16^j` (`csDig`), below
 `2^32` and a multiple of `16^(κ / 4)`; once `o` is a multiple of `2^κ` (the placement), the lowest
@@ -181,7 +181,7 @@ def csNibT (κ k : ℕ) : List Stmt :=
   let d := 3 + k
   [.atom (.const (.n c) w15), .atom (.rangeCheck (.n d) (.n (c + 1)) (.n (c + 2)) (.n (c + 3)) (.n c)),
     .atom (.mul (.n (c + 4)) (.n (valf% «column_selector» "sel_eq")) (.n d)),
-    .atom (.load (.n (c + 5)) (.n (c + 4)) (64 * j + 16 * (w - 1)))] ++
+    .atom (.load (.n (c + 5)) (.n (c + 4)) (32 * j + selEqOff (w - 1)))] ++
   if k = 0 then
     [.atom (.mul (.n (c + 6)) (.n (valf% «column_selector» "sel_g")) (.n d)), .atom (.load (.n (c + 7)) (.n (c + 6)) (16 * j))]
   else
@@ -251,7 +251,7 @@ include hμ in
 the tables' offsets; the running products. -/
 theorem holds_csNib {κ k : ℕ} (h : Stmt.HoldsList C Lm.read σ (csNibT κ k) True kret) :
     ∃ u < 16, σ (.n (3 + k)) = gen ^ u ∧
-      ∃ xe xg, LoadHolds Lm.read (σ (.n (valf% «column_selector» "sel_eq"))) (u + (64 * (κ / 4 + k) + 16 * (csW κ k - 1))) xe ∧
+      ∃ xe xg, LoadHolds Lm.read (σ (.n (valf% «column_selector» "sel_eq"))) (u + (32 * (κ / 4 + k) + selEqOff (csW κ k - 1))) xe ∧
         LoadHolds Lm.read (σ (.n (valf% «column_selector» "sel_g"))) (u + 16 * (κ / 4 + k)) xg ∧
         σ (.n (csSel κ k)) = (if k = 0 then 1 else σ (.n (csSel κ (k - 1)))) * xe ∧
         σ (.n (csRb κ k)) = (if k = 0 then 1 else σ (.n (csRb κ (k - 1)))) * xg := by
@@ -464,8 +464,8 @@ theorem column_selector_sound {κ : ℕ} (hκ : κ < 31) {μ : ℕ} (hμ : μ �
       have h1 := hE (b + k) (show b + k < 8 by omega) (csW κ k - 1) (by omega) (u' k) (hu' k hk)
         (cs_dvd hu' hal k hk)
       have h2 := hxe k hk
-      rw [show u k hk + (64 * (κ / 4 + k) + 16 * (csW κ k - 1)) =
-        64 * (b + k) + 16 * (csW κ k - 1) + u' k by simp only [u', hk, ↓reduceDIte, hbdef]; omega]
+      rw [show u k hk + (32 * (κ / 4 + k) + selEqOff (csW κ k - 1)) =
+        32 * (b + k) + selEqOff (csW κ k - 1) + u' k by simp only [u', hk, ↓reduceDIte, hbdef]; omega]
         at h2
       simp only [xe', hk, ↓reduceDIte]
       exact tb_loadHolds_unique h2 h1

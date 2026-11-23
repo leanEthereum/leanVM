@@ -27,8 +27,7 @@ skeletons) and `traceSizes prog input t` (the sizes it carries, `witnessSizes`),
   column of `stackOf` (the `KECCAK` output lanes included), the stack `stackOf`'s cells, and the
   announcement `announce`.
 * `childFor_trace`: the specification witness at its sizes is a child's witness at every valid
-  rate (`exists_childFor`, for the concrete witness): honest (`HonestFor`), with the execution's
-  committed size as its stack's.
+  rate: honest (`HonestFor`), with the execution's committed size as its stack's.
 -/
 
 namespace LeanVM.Prover
@@ -68,7 +67,7 @@ theorem ofWitness_traceWitness (hv : ValidExecution prog input t) (hb : TraceBou
   rfl
 
 /-- **The specification witness is a child's witness** (`ChildFor`, unfolded), for a valid
-execution within the cap and a valid rate: `exists_childFor`, for the concrete witness. -/
+execution within the cap and a valid rate. -/
 theorem childFor_trace (hv : ValidExecution prog input t)
     (hbudget : t.committedSize ≤ 2 ^ 30) {ρ : ℕ} (hρ : validRate ρ) :
     HonestFor prog input t ρ (traceWitness prog input t) (traceSizes prog input t) ∧

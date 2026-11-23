@@ -27,7 +27,7 @@ def InR (R : ℕ → Prop) (p : E) (k : ℕ) : Prop :=
   ∃ i, p.limb 0 * Parameters.addressOfIndex k = Parameters.addressOfIndex i ∧ R i
 
 /-- The record's offsets a pack round's iteration reads and writes. -/
-def roundRecOffs : List ℕ := [0, 16, 32, 48, 64, 80, 96, 1, 17, 33, 49, 65, 81, 97]
+def roundRecOffs : List ℕ := [0, 11, 22, 33, 44, 55, 66, 1, 12, 23, 34, 45, 56, 67]
 
 end
 end LeanVM.Guest.B1.VerifySub

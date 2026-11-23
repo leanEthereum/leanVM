@@ -141,19 +141,20 @@ def rs_eq_rows_SpecP (P : Program) : Prop :=
   ∀ n ≤ 8, ∀ (rd : Reader) (args rets : List E),
     P.Rel rd (rsEqRowsNames.getD n "") args rets ↔ MeaningRsEqRows n rd args rets
 
-/-- **`rs_eq_run(chain, z_vals, point1, count_g)`**:
-`count_g = g^count`, `count < 64`; the words `zs`, `ps` at `z_vals`, `point1` below `count`; row
-`h` of `chain` (64 words from `chain·g^(64·h)`), `1 ≤ h ≤ ⌈count/8⌉`, is row `0` times the
-products over the first `min(8h, count)` coordinates (`RS_CHUNK = 8` coordinates a row, the
-last row the remainder's); it returns the last row, `chain·g^(64·⌈count/8⌉)`. -/
+/-- **`rs_eq_run(z_vals, point1, count_g)`**:
+`count_g = g^count`, `count < 64`; the words `zs`, `ps` at `z_vals`, `point1` below `count`; its own
+chain, a `HeapBuf` `chain` whose row `0` (64 words) is ones, and whose row `h` (64 words from
+`chain·g^(64·h)`), `1 ≤ h ≤ ⌈count/8⌉`, is the products over the first `min(8h, count)` coordinates
+(`RS_CHUNK = 8` coordinates a row, the last row the remainder's); it returns the last row,
+`chain·g^(64·⌈count/8⌉)`. -/
 def MeaningRsEqRun (rd : Reader) : List E → List E → Prop
-  | [chain, z, p1, cg], rets =>
-      ∃ count < 64, cg = gen ^ count ∧ ∃ zs ps c : List E, zs.length = count ∧
-        ps.length = count ∧ c.length = 64 ∧ ReadsAt rd z zs ∧ ReadsAt rd p1 ps ∧
-        (0 < count → ReadsAt rd chain c) ∧
+  | [z, p1, cg], rets =>
+      ∃ count < 64, cg = gen ^ count ∧ ∃ chain : E, ∃ zs ps : List E, zs.length = count ∧
+        ps.length = count ∧ ReadsAt rd z zs ∧ ReadsAt rd p1 ps ∧
+        (∀ k < 64, LoadHolds rd chain k 1) ∧
         (∀ h, 1 ≤ h → h ≤ (count + 7) / 8 → ∀ k < 64,
           LoadHolds rd chain (64 * h + k)
-            (ringRow (c.getD k 0) (zs.take (min (8 * h) count)) (ps.take (min (8 * h) count)) k)) ∧
+            (ringRow 1 (zs.take (min (8 * h) count)) (ps.take (min (8 * h) count)) k)) ∧
         rets = [chain * gen ^ (64 * ((count + 7) / 8))]
   | _, _ => False
 

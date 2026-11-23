@@ -24,7 +24,7 @@ open LeanVM.Guest.Value LeanVM.Protocol.Verifier
 
 @[expose] public section
 
-variable {H : CallRel → Reader → Prop}
+variable {M : Reader → Prop} {H : CallRel → Reader → Prop}
 
 /-- What memory holds of a point entry `i` of value `v` from the source `src`: the source's word,
 `v` in `point`, `1 + v` in `point1`. -/
@@ -38,8 +38,8 @@ theorem osPtBlk_next (pt pt1 i k : ℕ) (src : Option (ℕ × ℕ)) :
 /-- **One point entry, honestly.** -/
 theorem osPtBlk_complete {σ : Val} {pt pt1 i k : ℕ} {src : Option (ℕ × ℕ)} {v : E}
     (hpt : pt < k) (hpt1 : pt1 < k) (hsrc : ∀ b o, src = some (b, o) → b < k)
-    (hm : ∀ C rd, H C rd → PtMem rd σ pt pt1 i src v) :
-    BlkA H σ k (osPtBlk pt pt1 i k src).2 (osPtBlk pt pt1 i k src).1 (fun _ ↦ True) := by
+    (hm : ∀ C rd, HM M H C rd → PtMem rd σ pt pt1 i src v) :
+    BlkA M H σ k (osPtBlk pt pt1 i k src).2 (osPtBlk pt pt1 i k src).1 (fun _ ↦ True) := by
   rcases src with _ | ⟨b, o⟩
   · have hS : Ssa k (osPtBlk pt pt1 i k none).1 (osPtBlk pt pt1 i k none).2 :=
       .cons (.const le_rfl) (.cons (.store (by omega) (by omega)) (.cons (.const (by omega))
@@ -62,7 +62,7 @@ theorem osPtBlk_complete {σ : Val} {pt pt1 i k : ℕ} {src : Option (ℕ × ℕ
     refine ssa_blk (Pt := fun _ ↦ 0) hS (fun _ _ _ _ _ _ _ ↦ trivial) fun C rd hH σ' ha hr ↦ ?_
     obtain ⟨hv, l0, l1⟩ := hm C rd hH
     simp only [PtSrcOk] at hv
-    have em : memOf H (σ (.n b)) o = v := memOf_eq (fun C rd hH ↦ (hm C rd hH).1) hH
+    have em : memOf H (σ (.n b)) o = v := memOf_eqHM (fun C rd hH ↦ (hm C rd hH).1) hH
     have e0 := hr k le_rfl (by simp [osPtBlk])
     have e3 := hr (k + 3) (by omega) (by simp [osPtBlk])
     simp [osPtBlk, evalV, stepV, stepW, show b ≠ k + 1 by omega, show b ≠ k by omega] at e0 e3
@@ -95,13 +95,13 @@ theorem osPtBlks_next (c : OsCfg) (pt pt1 tch : ℕ) :
 /-- **The point's entries `i .. i + n - 1`, honestly.** -/
 theorem osPtBlks_complete {c : OsCfg} {pt pt1 tch : ℕ} (V : ℕ → E) :
     ∀ (n i k : ℕ) (σ : Val), pt < k → pt1 < k → osFch < k → tch < k →
-      (∀ j < n, ∀ C rd, H C rd → PtMem rd σ pt pt1 (i + j) (osPtSrc c tch (i + j)) (V (i + j))) →
-      BlkA H σ k (osPtBlks c pt pt1 tch i n k).2 (osPtBlks c pt pt1 tch i n k).1 (fun _ ↦ True)
+      (∀ j < n, ∀ C rd, HM M H C rd → PtMem rd σ pt pt1 (i + j) (osPtSrc c tch (i + j)) (V (i + j))) →
+      BlkA M H σ k (osPtBlks c pt pt1 tch i n k).2 (osPtBlks c pt pt1 tch i n k).1 (fun _ ↦ True)
   | 0, _, _, _, _, _, _, _, _ => BlkA.nil fun _ _ ↦ trivial
   | n + 1, i, k, σ, hpt, hpt1, hf, ht, hm => by
     have hsrc : ∀ b o, osPtSrc c tch i = some (b, o) → b < k := fun b o h ↦ by
       rcases osPtSrc_base h with rfl | rfl <;> assumption
-    have h1 := osPtBlk_complete (H := H) hpt hpt1 hsrc (fun C rd hH ↦ by simpa using hm 0 (by omega) C rd hH)
+    have h1 := osPtBlk_complete (M := M) (H := H) hpt hpt1 hsrc (fun C rd hH ↦ by simpa using hm 0 (by omega) C rd hH)
     have hn := osPtBlk_next pt pt1 i k (osPtSrc c tch i)
     refine (BlkA.seq (OutB := fun _ ↦ True) (by omega) (osPtBlks_next c pt pt1 tch n (i + 1) _) h1
       fun σ1 ha1 _ ↦ ?_).mono fun _ _ ↦ trivial

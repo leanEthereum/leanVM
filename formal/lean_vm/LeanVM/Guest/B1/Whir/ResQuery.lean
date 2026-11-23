@@ -17,7 +17,7 @@ public import LeanVM.Guest.B1.Opening.NovelSum
 
 `osResQuery pos bd ro hp ho vo ncols nhs hbits k` (`Template.lean`) walks the chain
 `chain_0 = x` (the position), `chain_(t+1) = chain_t·(chain_t + VALS[vo + t])` (`osVals vo n`, the
-words of `LIG_VANISH_VALS`) over `t < ncols`, multiplies `d_t + chain_t` over `t < ncols` (the row's
+words of `VANISH_BY_COLS`) over `t < ncols`, multiplies `d_t + chain_t` over `t < ncols` (the row's
 words `d_t` at `bd·g^(ro + t)`; the last chain step has no factor), keeps `chain_0 .. chain_2` as
 `ws`, and returns the product and `chain_ncols · novel_eval(hs, ws, nhs, hbits)` (the coefficients
 at `hp·g^(ho + ·)`):

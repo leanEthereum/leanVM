@@ -2,8 +2,7 @@
   LeanVM.Guest.Complete
 
   The completeness of the aggregation guest, stated, and assembled from its pieces: `NodeRelation`
-  within the deployed limits, the caps agreeing, no zero challenge where the guest divides, and
-  the node within a budget give a valid execution of the guest that fits the verifier.
+  within the deployed limits, the caps agreeing, and the node within a budget give a valid execution of the guest that fits the verifier.
 -/
 
 module
@@ -26,8 +25,7 @@ public import LeanVM.Guest.AcceptableChild
 
 **The statement** (`GuestComplete budget`): for every seed, statement `s` and witness `w` with
 `NodeRelation bytecode seed s w`, within the deployed limits (`GuestLimits`), every child one the guest
-accepts (`ChildrenOk`: its openings agreeing in the guest's Merkle caps, no zero challenge where
-the guest divides, ...) and the node within the budget (`budget s w ≤ 2^30`),
+accepts (`ChildrenOk`: its openings agreeing in the guest's Merkle caps, ...) and the node within the budget (`budget s w ≤ 2^30`),
 there is a valid execution of the guest on the statement's digest whose committed size is at most
 `2^30`, the most the verifier admits; the guest has an opening arm for every stack log the
 verifier admits of an execution (`20` to `30`), so no lower bound is needed (the memory is
@@ -150,8 +148,7 @@ theorem committedSize_eq_sizeOf {n : ℕ} (L : MemoryImage (Memory.logMem n)) (s
 /-! ## The statement -/
 
 /-- **Completeness**, the statement: a witness of `NodeRelation` within the deployed limits, its
-children's openings agreeing in the caps, no zero challenge where the guest divides, and the node
-within the budget give a valid execution of the guest on the statement's digest within the
+children's openings agreeing in the caps, and the node within the budget give a valid execution of the guest on the statement's digest within the
 verifier's committed size. -/
 def GuestComplete (budget : NodeStatement → NodeWitness → ℕ) : Prop :=
   ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w → ChildrenOk bytecode seed w → budget s w ≤ 2 ^ 30 →

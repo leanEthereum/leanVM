@@ -19,7 +19,7 @@ import LeanVM.Guest.Data.ValNames.«verify_tables»
 `g_squares` and the four group buffers' honest words (`vtGKeyW`, `vtGSizeW`, `vtGBaseW`, `vtGOrdW`),
 defined below `2^14`, statements `0 ..< s15.u0.s1#0` hold; the copies and `kappa_base` are the arguments'
 and `dims_g`'s, the group buffers the allocator's, and the blocks' offsets `g^stackOffsets`
-(`vtc_side_offsets`: the soundness's side argument, from the ranks' facts).
+(`vt_side_offsets`: the soundness's side argument, from the ranks' facts).
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -49,86 +49,6 @@ theorem forall_slices {P : Stmt → Prop} (A L : ℕ → ℕ) :
       (fun k hk ↦ h k (by omega))) ?_
     rw [← hpos n le_rfl]
     exact h n (by omega)
-
-/-- **A side's block offsets**, the soundness's `side` with the groups' facts as hypotheses: from
-its ranks' facts, the groups' keys and sizes, the bases and steps, every block's offset is
-`stackOffsets`'s. -/
-theorem vtc_side_offsets {rd : Reader} {σ : Val} {lm : ℕ} {τ : ℕ → ℕ}
-    (hκ34 : ∀ k < 15, vtKap lm τ (vtB0 k) < 34)
-    (hG : ∀ k < 15, (∃ key, LoadHolds rd (σ (.n (val% «verify_tables» "group_key"))) (vtGi k) key ∧
-      key * gen ^ vtB0 k = gen ^ (vtKap lm τ (vtB0 k) * 247)) ∧
-      LoadHolds rd (σ (.n (val% «verify_tables» "group_size"))) (vtGi k) (gen ^ (vtLen k * 2 ^ vtKap lm τ (vtB0 k))))
-    (hB : ∀ k < 15, LoadHolds rd (σ (.n (val% «verify_tables» "group_base"))) (vtGi k)
-        (σ (.n (vtBoffData.getD k default).2.2.2)) ∧
-      σ (.n ((vtBoffData.getD k default).2.2.2 - 1)) = gen ^ 2 ^ vtKap lm τ (vtB0 k) ∧
-      ∀ i < vtLen k - 1, σ (.n ((vtBoffData.getD k default).2.2.2 + 1 + i)) =
-        σ (.n ((vtBoffData.getD k default).2.2.2 + i)) *
-          σ (.n ((vtBoffData.getD k default).2.2.2 - 1)))
-    (hsideT : ∀ e < 24, LoadHolds rd (σ (.n (val% «verify_tables» "g_squares"))) (212 + e) (word (vtGroupSide e) 0)) :
-    ∀ (base G0 kOff m n v0 s : ℕ), base + n ≤ 153 → s < 3 →
-    (∀ r < m, VtRankFacts rd σ v0 s r) →
-    (∀ e < 24, vtGroupSide e = s → G0 ≤ e ∧ e < G0 + m) →
-    (∀ j < m, kOff + j < 15 ∧ vtGi (kOff + j) = G0 + j ∧
-      vtB0 (kOff + j) = base + (blockGroupStart.getD (G0 + j) 0 - base) ∧
-      vtLen (kOff + j) = (blockGroupStart.getD (G0 + (j + 1)) 0 - base) -
-        (blockGroupStart.getD (G0 + j) 0 - base) ∧
-      blockGroupStart.getD (G0 + j) 0 - base < blockGroupStart.getD (G0 + (j + 1)) 0 - base ∧
-      blockGroupStart.getD (G0 + (j + 1)) 0 - base ≤ n ∧
-      vtBoffV (base + (blockGroupStart.getD (G0 + j) 0 - base)) =
-        (vtBoffData.getD (kOff + j) default).2.2.2) →
-    (∀ x < n, vtBk (base + x) - kOff < m ∧
-      blockGroupStart.getD (G0 + (vtBk (base + x) - kOff)) 0 - base ≤ x ∧
-      x < blockGroupStart.getD (G0 + (vtBk (base + x) - kOff + 1)) 0 - base ∧
-      blockKappaSrc.getD (base + x) 0 = blockKappaSrc.getD (vtB0 (vtBk (base + x))) 0 ∧
-      blockKappaAdj (base + x) = blockKappaAdj (vtB0 (vtBk (base + x))) ∧
-      kOff + (vtBk (base + x) - kOff) = vtBk (base + x) ∧
-      (blockGroupStart.getD (G0 + (vtBk (base + x) - kOff)) 0 - base < x →
-        vtBoffV (base + x) = (vtBoffData.getD (vtBk (base + x)) default).2.2.2 + 1 +
-          (x - 1 - (blockGroupStart.getD (G0 + (vtBk (base + x) - kOff)) 0 - base)) ∧
-        vtBoffV (base + (x - 1)) = (vtBoffData.getD (vtBk (base + x)) default).2.2.2 +
-          (x - 1 - (blockGroupStart.getD (G0 + (vtBk (base + x) - kOff)) 0 - base)) ∧
-        x - 1 - (blockGroupStart.getD (G0 + (vtBk (base + x) - kOff)) 0 - base) <
-          vtLen (vtBk (base + x)) - 1)) →
-    (∀ j < m, ∀ x < n, blockGroupStart.getD (G0 + j) 0 - base ≤ x →
-      x < blockGroupStart.getD (G0 + (j + 1)) 0 - base → vtBk (base + x) - kOff = j) →
-    ∀ x < n, σ (.n (vtBoffV (base + x))) =
-      gen ^ (stackOffsets ((List.range n).map fun c ↦ vtKap lm τ (base + c))).1.getD x 0 := by
-  intro base G0 kOff m n v0 s hn hs hfacts hsideS D1 D2 D3
-  have hκs : ∀ x < n, ((List.range n).map fun c ↦ vtKap lm τ (base + c)).getD x 0 =
-      vtKap lm τ (base + x) := fun x hx => by
-    rw [List.getD_eq_getElem _ _ (by simp; exact hx)]; simp
-  refine vt_side_cert (G0 := G0) (base := base) _ (by simp)
-    (fun j ↦ blockGroupStart.getD (G0 + j) 0 - base)
-    (fun j ↦ vtKap lm τ (base + (blockGroupStart.getD (G0 + j) 0 - base)))
-    (fun x ↦ vtBk (base + x) - kOff) (fun x ↦ vtBoffV (base + x)) hn hfacts hsideT hsideS hs
-    (fun j hj ↦ ?_) (fun j hj ↦ ?_) (fun j hj ↦ ?_) (fun j hj ↦ (D1 j hj).2.2.2.2.1)
-    (fun x hx ↦ ⟨(D2 x hx).1, (D2 x hx).2.1, (D2 x hx).2.2.1⟩)
-    (fun j hj x h1 h2 ↦ ⟨by have := (D1 j hj).2.2.2.2.2.1; omega, D3 j hj x
-      (by have := (D1 j hj).2.2.2.2.2.1; omega) h1 h2⟩)
-    (fun x hx ↦ ?_) (fun j hj ↦ ?_) (fun x hx hlt ↦ ?_)
-  · obtain ⟨hk, hgi, hb0, -⟩ := D1 j hj
-    obtain ⟨⟨key, h1, h2⟩, -⟩ := hG _ hk
-    exact ⟨key, by rw [← hgi]; exact h1, by rw [← hb0, h2]⟩
-  · obtain ⟨hk, hgi, hb0, hl, -⟩ := D1 j hj
-    have := (hG _ hk).2
-    rwa [hgi, hl, hb0] at this
-  · obtain ⟨hk, -, hb0, -⟩ := D1 j hj
-    rw [← hb0]; exact hκ34 _ hk
-  · obtain ⟨-, -, -, hsrc', hadj', hkk, -⟩ := D2 x hx
-    have hj := (D2 x hx).1
-    obtain ⟨-, -, hb0, -⟩ := D1 _ hj
-    rw [hκs x hx, ← hb0, hkk, vtKap, vtKap, hsrc', hadj']
-  · obtain ⟨hk, hgi, -, -, -, -, hbv⟩ := D1 j hj
-    have := (hB _ hk).1
-    rw [hgi, ← hbv] at this
-    exact this
-  · obtain ⟨-, -, -, -, -, hkk, hstep⟩ := D2 x hx
-    have hj := (D2 x hx).1
-    obtain ⟨hk, -, hb0, -⟩ := D1 _ hj
-    obtain ⟨e1, e2, e3⟩ := hstep hlt
-    obtain ⟨-, hst, hch⟩ := hB _ hk
-    rw [hkk] at hst hch hb0
-    rw [e1, e2, hch _ e3, hst, hb0]
 
 theorem gpow_inv_step {A a B b d : ℕ} (h : A + b = d + 1 + B + a) :
     gen ^ A * (gen ^ a)⁻¹ = gen ^ (d + 1) * (gen ^ B * (gen ^ b)⁻¹) := by
@@ -160,7 +80,7 @@ theorem vtS_sort (hl : args.length = 21) (hlow : LowDefB 14 rd) {lm : ℕ} {τ :
     (hE : ExpTablesAt rd (σv (.n (val% «verify_tables» "g_squares"))))
     (hkeyW : TbReadsAt rd (w 34) (vtGKeyW lm τ)) (hszW : TbReadsAt rd (w 35) (vtGSizeW lm τ))
     (hbaseW : TbReadsAt rd (w 36) (vtGBaseW lm τ)) (hordW : TbReadsAt rd (w 37) (vtGOrdW lm τ)) :
-    (∀ s ∈ (vtPre.drop 0).take (pos% «verify_tables» "s15.u0.s1#0"), VSH (coreProgram.Rel rd) rd σv s) ∧
+    (∀ s ∈ (vtPre.drop 0).take (pos% «verify_tables» "s17.u0.s0#0"), VSH (coreProgram.Rel rd) rd σv s) ∧
       (∀ i < 5, σv (.n ((val% «verify_tables» "sp[0]@1") + i)) = σv (.n i)) ∧
       (∀ i < 8, σv (.n ((val% «verify_tables» "kb[0]") + i)) = gen ^ ([0, lm] ++ vtTauList τ).getD i 0) ∧
       (∀ i < 4, σv (.n ((val% «verify_tables» "group_key") + i)) = w (34 + i)) ∧
@@ -462,7 +382,7 @@ theorem vtS_sort (hl : args.length = 21) (hlow : LowDefB 14 rd) {lm : ℕ} {τ :
       (by decide +kernel) (fun k hk ↦ hboS k (by omega))
     rwa [show (vtBoffData.getD 0 default).1 = 267 from rfl,
       show ∑ k ∈ range 9, (vtLen k + 2) = 72 by decide +kernel] at this
-  have hbC : ∀ s ∈ (vtPre.drop (pos% «verify_tables» "step@10~0")).take (span% «verify_tables» "step@10~0" "s15.u0.s1#0"), VSH (coreProgram.Rel rd) rd σv s := by
+  have hbC : ∀ s ∈ (vtPre.drop (pos% «verify_tables» "step@10~0")).take (span% «verify_tables» "step@10~0" "s17.u0.s0#0"), VSH (coreProgram.Rel rd) rd σv s := by
     have := forall_slices (fun k ↦ (vtBoffData.getD (9 + k) default).1) (fun k ↦ vtLen (9 + k) + 2) 6
       (by decide +kernel) (fun k hk ↦ hboS (9 + k) (by omega))
     rwa [show (vtBoffData.getD (9 + 0) default).1 = 506 from rfl,
@@ -478,10 +398,10 @@ theorem vtS_sort (hl : args.length = 21) (hlow : LowDefB 14 rd) {lm : ℕ} {τ :
       ∀ i < vtLen k - 1, σv (.n ((vtBoffData.getD k default).2.2.2 + 1 + i)) =
         σv (.n ((vtBoffData.getD k default).2.2.2 + i)) *
           σv (.n ((vtBoffData.getD k default).2.2.2 - 1)) := fun k hk ↦ (hbo k hk).2
-  have hP := vtc_side_offsets hκ34 hG hB hsideT 0 0 0 9 54 112 0 (by norm_num) (by norm_num)
+  have hP := vt_side_offsets hκ34 hG hB hsideT 0 0 0 9 54 112 0 (by norm_num) (by norm_num)
     (fun r hr ↦ (fP r hr).1) (by decide +kernel) (by decide +kernel) (by decide +kernel)
     (by decide +kernel)
-  have hC := vtc_side_offsets hκ34 hG hB hsideT 108 18 9 6 45 409 2 (by norm_num) (by norm_num)
+  have hC := vt_side_offsets hκ34 hG hB hsideT 108 18 9 6 45 409 2 (by norm_num) (by norm_num)
     (fun r hr ↦ (fC r hr).1) (by decide +kernel) (by decide +kernel) (by decide +kernel)
     (by decide +kernel)
   simp only [Nat.zero_add] at hP

@@ -112,6 +112,7 @@ noncomputable def vtWords : B1.Tables.VtWords B2C.fs where
   hKf := vt_kids_totalLe
   hsh := B1.Tables.ss_totalLeOn (wSK (name% shared_selector_tables_loop0) - B2C.fs (name% shared_selector_tables_loop0)) kSp
     (by simpa only [wSKt_eq] using wSKt_totalLeOn (j := idx% shared_selector_tables_loop0) (by decide +kernel)) sp_totalLe
+    (B2C.fs_tailKey_le _)
   h10 := by simpa only [wSKt_eq] using wSKt_totalLeOn (j := idx% verify_tables_loop0) (by decide +kernel)
 
 /-- **`verify_tables`' weights facts at the xmss arm's weights.** -/

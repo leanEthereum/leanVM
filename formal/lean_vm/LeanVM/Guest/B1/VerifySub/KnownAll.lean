@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.VerifySub.KnownAll
 
-  `VsKnown`: the first `1511` statements of `verify_sub` put `kappa_base`'s entries among `g^e`,
-  `e < kbBound i`; `VsDimsKnown`: the first `316` put `dims_g[g^0]` below `g^34`.
+  `VsKnown`: the first `vsKbAt` statements of `verify_sub` put `kappa_base`'s entries among `g^e`,
+  `e < kbBound i`; `VsDimsKnown`: the first `vsDimsAt` put `dims_g[g^0]` below `g^34`.
 -/
 
 module
@@ -17,11 +17,11 @@ import LeanVM.Guest.Data.ValNames.«verify_sub»
 
 `vsKnown_holds`: `vsKnown_of` with `certify_placement`'s soundness (`certify_placement_holds`):
 on a memory image of `2^κ` words, `minLogMem ≤ κ ≤ maxLogMem`, over the exponent table at
-`verify_sub`'s argument `4`, its first `1511` statements (up to the call of
+`verify_sub`'s argument `4`, its first `vsKbAt` statements (up to the call of
 `check_opening_terminal`) put the `8` entries of `kappa_base` (`83`) among `g^e`, `e < kbBound i`.
 
 `vsDimsKnown0_holds`: on a memory image of `2^κ` words, `minLogMem ≤ κ ≤ maxLogMem`, the body's
-first `316` statements (up to the call of `verify_tables`) put `dims_g[g^0] = g^logMem`,
+first `vsDimsAt` statements (up to the call of `verify_tables`) put `dims_g[g^0] = g^logMem`,
 `logMem ≤ 32`, below `g^34`: the head and the reads hand nothing on, and the sizes
 (`vsSizesT_holds`) give it. The other six words (`table_logs`) are a hint there, certified only
 inside `verify_tables`, so no such bound holds of them before its call.
@@ -44,13 +44,13 @@ theorem vsT_front73 : vsT = (vsHeadT ++ vsReadsT ++ vsSizesT) ++ (vsPushT ++ vsR
 /-- **`VsKnown`**: `kappa_base`'s entries below `kbBound`. -/
 theorem vsKnown_holds {κ : ℕ} (L : MemoryImage κ) (h16 : minLogMem ≤ κ) (h32 : κ ≤ maxLogMem)
     (σ : Val) (hexp : B1.ExpTables L.read (σ (.n (val% «verify_sub» "g_squares"))))
-    (h : Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((Fn.body fn% «verify_sub»).take 1511)
+    (h : Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((Fn.body fn% «verify_sub»).take End.vsKbAt)
         True
       (fun _ ↦ True)) :
     ∀ i < 8, ∃ e < kbBound i, LoadHolds L.read (σ (.n (val% «verify_sub» "kappa_base"))) i (ofK (addressOfIndex e)) :=
   vsKnown_of L h16 h32 (Tables.certify_placement_holds (h32.trans (by decide)) L) σ hexp h
 
-/-- **`dims_g`'s first word** (the memory's log): the body's first `316` statements
+/-- **`dims_g`'s first word** (the memory's log): the body's first `vsDimsAt` statements
 (up to the call of `verify_tables`) put `dims_g[g^0] = g^logMem`, `logMem ≤ 32`, below `g^34`. -/
 theorem vsDimsKnown0_holds {κ : ℕ} (L : MemoryImage κ) (_hmin : minLogMem ≤ κ) (h32 : κ ≤ maxLogMem)
     (σ : Val)

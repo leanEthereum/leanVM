@@ -15,8 +15,8 @@ import LeanVM.Guest.Data.ValNames.«verify_tables»
 /-!
 # The loads, inside buffers
 
-`vtZ_inBuf`: the loads of `g_zc_n ..< x@9`, `n ≤ 34`, read the records (`7(n + 1)` of the `245` words at `w 2620`,
-the last one `7n` on) and the running products (of the `35` at `w 2621`).
+`vtZ_inBuf`: the loads of `g_zc_n ..< x@9`, `n ≤ 34`, read the records (`7(n + 1)` of the `245` words at `w 2316`,
+the last one `7n` on) and the running products (of the `35` at `w 2317`).
 `vtZt_inBuf`: those of `nxt[0]@42 ..< ret` read `claim_pool` (`159` words).
 -/
 
@@ -31,16 +31,16 @@ open LeanVM.Guest.B1.Fwd
 set_option maxRecDepth 100000 in
 /-- **The loads of `g_zc_n ..< x@9`** read the records and the running products. -/
 theorem vtZ_inBuf {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.length = 21) {n : ℕ}
-    (hwn : w 2544 = gen ^ n) (hn34 : n ≤ 34) {bufs : List (E × ℕ)}
-    (bR : (w 2620, 245) ∈ bufs) (bC : (w 2621, 35) ∈ bufs) :
+    (hwn : w 2240 = gen ^ n) (hn34 : n ≤ 34) {bufs : List (E × ℕ)}
+    (bR : (w 2316, 245) ∈ bufs) (bC : (w 2317, 35) ∈ bufs) :
     LoadsInBuf (vtσ rd w args) bufs ((vtPre.drop (pos% «verify_tables» "g_zc_n")).take (span% «verify_tables» "g_zc_n" "x@9")) := by
-  have g0 := vt_goodL (rd := rd) (w := w) hl 2590
+  have g0 := vt_goodL (rd := rd) (w := w) hl 2286
     [.atom (.hint (.witness "zc_tau_max" (.stack [.n (val% «verify_tables» "g_zc_n")])))] (by decide +kernel)
-  have g1 := vt_goodL (rd := rd) (w := w) hl 2641 [.atom (.hint (.alloc (.n (val% «verify_tables» "zc_rounds")) 245))]
+  have g1 := vt_goodL (rd := rd) (w := w) hl 2337 [.atom (.hint (.alloc (.n (val% «verify_tables» "zc_rounds")) 245))]
     (by decide +kernel)
-  have g2 := vt_goodL (rd := rd) (w := w) hl 2642 [.atom (.hint (.alloc (.n (val% «verify_tables» "zc_cprod")) 35))]
+  have g2 := vt_goodL (rd := rd) (w := w) hl 2338 [.atom (.hint (.alloc (.n (val% «verify_tables» "zc_cprod")) 35))]
     (by decide +kernel)
-  have g3 := vt_goodL (rd := rd) (w := w) hl 2659 [.atom (.mul (.n (val% «verify_tables» "zc_last~0")) (.n (val% «verify_tables» "g_zc_n")) (.n (val% «verify_tables» "g_zc_n"))),
+  have g3 := vt_goodL (rd := rd) (w := w) hl 2355 [.atom (.mul (.n (val% «verify_tables» "zc_last~0")) (.n (val% «verify_tables» "g_zc_n")) (.n (val% «verify_tables» "g_zc_n"))),
     .atom (.mul (.n (val% «verify_tables» "zc_last~1")) (.n (val% «verify_tables» "zc_last~0")) (.n (val% «verify_tables» "g_zc_n"))), .atom (.mul (.n (val% «verify_tables» "zc_last~2")) (.n (val% «verify_tables» "zc_last~1")) (.n (val% «verify_tables» "zc_last~1"))),
     .atom (.mul (.n (val% «verify_tables» "zc_last~3")) (.n (val% «verify_tables» "zc_last~2")) (.n (val% «verify_tables» "g_zc_n"))), .atom (.mul (.n (val% «verify_tables» "zc_last")) (.n (val% «verify_tables» "zc_rounds")) (.n (val% «verify_tables» "zc_last~3")))]
     (by decide +kernel)
@@ -51,8 +51,8 @@ theorem vtZ_inBuf {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.lengt
   simp only [GoodL, GoodS, Good, fixNe, List.forall_mem_cons, Nat.reduceLT, and_true,
     ↓reduceIte] at g0 g1 g2 g3
   obtain ⟨m22, m23, m24, m25, m26⟩ := g3
-  have v2589 : σ (.n (val% «verify_tables» "zc_rounds")) = w 2620 := g1
-  have v2603 : σ (.n (val% «verify_tables» "zc_last")) = w 2620 * gen ^ (7 * n) := by
+  have v2589 : σ (.n (val% «verify_tables» "zc_rounds")) = w 2316 := g1
+  have v2603 : σ (.n (val% «verify_tables» "zc_last")) = w 2316 * gen ^ (7 * n) := by
     rw [m26, m25, m24, m23, m22, g0.1, hwn, v2589]; ring
   intro d p off hm
   simp only [zBlk, List.mem_cons, Stmt.atom.injEq, Atom.load.injEq, reduceCtorEq, false_or,

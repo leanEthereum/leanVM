@@ -48,9 +48,9 @@ def busGrindNames : List String :=
   ["bus_grind_check__L0", "bus_grind_check__L1", "bus_grind_check__L2", "bus_grind_check__L3", "bus_grind_check__L4", "bus_grind_check__L5", "bus_grind_check__L6", "bus_grind_check__L7", "bus_grind_check__L8", "bus_grind_check__L9", "bus_grind_check__L10", "bus_grind_check__L11", "bus_grind_check__L12", "bus_grind_check__L13"]
 
 /-- **`verify_sub`'s statically bounded callees** but `g_power_of_word`, `log2_ceil_in_the_exponent`
-and `certify_placement`: the grind checks, the opening message and the two dispatches' arms. -/
+and `certify_placement`: the opening message and the two dispatches' arms. -/
 def vsStaticS : List String :=
-  ["grind_check__L15", "opening_message__L1_L1", "grind_check__L13"] ++ squeezeNames ++ busGrindNames
+  ["opening_message__L1_L1"] ++ squeezeNames ++ busGrindNames
 
 /-- A dispatch's bound: the largest of its arms'. -/
 def armMax (K : String → ℕ) (names : List String) : ℕ := lmax (names.map K)
@@ -87,8 +87,7 @@ structure VsWords (fs : String → ℕ) : Type where
   hL15 : TotalLeOn coreProgram fs name% «check_opening_terminal_loop0» LoopPre
     fun a ↦ logG (a.getD 1 0) * K15 + fs name% «check_opening_terminal_loop0»
   hCsF : ∀ κ' < 31, fs (Tables.lName "column_selector" κ') ≤ Bcs
-  hrs : ∀ c ≤ 34, TotalLeOn coreProgram fs "rs_eq_run" (fun a ↦ a.getD 3 0 = gen ^ c)
-    fun _ ↦ Brs
+  hrs : RsBound fs Brs
   ωv : Opcode → String → ℕ
   vtW : Tables.VtWeights ωv
   Weqc : Opcode → ℕ

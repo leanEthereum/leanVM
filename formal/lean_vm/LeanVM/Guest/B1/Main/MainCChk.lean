@@ -44,13 +44,15 @@ def mStoresL : List Atom :=
 
 /-- `main`'s loads, by their words' numbers: the five reads, then the stores. -/
 def mLoadOk (d p o : ℕ) : Bool :=
-  decide ((d, p, o) ∈ [(404, 403, 0), (445, 415, 0), (446, 415, 1), (450, 449, 0),
-    (454, 453, 0)]) ||
+  decide ((d, p, o) ∈ [(val% «main» "s57#1", val% «main» "s57#0", 0), (val% «main» "own_0~2", val% «main» "da", 0),
+    (val% «main» "own_0~3", val% «main» "da", 1), (val% «main» "s66#1", val% «main» "s66#0", 0),
+    (val% «main» "s67#1", val% «main» "s67#0", 0)]) ||
   (decide (p = val% «main» "byte_bits") && decide (d = (val% «main» "s43.u0.s0#0") + o) && decide (o < 256)) ||
   decide ((d, p, o) ∈ [(val% «main» "s50.t.s1#0", val% «main» "own_da", 0), (val% «main» "s50.t.s1#0[1]", val% «main» "own_da", 1),
     (val% «main» "s50.e.s0#0", val% «main» "own_da", 0), (val% «main» "s50.e.s1#0", val% «main» "own_da", 1),
     (val% «main» "s55#0", val% «main» "written", 0)]) ||
-  (decide (p = 416) && (decide (o < 23 ∧ d = 420 + o) || decide (o = 23 ∧ d = 419)))
+  (decide (p = val% «main» "defer_stmt") && (decide (o < 23 ∧ d = (val% «main» "s63.t.s1.u0.s0#0") + o) ||
+    decide (o = 23 ∧ d = val% «main» "leaf_value")))
 
 /-- The range checks: the checked value and the bound's constant. -/
 def rcPairs : List (ℕ × ℕ) :=
@@ -64,7 +66,7 @@ def mSideOk : Atom → Bool
   | .touch t p => decide (t = .n t.idx) && decide (p = .n p.idx) &&
       decide ((t.idx, p.idx) ∈ [(8, 0), (9, 1), (10, 2), (11, 3), (12, 4), (13, 5), (25, 24)])
   | .assertEq x y => decide ((x, y) ∈ [(V.n (val% «main» "s57#1"), V.n (val% «main» "n_total_g")), (.n (val% «main» "s60#3"), .n (val% «main» "s60#4")), (.n (val% «main» "s66#1"), .n (val% «main» "own_0")),
-      (.n (val% «main» "s67#3"), .n (val% «main» "own_1"))])
+      (.n (val% «main» "s67#1"), .n (val% «main» "own_1"))])
   | _ => false
 
 /-- The stores of `main`'s body. -/
@@ -124,11 +126,10 @@ def mDefAtoms : List Atom :=
     .mul (.n (val% «main» "da~0")) (.n (val% «main» "da_pick")) (.n (val% «main» "da_pick")), .mul (.n (val% «main» "da")) (.n (val% «main» "da_digests")) (.n (val% «main» "da~0")),
     .const (.n (val% «main» "s63#0")) (word 1 0), .add (.n (val% «main» "s63#1")) (.n (val% «main» "meta[6]")) (.n (val% «main» "s63#0")),
     .const (.n (val% «main» "s63.e.s0#0")) (word 133823759239872512 0), .mul (.n (val% «main» "s63.e.s0#1")) (.n (val% «main» "g_squares")) (.n (val% «main» "s63.e.s0#0")),
-    .const (.n (val% «main» "s66#0")) (word 1 0), .const (.n (val% «main» "s67#0")) (word 1 0), .const (.n (val% «main» "s67#1")) (word 2 0),
-    .mul (.n (val% «main» "s67#2")) (.n (val% «main» "s67#0")) (.n (val% «main» "s67#1")),
+    .const (.n (val% «main» "s66#0")) (word 1 0), .const (.n (val% «main» "s67#0")) (word 2 0),
     .const (.n (val% «main» "s16#0")) (word 65536 0), .const (.n (val% «main» "s17#0")) (word 2 0),
     .load (.n (val% «main» "s57#1")) (.n (val% «main» "s57#0")) 0, .load (.n (val% «main» "own_0~2")) (.n (val% «main» "da")) 0, .load (.n (val% «main» "own_0~3")) (.n (val% «main» "da")) 1,
-    .load (.n (val% «main» "s66#1")) (.n (val% «main» "s66#0")) 0, .load (.n (val% «main» "s67#3")) (.n (val% «main» "s67#2")) 0] ++
+    .load (.n (val% «main» "s66#1")) (.n (val% «main» "s66#0")) 0, .load (.n (val% «main» "s67#1")) (.n (val% «main» "s67#0")) 0] ++
   (List.range 51).map fun j => .const (.n ((val% «main» "lx_tags[0]") + j)) (word (lxTagVals.getD j 0) 0)
 
 end

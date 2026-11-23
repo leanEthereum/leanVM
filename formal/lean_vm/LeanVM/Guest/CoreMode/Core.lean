@@ -119,8 +119,10 @@ structure JumpF (img : MemoryImage κ) (X : AlignCtx) (body : List Stmt) (fp : �
   cond : ∀ es vs, walk σ body = .ret es vs → ∀ c, Ev.inK c ∈ es → Rd img fp (X.locAt c.idx) = some (σ c)
   arm : ∀ x arms, Stmt.match_ x arms ∈ stmtsOf body → ∀ od a, Check.getF X.arms od = some a → a.1 = x.idx →
     ∀ k t, σ x = ofK (g ^ k) → Check.getF X.jt (a.2 + k) = some t → Rd img fp od = some (ofK (g ^ t))
-  sel : ∀ es vs, walk σ body = .ret es vs → ∀ x arms, Stmt.match_ x arms ∈ stmtsOf body →
-    Rd img fp (X.locAt x.idx) = some (σ x)
+  /-- A `match` the path reaches, at a cursor `zs` from which the path's events are its last ones: its selector at
+  its cell. -/
+  sel : ∀ zs x arms ss pre es vs, ZOk body zs → zs.cur = .match_ x arms :: ss → walk σ body = .ret (pre ++ es) vs →
+    walk σ zs.pos = .ret es vs → Rd img fp (X.locAt x.idx) = some (σ x)
   /-- A dispatch's selector at its cell. -/
   dsel : ∀ es vs, walk σ body = .ret es vs → ∀ x fs args rets, Stmt.dispatch x fs args rets ∈ stmtsOf body →
     Rd img fp (X.locAt x.idx) = some (σ x)
@@ -206,13 +208,13 @@ structure HonB (img : MemoryImage κ) (Cf : CFun) (fp : ℕ) (σ : Val) : Prop w
   /-- What its jumps read. -/
   jc : JumpF img Cf.X Cf.fn.body fp σ
   holds : ∀ es vs, walk σ Cf.fn.body = .ret es vs → ∀ e ∈ es, e.Holds img.read σ
-  /-- A loop's tail call, its last call, through a next-frame cell `q` (holding `fp·g^S`) of a `JUMP`
-  fetched at one of its offsets: that frame `fp + S`, its header this frame's, its arguments. -/
+  /-- A loop's tail call, its last call, through a next-frame cell `q` (`AlignCtx.nextAt`) of a `JUMP`
+  fetched at one of its offsets: the frame `fp + S` it holds, its header this frame's, its arguments. -/
   tail : ∀ es vs, walk σ Cf.fn.body = .ret es vs → ∀ (i : ℕ) (c : Call), (calls es)[i]? = some c →
-    i + 1 = (calls es).length → ∀ off oc od q S, off < Cf.X.len → oc < 2 ^ 28 → od < 2 ^ 28 → q < 2 ^ 28 →
+    i + 1 = (calls es).length → ∀ off oc od q, off < Cf.X.len → oc < 2 ^ 28 → od < 2 ^ 28 → q < 2 ^ 28 →
     guestProgram.fetch (addressOfIndex (Cf.X.entry + off)) =
       some (OffsetInstruction.jump oc od q).toLeanIsaInstruction →
-    Cf.X.statOf q = some (.fpg S) → S ≠ 0 →
+    Cf.X.nextAt q = true → ∃ S, S ≠ 0 ∧ S < 2 ^ 30 ∧
     Rd img fp q = some (ofK (g ^ (fp + S))) ∧ Rd img (fp + S) 0 = Rd img fp 0 ∧ Rd img (fp + S) 1 = Rd img fp 1 ∧
       ∀ k (hk : k < c.args.length), Rd img (fp + S) (2 + k) = some (σ c.args[k])
   /-- `main`'s frame is `0`. -/

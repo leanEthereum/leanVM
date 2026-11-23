@@ -61,13 +61,13 @@ theorem weightOk_zero (o : ℕ) : WeightOk 0 o := by
   obtain ⟨hld, hsh, h⟩ := shiftsT_holds h
   obtain ⟨hv, hn⟩ := formAll_holds hlanes hlen h
   refine ⟨?_, hn⟩
-  have ha : ((List.range 6).map fun t ↦ σ (.n (o + 1178 + 11 * t))) = loc.take 6 := by
+  have ha : ((List.range 6).map fun t ↦ σ (.n (o + 1242 + 11 * t))) = loc.take 6 := by
     apply List.ext_getElem (by simp [hlocL'])
     intro t h1 h2
     simp only [List.length_map, List.length_range] at h1
     rw [List.getElem_map, List.getElem_range, List.getElem_take]
     exact loadHolds_unique (hld t h1).1 (hlocR t (by omega))
-  have hb : ((List.range 6).map fun t ↦ σ (.n (o + 1178 + 11 * t + 1))) = locPt.take 6 := by
+  have hb : ((List.range 6).map fun t ↦ σ (.n (o + 1242 + 11 * t + 1))) = locPt.take 6 := by
     apply List.ext_getElem (by simp [hlocL])
     intro t h1 h2
     simp only [List.length_map, List.length_range] at h1

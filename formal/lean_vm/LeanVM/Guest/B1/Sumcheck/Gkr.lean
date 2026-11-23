@@ -72,14 +72,14 @@ def gkRound (q : ℕ) : List Stmt :=
 
 /-- The cursor's load from the record, in the layer loop's iteration only. -/
 def gkCurLoad : Bool → List Stmt
-  | true => [.atom (.load (.n 2) (.n 0) 4310)]
+  | true => [.atom (.load (.n 2) (.n 0) 5)]
   | false => []
 
 /-- The record's capacity and claim (and, `lc`, its cursor). -/
 def gkHead (lc : Bool) : List Stmt :=
-  [.atom (.load (.n 5) (.n 0) 0), .atom (.load (.n 6) (.n 0) 862), .atom (.load (.n 7) (.n 0) 1724),
-    .atom (.load (.n 8) (.n 0) 2586), .atom (.load (.n 9) (.n 0) 3448)] ++ gkCurLoad lc ++
-  [.atom (.load (.n 10) (.n 0) 5172)]
+  [.atom (.load (.n 5) (.n 0) 0), .atom (.load (.n 6) (.n 0) 1), .atom (.load (.n 7) (.n 0) 2),
+    .atom (.load (.n 8) (.n 0) 3), .atom (.load (.n 9) (.n 0) 4)] ++ gkCurLoad lc ++
+  [.atom (.load (.n 10) (.n 0) 6)]
 
 /-- The zero after an odd count's challenges. -/
 def gkPad (n : ℕ) : List Stmt :=
@@ -90,15 +90,15 @@ def gkPad (n : ℕ) : List Stmt :=
 /-- The rounds and the next record, up to the returned `0`. -/
 def gkPre (lc : Bool) (n : ℕ) : List Stmt :=
   gkHead lc ++ ((List.range n).map gkRound).flatten ++ gkPad n ++
-  [.atom (.load (.n (31 + 39 * (n - 1))) (.n 0) 1),
-    .atom (.load (.n (32 + 39 * (n - 1))) (.n 0) 863),
-    .atom (.load (.n (33 + 39 * (n - 1))) (.n 0) 1725),
-    .atom (.load (.n (34 + 39 * (n - 1))) (.n 0) 2587),
-    .atom (.load (.n (35 + 39 * (n - 1))) (.n 0) 3449),
+  [.atom (.load (.n (31 + 39 * (n - 1))) (.n 0) 7),
+    .atom (.load (.n (32 + 39 * (n - 1))) (.n 0) 8),
+    .atom (.load (.n (33 + 39 * (n - 1))) (.n 0) 9),
+    .atom (.load (.n (34 + 39 * (n - 1))) (.n 0) 10),
+    .atom (.load (.n (35 + 39 * (n - 1))) (.n 0) 11),
     .atom (.const (.n (11 + 39 * n + n % 2)) (word (2 ^ (4 * n)) 0)),
     .atom (.mul (.n (12 + 39 * n + n % 2)) (.n 2) (.n (11 + 39 * n + n % 2))),
-    .atom (.load (.n (12 + 39 * n + n % 2)) (.n 0) 4311),
-    .atom (.load (.n (49 + 39 * (n - 1))) (.n 0) 5173)]
+    .atom (.load (.n (12 + 39 * n + n % 2)) (.n 0) 12),
+    .atom (.load (.n (49 + 39 * (n - 1))) (.n 0) 13)]
 
 /-! ## The rounds as a sequence -/
 
@@ -222,7 +222,7 @@ theorem holds_gkRound (q : ℕ) (kret : List E → Prop) :
 /-- What the cursor's load asks. -/
 theorem holds_gkCurLoad (lc : Bool) (next : Prop) (kret : List E → Prop) :
     Stmt.HoldsList C rd σ (gkCurLoad lc) next kret ↔
-      (lc = true → LoadHolds rd (σ (.n 0)) 4310 (σ (.n 2))) ∧ next := by
+      (lc = true → LoadHolds rd (σ (.n 0)) 5 (σ (.n 2))) ∧ next := by
   cases lc <;> simp [gkCurLoad, Stmt.HoldsList, Stmt.Holds, Atom.Holds]
 
 /-- What the pad asks. -/
@@ -381,7 +381,7 @@ honest valuation (`gkVals`) satisfies `gkPre lc n` before anything, over any cal
 rounds have no call), and is `0` at the returned value. -/
 theorem gk_pre_holds (lc : Bool) (n : ℕ) (hn : 1 ≤ n) (hn2 : n < 16) (C : CallRel) (rd : Reader)
     (rec pt cur tabs stream : E) (h : GkrRoundsOut n rd rec pt cur)
-    (hlc : lc = true → LoadHolds rd rec 4310 cur) :
+    (hlc : lc = true → LoadHolds rd rec 5 cur) :
     ∃ σ : Val, (∀ v, σ v = σ (.n v.idx)) ∧ σ (.n 0) = rec ∧ σ (.n 1) = pt ∧ σ (.n 2) = cur ∧
       σ (.n 3) = tabs ∧ σ (.n 4) = stream ∧ σ (.n (13 + 39 * n + n % 2)) = 0 ∧
       ∀ (next : Prop) (kret : List E → Prop), next →
@@ -471,20 +471,20 @@ theorem gk_pre_holds (lc : Bool) (n : ℕ) (hn : 1 ≤ n) (hn2 : n < 16) (C : Ca
   · show LoadHolds rd (σ (.n 0)) 0 (σ (.n 5))
     rw [e0, show σ (.n 5) = a5 by simp [ev, gkVals, cap]]
     exact hcap 0 (by simp)
-  · show LoadHolds rd (σ (.n 0)) 862 (σ (.n 6))
+  · show LoadHolds rd (σ (.n 0)) 1 (σ (.n 6))
     rw [e0, show σ (.n 6) = a6 by simp [ev, gkVals, cap]]
     exact hcap 1 (by simp)
-  · show LoadHolds rd (σ (.n 0)) 1724 (σ (.n 7))
+  · show LoadHolds rd (σ (.n 0)) 2 (σ (.n 7))
     rw [e0, show σ (.n 7) = a7 by simp [ev, gkVals, cap]]
     exact hcap 2 (by simp)
-  · show LoadHolds rd (σ (.n 0)) 2586 (σ (.n 8))
+  · show LoadHolds rd (σ (.n 0)) 3 (σ (.n 8))
     rw [e0, show σ (.n 8) = a8 by simp [ev, gkVals, cap]]
     exact hcap 3 (by simp)
-  · show LoadHolds rd (σ (.n 0)) 3448 (σ (.n 9))
+  · show LoadHolds rd (σ (.n 0)) 4 (σ (.n 9))
     rw [e0, show σ (.n 9) = a9 by simp [ev, gkVals, cap]]
     exact hcap 4 (by simp)
   · rw [e0, e2]; exact hlc hl
-  · show LoadHolds rd (σ (.n 0)) 5172 (σ (.n 10))
+  · show LoadHolds rd (σ (.n 0)) 6 (σ (.n 10))
     rw [e0, idx 10 (10 + 39 * 0) (by ring), hcl 0 (by omega)]; exact hclaim
   · have w : ∀ t, t < 4 → σ (.n (11 + 39 * q + 3 * t)) = (Cf q).getD t 0 := fun t ht ↦ by
       rw [idx _ (11 + 39 * q + 3 * t + 0) (by ring), vw q t 0 hq ht (by omega)]; rfl
@@ -569,19 +569,19 @@ theorem gk_pre_holds (lc : Bool) (n : ℕ) (hn : 1 ≤ n) (hn2 : n < 16) (C : Ca
     refine ⟨by rw [hz, word_zero], ?_⟩
     rw [e1, hz]
     exact hpad hodd
-  · show LoadHolds rd (σ (.n 0)) 1 (σ (.n (31 + 39 * (m' + 1 - 1))))
+  · show LoadHolds rd (σ (.n 0)) 7 (σ (.n (31 + 39 * (m' + 1 - 1))))
     rw [e0, idx _ (23 + 39 * m' + (8 : Fin 13).val) (by simp; omega), vc m' (by omega)]
     exact hres2 0 (by simp [gkSt, Fs.squeeze, capOf])
-  · show LoadHolds rd (σ (.n 0)) 863 (σ (.n (32 + 39 * (m' + 1 - 1))))
+  · show LoadHolds rd (σ (.n 0)) 8 (σ (.n (32 + 39 * (m' + 1 - 1))))
     rw [e0, idx _ (23 + 39 * m' + (9 : Fin 13).val) (by simp; omega), vc m' (by omega)]
     exact hres2 1 (by simp [gkSt, Fs.squeeze, capOf])
-  · show LoadHolds rd (σ (.n 0)) 1725 (σ (.n (33 + 39 * (m' + 1 - 1))))
+  · show LoadHolds rd (σ (.n 0)) 9 (σ (.n (33 + 39 * (m' + 1 - 1))))
     rw [e0, idx _ (23 + 39 * m' + (10 : Fin 13).val) (by simp; omega), vc m' (by omega)]
     exact hres2 2 (by simp [gkSt, Fs.squeeze, capOf])
-  · show LoadHolds rd (σ (.n 0)) 2587 (σ (.n (34 + 39 * (m' + 1 - 1))))
+  · show LoadHolds rd (σ (.n 0)) 10 (σ (.n (34 + 39 * (m' + 1 - 1))))
     rw [e0, idx _ (23 + 39 * m' + (11 : Fin 13).val) (by simp; omega), vc m' (by omega)]
     exact hres2 3 (by simp [gkSt, Fs.squeeze, capOf])
-  · show LoadHolds rd (σ (.n 0)) 3449 (σ (.n (35 + 39 * (m' + 1 - 1))))
+  · show LoadHolds rd (σ (.n 0)) 11 (σ (.n (35 + 39 * (m' + 1 - 1))))
     rw [e0, idx _ (23 + 39 * m' + (12 : Fin 13).val) (by simp; omega), vc m' (by omega)]
     exact hres2 4 (by simp [gkSt, Fs.squeeze, capOf])
   · show σ (.n (11 + 39 * (m' + 1) + (m' + 1) % 2)) = word (2 ^ (4 * (m' + 1))) 0
@@ -589,10 +589,10 @@ theorem gk_pre_holds (lc : Bool) (n : ℕ) (hn : 1 ≤ n) (hn2 : n < 16) (C : Ca
   · show σ (.n (12 + 39 * (m' + 1) + (m' + 1) % 2)) =
       σ (.n 2) * σ (.n (11 + 39 * (m' + 1) + (m' + 1) % 2))
     rw [ev, gkVals_tail1, e2, ev, gkVals_tail0]
-  · show LoadHolds rd (σ (.n 0)) 4311 (σ (.n (12 + 39 * (m' + 1) + (m' + 1) % 2)))
+  · show LoadHolds rd (σ (.n 0)) 12 (σ (.n (12 + 39 * (m' + 1) + (m' + 1) % 2)))
     rw [e0, ev, gkVals_tail1, word_two_pow (by omega)]
     exact hres3
-  · show LoadHolds rd (σ (.n 0)) 5173 (σ (.n (49 + 39 * (m' + 1 - 1))))
+  · show LoadHolds rd (σ (.n 0)) 13 (σ (.n (49 + 39 * (m' + 1 - 1))))
     rw [e0, show m' + 1 - 1 = m' by omega, idx _ (10 + 39 * (m' + 1)) (by ring),
       hcl (m' + 1) (by omega)]
     exact hres4

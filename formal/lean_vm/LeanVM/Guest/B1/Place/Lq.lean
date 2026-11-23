@@ -44,47 +44,44 @@ open LeanVM.Protocol.Verifier hiding Layout
 @[expose] public section
 
 /-- The `opening_queries` specialization of `level_queries` at the entry's numbers. -/
-abbrev lqOqN (q base folds leaf d cd mu nhs hbits fin : ℕ) : String :=
-  oqName q base folds leaf d cd mu nhs hbits fin
+abbrev lqOqN (base folds leaf d cd mu nhs hbits fin : ℕ) : String :=
+  oqName base folds leaf (d - cd) mu nhs hbits fin
 
 /-- Its shape. -/
-abbrev lqOqS (q base folds leaf d cd mu nhs hbits fin : ℕ) : Oq :=
-  (oqShapeOf (lqOqN q base folds leaf d cd mu nhs hbits fin)).oq
+abbrev lqOqS (base folds leaf d cd mu nhs hbits fin : ℕ) : Oq :=
+  (oqShapeOf (lqOqN base folds leaf d cd mu nhs hbits fin)).oq
 
-/-- Its odd query count. -/
-abbrev lqOdd (q base folds leaf d cd mu nhs hbits fin : ℕ) : ℕ :=
-  (oqShapeOf (lqOqN q base folds leaf d cd mu nhs hbits fin)).odd
-
-/-- The honest cap and flags of `q` queries: the cap checked to the root `(r0, r1)` on every
-memory holding both, each query's leaf climbed to its cap cells, its parent flagged. -/
-def LqCaps (s : Oq) (q : ℕ) (capW flW : List E) (r0 r1 : E) (qs : ℕ → ℕ) (rows : ℕ → List K)
+/-- The honest cap and flags of `q` queries at cap depth `cd`: the cap checked to the root
+`(r0, r1)` on every memory holding both, each query's leaf climbed to its cap cells, its parent
+flagged. -/
+def LqCaps (s : Oq) (cd q : ℕ) (capW flW : List E) (r0 r1 : E) (qs : ℕ → ℕ) (rows : ℕ → List K)
     (sibs : ℕ → List Digest) : Prop :=
-  capW.length = 4 * 2 ^ s.cd ∧ flW.length = 2 ^ s.cd ∧
+  capW.length = 4 * 2 ^ cd ∧ flW.length = 2 ^ cd ∧
     (∀ (rd : Reader) (CAP FL : E), ReadsAt rd CAP capW → ReadsAt rd FL flW →
-      MeaningVerifyMerkleCap s.cd rd [CAP, FL] [r0, r1]) ∧
+      MeaningVerifyMerkleCap cd rd [CAP, FL] [r0, r1]) ∧
     ∀ k < q,
-      capW.getD (2 * (2 ^ s.cd + qs k / 2 ^ s.pd)) 0 =
+      capW.getD (2 * (2 ^ cd + qs k / 2 ^ s.pd)) 0 =
         (digestHalves (climbD (merkleLeafDigest (rows k)) (qs k) (sibs k))).1 ∧
-      capW.getD (2 * (2 ^ s.cd + qs k / 2 ^ s.pd) + 1) 0 =
+      capW.getD (2 * (2 ^ cd + qs k / 2 ^ s.pd) + 1) 0 =
         (digestHalves (climbD (merkleLeafDigest (rows k)) (qs k) (sibs k))).2 ∧
-      flW.getD (2 ^ (s.cd - 1) + qs k / 2 ^ (s.pd + 1)) 0 = 1
+      flW.getD (2 ^ (cd - 1) + qs k / 2 ^ (s.pd + 1)) 0 = 1
 
 /-- Where the caller's words `level_queries` reads lie: the rounds' coefficients from `ecoefs`,
 the final level's high part from `ehs`, the positions from `epos`, the window pointers from
 `eqp`, query `k`'s windows from `eb k`. -/
-def LqReg (R : ℕ → Prop) (s : Oq) (q ecoefs ehs epos eqp : ℕ) (eb : ℕ → ℕ) : Prop :=
+def LqReg (R : ℕ → Prop) (s : Oq) (cd q ecoefs ehs epos eqp : ℕ) (eb : ℕ → ℕ) : Prop :=
   (∀ l < 2 * s.folds, R (ecoefs + l)) ∧ (s.final = 1 → ∀ l < s.nHs, R (ehs + l)) ∧
-    ∀ k < q, R (epos + k) ∧ R (eqp + k) ∧ ∀ i < qwN (s.pd + s.cd) s.cd, R (eb k + i)
+    ∀ k < q, R (epos + k) ∧ R (eqp + k) ∧ ∀ i < qwN (s.pd + cd) cd, R (eb k + i)
 
 /-- The caller's words `level_queries` reads, on a memory. -/
-def LqMem (rd : Reader) (s : Oq) (q ecoefs ehs epos eqp : ℕ) (rounds : List FoldRound)
+def LqMem (rd : Reader) (s : Oq) (cd q ecoefs ehs epos eqp : ℕ) (rounds : List FoldRound)
     (hsv : List E) (eb qs : ℕ → ℕ) : Prop :=
   RoundsAt rd (ofK (addressOfIndex ecoefs)) rounds ∧
     (s.final = 1 → WordsAt rd (ofK (addressOfIndex ehs)) hsv) ∧
     ∀ k < q, LoadHolds rd (ofK (addressOfIndex epos)) k (eOfNat (qs k)) ∧
       LoadHolds rd (ofK (addressOfIndex eqp)) k (ofK (addressOfIndex (eb k))) ∧
-      ∀ i < qwN (s.pd + s.cd) s.cd,
-        LoadHolds rd (ofK (addressOfIndex (eb k))) i (gen ^ qwVal (s.pd + s.cd) s.cd (qs k) i)
+      ∀ i < qwN (s.pd + cd) cd,
+        LoadHolds rd (ofK (addressOfIndex (eb k))) i (gen ^ qwVal (s.pd + cd) cd (qs k) i)
 
 /-- The queries' sum `level_queries` returns: `0` at the final level, else the chain of the
 queries' folded rows by `1/λ`. -/
@@ -98,20 +95,19 @@ and the caller's words (`LqReg`, `LqMem`), complete, returning the root, the que
 `λ^q`. -/
 def LqAtD (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) (name : String)
     (q base folds leaf d cd mu nhs hbits fin : ℕ) : Prop :=
-  let s := lqOqS q base folds leaf d cd mu nhs hbits fin
+  let s := lqOqS base folds leaf d cd mu nhs hbits fin
   ∀ (Lin : Layout) (lam lamInv : E) (ecoefs ehs epos eqp : ℕ) (rounds : List FoldRound)
     (hsv : List E) (eb qs : ℕ → ℕ) (rows : ℕ → List K) (sibs : ℕ → List Digest)
     (capW flW : List E) (r0 r1 : E),
     rounds.length = s.folds → (s.final = 1 → hsv.length = s.nHs) →
-    OqStatic s rounds hsv qs rows sibs q →
-    LqCaps s q capW flW r0 r1 qs rows sibs →
-    LqReg (RegionL Lin) s q ecoefs ehs epos eqp eb →
-    (∀ rd, LowDef κ rd → MemL rd Lin → LqMem rd s q ecoefs ehs epos eqp rounds hsv eb qs) →
+    OqStatic s cd rounds hsv qs rows sibs q →
+    LqCaps s cd q capW flW r0 r1 qs rows sibs →
+    LqReg (RegionL Lin) s cd q ecoefs ehs epos eqp eb →
+    (∀ rd, LowDef κ rd → MemL rd Lin → LqMem rd s cd q ecoefs ehs epos eqp rounds hsv eb qs) →
     CompleteAtD fs cert κ name Lin
       [lam, lamInv, ofK (addressOfIndex ecoefs), ofK (addressOfIndex ehs),
         ofK (addressOfIndex epos), ofK (addressOfIndex eqp)]
-      (Returns [r0, r1, lqSum s (lqOdd q base folds leaf d cd mu nhs hbits fin) (lqIters q base)
-        lamInv rounds qs rows, lam ^ q])
+      (Returns [r0, r1, lqSum s (Whir.lqOdd q base) (lqIters q base) lamInv rounds qs rows, lam ^ q])
 
 /-- **`level_queries` is complete placed at every specialization**: for frame runs fitting their
 frames, their cells consecutive, on memories defined below `2^κ`, `11 ≤ κ`, each entry of
@@ -124,3 +120,34 @@ def level_queries_completeAt_Spec : Prop :=
 
 end
 end LeanVM.Guest.B1
+
+namespace LeanVM.Guest.B1.Arm
+
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
+open LeanVM.Guest.B1 LeanVM.Guest.B1.Whir
+open LeanVM.Protocol LeanVM.Protocol.KeccakHash
+open LeanVM.Protocol.Verifier hiding Layout
+open LeanVM.Guest.B1.Main (Layout MemL RegionL)
+
+@[expose] public section
+
+/-- `LqAtD` at an optional words bound. -/
+def LqAtO (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) (name : String)
+    (q base folds leaf d cd mu nhs hbits fin : ℕ) (Bd : Option ℕ) : Prop :=
+  let s := lqOqS base folds leaf d cd mu nhs hbits fin
+  ∀ (Lin : Layout) (lam lamInv : E) (ecoefs ehs epos eqp : ℕ) (rounds : List FoldRound)
+    (hsv : List E) (eb qs : ℕ → ℕ) (rows : ℕ → List K) (sibs : ℕ → List Digest)
+    (capW flW : List E) (r0 r1 : E),
+    rounds.length = s.folds → (s.final = 1 → hsv.length = s.nHs) →
+    OqStatic s cd rounds hsv qs rows sibs q →
+    LqCaps s cd q capW flW r0 r1 qs rows sibs →
+    LqReg (RegionL Lin) s cd q ecoefs ehs epos eqp eb →
+    (∀ rd, LowDef κ rd → MemL rd Lin → LqMem rd s cd q ecoefs ehs epos eqp rounds hsv eb qs) →
+    CompleteAtO fs cert κ name Lin
+      [lam, lamInv, ofK (addressOfIndex ecoefs), ofK (addressOfIndex ehs),
+        ofK (addressOfIndex epos), ofK (addressOfIndex eqp)]
+      (Returns [r0, r1, lqSum s (Whir.lqOdd q base) (lqIters q base) lamInv rounds qs rows,
+        lam ^ q]) Bd
+
+end
+end LeanVM.Guest.B1.Arm

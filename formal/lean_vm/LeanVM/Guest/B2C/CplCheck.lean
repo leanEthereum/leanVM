@@ -173,6 +173,30 @@ def inFrame (n : ℕ) : List ℕ → Bool
   | [] => true
   | c :: cs => Nat.ble 2 c && Nat.blt c n && inFrame n cs
 
+/-- A loop helper's tail call's arguments: its body `pre ++ [callIf c f args, ret []]`, `f` the
+function itself and `pre` without `ret`; else `[]`. -/
+def tailArgs (fn : Core.Fn) : List V :=
+  match fn.body.reverse with
+  | .ret [] :: .callIf _ g args :: rpre => bif g == fn.name && Stmt.noRetList rpre.reverse then args else []
+  | _ => []
+
+/-- The next frame's parameter cells `n + 2 + k` the tail call's arguments `k` (of `ta`) have in the
+certificate's cells `locs`, where the compiler computes them. -/
+def nextCells (locs : List ℕ) (n : ℕ) (ta : List V) : List ℕ :=
+  ta.zipIdx.filterMap fun p ↦ bif Nat.beq (locs.getD p.1.idx 0) (n + (2 + p.2)) then some (n + (2 + p.2)) else none
+
+/-- A value's cell in the frame past the header, or one of the next frame's cells `nx` (`nextCells`). -/
+def cellOkC (L : CLoc) (n : ℕ) (nx : List ℕ) (v : V) : Bool := inFrame n [L.cell v] || nx.any (Nat.beq (L.cell v))
+
+/-- An atom on values alone whose cells are `cellOkC`. -/
+def nxtAtom (L : CLoc) (n : ℕ) (nx : List ℕ) : Core.Atom → Bool
+  | .const d _ => cellOkC L n nx d
+  | .add d a b => cellOkC L n nx d && cellOkC L n nx a && cellOkC L n nx b
+  | .mul d a b => cellOkC L n nx d && cellOkC L n nx a && cellOkC L n nx b
+  | .copy d s => cellOkC L n nx d && cellOkC L n nx s
+  | .assertEq a b => cellOkC L n nx a && cellOkC L n nx b
+  | _ => false
+
 /-- The cells of a core atom in a window. -/
 def locC (L : CLoc) : Core.Atom → LAtom
   | .const d x => .const (L.cell d) x
@@ -204,12 +228,13 @@ noncomputable def addKeyC (a : LAtom) (B : BookC) (o : ℕ) : BookC :=
 noncomputable def fileC (B : BookC) (a : LAtom) : BookC := (keysC a).foldl (addKeyC a) B
 
 /-- File the atoms of a block's statements (not those of nested blocks), those whose cells lie in
-the frame. -/
-noncomputable def fileB (L : CLoc) (n : ℕ) : List Core.Stmt → BookC → BookC
+the frame, or on values alone whose cells are `cellOkC` (the next frame's cells `nx`). -/
+noncomputable def fileB (L : CLoc) (n : ℕ) (nx : List ℕ) : List Core.Stmt → BookC → BookC
   | [], B => B
   | .atom a :: ss, B => (locC L a).seq fun la ↦
-      bif inFrame n (cellsC la) then (fileC B la).seq fun B ↦ fileB L n ss B else fileB L n ss B
-  | _ :: ss, B => fileB L n ss B
+      bif inFrame n (cellsC la) || nxtAtom L n nx a then (fileC B la).seq fun B ↦ fileB L n nx ss B
+      else fileB L n nx ss B
+  | _ :: ss, B => fileB L n nx ss B
 
 /-! ## Frames in flight -/
 
@@ -260,6 +285,8 @@ structure CX where
   acs : List (ℕ × List (List ℕ))
   /-- The chained `match`es (`Plumb.chains`). -/
   chains : List (ℕ × ℕ × List ℕ × ℕ × ℕ)
+  /-- The next frame's cells where the tail call's arguments are computed (`nextCells`). -/
+  nx : List ℕ
 
 /-- A position of the walk: a segment and its items not yet passed, the facts, the callee frames
 in flight `(cell, its cells)`, the table reads `(target, selector, base)`, the next frame of a
@@ -337,8 +364,15 @@ noncomputable def addAt (a b d c : ℕ) : Bool :=
 /-- `{x, y} = {a, b}`. -/
 def pairEq (x y a b : ℕ) : Bool := (Nat.beq x a && Nat.beq y b) || (Nat.beq x b && Nat.beq y a)
 
+/-- Cell `o` is past the frame, at a self cell of the next frame: it holds `fp·g^fs`. -/
+noncomputable def nextSelf (o : ℕ) : Bool :=
+  Nat.ble X.fs o && (match st.nx.find? (fun p ↦ Nat.beq p.1 (o - X.fs)) with
+    | some (_, .self) => true
+    | _ => false)
+
 /-- The cell holds a word of `K`: the header but in `main`, a fixed cell, a fact's, a callee
-frame pointer, a table read's target, a cell the segment's environment knows. -/
+frame pointer, a table read's target, a cell the segment's environment knows, the next frame's
+pointer at its self cell. -/
 noncomputable def cellK (o : ℕ) : Bool :=
   (Nat.ble o 1 && !X.main) ||
   (match statAt X o with
@@ -353,7 +387,7 @@ noncomputable def cellK (o : ℕ) : Bool :=
     | .ne _ _ p => Nat.beq p o
     | _ => false) ||
   st.fr.any (fun q ↦ Nat.beq q.1 o) || st.tg.any (fun t ↦ Nat.beq t.1 o) ||
-  (st.seg.env.get o).isSome
+  (st.seg.env.get o).isSome || nextSelf X st o
 
 /-- `fp[a] = fp·g^e`: a fixed cell, or the address of a run starting at cell `e` (an `addr` fact,
 from which the compiler steps a shifted one). -/
@@ -388,6 +422,21 @@ noncomputable def nextMul (a o : ℕ) : Bool :=
   | some (_, .self) => decide (statAt X a = some (.fpg X.fs))
   | _ => false
 
+/-- The next frame's pointer computed into its self cell `d`: `fp·g^fs = fp·g^e₁ · g^(fs - e₁)`. -/
+noncomputable def nextSelfMul (a b d : ℕ) : Bool :=
+  nextSelf X st d && (match statAt X a, cplCstAt X st b with
+    | some (.fpg e1), some (k0, 0) => Nat.ble e1 X.fs && (match gpE X k0 with
+      | some e2 => Nat.beq e2 (X.fs - e1)
+      | none => false)
+    | _, _ => false)
+
+/-- A store into the next frame's cell `o2` through its self cell `o1`. -/
+noncomputable def nextStore (o1 o2 o3 : ℕ) : Bool :=
+  nextSelf X st o1 && (match st.nx.find? (fun p ↦ Nat.beq p.1 o2) with
+    | some (_, .val cv) => Nat.beq o3 cv || sameC X st cv o3
+    | some (_, .hdr i) => Nat.beq o3 i && Nat.ble i 1
+    | _ => false)
+
 /-- A store into or load from a callee frame through its pointer cell `o1`. -/
 noncomputable def frameCell (o1 o2 o3 : ℕ) : Bool :=
   match st.fr.find? (fun q ↦ Nat.beq q.1 o1) with
@@ -406,6 +455,33 @@ noncomputable def frameHas (o1 o2 : ℕ) (fc : FC) : Bool :=
   | some (_, fcs) => fcs.any fun p ↦ Nat.beq p.1 o2 && decide (p.2 = fc)
   | none => false
 
+/-- A `MUL` holds by a fact on its cells, the fixed cells, or a copy into the next frame. -/
+noncomputable def justMul (a b d : ℕ) : Bool :=
+  (lookC st.book d).any (fun x ↦ match x with
+    | .mul d' x y => Nat.beq d' d && pairEq x y a b
+    | .ne x i p => Nat.beq p d && pairEq x i a b
+    | .addr p run => Nat.beq p d && addrMul X st a b run
+    | _ => false) ||
+  (lookC st.book a).any (fun x ↦ match x with
+    | .range x y _ _ k => Nat.beq k d && pairEq x y a b
+    | _ => false) ||
+  (isO X st b && sameC X st a d) || (isO X st a && sameC X st b d) || fpgMul X st a b d ||
+  (Nat.ble X.fs d && isO X st b && nextMul X st a (d - X.fs))
+
+/-- A `DEREF` of a cell holds by a load fact, a range check, a callee frame in flight, a table
+read, or a fixed frame address. -/
+noncomputable def justDerefCell (o1 o2 o3 : ℕ) : Bool :=
+  (lookC st.book o3).any (fun x ↦ match x with
+    | .load d p off => Nat.beq d o3 && Nat.beq p o1 && Nat.beq off o2
+    | _ => false) ||
+  (lookC st.book o1).any (fun x ↦ match x with
+    | .range x y t1 t2 _ => Nat.beq o2 0 && ((Nat.beq x o1 && Nat.beq t1 o3) ||
+        (Nat.beq y o1 && Nat.beq t2 o3))
+    | _ => false) ||
+  frameCell X st o1 o2 o3 ||
+  st.tg.any (fun t ↦ Nat.beq t.1 o3 && Nat.beq t.2.1 o1 && Nat.beq t.2.2 o2) ||
+  (Nat.beq o2 0 && decide (statAt X o1 = some (.fpg o3)) && known X st o3)
+
 /-- **An instruction at pc `pc` holds** on the frame: by a fact on its cells, the fixed cells,
 a callee frame in flight, a table read, or the next frame. -/
 noncomputable def justI (pc : ℕ) : OffsetInstruction → Bool
@@ -414,28 +490,8 @@ noncomputable def justI (pc : ℕ) : OffsetInstruction → Bool
     addAt st a b d d || addAt st a b d a || addAt st a b d b ||
     (isZ X st d && sameC X st a b) || (Nat.beq a d && isZ X st b && known X st d) ||
     (Nat.beq b d && isZ X st a && known X st d) || (Nat.beq b d && known X st d && zeroBy X st a)
-  | .mul a b d =>
-    (lookC st.book d).any (fun x ↦ match x with
-      | .mul d' x y => Nat.beq d' d && pairEq x y a b
-      | .ne x i p => Nat.beq p d && pairEq x i a b
-      | .addr p run => Nat.beq p d && addrMul X st a b run
-      | _ => false) ||
-    (lookC st.book a).any (fun x ↦ match x with
-      | .range x y _ _ k => Nat.beq k d && pairEq x y a b
-      | _ => false) ||
-    (isO X st b && sameC X st a d) || (isO X st a && sameC X st b d) || fpgMul X st a b d ||
-    (Nat.ble X.fs d && isO X st b && nextMul X st a (d - X.fs))
-  | .deref o1 o2 o3 .cell =>
-    (lookC st.book o3).any (fun x ↦ match x with
-      | .load d p off => Nat.beq d o3 && Nat.beq p o1 && Nat.beq off o2
-      | _ => false) ||
-    (lookC st.book o1).any (fun x ↦ match x with
-      | .range x y t1 t2 _ => Nat.beq o2 0 && ((Nat.beq x o1 && Nat.beq t1 o3) ||
-          (Nat.beq y o1 && Nat.beq t2 o3))
-      | _ => false) ||
-    frameCell X st o1 o2 o3 ||
-    st.tg.any (fun t ↦ Nat.beq t.1 o3 && Nat.beq t.2.1 o1 && Nat.beq t.2.2 o2) ||
-    (Nat.beq o2 0 && decide (statAt X o1 = some (.fpg o3)) && known X st o3)
+  | .mul a b d => justMul X st a b d || nextSelfMul X st a b d
+  | .deref o1 o2 o3 .cell => justDerefCell X st o1 o2 o3 || nextStore X st o1 o2 o3
   | .deref o1 o2 o3 .fp =>
     known X st o3 && (frameHas st o1 o2 .fp ||
       (Nat.beq o2 0 && (match statAt X o1 with
@@ -689,7 +745,7 @@ noncomputable def cw : List Core.Stmt → CW → RC
             x.succ == [t] then
           match segAtC X t st' with
           | some sn =>
-            (fileB X.loc X.fs z st'.book).seq fun Bz ↦ (fileB X.loc X.fs n st'.book).seq fun Bn ↦
+            (fileB X.loc X.fs X.nx z st'.book).seq fun Bz ↦ (fileB X.loc X.fs X.nx n st'.book).seq fun Bn ↦
             match cw z { st' with book := Bz }, cw n { sn with book := Bn } with
             | .join J c1 u1, .join J' c2 u2 =>
               bif Nat.beq J J' then
@@ -720,7 +776,7 @@ noncomputable def cw : List Core.Stmt → CW → RC
           | .ok se =>
             match segAtC X t0 (armSt (armKeyD X.acs v.idx) se) with
             | some s0 =>
-              (fileB X.loc X.fs a0 se.book).seq fun B0 ↦
+              (fileB X.loc X.fs X.nx a0 se.book).seq fun B0 ↦
               match cw a0 { s0 with book := B0, tg := armTg X v 0 ++ s0.tg } with
               | .join J c0 u0 =>
                 bif armChkK (armKeyD X.acs v.idx) 0 c0 then
@@ -782,14 +838,15 @@ noncomputable def cw : List Core.Stmt → CW → RC
   | .callIf c f args :: ss, st =>
     match peekBr st.its with
     | some (oc, x) =>
-      bif Nat.beq oc (X.loc.cell c) && inFrame X.fs (oc :: args.map X.loc.cell) then
+      bif Nat.beq oc (X.loc.cell c) && inFrame X.fs [oc] && args.all (cellOkC X.loc X.fs X.nx) then
         match x.kind with
         | .call (.gp e) q r =>
           match calleeS X e with
           | some (_, sg) =>
             bif f == sg.name && Nat.beq args.length sg.nargs &&
                 Nat.beq sg.nret 0 && Nat.ble X.entry r && x.succ == [r - X.entry] &&
-                siteOk X args [] q r 0 && !bitK st.uq q && inFrame X.fs [q] && !(f == X.name) then
+                siteOk X args [] q r 0 && !bitK st.uq q && inFrame X.fs (q :: args.map X.loc.cell) &&
+                !(f == X.name) then
               match brAtC X { st with fr := (q, callFC X args (sg.env.map (·.1)) r) :: st.fr } with
               | .ok (st', _, od, of, _) =>
                 bif cellK X st' od && cellK X st' of then
@@ -844,7 +901,7 @@ noncomputable def cwArms (J : ℕ) (succ : List ℕ) (v : V) (se : CW) (key : Op
   | [], [], c, u, _ => some (c, u)
   | a :: as, t :: ts, c, u, k =>
     match segAtC X t se with
-    | some s => (fileB X.loc X.fs a se.book).seq fun B ↦
+    | some s => (fileB X.loc X.fs X.nx a se.book).seq fun B ↦
       match armEnd J succ (cw a { s with book := B, tg := armTg X v k ++ s.tg }) with
       | some (c', u') => bif armChkK key k c' then
           (Cnt.max c c').seq fun c ↦ natSeq (Nat.lor u u') fun u ↦ cwArms J succ v se key as ts c u (k + 1)
@@ -866,7 +923,7 @@ noncomputable def cwE (X : CX) (o : ℕ) (succ : List ℕ) (se : CW) : List Core
           Nat.beq ts.length as.length && inFrame X.fs [o] && chainPre X se v (as.length + 1) then
         match segAtC X t0 (armSt (armKeyD X.acs v.idx) se) with
         | some s0 =>
-          (fileB X.loc X.fs a0 se.book).seq fun B0 ↦
+          (fileB X.loc X.fs X.nx a0 se.book).seq fun B0 ↦
           match cw X a0 { s0 with book := B0, tg := armTg X v 0 ++ s0.tg } with
           | .join J c0 u0 =>
             bif armChkK (armKeyD X.acs v.idx) 0 c0 then
@@ -980,7 +1037,7 @@ noncomputable def cxOfD (G : Glob) (f : CompiledFunction) (cf : Core.Fn) (C : Ce
     (stat : Trie PC) (nv : ℕ) (stop : Option (ℕ × ℕ)) : CX :=
   ⟨G.restrict C.callees, C.facts, f.entryPc, idx, loc, fs, stat, main, cf.name, cf.params.length,
     C.nret, C.callees, P.sites, P.arms, C.facts.env.map (·.1), Cnt.ofList P.pmax, nv, stop, acs,
-    P.chains⟩
+    P.chains, nextCells C.locs fs (tailArgs cf)⟩
 
 /-- How part `k` of window `i` must end: at the next part's start, the next window's, within
 what is handed on there (in its chained `match`'s table jump if it is entered), or by the
@@ -1012,7 +1069,7 @@ noncomputable def cplResD (G : Glob) (f : CompiledFunction) (cf : Core.Fn) (C : 
   match execWinCS C.facts f (C.cutAt i).J (C.cutAt i).env ((C.succAt i).drop 1) (C.endAt f i) with
   | ⟨segs, _⟩ => listSeq segs fun segs ↦ (index segs).seq fun idx ↦ (clocW C i).seq fun loc ↦
     (statT fs P.stat .nil).seq fun stat ↦
-    (fileB loc fs (partStmtsD cf C ps i k) .nil).seq fun B ↦
+    (fileB loc fs (nextCells C.locs fs (tailArgs cf)) (partStmtsD cf C ps i k) .nil).seq fun B ↦
     (partCD ps i k).seq fun c ↦ natSeq (partUD ps i k) fun u ↦ natSeq (partJD C ps i k) fun J ↦
     natSeq P.nv fun nv ↦ natSeq (partMD ps i k) fun m ↦
     match getF idx J with

@@ -51,16 +51,16 @@ theorem vtS_complete (hl : args.length = 21) (hlow : LowDefB 14 rd) {lm : ℕ} (
     -- the own buffers
     (hkeyW : TbReadsAt rd (w 34) (vtGKeyW lm τ)) (hszW : TbReadsAt rd (w 35) (vtGSizeW lm τ))
     (hbaseW : TbReadsAt rd (w 36) (vtGBaseW lm τ)) (hordW : TbReadsAt rd (w 37) (vtGOrdW lm τ))
-    (hidxc : TbReadsAt rd (w 665) vtIdxcW) (hz1 : TbReadsAt rd (w 700) (point.map (1 + ·)))
-    (hrun : ∀ t < 6, RunTables rd (w 702 * gen ^ (288 * t)) (w 703 * gen ^ (144 * t))
+    (hidxc : TbReadsAt rd (w 767) vtIdxcW) (hz1 : TbReadsAt rd (w 802) (point.map (1 + ·)))
+    (hrun : ∀ t < 6, RunTables rd (w (vtShV t + 11)) (w (vtShV t + 15))
       (point.length - τ t) (point.drop (τ t)) ((point.map (1 + ·)).drop (τ t))
       ((gSquaresList.drop (τ t)).take (point.length - τ t)))
-    (hpad : ∀ t < 6, RunPads rd (w 702 * gen ^ (288 * t)) (w 703 * gen ^ (144 * t))
+    (hpad : ∀ t < 6, RunPads rd (w (vtShV t + 11)) (w (vtShV t + 15))
       (point.length - τ t) (point.drop (τ t)))
     -- the callees' returns
     (hwp : ∀ t < 6, w (vtPadV t) = paddingWeight (point.take (τ t)) (n t) ∧
       w (vtPadV t + 1) = PadLead (τ t) (n t) ∧ w (vtPadV t + 2) = PadRest (τ t) (n t))
-    (hw704 : w 701 = 0) :
+    (hw704 : w 803 = 0) :
     (∀ s ∈ (vtPre.drop 0).take (pos% «verify_tables» "block_index_mle"), VSH (coreProgram.Rel rd) rd σv s) ∧
       (∀ i < 5, σv (.n ((val% «verify_tables» "sp[0]@1") + i)) = σv (.n i)) ∧
       (∀ i < 8, σv (.n ((val% «verify_tables» "kb[0]") + i)) = gen ^ ([0, lm] ++ vtTauList τ).getD i 0) ∧
@@ -71,8 +71,10 @@ theorem vtS_complete (hl : args.length = 21) (hlow : LowDefB 14 rd) {lm : ℕ} (
         gen ^ (stackOffsets ((List.range 45).map fun c ↦ vtKap lm τ (108 + c))).1.getD x 0) ∧
       (∀ t < 6, σv (.n (vtPadV t)) = paddingWeight (point.take (τ t)) (n t)) ∧
       (∀ t < 6, σv (.n (vtShLen t)) = gen ^ (point.length - τ t)) ∧
-      σv (.n (val% «verify_tables» "idxc_tab")) = w 665 ∧ σv (.n (val% «verify_tables» "zeta1")) = w 700 ∧
-      σv (.n (val% «verify_tables» "shared_eq")) = w 702 ∧ σv (.n (val% «verify_tables» "shared_g")) = w 703 := by
+      σv (.n (val% «verify_tables» "idxc_tab")) = w 767 ∧ σv (.n (val% «verify_tables» "zeta1")) = w 802 ∧
+      (∀ t < 6, σv (.n (vtShV t + 10)) = gen ^ (8 * (point.length - τ t + 1)) ∧
+        σv (.n (vtShV t + 14)) = gen ^ (4 * (point.length - τ t + 1))) ∧
+      ∀ t < 6, σv (.n (vtEqV t)) = w (vtShV t + 11) ∧ σv (.n (vtGV t)) = w (vtShV t + 15) := by
   have hτ' : ∀ t < 6, τ t < 33 := fun t ht ↦ by have := hτ31 t ht; omega
   obtain ⟨h1, hcp, hkb, hal, hP, hC⟩ :=
     vtS_sort hl hlow hlm hτ' hdims hE hkeyW hszW hbaseW hordW
@@ -86,7 +88,7 @@ theorem vtS_complete (hl : args.length = 21) (hlow : LowDefB 14 rd) {lm : ℕ} (
     rw [vtTauList_getD ht]
   obtain ⟨h2, hpw, hsl, e668, e703, e705, e706⟩ := vtS_p2 hl hlow point hμ33 τ n hτ hτ31
     hτμ hkbt hz h9 hrows hE.1 hwp hidxc hz1 hw704 hrun hpad
-  exact ⟨forall_slice_join (a := 0) (l1 := 563) (l2 := 202) h1 h2, hcp, hkb, hal, hP, hC,
+  exact ⟨forall_slice_join (a := 0) (l1 := 563) (l2 := 246) h1 h2, hcp, hkb, hal, hP, hC,
     hpw, hsl, e668, e703, e705, e706⟩
 
 end

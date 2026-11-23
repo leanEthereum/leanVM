@@ -54,7 +54,7 @@ theorem foldRounds_run : ∀ (n : ℕ) (s : WhirState) (fs ws : List E), ws.leng
     obtain rfl : ws = [] := List.eq_nil_of_length_eq_zero (by simpa using hl)
     exact runsTo_ret _ _
   | n + 1, s, fs, ws, hl, hok => by
-    obtain ⟨hg, -, hok'⟩ := hok
+    obtain ⟨hg, hok'⟩ := hok
     obtain ⟨u0, w, c0, c1, n2, he⟩ : ∃ u0 w c0 c1 n2,
         ws.take 5 = [u0, w, c0, c1, n2] := by
       have : (ws.take 5).length = 5 := by simp; omega

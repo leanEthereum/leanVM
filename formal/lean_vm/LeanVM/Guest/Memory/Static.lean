@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Guest.Memory.Size
 public import LeanVM.Guest.Pow
+public import LeanVM.Guest.Memory.SelArm
 
 /-!
 # Static weight bounds
@@ -26,13 +27,15 @@ through), the bound of one iteration (`loop`): a valid tree started at `i = g^a`
 counting words, its run's one phantom (its last iteration's untaken tail call) more.
 
 **The checker** (`chkFn`) walks a body once (`blockB`), threading the constants its atoms make
-(those the certificate names, each checked `g^e` by `Pow.gpowW`), and sums each call site's bound
+(those the certificate names, each checked `g^e` by `Pow.gpowW`, and their copies), and sums each call site's bound
 (`siteB`): a callee's affine bound with its arguments classified (`cls`) as constants `g^e`,
 collapsing their terms and checking their preconditions, or as the caller's parameters, which
 the caller's bound and preconditions then name; a loop entry is its iteration count times its
 iteration's bound, and, counting words, its run's one phantom frame. Exclusive branches take the larger bound: an `ite`'s two sides, a `match`'s arms,
 a fused dispatch's callees. A loop helper's own body is
-checked without its tail call, against its shape (`loopShape`). Counting words (`α`), each
+checked without its tail call, against its shape (`loopShape`). A `stat` certificate a body's walk misses may
+be met by the body at each arm of its first top-level selector (`selSplit`, the path being one of theirs): the values a
+`match` binds per arm, constants in each, are then known after it. Counting words (`α`), each
 `HeapBuf` adds its size (`atomB`): `n` for `HeapBuf(n)`, a bound on the exponent of a dynamic
 one's size (`bnd`): a constant's, a parameter's, or a tracked product `x·g^c`'s, `x`'s bound plus
 `c` (`logG_mul_le`), threaded in the environment's bounds (`BEnv`); a `callIf` adds its callee's frame, which an
@@ -72,9 +75,16 @@ def Aff.add (a b : Aff) : Aff := ⟨a.c + b.c, a.cs ++ b.cs⟩
 
 def Aff.scale (n : ℕ) (a : Aff) : Aff := ⟨n * a.c, a.cs.map fun q => (q.1, n * q.2)⟩
 
-/-- Preconditions `(k, a)`: argument `k` is `g^b` with `a < b` below the order of `g`. -/
+/-- The bound from which a precondition's `a` reads `a - gT ≤ b` (past every exponent). -/
+def gT : ℕ := 2 ^ 64
+
+/-- A precondition's order: `a < b`, or `a - gT ≤ b` for `a ≥ gT`. -/
+def preLt (a b : ℕ) : Bool := bif Nat.ble gT a then Nat.ble (a - gT) b else Nat.blt a b
+
+/-- Preconditions `(k, a)`: argument `k` is `g^b` with `a < b` (`a - gT ≤ b` for `a ≥ gT`) below the order of
+`g`. -/
 def ArgsPre (pre : List (ℕ × ℕ)) (args : List E) : Prop :=
-  ∀ q ∈ pre, ∃ b, q.2 < b ∧ b < 2 ^ 64 - 1 ∧ args.getD q.1 0 = ofK (addressOfIndex b)
+  ∀ q ∈ pre, ∃ b, preLt q.2 b = true ∧ b < 2 ^ 64 - 1 ∧ args.getD q.1 0 = ofK (addressOfIndex b)
 
 /-- A function's certificate. -/
 inductive Cert where
@@ -99,6 +109,16 @@ abbrev BEnv := List (V × Aff)
 /-- The exponent in a certificate's constants marking a value whose exponent bound the check
 tracks (no constant passes `constOk` at it). -/
 def trackE : ℕ := 2 ^ 20
+
+/-- The exponent in a certificate's constants marking a loop's guard `d = x + y`, `x` a known constant `g^a`: the
+checker keeps it as a bound tagged by `guardOf`. -/
+def guardE : ℕ := 2 ^ 20 + 1
+
+/-- A tagged bound `⟨gT + a, [(k, 0)]⟩`: the value is `g^a + [V.n k]` (a loop's entry guard), no exponent bound. -/
+def guardOf (b : Aff) : Option (ℕ × ℕ) :=
+  bif Nat.ble gT b.c then (match b.cs with
+    | [(k, 0)] => some (b.c - gT, k)
+    | _ => none) else none
 
 /-- A constant word is `g^e`: the word `2^e` below the first reduction, by digits above. -/
 def constOk (w : E) (e : ℕ) : Bool :=
@@ -137,7 +157,7 @@ def blookup (v : V) : BEnv → Option Aff
 /-- A bound on a value's exponent: tracked, a known constant's, or a parameter's. -/
 def bnd (ρ : Env × BEnv) (ps : List V) (v : V) : Option Aff :=
   match blookup v ρ.2 with
-  | some b => some b
+  | some b => bif (guardOf b).isSome then none else some b
   | none => match cls ρ.1 ps v with
     | .pow e => some ⟨e, []⟩
     | .param k => some ⟨0, [(k, 1)]⟩
@@ -165,7 +185,7 @@ def termB (ρ : Env) (ps : List V) (args : List V) (q : ℕ × ℕ) : Option Acc
 def preB (ρ : Env) (ps : List V) (args : List V) (q : ℕ × ℕ) : Option Acc :=
   match args[q.1]? with
   | some v => match cls ρ ps v with
-    | .pow e => if q.2 < e ∧ e < 2 ^ 64 - 1 then some (⟨0, []⟩, []) else none
+    | .pow e => if preLt q.2 e = true ∧ e < 2 ^ 64 - 1 then some (⟨0, []⟩, []) else none
     | .param k => some (⟨0, []⟩, [(k, q.2)])
     | .none => none
   | none => none
@@ -234,20 +254,80 @@ def siteB (cert : String → Cert) (wl : String → Option ℕ) (α : Bool) (ρ 
               | .none => none
           | _ => none
 
-/-- **An atom's bound and the constants after it**: a certified constant joins them; counting
-words (`α`), a tracked product `d = x·g^c` is bounded by `x`'s bound plus `c`, a `HeapBuf(n)` adds
-`n` and a dynamic one its size's exponent bound (`bnd`), or fails. -/
+/-- **A loop's guard `d = x + y`** marked in the certificate's constants (`guardE`), `x` a known constant `g^a`
+and `y` a value `V.n k`: kept as the tagged bound `⟨gT + a, [(k, 0)]⟩`. -/
+def guardAtom (ks : List (V × ℕ)) (ρ : Env × BEnv) (d x y : V) : Env × BEnv :=
+  if vlookup d ks == some guardE then
+    match vlookup x ρ.1 with
+    | some a => bif selIs y.idx y then (ρ.1, (d, ⟨gT + a, [(y.idx, 0)]⟩) :: ρ.2) else ρ
+    | none => ρ
+  else ρ
+
+/-- **A `callIf` site's guard**: its condition a tagged bound (`guardOf`), `g^a + [V.n k]`. -/
+def guardB (β : BEnv) (c : V) : Option (ℕ × ℕ) :=
+  match blookup c β with
+  | some b => guardOf b
+  | none => none
+
+/-- **A loop entered by a `callIf` on its guard** `g^a0 + end` (`guardB`), its start `g^a0`: taken, the end is not
+the start, so the run's iterations are `e - a0` for an end `g^e`, `a0 ≤ e` (or a caller's parameter at least
+`a0`, the precondition `(k, gT + a0)`); `none` where it does not apply. -/
+def siteBL (cert : String → Cert) (wl : String → Option ℕ) (α : Bool) (ρ : Env) (ps : List V)
+    (g : String) (args : List V) (a0 k : ℕ) : Option Acc :=
+  match cert g, phB wl α g, args[0]?, args[1]? with
+  | .loop none pre b _, some p, some v0, some v1 =>
+      match cls ρ ps v0 with
+      | .pow a => if a = a0 ∧ v1 = V.n k then
+          match cls ρ ps v1 with
+          | .pow e => if a0 ≤ e ∧ e < 2 ^ 64 - 1 then
+              (transB ρ ps args pre b).map fun r => ((r.1.scale (e - a0)).add p.1, r.2)
+            else none
+          | .param k' => match transB ρ ps args pre b with
+            | some r => if r.1.cs = [] then some ((⟨0, [(k', r.1.c)]⟩ : Aff).add p.1, (k', gT + a0) :: r.2)
+              else none
+            | none => none
+          | .none => none
+        else none
+      | _ => none
+  | _, _, _, _ => none
+
+/-- **A `callIf` site's bound**: on its guard (`guardB`), the loop rule `siteBL` where it applies, else `siteB`. -/
+def siteBC (cert : String → Cert) (wl : String → Option ℕ) (α : Bool) (ρ : Env × BEnv) (ps : List V)
+    (c : V) (g : String) (args : List V) : Option Acc :=
+  match guardB ρ.2 c with
+  | some (a0, k) => match siteBL cert wl α ρ.1 ps g args a0 k with
+    | some r => some r
+    | none => siteB cert wl α ρ.1 ps g args
+  | none => siteB cert wl α ρ.1 ps g args
+
+/-- The preconditions that the arguments a bound names are powers of `g` (`(k, gT)`: `g^b`, `0 ≤ b`), under
+which a value of that bound built from powers and those arguments is a power. -/
+def powPre (b : Aff) : List (ℕ × ℕ) := b.cs.map fun q => (q.1, gT)
+
+/-- **An atom's bound and the constants after it**: a certified constant joins them, and a copy of one; counting
+words (`α`), a tracked product `d = x·g^c` is bounded by `x`'s bound plus `c`, and `d = x·y` by the sum of their
+bounds where the arguments `x`'s names are powers (`powPre`), a `HeapBuf(n)` adds `n` and a dynamic one its size's
+exponent bound (`bnd`), or fails. -/
 def atomB (α : Bool) (ks : List (V × ℕ)) (ps : List V) (ρ : Env × BEnv) :
     Atom → Option (Acc × (Env × BEnv))
   | .const v w => match vlookup v ks with
       | some e => if constOk w e then some (Acc.zero, ((v, e) :: ρ.1, ρ.2)) else some (Acc.zero, ρ)
       | none => some (Acc.zero, ρ)
+  | .copy d s => match cls ρ.1 ps s with
+      | .pow e => some (Acc.zero, ((d, e) :: ρ.1, ρ.2))
+      | _ => some (Acc.zero, ρ)
   | .mul d x y =>
       if α && vlookup d ks == some trackE then
         match bnd ρ ps x, cls ρ.1 ps y with
-        | some b, .pow c => some (Acc.zero, (ρ.1, (d, b.add ⟨c, []⟩) :: ρ.2))
+        | some b, .pow c => bif (guardOf (b.add ⟨c, []⟩)).isSome then none
+            else some (Acc.zero, (ρ.1, (d, b.add ⟨c, []⟩) :: ρ.2))
+        | some b, _ => match bnd ρ ps y with
+          | some b' => bif (guardOf (b.add b')).isSome then none
+              else some ((⟨0, []⟩, powPre b), (ρ.1, (d, b.add b') :: ρ.2))
+          | none => none
         | _, _ => none
       else some (Acc.zero, ρ)
+  | .add d x y => some (Acc.zero, guardAtom ks ρ d x y)
   | .hint (.alloc _ n) => some (if α then (⟨n, []⟩, []) else Acc.zero, ρ)
   | .hint (.allocDyn _ s) =>
       if α then
@@ -275,9 +355,9 @@ def blockB (cert : String → Cert) (wl : String → Option ℕ) (α : Bool) (ks
   | ρ, .match_ _ arms :: ss =>
       Option.addAcc (armsB cert wl α ks ps self ρ arms) (blockB cert wl α ks ps self ρ ss)
   | ρ, .call g args _ :: ss => Option.addAcc (siteB cert wl α ρ.1 ps g args) (blockB cert wl α ks ps self ρ ss)
-  | ρ, .callIf _ g args :: ss =>
+  | ρ, .callIf c g args :: ss =>
       if g = self then none
-      else Option.addAcc (siteB cert wl α ρ.1 ps g args)
+      else Option.addAcc (siteBC cert wl α ρ ps c g args)
         (Option.addAcc (phB wl α g) (blockB cert wl α ks ps self ρ ss))
   | ρ, .dispatch _ gs args _ :: ss =>
       Option.addAcc (maxB (fun g => siteB cert wl α ρ.1 ps g args) gs) (blockB cert wl α ks ps self ρ ss)
@@ -303,8 +383,8 @@ noncomputable def stmtR (cert : String → Cert) (wl : String → Option ℕ) (�
     (fun _ _ _ hz hn ρ => (Option.maxAcc (hz ρ) (hn ρ)).map fun r => (r, some ρ))
     (fun _ _ ha ρ => (ha ρ).map fun r => (r, some ρ))
     (fun g args _ ρ => (siteB cert wl α ρ.1 ps g args).map fun r => (r, some ρ))
-    (fun _ g args ρ => if g = self then none
-      else (Option.addAcc (siteB cert wl α ρ.1 ps g args) (phB wl α g)).map fun r => (r, some ρ))
+    (fun c g args ρ => if g = self then none
+      else (Option.addAcc (siteBC cert wl α ρ ps c g args) (phB wl α g)).map fun r => (r, some ρ))
     (fun _ gs args _ ρ => (maxB (fun g => siteB cert wl α ρ.1 ps g args) gs).map fun r => (r, some ρ))
     (fun _ _ => some (Acc.zero, none))
     (fun _ => some Acc.zero)
@@ -325,8 +405,8 @@ noncomputable def blockR (cert : String → Cert) (wl : String → Option ℕ) (
     (fun _ _ _ hz hn ρ => (Option.maxAcc (hz ρ) (hn ρ)).map fun r => (r, some ρ))
     (fun _ _ ha ρ => (ha ρ).map fun r => (r, some ρ))
     (fun g args _ ρ => (siteB cert wl α ρ.1 ps g args).map fun r => (r, some ρ))
-    (fun _ g args ρ => if g = self then none
-      else (Option.addAcc (siteB cert wl α ρ.1 ps g args) (phB wl α g)).map fun r => (r, some ρ))
+    (fun c g args ρ => if g = self then none
+      else (Option.addAcc (siteBC cert wl α ρ ps c g args) (phB wl α g)).map fun r => (r, some ρ))
     (fun _ gs args _ ρ => (maxB (fun g => siteB cert wl α ρ.1 ps g args) gs).map fun r => (r, some ρ))
     (fun _ _ => some (Acc.zero, none))
     (fun _ => some Acc.zero)
@@ -347,8 +427,8 @@ noncomputable def armsR (cert : String → Cert) (wl : String → Option ℕ) (�
     (fun _ _ _ hz hn ρ => (Option.maxAcc (hz ρ) (hn ρ)).map fun r => (r, some ρ))
     (fun _ _ ha ρ => (ha ρ).map fun r => (r, some ρ))
     (fun g args _ ρ => (siteB cert wl α ρ.1 ps g args).map fun r => (r, some ρ))
-    (fun _ g args ρ => if g = self then none
-      else (Option.addAcc (siteB cert wl α ρ.1 ps g args) (phB wl α g)).map fun r => (r, some ρ))
+    (fun c g args ρ => if g = self then none
+      else (Option.addAcc (siteBC cert wl α ρ ps c g args) (phB wl α g)).map fun r => (r, some ρ))
     (fun _ gs args _ ρ => (maxB (fun g => siteB cert wl α ρ.1 ps g args) gs).map fun r => (r, some ρ))
     (fun _ _ => some (Acc.zero, none))
     (fun _ => some Acc.zero)
@@ -454,16 +534,20 @@ theorem NTree.find_all {α : Type} {p : α → Bool} : ∀ {t : NTree α} {k : �
 /-- `a`'s constant and terms are at most `b`'s, term by term. -/
 def Aff.leB (a b : Aff) : Bool := decide (a.c ≤ b.c) && a.cs == b.cs
 
+/-- A `stat` certificate's check of a body of `fn`. -/
+noncomputable def statB (look : String → Cert) (wl : String → Option ℕ) (α : Bool) (pre : List (ℕ × ℕ)) (b : Aff)
+    (ks : List (V × ℕ)) (w : ℕ) (fn : Fn) (body : List Stmt) : Bool :=
+  match blockR look wl α ks fn.params fn.name body ([], []) with
+  | some r => Aff.leB ⟨w + r.1.c, r.1.cs⟩ b && r.2.all (· ∈ pre)
+  | none => false
+
 /-- **The check of a function** against its certificate `own`, its frame weighing `w`, its
 callees' certificates by `look`, counting words if `α`. -/
 noncomputable def chkFn (look : String → Cert) (wl : String → Option ℕ) (α : Bool) (own : Cert) (w : ℕ)
     (fn : Fn) : Bool :=
   match own with
   | .none => true
-  | .stat pre b ks =>
-      match blockR look wl α ks fn.params fn.name fn.body ([], []) with
-      | some r => Aff.leB ⟨w + r.1.c, r.1.cs⟩ b && r.2.all (· ∈ pre)
-      | none => false
+  | .stat pre b ks => statB look wl α pre b ks w fn fn.body || selSplit fn.body (statB look wl α pre b ks w fn)
   | .loop endc pre b ks =>
       match loopShape fn endc with
       | some pre' => match blockR look wl α ks fn.params fn.name pre' ([], []) with

@@ -34,35 +34,32 @@ open LeanVM.Protocol.Verifier hiding Layout
 `opening_queries`' words. -/
 def lqN (fs : String → ℕ) (name : String) (q base folds leaf d cd mu nhs hbits fin : ℕ) : ℕ :=
   fs name + 5 * 2 ^ cd + fs ("verify_merkle_cap__L" ++ natStr cd) +
-    oqBound fs (lqOqN q base folds leaf d cd mu nhs hbits fin)
-      (oqLoopOf (lqOqN q base folds leaf d cd mu nhs hbits fin)) (lqIters q base)
+    oqBound fs (lqOqN base folds leaf d cd mu nhs hbits fin)
+      (oqLoopOf (lqOqN base folds leaf d cd mu nhs hbits fin)) (lqIters q base)
 
 /-- **`LqAtD` by a tree of exactly `lqN` words.** -/
 def LqAtE (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) (name : String)
     (q base folds leaf d cd mu nhs hbits fin : ℕ) : Prop :=
-  let s := lqOqS q base folds leaf d cd mu nhs hbits fin
+  let s := lqOqS base folds leaf d cd mu nhs hbits fin
   ∀ (Lin : Layout) (lam lamInv : E) (ecoefs ehs epos eqp : ℕ) (rounds : List FoldRound)
     (hsv : List E) (eb qs : ℕ → ℕ) (rows : ℕ → List K) (sibs : ℕ → List Digest)
     (capW flW : List E) (r0 r1 : E),
     rounds.length = s.folds → (s.final = 1 → hsv.length = s.nHs) →
-    OqStatic s rounds hsv qs rows sibs q →
-    LqCaps s q capW flW r0 r1 qs rows sibs →
-    LqReg (RegionL Lin) s q ecoefs ehs epos eqp eb →
-    (∀ rd, LowDef κ rd → MemL rd Lin → LqMem rd s q ecoefs ehs epos eqp rounds hsv eb qs) →
+    OqStatic s cd rounds hsv qs rows sibs q →
+    LqCaps s cd q capW flW r0 r1 qs rows sibs →
+    LqReg (RegionL Lin) s cd q ecoefs ehs epos eqp eb →
+    (∀ rd, LowDef κ rd → MemL rd Lin → LqMem rd s cd q ecoefs ehs epos eqp rounds hsv eb qs) →
     CompleteAtE fs cert κ name Lin
       [lam, lamInv, ofK (addressOfIndex ecoefs), ofK (addressOfIndex ehs),
         ofK (addressOfIndex epos), ofK (addressOfIndex eqp)]
-      (Returns [r0, r1, lqSum s (lqOdd q base folds leaf d cd mu nhs hbits fin) (lqIters q base)
-        lamInv rounds qs rows, lam ^ q]) (lqN fs name q base folds leaf d cd mu nhs hbits fin)
+      (Returns [r0, r1, lqSum s (Whir.lqOdd q base) (lqIters q base) lamInv rounds qs rows,
+        lam ^ q]) (lqN fs name q base folds leaf d cd mu nhs hbits fin)
 
 /-- An entry's sizes the bound's fresh instance takes. -/
 def LqSmall (q base folds leaf d cd mu nhs hbits fin : ℕ) : Prop :=
-  q ≤ 1024 ∧ cd ≤ 8 ∧ (lqOqS q base folds leaf d cd mu nhs hbits fin).folds ≤ 64 ∧
-    (lqOqS q base folds leaf d cd mu nhs hbits fin).nHs ≤ 1024 ∧
-    qwN ((lqOqS q base folds leaf d cd mu nhs hbits fin).pd +
-      (lqOqS q base folds leaf d cd mu nhs hbits fin).cd)
-      (lqOqS q base folds leaf d cd mu nhs hbits fin).cd ≤ 64 ∧
-    oqWalkCount (lqOqN q base folds leaf d cd mu nhs hbits fin) (lqIters q base) ≤ 4096
+  q ≤ 1024 ∧ cd ≤ 8 ∧ (lqOqS base folds leaf d cd mu nhs hbits fin).folds ≤ 64 ∧
+    (lqOqS base folds leaf d cd mu nhs hbits fin).nHs ≤ 1024 ∧
+    qwN ((lqOqS base folds leaf d cd mu nhs hbits fin).pd + cd) cd ≤ 64
 
 instance (q base folds leaf d cd mu nhs hbits fin : ℕ) :
     Decidable (LqSmall q base folds leaf d cd mu nhs hbits fin) := by
@@ -78,30 +75,28 @@ theorem lqTable_small : ∀ e ∈ lqTable,
 theorem lqN_lt {fs : String → ℕ} {name : String} {q base folds leaf d cd mu nhs hbits fin : ℕ}
     (hfs : ∀ f, fs f < 2 ^ 32) (hS : LqSmall q base folds leaf d cd mu nhs hbits fin) :
     lqN fs name q base folds leaf d cd mu nhs hbits fin < 2 ^ 50 := by
-  obtain ⟨hq, hcd, -, -, -, hw⟩ := hS
+  obtain ⟨hq, hcd, -, -, -⟩ := hS
   unfold lqN oqBound
   have hN : lqIters q base ≤ 1024 := by unfold lqIters; split <;> omega
   have h2 : 2 ^ cd ≤ 2 ^ 8 := Nat.pow_le_pow_right (by omega) hcd
   have e1 := hfs name
   have e2 := hfs ("verify_merkle_cap__L" ++ natStr cd)
-  have e3 := hfs (lqOqN q base folds leaf d cd mu nhs hbits fin)
-  have e4 : (lqIters q base + 1) * fs (oqLoopOf (lqOqN q base folds leaf d cd mu nhs hbits fin)) ≤
-      1025 * 2 ^ 32 := Nat.mul_le_mul (by omega) (hfs _).le
-  have e5 : oqWalkCount (lqOqN q base folds leaf d cd mu nhs hbits fin) (lqIters q base) *
-      fs (oqWalkOfName (lqOqN q base folds leaf d cd mu nhs hbits fin)) ≤ 4096 * 2 ^ 32 :=
-    Nat.mul_le_mul hw (hfs _).le
+  have e3 := hfs (lqOqN base folds leaf d cd mu nhs hbits fin)
+  have e4 : lqIters q base * fs (oqLoopOf (lqOqN base folds leaf d cd mu nhs hbits fin)) ≤
+      1024 * 2 ^ 32 := Nat.mul_le_mul hN (hfs _).le
+  have e5 := hfs (tailKey (oqLoopOf (lqOqN base folds leaf d cd mu nhs hbits fin)))
   omega
 
 set_option maxHeartbeats 800000 in
 /-- **A fresh copy of a queries' words**: the rounds, the high part, the positions, the window
 pointers and the windows, below `top ≤ 2^20`, where `level_queries` reads them. -/
-theorem lq_fresh {s : Oq} {q : ℕ} {rounds : List FoldRound} {hsv : List E} {qs : ℕ → ℕ}
+theorem lq_fresh {s : Oq} {cd q : ℕ} {rounds : List FoldRound} {hsv : List E} {qs : ℕ → ℕ}
     (κ : ℕ) (hrl : rounds.length = s.folds) (hhs : s.final = 1 → hsv.length = s.nHs)
-    (hq : q ≤ 1024) (hfo : s.folds ≤ 64) (hnh : s.nHs ≤ 1024) (hwn : qwN (s.pd + s.cd) s.cd ≤ 64) :
+    (hq : q ≤ 1024) (hfo : s.folds ≤ 64) (hnh : s.nHs ≤ 1024) (hwn : qwN (s.pd + cd) cd ≤ 64) :
     ∃ (Lin0 : Layout) (e2 e3 e4 top : ℕ) (eb : ℕ → ℕ), Within Lin0 0 top ∧ DisjL Lin0 ∧
-      top ≤ 2 ^ 20 ∧ LqReg (RegionL Lin0) s q 0 e2 e3 e4 eb ∧
-      ∀ rd, LowDef κ rd → MemL rd Lin0 → LqMem rd s q 0 e2 e3 e4 rounds hsv eb qs := by
-  obtain ⟨Wn, hWn⟩ : ∃ w, w = qwN (s.pd + s.cd) s.cd := ⟨_, rfl⟩
+      top ≤ 2 ^ 20 ∧ LqReg (RegionL Lin0) s cd q 0 e2 e3 e4 eb ∧
+      ∀ rd, LowDef κ rd → MemL rd Lin0 → LqMem rd s cd q 0 e2 e3 e4 rounds hsv eb qs := by
+  obtain ⟨Wn, hWn⟩ : ∃ w, w = qwN (s.pd + cd) cd := ⟨_, rfl⟩
   obtain ⟨hsW, hhsW⟩ : ∃ l : List E, l = if s.final = 1 then hsv else [] := ⟨_, rfl⟩
   have hHle : hsW.length ≤ 1024 := by
     rw [hhsW]; split
@@ -116,7 +111,7 @@ theorem lq_fresh {s : Oq} {q : ℕ} {rounds : List FoldRound} {hsv : List E} {qs
   obtain ⟨ptrW, hptrW⟩ : ∃ l : List E, l = (List.range q).map fun k ↦
       ofK (addressOfIndex (e5 + k * Wn)) := ⟨_, rfl⟩
   obtain ⟨winW, hwinW⟩ : ∃ l : List E, l = (List.range (q * Wn)).map fun t ↦
-      gen ^ qwVal (s.pd + s.cd) s.cd (qs (t / Wn)) (t % Wn) := ⟨_, rfl⟩
+      gen ^ qwVal (s.pd + cd) cd (qs (t / Wn)) (t % Wn) := ⟨_, rfl⟩
   have lC : coefsW.length = 2 * rounds.length := by rw [hcoefsW]; simp
   have lP : posW.length = q := by rw [hposW]; simp
   have lR : ptrW.length = q := by rw [hptrW]; simp
@@ -201,16 +196,16 @@ theorem lq_bound {fs : String → ℕ} {cert : String → V → ℕ} {κ : ℕ} 
     (hfs : ∀ f, fs f < 2 ^ 32) (hS : LqSmall q base folds leaf d cd mu nhs hbits fin)
     {rounds : List FoldRound} {hsv : List E} {qs : ℕ → ℕ} {rows : ℕ → List K}
     {sibs : ℕ → List Digest} {capW flW : List E} {r0 r1 : E}
-    (hrl : rounds.length = (lqOqS q base folds leaf d cd mu nhs hbits fin).folds)
-    (hhs : (lqOqS q base folds leaf d cd mu nhs hbits fin).final = 1 →
-      hsv.length = (lqOqS q base folds leaf d cd mu nhs hbits fin).nHs)
-    (hst : OqStatic (lqOqS q base folds leaf d cd mu nhs hbits fin) rounds hsv qs rows sibs q)
-    (hcaps : LqCaps (lqOqS q base folds leaf d cd mu nhs hbits fin) q capW flW r0 r1 qs rows sibs)
+    (hrl : rounds.length = (lqOqS base folds leaf d cd mu nhs hbits fin).folds)
+    (hhs : (lqOqS base folds leaf d cd mu nhs hbits fin).final = 1 →
+      hsv.length = (lqOqS base folds leaf d cd mu nhs hbits fin).nHs)
+    (hst : OqStatic (lqOqS base folds leaf d cd mu nhs hbits fin) cd rounds hsv qs rows sibs q)
+    (hcaps : LqCaps (lqOqS base folds leaf d cd mu nhs hbits fin) cd q capW flW r0 r1 qs rows sibs)
     {B : ℕ} (hT : TotalLe coreProgram fs name (fun _ ↦ B)) :
     lqN fs name q base folds leaf d cd mu nhs hbits fin ≤ B := by
-  obtain ⟨hq, -, hfo, hnh, hwn, -⟩ := id hS
+  obtain ⟨hq, -, hfo, hnh, hwn⟩ := id hS
   obtain ⟨Lin0, e2, e3, e4, top, eb, hLW, hLD, htop, hreg, hmem⟩ :=
-    lq_fresh (qs := qs) κ hrl hhs hq hfo hnh hwn
+    lq_fresh (qs := qs) (cd := cd) κ hrl hhs hq hfo hnh hwn
   obtain ⟨Lown, rets, Lout, hout, hW, hD, hR⟩ := hE Lin0 0 0 0 e2 e3 e4 rounds hsv eb qs rows
     sibs capW flW r0 r1 hrl hhs hst hcaps hreg hmem top
   have hlt := lqN_lt (fs := fs) (name := name) hfs hS

@@ -1,24 +1,18 @@
 /-
   LeanVM.Guest.B1.Whir.RoundComplete
 
-  `opening_round`'s completeness: on its meaning, its honest values make its body hold, its
-  `grind_check__L7` call on a passing word.
+  A fold round's honest sponge values, for the inline round's completeness.
 -/
 
 module
 
 public import LeanVM.Guest.B1.Whir.RoundSound
-import LeanVM.Guest.ValRef
-import LeanVM.Guest.Data.ValNames.«opening_round»
 
 /-!
-# `opening_round`, honestly
+# A fold round, honestly
 
-`rdVals as xs`: the honest values of `roundBody` on the arguments `as` and the five words `xs` at
-the cursor, value by value (the sponge's three permutations `rdS1`, `rdS3`, `rdS4`).
-`round_complete`: on its meaning (`MeaningOpeningRound`), with `xs` the words it reads, the body
-holds at those values under any call relation in which `grind_check__L7` holds of a passing word
-and the tables; the grind's word is cell `1` of the nonce's permutation (`rdVals_52`).
+`rdVals as xs`: the honest values of a fold round on the arguments `as` and the five words `xs`
+at the cursor, value by value (the sponge's three permutations `rdS1`, `rdS3`, `rdS4`).
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -76,14 +70,7 @@ def rdVals (as xs : List E) (k : ℕ) : E :=
   else if k < 74 then rdCell (rdS4 as xs) (k - 61)
   else (rdTail as xs).getD (k - 74) 0
 
-theorem rdVals_49 (as xs : List E) : rdVals as xs 49 = rdCell (rdS3 as xs) 1 := by
-  simp [rdVals]
-
-theorem rdVals_7 (as xs : List E) : rdVals as xs 7 = as.getD 7 0 := by simp [rdVals]
-
 /-! ## The meaning's sponges -/
-
-theorem foldGrindingBits_eq : _root_.LeanVM.Parameters.Whir.foldGrindingBits = 7 := rfl
 
 theorem rdCell_eq (S : KeccakState) (c : Fin 13) : rdCell S c.val = cellsOfState S false c := by
   unfold rdCell
@@ -109,94 +96,6 @@ theorem rd_sponges (f0 f1 f2 f3 f4 cur claim tabs gp cp u0 w c0 c1 n2 : E) :
     rw [rdG2, Fs.grindSqueeze_pos _ hb, en]
   refine ⟨en, e2, ?_⟩
   rw [e2]; rfl
-
-/-! ## The body holds -/
-
-theorem roundBody_split : roundBody = roundBody.dropLast ++ [.ret [.n (val% «opening_round» "s13#0"), .n (val% «opening_round» "s13#0[1]"), .n (val% «opening_round» "s13#0[2]"),
-    .n (val% «opening_round» "s13#0[3]"), .n (val% «opening_round» "s13#0[4]"), .n (val% «opening_round» "s13#0[5]"), .n (val% «opening_round» "s13#0[6]")]] := by
-  rfl
-
-/-- **`opening_round`'s body holds at its honest values** on its meaning, under a call relation
-in which `grind_check__L7` holds of a passing word and the tables. -/
-theorem round_complete {C : CallRel} {rd : Reader} {args rets : List E}
-    (hm : MeaningOpeningRound rd args rets)
-    (hg : ∀ w : E, (w.limb 0).lane.toNat % 2 ^ 7 = 0 → C "grind_check__L7" [w, args.getD 7 0] []) :
-    ∃ xs : List E, xs.length = 5 ∧ ReadsAt rd (args.getD 5 0) xs ∧
-      ((rdCell (rdS3 args xs) 1).limb 0).lane.toNat % 2 ^ 7 = 0 ∧
-      (Fn.params Fn.«opening_round».core).map (fun v ↦ rdVals args xs v.idx) = args ∧
-      Stmt.HoldsList C rd (fun v ↦ rdVals args xs v.idx) roundBody False (fun rs ↦ rs = rets) := by
-  obtain ⟨f0, f1, f2, f3, f4, cur, claim, tabs, gp, cp, rfl⟩ :
-      ∃ f0 f1 f2 f3 f4 cur claim tabs gp cp, args = [f0, f1, f2, f3, f4, cur, claim, tabs, gp, cp] := by
-    match args, hm with
-    | [a, b, c, d, e, f, g, h, i, j], _ => exact ⟨a, b, c, d, e, f, g, h, i, j, rfl⟩
-  obtain ⟨u0, w, c0, c1, n2, hrd, g2, lg, la, lb, hret⟩ := hm
-  obtain ⟨en2, e2, e3⟩ := rd_sponges f0 f1 f2 f3 f4 cur claim tabs gp cp u0 w c0 c1 n2
-  set as := [f0, f1, f2, f3, f4, cur, claim, tabs, gp, cp] with has
-  set xs := [u0, w, c0, c1, n2] with hxs
-  have hb : _root_.LeanVM.Parameters.Whir.foldGrindingBits ≠ 0 := by decide
-  have p2 := (grindOk_iff hb n2).mp g2
-  rw [en2, foldGrindingBits_eq] at p2
-  rw [← rdCell_eq _ 1] at p2
-  replace p2 : ((rdCell (rdS3 as xs) 1).limb 0).lane.toNat % 2 ^ 7 = 0 := p2
-  refine ⟨xs, rfl, hrd, p2, by simp [opening_round_params, rdVals, List.range_succ, has], ?_⟩
-  set σ : Val := fun v ↦ rdVals as xs v.idx with hσ
-  have ev : ∀ k, σ (.n k) = rdVals as xs k := fun _ ↦ rfl
-  rw [e2, Keccak.challengeOf_cells, ← rdCell_eq _ 0] at lg la
-  rw [e3, Keccak.challengeOf_cells, ← rdCell_eq _ 0] at lb
-  rw [roundBody_split, holdsList_flat_ret _ (by decide)]
-  have k1 : permOf ([V.n (val% «opening_round» "msg[0]"), .n (val% «opening_round» "msg[1]"), .n (val% «opening_round» "msg[2]"), .n (val% «opening_round» "msg[3]"), .n (val% «opening_round» "msg[4]"), .n (val% «opening_round» "msg[5]"), .n (val% «opening_round» "msg[6]"), .n (val% «opening_round» "msg[7]"), .n (val% «opening_round» "sp[0]"), .n (val% «opening_round» "sp[1]"), .n (val% «opening_round» "sp[2]"),
-      .n (val% «opening_round» "sp[3]"), .n (val% «opening_round» "sp[4]")].map σ) = rdS1 as xs := by
-    rw [rdS1, perm_eq_cells _ (by simp)]; rfl
-  have k3 : permOf ([V.n (val% «opening_round» "nonce_rate[0]"), .n (val% «opening_round» "nonce_rate[1]"), .n (val% «opening_round» "s6.i0:fs_grind_squeeze.s0.e.s0.t.s2.i1:fs_absorb_nonce.s1.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «opening_round» "s6.i0:fs_grind_squeeze.s0.e.s0.t.s2.i1:fs_absorb_nonce.s1.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «opening_round» "s6.i0:fs_grind_squeeze.s0.e.s0.t.s2.i1:fs_absorb_nonce.s1.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «opening_round» "s6.i0:fs_grind_squeeze.s0.e.s0.t.s2.i1:fs_absorb_nonce.s1.i0:fs_perm.s2.t.s0#0[2]"), .n (val% «opening_round» "s6.i0:fs_grind_squeeze.s0.e.s0.t.s2.i1:fs_absorb_nonce.s1.i0:fs_perm.s2.t.s0#0[3]"), .n (val% «opening_round» "s6.i0:fs_grind_squeeze.s0.e.s0.t.s2.i1:fs_absorb_nonce.s1.i0:fs_perm.s2.t.s0#0[4]"), .n (val% «opening_round» "nxt[8]@1"), .n (val% «opening_round» "nxt[9]@1"), .n (val% «opening_round» "nxt[10]@1"),
-      .n (val% «opening_round» "nxt[11]@1"), .n (val% «opening_round» "nxt[12]@1")].map σ) = rdS3 as xs := by
-    rw [rdS3, perm_eq_cells _ (by simp)]; rfl
-  have k4 : permOf ([V.n (val% «opening_round» "s6.i0:fs_grind_squeeze.s0.e.s0.t.s2.i1:fs_absorb_nonce.s1.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «opening_round» "s6.i0:fs_grind_squeeze.s0.e.s0.t.s2.i1:fs_absorb_nonce.s1.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «opening_round» "s6.i0:fs_grind_squeeze.s0.e.s0.t.s2.i1:fs_absorb_nonce.s1.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «opening_round» "s6.i0:fs_grind_squeeze.s0.e.s0.t.s2.i1:fs_absorb_nonce.s1.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «opening_round» "s6.i0:fs_grind_squeeze.s0.e.s0.t.s2.i1:fs_absorb_nonce.s1.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «opening_round» "s6.i0:fs_grind_squeeze.s0.e.s0.t.s2.i1:fs_absorb_nonce.s1.i0:fs_perm.s2.t.s0#0[2]"), .n (val% «opening_round» "s6.i0:fs_grind_squeeze.s0.e.s0.t.s2.i1:fs_absorb_nonce.s1.i0:fs_perm.s2.t.s0#0[3]"), .n (val% «opening_round» "s6.i0:fs_grind_squeeze.s0.e.s0.t.s2.i1:fs_absorb_nonce.s1.i0:fs_perm.s2.t.s0#0[4]"), .n (val% «opening_round» "nxt[8]@2"), .n (val% «opening_round» "nxt[9]@2"), .n (val% «opening_round» "nxt[10]@2"),
-      .n (val% «opening_round» "nxt[11]@2"), .n (val% «opening_round» "nxt[12]@2")].map σ) = rdS4 as xs := by
-    rw [rdS4, perm_eq_cells _ (by simp)]; rfl
-  have l0 : LoadHolds rd cur 0 u0 := hrd 0 (by simp [xs])
-  have l1 : LoadHolds rd cur 1 w := hrd 1 (by simp [xs])
-  have l2 : LoadHolds rd cur 2 c0 := hrd 2 (by simp [xs])
-  have l3 : LoadHolds rd cur 3 c1 := hrd 3 (by simp [xs])
-  have l4 : LoadHolds rd cur 4 n2 := hrd 4 (by simp [xs])
-  clear hrd
-  refine ⟨?_, ?_⟩
-  · simp only [roundBody, fsNonceT, fsNextT, fsPackT, padRunT, permIns, osRun, keccakA,
-      osLd, osMul, osAdd, osCp, osCst, List.range_succ, List.range_zero, List.map_cons,
-      List.map_nil, List.nil_append, List.cons_append, List.take, List.dropLast_cons_cons,
-      List.dropLast_singleton, Nat.reduceAdd]
-    repeat' (first | exact allOk_nil | refine allOk_cons.mpr ⟨?_, ?_⟩)
-    all_goals first
-      | (simp only [stmtOk_atom, holds_load, ev]
-         simp (config := {decide := true}) only [rdVals, Fin.val_zero, ↓reduceIte,
-           Nat.reduceSub] at lg la lb ⊢
-         simp only [has, hxs, List.getD_cons_zero, List.getD_cons_succ] at lg la lb ⊢
-         first
-           | with_reducible exact l0
-           | with_reducible exact l1
-           | with_reducible exact l2
-           | with_reducible exact l3
-           | with_reducible exact l4
-           | with_reducible exact lg
-           | with_reducible exact la
-           | with_reducible exact lb)
-      | (rw [stmtOk_call]
-         simp only [List.map_cons, List.map_nil, ev, rdVals_49, rdVals_7]
-         with_reducible exact hg _ p2)
-      | (rw [stmtOk_atom]
-         refine keccakA_of rfl rfl ?_
-         first | rw [k1] | rw [k3] | rw [k4]
-         funext c
-         fin_cases c <;> rfl)
-      | (simp only [stmtOk_atom, holds_const, holds_copy, holds_add, holds_mul, ev]
-         simp [rdVals, rdTail, word_zero])
-  · have hw : word 32 0 = gen ^ 5 := word_two_pow (a := 5) (by decide)
-    rw [hret, e3, e2]
-    simp only [Keccak.challengeOf_cells, ← rdCell_eq _ 0, Fin.val_zero, capOf, ← rdCell_eq _ 8,
-      ← rdCell_eq _ 9, ← rdCell_eq _ 10, ← rdCell_eq _ 11, ← rdCell_eq _ 12]
-    simp (config := {decide := true}) only [List.map_cons, List.map_nil, ev, rdVals, rdTail,
-      ↓reduceIte, Nat.reduceSub, List.getD_cons_zero, List.getD_cons_succ, List.cons_append,
-      List.nil_append, hw, roundClaim]
-    rfl
 
 end
 end LeanVM.Guest.B1.Whir

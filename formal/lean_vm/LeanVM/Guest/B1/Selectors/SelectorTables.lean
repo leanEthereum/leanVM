@@ -15,10 +15,10 @@ import LeanVM.Guest.Data.ValNames.«selector_tables»
 /-!
 # `selector_tables` (TRIAGE G #69)
 
-`selector_tables(point, point1)` allocates `sel_eq` (`8·64` words) and for each
+`selector_tables(point, point1)` allocates `sel_eq` (`8·32` words) and for each
 nibble `j < 8` computes the eq levels over its top coordinates `4j + 3, 4j + 2, …` (level `w` from
 level `w - 1`: entry `i` times `1 + r`, then times `r`, `r` coordinate `4j + 3 - w`) and stores
-level `w`'s `2^(w+1)` entries at `sel_eq[64j + 16w ..]`, strided by `2^(3 - w)`: entry `u` there
+level `w`'s `2^(w+1)` entries at `sel_eq[32j + selEqOff w ..]`, strided by `2^(3 - w)`: entry `u` there
 is the eq weight of `u`'s bits `3 - w .. 3` (`selEqEntry`).
 
 The body is `stPre ++ [ret]` (`stFound`, by kernel evaluation): nibble `j`'s values from
@@ -51,10 +51,10 @@ def stLevel (j w : ℕ) : List Stmt :=
     [.atom (.mul (.n (stM j w + 2 * i)) (.n (stV j (w - 1) i)) (.n (stM j w - 1))),
       .atom (.mul (.n (stM j w + 2 * i + 1)) (.n (stV j (w - 1) i)) (.n (stM j w - 2)))]).flatten
 
-/-- The stores of level `w`: entry `i` at `64j + 16w + i·2^(3 - w)`. -/
+/-- The stores of level `w`: entry `i` at `32j + selEqOff w + i·2^(3 - w)`. -/
 def stStores (j w : ℕ) : List Stmt :=
   (List.range (2 ^ (w + 1))).map fun i ↦
-    .atom (.load (.n (stV j w i)) (.n (val% «selector_tables» "sel_eq")) (64 * j + 16 * w + i * 2 ^ (3 - w)))
+    .atom (.load (.n (stV j w i)) (.n (val% «selector_tables» "sel_eq")) (32 * j + selEqOff w + i * 2 ^ (3 - w)))
 
 /-- Nibble `j`. -/
 def stNib (j : ℕ) : List Stmt :=
@@ -63,7 +63,7 @@ def stNib (j : ℕ) : List Stmt :=
 
 /-- `selector_tables`'s statements before its `ret`. -/
 def stPre : List Stmt :=
-  [.atom (.hint (.alloc (.n (val% «selector_tables» "sel_eq")) 512))] ++ ((List.range 8).map stNib).flatten ++
+  [.atom (.hint (.alloc (.n (val% «selector_tables» "sel_eq")) 256))] ++ ((List.range 8).map stNib).flatten ++
     [.atom (.copy (.n (val% «selector_tables» "s2#0")) (.n (val% «selector_tables» "sel_eq")))]
 
 /-- The function found by name is the template. -/
@@ -146,7 +146,7 @@ theorem holds_stNib {j : ℕ} (h : Stmt.HoldsList C rd σ (stNib j) True kret) :
     Stmt.HoldsList C rd σ (stLevel j 1) True kret ∧ Stmt.HoldsList C rd σ (stLevel j 2) True kret ∧
     Stmt.HoldsList C rd σ (stLevel j 3) True kret ∧
     (∀ w < 4, ∀ i < 2 ^ (w + 1),
-      LoadHolds rd (σ (.n (val% «selector_tables» "sel_eq"))) (64 * j + 16 * w + i * 2 ^ (3 - w)) (σ (.n (stV j w i)))) := by
+      LoadHolds rd (σ (.n (val% «selector_tables» "sel_eq"))) (32 * j + selEqOff w + i * 2 ^ (3 - w)) (σ (.n (stV j w i)))) := by
   have n0 : Stmt.noRetList [Stmt.atom (.load (.n (stB j)) (.n (val% «selector_tables» "point1")) (4 * j + 3)),
       Stmt.atom (.load (.n (stB j + 1)) (.n (val% «selector_tables» "point")) (4 * j + 3))] = true := rfl
   rw [stNib, tb_holdsList_append_noRet (by simp only [tb_noRetList_append, stLevel_noRet, n0,

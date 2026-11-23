@@ -45,13 +45,13 @@ theorem QD.rowVals_eq (d : QD) {first : Bool} (hfirst : d.s.base = 1 ↔ first =
 
 /-- **A query's entries at an opening's witness are the opening's**: its position the leaf index, its row the leaf,
 its siblings the path's first `pd`. -/
-theorem oqQE_eq_query (s : Oq) {first : Bool} (hfirst : s.base = 1 ↔ first = true) (o : Opening)
+theorem oqQE_eq_query (s : Oq) (cd : ℕ) {first : Bool} (hfirst : s.base = 1 ↔ first = true) (o : Opening)
     (hrow : o.leaf.length = rowLen s.base s.folds) (hl : s.pd ≤ o.path.length) :
-    oqQE s (o.leafIndex, o.leaf, o.path.take s.pd) = queryEntries first (s.pd + s.cd) s.pd o := by
+    oqQE s (o.leafIndex, o.leaf, o.path.take s.pd) = queryEntries first (s.pd + cd) s.pd o := by
   unfold oqQE
-  rw [QD.rowVals_eq (oqQD s 0 true 0 0 0 [] [] (o.leafIndex, o.leaf, o.path.take s.pd)) hfirst hrow,
-    WD.wpPops_eq ((oqQD s 0 true 0 0 0 [] [] (o.leafIndex, o.leaf, o.path.take s.pd)).wd 0) (D := s.pd + s.cd)
-      (path := o.path) rfl (by simp only [QD.wd, oqQD]; omega) hl]
+  rw [QD.rowVals_eq (oqQD s 0 0 true 0 0 0 0 [] [] (o.leafIndex, o.leaf, o.path.take s.pd)) hfirst hrow,
+    WD.wpPops_eq (oqQD s 0 0 true 0 0 0 0 [] [] (o.leafIndex, o.leaf, o.path.take s.pd)).wd (D := s.pd + cd)
+      (path := o.path) rfl hl]
   rfl
 
 theorem flatMap_range_length {α β : Type} (g : α → List β) : ∀ (l : List α) (f : ℕ → List β),
@@ -64,19 +64,19 @@ theorem flatMap_range_length {α β : Type} (g : α → List β) : ∀ (l : List
 
 /-- **The queries of a phase, in order, pop its pushes.** -/
 theorem oqPops_eq_levelPushes (s : Oq) {first : Bool} (hfirst : s.base = 1 ↔ first = true) {depth count : ℕ}
-    (hdepth : depth = s.pd + s.cd) (hpd : depth - Hints.capDepthOf count depth = s.pd) {phase : List Opening}
+    {cd : ℕ} (hdepth : depth = s.pd + cd) (hpd : depth - Hints.capDepthOf count depth = s.pd) {phase : List Opening}
     {W : ℕ → QW} (hW : ∀ k (hk : k < phase.length), W k = (phase[k].leafIndex, phase[k].leaf, phase[k].path.take s.pd))
     (hrow : ∀ o ∈ phase, o.leaf.length = rowLen s.base s.folds) (hl : ∀ o ∈ phase, s.pd ≤ o.path.length) :
     oqPops s W phase.length = levelPushes first depth count phase := by
   rw [oqPops, levelPushes, hpd, hdepth]
   refine flatMap_range_length _ phase _ fun k hk => ?_
   rw [hW k hk]
-  exact oqQE_eq_query s hfirst _ (hrow _ (List.getElem_mem hk)) (hl _ (List.getElem_mem hk))
+  exact oqQE_eq_query s cd hfirst _ (hrow _ (List.getElem_mem hk)) (hl _ (List.getElem_mem hk))
 
 /-- **`level_queries`' entries are `Hints.levelHints`'**, stream by stream: its queries a phase's openings, its cap
 and flags the generator's (`levelCapPushes`). -/
 theorem lq_sameStreams (s : Oq) {first : Bool} (hfirst : s.base = 1 ↔ first = true) {depth count : ℕ}
-    (hdepth : depth = s.pd + s.cd) (hpd : depth - Hints.capDepthOf count depth = s.pd) {phase : List Opening}
+    {cd : ℕ} (hdepth : depth = s.pd + cd) (hpd : depth - Hints.capDepthOf count depth = s.pd) {phase : List Opening}
     {W : ℕ → QW} (hW : ∀ k (hk : k < phase.length), W k = (phase[k].leafIndex, phase[k].leaf, phase[k].path.take s.pd))
     (hrow : ∀ o ∈ phase, o.leaf.length = rowLen s.base s.folds) (hl : ∀ o ∈ phase, s.pd ≤ o.path.length)
     {capW flW : List E} (hcap : lqCapE capW flW = levelCapPushes depth count phase) :

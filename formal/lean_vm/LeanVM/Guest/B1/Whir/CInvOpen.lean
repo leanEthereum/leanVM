@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Whir.CInvOpen
 
   An accepting run of the stacked opening, level by level: what the completeness direction of
-  `open_stacked` takes from `NoZeroChallenge`.
+  `open_stacked` takes from it.
 -/
 
 module
@@ -22,12 +22,11 @@ and return `w`: each level's fold rounds read `6·fold` words, every round passi
 a non-final level then reads a `NextW` with `NextOk`, and the next level runs from its glued state,
 sponge and roots; the final one reads a `FinW` with `FinOk` and returns its `wend`.
 
-`whirLevelsOpen_inv`: an accepting run of `whirLevelsOpen` refusing zero challenges is a `LvsRun`.
-`whirOpen_inv`: `NoZeroChallenge`'s run is one, at the candidate's ladder; `whirOpen_end`: the
-accepting run of `whirOpen` returns the same `WhirEnd`; `whirOpen_honest`: both, at every
+`whirLevelsOpen_inv`: an accepting run of `whirLevelsOpen` is a `LvsRun`. `whirOpen_inv`: an
+accepting run of `whirOpen` is one, at the candidate's ladder; `whirOpen_honest`: at every
 candidate (`ladderOk_of`, Whir/CInvLadder).
 
-`NextW.osRec`: a non-final level's record (S1a-3's `OsRec`, Whir/Level); `NextW.glued_glued`: the
+`NextW.osRec`: a non-final level's record (`OsRec`, `Whir/Level`); `NextW.glued_glued`: the
 level glues `recGlued` of it.
 -/
 
@@ -92,33 +91,33 @@ theorem whirLevelsOpen_inv (logN lane : ℕ) :
       (os : List (List Opening)) (R : List (Digest × ℕ × ℕ)) (w : WhirEnd) (R' : List (Digest × ℕ × ℕ))
       (F' : Fs), (∃ sp, (⟨cap, []⟩ : Fs).Carries sp) → R.length = index + 1 →
       (∀ l ∈ levels, LvOk logN l) → oodVarsPos (logN - s.alphas.length) levels = true →
-      runTz (whirLevelsOpen logN lane index levels s) ⟨⟨cap, []⟩, none, xs, os, R⟩ =
+      runTc (whirLevelsOpen logN lane index levels s) ⟨⟨cap, []⟩, none, xs, os, R⟩ =
         some (w, ⟨F', none, [], [], R'⟩) →
       LvsRun logN lane index levels s cap R xs os w
-  | [], _, _, _, _, _, _, _, _, _, _, _, _, _, h => by simp [whirLevelsOpen, runTz] at h
+  | [], _, _, _, _, _, _, _, _, _, _, _, _, _, h => by simp [whirLevelsOpen, runTc] at h
   | [level], index, s, cap, xs, os, R, w, R', F', hc, hRl, hok, _, h => by
     rw [whirLevelsOpen_last] at h
-    obtain ⟨p, st1, h1, h2⟩ := runTz_bind_some h
+    obtain ⟨p, st1, h1, h2⟩ := runTc_bind_some h
     obtain ⟨rw, xs1, hrl, hxs, hrok, ea, est⟩ := foldRounds_inv level.fold hc h1
     subst ea est
     have hl := hok level (by simp)
     obtain ⟨W, xs', orest, hxs1, hos, hfin, ea, est⟩ := levelLast_inv
-      (by obtain ⟨sp, hsp⟩ := runTz_carries h1 (by obtain ⟨sp, h⟩ := hc; exact ⟨sp, h⟩)
+      (by obtain ⟨sp, hsp⟩ := runTc_carries h1 (by obtain ⟨sp, h⟩ := hc; exact ⟨sp, h⟩)
           exact ⟨sp, tcar_none.mp hsp⟩) hl.hP hl.2.2 h2
     simp only [TSt.mk.injEq] at est
     obtain ⟨-, -, rfl, rfl, -⟩ := est
     exact ⟨rw, W, hrl, hrok, by rw [hxs, hxs1, List.append_nil], hos, hfin, ea⟩
   | level :: next :: rest, index, s, cap, xs, os, R, w, R', F', hc, hRl, hok, hv, h => by
     rw [whirLevelsOpen_next] at h
-    obtain ⟨p, st1, h1, h2⟩ := runTz_bind_some h
+    obtain ⟨p, st1, h1, h2⟩ := runTc_bind_some h
     obtain ⟨rw, xs1, hrl, hxs, hrok, ea, est⟩ := foldRounds_inv level.fold hc h1
     subst ea est
     have hl := hok level (by simp)
     simp only [oodVarsPos, Bool.and_eq_true, decide_eq_true_eq] at hv
     have hal := roundsSpec_alphas_length level.fold s cap rw
-    obtain ⟨s2, st2, h3, h4⟩ := runTz_bind_some h2
+    obtain ⟨s2, st2, h3, h4⟩ := runTc_bind_some h2
     obtain ⟨W, xs', orest, hxs1, hos, hnext, ea, est⟩ := levelNext_inv
-      (by obtain ⟨sp, hsp⟩ := runTz_carries h1 (by obtain ⟨sp, h⟩ := hc; exact ⟨sp, h⟩)
+      (by obtain ⟨sp, hsp⟩ := runTc_carries h1 (by obtain ⟨sp, h⟩ := hc; exact ⟨sp, h⟩)
           exact ⟨sp, tcar_none.mp hsp⟩) (by omega) (by rw [hal]; omega) hl.hP hl.2.2 h3
     subst ea est
     have ih := whirLevelsOpen_inv logN lane (next :: rest) (index + 1) _ _ xs' orest _ w R' F'
@@ -128,13 +127,13 @@ theorem whirLevelsOpen_inv (logN lane : ℕ) :
     exact ⟨rw, W, xs', orest, hrl, hrok, by rw [hxs, hxs1, List.append_assoc], hos, hnext, ih⟩
 
 /-- `liftOption`, backwards. -/
-theorem runTz_liftOption {α β : Type} {o : Option α} {f : α → VerifierProgram β} {st : TSt}
-    {r : β × TSt} (h : runTz ((liftOption o).bind f) st = some r) :
-    ∃ a, o = some a ∧ runTz (f a) st = some r := by
+theorem runTc_liftOption {α β : Type} {o : Option α} {f : α → VerifierProgram β} {st : TSt}
+    {r : β × TSt} (h : runTc ((liftOption o).bind f) st = some r) :
+    ∃ a, o = some a ∧ runTc (f a) st = some r := by
   cases o with
   | none =>
-    change runTz VerifierProgram.fail st = some r at h
-    simp [runTz] at h
+    change runTc VerifierProgram.fail st = some r at h
+    simp [runTc] at h
   | some a => exact ⟨a, rfl, h⟩
 
 /-- The candidate's levels' static facts. -/
@@ -151,52 +150,33 @@ theorem ladderOk_of {μ r : ℕ} (h1 : 20 ≤ μ) (h2 : μ ≤ 30) (h3 : 1 ≤ r
   simp only [Bool.and_eq_true, decide_eq_true_eq] at h'
   exact ⟨h'.1.1, h'.1.2, h'.2⟩
 
-/-- **`NoZeroChallenge`'s run, level by level.** -/
+/-- **An accepting run, level by level.** -/
 theorem whirOpen_inv {μ r : ℕ} {target : E} {S : KeccakState} {xs : List E}
     {os : List (List Opening)} {root : Digest} {w : WhirEnd} {s' : Fs}
     {roots' : List (Digest × ℕ × ℕ)} (hlad : LadderOk μ r)
-    (h : RunsWith (whirOpen μ r target).refusingZeroChallenge ⟨capOf S, []⟩ xs os
-      [(root, stackShape μ r)] w s' roots') :
+    (h : RunsWith (whirOpen μ r target) ⟨capOf S, []⟩ xs os [(root, stackShape μ r)] w s' roots') :
     ∃ cfg, Whir.ladder μ r = some cfg ∧
       LvsRun μ ((cfg.head?.map (·.fold)).getD 0) 0 cfg ⟨target, [], []⟩ (capOf S)
         [(root, stackShape μ r)] xs os w := by
   have e := runT_of_runsWith h (carries_capOf S) [] []
-  rw [← runTz_rz] at e
   simp only [List.append_nil] at e
+  replace e : runTc _ _ = _ := (runTc_eq_runT _ _).trans e
   unfold whirOpen at e
-  obtain ⟨cfg, hcfg, e⟩ := runTz_liftOption e
+  obtain ⟨cfg, hcfg, e⟩ := runTc_liftOption e
   exact ⟨cfg, hcfg, whirLevelsOpen_inv μ _ cfg 0 _ _ xs os _ w roots' s' (carries_capOf S) rfl
     (hlad cfg hcfg) (by simpa using ladder_oodVarsPos hcfg) e⟩
 
-/-- **The accepting run returns `NoZeroChallenge`'s `WhirEnd`.** -/
-theorem whirOpen_end {μ r : ℕ} {target : E} {S : KeccakState} {xs : List E}
-    {os : List (List Opening)} {root : Digest} {w w' : WhirEnd} {s' s'' : Fs}
-    {roots' roots'' : List (Digest × ℕ × ℕ)}
-    (hrun : RunsWith (whirOpen μ r target) ⟨capOf S, []⟩ xs os [(root, stackShape μ r)] w s' roots')
-    (hnz : RunsWith (whirOpen μ r target).refusingZeroChallenge ⟨capOf S, []⟩ xs os
-      [(root, stackShape μ r)] w' s'' roots'') : w = w' := by
-  have e1 := runT_of_runsWith hrun (carries_capOf S) [] []
-  have e2 := runT_of_runsWith hnz (carries_capOf S) [] []
-  rw [← runTz_rz] at e2
-  have e3 := runTz_runT _ _ _ e2
-  rw [e1] at e3
-  simp only [Option.some.injEq, Prod.mk.injEq] at e3
-  exact e3.1
-
-/-- **An accepting run with no zero challenge, level by level**, at every candidate. -/
+/-- **An accepting run, level by level**, at every candidate. -/
 theorem whirOpen_honest {μ r : ℕ} (h1 : 20 ≤ μ) (h2 : μ ≤ 30) (h3 : 1 ≤ r) (h4 : r ≤ 4)
     {target : E} {S : KeccakState} {xs : List E} {os : List (List Opening)} {root : Digest}
     {w : WhirEnd} {s' : Fs} {roots' : List (Digest × ℕ × ℕ)}
-    (hrun : RunsWith (whirOpen μ r target) ⟨capOf S, []⟩ xs os [(root, stackShape μ r)] w s' roots')
-    (hnz : NoZeroChallenge μ r target S xs os root) :
+    (hrun : RunsWith (whirOpen μ r target) ⟨capOf S, []⟩ xs os [(root, stackShape μ r)] w s' roots') :
     ∃ cfg, Whir.ladder μ r = some cfg ∧
       LvsRun μ ((cfg.head?.map (·.fold)).getD 0) 0 cfg ⟨target, [], []⟩ (capOf S)
-        [(root, stackShape μ r)] xs os w := by
-  obtain ⟨w', s'', roots'', h⟩ := hnz
-  rw [whirOpen_end hrun h]
-  exact whirOpen_inv (ladderOk_of h1 h2 h3 h4) h
+        [(root, stackShape μ r)] xs os w :=
+  whirOpen_inv (ladderOk_of h1 h2 h3 h4) hrun
 
-/-! ## S1a-3's records -/
+/-! ## The levels' records -/
 
 /-- **A non-final level's record** (`OsRec`): `λ`, the folds before its claims, its message log,
 its out-of-domain point, its positions, its high part. -/

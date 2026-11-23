@@ -222,10 +222,10 @@ theorem csk_rel {κ : ℕ} (hκ : κ < 31) {rd : Reader} {o : ℕ} {se sg : E} {
     obtain ⟨hw1, hw4⟩ := csW_bounds κ k
     have hj : κ / 4 + k < 8 := by simp only [csN] at hk; omega
     have hdk := cs_dvd hu (by rw [show 16 ^ (κ / 4) * csDig (cskU κ o) (csN κ) = o from hdig.symm]; exact hd) k hk
-    have hxe : LoadHolds rd (se * gen ^ cskU κ o k) (64 * (κ / 4 + k) + 16 * (csW κ k - 1))
+    have hxe : LoadHolds rd (se * gen ^ cskU κ o k) (32 * (κ / 4 + k) + selEqOff (csW κ k - 1))
         (cskXE κ o p p1 k) := by
-      rw [tb_loadHolds_mul_gen_pow, show cskU κ o k + (64 * (κ / 4 + k) + 16 * (csW κ k - 1)) =
-        64 * (κ / 4 + k) + 16 * (csW κ k - 1) + cskU κ o k by omega]
+      rw [tb_loadHolds_mul_gen_pow, show cskU κ o k + (32 * (κ / 4 + k) + selEqOff (csW κ k - 1)) =
+        32 * (κ / 4 + k) + selEqOff (csW κ k - 1) + cskU κ o k by omega]
       exact hE _ hj _ (by omega) _ (hu k hk) hdk
     have hxg : LoadHolds rd (sg * gen ^ cskU κ o k) (16 * (κ / 4 + k)) (cskXG κ o k) := by
       rw [tb_loadHolds_mul_gen_pow, show cskU κ o k + 16 * (κ / 4 + k) =

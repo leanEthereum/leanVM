@@ -68,8 +68,8 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 /-! ## The guest's constants -/
 
-/-- `KR_CAP`: a round record's fields are `16` words apart. -/
-abbrev krCap : ℕ := 16
+/-- `KR_CAP`: a round record's fields are `11` words apart. -/
+abbrev krCap : ℕ := 11
 
 /-- `KC_SIZE = KC_MU + KECCAK_PACK`: a claim record's words. -/
 abbrev kcSize : ℕ := 22

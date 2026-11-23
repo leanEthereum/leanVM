@@ -312,9 +312,12 @@ def WrF (Cf : CFun) (rd : Reader) (σ : Val) (es : List Ev) (x : K) : Prop :=
 
 theorem heapOkC_params {pows : Exec.PowTree} {sigOf : String → HSig} {f : Fn} {H : HCert}
     (h : heapOkC pows sigOf f H = true) : f.params = (List.range f.params.length).map V.n := by
-  unfold heapOkC at h
-  simp only [Bool.and_eq_true] at h
-  rw [List.range_eq_range']; exact paramsN_eq _ 0 h.1.1.1.1.1
+  rw [List.range_eq_range']
+  rcases heapOkC_cases h with ⟨-, h⟩ | ⟨h, -⟩
+  · unfold heapOkC1 at h
+    simp only [Bool.and_eq_true] at h
+    exact paramsN_eq _ 0 h.1.1.1.1.1
+  · exact paramsN_eq _ 0 (splitOk_spec h).1
 
 /-- **The heap facts of an honest path**, each call's callee's returned words given: its parameters `V.n k`;
 every event's needs written before it; the promised cells and the signature's runs written by the end, at the

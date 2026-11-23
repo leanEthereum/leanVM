@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Place.SqAtE
 # A level's decoders, placed
 
 A level of `open_stacked` decodes its first squeeze's word by a direct `decode_query_windows`
-call, then the other `n - 1` by the squeeze loop entered at `g` (`Whir.osSqueezes`). Placed at
+call, then the other `n - 1` by the squeeze loop entered at `g` (`Whir.sqLoopBody`). Placed at
 `b`: decoder `0` at `b`, the loop at `b + fs D`, its iteration `t`'s decoder at `sqDecAt`
 (`sqDecPos`). The group claims the decoders' `wins` runs (`sqGroupRuns`) and reads the caller's
 words `Lk` and the window pointers into those runs (`sqW`: `query_win_ptrs` from the level's
@@ -177,7 +177,7 @@ theorem os_sq_loopE (fs : String → ℕ) (cert : String → V → ℕ) (κ : �
         if c2.taken then RelAtInPE coreProgram fs cert rd (ExactAt coreProgram rd) (RegionL Lin)
           (RegionL (sqRuns fs cert lv L (n - 1) fp (fun t ↦ w (1 + t)) 0)) fp
           (sqTot fs lv L (n - 1) 0) c2.f (c2.args.map σ) (c2.rets.map σ) []
-        else sqTot fs lv L (n - 1) 0 = fs c2.f := by
+        else sqTot fs lv L (n - 1) 0 = fs (Memory.tailKey c2.f) := by
   have hw : (fun t ↦ (⟨cap (1 + t), []⟩ : Fs).squeeze.1) = fun t ↦ w (1 + t) :=
     funext fun t ↦ hcw (1 + t) (by omega)
   by_cases h2 : 2 ≤ n
@@ -206,52 +206,6 @@ theorem os_sq_loopE (fs : String → ℕ) (cert : String → V → ℕ) (κ : �
     refine ⟨[], fun q hq ↦ by simp [sqRuns] at hq, by simp [sqRuns, DisjL], fun rd _ _ ↦ ?_⟩
     rw [h2t]
     simp [h0, sqTot, h2f]
-
-/-- **The loop of a level's decoders, placed at `fp`**: entered when `2 ≤ n`, skipped (its frame)
-when `n = 1` (`os_sq_loopE`). -/
-theorem os_sq_loop (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) {lv : OsLv} {L : String}
-    {fn : Fn} (hfind : coreProgram.find? L = some fn) (hp : fn.params = osParams 6)
-    (hb : fn.body = sqLoopBody lv L) (hlp : coreProgram.loop L = true) (hit : SqIterC lv)
-    (hdec : QwDecodeAtDE fs cert κ lv.depth lv.capDepth (sqDecName lv))
-    {n : ℕ} (hn1 : 1 ≤ n) (hn : n < ordG) {w : ℕ → E} {cap : ℕ → List E}
-    (hcl : ∀ j, (cap j).length = 5) (hcw : ∀ j, 1 ≤ j → (⟨cap j, []⟩ : Fs).squeeze.1 = w j)
-    {sqz qpos qbp tabs : E} {Lin : Layout} (fp : ℕ)
-    (hmem : ∀ rd, LowDef κ rd → MemL rd Lin → ∀ j, 1 ≤ j → j < n →
-      (∀ i < 5, LoadHolds rd (sqz * (gen ^ j) ^ 5) i ((cap j).getD i 0)) ∧
-        ∀ i < 5, LoadHolds rd (sqz * (gen ^ j) ^ 5) (5 + i)
-          (((⟨cap j, []⟩ : Fs).squeeze.2.cap).getD i 0))
-    (hdmem : ∀ rd, LowDef κ rd → MemL rd Lin → WinTabs rd tabs ∧ ∀ t < n - 1, ∀ i < sqPer lv,
-      LoadHolds rd (qpos * gen ^ lv.posOff * (gen ^ (1 + t)) ^ sqPer lv) i
-          (eOfNat (qwPosOf lv.depth (w (1 + t)) i)) ∧
-        LoadHolds rd (qbp * gen ^ lv.posOff * (gen ^ (1 + t)) ^ sqPer lv) i
-          (qwPtrAt cert (sqDecName lv) (sqDecAt fs lv L (n - 1) fp t) lv.depth lv.capDepth i))
-    (hrow : ∀ j, 1 ≤ j → j < n → ∀ t < 10, ∃ i,
-      (sqz * (gen ^ j) ^ 5).limb 0 * Parameters.addressOfIndex t =
-        Parameters.addressOfIndex i ∧ RegionL Lin i)
-    (hreg : ∀ t < n - 1, QwRegs lv.depth [w (1 + t),
-        qpos * gen ^ lv.posOff * (gen ^ (1 + t)) ^ sqPer lv,
-        qbp * gen ^ lv.posOff * (gen ^ (1 + t)) ^ sqPer lv, tabs] (RegionL Lin))
-    (σ : Val) (c2 : Call) (h2f : c2.f = L) (h2t : c2.taken = decide (gen + gen ^ n ≠ 0))
-    (h2a : c2.args.map σ = [gen, gen ^ n, sqz, qpos, qbp, tabs]) (h2r : c2.rets = []) :
-    ∃ L1 : Layout,
-      Within (sqRuns fs cert lv L (n - 1) fp (fun t ↦ w (1 + t)) 0 ++ L1) fp
-        (sqTot fs lv L (n - 1) 0) ∧
-      DisjL (sqRuns fs cert lv L (n - 1) fp (fun t ↦ w (1 + t)) 0 ++ L1) ∧
-      ∀ rd, LowDef κ rd →
-        MemL rd (sqRuns fs cert lv L (n - 1) fp (fun t ↦ w (1 + t)) 0 ++ L1 ++ Lin) →
-        if c2.taken then RelAtIn coreProgram fs cert rd (RegionL Lin)
-          (RegionL (sqRuns fs cert lv L (n - 1) fp (fun t ↦ w (1 + t)) 0)) fp
-          (sqTot fs lv L (n - 1) 0) c2.f (c2.args.map σ) (c2.rets.map σ)
-        else sqTot fs lv L (n - 1) 0 = fs c2.f := by
-  obtain ⟨L1, hW, hD, h⟩ := os_sq_loopE fs cert κ hfind hp hb hlp hit hdec hn1 hn hcl hcw fp hmem hdmem hrow hreg σ c2
-    h2f h2t h2a h2r
-  refine ⟨L1, hW, hD, fun rd hl hm ↦ ?_⟩
-  have h' := h rd hl hm
-  cases ht : c2.taken
-  · rw [ht] at h'
-    exact h'
-  · rw [ht] at h'
-    exact RelAtInT.relAtIn h'
 
 /-- **A level's decoders, placed at `b` and exact**, in `fs D + sqTot` words, by trees popping nothing whose every
 node is exact on the memory. -/

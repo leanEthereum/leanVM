@@ -162,8 +162,8 @@ theorem vtB_next (hl : args.length = 21) {pos off b : ℕ} {x : E}
 
 set_option maxRecDepth 10000 in
 /-- **The share's first words and its first challenge**, honestly: the four framework words and
-the share's three at the cursor are read; the first challenge (`1855`) and the capacity after it
-(`1863 .. 1867`) are `F0`'s. -/
+the share's three at the cursor are read; the first challenge (`1551`) and the capacity after it
+(`1559 .. 1563`) are `F0`'s. -/
 theorem vtB_fresh (hl : args.length = 21) {xs w : List E} (hxl : xs.length = 4)
     (hwl : w.length = 10) (hcur : TbReadsAt rd (args.getD 5 0) (xs ++ w)) :
     [σv (.n (val% «verify_tables» "x@1")), σv (.n (val% «verify_tables» "x@2")), σv (.n (val% «verify_tables» "x@3")), σv (.n (val% «verify_tables» "x@4"))] = xs ∧
@@ -176,29 +176,29 @@ theorem vtB_fresh (hl : args.length = 21) {xs w : List E} (hxl : xs.length = 4)
   have hc : ∀ k (hk : k < 14), LoadHolds rd (args.getD 5 0) k ((xs ++ w).getD k 0) := fun k hk ↦ by
     rw [List.getD_eq_getElem (xs ++ w) 0 (by rw [hlen]; exact hk)]
     exact hcur k (by rw [hlen]; exact hk)
-  obtain ⟨l0, p0⟩ := vtB_next (wo := wo) hl (pos := 799) (b := 813) (by decide +kernel) (by decide +kernel) (hc 0 (by norm_num))
-  obtain ⟨l1, p1⟩ := vtB_next (wo := wo) hl (pos := 804) (b := 817) (by decide +kernel) (by decide +kernel) (hc 1 (by norm_num))
-  obtain ⟨l2, p2⟩ := vtB_next (wo := wo) hl (pos := 1342) (b := 1303) (by decide +kernel) (by decide +kernel) (hc 2 (by norm_num))
-  obtain ⟨l3, p3⟩ := vtB_next (wo := wo) hl (pos := 1357) (b := 1317) (by decide +kernel) (by decide +kernel) (hc 3 (by norm_num))
-  obtain ⟨l4, p4⟩ := vtB_next (wo := wo) hl (pos := 1915) (b := 1841) (by decide +kernel) (by decide +kernel) (hc 4 (by norm_num))
-  obtain ⟨l5, p5⟩ := vtB_next (wo := wo) hl (pos := 1919) (b := 1845) (by decide +kernel) (by decide +kernel) (hc 5 (by norm_num))
-  obtain ⟨l6, p6⟩ := vtB_next (wo := wo) hl (pos := 1923) (b := 1849) (by decide +kernel) (by decide +kernel) (hc 6 (by norm_num))
+  obtain ⟨l0, p0⟩ := vtB_next (wo := wo) hl (pos := 843) (b := 857) (by decide +kernel) (by decide +kernel) (hc 0 (by norm_num))
+  obtain ⟨l1, p1⟩ := vtB_next (wo := wo) hl (pos := 848) (b := 861) (by decide +kernel) (by decide +kernel) (hc 1 (by norm_num))
+  obtain ⟨l2, p2⟩ := vtB_next (wo := wo) hl (pos := 1202) (b := 1163) (by decide +kernel) (by decide +kernel) (hc 2 (by norm_num))
+  obtain ⟨l3, p3⟩ := vtB_next (wo := wo) hl (pos := 1217) (b := 1177) (by decide +kernel) (by decide +kernel) (hc 3 (by norm_num))
+  obtain ⟨l4, p4⟩ := vtB_next (wo := wo) hl (pos := 1611) (b := 1537) (by decide +kernel) (by decide +kernel) (hc 4 (by norm_num))
+  obtain ⟨l5, p5⟩ := vtB_next (wo := wo) hl (pos := 1615) (b := 1541) (by decide +kernel) (by decide +kernel) (hc 5 (by norm_num))
+  obtain ⟨l6, p6⟩ := vtB_next (wo := wo) hl (pos := 1619) (b := 1545) (by decide +kernel) (by decide +kernel) (hc 6 (by norm_num))
   have c20 := vtB_pureAt (rd := rd) (wo := wo) hl 0 (.copy (.n (val% «verify_tables» "sp[0]@1")) (.n (val% «verify_tables» "fs0"))) (by decide +kernel)
   have c21 := vtB_pureAt (rd := rd) (wo := wo) hl 1 (.copy (.n (val% «verify_tables» "sp[1]@1")) (.n (val% «verify_tables» "fs1"))) (by decide +kernel)
   have c22 := vtB_pureAt (rd := rd) (wo := wo) hl 2 (.copy (.n (val% «verify_tables» "sp[2]@1")) (.n (val% «verify_tables» "fs2"))) (by decide +kernel)
   have c23 := vtB_pureAt (rd := rd) (wo := wo) hl 3 (.copy (.n (val% «verify_tables» "sp[3]@1")) (.n (val% «verify_tables» "fs3"))) (by decide +kernel)
   have c24 := vtB_pureAt (rd := rd) (wo := wo) hl 4 (.copy (.n (val% «verify_tables» "sp[4]@1")) (.n (val% «verify_tables» "fs4"))) (by decide +kernel)
   have k1 : (Atom.keccak [.n (val% «verify_tables» "rate[0]@1"), .n (val% «verify_tables» "rate[1]@1"), .n (val% «verify_tables» "rate[2]@1"), .n (val% «verify_tables» "rate[3]@1"), .n (val% «verify_tables» "rate[4]@1"), .n (val% «verify_tables» "rate[5]@1"), .n (val% «verify_tables» "rate[6]@1"), .n (val% «verify_tables» "rate[7]@1"), .n (val% «verify_tables» "sp[0]@1"),
-      .n (val% «verify_tables» "sp[1]@1"), .n (val% «verify_tables» "sp[2]@1"), .n (val% «verify_tables» "sp[3]@1"), .n (val% «verify_tables» "sp[4]@1")] (vtOuts 1828) false false).Holds rd σv :=
-    vtB_keccakAt (wo := wo) hl 1914 (by decide +kernel)
-  have z6 := vtB_pureAt (rd := rd) (wo := wo) hl 1927 (.const (.n (val% «verify_tables» "rate[6]@2")) (word 0 0)) (by decide +kernel)
-  have z7 := vtB_pureAt (rd := rd) (wo := wo) hl 1928 (.const (.n (val% «verify_tables» "rate[7]@2")) (word 0 0)) (by decide +kernel)
+      .n (val% «verify_tables» "sp[1]@1"), .n (val% «verify_tables» "sp[2]@1"), .n (val% «verify_tables» "sp[3]@1"), .n (val% «verify_tables» "sp[4]@1")] (vtOuts 1524) false false).Holds rd σv :=
+    vtB_keccakAt (wo := wo) hl 1610 (by decide +kernel)
+  have z6 := vtB_pureAt (rd := rd) (wo := wo) hl 1623 (.const (.n (val% «verify_tables» "rate[6]@2")) (word 0 0)) (by decide +kernel)
+  have z7 := vtB_pureAt (rd := rd) (wo := wo) hl 1624 (.const (.n (val% «verify_tables» "rate[7]@2")) (word 0 0)) (by decide +kernel)
   have k2 : (Atom.keccak [.n (val% «verify_tables» "rate[0]@2"), .n (val% «verify_tables» "rate[1]@2"), .n (val% «verify_tables» "rate[2]@2"), .n (val% «verify_tables» "rate[3]@2"), .n (val% «verify_tables» "rate[4]@2"), .n (val% «verify_tables» "rate[5]@2"), .n (val% «verify_tables» "rate[6]@2"), .n (val% «verify_tables» "rate[7]@2"),
-      .n (val% «verify_tables» "nxt[8]@1"), .n (val% «verify_tables» "nxt[9]@1"), .n (val% «verify_tables» "nxt[10]@1"), .n (val% «verify_tables» "nxt[11]@1"), .n (val% «verify_tables» "nxt[12]@1")] (vtOuts 1855) false false).Holds rd σv :=
-    vtB_keccakAt (wo := wo) hl 1929 (by decide +kernel)
-  have d43 := vtB_pureAt (rd := rd) (wo := wo) hl 1918 (.copy (.n (val% «verify_tables» "bc_msg[0]")) (.n (val% «verify_tables» "x@5"))) (by decide +kernel)
-  have d47 := vtB_pureAt (rd := rd) (wo := wo) hl 1922 (.copy (.n (val% «verify_tables» "bc_msg[1]")) (.n (val% «verify_tables» "x@6"))) (by decide +kernel)
-  have d51 := vtB_pureAt (rd := rd) (wo := wo) hl 1926 (.copy (.n (val% «verify_tables» "bc_msg[2]")) (.n (val% «verify_tables» "x@7"))) (by decide +kernel)
+      .n (val% «verify_tables» "nxt[8]@1"), .n (val% «verify_tables» "nxt[9]@1"), .n (val% «verify_tables» "nxt[10]@1"), .n (val% «verify_tables» "nxt[11]@1"), .n (val% «verify_tables» "nxt[12]@1")] (vtOuts 1551) false false).Holds rd σv :=
+    vtB_keccakAt (wo := wo) hl 1625 (by decide +kernel)
+  have d43 := vtB_pureAt (rd := rd) (wo := wo) hl 1614 (.copy (.n (val% «verify_tables» "bc_msg[0]")) (.n (val% «verify_tables» "x@5"))) (by decide +kernel)
+  have d47 := vtB_pureAt (rd := rd) (wo := wo) hl 1618 (.copy (.n (val% «verify_tables» "bc_msg[1]")) (.n (val% «verify_tables» "x@6"))) (by decide +kernel)
+  have d51 := vtB_pureAt (rd := rd) (wo := wo) hl 1622 (.copy (.n (val% «verify_tables» "bc_msg[2]")) (.n (val% «verify_tables» "x@7"))) (by decide +kernel)
   simp only [Atom.Holds, tb_word_zero] at c20 c21 c22 c23 c24 z6 z7 d43 d47 d51
   have p : ∀ i < (val% «verify_tables» "sp[0]@1"), σv (.n i) = args.getD i 0 := fun i hi ↦ vt_param hl hi
   generalize vtσ rd wo args = σ at *
@@ -264,10 +264,10 @@ theorem vtB_fresh (hl : args.length = 21) {xs w : List E} (hxl : xs.length = 4)
   · rw [l6, List.getD_append_right _ _ _ _ (by omega)]; simp [hxl]
   · rw [vtBcR0, hS7]
     simp only [Fs.squeeze, Fs.perm]
-    exact challengeT_value (s0 := .n (val% «verify_tables» "nxt[0]@2")) (b := 1855) rfl (hP2 0 (by omega))
+    exact challengeT_value (s0 := .n (val% «verify_tables» "nxt[0]@2")) (b := 1551) rfl (hP2 0 (by omega))
   · rw [hS7]
     simp only [Fs.squeeze, Fs.perm]
-    have e : ∀ k, 1855 + 8 + k = 1863 + k := fun k => by omega
+    have e : ∀ k, 1551 + 8 + k = 1559 + k := fun k => by omega
     simp only [e] at hC2
     rw [← hC2]
     rfl
@@ -294,13 +294,13 @@ theorem vtB_bc (hl : args.length = 21) {xs w weights : List E} (hxl : xs.length 
     (hwl : w.length = 10) (hcur : TbReadsAt rd (args.getD 5 0) (xs ++ w))
     (hW16 : weights.length = 16) (hW : TbReadsAt rd (args.getD 13 0) weights)
     (hpt : TbReadsAt rd (args.getD 19 0) (vtBcPoint (vtF0 args xs) w))
-    (hw1 : (List.range 8).map (fun i ↦ wo (1876 + i)) = (vtBcR1 (vtF0 args xs) w).1 ++
+    (hw1 : (List.range 8).map (fun i ↦ wo (1572 + i)) = (vtBcR1 (vtF0 args xs) w).1 ++
       [args.getD 5 0 * gen ^ 7 * gen ^ 2, (vtBcR1 (vtF0 args xs) w).2.1,
         (vtBcR1 (vtF0 args xs) w).2.2])
-    (hw2 : (List.range 8).map (fun i ↦ wo (1884 + i)) = (vtBcR2 (vtF0 args xs) w).1 ++
+    (hw2 : (List.range 8).map (fun i ↦ wo (1580 + i)) = (vtBcR2 (vtF0 args xs) w).1 ++
       [args.getD 5 0 * gen ^ 7 * gen ^ 2 * gen ^ 2, (vtBcR2 (vtF0 args xs) w).2.1,
         (vtBcR2 (vtF0 args xs) w).2.2])
-    (hw3 : (List.range 8).map (fun i ↦ wo (1892 + i)) = (vtBcR3 (vtF0 args xs) w).1 ++
+    (hw3 : (List.range 8).map (fun i ↦ wo (1588 + i)) = (vtBcR3 (vtF0 args xs) w).1 ++
       [args.getD 5 0 * gen ^ 7 * gen ^ 2 * gen ^ 2 * gen ^ 2, (vtBcR3 (vtF0 args xs) w).2.1,
         (vtBcR3 (vtF0 args xs) w).2.2])
     (hacc : (vtBcR3 (vtF0 args xs) w).2.1 =
@@ -319,7 +319,7 @@ theorem vtB_bc (hl : args.length = 21) {xs w weights : List E} (hxl : xs.length 
       .n (val% «verify_tables» "bc_claim@4"), .n (val% «verify_tables» "bc_r@3")]) ∧
     VSH (coreProgram.Rel rd) rd σv (.atom (.load (.n (val% «verify_tables» "bc_r@3")) (.n (val% «verify_tables» "bc_point")) 3)) ∧
     VSH (coreProgram.Rel rd) rd σv (.atom (.load (.n (val% «verify_tables» "x@8")) (.n (val% «verify_tables» "cursor@4")) 0)) ∧
-    VSH (coreProgram.Rel rd) rd σv (.atom (.assertEq (.n (val% «verify_tables» "bc_claim@4")) (.n (val% «verify_tables» "s49#0")))) ∧
+    VSH (coreProgram.Rel rd) rd σv (.atom (.assertEq (.n (val% «verify_tables» "bc_claim@4")) (.n (val% «verify_tables» "s50#0")))) ∧
     σv (.n (val% «verify_tables» "x@5")) = w.getD 0 0 ∧ σv (.n (val% «verify_tables» "x@8")) = w.getD 9 0 ∧
     [σv (.n (val% «verify_tables» "bfs0@3")), σv (.n (val% «verify_tables» "bfs1@3")), σv (.n (val% «verify_tables» "bfs2@3")), σv (.n (val% «verify_tables» "bfs3@3")), σv (.n (val% «verify_tables» "bfs4@3"))] =
       (vtBcR3 (vtF0 args xs) w).1 ∧
@@ -340,15 +340,15 @@ theorem vtB_bc (hl : args.length = 21) {xs w weights : List E} (hxl : xs.length 
       rw [p 19 (by norm_num), List.getD_eq_getElem (vtBcPoint (vtF0 args xs) w) 0 (by omega)]
       exact hpt i (by omega)
   -- the calls' returns
-  have r1 := vtB_callRets (rd := rd) (wo := wo) hl 1939 (f := "opening_tail_round")
+  have r1 := vtB_callRets (rd := rd) (wo := wo) hl 1635 (f := "opening_tail_round")
     (as := [.n (val% «verify_tables» "nxt[8]@2"), .n (val% «verify_tables» "nxt[9]@2"), .n (val% «verify_tables» "nxt[10]@2"), .n (val% «verify_tables» "nxt[11]@2"), .n (val% «verify_tables» "nxt[12]@2"), .n (val% «verify_tables» "bfs0@1~9"), .n (val% «verify_tables» "bc_claim@1"), .n (val% «verify_tables» "tabs")])
     (rs := [.n (val% «verify_tables» "bfs0@1"), .n (val% «verify_tables» "bfs1@1"), .n (val% «verify_tables» "bfs2@1"), .n (val% «verify_tables» "bfs3@1"), .n (val% «verify_tables» "bfs4@1"), .n (val% «verify_tables» "cursor@2"), .n (val% «verify_tables» "bc_claim@2"), .n (val% «verify_tables» "bc_r@1")])
     (by decide +kernel)
-  have r2 := vtB_callRets (rd := rd) (wo := wo) hl 1941 (f := "opening_tail_round")
+  have r2 := vtB_callRets (rd := rd) (wo := wo) hl 1637 (f := "opening_tail_round")
     (as := [.n (val% «verify_tables» "bfs0@1"), .n (val% «verify_tables» "bfs1@1"), .n (val% «verify_tables» "bfs2@1"), .n (val% «verify_tables» "bfs3@1"), .n (val% «verify_tables» "bfs4@1"), .n (val% «verify_tables» "cursor@2"), .n (val% «verify_tables» "bc_claim@2"), .n (val% «verify_tables» "tabs")])
     (rs := [.n (val% «verify_tables» "bfs0@2"), .n (val% «verify_tables» "bfs1@2"), .n (val% «verify_tables» "bfs2@2"), .n (val% «verify_tables» "bfs3@2"), .n (val% «verify_tables» "bfs4@2"), .n (val% «verify_tables» "cursor@3"), .n (val% «verify_tables» "bc_claim@3"), .n (val% «verify_tables» "bc_r@2")])
     (by decide +kernel)
-  have r3 := vtB_callRets (rd := rd) (wo := wo) hl 1943 (f := "opening_tail_round")
+  have r3 := vtB_callRets (rd := rd) (wo := wo) hl 1639 (f := "opening_tail_round")
     (as := [.n (val% «verify_tables» "bfs0@2"), .n (val% «verify_tables» "bfs1@2"), .n (val% «verify_tables» "bfs2@2"), .n (val% «verify_tables» "bfs3@2"), .n (val% «verify_tables» "bfs4@2"), .n (val% «verify_tables» "cursor@3"), .n (val% «verify_tables» "bc_claim@3"), .n (val% «verify_tables» "tabs")])
     (rs := [.n (val% «verify_tables» "bfs0@3"), .n (val% «verify_tables» "bfs1@3"), .n (val% «verify_tables» "bfs2@3"), .n (val% «verify_tables» "bfs3@3"), .n (val% «verify_tables» "bfs4@3"), .n (val% «verify_tables» "cursor@4"), .n (val% «verify_tables» "bc_claim@4"), .n (val% «verify_tables» "bc_r@3")])
     (by decide +kernel)
@@ -362,89 +362,89 @@ theorem vtB_bc (hl : args.length = 21) {xs w weights : List E} (hxl : xs.length 
     rw [u3, loadHolds_mul_gen_pow, loadHolds_mul_gen_pow, loadHolds_mul_gen_pow,
       loadHolds_mul_gen_pow]
     exact hc 9 (by norm_num)
-  obtain ⟨e1905, l1951⟩ := vt_readAt (rd := rd) (w := wo) hl 1950 (d := .n (val% «verify_tables» "x@8")) (p := .n (val% «verify_tables» "cursor@4"))
+  obtain ⟨e1905, l1951⟩ := vt_readAt (rd := rd) (w := wo) hl 1646 (d := .n (val% «verify_tables» "x@8")) (p := .n (val% «verify_tables» "cursor@4"))
     (off := 0) (by decide +kernel) (by decide +kernel) hm
   -- the round's arithmetic and the fold of `fp_w`
-  have a1932 := vtB_pureAt (rd := rd) (wo := wo) hl 1931 (.const (.n (val% «verify_tables» "bc_claim@1~0")) (word 1 0)) (by decide +kernel)
-  have a1933 := vtB_pureAt (rd := rd) (wo := wo) hl 1932 (.add (.n (val% «verify_tables» "bc_claim@1~1")) (.n (val% «verify_tables» "bc_claim@1~0")) (.n (val% «verify_tables» "nxt[0]@2"))) (by decide +kernel)
-  have a1934 := vtB_pureAt (rd := rd) (wo := wo) hl 1933 (.mul (.n (val% «verify_tables» "bc_claim@1~2")) (.n (val% «verify_tables» "bc_claim@1~1")) (.n (val% «verify_tables» "bc_msg[2]"))) (by decide +kernel)
-  have a1935 := vtB_pureAt (rd := rd) (wo := wo) hl 1934 (.add (.n (val% «verify_tables» "bc_claim@1~3")) (.n (val% «verify_tables» "bc_msg[0]")) (.n (val% «verify_tables» "bc_claim@1~2"))) (by decide +kernel)
-  have a1936 := vtB_pureAt (rd := rd) (wo := wo) hl 1935 (.mul (.n (val% «verify_tables» "bc_claim@1~4")) (.n (val% «verify_tables» "nxt[0]@2")) (.n (val% «verify_tables» "bc_claim@1~3"))) (by decide +kernel)
-  have a1937 := vtB_pureAt (rd := rd) (wo := wo) hl 1936 (.add (.n (val% «verify_tables» "bc_claim@1")) (.n (val% «verify_tables» "bc_msg[1]")) (.n (val% «verify_tables» "bc_claim@1~4"))) (by decide +kernel)
-  have a1938 := vtB_pureAt (rd := rd) (wo := wo) hl 1937 (.const (.n (val% «verify_tables» "bfs0@1~8")) (word 128 0)) (by decide +kernel)
-  have a1939 := vtB_pureAt (rd := rd) (wo := wo) hl 1938 (.mul (.n (val% «verify_tables» "bfs0@1~9")) (.n (val% «verify_tables» "cursor@1")) (.n (val% «verify_tables» "bfs0@1~8"))) (by decide +kernel)
-  have c0 := vtB_pureAt (rd := rd) (wo := wo) hl 1945 (.copy (.n (val% «verify_tables» "sp[0]@2")) (.n (val% «verify_tables» "bfs0@3"))) (by decide +kernel)
-  have c1 := vtB_pureAt (rd := rd) (wo := wo) hl 1946 (.copy (.n (val% «verify_tables» "sp[1]@2")) (.n (val% «verify_tables» "bfs1@3"))) (by decide +kernel)
-  have c2 := vtB_pureAt (rd := rd) (wo := wo) hl 1947 (.copy (.n (val% «verify_tables» "sp[2]@2")) (.n (val% «verify_tables» "bfs2@3"))) (by decide +kernel)
-  have c3 := vtB_pureAt (rd := rd) (wo := wo) hl 1948 (.copy (.n (val% «verify_tables» "sp[3]@2")) (.n (val% «verify_tables» "bfs3@3"))) (by decide +kernel)
-  have c4 := vtB_pureAt (rd := rd) (wo := wo) hl 1949 (.copy (.n (val% «verify_tables» "sp[4]@2")) (.n (val% «verify_tables» "bfs4@3"))) (by decide +kernel)
-  have cv := vtB_pureAt (rd := rd) (wo := wo) hl 1951 (.copy (.n (val% «verify_tables» "rate[0]@3")) (.n (val% «verify_tables» "x@8"))) (by decide +kernel)
-  have a1957 := vtB_pureAt (rd := rd) (wo := wo) hl 1956 (.add (.n (val% «verify_tables» "s47.u0.s1#1")) (.n (val% «verify_tables» "w_lo@1")) (.n (val% «verify_tables» "s47.u0.s1#0"))) (by decide +kernel)
-  have a1958 := vtB_pureAt (rd := rd) (wo := wo) hl 1957 (.mul (.n (val% «verify_tables» "s47.u0.s1#2")) (.n (val% «verify_tables» "r0")) (.n (val% «verify_tables» "s47.u0.s1#1"))) (by decide +kernel)
-  have a1959 := vtB_pureAt (rd := rd) (wo := wo) hl 1958 (.add (.n (val% «verify_tables» "w_fold[0]")) (.n (val% «verify_tables» "w_lo@1")) (.n (val% «verify_tables» "s47.u0.s1#2"))) (by decide +kernel)
-  have a1962 := vtB_pureAt (rd := rd) (wo := wo) hl 1961 (.add (.n (val% «verify_tables» "s47.u1.s1#1")) (.n (val% «verify_tables» "w_lo@2")) (.n (val% «verify_tables» "s47.u1.s1#0"))) (by decide +kernel)
-  have a1963 := vtB_pureAt (rd := rd) (wo := wo) hl 1962 (.mul (.n (val% «verify_tables» "s47.u1.s1#2")) (.n (val% «verify_tables» "r0")) (.n (val% «verify_tables» "s47.u1.s1#1"))) (by decide +kernel)
-  have a1964 := vtB_pureAt (rd := rd) (wo := wo) hl 1963 (.add (.n (val% «verify_tables» "w_fold[1]")) (.n (val% «verify_tables» "w_lo@2")) (.n (val% «verify_tables» "s47.u1.s1#2"))) (by decide +kernel)
-  have a1967 := vtB_pureAt (rd := rd) (wo := wo) hl 1966 (.add (.n (val% «verify_tables» "s47.u2.s1#1")) (.n (val% «verify_tables» "w_lo@3")) (.n (val% «verify_tables» "s47.u2.s1#0"))) (by decide +kernel)
-  have a1968 := vtB_pureAt (rd := rd) (wo := wo) hl 1967 (.mul (.n (val% «verify_tables» "s47.u2.s1#2")) (.n (val% «verify_tables» "r0")) (.n (val% «verify_tables» "s47.u2.s1#1"))) (by decide +kernel)
-  have a1969 := vtB_pureAt (rd := rd) (wo := wo) hl 1968 (.add (.n (val% «verify_tables» "w_fold[2]")) (.n (val% «verify_tables» "w_lo@3")) (.n (val% «verify_tables» "s47.u2.s1#2"))) (by decide +kernel)
-  have a1972 := vtB_pureAt (rd := rd) (wo := wo) hl 1971 (.add (.n (val% «verify_tables» "s47.u3.s1#1")) (.n (val% «verify_tables» "w_lo@4")) (.n (val% «verify_tables» "s47.u3.s1#0"))) (by decide +kernel)
-  have a1973 := vtB_pureAt (rd := rd) (wo := wo) hl 1972 (.mul (.n (val% «verify_tables» "s47.u3.s1#2")) (.n (val% «verify_tables» "r0")) (.n (val% «verify_tables» "s47.u3.s1#1"))) (by decide +kernel)
-  have a1974 := vtB_pureAt (rd := rd) (wo := wo) hl 1973 (.add (.n (val% «verify_tables» "w_fold[3]")) (.n (val% «verify_tables» "w_lo@4")) (.n (val% «verify_tables» "s47.u3.s1#2"))) (by decide +kernel)
-  have a1977 := vtB_pureAt (rd := rd) (wo := wo) hl 1976 (.add (.n (val% «verify_tables» "s47.u4.s1#1")) (.n (val% «verify_tables» "w_lo@5")) (.n (val% «verify_tables» "s47.u4.s1#0"))) (by decide +kernel)
-  have a1978 := vtB_pureAt (rd := rd) (wo := wo) hl 1977 (.mul (.n (val% «verify_tables» "s47.u4.s1#2")) (.n (val% «verify_tables» "r0")) (.n (val% «verify_tables» "s47.u4.s1#1"))) (by decide +kernel)
-  have a1979 := vtB_pureAt (rd := rd) (wo := wo) hl 1978 (.add (.n (val% «verify_tables» "w_fold[4]")) (.n (val% «verify_tables» "w_lo@5")) (.n (val% «verify_tables» "s47.u4.s1#2"))) (by decide +kernel)
-  have a1982 := vtB_pureAt (rd := rd) (wo := wo) hl 1981 (.add (.n (val% «verify_tables» "s47.u5.s1#1")) (.n (val% «verify_tables» "w_lo@6")) (.n (val% «verify_tables» "s47.u5.s1#0"))) (by decide +kernel)
-  have a1983 := vtB_pureAt (rd := rd) (wo := wo) hl 1982 (.mul (.n (val% «verify_tables» "s47.u5.s1#2")) (.n (val% «verify_tables» "r0")) (.n (val% «verify_tables» "s47.u5.s1#1"))) (by decide +kernel)
-  have a1984 := vtB_pureAt (rd := rd) (wo := wo) hl 1983 (.add (.n (val% «verify_tables» "w_fold[5]")) (.n (val% «verify_tables» "w_lo@6")) (.n (val% «verify_tables» "s47.u5.s1#2"))) (by decide +kernel)
-  have a1987 := vtB_pureAt (rd := rd) (wo := wo) hl 1986 (.add (.n (val% «verify_tables» "s47.u6.s1#1")) (.n (val% «verify_tables» "w_lo@7")) (.n (val% «verify_tables» "s47.u6.s1#0"))) (by decide +kernel)
-  have a1988 := vtB_pureAt (rd := rd) (wo := wo) hl 1987 (.mul (.n (val% «verify_tables» "s47.u6.s1#2")) (.n (val% «verify_tables» "r0")) (.n (val% «verify_tables» "s47.u6.s1#1"))) (by decide +kernel)
-  have a1989 := vtB_pureAt (rd := rd) (wo := wo) hl 1988 (.add (.n (val% «verify_tables» "w_fold[6]")) (.n (val% «verify_tables» "w_lo@7")) (.n (val% «verify_tables» "s47.u6.s1#2"))) (by decide +kernel)
-  have a1992 := vtB_pureAt (rd := rd) (wo := wo) hl 1991 (.add (.n (val% «verify_tables» "s47.u7.s1#1")) (.n (val% «verify_tables» "w_lo@8")) (.n (val% «verify_tables» "s47.u7.s1#0"))) (by decide +kernel)
-  have a1993 := vtB_pureAt (rd := rd) (wo := wo) hl 1992 (.mul (.n (val% «verify_tables» "s47.u7.s1#2")) (.n (val% «verify_tables» "r0")) (.n (val% «verify_tables» "s47.u7.s1#1"))) (by decide +kernel)
-  have a1994 := vtB_pureAt (rd := rd) (wo := wo) hl 1993 (.add (.n (val% «verify_tables» "w_fold[7]")) (.n (val% «verify_tables» "w_lo@8")) (.n (val% «verify_tables» "s47.u7.s1#2"))) (by decide +kernel)
-  have a1996 := vtB_pureAt (rd := rd) (wo := wo) hl 1995 (.add (.n (val% «verify_tables» "s48.u1.s1.u0.s2#0")) (.n (val% «verify_tables» "w_fold[0]")) (.n (val% «verify_tables» "w_fold[1]"))) (by decide +kernel)
-  have a1997 := vtB_pureAt (rd := rd) (wo := wo) hl 1996 (.mul (.n (val% «verify_tables» "s48.u1.s1.u0.s2#1")) (.n (val% «verify_tables» "rj@1")) (.n (val% «verify_tables» "s48.u1.s1.u0.s2#0"))) (by decide +kernel)
-  have a1998 := vtB_pureAt (rd := rd) (wo := wo) hl 1997 (.add (.n (val% «verify_tables» "w_fold[8]")) (.n (val% «verify_tables» "w_fold[0]")) (.n (val% «verify_tables» "s48.u1.s1.u0.s2#1"))) (by decide +kernel)
-  have a1999 := vtB_pureAt (rd := rd) (wo := wo) hl 1998 (.add (.n (val% «verify_tables» "s48.u1.s1.u1.s2#0")) (.n (val% «verify_tables» "w_fold[2]")) (.n (val% «verify_tables» "w_fold[3]"))) (by decide +kernel)
-  have a2000 := vtB_pureAt (rd := rd) (wo := wo) hl 1999 (.mul (.n (val% «verify_tables» "s48.u1.s1.u1.s2#1")) (.n (val% «verify_tables» "rj@1")) (.n (val% «verify_tables» "s48.u1.s1.u1.s2#0"))) (by decide +kernel)
-  have a2001 := vtB_pureAt (rd := rd) (wo := wo) hl 2000 (.add (.n (val% «verify_tables» "w_fold[9]")) (.n (val% «verify_tables» "w_fold[2]")) (.n (val% «verify_tables» "s48.u1.s1.u1.s2#1"))) (by decide +kernel)
-  have a2002 := vtB_pureAt (rd := rd) (wo := wo) hl 2001 (.add (.n (val% «verify_tables» "s48.u1.s1.u2.s2#0")) (.n (val% «verify_tables» "w_fold[4]")) (.n (val% «verify_tables» "w_fold[5]"))) (by decide +kernel)
-  have a2003 := vtB_pureAt (rd := rd) (wo := wo) hl 2002 (.mul (.n (val% «verify_tables» "s48.u1.s1.u2.s2#1")) (.n (val% «verify_tables» "rj@1")) (.n (val% «verify_tables» "s48.u1.s1.u2.s2#0"))) (by decide +kernel)
-  have a2004 := vtB_pureAt (rd := rd) (wo := wo) hl 2003 (.add (.n (val% «verify_tables» "w_fold[10]")) (.n (val% «verify_tables» "w_fold[4]")) (.n (val% «verify_tables» "s48.u1.s1.u2.s2#1"))) (by decide +kernel)
-  have a2005 := vtB_pureAt (rd := rd) (wo := wo) hl 2004 (.add (.n (val% «verify_tables» "s48.u1.s1.u3.s2#0")) (.n (val% «verify_tables» "w_fold[6]")) (.n (val% «verify_tables» "w_fold[7]"))) (by decide +kernel)
-  have a2006 := vtB_pureAt (rd := rd) (wo := wo) hl 2005 (.mul (.n (val% «verify_tables» "s48.u1.s1.u3.s2#1")) (.n (val% «verify_tables» "rj@1")) (.n (val% «verify_tables» "s48.u1.s1.u3.s2#0"))) (by decide +kernel)
-  have a2007 := vtB_pureAt (rd := rd) (wo := wo) hl 2006 (.add (.n (val% «verify_tables» "w_fold[11]")) (.n (val% «verify_tables» "w_fold[6]")) (.n (val% «verify_tables» "s48.u1.s1.u3.s2#1"))) (by decide +kernel)
-  have a2009 := vtB_pureAt (rd := rd) (wo := wo) hl 2008 (.add (.n (val% «verify_tables» "s48.u2.s1.u0.s2#0")) (.n (val% «verify_tables» "w_fold[8]")) (.n (val% «verify_tables» "w_fold[9]"))) (by decide +kernel)
-  have a2010 := vtB_pureAt (rd := rd) (wo := wo) hl 2009 (.mul (.n (val% «verify_tables» "s48.u2.s1.u0.s2#1")) (.n (val% «verify_tables» "rj@2")) (.n (val% «verify_tables» "s48.u2.s1.u0.s2#0"))) (by decide +kernel)
-  have a2011 := vtB_pureAt (rd := rd) (wo := wo) hl 2010 (.add (.n (val% «verify_tables» "w_fold[12]")) (.n (val% «verify_tables» "w_fold[8]")) (.n (val% «verify_tables» "s48.u2.s1.u0.s2#1"))) (by decide +kernel)
-  have a2012 := vtB_pureAt (rd := rd) (wo := wo) hl 2011 (.add (.n (val% «verify_tables» "s48.u2.s1.u1.s2#0")) (.n (val% «verify_tables» "w_fold[10]")) (.n (val% «verify_tables» "w_fold[11]"))) (by decide +kernel)
-  have a2013 := vtB_pureAt (rd := rd) (wo := wo) hl 2012 (.mul (.n (val% «verify_tables» "s48.u2.s1.u1.s2#1")) (.n (val% «verify_tables» "rj@2")) (.n (val% «verify_tables» "s48.u2.s1.u1.s2#0"))) (by decide +kernel)
-  have a2014 := vtB_pureAt (rd := rd) (wo := wo) hl 2013 (.add (.n (val% «verify_tables» "w_fold[13]")) (.n (val% «verify_tables» "w_fold[10]")) (.n (val% «verify_tables» "s48.u2.s1.u1.s2#1"))) (by decide +kernel)
-  have a2016 := vtB_pureAt (rd := rd) (wo := wo) hl 2015 (.add (.n (val% «verify_tables» "s48.u3.s1.u0.s2#0")) (.n (val% «verify_tables» "w_fold[12]")) (.n (val% «verify_tables» "w_fold[13]"))) (by decide +kernel)
-  have a2017 := vtB_pureAt (rd := rd) (wo := wo) hl 2016 (.mul (.n (val% «verify_tables» "s48.u3.s1.u0.s2#1")) (.n (val% «verify_tables» "rj@3")) (.n (val% «verify_tables» "s48.u3.s1.u0.s2#0"))) (by decide +kernel)
-  have a2018 := vtB_pureAt (rd := rd) (wo := wo) hl 2017 (.add (.n (val% «verify_tables» "w_fold[14]")) (.n (val% «verify_tables» "w_fold[12]")) (.n (val% «verify_tables» "s48.u3.s1.u0.s2#1"))) (by decide +kernel)
-  have a2019 := vtB_pureAt (rd := rd) (wo := wo) hl 2018 (.mul (.n (val% «verify_tables» "s49#0")) (.n (val% «verify_tables» "w_fold[14]")) (.n (val% «verify_tables» "x@8"))) (by decide +kernel)
-  have w0 := (vt_readAt (rd := rd) (w := wo) hl 1954 (d := (.n (val% «verify_tables» "w_lo@1"))) (by decide +kernel) (by decide +kernel) (hw13 0 (by norm_num))).1
-  have w1 := (vt_readAt (rd := rd) (w := wo) hl 1955 (d := (.n (val% «verify_tables» "s47.u0.s1#0"))) (by decide +kernel) (by decide +kernel) (hw13 1 (by norm_num))).1
-  have w2 := (vt_readAt (rd := rd) (w := wo) hl 1959 (d := (.n (val% «verify_tables» "w_lo@2"))) (by decide +kernel) (by decide +kernel) (hw13 2 (by norm_num))).1
-  have w3 := (vt_readAt (rd := rd) (w := wo) hl 1960 (d := (.n (val% «verify_tables» "s47.u1.s1#0"))) (by decide +kernel) (by decide +kernel) (hw13 3 (by norm_num))).1
-  have w4 := (vt_readAt (rd := rd) (w := wo) hl 1964 (d := (.n (val% «verify_tables» "w_lo@3"))) (by decide +kernel) (by decide +kernel) (hw13 4 (by norm_num))).1
-  have w5 := (vt_readAt (rd := rd) (w := wo) hl 1965 (d := (.n (val% «verify_tables» "s47.u2.s1#0"))) (by decide +kernel) (by decide +kernel) (hw13 5 (by norm_num))).1
-  have w6 := (vt_readAt (rd := rd) (w := wo) hl 1969 (d := (.n (val% «verify_tables» "w_lo@4"))) (by decide +kernel) (by decide +kernel) (hw13 6 (by norm_num))).1
-  have w7 := (vt_readAt (rd := rd) (w := wo) hl 1970 (d := (.n (val% «verify_tables» "s47.u3.s1#0"))) (by decide +kernel) (by decide +kernel) (hw13 7 (by norm_num))).1
-  have w8 := (vt_readAt (rd := rd) (w := wo) hl 1974 (d := (.n (val% «verify_tables» "w_lo@5"))) (by decide +kernel) (by decide +kernel) (hw13 8 (by norm_num))).1
-  have w9 := (vt_readAt (rd := rd) (w := wo) hl 1975 (d := (.n (val% «verify_tables» "s47.u4.s1#0"))) (by decide +kernel) (by decide +kernel) (hw13 9 (by norm_num))).1
-  have w10 := (vt_readAt (rd := rd) (w := wo) hl 1979 (d := (.n (val% «verify_tables» "w_lo@6"))) (by decide +kernel) (by decide +kernel) (hw13 10 (by norm_num))).1
-  have w11 := (vt_readAt (rd := rd) (w := wo) hl 1980 (d := (.n (val% «verify_tables» "s47.u5.s1#0"))) (by decide +kernel) (by decide +kernel) (hw13 11 (by norm_num))).1
-  have w12 := (vt_readAt (rd := rd) (w := wo) hl 1984 (d := (.n (val% «verify_tables» "w_lo@7"))) (by decide +kernel) (by decide +kernel) (hw13 12 (by norm_num))).1
-  have w13 := (vt_readAt (rd := rd) (w := wo) hl 1985 (d := (.n (val% «verify_tables» "s47.u6.s1#0"))) (by decide +kernel) (by decide +kernel) (hw13 13 (by norm_num))).1
-  have w14 := (vt_readAt (rd := rd) (w := wo) hl 1989 (d := (.n (val% «verify_tables» "w_lo@8"))) (by decide +kernel) (by decide +kernel) (hw13 14 (by norm_num))).1
-  have w15 := (vt_readAt (rd := rd) (w := wo) hl 1990 (d := (.n (val% «verify_tables» "s47.u7.s1#0"))) (by decide +kernel) (by decide +kernel) (hw13 15 (by norm_num))).1
-  have l0 := (vt_readAt (rd := rd) (w := wo) hl 1953 (d := (.n (val% «verify_tables» "r0"))) (by decide +kernel) (by decide +kernel) (hpt19 0 (by norm_num))).1
-  have l1 := (vt_readAt (rd := rd) (w := wo) hl 1994 (d := (.n (val% «verify_tables» "rj@1"))) (by decide +kernel) (by decide +kernel) (hpt19 1 (by norm_num))).1
-  have l2 := (vt_readAt (rd := rd) (w := wo) hl 2007 (d := (.n (val% «verify_tables» "rj@2"))) (by decide +kernel) (by decide +kernel) (hpt19 2 (by norm_num))).1
-  have l3 := (vt_readAt (rd := rd) (w := wo) hl 2014 (d := (.n (val% «verify_tables» "rj@3"))) (by decide +kernel) (by decide +kernel) (hpt19 3 (by norm_num))).1
+  have a1932 := vtB_pureAt (rd := rd) (wo := wo) hl 1627 (.const (.n (val% «verify_tables» "bc_claim@1~0")) (word 1 0)) (by decide +kernel)
+  have a1933 := vtB_pureAt (rd := rd) (wo := wo) hl 1628 (.add (.n (val% «verify_tables» "bc_claim@1~1")) (.n (val% «verify_tables» "bc_claim@1~0")) (.n (val% «verify_tables» "nxt[0]@2"))) (by decide +kernel)
+  have a1934 := vtB_pureAt (rd := rd) (wo := wo) hl 1629 (.mul (.n (val% «verify_tables» "bc_claim@1~2")) (.n (val% «verify_tables» "bc_claim@1~1")) (.n (val% «verify_tables» "bc_msg[2]"))) (by decide +kernel)
+  have a1935 := vtB_pureAt (rd := rd) (wo := wo) hl 1630 (.add (.n (val% «verify_tables» "bc_claim@1~3")) (.n (val% «verify_tables» "bc_msg[0]")) (.n (val% «verify_tables» "bc_claim@1~2"))) (by decide +kernel)
+  have a1936 := vtB_pureAt (rd := rd) (wo := wo) hl 1631 (.mul (.n (val% «verify_tables» "bc_claim@1~4")) (.n (val% «verify_tables» "nxt[0]@2")) (.n (val% «verify_tables» "bc_claim@1~3"))) (by decide +kernel)
+  have a1937 := vtB_pureAt (rd := rd) (wo := wo) hl 1632 (.add (.n (val% «verify_tables» "bc_claim@1")) (.n (val% «verify_tables» "bc_msg[1]")) (.n (val% «verify_tables» "bc_claim@1~4"))) (by decide +kernel)
+  have a1938 := vtB_pureAt (rd := rd) (wo := wo) hl 1633 (.const (.n (val% «verify_tables» "bfs0@1~8")) (word 128 0)) (by decide +kernel)
+  have a1939 := vtB_pureAt (rd := rd) (wo := wo) hl 1634 (.mul (.n (val% «verify_tables» "bfs0@1~9")) (.n (val% «verify_tables» "cursor@1")) (.n (val% «verify_tables» "bfs0@1~8"))) (by decide +kernel)
+  have c0 := vtB_pureAt (rd := rd) (wo := wo) hl 1641 (.copy (.n (val% «verify_tables» "sp[0]@2")) (.n (val% «verify_tables» "bfs0@3"))) (by decide +kernel)
+  have c1 := vtB_pureAt (rd := rd) (wo := wo) hl 1642 (.copy (.n (val% «verify_tables» "sp[1]@2")) (.n (val% «verify_tables» "bfs1@3"))) (by decide +kernel)
+  have c2 := vtB_pureAt (rd := rd) (wo := wo) hl 1643 (.copy (.n (val% «verify_tables» "sp[2]@2")) (.n (val% «verify_tables» "bfs2@3"))) (by decide +kernel)
+  have c3 := vtB_pureAt (rd := rd) (wo := wo) hl 1644 (.copy (.n (val% «verify_tables» "sp[3]@2")) (.n (val% «verify_tables» "bfs3@3"))) (by decide +kernel)
+  have c4 := vtB_pureAt (rd := rd) (wo := wo) hl 1645 (.copy (.n (val% «verify_tables» "sp[4]@2")) (.n (val% «verify_tables» "bfs4@3"))) (by decide +kernel)
+  have cv := vtB_pureAt (rd := rd) (wo := wo) hl 1647 (.copy (.n (val% «verify_tables» "rate[0]@3")) (.n (val% «verify_tables» "x@8"))) (by decide +kernel)
+  have a1957 := vtB_pureAt (rd := rd) (wo := wo) hl 1652 (.add (.n (val% «verify_tables» "s48.u0.s1#1")) (.n (val% «verify_tables» "w_lo@1")) (.n (val% «verify_tables» "s48.u0.s1#0"))) (by decide +kernel)
+  have a1958 := vtB_pureAt (rd := rd) (wo := wo) hl 1653 (.mul (.n (val% «verify_tables» "s48.u0.s1#2")) (.n (val% «verify_tables» "r0")) (.n (val% «verify_tables» "s48.u0.s1#1"))) (by decide +kernel)
+  have a1959 := vtB_pureAt (rd := rd) (wo := wo) hl 1654 (.add (.n (val% «verify_tables» "w_fold[0]")) (.n (val% «verify_tables» "w_lo@1")) (.n (val% «verify_tables» "s48.u0.s1#2"))) (by decide +kernel)
+  have a1962 := vtB_pureAt (rd := rd) (wo := wo) hl 1657 (.add (.n (val% «verify_tables» "s48.u1.s1#1")) (.n (val% «verify_tables» "w_lo@2")) (.n (val% «verify_tables» "s48.u1.s1#0"))) (by decide +kernel)
+  have a1963 := vtB_pureAt (rd := rd) (wo := wo) hl 1658 (.mul (.n (val% «verify_tables» "s48.u1.s1#2")) (.n (val% «verify_tables» "r0")) (.n (val% «verify_tables» "s48.u1.s1#1"))) (by decide +kernel)
+  have a1964 := vtB_pureAt (rd := rd) (wo := wo) hl 1659 (.add (.n (val% «verify_tables» "w_fold[1]")) (.n (val% «verify_tables» "w_lo@2")) (.n (val% «verify_tables» "s48.u1.s1#2"))) (by decide +kernel)
+  have a1967 := vtB_pureAt (rd := rd) (wo := wo) hl 1662 (.add (.n (val% «verify_tables» "s48.u2.s1#1")) (.n (val% «verify_tables» "w_lo@3")) (.n (val% «verify_tables» "s48.u2.s1#0"))) (by decide +kernel)
+  have a1968 := vtB_pureAt (rd := rd) (wo := wo) hl 1663 (.mul (.n (val% «verify_tables» "s48.u2.s1#2")) (.n (val% «verify_tables» "r0")) (.n (val% «verify_tables» "s48.u2.s1#1"))) (by decide +kernel)
+  have a1969 := vtB_pureAt (rd := rd) (wo := wo) hl 1664 (.add (.n (val% «verify_tables» "w_fold[2]")) (.n (val% «verify_tables» "w_lo@3")) (.n (val% «verify_tables» "s48.u2.s1#2"))) (by decide +kernel)
+  have a1972 := vtB_pureAt (rd := rd) (wo := wo) hl 1667 (.add (.n (val% «verify_tables» "s48.u3.s1#1")) (.n (val% «verify_tables» "w_lo@4")) (.n (val% «verify_tables» "s48.u3.s1#0"))) (by decide +kernel)
+  have a1973 := vtB_pureAt (rd := rd) (wo := wo) hl 1668 (.mul (.n (val% «verify_tables» "s48.u3.s1#2")) (.n (val% «verify_tables» "r0")) (.n (val% «verify_tables» "s48.u3.s1#1"))) (by decide +kernel)
+  have a1974 := vtB_pureAt (rd := rd) (wo := wo) hl 1669 (.add (.n (val% «verify_tables» "w_fold[3]")) (.n (val% «verify_tables» "w_lo@4")) (.n (val% «verify_tables» "s48.u3.s1#2"))) (by decide +kernel)
+  have a1977 := vtB_pureAt (rd := rd) (wo := wo) hl 1672 (.add (.n (val% «verify_tables» "s48.u4.s1#1")) (.n (val% «verify_tables» "w_lo@5")) (.n (val% «verify_tables» "s48.u4.s1#0"))) (by decide +kernel)
+  have a1978 := vtB_pureAt (rd := rd) (wo := wo) hl 1673 (.mul (.n (val% «verify_tables» "s48.u4.s1#2")) (.n (val% «verify_tables» "r0")) (.n (val% «verify_tables» "s48.u4.s1#1"))) (by decide +kernel)
+  have a1979 := vtB_pureAt (rd := rd) (wo := wo) hl 1674 (.add (.n (val% «verify_tables» "w_fold[4]")) (.n (val% «verify_tables» "w_lo@5")) (.n (val% «verify_tables» "s48.u4.s1#2"))) (by decide +kernel)
+  have a1982 := vtB_pureAt (rd := rd) (wo := wo) hl 1677 (.add (.n (val% «verify_tables» "s48.u5.s1#1")) (.n (val% «verify_tables» "w_lo@6")) (.n (val% «verify_tables» "s48.u5.s1#0"))) (by decide +kernel)
+  have a1983 := vtB_pureAt (rd := rd) (wo := wo) hl 1678 (.mul (.n (val% «verify_tables» "s48.u5.s1#2")) (.n (val% «verify_tables» "r0")) (.n (val% «verify_tables» "s48.u5.s1#1"))) (by decide +kernel)
+  have a1984 := vtB_pureAt (rd := rd) (wo := wo) hl 1679 (.add (.n (val% «verify_tables» "w_fold[5]")) (.n (val% «verify_tables» "w_lo@6")) (.n (val% «verify_tables» "s48.u5.s1#2"))) (by decide +kernel)
+  have a1987 := vtB_pureAt (rd := rd) (wo := wo) hl 1682 (.add (.n (val% «verify_tables» "s48.u6.s1#1")) (.n (val% «verify_tables» "w_lo@7")) (.n (val% «verify_tables» "s48.u6.s1#0"))) (by decide +kernel)
+  have a1988 := vtB_pureAt (rd := rd) (wo := wo) hl 1683 (.mul (.n (val% «verify_tables» "s48.u6.s1#2")) (.n (val% «verify_tables» "r0")) (.n (val% «verify_tables» "s48.u6.s1#1"))) (by decide +kernel)
+  have a1989 := vtB_pureAt (rd := rd) (wo := wo) hl 1684 (.add (.n (val% «verify_tables» "w_fold[6]")) (.n (val% «verify_tables» "w_lo@7")) (.n (val% «verify_tables» "s48.u6.s1#2"))) (by decide +kernel)
+  have a1992 := vtB_pureAt (rd := rd) (wo := wo) hl 1687 (.add (.n (val% «verify_tables» "s48.u7.s1#1")) (.n (val% «verify_tables» "w_lo@8")) (.n (val% «verify_tables» "s48.u7.s1#0"))) (by decide +kernel)
+  have a1993 := vtB_pureAt (rd := rd) (wo := wo) hl 1688 (.mul (.n (val% «verify_tables» "s48.u7.s1#2")) (.n (val% «verify_tables» "r0")) (.n (val% «verify_tables» "s48.u7.s1#1"))) (by decide +kernel)
+  have a1994 := vtB_pureAt (rd := rd) (wo := wo) hl 1689 (.add (.n (val% «verify_tables» "w_fold[7]")) (.n (val% «verify_tables» "w_lo@8")) (.n (val% «verify_tables» "s48.u7.s1#2"))) (by decide +kernel)
+  have a1996 := vtB_pureAt (rd := rd) (wo := wo) hl 1691 (.add (.n (val% «verify_tables» "s49.u1.s1.u0.s2#0")) (.n (val% «verify_tables» "w_fold[0]")) (.n (val% «verify_tables» "w_fold[1]"))) (by decide +kernel)
+  have a1997 := vtB_pureAt (rd := rd) (wo := wo) hl 1692 (.mul (.n (val% «verify_tables» "s49.u1.s1.u0.s2#1")) (.n (val% «verify_tables» "rj@1")) (.n (val% «verify_tables» "s49.u1.s1.u0.s2#0"))) (by decide +kernel)
+  have a1998 := vtB_pureAt (rd := rd) (wo := wo) hl 1693 (.add (.n (val% «verify_tables» "w_fold[8]")) (.n (val% «verify_tables» "w_fold[0]")) (.n (val% «verify_tables» "s49.u1.s1.u0.s2#1"))) (by decide +kernel)
+  have a1999 := vtB_pureAt (rd := rd) (wo := wo) hl 1694 (.add (.n (val% «verify_tables» "s49.u1.s1.u1.s2#0")) (.n (val% «verify_tables» "w_fold[2]")) (.n (val% «verify_tables» "w_fold[3]"))) (by decide +kernel)
+  have a2000 := vtB_pureAt (rd := rd) (wo := wo) hl 1695 (.mul (.n (val% «verify_tables» "s49.u1.s1.u1.s2#1")) (.n (val% «verify_tables» "rj@1")) (.n (val% «verify_tables» "s49.u1.s1.u1.s2#0"))) (by decide +kernel)
+  have a2001 := vtB_pureAt (rd := rd) (wo := wo) hl 1696 (.add (.n (val% «verify_tables» "w_fold[9]")) (.n (val% «verify_tables» "w_fold[2]")) (.n (val% «verify_tables» "s49.u1.s1.u1.s2#1"))) (by decide +kernel)
+  have a2002 := vtB_pureAt (rd := rd) (wo := wo) hl 1697 (.add (.n (val% «verify_tables» "s49.u1.s1.u2.s2#0")) (.n (val% «verify_tables» "w_fold[4]")) (.n (val% «verify_tables» "w_fold[5]"))) (by decide +kernel)
+  have a2003 := vtB_pureAt (rd := rd) (wo := wo) hl 1698 (.mul (.n (val% «verify_tables» "s49.u1.s1.u2.s2#1")) (.n (val% «verify_tables» "rj@1")) (.n (val% «verify_tables» "s49.u1.s1.u2.s2#0"))) (by decide +kernel)
+  have a2004 := vtB_pureAt (rd := rd) (wo := wo) hl 1699 (.add (.n (val% «verify_tables» "w_fold[10]")) (.n (val% «verify_tables» "w_fold[4]")) (.n (val% «verify_tables» "s49.u1.s1.u2.s2#1"))) (by decide +kernel)
+  have a2005 := vtB_pureAt (rd := rd) (wo := wo) hl 1700 (.add (.n (val% «verify_tables» "s49.u1.s1.u3.s2#0")) (.n (val% «verify_tables» "w_fold[6]")) (.n (val% «verify_tables» "w_fold[7]"))) (by decide +kernel)
+  have a2006 := vtB_pureAt (rd := rd) (wo := wo) hl 1701 (.mul (.n (val% «verify_tables» "s49.u1.s1.u3.s2#1")) (.n (val% «verify_tables» "rj@1")) (.n (val% «verify_tables» "s49.u1.s1.u3.s2#0"))) (by decide +kernel)
+  have a2007 := vtB_pureAt (rd := rd) (wo := wo) hl 1702 (.add (.n (val% «verify_tables» "w_fold[11]")) (.n (val% «verify_tables» "w_fold[6]")) (.n (val% «verify_tables» "s49.u1.s1.u3.s2#1"))) (by decide +kernel)
+  have a2009 := vtB_pureAt (rd := rd) (wo := wo) hl 1704 (.add (.n (val% «verify_tables» "s49.u2.s1.u0.s2#0")) (.n (val% «verify_tables» "w_fold[8]")) (.n (val% «verify_tables» "w_fold[9]"))) (by decide +kernel)
+  have a2010 := vtB_pureAt (rd := rd) (wo := wo) hl 1705 (.mul (.n (val% «verify_tables» "s49.u2.s1.u0.s2#1")) (.n (val% «verify_tables» "rj@2")) (.n (val% «verify_tables» "s49.u2.s1.u0.s2#0"))) (by decide +kernel)
+  have a2011 := vtB_pureAt (rd := rd) (wo := wo) hl 1706 (.add (.n (val% «verify_tables» "w_fold[12]")) (.n (val% «verify_tables» "w_fold[8]")) (.n (val% «verify_tables» "s49.u2.s1.u0.s2#1"))) (by decide +kernel)
+  have a2012 := vtB_pureAt (rd := rd) (wo := wo) hl 1707 (.add (.n (val% «verify_tables» "s49.u2.s1.u1.s2#0")) (.n (val% «verify_tables» "w_fold[10]")) (.n (val% «verify_tables» "w_fold[11]"))) (by decide +kernel)
+  have a2013 := vtB_pureAt (rd := rd) (wo := wo) hl 1708 (.mul (.n (val% «verify_tables» "s49.u2.s1.u1.s2#1")) (.n (val% «verify_tables» "rj@2")) (.n (val% «verify_tables» "s49.u2.s1.u1.s2#0"))) (by decide +kernel)
+  have a2014 := vtB_pureAt (rd := rd) (wo := wo) hl 1709 (.add (.n (val% «verify_tables» "w_fold[13]")) (.n (val% «verify_tables» "w_fold[10]")) (.n (val% «verify_tables» "s49.u2.s1.u1.s2#1"))) (by decide +kernel)
+  have a2016 := vtB_pureAt (rd := rd) (wo := wo) hl 1711 (.add (.n (val% «verify_tables» "s49.u3.s1.u0.s2#0")) (.n (val% «verify_tables» "w_fold[12]")) (.n (val% «verify_tables» "w_fold[13]"))) (by decide +kernel)
+  have a2017 := vtB_pureAt (rd := rd) (wo := wo) hl 1712 (.mul (.n (val% «verify_tables» "s49.u3.s1.u0.s2#1")) (.n (val% «verify_tables» "rj@3")) (.n (val% «verify_tables» "s49.u3.s1.u0.s2#0"))) (by decide +kernel)
+  have a2018 := vtB_pureAt (rd := rd) (wo := wo) hl 1713 (.add (.n (val% «verify_tables» "w_fold[14]")) (.n (val% «verify_tables» "w_fold[12]")) (.n (val% «verify_tables» "s49.u3.s1.u0.s2#1"))) (by decide +kernel)
+  have a2019 := vtB_pureAt (rd := rd) (wo := wo) hl 1714 (.mul (.n (val% «verify_tables» "s50#0")) (.n (val% «verify_tables» "w_fold[14]")) (.n (val% «verify_tables» "x@8"))) (by decide +kernel)
+  have w0 := (vt_readAt (rd := rd) (w := wo) hl 1650 (d := (.n (val% «verify_tables» "w_lo@1"))) (by decide +kernel) (by decide +kernel) (hw13 0 (by norm_num))).1
+  have w1 := (vt_readAt (rd := rd) (w := wo) hl 1651 (d := (.n (val% «verify_tables» "s48.u0.s1#0"))) (by decide +kernel) (by decide +kernel) (hw13 1 (by norm_num))).1
+  have w2 := (vt_readAt (rd := rd) (w := wo) hl 1655 (d := (.n (val% «verify_tables» "w_lo@2"))) (by decide +kernel) (by decide +kernel) (hw13 2 (by norm_num))).1
+  have w3 := (vt_readAt (rd := rd) (w := wo) hl 1656 (d := (.n (val% «verify_tables» "s48.u1.s1#0"))) (by decide +kernel) (by decide +kernel) (hw13 3 (by norm_num))).1
+  have w4 := (vt_readAt (rd := rd) (w := wo) hl 1660 (d := (.n (val% «verify_tables» "w_lo@3"))) (by decide +kernel) (by decide +kernel) (hw13 4 (by norm_num))).1
+  have w5 := (vt_readAt (rd := rd) (w := wo) hl 1661 (d := (.n (val% «verify_tables» "s48.u2.s1#0"))) (by decide +kernel) (by decide +kernel) (hw13 5 (by norm_num))).1
+  have w6 := (vt_readAt (rd := rd) (w := wo) hl 1665 (d := (.n (val% «verify_tables» "w_lo@4"))) (by decide +kernel) (by decide +kernel) (hw13 6 (by norm_num))).1
+  have w7 := (vt_readAt (rd := rd) (w := wo) hl 1666 (d := (.n (val% «verify_tables» "s48.u3.s1#0"))) (by decide +kernel) (by decide +kernel) (hw13 7 (by norm_num))).1
+  have w8 := (vt_readAt (rd := rd) (w := wo) hl 1670 (d := (.n (val% «verify_tables» "w_lo@5"))) (by decide +kernel) (by decide +kernel) (hw13 8 (by norm_num))).1
+  have w9 := (vt_readAt (rd := rd) (w := wo) hl 1671 (d := (.n (val% «verify_tables» "s48.u4.s1#0"))) (by decide +kernel) (by decide +kernel) (hw13 9 (by norm_num))).1
+  have w10 := (vt_readAt (rd := rd) (w := wo) hl 1675 (d := (.n (val% «verify_tables» "w_lo@6"))) (by decide +kernel) (by decide +kernel) (hw13 10 (by norm_num))).1
+  have w11 := (vt_readAt (rd := rd) (w := wo) hl 1676 (d := (.n (val% «verify_tables» "s48.u5.s1#0"))) (by decide +kernel) (by decide +kernel) (hw13 11 (by norm_num))).1
+  have w12 := (vt_readAt (rd := rd) (w := wo) hl 1680 (d := (.n (val% «verify_tables» "w_lo@7"))) (by decide +kernel) (by decide +kernel) (hw13 12 (by norm_num))).1
+  have w13 := (vt_readAt (rd := rd) (w := wo) hl 1681 (d := (.n (val% «verify_tables» "s48.u6.s1#0"))) (by decide +kernel) (by decide +kernel) (hw13 13 (by norm_num))).1
+  have w14 := (vt_readAt (rd := rd) (w := wo) hl 1685 (d := (.n (val% «verify_tables» "w_lo@8"))) (by decide +kernel) (by decide +kernel) (hw13 14 (by norm_num))).1
+  have w15 := (vt_readAt (rd := rd) (w := wo) hl 1686 (d := (.n (val% «verify_tables» "s48.u7.s1#0"))) (by decide +kernel) (by decide +kernel) (hw13 15 (by norm_num))).1
+  have l0 := (vt_readAt (rd := rd) (w := wo) hl 1649 (d := (.n (val% «verify_tables» "r0"))) (by decide +kernel) (by decide +kernel) (hpt19 0 (by norm_num))).1
+  have l1 := (vt_readAt (rd := rd) (w := wo) hl 1690 (d := (.n (val% «verify_tables» "rj@1"))) (by decide +kernel) (by decide +kernel) (hpt19 1 (by norm_num))).1
+  have l2 := (vt_readAt (rd := rd) (w := wo) hl 1703 (d := (.n (val% «verify_tables» "rj@2"))) (by decide +kernel) (by decide +kernel) (hpt19 2 (by norm_num))).1
+  have l3 := (vt_readAt (rd := rd) (w := wo) hl 1710 (d := (.n (val% «verify_tables» "rj@3"))) (by decide +kernel) (by decide +kernel) (hpt19 3 (by norm_num))).1
   simp only [Atom.Holds] at a1932 a1933 a1934 a1935 a1936 a1937 a1938 a1939 c0 c1 c2 c3
   simp only [Atom.Holds] at c4 cv a1957 a1958 a1959 a1962 a1963 a1964 a1967 a1968 a1969 a1972
   simp only [Atom.Holds] at a1973 a1974 a1977 a1978 a1979 a1982 a1983 a1984 a1987 a1988 a1989 a1992
@@ -469,7 +469,7 @@ theorem vtB_bc (hl : args.length = 21) {xs w weights : List E} (hxl : xs.length 
       List.map_cons, List.map_nil, List.nil_append, List.cons_append, List.foldl_cons,
       List.foldl_nil, foldPairs, List.headD_cons]
     ring
-  have h1973 : σ (.n (val% «verify_tables» "s49#0")) = dot (eqKernel (vtBcPoint (vtF0 args xs) w)) weights * w.getD 9 0 := by
+  have h1973 : σ (.n (val% «verify_tables» "s50#0")) = dot (eqKernel (vtBcPoint (vtF0 args xs) w)) weights * w.getD 9 0 := by
     rw [a2019, e1972, e1905, ← vt_list16 weights hW16,
       multilinearEval_eq_dot weights _ hW16 (by simp [vtBcPoint])]
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, l1951, ?_, e40, e1905, q3, ?_⟩
@@ -517,7 +517,7 @@ theorem vtB_bc (hl : args.length = 21) {xs w weights : List E} (hxl : xs.length 
       rfl
   · show LoadHolds rd (σ (.n (val% «verify_tables» "bc_point"))) 3 (σ (.n (val% «verify_tables» "bc_r@3")))
     rw [s3]; exact hpt19 3 (by norm_num)
-  · show σ (.n (val% «verify_tables» "bc_claim@4")) + σ (.n (val% «verify_tables» "s49#0")) = 0
+  · show σ (.n (val% «verify_tables» "bc_claim@4")) + σ (.n (val% «verify_tables» "s50#0")) = 0
     rw [e_add_eq_zero_iff, v3, h1973, hacc]
   · rw [u3]; ring
 

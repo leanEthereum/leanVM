@@ -70,7 +70,7 @@ def many {α : Type} (n : ℕ) (p : P α) : P (List α) := (List.range n).mapM f
 def hint : P Hint := do
   match ← tok with
   | "fa" => .frameAddress <$> nat
-  | "af" => return .allocFrames (← nat) (← nat) (← nat) (K.ofBits (← hex))
+  | "af" => return .allocFrames (← nat) (← nat) (← nat) (K.ofBits (← hex)) (← nat)
   | "al" => return .alloc (← nat) (← nat)
   | "ad" => return .allocDyn (← nat) (← nat)
   | "aa" => do

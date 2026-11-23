@@ -41,9 +41,9 @@ def UsedOk (B : ℕ) (s : St) : Hint → Prop
   | .allocArm p sel sizes => s.fp + p < B ∧
       ∀ k n, PtrAt s (s.fp + sel) k → sizes[k]? = some n → s.nextFree + n ≤ B
   | .cellAddress p _ => s.fp + p < B
-  | .allocFrames p size stop si => s.fp + p < B ∧
+  | .allocFrames p size stop si tail => s.fp + p < B ∧
       ∀ v n, n < maxCells → s.mem.peek (s.fp + stop) = ofK v → v * si = Parameters.g ^ n →
-        s.nextFree + size * (n + 1) ≤ B
+        s.nextFree + (size * n + tail) ≤ B
   | .witnessStack _ base len => ∀ k < len, s.fp + base + k < B
   | .witnessHeap _ ptr lo len => ∀ b, PtrAt s (s.fp + ptr) b → ∀ k < len, b + lo + k < B
   | .log2Ceil _ dst _ _ => s.fp + dst < B
@@ -68,8 +68,8 @@ def AllocB (B : ℕ) (s : St) : Hint → Prop
   | .alloc _ n => s.nextFree + n ≤ B
   | .allocDyn _ c => ∀ n, PtrAt s (s.fp + c) n → s.nextFree + n ≤ B
   | .allocArm _ sel sizes => ∀ k n, PtrAt s (s.fp + sel) k → sizes[k]? = some n → s.nextFree + n ≤ B
-  | .allocFrames _ size stop si => ∀ v n, n < maxCells → s.mem.peek (s.fp + stop) = ofK v →
-      v * si = Parameters.g ^ n → s.nextFree + size * (n + 1) ≤ B
+  | .allocFrames _ size stop si tail => ∀ v n, n < maxCells → s.mem.peek (s.fp + stop) = ofK v →
+      v * si = Parameters.g ^ n → s.nextFree + (size * n + tail) ≤ B
   | _ => True
 
 end
@@ -253,7 +253,7 @@ theorem usedOk_run {B : ℕ} {C : Ctx} {s s' : St} {h : Hint} (hs : s.Good) (e :
     obtain ⟨c', -, pc, hpc, e⟩ := e
     obtain ⟨rfl, -⟩ := cellAt_ok hpc
     exact withPut_used e h0 hu
-  | allocFrames p size stop si =>
+  | allocFrames p size stop si tail =>
     simp only [runHint, bind_ok] at e
     obtain ⟨c, hc, sp, hsp, e⟩ := e
     obtain ⟨rfl, -⟩ := cellAt_ok hc
@@ -389,9 +389,9 @@ theorem allocB_arm {B : ℕ} {s : St} {p sel k n : ℕ} {sizes : List ℕ} (hp :
     rw [← ptrAt_uniq hp hp', hk] at hk'
     rw [← Option.some.inj hk']; exact hb
 
-theorem allocB_frames {B : ℕ} {s : St} {p size stop n : ℕ} {v si : K}
+theorem allocB_frames {B : ℕ} {s : St} {p size stop n tail : ℕ} {v si : K}
     (hp : s.mem.peek (s.fp + stop) = ofK v) (hv : v * si = Parameters.g ^ n) (hn : n < maxCells)
-    (hb : s.nextFree + size * (n + 1) ≤ B) : AllocB B s (.allocFrames p size stop si) :=
+    (hb : s.nextFree + (size * n + tail) ≤ B) : AllocB B s (.allocFrames p size stop si tail) :=
   fun v' n' hn' hp' hv' ↦ by
     obtain rfl : v' = v := ofK_injective (hp'.symm.trans hp)
     obtain rfl : n' = n := gpow_inj (by unfold maxCells at hn'; omega) (by unfold maxCells at hn; omega)

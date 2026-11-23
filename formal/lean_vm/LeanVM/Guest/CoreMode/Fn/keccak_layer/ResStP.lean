@@ -46,8 +46,8 @@ def stStep (rem : Bool) : ℕ := if rem then 2 else 16
 
 /-- The loop's arguments at the layer's call, the layer's values from `o`. -/
 def stArgs (o : ℕ) (rem : Bool) : List V :=
-  if rem then [.n (o + 736), .n (valf% «keccak_layer» "rem_g"), .n (o + 725), .n (o + 729), .n (valf% «keccak_layer» "tabs"), .n (o + 733)]
-  else [.n (o + 724), .n (valf% «keccak_layer» "step_g"), .n (o + 719), .n (o + 717), .n (o + 718), .n (valf% «keccak_layer» "tabs")]
+  if rem then [.n (o + 800), .n (valf% «keccak_layer» "rem_g"), .n (o + 789), .n (o + 793), .n (valf% «keccak_layer» "tabs"), .n (o + 797)]
+  else [.n (o + 788), .n (valf% «keccak_layer» "step_g"), .n (o + 783), .n (o + 781), .n (o + 782), .n (valf% «keccak_layer» "tabs")]
 
 /-- The layer's index. -/
 def layIdx (first : ℕ) : ℕ := if first = 1 then fn_idx% «keccak_layer__L1» else fn_idx% «keccak_layer__L0»
@@ -61,7 +61,7 @@ def LoopQ (r : Ref) (J : Inst) : Prop :=
   ∀ f σ bufs kids, J.t = .node f σ bufs kids → ∀ first < 2, ∀ rem, f = stLoop first rem →
     ∃ a j n q, J.hdr.2 = ofK (addressOfIndex a) ∧ a + 17 < maxCells ∧ σ (.n 0) = gen ^ j ∧
       σ (.n 1) = gen ^ n ∧ j < n ∧ n < 32 ∧
-      LoadHolds r.img.read (σ (.n 2) * σ (.n 0)) 80 (refMem r.img (a + 17) * gen ^ q) ∧
+      LoadHolds r.img.read (σ (.n 2) * σ (.n 0)) 55 (refMem r.img (a + 17) * gen ^ q) ∧
       q + stStep rem * (n - j) ≤ 8192
 
 end
@@ -105,8 +105,8 @@ theorem stLoop_rets {first : ℕ} (hf : first < 2) (rem : Bool) {args rets : Lis
 /-- **An iteration moves the cursor** `stStep rem` words on, into the next record. -/
 theorem stLoop_next {first : ℕ} (hf : first < 2) (rem : Bool) {x hg rec a3 a4 a5 cur : E} {rets : List E}
     {j : ℕ} (h : coreProgram.Rel rd (stLoop first rem) [x, hg, rec, a3, a4, a5] rets) (hx : x = gen ^ j)
-    (h0 : LoadHolds rd (rec * x) 80 cur) :
-    LoadHolds rd (rec * gen ^ (j + 1)) 80 (cur * gen ^ stStep rem) := by
+    (h0 : LoadHolds rd (rec * x) 55 cur) :
+    LoadHolds rd (rec * gen ^ (j + 1)) 55 (cur * gen ^ stStep rem) := by
   obtain rfl := stLoop_rets hf rem h
   obtain ⟨d, hd⟩ := h
   cases d with
@@ -197,19 +197,19 @@ theorem packSetupT_noRet {first : ℕ} (hf : first < 2) : Stmt.noRetList (packSe
 eight-round loop's call, the remainder loop's record, the counters' `1`. -/
 theorem layer_setup {first : ℕ} (hf : first < 2) {C : CallRel} {σ : Val} {kret : List E → Prop}
     {body : List Stmt} (hbd : body = layerT first) (h : Stmt.HoldsList C rd σ body False kret) :
-    LoadHolds rd (σ (.n (layOff first + 719))) 80 (σ (.n (valf% «keccak_layer» "cursor@1")) * gen ^ 48) ∧
-      (1 + σ (.n (valf% «keccak_layer» "step_g")) ≠ 0 → C (packLoopName first) [1, σ (.n (valf% «keccak_layer» "step_g")), σ (.n (layOff first + 719)),
-        σ (.n (layOff first + 717)), σ (.n (layOff first + 718)), σ (.n (valf% «keccak_layer» "tabs"))] []) ∧
-      σ (.n (layOff first + 725)) = σ (.n (layOff first + 719)) * σ (.n (valf% «keccak_layer» "step_g")) ∧
-      σ (.n (layOff first + 724)) = 1 ∧ σ (.n (layOff first + 736)) = 1 := by
+    LoadHolds rd (σ (.n (layOff first + 783))) 55 (σ (.n (valf% «keccak_layer» "cursor@1")) * gen ^ 48) ∧
+      (1 + σ (.n (valf% «keccak_layer» "step_g")) ≠ 0 → C (packLoopName first) [1, σ (.n (valf% «keccak_layer» "step_g")), σ (.n (layOff first + 783)),
+        σ (.n (layOff first + 781)), σ (.n (layOff first + 782)), σ (.n (valf% «keccak_layer» "tabs"))] []) ∧
+      σ (.n (layOff first + 789)) = σ (.n (layOff first + 783)) * σ (.n (valf% «keccak_layer» "step_g")) ∧
+      σ (.n (layOff first + 788)) = 1 ∧ σ (.n (layOff first + 800)) = 1 := by
   subst hbd
   rw [layerT_split, holdsList_append, holdsList_noRet _ (layA_noRet hf)] at h
   replace h := h.2
   rw [holdsList_append] at h
   obtain ⟨ha, -⟩ := holdsList_mem (packSetupT_noRet hf) h
   obtain ⟨-, hrec0, -, hloopC, e727, -, -, -⟩ := packSetupT_holds h
-  have e726 := ha (.const (.n (layOff first + 724)) (word 1 0)) (by simp [packSetupT])
-  have e738 := ha (.const (.n (layOff first + 736)) (word 1 0)) (by simp [packSetupT])
+  have e726 := ha (.const (.n (layOff first + 788)) (word 1 0)) (by simp [packSetupT])
+  have e738 := ha (.const (.n (layOff first + 800)) (word 1 0)) (by simp [packSetupT])
   simp only [Atom.Holds] at e726 e738
   exact ⟨hrec0.2.1, hloopC, e727, by rw [e726, word_one], by rw [e738, word_one]⟩
 
@@ -238,7 +238,7 @@ theorem loopQ_step (hr : r.Ok) :
   -- the counter below the bound, at the callee
   suffices H : ∃ a j n q, J.hdr.2 = ofK (addressOfIndex a) ∧ a + 17 < maxCells ∧ σ (.n 0) = gen ^ j ∧
       σ (.n 1) = gen ^ n ∧ j ≤ n ∧ n < 32 ∧
-      LoadHolds r.img.read (σ (.n 2) * σ (.n 0)) 80 (refMem r.img (a + 17) * gen ^ q) ∧
+      LoadHolds r.img.read (σ (.n 2) * σ (.n 0)) 55 (refMem r.img (a + 17) * gen ^ q) ∧
       q + stStep rem * (n - j) ≤ 8192 by
     obtain ⟨a, j, n, q, h1, h2, h3, h4, h5, h6, h7, h8⟩ := H
     obtain ⟨j', hj', h0'⟩ := loop_ctr_lt hr hJS hJt (hfL ▸ hfl) hll hel hpl h4 (by omega)
@@ -273,7 +273,7 @@ theorem loopQ_step (hr : r.Ok) :
     dsimp only at hH
     rw [ite_eq_right (by rw [hloopL]; simp), hsite] at hH
     -- the stream at the layer's frame
-    have hfb := inst_fb hr hI (by rw [hIt]; rfl) hjL
+    have hfb := inst_fb hr hI (by rw [hIt]) hjL
     have hF0 := inst_frame hr hI hIt hjL hw
     have hp15 : V.n 15 ∈ (coreOf (layIdx first)).params := by rw [hpL]; simp
     obtain ⟨hlt17, hm17⟩ := ref_read hr (by rw [h15]; omega)

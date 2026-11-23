@@ -35,7 +35,7 @@ theorem gl_loops_totalLeOn : ∀ p < 4, ∀ o < 2,
 noncomputable def vbgWords : B1.Tables.VbgWords B2C.fs where
   KL := B1.Tables.glsKL B2C.fs kGl
   K8 := wSK (name% verify_bus_gkr_loop0) - B2C.fs (name% verify_bus_gkr_loop0)
-  hL := B1.Tables.gls_totalLeOn gl_loops_totalLeOn
+  hL := B1.Tables.gls_totalLeOn B2C.fs_tailKey_le gl_loops_totalLeOn
   h8 := by simpa only [wSKt_eq] using wSKt_totalLeOn (j := idx% verify_bus_gkr_loop0) (by decide +kernel)
 
 /-- `verify_bus_gkr`'s largest bound, at the search tree's lookups. -/

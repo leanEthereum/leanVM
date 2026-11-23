@@ -17,7 +17,7 @@ import LeanVM.Guest.Data.ValNames.«column_selector__L»
 # `column_selector`'s lowest digit
 
 `csRes κ s d`: `column_selector__L{κ}`'s read of its lowest digit `[d]`'s eq weight at
-`[s]·[d]·g^(64(κ/4) + 16(w - 1))`, inside the strided level-`w` table, `w` the digit's width; `csB j`
+`[s]·[d]·g^(32(κ/4) + selEqOff (w - 1))`, inside the strided level-`w` table, `w` the digit's width; `csB j`
 names it at function `j`.
 
 `CsQ r J`: at an instance of `column_selector__L{κ}`, its offset is `g^o`, `o < 2^32` a multiple of
@@ -37,15 +37,18 @@ open LeanVM.Guest.B2C (cellJ)
 @[expose] public section
 
 /-- **`column_selector__L{κ}`'s read of its lowest digit's eq weight**: `[s]·[d]·g^off` inside
-`[s]·g^(2^(4 - w)·i + off)`, `i < 2^w`, `w` the digit's width, `off = 64(κ/4) + 16(w - 1)`. -/
+`[s]·g^(2^(4 - w)·i + off)`, `i < 2^w`, `w` the digit's width, `off = 32(κ/4) + selEqOff (w - 1)`. -/
 def csRes (κ s d : ℕ) : Mode.Res :=
   let w := Tables.csW κ 0
-  let off := 64 * (κ / 4) + 16 * (w - 1)
+  let off := 32 * (κ / 4) + Tables.selEqOff (w - 1)
   .sub ⟨⟨0, off, Mode.insertBs (.fr d, 1) [(.fr s, 1)]⟩, .num 0, .num 1, 1, 0⟩
     [⟨⟨0, 0, [(.fr s, 1)]⟩, .num 0, .num (2 ^ w), 2 ^ (4 - w), off⟩]
 
+/-- The level `w - 1` whose table starts at `selEqOff (w - 1) = r` within a nibble's row. -/
+def selEqLevel (r : ℕ) : ℕ := if r = 4 then 0 else if r = 2 then 1 else if r = 1 then 2 else 3
+
 /-- The `κ` whose `csRes` reads at offset `k`. -/
-def csKappa (k : ℕ) : ℕ := 4 * (k / 64) + 3 - k % 64 / 16
+def csKappa (k : ℕ) : ℕ := 4 * (k / 32) + 3 - selEqLevel (k % 32)
 
 /-- **The lowest digit's read at function `j`**: `j` is `column_selector__L{κ}`, its `sel_eq` and
 digit cells `s`, `d`, the digit's inside the frame. -/

@@ -100,11 +100,11 @@ def RelAt (rd : Reader) (fp n : ℕ) (f : String) (args rets : List E) : Prop :=
 
 /-- **The callees of the frames `cs` sets up**, their regions one after another from `b`, `n`
 words in all: each call entered `RelAt` its region, each not entered a phantom of its callee's
-frame size. -/
+tail (`tailKey`). -/
 def KidsFrom (rd : Reader) (σ : Val) : List Call → ℕ → ℕ → Prop
   | [], _, n => n = 0
   | c :: cs, b, n => ∃ m n', n = m + n' ∧
-      (if c.taken then RelAt P fs cert rd b m c.f (c.args.map σ) (c.rets.map σ) else m = fs c.f) ∧
+      (if c.taken then RelAt P fs cert rd b m c.f (c.args.map σ) (c.rets.map σ) else m = fs (tailKey c.f)) ∧
       KidsFrom rd σ cs (b + m) n'
 
 variable {P fs cert}
@@ -167,7 +167,7 @@ theorem bufsOkKids_append : ∀ {ks ks' : List Tree}, Tree.BufsOkKids P ks → T
 
 /-- The callee of one frame: a placed tree of a call entered, a phantom of one not. -/
 theorem kid_of {c : Call} {b m : ℕ} (hc : c.taken = false → P.Takes c.f c.args.length = true)
-    (h : if c.taken then RelAt P fs cert rd b m c.f (c.args.map σ) (c.rets.map σ) else m = fs c.f) :
+    (h : if c.taken then RelAt P fs cert rd b m c.f (c.args.map σ) (c.rets.map σ) else m = fs (tailKey c.f)) :
     ∃ k : Tree, Tree.KidsValid P rd σ [c] [k] ∧ k.BufsOk P ∧
       k.Placed P fs cert (b, b + k.block fs P.loop) ∧ k.total fs = m := by
   by_cases ht : c.taken = true

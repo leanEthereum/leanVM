@@ -48,39 +48,28 @@ open LeanVM.Guest.B1
 @[expose] public section
 ''' % (k, k, k, k, k, k)]
     for d in part:
-        s = '(⟨%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, [%s]⟩ : OqShape).oq' % (
-            d['odd'], d['base'], d['folds'], d['leaf'], d['depth'], d['cd'], d['mu'], d['vanish'], d['nhs'],
-            d['hsb'], d['final'], ', '.join(map(str, d['vs'])))
+        s = '(%s : OqShape).oq' % gen.shape(d)
         jm, jl = d['idx'] + 1, d['loopidx'] + 1
         names += ['walk_%d' % jm, 'walk_%d' % jl]
-        ok.append('/-- `%s`. -/\ntheorem walkOk_%d : mainOkS %d %d %s = true := by decide +kernel\n'
-                  % (d['name'], jm, jm, d['odd'], s))
+        ok.append('/-- `%s`. -/\ntheorem walkOk_%d : mainOkS %d %s = true := by decide +kernel\n'
+                  % (d['name'], jm, jm, s))
         if d['base'] == 1:
-            ok.append('/-- `%s`. -/\ntheorem walkOk_%d : loop1Ok %d %d %s = true := by decide +kernel\n'
-                      % (gen.stable[d['loop']], jl, jl, d['odd'], s))
+            ok.append('/-- `%s`. -/\ntheorem walkOk_%d : loop1Ok %d %s = true := by decide +kernel\n'
+                      % (gen.stable[d['loop']], jl, jl, s))
         else:
             ok.append('/-- `%s`. -/\ntheorem walkOk_%d : loop0Ok %d %s = true := by decide +kernel\n'
                       % (gen.stable[d['loop']], jl, jl, s))
         wk.append('''set_option maxRecDepth 100000 in
 /-- `%s`. -/
 theorem walk_%d : CutsKnown %d :=
-  main_cutsKnown (j := %d) oqBody_%s
-    (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) walkOk_%d
+  main_cutsKnown (j := %d) oqBody_%s (by decide) walkOk_%d
 ''' % (d['name'], jm, jm, jm, gen.key_of(d['name']), jm))
-        if d['base'] == 1:
-            wk.append('''set_option maxRecDepth 100000 in
+        wk.append('''set_option maxRecDepth 100000 in
 /-- `%s`. -/
 theorem walk_%d : CutsKnown %d :=
-  loop1_cutsKnown (j := %d) oqLoopBody_%s
-    (by decide) (by decide) (by decide) (by decide) walkOk_%d
-''' % (gen.stable[d['loop']], jl, jl, jl, gen.key_of(d['name']), jl))
-        else:
-            wk.append('''set_option maxRecDepth 100000 in
-/-- `%s`. -/
-theorem walk_%d : CutsKnown %d :=
-  loop0_cutsKnown (j := %d) oqLoopBody_%s
-    (by decide) (by decide) (by decide) walkOk_%d
-''' % (gen.stable[d['loop']], jl, jl, jl, gen.key_of(d['name']), jl))
+  %s (j := %d) oqLoopBody_%s (by decide) walkOk_%d
+''' % (gen.stable[d['loop']], jl, jl, 'loop1_cutsKnown' if d['base'] == 1 else 'loop0_cutsKnown', jl,
+       gen.key_of(d['name']), jl))
     for out in (ok, wk):
         out.append('end\nend LeanVM.Guest.End\n')
     open(D + 'WalkOqOk%d.lean' % k, 'w').write('\n'.join(ok))

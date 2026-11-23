@@ -220,7 +220,7 @@ def check (env : Environment) : Except String Unit := do
   let Q ← Expand.expandProgram Data.guest
   unless P.length == n && P == Q.map Fn.renumber do
     throw "coreProgram is not the renumbered expansion"
-  unless Q.head?.map (·.name) == some "main" && Q.getLast?.map (·.name) == some "walk_path__L12_L8" &&
+  unless Q.head?.map (·.name) == some "main" && Q.getLast?.map (·.name) == some "residual_query_slow__L20_L4_L300" &&
       Q.map (·.name) == Data.functions.tail.map (·.name) &&
       (Q.zip Data.functions.tail).all fun (f, c) => keccakAgree f c do
     throw "the expansion is not the compiled functions"

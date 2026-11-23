@@ -22,7 +22,7 @@ import LeanVM.Guest.Data.ValNames.«verify_keccak»
 * `pack_cur`, `rem_cur`: the two loops' records, by their iterations (`B1.VerifySub.pack8_step`,
   `packRem_step`), hold the cursor sixteen, then two words on per iteration;
 * `layer_cur`: on `y`'s facts alone, a layer's body puts its last record's cursor (value
-  `layOff first + 743`) `48 + 2y` words past its cursor and returns the cursor `84 + 2y` words past it;
+  `layOff first + 807`) `48 + 2y` words past its cursor and returns the cursor `84 + 2y` words past it;
 * `vk_curs`: `verify_keccak`'s step `s` hands its layer the cursor `1 + s·(84 + 2(τ - 3))` words past
   its own, each layer's returned cursor the next one's;
 * `layQ_all`: at every honest instance of a layer, by `Res.insts_down`: its only caller is
@@ -49,13 +49,13 @@ def LayQ (J : Inst) : Prop :=
 def layA (first : ℕ) : List Stmt :=
   headT first ++ prodT (.n (valf% «keccak_layer» "cursor@1")) (muB first) (prodTab first) ++ checkT (accL first) ++
     sqT first ++ rmfeBlockT (layOff first) ++
-    hornerT (fun k ↦ ((prodTab first).getD k default).a) (layOff first + 531) (layOff first + 625)
+    hornerT (fun k ↦ ((prodTab first).getD k default).a) (layOff first + 531) (layOff first + 689)
 
 /-- A layer's statements between its last record and its tail. -/
 def layB (first : ℕ) : List Stmt :=
-  localRoundsT (.n (layOff first + 743)) (.n (layOff first + 745)) (.n (layOff first + 744))
-      (cap5 (layOff first + 738)) (layOff first + 746) 11 ++
-    tReadsT (layOff first) ++ eqfT (.n (layOff first + 745)) 6 5 25 (layOff first + 1107) ++
+  localRoundsT (.n (layOff first + 807)) (.n (layOff first + 809)) (.n (layOff first + 808))
+      (cap5 (layOff first + 802)) (layOff first + 810) 11 ++
+    tReadsT (layOff first) ++ eqfT (.n (layOff first + 809)) 6 5 25 (layOff first + 1171) ++
     weightT first (layOff first)
 
 /-- A layer's tail. -/
@@ -66,7 +66,7 @@ def layTail (first : ℕ) : List Stmt :=
 def layEnd (first : ℕ) : List Stmt :=
   let W := weightEnd first (layOff first)
   [.atom (.const (.n (topV W + 310)) (word 68719476736 0)),
-    .atom (.mul (.n (topV W + 311)) (.n (layOff first + 743)) (.n (topV W + 310))),
+    .atom (.mul (.n (topV W + 311)) (.n (layOff first + 807)) (.n (topV W + 310))),
     .atom (.copy (.n (topV W + 312)) (.n (topV W + 311))),
     .ret [.n (topV W + 305), .n (topV W + 306), .n (topV W + 307), .n (topV W + 308),
       .n (topV W + 309), .n (topV W + 312)]]
@@ -181,7 +181,7 @@ theorem layer_cur {first : ℕ} (hf : first < 2) {C : CallRel} (hC : CallRel.Le 
     {σ : Val} {kret : List E → Prop} {y : ℕ} (hy : y < 32) (h9 : σ (.n (valf% «keccak_layer» "step_g")) = gen ^ (y / krStep))
     (h10 : σ (.n (valf% «keccak_layer» "rem_g")) = gen ^ (y % krStep)) {body : List Stmt} (hbd : body = layerT first)
     (h : Stmt.HoldsList C rd σ body False kret) :
-    σ (.n (layOff first + 743)) = σ (.n (valf% «keccak_layer» "cursor@1")) * gen ^ (48 + 2 * y) ∧
+    σ (.n (layOff first + 807)) = σ (.n (valf% «keccak_layer» "cursor@1")) * gen ^ (48 + 2 * y) ∧
       ∃ ws, kret (ws ++ [σ (.n (valf% «keccak_layer» "cursor@1")) * gen ^ (84 + 2 * y)]) := by
   subst hbd
   rw [layerT_split, holdsList_append, holdsList_noRet _ (layA_noRet hf)] at h
@@ -204,7 +204,7 @@ theorem layer_cur {first : ℕ} (hf : first < 2) {C : CallRel} (hC : CallRel.Le 
   rw [← h10, ← e727, ← e739] at hR
   have e745 := loadHolds_unique hlast.2.1 hR
   have hy' : 16 * (y / krStep) + 2 * (y % krStep) = 2 * y := by simp only [krStep]; omega
-  have hcur : σ (.n (layOff first + 743)) = σ (.n (valf% «keccak_layer» "cursor@1")) * gen ^ (48 + 2 * y) := by
+  have hcur : σ (.n (layOff first + 807)) = σ (.n (valf% «keccak_layer» "cursor@1")) * gen ^ (48 + 2 * y) := by
     rw [e745, mul_assoc, mul_assoc, ← pow_add, ← pow_add, hy']
   rw [c312, m311, c310, word_g36, hcur, mul_assoc, ← pow_add,
     show 48 + 2 * y + 36 = 84 + 2 * y by ring] at hk

@@ -115,11 +115,47 @@ def runProofWithHash (P : VerifierProgram Bool) (seed : KeccakState) (π : Proof
 
 end Run
 
-/-! ### Reading a `query` in `Id` -/
+/-! ### Runs in `Id` -/
 
 section RunId
 
 variable (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState)
+
+/-- A sequence's run is the first part's, then the continuation's. -/
+theorem runWithHash_bind {α β : Type} (p : VerifierProgram α) (f : α → VerifierProgram β)
+    (st : VerifierProgramState) :
+    runWithHash H F (p.bind f) st =
+      (runWithHash H F p st).bind (fun r => runWithHash H F (f r.1) r.2) := by
+  induction p generalizing st with
+  | ret a => rfl
+  | fail => rfl
+  | read k ih =>
+    simp only [VerifierProgram.bind, runWithHash]
+    split
+    · exact ih _ _
+    · rfl
+  | sample k ih => exact ih _ _
+  | grind b k ih =>
+    simp only [VerifierProgram.bind, runWithHash]
+    split
+    · simp only [bind, pure]
+      split
+      · exact ih _
+      · rfl
+    · rfl
+  | commit h w k ih =>
+    simp only [VerifierProgram.bind, runWithHash]
+    split
+    · exact ih _
+    · rfl
+  | query i ps k ih =>
+    simp only [VerifierProgram.bind, runWithHash]
+    split
+    · simp only [bind]
+      split
+      · exact ih _ _
+      · rfl
+    · rfl
 
 /-- Opening a list of positions consumes one opening per position. -/
 theorem openAllWithHash_length (root : Digest) (height width : ℕ) :

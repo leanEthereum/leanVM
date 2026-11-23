@@ -27,7 +27,7 @@ def main():
     let counts = execute(&program, &witness, want).unwrap().rows();
     assert_eq!(
         (counts[0], counts[1], counts[4]),
-        (1, 2, 2),
+        (1, 1, 2),
         "XOR, MUL and JUMP lowering"
     );
     verify(&program, &want, &proof).expect("pack64x2 program verifies");

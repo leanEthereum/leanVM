@@ -38,8 +38,8 @@ example : coreProgram.find? "verify_sig_lean_sphincs" = some fn% «verify_sig_le
 example : coreProgram.find? "squeeze_point_from__L18" = some fn% «squeeze_point_from__L18» :=
   Program.find?_of_indexOf? (j := idx% «squeeze_point_from__L18») (by decide +kernel) rfl
 
-example : coreProgram.find? "walk_path__L18_L4" = some fn% «walk_path__L18_L4» :=
-  Program.find?_of_indexOf? (j := idx% «walk_path__L18_L4») (by decide +kernel) rfl
+example : coreProgram.find? "level_residual_sum__L18_L8_L4_L78" = some fn% «level_residual_sum__L18_L8_L4_L78» :=
+  Program.find?_of_indexOf? (j := idx% «level_residual_sum__L18_L8_L4_L78») (by decide +kernel) rfl
 
 example : (fn% «sp_wots»).name = (Data.functions[fn_idx% «sp_wots»]'(by decide +kernel)).name :=
   name_eq_compiled (j := idx% «sp_wots») rfl (List.getElem?_eq_getElem _)
@@ -51,13 +51,13 @@ example : (fn% «verify_sig_lean_sphincs»).name =
 example : (fn% «main_loop2»).name = (Data.functions[fn_idx% «main_loop2»]'(by decide +kernel)).name :=
   name_eq_compiled (j := idx% «main_loop2») rfl (List.getElem?_eq_getElem _)
 
-example : coreProgram.find? "walk_path__L12_L8" = some fn% «walk_path__L12_L8» :=
-  Program.find?_of_indexOf? (j := idx% «walk_path__L12_L8») (by decide +kernel) rfl
+example : coreProgram.find? "residual_query_slow__L20_L4_L300" = some fn% «residual_query_slow__L20_L4_L300» :=
+  Program.find?_of_indexOf? (j := idx% «residual_query_slow__L20_L4_L300») (by decide +kernel) rfl
 
-example : (fn% «walk_path__L18_L4»).name = (Data.functions[fn_idx% «walk_path__L18_L4»]'(by decide +kernel)).name :=
-  name_eq_compiled (j := idx% «walk_path__L18_L4») rfl (List.getElem?_eq_getElem _)
+example : (fn% «level_residual_sum__L18_L8_L4_L78»).name = (Data.functions[fn_idx% «level_residual_sum__L18_L8_L4_L78»]'(by decide +kernel)).name :=
+  name_eq_compiled (j := idx% «level_residual_sum__L18_L8_L4_L78») rfl (List.getElem?_eq_getElem _)
 
-example : (fn% «walk_path__L12_L8»).name = (Data.functions[fn_idx% «walk_path__L12_L8»]'(by decide +kernel)).name :=
-  name_eq_compiled (j := idx% «walk_path__L12_L8») rfl (List.getElem?_eq_getElem _)
+example : (fn% «residual_query_slow__L20_L4_L300»).name = (Data.functions[fn_idx% «residual_query_slow__L20_L4_L300»]'(by decide +kernel)).name :=
+  name_eq_compiled (j := idx% «residual_query_slow__L20_L4_L300») rfl (List.getElem?_eq_getElem _)
 
 end LeanVMTests.Guest.CoreData

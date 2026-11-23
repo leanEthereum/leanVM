@@ -75,7 +75,7 @@ end
 theorem block_selector_tab_relIn {n : ℕ} (hn : n < 34) {rd : Reader} {R : ℕ → Prop}
     {sb eqt gt : E} {rets : List E} (hsb : PtrIn R sb (btN n))
     (hd : ∀ k < btN n, ∃ u < 2 ^ btW n k, LoadHolds rd sb k (gen ^ u))
-    (he : PtrIn R eqt (32 * btN n)) (hg : PtrIn R gt (16 * btN n))
+    (he : PtrIn R eqt (8 * n)) (hg : PtrIn R gt (4 * n))
     (h : coreProgram.Rel rd (lName "block_selector_tab" n) [sb, eqt, gt] rets) :
     coreProgram.RelIn rd R (lName "block_selector_tab" n) [sb, eqt, gt] rets := by
   obtain ⟨fn, hf, hp, hb⟩ := btFound hn
@@ -107,6 +107,11 @@ theorem block_selector_tab_relIn {n : ℕ} (hn : n < 34) {rd : Reader} {R : ℕ 
         calc 2 ^ btW n k ≤ 2 ^ 4 := Nat.pow_le_pow_right (by norm_num) hw4
           _ = 16 := by norm_num
       have : k + 1 ≤ btN n := hk
+      have hwn : 4 * k + btW n k ≤ n := by unfold btW btN at *; split <;> omega
+      have hwp : 2 ^ btW n k * 2 ≤ 8 * btW n k + 2 ∧ 2 ^ btW n k ≤ 4 * btW n k := by
+        have h1 := btW_pos hk
+        generalize btW n k = w at hw4 h1 ⊢
+        interval_cases w <;> norm_num
       subst hpb
     · rw [he', p1, hc]
       exact ptrIn_mul (ptrIn_mono he (by omega))

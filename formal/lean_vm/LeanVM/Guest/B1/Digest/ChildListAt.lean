@@ -79,15 +79,15 @@ def anyHonest (n : ℕ) : Tree → Prop :=
   NodeHonest coreProgram "child_claim_list_any" (anyQ n) (anyCalls n) (anyBufs n) anyTs
 
 /-- **`child_claim_list_any`'s words** on `n = 136a + 17b + c` claims: its frame, its chain buffer
-`13 (a + b + 1)`, `child_claim_list_any_loop0` within `a + 1` frames (its frame when not entered),
-`child_claim_list_any_loop1` within
-`b + 1`, `child_claim_list_last__L{c}` a leaf within its frame. -/
+`13 (a + b + 1)`, `child_claim_list_any_loop0` within `a` frames and its tail (its tail when not
+entered), `child_claim_list_any_loop1` within `b` and its tail, `child_claim_list_last__L{c}` a leaf
+within its frame. -/
 def anyB (fs : String → ℕ) (n : ℕ) : ℕ :=
   fs "child_claim_list_any" + 13 * (n / 136 + n % 136 / 17 + 1) +
-    ((if n / 136 ≠ 0 then (n / 136 + 1) * fs name% «child_claim_list_any_loop0» else fs
-        name% «child_claim_list_any_loop0») +
-      ((if n % 136 / 17 ≠ 0 then (n % 136 / 17 + 1) * fs name% «child_claim_list_any_loop1» else fs
-          name% «child_claim_list_any_loop1») +
+    ((if n / 136 ≠ 0 then n / 136 * fs name% «child_claim_list_any_loop0» + fs (tailKey name% «child_claim_list_any_loop0») else fs
+        (tailKey name% «child_claim_list_any_loop0»)) +
+      ((if n % 136 / 17 ≠ 0 then n % 136 / 17 * fs name% «child_claim_list_any_loop1» + fs (tailKey name% «child_claim_list_any_loop1») else fs
+          (tailKey name% «child_claim_list_any_loop1»)) +
         (fs (cclNames.getD (n % 17) "") + 0)))
 
 /-! ## Placed -/
@@ -142,8 +142,8 @@ theorem child_claim_list_any_completeAtTB (fs : String → ℕ) (cert : String �
       ⟨cclNames[r]!, true, [chain * gen ^ (13 * (a + b)), gen ^ eP, gen ^ rg,
         base * gen ^ (136 * a + 17 * b), last], Lin ++ Own, Returns (digestCells D)⟩]
   have hokB : KidsDTB fs cert κ ks anyTs
-      [(a + 1) * fs name% «child_claim_list_any_loop0», (b + 1) * fs
-          name% «child_claim_list_any_loop1», fs (cclNames.getD r "")] := by
+      [a * fs name% «child_claim_list_any_loop0» + fs (tailKey name% «child_claim_list_any_loop0»), b * fs
+          name% «child_claim_list_any_loop1» + fs (tailKey name% «child_claim_list_any_loop1»), fs (cclNames.getD r "")] := by
     refine ⟨fun ht => ?_, fun ht => ?_, fun _ => ?_, trivial⟩
     · simp only [decide_eq_true_eq] at ht
       refine anyLoop_completeAtB fs cert (j := idx% «child_claim_list_any_loop0»)
@@ -207,8 +207,8 @@ theorem child_claim_list_any_completeAtTB (fs : String → ℕ) (cert : String �
       rwa [← cellsBytes_append, List.take_append_drop] at this
   obtain ⟨Nk, Lk, outs, hNk, hoo, hW, hD, -, hKids⟩ :=
     kidsFromInT_of_kidsDTB (fs := fs) (cert := cert) κ ks anyTs
-      [(a + 1) * fs name% «child_claim_list_any_loop0», (b + 1) * fs
-          name% «child_claim_list_any_loop1», fs (cclNames.getD r "")] hokB
+      [a * fs name% «child_claim_list_any_loop0» + fs (tailKey name% «child_claim_list_any_loop0»), b * fs
+          name% «child_claim_list_any_loop1» + fs (tailKey name% «child_claim_list_any_loop1»), fs (cclNames.getD r "")] hokB
       (b0 + 13 * (a + b + 1))
   have hl0 : outs.length = 3 := hoo.length
   obtain ⟨o1, t1, rfl, hl1⟩ := exists_of_length_succ hl0

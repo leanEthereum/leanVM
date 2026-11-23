@@ -430,7 +430,7 @@ structure DischargeHyps (H : Inst → ℕ → E × E) (C : Inst → List (ℕ ×
   bufsOk : T.BufsOk P
   placed : T.Placed P fs cert (0, T.block fs P.loop)
   loads : T.LoadsIn P fs cert R (0, T.block fs P.loop)
-  region : ∀ i, R i → i < 2 ∨ ∀ I ∈ honestInsts P fs H hdr T, ∀ o < fs I.t.name,
+  region : ∀ i, R i → i < 2 ∨ ∀ I ∈ honestInsts P fs H hdr T, ∀ o < I.t.fsz fs,
     addressOfIndex i ≠ addressOfIndex (I.fp + o)
   hdr_read : M.read (addressOfIndex 0) = some hdr.1 ∧ M.read (addressOfIndex 1) = some hdr.2
   size : T.total fs ≤ 2 ^ 30
@@ -482,7 +482,7 @@ variable (h : DischargeHyps P fs cert H C hdr T R M args rets)
 include h
 
 theorem DischargeHyps.within {I : Inst} (hI : I ∈ honestInsts P fs H hdr T) {o : ℕ}
-    (ho : o < fs I.t.name) : I.fp + o < T.total fs := by
+    (ho : o < I.t.fsz fs) : I.fp + o < T.total fs := by
   have := honest_within (P := P) hI (by have := h.cells.two_le I hI; omega)
   omega
 
@@ -671,8 +671,9 @@ theorem DischargeHyps.temp_cell {τ : Inst × V × K} (hτ : TempsOn P fs H hdr 
   have hmem := temps_of_rcRead hrc
   have hlt := (h.cert_lt g τ.2.1 hmem).2
   have hn : τ.1.t.name = g := by rw [ht]; rfl
+  have hfz : τ.1.t.fsz fs = fs g := by rw [fsz_of_node ht, hn]
   exact ⟨g, σ, bufs, kids, ht, hmem, by simp only [tempCell, hn],
-    h.within hJ (by rw [hn]; exact hlt), ⟨Nat.le_add_right _ _, by rw [hn]; omega⟩⟩
+    h.within hJ (by rw [hfz]; exact hlt), ⟨Nat.le_add_right _ _, by rw [hfz]; omega⟩⟩
 
 /-- **A temporary's cell is no fixed word.** -/
 theorem DischargeHyps.temp_not_fixed {τ : Inst × V × K} (hτ : TempsOn P fs H hdr T τ) (w : E) :
@@ -686,9 +687,9 @@ theorem DischargeHyps.temp_not_fixed {τ : Inst × V × K} (hτ : TempsOn P fs H
     obtain rfl := insts_same hJ hI hF ⟨by omega, by omega⟩
     exact hno ⟨g, σ, bufs, kids, ht, τ.2.1, hmem, by omega⟩
   · rw [hIt] at hq
-    have hlt' : cert g τ.2.1 < fs τ.1.t.name := by
+    have hlt' : cert g τ.2.1 < τ.1.t.fsz fs := by
       have hn : τ.1.t.name = g := by rw [ht]; rfl
-      rw [hn]; exact (h.cert_lt g τ.2.1 hmem).2
+      rw [fsz_of_node ht, hn]; exact (h.cert_lt g τ.2.1 hmem).2
     rcases h.classify hI hIt he hta hq with ⟨K, hK, i, hb, hqi⟩ | ⟨i, hR, hqi⟩ |
         ⟨K, hK, g', σK, bK, kK, hKt, pK, r, rs, hfa, k, hk, hqi, -⟩
     · have hi := honest_owns (P := P) hK (Or.inr hb)
@@ -707,7 +708,7 @@ theorem DischargeHyps.temp_not_fixed {τ : Inst × V × K} (hτ : TempsOn P fs H
         omega
       · exact hR' τ.1 hJ (cert g τ.2.1) hlt' hqi.symm
     · have hrun := h.run K hK g' σK bK kK hKt pK r rs hfa k hk
-      have hKlt : cert g' r + k < fs K.t.name := (h.cells.off K hK _ hrun.1).2
+      have hKlt : cert g' r + k < K.t.fsz fs := (h.cells.off K hK _ hrun.1).2
       have heq := h.inj hlt (h.within hK hKlt) hqi
       obtain rfl := insts_same hJ hK hF ⟨by omega, by omega⟩
       obtain ⟨rfl, -⟩ : g' = g ∧ σK = σ := by

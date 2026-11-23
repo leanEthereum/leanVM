@@ -51,6 +51,13 @@ theorem memOf_eq {H : CallRel → Reader → Prop} {p : E} {off : ℕ} {w : E}
   rw [this]
   rfl
 
+/-- **At a word every memory of `HM M H` holds, the memory of `H` is that word.** -/
+theorem memOf_eqHM {M : Reader → Prop} {H : CallRel → Reader → Prop} {p : E} {off : ℕ} {w : E}
+    (hw : ∀ C rd, HM M H C rd → LoadHolds rd p off w) {C : CallRel} {rd : Reader} (hH : HM M H C rd) :
+    memOf H p off = w :=
+  let ⟨_, _, h0⟩ := hH.ex
+  memOf_eq (fun C rd h ↦ hw C rd (.inl h)) h0
+
 /-! ## Evaluation -/
 
 /-- The watermark after a statement: one past the value it defines, if it defines one past the
@@ -117,6 +124,12 @@ theorem Ssa.le {w w' : ℕ} {ss : List Stmt} (h : Ssa w ss w') : w ≤ w' := by
   induction h with
   | nil => exact le_rfl
   | cons h1 _ ih => exact le_trans h1.le ih
+
+/-- A block in order has no window hints. -/
+theorem Ssa.noWin {w w' : ℕ} {ss : List Stmt} (h : Ssa w ss w') : ss.all Stmt.noWin = true := by
+  induction h with
+  | nil => rfl
+  | cons h1 _ ih => exact noWin_cons (by cases h1 <;> rfl) ih
 
 theorem SStep.wm {w w' : ℕ} {s : Stmt} (h : SStep w s w') : stepW w s = w' := by
   cases h <;> simp only [stepW] <;> split_ifs <;> omega
@@ -245,16 +258,16 @@ theorem ssa_allOk {M : E → ℕ → E} {Pt : ℕ → E} {C : CallRel} {rd : Rea
 
 /-- **A block at its evaluated values**, in `BlkA` form: the values from the valuation's below `w`,
 the memory `memOf H`; the side conditions wherever `H` holds. -/
-theorem ssa_blk {H : CallRel → Reader → Prop} {σ : Val} {Pt : ℕ → E} {w w' : ℕ} {ss : List Stmt}
-    (h : Ssa w ss w') {Out : Val → Prop}
-    (hside : ∀ C rd, H C rd → ∀ σ', AgreeBelow w σ σ' →
+theorem ssa_blk {M : Reader → Prop} {H : CallRel → Reader → Prop} {σ : Val} {Pt : ℕ → E} {w w' : ℕ}
+    {ss : List Stmt} (h : Ssa w ss w') {Out : Val → Prop}
+    (hside : ∀ C rd, HM M H C rd → ∀ σ', AgreeBelow w σ σ' →
       RangeVals σ' w w' (evalV (memOf H) Pt w (fun i ↦ σ (.n i)) ss) →
       AllOk C rd σ' ss → Out σ')
-    (hs : ∀ C rd, H C rd → ∀ σ', AgreeBelow w σ σ' →
+    (hs : ∀ C rd, HM M H C rd → ∀ σ', AgreeBelow w σ σ' →
       RangeVals σ' w w' (evalV (memOf H) Pt w (fun i ↦ σ (.n i)) ss) →
       SidesOk (memOf H) Pt C rd σ' w ss) :
-    BlkA H σ w w' ss Out := by
-  refine ⟨evalV (memOf H) Pt w (fun i ↦ σ (.n i)) ss, fun C rd hH σ' ha hr ↦ ?_⟩
+    BlkA M H σ w w' ss Out := by
+  refine BlkA.ofHM (evalV (memOf H) Pt w (fun i ↦ σ (.n i)) ss) (fun C rd hH σ' ha hr ↦ ?_) h.noWin
   have hv : ∀ j < w', σ' (.n j) = evalV (memOf H) Pt w (fun i ↦ σ (.n i)) ss j := by
     intro j hj
     by_cases hjw : j < w
@@ -380,13 +393,14 @@ theorem allocsAt_heap (σ : Val) (e k : ℕ) (he : e < 2 ^ 64 - 1) (hs : σ (.n 
 
 /-- **A pure block holds at its evaluated values**, its loads reading words every reader `H` admits
 fixes, from pointers below its first value. -/
-theorem pure_blk {H : CallRel → Reader → Prop} {σ : Val} {w w' : ℕ} {ss : List Stmt} (h : SsaP w ss w')
-    (hL : ∀ p o, (p, o) ∈ loadsOf ss → p < w ∧ ∃ v, ∀ C rd, H C rd → LoadHolds rd (σ (.n p)) o v) :
-    BlkA H σ w w' ss (fun σ' ↦ AllocsAt σ' ss = []) := by
+theorem pure_blk {M : Reader → Prop} {H : CallRel → Reader → Prop} {σ : Val} {w w' : ℕ} {ss : List Stmt}
+    (h : SsaP w ss w')
+    (hL : ∀ p o, (p, o) ∈ loadsOf ss → p < w ∧ ∃ v, ∀ C rd, HM M H C rd → LoadHolds rd (σ (.n p)) o v) :
+    BlkA M H σ w w' ss (fun σ' ↦ AllocsAt σ' ss = []) := by
   refine ssa_blk (Pt := fun _ ↦ 0) h.toSsa (fun _ _ _ σ' _ _ _ ↦ h.allocs σ') fun C rd hH σ' ha _ ↦ ?_
   refine h.sidesOk fun p o hpo ↦ ?_
   obtain ⟨hp, v, hv⟩ := hL p o hpo
-  rw [ha _ hp, memOf_eq hv hH]
+  rw [ha _ hp, memOf_eqHM hv hH]
   exact hv C rd hH
 
 end

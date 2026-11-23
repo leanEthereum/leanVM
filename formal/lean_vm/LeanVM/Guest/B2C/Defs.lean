@@ -25,9 +25,10 @@ cell (`frameE`): its range checks' temporaries, its frame runs, its fixed cells 
 constants and frame-pointer products), every value its path names (`namedOf`: parameters, the
 events' values, the returned values), the callee frame pointer and dispatch target of each call
 on its path (`siteE`), the target of each table jump (`armWord`, the jump table's word at the
-selector; a chained `match`'s on the arm the path takes, `chainE`), and in `main` the jump table. A phantom's cells are its parameters and its self frame
-pointer cells, which its caller writes. A callee's header (`H`) is the return pc of its call site
-and the caller's frame, or, for a loop's tail call, the caller's own header.
+selector; a chained `match`'s on the arm the path takes, `chainE`), and in `main` the jump table.
+A phantom's frame is its tail (`tailN`), its cells its parameters and its self frame pointer
+cells, which its caller writes. A callee's header (`H`) is the return pc of its call site and the
+caller's frame, or, for a loop's tail call, the caller's own header.
 
 `cnt T op` counts, per instance of `T` that runs, the most instructions of opcode `op` a path
 through its function's code runs (`pathMax`), plus the jump table's `SET`s.
@@ -56,16 +57,30 @@ noncomputable def cert (f : String) (v : V) : ℕ :=
 /-- `main`'s frame: its cells and the jump table after them. -/
 def mainFrame : ℕ := Data.mainCells + Data.jtSlots
 
+/-- The frame size of compiled function `j`, `fs` by index. -/
+def fsN (j : ℕ) : ℕ := bif Nat.beq j 1 then mainFrame else max 2 (fsAt j)
+
+/-- One past the largest of compiled function `j`'s self frame pointer cells. -/
+noncomputable def envEnd (j : ℕ) : ℕ := ((certOf j).facts.env.map (·.1 + 1)).foldr max 0
+
+/-- **The words of an untaken call** of compiled function `j`: its header, parameters and self
+cell (`RHint::AllocFrames`' `tail`) and every self frame pointer cell its caller writes, within
+its frame. -/
+noncomputable def tailN (j : ℕ) : ℕ := min (fsN j) (max ((coreOf j).params.length + 3) (envEnd j))
+
+/-- A phantom's frame size, at its tail key (`Memory.tailKey`). -/
+noncomputable def tailFs (f : String) : ℕ :=
+  match coreProgram.findIdx? (fun g => Memory.tailKey g.name == f) with
+  | some i => tailN (i + 1)
+  | none => 2
+
 /-- **The frame sizes**: the compiler's (`fsAt`), `main`'s holding the jump table, at least the
-header. -/
+header; a phantom's at its tail key. -/
 noncomputable def fs (f : String) : ℕ :=
   match coreProgram.indexOf? f with
   | some 0 => mainFrame
   | some i => max 2 (fsAt (i + 1))
-  | none => 2
-
-/-- The frame size of compiled function `j`, `fs` by index. -/
-def fsN (j : ℕ) : ℕ := bif Nat.beq j 1 then mainFrame else max 2 (fsAt j)
+  | none => tailFs f
 
 /-! ## The cells of a frame -/
 
@@ -153,7 +168,7 @@ noncomputable def phantomE (j : ℕ) (f : String) (σ : Val) (I : Inst) : List (
 noncomputable def C (I : Inst) : List (ℕ × E) :=
   match I.t, idxOf I.t.name with
   | .node f σ _ _, some j => frameE (fs f) (nodeE j f σ I)
-  | .phantom f σ, some j => frameE (fs f) (phantomE j f σ I)
+  | .phantom f σ, some j => frameE (fs (Memory.tailKey f)) (phantomE j f σ I)
   | _, _ => []
 
 /-- **The header of each callee**: the return pc of its call site and the caller's frame, or the

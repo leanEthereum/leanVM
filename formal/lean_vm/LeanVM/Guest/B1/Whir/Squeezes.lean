@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Whir.Squeezes
 
   The query positions of a level: the Spec's `sampleQueries` from the query grind's challenge, and
-  the template's squeezes and decodes (`osSqueezes`), soundly.
+  the template's squeezes and decodes (`osPositions`, `level_positions`), soundly.
 -/
 
 module
@@ -159,10 +159,6 @@ theorem sampleQueries_runG (d count : ℕ) (hP : 1 ≤ 128 / d) (hc : 0 < count)
 capacity `cap`. -/
 def sqSample (w0 : E) (cap : List E) (j : ℕ) : E :=
   if j = 0 then w0 else ((⟨cap, []⟩ : Fs).squeezeN (j - 1)).2.squeeze.1
-
-/-- The name of a level's `decode_query_windows`. -/
-def decName (lv : OsLv) : String :=
-  "decode_query_windows__L" ++ natStr lv.depth ++ "_L" ++ natStr lv.capDepth
 
 /-- What a level's squeezes leave (`level_positions`' dispatch, `osPositions_sound` in
 `Whir/LpSound.lean`): sample `j < S` decoded at `posOff + j·P` of `query_positions` and

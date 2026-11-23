@@ -30,8 +30,6 @@ composition of templates by kernel evaluation (`stmtsEqb_sound`).
   rate's first `2k` cells, then the zero run from `z`, then the capacity; `keccakA` the atom.
 * `challengeT s0 b` (`challenge_from_state`, a returned `nxt[0]`): the copy into `b` of the
   state's cell `0`, which is `challengeOf` (`challengeT_value`).
-* `grindCallT bits w tabs` (`fs_grind_squeeze`'s `grind_check(nxt[1], tabs, bits)`): the call of
-  `grind_check__L{bits}`.
 
 `keccakA_perm`: a `KECCAK` atom writes `permOf` of its inputs; `keccakA_fs`: on the cells of a
 carried sponge (`pendCells`, zeros, capacity) it writes the cells of `s.perm`; `grindSqueeze_cells`
@@ -158,12 +156,6 @@ theorem challengeT_value {s0 : V} {b : ℕ} {S : KeccakState} (h : ChallengeOk �
     (h0 : σ s0 = cellsOfState S false 0) : σ (.n b) = challengeOf S := by
   rw [h, h0, Keccak.challengeOf_cells]
 
-/-! ## `grind_check` calls -/
-
-/-- `grind_check(nxt[1], tabs, bits)`: the call of `grind_check__L{bits}` on the permutation's
-cell `1` and the window table. -/
-def grindCallT (bits : ℕ) (w tabs : V) : Stmt := .call (grindCheckName bits) [w, tabs] []
-
 /-! ## One permutation -/
 
 /-- One `KECCAK` atom in the even layouts. -/
@@ -207,8 +199,8 @@ theorem keccakA_of {ins outs : List V} (hi : ins.length = 13) (ho : outs.length 
 /-! ## A grind then a challenge (`fs_grind_squeeze`) -/
 
 /-- **`fs_grind_squeeze`'s meaning**, from its permutation's cells: at `bits ≠ 0`, cells `0`, `1`
-of the nonce's permutation, the `grind_check` on cell `1` passing (`MeaningGrindCheck`'s
-condition), give `Fs.GrindOk` and `Fs.grindSqueeze`'s challenge and sponge. -/
+of the nonce's permutation, the `grind_check` on cell `1` passing (the low `bits` bits of its low
+limb zero), give `Fs.GrindOk` and `Fs.grindSqueeze`'s challenge and sponge. -/
 theorem grindSqueeze_cells {s : Fs} {bits : ℕ} (hb : bits ≠ 0) (n : E) (c0 c1 : E)
     (h0 : c0 = cellsOfState (s.nonceState n) false 0)
     (h1 : c1 = cellsOfState (s.nonceState n) false 1)

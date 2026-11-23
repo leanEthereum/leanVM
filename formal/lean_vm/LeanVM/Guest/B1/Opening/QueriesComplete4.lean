@@ -14,9 +14,9 @@ public import LeanVM.Guest.B1.Opening.QueriesComplete3
 # One query, completeness
 
 `QD.Ok` is what the opening, the windows and the challenges say of an honest query: the siblings,
-the row's length, the walk's memory (`MemOk`), the position below `2^depth`, the rounds at `coefs` and, at the
-final level, the coefficients at `hs`
-and the fold equal to their novel sum (`QueryHolds`' last clause). `foldVal_eq`: the guest's fold
+the row's length, the walk's memory (`MemOk`), the position below `2^(pd + cd)`, the rounds at
+`coefs` and, at the final level, the coefficients at `hs` and the fold equal to their novel sum
+(`QueryHolds`' last clause). `foldVal_eq`: the guest's fold
 of the honest values is the Spec's `foldRow` (`guestFold_value`). `query_complete`: at a valuation
 that is the honest values on the query's indices, with the padding run `1, 0, 0, 0, 0`, every
 statement of `oqQueryT` holds, its result is `qwFold` (or `0`), and its leaf cells the leaf's
@@ -52,11 +52,12 @@ theorem getD_reverse_map (l : List K) {i : ℕ} (h : i < l.length) :
 namespace QD
 
 /-- What the opening, the windows and the challenges say of an honest query. -/
-structure Ok (d : QD) (rd : Reader) (coefsv hsp bpv : E) : Prop where
+structure Ok (d : QD) (rd : Reader) (coefsv hsp : E) : Prop where
   hsibs : d.sibs.length = d.s.pd
   hrow : d.row.length = rowLen d.s.base d.s.folds
-  hmem : (d.wd bpv).MemOk rd
-  hq : d.q < 2 ^ (d.s.pd + d.s.cd)
+  hmem : d.wd.MemOk rd
+  hcd : 1 ≤ d.cd
+  hq : d.q < 2 ^ (d.s.pd + d.cd)
   hR : RoundsAt rd coefsv d.rounds
   hrl : d.rounds.length = d.s.folds
   hfin : d.s.final = 1 → WordsAt rd hsp d.hsv ∧ d.hsv.length = d.s.nHs ∧
@@ -127,34 +128,46 @@ theorem rowLen_eq (hs : d.s.RowShape) : rowLen d.s.base d.s.folds = 2 * d.s.ncel
     simp [rowLen, hb, ← hI, Oq.I, hn]
 
 /-- The query's statements, by piece. -/
-theorem oqQueryT_eq (s : Oq) (x bp cap flags coefs hs : V) (b : ℕ) (emit : Bool) (pr : ℕ)
-    (walk : String) :
-    oqQueryT s x bp cap flags coefs hs b emit pr walk =
+theorem oqQueryT_eq (s : Oq) (x bp cap flags coefs hs : V) (b : ℕ) (emit : Bool) (pr : ℕ) :
+    oqQueryT s x bp cap flags coefs hs b emit pr =
       (oqPrepT s b ++ (if emit then oqPadT (oqK1 s b) else []) ++
         oqLeafT s b (oqPr s b emit pr) (oqKL s b emit)) ++
-      [.call walk [.n (oqOut s (oqKL s b emit) (s.B - 1) 0), .n (oqOut s (oqKL s b emit) (s.B - 1) 1),
-        bp, cap, flags] []] ++
-      (oqFoldT s coefs x b (oqCh s b emit) ++
-        (if s.final = 1 then oqFinT s x hs (oqVal s (oqCh s b emit)) else [])) := by
+      oqWalkT s bp cap flags (oqPr s b emit pr) (oqDig s b emit) (oqCh s b emit) ++
+      (oqFoldT s coefs x b (oqFo s b emit) ++
+        (if s.final = 1 then oqFinT s x hs (oqVal s (oqFo s b emit)) else [])) := by
   simp only [oqQueryT, List.append_assoc]
 
-/-- **One query holds at the honest values**, its call of `walk` in `C` on the leaf's halves, the
-window pointer, the cap and the flags; its result is its fold (`qwFold`) below the final level
-(at the final level it is the constant `0`, in no cell); its leaf cells are the leaf's digest's
-halves. -/
-theorem query_complete (hs : d.s.RowShape) (hfin : d.s.FinOk) {walk : String} {C : CallRel}
-    {x bp cap flags coefs hsp : V} (hok : d.Ok rd (σ coefs) (σ hsp) (σ bp)) (hv : d.Hv σ)
+/-- The query's honest walk is inline at its values. -/
+theorem wd_at (hs : d.s.RowShape) (hrow2 : d.row.length = 2 * d.s.ncells) (hv : d.Hv σ)
+    (hpad : σ (.n d.prV) = word 1 0) (hz : ∀ i < 4, σ (.n (d.prV + 1 + i)) = word 0 0)
+    {bp cap flags : V} (hbp : σ bp = d.bpv) (hcap : σ cap = d.capv) (hflags : σ flags = d.flagsv) :
+    d.wd.At σ d.ch (oqDig d.s d.b d.emit) d.prV bp cap flags := by
+  have hleaf := d.oqLeaf_digest hs hrow2 hv hpad hz
+  have hdig1 : oqDig d.s d.b d.emit + 1 = oqOut d.s d.kL (d.s.B - 1) 1 := by
+    simp only [oqDig, oqOut, kL]; split_ifs <;> omega
+  have hfo := d.fo_eq
+  have hb := d.b_le_ch
+  have hv' := d.fo_le_v
+  have he := d.v_lt_e
+  refine ⟨fun o ho => ?_, ?_, hpad, hz, hbp, hcap, hflags⟩
+  · rw [hv _ (by omega) (by omega), d.val_walk ho]
+  · rw [hdig1]; exact hleaf
+
+/-- **One query holds at the honest values**; its result is its fold (`qwFold`) below the final
+level (at the final level it is the constant `0`, in no cell); its leaf cells are the leaf's
+digest's halves. -/
+theorem query_complete (hs : d.s.RowShape) (hfin : d.s.FinOk) {C : CallRel}
+    {x bp cap flags coefs hsp : V} (hok : d.Ok rd (σ coefs) (σ hsp)) (hv : d.Hv σ)
     (hx : σ x = d.x) (hpad : σ (.n d.prV) = word 1 0) (hz : ∀ i < 4, σ (.n (d.prV + 1 + i)) = word 0 0)
-    (hcap : σ cap = d.capv) (hflags : σ flags = d.flagsv)
-    (hC : C walk [(digestHalves d.leaf).1, (digestHalves d.leaf).2, σ bp, d.capv, d.flagsv] []) :
-    BlockOkC C rd σ (oqQueryT d.s x bp cap flags coefs hsp d.b d.emit d.pr walk) ∧
+    (hbp : σ bp = d.bpv) (hcap : σ cap = d.capv) (hflags : σ flags = d.flagsv) :
+    BlockOkC C rd σ (oqQueryT d.s x bp cap flags coefs hsp d.b d.emit d.pr) ∧
       (d.s.final ≠ 1 → σ (.n (oqRes d.s d.b d.emit)) = qwFold d.s.base d.rounds (d.q, d.row, d.sibs)) ∧
       (σ (.n (oqOut d.s d.kL (d.s.B - 1) 0)), σ (.n (oqOut d.s d.kL (d.s.B - 1) 1))) =
         digestHalves d.leaf := by
   have hf1 : 1 ≤ d.s.folds := by rcases hs with ⟨-, h⟩ | ⟨-, h⟩ <;> omega
   have hrow2 : d.row.length = 2 * d.s.ncells := by rw [hok.hrow, d.rowLen_eq hs]
   have hleaf := d.oqLeaf_digest hs hrow2 hv hpad hz
-  -- the atoms before the call
+  -- the atoms before the walk
   have hA1 : BlockOkC C rd σ (oqPrepT d.s d.b ++ (if d.emit then oqPadT (oqK1 d.s d.b) else []) ++
       oqLeafT d.s d.b (oqPr d.s d.b d.emit d.pr) (oqKL d.s d.b d.emit)) := by
     refine blockOkC_of_blockOk (blockOk_of_atoms (allAtoms_append (allAtoms_append
@@ -175,9 +188,12 @@ theorem query_complete (hs : d.s.RowShape) (hfin : d.s.FinOk) {walk : String} {C
         · simp only [he, ↓reduceIte] at ha
           exact d.oqPad_complete he hv a ha
     · exact d.oqLeaf_complete hs hv hpad hz a ha
+  -- the walk
+  have hW : BlockOk rd σ (oqWalkT d.s bp cap flags d.prV (oqDig d.s d.b d.emit) d.ch) :=
+    (d.wd_at hs hrow2 hv hpad hz hbp hcap hflags).walk_block hok.hcd hok.hsibs hok.hq hok.hmem
   -- the fold and the check
-  have hA2 : BlockOkC C rd σ (oqFoldT d.s coefs x d.b (oqCh d.s d.b d.emit) ++
-      (if d.s.final = 1 then oqFinT d.s x hsp (oqVal d.s (oqCh d.s d.b d.emit)) else [])) := by
+  have hA2 : BlockOkC C rd σ (oqFoldT d.s coefs x d.b (oqFo d.s d.b d.emit) ++
+      (if d.s.final = 1 then oqFinT d.s x hsp (oqVal d.s (oqFo d.s d.b d.emit)) else [])) := by
     refine blockOkC_of_blockOk (blockOk_of_atoms (allAtoms_append (oqFoldT_atoms _ _ _ _ _)
       (by split; exact oqFinT_atoms _ _ _ _; exact allAtoms_nil)) fun a ha ↦ ?_)
     rcases List.mem_append.mp ha with ha | ha
@@ -190,20 +206,11 @@ theorem query_complete (hs : d.s.RowShape) (hfin : d.s.FinOk) {walk : String} {C
       · simp at ha
   refine ⟨?_, ?_, hleaf⟩
   · rw [oqQueryT_eq]
-    refine blockOkC_append.mpr ⟨blockOkC_append.mpr ⟨hA1, fun s hs ↦ ?_⟩, hA2⟩
-    simp only [List.mem_singleton] at hs
-    subst hs
-    show C walk [σ (.n (oqOut d.s d.kL (d.s.B - 1) 0)), σ (.n (oqOut d.s d.kL (d.s.B - 1) 1)), σ bp,
-      σ cap, σ flags] []
-    have e0 := congrArg Prod.fst hleaf
-    have e1 := congrArg Prod.snd hleaf
-    simp only at e0 e1
-    rw [e0, e1, hcap, hflags]
-    exact hC
+    exact blockOkC_append.mpr ⟨blockOkC_append.mpr ⟨hA1, blockOkC_of_blockOk hW⟩, hA2⟩
   · intro hfinal
     simp only [oqRes, hfinal, ↓reduceIte]
-    rw [show oqVal d.s (oqCh d.s d.b d.emit) = d.v from rfl,
-      d.hv_of hv (by have := d.b_le_ch; have := d.ch_le_v; omega) le_rfl, d.val_v hf1,
+    rw [show oqVal d.s (oqFo d.s d.b d.emit) = d.v from rfl,
+      d.hv_of hv (by have := d.b_le_fo; have := d.fo_le_v; omega) le_rfl, d.val_v hf1,
       d.foldVal_eq hs hok.hrow hok.hrl]
     rfl
 

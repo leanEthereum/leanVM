@@ -48,6 +48,7 @@ theorem allOk_relN {σ : Val} : ∀ (A : List Stmt), A.all Stmt.flat = true →
     | .dispatch x fs args rets, _, ⟨j, hj, hx, d, hd⟩ =>
       exact ⟨max D d, allOk_cons.mpr ⟨⟨j, hj, hx, relN_mono P (le_max_right D d) _ _ _ hd⟩,
         allOk_mono (relN_mono P (le_max_left D d)) hD⟩⟩
+    | .match_ x arms, _, hm => exact ⟨D, allOk_cons.mpr ⟨hm, hD⟩⟩
 
 /-- **A loop, honestly**: its body holding at every iteration, entered behind its guard. -/
 theorem loop_complete {f : String} {fn : Fn} (hf : P.find? f = some fn)
