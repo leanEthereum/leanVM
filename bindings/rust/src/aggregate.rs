@@ -39,15 +39,14 @@ static SETUP: OnceLock<(u32, usize)> = OnceLock::new();
 /// Starts the prover pool with `threads` threads (0: one per core) and builds the aggregation
 /// guest, once per process.
 ///
-/// Aggregating and decoding start it with one thread per core if it has not started, so calling it
-/// first only chooses the thread count and moves that cost earlier. A process forked after the
-/// start cannot aggregate: start it before, or without forking.
+/// The first aggregation starts it with one thread per core, so calling it first only chooses the
+/// thread count and moves that cost earlier. A process forked after the start cannot aggregate.
 ///
 /// # Errors
 ///
 /// Fails when the pool already runs with another thread count.
 pub fn setup(threads: usize) -> Result<(), Error> {
-    let running = start(threads).1;
+    let (_, running) = start(threads);
     if running != threads {
         return Err(Error::SetupThreads { running, threads });
     }
@@ -59,10 +58,6 @@ fn start(threads: usize) -> (u32, usize) {
         setup_lean_vm(threads);
         (std::process::id(), threads)
     })
-}
-
-fn setup_process() -> u32 {
-    SETUP.get().map_or_else(|| start(0).0, |setup| setup.0)
 }
 
 /// A verified recursive proof that each listed public key signed its message.
@@ -213,7 +208,7 @@ pub fn aggregate(
         .map(|(public_key, message, signature)| (public_key.0, *message, signature.0.clone()))
         .collect();
 
-    if setup_process() != std::process::id() {
+    if start(0).0 != std::process::id() {
         return Err(Error::ForkedAfterSetup);
     }
     // No DA blobs, and keep every claim the inputs cover.

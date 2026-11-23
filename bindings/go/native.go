@@ -86,9 +86,8 @@ type Aggregate struct {
 }
 
 // Setup starts the prover pool with threads threads (0: one per core) and builds the aggregation
-// guest, once per process. Aggregating and decoding start it with one thread per core if it has not
-// started, so calling Setup first only chooses the thread count and moves that cost earlier. It
-// fails when the pool already runs with another thread count.
+// guest, once per process; otherwise the first aggregation does so on every core. It fails when the
+// pool already runs with another thread count.
 func Setup(threads int) error {
 	if threads < 0 {
 		return errors.New("leanpq: threads must not be negative")
@@ -413,7 +412,7 @@ func VrfVerify(root [32]byte, slot uint64, proof VrfProof) error {
 
 // AggregateSignatures proves the union of the children's claims and the raw signatures' claims.
 // Raw signatures are verified first; children are neither consumed nor closed. At least one input
-// is required, and at most 16 children.
+// is required, and at most 16 children. One proof runs at a time per process.
 func AggregateSignatures(children []*Aggregate, xmss []XmssSignedMessage, sphincs []SphincsSignedMessage) (*Aggregate, error) {
 	handles, release, err := acquireAggregates(children)
 	if err != nil {

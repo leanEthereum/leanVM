@@ -2,10 +2,10 @@
 
 use std::fmt;
 
-use crate::vrf::Slot;
 #[cfg(feature = "aggregation")]
 use lean_vm::AggregateError;
 
+use crate::vrf::Slot;
 use crate::xmss::LeafIndex;
 
 /// Why a lean-pq operation failed.
@@ -110,8 +110,8 @@ pub enum Error {
     /// The prover could not produce an aggregate.
     ///
     /// Empty input and too many signers for one proof both land here.
-    #[error("aggregation failed: {reason}")]
     #[cfg(feature = "aggregation")]
+    #[error("aggregation failed: {reason}")]
     Aggregation {
         /// The prover's failure.
         reason: AggregateError,
@@ -119,18 +119,19 @@ pub enum Error {
 
     /// Bytes handed to [`Aggregate::from_bytes`](crate::Aggregate::from_bytes) are not an
     /// encoded leanVM aggregate proof.
-    #[error("malformed aggregate: the bytes are not a leanVM aggregate proof")]
     #[cfg(feature = "aggregation")]
+    #[error("malformed aggregate: the bytes are not a leanVM aggregate proof")]
     MalformedAggregate,
 
     /// An aggregate proof does not prove the claims it was checked against.
-    #[error("the aggregate does not prove the given claims")]
     #[cfg(feature = "aggregation")]
+    #[error("the aggregate does not prove the given claims")]
     AggregateRejected,
+
     /// The process was forked after it started the prover pool, so it has the pool but not its
     /// threads, and a proof would never finish.
-    #[error("cannot aggregate in a process forked after the prover started: aggregate in the parent, or start the child without forking (Python's `spawn` or `forkserver`)")]
     #[cfg(feature = "aggregation")]
+    #[error("cannot aggregate in a process forked after the prover started: aggregate in the parent, or start the child without forking (Python's `spawn` or `forkserver`)")]
     ForkedAfterSetup,
 }
 

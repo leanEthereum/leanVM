@@ -1,3 +1,4 @@
+// jemalloc configured for proving; the host language's allocator is untouched.
 #[cfg(unix)]
 #[global_allocator]
 static ALLOCATOR: allocator::Jemalloc = allocator::Jemalloc;
@@ -419,7 +420,7 @@ impl Task for VrfKeyTask {
 }
 
 pub struct SetupTask {
-    threads: usize,
+    threads: f64,
 }
 
 impl Task for SetupTask {
@@ -427,7 +428,7 @@ impl Task for SetupTask {
     type JsValue = ();
 
     fn compute(&mut self) -> Result<Self::Output> {
-        lean_pq::setup(self.threads).map_err(api_error)
+        lean_pq::setup(uint32(self.threads, "threads")? as usize).map_err(api_error)
     }
 
     fn resolve(&mut self, _: Env, output: Self::Output) -> Result<Self::JsValue> {
@@ -522,8 +523,12 @@ impl Task for AggregateTask {
 
 #[napi(ts_return_type = "Promise<void>")]
 pub fn setup(env: &Env, threads: Option<f64>) -> Result<Object<'_>> {
-    let threads = uint32(threads.unwrap_or(0.0), "threads")? as usize;
-    on_own_thread(env, SetupTask { threads })
+    on_own_thread(
+        env,
+        SetupTask {
+            threads: threads.unwrap_or(0.0),
+        },
+    )
 }
 
 #[napi(ts_return_type = "Promise<XmssSecretKey>")]

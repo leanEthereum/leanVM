@@ -177,10 +177,6 @@ suite "lean_pq":
     check nilKey.toBytes().isErr()
 
   test "aggregates recursively and round trips through bytes":
-    check:
-      leanPqSetup(0).isOk()
-      leanPqSetup(0).isOk()
-      leanPqSetup(1).isErr()
     let
       xmssKey = XmssSecretKey.fromSeed(filled(3)).expect("key")
       sphincsKey = SphincsSecretKey.fromSeed(filled(4)).expect("key")
@@ -242,3 +238,9 @@ suite "lean_pq":
     check:
       restored.toBytes().isErr()
       LeanPqAggregate.init([root, restored]).error() == "aggregate is closed"
+
+  test "setup keeps its thread count":
+    check:
+      leanPqSetup(0).isOk()
+      leanPqSetup(0).isOk()
+      leanPqSetup(1).isErr()

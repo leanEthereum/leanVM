@@ -60,7 +60,7 @@ test('loads a leanXMSS key from its tree cache', async () => {
   }
 })
 
-test('sets the prover up once per process', async () => {
+test('setup keeps its first thread count', async () => {
   await assert.rejects(lpq.setup(-1), /threads must be an integer/)
   await lpq.setup(0)
   await lpq.setup()

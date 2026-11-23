@@ -38,7 +38,7 @@ lpq.sphincs_verify(sphincs_key.public_key, message, sphincs_sig)
 ## Aggregate
 
 ```python
-lpq.setup(0)  # optional: start the prover on one thread per core now
+lpq.setup(0)  # optional: the prover's thread count, 0 for one per core
 
 leaf = lpq.aggregate(
     xmss=[(xmss_key.public_key, message, xmss_sig)],
@@ -52,14 +52,14 @@ received = lpq.Aggregate.from_bytes(proof, root.xmss_claims, root.sphincs_claims
 
 - `aggregate(children=(), xmss=(), sphincs=())` verifies raw signatures before proving and takes at most 16 children. The result proves the union of their claims.
 - `to_bytes()` is the proof alone: send the claims alongside it, or let the receiver rebuild them.
-- `Aggregate.from_bytes(data, xmss_claims=(), sphincs_claims=())` accepts exactly those `(public_key, message)` claims, in any order, and raises `LeanPqError` otherwise. `xmss_claims` and `sphincs_claims` are sorted lists.
-- `setup(threads=0)` starts the prover's thread pool (0: one thread per core) and builds the aggregation guest, once per process. Without it, the first `aggregate` does this with one thread per core. A later `setup` with another thread count raises `LeanPqError`.
-- Proofs run one at a time per process, each taking seconds and over a gigabyte of memory, which the process keeps for the next proof (on Linux and macOS, the extension allocates with jemalloc).
-- A child forked after the prover started cannot aggregate (`LeanPqError`): give `multiprocessing` the `spawn` or `forkserver` start method.
+- `Aggregate.from_bytes(data, xmss_claims=(), sphincs_claims=())` accepts exactly those `(public_key, message)` claims, in any order (a repeated claim counts once), and raises `LeanPqError` otherwise. `xmss_claims` and `sphincs_claims` are sorted lists.
+- The first `aggregate` or `from_bytes` starts the prover, one thread per core, and builds the aggregation guest. `setup(threads=0)` before it chooses the thread count (0: one per core) and pays that cost earlier; it raises `LeanPqError` if the prover already runs with another count.
+- Proofs run one at a time per process; one takes seconds and over a gigabyte of memory.
+- A child forked after the prover started cannot aggregate: give `multiprocessing` the `spawn` or `forkserver` start method.
 
 ### Fast proving
 
-Published wheels are portable: they target a baseline CPU of each platform. For the fastest proofs, build from source on the proving machine for its own CPU (needs Rust), from the repository root:
+The published wheels target a generic CPU. To prove fast, build from source on the proving machine (needs Rust), from the repository root:
 
 ```bash
 RUSTFLAGS="-C target-cpu=native" pip install ./bindings/python

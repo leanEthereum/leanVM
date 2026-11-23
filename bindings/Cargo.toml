@@ -14,12 +14,11 @@ resolver = "2"
 version = "0.16.0"
 
 [workspace.dependencies]
-# The signature schemes, and `lean_vm`, which re-exports them beside the aggregation prover.
 lean_vm = { path = "../crates/lean_vm" }
-# jemalloc, configured for proving: the native library, the Node.js addon and the Python extension install it.
+# jemalloc configured for proving, the global allocator of the native library, the Node.js addon and the Python
+# extension outside Windows.
 allocator = { path = "../crates/allocator" }
-# Global-dynamic TLS, so a library loaded with dlopen (the Java library, the Node.js addon, the Python extension) finds
-# room for jemalloc's thread-local state.
+# Global-dynamic TLS, so jemalloc runs in a library loaded with dlopen.
 tikv-jemallocator = { version = "0.7", features = ["disable_initial_exec_tls"] }
 lean_xmss = { path = "../crates/lean_xmss" }
 lean_sphincs = { path = "../crates/lean_sphincs" }

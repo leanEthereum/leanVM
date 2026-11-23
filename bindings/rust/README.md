@@ -2,8 +2,6 @@
 
 The Rust facade that the Python, Node.js, Java, Go, Zig and Nim bindings wrap: leanXMSS and leanSPHINCS signatures, their aggregation, and the consensus VRF tree. It is internal and unpublished; Rust code uses [`lean_vm`](../README.md#install) directly.
 
-Build in release mode: debug builds prove far slower. Aggregation is the default `aggregation` feature, which pulls in the experimental prover (the stable prover's proofs, faster). To only sign and verify, add `default-features = false`: the crate then builds without `aggregate`, `setup`, `Aggregate` and `MAX_CHILDREN`.
-
 ## Sign and verify
 
 ```rust
@@ -43,6 +41,8 @@ A key is a 32-byte seed and the slots `[start, end)`, with `end <= 2^31`: both f
 
 ## Aggregate
 
+Aggregation is the default `aggregation` feature, on the experimental prover. Without it (`default-features = false`), the crate only signs, verifies and builds VRF trees.
+
 ```rust,no_run
 use lean_pq::{aggregate, sphincs, xmss, Aggregate};
 
@@ -57,21 +57,24 @@ let leaf = aggregate(
 )?;
 let root = aggregate(&[&leaf], &[], &[])?;
 
-// The bytes are the proof alone: the receiver supplies the claims it expects.
-let received = Aggregate::from_bytes(
-    &root.to_bytes(),
-    &[(xmss_key.public_key(), message)],
-    &[(sphincs_key.public_key(), message)],
-)?;
+let received = Aggregate::from_bytes(&root.to_bytes(), &root.xmss_claims(), &root.sphincs_claims())?;
 assert_eq!(received.xmss_claims(), root.xmss_claims());
 # Ok::<(), lean_pq::Error>(())
 ```
 
-- Aggregation verifies every raw signature before proving, and runs one proof at a time per process.
-- An encoded aggregate is the proof alone: send the claims alongside it, or let the receiver rebuild them, as Ethereum does from its validator bitfields.
-- `Aggregate::from_bytes` verifies the proof against exactly the claims you pass, in any order; any other set of claims fails. Every aggregate value is proven.
-- The first proof starts the prover pool, one thread per core, and builds the aggregation guest. Call `setup(threads)` first to choose the thread count (0: one per core) and pay that cost earlier; it fails if the pool already runs with another count.
-- Fast proving needs the library built for the proving machine's CPU: see [Fast proving](../README.md#fast-proving).
+- `aggregate` verifies raw signatures before proving and takes at most `MAX_CHILDREN` (16) children. The result proves the union of their claims.
+- `to_bytes` is the proof alone: send the claims alongside it, or let the receiver rebuild them.
+- `Aggregate::from_bytes` accepts exactly the claims passed, in any order, and fails otherwise.
+- `setup(threads)` starts the prover with `threads` threads (0: one per core), and fails if it already runs with another count; without it, the first `aggregate` starts it on every core. Proofs run one at a time per process, and a process forked after the start cannot aggregate.
+- [Proving](../README.md#proving) covers building for fast proving.
+
+## Build and test
+
+From `bindings/`:
+
+```sh
+cargo test --release -p lean-pq
+```
 
 ## License
 

@@ -3,9 +3,8 @@
 //!
 //! leanXMSS is stateful: a key signs at `2^32` leaf indices, and must never sign two different
 //! messages at the same leaf index. leanSPHINCS is stateless: a key signs at most `2^30` messages.
-//! Public keys and messages are 32 bytes; signatures are fixed-size byte arrays. Aggregation
-//! proves in-process. Secret keys, VRF keys and aggregates own native handles: call `deinit`
-//! exactly once on each.
+//! Public keys and messages are 32 bytes; signatures are fixed-size byte arrays. Secret keys, VRF
+//! keys and aggregates own native handles: call `deinit` exactly once on each.
 const std = @import("std");
 
 const c = @cImport({
@@ -72,8 +71,7 @@ comptime {
 }
 
 /// Starts the prover pool with `threads` threads (0: one per core) and builds the aggregation
-/// guest, once per process. Aggregating and decoding start it with one thread per core if it has
-/// not started, so calling it first only chooses the thread count and moves that cost earlier.
+/// guest, once per process; otherwise the first aggregation does so on every core. Fails with
 /// `error.NativeFailure` if the pool already runs with another thread count.
 pub fn setup(threads: usize) Error!void {
     try checkStatus(c.lpq_setup(threads));
@@ -267,8 +265,8 @@ pub const Aggregate = struct {
     handle: *c.lpq_aggregate,
 
     /// Verifies the raw signatures, then proves the union of their claims and the children's.
-    /// At least one input is required, and one proof runs at a time per process. Children are
-    /// neither consumed nor retained.
+    /// At least one input is required. Children are neither consumed nor retained. One proof runs
+    /// at a time per process.
     pub fn create(
         children: []const *const Aggregate,
         xmss: []const XmssSignedMessage,

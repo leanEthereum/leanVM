@@ -1,3 +1,8 @@
+// jemalloc configured for proving; the host language's allocator is untouched.
+#[cfg(unix)]
+#[global_allocator]
+static ALLOCATOR: allocator::Jemalloc = allocator::Jemalloc;
+
 use lean_pq::{sphincs, vrf, xmss, Message};
 use pyo3::create_exception;
 use pyo3::exceptions::{PyException, PyValueError};
@@ -5,12 +10,6 @@ use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedBytes;
 use pyo3::types::{PyBytes, PyType};
 use pyo3::wrap_pyfunction;
-
-// The prover's buffers want jemalloc as `allocator` configures it (kept pages, transparent huge pages); Python's own
-// allocator is untouched.
-#[cfg(unix)]
-#[global_allocator]
-static ALLOCATOR: allocator::Jemalloc = allocator::Jemalloc;
 
 create_exception!(py_lean_pq, LeanPqError, PyException);
 

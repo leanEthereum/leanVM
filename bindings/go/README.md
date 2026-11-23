@@ -99,7 +99,7 @@ A key is a 32-byte seed and the slots `[start, end)`, with `end <= 2^31`: both f
 Aggregation proves in-process. With the keys and signatures above:
 
 ```go
-if err := leanpq.Setup(0); err != nil { // optional: 0 threads is one per core
+if err := leanpq.Setup(0); err != nil { // optional: the prover's thread count, 0 for one per core
     log.Fatal(err)
 }
 leaf, err := leanpq.AggregateSignatures(
@@ -132,21 +132,11 @@ if err != nil {
 defer received.Close()
 ```
 
-- `AggregateSignatures` verifies raw signatures first and takes at most 16 children, which it neither consumes nor closes.
+- `AggregateSignatures` verifies raw signatures first and takes at most 16 children, which it neither consumes nor closes. Proofs run one at a time per process, each taking seconds and over a gigabyte of memory.
 - `Bytes()` is the proof alone: send the claims (`XmssClaims()`, `SphincsClaims()`) alongside it.
-- `AggregateFromBytes` verifies the proof against exactly the given claims, in any order (a repeat counts once), and rejects any other set, so every `Aggregate` is proven.
-- The first proof or decoding starts the prover pool, one thread per core, and builds the aggregation guest. Call `Setup(threads)` first to choose the thread count (0: one per core) and pay that cost earlier; it fails if the pool already runs with another count.
-- A proof takes seconds and over a gigabyte of memory.
-
-## Fast proving
-
-The prebuilt archives target a generic CPU of their platform, so they run anywhere but prove slower. For fast proving, rebuild the archive on the proving machine for its CPU, with the tools of [Build from source](#build-from-source). From the repository root, on Linux x86_64:
-
-```sh
-RUSTFLAGS="-C target-cpu=native" sh bindings/native/scripts/stage-static.sh x86_64-unknown-linux-gnu bindings/go/internal/native/linux_amd64
-```
-
-On Linux arm64, stage `aarch64-unknown-linux-gnu` into `linux_arm64`; on Apple silicon, `aarch64-apple-darwin` into `darwin_universal`. cgo links the archive in `internal/native/<platform>/`, so build your program against this checkout: `go mod edit -replace leanvm.org/go=/path/to/leanVM/bindings/go`.
+- `AggregateFromBytes` takes the claims in any order (a repeat counts once) and rejects malformed bytes or any other set, so every `Aggregate` is proven.
+- `Setup(threads)` before the first aggregation chooses the prover's thread count (0: one per core) and starts it now; otherwise the first aggregation starts it on every core. It fails if the prover already runs with another count.
+- The prebuilt archives target a generic CPU: to prove fast, [build from source](#build-from-source) on the proving machine.
 
 ## Build from source
 
@@ -161,6 +151,8 @@ cd bindings/go && go test ./...
 ```
 
 Other platforms stage `aarch64-unknown-linux-gnu` into `linux_arm64`, `universal2-apple-darwin` into `darwin_universal` (on macOS, with both Apple Rust targets), and `x86_64-pc-windows-gnu` into `windows_amd64`.
+
+To prove fast, stage on the proving machine with `RUSTFLAGS="-C target-cpu=native"`, for its own target (on Apple silicon, `aarch64-apple-darwin` into `darwin_universal`), and build your program against this checkout: `go mod edit -replace leanvm.org/go=/path/to/leanVM/bindings/go`.
 
 ## License
 

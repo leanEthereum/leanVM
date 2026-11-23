@@ -50,8 +50,6 @@ A key is a 32-byte seed and the slots `[start, end)`, with `end <= 2^31`: both f
 
 ## Aggregate
 
-Aggregation proves in the calling process.
-
 ```js
 await lpq.setup(0) // optional: the prover's thread count, 0 for one per core
 
@@ -67,14 +65,13 @@ const received = await lpq.Aggregate.fromBytes(proof, { xmss: root.xmssClaims, s
 
 - `aggregate({ children, xmss, sphincs })` verifies raw signatures before proving and takes at most 16 children. The result proves the union of their claims.
 - `toBytes()` is the proof alone: send the claims alongside it, or let the receiver rebuild them.
-- `Aggregate.fromBytes(data, { xmss, sphincs })` verifies the proof against exactly those `{ publicKey, message }` claims, in any order, and rejects otherwise; an omitted list means none. Every `Aggregate` is proven. `xmssClaims` and `sphincsClaims` are sorted.
-- The first proof starts the prover, one thread per core, and builds the aggregation guest. `setup(threads)` before it chooses the thread count (0 or omitted: one per core) and pays that cost earlier; it rejects if the prover already runs with another count.
+- `Aggregate.fromBytes(data, { xmss, sphincs })` accepts exactly those `{ publicKey, message }` claims, in any order (a repeated claim counts once), and rejects otherwise; an omitted list means none. `xmssClaims` and `sphincsClaims` are sorted.
+- The first `aggregate` or `fromBytes` starts the prover, one thread per core, and builds the aggregation guest. `setup(threads)` before it chooses the thread count (0 or omitted: one per core) and pays that cost earlier; it rejects if the prover already runs with another count.
 - Proofs run one at a time per process; one takes seconds and over a gigabyte of memory.
-- On Linux and macOS the addon allocates with jemalloc, configured for proving; Node's own allocator is untouched.
 
 ### Fast proving
 
-The npm prebuilds target a portable CPU (on x64, AVX2 and PCLMULQDQ). For fast proving, build the addon from source on the proving machine for its CPU and install that build. Needs Rust; from your project's directory:
+The npm prebuilds target a generic CPU. To prove fast, build the addon on the proving machine and install that build (needs Rust), from your project's directory:
 
 <!-- x-release-please-start-version -->
 ```sh
@@ -82,7 +79,7 @@ git clone --depth 1 --branch bindings-v0.16.0 https://github.com/leanEthereum/le
 ```
 <!-- x-release-please-end -->
 
-The addon built in `bindings/node` takes precedence over the prebuilt platform package.
+The addon built in `bindings/node` takes precedence over the prebuilt package.
 
 ## Build and test
 
@@ -94,7 +91,7 @@ npm run build
 npm test
 ```
 
-The aggregation tests prove in the test process. Publishing is in [RELEASING.md](../RELEASING.md#npm).
+Publishing is in [RELEASING.md](../RELEASING.md#npm).
 
 ## License
 

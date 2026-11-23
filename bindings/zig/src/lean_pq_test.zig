@@ -115,9 +115,6 @@ test "VRF key loads from its cache" {
 
 test "aggregates recursively and round trips through bytes" {
     const allocator = std.testing.allocator;
-    try lpq.setup(0);
-    try lpq.setup(0);
-    try std.testing.expectError(error.NativeFailure, lpq.setup(1));
 
     var xmss_key = try lpq.XmssSecretKey.fromSeed([_]u8{3} ** 32);
     defer xmss_key.deinit();
@@ -194,6 +191,12 @@ test "aggregates recursively and round trips through bytes" {
 
 test "aggregating nothing fails" {
     try std.testing.expectError(error.NativeFailure, lpq.Aggregate.create(&.{}, &.{}, &.{}));
+}
+
+test "setup keeps its thread count" {
+    try lpq.setup(0);
+    try lpq.setup(0);
+    try std.testing.expectError(error.NativeFailure, lpq.setup(1));
 }
 
 fn claimLessThan(_: void, a: lpq.Claim, b: lpq.Claim) bool {

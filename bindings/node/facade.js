@@ -18,17 +18,12 @@ Aggregate.fromBytes = function fromBytes(data, { xmss = [], sphincs = [] } = {})
   return native.aggregateFromBytes(data, xmss, sphincs)
 }
 
-// async: an invalid thread count rejects the promise rather than throwing.
-async function setup(threads = 0) {
-  return native.setup(threads)
-}
-
 function aggregate({ children = [], xmss = [], sphincs = [] } = {}) {
   return native.aggregate(children, xmss, sphincs)
 }
 
 module.exports = {
-  setup,
+  setup: native.setup,
   XmssSecretKey,
   xmssVerify: native.xmssVerify,
   SphincsSecretKey,

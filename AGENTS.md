@@ -24,7 +24,7 @@ Everything else exists once, leaves first:
 | `isa` | the instruction set, `Program`, the `Prover` trait |
 | `zkdsl_compiler` | zkDSL to ISA (`zkDSL.md`); its tests run the stable prover |
 | `lean_xmss`, `lean_sphincs`, `lean_vrf` | the signature schemes and the VRF tree |
-| `allocator`, `bench_harness` | jemalloc and the benchmark harness; never linked by a library |
+| `allocator`, `bench_harness` | jemalloc and the benchmark harness; never linked by a shared crate |
 | `lean_da` | Reed-Solomon blob encoding, commitments, membership vectors |
 | `claims` | `AggregateClaims`, `OutputClaims` and their byte form |
 | `aggregation` | recursive aggregation, generic over the prover |
@@ -99,7 +99,7 @@ cargo leanvm-bench --prover stable fibonacci --n <steps>
 
 ## Allocator and thread pool
 
-- Libraries impose no allocator. The CLI, the benches and the bindings' final libraries (`bindings/native`, the Node.js addon, the Python extension) install `allocator::Jemalloc`.
+- Libraries impose no allocator. The CLI, the benches and, outside Windows, the bindings' native libraries install `allocator::Jemalloc`.
 - Experimental skips a buffer's zero-fill with `primitives::uninit_vec` or `filled_vec`. Stable never reads uninitialized memory: it writes a large buffer's first pass with the pool (`parallel::filled`, `parallel::map_collect`).
 - Drop a large buffer where its last use ends.
 - No rayon. One pool per tree, one tree per process: never add a second pool.

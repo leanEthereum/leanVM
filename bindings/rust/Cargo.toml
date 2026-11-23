@@ -12,7 +12,7 @@ categories = ["cryptography"]
 
 [features]
 default = ["aggregation"]
-# Recursive aggregation. Without it the crate builds only `lean_xmss` and `lean_sphincs`.
+# Recursive aggregation. Without it the crate builds only the signature schemes and the VRF tree.
 aggregation = ["dep:lean_vm"]
 
 [dependencies]

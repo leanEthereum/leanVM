@@ -31,7 +31,7 @@ git -C vendor/leanVM checkout bindings-v0.16.0
 
 The package depends on [`results`](https://github.com/arnetheduck/nim-results); with nimbus-build-system, vendor it too.
 
-The first build downloads the prebuilt archive with curl, for Linux x86_64 and aarch64 (glibc), macOS (universal) and Windows x86_64 (MinGW-w64 gcc, not `--cc:vcc`), so signing and verifying need no Rust. For other targets or offline builds, pass `-d:leanPqNativeDir=DIR` holding your own `liblean_pq_native.a`.
+The first build downloads the prebuilt archive with curl, for Linux x86_64 and aarch64 (glibc), macOS (universal) and Windows x86_64 (MinGW-w64 gcc, not `--cc:vcc`), so no Rust is needed. For other targets or offline builds, pass `-d:leanPqNativeDir=DIR` holding your own `liblean_pq_native.a`.
 
 ## Example
 
@@ -81,7 +81,7 @@ main()
 Aggregation proves in-process. With the keys and signatures above:
 
 ```nim
-doAssert leanPqSetup(0).isOk()
+doAssert leanPqSetup(0).isOk() # optional: the prover's thread count, 0 for one per core
 let
   leaf = LeanPqAggregate.init(
     xmss = [XmssSignedMessage(
@@ -90,8 +90,6 @@ let
       publicKey: sphincsPublicKey, message: message, signature: sphincsSignature)],
   ).expect("leaf")
   root = LeanPqAggregate.init([leaf]).expect("root")
-
-  # The bytes are the proof alone: the receiver supplies the claims it expects.
   encoded = root.toBytes().expect("bytes")
   received = LeanPqAggregate.fromBytes(
     encoded,
@@ -101,21 +99,12 @@ let
 doAssert received.xmssClaims().expect("claims").len == 1
 ```
 
-- `LeanPqAggregate.init` verifies raw signatures first, takes at most `MaxAggregateChildren` (16) children, which it neither consumes nor closes, and runs one proof at a time per process.
-- `toBytes` is the proof alone: send the claims (`xmssClaims`, `sphincsClaims`, strictly sorted) alongside it.
+- `LeanPqAggregate.init` verifies raw signatures first and takes at most `MaxAggregateChildren` (16) children, which it neither consumes nor closes. Proofs run one at a time per process, each taking seconds and over a gigabyte of memory.
+- `toBytes` is the proof alone: send the claims (`xmssClaims`, `sphincsClaims`) alongside it.
 - `LeanPqAggregate.fromBytes` takes the claims in any order (a repeat counts once) and fails for malformed bytes or any other set, so every `LeanPqAggregate` is proven.
-- The first proof starts the prover pool, one thread per core, and builds the aggregation guest. Call `leanPqSetup(threads)` first to choose the thread count (0: one per core) and pay that cost earlier; it fails if the pool already runs with another count.
-- A process forked after the pool started cannot aggregate.
-
-### Fast proving
-
-Release archives are built for a portable CPU baseline. For fast proving, build the native archive on the proving machine for its CPU and link it with `-d:leanPqNativeDir=DIR`. From the repository root, on Linux x86_64:
-
-```sh
-RUSTFLAGS="-C target-cpu=native" sh bindings/native/scripts/stage-static.sh x86_64-unknown-linux-gnu "$PWD/bindings/nim/.native"
-```
-
-Then build with `-d:leanPqNativeDir="$PWD/bindings/nim/.native"` (an absolute path). On another platform, stage the host's own target (`aarch64-unknown-linux-gnu`, or `aarch64-apple-darwin` on Apple silicon), not `universal2-apple-darwin`.
+- `leanPqSetup(threads)` before the first aggregation chooses the prover's thread count (0: one per core) and starts it now; otherwise the first aggregation starts it on every core. It fails if the prover already runs with another count.
+- A process forked after the prover started cannot aggregate.
+- The prebuilt archives target a generic CPU: to prove fast, [build from source](#build-from-source) on the proving machine.
 
 ## VRF
 
@@ -137,7 +126,7 @@ cd bindings/nim && nimble test
 
 Other platforms stage `aarch64-unknown-linux-gnu` into `native/aarch64-linux-gnu`, `universal2-apple-darwin` into `native/universal-macos` (on macOS), and `x86_64-pc-windows-gnu` into `native/x86_64-windows-gnu`.
 
-The aggregation test proves recursively: expect seconds per proof and over a gigabyte of memory.
+To prove fast, stage on the proving machine with `RUSTFLAGS="-C target-cpu=native"`, for its own target (`aarch64-apple-darwin` on Apple silicon), into any directory, and build your program with `-d:leanPqNativeDir=DIR`, an absolute path.
 
 ## License
 

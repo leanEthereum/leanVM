@@ -14,7 +14,6 @@ napi-derive = "3.6.3"
 
 [target.'cfg(unix)'.dependencies]
 allocator = { workspace = true }
-# Node loads the addon with dlopen after startup, where jemalloc's initial-exec TLS finds no room.
 tikv-jemallocator = { workspace = true }
 
 [build-dependencies]

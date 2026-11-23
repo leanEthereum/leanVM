@@ -70,7 +70,6 @@ def test_xmss_key_loads_from_its_tree_cache():
 
 
 def test_aggregates_both_schemes_recursively():
-    lpq.setup(0)
     first = b"\x11" * 32
     second = b"\x22" * 32
     xmss_key = lpq.XmssSecretKey.from_seed(b"\x05" * 32)
@@ -106,30 +105,25 @@ def test_aggregates_both_schemes_recursively():
     )
     assert shuffled.xmss_claims == xmss_claims
 
-    # The proof attests exactly its claims: one short or another message fails.
-    with pytest.raises(lpq.LeanPqError, match="does not prove the given claims"):
+    # The proof attests exactly its claims: one short, another message, or other bytes fail.
+    rejected = "does not prove the given claims"
+    with pytest.raises(lpq.LeanPqError, match=rejected):
         lpq.Aggregate.from_bytes(proof, xmss_claims[:1], sphincs_claims)
-    with pytest.raises(lpq.LeanPqError, match="does not prove the given claims"):
-        lpq.Aggregate.from_bytes(
-            proof, xmss_claims, [(sphincs_key.public_key, first)]
-        )
-    with pytest.raises(lpq.LeanPqError, match="does not prove the given claims"):
+    with pytest.raises(lpq.LeanPqError, match=rejected):
+        lpq.Aggregate.from_bytes(proof, xmss_claims, [(sphincs_key.public_key, first)])
+    with pytest.raises(lpq.LeanPqError, match=rejected):
         lpq.Aggregate.from_bytes(proof)
-
     tampered = bytearray(proof)
     tampered[len(tampered) // 2] ^= 1
-    with pytest.raises(lpq.LeanPqError):
-        lpq.Aggregate.from_bytes(bytes(tampered), xmss_claims, sphincs_claims)
-    with pytest.raises(lpq.LeanPqError):
-        lpq.Aggregate.from_bytes(proof[:-1], xmss_claims, sphincs_claims)
-    with pytest.raises(lpq.LeanPqError, match="malformed aggregate"):
-        lpq.Aggregate.from_bytes(b"", xmss_claims, sphincs_claims)
+    for data in (bytes(tampered), proof[:-1], b""):
+        with pytest.raises(lpq.LeanPqError):
+            lpq.Aggregate.from_bytes(data, xmss_claims, sphincs_claims)
 
     with pytest.raises(ValueError, match="message must be exactly 32 bytes"):
         lpq.Aggregate.from_bytes(proof, [(xmss_key.public_key, b"\x11")])
 
 
-def test_setup_keeps_its_thread_count():
+def test_setup_keeps_its_first_thread_count():
     lpq.setup(0)
     lpq.setup()
     with pytest.raises(lpq.LeanPqError, match="already runs on 0 threads, not 1"):

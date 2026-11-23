@@ -84,15 +84,15 @@ try (XmssSecretKey xmss = XmssSecretKey.fromSeed(seed32);
 }
 ```
 
-- `LeanPq.aggregate(children, xmss, sphincs)` verifies raw signatures before proving and takes at most 16 children. The result proves the union of their claims. Proving runs in this process, one aggregation at a time.
+- `LeanPq.aggregate(children, xmss, sphincs)` verifies raw signatures before proving and takes at most 16 children. The result proves the union of their claims.
 - `toBytes()` is the proof alone: send the claims alongside it, or let the receiver rebuild them.
 - `Aggregate.fromBytes(bytes, xmssClaims, sphincsClaims)` accepts exactly those claims, in any order (a repeated claim counts once), and throws `LeanPqException` otherwise. `xmssClaims()` and `sphincsClaims()` are sorted.
-- `LeanPq.setup(threads)` starts the prover's thread pool with `threads` threads (0: one per core) and builds the aggregation guest, once per process. It is optional: the first aggregation or `fromBytes` starts it with one thread per core. It throws `LeanPqException` if the pool already runs with another count.
-- One aggregation takes seconds and over a gigabyte of memory.
+- The first aggregation or `fromBytes` starts the prover, one thread per core, and builds the aggregation guest. `LeanPq.setup(threads)` before it chooses the thread count (0: one per core) and pays that cost earlier; it throws `LeanPqException` if the prover already runs with another count.
+- Proofs run one at a time per process; one takes seconds and over a gigabyte of memory.
 
 ### Fast proving
 
-The jar's native library is built for a generic CPU, so it runs everywhere but proves slower. For fast proving, build the native library on the proving machine, from the repository root:
+The jar's native library targets a generic CPU. To prove fast, build it on the proving machine, from the repository root:
 
 ```sh
 cd bindings && RUSTFLAGS="-C target-cpu=native" cargo build --release -p lean-pq-native

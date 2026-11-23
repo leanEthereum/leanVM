@@ -7,8 +7,6 @@ import java.util.Objects;
 
 /** Verifies signatures and VRF proofs, and aggregates signatures. */
 public final class LeanPq {
-    private static final int RECORD_PREFIX_LENGTH = Native.PUBLIC_KEY_LENGTH + Native.MESSAGE_LENGTH;
-
     private LeanPq() {}
 
     /**
@@ -68,8 +66,8 @@ public final class LeanPq {
             // The counts come from the packed records, not from the lists, whose sizes may have changed.
             return new Aggregate(Native.aggregate(
                 pointers,
-                xmssRecords, xmssRecords.length / (RECORD_PREFIX_LENGTH + Native.XMSS_SIGNATURE_LENGTH),
-                sphincsRecords, sphincsRecords.length / (RECORD_PREFIX_LENGTH + Native.SPHINCS_SIGNATURE_LENGTH)));
+                xmssRecords, xmssRecords.length / (Native.CLAIM_LENGTH + Native.XMSS_SIGNATURE_LENGTH),
+                sphincsRecords, sphincsRecords.length / (Native.CLAIM_LENGTH + Native.SPHINCS_SIGNATURE_LENGTH)));
         } finally {
             for (int index = borrowed.size() - 1; index >= 0; index--) {
                 borrowed.get(index).close();
@@ -78,7 +76,7 @@ public final class LeanPq {
     }
 
     private static byte[] records(List<SignedMessage> entries, int signatureLength, String scheme) {
-        int recordLength = RECORD_PREFIX_LENGTH + signatureLength;
+        int recordLength = Native.CLAIM_LENGTH + signatureLength;
         int count = entries.size();
         byte[] records = new byte[Math.multiplyExact(count, recordLength)];
         for (int index = 0; index < count; index++) {

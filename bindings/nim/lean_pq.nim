@@ -204,9 +204,8 @@ func nativeHandle(aggregate: LeanPqAggregate): Result[ptr LpqAggregate, string] 
 
 proc leanPqSetup*(threads: Natural): Result[void, string] =
   ## Starts the prover pool with `threads` threads (0: one per core) and builds the aggregation
-  ## guest, once per process. Aggregating and decoding start it with one thread per core if it
-  ## has not started, so calling it first only chooses the thread count and moves that cost
-  ## earlier. Fails if the pool already runs with another thread count.
+  ## guest, once per process; otherwise the first aggregation does so on every core. Fails if the
+  ## pool already runs with another thread count.
   check(lpqSetup(csize_t(threads)))
 
 ##############################################################
@@ -429,7 +428,7 @@ proc init*(
     sphincs: openArray[SphincsSignedMessage] = [],
 ): Result[LeanPqAggregate, string] =
   ## Verifies the raw signatures, then proves the union of their claims and the children's. At
-  ## least one input is required. Children are neither consumed nor closed. Runs one proof at a
+  ## least one input is required. Children are neither consumed nor closed. One proof runs at a
   ## time per process.
   if children.len > MaxAggregateChildren:
     return err("at most " & $MaxAggregateChildren & " child aggregates, got " & $children.len)

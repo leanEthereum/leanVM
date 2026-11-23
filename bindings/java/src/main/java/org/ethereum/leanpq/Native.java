@@ -26,6 +26,7 @@ import java.util.Objects;
 final class Native {
     static final int PUBLIC_KEY_LENGTH = 32;
     static final int MESSAGE_LENGTH = 32;
+    static final int CLAIM_LENGTH = PUBLIC_KEY_LENGTH + MESSAGE_LENGTH;
     static final int SEED_LENGTH = 32;
     static final int XMSS_SIGNATURE_LENGTH = 2404;
     static final int SPHINCS_SIGNATURE_LENGTH = 7740;

@@ -257,9 +257,6 @@ func TestVrfKeyLoadsFromItsCache(t *testing.T) {
 }
 
 func TestAggregateRecursively(t *testing.T) {
-	if err := Setup(0); err != nil {
-		t.Fatal(err)
-	}
 	first := bytes32(0x11)
 	second := bytes32(0x22)
 	xmssKey := mustXmssKey(t, bytes32(5))
@@ -410,10 +407,6 @@ func TestConcurrentNativeErrors(t *testing.T) {
 		defer runtime.GOMAXPROCS(old)
 	}
 
-	if err := Setup(0); err != nil {
-		t.Fatal(err)
-	}
-
 	var workers sync.WaitGroup
 	start := make(chan struct{})
 	for range 4 * runtime.NumCPU() {
@@ -432,10 +425,6 @@ func TestConcurrentNativeErrors(t *testing.T) {
 				aggregate.Close()
 				if want := "leanpq: malformed aggregate: the bytes are not a leanVM aggregate proof"; err == nil || err.Error() != want {
 					t.Errorf("AggregateFromBytes error = %v, want %q", err, want)
-					return
-				}
-				if err := Setup(0); err != nil {
-					t.Errorf("Setup: %v", err)
 					return
 				}
 			}

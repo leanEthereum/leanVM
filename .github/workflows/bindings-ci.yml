@@ -42,6 +42,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
+          targets: x86_64-pc-windows-gnu
 
       - uses: Swatinem/rust-cache@v2
         with:
@@ -66,7 +67,12 @@ jobs:
         working-directory: bindings
 
       - name: Lint Rust bindings
-        run: cargo clippy --release -p lean-pq --all-targets -- -D warnings
+        run: cargo clippy --release -p lean-pq -p lean-pq-native --all-targets -- -D warnings
+        working-directory: bindings
+
+      # Windows aggregates with the system allocator; the rest builds as on Unix.
+      - name: Lint the Windows build
+        run: cargo clippy --release -p lean-pq -p lean-pq-native --target x86_64-pc-windows-gnu -- -D warnings
         working-directory: bindings
 
       # Consumers that only sign and verify build without the prover.
@@ -100,7 +106,6 @@ jobs:
 
       - uses: astral-sh/setup-uv@v7
 
-      # rust-toolchain.toml pins the rustc version; this action honors it.
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
