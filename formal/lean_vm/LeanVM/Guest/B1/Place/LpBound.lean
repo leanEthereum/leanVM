@@ -52,7 +52,8 @@ theorem lp_bound (κ : ℕ) {name loop : String} {S d cd : ℕ}
     (hl : FnIs loop (osParams 6) (lpLoopBody d cd loop)) (hS : 0 < S) (hSo : S < ordG) (hSB : S ≤ 64)
     (hpw : digitsVal (osPowDigits (128 / d)) 1 = 128 / d)
     (hdec : QwDecodeAtDE fs cert κ d cd (dqwName d cd)) (hfs : ∀ f, fs f < 2 ^ 32) {B : ℕ}
-    (hT : TotalLe coreProgram fs name (fun _ ↦ B)) : lpN fs name loop S d cd ≤ B := by
+    (hT : TotalLeOn coreProgram fs name (fun a ↦ a.getD 9 0 = ofK (addressOfIndex S)) (fun _ ↦ B)) :
+    lpN fs name loop S d cd ≤ B := by
   set Q := 128 / d with hQ
   set M := S * Q with hM
   have hQle : Q ≤ 128 := Nat.div_le_self _ _
@@ -117,7 +118,7 @@ theorem lp_bound (κ : ℕ) {name loop : String} {S d cd : ℕ}
         exact h)
   have hlt := lpN_lt (name := name) (loop := loop) (d := d) (cd := cd) hfs hSB
   obtain ⟨rd, hlow, hm⟩ := fresh_pair κ hD hW hLD hLW (by omega)
-  exact relAtIn_le (hR rd hlow hm) hT
+  exact relAtIn_leOn (hR rd hlow hm) hT (by simp [cap, gen_pow_eq_ofK])
 
 /-- **`level_positions` within every words bound of its trees**, frames below `2^32`. -/
 theorem level_positions_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ)
@@ -130,7 +131,7 @@ theorem level_positions_completeAtB (fs : String → ℕ) (cert : String → V �
   obtain ⟨hpw, hmem⟩ := lpTable_facts e he
   have hSo : S < ordG := by rw [show ordG = 2 ^ 64 - 1 from rfl]; omega
   have hdec := qwDecodeAtDE_holds hfit hcons hκ _ hmem
-  have hb := lp_bound κ hlp hl hS hSo hSB hpw hdec hfs hT
+  have hb := lp_bound κ hlp hl hS hSo hSB hpw hdec hfs fun rd t a r hn _ hv hbo ↦ hT rd t a r hn hv hbo
   intro w0 cap ep ew tabs Lin hcl hreg hregt hmemL fp
   obtain ⟨Lown, hW, hD, hR⟩ := lp_placed fs cert κ hlp hl hS hSo hSB hpw hdec hcl fp
     (fun k hk ↦ hreg fp k hk) (hregt fp) (fun rd hlow hm ↦ hmemL fp rd hlow hm)

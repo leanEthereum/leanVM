@@ -18,7 +18,7 @@ public import LeanVM.Guest.B1.Place.OsProtoSpec
 `ResMemD`: what memory holds for a level's residual: `λ⁻¹` in `level_lam_invs`, the inner chain's entries
 before and after, the scale, `β` and the product of the coordinates, at the dispatch's returns
 `P`, `Q`. `osResidual_complete`: one level; `osResiduals_complete`: the levels `lvl ..`, each
-dispatch's arguments and returns (`osResCallsL`).
+dispatch's arguments and returns (`osResCallsL`) and the calls' values (`resCV`).
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -118,6 +118,16 @@ def resArgsV (σ : Val) (bd lvl : ℕ) (lv : OsLv) (mu : E) : List E :=
   [σ (.n osQpos) * gen ^ lv.posOff, σ (.n bd) * gen ^ (lvl * ligColsCap),
     σ (.n osHs) * gen ^ (lvl * hsStride), mu, gen ^ (lv.queries / resBatch), gen ^ (lv.queries % resBatch)]
 
+/-- **The non-final levels' residuals' calls' values**: each level's `level_residual`, `is_zero` of its
+product `A` and `level_residual_slow`, at the rate's selector `x` and the pointers of `query_positions`,
+`basis_d`, `level_hs`, `fold_challenges` and `tail_challenges`. -/
+def resCV (x qp bd hs fch tc : E) (mu A P Q Lam SL : ℕ → E) : List OsLv → ℕ → List (List E)
+  | [], _ => []
+  | lv :: rest, lvl => [qp * gen ^ lv.posOff, bd * gen ^ (lvl * ligColsCap), hs * gen ^ (lvl * hsStride), mu lvl,
+      gen ^ (lv.queries / resBatch), gen ^ (lv.queries % resBatch), P lvl, Q lvl] :: [A lvl, zeroOf (A lvl)] ::
+      [x, qp * gen ^ lv.posOff, fch * gen ^ lv.resFoldOff, tc, Lam lvl, zeroOf (A lvl), SL lvl] ::
+      resCV x qp bd hs fch tc mu A P Q Lam SL rest (lvl + 1)
+
 /-- **A level's residual, honestly**: the positions' pointer from the level's `g^posOff`, the call of
 `level_residual` at its arguments, returning `P`, `Q`; the zero flag of `a`; the dispatch into
 `level_residual_slow`, returning `SL`; the sums stored. -/
@@ -147,7 +157,11 @@ theorem osResidual_complete {c : OsCfg} {rts : List (List ℕ)} {tch ich bd ls l
         (osSlowCall1 c tch bd lvl lv mats k).1.map σ' =
           [σ (.n osQpos) * gen ^ lv.posOff, σ (.n osFch) * gen ^ lv.resFoldOff, σ (.n tch), lam,
             zeroOf a] ∧
-        (osSlowCall1 c tch bd lvl lv mats k).2.map σ' = [SL]) := by
+        (osSlowCall1 c tch bd lvl lv mats k).2.map σ' = [SL] ∧
+        cvOf (osResidual c rts tch ich bd ls la lvl lv mats k).1 σ' =
+          [resArgsV σ bd lvl lv mu ++ [P, Q], [a, zeroOf a], σ (.n osRate) ::
+            ([σ (.n osQpos) * gen ^ lv.posOff, σ (.n osFch) * gen ^ lv.resFoldOff, σ (.n tch), lam,
+              zeroOf a] ++ [SL])]) := by
   unfold osResidual osResCall1 osSlowCall1
   dsimp only
   set rt := rts.getD lvl [] with hrtD
@@ -243,7 +257,7 @@ theorem osResidual_complete {c : OsCfg} {rts : List (List ℕ)} {tch ich bd ls l
   -- the zero flag
   have c6 := BlkA.seq (H := H) (show k ≤ j + 1 + 2 by omega) (show j + 1 + 2 ≤ j + 5 by omega) c5
     (B := [osLd (j + 3) la lvl, .call "is_zero" [.n (j + 3)] [.n (j + 4)]])
-    (OutB := fun σ' ↦ σ' (.n (j + 4)) = zeroOf a) fun σ1 ha1 _ ↦ by
+    (OutB := fun σ' ↦ σ' (.n (j + 4)) = zeroOf a ∧ σ' (.n (j + 3)) = a) fun σ1 ha1 _ ↦ by
       have e : j + 1 + 2 = j + 3 := by omega
       rw [e]
       refine blk_lst [a, zeroOf a] (by simp) fun C rd hH σ' ha hv ↦ ?_
@@ -254,7 +268,7 @@ theorem osResidual_complete {c : OsCfg} {rts : List (List ℕ)} {tch ich bd ls l
         List.map_cons, List.map_nil]
       rw [show j + 3 + 1 = j + 4 by omega] at v1
       rw [v0, v1, ha _ (show la < j + 3 by omega), ha1 _ hla]
-      exact ⟨⟨(hm C rd hH).laf, hiz C rd hH a⟩, rfl⟩
+      exact ⟨⟨(hm C rd hH).laf, hiz C rd hH a⟩, rfl, rfl⟩
   -- the slow call's pointer
   have c8 := BlkA.seq (H := H) (show k ≤ j + 5 by omega) k5 c6
     (B := fp.1) (OutB := fun σ' ↦ σ' (.n fp.2.1) = σ (.n osFch) * gen ^ lv.resFoldOff ∧
@@ -266,8 +280,8 @@ theorem osResidual_complete {c : OsCfg} {rts : List (List ℕ)} {tch ich bd ls l
   have c8' := c8.mono (Out' := fun σ' ↦ MatsOk σ' m5 ∧
       [k, bp.2.1, hp.2.1, j, rt.getD 2 0, rt.getD 3 0].map (fun i ↦ σ' (.n i)) = resArgsV σ bd lvl lv mu ∧
       σ' (.n (j + 1)) = P ∧ σ' (.n (j + 2)) = Q ∧ σ' (.n (j + 4)) = zeroOf a ∧
-      σ' (.n fp.2.1) = σ (.n osFch) * gen ^ lv.resFoldOff) fun σ' ho ↦
-    ⟨ho.2.2.1, ho.1.1.2.1, ho.1.1.2.2.1, ho.1.1.2.2.2, ho.1.2, ho.2.1⟩
+      σ' (.n fp.2.1) = σ (.n osFch) * gen ^ lv.resFoldOff ∧ σ' (.n (j + 3)) = a) fun σ' ho ↦
+    ⟨ho.2.2.1, ho.1.1.2.1, ho.1.1.2.2.1, ho.1.1.2.2.2, ho.1.2.1, ho.2.1, ho.1.2.2⟩
   -- `λ`
   have c9 := BlkA.seq (H := H) (show k ≤ l by omega) (show l ≤ l + 1 by omega) c8'
     (B := [osLd l osOodSc (lvl + 1)]) (OutB := fun σ' ↦ σ' (.n l) = lam) fun σ1 ha1 _ ↦
@@ -291,7 +305,7 @@ theorem osResidual_complete {c : OsCfg} {rts : List (List ℕ)} {tch ich bd ls l
           obtain ⟨ri, hri, hx, hlen, hlv⟩ := hrate C rd hH
           exact ⟨ri, hri, by rw [ha1 _ (show 0 < k by omega)]; exact hx, hlen, hlv⟩)
         (fun C rd hH ↦ by
-          obtain ⟨⟨-, eargs, -, -, ez, ef⟩, el⟩ := ho1 C rd hH
+          obtain ⟨⟨-, eargs, -, -, ez, ef, -⟩, el⟩ := ho1 C rd hH
           have ek : σ1 (.n k) = σ (.n osQpos) * gen ^ lv.posOff := by
             have := congrArg List.head? eargs
             simpa [resArgsV] using this
@@ -314,11 +328,25 @@ theorem osResidual_complete {c : OsCfg} {rts : List (List ℕ)} {tch ich bd ls l
           exact ⟨hM.li0, hM.lsc, hM.li1, hM.lbe, hM.laf, hM.st0, hM.st1⟩)
   refine BlkA.congr (BlkA.mono c11.agree fun σ' ho ↦ ?_) (by
     simp only [resB, List.append_assoc, List.cons_append, List.nil_append]; rfl)
-  obtain ⟨⟨⟨⟨⟨mo5, eargs, eP, eQ, ez, ef⟩, el⟩, eS⟩, -⟩, hag⟩ := ho
+  obtain ⟨⟨⟨⟨⟨mo5, eargs, eP, eQ, ez, ef, ea⟩, el⟩, eS⟩, -⟩, hag⟩ := ho
   have ek : σ' (.n k) = σ (.n osQpos) * gen ^ lv.posOff := by
     have := congrArg List.head? eargs
     simpa [resArgsV] using this
-  refine ⟨mo5, fun m hm' ↦ ?_, ?_, ?_, ?_, ?_⟩
+  have ea' : [V.n k, V.n bp.2.1, V.n hp.2.1, V.n j, V.n (rt.getD 2 0), V.n (rt.getD 3 0)].map σ' =
+      resArgsV σ bd lvl lv mu := by rw [← eargs]; rfl
+  have er' : (osRun (j + 1) 2).map σ' = [P, Q] := by
+    rw [osRun_map, show List.range 2 = [0, 1] from rfl]
+    simp only [List.map_cons, List.map_nil, Nat.add_zero]
+    rw [eP, show j + 1 + 1 = j + 2 by omega, eQ]
+  have es1 : [V.n k, V.n fp.2.1, V.n tch, V.n l, V.n (j + 4)].map σ' =
+      [σ (.n osQpos) * gen ^ lv.posOff, σ (.n osFch) * gen ^ lv.resFoldOff, σ (.n tch), lam, zeroOf a] := by
+    simp only [List.map_cons, List.map_nil]
+    rw [ek, ef, hag _ htch, el, ez]
+  have es2 : (osRun (l + 1) 1).map σ' = [SL] := by
+    rw [osRun_map, show List.range 1 = [0] from rfl]
+    simp only [List.map_cons, List.map_nil, Nat.add_zero]
+    rw [show SL = [SL].getD 0 0 from rfl, ← eS 0 (by omega), Nat.add_zero]
+  refine ⟨mo5, fun m hm' ↦ ?_, ?_, ?_, ?_, ?_, ?_⟩
   · obtain ⟨x, y, z⟩ := mb5 m hm'; exact ⟨by omega, by omega, by omega⟩
   · show ([V.n k, V.n bp.2.1, V.n hp.2.1, V.n j, V.n (rt.getD 2 0), V.n (rt.getD 3 0)]).map σ' = _
     rw [← eargs]; rfl
@@ -331,6 +359,18 @@ theorem osResidual_complete {c : OsCfg} {rts : List (List ℕ)} {tch ich bd ls l
   · rw [osRun_map, show List.range 1 = [0] from rfl]
     simp only [List.map_cons, List.map_nil, Nat.add_zero]
     rw [show SL = [SL].getD 0 0 from rfl, ← eS 0 (by omega), Nat.add_zero]
+  · refine (cvOf_of_calls (vs := [[V.n k, V.n bp.2.1, V.n hp.2.1, V.n j, V.n (rt.getD 2 0), V.n (rt.getD 3 0)] ++
+      osRun (j + 1) 2, [V.n (j + 3), V.n (j + 4)], V.n osRate :: ([V.n k, V.n fp.2.1, V.n tch, V.n l, V.n (j + 4)] ++
+      osRun (l + 1) 1)]) ?_ σ').trans ?_
+    · have cb : bp.1.filterMap callVs = [] := osMatP_calls _ _ _ _ _
+      have ch : hp.1.filterMap callVs = [] := osMatP_calls _ _ _ _ _
+      have cf : fp.1.filterMap callVs = [] := osMatP_calls _ _ _ _ _
+      simp only [List.filterMap_cons, List.filterMap_append, cb, ch, cf, List.filterMap_nil, callVs, osLd, osMul,
+        osAdd, List.nil_append, List.append_nil, List.cons_append]
+    · show [([V.n k, V.n bp.2.1, V.n hp.2.1, V.n j, V.n (rt.getD 2 0), V.n (rt.getD 3 0)] ++
+        osRun (j + 1) 2).map σ', [σ' (.n (j + 3)), σ' (.n (j + 4))],
+        σ' (.n osRate) :: ([V.n k, V.n fp.2.1, V.n tch, V.n l, V.n (j + 4)] ++ osRun (l + 1) 1).map σ'] = _
+      rw [List.map_append, List.map_append, ea', er', es1, es2, ea, ez, hag osRate (by show 0 < k; omega)]
 
 theorem osResiduals_next (c : OsCfg) (rts : List (List ℕ)) (tch ich bd ls la : ℕ) :
     ∀ (lvs : List OsLv) (lvl : ℕ) (mats : List OsMat) (k : ℕ),
@@ -372,7 +412,7 @@ theorem osResiduals_complete {c : OsCfg} {rts : List (List ℕ)} {tch ich bd ls 
           zeroOf (A (lvl + i))] [SL (lvl + i)]) →
       BlkA H σ k (osResiduals c rts tch ich bd ls la lvl lvs mats k).2
         (osResiduals c rts tch ich bd ls la lvl lvs mats k).1
-        (fun σ' ↦ ∀ i < lvs.length,
+        (fun σ' ↦ (∀ i < lvs.length,
           ((osResCallsL c rts tch ich bd ls la lvl lvs mats k).getD i ([], [])).1.map σ' =
             resArgsV σ bd (lvl + i) (lvs.getD i default) (mu (lvl + i)) ∧
           ((osResCallsL c rts tch ich bd ls la lvl lvs mats k).getD i ([], [])).2.map σ' =
@@ -381,9 +421,12 @@ theorem osResiduals_complete {c : OsCfg} {rts : List (List ℕ)} {tch ich bd ls 
             [σ (.n osQpos) * gen ^ (lvs.getD i default).posOff,
               σ (.n osFch) * gen ^ (lvs.getD i default).resFoldOff, σ (.n tch), Lam (lvl + i),
               zeroOf (A (lvl + i))] ∧
-          ((osSlowCallsL c rts tch ich bd ls la lvl lvs mats k).getD i ([], [])).2.map σ' = [SL (lvl + i)])
+          ((osSlowCallsL c rts tch ich bd ls la lvl lvs mats k).getD i ([], [])).2.map σ' = [SL (lvl + i)]) ∧
+          cvOf (osResiduals c rts tch ich bd ls la lvl lvs mats k).1 σ' =
+            resCV (σ (.n osRate)) (σ (.n osQpos)) (σ (.n bd)) (σ (.n osHs)) (σ (.n osFch)) (σ (.n tch))
+              mu A P Q Lam SL lvs lvl)
   | [], _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ =>
-    BlkA.nil fun _ _ i hi ↦ absurd hi (by simp)
+    BlkA.nil fun _ _ ↦ ⟨fun i hi ↦ absurd hi (by simp), rfl⟩
   | lv :: rest, lvl, mats, k, σ, hbd, hich, hls, hla, htch, hk, hmb, hmo, hoff, hrv, hrate, hm, hC, hS => by
     have o0 := hoff 0 (by simp)
     simp only [List.getD_cons_zero, Nat.add_zero] at o0
@@ -403,7 +446,7 @@ theorem osResiduals_complete {c : OsCfg} {rts : List (List ℕ)} {tch ich bd ls 
     have hn2 := osResiduals_next c rts tch ich bd ls la rest (lvl + 1) r.2.1 r.2.2
     have hB := BlkA.seq (H := H) hn hn2 h0
       (B := (osResiduals c rts tch ich bd ls la (lvl + 1) rest r.2.1 r.2.2).1)
-      (OutB := fun σ' ↦ ∀ i < rest.length,
+      (OutB := fun σ' ↦ (∀ i < rest.length,
         ((osResCallsL c rts tch ich bd ls la (lvl + 1) rest r.2.1 r.2.2).getD i ([], [])).1.map σ' =
           resArgsV σ bd (lvl + 1 + i) (rest.getD i default) (mu (lvl + 1 + i)) ∧
         ((osResCallsL c rts tch ich bd ls la (lvl + 1) rest r.2.1 r.2.2).getD i ([], [])).2.map σ' =
@@ -413,7 +456,10 @@ theorem osResiduals_complete {c : OsCfg} {rts : List (List ℕ)} {tch ich bd ls 
             σ (.n osFch) * gen ^ (rest.getD i default).resFoldOff, σ (.n tch), Lam (lvl + 1 + i),
             zeroOf (A (lvl + 1 + i))] ∧
         ((osSlowCallsL c rts tch ich bd ls la (lvl + 1) rest r.2.1 r.2.2).getD i ([], [])).2.map σ' =
-          [SL (lvl + 1 + i)])
+          [SL (lvl + 1 + i)]) ∧
+        cvOf (osResiduals c rts tch ich bd ls la (lvl + 1) rest r.2.1 r.2.2).1 σ' =
+          resCV (σ (.n osRate)) (σ (.n osQpos)) (σ (.n bd)) (σ (.n osHs)) (σ (.n osFch)) (σ (.n tch))
+            mu A P Q Lam SL rest (lvl + 1))
       fun σ1 ha1 ho1 ↦ BlkA.of_ne fun ⟨C0, rd0, hH0⟩ ↦ by
       have e1 : σ1 (.n osQpos) = σ (.n osQpos) := ha1 osQpos (by show 36 < k; omega)
       have e2 : σ1 (.n bd) = σ (.n bd) := ha1 _ hbd
@@ -448,8 +494,10 @@ theorem osResiduals_complete {c : OsCfg} {rts : List (List ℕ)} {tch ich bd ls 
           have := hS (i + 1) (by simp; omega) C rd hH
           rw [e1, e4, e5]
           simpa [show lvl + (i + 1) = lvl + 1 + i by ring] using this
-      exact h.mono fun σ' hv i hi ↦ by rw [← e1, ← e4, ← e5, ← eR]; exact hv i hi
-    refine (hB.congr rfl).mono fun σ' ⟨⟨_, _, a0, r0, s0, t0⟩, hs⟩ ↦ fun i hi ↦ ?_
+      have e0 : σ1 (.n osRate) = σ (.n osRate) := ha1 _ (by show 0 < k; omega)
+      exact h.mono fun σ' hv ↦ ⟨fun i hi ↦ by rw [← e1, ← e4, ← e5, ← eR]; exact hv.1 i hi,
+        by rw [hv.2, e0, e1, e2, e3, e4, e5]⟩
+    refine (hB.congr rfl).mono fun σ' ⟨⟨_, _, a0, r0, s0, t0, cv0⟩, hs, hcv⟩ ↦ ⟨fun i hi ↦ ?_, ?_⟩
     rcases i with _ | i
     · have e0 : (osResCallsL c rts tch ich bd ls la lvl (lv :: rest) mats k).getD 0 ([], []) =
           osResCall1 c rts bd lvl mats k := rfl
@@ -465,6 +513,9 @@ theorem osResiduals_complete {c : OsCfg} {rts : List (List ℕ)} {tch ich bd ls 
       have := hs i (by simp at hi; omega)
       rw [e, e', List.getD_cons_succ, show lvl + (i + 1) = lvl + 1 + i by ring]
       exact this
+    show cvOf (r.1 ++ _) σ' = _
+    rw [cvOf_append, cv0, hcv]
+    rfl
 
 end
 end LeanVM.Guest.B1.Whir

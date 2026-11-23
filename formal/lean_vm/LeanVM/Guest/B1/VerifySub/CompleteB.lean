@@ -42,7 +42,7 @@ theorem kidsDepB_of {κ : ℕ} : ∀ (ks : List KidD) (Bs : List ℕ), ks.length
     (∀ j < ks.length, ∀ pv, ((ks.getD j noKid pv).taken = true →
         CompleteAtB fs cert κ (ks.getD j noKid pv).f (ks.getD j noKid pv).Lin
           (ks.getD j noKid pv).args (ks.getD j noKid pv).Out (Bs.getD j 0)) ∧
-      ((ks.getD j noKid pv).taken = false → fs (ks.getD j noKid pv).f ≤ Bs.getD j 0)) →
+      ((ks.getD j noKid pv).taken = false → fs (tailKey (ks.getD j noKid pv).f) ≤ Bs.getD j 0)) →
     KidsDepB fs cert κ ks Bs
   | [], [], _, _ => trivial
   | [], _ :: _, h, _ => by simp at h
@@ -156,7 +156,8 @@ theorem vs_kidsDepBAt_of {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {s
       fun h ↦ by cases h⟩
   · exact ⟨fun _ ↦ S.os_kidB hos (by omega) hrf hcons W bs sqE, fun h ↦ by cases h⟩
   · refine ⟨fun ht ↦ hterm pv ht, fun _ ↦ ?_⟩
-    show fs "check_opening_terminal" ≤ termBound fs W.Beqc W.K15 W.Bcs W.Brs
+    show fs (tailKey "check_opening_terminal") ≤ termBound fs W.Beqc W.K15 W.Bcs W.Brs
+    have := W.htl "check_opening_terminal"
     unfold termBound
     omega
 
@@ -217,7 +218,7 @@ theorem kidsDepB_getD {κ : ℕ} : ∀ {ks : List KidD} {Bs : List ℕ}, KidsDep
       ((ks.getD j noKid pv).taken = true →
         CompleteAtB fs cert κ (ks.getD j noKid pv).f (ks.getD j noKid pv).Lin
           (ks.getD j noKid pv).args (ks.getD j noKid pv).Out (Bs.getD j 0)) ∧
-      ((ks.getD j noKid pv).taken = false → fs (ks.getD j noKid pv).f ≤ Bs.getD j 0)
+      ((ks.getD j noKid pv).taken = false → fs (tailKey (ks.getD j noKid pv).f) ≤ Bs.getD j 0)
   | [], _, _, _, hj, _ => absurd hj (by simp)
   | _ :: _, [], h, _, _, _ => h.elim
   | _ :: _, _ :: _, h, 0, _, pv => h.1 pv
@@ -229,7 +230,7 @@ theorem kidsDepBP_of {κ : ℕ} : ∀ (ks : List KidD) (Bs : List ℕ) (Ps : Lis
         CompleteAtDTB fs cert κ (ks.getD j noKid pv).f (ks.getD j noKid pv).Lin
           (ks.getD j noKid pv).args (ks.getD j noKid pv).Out (Ps.getD j fun _ ↦ True)
           (Bs.getD j 0)) ∧
-      ((ks.getD j noKid pv).taken = false → fs (ks.getD j noKid pv).f ≤ Bs.getD j 0)) →
+      ((ks.getD j noKid pv).taken = false → fs (tailKey (ks.getD j noKid pv).f) ≤ Bs.getD j 0)) →
     KidsDepBP fs cert κ ks Bs Ps
   | [], [], [], _, _, _ => trivial
   | [], _ :: _, _, h, _, _ => by simp at h

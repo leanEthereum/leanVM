@@ -20,7 +20,8 @@ carried capacity, the claim and the cursor at the honest data's (`OsHD.capAt`, `
 `level_positions` and `level_queries` at their honest values, as `OsHelperVals` states them.
 
 `lvMid_step`, `lvFin_step`: a level's block from `QAt l` to `QAt (l + 1)` and `RAt l`, from its
-calls and memory (`MidC`, `FinC`) at the honest values and the honest data's equalities.
+calls and memory (`MidC`, `FinC`) at the honest values and the honest data's equalities, with the
+level's calls' values (`cvMid`, `cvFin`).
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -169,7 +170,11 @@ theorem lvMid_step {h : OsHD} {b : ℕ} {tabs cur : E} {xs : List E} {l : ℕ} (
       (osLevel h.c l (h.c.levels.getD l default) st).1 (fun σ' ↦
       st.k ≤ (osLevel h.c l (h.c.levels.getD l default) st).2.k ∧
       QAt h b tabs cur xs (l + 1) (osLevel h.c l (h.c.levels.getD l default) st).2 σ' ∧
-      RAt h b tabs l W.batched σ') := by
+      RAt h b tabs l W.batched σ' ∧
+      cvOf (osLevel h.c l (h.c.levels.getD l default) st).1 σ' = cvMid l (h.c.levels.getD l default)
+        (h.capAt l) (h.claimAt l) (cur * gen ^ (xs.length - (h.xsAt l).length)) W (σ' (.n osRate))
+        (osPtrA h.c b 7) (osPtrA h.c b 3) (osPtrA h.c b 6) (osPtrA h.c b osIxQposA) (osPtrA h.c b osIxQbpA)
+        tabs) := by
   set c := h.c with hc
   set lv := c.levels.getD l default with hlv
   obtain ⟨-, hLv, -, hlen0, hyr0, -, hsent0, -, -, -, -, -, -, -, -, hlt0⟩ := hS
@@ -186,14 +191,14 @@ theorem lvMid_step {h : OsHD} {b : ℕ} {tabs cur : E} {xs : List E} {l : ℕ} (
     (fun _ _ _ ↦ hq.ok) hfin W rd0 hl0 hrwl hq.pad (by have := hq.co; omega) hoff hpo hsq h3 hh8 hiz
     (fun _ _ _ ↦ hq.rate l (by show l < c.levels.length; omega))
     (fun C rd hH ↦ by rw [hfs, hcl, hcu]; exact hC C rd hH)
-  refine hblk.mono fun σ' ⟨hstep, eF, ecur, ecl, hrv, e1, e2, pa, pr, qa, qr, hk9⟩ ↦ ?_
+  refine hblk.mono fun σ' ⟨hstep, eF, ecur, ecl, hrv, e1, e2, pa, pr, qa, qr, hk9, hcv⟩ ↦ ?_
   have ht : σ (.n osTabs) = tabs := hq.tabs
   have hptr : ∀ i < 9, σ (.n (12 + 2 * i)) = osPtrA c b i := hq.ptr
   rw [hfs, hcl, hcu] at *
   have hsz := hsent l hl
   have ePos : osLpCallOf c l = osPosCall (osPosStL c l lv st) := by rw [hst]; rfl
   have eQ : osLqCallOf c l = osQCallOf c l lv (osPreQ c l lv st) := by rw [hst]; rfl
-  refine ⟨hstep.le, hq.next (by show l < c.levels.length; omega) hstep hk9 hpo hqu hrv ?_ ?_ ?_, ?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨hstep.le, hq.next (by show l < c.levels.length; omega) hstep hk9 hpo hqu hrv ?_ ?_ ?_, ⟨?_, ?_, ?_, ?_, ?_⟩, ?_⟩
   · have := congrArg Fs.cap eF
     simp only [OsSt.F] at this
     rw [← hcap']; exact this
@@ -216,6 +221,10 @@ theorem lvMid_step {h : OsHD} {b : ℕ} {tabs cur : E} {xs : List E} {l : ℕ} (
     simp only [hfin, ↓reduceIte, OsHD.li, OsHD.lamAt, osHsPtrA, hlv]
   · rw [eQ, qr, hlamv, hr0, hr1, ← hc]
     simp only [hfin, ↓reduceIte, OsHD.lamAt, hlv]
+  · rw [hcv, show σ (.n osRate) = σ' (.n osRate) from (hstep.agree _ (by have := hq.ok.sf.k; show 0 < st.k; omega)).symm,
+      show σ (.n osOodz) = osPtrA c b 7 from hptr 7 (by norm_num),
+      show σ (.n osCoefs) = osPtrA c b 3 from hptr 3 (by norm_num),
+      show σ (.n osHs) = osPtrA c b 6 from hptr 6 (by norm_num), hq.qp, hq.qb, ht]
 
 /-! ## The final level -/
 
@@ -252,7 +261,11 @@ theorem lvFin_step {h : OsHD} {b : ℕ} {tabs cur : E} {xs : List E} (hS : BodyS
       st.k ≤ (osLevel h.c h.c.yrLevel (h.c.levels.getD h.c.yrLevel default) st).2.k ∧
       QAt h b tabs cur xs (h.c.yrLevel + 1)
         (osLevel h.c h.c.yrLevel (h.c.levels.getD h.c.yrLevel default) st).2 σ' ∧
-      RAt h b tabs h.c.yrLevel W.batched σ') := by
+      RAt h b tabs h.c.yrLevel W.batched σ' ∧
+      cvOf (osLevel h.c h.c.yrLevel (h.c.levels.getD h.c.yrLevel default) st).1 σ' =
+        cvFin h.c (h.c.levels.getD h.c.yrLevel default) (h.capAt h.c.yrLevel) (h.claimAt h.c.yrLevel)
+          (cur * gen ^ (xs.length - (h.xsAt h.c.yrLevel).length)) W (σ' (.n osRate)) (osPtrA h.c b 0)
+          (osPtrA h.c b 3) (osPtrA h.c b osIxQposA) (osPtrA h.c b osIxQbpA) tabs) := by
   set c := h.c with hc
   set l := c.yrLevel with hl
   set lv := c.levels.getD l default with hlv
@@ -269,7 +282,7 @@ theorem lvFin_step {h : OsHD} {b : ℕ} {tabs cur : E} {xs : List E} (hS : BodyS
     (fun _ _ _ ↦ hq.ok) rfl W rd0 hl0 hrwl hq.pad (by have := hq.co; omega) hpo hsq h3 hh8
     (fun _ _ _ ↦ hq.rate l (by show l < c.levels.length; omega))
     (fun C rd hH ↦ by rw [hfs, hcl, hcu]; exact hC C rd hH)
-  refine hblk.mono fun σ' ⟨hstep, eF, ecur, ecl, hrv, e3, e4, pa, pr, qa, qr, hk9⟩ ↦ ?_
+  refine hblk.mono fun σ' ⟨hstep, eF, ecur, ecl, hrv, e3, e4, pa, pr, qa, qr, hk9, hcv⟩ ↦ ?_
   have ht : σ (.n osTabs) = tabs := hq.tabs
   have hptr : ∀ i < 9, σ (.n (12 + 2 * i)) = osPtrA c b i := hq.ptr
   rw [hfs, hcl, hcu] at *
@@ -277,7 +290,7 @@ theorem lvFin_step {h : OsHD} {b : ℕ} {tabs cur : E} {xs : List E} (hS : BodyS
   have eQ : osLqCallOf c l = osQCallOf c l lv (osPreQ c l lv st) := by rw [hst]; rfl
   have eH : (osPreQ c l lv st).hs = (osPositions c l (osPosStL c l lv st)).2.k + 1 := by
     simp only [osPreQ, osHsFinal, osPosStL, hl, ↓reduceIte]; rfl
-  refine ⟨hstep.le, hq.next (by show l < c.levels.length; omega) hstep hk9 hpo hqu hrv ?_ ?_ ?_, ?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨hstep.le, hq.next (by show l < c.levels.length; omega) hstep hk9 hpo hqu hrv ?_ ?_ ?_, ⟨?_, ?_, ?_, ?_, ?_⟩, ?_⟩
   · have := congrArg Fs.cap eF
     simp only [OsSt.F] at this
     rw [← hcap']; exact this
@@ -309,6 +322,9 @@ theorem lvFin_step {h : OsHD} {b : ℕ} {tabs cur : E} {xs : List E} (hS : BodyS
     simp only [hl, ↓reduceIte, osHsPtrA, osIxLaneA, hlv]
   · rw [eQ, qr, hr0, hr1, ← hc]
     simp only [hl, ↓reduceIte, hlv]
+  · rw [hcv, show σ (.n osRate) = σ' (.n osRate) from (hstep.agree _ (by have := hq.ok.sf.k; show 0 < st.k; omega)).symm,
+      show σ (.n osFmsg) = osPtrA c b 0 from hptr 0 (by norm_num),
+      show σ (.n osCoefs) = osPtrA c b 3 from hptr 3 (by norm_num), hq.qp, hq.qb, ht]
 
 end
 end LeanVM.Guest.B1.Whir

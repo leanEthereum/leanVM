@@ -31,6 +31,7 @@ noncomputable def vsWordsOs : B1.VerifySub.VsWordsOs B2C.fs where
   Bnd := wSBos
   hleaf := osLeafBounds
   hfs := fs_lt
+  htl := B2C.fs_tailKey_le
 
 end
 end LeanVM.Guest.Count

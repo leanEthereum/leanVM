@@ -133,8 +133,7 @@ theorem callMatch_of_N {c : OsCfg} {r : OsCall} {q : ℕ × OsLv × List V × Li
   have he := oqEntry_of_at h1
   have hl : oqLoopOf (osOqName c lvl lv) = oqLoopAt r.sh := by rw [oqLoopOf, oqLoopAt, he]
   have hs : oqShapeOf (osOqName c lvl lv) = oqShapeAt r.sh := by rw [oqShapeOf, oqShapeAt, he, oqAt]
-  simp only [callMatch, Bool.and_eq_true, beq_iff_eq, nameIs_spec h2, nameIs_spec h3, nameIs_spec h4,
-    nameIs_spec h5, hl, hs]
+  simp only [callMatch, Bool.and_eq_true, beq_iff_eq, nameIs_spec h2, nameIs_spec h3, nameIs_spec h4, hl, hs]
   simp_all [shapeBEq]
 
 theorem osWordsTab_eq :

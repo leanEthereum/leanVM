@@ -59,6 +59,8 @@ structure VsWordsOs (fs : String → ℕ) extends VsWords fs where
   /-- Every frame below `2^32`, so `open_stacked`'s helpers' fresh instances fit
   (`open_stacked_completeAtB_Spec`). -/
   hfs : ∀ f, fs f < 2 ^ 32
+  /-- A skipped call's tail frame within its frame (`open_stacked_completeAtB_Spec`). -/
+  htl : ∀ f, fs (Memory.tailKey f) ≤ fs f
 
 /-- `verify_sub`'s own buffers: `8713` words. -/
 abbrev vsOwnBufs : ℕ := 8713

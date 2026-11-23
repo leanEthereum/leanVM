@@ -324,6 +324,11 @@ class Walk:
             elif i in self.O:
                 self.addW(A, c); self.addHq(A, p, o); self.loads[i] += 1
             if mode == '.cell' and c == p and o < HQ_SHIFT and p * HQ_SHIFT + o < 2 ** 28 - 1: A.hs.add((p, o))
+            ps = env0.get(p)
+            if mode == '.cell' and ps is not None and ps[0] == 'fpg' and ps[1] + o < 2 ** 30:
+                # through a next frame's pointer `fp·g^e`: own cell `e + o` holds `[c]`, written once `c` is (`nextF`)
+                if okKey(ps[1] + o): A.cp[ps[1] + o] = c
+                if c in A.w: self.addW(A, ps[1] + o)
         elif op == 'keccak':
             m0, m1, m2, m3, tail, b8, cap, out = a[:8]
             for o in keccakIns(m0, m1, m2, m3, tail, b8, cap): self.reqW(A, o, i)
@@ -383,7 +388,8 @@ class Walk:
             for o in G[0]: self.req(e + o in A.w, 'tailentry', i, e + o)
             if G[1] is not None:
                 c = A.cp.get(e + G[1])
-                self.req(c is not None and A.st.env.get(c) == ('fpg', e) and e + G[1] in A.w, 'tailself', i)
+                self.req(e + G[1] in A.w and (A.st.env.get(e + G[1]) == ('fpg', e) or
+                                              (c is not None and A.st.env.get(c) == ('fpg', e))), 'tailself', i)
             self.req(A.cp.get(e) == 0 and A.cp.get(e + 1) == 1, 'header', i)
             self.req(not G[2], 'tailret', i)
             return 0, [], A

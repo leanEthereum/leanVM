@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.B1.Whir.CFinEval
 public import LeanVM.Guest.B1.Whir.Bases
+public import LeanVM.Guest.B1.Whir.CCalls
 
 /-!
 # The basis rows, honestly
@@ -17,7 +18,8 @@ public import LeanVM.Guest.B1.Whir.Bases
 inverse), `d = (1 + c)/(coefficient·(1 + z) + z)` stored in `basis_d` at the level's zero flag `z`,
 the scale advanced. `osBasisLv_complete`: a non-final level's row, its `β` loaded from
 `level_scales`, its product, its flag (`is_zero`), its coordinates, its scale and product stored
-in `level_scale` and `level_after`; `osBases_complete`: every non-final level's.
+in `level_scale` and `level_after`; `osBases_complete`: every non-final level's, their calls'
+values `basesCV`.
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -268,6 +270,27 @@ theorem basisOut_agree {rd : Reader} {σ σ' : Val} {c : OsCfg} {bd ls la L k : 
   obtain ⟨h1, h2, h3⟩ := h
   exact ⟨fun t ht ↦ by rw [ha _ hbd]; exact h1 t ht, by rwa [ha _ hls], by rwa [ha _ hla]⟩
 
+theorem osAfterRow_calls : ∀ srcs prev k, (osAfterRow srcs prev k).1.filterMap callVs = []
+  | [], _, _ => rfl
+  | _ :: rest, none, k => by
+    simp only [osAfterRow, List.filterMap_cons, osAfterRow_calls rest]; rfl
+  | _ :: rest, some _, k => by
+    simp only [osAfterRow, List.filterMap_cons, osAfterRow_calls rest]; rfl
+
+theorem osBasisRow_calls (bd : ℕ) : ∀ cs sc z nz k, (osBasisRow bd cs sc z nz k).1.filterMap callVs = []
+  | [], _, _, _, _ => rfl
+  | (slot, src, inv) :: rest, sc, z, nz, k => by
+    simp only [osBasisRow, calls_append, osBasisRow_calls bd rest, List.append_nil]
+    unfold osBasisBlk; dsimp only
+    split_ifs <;> rfl
+
+/-- The non-final levels' basis rows' calls' values: each row's `is_zero` of the product of its
+coordinates `X lvl`. -/
+def basesCV (c : OsCfg) (X : ℕ → ℕ → E) : List OsLv → ℕ → List (List E)
+  | [], _ => []
+  | lv :: rest, lvl => [∏ t ∈ Finset.range (lv.prefixLen + c.yrLog), X lvl t,
+      zeroOf (∏ t ∈ Finset.range (lv.prefixLen + c.yrLog), X lvl t)] :: basesCV c X rest (lvl + 1)
+
 /-- **A non-final level's basis row, honestly**: on memory holding what it reads (`BasisIn`) and
 what it stores (`BasisOut`). -/
 theorem osBasisLv_complete {c : OsCfg} {tch bd ls la lvl : ℕ} {lv : OsLv} {k : ℕ} {σ : Val}
@@ -275,7 +298,9 @@ theorem osBasisLv_complete {c : OsCfg} {tch bd ls la lvl : ℕ} {lv : OsLv} {k :
     (hbd : bd < k) (hls : ls < k) (hla : la < k) (htch : tch < k) (hk : 43 ≤ k)
     (hm : ∀ C rd, H C rd → BasisIn rd σ c tch lvl lv β X ∧ BasisOut rd σ c bd ls la lvl lv β X) :
     BlkA H σ k (osBasisLv c tch bd ls la lvl lv k).2 (osBasisLv c tch bd ls la lvl lv k).1
-      (fun _ ↦ True) := by
+      (fun σ' ↦ cvOf (osBasisLv c tch bd ls la lvl lv k).1 σ' =
+        [[∏ t ∈ Finset.range (lv.prefixLen + c.yrLog), X t,
+          zeroOf (∏ t ∈ Finset.range (lv.prefixLen + c.yrLog), X t)]]) := by
   set n := lv.prefixLen + c.yrLog with hn
   have hlen : (osBasisCoords c tch lvl lv).length = n := by simp [osBasisCoords, n]
   have hcs : ∀ t < n, (osBasisCoords c tch lvl lv).getD t coordD =
@@ -374,8 +399,17 @@ theorem osBasisLv_complete {c : OsCfg} {tch bd ls la lvl : ℕ} {lv : OsLv} {k :
         rw [hprod]
         exact ⟨s1, s2⟩
   rw [← haf, ← hr] at hS
-  refine (hS.congr ?_).mono fun _ _ ↦ trivial
-  simp only [List.cons_append, List.append_assoc, List.nil_append]
+  refine (hS.congr ?_).mono fun σ' ho ↦ ?_
+  · simp only [List.cons_append, List.append_assoc, List.nil_append]
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨-, -⟩, eaf⟩, -⟩, ez, -⟩, -⟩, -⟩, -⟩, -⟩ := ho
+  have hav : σ' (.n a) = P := by
+    have := eaf (Or.inr (by simpa [hlen] using hne))
+    simpa [optVal, hlen] using this
+  have c1 : af.1.filterMap callVs = [] := osAfterRow_calls _ _ _
+  have c2 : r.1.filterMap callVs = [] := osBasisRow_calls _ _ _ _ _ _
+  rw [cvOf]
+  simp only [List.filterMap_cons, List.filterMap_append, c1, c2, List.filterMap_nil, callVs, osLd,
+    osCst, osAdd, List.nil_append, List.append_nil, List.cons_append, List.map_cons, List.map_nil, hav, ez]
 
 /-- **Every non-final level's basis row, honestly**: on memory holding what each row reads
 (`BasisIn`) and what it stores (`BasisOut`). -/
@@ -386,8 +420,8 @@ theorem osBases_complete {c : OsCfg} {tch bd ls la : ℕ} (β : ℕ → E) (X : 
         BasisIn rd σ c tch (lvl + i) levels[i] (β (lvl + i)) (X (lvl + i)) ∧
           BasisOut rd σ c bd ls la (lvl + i) levels[i] (β (lvl + i)) (X (lvl + i))) →
       BlkA H σ k (osBases c tch bd ls la lvl levels k).2 (osBases c tch bd ls la lvl levels k).1
-        (fun _ ↦ True)
-  | [], _, _, _, _, _, _, _, _, _ => BlkA.nil fun _ _ ↦ trivial
+        (fun σ' ↦ cvOf (osBases c tch bd ls la lvl levels k).1 σ' = basesCV c X levels lvl)
+  | [], _, _, _, _, _, _, _, _, _ => BlkA.nil fun _ _ ↦ rfl
   | lv :: rest, lvl, k, σ, hbd, hls, hla, htch, hk, hm => by
     have hm0 := fun C rd hH ↦ hm 0 (by simp) C rd hH
     simp only [Nat.add_zero, List.getElem_cons_zero] at hm0
@@ -401,8 +435,11 @@ theorem osBases_complete {c : OsCfg} {tch bd ls la : ℕ} (β : ℕ → E) (X : 
           have h := hm (i + 1) (by simp; omega) C rd hH
           simp only [List.getElem_cons_succ, show lvl + (i + 1) = lvl + 1 + i by ring] at h
           exact ⟨basisIn_agree (by omega) htch ha3 h.1, basisOut_agree hbd hls hla ha3 h.2⟩
-    refine (hall.congr ?_).mono fun _ _ ↦ trivial
-    simp only [osBases]
+    refine (hall.congr ?_).mono fun σ' ⟨⟨h1, _⟩, h2⟩ ↦ ?_
+    · simp only [osBases]
+    show cvOf (_ ++ _) σ' = _
+    rw [cvOf_append, h1, h2]
+    rfl
 
 end
 end LeanVM.Guest.B1.Whir

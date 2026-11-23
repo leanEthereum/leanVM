@@ -22,11 +22,14 @@ satisfying `armXT`, `hnamedT`) and the helpers' (`LpAtOE`, `LqAtOP`, `LrAtO`). I
 at a valuation on the rate's selector, the callees' trees satisfying `armTs`: within each bound, every one `armXT`
 (`armTs_xt`) and level `l`'s `level_queries` popping `osLvPops`.
 
-The proof (`os_completeAt_placeJFOT`): the buffers at `osSizesL` after the frame; the body's values
-from `OsHonestA.body` at their base; the callees after the buffers, the levels' by
-`os_levels_kidsOT` (`arm_lv_ok`), then the rest by `os_kids_blockOT` (`arm_rest_ok`, `arm_rest_okT`);
-`query_win_ptrs` then holds the window pointers into the decoders where each `level_positions` was
-placed (`qbpA`). When no memory holds the callees' words, every obligation on a memory is void.
+The proof (`os_completeAt_placeR`, the body at the rate's arm, a valuation per memory): the buffers at `osSizesL`
+after the frame; on each memory holding the callees' words its own honest valuation from `OsHonestA.body`, all of
+them agreeing on the call statements (`CallAg`, from `CV`) and loading words the caller's memory facts fix
+(`OsLoadsIn`); the callees placed once at one of them, after the buffers, the levels' by `os_levels_kidsOT`
+(`arm_lv_ok`), then the rest by `os_kids_blockOT` (`arm_rest_ok`, `arm_rest_okT`), and moved to each memory's
+valuation (`kidsFromInT_congr`, `armTs_congr`); `query_win_ptrs` then holds the window pointers into the decoders
+where each `level_positions` was placed (`qbpA`). When no memory holds the callees' words, every obligation on a
+memory is void.
 
 `kidsT_mono`, `lvTs_forall₂`: callees' trees of stronger predicates satisfy weaker ones.
 -/
@@ -62,8 +65,7 @@ theorem selOk_body {c : OsCfg} {ri : ℕ} (hri : ri < 4)
   | .match_ x arms, _, hb =>
     have hb' : bodyOkS (.match_ x arms) = true := by simpa [isLrCall] using hb
     obtain ⟨rfl, h4, hq⟩ := bodyOkS_match hb'
-    simp only [SelOk, selIs, h4, hq, decide_true, Bool.true_and, Bool.and_true, Nat.blt_eq, Nat.ble_eq]
-    omega
+    simp [SelOk, selIs, h4, hq, hri]
 
 /-- **Callees' trees by level don't depend on the valuation**, only on how many frames each level sets up. -/
 theorem lvTs_osLvKOf (TA TS : Reader → Tree → Prop) (TB : ℕ → Reader → Tree → Prop) (rd : Reader) (σ σ' : Val)
@@ -197,7 +199,7 @@ theorem lvTs_forall₂ {TA TS TA' TS' : Reader → Tree → Prop} {TB TB' : ℕ 
     exact forall₂_append' (forall₂_append' (forall₂_map_same _ fun _ _ ↦ hA)
       (.cons hS (forall₂_map_same _ fun _ _ ↦ hB l))) (lvTs_forall₂ hA hS hB (l + 1) ks)
 
-set_option maxHeartbeats 1600000 in
+set_option maxHeartbeats 6400000 in
 /-- **An arm at a configuration and rate is complete placed**, at an optional words bound, by its node,
 within each bound its levels' `level_queries` popping their honest entries. -/
 theorem arm_completeAtO {Bd : Option (String → ℕ)} {m ri : ℕ} (hm : m < 11) (hri : ri < 4) (hκ : 11 ≤ κ)
@@ -212,14 +214,18 @@ theorem arm_completeAtO {Bd : Option (String → ℕ)} {m ri : ℕ} (hm : m < 11
       (L' : Layout), RegPtrs K.spec args (RegionL L') →
       (∀ rd, LowDef κ rd → MemL rd L' → K.Pre rd args rets) →
       CompleteAtDTBR fs cert κ f L' args (Returns rets) armXT (Bk f))
-    (hlp : ∀ e ∈ lpTable, e.1 ∈ osCalleeNames (osCfgR m ri) → ∀ S, 1 ≤ S → S ≤ 64 →
-      LpAtOE fs cert κ e.1 e.2.1 S e.2.2.1 e.2.2.2 (Bd.map (· e.1)))
+    (hlp : ∀ l < (osCfgR m ri).levels.length, osPositionsName (osLvA (osCfgR m ri) l) ∈ osCalleeNames (osCfgR m ri) →
+      LpAtOE fs cert κ (osPositionsName (osLvA (osCfgR m ri) l))
+      (lpLoopA (osCfgR m ri) l) (osLvA (osCfgR m ri) l).squeezes (osLvA (osCfgR m ri) l).depth
+      (osLvA (osCfgR m ri) l).capDepth (Bd.map (· (osPositionsName (osLvA (osCfgR m ri) l)))))
     (hlq : ∀ e ∈ lqTable, e.1 ∈ osCalleeNames (osCfgR m ri) →
       LqAtOP fs cert κ e.1 e.2.1 e.2.2.1 e.2.2.2.1 e.2.2.2.2.1 e.2.2.2.2.2.1
       e.2.2.2.2.2.2.1 e.2.2.2.2.2.2.2.1 e.2.2.2.2.2.2.2.2.1 e.2.2.2.2.2.2.2.2.2.1
       e.2.2.2.2.2.2.2.2.2.2 (Bd.map (· e.1)))
-    (hlr : ∀ e ∈ lrTable, e.1 ∈ osCalleeNames (osCfgR m ri) →
-      LrAtO fs cert κ e.1 e.2.1 e.2.2.1 e.2.2.2.1 (Bd.map (· e.1)))
+    (hlr : ∀ j < (osCfgR m ri).yrLevel, osResidualName (osLvA (osCfgR m ri) j) ∈ osCalleeNames (osCfgR m ri) →
+      LrAtOq fs cert κ (osResidualName (osLvA (osCfgR m ri) j))
+      (osLvA (osCfgR m ri) j).logCols (osLvA (osCfgR m ri) j).folds (osLvA (osCfgR m ri) j).highBits
+      (osLvA (osCfgR m ri) j).queries (Bd.map (· (osResidualName (osLvA (osCfgR m ri) j)))))
     (hls : ∀ j < (osCfgR m ri).yrLevel,
       osSlowName (osCfgR m ri) (osLvA (osCfgR m ri) j) ∈ osCalleeNames (osCfgR m ri) →
       LsAtO fs cert κ (osSlowName (osCfgR m ri) (osLvA (osCfgR m ri) j)) (osLvA (osCfgR m ri) j).queries
@@ -240,8 +246,8 @@ theorem arm_completeAtO {Bd : Option (String → ℕ)} {m ri : ℕ} (hm : m < 11
   set c := osCfgR m ri with hc
   intro H
   obtain ⟨hBall, hB, hffm, haddrs, hyr⟩ := armBody_ok hm hri
-  have hLv := armLv_ok hm hri
-  have hsf := armSlow_ok hm hri
+  have hLv : ∀ l < c.levels.length, LvFacts c l := armLv_ok hm hri
+  have hsf : SlowFacts c := armSlow_ok hm hri
   have hl : H.own.length = (osSizesL c).length := H.own_len.length_eq
   have hSL := osSizesL_length (c := c) hyr.le
   have hbA : fn.body = osBodyA c ++ [.ret (osBodyRet c)] := hb.trans (osBody_eq c)
@@ -373,7 +379,9 @@ theorem arm_completeAtO {Bd : Option (String → ℕ)} {m ri : ℕ} (hm : m < 11
     obtain ⟨Bk, hBk, rfl⟩ := Option.mem_map.mp hB'
     have hk := osKids_bound fs Bk hdo (σ := σ)
     have ht := sum_max_tailKey_le (htl Bk hBk) Bk (((osBodyA c).filterMap (Stmt.callSF σ)).map (Main.mkCall σ))
-    rw [hcalls, List.map_append, List.sum_append] at hk ht
+    rw [hcalls] at hk ht
+    simp only [← hks, ← hrest] at hk ht
+    simp only [List.map_append, List.sum_append] at hk ht
     have := h1 Bk hBk
     have := h2 Bk hBk
     unfold osBos

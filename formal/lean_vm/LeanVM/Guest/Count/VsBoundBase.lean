@@ -18,9 +18,10 @@ open LeanVM.Guest.Core LeanVM.Guest.B1.Whir
 
 @[expose] public section
 
-/-- `open_stacked`'s words at the arm `m`, its name spelled by `natStr`. -/
+/-- `open_stacked`'s words at the arm `m`, the largest over the rates, its name spelled by `natStr`. -/
 noncomputable def osC (m : ℕ) : ℕ :=
-  B1.osBos B2C.fs wSBos ("open_stacked__L" ++ natStr m) (osCfg m)
+  ((List.range ligNRates).map fun ri ↦ B1.osBos B2C.fs wSBos ("open_stacked__L" ++ natStr m) (osCfgR m ri)).foldl
+    max 0
 
 theorem osC_eq_fast (m : ℕ) : osC m = osCF m := by
   unfold osC osCF

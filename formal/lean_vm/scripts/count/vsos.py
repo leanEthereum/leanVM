@@ -45,16 +45,16 @@ N_SIZES, RES_BATCH = _const('LIG_N_LOG_SIZES'), _const('RES_BATCH')
 POINT_CAP = _abbrev(_whir('Split.lean'), 'pointCap')
 
 
-def sizes(m):
-    """`B1.osSizesL (osCfg m)`."""
+def sizes(m, ri):
+    """`B1.osSizesL (osCfgR m ri)`."""
     n = lig('LIG_N_LEVELS', m)
     yr = lig('LIG_YR_LEVEL', m)
     folds = lambda l: lig('LIG_FOLDS', m * MAX_LEVELS + l)
     lane = lig('LIG_YR_LEN', m) + folds(yr)
     nf = lig('LIG_TOTAL_FOLDS', m)
-    # `B1.osPosTotal`: the levels' squeezes times their words' positions, at the first rate
-    pt = sum(lig('LIG_SQUEEZES', m * MAX_LEVELS + l) * (128 // lig('LIG_TREE_DEPTH', m * MAX_LEVELS + l))
-             for l in range(n))
+    # `B1.osPosTotal`: the levels' squeezes times their words' positions, at the rate
+    row = lambda l: (ri * N_SIZES + m) * MAX_LEVELS + l
+    pt = sum(lig('LIG_SQUEEZES', row(l)) * (128 // lig('LIG_TREE_DEPTH', row(l))) for l in range(n))
     return ([lane, 2 * n, nf, 2 * nf, n, n, n * HS_STRIDE, n * COLS_CAP, n, N_RATES, pt, pt]
             + [2 + folds(l) for l in range(min(yr, n))]
             + [lane, YR_LOG_CAP, POINT_CAP, POINT_CAP, n * COLS_CAP, n, n, 2 * n])
@@ -133,8 +133,10 @@ def osBos(m):
     name = 'open_stacked__L%d' % m
     hs = g.fns[g.by[name]]['body']
     nh = sum(1 for s in hs if s[0] == "atom" and s[1] in ("alloc", "allocDyn"))
-    assert nh == len(sizes(m)), (m, nh, len(sizes(m)))
-    return fs(name) + sum(sizes(m)) + sum(max(max(fs(f), Bnd(f)) for f in fl) for fl in callees(name))
+    assert nh == len(sizes(m, 0)), (m, nh, len(sizes(m, 0)))
+    kids = sum(max(max(fs(f), Bnd(f)) for f in fl) for fl in callees(name))
+    # `B1.osBosAt`: the largest over the rates
+    return max(fs(name) + sum(sizes(m, ri)) + kids for ri in range(N_RATES))
 
 
 HDR = '''/-

@@ -128,6 +128,10 @@ theorem le_foldl_max : ∀ {l : List ℕ} {x : ℕ}, x ∈ l → ∀ a : ℕ, x 
     · exact le_trans (le_max_right a x) (le_foldl_max_init l _)
     · exact le_foldl_max h _
 
+/-- An entry of a mapped list within its `foldl max`. -/
+theorem le_foldl_max_map {α : Type} (F : α → ℕ) {l : List α} {a : α} (h : a ∈ l) : F a ≤ (l.map F).foldl max 0 :=
+  le_foldl_max (List.mem_map_of_mem h) 0
+
 /-- **A callee within its statement's bound.** -/
 theorem le_osCallB {fs Bk : String → ℕ} {names : List String} {f : String} (h : f ∈ names) :
     max (fs f) (Bk f) ≤ osCallB fs Bk names :=

@@ -18,10 +18,13 @@ public import LeanVM.Guest.B1.Whir.CLvCommit
   `i`-th arm's relation does.
 * `rateDisp_blk`: a dispatch on the rate's selector (`LvRate`) over `(c.lvAt lvl).map f`, its
   returns listed from `r`, holds at those returns when `C (f lv)` does.
-* `osRates_complete`: `level_rate`'s values at the rate's row, the level's positions and window
-  pointers.
-* `osPositions_complete`: the dispatch into `level_positions` at its returns, the sponge's capacity
-  the returns.
+* `osRates_complete`: `level_rate`'s block, its values listed by `rateF` at the rate's row: the
+  hoisted `0x80`, the row's `g^posOff`, `g^squeezes`, `g^(n / resBatch)`, `g^(n % resBatch)` (the
+  state's new `rts` entry, `osRateVals`), the level's positions and window pointers (`lp`, `lw`).
+* `sqCapD`: the capacity after squeezes; `osSqCell`: the cell of the level's `g^squeezes`.
+* `osPosCall s`, `osPosCall_map`: the dispatch into `level_positions`' arguments (the first word, the
+  sponge, `lp`, `lw`, the table, `g^squeezes`) and returns; `osPositions_complete`: the dispatch at
+  its returns `capR`, the sponge's capacity `capR`.
 -/
 
 namespace LeanVM.Guest.B1.Whir

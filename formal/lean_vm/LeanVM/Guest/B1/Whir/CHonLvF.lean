@@ -43,7 +43,13 @@ theorem lvFin_gen {h : OsHD} {xs : List E} {b : ℕ} {tabs cur bt : E} {lane : �
       (osLevel h.c h.c.yrLevel ((h.c.levels.getD h.c.yrLevel default)) st).1 (fun σ' ↦
       st.k ≤ (osLevel h.c h.c.yrLevel ((h.c.levels.getD h.c.yrLevel default)) st).2.k ∧
       QAt h b tabs cur xs (h.c.yrLevel + 1) (osLevel h.c h.c.yrLevel ((h.c.levels.getD h.c.yrLevel default)) st).2 σ' ∧
-      RAt h b tabs h.c.yrLevel bt σ') := by
+      RAt h b tabs h.c.yrLevel bt σ' ∧
+      cvOf (osLevel h.c h.c.yrLevel (h.c.levels.getD h.c.yrLevel default) st).1 σ' =
+        cvFin h.c (h.c.levels.getD h.c.yrLevel default) (h.capAt h.c.yrLevel) (h.claimAt h.c.yrLevel)
+          (cur * gen ^ (xs.length - (h.xsAt h.c.yrLevel).length))
+          ((h.Ls.getD h.c.yrLevel default).finWD (digestHalves (h.root h.c.yrLevel)).1
+            (digestHalves (h.root h.c.yrLevel)).2 bt (osPtrA h.c b (12 + h.c.yrLevel))) (σ' (.n osRate))
+          (osPtrA h.c b 0) (osPtrA h.c b 3) (osPtrA h.c b osIxQposA) (osPtrA h.c b osIxQbpA) tabs) := by
   obtain ⟨-, hfold, hlog, hylen, hdepth, hqueries, -, hqu, -, hsq, -, hpo, -, -, hS5, hr3, hf5, hh8, -⟩ := hfo
   set L := h.Ls.getD h.c.yrLevel default with hL
   have hmu : L.mu h.logN = h.c.yrLog := by

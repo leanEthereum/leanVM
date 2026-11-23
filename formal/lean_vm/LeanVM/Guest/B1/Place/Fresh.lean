@@ -56,6 +56,13 @@ theorem relAtIn_le {rd : Reader} {R D : ℕ → Prop} {fp n : ℕ} {f : String} 
   rw [← ht]
   exact hT rd t args rets hn hv hb
 
+theorem relAtIn_leOn {rd : Reader} {R D : ℕ → Prop} {fp n : ℕ} {f : String} {args rets : List E}
+    (h : RelAtIn coreProgram fs cert rd R D fp n f args rets) {Pre : List E → Prop} {B : ℕ}
+    (hT : TotalLeOn coreProgram fs f Pre (fun _ ↦ B)) (hp : Pre args) : n ≤ B := by
+  obtain ⟨t, hn, hv, hb, -, ht, -⟩ := h
+  rw [← ht]
+  exact hT rd t args rets hn hp hv hb
+
 /-- Two layouts, one below `b` and one within `[b, b + n)`, disjoint and below the order of `g`. -/
 theorem fresh_pair (κ : ℕ) {L Lin : Layout} {b n : ℕ} (hd : DisjL L) (hw : Within L b n)
     (hd' : DisjL Lin) (hw' : Within Lin 0 b) (hlt : b + n < 2 ^ 64 - 1) :

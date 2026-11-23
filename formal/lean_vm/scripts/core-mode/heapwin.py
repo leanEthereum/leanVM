@@ -646,7 +646,9 @@ def emit(k, H, sts, cs, po, splits, gen):
         mods.append((f'S{g}', repack(si)))
         for i, _ in grp:
             smod[i] = f'S{g}'
-    blk, wok = ('(Memory.loopBody core)', 'winOk') if loop else ('core.body', 'winOkF')
+    # an arm's `core` is its own (`CoreMode.selF`): `(core).body` its projection, where `core.body` would name the
+    # function's whole body (`Fn.«k».core.body`)
+    blk, wok = ('(Memory.loopBody core)', 'winOk') if loop else ('(core).body' if 'ns' in gen else 'core.body', 'winOkF')
     for i in range(nw):
         a, b = cs[i], cs[i + 1]
         w = HEADER(f'{base}.W{i}', what=f'Window {i} of `{k}`\'s heap check: statements {a} to {b - 1}.')

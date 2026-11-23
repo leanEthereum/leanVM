@@ -365,8 +365,8 @@ theorem arm_lp_ok {Bd : Option (String → ℕ)} {c : OsCfg} {args : List E} {cu
     (hHV : OsHelperVals c b0 tabs H.own H.D σ)
     (hsel : ∀ l (f : OsLv → String), selName σ c l f = f (osLvA c l))
     (hyr : c.yrLevel < c.levels.length)
-    (hlp : ∀ e ∈ lpTable, e.1 ∈ osCalleeNames c → ∀ S, 1 ≤ S → S ≤ 64 →
-      LpAtOE fs cert κ e.1 e.2.1 S e.2.2.1 e.2.2.2 (Bd.map (· e.1)))
+    (hlp : ∀ l < c.levels.length, osPositionsName (osLvA c l) ∈ osCalleeNames c → LpAtOE fs cert κ (osPositionsName (osLvA c l)) (lpLoopA c l)
+      (osLvA c l).squeezes (osLvA c l).depth (osLvA c l).capDepth (Bd.map (· (osPositionsName (osLvA c l)))))
     {l : ℕ} (hl : l < c.levels.length) (hF : LvFacts c l)
     (hin : ∀ c' ∈ (lvK σ c l (osLvA c l) (osLvSt c l)).calls,
       c' ∈ ((osBodyA c).filterMap (Stmt.callSF σ)).map (Main.mkCall σ)) :
@@ -378,7 +378,7 @@ theorem arm_lp_ok {Bd : Option (String → ℕ)} {c : OsCfg} {args : List E} {cu
   have hlen : H.own.length = (osSizesL c).length := H.own_len.length_eq
   have hSL := osSizesL_length (c := c) hyr.le
   obtain ⟨rd0, hl0, hm0⟩ := hex
-  obtain ⟨hlpE, -, -, hpo, -, -, hsq1, hsq64, -, -, -, -, -, -, -⟩ := hF
+  obtain ⟨-, -, -, hpo, -, -, -, -, -, -, -, -, -, -, -⟩ := hF
   have h9 : osIxQposA < (osSizesL c).length := by simp only [osIxQposA]; omega
   have hlen9 : (osOwnA H.own osIxQposA).length = osPosTotal c := by
     rw [osOwnA, forall₂_getD_len H.own_len h9]; rfl
@@ -396,8 +396,7 @@ theorem arm_lp_ok {Bd : Option (String → ℕ)} {c : OsCfg} {args : List E} {cu
     have := osKids_names hdo _ (hin _ (List.mem_append_right _ (List.mem_cons_self ..)))
     rw [← hsel l osPositionsName]
     exact this
-  have hE := hlp _ hlpE hnm (osLvA c l).squeezes hsq1 hsq64
-  simp only at hE
+  have hE := hlp l hl hnm
   obtain ⟨ha, hr, -⟩ := hHV l hl
   show CompleteAtPOE fs cert κ (selName σ c l osPositionsName) (fun p ↦ Lk ++ winW fs cert c b0 l p)
     ((osLpCallOf c l).1.map σ) ((osLpCallOf c l).2.map σ) (runsS fs cert c H.D l)
@@ -459,8 +458,8 @@ theorem arm_lv_ok {Bd : Option (String → ℕ)} {c : OsCfg} {args : List E} {cu
       (L' : Layout), RegPtrs K.spec args (RegionL L') →
       (∀ rd, LowDef κ rd → MemL rd L' → K.Pre rd args rets) →
       CompleteAtDTBR fs cert κ f L' args (Returns rets) armXT (Bk f))
-    (hlp : ∀ e ∈ lpTable, e.1 ∈ osCalleeNames c → ∀ S, 1 ≤ S → S ≤ 64 →
-      LpAtOE fs cert κ e.1 e.2.1 S e.2.2.1 e.2.2.2 (Bd.map (· e.1)))
+    (hlp : ∀ l < c.levels.length, osPositionsName (osLvA c l) ∈ osCalleeNames c → LpAtOE fs cert κ (osPositionsName (osLvA c l)) (lpLoopA c l)
+      (osLvA c l).squeezes (osLvA c l).depth (osLvA c l).capDepth (Bd.map (· (osPositionsName (osLvA c l)))))
     (hlq : ∀ e ∈ lqTable, e.1 ∈ osCalleeNames c →
       LqAtOP fs cert κ e.1 e.2.1 e.2.2.1 e.2.2.2.1 e.2.2.2.2.1 e.2.2.2.2.2.1
       e.2.2.2.2.2.2.1 e.2.2.2.2.2.2.2.1 e.2.2.2.2.2.2.2.2.1 e.2.2.2.2.2.2.2.2.2.1
@@ -606,8 +605,8 @@ theorem arm_rest_ok {Bd : Option (String → ℕ)} {c : OsCfg} {args : List E} {
       (L' : Layout), RegPtrs K.spec args (RegionL L') →
       (∀ rd, LowDef κ rd → MemL rd L' → K.Pre rd args rets) →
       CompleteAtO fs cert κ f L' args (Returns rets) (Bd.map (· f)))
-    (hlr : ∀ e ∈ lrTable, e.1 ∈ osCalleeNames c →
-      LrAtO fs cert κ e.1 e.2.1 e.2.2.1 e.2.2.2.1 (Bd.map (· e.1)))
+    (hlr : ∀ j < c.yrLevel, osResidualName (osLvA c j) ∈ osCalleeNames c → LrAtOq fs cert κ (osResidualName (osLvA c j)) (osLvA c j).logCols (osLvA c j).folds
+      (osLvA c j).highBits (osLvA c j).queries (Bd.map (· (osResidualName (osLvA c j)))))
     (hffm : (osKindOf ("fold_final_msg__L" ++ natStr c.yrLog)).isSome = true) (hsf : SlowFacts c)
     (hls : ∀ j < c.yrLevel, osSlowName c (osLvA c j) ∈ osCalleeNames c →
       LsAtO fs cert κ (osSlowName c (osLvA c j)) (osLvA c j).queries (osLvA c j).prefixLen c.yrLog
@@ -688,10 +687,8 @@ theorem arm_rest_ok {Bd : Option (String → ℕ)} {c : OsCfg} {args : List E} {
   have hjl : j < c.levels.length := by omega
   obtain ⟨-, -, -, -, hlrv⟩ := hHV j hjl
   obtain ⟨ha, hr, -, -⟩ := hlrv hjy
-  obtain ⟨-, -, hlrE, hpo, hqS, -, -, -, -, -, -, -, hcols, hfolds, -⟩ := hLv j hjl
-  have hnm : osResidualName (osLvA c j) ∈ osCalleeNames c := osKids_names hdo _ hin
-  have hE := hlr _ (hlrE hjy).1 hnm
-  simp only at hE
+  obtain ⟨-, -, -, hpo, hqS, -, -, -, -, -, -, -, hcols, hfolds, -⟩ := hLv j hjl
+  have hE := hlr j hjy (osKids_names hdo _ hin)
   show CompleteAtO fs cert κ (osResidualName (osLvA c j)) Lk
     (((osLrCalls c).getD j ([], [])).1.map σ) (Returns (((osLrCalls c).getD j ([], [])).2.map σ))
     (Bd.map (· (osResidualName (osLvA c j))))
@@ -713,7 +710,7 @@ theorem arm_rest_ok {Bd : Option (String → ℕ)} {c : OsCfg} {args : List E} {
       rw [Nat.add_mul, one_mul] at this; omega
   have hpos : ∀ i < (osLvA c j).queries, (osLvA c j).posOff + i < osPosTotal c :=
     fun i hi ↦ posOff_add_lt hjl hpo (lt_of_lt_of_le hi hqS)
-  refine hE (osLvA c j).queries (hlrE hjy).2.1 (hlrE hjy).2.2 Lk (osPtrA c b0 osIxQposA * gen ^ (osLvA c j).posOff)
+  refine hE Lk (osPtrA c b0 osIxQposA * gen ^ (osLvA c j).posOff)
     (osPtrA c b0 (osIxBdA c) * gen ^ (j * ligColsCap)) (osPtrA c b0 osIxHsA * gen ^ (j * hsStride))
     (H.D j).mu (fun s ↦ (osOwnA H.own (osIxBdA c)).getD (j * ligColsCap + s) 0)
     (fun i ↦ (osOwnA H.own osIxQposA).getD ((osLvA c j).posOff + i) 0)
@@ -767,8 +764,8 @@ theorem arm_rest_okT {Bd : Option (String → ℕ)} {c : OsCfg} {args : List E} 
       (L' : Layout), RegPtrs K.spec args (RegionL L') →
       (∀ rd, LowDef κ rd → MemL rd L' → K.Pre rd args rets) →
       CompleteAtDTBR fs cert κ f L' args (Returns rets) armXT (Bk f))
-    (hlr : ∀ e ∈ lrTable, e.1 ∈ osCalleeNames c →
-      LrAtO fs cert κ e.1 e.2.1 e.2.2.1 e.2.2.2.1 (Bd.map (· e.1)))
+    (hlr : ∀ j < c.yrLevel, osResidualName (osLvA c j) ∈ osCalleeNames c → LrAtOq fs cert κ (osResidualName (osLvA c j)) (osLvA c j).logCols (osLvA c j).folds
+      (osLvA c j).highBits (osLvA c j).queries (Bd.map (· (osResidualName (osLvA c j)))))
     (hffm : (osKindOf ("fold_final_msg__L" ++ natStr c.yrLog)).isSome = true) (hsf : SlowFacts c)
     (hls : ∀ j < c.yrLevel, osSlowName c (osLvA c j) ∈ osCalleeNames c →
       LsAtO fs cert κ (osSlowName c (osLvA c j)) (osLvA c j).queries (osLvA c j).prefixLen c.yrLog

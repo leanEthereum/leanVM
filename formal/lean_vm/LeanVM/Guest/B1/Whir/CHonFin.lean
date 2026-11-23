@@ -19,7 +19,8 @@ public import LeanVM.Guest.B1.Whir.CHonNames
 non-final level's record facts (`RecRun`), the memory under `OsHA` holding the honest buffers
 (`Whir/CHonMem*`) and `fold_final_msg`'s meaning, `osFinishA_completeC`'s block allocates the
 finish's buffers (`bufsAt`), returns the target, the point buffers, the glued weight and the final
-lane at the tail challenges, and dispatches into `level_residual` at its honest values.
+lane at the tail challenges, and dispatches into `level_residual` at its honest values; its calls'
+values `finCV`.
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -137,7 +138,7 @@ theorem fin_of {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} {D : ℕ → Os
               osPtrA h.c b (osIxPt1A h.c),
               (h.recs.flatMap recGlued).foldl (fun w g ↦ w + g.scalar * g.weightAt ((h.G ++ h.T).drop g.foldStart)) 0,
               multilinearEval (h.Lf.fw.fold.take h.c.yrLen) h.T] ∧
-          ∀ l < h.c.yrLevel,
+          (∀ l < h.c.yrLevel,
             ((osLrCalls h.c).getD l ([], [])).1.map σ' =
               [osPtrA h.c b osIxQposA * gen ^ (osLvA h.c l).posOff,
                 osPtrA h.c b (osIxBdA h.c) * gen ^ (l * ligColsCap),
@@ -150,7 +151,10 @@ theorem fin_of {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} {D : ℕ → Os
                 osPtrA h.c b osIxFchA * gen ^ (osLvA h.c l).resFoldOff, osPtrA h.c b (osIxTchA h.c),
                 (D l).lam, osZA h.c h.own l] ∧
             ((osSlowCalls h.c).getD l ([], [])).2.map σ' =
-              [osSlowRetA h.c h.own l (D l).lam (osZA h.c h.own l)]) := by
+              [osSlowRetA h.c h.own l (D l).lam (osZA h.c h.own l)]) ∧
+          cvOf (osFinishA h.c (osFinSt h.c) (osFinTch h.c)).1 σ' = finCV h.c h.G h.T h.recs h.li (osPtrA h.c b 0)
+            (osPtrA h.c b (13 + h.c.yrLevel)) (σ' (.n osRate)) (osPtrA h.c b 10) (osPtrA h.c b 6) (osPtrA h.c b 2)
+            (multilinearEval (h.Lf.fw.fold.take h.c.yrLen) h.T) (osPtrA h.c b (16 + h.c.yrLevel))) := by
   intro σ hsf hok hrt hrv hp hqp ht htch hcl
   set c := h.c with hc
   set n := c.levels.length with hn
@@ -225,7 +229,7 @@ theorem fin_of {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} {D : ℕ → Os
           rw [h.own_getD (hHS.finLt (k := 0) (by omega)), OsHD.ownAt, fitTo_length, hHS.fin (k := 0) (by omega)]
           exact hHS.ylog
       · exact hrt i (by omega)
-  refine hB.mono fun σ' ⟨⟨ha, hr⟩, eBD, hv⟩ ↦ ⟨osFinishA_k k1 k3, ?_, ?_, fun l hl ↦ ?_⟩
+  refine hB.agree.mono fun σ' ⟨⟨⟨ha, hr⟩, ⟨eBD, hv⟩, hcv⟩, hag⟩ ↦ ⟨osFinishA_k k1 k3, ?_, ?_, fun l hl ↦ ?_, ?_⟩
   · rw [ha, bufsAt_fin hHS]
   · rw [hr, hcl']; rfl
   · obtain ⟨e1, e2, e3, e4⟩ := hv l hl
@@ -235,6 +239,7 @@ theorem fin_of {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} {D : ℕ → Os
     have eS : osSlowCalls c = finSlowCalls c (osFinSt c) (osFinTch c) := rfl
     rw [eL, eS, e1, e2, e3, e4, p11, p8, p4, htch, ← dres, dmu, ← dsl, dlam, dz]
     exact ⟨rfl, rfl, rfl, rfl⟩
+  · rw [hcv, p2, htch, p11, p8, p4, hag _ (by have := hok.sf.k; show 0 < (osFinSt c).k; omega)]
 
 end
 end LeanVM.Guest.B1.Whir

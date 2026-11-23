@@ -14,10 +14,22 @@ public import LeanVM.Guest.B1.Whir.CDisp
 /-!
 # A level, honestly
 
+A level is its `level_rate` block (`osRates`), its rounds (`osRounds`, inline grinds on `rd0`'s
+words, `RoundsH`), its message (a non-final level's next commitment `osCommit`, the final level's
+lane `osFinalMsg`), the query grind (`osQGrind`), the positions (`osPositions`), a non-final level's
+batching challenge (`osLam`), its high part (`osHsMid`, `osHsFinal`), the queries (`osQueries`) and a
+non-final level's glue (`osGlue`); `BlkA.seqK` composes them.
+
 * `MidW`: a non-final level's data (round words, the next root's cells and high part, the
   out-of-domain values, the nonces, the cap's root cells, the batch, the pointers of `sent` and the
   squeeze run); its honest values (`cap1`, `cl1`, `cur1`, `S2`, `cap3`, `SL`, `lam`, `claimOut`).
-* `MidC C rd σ …`: the level's calls and memory at those values; `osLevelMid_complete`.
+  `lpArgsV`: `level_positions`' honest arguments.
+* `MidC C rd σ … rd0`: the level's calls and memory at those values, the memory agreeing with `rd0`
+  on the grinds' table; `osLevelMid_complete`: the level's outcome, the positions' and queries'
+  dispatches' values and its calls' values (`cvMid`).
+* `FinWD`, `FinC`, `cvFin`, `osLevelFin_complete`: the same at the final level.
+* `osRndSt`, `osPosStL`: the states after the rounds and entering the positions; `RtVals`,
+  `rtVals_new`: the levels' `level_rate` values in `rts`; `osLevels_complete`: the levels in sequence.
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -130,6 +142,32 @@ structure MidC (C : CallRel) (rd : Reader) (σ : Val) (c : OsCfg) (lvl : ℕ) (l
     LoadHolds rd (σ (.n osBetas)) lvl (W.lam lv cap cl * W.lam lv cap cl *
       W.lam lv cap cl ^ lv.queries) ∧
     LoadHolds rd (σ (.n osMus)) lvl (lamInvOf (W.lam lv cap cl))
+
+/-! ## The levels' calls -/
+
+theorem osPositions_calls (c : OsCfg) (lvl : ℕ) (s : OsSt) :
+    (osPositions c lvl s).1.filterMap callVs = [.n osRate :: ((osPosCall s).1 ++ (osPosCall s).2)] := rfl
+
+theorem osQueries_calls (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) :
+    (osQueries c lvl lv s).1.filterMap callVs =
+      [.n osRate :: ((osQCallOf c lvl lv s).1 ++ (osQCallOf c lvl lv s).2)] := by
+  unfold osQueries osQCallOf
+  dsimp only
+  split_ifs <;> simp only [calls_append, osMatS_calls, List.nil_append] <;> rfl
+
+/-- **A non-final level's calls' values**: the message's (`commitCV`), `level_positions`', `is_zero`
+of `λ` and `level_queries`', at the rate's selector `x`, the pointers of `ood_points` (`oz`),
+`round_coefs` (`cf`) and `level_hs` (`hp`), the positions and windows (`qp`, `qb`), the table `tb`. -/
+def cvMid (lvl : ℕ) (lv : OsLv) (cap : List E) (cl cur : E) (W : MidW) (x oz cf hp qp qb tb : E) :
+    List (List E) :=
+  commitCV (W.cap1 lv cap cl) W.msg W.n1 (MidW.cur1 lv cur) W.pS (oz * gen ^ ((lvl + 1) * ligColsCap))
+      lv.folds lv.logCols ++
+    [x :: ((rdCell (W.S2 lv cap cl) 0 :: capOf (W.S2 lv cap cl) ++
+        [qp * gen ^ lv.posOff, qb * gen ^ lv.posOff, tb, gen ^ lv.squeezes]) ++ W.cap3 lv cap cl),
+      [W.lam lv cap cl, zeroOf (W.lam lv cap cl)],
+      x :: ([W.lam lv cap cl, lamInvOf (W.lam lv cap cl), cf * gen ^ (2 * lv.foldsOff),
+        hp * gen ^ (lvl * hsStride), qp * gen ^ lv.posOff, qb * gen ^ lv.posOff] ++
+        [W.r0, W.r1, W.batched, W.lam lv cap cl ^ lv.queries])]
 
 /-! ## The level's states -/
 
@@ -263,7 +301,10 @@ theorem osLevelMid_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ 
           σ (.n osQpos) * gen ^ lv.posOff, σ (.n osQbp) * gen ^ lv.posOff] ∧
       (osQCallOf c lvl lv (osPreQ c lvl lv st)).2.map σ' =
         [W.r0, W.r1, W.batched, W.lam lv (st.fsv σ) (σ (.n st.claim)) ^ lv.queries] ∧
-      st.k + 9 ≤ (osLevel c lvl lv st).2.k) := by
+      st.k + 9 ≤ (osLevel c lvl lv st).2.k ∧
+      cvOf (osLevel c lvl lv st).1 σ' = cvMid lvl lv (st.fsv σ) (σ (.n st.claim)) (st.cur σ) W
+        (σ (.n osRate)) (σ (.n osOodz)) (σ (.n osCoefs)) (σ (.n osHs)) (σ (.n osQpos)) (σ (.n osQbp))
+        (σ (.n osTabs))) := by
   set cap := st.fsv σ with hcap
   set cl := σ (.n st.claim) with hcl
   set cur := st.cur σ with hcur
@@ -324,7 +365,9 @@ theorem osLevelMid_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ 
       σ' (.n s2.word0) = rdCell (W.S2 lv cap cl) 0 ∧ σ' (.n s2.pow0) = rdCell (W.S2 lv cap cl) 1 ∧
       σ' (.n (s2.ys.getD 0 0)) = W.y0 ∧
       σ' (.n s2.sent) = W.pS ∧ σ' (.n s1.k) = gw (2 + lv.folds) ∧
-      s2.cur σ' = MidW.cur1 lv cur * gen ^ (2 + lv.folds) * gen ^ 3 ∧ s2.claim = s1.claim)
+      s2.cur σ' = MidW.cur1 lv cur * gen ^ (2 + lv.folds) * gen ^ 3 ∧ s2.claim = s1.claim ∧
+      cvOf (osCommit c lvl lv s1).1 σ' = commitCV (W.cap1 lv cap cl) W.msg W.n1 (MidW.cur1 lv cur) W.pS
+        (σ (.n osOodz) * gen ^ ((lvl + 1) * ligColsCap)) lv.folds lv.logCols)
     (fun σ1 ha1 ho1 ↦ BlkA.of_ne fun ⟨C0, rd1, hH0⟩ ↦ by
       obtain ⟨st1, hF1, hcur1, -, -, -⟩ := (ho1 C0 rd1 hH0).2
       have sf1 : s1.Sf := st1.ok.sf
@@ -344,10 +387,11 @@ theorem osLevelMid_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ 
         (fun C rd hH ↦ by rw [ef, hoodz]; exact (hC C rd hH).spf)
         (fun C rd hH ↦ by rw [ecur]; exact (hC C rd hH).ys)
       refine h.mono fun σ' ho ↦ ?_
-      obtain ⟨hst, hF, hw, hp, -, hy0, hsent, hsz, hcur, hclm⟩ := ho
+      obtain ⟨hst, hF, hw, hp, -, hy0, hsent, hsz, hcur, hclm, hcv⟩ := ho
       rw [ef] at hF hw hp
       rw [ecur] at hcur
-      exact ⟨hst.ok, hst.le, by show st.k ≤ s2.k; omega, hF, hw, hp, hy0, hsent, hsz, hcur, hclm⟩)
+      rw [ef, ecur, hoodz] at hcv
+      exact ⟨hst.ok, hst.le, by show st.k ≤ s2.k; omega, hF, hw, hp, hy0, hsent, hsz, hcur, hclm, hcv⟩)
     (fun _ _ ↦ by show s1.k ≤ s2.k; omega)
   -- the query grind
   have b3 := BlkA.seqK b2 (fun _ _ ↦ by show st.k ≤ s2.k; omega) (B := (osQGrind s2).1)
@@ -397,7 +441,8 @@ theorem osLevelMid_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ 
   have b5 := BlkA.seqK b4 (fun σ' h ↦ by have := h.2.2.1; show st.k ≤ s4.k; omega) (B := (osLam s4).1)
     (OutB := fun σ' ↦ s5.Ok σ' ∧ s4.k ≤ s5.k ∧ s5.F σ' = ⟨capOf (W.SL lv cap cl), []⟩ ∧
       σ' (.n s5.lam) = W.lam lv cap cl ∧ σ' (.n s5.lamInv) = lamInvOf (W.lam lv cap cl) ∧
-      s5.cur σ' = MidW.cur1 lv cur * gen ^ (2 + lv.folds) * gen ^ 3)
+      s5.cur σ' = MidW.cur1 lv cur * gen ^ (2 + lv.folds) * gen ^ 3 ∧
+      cvOf (osLam s4).1 σ' = [[W.lam lv cap cl, zeroOf (W.lam lv cap cl)]])
     (fun σ1 ha1 ho1 ↦ BlkA.of_ne fun ⟨C0, rd1, hH0⟩ ↦ by
       obtain ⟨ok4, -, hF4, hcur4, -⟩ := (ho1 C0 rd1 hH0).2
       have ef : s4.fsv σ1 = W.cap3 lv cap cl := by
@@ -407,10 +452,10 @@ theorem osLevelMid_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ 
       have h := osLam_complete (H := H) (st := s4) σ1 ok4.sf (fun C rd hH ↦ (ho1 C rd hH).2.1)
         (by rw [hco4]; unfold u128Bound; omega) hiz
       refine h.mono fun σ' ho ↦ ?_
-      obtain ⟨hst, hF, hl, hli, hcur, -⟩ := ho
-      rw [ef] at hF hl hli
+      obtain ⟨hst, hF, hl, hli, hcur, -, -, -, -, hcv⟩ := ho
+      rw [ef] at hF hl hli hcv
       rw [hcur4] at hcur
-      exact ⟨hst.ok, hst.le, hF, hl, hli, hcur⟩)
+      exact ⟨hst.ok, hst.le, hF, hl, hli, hcur, hcv⟩)
     (fun σ' h ↦ h.2.1)
   -- the high part
   have b6 := BlkA.seqK b5 (fun σ' h ↦ by
@@ -516,15 +561,15 @@ theorem osLevelMid_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ 
   rw [eL, eQ, eP, eR]
   refine BlkA.mono b8.agree fun σ' ho ↦ ?_
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨-, hrv, -, -⟩, B1⟩, B2⟩, -⟩, B4⟩, B5⟩, B6⟩, B7⟩, B8⟩, hag⟩ := ho
-  obtain ⟨-, -, -, -, -, -, -, hsent2, hsz2, -⟩ := B2
+  obtain ⟨-, -, -, -, -, -, -, hsent2, hsz2, -, -, hcv2⟩ := B2
   obtain ⟨-, k34, -, -, hpa, hpr⟩ := B4
-  obtain ⟨-, k45, hF5, -, -, hcur5⟩ := B5
+  obtain ⟨-, k45, hF5, -, -, hcur5, hcv5⟩ := B5
   obtain ⟨-, k56⟩ := B6
   obtain ⟨-, k67, hargs, hrets, -⟩ := B7
   obtain ⟨ok8, k78, hcl8⟩ := B8
   have fq := osQueries_fields c lvl lv s6
   refine ⟨⟨ok8, by show k ≤ (osGlue lvl s7).2.k; omega, hag⟩, ?_, ?_, hcl8, hrv, hsz2, hsent2, hpa, hpr, hargs, hrets,
-    by show k + 9 ≤ (osGlue lvl s7).2.k; omega⟩
+    by show k + 9 ≤ (osGlue lvl s7).2.k; omega, ?_⟩
   · rw [← hF5]
     simp only [OsSt.F]
     rw [show (osGlue lvl s7).2.fs = s5.fs from fq.2.2.2.2.1]
@@ -532,6 +577,15 @@ theorem osLevelMid_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ 
     simp only [OsSt.cur]
     rw [show (osGlue lvl s7).2.cb = s5.cb from fq.2.2.2.2.2.1,
       show (osGlue lvl s7).2.co = s5.co from fq.2.2.2.2.2.2.1]
+  · show cvOf ((osRates c lvl st).1 ++ (osRounds true lv.foldsOff lv.folds s0).1 ++ (osCommit c lvl lv s1).1 ++
+      (osQGrind s2).1 ++ (osPositions c lvl s3).1 ++ (osLam s4).1 ++ (osHsMid lvl lv s5).1 ++
+      (osQueries c lvl lv s6).1 ++ (osGlue lvl s7).1) σ' = _
+    simp only [cvOf_append, cvOf_of_calls (osRates_calls _ _ _), cvOf_of_calls (osRounds_calls _ _ _ _),
+      cvOf_of_calls (osQGrind_calls _), cvOf_of_calls (osHsMid_calls _ _ _), cvOf_of_calls (osGlue_calls _ _),
+      cvOf_of_calls (osPositions_calls _ _ _), cvOf_of_calls (osQueries_calls _ _ _ _), hcv2, hcv5,
+      List.map_nil, List.nil_append, List.append_nil, List.map_cons, List.map_append, hpa, hpr, hargs, hrets]
+    rw [show σ' (.n osRate) = σ (.n osRate) from hag _ (by show 0 < k; omega)]
+    simp only [cvMid, lpArgsV, List.append_assoc, List.cons_append, List.nil_append]
 
 /-! ## The final level -/
 
@@ -594,6 +648,17 @@ structure FinC (C : CallRel) (rd : Reader) (σ : Val) (c : OsCfg) (lvl : ℕ) (l
       σ (.n osQbp) * gen ^ lv.posOff] [W.r0, W.r1, W.batched, 0 ^ lv.queries]
   roots : LoadHolds rd (σ (.n osRoots)) (2 * lvl) W.r0 ∧ LoadHolds rd (σ (.n osRoots)) (2 * lvl + 1) W.r1
 
+/-- **The final level's calls' values**: `opening_message` into `final_msg` (`fm`), `level_positions`'
+and `level_queries`', as `cvMid`'s. -/
+def cvFin (c : OsCfg) (lv : OsLv) (cap : List E) (cl cur : E) (W : FinWD) (x fm cf qp qb tb : E) :
+    List (List E) :=
+  [W.cap1 lv cap cl ++ [MidW.cur1 lv cur, fm] ++
+      omRets (W.cap1 lv cap cl) W.lane (some W.nq) (MidW.cur1 lv cur) (c.yrLen + lv.folds + 1),
+    x :: ((cellsOfState (W.S2 lv cap cl) false 0 :: capOf (W.S2 lv cap cl) ++
+      [qp * gen ^ lv.posOff, qb * gen ^ lv.posOff, tb, gen ^ lv.squeezes]) ++ W.cap3 lv cap cl),
+    x :: ([0, 0, cf * gen ^ (2 * lv.foldsOff), W.pH, qp * gen ^ lv.posOff, qb * gen ^ lv.posOff] ++
+      [W.r0, W.r1, W.batched, 0 ^ lv.queries])]
+
 /-- **The final level, honestly**. -/
 theorem osLevelFin_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : Val) (hsf : st.Sf)
     (hok : ∀ C rd, H C rd → st.Ok σ) (hfin : lvl = c.yrLevel) (W : FinWD) (rd0 : Reader)
@@ -619,7 +684,9 @@ theorem osLevelFin_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ 
         [0, 0, σ (.n osCoefs) * gen ^ (2 * lv.foldsOff), W.pH, σ (.n osQpos) * gen ^ lv.posOff,
           σ (.n osQbp) * gen ^ lv.posOff] ∧
       (osQCallOf c lvl lv (osPreQ c lvl lv st)).2.map σ' = [W.r0, W.r1, W.batched, 0 ^ lv.queries] ∧
-      st.k + 9 ≤ (osLevel c lvl lv st).2.k) := by
+      st.k + 9 ≤ (osLevel c lvl lv st).2.k ∧
+      cvOf (osLevel c lvl lv st).1 σ' = cvFin c lv (st.fsv σ) (σ (.n st.claim)) (st.cur σ) W (σ (.n osRate))
+        (σ (.n osFmsg)) (σ (.n osCoefs)) (σ (.n osQpos)) (σ (.n osQbp)) (σ (.n osTabs))) := by
   set cap := st.fsv σ with hcap
   set cl := σ (.n st.claim) with hcl
   set cur := st.cur σ with hcur
@@ -677,7 +744,9 @@ theorem osLevelFin_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ 
     (OutB := fun σ' ↦ s2.Ok σ' ∧ s1.k ≤ s2.k ∧ s2.F σ' = ⟨capOf (W.S2 lv cap cl), []⟩ ∧
       σ' (.n s2.word0) = cellsOfState (W.S2 lv cap cl) false 0 ∧
       σ' (.n s2.pow0) = cellsOfState (W.S2 lv cap cl) false 1 ∧
-      s2.cur σ' = MidW.cur1 lv cur * gen ^ (c.yrLen + lv.folds + 1) ∧ s2.claim = s1.claim)
+      s2.cur σ' = MidW.cur1 lv cur * gen ^ (c.yrLen + lv.folds + 1) ∧ s2.claim = s1.claim ∧
+      cvOf (osFinalMsg c lv s1).1 σ' = [W.cap1 lv cap cl ++ [MidW.cur1 lv cur, σ (.n osFmsg)] ++
+        omRets (W.cap1 lv cap cl) W.lane (some W.nq) (MidW.cur1 lv cur) (c.yrLen + lv.folds + 1)])
     (fun σ1 ha1 ho1 ↦ BlkA.of_ne fun ⟨C0, rd1, hH0⟩ ↦ by
       obtain ⟨st1, hF1, hcur1, -, -, -⟩ := (ho1 C0 rd1 hH0).2
       have sf1 : s1.Sf := st1.ok.sf
@@ -689,10 +758,11 @@ theorem osLevelFin_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ 
         (fun C rd hH ↦ (ho1 C rd hH).2.1.ok) W.lane W.nq (fun C rd hH ↦ by
           rw [ef, ecur, ha1 _ (show 12 < k by omega)]; exact (hC C rd hH).om)
       refine h.mono fun σ' ho ↦ ?_
-      obtain ⟨hst, hF, hw, hp, hcur, hclm, -⟩ := ho
+      obtain ⟨hst, hF, hw, hp, hcur, hclm, -, hcv⟩ := ho
       rw [ef] at hF hw hp
       rw [ecur] at hcur
-      exact ⟨hst.ok, hst.le, hF, hw, hp, hcur, hclm⟩)
+      rw [ef, ecur, ha1 _ (show 12 < k by omega)] at hcv
+      exact ⟨hst.ok, hst.le, hF, hw, hp, hcur, hclm, hcv⟩)
     (fun _ _ ↦ k12)
   -- the query grind
   have b3 := BlkA.seqK b2 (fun _ _ ↦ by show st.k ≤ s2.k; omega) (B := (osQGrind s2).1)
@@ -794,13 +864,14 @@ theorem osLevelFin_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ 
   have eP : osPosStL c lvl lv st = s3 := by simp only [osPosStL, hfin, ↓reduceIte]; rfl
   rw [eL, eQ, eP]
   refine BlkA.mono b7.agree fun σ' ho ↦ ?_
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨-, hrv, -, -⟩, B1⟩, -⟩, -⟩, B4⟩, B6⟩, B7⟩, hag⟩ := ho
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨-, hrv, -, -⟩, B1⟩, B2⟩, -⟩, B4⟩, B6⟩, B7⟩, hag⟩ := ho
+  have hcv2 := B2.2.2.2.2.2.2.2
   obtain ⟨-, k34, hF4, hcur4, hpa, hpr⟩ := B4
   obtain ⟨-, k46, hsz6, hpH⟩ := B6
   obtain ⟨ok7, k67, hargs, hrets⟩ := B7
   have fq := osQueries_fields c lvl lv s6
   refine ⟨⟨ok7, by show k ≤ s7.k; omega, hag⟩, ?_, ?_, ?_, hrv, hsz6, hpH, hpa, hpr, hargs, hrets,
-    by show k + 9 ≤ s7.k; omega⟩
+    by show k + 9 ≤ s7.k; omega, ?_⟩
   · rw [← hF4]
     simp only [OsSt.F]
     rw [show (osQueries c lvl lv s6).2.fs = s4.fs from fq.2.2.2.2.1]
@@ -810,6 +881,14 @@ theorem osLevelFin_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ 
       show (osQueries c lvl lv s6).2.co = s4.co from fq.2.2.2.2.2.2.1]
   · rw [show (osQueries c lvl lv s6).2.claim = s1.claim from fq.2.2.2.1, B1.2.2.2.1]
     rfl
+  · show cvOf ((osRates c lvl st).1 ++ (osRounds true lv.foldsOff lv.folds s0).1 ++ (osFinalMsg c lv s1).1 ++
+      (osQGrind s2).1 ++ (osPositions c lvl s3).1 ++ (osHsFinal c lv s4).1 ++ (osQueries c lvl lv s6).1) σ' = _
+    simp only [cvOf_append, cvOf_of_calls (osRates_calls _ _ _), cvOf_of_calls (osRounds_calls _ _ _ _),
+      cvOf_of_calls (osQGrind_calls _), cvOf_of_calls (osHsFinal_calls _ _ _),
+      cvOf_of_calls (osPositions_calls _ _ _), cvOf_of_calls (osQueries_calls _ _ _ _), hcv2,
+      List.map_nil, List.nil_append, List.append_nil, List.map_cons, List.map_append, hpa, hpr, hargs, hrets]
+    rw [show σ' (.n osRate) = σ (.n osRate) from hag _ (by show 0 < k; omega)]
+    simp only [cvFin, lpArgsV, List.append_assoc, List.cons_append, List.nil_append]
 
 /-! ## What a level leaves -/
 

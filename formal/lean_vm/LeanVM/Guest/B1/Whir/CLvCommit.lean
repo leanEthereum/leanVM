@@ -18,6 +18,7 @@ public import LeanVM.Guest.B1.Whir.CRoundsA
 two cells, the high part and the OOD nonce (`omRets`), the root stored in `sent` and
 `level_roots`; the OOD grind's check; the OOD point (`squeeze_point_from`, returning `spfRets`);
 the value and the query nonce read and permuted (`commitS`), the zero run allocated if it was not.
+Its calls' values: `commitCV`.
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -60,6 +61,13 @@ theorem commitS_eq (cp : List E) (y0 nq : E) :
       (⟨cp, [(y0, dsObserve), (nq, dsPowNonce)]⟩ : Fs).perm := by
   simp [Fs.absorbAll, Fs.nonceState, Fs.absorb, rateScalars]
 
+/-- The message's calls' values: `opening_message` at the capacity, the cursor and `sent`, and
+`squeeze_point_from` at the message's permutation and the OOD point's slot `oz`. -/
+def commitCV (cap msg : List E) (n1 cur pS oz : E) (folds logCols : ℕ) : List (List E) :=
+  [cap ++ [cur, pS] ++ omRets cap msg (some n1) cur (2 + folds + 1),
+    capOf (omState cap msg (some n1)) ++ [cellsOfState (omState cap msg (some n1)) false 0, oz] ++
+      spfRets cap msg n1 logCols]
+
 /-- **A non-final level's message, honestly**. -/
 theorem osCommit_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : Val) (hsf : st.Sf)
     (hok : ∀ C rd, H C rd → st.Ok σ) (x0 x1 : E) (high : List E) (n1 y0 nq pS : E)
@@ -91,7 +99,9 @@ theorem osCommit_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : 
       σ' (.n ((osCommit c lvl lv st).2.ys.getD 0 0)) = y0 ∧
       σ' (.n (osCommit c lvl lv st).2.sent) = pS ∧ σ' (.n st.k) = gw (2 + lv.folds) ∧
       (osCommit c lvl lv st).2.cur σ' = st.cur σ * gen ^ (2 + lv.folds) * gen ^ 3 ∧
-      (osCommit c lvl lv st).2.claim = st.claim) := by
+      (osCommit c lvl lv st).2.claim = st.claim ∧
+      cvOf (osCommit c lvl lv st).1 σ' = commitCV (st.fsv σ) (x0 :: x1 :: high) n1 (st.cur σ) pS
+        (σ (.n osOodz) * gen ^ ((lvl + 1) * ligColsCap)) lv.folds lv.logCols) := by
   set k := st.k with hk
   set msg := x0 :: x1 :: high with hmsg
   set cap := st.fsv σ with hcap
@@ -275,7 +285,7 @@ theorem osCommit_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : 
   rw [ek]
   refine BlkA.congr (BlkA.monoH b9.agree fun C rd hH σ' ha ⟨ho, hag⟩ ↦ ?_) (by
     simp only [osCommit, List.append_assoc, List.cons_append, List.nil_append]; rfl)
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨eh0, eh1⟩, -⟩, e2⟩, -⟩, -⟩, -, hm1, hb1⟩, -⟩, e8⟩, hpadP⟩, e9⟩ := ho
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨eh0, eh1⟩, ecu⟩, e2⟩, -⟩, -⟩, eo, hm1, hb1⟩, espf⟩, e8⟩, hpadP⟩, e9⟩ := ho
   have hok' := hok C rd hH
   have hsl : spf.length = 5 := spfRets_length _ _ _ _
   have w : ∀ i, 5 ≤ i → i < 16 → σ' (.n (q + i)) = (oodVals spf y0 nq).getD (i - 5) 0 :=
@@ -283,7 +293,7 @@ theorem osCommit_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : 
       have := e8 (i - 5) (by omega)
       rwa [show q + 5 + (i - 5) = q + i by omega] at this
   refine ⟨⟨⟨⟨rfl, ⟨?_, ?_, ?_, ?_⟩, by show 2 < u128Bound; unfold u128Bound; omega,
-    fun p' hp' ↦ ?_, by omega⟩, hm1, ?_⟩, by omega, hag⟩, ?_, ?_, ?_, rfl, ?_, ?_, eh0, ?_, rfl⟩
+    fun p' hp' ↦ ?_, by omega⟩, hm1, ?_⟩, by omega, hag⟩, ?_, ?_, ?_, rfl, ?_, ?_, eh0, ?_, rfl, ?_⟩
   · intro f hf
     have hf' : f ∈ [j + 8, j + 9, j + 10, j + 11, j + 12] := hf
     simp only [List.mem_cons, List.not_mem_nil, or_false] at hf'
@@ -318,6 +328,23 @@ theorem osCommit_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : 
     rw [e2 7 (by omega)]
     simp [omRets, capOf, hcur]
     ring
+  · have hcalls : (osCommit c lvl lv st).1.filterMap callVs =
+        [(st.fs ++ [cu.2.1, k + 1]).map V.n ++ osRun r 8,
+          [r + 2, r + 3, r + 4, r + 5, r + 6, r, o0.2.1].map V.n ++ osRun q 5] := by
+      unfold osCommit
+      dsimp only
+      simp only [calls_append, osHeap_calls, osCurS_calls, gcInlineT_calls, osMatS_calls, osPad_calls,
+        List.nil_append, List.append_nil]
+      rfl
+    have e2' : ∀ j < 8, σ' (.n (r + j)) = (omRets cap msg (some n1) cur (2 + lv.folds + 1)).getD j 0 := e2
+    rw [cvOf_of_calls hcalls]
+    simp only [List.map_cons, List.map_nil, List.map_append, List.map_map]
+    rw [osRun_vals (omRets_length _ _ _ _ _) e2', osRun_vals (spfRets_length _ _ _ _) espf]
+    have efs : List.map (σ' ∘ V.n) st.fs = cap := List.map_congr_left fun f hf ↦ ha f (hsf.below.fs f hf)
+    simp only [efs, ecu, eh1, eo]
+    rw [e2' 2 (by omega), e2' 3 (by omega), e2' 4 (by omega), e2' 5 (by omega), e2' 6 (by omega),
+      show r = r + 0 from rfl, e2' 0 (by omega)]
+    simp [commitCV, omRets, capOf, hcur, OsSt.cur]
 
 end
 end LeanVM.Guest.B1.Whir

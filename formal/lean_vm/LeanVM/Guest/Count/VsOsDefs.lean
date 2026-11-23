@@ -72,10 +72,11 @@ noncomputable def leafOkB (m : ℕ) (f : String) : Bool :=
     | .stat pre b _ => (osAsgs m f).all fun a ↦ statAtB pre b a (wSBos f)
     | _ => false
 
-/-- `open_stacked`'s words at the arm `m`, its name spelled by `natStr`, by the search tree's
-lookups. -/
+/-- `open_stacked`'s words at the arm `m`, the largest over the rates, its name spelled by `natStr`, by the search
+tree's lookups. -/
 noncomputable def osCF (m : ℕ) : ℕ :=
-  B1.osBos fsFast wSBos ("open_stacked__L" ++ natStr m) (osCfg m)
+  ((List.range ligNRates).map fun ri ↦ B1.osBos fsFast wSBos ("open_stacked__L" ++ natStr m) (osCfgR m ri)).foldl
+    max 0
 
 end
 end LeanVM.Guest.Count

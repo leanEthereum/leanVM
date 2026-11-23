@@ -19,7 +19,7 @@ levels' facts (`LvFacts`), the closing rounds' and the finish's, the residual ch
 `level_residual`'s over the buffers (`OsHD.finRes_eq`), the arguments' values and the rate's
 selector. `OsHD.D`: the helpers' data. `body_gen`: the body before its return holds under `OsHA`
 and gives `OsOutA` (`body_of`, the levels by `LvFacts.levels`, the closing rounds by `tailC_from`,
-`tail_zero`, the finish by `fin_of`).
+`tail_zero`, the finish by `fin_of`), its calls' values `OsHD.cvBody`.
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -84,6 +84,16 @@ theorem rootA (hHS : HonStatic h.c) {l : ℕ} (hl : l < h.c.levels.length) :
   simp only [show 2 * l % 2 = 0 by omega, show (2 * l + 1) % 2 = 1 by omega, show 2 * l / 2 = l by omega,
     show (2 * l + 1) / 2 = l by omega, ↓reduceIte, one_ne_zero]
 
+/-- **The body's calls' values** at the honest data: the levels' (`cvLv`), the closing rounds'
+(`tailCV`) and the finish's (`finCV`), at the arguments' rate selector. -/
+noncomputable def cvBody (b : ℕ) (tabs cur : E) (xs args : List E) : List (List E) :=
+  (List.range h.c.levels.length).flatMap (fun i ↦ h.cvLv b tabs cur xs i (Val.ofArgs args (.n osRate))) ++
+    tailCV tabs h.Lf.fw.pairs (h.capAt h.c.levels.length) (h.claimAt h.c.levels.length)
+      (cur * gen ^ (xs.length - (h.xsAt h.c.levels.length).length)) ++
+    finCV h.c h.G h.T h.recs h.li (osPtrA h.c b 0) (osPtrA h.c b (13 + h.c.yrLevel)) (Val.ofArgs args (.n osRate))
+      (osPtrA h.c b 10) (osPtrA h.c b 6) (osPtrA h.c b 2) (multilinearEval (h.Lf.fw.fold.take h.c.yrLen) h.T)
+      (osPtrA h.c b (16 + h.c.yrLevel))
+
 end OsHD
 
 /-- **The body at the honest data**, from its facts. -/
@@ -93,13 +103,17 @@ theorem body_gen {h : OsHD} {args xs : List E} {lane : ℕ} {w : WhirEnd} {cur t
     ∃ (kEnd : ℕ) (f : ℕ → E), ∀ (C : CallRel) (rd : Reader), OsHA C rd h.c b h.own cur tabs xs →
       LowAgree rd rd0 →
       BlkF C rd (Val.ofArgs args) 11 kEnd f (osBodyA h.c)
-        (OsOutA h.c b tabs (h.tr.2.1 + h.T.prod * recsDeficit h.recs h.G)
+        (fun σ' ↦ OsOutA h.c b tabs (h.tr.2.1 + h.T.prod * recsDeficit h.recs h.G)
           ((h.recs.flatMap recGlued).foldl (fun w g ↦ w + g.scalar * g.weightAt ((h.G ++ h.T).drop g.foldStart)) 0)
-          (multilinearEval (h.Lf.fw.fold.take h.c.yrLen) h.T) h.own h.D) := by
+          (multilinearEval (h.Lf.fw.fold.take h.c.yrLen) h.T) h.own h.D σ' ∧
+          cvOf (osBodyA h.c) σ' = h.cvBody b tabs cur xs args) := by
   have hy := F.lv.yrE
   obtain ⟨ri, hri, hsel, hpt⟩ := F.sel
   obtain ⟨kEnd, f, hf⟩ := body_of (H := fun C rd ↦ OsHA C rd h.c b h.own cur tabs xs ∧ LowAgree rd rd0)
-    (h := h) (b := b) (args := args) (cur := cur) (tabs := tabs) (xs := xs) (own := h.own) (D := h.D) F.lv.bs
+    (h := h) (b := b) (args := args) (cur := cur) (tabs := tabs) (xs := xs) (own := h.own) (D := h.D)
+    (CVL := h.cvLv b tabs cur xs) (CVF := fun x ↦ finCV h.c h.G h.T h.recs h.li (osPtrA h.c b 0)
+      (osPtrA h.c b (13 + h.c.yrLevel)) x (osPtrA h.c b 10) (osPtrA h.c b 6) (osPtrA h.c b 2)
+      (multilinearEval (h.Lf.fw.fold.take h.c.yrLen) h.T) (osPtrA h.c b (16 + h.c.yrLevel))) F.lv.bs
     hsel hri hpt F.a0 F.a6 ha9 ha10 F.x0 F.rate
     (fun C rd hH ↦ by
       obtain ⟨r0, r1⟩ := h.mid_roots F.lv.hs hH.1.2.2.1 (l := 0) (by omega)

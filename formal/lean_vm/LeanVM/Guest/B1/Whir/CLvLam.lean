@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Whir.SlowSpec
 
 `osLam_complete`: the squeeze's permutation `lamS cap` of the carried capacity; `λ` its cell `0`,
 its zero flag (`is_zero`) and `μ = 1/(λ + is_zero(λ))` (`lamInvOf`); the zero run allocated if it
-was not.
+was not; its one call's values `[λ, is_zero(λ)]`.
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -43,7 +43,8 @@ theorem osLam_complete {st : OsSt} (σ : Val) (hsf : st.Sf) (hok : ∀ C rd, H C
       σ' (.n (osLam st).2.lam) = rdCell (lamS (st.fsv σ)) 0 ∧
       σ' (.n (osLam st).2.lamInv) = lamInvOf (rdCell (lamS (st.fsv σ)) 0) ∧
       (osLam st).2.cur σ' = st.cur σ ∧ (osLam st).2.claim = st.claim ∧
-      (osLam st).2.ys = st.ys ∧ (osLam st).2.sent = st.sent ∧ (osLam st).2.batched = st.batched) := by
+      (osLam st).2.ys = st.ys ∧ (osLam st).2.sent = st.sent ∧ (osLam st).2.batched = st.batched ∧
+      cvOf (osLam st).1 σ' = [[rdCell (lamS (st.fsv σ)) 0, zeroOf (rdCell (lamS (st.fsv σ)) 0)]]) := by
   set k := st.k with hk
   set cap := st.fsv σ with hcap
   set S := lamS cap with hS
@@ -131,7 +132,7 @@ theorem osLam_complete {st : OsSt} (σ : Val) (hsf : st.Sf) (hok : ∀ C rd, H C
   have hok' := hok C rd hH
   refine ⟨⟨⟨⟨rfl, ⟨?_, ?_, ?_, ?_⟩, hco, fun q hq ↦ ?_, by omega⟩,
     matsOk_agree hok'.mats hsf.below.mats fun i hi ↦ hag i hi, hpad⟩, by omega, hag⟩,
-    ?_, ?_, ?_, ?_, rfl, rfl, rfl, rfl⟩
+    ?_, ?_, ?_, ?_, rfl, rfl, rfl, rfl, ?_⟩
   · intro f hf
     have hf' : f ∈ [j + 8, j + 9, j + 10, j + 11, j + 12] := hf
     simp only [List.mem_cons, List.not_mem_nil, or_false] at hf'
@@ -153,6 +154,17 @@ theorem osLam_complete {st : OsSt} (σ : Val) (hsf : st.Sf) (hok : ∀ C rd, H C
     simpa [lamVals] using e5 3 (by omega)
   · show σ' (.n st.cb) * gen ^ st.co = σ (.n st.cb) * gen ^ st.co
     rw [hag _ hsf.below.cb]
+  · have hcalls : (osLam st).1.filterMap callVs = [[.n j, .n (j + 14)]] := by
+      unfold osLam
+      dsimp only
+      simp only [calls_append, osPad_calls, List.append_nil]
+      rw [calls_of_isAtom (st.fs.zipIdx.map fun (f, i) ↦ osCp (k + i) f) (by simp [osCp, Stmt.isAtom])]
+      rfl
+    rw [cvOf_of_calls hcalls]
+    have e14 := e5 1 (by omega)
+    simp only [lamVals, List.getD_cons_zero, List.getD_cons_succ, show j + 13 + 1 = j + 14 by omega] at e14
+    simp only [List.map_cons, List.map_nil, e14]
+    simpa using e3 0 (by omega)
 
 end
 end LeanVM.Guest.B1.Whir

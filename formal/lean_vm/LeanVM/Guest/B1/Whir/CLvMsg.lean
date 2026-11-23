@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Whir.CBlk
 public import LeanVM.Guest.B1.Whir.Commit
+public import LeanVM.Guest.B1.Whir.CCalls
 
 /-!
 # A level's message, honestly
@@ -17,7 +18,7 @@ public import LeanVM.Guest.B1.Whir.Commit
   `ms`, the nonce and the cursor (its meaning's formula).
 * `OsStep σ σ' st st'`: a block's state moved on: its invariants, its next free value, the
   agreement below the old one.
-* `osFinalMsg_complete`: the final level's message at its values.
+* `osFinalMsg_complete`: the final level's message at its values and its call's.
 * `osCommit_complete`: a non-final level's message, out-of-domain points and values and query
   nonce at its values.
 -/
@@ -66,7 +67,9 @@ theorem osFinalMsg_complete {c : OsCfg} {lv : OsLv} {st : OsSt} (σ : Val) (hsf 
       σ' (.n (osFinalMsg c lv st).2.word0) = cellsOfState (omState (st.fsv σ) ms (some nn)) false 0 ∧
       σ' (.n (osFinalMsg c lv st).2.pow0) = cellsOfState (omState (st.fsv σ) ms (some nn)) false 1 ∧
       (osFinalMsg c lv st).2.cur σ' = st.cur σ * gen ^ (c.yrLen + lv.folds + 1) ∧
-      (osFinalMsg c lv st).2.claim = st.claim ∧ (osFinalMsg c lv st).2.pad = st.pad) := by
+      (osFinalMsg c lv st).2.claim = st.claim ∧ (osFinalMsg c lv st).2.pad = st.pad ∧
+      cvOf (osFinalMsg c lv st).1 σ' = [st.fsv σ ++ [st.cur σ, σ (.n osFmsg)] ++
+        omRets (st.fsv σ) ms (some nn) (st.cur σ) (c.yrLen + lv.folds + 1)]) := by
   set cu := osCurS st with hcu
   set r := cu.2.2.k with hr
   set rets := omRets (st.fsv σ) ms (some nn) (st.cur σ) (c.yrLen + lv.folds + 1) with hrets
@@ -92,13 +95,13 @@ theorem osFinalMsg_complete {c : OsCfg} {lv : OsLv} {st : OsSt} (σ : Val) (hsf 
         · rw [e, ha1 osFmsg (by have := hsf.k; show 12 < st.k; omega)]; rfl
       rw [hargs]
       exact hC C rd hH
-  refine BlkA.congr (BlkA.monoH hall.agree fun C rd hH σ' ha ⟨⟨_, hret⟩, hag⟩ ↦ ?_) rfl
+  refine BlkA.congr (BlkA.monoH hall.agree fun C rd hH σ' ha ⟨⟨ecu, hret⟩, hag⟩ ↦ ?_) rfl
   have e0 : ∀ j < 8, σ' (.n (r + j)) = rets.getD j 0 := hret
   have ek : (osFinalMsg c lv st).2.k = r + 8 := rfl
   have efs : (osFinalMsg c lv st).2.fs = [r + 2, r + 3, r + 4, r + 5, r + 6] := rfl
   have hok' := hok C rd hH
   refine ⟨⟨⟨⟨by rw [efs]; rfl, ⟨?_, ?_, ?_, ?_⟩, ?_, ?_, ?_⟩, ?_, ?_⟩, by rw [ek]; omega,
-    hag⟩, ?_, ?_, ?_, ?_, rfl, rfl⟩
+    hag⟩, ?_, ?_, ?_, ?_, rfl, rfl, ?_⟩
   · intro f hf; rw [efs] at hf; rw [ek]
     simp only [List.mem_cons, List.not_mem_nil, or_false] at hf
     rcases hf with rfl | rfl | rfl | rfl | rfl <;> omega
@@ -118,6 +121,11 @@ theorem osFinalMsg_complete {c : OsCfg} {lv : OsLv} {st : OsSt} (σ : Val) (hsf 
   · simp only [OsSt.cur, show (osFinalMsg c lv st).2.cb = r + 7 from rfl,
       show (osFinalMsg c lv st).2.co = 0 from rfl, pow_zero, mul_one]
     rw [e0 7 (by omega)]; simp [hrets, omRets, capOf, OsSt.cur]
+  · show cvOf (cu.1 ++ _) σ' = _
+    rw [cvOf_append, cvOf_of_calls (osCurS_calls st), cvOf_call, List.map_append, osRun_vals (omRets_length _ _ _ _ _) e0]
+    simp only [List.map_nil, List.nil_append, List.map_append, List.map_cons, List.map_map]
+    rw [ecu, ha osFmsg (by have := hsf.k; show 12 < st.k; omega)]
+    exact congrArg (fun x ↦ [x ++ [OsSt.cur σ st, σ (.n osFmsg)] ++ rets]) (List.map_congr_left fun f hf ↦ ha f (hsf.below.fs f hf))
 
 /-- **A call returning nothing.** -/
 theorem call0_blk {σ : Val} {k : ℕ} {f : String} {args : List ℕ} (hargs : ∀ i ∈ args, i < k)

@@ -38,7 +38,7 @@ def open_stacked_completeAtBPE_Spec : Prop :=
   ∀ (μ r : ℕ), Whir.minOpenLog ≤ μ → μ ≤ 30 → 1 ≤ r → r ≤ 4 →
     ∀ (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) (Bnd : String → ℕ),
       Lift.RunsFit fs cert → RunsConsec cert → 11 ≤ κ → OsLeafBounds fs Bnd →
-      (∀ f, fs f < 2 ^ 32) →
+      (∀ f, fs f < 2 ^ 32) → (∀ f, fs (tailKey f) ≤ fs f) →
       ∀ (S : KeccakState) (root : Digest) (target cur tabs : E) (xs : List E)
         (os : List (List Opening)) (w : Whir.WhirEnd) (s' : Fs) (roots' : List (Digest × ℕ × ℕ)),
         Whir.RunsWith (Whir.whirOpen μ r target) ⟨capOf S, []⟩ xs os [(root, Whir.stackShape μ r)] w s' roots' →
@@ -51,21 +51,21 @@ def open_stacked_completeAtBPE_Spec : Prop :=
 
 theorem open_stacked_completeAtBPE_Spec.toBP (h : open_stacked_completeAtBPE_Spec) :
     open_stacked_completeAtBP_Spec :=
-  fun μ r h1 h2 h3 h4 fs cert κ Bnd hrf hcons hκ hleaf hfs S root target cur tabs xs os w s' roots' hrun hcaps
+  fun μ r h1 h2 h3 h4 fs cert κ Bnd hrf hcons hκ hleaf hfs htl S root target cur tabs xs os w s' roots' hrun hcaps
     Lin hLin =>
-  (h μ r h1 h2 h3 h4 fs cert κ Bnd hrf hcons hκ hleaf hfs S root target cur tabs xs os w s' roots' hrun hcaps
+  (h μ r h1 h2 h3 h4 fs cert κ Bnd hrf hcons hκ hleaf hfs htl S root target cur tabs xs os w s' roots' hrun hcaps
     Lin hLin).mono le_rfl fun _ _ h => h.1
 
 /-- **`open_stacked` is complete placed within its bound by a tree popping its levels' `level_queries` entries and
 exact at every node.** -/
 theorem open_stacked_completeAtBPE : open_stacked_completeAtBPE_Spec := by
-  intro μ r h1 h2 h3 h4 fs cert κ Bnd hrf hcons hκ hleaf hfs S root target cur tabs xs os w s' roots' hrun
+  intro μ r h1 h2 h3 h4 fs cert κ Bnd hrf hcons hκ hleaf hfs htl S root target cur tabs xs os w s' roots' hrun
     hcaps Lin hLin
   obtain ⟨cfg, Ls, hR, hst⟩ := Whir.honRunS_of h1 h2 h3 h4 hrun hcaps
   have hm : μ - Whir.minOpenLog < 11 := hR.m11
   obtain ⟨fn, hf, -, h⟩ := Arm.open_stacked_completeAtOT_of (Bd := some Bnd) level_residual_completeAt
     level_residual_slow_completeAt h2 h3 h4 hrf hcons hκ (fun _ hB ↦ by cases hB; exact hleaf)
-    (fun _ _ ↦ helperBounds fs cert κ hrf hcons hκ hfs) (fun _ _ ↦ hfs)
+    (fun _ _ ↦ helperBounds fs cert κ hrf hcons hκ hfs) (fun _ _ ↦ hfs) (fun _ _ ↦ htl)
     (hR.osHonest (cur := cur) (tabs := tabs)) hLin
   obtain ⟨fn', hf', hmu⟩ := Arm.armMute_all hm
   have hf0 := hf
@@ -107,7 +107,7 @@ theorem vs_hos_ofE (hP : open_stacked_completeAtBPE_Spec) {bytecode : List K} {s
         (digestHalves S.root).2, ptr (S.cW bs), ptr sqE * gen ^ winTabAt]) (vsOsOut S.μs S.w)
       (fun rd t => OsPopsT S.μs S.rate S.target S.s7.perm S.root S.xsW c.proof.openings S.w rd t ∧
         t.Every (ExactAt coreProgram rd)) (osBosAt fs W.Bnd S.μs) :=
-    hP S.μs S.rate S.hmu20 S.hmu30 S.hr1 S.hr4 fs cert κ W.Bnd hrf hcons hκ W.hleaf W.hfs
+    hP S.μs S.rate S.hmu20 S.hmu30 S.hr1 S.hr4 fs cert κ W.Bnd hrf hcons hκ W.hleaf W.hfs W.htl
       S.s7.perm S.root S.target (ptr (S.cW bs))
       (ptr sqE * gen ^ winTabAt) S.xsW c.proof.openings S.w S.s' S.roots' S.runW
       S.capsW _ fun _ _ hL ↦ ⟨hL _ List.mem_cons_self, winTabs_vsExp fun q hq ↦ hL q (by

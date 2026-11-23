@@ -90,5 +90,21 @@ def LrAtO (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) (name :
     CompleteAtO fs cert κ name Lin [P, BD, HS, M, gen ^ (q / resBatch), gen ^ (q % resBatch)]
       (Returns [(lrRet q cols nhs hbits D hsv p M).1, (lrRet q cols nhs hbits D hsv p M).2]) Bd
 
+/-- `LrAtO` at one query count `q`. -/
+def LrAtOq (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) (name : String)
+    (cols nhs hbits q : ℕ) (Bd : Option ℕ) : Prop :=
+  ∀ (Lin : Layout) (P BD HS M : E) (D p : ℕ → E) (hsv : List E), hsv.length = nhs →
+    RegPtrs [(0, q), (1, cols), (2, nhs)]
+      [P, BD, HS, M, gen ^ (q / resBatch), gen ^ (q % resBatch)] (RegionL Lin) →
+    (∀ rd, LowDef κ rd → MemL rd Lin →
+      (∀ i < q, LoadHolds rd P i (p i)) ∧ (∀ s < cols, LoadHolds rd BD s (D s)) ∧
+        ∀ c < nhs, LoadHolds rd HS c (hsv.getD c 0)) →
+    CompleteAtO fs cert κ name Lin [P, BD, HS, M, gen ^ (q / resBatch), gen ^ (q % resBatch)]
+      (Returns [(lrRet q cols nhs hbits D hsv p M).1, (lrRet q cols nhs hbits D hsv p M).2]) Bd
+
+theorem LrAtO.q {fs : String → ℕ} {cert : String → V → ℕ} {κ : ℕ} {name : String} {cols nhs hbits : ℕ}
+    {Bd : Option ℕ} (h : LrAtO fs cert κ name cols nhs hbits Bd) {q : ℕ} (h1 : resBatch ≤ q) (h2 : q ≤ 2 ^ 20) :
+    LrAtOq fs cert κ name cols nhs hbits q Bd := h q h1 h2
+
 end
 end LeanVM.Guest.B1.Arm

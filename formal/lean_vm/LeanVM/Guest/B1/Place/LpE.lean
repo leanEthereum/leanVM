@@ -49,7 +49,8 @@ theorem level_positions_completeAtE (fs : String → ℕ) (cert : String → V �
 theorem level_positions_completeAtBE (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ)
     (hfit : Lift.RunsFit fs cert) (hcons : RunsConsec cert) (hκ : 7 ≤ κ)
     (hfs : ∀ f, fs f < 2 ^ 32) :
-    ∀ e ∈ lpTable, ∀ S, 1 ≤ S → S ≤ 64 → ∀ B, TotalLe coreProgram fs e.1 (fun _ ↦ B) →
+    ∀ e ∈ lpTable, ∀ S, 1 ≤ S → S ≤ 64 → ∀ B,
+      TotalLeOn coreProgram fs e.1 (fun a ↦ a.getD 9 0 = ofK (addressOfIndex S)) (fun _ ↦ B) →
       LpAtOE fs cert κ e.1 e.2.1 S e.2.2.1 e.2.2.2 (some B) := by
   intro e he S hS hSB B hT
   obtain ⟨hlp, hl⟩ := lpTable_ok e he

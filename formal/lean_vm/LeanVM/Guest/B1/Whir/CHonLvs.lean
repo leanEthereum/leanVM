@@ -74,7 +74,12 @@ theorem lvMid_gen {h : OsHD} {xs : List E} {b : ℕ} {tabs cur : E} (hS : BodySt
     BlkA H σ st.k (osLevel h.c l ((h.c.levels.getD l default)) st).2.k (osLevel h.c l ((h.c.levels.getD l default)) st).1 (fun σ' ↦
       st.k ≤ (osLevel h.c l ((h.c.levels.getD l default)) st).2.k ∧
       QAt h b tabs cur xs (l + 1) (osLevel h.c l ((h.c.levels.getD l default)) st).2 σ' ∧
-      RAt h b tabs l (h.bat l) σ') := by
+      RAt h b tabs l (h.bat l) σ' ∧
+      cvOf (osLevel h.c l (h.c.levels.getD l default) st).1 σ' = cvMid l (h.c.levels.getD l default)
+        (h.capAt l) (h.claimAt l) (cur * gen ^ (xs.length - (h.xsAt l).length))
+        ((h.Ls.getD l default).midW (digestHalves (h.root l)).1 (digestHalves (h.root l)).2 (h.bat l)
+          (osPtrA h.c b (12 + l))) (σ' (.n osRate)) (osPtrA h.c b 7) (osPtrA h.c b 3) (osPtrA h.c b 6)
+        (osPtrA h.c b osIxQposA) (osPtrA h.c b osIxQbpA) tabs) := by
   obtain ⟨hnf, hfold, hcols, hcols1, hdepth, hqueries, hq0, hqu, hP1, hsq, hpwP, hpwQ, hpo, hsq1, hsqo,
     hS5, hr3, hf5, hood, hh8, hshape, hfo', hqsh, -⟩ := hmo
   have hmu : (h.Ls.getD l default).mu h.logN = ((h.c.levels.getD l default)).logCols := by

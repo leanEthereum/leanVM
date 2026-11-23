@@ -18,7 +18,7 @@ public import LeanVM.Guest.B1.Whir.CHonNamesAll
 `HonRun.bodyFacts`: the run's honest data (`hdOf`) has `BodyFacts` at the arm's arguments, the
 rate's selector `rateSel r` first, the configuration's facts decided (`*_all`), every other fact
 from the run (`Whir/CHonBodyRun0`, `CHonFinRun`, `CHonRes`). `HonRun.body_run`: the body on the
-run (`body_gen`).
+run (`body_gen`), its calls' values fixed before the memory (`Stmt.callVarsS` is `callVs`).
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -28,6 +28,10 @@ open LeanVM.Guest.Value LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protoc
 open LeanVM.Protocol.Verifier
 
 @[expose] public section
+
+theorem callVarsS_eq : Stmt.callVarsS = callVs := by
+  funext s
+  cases s <;> rfl
 
 namespace HonRun
 
@@ -72,21 +76,27 @@ theorem bodyFacts (cur tabs : E) :
     rw [List.getD_eq_getElem _ _ (by simpa using hr4)]
     simp only [List.getElem_map, List.getElem_range]
 
-/-- **The body on the run.** -/
-theorem body_run {cur tabs : E} (b : ℕ) (rd0 : Reader) (hl0 : LowDef 11 rd0) :
+/-- **The body on the run**, its calls' values fixed before the memory. -/
+theorem body_run {cur tabs : E} (b : ℕ) : ∃ CV : List (List E), ∀ (rd0 : Reader), LowDef 11 rd0 →
     ∃ (kEnd : ℕ) (f : ℕ → E), ∀ (C : CallRel) (rd : Reader),
       OsHA C rd (osCfgR (μ - minOpenLog) (r - 1)) b (hdOf μ r Ls).own cur tabs xs → LowAgree rd rd0 →
       BlkF C rd (Val.ofArgs (rateSel r :: capOf S ++ [target, (digestHalves root).1, (digestHalves root).2,
           cur, tabs]))
         11 kEnd f (osBodyA (osCfgR (μ - minOpenLog) (r - 1)))
-        (OsOutA (osCfgR (μ - minOpenLog) (r - 1)) b tabs
+        (fun σ' ↦ OsOutA (osCfgR (μ - minOpenLog) (r - 1)) b tabs
           ((hdOf μ r Ls).tr.2.1 + (hdOf μ r Ls).T.prod * recsDeficit (hdOf μ r Ls).recs (hdOf μ r Ls).G)
           (((hdOf μ r Ls).recs.flatMap recGlued).foldl
             (fun w g ↦ w + g.scalar * g.weightAt (((hdOf μ r Ls).G ++ (hdOf μ r Ls).T).drop g.foldStart)) 0)
           (multilinearEval ((hdOf μ r Ls).Lf.fw.fold.take (osCfgR (μ - minOpenLog) (r - 1)).yrLen)
             (hdOf μ r Ls).T)
-          (hdOf μ r Ls).own (hdOf μ r Ls).D) :=
-  body_gen (hR.bodyFacts cur tabs) rfl rfl b rd0 hl0
+          (hdOf μ r Ls).own (hdOf μ r Ls).D σ' ∧
+          ((osBodyA (osCfgR (μ - minOpenLog) (r - 1))).filterMap Stmt.callVarsS).map (·.map σ') = CV) := by
+  refine ⟨(hdOf μ r Ls).cvBody b tabs cur xs
+    (rateSel r :: capOf S ++ [target, (digestHalves root).1, (digestHalves root).2, cur, tabs]), fun rd0 hl0 ↦ ?_⟩
+  obtain ⟨kEnd, f, hf⟩ := body_gen (hR.bodyFacts cur tabs) rfl rfl b rd0 hl0
+  refine ⟨kEnd, f, fun C rd hH hag ↦ (hf C rd hH hag).mono fun σ' ⟨o, cv⟩ ↦ ⟨o, ?_⟩⟩
+  rw [callVarsS_eq]
+  exact cv
 
 end HonRun
 

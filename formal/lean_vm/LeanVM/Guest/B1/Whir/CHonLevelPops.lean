@@ -51,7 +51,8 @@ theorem sameStreams {l : ℕ} (hl : l < (osCfgR (μ - minOpenLog) (r - 1)).level
     rw [← hidx, List.length_map]
   rw [hQ, ← hplen] at hst
   rw [show oqQA (osCfgR (μ - minOpenLog) (r - 1)) l = (Ls.getD l default).phase.length by rw [hQ, hplen]]
-  refine lq_sameStreams (oqSA (osCfgR (μ - minOpenLog) (r - 1)) l) ?_ (by omega)
+  refine lq_sameStreams (oqSA (osCfgR (μ - minOpenLog) (r - 1)) l)
+    (cd := ((osCfgR (μ - minOpenLog) (r - 1)).levels.getD l default).capDepth) ?_ (by omega)
     (by rw [← hR.capDepth_hints hl, hpdq]) (fun k hk => ?_) (fun o ho => ?_) (fun o ho => ?_) (hR.capHints hl)
   · rw [oqSA, oq_base, hbase]
     by_cases h : l = 0 <;> simp [h]

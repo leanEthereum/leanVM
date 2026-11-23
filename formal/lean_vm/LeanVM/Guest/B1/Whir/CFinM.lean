@@ -16,7 +16,7 @@ public import LeanVM.Guest.B1.Whir.CFinRes
 `level_scale`, `level_after`; `finIch0_complete`: `inner_chain` started at `0` and the claim;
 `finRet_complete`: the returns' loads and copies. `osFinishA_complete`: the finish's blocks in
 sequence; `osFinishA_completeR` with its returns, `osFinishA_completeC` with its dispatches into
-`level_residual` too (`FinCallV`).
+`level_residual` too (`FinCallV`) and its calls' values (`finCV`).
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -299,6 +299,36 @@ def finSlowCalls (c : OsCfg) (st : OsSt) (tch : ℕ) : List (List V × List V) :
   osSlowCallsL c st.rts tch (bs.2 + 1) (pts.2 + 1) (pts.2 + 3) (pts.2 + 5) 0 (c.levels.take c.yrLevel) st.mats
     (bs.2 + 3)
 
+theorem osPtBlks_calls (c : OsCfg) (pt pt1 tch : ℕ) :
+    ∀ n i k, (osPtBlks c pt pt1 tch i n k).1.filterMap callVs = []
+  | 0, _, _ => rfl
+  | n + 1, i, k => by
+    simp only [osPtBlks, calls_append, osPtBlks_calls c pt pt1 tch n, List.append_nil]
+    unfold osPtBlk; split <;> rfl
+
+theorem osOodFacs_calls (sc : ℕ) : ∀ cs k, (osOodFacs sc cs k).1.filterMap callVs = []
+  | [], _ => rfl
+  | (zo, src) :: rest, k => by
+    simp only [osOodFacs, calls_append, osOodFacs_calls (k + 5) rest]
+    rfl
+
+theorem osOodWeights_calls (c : OsCfg) (tch : ℕ) :
+    ∀ prevCols ol lvs acc k, (osOodWeights c tch prevCols ol lvs acc k).1.filterMap callVs = []
+  | _, _, [], _, _ => rfl
+  | prevCols, ol, lv :: rest, acc, k => by
+    cases acc <;> simp only [osOodWeights, osOodWeight, osAcc, calls_append, List.filterMap_cons, osOodFacs_calls,
+      osOodWeights_calls c tch lv.logCols (ol + 1) rest] <;> rfl
+
+/-- **The finish's calls' values**: `fold_final_msg` at `final_msg` (`fm`) and `tail_challenges` (`tc`),
+the basis rows' (`basesCV`) and the residuals' (`resCV`), at the rate's selector `x`, `query_positions`,
+`level_hs`, `fold_challenges` and `basis_d` (`BD`). -/
+def finCV (c : OsCfg) (G T : List E) (recs : List OsRec) (li : ℕ → E) (fm tc x qp hs fch Y BD : E) :
+    List (List E) :=
+  [fm, tc, Y] :: basesCV c (finX G T recs) (c.levels.take c.yrLevel) 0 ++
+    resCV x qp BD hs fch tc li (fun i ↦ (finLaC c G T recs).getD i 0) (fun i ↦ (finRes c G T recs li i).1)
+      (fun i ↦ (finRes c G T recs li i).2) (fun i ↦ (recs.getD i default).lam) (finSlow c G T recs)
+      (c.levels.take c.yrLevel) 0
+
 /-- The values the finish's dispatches into `level_residual` take and return under `σ'`. -/
 def FinCallV (c : OsCfg) (st : OsSt) (tch : ℕ) (σ σ' : Val) (G T : List E) (recs : List OsRec) (li : ℕ → E)
     (BD : E) : Prop :=
@@ -329,7 +359,9 @@ theorem osFinishA_completeC {c : OsCfg} {st : OsSt} {tch : ℕ} {σ : Val} {G T 
       (fun σ' ↦ (AllocsAt σ' (osFinishA c st tch).1 = finAllocs c PT PT1 BD LS LA ICH ∧
         (osFinishA c st tch).2.map σ' = [σ (.n st.claim) + T.prod * recsDeficit recs G, PT, PT1,
           (recs.flatMap recGlued).foldl (fun w g ↦ w + g.scalar * g.weightAt ((G ++ T).drop g.foldStart)) 0,
-          Y]) ∧ FinCallV c st tch σ σ' G T recs li BD) := by
+          Y]) ∧ FinCallV c st tch σ σ' G T recs li BD ∧
+        cvOf (osFinishA c st tch).1 σ' = finCV c G T recs li (σ (.n osFmsg)) (σ (.n tch)) (σ (.n osRate))
+          (σ (.n osQpos)) (σ (.n osHs)) (σ (.n osFch)) Y BD) := by
   set n := c.levels.length with hn
   set y := c.yrLevel with hy
   set mid := c.levels.take y with hmid
@@ -422,7 +454,7 @@ theorem osFinishA_completeC {c : OsCfg} {st : OsSt} {tch : ℕ} {σ : Val} {G T 
         · have := readsAt_getD' hM.ich (j := 1) (by rw [hl]; omega)
           rwa [g1] at this
   have s5 := BlkA.seq (H := H) (show k0 ≤ B + 3 by omega) w3 s4
-    (B := rs.1) (OutB := fun σ' ↦ AllocsAt σ' rs.1 = [] ∧ ∀ i < mid.length,
+    (B := rs.1) (OutB := fun σ' ↦ AllocsAt σ' rs.1 = [] ∧ (∀ i < mid.length,
       ((osResCallsL c st.rts tch (B + 1) (P2 + 1) (P2 + 3) (P2 + 5) 0 mid st.mats (B + 3)).getD i ([], [])).1.map σ' =
         [σ (.n osQpos) * gen ^ (mid.getD i default).posOff, BD * gen ^ ((0 + i) * ligColsCap),
           σ (.n osHs) * gen ^ ((0 + i) * hsStride), li (0 + i), gen ^ ((mid.getD i default).queries / resBatch),
@@ -434,7 +466,11 @@ theorem osFinishA_completeC {c : OsCfg} {st : OsSt} {tch : ℕ} {σ : Val} {G T 
           σ (.n osFch) * gen ^ (mid.getD i default).resFoldOff, σ (.n tch),
           (recs.getD (0 + i) default).lam, finZ c G T recs (0 + i)] ∧
       ((osSlowCallsL c st.rts tch (B + 1) (P2 + 1) (P2 + 3) (P2 + 5) 0 mid st.mats (B + 3)).getD i ([], [])).2.map σ' =
-        [finSlow c G T recs (0 + i)]) fun σ5 ha5 hO5 ↦
+        [finSlow c G T recs (0 + i)]) ∧
+      cvOf rs.1 σ' = resCV (σ (.n osRate)) (σ (.n osQpos)) BD (σ (.n osHs)) (σ (.n osFch)) (σ (.n tch)) li
+        (fun i ↦ (finLaC c G T recs).getD i 0) (fun i ↦ (finRes c G T recs li i).1)
+        (fun i ↦ (finRes c G T recs li i).2) (fun i ↦ (recs.getD i default).lam) (finSlow c G T recs) mid 0)
+      fun σ5 ha5 hO5 ↦
     BlkA.of_ne (H := H) fun ⟨C0, rd0, hH0⟩ ↦ by
     obtain ⟨⟨⟨⟨-, -⟩, e1, -, -, -⟩, -⟩, -, -⟩ := hO5 C0 rd0 hH0
     have q5 : σ5 (.n osQpos) = σ (.n osQpos) := ha5 osQpos (by show 36 < k0; omega)
@@ -511,11 +547,12 @@ theorem osFinishA_completeC {c : OsCfg} {st : OsSt} {tch : ℕ} {σ : Val} {G T 
           rw [(finLaC_get (G := G) (T := T) (recs := recs) hi' (by omega)).2]; rfl
         rw [Nat.zero_add, take_getD hi', q5, f5, t5, hz]
         exact (hm C rd hH).slow i hi')
+    have r5 : σ5 (.n osRate) = σ (.n osRate) := ha5 _ (by show 0 < k0; omega)
     refine h.mono fun σ' hv ↦ ⟨by
       show AllocsAt σ' (osResiduals c st.rts tch (B + 1) (P2 + 1) (P2 + 3) (P2 + 5) 0 mid st.mats (B + 3)).1 = []
-      simp only [AllocsAt, osResiduals_allocs, List.map_nil], fun i hi ↦ ?_⟩
+      simp only [AllocsAt, osResiduals_allocs, List.map_nil], fun i hi ↦ ?_, by rw [hv.2, r5, q5, e1, h5, f5, t5]⟩
     have hi' : i < y := by rw [← hmidl]; exact hi
-    obtain ⟨v1, v2, v3, v4⟩ := hv i hi
+    obtain ⟨v1, v2, v3, v4⟩ := hv.1 i hi
     have hz : zeroOf ((finLaC c G T recs).getD (0 + i) 0) = finZ c G T recs (0 + i) := by
       rw [Nat.zero_add, (finLaC_get (G := G) (T := T) (recs := recs) hi' (by omega)).2]; rfl
     simp only [resArgsV] at v1
@@ -557,7 +594,7 @@ theorem osFinishA_completeC {c : OsCfg} {st : OsSt} {tch : ℕ} {σ : Val} {G T 
     rfl
   have hend : finEnd c st tch = K + 6 := rfl
   rw [hend, e]
-  refine s7.monoH fun C rd hH σ' ha hσ' ↦ ⟨⟨?_, ?_⟩, ?_⟩
+  refine s7.monoH fun C rd hH σ' ha hσ' ↦ ⟨⟨?_, ?_⟩, ?_, ?_⟩
   · obtain ⟨⟨⟨⟨⟨⟨⟨⟨-, -, -, a0⟩, -⟩, ⟨-, -, -, a2⟩⟩, -⟩, ⟨-, a4⟩⟩, a5, -⟩, ⟨a6, -⟩⟩, -⟩ := hσ'
     have p1 : AllocsAt σ' pts.1 = [] := osPtBlks_allocs σ' c _ _ tch pointCap 0 _
     have p3 : AllocsAt σ' bs.1 = [] := osBases_allocs σ' c tch _ _ _ 0 mid _
@@ -685,11 +722,26 @@ theorem osFinishA_completeC {c : OsCfg} {st : OsSt} {tch : ℕ} {σ : Val} {G T 
       rw [← Finset.sum_add_distrib]
       refine Finset.sum_congr rfl fun i hi ↦ ?_
       exact (hterms i (Finset.mem_range.mp hi)).1
-  · obtain ⟨⟨⟨⟨⟨⟨-, eBD, -⟩, -⟩, -⟩, -, hcalls⟩, -⟩, -⟩ := hσ'
+  · obtain ⟨⟨⟨⟨⟨⟨-, eBD, -⟩, -⟩, -⟩, -, hcalls, -⟩, -⟩, -⟩ := hσ'
     refine ⟨eBD, fun l hl ↦ ?_⟩
     have := hcalls l (by omega)
     rw [Nat.zero_add, take_getD (by omega)] at this
     exact this
+  · obtain ⟨⟨⟨⟨⟨⟨⟨⟨y0, -⟩, -⟩, -⟩, cvB⟩, -⟩, ⟨-, -, cvR⟩⟩, -⟩, -⟩ := hσ'
+    have cp : pts.1.filterMap callVs = [] := osPtBlks_calls _ _ _ _ _ _ _
+    have cb : (osHeap (n * ligColsCap) P2 ++ osHeap n (P2 + 2) ++ osHeap n (P2 + 4)).filterMap callVs = [] := rfl
+    have cb2 : (osHeap (2 * n) B ++ [osCst (B + 2) (word 0 0), osLd (B + 2) (B + 1) 0,
+        osLd st.claim (B + 1) 1]).filterMap callVs = [] := rfl
+    have co : od.1.filterMap callVs = [] := osOodWeights_calls _ _ _ _ _ _ _
+    have cr : [osLd K (B + 1) (2 * y + 1), osCp (K + 1) (k0 + 1), osCp (K + 2) (k0 + 1 + 1),
+        osLd (K + 3) (B + 1) (2 * y), osAdd (K + 4) (K + 3) (od.2.1.getD 0), osCp (K + 5) k0].filterMap callVs = [] :=
+      rfl
+    simp only [cvOf_append, cvOf_of_calls cp, cvOf_of_calls cb, cvOf_of_calls cb2, cvOf_of_calls co,
+      cvOf_of_calls cr, cvR, List.map_nil, List.append_nil]
+    rw [cvOf_of_calls (vs := [[.n osFmsg, .n tch, .n k0]]) rfl]
+    simp only [List.map_cons, List.map_nil, y0, ha _ (show osFmsg < k0 by show 12 < k0; omega), ha _ htch]
+    simp only [finCV, List.cons_append, List.nil_append]
+    exact congrArg (fun x ↦ _ :: (x ++ _)) cvB
 
 /-- **The finish before its return, honestly, and what it returns.** -/
 theorem osFinishA_completeR {c : OsCfg} {st : OsSt} {tch : ℕ} {σ : Val} {G T : List E}
