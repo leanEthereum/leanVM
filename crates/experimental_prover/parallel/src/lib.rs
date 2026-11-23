@@ -2,7 +2,7 @@
 //! Workers claim ranges from one shared counter, which also balances heterogeneous cores.
 //! Dispatches cannot nest: a dispatch from a pool task panics, and one from a thread a task spawned deadlocks.
 //! A dispatch waits only for the workers that joined it before the dispatcher ran out of items, so a worker that has not joined by then, asleep or descheduled, never delays it.
-//! Task panics are resumed on the dispatcher after those workers stop.
+//! The first task panic is resumed on the dispatcher after those workers stop; a later one's payload is leaked.
 
 use std::any::Any;
 use std::cell::{Cell, UnsafeCell};
@@ -54,7 +54,7 @@ thread_local! {
 /// A type-erased work unit.
 ///
 /// The closure's lifetime is erased to `'static`.
-/// Only a worker that joined the open dispatch dereferences it, and the dispatcher waits for every such worker before returning, so the borrow outlives every call.
+/// Only a worker that joined the open dispatch dereferences it, and the dispatcher waits for every such worker before it returns or unwinds ([`AwaitWorkers`]), so the borrow outlives every call.
 /// Range-based (`f(start, end)`) so a reduction looks up its per-worker accumulator once per claim, not per item.
 struct Job {
     f: NonNull<dyn Fn(usize, usize) + Sync>,
@@ -113,9 +113,9 @@ const CLOSED: usize = 1 << (usize::BITS - 1);
 
 // SAFETY: `job` is written only by the sole dispatcher, before it opens `entry` with a Release store,
 // and read only by a worker whose Acquire join on `entry` succeeded, so the write happens before every
-// read. A worker joins only while `entry` is open, and the dispatcher closes it and then waits, with
-// Acquire, for the Release exit of every worker the close counted, so every read of `job`, and every
-// call through the erased pointer it holds, happens before the dispatcher returns, overwrites `job`
+// read. A worker joins only while `entry` is open, and before the dispatcher returns or unwinds, `AwaitWorkers`
+// closes it and then waits, with Acquire, for the Release exit of every worker the close counted, so every read of
+// `job`, and every call through the erased pointer it holds, happens before the dispatcher returns, overwrites `job`
 // or drops the borrow.
 unsafe impl Sync for Pool {}
 unsafe impl Send for Pool {}
@@ -255,7 +255,29 @@ fn drain(pool: &Pool) {
         }
     }));
     if let Err(payload) = result {
-        pool.panic.lock().unwrap().get_or_insert(payload); // keep the first
+        let mut first = pool.panic.lock().unwrap();
+        if first.is_none() {
+            *first = Some(payload);
+        } else {
+            // Leak rather than drop it: its `Drop` may panic, here outside `catch_unwind` and under the lock.
+            std::mem::forget(payload);
+        }
+    }
+}
+
+/// Created once a dispatch is open, closes it and waits for every worker that joined when dropped, unwinding
+/// included, so the dispatcher never leaves while a worker can still call the erased closure.
+struct AwaitWorkers(&'static Pool);
+
+impl Drop for AwaitWorkers {
+    fn drop(&mut self) {
+        let pool = self.0;
+        // Every item is claimed, so wait only for the workers that joined: one still asleep or descheduled is refused when it arrives.
+        // The read-modify-write fixes the joined count.
+        let joined = pool.entry.fetch_or(CLOSED, Ordering::Relaxed) & !CLOSED;
+        while pool.exited.load(Ordering::Acquire) != joined {
+            std::hint::spin_loop();
+        }
     }
 }
 
@@ -302,8 +324,8 @@ pub fn for_each_chunk<F: Fn(usize, usize) + Sync>(n_tasks: usize, f: F) {
     let pool = pool();
     let guard = pool.dispatch.lock().unwrap();
 
-    // SAFETY: erase the borrow to `'static` so it fits in `Job`. The dispatcher
-    // waits for every joined worker before returning, so `f` outlives every dereference.
+    // SAFETY: erase the borrow to `'static` so it fits in `Job`. `AwaitWorkers` waits for every joined
+    // worker before the dispatcher returns or unwinds, so `f` outlives every dereference.
     // `transmute` rather than a `*const dyn` cast is required: a bare cast would
     // default the trait object's lifetime to `'static` and force `F: 'static`
     // (E0310); the transmute reinterprets the same fat pointer without that bound.
@@ -317,6 +339,7 @@ pub fn for_each_chunk<F: Fn(usize, usize) + Sync>(n_tasks: usize, f: F) {
     pool.exited.store(0, Ordering::Relaxed);
     // Open the dispatch: Release publishes the three writes above to every worker that joins.
     pool.entry.store(0, Ordering::Release);
+    let workers = AwaitWorkers(pool);
     pool.generation.fetch_add(1, Ordering::SeqCst); // wake; SeqCst guards the park protocol
 
     // Wake only the parked workers; the spinning ones see the bump for free.
@@ -329,12 +352,7 @@ pub fn for_each_chunk<F: Fn(usize, usize) + Sync>(n_tasks: usize, f: F) {
     }
 
     drain(pool); // the dispatcher runs as worker 0
-    // Every item is claimed, so wait only for the workers that joined: one still asleep or descheduled is refused when it arrives.
-    // The read-modify-write fixes the joined count.
-    let joined = pool.entry.fetch_or(CLOSED, Ordering::Relaxed) & !CLOSED;
-    while pool.exited.load(Ordering::Acquire) != joined {
-        std::hint::spin_loop();
-    }
+    drop(workers);
 
     // Re-raise the first task panic after dropping the guard, so the lock
     // releases cleanly (no poison) and the pool stays usable.
