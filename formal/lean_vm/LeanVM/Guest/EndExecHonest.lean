@@ -2,8 +2,7 @@
   LeanVM.Guest.EndExecHonest
 
   The executor's completeness on the guest for children the verifier accepts, unless a child's
-  proof exhibits a Keccak-256 collision, and for children carrying honest proofs, given
-  `ExecGaps`.
+  proof exhibits a Keccak-256 collision, given `ExecGaps`.
 -/
 
 module
@@ -15,15 +14,14 @@ public import LeanVM.Guest.Child.Collision
 @[expose] public section
 
 /-!
-# The executor on accepted and on honest children
+# The executor on accepted children
 
 `honestExecution_complete_of_childrenOk`, given `ExecGaps`: a node within the deployed limits whose
 children the guest program accepts (`ChildrenOk`) is within the budget (`budget_of_limits`), so the
 executor runs the guest to completion on its advice (`execute_guest_complete`).
 `honestExecution_complete_on_accepted_children : AdviceComplete honestAdvice`: a node `NodeRelation`
 admits under the deployed seed has acceptable children, or a child's proof exhibits a Keccak-256
-collision (`Child.acceptableChildren_or_collide`). Its children carrying honest proofs are
-acceptable too (`acceptableChildren_of_honest`): `honestExecution_ok_on_honest_children`.
+collision (`Child.acceptableChildren_or_collide`).
 -/
 
 namespace LeanVM.Guest.EndExec
@@ -55,20 +53,6 @@ theorem honestExecution_complete_on_accepted_children (G : ExecGaps Ks Km E0 X P
     AdviceComplete honestAdvice := fun statement witness hrel hlim ↦
   (Child.acceptableChildren_or_collide End.bytecode_length hrel).imp_left
     (honestExecution_complete_of_childrenOk G statement witness hrel hlim)
-
-/-- **`honestExecution` on honest children**: `honestExecution_complete_of_childrenOk` with
-`honestExecution`, honest children being acceptable. -/
-theorem honestExecution_ok_on_honest_children (G : ExecGaps Ks Km E0 X Pro) (statement : NodeStatement)
-    (witness : NodeWitness)
-    (hrel : NodeRelation (bytecodeWords guestProgram) (deployedSeed guestProgram) statement witness)
-    (hlim : DeployedLimits statement witness) (hon : ∀ child ∈ witness.children, HonestChild child) :
-    ∃ t, honestExecution (deployedSeed guestProgram) statement witness = .ok t ∧
-      ValidExecution guestProgram
-        (PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) statement)) t ∧
-      t.committedSize ≤ 2 ^ 30 :=
-  let ⟨t, he, hv, hsz⟩ := honestExecution_complete_of_childrenOk G statement witness hrel hlim
-    (acceptableChildren_of_honest hrel hon)
-  ⟨t, honestExecution_of_execute he, hv, hsz⟩
 
 end LeanVM.Guest.EndExec
 

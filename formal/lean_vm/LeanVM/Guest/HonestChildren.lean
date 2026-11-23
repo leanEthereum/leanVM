@@ -1,7 +1,8 @@
 /-
   LeanVM.Guest.HonestChildren
 
-  Children carrying honest proofs are children the guest program accepts.
+  Children carrying honest proofs are children the guest program accepts, and a child the deployed
+  verifier accepts has a true fresh claim.
 -/
 
 module
@@ -18,12 +19,13 @@ public import LeanVM.Protocol.Verifier.Defers
 A child carrying an honest proof (`HonestChild`) is one the guest program accepts
 (`AcceptableChild`) under the deployed seed: `NodeRelation`'s `ChildrenProven` gives its deferred
 claim's shape and the deferring verifier's acceptance with its fresh claim, and
-`guest_child_complete` the rest (`acceptableChildren_of_honest`). `EndExecHonest.lean` uses it to
+`guest_child_complete` the rest (`acceptableChildren_of_honest`). `EndExecFinal.lean` uses it to
 run the guest program on honest children.
 
 A child whose proof the deployed verifier accepts has a true fresh claim
 (`freshClaim_holds_of_leanVmVerifier`): the deferring verifier accepts the proof with exactly one
-claim, a true one (`verifyDeferred_of_leanVmVerifier`), and `ChildrenProven` with the fresh claim.
+claim, a true one (`verifyDeferred_of_leanVmVerifier`), and on a node `NodeRelation` admits under
+the deployed seed, `ChildrenProven` has it accept the proof with the fresh claim.
 -/
 
 namespace LeanVM.Guest.Completeness

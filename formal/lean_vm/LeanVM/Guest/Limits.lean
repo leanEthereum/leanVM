@@ -18,7 +18,7 @@ public import LeanVM.Guest.AcceptableChild
 # The limits of the guest's completeness
 
 `NodeRelation bytecode seed s w` (`Statement/LeanVmGuest.lean`) admits witnesses on which the
-deployed guest (`guests/lean_ethereum.py` at leanVM main `40f877dc`) does not run to completion.
+deployed guest (`guests/lean_ethereum.py`) does not run to completion.
 Completeness assumes two hypotheses beside `NodeRelation`, each a precise predicate on the witness:
 
 * **`DeployedLimits s w`, the deployed limits** of the node, which the Spec does not have (listed at
@@ -80,8 +80,6 @@ theorem GuestLimits.childClaimListsBelow2Pow23 {statement : NodeStatement} {witn
 /-- **Every child is one the guest accepts.** -/
 abbrev ChildrenOk (bytecode : List K) (seed : Digest) (w : NodeWitness) : Prop :=
   ∀ c ∈ w.children, AcceptableChild bytecode seed c
-
-/-! ## What `NodeRelation` gives of the children's fresh claims -/
 
 end
 end LeanVM.Guest
