@@ -606,7 +606,7 @@ def osAfterRow : List (ℕ × ℕ) → Option ℕ → ℕ → List Stmt × Optio
     (osLd k src.1 src.2 :: osMul (k + 1) p k :: t.1, t.2)
 
 /-- One coordinate of a level's basis row: the challenge at `src`, its coefficient
-`b = c·inv` (`c` itself when `inv = 1`), `d = (1 + c)/(b·nz + z)` stored at `basis_d[slot]`
+`b = c·inv` (`c` itself when `inv = 1`), `d = (1 + c)·(1/(b·nz + z))` stored at `basis_d[slot]`
 (`z` the level's zero flag, `nz = 1 + z`), the scale times `b`; from `k`. The statements, the new
 scale and the next free value. -/
 def osBasisBlk (bd slot : ℕ) (src : ℕ × ℕ) (inv sc z nz : ℕ) (k : ℕ) : List Stmt × ℕ × ℕ :=
@@ -614,9 +614,10 @@ def osBasisBlk (bd slot : ℕ) (src : ℕ × ℕ) (inv sc z nz : ℕ) (k : ℕ) 
     if inv = 1 then ([], k, k + 1) else ([osCst (k + 1) (word inv 0), osMul (k + 2) k (k + 1)], k + 2, k + 3)
   let j := b.2.2
   (osLd k src.1 src.2 :: b.1 ++
-      [osCst j (word 1 0), osAdd (j + 1) j k, osMul (j + 2) b.2.1 nz, osAdd (j + 3) (j + 2) z,
-        osMul (j + 1) (j + 4) (j + 3), osLd (j + 4) bd slot, osMul (j + 5) sc b.2.1],
-    j + 5, j + 6)
+      [osCst j (word 1 0), osAdd (j + 1) j k, osCst (j + 2) (word 1 0), osMul (j + 3) b.2.1 nz,
+        osAdd (j + 4) (j + 3) z, osMul (j + 2) (j + 5) (j + 4), osMul (j + 6) (j + 1) (j + 5),
+        osLd (j + 6) bd slot, osMul (j + 7) sc b.2.1],
+    j + 7, j + 8)
 
 /-- A level's basis coordinates `(slot, source, inverse)`: the fold challenges after its folds,
 then the tail challenges. -/

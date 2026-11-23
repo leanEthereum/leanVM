@@ -1806,12 +1806,12 @@ def open_stacked(m_idx: Const, rate_sel, fs0, fs1, fs2, fs3, fs4, target, commit
         for t in unroll(0, prefix_len):
             fold_c = fold_challenges[GEN ** (LIG_RESIDUAL_FOLD_OFF[ml] + t)]
             coef_b = fold_c * VANISH_INVS_BY_COLS[vanish + t]
-            basis_d[GEN ** (lvl * LIG_LOG_MSG_COLS_CAP + t)] = (1 + fold_c) / (coef_b * nonzero + zero)
+            basis_d[GEN ** (lvl * LIG_LOG_MSG_COLS_CAP + t)] = (1 + fold_c) * (1 / (coef_b * nonzero + zero))
             scale *= coef_b
         for j in unroll(0, yr_log):
             tail_c = tail_challenges[GEN ** j]
             coef_b = tail_c * VANISH_INVS_BY_COLS[vanish + prefix_len + j]
-            basis_d[GEN ** (lvl * LIG_LOG_MSG_COLS_CAP + prefix_len + j)] = (1 + tail_c) / (coef_b * nonzero + zero)
+            basis_d[GEN ** (lvl * LIG_LOG_MSG_COLS_CAP + prefix_len + j)] = (1 + tail_c) * (1 / (coef_b * nonzero + zero))
             scale *= coef_b
         level_scale[GEN ** lvl] = scale
         level_after[GEN ** lvl] = after
