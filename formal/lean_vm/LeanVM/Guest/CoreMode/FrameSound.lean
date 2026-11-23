@@ -325,14 +325,6 @@ theorem jumpKind_call_cell {F : Exec.Facts} {entry len i : ℕ} {st : Exec.St} {
 theorem rd_shift (fp e o : ℕ) : Rd img (fp + e) o = Rd img fp (e + o) := by
   simp only [Rd, addressOfIndex, pow_add, mul_assoc]
 
-theorem names_gpow {p : E} {o x n : ℕ} (hn : p.limb 0 = g ^ n) (hx : Names (p * ofK (g ^ o)) x)
-    (hb : n + o < 2 ^ 63) : x = n + o := by
-  have h1 := hx.1
-  rw [Mode.limb_mul_ofK, hn, ← pow_add] at h1
-  have := hx.2
-  unfold maxCells at this
-  exact gpow_inj (by omega) hb h1.symm
-
 theorem written_lt {M : ℕ → E} {s : St} (hs : Fine M s) {x : ℕ} (h : s.mem.written x = true) :
     x < maxCells := by
   obtain ⟨v, hv⟩ := Mem.get_of_written h
@@ -597,19 +589,24 @@ theorem exit_out (hκ : κ ≤ 28) {Fn : FFun} {code : List OffsetInstruction} {
         simp only [Bool.and_eq_true] at hsf
         obtain ⟨hw, hc⟩ := hsf
         refine ⟨by rw [hfp', Nat.add_assoc]; exact written_mono hle (hA.2.w _ (has_iff.mp hw)), ?_⟩
-        rcases hct : A.cp.get (e + o) with _ | c
-        · rw [hct] at hc; cases hc
-        rw [hct] at hc
-        simp only at hc
-        rcases hce : A.st.env.get c with _ | (_ | e'' | e'')
-        all_goals rw [hce] at hc
-        all_goals simp only [Bool.false_eq_true] at hc
-        obtain rfl := beq_iff_eq.mp hc
-        obtain ⟨v, h1, h2⟩ := hA.1.cp _ c hct
-        have h3 := hA.1.st.1 c _ hce
-        replace h3 : Rd img s1.fp c = _ := h3
-        rw [hfp', rd_shift, h1, ← h2, h3]
-        simp [Exec.Sym.val, addressOfIndex, pow_add]
+        have hfpgAt : ∀ t, fpgAt A e t = true → Rd img s1.fp t = some (ofK (g ^ s1.fp * addressOfIndex e)) := by
+          intro t ht
+          unfold fpgAt at ht
+          rcases hce : A.st.env.get t with _ | (_ | e'' | e'')
+          all_goals rw [hce] at ht
+          all_goals simp only [Bool.false_eq_true] at ht
+          obtain rfl := beq_iff_eq.mp ht
+          exact hA.1.st.1 t _ hce
+        have hval : Rd img s1.fp (e + o) = some (ofK (g ^ s1.fp * addressOfIndex e)) := by
+          rcases Bool.or_eq_true _ _ |>.mp hc with hc | hc
+          · exact hfpgAt _ hc
+          rcases hct : A.cp.get (e + o) with _ | c
+          · rw [hct] at hc; cases hc
+          rw [hct] at hc
+          obtain ⟨v, h1, h2⟩ := hA.1.cp _ c hct
+          rw [h1, ← h2, hfpgAt c hc]
+        rw [hfp', rd_shift, hval]
+        simp [addressOfIndex, pow_add]
       · have := hcp e 0 h0 le_rfl
         rwa [Nat.sub_self] at this
       · have := hcp (e + 1) 1 h1 (by omega)
@@ -705,7 +702,11 @@ theorem frame_step {prog : LeanIsaProgram} (hκ : κ ≤ 28) {C : Ctx} {Inv : St
     refine ⟨hmo, fun s' e' hf' hle' ↦ ?_⟩
     have e'' := e'
     obtain ⟨hw', hfp', hpc', hle3⟩ := stepF_wr hg1 hm.fine.fp (by rw [hpc1]; exact hszC) hA2.2
-      (fun ho ↦ hO ho s1 e1 hm) h3 e'
+      (fun ho ↦ hO ho s1 e1 hm) h3 (fun a o c mode e p hci he hp ↦ by
+        have ha : a < 2 ^ 28 := by have := hsmall i hi; rw [hci] at this; exact this.1
+        have hr := hA2.1.st.1 a _ he
+        rw [rd_get hκ hm.fine ha hr hp]
+        simp [Exec.Sym.val, addressOfIndex, pow_add]) e'
     have hstw : StoreW Fn code i s' := by
       intro a o c' hci hS
       rw [List.getElem?_eq_getElem hi, Option.some.injEq] at hci

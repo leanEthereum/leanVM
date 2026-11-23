@@ -372,7 +372,7 @@ theorem cwArms_u {J : ℕ} {succ : List ℕ} {v : V} {se : CW} {key : Option (Li
     {c' : Cnt} {u' : ℕ}, cwArms X J succ v se key as ts c u i = some (c', u') →
     (∀ x, u.testBit x = true → u'.testBit x = true) ∧
     ∀ k (hk : k < as.length) (hk' : k < ts.length) s ck uk, segAtC X ts[k] se = some s →
-      armEnd J succ (cw X as[k] { s with book := (fileB X.loc X.fs as[k] se.book), tg := (armTg X v (i + k) ++ s.tg) })
+      armEnd J succ (cw X as[k] { s with book := (fileB X.loc X.fs X.nx as[k] se.book), tg := (armTg X v (i + k) ++ s.tg) })
         = some (ck, uk) →
       ∀ x, uk.testBit x = true → u'.testBit x = true
   | [], [], c, u, _, c', u', h => by
@@ -471,22 +471,22 @@ theorem u_armsG {v : V} {a0 : List Stmt} {as : List (List Stmt)} {ss : List Stmt
     (ih : ∀ st, UGood X j σ ss st) (hl : ts.length = as.length)
     (hs0 : segAtC X t0 (armSt (armKeyD X.acs v.idx) se) = some s0)
     (hr : (∃ J c0 u0 c u sj,
-        cw X a0 { s0 with book := fileB X.loc X.fs a0 se.book, tg := armTg X v 0 ++ s0.tg } = .join J c0 u0 ∧
+        cw X a0 { s0 with book := fileB X.loc X.fs X.nx a0 se.book, tg := armTg X v 0 ++ s0.tg } = .join J c0 u0 ∧
         armChkK (armKeyD X.acs v.idx) 0 c0 = true ∧
         cwArms X J [] v (armSt (armKeyD X.acs v.idx) se) (armKeyD X.acs v.idx) as ts c0 u0 1 = some (c, u) ∧
         segAtC X J se = some sj ∧
         r = cw X ss { sj with cnt := armCnt (armKeyD X.acs v.idx) se c, uq := u }) ∨
        (∃ o' succ c0 u0 c u,
-        cw X a0 { s0 with book := fileB X.loc X.fs a0 se.book, tg := armTg X v 0 ++ s0.tg } = .chain o' succ c0 u0 ∧
+        cw X a0 { s0 with book := fileB X.loc X.fs X.nx a0 se.book, tg := armTg X v 0 ++ s0.tg } = .chain o' succ c0 u0 ∧
         armChkK (armKeyD X.acs v.idx) 0 c0 = true ∧ ss = [] ∧ succ ≠ [] ∧
         cwArms X o' succ v (armSt (armKeyD X.acs v.idx) se) (armKeyD X.acs v.idx) as ts c0 u0 1 = some (c, u) ∧
         r = .chain o' succ (armCnt (armKeyD X.acs v.idx) se c) u))
     (hok : r.ok = true) : UOut j σ (.match_ v (a0 :: as) :: ss) r se.uq := by
   -- each arm's walk, from its segment, keeps the cells apart and ends within the arms' `u`
   have harm : ∀ (Jx : ℕ) (sx : List ℕ) (c0 : Cnt) (u0 : ℕ) (c : Cnt) (u : ℕ),
-      (sx = [] → cw X a0 { s0 with book := fileB X.loc X.fs a0 se.book, tg := armTg X v 0 ++ s0.tg } =
+      (sx = [] → cw X a0 { s0 with book := fileB X.loc X.fs X.nx a0 se.book, tg := armTg X v 0 ++ s0.tg } =
         .join Jx c0 u0) →
-      (sx ≠ [] → cw X a0 { s0 with book := fileB X.loc X.fs a0 se.book, tg := armTg X v 0 ++ s0.tg } =
+      (sx ≠ [] → cw X a0 { s0 with book := fileB X.loc X.fs X.nx a0 se.book, tg := armTg X v 0 ++ s0.tg } =
         .chain Jx sx c0 u0) →
       cwArms X Jx sx v (armSt (armKeyD X.acs v.idx) se) (armKeyD X.acs v.idx) as ts c0 u0 1 = some (c, u) →
       ∀ k (hk : k < (a0 :: as).length),
@@ -510,7 +510,7 @@ theorem u_armsG {v : V} {a0 : List Stmt} {as : List (List Stmt)} {ss : List Stmt
     have hu0' : s0.uq = se.uq := by obtain ⟨_, _, _, hs⟩ := segAtC_eq hs0; rw [hs, armSt_uq]
     cases k with
     | zero =>
-      have he0 : armEnd Jx sx (cw X a0 { s0 with book := fileB X.loc X.fs a0 se.book, tg := armTg X v 0 ++ s0.tg })
+      have he0 : armEnd Jx sx (cw X a0 { s0 with book := fileB X.loc X.fs X.nx a0 se.book, tg := armTg X v 0 ++ s0.tg })
           = some (c0, u0) := by
         by_cases hsx : sx = []
         · rw [h0j hsx, hsx]; simp [armEnd]

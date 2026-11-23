@@ -103,7 +103,7 @@ theorem kidsFromInP_of_kidsEP (κ : ℕ) (ns : Kid → ℕ) : ∀ (ks : List Kid
       match cs, hc with
       | [], _ => exact ⟨rfl, fun i hi => hi.elim id fun h => h.elim⟩⟩
   | k :: ks, p :: pss, hok, b => by
-    have hN : kidsN fs ns (k :: ks) = (if k.taken then ns k else fs k.f) + kidsN fs ns ks := by
+    have hN : kidsN fs ns (k :: ks) = (if k.taken then ns k else fs (tailKey k.f)) + kidsN fs ns ks := by
       simp [kidsN]
     by_cases ht : k.taken = true
     · obtain ⟨Lown, rets, Lout, hout, hw, hd, hrel⟩ := hok.1 ht b
@@ -135,7 +135,7 @@ theorem kidsFromInP_of_kidsEP (κ : ℕ) (ns : Kid → ℕ) : ∀ (ks : List Kid
               · exact Or.inl (Or.inr ⟨by rw [hct]; exact ht, hi⟩)
               · exact Or.inr hi
             · simpa [hct] using hR2
-    · obtain ⟨L, outs, ho, hW, hD, hI, hK⟩ := kidsFromInP_of_kidsEP κ ns ks pss hok.2.2 (b + fs k.f)
+    · obtain ⟨L, outs, ho, hW, hD, hI, hK⟩ := kidsFromInP_of_kidsEP κ ns ks pss hok.2.2 (b + fs (tailKey k.f))
       rw [hN]
       simp only [ht, Bool.false_eq_true, ↓reduceIte]
       refine ⟨L, ([], []) :: outs, ⟨fun h => absurd h ht, ho⟩,
@@ -145,7 +145,7 @@ theorem kidsFromInP_of_kidsEP (κ : ℕ) (ns : Kid → ℕ) : ∀ (ks : List Kid
       match cs, hc with
       | c :: cs, ⟨hf, hct, _, hc⟩ =>
         simp only [Kid.lins, List.flatMap_cons] at hLin
-        refine ⟨fs k.f, kidsN fs ns ks, fun _ => False, fun _ => False, rfl, fun _ h => h.elim, ?_, ?_⟩
+        refine ⟨fs (tailKey k.f), kidsN fs ns ks, fun _ => False, fun _ => False, rfl, fun _ h => h.elim, ?_, ?_⟩
         · rw [hct, ht']
           simp only [Bool.false_eq_true, ↓reduceIte]
           exact ⟨by rw [hf], hok.2.1 ht' rd⟩

@@ -374,10 +374,10 @@ noncomputable def tailOkW (pows : PowTree) (sigOf : String → HSig) (f : Fn) (H
 
 /-- **A loop helper's heap check from windows**: the head, consecutive windows from `(0, S₀)` to `(N, Sₙ)`
 over the body without its tail, and the tail. -/
-theorem heapOkC_of_wins {pows : PowTree} {sigOf : String → HSig} {f : Fn} {H : HCert} {ei : CIdx} {N : ℕ}
+theorem heapOkC1_of_wins {pows : PowTree} {sigOf : String → HSig} {f : Fn} {H : HCert} {ei : CIdx} {N : ℕ}
     {S0 Sn : CSt} {l : List (ℕ × CSt)} (hh : headOk pows sigOf f H ei N S0 = true)
     (hw : winsOk pows sigOf f H (loopBody f) ((0, S0) :: l)) (hl : lastW l (0, S0) = (N, Sn))
-    (ht : tailOkW pows sigOf f H ei Sn = true) : heapOkC pows sigOf f H = true := by
+    (ht : tailOkW pows sigOf f H ei Sn = true) : heapOkC1 pows sigOf f H = true := by
   simp only [headOk, Bool.and_eq_true, decide_eq_true_eq, withCx_eq] at hh
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hpar, hpov⟩, hto⟩, hterm⟩, hrm⟩, hpv⟩, hre⟩, hpq⟩, hpok⟩, hng2⟩, hfa⟩, hlt⟩, hN⟩, hinit⟩ := hh
   obtain ⟨hc, hnr, hng, -⟩ := winsOk_chain l 0 S0 hw
@@ -392,7 +392,7 @@ theorem heapOkC_of_wins {pows : PowTree} {sigOf : String → HSig} {f : Fn} {H :
     simp only [noGhostL, List.all_append, Bool.and_true, Bool.and_eq_true] at h1
     simp only [noGhost, List.all_append, Bool.and_eq_true]
     exact ⟨⟨h1.1, h1.2⟩, hpok⟩
-  unfold heapOkC
+  unfold heapOkC1
   simp only [Bool.and_eq_true]
   refine ⟨⟨⟨⟨⟨hpar, hpov⟩, hto⟩, hghost⟩, hfa⟩, ?_⟩
   simp only [Trie.seq_eq]
@@ -425,6 +425,13 @@ theorem heapOkC_of_wins {pows : PowTree} {sigOf : String → HSig} {f : Fn} {H :
     simp only [hrev, withCx_eq] at ht
     exact ht
   · intro hlt; cases hlt
+
+/-- `heapOkC1_of_wins` for a certificate with no split. -/
+theorem heapOkC_of_wins {pows : PowTree} {sigOf : String → HSig} {f : Fn} {H : HCert} {ei : CIdx} {N : ℕ}
+    {S0 Sn : CSt} {l : List (ℕ × CSt)} (hh : headOk pows sigOf f H ei N S0 = true)
+    (hw : winsOk pows sigOf f H (loopBody f) ((0, S0) :: l)) (hl : lastW l (0, S0) = (N, Sn))
+    (ht : tailOkW pows sigOf f H ei Sn = true) (ha : H.arms = [] := by rfl) : heapOkC pows sigOf f H = true :=
+  heapOkC_of1 ha (heapOkC1_of_wins hh hw hl ht)
 
 end
 

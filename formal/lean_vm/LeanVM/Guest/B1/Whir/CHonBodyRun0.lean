@@ -107,7 +107,7 @@ theorem br_ht : ∀ l < (osCfgR (μ - minOpenLog) (r - 1)).levels.length,
     have hy := hR.yr
     obtain ⟨rw, W, hd, he⟩ := hR.br_Rnext (l := l) (by omega)
     obtain ⟨-, hfold, hcols, -⟩ := hR.mid (l := l) (by omega)
-    have hshape := (hR.mid (l := l) (by omega)).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1
+    have hshape := (hR.mid (l := l) (by omega)).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1
     rw [he]
     show (levelShape (μ - (Ls.getD l default).s1.alphas.length) _ _).1 = _
     rw [LvAt.s1, roundsSpec_alphas_length, hR.alphas l (by omega), hfold, hcols, hshape]

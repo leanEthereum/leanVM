@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B1.Whir.CFinEval
 public import LeanVM.Guest.B1.Whir.CHead
 public import LeanVM.Guest.B1.Place.OsProtoSpec
+public import LeanVM.Guest.B1.Place.OsBos
 
 /-!
 # The body's allocations
@@ -103,28 +104,35 @@ theorem osLevels_split (c : OsCfg) : ∀ (lvl : ℕ) (lvs : List OsLv) (s : OsSt
 level's normalized lane (after its positions). -/
 def lvAllocsV (c : OsCfg) (l : ℕ) : List (V × (ℕ ⊕ V)) :=
   let lv := c.levels.getD l default
-  let s1 := (osRounds c.plan lv.foldsOff lv.folds (osStAt c l)).2
+  let s1 := (osRounds true lv.foldsOff lv.folds (osRates c l (osStAt c l)).2).2
   if l = c.yrLevel then
-    let s4 := (osPositions c l lv (osFinalMsg c lv s1).2).2
+    let s4 := (osPositions c l (osQGrind (osFinalMsg c lv s1).2).2).2
     [(.n (s4.k + 1), .inr (.n s4.k))]
   else [(.n (s1.k + 1), .inr (.n s1.k))]
+
+/-- The head's allocations: nine buffers sized by the value before each, `pos_totals`, the positions'
+two sized by the rate's total. -/
+def headAllocsV : List (V × (ℕ ⊕ V)) :=
+  (List.range 9).map (fun i ↦ (.n (12 + 2 * i), .inr (.n (11 + 2 * i)))) ++
+    [(.n osPosTab, .inl ligNRates), (.n osQpos, .inr (.n (31 + ligNRates))),
+      (.n osQbp, .inr (.n (31 + ligNRates)))]
 
 /-- **The body's allocation statements and sizes at a configuration.** -/
 def BodyStatic (c : OsCfg) : Prop :=
   let n := c.levels.length
   let y := c.yrLevel
   let sz := osSizesL c
-  (osHead c).1.filterMap Stmt.allocSz = (List.range 11).map (fun i ↦ (.n (12 + 2 * i), .inr (.n (11 + 2 * i)))) ∧
+  (osHead c).1.filterMap Stmt.allocSz = headAllocsV ∧
   (∀ l < n, (osLevel c l (c.levels.getD l default) (osStAt c l)).1.filterMap Stmt.allocSz = lvAllocsV c l) ∧
   (osTail c (osLvsEnd c)).1.filterMap Stmt.allocSz =
     [(.n ((osLvsEnd c).k + 1), .inr (.n (osLvsEnd c).k))] ∧
-  sz.length = 19 + y ∧ y + 1 = n ∧
-  (∀ j < 11, sz.getD j 0 = (headSizes c).getD j 0) ∧
-  (∀ l < y, sz.getD (11 + l) 0 = 2 + (c.levels.getD l default).folds) ∧
-  sz.getD (11 + y) 0 = c.yrLen + (c.levels.getD y default).folds ∧
-  sz.getD (12 + y) 0 = yrLogCap ∧ sz.getD (13 + y) 0 = pointCap ∧
-  sz.getD (14 + y) 0 = pointCap ∧ sz.getD (15 + y) 0 = n * ligColsCap ∧
-  sz.getD (16 + y) 0 = n ∧ sz.getD (17 + y) 0 = n ∧ sz.getD (18 + y) 0 = 2 * n ∧
+  sz.length = 20 + y ∧ y + 1 = n ∧
+  (∀ j < 12, sz.getD j 0 = (headSizes c (osPosTotal c)).getD j 0) ∧
+  (∀ l < y, sz.getD (12 + l) 0 = 2 + (c.levels.getD l default).folds) ∧
+  sz.getD (12 + y) 0 = c.yrLen + (c.levels.getD y default).folds ∧
+  sz.getD (13 + y) 0 = yrLogCap ∧ sz.getD (14 + y) 0 = pointCap ∧
+  sz.getD (15 + y) 0 = pointCap ∧ sz.getD (16 + y) 0 = n * ligColsCap ∧
+  sz.getD (17 + y) 0 = n ∧ sz.getD (18 + y) 0 = n ∧ sz.getD (19 + y) 0 = 2 * n ∧
   (∀ j < sz.length, sz.getD j 0 < 2 ^ 64 - 1)
 
 instance (c : OsCfg) : Decidable (BodyStatic c) := by

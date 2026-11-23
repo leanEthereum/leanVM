@@ -9,8 +9,6 @@ module
 
 public import LeanVM.Guest.B1.Common.Sponge
 public import LeanVM.Guest.GuestConst
--- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
-import LeanVM.Guest.Data.Consts
 
 /-!
 # Sumcheck rounds: meanings (TRIAGE G #30-32)
@@ -22,7 +20,7 @@ return words, the Fiat-Shamir sponge as the guest carries it (`Fs`, `B1/Common/S
 
 | function | meaning |
 | --- | --- |
-| `sumcheck_round4` | one plain round of `sumcheck _ 4 [none]` (`sumcheckRoundPoly 4 claim none`, a sample), the sponge in a round record |
+| `sumcheck_round4` (inlined) | one plain round of `sumcheck _ 4 [none]` (`sumcheckRoundPoly 4 claim none`, a sample), the sponge in a round record |
 | `batch_sumcheck__L23` | `Node.batchRounds`, 23 rounds |
 
 Each round's `fs_grind_squeeze` grinds `ROUND3_GRIND_BITS`, `ROUND5_GRIND_BITS`,
@@ -31,8 +29,8 @@ challenge is a plain squeeze (`Fs.grindSqueeze_zero`), and the window table `tab
 not read.
 
 A round record (`ROUND_FS = 0`, `ROUND_CURSOR = 5`, `ROUND_CLAIM = 6`, `ROUND_SLOTS = 7`) holds a
-sponge's five capacity cells, a stream cursor and a claim, its fields `stride` words apart
-(`fs_load`, `fs_store`: `1` for `sumcheck_round4`, `GKR_ROUNDS_CAP = 862` for `gkr_layer`'s).
+sponge's five capacity cells, a stream cursor and a claim in consecutive words (`fs_load`,
+`fs_store` at stride `1`), the next record `7` words on.
 -/
 
 namespace LeanVM.Guest.B1
@@ -62,19 +60,11 @@ def MeaningSumcheckRound4 (rd : Reader) : List E → List E → Prop
           s.squeeze.1]
   | _, _ => False
 
-/-- `sumcheck_round4`'s function in `P` is its meaning. -/
-def sumcheck_round4_SpecP (P : Program) : Prop :=
-  ∀ (rd : Reader) (args rets : List E),
-    P.Rel rd "sumcheck_round4" args rets ↔ MeaningSumcheckRound4 rd args rets
-
 /-! ## GKR rounds (TRIAGE #31)
 
 `gkr_layer`'s equality-mode rounds of `sumcheck _ 5` (`sumcheckRoundPoly 5 claim (some e)`), as
 in `gkrStep 2`: each `gkr_round`, inlined, so not a function of its own; runs of them between
 round records are `B1/Gkr/Rounds.lean`'s. -/
-
-/-- `GKR_ROUNDS_CAP`: the stride of a GKR round record's fields. -/
-abbrev gkrRoundsCap : ℕ := guest_const% GKR_ROUNDS_CAP
 
 /-- `MU_CAP + 2`: where the rounds' challenges go in the point buffer. -/
 abbrev gkrChallengeAt : ℕ := 42
@@ -90,22 +80,22 @@ def gkrRun : List (List E) → List E → E → Fs → List E × E × Fs
     (r.1 :: res.1, res.2)
   | _, _, claim, s => ([], claim, s)
 
-/-- **`n` GKR rounds between records**: the record at `rec` (fields `862` words apart)
-carries a sponge's capacity and a claim; the `4n` stream words at the cursor `cur` are the rounds'
-coefficients `c1 .. c4`, the words `pt[q]`, `q < n`, the previous point's coordinates; the rounds
-(`gkrRun`) store their challenges at `pt[42 + q]` (and a zero at `pt[42 + n]` when `n` is odd), and
-the next record `rec·g` carries the sponge, the cursor `4n` words on and the claim after them. -/
+/-- **`n` GKR rounds between records**: the record at `rec` carries a sponge's capacity and a
+claim; the `4n` stream words at the cursor `cur` are the rounds' coefficients `c1 .. c4`, the words
+`pt[q]`, `q < n`, the previous point's coordinates; the rounds (`gkrRun`) store their challenges at
+`pt[42 + q]` (and a zero at `pt[42 + n]` when `n` is odd), and the next record `rec·g^7` carries
+the sponge, the cursor `4n` words on and the claim after them. -/
 def GkrRoundsOut (n : ℕ) (rd : Reader) (rec pt cur : E) : Prop :=
   ∃ (cap : List E) (claim : E) (cs : List (List E)) (es : List E),
-    CapAt rd rec 0 gkrRoundsCap cap ∧ LoadHolds rd rec (6 * gkrRoundsCap) claim ∧
+    CapAt rd rec 0 1 cap ∧ LoadHolds rd rec 6 claim ∧
     cs.length = n ∧ (∀ c ∈ cs, c.length = 4) ∧ ReadsAt rd cur cs.flatten ∧
     es.length = n ∧ ReadsAt rd pt es ∧
     let res := gkrRun cs es claim ⟨cap, []⟩
     ReadsAt rd (pt * gen ^ gkrChallengeAt) res.1 ∧
     (n % 2 = 1 → LoadHolds rd pt (gkrChallengeAt + n) 0) ∧
-    CapAt rd rec 1 gkrRoundsCap res.2.2.cap ∧
-    LoadHolds rd rec (1 + 5 * gkrRoundsCap) (cur * gen ^ (4 * n)) ∧
-    LoadHolds rd rec (1 + 6 * gkrRoundsCap) res.2.1
+    CapAt rd rec 7 1 res.2.2.cap ∧
+    LoadHolds rd rec 12 (cur * gen ^ (4 * n)) ∧
+    LoadHolds rd rec 13 res.2.1
 
 /-! ## `batch_sumcheck` (TRIAGE #32) -/
 

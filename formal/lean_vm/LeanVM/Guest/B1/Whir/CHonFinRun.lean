@@ -29,13 +29,6 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-theorem osCfgR_len (m ri : ℕ) : (osCfgR m ri).levels.length = osNLevels m := by
-  simp [osCfgR, osLevelsR]
-
-theorem osCfgR_getD {m ri l : ℕ} (hl : l < osNLevels m) :
-    (osCfgR m ri).levels.getD l default = osLvR m ri l := by
-  simp [osCfgR, osLevelsR, List.getD_eq_getElem?_getD, hl]
-
 theorem osNLevels_le : ∀ m < 11, osNLevels m ≤ 6 := by decide +kernel
 
 /-- A level's rate-free columns are every rate's. -/
@@ -104,7 +97,7 @@ theorem lvFin {i : ℕ} (hi : i < (osCfgR (μ - minOpenLog) (r - 1)).yrLevel) :
     LvFin (osCfgR (μ - minOpenLog) (r - 1)) (finLv (osCfgR (μ - minOpenLog) (r - 1)) i) (finLv (osCfgR (μ - minOpenLog) (r - 1)) (i + 1)) := by
   have hy := hR.yr
   have hm : μ - minOpenLog < ligNSizes := hR.m11
-  have hn : i < osNLevels (μ - minOpenLog) := by rw [← osCfgR_len _ (r - 1)]; omega
+  have hn : i < osNLevels (μ - minOpenLog) := by rw [← osCfgR_levels_length _ (r - 1)]; omega
   have hv := vanish_allR (ri := r - 1) hm hn
   have hs : ∀ c' < (osLvR (μ - minOpenLog) (r - 1) i).folds,
       K.ofBits (hsScale (osLvR (μ - minOpenLog) (r - 1) i).vanish (osLvR (μ - minOpenLog) (r - 1) i).highBits c'
@@ -117,11 +110,12 @@ theorem lvFin {i : ℕ} (hi : i < (osCfgR (μ - minOpenLog) (r - 1)).yrLevel) :
     rw [e1] at hc
     rw [e2, e3, e4]
     exact hsScale_mid hm hn hc
-  have e : finLv (osCfgR (μ - minOpenLog) (r - 1)) i = osLvR (μ - minOpenLog) (r - 1) i := osCfgR_getD hn
-  obtain ⟨-, -, -, h1, -, -, -, -, -, -, -, -, h2, -, -, -, -, -, -, -, h3, -, -, -, -, -, -, -, -, -, -,
+  have e : finLv (osCfgR (μ - minOpenLog) (r - 1)) i = osLvR (μ - minOpenLog) (r - 1) i :=
+    (osLvR_eq_getD hn).symm
+  obtain ⟨-, -, -, h1, -, -, -, hqu, -, -, -, -, h2, -, -, -, -, -, -, -, -, h3, -, -, -, -, -, -, -, -, -, -,
     -, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13⟩ := hR.mid hi
   rw [← e] at hv hs
-  exact ⟨h4, h5, h6, h7, h3, h1, h8, h9, h10, h11, h12, h2, h13, vanish_val hv, vanish_inv hv, hs⟩
+  exact ⟨h4, h5, h6, h7, h3, h1, h8, h9, h10, h11, h12, h2, hqu, h13, vanish_val hv, vanish_inv hv, hs⟩
 
 /-- **The finish's static facts.** -/
 theorem finStatic_run :
@@ -138,7 +132,7 @@ theorem finStatic_run :
   have hm11 : μ - minOpenLog < 11 := hR.m11
   have hHS := honStatic_all _ _ hm11 hR.r4
   set Lf := Ls.getD (osCfgR (μ - minOpenLog) (r - 1)).yrLevel default
-  refine ⟨cn2, by rw [osCfgR_len]; exact osNLevels_le _ hm11, cyr, cyl, ?_, fun i hi ↦ hR.lvFin hi,
+  refine ⟨cn2, by rw [osCfgR_levels_length]; exact osNLevels_le _ hm11, cyr, cyl, ?_, fun i hi ↦ hR.lvFin hi,
     hs1, ?_, clane, cmu, fun i hi ↦ ?_, fun i hi ↦ (hHS.mid hi).1⟩
   · show (lvsRecs μ Ls (osCfgR (μ - minOpenLog) (r - 1)).yrLevel).length = _
     simp only [lvsRecs, List.length_map, List.length_take]; omega

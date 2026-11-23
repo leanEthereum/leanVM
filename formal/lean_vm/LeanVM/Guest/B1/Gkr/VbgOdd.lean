@@ -103,13 +103,13 @@ def rtTwoL : List Stmt :=
     .atom (.assertEq (.n 62) (.n 334)),
     keccakA ([.n 318, .n 319, .n 322, .n 323, .n 42, .n 43, .n 44, .n 45] ++ lyCap 304)
       (lyOuts 335)] ++
-  [.atom (.load (.n 335) (.n 18) 40), .atom (.const (.n 348) (word 0 0)),
-    .atom (.load (.n 348) (.n 18) 41)] ++
+  [.atom (.load (.n 335) (.n 22) 40), .atom (.const (.n 348) (word 0 0)),
+    .atom (.load (.n 348) (.n 22) 41)] ++
   (List.range 5).map (fun k ↦ .atom (.load (.n (343 + k)) (.n 139) k)) ++
   [.atom (.const (.n 349) (word 256 0)), .atom (.mul (.n 350) (.n 5) (.n 349)),
     .atom (.load (.n 350) (.n 139) 5)] ++
   rtVal 351 291 295 6 ++ rtVal 354 299 303 7 ++ rtVal 357 320 324 8 ++
-  [.atom (.const (.n 360) (word 2 0)), .atom (.load (.n 360) (.n 139) 9)]
+  [.atom (.const (.n 360) (word 128 0)), .atom (.load (.n 360) (.n 139) 9)]
 
 set_option maxRecDepth 10000 in
 theorem rtTwoL_eq : rtTwo = rtTwoL := tbStmtsEqb_sound (by decide +kernel)
@@ -132,13 +132,13 @@ def rtFourL : List Stmt :=
     .atom (.assertEq (.n 62) (.n 231)),
     keccakA (chRate 142 2 ++ lyCap 187) (lyOuts 232)] ++
   [keccakA ([.n 42, .n 42, .n 42, .n 42, .n 42, .n 43, .n 44, .n 45] ++ lyCap 232) (lyOuts 245)] ++
-  [.atom (.load (.n 232) (.n 18) 40), .atom (.load (.n 245) (.n 18) 41)] ++
+  [.atom (.load (.n 232) (.n 22) 40), .atom (.load (.n 245) (.n 22) 41)] ++
   (List.range 5).map (fun k ↦ .atom (.load (.n (253 + k)) (.n 139) k)) ++
   [.atom (.const (.n 258) (word 16384 0)), .atom (.mul (.n 259) (.n 5) (.n 258)),
     .atom (.load (.n 259) (.n 139) 5)] ++
   chValT 142 232 245 139 0 260 6 ++ chValT 142 232 245 139 1 269 7 ++
   chValT 142 232 245 139 2 278 8 ++
-  [.atom (.const (.n 287) (word 2 0)), .atom (.load (.n 287) (.n 139) 9)]
+  [.atom (.const (.n 287) (word 128 0)), .atom (.load (.n 287) (.n 139) 9)]
 
 set_option maxRecDepth 10000 in
 theorem rtFourL_eq : rtFour = rtFourL := tbStmtsEqb_sound (by decide +kernel)
@@ -249,9 +249,9 @@ theorem rtc_two {S : List Atom} (hA : ∀ t ∈ rtFour ++ rtTwo, GoodS rd S w σ
     (hcap : (lyCap 46).map σ = capOf s.perm)
     (z42 : σ (.n 42) = 0) (z43 : σ (.n 43) = 0) (z44 : σ (.n 44) = 0) (z45 : σ (.n 45) = 0)
     {D : GkStepD} (hD : D.Ok s st 1) (hx : TbReadsAt rd (σ (.n 5) * gen ^ 2) D.xs)
-    (h140 : σ (.n 139) = σ (.n 16) * gen ^ 10) (hz : LoadHolds rd (σ (.n 18)) 41 0)
+    (h140 : σ (.n 139) = σ (.n 16) * gen ^ 10) (hz : LoadHolds rd (σ (.n 22)) 41 0)
     (hS' : GkSlot rd (σ (.n 16)) 1 (D.s' s st 1) (σ (.n 5) * gen ^ 2 * gen ^ D.xs.length)
-      (D.st' s st 1) (σ (.n 18) * gen ^ 40) gen) :
+      (D.st' s st 1) (σ (.n 22) * gen ^ 40) (gen ^ 7)) :
     Stmt.HoldsList C rd σ rtTwo True kret := by
   obtain ⟨-, hcap', -, hcur', -, hval', -, hpt', hpos'⟩ := hS'
   have ld : ∀ k v, LoadHolds rd (σ (.n 16)) (10 * 1 + k) v → LoadHolds rd (σ (.n 139)) k v :=
@@ -380,7 +380,7 @@ theorem rtc_two {S : List Atom} (hA : ∀ t ∈ rtFour ++ rtTwo, GoodS rd S w σ
     show ([[w0, w1], [w2, w3], [w4, w5]].map (multilinearEval · (GkStepD.ys _ s st 1))).getD t 0 = _
     rw [hy]
     interval_cases t <;> rfl
-  have s351 : LoadHolds rd (σ (.n 18)) 40 (σ (.n 335)) := by
+  have s351 : LoadHolds rd (σ (.n 22)) 40 (σ (.n 335)) := by
     have := hpt' 0 (by rw [hpt1]; simp)
     simp only [hpt1, List.getElem_cons_zero] at this
     rw [tb_loadHolds_mul_gen_pow] at this
@@ -429,7 +429,7 @@ theorem rtc_two {S : List Atom} (hA : ∀ t ∈ rtFour ++ rtTwo, GoodS rd S w σ
     (rt2_goodB hA 52 _ (by decide +kernel)) (hv' 1 (by omega) 299 303 (by rw [q2, q3]; rfl))
   have V2 := VAL 2 (by omega) 357 320 324 8 (by omega) (by omega) (by omega)
     (rt2_goodB hA 56 _ (by decide +kernel)) (hv' 2 (by omega) 320 324 (by rw [q4, q5]; rfl))
-  have c364 : σ (.n 360) = word 2 0 := g 60 (.const (.n 360) (word 2 0)) (by decide +kernel)
+  have c364 : σ (.n 360) = word 128 0 := g 60 (.const (.n 360) (word 128 0)) (by decide +kernel)
   rw [rtTwoL_eq]
   refine holdsList_straightN _ (by decide +kernel) ?_ trivial
   simp only [rtTwoL, List.forall_mem_append, List.forall_mem_cons, List.forall_mem_map,
@@ -438,10 +438,10 @@ theorem rtc_two {S : List Atom} (hA : ∀ t ∈ rtFour ++ rtTwo, GoodS rd S w σ
   refine ⟨forall_flatten_range fun i hi => (EV i (by omega)).2.2.2, k16, (EV 4 (by omega)).2.2.2,
     (EV 5 (by omega)).2.2.2, m328, c329, m330, a331, m332, m333, a334, m335, m336, a337,
     show σ (.n 62) + σ (.n 334) = 0 by rw [h63, e337, ← hchk, e_add_self], k36, s351,
-    c352, show LoadHolds rd (σ (.n 18)) 41 (σ (.n 348)) by rw [c352, tb_word_zero]; exact hz,
+    c352, show LoadHolds rd (σ (.n 22)) 41 (σ (.n 348)) by rw [c352, tb_word_zero]; exact hz,
     fun k hk => s346 k hk, c353, m354, s354, V0, V1, V2,
     c364, show LoadHolds rd (σ (.n 139)) 9 (σ (.n 360)) by
-      rw [c364, tb_word_gen]; exact ld 9 _ hpos'⟩
+      rw [c364, tb_word_128]; exact ld 9 _ hpos'⟩
 
 /-- **The radix-four arm, completely** (an even depth): from the sponge `s` the roots wait in,
 one step of two levels (no point), its twelve words past the roots, and the slot of `L = 2`. -/
@@ -454,7 +454,7 @@ theorem rtc_four {S : List Atom} (hA : ∀ t ∈ rtFour ++ rtTwo, GoodS rd S w �
     {D : GkStepD} (hD : D.Ok s st 2) (hx : TbReadsAt rd (σ (.n 5) * gen ^ 2) D.xs)
     (h140 : σ (.n 139) = σ (.n 16) * gen ^ 20)
     (hS' : GkSlot rd (σ (.n 16)) 2 (D.s' s st 2) (σ (.n 5) * gen ^ 2 * gen ^ D.xs.length)
-      (D.st' s st 2) (σ (.n 18) * gen ^ 40) gen) :
+      (D.st' s st 2) (σ (.n 22) * gen ^ 40) (gen ^ 7)) :
     Stmt.HoldsList C rd σ rtFour True kret := by
   obtain ⟨-, hcap', -, hcur', -, hval', -, hpt', hpos'⟩ := hS'
   have ld : ∀ k v, LoadHolds rd (σ (.n 16)) (10 * 2 + k) v → LoadHolds rd (σ (.n 139)) k v :=
@@ -601,11 +601,11 @@ theorem rtc_four {S : List Atom} (hA : ∀ t ∈ rtFour ++ rtTwo, GoodS rd S w �
   have hpt2 : (D.st' s st 2).point = [σ (.n 232), σ (.n 245)] := by
     show D.ys s st 2 ++ (D.run s st).1 = _
     rw [hys, hrun]; rfl
-  have s40 : LoadHolds rd (σ (.n 18)) 40 (σ (.n 232)) := by
+  have s40 : LoadHolds rd (σ (.n 22)) 40 (σ (.n 232)) := by
     have := hpt' 0 (by rw [hpt2]; simp)
     simp only [hpt2, List.getElem_cons_zero] at this
     rwa [tb_loadHolds_mul_gen_pow] at this
-  have s41 : LoadHolds rd (σ (.n 18)) 41 (σ (.n 245)) := by
+  have s41 : LoadHolds rd (σ (.n 22)) 41 (σ (.n 245)) := by
     have := hpt' 1 (by rw [hpt2]; simp)
     simp only [hpt2, List.getElem_cons_succ, List.getElem_cons_zero] at this
     rwa [tb_loadHolds_mul_gen_pow] at this
@@ -640,7 +640,7 @@ theorem rtc_four {S : List Atom} (hA : ∀ t ∈ rtFour ++ rtTwo, GoodS rd S w �
     (by omega) (by omega) (fun i hi => cp (4 * 1 + i) (by omega)) (sv 1 (by omega))
   have V2 := chc_val (C := C) (rt4_goodB hA 99 (chValT 142 232 245 139 2 278 8) (by decide +kernel))
     (by omega) (by omega) (fun i hi => cp (4 * 2 + i) (by omega)) (sv 2 (by omega))
-  have c290 : σ (.n 287) = word 2 0 := g 109 (.const (.n 287) (word 2 0)) (by decide +kernel)
+  have c290 : σ (.n 287) = word 128 0 := g 109 (.const (.n 287) (word 128 0)) (by decide +kernel)
   rw [rtFourL_eq]
   refine holdsList_straightN _ (by decide +kernel) ?_ trivial
   simp only [rtFourL, List.forall_mem_append, List.forall_mem_cons, List.forall_mem_map,
@@ -654,7 +654,7 @@ theorem rtc_four {S : List Atom} (hA : ∀ t ∈ rtFour ++ rtTwo, GoodS rd S w �
       rw [h63, e232, h59, hc0, hc1, hc2, ← hchk, e_add_self],
     k67, k69, s40, s41, fun k hk => s255 k hk, c261, m262, s262, V0, V1, V2,
     c290, show LoadHolds rd (σ (.n 139)) 9 (σ (.n 287)) by
-      rw [c290, tb_word_gen]; exact ld 9 _ hpos'⟩
+      rw [c290, tb_word_128]; exact ld 9 _ hpos'⟩
 
 end Arms
 

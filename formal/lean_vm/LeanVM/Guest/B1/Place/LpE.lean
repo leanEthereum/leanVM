@@ -34,32 +34,34 @@ theorem LpAtOE.toO {fs : String → ℕ} {cert : String → V → ℕ} {κ : ℕ
 /-- **`level_positions` is complete placed and exact at every specialization.** -/
 theorem level_positions_completeAtE (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ)
     (hfit : Lift.RunsFit fs cert) (hcons : RunsConsec cert) (hκ : 7 ≤ κ) :
-    ∀ e ∈ lpTable, LpAtOE fs cert κ e.1 e.2.2.1 e.2.1 e.2.2.2.1 e.2.2.2.2 none := by
-  intro e he
+    ∀ e ∈ lpTable, ∀ S, 1 ≤ S → S ≤ 64 → LpAtOE fs cert κ e.1 e.2.1 S e.2.2.1 e.2.2.2 none := by
+  intro e he S hS hSB
   obtain ⟨hlp, hl⟩ := lpTable_ok e he
-  obtain ⟨hS, hSo, hSB, hpw, hmem⟩ := lpTable_facts e he
+  obtain ⟨hpw, hmem⟩ := lpTable_facts e he
+  have hSo : S < ordG := by rw [show ordG = 2 ^ 64 - 1 from rfl]; omega
   have hdec := qwDecodeAtDE_holds hfit hcons hκ _ hmem
   intro w0 cap ep ew tabs Lin hcl hreg hregt hmemL fp
   obtain ⟨Lown, hW, hD, hR⟩ := lp_placedE fs cert κ hlp hl hS hSo hSB hpw hdec hcl fp
     (fun k hk ↦ hreg fp k hk) (hregt fp) (fun rd hlow hm ↦ hmemL fp rd hlow hm)
-  exact ⟨lpN fs e.1 e.2.2.1 e.2.1 e.2.2.2.1 e.2.2.2.2, Lown, hW, hD, fun B hB ↦ absurd hB (by simp), hR⟩
+  exact ⟨lpN fs e.1 e.2.1 S e.2.2.1 e.2.2.2, Lown, hW, hD, fun B hB ↦ absurd hB (by simp), hR⟩
 
 /-- **`level_positions` placed and exact within every words bound of its trees**, frames below `2^32`. -/
 theorem level_positions_completeAtBE (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ)
     (hfit : Lift.RunsFit fs cert) (hcons : RunsConsec cert) (hκ : 7 ≤ κ)
     (hfs : ∀ f, fs f < 2 ^ 32) :
-    ∀ e ∈ lpTable, ∀ B, TotalLe coreProgram fs e.1 (fun _ ↦ B) →
-      LpAtOE fs cert κ e.1 e.2.2.1 e.2.1 e.2.2.2.1 e.2.2.2.2 (some B) := by
-  intro e he B hT
+    ∀ e ∈ lpTable, ∀ S, 1 ≤ S → S ≤ 64 → ∀ B,
+      TotalLeOn coreProgram fs e.1 (fun a ↦ a.getD 9 0 = ofK (addressOfIndex S)) (fun _ ↦ B) →
+      LpAtOE fs cert κ e.1 e.2.1 S e.2.2.1 e.2.2.2 (some B) := by
+  intro e he S hS hSB B hT
   obtain ⟨hlp, hl⟩ := lpTable_ok e he
-  obtain ⟨hS, hSo, hSB, hpw, hmem⟩ := lpTable_facts e he
+  obtain ⟨hpw, hmem⟩ := lpTable_facts e he
+  have hSo : S < ordG := by rw [show ordG = 2 ^ 64 - 1 from rfl]; omega
   have hdec := qwDecodeAtDE_holds hfit hcons hκ _ hmem
   have hb := lp_bound κ hlp hl hS hSo hSB hpw hdec hfs hT
   intro w0 cap ep ew tabs Lin hcl hreg hregt hmemL fp
   obtain ⟨Lown, hW, hD, hR⟩ := lp_placedE fs cert κ hlp hl hS hSo hSB hpw hdec hcl fp
     (fun k hk ↦ hreg fp k hk) (hregt fp) (fun rd hlow hm ↦ hmemL fp rd hlow hm)
-  exact ⟨lpN fs e.1 e.2.2.1 e.2.1 e.2.2.2.1 e.2.2.2.2, Lown, hW, hD,
-    fun B' hB' ↦ by cases hB'; exact hb, hR⟩
+  exact ⟨lpN fs e.1 e.2.1 S e.2.2.1 e.2.2.2, Lown, hW, hD, fun B' hB' ↦ by cases hB'; exact hb, hR⟩
 
 end
 end LeanVM.Guest.B1

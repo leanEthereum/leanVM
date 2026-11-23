@@ -117,7 +117,8 @@ def osQArgs (σ : Val) (c : OsCfg) (lvl : ℕ) (lv : OsLv) (st : OsSt) : List E 
 the root it returns that in `level_roots`. -/
 theorem osQueries_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (hr : LvRate σ c lvl lv)
     (hm : MatsOk σ st.mats) (hf : 2 * lv.foldsOff < u128Bound)
-    (hh : lvl * hsStride < u128Bound) (hp : lv.posOff < u128Bound)
+    (hh : lvl * hsStride < u128Bound) (hlp : σ (.n st.lp) = σ (.n osQpos) * gen ^ lv.posOff)
+    (hlw : σ (.n st.lw) = σ (.n osQbp) * gen ^ lv.posOff)
     (hok : AllOk C rd σ (osQueries c lvl lv st).1) :
     (osQCallOf c lvl lv st).1.map σ = osQArgs σ c lvl lv st ∧
       C (osQueriesName c lvl lv) (osQArgs σ c lvl lv st) ((osQCallOf c lvl lv st).2.map σ) ∧
@@ -133,30 +134,26 @@ theorem osQueries_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (hr : Lv
   unfold osQueries at hok ⊢
   unfold osQCallOf
   simp only [allOk_append] at hok
-  obtain ⟨⟨⟨⟨⟨hli, hcf⟩, hhp⟩, hqp⟩, hwp⟩, hrest⟩ := hok
+  obtain ⟨⟨⟨hli, hcf⟩, hhp⟩, hrest⟩ := hok
   simp only [allOk_cons, allOk_nil, and_true, stmtOk_atom, holds_load, osLd] at hrest
   obtain ⟨hd, l0, l1⟩ := hrest
   have hC := dispatch_rate hr (osQueriesName c lvl) hd
   by_cases hfin : lvl = c.yrLevel
   · subst hfin
-    simp only [↓reduceIte] at hcf hhp hqp hwp hli hC l0 l1 ⊢
+    simp only [↓reduceIte] at hcf hhp hli hC l0 l1 ⊢
     simp only [allOk_cons, allOk_nil, and_true, stmtOk_atom, holds_const, osCst] at hli
     obtain ⟨z0, z1⟩ := hli
     obtain ⟨ecf, hm3⟩ := osMatS_val' hcf hm hf
-    obtain ⟨eqp, hm4⟩ := osMatS_val' hqp hm3 hp
-    obtain ⟨ewp, hm5⟩ := osMatS_val' hwp hm4 hp
-    refine (fun ha ↦ ⟨ha, ha ▸ hC, ⟨_, _, ?_, l0, l1⟩, hm5, rfl⟩) ?_
+    refine (fun ha ↦ ⟨ha, ha ▸ hC, ⟨_, _, ?_, l0, l1⟩, hm3, rfl⟩) ?_
     · simp only [List.map_cons, List.map_nil, osQArgs, ↓reduceIte]
-      rw [z0, z1, ecf, eqp, ewp, word_zero]
+      rw [z0, z1, ecf, hlp, hlw, word_zero]
     · simp [osRun, List.range_succ]
-  · simp only [hfin, ↓reduceIte] at hcf hhp hqp hwp hli hC l0 l1 ⊢
+  · simp only [hfin, ↓reduceIte] at hcf hhp hli hC l0 l1 ⊢
     obtain ⟨ecf, hm3⟩ := osMatS_val' hcf hm hf
     obtain ⟨ehp, hm4⟩ := osMatS_val' hhp hm3 hh
-    obtain ⟨eqp, hm5⟩ := osMatS_val' hqp hm4 hp
-    obtain ⟨ewp, hm6⟩ := osMatS_val' hwp hm5 hp
-    refine (fun ha ↦ ⟨ha, ha ▸ hC, ⟨_, _, ?_, l0, l1⟩, hm6, rfl⟩) ?_
+    refine (fun ha ↦ ⟨ha, ha ▸ hC, ⟨_, _, ?_, l0, l1⟩, hm4, rfl⟩) ?_
     · simp only [List.map_cons, List.map_nil, osQArgs, hfin, ↓reduceIte]
-      rw [ecf, ehp, eqp, ewp]
+      rw [ecf, ehp, hlp, hlw]
     · simp [osRun, List.range_succ]
 
 end

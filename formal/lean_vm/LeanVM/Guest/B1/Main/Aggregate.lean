@@ -20,7 +20,7 @@ import LeanVM.Guest.Data.ValNames.«aggregate_claims»
 # `aggregate_claims` (TRIAGE G #97)
 
 `aggregate_claims_holds : aggregate_claims_sound_Spec`, from `batch_sumcheck__L23`'s meaning
-(`batch_sumcheck_holds`) and `grind_check__L2`'s (`grind_check_holds`, on the memory image). For
+(`batch_sumcheck_holds`) and the inlined grind's (`gcInline_sound`, on the memory image). For
 `n_children_g = g^m`, the hints are the nonce `bc_sumcheck_msgs[0]`, the rounds after it and
 `bc_star_hint` (`aggHints`), and the claim written at `defer_stmt` is the sumcheck's point and
 the hint. For `m` children whose words the memory holds (`ChildWordsAt`), `batch_fs` reads
@@ -29,7 +29,7 @@ the hint. For `m` children whose words the memory holds (`ChildWordsAt`), `batch
 * the absorbing rows (`aggregate_claims_loop0`, `l25_step`) carry the sponge after the count and the
   first `c` children's words (`absorb_rows`);
 * the last absorbing row is permuted, the nonce absorbed with the tag `4` and permuted
-  (`aggN`, `nonce_ins`), `grind_check__L2` on that permutation's cell `1` is its proof of work,
+  (`aggN`, `nonce_ins`), the inlined grind on that permutation's cell `1` is its proof of work,
   `λ` its cell `0`, and its capacity the sponge `batch_sumcheck__L23` starts from (`aggLam`);
 * the records of `bc_chain` (`aggregate_claims_loop1`, `l26_step`) hold `λ^(2c)` and the lambdas'
   combination of the first `c` children's values (`chain_rows`); the last one's feeds
@@ -303,13 +303,6 @@ theorem rounds_of_reads {rd : Reader} {p : E} {rounds : List (E × E)} {n : ℕ}
 
 /-! ## The callees' meanings this proof takes -/
 
-/-- `grind_check__L2`'s core IR gives its meaning on a memory image whose `tabs` holds the bit
-windows. -/
-theorem agg_grind {rd : Reader} (hm : MemOk rd) {w tabs : E} {rets : List E} (hW : WinTabs rd tabs)
-    (h : coreProgram.Rel rd "grind_check__L2" [w, tabs] rets) : MeaningGrindCheck 2 [w, tabs] rets := by
-  obtain ⟨κ, -, hκ, L, rfl⟩ := hm
-  exact (grind_check_holds 2 (by decide) hκ (winTabBits_le_of_winTabs hκ L hW) L w tabs hW rets).mp h
-
 /-- **`aggregate_claims`, its hints named**: on a valuation of its body (its calls under a
 relation below `coreProgram.Rel`), the meaning holds with the hints `aggHints rd σ`. -/
 def MeaningAggregateClaimsW (rd : Reader) (h : BatchingHints) : List E → List E → Prop
@@ -471,8 +464,12 @@ theorem aggregate_claims_val {C : CallRel} {rd : Reader} (hm : MemOk rd)
       rwa [show aggNo.getD c default = .n (78 + c) by
         simp [aggNo, List.getD_eq_getElem?_getD, hc]] at this
   -- the proof of work and `λ`
-  have hg := agg_grind hm hW (by simpa using call_of_flat hall hgr)
-  obtain ⟨-, hpow⟩ := hg
+  have hpow : ((σ (.n (val% «aggregate_claims» "fs_perm.nxt[1]"))).limb 0).lane.toNat % 2 ^ 2 = 0 := by
+    have hgh := allIn_holds hgr hat (fun _ _ _ => True) (fun _ => True)
+    rw [aggGrindA_eq] at hgh
+    obtain ⟨κ, -, hκ, L, rfl⟩ := hm
+    exact (gcInline_sound hκ (le_trans (by decide) (winTabBits_le_of_winTabs hκ L hW)) L (by decide)
+      hW hgh).1
   have q1 : σ (.n (val% «aggregate_claims» "fs_perm.nxt[1]")) = cellsOfState (aggN cs (aggHints rd σ).lambdaGrindNonce) false 1 :=
     q 1 (by omega)
   have hpowOk : powOk Batch.batchLambdaGrindBits

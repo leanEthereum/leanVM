@@ -327,17 +327,12 @@ theorem zok_stmts {body : List Stmt} {z : Zip} (hz : ZOk body z) {t : Stmt} (ht 
 
 /-! ## A loop helper's last call -/
 
-/-- **A loop helper's last call** is its final conditional call's, which no site matches. -/
-theorem loop_last {fn : Fn} {p : Plumb} (h : loopChk fn p = true) {σ : Val} {es : List Ev} {vs : List V}
-    (hw : walk σ fn.body = .ret es vs) {i : ℕ} {c : Call} (hc : (calls es)[i]? = some c)
-    (hi : i + 1 = (calls es).length) : ∀ s ∈ p.sites, ¬(s.args = c.args.map (·.idx) ∧ s.rets = c.rets.map (·.idx)) := by
-  unfold loopChk at h
-  split at h
-  case h_2 => cases h
-  rename_i cc g args rpre hrev
-  simp only [Bool.and_eq_true, List.all_eq_true, Bool.not_eq_true', Bool.and_eq_false_iff,
-    beq_eq_false_iff_ne] at h
-  obtain ⟨hnr, hs⟩ := h
+/-- The last call of a body `rpre.reverse ++ [callIf cc g args, ret []]`, `rpre.reverse` without `ret`: the
+conditional call's. -/
+theorem loop_last_call {fn : Fn} {cc : V} {g : String} {args : List V} {rpre : List Stmt}
+    (hrev : fn.body.reverse = .ret [] :: .callIf cc g args :: rpre) (hnr : noRetB rpre.reverse = true) {σ : Val}
+    {es : List Ev} {vs : List V} (hw : walk σ fn.body = .ret es vs) {i : ℕ} {c : Call}
+    (hc : (calls es)[i]? = some c) (hi : i + 1 = (calls es).length) : c = ⟨g, args, [], !decide (σ cc = 0)⟩ := by
   have hbody : fn.body = rpre.reverse ++ [.callIf cc g args, .ret []] := by
     rw [← List.reverse_reverse fn.body, hrev]; simp
   rw [hbody, walk_append] at hw
@@ -359,12 +354,40 @@ theorem loop_last {fn : Fn} {p : Plumb} (h : loopChk fn p = true) {σ : Val} {es
     rw [hcalls] at hc hi
     rw [List.length_append, List.length_singleton] at hi
     rw [List.getElem?_append_right (by omega), show i - (calls es1).length = 0 by omega] at hc
-    obtain rfl := Option.some.inj hc.symm
-    intro s hsm ⟨ha, hr⟩
-    rcases hs s hsm with h1 | h1
-    · exact h1 ha
-    · exact h1 (by simpa using hr)
+    exact Option.some.inj hc.symm
   · rw [he1] at hw; cases hw
+
+/-- **A loop helper's last call** is its final conditional call's, which no site matches. -/
+theorem loop_last {fn : Fn} {p : Plumb} (h : loopChk fn p = true) {σ : Val} {es : List Ev} {vs : List V}
+    (hw : walk σ fn.body = .ret es vs) {i : ℕ} {c : Call} (hc : (calls es)[i]? = some c)
+    (hi : i + 1 = (calls es).length) : ∀ s ∈ p.sites, ¬(s.args = c.args.map (·.idx) ∧ s.rets = c.rets.map (·.idx)) := by
+  unfold loopChk at h
+  split at h
+  case h_2 => cases h
+  rename_i cc g args rpre hrev
+  simp only [Bool.and_eq_true, List.all_eq_true, Bool.not_eq_true', Bool.and_eq_false_iff,
+    beq_eq_false_iff_ne] at h
+  obtain ⟨hnr, hs⟩ := h
+  obtain rfl := loop_last_call hrev hnr hw hc hi
+  intro s hsm ⟨ha, hr⟩
+  rcases hs s hsm with h1 | h1
+  · exact h1 ha
+  · exact h1 (by simpa using hr)
+
+/-- **A loop helper's last call** is to itself. -/
+theorem loop_last_f {fn : Fn} {p : Plumb} (h : loopChk fn p = true) (hl : fn.loop = true) {σ : Val} {es : List Ev}
+    {vs : List V} (hw : walk σ fn.body = .ret es vs) {i : ℕ} {c : Call} (hc : (calls es)[i]? = some c)
+    (hi : i + 1 = (calls es).length) : c.f = fn.name := by
+  unfold loopChk at h
+  unfold Fn.loop at hl
+  split at h
+  case h_2 => cases h
+  rename_i cc g args rpre hrev
+  rw [hrev] at hl
+  simp only [beq_iff_eq] at hl
+  simp only [Bool.and_eq_true] at h
+  obtain rfl := loop_last_call hrev h.1 hw hc hi
+  exact hl
 
 end
 

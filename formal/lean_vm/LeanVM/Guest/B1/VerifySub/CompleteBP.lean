@@ -120,8 +120,8 @@ theorem verify_sub_completeBTP {bytecode : List K} (hbl : bytecode.length = 2 ^ 
     (S : ChildSegs bytecode seed c) (sqE outE : ℕ) (Lin : Main.Layout)
     (hst : c.proof.stream.length ≤ Coverage.childStreamCap)
     (hexp : ∀ q ∈ vsExpLin sqE, q ∈ Lin) (hout : (outE, DeferredBytecodeClaim.cells c.freshClaim) ∈ Lin)
-    (hos : ∀ bs pv, CompleteAtDTBR fs cert κ (Whir.openName S.μs) ((S.kids bs sqE).getD 14 noKid pv).Lin
-      ((S.kids bs sqE).getD 14 noKid pv).args ((S.kids bs sqE).getD 14 noKid pv).Out (vsPos bytecode seed c)
+    (hos : ∀ bs pv, CompleteAtDTBR fs cert κ (Whir.openName S.μs) ((S.kids bs sqE).getD 12 noKid pv).Lin
+      ((S.kids bs sqE).getD 12 noKid pv).args ((S.kids bs sqE).getD 12 noKid pv).Out (vsPos bytecode seed c)
       (osBosAt fs W.Bnd S.μs)) :
     CompleteAtDTBR fs cert κ "verify_sub" Lin (vsArgs seed c sqE outE) (Returns [])
       (fun rd t ↦ vsTsAny fs W Bvk S.μs S.rate t ∧

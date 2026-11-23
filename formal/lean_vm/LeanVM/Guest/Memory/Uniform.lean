@@ -16,6 +16,7 @@ public import LeanVM.Guest.Memory.GuestFresh
 public import LeanVM.Guest.Memory.GuestWf
 public import LeanVM.Guest.B1.Common.Basic
 public import LeanVM.Guest.CoreData
+public import LeanVM.Guest.Memory.LowDef
 
 /-!
 # Layouts and uniform placed completeness
@@ -69,10 +70,6 @@ def MemL (rd : Reader) (L : Layout) : Prop := ∀ q ∈ L, ReadsAt rd (ofK (addr
 
 /-- The addresses of a layout. -/
 def RegionL (L : Layout) (i : ℕ) : Prop := ∃ q ∈ L, q.1 ≤ i ∧ i < q.1 + q.2.length
-
-theorem addr_ofK (b k : ℕ) : (ofK (addressOfIndex b)).limb 0 * addressOfIndex k = addressOfIndex (b
-    + k) := by
-  rw [limb_ofK]; exact (pow_add _ _ _).symm
 
 theorem memL_append {rd : Reader} {L L' : Layout} : MemL rd (L ++ L') ↔ MemL rd L ∧ MemL rd L' := by
   simp only [MemL, List.mem_append]
@@ -150,13 +147,6 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 
 /-- The layout lies in `[b, b + n)`. -/
 def Within (L : Layout) (b n : ℕ) : Prop := ∀ q ∈ L, b ≤ q.1 ∧ q.1 + q.2.length ≤ b + n
-
-/-- The memory is defined at the addresses below `2^k`, where range checks `log x < K ≤ 2^k`
-read (any memory image of at least `2^k` words). -/
-def LowDef (k : ℕ) (rd : Reader) : Prop := ∀ i < 2 ^ k, (rd (addressOfIndex i)).isSome
-
-theorem LowDef.mono {k k' : ℕ} {rd : Reader} (h : LowDef k rd) (hk : k' ≤ k) : LowDef k' rd :=
-  fun i hi => h i (lt_of_lt_of_le hi (Nat.pow_le_pow_right (by decide) hk))
 
 /-- **`f` is complete at every frame pointer, uniformly in the memory.** -/
 def CompleteAt (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (f : String) (Lin : Layout)
@@ -294,14 +284,14 @@ theorem kidsFromIn_of_kids' (κ : ℕ) : ∀ (ks : List Kid),
               · exact Or.inr hi
             · simpa [hct] using hR2
     · obtain ⟨N, L, outs, ho, hW, hI, hK⟩ := kidsFromIn_of_kids' κ ks
-        (fun k' hk' => hok k' (by simp [hk'])) (b + fs k.f)
-      refine ⟨fs k.f + N, L, ([], []) :: outs, ⟨fun h => absurd h ht, ho⟩,
+        (fun k' hk' => hok k' (by simp [hk'])) (b + fs (tailKey k.f))
+      refine ⟨fs (tailKey k.f) + N, L, ([], []) :: outs, ⟨fun h => absurd h ht, ho⟩,
         hW.mono (by omega) (by omega), ⟨fun h => absurd h ht, hI⟩, ?_⟩
       intro rd σ cs R Dacc hc hlow hL hLin hRg
       match cs, hc with
       | c :: cs, ⟨hf, hct, _, hc⟩ =>
         simp only [Kid.lins, List.flatMap_cons] at hLin
-        refine ⟨fs k.f, N, fun _ => False, fun _ => False, rfl, fun _ h => h.elim, ?_, ?_⟩
+        refine ⟨fs (tailKey k.f), N, fun _ => False, fun _ => False, rfl, fun _ h => h.elim, ?_, ?_⟩
         · have ht' : k.taken = false := by simpa using ht
           rw [hct, ht']
           simp only [Bool.false_eq_true, ↓reduceIte]
@@ -341,32 +331,6 @@ theorem relAtIn_dmono {rd : Reader} {R D D' : ℕ → Prop} {fp n : ℕ} {f : St
     RelAtIn coreProgram fs cert rd R D' fp n f args rets :=
   let ⟨t, hn, hv, hb, hp, ht, hl, hd⟩ := h
   ⟨t, hn, hv, hb, hp, ht, hl, fun i hi => hd i (hD i hi)⟩
-
-/-! ## Range checks on a memory defined below `2^k` -/
-
-/-- A range check's auxiliary words for `x = g^e` against `g^(K-1)`: the complement `g^(K-1-e)`
-and the words the memory holds at both. -/
-noncomputable def rcLow (rd : Reader) (e K : ℕ) : E × E × E :=
-  (ofK (addressOfIndex (K - 1 - e)), (rd (addressOfIndex e)).getD 0, (rd (addressOfIndex (K - 1 -
-      e))).getD 0)
-
-theorem loadHolds_low {k : ℕ} {rd : Reader} (hl : LowDef k rd) {i : ℕ} (hi : i < 2 ^ k) :
-    LoadHolds rd (ofK (addressOfIndex i)) 0 ((rd (addressOfIndex i)).getD 0) := by
-  refine ⟨(isInK_iff _).mpr ⟨_, rfl⟩, ?_⟩
-  rw [Main.addr_ofK, Nat.add_zero]
-  obtain ⟨v, hv⟩ := Option.isSome_iff_exists.mp (hl i hi)
-  rw [hv]; rfl
-
-/-- **A range check passes** on a memory defined below `2^k`, for `x = g^e`, `e < K ≤ 2^k`. -/
-theorem rc_complete_low {k : ℕ} {rd : Reader} (hl : LowDef k rd) {K e : ℕ} (hK : K ≤ 2 ^ k)
-    (he : e < K) :
-    LoadHolds rd (ofK (addressOfIndex e)) 0 (rcLow rd e K).2.1 ∧
-      ofK (addressOfIndex (K - 1)) = ofK (addressOfIndex e) * (rcLow rd e K).1 ∧
-      LoadHolds rd (rcLow rd e K).1 0 (rcLow rd e K).2.2 := by
-  refine ⟨loadHolds_low hl (by omega), ?_, loadHolds_low hl (by omega)⟩
-  rw [rcLow, ← ofK_mul, addressOfIndex, addressOfIndex, ← pow_add]
-  congr 2
-  omega
 
 /-! ## A function's own buffers -/
 
@@ -577,14 +541,14 @@ theorem kidsFromIn_of_kidsD (κ : ℕ) : ∀ (ks : List Kid),
               · exact Or.inr hi
             · simpa [hct] using hR2
     · obtain ⟨N, L, outs, ho, hW, hD, hI, hK⟩ := kidsFromIn_of_kidsD κ ks
-        (fun k' hk' => hok k' (by simp [hk'])) (b + fs k.f)
-      refine ⟨fs k.f + N, L, ([], []) :: outs, ⟨fun h => absurd h ht, ho⟩,
+        (fun k' hk' => hok k' (by simp [hk'])) (b + fs (tailKey k.f))
+      refine ⟨fs (tailKey k.f) + N, L, ([], []) :: outs, ⟨fun h => absurd h ht, ho⟩,
         hW.mono (by omega) (by omega), hD, ⟨fun h => absurd h ht, hI⟩, ?_⟩
       intro rd σ cs R Dacc hc hlow hL hLin hRg
       match cs, hc with
       | c :: cs, ⟨hf, hct, _, hc⟩ =>
         simp only [Kid.lins, List.flatMap_cons] at hLin
-        refine ⟨fs k.f, N, fun _ => False, fun _ => False, rfl, fun _ h => h.elim, ?_, ?_⟩
+        refine ⟨fs (tailKey k.f), N, fun _ => False, fun _ => False, rfl, fun _ h => h.elim, ?_, ?_⟩
         · have ht' : k.taken = false := by simpa using ht
           rw [hct, ht']
           simp only [Bool.false_eq_true, ↓reduceIte]
@@ -665,9 +629,9 @@ theorem CompleteAtB.mono {k k' : ℕ} {f : String} {Lin : Layout} {args : List E
   let ⟨n, Lown, rets, Lout, ho, hw, hd, hn, hr⟩ := h fp
   ⟨n, Lown, rets, Lout, ho, hw, hd, le_trans hn hB, fun rd hl hm => hr rd (hl.mono hk) hm⟩
 
-/-- The callees' bound: an entered one's `bd`, a skipped one's frame. -/
+/-- The callees' bound: an entered one's `bd`, a skipped one's tail. -/
 def kidsBound (fs : String → ℕ) (bd : Kid → ℕ) (ks : List Kid) : ℕ :=
-  (ks.map fun k => if k.taken = true then bd k else fs k.f).sum
+  (ks.map fun k => if k.taken = true then bd k else fs (tailKey k.f)).sum
 
 theorem kidsFromIn_of_kidsB (κ : ℕ) (bd : Kid → ℕ) : ∀ (ks : List Kid),
     (∀ k ∈ ks, k.taken = true → CompleteAtB fs cert κ k.f k.Lin k.args k.Out (bd k)) → ∀ b : ℕ,
@@ -713,18 +677,18 @@ theorem kidsFromIn_of_kidsB (κ : ℕ) (bd : Kid → ℕ) : ∀ (ks : List Kid),
               · exact Or.inr hi
             · simpa [hct] using hR2
     · obtain ⟨N, L, outs, ho, hW, hD, hNb, hI, hK⟩ := kidsFromIn_of_kidsB κ bd ks
-        (fun k' hk' => hok k' (by simp [hk'])) (b + fs k.f)
-      have hB1 : fs k.f + N ≤ kidsBound fs bd (k :: ks) := by
+        (fun k' hk' => hok k' (by simp [hk'])) (b + fs (tailKey k.f))
+      have hB1 : fs (tailKey k.f) + N ≤ kidsBound fs bd (k :: ks) := by
         simp only [kidsBound, List.map_cons, List.sum_cons, ht, Bool.false_eq_true, ↓reduceIte]
           at hNb ⊢
         omega
-      refine ⟨fs k.f + N, L, ([], []) :: outs, ⟨fun h => absurd h ht, ho⟩,
+      refine ⟨fs (tailKey k.f) + N, L, ([], []) :: outs, ⟨fun h => absurd h ht, ho⟩,
         hW.mono (by omega) (by omega), hD, hB1, ⟨fun h => absurd h ht, hI⟩, ?_⟩
       intro rd σ cs R Dacc hc hlow hL hLin hRg
       match cs, hc with
       | c :: cs, ⟨hf, hct, _, hc⟩ =>
         simp only [Kid.lins, List.flatMap_cons] at hLin
-        refine ⟨fs k.f, N, fun _ => False, fun _ => False, rfl, fun _ h => h.elim, ?_, ?_⟩
+        refine ⟨fs (tailKey k.f), N, fun _ => False, fun _ => False, rfl, fun _ h => h.elim, ?_, ?_⟩
         · have ht' : k.taken = false := by simpa using ht
           rw [hct, ht']
           simp only [Bool.false_eq_true, ↓reduceIte]

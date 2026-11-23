@@ -345,9 +345,9 @@ theorem lsKey {e : String × ℕ × ℕ × ℕ × ℕ × String × String × Str
     have hACm : ReadsAt rd' (ofK (addressOfIndex b)) AC := hB (b, AC) (by simp [hLb])
     have hPWm : ReadsAt rd' (ofK (addressOfIndex (b + (Q + 1)))) PW := hB (b + (Q + 1), PW) (by simp [hLb])
     refine lsLoop_rel he (pos := p) (cs := cs) (fun k hk ↦ ?_) (fun k hk ↦ ?_) hP' hF' hT'
-    · have := Whir.readsAt_getDr hACm (j := k) (by rw [hACl]; exact Nat.lt_succ_of_le hk)
+    · have := Whir.readsAt_getD' hACm (j := k) (by rw [hACl]; exact Nat.lt_succ_of_le hk)
       rwa [hAC, lsAccW_get hk] at this
-    · have := Whir.readsAt_getDr hPWm (j := k) (by rw [hPWl]; exact Nat.lt_succ_of_le hk)
+    · have := Whir.readsAt_getD' hPWm (j := k) (by rw [hPWl]; exact Nat.lt_succ_of_le hk)
       rwa [hPW, lsPwW_get hk] at this
   obtain ⟨m, hm⟩ := lr_relAtIn_pure_uniform (ls_pureIn hloop hrqF) (List.mem_cons_self) fs cert hres
   refine ⟨m, fun rd hl hL ↦ ?_⟩

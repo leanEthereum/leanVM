@@ -14,7 +14,7 @@ public import LeanVM.Guest.CoreNames
   the configuration `c`, the states threaded as `osLevelsW` threads them (`osLevelsW_eq`);
 * `callMatch c r q`: the `OsCall` `r` is the dispatch `q` in numbers: its `opening_queries`
   callee's shape, the indices of `level_queries`' specialization, of its `opening_queries`
-  callee, of that callee's loop and of its queries' `walk_path` (`decoderFunctionName`,
+  callee and of that callee's loop (`decoderFunctionName`,
   `Fast/FunctionNames.lean`), the loop's iterations, the level's depth and cap depth, the
   dispatch's arguments' and returns' cells (cells all);
 * `osWordsTab_eq`, `CallsOKN`: the literal tables of `Fast/WhirTables.lean` are the template's at
@@ -39,16 +39,16 @@ def isN (v : V) : Bool := v == .n v.idx
 
 /-- Two shapes, field by field. -/
 def shapeBEq (a b : OqShape) : Bool :=
-  a.odd == b.odd && a.base == b.base && a.folds == b.folds && a.leafCells == b.leafCells &&
-    a.depth == b.depth && a.cd == b.cd && a.mu == b.mu && a.vanish == b.vanish &&
-    a.nHs == b.nHs && a.hsBits == b.hsBits && a.final == b.final && a.vs == b.vs
+  a.base == b.base && a.folds == b.folds && a.leafCells == b.leafCells && a.pd == b.pd &&
+    a.mu == b.mu && a.vanish == b.vanish && a.nHs == b.nHs && a.hsBits == b.hsBits &&
+    a.final == b.final && a.vs == b.vs
 
 theorem eq_of_shapeBEq {a b : OqShape} (h : shapeBEq a b = true) : a = b := by
-  obtain ⟨_, _, _, _, _, _, _, _, _, _, _, _⟩ := a
-  obtain ⟨_, _, _, _, _, _, _, _, _, _, _, _⟩ := b
+  obtain ⟨_, _, _, _, _, _, _, _, _, _⟩ := a
+  obtain ⟨_, _, _, _, _, _, _, _, _, _⟩ := b
   simp only [shapeBEq, Bool.and_eq_true, beq_iff_eq] at h
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩, h7⟩, h8⟩, h9⟩, h10⟩, h11⟩, h12⟩ := h
-  subst h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩, h7⟩, h8⟩, h9⟩, h10⟩ := h
+  subst h1 h2 h3 h4 h5 h6 h7 h8 h9 h10
   rfl
 
 theorem osLevelsW_eq (rd : Reader) (V : FrameMap) (σ : Val) (c : OsCfg) :
@@ -65,8 +65,7 @@ noncomputable def callMatch (c : OsCfg) (r : OsCall) : ℕ × OsLv × List V × 
       decoderFunctionName r.lq == osQueriesName c lvl lv &&
       decoderFunctionName r.fn == osOqName c lvl lv &&
       decoderFunctionName r.loop == oqLoopOf (osOqName c lvl lv) &&
-      decoderFunctionName r.walk == oqWalkOf (oqShapeOf (osOqName c lvl lv)).oq &&
-      r.N == lv.queries / (1 + lvBase lvl) && r.depth == lv.depth && r.cd == lv.capDepth &&
+      r.N == lv.queries / (1 + lvBase lvl) && r.odd == lv.queries % (1 + lvBase lvl) && r.depth == lv.depth && r.cd == lv.capDepth &&
       r.args == args.map vIdx && r.rets == rets.map vIdx && args.all isN && rets.all isN
 
 /-- `decoderFunctionName j = f`, read off `Data.nameT`. -/
@@ -123,8 +122,7 @@ noncomputable def callMatchN (c : OsCfg) (r : OsCall) : ℕ × OsLv × List V ×
       nameIs r.lq (osQueriesName c lvl lv) &&
       nameIs r.fn (osOqName c lvl lv) &&
       nameIs r.loop (oqLoopAt r.sh) &&
-      nameIs r.walk (oqWalkOf (oqShapeAt r.sh).oq) &&
-      r.N == lv.queries / (1 + lvBase lvl) && r.depth == lv.depth && r.cd == lv.capDepth &&
+      r.N == lv.queries / (1 + lvBase lvl) && r.odd == lv.queries % (1 + lvBase lvl) && r.depth == lv.depth && r.cd == lv.capDepth &&
       r.args == args.map vIdx && r.rets == rets.map vIdx && args.all isN && rets.all isN
 
 theorem callMatch_of_N {c : OsCfg} {r : OsCall} {q : ℕ × OsLv × List V × List V}
@@ -135,8 +133,7 @@ theorem callMatch_of_N {c : OsCfg} {r : OsCall} {q : ℕ × OsLv × List V × Li
   have he := oqEntry_of_at h1
   have hl : oqLoopOf (osOqName c lvl lv) = oqLoopAt r.sh := by rw [oqLoopOf, oqLoopAt, he]
   have hs : oqShapeOf (osOqName c lvl lv) = oqShapeAt r.sh := by rw [oqShapeOf, oqShapeAt, he, oqAt]
-  simp only [callMatch, Bool.and_eq_true, beq_iff_eq, nameIs_spec h2, nameIs_spec h3, nameIs_spec h4,
-    nameIs_spec h5, hl, hs]
+  simp only [callMatch, Bool.and_eq_true, beq_iff_eq, nameIs_spec h2, nameIs_spec h3, nameIs_spec h4, hl, hs]
   simp_all [shapeBEq]
 
 theorem osWordsTab_eq :

@@ -66,7 +66,7 @@ theorem l5_stepAtTB (SB : String → ℕ)
     CompleteAtL fs cert 23 name% «main_loop4» Lin
       [gen ^ c, gen ^ nk, gen ^ W, lxt, cover, lxs, lst, spc, lss, gen ^ Cr,
         gen ^ D, s0, s1, gen ^ Pi, gsq, cfresh] (Returns []) (L5Node k Px Ps Pv Tt)
-      (· ≤ fs name% «main_loop4» + (if c + 1 < nk then Bt else fs name% «main_loop4») +
+      (· ≤ fs name% «main_loop4» + (if c + 1 < nk then Bt else fs (tailKey name% «main_loop4»)) +
         l5K SB Bx Bs Bv) := by
   -- the rest of the loop
   obtain ⟨Bt', hRest⟩ := completeAtL_tail (fs := fs) (cert := cert) (g := name% «main_loop4»)
@@ -279,9 +279,9 @@ theorem l5_stepAtTB (SB : String → ℕ)
       rw [hV.v56]; exact hW' 1
 
 /-- **`main_loop4`'s words over its last `t + 1` iterations from child `c`**: each iteration's frame
-and constant part `K c`, the last one's phantom tail call's frame. -/
+and constant part `K c`, the last one's phantom tail call's tail. -/
 def l5ChainB (fs : String → ℕ) (K : ℕ → ℕ) : ℕ → ℕ → ℕ
-  | 0, c => fs name% «main_loop4» + fs name% «main_loop4» + K c
+  | 0, c => fs name% «main_loop4» + fs (tailKey name% «main_loop4») + K c
   | t + 1, c => fs name% «main_loop4» + l5ChainB fs K t (c + 1) + K c
 
 /-- **`main_loop4` is complete within `l5ChainB`, placed, its trees exposed**: `l5_completeAtT`,

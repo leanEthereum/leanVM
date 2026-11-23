@@ -17,7 +17,7 @@ public import LeanVM.Guest.B1.Place.OsBos
 each level's Merkle cap cells and flags. From it: the levels' records `recs`, every fold
 challenge `G`, the guest's claims `gclAt`, the closing rounds `tr` and their challenges `T`,
 `λ⁻¹`, and each buffer's words (`ownAt j`, of buffer `j`'s size, `osSizesL` order: the head's
-eleven, each non-final level's message, the final lane, the finish's seven); `own`.
+twelve, each non-final level's message, the final lane, the finish's seven); `own`.
 
 `fitTo n xs`: `xs` cut or zero-padded to `n` words. `segAt`: a buffer split by levels at offsets,
 `segAt_at` reading a level's word back where the segments are disjoint.
@@ -163,9 +163,12 @@ def oodzC : List E := (List.range (h.c.levels.length * ligColsCap)).map fun e �
 def oodC : List E := (List.range h.c.levels.length).map fun e ↦
   if 1 ≤ e ∧ e - 1 < h.c.yrLevel then (h.L (e - 1)).lam h.logN else 0
 
+/-- `pos_totals`: each rate's positions' total. -/
+def posTotC : List E := (List.range ligNRates).map fun r ↦ gw (h.c.posTotal.getD r 0)
+
 /-- `query_positions`: each level's positions from its offset. -/
 def qposC : List E :=
-  (List.range (h.c.levels.length * ligPosCap)).map
+  (List.range (osPosTotal h.c)).map
     (segAt h.c.levels.length (fun l ↦ (h.lv l).posOff) (fun l ↦ (h.lv l).squeezes * (128 / (h.lv l).depth))
       fun l k ↦ eOfNat (qwPosOf (h.lv l).depth ((h.L l).word h.logN (k / (128 / (h.lv l).depth)))
         (k % (128 / (h.lv l).depth))))
@@ -184,12 +187,13 @@ def hsFC : List E := (List.range (h.c.yrLen + (h.lv h.c.yrLevel).folds)).map fun
 /-- Buffer `j`'s honest words, before fitting to its size. -/
 def ownW (j : ℕ) : List E :=
   let y := h.c.yrLevel
-  if j < 11 then
-    [h.fmsgC, h.rootsC, h.fchC, h.coefsC, h.betasC, h.musC, h.hsC, h.oodzC, h.oodC, h.qposC, []].getD j []
-  else if j < 11 + y then h.sentC (j - 11)
-  else if j = 11 + y then h.hsFC
+  if j < 12 then
+    [h.fmsgC, h.rootsC, h.fchC, h.coefsC, h.betasC, h.musC, h.hsC, h.oodzC, h.oodC, h.posTotC, h.qposC,
+      []].getD j []
+  else if j < 12 + y then h.sentC (j - 12)
+  else if j = 12 + y then h.hsFC
   else [h.T, finPtC h.c h.G h.T, finPt1C h.c h.G h.T, finBdC h.c h.G h.T h.recs, finLsC h.c h.G h.T h.recs,
-      finLaC h.c h.G h.T h.recs, finIchC h.c h.G h.T h.recs h.li h.tr.2.1].getD (j - (12 + y)) []
+      finLaC h.c h.G h.T h.recs, finIchC h.c h.G h.T h.recs h.li h.tr.2.1].getD (j - (13 + y)) []
 
 /-- **Buffer `j`'s honest words**, of its size. -/
 def ownAt (j : ℕ) : List E := fitTo ((osSizesL h.c).getD j 0) (h.ownW j)

@@ -57,7 +57,8 @@ fn hint_lean(h: &RHint) -> Option<String> {
             size,
             end,
             start_inverse,
-        } => format!("(.allocFrames {ptr} {size} {end} (LeanVM.Parameters.K.ofBits 0x{:x}))", start_inverse.0),
+            tail,
+        } => format!("(.allocFrames {ptr} {size} {end} (LeanVM.Parameters.K.ofBits 0x{:x}) {tail})", start_inverse.0),
         RHint::Alloc { ptr, size } => format!("(.alloc {ptr} {size})"),
         RHint::AllocDyn { ptr, size } => format!("(.allocDyn {ptr} {size})"),
         RHint::AllocArm { ptr, sel, sizes } => {

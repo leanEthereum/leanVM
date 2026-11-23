@@ -650,6 +650,70 @@ def cs_reads(EM):
     return base, pt
 
 
+# ---- values a body pins to powers of `g` (`CoreMode.valExpB`), carried down to callees (`CoreMode.carryExpB`)
+
+def spine_atoms(ss):
+    """`Memory.spineE`'s atoms: the top-level atoms up to the first statement that may return."""
+    out = []
+    for s in ss:
+        if s[0] == 'a':
+            out.append(s[1])
+        elif s[0] in ('call', 'callIf', 'dispatch'):
+            continue
+        elif s[0] in ('ite', 'match') and heapc.noret(s):
+            continue
+        else:
+            break
+    return out
+
+
+def pow1(c):
+    """`Res.powOf1`: the exponent of a constant word `g^e`, `1` at `0`."""
+    if c is None or c[1] != 0:
+        return None
+    return 0 if c[0] == 1 else I.POWS.get(c[0])
+
+
+def const_exp(v, lo, hi, sp):
+    """`CoreMode.constExpS`."""
+    return any(a[0] == 'const' and a[1] == v and pow1(a[2]) is not None and lo <= pow1(a[2]) < hi for a in sp)
+
+
+def copy_exp(v, lo, hi, sp):
+    """`CoreMode.copyExpS`."""
+    return any(a[0] == 'copy' and a[1] == v and const_exp(a[2], lo, hi, sp) for a in sp)
+
+
+def arm_exp(v, lo, hi, ss):
+    """`CoreMode.armExpB`."""
+    for s in ss:
+        if s[0] == 'match' and s[2] and all(copy_exp(v, lo, hi, spine_atoms(a)) for a in s[2]):
+            return True
+        if not heapc.noret(s):
+            return False
+    return False
+
+
+def val_exp(body, v, lo, hi):
+    """`CoreMode.valExpB`: `v` is `g^e`, `lo <= e < hi`, on every returning path of `body`."""
+    return const_exp(v, lo, hi, spine_atoms(body)) or arm_exp(v, lo, hi, body)
+
+
+def carry_misses(L):
+    """`CoreMode.carryExpB` over the whole program: the call sites of a listed `(callee, parameter, lo, hi)` whose argument
+    its caller does not pin so."""
+    out = []
+    for k, (params, body) in sorted(I.CORE.items()):
+        for s in I.stmts(body):
+            sites = [(s[1], s[2])] if s[0] == 'call' else [(s[2], s[3])] if s[0] == 'callIf' else \
+                [(f, s[3]) for f in s[2]] if s[0] == 'dispatch' else []
+            for f, args in sites:
+                for g, p, lo, hi in L:
+                    if g == f and not (p < len(args) and val_exp(body, args[p], lo, hi)):
+                        out.append((k, f, p))
+    return out
+
+
 def straight(body):
     return all(s[0] in ('a', 'ret') for s in body) and sum(1 for s in body if s[0] == 'ret') == 1 and \
         body[-1][0] == 'ret'

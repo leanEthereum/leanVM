@@ -751,13 +751,14 @@ fn apply_hint<'a>(h: &'a RHint, fp: u32, m: &mut Mem, g: &mut GPow, advice: &mut
             size,
             end,
             start_inverse,
+            tail,
         } => {
             let span = in_k("loop bound", m.get(cell_at(fp, end)?))? * F64(start_inverse.0);
             let n = (!span.is_zero())
                 .then(|| g.log(span))
                 .flatten()
                 .ok_or(not_a_g_power("loop bound", span))?;
-            let cells = n.checked_add(1).and_then(|frames| size.checked_mul(frames));
+            let cells = size.checked_mul(n).and_then(|frames| frames.checked_add(tail));
             let cells = cells.ok_or(Fault::OutOfMemory)?;
             alloc(m, g, &mut advice.next_free, cell_at(fp, ptr)?, cells)?;
         }

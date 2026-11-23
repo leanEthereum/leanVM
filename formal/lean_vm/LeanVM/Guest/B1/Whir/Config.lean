@@ -20,7 +20,8 @@ time it reads the row `m_idx` of the per-size tables (`LIG_N_LEVELS`, `LIG_YR_LE
 `ml = m_idx · LIG_MAX_LEVELS + lvl` of the per-level ones that no rate changes (`LIG_FOLDS`,
 `LIG_LOG_MSG_COLS`, …), and, through a `match` on the rate, the rows
 `(r · LIG_N_LOG_SIZES + m_idx) · LIG_MAX_LEVELS + lvl` of those a rate changes (`LIG_QUERIES`,
-`LIG_TREE_DEPTH`, `LIG_CAP_DEPTH`, `LIG_SQUEEZES`). The tables are the deployed placeholders, as
+`LIG_TREE_DEPTH`, `LIG_CAP_DEPTH`, `LIG_SQUEEZES`, `LIG_POS_OFF`), and the rows `m_idx + r · LIG_N_LOG_SIZES`
+of `LIG_POS_TOTAL`. The tables are the deployed placeholders, as
 the source data holds them (`Data.arr_LIG_*`, `Guest/Data/Consts.lean`); nothing here is trusted:
 the template of the body built from them (`Whir/Template.lean`) is checked equal to the core IR,
 and their facts against the Spec are decided (`Whir/Facts.lean`).
@@ -48,9 +49,6 @@ abbrev ligNSizes : Nat := guest_const% LIG_N_LOG_SIZES
 /-- `LIG_N_RATES`. -/
 abbrev ligNRates : Nat := guest_const% LIG_N_RATES
 
-/-- `LIG_LEVEL_POSITIONS_CAP`: a level's slots in `query_positions` and `query_win_ptrs`. -/
-abbrev ligPosCap : Nat := guest_const% LIG_LEVEL_POSITIONS_CAP
-
 /-- `LIG_LOG_MSG_COLS_CAP`: the stride of a sample's row in `ood_z` and of a level's in
 `basis_d`. -/
 abbrev ligColsCap : Nat := guest_const% LIG_LOG_MSG_COLS_CAP
@@ -73,7 +71,7 @@ structure OsLv where
   depth : Nat
   /-- `LIG_LEAF_CELLS`: the cells a leaf hashes. -/
   leafCells : Nat
-  /-- The level's first slot in `query_positions`, `lvl · LIG_LEVEL_POSITIONS_CAP`. -/
+  /-- `LIG_POS_OFF`, at the rate: the level's first slot in `query_positions`. -/
   posOff : Nat
   /-- `LIG_CAP_DEPTH`, at the rate. -/
   capDepth : Nat
@@ -101,7 +99,7 @@ def osLvR (m r lvl : Nat) : OsLv :=
   let cols := lig Data.arr_LIG_LOG_MSG_COLS i
   { folds := lig Data.arr_LIG_FOLDS i, foldsOff := lig Data.arr_LIG_FOLDS_OFF i,
     queries := lig Data.arr_LIG_QUERIES j, depth := lig Data.arr_LIG_TREE_DEPTH j,
-    leafCells := lig Data.arr_LIG_LEAF_CELLS i, posOff := lvl * ligPosCap,
+    leafCells := lig Data.arr_LIG_LEAF_CELLS i, posOff := lig Data.arr_LIG_POS_OFF j,
     capDepth := lig Data.arr_LIG_CAP_DEPTH j, squeezes := lig Data.arr_LIG_SQUEEZES j,
     logCols := cols, highBits := lig Data.arr_LIG_HIGH_BITS i,
     prefixLen := lig Data.arr_LIG_RESIDUAL_PREFIX_LEN i,
@@ -126,6 +124,8 @@ structure OsCfg where
   yrLen : Nat
   /-- `LIG_TOTAL_FOLDS`. -/
   nFolds : Nat
+  /-- `LIG_POS_TOTAL`, by rate: every level's query positions. -/
+  posTotal : List Nat
   /-- The compiler's choices of a shifted pointer's source (`osMatPlan`). -/
   plan : List (Nat × Nat × Nat)
   deriving Repr, Inhabited
@@ -141,6 +141,7 @@ def osCfg (m : Nat) : OsCfg :=
   { m, levels := osLevelsR m 0, levelsAt := (List.range ligNRates).map (osLevelsR m),
     yrLevel := lig Data.arr_LIG_YR_LEVEL m, yrLog := lig Data.arr_LIG_YR_LOG_LEN m,
     yrLen := lig Data.arr_LIG_YR_LEN m, nFolds := lig Data.arr_LIG_TOTAL_FOLDS m,
+    posTotal := (List.range ligNRates).map fun r ↦ lig Data.arr_LIG_POS_TOTAL (m + r * ligNSizes),
     plan := osMatPlan m }
 
 /-- The configuration with the levels `L`. -/

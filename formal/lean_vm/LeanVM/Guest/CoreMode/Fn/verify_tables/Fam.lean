@@ -162,15 +162,18 @@ noncomputable def vtLt (as : List Atom) (arms : List (ℕ × ℕ)) (a b : CIdx) 
   | _, _ => false
 
 /-- `[B]·[J]·g^o` one of `cs`, the cells `[B]·g^(o + t)`, `t < |cs|`, by `e(J) < |cs|`. -/
+noncomputable def vtSubP1 (as : List Atom) (arms : List (ℕ × ℕ)) (o B J : ℕ) (cs : List CCell) : Bool :=
+  (List.range cs.length).all (fun t ↦ cs.contains ⟨[(B, 1)], o + t⟩) && vtLt as arms (.val J) (.num cs.length)
+
+/-- `vtSubP1` with either base the index. -/
 noncomputable def vtSubP (as : List Atom) (arms : List (ℕ × ℕ)) (c : CCell) (cs : List CCell) : Bool :=
   match c.bases with
-  | [(B, 1), (J, 1)] => (List.range cs.length).all (fun t ↦ cs.contains ⟨[(B, 1)], c.off + t⟩) &&
-      vtLt as arms (.val J) (.num cs.length)
+  | [(B, 1), (J, 1)] => vtSubP1 as arms c.off B J cs || vtSubP1 as arms c.off J B cs
   | _ => false
 
 /-- **`verify_tables`' exponent family** (`vtexp.holds`): `lt a b` (`F_b - F_a - 1 ≥ 0`), `subR q r` (stride `1`, `q`'s
 base `r`'s times a product `m`, `r`'s bounds hold `F_m + q.off - r.off` past `q`'s), `subP` (`[B]·[J]·g^o` one of
-`[B]·g^(o + t)`, `t < |cs|`, by `e(J) < |cs|`), under branch conditions (the arms used). -/
+`[B]·g^(o + t)`, `t < |cs|`, by `e(J) < |cs|`, either base the index), under branch conditions (the arms used). -/
 noncomputable def vtExpR (as : List Atom) (arms : List (ℕ × ℕ)) : CRes → Bool
   | .lt a b => vtLt as arms a b
   | .subP c cs => vtSubP as arms c cs
@@ -192,18 +195,18 @@ def vtGw : List (CCell × ℕ) := (List.range 7).map fun j ↦ (⟨[(val% «veri
 /-- **The top-level atoms of `verify_tables` its exponent family reads** (`vtexp.ATOMS`; `EndExec.vtAtoms_top`). -/
 def vtAtoms : List Atom :=
   [.const (.n (val% «verify_tables» "kb[0]")) (word 1 0),
-    .mul (.n (val% «verify_tables» "g_bus_mu")) (.n (val% «verify_tables» "s23.u0.s1#0")) (.n (val% «verify_tables» "kb[2]")),
-    .mul (.n (val% «verify_tables» "g_bus_mu")) (.n (val% «verify_tables» "s23.u1.s1#0")) (.n (val% «verify_tables» "kb[3]")),
-    .mul (.n (val% «verify_tables» "g_bus_mu")) (.n (val% «verify_tables» "s23.u2.s1#0")) (.n (val% «verify_tables» "kb[4]")),
-    .mul (.n (val% «verify_tables» "g_bus_mu")) (.n (val% «verify_tables» "s23.u3.s1#0")) (.n (val% «verify_tables» "kb[5]")),
-    .mul (.n (val% «verify_tables» "g_bus_mu")) (.n (val% «verify_tables» "s23.u4.s1#0")) (.n (val% «verify_tables» "kb[6]")),
-    .mul (.n (val% «verify_tables» "g_bus_mu")) (.n (val% «verify_tables» "s23.u5.s1#0")) (.n (val% «verify_tables» "kb[7]")),
+    .mul (.n (val% «verify_tables» "g_bus_mu")) (.n (val% «verify_tables» "s17.u0.s0#0")) (.n (val% «verify_tables» "kb[2]")),
+    .mul (.n (val% «verify_tables» "g_bus_mu")) (.n (val% «verify_tables» "s17.u1.s0#0")) (.n (val% «verify_tables» "kb[3]")),
+    .mul (.n (val% «verify_tables» "g_bus_mu")) (.n (val% «verify_tables» "s17.u2.s0#0")) (.n (val% «verify_tables» "kb[4]")),
+    .mul (.n (val% «verify_tables» "g_bus_mu")) (.n (val% «verify_tables» "s17.u3.s0#0")) (.n (val% «verify_tables» "kb[5]")),
+    .mul (.n (val% «verify_tables» "g_bus_mu")) (.n (val% «verify_tables» "s17.u4.s0#0")) (.n (val% «verify_tables» "kb[6]")),
+    .mul (.n (val% «verify_tables» "g_bus_mu")) (.n (val% «verify_tables» "s17.u5.s0#0")) (.n (val% «verify_tables» "kb[7]")),
     .mul (.n (val% «verify_tables» "g_bus_mu")) (.n (val% «verify_tables» "sel_len_g@1")) (.n (val% «verify_tables» "kb[0]")),
     .mul (.n (val% «verify_tables» "g_bus_mu")) (.n (val% «verify_tables» "sel_len_g@2")) (.n (val% «verify_tables» "kb[1]")),
     .const (.n (val% «verify_tables» "kappa_g@2~0")) (word 524288 0),
     .mul (.n (val% «verify_tables» "kappa_g@2")) (.n (val% «verify_tables» "kb[0]")) (.n (val% «verify_tables» "kappa_g@2~0")),
     .mul (.n (val% «verify_tables» "g_bus_mu")) (.n (val% «verify_tables» "sel_len_g@3")) (.n (val% «verify_tables» "kappa_g@2")),
-    .mul (.n (val% «verify_tables» "g_zc_n")) (.n (val% «verify_tables» "s56.u0.s1#1")) (.n (val% «verify_tables» "kb[2]")),
+    .mul (.n (val% «verify_tables» "g_zc_n")) (.n (val% «verify_tables» "s57.u0.s1#1")) (.n (val% «verify_tables» "kb[2]")),
     .mul (.n (val% «verify_tables» "g_zc_n")) (.n (val% «verify_tables» "air_acc@1~0")) (.n (val% «verify_tables» "kb[2]")),
     .mul (.n (val% «verify_tables» "g_zc_n")) (.n (val% «verify_tables» "air_acc@2~0")) (.n (val% «verify_tables» "kb[3]")),
     .mul (.n (val% «verify_tables» "g_zc_n")) (.n (val% «verify_tables» "air_acc@3~0")) (.n (val% «verify_tables» "kb[4]")),

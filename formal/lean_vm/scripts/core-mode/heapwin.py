@@ -89,7 +89,7 @@ def is_loop(H):
 def region(k, H):
     """The statements the windows cover: a loop helper's body without the tail (`loopBody`); a function's body up to
     its first top-level `ret` (the windows end at a cut `N`; `lastOkF` checks the statements from `N` on)."""
-    body = I.CORE[k][1]
+    body = I.arm_body(k)
     if is_loop(H):
         return body[:-2]
     r = next((i for i, s in enumerate(body) if s[0] == 'ret'), len(body))
@@ -99,7 +99,7 @@ def region(k, H):
 def states(k, H, sigOf):
     """The check's pass (`heapc.heapOkC`) over the statements of `region`: `([S0, S1, ..], [cost0, ..])`, `S_i` the
     state before statement `i`, `cost_i` statement `i`'s estimated heartbeats."""
-    params, body = I.CORE[k]
+    params, body = I.CORE[k][0], I.arm_body(k)
     G = H.sig
     m = len(params)
     X_ = C.X(dict(I.POWS), H, sigOf, params)
@@ -165,7 +165,7 @@ def lcnt(s):
 
 def fn_cost(k, H, sigOf):
     """The estimated heartbeats (thousands) of `k`'s check in one `decide`: what `emitc.py` compares with `BUDGET`."""
-    params, body = I.CORE[k]
+    params, body = I.CORE[k][0], I.arm_body(k)
     with Meter() as mt:
         C.heapOkC(dict(I.POWS), sigOf, k, params, body, H)
     return W_LINE * mt.n + W_ATOM * sum(map(atoms, body)) + fixed_cost(k, H)
@@ -173,7 +173,7 @@ def fn_cost(k, H, sigOf):
 
 def fixed_cost(k, H):
     """What every window pays (the context's tries) and the head (`faOk`)."""
-    body = I.CORE[k][1]
+    body = I.arm_body(k)
     r = next((i for i, s in enumerate(body) if any(t[0] == 'ret' for t in C.stmts([s]))), len(body))
     return W_CERT * cert_size(H) + W_FA * len(H.fas) * r
 
@@ -519,7 +519,7 @@ def fl_cost(H, f):
     return 8 * len(H.divs if f == 'DV' else H.hvs if f == 'HV' else H.eqs)
 
 
-def lcx(H, pre='sig_pre'):
+def lcx(H, pre='sig_pre', lpre=''):
     """The context's tries (`cxOf`) as literals: `[(field, its expression, type, defs, literal)]`, each of
     `hcert.readT` and of `trieFrom` a list of the certificate a literal of the trie's shape whose entries are positions
     of the certificate's lists (`lrefs`: the data is not restated), the key sets (`keysT`) plain literals. `pre` names
@@ -528,16 +528,16 @@ def lcx(H, pre='sig_pre'):
     for (d, p, off), w in sorted(H.reads.items()):
         by_d[d].append(f'({p}, {off}, {E.lwit(w)})')
     ritems = [f'({d}, [{", ".join(rs)}])' for d, rs in sorted(by_d.items())]
-    rref, rdefs = lrefs(ritems, 'reads', 'hcert.reads', 'R')
+    rref, rdefs = lrefs(ritems, lpre + 'reads', 'hcert.reads', 'R')
     rref = [f'(Option.map Prod.snd {r})' for r in rref]
     ax = E.Aux()
-    citems = [E.lwits(ax, f'call{i}_', ws) for i, ws in enumerate(H.calls)]
-    titems = [E.lwits(ax, f'ret{i}_', ws) for i, ws in enumerate(H.rets)]
+    citems = [E.lwits(ax, f'{lpre}call{i}_', ws) for i, ws in enumerate(H.calls)]
+    titems = [E.lwits(ax, f'{lpre}ret{i}_', ws) for i, ws in enumerate(H.rets)]
     ref = lambda items, name, whole, f: (lambda r: (dict(enumerate(r[0])), r[1]))(lrefs(items, name, whole, f))
     fields = [('R', 'hcert.readT', '(List (ℕ × ℕ × CoreMode.Wit))', (dict(zip(sorted(by_d), rref)), rdefs)),
               ('P', 'trieFrom hcert.sig.pre 0 .nil', 'CCell', ref(list(map(E.lcell, H.sig.pre)), pre, 'hcert.sig.pre', 'P')),
-              ('C', 'trieFrom hcert.calls 0 .nil', '(List CoreMode.Wit)', ref(citems, 'calls', 'hcert.calls', 'C')),
-              ('T', 'trieFrom hcert.rets 0 .nil', '(List CoreMode.Wit)', ref(titems, 'rets', 'hcert.rets', 'T')),
+              ('C', 'trieFrom hcert.calls 0 .nil', '(List CoreMode.Wit)', ref(citems, lpre + 'calls', 'hcert.calls', 'C')),
+              ('T', 'trieFrom hcert.rets 0 .nil', '(List CoreMode.Wit)', ref(titems, lpre + 'rets', 'hcert.rets', 'T')),
               ('RS', 'trieFrom hcert.res 0 .nil', 'CoreMode.CRes', ref(list(map(E.lres, H.res)), 'res', 'hcert.res', 'RS')),
               ('DV', 'keysT hcert.divs .nil', 'Unit', (dict.fromkeys(H.divs, '(some ())'), [])),
               ('HV', 'keysT hcert.hvs .nil', 'Unit', (dict.fromkeys(H.hvs, '(some ())'), [])),
@@ -557,11 +557,13 @@ def wprf(d):
 def emit(k, H, sts, cs, po, splits, gen):
     """The modules of one function: `[(name, text)]`. `gen`, a dict of `root` (the modules' prefix), `sub` (the
     namespace under the function's), `data` (the certificate's modules), `sigw` (the callees' signatures, as Lean),
-    `final` (the name of the heap check's theorem) and `pre` (its precondition's name, default `sig_pre`)."""
+    `final` (the name of the heap check's theorem) and `pre` (its precondition's name, default `sig_pre`); for an arm
+    of a split certificate (`HCert.arms`), `ns` and `base` (its namespace, where `core` and `hcert` are the arm's, and
+    its modules' prefix), `lpre` (the prefix of its lists' declarations) and `one` (the theorem `heapOkC1`'s)."""
     pack, core_mod = po[k][0], po[k][1]
     data, sub, sigw = gen['data'], gen['sub'], gen['sigw']
-    ns = f'LeanVM.Guest.Fn.«{k}»'
-    base = f'{gen["root"]}.«{k}»'
+    ns = gen.get('ns', f'LeanVM.Guest.Fn.«{k}»')
+    base = gen.get('base', f'{gen["root"]}.«{k}»')
     mods = []
     loop = is_loop(H)
     nw = len(cs) - 1 if loop else len(cs) - 2      # a function's last chunk is `lastOkF`'s
@@ -570,7 +572,7 @@ def emit(k, H, sts, cs, po, splits, gen):
            f'@[expose] public section\n')
     # the context (`Cx`): the callees' signatures, each trie stated once (`lcx`), their parts in modules of at most
     # `CXPART` characters (`CxD<j>`, each importing the last) if long
-    fl = lcx(H, pre=gen.get('pre', 'sig_pre'))
+    fl = lcx(H, pre=gen.get('pre', 'sig_pre'), lpre=gen.get('lpre', ''))
     head = (f'public import LeanVM.Guest.CoreMode.HeapCWin{"" if loop else "F"}\n' +
             ''.join(f'public import {m}\n' for m in data) + imps)
     sigd = f'/-- The callees\' signatures. -/\nnoncomputable def sigW : String → CoreMode.HSig := {sigw}\n'
@@ -644,7 +646,9 @@ def emit(k, H, sts, cs, po, splits, gen):
         mods.append((f'S{g}', repack(si)))
         for i, _ in grp:
             smod[i] = f'S{g}'
-    blk, wok = ('(Memory.loopBody core)', 'winOk') if loop else ('core.body', 'winOkF')
+    # an arm's `core` is its own (`CoreMode.selF`): `(core).body` its projection, where `core.body` would name the
+    # function's whole body (`Fn.«k».core.body`)
+    blk, wok = ('(Memory.loopBody core)', 'winOk') if loop else ('(core).body' if 'ns' in gen else 'core.body', 'winOkF')
     for i in range(nw):
         a, b = cs[i], cs[i + 1]
         w = HEADER(f'{base}.W{i}', what=f'Window {i} of `{k}`\'s heap check: statements {a} to {b - 1}.')
@@ -698,7 +702,10 @@ def emit(k, H, sts, cs, po, splits, gen):
     lst = ', '.join(f'({cs[i]}, {sub}.st{i})' for i in range(1, n + 1))
     wins = ''.join(f'{sub}.win{i}, by omega,\n    ' for i in range(n))
     thm, last = ('heapOkC_of_wins', 'tail_ok') if loop else ('heapOkC_of_winsF', 'last_ok')
-    ok += (f'/-- `{k}`: the heap check, in {n} windows. -/\ntheorem {gen["final"]} : CoreMode.heapOkC Fn.«{k}».pows\n'
+    one = '1' if gen.get('one') else ''
+    if one:
+        thm = thm.replace('heapOkC', 'heapOkC1')
+    ok += (f'/-- `{k}`: the heap check, in {n} windows. -/\ntheorem {gen["final"]} : CoreMode.heapOkC{one} Fn.«{k}».pows\n'
            f'    {sigw}\n    core hcert = true :=\n'
            f'  CoreMode.{thm} (l := [{lst}]) {sub}.head_ok\n    {f"⟨{wins}trivial⟩" if n else "trivial"} rfl '
            f'{sub}.{last}\n')

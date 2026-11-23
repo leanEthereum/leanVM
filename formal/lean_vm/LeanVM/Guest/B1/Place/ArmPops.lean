@@ -190,7 +190,7 @@ theorem armTs_armTsP {Bk : String → ℕ} {c : OsCfg} {args : List E} {cur tabs
     {tgt inn res : E} {pt pt1 : List E} (H : OsHonestA c args cur tabs xs tgt inn res pt pt1) (σ : Val)
     (rd : Reader) :
     List.Forall₂ (fun T T' : Tree → Prop ↦ ∀ t, T t → T' t) (armTs (Bd := some Bk) H σ rd) (armTsP Bk H σ rd) :=
-  forall₂_append' (lvTs_forall₂ (fun _ _ ↦ trivial) (fun _ _ ↦ trivial) (fun _ _ h B hB hq ↦ (h B hB).1
+  List.rel_append (lvTs_forall₂ (fun _ _ ↦ trivial) (fun _ _ ↦ trivial) (fun _ _ h B hB hq ↦ (h B hB).1
     fun he ↦ by rw [he, lqNameB_of_kind osKindOf_isZero] at hq; cases hq) 0 _)
     (forall₂_map_same _ fun _ _ _ _ ↦ trivial)
 
@@ -204,7 +204,7 @@ theorem arm_popsBy {m ri : ℕ} (hm : m < 11) (hri : ri < 4) {σ : Val}
       armRest σ (osCfgR m ri))
     (hS : ∀ c' ∈ cs, armS c'.f = true) :
     PopsBy rd cs (armTsP Bk H σ rd) (armPss H σ) := by
-  obtain ⟨hB, -, hyr⟩ := armBody_ok ri hm
+  obtain ⟨-, hB, hffm, -, hyr⟩ := armBody_ok hm hri
   have hLv := armLv_ok hm hri
   subst hcs
   have hnw : ∀ c' ∈ (osLvKOf σ (osCfgR m ri) 0 (osCfgR m ri).levels (osHead (osCfgR m ri)).2).flatMap
@@ -245,14 +245,13 @@ theorem arm_popsBy {m ri : ℕ} (hm : m < 11) (hri : ri < 4) {σ : Val}
       exact lqNameB_of_kind hK
     obtain ⟨x, hx, rfl⟩ := List.mem_map.mp hc
     rcases mem_finFrames hx with rfl | hiz | ⟨j, hj, rfl | rfl⟩
-    · obtain ⟨K, hK⟩ := Option.isSome_iff_exists.mp (List.all_eq_true.mp hB _ (ffm_mem_body (osCfgR m ri)))
+    · obtain ⟨K, hK⟩ := Option.isSome_iff_exists.mp hffm
       exact lqNameB_of_kind hK
     · rw [mkCall_f', hiz]
       exact lqNameB_of_kind osKindOf_isZero
     · have hjy : j < (osCfgR m ri).yrLevel := by simpa [Nat.min_eq_left hyr.le] using hj
-      show lqNameB (selName σ (osCfgR m ri) j osResidualName) = false
-      rw [selName_rate hri hR]
-      exact lqNameB_of_lr ((hLv j (by omega)).2.2.1 hjy)
+      show lqNameB (osResidualName (osLvA (osCfgR m ri) j)) = false
+      exact lqNameB_of_lr ((hLv j (by omega)).2.2.1 hjy).1
     · have hjy : j < (osCfgR m ri).yrLevel := by simpa [Nat.min_eq_left hyr.le] using hj
       show lqNameB (selName σ (osCfgR m ri) j (osSlowName (osCfgR m ri))) = false
       rw [selName_rate hri hR]
@@ -264,10 +263,10 @@ theorem arm_pops {m ri : ℕ} (hm : m < 11) (hri : ri < 4) {f : String} {fn : Fn
     {args : List E} {cur tabs : E} {xs : List E} {tgt inn res : E} {pt pt1 : List E}
     {H : OsHonestA (osCfgR m ri) args cur tabs xs tgt inn res pt pt1} {rd : Reader} {t : Tree} {a r : List E}
     (hv : t.Valid coreProgram rd a r)
-    (hT : FlatNodeT f fn (osBodyA (osCfgR m ri)) (fun σ ↦ σ (.n osRate) = ofK (addressOfIndex ri))
-      (armTs (Bd := some Bk) H) rd t) :
+    (hT : FlatNodeT f fn (osBodyA (osCfgR m ri))
+      (fun σ ↦ σ (.n osRate) = ofK (addressOfIndex ri) ∧ WinEx (osBodyA (osCfgR m ri)) σ) (armTs (Bd := some Bk) H) rd t) :
     t.pops coreProgram rd = (List.range (osCfgR m ri).levels.length).flatMap (osLvPops H) := by
-  obtain ⟨σ, bufs, kids, es, vs, rfl, hw, hces, hR, hK⟩ := hT
+  obtain ⟨σ, bufs, kids, es, vs, rfl, hw, hces, ⟨hR, -⟩, hK⟩ := hT
   obtain ⟨fn', hf', -, es', vs', hw', -, -, hkv⟩ := hv
   rw [hf, Option.some.injEq] at hf'
   subst hf'

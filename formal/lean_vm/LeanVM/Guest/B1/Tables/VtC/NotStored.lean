@@ -25,7 +25,7 @@ open LeanVM.Guest.Core LeanVM.Guest.B1.Fwd
 /-- The pointers of `verify_tables`' stores (`vtSL_ptrs`). -/
 def vtStorePtrs : List ℕ :=
   [15, 19, 34, 35, 118, 122, 131, 141, 151, 161, 171, 181, 191, 201, 211, 221, 231, 241, 251, 261,
-    271, 281, 415, 419, 428, 438, 448, 458, 468, 478, 488, 498, 508, 518, 665, 778, 2620, 2621]
+    271, 281, 415, 419, 428, 438, 448, 458, 468, 478, 488, 498, 508, 518, 767, 822, 2316, 2317]
 
 theorem vtSL_ptrs : vtSL.all (ptrInB vtStorePtrs) = true := by decide +kernel
 

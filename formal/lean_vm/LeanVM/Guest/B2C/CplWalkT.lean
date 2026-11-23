@@ -90,12 +90,12 @@ counts and, if counted separately, its own. -/
 theorem tbl_arm {X : CX} {J : ℕ} {succ : List ℕ} {v : V} {se : CW} {key : Option (List Cnt)}
     {a0 : List Stmt} {as : List (List Stmt)} {t0 : ℕ} {ts : List ℕ} {s0 : CW} {c0 : Cnt} {u0 : ℕ}
     {c : Cnt} {u : ℕ} (hs0 : segAtC X t0 se = some s0)
-    (h0 : armEnd J succ (cw X a0 { s0 with book := fileB X.loc X.fs a0 se.book, tg := armTg X v 0 ++ s0.tg }) = some (c0, u0))
+    (h0 : armEnd J succ (cw X a0 { s0 with book := fileB X.loc X.fs X.nx a0 se.book, tg := armTg X v 0 ++ s0.tg }) = some (c0, u0))
     (hk0 : armChkK key 0 c0 = true)
     (ha : cwArms X J succ v se key as ts c0 u0 1 = some (c, u)) (hl : ts.length = as.length) :
     ∀ k (hk : k < (a0 :: as).length), ∃ (hk' : k < (t0 :: ts).length) (s : CW) (ck : Cnt) (uk : ℕ),
       segAtC X (t0 :: ts)[k] se = some s ∧
-      armEnd J succ (cw X (a0 :: as)[k] { s with book := fileB X.loc X.fs (a0 :: as)[k] se.book, tg := armTg X v k ++ s.tg }) = some (ck, uk) ∧
+      armEnd J succ (cw X (a0 :: as)[k] { s with book := fileB X.loc X.fs X.nx (a0 :: as)[k] se.book, tg := armTg X v k ++ s.tg }) = some (ck, uk) ∧
       (∀ op, ck.get op ≤ c.get op) ∧ armChkK key k ck = true := by
   obtain ⟨-, hc, hks⟩ := cwArms_spec ha
   intro k hk
@@ -217,13 +217,13 @@ theorem tbl_armsZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {v : V} {a
       EnvAt L fp X wJ wenv (t0 :: ts)[k])
     (hs0 : segAtC X t0 (armSt (armKeyD X.acs v.idx) se) = some s0) {r : RC}
     (hr : (∃ J c0 u0 c u sj,
-        cw X a0 { s0 with book := fileB X.loc X.fs a0 se.book, tg := armTg X v 0 ++ s0.tg } = .join J c0 u0 ∧
+        cw X a0 { s0 with book := fileB X.loc X.fs X.nx a0 se.book, tg := armTg X v 0 ++ s0.tg } = .join J c0 u0 ∧
         armChkK (armKeyD X.acs v.idx) 0 c0 = true ∧
         cwArms X J [] v (armSt (armKeyD X.acs v.idx) se) (armKeyD X.acs v.idx) as ts c0 u0 1 = some (c, u) ∧
         segAtC X J se = some sj ∧
         r = cw X ss { sj with cnt := armCnt (armKeyD X.acs v.idx) se c, uq := u }) ∨
        (∃ o' succ c0 u0 c u,
-        cw X a0 { s0 with book := fileB X.loc X.fs a0 se.book, tg := armTg X v 0 ++ s0.tg } = .chain o' succ c0 u0 ∧
+        cw X a0 { s0 with book := fileB X.loc X.fs X.nx a0 se.book, tg := armTg X v 0 ++ s0.tg } = .chain o' succ c0 u0 ∧
         armChkK (armKeyD X.acs v.idx) 0 c0 = true ∧ ss = [] ∧ succ ≠ [] ∧
         cwArms X o' succ v (armSt (armKeyD X.acs v.idx) se) (armKeyD X.acs v.idx) as ts c0 u0 1 = some (c, u) ∧
         r = .chain o' succ (armCnt (armKeyD X.acs v.idx) se c) u))
@@ -291,7 +291,7 @@ theorem tbl_armsZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {v : V} {a
       omega
   -- the arm walked from its segment
   have harm : ∀ (Jx : ℕ) (sx : List ℕ) (c0 : Cnt) (u0 : ℕ) (c : Cnt) (u : ℕ),
-      armEnd Jx sx (cw X a0 { s0 with book := fileB X.loc X.fs a0 se.book, tg := armTg X v 0 ++ s0.tg }) =
+      armEnd Jx sx (cw X a0 { s0 with book := fileB X.loc X.fs X.nx a0 se.book, tg := armTg X v 0 ++ s0.tg }) =
         some (c0, u0) → armChkK key 0 c0 = true →
       cwArms X Jx sx v (armSt key se) key as ts c0 u0 1 = some (c, u) →
       ∃ ckk ukk r', armEnd Jx sx r' = some (ckk, ukk) ∧ (∀ op, ckk.get op ≤ c.get op) ∧
@@ -306,16 +306,16 @@ theorem tbl_armsZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {v : V} {a
       rw [hes2]
       exact List.mem_append_left _ (List.mem_append_right _ (atom_on_pathC hwk ha'))
     have hB := fileB_ok H.frame H.loc H.hev _ (armSt key se).book hok0'.book hatoms
-    rw [← H.fs] at hB
+    rw [← H.fs, ← H.nx] at hB
     have hsnm : s.nm = se.nm := by
       obtain ⟨_, _, _, hs⟩ := segAtC_eq hsk
       rw [hs, hse'n]
     have htgk : TgOk L fp (armTg X v k) :=
       armTg_ok H hps hvn hvk hka (by rw [chainPre_nm hsnm]; exact hpre)
-    have hpk : PosZ H { s with book := fileB X.loc X.fs (a0 :: as)[k] (armSt key se).book, tg := armTg X v k ++ s.tg } W0 (calls ebef).length xa :=
+    have hpk : PosZ H { s with book := fileB X.loc X.fs X.nx (a0 :: as)[k] (armSt key se).book, tg := armTg X v k ++ s.tg } W0 (calls ebef).length xa :=
       ⟨hps.seg, ⟨hps.ok.env, hB, hps.ok.fr, tgOk_append htgk hps.ok.tg, hps.ok.nx⟩, hps.run, hps.fresh,
         hps.nm, hps.ix⟩
-    have hokk : (cw X (a0 :: as)[k] { s with book := fileB X.loc X.fs (a0 :: as)[k] (armSt key se).book, tg := armTg X v k ++ s.tg }).ok = true := armEnd_ok hcwk
+    have hokk : (cw X (a0 :: as)[k] { s with book := fileB X.loc X.fs X.nx (a0 :: as)[k] (armSt key se).book, tg := armTg X v k ++ s.tg }).ok = true := armEnd_ok hcwk
     exact ⟨ckk, ukk, _, hcwk, hckc, hchk, iha k hka _ ebef ((walk σ ss).evs ++ eaft) (.fall e1) W0 [] xa
       hwk hes2 (fun h ↦ by cases h) (Or.inl (tbl_noRetArms hnr k hka)) hpk hokk⟩
   rcases hr with ⟨J, c0, u0, c, u, sj, h0, hck0, ha, hsj, hcw⟩ |

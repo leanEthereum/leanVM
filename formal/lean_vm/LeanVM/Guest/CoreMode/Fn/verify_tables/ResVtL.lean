@@ -45,7 +45,7 @@ def VtLQ (r : Ref) (J : Inst) : Prop :=
       LoadHolds r.img.read (σ (.n (val% «verify_tables_loop0» "zc_rounds")) * σ (.n (val% «verify_tables_loop0» "xk")) ^ 7) 5 (refMem r.img (a + 22) * gen ^ q) ∧
       q + 3 * (n - j) ≤ 8192
 
-def l10ArgsV : List V := [.n (val% «verify_tables» "s72#2"), .n (val% «verify_tables» "g_zc_n"), .n (val% «verify_tables» "zc_rounds"), .n (val% «verify_tables» "tabs"), .n (val% «verify_tables» "zc_rk"), .n (val% «verify_tables» "zc_cprod")]
+def l10ArgsV : List V := [.n (val% «verify_tables» "s73#2"), .n (val% «verify_tables» "g_zc_n"), .n (val% «verify_tables» "zc_rounds"), .n (val% «verify_tables» "tabs"), .n (val% «verify_tables» "zc_rk"), .n (val% «verify_tables» "zc_cprod")]
 
 end
 
@@ -58,7 +58,7 @@ theorem find_l10 : coreProgram.find? name% «verify_tables_loop0» = some fn% «
 
 theorem l10_facts : (fn% «verify_tables_loop0»).params = .n (val% «verify_tables_loop0» "xk") :: .n (val% «verify_tables_loop0» "bound") :: [.n (val% «verify_tables_loop0» "zc_rounds"), .n (val% «verify_tables_loop0» "tabs"), .n (val% «verify_tables_loop0» "zc_rk"), .n (val% «verify_tables_loop0» "zc_cprod")] ∧
     (fn% «verify_tables_loop0»).loop = true ∧ Res.endOfFn fn% «verify_tables_loop0» = some none ∧
-    Stmt.blockCallees (loopBody fn% «verify_tables_loop0») = ["sumcheck_round4"] := by
+    Stmt.blockCallees (loopBody fn% «verify_tables_loop0») = [] := by
   decide +kernel
 
 variable {rd : Reader}
@@ -79,20 +79,24 @@ theorem l10_next {x N rounds tabs rkb cprod cur : E} {rets : List E} {j : ℕ}
     simp only [List.map_cons, List.map_nil, List.range_succ, List.range_zero, List.nil_append,
       List.cons_append, List.cons.injEq, and_true] at hpar
     obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩ := hpar
-    rw [hb] at hbody
-    simp only [Tables.l10Body, Stmt.HoldsList, Stmt.Holds, List.map_cons, List.map_nil] at hbody
-    obtain ⟨m6, m7, m8, m9, m10, l11, -, hcall, -, -, l13, -⟩ := hbody
-    simp only [Atom.Holds] at m6 m7 m8 m9 m10 l11 l13
-    have e10 : σ (.n (val% «verify_tables_loop0» "rd")) = σ (.n (val% «verify_tables_loop0» "zc_rounds")) * σ (.n (val% «verify_tables_loop0» "xk")) ^ 7 := by rw [m10, m9, m8, m7, m6]; ring
-    have hm := (sumcheck_round4_holds rd _ _).mp (relN_le_rel coreProgram d _ _ _ hcall)
-    simp only [MeaningSumcheckRound4] at hm
-    obtain ⟨_, _, _, _, -, -, -, hrets⟩ := hm
-    simp only [List.cons.injEq] at hrets
-    obtain ⟨e13, -⟩ := hrets
+    rw [hb, Tables.l10Body, holdsList_append, holdsList_atoms Tables.l10_atoms] at hbody
+    have A : ∀ a, Stmt.atom a ∈ Tables.l10Atoms → a.Holds rd σ := hbody.1
+    have m6 := A (.mul (.n 6) (.n 0) (.n 0)) (by simp [Tables.l10Atoms])
+    have m7 := A (.mul (.n 7) (.n 6) (.n 0)) (by simp [Tables.l10Atoms])
+    have m8 := A (.mul (.n 8) (.n 7) (.n 7)) (by simp [Tables.l10Atoms])
+    have m9 := A (.mul (.n 9) (.n 8) (.n 0)) (by simp [Tables.l10Atoms])
+    have m10 := A (.mul (.n 10) (.n 2) (.n 9)) (by simp [Tables.l10Atoms])
+    have l11 := A (.load (.n 11) (.n 10) 5) (by simp [Tables.l10Atoms])
+    have c51 := A (.const (.n 51) (word 8 0)) (by simp [Tables.l10Atoms])
+    have m52 := A (.mul (.n 52) (.n 11) (.n 51)) (by simp [Tables.l10Atoms])
+    have l13 := A (.load (.n 52) (.n 10) 12) (by simp [Tables.l10Atoms])
+    simp only [Atom.Holds] at m6 m7 m8 m9 m10 l11 c51 m52 l13
+    have e10 : σ (.n 10) = σ (.n 2) * σ (.n 0) ^ 7 := by rw [m10, m9, m8, m7, m6]; ring
     rw [e10] at l11 l13
     obtain rfl := Tables.tb_loadHolds_unique l11 h0
+    rw [m52, c51, word_eight] at l13
     rw [show (gen ^ (j + 1)) ^ 7 = (gen ^ j) ^ 7 * gen ^ 7 by ring, ← mul_assoc,
-      Tables.tb_loadHolds_mul_gen_pow, ← e13, ← hx]
+      Tables.tb_loadHolds_mul_gen_pow, ← hx]
     exact l13
 
 /-! ## `verify_tables`' calls -/
@@ -212,7 +216,7 @@ theorem vtLQ_step (hr : r.Ok) :
     rw [ite_eq_right (by rw [hloop]; simp), hsite] at hH
     have hhd : J.hdr.2 = ofK (addressOfIndex I.fp) := by rw [hhdr, hH]
     -- the stream at `verify_tables`' frame
-    have hfb := inst_fb hr hI (by rw [hIt]; rfl) vt_idx
+    have hfb := inst_fb hr hI (by rw [hIt]) vt_idx
     have hF0 := inst_frame hr hI hIt vt_idx hw'
     obtain ⟨hlt22, hm22⟩ := ref_read hr (by rw [h20]; omega)
       (hF0.val (.n 20) (List.mem_append_left _ (List.mem_append_left _ hp20)) (by rw [h20]; omega)

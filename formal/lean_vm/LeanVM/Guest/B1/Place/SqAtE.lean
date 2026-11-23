@@ -113,7 +113,7 @@ theorem sqLoop_iterE (fs : String → ℕ) (cert : String → V → ℕ) {lv : O
     (htail : if X * gen + N ≠ 0 then
       RelAtInCPE coreProgram fs cert rd (ExactAt coreProgram rd) R Dt (fp + fs name) (c + fs (sqDecName lv)) Bt m
         name [X * gen, N, sqz, qpos, qbp, tabs] [] []
-      else Bt = fs name ∧ m = 0)
+      else Bt = fs (Memory.tailKey name) ∧ m = 0)
     (hreg : ∀ t < 10, ∃ i, (sqz * X ^ 5).limb 0 * Parameters.addressOfIndex t =
         Parameters.addressOfIndex i ∧ R i) :
     RelAtInCPE coreProgram fs cert rd (ExactAt coreProgram rd) R (fun i => Dd i ∨ (X * gen + N ≠ 0 ∧ Dt i)) fp c
@@ -302,7 +302,7 @@ theorem sqLoop_relAtInE (fs : String → ℕ) (cert : String → V → ℕ) (k :
   have hstep : ∀ s t, t + s + 1 = m →
       RelAtInCPE coreProgram fs cert rd (ExactAt coreProgram rd) (RegionL Lin)
         (fun i => RegionL (sqRuns fs cert lv name m fp w t) i)
-        (fp + t * fs name) (sqDecAt fs lv name m fp t) ((m - t + 1) * fs name)
+        (fp + t * fs name) (sqDecAt fs lv name m fp t) ((m - t) * fs name + fs (Memory.tailKey name))
         ((m - t) * fs (sqDecName lv)) name [gen ^ (e + t), gen ^ n, sqz, qpos, qbp, tabs] [] [] := by
     intro s
     induction s with
@@ -313,10 +313,11 @@ theorem sqLoop_relAtInE (fs : String → ℕ) (cert : String → V → ℕ) (k :
         rw [gen_pow_add_eq_zero_iff]; congr 1; omega
       have := sqLoop_iterE fs cert hfind hp hb hlp hit (rd := rd) (R := RegionL Lin)
         (Dt := fun _ => False) (N := gen ^ n) (sqz := sqz) (qpos := qpos) (qbp := qbp) (tabs := tabs)
-        (hcl (e + t)) (fp + t * fs name) (sqDecAt fs lv name m fp t) (Bt := fs name) (m := 0) hr0 hn0
+        (hcl (e + t)) (fp + t * fs name) (sqDecAt fs lv name m fp t) (Bt := fs (Memory.tailKey name)) (m := 0) hr0 hn0
         (hrel t (by omega)) (fun i h => h) (hKj (e + t)) (by simp [h0])
         (fun t' ht' => hreg (e + t) (by omega) (by omega) t' ht')
-      rw [show (m - t + 1) * fs name = fs name + fs name by rw [show m - t = 1 by omega]; ring,
+      rw [show (m - t) * fs name + fs (Memory.tailKey name) = fs name + fs (Memory.tailKey name) by
+          rw [show m - t = 1 by omega]; ring,
         show (m - t) * fs (sqDecName lv) = fs (sqDecName lv) + 0 by rw [show m - t = 1 by omega]; ring]
       refine RelAtInCT.dmono' this fun i hi => ?_
       obtain ⟨t', h1, h2, hi'⟩ := regionL_sqRuns.mp hi
@@ -336,14 +337,16 @@ theorem sqLoop_relAtInE (fs : String → ℕ) (cert : String → V → ℕ) (k :
         (Dt := fun i => RegionL (sqRuns fs cert lv name m fp w (t + 1)) i)
         (N := gen ^ n) (sqz := sqz) (qpos := qpos) (qbp := qbp) (tabs := tabs)
         (hcl (e + t)) (fp + t * fs name) (sqDecAt fs lv name m fp t)
-        (Bt := (m - (t + 1) + 1) * fs name) (m := (m - (t + 1)) * fs (sqDecName lv)) hr0 hn0
+        (Bt := (m - (t + 1)) * fs name + fs (Memory.tailKey name)) (m := (m - (t + 1)) * fs (sqDecName lv))
+        hr0 hn0
         (hrel t (by omega)) (fun i h => h) (hKj (e + t))
         (by
           split
           · rw [gen_pow_mul_gen]; exact ht'
           · next h => exact absurd hne h)
         (fun t' ht'' => hreg (e + t) (by omega) (by omega) t' ht'')
-      rw [show (m - t + 1) * fs name = fs name + (m - (t + 1) + 1) * fs name by
+      rw [show (m - t) * fs name + fs (Memory.tailKey name) =
+          fs name + ((m - (t + 1)) * fs name + fs (Memory.tailKey name)) by
           rw [show m - t = m - (t + 1) + 1 by omega]; ring,
         show (m - t) * fs (sqDecName lv) = fs (sqDecName lv) + (m - (t + 1)) * fs (sqDecName lv) by
           rw [show m - t = m - (t + 1) + 1 by omega]; ring]
@@ -354,8 +357,10 @@ theorem sqLoop_relAtInE (fs : String → ℕ) (cert : String → V → ℕ) (k :
       · exact Or.inr ⟨hne, regionL_sqRuns.mpr ⟨t', by omega, h2, hi'⟩⟩
   have := hstep (m - 1) 0 (by omega)
   simp only [Nat.zero_mul, Nat.add_zero, Nat.sub_zero] at this
-  have h := (show sqDecAt fs lv name m fp 0 = fp + (m + 1) * fs name by unfold sqDecAt; ring) ▸ this
-  rw [show sqTot fs lv name m 0 = (m + 1) * fs name + m * fs (sqDecName lv) by unfold sqTot; simp]
+  have h := (show sqDecAt fs lv name m fp 0 = fp + (m * fs name + fs (Memory.tailKey name)) by
+    unfold sqDecAt; ring) ▸ this
+  rw [show sqTot fs lv name m 0 = (m * fs name + fs (Memory.tailKey name)) + m * fs (sqDecName lv) by
+    unfold sqTot; simp]
   exact RelAtInCPE.relAtInPE h
 
 end

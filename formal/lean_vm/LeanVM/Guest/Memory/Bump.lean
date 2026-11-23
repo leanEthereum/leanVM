@@ -28,7 +28,7 @@ noncomputable def rsz (M : ℕ → E) (s : St) : Hint → ℕ
   | .alloc _ n => n
   | .allocDyn _ c => logG (M (s.fp + c))
   | .allocArm _ sel sizes => sizes.getD (logG (M (s.fp + sel))) 0
-  | .allocFrames _ size stop si => size * (logG (ofK ((M (s.fp + stop)).limb 0 * si)) + 1)
+  | .allocFrames _ size stop si tail => size * logG (ofK ((M (s.fp + stop)).limb 0 * si)) + tail
   | _ => 0
 
 end
@@ -145,7 +145,7 @@ theorem runHint_nextFree {C : Ctx} {M : ℕ → E} {s s' : St} (hM : ∀ c v, s.
       rw [allocate_nextFree e, n1, rsz, (peek_pow hM hx hg hlt).2, List.getD_eq_getElem?_getD, hn]
       rfl
     · simp at e
-  | allocFrames ptr size stop startInverse =>
+  | allocFrames ptr size stop startInverse tail =>
     simp only [runHint, bind_ok] at e
     obtain ⟨c, hc, sp, hsp, e⟩ := e
     obtain ⟨rfl, -⟩ := cellAt_ok hc

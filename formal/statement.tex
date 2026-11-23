@@ -644,9 +644,9 @@ $(\mathit{pc}, \mathit{fp})$, and a repeated state would loop without halting
 ($2^\ell\cdot 2^\kappa$ states, $\ell = 19$, $\kappa \le 30$; argued, not a Lean theorem;
 \lean{lean_vm} proves fewer than $2^{128}$, \lean{steps_lt_replayFuel}).
 
-\paragraph{The decoder's size bound.} The bound (\lean{guestWitnessDecoderSizeBound}, $275183$)
-limits any program; it is the compiled decoder's size, $274753$ (proved at most that, and measured
-exactly; the guest's frame-cell table, packed four cells to a number, is $218948$ of it), and a slack of
+\paragraph{The decoder's size bound.} The bound (\lean{guestWitnessDecoderSizeBound}, $237007$)
+limits any program; it is the compiled decoder's size, $236577$ (proved at most that, and measured
+exactly; the guest's frame-cell table, packed four cells to a number, is $191360$ of it), and a slack of
 $430$: room for one leanXMSS signature's encoding ($309$) beside its code but not two, so no useful
 table of witnesses (hard-coded signatures that would mask a bug of $G$ on finitely many statements)
 fits there. It does not bound what a program written differently could hold: a program may compute
@@ -758,7 +758,7 @@ execution's asserts and its children's accepted proofs give ($16$ children, clai
 below the memory's size, a cursor of $8192$ words each), not at the run's.
 \item That the size bounds exclude a table of witnesses for every program: literals count toward
 size, and the bounds are tight only for programs written like the compiled ones (a decoder
-computing the guest's frame-cell table from its input would free room for about $690$ signatures'
+computing the guest's frame-cell table from its input would free room for about $600$ signatures'
 encodings).
 \item How $D$ computes the witness: the statement accepts any program that computes it from the
 execution within its budget, not only one that reads it off the memory.
@@ -770,7 +770,7 @@ verifier differential fuzz; the wire differential (the Lean decoding against the
 Rust prover's, accepted by both verifiers, every mutation rejected by both), which does not yet
 include an execution of the guest program; the guest-diff check on real aggregations; and the node
 vectors.
-\item That the executor is leanVM's Rust interpreter, and \lean{Statement/LeanVmGuestProver.lean} the Rust's witness generation on its normal form: \lean{LeanVM.Prover.Exec.execute} (\lean{Statement/Prover/Execute.lean}) runs a program on its advice (the hints and witness streams) as the Rust interpreter does, and gives the Rust's memory and step count, byte for byte, on the prover differential's programs and on real aggregations, and \lean{guestStreams} gives the Rust's streams on real aggregations (\lean{guest-diff}), but that is test evidence. Its \texttt{DEREF} reads the cell $a < 2^{28}$ with $g^a = p \cdot g^{o}$, $p$ the pointer and $o$ the offset, so it accepts every pointer the AIR accepts, not only addresses. An allocation hint reserves its cells at the bump pointer, the last below $2^{28}$, and writes their base to its pointer cell once, a different value there failing the run. Every cell a hint reads or writes, a run's last one too, lies below $2^{28}$ or the run fails, as an instruction's operands do. Whatever the advice, an execution it returns is valid (\lean{LeanVM.Prover.Exec.execute\_sound}); on the guest, it runs to completion on the advice \lean{Statement/LeanVmGuestProver.lean} makes (\lean{GuestExecutionComplete}).
+\item That the executor is leanVM's Rust interpreter, and \lean{Statement/LeanVmGuestProver.lean} the Rust's witness generation on its normal form: \lean{LeanVM.Prover.Exec.execute} (\lean{Statement/Prover/Execute.lean}) runs a program on its advice (the hints and witness streams) as the Rust interpreter does, and gives the Rust's memory and step count, byte for byte, on the prover differential's programs and on real aggregations, and \lean{guestStreams} gives the Rust's streams on real aggregations (\lean{guest-diff}), but that is test evidence. Its \texttt{DEREF} reads the cell $a < 2^{28}$ with $g^a = p \cdot g^{o}$, $p$ the pointer and $o$ the offset, so it accepts every pointer the AIR accepts, not only addresses. An allocation hint reserves its cells at the bump pointer, the last below $2^{28}$, and writes their base to its pointer cell once, a different value there failing the run; a loop's frames are reserved together, \texttt{size} cells for each iteration and \texttt{tail} for the call its guard does not take, which writes only that frame's arguments and header (\lean{LeanVM.Prover.Exec.Hint.allocFrames}). Every cell a hint reads or writes, a run's last one too, lies below $2^{28}$ or the run fails, as an instruction's operands do. Whatever the advice, an execution it returns is valid (\lean{LeanVM.Prover.Exec.execute\_sound}); on the guest, it runs to completion on the advice \lean{Statement/LeanVmGuestProver.lean} makes (\lean{GuestExecutionComplete}).
 \item The Lean prover's speed: compiled, it takes about $24$ times as long as the multithreaded
 Rust prover on the test corpus ($2876$ s against $119$ s), and no complexity bound is proved.
 \end{itemize}

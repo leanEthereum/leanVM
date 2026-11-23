@@ -27,7 +27,7 @@ public import LeanVM.Guest.B1.Fwd.PureIn
 
 `winTabs_vsExp`: the caller's exponent tables (`vsExpLin`) hold the window table. The callees,
 each `CompleteAtB` within its `vsBsWith` entry: `g_power_of_word` (`gpw_completeAtB`), a
-`grind_check` on a passing proof of work (`grind_kidB`), a `bus_grind_check` arm (`busGrind_kidB`),
+`bus_grind_check` arm (`busGrind_kidB`),
 `squeeze_point_from` (`spf_kidB`), `opening_message__L1_L1` (`om_kidB`); on an honest child's
 segments, `verify_bus_gkr` (`vbg_kidB`).
 -/
@@ -63,25 +63,16 @@ theorem vs_gpw_completeAtB (κ : ℕ) (Lin : Main.Layout) {n : ℕ} (hn : n < 2 
     (fun rd _ ↦ (g_power_of_word_holds rd [eOfNat n] [gen ^ n]).2
       (show ∃ m < 2 ^ 6, eOfNat n = eOfNat m ∧ [gen ^ n] = [gen ^ m] from ⟨n, hn, rfl, rfl⟩)) κ hg
 
-/-- **A `grind_check` on a passing proof of work**, the window table from the caller's. -/
-theorem grind_kidB {bits : ℕ} (hb : bits ∈ grindBitsDeployed) {κ : ℕ} (hκ : 11 ≤ κ) {B : ℕ}
-    (hT : TotalLe coreProgram fs (grindCheckName bits) fun _ ↦ B) {w : E} (sqE : ℕ)
-    (hpow : (w.limb 0).lane.toNat % 2 ^ bits = 0) :
-    CompleteAtB fs cert κ (grindCheckName bits) (vsExpLin sqE) [w, ptr sqE * gen ^ winTabAt]
-      (Returns []) B :=
-  grind_check_completeB_of hb hκ hT _ _ _ fun _ _ hL ↦ ⟨rfl, w, _, rfl, winTabs_vsExp hL, hpow⟩
-
 /-- **A `bus_grind_check` arm on a passing proof of work.** -/
 theorem busGrind_kidB {d : ℕ} (hd : d ∈ busGrindDeployed) {κ : ℕ} (hκ : 11 ≤ κ) {w : E}
     (sqE : ℕ) (hpow : (w.limb 0).lane.toNat % 2 ^ busGrindBits d = 0) :
     CompleteAtB fs cert κ (busGrindName d) (vsExpLin sqE) [w, ptr sqE * gen ^ winTabAt]
-      (Returns [0]) (fs (busGrindName d) + fs (grindCheckName (busGrindBits d))) :=
-  bus_grind_check_completeB hd hκ _ _ _ fun _ _ hL ↦ ⟨rfl, w, _, rfl, winTabs_vsExp hL, hpow⟩
+      (Returns [0]) (fs (busGrindName d)) :=
+  bus_grind_check_completeB hd hκ _ _ _ fun _ _ hL ↦
+    ⟨rfl, w, _, rfl, winTabs_vsExp hL, hpow⟩
 
-theorem le_busGrindMax {d : ℕ} (hd : d < 14) :
-    fs (busGrindName d) + fs (grindCheckName (busGrindBits d)) ≤ busGrindMax fs := by
-  rw [busGrindBits_eq]
-  exact le_lmax (List.mem_map.2 ⟨d, List.mem_range.2 hd, rfl⟩)
+theorem le_busGrindMax {d : ℕ} (hd : d < 14) : fs (busGrindName d) ≤ busGrindMax fs :=
+  le_lmax (List.mem_map.2 ⟨d, List.mem_range.2 hd, rfl⟩)
 
 /-- **`squeeze_point_from__L{n}`** from a permutation's challenge and capacity. -/
 theorem spf_kidB {n : ℕ} (hn : n ∈ spfDeployed) (κ : ℕ) {B : ℕ}

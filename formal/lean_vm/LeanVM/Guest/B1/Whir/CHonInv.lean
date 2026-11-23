@@ -131,7 +131,7 @@ theorem alphas : ∀ l < (osCfgR (μ - minOpenLog) (r - 1)).levels.length,
     obtain ⟨-, hf, -⟩ := hR.mid (l := l) (by omega)
     have hoff := hR.mid (l := l) (by omega)
     rw [(hR.stepS (by omega)).1, LvAt.s1, roundsSpec_alphas_length, ih, hf]
-    exact hoff.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1.symm
+    exact hoff.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1.symm
 
 /-- **The records before level `l`**: what its state glued, their `F` within its challenges. -/
 theorem recs : ∀ l < (osCfgR (μ - minOpenLog) (r - 1)).levels.length,

@@ -17,7 +17,7 @@ calls are its body's `csb σ` and the tail call `tl σ`, the tail's callee the n
 node. `ChainHonest … m c` is `m` iterations from `c`; at `0` it is `False`, so the last
 iteration's tail call is not entered (`KidsT`). `ChainHonest.weight_le`: the chain's weight is at
 most the sum of its iterations' bounds; `ChainHonest.total_le`: its words too, and the last tail's
-phantom frame.
+phantom (`fs (tailKey f)`).
 -/
 
 namespace LeanVM.Guest.Budget
@@ -93,7 +93,7 @@ theorem ChainHonest.weight_le {f : String} {Q : ℕ → Val → Prop} {csb : Val
 
 /-- **A chain's words**: the sum of its iterations' bounds `B c`, each iteration's frame, its
 `HeapBuf`s and its body's calls' bounds `Wb c σ` (by position; a call not entered its callee's
-frame) within `B c`, and the last tail call's frame. -/
+tail) within `B c`, and the last tail call's phantom, `fs (tailKey f)`. -/
 theorem ChainHonest.total_le {f : String} {Q : ℕ → Val → Prop} {csb : Val → List Call}
     {tl : Val → Call} {bs : Val → List ℕ} {Tsb : ℕ → List (Tree → Prop)} (fs : String → ℕ)
     (Wb : ℕ → Val → List ℕ) (B : ℕ → ℕ)
@@ -101,20 +101,20 @@ theorem ChainHonest.total_le {f : String} {Q : ℕ → Val → Prop} {csb : Val 
     (hlen : ∀ c σ, Q c σ → (Wb c σ).length = (csb σ).length)
     (hsum : ∀ c σ, Q c σ → fs f + (Wb c σ).sum + (bs σ).sum ≤ B c)
     (hU : ∀ c σ, Q c σ → ∀ i (hi : i < (csb σ).length) (hW : i < (Wb c σ).length),
-      (csb σ)[i].taken = false → fs (csb σ)[i].f ≤ (Wb c σ)[i])
+      (csb σ)[i].taken = false → fs (tailKey (csb σ)[i].f) ≤ (Wb c σ)[i])
     (hB : ∀ c σ, Q c σ → ∀ i (hi : i < (csb σ).length) (hT : i < (Tsb c).length)
       (hW : i < (Wb c σ).length), (csb σ)[i].taken = true → ∀ (t : Tree) (rets : List E),
         t.name = (csb σ)[i].f → t.Valid P rd ((csb σ)[i].args.map σ) rets → t.BufsOk P →
           (Tsb c)[i] t → t.total fs ≤ (Wb c σ)[i]) :
     ∀ m c (t : Tree) args rets, ChainHonest P f Q csb tl bs Tsb m c t → t.Valid P rd args rets →
-      t.BufsOk P → t.total fs ≤ iterSum B c m + fs f
+      t.BufsOk P → t.total fs ≤ iterSum B c m + fs (tailKey f)
   | 0, _, _, _, _, h, _, _ => h.elim
   | m + 1, c, t, args, rets, h, hv, hb => by
     obtain ⟨σ, ks, rfl, hQ, hc, hl, hT⟩ := h
     obtain ⟨hk, hbk⟩ := node_kids hv hb hc
     have hWl := hlen c σ hQ
     have hk' := kids_total_leL fs (csb σ ++ [tl σ]) (Tsb c ++ [ChainHonest P f Q csb tl bs Tsb m (c + 1)])
-      (Wb c σ ++ [iterSum B (c + 1) m + fs f]) ks hk hbk hT (by simp [hl]) (by simp [hWl])
+      (Wb c σ ++ [iterSum B (c + 1) m + fs (tailKey f)]) ks hk hbk hT (by simp [hl]) (by simp [hWl])
       (fun i hi hWi ht => by
         by_cases hlt : i < (csb σ).length
         · have hWlt : i < (Wb c σ).length := by omega

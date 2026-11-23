@@ -9,7 +9,7 @@
   the file differs (`scripts/regen-guest.sh` runs it).
 -/
 import LeanVM.Guest.Fast.WhirTemplate
-import LeanVM.Guest.B1.Opening.QueriesT
+import LeanVM.Guest.B1.Opening.QueriesLoops
 import LeanVM.Guest.Memory.GuestCallees
 
 open LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest.B1 LeanVM.Guest.B1.Whir
@@ -36,8 +36,9 @@ def text : String := Id.run do
     let nm := osOqName c lvl lv
     let sh := openingQueriesLoops.findIdx (·.1 == nm)
     let e := openingQueriesLoops.getD sh ("", "", oqShapeZero)
-    s!"⟨{sh}, {ix (osQueriesName c lvl lv)}, {ix nm}, {ix e.2.1}, {ix (oqWalkOf e.2.2.oq)}, " ++
-      s!"{lv.queries / (1 + lvBase lvl)}, {lv.depth}, {lv.capDepth}, {ns args}, {ns rets}⟩"
+    s!"⟨{sh}, {ix (osQueriesName c lvl lv)}, {ix nm}, {ix e.2.1}, " ++
+      s!"{lv.queries / (1 + lvBase lvl)}, {lv.queries % (1 + lvBase lvl)}, {lv.depth}, {lv.capDepth}, " ++
+      s!"{ns args}, {ns rets}⟩"
   let cfgs := (List.range (ligNSizes * ligNRates)).map fun j =>
     let c := osCfgAt j
     s!"  -- size {j % ligNSizes}, rate index {j / ligNSizes}\n  [{",\n    ".intercalate ((osQCalls c).map (call c))}]"
@@ -66,16 +67,16 @@ namespace LeanVM.Guest.Fast
 
 /-- A level's `level_queries` dispatch, in numbers: its `opening_queries` callee's entry of
 `openingQueriesLoops` (its shape), the indices of the `level_queries` specialization, of its
-`opening_queries` callee, of that callee's loop and of the `walk_path` specialization its queries
-call (`Fast/FunctionNames.lean`), the loop's iterations, the level's depth and cap depth, the
-cells of the dispatch's arguments and of its returns. -/
+`opening_queries` callee and of that callee's loop (`Fast/FunctionNames.lean`), the loop's
+iterations, the odd first query (level 0), the level's depth and cap depth, the cells of the
+dispatch's arguments and of its returns. -/
 structure OsCall where
   sh : Nat
   lq : Nat
   fn : Nat
   loop : Nat
-  walk : Nat
   N : Nat
+  odd : Nat
   depth : Nat
   cd : Nat
   args : List Nat

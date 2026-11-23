@@ -40,7 +40,10 @@ structure FinishIn (rd : Reader) (C : CallRel) (σ : Val) (c : OsCfg) (tch : ℕ
   stored : ∀ i < c.yrLevel, RecStored rd σ i (c.levels.getD i default) (recs.getD i default)
   lv : ∀ i < c.yrLevel, LvFin c (c.levels.getD i default) (c.levels.getD (i + 1) default)
   rate : ∀ i < c.yrLevel, LvRate σ c i (c.levels.getD i default)
-  res : ∀ i < c.yrLevel, ∀ a r, C (osResidualName (c.levels.getD i default)) a r →
+  res : ∀ i < c.yrLevel, ∀ a r,
+    a.getD 4 0 = gen ^ ((c.levels.getD i default).queries / resBatch) →
+    a.getD 5 0 = gen ^ ((c.levels.getD i default).queries % resBatch) →
+    C (osResidualName (c.levels.getD i default)) a r →
     MeaningLevelResidual (c.levels.getD i default).queries (c.levels.getD i default).logCols
       (c.levels.getD i default).folds (c.levels.getD i default).highBits rd a r
   nlen : c.levels.length ≤ 64
@@ -97,6 +100,7 @@ theorem inner_sum (recs : List OsRec) (P : List E) :
 /-- **The finish, soundly.** -/
 theorem osFinish_sound {c : OsCfg} {st : OsSt} {tch : ℕ}
     {G T fold : List E} {recs : List OsRec} (hF : FinishIn rd C σ c tch G T fold recs)
+    (hrts : ∀ i < c.yrLevel, RtOk σ (st.rts.getD i []) (c.levels.getD i default))
     (hmats : MatsOk σ st.mats) (hok : AllOk C rd σ (osFinishA c st tch).1) :
     ∃ pt pt1 : E, (osFinishA c st tch).2.map σ =
       [σ (.n st.claim) + T.prod * recsDeficit recs G, pt, pt1,
@@ -148,7 +152,7 @@ theorem osFinish_sound {c : OsCfg} {st : OsSt} {tch : ℕ}
   set pts := osPtBlks c (st.k + 1) (st.k + 1 + 1) tch 0 pointCap (st.k + 1 + 2) with hpts
   set P2 := pts.2 with hP2
   set bs := osBases c tch (P2 + 1) (P2 + 3) (P2 + 5) 0 (c.levels.take c.yrLevel) (P2 + 6) with hbs
-  set rs := osResiduals c tch (bs.2 + 1) (P2 + 1) (P2 + 3) (P2 + 5) 0 (c.levels.take c.yrLevel) st.mats
+  set rs := osResiduals c st.rts tch (bs.2 + 1) (P2 + 1) (P2 + 3) (P2 + 5) 0 (c.levels.take c.yrLevel) st.mats
     (bs.2 + 3) with hrs
   set od := osOodWeights c tch (c.levels.headD default).logCols 1 c.levels.tail none rs.2 with hod
   set kk := od.2.2 with hkk
@@ -209,7 +213,7 @@ theorem osFinish_sound {c : OsCfg} {st : OsSt} {tch : ℕ}
   set D : ℕ → ℕ → E := fun i ↦ dZ (lvA i) (lvA i).logCols (X i) with hD
   set hsv : ℕ → List E := fun i ↦ hsvOf (lvA i) (r i) with hhsv
   set Pos : ℕ → ℕ → E := fun i k ↦ eOfNat ((r i).qs.getD k 0) with hPos
-  have hRin : ∀ i (hi : i < (c.levels.take c.yrLevel).length), ResIn rd C σ c tch (P2 + 1) (0 + i)
+  have hRin : ∀ i (hi : i < (c.levels.take c.yrLevel).length), ResIn rd C σ c st.rts tch (P2 + 1) (0 + i)
       (c.levels.take c.yrLevel)[i] (D (0 + i)) (hsv (0 + i)) (Pos (0 + i)) (li (0 + i)) (X (0 + i)) := by
     intro i hi
     rw [hmidl] at hi
@@ -220,8 +224,14 @@ theorem osFinish_sound {c : OsCfg} {st : OsSt} {tch : ℕ}
     have hS := hRS i hi
     have hn : i < c.levels.length := by have := hF.yr; omega
     have h64 := hF.nlen
-    refine ⟨hF.rate i hi, hF.res i hi, hF.slow i hi, hF.iz, hL.van,
-      ⟨hL.ml1, hL.nhs, hL.b3, hL.bn, fun s hs ↦ ?_, by simp [hsv, hsvOf], fun c' hc ↦ ?_⟩, hL.posOff,
+    have hR := hrts i hi
+    have hqd : (lvA i).queries / resBatch < u128Bound := lt_of_le_of_lt (Nat.div_le_self _ _) hL.qu
+    have hqm : (lvA i).queries % resBatch < u128Bound :=
+      lt_of_lt_of_le (Nat.mod_lt _ (by decide)) (by unfold u128Bound; decide)
+    refine ⟨hF.rate i hi, by rw [hR 0 (by decide)]; exact gw_eq hL.posOff,
+      by rw [hR 2 (by decide)]; exact gw_eq hqd, by rw [hR 3 (by decide)]; exact gw_eq hqm,
+      hF.res i hi, hF.slow i hi, hF.iz, hL.van,
+      ⟨hL.ml1, hL.nhs, hL.b3, hL.bn, fun s hs ↦ ?_, by simp [hsv, hsvOf], fun c' hc ↦ ?_⟩,
       lt_of_le_of_lt (Nat.mul_le_mul_right ligColsCap (show i ≤ 64 by omega)) (by decide),
       lt_of_le_of_lt (Nat.mul_le_mul_right hsStride (show i ≤ 64 by omega)) (by decide),
       lt_of_le_of_lt (show (lvA i).resFoldOff ≤ pointCap by

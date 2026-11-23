@@ -18,7 +18,7 @@ public import LeanVM.Guest.B1.Whir.CHonest
 **`open_stacked_completeAtD`**, **`open_stacked_completeAtB`**: OsSpec's statements, from the
 placed lift (`Arm.open_stacked_completeAtD_of`, `Arm.open_stacked_completeAtB_of`), the body's honest
 data (`Whir.os_honest_proved`), `level_residual`'s and `level_residual_slow`'s placed statements
-(`level_residual_completeAt`, `level_residual_slow_completeAt`) and, frames below `2^32`, the helpers within the words bounds of their trees (`helperBounds`).
+(`level_residual_completeAt`, `level_residual_slow_completeAt`) and, frames below `2^32`, the helpers within the words bounds of their trees (`helperBounds`);.
 -/
 
 namespace LeanVM.Guest.B1

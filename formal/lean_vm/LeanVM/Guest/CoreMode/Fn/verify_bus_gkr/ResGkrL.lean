@@ -14,7 +14,7 @@ import LeanVM.Guest.Data.ValNames.«gkr_layer__L_loop0»
 # A layer's loop's cursor
 
 `GlLQ r J`: at an instance of `gkr_layer__L{p}_L{o}_loop0` at `y = g^k` below `x_m = g^m` (`m < 4`), its
-header names a frame `a` whose cell `10` (the layer's stream) holds `st`, and its record `head·g^k` holds
+header names a frame `a` whose cell `10` (the layer's stream) holds `st`, and its record `head·g^(7k)` holds
 the cursor `st·g^q` with room for its `32 (m - k)` words.
 
 `glLQ_all`: the loop's callers are its layer and its own tail (`Res.glCallers_all`). The layer calls it
@@ -41,7 +41,7 @@ def GlLQ (r : Ref) (J : Inst) : Prop :=
   ∀ p < 4, ∀ o < 2, ∀ σ bufs kids, J.t = .node (glLoopName p o) σ bufs kids →
     ∃ a k m q, J.hdr.2 = ofK (addressOfIndex a) ∧ a + 10 < maxCells ∧ σ (.n (valf% «gkr_layer» «_loop0» "y")) = gen ^ k ∧
       σ (.n (valf% «gkr_layer» «_loop0» "bound")) = gen ^ m ∧ k < m ∧ m < 4 ∧
-      LoadHolds r.img.read (σ (.n (valf% «gkr_layer» «_loop0» "head")) * σ (.n (valf% «gkr_layer» «_loop0» "y"))) 4310 (refMem r.img (a + 10) * gen ^ q) ∧
+      LoadHolds r.img.read (σ (.n (valf% «gkr_layer» «_loop0» "head")) * σ (.n (valf% «gkr_layer» «_loop0» "y")) ^ 7) 5 (refMem r.img (a + 10) * gen ^ q) ∧
       q + 32 * (m - k) ≤ 8192
 
 end
@@ -51,22 +51,25 @@ public section
 /-- **An iteration moves the cursor `32` words on**, into the next record. -/
 theorem gll_next {p o : ℕ} (hp : p < 4) (ho : o < 2) {rd : Reader} {σ : Core.Val} {fn : Fn}
     (hb : fn.body = glLoopBody (glLoopName p o)) {es : List Ev} {vs : List V} (hw : walk σ fn.body = .ret es vs)
-    (hh : ∀ e ∈ es, e.Holds rd σ) {cur : E} (h0 : LoadHolds rd (σ (.n (valf% «gkr_layer» «_loop0» "head")) * σ (.n (valf% «gkr_layer» «_loop0» "y"))) 4310 cur) :
-    σ (.n (valf% «gkr_layer» «_loop0» "cur")) = cur ∧ LoadHolds rd (σ (.n (valf% «gkr_layer» «_loop0» "head")) * (σ (.n (valf% «gkr_layer» «_loop0» "y")) * gen)) 4310 (cur * gen ^ 32) := by
+    (hh : ∀ e ∈ es, e.Holds rd σ) {cur : E} (h0 : LoadHolds rd (σ (.n (valf% «gkr_layer» «_loop0» "head")) * σ (.n (valf% «gkr_layer» «_loop0» "y")) ^ 7) 5 cur) :
+    σ (.n (valf% «gkr_layer» «_loop0» "cur")) = cur ∧ LoadHolds rd (σ (.n (valf% «gkr_layer» «_loop0» "head")) * (σ (.n (valf% «gkr_layer» «_loop0» "y")) * gen) ^ 7) 5 (cur * gen ^ 32) := by
   rw [hb] at hw
-  have hA : ∀ a ∈ [Atom.mul (.n (valf% «gkr_layer» «_loop0» "rd")) (.n (valf% «gkr_layer» «_loop0» "head")) (.n (valf% «gkr_layer» «_loop0» "y")), .load (.n (valf% «gkr_layer» «_loop0» "cur")) (.n (valf% «gkr_layer» «_loop0» "rd")) 4310, .const (.n (valf% «gkr_layer» «_loop0» "s12#0")) (word (2 ^ 32) 0),
-      .mul (.n (valf% «gkr_layer» «_loop0» "s12#1")) (.n (valf% «gkr_layer» «_loop0» "cur")) (.n (valf% «gkr_layer» «_loop0» "s12#0")), .load (.n (valf% «gkr_layer» «_loop0» "s12#1")) (.n (valf% «gkr_layer» «_loop0» "rd")) 4311], a.Holds rd σ := fun a ha ↦
+  have hA : ∀ a ∈ [Atom.mul (.n (valf% «gkr_layer» «_loop0» "rd~0")) (.n (valf% «gkr_layer» «_loop0» "y")) (.n (valf% «gkr_layer» «_loop0» "y")), .mul (.n (valf% «gkr_layer» «_loop0» "rd~1")) (.n (valf% «gkr_layer» «_loop0» "rd~0")) (.n (valf% «gkr_layer» «_loop0» "y")), .mul (.n (valf% «gkr_layer» «_loop0» "rd~2")) (.n (valf% «gkr_layer» «_loop0» "rd~1")) (.n (valf% «gkr_layer» «_loop0» "rd~1")), .mul (.n (valf% «gkr_layer» «_loop0» "rd~3")) (.n (valf% «gkr_layer» «_loop0» "rd~2")) (.n (valf% «gkr_layer» «_loop0» "y")),
+      .mul (.n (valf% «gkr_layer» «_loop0» "rd")) (.n (valf% «gkr_layer» «_loop0» "head")) (.n (valf% «gkr_layer» «_loop0» "rd~3")), .load (.n (valf% «gkr_layer» «_loop0» "cur")) (.n (valf% «gkr_layer» «_loop0» "rd")) 5, .const (.n (valf% «gkr_layer» «_loop0» "s12#0")) (word (2 ^ 32) 0),
+      .mul (.n (valf% «gkr_layer» «_loop0» "s12#1")) (.n (valf% «gkr_layer» «_loop0» "cur")) (.n (valf% «gkr_layer» «_loop0» "s12#0")), .load (.n (valf% «gkr_layer» «_loop0» "s12#1")) (.n (valf% «gkr_layer» «_loop0» "rd")) 12], a.Holds rd σ := fun a ha ↦
     hh _ (topAtoms_on_path hw (List.contains_iff_mem.mp (List.all_eq_true.mp (gll_atoms p hp o ho) a ha)))
   simp only [List.mem_cons, List.not_mem_nil, or_false, forall_eq_or_imp, forall_eq] at hA
-  obtain ⟨m6, l17, c339, m340, l340⟩ := hA
-  simp only [Atom.Holds] at m6 l17 c339 m340 l340
+  obtain ⟨m6, m7, m8, m9, m10, l17, c339, m340, l340⟩ := hA
+  simp only [Atom.Holds] at m6 m7 m8 m9 m10 l17 c339 m340 l340
   rw [tb_word_two_pow (by norm_num)] at c339
-  rw [m6] at l17 l340
+  have hrd : σ (.n (valf% «gkr_layer» «_loop0» "rd")) = σ (.n (valf% «gkr_layer» «_loop0» "head")) * σ (.n (valf% «gkr_layer» «_loop0» "y")) ^ 7 := by
+    rw [m10, m9, m8, m7, m6]; ring
+  rw [hrd] at l17 l340
   obtain rfl : σ (.n (valf% «gkr_layer» «_loop0» "cur")) = cur := tb_loadHolds_unique l17 h0
   refine ⟨rfl, ?_⟩
-  have h := (tb_loadHolds_mul_gen_pow rd (σ (.n (valf% «gkr_layer» «_loop0» "head")) * σ (.n (valf% «gkr_layer» «_loop0» "y"))) 1 4310 (σ (.n (valf% «gkr_layer» «_loop0» "cur")) * gen ^ 32)).mpr
+  have h := (tb_loadHolds_mul_gen_pow rd (σ (.n (valf% «gkr_layer» «_loop0» "head")) * σ (.n (valf% «gkr_layer» «_loop0» "y")) ^ 7) 7 5 (σ (.n (valf% «gkr_layer» «_loop0» "cur")) * gen ^ 32)).mpr
     (by rw [← c339, ← m340]; exact l340)
-  rwa [pow_one, mul_assoc] at h
+  rwa [mul_assoc, ← mul_pow] at h
 
 variable {r : Ref}
 
@@ -86,7 +89,7 @@ theorem glLQ_step (hr : r.Ok) :
   -- the counter below the bound, at the callee
   suffices H : ∃ a k m q, J.hdr.2 = ofK (addressOfIndex a) ∧ a + 10 < maxCells ∧ σ (.n 0) = gen ^ k ∧
       σ (.n 1) = gen ^ m ∧ k ≤ m ∧ m < 4 ∧
-      LoadHolds r.img.read (σ (.n 2) * σ (.n 0)) 4310 (refMem r.img (a + 10) * gen ^ q) ∧
+      LoadHolds r.img.read (σ (.n 2) * σ (.n 0) ^ 7) 5 (refMem r.img (a + 10) * gen ^ q) ∧
       q + 32 * (m - k) ≤ 8192 by
     obtain ⟨a, k, m, q, h1, h2, h3, h4, hkm, h6, h7, h8⟩ := H
     obtain ⟨k', hk', h0'⟩ := loop_ctr_lt hr hJS hJt hfn hlp hend (hp'.trans glLoopParams_eq) h4 (by omega)
@@ -124,7 +127,7 @@ theorem glLQ_step (hr : r.Ok) :
     dsimp only at hH
     simp only [hlast, ↓reduceIte, hsite''] at hH
     -- the stream at the layer's frame
-    have hfb := inst_fb hr hI (by rw [hIt]; rfl) hidx
+    have hfb := inst_fb hr hI (by rw [hIt]) hidx
     have hF0 := inst_frame hr hI hIt hidx hw'
     have hp8 : V.n 8 ∈ (coreOf (glIdx p o)).params := by rw [hcj, hpL, glParams_eq]; simp
     obtain ⟨hlt10, hm10⟩ := ref_read hr (by rw [hcell]; omega)
@@ -150,8 +153,9 @@ theorem glLQ_step (hr : r.Ok) :
     refine ⟨I.fp, 0, m, q + 8 * p, hhd, hlt10, by rw [p0, hc0, pow_zero], by rw [p1, h3], Nat.zero_le _, hm,
       ?_, by omega⟩
     have h0 := hrec 0 (Nat.zero_le _)
-    rw [pow_zero, mul_one, Nat.mul_zero, Nat.add_zero, mul_assoc, ← pow_add] at h0
-    rw [p2, p0, hc0, mul_one, hm10]
+    simp only [Nat.mul_zero, pow_zero, mul_one, Nat.add_zero] at h0
+    rw [mul_assoc, ← pow_add] at h0
+    rw [p2, p0, hc0, one_pow, mul_one, hm10]
     exact h0
   · -- the loop's tail call
     subst h

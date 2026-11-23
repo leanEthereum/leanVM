@@ -17,13 +17,11 @@ On a memory holding the honest buffers at `b` (`OsMemA rd c b h.own`), the confi
 
 * `mid_sent`, `mid_roots`, `mid_hs`, `mid_glue`: a non-final level's `MidC` memory fields at the
   pointers `osPtrA c b k` (`sent` at `13 + 2l`), `λ = (h.L l).lam h.logN`;
-* `rows_mem`, `rows_lo`, `rows_hi`: the squeeze run's rows (`capSq`), at `osIxSqz c l`;
-  `rowsMem_at`: OsHonest's form;
-* `fin_hs`: the final level's lane in `final_msg` and normalized at `osIxHsF c`;
-* `posMem_at`: the decoded positions in `query_positions`;
+* `fin_hs`: the final level's lane in `final_msg` and normalized at `osIxHsF c`; `hsv_words`: the
+  normalized lane, as `opening_queries` reads it;
+* `qpos_seg`, `pos_load`, `posW_at`: the decoded positions in `query_positions`;
 * `fch_load`, `coefs_load`, `roundsAt_of`, `allRounds_getD`: the fold challenges and the rounds'
-  coefficients;
-* `hsv_words`, `cap_loads`: the final lane and the query nodes' cap cells and flags.
+  coefficients.
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -47,8 +45,8 @@ variable (h : OsHD) {rd : Reader} {b : ℕ}
 
 theorem mid_sent (hS : HonStatic h.c) (hm : OsMemA rd h.c b h.own) {l : ℕ} (hl : l < h.c.yrLevel)
     (hR : digestHalves (h.root (l + 1)) = ((h.L l).nw.x0, (h.L l).nw.x1)) :
-    LoadHolds rd (osPtrA h.c b (11 + l)) 0 (h.L l).nw.x0 ∧
-      LoadHolds rd (osPtrA h.c b (11 + l)) 1 (h.L l).nw.x1 ∧
+    LoadHolds rd (osPtrA h.c b (12 + l)) 0 (h.L l).nw.x0 ∧
+      LoadHolds rd (osPtrA h.c b (12 + l)) 1 (h.L l).nw.x1 ∧
       LoadHolds rd (osPtrA h.c b 1) (2 * l + 2) (h.L l).nw.x0 ∧
       LoadHolds rd (osPtrA h.c b 1) (2 * l + 3) (h.L l).nw.x1 := by
   have hyr := hS.yr
@@ -86,7 +84,7 @@ theorem mid_roots (hS : HonStatic h.c) (hm : OsMemA rd h.c b h.own) {l : ℕ} (h
 
 theorem mid_hs (hS : HonStatic h.c) (hm : OsMemA rd h.c b h.own) {l : ℕ} (hl : l < h.c.yrLevel) {j : ℕ}
     (hj : j < ((h.c.levels.getD l default)).folds) :
-    LoadHolds rd (osPtrA h.c b (11 + l)) (2 + j) ((h.L l).nw.high.getD j 0) ∧
+    LoadHolds rd (osPtrA h.c b (12 + l)) (2 + j) ((h.L l).nw.high.getD j 0) ∧
       LoadHolds rd (osPtrA h.c b 6) (l * hsStride + j) ((h.L l).nw.high.getD j 0 *
         word (hsScale ((h.c.levels.getD l default)).vanish ((h.c.levels.getD l default)).highBits j
           (vanishInv (((h.c.levels.getD l default)).vanish + ((h.c.levels.getD l default)).logCols))) 0) := by
@@ -146,7 +144,7 @@ theorem fin_hs (hS : HonStatic h.c) (hm : OsMemA rd h.c b h.own) {j : ℕ}
   rw [ownW_fmsg, fmsgC] at a
   have hsz := hS.lane
   have hw := h.ownW_lane
-  have hx : osIxLaneA h.c = 11 + h.c.yrLevel := rfl
+  have hx : osIxLaneA h.c = 12 + h.c.yrLevel := rfl
   rw [hx]
   have t := h.load hm (hS.sentLt le_rfl) (by unfold osIxQbpA; omega) (e := j) (by rw [hsz]; exact hj)
   rw [hw, hsFC, getD_mapRange _ hj] at t
@@ -175,14 +173,14 @@ theorem qpos_seg (hS : HonStatic h.c) {l k : ℕ} (hl : l < h.c.levels.length)
 /-- A level's position `k` in `query_positions`. -/
 theorem pos_load (hS : HonStatic h.c) (hm : OsMemA rd h.c b h.own) {l k : ℕ} (hl : l < h.c.levels.length)
     (hk : k < ((h.c.levels.getD l default)).squeezes * sqPer ((h.c.levels.getD l default))) :
-    LoadHolds rd (osPtrA h.c b 9) (((h.c.levels.getD l default)).posOff + k)
+    LoadHolds rd (osPtrA h.c b 10) (((h.c.levels.getD l default)).posOff + k)
       (eOfNat (qwPosOf ((h.c.levels.getD l default)).depth ((h.L l).word h.logN (k / sqPer ((h.c.levels.getD l default))))
         (k % sqPer ((h.c.levels.getD l default))))) := by
   obtain ⟨-, htop⟩ := chain_disj hS.pos
   have := htop l hl
-  have h11 := hS.head (j := 9) (by omega)
+  have h11 := hS.head (j := 10) (by omega)
   simp only [headSizes, List.getD_cons_succ, List.getD_cons_zero] at h11
-  have a := h.load hm (hS.headLt (j := 9) (by omega)) (by unfold osIxQbpA; omega)
+  have a := h.load hm (hS.headLt (j := 10) (by omega)) (by unfold osIxQbpA; omega)
     (e := ((h.c.levels.getD l default)).posOff + k) (by rw [h11]; omega)
   rwa [ownW_qpos, h.qpos_seg hS hl hk] at a
 
@@ -200,30 +198,13 @@ theorem posW_at (hS : HonStatic h.c) {l j i : ℕ} (hl : l < h.c.levels.length)
     omega
   obtain ⟨-, htop⟩ := chain_disj hS.pos
   have htl := htop l hl
-  have h9 := hS.head (j := 9) (by omega)
-  show (h.own.getD 9 []).getD _ 0 = _
-  rw [h.own_getD (hS.headLt (j := 9) (by omega)), ownAt, fitTo_getD (by rw [h9]; show _ < h.c.levels.length * ligPosCap; omega),
+  have h9 := hS.head (j := 10) (by omega)
+  show (h.own.getD 10 []).getD _ 0 = _
+  rw [h.own_getD (hS.headLt (j := 10) (by omega)), ownAt, fitTo_getD (by rw [h9]; show _ < osPosTotal h.c; omega),
     ownW_qpos, Nat.add_assoc, h.qpos_seg hS hl hk]
   have hP : 0 < sqPer (h.c.levels.getD l default) := by omega
   rw [Nat.add_comm (j * _) i, Nat.add_mul_div_right _ _ hP, Nat.div_eq_of_lt hi, Nat.zero_add,
     Nat.add_mul_mod_self_right, Nat.mod_eq_of_lt hi]
-
-/-- OsHonest's `posMem` at level `l`. -/
-theorem posMem_at (hS : HonStatic h.c) (hm : OsMemA rd h.c b h.own) {l : ℕ} (hl : l < h.c.levels.length)
-    {j : ℕ} (hj : j < ((h.c.levels.getD l default)).squeezes) {i : ℕ} (hi : i < sqPer ((h.c.levels.getD l default))) :
-    LoadHolds rd (osPtrA h.c b 9 * gen ^ ((h.c.levels.getD l default)).posOff * (gen ^ j) ^ sqPer ((h.c.levels.getD l default))) i
-      (eOfNat (qwPosOf ((h.c.levels.getD l default)).depth ((h.L l).word h.logN j) i)) := by
-  rw [mul_assoc, ← pow_mul, ← pow_add, loadHolds_mul_gen_pow, Nat.add_assoc]
-  have hk : j * sqPer ((h.c.levels.getD l default)) + i < ((h.c.levels.getD l default)).squeezes * sqPer ((h.c.levels.getD l default)) := by
-    have : (j + 1) * sqPer ((h.c.levels.getD l default)) ≤ ((h.c.levels.getD l default)).squeezes * sqPer ((h.c.levels.getD l default)) :=
-      Nat.mul_le_mul_right _ (by omega)
-    rw [Nat.add_mul] at this; omega
-  have := h.pos_load hS hm hl hk
-  have e1 : (j * sqPer ((h.c.levels.getD l default)) + i) / sqPer ((h.c.levels.getD l default)) = j := by
-    rw [Nat.add_comm, Nat.add_mul_div_right _ _ (by omega), Nat.div_eq_of_lt hi, Nat.zero_add]
-  have e2 : (j * sqPer ((h.c.levels.getD l default)) + i) % sqPer ((h.c.levels.getD l default)) = i := by
-    rw [Nat.add_comm, Nat.add_mul_mod_self_right, Nat.mod_eq_of_lt hi]
-  rwa [e1, e2] at this
 
 /-! ## The fold challenges and the rounds -/
 

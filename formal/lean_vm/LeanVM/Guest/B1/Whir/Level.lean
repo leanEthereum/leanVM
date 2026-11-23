@@ -45,24 +45,39 @@ variable {C : CallRel} {rd : Reader} {σ : Val}
 theorem lqIters_base (q lvl : ℕ) : lqIters q (lvBase lvl) = q / (1 + lvBase lvl) := by
   by_cases h : lvl = 0 <;> simp [lqIters, lvBase, h]
 
+theorem lqOdd_base (q lvl : ℕ) : lqOdd q (lvBase lvl) = q % (1 + lvBase lvl) := by
+  by_cases h : lvl = 0 <;> simp [lqOdd, lvBase, h, Nat.mod_one]
+
+theorem lvOdd_le (q lvl : ℕ) : q % (1 + lvBase lvl) ≤ lvBase lvl := by
+  by_cases h : lvl = 0 <;> simp [lvBase, h, Nat.mod_one]; omega
+
+theorem lvCount (q lvl : ℕ) :
+    oqCount (q % (1 + lvBase lvl)) (lvBase lvl) (q / (1 + lvBase lvl)) = q := by
+  by_cases h : lvl = 0 <;> simp [oqCount, lvBase, h]; omega
+
 /-- **The level's queries, unfolded**: the `level_queries` call's frame `Vq` holds the cap and its
-flags (cells `7`, `9`), checked to the root it returns, which is that in `level_roots`, and its
-`opening_queries` call, whose return is the batch; `λ^n` is `λ`'s power. -/
+flags (cells `7`, `9`), checked to the root it returns, which is that in `level_roots`, the cap and
+flags offset past the levels above the leaves (cells `13`, `15`), and its `opening_queries` call,
+whose return is the batch; `λ^n` is `λ`'s power. -/
 theorem osLq_sound {V : FrameMap} (hU : UnfoldsV rd C V) {c : OsCfg} {lvl : ℕ} {lv : OsLv}
     {st : OsSt} (hr : LvRate σ c lvl lv)
     (hlq : FnIs (osQueriesName c lvl lv) (osParams 6) (osLqBody c lvl lv))
-    (hit : lv.queries / (1 + lvBase lvl) < u128Bound)
+    (hit : lv.queries / (1 + lvBase lvl) < u128Bound) (hcd8 : lv.capDepth ≤ 8)
     (hpwQ : digitsVal (osPowDigits lv.queries) 1 = lv.queries)
     (hm : MatsOk σ st.mats) (hf : 2 * lv.foldsOff < u128Bound)
-    (hh : lvl * hsStride < u128Bound) (hp : lv.posOff < u128Bound)
+    (hh : lvl * hsStride < u128Bound) (hlp : σ (.n st.lp) = σ (.n osQpos) * gen ^ lv.posOff)
+    (hlw : σ (.n st.lw) = σ (.n osQbp) * gen ^ lv.posOff)
     (hok : AllOk C rd σ (osQueries c lvl lv st).1) :
     let A := osQArgs σ c lvl lv st
     let Vq := V (osQueriesName c lvl lv) A ((osQCallOf c lvl lv st).2.map σ)
     (osQCallOf c lvl lv st).1.map σ = A ∧
       C ("verify_merkle_cap__L" ++ natStr lv.capDepth) [Vq (.n 7), Vq (.n 9)]
         [Vq (.n 10), Vq (.n 11)] ∧
-      C (osOqName c lvl lv) (osOqArgs Vq A (lv.queries / (1 + lvBase lvl))) [Vq (.n 13)] ∧
-      σ (.n (osQueries c lvl lv st).2.batched) = Vq (.n 13) ∧
+      Vq (.n 13) = Vq (.n 7) * gen ^ 2 ^ (lv.capDepth + 1) ∧
+      Vq (.n 15) = Vq (.n 9) * gen ^ 2 ^ (lv.capDepth - 1) ∧
+      C (osOqName c lvl lv)
+        (osOqArgs Vq A (lv.queries / (1 + lvBase lvl)) (lv.queries % (1 + lvBase lvl))) [Vq (.n 18)] ∧
+      σ (.n (osQueries c lvl lv st).2.batched) = Vq (.n 18) ∧
       σ (.n (osQueries c lvl lv st).2.lamPow) = A.getD 0 0 ^ lv.queries ∧
       LoadHolds rd (σ (.n osRoots)) (2 * lvl) (Vq (.n 10)) ∧
       LoadHolds rd (σ (.n osRoots)) (2 * lvl + 1) (Vq (.n 11)) ∧
@@ -73,17 +88,23 @@ theorem osLq_sound {V : FrameMap} (hU : UnfoldsV rd C V) {c : OsCfg} {lvl : ℕ}
         batched := (osQueries c lvl lv st).2.batched
         lamPow := (osQueries c lvl lv st).2.lamPow } := by
   intro A Vq
-  obtain ⟨ha, hC, ⟨r0, r1, hR, l0, l1⟩, hm', hst⟩ := osQueries_sound hr hm hf hh hp hok
+  obtain ⟨ha, hC, ⟨r0, r1, hR, l0, l1⟩, hm', hst⟩ := osQueries_sound hr hm hf hh hlp hlw hok
   simp only [osLqBody] at hlq
-  have hU' := lq_unfold hU hlq (by rw [lqIters_base]; exact hit) hpwQ hC
-  obtain ⟨-, hcap, hoq, hret⟩ := hU'
-  rw [lqIters_base] at hoq
+  have hc1 : 2 ^ (lv.capDepth + 1) < u128Bound :=
+    lt_of_le_of_lt (Nat.pow_le_pow_right (by norm_num) (by omega : lv.capDepth + 1 ≤ 9)) (by decide)
+  have hc2 : 2 ^ (lv.capDepth - 1) < u128Bound :=
+    lt_of_le_of_lt (Nat.pow_le_pow_right (by norm_num) (by omega : lv.capDepth - 1 ≤ 9)) (by decide)
+  have hU' := lq_unfold hU hlq (by rw [lqIters_base]; exact hit)
+    (by rw [lqOdd_base]; exact lt_of_le_of_lt (lvOdd_le _ _) (by unfold lvBase u128Bound; split_ifs <;> norm_num))
+    hc1 hc2 hpwQ hC
+  obtain ⟨-, hcap, h13, h15, hoq, hret⟩ := hU'
+  rw [lqIters_base, lqOdd_base] at hoq
   have hret' := hR.symm.trans hret
   simp only [List.cons.injEq, and_true] at hret'
   obtain ⟨e0, e1, e2, e3⟩ := hret'
   rw [e0] at l0
   rw [e1] at l1
-  exact ⟨ha, hcap, hoq, e2, e3, l0, l1, hm', hst⟩
+  exact ⟨ha, hcap, h13, h15, hoq, e2, e3, l0, l1, hm', hst⟩
 
 /-! ## The positions -/
 
@@ -227,8 +248,9 @@ def lvWidth (lvl : ℕ) (lv : OsLv) : ℕ := rowLen (if lvl = 0 then 1 else 0) l
 structure LvIn (rd : Reader) (σ : Val) (lvl : ℕ) (lv : OsLv) (st : OsSt) (ws : WhirState)
     (recs : List OsRec) (R : List (Digest × ℕ × ℕ)) (root : Digest) : Prop where
   fs : st.fs.length = 5
-  co : st.co < u128Bound
+  co : st.co ≤ 2
   pad : PadOk σ st.pad
+  pads : ∃ p, st.pad = some p
   mats : MatsOk σ st.mats
   claim : ws.claim = σ (.n st.claim) + recsDeficit recs ws.alphas
   glen : ws.alphas.length = lv.foldsOff
@@ -239,6 +261,12 @@ structure LvIn (rd : Reader) (σ : Val) (lvl : ℕ) (lv : OsLv) (st : OsSt) (ws 
   r1 : LoadHolds rd (σ (.n osRoots)) (2 * lvl + 1) (digestHalves root).2
   glued : ws.glued = recs.flatMap recGlued
   recF : ∀ r ∈ recs, r.F ≤ ws.alphas.length
+  rtl : st.rts.length = lvl
+
+/-- A level's `level_rate` values `e` (`osRates`): its row's `g^posOff`, `g^squeezes`,
+`g^(n / resBatch)`, `g^(n % resBatch)`. -/
+def RtOk (σ : Val) (e : List ℕ) (lv : OsLv) : Prop :=
+  ∀ j < 4, σ (.n (e.getD j 0)) = gw ((osRateVals lv).getD j 0)
 
 /-- What the finish rereads of a non-final level's record. -/
 structure RecStored (rd : Reader) (σ : Val) (lvl : ℕ) (lv : OsLv) (r : OsRec) : Prop where
@@ -257,14 +285,13 @@ structure RecStored (rd : Reader) (σ : Val) (lvl : ℕ) (lv : OsLv) (r : OsRec)
 
 /-! ## The level's facts and callees -/
 
-/-- The level's `opening_queries` specialization: its entry and its shape against the row. -/
+/-- The level's `opening_queries` specialization: its entry and its shape against the row, and the
+row's cap depth in range. -/
 def QShapeOk (c : OsCfg) (lvl : ℕ) (lv : OsLv) (fin : ℕ) (loop : String) (sh : OqShape) : Prop :=
   (osOqName c lvl lv, loop, sh) ∈ openingQueriesLoops ∧
     oqEntry (osOqName c lvl lv) = some (osOqName c lvl lv, loop, sh) ∧
-    sh.odd = lv.queries % 2 * (if lvl = 0 then 1 else 0) ∧ sh.base = (if lvl = 0 then 1 else 0) ∧
-    sh.folds = lv.folds ∧ sh.depth = lv.depth ∧ sh.cd = lv.capDepth ∧ sh.final = fin ∧
-    2 ≤ sh.cd ∧ sh.cd ≤ 8 ∧ sh.cd ≤ sh.depth ∧
-    oqCount sh.odd sh.base (lv.queries / (1 + if lvl = 0 then 1 else 0)) = lv.queries
+    sh.base = lvBase lvl ∧ sh.folds = lv.folds ∧ sh.pd = lv.depth - lv.capDepth ∧ sh.final = fin ∧
+    2 ≤ lv.capDepth ∧ lv.capDepth ≤ 8 ∧ lv.capDepth ≤ lv.depth
 
 /-- A non-final level's facts: its row against the Spec's level and the next. -/
 structure MidFacts (c : OsCfg) (logN lvl : ℕ) (lv : OsLv) (level next : Whir.Level) (lv' : OsLv) :
@@ -286,6 +313,7 @@ structure MidFacts (c : OsCfg) (logN lvl : ℕ) (lv : OsLv) (level next : Whir.L
   sqo : lv.squeezes < ordG
   sq5 : lv.squeezes * 5 < u128Bound
   r3 : 2 * (lv.foldsOff + lv.folds) < u128Bound
+  f5 : 5 * lv.folds + 2 < u128Bound
   ood : (lvl + 1) * ligColsCap < u128Bound
   hs8 : lvl * hsStride < u128Bound
   shape : levelShape lv.logCols next (2 * 2 ^ next.fold) = (lv'.depth, lvWidth (lvl + 1) lv')
@@ -297,17 +325,13 @@ structure MidFacts (c : OsCfg) (logN lvl : ℕ) (lv : OsLv) (level next : Whir.L
 /-- A non-final level's callees, by their meanings. -/
 structure MidCalls (rd : Reader) (C : CallRel) (σ : Val) (c : OsCfg) (lvl : ℕ) (lv : OsLv) :
     Prop where
-  round : ∀ a r, WinTabs rd (a.getD 7 0) → C "opening_round" a r → MeaningOpeningRound rd a r
+  gc : GcOk C rd σ
   msg : ∀ a r, C ("opening_message__L" ++ natStr (2 + lv.folds) ++ "_L1") a r →
     MeaningOpeningMessage (2 + lv.folds) 1 rd a r
   spf : ∀ a r, C ("squeeze_point_from__L" ++ natStr lv.logCols) a r →
     MeaningSqueezePointFrom lv.logCols rd a r
-  g17 : ∀ w, C ("grind_check__L" ++ natStr queryGrind) [w, σ (.n osTabs)] [] →
-    (w.limb 0).lane.toNat % 2 ^ queryGrind = 0
-  g15 : ∀ w, C ("grind_check__L" ++ natStr levelOodGrind) [w, σ (.n osTabs)] [] →
-    (w.limb 0).lane.toNat % 2 ^ levelOodGrind = 0
   rate : LvRate σ c lvl lv
-  lp : ∀ a r, WinTabs rd (a.getD 8 0) → C (osPositionsName lv) a r →
+  lp : ∀ a r, WinTabs rd (a.getD 8 0) → a.getD 9 0 = gen ^ lv.squeezes → C (osPositionsName lv) a r →
     MeaningLevelPositions lv.squeezes lv.depth lv.capDepth rd a r
   lq : FnIs (osQueriesName c lvl lv) (osParams 6) (osLqBody c lvl lv)
   cap : ∀ a r, C ("verify_merkle_cap__L" ++ natStr lv.capDepth) a r →

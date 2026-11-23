@@ -41,9 +41,9 @@ theorem flatCalls_length (pre : List Stmt) (σ : Val) :
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
-/-- The callees' words, call by call: an entered call's bound, another's frame. -/
+/-- The callees' words, call by call: an entered call's bound, another's tail. -/
 def callsBound (fs : String → ℕ) : List Call → List ℕ → ℕ
-  | c :: cs, Bs => (if c.taken then Bs.headD 0 else fs c.f) + callsBound fs cs Bs.tail
+  | c :: cs, Bs => (if c.taken then Bs.headD 0 else fs (tailKey c.f)) + callsBound fs cs Bs.tail
   | [], _ => 0
 
 theorem kidsBoundL_map {σS : Val} {L : Layout} :
@@ -53,16 +53,16 @@ theorem kidsBoundL_map {σS : Val} {L : Layout} :
     simp only [List.map_cons, kidsBoundL, callsBound, kidsBoundL_map cs Bs.tail]
     rfl
 
-/-- The frames of a body's conditional calls (the only calls a walk may skip). -/
+/-- The tails of a body's conditional calls (the only calls a walk may skip). -/
 def ifFrames (fs : String → ℕ) (pre : List Stmt) : ℕ :=
   (pre.filterMap fun s ↦ match s with
-    | .callIf _ f _ => some (fs f)
+    | .callIf _ f _ => some (fs (tailKey f))
     | _ => none).sum
 
 theorem sum_eq_headD_tail (Bs : List ℕ) : Bs.sum = Bs.headD 0 + Bs.tail.sum := by
   cases Bs <;> simp
 
-/-- **The callees' words of a flat body are at most the bounds and the skipped frames.** -/
+/-- **The callees' words of a flat body are at most the bounds and the skipped tails.** -/
 theorem callsBound_le (pre : List Stmt) (σ : Val) :
     ∀ Bs : List ℕ, callsBound fs (flatCalls pre σ) Bs ≤ Bs.sum + ifFrames fs pre := by
   induction pre with

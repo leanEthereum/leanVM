@@ -233,8 +233,6 @@ fn constants(ph: &mut Placeholders) {
         ("QW", &QUERY_WINDOW_BITS),
         ("QUERY_WINDOWS_CAP", &QUERY_WINDOWS_CAP),
         ("MU_CAP", &MU_CAP),
-        ("GKR_ROUNDS_CAP", &(MU_CAP * (MU_CAP + 1) / 2 + MU_CAP + 2)),
-        ("GKR_POINTS_CAP", &((MU_CAP + 1) * MU_CAP)),
         ("MIN_LOG_MEM", &verifier::MIN_LOG_MEMORY),
         ("MAX_LOG_MEM", &verifier::MAX_LOG_MEMORY),
         ("INV_GEN", &F128::from(F64::G.inv())),
@@ -400,7 +398,9 @@ fn bus_placeholders(ph: &mut Placeholders, sides: &[Vec<Block>; 3], kbc: usize, 
     ph.list("COORD_CLAIM_SLOT", coord_claims.iter().map(|c| c.1));
     // A pull table-block coordinate's difference from its push twin's, as merged terms
     // appended after every coordinate's own: the guest counts a pull block's form as
-    // push's plus these, the two blocks sharing eq_hi.
+    // push's plus these, the two blocks sharing eq_hi. A pull block also reads its `Index` coordinates off its push
+    // twin's, at the same places.
+    let index = coord_kind(&Coord::Index);
     let (mut diff_off, mut diff_count) = (vec![0usize; coordinates.len()], vec![0usize; coordinates.len()]);
     for b in sblk[1]..sblk[2] {
         let (pull, push) = (block_coords[b].clone(), block_coords[b - sblk[1]].clone());
@@ -409,6 +409,11 @@ fn bus_placeholders(ph: &mut Placeholders, sides: &[Vec<Block>; 3], kbc: usize, 
             "pull block {b} must mirror its push twin"
         );
         for (p, q) in pull.zip(push) {
+            assert_eq!(
+                coordinates[p].0 == index,
+                coordinates[q].0 == index,
+                "pull block {b}'s Index coordinates must sit where its push twin's do"
+            );
             let merged = coord_difference(&terms[coordinates[p].3.clone()], &terms[coordinates[q].3.clone()]);
             diff_off[p] = terms.len();
             diff_count[p] = merged.len();
@@ -650,6 +655,11 @@ impl OpeningShape {
     fn folds_before(&self, lv: usize) -> usize {
         self.folds[..lv].iter().sum()
     }
+
+    /// The query positions of the levels before `lv`, as many as each squeezes, the levels one after another.
+    fn positions_before(&self, lv: usize) -> usize {
+        (0..lv).map(|l| self.squeezes(l) * self.positions(l)).sum()
+    }
 }
 
 /// The stacked opening's candidate tables, one per committed size and rate: every size the native verifier accepts of
@@ -673,14 +683,15 @@ fn opening_placeholders(ph: &mut Placeholders, kbc: usize) {
     );
     // A high part's index bits; the guest's HIGH_BITS_CAP is 3.
     assert!(cands.iter().all(|c| c.folds.iter().all(|&k| k <= 8)));
-    let per_candidate: [(&str, Scalar); 5] = [
+    let per_candidate: [(&str, Scalar); 6] = [
         ("LIG_N_LEVELS", OpeningShape::levels),
         ("LIG_YR_LEVEL", |c| c.levels() - 1),
         ("LIG_YR_LOG_LEN", OpeningShape::yr_log_len),
         ("LIG_YR_LEN", |c| 1 << c.yr_log_len()),
         ("LIG_TOTAL_FOLDS", |c| c.folds.iter().sum()),
+        ("LIG_POS_TOTAL", |c| c.positions_before(c.levels())),
     ];
-    let per_level: [(&str, Level); 11] = [
+    let per_level: [(&str, Level); 12] = [
         ("LIG_QUERIES", |c, lv| c.queries[lv]),
         ("LIG_FOLDS", |c, lv| c.folds[lv]),
         // 128-bit cells per leaf row: level 0's committed rows are base-field
@@ -701,6 +712,7 @@ fn opening_placeholders(ph: &mut Placeholders, kbc: usize) {
             c.folds[lv].next_power_of_two().trailing_zeros() as usize
         }),
         ("LIG_FOLDS_OFF", OpeningShape::folds_before),
+        ("LIG_POS_OFF", OpeningShape::positions_before),
     ];
     // `open_stacked` has one arm per size and reads these at the size's first-rate row: a rate changes none of them.
     const SIZE_ONLY: [&str; 8] = [
@@ -751,11 +763,7 @@ fn opening_placeholders(ph: &mut Placeholders, kbc: usize) {
     // A row is its hinted words, one a lane: K at level 0, packed two to a cell, E deeper.
     ph.set("LIG_ROW_CAP", most(OpeningShape::row_words));
     ph.set("LIG_PACKED_ROW_CAP", most(|c, _| c.row_words(0) / 2));
-    ph.set("LIG_PATH_CAP", most(|c, lv| 4 * (c.tree_depths[lv] - c.cap_depth(lv))));
-    ph.set(
-        "LIG_LEVEL_POSITIONS_CAP",
-        most(|c, lv| c.squeezes(lv) * c.positions(lv)),
-    );
+    ph.set("LIG_PATH_CAP", most(|c, lv| 2 * (c.tree_depths[lv] - c.cap_depth(lv))));
     ph.set("LIG_MAX_LEVELS", maxlev);
     ph.set("LIG_MIN_LOG_SIZE", minm);
     ph.set("LIG_N_LOG_SIZES", n_log_sizes);

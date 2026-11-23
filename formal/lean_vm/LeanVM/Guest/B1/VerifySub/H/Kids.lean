@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.VerifySub.H.Kids
 
-  `verify_sub`'s sixteen callees on an honest child, each a `KidD`: their names, arguments, words
+  `verify_sub`'s fourteen callees on an honest child, each a `KidD`: their names, arguments, words
   read and results, from the child's segments (`ChildSegs`).
 -/
 
@@ -29,21 +29,19 @@ On the own buffers' first words `bs` (allocation order, `vb bs i`: `claim_pool`,
 2. `log2_ceil_in_the_exponent__L0_L34` on the push blocks' total `g^pushT`: the bus depth;
 3. `certify_placement` on `kappa_base`;
 4. `log2_ceil_in_the_exponent__L16_L34` on the stack's total: `g^m`;
-5. `grind_check__L15` on the out-of-domain grind's permutation (`oodSt`);
-6. `squeeze_point_from__L{m}`: the out-of-domain point at `ood_z`;
-7. `opening_message__L1_L1`: the point's value (stored at `ood_value`) and the bus grind's nonce,
+5. `squeeze_point_from__L{m}`: the out-of-domain point at `ood_z`;
+6. `opening_message__L1_L1`: the point's value (stored at `ood_value`) and the bus grind's nonce,
    their permutation `busSt`;
-8. `bus_grind_check__L{d - 20}` on `busSt`;
-9. `verify_bus_gkr` on the stream past the out-of-domain and bus words, `zeta`;
-10. `verify_tables` (`VtHonest.args`, `linL`), its GKR leaves where `verify_bus_gkr` returned them
+7. `bus_grind_check__L{d - 20}` on `busSt`;
+8. `verify_bus_gkr` on the stream past the out-of-domain and bus words, `zeta`;
+9. `verify_tables` (`VtHonest.args`, `linL`), its GKR leaves where `verify_bus_gkr` returned them
     (`leavesB`);
-11. `verify_keccak` on the stream past the tables, `chi`, the output lanes (in the stream, at the
+10. `verify_keccak` on the stream past the tables, `chi`, the output lanes (in the stream, at the
     tables' evaluations), `z_vals`, `slices`;
-12. `grind_check__L13` on the ring map's grind's permutation (`ringSt`);
-13. `ring_switch_target` on `slices` and the ring map's challenges;
-14. `open_stacked`'s arm of the stack log, on the rate's selector and the stream past the ring
+11. `ring_switch_target` on `slices` and the ring map's challenges;
+12. `open_stacked`'s arm of the stack log, on the rate's selector and the stream past the ring
     switch's nonce;
-15. `check_opening_terminal`, on `certify_placement`'s offsets and `open_stacked`'s point buffers
+13. `check_opening_terminal`, on `certify_placement`'s offsets and `open_stacked`'s point buffers
     when they are what those return (`termOk`).
 -/
 
@@ -139,6 +137,9 @@ def outs : List E := (lanesOf S.claims).map (·.value)
 def ringN : E := S.xsR.getD 0 0
 def ringSt : KeccakState := S.s6.nonceState S.ringN
 
+/-- The words the two inlined grinds check: the out-of-domain grind's, the ring map's. -/
+def gw : E × E := (cellsOfState S.oodSt false 1, cellsOfState S.ringSt false 1)
+
 /-- The ring map's challenges: the grind's challenge, then fifteen squeezes. -/
 def rchs : List E := challengeOf S.ringSt :: ((⟨capOf S.ringSt, []⟩ : Fs).squeezeN 15).1
 
@@ -176,13 +177,13 @@ def vtB (sqE leaves : ℕ) : Tables.VtBases :=
   ⟨S.cT bs, vb bs 5, vb bs 3, vb bs 2, sqE, vb bs 8, vb bs 0, vb bs 9, leaves, vb bs 10, vb bs 1, 0⟩
 
 /-- `verify_bus_gkr`'s result among the results before. -/
-def gkRes (pv : List (List E × Main.Layout)) : List E × Main.Layout := pv.getD 9 ([], [])
+def gkRes (pv : List (List E × Main.Layout)) : List E × Main.Layout := pv.getD 8 ([], [])
 
 /-- `certify_placement`'s result among the results before. -/
 def cpRes (pv : List (List E × Main.Layout)) : List E × Main.Layout := pv.getD 3 ([], [])
 
 /-- `open_stacked`'s result among the results before. -/
-def osRes (pv : List (List E × Main.Layout)) : List E × Main.Layout := pv.getD 14 ([], [])
+def osRes (pv : List (List E × Main.Layout)) : List E × Main.Layout := pv.getD 12 ([], [])
 
 open Classical in
 /-- Where `verify_bus_gkr` returned the GKR leaves. -/
@@ -225,8 +226,6 @@ noncomputable def kids (sqE : ℕ) : List KidD :=
     fun _ ↦ ⟨"log2_ceil_in_the_exponent__L16_L34", true,
       [gen ^ Tables.stackTotal S.kappas, ptr sqE], log2Lin sqE,
       Returns [gen ^ max 16 (log2Ceil (Tables.stackTotal S.kappas))]⟩,
-    fun _ ↦ ⟨"grind_check__L15", true, [cellsOfState S.oodSt false 1, ptr sqE * gen ^ winTabAt],
-      vsExpLin sqE, Returns []⟩,
     fun _ ↦ ⟨squeezeNames.getD (S.μs - 20) "", true,
       capOf S.oodSt ++ [challengeOf S.oodSt, ptr (vb bs 6)], [(vb bs 6, S.oodZ)], Returns S.sZ.cap⟩,
     fun _ ↦ ⟨"opening_message__L1_L1", true, S.sZ.cap ++ [ptr (vb bs 1) * gen ^ 11, ptr (vb bs 7)],
@@ -249,8 +248,6 @@ noncomputable def kids (sqE : ℕ) : List KidD :=
         (vb bs 11 + qkeccakVarsCap, S.kc.2.1), (vb bs 12, S.kc.2.2),
         (sqE + winTabAt, winTabWords)],
       Returns (capOf S.s6.perm ++ [ptr (S.cK bs) * gen ^ S.xsK.length, S.kOut.value])⟩,
-    fun _ ↦ ⟨"grind_check__L13", true, [cellsOfState S.ringSt false 1, ptr sqE * gen ^ winTabAt],
-      vsExpLin sqE, Returns []⟩,
     fun _ ↦ ⟨"ring_switch_target", true, [ptr (vb bs 12), ptr (vb bs 13)],
       [(vb bs 12, S.kc.2.2), (vb bs 13, S.rchs)],
       Returns [ringTarget S.kc.2.2 (S.rchs.take ringMapWidth) (S.rchs.drop ringMapWidth)]⟩,
@@ -267,7 +264,7 @@ noncomputable def kids (sqE : ℕ) : List KidD :=
         if S.termOk pv then (cpRes pv).2 ++ (osRes pv).2 ++ S.termLin bs sqE else [],
         Returns []⟩]
 
-theorem kids_length (sqE : ℕ) : (S.kids bs sqE).length = 16 := rfl
+theorem kids_length (sqE : ℕ) : (S.kids bs sqE).length = 14 := rfl
 
 end ChildSegs
 

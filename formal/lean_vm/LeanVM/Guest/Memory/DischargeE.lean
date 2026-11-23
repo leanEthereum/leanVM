@@ -74,7 +74,7 @@ include hI hIt hp
 /-- A hint-only cell is a word of its instance's frame. -/
 theorem extra_at : I.fp + p.2 < T.total fs ∧ I.Frame fs (I.fp + p.2) := by
   obtain ⟨-, hlt, -, -⟩ := hE.cell I hI f σ bufs kids hIt p hp
-  have hn : I.t.name = f := by rw [hIt]; rfl
+  have hn : I.t.fsz fs = fs f := by rw [hIt]; rfl
   exact ⟨h.within hI (by rw [hn]; exact hlt), ⟨Nat.le_add_right _ _, by rw [hn]; omega⟩⟩
 
 /-- **A hint-only cell is no other frame cell.** -/
@@ -120,7 +120,7 @@ theorem extra_not_eqn {K : Inst} (hK : K ∈ honestInsts P fs H hdr T) {g : Stri
     · have := h.two_le_total
       have heq := h.inj (by omega) hlt (hqi.symm.trans hx)
       omega
-    · have hn : I.t.name = f := by rw [hIt]; rfl
+    · have hn : I.t.fsz fs = fs f := by rw [hIt]; rfl
       exact hR' I hI p.2 (by rw [hn]; exact hlt') (hqi.symm.trans hx)
   · have hrun := (h.run K' hK' g' σ' b' k' hK't pK r rs hfa k hk).1
     exact extra_not_cell h hE hI hIt hp hK' (q := (cert g' r + k, σ' (r :: rs)[k]))

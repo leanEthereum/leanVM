@@ -231,7 +231,7 @@ class Solver:
         self.stats = collections.Counter()
         # returned words of calls, by value: the call's arguments (a returned cursor stays in a run an argument names)
         self.retargs = {}
-        for s_ in C.stmts(I.CORE[k][1]):
+        for s_ in C.stmts(I.arm_body(k)):
             if s_[0] == 'call':
                 for v in s_[3]:
                     self.retargs[v] = set(s_[2])
@@ -776,13 +776,16 @@ class Solver:
             self.stats['pts-idx'] += 1
             return ('perm', self.use(('subP', c, tuple(cells), g), ('under', g, r) if g else r), ns)
         if 'lastres' in I.F and len(c[0]) == 2 and all(e == 1 for _, e in c[0]):
-            # `c = [B]·[J]·g^o`, the points `[B]·g^(o + t)` written, `t < n`, and a fact `e(J) < n` (the solver's)
-            B, J = c[0][0][0], c[0][1][0]
-            Q = (((B, 1),), c[1])
-            n = 0
-            while n < 64 and st.c2s.get(C.cshift(Q, n)):
-                n += 1
-            f = self.fact(st, (((J, 1),), 0), ((), n)) if n else None
+            # `c = [B]·[J]·g^o` (either base the table), the points `[B]·g^(o + t)` written, `t < n`, and a fact
+            # `e(J) < n` (the solver's)
+            for B, J in ((c[0][0][0], c[0][1][0]), (c[0][1][0], c[0][0][0])):
+                Q = (((B, 1),), c[1])
+                n = 0
+                while n < 64 and st.c2s.get(C.cshift(Q, n)):
+                    n += 1
+                f = self.fact(st, (((J, 1),), 0), ((), n)) if n else None
+                if f is not None:
+                    break
             if f is not None:
                 cells = [C.cshift(Q, t) for t in range(n)]
                 ns = [st.c2s[x][-1] for x in cells]
@@ -1649,10 +1652,11 @@ class Solver:
 # ---- one function
 
 def solve(k, P, sigs, sigOf, fa_extra=()):
-    """`k`'s certificate at the signatures, its frame runs' cells those of its body and `fa_extra`."""
-    params, body = I.CORE[k]
+    """`k`'s certificate at the signatures, its frame runs' cells those of its body and `fa_extra`; at its arm
+    (`infer.ARM`), the pass over the body at the arm, the frame runs' cells the body's."""
+    params, body = I.CORE[k][0], I.arm_body(k)
     H = C.HCert(sigs[k])
-    H.fas = C.fa_pairs(body) + list(fa_extra)
+    H.fas = C.fa_pairs(I.CORE[k][1]) + list(fa_extra)
     H.dups = sorted(getattr(P, 'dups', ()))
     S = Solver(k, P, H, sigs)
     S.miss = []
@@ -1752,7 +1756,7 @@ def run_pass(X_, params, body):
 
 
 def check(k, H, sigOf):
-    params, body = I.CORE[k]
+    params, body = I.CORE[k][0], I.arm_body(k)
     try:
         C.heapOkC(dict(I.POWS), sigOf, k, params, body, H)
         return None
@@ -1963,36 +1967,57 @@ def lwits(ax, name, ws):
                                      for n, g in enumerate(segs)], '        ') + '])'
 
 
+def lreads(ax, H, pre):
+    """The `reads` field of a certificate or an arm."""
+    by_d = collections.defaultdict(list)
+    for (d, p, off), w in sorted(H.reads.items()):
+        by_d[d].append(f'({p}, {off}, {lwit(w)})')
+    return '  reads := ' + ax.lst(pre + 'reads', '(ℕ × List (ℕ × ℕ × CoreMode.Wit))',
+                                  (f'({d}, [{", ".join(rs)}])' for d, rs in sorted(by_d.items()))) + '\n'
+
+
+def larm(ax, H, pre):
+    """The per-arm fields of a certificate or an arm (`HArm`): calls, returns, quotients, kept equations, branches
+    checked twice, loaded words."""
+    out = ''
+    if H.calls:
+        out += '  calls := ' + ax.lst(pre + 'calls', '(List CoreMode.Wit)',
+                                      [lwits(ax, f'{pre}call{i}_', ws) for i, ws in enumerate(H.calls)]) + '\n'
+    if H.rets:
+        out += '  rets := ' + ax.lst(pre + 'rets', '(List CoreMode.Wit)',
+                                     [lwits(ax, f'{pre}ret{i}_', ws) for i, ws in enumerate(H.rets)]) + '\n'
+    if H.divs:
+        out += f'  divs := {lnums(sorted(H.divs))}\n'
+    if H.eqs:
+        out += f'  eqs := {lnums(sorted(H.eqs))}\n'
+    if H.dups:
+        out += '  dups := [' + ', '.join(map(str, H.dups)) + ']\n'
+    if H.hvs:
+        out += '  hvs := ' + ax.lst(pre + 'hvs', 'ℕ', map(str, sorted(H.hvs))) + '\n'
+    return out
+
+
 def lcert(H, sig_only=False):
     """The aux declarations and the certificate's fields."""
     ax = Aux()
     out = f'  sig := {lsig(H.sig, ax)}\n'
     if sig_only:
         return ax.defs, out + '  reads := []\n  res := []\n'
-    by_d = collections.defaultdict(list)
-    for (d, p, off), w in sorted(H.reads.items()):
-        by_d[d].append(f'({p}, {off}, {lwit(w)})')
-    out += '  reads := ' + ax.lst('reads', '(ℕ × List (ℕ × ℕ × CoreMode.Wit))',
-                                  (f'({d}, [{", ".join(rs)}])' for d, rs in sorted(by_d.items()))) + '\n'
+    out += lreads(ax, H, '')
     out += '  res := ' + ax.lst('res', 'CoreMode.CRes', map(lres, H.res)) + '\n'
-    if H.calls:
-        out += '  calls := ' + ax.lst('calls', '(List CoreMode.Wit)',
-                                      [lwits(ax, f'call{i}_', ws) for i, ws in enumerate(H.calls)]) + '\n'
-    if H.rets:
-        out += '  rets := ' + ax.lst('rets', '(List CoreMode.Wit)',
-                                     [lwits(ax, f'ret{i}_', ws) for i, ws in enumerate(H.rets)]) + '\n'
-    if H.divs:
-        out += f'  divs := {lnums(sorted(H.divs))}\n'
-    if H.eqs:
-        out += f'  eqs := {lnums(sorted(H.eqs))}\n'
+    out += larm(ax, H, '')
+    if getattr(H, 'arms', None):
+        # a split at a selector (`HCert.arms`): each arm's parts its own declaration
+        names = []
+        for r, A in enumerate(H.arms):
+            body = lreads(ax, A, f'a{r}_') + larm(ax, A, f'a{r}_')
+            ax.defs.append(f'def arm{r} : CoreMode.HArm where\n{body}')
+            names.append(f'arm{r}')
+        out += f'  sel := {H.sel}\n  arms := [{", ".join(names)}]\n'
     if H.fas:
         out += '  fas := [' + wrap(f'({a}, {b})' for a, b in H.fas) + ']\n'
     if H.ders:
         out += '  ders := [' + wrap(map(lcell, H.ders)) + ']\n'
-    if H.dups:
-        out += '  dups := [' + ', '.join(map(str, H.dups)) + ']\n'
-    if H.hvs:
-        out += '  hvs := ' + ax.lst('hvs', 'ℕ', map(str, sorted(H.hvs))) + '\n'
     if H.gargs:
         out += '  gargs := [' + wrap((f'("{g}", {lnums(a)}, [{", ".join(map(lcell, ms))}])' for g, a, ms in H.gargs)) + ']\n'
     return ax.defs, out

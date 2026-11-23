@@ -236,6 +236,18 @@ structure HSig where
 /-- The empty convention. -/
 def HSig.empty : HSig := {}
 
+/-- **One arm of a certificate split at a selector** (`HCert.arms`): the per-arm parts of a certificate, the
+others shared. -/
+structure HArm where
+  reads : List (ℕ × List (ℕ × ℕ × Wit))
+  calls : List (List Wit) := []
+  rets : List (List Wit) := []
+  divs : List ℕ := []
+  hvs : List ℕ := []
+  eqs : List ℕ := []
+  dups : List ℕ := []
+  deriving Repr, Inhabited
+
 /-- **A function's heap certificate**: its signature; its reads, by the word's value number `d`,
 each read `load (.n d) (.n p) off` as `(p, off, w)` with its witness `w`; its residuals; and, for the
 check with calls and loops (`CoreMode/HeapC.lean`), the witnesses of each call statement's callee
@@ -267,7 +279,17 @@ structure HCert where
   /-- `ite`s whose continuation the pass checks in each branch, by their guard's value number (`HeapC.lean`,
   `dupB`): a top-level `ite c z n` followed by `ss` is checked as `ite c (z ++ ss) (n ++ ss)`. -/
   dups : List ℕ := []
+  /-- A split at a selector (`HeapC.lean`, `heapOkC`): with `arms` not empty, the body is checked once per arm `r`, every
+  `match`/`dispatch` on the value `V.n sel` taking its arm `r`, by the certificate `arm r`; `reads` then names every
+  read of every arm. -/
+  sel : ℕ := 0
+  arms : List HArm := []
   deriving Repr, Inhabited
+
+/-- **The certificate of arm `a`** of a split: its per-arm parts, the shared ones `H`'s, no split. -/
+def HCert.arm (H : HCert) (a : HArm) : HCert :=
+  { sig := H.sig, reads := a.reads, res := H.res, calls := a.calls, rets := a.rets, divs := a.divs, hvs := a.hvs,
+    gargs := H.gargs, eqs := a.eqs, fas := H.fas, ders := H.ders, dups := a.dups }
 
 /-- A value's number, `n` for `V.n n`. -/
 def vnum (v : V) : Option ℕ := bif v.path.isEmpty && Nat.beq v.tag 0 then some v.idx else none

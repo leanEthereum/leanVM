@@ -42,7 +42,7 @@ def rmfePure (o : ℕ) : List Stmt := (rmfeBlockT o).filter fun s ↦ !loadB s
 def rmfeCheckP (o : ℕ) : Bool :=
   match maskRun (.n (o + 531)) [(.n (o + 531), 2)] (rmfePure o) with
   | some st => (List.range 16).all (fun i ↦ st.lookup (.n (o + rmfeStores.getD i 0)) ==
-      some (embedLit.getD i 0)) && st.lookup (.n (o + 624)) == some embedXor
+      some (embedLit.getD i 0)) && st.lookup (.n (o + 688)) == some embedXor
   | none => false
 
 theorem rmfeCheckP_true {o : ℕ} (ho : LayOff o) : rmfeCheckP o = true := by
@@ -55,7 +55,7 @@ theorem rmfePure_kernel {o : ℕ} (ho : LayOff o) :
 theorem rmfe_kernel {o : ℕ} (ho : LayOff o) : (rmfeBlockT o).all isAtom = true ∧
     resid (atomsL (rmfeBlockT o)) =
       (List.range 16).map (fun i ↦ .load (.n (o + rmfeStores.getD i 0)) (.n (valf% «keccak_layer» "out")) (6 + i)) ++
-        [.load (.n (o + 624)) (.n (valf% «keccak_layer» "out")) 1] := by
+        [.load (.n (o + 688)) (.n (valf% «keccak_layer» "out")) 1] := by
   rcases ho with rfl | rfl <;> exact ⟨by decide +kernel, by decide +kernel⟩
 
 /-- **The values the block stores**: the instance weights at `s`, and their sum. -/
@@ -63,7 +63,7 @@ theorem rmfe_vals {o : ℕ} (ho : LayOff o) (hσ : ∀ v, σ v = σ (.n v.idx))
     (hg : ∀ s ∈ rmfeBlockT o, GoodS rd S w σ s) :
     (∀ i < 16, σ (.n (o + rmfeStores.getD i 0)) =
       (keccakInstanceWeights (σ (.n (o + 531)))).getD i 0) ∧
-      σ (.n (o + 624)) = sumE (keccakInstanceWeights (σ (.n (o + 531)))) := by
+      σ (.n (o + 688)) = sumE (keccakInstanceWeights (σ (.n (o + 531)))) := by
   obtain ⟨hall, hr⟩ := rmfePure_kernel ho
   have h : Stmt.HoldsList (fun _ _ _ ↦ True) rd σ (rmfePure o) True (fun _ ↦ True) :=
     block_holds hall hσ (fun s hs ↦ hg s (List.mem_filter.mp hs).1) (by rw [hr]; simp) trivial
@@ -111,7 +111,7 @@ theorem rmfe_complete {o : ℕ} (ho : LayOff o) (hσ : ∀ v, σ v = σ (.n v.id
 
 /-- The Horner section of a specialization. -/
 def hornerS (first : ℕ) : List Stmt :=
-  hornerT (fun k ↦ ((prodTab first).getD k default).a) (layOff first + 531) (layOff first + 625)
+  hornerT (fun k ↦ ((prodTab first).getD k default).a) (layOff first + 531) (layOff first + 689)
 
 theorem horner_kernel {first : ℕ} (hf : first < 2) :
     (hornerS first).all isAtom = true ∧ resid (atomsL (hornerS first)) = [] := by

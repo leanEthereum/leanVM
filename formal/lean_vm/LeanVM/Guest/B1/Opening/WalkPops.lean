@@ -1,23 +1,23 @@
 /-
   LeanVM.Guest.B1.Opening.WalkPops
 
-  The witness-stream entries `walk_path` pops at its honest values: its path's children (`merkle_children`).
+  The witness-stream entries `walk_path`, inline in a query, pops: its path's siblings
+  (`merkle_children`).
 -/
 
 module
 
 public import LeanVM.Guest.B1.Opening.QueriesComplete3
 public import LeanVM.Guest.B1.Sig.PopsKit
-import LeanVM.Guest.ValRef
-import LeanVM.Guest.Data.ValNames.«walk_path__L»
 
 /-!
 # `walk_path`'s pops
 
 * `noWit`, `fallPops_noWit`, `splicePops_noWit`: a block of atoms none a witness hint pops nothing; `SplicePops.callIf`: a conditional call pops its callee's entries;
-* `wpPops w`: the children cells `w.pc` of an honest walk, one `merkle_children` entry;
-* `wp_fallPops`: at the honest values the body before its return pops `wpPops w`;
-* `wp_node_pops`: a call instance of a `walk_path` specialization at the honest valuation `w.val` pops `wpPops w`.
+* `oqWalkT_fallPops`: the walk, its windows' words arms of their matches, pops its hinted
+  siblings' cells, one `merkle_children` entry;
+* `WD.wpPops w`: the sibling cells `w.pc` of an honest walk, one `merkle_children` entry;
+  `WD.At.walk_fallPops`: an honest walk inline pops `wpPops w`.
 -/
 
 namespace LeanVM.Guest.B1
@@ -94,77 +94,67 @@ theorem splicePops_noWit {ss : List Stmt} (h : noWit ss = true) : SplicePops rd 
 
 theorem oqStepT_noWit (pr ch l K n0 n1 : ℕ) (bit : Bool) : noWit (oqStepT pr ch l K n0 n1 bit) = true := rfl
 
-theorem oqArmT_noWit (s : Oq) (pr kL ch i a : ℕ) : noWit (oqArmT s pr kL ch i a) = true := by
+theorem oqArmT_noWit (s : Oq) (pr kN ch i a : ℕ) : noWit (oqArmT s pr kN ch i a) = true := by
   rw [oqArmT, noWit_append, Bool.and_eq_true]
   refine ⟨noWit_iff.mpr fun st hst => ?_, rfl⟩
   obtain ⟨blk, hb, hst⟩ := List.mem_flatten.mp hst
   obtain ⟨r, -, rfl⟩ := List.mem_map.mp hb
   exact noWit_iff.mp (oqStepT_noWit _ _ _ _ _ _ _) st hst
 
-theorem oqPadT_noWit (pr : ℕ) : noWit (oqPadT pr) = true := rfl
+theorem oqCapT_noWit (bp cap flags : V) (k n npw : ℕ) : noWit (oqCapT bp cap flags k n npw) = true := rfl
 
-theorem oqCapT_noWit (s : Oq) (bp cap flags : V) (kL ch : ℕ) : noWit (oqCapT s bp cap flags kL ch) = true := rfl
+/-- A window, its word an arm of its match, pops nothing. -/
+theorem oqWinT_fallPops {s : Oq} {bp : V} {pr kN ch i k : ℕ} (hk : k < 2 ^ oqWw s i)
+    (hx : σ (.n (oqWk s ch i)) = ofK (addressOfIndex k)) : FallPops rd σ (oqWinT s bp pr kN ch i) [] := by
+  have h6 : 2 ^ oqWw s i ≤ 2 ^ 6 := Nat.pow_le_pow_right (by omega) (oqWw_le s i)
+  have e : oqWinT s bp pr kN ch i = [.atom (.load (.n (oqWk s ch i)) bp i),
+      .atom (.const (.n (oqWk s ch i + 1)) (word (2 ^ 63) 0))] ++
+      [.match_ (.n (oqWk s ch i)) ((List.range (2 ^ oqWw s i)).map (oqArmT s pr kN ch i))] := rfl
+  rw [e]
+  have hm : FallPops rd σ [.match_ (.n (oqWk s ch i))
+      ((List.range (2 ^ oqWw s i)).map (oqArmT s pr kN ch i))] [] :=
+    FallPops.match_ (k := k) (by simpa using hk) (by omega) hx (by
+      rw [List.getElem_map, List.getElem_range]
+      exact fallPops_noWit σ (oqArmT_noWit _ _ _ _ _ _))
+  exact fallPops_eq ((fallPops_noWit σ (ss := [.atom (.load (.n (oqWk s ch i)) bp i),
+    .atom (.const (.n (oqWk s ch i + 1)) (word (2 ^ 63) 0))]) rfl).append hm) rfl
+
+/-- **The walk pops its hinted siblings' cells**, its windows' words arms of their matches. -/
+theorem oqWalkT_fallPops {s : Oq} {bp cap flags : V} {pr kN ch : ℕ}
+    (hsel : ∀ i < oqNpw s, ∃ k < 2 ^ oqWw s i, σ (.n (oqWk s ch i)) = ofK (addressOfIndex k)) :
+    FallPops rd σ (oqWalkT s bp cap flags pr kN ch)
+      [("merkle_children", (List.range (2 * s.pd)).map fun j ↦ σ (.n (ch + j)))] := by
+  have hh : FallPops rd σ [.atom (.hint (.witness "merkle_children"
+      (.stack ((List.range (2 * s.pd)).map fun j ↦ .n (ch + j)))))]
+      [("merkle_children", (List.range (2 * s.pd)).map fun j ↦ σ (.n (ch + j)))] := by
+    refine fallPops_eq (FallPops.atom _) ?_
+    simp only [Atom.pops, Hint.pops, Dest.words, List.map_map]
+    rfl
+  have hw : FallPops rd σ ((List.range (oqNpw s)).map (oqWinT s bp pr kN ch)).flatten [] :=
+    fallPops_flatten_nil fun x hx => by
+      obtain ⟨i, hi, rfl⟩ := List.mem_map.mp hx
+      obtain ⟨k, hk, hx⟩ := hsel i (List.mem_range.mp hi)
+      exact oqWinT_fallPops hk hx
+  exact fallPops_eq ((hh.append hw).append (fallPops_noWit σ (oqCapT_noWit _ _ _ _ _ _))) (by simp)
 
 namespace WD
 
 variable (w : WD)
 
-/-- **An honest walk's entries**: its path's children cells, one `merkle_children` entry. -/
-def wpPops : List Pop := [("merkle_children", (List.range (4 * w.pd)).map w.pc)]
+/-- **An honest walk's entries**: its siblings' cells, one `merkle_children` entry. -/
+def wpPops : List Pop := [("merkle_children", (List.range (2 * w.pd)).map w.pc)]
 
-theorem win_fallPops (hv : w.Hv σ) {i : ℕ} (hi : i < oqNpw w.s) :
-    FallPops rd σ (oqWinT w.s (.n (valf% «walk_path» "wins")) (wpPr w.s) 0 wpCh i) [] := by
-  have s0 : σ (.n (oqWk w.s wpCh i)) = ofK (addressOfIndex (w.wv i)) := by
-    rw [show oqWk w.s wpCh i = oqWk w.s wpCh i + 0 from rfl, hv,
-      val_win w hi (by unfold winSz; omega), winV, ite_eq_left rfl, gen_pow_ofK]
-  have hlt : w.wv i < 2 ^ oqWw w.s i := (qwVal_path hi w.q).1
-  have h6 : 2 ^ oqWw w.s i ≤ 2 ^ 6 := Nat.pow_le_pow_right (by omega) (oqWw_le w.s i)
-  have hpre : noWit ([.atom (.load (.n (oqWk w.s wpCh i)) (.n (valf% «walk_path» "wins")) i)] ++
-      (if i = 0 then oqPadT (wpPr w.s) else []) ++
-      [.atom (.const (.n (oqWk w.s wpCh i + 1 + oqWo i)) (word (2 ^ 63) 0))]) = true := by
-    rw [noWit_append, noWit_append]
-    split <;> rfl
-  have e : oqWinT w.s (.n (valf% «walk_path» "wins")) (wpPr w.s) 0 wpCh i = ([.atom (.load (.n (oqWk w.s wpCh i)) (.n (valf% «walk_path» "wins")) i)] ++
-      (if i = 0 then oqPadT (wpPr w.s) else []) ++
-      [.atom (.const (.n (oqWk w.s wpCh i + 1 + oqWo i)) (word (2 ^ 63) 0))]) ++
-      [.match_ (.n (oqWk w.s wpCh i)) ((List.range (2 ^ oqWw w.s i)).map (oqArmT w.s (wpPr w.s) 0 wpCh i))] := by
-    simp [oqWinT]
-  rw [e]
-  have hm : FallPops rd σ [.match_ (.n (oqWk w.s wpCh i))
-      ((List.range (2 ^ oqWw w.s i)).map (oqArmT w.s (wpPr w.s) 0 wpCh i))] [] :=
-    FallPops.match_ (k := w.wv i) (by simpa using hlt) (by omega) s0 (by
-      rw [List.getElem_map, List.getElem_range]
-      exact fallPops_noWit σ (oqArmT_noWit _ _ _ _ _ _))
-  exact fallPops_eq ((fallPops_noWit σ hpre).append hm) rfl
+variable {w} {ch kN pr : ℕ} {bp cap flags : V}
 
-/-- **The body before its return pops the children**, at the honest values. -/
-theorem wp_fallPops (hv : w.Hv σ) :
-    FallPops rd σ (oqPathT w.s (.n (valf% «walk_path» "wins")) (wpPr w.s) 0 wpCh ++ oqCapT w.s (.n (valf% «walk_path» "wins")) (.n (valf% «walk_path» "cap")) (.n (valf% «walk_path» "flags")) 0 wpCh)
-      w.wpPops := by
-  have hh : FallPops rd σ [.atom (.hint (.witness "merkle_children"
-      (.stack ((List.range (4 * w.s.pd)).map fun j ↦ .n (wpCh + j)))))] w.wpPops := by
-    refine fallPops_eq (FallPops.atom _) ?_
-    simp only [Atom.pops, Hint.pops, Dest.words, List.map_map, wpPops]
+/-- **An honest walk inline pops its siblings' cells.** -/
+theorem At.walk_fallPops (hv : w.At σ ch kN pr bp cap flags) :
+    FallPops rd σ (oqWalkT w.s bp cap flags pr kN ch) w.wpPops := by
+  refine fallPops_eq (oqWalkT_fallPops fun i hi => ⟨w.wv i, (qwVal_path hi w.q).1, ?_⟩) ?_
+  · rw [show oqWk w.s ch i = oqWk w.s ch i + 0 from rfl, hv.win hi (by unfold winSz; omega), winV,
+      ite_eq_left rfl, gen_pow_ofK]
+  · simp only [wpPops]
     congr 2
-    refine List.map_congr_left fun j hj => ?_
-    rw [Function.comp_apply, hv, val_pc w (List.mem_range.mp hj)]
-  have hw : FallPops rd σ ((List.range (oqNpw w.s)).map (oqWinT w.s (.n (valf% «walk_path» "wins")) (wpPr w.s) 0 wpCh)).flatten [] :=
-    fallPops_flatten_nil fun x hx => by
-      obtain ⟨i, hi, rfl⟩ := List.mem_map.mp hx
-      exact w.win_fallPops hv (List.mem_range.mp hi)
-  exact fallPops_eq ((hh.append hw).append (fallPops_noWit σ (oqCapT_noWit _ _ _ _ _ _))) (by simp)
-
-/-- **A `walk_path` call instance at the honest values pops the children.** -/
-theorem wp_node_pops {P : Core.Program} {wlk : String} {fn : Fn} (hf : P.find? wlk = some fn)
-    (hb : fn.body = wpBodyT w.s) (bufs : List ℕ) (kids : List Tree) :
-    (Memory.Tree.node wlk (fun v : V ↦ w.val v.idx) bufs kids).pops P rd = w.wpPops := by
-  obtain ⟨es, hw, hc, hp⟩ := retPops_of_fallPops (vs := []) (w.wp_fallPops (rd := rd) (σ := fun v : V ↦ w.val v.idx)
-    fun _ ↦ rfl)
-  rw [Tree.pops_node hf (by rw [hb, wpBodyT_eq]; exact hw)]
-  have := splice_append_of_calls_nil (rd := rd) (σ := fun v : V ↦ w.val v.idx) (es := es) [] (Tree.popsKids P rd kids) hc
-  rw [List.append_nil] at this
-  rw [this, hp]
-  simp [splice]
+    exact List.map_congr_left fun j hj => hv.sib (List.mem_range.mp hj)
 
 end WD
 

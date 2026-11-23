@@ -16,7 +16,7 @@ import LeanVM.Guest.Data.ValNames.«shared_selector_tables»
 
 `shared_selector_tables_relIn`: a run of `n = 4q + r < 64` coordinates: its loop over the `q`
 full nibbles (`loop9_relIn`) and its partial nibble `sel_partial_nibble__L{r}` at `q`
-(`sel_partial_nibble_relIn`), the runs `eqt` (`32⌈n/4⌉` words), `gt` (`16⌈n/4⌉`), `z`, `z1`,
+(`sel_partial_nibble_relIn`), the runs `eqt` (`8n` words), `gt` (`4n`), `z`, `z1`,
 `gsq` (`n`) in `R`.
 -/
 
@@ -47,14 +47,10 @@ theorem ss_calls : ssPre.dropLast.filterMap Main.Stmt.callS =
         .n (val% «shared_selector_tables» "gsq_hi")], [])] := by
   decide +kernel
 
-theorem ceil4 {n q r : ℕ} (hn : n = 4 * q + r) (hr : r < 4) :
-    (n + 3) / 4 = if r = 0 then q else q + 1 := by
-  split <;> omega
-
 /-- **`shared_selector_tables` loads from `R`.** -/
 theorem shared_selector_tables_relIn {rd : Reader} {R : ℕ → Prop} {eqt gt z z1 gsq : E} {n : ℕ}
-    (hn : n < 64) {rets : List E} (he : PtrIn R eqt (32 * ((n + 3) / 4)))
-    (hgt : PtrIn R gt (16 * ((n + 3) / 4))) (hz : PtrIn R z n) (hz1 : PtrIn R z1 n)
+    (hn : n < 64) {rets : List E} (he : PtrIn R eqt (8 * n))
+    (hgt : PtrIn R gt (4 * n)) (hz : PtrIn R z n) (hz1 : PtrIn R z1 n)
     (hgs : PtrIn R gsq n)
     (h : coreProgram.Rel rd "shared_selector_tables" [eqt, gt, z, z1, gsq, gen ^ n] rets) :
     coreProgram.RelIn rd R "shared_selector_tables" [eqt, gt, z, z1, gsq, gen ^ n] rets := by
@@ -100,7 +96,6 @@ theorem shared_selector_tables_relIn {rd : Reader} {R : ℕ → Prop} {eqt gt z 
     have h1 : gen ^ n = gen ^ (4 * q + r) := by
       rw [← p5, ← e_add_eq_zero_iff.mp e42, m42, hq4, hrg, ← pow_add]
     exact gen_pow_inj (by omega) (by omega) h1
-  have hceil := ceil4 hnqr hr4
   -- the dispatch: `σ 20 = g^r`
   obtain ⟨jd, hjd, hx, hcall⟩ := hdisp
   have hjd4 : jd < 4 := by simpa using hjd
@@ -108,7 +103,7 @@ theorem shared_selector_tables_relIn {rd : Reader} {R : ℕ → Prop} {eqt gt z 
     rw [hrg, gen_pow_eq_ofK] at hx
     exact gpow_injOn (by simp only [Set.mem_Iio]; omega) (by simp only [Set.mem_Iio]; omega)
       (ofK_injective hx.symm)
-  rw [← hjr] at hnqr hceil
+  rw [← hjr] at hnqr
   refine ⟨fun s hs ↦ ?_, by rw [ss_noLoad]; simp, fun c hc ht ↦ ?_⟩
   · rw [ssPre_eq, List.mem_append, List.mem_singleton] at hs
     rcases hs with hs | rfl
@@ -130,8 +125,8 @@ theorem shared_selector_tables_relIn {rd : Reader} {R : ℕ → Prop} {eqt gt z 
       simp only [List.map_cons, List.map_nil, c45, tb_word_one, hqg, p0, p1, p2, p3, p4] at hrel ⊢
       obtain ⟨d, hd⟩ := hrel
       have := loop9_relIn (R := R) (K := q)
-        (ptrIn_mono he (by rw [hceil]; split <;> omega))
-        (ptrIn_mono hgt (by rw [hceil]; split <;> omega))
+        (ptrIn_mono he (by omega))
+        (ptrIn_mono hgt (by omega))
         (ptrIn_mono hz (by omega)) (ptrIn_mono hz1 (by omega)) (ptrIn_mono hgs (by omega))
         d 0 hq0 (by rw [pow_zero]; exact hd)
       rwa [pow_zero] at this
@@ -147,8 +142,8 @@ theorem shared_selector_tables_relIn {rd : Reader} {R : ℕ → Prop} {eqt gt z 
       refine sel_partial_nibble_relIn hjd4 (ptrIn_mul (ptrIn_mono he ?_))
         (fun hw ↦ ptrIn_mul (ptrIn_mono hgt ?_)) (ptrIn_mul (ptrIn_mono hz (by omega)))
         (ptrIn_mul (ptrIn_mono hz1 (by omega))) (ptrIn_mul (ptrIn_mono hgs (by omega))) hcall
-      · rw [hceil]; interval_cases jd <;> simp <;> omega
-      · rw [hceil]; interval_cases jd <;> simp at hw ⊢ <;> omega
+      · omega
+      · omega
 
 end
 end LeanVM.Guest.B1.Tables

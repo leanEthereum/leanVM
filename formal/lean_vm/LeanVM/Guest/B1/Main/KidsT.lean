@@ -57,7 +57,7 @@ def KidsFromInT (rd : Reader) (σ : Val) (R : ℕ → Prop) :
       (∀ i, Rk i → R i ∨ Dacc i) ∧
       (if c.taken then RelAtInT P fs cert rd Rk Dk b m c.f (c.args.map σ) (c.rets.map σ)
           (Ts.headD fun _ => True)
-        else m = fs c.f) ∧
+        else m = fs (tailKey c.f)) ∧
       KidsFromInT rd σ R (fun i => Dacc i ∨ (c.taken = true ∧ Dk i)) cs Ts.tail (b + m) n' Dend
 
 /-- The entered callees' trees satisfy their predicates. -/
@@ -106,7 +106,7 @@ variable {rd : Reader} {σ : Val}
 theorem kid_ofInT {c : Call} {b m : ℕ} {Rk Dk : ℕ → Prop} {T : Tree → Prop}
     (hc : c.taken = false → P.Takes c.f c.args.length = true)
     (h : if c.taken then RelAtInT P fs cert rd Rk Dk b m c.f (c.args.map σ) (c.rets.map σ) T
-      else m = fs c.f) :
+      else m = fs (tailKey c.f)) :
     ∃ k : Tree, Tree.KidsValid P rd σ [c] [k] ∧ k.BufsOk P ∧
       k.Placed P fs cert (b, b + k.block fs P.loop) ∧ k.total fs = m ∧
       k.LoadsIn P fs cert Rk (b, b + k.block fs P.loop) ∧
@@ -127,7 +127,7 @@ theorem kid_ofInCT {c : Call} {fp cur B m : ℕ} {Rk Dk : ℕ → Prop} {T : Tre
     (hc : c.taken = false → P.Takes c.f c.args.length = true)
     (h : if c.taken then
         RelAtInCT P fs cert rd Rk Dk fp cur B m c.f (c.args.map σ) (c.rets.map σ) T
-      else B = fs c.f ∧ m = 0) :
+      else B = fs (tailKey c.f) ∧ m = 0) :
     ∃ k : Tree, Tree.KidsValid P rd σ [c] [k] ∧ k.BufsOk P ∧ k.Placed P fs cert (fp, cur) ∧
       k.block fs P.loop = B ∧ k.total fs = B + m ∧ k.LoadsIn P fs cert Rk (fp, cur) ∧
       (c.taken = true → ∀ i, Dk i → k.Data P fs cert (fp, cur) i) ∧ (c.taken = true → T k) := by
@@ -280,7 +280,7 @@ theorem relAtInWT_of_walk_loop (hP : P.Wf) {R D Dk Rt Dt : ℕ → Prop} {fp c B
     (htail : if ct.taken then
         RelAtInCT P fs cert rd Rt Dt (fp + fs f) (c + (allocs σ es).sum + N) Bt m ct.f
           (ct.args.map σ) (ct.rets.map σ) Tt
-      else Bt = fs ct.f ∧ m = 0)
+      else Bt = fs (tailKey ct.f) ∧ m = 0)
     (hbuf : (allocDsts es).map σ = (bases c (allocs σ es)).map fun b => ofK (addressOfIndex b))
     (haddr : ∀ q ∈ addrs es, σ q.1 = ofK (addressOfIndex (fp + cert f q.2)))
     (hTs : Ts.length = cs.length)
@@ -427,19 +427,19 @@ theorem CompleteAtL.mono {k : ℕ} {f : String} {Lin : Layout} {args : List E}
       let ⟨t, ht, hTt⟩ := hr rd hl hm
       ⟨t, ht, hT t hTt⟩⟩⟩
 
-/-- **The rest of a loop**: the next iteration's `CompleteAtL`, or after the last a phantom of one
-frame. -/
+/-- **The rest of a loop**: the next iteration's `CompleteAtL`, or after the last a phantom, its
+tail. -/
 theorem completeAtL_tail {k : ℕ} {f g : String} {Lin : Layout} {args : List E} {T : Tree → Prop}
     {Bd : ℕ → Prop} {last : Prop} [Decidable last]
     (h : ¬ last → CompleteAtL fs cert k f Lin args (Returns []) T Bd) :
     ∃ Bt, ∀ fp c, fp + Bt ≤ c → ∃ (nt : ℕ) (Lt : Layout),
-      (last → Bt = fs g ∧ nt = 0) ∧ (¬ last → Bd (Bt + nt)) ∧ Within Lt c nt ∧ DisjL Lt ∧
+      (last → Bt = fs (tailKey g) ∧ nt = 0) ∧ (¬ last → Bd (Bt + nt)) ∧ Within Lt c nt ∧ DisjL Lt ∧
       ∀ rd, LowDef k rd → MemL rd (Lt ++ Lin) →
         if decide (¬ last) = true then
           RelAtInCT coreProgram fs cert rd (RegionL Lin) (RegionL []) fp c Bt nt f args [] T
-        else Bt = fs g ∧ nt = 0 := by
+        else Bt = fs (tailKey g) ∧ nt = 0 := by
   by_cases hl : last
-  · exact ⟨fs g, fun fp c _ => ⟨0, [], fun _ => ⟨rfl, rfl⟩, fun h' => absurd hl h',
+  · exact ⟨fs (tailKey g), fun fp c _ => ⟨0, [], fun _ => ⟨rfl, rfl⟩, fun h' => absurd hl h',
       fun q hq => by simp at hq, List.Pairwise.nil, fun _ _ _ => by simp [hl]⟩⟩
   · obtain ⟨B, hB⟩ := h hl
     refine ⟨B, fun fp c hc => ?_⟩
@@ -523,14 +523,14 @@ theorem kidsFromInT_of_kidsDT (κ : ℕ) : ∀ (ks : List Kid) (Ts : List (Tree 
               · exact Or.inl (Or.inr ⟨by rw [hct]; exact ht, hi⟩)
               · exact Or.inr hi
             · simpa [hct] using hR2
-    · obtain ⟨N, L, outs, ho, hW, hD, hI, hK⟩ := kidsFromInT_of_kidsDT κ ks Ts.tail hok.2 (b + fs k.f)
-      refine ⟨fs k.f + N, L, ([], []) :: outs, ⟨fun h => absurd h ht, ho⟩,
+    · obtain ⟨N, L, outs, ho, hW, hD, hI, hK⟩ := kidsFromInT_of_kidsDT κ ks Ts.tail hok.2 (b + fs (tailKey k.f))
+      refine ⟨fs (tailKey k.f) + N, L, ([], []) :: outs, ⟨fun h => absurd h ht, ho⟩,
         hW.mono (by omega) (by omega), hD, ⟨fun h => absurd h ht, hI⟩, ?_⟩
       intro rd σ cs R Dacc hc hlow hL hLin hRg
       match cs, hc with
       | c :: cs, ⟨hf, hct, _, hc⟩ =>
         simp only [Kid.lins, List.flatMap_cons] at hLin
-        refine ⟨fs k.f, N, fun _ => False, fun _ => False, rfl, fun _ h => h.elim, ?_, ?_⟩
+        refine ⟨fs (tailKey k.f), N, fun _ => False, fun _ => False, rfl, fun _ h => h.elim, ?_, ?_⟩
         · have ht' : k.taken = false := by simpa using ht
           rw [hct, ht']
           simp only [Bool.false_eq_true, ↓reduceIte]

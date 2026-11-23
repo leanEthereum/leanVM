@@ -116,8 +116,7 @@ structure CommitOut (rd : Reader) (σ : Val) (lvl : ℕ) (lv : OsLv) (st st' : O
 theorem osCommit_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt}
     (hom : ∀ a r, C ("opening_message__L" ++ natStr (2 + lv.folds) ++ "_L1") a r →
       MeaningOpeningMessage (2 + lv.folds) 1 rd a r)
-    (hgr : ∀ w, C ("grind_check__L" ++ natStr levelOodGrind) [w, σ (.n osTabs)] [] →
-      (w.limb 0).lane.toNat % 2 ^ levelOodGrind = 0)
+    (hgc : GcOk C rd σ) (hwt : WinTabs rd (σ (.n osTabs)))
     (hspf : ∀ a r, C ("squeeze_point_from__L" ++ natStr lv.logCols) a r →
       MeaningSqueezePointFrom lv.logCols rd a r)
     (hfs : st.fs.length = 5) (hm : MatsOk σ st.mats)
@@ -129,10 +128,11 @@ theorem osCommit_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt}
   obtain ⟨f0, f1, f2, f3, f4, hf⟩ := fs_five st hfs
   unfold osCommit at hok ⊢
   simp only [allOk_append, and_assoc] at hok
-  obtain ⟨-, hcu, hmsg, ho0, hspf', hcp, hn, hpd, hlast⟩ := hok
+  obtain ⟨-, hcu, hmsg, hgi, hld, ho0, hspf', hcp, hn, hpd, hlast⟩ := hok
   set s0 : OsSt := { st with k := st.k + 2 } with hs0
   set r := (osCurS s0).2.2.k with hr
-  set s1 : OsSt := { (osCurS s0).2.2 with k := r + 10 } with hs1
+  set g := r + 8 + gcLen levelOodGrind - 2 with hgdef
+  set s1 : OsSt := { (osCurS s0).2.2 with k := g + 2 } with hs1
   set q := (osMatS c.plan osOodz ((lvl + 1) * ligColsCap) s1).2.2.k with hq
   set b := q + 10 with hb
   have hP := osPad_ok hpad hpd
@@ -140,9 +140,10 @@ theorem osCommit_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt}
   set j := (osPad (osMatS c.plan osOodz ((lvl + 1) * ligColsCap) s1).2.2.pad (b + 6)).2.2 with hj
   obtain ⟨z1, z2, z3, z4⟩ := hP p rfl
   have ecu := osCurS_val (s := s0) hco hcu
-  simp only [allOk_cons, allOk_nil, and_true, stmtOk_call, stmtOk_atom, holds_load, osLd,
-    List.map_cons, List.map_nil] at hmsg
-  obtain ⟨hcall, hg, ls0, lr0, ls1, lr1⟩ := hmsg
+  simp only [allOk_cons, allOk_nil, and_true, stmtOk_call] at hmsg
+  simp only [allOk_cons, allOk_nil, and_true, stmtOk_atom, holds_load, osLd] at hld
+  obtain ⟨ls0, lr0, ls1, lr1⟩ := hld
+  have hcall := hmsg
   have hM := hom _ _ hcall
   have hfm : List.map V.n st.fs = [.n f0, .n f1, .n f2, .n f3, .n f4] := by rw [hf]; rfl
   simp only [List.map_append, hfm, List.cons_append, List.nil_append, List.map_cons, List.map_nil, osRun,
@@ -163,7 +164,7 @@ theorem osCommit_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt}
   have e0' : σ (.n r) = cellsOfState (F1.nonceState n1) false 0 := by rw [hF1, hF]; exact e0
   have e1' : σ (.n (r + 1)) = cellsOfState (F1.nonceState n1) false 1 := by rw [hF1, hF]; exact e1
   have hlb : levelOodGrind ≠ 0 := by decide
-  obtain ⟨gok, hgα, hgs⟩ := grindSqueeze_cells hlb n1 _ _ e0' e1' (hgr _ hg)
+  obtain ⟨gok, hgα, hgs⟩ := grindSqueeze_cells hlb n1 _ _ e0' e1' (hgc levelOodGrind (r + 8) (.n (r + 1)) (.n osTabs) (by decide) hwt hgi)
   have hG : oodG (st.F σ) (x0 :: x1 :: high) n1 =
       (σ (.n r), ⟨[σ (.n (r + 2)), σ (.n (r + 3)), σ (.n (r + 4)), σ (.n (r + 5)), σ (.n (r + 6))],
         []⟩) := by
@@ -209,8 +210,8 @@ theorem osCommit_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt}
   have o : ∀ i : Fin 13, σ (.n (j + i.val)) =
       cellsOfState (oodQ (st.F σ) (x0 :: x1 :: high) n1 lv.logCols y0 nn) false i := outCellK hout
   have hxl' : high.length = lv.folds := by simp only [List.length_cons] at hxl; omega
-  have hx0 : σ (.n (r + 8)) = x0 := loadHolds_unique ls0 (hsent 0 (by simp))
-  have hx1 : σ (.n (r + 9)) = x1 := loadHolds_unique ls1 (hsent 1 (by simp))
+  have hx0 : σ (.n g) = x0 := loadHolds_unique ls0 (hsent 0 (by simp))
+  have hx1 : σ (.n (g + 1)) = x1 := loadHolds_unique ls1 (hsent 1 (by simp))
   have h2 : ReadsAt rd (OsSt.cur σ s0 * gen ^ (x0 :: x1 :: high).length) [n1, y0, nn] := by
     intro k hk
     simp only [List.length_cons, List.length_nil] at hk

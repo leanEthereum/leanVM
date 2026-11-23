@@ -10,7 +10,6 @@ public import LeanVM.Guest.B1.Opening.WalkPops
 public import LeanVM.Guest.B1.Merkle.CapBody
 public import LeanVM.Guest.B1.Whir.HelperT
 import LeanVM.Guest.ValRef
-import LeanVM.Guest.Data.ValNames.«level_queries__L»
 import LeanVM.Guest.Data.ValNames.«verify_merkle_cap__L»
 
 /-!
@@ -80,38 +79,42 @@ theorem osPowSteps_noWit (x : ℕ) : ∀ (ds : List Bool) (acc k : ℕ), noWit (
 
 /-- **The cap's and the flags' entries**: `4·2^cd` cells at the cap's pointer `.n 7`, `2^cd` at the flags' `.n 9`. -/
 def capPops (rd : Reader) (σ : Val) (cd : ℕ) : List Pop :=
-  [("merkle_caps", Dest.words rd σ (.heap (.n (valf% «level_queries» "cap")) 0 (4 * 2 ^ cd))),
-    ("merkle_cap_active", Dest.words rd σ (.heap (.n (valf% «level_queries» "flags")) 0 (2 ^ cd)))]
+  [("merkle_caps", Dest.words rd σ (.heap (.n 7) 0 (4 * 2 ^ cd))),
+    ("merkle_cap_active", Dest.words rd σ (.heap (.n 9) 0 (2 ^ cd)))]
 
 /-- **`level_queries` pops the cap and its flags, then its callees' entries** (`verify_merkle_cap`'s, `opening_queries`'). -/
 theorem lq_node_pops {P : Core.Program} {name : String} {fn : Fn} (hf : P.find? name = some fn)
     {q base folds leaf d cd mu nhs hbits fin : ℕ} (hb : fn.body = lqBody q base folds leaf d cd mu nhs hbits fin)
     (τ : Val) (bufs : List ℕ) {kids : List Tree} {kc ko : List Pop} (hk : Tree.popsKids P rd kids = [kc, ko]) :
     (Memory.Tree.node name τ bufs kids).pops P rd = capPops rd τ cd ++ kc ++ ko := by
+  let iters := if base = 1 then q / 2 else q
+  let odd := if base = 1 then q % 2 else 0
+  let pw := osPowSteps 0 (osPowDigits q) 0 22
+  let k := 22 + osPowLen q
   have hx : SplicePops rd τ (osHeap (4 * 2 ^ cd) 6 ++
-      [.atom (.hint (.witness "merkle_caps" (.heap (.n (valf% «level_queries» "cap")) 0 (4 * 2 ^ cd))))] ++
+      [.atom (.hint (.witness "merkle_caps" (.heap (.n 7) 0 (4 * 2 ^ cd))))] ++
       osHeap (2 ^ cd) 8 ++
-      [.atom (.hint (.witness "merkle_cap_active" (.heap (.n (valf% «level_queries» "flags")) 0 (2 ^ cd))))] ++
-      [.call ("verify_merkle_cap__L" ++ natStr cd) [.n (valf% «level_queries» "cap"), .n (valf% «level_queries» "flags")] [.n (valf% «level_queries» "root_0"), .n (valf% «level_queries» "root_1")]] ++
-      [osCst 12 (gw (if base = 1 then q / 2 else q))] ++
-      [.call (oqName q base folds leaf d cd mu nhs hbits fin) [.n (valf% «level_queries» "cap"), .n (valf% «level_queries» "flags"), .n (valf% «level_queries» "lam_inv"), .n (valf% «level_queries» "coefs"), .n (valf% «level_queries» "hs"), .n (valf% «level_queries» "positions"), .n (valf% «level_queries» "win_ptrs"), .n (valf% «level_queries» "batched~1")]
-        [.n (valf% «level_queries» "batched")]] ++
-      ([osCp 14 10, osCp 15 11, osCp 16 13] ++ (osPowSteps 0 (osPowDigits q) 0 17).1 ++
-        [osCp (17 + osPowLen q) (osPowSteps 0 (osPowDigits q) 0 17).2]))
+      [.atom (.hint (.witness "merkle_cap_active" (.heap (.n 9) 0 (2 ^ cd))))] ++
+      [.call ("verify_merkle_cap__L" ++ natStr cd) [.n 7, .n 9] [.n 10, .n 11]] ++
+      [osCst 12 (gw (2 ^ (cd + 1))), osMul 13 7 12, osCst 14 (gw (2 ^ (cd - 1))), osMul 15 9 14,
+        osCst 16 (gw iters), osCst 17 (gw odd)] ++
+      [.call (oqName base folds leaf (d - cd) mu nhs hbits fin)
+        [.n 13, .n 15, .n 1, .n 2, .n 3, .n 4, .n 5, .n 16, .n 17] [.n 18]] ++
+      ([osCp 19 10, osCp 20 11, osCp 21 18] ++ pw.1 ++ [osCp k pw.2]))
       (Tree.popsKids P rd kids) (capPops rd τ cd ++ kc ++ ko) := by
     rw [hk]
     have h : SplicePops rd τ (((((((osHeap (4 * 2 ^ cd) 6 ++
-        [.atom (.hint (.witness "merkle_caps" (.heap (.n (valf% «level_queries» "cap")) 0 (4 * 2 ^ cd))))]) ++
-        osHeap (2 ^ cd) 8) ++ [.atom (.hint (.witness "merkle_cap_active" (.heap (.n (valf% «level_queries» "flags")) 0 (2 ^ cd))))]) ++
-        [.call ("verify_merkle_cap__L" ++ natStr cd) [.n (valf% «level_queries» "cap"), .n (valf% «level_queries» "flags")] [.n (valf% «level_queries» "root_0"), .n (valf% «level_queries» "root_1")]]) ++
-        [osCst 12 (gw (if base = 1 then q / 2 else q))]) ++
-        [.call (oqName q base folds leaf d cd mu nhs hbits fin) [.n (valf% «level_queries» "cap"), .n (valf% «level_queries» "flags"), .n (valf% «level_queries» "lam_inv"), .n (valf% «level_queries» "coefs"), .n (valf% «level_queries» "hs"), .n (valf% «level_queries» "positions"), .n (valf% «level_queries» "win_ptrs"), .n (valf% «level_queries» "batched~1")]
-          [.n (valf% «level_queries» "batched")]]) ++
-        ([osCp 14 10, osCp 15 11, osCp 16 13] ++ (osPowSteps 0 (osPowDigits q) 0 17).1 ++
-          [osCp (17 + osPowLen q) (osPowSteps 0 (osPowDigits q) 0 17).2]))
+        [.atom (.hint (.witness "merkle_caps" (.heap (.n 7) 0 (4 * 2 ^ cd))))]) ++
+        osHeap (2 ^ cd) 8) ++ [.atom (.hint (.witness "merkle_cap_active" (.heap (.n 9) 0 (2 ^ cd))))]) ++
+        [.call ("verify_merkle_cap__L" ++ natStr cd) [.n 7, .n 9] [.n 10, .n 11]]) ++
+        [osCst 12 (gw (2 ^ (cd + 1))), osMul 13 7 12, osCst 14 (gw (2 ^ (cd - 1))), osMul 15 9 14,
+          osCst 16 (gw iters), osCst 17 (gw odd)]) ++
+        [.call (oqName base folds leaf (d - cd) mu nhs hbits fin)
+          [.n 13, .n 15, .n 1, .n 2, .n 3, .n 4, .n 5, .n 16, .n 17] [.n 18]]) ++
+        ([osCp 19 10, osCp 20 11, osCp 21 18] ++ pw.1 ++ [osCp k pw.2]))
         ([] ++ [] ++ [] ++ [] ++ [kc] ++ [] ++ [ko] ++ [])
-        ([] ++ [("merkle_caps", Dest.words rd τ (.heap (.n (valf% «level_queries» "cap")) 0 (4 * 2 ^ cd)))] ++ [] ++
-          [("merkle_cap_active", Dest.words rd τ (.heap (.n (valf% «level_queries» "flags")) 0 (2 ^ cd)))] ++ kc ++ [] ++ ko ++ []) :=
+        ([] ++ [("merkle_caps", Dest.words rd τ (.heap (.n 7) 0 (4 * 2 ^ cd)))] ++ [] ++
+          [("merkle_cap_active", Dest.words rd τ (.heap (.n 9) 0 (2 ^ cd)))] ++ kc ++ [] ++ ko ++ []) :=
       (((((((SplicePops.of_fallPops (fallPops_noWit τ rfl)).append (SplicePops.of_fallPops (FallPops.atom _))).append
         (SplicePops.of_fallPops (fallPops_noWit τ rfl))).append (SplicePops.of_fallPops (FallPops.atom _))).append
         (SplicePops.call _ _ _ kc)).append (SplicePops.of_fallPops (fallPops_noWit τ rfl))).append
@@ -120,9 +123,9 @@ theorem lq_node_pops {P : Core.Program} {name : String} {fn : Fn} (hf : P.find? 
     have h' := SplicePops.congr_pops (SplicePops.congr_ks h (ks' := [kc, ko]) (by simp))
       (q := capPops rd τ cd ++ kc ++ ko) (by simp [capPops])
     simpa only [List.append_assoc] using h'
-  obtain ⟨es, -, he⟩ := Tree.pops_of_splice (bufs := bufs) hf (ys := [.ret [.n (valf% «level_queries» "s7#0"), .n (valf% «level_queries» "s7#0[1]"), .n (valf% «level_queries» "s7#0[2]"),
-      .n (17 + osPowLen q)]])
-    (by rw [hb, lqBody]; simp [List.append_assoc]) hx (es := []) (vs := [.n (valf% «level_queries» "s7#0"), .n (valf% «level_queries» "s7#0[1]"), .n (valf% «level_queries» "s7#0[2]"), .n (17 + osPowLen q)])
+  obtain ⟨es, -, he⟩ := Tree.pops_of_splice (bufs := bufs) hf (ys := [.ret [.n 19, .n 20, .n 21, .n k]])
+    (by rw [hb, lqBody]; simp [List.append_assoc]; exact ⟨rfl, rfl, rfl⟩) hx (es := [])
+    (vs := [.n 19, .n 20, .n 21, .n k])
     (by simp [walk, walk1, Out.seq]) rfl
   rw [he]; simp [evPops]
 

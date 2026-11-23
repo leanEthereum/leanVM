@@ -92,8 +92,8 @@ dispatch arm's by its selector, or a loop chain's by its bound. -/
 def SizeOk (M : ℕ → E) (fp : ℕ) : Hint → ℕ → Prop
   | .alloc _ n, B => n = B
   | .allocArm _ sel sizes, B => ∃ k, M (fp + sel) = ofK (Parameters.g ^ k) ∧ k < maxCells ∧ sizes[k]? = some B
-  | .allocFrames _ size stop si, B => ∃ v n, M (fp + stop) = ofK v ∧ v * si = Parameters.g ^ n ∧ n < maxCells ∧
-      size * (n + 1) = B
+  | .allocFrames _ size stop si tail, B => ∃ v n, M (fp + stop) = ofK v ∧ v * si = Parameters.g ^ n ∧ n < maxCells ∧
+      size * n + tail = B
   | _, _ => False
 
 /-- **A callee frame's hint reserves the next callee's block**, its sizes read off the reference. -/
@@ -392,7 +392,7 @@ theorem allocReady_alignA (hD : DynPow) (hF : FrameReady alignA) : AllocReady al
       have h2k : 2 ^ r.κ ≤ 2 ^ 28 := Nat.pow_le_pow_right (by norm_num) hκ
       have hIP := insts_placed r.T (0, r.T.block B2C.fs coreProgram.loop) r.hdr (by omega) e.I hI
       have hcur2 : 2 ≤ e.I.cur := by
-        have h2 := hHon.cells.two_le e.I hI
+        have h2 := B2C.two_le_fs e.I.t.name
         have hb2 : B2C.fs e.I.t.name ≤ e.I.t.block B2C.fs coreProgram.loop := by
           rw [hIt]; simp only [Tree.block, Tree.name]; omega
         have := hIP.2.2
@@ -456,7 +456,7 @@ theorem allocReady_alignA (hD : DynPow) (hF : FrameReady alignA) : AllocReady al
       rw [hlk, Option.getD_some] at hget''
       have haddr := hCF.addr _ hmem _ (List.mem_of_getElem? hget'')
       have hwithin : e.I.fp + B2C.fs e.I.t.name ≤ r.T.total B2C.fs :=
-        honest_within hI (by have := hHon.cells.two_le e.I hI; omega)
+        honest_within_node hI hIt (by have := hHon.cells.two_le e.I hI; omega)
       have h28 : r.T.total B2C.fs ≤ 2 ^ r.κ := le_two_pow_logMem _
       have h2k : 2 ^ r.κ ≤ 2 ^ 28 := Nat.pow_le_pow_right (by norm_num) hκ
       rw [hfs] at hwithin
@@ -468,7 +468,7 @@ theorem allocReady_alignA (hD : DynPow) (hF : FrameReady alignA) : AllocReady al
       have hd := JumpCells.jcData_all _ h1 (by have : nFns = fn_count% := rfl; omega)
       unfold jcData jcDataD at hd
       simp only [Bool.and_eq_true] at hd
-      obtain ⟨⟨⟨⟨⟨⟨⟨-, -⟩, -⟩, -⟩, -⟩, -⟩, hlc⟩, -⟩ := hd
+      obtain ⟨⟨⟨⟨⟨⟨⟨⟨-, -⟩, -⟩, -⟩, -⟩, -⟩, hlc⟩, -⟩, -⟩ := hd
       simp only [hloop, Bool.not_true, Bool.false_or, Bool.and_eq_true] at hlc
       have hw' : walk e.σ (coreOf (i0 + 1)).body = .ret (e.pre ++ e.es) vs := by rw [hfn]; exact hw
       have hne := loop_calls_ne hlc.2 hw'
@@ -484,7 +484,7 @@ theorem allocReady_alignA (hD : DynPow) (hF : FrameReady alignA) : AllocReady al
       have hIP := insts_placed r.T (0, r.T.block B2C.fs coreProgram.loop) r.hdr (by omega) e.I hI
       rw [hIP.1, List.getElem?_map, hpos] at hJfp
       have hJfp' : J.fp = e.I.fp + B2C.fs e.I.t.name := (Option.some.inj hJfp).symm
-      have hJw : J.fp + B2C.fs J.t.name ≤ r.T.total B2C.fs :=
+      have hJw : J.fp + J.t.fsz B2C.fs ≤ r.T.total B2C.fs :=
         honest_within hJ (by have := hHon.cells.two_le J hJ; omega)
       have := hHon.cells.two_le J hJ
       rw [hsxfp]; unfold maxCells; rw [hfs] at hJfp'; omega
@@ -499,7 +499,7 @@ theorem allocReady_alignA (hD : DynPow) (hF : FrameReady alignA) : AllocReady al
         have hd := JumpCells.jcData_all _ h1 (by have : nFns = fn_count% := rfl; omega)
         unfold jcData jcDataD at hd
         simp only [Bool.and_eq_true] at hd
-        obtain ⟨⟨⟨⟨⟨⟨⟨hstat, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩ := hd
+        obtain ⟨⟨⟨⟨⟨⟨⟨⟨hstat, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩ := hd
         rw [hA2] at hso
         have hsm := statOf_ofData hso
         have hb := List.all_eq_true.mp hstat _ hsm

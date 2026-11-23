@@ -186,6 +186,72 @@ theorem siteBV_proj (cert : String → CertV) (wl : String → Option ℕ) (g : 
       · rfl
       · rfl
 
+theorem siteBVL_proj (cert : String → CertV) (wl : String → Option ℕ) (g : String) (a0 k : ℕ) :
+    (siteBVL cert ρ ps g args a0 k).map (AccV.proj i) =
+      siteBL (fun g => (cert g).proj i) wl false ρ ps g args a0 k := by
+  unfold siteBVL siteBL
+  simp only [phB, Bool.false_eq_true, ↓reduceIte]
+  rcases cert g with _ | ⟨pre, b, ks⟩ | ⟨endc, pre, b, ks⟩
+  · rfl
+  · rfl
+  · rcases endc with _ | e
+    · simp only [CertV.proj]
+      rcases args[0]? with _ | v0
+      · rfl
+      · rcases args[1]? with _ | v1
+        · rfl
+        · dsimp only
+          rcases cls ρ ps v0 with a | _ | _
+          · dsimp only
+            split_ifs with hak
+            · rcases cls ρ ps v1 with e | k' | _
+              · dsimp only
+                split_ifs
+                · rw [← transBV_proj]
+                  rcases transBV ρ ps args pre b with _ | r
+                  · rfl
+                  · simp only [Option.map_some, AccV.proj, AffV.proj_add, AffV.proj_scale]; rfl
+                · rfl
+              · dsimp only
+                rw [← transBV_proj]
+                rcases transBV ρ ps args pre b with _ | r
+                · rfl
+                · simp only [Option.map_some]
+                  by_cases hr : r.1.cs = []
+                  · simp only [hr, ↓reduceIte, Option.map_some]
+                    split
+                    · simp only [AccV.proj, AffV.proj_add]; rfl
+                    · rename_i hne
+                      exact absurd (by simp only [AccV.proj, AffV.proj, hr, List.map_nil]) hne
+                  · simp only [hr, ↓reduceIte, Option.map_none]
+                    split
+                    · rename_i heq
+                      exact absurd heq (by simpa only [AccV.proj, AffV.proj, List.map_eq_nil_iff] using hr)
+                    · rfl
+              · rfl
+            · rfl
+          · rfl
+          · rfl
+    · rfl
+
+theorem siteBVC_proj (cert : String → CertV) (wl : String → Option ℕ) (ρ2 : Env × BEnv) (c : V) (g : String) :
+    (siteBVC cert ρ2 ps c g args).map (AccV.proj i) =
+      siteBC (fun g => (cert g).proj i) wl false ρ2 ps c g args := by
+  unfold siteBVC siteBC
+  rcases guardB ρ2.2 c with _ | ⟨a0, k⟩
+  · exact siteBV_proj i cert wl g
+  · dsimp only
+    have hl := siteBVL_proj (ρ := ρ2.1) (ps := ps) (args := args) i cert wl g a0 k
+    rcases hv : siteBVL cert ρ2.1 ps g args a0 k with _ | r
+    · rw [hv] at hl
+      simp only [Option.map_none] at hl
+      rw [← hl]
+      exact siteBV_proj i cert wl g
+    · rw [hv] at hl
+      simp only [Option.map_some] at hl
+      rw [← hl]
+      rfl
+
 /-! ## Blocks -/
 
 theorem atomB_false (ks : List (V × ℕ)) (ρ : Env × BEnv) (a : Atom) :
@@ -197,6 +263,14 @@ theorem atomB_false (ks : List (V × ℕ)) (ρ : Env × BEnv) (a : Atom) :
       · rfl
       · dsimp only
         split_ifs <;> rfl
+  | copy d s =>
+      simp only [atomB, envAtom, cls]
+      rcases vlookup s ρ.1 with _ | e
+      · dsimp only
+        split
+        · rename_i heq; split at heq <;> cases heq
+        · rfl
+      · rfl
   | hint h => cases h <;> rfl
   | _ => rfl
 
@@ -251,14 +325,14 @@ theorem blockRV_proj : ∀ (ss : List Stmt) (ρ : Env × BEnv),
             rw [map_pair_proj, siteBV_proj]
         | callIf c g args =>
             show (if g = self then none
-                else (Option.addAccV (siteBV cert ρ.1 ps g args) (some AccV.zero)).map
+                else (Option.addAccV (siteBVC cert ρ ps c g args) (some AccV.zero)).map
                   fun r => (r, some ρ)).map (projS i) =
               if g = self then none
-                else (Option.addAcc (siteB (fun g => (cert g).proj i) wl false ρ.1 ps g args)
+                else (Option.addAcc (siteBC (fun g => (cert g).proj i) wl false ρ ps c g args)
                   (phB wl false g)).map fun r => (r, some ρ)
             split_ifs
             · rfl
-            · rw [map_pair_proj, addAccV_proj, siteBV_proj i cert wl]
+            · rw [map_pair_proj, addAccV_proj, siteBVC_proj i cert wl]
               rfl
         | dispatch x gs args rets =>
             show ((maxBV (fun g => siteBV cert ρ.1 ps g args) gs).map fun r => (r, some ρ)).map (projS i) =
@@ -303,13 +377,21 @@ theorem chkFnV_proj {look : String → CertV} {own : CertV} {w : Vec} {fn : Fn}
       show chkFn (fun g => (look g).proj i) wl false (.stat pre (b.proj i) ks) (w.getD i 0) fn = true
       unfold chkFn
       dsimp only
-      rw [← blockRV_proj (cert := look)]
-      rcases hb : blockRV look ks fn.params fn.name fn.body ([], []) with _ | r
-      · rw [hb] at h; cases h
-      · rw [hb] at h
-        simp only [Bool.and_eq_true] at h
-        simp only [Option.map_some, Bool.and_eq_true]
-        exact ⟨leB_proj i h.1, h.2⟩
+      have hs : ∀ body, statBV look pre b ks w fn body = true →
+          statB (fun g => (look g).proj i) wl false pre (b.proj i) ks (w.getD i 0) fn body = true := by
+        intro body hb'
+        unfold statBV at hb'
+        unfold statB
+        rw [← blockRV_proj (cert := look)]
+        rcases hb : blockRV look ks fn.params fn.name body ([], []) with _ | r
+        · rw [hb] at hb'; cases hb'
+        · rw [hb] at hb'
+          simp only [Bool.and_eq_true] at hb'
+          simp only [Option.map_some, Bool.and_eq_true]
+          exact ⟨leB_proj i hb'.1, hb'.2⟩
+      rcases Bool.or_eq_true_iff.mp h with h | h
+      · rw [hs _ h]; rfl
+      · rw [selSplit_mono hs h, Bool.or_true]
   | loop endc pre b ks =>
       simp only [chkFnV] at h
       show chkFn (fun g => (look g).proj i) wl false (.loop endc pre (b.proj i) ks) (w.getD i 0) fn = true

@@ -23,11 +23,11 @@ facts from are those on every path through it: each enclosing block's spine (`sp
 (`spineNamed`).
 
 * `alloc _ n` at a `call f`: `f` no loop helper, of frame size `n`; or a loop helper from `g^e` (`e ≤ 1`) to a constant end
-  `g^K`, its `K - e + 1` frames;
+  `g^K`, its `K - e` frames and the untaken call's tail (`B2C.tailN`);
 * `allocArm _ sel sizes` at a `dispatch x fs`: `sel` the cell of `x`, a parameter (`ps`) at a certificate cell, a value a
   spine atom names or a spine call returns, and arm `j`'s size `sizes[j]` the frame size of `fs[j]`, no loop helper;
-* `allocFrames _ size stop si` at a `callIf b f (a0 :: a1 :: _)`: `f` a loop helper ending at its
-  second parameter (`loopTail`), of frame size `size`, `stop` the cell of `a1`; the spine sets
+* `allocFrames _ size stop si tail` at a `callIf b f (a0 :: a1 :: _)`: `f` a loop helper ending at its
+  second parameter (`loopTail`), of frame size `size` and tail `tail`, `stop` the cell of `a1`; the spine sets
   `a0` to `g^e`, `si` its inverse (`e ≤ 1`), and `b` to `c + a1` with `c` set to `g^e` too (or a value
   loaded where `a1` is, through an equal product, `spEq`), or to the sum of two distinct constants.
 -/
@@ -49,12 +49,14 @@ def stRets : Stmt → List V
   | .call _ _ rets | .dispatch _ _ _ rets => rets
   | _ => []
 
-/-- The listed callees' names, frame sizes, loop flags and loop ends (`Res.endOfFn`). -/
-noncomputable def calTbl (cs : List ℕ) : List (String × ℕ × Bool × Option (Option ℕ)) :=
-  cs.map fun c ↦ ((coreOf c).name, B2C.fsN c, (coreOf c).loop, Res.endOfFn (coreOf c))
+/-- The listed callees' names, frame sizes, loop flags, loop ends (`Res.endOfFn`) and tails
+(`B2C.tailN`). -/
+noncomputable def calTbl (cs : List ℕ) : List (String × ℕ × Bool × Option (Option ℕ) × ℕ) :=
+  cs.map fun c ↦ ((coreOf c).name, B2C.fsN c, (coreOf c).loop, Res.endOfFn (coreOf c), B2C.tailN c)
 
 /-- The facts of the callee named `f`. -/
-def calFind (tbl : List (String × ℕ × Bool × Option (Option ℕ))) (f : String) : Option (ℕ × Bool × Option (Option ℕ)) :=
+def calFind (tbl : List (String × ℕ × Bool × Option (Option ℕ) × ℕ)) (f : String) :
+    Option (ℕ × Bool × Option (Option ℕ) × ℕ) :=
   (tbl.find? fun x ↦ x.1 == f).map (·.2)
 
 /-- The values the calls on a block's spine return. -/
@@ -158,7 +160,7 @@ def guardOk (sp : List Atom) (b a1 : V) (e : ℕ) : Bool :=
     | _ => false
 
 /-- Arm `j` and those after it: each callee no loop helper, of the size its arm lists. -/
-def armsFit (tbl : List (String × ℕ × Bool × Option (Option ℕ))) (sizes : List ℕ) : List String → ℕ → Bool
+def armsFit (tbl : List (String × ℕ × Bool × Option (Option ℕ) × ℕ)) (sizes : List ℕ) : List String → ℕ → Bool
   | [], _ => true
   | f :: fs, j => (match calFind tbl f with
       | some (m, lp, _) => sizes[j]? == some m && !lp
@@ -166,11 +168,11 @@ def armsFit (tbl : List (String × ℕ × Bool × Option (Option ℕ))) (sizes :
 
 /-- **A frame hint fits a call statement at its site.** -/
 noncomputable def frFits (X : AlignCtx) (n : ℕ) (ps : List V) (sp : List Atom) (nm : List V)
-    (tbl : List (String × ℕ × Bool × Option (Option ℕ))) : Prover.Exec.Hint → Stmt → Bool
+    (tbl : List (String × ℕ × Bool × Option (Option ℕ) × ℕ)) : Prover.Exec.Hint → Stmt → Bool
   | .alloc _ m, .call f args _ => match calFind tbl f with
-    | some (k, lp, en) => (k == m && !lp) || (lp && match en, args with
-      | some (some K), a0 :: _ => (spConst sp a0 0 && Nat.blt 0 K && (K + 1) * k == m) ||
-          (spConst sp a0 1 && Nat.blt 1 K && K * k == m)
+    | some (k, lp, en, t) => (k == m && !lp) || (lp && match en, args with
+      | some (some K), a0 :: _ => (spConst sp a0 0 && Nat.blt 0 K && K * k + t == m) ||
+          (spConst sp a0 1 && Nat.blt 1 K && (K - 1) * k + t == m)
       | _, _ => false)
     | none => false
   | .allocArm _ sel sizes, .dispatch x fs _ _ =>
@@ -178,8 +180,8 @@ noncomputable def frFits (X : AlignCtx) (n : ℕ) (ps : List V) (sp : List Atom)
         ((ps.contains x && (X.extra.lookup x.idx).isNone) || sp.any (fun a ↦ (atomUses a).contains x) ||
           nm.contains x) &&
         Nat.blt sizes.length (2 ^ 28) && armsFit tbl sizes fs 0
-  | .allocFrames _ size stop si, .callIf b f (a0 :: a1 :: _) => match calFind tbl f with
-    | some (k, lp, en) => lp && en == some none && k == size && X.locAt a1.idx == stop && allocCellOk X n a1 &&
+  | .allocFrames _ size stop si tail, .callIf b f (a0 :: a1 :: _) => match calFind tbl f with
+    | some (k, lp, en, t) => lp && en == some none && k == size && t == tail && X.locAt a1.idx == stop && allocCellOk X n a1 &&
         ((spConst sp a0 0 && si == 1 && guardOk sp b a1 0) || (spConst sp a0 1 && si == gInv && guardOk sp b a1 1))
     | none => false
   | _, _ => false

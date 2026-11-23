@@ -21,7 +21,7 @@ import LeanVM.Guest.Data.ValNames.«open_stacked__L»
 have their facts and callees (`LevelsOk`) and their rows at the rate's selector (`LvRate`), and
 whose finish has its static facts (`FinStaticS`): a call establishes `OpenOutW` at the
 witness's words and openings. The head stores the root's halves and starts
-level `0` (`osHead_lvIn`); the levels and the closing rounds run `whirLevelsOpen`
+level `0` (`osHead_roots`, `LvIn`); the levels and the closing rounds run `whirLevelsOpen`
 (`osLevels_sound`); the finish returns the terminal (`osFinish_sound`).
 -/
 
@@ -67,7 +67,13 @@ theorem osHead_roots {c : OsCfg} (h : AllOk C rd σ (osHead c).1) :
   exact ⟨(holds_load _ _ _).mp (h _ m1), (holds_load _ _ _).mp (h _ m2)⟩
 
 theorem osHead_st (c : OsCfg) : (osHead c).2 =
-    { k := 33, fs := [1, 2, 3, 4, 5], cb := 9, co := 0, claim := 6, pad := none, mats := [] } := rfl
+    { k := osPadV + 5, fs := [1, 2, 3, 4, 5], cb := 9, co := 0, claim := 6, pad := some osPadV,
+      mats := [] } := rfl
+
+theorem osHead_pad {c : OsCfg} (h : AllOk C rd σ (osHead c).1) : PadOk σ (some osPadV) := by
+  have hp : AllOk C rd σ (osPad none osPadV).1 := fun s hs ↦ h s (by
+    unfold osHead; simp only [List.mem_append]; exact Or.inr hs)
+  exact osPad_ok (fun p hp ↦ by simp at hp) hp
 
 /-! ## A candidate -/
 
@@ -79,7 +85,10 @@ structure FinStaticS (rd : Reader) (C : CallRel) (c : OsCfg) : Prop where
   ylog : 1 ≤ c.yrLog
   ylen : 2 ^ c.yrLog = c.yrLen
   lv : ∀ i < c.yrLevel, LvFin c (c.levels.getD i default) (c.levels.getD (i + 1) default)
-  res : ∀ i < c.yrLevel, ∀ a r, C (osResidualName (c.levels.getD i default)) a r →
+  res : ∀ i < c.yrLevel, ∀ a r,
+    a.getD 4 0 = gen ^ ((c.levels.getD i default).queries / resBatch) →
+    a.getD 5 0 = gen ^ ((c.levels.getD i default).queries % resBatch) →
+    C (osResidualName (c.levels.getD i default)) a r →
     MeaningLevelResidual (c.levels.getD i default).queries (c.levels.getD i default).logCols
       (c.levels.getD i default).folds (c.levels.getD i default).highBits rd a r
   nlen : c.levels.length ≤ 64
@@ -133,9 +142,10 @@ theorem open_generic {V : FrameMap} (hU : UnfoldsV rd C V) (hle : CallRel.Le C (
   obtain ⟨hr0, hr1⟩ := osHead_roots hH
   have hwt' : WinTabs rd (σ (.n osTabs)) := by rw [show osTabs = 10 from rfl, p9]; exact hwt
   have hin : LvIn rd σ 0 lv0 (osHead c).2 ⟨target, [], []⟩ [] [(root, stackShape μ r)] root := by
+    have hpd := osHead_pad hH
     rw [osHead_st]
-    refine ⟨rfl, by unfold u128Bound; positivity, fun p hp ↦ by simp at hp, matsOk_nil σ, ?_, ?_,
-      fun j h ↦ absurd h (by simp), rfl, ?_, ?_, ?_, rfl, fun r hr ↦ absurd hr (by simp)⟩
+    refine ⟨rfl, Nat.zero_le _, hpd, ⟨_, rfl⟩, matsOk_nil σ, ?_, ?_,
+      fun j h ↦ absurd h (by simp), rfl, ?_, ?_, ?_, rfl, fun r hr ↦ absurd hr (by simp), rfl⟩
     · simp [recsDeficit, p5]
     · simp [hoff0]
     · simp [hshape]
@@ -143,7 +153,7 @@ theorem open_generic {V : FrameMap} (hU : UnfoldsV rd C V) (hle : CallRel.Le C (
     · rw [p7] at hr1; rw [← hroot]; exact hr1
   rw [hlv] at hL hT hLOk
   obtain ⟨xs, recs', gs, fold, T, R', hxl, hrd, hrun, hrl, hrecs, -, hgl, hfch, hfm, hfl, hTr, hTl,
-    hmT⟩ :=
+    hmT, es, hes, hesl, hesr⟩ :=
     osLevels_sound hU hle hwt' lv0.folds 0 lv0 rest cfg _ _ [] _ root hLOk hin hL hT
   simp only [List.nil_append] at hrun hfch hfch
   -- the finish
@@ -160,7 +170,14 @@ theorem open_generic {V : FrameMap} (hU : UnfoldsV rd C V) (hle : CallRel.Le C (
     rw [List.getD_eq_getElem recs' default hi']
     exact this
   rw [hlv] at hFin
-  obtain ⟨pt, pt1, hrv, hpt, hpt1⟩ := osFinish_sound hFI hmT hFin
+  have hrts : ∀ i < c.yrLevel, RtOk σ
+      ((osTail c (osLevels c 0 (lv0 :: rest) (osHead c).2).2).2.1.rts.getD i []) (c.levels.getD i default) := by
+    intro i hi
+    rw [hes, osHead_st]
+    simp only [List.nil_append]
+    rw [hlv]
+    exact hesr i (by rw [hesl, ← hy]; omega)
+  obtain ⟨pt, pt1, hrv, hpt, hpt1⟩ := osFinish_sound hFI hrts hmT hFin
   rw [hhead, hmu] at hpt hpt1
   -- the words and the openings
   have hcur : (osHead c).2.cur σ = cur := by

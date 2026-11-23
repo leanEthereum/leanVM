@@ -45,14 +45,14 @@ open LeanVM.Guest.Budget (NodeHonest)
 /-- **`claim_list_chain`'s words** on `n = 136a + 17b + c` claims, `n ≠ 0`: its frame, its chain buffer
 `13 (a + b + 1)`, `claim_list_chain_loop0`'s `a · iterK fs SK "claim_list_chain_loop0"` and
 `claim_list_chain_loop1`'s `b · iterK fs SK "claim_list_chain_loop1"` and each loop's frame, its run's phantom or,
-when not entered, the untaken call's, `claim_list_tail`'s `SB`. -/
+when not entered, the untaken call's tail, `claim_list_tail`'s `SB`. -/
 def chB (fs : String → ℕ) (SB SK : String → ℕ) (n : ℕ) : ℕ :=
   fs "claim_list_chain" + 13 * (n / 136 + n % 136 / 17 + 1) +
     ((if n / 136 ≠ 0 then n / 136 * iterK fs SK name% «claim_list_chain_loop0» + fs
-        name% «claim_list_chain_loop0» else fs name% «claim_list_chain_loop0») +
+        name% «claim_list_chain_loop0» else fs (tailKey name% «claim_list_chain_loop0»)) +
       ((if n % 136 / 17 ≠ 0 then n % 136 / 17 * iterK fs SK name% «claim_list_chain_loop1» + fs
           name% «claim_list_chain_loop1»
-        else fs name% «claim_list_chain_loop1») +
+        else fs (tailKey name% «claim_list_chain_loop1»)) +
         (SB "claim_list_tail" + 0)))
 
 /-- **`claim_list_digest`'s words** on `n` claims: its frame; when `n ≠ 0`, `list_split`'s bound and `claim_list_chain`'s

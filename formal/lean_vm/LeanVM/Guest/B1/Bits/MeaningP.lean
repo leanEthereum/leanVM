@@ -25,7 +25,7 @@ only; `Meaning.lean` states `…_Spec` at `coreProgram`.
 | `g_power_of_word` | 748-761 | `v = E(n)`, `n < 64`, returns `g^n` |
 | `assert_small_g_power` | 764-779 | `x = g^e`, `e < 2^36` |
 | `log2_ceil_in_the_exponent` | 782-797 | the hinted `L` within its two bounds; `max floor (log2Ceil N)` on `g^N` |
-| `grind_check__L{bits}` | `powOk`: the low `bits` bits of the word's low limb (the permutation's lane `2`) are zero |
+| `grind_check` (inlined, `GrindData.lean`) | `powOk`: the low `bits` bits of the word's low limb (the permutation's lane `2`) are zero |
 
 The range checks (`assert_small_g_power`, `log2_ceil_in_the_exponent`, `grind_check`'s windows)
 are stated on a memory image of at most `2^32` words (`rangeCheck_iff`), the table read being
@@ -105,26 +105,9 @@ def log2_SpecP (P : Program) : Prop :=
 
 /-! ## `grind_check` (TRIAGE #21) -/
 
-/-- **`grind_check(word, tabs, bits)`** (`0 < bits < 64`): the low `bits` bits of the word's low
-limb are zero. The word is cell `1` of the permutation that absorbed a nonce, so its low limb is
-that permutation's lane `2`, the proof of work (`powOk`, `Keccak.powLane_cells`, `grindOk_iff`). -/
-def MeaningGrindCheck (bits : ℕ) : List E → List E → Prop
-  | [w, _], rets => rets = [] ∧ (w.limb 0).lane.toNat % 2 ^ bits = 0
-  | _, _ => False
-
-/-- `P`'s relation at `grind_check__L{bits}` is its meaning, on a memory image of `2^κ` words,
-`11 ≤ κ ≤ 32`, whose `tabs` holds the bit windows. -/
-def grind_check_SpecP (P : Program) (bits : ℕ) : Prop :=
-  ∀ {κ : ℕ}, κ ≤ 32 → winTabBits ≤ κ → ∀ (L : MemoryImage κ) (w tabs : E), WinTabs L.read tabs →
-    ∀ rets : List E, P.Rel L.read (grindCheckName bits) [w, tabs] rets ↔
-      MeaningGrindCheck bits [w, tabs] rets
-
-/-- The grinds the deployed guest checks (`grind_check__L{bits}` in the core IR). -/
+/-- The grinds the guest checks (`grind_check` is inlined at each). -/
 def grindBitsDeployed : List ℕ :=
   [2, 3, 7, 13, 15, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
-
-/-- Every deployed `grind_check` is its meaning. -/
-def grind_check_all_SpecP (P : Program) : Prop := ∀ bits ∈ grindBitsDeployed, grind_check_SpecP P bits
 
 end
 end LeanVM.Guest.B1

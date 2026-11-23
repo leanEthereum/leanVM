@@ -108,8 +108,8 @@ theorem vt_forms3_shape (bc : List K) (lm : ℕ) {rows : List ℕ} (hr : rows.le
 
 /-- The guest's form values: table `t`'s push, pull and count forms. -/
 def vtFV : List (List ℕ) :=
-  [[2883, 2904, 2913], [3172, 3193, 3202], [3357, 3370, 3375], [3643, 3664, 3673],
-    [3968, 3993, 4002], [5758, 5871, 5926]]
+  [[2579, 2600, 2609], [2868, 2889, 2898], [3053, 3066, 3071], [3339, 3360, 3369],
+    [3664, 3689, 3698], [5454, 5567, 5622]]
 
 section
 variable {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ)
@@ -126,7 +126,7 @@ theorem vt_forms_val {σ : Val} (h : VtH Lm.read σ) (bc : List K) (hbc : bc.len
     (hW : TbReadsAt Lm.read (σ (.n (val% «verify_tables» "fp_w"))) weights) {t : ℕ} (ht : t < 6) :
     ((vtAcc2 (layoutOf bc lm rows) weights (σ (.n (val% «verify_tables» "beta"))) point
         [σ (.n (val% «verify_tables» "x@1")), σ (.n (val% «verify_tables» "x@2"))] (σ (.n (val% «verify_tables» "x@3"))) (σ (.n (val% «verify_tables» "x@4"))) (σ (.n (val% «verify_tables» "x@5")))
-        (σ (.n (val% «verify_tables» "s52.u0.s5#0"))) (σ (.n (val% «verify_tables» "s52.u1.s5#0"))) (σ (.n (val% «verify_tables» "s52.u2.s5#0")))).1.getD t []).map
+        (σ (.n (val% «verify_tables» "s53.u0.s5#0"))) (σ (.n (val% «verify_tables» "s53.u1.s5#0"))) (σ (.n (val% «verify_tables» "s53.u2.s5#0")))).1.getD t []).map
         (·.evaluate ((vtEvT σ t).getD · 0)) =
       (vtFV.getD t []).map fun v ↦ σ (.n v) := by
   obtain ⟨-, -, -, -, -, -, -, -, hP, -, hC, -⟩ :=
@@ -137,7 +137,7 @@ theorem vt_forms_val {σ : Val} (h : VtH Lm.read σ) (bc : List K) (hbc : bc.len
       rwa [← List.getD_eq_getElem _ 0] at this
   obtain ⟨e0, e1, e2⟩ := vt_forms hbc weights (σ (.n (val% «verify_tables» "beta"))) point
     [σ (.n (val% «verify_tables» "x@1")), σ (.n (val% «verify_tables» "x@2"))] (σ (.n (val% «verify_tables» "x@3"))) (σ (.n (val% «verify_tables» "x@4"))) (σ (.n (val% «verify_tables» "x@5")))
-    (σ (.n (val% «verify_tables» "s52.u0.s5#0"))) (σ (.n (val% «verify_tables» "s52.u1.s5#0"))) (σ (.n (val% «verify_tables» "s52.u2.s5#0"))) (fun c ↦ σ (.n c)) hP hC hr ⟨t, ht⟩ ((vtEvT σ t).getD · 0)
+    (σ (.n (val% «verify_tables» "s53.u0.s5#0"))) (σ (.n (val% «verify_tables» "s53.u1.s5#0"))) (σ (.n (val% «verify_tables» "s53.u2.s5#0"))) (fun c ↦ σ (.n c)) hP hC hr ⟨t, ht⟩ ((vtEvT σ t).getD · 0)
   simp only at e0 e1 e2
   rw [vt_three _ ((vt_forms3_shape bc lm hr _ _ _ _ _ _ _ _ _ _).2 t ht) {}]
   simp only [List.map_cons, List.map_nil, e0, e1, e2]

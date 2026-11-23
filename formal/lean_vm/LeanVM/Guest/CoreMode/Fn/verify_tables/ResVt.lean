@@ -67,15 +67,15 @@ theorem vt_holds {rd : Reader} {C : CallRel} (hC : CallRel.Le C (coreProgram.Rel
 
 /-- **The bytecode share's cursor**: its three tail rounds leave the cursor `13` words on. -/
 theorem vt_cur13 {rd : Reader} {σ : Val} (h : Tables.VtH rd σ) : σ (.n (val% «verify_tables» "cursor@4")) = σ (.n (val% «verify_tables» "cursor@1")) * gen ^ 13 := by
-  have a1938 := h.atomAt (pos% «verify_tables» "s41.u1.s0#8") (.const (.n (val% «verify_tables» "bfs0@1~8")) (word 128 0)) (by decide +kernel)
-  have a1939 := h.atomAt (pos% «verify_tables» "s41.u1.s0#9") (.mul (.n (val% «verify_tables» "bfs0@1~9")) (.n (val% «verify_tables» "cursor@1")) (.n (val% «verify_tables» "bfs0@1~8"))) (by decide +kernel)
-  have k1 := h.callAt (pos% «verify_tables» "s41.u1.s0#0") "opening_tail_round" [.n (val% «verify_tables» "nxt[8]@2"), .n (val% «verify_tables» "nxt[9]@2"), .n (val% «verify_tables» "nxt[10]@2"), .n (val% «verify_tables» "nxt[11]@2"), .n (val% «verify_tables» "nxt[12]@2"),
+  have a1938 := h.atomAt (pos% «verify_tables» "s42.u1.s0#8") (.const (.n (val% «verify_tables» "bfs0@1~8")) (word 128 0)) (by decide +kernel)
+  have a1939 := h.atomAt (pos% «verify_tables» "s42.u1.s0#9") (.mul (.n (val% «verify_tables» "bfs0@1~9")) (.n (val% «verify_tables» "cursor@1")) (.n (val% «verify_tables» "bfs0@1~8"))) (by decide +kernel)
+  have k1 := h.callAt (pos% «verify_tables» "s42.u1.s0#0") "opening_tail_round" [.n (val% «verify_tables» "nxt[8]@2"), .n (val% «verify_tables» "nxt[9]@2"), .n (val% «verify_tables» "nxt[10]@2"), .n (val% «verify_tables» "nxt[11]@2"), .n (val% «verify_tables» "nxt[12]@2"),
     .n (val% «verify_tables» "bfs0@1~9"), .n (val% «verify_tables» "bc_claim@1"), .n (val% «verify_tables» "tabs")] [.n (val% «verify_tables» "bfs0@1"), .n (val% «verify_tables» "bfs1@1"), .n (val% «verify_tables» "bfs2@1"), .n (val% «verify_tables» "bfs3@1"), .n (val% «verify_tables» "bfs4@1"), .n (val% «verify_tables» "cursor@2"), .n (val% «verify_tables» "bc_claim@2"),
     .n (val% «verify_tables» "bc_r@1")] (by decide +kernel)
-  have k2 := h.callAt (pos% «verify_tables» "s41.u2.s0#0") "opening_tail_round" [.n (val% «verify_tables» "bfs0@1"), .n (val% «verify_tables» "bfs1@1"), .n (val% «verify_tables» "bfs2@1"), .n (val% «verify_tables» "bfs3@1"), .n (val% «verify_tables» "bfs4@1"),
+  have k2 := h.callAt (pos% «verify_tables» "s42.u2.s0#0") "opening_tail_round" [.n (val% «verify_tables» "bfs0@1"), .n (val% «verify_tables» "bfs1@1"), .n (val% «verify_tables» "bfs2@1"), .n (val% «verify_tables» "bfs3@1"), .n (val% «verify_tables» "bfs4@1"),
     .n (val% «verify_tables» "cursor@2"), .n (val% «verify_tables» "bc_claim@2"), .n (val% «verify_tables» "tabs")] [.n (val% «verify_tables» "bfs0@2"), .n (val% «verify_tables» "bfs1@2"), .n (val% «verify_tables» "bfs2@2"), .n (val% «verify_tables» "bfs3@2"), .n (val% «verify_tables» "bfs4@2"), .n (val% «verify_tables» "cursor@3"), .n (val% «verify_tables» "bc_claim@3"),
     .n (val% «verify_tables» "bc_r@2")] (by decide +kernel)
-  have k3 := h.callAt (pos% «verify_tables» "s41.u3.s0#0") "opening_tail_round" [.n (val% «verify_tables» "bfs0@2"), .n (val% «verify_tables» "bfs1@2"), .n (val% «verify_tables» "bfs2@2"), .n (val% «verify_tables» "bfs3@2"), .n (val% «verify_tables» "bfs4@2"),
+  have k3 := h.callAt (pos% «verify_tables» "s42.u3.s0#0") "opening_tail_round" [.n (val% «verify_tables» "bfs0@2"), .n (val% «verify_tables» "bfs1@2"), .n (val% «verify_tables» "bfs2@2"), .n (val% «verify_tables» "bfs3@2"), .n (val% «verify_tables» "bfs4@2"),
     .n (val% «verify_tables» "cursor@3"), .n (val% «verify_tables» "bc_claim@3"), .n (val% «verify_tables» "tabs")] [.n (val% «verify_tables» "bfs0@3"), .n (val% «verify_tables» "bfs1@3"), .n (val% «verify_tables» "bfs2@3"), .n (val% «verify_tables» "bfs3@3"), .n (val% «verify_tables» "bfs4@3"), .n (val% «verify_tables» "cursor@4"), .n (val% «verify_tables» "bc_claim@4"),
     .n (val% «verify_tables» "bc_r@3")] (by decide +kernel)
   simp only [Atom.Holds] at a1938 a1939
@@ -94,11 +94,11 @@ theorem vt_cur13 {rd : Reader} {σ : Val} (h : Tables.VtH rd σ) : σ (.n (val% 
 /-- **The table sumcheck's rounds loop's setup**: its counter starts at `1`, and the first round record holds the
 cursor `14` words past `verify_tables`' cursor. -/
 theorem vt_zc_front {rd : Reader} {σ : Val} (h : Tables.VtH rd σ) :
-    σ (.n (val% «verify_tables» "s72#2")) = 1 ∧ LoadHolds rd (σ (.n (val% «verify_tables» "zc_rounds"))) 5 (σ (.n (val% «verify_tables» "cursor@1")) * gen ^ 14) := by
-  have c2638 := h.atomAt (pos% «verify_tables» "s72#2") (.const (.n (val% «verify_tables» "s72#2")) (word 1 0)) (by decide +kernel)
-  have c2632 := h.atomAt (pos% «verify_tables» "s68#0") (.const (.n (val% «verify_tables» "s68#0")) (word 2 0)) (by decide +kernel)
-  have m2633 := h.atomAt (pos% «verify_tables» "s68#1") (.mul (.n (val% «verify_tables» "s68#1")) (.n (val% «verify_tables» "cursor@4")) (.n (val% «verify_tables» "s68#0"))) (by decide +kernel)
-  have l2633 := h.atomAt 2650 (.load (.n (val% «verify_tables» "s68#1")) (.n (val% «verify_tables» "zc_rounds")) 5) (by decide +kernel)
+    σ (.n (val% «verify_tables» "s73#2")) = 1 ∧ LoadHolds rd (σ (.n (val% «verify_tables» "zc_rounds"))) 5 (σ (.n (val% «verify_tables» "cursor@1")) * gen ^ 14) := by
+  have c2638 := h.atomAt (pos% «verify_tables» "s73#2") (.const (.n (val% «verify_tables» "s73#2")) (word 1 0)) (by decide +kernel)
+  have c2632 := h.atomAt (pos% «verify_tables» "s69#0") (.const (.n (val% «verify_tables» "s69#0")) (word 2 0)) (by decide +kernel)
+  have m2633 := h.atomAt (pos% «verify_tables» "s69#1") (.mul (.n (val% «verify_tables» "s69#1")) (.n (val% «verify_tables» "cursor@4")) (.n (val% «verify_tables» "s69#0"))) (by decide +kernel)
+  have l2633 := h.atomAt (pos% «verify_tables» "s69#1" + 1) (.load (.n (val% «verify_tables» "s69#1")) (.n (val% «verify_tables» "zc_rounds")) 5) (by decide +kernel)
   simp only [Atom.Holds] at c2638 c2632 m2633 l2633
   refine ⟨by rw [c2638, Tables.tb_word_one], ?_⟩
   rw [m2633, c2632, Tables.tb_word_gen, vt_cur13 h] at l2633
@@ -164,7 +164,7 @@ theorem vtQ_step (hr : r.Ok) :
   have e5 := params_get hpar (k := 5) (by decide) rfl
   have e20 := params_get hpar (k := 20) (by decide) rfl
   rw [hrt] at hrJ
-  have e5987 : σ (.n 5972) = σI (.n 562) := by
+  have e5987 : σ (.n (val% «verify_tables» "s92#0[6]")) = σI (.n (val% «verify_sub» "fs0@4" + 6)) := by
     have := congrArg (·[6]?) hrJ
     simpa [Tables.vtRets, vtRetsV] using this
   -- its front

@@ -8,7 +8,7 @@ module
 
 public import LeanVM.Guest.B1.Whir.FactsSound
 public import LeanVM.Guest.B1.Whir.InterfaceAt
-public import LeanVM.Guest.B1.Whir.RoundFind
+public import LeanVM.Guest.B1.Whir.RoundSound
 public import LeanVM.Guest.B1.Whir.IsZero
 public import LeanVM.Guest.B1.Whir.SlowSound
 public import LeanVM.Guest.B1.Whir.FactsAll
@@ -56,28 +56,18 @@ theorem osCfgR_levels_getD {m ri l : ℕ} (h : l < osNLevels m) :
     (osCfgR m ri).levels.getD l default = osLvR m ri l := by
   simp [osCfgR, osLevelsR, List.getD_eq_getElem?_getD, h]
 
-/-- The deployed callees' meanings under a call relation below `coreProgram.Rel`, on a memory
-image whose window tables are at `σ tabs`. -/
+/-- The deployed callees' meanings under a call relation below `coreProgram.Rel`. -/
 theorem callees_of {κ : ℕ} (hκ : κ ≤ 32) (hw : winTabBits ≤ κ) (L : MemoryImage κ) {C : CallRel}
-    (hle : CallRel.Le C (coreProgram.Rel L.read)) {σ : Val} (hwt : WinTabs L.read (σ (.n osTabs))) :
-    Callees L.read C σ := by
-  refine ⟨fun a r ha hc ↦ opening_round_sound (grind_check_holds 7 (by decide)) hκ hw L a r ha
-      (hle _ _ _ hc),
+    (hle : CallRel.Le C (coreProgram.Rel L.read)) {σ : Val} : Callees L.read C σ := by
+  refine ⟨gcOk_of hκ (by have : winTabBits = 11 := rfl; omega) L,
     fun p hp a r hc ↦ (opening_message_holds p hp L.read a r).mp (hle _ _ _ hc),
     fun n hn a r hc ↦ (squeeze_point_from_holds n hn L.read a r).mp (hle _ _ _ hc),
-    fun w hc ↦ ?_, fun w hc ↦ ?_,
     fun p hp a r ha hc ↦ decode_query_windows_all_holds p hp hκ L a r ha hc,
     fun p hp a r hc ↦ (verify_merkle_cap_holds p hp L.read a r).mp (hle _ _ _ hc),
     fun a r hc ↦ (opening_tail_round_holds L.read a r).mp (hle _ _ _ hc),
     fun p hp a r hc ↦ (fold_final_msg_holds p hp L.read a r).mp (hle _ _ _ hc),
     fun a r hc ↦ (is_zero_iff L.read a r).mp (hle _ _ _ hc),
     fun e he a r hc pos cs hp hf hy ↦ lrsTable_sound L.read he (hle _ _ _ hc) pos cs hp hf hy⟩
-  · have hn : "grind_check__L" ++ natStr queryGrind = grindCheckName 17 := by decide
-    rw [hn] at hc
-    exact ((grind_check_holds 17 (by decide) hκ hw L w _ hwt []).mp (hle _ _ _ hc)).2
-  · have hn : "grind_check__L" ++ natStr levelOodGrind = grindCheckName 15 := by decide
-    rw [hn] at hc
-    exact ((grind_check_holds 15 (by decide) hκ hw L w _ hwt []).mp (hle _ _ _ hc)).2
 
 /-- Size `m`'s semantic facts at rate `ri`: the rate changes none of the columns they read. -/
 theorem semOk_of {m ri μ r : ℕ} (hm : m < ligNSizes) {cfg : List Whir.Level}
@@ -122,7 +112,7 @@ theorem open_stacked_sound_w : open_stacked_sound_w_Spec open_stacked_osW := by
   have h0 : σ (.n osRate) = ofK (addressOfIndex ri) := by
     have := congrArg (·.getD 0 0) hp'
     simpa [osParams, rateSel] using this
-  have hcal := callees_of hκ hwb L hle (σ := σ) (by rw [h10]; exact hwt)
+  have hcal := callees_of hκ hwb L hle (σ := σ)
   have hsem := semOk_of hm hC
   have hFS := finStatic_of hcal hsem hle hC (lsIn_all m hm ri hri)
   have hrate : ∀ i < (osCfgR m ri).levels.length,

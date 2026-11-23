@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.CoreMode.HeapCStmt
 public import LeanVM.Guest.CoreMode.Fam.LoopTree
+public import LeanVM.Guest.CoreMode.WalkS
+public import LeanVM.Guest.Memory.Tree
 
 /-!
 # The heap check with calls and loops is sound
@@ -1009,23 +1011,6 @@ theorem fax_faw {σ : Val} {H : HCert} {f : Fn} {es : List Ev} {vs : List V}
   · exact Or.inl ⟨V.n p.1, run, p.2, v, topAtoms_on_path hw _ hfr, hv, ⟨a, topAtoms_on_path hw _ ha, hva⟩, rfl⟩
   · exact Or.inr ⟨p.1, p.2, run, hp, topAtoms_on_path hw _ hfr, hne, hle, rfl⟩
 
-/-- **The heap check with calls and loops is sound, call by call**: on a path of a function passing `heapOkC`
-that returns, its events holding, given its entry facts and its residuals, every event's needs are written before
-it once the calls before it have their callees' returned words (`ReadsOkP`), and, every call having them, its
-guarantees are written at return. A loop helper's own signature is `sigOf`'s for its name. -/
-theorem out_seq_assocC : ∀ (o k l : Out), (o.seq k).seq l = o.seq (k.seq l)
-  | .fall es, .fall es', l => by cases l <;> simp [Out.seq, Out.pre, List.append_assoc]
-  | .fall es, .ret es' vs, l => by simp [Out.seq, Out.pre]
-  | .fall es, .stuck, l => by simp [Out.seq, Out.pre]
-  | .ret es vs, k, l => by simp [Out.seq]
-  | .stuck, k, l => by simp [Out.seq]
-
-theorem walk_appendC (σ : Val) : ∀ (l l' : List Stmt), walk σ (l ++ l') = (walk σ l).seq (walk σ l')
-  | [], l' => by
-      rw [List.nil_append, walk]
-      cases walk σ l' <;> simp [Out.seq, Out.pre]
-  | s :: l, l' => by rw [List.cons_append, walk, walk, walk_appendC σ l l', out_seq_assocC]
-
 theorem out_pre_seqC (es : List Ev) : ∀ (o k : Out), (o.pre es).seq k = (o.seq k).pre es
   | .fall es', k => by cases k <;> simp [Out.seq, Out.pre, List.append_assoc]
   | .ret es' vs, k => by simp [Out.seq, Out.pre]
@@ -1046,7 +1031,7 @@ theorem walk_dupB (σ : Val) (ds : List ℕ) : ∀ ss : List Stmt, walk σ (dupB
       cases dupC ds c with
       | false => simp only [Bool.cond_false, walk, walk_dupB σ ds ss]
       | true =>
-        simp only [Bool.cond_true, walk, walk1, walk_appendC, out_seq_nilC]
+        simp only [Bool.cond_true, walk, walk1, walk_append, out_seq_nilC]
         rw [out_pre_seqC]
         split_ifs <;> rfl
     | atom a => simp only [dupB, walk, walk_dupB σ ds ss]
@@ -1062,15 +1047,19 @@ theorem walk_bodyC (σ : Val) (ds : List ℕ) (ss : List Stmt) : walk σ (bodyC 
   · exact walk_dupB σ ds ss
   · rfl
 
-theorem heapOkC_soundP {pows : PowTree} (hp : pows.Ok) {sigOf : String → HSig} {f : Fn} {H : HCert}
-    (hok : heapOkC pows sigOf f H = true) (hself : sigOf f.name = H.sig) {σ : Val} {rd : Reader}
+/-- **The heap check with calls and loops is sound, call by call**: on a path of a function passing `heapOkC`
+that returns, its events holding, given its entry facts and its residuals, every event's needs are written before
+it once the calls before it have their callees' returned words (`ReadsOkP`), and, every call having them, its
+guarantees are written at return. A loop helper's own signature is `sigOf`'s for its name. -/
+theorem heapOkC1_soundP {pows : PowTree} (hp : pows.Ok) {sigOf : String → HSig} {f : Fn} {H : HCert}
+    (hok : heapOkC1 pows sigOf f H = true) (hself : sigOf f.name = H.sig) {σ : Val} {rd : Reader}
     {es : List Ev} {vs : List V} (hw : walk σ f.body = .ret es vs) (hh : ∀ e ∈ es, e.Holds rd σ)
     (hE : EntryF H (f.params.map σ)) (hR : ResF H σ) (hD : DerOk H rd σ) (hG : GwOk H.sig rd σ) :
     ReadsOkP sigOf H rd σ (f.params.map σ) es ∧ ((∀ e ∈ es, EvM sigOf rd σ e) →
       (PostOkC sigOf H rd σ (f.params.map σ) es vs ∧ (H.fas = [] → PostOkW sigOf H rd σ (f.params.map σ) es vs)) ∧
       RetMOk H.sig (f.params.map σ) (vs.map σ) ∧ RetVOk rd H.sig (f.params.map σ ++ vs.map σ) ∧
       RetEqOk H.sig (f.params.map σ ++ vs.map σ)) := by
-  unfold heapOkC at hok
+  unfold heapOkC1 at hok
   simp only [Bool.and_eq_true] at hok
   obtain ⟨⟨⟨⟨⟨hpar, hpov⟩, hto⟩, -⟩, hfa⟩, hc⟩ := hok
   simp only [Trie.seq_eq] at hc
@@ -1219,6 +1208,104 @@ theorem heapOkC_soundP {pows : PowTree} (hp : pows.Ok) {sigOf : String → HSig}
         · cases hc
       · cases hc
     · cases hc
+
+/-! ## A certificate split at a selector -/
+
+section Split
+
+variable {σ : Val}
+
+theorem readsArms_get {R : Trie (List (ℕ × ℕ × Wit))} {f : Fn} {H : HCert} :
+    ∀ (arms : List HArm) (r0 i : ℕ) {a : HArm}, readsArms R f H r0 arms = true → arms[i]? = some a →
+      readsIn R (H.arm a).readT (selL H.sel (r0 + i) f.body) = true
+  | [], _, _, _, _, h => by simp at h
+  | b :: as, r0, 0, a, h, ha => by
+    simp only [List.getElem?_cons_zero, Option.some.injEq] at ha
+    subst ha
+    simp only [readsArms, Bool.and_eq_true, Trie.seq_eq] at h
+    simpa using h.1
+  | b :: as, r0, i + 1, a, h, ha => by
+    simp only [List.getElem?_cons_succ] at ha
+    simp only [readsArms, Bool.and_eq_true] at h
+    have := readsArms_get as (r0 + 1) i h.2 ha
+    rwa [show r0 + 1 + i = r0 + (i + 1) by omega] at this
+
+theorem selArmsOk_get {pows : PowTree} {sigOf : String → HSig} {f : Fn} {H : HCert} :
+    ∀ (arms : List HArm) (r0 i : ℕ) {a : HArm}, selArmsOk pows sigOf f H r0 arms = true → arms[i]? = some a →
+      heapOkC1 pows sigOf (selF H.sel (r0 + i) f) (H.arm a) = true
+  | [], _, _, _, _, h => by simp at h
+  | b :: as, r0, 0, a, h, ha => by
+    simp only [List.getElem?_cons_zero, Option.some.injEq] at ha
+    subst ha
+    simp only [selArmsOk, Bool.and_eq_true] at h
+    simpa using h.1
+  | b :: as, r0, i + 1, a, h, ha => by
+    simp only [List.getElem?_cons_succ] at ha
+    simp only [selArmsOk, Bool.and_eq_true] at h
+    have := selArmsOk_get as (r0 + 1) i h.2 ha
+    rwa [show r0 + 1 + i = r0 + (i + 1) by omega] at this
+
+/-- **A read for the certificate is one for the arm**, where the arm's reads cover the certificate's. -/
+theorem reads_arm {H H' : HCert} {b : Atom} {x : K}
+    (hl : ∀ d p off, b = .load d p off → (H.readWit d p off).isSome = true → (H'.readWit d p off).isSome = true)
+    (h : Reads H σ b x) : Reads H' σ b x := by
+  cases b
+  case load d p off => exact ⟨hl d p off rfl h.1, h.2⟩
+  case hint hn =>
+    cases hn
+    case log2Ceil bits nbits fl dst => cases bits <;> exact h
+    all_goals exact h
+  all_goals exact h
+
+/-- **The needs of an arm's events are the certificate's**, where the arm's reads cover the certificate's on its
+events. -/
+theorem readsOkP_arm {sigOf : String → HSig} {H : HCert} {a : HArm} {rd : Reader} {ws : List E} {es : List Ev}
+    (h : ReadsOkP sigOf (H.arm a) rd σ ws es)
+    (hl : ∀ d p off, Ev.atom (.load d p off) ∈ es → (H.readWit d p off).isSome = true →
+      ((H.arm a).readWit d p off).isSome = true) :
+    ReadsOkP sigOf H rd σ ws es := by
+  intro es1 e es2 he hm
+  have h1 := h es1 e es2 he hm
+  cases e with
+  | atom b =>
+    intro x hx
+    exact h1 x (reads_arm (fun d p off hb hs ↦ hl d p off (by rw [he, ← hb]; simp) hs) hx)
+  | inK c => exact h1
+  | call g args rets => exact h1
+  | skip g args => exact h1
+
+end Split
+
+
+/-- **The heap check with calls and loops is sound, call by call** (`heapOkC1_soundP`), its certificate split at a
+selector or not: on a split, the arm the selector's word picks walks as the body (`walk_sel`), and its reads cover the
+certificate's. -/
+theorem heapOkC_soundP {pows : PowTree} (hp : pows.Ok) {sigOf : String → HSig} {f : Fn} {H : HCert}
+    (hok : heapOkC pows sigOf f H = true) (hself : sigOf f.name = H.sig) {σ : Val} {rd : Reader}
+    {es : List Ev} {vs : List V} (hw : walk σ f.body = .ret es vs) (hh : ∀ e ∈ es, e.Holds rd σ)
+    (hE : EntryF H (f.params.map σ)) (hR : ResF H σ) (hD : DerOk H rd σ) (hG : GwOk H.sig rd σ) :
+    ReadsOkP sigOf H rd σ (f.params.map σ) es ∧ ((∀ e ∈ es, EvM sigOf rd σ e) →
+      (PostOkC sigOf H rd σ (f.params.map σ) es vs ∧ (H.fas = [] → PostOkW sigOf H rd σ (f.params.map σ) es vs)) ∧
+      RetMOk H.sig (f.params.map σ) (vs.map σ) ∧ RetVOk rd H.sig (f.params.map σ ++ vs.map σ) ∧
+      RetEqOk H.sig (f.params.map σ ++ vs.map σ)) := by
+  rcases heapOkC_cases hok with ⟨-, h1⟩ | ⟨hs, ha⟩
+  · exact heapOkC1_soundP hp h1 hself hw hh hE hR hD hG
+  obtain ⟨-, -, -, -, hn0, hncap, hle, hrd⟩ := splitOk_spec hs
+  obtain ⟨r, hr, hu⟩ := exists_sel (σ := σ) H.sel hn0 hncap
+  have hw' : walk σ (selL H.sel r f.body) = .ret es vs := by
+    rcases walk_sel hu f.body hle with h | h
+    · rw [h, hw]
+    · rw [hw] at h; cases h
+  obtain ⟨a, haget⟩ : ∃ a, H.arms[r]? = some a := ⟨H.arms[r], List.getElem?_eq_getElem hr⟩
+  have hok1 := selArmsOk_get H.arms 0 r ha haget
+  have hin := readsArms_get H.arms 0 r hrd haget
+  rw [Nat.zero_add] at hok1 hin
+  have h := heapOkC1_soundP (f := selF H.sel r f) (H := H.arm a) hp hok1 hself hw' hh hE hR hD hG
+  refine ⟨readsOkP_arm h.1 fun d p off hm hs ↦ ?_, h.2⟩
+  have hst := Bridge.walk_atomS (σ := σ) (selL H.sel r f.body) (by rw [hw']; exact hm)
+  have hall := List.all_eq_true.mp hin _ hst
+  simp only [HCert.readWit] at hs ⊢
+  simpa [hs] using hall
 
 /-- **The heap check with calls and loops is sound**: on a path of a function passing `heapOkC` that
 returns, its events holding and each entered call's callee guarantees' runs having their exponents,

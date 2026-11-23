@@ -182,13 +182,14 @@ pub enum BitsDest {
 pub enum RHint {
     /// Announce a pointer into a reserved run of frames.
     FrameAddress { offset: Off },
-    /// Reserve `log_g(m[end] * start_inverse) + 1` consecutive frames of `size` cells, the last
-    /// the final, untaken call's.
+    /// Reserve `log_g(m[end] * start_inverse)` consecutive frames of `size` cells, then `tail`
+    /// cells more, the final, untaken call's frame, of which the call writes only those.
     AllocFrames {
         ptr: Off,
         size: u32,
         end: Off,
         start_inverse: K,
+        tail: u32,
     },
     /// Allocate a fresh region of `size` cells and write `g^{base}` to the cell.
     Alloc { ptr: Off, size: u32 },

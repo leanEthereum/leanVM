@@ -151,7 +151,7 @@ variable (fs : String → ℕ) (cert : String → V → ℕ)
 theorem pad_completeAtB {SK : String → ℕ}
     (hpad : TotalLeOn coreProgram fs name% «da_pad_loop0» LoopPre
       (fun a => logG (a.getD 1 0) * iterK fs SK name% «da_pad_loop0» + fs name% «da_pad_loop0»))
-    (hrL : r ≤ 2 ^ L) (hL : L ≤ 10) :
+    (htk : ∀ f, fs (tailKey f) ≤ fs f) (hrL : r ≤ 2 ^ L) (hL : L ≤ 10) :
     CompleteAtDTB fs cert 16 "da_pad" [(bT, rootsCells r L syms)] [gen ^ bT, gen ^ r, gen ^ (2 ^ L - r)]
       (Returns []) (padNH (2 ^ L - r)) (padB fs SK (2 ^ L - r)) := by
   have hN : 2 ^ L ≤ 1024 := le_trans (Nat.pow_le_pow_right (by norm_num) hL) (by norm_num)
@@ -172,7 +172,7 @@ theorem pad_completeAtB {SK : String → ℕ}
     exact pureB_loop daPure (by simp [daPureSet]) (fun rd hm => padL_rel (by omega)
       (reads_of_memL hm List.mem_cons_self)) hpad (by omega) (by omega)
   · have h0 : 2 ^ L - r = 0 := by simpa [padKids] using ht
-    simp [h0]
+    simpa [h0] using htk name% «da_pad_loop0»
   · match outs with
     | [] => trivial
     | o :: os => exact ⟨fun _ i hi => Or.inl (Or.inl hi), by cases os <;> trivial⟩

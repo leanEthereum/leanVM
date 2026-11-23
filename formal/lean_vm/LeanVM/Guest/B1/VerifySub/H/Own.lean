@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.VerifySub.H.Runs
 public import LeanVM.Guest.B1.VerifySub.C.Own
 public import LeanVM.Guest.B1.VerifySub.C.Hon
 public import LeanVM.Guest.Hints
+public import LeanVM.Guest.B1.Bits.GrindFwd
 
 /-!
 # The own buffers and the oracle
@@ -22,8 +23,10 @@ point), `ood_value`, `fp_w` (the slot weights), `chi`, `bc_point` (the slot poin
 committed outputs' point at `0`, the ring switch's at `qkeccakVarsCap`), `slices`, the ring map's
 challenges, `c_table`. `vs_own_mem`: buffer `i` at its base.
 
-`vsW bs outs`: the oracle (`C/Hon`'s `w`): an allocation's value is the pointer to its buffer, a
-call's return its callee's result in `outs` (`vsRetVars`, callee by callee in call order).
+`vsW gw bs outs`: the oracle (`C/Hon`'s `w`): an allocation's value is the pointer to its buffer, a
+call's return its callee's result in `outs` (`vsRetVars`, callee by callee in call order), an
+inlined grind's window the honest one of its word (`gw`: the out-of-domain grind's, the ring
+map's).
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -84,38 +87,59 @@ theorem vs_own_mem {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSeg
 
 /-- The callees' return values, callee by callee in call order. -/
 def vsRetVars : List (List ℕ) :=
-  [[64], [72], [253], [274, 275], [276], [], [304, 305, 306, 307, 308],
-    [312, 313, 314, 315, 316, 317, 318, 319], [328], [545, 546, 547, 548, 549, 550, 551],
-    [556, 557, 558, 559, 560, 561, 562, 563, 564, 565], [573, 574, 575, 576, 577, 578, 579], [],
-    [1328], [1888, 1889, 1890, 1891, 1892], []]
+  [[64], [72], [253], [274, 275], [276], [356, 357, 358, 359, 360],
+    [364, 365, 366, 367, 368, 369, 370, 371], [380], [597, 598, 599, 600, 601, 602, 603],
+    [608, 609, 610, 611, 612, 613, 614, 615, 616, 617], [625, 626, 627, 628, 629, 630, 631],
+    [1432], [1992, 1993, 1994, 1995, 1996], []]
 
 /-- The oracle's values are the allocations' and the returns'. -/
 theorem vsWVars_eq : vsWVars.Perm (vsAllocVars ++ vsRetVars.flatten) := by decide
 
-/-- **The oracle**: an allocation's pointer, a callee's return. -/
-noncomputable def vsW (bs : List ℕ) (outs : List (List E × Main.Layout)) (n : ℕ) : E :=
+/-- **The oracle**: an allocation's pointer, a callee's return, a grind's window. -/
+noncomputable def vsW (gw : E × E) (bs : List ℕ) (outs : List (List E × Main.Layout)) (n : ℕ) : E :=
   if n ∈ vsAllocVars then ofK (addressOfIndex (bs.getD (vsAllocVars.idxOf n) 0))
+  else if 301 ≤ n ∧ n ≤ 301 + gcW 15 then gcWin 15 gw.1 (n - 301)
+  else if 653 ≤ n ∧ n ≤ 653 + gcW 13 then gcWin 13 gw.2 (n - 653)
   else (outs.getD (vsRetVars.findIdx (n ∈ ·)) ([], [])).1.getD
     ((vsRetVars.getD (vsRetVars.findIdx (n ∈ ·)) []).idxOf n) 0
 
 theorem vsAllocVars_idx : ∀ i < 15, vsAllocVars.getD i 0 ∈ vsAllocVars ∧
     vsAllocVars.idxOf (vsAllocVars.getD i 0) = i := by decide
 
-theorem vsW_alloc (bs : List ℕ) (outs : List (List E × Main.Layout)) {i : ℕ} (hi : i < 15) :
-    vsW bs outs (vsAllocVars.getD i 0) = ofK (addressOfIndex (bs.getD i 0)) := by
+theorem vsW_alloc (gw : E × E) (bs : List ℕ) (outs : List (List E × Main.Layout)) {i : ℕ} (hi : i < 15) :
+    vsW gw bs outs (vsAllocVars.getD i 0) = ofK (addressOfIndex (bs.getD i 0)) := by
   obtain ⟨h1, h2⟩ := vsAllocVars_idx i hi
   simp only [vsW, h1, ↓reduceIte, h2]
 
-theorem vsRetVars_idx : ∀ j < 16, ∀ k < (vsRetVars.getD j []).length,
+theorem vsRetVars_idx : ∀ j < 14, ∀ k < (vsRetVars.getD j []).length,
     (vsRetVars.getD j []).getD k 0 ∉ vsAllocVars ∧
+      ¬ (301 ≤ (vsRetVars.getD j []).getD k 0 ∧ (vsRetVars.getD j []).getD k 0 ≤ 301 + gcW 15) ∧
+      ¬ (653 ≤ (vsRetVars.getD j []).getD k 0 ∧ (vsRetVars.getD j []).getD k 0 ≤ 653 + gcW 13) ∧
       vsRetVars.findIdx (((vsRetVars.getD j []).getD k 0) ∈ ·) = j ∧
       (vsRetVars.getD j []).idxOf ((vsRetVars.getD j []).getD k 0) = k := by decide
 
-theorem vsW_ret (bs : List ℕ) (outs : List (List E × Main.Layout)) {j k : ℕ} (hj : j < 16)
+theorem vsW_ret (gw : E × E) (bs : List ℕ) (outs : List (List E × Main.Layout)) {j k : ℕ} (hj : j < 14)
     (hk : k < (vsRetVars.getD j []).length) :
-    vsW bs outs ((vsRetVars.getD j []).getD k 0) = (outs.getD j ([], [])).1.getD k 0 := by
-  obtain ⟨h1, h2, h3⟩ := vsRetVars_idx j hj k hk
-  simp only [vsW, h1, ↓reduceIte, h2, h3]
+    vsW gw bs outs ((vsRetVars.getD j []).getD k 0) = (outs.getD j ([], [])).1.getD k 0 := by
+  obtain ⟨h1, g1, g2, h2, h3⟩ := vsRetVars_idx j hj k hk
+  simp only [vsW, h1, g1, g2, ↓reduceIte, h2, h3]
+
+theorem vsW_win1 (gw : E × E) (bs : List ℕ) (outs : List (List E × Main.Layout)) :
+    ∀ j ≤ gcW 15, vsW gw bs outs (301 + j) = gcWin 15 gw.1 j := by
+  intro j hj
+  have hW : gcW 15 = 4 := by decide
+  have hn : 301 + j ∉ vsAllocVars := by rw [hW] at hj; interval_cases j <;> decide
+  simp only [vsW, hn, ↓reduceIte, show 301 ≤ 301 + j ∧ 301 + j ≤ 301 + gcW 15 by omega, and_self,
+    Nat.add_sub_cancel_left]
+
+theorem vsW_win2 (gw : E × E) (bs : List ℕ) (outs : List (List E × Main.Layout)) :
+    ∀ j ≤ gcW 13, vsW gw bs outs (653 + j) = gcWin 13 gw.2 j := by
+  intro j hj
+  have hW : gcW 13 = 4 := by decide
+  have hn : 653 + j ∉ vsAllocVars := by rw [hW] at hj; interval_cases j <;> decide
+  simp only [vsW, hn, ↓reduceIte, show ¬ (301 ≤ 653 + j ∧ 653 + j ≤ 301 + gcW 15) by
+    rw [show gcW 15 = 4 by decide]; omega,
+    show 653 ≤ 653 + j ∧ 653 + j ≤ 653 + gcW 13 by omega, and_self, Nat.add_sub_cancel_left]
 
 end
 end LeanVM.Guest.B1.VerifySub

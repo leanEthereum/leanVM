@@ -1,162 +1,172 @@
 /-
   LeanVM.Guest.B1.Opening.QueriesPlaced5
 
-  A deeper iteration of `opening_queries`' loop, placed (`RelAtIn`).
+  A deeper iteration's honest valuation.
 -/
 
 module
 
 public import LeanVM.Guest.B1.Opening.QueriesPlaced4
-import LeanVM.Guest.ValRef
-import LeanVM.Guest.Data.ValNames.«opening_queries__L_loop0»
 
 /-!
-# A deeper iteration, placed
+# A deeper iteration's valuation
 
-`oqIter0_relAtIn`: as `oqIter1_relAtIn`, the iteration at `x = g^j` of a deeper level (one query,
-its point `positions[x]` and its window pointer `qptrs[x]`), its walk from `c`.
+`oqIter0F`: a deeper iteration's honest values (one query, its point `positions[x]` and its window
+pointer `qptrs[x]`), from its query and the chain's word. `oqIter0_at`: its body holds statement by
+statement, its tail's guard and arguments, its loads' pointers.
 -/
 
 namespace LeanVM.Guest.B1
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 @[expose] public section
 
-/-- A deeper iteration's call: its query's walk. -/
-theorem oqLoop0A_callS (s : Oq) (wlk : String) :
-    (oqLoop0A s wlk).filterMap Stmt.callS =
-      [(none, wlk, [.n (oqOut s (oqKL s 14 true) (s.B - 1) 0), .n (oqOut s (oqKL s 14 true) (s.B - 1) 1),
-          .n 13, .n (valf% «opening_queries» «_loop0» "cap"), .n (valf% «opening_queries» «_loop0» "flags")], [])] := by
-  unfold oqLoop0A
-  simp only [List.filterMap_append, oqQueryT_callS]
-  split <;> rfl
+variable {rd : Reader}
 
-/-- **A deeper iteration, placed**, its walk from `c`, its tail's iterations after it. -/
-theorem oqIter0_relAtIn (hP : coreProgram.Wf) (fs : String → ℕ) (cert : String → V → ℕ)
-    {s : Oq} (hs : s.RowShape) (hfin : s.FinOk) (hpd1 : 1 ≤ s.pd) (hcd : 2 ≤ s.cd)
-    {wlk loop : String} (hW : WalkFn coreProgram wlk s.pd s.cd) {fl : Fn}
-    (hfl : coreProgram.find? loop = some fl) (hpl : fl.params = oqLoopParams)
-    (hbl : fl.body = oqLoop0T s wlk loop) (hlp : coreProgram.loop loop = true)
-    {rd : Reader} {R : ℕ → Prop} {fp c Bt m j : ℕ} {N positions qptrs cap flags coefs hsp ch mu : E}
-    {rounds : List FoldRound} {hsv : List E} {w : QW} {bp v : E}
-    (hok : (oqQD s 14 true 0 cap flags rounds hsv w).Ok rd coefs hsp bp)
+
+/-- The chain step's values of a deeper iteration. -/
+def oqStep0V (x ch mu v d : E) : List E := [ch * x, v, v + d, (v + d) * mu, ch * x]
+
+/-- The tail's values of a deeper iteration: the chain step (non-final levels), the guard. -/
+def oqIter0C (fin : ℕ) (x N ch mu v d : E) : List E :=
+  (if fin = 1 then [] else oqStep0V x ch mu v d) ++ oqGuardV x N
+
+theorem oqG0_eq (s : Oq) : oqG0 s = oqC0 s + (if s.final = 1 then 0 else 5) := by
+  unfold oqG0; split <;> rfl
+
+theorem oqIter0C_guard (fin : ℕ) (x N ch mu v d : E) (o : ℕ) :
+    (oqIter0C fin x N ch mu v d).getD ((if fin = 1 then 0 else 5) + o) 0 =
+      (oqGuardV x N).getD o 0 := by
+  unfold oqIter0C
+  split
+  · rw [List.nil_append, Nat.zero_add]
+  · rw [List.getD_append_right _ _ _ _ (by simp [oqStep0V])]
+    simp [oqStep0V]
+
+theorem oqIter0C_step {fin : ℕ} (hf : fin ≠ 1) (x N ch mu v d : E) {o : ℕ} (ho : o < 5) :
+    (oqIter0C fin x N ch mu v d).getD o 0 = (oqStep0V x ch mu v d).getD o 0 := by
+  unfold oqIter0C
+  simp only [hf, ↓reduceIte]
+  exact List.getD_append _ _ _ _ (by simp [oqStep0V, ho])
+
+/-- **A deeper iteration's honest values**, from its arguments, its query, its window pointer and
+the chain's word. -/
+def oqIter0F (s : Oq) (args : List E) (D : QD) (v : E) (i : ℕ) : E :=
+  let x := args.getD 0 0
+  if i < 10 then args.getD i 0
+  else if i = 10 then args.getD 2 0 * x
+  else if i = 11 then D.x
+  else if i = 12 then args.getD 3 0 * x
+  else if i = 13 then D.bpv
+  else if i < oqC0 s then D.val i
+  else (oqIter0C s.final x (args.getD 1 0) (args.getD 8 0) (args.getD 9 0) v
+    (oqResV s D.rounds (D.q, D.row, D.sibs))).getD (i - oqC0 s) 0
+
+/-- **A deeper iteration at its honest values.** -/
+theorem oqIter0_at {s : Oq} (hs : s.RowShape) (hfin : s.FinOk) {cd j : ℕ}
+    {N positions qptrs cap flags coefs hsp ch mu : E} {rounds : List FoldRound} {hsv : List E}
+    {w : QW} {bp v : E}
+    (hok : (oqQD s cd 14 true 0 bp cap flags rounds hsv w).Ok rd coefs hsp)
     (hx : LoadHolds rd positions j (eOfNat w.1)) (hb : LoadHolds rd qptrs j bp)
     (hv : s.final ≠ 1 → LoadHolds rd ch j v ∧ LoadHolds rd ch (j + 1) ((v + oqResV s rounds w) * mu))
-    (hK : IsInK (gen ^ j * gen + N))
-    (htail : if gen ^ j * gen + N ≠ 0 then
-      RelAtInC coreProgram fs cert rd R (fun _ => False) (fp + fs loop) (c + fs wlk) Bt m loop
-        [gen ^ j * gen, N, positions, qptrs, cap, flags, coefs, hsp, ch, mu] []
-      else Bt = fs loop ∧ m = 0)
-    (hRp : OqIn R ((positions * gen ^ j).limb 0 * Parameters.addressOfIndex 0))
-    (hRq : OqIn R ((qptrs * gen ^ j).limb 0 * Parameters.addressOfIndex 0))
-    (hR1 : OqQReg R s cap flags coefs hsp bp w.1)
-    (hRc : s.final ≠ 1 → ∀ e < 2, OqIn R ((ch * gen ^ j).limb 0 * Parameters.addressOfIndex e)) :
-    RelAtInC coreProgram fs cert rd R (fun _ => False) fp c (fs loop + Bt) (fs wlk + m) loop
-      [gen ^ j, N, positions, qptrs, cap, flags, coefs, hsp, ch, mu] [] := by
-  set D1 := oqQD s 14 true 0 cap flags rounds hsv w with hD1
+    {σ : Val} (hσ : ∀ i, σ (.n i) = oqIter0F s
+      [gen ^ j, N, positions, qptrs, cap, flags, coefs, hsp, ch, mu]
+      (oqQD s cd 14 true 0 bp cap flags rounds hsv w) v i) :
+    oqLoopParams.map σ = [gen ^ j, N, positions, qptrs, cap, flags, coefs, hsp, ch, mu] ∧
+      BlockOkC anyCall rd σ (oqLoop0A s) ∧ (oqQD s cd 14 true 0 bp cap flags rounds hsv w).Hv σ ∧
+      σ (.n 10) = positions * gen ^ j ∧ σ (.n 12) = qptrs * gen ^ j ∧ σ (.n 13) = bp ∧
+      (s.final ≠ 1 → σ (.n (oqC0 s)) = ch * gen ^ j ∧ σ (.n (oqC0 s + 4)) = ch * gen ^ j) ∧
+      σ (.n (oqG0 s + 2)) = gen ^ j * gen + N ∧ σ (.n (oqG0 s + 4)) = gen ^ j * gen := by
+  set D := oqQD s cd 14 true 0 bp cap flags rounds hsv w with hD
   set args : List E := [gen ^ j, N, positions, qptrs, cap, flags, coefs, hsp, ch, mu] with hargs
-  obtain ⟨σ, hσ⟩ : ∃ σ : Val, ∀ w : V, σ w = oqIter0F s args D1 bp v w.idx := ⟨_, fun _ ↦ rfl⟩
-  obtain ⟨hpar, hA, -, e10, e12, e13, eCh, eG2, eG4, hl1⟩ :=
-    oqIter0_at (σ := σ) (walk := wlk) hs hfin hok hx hb hv (fun _ ↦ hσ _)
-  have eP : ∀ i < 10, σ (.n i) = args.getD i 0 := by
-    intro i hi
-    have := congrArg (·.getD i 0) hpar
-    simp only [oqLoopParams] at this
-    interval_cases i <;> simpa [hargs] using this
-  set ca : Stmt := .callIf (.n (oqG0 s + 2)) loop
-    [.n (oqG0 s + 4), .n (valf% «opening_queries» «_loop0» "bound"), .n (valf% «opening_queries» «_loop0» "positions"), .n (valf% «opening_queries» «_loop0» "query_win_ptrs"), .n (valf% «opening_queries» «_loop0» "cap"), .n (valf% «opening_queries» «_loop0» "flags"), .n (valf% «opening_queries» «_loop0» "coefs"), .n (valf% «opening_queries» «_loop0» "hs"), .n (valf% «opening_queries» «_loop0» "chain"), .n (valf% «opening_queries» «_loop0» "lam_inv")] with hca
-  set pre := oqLoop0A s wlk ++ [ca] with hpre
-  have hok' := oqLoop0A_ok s wlk
-  have hfm : pre.all Stmt.flatM = true := by
-    rw [hpre, List.all_append, hok'.flatM]; rfl
-  have hmo : ∀ x ∈ pre, MatchOk σ x := by
-    intro x hx
-    rcases List.mem_append.mp hx with hx | hx
-    · exact hok'.matchOk hA x hx
-    · simp only [List.mem_singleton] at hx
-      subst hx; trivial
-  have hbody : fl.body = pre ++ [.ret []] := by
-    rw [hbl, hpre, oqLoop0T, oqNextT, List.append_assoc]; rfl
-  set es := pre.flatMap (fmEvs σ) with hes
-  have hw : walk σ fl.body = .ret es [] := by rw [hbody]; exact walk_flatM σ [] pre hfm hmo
-  obtain ⟨i1, i2, i3, i4⟩ := flatM_parts σ pre hfm
-  have hal : pre.filterMap Stmt.allocSz = [] := by
-    rw [hpre, List.filterMap_append, hok'.allocSz]; rfl
-  have hallocs : allocs σ es = [] := by rw [i2, hal]; rfl
-  set a1 : List V := [.n (oqOut s (oqKL s 14 true) (s.B - 1) 0), .n (oqOut s (oqKL s 14 true) (s.B - 1) 1),
-    .n 13, .n (valf% «opening_queries» «_loop0» "cap"), .n (valf% «opening_queries» «_loop0» "flags")] with ha1
-  have hcalls : calls es = [⟨wlk, a1, [], true⟩] ++
-      [⟨loop, [.n (oqG0 s + 4), .n (valf% «opening_queries» «_loop0» "bound"), .n (valf% «opening_queries» «_loop0» "positions"), .n (valf% «opening_queries» «_loop0» "query_win_ptrs"), .n (valf% «opening_queries» «_loop0» "cap"), .n (valf% «opening_queries» «_loop0» "flags"), .n (valf% «opening_queries» «_loop0» "coefs"), .n (valf% «opening_queries» «_loop0» "hs"), .n (valf% «opening_queries» «_loop0» "chain"), .n (valf% «opening_queries» «_loop0» "lam_inv")],
-      [], decide (σ (.n (oqG0 s + 2)) ≠ 0)⟩] := by
-    rw [i4, hpre, List.filterMap_append, oqLoop0A_callS]; rfl
-  have hev : ∀ e ∈ es, e.Holds rd σ := by
-    intro e he
-    rw [hes, hpre, List.flatMap_append] at he
-    rcases List.mem_append.mp he with he | he
-    · exact hok'.evs_holds hA e he
-    · simp only [List.flatMap_cons, List.flatMap_nil, List.append_nil] at he
-      change e ∈ slEvs σ ca at he
-      simp only [hca, slEvs, List.mem_cons, List.not_mem_nil, or_false] at he
-      rcases he with rfl | he
-      · show IsInK (σ (.n (oqG0 s + 2)))
-        rw [eG2]; exact hK
-      · rw [he]; split <;> trivial
-  have hW1 := wp_relAtIn (w := D1.wd bp) hP fs cert hpd1 (show 1 ≤ s.cd by omega) hok.hsibs hok.hq
-    hok.hmem hW hR1.toW
-  have hm1 : a1.map σ = [(digestHalves D1.leaf).1, (digestHalves D1.leaf).2, bp, cap, flags] := by
-    have e0 := congrArg Prod.fst hl1
-    have e1 := congrArg Prod.snd hl1
-    simp only at e0 e1
-    simp only [ha1, List.map_cons, List.map_nil, e0, e1, e13, eP 4 (by omega), eP 5 (by omega)]
+  have hb' : D.b = 14 := rfl
+  have he' : D.e = oqC0 s := rfl
+  have i1 := D.b_le_ch
+  have i2 := D.ch_lt_e
+  have eP : ∀ i < 10, σ (.n i) = args.getD i 0 := fun i hi => by
+    rw [hσ]; simp only [oqIter0F, hi, ↓reduceIte]
+  have e10 : σ (.n 10) = positions * gen ^ j := by rw [hσ]; simp [oqIter0F, hargs]
+  have e11 : σ (.n 11) = D.x := by rw [hσ]; simp [oqIter0F]
+  have e12 : σ (.n 12) = qptrs * gen ^ j := by rw [hσ]; simp [oqIter0F, hargs]
+  have e13 : σ (.n 13) = bp := by rw [hσ]; simp [oqIter0F, hD, oqQD]
+  have eQ : D.Hv σ := fun i h1 h2 => by
+    rw [hσ]
+    simp only [oqIter0F, show ¬ i < 10 by omega, show i ≠ 10 by omega, show i ≠ 11 by omega,
+      show i ≠ 12 by omega, show i ≠ 13 by omega, show i < oqC0 s by omega, ↓reduceIte]
+  have eC : ∀ o, σ (.n (oqC0 s + o)) = (oqIter0C s.final (gen ^ j) N ch mu v
+      (oqResV s rounds w)).getD o 0 := fun o => by
+    rw [hσ]
+    simp only [oqIter0F, show ¬ oqC0 s + o < 10 by omega, show oqC0 s + o ≠ 10 by omega,
+      show oqC0 s + o ≠ 11 by omega, show oqC0 s + o ≠ 12 by omega, show oqC0 s + o ≠ 13 by omega,
+      show ¬ oqC0 s + o < oqC0 s by omega, ↓reduceIte, Nat.add_sub_cancel_left]
     rfl
-  have inR : ∀ A, OqIn R A → ∃ i, A = Parameters.addressOfIndex i ∧
-      (ownData cert fp c loop (allocs σ es) es i ∨ R i ∨ False ∨
-        ((⟨loop, [.n (oqG0 s + 4), .n (valf% «opening_queries» «_loop0» "bound"), .n (valf% «opening_queries» «_loop0» "positions"), .n (valf% «opening_queries» «_loop0» "query_win_ptrs"), .n (valf% «opening_queries» «_loop0» "cap"), .n (valf% «opening_queries» «_loop0» "flags"), .n (valf% «opening_queries» «_loop0» "coefs"), .n (valf% «opening_queries» «_loop0» "hs"), .n (valf% «opening_queries» «_loop0» "chain"), .n (valf% «opening_queries» «_loop0» "lam_inv")], [],
-          decide (σ (.n (oqG0 s + 2)) ≠ 0)⟩ : Call).taken = true ∧ False)) :=
-    fun A ⟨i, hi, hr⟩ ↦ ⟨i, hi, Or.inr (Or.inl hr)⟩
-  have h := relAtIn_of_walk_loop (P := coreProgram) (fs := fs) (cert := cert) (σ := σ) (rd := rd)
-    hP (R := R) (D := fun _ => False) (Dk := fun _ => False) (Rt := R) (Dt := fun _ => False)
-    (fp := fp) (c := c) (Bt := Bt) (m := m) (N := fs wlk + 0) (args := args) (rets := [])
-    hfl hlp (hpl ▸ hpar) hw rfl hev hcalls ?_
-    (by rw [i1, hal, hallocs]; rfl)
-    (fun q hq ↦ ?_) ?_ (fun i hi ↦ Or.inl hi)
-    (fun A hAl ↦ ?_) (fun _ h ↦ h.elim)
-  · rw [hallocs, List.sum_nil, show 0 + (fs wlk + 0) + m = fs wlk + m by ring] at h; exact h
-  · rw [hallocs, List.sum_nil, show c + 0 + (fs wlk + 0) = c + fs wlk by ring]
-    have hargs' : ([.n (oqG0 s + 4), .n (valf% «opening_queries» «_loop0» "bound"), .n (valf% «opening_queries» «_loop0» "positions"), .n (valf% «opening_queries» «_loop0» "query_win_ptrs"), .n (valf% «opening_queries» «_loop0» "cap"), .n (valf% «opening_queries» «_loop0» "flags"), .n (valf% «opening_queries» «_loop0» "coefs"), .n (valf% «opening_queries» «_loop0» "hs"), .n (valf% «opening_queries» «_loop0» "chain"), .n (valf% «opening_queries» «_loop0» "lam_inv")] :
-        List V).map σ = [gen ^ j * gen, N, positions, qptrs, cap, flags, coefs, hsp, ch, mu] := by
-      simp only [List.map_cons, List.map_nil, eG4, eP 1 (by omega), eP 2 (by omega),
-        eP 3 (by omega), eP 4 (by omega), eP 5 (by omega), eP 6 (by omega), eP 7 (by omega),
-        eP 8 (by omega), eP 9 (by omega)]
-      rfl
-    by_cases ht : gen ^ j * gen + N ≠ 0
-    · simp only [ht, ne_eq, not_false_eq_true, ↓reduceIte] at htail
-      have htk : decide (σ (.n (oqG0 s + 2)) ≠ 0) = true := by rw [eG2]; exact decide_eq_true ht
-      simp only [htk, ↓reduceIte, List.map_nil]
-      rw [hargs']; exact htail
-    · simp only [ht, ↓reduceIte] at htail
-      have htk : decide (σ (.n (oqG0 s + 2)) ≠ 0) = false := by rw [eG2]; exact decide_eq_false ht
-      simp only [htk, Bool.false_eq_true, ↓reduceIte]
-      exact htail
-  · rw [i3, hpre, List.filterMap_append, hok'.addrS] at hq
-    simp [hca, Stmt.addrS] at hq
-  · rw [hallocs, List.sum_nil, Nat.add_zero]
-    refine kidsFromIn_walk (R0 := R) ?_ (fun i hi ↦ Or.inl (Or.inl hi)) ⟨rfl, fun _ h ↦ h.elim⟩
-    rw [hm1]; exact hW1 _
-  · rw [loadAddrs_flatM σ pre hfm] at hAl
-    obtain ⟨⟨p, off⟩, hq, rfl⟩ := List.mem_map.mp hAl
-    rw [hpre, List.filterMap_append] at hq
-    rcases List.mem_append.mp hq with hq | hq
-    · rcases hok'.load hq with hl | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨hf, rfl, rfl⟩ | ⟨hf, rfl, rfl⟩
-      · exact inR _ (oqQLoad_in (σ := σ) (coefs := .n (valf% «opening_queries» «_loop0» "coefs")) (hs := .n (valf% «opening_queries» «_loop0» "hs"))
-          (by rw [eP 6 (by omega), eP 7 (by omega)]; exact hR1) hl)
-      · rw [e10]; exact inR _ hRp
-      · rw [e12]; exact inR _ hRq
-      · rw [(eCh hf).1]; exact inR _ (hRc hf 0 (by omega))
-      · rw [(eCh hf).2]; exact inR _ (hRc hf 1 (by omega))
-    · simp [hca, stmtLoad?] at hq
+  have hp := D.pad_of_emit rfl eQ
+  obtain ⟨hA, hres, -⟩ := D.query_complete (σ := σ) (x := .n 11) (bp := .n 13) (cap := .n oqCap)
+    (flags := .n oqFlags) (coefs := .n oqCoefs) (hsp := .n oqHs) (C := anyCall) hs hfin
+    (by rw [eP 6 (by omega), eP 7 (by omega)]; exact hok) eQ e11 hp.1 hp.2 e13
+    (eP 4 (by omega)) (eP 5 (by omega))
+  replace hres : s.final ≠ 1 → σ (.n (oqRes s 14 true)) = oqResV s rounds w := fun hf ↦ by
+    simp only [oqResV, hf, ↓reduceIte]; exact hres hf
+  have eG : ∀ o < 5, σ (.n (oqG0 s + o)) = (oqGuardV (gen ^ j) N).getD o 0 := fun o _ ↦ by
+    rw [oqG0_eq, Nat.add_assoc, eC, oqIter0C_guard]
+  obtain ⟨hG, eG2, eG4⟩ := oqGuardA_okC (rd := rd) (C := anyCall) (eP 0 (by omega))
+    (eP 1 (by omega)) eG
+  have eS : s.final ≠ 1 → ∀ o < 5, σ (.n (oqC0 s + o)) =
+      (oqStep0V (gen ^ j) ch mu v (oqResV s rounds w)).getD o 0 :=
+    fun hf o ho ↦ by rw [eC, oqIter0C_step hf _ _ _ _ _ _ ho]
+  refine ⟨?_, fun a ha => ?_, eQ, e10, e12, e13, fun hf ↦ ⟨?_, ?_⟩, eG2, eG4⟩
+  · simp only [oqLoopParams, List.map_cons, List.map_nil]
+    rw [eP 0 (by omega), eP 1 (by omega), eP 2 (by omega), eP 3 (by omega), eP 4 (by omega),
+      eP 5 (by omega), eP 6 (by omega), eP 7 (by omega), eP 8 (by omega), eP 9 (by omega)]
+    rfl
+  rotate_left
+  · have := eS hf 0 (by omega); rw [Nat.add_zero] at this; exact this
+  · exact eS hf 4 (by omega)
+  simp only [oqLoop0A, List.mem_append] at ha
+  rcases ha with (((ha | ha) | ha) | ha)
+  · simp only [List.mem_cons, List.not_mem_nil, or_false] at ha
+    rcases ha with rfl | rfl | rfl | rfl
+    · show σ (.n 10) = σ (.n oqPos) * σ (.n oqX)
+      rw [e10, eP 2 (by omega), eP 0 (by omega)]; rfl
+    · show LoadHolds rd (σ (.n 10)) 0 (σ (.n 11))
+      rw [e10, e11, loadHolds_mul_gen_pow, Nat.add_zero]
+      exact hx
+    · show σ (.n 12) = σ (.n oqQp) * σ (.n oqX)
+      rw [e12, eP 3 (by omega), eP 0 (by omega)]; rfl
+    · show LoadHolds rd (σ (.n 12)) 0 (σ (.n 13))
+      rw [e12, e13, loadHolds_mul_gen_pow, Nat.add_zero]
+      exact hb
+  · exact hA a ha
+  · split at ha
+    · simp at ha
+    · rename_i hf
+      obtain ⟨hv0, hv1⟩ := hv hf
+      have c0 := eS hf 0 (by omega)
+      have c1 : σ (.n (oqC0 s + 1)) = v := eS hf 1 (by omega)
+      have c2 : σ (.n (oqC0 s + 2)) = v + oqResV s rounds w := eS hf 2 (by omega)
+      have c3 : σ (.n (oqC0 s + 3)) = (v + oqResV s rounds w) * mu := eS hf 3 (by omega)
+      have c4 : σ (.n (oqC0 s + 4)) = ch * gen ^ j := eS hf 4 (by omega)
+      rw [Nat.add_zero] at c0
+      change σ (.n (oqC0 s)) = ch * gen ^ j at c0
+      set c := oqC0 s with hc'
+      simp only [List.mem_cons, List.not_mem_nil, or_false] at ha
+      rcases ha with rfl | rfl | rfl | rfl | rfl | rfl
+      · show σ (.n c) = σ (.n oqChainP) * σ (.n oqX)
+        rw [c0, eP 8 (by omega), eP 0 (by omega)]; rfl
+      · show LoadHolds rd (σ (.n c)) 0 (σ (.n (c + 1)))
+        rw [c0, c1, loadHolds_mul_gen_pow]; exact hv0
+      · show σ (.n (c + 2)) = σ (.n (c + 1)) + σ (.n (oqRes s 14 true))
+        rw [c2, c1, hres hf]
+      · show σ (.n (c + 3)) = σ (.n (c + 2)) * σ (.n oqLamInv)
+        rw [c3, c2, eP 9 (by omega)]; rfl
+      · show σ (.n (c + 4)) = σ (.n oqChainP) * σ (.n oqX)
+        rw [c4, eP 8 (by omega), eP 0 (by omega)]; rfl
+      · show LoadHolds rd (σ (.n (c + 4))) 1 (σ (.n (c + 3)))
+        rw [c4, c3, loadHolds_mul_gen_pow]; exact hv1
+  · exact hG a ha
+
 
 end
 end LeanVM.Guest.B1

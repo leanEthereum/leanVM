@@ -74,7 +74,7 @@ theorem l10_chain {rd : Reader} {rounds tabs rkb cprod : E} {n : ℕ} (hn : n < 
     rw [← pow_mul, mul_comm j 7] at lcur lcl hrel lnc lncl
     obtain rfl := tb_loadHolds_unique lcur hcur
     obtain rfl := tb_loadHolds_unique lcl hcl
-    have hm := (sumcheck_round4_holds rd _ _).mp hrel
+    have hm := hrel
     simp only [MeaningSumcheckRound4] at hm
     obtain ⟨cap', c0, c2, c3, hc', hrd, hcap1, hrets⟩ := hm
     obtain rfl := capAt_unique' hc' hc

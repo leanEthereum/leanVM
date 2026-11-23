@@ -64,21 +64,21 @@ theorem vt_keccak {rd : Reader} {σ : Val} {ins : List V} {b : ℕ}
   rfl
 
 set_option maxRecDepth 10000 in
-/-- **The bus's first stream words** and the bytecode sumcheck's first challenge (at `1855`),
-the sponge's capacity after it (`1863 .. 1867`), and the copies of the share and the first round's
+/-- **The bus's first stream words** and the bytecode sumcheck's first challenge (at `1551`),
+the sponge's capacity after it (`1559 .. 1563`), and the copies of the share and the first round's
 coefficients the round reads. -/
 theorem vt_fresh {rd : Reader} {σ : Val} (h : VtH rd σ) :
     TbReadsAt rd (σ (.n (val% «verify_tables» "cursor@1"))) (vtFreshWords σ) ∧
       σ (.n (val% «verify_tables» "nxt[0]@2")) = (vtFreshFs σ).squeeze.1 ∧
       ((List.range 5).map fun k ↦ σ (.n ((val% «verify_tables» "nxt[8]@2") + k))) = (vtFreshFs σ).squeeze.2.cap ∧
       σ (.n (val% «verify_tables» "bc_msg[0]")) = σ (.n (val% «verify_tables» "x@5")) ∧ σ (.n (val% «verify_tables» "bc_msg[1]")) = σ (.n (val% «verify_tables» "x@6")) ∧ σ (.n (val% «verify_tables» "bc_msg[2]")) = σ (.n (val% «verify_tables» "x@7")) := by
-  obtain ⟨_, f0⟩ := h.sliceAt 799 (fsNextT (.n (val% «verify_tables» "cursor@1")) 0 (val% «verify_tables» "x@1")) (by decide +kernel)
-  obtain ⟨_, f1⟩ := h.sliceAt 804 (fsNextT (.n (val% «verify_tables» "cursor@1")) 1 (val% «verify_tables» "x@2")) (by decide +kernel)
-  obtain ⟨_, f2⟩ := h.sliceAt 1342 (fsNextT (.n (val% «verify_tables» "cursor@1")) 2 (val% «verify_tables» "x@3")) (by decide +kernel)
-  obtain ⟨_, f3⟩ := h.sliceAt 1357 (fsNextT (.n (val% «verify_tables» "cursor@1")) 3 (val% «verify_tables» "x@4")) (by decide +kernel)
-  obtain ⟨_, f4⟩ := h.sliceAt 1915 (fsNextT (.n (val% «verify_tables» "cursor@1")) 4 (val% «verify_tables» "x@5")) (by decide +kernel)
-  obtain ⟨_, f5⟩ := h.sliceAt 1919 (fsNextT (.n (val% «verify_tables» "cursor@1")) 5 (val% «verify_tables» "x@6")) (by decide +kernel)
-  obtain ⟨_, f6⟩ := h.sliceAt 1923 (fsNextT (.n (val% «verify_tables» "cursor@1")) 6 (val% «verify_tables» "x@7")) (by decide +kernel)
+  obtain ⟨_, f0⟩ := h.sliceAt 843 (fsNextT (.n (val% «verify_tables» "cursor@1")) 0 (val% «verify_tables» "x@1")) (by decide +kernel)
+  obtain ⟨_, f1⟩ := h.sliceAt 848 (fsNextT (.n (val% «verify_tables» "cursor@1")) 1 (val% «verify_tables» "x@2")) (by decide +kernel)
+  obtain ⟨_, f2⟩ := h.sliceAt 1202 (fsNextT (.n (val% «verify_tables» "cursor@1")) 2 (val% «verify_tables» "x@3")) (by decide +kernel)
+  obtain ⟨_, f3⟩ := h.sliceAt 1217 (fsNextT (.n (val% «verify_tables» "cursor@1")) 3 (val% «verify_tables» "x@4")) (by decide +kernel)
+  obtain ⟨_, f4⟩ := h.sliceAt 1611 (fsNextT (.n (val% «verify_tables» "cursor@1")) 4 (val% «verify_tables» "x@5")) (by decide +kernel)
+  obtain ⟨_, f5⟩ := h.sliceAt 1615 (fsNextT (.n (val% «verify_tables» "cursor@1")) 5 (val% «verify_tables» "x@6")) (by decide +kernel)
+  obtain ⟨_, f6⟩ := h.sliceAt 1619 (fsNextT (.n (val% «verify_tables» "cursor@1")) 6 (val% «verify_tables» "x@7")) (by decide +kernel)
   rw [holds_fsNextT] at f0 f1 f2 f3 f4 f5 f6
   obtain ⟨⟨l0, p0⟩, -⟩ := f0
   obtain ⟨⟨l1, p1⟩, -⟩ := f1
@@ -92,16 +92,16 @@ theorem vt_fresh {rd : Reader} {σ : Val} (h : VtH rd σ) :
   have c22 := h.atomAt 2 (.copy (.n (val% «verify_tables» "sp[2]@1")) (.n (val% «verify_tables» "fs2"))) (by decide +kernel)
   have c23 := h.atomAt 3 (.copy (.n (val% «verify_tables» "sp[3]@1")) (.n (val% «verify_tables» "fs3"))) (by decide +kernel)
   have c24 := h.atomAt 4 (.copy (.n (val% «verify_tables» "sp[4]@1")) (.n (val% «verify_tables» "fs4"))) (by decide +kernel)
-  have k1 := h.atomAt 1914 (.keccak [.n (val% «verify_tables» "rate[0]@1"), .n (val% «verify_tables» "rate[1]@1"), .n (val% «verify_tables» "rate[2]@1"), .n (val% «verify_tables» "rate[3]@1"), .n (val% «verify_tables» "rate[4]@1"), .n (val% «verify_tables» "rate[5]@1"), .n (val% «verify_tables» "rate[6]@1"),
-    .n (val% «verify_tables» "rate[7]@1"), .n (val% «verify_tables» "sp[0]@1"), .n (val% «verify_tables» "sp[1]@1"), .n (val% «verify_tables» "sp[2]@1"), .n (val% «verify_tables» "sp[3]@1"), .n (val% «verify_tables» "sp[4]@1")] (vtOuts 1828) false false) (by decide +kernel)
-  have z6 := h.atomAt 1927 (.const (.n (val% «verify_tables» "rate[6]@2")) (word 0 0)) (by decide +kernel)
-  have z7 := h.atomAt 1928 (.const (.n (val% «verify_tables» "rate[7]@2")) (word 0 0)) (by decide +kernel)
-  have k2 := h.atomAt 1929 (.keccak [.n (val% «verify_tables» "rate[0]@2"), .n (val% «verify_tables» "rate[1]@2"), .n (val% «verify_tables» "rate[2]@2"), .n (val% «verify_tables» "rate[3]@2"), .n (val% «verify_tables» "rate[4]@2"), .n (val% «verify_tables» "rate[5]@2"),
-    .n (val% «verify_tables» "rate[6]@2"), .n (val% «verify_tables» "rate[7]@2"), .n (val% «verify_tables» "nxt[8]@1"), .n (val% «verify_tables» "nxt[9]@1"), .n (val% «verify_tables» "nxt[10]@1"), .n (val% «verify_tables» "nxt[11]@1"), .n (val% «verify_tables» "nxt[12]@1")] (vtOuts 1855) false false)
+  have k1 := h.atomAt 1610 (.keccak [.n (val% «verify_tables» "rate[0]@1"), .n (val% «verify_tables» "rate[1]@1"), .n (val% «verify_tables» "rate[2]@1"), .n (val% «verify_tables» "rate[3]@1"), .n (val% «verify_tables» "rate[4]@1"), .n (val% «verify_tables» "rate[5]@1"), .n (val% «verify_tables» "rate[6]@1"),
+    .n (val% «verify_tables» "rate[7]@1"), .n (val% «verify_tables» "sp[0]@1"), .n (val% «verify_tables» "sp[1]@1"), .n (val% «verify_tables» "sp[2]@1"), .n (val% «verify_tables» "sp[3]@1"), .n (val% «verify_tables» "sp[4]@1")] (vtOuts 1524) false false) (by decide +kernel)
+  have z6 := h.atomAt 1623 (.const (.n (val% «verify_tables» "rate[6]@2")) (word 0 0)) (by decide +kernel)
+  have z7 := h.atomAt 1624 (.const (.n (val% «verify_tables» "rate[7]@2")) (word 0 0)) (by decide +kernel)
+  have k2 := h.atomAt 1625 (.keccak [.n (val% «verify_tables» "rate[0]@2"), .n (val% «verify_tables» "rate[1]@2"), .n (val% «verify_tables» "rate[2]@2"), .n (val% «verify_tables» "rate[3]@2"), .n (val% «verify_tables» "rate[4]@2"), .n (val% «verify_tables» "rate[5]@2"),
+    .n (val% «verify_tables» "rate[6]@2"), .n (val% «verify_tables» "rate[7]@2"), .n (val% «verify_tables» "nxt[8]@1"), .n (val% «verify_tables» "nxt[9]@1"), .n (val% «verify_tables» "nxt[10]@1"), .n (val% «verify_tables» "nxt[11]@1"), .n (val% «verify_tables» "nxt[12]@1")] (vtOuts 1551) false false)
     (by decide +kernel)
-  have d43 := h.atomAt 1918 (.copy (.n (val% «verify_tables» "bc_msg[0]")) (.n (val% «verify_tables» "x@5"))) (by decide +kernel)
-  have d47 := h.atomAt 1922 (.copy (.n (val% «verify_tables» "bc_msg[1]")) (.n (val% «verify_tables» "x@6"))) (by decide +kernel)
-  have d51 := h.atomAt 1926 (.copy (.n (val% «verify_tables» "bc_msg[2]")) (.n (val% «verify_tables» "x@7"))) (by decide +kernel)
+  have d43 := h.atomAt 1614 (.copy (.n (val% «verify_tables» "bc_msg[0]")) (.n (val% «verify_tables» "x@5"))) (by decide +kernel)
+  have d47 := h.atomAt 1618 (.copy (.n (val% «verify_tables» "bc_msg[1]")) (.n (val% «verify_tables» "x@6"))) (by decide +kernel)
+  have d51 := h.atomAt 1622 (.copy (.n (val% «verify_tables» "bc_msg[2]")) (.n (val% «verify_tables» "x@7"))) (by decide +kernel)
   simp only [Atom.Holds, tb_word_zero] at c20 c21 c22 c23 c24 z6 z7 d43 d47 d51
   obtain ⟨hP1, hC1⟩ := vt_keccak k1
   obtain ⟨hP2, hC2⟩ := vt_keccak k2
@@ -163,10 +163,10 @@ theorem vt_fresh {rd : Reader} {σ : Val} (h : VtH rd σ) :
     · exact l6
   · rw [hS7]
     simp only [Fs.squeeze, Fs.perm]
-    exact challengeT_value (s0 := .n (val% «verify_tables» "nxt[0]@2")) (b := 1855) rfl (hP2 0 (by omega))
+    exact challengeT_value (s0 := .n (val% «verify_tables» "nxt[0]@2")) (b := 1551) rfl (hP2 0 (by omega))
   · rw [hS7]
     simp only [Fs.squeeze, Fs.perm]
-    have e : ∀ k, 1855 + 8 + k = 1863 + k := fun k => by omega
+    have e : ∀ k, 1551 + 8 + k = 1559 + k := fun k => by omega
     simp only [e] at hC2
     exact hC2
 

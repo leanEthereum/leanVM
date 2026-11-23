@@ -62,7 +62,7 @@ abbrev sphincs : CompiledFunction := Data.functions[fn_idx% «verify_sig_lean_sp
 theorem sphincs_mem : sphincs ∈ Data.functions := List.getElem_mem _
 
 example : sphincs.name = "verify_sig_lean_sphincs" ∧ sphincs.entryPc = spWots.entryPc + spWots.instructionCount ∧
-    sphincs.instructionCount = 3887 := by
+    sphincs.instructionCount = 3882 := by
   decide +kernel
 
 /-- Its first instruction, `DEREF *(fp[2]·g^0) = fp[4]`. -/
@@ -70,18 +70,18 @@ example : guestProgram.fetch (addressOfIndex sphincs.entryPc) = some (OffsetInst
     .cell).toLeanIsaInstruction :=
   guest_fetch_of sphincs_mem (i := 0) (by decide +kernel) rfl (by decide +kernel)
 
-/-- Its last, the return `JUMP if fp[16] ≠ 0: pc = fp[0], fp = fp[1]`. -/
-example : guestProgram.fetch (addressOfIndex (sphincs.entryPc + 3886)) = some (OffsetInstruction.jump 16 0
+/-- Its last, the return `JUMP if fp[15] ≠ 0: pc = fp[0], fp = fp[1]`. -/
+example : guestProgram.fetch (addressOfIndex (sphincs.entryPc + 3881)) = some (OffsetInstruction.jump 15 0
     1).toLeanIsaInstruction :=
-  guest_fetch_of sphincs_mem (i := 3886) (by decide +kernel) rfl (by decide +kernel)
+  guest_fetch_of sphincs_mem (i := 3881) (by decide +kernel) rfl (by decide +kernel)
 
-/-- Its first `KECCAK`, `H_msg`'s first call, writing the two-cell digest, `KECCAK fp[9..+2] =
-keccak_f(fp[8], fp[4], fp[5], fp[6], tail = fp[12..+4], b8 = fp[17], cap = fp[19..+4])`, both
+/-- Its first `KECCAK`, `H_msg`'s first call, writing the two-cell digest, `KECCAK fp[8..+2] =
+keccak_f(fp[7], fp[4], fp[5], fp[6], tail = fp[11..+4], b8 = fp[16], cap = fp[18..+4])`, both
 layouts even. -/
-example : guestProgram.fetch (addressOfIndex (sphincs.entryPc + 15)) =
-    some (OffsetInstruction.keccak 8 4 5 6 12 17 19 9 false
+example : guestProgram.fetch (addressOfIndex (sphincs.entryPc + 14)) =
+    some (OffsetInstruction.keccak 7 4 5 6 11 16 18 8 false
         false .two).toLeanIsaInstruction :=
-  guest_fetch_of sphincs_mem (i := 15) (by decide +kernel) rfl (by decide +kernel)
+  guest_fetch_of sphincs_mem (i := 14) (by decide +kernel) rfl (by decide +kernel)
 
 /-- `main`'s first instruction, `DEREF *(fp[2]·g^0) = fp[10]`. -/
 example : guestProgram.fetch (addressOfIndex Data.f1.entryPc) = some (OffsetInstruction.deref 2 0 10
@@ -113,7 +113,7 @@ example : guestProgram.fetch (addressOfIndex (2 ^ 19 - 1)) = some
   guest_fetch_pad (by decide) (by decide)
 
 /-- The code list agrees with `instructionAt`. -/
-example : sphincs.code[3886]? = some (OffsetInstruction.jump 16 0 1) := by
+example : sphincs.code[3881]? = some (OffsetInstruction.jump 15 0 1) := by
   rw [CompiledFunction.getElem?_code (CompiledFunction.wellChunked_of_mem sphincs_mem)
       (by decide +kernel)]
   decide +kernel

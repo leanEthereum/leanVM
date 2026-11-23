@@ -159,7 +159,7 @@ theorem anyLoop_completeAtBP (fs : String → ℕ) (cert : String → V → ℕ)
     (hwit : (loopPre (coreProgram.getD j default)).filterMap Main.Stmt.popS =
       ((List.range m).map fun i => ("child_claim_index", [V.n (ccOV o0 i)])).map fun x => some (x.1, .stack x.2)) :
     CompleteAtDTBR fs cert κ f Lin [1, gen ^ M, chain, entries, region, base, last] (Returns [])
-      (fun rd t => t.pops coreProgram rd = idxPops o 0 (m * M)) ((M + 1) * fs f) := by
+      (fun rd t => t.pops coreProgram rd = idxPops o 0 (m * M)) (M * fs f + fs (tailKey f)) := by
   have hshape : loopShapeF (coreProgram.getD j default) f = true := by
     simp only [anycHead, Bool.and_eq_true] at hhd; exact hhd.1.1.1.1
   have hAS : (loopPre (coreProgram.getD j default)).all isAtomS = true := by

@@ -200,37 +200,44 @@ theorem winPos_unique {p : E} {d cd q q' : ℕ} (hcd : cd ≤ 8) (hq : q < 2 ^ d
   rw [← winPosOf_eq hcd hq hl, winPosOf_eq hcd hq' hl']
 
 
-/-- **A level's queries, opened** (`opening_queries` over a checked cap): the openings
-`ws.map (toOpening …)` sit at the positions `qs` and pass `openOne` against the root; the rounds
-and the final coefficients the meaning reads; each query's fold. -/
-theorem queries_open {sh : OqShape} {cap flags lamInv coefs hs positions qptrs nG r0 r1 : E}
-    {rets : List E} {root : Digest} {ws : List QW} {N0 Q : ℕ}
-    (hm : MeaningOpeningQueriesW sh rd ws [cap, flags, lamInv, coefs, hs, positions, qptrs, nG] rets)
-    (hcap : MeaningVerifyMerkleCap sh.cd rd [cap, flags] [r0, r1])
-    (hroot : (r0, r1) = digestHalves root) (hcd : 2 ≤ sh.cd) (hcd8 : sh.cd ≤ 8)
-    (hcdd : sh.cd ≤ sh.depth) (hnG : nG = gen ^ N0) (hN0 : N0 < ordG)
-    (hQ : oqCount sh.odd sh.base N0 = Q) (hQpos : 0 < Q) (qs : List ℕ) (hqsl : qs.length = Q)
-    (hqlt : ∀ k < Q, qs.getD k 0 < 2 ^ sh.depth)
+/-- **A level's queries, opened** (`opening_queries` over a checked cap of depth `cd`, its cap and
+flags offset past the levels above the leaves): the openings `ws.map (toOpening …)` sit at the
+positions `qs` and pass `openOne` against the root; the rounds and the final coefficients the
+meaning reads; each query's fold. -/
+theorem queries_open {sh : OqShape} {cd : ℕ}
+    {cap flags capL flagsL lamInv coefs hs positions qptrs nG oddG r0 r1 : E}
+    {rets : List E} {root : Digest} {ws : List QW} {N0 odd0 Q : ℕ}
+    (hm : MeaningOpeningQueriesW sh cd rd ws
+      [capL, flagsL, lamInv, coefs, hs, positions, qptrs, nG, oddG] rets)
+    (hcapL : capL = cap * gen ^ (2 ^ (cd + 1))) (hflagsL : flagsL = flags * gen ^ (2 ^ (cd - 1)))
+    (hcap : MeaningVerifyMerkleCap cd rd [cap, flags] [r0, r1])
+    (hroot : (r0, r1) = digestHalves root) (hcd : 2 ≤ cd) (hcd8 : cd ≤ 8) (hb1 : sh.base ≤ 1)
+    (hnG : nG = gen ^ N0) (hN0 : N0 < ordG) (hoddG : oddG = gen ^ odd0) (hodd0 : odd0 ≤ 1)
+    (hQ : oqCount odd0 sh.base N0 = Q) (hQpos : 0 < Q) (qs : List ℕ) (hqsl : qs.length = Q)
+    (hqlt : ∀ k < Q, qs.getD k 0 < 2 ^ (sh.pd + cd))
     (hbits : ∀ k < Q, ∃ bp, LoadHolds rd qptrs k bp ∧
-      FrameRun rd bp (qwN sh.depth sh.cd) fun i ↦ gen ^ qwVal sh.depth sh.cd (qs.getD k 0) i) :
+      FrameRun rd bp (qwN (sh.pd + cd) cd) fun i ↦ gen ^ qwVal (sh.pd + cd) cd (qs.getD k 0) i) :
     ∃ (rounds : List FoldRound) (hsv : List E), rounds.length = sh.folds ∧ hsv.length = sh.nHs ∧
       RoundsAt rd coefs rounds ∧ (sh.final = 1 → WordsAt rd hs hsv) ∧
-      (ws.map (toOpening rd cap sh.cd sh.depth)).length = Q ∧
-      (∀ k (hk : k < qs.length) (ho : k < (ws.map (toOpening rd cap sh.cd sh.depth)).length),
-        Id.run (Compile.openOneWithHash (m := Id) keccak256 root sh.depth (rowLen sh.base sh.folds)
-          qs[k] (ws.map (toOpening rd cap sh.cd sh.depth))[k]) = true) ∧
-      (ws.map (toOpening rd cap sh.cd sh.depth)).map Opening.leafIndex = qs ∧
+      (ws.map (toOpening rd cap cd (sh.pd + cd))).length = Q ∧
+      (∀ k (hk : k < qs.length) (ho : k < (ws.map (toOpening rd cap cd (sh.pd + cd))).length),
+        Id.run (Compile.openOneWithHash (m := Id) keccak256 root (sh.pd + cd) (rowLen sh.base sh.folds)
+          qs[k] (ws.map (toOpening rd cap cd (sh.pd + cd)))[k]) = true) ∧
+      (ws.map (toOpening rd cap cd (sh.pd + cd))).map Opening.leafIndex = qs ∧
       (∀ k < Q, (ws.getD k default).1 = qs.getD k 0) ∧
       (sh.final = 1 → ∀ k < Q, qwFold sh.base rounds (ws.getD k default) =
         novelSum hsv (wsChain (sh.vs.map K.ofBits) (eOfNat (qs.getD k 0))) sh.nHs sh.hsBits) ∧
       (sh.final = 1 → rets = [0]) ∧
-      (sh.final ≠ 1 → rets = [oqChain sh.odd sh.base lamInv
+      (sh.final ≠ 1 → rets = [oqChain odd0 sh.base lamInv
         (fun k ↦ qwFold sh.base rounds (ws.getD k default)) N0]) := by
-  obtain ⟨N, hN, hnG', hwl, rounds, hsv, hrl, hhl, hall, hret⟩ := hm
+  obtain ⟨N, hN, hnG', odd, hodd, hoddG', hwl, rounds, hsv, hrl, hhl, hall, hret⟩ := hm
   have hNN : N = N0 := gen_pow_inj hN hN0 (hnG'.symm.trans hnG)
   subst hNN
+  have hoo : odd = odd0 := gen_pow_inj (lt_of_le_of_lt (le_trans hodd hb1) (by norm_num))
+    (lt_of_le_of_lt hodd0 (by norm_num)) (hoddG'.symm.trans hoddG)
+  subst hoo
   rw [hQ] at hwl hall
-  have hql : (ws.map (toOpening rd cap sh.cd sh.depth)).length = Q := by rw [List.length_map, hwl]
+  have hql : (ws.map (toOpening rd cap cd (sh.pd + cd))).length = Q := by rw [List.length_map, hwl]
   have hqs' : ∀ k < Q, (ws.getD k default).1 = qs.getD k 0 := by
     intro k hk
     obtain ⟨-, -, -, hlt, ⟨bp, hbp, hb'⟩, -⟩ := hall k hk
@@ -238,8 +245,8 @@ theorem queries_open {sh : OqShape} {cap flags lamInv coefs hs positions qptrs n
     have e := loadHolds_unique hbp hbp'
     subst e
     exact winPos_unique hcd8 hlt (hqlt k hk) hb' hbits'
-  have hget : ∀ k (hk : k < Q), (ws.map (toOpening rd cap sh.cd sh.depth))[k]'(by rw [hql]; exact hk) =
-      toOpening rd cap sh.cd sh.depth (ws.getD k default) := by
+  have hget : ∀ k (hk : k < Q), (ws.map (toOpening rd cap cd (sh.pd + cd)))[k]'(by rw [hql]; exact hk) =
+      toOpening rd cap cd (sh.pd + cd) (ws.getD k default) := by
     intro k hk
     rw [List.getElem_map, List.getD_eq_getElem _ _ (by rw [hwl]; exact hk)]
   refine ⟨rounds, hsv, hrl, hhl, (hall 0 hQpos).1, (hall 0 hQpos).2.1, hql, fun k hk ho ↦ ?_, ?_, hqs',
@@ -247,8 +254,18 @@ theorem queries_open {sh : OqShape} {cap flags lamInv coefs hs positions qptrs n
   · have hkq : k < Q := by rw [hql] at ho; exact ho
     obtain ⟨-, -, -, hlt, -, hop, -⟩ := hall k hkq
     obtain ⟨hrow, hsl, h0, h1, hfl⟩ := hop
+    rw [hcapL, loadHolds_mul_gen_pow] at h0 h1
+    rw [hflagsL, loadHolds_mul_gen_pow] at hfl
+    have e0 : 2 ^ (cd + 1) + 2 * ((ws.getD k default).1 / 2 ^ sh.pd) =
+        2 * (2 ^ cd + (ws.getD k default).1 / 2 ^ (sh.pd + cd - cd)) := by
+      rw [Nat.add_sub_cancel, pow_succ]; ring
+    rw [e0] at h0
+    rw [show 2 ^ (cd + 1) + (2 * ((ws.getD k default).1 / 2 ^ sh.pd) + 1) =
+      2 * (2 ^ cd + (ws.getD k default).1 / 2 ^ (sh.pd + cd - cd)) + 1 by rw [← e0]; ring] at h1
+    rw [show sh.pd + 1 = sh.pd + cd - cd + 1 by omega] at hfl
+    have hsl' : (ws.getD k default).2.2.length = sh.pd + cd - cd := by rw [hsl]; omega
     rw [hget k hkq, ← List.getD_eq_getElem _ 0 hk, ← hqs' k hkq]
-    exact query_openOne_w hcd hcdd hcap hroot hlt hrow hsl h0 h1 hfl
+    exact query_openOne_w hcd (by omega) hcap hroot hlt hrow hsl' h0 h1 hfl
   · apply List.ext_getElem (by simp [hwl, hqsl])
     intro k h1 h2
     have hk : k < Q := by simpa [hwl] using h1
