@@ -6,7 +6,7 @@
 
 module
 
-public import LeanVM.Guest.Ref.Link
+public import LeanVM.Guest.Ref.Verified
 public import LeanVM.Guest.Ref.Keccak
 public import LeanVM.Guest.B1.Da.Interface
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
@@ -151,6 +151,9 @@ theorem cellRef_sem (rd : Reader) (args rets : List E) :
     obtain ⟨syms, ws, hsl, hr, hwl, rfl⟩ := hm
     obtain ⟨ρ, hp, hs, hrets, -⟩ := cellRef_honest hsl hr hwl
     exact ⟨ρ, hp, hs, hrets⟩
+
+/-- `da_verify_cell`, verified. -/
+def cellVerified : Verified Unit CellName := ⟨fun _ ↦ cellRef, fun _ ↦ MeaningDaVerifyCell, fun _ ↦ cellRef_sem⟩
 
 end
 end LeanVM.Guest.B1.Da

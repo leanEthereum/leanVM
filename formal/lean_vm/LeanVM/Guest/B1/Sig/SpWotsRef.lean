@@ -7,7 +7,7 @@
 module
 
 public import LeanVM.Guest.Ref.Keccak
-public import LeanVM.Guest.Ref.Link
+public import LeanVM.Guest.Ref.Verified
 public import LeanVM.Guest.B1.Sig.SpWotsGroups
 public import LeanVM.Guest.B1.Sig.CwComplete
 
@@ -189,8 +189,7 @@ private theorem satList_spGroup {p n k : ℕ} :
       (∀ r < n, Cmd.SatList rd ρ (spWalk (3 * p + r) (k / 4 ^ r % 4) k)) ∧
       ρ (.prod (p + 1)) = (if p = 0 then 1 else ρ (.prod p)) * ρ (.powers (digitSum k n)) ∧
       ρ (.enc (p + 1)) = (if p = 0 then 0 else ρ (.enc p)) + lit (spDigitsC (3 * p) n k) := by
-  simp only [spGroup, Cmd.satList_append, Cmd.satList_unroll, Cmd.satList_cons, Cmd.satList_nil,
-    and_true, Cmd.Sat, zero_le, true_implies]
+  simp only [spGroup, ref_norm, and_true, zero_le, true_implies]
   split_ifs <;> simp [Tm.eval, eval_addLit]
 
 /-- **What `sp_wots`'s commands give**, on the names: the arm `spArm ρ p` each group's `match`
@@ -206,8 +205,7 @@ theorem spWotsRef_sat (h : Cmd.SatList rd ρ spWotsRef.body) :
       (fun i => ρ (spStartN i (spArm ρ (i / 3)))) := by
   simp only [spWotsRef, Cmd.satList_append] at h
   obtain ⟨⟨⟨hpow, hgrp⟩, hchk⟩, hleaf⟩ := h
-  simp only [Cmd.satList_unroll, Cmd.satList_cons, Cmd.satList_nil, and_true, Cmd.Sat, Tm.eval,
-    zero_le, true_implies] at hpow hgrp hchk
+  simp only [ref_norm, and_true, zero_le, true_implies] at hpow hgrp hchk
   obtain ⟨henc, hprod⟩ := hchk
   have harm : ∀ p < 22, spArm ρ p < 4 ^ spN p ∧ ρ (.group p) = ofK (addressOfIndex (spArm ρ p)) ∧
       Cmd.SatList rd ρ (spGroup p (spN p) (spArm ρ p)) := by
@@ -311,8 +309,7 @@ theorem spWotsRef_honest {pp a0 a1 : E} {d w : ℕ → ℕ} (starts : ℕ → E)
   · simp only [spStartN, hdig i hi, apply_ite ρ, ρ, spVal, show (3 * i + 2) / 3 = i by omega,
       show (3 * i + 2) % 3 = 2 by omega]
     split_ifs with h3 <;> simp [h3, chainT]
-  simp only [spWotsRef, Cmd.satList_append, Cmd.satList_unroll, Cmd.satList_cons,
-    Cmd.satList_nil, and_true, Cmd.Sat, Tm.eval, zero_le, true_implies]
+  simp only [spWotsRef, ref_norm, and_true, zero_le, true_implies]
   refine ⟨⟨⟨fun s _ => rfl, fun p hp => ⟨⟨hl1 p hp, ?rc, hl2 p hp⟩, ?arm⟩⟩, ?enc, ?prod⟩, ?leaf⟩
   case rc => exact (word_two_pow_eq (by unfold spN; split <;> norm_num)).trans (hk p hp)
   case arm =>
@@ -371,6 +368,10 @@ theorem spWotsRef_sem (args rets : List E) :
     obtain ⟨ρ, hp, hs, hr, -⟩ :=
       spWotsRef_honest (pp := pp) (a0 := a0) (a1 := a1) starts hsum hw
     exact ⟨ρ, hp, hs, hr⟩
+
+/-- `sp_wots`, verified. -/
+def spWotsVerified : Verified Unit SpName :=
+  ⟨fun _ ↦ spWotsRef, fun _ ↦ MeaningSpWots, fun _ rd ↦ spWotsRef_sem (rd := rd)⟩
 
 end
 end LeanVM.Guest.B1.Sig

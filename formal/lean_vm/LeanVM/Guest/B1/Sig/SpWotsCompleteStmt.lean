@@ -75,7 +75,7 @@ theorem sp_wots_complete_cells {pp a0 a1 : E} {d : Nat → Nat} (hd : ∀ i, d i
     ∃ σ : Val, σ (.n (val% «sp_wots» "pp")) = pp ∧ σ (.n (val% «sp_wots» "a0")) = a0 ∧ σ (.n (val% «sp_wots» "a1")) = a1 ∧ σ (.n (val% «sp_wots» "encoding")) = eOfNat128 (spX d 64) ∧
       Stmt.HoldsList C rd σ (Fn.«sp_wots».core).body False (fun rs => rs = [spLeafCell pp a0 a1 d
           vals]) := by
-  obtain ⟨σ, hp, hb⟩ := (sp_wots_sem_iff (C := C) _ _).mpr ((spWotsRef_sem _ _).mpr
+  obtain ⟨σ, hp, hb⟩ := (sp_wots_sem_iff (C := C) _ _).mpr ((spWotsVerified.sem () rd _ _).mpr
     ⟨pp, a0, a1, d, vals, rfl, rfl, fun i _ => hd i, hsum, fun p hp => ⟨_, spK_ok hd hm hp⟩⟩)
   have hp' : [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3)] = [pp, a0, a1, eOfNat128 (spX d 64)] := hp
   simp only [List.cons.injEq, and_true] at hp'

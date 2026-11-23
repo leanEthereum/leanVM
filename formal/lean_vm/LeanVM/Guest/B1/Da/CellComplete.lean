@@ -74,8 +74,8 @@ theorem da_verify_cell_params : (fn% «da_verify_cell»).params = [.n (val% «da
 
 /-- **`da_verify_cell` is complete.** -/
 theorem da_verify_cell_complete : da_verify_cell_complete_Spec := fun rd _ syms ws hsl hwl hr =>
-  (rel_iff_sem find_da_verify_cell _ _).mpr <| (Map.check_sem_iff cell_linked _ _).mpr <|
-    (cellRef_sem rd _ _).mpr ⟨syms, ws, hsl, hr, hwl, rfl⟩
+  (cellVerified.rel_iff_of_check (c := ()) find_da_verify_cell cell_linked _ _).mpr
+    ⟨syms, ws, hsl, hr, hwl, rfl⟩
 
 end
 end LeanVM.Guest.B1.Da
