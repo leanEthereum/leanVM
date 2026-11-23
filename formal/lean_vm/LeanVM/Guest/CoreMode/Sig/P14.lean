@@ -247,6 +247,24 @@ noncomputable def Fn.«level_residual__L55_L15_L6_L3_loop0».csig : Mode.Sig :=
     [((.ex (.fr 2) 0), (.ex (.fr 3) 0))], [], [], [], [⟨⟨0, 0, [((.fr 5), 1)]⟩, (.ex (.fr 2) 0),
     (.ex (.fr 3) 0), 2, 2⟩, ⟨⟨0, 0, [((.fr 5), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 2, 3⟩], [],
     [], [], [], [], []⟩
+noncomputable def Fn.«level_residual_slow__L32_L4_L4_L36».csig : Mode.Sig :=
+  ⟨Fn.«level_residual_slow__L32_L4_L4_L36».entry, [0, 1, 2, 3, 4, 5, 6], none, [⟨0, 0, [((.fr 3),
+    1)]⟩, ⟨0, 1, [((.fr 3), 1)]⟩, ⟨0, 2, [((.fr 3), 1)]⟩, ⟨0, 3, [((.fr 3), 1)]⟩, ⟨0, 0, [((.fr 4),
+    1)]⟩, ⟨0, 1, [((.fr 4), 1)]⟩, ⟨0, 2, [((.fr 4), 1)]⟩, ⟨0, 3, [((.fr 4), 1)]⟩], [⟨⟨0, 0, [((.fr
+    2), 1)]⟩, (.num 0), (.num 32), 1, 0⟩], [], [7], [], [], [], [], [], [], [], [], []⟩
+noncomputable def Fn.«level_residual_slow__L55_L16_L2_L171».csig : Mode.Sig :=
+  ⟨Fn.«level_residual_slow__L55_L16_L2_L171».entry, [0, 1, 2, 3, 4, 5, 6], none, [⟨0, 0, [((.fr 3),
+    1)]⟩, ⟨0, 1, [((.fr 3), 1)]⟩, ⟨0, 2, [((.fr 3), 1)]⟩, ⟨0, 3, [((.fr 3), 1)]⟩, ⟨0, 4, [((.fr 3),
+    1)]⟩, ⟨0, 5, [((.fr 3), 1)]⟩, ⟨0, 6, [((.fr 3), 1)]⟩, ⟨0, 7, [((.fr 3), 1)]⟩, ⟨0, 8, [((.fr 3),
+    1)]⟩, ⟨0, 9, [((.fr 3), 1)]⟩, ⟨0, 10, [((.fr 3), 1)]⟩, ⟨0, 11, [((.fr 3), 1)]⟩, ⟨0, 12, [((.fr
+    3), 1)]⟩, ⟨0, 13, [((.fr 3), 1)]⟩, ⟨0, 14, [((.fr 3), 1)]⟩, ⟨0, 15, [((.fr 3), 1)]⟩, ⟨0, 0,
+    [((.fr 4), 1)]⟩, ⟨0, 1, [((.fr 4), 1)]⟩], [⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.num 55), 1,
+    0⟩], [], [7], [], [], [], [], [], [], [], [], []⟩
+noncomputable def Fn.«level_residual_sum__L25_L4_L2_L21».csig : Mode.Sig :=
+  ⟨Fn.«level_residual_sum__L25_L4_L2_L21».entry, [0, 1, 2, 3, 4, 5], none, [⟨0, 0, [((.fr 3), 1)]⟩,
+    ⟨0, 1, [((.fr 3), 1)]⟩, ⟨0, 2, [((.fr 3), 1)]⟩, ⟨0, 3, [((.fr 3), 1)]⟩, ⟨0, 0, [((.fr 4), 1)]⟩,
+    ⟨0, 1, [((.fr 4), 1)]⟩], [⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.num 25), 1, 0⟩], [], [6], [],
+    [], [], [], [], [], [], [], []⟩
 noncomputable def Fn.«padding_weight__L21».csig : Mode.Sig :=
   ⟨Fn.«padding_weight__L21».entry, [0, 1, 2, 3], none, (List.flatten [[⟨0, 0, [((.fr 3), 1)]⟩, ⟨0,
     1, [((.fr 3), 1)]⟩, ⟨0, 2, [((.fr 3), 1)]⟩, ⟨0, 3, [((.fr 3), 1)]⟩, ⟨0, 4, [((.fr 3), 1)]⟩, ⟨0,
@@ -259,6 +277,10 @@ noncomputable def Fn.«padding_weight__L21».csig : Mode.Sig :=
 noncomputable def Fn.«plus_one_run__L0».csig : Mode.Sig :=
   ⟨Fn.«plus_one_run__L0».entry, [0, 1, 2, 3], none, [], [], [], [4], [], [], [], [], [], [], [],
     [], []⟩
+noncomputable def Fn.«residual_query_slow__L4_L2_L21».csig : Mode.Sig :=
+  ⟨Fn.«residual_query_slow__L4_L2_L21».entry, [0, 1, 2, 3, 4], none, [⟨0, 0, [((.fr 3), 1)]⟩, ⟨0,
+    1, [((.fr 3), 1)]⟩, ⟨0, 2, [((.fr 3), 1)]⟩, ⟨0, 3, [((.fr 3), 1)]⟩, ⟨0, 0, [((.fr 4), 1)]⟩, ⟨0,
+    1, [((.fr 4), 1)]⟩], [], [], [5], [], [], [], [], [], [], [], [], []⟩
 noncomputable def Fn.«squeeze_point_from__L29».csig : Mode.Sig :=
   ⟨Fn.«squeeze_point_from__L29».entry, [0, 1, 2, 3, 4, 5, 6, 7, 8], none, [], [], [], [9, 10, 11,
     12, 13], [], [⟨⟨0, 0, [((.fr 8), 1)]⟩, (.num 0), (.num 29), 1, 0⟩], [], [], [], [], [], [], []⟩

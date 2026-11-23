@@ -79,11 +79,6 @@ theorem readStream_of_readWords (s : List E) (rest : Bytes) : ∃ ws,
   ⟨limbWords s, by rw [← length_limbWords, ← limbWords_toBytes]; exact readWords_toBytes _ _,
     regroup_limbWords s⟩
 
-theorem zip_map_self {α β : Type} (f : α → β) :
-    ∀ l : List α, l.zip (l.map f) = l.map fun a ↦ (a, f a)
-  | [] => rfl
-  | a :: l => by simp [zip_map_self f l]
-
 /-- The siblings a level writes: the filter of nodes paired with their values. -/
 theorem filter_flatMap_pairs (N : List ℕ) (v : ℕ → Digest) (nodes : List (ℕ × Digest))
     (hnodes : nodes = N.map fun n ↦ (n, v n)) :
@@ -115,7 +110,7 @@ theorem readCarriedSiblings_bytes (positions : List ℕ)
     simp only [List.range'_succ, List.flatMap_cons, List.map_cons, List.append_assoc,
       readCarriedSiblings]
     rw [hd]
-    simp only [Option.bind_eq_bind, Option.bind_some, ih, zip_map_self]
+    simp only [Option.bind_eq_bind, Option.bind_some, ih, ← List.map_prod_left_eq_zip]
 
 theorem guard_some {p : Prop} [Decidable p] (hp : p) : (guard p : Option Unit) = some () := by
   simp [guard, hp]

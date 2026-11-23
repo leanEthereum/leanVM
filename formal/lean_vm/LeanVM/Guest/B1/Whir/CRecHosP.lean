@@ -27,12 +27,13 @@ open LeanVM.Node LeanVM.Guest.Memory
 /-- **`open_stacked` is complete placed within its bound by a tree popping its levels' `level_queries`
 entries.** -/
 theorem open_stacked_completeAtBP : open_stacked_completeAtBP_Spec := by
-  intro μ r h1 h2 h3 h4 fs cert κ Bnd hrf hcons hκ hleaf hfs S root target cur tabs xs os w s' roots' hrun hnz
+  intro μ r h1 h2 h3 h4 fs cert κ Bnd hrf hcons hκ hleaf hfs S root target cur tabs xs os w s' roots' hrun
     hcaps Lin hLin
-  obtain ⟨cfg, Ls, hR, hst⟩ := Whir.honRunS_of h1 h2 h3 h4 hrun hnz hcaps
+  obtain ⟨cfg, Ls, hR, hst⟩ := Whir.honRunS_of h1 h2 h3 h4 hrun hcaps
   have hm : μ - Whir.minOpenLog < 11 := hR.m11
-  obtain ⟨fn, hf, -, h⟩ := Arm.open_stacked_completeAtOT_of (Bd := some Bnd) level_residual_completeAt h2 h3 h4
-    hrf hcons hκ (fun _ hB ↦ by cases hB; exact hleaf) (fun _ _ ↦ helperBounds fs cert κ hrf hcons hκ hfs)
+  obtain ⟨fn, hf, -, h⟩ := Arm.open_stacked_completeAtOT_of (Bd := some Bnd) level_residual_completeAt
+    level_residual_slow_completeAt h2 h3 h4 hrf hcons hκ (fun _ hB ↦ by cases hB; exact hleaf)
+    (fun _ _ ↦ helperBounds fs cert κ hrf hcons hκ hfs) (fun _ _ ↦ hfs)
     (hR.osHonest (cur := cur) (tabs := tabs)) hLin
   obtain ⟨fn', hf', hmu⟩ := Arm.armMute_all hm
   rw [← Whir.openName_eq hm, hf, Option.some.injEq] at hf'
@@ -57,7 +58,7 @@ theorem verify_sub_completeBTS {bytecode : List K} (hbl : bytecode.length = 2 ^ 
     (hrf : Lift.RunsFit fs cert) (hcons : RunsConsec cert) (W : VsWordsOs fs) {Bvk κ : ℕ}
     (hκ : 16 ≤ κ) (hvk : VkCompleteAtBK fs cert κ Bvk) {seed : Digest} {c : Child}
     (S : ChildSegs bytecode seed c) (hS : SegSteps S)
-    (hrz : Limits.verifyDeferredRefusingZero bytecode seed (Node.statementDigest seed c.statement)
+    (hvd : verifyDeferred bytecode seed (Node.statementDigest seed c.statement)
       c.freshClaim c.proof = true) (sqE outE : ℕ) (Lin : Main.Layout)
     (hst : c.proof.stream.length ≤ Coverage.childStreamCap)
     (hexp : ∀ q ∈ vsExpLin sqE, q ∈ Lin) (hout : (outE, DeferredBytecodeClaim.cells c.freshClaim) ∈ Lin) :
@@ -66,7 +67,7 @@ theorem verify_sub_completeBTS {bytecode : List K} (hbl : bytecode.length = 2 ^ 
         SameStreams (t.pops coreProgram rd) (Hints.childHints bytecode seed c))
       (vsBoundAt W Bvk S.μs S.rate) :=
   verify_sub_completeBTP hbl hrf hcons W hκ hvk S sqE outE Lin hst hexp hout
-    fun bs pv ↦ vs_hos_of open_stacked_completeAtBP S hS hrz (by omega) hrf hcons W bs sqE pv
+    fun bs pv ↦ vs_hos_of open_stacked_completeAtBP S hS hvd (by omega) hrf hcons W bs sqE pv
 
 end
 end LeanVM.Guest.B1.VerifySub

@@ -110,8 +110,8 @@ def tr : List E × E × List E := tailRun h.Lf.fw.pairs (h.Lf.F3 h.logN).cap h.c
 /-- The tail challenges. -/
 def T : List E := h.tr.1
 
-/-- `λ⁻¹` of level `i`. -/
-def li (i : ℕ) : E := ((h.L i).lam h.logN)⁻¹
+/-- `μ` of level `i`: `1/λ`, `1` at `λ = 0`. -/
+def li (i : ℕ) : E := lamInvOf ((h.L i).lam h.logN)
 
 /-- The fold rounds of every level, in order. -/
 def allRounds : List FoldRound := h.Ls.flatMap (·.rounds)
@@ -140,7 +140,7 @@ def coefsC : List E := (List.range (2 * h.c.nFolds)).map fun e ↦
 def betasC : List E := (List.range h.c.levels.length).map fun i ↦
   if i < h.c.yrLevel then ((h.L i).lam h.logN) ^ 2 * ((h.L i).lam h.logN) ^ (h.lv i).queries else 0
 
-/-- `level_lam_invs`: `λ⁻¹`. -/
+/-- `level_lam_invs`: `μ`. -/
 def musC : List E := (List.range h.c.levels.length).map fun i ↦
   if i < h.c.yrLevel then h.li i else 0
 

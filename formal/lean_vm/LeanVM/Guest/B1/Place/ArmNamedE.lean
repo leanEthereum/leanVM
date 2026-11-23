@@ -9,14 +9,15 @@ module
 public import LeanVM.Guest.B1.Place.ArmXT
 public import LeanVM.Guest.B1.Place.OsRoundE
 public import LeanVM.Guest.B1.Place.OsMeanB
+public import LeanVM.Guest.B1.Place.IsZeroE
 
 /-!
 # The named callees, exact
 
 `round_total_ge`: a valid tree of `opening_round` takes at least its frame and `grind_check__L7`'s.
 `osRound_completeDTBRE_of`: `osRound_completeDTBRE` within any bound of `opening_round`'s valid trees. `kindDBE`:
-`kindDB` by trees satisfying `armXT`: `opening_round`'s and the grind checks' exact at every node, the others' for
-free (`armExactS_kind`).
+`kindDB` by trees satisfying `armXT`: `opening_round`'s, the grind checks' and `is_zero`'s (`isZero_every_exact`)
+exact at every node, the others' for free (`armExactS_kind`).
 -/
 
 namespace LeanVM.Guest.B1
@@ -69,6 +70,16 @@ theorem osRound_completeDTBRE_of (hκ : 11 ≤ κ) {B : ℕ}
     exact ⟨0, [], rets, [], Nat.zero_le _, ⟨rfl, rfl⟩, by simp [Within], disj_nil,
       fun rd hl hL ↦ absurd ⟨rd, hl, by simpa using hL⟩ hex⟩
 
+/-- **`CompleteAtDTBR.mono` knowing the tree's name and validity.** -/
+theorem CompleteAtDTBR.monoNV {f : String} {Lin : Layout} {args : List E} {Out : List E → Layout → Prop}
+    {T T' : Reader → Tree → Prop} {B : ℕ} (h : CompleteAtDTBR fs cert κ f Lin args Out T B)
+    (hT : ∀ rd t rets, t.name = f → t.Valid coreProgram rd args rets → T rd t → T' rd t) :
+    CompleteAtDTBR fs cert κ f Lin args Out T' B := fun fp =>
+  let ⟨n, Lown, rets, Lout, hn, ho, hw, hd, hr⟩ := h fp
+  ⟨n, Lown, rets, Lout, hn, ho, hw, hd, fun rd hl hm =>
+    let ⟨t, ht, hT'⟩ := hr rd hl hm
+    ⟨t, ht, hT rd t rets ht.1 ht.2.1 hT'⟩⟩
+
 /-- **A named callee is complete placed on its meaning and regions, within its bound, by a tree satisfying
 `armXT`.** -/
 theorem kindDBE (hκ : 11 ≤ κ) {B : ℕ} {f : String} (hb : TotalLe coreProgram fs f (fun _ ↦ B))
@@ -88,6 +99,11 @@ theorem kindDBE (hκ : 11 ≤ κ) {B : ℕ} {f : String} (hb : TotalLe coreProgr
       simp only [osKindEntryOk, Bool.and_eq_true, decide_eq_true_eq, beq_iff_eq] at he
       obtain ⟨hm, rfl⟩ := he
       exact (grind_check_completeDTBR_of hm hκ hb hpre).mono le_rfl fun _ _ h _ ↦ h.2
+    | iz =>
+      simp only [osKindEntryOk, beq_iff_eq] at he
+      subst he
+      exact (kindDB (cert := cert) hκ hb hK args rets Lin hreg hpre).toR.monoNV
+        fun _ _ _ hn hv _ _ ↦ isZero_every_exact hn hv
     | _ => simp [OsKind.exactS] at hx
 
 end

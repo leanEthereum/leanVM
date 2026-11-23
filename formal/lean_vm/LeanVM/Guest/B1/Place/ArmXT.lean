@@ -16,7 +16,7 @@ public import LeanVM.Guest.Budget.Bounded
 
 `armXT rd t`: `t` is exact at every node on `rd` when it is an `armExactS` callee's. `CompleteAtDTBR.monoN`:
 `CompleteAtDTBR.mono` knowing the tree's name. A `level_queries`', a `level_residual`'s and a named callee other than
-`opening_round` and the grind checks (`OsKind.exactS`) are not `armExactS` (by the kernel, over the tables), so any of
+`opening_round`, the grind checks and `is_zero` (`OsKind.exactS`) are not `armExactS` (by the kernel, over the tables), so any of
 their trees satisfies `armXT`.
 -/
 
@@ -49,10 +49,11 @@ open LeanVM.Guest.B1.Whir
 def armXT (rd : Reader) (t : Tree) : Prop :=
   armExactS t.name = true → t.Every (ExactAt coreProgram rd)
 
-/-- The named kinds whose callees are `armExactS`: `opening_round` and the grind checks. -/
+/-- The named kinds whose callees are `armExactS`: `opening_round`, the grind checks and `is_zero`. -/
 def _root_.LeanVM.Guest.B1.OsKind.exactS : OsKind → Bool
   | .round => true
   | .grind _ => true
+  | .iz => true
   | _ => false
 
 theorem lq_not_exactS : lqTable.all (fun e ↦ !armExactS e.1) = true := by decide +kernel

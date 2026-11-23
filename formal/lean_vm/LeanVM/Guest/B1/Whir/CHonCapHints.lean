@@ -26,10 +26,6 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-theorem zip_map_self {α β : Type} (f : α → β) : ∀ l : List α, (l.map f).zip l = l.map fun a => (f a, a)
-  | [] => rfl
-  | a :: l => by rw [List.map_cons, List.zip_cons_cons, zip_map_self f l, List.map_cons]
-
 namespace HonRun
 
 variable {μ r : ℕ} {target : E} {S : KeccakState} {root : Digest} {xs : List E}
@@ -109,18 +105,18 @@ theorem capHints {l : ℕ} (hl : l < (osCfgR (μ - minOpenLog) (r - 1)).levels.l
   obtain ⟨hcdq, -, -, -, -⟩ := hR.cdpd hl
   have hidx := hR.idx hl
   have hag := hR.agree l (by rw [hR.len]; exact hl) _ _ _ (hR.roots l hl).2
-  rw [← hidx, zip_map_self] at hag
+  rw [← hidx, ← List.map_prod_right_eq_zip] at hag
   have hcd := hR.capDepth_hints hl
   rw [levelCapPushes_eq (hR.phase_opens hl) hag, ← hcd, ← hcdq]
   have hcv : (hdOf μ r Ls).cv l = capCell ((osCfgR (μ - minOpenLog) (r - 1)).levels.getD l default).depth
       (atIdx (Ls.getD l default).phase) := by
     show capCellH (heightAt Ls l) _ _ = _
-    rw [hR.height_eq hl, capCellH, ← hidx, zip_map_self]
+    rw [hR.height_eq hl, capCellH, ← hidx, ← List.map_prod_right_eq_zip]
     rfl
   have hfv : (hdOf μ r Ls).fv l = capFl ((osCfgR (μ - minOpenLog) (r - 1)).levels.getD l default).depth
       (atIdx (Ls.getD l default).phase) (oqSA (osCfgR (μ - minOpenLog) (r - 1)) l).cd := by
     show capFlH (heightAt Ls l) _ _ _ = _
-    rw [hR.height_eq hl, capFlH, ← hidx, zip_map_self, hcdq]
+    rw [hR.height_eq hl, capFlH, ← hidx, ← List.map_prod_right_eq_zip, hcdq]
     rfl
   rw [capW, flW, hcv, hfv]
 

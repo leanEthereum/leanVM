@@ -15,6 +15,7 @@ public import LeanVM.Guest.B1.Merkle.CapLinksAll
 public import LeanVM.Guest.B1.Eq.FoldFinal
 public import LeanVM.Guest.B1.Bits.GrindPlaced
 public import LeanVM.Guest.B1.Whir.Round
+public import LeanVM.Guest.B1.Whir.IsZero
 
 /-!
 # `open_stacked`'s callees, placed on their regions
@@ -23,7 +24,7 @@ The form `CompleteRelRegD` and its lift `completeRelRegD_of_iff` are in `Lift/Re
 
 **The leaves** (`OsCalleesRegD`, `osCalleesRegD_holds`): `opening_message__L{n}_L{nonce}`,
 `squeeze_point_from__L{n}`, `opening_tail_round`,
-`verify_merkle_cap__L{D}`, `fold_final_msg__L{n}`, with their meanings (B1's `*_holds`) and the
+`verify_merkle_cap__L{D}`, `fold_final_msg__L{n}`, `is_zero`, with their meanings (B1's `*_holds`) and the
 loads a kernel check of each body bounds (`*Spec`); `grind_check__L{bits}` by its own placed
 form (`grind_check_completeD`, its table reads forced into the caller's words).
 `opening_round` calls `grind_check__L7`, so it is not a leaf: its placed form is a field of its
@@ -83,6 +84,7 @@ structure OsCalleesRegD (fs : String → ℕ) (cert : String → V → ℕ) (k :
     (RegPtrs (foldFinalSpec p.2))
   grind : ∀ b ∈ grindBitsDeployed, CompleteRelRegD fs cert k (grindCheckName b) (grindPre b)
     (RegPtrs [])
+  iz : CompleteRelRegD fs cert k "is_zero" (fun _ ↦ MeaningIsZero) (RegPtrs [])
 
 /-! ### The kernel's checks -/
 
@@ -101,6 +103,10 @@ set_option maxRecDepth 100000 in
 theorem merkleCap_leafSpec :
     (merkleCapNames.all fun p => leafSpecB p.1 (merkleCapSpec p.2)) = true := by
   decide +kernel
+
+theorem iz_leafSpec : LeafSpecOk "is_zero" [] := by
+  have hf : coreProgram.find? "is_zero" = some Fn.«is_zero».core := coreProgram_find?_at (j := idx% «is_zero») rfl
+  exact ⟨_, hf, fun _ hq ↦ absurd hq List.not_mem_nil, by decide +kernel⟩
 
 set_option maxRecDepth 100000 in
 theorem foldFinal_leafSpec :
@@ -131,6 +137,7 @@ theorem osCalleesRegD_holds {k : ℕ} (hk : 11 ≤ k) : OsCalleesRegD fs cert k 
   foldFinal p hp := completeRelRegD_of_iff (leafSpecOk_all foldFinal_leafSpec p hp)
     (fold_final_msg_holds p hp) k
   grind _ hb := (grind_check_completeD hb hk).regD
+  iz := completeRelRegD_of_iff iz_leafSpec (fun rd a r ↦ is_zero_iff rd a r) k
 
 end
 end LeanVM.Guest.B1

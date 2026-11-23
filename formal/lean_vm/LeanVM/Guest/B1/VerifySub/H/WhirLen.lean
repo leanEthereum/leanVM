@@ -174,7 +174,7 @@ theorem os_kidB (hos : open_stacked_completeAtB_Spec) {κ : ℕ} (hκ : 11 ≤ �
       (osBosAt fs W.Bnd S.μs) :=
   hos S.μs S.rate S.hmu20 S.hmu30 S.hr1 S.hr4 fs cert κ W.Bnd hrf hcons hκ W.hleaf W.hfs
     S.s7.perm S.root S.target (ptr (S.cW bs))
-    (ptr sqE * gen ^ winTabAt) S.xsW c.proof.openings S.w S.s' S.roots' S.runW S.nzW
+    (ptr sqE * gen ^ winTabAt) S.xsW c.proof.openings S.w S.s' S.roots' S.runW
     S.capsW _ fun _ _ hL ↦ ⟨hL _ List.mem_cons_self, winTabs_vsExp fun q hq ↦ hL q (by
       simp only [vsExpLin, List.mem_singleton] at hq
       simp [hq])⟩

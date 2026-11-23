@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.Whir.LevelRun
+public import LeanVM.Guest.B1.Whir.SlowSpec
 public import LeanVM.Guest.B1.Whir.LevelB
 public import LeanVM.Guest.B1.Opening.QueriesAllW
 public import LeanVM.Guest.B1.Whir.LpSound
@@ -249,7 +250,7 @@ structure RecStored (rd : Reader) (σ : Val) (lvl : ℕ) (lv : OsLv) (r : OsRec)
   z0len : r.z0.length = lv.logCols
   z0 : ReadsAt rd (σ (.n osOodz) * gen ^ ((lvl + 1) * ligColsCap)) r.z0
   beta : LoadHolds rd (σ (.n osBetas)) lvl (r.lam ^ 2 * r.lam ^ lv.queries)
-  mus : ∃ li, LoadHolds rd (σ (.n osMus)) lvl li ∧ r.lam * li = 1
+  mus : ∃ li, LoadHolds rd (σ (.n osMus)) lvl li ∧ (r.lam ≠ 0 → r.lam * li = 1)
   hs : ∀ c < lv.folds, LoadHolds rd (σ (.n osHs)) (lvl * hsStride + c)
     (r.high.getD c 0 * word (hsScale lv.vanish lv.highBits c (vanishInv (lv.vanish + lv.logCols))) 0)
   pos : ∀ k < lv.queries, LoadHolds rd (σ (.n osQpos)) (lv.posOff + k) (eOfNat (r.qs.getD k 0))
@@ -311,6 +312,7 @@ structure MidCalls (rd : Reader) (C : CallRel) (σ : Val) (c : OsCfg) (lvl : ℕ
   lq : FnIs (osQueriesName c lvl lv) (osParams 6) (osLqBody c lvl lv)
   cap : ∀ a r, C ("verify_merkle_cap__L" ++ natStr lv.capDepth) a r →
     MeaningVerifyMerkleCap lv.capDepth rd a r
+  iz : ∀ a r, C "is_zero" a r → MeaningIsZero a r
 
 theorem lanesOf_base (lvl : ℕ) : lanesOf (if lvl = 0 then 1 else 0) = specLanes lvl := by
   funext row

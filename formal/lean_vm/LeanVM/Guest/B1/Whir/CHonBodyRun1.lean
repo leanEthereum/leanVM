@@ -49,7 +49,7 @@ theorem bodyFacts (cur tabs : E) :
     fun l hl ↦ lvsAt_suffix hR.run l (by rw [hR.len]; exact hl), hR.br_cap5, fun l hl ↦ hR.br_rootN hl,
     hR.br_G, hR.br_rl, fun l hl ↦ (hR.recRun_run l hl).z0, hR.br_lane⟩,
     hR.br_tsuf, hR.br_pl, br_f3, hR.finStatic_run, hR.recRun_run, hR.hylen, hR.hfold, hR.hffm,
-    hR.fld_resEq, ?_, ?_, ?_, ?_, fun l _ ↦ ?_⟩
+    hR.fld_resEq, hR.fld_slowEq, ?_, ?_, ?_, ?_, fun l _ ↦ ?_⟩
   · rw [OsHD.capAt_of _ (Nat.zero_le _)]
     show _ = (Ls.getD 0 default).cap
     rw [hR.start.2.1]

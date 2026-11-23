@@ -72,6 +72,10 @@ theorem osH_special (hH : OsHA C rd c b own cur tabs xs) {f : String} (hK : osKi
     (a r : List E) : C f a r :=
   hH.2.2.2.2 f a r hK
 
+/-- **`is_zero` holds on every word**, a named callee of no loads. -/
+theorem osHA_iz : IsZeroC (fun C rd ↦ OsHA C rd c b own cur tabs xs) := fun _ _ hH w ↦
+  osH_named hH osKindOf_isZero (show MeaningIsZero [w] [zeroOf w] from rfl) fun q hq ↦ by simp [OsKind.spec] at hq
+
 /-! ## The meanings at the honest arguments -/
 
 theorem five_of {cap : List E} (h : cap.length = 5) :
