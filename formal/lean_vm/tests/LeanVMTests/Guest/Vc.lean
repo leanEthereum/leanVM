@@ -8,7 +8,11 @@ A function with every kind of statement and of atom, and the condition `vc` give
 to reducible unfolding: a read of a defined value its word, a value an equation defines (a
 constant, a copy, a product, the product a range check names, the inverse an assertion pins, a
 `KECCAK`'s two written cells) substituted, a branch that falls through to the rest of its block
-and a `match` split.
+and a `match` split; and the same condition, `Expr.equal` to it, computed in chunks of one
+statement, cut in the branches and the arms. Cut at every statement, a let-bound argument, tail of
+the body or type, and a rule whose proof needs a let-variable's value, give the expected condition;
+and cuts that would tell apart two terms of one word (so `vc` computes without generalizing) give
+the same condition as no cuts.
 -/
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
@@ -52,5 +56,65 @@ example (C : CallRel) (rd : Reader) (p a : E) (rets : List E) :
                   x2 = ofK (addressOfIndex 1) ∧ [x5 * x6 + a, x15] = rets) := by
   vc
   with_reducible exact Iff.rfl
+
+open Lean Meta Elab Tactic in
+/-- Closes `P ↔ P'`, `P'` `Expr.equal` to `P` but for `rets'` in place of `rets`. -/
+elab "same_cond" : tactic => withMainContext do
+  let some (l, r) := (← getMainTarget).iff? | throwError "not an iff"
+  unless l.equal (r.replaceFVar (← getFVarFromUserName `rets') (← getFVarFromUserName `rets)) do
+    throwError "the chunked condition differs"
+  evalTactic (← `(tactic| (subst_vars; exact Iff.rfl)))
+
+example (C : CallRel) (rd : Reader) (p a : E) (rets rets' : List E) (h : rets = rets') :
+    Fn.Sem C rd ⟨"t", [.n 0, .n 1], body⟩ [p, a] rets ↔
+      Fn.Sem C rd ⟨"t", [.n 0, .n 1], body⟩ [p, a] rets' := by
+  set_option vc.chunkSize 1 in vc
+  vc
+  same_cond
+
+noncomputable def chain : List Stmt := [.atom (.mul (.n 2) (.n 0) (.n 1)),
+  .atom (.add (.n 3) (.n 2) (.n 1)), .atom (.add (.n 4) (.n 3) (.n 1)), .ret [.n 4]]
+
+example (C : CallRel) (rd : Reader) (p a : E) (rets : List E) :
+    let q := p * a
+    Fn.Sem C rd ⟨"t", [.n 0, .n 1], chain⟩ [q, a] rets ↔ [q * a + a + a] = rets := by
+  intro q
+  set_option vc.chunkSize 1 in vc
+  with_reducible exact Iff.rfl
+
+example (C : CallRel) (rd : Reader) (p a : E) (rets : List E) :
+    let tl : List Stmt := [.atom (.add (.n 4) (.n 3) (.n 1)), .ret [.n 4]]
+    Fn.Sem C rd ⟨"t", [.n 0, .n 1], .atom (.mul (.n 2) (.n 0) (.n 1)) ::
+      .atom (.add (.n 3) (.n 2) (.n 1)) :: tl⟩ [p, a] rets ↔ [p * a + a + a] = rets := by
+  intro tl
+  set_option vc.chunkSize 1 in vc
+  with_reducible exact Iff.rfl
+
+example (C : CallRel) (rd : Reader) (a : E) (rets : List E) :
+    let T := E
+    ∀ x : T, Fn.Sem C rd ⟨"t", [.n 0, .n 1], chain⟩ [x, a] rets ↔ [x * a + a + a] = rets := by
+  intro T x
+  set_option vc.chunkSize 1 in vc
+  with_reducible exact Iff.rfl
+
+example (C : CallRel) (rd : Reader) (p : E) (rets : List E) :
+    let z : E := 0
+    Fn.Sem C rd ⟨"t", [.n 0, .n 1], [.atom (.mul (.n 2) (.n 0) (.n 1)),
+      .atom (.mul (.n 3) (.n 0) (.n 1)), .ret [.n 3]]⟩ [p, z] rets ↔ [0] = rets := by
+  intro z
+  set_option vc.chunkSize 1 in vc [show p * z = 0 from mul_zero p]
+  with_reducible exact Iff.rfl
+
+noncomputable def twice : List Stmt := [.atom (.mul (.n 2) (.n 0) (.n 1)),
+  .atom (.mul (.n 3) (.n 0) (.n 1)), .atom (.add (.n 4) (.n 2) (.n 3)), .ret [.n 4]]
+
+/-- trace: [vc] cuts tell apart two terms of one word: computing without generalizing -/
+#guard_msgs in
+example (C : CallRel) (rd : Reader) (p a : E) (rets rets' : List E) (h : rets = rets') :
+    Fn.Sem C rd ⟨"t", [.n 0, .n 1], twice⟩ [p, a] rets ↔
+      Fn.Sem C rd ⟨"t", [.n 0, .n 1], twice⟩ [p, a] rets' := by
+  set_option trace.vc true in set_option vc.chunkSize 1 in vc
+  vc
+  same_cond
 
 end LeanVMTests.Guest.Vc
