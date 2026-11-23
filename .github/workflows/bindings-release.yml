@@ -825,9 +825,10 @@ jobs:
         run: cargo install cargo-zigbuild --version 0.24.1 --locked
       - name: Build the native library
         run: sh bindings/java/scripts/build-native.sh ${{ matrix.platform.name }} native
+      # On its own runner, whose objdump reads it.
       - name: Check the CPU tiers are built in
-        if: matrix.platform.name == 'linux-x86_64'
-        run: sh scripts/check-tiers native/linux-x86_64/liblean_pq_native.so
+        if: runner.os == 'Linux'
+        run: sh scripts/check-tiers native/${{ matrix.platform.name }}/liblean_pq_native.so
       - uses: actions/setup-java@v5
         with:
           distribution: temurin

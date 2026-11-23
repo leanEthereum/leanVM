@@ -4,6 +4,7 @@
 //! - leanDA (PQ blobs)
 //!
 //! Proving runs the stable prover, or with the `experimental_prover` feature the experimental one: the same proofs.
+//! `cpu_tiers` adds the experimental prover's CPU tiers (`crates/experimental_tiers`), which `cargo vendor` cannot copy.
 //!
 //! Example: [`crates/lean_vm/tests/api.rs`](https://github.com/leanEthereum/leanVM/blob/main/crates/lean_vm/tests/api.rs).
 

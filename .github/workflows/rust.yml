@@ -64,8 +64,12 @@ jobs:
       - name: Test
         run: cargo testall
       # Built for the generic CPU, so that the AES and SHA3 tiers add to it.
+      # The runner has SHA3, so the armsha3 tier must run: LEANVM_TIER fails otherwise.
       - name: Test (the CPU tiers)
-        run: cargo test --release -p leanvm-bench --test identical_proofs
+        run: |
+          cargo test --release -p leanvm-bench --test identical_proofs
+          cargo build --release -p leanvm-bench
+          LEANVM_TIER=armsha3 target/release/leanvm-bench --prover experimental aggregate --xmss 1
         env:
           RUSTFLAGS: -C target-cpu=generic
           RUSTC_WRAPPER: ${{ github.workspace }}/scripts/tier-rustc

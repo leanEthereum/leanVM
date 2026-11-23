@@ -73,7 +73,7 @@ cargo machete --with-metadata     # unused dependencies
 - Run anything touching the VM in `--release`.
 - One test binary per crate: a new `zkdsl_compiler` integration test is a module of `tests/suite/main.rs`.
 - `aggregate_two_to_one` is the fast end-to-end check.
-- The CPU tiers: `RUSTFLAGS="-C target-cpu=haswell" RUSTC_WRAPPER=$PWD/scripts/tier-rustc cargo test --release -p leanvm-bench --test identical_proofs` checks each tier this machine runs against stable.
+- The CPU tiers: `RUSTFLAGS="-C target-cpu=haswell" RUSTC_WRAPPER=$PWD/scripts/tier-rustc cargo test --release -p leanvm-bench --test identical_proofs` checks each tier this machine runs against stable (`target-cpu=generic` on aarch64).
 - Slow checks are `#[ignore]`d, run with `-- --ignored --nocapture`: `print_whir_query_counts`, `print_whir_query_table`, `encoding_grinding_bits`.
 - Heavy benches: `cargo bench -p <package> --bench <name>`, with `hash_batch` (`*_keccak_gkr`), `throughput` (`*_pcs`), `hash_throughput` (`keccak256`).
 - Timing is the `tracing` span tree only: `--tracing` on the CLI, `BENCH_TRACING=1` on the benches. A new stage gets an `info_span!` (`stage!` in `lean_vm_core`), never an `Instant` behind an env var.
