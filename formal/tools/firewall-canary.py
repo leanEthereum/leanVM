@@ -35,8 +35,9 @@ EDITS = {
 
 
 def build():
-    """The canary's modules Lake builds now."""
-    r = subprocess.run(["lake", "build", *MODS], cwd=LEAN_VM, capture_output=True, text=True)
+    """The canary's modules Lake builds now: never restored from Lake's artifact cache, which would hide a rebuild."""
+    env = {**os.environ, "LAKE_ARTIFACT_CACHE": "false"}
+    r = subprocess.run(["lake", "build", *MODS], cwd=LEAN_VM, capture_output=True, text=True, env=env)
     if r.returncode != 0:
         sys.exit(f"firewall-canary: the canary does not build:\n{r.stdout}{r.stderr}")
     return set(re.findall(r"Built (" + re.escape(PREFIX) + r"\w+)", r.stdout + r.stderr))
