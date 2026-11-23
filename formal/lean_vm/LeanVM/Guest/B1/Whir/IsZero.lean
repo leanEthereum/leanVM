@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.Common.Basic
+public import LeanVM.Guest.B1.Whir.IsZeroDef
 public import LeanVM.Guest.B1.Common.Find
 import LeanVM.Guest.B1.Common.Vc
 
@@ -25,11 +26,6 @@ namespace LeanVM.Guest.B1
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Protocol.Verifier
 
 @[expose] public section
-
-/-- **`is_zero(w)`**: `1` at `w = 0`, else `0`. -/
-def MeaningIsZero : List E → List E → Prop
-  | [w], rets => rets = [if w = 0 then 1 else 0]
-  | _, _ => False
 
 private theorem ofK_eq_zero_iff (a : K) : ofK a = 0 ↔ a = 0 := by
   rw [ofK_eq_ofLimbs, zero_eq_ofLimbs, ofLimbs_inj]
