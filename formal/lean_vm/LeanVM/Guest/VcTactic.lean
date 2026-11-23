@@ -58,6 +58,12 @@ where the condition meets the composed proof. The words are tracked as terms of 
 where generalizing would tell apart two terms that are one word of the body, `vc` computes again
 without generalizing (`trace.vc` says so).
 
+By default a `KECCAK`'s written cells are substituted (`keccak_cells_one`, `keccak_cells_two`,
+`keccak_cells_all`), so a chain of permutations is a deep word. A body that chains many
+thirteen-cell `KECCAK`s takes `vc [-keccak_cells_all, keccak_cells_all_fn]` instead: each such
+`KECCAK` is one equation between its written cells, kept as existential words, and the permuted
+state of the cells it reads, so no word nests one thirteen-cell permutation in another.
+
 The auxiliary declarations bind a cut's variables, the goal's let-variables with their values, so a
 let-variable may stand anywhere in the goal (the function, a statement, an argument, `rets`, a
 word's type) and a rule may rely on its value. They are added with the kernel check done at once,

@@ -458,7 +458,9 @@ end
 /-! ## A `KECCAK`'s written cells
 
 Rules for the condition: an atom writing one, two or thirteen cells defines them as cells of
-Keccak-f of the cells it reads, so each is substituted. -/
+Keccak-f of the cells it reads, so each is substituted. `keccak_cells_all_fn`, on request, keeps
+thirteen written cells as words, so that a chain of thirteen-cell permutations nests none in
+another. -/
 
 section Keccak
 
@@ -509,6 +511,17 @@ theorem keccak_cells_all {O : List E} (hO : O.length = 13) :
       simp only [List.cons.injEq, and_true] at h
       obtain ⟨h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12⟩ := h
       fin_cases c <;> assumption
+
+/-- A `KECCAK` writing thirteen cells, as one equation between cell functions. Unlike
+`keccak_cells_all` it defines no cell, so under `vc [-keccak_cells_all, keccak_cells_all_fn]` the
+written cells stay words. Without `-keccak_cells_all`, that rule fires first and this one never
+does. -/
+theorem keccak_cells_all_fn {O : List E} :
+    (∃ oc : KeccakOutputCells, 13 = oc.cellCount ∧ KeccakCellsRelation I i (cells13 O) o oc) ↔
+      cells13 O = cellsOfState (keccakF1600 (stateOfCells I i)) o := by
+  refine ⟨fun ⟨oc, h, hk⟩ => ?_, fun h => ⟨.all, rfl, fun c _ => congrFun h c⟩⟩
+  obtain rfl : oc = .all := by cases oc <;> simp [KeccakOutputCells.cellCount] at h ⊢
+  exact funext fun c => hk c c.isLt
 
 end Keccak
 

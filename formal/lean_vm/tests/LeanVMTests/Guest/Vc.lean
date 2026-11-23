@@ -12,7 +12,8 @@ and a `match` split; and the same condition, `Expr.equal` to it, computed in chu
 statement, cut in the branches and the arms. Cut at every statement, a let-bound argument, tail of
 the body or type, and a rule whose proof needs a let-variable's value, give the expected condition;
 and cuts that would tell apart two terms of one word (so `vc` computes without generalizing) give
-the same condition as no cuts.
+the same condition as no cuts. Under `keccak_cells_all_fn`, chained thirteen-cell `KECCAK`s keep
+their written cells as words, each `KECCAK` one equation.
 -/
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
@@ -116,5 +117,28 @@ example (C : CallRel) (rd : Reader) (p a : E) (rets rets' : List E) (h : rets = 
   set_option trace.vc true in set_option vc.chunkSize 1 in vc
   vc
   same_cond
+
+noncomputable def sponge : List Stmt := [
+  .atom (.keccak [.n 0, .n 0, .n 0, .n 0, .n 0, .n 0, .n 0, .n 0, .n 0, .n 0, .n 0, .n 0, .n 0]
+    [.n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10, .n 11, .n 12, .n 13] false true),
+  .atom (.add (.n 14) (.n 1) (.n 0)),
+  .atom (.keccak [.n 14, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10, .n 11, .n 12, .n 13]
+    [.n 15, .n 16, .n 17, .n 18, .n 19, .n 20, .n 21, .n 22, .n 23, .n 24, .n 25, .n 26, .n 27]
+    true false),
+  .ret [.n 15]]
+
+example (C : CallRel) (rd : Reader) (p : E) (rets : List E) :
+    Fn.Sem C rd ⟨"t", [.n 0], sponge⟩ [p] rets ↔
+      ∃ x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13,
+        cells13 [x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13] =
+          cellsOfState (keccakF1600 (stateOfCells (cells13 [p, p, p, p, p, p, p, p, p, p, p, p, p])
+            false)) true ∧
+        ∃ x15 x16 x17 x18 x19 x20 x21 x22 x23 x24 x25 x26 x27,
+          cells13 [x15, x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27] =
+            cellsOfState (keccakF1600 (stateOfCells
+              (cells13 [x1 + p, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13]) true)) false ∧
+          [x15] = rets := by
+  vc [-keccak_cells_all, keccak_cells_all_fn]
+  with_reducible exact Iff.rfl
 
 end LeanVMTests.Guest.Vc
