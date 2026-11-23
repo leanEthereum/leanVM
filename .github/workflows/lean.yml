@@ -450,16 +450,19 @@ jobs:
       # of the generated kernel-checked families exceeds the runner's memory, so `lake-build.py`
       # runs the one `lake build` with the modules admitted by their recorded memory, those of the
       # statement package (`Statement/`, its guest data as heavy) and the other dependencies included.
-      # Stopped 35 minutes before the job's limit, so that what it built is packed for the next stage.
+      # Stopped 35 minutes before the job's limit: what it built is packed for the next stage, and this
+      # job passes, its gates left to the stage that finishes.
       - name: Build
         id: build
         run: |
           code=0
           timeout -k 60 $((JOB_START + 325 * 60 - $(date +%s))) python3 -I ../lake-build.py . LeanVM LeanVMTests || code=$?
-          echo "timedout=$([ $code = 124 ] || [ $code = 137 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          if [ $code = 124 ] || [ $code = 137 ]; then echo timedout=true >> "$GITHUB_OUTPUT"; exit 0; fi
+          echo timedout=false >> "$GITHUB_OUTPUT"
           exit $code
       # The end theorems' axioms asked from outside the build, as for the other projects.
       - name: Check the axiom footprint
+        if: steps.build.outputs.timedout == 'false'
         run: |
           theorems="LeanVM.theorems_hold LeanVM.corollaries_hold LeanVM.Wire.roundTrip LeanVM.Wire.oneEncoding LeanVM.Wire.proveWithHash_wireDecodable"
           { echo 'import LeanVM'; for t in $theorems; do echo "#print axioms $t"; done; } > "$RUNNER_TEMP/axioms.lean"
@@ -469,10 +472,12 @@ jobs:
           done
       # A private import stops a rebuild, as `tools/deps.py` assumes (`notes/per-function-cone.md`).
       - name: The private-import firewall holds (firewall-canary)
+        if: steps.build.outputs.timedout == 'false'
         run: python3 -I ../tools/firewall-canary.py
       # Every executable, so the cache holds them all (`lean-vm-differentials` runs the rest).
       - name: Build the executables
         id: exes
+        if: steps.build.outputs.timedout == 'false'
         run: lake build node-vectors guest-core guest-cert guest-memory scheme-vectors guest-diff leanvm-verify wire-diff leanvm-prove leanvm-execute guest-run test-runs
       # A stopped build's leftover processes are ended first. Lake maps a target only once it is built.
       - name: Pack the Lake cache
@@ -493,10 +498,12 @@ jobs:
       # What is slow in the interpreter: the guest's Fiat-Shamir IV against the Rust's, the DA
       # vector digests.
       - name: The Rust vectors' costly checks
+        if: steps.build.outputs.timedout == 'false'
         run: .lake/build/bin/node-vectors
       # The tests' runs too slow for the interpreter (`tests/LeanVMTests/Runs.lean`); `lake env` for the
       # `.olean` they read.
       - name: The tests' compiled runs
+        if: steps.build.outputs.timedout == 'false'
         run: lake env .lake/build/bin/test-runs
 
 
