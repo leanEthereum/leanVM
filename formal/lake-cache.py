@@ -171,7 +171,7 @@ def get(pkg: Path, run_id: str | None, tag: str | None) -> None:
             run = next((r for r in runs if any(not a["expired"] for a in json.loads(
                 gh("api", f"repos/{REPO}/actions/runs/{r['id']}/artifacts?name={NAME}"))["artifacts"])), None)
             if run is None:
-                log("no trusted run has an archive: nothing restored")
+                log(f"{f'run {run_id}' if run_id else 'no trusted run on main'} has no archive: nothing restored")
                 return
             gh("run", "download", str(run["id"]), "-R", REPO, "-n", NAME, "-D", tmp)
             archive = Path(tmp) / f"{NAME}.tar.zst"
