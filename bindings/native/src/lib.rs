@@ -54,8 +54,13 @@ fn ffi(operation: impl FnOnce() -> Result<(), String>) -> c_int {
             set_error(error);
             LPQ_ERROR
         }
-        Err(_) => {
-            set_error("native lean-pq operation panicked");
+        Err(panic) => {
+            let reason = panic
+                .downcast_ref::<String>()
+                .map(String::as_str)
+                .or_else(|| panic.downcast_ref::<&str>().copied())
+                .unwrap_or("");
+            set_error(format!("native lean-pq operation panicked: {reason}"));
             LPQ_PANIC
         }
     }

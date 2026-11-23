@@ -48,3 +48,8 @@ rustflags = ["-C", "target-feature=+avx2,+pclmulqdq"]
 # load without the Visual C++ redistributable.
 [target.x86_64-pc-windows-msvc]
 rustflags = ["-C", "target-feature=+avx2,+pclmulqdq,+crt-static"]
+
+# jemalloc's default configuration, as `allocator`'s `library` feature sets it: a static library's linker drops that
+# setting's unreferenced object.
+[env]
+JEMALLOC_SYS_WITH_MALLOC_CONF = "dirty_decay_ms:-1"

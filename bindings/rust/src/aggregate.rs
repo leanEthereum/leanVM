@@ -55,21 +55,19 @@ pub fn setup(threads: usize) -> Result<(), Error> {
 
 fn start(threads: usize) -> Result<usize, Error> {
     claim(&POOL_OWNER)?;
-    // Starting the pool builds the guest.
-    with_guest(|| {
-        *POOL.get_or_init(|| {
-            lean_vm::setup(threads);
-            threads
-        })
-    })
+    build_guest()?;
+    Ok(*POOL.get_or_init(|| {
+        lean_vm::setup(threads);
+        threads
+    }))
 }
 
-/// Runs `f`, which may build the guest, unless another process is building it.
-fn with_guest<T>(f: impl FnOnce() -> T) -> Result<T, Error> {
+/// Builds the aggregation guest, which decoding, verifying and proving read, unless another process is building it.
+fn build_guest() -> Result<(), Error> {
     claim(&GUEST_OWNER)?;
-    let out = f();
+    aggregation::unified_guest();
     GUEST_OWNER.store(BUILT, Ordering::Release);
-    Ok(out)
+    Ok(())
 }
 
 fn claim(owner: &AtomicU32) -> Result<(), Error> {
@@ -174,6 +172,7 @@ impl Aggregate {
         xmss_claims: &[(xmss::PublicKey, Message)],
         sphincs_claims: &[(sphincs::PublicKey, Message)],
     ) -> Result<Self, Error> {
+        build_guest()?;
         let proof = AggregateProof::from_bytes(bytes).ok_or(Error::MalformedAggregate)?;
         let claims = AggregateClaims {
             lean_xmss: sorted_claims(xmss_claims.iter().map(|(key, message)| (key.0, *message))),
@@ -185,7 +184,7 @@ impl Aggregate {
             // These bindings neither make nor accept leanDA blob commitments.
             da_commitment: None,
         };
-        if !with_guest(|| proof.verify(&claims))? {
+        if !proof.verify(&claims) {
             return Err(Error::AggregateRejected);
         }
         Ok(Self { claims, proof })

@@ -31,7 +31,7 @@ git -C vendor/leanVM checkout bindings-v0.16.0
 
 The package depends on [`results`](https://github.com/arnetheduck/nim-results); with nimbus-build-system, vendor it too.
 
-The first build downloads the prebuilt archive with curl, for Linux x86_64 and aarch64 (glibc), macOS (universal) and Windows x86_64 (MinGW-w64 gcc, not `--cc:vcc`), so signing and verifying need no Rust. For other targets or offline builds, pass `-d:leanPqNativeDir=DIR` holding your own `liblean_pq_native.a`.
+The first build downloads the prebuilt archive with curl, for Linux x86_64 and aarch64 (glibc), macOS (universal) and Windows x86_64 (MinGW-w64 gcc, not `--cc:vcc`), so no Rust is needed. For other targets or offline builds, pass `-d:leanPqNativeDir=DIR` holding your own `liblean_pq_native.a`.
 
 ## Example
 
@@ -98,10 +98,10 @@ let
 doAssert received.xmssClaims().expect("claims").len == 1
 ```
 
-- `LeanPqAggregate.init` verifies raw signatures first and takes at most `MaxAggregateChildren` (16) children, which it neither consumes nor closes. Proofs run one at a time per process. Except on Windows, the process keeps its peak proving memory: jemalloc keeps its pages mapped.
+- `LeanPqAggregate.init` verifies raw signatures first and takes at most `MaxAggregateChildren` (16) children, which it neither consumes nor closes.
 - `toBytes` is the proof alone: send the claims (`xmssClaims`, `sphincsClaims`) alongside it.
 - `LeanPqAggregate.fromBytes` takes the claims in any order (a repeat counts once) and fails for any other set, so every `LeanPqAggregate` is proven.
-- `leanPqSetup(threads)` starts the prover on `threads` threads (0: one per core); otherwise the first aggregation starts it on every core. It fails if the prover already runs with another count.
+- `leanPqSetup(threads)` fails if the prover already runs with another thread count. See [Proving](https://github.com/leanEthereum/leanVM/tree/main/bindings#proving).
 - A process forked after the prover started cannot aggregate.
 - The prebuilt archives target a generic CPU: to prove fast, [build from source](#build-from-source) on the proving machine.
 

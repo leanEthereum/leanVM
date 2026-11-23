@@ -43,10 +43,10 @@ lean_vm = { git = "https://github.com/leanEthereum/leanVM.git", features = ["exp
 
 ## Proving
 
-Bindings prove in the calling process. Prebuilt packages target a baseline CPU: to prove fast, build from source with `RUSTFLAGS="-C target-cpu=native"`, as each language's README shows.
+Bindings prove in the calling process. Prebuilt packages target a generic CPU: to prove fast, build from source with `RUSTFLAGS="-C target-cpu=native"`, as each language's README shows.
 
-- `setup(threads)` starts the prover with `threads` threads (0: one per core); otherwise the first aggregation starts it on every core. Proofs run one at a time per process.
-- Except on Windows, Rust allocates with jemalloc and the host language's allocator is untouched. Freed pages stay mapped, so a process that aggregated keeps its peak memory.
+- `setup(threads)` starts the prover with `threads` threads (0: one per core, at most the machine's parallelism); otherwise the first aggregation starts it on every core. Proofs run one at a time per process.
+- Except on Windows, the Rust code allocates with jemalloc; the host's allocator is untouched. Freed pages stay mapped, so a process that aggregated keeps its peak memory.
 
 ## Build and test
 

@@ -99,7 +99,7 @@ cargo leanvm-bench --prover stable fibonacci --n <steps>
 
 ## Allocator and thread pool
 
-- Shared crates impose no allocator. The CLI, the benches and, outside Windows, the bindings' native libraries (with its `library` feature) install `allocator::Jemalloc`.
+- Shared crates impose no allocator. The CLI and the benches install `allocator::Jemalloc`; outside Windows, so do `bindings/native`, `node` and `python`, with its `library` feature.
 - Experimental skips a buffer's zero-fill with `primitives::uninit_vec` or `filled_vec`. Stable never reads uninitialized memory: it writes a large buffer's first pass with the pool (`parallel::filled`, `parallel::map_collect`).
 - Drop a large buffer where its last use ends.
 - No rayon. One pool per tree, one tree per process: never add a second pool.

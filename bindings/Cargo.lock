@@ -305,6 +305,7 @@ version = "0.1.0"
 name = "lean-pq"
 version = "0.16.0"
 dependencies = [
+ "aggregation",
  "getrandom 0.3.4",
  "lean_sphincs",
  "lean_vm",

@@ -3,9 +3,7 @@
 //! - leanSPHINCS (stateless, for the execution layer)
 //! - leanDA (PQ blobs)
 //!
-//! Where proofs are made and checked:
-//! - by default, in this process, on the stable prover;
-//! - with the `experimental_prover` feature, in this process, on the experimental prover (the same proofs).
+//! Proving runs the stable prover, or with the `experimental_prover` feature the experimental one: the same proofs.
 //!
 //! Example: [`crates/lean_vm/tests/api.rs`](https://github.com/leanEthereum/leanVM/blob/main/crates/lean_vm/tests/api.rs).
 

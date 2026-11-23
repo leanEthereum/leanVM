@@ -12,12 +12,13 @@ categories = ["cryptography"]
 
 [features]
 default = ["aggregation"]
-aggregation = ["dep:lean_vm"]
+aggregation = ["dep:aggregation", "dep:lean_vm"]
 
 [dependencies]
 getrandom = "0.3"
 lean_sphincs = { workspace = true }
 lean_vrf = { workspace = true }
+aggregation = { workspace = true, optional = true }
 lean_vm = { workspace = true, optional = true, features = ["experimental_prover"] }
 lean_xmss = { workspace = true }
 thiserror = "2.0.21"

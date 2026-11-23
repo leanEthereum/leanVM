@@ -86,10 +86,10 @@ var received = try lpq.Aggregate.fromBytes(encoded, &.{.{
 defer received.deinit();
 ```
 
-- `Aggregate.create` verifies raw signatures first and takes at most `max_children` (16) children, which it neither consumes nor retains. Proofs run one at a time per process. Except on Windows, the process keeps its peak proving memory: jemalloc keeps its pages mapped.
+- `Aggregate.create` verifies raw signatures first and takes at most `max_children` (16) children, which it neither consumes nor retains.
 - `toBytes` is the proof alone: send the claims (`xmssClaims`, `sphincsClaims`) alongside it.
 - `Aggregate.fromBytes` takes the claims in any order (a repeat counts once) and fails with `error.NativeFailure` for any other set, so every `Aggregate` is proven.
-- `setup(threads)` starts the prover on `threads` threads (0: one per core); otherwise the first aggregation starts it on every core. It fails if the prover already runs with another count.
+- `setup(threads)` fails if the prover already runs with another thread count. See [Proving](https://github.com/leanEthereum/leanVM/tree/main/bindings#proving).
 - A process forked after the prover started cannot aggregate.
 - The prebuilt archives target a generic CPU: to prove fast, [build from source](#build-from-source) on the proving machine.
 

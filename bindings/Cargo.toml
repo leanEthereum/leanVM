@@ -15,6 +15,7 @@ version = "0.16.0"
 
 [workspace.dependencies]
 lean_vm = { path = "../crates/lean_vm" }
+aggregation = { path = "../crates/aggregation" }
 allocator = { path = "../crates/allocator", features = ["library"] }
 lean_xmss = { path = "../crates/lean_xmss" }
 lean_sphincs = { path = "../crates/lean_sphincs" }
