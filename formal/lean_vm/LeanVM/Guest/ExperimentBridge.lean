@@ -2,7 +2,6 @@ module
 
 public import LeanVM.Protocol.ExperimentBridge
 public import LeanVM.Guest.WithHash
-public import LeanVM.Guest.AcceptableChild
 
 @[expose] public section
 

@@ -43,8 +43,8 @@ open Air.Flat (EnsembleWitness)
 @[expose] public section
 
 /-- `Strategy.acceptsFrom_of_runFrom` stated on `runI` and `shapedI` together, for a program equal to
-`P'`: under 4.35 a local of type `AcceptsFrom` or `ShapedFrom` on the concrete program makes the
-elaborator unfold it, so the honest run's parts are taken here, on any program. -/
+`P'`: a local of type `AcceptsFrom` or `ShapedFrom` on the concrete program makes the elaborator
+unfold it, so the honest run's parts are taken here, on any program. -/
 private theorem acceptsFrom_of_runI {S : Strategy} {P P' : VerifierProgram Bool} (hP : P = P')
     (h : ∀ chal, runI P S chal = some true ∧ shapedI P S chal) : S.AcceptsFrom P' [] := by
   subst hP

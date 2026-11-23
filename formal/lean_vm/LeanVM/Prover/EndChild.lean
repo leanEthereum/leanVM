@@ -1,8 +1,8 @@
 /-
   LeanVM.Prover.EndChild
 
-  The guest's completeness end theorem, for the statement's honest prover
-  `LeanVM.leanVmHonestProver`.
+  The statement's honest prover `LeanVM.leanVmHonestProver` makes children the guest accepts
+  (`GuestChildComplete`), a step of the honest-children remark.
 -/
 
 module
@@ -16,12 +16,15 @@ public import LeanVM.Guest.AcceptableChild
 @[expose] public section
 
 /-!
-# The guest's completeness end theorem
+# The honest prover's children
 
 The statement's honest prover is the specification at a child's witness on every valid execution
 within the cap, at a valid rate, and makes no proof elsewhere (`childSpec_prove`), so
 `Child.childOk_of_spec` (`LeanVM/Guest/Child/Deployed.lean`) proves
-`LeanVM.Guest.Budget.guest_child_complete : GuestChildComplete`.
+`LeanVM.Guest.Budget.guest_child_complete : GuestChildComplete`. Where the verifier accepts the
+honest proof, the deferring verifier accepts it with exactly one claim, a true one
+(`LeanVM.verifyDeferred_of_leanVmVerifier`), so a child carrying it that `NodeRelation` admits has
+a true fresh claim.
 -/
 
 namespace LeanVM.Prover

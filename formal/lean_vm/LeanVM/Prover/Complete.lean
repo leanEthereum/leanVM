@@ -38,7 +38,6 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Arithmetization LeanVM.Protocol
 open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Protocol.LeanIsa
 open LeanVM.Protocol.EndToEnd.Complete LeanVM.Protocol.KeccakHash
 open OracleComp OracleSpec
-open Air.Flat (EnsembleWitness)
 open scoped ENNReal
 
 /-! ## No proof is a rejection -/
@@ -91,12 +90,10 @@ theorem noProof_evalDistEq {σ α : Type} (impl : QueryImpl KeccakCalls (StateT 
 
 /-- **The prover is the specification at an honest witness** on every valid execution within the
 verifier's cap, at a valid rate. -/
-def SpecOnValid (A : HonestProverWithHash)
-    (W : (prog : LeanIsaProgram) → PublicInput → (t : Execution prog) → ℕ →
-      EnsembleWitness (leanIsaEnsemble prog t.logMemorySize) → Sizes → Prop) : Prop :=
+def SpecOnValid (A : HonestProverWithHash) : Prop :=
   ∀ (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) (ρ fuel : ℕ),
     ValidExecution prog input t → t.committedSize ≤ 2 ^ 30 → 1 ≤ ρ ∧ ρ ≤ 4 →
-    ∃ w s, W prog input t ρ w s ∧
+    ∃ w s, HonestFor prog input t ρ w s ∧
       A prog input t ρ fuel = Rom.honestComp? (leanVmSeed (bytecodeWords prog) (publicInputDigest
           input))
         (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input))
@@ -105,7 +102,7 @@ def SpecOnValid (A : HonestProverWithHash)
 /-- **Completeness for a prover that is the specification at an honest witness**: the body of
 `LeanVM.Completeness` for `A`. No proof is a rejection, as the empty proof's is
 (`noProof_evalDistEq`). -/
-theorem completeness_of_spec (A : HonestProverWithHash) (hA : SpecOnValid A HonestFor) :
+theorem completeness_of_spec (A : HonestProverWithHash) (hA : SpecOnValid A) :
     ∀ (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) (ρ : ℕ),
       ValidExecution prog input t → t.committedSize ≤ 2 ^ 30 → 1 ≤ ρ ∧ ρ ≤ 4 →
       Pr{let v ← verifierCompletenessExperimentWithHash A prog input t ρ (2 ^ 35)}[v = false] ≤

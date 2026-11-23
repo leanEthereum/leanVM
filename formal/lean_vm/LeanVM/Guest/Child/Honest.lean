@@ -11,17 +11,15 @@ module
 public import LeanVM.Protocol.EndToEnd.Complete.Rom
 public import Statement.LeanVmGuest
 public import LeanVM.Protocol.WithHashBridge
-public import LeanVM.Protocol.Verifier.Deferred
 public import LeanVM.Protocol.WithHash
 public import LeanVM.Guest.WithHash
-public import LeanVM.Guest.AcceptableChild
 
 /-!
 # The honest prover of a child
 
 A child's witness is an honest witness whose stacked size is the execution's committed size
-(`ChildFor`; one exists within the verifier's cap, `exists_childFor`, as
-`exists_admissible_witness` builds it). `Rom.honestComp?` is `Rom.honestComp` with `none` where it
+(`ChildFor`; the specification witness is one within the cap, `LeanVM.Prover.childFor_trace`).
+`Rom.honestComp?` is `Rom.honestComp` with `none` where it
 makes no proof; a prover that is it at a child's witness or makes no proof (`ChildSpec`) has, with
 Keccak-256 and Keccak-f[1600] (`honestProofWithDeployedKeccakWithHash`), the pure prover's proof
 (`atKeccak_of_eq`, `prove_of_some`).
@@ -42,51 +40,6 @@ execution's committed size. -/
 def ChildFor (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) (ρ : ℕ)
     (w : EnsembleWitness (leanIsaEnsemble prog t.logMemorySize)) (s : Sizes) : Prop :=
   HonestFor prog input t ρ w s ∧ (LeanIsa.blocks prog s).total = t.committedSize
-
-/-- **A child's witness exists** for a valid execution within the verifier's cap, at a valid
-rate: `exists_admissible_witness`'s witness. -/
-theorem exists_childFor {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog} {ρ : ℕ}
-    (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ maxMu)
-    (hρ : validRate ρ) : ∃ w s, ChildFor prog input t ρ w s := by
-  have hcount : ∀ op, t.opcodeCount op = t.runRows op := Execution.count_eq_runRows hv.2
-  have hheight : ∀ op, 2 ^ Nat.clog 2 (t.opcodeCount op) ≤ t.committedSize := by
-    intro op
-    have : 0 < 2 ^ prog.logSize := Nat.two_pow_pos _
-    have hk : 2 ^ Nat.clog 2 (t.opcodeCount .keccak) ≤ 2 ^ max (Nat.clog 2 (t.opcodeCount
-        .keccak)) 9 :=
-      Nat.pow_le_pow_right (by norm_num) (le_max_left _ _)
-    simp only [Execution.committedSize]
-    cases op <;> omega
-  have hcap : (2 : ℕ) ^ maxMu ≤ 2 ^ maxLogRows := Nat.pow_le_pow_right (by norm_num) (by decide)
-  have hrows : ∀ op, t.runRows op ≤ 2 ^ maxLogRows := fun op ↦ by
-    rw [← hcount]
-    exact (Nat.le_pow_clog (by norm_num) _).trans (((hheight op).trans hbudget).trans hcap)
-  obtain ⟨w, hw, hrep, hlen⟩ := constraintCompleteness_rows hv hrows
-  obtain ⟨s, hs⟩ := sizes_of_satisfiedBy hw
-  have hs0 := hs
-  obtain ⟨hpos, rfl⟩ := eq_of_ofWitness hs
-  have hmem : (witnessSizes w hpos).logMem = t.logMemorySize := hrep.κ_eq
-  have hr : ∀ j : Fin 6, (witnessSizes w hpos).rows j = t.opcodeCount (tableOpcode j) :=
-    fun j ↦ (hlen j).trans (hcount _).symm
-  have htotal : (LeanIsa.blocks prog (witnessSizes w hpos)).total = t.committedSize := by
-    have e : tableOpcode 0 = .xor ∧ tableOpcode 1 = .mulNative ∧ tableOpcode 2 = .setConstant ∧
-        tableOpcode 3 = .deref ∧ tableOpcode 4 = .jump ∧ tableOpcode 5 = .keccak := by decide
-    rw [blocks_total_eq, hmem, pow_add 2 _ 6]
-    simp only [Sizes.τ, hr, e, Execution.committedSize]
-    have f0 : tableLogFloors.getD ((0 : Fin 6) : ℕ) 0 = 0 := rfl
-    have f1 : tableLogFloors.getD ((1 : Fin 6) : ℕ) 0 = 0 := rfl
-    have f2 : tableLogFloors.getD ((2 : Fin 6) : ℕ) 0 = 0 := rfl
-    have f3 : tableLogFloors.getD ((3 : Fin 6) : ℕ) 0 = 0 := rfl
-    have f4 : tableLogFloors.getD ((4 : Fin 6) : ℕ) 0 = 0 := rfl
-    have f5 : tableLogFloors.getD ((5 : Fin 6) : ℕ) 0 = 9 := rfl
-    simp only [f0, f1, f2, f3, f4, f5, Nat.max_zero]
-    ring
-  refine ⟨w, _, ⟨hρ, hw, hs0, ⟨?_, ?_, fun j ↦ (hr j).trans_le (by rw [hcount]; exact hrows _),
-    leanIsaμ_le_of_total_le (htotal ▸ hbudget)⟩, hrep⟩, htotal⟩
-  · rw [hmem]
-    exact hv.1.1
-  · rw [hmem]
-    exact hv.1.2.1
 
 /-- `deployedKeccakCalls` is the total implementation at Keccak-256 and Keccak-f[1600]. -/
 theorem keccakImpl_eq : Budget.deployedKeccakCalls = totalImpl keccak256 keccakF1600 := by

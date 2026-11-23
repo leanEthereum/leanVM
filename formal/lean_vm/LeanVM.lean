@@ -9,6 +9,7 @@ public import LeanVM.Guest.Budget.ClosedN
 public import LeanVM.Guest.Budget.Fits
 public import LeanVM.Prover.End
 public import LeanVM.Prover.EndChild
+public import LeanVM.Protocol.Verifier.Defers
 public import LeanVM.Prover.ExecuteSound
 public import LeanVM.Prover.ExecuteComplete
 public import LeanVM.Prover.ExecuteCompleteX
@@ -118,8 +119,9 @@ random-permutation model `batch_rpm`, `batch_rpm_bits`), `decode_binds`, `guest_
 (`LeanVM.Guest.Budget.guest_complete_on_acceptable_children`, `AcceptableChild`,
 `LeanVM/Guest/AcceptableChild.lean`; a node `NodeRelation` admits has such children, or a child's
 proof exhibits a Keccak-256 collision, by `LeanVM.Guest.Child.acceptableChildren_or_collide`, and
-an honest proof by `guest_child_complete`), the executor
-on honest children (`LeanVM.Guest.EndExec.honestExecution_ok_on_honest_children`, and with the
+an honest proof by `guest_child_complete`; a proof the verifier accepts, the deferring verifier
+accepts with exactly one claim, a true one, by `LeanVM.verifyDeferred_of_leanVmVerifier`), the
+executor on honest children (`LeanVM.Guest.EndExec.honestExecution_ok_on_honest_children`, and with the
 statement's witness generation `LeanVM.Guest.EndExec.guestExecution_complete_on_honest_children`,
 with no collision alternative), and the guest's completeness within its deployed budget
 (`LeanVM.Guest.Budget.guest_complete`, `guest_complete_numeric`).
@@ -268,10 +270,6 @@ info: 'LeanVM.Guest.EndExec.guestExecution_complete_on_honest_children' depends 
 #guard_msgs in
 #print axioms LeanVM.Guest.EndExec.guestExecution_complete_on_honest_children
 
-/-- info: 'LeanVM.Guest.EndExec.guest_prover_complete' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms LeanVM.Guest.EndExec.guest_prover_complete
-
 /-- info: 'LeanVM.Guest.EndExec.guestExecution_complete_holds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.Guest.EndExec.guestExecution_complete_holds
@@ -283,6 +281,14 @@ info: 'LeanVM.Guest.EndExec.guestExecution_complete_on_honest_children' depends 
 /-- info: 'LeanVM.Guest.Budget.guest_child_complete' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.Guest.Budget.guest_child_complete
+
+/-- info: 'LeanVM.verifyDeferredWith_of_leanVmVerifier' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.verifyDeferredWith_of_leanVmVerifier
+
+/-- info: 'LeanVM.verifyDeferred_of_leanVmVerifier' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.verifyDeferred_of_leanVmVerifier
 
 /-! ## The proof on the wire
 

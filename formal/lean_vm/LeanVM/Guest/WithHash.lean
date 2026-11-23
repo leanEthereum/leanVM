@@ -12,7 +12,7 @@ module
 
 public import Statement.LeanVmGuest
 public import LeanVM.Protocol.WithHash
-public import LeanVM.Guest.AcceptableChild
+public import Statement.LeanVmGuestCompleteness
 
 @[expose] public section
 

@@ -380,11 +380,6 @@ end Phase
 
 /-! ## A child's query steps -/
 
-theorem zip_map_self {α β : Type} (f : α → β) :
-    ∀ l : List α, (l.map f).zip l = l.map fun a ↦ (f a, a)
-  | [] => rfl
-  | a :: l => by rw [List.map_cons, List.map_cons, List.zip_cons_cons, zip_map_self f l]
-
 /-- **A query step whose openings disagree exhibits a Keccak-256 collision** in the child proof's
 openings. -/
 theorem openingsCollide_of_step {bytecode : List K} {seed : Digest} {child : Child}
@@ -396,7 +391,7 @@ theorem openingsCollide_of_step {bytecode : List K} {seed : Digest} {child : Chi
   obtain ⟨phase, hphase, root, width, ps, rows, hop, hps, hstep2⟩ :=
     queryStepsOf_opened _ [] _ (inRange_deferringProgram _ _ _) step hstep rfl
   obtain ⟨hlen, rfl, hroot⟩ := openPhase_climbs hop
-  rw [hstep2, zip_map_self] at hd
+  rw [hstep2, ← List.map_prod_right_eq_zip] at hd
   obtain ⟨a, ha, b, hb, l, hla, hlb, hne, hk⟩ := climbsCollide_of_not_agree hlen
     (fun o ho ↦ hps _ (List.mem_map_of_mem ho)) hroot hd
   exact ⟨phase, hphase, a, ha, b, hb, l, hla, hlb, hne, hk⟩
