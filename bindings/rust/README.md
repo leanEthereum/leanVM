@@ -1,6 +1,6 @@
 # lean-pq
 
-The Rust facade that the Python, Node.js, Java, Go, Zig and Nim bindings wrap: leanXMSS and leanSPHINCS signatures, and their aggregation through a leanVM sidecar. It is internal and unpublished; Rust code uses [`lean_vm`](../README.md#install) directly.
+The Rust facade that the Python, Node.js, Java, Go, Zig and Nim bindings wrap: leanXMSS and leanSPHINCS signatures, their aggregation through a leanVM sidecar, and the consensus VRF tree. It is internal and unpublished; Rust code uses [`lean_vm`](../README.md#install) directly.
 
 ## Sign and verify
 
@@ -23,6 +23,21 @@ sphincs_key.public_key().verify(&message, &signature)?;
 - leanXMSS is stateful: a key has `2^32` leaf indices and must never sign two messages at the same one. Persist a high-water leaf index next to the key and advance it before publishing a signature.
 - leanSPHINCS is stateless; a key signs at most `2^30` messages.
 - `xmss::SecretKey::cache_to_bytes()` returns the key's trees, which are not secret; `xmss::SecretKey::from_cache_bytes(seed, &public_key, &cache)` loads the key from them instead of rebuilding them, checking them against the public key.
+
+## VRF
+
+```rust
+use lean_pq::vrf;
+
+let key = vrf::Key::new([0x03; 32], 1000..2000)?;
+let root = key.root();
+vrf::verify(&root, 1500, &key.proof(1500)?)?;
+# Ok::<(), lean_pq::Error>(())
+```
+
+A key is a 32-byte seed and the slots `[start, end)`, with `end <= 2^31`: both fix the root, so keep both. Building it hashes every slot of the range once; a proof then costs about `3 sqrt(R)` hashes for `R` slots. A proof is 1024 bytes: the slot's secret, then its leaf's 31 siblings, which reveal no other secret. An empty range, a range past `2^31` and a slot outside the range are errors.
+
+`Key::cache_to_bytes()` encodes the key's cache, its range and cached layer (about `32 sqrt(R)` bytes, no secret), and `Key::from_cache_bytes(seed, &root, &cache)` rebuilds the key from its seed and that cache without hashing the range, failing if the cache does not lead to `root`.
 
 ## Aggregate
 

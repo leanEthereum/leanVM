@@ -16,8 +16,8 @@ public import LeanVM.Guest.Expand
   of its own (`capture`, in `stmtKind`), and emits the blocks in order; with
   `Core.holdsList_flatten` (`LeanVM.Guest.CoreLemmas`) its semantics is the conjunction of the
   iterations' when they do not return;
-* `lowerIf_fold`: an `if` whose two sides have integer readings below `2^32` (and agreeing field
-  readings, unless it is `if const(...)`) expands to its taken branch, in the enclosing scope.
+* `lowerIf_fold`: an `if` whose two sides have integer readings (and agreeing field readings,
+  unless it is `if const(...)`) expands to its taken branch, in the enclosing scope.
 -/
 
 namespace LeanVM.Guest.Expand

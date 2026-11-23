@@ -10,6 +10,8 @@ module
 
 public import LeanVM.Guest.B1.Digest.ChildListAt
 public import LeanVM.Guest.B1.Digest.ChildDigest
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«child_claim_list_digest»
 
 /-!
 # A child's claim list, placed
@@ -48,32 +50,32 @@ open LeanVM.Guest.Budget (NodeHonest)
 /-! ## The path -/
 
 /-- The head of `child_claim_list_digest`'s body: `n_g + 1`. -/
-def ccdHead : List Stmt := [.atom (.const (.n 5) (word 1 0)), .atom (.add (.n 6) (.n 4) (.n 5))]
+def ccdHead : List Stmt := [.atom (.const (.n (val% «child_claim_list_digest» "s1#0")) (word 1 0)), .atom (.add (.n (val% «child_claim_list_digest» "s1#1")) (.n (val% «child_claim_list_digest» "n_g")) (.n (val% «child_claim_list_digest» "s1#0")))]
 
 /-- The final copies of `child_claim_list_digest`. -/
-def ccdTail : List Stmt := [.atom (.copy (.n 25) (.n 13)), .atom (.copy (.n 26) (.n 14))]
+def ccdTail : List Stmt := [.atom (.copy (.n (val% «child_claim_list_digest» "s2#0")) (.n (val% «child_claim_list_digest» "digest[0]"))), .atom (.copy (.n (val% «child_claim_list_digest» "s2#0[1]")) (.n (val% «child_claim_list_digest» "digest[1]")))]
 
 /-- The nonempty arm before its branch: `list_split`, the hint `child_mono`, `child_mono + g`. -/
 def ccE4 : List Stmt :=
-  [.call "list_split" [.n 4] [.n 15, .n 16, .n 17],
-    .atom (.hint (.witness "child_mono" (.stack [.n 18]))),
-    .atom (.const (.n 19) (word 2 0)), .atom (.add (.n 20) (.n 18) (.n 19))]
+  [.call "list_split" [.n (val% «child_claim_list_digest» "n_g")] [.n (val% «child_claim_list_digest» "bigs"), .n (val% «child_claim_list_digest» "groups"), .n (val% «child_claim_list_digest» "rest")],
+    .atom (.hint (.witness "child_mono" (.stack [.n (val% «child_claim_list_digest» "mono")]))),
+    .atom (.const (.n (val% «child_claim_list_digest» "s1.e.s2#0")) (word 2 0)), .atom (.add (.n (val% «child_claim_list_digest» "s1.e.s2#1")) (.n (val% «child_claim_list_digest» "mono")) (.n (val% «child_claim_list_digest» "s1.e.s2#0")))]
 
 /-- The gap walk's arm. -/
 def ccMonoArm : List Stmt :=
-  [.call "child_claim_list_mono" [.n 0, .n 1, .n 2, .n 3, .n 15, .n 16, .n 17] [.n 21, .n 22],
-    .atom (.copy (.n 13) (.n 21)), .atom (.copy (.n 14) (.n 22))]
+  [.call "child_claim_list_mono" [.n (val% «child_claim_list_digest» "entries_ptr"), .n (val% «child_claim_list_digest» "region"), .n (val% «child_claim_list_digest» "base"), .n (val% «child_claim_list_digest» "limit_g"), .n (val% «child_claim_list_digest» "bigs"), .n (val% «child_claim_list_digest» "groups"), .n (val% «child_claim_list_digest» "rest")] [.n (val% «child_claim_list_digest» "d0@1"), .n (val% «child_claim_list_digest» "d1@1")],
+    .atom (.copy (.n (val% «child_claim_list_digest» "digest[0]")) (.n (val% «child_claim_list_digest» "d0@1"))), .atom (.copy (.n (val% «child_claim_list_digest» "digest[1]")) (.n (val% «child_claim_list_digest» "d1@1")))]
 
 /-- The walk by hinted indices' arm. -/
 def ccAnyArm : List Stmt :=
-  [.call "child_claim_list_any" [.n 0, .n 1, .n 2, .n 3, .n 15, .n 16, .n 17] [.n 23, .n 24],
-    .atom (.copy (.n 13) (.n 23)), .atom (.copy (.n 14) (.n 24))]
+  [.call "child_claim_list_any" [.n (val% «child_claim_list_digest» "entries_ptr"), .n (val% «child_claim_list_digest» "region"), .n (val% «child_claim_list_digest» "base"), .n (val% «child_claim_list_digest» "limit_g"), .n (val% «child_claim_list_digest» "bigs"), .n (val% «child_claim_list_digest» "groups"), .n (val% «child_claim_list_digest» "rest")] [.n (val% «child_claim_list_digest» "d0@2"), .n (val% «child_claim_list_digest» "d1@2")],
+    .atom (.copy (.n (val% «child_claim_list_digest» "digest[0]")) (.n (val% «child_claim_list_digest» "d0@2"))), .atom (.copy (.n (val% «child_claim_list_digest» "digest[1]")) (.n (val% «child_claim_list_digest» "d1@2")))]
 
 /-- The nonempty arm. -/
-def ccElse : List Stmt := ccE4 ++ [.ite (.n 20) ccMonoArm ccAnyArm]
+def ccElse : List Stmt := ccE4 ++ [.ite (.n (val% «child_claim_list_digest» "s1.e.s2#1")) ccMonoArm ccAnyArm]
 
 theorem ccd_body : Fn.body fn% «child_claim_list_digest» =
-    ccdHead ++ .ite (.n 6) cc25Zero ccElse :: (ccdTail ++ [.ret [.n 25, .n 26]]) := by
+    ccdHead ++ .ite (.n (val% «child_claim_list_digest» "s1#1")) cc25Zero ccElse :: (ccdTail ++ [.ret [.n (val% «child_claim_list_digest» "s2#0"), .n (val% «child_claim_list_digest» "s2#0[1]")]]) := by
   rw [child_claim_list_digest_shape]; rfl
 
 set_option maxRecDepth 100000 in
@@ -89,7 +91,7 @@ theorem ccd_loop : coreProgram.loop "child_claim_list_digest" = false := by
   rw [Program.loop_of_find? find_child_claim_list_digest]; decide +kernel
 
 theorem ccd_param (σ : Val) : (Fn.params fn% «child_claim_list_digest»).map σ =
-    [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)] := rfl
+    [σ (.n (val% «child_claim_list_digest» "entries_ptr")), σ (.n (val% «child_claim_list_digest» "region")), σ (.n (val% «child_claim_list_digest» "base")), σ (.n (val% «child_claim_list_digest» "limit_g")), σ (.n (val% «child_claim_list_digest» "n_g"))] := rfl
 
 /-- A straight run, then a branch between straight arms, falls through. -/
 theorem walk_pre_ite (σ : Val) (z n : List Stmt) (hz : z.all Main.Stmt.straight = true)
@@ -133,9 +135,9 @@ set_option maxRecDepth 20000 in
 theorem ccz_core (entries region base limit : E) :
     let σ := cczσ rd [entries, region, base, limit, gen ^ 0]
     (∀ a ∈ atomsIn ccZEval, a.Holds rd σ) ∧
-      [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)] = [entries, region, base, limit, gen ^ 0] ∧
-      σ (.n 6) = 0 ∧ σ (.n 6) = gen ^ 0 + gen ^ 0 ∧
-      [σ (.n 25), σ (.n 26)] = digestCells (keccak256 (cellsBytes [])) := by
+      [σ (.n (val% «child_claim_list_digest» "entries_ptr")), σ (.n (val% «child_claim_list_digest» "region")), σ (.n (val% «child_claim_list_digest» "base")), σ (.n (val% «child_claim_list_digest» "limit_g")), σ (.n (val% «child_claim_list_digest» "n_g"))] = [entries, region, base, limit, gen ^ 0] ∧
+      σ (.n (val% «child_claim_list_digest» "s1#1")) = 0 ∧ σ (.n (val% «child_claim_list_digest» "s1#1")) = gen ^ 0 + gen ^ 0 ∧
+      [σ (.n (val% «child_claim_list_digest» "s2#0")), σ (.n (val% «child_claim_list_digest» "s2#0[1]"))] = digestCells (keccak256 (cellsBytes [])) := by
   intro σ
   have hz1 := cc25z_ok
   have hb1 := ccz_ok
@@ -143,10 +145,10 @@ theorem ccz_core (entries region base limit : E) :
   simp only [cczOk, Bool.and_eq_true] at hb1
   obtain ⟨⟨⟨-, hzc⟩, hz13⟩, hz14⟩ := hz1
   obtain ⟨⟨b12, b13⟩, b15⟩ := hb1
-  have c5 : Stmt.atom (.const (.n 5) (word 1 0)) ∈ ccdHead := by simp [ccdHead]
-  have a6 : Stmt.atom (.add (.n 6) (.n 4) (.n 5)) ∈ ccdHead := by simp [ccdHead]
-  have t36 : Stmt.atom (.copy (.n 25) (.n 13)) ∈ ccdTail := by simp [ccdTail]
-  have t37 : Stmt.atom (.copy (.n 26) (.n 14)) ∈ ccdTail := by simp [ccdTail]
+  have c5 : Stmt.atom (.const (.n (val% «child_claim_list_digest» "s1#0")) (word 1 0)) ∈ ccdHead := by simp [ccdHead]
+  have a6 : Stmt.atom (.add (.n (val% «child_claim_list_digest» "s1#1")) (.n (val% «child_claim_list_digest» "n_g")) (.n (val% «child_claim_list_digest» "s1#0"))) ∈ ccdHead := by simp [ccdHead]
+  have t36 : Stmt.atom (.copy (.n (val% «child_claim_list_digest» "s2#0")) (.n (val% «child_claim_list_digest» "digest[0]"))) ∈ ccdTail := by simp [ccdTail]
+  have t37 : Stmt.atom (.copy (.n (val% «child_claim_list_digest» "s2#0[1]")) (.n (val% «child_claim_list_digest» "digest[1]"))) ∈ ccdTail := by simp [ccdTail]
   obtain ⟨c', hchk⟩ := Option.isSome_iff_exists.mp b12
   let args : List E := [entries, region, base, limit, gen ^ 0]
   obtain ⟨-, -, hgs⟩ := ev_spec rd (fun _ => 0) ccZEval args hchk
@@ -166,13 +168,13 @@ theorem ccz_core (entries region base limit : E) :
     hat a (cl_mem_atoms (mZ _ (cl_atom_mem ha)))
   have par : ∀ i (hi : i < 5), σ (.n i) = args.getD i 0 := fun i hi =>
     ev_params rd _ (l := args) hchk (by simp [args]; omega)
-  have v5 : σ (.n 5) = word 1 0 := hat _ (cl_mem_atoms (mH _ c5))
-  have v6 : σ (.n 6) = σ (.n 4) + σ (.n 5) := hat _ (cl_mem_atoms (mH _ a6))
-  have v36 : σ (.n 25) = σ (.n 13) := hat _ (cl_mem_atoms (mT _ t36))
-  have v37 : σ (.n 26) = σ (.n 14) := hat _ (cl_mem_atoms (mT _ t37))
-  have v6' : σ (.n 6) = gen ^ 0 + gen ^ 0 := by
+  have v5 : σ (.n (val% «child_claim_list_digest» "s1#0")) = word 1 0 := hat _ (cl_mem_atoms (mH _ c5))
+  have v6 : σ (.n (val% «child_claim_list_digest» "s1#1")) = σ (.n (val% «child_claim_list_digest» "n_g")) + σ (.n (val% «child_claim_list_digest» "s1#0")) := hat _ (cl_mem_atoms (mH _ a6))
+  have v36 : σ (.n (val% «child_claim_list_digest» "s2#0")) = σ (.n (val% «child_claim_list_digest» "digest[0]")) := hat _ (cl_mem_atoms (mT _ t36))
+  have v37 : σ (.n (val% «child_claim_list_digest» "s2#0[1]")) = σ (.n (val% «child_claim_list_digest» "digest[1]")) := hat _ (cl_mem_atoms (mT _ t37))
+  have v6' : σ (.n (val% «child_claim_list_digest» "s1#1")) = gen ^ 0 + gen ^ 0 := by
     rw [v6, v5, par 4 (by omega), word_one, pow_zero]; rfl
-  have h60 : σ (.n 6) = 0 := by rw [v6']; exact e_add_eq_zero_iff.mpr rfl
+  have h60 : σ (.n (val% «child_claim_list_digest» "s1#1")) = 0 := by rw [v6']; exact e_add_eq_zero_iff.mpr rfl
   have hd := chain_final hzc rfl hatZ (pre := []) (n := 0) rfl
     (fun c => (cellsOfState_zero false c).symm)
   rw [hz13, hz14, show List.take (cc25ZSpec.len / 16) (cc25ZSpec.vals σ) = [] by
@@ -188,15 +190,15 @@ theorem ccz_core (entries region base limit : E) :
 at `v4`; when `n ≠ 0`, `list_split`'s returns `g^a`, `g^b`, `g^c` at `v26`, `v27`, `v28`, the hint
 `child_mono = 0` at `v29` (the walk by hinted indices). -/
 def ccQ (n : ℕ) (σ : Val) : Prop :=
-  σ (.n 4) = gen ^ n ∧ (n ≠ 0 → σ (.n 15) = gen ^ (n / 136) ∧ σ (.n 16) = gen ^ (n % 136 / 17) ∧
-    σ (.n 17) = gen ^ (n % 17) ∧ σ (.n 18) = 0)
+  σ (.n (val% «child_claim_list_digest» "n_g")) = gen ^ n ∧ (n ≠ 0 → σ (.n (val% «child_claim_list_digest» "bigs")) = gen ^ (n / 136) ∧ σ (.n (val% «child_claim_list_digest» "groups")) = gen ^ (n % 136 / 17) ∧
+    σ (.n (val% «child_claim_list_digest» "rest")) = gen ^ (n % 17) ∧ σ (.n (val% «child_claim_list_digest» "mono")) = 0)
 
 /-- `child_claim_list_digest`'s calls: none for the empty list; `list_split`,
 `child_claim_list_any`. -/
 def ccCalls (n : ℕ) (_ : Val) : List Call :=
   if n = 0 then [] else
-    [⟨"list_split", [.n 4], [.n 15, .n 16, .n 17], true⟩,
-      ⟨"child_claim_list_any", [.n 0, .n 1, .n 2, .n 3, .n 15, .n 16, .n 17], [.n 23, .n 24], true⟩]
+    [⟨"list_split", [.n (val% «child_claim_list_digest» "n_g")], [.n (val% «child_claim_list_digest» "bigs"), .n (val% «child_claim_list_digest» "groups"), .n (val% «child_claim_list_digest» "rest")], true⟩,
+      ⟨"child_claim_list_any", [.n (val% «child_claim_list_digest» "entries_ptr"), .n (val% «child_claim_list_digest» "region"), .n (val% «child_claim_list_digest» "base"), .n (val% «child_claim_list_digest» "limit_g"), .n (val% «child_claim_list_digest» "bigs"), .n (val% «child_claim_list_digest» "groups"), .n (val% «child_claim_list_digest» "rest")], [.n (val% «child_claim_list_digest» "d0@2"), .n (val% «child_claim_list_digest» "d1@2")], true⟩]
 
 /-- No `HeapBuf` of its own: `child_claim_list_any` places the chain buffer. -/
 def ccBufs (_ : ℕ) (_ : Val) : List ℕ := []
@@ -287,21 +289,21 @@ theorem cc_nonempty (fs : String → ℕ) (cert : String → V → ℕ) {κ : �
   obtain ⟨hLk, hLin'⟩ := memL_append.mp hm
   set σ := ccEσ eP rg L n base D with hσ
   have hgn : gen ^ n ≠ 1 := fun h => hn0 ((gen_pow_eq_one_iff (by omega)).mp h)
-  have h6ne : σ (.n 6) ≠ 0 := by
+  have h6ne : σ (.n (val% «child_claim_list_digest» "s1#1")) ≠ 0 := by
     show gen ^ n + word 1 0 ≠ 0
     rw [word_one, Ne, e_add_eq_zero_iff]; exact hgn
-  have h31ne : σ (.n 20) ≠ 0 := by
+  have h31ne : σ (.n (val% «child_claim_list_digest» "s1.e.s2#1")) ≠ 0 := by
     show 0 + word 2 0 ≠ 0
     rw [zero_add, word_gen]; exact gen_ne_zero
-  have hb : (if σ (.n 6) = 0 then walk σ cc25Zero else walk σ ccElse) =
-      .fall (ccE4.flatMap (Main.slEvs σ) ++ .inK (.n 20) :: ccAnyArm.flatMap (Main.slEvs σ)) := by
+  have hb : (if σ (.n (val% «child_claim_list_digest» "s1#1")) = 0 then walk σ cc25Zero else walk σ ccElse) =
+      .fall (ccE4.flatMap (Main.slEvs σ) ++ .inK (.n (val% «child_claim_list_digest» "s1.e.s2#1")) :: ccAnyArm.flatMap (Main.slEvs σ)) := by
     simp only [h6ne, ↓reduceIte]
-    rw [ccElse, walk_pre_ite σ ccMonoArm ccAnyArm rfl rfl (.n 20) ccE4 rfl]
+    rw [ccElse, walk_pre_ite σ ccMonoArm ccAnyArm rfl rfl (.n (val% «child_claim_list_digest» "s1.e.s2#1")) ccE4 rfl]
     simp only [h31ne, ↓reduceIte]
-  have hw := walk_ite σ ccdTail rfl (.n 6) cc25Zero ccElse [.n 25, .n 26] _ hb ccdHead rfl
+  have hw := walk_ite σ ccdTail rfl (.n (val% «child_claim_list_digest» "s1#1")) cc25Zero ccElse [.n (val% «child_claim_list_digest» "s2#0"), .n (val% «child_claim_list_digest» "s2#0[1]")] _ hb ccdHead rfl
   rw [← ccd_body] at hw
-  set es := ccdHead.flatMap (Main.slEvs σ) ++ .inK (.n 6) ::
-    ((ccE4.flatMap (Main.slEvs σ) ++ .inK (.n 20) :: ccAnyArm.flatMap (Main.slEvs σ)) ++
+  set es := ccdHead.flatMap (Main.slEvs σ) ++ .inK (.n (val% «child_claim_list_digest» "s1#1")) ::
+    ((ccE4.flatMap (Main.slEvs σ) ++ .inK (.n (val% «child_claim_list_digest» "s1.e.s2#1")) :: ccAnyArm.flatMap (Main.slEvs σ)) ++
       ccdTail.flatMap (Main.slEvs σ)) with hes
   have hev : ∀ e ∈ es, e.Holds rd σ := by
     intro e he
@@ -309,21 +311,21 @@ theorem cc_nonempty (fs : String → ℕ) (cert : String → V → ℕ) {κ : �
       Main.slEvs, List.cons_append, List.nil_append, List.append_nil, List.mem_cons,
       List.not_mem_nil, or_false] at he
     rcases he with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
-    · show σ (.n 5) = word 1 0; rfl
-    · show σ (.n 6) = σ (.n 4) + σ (.n 5); rfl
+    · show σ (.n (val% «child_claim_list_digest» "s1#0")) = word 1 0; rfl
+    · show σ (.n (val% «child_claim_list_digest» "s1#1")) = σ (.n (val% «child_claim_list_digest» "n_g")) + σ (.n (val% «child_claim_list_digest» "s1#0")); rfl
     · show IsInK (gen ^ n + word 1 0)
       rw [word_one, ← pow_zero gen]; exact gen_pow_add_isInK _ _
     · trivial
     · trivial
-    · show σ (.n 19) = word 2 0; rfl
-    · show σ (.n 20) = σ (.n 18) + σ (.n 19); rfl
+    · show σ (.n (val% «child_claim_list_digest» "s1.e.s2#0")) = word 2 0; rfl
+    · show σ (.n (val% «child_claim_list_digest» "s1.e.s2#1")) = σ (.n (val% «child_claim_list_digest» "mono")) + σ (.n (val% «child_claim_list_digest» "s1.e.s2#0")); rfl
     · show IsInK (0 + word 2 0)
       rw [zero_add, word_gen, ← pow_one gen]; exact gen_pow_isInK 1
     · trivial
-    · show σ (.n 13) = σ (.n 23); rfl
-    · show σ (.n 14) = σ (.n 24); rfl
-    · show σ (.n 25) = σ (.n 13); rfl
-    · show σ (.n 26) = σ (.n 14); rfl
+    · show σ (.n (val% «child_claim_list_digest» "digest[0]")) = σ (.n (val% «child_claim_list_digest» "d0@2")); rfl
+    · show σ (.n (val% «child_claim_list_digest» "digest[1]")) = σ (.n (val% «child_claim_list_digest» "d1@2")); rfl
+    · show σ (.n (val% «child_claim_list_digest» "s2#0")) = σ (.n (val% «child_claim_list_digest» "digest[0]")); rfl
+    · show σ (.n (val% «child_claim_list_digest» "s2#0[1]")) = σ (.n (val% «child_claim_list_digest» "digest[1]")); rfl
   have hal : allocs σ es = [] := rfl
   have hcalls : calls es = ccCalls n σ := by
     simp only [ccCalls, hn0, ↓reduceIte]; rfl
@@ -370,12 +372,12 @@ theorem cc_empty (fs : String → ℕ) (cert : String → V → ℕ) {Lin : Main
   obtain ⟨hat, hpar, h60, h6, hret⟩ := ccz_core (rd := rd) (gen ^ eP) (gen ^ rg) base (gen ^ L)
   set σ := cczσ rd [gen ^ eP, gen ^ rg, base, gen ^ L, gen ^ 0] with hσ
   obtain ⟨z1, z2, z3, z4, z5⟩ := cc25Zero_parts
-  have hb : (if σ (.n 6) = 0 then walk σ cc25Zero else walk σ ccElse) =
+  have hb : (if σ (.n (val% «child_claim_list_digest» "s1#1")) = 0 then walk σ cc25Zero else walk σ ccElse) =
       .fall (cc25Zero.flatMap (Main.slEvs σ)) := by
     simp only [h60, ↓reduceIte]; exact walk_straight_fall σ _ cc25Zero_straight
-  have hw := walk_ite σ ccdTail rfl (.n 6) cc25Zero ccElse [.n 25, .n 26] _ hb ccdHead rfl
+  have hw := walk_ite σ ccdTail rfl (.n (val% «child_claim_list_digest» "s1#1")) cc25Zero ccElse [.n (val% «child_claim_list_digest» "s2#0"), .n (val% «child_claim_list_digest» "s2#0[1]")] _ hb ccdHead rfl
   rw [← ccd_body] at hw
-  set es := ccdHead.flatMap (Main.slEvs σ) ++ .inK (.n 6) ::
+  set es := ccdHead.flatMap (Main.slEvs σ) ++ .inK (.n (val% «child_claim_list_digest» "s1#1")) ::
     (cc25Zero.flatMap (Main.slEvs σ) ++ ccdTail.flatMap (Main.slEvs σ)) with hes
   have hmZ : ∀ s ∈ ccdHead ++ cc25Zero ++ ccdTail, ∀ a, s = .atom a → a.Holds rd σ := by
     intro s hs a rfl
@@ -391,19 +393,19 @@ theorem cc_empty (fs : String → ℕ) (cert : String → V → ℕ) {Lin : Main
     rcases List.mem_append.mp he with he | he
     · exact slEvs_holds (fun s hs => slOk_atomS (mH s hs) (hmZ s (by simp [hs]))) e he
     rcases List.mem_cons.mp he with rfl | he
-    · show IsInK (σ (.n 6)); rw [h6]; exact gen_pow_add_isInK 0 0
+    · show IsInK (σ (.n (val% «child_claim_list_digest» "s1#1"))); rw [h6]; exact gen_pow_add_isInK 0 0
     rcases List.mem_append.mp he with he | he
     · exact slEvs_holds (fun s hs => slOk_atomS (List.all_eq_true.mp z5 s hs)
         (hmZ s (by simp [hs]))) e he
     · exact slEvs_holds (fun s hs => slOk_atomS (mTl s hs) (hmZ s (by simp [hs]))) e he
   obtain ⟨hzd, hza, hzad, hzc⟩ := Main.straight_parts σ _ cc25Zero_straight
   have hal : allocs σ es = [] := by
-    rw [hes, allocs_append, show allocs σ (.inK (.n 6) :: (cc25Zero.flatMap (Main.slEvs σ) ++
+    rw [hes, allocs_append, show allocs σ (.inK (.n (val% «child_claim_list_digest» "s1#1")) :: (cc25Zero.flatMap (Main.slEvs σ) ++
       ccdTail.flatMap (Main.slEvs σ))) = allocs σ (cc25Zero.flatMap (Main.slEvs σ) ++
       ccdTail.flatMap (Main.slEvs σ)) from rfl, allocs_append, hza, z1]
     rfl
   have hce : calls es = [] := by
-    rw [hes, calls_append, show calls (.inK (.n 6) :: (cc25Zero.flatMap (Main.slEvs σ) ++
+    rw [hes, calls_append, show calls (.inK (.n (val% «child_claim_list_digest» "s1#1")) :: (cc25Zero.flatMap (Main.slEvs σ) ++
       ccdTail.flatMap (Main.slEvs σ))) = calls (cc25Zero.flatMap (Main.slEvs σ) ++
       ccdTail.flatMap (Main.slEvs σ)) from rfl, calls_append, hzc, z3]
     rfl
@@ -414,26 +416,26 @@ theorem cc_empty (fs : String → ℕ) (cert : String → V → ℕ) {Lin : Main
     coreProgram_wf find_child_claim_list_digest (Or.inl ccd_loop) (by rw [ccd_param]; exact hpar)
     hw hret hev
     (by
-      rw [hal, hes, allocDsts_append, show allocDsts (.inK (.n 6) :: (cc25Zero.flatMap
+      rw [hal, hes, allocDsts_append, show allocDsts (.inK (.n (val% «child_claim_list_digest» "s1#1")) :: (cc25Zero.flatMap
         (Main.slEvs σ) ++ ccdTail.flatMap (Main.slEvs σ))) = allocDsts (cc25Zero.flatMap
         (Main.slEvs σ) ++ ccdTail.flatMap (Main.slEvs σ)) from rfl, allocDsts_append, hzd, z1]
       rfl)
     (fun q hq => by
-      rw [hes, addrs_append, show addrs (.inK (.n 6) :: (cc25Zero.flatMap (Main.slEvs σ) ++
+      rw [hes, addrs_append, show addrs (.inK (.n (val% «child_claim_list_digest» "s1#1")) :: (cc25Zero.flatMap (Main.slEvs σ) ++
         ccdTail.flatMap (Main.slEvs σ))) = addrs (cc25Zero.flatMap (Main.slEvs σ) ++
         ccdTail.flatMap (Main.slEvs σ)) from rfl, addrs_append, hzad, z2] at hq
       simp [ccdHead, ccdTail, addrs, Main.slEvs, Ev.addr?] at hq)
     (ccTs 0)
     (by rw [hce]; exact ⟨rfl, fun _ h => h⟩)
     (fun A hA => by
-      rw [hes, loadAddrs_append, show loadAddrs σ (.inK (.n 6) :: (cc25Zero.flatMap
+      rw [hes, loadAddrs_append, show loadAddrs σ (.inK (.n (val% «child_claim_list_digest» "s1#1")) :: (cc25Zero.flatMap
         (Main.slEvs σ) ++ ccdTail.flatMap (Main.slEvs σ))) = loadAddrs σ (cc25Zero.flatMap
         (Main.slEvs σ) ++ ccdTail.flatMap (Main.slEvs σ)) from rfl, loadAddrs_append,
         B1.loadAddrs_straight σ _ rfl, B1.loadAddrs_straight σ _ cc25Zero_straight,
         B1.loadAddrs_straight σ _ rfl, z4] at hA
       simp [ccdHead, ccdTail, B1.Stmt.loadS] at hA)
     (fun i hi => by obtain ⟨q, hq, -⟩ := hi; simp at hq)
-  have e4 : σ (.n 4) = gen ^ 0 := by
+  have e4 : σ (.n (val% «child_claim_list_digest» "n_g")) = gen ^ 0 := by
     simp only [List.cons.injEq] at hpar; exact hpar.2.2.2.2.1
   have h' := relAtInT_nodeHonest (Q := ccQ 0) (cs := ccCalls 0) (bs := ccBufs 0) h
     find_child_claim_list_digest hw ⟨e4, fun h0 => absurd rfl h0⟩ (by rw [hce]; rfl)
@@ -462,7 +464,7 @@ theorem child_claim_list_digest_completeAtT (fs : String → ℕ) (cert : String
       B1.disj_nil, fun rd _ _ => cc_empty fs cert fp rd⟩
   have hok : KidsDT fs cert κ (ccKids Lin eP rg L n base (keccak256 (cellsBytes cells))) (ccTs n) :=
     ⟨fun _ => (list_split_n fs cert hκ hn).toT,
-      fun _ => child_claim_list_any_completeAtT fs cert hn hl hL33 hLκ hrec hR2 hR3, trivial⟩
+      fun _ => child_claim_list_any_completeAtT fs cert hκ hn hl hL33 hLκ hrec hR2 hR3, trivial⟩
   obtain ⟨N, Lown, rets, Lout, -, ⟨rfl, rfl⟩, hW, hD, hr⟩ :=
     cc_nonempty fs cert (by omega) hn fp (kidsAt_of_kidsDT hok _)
   exact ⟨_, Lown, _, [], ⟨rfl, rfl⟩, hW, hD, hr⟩

@@ -13,6 +13,8 @@ public import LeanVM.Guest.B1.Sig.XmssSegStepC
 public import LeanVM.Guest.B1.Sig.XmssBound
 public import LeanVM.Guest.B1.Sig.CwComplete
 public import LeanVM.Guest.B1.Sig.XmssSegWinSpec
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«main_loop2»
 
 /-!
 # A window of the path, complete
@@ -664,7 +666,7 @@ theorem lxArmT_complete {L : Nat} (hL : L < 2 ^ 32) {w : Nat} (hw : w < 4) {cur 
   · simp only [hw3, ↓reduceIte]
     obtain rfl : w = 3 := by omega
     refine CompletesO.append (by omega) le_rfl hnum hlv (fun σ1 he1 hp1 => ?_)
-    have hc : (Atom.const (.n (67 + 3)) (word (lxWin L 3) 0)).Holds rd σ1 := by
+    have hc : (Atom.const (.n (val% «main_loop2» "his[3]")) (word (lxWin L 3) 0)).Holds rd σ1 := by
       show σ1 (sHis 3) = _
       rw [(hE1 σ1 he1).2.1 3 (by omega), word_eq_eOfNat]
       exact hh3
@@ -877,7 +879,7 @@ theorem lxWindowT_complete_fold (hm : MemOK rd 256) {L : Nat} (hL : L < 2 ^ 32) 
       (ofK_injective hx)).symm
   subst hkk
   obtain ⟨jc, hjc, rfl⟩ := hcur
-  rw [hout, show sLxPP = .n 66 from rfl, hlo 66 (by omega), hlo jc hjc]
+  rw [hout, show sLxPP = .n (val% «main_loop2» "pp") from rfl, hlo 66 (by omega), hlo jc hjc]
   refine mFold_congr' 8 0 0 _ fun j hj => ⟨?_, ?_, ?_⟩
   · simp only [Nat.zero_add, lxAtF]
     rw [hE'.2.2 (7 - j) (by omega), gen_pow_eq_eOfNat (by omega)]
@@ -942,17 +944,17 @@ theorem lxWindows_complete (hm : MemOK rd 256) {L : Nat} (hL : L < 2 ^ 32) {laye
         lxStride (2 * layer) * r) < W0.2.1 := by omega
     rw [lxSibF, he2.apply (Or.inl hlt)]
     exact hs0 r hr
-  · rw [hv1, hv0, show sLxPP = .n 66 from rfl, hlo1 66 (by omega), ← mFold_eq_xFold,
+  · rw [hv1, hv0, show sLxPP = .n (val% «main_loop2» "pp") from rfl, hlo1 66 (by omega), ← mFold_eq_xFold,
       show 16 = 8 + 8 from rfl, lxMFold_add]
-    have e0 : ∀ x, mFold (σ (.n 66)) (lxLayerA L layer) (lxLayerBit L layer) sibs 8 0 x =
-        mFold (σ (.n 66)) (lxNodeAddr L (2 * layer)) (fun r => L.testBit (8 * (2 * layer) + r)) sibs 8 0 x :=
+    have e0 : ∀ x, mFold (σ (.n (val% «main_loop2» "pp"))) (lxLayerA L layer) (lxLayerBit L layer) sibs 8 0 x =
+        mFold (σ (.n (val% «main_loop2» "pp"))) (lxNodeAddr L (2 * layer)) (fun r => L.testBit (8 * (2 * layer) + r)) sibs 8 0 x :=
       fun x => mFold_congr' 8 0 0 x fun j hj => ⟨by
           show lxNodeAddr L (2 * layer + (0 + j) / 8) ((0 + j) % 8) = lxNodeAddr L (2 * layer) (0 + j)
           rw [show (0 + j) / 8 = 0 by omega, show (0 + j) % 8 = 0 + j by omega, Nat.add_zero], by
           show L.testBit (16 * layer + (0 + j)) = L.testBit (8 * (2 * layer) + (0 + j))
           rw [show 16 * layer + (0 + j) = 8 * (2 * layer) + (0 + j) by omega], rfl⟩
-    have e1 : ∀ x, mFold (σ (.n 66)) (lxLayerA L layer) (lxLayerBit L layer) sibs 8 (0 + 8) x =
-        mFold (σ (.n 66)) (lxNodeAddr L (2 * layer + 1)) (fun r => L.testBit (8 * (2 * layer + 1) + r))
+    have e1 : ∀ x, mFold (σ (.n (val% «main_loop2» "pp"))) (lxLayerA L layer) (lxLayerBit L layer) sibs 8 (0 + 8) x =
+        mFold (σ (.n (val% «main_loop2» "pp"))) (lxNodeAddr L (2 * layer + 1)) (fun r => L.testBit (8 * (2 * layer + 1) + r))
           (fun r => sibs (8 + r)) 8 0 x :=
       fun x => mFold_congr' 8 (0 + 8) 0 x fun j hj => ⟨by
           show lxNodeAddr L (2 * layer + (0 + 8 + j) / 8) ((0 + 8 + j) % 8) = lxNodeAddr L (2 * layer + 1) (0 + j)

@@ -8,6 +8,8 @@ module
 
 public import LeanVM.Guest.B1.Eq.Meaning
 public import LeanVM.Guest.B1.Common.Find
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«plus_one_run__L»
 
 /-!
 # `plus_one_run` (TRIAGE #27)
@@ -25,9 +27,9 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 /-- Entry `k`. -/
 def poBlk (k : ℕ) : List Stmt :=
-  [.atom (.const (.n (2 + 3 * k)) (word 1 0)), .atom (.load (.n (3 + 3 * k)) (.n 1) k),
+  [.atom (.const (.n (2 + 3 * k)) (word 1 0)), .atom (.load (.n (3 + 3 * k)) (.n (valf% «plus_one_run» "src")) k),
     .atom (.add (.n (4 + 3 * k)) (.n (2 + 3 * k)) (.n (3 + 3 * k))),
-    .atom (.load (.n (4 + 3 * k)) (.n 0) k)]
+    .atom (.load (.n (4 + 3 * k)) (.n (valf% «plus_one_run» "out")) k)]
 
 /-- The expansion of `plus_one_run__L{n}`. -/
 def poBody (n : ℕ) : List Stmt :=
@@ -36,9 +38,9 @@ def poBody (n : ℕ) : List Stmt :=
 
 /-- What entry `k` asks. -/
 def PoOk (rd : Reader) (σ : Val) (k : ℕ) : Prop :=
-  σ (.n (2 + 3 * k)) = 1 ∧ LoadHolds rd (σ (.n 1)) k (σ (.n (3 + 3 * k))) ∧
+  σ (.n (2 + 3 * k)) = 1 ∧ LoadHolds rd (σ (.n (valf% «plus_one_run» "src"))) k (σ (.n (3 + 3 * k))) ∧
     σ (.n (4 + 3 * k)) = σ (.n (2 + 3 * k)) + σ (.n (3 + 3 * k)) ∧
-    LoadHolds rd (σ (.n 0)) k (σ (.n (4 + 3 * k)))
+    LoadHolds rd (σ (.n (valf% «plus_one_run» "out"))) k (σ (.n (4 + 3 * k)))
 
 theorem holds_poBlk {C : CallRel} {rd : Reader} {σ : Val} (k : ℕ) (kret : List E → Prop) :
     Stmt.HoldsList C rd σ (poBlk k) True kret ↔ PoOk rd σ k := by
@@ -46,7 +48,7 @@ theorem holds_poBlk {C : CallRel} {rd : Reader} {σ : Val} (k : ℕ) (kret : Lis
 
 /-- The function's relation is its meaning, for a body `poBody n`. -/
 theorem po_iff (n : ℕ) {f : Fn} (hfind : coreProgram.find? (plusOneRunNames.getD n "") = some f)
-    (hparams : f.params = [.n 0, .n 1]) (hbody : f.body = poBody n) (rd : Reader)
+    (hparams : f.params = [.n (valf% «plus_one_run» "out"), .n (valf% «plus_one_run» "src")]) (hbody : f.body = poBody n) (rd : Reader)
     (args rets : List E) :
     coreProgram.Rel rd (plusOneRunNames.getD n "") args rets ↔ MeaningPlusOneRun n rd args rets := by
   rw [rel_iff_sem hfind, hbody, hparams, poBody]

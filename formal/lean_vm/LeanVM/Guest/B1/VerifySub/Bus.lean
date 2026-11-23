@@ -10,6 +10,8 @@ public import LeanVM.Guest.B1.VerifySub.Ood
 public import LeanVM.Guest.B1.VerifySub.Known
 public import LeanVM.Guest.B1.VerifySub.Split
 public import LeanVM.Guest.B1.Bits.BusGrind
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_sub»
 
 /-!
 # The bus challenges
@@ -52,12 +54,12 @@ def vsFpwBlk (i : ℕ) : List Stmt :=
 
 /-- **The slot weights' squeezes**: after `n` of them the sponge's capacity is at `vsFpwCap n`,
 and squeeze `i` is at `335 + 13 i`, stored at `fp_w[i + 1]`. -/
-theorem fpw_loop (h8 : σ (.n 8) = 0) (h9 : σ (.n 9) = 0) (h10 : σ (.n 10) = 0)
-    (h11 : σ (.n 11) = 0) : ∀ (n : ℕ) {nx : Prop},
+theorem fpw_loop (h8 : σ (.n (val% «verify_sub» "s3#0[1]")) = 0) (h9 : σ (.n (val% «verify_sub» "s3#0[2]")) = 0) (h10 : σ (.n (val% «verify_sub» "s3#0[3]")) = 0)
+    (h11 : σ (.n (val% «verify_sub» "s3#0[4]")) = 0) : ∀ (n : ℕ) {nx : Prop},
     Stmt.HoldsList C rd σ ((List.range n).flatMap vsFpwBlk) nx kret →
       sqSt ⟨(vsRun 329 5).map σ, []⟩ n = ⟨(vsRun (vsFpwCap n) 5).map σ, []⟩ ∧
         (∀ i < n, (sqSt ⟨(vsRun 329 5).map σ, []⟩ i).squeeze.1 = σ (.n (335 + 13 * i)) ∧
-          LoadHolds rd (σ (.n 334)) (i + 1) (σ (.n (335 + 13 * i)))) ∧ nx := by
+          LoadHolds rd (σ (.n (val% «verify_sub» "fp_w"))) (i + 1) (σ (.n (335 + 13 * i)))) ∧ nx := by
   intro n
   induction n with
   | zero => exact fun h ↦ ⟨rfl, fun i hi ↦ absurd hi (by omega), h⟩
@@ -79,17 +81,17 @@ theorem fpw_loop (h8 : σ (.n 8) = 0) (h9 : σ (.n 9) = 0) (h10 : σ (.n 10) = 0
 
 /-- **The bus challenges**. -/
 theorem vsBusFpw_holds {κ : ℕ} (hκ : κ ≤ 32) (hκw : winTabBits ≤ κ) (L : MemoryImage κ)
-    (hC : CallRel.Le C (coreProgram.Rel L.read)) (hwin : ExpWinTab L.read (σ (.n 4)))
-    (h8 : σ (.n 8) = 0) (h9 : σ (.n 9) = 0) (h10 : σ (.n 10) = 0) (h11 : σ (.n 11) = 0)
-    {μ : ℕ} (hμ : μ < 34) (h253 : σ (.n 253) = gen ^ μ)
+    (hC : CallRel.Le C (coreProgram.Rel L.read)) (hwin : ExpWinTab L.read (σ (.n (val% «verify_sub» "g_squares"))))
+    (h8 : σ (.n (val% «verify_sub» "s3#0[1]")) = 0) (h9 : σ (.n (val% «verify_sub» "s3#0[2]")) = 0) (h10 : σ (.n (val% «verify_sub» "s3#0[3]")) = 0) (h11 : σ (.n (val% «verify_sub» "s3#0[4]")) = 0)
+    {μ : ℕ} (hμ : μ < 34) (h253 : σ (.n (val% «verify_sub» "g_bus_mu")) = gen ^ μ)
     {s : Fs} {nn : E}
-    (hS : [σ (.n 312), σ (.n 313), σ (.n 314), σ (.n 315), σ (.n 316), σ (.n 317), σ (.n 318)] =
+    (hS : [σ (.n (val% «verify_sub» "word0")), σ (.n (val% «verify_sub» "pow_word")), σ (.n (val% «verify_sub» "fs0@2")), σ (.n (val% «verify_sub» "fs1@2")), σ (.n (val% «verify_sub» "fs2@2")), σ (.n (val% «verify_sub» "fs3@2")), σ (.n (val% «verify_sub» "fs4@2"))] =
       [cellsOfState (s.nonceState nn) false 0, cellsOfState (s.nonceState nn) false 1] ++
         capOf (s.nonceState nn))
     (h : Stmt.HoldsList C L.read σ (vsBusGrindT ++ vsFpwT) next kret) :
-    20 ≤ μ ∧ ∃ weights : List E, weights.length = 16 ∧ ReadsAt L.read (σ (.n 334)) weights ∧
-      RunsTo (busChallenges μ) s [nn] (weights, σ (.n 530))
-        ⟨[σ (.n 538), σ (.n 539), σ (.n 540), σ (.n 541), σ (.n 542)], []⟩ ∧ next := by
+    20 ≤ μ ∧ ∃ weights : List E, weights.length = 16 ∧ ReadsAt L.read (σ (.n (val% «verify_sub» "fp_w"))) weights ∧
+      RunsTo (busChallenges μ) s [nn] (weights, σ (.n (val% «verify_sub» "nxt[0]@19")))
+        ⟨[σ (.n (val% «verify_sub» "nxt[8]@19")), σ (.n (val% «verify_sub» "nxt[9]@19")), σ (.n (val% «verify_sub» "nxt[10]@19")), σ (.n (val% «verify_sub» "nxt[11]@19")), σ (.n (val% «verify_sub» "nxt[12]@19"))], []⟩ ∧ next := by
   have hκ6 : 6 ≤ κ := by simp only [winTabBits] at hκw; omega
   rw [holdsList_append, vsBusGrindT, holdsList_append, holdsList_append] at h
   simp only [Stmt.HoldsList, Stmt.Holds, vsConst, vsMul, vsRange, Atom.Holds] at h
@@ -110,7 +112,7 @@ theorem vsBusFpw_holds {κ : ℕ} (hκ : κ ≤ 32) (hκw : winTabBits ≤ κ) (
   subst hje
   -- the grind
   rw [vsBgName_eq (by omega) hj] at hbg
-  have hwt : WinTabs L.read (σ (.n 327)) := by rw [h328]; exact winTabs_of_expWinTab hwin
+  have hwt : WinTabs L.read (σ (.n (val% «verify_sub» "done~2"))) := by rw [h328]; exact winTabs_of_expWinTab hwin
   obtain ⟨-, hpow⟩ := (bus_grind_check_holds j (List.mem_range.2 (by omega)) hκ hκw L _ _ hwt _).1
     (hC _ _ _ hbg)
   have hbits : busGrindBits j = busGrindingBits μ := by
@@ -133,13 +135,13 @@ theorem vsBusFpw_holds {κ : ℕ} (hκ : κ ≤ 32) (hκw : winTabBits ≤ κ) (
   obtain ⟨hβ, hn⟩ := vsPermT_holds h8 h9 h10 h11 hL'
   have hcap : capOf S = (vsRun 329 5).map σ := by
     rw [← ecap]
-    show _ = [σ (.n 329), σ (.n 330), σ (.n 331), σ (.n 332), σ (.n 333)]
+    show _ = [σ (.n (val% «verify_sub» "sp[0]@2")), σ (.n (val% «verify_sub» "sp[1]@2")), σ (.n (val% «verify_sub» "sp[2]@2")), σ (.n (val% «verify_sub» "sp[3]@2")), σ (.n (val% «verify_sub» "sp[4]@2"))]
     rw [c0, c1, c2, c3, c4]
   have hT : ((⟨capOf S, []⟩ : Fs).squeezeN 15).2 = ⟨(vsRun 525 5).map σ, []⟩ := by
     rw [hcap, squeezeN_eq]
     exact hs15
   have hβ' : ((⟨capOf S, []⟩ : Fs).squeezeN 15).2.squeeze =
-      (σ (.n 530), ⟨[σ (.n 538), σ (.n 539), σ (.n 540), σ (.n 541), σ (.n 542)], []⟩) := by
+      (σ (.n (val% «verify_sub» "nxt[0]@19")), ⟨[σ (.n (val% «verify_sub» "nxt[8]@19")), σ (.n (val% «verify_sub» "nxt[9]@19")), σ (.n (val% «verify_sub» "nxt[10]@19")), σ (.n (val% «verify_sub» "nxt[11]@19")), σ (.n (val% «verify_sub» "nxt[12]@19"))], []⟩) := by
     rw [hT]; exact hβ
   have hW : ((⟨capOf S, []⟩ : Fs).squeezeN 15).1 =
       (List.range 15).map fun x ↦ (sqSt ⟨(vsRun 329 5).map σ, []⟩ x).squeeze.1 := by

@@ -109,3 +109,28 @@ __pycache__/
 # The verifier fixtures, the Rust prover's proofs: written by `lean_vm/scripts/export-verifier-fixtures-rust.sh`
 # before the differential tests that read them
 /lean_vm/tests/fixtures/verifier/
+# What the core route's, the hint bridge's and the count step's generators write (`regen-guest.sh`'s `core`, `vt`,
+# `bridge`, `core-mode`, `decoder` steps): never committed either. Not the core route's contracts
+# (`CoreMode/Sig/`, which `sigc.py` keeps as written): they are its input.
+/lean_vm/LeanVM/Guest/CoreNamesMod.lean
+/lean_vm/LeanVM/Guest/B1/Tables/VtC/FDataD.lean
+/lean_vm/LeanVM/Cost/Decoder/GuestLanes.lean
+/lean_vm/LeanVM/Guest/Bridge/Align/
+/lean_vm/LeanVM/Guest/Bridge/AlignCtx/
+/lean_vm/LeanVM/Guest/Bridge/AllocChk/
+/lean_vm/LeanVM/Guest/Bridge/JumpCells/
+/lean_vm/LeanVM/Guest/Bridge/PairChk/
+/lean_vm/LeanVM/Guest/Bridge/ProgAl/
+/lean_vm/LeanVM/Guest/Bridge/WitChk/
+/lean_vm/LeanVM/Guest/Bridge/ProgAlData.lean
+/lean_vm/LeanVM/Guest/CoreMode/AlignOk/
+/lean_vm/LeanVM/Guest/CoreMode/Gen/
+/lean_vm/LeanVM/Guest/CoreMode/GenW/
+/lean_vm/LeanVM/Guest/CoreMode/GenWL/
+/lean_vm/LeanVM/Guest/CoreMode/GlueA/
+/lean_vm/LeanVM/Guest/CoreMode/GlueC/
+/lean_vm/LeanVM/Guest/CoreMode/GlueE/
+/lean_vm/LeanVM/Guest/CoreMode/GlueP/
+/lean_vm/LeanVM/Guest/CoreMode/GlueG.lean
+/lean_vm/LeanVM/Guest/CoreMode/Pack/
+/lean_vm/LeanVM/Guest/CoreMode/Pows/

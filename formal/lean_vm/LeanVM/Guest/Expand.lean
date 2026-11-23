@@ -31,8 +31,9 @@ same way, from the same readings:
   arguments, chained `match`es (back to back in an `unroll`, all arms `@inline`, the next
   scrutinee a free frame cell: the entered one sets nothing above its arms; a chain is the
   sequence of its `match`es in the core IR, which only the bytecode's jumps tell apart),
-  `mul_range` lifted to a tail-recursive helper `__loopN` taking its captured values, a captured
-  `StackBuf` as a `StackBuf(n)` parameter;
+  `mul_range` lifted to a tail-recursive helper `__loopN_f` taking its captured values, a captured
+  `StackBuf` as a `StackBuf(n)` parameter, a capture the body binds in its own scope being the
+  body's own name (`settle_loop_captures`: the helper is expanded again with it unbound);
 * `StackBuf` runs, slices, list literals and `addr`, heap addressing, and the hints;
 * the Keccak builtins (`lower/builtins.rs`): `keccak(a, b, out, tail=, len=, cap=)` and
   `keccak_cells(cells, out, state=, len=, final=)`, a list comprehension expanded once its bounds
@@ -50,8 +51,8 @@ What the compiler shares (pure results, pooled constants, repeated loads) is not
 second occurrence is a second atom with a fresh name, on the same relation. A value's name is its
 position (`Core.Seg`): statement index, `unroll` counter, branch, arm, inline call site.
 
-The loop counter `__loopN` is the compiler's: one counter over the whole compilation, advanced
-in lowering order, which `expandProgram` reproduces and `expandFn` takes as `loopBase`.
+A loop helper is named by the loops lowered before it in the function it is lowered in, and that
+function: `__loopN_f`, as the compiler names it.
 
 Three places do not reproduce the compiler exactly; none changes a relation. An `addr` pointer
 is a value of its own (`Atom.frameAddr`), where the compiler folds the frame offset into it, so
@@ -125,6 +126,8 @@ structure Ctx where
   fnName : String
   isMain : Bool
   returnShapes : List Shape
+  /-- The parameters' bindings on entry, in order. -/
+  params : List (String × Bound)
   deriving Inhabited
 
 /-- The lowering state. -/
@@ -156,7 +159,13 @@ structure St where
   chainIn : Option V := none
   /-- Every function queued so far, originals first. -/
   queue : Array Func
-  loopCtr : Nat
+  /-- The loops lowered so far in this function. -/
+  loopCtr : Nat := 0
+  /-- Each source name bound to a value, in order (`rebind`): a value's name for the proofs
+  (`guest-core --names`), not read by the lowering. -/
+  binds : Array (String × V) := #[]
+  /-- The captures a loop helper's body bound in its own scope (`settleLoopCaptures`). -/
+  rebound : List String := []
   deriving Inhabited
 
 /-- The lowering monad. -/
@@ -242,6 +251,13 @@ def stackOf (e : Expr) : M (Option (List V)) :=
   | .var v => stackOfName v
   | _ => return none
 
+/-- `check_bound`: a read of a name nothing binds is reported as that, whatever the use wants
+of it. -/
+def checkBound (e : Expr) : M Unit := do
+  if let .var v := e then
+    if (← lookup v).isNone && !((← ctx).arrays.any (·.1 == v)) then
+      fail s!"unbound variable `{v}`"
+
 /-- Reject a constant array's name as a binding (`check_not_reserved`). -/
 def checkNotReserved (n : String) : M Unit := do
   if ((← ctx).arrays.any (·.1 == n)) then
@@ -250,7 +266,12 @@ def checkNotReserved (n : String) : M Unit := do
 /-- Bind a name, clearing its integer reading (`rebind`). -/
 def rebind (n : String) (b : Binding) : M Unit := do
   checkNotReserved n
-  modify fun st => { st with names := (n, ⟨b, none⟩) :: st.names.filter (·.1 != n) }
+  let named : List (String × V) := match b with
+    | .scalar v => [(n, v)]
+    | .stack cells => cells.zipIdx.map fun (c, k) => (s!"{n}[{k}]", c)
+    | _ => []
+  modify fun st => { st with names := (n, ⟨b, none⟩) :: st.names.filter (·.1 != n),
+                             binds := st.binds ++ named.toArray }
 
 /-- Attach an integer reading to a name's binding (`set_int`). -/
 def setInt (n : String) (k : Nat) : M Unit :=
@@ -548,6 +569,7 @@ def frameCell (arr idx : Expr) : M (Option V) := do
 /-- `addr(sb)` (`stack_addr`). -/
 def stackAddr (args : List Expr) : M GAddr := do
   let [a] := args | fail "addr(buf) takes one StackBuf"
+  checkBound a
   match ← stackOf a with
   | none => fail "addr() names a frame run, so it takes a StackBuf"
   | some cells => do
@@ -578,6 +600,7 @@ def retTargets (targets : List Expr) : M (List V × List (String × V)) := do
   for t in targets do
     match t with
     | .index arr idx => do
+        checkBound arr
         match ← frameCell arr idx with
         | some c => cells := cells.push c
         | none => fail "a multi-value target must be a name or a StackBuf element"
@@ -907,6 +930,35 @@ def freeCell (e : Expr) (targets : List Expr) : M (Option V) := do
       return cells[k]?
   | _ => return none
 
+/-- `small_gpow` from `p = g^k`, `left` powers to try. -/
+def smallGpowFrom (c p : E) : Nat → Nat → Option Nat
+  | 0, _ => none
+  | left + 1, k => if p == c then some k else smallGpowFrom c (p * gpowE 1) left (k + 1)
+
+/-- `small_gpow`: the exponent `k ≤ foldMax` of a constant that is `g^k`. -/
+def smallGpow (c : E) : Option Nat := smallGpowFrom c 1 (foldMax + 1) 0
+
+/-- Before a loop helper's self-call, which passes each capture on by name: bind every capture
+back to the parameter it arrived in, and note each one the body had bound in the helper's own
+scope (`settle_loop_captures`). Such a name is the body's own, and `expandFn` expands the helper
+again with it unbound; a binding in a runtime arm has reverted by here, and an `@inline` callee's
+names are its own. -/
+def settleLoopCaptures (args : List Expr) : M Unit := do
+  for ((p, arrived), arg) in (← ctx).params.zip args do
+    -- The counter is passed on advanced, not by its name.
+    let byName := match arg with
+      | .var x => x == p
+      | _ => false
+    if byName then
+      let now ← lookup p
+      let kept := match arrived.val, now.map (·.val) with
+        | .scalar a, some (.scalar b) => a == b
+        | .stack a, some (.stack b) => a == b
+        | _, _ => false
+      if !kept then
+        modify fun st => { st with rebound := st.rebound ++ [p],
+                                   names := (p, arrived) :: st.names.filter (·.1 != p) }
+
 /-! ## Lowering -/
 
 mutual
@@ -1037,15 +1089,33 @@ def exprInto : Nat → Expr → V → M Unit
 /-- Address `arr[idx]` as a pointer and a `β` exponent (`heap_addr`). -/
 def heapAddr : Nat → Expr → Expr → M (V × Nat)
   | 0, _, _ => fail "expansion fuel exhausted"
-  | n + 1, arr, idx => do
-    let bareInt := match ← tryLit idx with
-      | some k => k != 1
-      | none => false
+  | n + 1, arr, idx => heapAddrSpan n arr idx 1
+
+/-- `heapAddr` of the first of `span` consecutive cells: an index that folds has the whole run
+bounds-checked (`heap_addr_span`). -/
+def heapAddrSpan : Nat → Expr → Expr → Nat → M (V × Nat)
+  | 0, _, _, _ => fail "expansion fuel exhausted"
+  | n + 1, arr, idx, span => do
+    -- A buffer nothing binds is the error, whatever its index reads as.
+    checkBound arr
+    -- An integer index is rejected however it is spelled: the slice `buf[n:n + 1]` reads the same
+    -- number as cell `n`. A constant array's element, `NAME[i]` as the whole index, is the field
+    -- value it holds, and any other constant that is a g-power names its cell.
     let known ← eval evalFuel idx
-    if (bareInt || known.addr.isNone) && known.field.isSome then
-      fail "heap index is a plain integer or a constant that is no g-power: write `buf[GEN ** k]`"
+    let arrays := (← ctx).arrays
+    let element := match idx with
+      | .index (.var v) _ => arrays.any (·.1 == v)
+      | _ => false
+    let plainInt := (match known.int with
+      | some k => k != 1
+      | none => false) && !element
+    if plainInt || known.addr.isNone then
+      if let some c := known.field then
+        if known.diverging.isNone && !plainInt then
+          if let some k := smallGpow c then return ← heapBase n arr k span
+        fail "heap index is a plain integer or a constant that is no g-power: write `buf[GEN ** k]`"
     match known.addr with
-    | some ⟨none, exp, _⟩ => return ← heapBase n arr exp
+    | some ⟨none, exp, _⟩ => return ← heapBase n arr exp span
     | some ⟨some ib, exp, _⟩ => do
         if let some ga ← gaddrOf arr then
           if let (some ab, some total) := (ga.base, chk (ga.exp + exp)) then
@@ -1055,11 +1125,11 @@ def heapAddr : Nat → Expr → Expr → M (V × Nat)
     | none => pure ()
     arrayPtr n arr idx
 
-/-- Address `arr·g^extra` (`heap_base`). -/
-def heapBase : Nat → Expr → Nat → M (V × Nat)
-  | 0, _, _ => fail "expansion fuel exhausted"
-  | n + 1, arr, extra => do
-    checkHeapBound arr extra 1
+/-- Address `arr·g^extra`, the first of `span` cells bounds-checked together (`heap_base`). -/
+def heapBase : Nat → Expr → Nat → Nat → M (V × Nat)
+  | 0, _, _, _ => fail "expansion fuel exhausted"
+  | n + 1, arr, extra, span => do
+    checkHeapBound arr extra span
     if let some ga ← gaddrOf arr then
       if let (some base, some exp) := (ga.base, chk (ga.exp + extra)) then
         if exp ≤ foldMax then return (base, exp)
@@ -1091,6 +1161,7 @@ def cellRun : Nat → Expr → M CellRun
   | n + 1, e => do
     match e with
     | .var _ => do
+        checkBound e
         match ← stackOf e with
         | some cells => return .stack cells
         | none => fail "only a StackBuf names a run of cells unsliced"
@@ -1104,17 +1175,14 @@ def cellRun : Nat → Expr → M CellRun
                 if cells.length < h then fail s!"slice {l}:{h} out of bounds (StackBuf size {cells.length})"
                 return .stack ((cells.drop l).take len)
             | none => do
-                checkHeapBound arr l len
-                let (ptr, lo') ← heapBase n arr l
+                let (ptr, lo') ← heapBase n arr l len
                 return .heap ptr lo' len
         | _, _ => do
             if (← stackOf arr).isSome then fail "a StackBuf slice needs compile-time bounds"
             let some k := plusK lo hi | fail "a runtime slice must be `buf[i:i + k]`"
             if u32Bound ≤ k then fail s!"slice length {k} does not fit in u32"
             if k = 0 then fail "a runtime slice of length 0 names no cell"
-            if let some ⟨none, exp, _⟩ ← gaddrOf lo then
-              checkHeapBound arr exp k
-            let (ptr, lo') ← heapAddr n arr lo
+            let (ptr, lo') ← heapAddrSpan n arr lo k
             return .heap ptr lo' k
     | _ => fail "expected a StackBuf, a StackBuf slice, or a HeapBuf slice"
 
@@ -1184,6 +1252,7 @@ def lowerCall : Nat → String → List Expr → Option V → List V → M Unit
     for (i, a) in (List.range args.length).zip args do
       match shapes[i]?.getD Shape.scalar with
       | Shape.stackBuf k => do
+          checkBound a
           let some run ← stackOf a | fail s!"`{callee}` parameter {i} is a StackBuf({k}); pass one"
           if run.length != k then fail s!"`{callee}` parameter {i} is a StackBuf({k}), got a StackBuf({run.length})"
           cells := cells ++ run.toArray
@@ -1304,8 +1373,7 @@ def lowerIf : Nat → Bool → Expr → Expr → List Source.Stmt → List Sourc
   | n + 1, eq, lhs, rhs, thn, els, forceConst => do
     let a ← eval evalFuel lhs
     let b ← eval evalFuel rhs
-    let small : Option Nat → Option Nat := fun k => k.bind fun k => if k < u32Bound then some k else none
-    if let (some ai, some bi) := (small a.int, small b.int) then
+    if let (some ai, some bi) := (a.int, b.int) then
       if !forceConst then
         for k in [a, b] do
           if let some (i, _) := k.diverging then
@@ -1450,26 +1518,31 @@ def lowerDispatchedCall : Nat → List Expr → Expr → List String → List Ex
     emit (.dispatch xo callees argCells rcells)
     bindTargets binds
 
-/-- `for var in mul_range(GEN ** lo, hi)`, lifted to `__loopN` (`lower_for`). -/
+/-- `for var in mul_range(GEN ** lo, hi)`, lifted to `__loopN_f` (`lower_for`). -/
 def lowerFor : Nat → Nat → String → Nat → ForBound → List Source.Stmt → M Unit
   | 0, _, _, _, _, _ => fail "expansion fuel exhausted"
   | n + 1, line, var, lo, hi, body => do
     let id := (← get).loopCtr
     modify fun st => { st with loopCtr := st.loopCtr + 1 }
-    let loopName := s!"__loop{id}"
-    let boundVar := s!"__bound{id}"
+    let loopName := s!"__loop{id}_{(← get).ctx.fnName}"
+    let boundVar := s!"{loopName}__bound"
     let (exit, entryBound) := match hi with
       | .const h => (Expr.gpow h, Expr.gpow h)
       | .runtime e => (Expr.var boundVar, e)
-    let (refs, bound) := Source.Stmt.freeVarsList body ([], [var])
-    let shadowed := Source.Stmt.bindsList body
+    let (refs, bound) := Source.Stmt.freeVarsList false body ([], [var])
+    -- The same, leaving out the blocks literals say never run: a binding in one hides nothing, so
+    -- a name the body reads where it runs, and binds only where it does not, is the enclosing one.
+    let (liveRefs, liveBound) := Source.Stmt.freeVarsList true body ([], [var])
+    let readsOuter : String → Bool := fun r => liveRefs.contains r && !liveBound.contains r
+    let shadowed := Source.Stmt.bindsList false body
+    let own := Source.Stmt.bindsList true body
     -- A captured `StackBuf` becomes a `StackBuf(n)` parameter, which each iteration's
     -- self-call copies on, cell by cell.
     let mut captures : Array (String × Shape) := #[]
     for r in refs do
-      if bound.contains r then continue
+      if bound.contains r && !readsOuter r then continue
       if let some cells ← stackOfName r then
-        if !shadowed.contains r then
+        if !shadowed.contains r || (readsOuter r && !own.contains r) then
           if !captures.any (·.1 == r) then captures := captures.push (r, .stackBuf cells.length)
           continue
       match ← lookup r with
@@ -1481,7 +1554,7 @@ def lowerFor : Nat → Nat → String → Nat → ForBound → List Source.Stmt 
       captures.toList
     let capArgs : Expr → Expr → List Expr := fun first b =>
       [first] ++ (if runtime then [b] else []) ++ captures.toList.map (.var ·.1)
-    let nextVar := s!"__next{id}"
+    let nextVar := s!"{loopName}__next"
     let loopBody := body ++ [
       .mk line (.let_ nextVar (.mul (.var var) .gen)),
       .mk line (.callIfNe (.var nextVar) exit loopName (capArgs (.var nextVar) (.var boundVar))),
@@ -1572,6 +1645,7 @@ def lowerBuiltin : Nat → String → List Expr → M Bool
         return true
     | "hint_f128_limbs" => do
         let [d, v] := args | fail "hint_f128_limbs takes two arguments, `(dest, value)`"
+        checkBound d
         let some cells ← stackOf d | fail "hint_f128_limbs writes frame cells: its destination must be a StackBuf"
         if !(1 ≤ cells.length && cells.length ≤ 2) then
           fail "hint_f128_limbs destination must have 1..=2 cells"
@@ -1811,6 +1885,7 @@ def stmtKind : Nat → Nat → StmtKind → M Unit
             emitAtom (.load v ptr o2)
     | .ret es => lowerReturn n es
     | .callIfNe lhs rhs callee args => do
+        if callee == (← ctx).fnName then settleLoopCaptures args
         let la ← expr n lhs
         let lb ← expr n rhs
         let x ← pureAdd la lb
@@ -1867,14 +1942,15 @@ def paramBindings (f : Func) : List (String × Bound) × List V := Id.run do
         pos := pos + 1
   return (names, (List.range pos).map V.param)
 
-/-- The state lowering `f` starts in. -/
-def initState (p : Program) (f : Func) (queue : Array Func) (loopBase : Nat) : St :=
+/-- The state lowering `f` starts in, the parameters `own` unbound: the captures of a loop helper
+that are its body's own names. -/
+def initState (p : Program) (f : Func) (queue : Array Func) (own : List String := []) : St :=
   { ctx := { defs := p.funcs, arrays := p.constArrays, fnName := f.name, isMain := f.name == "main",
-             returnShapes := f.returnShapes },
-    names := (paramBindings f).1, heapSizes := [], path := [], tag := 0, out := #[],
+             returnShapes := f.returnShapes, params := (paramBindings f).1.reverse },
+    names := (paramBindings f).1.filter fun q => !own.contains q.1,
+    heapSizes := [], path := [], tag := 0, out := #[],
     pending := false, inlineCalls := [],
-    keccakPad := none, queue,
-    loopCtr := loopBase }
+    keccakPad := none, queue }
 
 /-- Lower a function's body (`lower_func`). -/
 def lowerFunc (f : Func) : M Unit := do
@@ -1888,15 +1964,26 @@ def lowerFunc (f : Func) : M Unit := do
         let line := (f.body.getLast?.map (·.line)).getD 0
         withSeg (.s f.body.length) (stmtKind fuel line (.ret []))
 
-/-- The core function of `f`, the queue after it, and the loop counter after it: `queue` is
-every function queued before (it decides which specializations are new) and `loopBase` the
-number of loops lowered before. -/
-def expandFn (p : Program) (f : Func) (queue : Array Func := #[]) (loopBase : Nat := 0) :
-    Except String (Core.Fn × Array Func × Nat) := do
+/-- `lower_func`'s passes: lower `f` with the parameters `own` unbound, and again with one more
+for each capture its body turned out to bind in its own scope, from the same queue, so nothing of
+an abandoned pass remains; the state the last pass ends in. Its cell is still passed along, never
+read. -/
+def lowerFnOwn (p : Program) (f : Func) (queue : Array Func) : Nat → List String → Except String St
+  | 0, _ => throw s!"in {f.name}: internal: the loop's captures do not settle"
+  | passes + 1, own => do
+      let ((), st) ← (lowerFunc f).run (initState p f queue own)
+      let new := st.rebound.filter fun x => !own.contains x
+      if new.isEmpty then return st
+      lowerFnOwn p f queue passes (own ++ new)
+
+/-- The core function of `f` and the queue after it: `queue` is every function queued before (it
+decides which specializations are new). -/
+def expandFn (p : Program) (f : Func) (queue : Array Func := #[]) :
+    Except String (Core.Fn × Array Func) := do
   if let some q := f.params.find? (fun q => p.constArrays.any (·.1 == q.name)) then
     throw s!"`{f.name}`: parameter `{q.name}` collides with a top-level constant array"
-  let ((), st) ← (lowerFunc f).run (initState p f queue loopBase)
-  return (⟨f.name, (paramBindings f).2, st.out.toList⟩, st.queue, st.loopCtr)
+  let st ← lowerFnOwn p f queue (f.params.length + 1) []
+  return (⟨f.name, (paramBindings f).2, st.out.toList⟩, st.queue)
 
 /-- The specialization of `f` at these `Const` arguments, as the compiler queues it. -/
 def specializeFn (f : Func) (constArgs : List Expr) : Except String Func := do
@@ -1907,17 +1994,43 @@ def specializeFn (f : Func) (constArgs : List Expr) : Except String Func := do
            returnShapes := f.returnShapes, body := substBody f.body substs, inline := false }
 
 /-- The compiler's queue (`compile`), at most `fuel` functions. -/
-def expandQueue (p : Program) : Nat → Nat → Array Func → Nat → Array Core.Fn →
+def expandQueue (p : Program) : Nat → Nat → Array Func → Array Core.Fn →
     Except String (Array Core.Fn)
-  | 0, _, _, _, _ => throw "too many functions"
-  | budget + 1, i, queue, loopCtr, out =>
+  | 0, _, _, _ => throw "too many functions"
+  | budget + 1, i, queue, out =>
       match queue[i]? with
       | none => return out
       | some f =>
-          if f.hasConstParams || f.inline then expandQueue p budget (i + 1) queue loopCtr out
+          if f.hasConstParams || f.inline then expandQueue p budget (i + 1) queue out
           else do
-            let (fn, queue, loopCtr) ← expandFn p f queue loopCtr
-            expandQueue p budget (i + 1) queue loopCtr (out.push fn)
+            let (fn, queue) ← expandFn p f queue
+            expandQueue p budget (i + 1) queue (out.push fn)
+
+/-- Each lowered function's source names, as `expandQueue` lowers them: its parameters', then
+each `rebind`'s, in order (`guest-core --names`). -/
+def expandBinds (p : Program) : Nat → Nat → Array Func → Array (String × Array (String × V)) →
+    Except String (Array (String × Array (String × V)))
+  | 0, _, _, _ => throw "too many functions"
+  | budget + 1, i, queue, out =>
+      match queue[i]? with
+      | none => return out
+      | some f =>
+          if f.hasConstParams || f.inline then expandBinds p budget (i + 1) queue out
+          else do
+            if let some q := f.params.find? (fun q => p.constArrays.any (·.1 == q.name)) then
+              throw s!"`{f.name}`: parameter `{q.name}` collides with a top-level constant array"
+            let st ← lowerFnOwn p f queue (f.params.length + 1) []
+            let params := (paramBindings f).1.reverse.flatMap fun (n, b) => match b.val with
+              | .scalar v => [(n, v)]
+              | .stack cells => cells.zipIdx.map fun (c, k) => (s!"{n}[{k}]", c)
+              | _ => []
+            expandBinds p budget (i + 1) st.queue (out.push (f.name, params.toArray ++ st.binds))
+
+/-- The source names of every function the compiler lowers, in its order (`expandBinds`). -/
+def expandProgramBinds (p : Program) : Except String (Array (String × Array (String × V))) := do
+  let some main := p.funcs.find? (·.name == "main") | throw "program needs a `main`"
+  let queue := #[main] ++ (p.funcs.filter (·.name != "main")).toArray
+  expandBinds p 1000000 0 queue #[]
 
 /-- Every function the compiler lowers, in its order: `main` first. -/
 def expandProgram (p : Program) : Except String Core.Program := do
@@ -1925,7 +2038,7 @@ def expandProgram (p : Program) : Except String Core.Program := do
   if main.hasConstParams then throw "main cannot take Const parameters"
   if main.inline then throw "main cannot be `@inline`"
   let queue := #[main] ++ (p.funcs.filter (·.name != "main")).toArray
-  return (← expandQueue p 1000000 0 queue 0 #[]).toList
+  return (← expandQueue p 1000000 0 queue #[]).toList
 
 end
 end LeanVM.Guest.Expand

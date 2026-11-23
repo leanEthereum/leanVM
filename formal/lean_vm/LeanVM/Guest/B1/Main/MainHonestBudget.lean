@@ -33,7 +33,8 @@ open LeanVM.Guest.B1 (LowDef DisjL Within CompleteAtDT Returns)
 def mainPredsH (s : NodeStatement) (w : NodeWitness) (Pd : Tree → Prop) (Pvs : ℕ → Tree → Prop) :
     MainPreds :=
   ⟨clHonest s.claims.xmss.length, clHonest s.claims.sphincs.length, Pd, aggHonest w.children.length,
-    L5Hinted w (fun c => ccHonest (hKid s w c).ex) (fun c => ccHonest (hKid s w c).es) Pvs⟩
+    L5Hinted w (fun c => ccHonest (hKid s w c).ex (hMonoX s w c))
+      (fun c => ccHonest (hKid s w c).es (hMonoS s w c)) Pvs⟩
 
 variable {fs : String → ℕ} {cert : String → V → ℕ} {fp : ℕ} {seed : Digest} {s : NodeStatement}
   {w : NodeWitness} {bytecode : List K}

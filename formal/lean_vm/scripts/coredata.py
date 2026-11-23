@@ -73,3 +73,11 @@ def legacy_texts(data):
     if ks is None or not ks:
         return [p.read_text(encoding='utf-8') for p in sorted(Path(data).glob('Core[0-9]*.lean'))]
     return [legacy(fn_text(data, k), j) for j, k in enumerate(ks)]
+
+
+def name_strings(data):
+    """`NameStrings.lean` in `data`: each function's stable name with its compiler name, in order, and the number of
+    core functions (`coreCount`)."""
+    t = (Path(data) / 'NameStrings.lean').read_text(encoding='utf-8')
+    pairs = re.findall(r'abbrev «([^»]+)» : String := "([^"]*)"', t)
+    return pairs, int(re.search(r'abbrev coreCount : Nat := (\d+)', t).group(1))

@@ -1054,6 +1054,28 @@ theorem Map.pieces_fwd_at [Coded X] {f : Fn} {r : Func X} {K Kc : Nat}
     exact Map.rho_owner hd σ he
   · cases this
 
+/-- **A map that checks a core function's body in pieces makes its reference function the core
+function's**: from a valuation of the names satisfying the commands, the core values' words (their
+terms', `Map.sig`) satisfy the body and give the return words; the listed values take their
+names' words. -/
+theorem Map.pieces_bwd_at {f : Fn} {r : Func X} {K Kc : Nat}
+    {P : List (List Stmt)} {Q : List (List (Cmd X))} {pos : List (Nat × X)}
+    (hp : f.params.map m.h = r.params.map .v) (hP : f.body = P.flatten) (hQ : r.body = Q.flatten)
+    (hs : m.Pieces Kc r.rets K P Q) (hpos : ownersAt m pos = true) {ρ : X → E}
+    {kret : List E → Prop} (hsat : Cmd.SatList rd ρ r.body) (hret : kret (r.rets.map (Tm.eval ρ))) :
+    f.params.map (m.sig ρ) = r.params.map ρ ∧ (∀ p ∈ pos, m.sig ρ (.n p.1) = ρ p.2) ∧
+      Stmt.HoldsList C rd (m.sig ρ) f.body False kret := by
+  refine ⟨?_, fun p hp => ?_, hP ▸ Map.pieces_bwd K P Q hs (hQ ▸ hsat) hret⟩
+  · rw [← map_v_eval ρ r.params, ← hp, List.map_map]
+    rfl
+  · have := List.all_eq_true.mp hpos p hp
+    show (m.e p.1).1.eval ρ = ρ p.2
+    split at this
+    · rename_i x he
+      rw [he, ← of_decide_eq_true this]
+      rfl
+    · cases this
+
 /-- **A map that checks a core function's body in pieces makes it its reference function**: the
 same relation on the memory, the arguments and the return words. -/
 theorem Map.pieces_sem_iff [Coded X] {f : Fn} {r : Func X} {K Kc : Nat}
@@ -1068,9 +1090,8 @@ theorem Map.pieces_sem_iff [Coded X] {f : Fn} {r : Func X} {K Kc : Nat}
     obtain ⟨ep, -, hsat, hret⟩ := Map.pieces_fwd_at (pos := []) hd hu hp hP hQ hs rfl hb
     exact ⟨_, ep.symm, hsat, hret⟩
   · rintro ⟨ρ, rfl, hsat, hret⟩
-    refine ⟨m.sig ρ, ?_, hP ▸ Map.pieces_bwd K P Q hs (hQ ▸ hsat) hret⟩
-    rw [← map_v_eval ρ r.params, ← hp, List.map_map]
-    rfl
+    obtain ⟨ep, -, hb⟩ := Map.pieces_bwd_at (pos := []) hp hP hQ hs rfl hsat hret
+    exact ⟨m.sig ρ, ep, hb⟩
 
 /-- **A map that checks a core function makes it its reference function**: the same relation on
 the memory, the arguments and the return words. -/

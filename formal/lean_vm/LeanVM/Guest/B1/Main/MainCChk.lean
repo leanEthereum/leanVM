@@ -8,6 +8,8 @@ module
 
 public import LeanVM.Guest.B1.Main.Body
 public import LeanVM.Guest.B1.Fwd.Canon
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«main»
 
 /-!
 # `main`'s body, evaluated
@@ -35,18 +37,19 @@ noncomputable def mFlatE : List Stmt := mFlat
 /-- `main`'s stores: the byte table, the own DA digest (both branches), the first running count,
 the leaf's deferred claim. -/
 def mStoresL : List Atom :=
-  (List.range 256).map (fun v => .load (.n (48 + v)) (.n 47) v) ++
-    [.load (.n 378) (.n 366) 0, .load (.n 379) (.n 366) 1, .load (.n 380) (.n 366) 0,
-      .load (.n 381) (.n 366) 1, .load (.n 399) (.n 398) 0] ++
-    (List.range 23).map (fun k => .load (.n (420 + k)) (.n 416) k) ++ [.load (.n 419) (.n 416) 23]
+  (List.range 256).map (fun v => .load (.n ((val% «main» "s43.u0.s0#0") + v)) (.n (val% «main» "byte_bits")) v) ++
+    [.load (.n (val% «main» "s50.t.s1#0")) (.n (val% «main» "own_da")) 0, .load (.n (val% «main» "s50.t.s1#0[1]")) (.n (val% «main» "own_da")) 1, .load (.n (val% «main» "s50.e.s0#0")) (.n (val% «main» "own_da")) 0,
+      .load (.n (val% «main» "s50.e.s1#0")) (.n (val% «main» "own_da")) 1, .load (.n (val% «main» "s55#0")) (.n (val% «main» "written")) 0] ++
+    (List.range 23).map (fun k => .load (.n ((val% «main» "s63.t.s1.u0.s0#0") + k)) (.n (val% «main» "defer_stmt")) k) ++ [.load (.n (val% «main» "leaf_value")) (.n (val% «main» "defer_stmt")) 23]
 
 /-- `main`'s loads, by their words' numbers: the five reads, then the stores. -/
 def mLoadOk (d p o : ℕ) : Bool :=
   decide ((d, p, o) ∈ [(404, 403, 0), (445, 415, 0), (446, 415, 1), (450, 449, 0),
     (454, 453, 0)]) ||
-  (decide (p = 47) && decide (d = 48 + o) && decide (o < 256)) ||
-  decide ((d, p, o) ∈ [(378, 366, 0), (379, 366, 1), (380, 366, 0), (381, 366, 1),
-    (399, 398, 0)]) ||
+  (decide (p = val% «main» "byte_bits") && decide (d = (val% «main» "s43.u0.s0#0") + o) && decide (o < 256)) ||
+  decide ((d, p, o) ∈ [(val% «main» "s50.t.s1#0", val% «main» "own_da", 0), (val% «main» "s50.t.s1#0[1]", val% «main» "own_da", 1),
+    (val% «main» "s50.e.s0#0", val% «main» "own_da", 0), (val% «main» "s50.e.s1#0", val% «main» "own_da", 1),
+    (val% «main» "s55#0", val% «main» "written", 0)]) ||
   (decide (p = 416) && (decide (o < 23 ∧ d = 420 + o) || decide (o = 23 ∧ d = 419)))
 
 /-- The range checks: the checked value and the bound's constant. -/
@@ -60,8 +63,8 @@ def mSideOk : Atom → Bool
   | .load d p o => decide (d = .n d.idx) && decide (p = .n p.idx) && mLoadOk d.idx p.idx o
   | .touch t p => decide (t = .n t.idx) && decide (p = .n p.idx) &&
       decide ((t.idx, p.idx) ∈ [(8, 0), (9, 1), (10, 2), (11, 3), (12, 4), (13, 5), (25, 24)])
-  | .assertEq x y => decide ((x, y) ∈ [(V.n 404, V.n 24), (.n 412, .n 413), (.n 450, .n 447),
-      (.n 454, .n 448)])
+  | .assertEq x y => decide ((x, y) ∈ [(V.n (val% «main» "s57#1"), V.n (val% «main» "n_total_g")), (.n (val% «main» "s60#3"), .n (val% «main» "s60#4")), (.n (val% «main» "s66#1"), .n (val% «main» "own_0")),
+      (.n (val% «main» "s67#3"), .n (val% «main» "own_1"))])
   | _ => false
 
 /-- The stores of `main`'s body. -/
@@ -81,52 +84,52 @@ theorem mainc_ok : mainCOk = true := by decide +kernel
 
 /-- The statements defining `main`'s oracle values: hints, `HeapBuf`s, calls' returns. -/
 def mOrcStmts : List Stmt :=
-  [.atom (.hint (.witness "meta" (.stack [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7]))),
-    .atom (.hint (.witness "fs_seed" (.stack [.n 26, .n 27]))),
-    .call "exponent_tables" [] [.n 28], .atom (.hint (.allocDyn (.n 31) (.n 30))),
-    .atom (.hint (.allocDyn (.n 34) (.n 33))),
-    .call "claim_list_digest" [.n 31, .n 0] [.n 35, .n 36],
-    .call "claim_list_digest" [.n 34, .n 3] [.n 37, .n 38],
-    .atom (.hint (.allocDyn (.n 45) (.n 24))), .atom (.hint (.alloc (.n 47) 256)),
-    .atom (.hint (.allocDyn (.n 364) (.n 363))),
-    .call "da_verify" [.n 47] [.n 369, .n 370, .n 371],
-    .atom (.hint (.allocDyn (.n 383) (.n 382))), .atom (.hint (.allocDyn (.n 389) (.n 388))),
-    .atom (.hint (.allocDyn (.n 395) (.n 394))), .atom (.hint (.allocDyn (.n 398) (.n 397))),
-    .atom (.hint (.witness "da_pick" (.stack [.n 405]))),
-    .atom (.hint (.alloc (.n 416) 24)), .atom (.hint (.witness "leaf_defer" (.stack [.n 419]))),
-    .call "statement_digest" [.n 26, .n 27, .n 35, .n 36, .n 37, .n 38, .n 445, .n 446, .n 416]
-      [.n 447, .n 448]]
+  [.atom (.hint (.witness "meta" (.stack [.n (val% «main» "meta[0]"), .n (val% «main» "meta[1]"), .n (val% «main» "meta[2]"), .n (val% «main» "meta[3]"), .n (val% «main» "meta[4]"), .n (val% «main» "meta[5]"), .n (val% «main» "meta[6]"), .n (val% «main» "meta[7]")]))),
+    .atom (.hint (.witness "fs_seed" (.stack [.n (val% «main» "fs_seed[0]"), .n (val% «main» "fs_seed[1]")]))),
+    .call "exponent_tables" [] [.n (val% «main» "g_squares")], .atom (.hint (.allocDyn (.n (val% «main» "lx_table")) (.n (val% «main» "lx_table_size")))),
+    .atom (.hint (.allocDyn (.n (val% «main» "lean_sphincs_table")) (.n (val% «main» "lean_sphincs_table_size")))),
+    .call "claim_list_digest" [.n (val% «main» "lx_table"), .n (val% «main» "meta[0]")] [.n (val% «main» "xd_0"), .n (val% «main» "xd_1")],
+    .call "claim_list_digest" [.n (val% «main» "lean_sphincs_table"), .n (val% «main» "meta[3]")] [.n (val% «main» "sd_0"), .n (val% «main» "sd_1")],
+    .atom (.hint (.allocDyn (.n (val% «main» "cover")) (.n (val% «main» "n_total_g")))), .atom (.hint (.alloc (.n (val% «main» "byte_bits")) 256)),
+    .atom (.hint (.allocDyn (.n (val% «main» "da_digests")) (.n (val% «main» "da_digests_size")))),
+    .call "da_verify" [.n (val% «main» "byte_bits")] [.n (val% «main» "root_0"), .n (val% «main» "root_1"), .n (val% «main» "z")],
+    .atom (.hint (.allocDyn (.n (val% «main» "child_pi")) (.n (val% «main» "child_pi_size")))), .atom (.hint (.allocDyn (.n (val% «main» "child_fresh")) (.n (val% «main» "child_fresh_size")))),
+    .atom (.hint (.allocDyn (.n (val% «main» "child_carried")) (.n (val% «main» "child_carried_size")))), .atom (.hint (.allocDyn (.n (val% «main» "written")) (.n (val% «main» "written~1")))),
+    .atom (.hint (.witness "da_pick" (.stack [.n (val% «main» "da_pick")]))),
+    .atom (.hint (.alloc (.n (val% «main» "defer_stmt")) 24)), .atom (.hint (.witness "leaf_defer" (.stack [.n (val% «main» "leaf_value")]))),
+    .call "statement_digest" [.n (val% «main» "fs_seed[0]"), .n (val% «main» "fs_seed[1]"), .n (val% «main» "xd_0"), .n (val% «main» "xd_1"), .n (val% «main» "sd_0"), .n (val% «main» "sd_1"), .n (val% «main» "own_0~2"), .n (val% «main» "own_0~3"), .n (val% «main» "defer_stmt")]
+      [.n (val% «main» "own_0"), .n (val% «main» "own_1")]]
 
 /-- The atoms defining `main`'s words the proof reads. -/
 def mDefAtoms : List Atom :=
-  [.mul (.n 22) (.n 0) (.n 1), .mul (.n 23) (.n 3) (.n 4), .mul (.n 24) (.n 22) (.n 23),
-    .mul (.n 29) (.n 22) (.n 22), .mul (.n 30) (.n 29) (.n 29),
-    .mul (.n 32) (.n 23) (.n 23), .mul (.n 33) (.n 32) (.n 32), .mul (.n 46) (.n 45) (.n 22),
-    .const (.n 39) (word 1 0), .add (.n 40) (.n 39) (.n 1), .const (.n 41) (word 1 0),
-    .const (.n 42) (word 1 0), .add (.n 43) (.n 42) (.n 4), .const (.n 44) (word 1 0),
-    .const (.n 355) (word 1 0), .add (.n 356) (.n 355) (.n 2), .const (.n 357) (word 1 0),
-    .const (.n 358) (word 1 0), .add (.n 359) (.n 358) (.n 5), .const (.n 360) (word 1 0),
-    .const (.n 361) (word 2 0), .mul (.n 362) (.n 6) (.n 361), .mul (.n 363) (.n 362) (.n 362),
-    .mul (.n 365) (.n 6) (.n 6), .mul (.n 366) (.n 364) (.n 365),
-    .const (.n 367) (word 2 0), .add (.n 368) (.n 7) (.n 367), .const (.n 373) (word 0 0),
-    .mul (.n 382) (.n 6) (.n 6), .mul (.n 384) (.n 6) (.n 6), .mul (.n 385) (.n 384) (.n 6),
-    .mul (.n 386) (.n 385) (.n 385), .mul (.n 387) (.n 386) (.n 386),
-    .mul (.n 388) (.n 387) (.n 387), .mul (.n 390) (.n 6) (.n 6), .mul (.n 391) (.n 390) (.n 6),
-    .mul (.n 392) (.n 391) (.n 391), .mul (.n 393) (.n 392) (.n 392),
-    .mul (.n 394) (.n 393) (.n 393), .const (.n 396) (word 2 0), .mul (.n 397) (.n 6) (.n 396),
-    .mul (.n 399) (.n 2) (.n 5), .const (.n 400) (word 1 0), .add (.n 401) (.n 400) (.n 6),
-    .const (.n 402) (word 1 0), .mul (.n 403) (.n 398) (.n 6),
-    .add (.n 409) (.n 405) (.n 6), .const (.n 410) (word 1 0), .add (.n 411) (.n 7) (.n 410),
-    .mul (.n 412) (.n 409) (.n 411), .const (.n 413) (word 0 0),
-    .mul (.n 414) (.n 405) (.n 405), .mul (.n 415) (.n 364) (.n 414),
-    .const (.n 417) (word 1 0), .add (.n 418) (.n 6) (.n 417),
-    .const (.n 443) (word 133823759239872512 0), .mul (.n 444) (.n 28) (.n 443),
-    .const (.n 449) (word 1 0), .const (.n 451) (word 1 0), .const (.n 452) (word 2 0),
-    .mul (.n 453) (.n 451) (.n 452),
-    .const (.n 14) (word 65536 0), .const (.n 18) (word 2 0),
-    .load (.n 404) (.n 403) 0, .load (.n 445) (.n 415) 0, .load (.n 446) (.n 415) 1,
-    .load (.n 450) (.n 449) 0, .load (.n 454) (.n 453) 0] ++
-  (List.range 51).map fun j => .const (.n (304 + j)) (word (lxTagVals.getD j 0) 0)
+  [.mul (.n (val% «main» "lx_slots_g")) (.n (val% «main» "meta[0]")) (.n (val% «main» "meta[1]")), .mul (.n (val% «main» "lean_sphincs_slots_g")) (.n (val% «main» "meta[3]")) (.n (val% «main» "meta[4]")), .mul (.n (val% «main» "n_total_g")) (.n (val% «main» "lx_slots_g")) (.n (val% «main» "lean_sphincs_slots_g")),
+    .mul (.n (val% «main» "lx_table_size~0")) (.n (val% «main» "lx_slots_g")) (.n (val% «main» "lx_slots_g")), .mul (.n (val% «main» "lx_table_size")) (.n (val% «main» "lx_table_size~0")) (.n (val% «main» "lx_table_size~0")),
+    .mul (.n (val% «main» "lean_sphincs_table_size~0")) (.n (val% «main» "lean_sphincs_slots_g")) (.n (val% «main» "lean_sphincs_slots_g")), .mul (.n (val% «main» "lean_sphincs_table_size")) (.n (val% «main» "lean_sphincs_table_size~0")) (.n (val% «main» "lean_sphincs_table_size~0")), .mul (.n (val% «main» "sp_cover")) (.n (val% «main» "cover")) (.n (val% «main» "lx_slots_g")),
+    .const (.n (val% «main» "s38#0")) (word 1 0), .add (.n (val% «main» "s38#1")) (.n (val% «main» "s38#0")) (.n (val% «main» "meta[1]")), .const (.n (val% «main» "s38#2")) (word 1 0),
+    .const (.n (val% «main» "s39#0")) (word 1 0), .add (.n (val% «main» "s39#1")) (.n (val% «main» "s39#0")) (.n (val% «main» "meta[4]")), .const (.n (val% «main» "s39#2")) (word 1 0),
+    .const (.n (val% «main» "s46#0")) (word 1 0), .add (.n (val% «main» "s46#1")) (.n (val% «main» "s46#0")) (.n (val% «main» "meta[2]")), .const (.n (val% «main» "s46#2")) (word 1 0),
+    .const (.n (val% «main» "s47#0")) (word 1 0), .add (.n (val% «main» "s47#1")) (.n (val% «main» "s47#0")) (.n (val% «main» "meta[5]")), .const (.n (val% «main» "s47#2")) (word 1 0),
+    .const (.n (val% «main» "da_digests_size~0")) (word 2 0), .mul (.n (val% «main» "da_digests_size~1")) (.n (val% «main» "meta[6]")) (.n (val% «main» "da_digests_size~0")), .mul (.n (val% «main» "da_digests_size")) (.n (val% «main» "da_digests_size~1")) (.n (val% «main» "da_digests_size~1")),
+    .mul (.n (val% «main» "own_da~0")) (.n (val% «main» "meta[6]")) (.n (val% «main» "meta[6]")), .mul (.n (val% «main» "own_da")) (.n (val% «main» "da_digests")) (.n (val% «main» "own_da~0")),
+    .const (.n (val% «main» "s50#0")) (word 2 0), .add (.n (val% «main» "s50#1")) (.n (val% «main» "meta[7]")) (.n (val% «main» "s50#0")), .const (.n (val% «main» "s50.t.s1#1[1]")) (word 0 0),
+    .mul (.n (val% «main» "child_pi_size")) (.n (val% «main» "meta[6]")) (.n (val% «main» "meta[6]")), .mul (.n (val% «main» "child_fresh_size~0")) (.n (val% «main» "meta[6]")) (.n (val% «main» "meta[6]")), .mul (.n (val% «main» "child_fresh_size~1")) (.n (val% «main» "child_fresh_size~0")) (.n (val% «main» "meta[6]")),
+    .mul (.n (val% «main» "child_fresh_size~2")) (.n (val% «main» "child_fresh_size~1")) (.n (val% «main» "child_fresh_size~1")), .mul (.n (val% «main» "child_fresh_size~3")) (.n (val% «main» "child_fresh_size~2")) (.n (val% «main» "child_fresh_size~2")),
+    .mul (.n (val% «main» "child_fresh_size")) (.n (val% «main» "child_fresh_size~3")) (.n (val% «main» "child_fresh_size~3")), .mul (.n (val% «main» "child_carried_size~0")) (.n (val% «main» "meta[6]")) (.n (val% «main» "meta[6]")), .mul (.n (val% «main» "child_carried_size~1")) (.n (val% «main» "child_carried_size~0")) (.n (val% «main» "meta[6]")),
+    .mul (.n (val% «main» "child_carried_size~2")) (.n (val% «main» "child_carried_size~1")) (.n (val% «main» "child_carried_size~1")), .mul (.n (val% «main» "child_carried_size~3")) (.n (val% «main» "child_carried_size~2")) (.n (val% «main» "child_carried_size~2")),
+    .mul (.n (val% «main» "child_carried_size")) (.n (val% «main» "child_carried_size~3")) (.n (val% «main» "child_carried_size~3")), .const (.n (val% «main» "written~0")) (word 2 0), .mul (.n (val% «main» "written~1")) (.n (val% «main» "meta[6]")) (.n (val% «main» "written~0")),
+    .mul (.n (val% «main» "s55#0")) (.n (val% «main» "meta[2]")) (.n (val% «main» "meta[5]")), .const (.n (val% «main» "s56#0")) (word 1 0), .add (.n (val% «main» "s56#1")) (.n (val% «main» "s56#0")) (.n (val% «main» "meta[6]")),
+    .const (.n (val% «main» "s56#2")) (word 1 0), .mul (.n (val% «main» "s57#0")) (.n (val% «main» "written")) (.n (val% «main» "meta[6]")),
+    .add (.n (val% «main» "s60#0")) (.n (val% «main» "da_pick")) (.n (val% «main» "meta[6]")), .const (.n (val% «main» "s60#1")) (word 1 0), .add (.n (val% «main» "s60#2")) (.n (val% «main» "meta[7]")) (.n (val% «main» "s60#1")),
+    .mul (.n (val% «main» "s60#3")) (.n (val% «main» "s60#0")) (.n (val% «main» "s60#2")), .const (.n (val% «main» "s60#4")) (word 0 0),
+    .mul (.n (val% «main» "da~0")) (.n (val% «main» "da_pick")) (.n (val% «main» "da_pick")), .mul (.n (val% «main» "da")) (.n (val% «main» "da_digests")) (.n (val% «main» "da~0")),
+    .const (.n (val% «main» "s63#0")) (word 1 0), .add (.n (val% «main» "s63#1")) (.n (val% «main» "meta[6]")) (.n (val% «main» "s63#0")),
+    .const (.n (val% «main» "s63.e.s0#0")) (word 133823759239872512 0), .mul (.n (val% «main» "s63.e.s0#1")) (.n (val% «main» "g_squares")) (.n (val% «main» "s63.e.s0#0")),
+    .const (.n (val% «main» "s66#0")) (word 1 0), .const (.n (val% «main» "s67#0")) (word 1 0), .const (.n (val% «main» "s67#1")) (word 2 0),
+    .mul (.n (val% «main» "s67#2")) (.n (val% «main» "s67#0")) (.n (val% «main» "s67#1")),
+    .const (.n (val% «main» "s16#0")) (word 65536 0), .const (.n (val% «main» "s17#0")) (word 2 0),
+    .load (.n (val% «main» "s57#1")) (.n (val% «main» "s57#0")) 0, .load (.n (val% «main» "own_0~2")) (.n (val% «main» "da")) 0, .load (.n (val% «main» "own_0~3")) (.n (val% «main» "da")) 1,
+    .load (.n (val% «main» "s66#1")) (.n (val% «main» "s66#0")) 0, .load (.n (val% «main» "s67#3")) (.n (val% «main» "s67#2")) 0] ++
+  (List.range 51).map fun j => .const (.n ((val% «main» "lx_tags[0]") + j)) (word (lxTagVals.getD j 0) 0)
 
 end
 end LeanVM.Guest.B1.Main

@@ -9,6 +9,8 @@
 module
 
 public import LeanVM.Guest.B1.Digest.Window
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«child_claim_list_last__L»
 
 /-!
 # `child_claim_list_any`: the checks
@@ -106,7 +108,7 @@ def cclSt (k : ℕ) : List V :=
 
 /-- The record values of `child_claim_list_last__L{k}`'s arguments
 `[state, entries, region, marks, last]`. -/
-def cclP : ClaimVs := ⟨.n 2, .n 4, .n 1, .n 3⟩
+def cclP : ClaimVs := ⟨.n (valf% «child_claim_list_last» "region"), .n (valf% «child_claim_list_last» "last_g"), .n (valf% «child_claim_list_last» "entries_ptr"), .n (valf% «child_claim_list_last» "marks")⟩
 
 /-- The chain of `child_claim_list_last__L{k}`. -/
 def cclSpec (k : ℕ) (atoms : List Atom) : ChainSpec :=
@@ -115,11 +117,11 @@ def cclSpec (k : ℕ) (atoms : List Atom) : ChainSpec :=
 /-- `child_claim_list_last__L{k}`'s body: `k` records, the chain over their cells from the state
 at its first argument. -/
 def cclOk (k : ℕ) (f : Fn) : Bool :=
-  decide (f.params = [V.n 0, V.n 1, V.n 2, V.n 3, V.n 4]) &&
+  decide (f.params = [V.n (valf% «child_claim_list_last» "state"), V.n (valf% «child_claim_list_last» "entries_ptr"), V.n (valf% «child_claim_list_last» "region"), V.n (valf% «child_claim_list_last» "marks"), V.n (valf% «child_claim_list_last» "last_g")]) &&
   match splitBody f.body with
   | some (atoms, [r0, r1]) =>
     (cclSpec k atoms).check atoms && retOk atoms (cclSpec k atoms) r0 r1 &&
-      recordsOk atoms cclP 5 0 k && stLoadsOk atoms (V.n 0) (cclSt k) 0
+      recordsOk atoms cclP 5 0 k && stLoadsOk atoms (V.n (valf% «child_claim_list_last» "state")) (cclSt k) 0
   | _ => false
 
 /-- The state cells a frame loop loads, from `.n st0`. -/

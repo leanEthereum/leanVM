@@ -1,7 +1,7 @@
 {
   "name": "@kevaundray/lean-pq",
   "version": "0.0.0-dev",
-  "description": "Node.js bindings for leanXMSS and leanSPHINCS post-quantum signatures and their leanVM aggregation",
+  "description": "Node.js bindings for leanXMSS and leanSPHINCS post-quantum signatures, their leanVM aggregation, and the consensus VRF tree",
   "license": "MIT OR Apache-2.0",
   "repository": {
     "type": "git",
@@ -17,6 +17,7 @@
     "sphincs",
     "leanxmss",
     "leansphincs",
+    "vrf",
     "post-quantum",
     "ethereum",
     "napi-rs"

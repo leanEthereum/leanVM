@@ -3,6 +3,7 @@ module
 public import LeanVM.Cost.Decoder.Ends
 public import LeanVM.Guest.Fast.Decode
 public import LeanVM.Cost.Decoder.GuestTablesCheck
+public import LeanVM.Cost.Decoder.LanesCheck
 import all LeanVM.Guest.B1.Main.Interface
 
 /-!
@@ -101,11 +102,10 @@ theorem certOf_one_locs :
   show List.flatten [LeanVM.Guest.Fn.«main».cert_w0_0, LeanVM.Guest.Fn.«main».cert_w1_0] = _
   simp
 
-/-- `main`'s row of the table of cells is its certificate's cells. -/
+/-- `main`'s cells, read off the packed table, are its certificate's cells. -/
 theorem guestLocs_main (i : ℕ) :
-    (guestLocs.getD 1 #[]).getD i 0 = (LeanVM.Guest.certOf 1).locs.getD i 0 := by
-  rw [← guestLocs_eq (j := 1) (by decide), Array.getD_eq_getD_getElem?,
-    List.getD_eq_getElem?_getD, Array.getElem?_toList]
+    locAt 1 i = (LeanVM.Guest.certOf 1).locs.getD i 0 := by
+  rw [locAt_eq (by rw [guestLocsList_length]; decide) i, guestLocsList_eq 1 (by decide)]
 
 /-- **`main`'s valuation, compiled, is the decoder's** (`End.mainValWith`). -/
 theorem mainVal_eq : mainVal = LeanVM.Guest.End.mainValWith := by

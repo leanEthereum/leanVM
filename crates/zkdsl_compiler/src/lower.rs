@@ -24,6 +24,7 @@ use super::*;
 mod builtins;
 mod call;
 mod eval;
+mod hoist;
 mod mem;
 use eval::{Known, field_pow, small_gpow};
 
@@ -206,6 +207,24 @@ struct FnLower<'a> {
     cur_line: u32,
     /// Hints queued to attach to the next emitted instruction.
     pending: Vec<Hint>,
+    /// Where the frame and `HeapBuf` reservations sit, by pointer cell, and what
+    /// moving one needs to know ([`Self::hoist_heap_bufs`]).
+    reservations: HashMap<Off, hoist::Site>,
+    /// The name the statement being lowered binds, for a `HeapBuf`'s diagnostics.
+    let_name: Option<String>,
+    /// The arms holding the code being emitted, outermost first: each a branch (an `if` or a `match`, numbered in
+    /// order) and which of its arms. Empty, "depth `0`", at a statement's top level, outside every branch's body.
+    /// A branch's exit jumps sit at depth `0` too (an `if`'s first arm's, a `match` arm's), though only the runs
+    /// that took that arm run them.
+    path: Vec<(u32, u32)>,
+    /// The path of each instruction emitted.
+    code_path: Vec<Vec<(u32, u32)>>,
+    /// The number of arms of each branch, an `if`'s two (one may be empty).
+    branches: Vec<u32>,
+    /// Where the statement being lowered at depth `0` starts, or the chain of `match`es it ends.
+    stmt_start: usize,
+    /// The index of each `return` jump.
+    returns: Vec<usize>,
     /// The `match` the one being lowered enters directly, its arms ending in the next
     /// one's dispatch rather than a join ([`Self::lower_match_dispatch`]).
     chain_next: Option<ChainNext>,
@@ -220,10 +239,15 @@ struct FnLower<'a> {
     /// position; consumed by the next [`Self::stmt`] call, so nested lowering
     /// never inherits it.
     tail_call: bool,
+    /// The captures a loop helper's body bound in its own scope ([`Self::settle_loop_captures`]).
+    rebound: Vec<String>,
+    /// `DBG_LOOPS` lines, printed for the pass [`lower_func`] keeps.
+    dbg_loops: Vec<String>,
     /// Generated loops that can reserve their complete run of frames.
     loop_bounds: &'a mut HashMap<String, (u64, Option<u64>)>,
     queue: &'a mut Vec<Func>,
-    loop_ctr: &'a mut usize,
+    /// Loops lowered so far in this function: the next helper is `__loop{loop_ctr}_{fn_name}`.
+    loop_ctr: usize,
     /// Function name for diagnostics and generated-loop handling.
     fn_name: &'a str,
     params: &'a [Param],
@@ -259,7 +283,7 @@ impl FnLower<'_> {
     fn fail(&self, msg: impl std::fmt::Display) -> ! {
         // The line alone is not the site when the function being lowered is one
         // the author never wrote: `hash_pair__L1` exists because of a `Const`
-        // call site, `__loop3` because of a `for` header, and an `@inline` body
+        // call site, `__loop3_f` because of a `for` header, and an `@inline` body
         // is lowered through the CALLER, so its statements report the caller's
         // line. Naming the function, and the inline chain when there is one, is
         // what turns "line 19" back into somewhere to look.
@@ -281,6 +305,7 @@ impl FnLower<'_> {
 
     fn emit(&mut self, op: LOp) {
         let hints = std::mem::take(&mut self.pending);
+        self.code_path.push(self.path.clone());
         self.code.push(LInstr {
             op,
             line: self.cur_line,
@@ -442,9 +467,10 @@ impl FnLower<'_> {
     /// A frame cell holding this function's own `fp` (the g-power element),
     /// materialized lazily once: a taken `JUMP` reloads the frame pointer
     /// from a cell, so local (`if`/`else`) jumps must name it. The ISA has no
-    /// fp-read, so bounce it through a fresh 1-cell heap buffer: a
-    /// `DEREF`-fp writes it there and a `DEREF`-cell copies it back. In `main`, `fp = g^0 = 1`, which is
-    /// the [`Self::one`] cell.
+    /// fp-read, so a `DEREF`-fp writes it through a hinted address, that of the cell
+    /// itself, and a `DEREF`-cell reads it back through the same address into the cell,
+    /// which pins the cell to `fp` whatever address the hint gave. In `main`, `fp = g^0 = 1`,
+    /// which is the [`Self::one`] cell.
     fn self_fp(&mut self) -> Off {
         if self.is_main {
             return self.one();
@@ -453,10 +479,12 @@ impl FnLower<'_> {
             return o;
         }
         let q = self.fresh();
-        self.pending.push(Hint::AllocBuffer { ptr: q, size: 1 });
-        self.deref(q, 0, 0, DerefMode::Fp); // m[q] := fp
         let o = self.fresh();
-        self.deref(q, 0, o, DerefMode::Cell); // m[fp·g^o] := m[q]
+        // `q` holds the address of `o`.
+        self.pending
+            .push(Hint::Resolved(RHint::CellAddress { ptr: q, cell: o }));
+        self.deref(q, 0, 0, DerefMode::Fp); // m[m[fp·g^q]] := fp
+        self.deref(q, 0, o, DerefMode::Cell); // m[fp·g^o] = m[m[fp·g^q]]
         self.scope.self_fp_off = Some(o);
         o
     }
@@ -474,8 +502,9 @@ impl FnLower<'_> {
     /// (`one`, `self_fp`, range-check bounds, the `keccak` padding run) revert
     /// afterwards, since a cell whose `SET` sits inside a conditionally-executed
     /// region must not be trusted outside it.
-    fn scoped(&mut self, f: impl FnOnce(&mut Self)) {
+    fn scoped(&mut self, arm: (u32, u32), f: impl FnOnce(&mut Self)) {
         let saved_scope = self.scope.clone();
+        self.path.push(arm);
         f(self);
         // A hint pending at the end of a branch (e.g. a trailing
         // `hint_witness`) must not attach to whatever instruction follows the
@@ -483,12 +512,19 @@ impl FnLower<'_> {
         if !self.pending.is_empty() {
             self.anchor();
         }
+        self.path.pop();
         self.scope = saved_scope;
     }
 
+    /// Number a new branch of `arms` arms, for [`Self::scoped`].
+    fn new_branch(&mut self, arms: usize) -> u32 {
+        self.branches.push(arms as u32);
+        (self.branches.len() - 1) as u32
+    }
+
     /// Lower a branch body with branch-local scope ([`Self::scoped`]).
-    fn branch(&mut self, body: &[Stmt]) {
-        self.scoped(|s| {
+    fn branch(&mut self, arm: (u32, u32), body: &[Stmt]) {
+        self.scoped(arm, |s| {
             for st in body {
                 s.stmt(st);
             }
@@ -509,13 +545,16 @@ impl FnLower<'_> {
                 // program and reports the actual problem: routing a heap target
                 // through the heap path lectured about g-powers instead, and told a
                 // scalar it was a HeapBuf.
-                Expr::Index(arr, idx) => match self.frame_cell(arr, idx) {
-                    Some(c) => cells.push(c),
-                    None => self.fail(
-                        "a `match` or tuple-call target must be a name or a StackBuf element, not a heap \
+                Expr::Index(arr, idx) => {
+                    self.check_bound(arr);
+                    match self.frame_cell(arr, idx) {
+                        Some(c) => cells.push(c),
+                        None => self.fail(
+                            "a `match` or tuple-call target must be a name or a StackBuf element, not a heap \
                          cell: bind a name and store it",
-                    ),
-                },
+                        ),
+                    }
+                }
                 Expr::Var(n) => {
                     let c = self.fresh();
                     cells.push(c);
@@ -590,8 +629,9 @@ impl FnLower<'_> {
             "a chained match emitted code above its arms"
         );
         (self.chain_next, self.chain_in) = (chain_next, chain_in);
+        let branch = self.new_branch(arms.len());
         self.lower_match_dispatch(xo, arms.len(), |s, j| {
-            s.scoped(|s| {
+            s.scoped((branch, j as u32), |s| {
                 if let [rcell] = rcells.as_slice() {
                     s.expr_into(&arms[j], *rcell);
                 } else {
@@ -647,6 +687,11 @@ impl FnLower<'_> {
     /// of the slot, then a `JUMP` to what it holds, with frame `of`.
     pub(super) fn table_jump(&mut self, xo: Off, first: usize, one: Off, of: Off) {
         let entry = self.fresh();
+        self.table_jump_via(entry, xo, first, one, of);
+    }
+
+    /// [`Self::table_jump`] through the given `entry` cell.
+    fn table_jump_via(&mut self, entry: Off, xo: Off, first: usize, one: Off, of: Off) {
         self.emit(LOp::Slot {
             x: xo,
             first: first as u32,
@@ -699,15 +744,17 @@ impl FnLower<'_> {
             first
         });
         // The arm blocks, each exiting to the join (the last falls through), or into the
-        // next match's dispatch.
+        // next match's dispatch, every arm through one entry cell (one arm runs, so it is
+        // written once).
+        let next_entry = next.as_ref().map(|_| self.fresh());
         let arms_base = self.next;
         let mut arms_end = arms_base;
         for j in 0..n {
             self.next = arms_base;
             self.tables.slots[first + j] = KVal::At(name.clone(), self.code.len() as u32);
             body(self, j);
-            if let (Some(nx), Some(nf)) = (&next, next_first) {
-                self.table_jump(nx.xo, nf, one, sfp);
+            if let (Some(nx), Some(nf), Some(entry)) = (&next, next_first, next_entry) {
+                self.table_jump_via(entry, nx.xo, nf, one, sfp);
             } else if j + 1 != n {
                 self.emit(LOp::Jump {
                     oc: one,
@@ -757,23 +804,7 @@ impl FnLower<'_> {
                     }
                 }
             }
-            let taken = if (ai == bi) == eq { then } else { els };
-            // `free_vars_stmt` knows only a `const(...)` or two-literal `if` folds: for any other it captured the
-            // names this arm rebinds, and the loop's self-call would pass the new value on.
-            if self.fn_name.starts_with("__loop") && !force_const && !matches!((lhs, rhs), (Expr::Lit(_), Expr::Lit(_)))
-            {
-                let mut bound = std::collections::HashSet::new();
-                taken
-                    .iter()
-                    .for_each(|s| free_vars_stmt(s, &mut Vec::new(), &mut bound));
-                if let Some(p) = self.params.iter().find(|p| bound.contains(p.name.as_str())) {
-                    self.fail(format!(
-                        "a folded `if` assigns to `{}`, from outside the `for` loop: the loop cannot carry it",
-                        p.name
-                    ))
-                }
-            }
-            for st in taken {
+            for st in if (ai == bi) == eq { then } else { els } {
                 self.stmt(st);
             }
             return;
@@ -812,7 +843,8 @@ impl FnLower<'_> {
             od: bdest,
             of: sfp,
         });
-        self.branch(a_block);
+        let branch = self.new_branch(2);
+        self.branch((branch, 0), a_block);
         if b_block.is_empty() {
             self.patch_local(bset, self.code.len());
         } else {
@@ -825,7 +857,7 @@ impl FnLower<'_> {
                 of: sfp,
             });
             self.patch_local(bset, self.code.len());
-            self.branch(b_block);
+            self.branch((branch, 1), b_block);
             self.patch_local(eset, self.code.len());
         }
     }
@@ -946,6 +978,25 @@ impl FnLower<'_> {
         self.deref(y, 0, t2, DerefMode::Cell);
     }
 
+    /// A read of a name nothing binds.
+    ///
+    /// A `for` body that ASSIGNS to an enclosing name reads it before it binds
+    /// it, and the capture set drops every name the body binds, so the read
+    /// arrives with nothing behind it. That is the loop-carry limitation rather
+    /// than a typo: the tail-recursive helper threads its captures IN, never
+    /// out, so an accumulator cannot come back.
+    fn unbound(&self, v: &str) -> ! {
+        if self.fn_name.starts_with("__loop") {
+            self.fail(format!(
+                "unbound variable `{v}` in a `for` loop body. If `{v}` names a value from \
+                 outside the loop that this body also assigns to, the loop cannot carry it: \
+                 the helper threads its captures in, not out. Assign to a new name inside \
+                 the body, or carry state through a `HeapBuf`."
+            ))
+        }
+        self.fail(format!("unbound variable `{v}`"))
+    }
+
     fn expr(&mut self, e: &Expr) -> Off {
         // A wholly compile-time expression, whatever its shape, is one pooled
         // `SET` ([`Self::const_cell`]): folded here once rather than arm by arm.
@@ -967,24 +1018,7 @@ impl FnLower<'_> {
                 }
                 Some(Binding::Gaddr(ga)) => self.materialize(ga),
                 Some(Binding::Scalar(o)) => o,
-                _ => {
-                    // A `for` body that ASSIGNS to an enclosing name reads it before
-                    // it binds it, and the capture set drops every name the body
-                    // binds, so the read arrives here with nothing behind it. That is
-                    // the loop-carry limitation rather than a typo, and it deserves
-                    // the same courtesy the `StackBuf` case already gets: the
-                    // tail-recursive helper threads its captures IN, never out, so an
-                    // accumulator cannot come back.
-                    if self.fn_name.starts_with("__loop") {
-                        self.fail(format!(
-                            "unbound variable `{v}` in a `for` loop body. If `{v}` names a value from \
-                             outside the loop that this body also assigns to, the loop cannot carry it: \
-                             the helper threads its captures in, not out. Assign to a new name inside \
-                             the body, or carry state through a `HeapBuf`."
-                        ))
-                    }
-                    self.fail(format!("unbound variable `{v}`"))
-                }
+                _ => self.unbound(v),
             },
             Expr::Add(a, b) => {
                 if let Some(x) = self.add_identity(a, b) {
@@ -1065,15 +1099,17 @@ impl FnLower<'_> {
                 let arr = self.fresh();
                 self.heap_sizes.insert(arr, u128::from(*n));
                 // Allocate before the next instruction reads the pointer.
-                self.pending.push(Hint::AllocBuffer { ptr: arr, size: *n });
+                self.reserve(Hint::AllocBuffer { ptr: arr, size: *n });
                 arr
             }
             Expr::HeapBufDyn(e) => {
                 // Evaluate the size first (its cell must be written when the
                 // alloc hint fires), then allocate before the pointer is read.
+                let name = self.let_name.clone();
                 let size = self.expr(e);
+                self.let_name = name;
                 let arr = self.fresh();
-                self.pending.push(Hint::AllocBufferDyn { ptr: arr, size });
+                self.reserve(Hint::AllocBufferDyn { ptr: arr, size });
                 arr
             }
             Expr::StackBuf(_) => self.fail("StackBuf(n) must be bound to a name: `x = StackBuf(n)`"),
@@ -1113,9 +1149,9 @@ impl FnLower<'_> {
             return self.const_cell(field_pow(bc, k));
         }
         if k == 0 {
-            let o = self.fresh();
-            self.set_const(o, F128::ONE);
-            return o;
+            // The base still runs: a call in it may assert or pop a witness.
+            self.expr(b);
+            return self.const_cell(F128::ONE);
         }
         // Runtime base: square-and-multiply over the compile-time exponent bits.
         let base = self.expr(b);
@@ -1229,10 +1265,18 @@ impl FnLower<'_> {
     }
 
     fn stmt(&mut self, s: &Stmt) {
+        // A chained `match`, entered from the arms of the one before, starts where its chain does.
+        if self.path.is_empty() && self.chain_in.is_none() {
+            self.stmt_start = self.code.len();
+        }
         let tail = std::mem::take(&mut self.tail_call);
         // Every diagnostic raised while lowering this statement, and every
         // instruction it emits, is attributed to this line.
         self.cur_line = s.line;
+        self.let_name = match &s.kind {
+            StmtKind::Let(name, _) => Some(name.clone()),
+            _ => None,
+        };
         match &s.kind {
             StmtKind::Let(name, e) => match e {
                 // `x = StackBuf(n)`: bind a run of `n` consecutive frame cells.
@@ -1349,6 +1393,9 @@ impl FnLower<'_> {
             }
             StmtKind::Return(es) => self.lower_return(es),
             StmtKind::CallIfNe(lhs, rhs, callee, args) => {
+                if callee == self.fn_name {
+                    self.settle_loop_captures(args);
+                }
                 // A conditional call: the frame setup runs either way, and the
                 // `JUMP`'s nonzero test decides whether the callee is entered,
                 // so the not-taken path continues straight after it. In tail
@@ -1394,6 +1441,42 @@ impl FnLower<'_> {
         }
     }
 
+    /// Before a loop helper's self-call, which passes each capture on by name: bind every capture back to the
+    /// parameter it arrived in, and note in `rebound` each one the body had bound in the helper's own scope.
+    ///
+    /// [`free_vars_stmt`] takes an `if` for a runtime one, whose bindings stay in their arm, unless it is
+    /// `const(...)` or two literals as written, so it captures a name that an `if` folding only at lowering (an
+    /// `unroll` counter substituted, a name bound to an integer) binds for the rest of the body. Passed on, the new
+    /// value would reach the next iteration and never the code after the loop. Such a name is the body's own:
+    /// [`lower_func`] lowers the helper again with it unbound, which is how a body is lowered when
+    /// [`free_vars_stmt`] sees the binding. A binding in a runtime arm has reverted by here, and an `@inline`
+    /// callee's names are its own.
+    fn settle_loop_captures(&mut self, args: &[Expr]) {
+        let params = self.params;
+        for (i, (p, arg)) in params.iter().zip(args).enumerate() {
+            // The counter is passed on advanced, not by its name.
+            if !matches!(arg, Expr::Var(name) if *name == p.name) {
+                continue;
+            }
+            let arrived = param_binding(params, i);
+            let kept = match (arrived, self.scope.bound(&p.name).map(|b| b.val)) {
+                (Binding::Scalar(a), Some(Binding::Scalar(b))) => a == b,
+                (Binding::Stack(a, n), Some(Binding::Stack(b, m))) => (a, n) == (b, m),
+                _ => false,
+            };
+            if !kept {
+                self.rebound.push(p.name.clone());
+                self.scope.names.insert(
+                    p.name.clone(),
+                    Bound {
+                        val: arrived,
+                        int: None,
+                    },
+                );
+            }
+        }
+    }
+
     /// `for i in mul_range(GEN**lo, GEN**hi)` → a single tail-recursive helper, with the
     /// exit test folded into the recursion's condition (no separate branch, no
     /// is-zero gadget):
@@ -1409,11 +1492,11 @@ impl FnLower<'_> {
     /// captured by value as extra helper parameters (e.g. a `HeapBuf` pointer
     /// threaded through the loop).
     fn lower_for(&mut self, var: &str, lo: u64, hi: &ForBound, body: &[Stmt]) {
-        let id = *self.loop_ctr;
-        *self.loop_ctr += 1;
-        let loop_name = format!("__loop{id}");
+        let id = self.loop_ctr;
+        self.loop_ctr += 1;
+        let loop_name = format!("__loop{id}_{}", self.fn_name);
         let mut shadowed = std::collections::HashSet::new();
-        binds_anywhere(body, &mut shadowed);
+        binds_anywhere(body, false, &mut shadowed);
         // Returns and counter rebinding can change the number of iterations.
         if !contains_return(body) && !shadowed.contains(var) {
             self.loop_bounds.insert(
@@ -1432,12 +1515,15 @@ impl FnLower<'_> {
                 ForBound::Const(h) => format!("g^{lo}..g^{h}"),
                 ForBound::Runtime(e) => format!("g^{lo}..{e:?}"),
             };
-            eprintln!("DBG_LOOPS {loop_name} in {} for {var} in {bound}", self.fn_name);
+            self.dbg_loops.push(format!(
+                "DBG_LOOPS {loop_name} in {} for {var} in {bound}",
+                self.fn_name
+            ));
         }
         // A runtime stop bound is evaluated once here and threaded through the
         // helper as an extra leading parameter (the exit test compares the
         // advanced counter against it each iteration).
-        let bound_var = format!("__bound{id}");
+        let bound_var = format!("{loop_name}__bound");
         let (exit, entry_bound): (Expr, Expr) = match hi {
             ForBound::Const(hi) => (Expr::GPow(*hi as u128), Expr::GPow(*hi as u128)),
             ForBound::Runtime(e) => (Expr::Var(bound_var.clone()), e.clone()),
@@ -1449,23 +1535,37 @@ impl FnLower<'_> {
         let mut bound = std::collections::HashSet::new();
         bound.insert(var);
         for s in body {
-            free_vars_stmt(s, &mut referenced, &mut bound);
+            free_vars_stmt(s, false, &mut referenced, &mut bound);
         }
+        // The same, leaving out the blocks literals say never run: a binding in
+        // one hides nothing, so a name the body reads where it runs, and binds
+        // only where it does not, is the enclosing one and is captured too.
+        let mut live_refs = Vec::new();
+        let mut live_bound = std::collections::HashSet::new();
+        live_bound.insert(var);
+        for s in body {
+            free_vars_stmt(s, true, &mut live_refs, &mut live_bound);
+        }
+        let live_refs: std::collections::HashSet<&str> = live_refs.into_iter().collect();
+        let reads_outer = |r: &str| live_refs.contains(r) && !live_bound.contains(r);
         // Everything the body binds ANYWHERE, branch-local or not. `bound` above
         // is scoped, which is what makes the capture set right; this flat one
         // only answers "does the body have an `r` of its own?", which is what the
         // StackBuf capture below needs: a body that merely SHADOWS an enclosing
         // `StackBuf` never touches it, so capturing it copies cells for nothing.
+        // `own` is the same of the blocks that can run.
+        let mut own = std::collections::HashSet::new();
+        binds_anywhere(body, true, &mut own);
         let mut captures = Vec::new();
         let mut seen = std::collections::HashSet::new();
         for r in &referenced {
-            if bound.contains(r) {
+            if bound.contains(r) && !reads_outer(r) {
                 continue;
             }
             // A StackBuf is a run of cells: the helper takes it as a `StackBuf(n)`
             // parameter, which each iteration's self-call copies on, cell by cell.
             if let Some((_, len)) = self.scope.stack(r)
-                && !shadowed.contains(r)
+                && (!shadowed.contains(r) || (reads_outer(r) && !own.contains(r)))
             {
                 if seen.insert(*r) {
                     captures.push(((*r).to_string(), Shape::StackBuf(len)));
@@ -1510,7 +1610,7 @@ impl FnLower<'_> {
         // own condition (`JUMP`'s nonzero check on j − stop): no is-zero
         // gadget, no inverse hint, and no extra call beyond the one a loop
         // iteration already makes.
-        let next_var = format!("__next{id}");
+        let next_var = format!("{loop_name}__next");
         let next = Expr::Mul(Arc::new(Expr::Var(var.to_string())), Arc::new(Expr::Gen));
         let mut loop_body: Vec<Stmt> = body.to_vec();
         // The counter advance and the self-call belong to the `for` header.
@@ -1554,7 +1654,7 @@ impl FnLower<'_> {
                 // The entry test and the first call's argument both read the bound,
                 // so one with a call or an allocation in it is bound once first.
                 let entry_bound = if calls_or_allocates(&entry_bound) {
-                    let name = format!("__entry{id}");
+                    let name = format!("{loop_name}__entry");
                     self.stmt(&Stmt::new(self.cur_line, StmtKind::Let(name.clone(), entry_bound)));
                     Expr::Var(name)
                 } else {
@@ -1633,102 +1733,143 @@ fn has_return(stmts: &[Stmt]) -> bool {
     })
 }
 
+/// What parameter `i` is bound to on entry: the cell the caller wrote, or for a `StackBuf(n)` the run of them,
+/// exactly as a local `StackBuf(n)` binds one it allocated.
+fn param_binding(params: &[Param], i: usize) -> Binding {
+    let off = Abi::arg(params.iter().map(Param::shape), i);
+    match params[i].shape() {
+        Shape::StackBuf(n) => Binding::Stack(off, n),
+        Shape::Scalar => Binding::Scalar(off),
+    }
+}
+
 pub(crate) fn lower_func(
     f: &Func,
     queue: &mut Vec<Func>,
-    loop_ctr: &mut usize,
     defs: &HashMap<&str, &Func>,
     const_arrays: &HashMap<&str, &[F128]>,
     loop_bounds: &mut HashMap<String, (u64, Option<u64>)>,
     tables: &mut JumpTables,
 ) -> Lowered {
-    let mut names: HashMap<String, Bound> = HashMap::new();
-    for (i, p) in f.params.iter().enumerate() {
-        assert!(
-            !const_arrays.contains_key(p.name.as_str()),
-            "`{}`: parameter `{}` collides with a top-level constant array, whose name is \
-             reserved (zkDSL.md §Global constants)",
-            f.name,
-            p.name
-        );
-        // A `StackBuf(n)` parameter binds the run the caller wrote, exactly as a
-        // local `StackBuf(n)` binds one it allocated.
-        let off = Abi::arg(f.param_shapes(), i);
-        let val = match p.shape() {
-            Shape::StackBuf(n) => Binding::Stack(off, n),
-            Shape::Scalar => Binding::Scalar(off),
-        };
-        names.insert(p.name.clone(), Bound { val, int: None });
-    }
-    // Reserve [0,1] retpc/retfp, params, then the flattened return area, then
-    // locals. A StackBuf(n) return occupies n consecutive physical slots.
-    let n_ret_cells = Abi::fit(Abi::width(f.return_shapes.iter().copied()));
-    let arg_cells = Abi::arg_cells(f.param_shapes());
-    let abi_end = Abi::end(arg_cells, n_ret_cells);
-    // Loop callers write the callee's own fp just past its arguments. That
-    // equality is tied to the JUMP target, so the loop can use it directly.
-    let loop_frame = loop_bounds.contains_key(&f.name);
-    let mut lowerer = FnLower {
-        scope: Scope {
-            self_fp_off: loop_frame.then_some(abi_end),
-            names,
-            ..Default::default()
-        },
-        next: abi_end + u32::from(loop_frame),
-        arg_cells,
-        return_shapes: &f.return_shapes,
-        is_main: f.name == "main",
-        fn_name: &f.name,
-        params: &f.params,
-        tail_call: false,
-        code: Vec::new(),
-        cur_line: 0,
-        heap_sizes: HashMap::new(),
-
-        pending: Vec::new(),
-        chain_next: None,
-        chain_in: None,
-        inline_calls: Vec::new(),
-        loop_bounds,
-        queue,
-        loop_ctr,
-        defs,
-        const_arrays,
-        tables,
-    };
-    if f.name == "main" {
-        // `main` halts at its end, so a `return` anywhere else would read as an early exit that does not happen.
-        for (i, s) in f.body.iter().enumerate() {
-            let trailing = i + 1 == f.body.len() && matches!(s.kind, StmtKind::Return(_));
+    // The captures of a loop helper that are its body's own names ([`FnLower::settle_loop_captures`]): each pass
+    // that finds one lowers the helper again with it unbound, its cell still passed along and never read.
+    let mut own: Vec<String> = Vec::new();
+    loop {
+        let (queued, slots) = (queue.len(), tables.slots.len());
+        let mut names: HashMap<String, Bound> = HashMap::new();
+        for (i, p) in f.params.iter().enumerate() {
             assert!(
-                trailing || !has_return(std::slice::from_ref(s)),
-                "line {}: `return` in `main` is allowed only as its last statement",
-                s.line
+                !const_arrays.contains_key(p.name.as_str()),
+                "`{}`: parameter `{}` collides with a top-level constant array, whose name is \
+                 reserved (zkDSL.md §Global constants)",
+                f.name,
+                p.name
             );
+            if !own.contains(&p.name) {
+                let val = param_binding(&f.params, i);
+                names.insert(p.name.clone(), Bound { val, int: None });
+            }
         }
-    }
-    for (i, s) in f.body.iter().enumerate() {
-        // Tail position: a conditional call whose only successor is a bare
-        // `return`, in a function that returns nothing. The `mul_range` helper
-        // ends exactly like this, so its self-call stops building an unwind
-        // chain.
-        lowerer.tail_call = !lowerer.is_main
-            && f.return_shapes.is_empty()
-            && matches!(s.kind, StmtKind::CallIfNe(..))
-            && matches!(f.body.get(i + 1).map(|n| &n.kind), Some(StmtKind::Return(r)) if r.is_empty());
-        lowerer.stmt(s);
-    }
-    if lowerer.is_main {
-        lowerer.halt(); // main terminates in the final state (sentinel pc, main's frame), not by falling off
-    } else if !matches!(f.body.last().map(|s| &s.kind), Some(StmtKind::Return(_))) {
-        // A function must never fall off its end into whatever code the
-        // layout placed next: append the implicit bare return.
-        let last = f.body.last().map_or(0, |s| s.line);
-        lowerer.stmt(&Stmt::new(last, StmtKind::Return(vec![])));
-    }
-    Lowered {
-        name: f.name.clone(),
-        code: lowerer.code,
-        frame_size: lowerer.next,
+        // Reserve [0,1] retpc/retfp, params, then the flattened return area, then
+        // locals. A StackBuf(n) return occupies n consecutive physical slots.
+        let n_ret_cells = Abi::fit(Abi::width(f.return_shapes.iter().copied()));
+        let arg_cells = Abi::arg_cells(f.param_shapes());
+        let abi_end = Abi::end(arg_cells, n_ret_cells);
+        // Loop callers write the callee's own fp just past its arguments. That
+        // equality is tied to the JUMP target, so the loop can use it directly.
+        let loop_frame = loop_bounds.contains_key(&f.name);
+        let mut lowerer = FnLower {
+            scope: Scope {
+                self_fp_off: loop_frame.then_some(abi_end),
+                names,
+                ..Default::default()
+            },
+            next: abi_end + u32::from(loop_frame),
+            arg_cells,
+            return_shapes: &f.return_shapes,
+            is_main: f.name == "main",
+            fn_name: &f.name,
+            params: &f.params,
+            tail_call: false,
+            rebound: Vec::new(),
+            dbg_loops: Vec::new(),
+            code: Vec::new(),
+            cur_line: 0,
+            heap_sizes: HashMap::new(),
+
+            pending: Vec::new(),
+            reservations: HashMap::new(),
+            let_name: None,
+            path: Vec::new(),
+            code_path: Vec::new(),
+            branches: Vec::new(),
+            stmt_start: 0,
+            returns: Vec::new(),
+            chain_next: None,
+            chain_in: None,
+            inline_calls: Vec::new(),
+            loop_bounds: &mut *loop_bounds,
+            queue: &mut *queue,
+            loop_ctr: 0,
+            defs,
+            const_arrays,
+            tables: &mut *tables,
+        };
+        if f.name == "main" {
+            // `main` halts at its end, so a `return` anywhere else would read as an early exit that does not happen.
+            for (i, s) in f.body.iter().enumerate() {
+                let trailing = i + 1 == f.body.len() && matches!(s.kind, StmtKind::Return(_));
+                assert!(
+                    trailing || !has_return(std::slice::from_ref(s)),
+                    "line {}: `return` in `main` is allowed only as its last statement",
+                    s.line
+                );
+            }
+        }
+        for (i, s) in f.body.iter().enumerate() {
+            // Tail position: a conditional call whose only successor is a bare
+            // `return`, in a function that returns nothing. The `mul_range` helper
+            // ends exactly like this, so its self-call stops building an unwind
+            // chain.
+            lowerer.tail_call = !lowerer.is_main
+                && f.return_shapes.is_empty()
+                && matches!(s.kind, StmtKind::CallIfNe(..))
+                && matches!(f.body.get(i + 1).map(|n| &n.kind), Some(StmtKind::Return(r)) if r.is_empty());
+            lowerer.stmt(s);
+        }
+        if lowerer.is_main {
+            lowerer.halt(); // main terminates in the final state (sentinel pc, main's frame), not by falling off
+        } else if !matches!(f.body.last().map(|s| &s.kind), Some(StmtKind::Return(_))) {
+            // A function must never fall off its end into whatever code the
+            // layout placed next: append the implicit bare return.
+            let last = f.body.last().map_or(0, |s| s.line);
+            lowerer.stmt(&Stmt::new(last, StmtKind::Return(vec![])));
+        }
+        let hoisted = lowerer.hoist_heap_bufs();
+        let (rebound, dbg_loops, code, frame_size) = (lowerer.rebound, lowerer.dbg_loops, lowerer.code, lowerer.next);
+        let settled = own.len();
+        for name in rebound {
+            if !own.contains(&name) {
+                own.push(name);
+            }
+        }
+        if own.len() == settled {
+            if let Err(e) = hoisted {
+                panic!("{e}");
+            }
+            dbg_loops.iter().for_each(|line| eprintln!("{line}"));
+            return Lowered {
+                name: f.name.clone(),
+                code,
+                frame_size,
+            };
+        }
+        // The pass is abandoned, so everything it left for later goes with it: the helpers and specializations
+        // it queued, their reserved frames and its jump tables (its loop numbers are its own).
+        for left in queue.drain(queued..) {
+            loop_bounds.remove(&left.name);
+        }
+        tables.slots.truncate(slots);
+        tables.shared.retain(|_, first| *first < slots);
     }
 }

@@ -20,7 +20,7 @@ fs = lambda n: fsd.get(n, 2)
 def SB(n):
     c = w.get(n); assert c and c[0] == 'stat' and c[1] == [] and c[2][1] == [], n
     return c[2][0]
-src = open(os.path.join(LV, 'LeanVM', 'Guest', 'Data', 'Source.lean'), encoding='utf-8').read()
+src = open(os.path.join(LV, 'LeanVM', 'Guest', 'Data', 'Consts.lean'), encoding='utf-8').read()
 def arr(name):
     m = re.search(r'def arr_%s : List \(Nat × Nat\) :=\s*\[(.*?)\]\n' % name, src, re.S)
     return [int(x) for x in re.findall(r'\((\d+), \d+\)', m.group(1))]
@@ -31,7 +31,7 @@ def _whir(f):
     return open(os.path.join(LV, 'LeanVM', 'Guest', 'B1', 'Whir', f), encoding='utf-8').read()
 def _abbrev(src, name):
     return int(re.search(r'abbrev %s : (?:Nat|ℕ) := (\d+)' % name, src).group(1))
-# `Whir/Config.lean`'s caps read the guest's constants (`guest_const%`), exported to `Data/Source.lean`.
+# `Whir/Config.lean`'s caps read the guest's constants (`guest_const%`), exported to `Data/Consts.lean`.
 _src = src
 def _const(name):
     return int(re.search(r'def const_%s : Nat := (\d+)' % name, _src).group(1))
@@ -107,6 +107,11 @@ for m in range(ARMS):
     comb.append('/-- `open_stacked`\'s words at the arm %d. -/\ntheorem osC_%d : osC %d = %d := by\n'
                 '  rw [osC_eq_fast, osCF_%d]\n' % (m, m, m, t, m))
     names.append('osNames_ok_%d' % m)
+comb.append('/-- `open_stacked`\'s words at the arms, in order. -/\ndef osCs : List ℕ := [%s]\n\n'
+            '/-- `open_stacked`\'s words at an arm, from the table. -/\n'
+            'theorem osC_getD {m : ℕ} (hm : m < %d) : osC m = osCs.getD m 0 := by\n'
+            '  interval_cases m\n  exacts [%s]\n' % (', '.join(map(str, total)), ARMS,
+                                                    ', '.join('osC_%d' % m for m in range(ARMS))))
 imports = 'public import LeanVM.Guest.Count.VsBoundBase\n' + ''.join(
     'public import LeanVM.Guest.Count.VsOs%02d\n' % m for m in range(ARMS))
 body = '\n' + '\n'.join(comb) + '''

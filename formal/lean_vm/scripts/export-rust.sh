@@ -23,6 +23,7 @@
 #
 #   memory.bin            the execution's memory, 16 bytes per cell (two limbs, little-endian);
 #   trace.txt             `<log2 cells> <instructions executed> <rate>`;
+#   advice.txt            the run's advice (`CompiledProgram::export_hints`), for `lake exe leanvm-execute`;
 #   rust.txt              the Rust prover's wall time in seconds.
 #
 # The proof is the honest proof of the Rust `prove`, a `verifier::Proof`, its Merkle paths
@@ -93,7 +94,7 @@ cat >> "$work/src/main.rs" <<'EOF'
 use fixture::chain;
 use zkdsl_compiler::{compile, parse};
 use isa::Program;
-use lean_vm_core::cpu::{execute, prove, public_input_bytes, verify};
+use lean_vm_core::cpu::{execute, prove, public_input_bytes, to_scalar, verify};
 use primitives::field::F128;
 use std::path::Path;
 
@@ -250,6 +251,10 @@ fn main() {
             .flat_map(u64::to_le_bytes)
             .collect();
         std::fs::write(directory.join("memory.bin"), memory).expect("write memory");
+        let scalar_witness: Vec<(String, Vec<Vec<verifier::E>>)> = (witness.iter())
+            .map(|(name, entries)| (name.clone(), entries.iter().map(|e| e.iter().map(to_scalar).collect()).collect()))
+            .collect();
+        std::fs::write(directory.join("advice.txt"), program.export_hints(&scalar_witness)).expect("write advice");
         let log_mem = exec.mem.len().trailing_zeros();
         std::fs::write(directory.join("trace.txt"), format!("{log_mem} {} {log_inv_rate}\n", exec.cycles))
             .expect("write trace");

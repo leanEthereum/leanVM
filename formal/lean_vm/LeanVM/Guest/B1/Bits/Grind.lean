@@ -7,6 +7,8 @@
 module
 
 public import LeanVM.Guest.B1.Bits.GrindData
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«grind_check__L»
 
 /-!
 # `grind_check` (TRIAGE #21)
@@ -78,7 +80,7 @@ def GcIterOk (rd : Reader) (σ : Val) (W i : ℕ) : Prop :=
       LoadHolds rd (σ (.n (W + 9 * i + 1))) 0 (σ (.n (W + 9 * i + 3)))) ∧
     σ (.n (W + 9 * i + 4)) = word 2048 0 ∧
     σ (.n (W + 9 * i + 5)) = σ (.n (W + 9 * i - 1)) * σ (.n (W + 9 * i + 4)) ∧
-    σ (.n (W + 9 * i + 6)) = σ (.n 1) * σ (.n (W + 2 - i)) ∧
+    σ (.n (W + 9 * i + 6)) = σ (.n (valf% «grind_check» "tabs")) * σ (.n (W + 2 - i)) ∧
     LoadHolds rd (σ (.n (W + 9 * i + 6))) 0 (σ (.n (W + 9 * i + 7))) ∧
     σ (.n (W + 9 * i + 8)) = σ (.n (W + 9 * i + 5)) + σ (.n (W + 9 * i + 7))
 
@@ -93,14 +95,14 @@ def GcHeadOk (rd : Reader) (σ : Val) (W T : ℕ) : Prop :=
     (LoadHolds rd (σ (.n (W + 2))) 0 (σ (.n (W + 5))) ∧
       σ (.n (W + 3)) = σ (.n (W + 2)) * σ (.n (W + 4)) ∧
       LoadHolds rd (σ (.n (W + 4))) 0 (σ (.n (W + 6)))) ∧
-    σ (.n (W + 7)) = σ (.n 1) * σ (.n (W + 2)) ∧
+    σ (.n (W + 7)) = σ (.n (valf% «grind_check» "tabs")) * σ (.n (W + 2)) ∧
     LoadHolds rd (σ (.n (W + 7))) 0 (σ (.n (W + 8)))
 
 /-- What the tail asks of a valuation. -/
 def GcTailOk (σ : Val) (W b : ℕ) : Prop :=
   σ (.n (10 * W + 9)) = word (2 ^ b) 0 ∧
     σ (.n (10 * W + 10)) = σ (.n (10 * W + 8)) * σ (.n (10 * W + 9)) ∧
-    σ (.n (10 * W + 11)) = σ (.n 0) + σ (.n (10 * W + 10)) ∧
+    σ (.n (10 * W + 11)) = σ (.n (valf% «grind_check» "word")) + σ (.n (10 * W + 10)) ∧
     σ (.n (10 * W + 12)) = word 2 1 ∧
     σ (.n (10 * W + 13)) = σ (.n (10 * W + 11)) * σ (.n (10 * W + 12)) ∧
     σ (.n (10 * W + 14)) = word (2 ^ b) 0 ∧
@@ -120,7 +122,7 @@ theorem holds_gcBodyT {C : CallRel} {rd : Reader} {σ : Val} (b : ℕ) (rets : L
 
 /-- **The running value**: after Horner step `i ≤ W` it is `E(V)` with `V < 2^(T + 11 i)`. -/
 theorem gc_acc {κ : ℕ} (hκ : κ ≤ 32) (hκ11 : 11 ≤ κ) (L : MemoryImage κ) {σ : Val} {W T : ℕ}
-    (hT : T ≤ 11) (hWT : T + 11 * W ≤ 64) (ht : WinTabs L.read (σ (.n 1)))
+    (hT : T ≤ 11) (hWT : T + 11 * W ≤ 64) (ht : WinTabs L.read (σ (.n (valf% «grind_check» "tabs"))))
     (hh : GcHeadOk L.read σ W T) (hi : ∀ i < W, GcIterOk L.read σ W (i + 1)) :
     ∀ i ≤ W, ∃ V < 2 ^ (T + 11 * i), σ (.n (W + 9 * i + 8)) = eOfNat V := by
   intro i
@@ -155,9 +157,9 @@ theorem gc_acc {κ : ℕ} (hκ : κ ≤ 32) (hκ11 : 11 ≤ κ) (L : MemoryImage
 /-- **`grind_check` is sound.** -/
 theorem gc_sound {κ : ℕ} (hκ : κ ≤ 32) (hκ11 : 11 ≤ κ) (L : MemoryImage κ) {σ : Val} {b : ℕ}
     (hs : 1 ≤ gcTop b ∧ gcTop b ≤ 11 ∧ b + 11 * gcW b + gcTop b = 64)
-    (ht : WinTabs L.read (σ (.n 1))) (hh : GcHeadOk L.read σ (gcW b) (gcTop b))
+    (ht : WinTabs L.read (σ (.n (valf% «grind_check» "tabs")))) (hh : GcHeadOk L.read σ (gcW b) (gcTop b))
     (hi : ∀ i < gcW b, GcIterOk L.read σ (gcW b) (i + 1)) (htl : GcTailOk σ (gcW b) b) :
-    ((σ (.n 0)).limb 0).lane.toNat % 2 ^ b = 0 := by
+    ((σ (.n (valf% «grind_check» "word"))).limb 0).lane.toNat % 2 ^ b = 0 := by
   obtain ⟨-, hT, hsum⟩ := hs
   obtain ⟨N, hN, hacc⟩ := gc_acc hκ hκ11 L hT (by omega) ht hh hi (gcW b) le_rfl
   obtain ⟨t1, t2, t3, t4, t5, t6, t7, k13, k15⟩ := htl
@@ -168,14 +170,14 @@ theorem gc_sound {κ : ℕ} (hκ : κ ≤ 32) (hκ11 : 11 ≤ κ) (L : MemoryIma
       _ = 2 ^ 64 := by rw [← pow_add]; congr 1; omega
   have hL : σ (.n (10 * gcW b + 15)) = eOfNat (2 ^ b * N) := by
     rw [t7, hidx, hacc, t6, word_eOfNat, mul_comm, eOfNat_two_pow_mul hbN]
-  have hD : σ (.n (10 * gcW b + 13)) = (σ (.n 0) + eOfNat (2 ^ b * N)) * y⁻¹ := by
+  have hD : σ (.n (10 * gcW b + 13)) = (σ (.n (valf% «grind_check» "word")) + eOfNat (2 ^ b * N)) * y⁻¹ := by
     rw [t5, t3, t4, t2, t1, hidx, hacc, word_eOfNat, mul_comm (eOfNat N),
       eOfNat_two_pow_mul hbN, word_y_inv]
   rw [hL] at k15
   rw [hD] at k13
   have hl := (split_iff _ _).mp ⟨k15, k13⟩
-  have hk : (σ (.n 0)).limb 0 = K.ofBits (2 ^ b * N) := (ofK_injective hl).symm
-  show kToNat ((σ (.n 0)).limb 0) % 2 ^ b = 0
+  have hk : (σ (.n (valf% «grind_check» "word"))).limb 0 = K.ofBits (2 ^ b * N) := (ofK_injective hl).symm
+  show kToNat ((σ (.n (valf% «grind_check» "word"))).limb 0) % 2 ^ b = 0
   rw [hk, kToNat_ofBits, Nat.mod_eq_of_lt hbN, Nat.mul_mod_right]
 
 /-! ## Completeness -/
@@ -330,7 +332,7 @@ theorem gc_complete_of {rd : Reader}
         ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_left rfl]
     have e8 : σ (.n (gcW b + 8)) = eOfNat (gcV b w 0) := by
       rw [ev, show gcW b + 8 = gcW b + 9 * 0 + 8 by ring]; exact gv_acc (i := 0) (by omega)
-    have e1 : σ (.n 1) = tabs := by rw [ev]; unfold gcVals; rw [ite_eq_right (by omega), ite_eq_left rfl]
+    have e1 : σ (.n (valf% «grind_check» "tabs")) = tabs := by rw [ev]; unfold gcVals; rw [ite_eq_right (by omega), ite_eq_left rfl]
     rw [GcHeadOk, e2, e3, e4, e5, e6, e7, e8, e1]
     exact ⟨rfl, hrc, rfl, winTab_load ht hV0'⟩
   · have h1 : 1 ≤ i + 1 := by omega
@@ -346,7 +348,7 @@ theorem gc_complete_of {rd : Reader}
     have ep : σ (.n (gcW b + 9 * (i + 1) - 1)) = eOfNat (gcV b w i) := by
       rw [ev, show gcW b + 9 * (i + 1) - 1 = gcW b + 9 * i + 8 by omega]
       exact gv_acc (i := i) (by omega)
-    have e1 : σ (.n 1) = tabs := by rw [ev]; unfold gcVals; rw [ite_eq_right (by omega), ite_eq_left rfl]
+    have e1 : σ (.n (valf% «grind_check» "tabs")) = tabs := by rw [ev]; unfold gcVals; rw [ite_eq_right (by omega), ite_eq_left rfl]
     rw [GcIterOk, ew, e0, ei 1 (by omega), ei 2 (by omega), ei 3 (by omega), ei 4 (by omega),
       ei 5 (by omega), ei 6 (by omega), ei 7 (by omega), ei 8 (by omega), ep, e1]
     refine ⟨rfl, hrc, rfl, ?_, rfl, winTab_load ht hwin, ?_⟩
@@ -363,7 +365,7 @@ theorem gc_complete_of {rd : Reader}
       rw [ev, show 10 * gcW b + 8 = gcW b + 9 * gcW b + 8 by ring]
       exact gv_acc (i := gcW b) le_rfl
     have et : ∀ r, σ (.n (10 * gcW b + 9 + r)) = gcTailVal b w r := fun r => by rw [ev]; exact gv_tail
-    have e0 : σ (.n 0) = w := by rw [ev]; unfold gcVals; rw [ite_eq_left rfl]
+    have e0 : σ (.n (valf% «grind_check» "word")) = w := by rw [ev]; unfold gcVals; rw [ite_eq_left rfl]
     have hVW : 2 ^ b * gcV b w (gcW b) = kToNat (w.limb 0) := by
       unfold gcV
       rw [Nat.sub_self, Nat.mul_zero, Nat.add_zero]

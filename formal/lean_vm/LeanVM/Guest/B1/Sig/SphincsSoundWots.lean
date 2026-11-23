@@ -12,6 +12,8 @@ public import LeanVM.Guest.B1.Sig.SpWotsSound
 public import LeanVM.Guest.B1.Sig.SphincsHash
 public import LeanVM.Guest.B1.Sig.SphincsCompleteSpec
 public import LeanVM.Guest.B1.Sig.SphincsSig
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«sp_wots»
 
 /-!
 # `sp_wots` against the statement
@@ -152,9 +154,9 @@ address cells the digest's digits reach the target sum and the word is the leaf 
 theorem sp_wots_sound_stmt {σ : Val} {rets : List E}
     (h : Stmt.HoldsList C rd σ (Fn.«sp_wots».core).body False (fun rs => rs = rets)) :
     ∃ leaf, rets = [leaf] ∧ ∀ (layer : Sphincs.Layer) (tree : Sphincs.TreeIndex)
-      (lf : Sphincs.TreeLeafIndex), (σ (.n 1), σ (.n 2)) = keyAdrsCells layer.val tree.val lf.val →
-        Sphincs.TargetSum.Valid (Sphincs.TargetSum.base2bDigits (cellVal (σ (.n 3)))) ∧
-        cellVal leaf = wotsLeafOf (cellVal (σ (.n 0))) layer tree lf (cellVal (σ (.n 3)))
+      (lf : Sphincs.TreeLeafIndex), (σ (.n (val% «sp_wots» "a0")), σ (.n (val% «sp_wots» "a1"))) = keyAdrsCells layer.val tree.val lf.val →
+        Sphincs.TargetSum.Valid (Sphincs.TargetSum.base2bDigits (cellVal (σ (.n (val% «sp_wots» "encoding"))))) ∧
+        cellVal leaf = wotsLeafOf (cellVal (σ (.n (val% «sp_wots» "pp")))) layer tree lf (cellVal (σ (.n (val% «sp_wots» "encoding"))))
           (sChainValuesOf σ) := by
   obtain ⟨leaf, hr, hd, hs, h3, hl⟩ := sp_wots_sound_cells h
   refine ⟨leaf, hr, fun layer tree lf hk => ⟨?_, ?_⟩⟩

@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.16.0](https://github.com/leanEthereum/leanVM/compare/bindings-v0.15.0...bindings-v0.16.0) (2026-11-20)
+
+
+### Features
+
+* VRF tree, with pruning + with a cached middle layer ([#805](https://github.com/leanEthereum/leanVM/issues/805)) ([c38f2ba](https://github.com/leanEthereum/leanVM/commit/c38f2bac8ec30f1ab1d6e5d55908be2377abdc77))
+
+
+### Bug Fixes
+
+* staged native archives carry no LLVM bitcode, which Go 1.27 refuses ([41ca15b](https://github.com/leanEthereum/leanVM/commit/41ca15b4fd3c5830fca434ec2f78aa49a709d80d))
+
 ## [0.15.0](https://github.com/leanEthereum/leanVM/compare/bindings-v0.14.0...bindings-v0.15.0) (2026-11-20)
 
 

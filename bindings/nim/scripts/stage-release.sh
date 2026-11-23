@@ -32,7 +32,7 @@ for target in x86_64-linux-gnu aarch64-linux-gnu universal-macos x86_64-windows-
     fi
     destination="$output/lean-pq-native-$target.a"
     install -m 0644 "$source" "$destination"
-    sh "$strip" "$destination"
+    sh "$strip" --strip-debug "$destination"
     echo "staged $target"
     echo "$target: $(wc -c < "$source") bytes, $(wc -c < "$destination") stripped"
     staged=$((staged + 1))

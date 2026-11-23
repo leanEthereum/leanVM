@@ -115,17 +115,18 @@ variable (P fs cert H C hdr) in
 /-- **The certificate's facts about a tree** (group K): `DischargeHyps`' fields on the cells. -/
 structure KFacts (T : Tree) : Prop where
   cells : CellsOk fs C (honestInsts P fs H hdr T)
-  cells' : ∀ ν, CellsOk fs C (honestInsts P fs H hdr (T.retemp P fs ν 0))
+  cells' : ∀ ν, CellsOk fs C (honestInsts P fs H hdr (T.retemp P fs ν (0, T.block fs P.loop)))
   cert_lt : ∀ f, ∀ t ∈ P.temps f, 2 ≤ cert f t ∧ cert f t < fs f
   cert_inj : ∀ f, ∀ t ∈ P.temps f, ∀ t' ∈ P.temps f, cert f t = cert f t' → t = t'
   run : ∀ I ∈ honestInsts P fs H hdr T, ∀ f σ bufs kids, I.t = .node f σ bufs kids →
     ∀ p r rs, Ev.atom (.frameAddr p (r :: rs)) ∈ I.t.events P →
       ∀ (k : ℕ) (hk : k < (r :: rs).length), (cert f r + k, σ (r :: rs)[k]) ∈ C I ∧
         ∀ t ∈ P.temps f, cert f r + k ≠ cert f t
-  tmp : ∀ ν, ∀ I' ∈ honestInsts P fs H hdr (T.retemp P fs ν 0), ∀ f σ bufs kids,
+  tmp : ∀ ν, ∀ I' ∈ honestInsts P fs H hdr (T.retemp P fs ν (0, T.block fs P.loop)), ∀ f σ bufs kids,
     I'.t = .node f σ bufs kids → ∀ t ∈ P.temps f, ∀ q ∈ C I', q.1 = cert f t → q.2 = σ t
-  keep : ∀ ν, ∀ I ∈ honestInsts P fs H hdr T, ∀ I' ∈ honestInsts P fs H hdr (T.retemp P fs ν 0),
-    I'.fp = I.fp → I'.t = I.t.retemp P fs ν I.fp → ∀ q ∈ I'.cells C, ¬ TmpOff P cert I.t q.1 →
+  keep : ∀ ν, ∀ I ∈ honestInsts P fs H hdr T, ∀ I' ∈ honestInsts P fs H hdr (T.retemp P fs ν (0, T.block fs P.loop)),
+    I'.fp = I.fp → I'.t = I.t.retemp P fs ν (I.fp, I.cur) → ∀ q ∈ I'.cells C,
+      ¬ TmpOff P cert I.t q.1 →
       q ∈ I.cells C
 
 theorem read_some_gpow {κ : ℕ} (hκ : κ < 64) {M : MemoryImage κ} {a : K} {v : E} (h : M.read a = some v) :
@@ -134,14 +135,14 @@ theorem read_some_gpow {κ : ℕ} (hκ : κ < 64) {M : MemoryImage κ} {a : K} {
 
 /-- **Every equation names a word of the memory**. -/
 theorem dischargeAddr {κ : ℕ} (hκ : κ < 64) {M : MemoryImage κ} {T : Tree} {args rets : List E}
-    (hv : T.Valid P M.read args rets) (hp : T.Placed P fs cert 0)
+    (hv : T.Valid P M.read args rets) (hp : T.Placed P fs cert (0, T.block fs P.loop))
     (hrun : ∀ I ∈ honestInsts P fs H hdr T, ∀ f σ bufs kids, I.t = .node f σ bufs kids →
       ∀ p r rs, Ev.atom (.frameAddr p (r :: rs)) ∈ I.t.events P →
         ∀ k < (r :: rs).length, I.fp + (cert f r + k) < 2 ^ κ) :
     ∀ q ∈ T.eqns P, ∃ i : Fin (2 ^ κ), q.1 = Parameters.addressOfIndex i := by
   intro q hq
-  obtain ⟨I, hI, ⟨f, σ, bufs, kids, ht⟩, a, ha, hqa⟩ := eqns_insts (lp := P.loop) (H := H) T 0 hdr q hq
-  have hgood := insts_good (H := H) T 0 hdr hv I hI
+  obtain ⟨I, hI, ⟨f, σ, bufs, kids, ht⟩, a, ha, hqa⟩ := eqns_insts (lp := P.loop) (H := H) T _ hdr q hq
+  have hgood := insts_good (H := H) T _ hdr hv I hI
   obtain ⟨fn, es, vs, hf, hw, hes⟩ : ∃ fn es vs, P.find? f = some fn ∧ walk σ fn.body = .ret es vs ∧
       ∀ e ∈ es, e.Holds M.read σ := by
     rcases hgood with ⟨_, _, hv'⟩ | ⟨_, _, hph⟩
@@ -172,7 +173,8 @@ theorem dischargeAddr {κ : ℕ} (hκ : κ < 64) {M : MemoryImage κ} {T : Tree}
     | r :: rs, hqa, ha =>
       simp only [atomEqns, List.mem_mapIdx] at hqa
       obtain ⟨k, hk, rfl⟩ := hqa
-      have hpl := (Inst.nodeAt (insts_placedAt T 0 hdr hp I hI) (insts_placed T 0 hdr I hI) ht).2 (p, r)
+      have hpl := (Inst.nodeAt (insts_placedAt T _ hdr hp I hI)
+        (insts_placed T _ hdr (Nat.zero_add _).le I hI) ht).2 (p, r)
         (List.mem_filterMap.mpr ⟨_, ha, rfl⟩)
       simp only at hpl
       rw [hpl, addr_ofK]

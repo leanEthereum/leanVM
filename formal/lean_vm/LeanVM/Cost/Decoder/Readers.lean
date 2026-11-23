@@ -5,6 +5,8 @@ public import LeanVM.Guest.B1.Sig.Bytes
 public import Statement.Theorems
 import all LeanVM.Guest.B1.Sig.Interface
 import all LeanVM.Guest.B1.Main.Interface
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«main»
 
 /-!
 # The guest decoder's compiled chain: the cell readers, the seed and the statement
@@ -195,8 +197,8 @@ open LeanVM.Extraction.Fast in
 /-- **The statement** (`decStmt`), the logarithm's tables `D` given: the counts (logarithms)
 computed here and passed to `decStmtAt`. -/
 noncomputable def decStmtD (D : DiscreteLogTables) (σ : Val) (rd : Reader) : NodeStatement :=
-  decStmtAt rd (σ (.n 31)) (σ (.n 34)) (σ (.n 364)) (σ (.n 416)) (gLogD D (σ (.n 0)))
-    (gLogD D (σ (.n 3))) (gLogD D (σ (.n 405)))
+  decStmtAt rd (σ (.n (val% «main» "lx_table"))) (σ (.n (val% «main» "lean_sphincs_table"))) (σ (.n (val% «main» "da_digests"))) (σ (.n (val% «main» "defer_stmt"))) (gLogD D (σ (.n (val% «main» "meta[0]"))))
+    (gLogD D (σ (.n (val% «main» "meta[3]")))) (gLogD D (σ (.n (val% «main» "da_pick"))))
 
 open LeanVM.Extraction.Fast in
 theorem decStmtD_tables : decStmtD discreteLogTables = decStmt := by

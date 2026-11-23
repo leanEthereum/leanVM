@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.B1.Opening.QueriesComplete2
 public import LeanVM.Guest.CoreData
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«walk_path__L»
 
 /-!
 # `walk_path`, completeness (lean_ethereum.py)
@@ -295,9 +297,9 @@ theorem gen_pow_ofK (v : ℕ) : gen ^ v = ofK (Parameters.addressOfIndex v) := g
 its match taking arm `v`. -/
 theorem oqWin_complete (hpd : 1 ≤ w.s.pd) (hsl : w.sibs.length = w.s.pd) (hv : w.Hv σ)
     (hm : w.MemOk rd) {i : ℕ} (hi : i < oqNpw w.s) :
-    BlockOk rd σ (oqWinT w.s (.n 2) (wpPr w.s) 0 wpCh i) := by
+    BlockOk rd σ (oqWinT w.s (.n (valf% «walk_path» "wins")) (wpPr w.s) 0 wpCh i) := by
   obtain ⟨hpad, hz⟩ := w.pad_val hpd hv
-  have hbp : σ (.n 2) = w.bpv := hv 2
+  have hbp : σ (.n (valf% «walk_path» "wins")) = w.bpv := hv 2
   have s0 : σ (.n (oqWk w.s wpCh i)) = gen ^ w.wv i := by
     rw [show oqWk w.s wpCh i = oqWk w.s wpCh i + 0 from rfl, hv,
       val_win w hi (by unfold winSz; omega), winV]; simp
@@ -376,7 +378,7 @@ theorem oqWin_complete (hpd : 1 ≤ w.s.pd) (hsl : w.sibs.length = w.s.pd) (hv :
 /-- **The path holds at the honest values.** -/
 theorem oqPath_complete (hpd : 1 ≤ w.s.pd) (hsl : w.sibs.length = w.s.pd) (hv : w.Hv σ)
     (hm : w.MemOk rd) :
-    BlockOk rd σ (oqPathT w.s (.n 2) (wpPr w.s) 0 wpCh) := by
+    BlockOk rd σ (oqPathT w.s (.n (valf% «walk_path» "wins")) (wpPr w.s) 0 wpCh) := by
   intro st hst
   simp only [oqPathT, List.mem_append, List.mem_cons, List.not_mem_nil, or_false,
     List.mem_flatten, List.mem_map, List.mem_range] at hst
@@ -393,10 +395,10 @@ theorem climbNode_length (leaf : Digest) (q : ℕ) (sibs : List Digest) :
 /-- **The cap leaf holds at the honest values.** -/
 theorem oqCap_complete (hsl : w.sibs.length = w.s.pd) (hcd : 1 ≤ w.s.cd)
     (hq : w.q < 2 ^ (w.s.pd + w.s.cd)) (hv : w.Hv σ) (hm : w.MemOk rd) :
-    ∀ a, Stmt.atom a ∈ oqCapT w.s (.n 2) (.n 3) (.n 4) 0 wpCh → a.Holds rd σ := by
-  have hbp : σ (.n 2) = w.bpv := hv 2
-  have hcap : σ (.n 3) = w.capv := hv 3
-  have hflags : σ (.n 4) = w.flagsv := hv 4
+    ∀ a, Stmt.atom a ∈ oqCapT w.s (.n (valf% «walk_path» "wins")) (.n (valf% «walk_path» "cap")) (.n (valf% «walk_path» "flags")) 0 wpCh → a.Holds rd σ := by
+  have hbp : σ (.n (valf% «walk_path» "wins")) = w.bpv := hv 2
+  have hcap : σ (.n (valf% «walk_path» "cap")) = w.capv := hv 3
+  have hflags : σ (.n (valf% «walk_path» "flags")) = w.flagsv := hv 4
   have hCq : oqCq w.s wpCh = w.Cq := rfl
   have t : ∀ o < 9, σ (.n (w.Cq + o)) = w.capV o := fun o ho => by rw [hv, val_cap w]
   have t0 : σ (.n w.Cq) = w.wbV := by rw [show w.Cq = w.Cq + 0 from rfl, t 0 (by omega)]; rfl
@@ -472,7 +474,7 @@ theorem oqCap_complete (hsl : w.sibs.length = w.s.pd) (hcd : 1 ≤ w.s.cd)
 /-- **The walk's body holds at the honest values**, statement by statement. -/
 theorem walk_block (hpd : 1 ≤ w.s.pd) (hcd : 1 ≤ w.s.cd) (hsl : w.sibs.length = w.s.pd)
     (hq : w.q < 2 ^ (w.s.pd + w.s.cd)) (hv : w.Hv σ) (hm : w.MemOk rd) :
-    BlockOk rd σ (oqPathT w.s (.n 2) (wpPr w.s) 0 wpCh ++ oqCapT w.s (.n 2) (.n 3) (.n 4) 0 wpCh) :=
+    BlockOk rd σ (oqPathT w.s (.n (valf% «walk_path» "wins")) (wpPr w.s) 0 wpCh ++ oqCapT w.s (.n (valf% «walk_path» "wins")) (.n (valf% «walk_path» "cap")) (.n (valf% «walk_path» "flags")) 0 wpCh) :=
   blockOk_append.mpr ⟨w.oqPath_complete hpd hsl hv hm,
     blockOk_of_atoms (oqCapT_atoms _ _ _ _ _ _) (w.oqCap_complete hsl hcd hq hv hm)⟩
 

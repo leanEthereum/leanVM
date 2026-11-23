@@ -7,6 +7,8 @@
 module
 
 public import LeanVM.Guest.B1.Opening.QueriesPlaced7
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«opening_queries__L»
 
 /-!
 # The function, placed
@@ -27,11 +29,11 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 /-- The loads of the function's own body: its odd first query's, its point `positions[0]`, its
 window pointer `qptrs[0]`, the chain's first word. -/
 def OqMainL (s : Oq) (odd : ℕ) (p : V) (off : ℕ) : Prop :=
-  (odd = 1 ∧ OqQLoad s (.n 3) (.n 4) p off) ∨ (odd = 1 ∧ p = .n 5 ∧ off = 0) ∨
-    (odd = 1 ∧ p = .n 6 ∧ off = 0) ∨ (p = .n 10 ∧ off = 0)
+  (odd = 1 ∧ OqQLoad s (.n (valf% «opening_queries» "coefs")) (.n (valf% «opening_queries» "hs")) p off) ∨ (odd = 1 ∧ p = .n (valf% «opening_queries» "positions") ∧ off = 0) ∨
+    (odd = 1 ∧ p = .n (valf% «opening_queries» "query_win_ptrs") ∧ off = 0) ∨ (p = .n (valf% «opening_queries» "chain") ∧ off = 0)
 
 /-- The chain's `HeapBuf`. -/
-def oqAlloc : Atom := .hint (.allocDyn (.n 10) (.n 9))
+def oqAlloc : Atom := .hint (.allocDyn (.n (valf% «opening_queries» "chain")) (.n (valf% «opening_queries» "chain~1")))
 
 theorem oqMainA_ok (s : Oq) (odd : ℕ) (walk : String) :
     AtomsOk (fun a ↦ AtomKind (OqMainL s odd) (fun _ _ ↦ False) a ∨ a = oqAlloc)
@@ -85,14 +87,14 @@ theorem AtomsOk.addrS' {L : V → ℕ → Prop} {b : Atom} (hb : ∀ p run, b �
   · rfl
 
 theorem oqMainA_allocSz (s : Oq) (odd : ℕ) (walk : String) :
-    (oqMainA s odd walk).filterMap Stmt.allocSz = [(.n 10, .inr (.n 9))] := by
+    (oqMainA s odd walk).filterMap Stmt.allocSz = [(.n (valf% «opening_queries» "chain"), .inr (.n (valf% «opening_queries» "chain~1")))] := by
   unfold oqMainA
   rw [List.filterMap_append, List.filterMap_append]
-  have h2 : (if odd = 1 then [Stmt.atom (.load (.n 11) (.n 5) 0), .atom (.load (.n 12) (.n 6) 0)] ++
-      oqQueryT s (.n 11) (.n 12) (.n 0) (.n 1) (.n 3) (.n 4) 13 true 0 walk ++
-      [.atom (.mul (.n (oqMK s odd - 1)) (.n (oqRes s 13 true)) (.n 2)),
-        .atom (.load (.n (oqMK s odd - 1)) (.n 10) 0)]
-      else [.atom (.const (.n 11) (word 0 0)), .atom (.load (.n 11) (.n 10) 0)]).filterMap
+  have h2 : (if odd = 1 then [Stmt.atom (.load (.n 11) (.n (valf% «opening_queries» "positions")) 0), .atom (.load (.n 12) (.n (valf% «opening_queries» "query_win_ptrs")) 0)] ++
+      oqQueryT s (.n 11) (.n 12) (.n (valf% «opening_queries» "cap")) (.n (valf% «opening_queries» "flags")) (.n (valf% «opening_queries» "coefs")) (.n (valf% «opening_queries» "hs")) 13 true 0 walk ++
+      [.atom (.mul (.n (oqMK s odd - 1)) (.n (oqRes s 13 true)) (.n (valf% «opening_queries» "lam_inv"))),
+        .atom (.load (.n (oqMK s odd - 1)) (.n (valf% «opening_queries» "chain")) 0)]
+      else [.atom (.const (.n 11) (word 0 0)), .atom (.load (.n 11) (.n (valf% «opening_queries» "chain")) 0)]).filterMap
         Stmt.allocSz = [] := by
     split_ifs
     · rw [List.filterMap_append, List.filterMap_append,
@@ -106,7 +108,7 @@ theorem oqMainA_allocSz (s : Oq) (odd : ℕ) (walk : String) :
 theorem oqMainA_callS (s : Oq) (odd : ℕ) (walk : String) :
     (oqMainA s odd walk).filterMap Stmt.callS =
       if odd = 1 then [(none, walk, [.n (oqOut s (oqKL s 13 true) (s.B - 1) 0),
-        .n (oqOut s (oqKL s 13 true) (s.B - 1) 1), .n 12, .n 0, .n 1], [])] else [] := by
+        .n (oqOut s (oqKL s 13 true) (s.B - 1) 1), .n 12, .n (valf% «opening_queries» "cap"), .n (valf% «opening_queries» "flags")], [])] else [] := by
   unfold oqMainA
   split_ifs
   · simp only [List.filterMap_append, oqQueryT_callS]

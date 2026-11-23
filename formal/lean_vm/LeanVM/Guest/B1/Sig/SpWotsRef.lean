@@ -27,7 +27,8 @@ constants into one (`spDigitsC`, their fields apart).
   chain starts at those digits as its return;
 * `spWotsRef_sat`: what its commands give on the names, the digits the arms its `match`es take
   (soundness goes through it, at the names the decoder reads);
-* `spWotsRef_sem`: its relation is its meaning (completeness goes through it).
+* `spWotsRef_honest`, `spWotsRef_sem`: an honest run, each group's word and its arm's starts at
+  their names; its relation is its meaning (completeness goes through them).
 
 The reference function is not trusted: the link (`B1/Sig/SpWotsLinks*.lean`) ties the compiled
 function to it, and `spWotsRef_sem` ties it to the meaning.
@@ -277,6 +278,77 @@ private def spVal (pp a0 a1 : E) (d w : ℕ → ℕ) (starts : ℕ → E) (y t1 
       (16 * 67)) (blocks 67) b ⟨c, h⟩ else 0
   | .leaf => spLeafCell pp a0 a1 d starts
 
+/-- **An honest run of `sp_wots`'s reference function**: for digits of sum `128` whose groups'
+words `w p` hold them and are range-checked, and any chain starts, some valuation of the names
+satisfies the commands with the arguments `pp`, `a0`, `a1` and the digits' encoding, returning the
+one-time leaf, each group's word `w p` at its name and each chain's start at the name the arm its
+group takes hints it into. -/
+theorem spWotsRef_honest {pp a0 a1 : E} {d w : ℕ → ℕ} (starts : ℕ → E)
+    (hsum : ∑ i ∈ Finset.range 64, d i = 128)
+    (hw : ∀ p < 22, w p < 4 ^ spN p ∧ (∀ r < spN p, d (3 * p + r) = w p / 4 ^ r % 4) ∧
+      RangeChecked rd (ofK (addressOfIndex (w p))) (ofK (addressOfIndex (4 ^ spN p - 1)))) :
+    ∃ ρ : SpName → E, spWotsRef.params.map ρ = [pp, a0, a1, eOfNat128 (spX d 64)] ∧
+      Cmd.SatList rd ρ spWotsRef.body ∧
+      spWotsRef.rets.map (Tm.eval ρ) = [spLeafCell pp a0 a1 d starts] ∧
+      (∀ p < 22, ρ (.group p) = ofK (addressOfIndex (w p))) ∧
+      ∀ i < 64, ρ (spStartN i (w (i / 3))) = starts i := by
+  unfold RangeChecked at hw
+  choose! hwlt hwd y t1 t2 hl1 hk hl2 using hw
+  have hdig : ∀ i < 64, w (i / 3) / 4 ^ (i % 3) % 4 = d i := fun i hi => by
+    rw [← hwd (i / 3) (by omega) (i % 3) (by unfold spN; split <;> omega), Nat.div_add_mod]
+  set ρ := spVal pp a0 a1 d w starts y t1 t2
+  have hmsg : (Tm.v SpName.pp :: Tm.v .a0 :: addLit (.v .a1) (2 ^ 24) ::
+      (List.range 64).map fun i => Tm.v (SpName.walks (3 * i + 2))).map (Tm.eval ρ) =
+      pp :: a0 :: (a1 + lit (2 ^ 24)) :: (List.range 64).map fun i =>
+        chainT (spStepCell pp a0 a1) i (3 - d i) (d i) (starts i) := by
+    simp only [List.map_cons, List.map_map, Tm.eval, eval_addLit, Function.comp_def]
+    refine congrArg (pp :: a0 :: (a1 + lit (2 ^ 24)) :: ·) (List.map_congr_left fun i _ => ?_)
+    simp only [ρ, spVal, show (3 * i + 2) / 3 = i by omega, show (3 * i + 2) % 3 = 2 by omega]
+  have hpw : ∀ s < 10, word (2 ^ s) 0 = gen ^ s := fun s hs => by
+    rw [word_eq_eOfNat, Value.gen_pow_eq_eOfNat (by omega)]
+  refine ⟨ρ, rfl, ?_, by simp [spWotsRef, Tm.eval, ρ, spVal], fun p _ => rfl, fun i hi => ?_⟩
+  swap
+  · simp only [spStartN, hdig i hi, apply_ite ρ, ρ, spVal, show (3 * i + 2) / 3 = i by omega,
+      show (3 * i + 2) % 3 = 2 by omega]
+    split_ifs with h3 <;> simp [h3, chainT]
+  simp only [spWotsRef, Cmd.satList_append, Cmd.satList_unroll, Cmd.satList_cons,
+    Cmd.satList_nil, and_true, Cmd.Sat, Tm.eval, zero_le, true_implies]
+  refine ⟨⟨⟨fun s _ => rfl, fun p hp => ⟨⟨hl1 p hp, ?rc, hl2 p hp⟩, ?arm⟩⟩, ?enc, ?prod⟩, ?leaf⟩
+  case rc => exact (word_two_pow_eq (by unfold spN; split <;> norm_num)).trans (hk p hp)
+  case arm =>
+    refine (Cmd.satArms_iff 0 _).mpr ⟨w p, by simpa using hwlt p hp, by simp [ρ, spVal], ?_⟩
+    rw [List.getElem_map, List.getElem_range, satList_spGroup]
+    refine ⟨fun r hr => satList_spWalk.mpr fun s hs1 hs2 => ?_, ?_, ?_⟩
+    · have hi : d (3 * p + r) = w p / 4 ^ r % 4 := hwd p hp r hr
+      simp only [ρ, spVal, show (3 * (3 * p + r) + s) / 3 = 3 * p + r by omega,
+        show (3 * (3 * p + r) + s) % 3 = s by omega, ← hi]
+      split_ifs with e
+      · subst e
+        rw [show d (3 * p + r) + 1 - d (3 * p + r) = 0 + 1 by omega]
+        rfl
+      · simp only [show (3 * (3 * p + r) + s - 1) / 3 = 3 * p + r by omega,
+          show (3 * (3 * p + r) + s - 1) % 3 = s - 1 by omega]
+        rw [show s + 1 - d (3 * p + r) = (s - d (3 * p + r)) + 1 by omega, chainT_succ,
+          show s - 1 + 1 - d (3 * p + r) = s - d (3 * p + r) by omega,
+          show d (3 * p + r) + (s - d (3 * p + r)) = s by omega]
+    · rcases p with _ | p <;> simp [ρ, spVal, spProdOf, spN]
+    · rcases p with _ | p <;> simp [ρ, spVal, spEncOf, spN]
+  case enc =>
+    exact (spCodeword_enc w (spEncOf w) rfl fun p _ => rfl).trans (congrArg _ (spX_congr hdig))
+  case prod =>
+    rw [show ρ (.prod 22) = spProdOf w 21 from rfl, spCodeword_prod (G := 21) (by norm_num) le_rfl
+      w (fun p hp => hwlt p (by omega)) (fun s => word (2 ^ s) 0) hpw (spProdOf w) rfl
+      (fun p _ => rfl), spTarget_eq]
+    exact congrArg (gen ^ ·)
+      ((Finset.sum_congr rfl fun i hi => hdig i (Finset.mem_range.mp hi)).trans hsum)
+  case leaf =>
+    rw [satList_sponge (m := 67) _ _ (by simp) _ (.inl rfl), hmsg]
+    refine ⟨fun b _ _ c => by
+      simp only [Tm.eval, ρ, spVal, c.isLt, dite_true, List.length_cons, List.length_map,
+        List.length_range], congrArg ([·]) ?_⟩
+    show spLeafCell pp a0 a1 d starts = _
+    rw [spLeafCell, hcell, cellsBytes, show lit (2 ^ 24) = spPkC from rfl]
+
 /-- **`sp_wots`'s reference function is its meaning.** -/
 theorem spWotsRef_sem (args rets : List E) :
     spWotsRef.Sem rd args rets ↔ MeaningSpWots rd args rets := by
@@ -294,59 +366,10 @@ theorem spWotsRef_sem (args rets : List E) :
     unfold RangeChecked
     rw [← hx, ← word_two_pow_eq (by unfold spN; split <;> norm_num), hk]
     exact ⟨_, _, _, h1, rfl, h2⟩
-  · rintro ⟨pp, a0, a1, d, starts, rfl, rfl, hd, hsum, hw⟩
-    unfold RangeChecked at hw
-    choose! w hwlt hwd y t1 t2 hl1 hk hl2 using hw
-    have hdig : ∀ i < 64, w (i / 3) / 4 ^ (i % 3) % 4 = d i := fun i hi => by
-      rw [← hwd (i / 3) (by omega) (i % 3) (by unfold spN; split <;> omega), Nat.div_add_mod]
-    set ρ := spVal pp a0 a1 d w starts y t1 t2
-    have hmsg : (Tm.v SpName.pp :: Tm.v .a0 :: addLit (.v .a1) (2 ^ 24) ::
-        (List.range 64).map fun i => Tm.v (SpName.walks (3 * i + 2))).map (Tm.eval ρ) =
-        pp :: a0 :: (a1 + lit (2 ^ 24)) :: (List.range 64).map fun i =>
-          chainT (spStepCell pp a0 a1) i (3 - d i) (d i) (starts i) := by
-      simp only [List.map_cons, List.map_map, Tm.eval, eval_addLit, Function.comp_def]
-      refine congrArg (pp :: a0 :: (a1 + lit (2 ^ 24)) :: ·) (List.map_congr_left fun i _ => ?_)
-      simp only [ρ, spVal, show (3 * i + 2) / 3 = i by omega, show (3 * i + 2) % 3 = 2 by omega]
-    have hpw : ∀ s < 10, word (2 ^ s) 0 = gen ^ s := fun s hs => by
-      rw [word_eq_eOfNat, Value.gen_pow_eq_eOfNat (by omega)]
-    refine ⟨ρ, rfl, ?_, by simp [spWotsRef, Tm.eval, ρ, spVal]⟩
-    simp only [spWotsRef, Cmd.satList_append, Cmd.satList_unroll, Cmd.satList_cons,
-      Cmd.satList_nil, and_true, Cmd.Sat, Tm.eval, zero_le, true_implies]
-    refine ⟨⟨⟨fun s _ => rfl, fun p hp => ⟨⟨hl1 p hp, ?rc, hl2 p hp⟩, ?arm⟩⟩, ?enc, ?prod⟩, ?leaf⟩
-    case rc => exact (word_two_pow_eq (by unfold spN; split <;> norm_num)).trans (hk p hp)
-    case arm =>
-      refine (Cmd.satArms_iff 0 _).mpr ⟨w p, by simpa using hwlt p hp, by simp [ρ, spVal], ?_⟩
-      rw [List.getElem_map, List.getElem_range, satList_spGroup]
-      refine ⟨fun r hr => satList_spWalk.mpr fun s hs1 hs2 => ?_, ?_, ?_⟩
-      · have hi : d (3 * p + r) = w p / 4 ^ r % 4 := hwd p hp r hr
-        simp only [ρ, spVal, show (3 * (3 * p + r) + s) / 3 = 3 * p + r by omega,
-          show (3 * (3 * p + r) + s) % 3 = s by omega, ← hi]
-        split_ifs with e
-        · subst e
-          rw [show d (3 * p + r) + 1 - d (3 * p + r) = 0 + 1 by omega]
-          rfl
-        · simp only [show (3 * (3 * p + r) + s - 1) / 3 = 3 * p + r by omega,
-            show (3 * (3 * p + r) + s - 1) % 3 = s - 1 by omega]
-          rw [show s + 1 - d (3 * p + r) = (s - d (3 * p + r)) + 1 by omega, chainT_succ,
-            show s - 1 + 1 - d (3 * p + r) = s - d (3 * p + r) by omega,
-            show d (3 * p + r) + (s - d (3 * p + r)) = s by omega]
-      · rcases p with _ | p <;> simp [ρ, spVal, spProdOf, spN]
-      · rcases p with _ | p <;> simp [ρ, spVal, spEncOf, spN]
-    case enc =>
-      exact (spCodeword_enc w (spEncOf w) rfl fun p _ => rfl).trans (congrArg _ (spX_congr hdig))
-    case prod =>
-      rw [show ρ (.prod 22) = spProdOf w 21 from rfl, spCodeword_prod (G := 21) (by norm_num) le_rfl
-        w (fun p hp => hwlt p (by omega)) (fun s => word (2 ^ s) 0) hpw (spProdOf w) rfl
-        (fun p _ => rfl), spTarget_eq]
-      exact congrArg (gen ^ ·)
-        ((Finset.sum_congr rfl fun i hi => hdig i (Finset.mem_range.mp hi)).trans hsum)
-    case leaf =>
-      rw [satList_sponge (m := 67) _ _ (by simp) _ (.inl rfl), hmsg]
-      refine ⟨fun b _ _ c => by
-        simp only [Tm.eval, ρ, spVal, c.isLt, dite_true, List.length_cons, List.length_map,
-          List.length_range], congrArg ([·]) ?_⟩
-      show spLeafCell pp a0 a1 d starts = _
-      rw [spLeafCell, hcell, cellsBytes, show lit (2 ^ 24) = spPkC from rfl]
+  · rintro ⟨pp, a0, a1, d, starts, rfl, rfl, -, hsum, hw⟩
+    choose! w hw using hw
+    obtain ⟨ρ, hp, hs, hr, -⟩ := spWotsRef_honest starts hsum hw
+    exact ⟨ρ, hp, hs, hr⟩
 
 end
 end LeanVM.Guest.B1.Sig

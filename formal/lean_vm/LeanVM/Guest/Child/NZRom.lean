@@ -46,7 +46,7 @@ theorem epsE_eq : epsE = (2 : ℝ≥0∞)⁻¹ ^ 128 := by
 its ideal failure (`|E|⁻¹` per sample), a proof of work's
 miss per quarter of the cost, and a capacity collision among the queries. -/
 noncomputable def childCompletenessError (fuel : ℕ) : ℝ≥0∞ :=
-  ((leanVmCost / 4 : ℕ) : ℝ≥0∞) * epsE + (leanVmCost : ℝ≥0∞) * missProb 27 ^ fuel +
+  ((leanVmCost / 4 : ℕ) : ℝ≥0∞) * epsE + (leanVmCost : ℝ≥0∞) * missK 27 ^ fuel +
     (EndToEnd.Complete.completenessQueries fuel : ℝ≥0∞) *
       ((EndToEnd.Complete.completenessQueries fuel : ℝ≥0∞) * 2⁻¹ ^ 256)
 

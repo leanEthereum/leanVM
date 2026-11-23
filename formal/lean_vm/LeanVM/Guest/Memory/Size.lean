@@ -52,13 +52,13 @@ variable {P : Core.Program} {fs : String → ℕ} {ν : ℕ → String → Val �
 
 mutual
 /-- **Re-choosing the temporaries keeps the weight.** -/
-theorem weight_retemp : ∀ (t : Tree) (fp : ℕ), (t.retemp P fs ν fp).weight ω = t.weight ω
-  | .node f σ bufs kids, fp => by
+theorem weight_retemp : ∀ (t : Tree) (pos : ℕ × ℕ), (t.retemp P fs ν pos).weight ω = t.weight ω
+  | .node f σ bufs kids, pos => by
       rw [retemp_node, Tree.weight, Tree.weight, weightKids_retempKids kids _
         (by rw [length_kidPos, List.length_map])]
-  | .phantom .., fp => by rw [retemp_phantom]
+  | .phantom .., pos => by rw [retemp_phantom]
 
-theorem weightKids_retempKids : ∀ (ks : List Tree) (ps : List ℕ), ps.length = ks.length →
+theorem weightKids_retempKids : ∀ (ks : List Tree) (ps : List (ℕ × ℕ)), ps.length = ks.length →
     Tree.weightKids ω (Tree.retempKids P fs ν ps ks) = Tree.weightKids ω ks
   | [], _, _ => by rw [retempKids_nil]
   | _ :: _, [], h => absurd h (by simp)

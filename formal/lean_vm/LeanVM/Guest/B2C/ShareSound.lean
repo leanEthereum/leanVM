@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B2C.Share
 public import LeanVM.Guest.CheckSound
 public import LeanVM.Guest.B2C.Cells
+public import LeanVM.Guest.TrieFacts
 
 /-!
 # Soundness of the sharing check
@@ -38,10 +39,6 @@ namespace Trie
 variable {α : Type}
 
 end Trie
-
-theorem getF_setF {α : Type} {a b : α} {d n m : ℕ} {t : Exec.Trie α}
-    (h : getF (setF a d t n) m = some b) : (m = n ∧ b = a) ∨ getF t m = some b := by
-  rw [getF_eq, setF_eq] at h; rw [getF_eq]; exact Exec.Trie.get_set h
 
 /-! ## Bit sets -/
 
@@ -281,7 +278,7 @@ theorem getF_cstAt {cst : Exec.Trie (ℕ × ℕ)} {c c' : ℕ} {k : Option (ℕ 
   | some y =>
     simp only [cstAt, Bool.cond_eq_ite] at h
     split_ifs at h
-    · rcases getF_setF h with ⟨h1, rfl⟩ | h
+    · rcases Check.getF_setF h with ⟨h1, rfl⟩ | h
       · exact Or.inl ⟨h1, rfl⟩
       · exact Or.inr h
     · exact Or.inr h
@@ -757,7 +754,7 @@ theorem mem_foldl_keys : ∀ (ks : List (ℕ × ℕ × List ℕ)) (t : Exec.Trie
         | none => rw [hg] at h; cases h
         | some l =>
           rw [hg] at h
-          rcases getF_setF hg with ⟨rfl, rfl⟩ | hg'
+          rcases Check.getF_setF hg with ⟨rfl, rfl⟩ | hg'
           · rcases List.mem_cons.mp h with rfl | h
             · exact Or.inr ⟨List.mem_cons_self, hb.1.1, hb.2⟩
             · exact Or.inl h
@@ -779,7 +776,7 @@ theorem getF_recCst {a : Core.Atom} {cst : Exec.Trie (ℕ × ℕ)} {c : ℕ} {x 
       rw [h0] at h
       simp only [Bool.cond_eq_ite, Bool.and_eq_true, Nat.ble_eq] at h
       split_ifs at h with hc
-      · rcases getF_setF h with ⟨rfl, rfl⟩ | h
+      · rcases Check.getF_setF h with ⟨rfl, rfl⟩ | h
         · exact Or.inr ⟨h0, hc.1, Or.inl ⟨d, y, rfl, rfl, rfl⟩⟩
         · exact Or.inl h
       · exact Or.inl h
@@ -791,7 +788,7 @@ theorem getF_recCst {a : Core.Atom} {cst : Exec.Trie (ℕ × ℕ)} {c : ℕ} {x 
       rw [h0] at h
       simp only [Bool.cond_eq_ite, Bool.and_eq_true, Nat.ble_eq] at h
       split_ifs at h with hc
-      · rcases getF_setF h with ⟨rfl, rfl⟩ | h
+      · rcases Check.getF_setF h with ⟨rfl, rfl⟩ | h
         · exact Or.inr ⟨h0, hc.1, Or.inr ⟨u, i, p, rfl, rfl, rfl⟩⟩
         · exact Or.inl h
       · exact Or.inl h
@@ -1541,7 +1538,7 @@ theorem getF_foldl_cst : ∀ (l : List (ℕ × ℕ × ℕ)) (t : Exec.Trie (ℕ 
   | q :: l, t, c, x, h => by
     rcases getF_foldl_cst l _ h with h | h
     · exact Or.inl (List.mem_cons_of_mem _ h)
-    · rcases getF_setF h with ⟨rfl, rfl⟩ | h
+    · rcases Check.getF_setF h with ⟨rfl, rfl⟩ | h
       · exact Or.inl List.mem_cons_self
       · exact Or.inr h
 
@@ -1556,7 +1553,7 @@ theorem mem_foldl_snapKeys : ∀ (l : List (ℕ × ℕ × List ℕ)) (t : Exec.T
       | none => rw [hg] at h; cases h
       | some l' =>
         rw [hg] at h
-        rcases getF_setF hg with ⟨rfl, rfl⟩ | hg'
+        rcases Check.getF_setF hg with ⟨rfl, rfl⟩ | hg'
         · rcases List.mem_cons.mp h with rfl | h
           · exact Or.inl List.mem_cons_self
           · exact Or.inr h
@@ -1841,7 +1838,7 @@ theorem getF_initCst : ∀ (l : List (ℕ × PC)) (t : Exec.Trie (ℕ × ℕ)) {
     · exact Or.inl ⟨q', List.mem_cons_of_mem _ hq', he⟩
     · rcases q with ⟨o, _ | _⟩
       · simp only at h
-        rcases getF_setF h with ⟨rfl, -⟩ | h
+        rcases Check.getF_setF h with ⟨rfl, -⟩ | h
         · exact Or.inl ⟨_, List.mem_cons_self, rfl⟩
         · exact Or.inr h
       · exact Or.inr h

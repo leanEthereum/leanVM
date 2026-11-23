@@ -15,6 +15,9 @@ public import LeanVM.Guest.B1.Digest.Mono2
 public import LeanVM.Guest.B1.Digest.Mono3
 public import LeanVM.Guest.B1.Digest.MonoLasts
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«child_claim_list_mono»
+import LeanVM.Guest.Data.ValNames.«child_claim_list_mono_last__L»
 
 /-!
 # `child_claim_list_mono`
@@ -463,7 +466,7 @@ theorem monoLast_sound {rd : Reader} (hm : MemOk rd) {k : ℕ} (hk : k < 17) {ar
   simp only [mlOk, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨hpar, hok⟩ := hok
   rw [hpar] at hp
-  refine ⟨σ (V.n 0), σ (V.n 1), σ (V.n 2), σ (V.n 3), by rw [← hp]; rfl,
+  refine ⟨σ (V.n (valf% «child_claim_list_mono_last» "rec")), σ (V.n (valf% «child_claim_list_mono_last» "region")), σ (V.n (valf% «child_claim_list_mono_last» "mark")), σ (V.n (valf% «child_claim_list_mono_last» "limit_g")), by rw [← hp]; rfl,
     fun entries n O pre hpre hS hc13 he14 => ?_⟩
   split at hok
   · rename_i atoms r0 r1 hsb
@@ -472,8 +475,8 @@ theorem monoLast_sound {rd : Reader} (hm : MemOk rd) {k : ℕ} (hk : k < 17) {ar
     rw [splitBody_eq hsb, holdsList_atoms_ret] at hb
     obtain ⟨hat, hret⟩ := hb
     have hd := chain_final hc rfl hat hpre (initCell_of_loads rfl hst hat hS)
-    have hbound : ∀ O', σ (.n (mlEnd k)) = σ (V.n 1) * gen ^ O' → ∃ e e', e < 2 ^ 32 ∧
-        e' < 2 ^ 32 ∧ σ (V.n 1) * gen ^ O' = gen ^ e * σ (V.n 1) ∧ σ (V.n 3) = gen ^ (e + e') := by
+    have hbound : ∀ O', σ (.n (mlEnd k)) = σ (V.n (valf% «child_claim_list_mono_last» "region")) * gen ^ O' → ∃ e e', e < 2 ^ 32 ∧
+        e' < 2 ^ 32 ∧ σ (V.n (valf% «child_claim_list_mono_last» "region")) * gen ^ O' = gen ^ e * σ (V.n (valf% «child_claim_list_mono_last» "region")) ∧ σ (V.n (valf% «child_claim_list_mono_last» "limit_g")) = gen ^ (e + e') := by
       intro O' hO'
       split at hend
       · rename_i t ht
@@ -496,17 +499,17 @@ theorem monoLast_sound {rd : Reader} (hm : MemOk rd) {k : ℕ} (hk : k < 17) {ar
     by_cases hk0 : k = 0
     · subst hk0
       simp only [↓reduceIte] at hwalk
-      have h38 : σ (.n 27) = σ (V.n 1) * gen ^ O := loadHolds_unique (load_sound hwalk hat) hc13
+      have h38 : σ (.n 27) = σ (V.n (valf% «child_claim_list_mono_last» "region")) * gen ^ O := loadHolds_unique (load_sound hwalk hat) hc13
       have hv : (mlSpec 0 atoms).vals σ = [] := by simp [ChainSpec.vals, mlSpec, monoMsg]
       rw [hv] at hdig
       exact ⟨[], [], O, rfl, monoWalk_nil O, monoAt_nil rd _ _ _, hdig, hbound O h38⟩
     · simp only [hk0, ↓reduceIte, Bool.and_eq_true] at hwalk
       obtain ⟨⟨⟨hl4, hl5⟩, hrec⟩, hmul⟩ := hwalk
-      have h4 : σ (.n 4) = σ (V.n 1) * gen ^ O := loadHolds_unique (load_sound hl4 hat) hc13
+      have h4 : σ (.n 4) = σ (V.n (valf% «child_claim_list_mono_last» "region")) * gen ^ O := loadHolds_unique (load_sound hl4 hat) hc13
       have h5 : σ (.n 5) = entries * gen ^ (4 * O) := loadHolds_unique (load_sound hl5 hat) he14
       obtain ⟨os, P, hlen', hw, hcv, -, hat'⟩ := monoRecs_at hm hrec hat (O := O)
         (by simpa [mCov] using h4) (by simpa [mEnt] using h5)
-      have hce : σ (.n (mlEnd k)) = σ (V.n 1) * gen ^ (P + k) := by
+      have hce : σ (.n (mlEnd k)) = σ (V.n (valf% «child_claim_list_mono_last» "region")) * gen ^ (P + k) := by
         split at hmul
         · rename_i a c hac
           simp only [Bool.and_eq_true, decide_eq_true_eq] at hmul
@@ -524,7 +527,7 @@ noncomputable def monoFlat : List Stmt := (Fn.body fn% «child_claim_list_mono»
 
 set_option maxRecDepth 100000 in
 theorem child_claim_list_mono_shape : Fn.body fn% «child_claim_list_mono» = monoFlat ++ [.ret [.n
-    52, .n 53]] :=
+    (val% «child_claim_list_mono» "s11#0"), .n (val% «child_claim_list_mono» "s11#0[1]")]] :=
   stmtsEqb_sound (by decide +kernel)
 
 /-- The body: the zero state at `chain = .n 16`, `region` and `entries` at `chain · g^13`,
@@ -532,25 +535,25 @@ theorem child_claim_list_mono_shape : Fn.body fn% «child_claim_list_mono» = mo
 `last = mid · groups^15`, the dispatch on the rest. -/
 noncomputable def monoBodyOk : Bool :=
   monoFlat.all Stmt.flat &&
-  monoFlat.any (stmtEqb · (.callIf (.n 31) name% «child_claim_list_mono_loop0» [.n 32, .n 4, .n 16,
-      .n 2])) &&
-  monoFlat.any (stmtEqb · (.callIf (.n 41) name% «child_claim_list_mono_loop1» [.n 42, .n 5, .n 39,
-      .n 2])) &&
-  monoFlat.any (stmtEqb · (.dispatch (.n 6) mlNames [.n 49, .n 1, .n 2, .n 3] [.n 50, .n 51])) &&
-  (atomsIn monoFlat).any (isConstAt (.n 32) 1 0) &&
-  (atomsIn monoFlat).any (isAddAt (.n 31) (.n 30) (.n 4)) &&
-  (atomsIn monoFlat).any (isConstAt (.n 30) 1 0) &&
-  (atomsIn monoFlat).any (isConstAt (.n 42) 1 0) &&
-  (atomsIn monoFlat).any (isAddAt (.n 41) (.n 40) (.n 5)) &&
-  (atomsIn monoFlat).any (isConstAt (.n 40) 1 0) &&
-  (List.range 13).all (fun c => (atomsIn monoFlat).any (isLoadAt (.n (17 + c)) (.n 16) c) &&
-    (atomsIn monoFlat).any (isConstAt (.n (17 + c)) 0 0)) &&
-  (atomsIn monoFlat).any (isLoadAt (.n 1) (.n 16) 13) &&
-  (atomsIn monoFlat).any (isLoadAt (.n 0) (.n 16) 14) &&
-  monoIs (atomsIn monoFlat) (.n 39) (.n 16) (.n 4) 15 &&
-  mono2Is (atomsIn monoFlat) (.n 49) (.n 16) (.n 4) 15 (.n 5) 15 &&
-  (atomsIn monoFlat).any (isCopyAt (.n 52) (.n 50)) &&
-  (atomsIn monoFlat).any (isCopyAt (.n 53) (.n 51))
+  monoFlat.any (stmtEqb · (.callIf (.n (val% «child_claim_list_mono» "s4#1")) name% «child_claim_list_mono_loop0» [.n (val% «child_claim_list_mono» "s4#2"), .n (val% «child_claim_list_mono» "bigs"), .n (val% «child_claim_list_mono» "chain"),
+      .n (val% «child_claim_list_mono» "base")])) &&
+  monoFlat.any (stmtEqb · (.callIf (.n (val% «child_claim_list_mono» "s6#1")) name% «child_claim_list_mono_loop1» [.n (val% «child_claim_list_mono» "s6#2"), .n (val% «child_claim_list_mono» "groups"), .n (val% «child_claim_list_mono» "mid"),
+      .n (val% «child_claim_list_mono» "base")])) &&
+  monoFlat.any (stmtEqb · (.dispatch (.n (val% «child_claim_list_mono» "rest")) mlNames [.n (val% «child_claim_list_mono» "last"), .n (val% «child_claim_list_mono» "region"), .n (val% «child_claim_list_mono» "base"), .n (val% «child_claim_list_mono» "limit_g")] [.n (val% «child_claim_list_mono» "d0"), .n (val% «child_claim_list_mono» "d1")])) &&
+  (atomsIn monoFlat).any (isConstAt (.n (val% «child_claim_list_mono» "s4#2")) 1 0) &&
+  (atomsIn monoFlat).any (isAddAt (.n (val% «child_claim_list_mono» "s4#1")) (.n (val% «child_claim_list_mono» "s4#0")) (.n (val% «child_claim_list_mono» "bigs"))) &&
+  (atomsIn monoFlat).any (isConstAt (.n (val% «child_claim_list_mono» "s4#0")) 1 0) &&
+  (atomsIn monoFlat).any (isConstAt (.n (val% «child_claim_list_mono» "s6#2")) 1 0) &&
+  (atomsIn monoFlat).any (isAddAt (.n (val% «child_claim_list_mono» "s6#1")) (.n (val% «child_claim_list_mono» "s6#0")) (.n (val% «child_claim_list_mono» "groups"))) &&
+  (atomsIn monoFlat).any (isConstAt (.n (val% «child_claim_list_mono» "s6#0")) 1 0) &&
+  (List.range 13).all (fun c => (atomsIn monoFlat).any (isLoadAt (.n ((val% «child_claim_list_mono» "s1.i0:zero_state.s0.u0.s0#0") + c)) (.n (val% «child_claim_list_mono» "chain")) c) &&
+    (atomsIn monoFlat).any (isConstAt (.n ((val% «child_claim_list_mono» "s1.i0:zero_state.s0.u0.s0#0") + c)) 0 0)) &&
+  (atomsIn monoFlat).any (isLoadAt (.n (val% «child_claim_list_mono» "region")) (.n (val% «child_claim_list_mono» "chain")) 13) &&
+  (atomsIn monoFlat).any (isLoadAt (.n (val% «child_claim_list_mono» "entries_ptr")) (.n (val% «child_claim_list_mono» "chain")) 14) &&
+  monoIs (atomsIn monoFlat) (.n (val% «child_claim_list_mono» "mid")) (.n (val% «child_claim_list_mono» "chain")) (.n (val% «child_claim_list_mono» "bigs")) 15 &&
+  mono2Is (atomsIn monoFlat) (.n (val% «child_claim_list_mono» "last")) (.n (val% «child_claim_list_mono» "chain")) (.n (val% «child_claim_list_mono» "bigs")) 15 (.n (val% «child_claim_list_mono» "groups")) 15 &&
+  (atomsIn monoFlat).any (isCopyAt (.n (val% «child_claim_list_mono» "s11#0")) (.n (val% «child_claim_list_mono» "d0"))) &&
+  (atomsIn monoFlat).any (isCopyAt (.n (val% «child_claim_list_mono» "s11#0[1]")) (.n (val% «child_claim_list_mono» "d1")))
 
 set_option maxRecDepth 100000 in
 theorem monoBody_ok : monoBodyOk = true := by decide +kernel
@@ -573,7 +576,7 @@ theorem child_claim_list_mono_sound {rd : Reader} (hm : MemOk rd) {args rets : L
           ∃ e e', e < 2 ^ 32 ∧ e' < 2 ^ 32 ∧ region * gen ^ O = gen ^ e * region ∧
             limit = gen ^ (e + e') := by
   obtain ⟨σ, hp, hb⟩ := (rel_iff_sem find_child_claim_list_mono args rets).mp h
-  refine ⟨σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5), σ (.n 6),
+  refine ⟨σ (.n (val% «child_claim_list_mono» "entries_ptr")), σ (.n (val% «child_claim_list_mono» "region")), σ (.n (val% «child_claim_list_mono» "base")), σ (.n (val% «child_claim_list_mono» "limit_g")), σ (.n (val% «child_claim_list_mono» "bigs")), σ (.n (val% «child_claim_list_mono» "groups")), σ (.n (val% «child_claim_list_mono» "rest")),
     by rw [← hp]; rfl, fun a b c ha hb' hc h4 h5 h6 => ?_⟩
   rw [child_claim_list_mono_shape, holdsList_append] at hb
   have hok := monoBody_ok
@@ -584,29 +587,29 @@ theorem child_claim_list_mono_sound {rd : Reader} (hm : MemOk rd) {args rets : L
   simp only [Stmt.HoldsList, Stmt.Holds, List.map_cons, List.map_nil] at hret
   have hat := atoms_of_flat hall
   -- the zero record
-  have h0 : StateAt rd (σ (.n 16)) 0 (absorbChunks 0 zeroState []) := by
+  have h0 : StateAt rd (σ (.n (val% «child_claim_list_mono» "chain"))) 0 (absorbChunks 0 zeroState []) := by
     intro c
     have hl := load_sound (hzs c c.isLt).1 hat
     rw [const_sound (hzs c c.isLt).2 hat, word_zero] at hl
     rw [Nat.zero_add, absorbChunks, cellsOfState_zero]
     exact hl
-  have hc0 : LoadHolds rd (σ (.n 16)) 13 (σ (.n 1) * gen ^ 0) := by
+  have hc0 : LoadHolds rd (σ (.n (val% «child_claim_list_mono» "chain"))) 13 (σ (.n (val% «child_claim_list_mono» "region")) * gen ^ 0) := by
     rw [pow_zero, mul_one]; exact load_sound hl1 hat
-  have he0 : LoadHolds rd (σ (.n 16)) 14 (σ (.n 0) * gen ^ (4 * 0)) := by
+  have he0 : LoadHolds rd (σ (.n (val% «child_claim_list_mono» "chain"))) 14 (σ (.n (val% «child_claim_list_mono» "entries_ptr")) * gen ^ (4 * 0)) := by
     rw [mul_zero, pow_zero, mul_one]; exact load_sound hl0 hat
   -- the big frames
   have hbig := monoFrames_of_loop hm mono136_idx mono136_ok word_g136 word_g544
-    mono136_nb (chain := σ (.n 16)) (mark := σ (.n 2)) (by omega) h4 (fun hne => by
+    mono136_nb (chain := σ (.n (val% «child_claim_list_mono» "chain"))) (mark := σ (.n (val% «child_claim_list_mono» "base"))) (by omega) h4 (fun hne => by
       have := (callIf_of_flat hall hl19).2
         (by rw [add_sound h31 hat, const_sound h30 hat, word_one]; exact hne)
       simpa [const_sound h32 hat, word_one] using this)
   obtain ⟨osa, ca, Oa, hla, hwa, hata, hSa, hca, hea⟩ :=
     monoFrames_sound (by norm_num) (n0 := 0) (pre := []) rfl h0 hc0 he0 hbig a le_rfl
   -- the groups
-  have h39 : σ (.n 39) = σ (.n 16) * gen ^ (15 * a) := by
+  have h39 : σ (.n (val% «child_claim_list_mono» "mid")) = σ (.n (val% «child_claim_list_mono» "chain")) * gen ^ (15 * a) := by
     rw [monoIs_sound hm39 hat, h4, gen_pow_pow]
   have hgrp := monoFrames_of_loop hm mono17_idx mono17_ok word_g17 word_g68
-    mono17_nb (chain := σ (.n 39)) (mark := σ (.n 2)) (by omega) h5 (fun hne => by
+    mono17_nb (chain := σ (.n (val% «child_claim_list_mono» "mid"))) (mark := σ (.n (val% «child_claim_list_mono» "base"))) (by omega) h5 (fun hne => by
       have := (callIf_of_flat hall hl20).2
         (by rw [add_sound h41 hat, const_sound h40 hat, word_one]; exact hne)
       simpa [const_sound h42 hat, word_one] using this)
@@ -630,7 +633,7 @@ theorem child_claim_list_mono_sound {rd : Reader} (hm : MemOk rd) {args rets : L
   obtain ⟨rec, reg, mk, lim, hargs, hlast⟩ := monoLast_sound hm hj17 hcall
   simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hargs
   obtain ⟨hrec, hreg, hmk, hlim⟩ := hargs
-  have h49 : σ (.n 49) = σ (.n 39) * gen ^ (15 * b) := by
+  have h49 : σ (.n (val% «child_claim_list_mono» "last")) = σ (.n (val% «child_claim_list_mono» "mid")) * gen ^ (15 * b) := by
     rw [mono2Is_sound hm49 hat, h39, h4, h5]; simp only [gen_pow_pow]
   have hpre : ([] ++ cellsBytes ca ++ cellsBytes cb).length = rate * (0 + 64 * a + 8 * b) := by
     rw [List.length_append, List.nil_append, length_cellsBytes, length_cellsBytes, hata.1, hla,
@@ -638,7 +641,7 @@ theorem child_claim_list_mono_sound {rd : Reader} (hm : MemOk rd) {args rets : L
     show 16 * (4 * (136 * a)) + 16 * (4 * (17 * b)) = 136 * (0 + 64 * a + 8 * b)
     ring
   rw [← hreg, ← hmk] at hlast
-  obtain ⟨osc, cc, Oc, hlc, hwc, hatc, hd, hbd⟩ := hlast (σ (.n 0)) _ Ob _ hpre
+  obtain ⟨osc, cc, Oc, hlc, hwc, hatc, hd, hbd⟩ := hlast (σ (.n (val% «child_claim_list_mono» "entries_ptr"))) _ Ob _ hpre
     (by rw [← hrec, h49]; exact hSb) (by rw [← hrec, h49]; exact hcb)
     (by rw [← hrec, h49]; exact heb)
   refine ⟨osa ++ osb ++ osc, ca ++ cb ++ cc, Oc, ?_,

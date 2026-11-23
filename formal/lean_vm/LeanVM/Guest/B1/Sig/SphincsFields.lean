@@ -11,6 +11,8 @@ module
 public import LeanVM.Guest.B1.Sig.SphincsDigestT
 public import LeanVM.Guest.B1.Sig.Shifts
 import LeanVM.Guest.B1.Sig.Decide
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_sig_lean_sphincs»
 
 /-!
 # The digest's fields
@@ -624,7 +626,7 @@ theorem sForsFields_sound {T : Nat} (hb : BitsAt σ T) (h : AtomsHold rd σ sFor
   have h0 : σ (.n (300 + 29 * c)) = σ (sMdBit (10 * c + 0)) + eOfNat (2 * c) := by
     by_cases hc0 : c = 0
     · subst hc0
-      have e := hF.atom (a := .copy (.n 300) (sMdBit 0)) (by simp [sForsField, copyS])
+      have e := hF.atom (a := .copy (.n (val% «verify_sig_lean_sphincs» "vals[9]")) (sMdBit 0)) (by simp [sForsField, copyS])
       simp only [Atom.Holds] at e
       simpa [Value.eOfNat_zero] using e
     · have k := hF.atom (a := .const (.n (299 + 29 * c)) (word (2 * c) 0))

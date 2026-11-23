@@ -14,8 +14,8 @@ public import LeanVM.Guest.B1.Sig.SpWotsLinks2
 /-!
 # `sp_wots`, linked
 
-`sp_wots_fwd` and `sp_wots_sem_iff` are what the pieces of `SpWotsLinks0` to `SpWotsLinks2` give
-(`Map.pieces_fwd_at`, `Map.pieces_sem_iff`).
+`sp_wots_fwd`, `sp_wots_bwd` and `sp_wots_sem_iff` are what the pieces of `SpWotsLinks0` to
+`SpWotsLinks2` give (`Map.pieces_fwd_at`, `Map.pieces_bwd_at`, `Map.pieces_sem_iff`).
 -/
 
 namespace LeanVM.Guest.B1.Sig
@@ -47,6 +47,16 @@ theorem sp_wots_fwd {C : CallRel} {rd : Reader} {σ : Val} {kret : List E → Pr
         kret (spWotsRef.rets.map (Tm.eval ρ)) :=
   ⟨_, Map.pieces_fwd_at sp_distinct sp_params.1 (Tm.eqbs_sound sp_params.2)
     (flatten_cutAt _ _).symm (flatten_cutAt _ _).symm sp_pieces sp_owners hb⟩
+
+/-- **A valuation of `sp_wots`'s reference function's names is one of its body**, the decoder's
+values taking their names' words. -/
+theorem sp_wots_bwd {C : CallRel} {rd : Reader} {ρ : SpName → E}
+    (hsat : Cmd.SatList rd ρ spWotsRef.body) :
+    ∃ σ : Val, Fn.«sp_wots».core.params.map σ = spWotsRef.params.map ρ ∧
+      (∀ p ∈ spPositions, σ (.n p.1) = ρ p.2) ∧
+        Stmt.HoldsList C rd σ Fn.«sp_wots».core.body False (· = spWotsRef.rets.map (Tm.eval ρ)) :=
+  ⟨_, Map.pieces_bwd_at (Tm.eqbs_sound sp_params.2) (flatten_cutAt _ _).symm
+    (flatten_cutAt _ _).symm sp_pieces sp_owners hsat rfl⟩
 
 /-- **`sp_wots`'s core IR is its reference function.** -/
 theorem sp_wots_sem_iff {C : CallRel} {rd : Reader} (args rets : List E) :

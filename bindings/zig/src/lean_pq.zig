@@ -1,10 +1,11 @@
-//! Safe Zig bindings for leanXMSS and leanSPHINCS signatures and their recursive aggregation.
+//! Safe Zig bindings for leanXMSS and leanSPHINCS signatures, their recursive aggregation, and
+//! the VRF tree of the consensus `pq` feature.
 //!
 //! leanXMSS is stateful: a key signs at `2^32` leaf indices, and must never sign two different
 //! messages at the same leaf index. leanSPHINCS is stateless: a key signs at most `2^30` messages.
 //! Public keys and messages are 32 bytes; signatures are fixed-size byte arrays. A leanVM sidecar,
-//! a separate process reached over a Unix socket, proves and verifies aggregates. Secret keys,
-//! sidecars and aggregates own native handles: call `deinit` exactly once on each.
+//! a separate process reached over a Unix socket, proves and verifies aggregates. Secret keys, VRF
+//! keys, sidecars and aggregates own native handles: call `deinit` exactly once on each.
 const std = @import("std");
 
 const c = @cImport({
@@ -18,6 +19,9 @@ pub const xmss_secret_key_len = 32;
 pub const xmss_signature_len = 2404;
 pub const sphincs_secret_key_len = 32;
 pub const sphincs_signature_len = 7740;
+pub const vrf_root_len = 32;
+/// The slot's secret, then its leaf's 31 siblings.
+pub const vrf_proof_len = 1024;
 /// The most child aggregates one `Sidecar.aggregate` call accepts.
 pub const max_children = 16;
 
@@ -26,6 +30,8 @@ pub const Message = [message_len]u8;
 pub const Seed = [seed_len]u8;
 pub const XmssSignature = [xmss_signature_len]u8;
 pub const SphincsSignature = [sphincs_signature_len]u8;
+pub const VrfRoot = [vrf_root_len]u8;
+pub const VrfProof = [vrf_proof_len]u8;
 
 pub const Error = error{
     /// The native library reported a checked error; `lastError` has its message.
@@ -34,7 +40,7 @@ pub const Error = error{
     NativePanic,
     InvalidNativeStatus,
     InvalidNativeEncoding,
-    /// The signature does not verify; `lastError` has the reason.
+    /// The signature or VRF proof does not verify; `lastError` has the reason.
     InvalidSignature,
     TooManyChildren,
 };
@@ -195,6 +201,57 @@ pub const SphincsSecretKey = struct {
 /// Returns `error.InvalidSignature` when `signature` is not `public_key`'s signature of `message`.
 pub fn sphincsVerify(public_key: PublicKey, message: Message, signature: *const SphincsSignature) Error!void {
     try checkVerification(c.lpq_sphincs_verify(&public_key, public_key.len, &message, message.len, signature, signature.len));
+}
+
+/// A VRF key: a seed and its slots `[start, end)`, which fix the root, so keep both.
+pub const VrfKey = struct {
+    handle: *c.lpq_vrf_key,
+
+    /// Builds the key, hashing every slot. `error.NativeFailure` if the range is empty or ends
+    /// past `2^31`.
+    pub fn init(seed: Seed, start: u32, end: u32) Error!VrfKey {
+        var output: ?*c.lpq_vrf_key = null;
+        try checkStatus(c.lpq_vrf_key_new(&seed, seed.len, start, end, &output));
+        return .{ .handle = output orelse return error.InvalidNativeEncoding };
+    }
+
+    /// Rebuilds a key from its seed, its root and a cache from `cacheToBytes`, without hashing the
+    /// range. `error.NativeFailure` if the cache is malformed or does not lead to `expected_root`.
+    pub fn fromCacheBytes(seed: Seed, expected_root: VrfRoot, cache: []const u8) Error!VrfKey {
+        var output: ?*c.lpq_vrf_key = null;
+        try checkStatus(c.lpq_vrf_key_from_cache_bytes(&seed, seed.len, &expected_root, expected_root.len, bytesPtr(cache), cache.len, &output));
+        return .{ .handle = output orelse return error.InvalidNativeEncoding };
+    }
+
+    pub fn deinit(self: *VrfKey) void {
+        c.lpq_vrf_key_destroy(self.handle);
+        self.* = undefined;
+    }
+
+    /// Encodes the key's cache: its range and cached layer, no secret. The caller owns the slice.
+    pub fn cacheToBytes(self: *const VrfKey, allocator: std.mem.Allocator) (Error || std.mem.Allocator.Error)![]u8 {
+        var output: c.lpq_buffer = .{ .data = null, .len = 0 };
+        try checkStatus(c.lpq_vrf_key_cache_to_bytes(self.handle, &output));
+        return takeBuffer(allocator, output);
+    }
+
+    pub fn root(self: *const VrfKey) Error!VrfRoot {
+        var output: c.lpq_buffer = .{ .data = null, .len = 0 };
+        try checkStatus(c.lpq_vrf_key_root(self.handle, &output));
+        return takeFixed(vrf_root_len, output);
+    }
+
+    /// The proof of `slot`. `error.NativeFailure` outside the range.
+    pub fn proof(self: *const VrfKey, slot: u32) Error!VrfProof {
+        var output: c.lpq_buffer = .{ .data = null, .len = 0 };
+        try checkStatus(c.lpq_vrf_key_proof(self.handle, slot, &output));
+        return takeFixed(vrf_proof_len, output);
+    }
+};
+
+/// `error.InvalidSignature` if `proof` does not open `slot` under `root`.
+pub fn vrfVerify(root: VrfRoot, slot: u64, proof: *const VrfProof) Error!void {
+    try checkVerification(c.lpq_vrf_verify(&root, root.len, slot, proof, proof.len));
 }
 
 /// A connection to a leanVM sidecar, which proves and verifies aggregates. A sidecar serves at most
