@@ -18,6 +18,8 @@ open OracleComp.ProgramLogic.Relational
 
 namespace XmssSecurity.CappedChain
 
+variable (table : GlobalChainValueIndex → Digest)
+
 noncomputable def trajectoryProgrammedGlobalChainKeygen :
     ProbComp ProgrammedGlobalChainKeygenView :=
   eraseAllChainTrajectories <$> programmedAllChainTrajectoryKeygen
@@ -173,7 +175,6 @@ noncomputable def revealGlobalSignatureChains
           (state.recordReveal index value)
 
 def globalSignatureRevealResult
-    (table : GlobalChainValueIndex → Digest)
     (request : SignRequest) (encoding : ChainIndex → Digit) :
     List ChainIndex → Signature → GlobalCausalHashState →
       Signature × GlobalCausalHashState
@@ -186,7 +187,6 @@ def globalSignatureRevealResult
         (state.recordReveal index (table index))
 
 def globalSignatureRevealTrace
-    (table : GlobalChainValueIndex → Digest)
     (request : SignRequest) (encoding : ChainIndex → Digit) :
     List ChainIndex →
       RevealProbeOracleSimulation.ActionTrace GlobalChainValueIndex
@@ -198,7 +198,6 @@ def globalSignatureRevealTrace
         globalSignatureRevealTrace table request encoding chains
 
 theorem simulate_eagerTrace_revealGlobalSignatureChains
-    (table : GlobalChainValueIndex → Digest)
     (request : SignRequest) (encoding : ChainIndex → Digit)
     (chains : List ChainIndex) (signature : Signature)
     (state : GlobalCausalHashState) :
@@ -228,7 +227,6 @@ theorem simulate_eagerTrace_revealGlobalSignatureChains
       simp [globalSignatureRevealResult, globalSignatureRevealTrace]
 
 theorem globalSignatureRevealResult_chainValue_of_not_mem
-    (table : GlobalChainValueIndex → Digest)
     (request : SignRequest) (encoding : ChainIndex → Digit)
     (chains : List ChainIndex) (signature : Signature)
     (state : GlobalCausalHashState) (candidate : ChainIndex)
@@ -246,7 +244,6 @@ theorem globalSignatureRevealResult_chainValue_of_not_mem
         hnotmem.1
 
 theorem globalSignatureRevealResult_chainValue_of_mem
-    (table : GlobalChainValueIndex → Digest)
     (request : SignRequest) (encoding : ChainIndex → Digit)
     (chains : List ChainIndex) (signature : Signature)
     (state : GlobalCausalHashState) (candidate : ChainIndex)
@@ -269,7 +266,6 @@ theorem globalSignatureRevealResult_chainValue_of_mem
         exact ih _ _ hnodup.2 hmem
 
 theorem globalSignatureRevealResult_allChains_chainValue
-    (table : GlobalChainValueIndex → Digest)
     (request : SignRequest) (encoding : ChainIndex → Digit)
     (signature : Signature) (state : GlobalCausalHashState)
     (chain : ChainIndex) :
@@ -323,7 +319,6 @@ noncomputable def revealGlobalSignatureTopChains
           (state.recordReveal index value)
 
 def globalSignatureTopRevealResult
-    (table : GlobalChainValueIndex → Digest)
     (request : SignRequest) (encoding : ChainIndex → Digit) :
     List ChainIndex → Signature → GlobalCausalHashState →
       Signature × GlobalCausalHashState
@@ -336,7 +331,6 @@ def globalSignatureTopRevealResult
         (state.recordReveal index (table index))
 
 def globalSignatureTopRevealTrace
-    (table : GlobalChainValueIndex → Digest)
     (request : SignRequest) (encoding : ChainIndex → Digit) :
     List ChainIndex →
       RevealProbeOracleSimulation.ActionTrace GlobalChainValueIndex
@@ -348,7 +342,6 @@ def globalSignatureTopRevealTrace
         globalSignatureTopRevealTrace table request encoding chains
 
 theorem simulate_eagerTrace_revealGlobalSignatureTopChains
-    (table : GlobalChainValueIndex → Digest)
     (request : SignRequest) (encoding : ChainIndex → Digit)
     (chains : List ChainIndex) (signature : Signature)
     (state : GlobalCausalHashState) :
@@ -378,7 +371,6 @@ theorem simulate_eagerTrace_revealGlobalSignatureTopChains
       simp [globalSignatureTopRevealResult, globalSignatureTopRevealTrace]
 
 theorem globalSignatureTopRevealResult_chainValue_of_not_mem
-    (table : GlobalChainValueIndex → Digest)
     (request : SignRequest) (encoding : ChainIndex → Digit)
     (chains : List ChainIndex) (signature : Signature)
     (state : GlobalCausalHashState) (candidate : ChainIndex)
@@ -396,7 +388,6 @@ theorem globalSignatureTopRevealResult_chainValue_of_not_mem
         hnotmem.1
 
 theorem globalSignatureTopRevealResult_chainValue_of_mem
-    (table : GlobalChainValueIndex → Digest)
     (request : SignRequest) (encoding : ChainIndex → Digit)
     (chains : List ChainIndex) (signature : Signature)
     (state : GlobalCausalHashState) (candidate : ChainIndex)
@@ -419,7 +410,6 @@ theorem globalSignatureTopRevealResult_chainValue_of_mem
         exact ih _ _ hnodup.2 hmem
 
 theorem globalSignatureTopRevealResult_allChains_chainValue
-    (table : GlobalChainValueIndex → Digest)
     (request : SignRequest) (encoding : ChainIndex → Digit)
     (signature : Signature) (state : GlobalCausalHashState)
     (chain : ChainIndex) :
@@ -460,7 +450,6 @@ theorem Signature.eq_of_fields
   simp_all
 
 theorem globalSignatureRevealResult_randomness
-    (table : GlobalChainValueIndex → Digest)
     (request : SignRequest) (encoding : ChainIndex → Digit)
     (chains : List ChainIndex) (signature : Signature)
     (state : GlobalCausalHashState) :
@@ -473,7 +462,6 @@ theorem globalSignatureRevealResult_randomness
       exact ih _ _
 
 theorem globalSignatureRevealResult_authPath
-    (table : GlobalChainValueIndex → Digest)
     (request : SignRequest) (encoding : ChainIndex → Digit)
     (chains : List ChainIndex) (signature : Signature)
     (state : GlobalCausalHashState) :
@@ -486,7 +474,6 @@ theorem globalSignatureRevealResult_authPath
       exact ih _ _
 
 theorem globalSignatureRevealResult_cache
-    (table : GlobalChainValueIndex → Digest)
     (request : SignRequest) (encoding : ChainIndex → Digit)
     (chains : List ChainIndex) (signature : Signature)
     (state : GlobalCausalHashState) :
@@ -499,7 +486,6 @@ theorem globalSignatureRevealResult_cache
       rfl
 
 theorem globalSignatureRevealResult_keygenCache
-    (table : GlobalChainValueIndex → Digest)
     (request : SignRequest) (encoding : ChainIndex → Digit)
     (chains : List ChainIndex) (signature : Signature)
     (state : GlobalCausalHashState) :
@@ -512,7 +498,6 @@ theorem globalSignatureRevealResult_keygenCache
       rfl
 
 theorem globalSignatureTopRevealResult_randomness
-    (table : GlobalChainValueIndex → Digest)
     (request : SignRequest) (encoding : ChainIndex → Digit)
     (chains : List ChainIndex) (signature : Signature)
     (state : GlobalCausalHashState) :
@@ -525,7 +510,6 @@ theorem globalSignatureTopRevealResult_randomness
       exact ih _ _
 
 theorem globalSignatureTopRevealResult_authPath
-    (table : GlobalChainValueIndex → Digest)
     (request : SignRequest) (encoding : ChainIndex → Digit)
     (chains : List ChainIndex) (signature : Signature)
     (state : GlobalCausalHashState) :
@@ -538,7 +522,6 @@ theorem globalSignatureTopRevealResult_authPath
       exact ih _ _
 
 theorem globalSignatureTopRevealResult_cache
-    (table : GlobalChainValueIndex → Digest)
     (request : SignRequest) (encoding : ChainIndex → Digit)
     (chains : List ChainIndex) (signature : Signature)
     (state : GlobalCausalHashState) :
@@ -551,7 +534,6 @@ theorem globalSignatureTopRevealResult_cache
       rfl
 
 theorem globalSignatureTopRevealResult_keygenCache
-    (table : GlobalChainValueIndex → Digest)
     (request : SignRequest) (encoding : ChainIndex → Digit)
     (chains : List ChainIndex) (signature : Signature)
     (state : GlobalCausalHashState) :
@@ -564,7 +546,6 @@ theorem globalSignatureTopRevealResult_keygenCache
       rfl
 
 theorem globalSignatureRevealResult_top
-    (table : GlobalChainValueIndex → Digest)
     (request : SignRequest) (encoding : ChainIndex → Digit)
     (chains : List ChainIndex) (signature : Signature)
     (state : GlobalCausalHashState) :
@@ -577,7 +558,6 @@ theorem globalSignatureRevealResult_top
       exact ih _ _
 
 theorem globalSignatureTopRevealResult_chainValue
-    (table : GlobalChainValueIndex → Digest)
     (request : SignRequest) (encoding : ChainIndex → Digit)
     (chains : List ChainIndex) (signature : Signature)
     (state : GlobalCausalHashState) :
@@ -590,7 +570,6 @@ theorem globalSignatureTopRevealResult_chainValue
       exact ih _ _
 
 theorem globalSignatureTopRevealResult_topRandomness
-    (table : GlobalChainValueIndex → Digest)
     (request : SignRequest) (encoding : ChainIndex → Digit)
     (chains : List ChainIndex) (signature : Signature)
     (state : GlobalCausalHashState) :
@@ -603,7 +582,6 @@ theorem globalSignatureTopRevealResult_topRandomness
       exact ih _ _
 
 theorem globalSignatureTopRevealResult_topAuthPath
-    (table : GlobalChainValueIndex → Digest)
     (request : SignRequest) (encoding : ChainIndex → Digit)
     (chains : List ChainIndex) (signature : Signature)
     (state : GlobalCausalHashState) :
@@ -630,7 +608,6 @@ noncomputable def revealGlobalSignature
         (revealGlobalSignatureTopChains request topEncoding allChains bottom.1).run bottom.2
 
 noncomputable def globalSignatureFullRevealResult
-    (table : GlobalChainValueIndex → Digest)
     (topSigned : TopIndex → Option (Randomness × Encoding))
     (request : SignRequest) (encoding : ChainIndex → Digit) (signature : Signature)
     (state : GlobalCausalHashState) : Signature × GlobalCausalHashState :=
@@ -641,7 +618,6 @@ noncomputable def globalSignatureFullRevealResult
       globalSignatureTopRevealResult table request topEncoding allChains bottom.1 bottom.2
 
 noncomputable def globalSignatureFullRevealTrace
-    (table : GlobalChainValueIndex → Digest)
     (topSigned : TopIndex → Option (Randomness × Encoding))
     (request : SignRequest) (encoding : ChainIndex → Digit) :
     RevealProbeOracleSimulation.ActionTrace GlobalChainValueIndex :=
@@ -652,7 +628,6 @@ noncomputable def globalSignatureFullRevealTrace
         globalSignatureTopRevealTrace table request topEncoding allChains
 
 theorem simulate_eagerTrace_revealGlobalSignature
-    (table : GlobalChainValueIndex → Digest)
     (topSigned : TopIndex → Option (Randomness × Encoding))
     (request : SignRequest) (encoding : ChainIndex → Digit) (signature : Signature)
     (state : GlobalCausalHashState) :
@@ -718,7 +693,6 @@ theorem revealGlobalSignature_run_isProbeQueryBoundP
         bottom.1 bottom.2
 
 theorem globalSignatureFullRevealResult_cache
-    (table : GlobalChainValueIndex → Digest)
     (topSigned : TopIndex → Option (Randomness × Encoding))
     (request : SignRequest) (encoding : ChainIndex → Digit) (signature : Signature)
     (state : GlobalCausalHashState) :
@@ -732,7 +706,6 @@ theorem globalSignatureFullRevealResult_cache
       rw [globalSignatureTopRevealResult_cache, globalSignatureRevealResult_cache]
 
 theorem globalSignatureFullRevealResult_randomness
-    (table : GlobalChainValueIndex → Digest)
     (topSigned : TopIndex → Option (Randomness × Encoding))
     (request : SignRequest) (encoding : ChainIndex → Digit) (signature : Signature)
     (state : GlobalCausalHashState) :
@@ -746,7 +719,6 @@ theorem globalSignatureFullRevealResult_randomness
       rw [globalSignatureTopRevealResult_randomness, globalSignatureRevealResult_randomness]
 
 theorem globalSignatureFullRevealResult_keygenCache
-    (table : GlobalChainValueIndex → Digest)
     (topSigned : TopIndex → Option (Randomness × Encoding))
     (request : SignRequest) (encoding : ChainIndex → Digit) (signature : Signature)
     (state : GlobalCausalHashState) :
@@ -941,7 +913,6 @@ def GlobalSigningComparableHashInput
       (message, randomness)
 
 def GlobalSigningRevealsAgree
-    (table : GlobalChainValueIndex → Digest)
     (state : GlobalCausalHashState) : Prop :=
   ∀ index value, state.revealed index = some value → table index = value
 
