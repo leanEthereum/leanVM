@@ -131,7 +131,7 @@ theorem runHint_cursor {C : Ctx} {s s' : St} {hint : Hint} (h : runHint C s hint
     simp only [runHint, bind_ok] at h
     obtain ⟨c, -, p, -, h⟩ := h
     exact keep (cur_withMem h)
-  | allocFrames ptr size stop startInverse =>
+  | allocFrames ptr size stop startInverse tail =>
     simp only [runHint, bind_ok] at h
     obtain ⟨c, -, sp, -, h⟩ := h
     split_ifs at h

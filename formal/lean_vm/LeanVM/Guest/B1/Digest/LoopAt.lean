@@ -62,7 +62,7 @@ theorem loopA_stepAt {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
     (hU : (atomsIn (loopPre fn)).all atomUnplaced = true) {κ : ℕ} {Lin : Layout} {N : E}
     {rest : List E} {m k : ℕ} (hN : N = gen ^ m) (hm : m < 2 ^ 34) (hkm : k + 1 ≤ m)
     (hblk : LoopBlockIn κ fn Lin k N rest) {Bd Bd' : ℕ → Prop}
-    (hBd : ∀ x, (k + 1 < m → Bd' x) → (k + 1 = m → x = fs f) → Bd (fs f + x))
+    (hBd : ∀ x, (k + 1 < m → Bd' x) → (k + 1 = m → x = fs (tailKey f)) → Bd (fs f + x))
     (htail : k + 1 < m →
       CompleteAtL fs cert κ f Lin (gen ^ (k + 1) :: N :: rest) (Returns []) (fun _ => True) Bd') :
     CompleteAtL fs cert κ f Lin (gen ^ k :: N :: rest) (Returns []) (fun _ => True) Bd := by

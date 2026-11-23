@@ -45,15 +45,10 @@ def termNames (D : TermData) : List String :=
 def termWs {ι : Type} (Weqc W15 Wst Wcs Wrsw : ι → ℕ) (i : ι) : List ℕ :=
   [Weqc i, Weqc i, W15 i, Wst i] ++ List.replicate Tables.nCommittedCols (Wcs i) ++ [Weqc i, Wrsw i, Weqc i]
 
-theorem forall₂_append' {α β : Type} {R : α → β → Prop} : ∀ {l1 l3 : List α} {l2 l4 : List β},
-    List.Forall₂ R l1 l2 → List.Forall₂ R l3 l4 → List.Forall₂ R (l1 ++ l3) (l2 ++ l4)
-  | [], _, [], _, _, h => h
-  | _ :: _, _, _ :: _, _, .cons h1 h2, h => .cons h1 (forall₂_append' h2 h)
-
 theorem termKids_names (Lin : Main.Layout) (D : TermData) (b0 : ℕ) :
     List.Forall₂ (fun k n ↦ ∀ pv, (k pv).f = n) (termKids Lin D b0) (termNames D) := by
   unfold termKids termNames
-  refine forall₂_append' (forall₂_append' ?_ ?_) ?_
+  refine List.rel_append (List.rel_append ?_ ?_) ?_
   · exact .cons (fun _ => rfl) (.cons (fun _ => rfl) (.cons (fun _ => rfl) (.cons (fun _ => rfl) .nil)))
   · rw [List.forall₂_map_left_iff, List.forall₂_map_right_iff]
     exact List.forall₂_same.mpr fun _ _ _ => rfl
@@ -137,8 +132,7 @@ theorem check_opening_terminal_completeAtBW (κ : ℕ) (hκ : 6 ≤ κ) (B : Ter
     (hL15 : TotalLeOn coreProgram fs name% «check_opening_terminal_loop0» LoopPre
       fun a => logG (a.getD 1 0) * K15 + fs name% «check_opening_terminal_loop0»)
     (hCsF : ∀ κ' < 31, fs (Tables.lName "column_selector" κ') ≤ Bcs)
-    (hrs : ∀ c ≤ 34, TotalLeOn coreProgram fs "rs_eq_run" (fun a => a.getD 3 0 = gen ^ c)
-      fun _ => Brs)
+    (hrs : RsBound fs Brs)
     {ι : Type} (ω : ι → String → ℕ) (Weqc W15 Wst Wcs Wrsw : ι → ℕ)
     (hEqcW : ∀ i, WeightLe coreProgram (ω i) "eq_prefix_chain" fun _ => Weqc i)
     (hStW : ∀ i, WeightLe coreProgram (ω i) "selector_tables" fun _ => Wst i)

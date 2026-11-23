@@ -77,3 +77,17 @@ theorem hLmain_winTabs {rd : Reader} (hM : B1.Main.MemL rd (hLmain fs fp seed s 
     List.mem_append_right _ (by simp [etL])
   rw [word_winTab]
   exact winTabs_of_expWinTab (expTables_of_reads (Da.reads_of_memL hM hq)).2
+
+/-- **`main`'s words hold the bit windows' words at `tabs`**, in the exponent table's entry. -/
+theorem hLmain_tabsIn : ∀ e < 2 ^ 11, ∃ i,
+    ((hm fs fp seed s w).et * word 133823759239872512 0 * gen ^ e).limb 0 * addressOfIndex 0 =
+      addressOfIndex i ∧ B1.Main.RegionL (hLmain fs fp seed s w) i := by
+  intro e he
+  have hq : (etB fs (mK0 (hData seed s w) fs fp), expTabAllWords) ∈ hLmain fs fp seed s w :=
+    List.mem_append_right _ (by simp [etL])
+  refine ⟨etB fs (mK0 (hData seed s w) fs fp) + (winTabAt + e + 0), ?_,
+    Da.regionL_of_mem hq (by rw [length_expTabAllWords]; simp only [winTabAt]; omega)⟩
+  rw [word_winTab]
+  show (gen ^ etB fs (mK0 (hData seed s w) fs fp) * gen ^ winTabAt * gen ^ e).limb 0 * addressOfIndex 0 = _
+  rw [← pow_add, ← pow_add, Da.limb0_gen_pow_mul]
+  exact congrArg _ (by omega)

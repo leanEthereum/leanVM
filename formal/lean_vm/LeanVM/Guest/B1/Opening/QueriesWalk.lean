@@ -9,40 +9,36 @@ module
 
 public import LeanVM.Guest.B1.Opening.QueriesMain
 public import LeanVM.Guest.B1.Opening.WalkDefs
-import LeanVM.Guest.ValRef
-import LeanVM.Guest.Data.ValNames.«opening_queries__L»
-import LeanVM.Guest.Data.ValNames.«opening_queries__L_loop0»
 
 /-!
-# The windows a walk dispatches on (`walk_path`, `opening_queries`)
+# The windows a walk dispatches on (`opening_queries`, `walk_path` inline)
 
-`walk_path__L{pd}_L{cd}` (a function) dispatches `match(log(w))` on each path window
-`w = wins[g^i]`; `opening_queries` calls it on the window pointer `wins` loaded from
-`query_win_ptrs` at the iteration's index (`query_win_ptrs[xi]` deeper, `(query_win_ptrs·xi²)[g^odd]`,
-`[g^(odd+1)]` at level 0). A window's bound comes from `decode_query_windows`' range checks, in
-another function, through the pointer table: the checker of the certificates takes it as an
-obligation on the loop's arguments, carried by the loop, and hands `WinsAt` of the loaded pointer to
-each call of `walk_path` (whose precondition it is: `winsTag`).
+A query of `opening_queries` dispatches `match(log(w))` on each path window `w = wins[g^i]`,
+`wins` the window pointer loaded from `query_win_ptrs` at the iteration's index
+(`query_win_ptrs[xi]` deeper, `(query_win_ptrs·odd_g·xi²)[g^0]`, `[g^1]` at level 0, the odd
+first query's `query_win_ptrs[g^0]` under the branch on `odd_g`). A window's bound comes from
+`decode_query_windows`' range checks, in another function, through the pointer table: the
+checker of the certificates takes it as an obligation on the specialization's and the loop's
+arguments, carried by the loop (the definitions in `WalkDefs`).
 
 * `WinsAt rd d cd w`: each of the `qwN d cd` windows at `w`, if read, is `g^e`, `e` below the
-  window's `2^width` (`qwWin`).
-* `WinWalk rd d cd t x N` (deeper) / `WinWalk2 rd d cd odd t x N` (level 0): the pointers of every
-  iteration still to run name such windows: at `x·g^c` for each `c` with `x·g^c' ≠ N`, `c' ≤ c`
-  (the loop runs `x, x·g, …` until `N`).
-* `winWalk_succ`, `winWalk2_succ`: the tail call's argument `x·g` keeps them when `x ≠ N`.
-* `winsAt_of_walk`, `winsAt_of_walk2`: the iteration at `x ≠ N` reads such pointers.
-* `oqMainWins_of_queryWinsOk`: `QueryWinsOk` (what `decode_query_windows` gives, the soundness
-  precondition) at `n_iters_g = g^n` gives them at the loop's first `x = 1`, and the windows of an
-  odd count's first query.
+  window's `2^width` (`qwWin`), what `decode_query_windows` writes; `winsP_of_winsAt`: its path
+  windows are `WinsP rd (d - cd) w`, what a query reads.
+* `WinWalk`, `WinWalk2`, `OqMainWins`: `level_queries`' obligation (`lqTag`), from `QueryWinsOk`
+  (`oqMainWins_of_queryWinsOk`); `winWalkP_of_mainWins`, `oqStartP_of_mainWins`: the
+  specialization's (`oqTag`).
+* `WinWalkP rd pd t x N` (deeper) / `WinWalk2P rd pd t x N` (level 0): the pointers of every
+  iteration still to run name path windows: at `x·g^c` for each `c` with `x·g^c' ≠ N`, `c' ≤ c`
+  (the loop runs `x, x·g, …` until `N`); `winWalkP_succ`, `winWalk2P_succ`: the tail call's
+  argument `x·g` keeps them when `x ≠ N`; `winsP_of_walkP`, `winsP_of_walk2P`: the iteration at
+  `x ≠ N` reads such pointers.
 * The bodies: `oqLoop0T_wins`, `oqLoop1T_wins1`, `oqLoop1T_wins2` (the queries' window pointers,
-  over any prefix of the body holding their loads: what the cut before each `walk_path` call hands
-  on), `oqLoop0T_tail`, `oqLoop1T_tail` (the tail
-  call's argument, over the statements before the call), `oqMainT_wins`, `oqMainT_loop` (the function's
-  odd query and loop call); `winsAt_known`: a window read is `g^e` (a `MemKnown` triple).
+  over any prefix of the body holding their loads), `oqLoop0T_tail`, `oqLoop1T_tail` (the tail
+  call's argument, over the statements before the call), `oqMainT_loop1` (a level-0
+  specialization's loop call's window pointers, over the start).
 
 The walk is unbounded in `c`: a bound `c < B` on its own does not survive the tail call
-(`x·g` needs `c + 1 < B`); `winWalk_iff_bounded` is the bounded form when `x` reaches `N` within
-`B` steps (a run-time test).
+(`x·g` needs `c + 1 < B`).
 -/
 
 namespace LeanVM.Guest.B1
@@ -62,13 +58,6 @@ windows part of `QueryPosOk`). -/
 def QueryWinsOk (rd : Reader) (qptrs : E) (Q depth cd : ℕ) : Prop :=
   ∀ k < Q, ∀ bp, LoadHolds rd qptrs k bp →
     ∃ q < 2 ^ depth, FrameRun rd bp (qwN depth cd) fun i ↦ gen ^ qwVal depth cd q i
-
-/-- **A window read** is `g^e`, `e` below its bound: the `MemKnown` triple `(w, i, 2^width)`. -/
-theorem winsAt_known {d cd : ℕ} {w : E} (h : WinsAt rd d cd w) {i : ℕ} (hi : i < qwN d cd) {v : E}
-    (hv : LoadHolds rd w i v) :
-    ∃ e < 2 ^ (qwWin d cd i).2, LoadHolds rd w i (ofK (addressOfIndex e)) := by
-  obtain ⟨e, he, rfl⟩ := h i hi v hv
-  exact ⟨e, he, hv⟩
 
 /-- **The windows of a position** (a run `decode_query_windows` writes) are such windows. -/
 theorem winsAt_of_run {d cd q : ℕ} {w : E}
@@ -95,35 +84,6 @@ private theorem pow_succ_shift {x N : E} (hne : x ≠ N) {c : ℕ}
   · rwa [pow_zero, mul_one]
   · rw [mul_pow_succ]
     exact h c' (by omega)
-
-/-- **The tail call keeps the walk** (deeper): `x ≠ N` steps it to `x·g`. -/
-theorem winWalk_succ {d cd : ℕ} {t x N : E} (h : WinWalk rd d cd t x N) (hne : x ≠ N) :
-    WinWalk rd d cd t (x * gen) N := by
-  intro c hc w hw
-  refine h (c + 1) (pow_succ_shift hne hc) w ?_
-  rw [mul_pow_succ]
-  exact hw
-
-/-- **The tail call keeps the walk** (level 0). -/
-theorem winWalk2_succ {d cd odd : ℕ} {t x N : E} (h : WinWalk2 rd d cd odd t x N) (hne : x ≠ N) :
-    WinWalk2 rd d cd odd t (x * gen) N := by
-  intro c hc o ho1 ho2 w hw
-  refine h (c + 1) (pow_succ_shift hne hc) o ho1 ho2 w ?_
-  rw [mul_pow_succ]
-  exact hw
-
-/-- **The iteration at `x ≠ N` reads windows** (deeper): its pointer `t[x]`. -/
-theorem winsAt_of_walk {d cd : ℕ} {t x N : E} (h : WinWalk rd d cd t x N) (hne : x ≠ N) {w : E}
-    (hw : LoadHolds rd (t * x) 0 w) : WinsAt rd d cd w :=
-  h 0 (fun c' hc' ↦ by obtain rfl : c' = 0 := by omega
-                       rwa [pow_zero, mul_one]) w (by rwa [pow_zero, mul_one])
-
-/-- **The iteration at `x ≠ N` reads windows** (level 0): its pointers `(t·x²)[g^o]`. -/
-theorem winsAt_of_walk2 {d cd odd : ℕ} {t x N : E} (h : WinWalk2 rd d cd odd t x N) (hne : x ≠ N)
-    {o : ℕ} (ho1 : odd ≤ o) (ho2 : o ≤ odd + 1) {w : E} (hw : LoadHolds rd (t * x * x) o w) :
-    WinsAt rd d cd w :=
-  h 0 (fun c' hc' ↦ by obtain rfl : c' = 0 := by omega
-                       rwa [pow_zero, mul_one]) o ho1 ho2 w (by rwa [pow_zero, mul_one])
 
 /-- The steps before `N = g^n` from `1`: fewer than `n`. -/
 private theorem lt_of_ne_pow {n c : ℕ} (h : ∀ c' ≤ c, 1 * gen ^ c' ≠ gen ^ n) : c < n := by
@@ -157,14 +117,83 @@ theorem oqMainWins_of_queryWinsOk {t : E} {n d cd odd base : ℕ} (hodd : odd = 
     · next hb => simp only [hb, ↓reduceIte] at h; exact winWalk2_of_queryWinsOk h
     · next hb => simp only [hb, ↓reduceIte] at h; exact winWalk_of_queryWinsOk h
 
-/-- **The bounded walk**: when `x` reaches `N` within `B` steps, the walk is its first `B` steps. -/
-theorem winWalk_iff_bounded {d cd B : ℕ} {t x N : E} (hB : ∃ c < B, x * gen ^ c = N) :
-    WinWalk rd d cd t x N ↔ ∀ c < B, (∀ c' ≤ c, x * gen ^ c' ≠ N) →
-      ∀ w, LoadHolds rd (t * (x * gen ^ c)) 0 w → WinsAt rd d cd w := by
-  obtain ⟨c0, hc0, he⟩ := hB
-  refine ⟨fun h c _ ↦ h c, fun h c hc ↦ h c ?_ hc⟩
-  by_contra hcb
-  exact hc c0 (by omega) he
+/-! ## The path windows (`opening_queries`) -/
+
+/-- **The path windows of a position's windows.** -/
+theorem winsP_of_winsAt {d cd : ℕ} {w : E} (h : WinsAt rd d cd w) : WinsP rd (d - cd) w := by
+  intro i hi v hv
+  have hn : qwNp d cd = pwN (d - cd) := rfl
+  have hi' : i < qwN d cd := by unfold qwN; omega
+  obtain ⟨e, he, rfl⟩ := h i hi' v hv
+  refine ⟨e, ?_, rfl⟩
+  have hw : (qwWin d cd i).2 = pwW (d - cd) i := by
+    unfold qwWin pwW
+    rw [hn, ite_eq_right_of_eq_false _ _ (eq_false (show ¬ i = pwN (d - cd) by omega)),
+      ite_eq_right_of_eq_false _ _ (eq_false (show ¬ i = pwN (d - cd) + 1 by omega))]
+    split <;> rfl
+  rwa [← hw]
+
+/-- **The tail call keeps the walk** (deeper): `x ≠ N` steps it to `x·g`. -/
+theorem winWalkP_succ {pd : ℕ} {t x N : E} (h : WinWalkP rd pd t x N) (hne : x ≠ N) :
+    WinWalkP rd pd t (x * gen) N := by
+  intro c hc w hw
+  refine h (c + 1) (pow_succ_shift hne hc) w ?_
+  rw [mul_pow_succ]
+  exact hw
+
+/-- **The tail call keeps the walk** (level 0). -/
+theorem winWalk2P_succ {pd : ℕ} {t x N : E} (h : WinWalk2P rd pd t x N) (hne : x ≠ N) :
+    WinWalk2P rd pd t (x * gen) N := by
+  intro c hc o ho w hw
+  refine h (c + 1) (pow_succ_shift hne hc) o ho w ?_
+  rw [mul_pow_succ]
+  exact hw
+
+private theorem ne_zero_steps {x N : E} (hne : x ≠ N) : ∀ c' ≤ 0, x * gen ^ c' ≠ N := by
+  intro c' hc'
+  obtain rfl : c' = 0 := by omega
+  rwa [pow_zero, mul_one]
+
+/-- **The iteration at `x ≠ N` reads path windows** (deeper): its pointer `t[x]`. -/
+theorem winsP_of_walkP {pd : ℕ} {t x N : E} (h : WinWalkP rd pd t x N) (hne : x ≠ N) {w : E}
+    (hw : LoadHolds rd (t * x) 0 w) : WinsP rd pd w :=
+  h 0 (ne_zero_steps hne) w (by rwa [pow_zero, mul_one])
+
+/-- **The iteration at `x ≠ N` reads path windows** (level 0): its pointers `(t·x²)[g^o]`. -/
+theorem winsP_of_walk2P {pd : ℕ} {t x N : E} (h : WinWalk2P rd pd t x N) (hne : x ≠ N)
+    {o : ℕ} (ho : o ≤ 1) {w : E} (hw : LoadHolds rd (t * x * x) o w) : WinsP rd pd w :=
+  h 0 (ne_zero_steps hne) o ho w (by rwa [pow_zero, mul_one])
+
+/-- **A deeper specialization's walk** from `level_queries`' obligation. -/
+theorem winWalkP_of_mainWins {d cd : ℕ} {t N : E} (h : OqMainWins rd d cd 0 0 t N) :
+    WinWalkP rd (d - cd) t 1 N := by
+  have h2 := h.2
+  simp only [show ¬ (0 : ℕ) = 1 from by decide, ↓reduceIte] at h2
+  intro c hc w hw
+  exact winsP_of_winsAt (h2 c hc w hw)
+
+/-- **A level-0 specialization's obligation** for `odd` from `level_queries`' obligation for the
+same `odd`, at `N = g^n` with a query (`odd = 1` or `0 < n`). -/
+theorem oqStartP_of_mainWins {d cd odd n : ℕ} {t u : E} (h : OqMainWins rd d cd odd 1 t (gen ^ n))
+    (hq : odd = 1 ∨ 0 < n) (hn : n < 2 ^ 64 - 1) (ho : odd < 2) :
+    OqStartP rd (d - cd) odd t (gen ^ n) u := by
+  have h2 := h.2
+  simp only [↓reduceIte] at h2
+  refine ⟨fun w hw ↦ ?_, fun hu c hc o ho1 w hw ↦ ?_⟩
+  · by_cases h1 : odd = 1
+    · exact winsP_of_winsAt (h.1 h1 w hw)
+    · obtain rfl : odd = 0 := by omega
+      have hn0 : 0 < n := by omega
+      refine winsP_of_winsAt (h2 0 (fun c' hc' he ↦ ?_) 0 le_rfl (by omega) w (by simpa using hw))
+      obtain rfl : c' = 0 := by omega
+      rw [pow_zero, mul_one, ← pow_zero gen] at he
+      have := gen_pow_inj (by norm_num) hn he
+      omega
+  · subst hu
+    refine winsP_of_winsAt (h2 c hc (odd + o) (by omega) (by omega) w ?_)
+    rw [← loadHolds_mul_gen_pow]
+    rwa [show t * gen ^ odd * (1 * gen ^ c) * (1 * gen ^ c) =
+      t * (1 * gen ^ c) * (1 * gen ^ c) * gen ^ odd by ring] at hw
 
 /-! ## Prefixes of a body -/
 
@@ -191,139 +220,124 @@ section Bodies
 
 variable {C : CallRel} {σ : Val} {next : Prop} {kret : List E → Prop}
 
-/-- **A deeper iteration's window pointer** (cell `13`, `query_win_ptrs[xi]`) names windows, over
-any prefix of the body holding its load (`n ≥ 4`). -/
-theorem oqLoop0T_wins {s : Oq} {walk name : String} {n : ℕ} (hn : 4 ≤ n)
-    (h : Stmt.HoldsList C rd σ ((oqLoop0T s walk name).take n) next kret)
-    (hw : WinWalk rd (s.pd + s.cd) s.cd (σ (.n (valf% «opening_queries» «_loop0» "query_win_ptrs"))) (σ (.n (valf% «opening_queries» «_loop0» "xi"))) (σ (.n (valf% «opening_queries» «_loop0» "bound"))))
-    (hne : σ (.n (valf% «opening_queries» «_loop0» "xi")) ≠ σ (.n (valf% «opening_queries» «_loop0» "bound"))) : WinsAt rd (s.pd + s.cd) s.cd (σ (.n 13)) := by
-  have hb := blockOk_of_take (pre := [.atom (.mul (.n 10) (.n (valf% «opening_queries» «_loop0» "positions")) (.n (valf% «opening_queries» «_loop0» "xi"))), .atom (.load (.n 11) (.n 10) 0),
-      .atom (.mul (.n 12) (.n (valf% «opening_queries» «_loop0» "query_win_ptrs")) (.n (valf% «opening_queries» «_loop0» "xi"))), .atom (.load (.n 13) (.n 12) 0)])
+/-- **A deeper iteration's window pointer** (cell `13`, `qptrs[x]`) names path windows, over any
+prefix of the body holding its load (`n ≥ 4`). -/
+theorem oqLoop0T_wins {s : Oq} {name : String} {n : ℕ} (hn : 4 ≤ n)
+    (h : Stmt.HoldsList C rd σ ((oqLoop0T s name).take n) next kret)
+    (hw : WinWalkP rd s.pd (σ (.n oqQp)) (σ (.n oqX)) (σ (.n oqN))) (hne : σ (.n oqX) ≠ σ (.n oqN)) :
+    WinsP rd s.pd (σ (.n 13)) := by
+  have hb := blockOk_of_take (pre := [.atom (.mul (.n 10) (.n oqPos) (.n oqX)), .atom (.load (.n 11) (.n 10) 0),
+      .atom (.mul (.n 12) (.n oqQp) (.n oqX)), .atom (.load (.n 13) (.n 12) 0)])
     (by simp [oqLoop0T, oqLoop0A]) (flat_of_atoms (allAtoms_of_forall (by simp))) (by simpa using hn) h
-  have p12 := hb.atom (by simp : Stmt.atom (.mul (.n 12) (.n (valf% «opening_queries» «_loop0» "query_win_ptrs")) (.n (valf% «opening_queries» «_loop0» "xi"))) ∈ _)
+  have p12 := hb.atom (by simp : Stmt.atom (.mul (.n 12) (.n oqQp) (.n oqX)) ∈ _)
   have p13 := hb.atom (by simp : Stmt.atom (.load (.n 13) (.n 12) 0) ∈ _)
   simp only [Atom.Holds] at p12 p13
   rw [p12] at p13
-  exact winsAt_of_walk hw hne p13
+  exact winsP_of_walkP hw hne p13
 
 /-- The statements of a level-0 iteration up to its second query's window pointer. -/
-def oqLoop1Pre (s : Oq) (odd : ℕ) (walk : String) : List Stmt :=
-  [.atom (.mul (.n 10) (.n (valf% «opening_queries» «_loop0» "positions")) (.n (valf% «opening_queries» «_loop0» "xi"))), .atom (.mul (.n 11) (.n 10) (.n (valf% «opening_queries» «_loop0» "xi"))),
-    .atom (.mul (.n 12) (.n (valf% «opening_queries» «_loop0» "query_win_ptrs")) (.n (valf% «opening_queries» «_loop0» "xi"))), .atom (.mul (.n 13) (.n 12) (.n (valf% «opening_queries» «_loop0» "xi"))),
-    .atom (.load (.n 14) (.n 11) odd), .atom (.load (.n 15) (.n 13) odd)] ++
-    (oqQueryT s (.n 14) (.n 15) (.n (valf% «opening_queries» «_loop0» "cap")) (.n (valf% «opening_queries» «_loop0» "flags")) (.n (valf% «opening_queries» «_loop0» "coefs")) (.n (valf% «opening_queries» «_loop0» "hs")) 16 true 0 walk ++
-    [.atom (.load (.n (oqE1 s)) (.n 11) (odd + 1)), .atom (.load (.n (oqE1 s + 1)) (.n 13) (odd + 1))])
+def oqLoop1Pre (s : Oq) : List Stmt :=
+  [.atom (.mul (.n 10) (.n oqX) (.n oqX)), .atom (.mul (.n 11) (.n oqPos) (.n 10)),
+    .atom (.mul (.n 12) (.n oqQp) (.n 10)), .atom (.load (.n 13) (.n 11) 0),
+    .atom (.load (.n 14) (.n 12) 0)] ++
+    (oqQueryT s (.n 13) (.n 14) (.n oqCap) (.n oqFlags) (.n oqCoefs) (.n oqHs) 15 true 0 ++
+    [.atom (.load (.n (oqE1 s)) (.n 11) 1), .atom (.load (.n (oqE1 s + 1)) (.n 12) 1)])
 
-theorem oqLoop1T_prefix (s : Oq) (odd : ℕ) (walk name : String) :
-    oqLoop1Pre s odd walk <+: oqLoop1T s odd walk name := by
+theorem oqLoop1T_prefix (s : Oq) (name : String) : oqLoop1Pre s <+: oqLoop1T s name := by
   unfold oqLoop1Pre oqLoop1T oqLoop1A
   dsimp only
   simp only [List.append_assoc, List.prefix_append_right_inj]
   exact List.prefix_append _ _
 
-theorem oqLoop1Pre_flatC (s : Oq) (odd : ℕ) (walk : String) : FlatC (oqLoop1Pre s odd walk) :=
+theorem oqLoop1Pre_flatC (s : Oq) : FlatC (oqLoop1Pre s) :=
   flatC_append (flatC_atoms (allAtoms_of_forall (by simp)))
-    (flatC_append (oqQueryT_flatC _ _ _ _ _ _ _ _ _ _ _) (flatC_atoms (allAtoms_of_forall (by simp))))
+    (flatC_append (oqQueryT_flatC _ _ _ _ _ _ _ _ _ _) (flatC_atoms (allAtoms_of_forall (by simp))))
 
-theorem oqLoop1Pre_length (s : Oq) (odd : ℕ) (walk : String) :
-    (oqLoop1Pre s odd walk).length =
-      (oqQueryT s (.n 14) (.n 15) (.n (valf% «opening_queries» «_loop0» "cap")) (.n (valf% «opening_queries» «_loop0» "flags")) (.n (valf% «opening_queries» «_loop0» "coefs")) (.n (valf% «opening_queries» «_loop0» "hs")) 16 true 0 walk).length + 8 := by
+theorem oqLoop1Pre_length (s : Oq) :
+    (oqLoop1Pre s).length =
+      (oqQueryT s (.n 13) (.n 14) (.n oqCap) (.n oqFlags) (.n oqCoefs) (.n oqHs) 15 true 0).length + 7 := by
   simp only [oqLoop1Pre, List.length_append, List.length_cons, List.length_nil]
   omega
 
-/-- **A level-0 iteration's first window pointer** (cell `15`, `(query_win_ptrs·xi²)[g^odd]`)
-names windows, over any prefix of the body holding its load (`n ≥ 6`). -/
-theorem oqLoop1T_wins1 {s : Oq} {odd : ℕ} {walk name : String} {n : ℕ} (hn : 6 ≤ n)
-    (h : Stmt.HoldsList C rd σ ((oqLoop1T s odd walk name).take n) next kret)
-    (hw : WinWalk2 rd (s.pd + s.cd) s.cd odd (σ (.n (valf% «opening_queries» «_loop0» "query_win_ptrs"))) (σ (.n (valf% «opening_queries» «_loop0» "xi"))) (σ (.n (valf% «opening_queries» «_loop0» "bound"))))
-    (hne : σ (.n (valf% «opening_queries» «_loop0» "xi")) ≠ σ (.n (valf% «opening_queries» «_loop0» "bound"))) : WinsAt rd (s.pd + s.cd) s.cd (σ (.n 15)) := by
-  have hb := blockOk_of_take (pre := [.atom (.mul (.n 10) (.n (valf% «opening_queries» «_loop0» "positions")) (.n (valf% «opening_queries» «_loop0» "xi"))),
-      .atom (.mul (.n 11) (.n 10) (.n (valf% «opening_queries» «_loop0» "xi"))), .atom (.mul (.n 12) (.n (valf% «opening_queries» «_loop0» "query_win_ptrs")) (.n (valf% «opening_queries» «_loop0» "xi"))),
-      .atom (.mul (.n 13) (.n 12) (.n (valf% «opening_queries» «_loop0» "xi"))), .atom (.load (.n 14) (.n 11) odd),
-      .atom (.load (.n 15) (.n 13) odd)])
-    ((List.prefix_append _ _).trans (oqLoop1T_prefix s odd walk name))
+/-- **A level-0 iteration's first window pointer** (cell `14`, `(qptrs·x²)[g^0]`) names path
+windows, over any prefix of the body holding its load (`n ≥ 5`). -/
+theorem oqLoop1T_wins1 {s : Oq} {name : String} {n : ℕ} (hn : 5 ≤ n)
+    (h : Stmt.HoldsList C rd σ ((oqLoop1T s name).take n) next kret)
+    (hw : WinWalk2P rd s.pd (σ (.n oqQp)) (σ (.n oqX)) (σ (.n oqN))) (hne : σ (.n oqX) ≠ σ (.n oqN)) :
+    WinsP rd s.pd (σ (.n 14)) := by
+  have hb := blockOk_of_take (pre := [.atom (.mul (.n 10) (.n oqX) (.n oqX)),
+      .atom (.mul (.n 11) (.n oqPos) (.n 10)), .atom (.mul (.n 12) (.n oqQp) (.n 10)),
+      .atom (.load (.n 13) (.n 11) 0), .atom (.load (.n 14) (.n 12) 0)])
+    ((List.prefix_append _ _).trans (oqLoop1T_prefix s name))
     (flat_of_atoms (allAtoms_of_forall (by simp))) (by simpa using hn) h
-  have p12 := hb.atom (by simp : Stmt.atom (.mul (.n 12) (.n (valf% «opening_queries» «_loop0» "query_win_ptrs")) (.n (valf% «opening_queries» «_loop0» "xi"))) ∈ _)
-  have p13 := hb.atom (by simp : Stmt.atom (.mul (.n 13) (.n 12) (.n (valf% «opening_queries» «_loop0» "xi"))) ∈ _)
-  have p15 := hb.atom (by simp : Stmt.atom (.load (.n 15) (.n 13) odd) ∈ _)
-  simp only [Atom.Holds] at p12 p13 p15
-  rw [p13, p12] at p15
-  exact winsAt_of_walk2 hw hne le_rfl (by omega) p15
+  have p10 := hb.atom (by simp : Stmt.atom (.mul (.n 10) (.n oqX) (.n oqX)) ∈ _)
+  have p12 := hb.atom (by simp : Stmt.atom (.mul (.n 12) (.n oqQp) (.n 10)) ∈ _)
+  have p14 := hb.atom (by simp : Stmt.atom (.load (.n 14) (.n 12) 0) ∈ _)
+  simp only [Atom.Holds] at p10 p12 p14
+  rw [p12, p10, ← mul_assoc] at p14
+  exact winsP_of_walk2P hw hne (by omega) p14
 
-/-- **A level-0 iteration's second window pointer** (cell `oqE1 + 1`,
-`(query_win_ptrs·xi²)[g^(odd+1)]`) names windows, over any prefix of the body holding its load. -/
-theorem oqLoop1T_wins2 {s : Oq} {odd : ℕ} {walk name : String} {n : ℕ}
-    (hn : (oqQueryT s (.n 14) (.n 15) (.n (valf% «opening_queries» «_loop0» "cap")) (.n (valf% «opening_queries» «_loop0» "flags")) (.n (valf% «opening_queries» «_loop0» "coefs")) (.n (valf% «opening_queries» «_loop0» "hs")) 16 true 0 walk).length + 8 ≤ n)
-    (h : Stmt.HoldsList C rd σ ((oqLoop1T s odd walk name).take n) next kret)
-    (hw : WinWalk2 rd (s.pd + s.cd) s.cd odd (σ (.n (valf% «opening_queries» «_loop0» "query_win_ptrs"))) (σ (.n (valf% «opening_queries» «_loop0» "xi"))) (σ (.n (valf% «opening_queries» «_loop0» "bound"))))
-    (hne : σ (.n (valf% «opening_queries» «_loop0» "xi")) ≠ σ (.n (valf% «opening_queries» «_loop0» "bound"))) : WinsAt rd (s.pd + s.cd) s.cd (σ (.n (oqE1 s + 1))) := by
-  have hb := blockOkC_of_take (oqLoop1T_prefix s odd walk name) (oqLoop1Pre_flatC s odd walk)
+/-- **A level-0 iteration's second window pointer** (cell `oqE1 + 1`, `(qptrs·x²)[g^1]`) names
+path windows, over any prefix of the body holding its load. -/
+theorem oqLoop1T_wins2 {s : Oq} {name : String} {n : ℕ}
+    (hn : (oqQueryT s (.n 13) (.n 14) (.n oqCap) (.n oqFlags) (.n oqCoefs) (.n oqHs) 15 true 0).length + 7 ≤ n)
+    (h : Stmt.HoldsList C rd σ ((oqLoop1T s name).take n) next kret)
+    (hw : WinWalk2P rd s.pd (σ (.n oqQp)) (σ (.n oqX)) (σ (.n oqN))) (hne : σ (.n oqX) ≠ σ (.n oqN)) :
+    WinsP rd s.pd (σ (.n (oqE1 s + 1))) := by
+  have hb := blockOkC_of_take (oqLoop1T_prefix s name) (oqLoop1Pre_flatC s)
     (by rw [oqLoop1Pre_length]; exact hn) h
-  have p12 := hb.atom (by simp [oqLoop1Pre] : Stmt.atom (.mul (.n 12) (.n (valf% «opening_queries» «_loop0» "query_win_ptrs")) (.n (valf% «opening_queries» «_loop0» "xi"))) ∈ _)
-  have p13 := hb.atom (by simp [oqLoop1Pre] : Stmt.atom (.mul (.n 13) (.n 12) (.n (valf% «opening_queries» «_loop0» "xi"))) ∈ _)
-  have pe := hb.atom (by simp [oqLoop1Pre] :
-    Stmt.atom (.load (.n (oqE1 s + 1)) (.n 13) (odd + 1)) ∈ _)
-  simp only [Atom.Holds] at p12 p13 pe
-  rw [p13, p12] at pe
-  exact winsAt_of_walk2 hw hne (by omega) le_rfl pe
+  have p10 := hb.atom (by simp [oqLoop1Pre] : Stmt.atom (.mul (.n 10) (.n oqX) (.n oqX)) ∈ _)
+  have p12 := hb.atom (by simp [oqLoop1Pre] : Stmt.atom (.mul (.n 12) (.n oqQp) (.n 10)) ∈ _)
+  have pe := hb.atom (by simp [oqLoop1Pre] : Stmt.atom (.load (.n (oqE1 s + 1)) (.n 12) 1) ∈ _)
+  simp only [Atom.Holds] at p10 p12 pe
+  rw [p12, p10, ← mul_assoc] at pe
+  exact winsP_of_walk2P hw hne le_rfl pe
 
 /-- The guard's next counter `x·g` (cell `g + 4`), from the guard's atoms. -/
 theorem oqGuard_next {A : List Stmt} {g : ℕ} (hb : BlockOkC C rd σ A)
-    (hsub : ∀ a, Stmt.atom a ∈ oqGuardA g → Stmt.atom a ∈ A) : σ (.n (g + 4)) = σ (.n (valf% «opening_queries» «_loop0» "xi")) * gen := by
+    (hsub : ∀ a, Stmt.atom a ∈ oqGuardA g → Stmt.atom a ∈ A) : σ (.n (g + 4)) = σ (.n oqX) * gen := by
   have c3 := hb.atom (hsub _ (by simp [oqGuardA]) : Stmt.atom (.const (.n (g + 3)) (word 2 0)) ∈ _)
-  have c4 := hb.atom (hsub _ (by simp [oqGuardA]) : Stmt.atom (.mul (.n (g + 4)) (.n (valf% «opening_queries» «_loop0» "xi")) (.n (g + 3))) ∈ _)
+  have c4 := hb.atom (hsub _ (by simp [oqGuardA]) : Stmt.atom (.mul (.n (g + 4)) (.n oqX) (.n (g + 3))) ∈ _)
   simp only [Atom.Holds] at c3 c4
   rw [c4, c3, word_gen]
 
 /-- **A deeper iteration's tail call** passes `x·g` (cell `oqG0 + 4`): the walk goes on. -/
-theorem oqLoop0T_tail {s : Oq} {walk name : String} {n : ℕ} (hn : (oqLoop0A s walk).length ≤ n)
-    (h : Stmt.HoldsList C rd σ ((oqLoop0T s walk name).take n) next kret)
-    (hw : WinWalk rd (s.pd + s.cd) s.cd (σ (.n (valf% «opening_queries» «_loop0» "query_win_ptrs"))) (σ (.n (valf% «opening_queries» «_loop0» "xi"))) (σ (.n (valf% «opening_queries» «_loop0» "bound"))))
-    (hne : σ (.n (valf% «opening_queries» «_loop0» "xi")) ≠ σ (.n (valf% «opening_queries» «_loop0» "bound"))) :
-    WinWalk rd (s.pd + s.cd) s.cd (σ (.n (valf% «opening_queries» «_loop0» "query_win_ptrs"))) (σ (.n (oqG0 s + 4))) (σ (.n (valf% «opening_queries» «_loop0» "bound"))) := by
-  have hb := blockOkC_of_take (List.prefix_append _ _) (oqLoop0A_flatC s walk) hn h
+theorem oqLoop0T_tail {s : Oq} {name : String} {n : ℕ} (hn : (oqLoop0A s).length ≤ n)
+    (h : Stmt.HoldsList C rd σ ((oqLoop0T s name).take n) next kret)
+    (hw : WinWalkP rd s.pd (σ (.n oqQp)) (σ (.n oqX)) (σ (.n oqN))) (hne : σ (.n oqX) ≠ σ (.n oqN)) :
+    WinWalkP rd s.pd (σ (.n oqQp)) (σ (.n (oqG0 s + 4))) (σ (.n oqN)) := by
+  have hb := blockOkC_of_take (List.prefix_append _ _) (oqLoop0A_flatC s) hn h
   rw [oqGuard_next hb (fun a h ↦ by unfold oqLoop0A; exact List.mem_append_right _ h)]
-  exact winWalk_succ hw hne
+  exact winWalkP_succ hw hne
 
 /-- **A level-0 iteration's tail call** passes `x·g` (cell `oqG1 + 4`): the walk goes on. -/
-theorem oqLoop1T_tail {s : Oq} {odd : ℕ} {walk name : String} {n : ℕ}
-    (hn : (oqLoop1A s odd walk).length ≤ n)
-    (h : Stmt.HoldsList C rd σ ((oqLoop1T s odd walk name).take n) next kret)
-    (hw : WinWalk2 rd (s.pd + s.cd) s.cd odd (σ (.n (valf% «opening_queries» «_loop0» "query_win_ptrs"))) (σ (.n (valf% «opening_queries» «_loop0» "xi"))) (σ (.n (valf% «opening_queries» «_loop0» "bound"))))
-    (hne : σ (.n (valf% «opening_queries» «_loop0» "xi")) ≠ σ (.n (valf% «opening_queries» «_loop0» "bound"))) :
-    WinWalk2 rd (s.pd + s.cd) s.cd odd (σ (.n (valf% «opening_queries» «_loop0» "query_win_ptrs"))) (σ (.n (oqG1 s + 4))) (σ (.n (valf% «opening_queries» «_loop0» "bound"))) := by
-  have hb := blockOkC_of_take (List.prefix_append _ _) (oqLoop1A_flatC s odd walk) hn h
+theorem oqLoop1T_tail {s : Oq} {name : String} {n : ℕ} (hn : (oqLoop1A s).length ≤ n)
+    (h : Stmt.HoldsList C rd σ ((oqLoop1T s name).take n) next kret)
+    (hw : WinWalk2P rd s.pd (σ (.n oqQp)) (σ (.n oqX)) (σ (.n oqN))) (hne : σ (.n oqX) ≠ σ (.n oqN)) :
+    WinWalk2P rd s.pd (σ (.n oqQp)) (σ (.n (oqG1 s + 4))) (σ (.n oqN)) := by
+  have hb := blockOkC_of_take (List.prefix_append _ _) (oqLoop1A_flatC s) hn h
   rw [oqGuard_next hb (fun a h ↦ by unfold oqLoop1A; exact List.mem_append_right _ h)]
-  exact winWalk2_succ hw hne
+  exact winWalk2P_succ hw hne
 
-/-- **An odd count's first query's window pointer** (cell `12`, `query_win_ptrs[1]`) names
-windows, over any prefix of the function's body holding its load (`n ≥ 5`). -/
-theorem oqMainT_wins {s : Oq} {walk loop : String} {n : ℕ} (hn : 5 ≤ n) {odd base : ℕ} (ho : odd = 1)
-    (h : Stmt.HoldsList C rd σ ((oqMainT s odd walk loop).take n) next kret)
-    (hw : OqMainWins rd (s.pd + s.cd) s.cd odd base (σ (.n (valf% «opening_queries» "query_win_ptrs"))) (σ (.n (valf% «opening_queries» "n_iters_g")))) :
-    WinsAt rd (s.pd + s.cd) s.cd (σ (.n 12)) := by
-  subst ho
-  have hb := blockOk_of_take (pre := [.atom (.const (.n (valf% «opening_queries» "chain~0")) (word 2 0)),
-      .atom (.mul (.n (valf% «opening_queries» "chain~1")) (.n (valf% «opening_queries» "n_iters_g")) (.n (valf% «opening_queries» "chain~0"))), .atom (.hint (.allocDyn (.n (valf% «opening_queries» "chain")) (.n (valf% «opening_queries» "chain~1")))),
-      .atom (.load (.n 11) (.n (valf% «opening_queries» "positions")) 0), .atom (.load (.n 12) (.n (valf% «opening_queries» "query_win_ptrs")) 0)]) (by simp [oqMainT, oqMainA])
-    (flat_of_atoms (allAtoms_of_forall (by simp))) (by simpa using hn) h
-  have p12 := hb.atom (by simp : Stmt.atom (.load (.n 12) (.n (valf% «opening_queries» "query_win_ptrs")) 0) ∈ _)
-  exact hw.1 rfl _ p12
+/-- The function's start holds, over any prefix of its body past it. -/
+theorem oqMainT_start {s : Oq} {loop : String} {n : ℕ} (hn : (oqMainA s).length ≤ n)
+    (h : Stmt.HoldsList C rd σ ((oqMainT s loop).take n) next kret) : OqStartOk C rd σ s := by
+  unfold oqMainT at h
+  dsimp only at h
+  rw [List.append_assoc, List.take_append, List.take_of_length_le hn, holdsList_append,
+    holdsList_oqMainA] at h
+  exact h.1
 
-/-- **The function's loop call** passes `x = 1` (cell `oqMK + 2`): the walk from `1`, over the
-atoms before the call. -/
-theorem oqMainT_loop {s : Oq} {odd base : ℕ} {walk loop : String} {n : ℕ}
-    (hn : (oqMainA s odd walk).length ≤ n)
-    (h : Stmt.HoldsList C rd σ ((oqMainT s odd walk loop).take n) next kret)
-    (hw : OqMainWins rd (s.pd + s.cd) s.cd odd base (σ (.n (valf% «opening_queries» "query_win_ptrs"))) (σ (.n (valf% «opening_queries» "n_iters_g")))) :
-    (if base = 1 then WinWalk2 rd (s.pd + s.cd) s.cd odd (σ (.n (valf% «opening_queries» "query_win_ptrs"))) (σ (.n (oqMK s odd + 2))) (σ (.n (valf% «opening_queries» "n_iters_g")))
-      else WinWalk rd (s.pd + s.cd) s.cd (σ (.n (valf% «opening_queries» "query_win_ptrs"))) (σ (.n (oqMK s odd + 2))) (σ (.n (valf% «opening_queries» "n_iters_g")))) := by
-  have hb := blockOkC_of_take ((List.prefix_append _ _).trans (List.prefix_append _ _))
-    (oqMainA_flatC s odd walk) hn h
-  have k2 := hb.atom (by simp [oqMainA] : Stmt.atom (.const (.n (oqMK s odd + 2)) (word 1 0)) ∈ _)
-  simp only [Atom.Holds] at k2
-  rw [k2, word_one]
-  exact hw.2
+/-- **A level-0 specialization's loop call** passes the window
+pointers past the odd query `qptrs·odd_g` (cell `oqMK - 1`): the walk from `1` of `OqStartP` for
+the `odd` that `odd_g` is (`x = 1` is the call's constant). -/
+theorem oqMainT_loop1 {s : Oq} {loop : String} {n : ℕ} (hb : s.base = 1) (hn : (oqMainA s).length ≤ n)
+    (h : Stmt.HoldsList C rd σ ((oqMainT s loop).take n) next kret) {odd : ℕ}
+    (hu : σ (.n oqMOdd) = gen ^ odd)
+    (hw : OqStartP rd s.pd odd (σ (.n oqMQp)) (σ (.n oqMN)) (σ (.n oqMOdd))) :
+    WinWalk2P rd s.pd (σ (.n (oqMK s - 1))) 1 (σ (.n oqMN)) := by
+  rw [(oqStart1_facts hb (oqMainT_start hn h)).2.2.1]
+  exact hw.2 hu
 
 end Bodies
 

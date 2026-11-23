@@ -101,7 +101,7 @@ theorem mainGoalL4RE (hn : NodeRelation bytecode seed s w) (hl : GuestLimits s w
         t.Every (ExactAt coreProgram rd)) (fun fp' => ⟨_, fun rd hlow hL =>
     (rawS_loopPQ fs cert (verifySigPE fs cert) (rawSD fs fp hn (hRawS s w)[0]) (by omega) hr hlow hL
       (fun _ _ _ hw hes => main_loop3_exactAt hw hes) 0 hpos fp'
-      (fp' + ((hRawS s w).length - 0 + 1) * fs name% «main_loop3»)).relAtInPE⟩) hT
+      (fp' + (((hRawS s w).length - 0) * fs name% «main_loop3» + fs (tailKey name% «main_loop3»)))).relAtInPE⟩) hT
     (loopPre_pow hpos (by omega) _) ?_
   simp [logG_gen (show (hRawS s w).length < 2 ^ 64 - 1 by omega)]
   rfl

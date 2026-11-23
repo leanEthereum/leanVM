@@ -63,11 +63,13 @@ variable {r : Ref}
 
 /-- An honest node's frame within `2^28` words. -/
 theorem inst_fb (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T) {f : String}
-    {j : ℕ} (hn : I.t.name = f) (hj : idxOf f = some j) : I.fp + fsN j ≤ 2 ^ 28 := by
+    {σ : Core.Val} {bufs : List ℕ} {kids : List Tree} {j : ℕ} (ht : I.t = .node f σ bufs kids) (hj : idxOf f = some j) :
+    I.fp + fsN j ≤ 2 ^ 28 := by
   obtain ⟨rd, hH, -⟩ := hr.honest
   obtain ⟨_, -, -, -, -, -, hfs, -⟩ := fn_of_idx hj
   have h2 := hH.cells.two_le I hI
-  have hwi := honest_within hI (by omega)
+  have hwi := honest_within_node hI ht (by omega)
+  have hn : I.t.name = f := by rw [ht]; rfl
   have hle := le_two_pow_logMem (r.T.total B2C.fs)
   have h28 : 2 ^ logMem (r.T.total B2C.fs) ≤ 2 ^ 28 :=
     Nat.pow_le_pow_right (by norm_num) (logMemorySize_le_28 (e := r.exec) hr.size)
@@ -141,7 +143,7 @@ theorem linkQ_step {L : Res.Link} (hL : LinkOk L) (hr : r.Ok) :
     rw [hci] at hH
     dsimp only at hH
     rw [ite_eq_right (by rw [hloop]; simp), hs] at hH
-    have hfb := inst_fb hr hI (by rw [hIt]; rfl) hj
+    have hfb := inst_fb hr hI (by rw [hIt]) hj
     have hF0 := inst_frame hr hI hIt hj hw
     have hval' : ∀ u ∈ (coreOf L.o).params, 2 ≤ cellJ L.o u → cellJ L.o u < fsN L.o →
         I.fp + cellJ L.o u < maxCells ∧ refMem r.img (I.fp + cellJ L.o u) = σI u := fun u hu h2 hlt ↦

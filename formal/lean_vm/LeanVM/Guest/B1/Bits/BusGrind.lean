@@ -1,13 +1,15 @@
 /-
   LeanVM.Guest.B1.Bits.BusGrind
 
-  `bus_grind_check__L{d}`: the bus's grind at a push depth of `BUS_MIN_MU + d`, a call of
-  `grind_check` returning `0`.
+  `bus_grind_check__L{d}`: the bus's grind at a push depth of `BUS_MIN_MU + d`, `grind_check`
+  inlined, returning `0`.
 -/
 
 module
 
 public import LeanVM.Guest.B1.Bits.Grind
+public import LeanVM.Guest.B1.Bits.Meaning
+public import LeanVM.Guest.B1.Common.Find
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«bus_grind_check__L»
 import LeanVM.Guest.Data.ValNames.«bus_grind_check__L0»
@@ -28,14 +30,14 @@ import LeanVM.Guest.Data.ValNames.«bus_grind_check__L9»
 /-!
 # `bus_grind_check`
 
-`bus_grind_check(word, tabs, d)` (`lean_ethereum.py`) calls `grind_check(word, tabs,
+`bus_grind_check(word, tabs, d)` (`lean_ethereum.py`) inlines `grind_check(word, tabs,
 BUS_GRIND_BITS[BUS_MIN_MU + d])` and returns `0`; one specialization per `d < 14`, the push
 depths from `busMinMu` below `SIZE_BITS`. Its bits are `busGrindingBits (busMinMu + d)`, which
 is `17 + d` (`busGrindBits_eq`), a deployed `grind_check` (`busGrindBits_mem`).
 
-`bus_grind_check_found`: every specialization is `bgBody d` (a kernel check each).
-`bus_grind_check_holds`: its relation is its meaning (`MeaningBusGrindCheck`), from
-`grind_check_holds`.
+`bus_grind_check_found`: every specialization is `bgBody d` (a kernel check each), `gcPre` then
+`0` returned. `bus_grind_check_holds`: its relation is its meaning (`MeaningBusGrindCheck`), from
+`gc_sound` and `gcPre_complete_of`.
 -/
 
 namespace LeanVM.Guest.B1
@@ -83,10 +85,14 @@ theorem busGrindBits_mem : ∀ d ∈ busGrindDeployed, busGrindBits d ∈ grindB
   simp only [busGrindDeployed, List.mem_range] at hd
   interval_cases d <;> decide
 
+/-- The value `bus_grind_check__L{d}` returns, past the grind's. -/
+def bgZero (d : ℕ) : ℕ := gcLen (busGrindBits d)
+
+/-- `bus_grind_check__L{d}`'s statements before its return: the grind, then the `0` it returns. -/
+def bgPre (d : ℕ) : List Stmt := gcPre (busGrindBits d) ++ [.atom (.const (.n (bgZero d)) (word 0 0))]
+
 /-- `bus_grind_check__L{d}`'s expansion: the grind, then `0` returned. -/
-def bgBody (d : ℕ) : List Stmt :=
-  [.call (grindCheckName (busGrindBits d)) [.n (valf% «bus_grind_check» "word"), .n (valf% «bus_grind_check» "tabs")] [], .atom (.const (.n (valf% «bus_grind_check» "s1#0")) (word 0 0)),
-    .ret [.n (valf% «bus_grind_check» "s1#0")]]
+def bgBody (d : ℕ) : List Stmt := bgPre d ++ [.ret [.n (bgZero d)]]
 
 set_option maxRecDepth 100000 in
 theorem bus_grind_check_found_0 : coreProgram.find? (busGrindName 0) = some
@@ -239,21 +245,34 @@ def bus_grind_check_Spec (d : ℕ) : Prop :=
 theorem bus_grind_check_holds : ∀ d ∈ busGrindDeployed, bus_grind_check_Spec d := by
   intro d hd κ hκ h11 L w tabs ht rets
   obtain ⟨fn, hf, hpar, hbody⟩ := bus_grind_check_found d hd
-  have hg := grind_check_holds _ (busGrindBits_mem d hd) hκ h11 L w tabs ht []
-  rw [rel_iff_sem hf, hpar, hbody]
-  simp only [bgBody, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil,
-    MeaningBusGrindCheck]
+  have hb := busGrindBits_mem d hd
+  rw [rel_iff_sem hf, hpar, hbody, bgBody, bgPre]
+  simp only [List.append_assoc, List.cons_append, List.nil_append, holdsList_append,
+    List.map_cons, List.map_nil, MeaningBusGrindCheck]
   constructor
-  · rintro ⟨σ, hp, hc, ⟨h2, hr⟩⟩
+  · rintro ⟨σ, hp, h⟩
+    obtain ⟨hh, hi, htl, hrest⟩ := (holds_gcPre _ _ _).mp h
+    simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil] at hrest
+    obtain ⟨h2, hr⟩ := hrest
     simp only [List.cons.injEq, and_true] at hp
-    rw [hp.1, hp.2, hg] at hc
-    refine ⟨?_, hc.2⟩
-    rw [← hr, h2, word_zero]
+    obtain ⟨h0, h1⟩ := hp
+    refine ⟨by rw [← hr, h2, word_zero], ?_⟩
+    rw [← h0]
+    exact gc_sound hκ h11 L (gc_shape _ hb) (by rw [h1]; exact ht) hh hi htl
   · rintro ⟨rfl, hlow⟩
-    refine ⟨fun v => [w, tabs, 0].getD v.idx 0, rfl, hg.mpr ⟨rfl, hlow⟩, ?_, ?_⟩
-    · show (0 : E) = word 0 0
-      rw [word_zero]
-    · rfl
+    have h11' : 11 ≤ κ := h11
+    refine ⟨fun v => gcVals L.read (busGrindBits d) w tabs v.idx, ?_, ?_⟩
+    · show [gcVals L.read (busGrindBits d) w tabs 0, gcVals L.read (busGrindBits d) w tabs 1] = [w, tabs]
+      unfold gcVals
+      simp
+    · refine gcPre_complete_of (fun _ hv _ he => rc_complete hκ L hv (by omega) he) hb ht hlow
+        (fun k _ => rfl) ?_
+      simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil]
+      refine ⟨?_, ?_⟩
+      · show gcVals L.read (busGrindBits d) w tabs (bgZero d) = word 0 0
+        rw [bgZero, gcVals_len, word_zero]
+      · show [gcVals L.read (busGrindBits d) w tabs (bgZero d)] = [0]
+        rw [bgZero, gcVals_len]
 
 end
 end LeanVM.Guest.B1

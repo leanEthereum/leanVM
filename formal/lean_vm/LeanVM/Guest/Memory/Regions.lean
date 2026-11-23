@@ -132,7 +132,7 @@ def KidsFromIn (rd : Reader) (σ : Val) (R : ℕ → Prop) :
   | Dacc, c :: cs, b, n, Dend => ∃ (m n' : ℕ) (Rk Dk : ℕ → Prop), n = m + n' ∧
       (∀ i, Rk i → R i ∨ Dacc i) ∧
       (if c.taken then RelAtIn P fs cert rd Rk Dk b m c.f (c.args.map σ) (c.rets.map σ)
-        else m = fs c.f) ∧
+        else m = fs (tailKey c.f)) ∧
       KidsFromIn rd σ R (fun i => Dacc i ∨ (c.taken = true ∧ Dk i)) cs (b + m) n' Dend
 
 variable {P fs cert}
@@ -252,7 +252,7 @@ variable {rd : Reader} {σ : Val}
 theorem kid_ofIn {c : Call} {b m : ℕ} {Rk Dk : ℕ → Prop}
     (hc : c.taken = false → P.Takes c.f c.args.length = true)
     (h : if c.taken then RelAtIn P fs cert rd Rk Dk b m c.f (c.args.map σ) (c.rets.map σ)
-      else m = fs c.f) :
+      else m = fs (tailKey c.f)) :
     ∃ k : Tree, Tree.KidsValid P rd σ [c] [k] ∧ k.BufsOk P ∧
       k.Placed P fs cert (b, b + k.block fs P.loop) ∧ k.total fs = m ∧
       k.LoadsIn P fs cert Rk (b, b + k.block fs P.loop) ∧
@@ -269,12 +269,12 @@ theorem kid_ofIn {c : Call} {b m : ℕ} {Rk Dk : ℕ → Prop}
     obtain ⟨⟨f, σ', rfl⟩, -⟩ := hk
     exact ⟨_, hkv, hkb, hkp, hkt, loadsIn_phantom, fun h' => absurd h' ht⟩
 
-/-- A loop's tail call: its iterations from `(fp, c)`, or a phantom of one frame. -/
+/-- A loop's tail call: its iterations from `(fp, c)`, or a phantom of its tail. -/
 theorem kid_ofInC {c : Call} {fp cur B m : ℕ} {Rk Dk : ℕ → Prop}
     (hc : c.taken = false → P.Takes c.f c.args.length = true)
     (h : if c.taken then
         RelAtInC P fs cert rd Rk Dk fp cur B m c.f (c.args.map σ) (c.rets.map σ)
-      else B = fs c.f ∧ m = 0) :
+      else B = fs (tailKey c.f) ∧ m = 0) :
     ∃ k : Tree, Tree.KidsValid P rd σ [c] [k] ∧ k.BufsOk P ∧ k.Placed P fs cert (fp, cur) ∧
       k.block fs P.loop = B ∧ k.total fs = B + m ∧ k.LoadsIn P fs cert Rk (fp, cur) ∧
       (c.taken = true → ∀ i, Dk i → k.Data P fs cert (fp, cur) i) := by
@@ -407,7 +407,7 @@ theorem relAtIn_of_walk_loop (hP : P.Wf) {R D Dk Rt Dt : ℕ → Prop} {fp c Bt 
     (htail : if ct.taken then
         RelAtInC P fs cert rd Rt Dt (fp + fs f) (c + (allocs σ es).sum + N) Bt m ct.f
           (ct.args.map σ) (ct.rets.map σ)
-      else Bt = fs ct.f ∧ m = 0)
+      else Bt = fs (tailKey ct.f) ∧ m = 0)
     (hbuf : (allocDsts es).map σ = (bases c (allocs σ es)).map fun b => ofK (addressOfIndex b))
     (haddr : ∀ q ∈ addrs es, σ q.1 = ofK (addressOfIndex (fp + cert f q.2)))
     (hk : KidsFromIn P fs cert rd σ (fun i => R i ∨ ownData cert fp c f (allocs σ es) es i)

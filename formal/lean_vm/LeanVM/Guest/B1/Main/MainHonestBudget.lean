@@ -10,8 +10,8 @@ module
 
 public import LeanVM.Guest.B1.Main.MainHonestFull
 public import LeanVM.Guest.B1.Main.MainGoalsHClT
-public import LeanVM.Guest.B1.Main.MainGoalsHAgT
 public import LeanVM.Guest.B1.Main.MainGoalsDvT
+public import LeanVM.Guest.B1.Main.AggAtT
 
 /-!
 # `main` on an honest run, for the budget

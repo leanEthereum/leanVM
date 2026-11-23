@@ -65,7 +65,7 @@ theorem rawX_stepP (fs : String → ℕ) (cert : String → V → ℕ) {nrx X cv
     (htail : if i + 1 < nrx then
         RelAtInCP coreProgram fs cert rd (RegionL Lin) (RegionL []) (fp + fs name% «main_loop2») c Bt m
           name% «main_loop2» (l2ArgsAt (i + 1) nrx X cv tb) [] pt
-      else Bt = fs name% «main_loop2» ∧ m = 0 ∧ pt = []) :
+      else Bt = fs (tailKey name% «main_loop2») ∧ m = 0 ∧ pt = []) :
     RelAtInCP coreProgram fs cert rd (RegionL Lin) (RegionL []) fp c (fs name% «main_loop2» + Bt) m
       name% «main_loop2» (l2ArgsAt i nrx X cv tb) [] (l2Pops D i ++ pt) := by
   have hs := D.slot_lt i hi
@@ -191,20 +191,20 @@ theorem rawX_loopP (fs : String → ℕ) (cert : String → V → ℕ) {nrx X cv
     (D : RawXData nrx X cv tb Lin) (hX : X ≤ 2 ^ 23) (hnrx : nrx < 2 ^ 34) {rd : Reader}
     (hl : LowDef 23 rd) (hL : MemL rd Lin) :
     ∀ i < nrx, ∀ fp c, RelAtInCP coreProgram fs cert rd (RegionL Lin) (RegionL []) fp c
-      ((nrx - i + 1) * fs name% «main_loop2») 0 name% «main_loop2» (l2ArgsAt i nrx X cv tb) []
+      ((nrx - i) * fs name% «main_loop2» + fs (tailKey name% «main_loop2»)) 0 name% «main_loop2» (l2ArgsAt i nrx X cv tb) []
       ((List.range' i (nrx - i)).flatMap (l2Pops D)) := by
   suffices key : ∀ t i, i + 1 + t = nrx → ∀ fp c, RelAtInCP coreProgram fs cert rd (RegionL Lin) (RegionL []) fp c
-      ((nrx - i + 1) * fs name% «main_loop2») 0 name% «main_loop2» (l2ArgsAt i nrx X cv tb) []
+      ((nrx - i) * fs name% «main_loop2» + fs (tailKey name% «main_loop2»)) 0 name% «main_loop2» (l2ArgsAt i nrx X cv tb) []
       ((List.range' i (nrx - i)).flatMap (l2Pops D)) from
     fun i hi => key (nrx - i - 1) i (by omega)
   intro t
   induction t with
   | zero =>
     intro i hi fp c
-    have h := rawX_stepP fs cert D hX hnrx hl hL (i := i) (fp := fp) (c := c) (Bt := fs name% «main_loop2»)
+    have h := rawX_stepP fs cert D hX hnrx hl hL (i := i) (fp := fp) (c := c) (Bt := fs (tailKey name% «main_loop2»))
       (m := 0) (pt := []) (by omega) (by rw [ite_eq_right_of_eq_false _ _ (eq_false (by omega))]; exact ⟨rfl, rfl, rfl⟩)
-    rw [show nrx - i = 1 by omega, List.range'_one, List.flatMap_singleton, show (1 + 1) * fs name% «main_loop2» =
-      fs name% «main_loop2» + fs name% «main_loop2» by ring]
+    rw [show nrx - i = 1 by omega, List.range'_one, List.flatMap_singleton, show 1 * fs name% «main_loop2» + fs (tailKey name% «main_loop2») =
+      fs name% «main_loop2» + fs (tailKey name% «main_loop2») by ring]
     rw [List.append_nil] at h
     exact h
   | succ t ih =>
@@ -212,8 +212,8 @@ theorem rawX_loopP (fs : String → ℕ) (cert : String → V → ℕ) {nrx X cv
     have h := rawX_stepP fs cert D hX hnrx hl hL (i := i) (fp := fp) (c := c) (by omega)
       (by rw [ite_eq_left_of_eq_true _ _ (eq_true (by omega))]; exact ih (i + 1) (by omega) (fp + fs name% «main_loop2») c)
     rw [show nrx - i = nrx - (i + 1) + 1 by omega, List.range'_succ, List.flatMap_cons,
-      show (nrx - (i + 1) + 1 + 1) * fs name% «main_loop2» =
-        fs name% «main_loop2» + (nrx - (i + 1) + 1) * fs name% «main_loop2» by ring]
+      show (nrx - (i + 1) + 1) * fs name% «main_loop2» + fs (tailKey name% «main_loop2») =
+        fs name% «main_loop2» + ((nrx - (i + 1)) * fs name% «main_loop2» + fs (tailKey name% «main_loop2»)) by ring]
     exact h
 
 /-- **`main_loop2` is complete, placed, with its pops**, from every counter `g^i` below the count: iterations
@@ -223,9 +223,9 @@ theorem rawX_completeAtDP (fs : String → ℕ) (cert : String → V → ℕ) {n
     ∀ i < nrx, CompleteAtDP fs cert 23 name% «main_loop2» Lin
       ([gen ^ i, gen ^ nrx, gen ^ X, gen ^ cv, gen ^ tb] ++ lxTagWords) (Returns [])
       (fun _ => (List.range' i (nrx - i)).flatMap (l2Pops D)) := fun i hi fp =>
-  ⟨(nrx - i + 1) * fs name% «main_loop2» + 0, [], [], [], ⟨rfl, rfl⟩, by simp [Within], disj_nil,
+  ⟨(nrx - i) * fs name% «main_loop2» + fs (tailKey name% «main_loop2») + 0, [], [], [], ⟨rfl, rfl⟩, by simp [Within], disj_nil,
     fun rd hl hL => (rawX_loopP fs cert D hX hnrx hl (by simpa using hL) i hi fp
-      (fp + (nrx - i + 1) * fs name% «main_loop2»)).relAtInP⟩
+      (fp + ((nrx - i) * fs name% «main_loop2» + fs (tailKey name% «main_loop2»)))).relAtInP⟩
 
 end
 end LeanVM.Guest.B1.Main

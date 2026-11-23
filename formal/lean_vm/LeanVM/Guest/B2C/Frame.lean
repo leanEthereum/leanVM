@@ -230,42 +230,63 @@ theorem mem_siteE {j : ℕ} {I : Inst} {es : List Ev} {x : ℕ × E} (h : x ∈ 
         have : Nat.beq s.tgt 0 = false := Bool.eq_false_iff.mpr fun hb ↦ ht (nbeq_iff.mp hb)
         simp [this]
 
-/-- A value's cell, from its window's check. -/
+/-- A value's cell from a window's check, under the tail call `ta`. -/
+theorem valOk_cell {j : ℕ} {nx : List ℕ} {loc : Loc} (hl : ∀ v c, loc.get? v.idx = some c → cellJ j v = c) {v : V}
+    (h : valOk loc (byCell (plumbOf j).tmps) (tmpCells (plumbOf j)) (fpgCells (plumbOf j)) (fsN j) nx v = true) :
+    v = V.n v.idx ∧ (cellJ j v < fsN j ∨ cellJ j v ∈ nx) ∧
+      bitN (fpgCells (plumbOf j)) (cellJ j v) = false ∧
+      (bitN (tmpCells (plumbOf j)) (cellJ j v) = false ∨ (v.idx, cellJ j v) ∈ (plumbOf j).tmps) := by
+  obtain ⟨h1, -, h3, h4, h5⟩ := valOk_spec h
+  have hc : loc.cell v = cellJ j v := (fitV_of hl (vs := [v]) (fun u hu ↦ by
+    rw [List.mem_singleton.mp hu]; exact h) v List.mem_cons_self).2
+  rw [hc] at h3 h4 h5
+  refine ⟨h1, h3, h4, ?_⟩
+  rcases h5 with h5 | h5
+  · exact Or.inl h5
+  · exact Or.inr (listedT_spec h5).2
+
+/-- **A value's cell**, from its window's check: in the frame, or a tail call's argument at the
+next frame's parameter cell. -/
 theorem valOk_global {j : ℕ} {G : Glob} {f : CompiledFunction} {main : Bool} (hS : ShareOk j)
     (hchk : ∀ i ≤ (certOf j).cuts.length, checkWin G f (coreOf j) (certOf j) main i = true) {v : V}
     (hv : v ∈ (coreOf j).params ++ Stmt.usesList (coreOf j).body ++ Stmt.tmpsList (coreOf j).body) :
-    v = V.n v.idx ∧ cellJ j v < fsN j ∧ bitN (fpgCells (plumbOf j)) (cellJ j v) = false ∧
+    v = V.n v.idx ∧
+      (cellJ j v < fsN j ∨ cellJ j v ∈ nextCells (certOf j).locs (fsN j) (tailArgs (coreOf j))) ∧
+      bitN (fpgCells (plumbOf j)) (cellJ j v) = false ∧
       (bitN (tmpCells (plumbOf j)) (cellJ j v) = false ∨ (v.idx, cellJ j v) ∈ (plumbOf j).tmps) := by
   have hcont := cont_of hchk
   obtain ⟨-, hsn, -, hpv⟩ := shareStatic_spec hS.1
   have hA : ∀ i ≤ (snapsOf j).length, ∀ v c, (locW (certOf j) (winW (snapsOf j) i)).get? v.idx = some c →
       cellJ j v = c := fun i hi v c h ↦
     locW_get hcont (winW_le hsn hi) (checkWin_parts (hchk _ (winW_le hsn hi))).2 rfl (shareWin_spec (hS.2 i hi)).1 h
-  -- the window's check, at the window's cells
-  have glob : ∀ (loc : Loc), (∀ v c, loc.get? v.idx = some c → cellJ j v = c) →
-      valOk loc (byCell (plumbOf j).tmps) (tmpCells (plumbOf j)) (fpgCells (plumbOf j)) (fsN j) v = true →
-      v = V.n v.idx ∧ cellJ j v < fsN j ∧ bitN (fpgCells (plumbOf j)) (cellJ j v) = false ∧
-        (bitN (tmpCells (plumbOf j)) (cellJ j v) = false ∨ (v.idx, cellJ j v) ∈ (plumbOf j).tmps) := by
-    intro loc hl h
-    obtain ⟨h1, h2, h3, h4, h5⟩ := valOk_spec h
-    have hc : loc.cell v = cellJ j v := (fitV_of hl (vs := [v]) (fun u hu ↦ by
-      rw [List.mem_singleton.mp hu]; exact h) v List.mem_cons_self).2
-    rw [hc] at h3 h4 h5
-    refine ⟨h1, h3, h4, ?_⟩
-    rcases h5 with h5 | h5
-    · exact Or.inl h5
-    · exact Or.inr (listedT_spec h5).2
   rcases List.mem_append.mp hv with hv | hv
   · rcases List.mem_append.mp hv with hv | hv
-    · exact glob _ (hA 0 (Nat.zero_le _)) (hpv v hv)
+    · obtain ⟨h1, h3, h4, h5⟩ := valOk_cell (hA 0 (Nat.zero_le _)) (hpv v hv)
+      refine ⟨h1, ?_, h4, h5⟩
+      rcases h3 with h3 | h3
+      · exact .inl h3
+      · simp at h3
     · obtain ⟨i, hi, hw⟩ := mem_windows Stmt.usesList usesList_append hS _ 0 (Nat.zero_add _)
         (by rw [fromW_zero]; exact hv)
       obtain ⟨-, hval, -⟩ := shareWin_spec (hS.2 i hi)
-      exact glob _ (hA i hi) (hval v (List.mem_append_left _ hw))
+      exact valOk_cell (hA i hi) (hval v (List.mem_append_left _ hw))
   · obtain ⟨i, hi, hw⟩ := mem_windows Stmt.tmpsList tmpsList_append hS _ 0 (Nat.zero_add _)
       (by rw [fromW_zero]; exact hv)
     obtain ⟨-, hval, -⟩ := shareWin_spec (hS.2 i hi)
-    exact glob _ (hA i hi) (hval v (List.mem_append_right _ hw))
+    exact valOk_cell (hA i hi) (hval v (List.mem_append_right _ hw))
+
+/-- **A parameter's cell is in the frame**, by the first window's check. -/
+theorem valOk_param {j : ℕ} {G : Glob} {f : CompiledFunction} {main : Bool} (hS : ShareOk j)
+    (hchk : ∀ i ≤ (certOf j).cuts.length, checkWin G f (coreOf j) (certOf j) main i = true) {v : V}
+    (hv : v ∈ (coreOf j).params) : cellJ j v < fsN j := by
+  have hcont := cont_of hchk
+  obtain ⟨-, hsn, -, hpv⟩ := shareStatic_spec hS.1
+  have hA : ∀ v c, (locW (certOf j) (winW (snapsOf j) 0)).get? v.idx = some c → cellJ j v = c := fun v c h ↦
+    locW_get hcont (winW_le hsn (Nat.zero_le _)) (checkWin_parts (hchk _ (winW_le hsn (Nat.zero_le _)))).2 rfl
+      (shareWin_spec (hS.2 0 (Nat.zero_le _))).1 h
+  rcases (valOk_cell hA (hpv v hv)).2.1 with h | h
+  · exact h
+  · simp at h
 
 end Cand
 
@@ -791,7 +812,8 @@ theorem read_argsL {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E}
   have hpc := checkWin_params (hchk 0 (Nat.zero_le _)) hcont k hk
   have hpk : (coreOf j).params[k] ∈ (coreOf j).params ++ Stmt.usesList (coreOf j).body ++
       Stmt.tmpsList (coreOf j).body := List.mem_append_left _ (List.mem_append_left _ (List.getElem_mem hk))
-  obtain ⟨hvn, hlt, hfc, -⟩ := valOk_global hS hchk hpk
+  obtain ⟨hvn, -, hfc, -⟩ := valOk_global hS hchk hpk
+  have hlt := valOk_param hS hchk (List.getElem_mem hk)
   rw [show cellJ j (coreOf j).params[k] = 2 + k from hpc] at hlt hfc
   rcases hgood with ⟨σ, bufs, kids, es, vs, ht, hw, he⟩ | ⟨σ, ht⟩
   · have := read_valL h hL hS hC hchk hJ ht hj hw he (v := (coreOf j).params[k])
@@ -800,12 +822,12 @@ theorem read_argsL {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E}
       (by rw [show cellJ j (coreOf j).params[k] = 2 + k from hpc]; exact hlt)
     rw [show cellJ j (coreOf j).params[k] = 2 + k from hpc] at this
     rw [ht]; exact this
-  · obtain ⟨i, rfl, -, -, -, -, hfs, hcert, -⟩ := fn_of_idx hj
+  · obtain ⟨i, rfl, -, -, -, -, -, hcert, -⟩ := fn_of_idx hj
     have AP := apart_j hS
     have hmem : (2 + k, σ (coreOf (i + 1)).params[k]) ∈ C J := by
-      rw [C_phantom ht hj, hfs]
+      rw [C_phantom ht hj, fs_tailKey hj]
       refine frameE_cell ⟨(cert g (coreOf (i + 1)).params[k], σ (coreOf (i + 1)).params[k]), ?_, ?_⟩
-        (by omega) hlt fun x hx hxc ↦ ?_
+        (by omega) (param_lt_tailN hk hlt) fun x hx hxc ↦ ?_
       · simp only [phantomE, List.mem_append, valE, List.mem_map]
         exact Or.inl ⟨_, List.getElem_mem hk, rfl⟩
       · rw [hcert]; exact hpc
@@ -861,10 +883,10 @@ theorem read_selfL {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E}
   rcases hgood with ⟨σ, bufs, kids, es, vs, ht, hw, he⟩ | ⟨σ, ht⟩
   · have := read_statL h hL hS hC hchk hJ ht hj hw he hst h2 hn
     simpa [PC.word] using this
-  · obtain ⟨i, rfl, -, -, -, -, hfs, hcert, -⟩ := fn_of_idx hj
+  · obtain ⟨i, rfl, -, -, -, -, -, hcert, -⟩ := fn_of_idx hj
     have hmem : (p.1, ofK (addressOfIndex J.fp)) ∈ C J := by
-      rw [C_phantom ht hj, hfs]
-      refine frameE_cell ⟨(p.1, ofK (addressOfIndex J.fp)), ?_, rfl⟩ h2 hn fun x hx hxc ↦ ?_
+      rw [C_phantom ht hj, fs_tailKey hj]
+      refine frameE_cell ⟨(p.1, ofK (addressOfIndex J.fp)), ?_, rfl⟩ h2 (env_lt_tailN hp hn) fun x hx hxc ↦ ?_
       · simp only [phantomE, List.mem_append, List.mem_map]
         exact Or.inr ⟨p, hp, rfl⟩
       simp only [phantomE, List.mem_append, valE, List.mem_map] at hx

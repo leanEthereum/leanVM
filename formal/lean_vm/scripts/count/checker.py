@@ -43,11 +43,43 @@ def termB(cx, rho, args, q):
     if c[0] == 'param': return (0, [(c[1], coef)], [])
     return None
 
+GT = 2 ** 64          # `gT`: a precondition `(k, a)`, `a >= gT`, reads `a - gT <= b`
+GUARDE = 2 ** 20 + 1  # `guardE`: a loop's guard `d = x + y` kept as a tagged bound
+
+
+def pre_lt(a, e):
+    """`preLt`."""
+    return a - GT <= e if a >= GT else a < e
+
+
+def guard_of(b):
+    """`guardOf`: a tagged bound `(gT + a, [(k, 0)])`, `(a, k)`."""
+    if b[0] >= GT and len(b[1]) == 1 and b[1][0][1] == 0:
+        return (b[0] - GT, b[1][0][0])
+    return None
+
+
+def guard_b(rho, c):
+    """`guardB`."""
+    for (x, b) in rho[1]:
+        if x == c: return guard_of(b)
+    return None
+
+
+def guard_atom(cx, rho, s):
+    """`guardAtom`."""
+    d, x, y = s[2]
+    if next((e for (v, e) in cx.ks if v == d), None) != GUARDE: return rho
+    a = next((e for (v, e) in rho[0] if v == x), None)
+    if a is None: return rho
+    return (rho[0], [(d, (GT + a, [(y, 0)]))] + rho[1])
+
+
 def preB(cx, rho, args, q):
     k, a = q
     if k >= len(args): return None
     c = cx.cls(rho, args[k])
-    if c[0] == 'pow': return (0, [], []) if (a < c[1] and c[1] < ORD) else None
+    if c[0] == 'pow': return (0, [], []) if (pre_lt(a, c[1]) and c[1] < ORD) else None
     if c[0] == 'param': return (0, [], [(c[1], a)])
     return None
 
@@ -106,11 +138,46 @@ def siteB(cx, rho, g, args):
         return (ph, [(k, r[0])], [(k, a0)] + r[2])
     return None
 
+def siteBL(cx, rho, g, args, a0, k):
+    """`siteBL`: a loop entered on its guard `g^a0 + end`, `None` where it does not apply."""
+    c = cx.cert.get(g)
+    if c is None or c[0] != 'loop' or c[1] is not None or len(args) < 2: return None
+    _, endc, pre, b, ks = c
+    if cx.alpha:
+        if g not in cx.om: return None
+        ph = cx.om[g]
+    else: ph = 0
+    v0 = cx.cls(rho, args[0])
+    if v0 != ('pow', a0) or args[1] != k: return None
+    endv = cx.cls(rho, args[1])
+    if endv[0] == 'pow':
+        e = endv[1]
+        if not (a0 <= e and e < ORD): return None
+        r = transB(cx, rho, args, pre, b)
+        if r is None: return None
+        n = e - a0
+        return (n * r[0] + ph, [(kk, n * a) for (kk, a) in r[1]], r[2])
+    if endv[0] == 'param':
+        r = transB(cx, rho, args, pre, b)
+        if r is None or r[1] != []: return None
+        return (ph, [(endv[1], r[0])], [(endv[1], GT + a0)] + r[2])
+    return None
+
+
+def siteBC(cx, rho, c, g, args):
+    """`siteBC`: a `callIf` site, its guard's loop rule where it applies."""
+    gd = guard_b(rho, c)
+    if gd is not None:
+        r = siteBL(cx, rho, g, args, *gd)
+        if r is not None: return r
+    return siteB(cx, rho, g, args)
+
+
 TRACK = 2 ** 20
 
 def bnd(cx, rho, v):
     for (x, b) in rho[1]:
-        if x == v: return b
+        if x == v: return None if guard_of(b) is not None else b
     c = cx.cls(rho, v)
     if c[0] == 'pow': return (c[1], [])
     if c[0] == 'param': return (0, [(c[1], 1)])
@@ -118,6 +185,9 @@ def bnd(cx, rho, v):
 
 def atomB(cx, rho, s):
     """An atom's bound and the constants and bounds after it (`atomB`), or `None`."""
+    if s[1] == 'copy':
+        c = cx.cls(rho, s[2][1])
+        return acc0(), (([(s[2][0], c[1])] + rho[0], rho[1]) if c[0] == 'pow' else rho)
     if s[1] == 'const':
         v, w = s[2]
         e = next((ee for (x, ee) in cx.ks if x == v), None)
@@ -133,8 +203,18 @@ def atomB(cx, rho, s):
     if cx.alpha and s[1] == 'mul' and next((ee for (x, ee) in cx.ks if x == s[2][0]), None) == TRACK:
         d, x, y = s[2]
         b = bnd(cx, rho, x); c = cx.cls(rho, y)
-        if b is None or c[0] != 'pow': return None
-        return acc0(), (rho[0], [(d, (b[0] + c[1], b[1]))] + rho[1])
+        if b is None: return None
+        if c[0] == 'pow':
+            if guard_of((b[0] + c[1], b[1])) is not None: return None
+            return acc0(), (rho[0], [(d, (b[0] + c[1], b[1]))] + rho[1])
+        # `x·y`, `x` a power of `g` where the arguments its bound names are (`powPre`)
+        by = bnd(cx, rho, y)
+        if by is None: return None
+        nb = (b[0] + by[0], b[1] + by[1])
+        if guard_of(nb) is not None: return None
+        return (0, [], [(k, GT) for (k, _) in b[1]]), (rho[0], [(d, nb)] + rho[1])
+    if s[1] == 'add':
+        return acc0(), guard_atom(cx, rho, s)
     return acc0(), rho
 
 
@@ -165,7 +245,7 @@ def blockB(cx, rho, ss):
     if t == 'callIf':
         if s[2] == cx.self: return None
         ph = ((cx.om[s[2]], [], []) if s[2] in cx.om else None) if cx.alpha else acc0()
-        return add(siteB(cx, rho, s[2], s[3]), add(ph, blockB(cx, rho, rest)))
+        return add(siteBC(cx, rho, s[1], s[2], s[3]), add(ph, blockB(cx, rho, rest)))
     if t == 'dispatch':
         return add(maxB(lambda g: siteB(cx, rho, g, s[3]), s[2]), blockB(cx, rho, rest))
     if t == 'ret':
@@ -230,23 +310,105 @@ def const_end(fn):
             if e is not None: return e
     return None
 
-def call_args(ss, out):
-    for s in ss:
-        if s[0] == 'call': out.update(s[2])
-        elif s[0] == 'callIf': out.update(s[3])
-        elif s[0] == 'dispatch': out.update(s[3])
-        elif s[0] == 'ite': call_args(s[2], out); call_args(s[3], out)
-        elif s[0] == 'match':
-            for a in s[2]: call_args(a, out)
+def call_args(ss):
+    """The values a block's calls pass, nested ones included."""
+    return {v for s in stmts_all(ss) if s[0] in ('call', 'callIf', 'dispatch') for v in s[2 if s[0] == 'call' else 3]}
+
+
+def consts(ss):
+    """The constant atoms `(d, w)` of a block, nested ones included, in order."""
+    return [s[2] for s in walk_atoms(ss) if s[1] == 'const']
+
+def const_args(fns):
+    """`(callee, parameter, e)` for each call site passing a value its caller sets to the constant `g^e`, or copies from
+    one."""
+    out = set()
+    for fn in fns.values():
+        cw = {}
+        for st in walk_atoms(fn['body']):
+            if st[1] == 'const' and word_exp(st[2][1]) is not None: cw.setdefault(st[2][0], set()).add(word_exp(st[2][1]))
+        for st in walk_atoms(fn['body']):
+            if st[1] == 'copy' and st[2][1] in cw: cw.setdefault(st[2][0], set()).update(cw[st[2][1]])
+        for st in stmts_all(fn['body']):
+            sites = [(st[1], st[2])] if st[0] == 'call' else [(st[2], st[3])] if st[0] == 'callIf' else \
+                [(g, st[3]) for g in st[2]] if st[0] == 'dispatch' else []
+            for g, args in sites:
+                for k, a in enumerate(args):
+                    for e in cw.get(a, ()):
+                        out.add((g, k, e))
     return out
 
-def consts(ss, out):
+
+def stmts_all(ss):
+    """The statements of a block, nested ones included, in order."""
     for s in ss:
-        if s[0] == 'atom' and s[1] == 'const': out.append(s[2])
-        elif s[0] == 'ite': consts(s[2], out); consts(s[3], out)
+        yield s
+        if s[0] == 'ite':
+            yield from stmts_all(s[2]); yield from stmts_all(s[3])
         elif s[0] == 'match':
-            for a in s[2]: consts(a, out)
+            for a in s[2]: yield from stmts_all(a)
+
+
+def walk_atoms(ss):
+    """The atoms of a block, nested ones included, in order."""
+    return (s for s in stmts_all(ss) if s[0] == 'atom')
+
+
+def callifs(ss):
+    """The `callIf` statements of a block, nested ones included."""
+    return [s for s in stmts_all(ss) if s[0] == 'callIf']
+
+
+def copies(ss):
+    """The copy atoms `(d, s)` of a block, nested ones included, in order."""
+    return [s[2] for s in walk_atoms(ss) if s[1] == 'copy']
+
+
+# --- a body at an arm of its first top-level selector (mirror of `Memory.SelArm`) ---
+# the functions whose `stat` check is split at their first top-level selector, by name: the selector and its arms
+SPLIT = {}
+
+
+def sel_body(ss, x, r):
+    """`selL`: each `match` on `x` its arm `r`'s block inline, each `dispatch` on it its callee `r`'s call."""
+    out = []
+    for s in ss:
+        if s[0] == 'match':
+            arms = [sel_body(a, x, r) for a in s[2]]
+            if s[1] == x and r < len(arms): out.extend(arms[r])
+            else: out.append(('match', s[1], arms))
+        elif s[0] == 'ite': out.append(('ite', s[1], sel_body(s[2], x, r), sel_body(s[3], x, r)))
+        elif s[0] == 'dispatch' and s[1] == x and r < len(s[2]): out.append(('call', s[2][r], s[3], s[4]))
+        else: out.append(s)
     return out
+
+
+def top_sel(ss):
+    """`topSel`: the first top-level `match`'s selector and arms."""
+    return next(((s[1], len(s[2])) for s in ss if s[0] == 'match'), None)
+
+
+def arm_le(ss, x, n):
+    """`armLeL`: every `match` and `dispatch` on `x` of at most `n` arms."""
+    for s in ss:
+        if s[0] == 'match':
+            if s[1] == x and len(s[2]) > n: return False
+            if not all(arm_le(a, x, n) for a in s[2]): return False
+        elif s[0] == 'ite':
+            if not (arm_le(s[2], x, n) and arm_le(s[3], x, n)): return False
+        elif s[0] == 'dispatch' and s[1] == x and len(s[2]) > n: return False
+    return True
+
+
+def split_blockB(cx, body):
+    """`selSplit` of a `stat` check: each arm's bound, their terms equal, the largest constant and every arm's
+    preconditions; `None` if an arm fails."""
+    sel = top_sel(body)
+    if sel is None or not 0 < sel[1] < 2 ** 62 or not arm_le(body, *sel): return None
+    rs = [blockB(cx, ([], []), sel_body(body, sel[0], r)) for r in range(sel[1])]
+    if any(q is None for q in rs) or any(q[1] != rs[0][1] for q in rs): return None
+    return (max(q[0] for q in rs), rs[0][1], [p for q in rs for p in q[2]])
+
 
 def callees(ss, out):
     for s in ss:
@@ -272,8 +434,13 @@ def gen(fns, omega, alpha=False, hand=None, only=None):
     byname = {f['name']: i for i, f in fns.items()}
     cert = {}
     state = {}
+    zero = const_args(fns)
+
     def ks_of(fn):
-        used = call_args(fn['body'], set())
+        used = call_args(fn['body'])
+        # the constants a used value copies (`atomB`'s copies)
+        for d, src in reversed(copies(fn['body'])):
+            if d in used: used.add(src)
         track = []
         if alpha:
             defs = {}
@@ -300,19 +467,36 @@ def gen(fns, omega, alpha=False, hand=None, only=None):
                 if a[1] != 'mul': return False
                 _, x, y = a[2]
                 b = defs.get(y)
-                if b is None or b[1] != 'const' or word_exp(b[2][1]) is None: return False
-                if not chain(x, acc): return False
-                used.add(y); acc.append(v); return True
+                if b is not None and b[1] == 'const' and word_exp(b[2][1]) is not None:
+                    if not chain(x, acc): return False
+                    used.add(y); acc.append(v); return True
+                # a product of two bounded values
+                if not (chain(x, acc) and chain(y, acc)): return False
+                acc.append(v); return True
             for sz in sizes(fn['body'], []):
                 acc = []
                 if chain(sz, acc):
                     for v in acc:
                         if v not in track: track.append(v)
+        # loops' guards `c = x + end` at a `callIf c f (start :: end :: ..)`, `x` a constant (`guardAtom`), and their
+        # constants
+        guards = []
+        cw = {v: w for (v, w) in consts(fn['body'])}
+        sums = {}
+        for st in walk_atoms(fn['body']):
+            if st[1] == 'add': sums.setdefault(st[2][0], st[2])
+        for st in callifs(fn['body']):
+            sm = sums.get(st[1])
+            if sm and len(st[3]) > 1 and sm[2] == st[3][1] and sm[1] in cw and word_exp(cw[sm[1]]) is not None and \
+                    sm[2] in fn['params'] and (fn['name'], fn['params'].index(sm[2]), word_exp(cw[sm[1]])) in zero:
+                # only where a caller passes the end the start's constant (the run of no iteration)
+                if st[1] not in guards: guards.append(st[1])
+                used.add(sm[1])
         ks = []
-        for (v, w) in consts(fn['body'], []):
+        for (v, w) in consts(fn['body']):
             e = word_exp(w)
             if v in used and e is not None and all(x != v for x, _ in ks): ks.append((v, e))
-        return ks + [(v, TRACK) for v in track]
+        return ks + [(v, TRACK) for v in track] + [(v, GUARDE) for v in guards]
     def visit(name):
         if name in state: return
         if name in hand:
@@ -336,6 +520,10 @@ def gen(fns, omega, alpha=False, hand=None, only=None):
                 break
         else:
             r = blockB(cx, ([], []), fn['body'])
+            if r is None:
+                r = split_blockB(cx, fn['body'])
+                if r is not None:
+                    SPLIT[name] = top_sel(fn['body'])
             if r is not None:
                 c = ('stat', dedup(r[2]), (omega[name] + r[0], r[1]), ks)
         if c is not None: cert[name] = c
@@ -358,7 +546,7 @@ def stmt_step(cx, rho, s):
     elif t == 'callIf':
         if s[2] == cx.self: return None
         ph = ((cx.om[s[2]], [], []) if s[2] in cx.om else None) if cx.alpha else acc0()
-        r = add(siteB(cx, rho, s[2], s[3]), ph)
+        r = add(siteBC(cx, rho, s[1], s[2], s[3]), ph)
     elif t == 'dispatch': r = maxB(lambda g: siteB(cx, rho, g, s[3]), s[2])
     else: raise ValueError(t)
     return None if r is None else (r, rho)
@@ -420,7 +608,7 @@ def preBV(cx, rho, args, q):
     k, a = q
     if k >= len(args): return None
     c = cx.cls(rho, args[k])
-    if c[0] == 'pow': return accv0() if (a < c[1] and c[1] < ORD) else None
+    if c[0] == 'pow': return accv0() if (pre_lt(a, c[1]) and c[1] < ORD) else None
     if c[0] == 'param': return ([], [], [(c[1], a)])
     return None
 
@@ -453,8 +641,43 @@ def siteBV(cx, rho, g, args):
         return ([], [(endv[1], r[0])], [(endv[1], a0)] + r[2])
     return None
 
+def siteBVL(cx, rho, g, args, a0, k):
+    """`siteBVL`."""
+    c = cx.cert.get(g)
+    if c is None or c[0] != 'loop' or c[1] is not None or len(args) < 2: return None
+    _, endc, pre, b, ks = c
+    if cx.cls(rho, args[0]) != ('pow', a0) or args[1] != k: return None
+    endv = cx.cls(rho, args[1])
+    if endv[0] == 'pow':
+        e = endv[1]
+        if not (a0 <= e and e < ORD): return None
+        r = transBV(cx, rho, args, pre, b)
+        if r is None: return None
+        n = e - a0
+        return (vscale(n, r[0]), [(kk, vscale(n, v)) for (kk, v) in r[1]], r[2])
+    if endv[0] == 'param':
+        r = transBV(cx, rho, args, pre, b)
+        if r is None or r[1] != []: return None
+        return ([], [(endv[1], r[0])], [(endv[1], GT + a0)] + r[2])
+    return None
+
+
+def siteBVC(cx, rho, c, g, args):
+    """`siteBVC`."""
+    gd = guard_b(rho, c)
+    if gd is not None:
+        r = siteBVL(cx, rho, g, args, *gd)
+        if r is not None: return r
+    return siteBV(cx, rho, g, args)
+
+
 def env_atom(cx, rho, s):
     """The constants after an atom, not counting words (`envAtom`)."""
+    if s[1] == 'add':
+        return guard_atom(cx, rho, s)
+    if s[1] == 'copy':
+        e = next((ee for (x, ee) in rho[0] if x == s[2][1]), None)
+        return ([(s[2][0], e)] + rho[0], rho[1]) if e is not None else rho
     if s[1] == 'const':
         v, w = s[2]
         e = next((ee for (x, ee) in cx.ks if x == v), None)
@@ -478,7 +701,7 @@ def stmt_stepV(cx, rho, s):
     elif t == 'call': r = siteBV(cx, rho, s[1], s[2])
     elif t == 'callIf':
         if s[2] == cx.self: return None
-        r = addv(siteBV(cx, rho, s[2], s[3]), accv0())
+        r = addv(siteBVC(cx, rho, s[1], s[2], s[3]), accv0())
     elif t == 'dispatch': r = foldv(lambda g: siteBV(cx, rho, g, s[3]), joinv, s[2])
     else: raise ValueError(t)
     return None if r is None else (r, rho)

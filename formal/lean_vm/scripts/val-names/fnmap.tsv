@@ -67,15 +67,9 @@ LeanVM/Guest/B1/Opening/QueriesMain.lean@oqLoop1_hc opening_queries__L_loop0
 LeanVM/Guest/B1/Opening/QueriesMain.lean@oqLoop0_hc opening_queries__L_loop0
 LeanVM/Guest/B1/Opening/QueriesMain.lean@loop_params opening_queries__L_loop0
 LeanVM/Guest/B1/Opening/QueriesWalk.lean@oqGuard_next opening_queries__L_loop0
-LeanVM/Guest/B1/Opening/QueriesPlaced3.lean@OqIt1L opening_queries__L_loop0
-LeanVM/Guest/B1/Opening/QueriesPlaced3.lean@OqIt0L opening_queries__L_loop0
 LeanVM/Guest/B1/Opening/Witness.lean@oqIterOf opening_queries__L_loop0
 LeanVM/Guest/B1/Opening/Witness.lean@oqLoopArgs opening_queries__L
 LeanVM/Guest/B1/Opening/Witness.lean@oqsOf opening_queries__L
-LeanVM/Guest/B1/Opening/QueriesPlaced8.lean@OqMainL opening_queries__L
-LeanVM/Guest/B1/Opening/QueriesPlaced8.lean@oqAlloc opening_queries__L
-LeanVM/Guest/B1/Opening/QueriesPlaced9.lean@oqMainPost opening_queries__L
-LeanVM/Guest/B1/Opening/QueriesPlacedP3.lean@oqMainPost_walk opening_queries__L
 # Main
 LeanVM/Guest/B1/Main/AggAbsorb.lean aggregate_claims_loop0
 LeanVM/Guest/B1/Main/AggL25CChk.lean aggregate_claims_loop0
@@ -588,10 +582,6 @@ LeanVM/Guest/B1/Opening/QueriesComplete3.lean@walk_block walk_path__L
 LeanVM/Guest/B1/KeccakGkr/PackLoop.lean@pkZs keccak_layer__L_loop0
 LeanVM/Guest/B1/Opening/WalkPops.lean@win_fallPops walk_path__L
 LeanVM/Guest/B1/Opening/WalkPops.lean@wp_fallPops walk_path__L
-LeanVM/Guest/B1/Opening/QueriesPlaced4.lean@oqWLoad_in walk_path__L
-LeanVM/Guest/B1/Opening/QueriesPlaced4.lean@wp_relAtIn walk_path__L
-LeanVM/Guest/B1/Opening/QueriesPlaced1.lean@wp_atoms_ok walk_path__L
-LeanVM/Guest/B1/Opening/QueriesPlacedP.lean@wp_relAtInP walk_path__L
 LeanVM/Guest/B1/Gkr/GlCInZeta.lean@vbz_calls verify_bus_gkr_loop0
 LeanVM/Guest/B1/Gkr/VbgC.lean@vbR7 verify_bus_gkr
 LeanVM/Guest/Exact/SphincsPinned.lean@sBitsAtoms verify_sig_lean_sphincs

@@ -131,8 +131,14 @@ theorem cls_param (hp : ps.map σ = args) {v : V} {k : ℕ} (h : cls ρ ps v = .
       rfl
     · cases h
 
-/-- Bounds on exponents hold. -/
-def BndOk (σ : Val) (args : List E) (β : BEnv) : Prop := ∀ q ∈ β, logG (σ q.1) ≤ q.2.eval args
+/-- `w` is a power of `g`. -/
+def IsPowG (w : E) : Prop := ∃ e, w = ofK (addressOfIndex e)
+
+/-- Bounds on exponents hold, and a bounded value is a power of `g` where the arguments its bound names are. -/
+def BndOk (σ : Val) (args : List E) (β : BEnv) : Prop :=
+  ∀ q ∈ β, (guardOf q.2 = none → logG (σ q.1) ≤ q.2.eval args ∧
+      ((∀ p ∈ q.2.cs, IsPowG (args.getD p.1 0)) → IsPowG (σ q.1))) ∧
+    ∀ a0 k, guardOf q.2 = some (a0, k) → σ q.1 = ofK (addressOfIndex a0) + σ (V.n k)
 
 /-- The constants and the bounds hold. -/
 def Env2Ok (σ : Val) (args : List E) (ρ : Env × BEnv) : Prop := EnvOk σ ρ.1 ∧ BndOk σ args ρ.2
@@ -186,8 +192,13 @@ theorem bnd_sound {ρ : Env × BEnv} (hρ : Env2Ok σ args ρ) (hp : ps.map σ =
   unfold bnd at h
   split at h
   · rename_i b' hb'
-    cases h
-    exact hρ.2 _ (blookup_mem hb')
+    cases hg : guardOf b' with
+    | some _ => rw [hg] at h; cases h
+    | none =>
+      rw [hg] at h
+      simp only [Option.isSome_none, Bool.cond_false, Option.some.injEq] at h
+      subst h
+      exact ((hρ.2 _ (blookup_mem hb')).1 hg).1
   · split at h
     · rename_i e he
       cases h
@@ -198,6 +209,52 @@ theorem bnd_sound {ρ : Env × BEnv} (hρ : Env2Ok σ args ρ) (hp : ps.map σ =
       rw [cls_param hp hk]
       simp [Aff.eval, argExp]
     · cases h
+
+/-- **A bounded value is a power of `g`** where the arguments its bound names are. -/
+theorem bnd_pow {ρ : Env × BEnv} (hρ : Env2Ok σ args ρ) (hp : ps.map σ = args) {v : V} {b : Aff}
+    (h : bnd ρ ps v = some b) (ha : ∀ p ∈ b.cs, IsPowG (args.getD p.1 0)) : IsPowG (σ v) := by
+  unfold bnd at h
+  split at h
+  · rename_i b' hb'
+    cases hg : guardOf b' with
+    | some _ => rw [hg] at h; cases h
+    | none =>
+      rw [hg] at h
+      simp only [Option.isSome_none, Bool.cond_false, Option.some.injEq] at h
+      subst h
+      exact ((hρ.2 _ (blookup_mem hb')).1 hg).2 ha
+  · split at h
+    · rename_i e he
+      exact ⟨e, (cls_pow hρ.1 he).1⟩
+    · rename_i k hk
+      cases h
+      rw [cls_param hp hk]
+      exact ha _ List.mem_cons_self
+    · cases h
+
+/-- **`logG` of a product by a power of `g`**: at most the sum. -/
+theorem logG_mul_pow_le {w w' : E} (h : IsPowG w) : logG (w * w') ≤ logG w + logG w' := by
+  classical
+  have hw : ∃ e, w = ofK (addressOfIndex e) := h
+  have hs : w = ofK (addressOfIndex (logG w)) := by
+    rw [logG, dite_eq_left hw]; exact Nat.find_spec hw
+  have he : w' * w = w' * ofK (addressOfIndex (logG w)) := congrArg _ hs
+  calc logG (w * w') = logG (w' * ofK (addressOfIndex (logG w))) := by rw [mul_comm w w', he]
+    _ ≤ logG w' + logG w := logG_mul_le _ _
+    _ = logG w + logG w' := Nat.add_comm _ _
+
+theorem isPowG_mul {w w' : E} (h : IsPowG w) (h' : IsPowG w') : IsPowG (w * w') := by
+  have hmul : ∀ a b : K, ofK (a * b) = ofK a * ofK b := fun a b => map_mul (algebraMap K E) a b
+  obtain ⟨a, rfl⟩ := h
+  obtain ⟨b, rfl⟩ := h'
+  refine ⟨a + b, ?_⟩
+  rw [← hmul, addressOfIndex, addressOfIndex, addressOfIndex, pow_add]
+
+/-- `powPre b` says the arguments `b` names are powers of `g`. -/
+theorem argsPre_powPre {b : Aff} (h : ArgsPre (powPre b) args) : ∀ p ∈ b.cs, IsPowG (args.getD p.1 0) := by
+  intro p hp
+  obtain ⟨e, -, -, he⟩ := h (p.1, gT) (List.mem_map.mpr ⟨p, hp, rfl⟩)
+  exact ⟨e, he⟩
 
 end Cls
 
@@ -254,9 +311,32 @@ theorem termB_sound (hρ : EnvOk σ ρ) (hp : ps.map σ = args) {q : ℕ × ℕ}
     · cases h
   · cases h
 
+theorem preLt_lt {x y : ℕ} (hx : x < gT) (h : preLt x y = true) : x < y := by
+  unfold preLt at h
+  have hb : Nat.ble gT x = false := by
+    cases hb : Nat.ble gT x
+    · rfl
+    · exact absurd (Nat.le_of_ble_eq_true hb) (by omega)
+  rw [hb, Bool.cond_false] at h
+  simpa using h
+
+theorem preLt_of_lt {x y : ℕ} (hx : x < gT) (h : x < y) : preLt x y = true := by
+  unfold preLt
+  have hb : Nat.ble gT x = false := by
+    cases hb : Nat.ble gT x
+    · rfl
+    · exact absurd (Nat.le_of_ble_eq_true hb) (by omega)
+  rw [hb, Bool.cond_false]
+  simpa using h
+
+theorem preLt_ge {x y : ℕ} (h : preLt (gT + x) y = true) : x ≤ y := by
+  unfold preLt at h
+  rw [show Nat.ble gT (gT + x) = true by simp, Bool.cond_true, Nat.add_sub_cancel_left] at h
+  exact Nat.le_of_ble_eq_true h
+
 theorem preB_sound (hρ : EnvOk σ ρ) (hp : ps.map σ = args) {q : ℕ × ℕ} {r : Acc}
     (h : preB ρ ps a q = some r) (hpre : ArgsPre r.2 args) :
-    (∃ b, q.2 < b ∧ b < 2 ^ 64 - 1 ∧ (a.map σ).getD q.1 0 = ofK (addressOfIndex b)) ∧ r.1.eval args
+    (∃ b, preLt q.2 b = true ∧ b < 2 ^ 64 - 1 ∧ (a.map σ).getD q.1 0 = ofK (addressOfIndex b)) ∧ r.1.eval args
         = 0 := by
   unfold preB at h
   split at h
@@ -445,6 +525,7 @@ theorem siteB_sound {P : Core.Program} {α : Bool} {cert : String → Cert} {ω 
                 have hr' : ArgsPre ((k, a0) :: R.2) args := hr
                 obtain ⟨eb, heb1, heb2, heb3⟩ := hr' _ List.mem_cons_self
                 simp only at heb1 heb3
+                replace heb1 := preLt_lt (by have := (cls_pow hρ ha0).2; unfold gT; omega) heb1
                 have hR2 : ArgsPre R.2 args := fun q hq => hr' q (List.mem_cons_of_mem _ hq)
                 have hend : endOf endc (a.map σ) = ofK (addressOfIndex eb) := by
                   revert hk
@@ -479,6 +560,105 @@ theorem siteB_sound {P : Core.Program} {α : Bool} {cert : String → Cert} {ω 
             · cases h
           · cases h
         · cases h
+
+/-- **A guarded `callIf` site's loop rule bounds its callee, taken** (`siteBL`): the guard `g^a0 + end` not zero, the
+end is not the start, so its exponent is above `a0`. -/
+theorem siteBL_sound {P : Core.Program} {α : Bool} {cert : String → Cert} {ω : String → ℕ}
+    {wl : String → Option ℕ} (hwl : WlOk wl ω) {ρ2 : Env × BEnv} (hρ : Env2Ok σ args ρ2) (hp : ps.map σ = args)
+    {c : V} {a0 k : ℕ} (hgd : guardB ρ2.2 c = some (a0, k)) (hc : σ c ≠ 0) {g : String} {r : Acc}
+    (h : siteBL cert wl α ρ2.1 ps g a a0 k = some r) (hr : ArgsPre r.2 args) {t : Tree} (hn : t.name = g)
+    (hb : Bound P α cert ω t (a.map σ)) : t.cost P α ω ≤ r.1.eval args := by
+  have hgv : σ c = ofK (addressOfIndex a0) + σ (V.n k) := by
+    unfold guardB at hgd
+    split at hgd
+    · rename_i b hb'
+      exact (hρ.2 _ (blookup_mem hb')).2 a0 k hgd
+    · cases hgd
+  have hne : σ (V.n k) ≠ ofK (addressOfIndex a0) := by
+    intro h0; rw [h0, CharTwo.add_self_eq_zero] at hgv; exact hc hgv
+  unfold Bound at hb
+  rw [hn] at hb
+  unfold siteBL at h
+  split at h
+  · rename_i pre b ks p v0 v1 hcg hph hv0 hv1
+    rw [hcg] at hb
+    simp only at hb
+    have hpe : (if α then ω g else 0) ≤ p.1.eval args := phB_sound hwl hph
+    have hget0 : (a.map σ).getD 0 0 = σ v0 := by simp [List.getD_eq_getElem?_getD, List.getElem?_map, hv0]
+    have hget1 : (a.map σ).getD 1 0 = σ v1 := by simp [List.getD_eq_getElem?_getD, List.getElem?_map, hv1]
+    split at h
+    · rename_i a' ha'
+      obtain ⟨hs0, -⟩ := cls_pow hρ.1 ha'
+      split_ifs at h with hak
+      · obtain ⟨rfl, rfl⟩ := hak
+        split at h
+        · rename_i e he
+          split_ifs at h with hle
+          · obtain ⟨R, hR, rfl⟩ := Option.map_eq_some_iff.mp h
+            obtain ⟨he1, -⟩ := cls_pow hρ.1 he
+            have hlt : a' < e := by
+              rcases Nat.lt_or_ge a' e with h1 | h1
+              · exact h1
+              · exfalso; apply hne; rw [he1, show e = a' by omega]
+            have hend : endOf none (a.map σ) = ofK (addressOfIndex e) := by
+              simp only [endOf]; rw [hget1, he1]
+            obtain ⟨t1, t2⟩ := transB_sound hρ.1 hp hR hr
+            have := hb a' e (by rw [hget0, hs0]) hend hlt hle.2 t2
+            rw [Aff.eval_add, Aff.eval_scale]
+            have := Nat.mul_le_mul_left (e - a') t1
+            omega
+        · rename_i k' hk'
+          split at h
+          · rename_i R hR
+            split_ifs at h with hcs
+            cases h
+            have hr' : ArgsPre ((k', gT + a') :: R.2) args := hr
+            obtain ⟨eb, heb1, heb2, heb3⟩ := hr' _ List.mem_cons_self
+            simp only at heb1 heb3
+            have hge := preLt_ge heb1
+            have hR2 : ArgsPre R.2 args := fun q hq => hr' q (List.mem_cons_of_mem _ hq)
+            have hv1e : σ (V.n k) = ofK (addressOfIndex eb) := by
+              rw [cls_param (ρ := ρ2.1) hp hk', heb3]
+            have hlt : a' < eb := by
+              rcases Nat.lt_or_ge a' eb with h1 | h1
+              · exact h1
+              · exfalso; apply hne; rw [hv1e, show eb = a' by omega]
+            have hend : endOf none (a.map σ) = ofK (addressOfIndex eb) := by
+              simp only [endOf]; rw [hget1, hv1e]
+            obtain ⟨t1, t2⟩ := transB_sound hρ.1 hp hR hR2
+            have := hb a' eb (by rw [hget0, hs0]) hend hlt heb2 t2
+            have hRc : R.1.eval args = R.1.c := by simp [Aff.eval, hcs]
+            rw [hRc] at t1
+            have hev : (⟨0, [(k', R.1.c)]⟩ : Aff).eval args = R.1.c * eb := by
+              simp only [Aff.eval, argExp, heb3, logG_ofK heb2, List.map_cons, List.map_nil,
+                List.sum_cons, List.sum_nil]
+              omega
+            rw [Aff.eval_add, hev]
+            have h3 : (eb - a') * b.eval (a.map σ) ≤ R.1.c * eb :=
+              calc (eb - a') * b.eval (a.map σ) ≤ (eb - a') * R.1.c := Nat.mul_le_mul_left _ t1
+                _ ≤ eb * R.1.c := Nat.mul_le_mul_right _ (Nat.sub_le _ _)
+                _ = R.1.c * eb := Nat.mul_comm _ _
+            omega
+          · cases h
+        · cases h
+    · cases h
+  · cases h
+
+/-- **A `callIf` site's bound bounds its callee, taken** (`siteBC`). -/
+theorem siteBC_sound {P : Core.Program} {α : Bool} {cert : String → Cert} {ω : String → ℕ}
+    {wl : String → Option ℕ} (hwl : WlOk wl ω) {ρ2 : Env × BEnv} (hρ : Env2Ok σ args ρ2) (hp : ps.map σ = args)
+    {c : V} (hc : σ c ≠ 0) {g : String} {r : Acc} (h : siteBC cert wl α ρ2 ps c g a = some r)
+    (hr : ArgsPre r.2 args) {t : Tree} (hn : t.name = g) (hb : Bound P α cert ω t (a.map σ)) :
+    t.cost P α ω ≤ r.1.eval args := by
+  unfold siteBC at h
+  split at h
+  · rename_i a0 k hgd
+    split at h
+    · rename_i r' hl
+      cases h
+      exact siteBL_sound hwl hρ hp hgd hc hl hr hn hb
+    · exact siteB_sound hwl hρ.1 hp h hr hn hb
+  · exact siteB_sound hwl hρ.1 hp h hr hn hb
 
 end Site
 
@@ -617,13 +797,12 @@ theorem maxB_mem {α : Type} {f : α → Option Acc} {args : List E} :
       · obtain ⟨Ra, h1, h2, h3⟩ := maxB_mem hy a ha
         exact ⟨Ra, h1, h2.trans (join_eval_right _ _ _), fun h' => h3 (argsPre_append.mp h').2⟩
 
-/-- A call site's callee: its bound bounds the callee of one frame. -/
-theorem KB_site {wl : String → Option ℕ} (hwl : WlOk wl ω) {ρ : Env} {ps : List V} {args : List E}
-    (hρ : EnvOk σ ρ) (hp : ps.map σ = args)
-    {g : String} {a r : List V} {t : Bool} {R : Acc} (h : siteB cert wl α ρ ps g a = some R)
-    (hr : ArgsPre R.2 args) {es : List Ev} (hc : calls es = [⟨g, a, r, t⟩]) (ha : aw α σ es = 0)
+/-- A call site's callee, its bound `X` bounding the callee where taken: the callee of one frame. -/
+theorem KB_siteS {g : String} {a r : List V} {t : Bool} {X : ℕ} {es : List Ev} (hc : calls es = [⟨g, a, r, t⟩])
+    (ha : aw α σ es = 0)
+    (hS : t = true → ∀ k : Tree, k.name = g → Bound P α cert ω k (a.map σ) → k.cost P α ω ≤ X)
     {Y : ℕ} (hY : t = false → (if α then ω g else 0) ≤ Y) :
-    KB P rd σ cert ω α es (R.1.eval args + Y) := by
+    KB P rd σ cert ω α es (X + Y) := by
   intro kids hk ho hb
   rw [hc] at hk
   rw [ha]
@@ -634,7 +813,7 @@ theorem KB_site {wl : String → Option ℕ} (hwl : WlOk wl ω) {ρ : Env} {ps :
       simp only [Tree.BufsOkKids] at ho
       by_cases ht : t = true
       · rw [ite_eq_left ht] at hkv
-        have := siteB_sound hwl hρ hp h hr hn (hb k List.mem_cons_self _ _ hkv ho.1)
+        have := hS ht k hn (hb k List.mem_cons_self _ _ hkv ho.1)
         omega
       · rw [ite_eq_right ht] at hkv
         obtain ⟨⟨f, σ', rfl⟩, -⟩ := hkv
@@ -644,12 +823,49 @@ theorem KB_site {wl : String → Option ℕ} (hwl : WlOk wl ω) {ρ : Env} {ps :
         rw [Tree.cost]
         omega
 
+/-- A call site's callee: its bound bounds the callee of one frame. -/
+theorem KB_site {wl : String → Option ℕ} (hwl : WlOk wl ω) {ρ : Env} {ps : List V} {args : List E}
+    (hρ : EnvOk σ ρ) (hp : ps.map σ = args)
+    {g : String} {a r : List V} {t : Bool} {R : Acc} (h : siteB cert wl α ρ ps g a = some R)
+    (hr : ArgsPre R.2 args) {es : List Ev} (hc : calls es = [⟨g, a, r, t⟩]) (ha : aw α σ es = 0)
+    {Y : ℕ} (hY : t = false → (if α then ω g else 0) ≤ Y) :
+    KB P rd σ cert ω α es (R.1.eval args + Y) :=
+  KB_siteS hc ha (fun _ _ hn hbk ↦ siteB_sound hwl hρ hp h hr hn hbk) hY
+
 variable {ks : List (V × ℕ)} {ps : List V} {self : String} {args : List E} {wl : String → Option ℕ}
+
+/-- **A loop's guard kept** (`guardAtom`): the tagged bound holds, `d = g^a + [V.n k]`. -/
+theorem guardAtom_ok {ρ : Env × BEnv} {d x y : V} (hρ : Env2Ok σ args ρ) (hh : σ d = σ x + σ y) :
+    Env2Ok σ args (guardAtom ks ρ d x y) := by
+  unfold guardAtom
+  split_ifs
+  · cases hx : vlookup x ρ.1 with
+    | none => exact hρ
+    | some a =>
+      cases hs : selIs y.idx y with
+      | false => exact hρ
+      | true =>
+        refine ⟨hρ.1, fun q hq => ?_⟩
+        rcases List.mem_cons.mp hq with rfl | hq
+        · have hgo : guardOf ⟨gT + a, [(y.idx, 0)]⟩ = some (a, y.idx) := by
+            simp [guardOf]
+          refine ⟨fun hg => (by simp only at hg; rw [hgo] at hg; cases hg), fun a0 k hg => ?_⟩
+          simp only at hg
+          rw [hgo] at hg
+          cases hg
+          obtain ⟨hxv, -⟩ := hρ.1 _ (lookup_mem hx)
+          simp only
+          rw [hh, hxv]
+          congr 1
+          exact congrArg σ (selIs_eq hs)
+        · exact hρ.2 q hq
+  · exact hρ
 
 /-- **An atom's bound bounds its `HeapBuf`**, and keeps the constants and the bounds true. -/
 theorem atomB_sound {ρ ρ' : Env × BEnv} {a : Atom} {r : Acc} (hρ : Env2Ok σ args ρ)
-    (hp : ps.map σ = args) (h : atomB α ks ps ρ a = some (r, ρ')) (hh : (Ev.atom a).Holds rd σ) :
-    Env2Ok σ args ρ' ∧ r.2 = [] ∧ aw α σ [.atom a] ≤ r.1.eval args := by
+    (hp : ps.map σ = args) (h : atomB α ks ps ρ a = some (r, ρ')) (hpre : ArgsPre r.2 args)
+    (hh : (Ev.atom a).Holds rd σ) :
+    Env2Ok σ args ρ' ∧ aw α σ [.atom a] ≤ r.1.eval args := by
   cases a with
   | const v w =>
       simp only [atomB] at h
@@ -662,62 +878,116 @@ theorem atomB_sound {ρ ρ' : Env × BEnv} {a : Atom} {r : Acc} (hρ : Env2Ok σ
           cases h
           obtain ⟨hw, he20⟩ := constOk_spec hok
           have hv : σ v = w := hh
-          refine ⟨⟨fun q hq => ?_, hρ.2⟩, rfl, Nat.zero_le _⟩
+          refine ⟨⟨fun q hq => ?_, hρ.2⟩, Nat.zero_le _⟩
           rcases List.mem_cons.mp hq with rfl | hq
           · exact ⟨hv.trans hw, by omega⟩
           · exact hρ.1 q hq
-        · cases h; exact ⟨hρ, rfl, Nat.zero_le _⟩
-      · cases h; exact ⟨hρ, rfl, Nat.zero_le _⟩
+        · cases h; exact ⟨hρ, Nat.zero_le _⟩
+      · cases h; exact ⟨hρ, Nat.zero_le _⟩
+  | copy d s =>
+      simp only [atomB] at h
+      have ha : aw α σ [.atom (.copy d s)] = 0 := by rw [aw_cons_none rfl, aw_nil]
+      rw [ha]
+      split at h
+      · rename_i e he
+        simp only [Option.some.injEq, Prod.mk.injEq] at h
+        obtain ⟨rfl, rfl⟩ := h
+        obtain ⟨hs, he'⟩ := cls_pow hρ.1 he
+        have hd : σ d = σ s := hh
+        refine ⟨⟨fun q hq => ?_, hρ.2⟩, Nat.zero_le _⟩
+        rcases List.mem_cons.mp hq with rfl | hq
+        · exact ⟨hd.trans hs, he'⟩
+        · exact hρ.1 q hq
+      · cases h; exact ⟨hρ, Nat.zero_le _⟩
   | mul d x y =>
       simp only [atomB] at h
       have ha : aw α σ [.atom (.mul d x y)] = 0 := by rw [aw_cons_none rfl, aw_nil]
       rw [ha]
+      have hd : σ d = σ x * σ y := hh
       split at h
-      · split at h
-        · rename_i b c hb hc
-          simp only [Option.some.injEq, Prod.mk.injEq] at h
-          obtain ⟨rfl, rfl⟩ := h
-          refine ⟨⟨hρ.1, fun q hq => ?_⟩, rfl, Nat.zero_le _⟩
-          rcases List.mem_cons.mp hq with rfl | hq
-          · have hd : σ d = σ x * σ y := hh
-            obtain ⟨hy, -⟩ := cls_pow hρ.1 hc
-            rw [hd, hy]
-            have := bnd_sound hρ hp hb
-            simp only [Aff.eval_add, Aff.eval_mk_nil]
-            exact (logG_mul_le _ _).trans (by omega)
-          · exact hρ.2 q hq
-        · cases h
-      · cases h; exact ⟨hρ, rfl, Nat.zero_le _⟩
+      · cases hb : bnd ρ ps x with
+        | none => simp only [hb] at h; cases h
+        | some b =>
+          cases hc : cls ρ.1 ps y with
+          | pow c =>
+            simp only [hb, hc] at h
+            cases hg : guardOf (b.add ⟨c, []⟩) with
+            | some _ => rw [hg] at h; cases h
+            | none =>
+            rw [hg] at h
+            simp only [Option.isSome_none, Bool.cond_false, Option.some.injEq, Prod.mk.injEq] at h
+            obtain ⟨rfl, rfl⟩ := h
+            refine ⟨⟨hρ.1, fun q hq => ?_⟩, Nat.zero_le _⟩
+            rcases List.mem_cons.mp hq with rfl | hq
+            · refine ⟨fun _ => ⟨?_, fun hcs => ?_⟩, fun a0 k hg' => by simp only at hg'; rw [hg] at hg'; cases hg'⟩
+              · obtain ⟨hy, -⟩ := cls_pow hρ.1 hc
+                rw [hd, hy]
+                have := bnd_sound hρ hp hb
+                simp only [Aff.eval_add, Aff.eval_mk_nil]
+                exact (logG_mul_le _ _).trans (by omega)
+              · rw [hd]
+                exact isPowG_mul (bnd_pow hρ hp hb fun p hp' => hcs p (by simpa [Aff.add] using hp'))
+                  ⟨c, (cls_pow hρ.1 hc).1⟩
+            · exact hρ.2 q hq
+          | _ =>
+            simp only [hb, hc] at h
+            cases hb' : bnd ρ ps y with
+            | none => simp only [hb'] at h; cases h
+            | some b' =>
+            simp only [hb'] at h
+            cases hg : guardOf (b.add b') with
+            | some _ => rw [hg] at h; cases h
+            | none =>
+            rw [hg] at h
+            simp only [Option.isSome_none, Bool.cond_false, Option.some.injEq, Prod.mk.injEq] at h
+            obtain ⟨rfl, rfl⟩ := h
+            have hxp := bnd_pow hρ hp hb (argsPre_powPre hpre)
+            refine ⟨⟨hρ.1, fun q hq => ?_⟩, by simp [Aff.eval]⟩
+            rcases List.mem_cons.mp hq with rfl | hq
+            · refine ⟨fun _ => ⟨?_, fun hcs => ?_⟩, fun a0 k hg' => by simp only at hg'; rw [hg] at hg'; cases hg'⟩
+              · rw [hd, Aff.eval_add]
+                have h1 := bnd_sound hρ hp hb
+                have h2 := bnd_sound hρ hp hb'
+                exact (logG_mul_pow_le hxp).trans (by omega)
+              · rw [hd]
+                exact isPowG_mul hxp (bnd_pow hρ hp hb' fun p hp' =>
+                  hcs p (by simp only [Aff.add, List.mem_append]; exact Or.inr hp'))
+            · exact hρ.2 q hq
+      · cases h; exact ⟨hρ, Nat.zero_le _⟩
+  | add d x y =>
+      simp only [atomB, Option.some.injEq, Prod.mk.injEq] at h
+      obtain ⟨rfl, rfl⟩ := h
+      exact ⟨guardAtom_ok hρ hh, by rw [aw_cons_none rfl, aw_nil]; exact Nat.zero_le _⟩
   | hint hn =>
       cases hn with
       | alloc d n =>
           simp only [atomB, Option.some.injEq, Prod.mk.injEq] at h
           obtain ⟨rfl, rfl⟩ := h
-          refine ⟨hρ, by split_ifs <;> rfl, ?_⟩
+          refine ⟨hρ, ?_⟩
           cases α <;> simp [aw, allocs, Ev.alloc?, Acc.zero, Aff.eval]
       | allocDyn d sz =>
           cases α with
           | false =>
               simp only [atomB, Bool.false_eq_true, ↓reduceIte, Option.some.injEq, Prod.mk.injEq] at h
               obtain ⟨rfl, rfl⟩ := h
-              exact ⟨hρ, rfl, by simp [aw]⟩
+              exact ⟨hρ, by simp [aw]⟩
           | true =>
               simp only [atomB, ↓reduceIte] at h
               split at h
               · rename_i b hb
                 simp only [Option.some.injEq, Prod.mk.injEq] at h
                 obtain ⟨rfl, rfl⟩ := h
-                refine ⟨hρ, rfl, ?_⟩
+                refine ⟨hρ, ?_⟩
                 simpa [aw, allocs, Ev.alloc?] using bnd_sound hρ hp hb
               · cases h
       | _ =>
           simp only [atomB, Option.some.injEq, Prod.mk.injEq] at h
           obtain ⟨rfl, rfl⟩ := h
-          exact ⟨hρ, rfl, by rw [aw_cons_none rfl, aw_nil]; exact Nat.zero_le _⟩
+          exact ⟨hρ, by rw [aw_cons_none rfl, aw_nil]; exact Nat.zero_le _⟩
   | _ =>
       simp only [atomB, Option.some.injEq, Prod.mk.injEq] at h
       obtain ⟨rfl, rfl⟩ := h
-      exact ⟨hρ, rfl, by rw [aw_cons_none rfl, aw_nil]; exact Nat.zero_le _⟩
+      exact ⟨hρ, by rw [aw_cons_none rfl, aw_nil]; exact Nat.zero_le _⟩
 
 mutual
 /-- **A block's bound bounds its path's callees.** -/
@@ -739,14 +1009,14 @@ theorem blockB_sound (hp : ps.map σ = args) (hwl : WlOk wl ω) : ∀ (ss : List
             simp only [Acc.add, Aff.eval_add]
             refine KB_seq hh (fun h1 => ?_) fun es he h1 h2 => ?_
             · simp only [walk1, Out.evs] at h1 ⊢
-              obtain ⟨-, -, hw⟩ := atomB_sound hρ hp hab (h1 _ List.mem_cons_self)
+              obtain ⟨-, hw⟩ := atomB_sound hρ hp hab hr.1 (h1 _ List.mem_cons_self)
               intro kids hk _ hb
               cases kids with
               | nil => rw [Tree.costKids]; omega
               | cons _ _ => rw [show calls [Ev.atom a] = [] from rfl] at hk; exact hk.elim
             · simp only [walk1, Out.fall.injEq] at he
               subst he
-              obtain ⟨hρ', -, -⟩ := atomB_sound hρ hp hab (h1 _ List.mem_cons_self)
+              obtain ⟨hρ', -⟩ := atomB_sound hρ hp hab hr.1 (h1 _ List.mem_cons_self)
               exact blockB_sound hp hwl ss ρ' rr hρ' hrr hr.2 h2
           · cases h
       | ite c z n =>
@@ -793,14 +1063,14 @@ theorem blockB_sound (hp : ps.map σ = args) (hwl : WlOk wl ω) : ∀ (ss : List
             refine KB_seq hh (fun _ => ?_) fun es _ _ h2 => blockB_sound hp hwl ss ρ rr hρ hrr hr.2.2 h2
             have hY := phB_sound (args := args) hwl hph
             by_cases h0 : σ c = 0
-            · exact KB_site hwl hρ.1 hp hs hr.1 (t := false) (r := []) (by
+            · exact KB_siteS (t := false) (r := []) (by
                 simp only [walk1, Out.evs, h0, ↓reduceIte]; rfl)
                 (by simp only [walk1, Out.evs, h0, ↓reduceIte]; rw [aw_cons_none rfl, aw_cons_none rfl, aw_nil])
-                fun _ => hY
-            · exact KB_site hwl hρ.1 hp hs hr.1 (t := true) (r := []) (by
+                (fun h => absurd h (by decide)) fun _ => hY
+            · exact KB_siteS (t := true) (r := []) (by
                 simp only [walk1, Out.evs, h0, ↓reduceIte]; rfl)
                 (by simp only [walk1, Out.evs, h0, ↓reduceIte]; rw [aw_cons_none rfl, aw_cons_none rfl, aw_nil])
-                fun h => absurd h (by decide)
+                (fun _ k hn hbk => siteBC_sound hwl hρ hp h0 hs hr.1 hn hbk) fun h => absurd h (by decide)
       | dispatch x gs a r' =>
           simp only [blockB] at h
           obtain ⟨rs, rr, hs, hrr, rfl⟩ := addAcc_some h
@@ -849,9 +1119,6 @@ theorem Acc.zero_add (r : Acc) : Acc.zero.add r = r := by
 theorem addAcc_assoc (a b c : Option Acc) :
     Option.addAcc (Option.addAcc a b) c = Option.addAcc a (Option.addAcc b c) := by
   cases a <;> cases b <;> cases c <;> simp [Option.addAcc, Acc.add, Aff.add, Nat.add_assoc]
-
-theorem addAcc_some_zero (x : Option Acc) : Option.addAcc (some Acc.zero) x = x := by
-  cases x <;> simp [Option.addAcc, Acc.zero_add]
 
 theorem blockR_cons (s : Stmt) (ss : List Stmt) (ρ : Env × BEnv) :
     blockR cert wl α ks ps self (s :: ss) ρ = match stmtR cert wl α ks ps self s ρ with
@@ -904,7 +1171,7 @@ theorem blockR_eq : ∀ (ss : List Stmt) (ρ : Env × BEnv), blockR cert wl α k
           split_ifs
           · rfl
           · rw [← addAcc_assoc]
-            cases Option.addAcc (siteB cert wl α ρ.1 ps g args) (phB wl α g) with
+            cases Option.addAcc (siteBC cert wl α ρ ps c g args) (phB wl α g) with
             | none => rfl
             | some r => simp only [Option.map_some]; rw [blockR_eq]
       | dispatch x gs args rets =>
@@ -924,81 +1191,6 @@ end
 
 end Rec
 
-/-! ## Blocks in ranges -/
-
-section Append
-
-variable {cert : String → Cert} {wl : String → Option ℕ} {α : Bool} {ps : List V} {self : String}
-
-/-- No top-level `ret`. -/
-def noTopRet (l : List Stmt) : Bool := l.all fun s => match s with
-  | .ret _ => false
-  | _ => true
-
-theorem blockB_nil (ρ : Env × BEnv) : blockB cert wl α [] ps self ρ [] = some Acc.zero := by rw [blockB]; rfl
-
-theorem atomB_nil_env {ρ ρ' : Env × BEnv} {a : Atom} {r : Acc} (h : atomB α [] ps ρ a = some (r, ρ')) :
-    ρ' = ρ := by
-  cases a with
-  | const v w => simp only [atomB, vlookup, Option.some.injEq, Prod.mk.injEq] at h; exact h.2.symm
-  | mul d x y =>
-      simp [atomB, vlookup] at h
-      exact h.2.symm
-  | hint hn =>
-      cases hn with
-      | allocDyn d sz =>
-          simp only [atomB] at h
-          split_ifs at h
-          · split at h
-            · simp only [Option.some.injEq, Prod.mk.injEq] at h; exact h.2.symm
-            · cases h
-          · simp only [Option.some.injEq, Prod.mk.injEq] at h; exact h.2.symm
-      | _ => simp only [atomB, Option.some.injEq, Prod.mk.injEq] at h; exact h.2.symm
-  | _ => simp only [atomB, Option.some.injEq, Prod.mk.injEq] at h; exact h.2.symm
-
-/-- **A block without constants is the sum of its ranges**, the first without `ret`. -/
-theorem blockB_append (ρ : Env × BEnv) : ∀ (l1 l2 : List Stmt), noTopRet l1 = true →
-    blockB cert wl α [] ps self ρ (l1 ++ l2) =
-      Option.addAcc (blockB cert wl α [] ps self ρ l1) (blockB cert wl α [] ps self ρ l2)
-  | [], l2, _ => by rw [List.nil_append, blockB_nil, addAcc_some_zero]
-  | s :: l1, l2, h => by
-      simp only [noTopRet, List.all_cons, Bool.and_eq_true] at h
-      have ih := blockB_append ρ l1 l2 h.2
-      rw [List.cons_append]
-      cases s with
-      | atom a =>
-          simp only [blockB]
-          cases hq : atomB α [] ps ρ a with
-          | none => rfl
-          | some q =>
-              obtain ⟨r, ρ'⟩ := q
-              obtain rfl := atomB_nil_env hq
-              simp only
-              rw [ih, addAcc_assoc]
-      | ite c z n => simp only [blockB]; rw [ih, addAcc_assoc]
-      | match_ x arms => simp only [blockB]; rw [ih, addAcc_assoc]
-      | call g a r => simp only [blockB]; rw [ih, addAcc_assoc]
-      | callIf c g a =>
-          simp only [blockB]
-          split_ifs
-          · rfl
-          · rw [ih, addAcc_assoc, addAcc_assoc]
-      | dispatch x gs a r => simp only [blockB]; rw [ih, addAcc_assoc]
-      | ret vs => simp at h
-
-/-- The ranges from `a` and from `a + n`, the first without `ret`. -/
-theorem blockB_drop (ρ : Env × BEnv) (l : List Stmt) (a n : ℕ) (h : noTopRet ((l.drop a).take n) = true) :
-    blockB cert wl α [] ps self ρ (l.drop a) =
-      Option.addAcc (blockB cert wl α [] ps self ρ ((l.drop a).take n)) (blockB cert wl α [] ps self ρ (l.drop (a + n))) := by
-  rw [← blockB_append ρ _ _ h, ← List.drop_drop, List.take_append_drop]
-
-theorem blockB_drop' (ρ : Env × BEnv) (l : List Stmt) (a n b : ℕ) (h : noTopRet ((l.drop a).take n) = true)
-    (hb : a + n = b) : blockB cert wl α [] ps self ρ (l.drop a) =
-      Option.addAcc (blockB cert wl α [] ps self ρ ((l.drop a).take n)) (blockB cert wl α [] ps self ρ (l.drop b)) := by
-  subst hb; exact blockB_drop ρ l a n h
-
-end Append
-
 /-! ## Lookups -/
 
 section Look
@@ -1016,6 +1208,18 @@ theorem siteB_mono (hl : LookOk look cert) {ρ : Env} {g : String} {a : List V} 
   unfold siteB at h ⊢
   rw [← hl g hg]
   exact h
+
+theorem siteBC_mono (hl : LookOk look cert) {ρ : Env × BEnv} {c : V} {g : String} {a : List V} {r : Acc}
+    (h : siteBC look wl α ρ ps c g a = some r) : siteBC cert wl α ρ ps c g a = some r := by
+  by_cases hg : look g = .none
+  · exfalso
+    unfold siteBC siteBL siteB at h
+    rw [hg] at h
+    split at h <;> simp at h
+  · have he := hl g hg
+    unfold siteBC siteBL siteB at h ⊢
+    rw [← he]
+    exact h
 
 theorem maxB_site_mono (hl : LookOk look cert) {ρ : Env} {a : List V} :
     ∀ {gs : List String} {r : Acc}, maxB (fun g => siteB look wl α ρ ps g a) gs = some r →
@@ -1066,7 +1270,7 @@ theorem blockB_mono (hl : LookOk look cert) : ∀ (ss : List Stmt) (ρ : Env × 
           · rw [ite_eq_right (by assumption)]
             obtain ⟨ra, rpr, ha, hpr, rfl⟩ := addAcc_some h
             obtain ⟨rph, rr, hph, hrr, rfl⟩ := addAcc_some hpr
-            rw [siteB_mono hl ha, hph, blockB_mono hl ss ρ hrr]
+            rw [siteBC_mono hl ha, hph, blockB_mono hl ss ρ hrr]
             rfl
       | dispatch x gs a rets =>
           simp only [blockB] at h ⊢
@@ -1093,19 +1297,6 @@ end Look
 section Loop
 
 variable {σ : Val}
-
-theorem Out.seq_assoc : ∀ (o k l : Out), (o.seq k).seq l = o.seq (k.seq l)
-  | .fall es, .fall es', l => by cases l <;> simp [Out.seq, Out.pre, List.append_assoc]
-  | .fall es, .ret es' vs, l => by simp [Out.seq, Out.pre]
-  | .fall es, .stuck, l => by simp [Out.seq, Out.pre]
-  | .ret es vs, k, l => by simp [Out.seq]
-  | .stuck, k, l => by simp [Out.seq]
-
-theorem walk_append : ∀ (l l' : List Stmt), walk σ (l ++ l') = (walk σ l).seq (walk σ l')
-  | [], l' => by
-      rw [List.nil_append, walk]
-      cases walk σ l' <;> simp [Out.seq, Out.pre]
-  | s :: l, l' => by rw [List.cons_append, walk, walk, walk_append l l', Out.seq_assoc]
 
 theorem pick_noRet {x : V} {a r : List V} (gs : List String) (j : ℕ) :
     (∃ es, pick σ x a r j gs = .fall es) ∨ pick σ x a r j gs = .stuck := by
@@ -1383,23 +1574,30 @@ theorem chk_sound {X : String → Prop} (hchk : CheckedExcept P α cert ω X)
       | stat pre b ks =>
           rw [hcf] at hc'
           simp only at hc'
-          split at hc'
+          -- the body, or the body at the arm of its first top-level selector its path takes (`selSplit_sound`)
+          obtain ⟨body', hst, hw'⟩ : ∃ body', statB look wl α pre b ks (ω f) fn body' = true ∧
+              walk σ body' = .ret es vs := by
+            rcases Bool.or_eq_true_iff.mp hc' with h1 | h1
+            · exact ⟨fn.body, h1, hw⟩
+            · exact selSplit_sound h1 hw
+          unfold statB at hst
+          split at hst
           · rename_i r hb
-            simp only [Bool.and_eq_true, List.all_eq_true, decide_eq_true_eq] at hc'
+            simp only [Bool.and_eq_true, List.all_eq_true, decide_eq_true_eq] at hst
             intro hpre
-            have hpr : ArgsPre r.2 args := fun q hq => hpre q (hc'.2 q hq)
+            have hpr : ArgsPre r.2 args := fun q hq => hpre q (hst.2 q hq)
             rw [blockR_eq] at hb
             replace hb := blockB_mono hlook _ _ hb
-            have hkb := blockB_sound (rd := rd) (ω := ω) hp hwl fn.body ([], []) r
+            have hkb := blockB_sound (rd := rd) (ω := ω) hp hwl body' ([], []) r
               ⟨fun _ h => (List.not_mem_nil h).elim, fun _ h => (List.not_mem_nil h).elim⟩
-              hb hpr (by rw [hw]; exact hes) kids (by rw [hw]; exact hk) hbk hIH
-            rw [hw] at hkb
+              hb hpr (by rw [hw']; exact hes) kids (by rw [hw']; exact hk) hbk hIH
+            rw [hw'] at hkb
             simp only [Out.evs] at hkb
             rw [hcost]
-            have := Aff.eval_le_of_leB hc'.1 args
+            have := Aff.eval_le_of_leB hst.1 args
             simp only [Aff.eval] at this hkb ⊢
             omega
-          · cases hc'
+          · cases hst
       | loop endc pre b ks =>
           rw [hcf] at hc'
           simp only at hc'

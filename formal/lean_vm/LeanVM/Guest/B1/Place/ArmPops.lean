@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Place.ArmMuteAll
 # An arm's pops
 
 * `PopsBy rd cs Ts ps`: each entered callee's valid tree satisfying its predicate pops its entries, a skipped one's are `[]`; `popsKids_of_popsBy`: callees `KidsT` pop them;
-* `popsBy_mute`: callees with no witness hint in their subtrees pop nothing; `popsBy_lvs`: the levels' callees pop, level by level, their `level_queries`' entries (`lvPss`);
+* `popsBy_mute`: callees with no witness hint in their subtrees pop nothing; `popsBy_lvs`: the levels' callees pop, level by level, their `level_queries`' entries (`lvPss`), `is_zero` nothing;
 * `armTsP`: `armTs`' part on the pops (`armTs_armTsP`); `arm_popsBy`: the arm's callees, classified by name (`armMute_all`, `lqNameB_of_kind`, `lqNameB_of_lp`, `lqNameB_of_lr`);
 * `arm_pops`: the arm's node (`FlatNodeT`, its callees' trees of `armTs`), its body mute but for its calls (`splice_mute`), pops its levels' `osLvPops` in order.
 -/
@@ -71,25 +71,38 @@ theorem popsBy_mute {rd : Reader} : ∀ (cs : List Call), (∀ c ∈ cs, NoWitG 
       popsBy_mute cs fun c' hc' ↦ h c' (List.mem_cons_of_mem _ hc')⟩
 
 /-- The levels' entries: level `l`'s calls before its positions and its positions nothing, its calls after them
-`P l` each. -/
+`P l` each, but those not of `lqTable`, nothing. -/
 def lvPss (P : ℕ → List Pop) : ℕ → List OsLvK → List (List Pop)
   | _, [] => []
-  | l, k :: ks => (k.A.map fun _ ↦ []) ++ ([] :: k.B.map fun _ ↦ P l) ++ lvPss P (l + 1) ks
+  | l, k :: ks => (k.A.map fun _ ↦ []) ++ ([] :: k.B.map fun c ↦ if lqNameB c.f then P l else []) ++
+      lvPss P (l + 1) ks
 
-/-- A level's callees pop: those before its positions and its positions nothing, those after them `p` by `T`. -/
+/-- A level's callees pop: those before its positions and its positions nothing, those after them of `lqTable`
+`p` by `T`, the others nothing. -/
 def LvPopsOk (rd : Reader) (T : Tree → Prop) (p : List Pop) (k : OsLvK) : Prop :=
   (∀ c ∈ k.A, NoWitG c.f) ∧ NoWitG k.sq.f ∧
-    ∀ c ∈ k.B, c.taken = true ∧ ∀ t, T t → t.pops coreProgram rd = p
+    ∀ c ∈ k.B, (lqNameB c.f = false → NoWitG c.f) ∧
+      (lqNameB c.f = true → c.taken = true ∧ ∀ t, t.name = c.f → T t → t.pops coreProgram rd = p)
 
 theorem popsBy_after {rd : Reader} {T : Tree → Prop} {p : List Pop} : ∀ (cs : List Call),
-    (∀ c ∈ cs, c.taken = true ∧ ∀ t, T t → t.pops coreProgram rd = p) →
-    PopsBy rd cs (cs.map fun _ ↦ T) (cs.map fun _ ↦ p)
+    (∀ c ∈ cs, (lqNameB c.f = false → NoWitG c.f) ∧
+      (lqNameB c.f = true → c.taken = true ∧ ∀ t, t.name = c.f → T t → t.pops coreProgram rd = p)) →
+    PopsBy rd cs (cs.map fun _ ↦ T) (cs.map fun c ↦ if lqNameB c.f then p else [])
   | [], _ => trivial
   | c :: cs, h => by
-    obtain ⟨ht, hp⟩ := h c List.mem_cons_self
-    refine ⟨fun _ t _ _ _ _ hT ↦ hp t hT, fun hf ↦ ?_, popsBy_after cs fun c' hc' ↦ h c' (List.mem_cons_of_mem _ hc')⟩
-    rw [ht] at hf
-    cases hf
+    obtain ⟨hz, hp⟩ := h c List.mem_cons_self
+    refine ⟨fun _ t _ _ hn hv hT ↦ ?_, fun hf ↦ ?_, popsBy_after cs fun c' hc' ↦ h c' (List.mem_cons_of_mem _ hc')⟩
+    · show t.pops coreProgram rd = if lqNameB c.f = true then p else []
+      cases hq : lqNameB c.f
+      · simp only [Bool.false_eq_true, ↓reduceIte]
+        exact pops_nil_of_noWitness (hz hq) hv hn rd
+      · simp only [↓reduceIte]
+        exact (hp hq).2 t hn hT
+    · show (if lqNameB c.f = true then p else []) = []
+      cases hq : lqNameB c.f
+      · simp
+      · rw [(hp hq).1] at hf
+        cases hf
 
 /-- **The levels' callees pop their `level_queries`' entries**, level by level. -/
 theorem popsBy_lvs {rd : Reader} (TB : ℕ → Reader → Tree → Prop) (P : ℕ → List Pop) :
@@ -107,33 +120,60 @@ theorem popsBy_lvs {rd : Reader} (TB : ℕ → Reader → Tree → Prop) (P : �
     simp only [List.getElem_cons_succ, show l + (i + 1) = l + 1 + i by omega] at this
     exact this
 
-theorem lvPss_flatten (P : ℕ → List Pop) : ∀ (ks : List OsLvK) (l : ℕ), (∀ k ∈ ks, k.B.length = 1) →
+theorem flatten_map_ite (p : List Pop) (f : Call → Bool) : ∀ (B : List Call),
+    (B.map fun c ↦ if f c then p else []).flatten = ((B.filter f).map fun _ ↦ p).flatten
+  | [] => rfl
+  | c :: B => by
+    cases h : f c <;> simp [h, flatten_map_ite p f B]
+
+theorem lvPss_flatten (P : ℕ → List Pop) : ∀ (ks : List OsLvK) (l : ℕ),
+    (∀ k ∈ ks, (k.B.filter fun c ↦ lqNameB c.f).length = 1) →
     (lvPss P l ks).flatten = (List.range' l ks.length).flatMap P
   | [], _, _ => rfl
   | k :: ks, l, h => by
     obtain ⟨b, hb⟩ := List.length_eq_one_iff.mp (h k List.mem_cons_self)
+    have e : (k.B.map fun c ↦ if lqNameB c.f then P l else []).flatten =
+        ((k.B.filter fun c ↦ lqNameB c.f).map fun _ ↦ P l).flatten :=
+      flatten_map_ite (P l) (fun c ↦ lqNameB c.f) k.B
+    rw [hb] at e
     rw [lvPss, List.flatten_append, List.flatten_append, lvPss_flatten P ks (l + 1)
-      fun k' hk' ↦ h k' (List.mem_cons_of_mem _ hk'), hb, List.length_cons, List.range'_succ, List.flatMap_cons]
+      fun k' hk' ↦ h k' (List.mem_cons_of_mem _ hk'), List.flatten_cons, e, List.length_cons, List.range'_succ,
+      List.flatMap_cons]
     simp
-
-theorem osLvKOf_B (σ : Val) (c : OsCfg) : ∀ (l : ℕ) (lvs : List OsLv) (s : OsSt),
-    ∀ k ∈ osLvKOf σ c l lvs s, k.B.length = 1
-  | _, [], _ => fun _ h ↦ by simp [osLvKOf] at h
-  | l, lv :: rest, s => fun k hk ↦ by
-    rw [osLvKOf, List.mem_cons] at hk
-    rcases hk with rfl | hk
-    · rfl
-    · exact osLvKOf_B σ c (l + 1) rest _ k hk
 
 /-- The arm's callees' entries: its levels' `level_queries`' honest entries, nothing else. -/
 noncomputable def armPss {c : OsCfg} {args : List E} {cur tabs : E} {xs : List E} {tgt inn res : E}
     {pt pt1 : List E} (H : OsHonestA c args cur tabs xs tgt inn res pt pt1) (σ : Val) : List (List Pop) :=
   lvPss (osLvPops H) 0 (osLvKOf σ c 0 c.levels (osHead c).2) ++ (armRest σ c).map fun _ ↦ []
 
-theorem armPss_flatten {c : OsCfg} {args : List E} {cur tabs : E} {xs : List E} {tgt inn res : E}
-    {pt pt1 : List E} (H : OsHonestA c args cur tabs xs tgt inn res pt pt1) (σ : Val) :
-    (armPss H σ).flatten = (List.range c.levels.length).flatMap (osLvPops H) := by
-  rw [armPss, List.flatten_append, lvPss_flatten _ _ _ (osLvKOf_B σ c 0 _ _), osLvKOf_length,
+/-- **An arm's levels have one frame of `lqTable` after their positions**, at a valuation on the rate's selector:
+`level_queries`', `is_zero`'s not. -/
+theorem osLvKOf_B {m ri : ℕ} (hm : m < 11) (hri : ri < 4) {σ : Val}
+    (hR : σ (.n osRate) = ofK (addressOfIndex ri)) :
+    ∀ k ∈ osLvKOf σ (osCfgR m ri) 0 (osCfgR m ri).levels (osHead (osCfgR m ri)).2,
+      (k.B.filter fun c ↦ lqNameB c.f).length = 1 := by
+  intro k hk
+  obtain ⟨i, hi, rfl⟩ := List.getElem_of_mem hk
+  have hi' : i < (osCfgR m ri).levels.length := by rwa [osLvKOf_length] at hi
+  have e := osLvKOf_get σ (osCfgR m ri) 0 (osCfgR m ri).levels (osHead (osCfgR m ri)).2 i hi'
+  rw [Nat.zero_add, levels_getElem_eq hi'] at e
+  rw [e]
+  have hq : lqNameB (osQueriesName (osCfgR m ri) i (osLvA (osCfgR m ri) i)) = true :=
+    List.any_eq_true.mpr ⟨_, (armLv_ok hm hri i hi').2.1, by simp⟩
+  have h1 : ∀ s, ((lvIzF (osCfgR m ri) i (osLvA (osCfgR m ri) i) s).map
+      (Main.mkCall σ)).filter (fun c ↦ lqNameB c.f) = [] := fun s ↦
+    List.filter_eq_nil_iff.mpr fun c hc ↦ by
+      obtain ⟨x, hx, rfl⟩ := List.mem_map.mp hc
+      rw [mkCall_f', lvIzF_f hx, lqNameB_of_kind osKindOf_isZero]
+      simp
+  simp only [lvK, List.filter_append, h1, List.nil_append, List.filter_cons, mkCall_f',
+    selName_rate hri hR, hq, ↓reduceIte, List.filter_nil, List.length_singleton]
+
+theorem armPss_flatten {m ri : ℕ} (hm : m < 11) (hri : ri < 4) {σ : Val}
+    (hR : σ (.n osRate) = ofK (addressOfIndex ri)) {args : List E} {cur tabs : E} {xs : List E}
+    {tgt inn res : E} {pt pt1 : List E} (H : OsHonestA (osCfgR m ri) args cur tabs xs tgt inn res pt pt1) :
+    (armPss H σ).flatten = (List.range (osCfgR m ri).levels.length).flatMap (osLvPops H) := by
+  rw [armPss, List.flatten_append, lvPss_flatten _ _ _ (osLvKOf_B hm hri hR), osLvKOf_length,
     ← List.range_eq_range']
   simp
 
@@ -142,14 +182,16 @@ honest entries. -/
 noncomputable def armTsP (Bk : String → ℕ) {c : OsCfg} {args : List E} {cur tabs : E} {xs : List E}
     {tgt inn res : E} {pt pt1 : List E} (H : OsHonestA c args cur tabs xs tgt inn res pt pt1) (σ : Val)
     (rd : Reader) : List (Tree → Prop) :=
-  lvTs (fun _ _ ↦ True) (fun _ _ ↦ True) (lvTB (some Bk) fun l rd t ↦ t.pops coreProgram rd = osLvPops H l) rd 0
+  lvTs (fun _ _ ↦ True) (fun _ _ ↦ True)
+    (lvTB (some Bk) fun l rd t ↦ lqNameB t.name = true → t.pops coreProgram rd = osLvPops H l) rd 0
     (osLvKOf σ c 0 c.levels (osHead c).2) ++ (armRest σ c).map fun _ _ ↦ True
 
 theorem armTs_armTsP {Bk : String → ℕ} {c : OsCfg} {args : List E} {cur tabs : E} {xs : List E}
     {tgt inn res : E} {pt pt1 : List E} (H : OsHonestA c args cur tabs xs tgt inn res pt pt1) (σ : Val)
     (rd : Reader) :
     List.Forall₂ (fun T T' : Tree → Prop ↦ ∀ t, T t → T' t) (armTs (Bd := some Bk) H σ rd) (armTsP Bk H σ rd) :=
-  forall₂_append' (lvTs_forall₂ (fun _ _ ↦ trivial) (fun _ _ ↦ trivial) (fun _ _ h B hB ↦ (h B hB).1) 0 _)
+  List.rel_append (lvTs_forall₂ (fun _ _ ↦ trivial) (fun _ _ ↦ trivial) (fun _ _ h B hB hq ↦ (h B hB).1
+    fun he ↦ by rw [he, lqNameB_of_kind osKindOf_isZero] at hq; cases hq) 0 _)
     (forall₂_map_same _ fun _ _ _ _ ↦ trivial)
 
 /-- **The arm's callees pop their levels' `level_queries`' honest entries**, at a valuation on the rate's
@@ -162,7 +204,7 @@ theorem arm_popsBy {m ri : ℕ} (hm : m < 11) (hri : ri < 4) {σ : Val}
       armRest σ (osCfgR m ri))
     (hS : ∀ c' ∈ cs, armS c'.f = true) :
     PopsBy rd cs (armTsP Bk H σ rd) (armPss H σ) := by
-  obtain ⟨hB, -, hyr⟩ := armBody_ok ri hm
+  obtain ⟨-, hB, hffm, -, hyr⟩ := armBody_ok hm hri
   have hLv := armLv_ok hm hri
   subst hcs
   have hnw : ∀ c' ∈ (osLvKOf σ (osCfgR m ri) 0 (osCfgR m ri).levels (osHead (osCfgR m ri)).2).flatMap
@@ -192,20 +234,28 @@ theorem arm_popsBy {m ri : ℕ} (hm : m < 11) (hri : ri < 4) {σ : Val}
     · show lqNameB (selName σ (osCfgR m ri) i osPositionsName) = false
       rw [selName_rate hri hR]
       exact lqNameB_of_lp (hLv i hi').1
-    · simp only [lvK, List.mem_singleton] at hc'
-      subst hc'
-      exact ⟨rfl, fun t ht ↦ ht Bk rfl⟩
+    · refine ⟨hnw c' (hmem c' (List.mem_append_right _ (List.mem_cons_of_mem _ hc'))),
+        fun hq ↦ ⟨?_, fun t hn ht ↦ ht Bk rfl (by rw [hn]; exact hq)⟩⟩
+      rcases mem_lvK_B hc' with h | rfl
+      · rw [h, lqNameB_of_kind osKindOf_isZero] at hq
+        cases hq
+      · rfl
   · rcases List.mem_append.mp hc' with hc | hc
     · obtain ⟨K, hK⟩ := named_of_plain hB (fun s hs ↦ tl_sub_body hs) hc
       exact lqNameB_of_kind hK
     obtain ⟨x, hx, rfl⟩ := List.mem_map.mp hc
-    rcases mem_finFrames hx with rfl | ⟨j, hj, rfl⟩
-    · obtain ⟨K, hK⟩ := Option.isSome_iff_exists.mp (List.all_eq_true.mp hB _ (ffm_mem_body (osCfgR m ri)))
+    rcases mem_finFrames hx with rfl | hiz | ⟨j, hj, rfl | rfl⟩
+    · obtain ⟨K, hK⟩ := Option.isSome_iff_exists.mp hffm
       exact lqNameB_of_kind hK
+    · rw [mkCall_f', hiz]
+      exact lqNameB_of_kind osKindOf_isZero
     · have hjy : j < (osCfgR m ri).yrLevel := by simpa [Nat.min_eq_left hyr.le] using hj
-      show lqNameB (selName σ (osCfgR m ri) j osResidualName) = false
+      show lqNameB (osResidualName (osLvA (osCfgR m ri) j)) = false
+      exact lqNameB_of_lr ((hLv j (by omega)).2.2.1 hjy).1
+    · have hjy : j < (osCfgR m ri).yrLevel := by simpa [Nat.min_eq_left hyr.le] using hj
+      show lqNameB (selName σ (osCfgR m ri) j (osSlowName (osCfgR m ri))) = false
       rw [selName_rate hri hR]
-      exact lqNameB_of_lr ((hLv j (by omega)).2.2.1 hjy)
+      exact ((armSlow_ok hm hri).2 j hjy).2.2
 
 /-- **An arm's node pops its levels' `level_queries`' honest entries in order**, within a bound. -/
 theorem arm_pops {m ri : ℕ} (hm : m < 11) (hri : ri < 4) {f : String} {fn : Fn}
@@ -213,10 +263,10 @@ theorem arm_pops {m ri : ℕ} (hm : m < 11) (hri : ri < 4) {f : String} {fn : Fn
     {args : List E} {cur tabs : E} {xs : List E} {tgt inn res : E} {pt pt1 : List E}
     {H : OsHonestA (osCfgR m ri) args cur tabs xs tgt inn res pt pt1} {rd : Reader} {t : Tree} {a r : List E}
     (hv : t.Valid coreProgram rd a r)
-    (hT : FlatNodeT f fn (osBodyA (osCfgR m ri)) (fun σ ↦ σ (.n osRate) = ofK (addressOfIndex ri))
-      (armTs (Bd := some Bk) H) rd t) :
+    (hT : FlatNodeT f fn (osBodyA (osCfgR m ri))
+      (fun σ ↦ σ (.n osRate) = ofK (addressOfIndex ri) ∧ WinEx (osBodyA (osCfgR m ri)) σ) (armTs (Bd := some Bk) H) rd t) :
     t.pops coreProgram rd = (List.range (osCfgR m ri).levels.length).flatMap (osLvPops H) := by
-  obtain ⟨σ, bufs, kids, es, vs, rfl, hw, hces, hR, hK⟩ := hT
+  obtain ⟨σ, bufs, kids, es, vs, rfl, hw, hces, ⟨hR, -⟩, hK⟩ := hT
   obtain ⟨fn', hf', -, es', vs', hw', -, -, hkv⟩ := hv
   rw [hf, Option.some.injEq] at hf'
   subst hf'
@@ -229,7 +279,7 @@ theorem arm_pops {m ri : ℕ} (hm : m < 11) (hri : ri < 4) {f : String} {fn : Fn
     (by rw [length_popsKids, kidsValid_len hkv]),
     popsKids_of_popsBy hkv (kidsT_mono (armTs_armTsP H σ rd) hK)
       (arm_popsBy hm hri hR H rd (hces.trans (osBodyA_calls σ _)) (calls_mem_of_mute hm')),
-    armPss_flatten]
+    armPss_flatten hm hri hR]
 
 end
 end LeanVM.Guest.B1.Arm

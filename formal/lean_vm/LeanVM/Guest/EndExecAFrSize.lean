@@ -23,12 +23,12 @@ site, which fits the hint (`Bridge.frFits`), its callee's facts those of a liste
 enclosing it and their calls' returns (`spine_evs`), the atoms of a path holding (`path_holds`).
 
 * `alloc`: a `call` of a function no loop helper, entered, its block its frame; or of a loop helper
-  from `g^e` to a constant end `g^K`, its run `K - e` iterations (`chainB`);
+  from `g^e` to a constant end `g^K`, its run `K - e` iterations and the untaken call's tail (`chainB`);
 * `allocArm`: a `dispatch`, its selector `g^j` at its cell, arm `j`'s callee entered, its block its
   frame;
 * `allocFrames`: a conditional call of a loop helper ending at its second parameter: entered, its
-  run makes `m` iterations from `g^e` (`chainB`), its block `m + 1` frames and the end
-  `g^(e + m)` at the stop cell; not entered, the guard `g^e + end` zero, its block one frame (the
+  run makes `m` iterations from `g^e` (`chainB`), its block `m` frames and the tail, and the end
+  `g^(e + m)` at the stop cell; not entered, the guard `g^e + end` zero, its block the tail (the
   guard's end equal to the stop's by `spEq_spec`).
 -/
 
@@ -284,17 +284,18 @@ end
 
 /-! ## The listed callees -/
 
-theorem calFind_spec {cs : List ℕ} {f : String} {m : ℕ} {lp : Bool} {en : Option (Option ℕ)}
-    (h : calFind (calTbl cs) f = some (m, lp, en)) :
-    ∃ c ∈ cs, (coreOf c).name = f ∧ m = B2C.fsN c ∧ lp = (coreOf c).loop ∧ en = Res.endOfFn (coreOf c) := by
+theorem calFind_spec {cs : List ℕ} {f : String} {m : ℕ} {lp : Bool} {en : Option (Option ℕ)} {t : ℕ}
+    (h : calFind (calTbl cs) f = some (m, lp, en, t)) :
+    ∃ c ∈ cs, (coreOf c).name = f ∧ m = B2C.fsN c ∧ lp = (coreOf c).loop ∧ en = Res.endOfFn (coreOf c) ∧
+      t = B2C.tailN c := by
   unfold calFind at h
   obtain ⟨x, hx, hxe⟩ := Option.map_eq_some_iff.mp h
   obtain ⟨hmem, hp⟩ := List.mem_of_find?_eq_some hx, List.find?_some hx
   obtain ⟨c, hc, rfl⟩ := List.mem_map.mp hmem
   simp only [beq_iff_eq] at hp
   simp only [Prod.mk.injEq] at hxe
-  obtain ⟨rfl, rfl, rfl⟩ := hxe
-  exact ⟨c, hc, hp, rfl, rfl, rfl⟩
+  obtain ⟨rfl, rfl, rfl, rfl⟩ := hxe
+  exact ⟨c, hc, hp, rfl, rfl, rfl, rfl⟩
 
 /-- A listed callee's frame size and loop flag, by its name. -/
 theorem cal_facts {c : ℕ} (h1 : 1 ≤ c) (h2 : c < nFns) :
@@ -318,19 +319,19 @@ theorem blockLast_snoc {lp : String → Bool} : ∀ (ks : List Tree) (k : Tree),
     rw [List.cons_append, List.cons_append, Tree.blockLast]
     exact blockLast_snoc (k2 :: ks) k
 
-/-- **A loop's run reaches its end, its block a frame per iteration and one more**: `chain`, with the
-block. -/
+/-- **A loop's run reaches its end, its block a frame per iteration and the tail**: `chain`, with
+the block. -/
 theorem chainB (hfs : ∀ f, 1 ≤ fs f) : ∀ (n : ℕ) {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree}
     {args rets : List E} {fn : Fn} {e : Option ℕ}, (Memory.Tree.node f σ bufs kids).total fs ≤ n →
     (Memory.Tree.node f σ bufs kids).Valid P rd args rets → P.find? f = some fn →
     loopShape fn e = some (loopBody fn) → P.loop f = true →
     ∃ m p0 prest, fn.params = p0 :: prest ∧ 1 ≤ m ∧ m ≤ (Memory.Tree.node f σ bufs kids).total fs ∧
       σ p0 * ofK (addressOfIndex m) = Res.endVal σ fn e ∧
-      (Memory.Tree.node f σ bufs kids).block fs P.loop = (m + 1) * fs f
+      (Memory.Tree.node f σ bufs kids).block fs P.loop = m * fs f + fs (Memory.tailKey f)
   | 0, f, σ, bufs, kids, _, _, _, _, htot, _, _, _, _ => by
     have := le_total (fs := fs) (Memory.Tree.node f σ bufs kids)
     have := hfs f
-    simp only [Tree.name] at *
+    simp only [Tree.fsz] at *
     omega
   | n + 1, f, σ, bufs, kids, args, rets, fn, e, htot, hv, hf, hs, hlp => by
     unfold Tree.Valid at hv
@@ -353,7 +354,7 @@ theorem chainB (hfs : ∀ f, 1 ≤ fs f) : ∀ (n : ℕ) {f : String} {σ : Val}
       obtain ⟨⟨f', σ', rfl⟩, -⟩ := hkv
       simp only [Tree.name, hname] at hkn
       subst hkn
-      refine ⟨1, p0, prest, hps, le_rfl, by omega, ?_, by simp [Tree.block]; ring⟩
+      refine ⟨1, p0, prest, hps, le_rfl, by omega, ?_, by rw [block_phantom]; ring⟩
       rw [h0] at hc
       exact Res.char2_eq hc.symm
     · simp only [ne_eq, h0, not_false_eq_true, decide_true, ↓reduceIte] at hkv hkn
@@ -418,7 +419,7 @@ theorem cellRefP {r : Ref} (hr : r.Ok) {pc fp : ℕ} {done : List Pop} {e : Ent}
     have hrd := hFH.val v hnamed hcell.1.2 hcell.2
     obtain ⟨i, -, -, -, -, -, hfs, -⟩ := B2C.fn_of_idx hj
     have hwithin : e.I.fp + B2C.fs e.I.t.name ≤ r.T.total B2C.fs :=
-      honest_within hI (by have := hHon.cells.two_le e.I hI; omega)
+      honest_within_node hI hIt (by have := hHon.cells.two_le e.I hI; omega)
     have h28 : r.T.total B2C.fs ≤ 2 ^ r.κ := le_two_pow_logMem _
     have h2k : 2 ^ r.κ ≤ 2 ^ 28 := Nat.pow_le_pow_right (by norm_num) hκ
     exact refRd_img hκ r.img _ _ (by rw [hfs] at hwithin; omega) hrd
@@ -485,7 +486,7 @@ theorem path_holds {r : Ref} (hr : r.Ok) {pc fp : ℕ} {done : List Pop} {e : En
     exact hh _ hmem
   · rw [ht] at hph; cases hph
 
-theorem armsFit_spec {tbl : List (String × ℕ × Bool × Option (Option ℕ))} {sizes : List ℕ} :
+theorem armsFit_spec {tbl : List (String × ℕ × Bool × Option (Option ℕ) × ℕ)} {sizes : List ℕ} :
     ∀ (fs : List String) (j0 : ℕ), armsFit tbl sizes fs j0 = true → ∀ {i : ℕ} {f : String}, fs[i]? = some f →
       ∃ m ep, calFind tbl f = some (m, false, ep) ∧ sizes[j0 + i]? = some m
   | [], _, _, i, f, hi => by simp at hi
@@ -616,42 +617,43 @@ theorem frameSize_alignA : FrameSize alignA := by
   obtain ⟨hkn, hkt, hkp⟩ := Res.kidsValid_at hkv hc (List.getElem?_eq_getElem hlt)
   have hcs' := fun c' hc' ↦ hcs c' hc'
   -- the facts of a listed callee
-  have cal : ∀ {f m lp en}, calFind (calTbl cs) f = some (m, lp, en) → ∃ c', (coreOf c').name = f ∧
+  have cal : ∀ {f m lp en t}, calFind (calTbl cs) f = some (m, lp, en, t) → ∃ c', (coreOf c').name = f ∧
       B2C.fs f = m ∧ coreProgram.find? f = some (coreOf c') ∧ coreProgram.loop f = lp ∧
-      en = Res.endOfFn (coreOf c') := fun h0 ↦ by
-    obtain ⟨c', hc', hn, hm, hl, he⟩ := calFind_spec h0
+      en = Res.endOfFn (coreOf c') ∧ B2C.fs (Memory.tailKey f) = t := fun h0 ↦ by
+    obtain ⟨c', hc', hn, hm, hl, he, ht⟩ := calFind_spec h0
     have hb := hcs' c' hc'
     simp only [Nat.ble_eq, Nat.blt_eq] at hb
     obtain ⟨hf1, hf2, hf3⟩ := cal_facts hb.1 hb.2
-    rw [hn] at hf1 hf2 hf3
-    exact ⟨c', hn, by rw [hf1, hm], hf2, by rw [hf3, hl], he⟩
+    have hft := B2C.fs_tailKey (B2C.idxOf_coreOf hb.1 hb.2)
+    rw [hn] at hf1 hf2 hf3 hft
+    exact ⟨c', hn, by rw [hf1, hm], hf2, by rw [hf3, hl], he, by rw [hft, ht]⟩
   -- a node's block, no loop helper
-  have blk : ∀ {f m}, coreProgram.loop f = false → B2C.fs f = m → e.I.t.kids[e.nc].name = f →
-      e.I.t.kids[e.nc].block B2C.fs coreProgram.loop = m := fun hl hm hn ↦ by
+  have blk : ∀ {f m}, c.taken = true → coreProgram.loop f = false → B2C.fs f = m → e.I.t.kids[e.nc].name = f →
+      e.I.t.kids[e.nc].block B2C.fs coreProgram.loop = m := fun ht hl hm hn ↦ by
+    have hv := hkt ht
     rcases hk : e.I.t.kids[e.nc] with ⟨f', σ', bufs', kids'⟩ | ⟨f', σ'⟩
     · rw [hk] at hn; simp only [Tree.name] at hn; subst hn
       simp [Tree.block, hl, hm]
-    · rw [hk] at hn; simp only [Tree.name] at hn; subst hn
-      simp [Tree.block, hm]
+    · rw [hk] at hv; exact hv.elim
   cases h <;> cases stm <;> simp only [frFits, Bool.false_eq_true] at hq
   case alloc.call q m f args rets =>
     simp only [CallOf] at hco
     subst hco
     split at hq
-    · rename_i k' lp en hcf
-      obtain ⟨c', -, hfsf, hfindf, hlp, hen⟩ := cal hcf
+    · rename_i k' lp en t hcf
+      obtain ⟨c', -, hfsf, hfindf, hlp, hen, htl⟩ := cal hcf
       simp only [Bool.or_eq_true, Bool.and_eq_true, beq_iff_eq, Bool.not_eq_true'] at hq
       rcases hq with ⟨rfl, rfl⟩ | ⟨rfl, hq⟩
-      · exact (blk hlp hfsf hkn).symm
+      · exact (blk rfl hlp hfsf hkn).symm
       -- a loop helper to a constant end: its run's iterations
       split at hq
       · rename_i K a0 rest
         have hen' : Res.endOfFn (coreOf c') = some (some K) := hen.symm
-        obtain ⟨e0, hsc, hlt0, hm⟩ : ∃ e0, spConst sp' a0 e0 = true ∧ e0 < K ∧ m = (K - e0 + 1) * k' := by
+        obtain ⟨e0, hsc, hlt0, hm⟩ : ∃ e0, spConst sp' a0 e0 = true ∧ e0 < K ∧ m = (K - e0) * k' + t := by
           simp only [Bool.or_eq_true, Bool.and_eq_true, Nat.blt_eq, beq_iff_eq] at hq
           rcases hq with ⟨⟨h1, h2⟩, h3⟩ | ⟨⟨h1, h2⟩, h3⟩
           · exact ⟨0, h1, h2, by rw [Nat.sub_zero]; exact h3.symm⟩
-          · exact ⟨1, h1, by omega, by rw [Nat.sub_add_cancel (by omega)]; exact h3.symm⟩
+          · exact ⟨1, h1, by omega, h3.symm⟩
         obtain ⟨w0, hw0, rfl⟩ := spConst_spec hsc
         have hσa0 : e.σ a0 = ofK (addressOfIndex e0) := hsp _ hw0
         have hkv' := hkt rfl
@@ -684,24 +686,24 @@ theorem frameSize_alignA : FrameSize alignA := by
           have h2k : 2 ^ r.κ ≤ 2 ^ 28 := Nat.pow_le_pow_right (by norm_num) hκ
           have hK := endOfFn_lt hen'
           have hmK : e0 + m' = K := gpow_inj (by unfold Ref.κ at h2k; omega) (by omega) (ofK_injective hend')
-          rw [hblk, hfsf]
-          show m = (m' + 1) * k'
-          have h1 : K - e0 + 1 = m' + 1 := by omega
+          rw [hblk, hfsf, htl]
+          show m = m' * k' + t
+          have h1 : K - e0 = m' := by omega
           rw [hm, h1]
         · rw [hk] at hkv'; exact hkv'.elim
       · cases hq
     · cases hq
-  case allocFrames.callIf q size stop si b f args =>
+  case allocFrames.callIf q size stop si tail b f args =>
     obtain ⟨hcf, hca, hcr, htk⟩ := hco
     rcases args with _ | ⟨a0, _ | ⟨a1, rest⟩⟩
     · simp at hq
     · simp at hq
     dsimp only at hq
     split at hq
-    · rename_i k' lp ep hcal
+    · rename_i k' lp ep t hcal
       simp only [Bool.and_eq_true, beq_iff_eq, Bool.or_eq_true] at hq
-      obtain ⟨⟨⟨⟨⟨rfl, rfl⟩, rfl⟩, rfl⟩, hcell⟩, hstart⟩ := hq
-      obtain ⟨c', -, hfsf, hfindf, hlpf, hepf⟩ := cal hcal
+      obtain ⟨⟨⟨⟨⟨⟨rfl, rfl⟩, rfl⟩, rfl⟩, rfl⟩, hcell⟩, hstart⟩ := hq
+      obtain ⟨c', -, hfsf, hfindf, hlpf, hepf, htl⟩ := cal hcal
       obtain ⟨e0, hsc, hsi, hg⟩ : ∃ e0, spConst sp' a0 e0 = true ∧
           addressOfIndex e0 * si = 1 ∧ guardOk sp' b a1 e0 = true := by
         rcases hstart with ⟨⟨h1, rfl⟩, h3⟩ | ⟨⟨h1, rfl⟩, h3⟩
@@ -752,20 +754,20 @@ theorem frameSize_alignA : FrameSize alignA := by
           have he2 := endCur_chain (A := alignA) hr st e s.pc s.fp htr.track.ents htr.linked hch
           have hIP := insts_placed r.T (0, r.T.block B2C.fs coreProgram.loop) r.hdr (by omega) e.I hI
           have hbl : B2C.fs e.I.t.name ≤ e.I.t.block B2C.fs coreProgram.loop := by
-            generalize e.I.t = t; cases t <;> simp [Tree.block, Tree.name]
+            rw [hIt]; simp [Tree.block, Tree.name]
           have hfs2 := B2C.two_le_fs e.I.t.name
           have h28 := le_two_pow_logMem (r.T.total B2C.fs)
           have h2k : 2 ^ r.κ ≤ 2 ^ 28 := Nat.pow_le_pow_right (by norm_num) hκ
           refine ⟨addressOfIndex (e0 + m), m, by rw [← hend'], hsi' m, ?_, ?_⟩
           · have := hIP.2.2
             unfold maxCells; unfold Ref.κ at h2k; omega
-          · rw [hblk, hfsf]; ring
+          · rw [hblk, hfsf, htl]; ring
         · rw [hk] at hkv'; exact hkv'.elim
       · -- not entered: the guard zero, the end the start
         have hb0 : e.σ b = 0 := by
           by_contra h0; exact ht (htk.mpr h0)
         obtain ⟨f', σk, hph⟩ := hkp (by simpa using ht)
-        have hbk : e.I.t.kids[e.nc].block B2C.fs coreProgram.loop = B2C.fs f := by
+        have hbk : e.I.t.kids[e.nc].block B2C.fs coreProgram.loop = B2C.fs (Memory.tailKey f) := by
           rw [hph] at hkn ⊢; simp only [Tree.name] at hkn; rw [hcf] at hkn; subst hkn; simp [Tree.block]
         rw [hbk]
         obtain ⟨x, y, hxy, hcase⟩ := guardOk_spec hg
@@ -780,7 +782,7 @@ theorem frameSize_alignA : FrameSize alignA := by
           · exact absurd ((hsp _ (spWord_spec h1)).symm.trans ((Res.char2_eq hadd.symm).trans (hsp _ (spWord_spec h2))))
               hne
         refine ⟨addressOfIndex e0, 0, by rw [hend], by simpa using hsi' 0, by unfold maxCells; norm_num, ?_⟩
-        rw [hfsf]; ring
+        rw [htl]; ring
     · cases hq
   case allocArm.dispatch q sel sizes x fs args rets =>
     obtain ⟨hca, hcr, htk, jj, hjj, hσx⟩ := hco
@@ -791,7 +793,7 @@ theorem frameSize_alignA : FrameSize alignA := by
     obtain ⟨c', -, hfsf, -, hlp, -⟩ := cal hcf
     rw [Nat.zero_add] at hsm
     have hjl : jj < sizes.length := (List.getElem?_eq_some_iff.mp hsm).1
-    refine ⟨jj, ?_, by unfold maxCells; omega, by rw [hsm, blk hlp hfsf hkn]⟩
+    refine ⟨jj, ?_, by unfold maxCells; omega, by rw [hsm, blk htk hlp hfsf hkn]⟩
     have hx := cellRefP hr htr hj (v := x) (by
       rcases huse with (⟨hpx, hxn⟩ | ⟨a, ha, hu⟩) | hnx
       · exact .inl ⟨hpx, by simpa using hxn⟩

@@ -434,15 +434,6 @@ theorem clNames_get {r : ℕ} (hr : r < 17) : clNames[r]! = clNames.getD r "" :=
   rw [getElem!_pos clNames r h, List.getD_eq_getElem _ _ h]
 
 set_option maxRecDepth 100000 in
-theorem cl_pure_all : ∀ k < 17,
-    Stmt.pureList [clNames.getD k ""] (coreProgram.getD (idx% «claim_list_last__L0» + k)
-        default).body = true := by
-  decide +kernel
-
-theorem cl_pure {r : ℕ} (hr : r < 17) : coreProgram.PureIn [clNames.getD r ""] :=
-  pure_one (find_of_idx (cl_idx r hr)) (cl_pure_all r hr)
-
-set_option maxRecDepth 100000 in
 theorem big_pure : coreProgram.PureIn [name% «claim_list_chain_loop0»] :=
   pure_one (find_of_idx big_idx) (by decide +kernel)
 

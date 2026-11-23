@@ -22,12 +22,14 @@ list `vals`, piece by piece as `oqQueryT` numbers them:
 * at level 0 the packs `y`, `y·cell`, the leaf cell `pk` (`packVals`);
 * the padding run `1, 0, 0, 0, 0` when emitted;
 * the leaf hash: per block the XORed inputs and the permutation's output (`leafV`);
+* the walk, inline (`WD.vals`, the query's honest walk `QD.wd`): the siblings' cells (`pc`), each
+  window's word, `0x80` and the arm taken (`winV`), the cap leaf (`capV`);
 * the fold (`foldVals`): round `j`'s `α, β, β·x, t`, its outputs `t·lo`, `hi + t·lo`
   (`roundVals`); the value the last lane (`foldVal`);
 * at the final level (`finVals`): the point, the chain `W_i` by threes, `novel_eval`'s level `0`
   by fours (`nv0Vals`), its later levels (`nvVals`), the result `0`.
 
-`val i` is `vals`' entry `i - b`; `WD` is an honest `walk_path` frame, `WD.val` its values.
+`val i` is `vals`' entry `i - b`.
 -/
 
 namespace LeanVM.Guest.B1
@@ -90,17 +92,122 @@ theorem getD_flatMap_const {α : Type} (f : ℕ → List α) {c : ℕ} (hf : ∀
   rw [← offOf_const f hf j]
   exact getD_flatMap_range_of f d n j r hj (by rw [hf]; exact hr)
 
+
+/-! ## An honest walk -/
+
+/-- **An honest walk** (`walk_path`, inline in a query of shape `s`, of path depth `s.pd`) below
+a cap of depth `cd`: the leaf's digest it climbs from, the position, the siblings, the window
+pointer, the cap's and the flags' pointers (offset by the caller to the cap's leaves). -/
+structure WD where
+  s : Oq
+  cd : ℕ
+  leaf : Digest
+  q : ℕ
+  sibs : List Digest
+  bpv : E
+  capv : E
+  flagsv : E
+
+/-- A window's values: its word, `0x80`, `2^w` arms of `3w` values and the two targets. -/
+def winSz (s : Oq) (i : ℕ) : ℕ := 4 + 3 * oqWw s i * 2 ^ oqWw s i
+
+/-- The values of the windows before window `i`. -/
+def winOff (s : Oq) : ℕ → ℕ
+  | 0 => 0
+  | i + 1 => winOff s i + winSz s i
+
+namespace WD
+
+variable (w : WD)
+
+/-- The path's depth below the cap. -/
+abbrev pd : ℕ := w.s.pd
+
+/-- Path cell `k`: level `k / 2`'s sibling's halves. -/
+def pc (k : ℕ) : E := pathCell w.sibs k
+
+/-- The node after `l` levels. -/
+def node (l : ℕ) : Digest := climbNode w.leaf w.q w.sibs l
+
+/-- The cells level `l`'s permutation reads: the node and the sibling on the sides the position's
+bit names, the padding. -/
+def levelIns (l : ℕ) : List E :=
+  (if w.q.testBit l then [w.pc (2 * l), w.pc (2 * l + 1), (digestHalves (w.node l)).1,
+      (digestHalves (w.node l)).2]
+    else [(digestHalves (w.node l)).1, (digestHalves (w.node l)).2, w.pc (2 * l), w.pc (2 * l + 1)]) ++
+    [word 1 0, word 0 0, word 0 0, word 0 0, word (2 ^ 63) 0, word 0 0, word 0 0, word 0 0, word 0 0]
+
+/-- Level `l`'s step at offset `c < 3`: the `0x80` constant, the permutation's first two cells. -/
+def stepV (l c : ℕ) : E :=
+  if c = 0 then word (2 ^ 63) 0 else cellsOfState (permOf (w.levelIns l)) false (Fin.ofNat 13 (c - 1))
+
+/-- Window `i`'s value: the position's bits there. -/
+def wv (i : ℕ) : ℕ := qwVal (w.s.pd + w.cd) w.cd w.q i
+
+/-- The offset of arm `a` in a window of `ww` levels. -/
+def armOff (ww a : ℕ) : ℕ := if a = 0 then 2 else 4 + 3 * ww * a
+
+/-- Window `i`'s value at offset `o`: its word `g^v`, `0x80`, the targets (the node after it), arm
+`v`'s steps, `0` elsewhere (the arms not taken). -/
+def winV (i o : ℕ) : E :=
+  if o = 0 then gen ^ w.wv i
+  else if o = 1 then word (2 ^ 63) 0
+  else if o = 2 + 3 * oqWw w.s i then (digestHalves (w.node (6 * i + oqWw w.s i))).1
+  else if o = 3 + 3 * oqWw w.s i then (digestHalves (w.node (6 * i + oqWw w.s i))).2
+  else if armOff (oqWw w.s i) (w.wv i) ≤ o ∧ o < armOff (oqWw w.s i) (w.wv i) + 3 * oqWw w.s i then
+    w.stepV (6 * i + (o - armOff (oqWw w.s i) (w.wv i)) / 3) ((o - armOff (oqWw w.s i) (w.wv i)) % 3)
+  else 0
+
+/-- The cap child bit's window `g^b`. -/
+def wbV : E := gen ^ (if w.q.testBit w.s.pd then 1 else 0)
+
+/-- The cap parent index's window `g^Q`. -/
+def qV : E := gen ^ (w.q / 2 ^ (w.s.pd + 1))
+
+/-- The cap leaf at offset `o < 9`. -/
+def capV (o : ℕ) : E :=
+  [w.wbV, w.qV, w.flagsv * w.qV, word 1 0, w.qV * w.qV, w.capv * (w.qV * w.qV),
+    w.capv * (w.qV * w.qV) * (w.qV * w.qV), w.wbV * w.wbV,
+    w.capv * (w.qV * w.qV) * (w.qV * w.qV) * (w.wbV * w.wbV)].getD o 0
+
+/-- The siblings' cells. -/
+def sibVals : List E := (List.range (2 * w.s.pd)).map w.pc
+
+/-- Window `i`'s values. -/
+def winBlock (i : ℕ) : List E := (List.range (winSz w.s i)).map (w.winV i)
+
+/-- The windows' values. -/
+def winVals : List E := (List.range (oqNpw w.s)).flatMap w.winBlock
+
+/-- The cap leaf's values. -/
+def capVals : List E := (List.range 9).map w.capV
+
+/-- **The walk's values**, from its siblings' first cell. -/
+def vals : List E := w.sibVals ++ w.winVals ++ w.capVals
+
+/-- What the memory holds of an honest walk: its windows at `bpv`, its cap leaf and its flag. -/
+structure MemOk (w : WD) (rd : Reader) : Prop where
+  wins : ∀ i < qwN (w.s.pd + w.cd) w.cd, LoadHolds rd w.bpv i (gen ^ w.wv i)
+  cap0 : LoadHolds rd w.capv (2 * (w.q / 2 ^ w.s.pd)) (digestHalves (climbD w.leaf w.q w.sibs)).1
+  cap1 : LoadHolds rd w.capv (2 * (w.q / 2 ^ w.s.pd) + 1) (digestHalves (climbD w.leaf w.q w.sibs)).2
+  flag : LoadHolds rd w.flagsv (w.q / 2 ^ (w.s.pd + 1)) 1
+
+end WD
+
 /-! ## An honest query -/
 
-/-- An honest query (its walk's siblings, cap and flags kept for its `walk_path` frame, `QD.wd`). -/
+/-- An honest query at a level of cap depth `cd`: its shape, first value, padding run, row,
+position, siblings, window pointer, cap's and flags' pointers, rounds and final coefficients. -/
 structure QD where
   s : Oq
+  cd : ℕ
   b : ℕ
   emit : Bool
   pr : ℕ
   row : List K
   q : ℕ
   sibs : List Digest
+  bpv : E
   capv : E
   flagsv : E
   rounds : List FoldRound
@@ -116,10 +223,12 @@ def prV : ℕ := oqPr d.s d.b d.emit d.pr
 def k1 : ℕ := oqK1 d.s d.b
 /-- The first value of the leaf hash. -/
 def kL : ℕ := oqKL d.s d.b d.emit
-/-- The first value after the leaf hash: the fold's start. -/
+/-- The first value after the leaf hash: the walk's siblings. -/
 def ch : ℕ := oqCh d.s d.b d.emit
+/-- The fold's start. -/
+def fo : ℕ := oqFo d.s d.b d.emit
 /-- The fold's value. -/
-def v : ℕ := oqVal d.s d.ch
+def v : ℕ := oqVal d.s d.fo
 /-- The first value after the query. -/
 def e : ℕ := oqEnd d.s d.b d.emit
 
@@ -185,6 +294,9 @@ def leafVals : List E := (List.range d.s.chainLen).map d.leafV
 
 /-- The leaf's digest. -/
 def leaf : Digest := merkleLeafDigest d.row
+
+/-- **The query's honest walk.** -/
+def wd : WD := ⟨d.s, d.cd, d.leaf, d.q, d.sibs, d.bpv, d.capv, d.flagsv⟩
 
 /-! ### The fold -/
 
@@ -256,7 +368,7 @@ def finVals : List E :=
 
 /-- **The query's values from `b`.** -/
 def vals : List E :=
-  d.rowVals ++ d.packVals ++ d.padVals ++ d.leafVals ++ d.foldVals ++ d.finVals
+  d.rowVals ++ d.packVals ++ d.padVals ++ d.leafVals ++ d.wd.vals ++ d.foldVals ++ d.finVals
 
 /-- **The honest value of index `i` of the query.** -/
 def val (i : ℕ) : E := if d.b ≤ i then d.vals.getD (i - d.b) 0 else 0
@@ -266,14 +378,79 @@ abbrev Hv (σ : Val) : Prop := ∀ i, d.b ≤ i → i < d.e → σ (.n i) = d.va
 
 end QD
 
+/-! ## The walk's places -/
+
+theorem oqWk_eq (s : Oq) (ch : ℕ) : ∀ i, oqWk s ch i = ch + 2 * s.pd + winOff s i
+  | 0 => rfl
+  | i + 1 => by rw [oqWk, oqWk_eq s ch i, winOff, winSz]; omega
+
+theorem winOff_mono (s : Oq) {i : ℕ} : ∀ {j : ℕ}, i ≤ j → winOff s i ≤ winOff s j
+  | 0, h => by rw [Nat.le_zero.mp h]
+  | j + 1, h => by
+    rcases Nat.lt_or_ge i (j + 1) with h' | h'
+    · have := winOff_mono s (i := i) (j := j) (by omega); simp only [winOff]; omega
+    · rw [show i = j + 1 by omega]
+
+theorem winOff_succ_le {s : Oq} {i : ℕ} (hi : i < oqNpw s) : winOff s i + winSz s i ≤ winOff s (oqNpw s) :=
+  winOff_mono s (i := i + 1) hi
+
+namespace WD
+
+variable (w : WD)
+
+theorem winBlock_length (i : ℕ) : (w.winBlock i).length = winSz w.s i := by simp [winBlock]
+
+theorem offOf_winBlock : ∀ i, offOf w.winBlock i = winOff w.s i
+  | 0 => rfl
+  | i + 1 => by rw [offOf, offOf_winBlock i, winBlock_length, winOff]
+
+theorem winVals_length : w.winVals.length = winOff w.s (oqNpw w.s) := by
+  rw [winVals, length_flatMap_range_of, offOf_winBlock]
+
+theorem vals_length : w.vals.length = 2 * w.s.pd + winOff w.s (oqNpw w.s) + 9 := by
+  simp only [vals, List.length_append, sibVals, capVals, List.length_map, List.length_range,
+    winVals_length]
+
+theorem vals_sib {o : ℕ} (ho : o < 2 * w.s.pd) : w.vals.getD o 0 = w.pc o := by
+  rw [vals, List.append_assoc, List.getD_append _ _ _ _ (by simpa [sibVals] using ho)]
+  simp [sibVals, List.getD_eq_getElem?_getD, ho]
+
+theorem vals_win {i o : ℕ} (hi : i < oqNpw w.s) (ho : o < winSz w.s i) :
+    w.vals.getD (2 * w.s.pd + (winOff w.s i + o)) 0 = w.winV i o := by
+  have h1 := winOff_succ_le (s := w.s) hi
+  have hw := w.winVals_length
+  have hs : w.sibVals.length = 2 * w.s.pd := by simp [sibVals]
+  rw [vals, List.append_assoc, List.getD_append_right _ _ _ _ (by omega), hs, Nat.add_sub_cancel_left,
+    List.getD_append _ _ _ _ (by omega), winVals, ← offOf_winBlock,
+    getD_flatMap_range_of _ 0 _ _ _ hi (by rw [winBlock_length]; exact ho)]
+  simp [winBlock, List.getD_eq_getElem?_getD, ho]
+
+theorem vals_cap {o : ℕ} (ho : o < 9) :
+    w.vals.getD (2 * w.s.pd + (winOff w.s (oqNpw w.s) + o)) 0 = w.capV o := by
+  have hw := w.winVals_length
+  have hs : w.sibVals.length = 2 * w.s.pd := by simp [sibVals]
+  rw [vals, List.getD_append_right _ _ _ _ (by simp only [List.length_append]; omega),
+    List.length_append, hs, hw, show 2 * w.s.pd + (winOff w.s (oqNpw w.s) + o) -
+      (2 * w.s.pd + winOff w.s (oqNpw w.s)) = o by omega]
+  simp [capVals, List.getD_eq_getElem?_getD, ho]
+
+end WD
+
 namespace QD
 
 variable (d : QD)
 
 /-! ## The pieces' places -/
 
+theorem wd_pd : d.wd.s.pd = d.s.pd := rfl
+
+theorem wd_npw : oqNpw d.wd.s = oqNpw d.s := rfl
+
+theorem wd_winOff (i : ℕ) : winOff d.wd.s i = winOff d.s i := rfl
+
+
 theorem vals_eq : d.vals =
-    d.rowVals ++ (d.packVals ++ (d.padVals ++ (d.leafVals ++ (d.foldVals ++ d.finVals)))) := by
+    d.rowVals ++ (d.packVals ++ (d.padVals ++ (d.leafVals ++ (d.wd.vals ++ (d.foldVals ++ d.finVals))))) := by
   simp only [vals, List.append_assoc]
 
 theorem rowVals_length : d.rowVals.length = d.s.I := by simp [rowVals]
@@ -320,15 +497,21 @@ theorem kL_eq : d.kL = d.k1 + d.padVals.length := by
 theorem ch_eq : d.ch = d.kL + d.leafVals.length := by
   rw [leafVals_length]; rfl
 
-theorem v_eq (hf : 1 ≤ d.s.folds) : d.v + 1 = d.ch + offOf d.roundVals d.s.folds := by
+theorem v_eq (hf : 1 ≤ d.s.folds) : d.v + 1 = d.fo + offOf d.roundVals d.s.folds := by
   rw [d.offOf_last hf]
   simp only [v, oqVal, oqAcc, oqRO, oqRK_eq]
+  omega
+
+theorem fo_eq : d.fo = d.ch + d.wd.vals.length := by
+  rw [d.wd.vals_length, wd_winOff, wd_npw, wd_pd]
+  show oqCq d.s d.ch + 9 = _
+  rw [oqCq, oqWk_eq]
   omega
 
 theorem val_add (o : ℕ) : d.val (d.b + o) = d.vals.getD o 0 := by
   simp [val]
 
-/-- The fold's start, from `b`. -/
+/-- The walk's start, from `b`. -/
 theorem ch_off : d.ch = d.b + (d.rowVals.length + (d.packVals.length + (d.padVals.length +
     d.leafVals.length))) := by
   rw [ch_eq, kL_eq, k1_eq]; omega
@@ -367,24 +550,55 @@ theorem val_leaf {i : ℕ} (hi : i < d.s.chainLen) : d.val (d.kL + i) = d.leafV 
   rw [List.getD_append _ _ _ _ (by omega)]
   simp [leafVals, List.getD_eq_getElem?_getD, hi]
 
-/-- The fold's values, from its start. -/
-theorem val_foldVals {o : ℕ} (ho : o < d.foldVals.length) :
-    d.val (d.ch + o) = d.foldVals.getD o 0 := by
+/-- The walk's values, from its start. -/
+theorem val_walk {o : ℕ} (ho : o < d.wd.vals.length) : d.val (d.ch + o) = d.wd.vals.getD o 0 := by
   rw [ch_off, show d.b + (d.rowVals.length + (d.packVals.length + (d.padVals.length +
       d.leafVals.length))) + o = d.b + (d.rowVals.length + (d.packVals.length + (d.padVals.length +
       (d.leafVals.length + o)))) by omega, val_add, vals_eq]
   repeat rw [List.getD_append_right _ _ _ _ (by omega), Nat.add_sub_cancel_left]
   rw [List.getD_append _ _ _ _ ho]
 
+/-- The walk's sibling cells. -/
+theorem val_sib {o : ℕ} (ho : o < 2 * d.s.pd) : d.val (d.ch + o) = d.wd.pc o := by
+  have hl := d.wd.vals_length
+  rw [val_walk _ (by rw [hl]; exact lt_of_lt_of_le ho (by rw [wd_pd]; omega))]
+  exact d.wd.vals_sib ho
+
+/-- Window `i`'s values. -/
+theorem val_win {i o : ℕ} (hi : i < oqNpw d.s) (ho : o < winSz d.s i) :
+    d.val (oqWk d.s d.ch i + o) = d.wd.winV i o := by
+  have h1 := winOff_succ_le (s := d.s) hi
+  have hl := d.wd.vals_length
+  rw [wd_winOff, wd_npw, wd_pd] at hl
+  rw [oqWk_eq, Nat.add_assoc, Nat.add_assoc, val_walk _ (by omega), ← wd_winOff, ← wd_pd]
+  exact d.wd.vals_win hi ho
+
+/-- The cap leaf's values. -/
+theorem val_cap {o : ℕ} (ho : o < 9) : d.val (oqCq d.s d.ch + o) = d.wd.capV o := by
+  have hl := d.wd.vals_length
+  rw [wd_winOff, wd_npw, wd_pd] at hl
+  rw [oqCq, oqWk_eq, Nat.add_assoc, Nat.add_assoc, val_walk _ (by omega), ← wd_npw, ← wd_winOff,
+    ← wd_pd]
+  exact d.wd.vals_cap ho
+
+/-- The fold's values, from its start. -/
+theorem val_foldVals {o : ℕ} (ho : o < d.foldVals.length) :
+    d.val (d.fo + o) = d.foldVals.getD o 0 := by
+  rw [fo_eq, ch_off, show d.b + (d.rowVals.length + (d.packVals.length + (d.padVals.length +
+      d.leafVals.length))) + d.wd.vals.length + o = d.b + (d.rowVals.length + (d.packVals.length +
+      (d.padVals.length + (d.leafVals.length + (d.wd.vals.length + o))))) by omega, val_add, vals_eq]
+  repeat rw [List.getD_append_right _ _ _ _ (by omega), Nat.add_sub_cancel_left]
+  rw [List.getD_append _ _ _ _ ho]
+
 theorem val_round {j o : ℕ} (hj : j < d.s.folds) (ho : o < (d.roundVals j).length) :
-    d.val (oqRK d.s d.ch j + o) = (d.roundVals j).getD o 0 := by
+    d.val (oqRK d.s d.fo j + o) = (d.roundVals j).getD o 0 := by
   have h1 : offOf d.roundVals (j + 1) ≤ offOf d.roundVals d.s.folds := offOf_mono _ hj
   simp only [offOf] at h1
   rw [oqRK_eq, Nat.add_assoc, val_foldVals _ (by rw [foldVals_length]; omega), foldVals]
   exact getD_flatMap_range_of _ 0 _ _ _ hj ho
 
 theorem val_v (hf1 : 1 ≤ d.s.folds) : d.val d.v = d.foldVal := by
-  have e : d.v = oqRK d.s d.ch (d.s.folds - 1) + 5 := by simp only [v, oqVal, oqAcc, oqRO]
+  have e : d.v = oqRK d.s d.fo (d.s.folds - 1) + 5 := by simp only [v, oqVal, oqAcc, oqRO]
   rw [e, val_round d (by omega) (by rw [roundVals_length, Nat.sub_self, pow_zero]; omega)]
   simp [roundVals, foldVal]
 
@@ -392,8 +606,8 @@ theorem val_fin (hf1 : 1 ≤ d.s.folds) (o : ℕ) : d.val (d.v + 1 + o) = d.finV
   have hf := d.foldVals_length
   have hv := d.v_eq hf1
   have e : d.v + 1 + o = d.b + (d.rowVals.length + (d.packVals.length + (d.padVals.length +
-      (d.leafVals.length + (d.foldVals.length + o))))) := by
-    rw [hv, ch_off]; omega
+      (d.leafVals.length + (d.wd.vals.length + (d.foldVals.length + o)))))) := by
+    rw [hv, fo_eq, ch_off]; omega
   rw [e, val_add, vals_eq]
   repeat rw [List.getD_append_right _ _ _ _ (by omega), Nat.add_sub_cancel_left]
 
@@ -448,6 +662,7 @@ theorem e_eq (hf1 : 1 ≤ d.s.folds)
     d.e = d.b + d.vals.length := by
   have hv := d.v_eq hf1
   have hc := d.ch_off
+  have ho := d.fo_eq
   have hf := d.foldVals_length
   rw [e, oqEnd, oqRes]
   change (if d.s.final = 1 then (if d.s.final = 1 then (oqNovel d.s (.n 0) d.v).2.2 else d.v) else
@@ -462,201 +677,6 @@ theorem e_eq (hf1 : 1 ≤ d.s.folds)
     omega
 
 end QD
-
-
-/-! ## An honest `walk_path` frame -/
-
-/-- **An honest frame of `walk_path__L{pd}_L{cd}`** (`s`'s `pd` and `cd`): the leaf's digest it
-climbs from, the position, the siblings, the window pointer, the cap's and the flags' pointers. -/
-structure WD where
-  pd : ℕ
-  cd : ℕ
-  leaf : Digest
-  q : ℕ
-  sibs : List Digest
-  bpv : E
-  capv : E
-  flagsv : E
-
-/-- The walk frame of a query whose windows are at `bpv`. -/
-def QD.wd (d : QD) (bpv : E) : WD := ⟨d.s.pd, d.s.cd, d.leaf, d.q, d.sibs, bpv, d.capv, d.flagsv⟩
-
-/-- A window's values: its word, (window `0`) the padding run, `0x80`, `2^w` arms of `14w` values
-and the two targets. -/
-def winSz (s : Oq) (i : ℕ) : ℕ := 4 + oqWo i + 3 * oqWw s i * 2 ^ oqWw s i
-
-namespace WD
-
-variable (w : WD)
-
-/-- The walk's shape: only its `pd` and `cd` are read. -/
-def s : Oq := ⟨0, 0, w.pd, w.cd, 0, [], 0, 0⟩
-
-/-- The windows' first value. -/
-def W0 : ℕ := oqWk w.s wpCh 0
-/-- The cap section. -/
-def Cq : ℕ := oqCq w.s wpCh
-/-- The frame's values. -/
-def e : ℕ := w.Cq + 9
-
-/-- Path cell `k`: the node on the walk's side, the sibling off it. -/
-def pc (k : ℕ) : E := pathCell w.leaf w.q w.sibs k
-
-/-- The node after `l` levels. -/
-def node (l : ℕ) : Digest := climbNode w.leaf w.q w.sibs l
-
-/-- The cells level `l`'s permutation reads. -/
-def levelIns (l : ℕ) : List E :=
-  [w.pc (4 * l), w.pc (4 * l + 1), w.pc (4 * l + 2), w.pc (4 * l + 3), word 1 0, word 0 0,
-    word 0 0, word 0 0, word (2 ^ 63) 0, word 0 0, word 0 0, word 0 0, word 0 0]
-
-/-- Level `l`'s step at offset `c < 3`: the `0x80` constant, the permutation's first two cells. -/
-def stepV (l c : ℕ) : E :=
-  if c = 0 then word (2 ^ 63) 0 else cellsOfState (permOf (w.levelIns l)) false (Fin.ofNat 13 (c - 1))
-
-/-- Window `i`'s value: the position's bits there. -/
-def wv (i : ℕ) : ℕ := qwVal (w.s.pd + w.s.cd) w.s.cd w.q i
-
-/-- The offset of arm `a` in a window of `ww` levels, after the padding run. -/
-def armOff (ww a : ℕ) : ℕ := if a = 0 then 2 else 4 + 3 * ww * a
-
-/-- Window `i`'s value at offset `o ≥ 1` after its padding run: `0x80`, the targets (the node after
-it), arm `v`'s steps, `0` elsewhere (the arms not taken). -/
-def winA (i o : ℕ) : E :=
-  if o = 1 then word (2 ^ 63) 0
-  else if o = 2 + 3 * oqWw w.s i then (digestHalves (w.node (6 * i + oqWw w.s i))).1
-  else if o = 3 + 3 * oqWw w.s i then (digestHalves (w.node (6 * i + oqWw w.s i))).2
-  else if armOff (oqWw w.s i) (w.wv i) ≤ o ∧ o < armOff (oqWw w.s i) (w.wv i) + 3 * oqWw w.s i then
-    w.stepV (6 * i + (o - armOff (oqWw w.s i) (w.wv i)) / 3) ((o - armOff (oqWw w.s i) (w.wv i)) % 3)
-  else 0
-
-/-- The padding run's cell `k`: `1, 0, 0, 0, 0`. -/
-def padV (k : ℕ) : E := [word 1 0, word 0 0, word 0 0, word 0 0, word 0 0].getD k 0
-
-/-- Window `i`'s value at offset `o`: its word `g^v`, (window `0`) the padding run, then `winA`. -/
-def winV (i o : ℕ) : E :=
-  if o = 0 then gen ^ w.wv i else if o ≤ oqWo i then padV (o - 1) else w.winA i (o - oqWo i)
-
-/-- The cap child bit's window `g^b`. -/
-def wbV : E := gen ^ (if w.q.testBit w.s.pd then 1 else 0)
-
-/-- The cap parent index's window `g^Q`. -/
-def qV : E := gen ^ (w.q / 2 ^ (w.s.pd + 1))
-
-/-- The cap leaf at offset `o < 9`. -/
-def capV (o : ℕ) : E :=
-  [w.wbV, w.qV, w.flagsv * w.qV, word 1 0, w.qV * w.qV, w.capv * (w.qV * w.qV),
-    w.capv * (w.qV * w.qV) * (w.qV * w.qV), w.wbV * w.wbV,
-    w.capv * (w.qV * w.qV) * (w.qV * w.qV) * (w.wbV * w.wbV)].getD o 0
-
-/-- **The honest value of index `i` of the walk's frame.** -/
-def val (i : ℕ) : E :=
-  if i = 0 then (digestHalves w.leaf).1
-  else if i = 1 then (digestHalves w.leaf).2
-  else if i = 2 then w.bpv
-  else if i = 3 then w.capv
-  else if i = 4 then w.flagsv
-  else if i < w.W0 then w.pc (i - wpCh)
-  else if i < w.Cq then
-    (if i - w.W0 < winSz w.s 0 then w.winV 0 (i - w.W0)
-      else w.winV ((i - w.W0 - winSz w.s 0) / 1156 + 1) ((i - w.W0 - winSz w.s 0) % 1156))
-  else w.capV (i - w.Cq)
-
-/-- What the memory holds of an honest walk: its windows at `bpv`, its cap leaf and its flag. -/
-structure MemOk (w : WD) (rd : Reader) : Prop where
-  wins : ∀ i < qwN (w.s.pd + w.s.cd) w.s.cd, LoadHolds rd w.bpv i (gen ^ w.wv i)
-  cap0 : LoadHolds rd w.capv (2 * (2 ^ w.s.cd + w.q / 2 ^ w.s.pd))
-    (digestHalves (climbD w.leaf w.q w.sibs)).1
-  cap1 : LoadHolds rd w.capv (2 * (2 ^ w.s.cd + w.q / 2 ^ w.s.pd) + 1)
-    (digestHalves (climbD w.leaf w.q w.sibs)).2
-  flag : LoadHolds rd w.flagsv (2 ^ (w.s.cd - 1) + w.q / 2 ^ (w.s.pd + 1)) 1
-
-end WD
-
-/-! ## The walk frame's places -/
-
-theorem winSz_le (s : Oq) (i : ℕ) : winSz s i ≤ 1156 + oqWo i := by
-  have h := oqWw_le s i
-  unfold winSz
-  interval_cases (oqWw s i) <;> norm_num <;> omega
-
-theorem winSz_le' (s : Oq) {i : ℕ} (hi : 1 ≤ i) : winSz s i ≤ 1156 := by
-  have := winSz_le s i
-  simp only [oqWo, show i ≠ 0 by omega, ↓reduceIte] at this; omega
-
-theorem winSz_full {s : Oq} {i : ℕ} (hi : i + 1 < oqNpw s) : winSz s i = 1156 + oqWo i := by
-  unfold winSz oqWw; simp only [show ¬ i + 1 = oqNpw s by omega, ↓reduceIte]; norm_num; ring
-
-theorem oqWk_succ (s : Oq) (ch i : ℕ) : oqWk s ch (i + 1) = oqWk s ch i + winSz s i := by
-  simp [oqWk, winSz]; ring
-
-/-- Window `i ≥ 1` starts after window `0` and `i - 1` full windows of `1156` values. -/
-theorem oqWk_eq {s : Oq} {ch : ℕ} : ∀ {i : ℕ}, 1 ≤ i → i < oqNpw s →
-    oqWk s ch i = ch + 4 * s.pd + winSz s 0 + 1156 * (i - 1)
-  | 0, h, _ => absurd h (by omega)
-  | 1, _, _ => by rw [oqWk_succ]; simp [oqWk]
-  | i + 2, _, h => by
-    rw [oqWk_succ, oqWk_eq (by omega) (by omega), winSz_full h]
-    simp only [oqWo, show i + 1 ≠ 0 by omega, ↓reduceIte]; omega
-
-theorem oqWk_mono {s : Oq} {ch : ℕ} : ∀ {i j : ℕ}, i ≤ j → oqWk s ch i ≤ oqWk s ch j
-  | _, 0, h => by rw [Nat.le_zero.mp h]
-  | i, j + 1, h => by
-    rcases Nat.lt_or_ge i (j + 1) with h' | h'
-    · rw [oqWk_succ]; have := oqWk_mono (s := s) (ch := ch) (show i ≤ j by omega); omega
-    · rw [show i = j + 1 by omega]
-
-namespace WD
-
-variable (w : WD)
-
-theorem W0_eq : w.W0 = wpCh + 4 * w.s.pd := rfl
-theorem e_eq : w.e = w.Cq + 9 := rfl
-
-theorem W0_le_Cq : w.W0 ≤ w.Cq := oqWk_mono (Nat.zero_le _)
-
-theorem win_le_Cq {i : ℕ} (hi : i < oqNpw w.s) : oqWk w.s wpCh i + winSz w.s i ≤ w.Cq := by
-  rw [← oqWk_succ]; exact oqWk_mono hi
-
-theorem val_pc {o : ℕ} (ho : o < 4 * w.s.pd) : w.val (wpCh + o) = w.pc o := by
-  unfold val
-  have := W0_eq w
-  simp only [wpCh] at this ⊢
-  simp only [show 5 + o ≠ 0 by omega, show 5 + o ≠ 1 by omega, show 5 + o ≠ 2 by omega,
-    show 5 + o ≠ 3 by omega, show 5 + o ≠ 4 by omega, show 5 + o < w.W0 by omega, ↓reduceIte,
-    Nat.add_sub_cancel_left]
-
-theorem val_win {i o : ℕ} (hi : i < oqNpw w.s) (ho : o < winSz w.s i) :
-    w.val (oqWk w.s wpCh i + o) = w.winV i o := by
-  have h4 := W0_eq w
-  have h5 := w.win_le_Cq hi
-  have hW := oqWk_mono (s := w.s) (ch := wpCh) (Nat.zero_le i)
-  have hW0 : oqWk w.s wpCh 0 = w.W0 := rfl
-  unfold val
-  simp only [wpCh] at h4
-  simp only [show oqWk w.s wpCh i + o ≠ 0 by omega, show oqWk w.s wpCh i + o ≠ 1 by omega,
-    show oqWk w.s wpCh i + o ≠ 2 by omega, show oqWk w.s wpCh i + o ≠ 3 by omega,
-    show oqWk w.s wpCh i + o ≠ 4 by omega, show ¬ oqWk w.s wpCh i + o < w.W0 by omega,
-    show oqWk w.s wpCh i + o < w.Cq by omega, ↓reduceIte]
-  rcases Nat.eq_zero_or_pos i with rfl | hpos
-  · simp only [hW0, Nat.add_sub_cancel_left, ho, ↓reduceIte]
-  · have h6 := oqWk_eq (s := w.s) (ch := wpCh) hpos hi
-    have h7 := winSz_le' w.s hpos
-    simp only [wpCh] at h6 h7 ⊢
-    simp only [show ¬ oqWk w.s 5 i + o - w.W0 < winSz w.s 0 by omega, ↓reduceIte]
-    rw [show (oqWk w.s 5 i + o - w.W0 - winSz w.s 0) / 1156 + 1 = i by omega,
-      show (oqWk w.s 5 i + o - w.W0 - winSz w.s 0) % 1156 = o by omega]
-
-theorem val_cap {o : ℕ} : w.val (w.Cq + o) = w.capV o := by
-  have h4 := W0_eq w
-  have h5 := w.W0_le_Cq
-  unfold val
-  simp only [wpCh] at h4
-  simp only [show w.Cq + o ≠ 0 by omega, show w.Cq + o ≠ 1 by omega, show w.Cq + o ≠ 2 by omega,
-    show w.Cq + o ≠ 3 by omega, show w.Cq + o ≠ 4 by omega, show ¬ w.Cq + o < w.W0 by omega,
-    show ¬ w.Cq + o < w.Cq by omega, ↓reduceIte, Nat.add_sub_cancel_left]
-
-end WD
 
 end
 end LeanVM.Guest.B1

@@ -84,15 +84,17 @@ theorem osLevels_sound {V : FrameMap} (hU : UnfoldsV rd C V)
         (∀ j (h : j < (ws.alphas ++ gs).length), LoadHolds rd (σ (.n osFch)) j (ws.alphas ++ gs)[j]) ∧
         ReadsAt rd (σ (.n osFmsg)) fold ∧ fold.length = c.yrLen + (lvsLast (lv :: lvs)).folds ∧
         ReadsAt rd (σ (.n (osTail c (osLevels c lvl (lv :: lvs) st).2).2.2)) T ∧
-        T.length = c.yrLog ∧ MatsOk σ (osTail c (osLevels c lvl (lv :: lvs) st).2).2.1.mats
+        T.length = c.yrLog ∧ MatsOk σ (osTail c (osLevels c lvl (lv :: lvs) st).2).2.1.mats ∧
+        ∃ es, (osTail c (osLevels c lvl (lv :: lvs) st).2).2.1.rts = st.rts ++ es ∧
+          es.length = lvs.length + 1 ∧ ∀ i < es.length, RtOk σ (es.getD i []) ((lv :: lvs).getD i default)
   | lvl, lv, [], [level], st, ws, recs, R, root, hok, hin, hA, hT => by
     obtain ⟨hF, hcal⟩ := hok
     simp only [osLevels, List.append_nil] at hA hT
-    obtain ⟨xs, gs, fold, T, hxl, hrd, hgl, hfl, hTl, hrun, hfm, hTr, lg, hmT⟩ :=
+    obtain ⟨xs, gs, fold, T, hxl, hrd, hgl, hfl, hTl, hrun, hfm, hTr, lg, hmT, e, hre, hrt⟩ :=
       osLevelLast_sound hU hle hwt hF hcal hin hA hT lane
     refine ⟨xs, [], gs, fold, T, R, by simp [hxl, lvsWords], hrd, ?_, rfl,
       fun i hi ↦ absurd hi (by simp), hin.recF, by simp [hgl, lvsFolds], ?_, hfm, hfl, hTr, hTl,
-      by simpa [osLevels] using hmT⟩
+      by simpa [osLevels] using hmT, [e], by simpa [osLevels] using hre, rfl, fun i hi ↦ ?_⟩
     · rw [whirLevelsOpen_last]
       simp only [osLevelsW, List.append_nil, osLevels]
       refine RunsWith.of_eq hrun rfl rfl rfl rfl ?_ rfl rfl
@@ -105,22 +107,24 @@ theorem osLevels_sound {V : FrameMap} (hU : UnfoldsV rd C V)
         rw [List.getElem!_eq_getElem?_getD, List.getElem?_eq_getElem (by simp at hj; omega),
           Option.getD_some, ← hin.glen, Nat.add_sub_cancel' (by omega)] at this
         exact this
+    · have : i = 0 := by simpa using hi
+      subst this; simpa using hrt
   | lvl, lv, lv' :: lvs, level :: next :: cfg, st, ws, recs, R, root, hok, hin, hA, hT => by
     obtain ⟨hF, hcal, hrest⟩ := hok
     rw [osLevels_cons] at hA
     rw [osLevels_cons_snd] at hT ⊢
     rw [allOk_append] at hA
-    obtain ⟨xs1, ws1, r, root', hxl1, hrd1, hrun1, hin1, hrec, hcur1, gs1, hgs1, hgl1⟩ :=
+    obtain ⟨xs1, ws1, r, root', hxl1, hrd1, hrun1, hin1, hrec, hcur1, ⟨gs1, hgs1, hgl1⟩, e1, hre1, hrt1⟩ :=
       osLevelMid_sound hU hle hwt hF hcal hin hA.1
     obtain ⟨xs2, recs', gs2, fold, T, R', hxl2, hrd2, hrun2, hrl, hrecs, -, hgl2, hfch, hfm,
-      hfl, hTr, hTl, hmT⟩ :=
+      hfl, hTr, hTl, hmT, es, hes, hesl, hesr⟩ :=
       osLevels_sound hU hle hwt lane (lvl + 1) lv' lvs (next :: cfg) (osLevel c lvl lv st).2 ws1
         (recs ++ [r]) _ root' hrest hin1 hA.2 hT
     have eG : ws1.alphas ++ gs2 = ws.alphas ++ (gs1 ++ gs2) := by rw [hgs1, List.append_assoc]
     rw [eG] at hrun2 hfch
     rw [List.append_assoc] at hrun2
     refine ⟨xs1 ++ xs2, r :: recs', gs1 ++ gs2, fold, T, R', ?_, ?_, ?_, by simp [hrl], ?_,
-      hin.recF, by simp [hgl1, hgl2, lvsFolds], hfch, hfm, ?_, hTr, hTl, hmT⟩
+      hin.recF, by simp [hgl1, hgl2, lvsFolds], hfch, hfm, ?_, hTr, hTl, hmT, e1 :: es, ?_, ?_, ?_⟩
     · simp only [List.length_append, hxl1, hxl2, lvsWords]; ring
     · exact readsAt_append hrd1 (by rw [← hcur1]; exact hrd2)
     · rw [whirLevelsOpen_next]
@@ -134,6 +138,13 @@ theorem osLevels_sound {V : FrameMap} (hU : UnfoldsV rd C V)
         rw [show lvl + 1 + i = lvl + (i + 1) by ring] at this
         simpa using this
     · rw [hfl]; rfl
+    · rw [hes, hre1]; simp
+    · simp [hesl]
+    · intro i hi
+      rcases i with _ | i
+      · simpa using hrt1
+      · have := hesr i (by simp at hi; omega)
+        simpa using this
   | _, _, [], [], _, _, _, _, _, hok, _, _, _ => absurd hok (by simp [LevelsOk])
   | _, _, [], _ :: _ :: _, _, _, _, _, _, hok, _, _, _ => absurd hok (by simp [LevelsOk])
   | _, _, _ :: _, [], _, _, _, _, _, hok, _, _, _ => absurd hok (by simp [LevelsOk])

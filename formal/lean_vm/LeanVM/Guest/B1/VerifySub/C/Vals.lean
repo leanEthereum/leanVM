@@ -27,7 +27,7 @@ arguments and the words read. In the carried sponge's terms (`Fs`):
   sponge `vsRootFs` is the seed's capacity with the eight announced words, then the root's two,
   absorbed;
 * `vs_ood`: the out-of-domain grind's permutation of the nonce `ws[10]` (`vsOodSt`), its cells,
-  the point's challenge, `tabs` and the value's pointer;
+  the point's challenge and the value's pointer (the grind itself: `vsOodGrind_good`);
 * `vs_busGrind`: `g^(d - 20)`, the bus grind's index;
 * `vs_fpw`: the fifteen slot weights squeezed from `opening_message`'s capacity, then `β`
   (`vsFpwFs`);
@@ -110,16 +110,16 @@ theorem vsg_fsPack {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {x :
 
 /-- The tail but its `ret`. -/
 def vsTailP : List Stmt :=
-  [vsConst 1884 (word 2 0), vsMul 1885 578 1884] ++ vsTabsT 1886 1887 ++
+  [vsConst 1988 (word 2 0), vsMul 1989 630 1988] ++ vsTabsT 1990 1991 ++
   [.dispatch (.n (val% «verify_sub» "size_sel")) vsOpenNames
       [.n (val% «verify_sub» "rate_sel"), .n (val% «verify_sub» "nxt[8]@36"), .n (val% «verify_sub» "nxt[9]@36"), .n (val% «verify_sub» "nxt[10]@36"), .n (val% «verify_sub» "nxt[11]@36"), .n (val% «verify_sub» "nxt[12]@36"), .n (val% «verify_sub» "target@136"), .n (val% «verify_sub» "x@9"), .n (val% «verify_sub» "x@10"), .n (val% «verify_sub» "sumcheck_target~2"),
         .n (val% «verify_sub» "sumcheck_target~4")]
-      (vsRun 1888 5),
-    vsCall "check_opening_terminal" [4, 254, 552, 564, 253, 562, 72, 566, 83, 1329, 275, 567, 815,
-      1889, 1890, 1891, 1892, 1888, 303, 276] []] ++
-  (List.range 19).flatMap (fun k ↦ [vsLd (1893 + k) 254 k, vsLd (1893 + k) 5 k]) ++
-  (List.range 4).flatMap (fun k ↦ [vsLd (1912 + k) 553 k, vsLd (1912 + k) 5 (19 + k)]) ++
-  [vsLd 563 5 23]
+      (vsRun 1992 5),
+    vsCall "check_opening_terminal" [4, 254, 604, 616, 253, 614, 72, 618, 83, 1433, 275, 619, 919,
+      1993, 1994, 1995, 1996, 1992, 355, 276] []] ++
+  (List.range 19).flatMap (fun k ↦ [vsLd (1997 + k) 254 k, vsLd (1997 + k) 5 k]) ++
+  (List.range 4).flatMap (fun k ↦ [vsLd (2016 + k) 605 k, vsLd (2016 + k) 5 (19 + k)]) ++
+  [vsLd 615 5 23]
 
 theorem vsTailT_split : vsTailT = vsTailP ++ [.ret []] := by
   simp only [vsTailT, vsTailP, List.append_assoc, List.cons_append, List.nil_append]
@@ -152,25 +152,25 @@ theorem vsOodT_good (hl : args.length = 6) : ∀ s ∈ vsOodT, GoodS rd vsSL w �
   vs_goodL hl (n := 249) (by decide +kernel)
 
 theorem vsBusGrindT_good (hl : args.length = 6) : ∀ s ∈ vsBusGrindT, GoodS rd vsSL w ς s :=
-  vs_goodL hl (n := 264) (by decide +kernel)
+  vs_goodL hl (n := 303) (by decide +kernel)
 
 theorem vsFpwT_good (hl : args.length = 6) : ∀ s ∈ vsFpwT, GoodS rd vsSL w ς s :=
-  vs_goodL hl (n := 271) (by decide +kernel)
+  vs_goodL hl (n := 310) (by decide +kernel)
 
 theorem vsCallsT_good (hl : args.length = 6) : ∀ s ∈ vsCallsT, GoodS rd vsSL w ς s :=
-  vs_goodL hl (n := 309) (by decide +kernel)
+  vs_goodL hl (n := 348) (by decide +kernel)
 
 theorem vsMapsT_good (hl : args.length = 6) : ∀ s ∈ vsMapsT, GoodS rd vsSL w ς s :=
-  vs_goodL hl (n := 325) (by decide +kernel)
+  vs_goodL hl (n := 364) (by decide +kernel)
 
 theorem vsCtabT_good (hl : args.length = 6) : ∀ s ∈ vsCtabT, GoodS rd vsSL w ς s :=
-  vs_goodL hl (n := 385) (by decide +kernel)
+  vs_goodL hl (n := 463) (by decide +kernel)
 
 theorem vsLamT_good (hl : args.length = 6) : ∀ s ∈ vsLamT, GoodS rd vsSL w ς s :=
-  vs_goodL hl (n := 963) (by decide +kernel)
+  vs_goodL hl (n := 1041) (by decide +kernel)
 
 theorem vsTailP_good (hl : args.length = 6) : ∀ s ∈ vsTailP, GoodS rd vsSL w ς s :=
-  vs_goodL hl (n := 1506) (by decide +kernel)
+  vs_goodL hl (n := 1584) (by decide +kernel)
 
 /-! ## The head: the zero cells and the seed -/
 
@@ -286,9 +286,15 @@ theorem vsg_tabs {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {c d :
   (vsTabsT_holds (C := fun _ _ _ ↦ True) (kret := fun _ ↦ True)
     (vs_holdsList_good hb hg (next := True) trivial)).1
 
+/-- The out-of-domain grind, inlined, on the honest valuation: its statements' equations. -/
+theorem vsOodGrind_good (hl : args.length = 6) :
+    ∀ s ∈ gcInlineOT 15 301 winTabAt (.n (val% «verify_sub» "nxt[1]@3")) (.n (val% «verify_sub» "g_squares")),
+      GoodS rd vsSL w ς s := fun s hs ↦ vsOodT_good hl s (by
+    rw [vsOodT]; exact List.mem_append_left _ (List.mem_append_right _ hs))
+
 /-- **The out-of-domain sample**: the nonce `n` at stream offset `10` absorbed after
 the root's words and permuted (`vsOodSt`), `grind_check`'s cell, the point's capacity and
-challenge, `tabs`, and the value's pointer `stream·g^11`. -/
+challenge, and the value's pointer `stream·g^11`. -/
 theorem vs_ood (hl : args.length = 6) {ws : List E}
     (hws : ∀ k < 11, LoadHolds rd (w 25) k (ws.getD k 0)) :
     ς (.n (val% «verify_sub» "s38.i0:fs_grind_squeeze.s0.e.s0.e.s0#0")) = ws.getD 10 0 ∧
@@ -296,7 +302,7 @@ theorem vs_ood (hl : args.length = 6) {ws : List E}
       [ς (.n (val% «verify_sub» "nxt[8]@3")), ς (.n (val% «verify_sub» "nxt[9]@3")), ς (.n (val% «verify_sub» "nxt[10]@3")), ς (.n (val% «verify_sub» "nxt[11]@3")), ς (.n (val% «verify_sub» "nxt[12]@3"))] =
         capOf (vsOodSt rd w args (ws.getD 10 0)) ∧
       ς (.n (val% «verify_sub» "nxt[0]@3")) = challengeOf (vsOodSt rd w args (ws.getD 10 0)) ∧
-      ς (.n (val% «verify_sub» "s38.i0:fs_grind_squeeze.s0.e.s0.e.s1#1")) = ς (.n (val% «verify_sub» "g_squares")) * gen ^ winTabAt ∧ ς (.n (val% «verify_sub» "word0~9")) = w 25 * gen ^ 11 := by
+      ς (.n (val% «verify_sub» "word0~9")) = w 25 * gen ^ 11 := by
   have hG := vsOodT_good (rd := rd) (w := w) hl
   have W8 := vs_word (rd := rd) (w := w) hl (k := 8) (by omega) (hws 8 (by omega))
   have W9 := vs_word (rd := rd) (w := w) hl (k := 9) (by omega) (hws 9 (by omega))
@@ -316,12 +322,10 @@ theorem vs_ood (hl : args.length = 6) {ws : List E}
   have hc := vs_oodPerm (by simpa [vsWv] using W8.2) (by simpa [vsWv] using W9.2) hp h286 h287 hk
   rw [e283] at hc
   obtain ⟨c0, c1, ccap⟩ := vs_ood_cells hc
-  have h302 : ς (.n (val% «verify_sub» "s38.i0:fs_grind_squeeze.s0.e.s0.e.s1#1")) = ς (.n (val% «verify_sub» "g_squares")) * gen ^ winTabAt := vsg_tabs (c := 301) (by decide) fun s hs ↦ hG s (by
-    rw [vsOodT]; exact List.mem_append_left _ (List.mem_append_right _ hs))
   have h311 : ς (.n (val% «verify_sub» "word0~8")) = word 2048 0 := vsg_const (hG _ (by simp [vsOodT, vsConst]))
   have h312 : ς (.n (val% «verify_sub» "word0~9")) = ς (.n (val% «verify_sub» "stream")) * ς (.n (val% «verify_sub» "word0~8")) :=
     vsg_mul (by norm_num) (by norm_num) (hG _ (by simp [vsOodT, vsMul]))
-  refine ⟨e283, c1, ccap, ?_, h302, ?_⟩
+  refine ⟨e283, c1, ccap, ?_, ?_⟩
   · rw [c0, Keccak.challengeOf_cells]; rfl
   · rw [h312, h311, word_g11, vs_w hl (by decide)]
 
@@ -336,7 +340,7 @@ theorem vs_busGrind (hl : args.length = 6) {d : ℕ} (hd : 20 ≤ d) (h253 : w 2
   have h322 : ς (.n (val% «verify_sub» "bus_grind")) = ς (.n (val% «verify_sub» "g_bus_mu")) * ς (.n (val% «verify_sub» "bus_grind~0")) :=
     vsg_mul (by norm_num) (by norm_num) (hG _ (by simp [vsBusGrindT, vsMul]))
   have h323 : ς (.n (val% «verify_sub» "s44#0")) = word 8192 0 := vsg_const (hG _ (by simp [vsBusGrindT, vsConst]))
-  have h328 : ς (.n (val% «verify_sub» "done~2")) = ς (.n (val% «verify_sub» "g_squares")) * gen ^ winTabAt := vsg_tabs (c := 326) (by decide) fun s hs ↦ hG s (by
+  have h328 : ς (.n (val% «verify_sub» "done~2")) = ς (.n (val% «verify_sub» "g_squares")) * gen ^ winTabAt := vsg_tabs (c := 378) (by decide) fun s hs ↦ hG s (by
     rw [vsBusGrindT]; exact List.mem_append_left _ (List.mem_append_right _ hs))
   refine ⟨?_, by rw [h323, word_g13], h328⟩
   rw [h322, h321, vs_w hl (by decide), h253, show d = (d - 20) + 20 by omega, pow_add,
@@ -345,7 +349,7 @@ theorem vs_busGrind (hl : args.length = 6) {d : ℕ} (hd : 20 ≤ d) (h253 : w 2
 /-! ## The slot weights and `β` -/
 
 /-- The sponge the slot weights are squeezed from: `opening_message`'s capacity. -/
-def vsFpwFs (w : ℕ → E) : Fs := ⟨[w 314, w 315, w 316, w 317, w 318], []⟩
+def vsFpwFs (w : ℕ → E) : Fs := ⟨[w 366, w 367, w 368, w 369, w 370], []⟩
 
 theorem vsPermT_noSide (capb o : ℕ) : [vsPermT capb o].all vsNoSideB = true := rfl
 
@@ -359,14 +363,14 @@ theorem vsg_perm {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {capb 
     (vs_holdsList_good (vsPermT_noSide capb o) hg (next := True) trivial)).1
 
 theorem vsPerm_mem_fpw {i : ℕ} (hi : i < 15) {s : Stmt}
-    (hs : s ∈ [vsPermT (vsFpwCap i) (335 + 13 * i)]) : s ∈ vsFpwT := by
+    (hs : s ∈ [vsPermT (vsFpwCap i) (387 + 13 * i)]) : s ∈ vsFpwT := by
   rw [vsFpwT, List.mem_singleton.1 hs]
   exact List.mem_append_left _ (List.mem_append_right _
     (List.mem_flatMap.2 ⟨i, List.mem_range.2 hi, List.mem_cons_self⟩))
 
 theorem vs_fpw_loop (hl : args.length = 6) : ∀ n ≤ 15,
     sqSt (vsFpwFs w) n = ⟨(vsRun (vsFpwCap n) 5).map ς, []⟩ ∧
-      ∀ i < n, (sqSt (vsFpwFs w) i).squeeze.1 = ς (.n (335 + 13 * i)) := by
+      ∀ i < n, (sqSt (vsFpwFs w) i).squeeze.1 = ς (.n (387 + 13 * i)) := by
   have hG := vsFpwT_good (rd := rd) (w := w) hl
   have hz := vs_zero (rd := rd) (w := w) hl
   intro n
@@ -374,7 +378,7 @@ theorem vs_fpw_loop (hl : args.length = 6) : ∀ n ≤ 15,
   | zero =>
     intro _
     refine ⟨?_, fun i hi ↦ absurd hi (by omega)⟩
-    have c : ∀ i < 5, ς (.n ((val% «verify_sub» "sp[0]@2") + i)) = w (314 + i) := fun i hi ↦ by
+    have c : ∀ i < 5, ς (.n ((val% «verify_sub» "sp[0]@2") + i)) = w (366 + i) := fun i hi ↦ by
       rw [vsg_copy (hG _ (by
         rw [vsFpwT]
         exact List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
@@ -385,7 +389,7 @@ theorem vs_fpw_loop (hl : args.length = 6) : ∀ n ≤ 15,
     have c3 := c 3 (by omega)
     have c4 := c 4 (by omega)
     simp only [Nat.reduceAdd] at c0 c1 c2 c3 c4
-    rw [show sqSt (vsFpwFs w) 0 = vsFpwFs w from rfl, show vsFpwCap 0 = 329 from rfl, vsRun5,
+    rw [show sqSt (vsFpwFs w) 0 = vsFpwFs w from rfl, show vsFpwCap 0 = 381 from rfl, vsRun5,
       vsFpwFs]
     simp only [Nat.reduceAdd]
     rw [c0, c1, c2, c3, c4]
@@ -393,7 +397,7 @@ theorem vs_fpw_loop (hl : args.length = 6) : ∀ n ≤ 15,
     intro hn
     obtain ⟨hs, hi⟩ := ih (by omega)
     have hq := vsg_perm hz fun s hs ↦ hG s (vsPerm_mem_fpw (i := n) (by omega) hs)
-    have hc : vsFpwCap (n + 1) = 335 + 13 * n + 8 := by
+    have hc : vsFpwCap (n + 1) = 387 + 13 * n + 8 := by
       simp only [vsFpwCap, Nat.add_one_ne_zero, ↓reduceIte]; omega
     refine ⟨?_, fun i hi' ↦ ?_⟩
     · rw [sqSt, hs, hq, hc, vsRun5]
@@ -402,10 +406,10 @@ theorem vs_fpw_loop (hl : args.length = 6) : ∀ n ≤ 15,
       · rw [hs, hq]
 
 /-- **The slot weights and `β`**: squeezed from `opening_message`'s capacity
-(`vsFpwFs`), the fifteen weights at `335 + 13 i`, then `β` at `530` with the capacity after at
-`538 .. 542`. -/
+(`vsFpwFs`), the fifteen weights at `387 + 13 i`, then `β` at `582` with the capacity after at
+`590 .. 594`. -/
 theorem vs_fpw (hl : args.length = 6) :
-    (∀ i < 15, ς (.n (335 + 13 * i)) = ((vsFpwFs w).squeezeN 15).1.getD i 0) ∧
+    (∀ i < 15, ς (.n (387 + 13 * i)) = ((vsFpwFs w).squeezeN 15).1.getD i 0) ∧
       ((vsFpwFs w).squeezeN 15).2.squeeze =
         (ς (.n (val% «verify_sub» "nxt[0]@19")), ⟨[ς (.n (val% «verify_sub» "nxt[8]@19")), ς (.n (val% «verify_sub» "nxt[9]@19")), ς (.n (val% «verify_sub» "nxt[10]@19")), ς (.n (val% «verify_sub» "nxt[11]@19")), ς (.n (val% «verify_sub» "nxt[12]@19"))], []⟩) := by
   have hG := vsFpwT_good (rd := rd) (w := w) hl
@@ -416,7 +420,7 @@ theorem vs_fpw (hl : args.length = 6) :
   · rw [List.getD_eq_getElem _ _ (by simpa using hi'), List.getElem_map, List.getElem_range,
       hi i hi']
   · rw [h15]
-    exact vsg_perm (capb := 525) hz fun s hs ↦ hG s (by
+    exact vsg_perm (capb := 577) hz fun s hs ↦ hG s (by
       rw [vsFpwT]; exact List.mem_append_right _ hs)
 
 /-! ## The three calls -/
@@ -426,20 +430,20 @@ the output lanes at `col_eval_words·g^101`. -/
 theorem vs_callsV (hl : args.length = 6) :
     ς (.n (val% «verify_sub» "fs0@3~8")) = ς (.n (val% «verify_sub» "g_squares")) * gen ^ winTabAt ∧ ς (.n (val% «verify_sub» "fs0@4~11")) = ς (.n (val% «verify_sub» "g_squares")) * gen ^ winTabAt ∧
       ς (.n (val% «verify_sub» "fs0@5~10")) = ς (.n (val% «verify_sub» "g_squares")) * gen ^ winTabAt ∧ ς (.n (val% «verify_sub» "tau_keccak_g")) = rdAt rd (w 71) 6 ∧
-      ς (.n (val% «verify_sub» "fs0@5~8")) = w 565 * gen ^ 101 := by
+      ς (.n (val% «verify_sub» "fs0@5~8")) = w 617 * gen ^ 101 := by
   have hG := vsCallsT_good (rd := rd) (w := w) hl
   have h586 : ς (.n (val% «verify_sub» "fs0@5~7")) = word 3710851743744 0 := vsg_const (hG _ (by simp [vsCallsT, vsConst]))
   have h587 : ς (.n (val% «verify_sub» "fs0@5~8")) = ς (.n (val% «verify_sub» "col_eval_words")) * ς (.n (val% «verify_sub» "fs0@5~7")) :=
     vsg_mul (by norm_num) (by norm_num) (hG _ (by simp [vsCallsT, vsMul]))
   have h583 : ς (.n (val% «verify_sub» "tau_keccak_g")) = rdAt rd (ς (.n (val% «verify_sub» "dims_g"))) 6 :=
     vsg_rdAt (hG _ (by simp [vsCallsT, vsLd])) (by decide +kernel)
-  refine ⟨vsg_tabs (c := 543) (by decide) fun s hs ↦ hG s (by
+  refine ⟨vsg_tabs (c := 595) (by decide) fun s hs ↦ hG s (by
       rw [vsCallsT]; exact List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
         (List.mem_append_left _ (List.mem_append_left _ hs))))),
-    vsg_tabs (c := 554) (by decide) fun s hs ↦ hG s (by
+    vsg_tabs (c := 606) (by decide) fun s hs ↦ hG s (by
       rw [vsCallsT]; exact List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
         (List.mem_append_right _ hs)))),
-    vsg_tabs (c := 571) (by decide) fun s hs ↦ hG s (by
+    vsg_tabs (c := 623) (by decide) fun s hs ↦ hG s (by
       rw [vsCallsT]; exact List.mem_append_left _ (List.mem_append_right _ hs)),
     by rw [h583, vs_w hl (by decide)], ?_⟩
   rw [h587, h586, word_g101, vs_w hl (by decide)]

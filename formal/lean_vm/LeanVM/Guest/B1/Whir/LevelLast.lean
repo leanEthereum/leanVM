@@ -120,6 +120,13 @@ theorem osTailRounds_mats (tch : ℕ) : ∀ (j n : ℕ) (s : OsSt), (osTailRound
 theorem osTail_mats (c : OsCfg) (s : OsSt) : (osTail c s).2.1.mats = s.mats :=
   osTailRounds_mats _ 0 c.yrLog _
 
+theorem osTailRounds_rts (tch : ℕ) : ∀ (j n : ℕ) (s : OsSt), (osTailRounds tch j n s).2.rts = s.rts
+  | _, 0, _ => rfl
+  | j, n + 1, _ => osTailRounds_rts tch (j + 1) n _
+
+theorem osTail_rts (c : OsCfg) (s : OsSt) : (osTail c s).2.1.rts = s.rts :=
+  osTailRounds_rts _ 0 c.yrLog _
+
 /-- **The closing rounds** into `tail_challenges` at `tch`. -/
 theorem osTail_sound (hT : ∀ a r, C "opening_tail_round" a r → MeaningOpeningTailRound rd a r)
     {c : OsCfg} {s : OsSt} (hfs : s.fs.length = 5) (hco : s.co < u128Bound)
@@ -163,6 +170,7 @@ structure FinFacts (c : OsCfg) (logN lvl : ℕ) (lv : OsLv) (level : Whir.Level)
   sqo : lv.squeezes < ordG
   sq5 : lv.squeezes * 5 < u128Bound
   r3 : 2 * (lv.foldsOff + lv.folds) < u128Bound
+  f5 : 5 * lv.folds + 2 < u128Bound
   hs8 : lvl * hsStride < u128Bound
   N : lv.queries / (1 + if lvl = 0 then 1 else 0) < ordG
   it : lv.queries / (1 + lvBase lvl) < u128Bound
@@ -178,13 +186,11 @@ structure FinFacts (c : OsCfg) (logN lvl : ℕ) (lv : OsLv) (level : Whir.Level)
 /-- The final level's callees and the closing rounds', by their meanings. -/
 structure FinCalls (rd : Reader) (C : CallRel) (σ : Val) (c : OsCfg) (lvl : ℕ) (lv : OsLv) :
     Prop where
-  round : ∀ a r, WinTabs rd (a.getD 7 0) → C "opening_round" a r → MeaningOpeningRound rd a r
+  gc : GcOk C rd σ
   fmsg : ∀ a r, C ("opening_message__L" ++ natStr (c.yrLen + lv.folds) ++ "_L1") a r →
     MeaningOpeningMessage (c.yrLen + lv.folds) 1 rd a r
-  g17 : ∀ w, C ("grind_check__L" ++ natStr queryGrind) [w, σ (.n osTabs)] [] →
-    (w.limb 0).lane.toNat % 2 ^ queryGrind = 0
   rate : LvRate σ c lvl lv
-  lp : ∀ a r, WinTabs rd (a.getD 8 0) → C (osPositionsName lv) a r →
+  lp : ∀ a r, WinTabs rd (a.getD 8 0) → a.getD 9 0 = gen ^ lv.squeezes → C (osPositionsName lv) a r →
     MeaningLevelPositions lv.squeezes lv.depth lv.capDepth rd a r
   lq : FnIs (osQueriesName c lvl lv) (osParams 6) (osLqBody c lvl lv)
   cap : ∀ a r, C ("verify_merkle_cap__L" ++ natStr lv.capDepth) a r →
@@ -223,53 +229,92 @@ theorem osLevelLast_sound {V : FrameMap} (hU : UnfoldsV rd C V)
       ReadsAt rd (σ (.n osFmsg)) fold ∧
       ReadsAt rd (σ (.n (osTail c (osLevel c lvl lv st).2).2.2)) T ∧
       (∀ j < lv.folds, LoadHolds rd (σ (.n osFch)) (lv.foldsOff + j) gs[j]!) ∧
-      MatsOk σ (osTail c (osLevel c lvl lv st).2).2.1.mats := by
-  obtain ⟨loop, sh, ⟨hmem, hent, hodd, hbase, hsf, hsd, hscd, hfin1, hcd2, hcd8, hcdd, hQ⟩, hnhs,
+      MatsOk σ (osTail c (osLevel c lvl lv st).2).2.1.mats ∧
+      ∃ e, (osTail c (osLevel c lvl lv st).2).2.1.rts = st.rts ++ [e] ∧ RtOk σ e lv := by
+  obtain ⟨loop, sh, ⟨hmem, hent, hbase, hsf, hspd, hfin1, hcd2, hcd8, hcdd⟩, hnhs,
     hhsb, hvs⟩ := hF.qsh
+  have hpdd : sh.pd + lv.capDepth = lv.depth := by rw [hspd]; omega
   have hfin := hF.fin
   obtain ⟨hshape, hloop⟩ := oqEntry_shape hent
-  have hpre : osPreQ c lvl lv st = (osHsFinal c lv (osPositions c lvl lv
-      (osFinalMsg c lv (osRounds c.plan lv.foldsOff lv.folds st).2).2).2).2 := by
+  have hpre : osPreQ c lvl lv st = (osHsFinal c lv (osPositions c lvl (osQGrind
+      (osFinalMsg c lv (osRounds true lv.foldsOff lv.folds (osRates c lvl st).2).2).2).2).2).2 := by
     simp only [osPreQ, hfin, ↓reduceIte]
   have hlev : osLevel c lvl lv st =
-      let f := osRounds c.plan lv.foldsOff lv.folds st
+      let rt := osRates c lvl st
+      let f := osRounds true lv.foldsOff lv.folds rt.2
       let m := osFinalMsg c lv f.2
-      let gr : List Stmt := [.call ("grind_check__L" ++ natStr queryGrind) [.n m.2.pow0, .n osTabs] []]
-      let sq := osPositions c lvl lv m.2
+      let gr := osQGrind m.2
+      let sq := osPositions c lvl gr.2
       let h := osHsFinal c lv sq.2
       let q := osQueries c lvl lv h.2
-      (f.1 ++ m.1 ++ gr ++ sq.1 ++ h.1 ++ q.1, q.2) := by
+      (rt.1 ++ f.1 ++ m.1 ++ gr.1 ++ sq.1 ++ h.1 ++ q.1, q.2) := by
     simp only [osLevel, hfin, ↓reduceIte, List.append_nil]
   rw [hpre]
   rw [hlev] at hok hokT ⊢
   simp only at hok hokT ⊢
-  set f := osRounds c.plan lv.foldsOff lv.folds st with hf
+  set rt := osRates c lvl st with hrt
+  set f := osRounds true lv.foldsOff lv.folds rt.2 with hf
   set m := osFinalMsg c lv f.2 with hm
-  set sq := osPositions c lvl lv m.2 with hsq
+  set gr := osQGrind m.2 with hgr
+  set sq := osPositions c lvl gr.2 with hsq
   set h := osHsFinal c lv sq.2 with hh
   set q := osQueries c lvl lv h.2 with hq
   simp only [allOk_append] at hok
-  obtain ⟨⟨⟨⟨⟨hoF, hoM⟩, hoG⟩, hoS⟩, hoH⟩, hoQ⟩ := hok
+  obtain ⟨⟨⟨⟨⟨⟨hoR, hoF⟩, hoM⟩, hoG⟩, hoS⟩, hoH⟩, hoQ⟩ := hok
   set D := recsDeficit recs ws.alphas with hD
+  -- the rates
+  obtain ⟨hrv, hlpv, hlwv⟩ := osRates_sound hcal.rate hoR
+  have hpo : lv.posOff < u128Bound := hF.posOff
+  have hfe : ∃ k fs co claim, f.2 = { rt.2 with k := k, fs := fs, co := co, claim := claim } :=
+    osRounds_snd true lv.foldsOff lv.folds rt.2
+  obtain ⟨_, _, _, _, hfe⟩ := hfe
+  have hflp : f.2.lp = rt.2.lp := by rw [hfe]
+  have hflw : f.2.lw = rt.2.lw := by rw [hfe]
+  have hfrts : f.2.rts = rt.2.rts := by rw [hfe]
   -- the folds
-  obtain ⟨xs0, gs, rounds, hx0, hgl, hrl, hrd0, hrun0, hcur0, hfs0, hm0, hco0, hpad0, lg, lc⟩ :=
-    osRounds_sound hcal.round hwt c.plan lv.folds lv.foldsOff st ws D hin.fs hin.mats hin.co hF.r3
-      hin.claim hoF
+  have hpz : PadZ σ (rt.2.pad.getD osPadV) := by
+    obtain ⟨p, hp⟩ := hin.pads
+    have := hin.pad p hp
+    show PadZ σ (st.pad.getD osPadV)
+    rw [hp]; exact this
+  obtain ⟨xs0, gs, rounds, hx0, hgl, hrl, hrd0, hrun0, hcur0, hfs0, hm0, hco0, -, -, lg, lc⟩ :=
+    osRounds_sound hcal.gc hwt true lv.folds lv.foldsOff rt.2 ws D hin.fs hpz hin.claim hoF
+  replace hcur0 : f.2.cur σ = st.cur σ * gen ^ (5 * lv.folds) := hcur0
+  replace hrd0 : ReadsAt rd (st.cur σ) xs0 := hrd0
+  have hmF : MatsOk σ f.2.mats := by rw [hm0]; exact hin.mats
+  have hcoF : f.2.co < u128Bound := by
+    rw [hco0]
+    have := hin.co; have := hF.f5
+    show st.co + 5 * lv.folds < u128Bound
+    omega
   -- the final lane
-  obtain ⟨fold, nn, hM⟩ := osFinalMsg_sound hcal.fmsg hfs0 hm0 hco0 hoM
+  obtain ⟨fold, nn, hM⟩ := osFinalMsg_sound hcal.fmsg hfs0 hmF hcoF hoM
   set S := (f.2.F σ).absorbAll fold dsObserve with hS
-  simp only [allOk_cons, allOk_nil, and_true, stmtOk_call, List.map_cons, List.map_nil] at hoG
+  have hgq := hcal.gc queryGrind m.2.k (.n m.2.pow0) (.n osTabs) (by decide) hwt hoG
   obtain ⟨gok, -, -⟩ := grindSqueeze_cells (s := S) (bits := queryGrind) (by decide) nn _ _
-    hM.word0 hM.pow0 (hcal.g17 _ hoG)
+    hM.word0 hM.pow0 hgq
   have hpow1 : powOk queryGrind (Keccak.lane (S.nonceState nn) 2) = true :=
     gok.resolve_left (by decide)
   -- the positions, the normalized lane
-  have hSq := osPositions_sound hcal.lp hcal.rate hwt hF.posOff hM.mats hM.fs hM.F rfl hoS
+  have hsq5 := hF.sq5
+  have hsqv : σ (.n ((gr.2.rts.getLast?.getD []).getD 1 0)) = gen ^ lv.squeezes := by
+    have e : gr.2.rts = st.rts ++ [[st.k + 1 + 2 * 0 + 1, st.k + 1 + 2 * 1 + 1,
+        st.k + 1 + 2 * 2 + 1, st.k + 1 + 2 * 3 + 1]] := hfrts.trans (osRates_rts c lvl st)
+    rw [e, List.getLast?_append, List.getLast?_singleton, Option.some_or]
+    have := hrv 1 (by decide)
+    simp only [Option.getD_some, List.getD_cons_succ, List.getD_cons_zero]
+    rw [this]
+    exact gw_eq (by simp [osRateVals]; unfold u128Bound at *; omega)
+  have hSq := osPositions_sound hcal.lp hcal.rate hwt
+    (st := gr.2) (by rw [show gr.2.lp = rt.2.lp from hflp, hlpv, gw_eq hpo])
+    (by rw [show gr.2.lw = rt.2.lw from hflw, hlwv, gw_eq hpo]) hsqv hM.mats hM.fs hM.F rfl hoS
   obtain ⟨hhs, hhse⟩ := osHsFinal_sound hoH
   have hmh : MatsOk σ h.2.mats := by rw [hhse]; exact hSq.mats
   have hf3 : 2 * lv.foldsOff < u128Bound := lt_of_le_of_lt (by omega) hF.r3
-  obtain ⟨hargs, hcapC, hqC, ebat, -, lr0, lr1, hmq, hqe⟩ :=
-    osLq_sound hU hcal.rate hcal.lq hF.it hF.pwQ hmh hf3 hF.hs8 hF.posOff hoQ
+  obtain ⟨hargs, hcapC, h13, h15, hqC, ebat, -, lr0, lr1, hmq, hqe⟩ :=
+    osLq_sound hU hcal.rate hcal.lq hF.it hcd8 hF.pwQ hmh hf3 hF.hs8
+      (by rw [show h.2.lp = rt.2.lp from hflp, hlpv, gw_eq hpo])
+      (by rw [show h.2.lw = rt.2.lw from hflw, hlwv, gw_eq hpo]) hoQ
   set A := osQArgs σ c lvl lv h.2 with hA
   set Vq := V (osQueriesName c lvl lv) A ((osQCallOf c lvl lv h.2).2.map σ) with hVq
   have hcapM := hcal.cap _ _ hcapC
@@ -279,6 +324,7 @@ theorem osLevelLast_sound {V : FrameMap} (hU : UnfoldsV rd C V)
   obtain ⟨eqfs, eqcb, eqco, eqcl⟩ := eq_q
   have hqF : q.2.F σ = sq.2.F σ := by simp only [OsSt.F, eqfs]
   have hqcur : q.2.cur σ = sq.2.cur σ := by simp only [OsSt.cur, eqcb, eqco]
+  have hqrts : q.2.rts = f.2.rts := by rw [hqe, hhse]; rfl
   -- the root
   have hroot : (Vq (.n 10), Vq (.n 11)) = digestHalves root := by
     rw [loadHolds_unique lr0 hin.r0, loadHolds_unique lr1 hin.r1]
@@ -294,36 +340,40 @@ theorem osLevelLast_sound {V : FrameMap} (hU : UnfoldsV rd C V)
     (by rw [← hw0]; exact hSq.dec)
   -- the queries
   set N := lv.queries / (1 + lvBase lvl) with hN
-  set args := osOqArgs Vq A N with hargsd
+  set odd := lv.queries % (1 + lvBase lvl) with hodd
+  set args := osOqArgs Vq A N odd with hargsd
   obtain ⟨fm, hfind, hpar, hhold⟩ := hU _ _ _ hqC
-  have hQN : oqCount sh.odd sh.base N = lv.queries := hQ
-  have hsw := opening_queries_all_sound_w _ hmem rd C V hU hle fm _ args _ N hfind hpar hhold
-    (by simp [args, osOqArgs]) hF.N (by
-      rw [hQN, hsd, hscd]
+  have hQN : oqCount odd sh.base N = lv.queries := by rw [hbase]; exact lvCount _ _
+  have hodd1 : odd ≤ 1 := le_trans (lvOdd_le _ _) (by unfold lvBase; split_ifs <;> omega)
+  have hsw := opening_queries_all_sound_w _ hmem lv.capDepth (by omega) hcd8 rd C V hU hle fm _ args _
+    N odd hfind hpar hhold (by simp [args, osOqArgs]) hF.N (by simp [args, osOqArgs])
+    (by rw [hbase]; exact lvOdd_le _ _) (by
+      rw [hQN, hpdd]
       intro k hk x bp hx hbp
       obtain ⟨hl1, hlt, bp', hbp', hfr⟩ := hpos k hk
       refine ⟨_, hlt, loadHolds_unique hx hl1, ?_⟩
       rw [loadHolds_unique hbp hbp']
       exact hfr)
   simp only at hsw
-  set wsq := oqsOf sh.oq sh.odd loop N rd (V (osOqName c lvl lv) args [Vq (.n 13)]) V with hwsq
-  have hcap' : MeaningVerifyMerkleCap sh.cd rd [args.getD 0 0, args.getD 1 0]
-      [Vq (.n 10), Vq (.n 11)] := by
-    rw [hscd]; exact hcapM
-  have hm' : MeaningOpeningQueriesW sh rd wsq [args.getD 0 0, args.getD 1 0, args.getD 2 0,
-      args.getD 3 0, args.getD 4 0, args.getD 5 0, args.getD 6 0, args.getD 7 0]
-      [Vq (.n 13)] := by
+  set wsq := oqsOf sh.oq lv.capDepth odd loop N rd (V (osOqName c lvl lv) args [Vq (.n 18)]) V
+    with hwsq
+  have hm' : MeaningOpeningQueriesW sh lv.capDepth rd wsq [args.getD 0 0, args.getD 1 0, args.getD 2 0,
+      args.getD 3 0, args.getD 4 0, args.getD 5 0, args.getD 6 0, args.getD 7 0, args.getD 8 0]
+      [Vq (.n 18)] := by
     have e : args = [args.getD 0 0, args.getD 1 0, args.getD 2 0, args.getD 3 0, args.getD 4 0,
-        args.getD 5 0, args.getD 6 0, args.getD 7 0] := by
+        args.getD 5 0, args.getD 6 0, args.getD 7 0, args.getD 8 0] := by
       simp only [hargsd, osOqArgs, List.getD_cons_zero, List.getD_cons_succ]
     rw [← e]; exact hsw
   obtain ⟨rounds', hsv, hrl', hsvl, hRA, hWA, hosl, hopen, hidx, hwq, hfinal, -, -⟩ :=
-    queries_open hm' hcap' hroot hcd2 hcd8 hcdd (N0 := N) (by simp [args, osOqArgs]) hF.N
+    queries_open hm' (by simp [args, osOqArgs, h13]) (by simp [args, osOqArgs, h15]) hcapM hroot
+      hcd2 hcd8 (by rw [hbase]; unfold lvBase; split_ifs <;> omega) (N0 := N)
+      (by simp [args, osOqArgs]) hF.N (odd0 := odd) (by simp [args, osOqArgs]) hodd1
       hQN (by have := hF.q0; omega) qs (by rw [hqsl])
-      (fun k hk ↦ by rw [hsd]; exact (hpos k hk).2.1)
+      (fun k hk ↦ by rw [hpdd]; exact (hpos k hk).2.1)
       (fun k hk ↦ by
         obtain ⟨-, -, bp, hbp, hfr⟩ := hpos k hk
-        exact ⟨bp, by simpa [args, osOqArgs, A, osQArgs] using hbp, by rw [hsd, hscd]; exact hfr⟩)
+        exact ⟨bp, by simpa [args, osOqArgs, A, osQArgs] using hbp, by rw [hpdd]; exact hfr⟩)
+  rw [hpdd] at hosl hopen hidx
   have hrr : rounds' = rounds := rounds_eq (n := lv.folds) hrl (by rw [hrl', hsf])
     (by simpa [args, osOqArgs, A, osQArgs] using hRA) (fun j hj ↦ by
       obtain ⟨a, b⟩ := lc j hj
@@ -356,10 +406,11 @@ theorem osLevelLast_sound {V : FrameMap} (hU : UnfoldsV rd C V)
       (by rw [hsvl, hnhs, hfl]) hhsv
   -- the closing rounds
   have hfsq : q.2.fs.length = 5 := by rw [eqfs]; exact hSq.fs
-  have hcoq : q.2.co < u128Bound := by rw [eqco, hSq.co, hM.co]; unfold u128Bound; positivity
+  have hcoq : q.2.co < u128Bound := by
+    rw [eqco, hSq.co, show gr.2.co = m.2.co from rfl, hM.co]; unfold u128Bound; positivity
   obtain ⟨pairs, hpl, hrdT, hFT, hclT, hT, hTl⟩ := osTail_sound (c := c) hcal.tail hfsq hcoq hokT
   -- the Spec's level
-  set os := wsq.map (toOpening rd (args.getD 0 0) sh.cd sh.depth) with hos
+  set os := wsq.map (toOpening rd (Vq (.n 7)) lv.capDepth lv.depth) with hos
   set ws1 : WhirState :=
     { ws with claim := σ (.n f.2.claim) + gs.prod * D, alphas := ws.alphas ++ gs } with hws1
   have hg1 : ws1.alphas.length = lv.foldsOff + lv.folds := by simp [ws1, hin.glen, hgl]
@@ -378,7 +429,7 @@ theorem osLevelLast_sound {V : FrameMap} (hU : UnfoldsV rd C V)
     os (by rw [hosl, hqsl])
     (fun k hk ho ↦ by
       have := hopen k hk ho
-      rw [hsd, hbase, hsf] at this
+      rw [hbase, hsf] at this
       exact this) hidx
     (fun k hk ho ↦ by
       have hkw : k < wsq.length := by
@@ -391,13 +442,16 @@ theorem osLevelLast_sound {V : FrameMap} (hU : UnfoldsV rd C V)
   rw [hmu] at hrun1
   have hws1c : ws1.claim = σ (.n f.2.claim) + gs.prod * D := rfl
   rw [hws1c, tadd1, tadd2, tadd3] at hrun1
+  have hrts' : (osTail c q.2).2.1.rts = st.rts ++ [[st.k + 1 + 2 * 0 + 1, st.k + 1 + 2 * 1 + 1,
+      st.k + 1 + 2 * 2 + 1, st.k + 1 + 2 * 3 + 1]] :=
+    ((osTail_rts c q.2).trans (hqrts.trans hfrts)).trans (osRates_rts c lvl st)
   refine ⟨xs0 ++ (fold ++ [nn] ++ tailWords pairs), gs, fold, T, ?_, ?_, hgl, hfl, ?_, ?_, hM.fmsg,
-    ?_, ?_, ?_⟩
+    ?_, ?_, ?_, _, hrts', rtOk_of hrv⟩
   · simp [lvWords, hfin, hx0, hfl, tailWords_length, hpl]; ring
   · refine readsAt_append hrd0 (readsAt_append ?_ ?_)
     · rw [hx0, ← hcur0]; exact hM.reads
     · rw [hx0, ← hcur0, show (fold ++ [nn]).length = c.yrLen + lv.folds + 1 by simp [hfl],
-        ← hM.cur, ← hSq.cur, ← hqcur]
+        ← hM.cur, show m.2.cur σ = gr.2.cur σ from rfl, ← hSq.cur, ← hqcur]
       exact hrdT
   · rw [hTd, hTl]
   · have h0 := RunsTo.withRoots hrun0 R
@@ -405,7 +459,6 @@ theorem osLevelLast_sound {V : FrameMap} (hU : UnfoldsV rd C V)
     have hW : osLevelW rd V c lvl lv ((osQCallOf c lvl lv h.2).1.map σ)
         ((osQCallOf c lvl lv h.2).2.map σ) = os := by
       simp only [osLevelW, hargs, hshape, hloop]
-      rw [← hscd, ← hsd]
       rfl
     refine RunsWith.of_eq (RunsWith.bind' h0 hrun1) rfl (by simp) (by rw [hW]; rfl) rfl ?_ ?_ rfl
     · simp only [ws1, hF.ylen, hclT]

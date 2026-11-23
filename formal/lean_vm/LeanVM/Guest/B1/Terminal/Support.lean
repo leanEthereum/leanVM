@@ -22,7 +22,7 @@ import LeanVM.Guest.Data.ValNames.«check_opening_terminal»
   `s`, `s` times it);
 * `sel_value`: committed column `c`'s selector is `selProd` of its offset's bits above its size,
   the offset a multiple of `2^κ`;
-* the sizes of `columnKappas` (`kappas_qkeccak`, `kappas_lane`, `kappas_memory`).
+* the sizes of `columnKappas` (`kappas_small`, `kappas_keccak`, `committedKappas_small`).
 -/
 
 namespace LeanVM.Guest.B1.VerifySub

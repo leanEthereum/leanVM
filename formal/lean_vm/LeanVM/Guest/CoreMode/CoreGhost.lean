@@ -23,7 +23,7 @@ cells) are to be shown at the new valuation.
 namespace LeanVM.Guest.CoreMode
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
-open LeanVM.Guest.Bridge (stmtsOf)
+open LeanVM.Guest.Bridge (stmtsOf Zip zok_stmts)
 
 @[expose] public section
 
@@ -51,6 +51,15 @@ theorem calls_uses {es : List Ev} {i : ℕ} {c : Call} (h : (calls es)[i]? = som
     simpa [Ev.uses] using hv
   | atom _ => simp [Ev.call?] at hc
   | inK _ => simp [Ev.call?] at hc
+
+theorem usesList_mem {v : V} : ∀ {l : List Stmt}, v ∈ Stmt.usesList l → ∃ t ∈ l, v ∈ Stmt.uses t
+  | [], h => by simp [Stmt.usesList] at h
+  | s :: l, h => by
+    rw [Stmt.usesList, List.mem_append] at h
+    rcases h with h | h
+    · exact ⟨s, List.mem_cons_self, h⟩
+    · obtain ⟨t, ht, h⟩ := usesList_mem h
+      exact ⟨t, List.mem_cons_of_mem _ ht, h⟩
 
 /-- **An honest valuation with ghost words**: its path, cells and jumps the same. -/
 theorem honB_setG {img : MemoryImage κ} {Cf : CFun} {fp : ℕ} {σ : Val} {gw : List E} (h : HonB img Cf fp σ)
@@ -128,23 +137,28 @@ theorem honB_setG {img : MemoryImage κ} {Cf : CFun} {fp : ℕ} {σ : Val} {gw :
     exact h.tgt es vs (hrw hw)
   · obtain ⟨hz, hnz, hself, hpc, hcond, harm, hsel, hdsel⟩ := h.jc
     refine ⟨hz, hnz, hself, hpc, fun es vs hw c hc ↦ ?_, fun x arms hm od a ha hax k t hk ht ↦ ?_,
-      fun es vs hw x arms hm ↦ ?_, fun es vs hw x fs args rets hm ↦ ?_⟩
+      fun zs x arms ss pre es vs hz hc hb hp ↦ ?_, fun es vs hw x fs args rets hm ↦ ?_⟩
     · have hw' := hrw hw
       rw [hev hw' _ hc c (by simp [Ev.uses])]
       exact hcond es vs hw' c hc
     · rw [hms x arms hm] at hk
       exact harm x arms hm od a ha hax k t hk ht
-    · rw [hms x arms hm]
-      exact hsel es vs (hrw hw) x arms hm
+    · have hpos : walk (setG σ gw) zs.pos = walk σ zs.pos := walk_congr _ fun v hv ↦ by
+        obtain ⟨t, ht, hv⟩ := usesList_mem hv
+        exact setG_eq (hs t (zok_stmts hz ht) v hv)
+      have hm : Stmt.match_ x arms ∈ stmtsOf Cf.fn.body :=
+        zok_stmts hz (by rw [Zip.pos, hc]; exact List.mem_append_left _ List.mem_cons_self)
+      rw [hms x arms hm]
+      exact hsel zs x arms ss pre es vs hz hc (hrw hb) (by rw [← hpos]; exact hp)
     · rw [hds x fs args rets hm]
       exact hdsel es vs (hrw hw) x fs args rets hm
   · intro es vs hw e he
     have hw' := hrw hw
     exact (holds_congr (hev hw' e he)).mpr (h.holds es vs hw' e he)
-  · intro es vs hw i c hc hl off oc od q S hoff hoc hod hq hf hso hS
+  · intro es vs hw i c hc hl off oc od q hoff hoc hod hq hf hnx
     have hw' := hrw hw
-    obtain ⟨h1, h2, h3, h4⟩ := h.tail es vs hw' i c hc hl off oc od q S hoff hoc hod hq hf hso hS
-    refine ⟨h1, h2, h3, fun k hk ↦ ?_⟩
+    obtain ⟨S, hS0, hS, h1, h2, h3, h4⟩ := h.tail es vs hw' i c hc hl off oc od q hoff hoc hod hq hf hnx
+    refine ⟨S, hS0, hS, h1, h2, h3, fun k hk ↦ ?_⟩
     rw [hcl hw' hc _ (List.mem_append_left _ (List.getElem_mem hk))]
     exact h4 k hk
 

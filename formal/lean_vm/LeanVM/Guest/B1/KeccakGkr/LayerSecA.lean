@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.KeccakGkr.LayerT
+public import LeanVM.Guest.B1.Bits.Grind
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«keccak_layer__L»
 
@@ -216,7 +217,7 @@ theorem grind_sq {s : Fs} {n : E} {b : ℕ}
 the cursor's word `47`, the grind holds and its squeeze is `s` (`layOff first + 531`) with the
 capacity from `layOff first + 539`. -/
 theorem sqT_holds {first : ℕ} (hf : first < 2) {s : Fs} (hs : SpOk σ s (capF first, pendF first))
-    (hG : ∀ w, C (grindCheckName 3) [w, σ (.n (valf% «keccak_layer» "tabs"))] [] → (w.limb 0).lane.toNat % 2 ^ 3 = 0)
+    (hG : GcSoundOn rd 3) (ht : WinTabs rd (σ (.n (valf% «keccak_layer» "tabs"))))
     {next : Prop} {kret : List E → Prop} (h : Stmt.HoldsList C rd σ (sqT first) next kret) :
     LoadHolds rd (σ (.n (valf% «keccak_layer» "cursor@1"))) 47 (σ (.n (nonceV first))) ∧
       s.GrindOk sGrindBits (σ (.n (nonceV first))) ∧
@@ -224,8 +225,9 @@ theorem sqT_holds {first : ℕ} (hf : first < 2) {s : Fs} (hs : SpOk σ s (capF 
         (σ (.n (layOff first + 531)), ⟨(cap5 (layOff first + 539)).map σ, []⟩) ∧ next := by
   interval_cases first
   · simp only [sqT, show (0 : ℕ) ≠ 1 by decide, ↓reduceIte, holdsList_append, holds_fsNonceT,
-      keccakA, grindCallT, Stmt.HoldsList, Stmt.Holds] at h
-    obtain ⟨⟨hl, hp⟩, hk, hg, hn⟩ := h
+      keccakA, Stmt.HoldsList, Stmt.Holds] at h
+    obtain ⟨⟨hl, hp⟩, hk, hgi⟩ := h
+    obtain ⟨hg', hn⟩ := hG ht hgi
     have hlen := pendOk_length hs.2
     have hs' : SpOk σ (s.absorb (σ (.n 529)) dsPowNonce)
         (capF 0, pendF 0 ++ [(.n 530, .n 531)]) := by
@@ -233,12 +235,12 @@ theorem sqT_holds {first : ℕ} (hf : first < 2) {s : Fs} (hs : SpOk σ s (capF 
       simp only [Fs.absorb, hne, ↓reduceIte]
       exact ⟨hs.1, pendOk_append hs.2 (fsPackT_cells hp)⟩
     obtain ⟨-, hout⟩ := spOk_perm hs' hk (zs := []) (by decide) rfl (by decide)
-    have hg' := hG _ hg
     obtain ⟨hok, hsq⟩ := grind_sq (s := s) (n := σ (.n 529)) (b := 532) hout hg'
     exact ⟨hl, hok, hsq, hn⟩
   · simp only [sqT, ↓reduceIte, holdsList_append, holds_fsNonceT, holds_padRunT,
-      keccakA, grindCallT, Stmt.HoldsList, Stmt.Holds] at h
-    obtain ⟨hk1, ⟨hl, hp⟩, ⟨-, z1, z2, z3, z4⟩, hk2, hg, hn⟩ := h
+      keccakA, Stmt.HoldsList, Stmt.Holds] at h
+    obtain ⟨hk1, ⟨hl, hp⟩, ⟨-, z1, z2, z3, z4⟩, hk2, hgi⟩ := h
+    obtain ⟨hg', hn⟩ := hG ht hgi
     have hlen := pendOk_length hs.2
     obtain ⟨-, hout1⟩ := spOk_perm hs hk1 (zs := []) (by decide) rfl (by decide)
     have hcap1 := capOf_outs hout1
@@ -248,7 +250,6 @@ theorem sqT_holds {first : ℕ} (hf : first < 2) {s : Fs} (hs : SpOk σ s (capF 
       exact ⟨hcap1, fsPackT_cells hp, trivial⟩
     obtain ⟨-, hout⟩ := spOk_perm hs' hk2 (zs := [.n 548, .n 548, .n 548, .n 549, .n 550, .n 551])
       (by decide) (by simp [z1, z2, z3, z4]) (by decide)
-    have hg' := hG _ hg
     obtain ⟨hok, hsq⟩ := grind_sq (s := s) (n := σ (.n 544)) (b := 552) hout hg'
     exact ⟨hl, hok, hsq, hn⟩
 
@@ -256,7 +257,7 @@ theorem sqT_holds {first : ℕ} (hf : first < 2) {s : Fs} (hs : SpOk σ s (capF 
 theorem layerA_holds {first : ℕ} (hf : first < 2) {y : ℕ} {c : KeccakClaim} {w : E}
     (hcr : ClaimRec rd (first = 1) (σ (.n (valf% «keccak_layer» "claim"))) c y)
     (hw : first = 1 → (σ (.n (valf% «keccak_layer» "p0")), σ (.n (valf% «keccak_layer» "p1"))) = Keccak.scalarCells w dsObserve)
-    (hG : ∀ w, C (grindCheckName 3) [w, σ (.n (valf% «keccak_layer» "tabs"))] [] → (w.limb 0).lane.toNat % 2 ^ 3 = 0)
+    (hG : GcSoundOn rd 3) (ht : WinTabs rd (σ (.n (valf% «keccak_layer» "tabs"))))
     {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ (headT first ++ prodT (.n (valf% «keccak_layer» "cursor@1")) (muB first) (prodTab first) ++
       checkT (accL first) ++ sqT first) next kret) :
@@ -288,7 +289,7 @@ theorem layerA_holds {first : ℕ} (hf : first < 2) {y : ℕ} {c : KeccakClaim} 
   obtain ⟨hrd, hsp, hacc', h⟩ := prodT_sound hch hacc hall hs h
   simp only [checkT, Stmt.HoldsList, Stmt.Holds, Atom.Holds] at h
   obtain ⟨hk, e2, e3, hv, heq, h⟩ := h
-  obtain ⟨hnl, hok, hsq, hn⟩ := sqT_holds hf hsp hG h
+  obtain ⟨hnl, hok, hsq, hn⟩ := sqT_holds hf hsp hG ht h
   have hμ : ∀ i < 16, σ (.n (muB first + i)) = c.mu.getD i 0 :=
     fun i hi ↦ loadHolds_unique (hmu i hi) (hmus i hi)
   refine ⟨hrd, ?_, hnl, hok, hsq, hn⟩

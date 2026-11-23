@@ -89,6 +89,7 @@ structure LvFin (c : OsCfg) (lv lv' : OsLv) : Prop where
   bn : lv.highBits ≤ lv.logCols + 1
   hn : lv.folds ≤ 2 ^ lv.highBits
   posOff : lv.posOff < u128Bound
+  qu : lv.queries < u128Bound
   van : lv.vanish = lv.logCols * (lv.logCols + 1) / 2
   val : ∀ t ≤ lv.logCols, K.ofBits (vanishVal (lv.vanish + t)) = (subspaceRoots lv.logCols).getD t 0
   inv : ∀ t ≤ lv.logCols,
@@ -137,22 +138,44 @@ theorem range_map_pos (qs : List ℕ) :
   simp only [List.getElem_map, List.getElem_range]
   rw [List.getD_eq_getElem _ _ (by simpa using h1)]
 
-/-- **A level's three terms**: the scale times the product chain is `λ³` times its induced
-weight, the batching scalar times the product after times the high chain is `λ³·recH` times the
-challenges after the level, and the out-of-domain weights are `λ·eqEval`, `λ²·eqEval`. -/
+/-- **A slow level's sum**: `level_residual_slow`'s unfactored sum is `λ²` times the induced
+weight. -/
+theorem slow_inner {lam : E} (qs : List ℕ) {mu vo Q : ℕ} (hQ : qs.length = Q) (x : List E)
+    (hx : x.length = mu)
+    (hval : ∀ i < mu, (osVals vo mu).getD i 0 = ofK ((subspaceRoots mu).getD i 0))
+    (hinv : ∀ t < mu, word (vanishInv (vo + t)) 0 = ofK ((subspaceRoots mu).getD t 0)⁻¹) :
+    lam ^ 2 * ∑ k ∈ Finset.range Q, lam ^ k * slowQuery (osVals vo mu)
+        (fun t ↦ word (vanishInv (vo + t)) 0) (fun t ↦ x.getD t 0) mu (eOfNat (qs.getD k 0)) =
+      lam * lam * inducedWeight mu qs (powers lam qs.length) x := by
+  rw [inducedWeight_sum, hx, min_eq_left (by omega), ← hQ, pow_two]
+  refine congrArg (lam * lam * ·) (Finset.sum_congr rfl fun k hk ↦ ?_)
+  refine congrArg (lam ^ k * ·) (Finset.prod_congr rfl fun t ht ↦ ?_)
+  rw [what_factor (by have := Finset.mem_range.mp ht; omega) _ _ hval _
+    (hinv t (Finset.mem_range.mp ht))]
+  have e : eOfNat (qs.getD k 0) = ofK (K.ofBits (qs.getD k 0)) := rfl
+  rw [e]
+  ring
+
+/-- **A level's three terms**: the scale times the product chain plus the slow sum is `λ³` times
+its induced weight, the batching scalar times the product after times the high chain is `λ³·recH`
+times the challenges after the level, and the out-of-domain weights are `λ·eqEval`, `λ²·eqEval`.
+Where the coordinates' product is zero the scale is, and the slow sum is the weight; where `λ` is
+zero every term is. -/
 theorem lvl_terms {c : OsCfg} {lv lv' : OsLv} (hF : LvFin c lv lv') {r : OsRec} {G T : List E}
     (hG : G.length = c.nFolds) (hT : T.length = c.yrLog) (hrF : r.F = lv.foldsOff + lv.folds)
     (hrmu : r.mu = lv.logCols) (hql : r.qs.length = lv.queries) (hhl : r.high.length = lv.folds)
     (hz0 : r.z0.length = lv.logCols)
-    {li : E} (hli : r.lam * li = 1)
-    (hne : ∀ t < lv.logCols, (ptFrom G T r.F).getD t 0 * invW lv t ≠ 0) :
+    {li : E} (hli : r.lam ≠ 0 → r.lam * li = 1) :
     r.lam ^ 2 * r.lam ^ lv.queries *
         (∏ t ∈ Finset.range lv.logCols, ((ptFrom G T r.F).getD t 0 * invW lv t)) *
-        (resAll lv (dOf lv fun t ↦ (ptFrom G T r.F).getD t 0) (hsvOf lv r)
-          (fun k ↦ eOfNat (r.qs.getD k 0)) li).1 =
+        (resAll lv (dZ lv lv.logCols fun t ↦ (ptFrom G T r.F).getD t 0) (hsvOf lv r)
+          (fun k ↦ eOfNat (r.qs.getD k 0)) li).1 +
+      slowVal lv.queries lv.logCols lv.vanish (fun k ↦ eOfNat (r.qs.getD k 0))
+        (fun t ↦ (ptFrom G T r.F).getD t 0) r.lam
+        (zeroOf (∏ t ∈ Finset.range lv.logCols, (ptFrom G T r.F).getD t 0)) =
       r.lam * r.lam * inducedWeight r.mu r.qs (powers r.lam r.qs.length) (ptFrom G T r.F) ∧
     r.lam ^ 2 * r.lam ^ lv.queries * (∏ t ∈ Finset.range lv.logCols, (ptFrom G T r.F).getD t 0) *
-        (resAll lv (dOf lv fun t ↦ (ptFrom G T r.F).getD t 0) (hsvOf lv r)
+        (resAll lv (dZ lv lv.logCols fun t ↦ (ptFrom G T r.F).getD t 0) (hsvOf lv r)
           (fun k ↦ eOfNat (r.qs.getD k 0)) li).2 =
       T.prod * (r.lam ^ 2 * recH r * (G.drop r.F).prod) ∧
     r.lam * ∏ t ∈ Finset.range lv.logCols, (1 + r.z0.getD t 0 + (ptFrom G T r.F).getD t 0) =
@@ -163,13 +186,35 @@ theorem lvl_terms {c : OsCfg} {lv lv' : OsLv} (hF : LvFin c lv lv') {r : OsRec} 
   have hpos : (List.range lv.queries).map (fun k ↦ eOfNat (r.qs.getD k 0)) = r.qs.map eOfNat := by
     rw [← hql]; exact range_map_pos r.qs
   refine ⟨?_, ?_, ?_⟩
-  · unfold resAll
-    rw [resFold_fst, hpos]
-    have h := level_inner hli r.qs (ptFrom G T r.F) hPl (osVals_ofK hF.val) (invW_ofK hF.inv) hne
-    rw [hrmu, ← h, hql]
-    unfold resP dOf invW
-    ring
-  · unfold resAll
+  · by_cases hP0 : ∏ t ∈ Finset.range lv.logCols, (ptFrom G T r.F).getD t 0 = 0
+    · -- a zero challenge: the scale is zero, the slow sum the weight
+      have hs0 : ∏ t ∈ Finset.range lv.logCols, ((ptFrom G T r.F).getD t 0 * invW lv t) = 0 := by
+        rw [Finset.prod_mul_distrib, hP0, zero_mul]
+      rw [hs0, mul_zero, zero_mul, zero_add, slowVal, zeroOf_eq_one hP0]
+      simp only [one_ne_zero, ↓reduceIte]
+      rw [hrmu]
+      exact slow_inner r.qs hql (ptFrom G T r.F) hPl (osVals_ofK hF.val) (invW_ofK hF.inv)
+    · rw [slowVal, zeroOf_eq_zero hP0]
+      simp only [↓reduceIte, add_zero]
+      by_cases hl0 : r.lam = 0
+      · simp [hl0]
+      have hne : ∀ t < lv.logCols, (ptFrom G T r.F).getD t 0 * word (vanishInv (lv.vanish + t)) 0 ≠ 0 :=
+        fun t ht ↦ mul_ne_zero (prod_ne_factor hP0 ht) (invW_ne hF.mu64 hF.inv t ht)
+      have hd : dZ lv lv.logCols (fun t ↦ (ptFrom G T r.F).getD t 0) =
+          dOf lv (fun t ↦ (ptFrom G T r.F).getD t 0) := by
+        funext t
+        simp only [dZ, dZv, dOf, zeroOf_eq_zero hP0, add_zero, mul_one]
+      rw [hd]
+      unfold resAll
+      rw [resFold_fst, hpos]
+      have h := level_inner (hli hl0) r.qs (ptFrom G T r.F) hPl (osVals_ofK hF.val) (invW_ofK hF.inv)
+        hne
+      rw [hrmu, ← h, hql]
+      unfold resP dOf invW
+      ring
+  · by_cases hl0 : r.lam = 0
+    · simp [hl0]
+    unfold resAll
     rw [resFold_snd, hpos]
     have hhs : ∀ c' < r.high.length, (hsvOf lv r).getD c' 0 =
         r.high.getD c' 0 * ofK ((subspaceRoots lv.logCols).getD lv.logCols 0)⁻¹ *
@@ -178,7 +223,7 @@ theorem lvl_terms {c : OsCfg} {lv lv' : OsLv} (hF : LvFin c lv lv') {r : OsRec} 
       rw [hhl] at hc
       rw [hsvOf, List.getD_eq_getElem _ _ (by simpa using hc), List.getElem_map, List.getElem_range,
         word_eOfNat, eOfNat, hF.hsm c' hc, ofK_mul', mul_assoc]
-    have h := level_high hli r.qs hF.mu64 hF.bn r.high (hsvOf lv r) (by rw [hhl]; exact hF.hn)
+    have h := level_high (hli hl0) r.qs hF.mu64 hF.bn r.high (hsvOf lv r) (by rw [hhl]; exact hF.hn)
       (by simp [hsvOf, hhl]) (osVals_ofK hF.val) hhs
     have hp : ∏ t ∈ Finset.range lv.logCols, (ptFrom G T r.F).getD t 0 = (G.drop r.F).prod * T.prod := by
       rw [← hPl, prod_getD_range, ptFrom, List.drop_append_of_le_length (by rw [hG, hrF]; exact hF.le),

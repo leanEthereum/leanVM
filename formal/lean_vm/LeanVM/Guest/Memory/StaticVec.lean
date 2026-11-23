@@ -118,7 +118,7 @@ def termBV (ρ : Env) (ps : List V) (args : List V) (q : ℕ × Vec) : Option Ac
 def preBV (ρ : Env) (ps : List V) (args : List V) (q : ℕ × ℕ) : Option AccV :=
   match args[q.1]? with
   | some v => match cls ρ ps v with
-    | .pow e => if q.2 < e ∧ e < 2 ^ 64 - 1 then some AccV.zero else none
+    | .pow e => if preLt q.2 e = true ∧ e < 2 ^ 64 - 1 then some AccV.zero else none
     | .param k => some (⟨[], []⟩, [(k, q.2)])
     | .none => none
   | none => none
@@ -161,7 +161,40 @@ def envAtom (ks : List (V × ℕ)) (ρ : Env × BEnv) : Atom → Env × BEnv
   | .const v w => match vlookup v ks with
       | some e => if constOk w e then ((v, e) :: ρ.1, ρ.2) else ρ
       | none => ρ
+  | .copy d s => match vlookup s ρ.1 with
+      | some e => ((d, e) :: ρ.1, ρ.2)
+      | none => ρ
+  | .add d x y => guardAtom ks ρ d x y
   | _ => ρ
+
+/-- `siteBL` by coordinate, not counting words. -/
+def siteBVL (cert : String → CertV) (ρ : Env) (ps : List V) (g : String) (args : List V) (a0 k : ℕ) :
+    Option AccV :=
+  match cert g, args[0]?, args[1]? with
+  | .loop none pre b _, some v0, some v1 =>
+      match cls ρ ps v0 with
+      | .pow a => if a = a0 ∧ v1 = V.n k then
+          match cls ρ ps v1 with
+          | .pow e => if a0 ≤ e ∧ e < 2 ^ 64 - 1 then
+              (transBV ρ ps args pre b).map fun r => ((r.1.scale (e - a0)).add ⟨[], []⟩, r.2)
+            else none
+          | .param k' => match transBV ρ ps args pre b with
+            | some r => if r.1.cs = [] then some ((⟨[], [(k', r.1.c)]⟩ : AffV).add ⟨[], []⟩, (k', gT + a0) :: r.2)
+              else none
+            | none => none
+          | .none => none
+        else none
+      | _ => none
+  | _, _, _ => none
+
+/-- `siteBC` by coordinate, not counting words. -/
+def siteBVC (cert : String → CertV) (ρ : Env × BEnv) (ps : List V) (c : V) (g : String) (args : List V) :
+    Option AccV :=
+  match guardB ρ.2 c with
+  | some (a0, k) => match siteBVL cert ρ.1 ps g args a0 k with
+    | some r => some r
+    | none => siteBV cert ρ.1 ps g args
+  | none => siteBV cert ρ.1 ps g args
 
 /-- **`stmtR` by coordinate**, not counting words. -/
 noncomputable def stmtRV (cert : String → CertV) (ks : List (V × ℕ)) (ps : List V) (self : String) :
@@ -172,8 +205,8 @@ noncomputable def stmtRV (cert : String → CertV) (ks : List (V × ℕ)) (ps : 
     (fun _ _ _ hz hn ρ => (Option.maxAccV (hz ρ) (hn ρ)).map fun r => (r, some ρ))
     (fun _ _ ha ρ => (ha ρ).map fun r => (r, some ρ))
     (fun g args _ ρ => (siteBV cert ρ.1 ps g args).map fun r => (r, some ρ))
-    (fun _ g args ρ => if g = self then none
-      else (Option.addAccV (siteBV cert ρ.1 ps g args) (some AccV.zero)).map fun r => (r, some ρ))
+    (fun c g args ρ => if g = self then none
+      else (Option.addAccV (siteBVC cert ρ ps c g args) (some AccV.zero)).map fun r => (r, some ρ))
     (fun _ gs args _ ρ => (maxBV (fun g => siteBV cert ρ.1 ps g args) gs).map fun r => (r, some ρ))
     (fun _ _ => some (AccV.zero, none))
     (fun _ => some AccV.zero)
@@ -193,8 +226,8 @@ noncomputable def blockRV (cert : String → CertV) (ks : List (V × ℕ)) (ps :
     (fun _ _ _ hz hn ρ => (Option.maxAccV (hz ρ) (hn ρ)).map fun r => (r, some ρ))
     (fun _ _ ha ρ => (ha ρ).map fun r => (r, some ρ))
     (fun g args _ ρ => (siteBV cert ρ.1 ps g args).map fun r => (r, some ρ))
-    (fun _ g args ρ => if g = self then none
-      else (Option.addAccV (siteBV cert ρ.1 ps g args) (some AccV.zero)).map fun r => (r, some ρ))
+    (fun c g args ρ => if g = self then none
+      else (Option.addAccV (siteBVC cert ρ ps c g args) (some AccV.zero)).map fun r => (r, some ρ))
     (fun _ gs args _ ρ => (maxBV (fun g => siteBV cert ρ.1 ps g args) gs).map fun r => (r, some ρ))
     (fun _ _ => some (AccV.zero, none))
     (fun _ => some AccV.zero)
@@ -214,8 +247,8 @@ noncomputable def armsRV (cert : String → CertV) (ks : List (V × ℕ)) (ps : 
     (fun _ _ _ hz hn ρ => (Option.maxAccV (hz ρ) (hn ρ)).map fun r => (r, some ρ))
     (fun _ _ ha ρ => (ha ρ).map fun r => (r, some ρ))
     (fun g args _ ρ => (siteBV cert ρ.1 ps g args).map fun r => (r, some ρ))
-    (fun _ g args ρ => if g = self then none
-      else (Option.addAccV (siteBV cert ρ.1 ps g args) (some AccV.zero)).map fun r => (r, some ρ))
+    (fun c g args ρ => if g = self then none
+      else (Option.addAccV (siteBVC cert ρ ps c g args) (some AccV.zero)).map fun r => (r, some ρ))
     (fun _ gs args _ ρ => (maxBV (fun g => siteBV cert ρ.1 ps g args) gs).map fun r => (r, some ρ))
     (fun _ _ => some (AccV.zero, none))
     (fun _ => some AccV.zero)
@@ -226,15 +259,19 @@ noncomputable def armsRV (cert : String → CertV) (ks : List (V × ℕ)) (ps : 
     (fun _ => some AccV.zero)
     (fun _ _ ha has ρ => Option.maxAccV (ha ρ) (has ρ))
 
+/-- A `stat` vector certificate's check of a body of `fn`. -/
+noncomputable def statBV (look : String → CertV) (pre : List (ℕ × ℕ)) (b : AffV) (ks : List (V × ℕ)) (w : Vec) (fn : Fn)
+    (body : List Stmt) : Bool :=
+  match blockRV look ks fn.params fn.name body ([], []) with
+  | some r => AffV.leB ⟨w.add r.1.c, r.1.cs⟩ b && r.2.all (· ∈ pre)
+  | none => false
+
 /-- **The check of a function by coordinate** against its vector certificate `own`, its frame
 weighing `w`, its callees' certificates by `look`. -/
 noncomputable def chkFnV (look : String → CertV) (own : CertV) (w : Vec) (fn : Fn) : Bool :=
   match own with
   | .none => true
-  | .stat pre b ks =>
-      match blockRV look ks fn.params fn.name fn.body ([], []) with
-      | some r => AffV.leB ⟨w.add r.1.c, r.1.cs⟩ b && r.2.all (· ∈ pre)
-      | none => false
+  | .stat pre b ks => statBV look pre b ks w fn fn.body || selSplit fn.body (statBV look pre b ks w fn)
   | .loop endc pre b ks =>
       match loopShape fn endc with
       | some pre' => match blockRV look ks fn.params fn.name pre' ([], []) with

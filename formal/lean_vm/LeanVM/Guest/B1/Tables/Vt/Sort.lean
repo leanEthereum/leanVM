@@ -278,6 +278,86 @@ theorem vt_kap_lt (lm : ℕ) (τ : ℕ → ℕ) (hlm : lm ≤ 32) (hτ : ∀ t <
   · rw [vtKap, h0]; have := hle (blockKappaSrc.getD b 0); omega
   · rw [vtKap, h19, hs0]; simp
 
+/-- **A side's block offsets**, `vt_sort`'s two sides, the groups' facts as hypotheses: from
+its ranks' facts, the groups' keys and sizes, the bases and steps, every block's offset is
+`stackOffsets`'s. -/
+theorem vt_side_offsets {rd : Reader} {σ : Val} {lm : ℕ} {τ : ℕ → ℕ}
+    (hκ34 : ∀ k < 15, vtKap lm τ (vtB0 k) < 34)
+    (hG : ∀ k < 15, (∃ key, LoadHolds rd (σ (.n (val% «verify_tables» "group_key"))) (vtGi k) key ∧
+      key * gen ^ vtB0 k = gen ^ (vtKap lm τ (vtB0 k) * 247)) ∧
+      LoadHolds rd (σ (.n (val% «verify_tables» "group_size"))) (vtGi k) (gen ^ (vtLen k * 2 ^ vtKap lm τ (vtB0 k))))
+    (hB : ∀ k < 15, LoadHolds rd (σ (.n (val% «verify_tables» "group_base"))) (vtGi k)
+        (σ (.n (vtBoffData.getD k default).2.2.2)) ∧
+      σ (.n ((vtBoffData.getD k default).2.2.2 - 1)) = gen ^ 2 ^ vtKap lm τ (vtB0 k) ∧
+      ∀ i < vtLen k - 1, σ (.n ((vtBoffData.getD k default).2.2.2 + 1 + i)) =
+        σ (.n ((vtBoffData.getD k default).2.2.2 + i)) *
+          σ (.n ((vtBoffData.getD k default).2.2.2 - 1)))
+    (hsideT : ∀ e < 24, LoadHolds rd (σ (.n (val% «verify_tables» "g_squares"))) (212 + e) (word (vtGroupSide e) 0)) :
+    ∀ (base G0 kOff m n v0 s : ℕ), base + n ≤ 153 → s < 3 →
+    (∀ r < m, VtRankFacts rd σ v0 s r) →
+    (∀ e < 24, vtGroupSide e = s → G0 ≤ e ∧ e < G0 + m) →
+    (∀ j < m, kOff + j < 15 ∧ vtGi (kOff + j) = G0 + j ∧
+      vtB0 (kOff + j) = base + (blockGroupStart.getD (G0 + j) 0 - base) ∧
+      vtLen (kOff + j) = (blockGroupStart.getD (G0 + (j + 1)) 0 - base) -
+        (blockGroupStart.getD (G0 + j) 0 - base) ∧
+      blockGroupStart.getD (G0 + j) 0 - base < blockGroupStart.getD (G0 + (j + 1)) 0 - base ∧
+      blockGroupStart.getD (G0 + (j + 1)) 0 - base ≤ n ∧
+      vtBoffV (base + (blockGroupStart.getD (G0 + j) 0 - base)) =
+        (vtBoffData.getD (kOff + j) default).2.2.2) →
+    (∀ x < n, vtBk (base + x) - kOff < m ∧
+      blockGroupStart.getD (G0 + (vtBk (base + x) - kOff)) 0 - base ≤ x ∧
+      x < blockGroupStart.getD (G0 + (vtBk (base + x) - kOff + 1)) 0 - base ∧
+      blockKappaSrc.getD (base + x) 0 = blockKappaSrc.getD (vtB0 (vtBk (base + x))) 0 ∧
+      blockKappaAdj (base + x) = blockKappaAdj (vtB0 (vtBk (base + x))) ∧
+      kOff + (vtBk (base + x) - kOff) = vtBk (base + x) ∧
+      (blockGroupStart.getD (G0 + (vtBk (base + x) - kOff)) 0 - base < x →
+        vtBoffV (base + x) = (vtBoffData.getD (vtBk (base + x)) default).2.2.2 + 1 +
+          (x - 1 - (blockGroupStart.getD (G0 + (vtBk (base + x) - kOff)) 0 - base)) ∧
+        vtBoffV (base + (x - 1)) = (vtBoffData.getD (vtBk (base + x)) default).2.2.2 +
+          (x - 1 - (blockGroupStart.getD (G0 + (vtBk (base + x) - kOff)) 0 - base)) ∧
+        x - 1 - (blockGroupStart.getD (G0 + (vtBk (base + x) - kOff)) 0 - base) <
+          vtLen (vtBk (base + x)) - 1)) →
+    (∀ j < m, ∀ x < n, blockGroupStart.getD (G0 + j) 0 - base ≤ x →
+      x < blockGroupStart.getD (G0 + (j + 1)) 0 - base → vtBk (base + x) - kOff = j) →
+    ∀ x < n, σ (.n (vtBoffV (base + x))) =
+      gen ^ (stackOffsets ((List.range n).map fun c ↦ vtKap lm τ (base + c))).1.getD x 0 := by
+  intro base G0 kOff m n v0 s hn hs hfacts hsideS D1 D2 D3
+  have hκs : ∀ x < n, ((List.range n).map fun c ↦ vtKap lm τ (base + c)).getD x 0 =
+      vtKap lm τ (base + x) := fun x hx => by
+    rw [List.getD_eq_getElem _ _ (by simp; exact hx)]; simp
+  refine vt_side_cert (G0 := G0) (base := base) _ (by simp)
+    (fun j ↦ blockGroupStart.getD (G0 + j) 0 - base)
+    (fun j ↦ vtKap lm τ (base + (blockGroupStart.getD (G0 + j) 0 - base)))
+    (fun x ↦ vtBk (base + x) - kOff) (fun x ↦ vtBoffV (base + x)) hn hfacts hsideT hsideS hs
+    (fun j hj ↦ ?_) (fun j hj ↦ ?_) (fun j hj ↦ ?_) (fun j hj ↦ (D1 j hj).2.2.2.2.1)
+    (fun x hx ↦ ⟨(D2 x hx).1, (D2 x hx).2.1, (D2 x hx).2.2.1⟩)
+    (fun j hj x h1 h2 ↦ ⟨by have := (D1 j hj).2.2.2.2.2.1; omega, D3 j hj x
+      (by have := (D1 j hj).2.2.2.2.2.1; omega) h1 h2⟩)
+    (fun x hx ↦ ?_) (fun j hj ↦ ?_) (fun x hx hlt ↦ ?_)
+  · obtain ⟨hk, hgi, hb0, -⟩ := D1 j hj
+    obtain ⟨⟨key, h1, h2⟩, -⟩ := hG _ hk
+    exact ⟨key, by rw [← hgi]; exact h1, by rw [← hb0, h2]⟩
+  · obtain ⟨hk, hgi, hb0, hl, -⟩ := D1 j hj
+    have := (hG _ hk).2
+    rwa [hgi, hl, hb0] at this
+  · obtain ⟨hk, -, hb0, -⟩ := D1 j hj
+    rw [← hb0]; exact hκ34 _ hk
+  · obtain ⟨-, -, -, hsrc', hadj', hkk, -⟩ := D2 x hx
+    have hj := (D2 x hx).1
+    obtain ⟨-, -, hb0, -⟩ := D1 _ hj
+    rw [hκs x hx, ← hb0, hkk, vtKap, vtKap, hsrc', hadj']
+  · obtain ⟨hk, hgi, -, -, -, -, hbv⟩ := D1 j hj
+    have := (hB _ hk).1
+    rw [hgi, ← hbv] at this
+    exact this
+  · obtain ⟨-, -, -, -, -, hkk, hstep⟩ := D2 x hx
+    have hj := (D2 x hx).1
+    obtain ⟨hk, -, hb0, -⟩ := D1 _ hj
+    obtain ⟨e1, e2, e3⟩ := hstep hlt
+    obtain ⟨-, hst, hch⟩ := hB _ hk
+    rw [hkk] at hst hch hb0
+    rw [e1, e2, hch _ e3, hst, hb0]
+
 section
 variable {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ)
 include hμ
@@ -348,70 +428,7 @@ theorem vt_sort {σ : Val} (h : VtH Lm.read σ) {lm : ℕ} {τ : ℕ → ℕ} (h
       rw [← vt_sideTab_getD e he, List.getD_eq_getElem _ _ (by simp [sideTabList]; exact he)]
       exact this
   -- one side, from its group and block layout (all checked by evaluation)
-  have side : ∀ (base G0 kOff m n v0 s : ℕ), base + n ≤ 153 → s < 3 →
-      (∀ r < m, VtRankFacts Lm.read σ v0 s r) →
-      (∀ e < 24, vtGroupSide e = s → G0 ≤ e ∧ e < G0 + m) →
-      (∀ j < m, kOff + j < 15 ∧ vtGi (kOff + j) = G0 + j ∧
-        vtB0 (kOff + j) = base + (blockGroupStart.getD (G0 + j) 0 - base) ∧
-        vtLen (kOff + j) = (blockGroupStart.getD (G0 + (j + 1)) 0 - base) -
-          (blockGroupStart.getD (G0 + j) 0 - base) ∧
-        blockGroupStart.getD (G0 + j) 0 - base < blockGroupStart.getD (G0 + (j + 1)) 0 - base ∧
-        blockGroupStart.getD (G0 + (j + 1)) 0 - base ≤ n ∧
-        vtBoffV (base + (blockGroupStart.getD (G0 + j) 0 - base)) =
-          (vtBoffData.getD (kOff + j) default).2.2.2) →
-      (∀ x < n, vtBk (base + x) - kOff < m ∧
-        blockGroupStart.getD (G0 + (vtBk (base + x) - kOff)) 0 - base ≤ x ∧
-        x < blockGroupStart.getD (G0 + (vtBk (base + x) - kOff + 1)) 0 - base ∧
-        blockKappaSrc.getD (base + x) 0 = blockKappaSrc.getD (vtB0 (vtBk (base + x))) 0 ∧
-        blockKappaAdj (base + x) = blockKappaAdj (vtB0 (vtBk (base + x))) ∧
-        kOff + (vtBk (base + x) - kOff) = vtBk (base + x) ∧
-        (blockGroupStart.getD (G0 + (vtBk (base + x) - kOff)) 0 - base < x →
-          vtBoffV (base + x) = (vtBoffData.getD (vtBk (base + x)) default).2.2.2 + 1 +
-            (x - 1 - (blockGroupStart.getD (G0 + (vtBk (base + x) - kOff)) 0 - base)) ∧
-          vtBoffV (base + (x - 1)) = (vtBoffData.getD (vtBk (base + x)) default).2.2.2 +
-            (x - 1 - (blockGroupStart.getD (G0 + (vtBk (base + x) - kOff)) 0 - base)) ∧
-          x - 1 - (blockGroupStart.getD (G0 + (vtBk (base + x) - kOff)) 0 - base) <
-            vtLen (vtBk (base + x)) - 1)) →
-      (∀ j < m, ∀ x < n, blockGroupStart.getD (G0 + j) 0 - base ≤ x →
-        x < blockGroupStart.getD (G0 + (j + 1)) 0 - base → vtBk (base + x) - kOff = j) →
-      ∀ x < n, σ (.n (vtBoffV (base + x))) =
-        gen ^ (stackOffsets ((List.range n).map fun c ↦ vtKap lm τ (base + c))).1.getD x 0 := by
-    intro base G0 kOff m n v0 s hn hs hfacts hsideS D1 D2 D3
-    have hκs : ∀ x < n, ((List.range n).map fun c ↦ vtKap lm τ (base + c)).getD x 0 =
-        vtKap lm τ (base + x) := fun x hx => by
-      rw [List.getD_eq_getElem _ _ (by simp; exact hx)]; simp
-    refine vt_side_cert (G0 := G0) (base := base) _ (by simp)
-      (fun j ↦ blockGroupStart.getD (G0 + j) 0 - base)
-      (fun j ↦ vtKap lm τ (base + (blockGroupStart.getD (G0 + j) 0 - base)))
-      (fun x ↦ vtBk (base + x) - kOff) (fun x ↦ vtBoffV (base + x)) hn hfacts hsideT hsideS hs
-      (fun j hj ↦ ?_) (fun j hj ↦ ?_) (fun j hj ↦ ?_) (fun j hj ↦ (D1 j hj).2.2.2.2.1)
-      (fun x hx ↦ ⟨(D2 x hx).1, (D2 x hx).2.1, (D2 x hx).2.2.1⟩)
-      (fun j hj x h1 h2 ↦ ⟨by have := (D1 j hj).2.2.2.2.2.1; omega, D3 j hj x
-        (by have := (D1 j hj).2.2.2.2.2.1; omega) h1 h2⟩)
-      (fun x hx ↦ ?_) (fun j hj ↦ ?_) (fun x hx hlt ↦ ?_)
-    · obtain ⟨hk, hgi, hb0, -⟩ := D1 j hj
-      obtain ⟨⟨key, h1, h2⟩, -⟩ := hG _ hk
-      exact ⟨key, by rw [← hgi]; exact h1, by rw [← hb0, h2]⟩
-    · obtain ⟨hk, hgi, hb0, hl, -⟩ := D1 j hj
-      have := (hG _ hk).2
-      rwa [hgi, hl, hb0] at this
-    · obtain ⟨hk, -, hb0, -⟩ := D1 j hj
-      rw [← hb0]; exact hκ34 _ hk
-    · obtain ⟨-, -, -, hsrc', hadj', hkk, -⟩ := D2 x hx
-      have hj := (D2 x hx).1
-      obtain ⟨-, -, hb0, -⟩ := D1 _ hj
-      rw [hκs x hx, ← hb0, hkk, vtKap, vtKap, hsrc', hadj']
-    · obtain ⟨hk, hgi, -, -, -, -, hbv⟩ := D1 j hj
-      have := (hB _ hk).1
-      rw [hgi, ← hbv] at this
-      exact this
-    · obtain ⟨-, -, -, -, -, hkk, hstep⟩ := D2 x hx
-      have hj := (D2 x hx).1
-      obtain ⟨hk, -, hb0, -⟩ := D1 _ hj
-      obtain ⟨e1, e2, e3⟩ := hstep hlt
-      obtain ⟨-, hst, hch⟩ := hB _ hk
-      rw [hkk] at hst hch hb0
-      rw [e1, e2, hch _ e3, hst, hb0]
+  have side := vt_side_offsets hκ34 hG hB hsideT
   have hP := side 0 0 0 9 54 112 0 (by norm_num) (by norm_num) (fun r hr => by
       rcases Nat.eq_zero_or_pos r with rfl | hr0
       · obtain ⟨k, hs⟩ := h.sliceAt 110 _ vtPush0_check

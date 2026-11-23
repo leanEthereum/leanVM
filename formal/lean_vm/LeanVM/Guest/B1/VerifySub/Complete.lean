@@ -18,7 +18,7 @@ On an honest child (`S : ChildSegs`), `verify_sub`'s body is flat (`completeAt_f
 buffers hold `S.ownW`, its callees are `S.kids` on the bump allocator's bases. `vs_obligations`:
 the callees read the caller's words, the own buffers and the results before them (`kid_lin_sub`
 and its cases `10`, `11`, `15`), those words are in memory, and the honest valuation
-`vsσ rd (vsW bs outs) (vsArgs …)` satisfies every statement (`vsCPre_complete` on `vs_sig`), the
+`vsσ rd (vsW S.gw bs outs) (vsArgs …)` satisfies every statement (`vsCPre_complete` on `vs_sig`), the
 allocations (`vs_alloc_sizes`, `vs_alloc_bases`), the frames (`hcm`, `VsCallsMatch`) and the loads
 (`vs_loads`).
 -/
@@ -36,15 +36,15 @@ def VsCallsMatch {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs 
     (sqE outE : ℕ) (Lin : Main.Layout) : Prop :=
   ∀ (b : ℕ) (outs : List (List E × Main.Layout)), VsOuts S (bases b (vsSizes)) sqE outs →
     ∀ rd : Reader, Main.MemL rd (bufL b (vsSizes) S.ownW) → Main.MemL rd Lin →
-      CallsMatch (vsσ rd (vsW (bases b (vsSizes)) outs) (vsArgs seed c sqE outE))
-        ((vsCPre.filterMap (Stmt.callSF (vsσ rd (vsW (bases b (vsSizes)) outs)
+      CallsMatch (vsσ rd (vsW S.gw (bases b (vsSizes)) outs) (vsArgs seed c sqE outE))
+        ((vsCPre.filterMap (Stmt.callSF (vsσ rd (vsW S.gw (bases b (vsSizes)) outs)
           (vsArgs seed c sqE outE)))).map
-          (Main.mkCall (vsσ rd (vsW (bases b (vsSizes)) outs) (vsArgs seed c sqE outE))))
+          (Main.mkCall (vsσ rd (vsW S.gw (bases b (vsSizes)) outs) (vsArgs seed c sqE outE))))
         (kidsAt (S.kids (bases b (vsSizes)) sqE) [] outs) outs
 
 theorem vs_w253 {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Digest} {c : Child}
     (S : ChildSegs bytecode seed c) {bs : List ℕ} {sqE : ℕ} {outs : List (List E × Main.Layout)}
-    (O : VsOuts S bs sqE outs) : vsW bs outs 253 = gen ^ S.d := by
+    (O : VsOuts S bs sqE outs) : vsW S.gw bs outs 253 = gen ^ S.d := by
   rw [vsW_r (j := 2) (k := 0) (a := 253) (by norm_num) (by decide) rfl, O.o2, S.d_eq hbl]; simp
 
 theorem vs_kidsAt_getD (ks : List KidD) (outs : List (List E × Main.Layout)) (j : ℕ) :
@@ -72,7 +72,7 @@ theorem vs_obligations {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {see
       OutsOk (kidsAt (K fp) [] outs) outs → ∀ rd, LowDef κ rd → Main.MemL rd (own fp) →
       Main.MemL rd Lin →
       Main.MemL rd (outsL (kidsAt (K fp) [] outs) outs) →
-      ∃ σ : Val, σ = vsσ rd (vsW (bases (fp + fs "verify_sub") (vsSizes)) outs) args ∧
+      ∃ σ : Val, σ = vsσ rd (vsW S.gw (bases (fp + fs "verify_sub") (vsSizes)) outs) args ∧
         (Fn.params fn% «verify_sub»).map σ = args ∧ (∀ s ∈ vsCPre, DispOk σ s) ∧
         Stmt.HoldsList (fun _ _ _ ↦ True) rd σ (Fn.body fn% «verify_sub») False (fun r ↦ r = []) ∧
         (vsCPre.filterMap Main.Stmt.allocSz).map (fun x ↦ x.2.elim id fun s ↦ logG (σ s)) =
@@ -89,37 +89,37 @@ theorem vs_obligations {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {see
   have hd := S.d_bounds hbl
   -- callee `j`'s words: the caller's, the own buffers', or an earlier callee's result
   have hlin : ∀ fp (outs : List (List E × Main.Layout)), OutsOk (kidsAt (K fp) [] outs) outs →
-      ∀ j < 16, j < outs.length → ∀ q ∈ (kidAt (K fp) [] outs j).Lin,
+      ∀ j < 14, j < outs.length → ∀ q ∈ (kidAt (K fp) [] outs j).Lin,
         SubOf Lin q ∨ SubOf (own fp) q ∨
           ∃ m < j, (kidAt (K fp) [] outs m).taken = true ∧ q ∈ (outs.getD m ([], [])).2 := by
     intro fp outs ho j hj hjo q hq
     rw [vs_kidsAt_getD] at hq
-    by_cases h10 : j = 10
+    by_cases h10 : j = 9
     · subst h10
-      have h9 := outsOk_at ho 9 (by simp [K, ChildSegs.kids_length]) (by omega) rfl
+      have h9 := outsOk_at ho 8 (by simp [K, ChildSegs.kids_length]) (by omega) rfl
       rw [vs_kidsAt_getD] at h9
-      rcases kid10_lin_sub hbl S (fp + fs "verify_sub") hexp (outs.take 10)
-        (by rw [take_getD _ _ (by norm_num : 9 < 10)]; exact h9) q hq with h | h | h
+      rcases kid9_lin_sub hbl S (fp + fs "verify_sub") hexp (outs.take 9)
+        (by rw [take_getD _ _ (by norm_num : 8 < 9)]; exact h9) q hq with h | h | h
       · exact Or.inl h
       · exact Or.inr (Or.inl h)
-      · exact Or.inr (Or.inr ⟨9, by norm_num, rfl, by rwa [take_getD _ _ (by norm_num)] at h⟩)
-    by_cases h11 : j = 11
+      · exact Or.inr (Or.inr ⟨8, by norm_num, rfl, by rwa [take_getD _ _ (by norm_num)] at h⟩)
+    by_cases h11 : j = 10
     · subst h11
-      exact (kid11_lin_sub hbl S (fp + fs "verify_sub") hexp (outs.take 11) q hq).imp_right Or.inl
-    by_cases h15 : j = 15
+      exact (kid10_lin_sub hbl S (fp + fs "verify_sub") hexp (outs.take 10) q hq).imp_right Or.inl
+    by_cases h15 : j = 13
     · subst h15
-      rcases kid15_lin_sub hbl S (fp + fs "verify_sub") hexp (outs.take 15) q hq with h | h | h | h
+      rcases kid13_lin_sub hbl S (fp + fs "verify_sub") hexp (outs.take 13) q hq with h | h | h | h
       · exact Or.inl h
       · exact Or.inr (Or.inl h)
       · exact Or.inr (Or.inr ⟨3, by norm_num, rfl, by rwa [take_getD _ _ (by norm_num)] at h⟩)
-      · exact Or.inr (Or.inr ⟨14, by norm_num, rfl, by rwa [take_getD _ _ (by norm_num)] at h⟩)
+      · exact Or.inr (Or.inr ⟨12, by norm_num, rfl, by rwa [take_getD _ _ (by norm_num)] at h⟩)
     exact (kid_lin_sub hbl S (fp + fs "verify_sub") hexp hj h10 h11 h15 (outs.take j) q hq).imp_right
       Or.inl
   refine ⟨?_, ?_, ?_⟩
   · -- the callees read the caller's words, the own buffers, the results before them
     intro fp outs ho
     refine regionsOk_kidsAt _ _ _ _ fun j hj hjo _ i hi ↦ ?_
-    have hj16 : j < 16 := by simpa [K, ChildSegs.kids_length] using hj
+    have hj16 : j < 14 := by simpa [K, ChildSegs.kids_length] using hj
     obtain ⟨q, hq, h1, h2⟩ := hi
     rcases hlin fp outs ho j hj16 hjo q hq with h | h | ⟨m, hm, hmt, hmq⟩
     · exact Or.inl (Or.inl (subOf_region h h1 h2))
@@ -128,21 +128,21 @@ theorem vs_obligations {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {see
   · -- the callees' words are in memory
     intro fp outs ho rd _ hB hL hLo
     refine memL_lins_kidsAt _ _ _ fun j hj hjo q hq ↦ ?_
-    have hj16 : j < 16 := by simpa [K, ChildSegs.kids_length] using hj
+    have hj16 : j < 14 := by simpa [K, ChildSegs.kids_length] using hj
     rcases hlin fp outs ho j hj16 hjo q hq with h | h | ⟨m, hm, hmt, hmq⟩
     · exact subOf_memL hL h
     · exact subOf_memL hB h
     · exact memL_outsL_at hLo m (by simp [K, ChildSegs.kids_length]; omega) (by omega) hmt q hmq
   · -- the honest valuation
     intro fp outs hlen ho rd hlow hB hL hLo
-    have hl16 : outs.length = 16 := by rw [hlen]; rfl
+    have hl16 : outs.length = 14 := by rw [hlen]; rfl
     set b := fp + fs "verify_sub" with hb
     have O := vs_outs S (bases b (vsSizes)) sqE outs hl16 ho
     obtain ⟨D⟩ := vs_sig hbl S b sqE outE hexp hout O hκ hlow hB hL
     have hla : args.length = 6 := rfl
-    refine ⟨vsσ rd (vsW (bases b (vsSizes)) outs) args, rfl, ?_, vs_dispOk D, ?_,
+    refine ⟨vsσ rd (vsW S.gw (bases b (vsSizes)) outs) args, rfl, ?_, vs_dispOk D, ?_,
       vs_alloc_sizes,
-      vs_alloc_bases hla _ outs (by rw [bases_length]; rfl), hcm b outs O rd hB hL,
+      vs_alloc_bases hla _ _ outs (by rw [bases_length]; rfl), hcm b outs O rd hB hL,
       fun q hq ↦ ?_⟩
     · rw [vs_params]
       simp only [List.map_cons, List.map_nil]
@@ -153,7 +153,7 @@ theorem vs_obligations {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {see
     · rw [show Fn.body fn% «verify_sub» = vsCPre ++ [.ret []] from vs_body.trans vsT_splitPre,
         holdsList_append]
       exact vsCPre_complete D (by simp [Stmt.HoldsList, Stmt.Holds])
-    · obtain ⟨i, hi, h⟩ := vs_loads hbl S b sqE outE hexp hout O hB q hq
+    · obtain ⟨i, hi, h⟩ := vs_loads hbl S b sqE outE hexp hout O hB D q hq
       exact ⟨i, hi, h.imp_right Or.inl⟩
 
 end

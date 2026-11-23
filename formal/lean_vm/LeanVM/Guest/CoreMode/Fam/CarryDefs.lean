@@ -13,6 +13,8 @@ public import LeanVM.Guest.Bridge.WitDefs
 public import LeanVM.Guest.Memory.Family
 public import LeanVM.Guest.Memory.ScopeDefs
 public import LeanVM.Guest.CoreMode.Gen.CarryNzList
+public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.Renumber
 public meta import LeanVM.Guest.CoreRef
 
 /-!
@@ -33,7 +35,9 @@ parameters `carriedNz` lists, checked in each statement's context (`Memory.allB`
 value nonzero in `K` when it is listed (a carried parameter or the loop counter, `kvNz`), a nonzero
 constant of `K`, an address a load, touch or range check reads, a word of a call its callee pins
 (`nzUp`: a parameter or return its own body pins), a product of such, a factor of such by one in
-`K` (`kIn`), or a copy. `carryNzG fn`: every call site of `fn` passes its callees' listed values
+`K` (`kIn`), a copy, or a read of a table its context fills with such values at an index range checked against a
+constant (`tabNz`); and the values of its own `ownNz` lists, which its body pins on every returning path: copies of
+nonzero constants in every arm of a `match` (`armNzB`), table reads at a `match`'s selector (`selTabB`). `carryNzG fn`: every call site of `fn` passes its callees' listed values
 (`siteNz`), every dynamic allocation's size is pinned (`nzStmt`), and every listed word of `fn` is
 pinned in its own body (`upChk`).
 -/
@@ -119,14 +123,10 @@ noncomputable def carryG (fn : Fn) : Bool :=
 /-- Values equal, their numbers compared first. -/
 def veq (a b : V) : Bool := a.idx == b.idx && decide (a = b)
 
-/-- The values of `fn` carried nonzero in `K`: its listed parameters and its loop counter. -/
-def kvNz (fn : Fn) : List V :=
-  (carriedNz.filterMap fun c => if c.1 == fn.name then fn.params[c.2]? else none) ++
-    (if fn.loop then fn.params.take 1 else [])
-
 /-- An event puts `v` in `K`: an address it reads, a frame address, an `assertInK`, a constant of
-`K`. -/
+`K`, `v = v·v` (`v` is `0` or `1`). -/
 def pinIn (v : V) : Ev → Bool
+  | .atom (.mul d a b) => veq d v && veq a v && veq b v
   | .atom (.load _ p _) => veq p v
   | .atom (.touch _ p) => veq p v
   | .atom (.rangeCheck x y _ _ _) => veq x v || veq y v
@@ -135,11 +135,23 @@ def pinIn (v : V) : Ev → Bool
   | .atom (.const d w) => veq d v && decide (w.limb 1 = 0)
   | _ => false
 
-/-- **`v` in `K`**: a listed value, put in `K` by an event of `sp`, or a product of such, `n` deep. -/
+/-- `v` a listed value or put in `K` by an event of `sp`. -/
+def kIn0 (kv : List V) (sp : List Ev) (v : V) : Bool := kv.any (veq · v) || sp.any (pinIn v)
+
+/-- `v` at `kIn0`, or a product or sum of two such. -/
+def kIn1 (kv : List V) (sp : List Ev) (v : V) : Bool :=
+  kIn0 kv sp v || sp.any fun
+    | .atom (.mul d a b) => veq d v && kIn0 kv sp a && kIn0 kv sp b
+    | .atom (.add d a b) => veq d v && kIn0 kv sp a && kIn0 kv sp b
+    | _ => false
+
+/-- **`v` in `K`**: a listed value, put in `K` by an event of `sp`, a product of such, `n` deep, or a sum of
+values at `kIn1`. -/
 def kIn (kv : List V) (sp : List Ev) : ℕ → V → Bool
   | 0, v => kv.any (veq · v) || sp.any (pinIn v)
   | n + 1, v => kv.any (veq · v) || sp.any (pinIn v) || sp.any fun
       | .atom (.mul d a b) => veq d v && kIn kv sp n a && kIn kv sp n b
+      | .atom (.add d a b) => veq d v && kIn1 kv sp a && kIn1 kv sp b
       | _ => false
 
 /-- A call's word `v` pinned by its callee: the position of `v` among the call's words listed for
@@ -159,29 +171,96 @@ def pinNz (v : V) : Ev → Bool
   | .call g args rets => upAt g (args ++ rets) v
   | _ => false
 
+/-- The exponent of a word of `K` the guest's powers name. -/
+noncomputable def powOf (w : LeanVM.Parameters.E) : Option ℕ :=
+  if w.limb 1 = 0 then Data.powTree.find (w.limb 0).toBitVec.toNat else none
+
+/-- **A table read at `T·J·g^off`** (`tabAt`): `J` range checked against the constant `g^m`, `m < 2^28`, and the
+context storing at each `T·g^(t + off)`, `t ≤ m`, a value `nz` pins. -/
+noncomputable def tabAt (sp : List Ev) (nz : V → Bool) (T J : V) (off : ℕ) : Bool :=
+  sp.any fun
+    | .atom (.rangeCheck x _ _ _ k) => veq x J && sp.any fun
+        | .atom (.const d c) => veq d k && match powOf c with
+            | some m => decide (m < 2 ^ 28) && (List.range (m + 1)).all fun t => sp.any fun
+                | .atom (.load w T' o) => veq T' T && o == t + off && nz w
+                | _ => false
+            | none => false
+        | _ => false
+    | _ => false
+
+/-- **A read at `p·g^off` of a table** (`tabNz`): `p = T·J`, either order, at `tabAt`. -/
+noncomputable def tabNz (sp : List Ev) (nz : V → Bool) (p : V) (off : ℕ) : Bool :=
+  sp.any fun
+    | .atom (.mul q a b) => veq q p && (tabAt sp nz a b off || tabAt sp nz b a off)
+    | _ => false
+
 /-- **`v` nonzero in `K`**: a listed value, pinned by an event of `sp`, a product of such, a factor
-of such by a value in `K`, or a copy, `n` deep. -/
-def nzOf (kv : List V) (sp : List Ev) : ℕ → V → Bool
+of such by a value in `K`, a copy (an `assertEq` too), or a table read (`tabNz`), `n` deep. -/
+noncomputable def nzOf (kv : List V) (sp : List Ev) : ℕ → V → Bool
   | 0, v => kv.any (veq · v) || sp.any (pinNz v)
   | n + 1, v => kv.any (veq · v) || sp.any (pinNz v) || sp.any fun
       | .atom (.mul d a b) => (veq d v && nzOf kv sp n a && nzOf kv sp n b) ||
           (veq b v && kIn kv sp kDepth a && nzOf kv sp n d) ||
           (veq a v && kIn kv sp kDepth b && nzOf kv sp n d)
       | .atom (.copy d s) => (veq d v && nzOf kv sp n s) || (veq s v && nzOf kv sp n d)
+      | .atom (.assertEq d s) => (veq d v && nzOf kv sp n s) || (veq s v && nzOf kv sp n d)
+      | .atom (.load d p off) => veq d v && tabNz sp (nzOf kv sp n) p off
       | _ => false
 
 /-- The depth `nzOf` searches. -/
 abbrev nzDepth : ℕ := 12
 
+/-- **`v` pinned nonzero in every arm of a top-level `match`** (`armNzB`), before any statement that may return,
+on the arm's own spine (`nzOf`, nothing listed). -/
+noncomputable def armNzB (v : V) : List Stmt → Bool
+  | [] => false
+  | s :: ss => (match s with
+      | .match_ _ (a :: as) => (a :: as).all fun b => nzOf [] (spineE b) nzDepth v
+      | _ => false) || (Bridge.noRet [s] && armNzB v ss)
+
+/-- The selectors of the top-level `match`es before any statement that may return, with their numbers of arms. -/
+noncomputable def topSelsC : List Stmt → List (V × ℕ)
+  | [] => []
+  | s :: ss => (match s with
+      | .match_ x arms => [(x, arms.length)]
+      | _ => []) ++ (bif Bridge.noRet [s] then topSelsC ss else [])
+
+/-- **A table read at `T·J·g^off`, `J` a selector** (`selTabAt`): of `m` arms (`sels`), the spine storing at each
+`T·g^(t + off)`, `t < m`, a value it pins nonzero. -/
+noncomputable def selTabAt (sp : List Ev) (sels : List (V × ℕ)) (T J : V) (off : ℕ) : Bool :=
+  sels.any fun c => veq c.1 J && (List.range c.2).all fun t => sp.any fun
+    | .atom (.load w T' o) => veq T' T && o == t + off && nzOf [] sp nzDepth w
+    | _ => false
+
+/-- **`v` read by a body's spine from a table at a selector** (`selTabB`): at `p·g^off`, `p = T·J` (either order),
+at `selTabAt`. -/
+noncomputable def selTabB (body : List Stmt) (v : V) : Bool :=
+  (spineE body).any fun
+    | .atom (.load d p off) => veq d v && (spineE body).any (fun
+        | .atom (.mul q a b) => veq q p && (selTabAt (spineE body) (topSelsC body) a b off ||
+            selTabAt (spineE body) (topSelsC body) b a off)
+        | _ => false)
+    | _ => false
+
+/-- **A listed value of `fn`'s own pinned by its body** (`ownNz`) on every returning path: `armNzB` or `selTabB`. -/
+noncomputable def ownChk (fn : Fn) (v : V) : Bool := armNzB v fn.body || selTabB fn.body v
+
+/-- The values of `fn` carried nonzero in `K`: its listed parameters, its loop counter, and its listed own values
+(`ownNz`, checked by `ownChk`). -/
+def kvNz (fn : Fn) : List V :=
+  (carriedNz.filterMap fun c => if c.1 == fn.name then fn.params[c.2]? else none) ++
+    (if fn.loop then fn.params.take 1 else []) ++
+    ownNz.filterMap fun c => if c.1 == fn.name then some (V.n c.2) else none
+
 /-- **A call site passes its callee's listed values.** -/
-def siteNz (kv : List V) (sp : List Ev) (f : String) (args : List V) : Bool :=
+noncomputable def siteNz (kv : List V) (sp : List Ev) (f : String) (args : List V) : Bool :=
   carriedNz.all fun c => c.1 != f || match args[c.2]? with
     | some a => nzOf kv sp nzDepth a
     | none => false
 
 /-- **The nonzero facts' check of a statement** in its context: a call site passes its callees'
 listed values, a dynamic allocation's size is nonzero in `K`. -/
-def nzStmt (kv : List V) (sp : List Ev) : Stmt → Bool
+noncomputable def nzStmt (kv : List V) (sp : List Ev) : Stmt → Bool
   | .atom (.hint (.allocDyn _ s)) => nzOf kv sp nzDepth s
   | .call f args _ => siteNz kv sp f args
   | .callIf _ f args => siteNz kv sp f args
@@ -189,7 +268,7 @@ def nzStmt (kv : List V) (sp : List Ev) : Stmt → Bool
   | _ => true
 
 /-- A return's value at `j` pinned nonzero in its context. -/
-def retNz (j : ℕ) (sp : List Ev) : Stmt → Bool
+noncomputable def retNz (j : ℕ) (sp : List Ev) : Stmt → Bool
   | .ret vs => match vs[j]? with
     | some v => nzOf [] sp nzDepth v
     | none => false
@@ -204,7 +283,8 @@ noncomputable def upChk (fn : Fn) (i : ℕ) : Bool :=
 
 /-- **The nonzero facts' check of one function.** -/
 noncomputable def carryNzG (fn : Fn) : Bool :=
-  allB (nzStmt (kvNz fn)) fn.body (spineE fn.body) && nzUp.all fun c => c.1 != fn.name || upChk fn c.2
+  allB (nzStmt (kvNz fn)) fn.body (spineE fn.body) && nzUp.all (fun c => c.1 != fn.name || upChk fn c.2) &&
+    ownNz.all fun c => c.1 != fn.name || ownChk fn (V.n c.2)
 
 end
 

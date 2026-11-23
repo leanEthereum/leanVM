@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Guest.B1.KeccakGkr.VkCI
 public import LeanVM.Guest.B1.KeccakGkr.FlatGB
-public import LeanVM.Guest.B1.KeccakGkr.LayerCPlacedB
+public import LeanVM.Guest.B1.KeccakGkr.LayerCPlacedBE
 public import LeanVM.Guest.Data.NameStrings
 
 /-!
@@ -156,7 +156,7 @@ theorem kids_completeB (h : D.Ok) {κ : ℕ} (hκ : 11 ≤ κ) (B curE chiE olE 
     (hR : ∀ first < 2, TotalLeOn coreProgram fs (remLoopName first) LoopPre
       fun a ↦ logG (a.getD 1 0) * KR + fs (remLoopName first))
     (hO : TotalLe coreProgram fs (plainName 0) fun _ ↦ KO)
-    (hI : TotalLe coreProgram fs (plainName 1) fun _ ↦ KI) :
+    (hI : TotalLe coreProgram fs (plainName 1) fun _ ↦ KI) (htk : ∀ f, fs (tailKey f) ≤ fs f) :
     KidsGB fs cert κ (D.kids fs B curE chiE olE zvE slE tbE stE) (D.kidsB fs KC KP KR KO KI) := by
   have hτ1 := h.1
   have hτ2 := h.2.1
@@ -189,7 +189,7 @@ theorem kids_completeB (h : D.Ok) {κ : ℕ} (hκ : 11 ≤ κ) (B curE chiE olE 
       (p0 := (D.cells s).1) (p1 := (D.cells s).2) (st := ptr stE) (hP _ hf2) (hR _ hf2) hcl (fun hf1 ↦ by
         obtain rfl : s = 0 := by unfold firstOf at hf1; split at hf1 <;> omega
         rfl) (by rw [hy]; omega) (by rw [hy]; omega) hpl hpm hlm hproj hgr hfin
-      (D.CL_ok h B _ (by omega))
+      (D.CL_ok h B _ (by omega)) htk
     have hb : (D.CL B (D.lsOf fs ps) s).bclaim = B + D.o201 + 22 * s := by cases s <;> rfl
     rw [hb] at H
     simp only [layKid, List.dropLast_concat, List.getLast?_concat, Option.getD_some]

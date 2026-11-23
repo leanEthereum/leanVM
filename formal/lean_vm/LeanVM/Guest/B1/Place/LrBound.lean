@@ -32,32 +32,39 @@ open LeanVM.Protocol.Verifier hiding Layout
 
 theorem lrSizes_sum_le (q : ℕ) : (lrSizes q).sum ≤ 2 * q + 4 := by
   have h1 := Nat.div_add_mod q 8
-  unfold lrSizes
-  simp only [resBatch]
-  split <;> simp <;> omega
+  have h2 : q / 8 ≤ 8 * (q / 8) := Nat.le_mul_of_pos_left _ (by norm_num)
+  simp only [lrSizes, resBatch, List.sum_cons, List.sum_nil]
+  omega
 
 theorem lrLb_within (fs : String → ℕ) (name : String) (q cols nhs hbits : ℕ) (D : ℕ → E)
     (hsv : List E) (p : ℕ → E) (M : E) (fp : ℕ) :
-    Within (lrLb fs name q cols nhs hbits D hsv p M fp) fp (fs name + (lrSizes q).sum) :=
-  (bufL_within _ _ _ (lrWords_fit q cols nhs hbits D hsv p M)).mono (Nat.le_add_right _ _)
-    (by omega)
+    Within (lrLb fs name q cols nhs hbits D hsv p M fp) fp (fs name + (lrSizes q).sum) := by
+  intro e he
+  simp only [lrLb, List.mem_singleton] at he
+  subst he
+  simp only [lrW_length, lrSizes, List.sum_cons, List.sum_nil]
+  omega
 
 theorem lrLb_disj (fs : String → ℕ) (name : String) (q cols nhs hbits : ℕ) (D : ℕ → E)
     (hsv : List E) (p : ℕ → E) (M : E) (fp : ℕ) :
-    DisjL (lrLb fs name q cols nhs hbits D hsv p M fp) :=
-  bufL_disj _ _ _ (lrWords_fit q cols nhs hbits D hsv p M)
+    DisjL (lrLb fs name q cols nhs hbits D hsv p M fp) := by
+  simp [lrLb, DisjL]
 
 set_option maxHeartbeats 800000 in
-/-- **A words bound of `level_residual`'s trees is at least its frame and buffers**, frames below
-`2^32`. -/
+/-- **A words bound of `level_residual`'s trees is at least its frame and buffer**, frames below
+`2^32`, at query counts below `2^20`. -/
 theorem lr_size_le {name loop1 loop2 : String} {q cols nhs hbits : ℕ}
-    (hlr : FnIs name (osParams 4) (lrBody q loop1 loop2))
+    (hlr : FnIs name (osParams 6) (lrBody loop1 loop2))
     (hl1 : FnIs loop1 (osParams 7) (lrLoop1Body cols nhs hbits loop1))
-    (hl2 : q % resBatch ≠ 0 → FnIs loop2 (osParams 7) (lrLoop2Body cols nhs hbits loop2))
-    (hF : LrFacts q cols nhs hbits loop1 loop2) (fs : String → ℕ) (cert : String → V → ℕ)
-    (κ : ℕ) (hfs : ∀ f, fs f < 2 ^ 32) {B : ℕ} (hT : TotalLe coreProgram fs name (fun _ ↦ B)) :
+    (hl2 : FnIs loop2 (osParams 7) (lrLoop2Body cols nhs hbits loop2))
+    (hF : LrFacts cols nhs hbits loop1 loop2) (hqb : resBatch ≤ q) (hq20 : q ≤ 2 ^ 20)
+    (fs : String → ℕ) (cert : String → V → ℕ)
+    (κ : ℕ) (hfs : ∀ f, fs f < 2 ^ 32) {B : ℕ}
+    (hT : TotalLeOn coreProgram fs name (fun a ↦ a.getD 4 0 = ofK (addressOfIndex (q / resBatch)) ∧
+      a.getD 5 0 = ofK (addressOfIndex (q % resBatch))) (fun _ ↦ B)) :
     fs name + (lrSizes q).sum ≤ B := by
-  have hsm : q + cols + nhs ≤ 2 ^ 20 := hF.2.2.2.2.2.2.2.2
+  have hsm : cols + nhs ≤ 2 ^ 20 := hF.2.2.2.2.2.2
+  have hq : q < ordG := lt_of_le_of_lt hq20 (by decide)
   set posW : List E := List.replicate q 0 with hposW
   set dW : List E := List.replicate cols 0 with hdW
   set hsW : List E := List.replicate nhs 0 with hhsW
@@ -86,7 +93,8 @@ theorem lr_size_le {name loop1 loop2 : String} {q cols nhs hbits : ℕ}
       subst he
       left; simp only [hlD]; omega
   have hreg : RegPtrs [(0, q), (1, cols), (2, nhs)]
-      [ofK (addressOfIndex 0), ofK (addressOfIndex q), ofK (addressOfIndex (q + cols)), 0]
+      [ofK (addressOfIndex 0), ofK (addressOfIndex q), ofK (addressOfIndex (q + cols)), 0,
+        gen ^ (q / resBatch), gen ^ (q % resBatch)]
       (RegionL Lin0) := by
     intro e he t ht
     simp only [List.mem_cons, List.not_mem_nil, or_false] at he
@@ -108,38 +116,42 @@ theorem lr_size_le {name loop1 loop2 : String} {q cols nhs hbits : ℕ}
     · have := h1 s (by rw [hlD]; exact hs); simpa [hdW] using this
     · have := h2 c (by rw [hlH]; exact hc)
       rwa [List.getD_eq_getElem _ _ (by rw [hlH]; exact hc)]
-  obtain ⟨m, hm⟩ := lr_key hlr hl1 hl2 hF fs cert κ (D := fun _ ↦ 0) (p := fun _ ↦ 0) hlH hreg hmem fp0
+  obtain ⟨m, hm⟩ := lr_key hlr hl1 hl2 hF hqb hq fs cert κ (D := fun _ ↦ 0) (p := fun _ ↦ 0) hlH hreg
+    hmem fp0
   have hlt : fp0 + (fs name + (lrSizes q).sum) < 2 ^ 64 - 1 := by
     have := hfs name
     have := lrSizes_sum_le q
     omega
   obtain ⟨rd, hlow, hmm⟩ := fresh_pair κ (lrLb_disj fs name q cols nhs hbits _ _ _ 0 fp0)
     (lrLb_within fs name q cols nhs hbits _ _ _ 0 fp0) hLD hLW hlt
-  have := relAtIn_le (hm rd hlow hmm) hT
+  have := relAtIn_leOn (hm rd hlow hmm) hT (by simp [gen_pow_eq_ofK])
   omega
 
 /-- **`level_residual` within every words bound of its trees**, frames below `2^32`. -/
 theorem level_residual_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ)
     (hfs : ∀ f, fs f < 2 ^ 32) :
-    ∀ e ∈ lrTable, ∀ B, TotalLe coreProgram fs e.1 (fun _ ↦ B) →
-      Arm.LrAtO fs cert κ e.1 e.2.1 e.2.2.1 e.2.2.2.1 e.2.2.2.2.1 (some B) := by
-  intro e he B hT
+    ∀ e ∈ lrTable, ∀ q, resBatch ≤ q → q ≤ 2 ^ 20 → ∀ B,
+      TotalLeOn coreProgram fs e.1 (fun a ↦ a.getD 4 0 = ofK (addressOfIndex (q / resBatch)) ∧
+        a.getD 5 0 = ofK (addressOfIndex (q % resBatch))) (fun _ ↦ B) →
+      Arm.LrAtOq fs cert κ e.1 e.2.1 e.2.2.1 e.2.2.2.1 q (some B) := by
+  intro e he q hqb hq20 B hT
   obtain ⟨hlr, hl1, hl2⟩ := lrTable_ok e he
   have hF := lrTable_facts e he
-  have hsz := lr_size_le hlr hl1 hl2 hF fs cert κ hfs hT
   intro Lin P BD HS M D p hsv hlen hreg hmem fp
+  have hq : q < ordG := lt_of_le_of_lt hq20 (by decide)
+  have hsz := lr_size_le hlr hl1 hl2 hF hqb hq20 fs cert κ hfs hT
   classical
-  obtain ⟨m, hm⟩ := lr_key hlr hl1 hl2 hF fs cert κ hlen hreg hmem fp
-  have hW := lrLb_within fs e.1 e.2.1 e.2.2.1 e.2.2.2.1 e.2.2.2.2.1 D hsv p M fp
-  have hD := lrLb_disj fs e.1 e.2.1 e.2.2.1 e.2.2.2.1 e.2.2.2.2.1 D hsv p M fp
-  by_cases hex : ∃ rd, LowDef κ rd ∧ MemL rd (lrLb fs e.1 e.2.1 e.2.2.1 e.2.2.2.1 e.2.2.2.2.1 D hsv p M fp ++ Lin)
+  obtain ⟨m, hm⟩ := lr_key hlr hl1 hl2 hF hqb hq fs cert κ hlen hreg hmem fp
+  have hW := lrLb_within fs e.1 q e.2.1 e.2.2.1 e.2.2.2.1 D hsv p M fp
+  have hD := lrLb_disj fs e.1 q e.2.1 e.2.2.1 e.2.2.2.1 D hsv p M fp
+  by_cases hex : ∃ rd, LowDef κ rd ∧ MemL rd (lrLb fs e.1 q e.2.1 e.2.2.1 e.2.2.2.1 D hsv p M fp ++ Lin)
   · obtain ⟨rd0, hl0, hm0⟩ := hex
-    refine ⟨fs e.1 + (lrSizes e.2.1).sum + m, lrLb fs e.1 e.2.1 e.2.2.1 e.2.2.2.1 e.2.2.2.2.1 D hsv p M fp,
+    refine ⟨fs e.1 + (lrSizes q).sum + m, lrLb fs e.1 q e.2.1 e.2.2.1 e.2.2.2.1 D hsv p M fp,
       _, [], ⟨rfl, rfl⟩, by simpa using hW.mono le_rfl (by omega), by simpa using hD,
-      fun B' hB' ↦ by cases hB'; exact relAtIn_le (hm rd0 hl0 hm0) hT,
+      fun B' hB' ↦ by cases hB'; exact relAtIn_leOn (hm rd0 hl0 hm0) hT (by simp [gen_pow_eq_ofK]),
       fun rd hl hL ↦ relAtIn_dmono (hm rd hl (by simpa using hL)) (fun i hi ↦ ?_)⟩
     obtain ⟨x, hx, _⟩ := hi; simp at hx
-  · refine ⟨fs e.1 + (lrSizes e.2.1).sum, lrLb fs e.1 e.2.1 e.2.2.1 e.2.2.2.1 e.2.2.2.2.1 D hsv p M fp,
+  · refine ⟨fs e.1 + (lrSizes q).sum, lrLb fs e.1 q e.2.1 e.2.2.1 e.2.2.2.1 D hsv p M fp,
       _, [], ⟨rfl, rfl⟩, by simpa using hW, by simpa using hD,
       fun B' hB' ↦ by cases hB'; exact hsz,
       fun rd hl hL ↦ absurd ⟨rd, hl, by simpa using hL⟩ hex⟩

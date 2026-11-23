@@ -120,7 +120,7 @@ theorem loopA_stepAtP {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn
     (hU : (atomsIn (loopPre fn)).all atomUnplaced = true) {κ : ℕ} {Lin : Layout} {N : E}
     {rest : List E} {m k : ℕ} (hN : N = gen ^ m) (hm : m < 2 ^ 34) (hkm : k + 1 ≤ m) {bp pt : List Pop}
     (hblk : LoopBlockInP κ fn Lin k N rest bp) {Bd Bd' : ℕ → Prop}
-    (hBd : ∀ x, (k + 1 < m → Bd' x) → (k + 1 = m → x = fs f) → Bd (fs f + x))
+    (hBd : ∀ x, (k + 1 < m → Bd' x) → (k + 1 = m → x = fs (tailKey f)) → Bd (fs f + x))
     (htail : k + 1 < m →
       CompleteAtLR fs cert κ f Lin (gen ^ (k + 1) :: N :: rest) (Returns [])
         (fun rd t => t.pops coreProgram rd = pt) Bd') :
@@ -282,10 +282,11 @@ theorem loopA_completeAtBP {f : String} {fn : Fn} (hf : coreProgram.find? f = so
     {rest : List E} {m : ℕ} (hN : N = gen ^ m) (hm : m < 2 ^ 34) {bp : ℕ → List Pop}
     (hblk : ∀ k < m, LoopBlockInP κ fn Lin k N rest (bp k)) :
     ∀ k < m, CompleteAtDTBR fs cert κ f Lin (gen ^ k :: N :: rest) (Returns [])
-      (fun rd t => t.pops coreProgram rd = (List.range' k (m - k)).flatMap bp) ((m - k + 1) * fs f) := by
+      (fun rd t => t.pops coreProgram rd = (List.range' k (m - k)).flatMap bp)
+      ((m - k) * fs f + fs (tailKey f)) := by
   have key : ∀ t k, k + 1 + t = m → CompleteAtLR fs cert κ f Lin (gen ^ k :: N :: rest)
       (Returns []) (fun rd t' => t'.pops coreProgram rd = (List.range' k (t + 1)).flatMap bp)
-      (· ≤ (t + 2) * fs f) := by
+      (· ≤ (t + 1) * fs f + fs (tailKey f)) := by
     intro t
     induction t with
     | zero =>
@@ -300,13 +301,13 @@ theorem loopA_completeAtBP {f : String} {fn : Fn} (hf : coreProgram.find? f = so
       refine (loopA_stepAtP fs cert hf hok hA hU hN hm (by omega) (hblk k (by omega))
         (fun x hx _ => ?_) fun _ => ih (k + 1) (by omega)).mono (fun _ h => h) fun rd t' h => ?_
       · have := hx (by omega)
-        rw [show (t + 1 + 2) * fs f = (t + 2) * fs f + fs f by ring]
+        rw [show (t + 1 + 1) * fs f = (t + 1) * fs f + fs f by ring]
         omega
       · rw [h, ite_eq_left (show k + 1 < m by omega)]
         conv_rhs => rw [List.range'_succ, List.flatMap_cons]
   intro k hk
   obtain ⟨t, rfl⟩ : ∃ t, m = k + 1 + t := ⟨m - k - 1, by omega⟩
-  rw [show k + 1 + t - k + 1 = t + 2 by omega, show k + 1 + t - k = t + 1 by omega]
+  rw [show k + 1 + t - k = t + 1 by omega]
   exact (key t k rfl).toDTBR
 
 end

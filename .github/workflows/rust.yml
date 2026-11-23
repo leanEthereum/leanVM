@@ -61,6 +61,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
+          targets: riscv32im-unknown-none-elf
       - uses: Swatinem/rust-cache@v2
       - name: Clippy
         run: cargo clippyall
@@ -68,6 +69,24 @@ jobs:
         run: cargo clippy --release -p lean_vm -p leanvm-sidecar --all-targets --features experimental_prover -- -D warnings
       - name: Clippy (the API in its sidecar mode)
         run: cargo clippy --release -p lean_vm --all-targets --features sidecar -- -D warnings
+      # The schemes' verifiers in a program without std or an allocator, on a target without std.
+      - name: Link the verifiers without std
+        working-directory: ${{ runner.temp }}
+        env:
+          RUSTFLAGS: -D warnings
+        run: |
+          cargo new -q probe && cd probe
+          cargo add -q --no-default-features --path "$GITHUB_WORKSPACE/crates/lean_xmss"
+          cargo add -q --no-default-features --path "$GITHUB_WORKSPACE/crates/lean_sphincs"
+          cat > src/main.rs <<'EOF'
+          #![no_std]
+          #![no_main]
+          #[panic_handler]
+          fn panic(_: &core::panic::PanicInfo) -> ! { loop {} }
+          #[unsafe(no_mangle)]
+          extern "C" fn _start() { core::hint::black_box((lean_xmss::verify as fn(_, _, _) -> bool, lean_sphincs::verify as fn(_, _, _) -> bool)); }
+          EOF
+          cargo build --target riscv32im-unknown-none-elf
 
   # Clippy type-checks every arm the ISA selects, so it also does `cargo check`'s work.
   # Nothing runs: GitHub's x86-64 runners do not reliably have AVX-512.

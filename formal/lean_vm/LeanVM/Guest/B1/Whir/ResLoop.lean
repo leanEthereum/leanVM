@@ -19,7 +19,7 @@ A residual step (`osResStep`) reads a position `p` and runs `h ← (h + P(p))·�
 reads the positions `bj .. bj + b - 1` at `qpos·g^po·x^b` (`b = resBatch`), `h, hh = chain[2j],
 chain[2j + 1]`, and stores `chain[2j + 2], chain[2j + 3]` (`ResIter`; `resLoop_sound`). `resChain`:
 from `chain[0] = chain[1] = 0`, `chain[2j], chain[2j + 1]` are the chains over the first
-`bj` positions. `resFold_mul_pow`: `λ^n` times a chain from `0` is `Σ_k λ^k d_k`.
+`bj` positions. `chain_mul_pow`: `λ^n` times a chain from `0` is `Σ_k λ^k d_k`.
 -/
 
 namespace LeanVM.Guest.B1.Whir

@@ -20,7 +20,7 @@ open LeanVM.Cost LeanVM.Cost.Decoder
 
 @[expose] public section
 
-#guard decTopC.costIdx == 607
+#guard decTopC.costIdx == 611
 #guard compiledGuestWitnessDecoder.size ==
   guestLanesRowSize + 2 + otherBodiesSize + 2 * (decTopC.costIdx - decTopC.costDeps.length)
 #guard compiledGuestWitnessDecoder.size ≤ LeanVM.Node.guestWitnessDecoderSizeBound

@@ -63,22 +63,8 @@ theorem kidsFromInT_append {rd : Reader} {σ : Val} {R : ℕ → Prop} :
   | [], _, _ :: _, _, _, _, _, _, _, _, hl, _, _ | _ :: _, _, [], _, _, _, _, _, _, _, hl, _, _ => by
     simp at hl
 
-private theorem osT_regionL_append {L L' : Layout} {i : ℕ} (h : RegionL (L ++ L') i) :
-    RegionL L i ∨ RegionL L' i := by
-  obtain ⟨q, hq, h1, h2⟩ := h
-  rcases List.mem_append.mp hq with hq | hq
-  · exact Or.inl ⟨q, hq, h1, h2⟩
-  · exact Or.inr ⟨q, hq, h1, h2⟩
-
-private theorem os_callsMatch_mapBT (σ : Val) (Lk : Layout) : ∀ (cs : List Call) (outs : List (List E × Layout)),
-    OutsOk (osKidsOf σ Lk cs) outs → CallsMatch σ cs (osKidsOf σ Lk cs) outs
-  | [], [], _ => trivial
-  | _ :: cs, _ :: os, ⟨ho, hos⟩ => ⟨rfl, rfl, fun ht => ⟨rfl, (ho ht).1.symm⟩, os_callsMatch_mapBT σ Lk cs os hos⟩
-  | [], _ :: _, h => h.elim
-  | _ :: _, [], h => h.elim
-
 theorem os_kidsBoundL_le (σ : Val) (Lk : Layout) (Bk : String → ℕ) : ∀ cs : List Call,
-    kidsBoundL fs (osKidsOf σ Lk cs) (cs.map fun c => Bk c.f) ≤ (cs.map fun c => max (fs c.f) (Bk c.f)).sum
+    kidsBoundL fs (osKidsOf σ Lk cs) (cs.map fun c => Bk c.f) ≤ (cs.map fun c => max (fs (tailKey c.f)) (Bk c.f)).sum
   | [] => by simp [kidsBoundL, osKidsOf]
   | c :: cs => by
     have ih := os_kidsBoundL_le σ Lk Bk cs
@@ -102,7 +88,7 @@ theorem os_kids_blockBT (κ : ℕ) (Lk : Layout) (σ : Val) (cs : List Call) (Bk
     (hc : ∀ c ∈ cs, c.taken = true →
       CompleteAtDTBR fs cert κ c.f Lk (c.args.map σ) (Returns (c.rets.map σ)) T (Bk c.f))
     (b : ℕ) :
-    ∃ (N : ℕ) (L : Layout), Within L b N ∧ DisjL L ∧ N ≤ (cs.map fun c => max (fs c.f) (Bk c.f)).sum ∧
+    ∃ (N : ℕ) (L : Layout), Within L b N ∧ DisjL L ∧ N ≤ (cs.map fun c => max (fs (tailKey c.f)) (Bk c.f)).sum ∧
       ∀ (rd : Reader) (R Dacc : ℕ → Prop), LowDef κ rd →
       MemL rd L → MemL rd Lk → (∀ i, RegionL Lk i → R i ∨ Dacc i) →
       KidsFromInT coreProgram fs cert rd σ R Dacc cs (cs.map fun _ => T rd) b N (fun _ => False) := by
@@ -110,7 +96,7 @@ theorem os_kids_blockBT (κ : ℕ) (Lk : Layout) (σ : Val) (cs : List Call) (Bk
     (osKidsOf σ Lk cs) _ _ (os_kidsDTBR κ Lk σ Bk T cs hc) b
   refine ⟨N, L, hW, hD, le_trans hN (os_kidsBoundL_le σ Lk Bk cs), fun rd R Dacc hlow hL hLk hR =>
     kidsFromInT_dend _ _ _ _ _ (fun _ h => h.elim)
-      (hK rd σ cs R Dacc (os_callsMatch_mapBT σ Lk cs outs ho) hlow hL ?_ ?_)⟩
+      (hK rd σ cs R Dacc (os_callsMatch_map σ Lk cs outs ho) hlow hL ?_ ?_)⟩
   · intro q hq
     obtain ⟨k, hk, hq⟩ := List.mem_flatMap.mp hq
     obtain ⟨c, -, rfl⟩ := List.mem_map.mp hk
@@ -188,7 +174,7 @@ theorem os_levels_kidsBT (κ : ℕ) (σ : Val) (Lk : Layout) (W S : ℕ → ℕ 
     ∀ (ks : List OsLvK) (l0 : ℕ),
       (∀ i (h : i < ks.length), OsLvKOkBT fs cert κ σ Lk (W (l0 + i)) (S (l0 + i)) Bk TA TS (TB (l0 + i)) ks[i]) →
       ∀ b, ∃ (N : ℕ) (L : Layout) (ps : List ℕ), ps.length = ks.length ∧ Within L b N ∧ DisjL L ∧
-        N ≤ ((ks.flatMap OsLvK.calls).map fun c => max (fs c.f) (Bk c.f)).sum ∧
+        N ≤ ((ks.flatMap OsLvK.calls).map fun c => max (fs (tailKey c.f)) (Bk c.f)).sum ∧
         ∀ (rd : Reader) (R Dacc : ℕ → Prop), LowDef κ rd → MemL rd L → MemL rd Lk →
           (∀ i (h : i < ps.length), MemL rd (W (l0 + i) ps[i])) → (∀ i, RegionL Lk i → R i) →
           (∀ l, l0 ≤ l → l < l0 + ks.length → ∀ p i, RegionL (W l p) i → R i) →
@@ -235,14 +221,14 @@ theorem os_levels_kidsBT (κ : ℕ) (σ : Val) (Lk : Layout) (W S : ℕ → ℕ 
           [TS rd] ++ ((k.B.map fun _ => TB l0 rd) ++ lvTs TA TS TB rd (l0 + 1) ks) from rfl]
       refine kidsFromInT_append _ _ _ _ _ _ _ _ _ _ rfl
         (hKS rd R D1 hlow hLS (Main.memL_append.mpr ⟨hLk, hW0⟩) fun i hi => ?_) ?_
-      · rcases osT_regionL_append hi with hi | hi
+      · rcases os_regionL_append hi with hi | hi
         · exact Or.inl (hR i hi)
         · exact Or.inl (hRW l0 le_rfl (by simp) _ i hi)
       intro D2 hD2
       refine kidsFromInT_append _ _ _ _ _ _ _ _ _ _ (by simp) (hKB rd R D2 hlow hLB
         (Main.memL_append.mpr ⟨Main.memL_append.mpr ⟨hLk, hW0⟩, hS0⟩) fun i hi => ?_) ?_
-      · rcases osT_regionL_append hi with hi | hi
-        · rcases osT_regionL_append hi with hi | hi
+      · rcases os_regionL_append hi with hi | hi
+        · rcases os_regionL_append hi with hi | hi
           · exact Or.inl (hR i hi)
           · exact Or.inl (hRW l0 le_rfl (by simp) _ i hi)
         · exact Or.inr (hD2 i hi)

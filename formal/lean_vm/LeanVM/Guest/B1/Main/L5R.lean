@@ -61,7 +61,7 @@ theorem l5_stepAtTBR (SB : String → ℕ)
     CompleteAtLR fs cert 23 name% «main_loop4» Lin
       [gen ^ c, gen ^ nk, gen ^ W, lxt, cover, lxs, lst, spc, lss, gen ^ Cr,
         gen ^ D, s0, s1, gen ^ Pi, gsq, cfresh] (Returns []) (fun rd => L5Node k (Px rd) (Ps rd) (Pv rd) (Tt rd))
-      (· ≤ fs name% «main_loop4» + (if c + 1 < nk then Bt else fs name% «main_loop4») +
+      (· ≤ fs name% «main_loop4» + (if c + 1 < nk then Bt else fs (tailKey name% «main_loop4»)) +
         l5K SB Bx Bs Bv) := by
   -- the rest of the loop
   obtain ⟨Bt', hRest⟩ := completeAtLR_tail (fs := fs) (cert := cert) (g := name% «main_loop4»)

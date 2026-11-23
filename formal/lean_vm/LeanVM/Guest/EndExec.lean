@@ -382,16 +382,17 @@ def guestRun (advice : Digest → NodeStatement → NodeWitness → Advice) (sta
     (advice (deployedSeed guestProgram) statement witness)
 
 /-- **The executor runs the guest program to completion on the advice**, within `2^30` committed
-cells, on every node `GuestExecutionComplete` covers. -/
+cells, on every node `GuestExecutionComplete` covers, or a child's proof exhibits a Keccak-256
+collision. -/
 def AdviceComplete (advice : Digest → NodeStatement → NodeWitness → Advice) : Prop :=
   ∀ statement witness,
     NodeRelation (bytecodeWords guestProgram) (deployedSeed guestProgram) statement witness →
     DeployedLimits statement witness →
-    (∀ child ∈ witness.children, Completeness.HonestChild child) →
-    ∃ execution, guestRun advice statement witness = .ok execution ∧
+    (∃ execution, guestRun advice statement witness = .ok execution ∧
       ValidExecution guestProgram
         (PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) statement)) execution ∧
-      execution.committedSize ≤ 2 ^ 30
+      execution.committedSize ≤ 2 ^ 30) ∨
+    ∃ child ∈ witness.children, Completeness.OpeningsCollide child.proof
 
 end
 

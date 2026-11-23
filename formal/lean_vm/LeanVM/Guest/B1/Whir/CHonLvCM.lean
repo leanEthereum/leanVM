@@ -42,7 +42,7 @@ theorem seg_eq {A B C : List E} {k : ℕ} (hk : k = A.length) : ((A ++ (B ++ C))
 /-- **A non-final level's calls and memory**, honestly. -/
 theorem midC_of {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} {l : ℕ}
     (hS : HonStatic h.c) (hNm : HonNames h.c) (hl : l < h.c.yrLevel) {σ : Val}
-    (hp : ∀ i < 11, σ (.n (12 + 2 * i)) = osPtrA h.c b i) (ht : σ (.n osTabs) = tabs) (batched : E)
+    (hp : ∀ i < 9, σ (.n (12 + 2 * i)) = osPtrA h.c b i) (ht : σ (.n osTabs) = tabs) (batched : E)
     (hN : LvAt.NextStep h.logN l (h.L l) (h.L (l + 1)))
     (hfold : (h.L l).level.fold = ((h.c.levels.getD l default)).folds) (hmu : (h.L l).mu h.logN = ((h.c.levels.getD l default)).logCols)
     (hdep : ((h.c.levels.getD l default)).depth = (h.L l).dp h.logN) (hq : (h.L l).level.queries = ((h.c.levels.getD l default)).queries)
@@ -59,7 +59,7 @@ theorem midC_of {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} {l : ℕ}
       MidC C rd σ h.c l ((h.c.levels.getD l default)) (h.capAt l) (h.claimAt l)
         (cur * gen ^ (xs.length - (h.xsAt l).length))
         ((h.L l).midW (digestHalves (h.root l)).1 (digestHalves (h.root l)).2 batched
-          (osPtrA h.c b (11 + l))) := by
+          (osPtrA h.c b (12 + l))) := by
   intro C rd hH
   have hyr := hS.yr
   have hln : l < h.c.levels.length := by omega
@@ -75,7 +75,7 @@ theorem midC_of {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} {l : ℕ}
     simp only [OsHD.capAt, show l ≤ h.c.yrLevel by omega, ↓reduceIte]
   rw [hxa, hca]
   have hE := midEqs hN hfold hmu hdep hq hsq hcols (digestHalves (h.root l)).1 (digestHalves (h.root l)).2
-    batched (osPtrA h.c b (11 + l)) (h.claimAt l)
+    batched (osPtrA h.c b (12 + l)) (h.claimAt l)
   have hW := lvAt_words (h.L l) h.logN hdep hq hsq
   -- the head's pointers
   have p3 : σ (.n osRoots) = osPtrA h.c b 1 := hp 1 (by norm_num)
@@ -144,14 +144,14 @@ theorem midC_of {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} {l : ℕ}
   have hfe := h.foldsEnd_le hS hln
   have h4 : (osSizesL h.c).getD 2 0 = h.c.nFolds := by rw [hS.head (j := 2) (by omega)]; rfl
   have h5 : (osSizesL h.c).getD 3 0 = 2 * h.c.nFolds := by rw [hS.head (j := 3) (by omega)]; rfl
-  refine ⟨?f_rounds, ?f_om, ?f_g0, ?f_sent, ?f_spf, ?f_ys, ?f_g17, ?f_lp, ?f_hs, ?f_q, ?f_roots, ?f_glue⟩
+  refine ⟨?f_rounds, ?f_om, ?f_g0, by rw [ht]; exact hwt, ?f_sent, ?f_spf, ?f_ys, ?f_g17, ?f_lp,
+    ?f_hs, ?f_q, ?f_roots, ?f_glue⟩
   case f_rounds =>
     rw [p4, p5, ht]
-    change RoundsC C (osPtrA h.c b 2) (osPtrA h.c b 3) tabs _ _ _ _ _ (h.L l).rw
+    change RoundsH rd (osPtrA h.c b 2) (osPtrA h.c b 3) tabs _ _ _ _ _ (h.L l).rw
     rw [hLrw]
-    refine roundsC_of (cur0 := cur) (xs0 := xs)
-      (fun a r hmr hwa hx ↦ osH_named hH hNm.1 ⟨hmr, hwa⟩ hx) hwt ((h.c.levels.getD l default)).folds
-      ((h.c.levels.getD l default)).foldsOff (h.L l).cap (h.claimAt l) _ rw hcap5 hrwl r0 ?_ fun j hj ↦ ?_
+    refine roundsH_of hwt ((h.c.levels.getD l default)).folds
+      ((h.c.levels.getD l default)).foldsOff (h.L l).cap (h.claimAt l) _ rw hrwl r0 ?_
     · rw [← hfold]
       refine roundsMem_of _ _ (h.L l).s (h.L l).cap (h.claimAt l) rw hrok (fun j hj ↦ ?_) (fun j hj ↦ ?_)
       · rw [hfold] at hj ⊢
@@ -163,14 +163,9 @@ theorem midC_of {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} {l : ℕ}
         rw [h.allRounds_getD hS hL hrl hln hj] at a0 a1
         simp only [LvAt.rounds, rsRounds, hLrw, hfold] at a0 a1
         exact ⟨a0, a1⟩
-    · refine ⟨?_, ?_, ?_⟩
-      · rw [mul_gen_pow_add]
-        exact segF hsuf (by rw [hlen]; omega)
-      · exact h.fixedAt_own (hS.headLt (j := 2) (by omega)) (by unfold osIxQbpA; omega) (by rw [h4]; omega)
-      · exact h.fixedAt_own (hS.headLt (j := 3) (by omega)) (by unfold osIxQbpA; omega) (by rw [h5]; omega)
   case f_om =>
-    have hk := (hNm.2.2.2.2.2.2.1 l hl).1
-    have hc5 : (MidW.cap1 ((h.c.levels.getD l default)) (h.L l).cap (h.claimAt l) ((h.L l).midW (digestHalves (h.root l)).1 (digestHalves (h.root l)).2 batched (osPtrA h.c b (11 + l)))).length = 5 :=
+    have hk := (hNm.2.2.2.1 l hl).1
+    have hc5 : (MidW.cap1 ((h.c.levels.getD l default)) (h.L l).cap (h.claimAt l) ((h.L l).midW (digestHalves (h.root l)).1 (digestHalves (h.root l)).2 batched (osPtrA h.c b (12 + l)))).length = 5 :=
       roundsTr_length _ _ _ _ hcap5
     have hw0 := h.ownW_sent hl
     have hrd := h.reads hm (hS.sentLt (le_of_lt hl)) (by unfold osIxQbpA; omega)
@@ -199,8 +194,6 @@ theorem midC_of {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} {l : ℕ}
         rw [(getD_five2 hc5 _ _).2]
         exact h.fixedAt_own0 (hS.sentLt (le_of_lt hl)) (by unfold osIxQbpA; omega) (by rw [hsz0])
   case f_g0 =>
-    rw [ht]
-    refine osH_named hH hNm.2.2.2.1 (grind_pre hwt ?_) (fun q hq ↦ by simp [OsKind.spec] at hq)
     have hlane := grind_lane (by decide) (hnext.ok0.resolve_left (by decide))
     simp only [NextW.F1] at hlane
     rw [hE.cap1]
@@ -212,7 +205,7 @@ theorem midC_of {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} {l : ℕ}
     rw [p3]
     exact h.mid_sent hS hm hl hR
   case f_spf =>
-    have hk := (hNm.2.2.2.2.2.2.1 l hl).2.1
+    have hk := (hNm.2.2.2.1 l hl).2.1
     rw [hE.cap1, p9]
     refine osH_named hH hk (spf_pre (capOf_length _) ?_) ?_
     · rw [hE.z0]; exact h.ood_rows hS hm hl hz0
@@ -228,8 +221,6 @@ theorem midC_of {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} {l : ℕ}
     simp only [LvAt.midW, hLnw, MidW.cur1, mul_gen_pow_add, Nat.add_assoc]
     exact r2
   case f_g17 =>
-    rw [ht]
-    refine osH_named hH hNm.2.2.1 (grind_pre hwt ?_) (fun q hq ↦ by simp [OsKind.spec] at hq)
     rw [hE.S2, rdCell_one, hqS]
     have hg := grind_lane (bits := Whir.queryGrindingBits) (n := W'.nn)
       (s := (oodPt (rsF (h.L l).level (h.L l).cap rw) (W'.x0 :: W'.x1 :: W'.high) W'.n1
@@ -237,7 +228,7 @@ theorem midC_of {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} {l : ℕ}
           dsObserve) (by decide) hnext.ok1
     exact hg
   case f_lp =>
-    exact osH_special hH (hNm.2.2.2.2.2.2.2 l hln).1 _ _
+    exact osH_special hH (hNm.2.2.2.2 l hln).1 _ _
   case f_roots =>
     rw [p3]
     exact h.mid_roots hS hm hln
@@ -245,7 +236,7 @@ theorem midC_of {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} {l : ℕ}
     intro j hj
     rw [p8]
     exact h.mid_hs hS hm hl hj
-  case f_q => exact osH_special hH (hNm.2.2.2.2.2.2.2 l hln).2 _ _
+  case f_q => exact osH_special hH (hNm.2.2.2.2 l hln).2 _ _
   case f_glue =>
     rw [p10, p6, p7, hE.lam]
     exact h.mid_glue hS hm hl

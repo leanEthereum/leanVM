@@ -66,7 +66,7 @@ theorem os_levels_kidsOT (σ : Val) (Lk : Layout) (W S : ℕ → ℕ → Layout)
     (hok : ∀ i (h : i < ks.length), OsLvKOkOT fs cert κ σ Lk (W (l0 + i)) (S (l0 + i)) Bd TA TS (TB (l0 + i)) ks[i])
     (b : ℕ) :
     ∃ (N : ℕ) (L : Layout) (ps : List ℕ), ps.length = ks.length ∧ Within L b N ∧ DisjL L ∧
-      (∀ Bk ∈ Bd, N ≤ ((ks.flatMap OsLvK.calls).map fun c => max (fs c.f) (Bk c.f)).sum) ∧
+      (∀ Bk ∈ Bd, N ≤ ((ks.flatMap OsLvK.calls).map fun c => max (fs (tailKey c.f)) (Bk c.f)).sum) ∧
       ∀ (rd : Reader) (R Dacc : ℕ → Prop), LowDef κ rd → MemL rd L → MemL rd Lk →
         (∀ i (h : i < ps.length), MemL rd (W (l0 + i) ps[i])) → (∀ i, RegionL Lk i → R i) →
         (∀ l, l0 ≤ l → l < l0 + ks.length → ∀ p i, RegionL (W l p) i → R i) →
@@ -97,7 +97,7 @@ theorem os_kids_blockOT (Lk : Layout) (σ : Val) (cs : List Call) (Bd : Option (
       CompleteAtDTBR fs cert κ c.f Lk (c.args.map σ) (Returns (c.rets.map σ)) T (Bk c.f))
     (b : ℕ) :
     ∃ (N : ℕ) (L : Layout), Within L b N ∧ DisjL L ∧
-      (∀ Bk ∈ Bd, N ≤ (cs.map fun c => max (fs c.f) (Bk c.f)).sum) ∧
+      (∀ Bk ∈ Bd, N ≤ (cs.map fun c => max (fs (tailKey c.f)) (Bk c.f)).sum) ∧
       ∀ (rd : Reader) (R Dacc : ℕ → Prop), LowDef κ rd →
       MemL rd L → MemL rd Lk → (∀ i, RegionL Lk i → R i ∨ Dacc i) →
       KidsFromInT coreProgram fs cert rd σ R Dacc cs (cs.map fun _ => bdT Bd T rd) b N (fun _ => False) := by

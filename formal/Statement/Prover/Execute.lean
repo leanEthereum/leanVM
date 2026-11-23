@@ -156,9 +156,10 @@ inductive BitsDest where
 inductive Hint where
   /-- Announce `fp + offset`'s address (no effect on the run). -/
   | frameAddress (offset : ℕ)
-  /-- Reserve `n + 1` frames of `size` cells, the last the final, untaken call's, `n` the exponent
-  of `[fp + stop] · startInverse`, its base written to `fp + ptr`. -/
-  | allocFrames (ptr size stop : ℕ) (startInverse : K)
+  /-- Reserve `n` frames of `size` cells and `tail` more, the final, untaken call's frame, of which
+  that call writes only the first `tail` cells; `n` the exponent of `[fp + stop] · startInverse`,
+  its base written to `fp + ptr`. -/
+  | allocFrames (ptr size stop : ℕ) (startInverse : K) (tail : ℕ)
   /-- Reserve `size` cells, its base written to `fp + ptr`. -/
   | alloc (ptr size : ℕ)
   /-- Reserve the exponent of `[fp + size]` cells, its base written to `fp + ptr`. -/
@@ -466,11 +467,11 @@ def runHint (C : Ctx) (s : St) : Hint → Except Fault St
     let c ← cellAt s.fp cell
     let p ← cellAt s.fp ptr
     s.withMem (·.put p (ofK (g ^ c)))
-  | .allocFrames ptr size stop startInverse => do
+  | .allocFrames ptr size stop startInverse tail => do
     let span := (← inK "loop bound" (s.mem.peek (← cellAt s.fp stop))) * startInverse
     if span = 0 then throw (.notAGPower "loop bound" span)
     let (n, s) ← s.logOr span maxCells (.notAGPower "loop bound" span)
-    allocate s ptr (size * (n + 1))
+    allocate s ptr (size * n + tail)
   | .witnessStack name base len => do
     let b ← runAt s.fp base len
     let (v, s) ← pop C s name len

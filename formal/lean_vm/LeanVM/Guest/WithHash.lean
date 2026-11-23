@@ -2,9 +2,9 @@
   LeanVM.Guest.WithHash
 
   The guest's definitions with Keccak-256 a call or a function of its own, beside the permutation:
-  the batching's run and the verifier refusing a zero challenge with a hash `H`, the deployed
-  hashes as LeanDA's bytes and the schemes' bits, and the guest's statements in the experiments
-  with the two calls (`LeanVM.Protocol.WithHash`). The statement's are over the permutation alone
+  the batching's run with a hash `H`, the deployed hashes as LeanDA's bytes and the schemes' bits,
+  an honest proof with the deployed calls, and the batching's statement in the experiment with the
+  two calls (`LeanVM.Protocol.WithHash`). The statement's are over the permutation alone
   (`Statement/LeanVmGuest.lean`); `LeanVM.Guest.WithHashBridge` proves them these.
 -/
 
@@ -12,7 +12,7 @@ module
 
 public import Statement.LeanVmGuest
 public import LeanVM.Protocol.WithHash
-public import LeanVM.Guest.AcceptableChild
+public import Statement.LeanVmGuestCompleteness
 
 @[expose] public section
 
@@ -62,22 +62,6 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node
 
 namespace Budget
 
-open LeanVM.Guest.Completeness
-
-open Coverage
-
-/-- **The leanVM verifier refusing a zero challenge** (`VerifierProgram.refusingZeroChallenge`):
-`verifier H F` with every sampled challenge `0` a failure. -/
-def verifierRefusingZeroWithHash {m : Type → Type} [Monad m] (H : Bytes → m Digest)
-    (F : KeccakState → m KeccakState)
-    (prog : LeanIsaProgram) (input : PublicInput) (proof : Proof) : m Bool := do
-  let seed ← seedWithHash H F (bytecodeWords prog) (publicInputDigest input)
-  runProofWithHash H F
-    (do
-      verifyExecution computedBytecodeValue (bytecodeWords prog) (publicInputDigest input)
-      return true : VerifierProgram Bool).refusingZeroChallenge
-        seed proof
-
 /-- Keccak-256 and Keccak-f[1600] answering the calls `KeccakCalls`. -/
 def deployedKeccakCalls : QueryImpl KeccakCalls Id
   | .inl x => keccak256 x
@@ -90,40 +74,6 @@ def honestProofWithDeployedKeccakWithHash (proverWithHash : HonestProverWithHash
     (input : PublicInput)
     (t : Execution prog) (ρ fuel : ℕ) : Option Proof :=
   Id.run (simulateQ deployedKeccakCalls (proverWithHash prog input t ρ fuel))
-
-open OracleComp OracleSpec in
-/-- **The honest proof of an execution of the guest program is a child the guest program accepts**:
-for the honest prover `LeanVM.leanVmHonestProver` (`LeanVm.lean`, `LeanVM.Prover.prove` with the
-oracle calls),
-1. in the random-permutation model, at `2^35` nonces per proof of work, it makes no proof, or
-   `verifierRefusingZero` rejects its proof, of a valid execution of committed size at most
-   `2^30`, at an inverse rate `2^ρ`, `1 ≤ ρ ≤ 4`, with probability at most `2^-100`;
-2. its proof with the deployed Keccak (`honestProofWithDeployedKeccak`), if it makes one, of an
-   execution of the leanISA guest program on a statement's digest under the deployed seed, wherever `verifierRefusingZero` with the deployed Keccak accepts it,
-   forms with the statement (its deferred claim shaped) and some true claim `freshClaim` on the
-   bytecode (`fresh.Holds`) a child the guest program accepts (`AcceptableChild`).
-Reading part 1 for the deployed Keccak, so that part 2 applies to the honest proof, is the heuristic
-that the deployed Keccak-f[1600] behaves as a random permutation, applied to this prover.
-Proved by `LeanVM.Guest.Budget.guest_child_complete`. -/
-def GuestChildCompleteWithHash : Prop :=
-  (∀ (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) (ρ : ℕ),
-    ValidExecution prog input t → t.committedSize ≤ 2 ^ 30 → 1 ≤ ρ ∧ ρ ≤ 4 →
-    Pr{let v ← (simulateQ LeanVM.keccakCallsOverRandomPermutation (do
-        match ← LeanVM.proverWithHash prog input t ρ (2 ^ 35) with
-        | none => pure false
-        | some proof =>
-          verifierRefusingZeroWithHash callKeccak256 callKeccakF1600 prog input proof)).run' []}[v =
-          false] ≤
-      (2 : ℝ≥0∞)⁻¹ ^ 100) ∧
-  ∀ (s : NodeStatement) (t : Execution guestProgram) (ρ : ℕ),
-    s.deferredClaim.HasBytecodeShape (bytecodeWords guestProgram) →
-    let input := PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) s)
-    ∀ proof,
-      honestProofWithDeployedKeccakWithHash LeanVM.proverWithHash guestProgram input t ρ (2 ^ 35) =
-        some proof →
-    verifierRefusingZeroWithHash (m := Id) keccak256 keccakF1600 guestProgram input proof = true →
-    ∃ fresh, fresh.Holds (bytecodeWords guestProgram) ∧
-      AcceptableChild (bytecodeWords guestProgram) (deployedSeed guestProgram) ⟨s, fresh, proof⟩
 
 end Budget
 

@@ -134,7 +134,7 @@ theorem lrLoop1_iter {q cols nhs hbits : ℕ} {hsv : List E}
   -- the memory
   have hrcl : ∀ e < 2 * (q / resBatch + 1),
       LoadHolds rd CH e ((rcC lv D hsv Pos mu).getD e 0) := fun e he ↦
-    readsAt_getDr hrc (by rw [rcC_length]; exact he)
+    readsAt_getD' hrc (by rw [rcC_length]; exact he)
   have hch : ∀ o < 4, ∃ v, LoadHolds rd (σ (.n (y + 2))) o v := fun o ho ↦
     ⟨_, by rw [hX12, loadHolds_mul_gen_pow]; exact hrcl (2 * j + o) (by omega)⟩
   have hQ : resBatch * j + resBatch ≤ q := by
@@ -371,7 +371,7 @@ theorem lrLoop2_iter {q cols nhs hbits : ℕ} {hsv : List E}
   have hX9 : σ (.n (valf% «level_residual» «_loop1» "s1#0")) = T * gen ^ j := by rw [m9, e3, e0]
   -- the memory
   have hrsl : ∀ o < 2 * (r + 1), LoadHolds rd RS o ((rsC lv D hsv Pos mu nb r).getD o 0) := fun o ho ↦
-    readsAt_getDr hrs (by rw [rsC_length]; exact ho)
+    readsAt_getD' hrs (by rw [rsC_length]; exact ho)
   have hrs8 : ∀ o < 4, LoadHolds rd (σ (.n (valf% «level_residual» «_loop1» "rq"))) o ((rsC lv D hsv Pos mu nb r).getD (2 * j + o) 0) :=
     fun o ho ↦ by rw [hX8, loadHolds_mul_gen_pow]; exact hrsl _ (by omega)
   have hp9 : LoadHolds rd (σ (.n (valf% «level_residual» «_loop1» "s1#0"))) 0 (Pos (resBatch * nb + j)) := by

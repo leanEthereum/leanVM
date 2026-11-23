@@ -50,8 +50,8 @@ theorem expTableWords_rank : (expTabAllWords.drop 178).take 34 = Tables.rankKeys
 and the own buffers.** -/
 theorem kid_lin_sub {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Digest}
     {c : Child} (S : ChildSegs bytecode seed c) (b : ℕ) {sqE : ℕ} {Lin : Main.Layout}
-    (hexp : ∀ q ∈ vsExpLin sqE, q ∈ Lin) {j : ℕ} (hj : j < 16) (h10 : j ≠ 10) (h11 : j ≠ 11)
-    (h15 : j ≠ 15) (pv : List (List E × Main.Layout)) :
+    (hexp : ∀ q ∈ vsExpLin sqE, q ∈ Lin) {j : ℕ} (hj : j < 14) (h10 : j ≠ 9) (h11 : j ≠ 10)
+    (h15 : j ≠ 13) (pv : List (List E × Main.Layout)) :
     ∀ q ∈ ((S.kids (bases b (vsSizes)) sqE).getD j noKid pv).Lin,
       SubOf Lin q ∨ SubOf (bufL b (vsSizes) S.ownW) q := by
   have own : ∀ i < 15, SubOf (bufL b (vsSizes) S.ownW)
@@ -84,10 +84,6 @@ theorem kid_lin_sub {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed :
       List.mem_singleton] at hq
     subst hq; exact Or.inl (subOf_expTableWords hexp)
   · intro q hq
-    simp only [ChildSegs.kids, List.getD_cons_succ, List.getD_cons_zero, vsExpLin,
-      List.mem_singleton] at hq
-    subst hq; exact Or.inl hE
-  · intro q hq
     simp only [ChildSegs.kids, List.getD_cons_succ, List.getD_cons_zero,
       List.mem_singleton] at hq
     subst hq; exact Or.inr (own 6 (by norm_num))
@@ -109,10 +105,6 @@ theorem kid_lin_sub {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed :
     · exact Or.inr (own 5 (by norm_num))
   · exact absurd rfl h10
   · exact absurd rfl h11
-  · intro q hq
-    simp only [ChildSegs.kids, List.getD_cons_succ, List.getD_cons_zero, vsExpLin,
-      List.mem_singleton] at hq
-    subst hq; exact Or.inl hE
   · intro q hq
     simp only [ChildSegs.kids, List.getD_cons_succ, List.getD_cons_zero, List.mem_cons,
       List.not_mem_nil, or_false] at hq

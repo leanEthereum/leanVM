@@ -43,30 +43,20 @@ open scoped TableMem
 /-- The level's `opening_queries` entry and its shape, checked. -/
 def QshOk (c : OsCfg) (lvl : ℕ) (lv : OsLv) (fin : ℕ) : Prop :=
   (oqEntry (osOqName c lvl lv)).map (·.1) = some (osOqName c lvl lv) ∧
-    (oqShapeOf (osOqName c lvl lv)).odd = lv.queries % 2 * (if lvl = 0 then 1 else 0) ∧
-    (oqShapeOf (osOqName c lvl lv)).base = (if lvl = 0 then 1 else 0) ∧
+    (oqShapeOf (osOqName c lvl lv)).base = lvBase lvl ∧
     (oqShapeOf (osOqName c lvl lv)).folds = lv.folds ∧
-    (oqShapeOf (osOqName c lvl lv)).depth = lv.depth ∧
-    (oqShapeOf (osOqName c lvl lv)).cd = lv.capDepth ∧
+    (oqShapeOf (osOqName c lvl lv)).pd = lv.depth - lv.capDepth ∧
     (oqShapeOf (osOqName c lvl lv)).final = fin ∧
-    2 ≤ (oqShapeOf (osOqName c lvl lv)).cd ∧ (oqShapeOf (osOqName c lvl lv)).cd ≤ 8 ∧
-    (oqShapeOf (osOqName c lvl lv)).cd ≤ (oqShapeOf (osOqName c lvl lv)).depth ∧
-    oqCount (oqShapeOf (osOqName c lvl lv)).odd (oqShapeOf (osOqName c lvl lv)).base
-      (lv.queries / (1 + if lvl = 0 then 1 else 0)) = lv.queries
+    2 ≤ lv.capDepth ∧ lv.capDepth ≤ 8 ∧ lv.capDepth ≤ lv.depth
 
 /-- `QshOk` by numbers: the entry and shape of the level's numbers (`Whir/OqKey`). -/
 def QshOkK (k : List ℕ) (lvl : ℕ) (lv : OsLv) (fin : ℕ) : Prop :=
   (oqEntryK k).isSome ∧
-    (oqShapeK k).odd = lv.queries % 2 * (if lvl = 0 then 1 else 0) ∧
-    (oqShapeK k).base = (if lvl = 0 then 1 else 0) ∧
+    (oqShapeK k).base = lvBase lvl ∧
     (oqShapeK k).folds = lv.folds ∧
-    (oqShapeK k).depth = lv.depth ∧
-    (oqShapeK k).cd = lv.capDepth ∧
+    (oqShapeK k).pd = lv.depth - lv.capDepth ∧
     (oqShapeK k).final = fin ∧
-    2 ≤ (oqShapeK k).cd ∧ (oqShapeK k).cd ≤ 8 ∧
-    (oqShapeK k).cd ≤ (oqShapeK k).depth ∧
-    oqCount (oqShapeK k).odd (oqShapeK k).base
-      (lv.queries / (1 + if lvl = 0 then 1 else 0)) = lv.queries
+    2 ≤ lv.capDepth ∧ lv.capDepth ≤ 8 ∧ lv.capDepth ≤ lv.depth
 
 instance (k : List ℕ) (lvl : ℕ) (lv : OsLv) (fin : ℕ) : Decidable (QshOkK k lvl lv fin) := by
   unfold QshOkK; infer_instance
@@ -78,7 +68,7 @@ instance (c : OsCfg) (lvl : ℕ) (lv : OsLv) (fin : ℕ) : Decidable (QshOk c lv
 
 theorem qshOk_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {fin : ℕ} (h : QshOk c lvl lv fin) :
     QShapeOk c lvl lv fin (oqLoopOf (osOqName c lvl lv)) (oqShapeOf (osOqName c lvl lv)) := by
-  obtain ⟨he, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10⟩ := h
+  obtain ⟨he, h1, h2, h3, h4, h5, h6, h7⟩ := h
   set name := osOqName c lvl lv
   obtain ⟨e, hE, he1⟩ : ∃ e, oqEntry name = some e ∧ e.1 = name := by
     rcases hE : oqEntry name with _ | e
@@ -90,17 +80,17 @@ theorem qshOk_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {fin : ℕ} (h : QshOk c
     simp [oqLoopOf, oqShapeOf, hE, he1]
   have hmem : e ∈ openingQueriesLoops := List.mem_of_find?_eq_some hE
   rw [heq] at hE hmem
-  exact ⟨hmem, hE, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10⟩
+  exact ⟨hmem, hE, h1, h2, h3, h4, h5, h6, h7⟩
 
 /-! ## A level's helpers -/
 
 /-- `level_positions`' specialization at the row, in `lpTable`, and its decoder in B1-a's. -/
 def LpOk (lv : OsLv) : Prop :=
-  (osPositionsName lv, lv.squeezes, lpLoopOf (osPositionsName lv), lv.depth, lv.capDepth) ∈ lpTable ∧
+  (osPositionsName lv, lpLoopOf (osPositionsName lv), lv.depth, lv.capDepth) ∈ lpTable ∧
     (dqwName lv.depth lv.capDepth, lv.depth, lv.capDepth) ∈ queryWindowsShapes
 
 instance (lv : OsLv) : Decidable (LpOk lv) :=
-  decidable_of_iff ((lv.squeezes, lpLoopK lv, lv.depth, lv.capDepth) ∈ lpTable.map (·.2) ∧
+  decidable_of_iff ((lpLoopK lv, lv.depth, lv.capDepth) ∈ lpTable.map (·.2) ∧
       (dqwName lv.depth lv.capDepth, lv.depth, lv.capDepth) ∈ queryWindowsShapes) <| by
     unfold LpOk
     rw [lp_mem, lpLoopOf_eq]
@@ -116,19 +106,18 @@ instance (c : OsCfg) (lvl : ℕ) (lv : OsLv) : Decidable (LqOk c lvl lv) :=
 
 /-- `level_residual`'s specialization at the row, in `lrTable`, its query count in range. -/
 def LrOk (lv : OsLv) : Prop :=
-  (osResidualName lv, lv.queries, lv.logCols, lv.folds, lv.highBits,
-    (lrLoopsOf (osResidualName lv)).1, (lrLoopsOf (osResidualName lv)).2) ∈ lrTable ∧
-    resBatch ≤ lv.queries ∧ lv.queries < ordG
+  (osResidualName lv, lv.logCols, lv.folds, lv.highBits, (lrLoopsOf (osResidualName lv)).1,
+    (lrLoopsOf (osResidualName lv)).2) ∈ lrTable ∧ resBatch ≤ lv.queries ∧ lv.queries < ordG
 
 instance (lv : OsLv) : Decidable (LrOk lv) :=
-  decidable_of_iff ((lv.queries, lv.logCols, lv.folds, lv.highBits, (lrLoopsK lv).1, (lrLoopsK lv).2) ∈
+  decidable_of_iff ((lv.logCols, lv.folds, lv.highBits, (lrLoopsK lv).1, (lrLoopsK lv).2) ∈
       lrTable.map (·.2) ∧ resBatch ≤ lv.queries ∧ lv.queries < ordG) <| by
     unfold LrOk
     rw [lr_mem, lrLoopsOf_eq]
 
 theorem lpOk_fn {lv : OsLv} (h : LpOk lv) :
-    FnIs (osPositionsName lv) (osParams 9)
-        (lpBody lv.squeezes lv.depth lv.capDepth (lpLoopOf (osPositionsName lv))) ∧
+    FnIs (osPositionsName lv) (osParams 10)
+        (lpBody lv.depth lv.capDepth (lpLoopOf (osPositionsName lv))) ∧
       FnIs (lpLoopOf (osPositionsName lv)) (osParams 6)
         (lpLoopBody lv.depth lv.capDepth (lpLoopOf (osPositionsName lv))) := by
   have := lpTable_ok _ h.1
@@ -140,12 +129,12 @@ theorem lqOk_fn {c : OsCfg} {lvl : ℕ} {lv : OsLv} (h : LqOk c lvl lv) :
   exact this
 
 theorem lrOk_fn {lv : OsLv} (h : LrOk lv) :
-    FnIs (osResidualName lv) (osParams 4)
-        (lrBody lv.queries (lrLoopsOf (osResidualName lv)).1 (lrLoopsOf (osResidualName lv)).2) ∧
+    FnIs (osResidualName lv) (osParams 6)
+        (lrBody (lrLoopsOf (osResidualName lv)).1 (lrLoopsOf (osResidualName lv)).2) ∧
       FnIs (lrLoopsOf (osResidualName lv)).1 (osParams 7)
         (lrLoop1Body lv.logCols lv.folds lv.highBits (lrLoopsOf (osResidualName lv)).1) ∧
-      (lv.queries % resBatch ≠ 0 → FnIs (lrLoopsOf (osResidualName lv)).2 (osParams 7)
-        (lrLoop2Body lv.logCols lv.folds lv.highBits (lrLoopsOf (osResidualName lv)).2)) := by
+      FnIs (lrLoopsOf (osResidualName lv)).2 (osParams 7)
+        (lrLoop2Body lv.logCols lv.folds lv.highBits (lrLoopsOf (osResidualName lv)).2) := by
   have := lrTable_ok _ h.1
   exact this
 
@@ -160,7 +149,7 @@ def MidOk (c : OsCfg) (logN lvl : ℕ) (lv : OsLv) (level next : Whir.Level) (lv
   digitsVal (osPowDigits (128 / lv.depth)) 1 = 128 / lv.depth ∧
   digitsVal (osPowDigits lv.queries) 1 = lv.queries ∧ lv.posOff < u128Bound ∧ 1 ≤ lv.squeezes ∧
   lv.squeezes < ordG ∧ lv.squeezes * 5 < u128Bound ∧ 2 * (lv.foldsOff + lv.folds) < u128Bound ∧
-  (lvl + 1) * ligColsCap < u128Bound ∧ lvl * hsStride < u128Bound ∧
+  5 * lv.folds + 2 < u128Bound ∧ (lvl + 1) * ligColsCap < u128Bound ∧ lvl * hsStride < u128Bound ∧
   levelShape lv.logCols next (2 * 2 ^ next.fold) = (lv'.depth, lvWidth (lvl + 1) lv') ∧
   lv'.foldsOff = lv.foldsOff + lv.folds ∧ QshOk c lvl lv 0 ∧
   lv.queries / (1 + if lvl = 0 then 1 else 0) < ordG ∧ lv.queries / (1 + lvBase lvl) < u128Bound ∧
@@ -188,7 +177,7 @@ def FinOkF (c : OsCfg) (logN lvl : ℕ) (lv : OsLv) (level : Whir.Level) : Prop 
   lv.squeezes = sqCount (128 / lv.depth) lv.queries ∧
   digitsVal (osPowDigits (128 / lv.depth)) 1 = 128 / lv.depth ∧ lv.posOff < u128Bound ∧
   1 ≤ lv.squeezes ∧ lv.squeezes < ordG ∧ lv.squeezes * 5 < u128Bound ∧
-  2 * (lv.foldsOff + lv.folds) < u128Bound ∧ lvl * hsStride < u128Bound ∧
+  2 * (lv.foldsOff + lv.folds) < u128Bound ∧ 5 * lv.folds + 2 < u128Bound ∧ lvl * hsStride < u128Bound ∧
   lv.queries / (1 + if lvl = 0 then 1 else 0) < ordG ∧ lv.queries / (1 + lvBase lvl) < u128Bound ∧
   digitsVal (osPowDigits lv.queries) 1 = lv.queries ∧
   QshOk c lvl lv 1 ∧ (oqShapeOf (osOqName c lvl lv)).nHs = c.yrLen + lv.folds ∧

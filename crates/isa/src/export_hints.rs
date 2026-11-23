@@ -28,8 +28,9 @@ impl CompiledProgram {
                             size,
                             end,
                             start_inverse,
+                            tail,
                         } => {
-                            format!("af {ptr} {size} {end} {:x}", start_inverse.0)
+                            format!("af {ptr} {size} {end} {:x} {tail}", start_inverse.0)
                         }
                         RHint::Alloc { ptr, size } => format!("al {ptr} {size}"),
                         RHint::AllocDyn { ptr, size } => format!("ad {ptr} {size}"),

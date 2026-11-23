@@ -177,9 +177,8 @@ noncomputable def loopCodeC (Cf : CFun) (code : List OffsetInstruction) : Bool :
   match code.reverse with
   | .jump oc' od' of' :: .jump oc od of :: pre =>
     Nat.beq od' 0 && Nat.beq of' 1 && !Cf.X.zeroAt oc' && Cf.X.nzAt oc' && !Cf.X.zeroAt oc && !Cf.X.nzAt oc &&
-      !Cf.X.selfAt of && Cf.X.nextAt of && (match Cf.X.statOf of with
-        | some (.fpg S) => !Nat.beq S 0 && decide (S < 2 ^ 30)
-        | _ => false) && !Nat.beq od 0 && decide (Cf.X.pcAt od = some Cf.X.entry) && Cf.X.entOk Cf.X.entry Cf.fn.name &&
+      !Cf.X.selfAt of && Cf.X.nextAt of && !Nat.beq od 0 && decide (Cf.X.pcAt od = some Cf.X.entry) &&
+      Cf.X.entOk Cf.X.entry Cf.fn.name &&
       pre.all (callJ Cf)
   | _ => false
 
@@ -297,7 +296,10 @@ theorem postQ_of_loop {pows : Exec.PowTree} {sigOf : String → HSig} {f : Fn} {
     (ht : ∃ hi ei, G.term = [(.ex (.fr 2) 0, hi)] ∧ H.sig.term = [(.val 0, ei)] ∧ parCell G np 2 = true ∧
       idxT G np hi = some ei) : H.sig.postQ = [] := by
   obtain ⟨-, ei, -, ht, -⟩ := ht
-  unfold heapOkC at hok
+  rcases heapOkC_cases hok with ⟨-, hok⟩ | ⟨hok, -⟩
+  swap
+  · rw [(splitOk_spec hok).2.2.2.1] at ht; cases ht
+  unfold heapOkC1 at hok
   simp only [Bool.and_eq_true, Exec.Trie.seq_eq] at hok
   obtain ⟨-, hc⟩ := hok
   split at hc
@@ -464,23 +466,17 @@ theorem callJ_self {Cf : CFun} {a b c : ℕ} (h : callJ Cf (.jump a b c) = true)
 theorem loopCodeC_spec {Cf : CFun} {code : List OffsetInstruction} (h : loopCodeC Cf code = true) :
     ∃ pre oc od of oc', code = pre ++ [.jump oc od of, .jump oc' 0 1] ∧ (∀ ins ∈ pre, callJ Cf ins = true) ∧
       Cf.X.zeroAt oc' = false ∧ Cf.X.nzAt oc' = true ∧ Cf.X.zeroAt oc = false ∧ Cf.X.nzAt oc = false ∧
-      Cf.X.selfAt of = false ∧ Cf.X.nextAt of = true ∧
-      (∃ S, Cf.X.statOf of = some (.fpg S) ∧ S ≠ 0 ∧ S < 2 ^ 30) ∧ od ≠ 0 ∧ Cf.X.pcAt od = some Cf.X.entry ∧
+      Cf.X.selfAt of = false ∧ Cf.X.nextAt of = true ∧ od ≠ 0 ∧ Cf.X.pcAt od = some Cf.X.entry ∧
       Cf.X.entOk Cf.X.entry Cf.fn.name = true := by
   unfold loopCodeC at h
   split at h
   · rename_i oc' od' of' oc od of pre hrev
     simp only [Bool.and_eq_true, Nat.beq_eq, Bool.not_eq_true', List.all_eq_true, decide_eq_true_eq] at h
-    obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨rfl, rfl⟩, h1⟩, h2⟩, h3⟩, h3'⟩, h4⟩, h5⟩, hS⟩, h7⟩, hpt⟩, hen⟩, h8⟩ := h
+    obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨rfl, rfl⟩, h1⟩, h2⟩, h3⟩, h3'⟩, h4⟩, h5⟩, h7⟩, hpt⟩, hen⟩, h8⟩ := h
     refine ⟨pre.reverse, oc, od, of, oc', ?_, fun ins hi ↦ h8 ins (List.mem_reverse.mp hi), h1, h2, h3, h3', h4, h5,
-      ?_, fun h0 ↦ by simp [h0] at h7, hpt, hen⟩
-    · rw [← List.reverse_reverse code, hrev]
-      simp
-    · split at hS
-      · rename_i S hso
-        simp only [Bool.and_eq_true, Bool.not_eq_true', decide_eq_true_eq] at hS
-        exact ⟨S, hso, fun h0 ↦ by simp [h0] at hS, hS.2⟩
-      · cases hS
+      fun h0 ↦ by simp [h0] at h7, hpt, hen⟩
+    rw [← List.reverse_reverse code, hrev]
+    simp
   · cases h
 
 /-- **A `JUMP` of a loop helper's code with calls** is a call's, before the last two, its tail call's,
@@ -1289,7 +1285,7 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
     cases s with
     | dispatch x fs a r => exact absurd hs (hnd x fs a r)
     | _ => rfl
-  obtain ⟨cpre, toc, tod, tof, roc, hcode, hcpre, hrz, hrnz, htz, htnz, htsf, htnx, ⟨S, hstatS, hS0, hS30⟩, htod,
+  obtain ⟨cpre, toc, tod, tof, roc, hcode, hcpre, hrz, hrnz, htz, htnz, htsf, htnx, htod,
     htpc, hentS⟩ := loopCodeC_spec hok.code
   have hsh := LoopShape0.of_ok ((Bool.and_eq_true _ _).mp hok.shape).1
   have hend := hsh.len
@@ -1573,8 +1569,8 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
           simp [calls, List.filterMap_append, List.filterMap_cons, Ev.call?]
         have hfetch := (hok.fetch i _ hci).1
         rw [← hok.xentry] at hfetch
-        obtain ⟨hq, hn0, hn1, hnargs⟩ := hσ0.tail _ _ hb _ _ hcl0.1 hcl0.2 i _ _ _ S (by rw [hok.xlen]; exact hi)
-          soc sod sof hfetch hstatS hS0
+        obtain ⟨S, hS0, hS30, hq, hn0, hn1, hnargs⟩ := hσ0.tail _ _ hb _ _ hcl0.1 hcl0.2 i _ _ _
+          (by rw [hok.xlen]; exact hi) soc sod sof hfetch htnx
         have hfpS : s'.fp = s.fp + S := by
           have := rd_get hκ hm.fine sof (by rw [hm.fp]; exact hq) h1
           have h2 := hf'.fp

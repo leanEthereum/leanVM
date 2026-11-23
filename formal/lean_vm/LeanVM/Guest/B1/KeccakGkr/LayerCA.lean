@@ -9,8 +9,11 @@ module
 
 public import LeanVM.Guest.B1.KeccakGkr.LayerSecA
 public import LeanVM.Guest.B1.KeccakGkr.LayerCBlock
+public import LeanVM.Guest.B1.Bits.GrindFwd
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«keccak_layer__L»
+import LeanVM.Guest.Data.ValNames.«keccak_layer__L0»
+import LeanVM.Guest.Data.ValNames.«keccak_layer__L1»
 
 /-!
 # The product and `s`, completely
@@ -18,8 +21,10 @@ import LeanVM.Guest.Data.ValNames.«keccak_layer__L»
 `layerA_complete`: on a valuation satisfying the equations of `headT ++ prodT ++ checkT ++ sqT`,
 with the waiting word's cells in the arguments, the claim's record, the product and the nonce in
 memory (no store through `claim` or `cur`), the honest projection check, the nonce passing the
-grind and `grind_check` complete (`hgr`), the four sections hold (`sqT_complete`: the grind's
-word is the permutation's output `1`, `grindOk_iff`). The residual atoms (`resid`: the claim's
+grind, a memory where the inlined `grind_check`'s range checks pass and the tables at `tabs`, no
+store into its values and the oracle at its windows the honest ones, the four sections hold
+(`sqT_complete`: the grind's word is the permutation's output `1`, `grindOk_iff`, and the inlined
+`grind_check` holds, `gcInline_holds_of_good`). The residual atoms (`resid`: the claim's
 and the stream's loads, the check) are kernel-checked lists.
 -/
 
@@ -98,11 +103,16 @@ theorem grind_out1 {s : Fs} {n : E} {b : ℕ}
   exact h1
 
 /-- **The grind and the squeeze, completely**: from the cells the product leaves, the nonce at
-the cursor's word `47` passing the grind, and `grind_check` complete on the tables, `sqT` holds. -/
+the cursor's word `47` passing the grind, and the inlined `grind_check`'s conditions, `sqT` holds. -/
 theorem sqT_complete {first : ℕ} (hf : first < 2) {s : Fs} (hs : SpOk σ s (capF first, pendF first))
     (hg : ∀ st ∈ sqT first, GoodS rd S w σ st) (hS7 : ∀ d off, Atom.load d (.n (valf% «keccak_layer» "cursor@1")) off ∉ S)
     {n : E} (hn : LoadHolds rd (σ (.n (valf% «keccak_layer» "cursor@1"))) 47 n) (hok : s.GrindOk sGrindBits n)
-    (hgr : ∀ v : E, (v.limb 0).lane.toNat % 2 ^ 3 = 0 → C (grindCheckName 3) [v, σ (.n (valf% «keccak_layer» "tabs"))] []) :
+    (hrc : ∀ v ≤ 11, ∀ e < 2 ^ v, ∃ y t1 t2 : E, LoadHolds rd (gen ^ e) 0 t1 ∧
+      wBound v = gen ^ e * y ∧ LoadHolds rd y 0 t2)
+    (ht : WinTabs rd (σ (.n (valf% «keccak_layer» "tabs"))))
+    (hSg : ∀ a ∈ S, loadInto (layOff first + 544) (layOff first + 544 + (gcLen 3 - 2)) a = false)
+    (hwin : ∀ j ≤ gcW 3, w (layOff first + 544 + j) =
+      gcWin 3 (cellsOfState (s.nonceState n) false ⟨1, by omega⟩) j) :
     σ (.n (nonceV first)) = n ∧
       σ (.n (layOff first + 532)) = cellsOfState (s.nonceState n) false ⟨1, by omega⟩ ∧
       s.grindSqueeze sGrindBits n =
@@ -129,11 +139,18 @@ theorem sqT_complete {first : ℕ} (hf : first < 2) {s : Fs} (hs : SpOk σ s (ca
     rw [e528] at hout
     have hpow := grind_cell (s := s) (b := 532) hout hok
     obtain ⟨-, hsq⟩ := grind_sq (s := s) (n := n) (b := 532) hout hpow
+    have h533 : σ (.n (val% «keccak_layer__L0» "nxt[1]@12")) = cellsOfState (s.nonceState n) false ⟨1, by omega⟩ := grind_out1 hout
     refine ⟨e528, grind_out1 hout, hsq, fun {next kret} hnx ↦ ?_⟩
+    have hgi : ∀ st ∈ gcInlineT 3 (val% «keccak_layer__L0» "wins[0]") (.n (val% «keccak_layer__L0» "nxt[1]@12")) (.n (valf% «keccak_layer» "tabs")), GoodS rd S w σ st :=
+      fun st h ↦ hg st (by
+        simp only [sqT, show (0 : ℕ) ≠ 1 by decide, ↓reduceIte]
+        exact List.mem_append_right _ h)
+    have HG : Stmt.HoldsList C rd σ (gcInlineT 3 (val% «keccak_layer__L0» "wins[0]") (.n (val% «keccak_layer__L0» "nxt[1]@12")) (.n (valf% «keccak_layer» "tabs"))) next kret :=
+      gcInline_holds_of_good (by decide) (by decide) (by decide) hgi hSg hrc ht
+        (fun j hj ↦ by rw [h533]; exact hwin j hj) hpow hnx
     simp only [sqT, show (0 : ℕ) ≠ 1 by decide, ↓reduceIte, holdsList_append, holds_fsNonceT,
-      keccakA, grindCallT, Stmt.HoldsList, Stmt.Holds, List.map_cons,
-      List.map_nil]
-    exact ⟨⟨by rw [e528]; exact hn, hp⟩, hk, hgr _ hpow, hnx⟩
+      keccakA, Stmt.HoldsList, Stmt.Holds]
+    exact ⟨⟨by rw [e528]; exact hn, hp⟩, hk, HG⟩
   · have g1 : ∀ st ∈ fsNonceT (.n (valf% «keccak_layer» "cursor@1")) 47 544, GoodS rd S w σ st := fun st h ↦
       hg st (by simp [sqT, h])
     have gp : ∀ st ∈ padRunT 547, GoodS rd S w σ st := fun st h ↦
@@ -169,11 +186,18 @@ theorem sqT_complete {first : ℕ} (hf : first < 2) {s : Fs} (hs : SpOk σ s (ca
     rw [e543] at hout
     have hpow := grind_cell (s := s) (b := 552) hout hok
     obtain ⟨-, hsq⟩ := grind_sq (s := s) (n := n) (b := 552) hout hpow
+    have h553 : σ (.n (val% «keccak_layer__L1» "nxt[1]@13")) = cellsOfState (s.nonceState n) false ⟨1, by omega⟩ := grind_out1 hout
     refine ⟨e543, grind_out1 hout, hsq, fun {next kret} hnx ↦ ?_⟩
+    have hgi : ∀ st ∈ gcInlineT 3 (val% «keccak_layer__L1» "wins[0]") (.n (val% «keccak_layer__L1» "nxt[1]@13")) (.n (valf% «keccak_layer» "tabs")), GoodS rd S w σ st :=
+      fun st h ↦ hg st (by
+        simp only [sqT, ↓reduceIte]
+        exact List.mem_append_right _ h)
+    have HG : Stmt.HoldsList C rd σ (gcInlineT 3 (val% «keccak_layer__L1» "wins[0]") (.n (val% «keccak_layer__L1» "nxt[1]@13")) (.n (valf% «keccak_layer» "tabs"))) next kret :=
+      gcInline_holds_of_good (by decide) (by decide) (by decide) hgi hSg hrc ht
+        (fun j hj ↦ by rw [h553]; exact hwin j hj) hpow hnx
     simp only [sqT, ↓reduceIte, holdsList_append, holds_fsNonceT, holds_padRunT,
-      keccakA, grindCallT, Stmt.HoldsList, Stmt.Holds, List.map_cons,
-      List.map_nil]
-    exact ⟨hk1, ⟨by rw [e543]; exact hn, hp⟩, ⟨z0, z1, z2, z3, z4⟩, hk2, hgr _ hpow, hnx⟩
+      keccakA, Stmt.HoldsList, Stmt.Holds]
+    exact ⟨hk1, ⟨by rw [e543]; exact hn, hp⟩, ⟨z0, z1, z2, z3, z4⟩, hk2, HG⟩
 
 /-- **The product and `s`, completely.** -/
 theorem layerA_complete {first : ℕ} (hf : first < 2) (hσ : ∀ v, σ v = σ (.n v.idx))
@@ -188,7 +212,13 @@ theorem layerA_complete {first : ℕ} (hf : first < 2) (hσ : ∀ v, σ v = σ (
     {n : E} (hn : LoadHolds rd (σ (.n (valf% «keccak_layer» "cursor@1"))) 47 n)
     (hok : ((plainStart first [σ (.n (valf% «keccak_layer» "fs0")), σ (.n (valf% «keccak_layer» "fs1")), σ (.n (valf% «keccak_layer» "fs2")), σ (.n (valf% «keccak_layer» "fs3")), σ (.n (valf% «keccak_layer» "fs4"))] w0).absorbAll
       prod dsObserve).GrindOk sGrindBits n)
-    (hgr : ∀ v : E, (v.limb 0).lane.toNat % 2 ^ 3 = 0 → C (grindCheckName 3) [v, σ (.n (valf% «keccak_layer» "tabs"))] []) :
+    (hrc : ∀ v ≤ 11, ∀ e < 2 ^ v, ∃ y t1 t2 : E, LoadHolds rd (gen ^ e) 0 t1 ∧
+      wBound v = gen ^ e * y ∧ LoadHolds rd y 0 t2)
+    (ht : WinTabs rd (σ (.n (valf% «keccak_layer» "tabs"))))
+    (hSg : ∀ a ∈ S, loadInto (layOff first + 544) (layOff first + 544 + (gcLen 3 - 2)) a = false)
+    (hwin : ∀ j ≤ gcW 3, w (layOff first + 544 + j) =
+      gcWin 3 (cellsOfState (((plainStart first [σ (.n (valf% «keccak_layer» "fs0")), σ (.n (valf% «keccak_layer» "fs1")), σ (.n (valf% «keccak_layer» "fs2")), σ (.n (valf% «keccak_layer» "fs3")), σ (.n (valf% «keccak_layer» "fs4"))] w0).absorbAll
+        prod dsObserve).nonceState n) false ⟨1, by omega⟩) j) :
     σ (.n (nonceV first)) = n ∧ (prodTab first).map (fun p ↦ σ (.n p.a)) = prod ∧
       σ (.n (layOff first + 532)) = cellsOfState (((plainStart first
         [σ (.n (valf% «keccak_layer» "fs0")), σ (.n (valf% «keccak_layer» "fs1")), σ (.n (valf% «keccak_layer» "fs2")), σ (.n (valf% «keccak_layer» "fs3")), σ (.n (valf% «keccak_layer» "fs4"))] w0).absorbAll prod dsObserve).nonceState
@@ -269,7 +299,7 @@ theorem layerA_complete {first : ℕ} (hf : first < 2) (hσ : ∀ v, σ v = σ (
     rw [g3, g2, e1, e4, ← hproj, hp]
     exact e_add_self _
   -- the grind and the squeeze
-  obtain ⟨en, h532, hsq, HS⟩ := sqT_complete (C := C) hf hsp hgS hS7 hn hok hgr
+  obtain ⟨en, h532, hsq, HS⟩ := sqT_complete (C := C) hf hsp hgS hS7 hn hok hrc ht hSg hwin
   refine ⟨en, hprodE, h532, hsq, fun {next kret} hnx ↦ ?_⟩
   rw [secA2, ← List.append_assoc, holdsList_append, holdsList_append]
   exact H1 (HC (HS hnx))

@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Place.OsBos
 
 `HonStatic c`: the levels' segments of `query_positions` in order within its buffer, the
 out-of-domain rows and the high parts within their strides, the fold rounds' offsets, and the
-buffers' sizes (`osSizesL`) at the indices the reads use. `Whir/CHonStatic{0..3}.lean` decide it for the 28 candidates.
+buffers' sizes (`osSizesL`) at the indices the reads use, the positions' total the rate's `pos_totals` entry. `Whir/CHonStatic{0..3}.lean` decide it for the 28 candidates.
 `chain_disj`: segments in order are disjoint.
 -/
 
@@ -33,17 +33,19 @@ def HonStatic (c : OsCfg) : Prop :=
   let lv := fun l ↦ c.levels.getD l default
   2 ≤ n ∧ c.yrLevel + 1 = n ∧ c.yrLog ≤ yrLogCap ∧
   (∀ l < n, (lv l).posOff + (lv l).squeezes * sqPer (lv l) ≤
-    (if l + 1 < n then (lv (l + 1)).posOff else n * ligPosCap)) ∧
+    (if l + 1 < n then (lv (l + 1)).posOff else osPosTotal c)) ∧
   (∀ l < n, 1 ≤ sqPer (lv l)) ∧
   (∀ l < c.yrLevel, (lv l).logCols ≤ ligColsCap ∧ (lv l).folds ≤ hsStride) ∧
   (lv 0).foldsOff = 0 ∧ (∀ l < c.yrLevel, (lv (l + 1)).foldsOff = (lv l).foldsOff + (lv l).folds) ∧
   (lv c.yrLevel).foldsOff + (lv c.yrLevel).folds = c.nFolds ∧
-  (osSizesL c).length = 19 + c.yrLevel ∧
-  (∀ j < 11, (osSizesL c).getD j 0 = (headSizes c).getD j 0) ∧
-  (∀ l < c.yrLevel, (osSizesL c).getD (11 + l) 0 = 2 + (lv l).folds) ∧
-  (osSizesL c).getD (11 + c.yrLevel) 0 = c.yrLen + (lv c.yrLevel).folds ∧
-  (∀ k < 7, (osSizesL c).getD (12 + c.yrLevel + k) 0 =
-    [yrLogCap, pointCap, pointCap, n * ligColsCap, n, n, 2 * n].getD k 0)
+  (osSizesL c).length = 20 + c.yrLevel ∧
+  (∀ j < 12, (osSizesL c).getD j 0 = (headSizes c (osPosTotal c)).getD j 0) ∧
+  (∀ l < c.yrLevel, (osSizesL c).getD (12 + l) 0 = 2 + (lv l).folds) ∧
+  (osSizesL c).getD (12 + c.yrLevel) 0 = c.yrLen + (lv c.yrLevel).folds ∧
+  (∀ k < 7, (osSizesL c).getD (13 + c.yrLevel + k) 0 =
+    [yrLogCap, pointCap, pointCap, n * ligColsCap, n, n, 2 * n].getD k 0) ∧
+  (∀ ri < ligNRates, c.levelsAt.getD ri [] = c.levels → c.posTotal.getD ri 0 = osPosTotal c) ∧
+  c.posTotal.length = ligNRates ∧ (∀ r < ligNRates, c.posTotal.getD r 0 < u128Bound)
 
 instance (c : OsCfg) : Decidable (HonStatic c) := by
   unfold HonStatic; dsimp only; infer_instance

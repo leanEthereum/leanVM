@@ -11,11 +11,12 @@ public import LeanVM.Guest.B1.Gkr.VbgBuf
 /-!
 # The runs inside the whole buffers
 
-`vbg_memLay`: on a memory holding `layers`, the round records, the point rows, the three tables
-and the values whole (`vbgLayersW`, `vbgRoundsW`, `vbgRowsW`, `vbgOddW`, `vbgBndW`, `vbgRemW`,
-`vbgValsW`) at `g^eL`, `g^eR`, `g^eP`, `g^eO`, `g^eB`, `g^eM`, `g^eV`, every run of `vbgLay`
-holds: a slot is level `l`'s block of `layers`, a point row row `t`'s block's prefix, radix-four
-layer `j`'s records of field `f` the run at `gkPos sh (j + 1 - sh)` of field `f`'s block.
+`vbg_memLay`: on a memory holding `layers`, the round records, the point rows, the three tables,
+the values and `gkr_sizes` whole (`vbgLayersW`, `vbgRoundsW`, `vbgRowsW`, `vbgOddW`, `vbgBndW`,
+`vbgRemW`, `vbgValsW`, `vbgSizesW`) at `g^eL`, `g^eR`, `g^eP`, `g^eO`, `g^eB`, `g^eM`, `g^eV`,
+`g^eS`, every run of `vbgLay` holds: a slot is level `l`'s block of `layers`, a point row row `t`'s
+block's prefix, radix-four layer `j`'s record `y` the seven words from record
+`gkPos sh (j + 1 - sh) + y`.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -71,7 +72,7 @@ theorem gkSlotWords_length {s : Fs} {cur : E} {st : GkrState} {pos : E}
   simp [gkSlotWords, hcl, hvl]
 
 section
-variable {depth : ℕ} {cap0 xs : List E} {cur : E} {eL eR eP eO eB eM eV : ℕ}
+variable {depth : ℕ} {cap0 xs : List E} {cur : E} {eL eR eP eO eB eM eV eS : ℕ}
 
 theorem vbgLayBlock_length (hcl : cap0.length = 5) (l : ℕ) :
     (vbgLayBlock depth cap0 xs cur l).length = 10 := by
@@ -92,27 +93,36 @@ theorem vbgRowBlock_length (hd : depth ≤ 32)
     omega
   · simp
 
-theorem vbgRecRuns_length (f : ℕ) :
-    ((List.range ((depth - 1) / 2)).flatMap (vbgRecRun depth cap0 xs cur f)).length =
-      ((List.range ((depth - 1) / 2)).map fun i ↦ i / 4 + 1).sum := by
-  rw [List.length_flatMap]
+theorem vbgRecRun_length (j : ℕ) : (vbgRecRun depth cap0 xs cur j).length = 7 * (j / 4 + 1) := by
+  rw [vbgRecRun, List.length_flatMap]
+  simp [Nat.mul_comm]
+
+theorem vbgRecs_length :
+    (vbgRecs depth cap0 xs cur).length = 7 * ((List.range ((depth - 1) / 2)).map fun i ↦ i / 4 + 1).sum := by
+  rw [vbgRecs, List.length_flatMap, ← List.sum_map_mul_left]
   congr 1
   apply List.map_congr_left
   intro i _
-  simp [vbgRecRun]
+  exact vbgRecRun_length i
 
-theorem vbgRecRuns_le (hd : depth ≤ 32) :
-    1 + ((List.range ((depth - 1) / 2)).map fun i ↦ i / 4 + 1).sum ≤ 862 := by
-  have : ∀ d ≤ 32, 1 + ((List.range ((d - 1) / 2)).map fun i ↦ i / 4 + 1).sum ≤ 862 := by
+theorem vbgRecs_le (hd : depth ≤ 32) :
+    1 + ((List.range ((depth - 1) / 2)).map fun i ↦ i / 4 + 1).sum ≤ gkRecCount depth := by
+  have : ∀ d ≤ 32, 1 + ((List.range ((d - 1) / 2)).map fun i ↦ i / 4 + 1).sum ≤ gkRecCount d := by
     decide
   exact this _ hd
 
-theorem vbgRecBlock_length (hd : depth ≤ 32) (f : ℕ) :
-    (vbgRecBlock depth cap0 xs cur f).length = 862 := by
-  have h1 := vbgRecRuns_length (cap0 := cap0) (xs := xs) (cur := cur) (depth := depth) f
-  have h2 := vbgRecRuns_le (depth := depth) hd
-  simp only [vbgRecBlock, List.length_append, List.length_replicate, h1]
+theorem vbgRoundsW_length (hd : depth ≤ 32) :
+    (vbgRoundsW depth cap0 xs cur).length = 7 * gkRecCount depth := by
+  have h1 := vbgRecs_length (cap0 := cap0) (xs := xs) (cur := cur) (depth := depth)
+  have h2 := vbgRecs_le (depth := depth) hd
+  simp only [vbgRoundsW, List.length_append, List.length_replicate, h1]
   omega
+
+theorem vbgRowsW_length (hd : depth ≤ 32)
+    (hpl : ∀ j ≤ depth / 2, (gkSl cap0 xs (depth % 2) j).2.1.point.length = 2 * j + depth % 2) :
+    (vbgRowsW depth cap0 xs).length = (depth / 2 + 2) * 40 := by
+  rw [vbgRowsW, List.length_flatMap]
+  simp [vbgRowBlock_length hd hpl]
 
 /-- **A memory holding the whole buffers holds the runs.** -/
 theorem vbg_memLay {rd : Reader} (hd : depth ≤ 32) (hcl : cap0.length = 5)
@@ -123,12 +133,15 @@ theorem vbg_memLay {rd : Reader} (hd : depth ≤ 32) (hcl : cap0.length = 5)
     (hO : TbReadsAt rd (ofK (addressOfIndex eO)) vbgOddW)
     (hB : TbReadsAt rd (ofK (addressOfIndex eB)) vbgBndW)
     (hM : TbReadsAt rd (ofK (addressOfIndex eM)) vbgRemW)
-    (hV : TbReadsAt rd (ofK (addressOfIndex eV)) (vbgValsW depth cap0 xs)) :
-    MemLay rd (vbgLay depth cap0 xs cur eL eR eP eO eB eM eV) := by
+    (hV : TbReadsAt rd (ofK (addressOfIndex eV)) (vbgValsW depth cap0 xs))
+    (hS : TbReadsAt rd (ofK (addressOfIndex eS)) vbgSizesW) :
+    MemLay rd (vbgLay depth cap0 xs cur eL eR eP eO eB eM eV eS) := by
   have hLb := tbReadsAt_flatMap_eq (w := 10) _ (depth + 2)
     (fun c _ ↦ vbgLayBlock_length hcl c) hL
-  have hPb := tbReadsAt_flatMap_eq (w := 40) _ 41 (fun c _ ↦ vbgRowBlock_length hd hpl c) hP
-  have hRb := tbReadsAt_flatMap_eq (w := 862) _ 7 (fun c _ ↦ vbgRecBlock_length hd c) hR
+  have hPb := tbReadsAt_flatMap_eq (w := 40) _ (depth / 2 + 2)
+    (fun c _ ↦ vbgRowBlock_length hd hpl c) hP
+  have hmid := (tbReadsAt_append.mp (tbReadsAt_append.mp hR).1).2
+  simp only [List.length_replicate, tb_ofK_gpow_mul] at hmid
   unfold vbgLay
   rw [memLay_append, memLay_append, memLay_append]
   refine ⟨⟨⟨?_, ?_⟩, ?_⟩, ?_⟩
@@ -162,30 +175,35 @@ theorem vbg_memLay {rd : Reader} (hd : depth ≤ 32) (hcl : cap0.length = 5)
     intro q hq
     obtain ⟨_, hq1, hq2⟩ := List.mem_flatten.mp hq
     obtain ⟨j, hj, rfl⟩ := List.mem_map.mp hq1
-    obtain ⟨f, hf, rfl⟩ := List.mem_map.mp hq2
-    simp only [List.mem_range] at hj hf
-    have hb := hRb f hf
+    obtain ⟨y, hy, rfl⟩ := List.mem_map.mp hq2
+    simp only [List.mem_range] at hj hy
+    rw [show j + 1 - depth % 2 + depth % 2 - 1 = j by omega] at hy
+    have hr := tbReadsAt_flatMap_range _ _ hmid j hj
+    have e : ((List.range j).map fun i ↦ (vbgRecRun depth cap0 xs cur i).length).sum =
+        7 * ((List.range j).map fun i ↦ i / 4 + 1).sum := by
+      rw [← List.sum_map_mul_left]
+      congr 1
+      apply List.map_congr_left
+      intro i _
+      exact vbgRecRun_length i
+    rw [e, tb_ofK_gpow_mul] at hr
+    have hb := tbReadsAt_flatMap_eq (w := 7) _ (j / 4 + 1) (fun _ _ ↦ by simp) hr y hy
     rw [tb_ofK_gpow_mul] at hb
-    unfold vbgRecBlock at hb
-    rw [tbReadsAt_append, tbReadsAt_append] at hb
-    have hr := tbReadsAt_flatMap_range _ _ hb.1.2 j hj
-    simp only [List.length_replicate, tb_ofK_gpow_mul] at hr
-    have e : ((List.range j).map fun i ↦ (vbgRecRun depth cap0 xs cur f i).length).sum =
-        ((List.range j).map fun i ↦ i / 4 + 1).sum := by
-      congr 1; apply List.map_congr_left; intro i _; simp [vbgRecRun]
-    rw [e] at hr
-    show TbReadsAt rd (ofK (addressOfIndex (eR + 862 * f + gkPos (depth % 2) (j + 1 - depth % 2))))
+    show TbReadsAt rd (ofK (addressOfIndex (eR + 7 * (gkPos (depth % 2) (j + 1 - depth % 2) + y))))
       _
-    rw [gkPos_loop (by omega), ← Nat.add_assoc, show j + 1 - depth % 2 + depth % 2 - 1 = j by omega]
-    exact hr
+    rw [gkPos_loop (by omega),
+      show eR + 7 * (1 + ((List.range j).map fun i ↦ i / 4 + 1).sum + y) =
+        eR + 7 + 7 * ((List.range j).map fun i ↦ i / 4 + 1).sum + 7 * y by ring]
+    exact hb
   · -- the tables and the values
     intro q hq
     simp only [List.mem_cons, List.not_mem_nil, or_false] at hq
-    rcases hq with rfl | rfl | rfl | rfl
+    rcases hq with rfl | rfl | rfl | rfl | rfl
     · exact hO
     · exact hB
     · exact hM
     · exact hV
+    · exact hS
 
 end
 

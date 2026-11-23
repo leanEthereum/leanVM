@@ -80,16 +80,16 @@ theorem xs_length (hpl : D.product.length = 47) (hpm : D.packMsgs.length = D.y)
 
 /-- **Record `j` in memory.** -/
 theorem recWords_rec {base cur : E} (h : ReadsAt rd base (D.recWords first cur)) {j : ℕ}
-    (hj : j < 16) (hjy : j ≤ D.y / 8 + D.y % 8) :
+    (hj : j < 11) (hjy : j ≤ D.y / 8 + D.y % 8) :
     RoundRec rd (base * gen ^ j) 0 (D.run first (D.recK j)).2.cap (D.recCur cur j)
       (D.run first (D.recK j)).1.1 := by
-  have field : ∀ f < 7, LoadHolds rd (base * gen ^ j) (16 * f) (D.recField first cur f j) := by
+  have field : ∀ f < 7, LoadHolds rd (base * gen ^ j) (11 * f) (D.recField first cur f j) := by
     intro f hf
     rw [loadHolds_mul_gen_pow]
-    have hl : j + 16 * f < (D.recWords first cur).length := by simp [recWords]; omega
+    have hl : j + 11 * f < (D.recWords first cur).length := by simp [recWords]; omega
     have := h _ hl
     simp only [recWords, List.getElem_map, List.getElem_range] at this
-    rw [show (j + 16 * f) % 16 = j by omega, show (j + 16 * f) / 16 = f by omega] at this
+    rw [show (j + 11 * f) % 11 = j by omega, show (j + 11 * f) / 11 = f by omega] at this
     simp only [hjy, ↓reduceIte] at this
     exact this
   obtain ⟨hcl, -⟩ := run_cap (D := D) (first := first) (D.recK j)
@@ -97,7 +97,7 @@ theorem recWords_rec {base cur : E} (h : ReadsAt rd base (D.recWords first cur))
   · have := field i (by omega)
     simp only [recField, show i < 5 by omega, ↓reduceIte] at this
     rw [List.getD_eq_getElem _ _ hi] at this
-    rwa [zero_add, show i * krCap = 16 * i by simp [krCap]; ring]
+    rwa [zero_add, show i * krCap = 11 * i by simp [krCap]; ring]
   · have := field 5 (by norm_num)
     simpa [recField, krCap] using this
   · have := field 6 (by norm_num)

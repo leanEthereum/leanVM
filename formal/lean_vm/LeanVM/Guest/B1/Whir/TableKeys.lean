@@ -24,11 +24,10 @@ namespace LeanVM.Guest.B1.Whir
 @[expose] public section
 
 theorem osPositionsName_eq (lv : OsLv) :
-    osPositionsName lv = keyStr "level_positions__L" [lv.squeezes, lv.depth, lv.capDepth] := rfl
+    osPositionsName lv = keyStr "level_positions__L" [lv.depth, lv.capDepth] := rfl
 
 theorem osResidualName_eq (lv : OsLv) :
-    osResidualName lv = keyStr "level_residual__L" [lv.queries, lv.logCols, lv.folds, lv.highBits] :=
-  rfl
+    osResidualName lv = keyStr "level_residual__L" [lv.logCols, lv.folds, lv.highBits] := rfl
 
 theorem osQueriesName_eq (c : OsCfg) (lvl : ℕ) (lv : OsLv) :
     osQueriesName c lvl lv = keyStr "level_queries__L"
@@ -37,18 +36,17 @@ theorem osQueriesName_eq (c : OsCfg) (lvl : ℕ) (lv : OsLv) :
         if lvl = c.yrLevel then c.yrLog + 1 else 0, if lvl = c.yrLevel then 1 else 0] := rfl
 
 theorem lp_mem (lv : OsLv) (loop : String) :
-    (osPositionsName lv, lv.squeezes, loop, lv.depth, lv.capDepth) ∈ lpTable ↔
-      (lv.squeezes, loop, lv.depth, lv.capDepth) ∈ lpTable.map (·.2) := by
+    (osPositionsName lv, loop, lv.depth, lv.capDepth) ∈ lpTable ↔
+      (loop, lv.depth, lv.capDepth) ∈ lpTable.map (·.2) := by
   rw [osPositionsName_eq]
-  exact mem_name_key lpTable (keyStr "level_positions__L") lpKey lp_names
-    (lv.squeezes, loop, lv.depth, lv.capDepth)
+  exact mem_name_key lpTable (keyStr "level_positions__L") lpKey lp_names (loop, lv.depth, lv.capDepth)
 
 theorem lr_mem (lv : OsLv) (l1 l2 : String) :
-    (osResidualName lv, lv.queries, lv.logCols, lv.folds, lv.highBits, l1, l2) ∈ lrTable ↔
-      (lv.queries, lv.logCols, lv.folds, lv.highBits, l1, l2) ∈ lrTable.map (·.2) := by
+    (osResidualName lv, lv.logCols, lv.folds, lv.highBits, l1, l2) ∈ lrTable ↔
+      (lv.logCols, lv.folds, lv.highBits, l1, l2) ∈ lrTable.map (·.2) := by
   rw [osResidualName_eq]
   exact mem_name_key lrTable (keyStr "level_residual__L") lrKey lr_names
-    (lv.queries, lv.logCols, lv.folds, lv.highBits, l1, l2)
+    (lv.logCols, lv.folds, lv.highBits, l1, l2)
 
 theorem lq_mem (c : OsCfg) (lvl : ℕ) (lv : OsLv) :
     (osQueriesName c lvl lv, lv.queries, (if lvl = 0 then 1 else 0), lv.folds, lv.leafCells, lv.depth,
@@ -67,12 +65,12 @@ theorem lq_mem (c : OsCfg) (lvl : ℕ) (lv : OsLv) :
 
 /-- A level's `level_positions` loop, by its numbers. -/
 def lpLoopK (lv : OsLv) : String :=
-  ((lpTable.find? fun e => lpKey e.2 == [lv.squeezes, lv.depth, lv.capDepth]).map (·.2.2.1)).getD ""
+  ((lpTable.find? fun e => lpKey e.2 == [lv.depth, lv.capDepth]).map (·.2.1)).getD ""
 
 /-- A level's `level_residual` loops, by its numbers. -/
 def lrLoopsK (lv : OsLv) : String × String :=
-  ((lrTable.find? fun e => lrKey e.2 == [lv.queries, lv.logCols, lv.folds, lv.highBits]).map
-    (·.2.2.2.2.2)).getD ("", "")
+  ((lrTable.find? fun e => lrKey e.2 == [lv.logCols, lv.folds, lv.highBits]).map
+    (·.2.2.2.2)).getD ("", "")
 
 theorem lpLoopOf_eq (lv : OsLv) : lpLoopOf (osPositionsName lv) = lpLoopK lv := by
   unfold lpLoopOf lpLoopK

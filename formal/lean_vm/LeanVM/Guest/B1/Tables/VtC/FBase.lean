@@ -27,10 +27,10 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
 @[expose] public section
 
 /-- The window's first statement. -/
-abbrev vtFLo : ℕ := 2673
+abbrev vtFLo : ℕ := 2369
 
 /-- The window's end: the final check (`assert air_acc == claim`). -/
-abbrev vtFHi : ℕ := 5512
+abbrev vtFHi : ℕ := 5208
 
 /-- **Every block read inside the window holds.** -/
 def VtF (rd : Reader) (σ : Val) : Prop :=

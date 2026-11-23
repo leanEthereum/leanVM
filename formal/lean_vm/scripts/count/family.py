@@ -146,19 +146,21 @@ class Cut:
     Lean names of its step (applied to the function's index and data), addition, zero and
     associativity, its certificates and its `*_of_run` lemma; `walk(j)` the statements function
     `j`'s check walks, `run(j, rho, ss)` the mirror's walk of the range `ss` from `rho`
-    (`checker.run_range`) and `acc` a result's literal."""
-    def __init__(self, step, add, zero, assoc, cert, of_run, walk, run, acc):
+    (`checker.run_range`) and `acc` a result's literal; for a check split at a selector, `of_split`, `split` and
+    `arm`."""
+    def __init__(self, step, add, zero, assoc, cert, of_run, walk, run, acc, of_split, split, arm):
         self.step = step; self.add = add; self.zero = zero; self.assoc = assoc; self.cert = cert
         self.of_run = of_run; self.walk = walk; self.run = run; self.acc = acc
+        # a check split at a selector: its `*_of_split` lemma, `split(j)` the selector and arms or `None`, `arm(j, r)`
+        # arm `r`'s walk
+        self.of_split = of_split; self.split = split; self.arm = arm
 
 
-def write_cuts(D, mod, pre, chk, j, cut, RB, MB):
-    """`<fam>/Cut{j}_*.lean`, the ranges of function `j`'s walk, each its result and the constants
-    after it, and `<fam>/Fn{j}.lean`, the walk they make and the function's check."""
-    ss = cut.walk(j)
+def cut_walk(D, mod, pre, j, cut, RB, MB, ss, walk, tag):
+    """The ranges of one walk `ss` (its Lean term `walk`) of function `j`'s check, in `<fam>/Cut{j}{tag}_*.lean`:
+    their module names and the proof steps chaining them into `runB` of the walk, its result named `{tag}h0`."""
     mods = pack([walk_cost([s]) for s in ss], RB, MB)
     step = '(%s %d Data.core%d)' % (cut.step, j, j)
-    walk = '((%s %d).walk Data.core%d)' % (cut.cert, j, j)
     rho = ([], [])
     rs = []
     for m in mods:
@@ -170,34 +172,56 @@ def write_cuts(D, mod, pre, chk, j, cut, RB, MB):
             if q[1] is not None: rho = q[1]
     names = []
     for k, m in enumerate(mods):
-        nm = 'Cut%d_%d' % (j, k)
+        nm = 'Cut%d%s_%d' % (j, tag, k)
         names.append(nm)
         t = header('%s.%s' % (mod, nm), 'Ranges of the walk of function %d\'s check (`StaticCut`).' % j,
                    'public import %s.Data\npublic import LeanVM.Guest.Memory.StaticCut\n' % mod)
         t += '\nnamespace LeanVM.Guest.Memory\n\nopen LeanVM.Guest\n\npublic section\n'
         for a, n, _ in m:
             _, _, r0, acc, r1 = next(r for r in rs if r[0] == a)
-            t += ('\nset_option maxRecDepth 100000 in\ntheorem %sCut_%d_%d :\n    runS %s %s ((%s.drop %d).take %d) %s =\n'
+            t += ('\nset_option maxRecDepth 100000 in\ntheorem %sCut_%d%s_%d :\n    runS %s %s ((%s.drop %d).take %d) %s =\n'
                   '      some (%s, %s) := by\n  decide +kernel\n'
-                  % (pre, j, a, cut.add, step, walk, a, n, lean_env(r0), cut.acc(acc),
+                  % (pre, j, tag, a, cut.add, step, walk, a, n, lean_env(r0), cut.acc(acc),
                      'none' if r1 is None else 'some %s' % lean_env(r1)))
         t += '\nend\nend LeanVM.Guest.Memory\n'
         write(os.path.join(D, nm + '.lean'), t)
     steps = []
     if rs[-1][4] is not None:
-        steps.append('  have h%d : runB %s %s %s (%s.drop %d) %s = some %s :=\n    runB_end (by decide +kernel)'
-                     % (len(ss), cut.add, cut.zero, step, walk, len(ss), lean_env(rs[-1][4]), cut.zero))
+        steps.append('  have %sh%d : runB %s %s %s (%s.drop %d) %s = some %s :=\n    runB_end (by decide +kernel)'
+                     % (tag, len(ss), cut.add, cut.zero, step, walk, len(ss), lean_env(rs[-1][4]), cut.zero))
     nxt = len(ss)
     for a, n, _, _, r1 in reversed(rs):
-        steps.append('  have h%d := runB_dropStop (zero := %s) %sCut_%d_%d' % (a, cut.zero, pre, j, a) if r1 is None else
-                     '  have h%d := runB_drop %s %sCut_%d_%d h%d' % (a, cut.assoc, pre, j, a, nxt))
+        steps.append('  have %sh%d := runB_dropStop (zero := %s) %sCut_%d%s_%d' % (tag, a, cut.zero, pre, j, tag, a)
+                     if r1 is None else
+                     '  have %sh%d := runB_drop %s %sCut_%d%s_%d %sh%d' % (tag, a, cut.assoc, pre, j, tag, a, tag, nxt))
         nxt = a
+    return names, steps
+
+
+def write_cuts(D, mod, pre, chk, j, cut, RB, MB):
+    """`<fam>/Cut{j}_*.lean`, the ranges of function `j`'s walk, each its result and the constants
+    after it, and `<fam>/Fn{j}.lean`, the walk they make and the function's check; a check split at a selector
+    (`cut.split`, `selSplit`), each arm's walk (`Cut{j}A{r}_*`) and `*_of_split`."""
+    sp = cut.split(j)
+    if sp is None:
+        names, steps = cut_walk(D, mod, pre, j, cut, RB, MB, cut.walk(j), '((%s %d).walk Data.core%d)' % (cut.cert, j, j), '')
+        proof = '  exact RangeOk.one (fn := Data.core%d) rfl (%s (by decide +kernel) h0 (by decide +kernel))' % (j, cut.of_run)
+    else:
+        x, n = sp
+        names, steps, alts = [], [], []
+        for r in range(n):
+            nm, st = cut_walk(D, mod, pre, j, cut, RB, MB, cut.arm(j, r), '(selL %d %d Data.core%d.body)' % (x, r, j),
+                              'A%d' % r)
+            names += nm
+            steps += st
+            alts.append('    · exact ⟨_, A%dh0, by decide +kernel⟩' % r)
+        proof = ('  exact RangeOk.one (fn := Data.core%d) rfl (%s (x := %d) (n := %d) rfl (by decide +kernel)\n'
+                 '    (by decide +kernel) fun r hr ↦ by\n    interval_cases r\n%s)' % (j, cut.of_split, x, n, '\n'.join(alts)))
     t = header('%s.Fn%d' % (mod, j), 'Function %d passes `%s`, by ranges of its walk.' % (j, chk),
                ''.join('public import %s.%s\n' % (mod, nm) for nm in names))
     t += '\nnamespace LeanVM.Guest.Memory\n\nopen LeanVM.Guest\n\npublic section\n'
-    t += ('\nset_option maxRecDepth 100000 in\ntheorem %sRange_%d : RangeOk (%s) %d 1 := by\n%s\n'
-          '  exact RangeOk.one (fn := Data.core%d) rfl (%s (by decide +kernel) h0 (by decide +kernel))\n'
-          % (pre, j, chk, j, '\n'.join(steps), j, cut.of_run))
+    t += ('\nset_option maxRecDepth 100000 in\ntheorem %sRange_%d : RangeOk (%s) %d 1 := by\n%s\n%s\n'
+          % (pre, j, chk, j, '\n'.join(steps), proof))
     t += '\nend\nend LeanVM.Guest.Memory\n'
     write(os.path.join(D, 'Fn%d.lean' % j), t)
 

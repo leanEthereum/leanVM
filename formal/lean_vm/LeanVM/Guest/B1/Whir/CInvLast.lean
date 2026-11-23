@@ -13,12 +13,11 @@ public import LeanVM.Guest.B1.Whir.LastRun
 /-!
 # The final level, backwards
 
-`sumcheck_inv`: `n` plain rounds of `sumcheck _ 3` read their words `tailWords pairs`, every
-challenge nonzero; they return `tailRun`'s.
+`sumcheck_inv`: `n` plain rounds of `sumcheck _ 3` read their words `tailWords pairs`; they return `tailRun`'s.
 
 `FinW`: what the final level reads after its folds: the lane, the query nonce, the phase, the
 closing rounds' words; `FinW.qS`, `qs`, `F3`, `tail`, `wend`. `FinOk`: `levelLast_run`'s
-hypotheses at it, the tail challenges nonzero. `levelLast_inv`: an accepting run of `levelLast`
+hypotheses at it. `levelLast_inv`: an accepting run of `levelLast`
 read a `FinW` with `FinOk`, and returns `levelLast_run`'s.
 -/
 
@@ -42,24 +41,23 @@ theorem tailRun_cons (c0 c2 : E) (rest : List (E × E)) (cap : List E) (claim : 
 theorem sumcheck_inv : ∀ (n : ℕ) {claim : E} {cap xs : List E} {os : List (List Opening)}
     {R : List (Digest × ℕ × ℕ)} {a : List E × E} {st1 : TSt},
     (∃ sp, (⟨cap, []⟩ : Fs).Carries sp) →
-    runTz (sumcheck claim 3 (List.replicate n none)) ⟨⟨cap, []⟩, none, xs, os, R⟩ = some (a, st1) →
+    runTc (sumcheck claim 3 (List.replicate n none)) ⟨⟨cap, []⟩, none, xs, os, R⟩ = some (a, st1) →
     ∃ pairs xs', pairs.length = n ∧ xs = tailWords pairs ++ xs' ∧
-      (∀ c ∈ (tailRun pairs cap claim).1, c ≠ 0) ∧
       a = ((tailRun pairs cap claim).1, (tailRun pairs cap claim).2.1) ∧
       st1 = ⟨⟨(tailRun pairs cap claim).2.2, []⟩, none, xs', os, R⟩
   | 0, claim, cap, xs, os, R, a, st1, _, h => by
-    have e := runTz_ret_inv (α := List E × E) h
+    have e := runTc_ret_inv (α := List E × E) h
     simp only [Prod.mk.injEq] at e
     obtain ⟨rfl, rfl⟩ := e
-    exact ⟨[], xs, rfl, rfl, by simp [tailRun], rfl, rfl⟩
+    exact ⟨[], xs, rfl, rfl, rfl, rfl⟩
   | n + 1, claim, cap, xs, os, R, a, st1, hc, h => by
     rw [List.replicate_succ] at h
     unfold sumcheck at h
-    obtain ⟨msg, st2, h1, h2⟩ := runTz_bind_some h
+    obtain ⟨msg, st2, h1, h2⟩ := runTc_bind_some h
     have h1c := h1
     unfold sumcheckRoundPoly at h1
-    obtain ⟨c0, xs1, hs1, -, h1⟩ := runTz_readE h1
-    obtain ⟨tl, xs2, htl, hs2, -⟩ := runTz_readScalars (3 - 2) _ _ rfl h1
+    obtain ⟨c0, xs1, hs1, -, h1⟩ := runTc_readE h1
+    obtain ⟨tl, xs2, htl, hs2, -⟩ := runTc_readScalars (3 - 2) _ _ rfl h1
     obtain ⟨c2, rfl⟩ : ∃ c2, tl = [c2] := by
       match tl, htl with
       | [c2], _ => exact ⟨c2, rfl⟩
@@ -67,29 +65,23 @@ theorem sumcheck_inv : ∀ (n : ℕ) {claim : E} {cap xs : List E} {os : List (L
     have hxs : xs = [c0, c2] ++ xs2 := by rw [hs1, hs2]; rfl
     rw [hxs] at h1c
     have hf := runsTo_roundPolyNone ⟨cap, []⟩ claim c0 [c2] 3 rfl (by decide)
-    obtain ⟨emsg, est2⟩ := runTz_detTo h1c hf hc
+    obtain ⟨emsg, est2⟩ := runTc_detTo h1c hf hc
     subst emsg est2
     set s := (⟨cap, []⟩ : Fs).absorbAll [c0, c2] dsObserve with hs
     have es : ((⟨cap, []⟩ : Fs).absorb c0 dsObserve).absorbAll [c2] dsObserve = s := rfl
     rw [es] at h2
-    obtain ⟨hr, h3⟩ := runTz_sampleE_none h2 rfl
-    obtain ⟨p, st3, h4, h5⟩ := runTz_bind_some h3
+    have h3 := runTc_sampleE_none h2 rfl
+    obtain ⟨p, st3, h4, h5⟩ := runTc_bind_some h3
     have hc1 : ∃ sp, (⟨s.squeeze.2.cap, []⟩ : Fs).Carries sp := ⟨⟨s.perm, [], none⟩, rfl, rfl, rfl⟩
-    have h4' : runTz (sumcheck (polyEval [c0, claim + sumE [c2], c2] s.squeeze.1) 3
+    have h4' : runTc (sumcheck (polyEval [c0, claim + sumE [c2], c2] s.squeeze.1) 3
         (List.replicate n none)) ⟨⟨s.squeeze.2.cap, []⟩, none, xs2, os, R⟩ = some (p, st3) := h4
     rw [← tail_eval] at h4'
-    obtain ⟨pairs, xs', hl, hx, hnz, ea, est⟩ := sumcheck_inv n hc1 h4'
+    obtain ⟨pairs, xs', hl, hx, ea, est⟩ := sumcheck_inv n hc1 h4'
     subst ea est
-    have e := runTz_ret_inv h5
+    have e := runTc_ret_inv h5
     simp only [Prod.mk.injEq] at e
     obtain ⟨rfl, rfl⟩ := e
-    refine ⟨(c0, c2) :: pairs, xs', by simp [hl], by rw [hxs, hx]; rfl, ?_, ?_, ?_⟩
-    · rw [tailRun_cons]
-      intro c hc'
-      simp only [List.mem_cons] at hc'
-      rcases hc' with rfl | hc'
-      · exact hr
-      · exact hnz c hc'
+    refine ⟨(c0, c2) :: pairs, xs', by simp [hl], by rw [hxs, hx]; rfl, ?_, ?_⟩
     · rw [tailRun_cons]
     · rw [tailRun_cons]
 
@@ -135,8 +127,7 @@ def FinW.wend (W : FinW) (logN laneFolds : ℕ) (level : Whir.Level) (s : WhirSt
       glued.weightAt ((s.alphas ++ T.1).drop glued.foldStart)) 0,
     multilinearEval (W.fold.take (2 ^ mu)) T.1, T.2.1⟩
 
-/-- **`levelLast_run`'s hypotheses at what the final level read**, and its closing challenges
-nonzero. -/
+/-- **`levelLast_run`'s hypotheses at what the final level read.** -/
 structure FinOk (logN index : ℕ) (level : Whir.Level) (s : WhirState) (rounds : List FoldRound)
     (F : Fs) (R : List (Digest × ℕ × ℕ)) (W : FinW) : Prop where
   root : ∃ root height width, R[index]? = some (root, height, width) ∧
@@ -156,7 +147,6 @@ structure FinOk (logN index : ℕ) (level : Whir.Level) (s : WhirState) (rounds 
       novelEval W.fold (subspaceAt (logN - s.alphas.length)
         (K.ofBits (W.qs F (logN - s.alphas.length + level.logInvRate) level.queries)[k]))
   plen2 : W.pairs.length = logN - s.alphas.length
-  tnz : ∀ c ∈ (W.tail F (logN - s.alphas.length + level.logInvRate) level.queries s.claim).1, c ≠ 0
 
 /-- The checks of an accepted `require` over the zipped queries, pointwise. -/
 theorem zip_all_get {qs : List ℕ} {rows : List (List K)} {P : ℕ × List K → Bool}
@@ -173,7 +163,7 @@ theorem levelLast_inv {logN laneFolds index : ℕ} {level : Whir.Level} {s : Whi
     {R : List (Digest × ℕ × ℕ)} {a : WhirEnd} {st1 : TSt}
     (hc : ∃ sp, F.Carries sp)
     (hP : 1 ≤ 128 / (logN - s.alphas.length + level.logInvRate)) (hQ : 0 < level.queries)
-    (h : runTz (levelLast logN laneFolds index level s rounds) ⟨F, none, xs, os, R⟩ = some (a, st1)) :
+    (h : runTc (levelLast logN laneFolds index level s rounds) ⟨F, none, xs, os, R⟩ = some (a, st1)) :
     ∃ (W : FinW) (xs' : List E) (orest : List (List Opening)),
       xs = W.words ++ xs' ∧ os = W.phase :: orest ∧ FinOk logN index level s rounds F R W ∧
       a = W.wend logN laneFolds level s F ∧
@@ -183,13 +173,13 @@ theorem levelLast_inv {logN laneFolds index : ℕ} {level : Whir.Level} {s : Whi
   set mu := logN - s.alphas.length with hmu
   set d := mu + level.logInvRate with hd
   unfold levelLast at h
-  obtain ⟨fold, xs1, hfl, hs1, h⟩ := runTz_readScalars (2 ^ mu + level.fold) _ _ rfl h
-  obtain ⟨nn, xs2, hs2, -, hp1, h⟩ := runTz_grindPoW (by decide) h
-  obtain ⟨qs', st2, hq1, h⟩ := runTz_bind_some h
+  obtain ⟨fold, xs1, hfl, hs1, h⟩ := runTc_readScalars (2 ^ mu + level.fold) _ _ rfl h
+  obtain ⟨nn, xs2, hs2, -, hp1, h⟩ := runTc_grindPoW (by decide) h
+  obtain ⟨qs', st2, hq1, h⟩ := runTc_bind_some h
   simp only at hs1 hs2
   set W0 : FinW := ⟨fold, nn, [], []⟩ with hW0
   have eS : (F.absorbAll fold dsObserve).nonceState nn = W0.qS F := rfl
-  have hq2 := runTz_runT _ _ _ hq1
+  have hq2 := runTc_runT _ _ _ hq1
   rw [show xs2 = [] ++ xs2 from rfl] at hq2
   have hcq : ∃ sp, Fs.CarriesGround (capOf (W0.qS F)) (challengeOf (W0.qS F)) sp :=
     ⟨⟨W0.qS F, [], some (challengeOf (W0.qS F))⟩, rfl, rfl, rfl⟩
@@ -204,24 +194,24 @@ theorem levelLast_inv {logN laneFolds index : ℕ} {level : Whir.Level} {s : Whi
       ((⟨capOf (W0.qS F), []⟩ : Fs).squeezeN (j - 1)).2.squeeze.1) level.queries =
       W0.qs F d level.queries := rfl
   rw [hqs] at h
-  obtain ⟨root, height, width, phase, orest, rows, hroot, hos, hop, h⟩ := runTz_queryB h
+  obtain ⟨root, height, width, phase, orest, rows, hroot, hos, hop, h⟩ := runTc_queryB h
   simp only at hos hroot
   obtain ⟨hl, hopen, hidx, hrows⟩ := phase_of_some hop
-  obtain ⟨hreq0, h⟩ := runTz_require h
-  obtain ⟨p, st3, h4, -⟩ := runTz_bind_some h
+  obtain ⟨hreq0, h⟩ := runTc_require h
+  obtain ⟨p, st3, h4, -⟩ := runTc_bind_some h
   have e3 := squeezeN_mk (capOf (W0.qS F)) (sqCount (128 / d) level.queries - 1)
   have hc3 : ∃ sp, (⟨((⟨capOf (W0.qS F), []⟩ : Fs).squeezeN (sqCount (128 / d) level.queries - 1)).2.cap,
       []⟩ : Fs).Carries sp := by
     rw [eS] at hq1
-    obtain ⟨sp, hsp⟩ := runTz_carries hq1
+    obtain ⟨sp, hsp⟩ := runTc_carries hq1
       ⟨⟨W0.qS F, [], some (challengeOf (W0.qS F))⟩, rfl, rfl, rfl⟩
     rw [e3] at hsp
     exact ⟨sp, tcar_none.mp hsp⟩
-  have h4' : runTz (sumcheck s.claim 3 (List.replicate mu none))
+  have h4' : runTc (sumcheck s.claim 3 (List.replicate mu none))
       ⟨⟨((⟨capOf (W0.qS F), []⟩ : Fs).squeezeN (sqCount (128 / d) level.queries - 1)).2.cap, []⟩,
         none, xs2, orest, R⟩ = some (p, st3) := by
     rw [← e3]; exact h4
-  obtain ⟨pairs, xs', hpl, hx, htnz, -, -⟩ := sumcheck_inv mu hc3 h4'
+  obtain ⟨pairs, xs', hpl, hx, -, -⟩ := sumcheck_inv mu hc3 h4'
   set W : FinW := ⟨fold, nn, phase, pairs⟩ with hW
   have hxs : xs = W.words ++ xs' := by
     rw [hs1, hs2, hx]; simp [FinW.words, hW]
@@ -235,9 +225,9 @@ theorem levelLast_inv {logN laneFolds index : ℕ} {level : Whir.Level} {s : Whi
   have hfw := levelLast_run logN laneFolds index level s rounds F R hroot fold hfl nn (by decide) hP hQ
     hp1 (W.qs F d level.queries) rfl (W.F3 F d level.queries) rfl phase hl hopen hidx hreq pairs hpl
   rw [hxs, hos, show phase :: orest = [phase] ++ orest from rfl] at h0
-  obtain ⟨ea, est⟩ := runTz_det h0 hfw hc
-  exact ⟨W, xs', orest, hxs, hos, ⟨⟨root, height, width, hroot, hopen⟩, hfl, hp1, hl, hidx, hreq, hpl,
-    htnz⟩, ea, est⟩
+  obtain ⟨ea, est⟩ := runTc_det h0 hfw hc
+  exact ⟨W, xs', orest, hxs, hos, ⟨⟨root, height, width, hroot, hopen⟩, hfl, hp1, hl, hidx, hreq, hpl⟩,
+    ea, est⟩
 
 end
 end LeanVM.Guest.B1.Whir

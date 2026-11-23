@@ -53,7 +53,7 @@ theorem lvb {l : ℕ} (hl : l < (osCfgR (μ - minOpenLog) (r - 1)).levels.length
   have hy := hR.yr
   have hg := hR.s1_alphas hl
   by_cases hlt : l < (osCfgR (μ - minOpenLog) (r - 1)).yrLevel
-  · obtain ⟨hne, hfold, hcols, -, hdep, hq, -, -, hP1, hsq, -, -, -, -, -, -, -, -, -, -, -, hqsh,
+  · obtain ⟨hne, hfold, hcols, -, hdep, hq, -, -, hP1, hsq, -, -, -, -, -, -, -, -, -, -, -, -, hqsh,
       -⟩ := hR.mid hlt
     rw [hfold] at hg
     have hmu : (Ls.getD l default).mu μ = (((osCfgR (μ - minOpenLog) (r - 1)).levels.getD l default)).logCols := by
@@ -62,7 +62,7 @@ theorem lvb {l : ℕ} (hl : l < (osCfgR (μ - minOpenLog) (r - 1)).levels.length
     rw [hdep, LvAt.dp, hmu]
   · have he : l = (osCfgR (μ - minOpenLog) (r - 1)).yrLevel := by omega
     subst he
-    obtain ⟨-, hfold, hcols, -, hdep, hq, -, -, hP1, hsq, -, -, -, -, -, -, -, -, -, -, hqsh, -, -, -, -, -,
+    obtain ⟨-, hfold, hcols, -, hdep, hq, -, -, hP1, hsq, -, -, -, -, -, -, -, -, -, -, -, hqsh, -, -, -, -, -,
       hlc, -⟩ := hR.fin
     rw [hfold] at hg
     have hmu : (Ls.getD (osCfgR (μ - minOpenLog) (r - 1)).yrLevel default).mu μ =

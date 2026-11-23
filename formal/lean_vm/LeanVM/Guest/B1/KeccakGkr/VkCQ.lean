@@ -90,8 +90,8 @@ theorem fin_ptrs (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ :
     (hσd : σ = D.val rd B curE chiE olE zvE slE tbE stE) (h17 : σ (.n (val% «verify_keccak» "pack_g")) = gen ^ (D.τ - 4))
     (h201 : σ (.n (val% «verify_keccak» "claims")) = ptr (B + D.o201)) :
     σ (.n (val% «verify_keccak» "s72#0")) = ptr (ls 11) * gen ^ (D.τ - 4) ∧
-      σ (.n (val% «verify_keccak» "last_local")) = ptr (ls 11 + (D.layer 11).y + 112) ∧
-      σ (.n (val% «verify_keccak» "last_lanes")) = ptr (ls 11 + (D.layer 11).y + 123) := by
+      σ (.n (val% «verify_keccak» "last_local")) = ptr (ls 11 + (D.layer 11).y + 77) ∧
+      σ (.n (val% «verify_keccak» "last_lanes")) = ptr (ls 11 + (D.layer 11).y + 88) := by
   have hg : ∀ st ∈ vkFinT, GoodS rd vkSt (D.w B curE) σ st := fun st hst ↦ by
     subst hσd
     exact val_good' h (List.mem_append_right _ hst)

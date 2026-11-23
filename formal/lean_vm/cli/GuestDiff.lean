@@ -22,9 +22,7 @@ each case it checks
 
 * that `w` holds `s` (`NodeRelation`'s computable parts: every child's proof verifies, every raw
   signature verifies and every signature claim is a raw signature's or a child's, the DA digest is that of the claim the directly checked matrix opens, else zero or
-  a child's, the batching closes, the shapes), within the deployed limits (`Limits`' parts) and
-  with no zero challenge where the guest divides (`NoZeroChallenge`: `verifyDeferredNZ` accepts
-  every child's proof);
+  a child's, the batching closes, the shapes) and within the deployed limits (`Limits`' parts);
 * (i) that the statement's witness streams (`LeanVM.Guest.guestStreams`, `Statement/LeanVmGuestProver.lean`)
   are the Rust streams, stream by stream and entry by entry;
 * (iii) that the public input is `statementDigest seed s`;
@@ -98,7 +96,7 @@ def nodeRel (c : Case) : List (String × Bool) :=
       (batch (w.children.map fun ch => ⟨statementDigest c.seed ch.statement, ch.freshClaim, ch.statement.deferredClaim⟩)
         w.batchingHints).map DeferredBytecodeClaim.cells == some s.deferredClaim.cells)]
 
-/-- `Limits`' parts and `NoZeroChallenge`, each by name. -/
+/-- `Limits`' parts, each by name. -/
 def limits (c : Case) : List (String × Bool) :=
   let s := c.statement
   let w := c.witness
@@ -109,8 +107,6 @@ def limits (c : Case) : List (String × Bool) :=
         | some (layout, _) => decide (minChildStackLog ≤ layout.stackLog)
         | none => true),
       (s!"child {i}'s stream is at most {childStreamCap} scalars", ch.proof.stream.length ≤ childStreamCap),
-      (s!"child {i}'s proof has no zero challenge where the guest divides",
-        Limits.verifyDeferredNZ bytecode c.seed (statementDigest c.seed ch.statement) ch.freshClaim ch.proof),
       (s!"child {i}'s lists are below 2^16", ch.statement.claims.xmss.length < 2 ^ 16 &&
         ch.statement.claims.sphincs.length < 2 ^ 16)] : List (String × Bool))) ++
   ([("leanXMSS claims held as often as declared", s.claims.xmss.all fun x =>
@@ -219,7 +215,7 @@ def main (args : List String) : IO UInt32 := do
       let (bad, time) ← timed fun _ => ((nodeRel c).find? (!·.2)).map (·.1 ++ " fails")
       failed := (← report "the witness holds the statement" bad time) || failed
       let (badL, timeL) ← timed fun _ => ((limits c).find? (!·.2)).map (·.1 ++ " fails")
-      failed := (← report "the witness is within the limits, no zero challenge" badL timeL) || failed
+      failed := (← report "the witness is within the limits" badL timeL) || failed
     let (streams, time) ← timed fun _ => LeanVM.Guest.guestStreams bytecode c.seed c.statement c.witness
     let (diff, time') ← timed fun _ => (streamDiffs streams c.streams).head?
     failed := (← report "(i) the honest streams are Rust's" diff (time + time')) || failed

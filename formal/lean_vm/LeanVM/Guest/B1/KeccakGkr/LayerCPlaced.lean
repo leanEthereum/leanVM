@@ -25,8 +25,8 @@ next claim's record pointing into the layer's buffers from `fp + fs name`), the 
 the local point, the next claim's lanes and flips).
 
 The honest valuation (`layerσ`) with the buffers' bases as its oracle (`layerW`) satisfies the
-body (`layer_body_complete`); `grind_check__L3` on the grind's word `D.gw first` is placed by
-`layer_grind_completeD`; the eight-round and remainder loops are pure callees loading from the
+body (`layer_body_complete`), the inlined `grind_check`'s windows those of the grind's word
+`D.gw first` and its table reads in the window tables (`gcInline_ptrs_of_good`); the eight-round and remainder loops are pure callees loading from the
 layout (`layer_kids`), placed by `completeAtD_of_relIn`; `completeAt_flatOutF` places the rest.
 -/
 
@@ -40,51 +40,59 @@ open LeanVM.Protocol.KeccakGkr
 
 @[expose] public section
 
-/-- The oracle: the bases of the layer's buffers from `b`. -/
+/-- The word `grind_check` reads: the nonce's permutation's output `1`. -/
+noncomputable def LayerData.gw (D : LayerData) (first : ℕ) : E :=
+  cellsOfState (((D.s0 first).absorbAll D.product dsObserve).nonceState D.nonce) false
+    ⟨1, by omega⟩
+
+/-- The oracle: the bases of the layer's buffers from `b`, and the inlined `grind_check`'s windows
+of the grind's word. -/
 noncomputable def layerW (D : LayerData) (first b : ℕ) (i : ℕ) : E :=
-  if i = layOff first + 718 then ptr b else if i = layOff first + 719 then ptr (b + D.y)
-  else if i = layOff first + 745 then ptr (b + D.y + 112)
-  else if i = tW first + 25 then ptr (b + D.y + 123)
-  else if i = topV (tW first) + 3 then ptr (b + D.y + 148) else 0
+  if i = layOff first + 782 then ptr b else if i = layOff first + 783 then ptr (b + D.y)
+  else if i = layOff first + 809 then ptr (b + D.y + 77)
+  else if i = tW first + 25 then ptr (b + D.y + 88)
+  else if i = topV (tW first) + 3 then ptr (b + D.y + 113)
+  else if layOff first + 544 ≤ i ∧ i ≤ layOff first + 544 + gcW 3 then
+    gcWin 3 (D.gw first) (i - (layOff first + 544))
+  else 0
 
 theorem weightEnd_big {first : ℕ} (hf : first < 2) :
     layOff first ≤ 21 ∧ 1100 < tW first ∧ tW first + 25 < topV (tW first) := by
   interval_cases first <;> exact ⟨by decide, by decide +kernel, by decide +kernel⟩
 
 theorem layerW_vals {first : ℕ} (hf : first < 2) (D : LayerData) (b : ℕ) :
-    layerW D first b (layOff first + 718) = ptr b ∧
-      layerW D first b (layOff first + 719) = ptr (b + D.y) ∧
-      layerW D first b (layOff first + 745) = ptr (b + D.y + 112) ∧
-      layerW D first b (tW first + 25) = ptr (b + D.y + 123) ∧
-      layerW D first b (topV (tW first) + 3) = ptr (b + D.y + 148) := by
+    layerW D first b (layOff first + 782) = ptr b ∧
+      layerW D first b (layOff first + 783) = ptr (b + D.y) ∧
+      layerW D first b (layOff first + 809) = ptr (b + D.y + 77) ∧
+      layerW D first b (tW first + 25) = ptr (b + D.y + 88) ∧
+      layerW D first b (topV (tW first) + 3) = ptr (b + D.y + 113) := by
   obtain ⟨hO, hW, hT⟩ := weightEnd_big hf
   refine ⟨by simp [layerW], by simp [layerW], by simp [layerW], ?_, ?_⟩
-  · simp only [layerW, show ¬ (tW first + 25 = layOff first + 718) by omega,
-      show ¬ (tW first + 25 = layOff first + 719) by omega,
-      show ¬ (tW first + 25 = layOff first + 745) by omega, ↓reduceIte]
-  · simp only [layerW, show ¬ (topV (tW first) + 3 = layOff first + 718) by omega,
-      show ¬ (topV (tW first) + 3 = layOff first + 719) by omega,
-      show ¬ (topV (tW first) + 3 = layOff first + 745) by omega,
+  · simp only [layerW, show ¬ (tW first + 25 = layOff first + 782) by omega,
+      show ¬ (tW first + 25 = layOff first + 783) by omega,
+      show ¬ (tW first + 25 = layOff first + 809) by omega, ↓reduceIte]
+  · simp only [layerW, show ¬ (topV (tW first) + 3 = layOff first + 782) by omega,
+      show ¬ (topV (tW first) + 3 = layOff first + 783) by omega,
+      show ¬ (topV (tW first) + 3 = layOff first + 809) by omega,
       show ¬ (topV (tW first) + 3 = tW first + 25) by omega, ↓reduceIte]
 
-/-- The word `grind_check` reads: the nonce's permutation's output `1`. -/
-noncomputable def LayerData.gw (D : LayerData) (first : ℕ) : E :=
-  cellsOfState (((D.s0 first).absorbAll D.product dsObserve).nonceState D.nonce) false
-    ⟨1, by omega⟩
+theorem layerW_win {first : ℕ} (hf : first < 2) (D : LayerData) (b : ℕ) :
+    ∀ j ≤ gcW 3, layerW D first b (layOff first + 544 + j) = gcWin 3 (D.gw first) j := by
+  intro j hj
+  have hW : gcW 3 = 5 := by decide
+  obtain ⟨hO, hT, hV⟩ := weightEnd_big hf
+  simp only [layerW, show ¬ (layOff first + 544 + j = layOff first + 782) by omega,
+    show ¬ (layOff first + 544 + j = layOff first + 783) by omega,
+    show ¬ (layOff first + 544 + j = layOff first + 809) by omega,
+    show ¬ (layOff first + 544 + j = tW first + 25) by omega,
+    show ¬ (layOff first + 544 + j = topV (tW first) + 3) by omega,
+    show layOff first + 544 ≤ layOff first + 544 + j ∧ layOff first + 544 + j ≤ layOff first + 544 + gcW 3
+      by omega, and_self, ↓reduceIte, Nat.add_sub_cancel_left]
 
-theorem LayerData.gw_pow {D : LayerData} {first : ℕ}
-    (h : ((D.s0 first).absorbAll D.product dsObserve).GrindOk sGrindBits D.nonce) :
-    ((D.gw first).limb 0).lane.toNat % 2 ^ 3 = 0 := by
-  rw [sGrindBits_eq, grindOk_iff (by decide : (3 : ℕ) ≠ 0)] at h
-  exact h
-
-/-- The layer's callees, placed from `b`: `grind_check__L3`, the eight-round loop and the
-remainder loop. -/
+/-- The layer's callees, placed from `b`: the eight-round loop and the remainder loop. -/
 noncomputable def layerKids (D : LayerData) (first : ℕ) (CL : ClaimLay) (bcur bout tbE b : ℕ) :
     List Kid :=
-  [⟨grindCheckName 3, true, [D.gw first, ptr tbE],
-    layerLin D first CL bcur bout tbE b ++ layerBufs D first (ptr bcur) b, Returns []⟩,
-   ⟨packLoopName first, decide (1 + gen ^ (D.y / 8) ≠ 0),
+  [⟨packLoopName first, decide (1 + gen ^ (D.y / 8) ≠ 0),
     [1, gen ^ (D.y / 8), ptr (b + D.y), ptr CL.bpp, ptr b, ptr tbE],
     layerLin D first CL bcur bout tbE b ++ layerBufs D first (ptr bcur) b, Returns []⟩,
    ⟨remLoopName first, decide (1 + gen ^ (D.y % 8) ≠ 0),
@@ -141,7 +149,7 @@ theorem layerKids_lin {D : LayerData} {first : ℕ} {CL : ClaimLay} {bcur bout t
       k.Lin = layerLin D first CL bcur bout tbE b ++ layerBufs D first (ptr bcur) b := by
   intro k hk
   simp only [layerKids, List.mem_cons, List.not_mem_nil, or_false] at hk
-  rcases hk with rfl | rfl | rfl <;> rfl
+  rcases hk with rfl | rfl <;> rfl
 
 theorem layerPre_noLoadIte {first : ℕ} (hf : first < 2) :
     (layerPre first).all noLoadIte = true := by
@@ -183,11 +191,12 @@ theorem layer_obl {first : ℕ} (hf : first < 2) {κ : ℕ} (hκ : 11 ≤ κ) (D
         (bases b (layerSizes D)).map (fun b => ofK (Parameters.addressOfIndex b)) ∧
       CallsMatch σ (((layerPre first).filterMap (Stmt.callSF σ)).map (Main.mkCall σ))
         (layerKids D first CL bcur bout tbE b) outs ∧
-      ∀ q ∈ (layerPre first).filterMap Stmt.loadS, ∃ i, (σ q.1).limb 0 *
+      (∀ q ∈ (layerPre first).filterMap Stmt.loadS, ∃ i, (σ q.1).limb 0 *
           Parameters.addressOfIndex q.2 = Parameters.addressOfIndex i ∧
         (RegionL (layerLin D first CL bcur bout tbE b) i ∨
-          RegionL (layerBufs D first (ptr bcur) b) i) := by
-  obtain ⟨-, -, halloc, -, -, hloads⟩ := layerPre_kernel hf
+          RegionL (layerBufs D first (ptr bcur) b) i)) ∧
+      ∀ e ∈ (layerPre first).flatMap (flEvs σ), e.Exact rd σ := by
+  obtain ⟨hflat, -, halloc, -, -, hloads⟩ := layerPre_kernel hf
   have hlocL : (D.locPt first).length = 11 := by
     rw [LayerData.locPt, LayerData.loc, layerLocal, localRunF_length, hlm]
   have hm : MemL rd (layerLin D first CL bcur bout tbE b ++ layerBufs D first (ptr bcur) b) :=
@@ -206,8 +215,8 @@ theorem layer_obl {first : ℕ} (hf : first < 2) {κ : ℕ} (hκ : 11 ≤ κ) (D
     fun {bb ws} hq ↦ mem (bb, ws) (List.mem_append_left _ hq)
   have hcw : ReadsAt rd (ptr CL.bclaim) CL.cw := mL (by simp [layerLin, ClaimLay.L])
   have hxs : ReadsAt rd (ptr bcur) D.xs := mL (by simp [layerLin])
-  have hout' : ReadsAt rd (ptr bout) (D.outW first (layerW D first b (layOff first + 718))
-      (layerW D first b (tW first + 25)) (layerW D first b (layOff first + 745))
+  have hout' : ReadsAt rd (ptr bout) (D.outW first (layerW D first b (layOff first + 782))
+      (layerW D first b (tW first + 25)) (layerW D first b (layOff first + 809))
       (layerW D first b (topV (tW first) + 3))) := by
     rw [w719, w27, w748, wfl]; exact mL (by simp [layerLin])
   have hbody' := layer_body_complete hf D (rd := rd) (w := layerW D first b) (p0 := p0)
@@ -219,7 +228,8 @@ theorem layer_obl {first : ℕ} (hf : first < 2) {κ : ℕ} (hκ : 11 ≤ κ) (D
     (by rw [w748]; exact mB (by simp [layerBufs_eq]))
     (by rw [w27]; exact mB (by simp [layerBufs_eq]))
     (by rw [wfl]; exact mB (by simp [layerBufs_eq])) hout'
-    (fun v hv ↦ layer_grind hκ tabs_mem hlow hLin hv)
+    (gcRc_of_lowDef hκ hlow) (winTabs_of_memL hm (List.mem_append_left _ tabs_mem))
+    (layerW_win hf D b)
     (fun hne ↦ by rw [w720, w719, h2]; exact (hK1 hne).rel)
     (fun hne ↦ by rw [w720, w719, h2]; exact (hK2 hne).rel)
   dsimp only at hbody'
@@ -228,10 +238,11 @@ theorem layer_obl {first : ℕ} (hf : first < 2) {κ : ℕ} (hκ : 11 ≤ κ) (D
   have hl : (D.cap ++ [p0, p1, ptr bcur, gen ^ D.y, gen ^ (D.y / 8), gen ^ (D.y % 8),
       ptr CL.bclaim, ptr bout, iota, ptr tbE, st]).length = 16 := by simp [hcl]
   have hG := layer_good (rd := rd) (w := layerW D first b) hf hl
+  have hGi := hG
   have hpar := fun i (hi : i < 16) ↦ layer_param (rd := rd) (w := layerW D first b) hf hl hi
   generalize layerσ rd (layerW D first b) (D.cap ++ [p0, p1, ptr bcur, gen ^ D.y,
     gen ^ (D.y / 8), gen ^ (D.y % 8), ptr CL.bclaim, ptr bout, iota, ptr tbE, st]) first = σ
-    at hG hpar hH e739 e532 e745 e1190 e1191 e718 ⊢
+    at hG hGi hpar hH e739 e532 e745 e1190 e1191 e718 ⊢
   have hGpre : ∀ s ∈ layerPre first, GoodS rd (layerSt first) (layerW D first b) σ s :=
     fun s hs ↦ hG s (by rw [layerT_pre]; exact List.mem_append_left _ hs)
   have ga := alloc_good hGpre
@@ -256,7 +267,21 @@ theorem layer_obl {first : ℕ} (hf : first < 2) {κ : ℕ} (hκ : 11 ≤ κ) (D
   have a11 : σ (.n (valf% «keccak_layer» "claim")) = ptr CL.bclaim := hpar 11 (by norm_num)
   have a12 : σ (.n (valf% «keccak_layer» "out")) = ptr bout := hpar 12 (by norm_num)
   have a14 : σ (.n (valf% «keccak_layer» "tabs")) = ptr tbE := hpar 14 (by norm_num)
-  refine ⟨σ, ?_, layerPre_disp hf σ, ?_, ?_, ?_, ?_, ?_⟩
+  -- the inlined `grind_check`'s table pointers
+  obtain ⟨gp0, gpI⟩ := gcInline_ptrs_of_good (rd := rd) (S := layerSt first) (wo := layerW D first b)
+    (σ := σ) (o := layOff first + 544) (by decide) (by show layOff first + 532 < _; omega)
+    (by show _ < layOff first + 544; simp only; omega) (fun s hs ↦ hGi s (gcInline_mem_layerT hf s hs))
+    (layerSt_noGrind hf) (gcRc_of_lowDef hκ hlow)
+    (by rw [a14]; exact winTabs_of_memL hm (List.mem_append_left _ tabs_mem))
+    (fun j hj ↦ by rw [e532]; exact layerW_win hf D b j hj)
+  have GX := gcInline_exact_of_good (rd := rd) (S := layerSt first) (wo := layerW D first b)
+    (σ := σ) (o := layOff first + 544) (by decide) (by show layOff first + 532 < _; omega)
+    (by show _ < layOff first + 544; simp only; omega) (fun s hs ↦ hGi s (gcInline_mem_layerT hf s hs))
+    (layerSt_noGrind hf) (gcRc_of_lowDef hκ hlow)
+    (by rw [a14]; exact winTabs_of_memL hm (List.mem_append_left _ tabs_mem))
+    (fun j hj ↦ by rw [e532]; exact layerW_win hf D b j hj)
+  rw [a14] at gp0 gpI
+  refine ⟨σ, ?_, layerPre_disp hf σ, ?_, ?_, ?_, ?_, ?_, ?_⟩
   pick_goal 2
   · -- the body, `layerT first` kept folded
     generalize layerT first = T at hH ⊢
@@ -281,14 +306,12 @@ theorem layer_obl {first : ℕ} (hf : first < 2) {κ : ℕ} (hκ : 11 ≤ κ) (D
     obtain ⟨e725', e726, e727, e731, e735, e737', e738⟩ := packSetup_vals (layOff_ok hf) gP
     rw [a9] at e725' e731 e735
     rw [a10] at e737'
-    have epp : σ (.n (layOff first + 717)) = ptr CL.bpp := by rw [e718, h2]
+    have epp : σ (.n (layOff first + 781)) = ptr CL.bpp := by rw [e718, h2]
     simp only [layerCalls, layerKids, List.map_cons, List.map_nil] at hout ⊢
     match outs, hout with
-    | [o0, o1, o2], ⟨ho0, ho1, ho2, _⟩ =>
-      refine ⟨rfl, by simp [Main.mkCall], fun ht ↦ ⟨?_, ?_⟩, rfl, by simp [Main.mkCall, e725'],
+    | [o1, o2], ⟨ho1, ho2, _⟩ =>
+      refine ⟨rfl, by simp [Main.mkCall, e725'],
         fun ht ↦ ⟨?_, ?_⟩, rfl, by simp [Main.mkCall, e737'], fun ht ↦ ⟨?_, ?_⟩, trivial⟩
-      · simp [Main.mkCall, e532, a14, LayerData.gw]
-      · simp only [Main.mkCall, List.map_nil]; exact ((ho0 ht).1).symm
       · simp [Main.mkCall, e726, a9, a720, epp, a719, a14]
       · simp only [Main.mkCall, List.map_nil]; exact ((ho1 ht).1).symm
       · simp [Main.mkCall, e738, a10, e727, e731, e735, a9, a720, epp, a719, a14]
@@ -311,7 +334,25 @@ theorem layer_obl {first : ℕ} (hf : first < 2) {κ : ℕ} (hκ : 11 ≤ κ) (D
     have hcl' := LayerData.chs_length (D := D) (first := first) hpm
     intro q hq
     have hg := List.all_eq_true.mp hloads q hq
-    simp only [List.any_eq_true, Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at hg
+    simp only [Bool.or_eq_true, List.any_eq_true, Bool.and_eq_true, beq_iff_eq,
+      decide_eq_true_eq] at hg
+    rcases hg with hg | ⟨hgp, hg0⟩
+    pick_goal 2
+    · -- the inlined `grind_check`'s table reads
+      obtain ⟨p, off⟩ := q
+      simp only at hgp hg0 ⊢
+      subst hg0
+      have hwl : winTabWords.length = 2 ^ 11 := by simp [winTabWords, winTabBits]
+      simp only [grindPtrs, List.mem_cons, List.mem_map, List.mem_range] at hgp
+      rcases hgp with rfl | ⟨i, hi, rfl⟩
+      · obtain ⟨e, he, hpe⟩ := gp0
+        rw [hpe]
+        exact fin (bb := tbE) (ws := winTabWords) (j := e) (off := 0)
+          (List.mem_append_left _ tabs_mem) (by omega)
+      · obtain ⟨e, he, hpe⟩ := gpI i hi
+        rw [hpe]
+        exact fin (bb := tbE) (ws := winTabWords) (j := e) (off := 0)
+          (List.mem_append_left _ tabs_mem) (by omega)
     obtain ⟨g, hgm, hg1, hg2⟩ := hg
     obtain ⟨p, off⟩ := q
     simp only at hg1 hg2 ⊢
@@ -321,8 +362,8 @@ theorem layer_obl {first : ℕ} (hf : first < 2) {κ : ℕ} (hκ : 11 ≤ κ) (D
     · rw [a7]; exact fin0 (bb := bcur) (ws := D.xs) (by simp [layerLin]) (by simp only at hg2; omega)
     · rw [a11]; exact fin0 (bb := CL.bclaim) (ws := CL.cw) (by simp [layerLin, ClaimLay.L])
         (by simp only at hg2; omega)
-    · rw [a12]; exact fin0 (bb := bout) (ws := D.outW first (ptr b) (ptr (b + D.y + 123))
-        (ptr (b + D.y + 112)) (ptr (b + D.y + 148))) (by simp [layerLin])
+    · rw [a12]; exact fin0 (bb := bout) (ws := D.outW first (ptr b) (ptr (b + D.y + 88))
+        (ptr (b + D.y + 77)) (ptr (b + D.y + 113))) (by simp [layerLin])
         (by simp [LayerData.outW, LayerData.next, layerClaim, keccakInstanceWeights_length]; omega)
     · rw [a720]; exact fin0 (bb := b + D.y) (ws := D.recWords first (ptr bcur))
         (by simp [layerBufs_eq]) (by rw [recWords_length]; omega)
@@ -332,11 +373,11 @@ theorem layer_obl {first : ℕ} (hf : first < 2) {κ : ℕ} (hκ : 11 ≤ κ) (D
     · rw [e745]; exact fin (bb := bcur) (ws := D.xs) (by simp [layerLin]) (by simp only at hg2; omega)
     · rw [e1190, h3]; exact fin0 (bb := CL.blp) (ws := CL.lanes) (by simp [layerLin, ClaimLay.L])
         (by have := hCL.2.2.2.2.2.2.2.2.1; simp only at hg2; omega)
-    · rw [a748]; exact fin0 (bb := b + D.y + 112) (ws := D.locPt first) (by simp [layerBufs_eq])
+    · rw [a748]; exact fin0 (bb := b + D.y + 77) (ws := D.locPt first) (by simp [layerBufs_eq])
         (by simp only at hg2; omega)
-    · rw [a27]; exact fin0 (bb := b + D.y + 123) (ws := lanesOut (D.locPt first) (D.beta first).1)
+    · rw [a27]; exact fin0 (bb := b + D.y + 88) (ws := lanesOut (D.locPt first) (D.beta first).1)
         (by simp [layerBufs_eq]) (by rw [lanesOut_length]; simp only at hg2; omega)
-    · rw [afl]; exact fin0 (bb := b + D.y + 148) (ws := flipsOf (laterWeights
+    · rw [afl]; exact fin0 (bb := b + D.y + 113) (ws := flipsOf (laterWeights
         (lanesOut (D.locPt first) (D.beta first).1) (eqKernel ((D.locPt first).take 6))))
         (by simp [layerBufs_eq]) (by simp [flipsOf]; simp only at hg2; omega)
     · split at hgm
@@ -350,7 +391,29 @@ theorem layer_obl {first : ℕ} (hf : first < 2) {κ : ℕ} (hκ : 11 ≤ κ) (D
         rw [e1191 hf0, h4]
         exact fin0 (bb := CL.blc) (ws := CL.locC) (by simp [layerLin, ClaimLay.L, hf1])
           (by simp only at hg2; omega)
+  · -- the path is exact: the inlined `grind_check`'s windows by `gcInline_exact_of_good`
+    obtain ⟨fn, hfind, hbody, -⟩ := layer_fn hf
+    have hw : walk σ (layerT first) = .ret ((layerPre first).flatMap (flEvs σ)) (layerVs first) := by
+      rw [layerT_pre]; exact walk_flat σ _ _ hflat (layerPre_disp hf σ)
+    have hsat := walk_sat (P := coreProgram) fn.body
+      (coreProgram_wf fn (List.mem_of_find?_eq_some hfind)) (by rw [hbody]; exact hH)
+    rw [hbody, hw] at hsat
+    have hes : ∀ e ∈ (layerPre first).flatMap (flEvs σ), e.Holds rd σ := fun e he ↦ (hsat.1 e he).1
+    refine exact_of_sites (layer_pinnedSites hf) hw hes fun a ha _ ↦ ?_
+    obtain ⟨s, hs, hsa⟩ := List.mem_filterMap.mp ha
+    cases s
+    case atom a' =>
+      dsimp only at hsa
+      split at hsa
+      · obtain rfl := Option.some.inj hsa
+        exact GX a' hs
+      · exact absurd hsa (by simp)
+    all_goals exact absurd hsa (by simp)
 
+theorem exists_and8_drop {α : Type} {p1 p2 p3 p4 p5 p6 p7 p8 : α → Prop}
+    (h : ∃ x, p1 x ∧ p2 x ∧ p3 x ∧ p4 x ∧ p5 x ∧ p6 x ∧ p7 x ∧ p8 x) :
+    ∃ x, p1 x ∧ p2 x ∧ p3 x ∧ p4 x ∧ p5 x ∧ p6 x ∧ p7 x :=
+  h.imp fun _ h ↦ ⟨h.1, h.2.1, h.2.2.1, h.2.2.2.1, h.2.2.2.2.1, h.2.2.2.2.2.1, h.2.2.2.2.2.2.1⟩
 
 set_option maxRecDepth 20000 in
 /-- **`keccak_layer` is complete, placed**, for its two specializations. -/
@@ -386,9 +449,7 @@ theorem layer_completeAtF {first : ℕ} (hf : first < 2) {κ : ℕ} (hκ : 11 �
   · -- the callees, placed
     intro fp k hk ht
     simp only [layerKids, List.mem_cons, List.not_mem_nil, or_false] at hk
-    rcases hk with rfl | rfl | rfl
-    · exact layer_grind_completeD hκ (List.mem_append_left _ tabs_mem)
-        (LayerData.gw_pow hgrind)
+    rcases hk with rfl | rfl
     · have hne : 1 + gen ^ (D.y / 8) ≠ 0 := by simpa using ht
       exact completeAtD_of_relIn layerKidS_pure (packLoopName_mem first)
         fun rd _ hm ↦ (layer_kids hf D CL bcur bout tbE _ hy30 hpl hpm hlm hm).1 hne
@@ -407,7 +468,7 @@ theorem layer_completeAtF {first : ℕ} (hf : first < 2) {κ : ℕ} (hκ : 11 �
   · -- the honest valuation
     intro fp outs hout rd hlow hB hLin
     rw [hparams, hbody]
-    exact layer_obl hf hκ D CL bcur bout tbE hcl hw hy1 hy30 hpl hpm hlm hproj hgrind hfin hCL _
-      outs hout rd hlow hB hLin
+    exact exists_and8_drop (layer_obl hf hκ D CL bcur bout tbE hcl hw hy1 hy30 hpl hpm hlm hproj
+      hgrind hfin hCL _ outs hout rd hlow hB hLin)
 end
 end LeanVM.Guest.B1.VerifySub

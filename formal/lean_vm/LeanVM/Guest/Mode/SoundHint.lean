@@ -25,7 +25,7 @@ def DestIn (s : St) : BitsDest → Prop
 def HintIn (s : St) : Hint → Prop
   | .allocDyn _ size => s.mem.written (s.fp + size) = true
   | .allocArm _ sel _ => s.mem.written (s.fp + sel) = true
-  | .allocFrames _ _ stop _ => s.mem.written (s.fp + stop) = true
+  | .allocFrames _ _ stop _ _ => s.mem.written (s.fp + stop) = true
   | .witnessHeap _ ptr _ _ => s.mem.written (s.fp + ptr) = true
   | .log2Ceil bits _ nbits _ => match bits with
     | .stack base => ∀ j < nbits, s.mem.written (s.fp + base + j) = true
@@ -274,7 +274,7 @@ theorem stepHint_sound {C : Ctx} {s s' : St} {A A' : Abs} {h : Hint} (hs : s.Goo
       exact (hH.follows (f1.trans f2)).addW (show s'.mem.written (s'.fp + ptr) = true by
         rw [f2.fp]; exact hw2)
     · simp at e
-  | allocFrames ptr size stop startInverse =>
+  | allocFrames ptr size stop startInverse tail =>
     simp only [stepHint] at hstep
     split_ifs at hstep with hw
     cases hstep

@@ -52,7 +52,7 @@ noncomputable def shareStatic (j : ℕ) : Bool :=
   natSeq (fpgCells (plumbOf j)) fun fc ↦ (byCell (plumbOf j).tmps).seq fun tt ↦
   (listElementOrDefault (certOf j).cells 0 []).all (fun c ↦ Nat.blt c 65536) &&
   listsOk (plumbOf j) (fsN j) && snapsOk (certOf j) (snapsOf j) &&
-    apartOk j && (coreOf j).params.all (valOk loc tt tc fc (fsN j))
+    apartOk j && (coreOf j).params.all (valOk loc tt tc fc (fsN j) [])
 
 /-- **Window `k` of function `j`**, starting from the snapshots `snaps`: its values numbered, in
 its soundness window's cells and in the frame; its walk from the parameters' naming (the first
@@ -62,7 +62,8 @@ noncomputable def shareWin (j : ℕ) (snaps : List Snap) (k : ℕ) : Bool :=
   natSeq (tmpCells (plumbOf j)) fun tc ↦ natSeq (fpgCells (plumbOf j)) fun fc ↦
   (byCell (plumbOf j).tmps).seq fun tt ↦
   (listElementOrDefault (certOf j).cells (winW snaps k) []).all (fun c ↦ Nat.blt c 65536) &&
-  valsAll (valOk loc tt tc fc (fsN j)) (stmtsW (coreOf j).body snaps k) &&
+  valsAll (valOk loc tt tc fc (fsN j) (nextCells (certOf j).locs (fsN j) (tailArgs (coreOf j))))
+    (stmtsW (coreOf j).body snaps k) &&
   (match swL loc sh tt (plumbOf j)
       (bif k == 0 then nameStep loc sh (initSt (plumbOf j)) (coreOf j).params else (snapAt snaps k).st)
       (stmtsW (coreOf j).body snaps k) with

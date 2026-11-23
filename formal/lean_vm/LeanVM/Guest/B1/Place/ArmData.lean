@@ -20,7 +20,7 @@ public import LeanVM.Guest.B1.Whir.TableKeys
 `BodyOk c`: every call statement of the body names a callee of `osKindOf`, every dispatch is on
 the rate's selector over four names, and the body takes no frame address. `LvFacts c l`: level
 `l`'s helpers are entries of their tables (`level_positions` with its loop `lpLoopA c l`), its
-positions' slices fit `ligPosCap`, its `opening_queries` shape matches its row, and its words fit
+positions' slice sits at its offset (`posOff`) and holds its queries, its `opening_queries` shape matches its row, and its words fit
 their buffers. `armBody_ok`, `armLv_ok`: both at every arm `m < 11` and rate `ri < 4`, by the
 kernel.
 -/
@@ -38,11 +38,17 @@ def bodyOkS : Stmt → Bool
   | .call f _ _ => (osKindOf f).isSome
   | .callIf _ f _ => (osKindOf f).isSome
   | .dispatch x fs _ _ => decide (x = .n osRate) && fs.length == 4
+  | .match_ x arms => decide (x = .n osRate) && arms.length == 4 && arms.all fun a ↦ a.all Stmt.quietS
   | _ => true
 
 theorem bodyOkS_dispatch {x : V} {fs : List String} {a r : List V}
     (h : bodyOkS (.dispatch x fs a r) = true) : x = .n osRate ∧ fs.length = 4 := by
   simpa [bodyOkS] using h
+
+theorem bodyOkS_match {x : V} {arms : List (List Stmt)} (h : bodyOkS (.match_ x arms) = true) :
+    x = .n osRate ∧ arms.length = 4 ∧ (arms.all fun a ↦ a.all Stmt.quietS) = true := by
+  simp only [bodyOkS, Bool.and_eq_true, decide_eq_true_eq, beq_iff_eq] at h
+  exact ⟨h.1.1, h.1.2, h.2⟩
 
 theorem bodyOkS_call {s : Stmt} (h : bodyOkS s = true) {x : Option V × String × List V × List V}
     (hx : Main.Stmt.callS s = some x) : (osKindOf x.2.1).isSome = true := by
@@ -57,43 +63,52 @@ theorem bodyOkS_call {s : Stmt} (h : bodyOkS s = true) {x : Option V × String �
     exact h
   | _ => simp [Main.Stmt.callS] at hx
 
-/-- **The body's decided facts.** -/
+/-- A call into a specialization of `level_residual` (the finish's, named by `lrTable`). -/
+def isLrCall : Stmt → Bool
+  | .call f _ _ => lrTable.any (·.1 == f)
+  | _ => false
+
+/-- The body before the finish: the head, the levels, the closing rounds. -/
+def osBodyPre (c : OsCfg) : List Stmt :=
+  (osHead c).1 ++ (osLevels c 0 c.levels (osHead c).2).1 ++ osTlA c
+
+/-- **The body's decided facts**: every statement placed (a call into `level_residual` aside, which
+only the finish makes), the body before the finish placed, `fold_final_msg` named, no frame
+address, the final level a level. -/
 def BodyOk (c : OsCfg) : Prop :=
-  (osBodyA c).all bodyOkS = true ∧ (osBodyA c).filterMap Main.Stmt.addrS = [] ∧
-    c.yrLevel < c.levels.length
+  (osBodyA c).all (fun s ↦ bodyOkS s || isLrCall s) = true ∧ (osBodyPre c).all bodyOkS = true ∧
+    (osKindOf ("fold_final_msg__L" ++ natStr c.yrLog)).isSome = true ∧
+    (osBodyA c).filterMap Main.Stmt.addrS = [] ∧ c.yrLevel < c.levels.length
 
 instance (c : OsCfg) : Decidable (BodyOk c) := by unfold BodyOk; infer_instance
 
-/-- Level `l`'s `level_positions` loop, from `lpTable`'s entry of its squeezes and depths (`LvFacts`
-checks the entry's name). -/
+/-- Level `l`'s `level_positions` loop, from `lpTable`'s entry of its depths (`LvFacts` checks the
+entry's name). -/
 def lpLoopA (c : OsCfg) (l : ℕ) : String :=
   let lv := osLvA c l
-  ((lpTable.find? fun e ↦ e.2.1 == lv.squeezes && e.2.2.2.1 == lv.depth && e.2.2.2.2 == lv.capDepth).map
-    (·.2.2.1)).getD ""
+  ((lpTable.find? fun e ↦ e.2.2.1 == lv.depth && e.2.2.2 == lv.capDepth).map (·.2.1)).getD ""
 
-/-- Level `l`'s `level_residual` loops, from `lrTable`'s entry of its queries, columns and high
-part. -/
+/-- Level `l`'s `level_residual` loops, from `lrTable`'s entry of its columns and high part. -/
 def lrLoopsA (c : OsCfg) (l : ℕ) : String × String :=
   let lv := osLvA c l
-  ((lrTable.find? fun e ↦ e.2.1 == lv.queries && e.2.2.1 == lv.logCols && e.2.2.2.1 == lv.folds &&
-    e.2.2.2.2.1 == lv.highBits).map (·.2.2.2.2.2)).getD ("", "")
+  ((lrTable.find? fun e ↦ e.2.1 == lv.logCols && e.2.2.1 == lv.folds && e.2.2.2.1 == lv.highBits).map
+    (·.2.2.2.2)).getD ("", "")
 
 /-- **Level `l`'s decided facts.** -/
 def LvFacts (c : OsCfg) (l : ℕ) : Prop :=
-  (osPositionsName (osLvA c l), (osLvA c l).squeezes, lpLoopA c l, (osLvA c l).depth,
-    (osLvA c l).capDepth) ∈ lpTable ∧
+  (osPositionsName (osLvA c l), lpLoopA c l, (osLvA c l).depth, (osLvA c l).capDepth) ∈ lpTable ∧
   (osQueriesName c l (osLvA c l), (osLvA c l).queries, lvBase l, (osLvA c l).folds,
     (osLvA c l).leafCells, (osLvA c l).depth, (osLvA c l).capDepth,
     (if l = c.yrLevel then (osLvA c l).logCols else 0),
     (if l = c.yrLevel then c.yrLen + (osLvA c l).folds else 0),
     (if l = c.yrLevel then c.yrLog + 1 else 0), (if l = c.yrLevel then 1 else 0)) ∈ lqTable ∧
-  (l < c.yrLevel → (osResidualName (osLvA c l), (osLvA c l).queries, (osLvA c l).logCols,
-    (osLvA c l).folds, (osLvA c l).highBits, (lrLoopsA c l).1, (lrLoopsA c l).2) ∈ lrTable) ∧
-  (osLvA c l).posOff = l * ligPosCap ∧
-  (osLvA c l).squeezes * (128 / (osLvA c l).depth) ≤ ligPosCap ∧
+  (l < c.yrLevel → (osResidualName (osLvA c l), (osLvA c l).logCols, (osLvA c l).folds,
+    (osLvA c l).highBits, (lrLoopsA c l).1, (lrLoopsA c l).2) ∈ lrTable ∧
+    resBatch ≤ (osLvA c l).queries ∧ (osLvA c l).queries ≤ 2 ^ 20) ∧
+  (osLvA c l).posOff = ((c.levels.take l).map fun lv ↦ lv.squeezes * (128 / lv.depth)).sum ∧
   (osLvA c l).queries ≤ (osLvA c l).squeezes * (128 / (osLvA c l).depth) ∧
-  0 < 128 / (osLvA c l).depth ∧ 1 ≤ (osLvA c l).squeezes ∧
-  (oqSA c l).pd + (oqSA c l).cd = (osLvA c l).depth ∧ (oqSA c l).cd = (osLvA c l).capDepth ∧
+  0 < 128 / (osLvA c l).depth ∧ 1 ≤ (osLvA c l).squeezes ∧ (osLvA c l).squeezes ≤ 64 ∧
+  (oqSA c l).pd + (osLvA c l).capDepth = (osLvA c l).depth ∧
   ((oqSA c l).final = 1 ↔ l = c.yrLevel) ∧
   2 * (osLvA c l).foldsOff + 2 * (oqSA c l).folds ≤ 2 * c.nFolds ∧
   (l = c.yrLevel → (oqSA c l).nHs ≤ c.yrLen + (osLvA c l).folds) ∧
@@ -104,23 +119,23 @@ def LvFacts (c : OsCfg) (l : ℕ) : Prop :=
 level `l`'s name (`lvFacts_iff`: the tables' names are their numbers, `Whir/TableKeys`), which
 the kernel finds by its numbers too (`oqShapeOf_osOqName`). -/
 def LvFactsS (S : OqShape) (c : OsCfg) (l : ℕ) : Prop :=
-  ((osLvA c l).squeezes, lpLoopA c l, (osLvA c l).depth, (osLvA c l).capDepth) ∈ lpTable.map (·.2) ∧
+  (lpLoopA c l, (osLvA c l).depth, (osLvA c l).capDepth) ∈ lpTable.map (·.2) ∧
   ((osLvA c l).queries, lvBase l, (osLvA c l).folds, (osLvA c l).leafCells, (osLvA c l).depth,
     (osLvA c l).capDepth, (if l = c.yrLevel then (osLvA c l).logCols else 0),
     (if l = c.yrLevel then c.yrLen + (osLvA c l).folds else 0),
     (if l = c.yrLevel then c.yrLog + 1 else 0), (if l = c.yrLevel then 1 else 0)) ∈ lqTable.map (·.2) ∧
-  (l < c.yrLevel → ((osLvA c l).queries, (osLvA c l).logCols, (osLvA c l).folds,
-    (osLvA c l).highBits, (lrLoopsA c l).1, (lrLoopsA c l).2) ∈ lrTable.map (·.2)) ∧
-  (osLvA c l).posOff = l * ligPosCap ∧
-  (osLvA c l).squeezes * (128 / (osLvA c l).depth) ≤ ligPosCap ∧
+  (l < c.yrLevel → ((osLvA c l).logCols, (osLvA c l).folds, (osLvA c l).highBits, (lrLoopsA c l).1,
+    (lrLoopsA c l).2) ∈ lrTable.map (·.2) ∧
+    resBatch ≤ (osLvA c l).queries ∧ (osLvA c l).queries ≤ 2 ^ 20) ∧
+  (osLvA c l).posOff = ((c.levels.take l).map fun lv ↦ lv.squeezes * (128 / lv.depth)).sum ∧
   (osLvA c l).queries ≤ (osLvA c l).squeezes * (128 / (osLvA c l).depth) ∧
-  0 < 128 / (osLvA c l).depth ∧ 1 ≤ (osLvA c l).squeezes ∧
-  S.oq.pd + S.oq.cd = (osLvA c l).depth ∧ S.oq.cd = (osLvA c l).capDepth ∧
+  0 < 128 / (osLvA c l).depth ∧ 1 ≤ (osLvA c l).squeezes ∧ (osLvA c l).squeezes ≤ 64 ∧
+  S.oq.pd + (osLvA c l).capDepth = (osLvA c l).depth ∧
   (S.oq.final = 1 ↔ l = c.yrLevel) ∧
   2 * (osLvA c l).foldsOff + 2 * S.oq.folds ≤ 2 * c.nFolds ∧
   (l = c.yrLevel → S.oq.nHs ≤ c.yrLen + (osLvA c l).folds) ∧
   (osLvA c l).logCols ≤ ligColsCap ∧ (osLvA c l).folds ≤ hsStride ∧
-  oqCount S.odd S.oq.base (oqNA c l) = (osLvA c l).queries
+  oqCount (lqOdd (osLvA c l).queries (lvBase l)) S.oq.base (oqNA c l) = (osLvA c l).queries
 
 theorem lvFacts_iff (c : OsCfg) (l : ℕ) :
     LvFacts c l ↔ LvFactsS (oqShapeOf (osOqName c l (osLvA c l))) c l := by
@@ -139,37 +154,37 @@ instance (c : OsCfg) (l : ℕ) : Decidable (LvFacts c l) :=
     rw [lvFacts_iff, oqShapeOf_osOqName]
 
 set_option maxRecDepth 100000 in
-theorem armBody_0 : BodyOk (osCfg 0) := by decide +kernel
+theorem armBody_0 : ∀ ri < 4, BodyOk (osCfgR 0 ri) := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem armBody_1 : BodyOk (osCfg 1) := by decide +kernel
+theorem armBody_1 : ∀ ri < 4, BodyOk (osCfgR 1 ri) := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem armBody_2 : BodyOk (osCfg 2) := by decide +kernel
+theorem armBody_2 : ∀ ri < 4, BodyOk (osCfgR 2 ri) := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem armBody_3 : BodyOk (osCfg 3) := by decide +kernel
+theorem armBody_3 : ∀ ri < 4, BodyOk (osCfgR 3 ri) := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem armBody_4 : BodyOk (osCfg 4) := by decide +kernel
+theorem armBody_4 : ∀ ri < 4, BodyOk (osCfgR 4 ri) := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem armBody_5 : BodyOk (osCfg 5) := by decide +kernel
+theorem armBody_5 : ∀ ri < 4, BodyOk (osCfgR 5 ri) := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem armBody_6 : BodyOk (osCfg 6) := by decide +kernel
+theorem armBody_6 : ∀ ri < 4, BodyOk (osCfgR 6 ri) := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem armBody_7 : BodyOk (osCfg 7) := by decide +kernel
+theorem armBody_7 : ∀ ri < 4, BodyOk (osCfgR 7 ri) := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem armBody_8 : BodyOk (osCfg 8) := by decide +kernel
+theorem armBody_8 : ∀ ri < 4, BodyOk (osCfgR 8 ri) := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem armBody_9 : BodyOk (osCfg 9) := by decide +kernel
+theorem armBody_9 : ∀ ri < 4, BodyOk (osCfgR 9 ri) := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem armBody_10 : BodyOk (osCfg 10) := by decide +kernel
+theorem armBody_10 : ∀ ri < 4, BodyOk (osCfgR 10 ri) := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem armLv_0 : ∀ ri < 4, ∀ l < (osCfgR 0 ri).levels.length, LvFacts (osCfgR 0 ri) l := by
@@ -215,39 +230,20 @@ set_option maxRecDepth 100000 in
 theorem armLv_10 : ∀ ri < 4, ∀ l < (osCfgR 10 ri).levels.length, LvFacts (osCfgR 10 ri) l := by
   decide +kernel
 
-theorem armBody_cfg (m : ℕ) (hm : m < 11) : BodyOk (osCfg m) := by
-  interval_cases m
-  · exact armBody_0
-  · exact armBody_1
-  · exact armBody_2
-  · exact armBody_3
-  · exact armBody_4
-  · exact armBody_5
-  · exact armBody_6
-  · exact armBody_7
-  · exact armBody_8
-  · exact armBody_9
-  · exact armBody_10
-
-theorem osBodyA_rate (m ri : ℕ) :
-    osBodyA (osCfgR m ri) = osBodyA (osCfg m) := by
-  have h := osBody_rate m ri
-  rw [osBody_eq, osBody_eq] at h
-  have hl : [Stmt.ret (osBodyRet (osCfg m))].length = [Stmt.ret (osBodyRet (osCfgR m ri))].length := by
-    rw [List.length_singleton, List.length_singleton]
-  exact (List.append_inj' h hl).1.symm
-
 /-- **Every arm's body has its decided facts at every rate.** -/
-theorem armBody_ok {m : ℕ} (ri : ℕ) (hm : m < 11) : BodyOk (osCfgR m ri) := by
-  have h := armBody_cfg m hm
-  unfold BodyOk at h ⊢
-  rw [osBodyA_rate m ri]
-  refine ⟨h.1, h.2.1, ?_⟩
-  have e : (osCfgR m ri).yrLevel = (osCfg m).yrLevel := rfl
-  have e3 : (osCfgR m ri).levels.length = (osCfg m).levels.length := by
-    simp [osCfgR, osCfg, osLevelsR]
-  rw [e, e3]
-  exact h.2.2
+theorem armBody_ok {m ri : ℕ} (hm : m < 11) (hri : ri < 4) : BodyOk (osCfgR m ri) := by
+  interval_cases m
+  · exact armBody_0 ri hri
+  · exact armBody_1 ri hri
+  · exact armBody_2 ri hri
+  · exact armBody_3 ri hri
+  · exact armBody_4 ri hri
+  · exact armBody_5 ri hri
+  · exact armBody_6 ri hri
+  · exact armBody_7 ri hri
+  · exact armBody_8 ri hri
+  · exact armBody_9 ri hri
+  · exact armBody_10 ri hri
 
 /-- **Every arm's levels have their decided facts at every rate.** -/
 theorem armLv_ok {m ri : ℕ} (hm : m < 11) (hri : ri < 4) :

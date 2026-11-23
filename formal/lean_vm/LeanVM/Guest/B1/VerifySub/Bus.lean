@@ -50,16 +50,16 @@ theorem vsRun5 (b : ℕ) : (vsRun b 5).map σ =
 
 /-- One slot weight's squeeze and store. -/
 def vsFpwBlk (i : ℕ) : List Stmt :=
-  [vsPermT (vsFpwCap i) (335 + 13 * i), vsLd (335 + 13 * i) 334 (i + 1)]
+  [vsPermT (vsFpwCap i) (387 + 13 * i), vsLd (387 + 13 * i) 386 (i + 1)]
 
 /-- **The slot weights' squeezes**: after `n` of them the sponge's capacity is at `vsFpwCap n`,
-and squeeze `i` is at `335 + 13 i`, stored at `fp_w[i + 1]`. -/
+and squeeze `i` is at `387 + 13 i`, stored at `fp_w[i + 1]`. -/
 theorem fpw_loop (h8 : σ (.n (val% «verify_sub» "s3#0[1]")) = 0) (h9 : σ (.n (val% «verify_sub» "s3#0[2]")) = 0) (h10 : σ (.n (val% «verify_sub» "s3#0[3]")) = 0)
     (h11 : σ (.n (val% «verify_sub» "s3#0[4]")) = 0) : ∀ (n : ℕ) {nx : Prop},
     Stmt.HoldsList C rd σ ((List.range n).flatMap vsFpwBlk) nx kret →
-      sqSt ⟨(vsRun 329 5).map σ, []⟩ n = ⟨(vsRun (vsFpwCap n) 5).map σ, []⟩ ∧
-        (∀ i < n, (sqSt ⟨(vsRun 329 5).map σ, []⟩ i).squeeze.1 = σ (.n (335 + 13 * i)) ∧
-          LoadHolds rd (σ (.n (val% «verify_sub» "fp_w"))) (i + 1) (σ (.n (335 + 13 * i)))) ∧ nx := by
+      sqSt ⟨(vsRun 381 5).map σ, []⟩ n = ⟨(vsRun (vsFpwCap n) 5).map σ, []⟩ ∧
+        (∀ i < n, (sqSt ⟨(vsRun 381 5).map σ, []⟩ i).squeeze.1 = σ (.n (387 + 13 * i)) ∧
+          LoadHolds rd (σ (.n (val% «verify_sub» "fp_w"))) (i + 1) (σ (.n (387 + 13 * i)))) ∧ nx := by
   intro n
   induction n with
   | zero => exact fun h ↦ ⟨rfl, fun i hi ↦ absurd hi (by omega), h⟩
@@ -70,7 +70,7 @@ theorem fpw_loop (h8 : σ (.n (val% «verify_sub» "s3#0[1]")) = 0) (h9 : σ (.n
     rw [List.flatMap_singleton, vsFpwBlk, holds_cons1] at h'
     obtain ⟨hsq, h''⟩ := vsPermT_holds h8 h9 h10 h11 h'
     obtain ⟨hl, hn⟩ := holds_ld1.1 h''
-    have hc : vsFpwCap (n + 1) = 335 + 13 * n + 8 := by
+    have hc : vsFpwCap (n + 1) = 387 + 13 * n + 8 := by
       simp only [vsFpwCap, Nat.add_one_ne_zero, ↓reduceIte]; omega
     refine ⟨?_, fun i hi' ↦ ?_, hn⟩
     · rw [sqSt, hs, hsq, hc, vsRun5]
@@ -133,18 +133,18 @@ theorem vsBusFpw_holds {κ : ℕ} (hκ : κ ≤ 32) (hκw : winTabBits ≤ κ) (
   obtain ⟨c0, c1, c2, c3, c4, -, l312, hL⟩ := h
   obtain ⟨hs15, hsq, hL'⟩ := fpw_loop h8 h9 h10 h11 15 hL
   obtain ⟨hβ, hn⟩ := vsPermT_holds h8 h9 h10 h11 hL'
-  have hcap : capOf S = (vsRun 329 5).map σ := by
+  have hcap : capOf S = (vsRun 381 5).map σ := by
     rw [← ecap]
     show _ = [σ (.n (val% «verify_sub» "sp[0]@2")), σ (.n (val% «verify_sub» "sp[1]@2")), σ (.n (val% «verify_sub» "sp[2]@2")), σ (.n (val% «verify_sub» "sp[3]@2")), σ (.n (val% «verify_sub» "sp[4]@2"))]
     rw [c0, c1, c2, c3, c4]
-  have hT : ((⟨capOf S, []⟩ : Fs).squeezeN 15).2 = ⟨(vsRun 525 5).map σ, []⟩ := by
+  have hT : ((⟨capOf S, []⟩ : Fs).squeezeN 15).2 = ⟨(vsRun 577 5).map σ, []⟩ := by
     rw [hcap, squeezeN_eq]
     exact hs15
   have hβ' : ((⟨capOf S, []⟩ : Fs).squeezeN 15).2.squeeze =
       (σ (.n (val% «verify_sub» "nxt[0]@19")), ⟨[σ (.n (val% «verify_sub» "nxt[8]@19")), σ (.n (val% «verify_sub» "nxt[9]@19")), σ (.n (val% «verify_sub» "nxt[10]@19")), σ (.n (val% «verify_sub» "nxt[11]@19")), σ (.n (val% «verify_sub» "nxt[12]@19"))], []⟩) := by
     rw [hT]; exact hβ
   have hW : ((⟨capOf S, []⟩ : Fs).squeezeN 15).1 =
-      (List.range 15).map fun x ↦ (sqSt ⟨(vsRun 329 5).map σ, []⟩ x).squeeze.1 := by
+      (List.range 15).map fun x ↦ (sqSt ⟨(vsRun 381 5).map σ, []⟩ x).squeeze.1 := by
     rw [hcap, squeezeN_eq]
   refine ⟨by omega, challengeOf S :: ((⟨capOf S, []⟩ : Fs).squeezeN 15).1,
     by simp [vs_squeezeN_length], ?_, ?_, hn⟩

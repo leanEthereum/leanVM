@@ -80,21 +80,21 @@ theorem noRetTop_append : ∀ (x y : List Stmt), noRetTop x = true → noRetTop 
     | ret vs => simp [noRetTop] at hx
     | _ => simp only [noRetTop, List.cons_append] at hx ⊢; exact noRetTop_append x y hx hy
 
-theorem selGo_append (j : ℕ) (ps : List V) : ∀ (seen : List Atom) (x y : List Stmt), noRetTop x = true →
-    selGo j ps seen (x ++ y) = (selGo j ps seen x && selGo j ps (seenF seen x) y)
+theorem selGo_append (j : ℕ) (ps : List V) (B : List Stmt) : ∀ (seen : List Atom) (x y : List Stmt), noRetTop x = true →
+    selGo j ps B seen (x ++ y) = (selGo j ps B seen x && selGo j ps B (seenF seen x) y)
   | seen, [], y, _ => by simp [selGo, seenF]
   | seen, s :: x, y, h => by
     cases s with
-    | atom a => simp only [List.cons_append, selGo, seenF]; exact selGo_append j ps (a :: seen) x y h
+    | atom a => simp only [List.cons_append, selGo, seenF]; exact selGo_append j ps B (a :: seen) x y h
     | ret vs => simp [noRetTop] at h
     | _ =>
       simp only [noRetTop] at h
-      simp only [List.cons_append, selGo, seenF, selGo_append j ps seen x y h, Bool.and_assoc]
+      simp only [List.cons_append, selGo, seenF, selGo_append j ps B seen x y h, Bool.and_assoc]
 
 /-- **The selectors' check over slices from `a`**, each with no top-level `ret`, from the top-level atoms
 before it. -/
 abbrev SWins (j : ℕ) (ps : List V) (l : List Stmt) (e : ℕ) : ℕ → List ℕ → Prop :=
-  Wins id (fun a b ↦ (noRetTop (slice l a b) && selGo j ps (seenF [] (l.take a)) (slice l a b)) = true) e
+  Wins id (fun a b ↦ (noRetTop (slice l a b) && selGo j ps l (seenF [] (l.take a)) (slice l a b)) = true) e
 
 theorem take_slice {α : Type} (l : List α) {a b : ℕ} (hab : a ≤ b) : l.take b = l.take a ++ slice l a b := by
   unfold slice
@@ -103,14 +103,14 @@ theorem take_slice {α : Type} (l : List α) {a b : ℕ} (hab : a ≤ b) : l.tak
 
 theorem swins_spec {j : ℕ} {ps : List V} {l : List Stmt} {e : ℕ} :
     ∀ {a : ℕ} {cs : List ℕ}, SWins j ps l e a cs →
-      a ≤ e ∧ noRetTop (slice l a e) = true ∧ selGo j ps (seenF [] (l.take a)) (slice l a e) = true := fun h ↦
-  wins_fold (Q := fun a _ ↦ noRetTop (slice l a e) = true ∧ selGo j ps (seenF [] (l.take a)) (slice l a e) = true)
+      a ≤ e ∧ noRetTop (slice l a e) = true ∧ selGo j ps l (seenF [] (l.take a)) (slice l a e) = true := fun h ↦
+  wins_fold (Q := fun a _ ↦ noRetTop (slice l a e) = true ∧ selGo j ps l (seenF [] (l.take a)) (slice l a e) = true)
     (by simp [slice_self, noRetTop, selGo]) (fun {a b _} hab hbe hw hq ↦ by
       simp only [id] at hab hbe hw hq
       rw [Bool.and_eq_true] at hw
       refine ⟨?_, ?_⟩
       · rw [slice_split l hab hbe]; exact noRetTop_append _ _ hw.1 hq.1
-      · rw [slice_split l hab hbe, selGo_append j ps _ _ _ hw.1, hw.2, ← seenF_append, ← take_slice l hab, hq.2]
+      · rw [slice_split l hab hbe, selGo_append j ps l _ _ _ hw.1, hw.2, ← seenF_append, ← take_slice l hab, hq.2]
         rfl) h
 
 /-! ## The core data's checks of a long body -/
@@ -133,7 +133,7 @@ theorem honB_long {j : ℕ} {fn : Fn} {cs ss : List ℕ} (hc : BWins (cellsB j) 
     (hs : SWins j fn.params fn.body (fn.body.length - 1) 0 ss)
     (hl : lastRet fn.body = true) :
     (bodyCore fn.body || loopBC fn) = true ∧ (stmtsOf fn.body).all (ptrCellB j) = true ∧
-      (stmtsOf fn.body).all (retCellB j) = true ∧ (selGo j fn.params [] fn.body || loopBC fn) = true := by
+      (stmtsOf fn.body).all (retCellB j) = true ∧ (selGo j fn.params fn.body [] fn.body || loopBC fn) = true := by
   obtain ⟨-, hcb⟩ := bwins_spec cellsB_append (by simp [cellsB, stmtsOf]) hc
   rw [slice_all] at hcb
   simp only [cellsB, Bool.and_eq_true, List.all_eq_true] at hcb
@@ -148,7 +148,9 @@ theorem honB_long {j : ℕ} {fn : Fn} {cs ss : List ℕ} (hc : BWins (cellsB j) 
     left
     have hn := (swins_spec hs).2.1
     rw [show seenF [] [] = [] from rfl] at hsel
-    rw [hb, selGo_append j fn.params [] _ _ hn, hsel]
+    have e := selGo_append j fn.params fn.body [] _ [.ret []] hn
+    rw [hsel, ← hb] at e
+    rw [e]
     simp [selGo, noMatch, noDsp, stmtsOf]
 
 /-- **`faOkB` of a function with no `frameAddr`.** -/

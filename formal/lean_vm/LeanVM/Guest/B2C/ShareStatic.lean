@@ -46,7 +46,7 @@ noncomputable def shareStaticN (j vb : ℕ) : Bool :=
   natSeq (fpgCells (plumbOf j)) fun fc ↦ (byCell (plumbOf j).tmps).seq fun tt ↦
   (listElementOrDefault (certOf j).cells 0 []).all (fun c ↦ Nat.blt c 65536) &&
   listsOk (plumbOf j) (fsN j) && snapsOk (certOf j) (snapsOf j) &&
-    apartOkN j vb && (coreOf j).params.all (valOk loc tt tc fc (fsN j))
+    apartOkN j vb && (coreOf j).params.all (valOk loc tt tc fc (fsN j) [])
 
 theorem shareStatic_eq (j : ℕ) : shareStatic j = shareStaticN j (bitsOf (certOf j).locs) := rfl
 

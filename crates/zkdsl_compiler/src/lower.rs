@@ -225,6 +225,8 @@ struct FnLower<'a> {
     stmt_start: usize,
     /// The index of each `return` jump.
     returns: Vec<usize>,
+    /// The copies into the next loop frame, their targets offsets past this frame's end until it is laid out.
+    next_frame_copies: Vec<usize>,
     /// The `match` the one being lowered enters directly, its arms ending in the next
     /// one's dispatch rather than a join ([`Self::lower_match_dispatch`]).
     chain_next: Option<ChainNext>,
@@ -243,6 +245,8 @@ struct FnLower<'a> {
     rebound: Vec<String>,
     /// `DBG_LOOPS` lines, printed for the pass [`lower_func`] keeps.
     dbg_loops: Vec<String>,
+    /// An `addr()` names a frame cell by its offset, so the frame keeps its layout.
+    addr_taken: bool,
     /// Generated loops that can reserve their complete run of frames.
     loop_bounds: &'a mut HashMap<String, (u64, Option<u64>)>,
     queue: &'a mut Vec<Func>,
@@ -383,6 +387,13 @@ impl FnLower<'_> {
     /// bound's `n·g^{-1}` may come from here: its first `MUL` pins it before any range
     /// check writes into it.
     fn pure(&mut self, op: PureOp, a: Off, b: Off) -> Off {
+        // `x·1` is `x`.
+        if op == PureOp::Mul
+            && let Some(&one) = self.scope.const_cells.get(&F128::ONE)
+            && (a == one || b == one)
+        {
+            return if a == one { b } else { a };
+        }
         let key = (op, a.min(b), a.max(b));
         if let Some(&o) = self.scope.pure_cells.get(&key) {
             return o;
@@ -458,10 +469,16 @@ impl FnLower<'_> {
         });
     }
 
+    /// Cell `off` of the next loop frame `= src`, `one` holding 1.
+    fn copy_next_frame(&mut self, src: Off, one: Off, off: Off) {
+        self.next_frame_copies.push(self.code.len());
+        self.emit(LOp::Copy { src, one, dst: off });
+    }
+
     /// `dst = src` (no MOV: multiply by `1`).
     fn copy(&mut self, src: Off, dst: Off) {
         let one = self.one();
-        self.emit(LOp::Mul { a: src, b: one, c: dst });
+        self.emit(LOp::Copy { src, one, dst });
     }
 
     /// A frame cell holding this function's own `fp` (the g-power element),
@@ -974,7 +991,7 @@ impl FnLower<'_> {
         let t1 = self.fresh(); // DEREF targets: unconstrained touch cells
         let t2 = self.fresh();
         self.deref(x, 0, t1, DerefMode::Cell);
-        self.emit(LOp::Mul { a: x, b: y, c: kcell });
+        self.emit(LOp::Solve { x: y, b: x, c: kcell });
         self.deref(y, 0, t2, DerefMode::Cell);
     }
 
@@ -1047,7 +1064,7 @@ impl FnLower<'_> {
                 // `a` must already be written, which `self.expr(a)` guarantees.
                 let (la, lb) = (self.expr(a), self.expr(b));
                 let q = self.fresh();
-                self.emit(LOp::Mul { a: q, b: lb, c: la });
+                self.emit(LOp::Solve { x: q, b: lb, c: la });
                 q
             }
             // Folded above when it is what it claims to be, so reaching here means
@@ -1332,8 +1349,7 @@ impl FnLower<'_> {
             // write must happen.
             StmtKind::AssertEq(a, b) => {
                 let (la, lb) = (self.expr(a), self.expr(b));
-                let one = self.one();
-                self.emit(LOp::Mul { a: la, b: one, c: lb });
+                self.copy(la, lb);
             }
             StmtKind::AssertNe(a, b) => self.lower_assert_ne(a, b),
             StmtKind::AssertLt(e, bound) => self.lower_assert_lt(e, bound),
@@ -1793,6 +1809,7 @@ pub(crate) fn lower_func(
             tail_call: false,
             rebound: Vec::new(),
             dbg_loops: Vec::new(),
+            addr_taken: false,
             code: Vec::new(),
             cur_line: 0,
             heap_sizes: HashMap::new(),
@@ -1805,6 +1822,7 @@ pub(crate) fn lower_func(
             branches: Vec::new(),
             stmt_start: 0,
             returns: Vec::new(),
+            next_frame_copies: Vec::new(),
             chain_next: None,
             chain_in: None,
             inline_calls: Vec::new(),
@@ -1845,7 +1863,16 @@ pub(crate) fn lower_func(
             let last = f.body.last().map_or(0, |s| s.line);
             lowerer.stmt(&Stmt::new(last, StmtKind::Return(vec![])));
         }
+        // A next-frame copy's target, now past this frame's end.
+        for &i in &lowerer.next_frame_copies {
+            if let LOp::Copy { dst, .. } = &mut lowerer.code[i].op {
+                *dst = lowerer.next.checked_add(*dst).expect("frame offset overflow");
+            }
+        }
         let hoisted = lowerer.hoist_heap_bufs();
+        if hoisted.is_ok() {
+            lowerer.hoist_past_first_branch();
+        }
         let (rebound, dbg_loops, code, frame_size) = (lowerer.rebound, lowerer.dbg_loops, lowerer.code, lowerer.next);
         let settled = own.len();
         for name in rebound {
@@ -1862,6 +1889,9 @@ pub(crate) fn lower_func(
                 name: f.name.clone(),
                 code,
                 frame_size,
+                keep: abi_end + u32::from(loop_frame),
+                rets: Abi::ret(arg_cells, 0)..abi_end,
+                fixed: lowerer.addr_taken,
             };
         }
         // The pass is abandoned, so everything it left for later goes with it: the helpers and specializations

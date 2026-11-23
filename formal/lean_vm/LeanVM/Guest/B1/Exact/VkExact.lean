@@ -15,9 +15,9 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_keccak»
 
 /-!
-# `verify_keccak`'s and `keccak_layer`'s own hints
+# `verify_keccak`'s own hints
 
-`keccak_layer` has no computed hint (`layer_pinned`), so its paths are exact (`pathExact_of_pinned`).
+(`keccak_layer`'s honest path is exact by `layer_obl`, its inlined `grind_check`'s windows being the word's.)
 `verify_keccak`'s one computed hint, the bits of `y` (`vkBitsA`), is pinned by squaring each bit and rebuilding
 `g^y` from them (`vkBitsT`): on a path that holds, the bits are Boolean and their factors' product is the hint's word,
 so it is exact (`bitsExp_exact_of_prod`); its other computed hints are pinned by the next atom (`vk_pinned`).
@@ -29,17 +29,6 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value Lea
 open LeanVM.Protocol.Verifier (gen)
 
 @[expose] public section
-
-/-- **A body whose computed hints are pinned by the next atom has exact paths.** -/
-theorem pathExact_of_pinned {fn : Fn} (h : Stmt.blockNextOk isComputed pinsInverse fn.body = true) :
-    PathExactFn fn :=
-  fun rd _ _ _ hw hes => exact_of_pinned h hw hes rd
-
-theorem layer_pinned : ∀ first < 2, Stmt.blockNextOk isComputed pinsInverse (layerT first) = true := by
-  decide +kernel
-
-theorem layer_pathExact {first : ℕ} (hf : first < 2) {fn : Fn} (hb : fn.body = layerT first) : PathExactFn fn :=
-  pathExact_of_pinned (by rw [hb]; exact layer_pinned first hf)
 
 /-- `verify_keccak`'s one computed hint: the bits of `y = τ - 3`. -/
 def vkBitsA : Atom := .hint (.bitsExp (.n (val% «verify_keccak» "s5#1")) 5 (.stack [.n (val% «verify_keccak» "y_bits[0]"), .n (val% «verify_keccak» "y_bits[1]"), .n (val% «verify_keccak» "y_bits[2]"), .n (val% «verify_keccak» "y_bits[3]"), .n (val% «verify_keccak» "y_bits[4]")]))
