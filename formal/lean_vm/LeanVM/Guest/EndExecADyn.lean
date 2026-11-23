@@ -96,7 +96,7 @@ theorem nz_gpow (n : ℕ) : NZ (ofK (addressOfIndex n)) :=
   ⟨B2C.isInK_ofK _, ofK_ne_zero' (gpow_ne_zero n)⟩
 
 theorem NZ.mul {a b : E} (ha : NZ a) (hb : NZ b) : NZ (a * b) :=
-  ⟨isInK_mul ha.1 hb.1, mul_ne_zero ha.2 hb.2⟩
+  ⟨Value.isInK_mul ha.1 hb.1, mul_ne_zero ha.2 hb.2⟩
 
 /-- A factor of an `NZ` product by a nonzero value of `K` is `NZ`. -/
 theorem NZ.of_mul {a b : E} (hd : NZ (a * b)) (ha : IsInK a) : NZ b := by
@@ -180,11 +180,11 @@ theorem kIn1_sound {kv : List V} {sp : List Ev} (hkv : ∀ u ∈ kv, IsInK (σ u
       · rename_i d x y
         obtain ⟨⟨hd, hx⟩, hy⟩ := hm
         rw [← veq_eq hd, this]
-        exact B1.isInK_add (kIn0_sound hkv hh hx) (kIn0_sound hkv hh hy)
+        exact Value.isInK_add (kIn0_sound hkv hh hx) (kIn0_sound hkv hh hy)
       · rename_i d x y
         obtain ⟨⟨hd, hx⟩, hy⟩ := hm
         rw [← veq_eq hd, this]
-        exact isInK_mul (kIn0_sound hkv hh hx) (kIn0_sound hkv hh hy)
+        exact Value.isInK_mul (kIn0_sound hkv hh hx) (kIn0_sound hkv hh hy)
     | _ => simp at hm
 
 /-- **`kIn` puts its value in `K`.** -/
@@ -204,11 +204,11 @@ theorem kIn_sound {kv : List V} {sp : List Ev} (hkv : ∀ u ∈ kv, IsInK (σ u)
         · rename_i d x y
           obtain ⟨⟨hd, hx⟩, hy⟩ := hm
           rw [← veq_eq hd, this]
-          exact B1.isInK_add (kIn1_sound hkv hh hx) (kIn1_sound hkv hh hy)
+          exact Value.isInK_add (kIn1_sound hkv hh hx) (kIn1_sound hkv hh hy)
         · rename_i d x y
           obtain ⟨⟨hd, hx⟩, hy⟩ := hm
           rw [← veq_eq hd, this]
-          exact isInK_mul (kIn_sound hkv hh n x hx) (kIn_sound hkv hh n y hy)
+          exact Value.isInK_mul (kIn_sound hkv hh n x hx) (kIn_sound hkv hh n y hy)
       | _ => simp at hm
 
 /-- The listed words of a context's calls are `NZ`. -/
