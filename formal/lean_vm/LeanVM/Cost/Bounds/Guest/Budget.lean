@@ -357,13 +357,13 @@ theorem guestDecoderPriceAt_le_budget_add {M κ steps : ℕ} (hκ : κ ≤ 30) (
     _ ≤ _ := by
       have hκ' : (74 * κ + 121) * 2 ^ κ ≤ (70 * κ + 374) * 2 ^ κ :=
         Nat.mul_le_mul_right _ (by omega)
-      have h0 : 3611473 * (1129 * lg + 7803) ≤ 2 ^ 37 * lg + 2 ^ 37 * 16 - 2986079128 - 17940 -
+      have h0 : 3525073 * (1129 * lg + 7803) ≤ 2 ^ 37 * lg + 2 ^ 37 * 16 - 2946849400 - 17940 -
           23146593 - (74 * 19 + 121) * 2 ^ 19 - 42 - 39 := by omega
       unfold guestDecoderAddressTablesPrice guestDecoderWitnessPriceAt
         guestDecoderFrameLookupCountAt
       rw [Nat.mul_comm _ (steps + 1)]
-      have e1 : (3611473 + 8 * M) * (1129 * lg + 7803) =
-          3611473 * (1129 * lg + 7803) + (9032 * lg + 62424) * M := by ring
+      have e1 : (3525073 + 8 * M) * (1129 * lg + 7803) =
+          3525073 * (1129 * lg + 7803) + (9032 * lg + 62424) * M := by ring
       have e2 : (6476658 + 9032 * lg) * M = 6414234 * M + (9032 * lg + 62424) * M := by ring
       rw [e1, e2]
       omega

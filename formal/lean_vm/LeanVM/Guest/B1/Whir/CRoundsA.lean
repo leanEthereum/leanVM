@@ -14,13 +14,14 @@ public import LeanVM.Guest.B1.Whir.RoundComplete
 # The fold rounds at fixed values
 
 `gc_blk`: an inline `grind_check` whose word passes, on memories holding the window table and
-agreeing with `rd0` below `2^11` (`LowAgree`), at its honest values (`gcVals` on `rd0`).
+agreeing with `rd0` below `2^11` (`LowAgree`), at its honest values (`gcVals` on `rd0`); its loads
+read the window table on every memory holding it (`gc_loadsHold`).
 
-`RoundH rd0 rd fch coefs tabs cur i fs xs`: what a round reads of the memory (its five words at
-the cursor, `α` at `fch` slot `i`, `α, β` at `coefs` slots `2i, 2i + 1`, the window table, `rd0`'s
-words below `2^11`); `RoundsH`: `n` rounds' from `i`, their grinds passing. `osRound_completeA`,
-`osRounds_completeA`: the inline rounds (`osRound`, its core `osRoundCore`) as blocks at fixed
-values, leaving the capacity and claim of `roundsTr`.
+`RoundH rd fch coefs tabs cur i fs xs`: what a round reads of the memory (its five words at
+the cursor, `α` at `fch` slot `i`, `α, β` at `coefs` slots `2i, 2i + 1`, the window table);
+`RoundsH`: `n` rounds' from `i`, their grinds passing. `osRound_completeA`, `osRounds_completeA`:
+the inline rounds (`osRound`, its core `osRoundCore`) as blocks at fixed values on memories
+agreeing with `rd0` below `2^11`, leaving the capacity and claim of `roundsTr`.
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -30,26 +31,111 @@ open LeanVM.Guest.Value LeanVM.Protocol LeanVM.Protocol.Compile LeanVM.Protocol.
 
 @[expose] public section
 
-variable {H : CallRel → Reader → Prop}
+variable {M : Reader → Prop} {H : CallRel → Reader → Prop}
 
-/-- **An inline `grind_check`**, its word at `wi` passing, at its honest values on `rd0`. -/
+theorem ldT_rename (r : V → V) (s : Stmt) :
+    ldT (s.rename r) = (ldT s).map (fun q ↦ (r q.1, r q.2.1, q.2.2)) := by
+  cases s with
+  | atom a => cases a <;> simp [Stmt.rename, Atom.rename, ldT]
+  | _ => simp [Stmt.rename, ldT]
+
+theorem renameList_ldT (r : V → V) : ∀ ss : List Stmt,
+    (Stmt.renameList r ss).filterMap ldT = (ss.filterMap ldT).map (fun q ↦ (r q.1, r q.2.1, q.2.2))
+  | [] => by simp [Stmt.renameList]
+  | s :: ss => by
+    rw [Stmt.renameList, List.filterMap_cons, List.filterMap_cons, ldT_rename, renameList_ldT r ss]
+    cases ldT s <;> simp
+
+theorem loadsHold_rename {rd : Reader} {σ : Val} (r : V → V) (ss : List Stmt) :
+    LoadsHold rd σ (Stmt.renameList r ss) ↔ LoadsHold rd (σ ∘ r) ss := by
+  unfold LoadsHold
+  rw [renameList_ldT]
+  simp only [List.mem_map, forall_exists_index, and_imp, forall_apply_eq_imp_iff₂, Function.comp]
+
+theorem loadsHold_flatten {rd : Reader} {σ : Val} :
+    ∀ L : List (List Stmt), LoadsHold rd σ L.flatten ↔ ∀ l ∈ L, LoadsHold rd σ l
+  | [] => by simp [LoadsHold]
+  | l :: L => by
+    rw [List.flatten_cons, loadsHold_append, loadsHold_flatten L]
+    simp
+
+/-- **An inline `grind_check`'s loads** read the window table, at its honest values on any memory. -/
+theorem gc_loadsHold {rd rd0 : Reader} {b o : ℕ} (hb : b ∈ grindBitsDeployed) {w tabs : V} {σ : Val}
+    (ht : WinTabs rd (σ tabs))
+    (hσ : ∀ k, 2 ≤ k → k < gcLen b → σ (.n (o + k - 2)) = gcVals rd0 b (σ w) (σ tabs) k) :
+    LoadsHold rd σ (gcInlineT b o w tabs) := by
+  obtain ⟨hT1, hT, hsum⟩ := gc_shape b hb
+  have hτ : ∀ k, 2 ≤ k → k < gcLen b → (σ ∘ gcRen o w tabs) (.n k) = gcVals rd0 b (σ w) (σ tabs) k :=
+    fun k h2 hk ↦ by rw [Function.comp, gcRen_own o w tabs h2]; exact hσ k h2 hk
+  have hV0 : gcV b (σ w) 0 < 2 ^ 11 := by
+    have : gcV b (σ w) 0 < 2 ^ gcTop b := by
+      unfold gcV
+      rw [Nat.div_lt_iff_lt_mul (by positivity), ← pow_add, Nat.sub_zero,
+        show gcTop b + (b + 11 * gcW b) = 64 by omega]
+      exact kToNat_lt _
+    exact lt_of_lt_of_le this (Nat.pow_le_pow_right (by decide) hT)
+  have e1 : (σ ∘ gcRen o w tabs) (.n 1) = σ tabs := rfl
+  rw [gcInlineT, loadsHold_rename, gcPre, loadsHold_append, loadsHold_append, loadsHold_flatten]
+  refine ⟨⟨?_, fun l hl ↦ ?_⟩, ?_⟩
+  · have e : (gcHead b).filterMap ldT = [(.n (gcW b + 8), .n (gcW b + 7), 0)] := rfl
+    intro q hq
+    rw [e, List.mem_singleton] at hq
+    subst hq
+    show LoadHolds rd ((σ ∘ gcRen o w tabs) (.n (gcW b + 7))) 0 ((σ ∘ gcRen o w tabs) (.n (gcW b + 8)))
+    have e7 : gcVals rd0 b (σ w) (σ tabs) (gcW b + 7) = σ tabs * gen ^ gcV b (σ w) 0 := by
+      unfold gcVals
+      rw [ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega),
+        ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega),
+        ite_eq_left rfl]
+    have e8 : gcVals rd0 b (σ w) (σ tabs) (gcW b + 8) = eOfNat (gcV b (σ w) 0) := by
+      rw [show gcW b + 8 = gcW b + 9 * 0 + 8 by ring]; exact gv_acc (i := 0) (by omega)
+    rw [hτ _ (by omega) (by unfold gcLen; omega), hτ _ (by omega) (by unfold gcLen; omega), e7, e8]
+    exact winTab_load ht hV0
+  · obtain ⟨i, hi, rfl⟩ := List.mem_map.mp hl
+    have hi' := List.mem_range.mp hi
+    have e : (gcIterAt (gcW b) (i + 1)).filterMap ldT =
+        [(.n (gcW b + 9 * (i + 1) + 7), .n (gcW b + 9 * (i + 1) + 6), 0)] := rfl
+    intro q hq
+    rw [e, List.mem_singleton] at hq
+    subst hq
+    show LoadHolds rd ((σ ∘ gcRen o w tabs) (.n (gcW b + 9 * (i + 1) + 6))) 0
+      ((σ ∘ gcRen o w tabs) (.n (gcW b + 9 * (i + 1) + 7)))
+    rw [hτ _ (by omega) (by unfold gcLen; omega), hτ _ (by omega) (by unfold gcLen; omega),
+      gv_iter (by omega) (by omega) (by omega), gv_iter (by omega) (by omega) (by omega)]
+    exact winTab_load ht (Nat.mod_lt _ (by positivity))
+  · have e : (gcTailPre b).filterMap ldT = [] := rfl
+    intro q hq
+    rw [e] at hq
+    exact absurd hq List.not_mem_nil
+
+/-- **An inline `grind_check`**, its word at `wi` passing, at its honest values on `rd0`, its loads
+in the window table. -/
 theorem gc_blk {σ : Val} {b o wi ti : ℕ} (rd0 : Reader) (hl0 : LowDef 11 rd0)
     (hb : b ∈ grindBitsDeployed) (hwo : wi < o) (hto : ti < o)
     (hlow : ((σ (.n wi)).limb 0).lane.toNat % 2 ^ b = 0)
-    (hH : ∀ C rd, H C rd → WinTabs rd (σ (.n ti)) ∧ LowAgree rd rd0) :
-    BlkA H σ o (o + (gcLen b - 2)) (gcInlineT b o (.n wi) (.n ti)) (fun _ ↦ True) := by
-  refine ⟨fun i ↦ gcVals rd0 b (σ (.n wi)) (σ (.n ti)) (i + 2 - o), fun C rd hH' σ' ha hr ↦ ⟨?_, trivial⟩⟩
-  obtain ⟨ht, hag⟩ := hH C rd hH'
-  have ew : σ' (.n wi) = σ (.n wi) := ha _ hwo
-  have et : σ' (.n ti) = σ (.n ti) := ha _ hto
-  have hh := gcInline_complete_of (C := C) (rd := rd) (gcRc_of_lowDef (le_refl 11) (hag.lowDef hl0)) hb
-    (o := o) (w := .n wi) (tabs := .n ti) (σ := σ') (by rw [et]; exact ht) (by rw [ew]; exact hlow)
-    (fun k hk2 hk ↦ by
-      rw [hr _ (by omega) (by omega), ew, et, gcVals_agree hag hb]
-      dsimp only
-      rw [show o + k - 2 + 2 - o = k by omega])
-    trivial (kret := fun _ ↦ True)
-  exact ((holdsList_flat _ (gcInlineT_flat b o _ _) True (fun _ ↦ True)).mp hh).1
+    (hag0 : ∀ C rd, H C rd → LowAgree rd rd0) (htM : ∀ C rd, HM M H C rd → WinTabs rd (σ (.n ti))) :
+    BlkA M H σ o (o + (gcLen b - 2)) (gcInlineT b o (.n wi) (.n ti)) (fun _ ↦ True) := by
+  refine BlkA.mk (fun i ↦ gcVals rd0 b (σ (.n wi)) (σ (.n ti)) (i + 2 - o))
+    (fun C rd hH' σ' ha hr ↦ ⟨?_, trivial⟩) fun C rd hH' σ' ha hr rd' hm ↦ ?_
+  · have ht := htM C rd (.inl hH')
+    have hag := hag0 C rd hH'
+    have ew : σ' (.n wi) = σ (.n wi) := ha _ hwo
+    have et : σ' (.n ti) = σ (.n ti) := ha _ hto
+    have hh := gcInline_complete_of (C := C) (rd := rd) (gcRc_of_lowDef (le_refl 11) (hag.lowDef hl0)) hb
+      (o := o) (w := .n wi) (tabs := .n ti) (σ := σ') (by rw [et]; exact ht) (by rw [ew]; exact hlow)
+      (fun k hk2 hk ↦ by
+        rw [hr _ (by omega) (by omega), ew, et, gcVals_agree hag hb]
+        dsimp only
+        rw [show o + k - 2 + 2 - o = k by omega])
+      trivial (kret := fun _ ↦ True)
+    exact ((holdsList_flat _ (gcInlineT_flat b o _ _) True (fun _ ↦ True)).mp hh).1
+  · have ew : σ' (.n wi) = σ (.n wi) := ha _ hwo
+    have et : σ' (.n ti) = σ (.n ti) := ha _ hto
+    exact gc_loadsHold (rd0 := rd0) hb (by rw [et]; exact htM _ rd' (.inr ⟨hm, rfl, C, rd, hH'⟩))
+      fun k hk2 hk ↦ by
+        rw [hr _ (by omega) (by omega), ew, et]
+        dsimp only
+        rw [show o + k - 2 + 2 - o = k by omega]
 
 /-- A grind passing gives its word's low bits. -/
 theorem grindOk_low {s : Fs} {bits : ℕ} {n : E} (hb : bits ≠ 0) (h : s.GrindOk bits n) :
@@ -60,16 +146,16 @@ theorem grindOk_low {s : Fs} {bits : ℕ} {n : E} (hb : bits ≠ 0) (h : s.Grind
     exact of_decide_eq_true h
 
 /-- **What a round reads of the memory.** -/
-def RoundH (rd0 rd : Reader) (fch coefs tabs cur : E) (i : ℕ) (fs xs : List E) : Prop :=
-  ReadsAt rd cur xs ∧ WinTabs rd tabs ∧ LowAgree rd rd0 ∧ LoadHolds rd fch i (roundChs fs xs).1 ∧
+def RoundH (rd : Reader) (fch coefs tabs cur : E) (i : ℕ) (fs xs : List E) : Prop :=
+  ReadsAt rd cur xs ∧ WinTabs rd tabs ∧ LoadHolds rd fch i (roundChs fs xs).1 ∧
     LoadHolds rd coefs (2 * i) (roundChs fs xs).2.1 ∧ LoadHolds rd coefs (2 * i + 1) (roundChs fs xs).2.2
 
 /-- **What `n` rounds from `i` read of the memory**, their grinds passing. -/
-def RoundsH (rd0 rd : Reader) (fch coefs tabs : E) : ℕ → ℕ → List E → E → E → List E → Prop
+def RoundsH (rd : Reader) (fch coefs tabs : E) : ℕ → ℕ → List E → E → E → List E → Prop
   | 0, _, _, _, _, _ => True
   | n + 1, i, fs, cl, cur, xs =>
-    RoundGrinds fs (xs.take 5) ∧ RoundH rd0 rd fch coefs tabs cur i fs (xs.take 5) ∧
-      RoundsH rd0 rd fch coefs tabs n (i + 1) ((roundRets fs 0 cl (xs.take 5)).take 5)
+    RoundGrinds fs (xs.take 5) ∧ RoundH rd fch coefs tabs cur i fs (xs.take 5) ∧
+      RoundsH rd fch coefs tabs n (i + 1) ((roundRets fs 0 cl (xs.take 5)).take 5)
         ((roundRets fs 0 cl (xs.take 5)).getD 6 0) (cur * gen ^ 5) (xs.drop 5)
 
 /-- What a round leaves. -/
@@ -96,11 +182,11 @@ theorem osRound_state (cp last : Bool) (i : ℕ) (st : OsSt) :
 /-- **One round, inline, as a block at fixed values.** -/
 theorem osRound_completeA (rd0 : Reader) (hl0 : LowDef 11 rd0) {cp last : Bool} {i : ℕ} {st : OsSt}
     (σ : Val) (xs : List E) (hxl : xs.length = 5) (hsf : st.Sf) (hco : st.co + 5 < u128Bound)
-    (hpad : ∃ p, st.pad = some p) (hok : ∀ C rd, H C rd → st.Ok σ)
+    (hpad : ∃ p, st.pad = some p) (hok : ∀ C rd, HM M H C rd → st.Ok σ)
     (hg : RoundGrinds (st.fsv σ) xs)
-    (hH : ∀ C rd, H C rd → RoundH rd0 rd (σ (.n osFch)) (σ (.n osCoefs)) (σ (.n osTabs)) (st.cur σ) i
-      (st.fsv σ) xs) :
-    BlkA H σ st.k (osRound cp last i st).2.k (osRound cp last i st).1
+    (hH : ∀ C rd, HM M H C rd → RoundH rd (σ (.n osFch)) (σ (.n osCoefs)) (σ (.n osTabs)) (st.cur σ) i
+      (st.fsv σ) xs) (hag0 : ∀ C rd, H C rd → LowAgree rd rd0) :
+    BlkA M H σ st.k (osRound cp last i st).2.k (osRound cp last i st).1
       (fun σ' ↦ RoundOutA σ σ' st (osRound cp last i st).2 xs ∧ AgreeBelow st.k σ σ') := by
   refine BlkA.of_ne fun ⟨C0, rd1, hH1⟩ ↦ ?_
   obtain ⟨p, hp⟩ := hpad
@@ -145,7 +231,7 @@ theorem osRound_completeA (rd0 : Reader) (hl0 : LowDef 11 rd0) {cp last : Bool} 
   have hbk : k ≤ b + 5 := by rw [kb]; split_ifs <;> omega
   have hbk' : b ≤ k := by rw [hb]; split_ifs <;> omega
   -- the capacity cells
-  have B0 : BlkA H σ k (b + 5) (if cp then (List.range 5).map (fun i ↦ osCp (k + i) (st.fs.getD i 0)) else [])
+  have B0 : BlkA M H σ k (b + 5) (if cp then (List.range 5).map (fun i ↦ osCp (k + i) (st.fs.getD i 0)) else [])
       (fun σ' ↦ cap.map (fun j ↦ σ' (.n j)) = fsv) := by
     cases cp
     · simp only [Bool.false_eq_true, ↓reduceIte] at kb ⊢
@@ -171,7 +257,7 @@ theorem osRound_completeA (rd0 : Reader) (hl0 : LowDef 11 rd0) {cp last : Bool} 
           List.nil_append, List.cons_append, Nat.add_zero, hfv]
         rw [v0, v1, v2, v3, v4]
   -- the four scalars
-  have hcur : ∀ C rd, H C rd → ∀ t < 5, LoadHolds rd (σ (.n st.cb)) (st.co + t) ([u0, w, c0, c1, n2].getD t 0) :=
+  have hcur : ∀ C rd, HM M H C rd → ∀ t < 5, LoadHolds rd (σ (.n st.cb)) (st.co + t) ([u0, w, c0, c1, n2].getD t 0) :=
     fun C rd hC' t ht ↦ by
       have := (hH C rd hC').1 t (by simpa using ht)
       rw [OsSt.cur, loadHolds_mul_gen_pow] at this
@@ -191,7 +277,7 @@ theorem osRound_completeA (rd0 : Reader) (hl0 : LowDef 11 rd0) {cp last : Bool} 
       rcases hj with rfl | rfl | rfl | rfl | rfl <;> omega
   have hcapl : cap.length = 5 := by cases cp <;> simp [hcap, hf]
   set L1 : List E := [u0, u0, word 0 1, w, w, word 0 1, c0, c0, word 0 1, c1, c1, word 0 1] with hL1
-  have A1 := BlkA.seq (H := H) hbk (show b + 5 ≤ b + 17 by omega) B0
+  have A1 := BlkA.seq (M := M) (H := H) hbk (show b + 5 ≤ b + 17 by omega) B0
     (B := ((List.range 4).map fun t ↦ [osLd (b + 5 + 3 * t) st.cb (st.co + t),
       osCp (b + 6 + 3 * t) (b + 5 + 3 * t), osCst (b + 7 + 3 * t) (word 0 1)]).flatten)
     (OutB := fun σ' ↦ ∀ j < 12, σ' (.n (b + 5 + j)) = L1.getD j 0) fun σ1 ha1 _ ↦
@@ -223,12 +309,12 @@ theorem osRound_completeA (rd0 : Reader) (hl0 : LowDef 11 rd0) {cp last : Bool} 
   -- the four scalars' permutation
   have eS1 : (⟨fsv, [(u0, dsObserve), (w, dsObserve), (c0, dsObserve), (c1, dsObserve)]⟩ : Fs).perm = S1 := by
     rw [hS1]; unfold rdS1; rw [hfv]; rfl
-  have A2 := BlkA.seq (H := H) (show k ≤ b + 17 by omega) (show b + 17 ≤ b + 17 + 13 by omega) A1
+  have A2 := BlkA.seq (M := M) (H := H) (show k ≤ b + 17 by omega) (show b + 17 ≤ b + 17 + 13 by omega) A1
     (B := [osKeccak ([b + 6, b + 7, b + 9, b + 10, b + 12, b + 13, b + 15, b + 16] ++ cap) (b + 17)])
     (OutB := fun σ' ↦ ∀ j < 13, σ' (.n (b + 17 + j)) = rdCell S1 j) fun σ2 _ ho2 ↦ by
       obtain ⟨hc0, hv1⟩ := ho2 C0 rd1 hH1
       have g : ∀ j < 12, ∀ m, m = b + 5 + j → σ2 (.n m) = L1.getD j 0 := fun j hj m hm ↦ hm ▸ hv1 j hj
-      refine (keccak_blk (H := H) (σ := σ2) (out := b + 17)
+      refine (keccak_blk (M := M) (H := H) (σ := σ2) (out := b + 17)
         (⟨fsv, [(u0, dsObserve), (w, dsObserve), (c0, dsObserve), (c1, dsObserve)]⟩ : Fs) (by simp)
         (by simp [hcapl]) (fun i hi ↦ ?_) (fun C rd _ ↦ ?_)).mono fun σ' h j hj ↦ by rw [h j hj, eS1]
       · simp only [List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at hi
@@ -244,7 +330,7 @@ theorem osRound_completeA (rd0 : Reader) (hl0 : LowDef 11 rd0) {cp last : Bool} 
         simp [pendCells, scalarCells_eq, word_dsObserve]
   -- the nonce
   set L3 : List E := [n2, n2, word 0 4] with hL3
-  have A3 := BlkA.seq (H := H) (show k ≤ b + 17 + 13 by omega) (show b + 30 ≤ b + 33 by omega)
+  have A3 := BlkA.seq (M := M) (H := H) (show k ≤ b + 17 + 13 by omega) (show b + 30 ≤ b + 33 by omega)
     (by simpa only [show b + 17 + 13 = b + 30 by omega] using A2)
     (B := [osLd (b + 30) st.cb (st.co + 4), osCp (b + 31) (b + 30), osCst (b + 32) (word 0 4)])
     (OutB := fun σ' ↦ ∀ j < 3, σ' (.n (b + 30 + j)) = L3.getD j 0) fun σ3 ha3 _ ↦
@@ -259,13 +345,13 @@ theorem osRound_completeA (rd0 : Reader) (hl0 : LowDef 11 rd0) {cp last : Bool} 
         osLd, osCp, osCst, ecb, v0, v1, v2]
       simpa using hcur C rd hH 4 (by omega)
   -- the nonce's permutation
-  have A4 := BlkA.seq (H := H) (show k ≤ b + 33 by omega) (show b + 33 ≤ b + 33 + 13 by omega) A3
+  have A4 := BlkA.seq (M := M) (H := H) (show k ≤ b + 33 by omega) (show b + 33 ≤ b + 33 + 13 by omega) A3
     (B := [osKeccak [b + 31, b + 32, p + 1, p + 1, p + 1, p + 2, p + 3, p + 4, b + 17 + 8, b + 17 + 9,
       b + 17 + 10, b + 17 + 11, b + 17 + 12] (b + 33)])
     (OutB := fun σ' ↦ ∀ j < 13, σ' (.n (b + 33 + j)) = rdCell S3 j) fun σ4 ha4 ho4 ↦ by
       obtain ⟨⟨_, hv2⟩, hv3⟩ := ho4 C0 rd1 hH1
       have g : ∀ j < 3, ∀ m, m = b + 30 + j → σ4 (.n m) = L3.getD j 0 := fun j hj m hm ↦ hm ▸ hv3 j hj
-      refine (keccak_blk (H := H) (σ := σ4) (out := b + 33)
+      refine (keccak_blk (M := M) (H := H) (σ := σ4) (out := b + 33)
         (⟨capOf S1, [(n2, dsPowNonce)]⟩ : Fs) (by simp) (by simp) (fun i hi ↦ ?_)
         (fun C rd _ ↦ ?_)).mono fun σ' h j hj ↦ by rw [h j hj]; rfl
       · simp only [List.mem_cons, List.not_mem_nil, or_false] at hi
@@ -284,24 +370,24 @@ theorem osRound_completeA (rd0 : Reader) (hl0 : LowDef 11 rd0) {cp last : Bool} 
     have := grindOk_low (by decide) hg'
     rw [hN] at this
     rwa [show rdCell S3 1 = cellsOfState S3 false 1 from rdCell_eq S3 1]
-  have A5 := BlkA.seq (H := H) (show k ≤ b + 46 by omega) (show b + 46 ≤ b + 46 + (gcLen foldGrind - 2) by omega)
+  have A5 := BlkA.seq (M := M) (H := H) (show k ≤ b + 46 by omega) (show b + 46 ≤ b + 46 + (gcLen foldGrind - 2) by omega)
     (by simpa only [show b + 33 + 13 = b + 46 by omega] using A4)
     (B := gcInlineT foldGrind (b + 46) (.n (b + 33 + 1)) (.n osTabs)) (OutB := fun _ ↦ True)
     fun σ5 ha5 ho5 ↦ by
       have e1 : σ5 (.n (b + 33 + 1)) = rdCell S3 1 := (ho5 C0 rd1 hH1).2 1 (by omega)
       refine gc_blk (b := foldGrind) (o := b + 46) (wi := b + 33 + 1) (ti := osTabs) rd0 hl0 (by decide)
         (by omega) (by simp only [osTabs]; omega) (by rw [e1]; exact hlow)
-        fun C rd hC' ↦ ⟨?_, (hH C rd hC').2.2.1⟩
-      rw [ha5 _ (by simp only [osTabs]; omega)]
-      exact (hH C rd hC').2.1
+        hag0 fun C rd hC' ↦ by
+        rw [ha5 _ (by simp only [osTabs]; omega)]
+        exact (hH C rd hC').2.1
   rw [← hCb] at A5
   -- `β`'s permutation
-  have A6 := BlkA.seq (H := H) (show k ≤ C by omega) (show C ≤ C + 13 by omega) A5
+  have A6 := BlkA.seq (M := M) (H := H) (show k ≤ C by omega) (show C ≤ C + 13 by omega) A5
     (B := [osKeccak [p + 1, p + 1, p + 1, p + 1, p + 1, p + 2, p + 3, p + 4, b + 33 + 8, b + 33 + 9,
       b + 33 + 10, b + 33 + 11, b + 33 + 12] C])
     (OutB := fun σ' ↦ ∀ j < 13, σ' (.n (C + j)) = rdCell S4 j) fun σ6 ha6 ho6 ↦ by
       obtain ⟨⟨_, hv4⟩, -⟩ := ho6 C0 rd1 hH1
-      refine (keccak_blk (H := H) (σ := σ6) (out := C) (⟨capOf S3, []⟩ : Fs) (by simp) (by simp)
+      refine (keccak_blk (M := M) (H := H) (σ := σ6) (out := C) (⟨capOf S3, []⟩ : Fs) (by simp) (by simp)
         (fun i hi ↦ ?_) (fun C rd _ ↦ ?_)).mono fun σ' h j hj ↦ by rw [h j hj]; rfl
       · simp only [List.mem_cons, List.not_mem_nil, or_false] at hi
         rcases hi with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> omega
@@ -315,11 +401,11 @@ theorem osRound_completeA (rd0 : Reader) (hl0 : LowDef 11 rd0) {cp last : Bool} 
     simp only [roundChs, List.getD_cons_zero, List.getD_cons_succ]
     rw [hSq, hG2]
     simp [Keccak.challengeOf_cells, ← rdCell_eq]
-  have A7 := BlkA.seq (H := H) (show k ≤ C + 13 by omega) (show C + 13 ≤ C + 13 by omega) A6
+  have A7 := BlkA.seq (M := M) (H := H) (show k ≤ C + 13 by omega) (show C + 13 ≤ C + 13 by omega) A6
     (B := [osLd (b + 33) osFch i, osLd (b + 33) osCoefs (2 * i), osLd C osCoefs (2 * i + 1)])
     (OutB := fun _ ↦ True) fun σ7 ha7 ho7 ↦ stores_blk fun C' rd hC' σ' ha ↦ by
       obtain ⟨⟨⟨_, hv4⟩, -⟩, hv6⟩ := ho7 C0 rd1 hH1
-      obtain ⟨-, -, -, l1, l2, l3⟩ := hH C' rd hC'
+      obtain ⟨-, -, l1, l2, l3⟩ := hH C' rd hC'
       rw [hch] at l1 l2 l3
       have eB : σ' (.n (b + 33)) = rdCell S3 0 := by rw [ha _ (by omega)]; simpa using hv4 0 (by omega)
       have eC : σ' (.n C) = rdCell S4 0 := by rw [ha _ (by omega)]; simpa using hv6 0 (by omega)
@@ -335,7 +421,7 @@ theorem osRound_completeA (rd0 : Reader) (hl0 : LowDef 11 rd0) {cp last : Bool} 
   set L8 : List E := [be * c0, u0 + be * c0, u0 + cl, al * w, u0 + cl + al * w, c0 + c1,
     be * (c0 + c1), u0 + cl + al * w + be * (c0 + c1), al * (u0 + cl + al * w + be * (c0 + c1)),
     u0 + be * c0 + al * (u0 + cl + al * w + be * (c0 + c1))] with hL8
-  have A8 := BlkA.seq (H := H) (show k ≤ C + 13 by omega) (show C + 13 ≤ C + 13 + 10 by omega) A7
+  have A8 := BlkA.seq (M := M) (H := H) (show k ≤ C + 13 by omega) (show C + 13 ≤ C + 13 + 10 by omega) A7
     (B := [osMul D C (b + 11), osAdd (D + 1) (b + 5) D, osAdd (D + 2) (b + 5) st.claim,
       osMul (D + 3) (b + 33) (b + 8), osAdd (D + 4) (D + 2) (D + 3), osAdd (D + 5) (b + 11) (b + 14),
       osMul (D + 6) C (D + 5), osAdd (D + 7) (D + 4) (D + 6), osMul (D + 8) (b + 33) (D + 7),
@@ -361,7 +447,7 @@ theorem osRound_completeA (rd0 : Reader) (hl0 : LowDef 11 rd0) {cp last : Bool} 
       simp only [allOk_cons, allOk_nil, and_true, stmtOk_atom, holds_mul, holds_add, osMul, osAdd,
         hDC, x0, x1, x2, x3, eB, eC, ecl, d0, d1, d2, d3, d4, d5, d6, d7, d8, d9]
   -- the capacity after `β`, copied but after the last round
-  have A9 := BlkA.seq (H := H) (show k ≤ C + 13 + 10 by omega)
+  have A9 := BlkA.seq (M := M) (H := H) (show k ≤ C + 13 + 10 by omega)
     (show C + 13 + 10 ≤ (if last then D + 10 else D + 15) by split_ifs <;> omega) A8
     (B := if last then [] else (List.range 5).map (fun j ↦ osCp (D + 10 + j) (C + 8 + j)))
     (OutB := fun σ' ↦ ∀ j < 5, σ' (.n (if last then C + 8 + j else D + 10 + j)) = rdCell S4 (8 + j))
@@ -481,10 +567,10 @@ theorem osRounds_mats : ∀ (cp : Bool) (n i : ℕ) (st : OsSt), (osRounds cp i 
   | cp, n + 1, i, st => (osRounds_mats false n (i + 1) _).trans (osRound_state cp (n == 0) i st).2.2.2.1
 
 /-- **The rounds' memory from what it holds for them**: their words at the cursor, the table,
-`rd0`'s words, the challenges' slots with the grinds passing (`RoundsMem`). -/
-theorem roundsH_of {rd0 rd : Reader} {fch coefs tabs : E} (ht : WinTabs rd tabs) (hag : LowAgree rd rd0) :
+the challenges' slots with the grinds passing (`RoundsMem`). -/
+theorem roundsH_of {rd : Reader} {fch coefs tabs : E} (ht : WinTabs rd tabs) :
     ∀ (n i : ℕ) (fs : List E) (cl cur : E) (xs : List E), xs.length = 5 * n → ReadsAt rd cur xs →
-      RoundsMem rd fch coefs n i fs cl xs → RoundsH rd0 rd fch coefs tabs n i fs cl cur xs
+      RoundsMem rd fch coefs n i fs cl xs → RoundsH rd fch coefs tabs n i fs cl cur xs
   | 0, _, _, _, _, _, _, _, _ => trivial
   | n + 1, i, fs, cl, cur, xs, hxl, hrd, ⟨hg, lg, la, lb, hm⟩ => by
     have hrd0 : ReadsAt rd cur (xs.take 5) := fun j hj ↦ by
@@ -496,36 +582,36 @@ theorem roundsH_of {rd0 rd : Reader} {fch coefs tabs : E} (ht : WinTabs rd tabs)
       simpa [Nat.add_comm] using this
     rw [loadHolds_mul_gen_pow, Nat.add_zero] at lg la
     rw [loadHolds_mul_gen_pow] at lb
-    exact ⟨hg, ⟨hrd0, ht, hag, lg, la, lb⟩,
-      roundsH_of ht hag n (i + 1) _ _ _ (xs.drop 5) (by simp [hxl]; omega) hrd1 hm⟩
+    exact ⟨hg, ⟨hrd0, ht, lg, la, lb⟩,
+      roundsH_of ht n (i + 1) _ _ _ (xs.drop 5) (by simp [hxl]; omega) hrd1 hm⟩
 
 /-- **`n` inline rounds as a block at fixed values.** -/
 theorem osRounds_completeA (rd0 : Reader) (hl0 : LowDef 11 rd0) :
     ∀ (cp : Bool) (n i : ℕ) (st : OsSt) (σ : Val) (xs : List E), st.Sf → st.co + 5 * n < u128Bound →
-      (∃ p, st.pad = some p) → (∀ C rd, H C rd → st.Ok σ) → xs.length = 5 * n →
-      (∀ C rd, H C rd → RoundsH rd0 rd (σ (.n osFch)) (σ (.n osCoefs)) (σ (.n osTabs)) n i (st.fsv σ)
-        (σ (.n st.claim)) (st.cur σ) xs) →
-      BlkA H σ st.k (osRounds cp i n st).2.k (osRounds cp i n st).1
+      (∃ p, st.pad = some p) → (∀ C rd, HM M H C rd → st.Ok σ) → xs.length = 5 * n →
+      (∀ C rd, HM M H C rd → RoundsH rd (σ (.n osFch)) (σ (.n osCoefs)) (σ (.n osTabs)) n i (st.fsv σ)
+        (σ (.n st.claim)) (st.cur σ) xs) → (∀ C rd, H C rd → LowAgree rd rd0) →
+      BlkA M H σ st.k (osRounds cp i n st).2.k (osRounds cp i n st).1
         (fun σ' ↦ RoundsOut σ σ' st (osRounds cp i n st).2
           (roundsTr n (st.fsv σ) (σ (.n st.claim)) xs) n ∧ AgreeBelow st.k σ σ') := by
   intro cp n
   induction n generalizing cp with
   | zero =>
-    intro i st σ xs hsf hco _ hok _ _
+    intro i st σ xs hsf hco _ hok _ _ _
     rw [show osRounds cp i 0 st = ([], st) from rfl]
     refine BlkA.of_ne fun ⟨C0, rd1, hH1⟩ ↦ BlkA.nil fun σ' ha ↦ ⟨?_, ha⟩
     obtain ⟨-, e2, e3, e4⟩ := OsSt.agree hsf.below ha
     exact ⟨by rw [e2]; rfl, by rw [e4]; simp, e3, hsf.fs, by simp, hsf.below,
       ((hok C0 rd1 hH1).agree ha).mats, rfl, le_rfl⟩
   | succ n ih =>
-    intro i st σ xs hsf hco hpad hok hxl hR
+    intro i st σ xs hsf hco hpad hok hxl hR hag0
     refine BlkA.of_ne fun ⟨C0, rd1, hH1⟩ ↦ ?_
     set w := xs.take 5 with hw
     have hw5 : w.length = 5 := by simp [hw, hxl]
     have k33 := hsf.k
     have hk5 : 5 ≤ st.k := by omega
-    have hA := osRound_completeA (H := H) rd0 hl0 (cp := cp) (last := n == 0) (i := i) σ w hw5 hsf
-      (by omega) hpad hok (hR C0 rd1 hH1).1 fun C rd hH ↦ (hR C rd hH).2.1
+    have hA := osRound_completeA (M := M) (H := H) rd0 hl0 (cp := cp) (last := n == 0) (i := i) σ w hw5 hsf
+      (by omega) hpad hok (hR C0 rd1 hH1).1 (fun C rd hH ↦ (hR C rd hH).2.1) hag0
     set st1 := (osRound cp (n == 0) i st).2 with hst1
     have hk1 : st.k ≤ st1.k := osRound_k _ _ _ _ hk5
     have hk2 : st1.k ≤ (osRounds false (i + 1) n st1).2.k := osRounds_k _ _ _ _ (le_trans hk5 hk1)
@@ -544,10 +630,10 @@ theorem osRounds_completeA (rd0 : Reader) (hl0 : LowDef 11 rd0) :
       exact this
     have ec : σ1 (.n st1.claim) = (roundRets fsv 0 cl w).getD 6 0 := ro.claim
     have hih := ih false (i + 1) st1 σ1 (xs.drop 5) ro.ok.sf (by rw [ro.co]; omega)
-      (by rw [ro.pad]; exact hpad) (fun _ _ _ ↦ ro.ok) (by simp [hxl]; omega) fun C rd hH ↦ by
+      (by rw [ro.pad]; exact hpad) (fun _ _ _ ↦ ro.ok) (by simp [hxl]; omega) (fun C rd hH ↦ by
         rw [ef, ec, ro.cur, ha1 osFch (by simp only [osFch]; omega),
           ha1 osCoefs (by simp only [osCoefs]; omega), ha1 osTabs (by simp only [osTabs]; omega)]
-        exact (hR C rd hH).2.2
+        exact (hR C rd hH).2.2) hag0
     rw [ef, ec, ← hRt] at hih
     refine BlkA.monoH hih fun C rd hH σ' ha ⟨ho, _⟩ ↦ ⟨ho.F, ?_, ho.claim, ho.fs, ?_, ho.below, ho.mats,
       by rw [ho.pad, ro.pad], le_trans hk1 ho.k⟩

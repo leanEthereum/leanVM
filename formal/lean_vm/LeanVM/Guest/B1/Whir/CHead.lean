@@ -27,7 +27,7 @@ open LeanVM.Guest.Value LeanVM.Protocol LeanVM.Protocol.Compile LeanVM.Protocol.
 
 @[expose] public section
 
-variable {H : CallRel → Reader → Prop}
+variable {M : Reader → Prop} {H : CallRel → Reader → Prop}
 
 /-- The fixed buffers' sizes, in allocation order (`osSizesL c`'s first twelve), `qt` the
 positions' total. -/
@@ -71,9 +71,9 @@ arguments `7`, `8`) stored in `level_roots` (`P 1`), the totals by rate in `pos_
 rate's total read at its selector `σ 0 = g^ri`. -/
 theorem osHead_complete (c : OsCfg) (σ : Val) (P : ℕ → E) {ri : ℕ}
     (hsel : σ (.n osRate) = gen ^ ri) (hri : ri < ligNRates)
-    (hr : ∀ C rd, H C rd → LoadHolds rd (P 1) 0 (σ (.n 7)) ∧ LoadHolds rd (P 1) 1 (σ (.n 8)) ∧
+    (hr : ∀ C rd, HM M H C rd → LoadHolds rd (P 1) 0 (σ (.n 7)) ∧ LoadHolds rd (P 1) 1 (σ (.n 8)) ∧
       ∀ r < ligNRates, LoadHolds rd (P 9) r (gw (c.posTotal.getD r 0))) :
-    BlkA H σ 11 (osPadV + 5) (osHead c).1 (fun σ' ↦ (osHead c).2.Ok σ' ∧
+    BlkA M H σ 11 (osPadV + 5) (osHead c).1 (fun σ' ↦ (osHead c).2.Ok σ' ∧
       (∀ j < osPadV + 5 - 11, σ' (.n (11 + j)) =
         (headVals c P (gen ^ ri) (gw (c.posTotal.getD ri 0))).getD j 0) ∧ AgreeBelow 11 σ σ') := by
   set L := headVals c P (gen ^ ri) (gw (c.posTotal.getD ri 0)) with hL

@@ -31,7 +31,7 @@ open LeanVM.Guest.Value LeanVM.Protocol LeanVM.Protocol.Compile LeanVM.Protocol.
 
 @[expose] public section
 
-variable {H : CallRel → Reader → Prop}
+variable {M : Reader → Prop} {H : CallRel → Reader → Prop}
 
 /-- `opening_tail_round`'s returns. -/
 def tailRets (cap : List E) (cur cl : E) (p : E × E) : List E :=
@@ -84,11 +84,11 @@ theorem osTailRounds_k (tch : ℕ) : ∀ (n j : ℕ) (st : OsSt), st.k ≤ (osTa
 
 /-- **One closing round, honestly**. -/
 theorem osTailRound_complete {tch j : ℕ} {st : OsSt} (σ : Val) (hsf : st.Sf)
-    (hok : ∀ C rd, H C rd → st.Ok σ) (htch : tch < st.k) (p : E × E)
-    (hC : ∀ C rd, H C rd → C "opening_tail_round" (st.fsv σ ++ [st.cur σ, σ (.n st.claim), σ (.n osTabs)])
+    (hok : ∀ C rd, HM M H C rd → st.Ok σ) (htch : tch < st.k) (p : E × E)
+    (hC : ∀ C rd, HM M H C rd → C "opening_tail_round" (st.fsv σ ++ [st.cur σ, σ (.n st.claim), σ (.n osTabs)])
         (tailRets (st.fsv σ) (st.cur σ) (σ (.n st.claim)) p) ∧
       LoadHolds rd (σ (.n tch)) j ((tailRets (st.fsv σ) (st.cur σ) (σ (.n st.claim)) p).getD 7 0)) :
-    BlkA H σ st.k (osTailRound tch j st).2.k (osTailRound tch j st).1 (fun σ' ↦
+    BlkA M H σ st.k (osTailRound tch j st).2.k (osTailRound tch j st).1 (fun σ' ↦
       OsStep σ σ' st (osTailRound tch j st).2 ∧
       (osTailRound tch j st).2.F σ' = ⟨(tailRets (st.fsv σ) (st.cur σ) (σ (.n st.claim)) p).take 5, []⟩ ∧
       σ' (.n (osTailRound tch j st).2.claim) = (tailRets (st.fsv σ) (st.cur σ) (σ (.n st.claim)) p).getD 6 0 ∧
@@ -100,7 +100,7 @@ theorem osTailRound_complete {tch j : ℕ} {st : OsSt} (σ : Val) (hsf : st.Sf)
   set rets := tailRets (st.fsv σ) (st.cur σ) (σ (.n st.claim)) p with hrets
   have k1 : st.k ≤ r := osCurS_k st
   have pcu : cu.2.1 < r := osMat_ptr_lt _ _ _ hsf.below.cb
-  have hA := osCurS_blkA (H := H) σ hsf.below.cb hsf.co
+  have hA := osCurS_blkA (M := M) (H := H) σ hsf.below.cb hsf.co
   have b1 := BlkA.seq k1 (show r ≤ r + 8 by omega) hA (B := [.call "opening_tail_round"
       ((st.fs ++ [cu.2.1, st.claim, osTabs]).map V.n) (osRun r 8)])
     (OutB := fun σ' ↦ ∀ i < 8, σ' (.n (r + i)) = rets.getD i 0) fun σ1 ha1 ho1 ↦ by
@@ -170,10 +170,10 @@ theorem tailRets_claim (cap : List E) (cur cl : E) (p : E × E) :
 /-- **The closing rounds, honestly**: the sponge and claim after them
 `tailRun`'s. -/
 theorem osTailRounds_completeA {tch : ℕ} : ∀ (pairs : List (E × E)) (j : ℕ) (st : OsSt) (σ : Val),
-    st.Sf → (∀ C rd, H C rd → st.Ok σ) → tch < st.k →
-    (∀ C rd, H C rd → TailC C rd (σ (.n tch)) (σ (.n osTabs)) j pairs (st.fsv σ) (σ (.n st.claim))
+    st.Sf → (∀ C rd, HM M H C rd → st.Ok σ) → tch < st.k →
+    (∀ C rd, HM M H C rd → TailC C rd (σ (.n tch)) (σ (.n osTabs)) j pairs (st.fsv σ) (σ (.n st.claim))
       (st.cur σ)) →
-    BlkA H σ st.k (osTailRounds tch j pairs.length st).2.k (osTailRounds tch j pairs.length st).1
+    BlkA M H σ st.k (osTailRounds tch j pairs.length st).2.k (osTailRounds tch j pairs.length st).1
       (fun σ' ↦ OsStep σ σ' st (osTailRounds tch j pairs.length st).2 ∧
         (osTailRounds tch j pairs.length st).2.F σ' =
           ⟨(tailRun pairs (st.fsv σ) (σ (.n st.claim))).2.2, []⟩ ∧
@@ -184,14 +184,14 @@ theorem osTailRounds_completeA {tch : ℕ} : ∀ (pairs : List (E × E)) (j : �
         cvOf (osTailRounds tch j pairs.length st).1 σ' =
           tailCV (σ (.n osTabs)) pairs (st.fsv σ) (σ (.n st.claim)) (st.cur σ))
   | [], j, st, σ, hsf, hok, _, _ => by
-    refine ⟨fun _ ↦ 0, fun C rd hH ↦ BlkF.nil fun σ' ha ↦ ?_⟩
+    refine BlkA.ofHM (fun _ ↦ 0) fun C rd hH ↦ BlkF.nil fun σ' ha ↦ ?_
     obtain ⟨eF, ec, ecl⟩ := hsf.vals ha
     exact ⟨⟨(hok C rd hH).agree ha, le_rfl, ha⟩, eF, ecl,
       show st.cur σ' = st.cur σ * gen ^ (2 * 0) by rw [ec]; simp, rfl, rfl⟩
   | p :: rest, j, st, σ, hsf, hok, htch, hT => by
     set st1 := (osTailRound tch j st).2 with hst1
     set rets := tailRets (st.fsv σ) (st.cur σ) (σ (.n st.claim)) p with hrets
-    have hA := osTailRound_complete (H := H) (tch := tch) (j := j) σ hsf hok htch p fun C rd hH ↦
+    have hA := osTailRound_complete (M := M) (H := H) (tch := tch) (j := j) σ hsf hok htch p fun C rd hH ↦
       ⟨(hT C rd hH).1, (hT C rd hH).2.1⟩
     have hk1 : st.k ≤ st1.k := osTailRound_k tch j st
     have hk2 : st1.k ≤ (osTailRounds tch (j + 1) rest.length st1).2.k :=
@@ -247,11 +247,11 @@ def tailZeros (m : ℕ) : List E := List.replicate m (word 0 0)
 /-- **The closing rounds into `tail_challenges`, honestly**: the buffer allocated at
 `pT`, the rounds, the unused entries zeroed. -/
 theorem osTail_complete {c : OsCfg} {st : OsSt} (σ : Val) (hsf : st.Sf)
-    (hok : ∀ C rd, H C rd → st.Ok σ) (pT : E) (pairs : List (E × E)) (hlen : pairs.length = c.yrLog)
-    (hT : ∀ C rd, H C rd → TailC C rd pT (σ (.n osTabs)) 0 pairs (st.fsv σ) (σ (.n st.claim))
+    (hok : ∀ C rd, HM M H C rd → st.Ok σ) (pT : E) (pairs : List (E × E)) (hlen : pairs.length = c.yrLog)
+    (hT : ∀ C rd, HM M H C rd → TailC C rd pT (σ (.n osTabs)) 0 pairs (st.fsv σ) (σ (.n st.claim))
       (st.cur σ))
-    (hz : ∀ C rd, H C rd → ∀ i < yrLogCap - c.yrLog, LoadHolds rd pT (c.yrLog + i) 0) :
-    BlkA H σ st.k (osTail c st).2.1.k (osTail c st).1 (fun σ' ↦
+    (hz : ∀ C rd, HM M H C rd → ∀ i < yrLogCap - c.yrLog, LoadHolds rd pT (c.yrLog + i) 0) :
+    BlkA M H σ st.k (osTail c st).2.1.k (osTail c st).1 (fun σ' ↦
       OsStep σ σ' st (osTail c st).2.1 ∧ (osTail c st).2.2 = st.k + 1 ∧
       σ' (.n st.k) = gw yrLogCap ∧ σ' (.n (st.k + 1)) = pT ∧
       (osTail c st).2.1.F σ' = ⟨(tailRun pairs (st.fsv σ) (σ (.n st.claim))).2.2, []⟩ ∧
@@ -274,7 +274,7 @@ theorem osTail_complete {c : OsCfg} {st : OsSt} (σ : Val) (hsf : st.Sf)
     have := osTailRounds_k (k + 1) c.yrLog 0 s0
     exact this
   -- the buffer and the rounds
-  have b1 := BlkA.seq (H := H) (show k ≤ k + 2 by omega) kj (heap_blk σ yrLogCap k pT)
+  have b1 := BlkA.seq (M := M) (H := H) (show k ≤ k + 2 by omega) kj (heap_blk σ yrLogCap k pT)
     (B := f.1) (OutB := fun σ' ↦ f.2.Ok σ' ∧
       f.2.F σ' = ⟨(tailRun pairs (st.fsv σ) (σ (.n st.claim))).2.2, []⟩ ∧
       σ' (.n f.2.claim) = (tailRun pairs (st.fsv σ) (σ (.n st.claim))).2.1 ∧
@@ -282,16 +282,16 @@ theorem osTail_complete {c : OsCfg} {st : OsSt} (σ : Val) (hsf : st.Sf)
       cvOf f.1 σ' = tailCV (σ (.n osTabs)) pairs (st.fsv σ) (σ (.n st.claim)) (st.cur σ)) fun σ1 ha1 ho1 ↦ by
     obtain ⟨eF, ec, ecl⟩ := hsf.vals ha1
     have efs : s0.fsv σ1 = st.fsv σ := congrArg Fs.cap eF
-    have hok0 : ∀ C rd, H C rd → s0.Ok σ1 := fun C rd hH ↦ by
+    have hok0 : ∀ C rd, HM M H C rd → s0.Ok σ1 := fun C rd hH ↦ by
       have h := (hok C rd hH).agree ha1
       exact ⟨hsf0, h.mats, h.pad⟩
-    have hT0 : ∀ C rd, H C rd → TailC C rd (σ1 (.n (k + 1))) (σ1 (.n osTabs)) 0 pairs (s0.fsv σ1)
+    have hT0 : ∀ C rd, HM M H C rd → TailC C rd (σ1 (.n (k + 1))) (σ1 (.n osTabs)) 0 pairs (s0.fsv σ1)
         (σ1 (.n s0.claim)) (s0.cur σ1) := fun C rd hH ↦ by
       obtain ⟨-, e1⟩ := ho1 C rd hH
       rw [e1, efs, show s0.cur σ1 = st.cur σ from ec, show σ1 (.n s0.claim) = σ (.n st.claim) from ecl,
         ha1 osTabs (by have := hsf.k; show 10 < k; omega)]
       exact hT C rd hH
-    have h := osTailRounds_completeA (H := H) (tch := k + 1) pairs 0 s0 σ1 hsf0 hok0
+    have h := osTailRounds_completeA (M := M) (H := H) (tch := k + 1) pairs 0 s0 σ1 hsf0 hok0
       (show k + 1 < k + 2 by omega) hT0
     rw [hlen] at h
     refine h.monoH fun C rd hH σ' _ ⟨ho, eF', ecl', ecur', epad', ecv'⟩ ↦ ?_
@@ -300,10 +300,10 @@ theorem osTail_complete {c : OsCfg} {st : OsSt} (σ : Val) (hsf : st.Sf)
       ha1 osTabs (by have := hsf.k; show 10 < k; omega)] at ecv'
     exact ⟨ho.ok, eF', ecl', by rw [ecur', show s0.cur σ1 = st.cur σ from ec], epad', ecv'⟩
   -- the unused entries
-  have b2 := BlkA.seq (H := H) (show k ≤ j by omega) (show j ≤ j + m by omega) b1
+  have b2 := BlkA.seq (M := M) (H := H) (show k ≤ j by omega) (show j ≤ j + m by omega) b1
     (B := ((List.range m).map fun i ↦ [osCst (j + i) (word 0 0), osLd (j + i) (k + 1) (c.yrLog + i)]).flatten)
     (OutB := fun _ ↦ True) fun σ1 ha1 ho1 ↦ by
-    refine ⟨lstF j (tailZeros m), fun C rd hH σ' ha hr ↦ ⟨?_, trivial⟩⟩
+    refine BlkA.ofHM (lstF j (tailZeros m)) fun C rd hH σ' ha hr ↦ ⟨?_, trivial⟩
     obtain ⟨⟨-, e1⟩, -⟩ := ho1 C rd hH
     have ep : σ' (.n (k + 1)) = pT := by rw [ha _ (by omega), e1]
     rw [allOk_flatten]

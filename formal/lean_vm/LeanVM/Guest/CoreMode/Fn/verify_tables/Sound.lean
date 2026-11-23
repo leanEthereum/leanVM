@@ -81,14 +81,14 @@ theorem l10_atoms_fn :
     let as := topAtoms (fn% «verify_tables_loop0»).body
     as.contains (.mul (.n (val% «verify_tables_loop0» "rd~0")) (.n (val% «verify_tables_loop0» "xk")) (.n (val% «verify_tables_loop0» "xk"))) = true ∧ as.contains (.mul (.n (val% «verify_tables_loop0» "rd~1")) (.n (val% «verify_tables_loop0» "rd~0")) (.n (val% «verify_tables_loop0» "xk"))) = true ∧
       as.contains (.mul (.n (val% «verify_tables_loop0» "rd~2")) (.n (val% «verify_tables_loop0» "rd~1")) (.n (val% «verify_tables_loop0» "rd~1"))) = true ∧ as.contains (.mul (.n (val% «verify_tables_loop0» "rd~3")) (.n (val% «verify_tables_loop0» "rd~2")) (.n (val% «verify_tables_loop0» "xk"))) = true ∧
-      as.contains (.mul (.n (val% «verify_tables_loop0» "rd")) (.n (val% «verify_tables_loop0» "zc_rounds")) (.n (val% «verify_tables_loop0» "rd~3"))) = true ∧ as.contains (.load (.n (val% «verify_tables_loop0» "ncur~3")) (.n (val% «verify_tables_loop0» "rd")) 5) = true := by
+      as.contains (.mul (.n (val% «verify_tables_loop0» "rd")) (.n (val% «verify_tables_loop0» "zc_rounds")) (.n (val% «verify_tables_loop0» "rd~3"))) = true ∧ as.contains (.load (.n (val% «verify_tables_loop0» "s1#0")) (.n (val% «verify_tables_loop0» "rd")) 5) = true := by
   decide +kernel
 
 /-- **`verify_tables`' rounds loop's cursor** in the stream: `VtLQ` and the iteration's record and load. -/
 theorem st_vt {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T)
     {σ : Val} {bufs : List ℕ} {kids : List Tree} (ht : I.t = .node name% «verify_tables_loop0» σ bufs kids) :
     ∃ a q, I.hdr.2 = ofK (addressOfIndex a) ∧ a + (2 + val% «verify_tables» "stream") < maxCells ∧
-      σ (.n (val% «verify_tables_loop0» "ncur~3")) = refMem r.img (a + (2 + val% «verify_tables» "stream")) * gen ^ q ∧ q + 3 ≤ 8192 := by
+      σ (.n (val% «verify_tables_loop0» "s1#0")) = refMem r.img (a + (2 + val% «verify_tables» "stream")) * gen ^ q ∧ q + 3 ≤ 8192 := by
   obtain ⟨a, jj, n, q, hhd, ha22, -, -, hjn, -, hld, hroom⟩ := vtLQ_all hr I hI σ bufs kids ht
   obtain ⟨args, rets, fn', hf', -, es0, vs, hw, -, hh, -⟩ := inst_valid' hr hI ht
   obtain rfl : fn' = fn% «verify_tables_loop0» := Option.some.inj (hf'.symm.trans find_l10)
@@ -98,7 +98,7 @@ theorem st_vt {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgr
   have m8 : σ (.n (val% «verify_tables_loop0» "rd~2")) = σ (.n (val% «verify_tables_loop0» "rd~1")) * σ (.n (val% «verify_tables_loop0» "rd~1")) := hh _ (topAtoms_on_path hw (List.contains_iff_mem.mp t8))
   have m9 : σ (.n (val% «verify_tables_loop0» "rd~3")) = σ (.n (val% «verify_tables_loop0» "rd~2")) * σ (.n (val% «verify_tables_loop0» "xk")) := hh _ (topAtoms_on_path hw (List.contains_iff_mem.mp t9))
   have m10 : σ (.n (val% «verify_tables_loop0» "rd")) = σ (.n (val% «verify_tables_loop0» "zc_rounds")) * σ (.n (val% «verify_tables_loop0» "rd~3")) := hh _ (topAtoms_on_path hw (List.contains_iff_mem.mp t10))
-  have l11 : LoadHolds r.img.read (σ (.n (val% «verify_tables_loop0» "rd"))) 5 (σ (.n (val% «verify_tables_loop0» "ncur~3"))) :=
+  have l11 : LoadHolds r.img.read (σ (.n (val% «verify_tables_loop0» "rd"))) 5 (σ (.n (val% «verify_tables_loop0» "s1#0"))) :=
     hh _ (topAtoms_on_path hw (List.contains_iff_mem.mp tl))
   have e10 : σ (.n (val% «verify_tables_loop0» "rd")) = σ (.n (val% «verify_tables_loop0» "zc_rounds")) * σ (.n (val% «verify_tables_loop0» "xk")) ^ 7 := by rw [m10, m9, m8, m7, m6]; ring
   rw [e10] at l11

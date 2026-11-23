@@ -84,7 +84,7 @@ theorem head_allocs {c : OsCfg} (hS : BodyStatic c) {σ' : Val} {P : ℕ → E} 
 abbrev osFinSt (c : OsCfg) : OsSt := (osTail c (osLvsEnd c)).2.1
 abbrev osFinTch (c : OsCfg) : ℕ := (osTail c (osLvsEnd c)).2.2
 
-variable {H : CallRel → Reader → Prop}
+variable {M : Reader → Prop} {H : CallRel → Reader → Prop}
 
 theorem osTailRounds_rtsC (tch : ℕ) : ∀ (j n : ℕ) (s : OsSt), (osTailRounds tch j n s).2.rts = s.rts
   | _, 0, _ => rfl
@@ -118,11 +118,11 @@ theorem body_of {h : OsHD} {b : ℕ} {args : List E} {cur tabs : E} {xs : List E
     (ha6 : args.getD 6 0 = h.claimAt 0) (ha9 : args.getD 9 0 = cur) (ha10 : args.getD 10 0 = tabs)
     (hx0 : (h.xsAt 0).length = xs.length)
     (hrate : ∀ l < h.c.levels.length, LvRate (Val.ofArgs args) h.c l (h.c.levels.getD l default))
-    (hroot : ∀ C rd, H C rd → LoadHolds rd (osPtrA h.c b 1) 0 (args.getD 7 0) ∧
+    (hroot : ∀ C rd, HM M H C rd → LoadHolds rd (osPtrA h.c b 1) 0 (args.getD 7 0) ∧
       LoadHolds rd (osPtrA h.c b 1) 1 (args.getD 8 0) ∧
       ∀ r < ligNRates, LoadHolds rd (osPtrA h.c b 9) r (gw (h.c.posTotal.getD r 0)))
     (hlvs : ∀ st σ, QAt h b tabs cur xs 0 st σ →
-      BlkA H σ st.k (osLevels h.c 0 h.c.levels st).2.k (osLevels h.c 0 h.c.levels st).1 (fun σ' ↦
+      BlkA M H σ st.k (osLevels h.c 0 h.c.levels st).2.k (osLevels h.c 0 h.c.levels st).1 (fun σ' ↦
         st.k ≤ (osLevels h.c 0 h.c.levels st).2.k ∧
         QAt h b tabs cur xs h.c.levels.length (osLevels h.c 0 h.c.levels st).2 σ' ∧
         ∀ i < h.c.levels.length, RAt h b tabs i (h.bat i) σ' ∧
@@ -131,10 +131,10 @@ theorem body_of {h : OsHD} {b : ℕ} {args : List E} {cur tabs : E} {xs : List E
       (l ≠ h.c.yrLevel → (D l).lam = h.lamAt l ∧ (D l).lamInv = h.li l) ∧ (D l).batched = h.bat l)
     (hrootA : ∀ l < h.c.levels.length, osRootA own l = digestHalves (h.root l))
     (hpl : h.Lf.fw.pairs.length = h.c.yrLog)
-    (hT : ∀ C rd, H C rd → TailC C rd (osPtrA h.c b (13 + h.c.yrLevel)) tabs 0 h.Lf.fw.pairs
+    (hT : ∀ C rd, HM M H C rd → TailC C rd (osPtrA h.c b (13 + h.c.yrLevel)) tabs 0 h.Lf.fw.pairs
       (h.capAt h.c.levels.length) (h.claimAt h.c.levels.length)
       (cur * gen ^ (xs.length - (h.xsAt h.c.levels.length).length)))
-    (hz : ∀ C rd, H C rd → ∀ i < yrLogCap - h.c.yrLog,
+    (hz : ∀ C rd, HM M H C rd → ∀ i < yrLogCap - h.c.yrLog,
       LoadHolds rd (osPtrA h.c b (13 + h.c.yrLevel)) (h.c.yrLog + i) 0)
     (hfin : ∀ σ, (osLvsEnd h.c).Sf → (osFinSt h.c).Ok σ →
       (∀ l < h.c.levels.length, LvRate σ h.c l (h.c.levels.getD l default)) →
@@ -143,7 +143,7 @@ theorem body_of {h : OsHD} {b : ℕ} {args : List E} {cur tabs : E} {xs : List E
       σ (.n osTabs) = tabs → σ (.n (osFinTch h.c)) = osPtrA h.c b (13 + h.c.yrLevel) →
       σ (.n (osFinSt h.c).claim) = (tailRun h.Lf.fw.pairs (h.capAt h.c.levels.length)
         (h.claimAt h.c.levels.length)).2.1 →
-      BlkA H σ (osFinSt h.c).k (finEnd h.c (osFinSt h.c) (osFinTch h.c)) (osFinishA h.c (osFinSt h.c) (osFinTch h.c)).1
+      BlkA M H σ (osFinSt h.c).k (finEnd h.c (osFinSt h.c) (osFinTch h.c)) (osFinishA h.c (osFinSt h.c) (osFinTch h.c)).1
         (fun σ' ↦ (osFinSt h.c).k ≤ finEnd h.c (osFinSt h.c) (osFinTch h.c) ∧
           AllocsAt σ' (osFinishA h.c (osFinSt h.c) (osFinTch h.c)).1 = bufsAt h.c b (14 + h.c.yrLevel) 6 ∧
           (osFinishA h.c (osFinSt h.c) (osFinTch h.c)).2.map σ' =
@@ -162,7 +162,7 @@ theorem body_of {h : OsHD} {b : ℕ} {args : List E} {cur tabs : E} {xs : List E
                 (D l).lam, osZA h.c own l] ∧
             ((osSlowCalls h.c).getD l ([], [])).2.map σ' = [osSlowRetA h.c own l (D l).lam (osZA h.c own l)]) ∧
           cvOf (osFinishA h.c (osFinSt h.c) (osFinTch h.c)).1 σ' = CVF (σ' (.n osRate)))) :
-    ∃ kEnd, BlkA H (Val.ofArgs args) 11 kEnd (osBodyA h.c) (fun σ' ↦ OsOutA h.c b tabs tgt inn res own D σ' ∧
+    ∃ kEnd, BlkA M H (Val.ofArgs args) 11 kEnd (osBodyA h.c) (fun σ' ↦ OsOutA h.c b tabs tgt inn res own D σ' ∧
       cvOf (osBodyA h.c) σ' = (List.range h.c.levels.length).flatMap (fun i ↦ CVL i (Val.ofArgs args (.n osRate))) ++
         tailCV tabs h.Lf.fw.pairs (h.capAt h.c.levels.length) (h.claimAt h.c.levels.length)
           (cur * gen ^ (xs.length - (h.xsAt h.c.levels.length).length)) ++ CVF (Val.ofArgs args (.n osRate))) := by
@@ -176,12 +176,12 @@ theorem body_of {h : OsHD} {b : ℕ} {args : List E} {cur tabs : E} {xs : List E
   have hpv : osPadV + 5 = 43 := by simp [osPadV, ligNRates]
   set σ0 := Val.ofArgs args with hσ0
   -- the head
-  have b0 := osHead_complete (H := H) c σ0 (osPtrA c b) (ri := ri) (by exact hsel) hri fun C rd hH ↦ hroot C rd hH
+  have b0 := osHead_complete (M := M) (H := H) c σ0 (osPtrA c b) (ri := ri) (by exact hsel) hri fun C rd hH ↦ hroot C rd hH
   -- the levels
-  have bL := fun σ1 (ha : AgreeBelow 11 σ0 σ1) (ho : ∀ C rd, H C rd → (osHead c).2.Ok σ1 ∧
+  have bL := fun σ1 (ha : AgreeBelow 11 σ0 σ1) (ho : ∀ C rd, HM M H C rd → (osHead c).2.Ok σ1 ∧
       (∀ j < osPadV + 5 - 11, σ1 (.n (11 + j)) = (headVals c (osPtrA c b) (gen ^ ri)
         (gw (c.posTotal.getD ri 0))).getD j 0) ∧ AgreeBelow 11 σ0 σ1) ↦
-    BlkA.of_ne (H := H) fun ⟨C0, rd0, hH0⟩ ↦ by
+    BlkA.of_ne (M := M) (H := H) fun ⟨C0, rd0, hH0⟩ ↦ by
       obtain ⟨hok, hv, -⟩ := ho C0 rd0 hH0
       have v25 := hv 25 (by simp [osPadV, ligNRates])
       have v26 := hv 26 (by simp [osPadV, ligNRates])
@@ -203,21 +203,21 @@ theorem body_of {h : OsHD} {b : ℕ} {args : List E} {cur tabs : E} {xs : List E
       exact hlvs (osHead c).2 σ1 hq
   have b1 := BlkA.seqK b0 (fun _ _ ↦ by omega) bL (fun σ' ho ↦ ho.1)
   -- the closing rounds
-  have bT := fun σ2 (_ : AgreeBelow 11 σ0 σ2) (ho : ∀ C rd, H C rd →
+  have bT := fun σ2 (_ : AgreeBelow 11 σ0 σ2) (ho : ∀ C rd, HM M H C rd →
       ((osHead c).2.Ok σ2 ∧ (∀ j < osPadV + 5 - 11, σ2 (.n (11 + j)) = (headVals c (osPtrA c b) (gen ^ ri)
         (gw (c.posTotal.getD ri 0))).getD j 0) ∧
         AgreeBelow 11 σ0 σ2) ∧ ((osHead c).2.k ≤ (osLevels c 0 c.levels (osHead c).2).2.k ∧
         QAt h b tabs cur xs c.levels.length (osLevels c 0 c.levels (osHead c).2).2 σ2 ∧
         ∀ i < c.levels.length, RAt h b tabs i (h.bat i) σ2 ∧
           cvOf (osLevel c i (c.levels.getD i default) (osStAt c i)).1 σ2 = CVL i (σ2 (.n osRate)))) ↦
-    show BlkA H σ2 (osLevels c 0 c.levels (osHead c).2).2.k (osTail c (osLvsEnd c)).2.1.k
+    show BlkA M H σ2 (osLevels c 0 c.levels (osHead c).2).2.k (osTail c (osLvsEnd c)).2.1.k
       (osTail c (osLvsEnd c)).1 (OutT h b tabs cur xs) from
-    BlkA.of_ne (H := H) fun ⟨C0, rd0, hH0⟩ ↦ by
+    BlkA.of_ne (M := M) (H := H) fun ⟨C0, rd0, hH0⟩ ↦ by
       have hq : QAt h b tabs cur xs n (osLevels c 0 c.levels (osHead c).2).2 σ2 := (ho C0 rd0 hH0).2.2.1
       have hfs := hq.fs
       have hcl := hq.claim
       have hcu := hq.cur
-      have h0 := osTail_complete (H := H) (c := c) (st := (osLevels c 0 c.levels (osHead c).2).2) σ2
+      have h0 := osTail_complete (M := M) (H := H) (c := c) (st := (osLevels c 0 c.levels (osHead c).2).2) σ2
         hq.ok.sf (fun _ _ _ ↦ hq.ok) (osPtrA c b (13 + c.yrLevel)) h.Lf.fw.pairs hpl (fun C rd hH ↦ by
           rw [hfs, hcl, hcu, hq.tabs]; exact hT C rd hH) hz
       refine h0.monoH fun C rd hH σ' _ ⟨hstep, e0, e1, e2, eF, ecl, ecur, _, ecv⟩ ↦ ?_
@@ -242,7 +242,7 @@ theorem body_of {h : OsHD} {b : ℕ} {args : List E} {cur tabs : E} {xs : List E
     have a : 43 ≤ (osLevels c 0 c.levels (osHead c).2).2.k := ho.1.2.1
     have a' : (osLevels c 0 c.levels (osHead c).2).2.k ≤ (osTail c (osLvsEnd c)).2.1.k := ho.2.2.1
     show 11 ≤ (osTail c (osLvsEnd c)).2.1.k
-    omega) (fun σ3 _ ho ↦ BlkA.of_ne (H := H) fun ⟨C0, rd0, hH0⟩ ↦ by
+    omega) (fun σ3 _ ho ↦ BlkA.of_ne (M := M) (H := H) fun ⟨C0, rd0, hH0⟩ ↦ by
       obtain ⟨hok3, -, hp, hqp, ht, -, htc, -, hcl, -, hrt, hrv, -⟩ := (ho C0 rd0 hH0).2
       exact hfin σ3 (ho C0 rd0 hH0).1.2.2.1.ok.sf hok3 hrt hrv hp hqp ht htc hcl) (fun σ' ho ↦ by exact ho.1)
   refine ⟨_, BlkA.mono b3 fun σ' ⟨⟨⟨⟨_, hv, hag0⟩, _, _, hR⟩, hOT⟩, _, hFA, hFR, hFC, hCF⟩ ↦ ⟨?_, ?_⟩⟩

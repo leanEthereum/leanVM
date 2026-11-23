@@ -801,7 +801,8 @@ theorem core_jtd {img : MemoryImage κ} (hκ : κ ≤ 28) {K : Mode.Cert} {Cf : 
     obtain ⟨hlo, hhi, hjt⟩ := slotsIn_at (hslots _ (matchLens_mem hmem) hax.symm) hk
     simp only [jtd, ha, Bool.and_eq_true, Nat.beq_eq] at hj
     obtain ⟨hbase, hloc⟩ := hj
-    have hsel := hσ.jc.sel _ _ hb x arms hmem
+    have hsel := hσ.jc.sel zs x arms ss _ es1 vs hzsok hcur
+      (by rw [hes, hes', ← List.append_assoc, ← List.append_assoc] at hb; exact hb) hes1
     rw [← hax, hloc, hσx] at hsel
     exact fin k hsel (by rw [← hbase]; exact hlo) (by rw [← hbase]; exact hhi) (by rw [← hbase]; exact hjt)
   · obtain ⟨x, fs, args, rets, ss, hcur⟩ : ∃ x fs args rets ss, zs.cur = .dispatch x fs args rets :: ss := by

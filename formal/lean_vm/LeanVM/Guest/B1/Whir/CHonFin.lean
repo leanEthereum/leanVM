@@ -129,7 +129,7 @@ theorem fin_of {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} {D : ℕ → Os
       σ (.n osTabs) = tabs → σ (.n (osFinTch h.c)) = osPtrA h.c b (13 + h.c.yrLevel) →
       σ (.n (osFinSt h.c).claim) = (tailRun h.Lf.fw.pairs (h.capAt h.c.levels.length)
         (h.claimAt h.c.levels.length)).2.1 →
-      BlkA (fun C rd ↦ OsHA C rd h.c b h.own cur tabs xs) σ (osFinSt h.c).k
+      BlkA (OsM h.c b h.own cur tabs xs) (fun C rd ↦ OsHA C rd h.c b h.own cur tabs xs) σ (osFinSt h.c).k
         (finEnd h.c (osFinSt h.c) (osFinTch h.c)) (osFinishA h.c (osFinSt h.c) (osFinTch h.c)).1
         (fun σ' ↦ (osFinSt h.c).k ≤ finEnd h.c (osFinSt h.c) (osFinTch h.c) ∧
           AllocsAt σ' (osFinishA h.c (osFinSt h.c) (osFinTch h.c)).1 = bufsAt h.c b (14 + h.c.yrLevel) 6 ∧
@@ -174,11 +174,13 @@ theorem fin_of {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} {D : ℕ → Os
   have p10 : σ (.n osOodSc) = osPtrA c b 8 := hp 8 (by omega)
   have p11 : σ (.n osQpos) = osPtrA c b 10 := hqp
   have hTl : h.T.length ≤ yrLogCap := by rw [hF.Tl]; exact hHS.ylog
-  have hB := osFinishA_completeC (H := fun C rd ↦ OsHA C rd c b h.own cur tabs xs) (σ := σ) (G := h.G)
+  have hB := osFinishA_completeC (M := OsM c b h.own cur tabs xs) (H := fun C rd ↦ OsHA C rd c b h.own cur tabs xs)
+    (σ := σ) (G := h.G)
     (T := h.T) (recs := h.recs) (li := h.li) (Y := multilinearEval (h.Lf.fw.fold.take c.yrLen) h.T)
     (PT := osPtrA c b (14 + c.yrLevel)) (PT1 := osPtrA c b (15 + c.yrLevel)) (BD := osPtrA c b (16 + c.yrLevel))
     (LS := osPtrA c b (17 + c.yrLevel)) (LA := osPtrA c b (18 + c.yrLevel)) (ICH := osPtrA c b (19 + c.yrLevel))
-    hF k1 k2 k3 hok.sf.below.mats (fun _ _ _ ↦ hok.mats) osHA_iz (fun i hi ↦ hrv i (by omega)) fun C rd hH ↦ by
+    hF k1 k2 k3 hok.sf.below.mats (fun _ _ _ ↦ hok.mats) (osHA_izHM fun _ _ h ↦ h) (fun i hi ↦ hrv i (by omega)) fun C rd hH ↦ by
+      replace hH := osHA_of_hm (fun _ _ h ↦ h) hH
       have hm : OsMemA rd c b h.own := hH.2.2.1
       have i1 : 13 + c.yrLevel + 1 = 14 + c.yrLevel := by omega
       have i2 : 13 + c.yrLevel + 2 = 15 + c.yrLevel := by omega

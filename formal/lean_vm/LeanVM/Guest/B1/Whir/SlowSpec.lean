@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Whir.ResQuery
-public import LeanVM.Guest.B1.Whir.IsZero
+public import LeanVM.Guest.B1.Whir.IsZeroDefs
 
 /-!
 # The slow residual, as `open_stacked` reads it

@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.B1.Bits.GrindPlaced
+public import LeanVM.Guest.B1.Bits.GrindRc
 
 /-!
 # The words the range checks read

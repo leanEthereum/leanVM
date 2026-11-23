@@ -265,9 +265,6 @@ import LeanVM.Guest.B1.Whir.Vanish
 import LeanVM.Guest.B1.Whir.VanishCert
 import LeanVM.Guest.B1.Whir.Witness
 
-import LeanVM.Guest.B1.Opening.WalkBody0
-import LeanVM.Guest.B1.Opening.WalkBody1
-import LeanVM.Guest.B1.Opening.WalkBody2
 import LeanVM.Guest.B1.Opening.QueriesBody0
 import LeanVM.Guest.B1.Opening.QueriesBody1
 import LeanVM.Guest.B1.Opening.QueriesBody2
@@ -411,10 +408,10 @@ open Lean Elab Command in
     (`LeanVM.Guest.B1.Fs.TailRoundP, [`opening_tail_round]),
     (`LeanVM.Guest.B1.Fs.Templates, []),
     (`LeanVM.Guest.B1.Whir.Bases, []),
-    (`LeanVM.Guest.B1.Whir.CAtoms, [`opening_round]),
+    (`LeanVM.Guest.B1.Whir.CAtoms, []),
     (`LeanVM.Guest.B1.Whir.CBlk, []),
     (`LeanVM.Guest.B1.Whir.CCaps, []),
-    (`LeanVM.Guest.B1.Whir.CDisp, [`opening_round]),
+    (`LeanVM.Guest.B1.Whir.CDisp, []),
     (`LeanVM.Guest.B1.Whir.CFinB, []),
     (`LeanVM.Guest.B1.Whir.CFinEval, []),
     (`LeanVM.Guest.B1.Whir.CFinO, []),
@@ -427,16 +424,16 @@ open Lean Elab Command in
     (`LeanVM.Guest.B1.Whir.CInvLast, [`opening_tail_round]),
     (`LeanVM.Guest.B1.Whir.CInvLevel, []),
     (`LeanVM.Guest.B1.Whir.CInvRound, []),
-    (`LeanVM.Guest.B1.Whir.CLevel, [`opening_round]),
+    (`LeanVM.Guest.B1.Whir.CLevel, []),
     (`LeanVM.Guest.B1.Whir.CLoop, []),
-    (`LeanVM.Guest.B1.Whir.CLvB, [`opening_round]),
-    (`LeanVM.Guest.B1.Whir.CLvCommit, [`opening_round]),
-    (`LeanVM.Guest.B1.Whir.CLvLam, [`opening_round]),
+    (`LeanVM.Guest.B1.Whir.CLvB, []),
+    (`LeanVM.Guest.B1.Whir.CLvCommit, []),
+    (`LeanVM.Guest.B1.Whir.CLvLam, []),
     (`LeanVM.Guest.B1.Whir.CLvMsg, []),
     (`LeanVM.Guest.B1.Whir.CRounds, []),
-    (`LeanVM.Guest.B1.Whir.CRoundsA, [`opening_round]),
+    (`LeanVM.Guest.B1.Whir.CRoundsA, []),
     (`LeanVM.Guest.B1.Whir.CSqLoop, []),
-    (`LeanVM.Guest.B1.Whir.CTail, [`opening_round, `opening_tail_round]),
+    (`LeanVM.Guest.B1.Whir.CTail, [`opening_tail_round]),
     (`LeanVM.Guest.B1.Whir.CVal, []),
     (`LeanVM.Guest.B1.Whir.Commit, []),
     (`LeanVM.Guest.B1.Whir.CompleteIface, []),
@@ -558,11 +555,11 @@ open Lean Elab Command in
     (`LeanVM.Guest.B1.Sig, some [`main_loop2, `sp_wots, `verify_sig_lean_sphincs],
       [`LeanVM.Guest.B1.Sig.Interface]),
     (W ++ `DataSpecP, some [], []), (W ++ `Data, none, []), (W ++ `HelperData, none, []),
-    (`LeanVM.Guest.B1.Opening.WalkBody, none, []), (`LeanVM.Guest.B1.Opening.QueriesBody, none, []),
+    (`LeanVM.Guest.B1.Opening.QueriesBody, none, []),
     (Q ++ `QueryWindowsBody, none, []),
     (W ++ `HelperTables, some [], []),
-    (W ++ `Round, some [], []), (W ++ `RoundSound, some [`opening_round], []),
-    (W ++ `RoundComplete, some [`opening_round], []),
+    (W ++ `Round, some [], []), (W ++ `RoundSound, some [], []),
+    (W ++ `RoundComplete, some [], []),
     (W ++ `Loops, some [], []), (W ++ `SqLoop, some [], []), (W ++ `ResLoop, some [], []),
     (W ++ `LpSound, some [], []), (W ++ `LqSound, some [], []), (W ++ `LrSound, some [], [])] ++
     single.map fun (m, ks) ↦ (m, some ks, [])

@@ -90,7 +90,7 @@ theorem KidsDepB.toE {κ : ℕ} : ∀ {ks : List KidD} {Bs : List ℕ}, KidsDepB
 theorem kidsDepBPR_replicate {κ : ℕ} {b : ℕ} {P : Reader → Tree → Prop} : ∀ {ks : List KidD},
     (∀ k ∈ ks, ∀ pv, ((k pv).taken = true →
         CompleteAtDTBR fs cert κ (k pv).f (k pv).Lin (k pv).args (k pv).Out P b) ∧
-      ((k pv).taken = false → fs (k pv).f ≤ b)) →
+      ((k pv).taken = false → fs (tailKey (k pv).f) ≤ b)) →
     KidsDepBPR fs cert κ ks (List.replicate ks.length b) (List.replicate ks.length P)
   | [], _ => trivial
   | k :: _, h => ⟨h k List.mem_cons_self, kidsDepBPR_replicate fun k' hk' => h k' (List.mem_cons_of_mem _ hk')⟩
@@ -107,7 +107,7 @@ theorem namedP_zipWith : ∀ (ns : List String) (Bs : List ℕ) (Ps : List (Tree
 theorem selKids_E (κ : ℕ) (hκ : 6 ≤ κ) (D : TermData) (hxl : D.x.length ≤ 32) {Bcs : ℕ}
     (hKC : ∀ c < Tables.nCommittedCols, D.KC.getD c 0 < 31)
     (hOF : ∀ c < Tables.nCommittedCols, D.OF.getD c 0 < 2 ^ 32 ∧ 2 ^ D.KC.getD c 0 ∣ D.OF.getD c 0)
-    (hCsF : ∀ κ' < 31, fs (Tables.lName "column_selector" κ') ≤ Bcs) :
+    (hCsF : ∀ κ' < 31, fs (Tables.lName "column_selector" κ') ≤ Bcs) (htl : ∀ f, fs (tailKey f) ≤ fs f) :
     KidsDepBPR fs cert κ ((List.range Tables.nCommittedCols).map (selKid D))
       (List.replicate Tables.nCommittedCols Bcs) (List.replicate Tables.nCommittedCols everyE) := by
   have hpl : (p1Of D.x).length = 40 := p1Of_length (by simp only [termPointCap]; omega)
@@ -118,7 +118,7 @@ theorem selKids_E (κ : ℕ) (hκ : 6 ≤ κ) (D : TermData) (hxl : D.x.length �
     refine kidsDepBPR_replicate fun k hk pv => ?_
     obtain ⟨c, hc, rfl⟩ := List.mem_map.mp hk
     rw [List.mem_range] at hc
-    refine ⟨fun ht => ?_, fun _ => hCsF _ (hKC c hc)⟩
+    refine ⟨fun ht => ?_, fun _ => (htl _).trans (hCsF _ (hKC c hc))⟩
     have hst : Tables.stOut D.B.pt D.B.pt1 (pt32 D.x) (pt132 D.x) (stRes pv).1 (stRes pv).2 :=
       @of_decide_eq_true _ (Classical.propDecidable _) ht
     obtain ⟨ese, h1, h2⟩ := hst
@@ -162,7 +162,7 @@ theorem termKids_completeBE (κ : ℕ) (hκ : 6 ≤ κ) (Lin : Main.Layout) (D :
   obtain ⟨hAB, hC⟩ := KidsDepB.split (by simp) h
   obtain ⟨hA, -⟩ := KidsDepB.split (by simp) hAB
   unfold termKids termBs termPsE
-  refine KidsDepBPR.append (KidsDepBPR.append (KidsDepB.toE hA ?_) (selKids_E κ hκ D hxl hKC hOF hCsF))
+  refine KidsDepBPR.append (KidsDepBPR.append (KidsDepB.toE hA ?_) (selKids_E κ hκ D hxl hKC hOF hCsF hrs.1))
     (KidsDepB.toE hC ?_)
   · intro k hk pv _
     simp only [List.mem_cons, List.not_mem_nil, or_false] at hk

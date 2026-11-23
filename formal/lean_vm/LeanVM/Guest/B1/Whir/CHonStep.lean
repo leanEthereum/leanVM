@@ -113,7 +113,7 @@ theorem allocsAt_one {σ : Val} {ss : List Stmt} {a1 s1 : ℕ}
 
 /-! ## A non-final level -/
 
-variable {H : CallRel → Reader → Prop}
+variable {M : Reader → Prop} {H : CallRel → Reader → Prop}
 
 /-- The next level's start from a level's block: the state's invariants, pointers, rates and
 `level_rate` values. -/
@@ -154,9 +154,10 @@ theorem lvMid_step {h : OsHD} {b : ℕ} {tabs cur : E} {xs : List E} {l : ℕ} (
     (hsq : (h.c.levels.getD l default).squeezes < u128Bound)
     (hqu : (h.c.levels.getD l default).queries < u128Bound)
     (h3 : 2 * (h.c.levels.getD l default).foldsOff < u128Bound) (hh8 : l * hsStride < u128Bound)
-    (hiz : IsZeroC H)
-    (hC : ∀ C rd, H C rd → MidC C rd σ h.c l (h.c.levels.getD l default) (h.capAt l) (h.claimAt l)
-      (cur * gen ^ (xs.length - (h.xsAt l).length)) W rd0)
+    (hiz : IsZeroC (HM M H))
+    (hC : ∀ C rd, HM M H C rd → MidC C rd σ h.c l (h.c.levels.getD l default) (h.capAt l) (h.claimAt l)
+      (cur * gen ^ (xs.length - (h.xsAt l).length)) W)
+    (hag0 : ∀ C rd, H C rd → LowAgree rd rd0)
     (hcap' : capOf (W.SL (h.c.levels.getD l default) (h.capAt l) (h.claimAt l)) = h.capAt (l + 1))
     (hcl' : W.claimOut (h.c.levels.getD l default) (h.capAt l) (h.claimAt l) = h.claimAt (l + 1))
     (hcur' : xs.length - (h.xsAt l).length +
@@ -166,7 +167,7 @@ theorem lvMid_step {h : OsHD} {b : ℕ} {tabs cur : E} {xs : List E} {l : ℕ} (
     (hcapL : capOf (W.S2 (h.c.levels.getD l default) (h.capAt l) (h.claimAt l)) = h.capL l)
     (hlamv : W.lam (h.c.levels.getD l default) (h.capAt l) (h.claimAt l) = h.lamAt l)
     (hr0 : W.r0 = (digestHalves (h.root l)).1) (hr1 : W.r1 = (digestHalves (h.root l)).2) :
-    BlkA H σ st.k (osLevel h.c l (h.c.levels.getD l default) st).2.k
+    BlkA M H σ st.k (osLevel h.c l (h.c.levels.getD l default) st).2.k
       (osLevel h.c l (h.c.levels.getD l default) st).1 (fun σ' ↦
       st.k ≤ (osLevel h.c l (h.c.levels.getD l default) st).2.k ∧
       QAt h b tabs cur xs (l + 1) (osLevel h.c l (h.c.levels.getD l default) st).2 σ' ∧
@@ -187,10 +188,10 @@ theorem lvMid_step {h : OsHD} {b : ℕ} {tabs cur : E} {xs : List E} {l : ℕ} (
   have hcl := hq.claim
   have hcu := hq.cur
   have hfin : l ≠ c.yrLevel := by omega
-  have hblk := osLevelMid_complete (H := H) (c := c) (lvl := l) (lv := lv) (st := st) σ hq.ok.sf
+  have hblk := osLevelMid_complete (M := M) (H := H) (c := c) (lvl := l) (lv := lv) (st := st) σ hq.ok.sf
     (fun _ _ _ ↦ hq.ok) hfin W rd0 hl0 hrwl hq.pad (by have := hq.co; omega) hoff hpo hsq h3 hh8 hiz
     (fun _ _ _ ↦ hq.rate l (by show l < c.levels.length; omega))
-    (fun C rd hH ↦ by rw [hfs, hcl, hcu]; exact hC C rd hH)
+    (fun C rd hH ↦ by rw [hfs, hcl, hcu]; exact hC C rd hH) hag0
   refine hblk.mono fun σ' ⟨hstep, eF, ecur, ecl, hrv, e1, e2, pa, pr, qa, qr, hk9, hcv⟩ ↦ ?_
   have ht : σ (.n osTabs) = tabs := hq.tabs
   have hptr : ∀ i < 9, σ (.n (12 + 2 * i)) = osPtrA c b i := hq.ptr
@@ -240,8 +241,9 @@ theorem lvFin_step {h : OsHD} {b : ℕ} {tabs cur : E} {xs : List E} (hS : BodyS
     (hqu : (h.c.levels.getD h.c.yrLevel default).queries < u128Bound)
     (h3 : 2 * (h.c.levels.getD h.c.yrLevel default).foldsOff < u128Bound)
     (hh8 : h.c.yrLevel * hsStride < u128Bound)
-    (hC : ∀ C rd, H C rd → FinC C rd σ h.c h.c.yrLevel (h.c.levels.getD h.c.yrLevel default)
-      (h.capAt h.c.yrLevel) (h.claimAt h.c.yrLevel) (cur * gen ^ (xs.length - (h.xsAt h.c.yrLevel).length)) W rd0)
+    (hC : ∀ C rd, HM M H C rd → FinC C rd σ h.c h.c.yrLevel (h.c.levels.getD h.c.yrLevel default)
+      (h.capAt h.c.yrLevel) (h.claimAt h.c.yrLevel) (cur * gen ^ (xs.length - (h.xsAt h.c.yrLevel).length)) W)
+    (hag0 : ∀ C rd, H C rd → LowAgree rd rd0)
     (hcap' : W.cap3 (h.c.levels.getD h.c.yrLevel default) (h.capAt h.c.yrLevel) (h.claimAt h.c.yrLevel) =
       h.capAt (h.c.yrLevel + 1))
     (hcl' : W.cl1 (h.c.levels.getD h.c.yrLevel default) (h.capAt h.c.yrLevel) (h.claimAt h.c.yrLevel) =
@@ -256,7 +258,7 @@ theorem lvFin_step {h : OsHD} {b : ℕ} {tabs cur : E} {xs : List E} (hS : BodyS
       (h.claimAt h.c.yrLevel)) = h.capL h.c.yrLevel)
     (hr0 : W.r0 = (digestHalves (h.root h.c.yrLevel)).1)
     (hr1 : W.r1 = (digestHalves (h.root h.c.yrLevel)).2) :
-    BlkA H σ st.k (osLevel h.c h.c.yrLevel (h.c.levels.getD h.c.yrLevel default) st).2.k
+    BlkA M H σ st.k (osLevel h.c h.c.yrLevel (h.c.levels.getD h.c.yrLevel default) st).2.k
       (osLevel h.c h.c.yrLevel (h.c.levels.getD h.c.yrLevel default) st).1 (fun σ' ↦
       st.k ≤ (osLevel h.c h.c.yrLevel (h.c.levels.getD h.c.yrLevel default) st).2.k ∧
       QAt h b tabs cur xs (h.c.yrLevel + 1)
@@ -278,10 +280,10 @@ theorem lvFin_step {h : OsHD} {b : ℕ} {tabs cur : E} {xs : List E} (hS : BodyS
   have hfs := hq.fs
   have hcl := hq.claim
   have hcu := hq.cur
-  have hblk := osLevelFin_complete (H := H) (c := c) (lvl := l) (lv := lv) (st := st) σ hq.ok.sf
+  have hblk := osLevelFin_complete (M := M) (H := H) (c := c) (lvl := l) (lv := lv) (st := st) σ hq.ok.sf
     (fun _ _ _ ↦ hq.ok) rfl W rd0 hl0 hrwl hq.pad (by have := hq.co; omega) hpo hsq h3 hh8
     (fun _ _ _ ↦ hq.rate l (by show l < c.levels.length; omega))
-    (fun C rd hH ↦ by rw [hfs, hcl, hcu]; exact hC C rd hH)
+    (fun C rd hH ↦ by rw [hfs, hcl, hcu]; exact hC C rd hH) hag0
   refine hblk.mono fun σ' ⟨hstep, eF, ecur, ecl, hrv, e3, e4, pa, pr, qa, qr, hk9, hcv⟩ ↦ ?_
   have ht : σ (.n osTabs) = tabs := hq.tabs
   have hptr : ∀ i < 9, σ (.n (12 + 2 * i)) = osPtrA c b i := hq.ptr

@@ -106,7 +106,8 @@ theorem body_gen {h : OsHD} {args xs : List E} {lane : ℕ} {w : WhirEnd} {cur t
         (fun σ' ↦ OsOutA h.c b tabs (h.tr.2.1 + h.T.prod * recsDeficit h.recs h.G)
           ((h.recs.flatMap recGlued).foldl (fun w g ↦ w + g.scalar * g.weightAt ((h.G ++ h.T).drop g.foldStart)) 0)
           (multilinearEval (h.Lf.fw.fold.take h.c.yrLen) h.T) h.own h.D σ' ∧
-          cvOf (osBodyA h.c) σ' = h.cvBody b tabs cur xs args) := by
+          cvOf (osBodyA h.c) σ' = h.cvBody b tabs cur xs args ∧
+          LoadsIn (OsM h.c b h.own cur tabs xs) (osBodyA h.c) σ') := by
   have hy := F.lv.yrE
   obtain ⟨ri, hri, hsel, hpt⟩ := F.sel
   obtain ⟨kEnd, f, hf⟩ := body_of (H := fun C rd ↦ OsHA C rd h.c b h.own cur tabs xs ∧ LowAgree rd rd0)
@@ -116,18 +117,19 @@ theorem body_gen {h : OsHD} {args xs : List E} {lane : ℕ} {w : WhirEnd} {cur t
       (multilinearEval (h.Lf.fw.fold.take h.c.yrLen) h.T) (osPtrA h.c b (16 + h.c.yrLevel))) F.lv.bs
     hsel hri hpt F.a0 F.a6 ha9 ha10 F.x0 F.rate
     (fun C rd hH ↦ by
-      obtain ⟨r0, r1⟩ := h.mid_roots F.lv.hs hH.1.2.2.1 (l := 0) (by omega)
+      replace hH := osHA_of_hm (fun _ _ h ↦ h.1) hH
+      obtain ⟨r0, r1⟩ := h.mid_roots F.lv.hs hH.2.2.1 (l := 0) (by omega)
       have e1 : args.getD 7 0 = (digestHalves (h.root 0)).1 := congrArg Prod.fst F.r0
       have e2 : args.getD 8 0 = (digestHalves (h.root 0)).2 := congrArg Prod.snd F.r0
       rw [e1, e2]
-      exact ⟨r0, r1, fun r hr ↦ h.posTot_load F.lv.hs hH.1.2.2.1 hr⟩)
+      exact ⟨r0, r1, fun r hr ↦ h.posTot_load F.lv.hs hH.2.2.1 hr⟩)
     (fun st σ hq ↦ F.lv.levels rd0 hl0 st σ hq) (fun l _ ↦ h.D_eq l)
-    (fun l hl ↦ h.rootA F.lv.hs hl) F.pl (fun C rd hH ↦ tailC_from F.lv.hs F.lv.nm F.tsuf F.pl F.f3 C rd hH.1)
-    (fun C rd hH ↦ tail_zero F.lv.hs hH.1.2.2.1 F.pl)
+    (fun l hl ↦ h.rootA F.lv.hs hl) F.pl (fun C rd hH ↦ tailC_from F.lv.hs F.lv.nm F.tsuf F.pl F.f3 C rd (osHA_of_hm (fun _ _ h ↦ h.1) hH))
+    (fun C rd hH ↦ tail_zero F.lv.hs (osHA_of_hm (fun _ _ h ↦ h.1) hH).2.2.1 F.pl)
     (fun σ hsf hok hrt hrv hp hqp ht htc hcl ↦ (fin_of F.lv.hs F.lv.nm F.finS F.lv.len F.rrun F.ylen F.fold
       F.ffm (b := b) (cur := cur) (tabs := tabs) (xs := xs) (D := h.D) (fun l hl ↦ ⟨rfl, F.res l hl⟩) F.slow σ hsf hok hrt
       hrv hp hqp ht htc hcl).weaken fun C rd hH ↦ hH.1)
-  exact ⟨kEnd, f, fun C rd hH hag ↦ hf C rd ⟨hH, hag⟩⟩
+  exact ⟨kEnd, f, fun C rd hH hag ↦ (hf C rd ⟨hH, hag⟩).mono fun σ' ⟨l, o, cv⟩ ↦ ⟨o, cv, l⟩⟩
 
 end
 end LeanVM.Guest.B1.Whir

@@ -25,7 +25,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-variable {H : CallRel → Reader → Prop}
+variable {M : Reader → Prop} {H : CallRel → Reader → Prop}
 
 /-- **The final level's step**, from the run's facts at the level, its batch `bt`. -/
 theorem lvFin_gen {h : OsHD} {xs : List E} {b : ℕ} {tabs cur bt : E} {lane : ℕ} {w : WhirEnd}
@@ -35,11 +35,12 @@ theorem lvFin_gen {h : OsHD} {xs : List E} {b : ℕ} {tabs cur bt : E} {lane : �
     (hg : (h.Ls.getD h.c.yrLevel default).s.alphas.length = ((h.c.levels.getD h.c.yrLevel default)).foldsOff)
     (hsuf : ∃ p, xs = p ++ (h.Ls.getD h.c.yrLevel default).xs)
     {st : OsSt} {σ : Val} (hq : QAt h b tabs cur xs h.c.yrLevel st σ) (rd0 : Reader) (hl0 : LowDef 11 rd0)
-    (hFC : ∀ C rd, H C rd → FinC C rd σ h.c h.c.yrLevel ((h.c.levels.getD h.c.yrLevel default)) (h.capAt h.c.yrLevel)
+    (hFC : ∀ C rd, HM M H C rd → FinC C rd σ h.c h.c.yrLevel ((h.c.levels.getD h.c.yrLevel default)) (h.capAt h.c.yrLevel)
       (h.claimAt h.c.yrLevel) (cur * gen ^ (xs.length - (h.xsAt h.c.yrLevel).length))
       ((h.Ls.getD h.c.yrLevel default).finWD (digestHalves (h.root h.c.yrLevel)).1
-        (digestHalves (h.root h.c.yrLevel)).2 bt (osPtrA h.c b (12 + h.c.yrLevel))) rd0) :
-    BlkA H σ st.k (osLevel h.c h.c.yrLevel ((h.c.levels.getD h.c.yrLevel default)) st).2.k
+        (digestHalves (h.root h.c.yrLevel)).2 bt (osPtrA h.c b (12 + h.c.yrLevel))))
+    (hag0 : ∀ C rd, H C rd → LowAgree rd rd0) :
+    BlkA M H σ st.k (osLevel h.c h.c.yrLevel ((h.c.levels.getD h.c.yrLevel default)) st).2.k
       (osLevel h.c h.c.yrLevel ((h.c.levels.getD h.c.yrLevel default)) st).1 (fun σ' ↦
       st.k ≤ (osLevel h.c h.c.yrLevel ((h.c.levels.getD h.c.yrLevel default)) st).2.k ∧
       QAt h b tabs cur xs (h.c.yrLevel + 1) (osLevel h.c h.c.yrLevel ((h.c.levels.getD h.c.yrLevel default)) st).2 σ' ∧
@@ -76,7 +77,7 @@ theorem lvFin_gen {h : OsHD} {xs : List E} {b : ℕ} {tabs cur bt : E} {lane : �
     obtain ⟨rw, W, hd, hrl, -⟩ := hF
     show L.rw.length = _
     unfold LvAt.rw; rw [hd, hrl, hfold]
-  refine lvFin_step (H := H) (h := h) hS hq _ rd0 hl0 hrwl rfl hf5 hpo (by omega) hqu (by omega) hh8 hFC
+  refine lvFin_step (M := M) (H := H) (h := h) hS hq _ rd0 hl0 hrwl rfl hf5 hpo (by omega) hqu (by omega) hh8 hFC hag0
     ?_ ?_ ?_ ?_
     (by rw [hcap0, E.S2]; rfl) rfl rfl
   · rw [hcap1, ← E.cap3, hcap0]

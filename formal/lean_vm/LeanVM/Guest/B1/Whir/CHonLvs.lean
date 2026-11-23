@@ -54,7 +54,7 @@ theorem LvAt.phase_next_length {L L' : LvAt} {logN index : ℕ} (hN : LvAt.NextS
   simp only [LvAt.F, LvAt.mu, LvAt.dp, LvAt.s1, hrw]
   exact hnext.plen
 
-variable {H : CallRel → Reader → Prop}
+variable {M : Reader → Prop} {H : CallRel → Reader → Prop}
 
 /-- **A non-final level's step**, from the run's facts at the level. -/
 theorem lvMid_gen {h : OsHD} {xs : List E} {b : ℕ} {tabs cur : E} (hS : BodyStatic h.c) {l : ℕ}
@@ -65,13 +65,13 @@ theorem lvMid_gen {h : OsHD} {xs : List E} {b : ℕ} {tabs cur : E} (hS : BodySt
     (hg : (h.Ls.getD l default).s.alphas.length = ((h.c.levels.getD l default)).foldsOff)
     (hrecF : ∀ q ∈ lvsRecs h.logN h.Ls l, q.F ≤ (h.Ls.getD l default).s.alphas.length)
     (hsuf : ∃ p, xs = p ++ (h.Ls.getD l default).xs)
-    {st : OsSt} {σ : Val} (hq : QAt h b tabs cur xs l st σ) (hiz : IsZeroC H) (rd0 : Reader)
+    {st : OsSt} {σ : Val} (hq : QAt h b tabs cur xs l st σ) (hiz : IsZeroC (HM M H)) (rd0 : Reader)
     (hl0 : LowDef 11 rd0)
-    (hMC : ∀ C rd, H C rd → MidC C rd σ h.c l ((h.c.levels.getD l default)) (h.capAt l) (h.claimAt l)
+    (hMC : ∀ C rd, HM M H C rd → MidC C rd σ h.c l ((h.c.levels.getD l default)) (h.capAt l) (h.claimAt l)
       (cur * gen ^ (xs.length - (h.xsAt l).length))
       ((h.Ls.getD l default).midW (digestHalves (h.root l)).1 (digestHalves (h.root l)).2 (h.bat l)
-        (osPtrA h.c b (12 + l))) rd0) :
-    BlkA H σ st.k (osLevel h.c l ((h.c.levels.getD l default)) st).2.k (osLevel h.c l ((h.c.levels.getD l default)) st).1 (fun σ' ↦
+        (osPtrA h.c b (12 + l)))) (hag0 : ∀ C rd, H C rd → LowAgree rd rd0) :
+    BlkA M H σ st.k (osLevel h.c l ((h.c.levels.getD l default)) st).2.k (osLevel h.c l ((h.c.levels.getD l default)) st).1 (fun σ' ↦
       st.k ≤ (osLevel h.c l ((h.c.levels.getD l default)) st).2.k ∧
       QAt h b tabs cur xs (l + 1) (osLevel h.c l ((h.c.levels.getD l default)) st).2 σ' ∧
       RAt h b tabs l (h.bat l) σ' ∧
@@ -146,8 +146,8 @@ theorem lvMid_gen {h : OsHD} {xs : List E} {b : ℕ} {tabs cur : E} (hS : BodySt
     obtain ⟨rw, W, hd, hrl, -⟩ := hN
     show (h.Ls.getD l default).rw.length = _
     unfold LvAt.rw; rw [hd, hrl, hfold]
-  have := lvMid_step (H := H) (h := h) hS hl hq _ rd0 hl0 hrwl rfl hf5 hood hpo (by omega) hqu
-    (by omega) hh8 hiz hMC (by rw [hcapl, hcap1, ← E.cap']) (by rw [hcapl, hcl0, hcl1, lvsRecs_succ (by omega)]; exact hC.1)
+  have := lvMid_step (M := M) (H := H) (h := h) hS hl hq _ rd0 hl0 hrwl rfl hf5 hood hpo (by omega) hqu
+    (by omega) hh8 hiz hMC hag0 (by rw [hcapl, hcap1, ← E.cap']) (by rw [hcapl, hcl0, hcl1, lvsRecs_succ (by omega)]; exact hC.1)
     (by
       rw [hx0, hx1]
       obtain ⟨rw, W, hd, hrl, -, hxs, -, hnext, -⟩ := hN

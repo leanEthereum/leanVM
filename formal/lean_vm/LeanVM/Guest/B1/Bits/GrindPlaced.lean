@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Bits.Grind
 public import LeanVM.Guest.B1.Bits.GrindFwd
+public import LeanVM.Guest.B1.Bits.GrindRc
 public import LeanVM.Guest.Memory.Uniform
 public import LeanVM.Guest.Memory.Size
 public import LeanVM.Guest.Memory.PopsNil
@@ -65,17 +66,6 @@ theorem forced_load_region {κ : ℕ} {Lin : Main.Layout} {p : E} {off : ℕ} {v
   have h1 := (h rd hlow hL).2
   simp only [rd, ↓reduceIte, Option.some.injEq] at h1
   exact one_ne_zero (add_eq_left.mp h1)
-
-/-- **The windows' range checks pass** on every memory defined below `2^κ`, `11 ≤ κ`. -/
-theorem gcRc_of_lowDef {κ : ℕ} (hκ : 11 ≤ κ) {rd : Reader} (hlow : LowDef κ rd) :
-    ∀ v ≤ 11, ∀ e < 2 ^ v, ∃ y t1 t2 : E, LoadHolds rd (gen ^ e) 0 t1 ∧
-      wBound v = gen ^ e * y ∧ LoadHolds rd y 0 t2 := by
-  intro v hv e he
-  obtain ⟨a, b, c⟩ := rc_complete_low hlow (K := 2 ^ v)
-    (Nat.pow_le_pow_right (by decide) (by omega)) he
-  refine ⟨_, _, _, by rw [gen_pow_eq_ofK]; exact a, ?_, c⟩
-  rw [wBound_eq hv, gen_pow_eq_ofK, gen_pow_eq_ofK]
-  exact b
 
 /-! ## The body -/
 

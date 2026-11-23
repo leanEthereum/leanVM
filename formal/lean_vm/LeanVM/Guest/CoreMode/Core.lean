@@ -119,8 +119,10 @@ structure JumpF (img : MemoryImage κ) (X : AlignCtx) (body : List Stmt) (fp : �
   cond : ∀ es vs, walk σ body = .ret es vs → ∀ c, Ev.inK c ∈ es → Rd img fp (X.locAt c.idx) = some (σ c)
   arm : ∀ x arms, Stmt.match_ x arms ∈ stmtsOf body → ∀ od a, Check.getF X.arms od = some a → a.1 = x.idx →
     ∀ k t, σ x = ofK (g ^ k) → Check.getF X.jt (a.2 + k) = some t → Rd img fp od = some (ofK (g ^ t))
-  sel : ∀ es vs, walk σ body = .ret es vs → ∀ x arms, Stmt.match_ x arms ∈ stmtsOf body →
-    Rd img fp (X.locAt x.idx) = some (σ x)
+  /-- A `match` the path reaches, at a cursor `zs` from which the path's events are its last ones: its selector at
+  its cell. -/
+  sel : ∀ zs x arms ss pre es vs, ZOk body zs → zs.cur = .match_ x arms :: ss → walk σ body = .ret (pre ++ es) vs →
+    walk σ zs.pos = .ret es vs → Rd img fp (X.locAt x.idx) = some (σ x)
   /-- A dispatch's selector at its cell. -/
   dsel : ∀ es vs, walk σ body = .ret es vs → ∀ x fs args rets, Stmt.dispatch x fs args rets ∈ stmtsOf body →
     Rd img fp (X.locAt x.idx) = some (σ x)

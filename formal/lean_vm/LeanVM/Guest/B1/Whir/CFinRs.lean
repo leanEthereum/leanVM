@@ -24,7 +24,7 @@ open LeanVM.Guest.Value LeanVM.Protocol.Verifier
 
 @[expose] public section
 
-variable {H : CallRel → Reader → Prop}
+variable {M : Reader → Prop} {H : CallRel → Reader → Prop}
 
 /-- The chains after the first `8j` of a level's positions. -/
 def rcAt (lv : OsLv) (D : ℕ → E) (hsv : List E) (Pos : ℕ → E) (mu : E) (j : ℕ) : E × E :=
@@ -88,15 +88,15 @@ def resB (ich ls la lvl h hh sl a : ℕ) : List Stmt :=
 theorem resB_complete {ich ls la lvl h hh sl a : ℕ} {σ : Val} {i0 i1 s b af P Q SL : E}
     (hich : ich < a) (hls : ls < a) (hla : la < a) (hh1 : h < a) (hh2 : hh < a) (hsl : sl < a)
     (ha36 : 43 ≤ a)
-    (hv : ∀ C rd, H C rd → σ (.n h) = P ∧ σ (.n hh) = Q ∧ σ (.n sl) = SL)
-    (hm : ∀ C rd, H C rd → LoadHolds rd (σ (.n ich)) (2 * lvl) i0 ∧
+    (hv : ∀ C rd, HM M H C rd → σ (.n h) = P ∧ σ (.n hh) = Q ∧ σ (.n sl) = SL)
+    (hm : ∀ C rd, HM M H C rd → LoadHolds rd (σ (.n ich)) (2 * lvl) i0 ∧
       LoadHolds rd (σ (.n ls)) lvl s ∧ LoadHolds rd (σ (.n ich)) (2 * lvl + 1) i1 ∧
       LoadHolds rd (σ (.n osBetas)) lvl b ∧ LoadHolds rd (σ (.n la)) lvl af ∧
       LoadHolds rd (σ (.n ich)) (2 * lvl + 2) (i0 + s * P + SL) ∧
       LoadHolds rd (σ (.n ich)) (2 * lvl + 3) (i1 + b * af * Q)) :
-    BlkA H σ a (a + 11) (resB ich ls la lvl h hh sl a) (fun _ ↦ True) := by
-  refine ⟨lstF a [i0, s, s * P, i0 + s * P, i0 + s * P + SL, i1, b, af, b * af, b * af * Q,
-    i1 + b * af * Q], fun C rd hH σ' ha hr ↦ ?_⟩
+    BlkA M H σ a (a + 11) (resB ich ls la lvl h hh sl a) (fun _ ↦ True) := by
+  refine BlkA.ofHM (lstF a [i0, s, s * P, i0 + s * P, i0 + s * P + SL, i1, b, af, b * af, b * af * Q,
+    i1 + b * af * Q]) fun C rd hH σ' ha hr ↦ ?_
   have hv' : ∀ j < 11, σ' (.n (a + j)) = [i0, s, s * P, i0 + s * P, i0 + s * P + SL, i1, b, af,
       b * af, b * af * Q, i1 + b * af * Q].getD j 0 := fun j hj ↦ lstF_at hr (by simp) j (by simp; omega)
   have v0 := hv' 0 (by omega)

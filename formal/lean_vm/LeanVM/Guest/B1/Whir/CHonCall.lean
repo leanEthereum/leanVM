@@ -76,6 +76,18 @@ theorem osH_special (hH : OsHA C rd c b own cur tabs xs) {f : String} (hK : osKi
 theorem osHA_iz : IsZeroC (fun C rd ↦ OsHA C rd c b own cur tabs xs) := fun _ _ hH w ↦
   osH_named hH osKindOf_isZero (show MeaningIsZero [w] [zeroOf w] from rfl) fun q hq ↦ by simp [OsKind.spec] at hq
 
+/-- **The memory facts of `OsHA`**, the call relation trivial. -/
+abbrev OsM (c : OsCfg) (b : ℕ) (own : List (List E)) (cur tabs : E) (xs : List E) : Reader → Prop :=
+  fun rd ↦ OsHA (fun _ _ _ ↦ True) rd c b own cur tabs xs
+
+/-- `OsHA` on `HM` of its memory facts and a relation within `OsHA`. -/
+theorem osHA_of_hm {H : CallRel → Reader → Prop} (hH : ∀ C rd, H C rd → OsHA C rd c b own cur tabs xs)
+    (h : HM (OsM c b own cur tabs xs) H C rd) : OsHA C rd c b own cur tabs xs :=
+  h.elim (hH C rd) fun h ↦ by rw [h.2.1]; exact h.1
+
+theorem osHA_izHM {H : CallRel → Reader → Prop} (hH : ∀ C rd, H C rd → OsHA C rd c b own cur tabs xs) :
+    IsZeroC (HM (OsM c b own cur tabs xs) H) := fun C rd h w ↦ osHA_iz C rd (osHA_of_hm hH h) w
+
 /-! ## The meanings at the honest arguments -/
 
 theorem five_of {cap : List E} (h : cap.length = 5) :

@@ -34,7 +34,7 @@ open LeanVM.Guest.Value LeanVM.Protocol LeanVM.Protocol.Compile LeanVM.Protocol.
 
 @[expose] public section
 
-variable {H : CallRel → Reader → Prop}
+variable {M : Reader → Prop} {H : CallRel → Reader → Prop}
 
 /-- **A dispatch at the selector `g^i`** holds when its `i`-th arm's relation does. -/
 theorem stmtOk_dispatch_of {C : CallRel} {rd : Reader} {σ : Val} {x : V} {fs : List String}
@@ -46,11 +46,11 @@ theorem stmtOk_dispatch_of {C : CallRel} {rd : Reader} {σ : Val} {x : V} {fs : 
 /-- **A dispatch on the rate's selector at its returns**: the returns listed from `r`. -/
 theorem rateDisp_blk {σ : Val} {c : OsCfg} {lvl : ℕ} {lv : OsLv} {r n : ℕ} (f : OsLv → String)
     {args : List ℕ} (rets : List E) (hl : rets.length = n) (hargs : ∀ i ∈ args, i < r) (h0 : 0 < r)
-    (hrate : ∀ C rd, H C rd → LvRate σ c lvl lv)
-    (hC : ∀ C rd, H C rd → C (f lv) (args.map fun i ↦ σ (.n i)) rets) :
-    BlkA H σ r (r + n) [.dispatch (.n osRate) ((c.lvAt lvl).map f) (args.map V.n) (osRun r n)]
+    (hrate : ∀ C rd, HM M H C rd → LvRate σ c lvl lv)
+    (hC : ∀ C rd, HM M H C rd → C (f lv) (args.map fun i ↦ σ (.n i)) rets) :
+    BlkA M H σ r (r + n) [.dispatch (.n osRate) ((c.lvAt lvl).map f) (args.map V.n) (osRun r n)]
       (fun σ' ↦ ∀ j < n, σ' (.n (r + j)) = rets.getD j 0) := by
-  refine ⟨lstF r rets, fun C rd hH σ' ha hr ↦ ?_⟩
+  refine BlkA.ofHM (lstF r rets) fun C rd hH σ' ha hr ↦ ?_
   have hv : ∀ j < n, σ' (.n (r + j)) = rets.getD j 0 := fun j hj ↦
     lstF_at hr (by omega) j (by omega)
   refine ⟨?_, hv⟩
@@ -90,8 +90,8 @@ theorem osRates_k (c : OsCfg) (lvl : ℕ) (st : OsSt) :
 /-- **`level_rate`, honestly**: the rate's row's values as words, the level's positions and window
 pointers `query_positions·g^posOff`, `query_win_ptrs·g^posOff`. -/
 theorem osRates_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : Val) (hsf : st.Sf)
-    (hok : ∀ C rd, H C rd → st.Ok σ) (hrate : ∀ C rd, H C rd → LvRate σ c lvl lv) :
-    BlkA H σ st.k (osRates c lvl st).2.k (osRates c lvl st).1 (fun σ' ↦
+    (hok : ∀ C rd, HM M H C rd → st.Ok σ) (hrate : ∀ C rd, HM M H C rd → LvRate σ c lvl lv) :
+    BlkA M H σ st.k (osRates c lvl st).2.k (osRates c lvl st).1 (fun σ' ↦
       OsStep σ σ' st (osRates c lvl st).2 ∧
       (∀ j < 4, σ' (.n (st.k + 1 + 2 * j + 1)) = gw ((osRateVals lv).getD j 0)) ∧
       σ' (.n (osRates c lvl st).2.lp) = σ (.n osQpos) * gw lv.posOff ∧
@@ -105,7 +105,7 @@ theorem osRates_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : V
   set q := σ (.n osQpos) * gw lv.posOff
   set b := σ (.n osQbp) * gw lv.posOff
   have hvl : (osRateVals lv).length = 4 := rfl
-  refine ⟨rateF k ri lv q b, fun C rd hH σ' ha hr ↦ ?_⟩
+  refine BlkA.ofHM (rateF k ri lv q b) fun C rd hH σ' ha hr ↦ ?_
   have ek : (osRates c lvl st).2.k = m + 2 := rfl
   rw [ek] at hr
   have hodd : ∀ j < 4, σ' (.n (k + 2 * j + 1)) = gw ((osRateVals lv).getD j 0) := fun j hj ↦ by
@@ -205,11 +205,11 @@ theorem osPosCall_map (σ : Val) (s : OsSt) : (osPosCall s).1.map σ =
 /-- **The positions, honestly**: the dispatch into `level_positions` at its returns `capR`, the
 sponge's capacity `capR`. -/
 theorem osPositions_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : Val) (hsf : st.Sf)
-    (hok : ∀ C rd, H C rd → st.Ok σ) (hw0 : st.word0 < st.k) (hlp : st.lp < st.k) (hlw : st.lw < st.k)
+    (hok : ∀ C rd, HM M H C rd → st.Ok σ) (hw0 : st.word0 < st.k) (hlp : st.lp < st.k) (hlw : st.lw < st.k)
     (hsq : osSqCell st < st.k) (capR : List E) (hcl : capR.length = 5)
-    (hrate : ∀ C rd, H C rd → LvRate σ c lvl lv)
-    (hC : ∀ C rd, H C rd → C (osPositionsName lv) ((osPosCall st).1.map σ) capR) :
-    BlkA H σ st.k (osPositions c lvl st).2.k (osPositions c lvl st).1 (fun σ' ↦
+    (hrate : ∀ C rd, HM M H C rd → LvRate σ c lvl lv)
+    (hC : ∀ C rd, HM M H C rd → C (osPositionsName lv) ((osPosCall st).1.map σ) capR) :
+    BlkA M H σ st.k (osPositions c lvl st).2.k (osPositions c lvl st).1 (fun σ' ↦
       OsStep σ σ' st (osPositions c lvl st).2 ∧
       (osPositions c lvl st).2.F σ' = ⟨capR, []⟩ ∧
       (osPositions c lvl st).2.cur σ' = st.cur σ ∧
@@ -231,7 +231,7 @@ theorem osPositions_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ
     · exact hsq
   have eA : (osPosCall st).1.map σ = args.map fun i ↦ σ (.n i) := by
     simp only [osPosCall, List.map_map]; rfl
-  have h := rateDisp_blk (H := H) (σ := σ) (c := c) (lvl := lvl) (lv := lv) (r := k) (n := 5)
+  have h := rateDisp_blk (M := M) (H := H) (σ := σ) (c := c) (lvl := lvl) (lv := lv) (r := k) (n := 5)
     osPositionsName (args := args) capR hcl hargs (by omega) hrate
     (fun C rd hH ↦ by rw [← eA]; exact hC C rd hH)
   have ek : (osPositions c lvl st).2.k = k + 5 := rfl

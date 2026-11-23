@@ -54,13 +54,13 @@ theorem midC_of {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} {l : ℕ}
         ((h.L l).s.alphas.length + j) 0)
     (hL : h.Ls.length = h.c.levels.length)
     (hrl : ∀ i < h.c.levels.length, (h.L i).rounds.length = ((h.c.levels.getD i default)).folds)
-    (hz0 : ((h.L l).osRec h.logN).z0.length = ((h.c.levels.getD l default)).logCols) (rd0 : Reader) :
-    ∀ C rd, OsHA C rd h.c b h.own cur tabs xs → LowAgree rd rd0 →
+    (hz0 : ((h.L l).osRec h.logN).z0.length = ((h.c.levels.getD l default)).logCols) :
+    ∀ C rd, OsHA C rd h.c b h.own cur tabs xs →
       MidC C rd σ h.c l ((h.c.levels.getD l default)) (h.capAt l) (h.claimAt l)
         (cur * gen ^ (xs.length - (h.xsAt l).length))
         ((h.L l).midW (digestHalves (h.root l)).1 (digestHalves (h.root l)).2 batched
-          (osPtrA h.c b (12 + l))) rd0 := by
-  intro C rd hH hag
+          (osPtrA h.c b (12 + l))) := by
+  intro C rd hH
   have hyr := hS.yr
   have hln : l < h.c.levels.length := by omega
   have hrdx : ReadsAt rd cur xs := hH.1
@@ -144,13 +144,13 @@ theorem midC_of {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} {l : ℕ}
   have hfe := h.foldsEnd_le hS hln
   have h4 : (osSizesL h.c).getD 2 0 = h.c.nFolds := by rw [hS.head (j := 2) (by omega)]; rfl
   have h5 : (osSizesL h.c).getD 3 0 = 2 * h.c.nFolds := by rw [hS.head (j := 3) (by omega)]; rfl
-  refine ⟨?f_rounds, ?f_om, ?f_g0, ⟨by rw [ht]; exact hwt, hag⟩, ?f_sent, ?f_spf, ?f_ys, ?f_g17, ?f_lp,
+  refine ⟨?f_rounds, ?f_om, ?f_g0, by rw [ht]; exact hwt, ?f_sent, ?f_spf, ?f_ys, ?f_g17, ?f_lp,
     ?f_hs, ?f_q, ?f_roots, ?f_glue⟩
   case f_rounds =>
     rw [p4, p5, ht]
-    change RoundsH rd0 rd (osPtrA h.c b 2) (osPtrA h.c b 3) tabs _ _ _ _ _ (h.L l).rw
+    change RoundsH rd (osPtrA h.c b 2) (osPtrA h.c b 3) tabs _ _ _ _ _ (h.L l).rw
     rw [hLrw]
-    refine roundsH_of hwt hag ((h.c.levels.getD l default)).folds
+    refine roundsH_of hwt ((h.c.levels.getD l default)).folds
       ((h.c.levels.getD l default)).foldsOff (h.L l).cap (h.claimAt l) _ rw hrwl r0 ?_
     · rw [← hfold]
       refine roundsMem_of _ _ (h.L l).s (h.L l).cap (h.claimAt l) rw hrok (fun j hj ↦ ?_) (fun j hj ↦ ?_)

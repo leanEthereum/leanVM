@@ -28,7 +28,7 @@ open LeanVM.Guest.Value LeanVM.Protocol LeanVM.Protocol.Compile LeanVM.Protocol.
 
 @[expose] public section
 
-variable {H : CallRel → Reader → Prop}
+variable {M : Reader → Prop} {H : CallRel → Reader → Prop}
 
 /-- The OOD point's capacity after its squeezes (`squeeze_point_from`'s returns). -/
 def spfRets (cap msg : List E) (n1 : E) (n : ℕ) : List E :=
@@ -70,24 +70,24 @@ def commitCV (cap msg : List E) (n1 cur pS oz : E) (folds logCols : ℕ) : List 
 
 /-- **A non-final level's message, honestly**. -/
 theorem osCommit_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : Val) (hsf : st.Sf)
-    (hok : ∀ C rd, H C rd → st.Ok σ) (x0 x1 : E) (high : List E) (n1 y0 nq pS : E)
+    (hok : ∀ C rd, HM M H C rd → st.Ok σ) (x0 x1 : E) (high : List E) (n1 y0 nq pS : E)
     (hoff : (lvl + 1) * ligColsCap < u128Bound)
-    (hom : ∀ C rd, H C rd → C ("opening_message__L" ++ natStr (2 + lv.folds) ++ "_L1")
+    (hom : ∀ C rd, HM M H C rd → C ("opening_message__L" ++ natStr (2 + lv.folds) ++ "_L1")
       (st.fsv σ ++ [st.cur σ, pS])
       (omRets (st.fsv σ) (x0 :: x1 :: high) (some n1) (st.cur σ) (2 + lv.folds + 1)))
     (rd0 : Reader) (hl0 : LowDef 11 rd0)
     (hlowg : ((cellsOfState (omState (st.fsv σ) (x0 :: x1 :: high) (some n1)) false 1).limb 0).lane.toNat %
       2 ^ levelOodGrind = 0)
-    (htab : ∀ C rd, H C rd → WinTabs rd (σ (.n osTabs)) ∧ LowAgree rd rd0)
-    (hsent : ∀ C rd, H C rd → LoadHolds rd pS 0 x0 ∧ LoadHolds rd pS 1 x1 ∧
+    (htab : ∀ C rd, H C rd → LowAgree rd rd0) (htW : ∀ C rd, HM M H C rd → WinTabs rd (σ (.n osTabs)))
+    (hsent : ∀ C rd, HM M H C rd → LoadHolds rd pS 0 x0 ∧ LoadHolds rd pS 1 x1 ∧
       LoadHolds rd (σ (.n osRoots)) (2 * lvl + 2) x0 ∧ LoadHolds rd (σ (.n osRoots)) (2 * lvl + 3) x1)
-    (hspf : ∀ C rd, H C rd → C ("squeeze_point_from__L" ++ natStr lv.logCols)
+    (hspf : ∀ C rd, HM M H C rd → C ("squeeze_point_from__L" ++ natStr lv.logCols)
       (capOf (omState (st.fsv σ) (x0 :: x1 :: high) (some n1)) ++
         [cellsOfState (omState (st.fsv σ) (x0 :: x1 :: high) (some n1)) false 0,
           σ (.n osOodz) * gen ^ ((lvl + 1) * ligColsCap)])
       (spfRets (st.fsv σ) (x0 :: x1 :: high) n1 lv.logCols))
-    (hys : ∀ C rd, H C rd → ReadsAt rd (st.cur σ * gen ^ (2 + lv.folds + 1)) [y0, nq]) :
-    BlkA H σ st.k (osCommit c lvl lv st).2.k (osCommit c lvl lv st).1 (fun σ' ↦
+    (hys : ∀ C rd, HM M H C rd → ReadsAt rd (st.cur σ * gen ^ (2 + lv.folds + 1)) [y0, nq]) :
+    BlkA M H σ st.k (osCommit c lvl lv st).2.k (osCommit c lvl lv st).1 (fun σ' ↦
       OsStep σ σ' st (osCommit c lvl lv st).2 ∧
       (osCommit c lvl lv st).2.F σ' =
         ⟨capOf (commitS (st.fsv σ) (x0 :: x1 :: high) n1 lv.logCols y0 nq), []⟩ ∧
@@ -135,14 +135,14 @@ theorem osCommit_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : 
   have hmb1 : MatsBelow s1.k s1.mats := show MatsBelow (g + 2) st.mats from fun m hm ↦ by
     obtain ⟨a, b, d⟩ := hsf.below.mats m hm; exact ⟨by omega, by omega, by omega⟩
   -- the heap and the cursor
-  have b1 := BlkA.seq (H := H) (show k ≤ k + 2 by omega) kr (heap_blk σ (2 + lv.folds) k pS)
+  have b1 := BlkA.seq (M := M) (H := H) (show k ≤ k + 2 by omega) kr (heap_blk σ (2 + lv.folds) k pS)
     (B := cu.1) (OutB := fun σ' ↦ σ' (.n cu.2.1) = σ (.n st.cb) * gen ^ st.co) fun σ1 ha1 _ ↦ by
-      have hc := osCurS_blkA (H := H) (st := s0) σ1 (show st.cb < k + 2 by have := hsf.below.cb; omega)
+      have hc := osCurS_blkA (M := M) (H := H) (st := s0) σ1 (show st.cb < k + 2 by have := hsf.below.cb; omega)
         hsf.co
       rw [ha1 st.cb hsf.below.cb] at hc
       exact hc
   -- the message, its grind and the root
-  have b2 := BlkA.seq (H := H) (le_trans (by omega) kr) (show r ≤ r + 8 by omega) b1
+  have b2 := BlkA.seq (M := M) (H := H) (le_trans (by omega) kr) (show r ≤ r + 8 by omega) b1
     (B := [.call ("opening_message__L" ++ natStr (2 + lv.folds) ++ "_L1")
       ((st.fs ++ [cu.2.1, k + 1]).map V.n) (osRun r 8)])
     (OutB := fun σ' ↦ ∀ j < 8, σ' (.n (r + j)) =
@@ -163,7 +163,7 @@ theorem osCommit_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : 
           rfl
         rw [hargs]
         exact hom C rd hH
-  have b2g := BlkA.seq (H := H) (show k ≤ r + 8 by omega)
+  have b2g := BlkA.seq (M := M) (H := H) (show k ≤ r + 8 by omega)
     (show r + 8 ≤ r + 8 + (gcLen levelOodGrind - 2) by omega) b2
     (B := gcInlineT levelOodGrind (r + 8) (.n (r + 1)) (.n osTabs)) (OutB := fun _ ↦ True)
     fun σ1 ha1 ho1 ↦ BlkA.of_ne fun ⟨C0, rd1, hH1⟩ ↦ by
@@ -171,15 +171,15 @@ theorem osCommit_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : 
       have e1 : σ1 (.n (r + 1)) = cellsOfState S1 false 1 := by
         rw [e2 1 (by omega)]; simp [omRets, hS1]
       refine gc_blk (b := levelOodGrind) (o := r + 8) (wi := r + 1) (ti := osTabs) rd0 hl0 (by decide)
-        (by omega) (by simp only [osTabs]; omega) (by rw [e1]; exact hlowg) fun C rd hH ↦ ⟨?_, (htab C rd hH).2⟩
+        (by omega) (by simp only [osTabs]; omega) (by rw [e1]; exact hlowg) htab fun C rd hH ↦ ?_
       rw [ha1 _ (by simp only [osTabs]; omega)]
-      exact (htab C rd hH).1
+      exact htW C rd hH
   rw [← hg'] at b2g
-  have b3 := BlkA.seq (H := H) (show k ≤ g by omega) (show g ≤ g + 2 by omega) b2g
+  have b3 := BlkA.seq (M := M) (H := H) (show k ≤ g by omega) (show g ≤ g + 2 by omega) b2g
     (B := [osLd g (k + 1) 0, osLd g osRoots (2 * lvl + 2), osLd (g + 1) (k + 1) 1,
       osLd (g + 1) osRoots (2 * lvl + 3)])
     (OutB := fun σ' ↦ σ' (.n g) = x0 ∧ σ' (.n (g + 1)) = x1) fun σ1 ha1 ho1 ↦ by
-      refine ⟨lstF g [x0, x1], fun C rd hH σ' ha hr' ↦ ?_⟩
+      refine BlkA.ofHM (lstF g [x0, x1]) fun C rd hH σ' ha hr' ↦ ?_
       have v0 := lstF_at hr' (by simp) 0 (by simp)
       have v1 := lstF_at hr' (by simp) 1 (by simp)
       simp only [List.getD_cons_zero, List.getD_cons_succ, Nat.add_zero] at v0 v1
@@ -192,15 +192,15 @@ theorem osCommit_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : 
       simp only [allOk_cons, allOk_nil, and_true, stmtOk_atom, holds_load, osLd, ep, er, v0, v1]
       exact ⟨l0, l2, l1, l3⟩
   -- the OOD point
-  have b4 := BlkA.seq (H := H) (show k ≤ g + 2 by omega) kq b3 (B := o0.1)
+  have b4 := BlkA.seq (M := M) (H := H) (show k ≤ g + 2 by omega) kq b3 (B := o0.1)
     (OutB := fun σ' ↦ σ' (.n o0.2.1) = σ (.n osOodz) * gen ^ row0 ∧ MatsOk σ' o0.2.2.mats ∧
       MatsBelow o0.2.2.k o0.2.2.mats) fun σ1 ha1 _ ↦ by
-      have h := osMatS_blkA (H := H) (P := c.plan) (base := osOodz) (off := row0) (s := s1) σ1
+      have h := osMatS_blkA (M := M) (H := H) (P := c.plan) (base := osOodz) (off := row0) (s := s1) σ1
         (show 26 < g + 2 by omega) hmb1 (fun C rd hH ↦
           matsOk_agree (hok C rd hH).mats hsf.below.mats fun i hi ↦ ha1 i hi) hoff
       rw [ha1 osOodz (by show 26 < k; omega)] at h
       exact h
-  have b5 := BlkA.seq (H := H) (show k ≤ q by omega) (show q ≤ q + 5 by omega) b4
+  have b5 := BlkA.seq (M := M) (H := H) (show k ≤ q by omega) (show q ≤ q + 5 by omega) b4
     (B := [.call ("squeeze_point_from__L" ++ natStr lv.logCols)
       ([r + 2, r + 3, r + 4, r + 5, r + 6, r, o0.2.1].map V.n) (osRun q 5)])
     (OutB := fun σ' ↦ ∀ j < 5, σ' (.n (q + j)) = spf.getD j 0) fun σ1 ha1 ho1 ↦ by
@@ -219,14 +219,14 @@ theorem osCommit_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : 
         rw [hargs]
         exact hspf C rd hH
   -- the value and the query nonce
-  have b8 := BlkA.seq (H := H) (show k ≤ q + 5 by omega) (show q + 5 ≤ b + 6 by omega) b5
+  have b8 := BlkA.seq (M := M) (H := H) (show k ≤ q + 5 by omega) (show q + 5 ≤ b + 6 by omega) b5
     (B := ((List.range 5).map fun i ↦ osCp (q + 5 + i) (q + i)) ++
       [osLd b (r + 7) 0, osCp (b + 1) b, osCst (b + 2) (word 0 1),
         osLd (b + 3) (r + 7) 1, osCp (b + 4) (b + 3), osCst (b + 5) (word 0 4)])
     (OutB := fun σ' ↦ ∀ j < 11, σ' (.n (q + 5 + j)) = (oodVals spf y0 nq).getD j 0)
     fun σ1 ha1 ho1 ↦ by
       have hsl : spf.length = 5 := spfRets_length _ _ _ _
-      refine ⟨lstF (q + 5) (oodVals spf y0 nq), fun C rd hH σ' ha hr' ↦ ?_⟩
+      refine BlkA.ofHM (lstF (q + 5) (oodVals spf y0 nq)) fun C rd hH σ' ha hr' ↦ ?_
       have hv : ∀ j < 11, σ' (.n (q + 5 + j)) = (oodVals spf y0 nq).getD j 0 := fun j hj ↦
         lstF_at hr' (by simp [oodVals, hsl, hbd]) j (by simp [oodVals, hsl]; omega)
       refine ⟨?_, hv⟩
@@ -251,13 +251,13 @@ theorem osCommit_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : 
       exact ⟨trivial, trivial, trivial, trivial, trivial, l0, trivial, trivial, l1, trivial,
         trivial⟩
   -- the zero run
-  have b8p := BlkA.seq (H := H) (show k ≤ b + 6 by omega) bj b8 (B := (osPad o0.2.2.pad (b + 6)).1)
+  have b8p := BlkA.seq (M := M) (H := H) (show k ≤ b + 6 by omega) bj b8 (B := (osPad o0.2.2.pad (b + 6)).1)
     (OutB := fun σ' ↦ PadOk σ' (some p)) fun σ1 ha1 _ ↦
       osPad_blk σ1 o0.2.2.pad (b + 6) (fun C rd hH ↦ by
         rw [hpad0]; exact ((hok C rd hH).agree fun i hi ↦ ha1 i (by omega)).pad)
         (fun q' hq' ↦ by rw [hpad0] at hq'; have := hsf.padB q' hq'; omega)
   -- the permutation
-  have b9 := BlkA.seq (H := H) (show k ≤ j by omega) (show j ≤ j + 13 by omega) b8p
+  have b9 := BlkA.seq (M := M) (H := H) (show k ≤ j by omega) (show j ≤ j + 13 by omega) b8p
     (B := [osKeccak [b + 1, b + 2, b + 4, b + 5, p + 1, p + 2, p + 3, p + 4, q + 5, q + 6, q + 7,
       q + 8, q + 9] j])
     (OutB := fun σ' ↦ ∀ i < 13, σ' (.n (j + i)) = rdCell S i) fun σ1 ha1 ho1 ↦ by

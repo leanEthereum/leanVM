@@ -33,6 +33,19 @@ theorem callVarsS_eq : Stmt.callVarsS = callVs := by
   funext s
   cases s <;> rfl
 
+/-- **Every load of the body reads a word the caller's memory facts fix**, from its loads holding on
+every memory with those facts. -/
+theorem osLoadsIn_of {c : OsCfg} {b : ℕ} {own : List (List E)} {cur tabs : E} {xs : List E} {σ : Val}
+    (h : LoadsIn (OsM c b own cur tabs xs) (osBodyA c) σ) : OsLoadsIn c b own cur tabs xs σ := by
+  intro q hq
+  obtain ⟨s, hs, he⟩ := List.mem_filterMap.mp hq
+  match s, he with
+  | .atom (.load d p off), he =>
+    simp only [B1.Stmt.loadS, Option.some.injEq] at he
+    subst he
+    exact ⟨σ d, fun rd' h1 h2 h3 ↦ h rd' ⟨h1, h2, h3, fun _ _ _ _ _ _ _ ↦ trivial, fun _ _ _ _ ↦ trivial⟩
+      (d, p, off) (List.mem_filterMap.mpr ⟨_, hs, rfl⟩)⟩
+
 namespace HonRun
 
 variable {μ r : ℕ} {target : E} {S : KeccakState} {root : Digest} {xs : List E}
@@ -90,11 +103,12 @@ theorem body_run {cur tabs : E} (b : ℕ) : ∃ CV : List (List E), ∀ (rd0 : R
           (multilinearEval ((hdOf μ r Ls).Lf.fw.fold.take (osCfgR (μ - minOpenLog) (r - 1)).yrLen)
             (hdOf μ r Ls).T)
           (hdOf μ r Ls).own (hdOf μ r Ls).D σ' ∧
-          ((osBodyA (osCfgR (μ - minOpenLog) (r - 1))).filterMap Stmt.callVarsS).map (·.map σ') = CV) := by
+          ((osBodyA (osCfgR (μ - minOpenLog) (r - 1))).filterMap Stmt.callVarsS).map (·.map σ') = CV ∧
+          OsLoadsIn (osCfgR (μ - minOpenLog) (r - 1)) b (hdOf μ r Ls).own cur tabs xs σ') := by
   refine ⟨(hdOf μ r Ls).cvBody b tabs cur xs
     (rateSel r :: capOf S ++ [target, (digestHalves root).1, (digestHalves root).2, cur, tabs]), fun rd0 hl0 ↦ ?_⟩
   obtain ⟨kEnd, f, hf⟩ := body_gen (hR.bodyFacts cur tabs) rfl rfl b rd0 hl0
-  refine ⟨kEnd, f, fun C rd hH hag ↦ (hf C rd hH hag).mono fun σ' ⟨o, cv⟩ ↦ ⟨o, ?_⟩⟩
+  refine ⟨kEnd, f, fun C rd hH hag ↦ (hf C rd hH hag).mono fun σ' ⟨o, cv, ld⟩ ↦ ⟨o, ?_, osLoadsIn_of ld⟩⟩
   rw [callVarsS_eq]
   exact cv
 
