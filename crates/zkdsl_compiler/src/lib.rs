@@ -320,9 +320,9 @@ fn resolve(op: &LOp, entry: &HashMap<String, u32>, sentinel: u32, pc0: u32, fram
             k: resolve_kval(kv),
         },
         LOp::Xor { a, b, c } => Op::Xor { a: *a, b: *b, c: *c },
-        LOp::Mul { a, b, c } | LOp::Solve { x: a, b, c } | LOp::Copy { src: a, one: b, dst: c } => {
-            Op::Mul { a: *a, b: *b, c: *c }
-        }
+        LOp::Mul { a, b, c } | LOp::Copy { src: a, one: b, dst: c } => Op::Mul { a: *a, b: *b, c: *c },
+        // The known operand first: a range check's `MUL K = x·y` is the shape its proof reads.
+        LOp::Solve { x, b, c } => Op::Mul { a: *b, b: *x, c: *c },
         LOp::Deref { o1, o2, o3, mode } => Op::Deref {
             o1: *o1,
             o2: *o2,
