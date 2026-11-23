@@ -1,4 +1,5 @@
-//! The stable and the experimental prover give the same proof of the same statement, byte for byte: three leaves
+//! The stable prover and the experimental one, in every CPU tier this machine runs, give the same proof of the same
+//! statement, byte for byte: three leaves
 //! (leanXMSS signatures and blobs, leanSPHINCS signatures, both schemes and blobs, with enough signatures of each that
 //! experimental runs both signature loops as parallel segments), a recursion node over them, at the four rates, and a
 //! second-level node over that node, a leaf and a raw signature; the same refusal of a forged signature the native
@@ -7,7 +8,7 @@
 //! dispatches from both tests, which its dispatch lock serializes.
 
 use aggregation::{AggregateClaims, AggregateError, AggregateProof, OutputClaims, signers_cache};
-use experimental_lean_vm_core::ExperimentalProver;
+use experimental_dispatch::{__TierVisitor, __for_each_tier, Tier};
 use isa::{Program, Prover};
 use stable_lean_vm_core::StableProver;
 use verifier::E;
@@ -49,16 +50,27 @@ fn proofs<P: Prover>() -> ([Vec<u8>; 5], Option<AggregateError>) {
 
 #[test]
 fn stable_and_experimental_proofs_are_identical() {
-    let ((experimental, experimental_refusal), (stable, stable_refusal)) =
-        (proofs::<ExperimentalProver>(), proofs::<StableProver>());
-    for (name, (e, s)) in ["left leaf", "right leaf", "mixed leaf", "node", "second-level node"]
-        .iter()
-        .zip(experimental.iter().zip(&stable))
-    {
-        assert!(e == s, "the {name}'s proofs differ ({} and {} bytes)", e.len(), s.len());
+    struct Matches(([Vec<u8>; 5], Option<AggregateError>));
+    impl __TierVisitor for Matches {
+        fn visit<P: Prover>(&mut self, tier: Tier) {
+            let ((experimental, experimental_refusal), (stable, stable_refusal)) = (proofs::<P>(), &self.0);
+            for (name, (e, s)) in ["left leaf", "right leaf", "mixed leaf", "node", "second-level node"]
+                .iter()
+                .zip(experimental.iter().zip(stable))
+            {
+                assert!(
+                    e == s,
+                    "{tier:?}: the {name}'s proofs differ ({} and {} bytes)",
+                    e.len(),
+                    s.len()
+                );
+            }
+            assert_eq!(&experimental_refusal, stable_refusal, "{tier:?}");
+        }
     }
-    assert_eq!(experimental_refusal, stable_refusal);
-    assert_eq!(stable_refusal, Some(AggregateError::ProvingFailed));
+    let stable = proofs::<StableProver>();
+    assert_eq!(stable.1, Some(AggregateError::ProvingFailed));
+    __for_each_tier(&mut Matches(stable));
 }
 
 /// `program`'s proof at rate `2^-log_inv_rate` on `public_input`, or why there is none.
@@ -108,17 +120,30 @@ fn compiler_programs_prove_identically() {
         let wrong = [public_input[0] + E::new(1, 0), public_input[1]];
         let runs = (1..=4).map(|rate| (public_input, rate)).chain([(wrong, 1)]);
         for (input, rate) in runs {
-            let annotated = input == public_input;
-            let (experimental, stable) = (
-                prove::<ExperimentalProver>(&program, input, &witness, rate),
-                prove::<StableProver>(&program, input, &witness, rate),
-            );
+            let stable = prove::<StableProver>(&program, input, &witness, rate);
             assert!(
-                experimental == stable,
-                "{} at rate {rate}: the provers disagree",
-                path.display()
+                input != public_input || stable.is_ok(),
+                "{}: {:?}",
+                path.display(),
+                stable.err()
             );
-            assert!(!annotated || stable.is_ok(), "{}: {:?}", path.display(), stable.err());
+            struct Matches<'a>(
+                &'a Program,
+                [E; 2],
+                &'a [(String, Vec<Vec<E>>)],
+                usize,
+                Result<verifier::Proof, String>,
+            );
+            impl __TierVisitor for Matches<'_> {
+                fn visit<P: Prover>(&mut self, tier: Tier) {
+                    let Self(program, input, witness, rate, stable) = self;
+                    assert!(
+                        prove::<P>(program, *input, witness, *rate) == *stable,
+                        "{tier:?} at rate {rate}"
+                    );
+                }
+            }
+            __for_each_tier(&mut Matches(&program, input, &witness, rate, stable));
         }
     }
 }

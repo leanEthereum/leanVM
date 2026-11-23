@@ -16,6 +16,8 @@ members = [
     "crates/lean_vm",
     "crates/stable_prover/*",
     "crates/experimental_prover/*",
+    "crates/experimental_tiers/*/*",
+    "crates/experimental_dispatch",
     "bench",
 ]
 # The language bindings are their own workspace (bindings/Cargo.toml).

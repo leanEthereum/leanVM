@@ -16,8 +16,8 @@ isa.workspace = true
 aggregation.workspace = true
 lean_da.workspace = true
 stable_lean_vm_core = { path = "../stable_prover/lean_vm_core" }
-experimental_lean_vm_core = { path = "../experimental_prover/lean_vm_core", optional = true }
+experimental_dispatch = { path = "../experimental_dispatch", optional = true }
 
 [features]
 # Prove with the experimental prover rather than the stable one.
-experimental_prover = ["dep:experimental_lean_vm_core"]
+experimental_prover = ["dep:experimental_dispatch"]

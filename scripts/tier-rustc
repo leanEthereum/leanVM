@@ -1,0 +1,19 @@
+#!/bin/sh
+# Cargo's rustc wrapper (RUSTC_WRAPPER): compiles a tier copy of the experimental prover (crates/experimental_tiers)
+# with its tier's target features, and everything else as asked. Only optimized builds: an unoptimized one shares
+# generic instances across crates, so code outside a tier could run the tier's instructions.
+rustc="$1"
+shift
+features=
+manifest="${CARGO_MANIFEST_DIR:-}/Cargo.toml"
+if [ -f "$manifest" ]; then
+    features=$(sed -n 's/^target-features = "\(.*\)"$/\1/p' "$manifest")
+fi
+if [ -n "$features" ]; then
+    for arg in "$@"; do
+        case "$arg" in
+        opt-level=2 | opt-level=3) exec "$rustc" "$@" -C target-feature="$features" ;;
+        esac
+    done
+fi
+exec "$rustc" "$@"
