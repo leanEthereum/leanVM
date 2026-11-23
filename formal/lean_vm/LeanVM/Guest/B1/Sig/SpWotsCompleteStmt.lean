@@ -158,7 +158,8 @@ theorem spLeafCell_digest (publicSeed : PublicParameter) (layer : Sphincs.Layer)
     (spValsOf values) (spDigitsOf_eq digest)
   have ev : (fun i : Sphincs.ChainIndex => cellVal (spValsOf values i.val)) = values := by
     funext i
-    simp only [spValsOf, i.isLt, ↓reduceDIte]
+    have hi : i.val < 64 := i.isLt
+    simp only [spValsOf, hi, ↓reduceDIte]
     exact cellVal_cellOf128 _
   rw [ev, cellVal_cellOf128] at e
   rw [e]
