@@ -312,7 +312,7 @@ structure MidCalls (rd : Reader) (C : CallRel) (σ : Val) (c : OsCfg) (lvl : ℕ
   lq : FnIs (osQueriesName c lvl lv) (osParams 6) (osLqBody c lvl lv)
   cap : ∀ a r, C ("verify_merkle_cap__L" ++ natStr lv.capDepth) a r →
     MeaningVerifyMerkleCap lv.capDepth rd a r
-  iz : ∀ a r, C "is_zero" a r → IsZeroRet a r
+  iz : ∀ a r, C "is_zero" a r → MeaningIsZero a r
 
 theorem lanesOf_base (lvl : ℕ) : lanesOf (if lvl = 0 then 1 else 0) = specLanes lvl := by
   funext row

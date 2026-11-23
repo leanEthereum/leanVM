@@ -40,7 +40,7 @@ structure ResIn (rd : Reader) (C : CallRel) (σ : Val) (c : OsCfg) (tch bd lvl :
   call : ∀ a r, C (osResidualName lv) a r →
     MeaningLevelResidual lv.queries lv.logCols lv.folds lv.highBits rd a r
   slow : ∀ a r, C (osSlowName c lv) a r → SlowRet lv.queries lv.prefixLen c.yrLog lv.vanish rd a r
-  iz : ∀ a r, C "is_zero" a r → IsZeroRet a r
+  iz : ∀ a r, C "is_zero" a r → MeaningIsZero a r
   van : lv.vanish = lv.logCols * (lv.logCols + 1) / 2
   read : ResRead rd lvl lv (σ (.n bd)) (σ (.n osHs)) D hsv
   posOff : lv.posOff < u128Bound
@@ -117,9 +117,7 @@ theorem osResidual_sound {c : OsCfg} {tch ich bd ls la lvl : ℕ} {lv : OsLv} {D
     unfold lrH resH lrVo; rw [hin.van]
   rw [hP, hH] at r1 r2
   -- the zero flag
-  have hz' := hin.iz _ _ hz
-  simp only [List.map_cons, List.map_nil, IsZeroRet, List.getD_cons_zero, List.cons.injEq,
-    and_true] at hz'
+  have hz' := zeroOf_of_meaning (hin.iz _ _ hz)
   -- the slow sum
   have hsl := hin.slow _ _ (dispatch_rate hin.rate (osSlowName c) hsd) Pos Xs
     (fun i hi ↦ by simp only [List.map_cons, List.getD_cons_zero]

@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Whir.ResQuery
+public import LeanVM.Guest.B1.Whir.IsZero
 
 /-!
 # The slow residual, as `open_stacked` reads it
@@ -17,7 +18,7 @@ A non-final level whose challenges' product is zero has no factored residual: it
 zero. Its residual is then `level_residual_slow`'s value, `λ²·Σ_k λ^k·Π_t (1 + c_t + c_t·inv_t·
 chain_t(x_k))` over its `Q` positions `x_k` (`slowVal`), and `0` on every other level.
 
-* `zeroOf a`: `is_zero`'s value, `1` at `a = 0`, else `0` (`IsZeroRet`).
+* `zeroOf a`: `is_zero`'s value, `1` at `a = 0`, else `0` (`MeaningIsZero`, `zeroOf_of_meaning`).
 * `slowQuery vals inv cs n x`: `residual_query_slow`'s product at `x`.
 * `SlowRet Q pre yr vo`: on `[positions, fold_cs, tail_cs, λ, z]`, for the positions and challenges
   read there, the value `slowVal`.
@@ -33,8 +34,8 @@ open LeanVM.Guest.Value
 /-- `is_zero`'s value. -/
 def zeroOf (a : E) : E := if a = 0 then 1 else 0
 
-/-- **What `open_stacked` takes of `is_zero`**: it returns `zeroOf` of its word. -/
-def IsZeroRet (args rets : List E) : Prop := rets = [zeroOf (args.getD 0 0)]
+/-- **`is_zero`'s meaning, as `open_stacked` reads it**: it returns `zeroOf` of its word. -/
+theorem zeroOf_of_meaning {w r : E} (h : MeaningIsZero [w] [r]) : r = zeroOf w := (List.cons.inj h).1
 
 /-- `is_zero` on every word, at the relations `H` admits. -/
 def IsZeroC (H : CallRel → Reader → Prop) : Prop := ∀ C rd, H C rd → ∀ w, C "is_zero" [w] [zeroOf w]

@@ -184,6 +184,27 @@ def inst(fname):
     return tname(fname) + "_core"
 
 
+CHUNK = 16  # the entries a table's chunk checks in one term, within the default recursion depth
+
+
+def chunked(name, ty, rows, oks, prop):
+    """A table as the flatten of its chunks of `CHUNK` entries (`{name}{k}`), and its check
+    `{name}_ok`: each chunk's by its entries' theorems, the table's by its chunks'."""
+    ks = range(0, len(rows), CHUNK)
+    defs = "".join(f"/-- The `{name}` table, entries {k} on. -/\ndef {name}{k // CHUNK} : List ({ty}) := [\n"
+                   + ",\n".join(rows[k:k + CHUNK]) + "]\n\n" for k in ks)
+    defs += (f"/-- The `{name}` table. -/\ndef {name} : List ({ty}) :=\n  ["
+             + ", ".join(f"{name}{k // CHUNK}" for k in ks) + "].flatten\n")
+    oks_ = "".join(f"\ntheorem {name}{k // CHUNK}_ok : ∀ e ∈ {name}{k // CHUNK}, {prop} :="
+                   + nest(oks[k:k + CHUNK]) + "\n" for k in ks)
+    oks_ += (f"\ntheorem {name}_ok : ∀ e ∈ {name}, {prop} := fun e he ↦ by\n"
+             f"  obtain ⟨l, hl, hel⟩ := List.mem_flatten.mp he\n"
+             f"  have h : ∀ l ∈ [" + ", ".join(f"{name}{k // CHUNK}" for k in ks) + f"], ∀ e ∈ l, {prop} :="
+             + nest(f"{name}{k // CHUNK}_ok" for k in ks) + "\n"
+             f"  exact h l hl e hel\n")
+    return defs, oks_
+
+
 def nest(items):
     items = list(items)
     return "".join(f"\n  List.forall_mem_cons.2 ⟨{x}," for x in items) + "\n  List.forall_mem_nil _" + "⟩" * len(items)
@@ -254,10 +275,15 @@ def helpers(idx):
     lpT = ",\n".join(f"  ({s(n)}, {sq}, {s(l)}, {d}, {cd})" for n, sq, l, d, cd, *_ in lp)
     lqT = ",\n".join(f"  ({s(n)}, {', '.join(map(str, ps))})" for n, ps, _ in lq)
     lrT = ",\n".join(f"  ({s(n)}, {q}, {c}, {h}, {b}, {s(l1)}, {s(l2)})" for n, q, c, h, b, l1, l2, *_ in lr)
-    lsT = ",\n".join(f"  ({s(n)}, {q}, {p}, {y}, {v}, {s(m)}, {s(l)}, {s(r)})" for n, q, p, y, v, m, l, r, *_ in lrs)
-    rsT = ",\n".join(f"  ({s(n)}, {p}, {y}, {v})" for n, p, y, v, _ in rs)
-    lsOk = nest(f"⟨{a}, {b}, {c}⟩" for *_, a, b, c in lrs)
-    rsOk = nest(t for *_, t in rs)
+    lsTy = "String × ℕ × ℕ × ℕ × ℕ × String × String × String"
+    lsT, lsOk = chunked("lrsTable", lsTy, [f"  ({s(n)}, {q}, {p}, {y}, {v}, {s(m)}, {s(l)}, {s(r)})"
+                                          for n, q, p, y, v, m, l, r, *_ in lrs],
+                        [f"⟨{a}, {b}, {c}⟩" for *_, a, b, c in lrs],
+                        "FnIs e.1 (osParams 5) (lrsBody e.2.2.2.2.2.1) ∧\n"
+                        "    FnIs e.2.2.2.2.2.1 (osParams 4) (lsumBody e.2.1 e.2.2.2.2.2.2.1) ∧\n"
+                        "    FnIs e.2.2.2.2.2.2.1 (osParams 8) (lrsLoopBody e.2.2.2.2.2.2.2 e.2.2.2.2.2.2.1)")
+    rsT, rsOk = chunked("rqsTable", "String × ℕ × ℕ × ℕ", [f"  ({s(n)}, {p}, {y}, {v})" for n, p, y, v, _ in rs],
+                        [t for *_, t in rs], "FnIs e.1 (osParams 3) (rqsBody e.2.1 e.2.2.1 e.2.2.2)")
     lpOk = nest(f"⟨{a}, {b}⟩" for *_, a, b in lp)
     lqOk = nest(t for *_, t in lq)
     lrOk = nest(f"⟨{a}, {b}, {'(fun _ ↦ ' + c + ')' if c else '(fun h ↦ (h (by decide)).elim)'}⟩"
@@ -289,13 +315,8 @@ def lqTable : List (String × ℕ × ℕ × ℕ × ℕ × ℕ × ℕ × ℕ × �
 def lrTable : List (String × ℕ × ℕ × ℕ × ℕ × String × String) := [
 {lrT}]
 
-/-- The `lrsTable` table. -/
-def lrsTable : List (String × ℕ × ℕ × ℕ × ℕ × String × String × String) := [
-{lsT}]
-
-/-- The `rqsTable` table. -/
-def rqsTable : List (String × ℕ × ℕ × ℕ) := [
-{rsT}]
+{lsT}
+{rsT}
 
 /-- `level_positions`' loop, by the specialization's name. -/
 def lpLoopOf (name : String) : String := ((lpTable.find? (·.1 = name)).map (·.2.2.1)).getD ""
@@ -331,15 +352,7 @@ theorem lrTable_ok : ∀ e ∈ lrTable, FnIs e.1 (osParams 4) (lrBody e.2.1 e.2.
     FnIs e.2.2.2.2.2.1 (osParams 7) (lrLoop1Body e.2.2.1 e.2.2.2.1 e.2.2.2.2.1 e.2.2.2.2.2.1) ∧
     (e.2.1 % resBatch ≠ 0 →
       FnIs e.2.2.2.2.2.2 (osParams 7) (lrLoop2Body e.2.2.1 e.2.2.2.1 e.2.2.2.2.1 e.2.2.2.2.2.2)) :={lrOk}
-
-set_option maxRecDepth 100000 in
-theorem lrsTable_ok : ∀ e ∈ lrsTable, FnIs e.1 (osParams 5) (lrsBody e.2.2.2.2.2.1) ∧
-    FnIs e.2.2.2.2.2.1 (osParams 4) (lsumBody e.2.1 e.2.2.2.2.2.2.1) ∧
-    FnIs e.2.2.2.2.2.2.1 (osParams 8) (lrsLoopBody e.2.2.2.2.2.2.2 e.2.2.2.2.2.2.1) :={lsOk}
-
-set_option maxRecDepth 100000 in
-theorem rqsTable_ok : ∀ e ∈ rqsTable, FnIs e.1 (osParams 3) (rqsBody e.2.1 e.2.2.1 e.2.2.2) :={rsOk}
-""" + FTR
+{lsOk}{rsOk}""" + FTR
     return out, len(thms), (len(lp), len(lq), len(lr), len(lrs), len(rs))
 
 

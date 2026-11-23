@@ -42,7 +42,7 @@ structure Callees (rd : Reader) (C : CallRel) (σ : Val) : Prop where
   cap : ∀ p ∈ merkleCapNames, ∀ a r, C p.1 a r → MeaningVerifyMerkleCap p.2 rd a r
   tail : ∀ a r, C "opening_tail_round" a r → MeaningOpeningTailRound rd a r
   ffm : ∀ p ∈ foldFinalMsgNames, ∀ a r, C p.1 a r → MeaningFoldFinalMsg p.2 rd a r
-  iz : ∀ a r, C "is_zero" a r → IsZeroRet a r
+  iz : ∀ a r, C "is_zero" a r → MeaningIsZero a r
   slow : ∀ e ∈ lrsTable, ∀ a r, C e.1 a r → SlowRet e.2.1 e.2.2.1 e.2.2.2.1 e.2.2.2.2.1 rd a r
 
 /-- A candidate's semantic facts. -/

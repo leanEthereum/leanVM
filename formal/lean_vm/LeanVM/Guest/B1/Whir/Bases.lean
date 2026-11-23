@@ -189,7 +189,7 @@ theorem prod_ne_factor {n : ℕ} {X : ℕ → E} (h : ∏ s ∈ Finset.range n, 
 
 /-- **A non-final level's basis row.** -/
 theorem osBasisLv_sound {c : OsCfg} {tch bd ls la lvl : ℕ} {lv : OsLv} {k : ℕ} {β : E} {X : ℕ → E}
-    (hiz : ∀ a r, C "is_zero" a r → IsZeroRet a r) (hpos : 1 ≤ lv.prefixLen + c.yrLog)
+    (hiz : ∀ a r, C "is_zero" a r → MeaningIsZero a r) (hpos : 1 ≤ lv.prefixLen + c.yrLog)
     (hin : BasisIn rd σ c tch lvl lv β X)
     (hok : AllOk C rd σ (osBasisLv c tch bd ls la lvl lv k).1) :
     BasisOut rd σ c bd ls la lvl lv β X := by
@@ -223,9 +223,7 @@ theorem osBasisLv_sound {c : OsCfg} {tch bd ls la lvl : ℕ} {lv : OsLv} {k : �
     exact this
   -- the flag
   set P := ∏ t ∈ Finset.range n, X t with hP
-  have hz' := hiz _ _ hz
-  simp only [IsZeroRet, List.getD_cons_zero, ha, List.cons.injEq, and_true] at hz'
-  have hzv : σ (.n af.2.2) = zeroOf P := hz'
+  have hzv : σ (.n af.2.2) = zeroOf P := by rw [zeroOf_of_meaning (hiz _ _ hz), ha]
   have hnz : σ (.n (af.2.2 + 2)) = 1 + zeroOf P := by rw [a2, c1, hzv, word_one]
   -- the row
   obtain ⟨hd, hs⟩ := osBasisRow_val (C := C) (bd := bd) hzv hnz cs k (af.2.2 + 3) X (fun t ht ↦ by
@@ -246,7 +244,7 @@ theorem osBasisLv_sound {c : OsCfg} {tch bd ls la lvl : ℕ} {lv : OsLv} {k : �
 
 /-- **Every non-final level's basis row**. -/
 theorem osBases_sound {c : OsCfg} {tch bd ls la : ℕ} (β : ℕ → E) (X : ℕ → ℕ → E)
-    (hiz : ∀ a r, C "is_zero" a r → IsZeroRet a r)
+    (hiz : ∀ a r, C "is_zero" a r → MeaningIsZero a r)
     (hpos : ∀ lv : OsLv, 1 ≤ lv.prefixLen + c.yrLog) :
     ∀ (levels : List OsLv) (lvl k : ℕ),
       (∀ i (hi : i < levels.length), BasisIn rd σ c tch (lvl + i) levels[i] (β (lvl + i))

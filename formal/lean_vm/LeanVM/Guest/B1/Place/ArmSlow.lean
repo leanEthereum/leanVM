@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Place.ArmMuteDef
 
 `SlowFacts c`: the tail challenges within `yrLogCap`, and at each non-final level its fold
 challenges within `fold_challenges` and its `level_residual_slow` neither `armExactS` nor a name of
-`lqTable`. `armSlow_ok`: every arm at every rate, by kernel evaluation.
+`lqTable`. `armSlow_ok`: every arm at every rate, from `slowFactsB` by kernel evaluation.
 -/
 
 namespace LeanVM.Guest.B1.Arm
@@ -29,53 +29,21 @@ abbrev SlowFacts (c : OsCfg) : Prop :=
   c.yrLog ≤ yrLogCap ∧ ∀ l < c.yrLevel, (osLvA c l).resFoldOff + (osLvA c l).prefixLen ≤ c.nFolds ∧
     armExactS (osSlowName c (osLvA c l)) = false ∧ lqNameB (osSlowName c (osLvA c l)) = false
 
-set_option maxRecDepth 100000 in
-theorem armSlow_0 : ∀ ri < 4, SlowFacts (osCfgR 0 ri) := by decide +kernel
+/-- `SlowFacts`, checked. -/
+def slowFactsB (c : OsCfg) : Bool :=
+  decide (c.yrLog ≤ yrLogCap) && (List.range c.yrLevel).all fun l ↦
+    decide ((osLvA c l).resFoldOff + (osLvA c l).prefixLen ≤ c.nFolds) &&
+      !armExactS (osSlowName c (osLvA c l)) && !lqNameB (osSlowName c (osLvA c l))
 
-set_option maxRecDepth 100000 in
-theorem armSlow_1 : ∀ ri < 4, SlowFacts (osCfgR 1 ri) := by decide +kernel
-
-set_option maxRecDepth 100000 in
-theorem armSlow_2 : ∀ ri < 4, SlowFacts (osCfgR 2 ri) := by decide +kernel
-
-set_option maxRecDepth 100000 in
-theorem armSlow_3 : ∀ ri < 4, SlowFacts (osCfgR 3 ri) := by decide +kernel
-
-set_option maxRecDepth 100000 in
-theorem armSlow_4 : ∀ ri < 4, SlowFacts (osCfgR 4 ri) := by decide +kernel
-
-set_option maxRecDepth 100000 in
-theorem armSlow_5 : ∀ ri < 4, SlowFacts (osCfgR 5 ri) := by decide +kernel
-
-set_option maxRecDepth 100000 in
-theorem armSlow_6 : ∀ ri < 4, SlowFacts (osCfgR 6 ri) := by decide +kernel
-
-set_option maxRecDepth 100000 in
-theorem armSlow_7 : ∀ ri < 4, SlowFacts (osCfgR 7 ri) := by decide +kernel
-
-set_option maxRecDepth 100000 in
-theorem armSlow_8 : ∀ ri < 4, SlowFacts (osCfgR 8 ri) := by decide +kernel
-
-set_option maxRecDepth 100000 in
-theorem armSlow_9 : ∀ ri < 4, SlowFacts (osCfgR 9 ri) := by decide +kernel
-
-set_option maxRecDepth 100000 in
-theorem armSlow_10 : ∀ ri < 4, SlowFacts (osCfgR 10 ri) := by decide +kernel
+/-- Every arm, every rate, by the kernel. -/
+theorem slowFacts_all : ∀ m < 11, ∀ ri < 4, slowFactsB (osCfgR m ri) = true := by decide +kernel
 
 /-- **Every arm's dispatches into `level_residual_slow` have their facts at every rate.** -/
 theorem armSlow_ok {m ri : ℕ} (hm : m < 11) (hri : ri < 4) : SlowFacts (osCfgR m ri) := by
-  interval_cases m
-  · exact armSlow_0 ri hri
-  · exact armSlow_1 ri hri
-  · exact armSlow_2 ri hri
-  · exact armSlow_3 ri hri
-  · exact armSlow_4 ri hri
-  · exact armSlow_5 ri hri
-  · exact armSlow_6 ri hri
-  · exact armSlow_7 ri hri
-  · exact armSlow_8 ri hri
-  · exact armSlow_9 ri hri
-  · exact armSlow_10 ri hri
+  have h := slowFacts_all m hm ri hri
+  simp only [slowFactsB, Bool.and_eq_true, decide_eq_true_eq, List.all_eq_true, List.mem_range,
+    Bool.not_eq_true'] at h
+  exact ⟨h.1, fun l hl ↦ ⟨(h.2 l hl).1.1, (h.2 l hl).1.2, (h.2 l hl).2⟩⟩
 
 end
 end LeanVM.Guest.B1.Arm

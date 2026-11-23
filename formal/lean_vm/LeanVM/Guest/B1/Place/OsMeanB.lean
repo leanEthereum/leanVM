@@ -240,7 +240,7 @@ theorem kindDB (hκ : 11 ≤ κ) {B : ℕ} {f : String} (hb : TotalLe coreProgra
   | iz =>
     simp only [osKindEntryOk, beq_iff_eq] at he
     subst he
-    exact completeRelRegDB_of_iff (leafSpecOk_of iz_leafSpec) (fun rd a r ↦ is_zero_iff rd a r) κ hb
+    exact completeRelRegDB_of_iff iz_leafSpec (fun rd a r ↦ is_zero_iff rd a r) κ hb
 
 end
 end LeanVM.Guest.B1

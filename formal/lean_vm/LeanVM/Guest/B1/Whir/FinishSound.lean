@@ -53,7 +53,7 @@ structure FinishIn (rd : Reader) (C : CallRel) (σ : Val) (c : OsCfg) (tch : ℕ
   lane : (c.levels.headD default).folds ≤ c.nFolds
   mu40 : c.nFolds + c.yrLog ≤ pointCap
   ffm : ∀ a r, C ("fold_final_msg__L" ++ natStr c.yrLog) a r → MeaningFoldFinalMsg c.yrLog rd a r
-  iz : ∀ a r, C "is_zero" a r → IsZeroRet a r
+  iz : ∀ a r, C "is_zero" a r → MeaningIsZero a r
   slow : ∀ i < c.yrLevel, ∀ a r, C (osSlowName c (c.levels.getD i default)) a r →
     SlowRet (c.levels.getD i default).queries (c.levels.getD i default).prefixLen c.yrLog
       (c.levels.getD i default).vanish rd a r

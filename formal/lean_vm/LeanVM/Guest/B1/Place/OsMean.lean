@@ -78,7 +78,7 @@ def OsKind.spec : OsKind → List (ℕ × ℕ)
 
 /-- The named callees and their kinds. -/
 def osKindTable : List (String × OsKind) :=
-  [("opening_round", .round), ("opening_tail_round", .tail),
+  [("is_zero", .iz), ("opening_round", .round), ("opening_tail_round", .tail),
     ("opening_message__L6_L1", .msg 6 1), ("opening_message__L8_L1", .msg 8 1), ("opening_message__L12_L1", .msg 12 1),
     ("opening_message__L20_L1", .msg 20 1), ("opening_message__L36_L1", .msg 36 1),
     ("squeeze_point_from__L6", .spf 6), ("squeeze_point_from__L7", .spf 7),
@@ -91,7 +91,7 @@ def osKindTable : List (String × OsKind) :=
     ("squeeze_point_from__L20", .spf 20), ("squeeze_point_from__L21", .spf 21),
     ("squeeze_point_from__L22", .spf 22), ("squeeze_point_from__L23", .spf 23),
     ("squeeze_point_from__L24", .spf 24),
-    ("grind_check__L17", .grind 17), ("grind_check__L15", .grind 15), ("is_zero", .iz)] ++
+    ("grind_check__L17", .grind 17), ("grind_check__L15", .grind 15)] ++
   merkleCapNames.map (fun p ↦ (p.1, .cap p.2)) ++
   foldFinalMsgNames.map (fun p ↦ (p.1, .ffm p.2))
 
@@ -126,7 +126,6 @@ def osKindEntryOk : String × OsKind → Bool
 set_option maxRecDepth 100000 in
 theorem osKindTable_ok : osKindTable.all osKindEntryOk = true := by decide +kernel
 
-set_option maxRecDepth 100000 in
 theorem osKindOf_isZero : osKindOf "is_zero" = some .iz := by decide +kernel
 
 theorem osKindEntry_ok {f : String} {K : OsKind} (hK : osKindOf f = some K) :
