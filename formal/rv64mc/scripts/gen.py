@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Writes the relocatable templates of every function of the guest's image and the link step that ties them to it.
 
-  python3 -I gen.py --elf ELF --mc MCDIR [--lean-elf PATH] [--out DIR] [--check]
+  python3 -I gen.py --elf ELF --mc MCDIR [--lean-elf PATH] [--out DIR] [--batch N] [--check]
   python3 -I gen.py --diff OLD_HASHES [NEW_HASHES]
 
 ELF is the guest, linked with `--emit-relocs`; MCDIR is the namespace directory `decompile --to lean --proved ELF OUT NS`
@@ -13,8 +13,11 @@ from the Lake package's directory (default `out/gen.elf`). Under DIR (default `R
   value and `jalr` offset, each data reference's `auipc` value, `lo12` offset and address, the return addresses as
   `L.base + k`), `tmpl L`, the lift with those values `L`'s, and `Link.WF`, what the link step proves of them. It names
   no address or index, so it changes only when the function's own code or its callees' names do.
-- `Link/<M>.lean`, per function: the image's `link : Link`, `tmpl_eq : (liftProg fns)[Idx.<M>]? = some (tmpl link)` and
-  `wf : Link.WF (liftProg fns) link`, both checked by the kernel.
+- per function, in its namespace `<M>`: the image's `link : Link`, `tmpl_eq : (liftProg fns)[Idx.<M>]? = some (tmpl
+  link)` and `wf : Link.WF (liftProg fns) link`, both checked by the kernel; several functions to a link module
+  `Link/<P>.lean`, `P` a prefix of their module paths (`link_batches`; N, default 20, bounds a module's functions),
+  since a link module's cost is mostly its imports and every link module is rebuilt on any change of code. The
+  `link` column of `index.tsv` names each function's.
 - `Needs.lean`: per function, the stack it needs (`Needs.<M> : Nat`): its frame (the sum of its `addi sp, sp, -N`) plus
   the most any callee needs, and at least what a tail callee needs; it fails on recursion. Proofs never import it:
   a contract takes its `need` as a parameter, and the link step checks `need >= frame + callee's need` by `decide`.
@@ -588,7 +591,8 @@ def w64(v):
     return f"0x{v:016x}#64"
 
 
-def link_module(img, i, tchunks, callees, sites, data, mcname):
+def link_section(img, i, tchunks, callees, sites, data, mcname):
+    """Function `i`'s part of its link module: `link`, `tmpl_eq` and `wf`, in the function's namespace."""
     mod = ".".join(img.mod[i])
     ns = f"{NS}.{mod}"
     cf = dict(callees)
@@ -600,15 +604,6 @@ def link_module(img, i, tchunks, callees, sites, data, mcname):
     fields += [f"{d} := ⟨{w64(hi)}, {w64(lo)}, {w64(a)}⟩" for d, (hi, lo, a) in data]
     parts = ", ".join(f"c{j} link" for j in range(len(tchunks)))
     lines = [
-        "/-",
-        f"  {NS}.Link.{mod}",
-        "",
-        f"  Written by `scripts/gen.py`; do not edit. Function `{ix}` of the image is the template at `link`.",
-        "-/",
-        "",
-        f"import {NS}.Index",
-        f"import {NS}.Tmpl.{mod}",
-        "",
         f"namespace {ns}",
         "",
         "open RiscvZkvm.Rv64 Lprog Lprog.RiscV MachineChecked.RiscV.Lift Tools.ToLean",
@@ -652,6 +647,50 @@ def link_module(img, i, tchunks, callees, sites, data, mcname):
         "",
     ]
     return "\n".join(lines)
+
+
+def link_batches(mods, n):
+    """The link modules: each a list of function indices, named by a prefix of their module paths. A subtree of at most
+    `n` functions is one module; a larger one is split by its next component, and the subtrees of fewer than `n // 4`
+    functions it leaves go together into the module of its own prefix (`Misc` at the root)."""
+    out = {}
+
+    def go(prefix, idx):
+        if len(idx) <= n:
+            out[prefix or ("Misc",)] = idx
+            return
+        kids = collections.defaultdict(list)
+        for i in idx:
+            kids[mods[i][len(prefix)]].append(i)
+        rest = []
+        for c in sorted(kids):
+            if len(kids[c]) >= max(2, n // 4):
+                go(prefix + (c,), kids[c])
+            else:
+                rest += kids[c]
+        if rest:
+            if (prefix or ("Misc",)) in out:
+                fail(f"link module {'.'.join(prefix or ('Misc',))} twice")
+            out[prefix or ("Misc",)] = rest
+
+    go((), list(range(len(mods))))
+    return {".".join(p): sorted(idx) for p, idx in out.items()}
+
+
+def link_module(name, img, members, sections):
+    fns = "".join(f"\n    {comment_safe(img.key[i])}" for i in members)
+    return "\n".join([
+        "/-",
+        f"  {NS}.Link.{name}",
+        "",
+        "  Written by `scripts/gen.py`; do not edit. For each function below, in its namespace: function `Idx.<M>` of the",
+        f"  image is the template at `link`.{fns}",
+        "-/",
+        "",
+        f"import {NS}.Index",
+        "".join(f"import {NS}.Tmpl.{'.'.join(img.mod[i])}\n" for i in members),
+        "\n".join(sections[i] for i in members),
+    ])
 
 
 def words_module(mc_text, lean_elf):
@@ -874,7 +913,7 @@ def generate(args):
     words = mc_words(os.path.join(mcdir, "Words.lean"))
     img = Image(elf, words)
     files = {}
-    hashes, index_rows, sizes, info = [], [], [], []
+    hashes, index_rows, sizes, info, sections = [], [], [], [], []
     for i in range(len(words)):
         chunks, mcname, addr, depth = mc_function(os.path.join(mcdir, f"F{i}.lean"), i)
         if addr != words[i][1]:
@@ -884,20 +923,26 @@ def generate(args):
         rel = "/".join(img.mod[i]) + ".lean"
         t = tmpl_module(img, i, tchunks, callees, sites, data, depth)
         files["Tmpl/" + rel] = t
-        files["Link/" + rel] = link_module(img, i, tchunks, callees, sites, data, mcname)
+        sections.append(link_section(img, i, tchunks, callees, sites, data, mcname))
         sizes.append(sum(len(c) for c in chunks) // 2)
         hashes.append(f"{'.'.join(img.mod[i])}\t{sha(t)[:16]}\t{img.key[i]}")
-        index_rows.append(f"{'.'.join(img.mod[i])}\t{i}\t{words[i][1]:#x}\t{sizes[i]}\t{words[i][0]}\t{img.key[i]}")
+    batches = link_batches([tuple(m) for m in img.mod], args.batch)
+    batch_of = {i: b for b, idx in batches.items() for i in idx}
+    for b, idx in batches.items():
+        files["Link/" + b.replace(".", "/") + ".lean"] = link_module(b, img, idx, sections)
+    for i in range(len(words)):
+        index_rows.append(f"{'.'.join(img.mod[i])}\t{i}\t{words[i][1]:#x}\t{sizes[i]}\t{words[i][0]}\t{img.key[i]}"
+                          f"\t{batch_of[i]}")
     files["Words.lean"] = words_module(open(os.path.join(mcdir, "Words.lean")).read(), args.lean_elf)
     files["Index.lean"] = index_module(img, sizes)
     files["Needs.lean"] = needs_module(img, info)
     files["Image.lean"] = image_module(sha(open(args.elf, "rb").read()), args.lean_elf)
     tm = sorted(f"{NS}.Tmpl." + ".".join(m) for m in img.mod)
-    lm = sorted(f"{NS}.Link." + ".".join(m) for m in img.mod)
+    lm = sorted(f"{NS}.Link.{b}" for b in batches)
     files["Tmpl.lean"] = umbrella(f"{NS}.Tmpl", tm, "Every function's template.")
     files["Link.lean"] = umbrella(f"{NS}.Link", [f"{NS}.Index"] + lm, "The link step: every function's link.")
     files["hashes.tsv"] = "".join(h + "\n" for h in sorted(hashes))
-    files["index.tsv"] = "module\tindex\taddress\tinstructions\tsymbol\tkey\n" + "".join(r + "\n" for r in index_rows)
+    files["index.tsv"] = "module\tindex\taddress\tinstructions\tsymbol\tkey\tlink\n" + "".join(r + "\n" for r in index_rows)
     files["../Gen.lean"] = umbrella(NS, [f"{NS}.Tmpl", f"{NS}.Link"], "The templates and the link step.")
     return files
 
@@ -957,6 +1002,7 @@ def main():
     ap.add_argument("--mc")
     ap.add_argument("--lean-elf", default="out/gen.elf")
     ap.add_argument("--out", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "Rv64mc", "Gen"))
+    ap.add_argument("--batch", type=int, default=20)
     ap.add_argument("--check", action="store_true")
     ap.add_argument("--diff", nargs="+", metavar="HASHES")
     args = ap.parse_args()

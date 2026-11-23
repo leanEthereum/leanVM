@@ -22,18 +22,9 @@ import Rv64mc.Proof.Field.ESumCopied
 import Rv64mc.Proof.Field.KInv
 import Rv64mc.Proof.Field.ScaledMul
 import Rv64mc.Gen.Needs
-import Rv64mc.Gen.Link.Verifier.Field.Reduce
-import Rv64mc.Gen.Link.Verifier.Field.ClmulLow
-import Rv64mc.Gen.Link.Verifier.Field.Clmul
-import Rv64mc.Gen.Link.Verifier.Field.E.AsMul.Mul
-import Rv64mc.Gen.Link.Verifier.Multilinear.EqEval
-import Rv64mc.Gen.Link.Verifier.Field.Spread
-import Rv64mc.Gen.Link.Verifier.Field.BaseMul
-import Rv64mc.Gen.Link.Verifier.Field.E.Square
-import Rv64mc.Gen.Link.Verifier.Field.E.Pow
-import Rv64mc.Gen.Link.Verifier.Field.E.SumCopiedIterE
-import Rv64mc.Gen.Link.Verifier.Field.K.Inv
-import Rv64mc.Gen.Link.Verifier.Field.Scaled.Mul
+import Rv64mc.Gen.Link.Verifier.Field
+import Rv64mc.Gen.Link.Verifier.Field.E
+import Rv64mc.Gen.Link.Verifier.Multilinear
 
 namespace Rv64mc.Table.Field
 

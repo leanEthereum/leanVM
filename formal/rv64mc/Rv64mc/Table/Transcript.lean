@@ -18,19 +18,9 @@ import Rv64mc.Proof.Transcript.GrindingBits
 import Rv64mc.Proof.Transcript.New
 import Rv64mc.Proof.Transcript.Duplex
 import Rv64mc.Proof.Transcript.Samples
-import Rv64mc.Gen.Link.Verifier.Transcript.Transcript.Samples
-import Rv64mc.Gen.Link.Verifier.Transcript.Sponge.Duplex
+import Rv64mc.Gen.Link.Verifier.Transcript
 import Rv64mc.Table.Runtime
 import Rv64mc.Gen.Needs
-import Rv64mc.Gen.Link.Verifier.Transcript.Transcript.Next
-import Rv64mc.Gen.Link.Verifier.Transcript.Transcript.Finish
-import Rv64mc.Gen.Link.Verifier.Transcript.Sponge.Absorb
-import Rv64mc.Gen.Link.Verifier.Transcript.Sponge.Sample
-import Rv64mc.Gen.Link.Verifier.Transcript.Sponge.AbsorbNonce
-import Rv64mc.Gen.Link.Verifier.Transcript.Transcript.NextScalar
-import Rv64mc.Gen.Link.Verifier.Transcript.Transcript.GrindCheck
-import Rv64mc.Gen.Link.Verifier.Transcript.GrindingBits
-import Rv64mc.Gen.Link.Verifier.Transcript.Transcript.New
 
 namespace Rv64mc.Table.Transcript
 

@@ -9,7 +9,7 @@
 import Rv64mc.Proof.Walk.VerifyExecution
 import Rv64mc.Final.End
 import Rv64mc.Gen.Needs
-import Rv64mc.Gen.Link.Verifier.VerifyExecution
+import Rv64mc.Gen.Link.Verifier
 
 namespace Rv64mc.Table.Walk
 

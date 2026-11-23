@@ -16,13 +16,7 @@ import Rv64mc.Proof.Multilinear.PaddingWeight
 import Rv64mc.Proof.Multilinear.ScalerNew
 import Rv64mc.Proof.Multilinear.ScalerMul
 import Rv64mc.Proof.Multilinear.SelectorPoint
-import Rv64mc.Gen.Link.Verifier.Multilinear.Dot
-import Rv64mc.Gen.Link.Verifier.Multilinear.PolyEval
-import Rv64mc.Gen.Link.Verifier.Multilinear.IndexMle
-import Rv64mc.Gen.Link.Verifier.Multilinear.PaddingWeight
-import Rv64mc.Gen.Link.Verifier.Multilinear.Scaler.New
-import Rv64mc.Gen.Link.Verifier.Multilinear.Scaler.Mul
-import Rv64mc.Gen.Link.Verifier.Multilinear.SelectorPoint
+import Rv64mc.Gen.Link.Verifier.Multilinear
 
 namespace Rv64mc.Table.Multilinear
 

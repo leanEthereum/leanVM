@@ -13,7 +13,7 @@
 
 import Rv64mc.Proof.Keccak.LinearTranspose
 import Rv64mc.Table.Runtime
-import Rv64mc.Gen.Link.Verifier.Keccak.LinearTransposeE
+import Rv64mc.Gen.Link.Verifier.Keccak
 
 namespace Rv64mc.Table.Keccak
 

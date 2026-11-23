@@ -7,7 +7,7 @@
 -/
 
 import Rv64mc.Proof.Bytecode.IsValidEncoding
-import Rv64mc.Gen.Link.Verifier.Bytecode.IsValidEncodingOfALeanisaProgram
+import Rv64mc.Gen.Link.Verifier.Bytecode
 
 namespace Rv64mc.Table.Bytecode
 

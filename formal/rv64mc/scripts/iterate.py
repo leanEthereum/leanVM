@@ -146,15 +146,18 @@ def proof_status(project: Path, mods: list[str]) -> str:
         return "-"
     tables = "".join(f.read_text(encoding="utf-8") for f in (project / "Rv64mc/Table").glob("*.lean"))
     link_root = project / "Rv64mc/Gen/Link"
-    links = {f: f.read_text(encoding="utf-8") for f in link_root.rglob("*.lean")}
+    # each function's section of the link modules, by the namespace it opens
+    links = {}
+    for f in link_root.rglob("*.lean"):
+        parts = re.split(r"^namespace Rv64mc\.Gen\.(\S+)$", f.read_text(encoding="utf-8"), flags=re.M)
+        links.update(zip(parts[1::2], parts[2::2]))
 
     def proved(m: str) -> bool:
         return re.search(rf"\bIdx\.{re.escape(m)}(?![\w.])", tables) is not None
 
     out = []
     for m in mods:
-        callers = sorted({str(f.relative_to(link_root).with_suffix("")).replace("/", ".") for f, t in links.items()
-                          if re.search(rf"⟨Idx\.{re.escape(m)},", t)} - {m})
+        callers = sorted({c for c, t in links.items() if re.search(rf"⟨Idx\.{re.escape(m)},", t)} - {m})
         n = sum(proved(c) for c in callers)
         out.append(f"{m}: {'proved' if proved(m) else 'unproved'}, callers {n}/{len(callers)} proved")
     return "; ".join(out) if out else "-"

@@ -8,8 +8,7 @@
 
 import Rv64mc.Proof.Bus.BusGrindingBits
 import Rv64mc.Proof.Bus.OnStack
-import Rv64mc.Gen.Link.Verifier.Bus.BusGrindingBits
-import Rv64mc.Gen.Link.Verifier.Bus.ColumnClaim.OnStack
+import Rv64mc.Gen.Link.Verifier.Bus
 import Rv64mc.Gen.Needs
 
 namespace Rv64mc.Table.Bus

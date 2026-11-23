@@ -18,12 +18,9 @@ import Rv64mc.Proof.Whir.RingPsi
 import Rv64mc.Proof.Whir.GluedWeightEvaluate
 import Rv64mc.Proof.Whir.RingWeightEvaluate
 import Rv64mc.Proof.Whir.StackWeightEvaluate
-import Rv64mc.Gen.Link.Verifier.Whir.WhirQueries
-import Rv64mc.Gen.Link.Verifier.RingSwitch.Frobenius8
-import Rv64mc.Gen.Link.Verifier.RingSwitch.RingPsi
-import Rv64mc.Gen.Link.Verifier.Whir.GluedWeight.Evaluate
-import Rv64mc.Gen.Link.Verifier.RingSwitch.RingWeight.Evaluate
-import Rv64mc.Gen.Link.Verifier.StackWeight.Evaluate
+import Rv64mc.Gen.Link.Verifier.Whir
+import Rv64mc.Gen.Link.Verifier.RingSwitch
+import Rv64mc.Gen.Link.Verifier
 
 namespace Rv64mc.Table.Whir
 

@@ -8,11 +8,9 @@
 
 import Rv64mc.Proof.Hash.DigestFromHalves
 import Rv64mc.Gen.Needs
-import Rv64mc.Gen.Link.Verifier.Hash.Digest.FromHalves
+import Rv64mc.Gen.Link.Verifier.Hash
 import Rv64mc.Proof.Hash.DigestWords
 import Rv64mc.Proof.Hash.DigestHalves
-import Rv64mc.Gen.Link.Verifier.Hash.Digest.Words
-import Rv64mc.Gen.Link.Verifier.Hash.Digest.Halves
 import Rv64mc.Table.Runtime
 
 namespace Rv64mc.Table.Hash

@@ -13,8 +13,7 @@
 import Rv64mc.Final.Sound
 import Rv64mc.Final.Image
 import Rv64mc.Gen.Image
-import Rv64mc.Gen.Link.Start
-import Rv64mc.Gen.Link.VerifierRv64.Bump.AsGlobalAlloc.Alloc
+import Rv64mc.Gen.Link.Misc
 
 namespace Rv64mc
 
