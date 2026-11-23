@@ -28,7 +28,8 @@ pub type LeanXmssSigner = (LeanXmssPublicKey, Message, LeanXmssSignature);
 /// A cached leanSPHINCS signer, one key each, with the message it signed.
 pub type LeanSphincsSigner = (LeanSphincsPublicKey, lean_sphincs::Message, LeanSphincsSignature);
 
-const VERSION: u32 = 9;
+/// Bumped by a change to the signers that leaves the cached ones valid.
+pub const VERSION: u32 = 9;
 
 /// The keys the cached leanXMSS signers share, a full key being slow to generate: signer `i` is key `i % NUM_KEYS`
 /// in round `i / NUM_KEYS`, each round signing a message of its own, so no two signers make the same claim.
