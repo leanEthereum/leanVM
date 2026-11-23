@@ -12,6 +12,7 @@ on:
       - Cargo.toml
       - Cargo.lock
       - .cargo/config.toml
+      - scripts/tier-rustc
       - .github/workflows/bindings-ci.yml
   pull_request:
     paths:
@@ -21,6 +22,7 @@ on:
       - Cargo.toml
       - Cargo.lock
       - .cargo/config.toml
+      - scripts/tier-rustc
       - .github/workflows/bindings-ci.yml
   # bindings-release-please.yml dispatches it on the release pull request, which GITHUB_TOKEN made.
   workflow_dispatch:
@@ -38,8 +40,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # The prover's CPU tiers, compiled with their target features; a Windows host cannot run the wrapper.
-      - name: Compile the prover's CPU tiers
+      # A Windows host cannot run the wrapper.
+      - name: Use the CPU tiers' rustc wrapper
         if: runner.os != 'Windows'
         run: echo "RUSTC_WRAPPER=$GITHUB_WORKSPACE/scripts/tier-rustc" >> "$GITHUB_ENV"
 
@@ -97,8 +99,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      # The prover's CPU tiers, compiled with their target features; a Windows host cannot run the wrapper.
-      - name: Compile the prover's CPU tiers
+      # A Windows host cannot run the wrapper.
+      - name: Use the CPU tiers' rustc wrapper
         if: runner.os != 'Windows'
         run: echo "RUSTC_WRAPPER=$GITHUB_WORKSPACE/scripts/tier-rustc" >> "$GITHUB_ENV"
 
@@ -193,8 +195,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # The prover's CPU tiers, compiled with their target features; a Windows host cannot run the wrapper.
-      - name: Compile the prover's CPU tiers
+      # A Windows host cannot run the wrapper.
+      - name: Use the CPU tiers' rustc wrapper
         if: runner.os != 'Windows'
         run: echo "RUSTC_WRAPPER=$GITHUB_WORKSPACE/scripts/tier-rustc" >> "$GITHUB_ENV"
 

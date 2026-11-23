@@ -1,8 +1,8 @@
 # Written by ../../generate.sh.
 [package]
 name = "experimental_lean_vm_core_armsha3"
-version.workspace = true
-edition.workspace = true
+version = "0.1.0"
+edition = "2024"
 publish = false
 autobins = false
 autotests = false
@@ -19,15 +19,15 @@ doctest = false
 bench = false
 doc = false
 
-[lints]
-workspace = true
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(leanvm_tier)"] }
 
 [dependencies]
-isa.workspace = true
+isa = { path = "../../../isa" }
 parallel = { package = "experimental_parallel", path = "../../../experimental_prover/parallel" }
 primitives = { package = "experimental_primitives_armsha3", path = "../experimental_primitives" }
 fiat_shamir = { package = "fiat_shamir_prover_armsha3", path = "../fiat_shamir_prover" }
 pcs = { package = "experimental_pcs_armsha3", path = "../experimental_pcs" }
 keccak_gkr = { package = "experimental_keccak_gkr_armsha3", path = "../experimental_keccak_gkr" }
-verifier.workspace = true
-tracing.workspace = true
+verifier = { path = "../../../verifier" }
+tracing = "0.1.26"

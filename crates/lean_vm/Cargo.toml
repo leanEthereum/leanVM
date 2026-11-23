@@ -21,3 +21,6 @@ experimental_dispatch = { path = "../experimental_dispatch", optional = true }
 [features]
 # Prove with the experimental prover rather than the stable one.
 experimental_prover = ["dep:experimental_dispatch"]
+# The experimental prover once more per CPU tier, run in the fastest the CPU supports: for builds with
+# scripts/tier-rustc (crates/experimental_tiers).
+cpu_tiers = ["experimental_prover", "experimental_dispatch/cpu_tiers"]

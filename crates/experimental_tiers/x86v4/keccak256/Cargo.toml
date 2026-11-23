@@ -1,8 +1,8 @@
 # Written by ../../generate.sh.
 [package]
 name = "keccak256_x86v4"
-version.workspace = true
-edition.workspace = true
+version = "0.1.0"
+edition = "2024"
 publish = false
 autobins = false
 autotests = false
@@ -19,5 +19,5 @@ doctest = false
 bench = false
 doc = false
 
-[lints]
-workspace = true
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(leanvm_tier)"] }

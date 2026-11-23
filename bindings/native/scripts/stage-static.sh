@@ -17,10 +17,10 @@ bindings_dir=$(CDPATH= cd -- "$script_dir/../.." && pwd)
 rust_target=$1
 archive_dir=$2
 target_dir=${CARGO_TARGET_DIR:-"$bindings_dir/target"}
-# Compiles the prover's CPU tiers with their target features (scripts/tier-rustc); a Windows host cannot run it.
+# Compiles the prover's CPU tiers (scripts/tier-rustc), except on a Windows host, which cannot run the wrapper.
 case "$(uname -s)" in
 MINGW* | MSYS* | CYGWIN*) ;;
-*) export RUSTC_WRAPPER="${RUSTC_WRAPPER:-$bindings_dir/../scripts/tier-rustc}" ;;
+*) export RUSTC_WRAPPER="$bindings_dir/../scripts/tier-rustc" ;;
 esac
 
 # Runs from bindings/ so cargo reads bindings/.cargo/config.toml, which replaces the repository's

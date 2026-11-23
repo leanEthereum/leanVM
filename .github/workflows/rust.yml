@@ -17,8 +17,8 @@ env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
   # Pin the ISA, overriding `target-cpu=native` from .cargo/config.toml, so a cached build runs on any runner.
-  # Haswell has no VPCLMULQDQ or AVX-512, so the tests never reach the arms that need them.
-  # The `isa` job compiles the others.
+  # Haswell has no VPCLMULQDQ or AVX-512: the test job reaches the arms that need them through the CPU tiers alone,
+  # and the `isa` job compiles the others.
   RUSTFLAGS: -C target-cpu=haswell
 
 jobs:
@@ -32,8 +32,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      - name: The CPU tiers' manifests are generate.sh's
-        run: sh crates/experimental_tiers/generate.sh && git diff --exit-code crates/experimental_tiers
+      - name: The CPU tiers are generate.sh's
+        run: |
+          sh crates/experimental_tiers/generate.sh
+          git status --porcelain crates/experimental_tiers crates/experimental_dispatch
+          test -z "$(git status --porcelain crates/experimental_tiers crates/experimental_dispatch)"
       # The flags live in .cargo/config.toml's aliases
       - name: Test
         run: cargo testall

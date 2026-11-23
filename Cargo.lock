@@ -232,7 +232,6 @@ dependencies = [
  "experimental_lean_vm_core_x86v3gfni",
  "experimental_lean_vm_core_x86v4",
  "experimental_lean_vm_core_x86v4gfni",
- "experimental_parallel",
  "isa",
  "verifier",
 ]

@@ -40,8 +40,8 @@ jobs:
             target: x64
     steps:
       - uses: actions/checkout@v4
-      # The prover's CPU tiers, compiled with their target features; a Windows host cannot run the wrapper.
-      - name: Compile the prover's CPU tiers
+      # A Windows host cannot run the wrapper.
+      - name: Use the CPU tiers' rustc wrapper
         if: runner.os != 'Windows'
         run: echo "RUSTC_WRAPPER=$GITHUB_WORKSPACE/scripts/tier-rustc" >> "$GITHUB_ENV"
       - uses: actions/setup-python@v5
@@ -56,6 +56,9 @@ jobs:
           working-directory: bindings/python
           # --find-interpreter finds the Pythons inside the manylinux container, not the runner's.
           manylinux: auto
+      - name: Check the CPU tiers are built in
+        if: runner.os == 'Linux' && matrix.platform.target == 'x86_64'
+        run: sh scripts/check-tiers dist/*.whl
       - uses: actions/upload-artifact@v4
         with:
           name: wheels-${{ matrix.platform.runner }}-${{ matrix.platform.target }}
@@ -75,8 +78,8 @@ jobs:
             target: aarch64
     steps:
       - uses: actions/checkout@v4
-      # The prover's CPU tiers, compiled with their target features; a Windows host cannot run the wrapper.
-      - name: Compile the prover's CPU tiers
+      # A Windows host cannot run the wrapper.
+      - name: Use the CPU tiers' rustc wrapper
         if: runner.os != 'Windows'
         run: echo "RUSTC_WRAPPER=$GITHUB_WORKSPACE/scripts/tier-rustc" >> "$GITHUB_ENV"
       - uses: actions/setup-python@v5
@@ -90,6 +93,9 @@ jobs:
           args: --release --out ../../dist --find-interpreter
           working-directory: bindings/python
           manylinux: musllinux_1_2
+      - name: Check the CPU tiers are built in
+        if: matrix.platform.target == 'x86_64'
+        run: sh scripts/check-tiers dist/*.whl
       - uses: actions/upload-artifact@v4
         with:
           name: wheels-musllinux-${{ matrix.platform.target }}
@@ -223,6 +229,9 @@ jobs:
         run: rustup target add ${{ matrix.platform.rust_targets }}
       - name: Stage static native bridge
         run: sh bindings/native/scripts/stage-static.sh ${{ matrix.platform.target }} native/${{ matrix.platform.bundle_dir }}
+      - name: Check the CPU tiers are built in
+        if: startsWith(matrix.platform.target, 'x86_64') && runner.os == 'Linux'
+        run: sh scripts/check-tiers native/${{ matrix.platform.bundle_dir }}/liblean_pq_native.a
       - uses: actions/upload-artifact@v4
         with:
           name: zig-native-${{ matrix.platform.bundle_dir }}
@@ -533,8 +542,8 @@ jobs:
             build_args: --cross-compile
     steps:
       - uses: actions/checkout@v4
-      # The prover's CPU tiers, compiled with their target features; a Windows host cannot run the wrapper.
-      - name: Compile the prover's CPU tiers
+      # A Windows host cannot run the wrapper.
+      - name: Use the CPU tiers' rustc wrapper
         if: runner.os != 'Windows'
         run: echo "RUSTC_WRAPPER=$GITHUB_WORKSPACE/scripts/tier-rustc" >> "$GITHUB_ENV"
       - uses: actions/setup-node@v5
@@ -572,6 +581,9 @@ jobs:
           npx napi build --platform --release --target "$TARGET" ${BUILD_ARGS:+"$BUILD_ARGS"}
       # Static CRT check: the addon must load without the Visual C++ redistributable, so it may
       # import system DLLs but no VCRUNTIME*.dll or MSVCP*.dll.
+      - name: Check the CPU tiers are built in
+        if: startsWith(matrix.platform.target, 'x86_64') && runner.os == 'Linux'
+        run: sh scripts/check-tiers bindings/node/lean_pq_node.*.node
       - name: Check the addon's DLL imports
         if: endsWith(matrix.platform.target, '-msvc')
         working-directory: bindings/node
@@ -811,6 +823,9 @@ jobs:
         run: cargo install cargo-zigbuild --version 0.24.1 --locked
       - name: Build the native library
         run: sh bindings/java/scripts/build-native.sh ${{ matrix.platform.name }} native
+      - name: Check the CPU tiers are built in
+        if: matrix.platform.name == 'linux-x86_64'
+        run: sh scripts/check-tiers native/linux-x86_64/liblean_pq_native.so
       - uses: actions/setup-java@v5
         with:
           distribution: temurin

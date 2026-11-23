@@ -16,12 +16,11 @@ members = [
     "crates/lean_vm",
     "crates/stable_prover/*",
     "crates/experimental_prover/*",
-    "crates/experimental_tiers/*/*",
     "crates/experimental_dispatch",
     "bench",
 ]
-# The language bindings are their own workspace (bindings/Cargo.toml).
-exclude = ["bindings"]
+# The language bindings are their own workspace (bindings/Cargo.toml). The CPU tiers build only as experimental_dispatch's dependencies.
+exclude = ["bindings", "crates/experimental_tiers"]
 resolver = "3"
 
 [workspace.package]
@@ -29,6 +28,10 @@ version = "0.1.0"
 edition = "2024"
 
 # Numeric kernels legitimately index by loop variable and take many arguments.
+[workspace.lints.rust]
+# `scripts/tier-rustc` sets it on the CPU tiers' copies.
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(leanvm_tier)"] }
+
 [workspace.lints.clippy]
 needless_range_loop = "allow"
 too_many_arguments = "allow"

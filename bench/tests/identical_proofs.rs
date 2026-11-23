@@ -8,7 +8,7 @@
 //! dispatches from both tests, which its dispatch lock serializes.
 
 use aggregation::{AggregateClaims, AggregateError, AggregateProof, OutputClaims, signers_cache};
-use experimental_dispatch::{__TierVisitor, __for_each_tier, Tier};
+use experimental_dispatch::{__tiers_here, __with_tier, ExperimentalProver};
 use isa::{Program, Prover};
 use stable_lean_vm_core::StableProver;
 use verifier::E;
@@ -50,49 +50,34 @@ fn proofs<P: Prover>() -> ([Vec<u8>; 5], Option<AggregateError>) {
 
 #[test]
 fn stable_and_experimental_proofs_are_identical() {
-    struct Matches(([Vec<u8>; 5], Option<AggregateError>));
-    impl __TierVisitor for Matches {
-        fn visit<P: Prover>(&mut self, tier: Tier) {
-            let ((experimental, experimental_refusal), (stable, stable_refusal)) = (proofs::<P>(), &self.0);
-            for (name, (e, s)) in ["left leaf", "right leaf", "mixed leaf", "node", "second-level node"]
-                .iter()
-                .zip(experimental.iter().zip(stable))
-            {
-                assert!(
-                    e == s,
-                    "{tier:?}: the {name}'s proofs differ ({} and {} bytes)",
-                    e.len(),
-                    s.len()
-                );
-            }
-            assert_eq!(&experimental_refusal, stable_refusal, "{tier:?}");
+    let (stable, stable_refusal) = proofs::<StableProver>();
+    assert_eq!(stable_refusal, Some(AggregateError::ProvingFailed));
+    for tier in __tiers_here() {
+        let (experimental, experimental_refusal) = __with_tier(tier, proofs::<ExperimentalProver>);
+        for (name, (e, s)) in ["left leaf", "right leaf", "mixed leaf", "node", "second-level node"]
+            .iter()
+            .zip(experimental.iter().zip(&stable))
+        {
+            assert!(
+                e == s,
+                "{tier:?}: the {name}'s proofs differ ({} and {} bytes)",
+                e.len(),
+                s.len()
+            );
         }
+        assert_eq!(experimental_refusal, stable_refusal, "{tier:?}");
     }
-    let stable = proofs::<StableProver>();
-    assert_eq!(stable.1, Some(AggregateError::ProvingFailed));
-    __for_each_tier(&mut Matches(stable));
 }
 
-/// A compiler test program, its inputs and a rate.
-struct Case {
-    path: std::path::PathBuf,
-    program: Program,
+/// `program`'s proof at rate `2^-log_inv_rate` on `public_input`, or why there is none.
+fn prove<P: Prover>(
+    program: &Program,
     public_input: [E; 2],
-    witness: Vec<(String, Vec<Vec<E>>)>,
+    witness: &[(String, Vec<Vec<E>>)],
     log_inv_rate: usize,
-    /// Whether `public_input` is the annotated one, so that a proof exists.
-    annotated: bool,
-}
-
-/// Each case's proof by `P`, or why there is none.
-fn case_proofs<P: Prover>(cases: &[Case]) -> Vec<Result<verifier::Proof, String>> {
+) -> Result<verifier::Proof, String> {
     P::init();
-    cases
-        .iter()
-        .map(|case| {
-            P::prove(&case.program, &case.witness, case.public_input, case.log_inv_rate).map(|(proof, _)| proof)
-        })
-        .collect()
+    P::prove(program, witness, public_input, log_inv_rate).map(|(proof, _)| proof)
 }
 
 /// The compiler suite runs on stable alone; this runs its programs, with their annotated inputs (`# public_input:`,
@@ -113,10 +98,9 @@ fn compiler_programs_prove_identically() {
             .map(|v| zkdsl_compiler::parse_const(v).unwrap())
             .collect()
     };
-    let mut cases = Vec::new();
     for path in paths {
         let src = std::fs::read_to_string(&path).unwrap();
-        let compiled = zkdsl_compiler::compile(&zkdsl_compiler::parse(&src).unwrap());
+        let program = Program::from(zkdsl_compiler::compile(&zkdsl_compiler::parse(&src).unwrap()));
         let annotation = |tag: &'static str| src.lines().filter_map(move |line| line.trim().strip_prefix(tag));
         let public_input = annotation("# public_input:")
             .next()
@@ -130,37 +114,19 @@ fn compiler_programs_prove_identically() {
             }
         }
         let wrong = [public_input[0] + E::new(1, 0), public_input[1]];
-        for (input, log_inv_rate) in (1..=4).map(|rate| (public_input, rate)).chain([(wrong, 1)]) {
-            cases.push(Case {
-                path: path.clone(),
-                program: Program::from(compiled.clone()),
-                public_input: input,
-                witness: witness.clone(),
-                log_inv_rate,
-                annotated: input == public_input,
-            });
-        }
-    }
-    let stable = case_proofs::<StableProver>(&cases);
-    for (case, proof) in cases.iter().zip(&stable) {
-        assert!(
-            !case.annotated || proof.is_ok(),
-            "{}: {:?}",
-            case.path.display(),
-            proof.as_ref().err()
-        );
-    }
-    struct Matches<'a>(&'a [Case], Vec<Result<verifier::Proof, String>>);
-    impl __TierVisitor for Matches<'_> {
-        fn visit<P: Prover>(&mut self, tier: Tier) {
-            for ((case, proof), stable) in self.0.iter().zip(case_proofs::<P>(self.0)).zip(&self.1) {
-                let (path, rate) = (case.path.display(), case.log_inv_rate);
+        let runs = (1..=4).map(|rate| (public_input, rate)).chain([(wrong, 1)]);
+        for (input, rate) in runs {
+            let annotated = input == public_input;
+            let stable = prove::<StableProver>(&program, input, &witness, rate);
+            for tier in __tiers_here() {
+                let experimental = __with_tier(tier, || prove::<ExperimentalProver>(&program, input, &witness, rate));
+                let path = path.display();
                 assert!(
-                    proof == *stable,
+                    experimental == stable,
                     "{tier:?}: {path} at rate {rate}: the provers disagree"
                 );
             }
+            assert!(!annotated || stable.is_ok(), "{}: {:?}", path.display(), stable.err());
         }
     }
-    __for_each_tier(&mut Matches(&cases, stable));
 }

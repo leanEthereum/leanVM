@@ -11,7 +11,7 @@ Two prover trees share no prover crate and give the same proof bytes (`bench/tes
 
 - `crates/stable_prover/` (`stable_*`): the reference, written to be read. Plain safe code. `core::arch` and `cfg(target_feature)` only in `primitives::field::lanes`. No uninitialized buffers, non-temporal stores or per-machine tuning. An optimization enters only where leaving it out costs a measurable share of a proof and its simple form stays short.
 - `crates/experimental_prover/` (`experimental_*`): the optimized prover. Performance work lands here.
-- `crates/experimental_tiers/`, written by its `generate.sh`: experimental's crates, with `keccak256` and `fiat_shamir_prover`, again per CPU tier, over the same sources. `scripts/tier-rustc` (`RUSTC_WRAPPER`) compiles each with its tier's target features. `crates/experimental_dispatch`'s `ExperimentalProver` runs the fastest tier the CPU supports (`LEANVM_TIER` forces a lower one); `lean_vm` and the bench prove through it.
+- `crates/experimental_tiers/`, written with `crates/experimental_dispatch`'s manifest and `tiers.rs` by its `generate.sh`: experimental's crates, with `keccak256` and `fiat_shamir_prover`, again per CPU tier, over the same sources and outside the workspace. `scripts/tier-rustc` (`RUSTC_WRAPPER`) compiles each with its tier's target features in optimized builds, and each copy's build script rebuilds it when the wrapper or its features change. `experimental_dispatch::ExperimentalProver` runs the fastest tier the CPU supports, among those adding a feature to the build's own and compiled by the wrapper; `lean_vm` and the bench prove through it. The tiers are its `cpu_tiers` feature, on in the bench and the bindings; `scripts/check-tiers` checks a release artifact has them.
 
 Each tree, leaves first: `parallel` (thread pool), `primitives` (fields, transcript), `pcs` (NTT, Merkle, ring switch, WHIR), `keccak_gkr`, `lean_vm_core` (arithmetization, `cpu::execute`, `cpu::prove`, the tree's `isa::Prover`). They name each other through Cargo renames, so sources say `pcs::` and `fiat_shamir::`. `crates/lean_vm_core` below means either tree's.
 
@@ -40,7 +40,7 @@ Everything else exists once, leaves first:
 
 Rules:
 
-- Shared crates prove only through `isa::Prover` (`lean_vm_core::StableProver`, `lean_vm_core::ExperimentalProver`).
+- Shared crates prove only through `isa::Prover` (`lean_vm_core::StableProver`, `experimental_dispatch::ExperimentalProver`).
 - `aggregation` derives the guest's constants and a child's witness from the stable tree (`lean_vm_core::leaf`, whose term order the guest's arrays follow).
 - Prover crates contain no verifier, tests included: a verdict goes through `crates/verifier`.
 - A new user-facing item is a re-export in `crates/lean_vm/src/lib.rs`, used in `crates/lean_vm/tests/api.rs`. A `pub` method users should not see is `#[doc(hidden)] pub fn __name`.
@@ -55,8 +55,8 @@ Rules:
 - **A new program in `crates/zkdsl_compiler/tests/programs/`**: its digest in `tests/suite/determinism.rs` (`GOLDEN`), the regenerated `formal/lean_vm/tests/LeanVMTests/Guest/Programs.lean` (`formal/lean_vm/scripts/regen-guest.sh`), the count in `tests/LeanVMTests/Guest/Data.lean`.
 - **The layout** (`placements_of`, the schema): both provers and all three verifiers (`crates/verifier`'s `layout.rs`). `col_kappas` stays derived from `col_kappa_sources`.
 - **A rename in the leanVM document**: both provers, `crates/verifier`, the Lean verifier and the guest.
-- **An experimental crate's dependencies, or `keccak256`'s and `fiat_shamir_prover`'s**: `crates/experimental_tiers/generate.sh`.
-- **A new `cfg(target_feature)` gate in the experimental tree, `keccak256` or `fiat_shamir_prover`**: a tier that enables the feature, in `generate.sh` and `experimental_dispatch`'s `tiers!`.
+- **An experimental crate's manifest, a new one, or `keccak256`'s or `fiat_shamir_prover`'s manifest**: `crates/experimental_tiers/generate.sh`, then run it.
+- **A new `cfg(target_feature)` gate in the experimental tree, `keccak256` or `fiat_shamir_prover`**: a tier in `generate.sh` that enables the feature.
 - **The shared crates' public API or their dependencies**: `bindings/` (`bindings-ci.yml`), and `bindings/Cargo.lock` for dependencies.
 - **EthLib's test vectors** (`tests/<crate>/ethlib/` in `lean_xmss` and `lean_sphincs`): both crates' `ethlib/sync.sh <ethlib-commit>`, same commit.
 
@@ -160,14 +160,14 @@ The guest:
 - No measurement in a comment, a doc comment or this file. It goes in the commit message.
 - No em-dashes or en-dashes in prose. Never hard-wrap prose in Markdown or LaTeX.
 - Commit only tests useful against future regressions.
-- Never commit what a script can write: gitignore it and generate it before use, as `formal/.gitignore` does. CI fails a pull request that adds a file over 1 MiB or commits an ignored one (`size.yml`).
+- Never commit what a script can write: gitignore it and generate it before use, as `formal/.gitignore` does. Except what cargo reads before any script runs: `generate.sh`'s output, which CI checks. CI fails a pull request that adds a file over 1 MiB or commits an ignored one (`size.yml`).
 
 ## Env knobs
 
 | var | effect |
 | --- | ------ |
 | `BENCH_TRACING`, `BENCH_REPEAT`, `BENCH_COOLDOWN` | `--tracing`, `--repeat`, `--cooldown` for the benches |
-| `LEANVM_TIER` | the experimental prover's CPU tier (`experimental_dispatch::TIERS`), if the CPU runs it |
+| `LEANVM_TIER` | the experimental prover's CPU tier (`experimental_dispatch::Tier`), which the CPU must run |
 | `KECCAK_N_LOG`, `KECCAK_DEPTH` | keccak_gkr batch size, rounds between committed states |
 | `PCS_LOG_N`, `PCS_LOG_INV_RATE`, `PCS_POINT_CLAIMS`, `PCS_RING_CLAIMS` | PCS throughput bench: size, rate, claims |
 | `WHIR_NUM_VARS`, `WHIR_LOG_INV_RATE` | `print_whir_query_counts`'s shape |

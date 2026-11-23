@@ -149,11 +149,11 @@ enum Command {
 
 fn main() {
     let cli = Cli::parse();
-    if matches!(cli.prover, Prover::Experimental) {
-        eprintln!("experimental prover tier: {:?}", experimental_dispatch::tier());
-    }
     match cli.prover {
         Prover::Stable => run::<StableProver>(cli),
-        Prover::Experimental => run::<ExperimentalProver>(cli),
+        Prover::Experimental => {
+            eprintln!("experimental prover tier: {:?}", experimental_dispatch::tier());
+            run::<ExperimentalProver>(cli)
+        }
     }
 }

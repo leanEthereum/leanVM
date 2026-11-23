@@ -28,6 +28,8 @@ mkdir -p "$work/$name/guests"
 cp "$repo_dir/guests/lean_ethereum.py" "$work/$name/guests/"
 mkdir -p "$work/$name/.cargo"
 cp "$repo_dir/bindings/.cargo/config.toml" "$work/$name/.cargo/"
-(cd "$repo_dir" && find crates/experimental_tiers -name Cargo.toml -exec cp {} "$work/$name/{}" \;)
+for file in $(cd "$repo_dir" && find crates/experimental_tiers -name Cargo.toml); do
+    cp "$repo_dir/$file" "$work/$name/$file"
+done
 tar -czf "$sdist" -C "$work" "$name"
 echo "completed $sdist"
