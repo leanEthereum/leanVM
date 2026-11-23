@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Digest.Range
 public import LeanVM.Guest.B1.Sig.CwComplete
+import LeanVM.Guest.B1.Common.Vc
 
 /-!
 # Small functions, completely
@@ -46,22 +47,18 @@ theorem rc_holds' (hm : Sig.MemOK rd (2 ^ 16)) {k K : ℕ} (hk : k ≤ K) (hK : 
 /-- **`list_split` is complete** on a memory defined below `2^20`. -/
 theorem list_split_complete' (rd : Reader) (hm : Sig.MemOK rd (2 ^ 20)) (args rets : List E)
     (h : MeaningListSplitC args rets) : coreProgram.Rel rd "list_split" args rets := by
-  match args, h with
-  | [ng], h =>
-    obtain ⟨a, ha, b, hb, c, hc, hng, rfl⟩ := h
-    simp only [bigFramesCap, bigGroups, claimGroup, claimBig] at ha hb hc hng
-    have hm16 : Sig.MemOK rd (2 ^ 16) := fun i hi => hm i (lt_of_lt_of_le hi (by norm_num))
-    obtain ⟨t1, t2, h1, e1, h2⟩ := rc_holds' hm16 (k := c) (K := 16) (by omega) (by norm_num)
-    obtain ⟨t3, t4, h3, e2, h4⟩ := rc_holds' hm16 (k := b) (K := 7) (by omega) (by norm_num)
-    obtain ⟨t5, h5⟩ : ∃ w, LoadHolds rd (gen ^ a) 0 w := by
-      rw [gen_pow_eq_ofK]; exact Sig.load_gpow hm (show a < 2 ^ 20 by omega)
-    refine (list_split_iff rd _ _).mpr ⟨ng, rfl, _, _, t1, h1, e1, t2, h2, _, _, t3, h3, e2, t4, h4,
-      _, t5, h5, e_add_eq_zero_iff.mpr ?_, rfl⟩
-    rw [hng, ← pow_mul, ← pow_mul, ← pow_add, ← pow_add]
-    congr 1
-    ring
-  | [], h => exact h.elim
-  | _ :: _ :: _, h => exact h.elim
+  revert h
+  rw [rel_iff_fnSem find_list_split]
+  rcases args with _ | ⟨ng, _ | ⟨_, _⟩⟩ <;> vc [] <;> try exact False.elim
+  rintro ⟨a, ha, b, hb, c, hc, rfl, rfl⟩
+  have hm16 : Sig.MemOK rd (2 ^ 16) := fun i hi => hm i (lt_of_lt_of_le hi (by norm_num))
+  obtain ⟨t1, t2, h1, e1, h2⟩ := rc_holds' hm16 (K := 16) (Nat.le_of_lt_succ hc) (by norm_num)
+  obtain ⟨t5, t6, h5, e3, h6⟩ := rc_holds' hm16 (K := 7) (Nat.le_of_lt_succ hb) (by norm_num)
+  obtain ⟨t3, h3⟩ : ∃ w, LoadHolds rd (gen ^ a) 0 w := gen_pow_eq_ofK a ▸ Sig.load_gpow hm ha
+  refine ⟨_, _, _, h1, by rw [word_g16, e1], _, h2, _, _, _, h5, by rw [word_g7, e3], _, h6, _, _,
+    h3, e_add_eq_zero_iff.mpr ?_, rfl⟩
+  rw [claimBig, claimGroup]
+  ring
 
 /-- **`list_split` is complete**, on a memory image. -/
 theorem list_split_complete : list_split_complete_Spec := fun rd hm =>

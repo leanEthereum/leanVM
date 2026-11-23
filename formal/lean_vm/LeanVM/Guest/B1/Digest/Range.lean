@@ -90,34 +90,17 @@ theorem word_g16 : word 65536 0 = gen ^ 16 := word_two_pow (a := 16) (by decide)
 
 theorem word_g7 : word 128 0 = gen ^ 7 := word_two_pow (a := 7) (by decide)
 
-/-- **`list_split`'s condition**: the hinted rest `c` and groups `b` range-checked against `g^16`
-and `g^7`, the hinted big frames `a` a word of the memory, `a^136 · b^17 · c = n_g`, and
-`[a, b, c]` returned. -/
-def LsCond (rd : Reader) (ng : E) (rets : List E) : Prop :=
-  ∃ c y t1, LoadHolds rd c 0 t1 ∧ gen ^ 16 = c * y ∧ ∃ t2, LoadHolds rd y 0 t2 ∧
-    ∃ b y' t3, LoadHolds rd b 0 t3 ∧ gen ^ 7 = b * y' ∧ ∃ t4, LoadHolds rd y' 0 t4 ∧
-      ∃ a t5, LoadHolds rd a 0 t5 ∧ a ^ 136 * b ^ 17 * c + ng = 0 ∧ [a, b, c] = rets
-
-/-- **`list_split` is its condition** (`vc`). -/
-theorem list_split_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd "list_split" args rets ↔ ∃ ng, [ng] = args ∧ LsCond rd ng rets := by
-  rw [rel_iff_fnSem find_list_split]
-  vc [word_g16, word_g7, ← pow_two]
-  simp only [← pow_mul, ← pow_succ, Nat.reduceMul, Nat.reduceAdd]
-  exact Iff.rfl
-
 /-- **`list_split` splits a count into big frames, whole claim groups and a rest.** -/
 theorem list_split_sound : list_split_sound_Spec := by
-  intro rd hm args rets h
-  obtain ⟨ng, rfl, c, y, t1, h1, e1, t2, h2, b, y', t3, h3, e2, t4, h4, a, t5, h5, hid, rfl⟩ :=
-    (list_split_iff rd args rets).mp h
-  obtain ⟨c', hc, rfl⟩ := rc_const hm (c := 16) (by norm_num) rfl ⟨h1, e1, h2⟩
-  obtain ⟨b', hb, rfl⟩ := rc_const hm (c := 7) (by norm_num) rfl ⟨h3, e2, h4⟩
-  obtain ⟨a', ha, rfl⟩ := load_gpow hm h5
-  refine ⟨a', ha, b', by simp only [bigGroups]; omega, c', by simp only [claimGroup]; omega, ?_, rfl⟩
-  rw [← e_add_eq_zero_iff.mp hid, ← pow_mul, ← pow_mul, ← pow_add, ← pow_add]
-  congr 1
-  simp only [claimGroup, claimBig]
+  intro rd hm args rets
+  rw [rel_iff_fnSem find_list_split]
+  rcases args with _ | ⟨ng, _ | ⟨_, _⟩⟩ <;> vc [] <;> try exact False.elim
+  rintro ⟨x3, x5, x6, l6, e4, x7, l7, x2, x9, x10, l10, e8, x11, l11, x1, x12, l12, aeq, rfl⟩
+  obtain ⟨c, hc, rfl⟩ := rc_const hm (c := 16) (by norm_num) word_g16 ⟨l6, e4, l7⟩
+  obtain ⟨b, hb, rfl⟩ := rc_const hm (c := 7) (by norm_num) word_g7 ⟨l10, e8, l11⟩
+  obtain ⟨a, ha, rfl⟩ := load_gpow hm l12
+  refine ⟨a, ha, b, Nat.lt_succ_of_le hb, c, Nat.lt_succ_of_le hc, ?_, rfl⟩
+  rw [← e_add_eq_zero_iff.mp aeq, claimBig, claimGroup]
   ring
 
 end
