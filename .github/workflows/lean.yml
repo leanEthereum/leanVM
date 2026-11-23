@@ -3,16 +3,30 @@ name: Lean
 on:
   push:
     branches: [ "main" ]
+    tags: [ "v*" ]
   pull_request:
+  # The nightly clean build of `lean_vm` (`lean-vm-formalization`).
+  schedule:
+    - cron: "0 2 * * *"
   workflow_dispatch:
+    inputs:
+      clean:
+        description: Build lean_vm without restoring the Lake cache, as the nightly and tag runs do
+        type: boolean
+        default: false
+      cache-run:
+        description: Restore the Lake cache from this run of this workflow (a push, schedule or dispatch run) instead of main's newest
+        type: string
+        default: ""
 
 permissions:
   contents: read
 
 # A new push cancels a pull request's run, never main's: each push to main checks its own diff, so a
-# cancelled run could leave a change to `crates/` unchecked, and main's runs save the caches.
+# cancelled run could leave a change to `crates/` unchecked, and main's runs save the caches. The
+# nightly run has a group of its own, so it never holds back or replaces a push's run.
 concurrency:
-  group: lean-${{ github.ref }}
+  group: lean-${{ github.event_name == 'schedule' && 'nightly' || github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 # Pin the ISA, overriding `target-cpu=native` from the cargo configs, so a cached build (its proc
@@ -344,27 +358,18 @@ jobs:
     runs-on: ubuntu-latest
     # A build from a cold cache is several CPU-hours of kernel checks, on the runner's cores.
     timeout-minutes: 360
+    permissions:
+      contents: read
+      actions: read  # the Lake cache: the runs and their artifacts
+    env: &lake-cache
+      LAKE_ARTIFACT_CACHE: "true"
+      LAKE_RESTORE_ARTIFACTS: "true"
+      CLEAN: ${{ github.event_name == 'schedule' || startsWith(github.ref, 'refs/tags/') || inputs.clean == true }}
     defaults:
       run:
         working-directory: formal/lean_vm
     steps:
       - uses: actions/checkout@v4
-      # As for sphincs: only `main` saves, without Mathlib's build, which `lake exe cache get` fetches.
-      - name: Restore the Lake build
-        id: lake-cache
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            formal/lean_vm/.lake
-            !formal/lean_vm/.lake/packages/mathlib/.lake
-            formal/common/.lake/build
-            formal/Statement/.lake/build
-            formal/lean_xmss/.lake/build
-            formal/lean_sphincs/.lake/build
-            formal/lean_da/.lake/build
-          # The files derived from the guest are not committed, nor written yet: their sources stand in.
-          key: lake-lean-vm-${{ runner.os }}-${{ hashFiles('formal/lean_vm/lean-toolchain', 'formal/lean_vm/lake-manifest.json', 'formal/*/lakefile.*') }}-${{ hashFiles('formal/lean_vm/**/*.lean', 'formal/common/**/*.lean', 'formal/Statement/**/*.lean', 'formal/lean_xmss/**/*.lean', 'formal/lean_sphincs/**/*.lean', 'formal/lean_da/**/*.lean', 'formal/lean_vm/scripts/**', '!formal/lean_vm/scripts/**/target/**', 'guests/**', 'crates/**', 'Cargo.lock') }}
-          restore-keys: lake-lean-vm-${{ runner.os }}-${{ hashFiles('formal/lean_vm/lean-toolchain', 'formal/lean_vm/lake-manifest.json', 'formal/*/lakefile.*') }}-
       - uses: leanprover/lean-action@v1
         with:
           lake-package-directory: formal/lean_vm
@@ -374,6 +379,16 @@ jobs:
           lint: false
           use-github-cache: false
           use-mathlib-cache: auto
+      # Lake's artifact cache (`../lake-cache.py`): Lake restores every target whose input hash
+      # (its source, its imports' outputs, its options, the toolchain) the newest trusted run mapped,
+      # and builds the rest. A clean run (the nightly schedule, a tag, a dispatch asking for one)
+      # restores nothing.
+      - name: Restore the Lake cache
+        if: env.CLEAN != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CACHE_RUN: ${{ inputs.cache-run }}
+        run: python3 -I ../lake-cache.py get . ${CACHE_RUN:+--run "$CACHE_RUN"} || echo "::warning::no Lake cache restored"
       # The tests' build exceeds the runner's memory at its peak, and so does a module that runs
       # beside a heavy one; the swap goes on the runner's scratch disk.
       - name: Add swap
@@ -385,16 +400,10 @@ jobs:
           sudo swapon "$dir/swapfile.lean"
           free -g
       - uses: dtolnay/rust-toolchain@stable
-      # The cargo projects the checks below build, each its own workspace and target: their
-      # registry dependencies cached, as in rust.yml; only `main` saves.
+      # `guest-export`'s registry dependencies cached, as in rust.yml; only `main` saves.
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: |
-            formal/lean_vm/scripts/guest-export
-            formal/lean_vm/scripts/whir-fold-table
-            formal/lean_vm/scripts/rust-verifier-cli
-            formal/lean_vm/scripts/wire-diff
-            . -> target
+          workspaces: formal/lean_vm/scripts/guest-export
           save-if: ${{ github.ref == 'refs/heads/main' }}
       # The files derived from the guest are not committed (`formal/.gitignore`): `regen-guest.sh`
       # writes them from this repository's sources, building the Lean generators it runs.
@@ -415,7 +424,9 @@ jobs:
       # of the generated kernel-checked families exceeds the runner's memory, so `lake-build.py`
       # runs the one `lake build` with the modules admitted by their recorded memory, those of the
       # statement package (`Statement/`, its guest data as heavy) and the other dependencies included.
+      # Ends early enough that a cold build that runs out of time still saves what it built.
       - name: Build
+        timeout-minutes: 300
         run: python3 -I ../lake-build.py . LeanVM LeanVMTests
       # The end theorems' axioms asked from outside the build, as for the other projects.
       - name: Check the axiom footprint
@@ -429,9 +440,25 @@ jobs:
       # A private import stops a rebuild, as `tools/deps.py` assumes (`notes/per-function-cone.md`).
       - name: The private-import firewall holds (firewall-canary)
         run: python3 -I ../tools/firewall-canary.py
-      # Every executable in one build, before the cache is saved, so a cache hit holds them all.
+      # Every executable, so the cache holds them all (`lean-vm-differentials` runs the rest).
       - name: Build the executables
         run: lake build node-vectors guest-core guest-cert guest-memory scheme-vectors guest-diff leanvm-verify wire-diff leanvm-prove leanvm-execute guest-run test-runs
+      # Only the events a writer starts publish the cache, never a pull request: `lake-cache.py get`
+      # takes no other run's. After a failed or timed-out build too: Lake maps a target only once it
+      # is built, so the next run starts from what this one built.
+      - name: Pack the Lake cache
+        id: pack
+        if: ${{ !cancelled() && github.event_name != 'pull_request' }}
+        run: python3 -I ../lake-cache.py pack . "$RUNNER_TEMP/lean-vm-lake-cache.tar.zst"
+      - name: Publish the Lake cache
+        if: ${{ !cancelled() && steps.pack.outcome == 'success' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: lean-vm-lake-cache
+          path: ${{ runner.temp }}/lean-vm-lake-cache.tar.zst
+          compression-level: 0
+          retention-days: ${{ startsWith(github.ref, 'refs/tags/') && 90 || 14 }}
+          overwrite: true
       # What is slow in the interpreter: the guest's Fiat-Shamir IV against the Rust's, the DA
       # vector digests.
       - name: The Rust vectors' costly checks
@@ -440,19 +467,57 @@ jobs:
       # `.olean` they read.
       - name: The tests' compiled runs
         run: lake env .lake/build/bin/test-runs
-      - name: Save the Lake build
-        if: github.ref == 'refs/heads/main' && steps.lake-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
+
+  # The checks against the Rust, beside the proofs: the executables they run import about a hundred
+  # modules and the guest's exported data, not what the rest of `regen-guest.sh` writes, so they are
+  # restored from the Lake cache (or built, when cold) without the proofs.
+  lean-vm-differentials:
+    needs: lean-vm-changes
+    if: needs.lean-vm-changes.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    permissions:
+      contents: read
+      actions: read
+    env: *lake-cache
+    defaults:
+      run:
+        working-directory: formal/lean_vm
+    steps:
+      - uses: actions/checkout@v4
+      - uses: leanprover/lean-action@v1
         with:
-          path: |
-            formal/lean_vm/.lake
-            !formal/lean_vm/.lake/packages/mathlib/.lake
-            formal/common/.lake/build
-            formal/Statement/.lake/build
-            formal/lean_xmss/.lake/build
-            formal/lean_sphincs/.lake/build
-            formal/lean_da/.lake/build
-          key: ${{ steps.lake-cache.outputs.cache-primary-key }}
+          lake-package-directory: formal/lean_vm
+          auto-config: false
+          build: false
+          test: false
+          lint: false
+          use-github-cache: false
+          use-mathlib-cache: auto
+      # As in `lean-vm-formalization`.
+      - name: Restore the Lake cache
+        if: env.CLEAN != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CACHE_RUN: ${{ inputs.cache-run }}
+        run: python3 -I ../lake-cache.py get . ${CACHE_RUN:+--run "$CACHE_RUN"} || echo "::warning::no Lake cache restored"
+      - uses: dtolnay/rust-toolchain@stable
+      # The cargo projects the checks below build, each its own workspace and target: their
+      # registry dependencies cached, as in rust.yml; only `main` saves.
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            formal/lean_vm/scripts/guest-export
+            formal/lean_vm/scripts/whir-fold-table
+            formal/lean_vm/scripts/rust-verifier-cli
+            formal/lean_vm/scripts/wire-diff
+            . -> target
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      # The guest's data, `regen-guest.sh`'s first step.
+      - name: Write the guest's data (guest-export)
+        run: cargo run --release --manifest-path scripts/guest-export/Cargo.toml -- .
+      - name: Build the executables
+        run: python3 -I ../lake-build.py . scheme-vectors guest-diff leanvm-verify wire-diff leanvm-execute guest-run
       # EthLib's test vectors of leanSPHINCS and leanXMSS, as leanVM vendors them, on the
       # statement's schemes compiled: verification only (key generation and signing are checked by
       # hand: `scheme-vectors --xmss-sign`, lean_sphincs' `lake exe signature-kat`).
@@ -509,3 +574,26 @@ jobs:
           .lake/build/bin/leanvm-execute "$RUNNER_TEMP"/prover-cases/*/
           python3 -I scripts/prover-diff.py "$RUNNER_TEMP/prover-cases" --mutations 40 --jobs 4 \
             --identical --expected tests/fixtures/verifier
+
+  # A release's Lake cache, from its tag's clean build, attached to the release in parts under
+  # GitHub's 2 GiB per asset (`lake-cache.py get --tag`).
+  lean-vm-release-cache:
+    needs: lean-vm-formalization
+    if: startsWith(github.ref, 'refs/tags/v') && needs.lean-vm-formalization.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: lean-vm-lake-cache
+      - name: Attach the Lake cache to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh release view "$GITHUB_REF_NAME" -R "$GITHUB_REPOSITORY" > /dev/null; then
+            echo "::notice::no release $GITHUB_REF_NAME: its Lake cache stays an artifact of this run"
+            exit 0
+          fi
+          split -b 1900M -d -a 2 lean-vm-lake-cache.tar.zst lean-vm-lake-cache.tar.zst.
+          gh release upload "$GITHUB_REF_NAME" -R "$GITHUB_REPOSITORY" --clobber lean-vm-lake-cache.tar.zst.??
