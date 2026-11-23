@@ -59,6 +59,9 @@ structure Plumb where
   sh : List ℕ := []
   chains : List (ℕ × ℕ × List ℕ × ℕ × ℕ) := []
   nv : ℕ := 0
+  /-- The cells past the frame holding the next frame's address `fp·g^fs`: its self cells, where a loop
+  helper computes it. -/
+  nxt : List ℕ := []
   deriving Repr
 
 /-- What the sharing check's window `k + 1` starts from: its first statement, the soundness window

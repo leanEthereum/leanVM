@@ -337,8 +337,15 @@ noncomputable def addAt (a b d c : ℕ) : Bool :=
 /-- `{x, y} = {a, b}`. -/
 def pairEq (x y a b : ℕ) : Bool := (Nat.beq x a && Nat.beq y b) || (Nat.beq x b && Nat.beq y a)
 
+/-- Cell `o` is past the frame, at a self cell of the next frame: it holds `fp·g^fs`. -/
+noncomputable def nextSelf (o : ℕ) : Bool :=
+  Nat.ble X.fs o && (match st.nx.find? (fun p ↦ Nat.beq p.1 (o - X.fs)) with
+    | some (_, .self) => true
+    | _ => false)
+
 /-- The cell holds a word of `K`: the header but in `main`, a fixed cell, a fact's, a callee
-frame pointer, a table read's target, a cell the segment's environment knows. -/
+frame pointer, a table read's target, a cell the segment's environment knows, the next frame's
+pointer at its self cell. -/
 noncomputable def cellK (o : ℕ) : Bool :=
   (Nat.ble o 1 && !X.main) ||
   (match statAt X o with
@@ -353,7 +360,7 @@ noncomputable def cellK (o : ℕ) : Bool :=
     | .ne _ _ p => Nat.beq p o
     | _ => false) ||
   st.fr.any (fun q ↦ Nat.beq q.1 o) || st.tg.any (fun t ↦ Nat.beq t.1 o) ||
-  (st.seg.env.get o).isSome
+  (st.seg.env.get o).isSome || nextSelf X st o
 
 /-- `fp[a] = fp·g^e`: a fixed cell, or the address of a run starting at cell `e` (an `addr` fact,
 from which the compiler steps a shifted one). -/
@@ -388,6 +395,21 @@ noncomputable def nextMul (a o : ℕ) : Bool :=
   | some (_, .self) => decide (statAt X a = some (.fpg X.fs))
   | _ => false
 
+/-- The next frame's pointer computed into its self cell `d`: `fp·g^fs = fp·g^e₁ · g^(fs - e₁)`. -/
+noncomputable def nextSelfMul (a b d : ℕ) : Bool :=
+  nextSelf X st d && (match statAt X a, cplCstAt X st b with
+    | some (.fpg e1), some (k0, 0) => Nat.ble e1 X.fs && (match gpE X k0 with
+      | some e2 => Nat.beq e2 (X.fs - e1)
+      | none => false)
+    | _, _ => false)
+
+/-- A store into the next frame's cell `o2` through its self cell `o1`. -/
+noncomputable def nextStore (o1 o2 o3 : ℕ) : Bool :=
+  nextSelf X st o1 && (match st.nx.find? (fun p ↦ Nat.beq p.1 o2) with
+    | some (_, .val cv) => Nat.beq o3 cv || sameC X st cv o3
+    | some (_, .hdr i) => Nat.beq o3 i && Nat.ble i 1
+    | _ => false)
+
 /-- A store into or load from a callee frame through its pointer cell `o1`. -/
 noncomputable def frameCell (o1 o2 o3 : ℕ) : Bool :=
   match st.fr.find? (fun q ↦ Nat.beq q.1 o1) with
@@ -406,6 +428,33 @@ noncomputable def frameHas (o1 o2 : ℕ) (fc : FC) : Bool :=
   | some (_, fcs) => fcs.any fun p ↦ Nat.beq p.1 o2 && decide (p.2 = fc)
   | none => false
 
+/-- A `MUL` holds by a fact on its cells, the fixed cells, or a copy into the next frame. -/
+noncomputable def justMul (a b d : ℕ) : Bool :=
+  (lookC st.book d).any (fun x ↦ match x with
+    | .mul d' x y => Nat.beq d' d && pairEq x y a b
+    | .ne x i p => Nat.beq p d && pairEq x i a b
+    | .addr p run => Nat.beq p d && addrMul X st a b run
+    | _ => false) ||
+  (lookC st.book a).any (fun x ↦ match x with
+    | .range x y _ _ k => Nat.beq k d && pairEq x y a b
+    | _ => false) ||
+  (isO X st b && sameC X st a d) || (isO X st a && sameC X st b d) || fpgMul X st a b d ||
+  (Nat.ble X.fs d && isO X st b && nextMul X st a (d - X.fs))
+
+/-- A `DEREF` of a cell holds by a load fact, a range check, a callee frame in flight, a table
+read, or a fixed frame address. -/
+noncomputable def justDerefCell (o1 o2 o3 : ℕ) : Bool :=
+  (lookC st.book o3).any (fun x ↦ match x with
+    | .load d p off => Nat.beq d o3 && Nat.beq p o1 && Nat.beq off o2
+    | _ => false) ||
+  (lookC st.book o1).any (fun x ↦ match x with
+    | .range x y t1 t2 _ => Nat.beq o2 0 && ((Nat.beq x o1 && Nat.beq t1 o3) ||
+        (Nat.beq y o1 && Nat.beq t2 o3))
+    | _ => false) ||
+  frameCell X st o1 o2 o3 ||
+  st.tg.any (fun t ↦ Nat.beq t.1 o3 && Nat.beq t.2.1 o1 && Nat.beq t.2.2 o2) ||
+  (Nat.beq o2 0 && decide (statAt X o1 = some (.fpg o3)) && known X st o3)
+
 /-- **An instruction at pc `pc` holds** on the frame: by a fact on its cells, the fixed cells,
 a callee frame in flight, a table read, or the next frame. -/
 noncomputable def justI (pc : ℕ) : OffsetInstruction → Bool
@@ -414,28 +463,8 @@ noncomputable def justI (pc : ℕ) : OffsetInstruction → Bool
     addAt st a b d d || addAt st a b d a || addAt st a b d b ||
     (isZ X st d && sameC X st a b) || (Nat.beq a d && isZ X st b && known X st d) ||
     (Nat.beq b d && isZ X st a && known X st d) || (Nat.beq b d && known X st d && zeroBy X st a)
-  | .mul a b d =>
-    (lookC st.book d).any (fun x ↦ match x with
-      | .mul d' x y => Nat.beq d' d && pairEq x y a b
-      | .ne x i p => Nat.beq p d && pairEq x i a b
-      | .addr p run => Nat.beq p d && addrMul X st a b run
-      | _ => false) ||
-    (lookC st.book a).any (fun x ↦ match x with
-      | .range x y _ _ k => Nat.beq k d && pairEq x y a b
-      | _ => false) ||
-    (isO X st b && sameC X st a d) || (isO X st a && sameC X st b d) || fpgMul X st a b d ||
-    (Nat.ble X.fs d && isO X st b && nextMul X st a (d - X.fs))
-  | .deref o1 o2 o3 .cell =>
-    (lookC st.book o3).any (fun x ↦ match x with
-      | .load d p off => Nat.beq d o3 && Nat.beq p o1 && Nat.beq off o2
-      | _ => false) ||
-    (lookC st.book o1).any (fun x ↦ match x with
-      | .range x y t1 t2 _ => Nat.beq o2 0 && ((Nat.beq x o1 && Nat.beq t1 o3) ||
-          (Nat.beq y o1 && Nat.beq t2 o3))
-      | _ => false) ||
-    frameCell X st o1 o2 o3 ||
-    st.tg.any (fun t ↦ Nat.beq t.1 o3 && Nat.beq t.2.1 o1 && Nat.beq t.2.2 o2) ||
-    (Nat.beq o2 0 && decide (statAt X o1 = some (.fpg o3)) && known X st o3)
+  | .mul a b d => justMul X st a b d || nextSelfMul X st a b d
+  | .deref o1 o2 o3 .cell => justDerefCell X st o1 o2 o3 || nextStore X st o1 o2 o3
   | .deref o1 o2 o3 .fp =>
     known X st o3 && (frameHas st o1 o2 .fp ||
       (Nat.beq o2 0 && (match statAt X o1 with
