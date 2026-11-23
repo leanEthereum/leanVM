@@ -1349,8 +1349,7 @@ impl FnLower<'_> {
             // write must happen.
             StmtKind::AssertEq(a, b) => {
                 let (la, lb) = (self.expr(a), self.expr(b));
-                let one = self.one();
-                self.emit(LOp::Copy { src: la, one, dst: lb });
+                self.copy(la, lb);
             }
             StmtKind::AssertNe(a, b) => self.lower_assert_ne(a, b),
             StmtKind::AssertLt(e, bound) => self.lower_assert_lt(e, bound),

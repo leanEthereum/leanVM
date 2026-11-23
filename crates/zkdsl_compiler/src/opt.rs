@@ -187,14 +187,10 @@ fn copy_of(code: &[LInstr], dead: &[bool], i: usize) -> Option<(Off, Off)> {
     }
 }
 
-/// The block holding instruction `i`, `starts` the blocks' first instructions.
-fn block_of(starts: &[usize], i: usize) -> usize {
-    starts.partition_point(|&s| s <= i) - 1
-}
-
-/// The end of block `b`: the next block's first instruction, or `n`.
-fn block_end(starts: &[usize], b: usize, n: usize) -> usize {
-    starts.get(b + 1).copied().unwrap_or(n)
+/// The end of the block holding instruction `i`: the next block's first instruction, or `n`, `starts` the blocks'
+/// first instructions.
+fn block_end(starts: &[usize], i: usize, n: usize) -> usize {
+    starts.get(starts.partition_point(|&s| s <= i)).copied().unwrap_or(n)
 }
 
 /// What the live instructions name.
@@ -315,7 +311,7 @@ fn remove_copies(l: &mut Lowered, dead: &mut [bool], blocks: &[usize]) -> bool {
         }
         let d_refs = refs.of(d);
         // Propagate: d a temporary, read after the copy in its block only.
-        let end = block_end(blocks, block_of(blocks, i), n);
+        let end = block_end(blocks, i, n);
         let propagate = !is_pinned(d)
             && d < fs
             && (d_refs.iter())

@@ -177,7 +177,7 @@ fn merkle_hints(queries: &[usize], depth: &[usize], proof: &verifier::Proof) -> 
                 leaf.as_chunks().0.iter().map(|&[c0, c1]| F128::new(c0, c1)).collect()
             };
             hints.push(("merkle_leaf_rows", row));
-            let mut path_children = Vec::with_capacity(2 * path_depth);
+            let mut path_siblings = Vec::with_capacity(2 * path_depth);
             let mut node = hash_words(leaf);
             let mut index = (1 << depth) + opening.leaf_index as usize;
             for (height, sibling) in opening.siblings.iter().enumerate() {
@@ -187,7 +187,7 @@ fn merkle_hints(queries: &[usize], depth: &[usize], proof: &verifier::Proof) -> 
                     (sibling, &node)
                 };
                 if height < path_depth {
-                    path_children.extend(hash_to_scalars::<F128>(sibling));
+                    path_siblings.extend(hash_to_scalars::<F128>(sibling));
                 } else {
                     nodes[index] = node;
                     nodes[index ^ 1] = *sibling;
@@ -197,7 +197,7 @@ fn merkle_hints(queries: &[usize], depth: &[usize], proof: &verifier::Proof) -> 
                 index >>= 1;
             }
             nodes[1] = node;
-            hints.push(("merkle_children", path_children));
+            hints.push(("merkle_children", path_siblings));
         }
         hints.push(("merkle_caps", nodes.iter().flat_map(hash_to_scalars).collect()));
         hints.push(("merkle_cap_active", active));
