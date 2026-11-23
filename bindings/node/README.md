@@ -51,7 +51,6 @@ A key is a 32-byte seed and the slots `[start, end)`, with `end <= 2^31`: both f
 ## Aggregate
 
 ```js
-
 const leaf = await lpq.aggregate({
   xmss: [{ publicKey: xmssKey.publicKey, message, signature: xmssSig }],
   sphincs: [{ publicKey: sphincsKey.publicKey, message, signature: sphincsSig }],

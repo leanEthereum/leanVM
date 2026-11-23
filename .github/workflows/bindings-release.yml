@@ -78,9 +78,7 @@ jobs:
             target: aarch64
     steps:
       - uses: actions/checkout@v4
-      # A Windows host cannot run the wrapper.
       - name: Use the CPU tiers' rustc wrapper
-        if: runner.os != 'Windows'
         run: echo "RUSTC_WRAPPER=$GITHUB_WORKSPACE/scripts/tier-rustc" >> "$GITHUB_ENV"
       - uses: actions/setup-python@v5
         with:
@@ -115,6 +113,12 @@ jobs:
           working-directory: bindings/python
       - name: Complete the sdist (complete-sdist.sh)
         run: sh bindings/python/scripts/complete-sdist.sh dist/py_lean_pq-*.tar.gz
+      # pip builds it from source, as on a platform with no wheel.
+      - name: Install the sdist
+        run: |
+          python3 -m venv "$RUNNER_TEMP/sdist"
+          "$RUNNER_TEMP/sdist/bin/pip" install dist/py_lean_pq-*.tar.gz
+          "$RUNNER_TEMP/sdist/bin/python" -c "import py_lean_pq"
       - uses: actions/upload-artifact@v4
         with:
           name: wheels-sdist
@@ -542,9 +546,7 @@ jobs:
             build_args: --cross-compile
     steps:
       - uses: actions/checkout@v4
-      # A Windows host cannot run the wrapper.
       - name: Use the CPU tiers' rustc wrapper
-        if: runner.os != 'Windows'
         run: echo "RUSTC_WRAPPER=$GITHUB_WORKSPACE/scripts/tier-rustc" >> "$GITHUB_ENV"
       - uses: actions/setup-node@v5
         with:
@@ -581,9 +583,6 @@ jobs:
           npx napi build --platform --release --target "$TARGET" ${BUILD_ARGS:+"$BUILD_ARGS"}
       # Static CRT check: the addon must load without the Visual C++ redistributable, so it may
       # import system DLLs but no VCRUNTIME*.dll or MSVCP*.dll.
-      - name: Check the CPU tiers are built in
-        if: startsWith(matrix.platform.target, 'x86_64') && runner.os == 'Linux'
-        run: sh scripts/check-tiers bindings/node/lean_pq_node.*.node
       - name: Check the addon's DLL imports
         if: endsWith(matrix.platform.target, '-msvc')
         working-directory: bindings/node
@@ -596,6 +595,9 @@ jobs:
             echo "lean_pq_node.win32-x64-msvc.node imports the Visual C++ runtime" >&2
             exit 1
           fi
+      - name: Check the CPU tiers are built in
+        if: startsWith(matrix.platform.target, 'x86_64') && runner.os == 'Linux'
+        run: sh scripts/check-tiers bindings/node/lean_pq_node.*.node
       - uses: actions/upload-artifact@v4
         with:
           name: node-binding-${{ matrix.platform.target }}

@@ -13,6 +13,7 @@ on:
       - Cargo.lock
       - .cargo/config.toml
       - scripts/tier-rustc
+      - scripts/check-tiers
       - .github/workflows/bindings-ci.yml
   pull_request:
     paths:
@@ -23,6 +24,7 @@ on:
       - Cargo.lock
       - .cargo/config.toml
       - scripts/tier-rustc
+      - scripts/check-tiers
       - .github/workflows/bindings-ci.yml
   # bindings-release-please.yml dispatches it on the release pull request, which GITHUB_TOKEN made.
   workflow_dispatch:
@@ -40,9 +42,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # A Windows host cannot run the wrapper.
       - name: Use the CPU tiers' rustc wrapper
-        if: runner.os != 'Windows'
         run: echo "RUSTC_WRAPPER=$GITHUB_WORKSPACE/scripts/tier-rustc" >> "$GITHUB_ENV"
 
       - uses: dtolnay/rust-toolchain@stable
@@ -81,8 +81,10 @@ jobs:
         run: cargo clippy --release -p lean-pq -p lean-pq-native --target x86_64-pc-windows-gnu -- -D warnings
         working-directory: bindings
 
-      - name: Lint Rust bindings without aggregation
-        run: cargo clippy --release -p lean-pq --no-default-features --all-targets -- -D warnings
+      - name: Test and lint Rust bindings without aggregation
+        run: |
+          cargo test --release -p lean-pq --no-default-features
+          cargo clippy --release -p lean-pq --no-default-features --all-targets -- -D warnings
         working-directory: bindings
 
   test:
@@ -132,6 +134,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Use the CPU tiers' rustc wrapper
+        run: echo "RUSTC_WRAPPER=$GITHUB_WORKSPACE/scripts/tier-rustc" >> "$GITHUB_ENV"
 
       - uses: actions/setup-java@v5
         with:
@@ -195,9 +199,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # A Windows host cannot run the wrapper.
       - name: Use the CPU tiers' rustc wrapper
-        if: runner.os != 'Windows'
         run: echo "RUSTC_WRAPPER=$GITHUB_WORKSPACE/scripts/tier-rustc" >> "$GITHUB_ENV"
 
       - uses: actions/setup-node@v5
@@ -288,6 +290,10 @@ jobs:
 
       - name: Stage static native bridge
         run: sh bindings/native/scripts/stage-static.sh ${{ matrix.platform.target }} native/${{ matrix.platform.bundle_dir }}
+
+      - name: Check the CPU tiers are built in
+        if: matrix.platform.target == 'x86_64-unknown-linux-gnu'
+        run: sh scripts/check-tiers native/x86_64-linux-gnu/liblean_pq_native.a
 
       - name: Check universal macOS archive slices
         if: matrix.platform.target == 'universal2-apple-darwin'

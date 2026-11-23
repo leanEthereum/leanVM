@@ -14,6 +14,7 @@ macro_rules! tiers {
         /// A copy of the prover: one compiled with a CPU tier's target features, or the build's own.
         #[derive(Clone, Copy, Debug, PartialEq, Eq)]
         #[allow(non_camel_case_types)]
+        #[non_exhaustive]
         pub enum Tier {
             $(#[$cfg] $tier,)*
             base,
@@ -76,11 +77,11 @@ pub fn tier() -> Tier {
         return forced;
     }
     *TIER.get_or_init(|| match std::env::var("LEANVM_TIER") {
-        Ok(name) => *__tiers_here()
+        Ok(name) if !name.is_empty() => *__tiers_here()
             .iter()
             .find(|tier| format!("{tier:?}") == name)
             .unwrap_or_else(|| panic!("LEANVM_TIER={name}: this build runs {:?} on this CPU", __tiers_here())),
-        Err(_) => __tiers_here()[0],
+        _ => __tiers_here()[0],
     })
 }
 

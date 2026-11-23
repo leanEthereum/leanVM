@@ -2,5 +2,8 @@
 fn main() {
     println!("cargo::rerun-if-env-changed=RUSTC_WRAPPER");
     println!("cargo::rerun-if-changed=Cargo.toml");
-    println!("cargo::rerun-if-changed=../../../../scripts/tier-rustc");
+    let wrapper = "../../../../scripts/tier-rustc";
+    if std::path::Path::new(wrapper).exists() {
+        println!("cargo::rerun-if-changed={wrapper}");
+    }
 }

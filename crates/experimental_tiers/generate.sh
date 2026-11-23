@@ -4,6 +4,8 @@
 # behind its `cpu_tiers` feature.
 set -eu
 cd "$(dirname "$0")"
+# It deletes the directories next to it: refuse to run anywhere else.
+[ "${PWD##*/}" = experimental_tiers ] && [ -f generate.sh ] || { echo "run it as sh crates/experimental_tiers/generate.sh" >&2; exit 1; }
 
 x86v3=+avx2,+bmi1,+bmi2,+fma,+lzcnt,+movbe,+f16c,+popcnt,+pclmulqdq
 x86v4=$x86v3,+avx512f,+avx512bw,+avx512cd,+avx512dq,+avx512vl
@@ -83,7 +85,9 @@ echo "$tiers" | while read -r tier arch features; do
         printf '%s\n' '// Written by ../../generate.sh.' 'fn main() {' \
             '    println!("cargo::rerun-if-env-changed=RUSTC_WRAPPER");' \
             '    println!("cargo::rerun-if-changed=Cargo.toml");' \
-            '    println!("cargo::rerun-if-changed=../../../../scripts/tier-rustc");' '}' > "$tier/$name/build.rs"
+            '    let wrapper = "../../../../scripts/tier-rustc";' \
+            '    if std::path::Path::new(wrapper).exists() {' \
+            '        println!("cargo::rerun-if-changed={wrapper}");' '    }' '}' > "$tier/$name/build.rs"
     done
     lacks=$(lacking "$arch" "$features")
     printf "\n[target.'cfg(all(%s))'.dependencies]\n" "$lacks" >> "$dispatch/Cargo.toml"

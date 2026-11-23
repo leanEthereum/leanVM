@@ -1,4 +1,5 @@
-#![doc = include_str!("../README.md")]
+#![cfg_attr(feature = "aggregation", doc = include_str!("../README.md"))]
+#![cfg_attr(not(feature = "aggregation"), doc = "leanXMSS and leanSPHINCS signatures and the consensus VRF tree.")]
 
 #[cfg(feature = "aggregation")]
 mod aggregate;

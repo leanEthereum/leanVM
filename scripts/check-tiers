@@ -2,16 +2,21 @@
 # Fails unless each x86_64 library, archive or wheel holds the CPU tiers' code (scripts/tier-rustc): GFNI
 # instructions, which the portable baseline lacks.
 set -eu
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT
 for file in "$@"; do
-    lib=$file
+    libs=$file
     case "$file" in
     *.whl)
-        lib=$(mktemp)
-        unzip -p "$file" '*.so' > "$lib"
+        unzip -q -o -d "$work" "$file" '*.so'
+        libs=$(find "$work" -name '*.so')
         ;;
     esac
-    if ! objdump -d "$lib" | grep -q gf2p8; then
-        echo "$file: built without the CPU tiers" >&2
-        exit 1
-    fi
+    for lib in $libs; do
+        if ! objdump -d "$lib" | grep -q gf2p8; then
+            echo "$file: built without the CPU tiers" >&2
+            exit 1
+        fi
+    done
+    rm -rf "${work:?}"/*
 done

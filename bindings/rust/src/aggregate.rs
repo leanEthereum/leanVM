@@ -106,6 +106,8 @@ pub fn aggregate(
             max: MAX_CHILDREN,
         });
     }
+    // A forked child fails before verifying anything.
+    claim(&POOL_OWNER)?;
     // An invalid signature would otherwise surface as a failed proof; checking first names it.
     for (index, (public_key, message, signature)) in xmss.iter().enumerate() {
         public_key
@@ -167,6 +169,7 @@ impl Aggregate {
     /// # Errors
     ///
     /// - Fails when the bytes are not a proof of exactly these claims.
+    /// - Fails in a process forked while its parent was building the aggregation guest.
     pub fn from_bytes(
         bytes: &[u8],
         xmss_claims: &[(xmss::PublicKey, Message)],

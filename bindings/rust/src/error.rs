@@ -67,9 +67,9 @@ pub enum Error {
     },
 
     /// The prover already runs with another thread count.
-    #[error("the prover already runs on {running} threads, not {threads} (0: one per core)")]
+    #[error("the prover already started with {running} threads, not {threads} (0: one per core)")]
     SetupThreads {
-        /// The running thread count.
+        /// The thread count it started with.
         running: usize,
         /// The thread count asked for.
         threads: usize,
@@ -126,8 +126,8 @@ pub enum Error {
     #[error("the aggregate does not prove the given claims")]
     AggregateRejected,
 
-    /// The process was forked while or after its parent started the prover.
-    #[error("this process was forked while or after its parent started the prover: prove in the parent, or in a process started without forking")]
+    /// The process was forked while or after its parent started the prover or built the aggregation guest.
+    #[error("this process was forked while or after its parent started the prover or built its guest: prove in the parent, or in a process started without forking")]
     ForkedAfterSetup,
 }
 

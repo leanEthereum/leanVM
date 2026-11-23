@@ -1,11 +1,10 @@
 //! The stable prover and the experimental one, in every CPU tier this machine runs, give the same proof of the same
-//! statement, byte for byte: three leaves
-//! (leanXMSS signatures and blobs, leanSPHINCS signatures, both schemes and blobs, with enough signatures of each that
-//! experimental runs both signature loops as parallel segments), a recursion node over them, at the four rates, and a
-//! second-level node over that node, a leaf and a raw signature; the same refusal of a forged signature the native
-//! pre-check misses; and every compiler test program, or the same refusal. Both trees' thread pools live in this one
-//! process, and libtest may run the two tests at once: both pools can then be busy together, and either can take
-//! dispatches from both tests, which its dispatch lock serializes.
+//! statement, byte for byte: three leaves (leanXMSS signatures and blobs, leanSPHINCS signatures, both schemes and
+//! blobs, with enough signatures of each that experimental runs both signature loops as parallel segments), a recursion
+//! node over them, at the four rates, and a second-level node over that node, a leaf and a raw signature; the same
+//! refusal of a forged signature the native pre-check misses; and every compiler test program, or the same refusal.
+//! Both trees' thread pools live in this one process, and libtest may run the two tests at once: both pools can then be
+//! busy together, and either can take dispatches from both tests, which its dispatch lock serializes.
 
 use aggregation::{AggregateClaims, AggregateError, AggregateProof, OutputClaims, signers_cache};
 use experimental_dispatch::{__tiers_here, __with_tier, ExperimentalProver};

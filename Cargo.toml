@@ -27,11 +27,11 @@ resolver = "3"
 version = "0.1.0"
 edition = "2024"
 
-# Numeric kernels legitimately index by loop variable and take many arguments.
 [workspace.lints.rust]
 # `scripts/tier-rustc` sets it on the CPU tiers' copies.
 unexpected_cfgs = { level = "warn", check-cfg = ["cfg(leanvm_tier)"] }
 
+# Numeric kernels legitimately index by loop variable and take many arguments.
 [workspace.lints.clippy]
 needless_range_loop = "allow"
 too_many_arguments = "allow"

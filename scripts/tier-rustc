@@ -11,15 +11,13 @@ case "${CARGO_MANIFEST_DIR:-}" in
     for arg in "$@"; do
         case "$arg" in
         lib) lib=1 ;;
-        opt-level=* | -Copt-level=*) opt=${arg#*opt-level=} ;;
+        *opt-level=*) opt=${arg##*opt-level=} ;;
         *share-generics*) shared=1 ;;
         esac
     done
-    case "$lib$shared,$opt" in
-    1,2 | 1,3)
-        features=$(sed -n 's/^target-features = "\(.*\)"$/\1/p' "$CARGO_MANIFEST_DIR/Cargo.toml")
-        exec "$rustc" "$@" -C target-feature="$features" --cfg leanvm_tier
-        ;;
+    features=$(sed -n 's/^target-features = "\(.*\)"$/\1/p' "$CARGO_MANIFEST_DIR/Cargo.toml")
+    case "$lib$shared,$opt,${features:+1}" in
+    1,2,1 | 1,3,1) exec "$rustc" "$@" -C target-feature="$features" --cfg leanvm_tier ;;
     esac
     ;;
 esac
