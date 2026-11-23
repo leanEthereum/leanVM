@@ -19,6 +19,7 @@ public import LeanVM.Guest.B1.Tables.VtC.FInBuf
 public import LeanVM.Guest.B1.Tables.VtC.ABc
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_tables»
+public import LeanVM.ToMathlib.List
 
 /-!
 # Assembly
@@ -72,15 +73,6 @@ theorem vtHt_eq {rows : List ℕ} (hr : rows.length = 6) {t : ℕ} (ht : t < 6) 
   simp only [List.getElem_zipWith]
   rw [List.getD_eq_getElem _ _ (by omega), List.getD_eq_getElem _ _ (by simp [tableLogFloors]; omega)]
 
-theorem foldl_max_ge : ∀ (l : List ℕ) (a : ℕ), a ≤ l.foldl max a ∧ ∀ x ∈ l, x ≤ l.foldl max a
-  | [], a => ⟨le_rfl, by simp⟩
-  | y :: l, a => by
-    obtain ⟨h1, h2⟩ := foldl_max_ge l (max a y)
-    refine ⟨le_trans (le_max_left _ _) h1, fun x hx ↦ ?_⟩
-    rcases List.mem_cons.mp hx with rfl | hx
-    · exact le_trans (le_max_right _ _) h1
-    · exact h2 x hx
-
 theorem foldl_max_mem : ∀ (l : List ℕ) (a : ℕ), l.foldl max a = a ∨ l.foldl max a ∈ l
   | [], a => Or.inl rfl
   | y :: l, a => by
@@ -92,7 +84,7 @@ theorem foldl_max_mem : ∀ (l : List ℕ) (a : ℕ), l.foldl max a = a ∨ l.fo
     · exact Or.inr (List.mem_cons_of_mem _ h)
 
 theorem vt_n_ge {H : VtHonest} (hr : H.rows.length = 6) {t : ℕ} (ht : t < 6) : H.τ t ≤ H.n := by
-  have := (foldl_max_ge (tableHeightsOf H.rows) 0).2 (H.τ t) (by
+  have := (List.foldl_max_ge (tableHeightsOf H.rows) 0).2 (H.τ t) (by
     rw [vt_tableHeights_eq hr]; exact List.mem_map.mpr ⟨t, List.mem_range.mpr ht, rfl⟩)
   exact this
 

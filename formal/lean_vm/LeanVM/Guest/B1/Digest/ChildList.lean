@@ -19,6 +19,7 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«child_claim_list_any»
 import LeanVM.Guest.Data.ValNames.«child_claim_list_last__L»
 import LeanVM.Guest.B1.Common.Find
+public import LeanVM.ToMathlib.List
 
 /-!
 # `child_claim_list_any`
@@ -246,10 +247,6 @@ theorem claimsAt_append {rd : Reader} {region limit entries base : E} {m k : ℕ
 
 theorem length_ccMsg (o0 n : ℕ) : (ccMsg o0 n).length = 4 * n := by simp [ccMsg]
 
-theorem getD_map_range {α : Type} (f : ℕ → α) {n c : ℕ} (h : c < n) (d : α) :
-    ((List.range n).map f).getD c d = f c := by
-  simp [List.getD_eq_getElem?_getD, h]
-
 /-! ## `child_claim_list_last__L{k}` -/
 
 
@@ -391,7 +388,7 @@ theorem any_step {rd : Reader} (hm : MemOk rd) {f : String} {j m o0 p0 mk st0 nb
   · have hout' := stLoads_sound hout hat c
     have hw' := hw c
     rw [hnb] at hw' hout'
-    rw [getD_map_range _ c.isLt, hw', h12] at hout'
+    rw [List.getD_map_range _ c.isLt, hw', h12] at hout'
     exact hout'
 
 end

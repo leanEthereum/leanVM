@@ -18,6 +18,7 @@ import LeanVM.Guest.Data.ValNames.«gkr_last_layers__L»
 import LeanVM.Guest.Data.ValNames.«gkr_layers__L»
 import LeanVM.Guest.Data.ValNames.«gkr_layers__L_loop0»
 import LeanVM.Guest.Data.ValNames.«gkr_layer__L»
+public import LeanVM.ToMathlib.List
 
 /-!
 # The radix-four layers' words
@@ -71,18 +72,9 @@ def glsKL (fs : String → ℕ) (Kg : ℕ → ℕ → ℕ) : ℕ :=
   ((List.range 2).flatMap fun o ↦ (List.range 4).flatMap fun n ↦
     (List.range 4).map fun r ↦ glsB fs Kg o n r).foldl max 0
 
-theorem gw_foldl_max_ge : ∀ (l : List ℕ) (a : ℕ), a ≤ l.foldl max a ∧ ∀ x ∈ l, x ≤ l.foldl max a
-  | [], _ => ⟨le_rfl, fun _ h => by simp at h⟩
-  | y :: l, a => by
-    obtain ⟨h1, h2⟩ := gw_foldl_max_ge l (max a y)
-    refine ⟨le_trans (le_max_left a y) h1, fun x hx => ?_⟩
-    rcases List.mem_cons.mp hx with rfl | hx
-    · exact le_trans (le_max_right a x) h1
-    · exact h2 x hx
-
 theorem glsB_le_KL (fs : String → ℕ) (Kg : ℕ → ℕ → ℕ) {o n r : ℕ} (ho : o < 2) (hn : n ≤ 3)
     (hr : r < 4) : glsB fs Kg o n r ≤ glsKL fs Kg :=
-  (gw_foldl_max_ge _ 0).2 _ (List.mem_flatMap.2 ⟨o, List.mem_range.2 ho, List.mem_flatMap.2
+  (List.foldl_max_ge _ 0).2 _ (List.mem_flatMap.2 ⟨o, List.mem_range.2 ho, List.mem_flatMap.2
     ⟨n, List.mem_range.2 (by omega), List.mem_map.2 ⟨r, List.mem_range.2 hr, rfl⟩⟩⟩)
 
 /-! ## A flat node -/

@@ -8,6 +8,7 @@ public import LeanVM.Guest.Fast.FunctionNames
 public import LeanVM.Guest.B1.VerifySub.Proof
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_sub»
+public import LeanVM.ToMathlib.List
 
 /-!
 # `verify_sub`'s child proof reader, computable
@@ -141,12 +142,12 @@ theorem vsPiOfN_eq (rd : Reader) (σ : Val) (Fm : FrameMap) :
   have hjm : (ri * 11 + m) % ligNSizes = m := by unfold ligNSizes; omega
   have hjr : (ri * 11 + m) / ligNSizes = ri := by unfold ligNSizes; omega
   have hname : decoderFunctionName (openStackedIdx m) = openNames.getD m "" := by
-    rw [openNames_eq, getD_map_range hm]
+    rw [openNames_eq, List.getD_map_range _ hm]
   obtain ⟨hlen, hok⟩ := callsOK _ hj
   unfold osQCalls osCfgAt at hlen hok
   rw [hjm, hjr] at hlen hok
   have hw : osWordsTab.getD (ri * 11 + m) 0 = osWordsLen (osCfgR m ri) := by
-    rw [osWordsTab_eq, getD_map_range hj, osCfgAt, hjm, hjr]
+    rw [osWordsTab_eq, List.getD_map_range _ hj, osCfgAt, hjm, hjr]
   dsimp only
   rw [hname, hw, osLevelsW_eq, Proof.mk.injEq]
   refine ⟨rfl, ?_⟩
