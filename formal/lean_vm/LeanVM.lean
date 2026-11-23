@@ -446,8 +446,8 @@ theorem LeanVM.corollaries_of_theorems {extractorProgram decoderProgram : LeanVM
     Statement.Corollaries (leanVmKnowledgeExtractor := extractorProgram)
       (guestWitnessDecoder := decoderProgram) where
   aggregateSound := by
-    intro A Q hA hQ
-    refine le_trans (prEvent_mono _ _ _ ?_) (h.leanVmKnowledgeSoundness A Q hA hQ)
+    intro A Q hA
+    refine le_trans (prEvent_mono _ _ _ ?_) (h.leanVmKnowledgeSoundness A Q hA)
     rintro ⟨prog, input, π, b, T⟩ ⟨s, hb, hprog, hpub, hs, hno⟩
     dsimp only at hprog
     subst hprog

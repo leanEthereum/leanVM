@@ -2,6 +2,7 @@ module
 
 public import LeanVM.Protocol.ExperimentBridge
 public import LeanVM.Guest.WithHash
+public import LeanVM.Protocol.ToVCVio.PrEvent
 import LeanVM.Prover.Refine
 
 @[expose] public section
@@ -18,7 +19,8 @@ model's oracles; the proofs' run the two calls against the model
   Keccak-f[1600] is the two-call prover's with the deployed Keccak;
 * `batchingSound_of_withHash`: the adversary, then the batching over `π`, is the adversary's run
   with its transcript recorded, then the batching with the two calls, the transcript forgotten
-  (`logged_run_forget`).
+  (`logged_run_forget`); past `2^128` adversary queries the bound exceeds `1`
+  (`one_le_batchingBound`).
 -/
 
 open OracleComp OracleSpec
@@ -87,11 +89,29 @@ theorem batchingGame_eq_withHash (A : OracleComp RandomPermutationOracles (Unit 
   simp only [runWithRandomPermutation, Rpm.runAdversaryThen, simulateQ_bind, simulateQ_pure,
     StateT.run'_eq, StateT.run_bind, StateT.run_pure, map_bind, map_pure, hA, bind_map_left, hB]
 
+/-- Past `2^128` adversary queries the bound of `BatchingSound` exceeds `1`: its first term alone
+is at least `2^128 · 8 · 2^-130 = 8`. -/
+theorem one_le_batchingBound {QA QV M : ℕ} (hQA : 2 ^ 128 < QA) :
+    1 ≤ (((QA + QV : ℕ) : ℝ≥0∞) + 1) * (max (2 * M - 3) 8 : ℕ) * (2 : ℝ≥0∞)⁻¹ ^ 130 +
+      5 * ((QA + QV : ℕ) : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 := by
+  refine le_add_right ?_
+  have h : (2 : ℝ≥0∞) ^ 130 ≤ (((QA + QV : ℕ) : ℝ≥0∞) + 1) * (max (2 * M - 3) 8 : ℕ) := by
+    have : 2 ^ 130 ≤ (QA + QV + 1) * max (2 * M - 3) 8 :=
+      calc 2 ^ 130 ≤ 2 ^ 128 * 8 := by norm_num
+        _ ≤ (QA + QV + 1) * 8 := Nat.mul_le_mul_right _ (by omega)
+        _ ≤ _ := Nat.mul_le_mul_left _ (le_max_right _ _)
+    exact_mod_cast this
+  rw [ENNReal.inv_pow]
+  calc (1 : ℝ≥0∞) = 2 ^ 130 * (2 ^ 130)⁻¹ := (ENNReal.mul_inv_cancel (by simp) (by simp)).symm
+    _ ≤ _ := by gcongr
+
 /-- **`BatchingSound`, from the experiment with the two calls.** -/
 theorem batchingSound_of_withHash (h : BatchingSoundWithHash) : BatchingSound := by
-  intro M bytecode hb hM A QA hA hQA hQV
-  rw [batchingGame_eq_withHash, prEvent_map]
-  exact h M bytecode hb hM A QA hA hQA hQV
+  intro M bytecode hb hM A QA hA hQV
+  rcases le_or_gt QA (2 ^ 128) with hQA | hQA
+  · rw [batchingGame_eq_withHash, prEvent_map]
+    exact h M bytecode hb hM A QA hA hQA hQV
+  · exact prEvent_le_of_one_le _ (one_le_batchingBound hQA)
 
 end Batch
 

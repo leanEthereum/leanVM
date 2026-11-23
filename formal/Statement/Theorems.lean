@@ -41,7 +41,7 @@ structure Theorems
     (leanVmKnowledgeExtractor guestWitnessDecoder : LeanVM.Cost.MachineProgram) : Prop where
   /-- leanVM is knowledge sound for the straight-line extractor the program computes,
   `extractorComputedBy leanVmKnowledgeExtractor`: at most `(Q + 2^14) · 2^-125 +
-  5 (Q + 2^14)² · 2^-256` for `Q ≤ 2^128` queries (`LeanVm.lean`). The program extracts nothing if
+  5 (Q + 2^14)² · 2^-256` for `Q` queries (`LeanVm.lean`). The program extracts nothing if
   its size or its run's price exceeds its bound or budget (`leanVmKnowledgeExtractorBudget μ N`, for
   `N` permutation queries at a stack of `2^μ`: about `2^max(58, 2μ + 9) + 2^15·N·log²N`,
   `O(N·log³N)`), and extracting nothing from an accepted proof is a break; so, but with that
@@ -86,7 +86,7 @@ structure Theorems
   proof the verifier accepts, `Statement.Corollaries`' `guestProverComplete`. -/
   guestExecutionComplete : LeanVM.Guest.Completeness.GuestExecutionComplete
   /-- The batching run outside the circuit is sound: at most `(QA + QV + 1) · max(2M - 3, 8) ·
-  2^-130 + 5 (QA + QV)² · 2^-256` for fewer than `M` children, `QA ≤ 2^128`, `QV ≤ 2^96`, so
+  2^-130 + 5 (QA + QV)² · 2^-256` for fewer than `M` children, `QA` queries, `QV ≤ 2^96`, so
   `31 · 2^-130 ≈ 2^-125.05` per query at `M = 17`; it does not compose with the in-circuit
   statements (`LeanVmGuestCompleteness.lean`). -/
   batchingSound : LeanVM.Guest.Batch.BatchingSound
