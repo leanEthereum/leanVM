@@ -16,3 +16,8 @@ keccak256.workspace = true
 
 [dev-dependencies]
 rand.workspace = true
+
+[[test]]
+name = "lean_xmss"
+path = "tests/lean_xmss/main.rs"
+required-features = ["std"]
