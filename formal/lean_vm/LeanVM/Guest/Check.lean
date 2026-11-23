@@ -481,7 +481,8 @@ theorem atomOkL_locate (F : Exec.Facts) (B : Book) (ψ : Trie Sym) (loc : Trie �
 /-- What a caller knows of a function: its name, entry, arity, the self frame pointer cells of
 its entry environment, the bounds on its frame cells before (`pre`) and after (`post`), a pair
 `(o, n)` saying `fp[o] = g^e` with `e < n`, the bounds on memory it assumes (`mem`), a triple
-`(o, c, n)` saying that the word at `fp[o]·g^c` is `g^e` with `e < n`, and
+`(o, c, n)` saying that the word at `fp[o]·g^c` is `g^e` with `e < n` (offsets `c < 2^32`; a walk
+keeps only those, `memSmall`, the larger encoding a cut's double read, `memTwice`), and
 the tuples of frame cells `(t, os)` whose words it assumes in the program's semantic relation
 tagged `t` (`sem`, `Glob.sem`; tag `tagNe`: the two words differ). -/
 structure Sig where
@@ -1075,9 +1076,9 @@ noncomputable def retOk (X : Fx) (vs : List Core.V) (st : CS) (P : List Core.Ato
 /-- A loop's closing tail call to `s` at the next frame `fp·g^S` from the branch position `st`
 with exit `x`, guarded by `fp[oc]`: the callee's name and arity, no returns, bounds after or on
 memory, its bounded arguments and semantic tuples (pairs `neAt oc` knows different), the
-arguments, the self frame
-pointer cells and the return registers copied into the next frame, every pending atom found,
-and the fall-through returning. -/
+arguments, the self frame pointer cells and the return registers in the next frame (computed
+there or stored through its pointer, `nextHolds`), every pending atom found, and the
+fall-through returning. -/
 noncomputable def tailOk (X : Fx) (st : CS) (x : Exec.Exit) (oc S : ℕ) (s : Sig) (f : String)
     (ca : List ℕ) (P : List Core.Atom) : Bool :=
   f == s.name && ca.length == s.nargs && s.nret == 0 && X.nret == 0 &&
