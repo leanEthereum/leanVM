@@ -28,6 +28,7 @@ nothing: the build is then cold. Run `lake exe cache get` first: `get` asks Lake
 from __future__ import annotations
 
 import argparse
+import functools
 import hashlib
 import io
 import json
@@ -94,12 +95,16 @@ def packages(pkg: Path) -> list[tuple[Path, str]]:
     return out
 
 
+@functools.cache
+def src_dirs(pkg: Path) -> frozenset[str]:
+    config = tomllib.loads((pkg / "lakefile.toml").read_text(encoding="utf-8"))
+    return frozenset({"."} | {t.get("srcDir", ".") for kind in ("lean_lib", "lean_exe") for t in config.get(kind, [])})
+
+
 def source(pkg: Path, trace: Path) -> Path | None:
     """The source of the module whose trace is `trace` in package `pkg`, if exactly one of its source directories has it."""
-    config = tomllib.loads((pkg / "lakefile.toml").read_text(encoding="utf-8"))
-    dirs = {"."} | {t.get("srcDir", ".") for kind in ("lean_lib", "lean_exe") for t in config.get(kind, [])}
     rel = trace.relative_to(pkg / ".lake" / "build" / "lib" / "lean").with_suffix(".lean")
-    found = [pkg / d / rel for d in dirs if (pkg / d / rel).is_file()]
+    found = [pkg / d / rel for d in src_dirs(pkg) if (pkg / d / rel).is_file()]
     return found[0] if len(found) == 1 else None
 
 
