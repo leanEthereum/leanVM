@@ -79,12 +79,15 @@ jobs:
           lint: false
           use-github-cache: false
           use-mathlib-cache: auto
-      # The Lake cache (`formal/lake-cache.py`) binds a module to its source files only: no module
-      # may read another file while it elaborates (`cli/`, `scripts/` and `LeanVM/Cli/` run, not elaborate).
+      # The Lake cache (`formal/lake-cache.py`) binds a module to its source files only, so no module
+      # may read another file, a process's output or the environment while it elaborates: a grep for
+      # the usual spellings. `include_str` anywhere; the I/O calls outside the executables' code
+      # (`cli/`, `LeanVM/Cli/`), `scripts/` (run by `lean --run`, never cached) and `lakefile.lean`.
       - name: No module reads a file while it elaborates
         run: |
-          ! grep -rnE 'include_str|include_bytes|IO\.FS|readFile|readBinFile' --include='*.lean' --exclude-dir=.lake \
-              --exclude-dir=cli --exclude-dir=scripts --exclude-dir=Cli formal
+          ! grep -rnE 'include_str|include_bytes' --include='*.lean' --exclude-dir=.lake formal
+          ! grep -rnE 'IO\.FS|readFile|readBinFile|IO\.Process|IO\.getEnv' --include='*.lean' --exclude=lakefile.lean \
+              --exclude-dir=.lake --exclude-dir=cli --exclude-dir=scripts --exclude-dir=Cli formal
       # What the Lake cache packs, refuses and never installs (`lean-vm-build-1`), and a
       # round trip through Lake.
       - name: lake-cache.py on fixtures
@@ -409,7 +412,7 @@ jobs:
           use-mathlib-cache: auto
       - &lake-cache-get
         name: Restore the Lake cache
-        if: env.CLEAN != 'true' || github.job == 'lean-vm-differentials'
+        if: env.STAGE == '1' && env.CLEAN != 'true' || github.job == 'lean-vm-differentials'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -503,13 +506,13 @@ jobs:
       # A stopped build's leftover processes are ended first; `pack` checks what was restored first.
       - name: Pack the Lake cache
         id: pack
-        if: ${{ !cancelled() && (steps.build.outputs.timedout == 'true' || steps.exes.outcome == 'success' && env.WRITER == 'true') }}
+        if: steps.build.outputs.timedout == 'true' || steps.exes.outcome == 'success' && env.WRITER == 'true'
         run: |
           while pkill -KILL -f 'lake-build.py|/bin/lake |/bin/lean |/bin/leanir ' ; do sleep 1; done
           python3 -I ../lake-cache.py pack . "$RUNNER_TEMP/lean-vm-lake-cache.tar.zst"
           echo "digest=$(python3 -I ../lake-cache.py digest)" >> "$GITHUB_OUTPUT"
       - name: Publish the Lake cache
-        if: ${{ !cancelled() && steps.pack.outcome == 'success' }}
+        if: steps.pack.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.build.outputs.timedout == 'true' && format('lean-vm-stage-{0}', env.STAGE) || format('lean-vm-lake-cache-{0}', steps.pack.outputs.digest) }}

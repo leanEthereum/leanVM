@@ -120,8 +120,8 @@ FAKE_GH = r'''import json, os, shutil, sys
 d, a = os.environ["FAKE_GH"], sys.argv[1:]
 if a[0] == "run":  # run download ID -R REPO -n NAME -D DIR
     shutil.copy(os.path.join(d, a[2], a[a.index("-n") + 1]), os.path.join(a[a.index("-D") + 1], "lean-vm-lake-cache.tar.zst"))
-elif "/compare/" in a[1]:
-    print(json.dumps({"status": json.load(open(os.path.join(d, "compare.json")))[a[1].split("/compare/")[1].split("...")[0]]}))
+elif "/compare/" in a[1]:  # with --jq .status
+    print(json.load(open(os.path.join(d, "compare.json")))[a[1].split("/compare/")[1].split("...")[0]])
 elif "/artifacts" in a[1]:
     print(json.dumps({"artifacts": json.load(open(os.path.join(d, "artifacts.json"))).get(a[1].split("/")[-2], [])}))
 else:
@@ -131,7 +131,7 @@ else:
 
 def trust(root: Path) -> None:
     """`get` takes the one run that passes every test, though newer runs each fail one."""
-    name = "lean-vm-lake-cache-" + run("digest").stdout.strip()
+    name = "lean-vm-lake-cache-" + run("digest").stdout.strip()[:16]
     good = dict(event="push", repo="leanEthereum/leanVM", head_branch="main", compare="ahead", artifact=name, expired=False)
     cases = [dict(good, event="pull_request", repo="someone/leanVM"), dict(good, event="workflow_dispatch"),
              dict(good, repo="someone/leanVM"), dict(good, head_branch="feature"), dict(good, compare="diverged"), dict(good, compare="behind"),
@@ -229,8 +229,9 @@ def round_trip(root: Path) -> None:
     r = lake(copy, other, "build")
     check(r.returncode != 0 and "Toy.B" in r.stdout + r.stderr, "Lake restored an entry whose import changed")
 
-    for held in (other / "held/toy").glob("*.json"):
+    for held in (other / "held/toy").glob("*.json"):  # as if `filter` had activated it before the import changed
         os.replace(held, other / "outputs/toy" / held.name)
+        (other / "active/toy" / held.stem).touch()
     built(copy, other)
     r = run("check", copy, "--cache", other)
     check(r.returncode != 0 and "Toy/B.trace" in r.stderr, "a module restored for a changed import passed the check")
@@ -272,8 +273,75 @@ def private_edit(root: Path) -> None:
     check(r.returncode == 0, f"the check failed after an honest private edit: {r.stderr}")
 
 
+PRIVATE = {"Toy/I.lean": "module\n\npublic def i : Nat := 1\npublic theorem i_pos : 0 < i := by decide\n",
+           "Toy/M.lean": "module\n\npublic import Toy.I\n\npublic theorem m : 0 < i + 1 := Nat.succ_pos _\n",
+           "Toy.lean": "module\n\npublic import Toy.M\n"}
+EDITED_I = "module\n\npublic def i : Nat := 1\npublic theorem i_pos : 0 < i := Nat.one_pos\n"
+
+
+def chain(root: Path) -> None:
+    """After a private edit, a second stage restores from the first stage's archive alone what the first rebuilt, and
+    a second clone on the same cache restores the importer from the map Lake wrote here, unchecked: no false failure."""
+    ws = workspace(root / "a", PRIVATE)
+    copy, stage1 = restored_copy(root, ws)
+    (copy / "Toy/I.lean").write_text(EDITED_I)
+    check(run("filter", copy, "--cache", stage1).returncode == 0, "filter failed")
+    check("Built Toy.M" in built(copy, stage1), "the importer was not rebuilt")
+    r = run("pack", copy, root / "stage1.tar.zst", "--cache", stage1)
+    check(r.returncode == 0, f"pack failed: {r.stderr}")
+    stage2 = root / "s2"
+    shutil.copytree(copy, stage2, ignore=shutil.ignore_patterns(".lake"))
+    check(run("unpack", stage2, root / "stage1.tar.zst", "--cache", root / "c2").returncode == 0, "unpack failed")
+    check(run("filter", stage2, "--cache", root / "c2").returncode == 0, "filter failed")
+    check("Built" not in built(stage2, root / "c2"), "the second stage rebuilt what the first packed")
+    check(run("check", stage2, "--cache", root / "c2").returncode == 0, "the check failed on the second stage")
+    second = root / "second"
+    shutil.copytree(copy, second, ignore=shutil.ignore_patterns(".lake"))
+    check(run("filter", second, "--cache", stage1).returncode == 0, "filter failed")
+    check("Built Toy.M" not in built(second, stage1), "the map Lake wrote here was not used")
+    r = run("check", second, "--cache", stage1)
+    check(r.returncode == 0, f"the check failed on a restore from a map Lake wrote here: {r.stderr}")
+
+
+def stale(root: Path) -> None:
+    """A map activated under an older tooling stays where Lake reads it until `filter` holds it: then Lake rebuilds.
+    A map naming an output the store lacks: Lake rebuilds and rewrites it, and `pack` refuses such a map."""
+    ws = workspace(root / "a", {"Toy/A.lean": "def a : Nat := 41\n", "Toy.lean": "import Toy.B\n",
+                                "Toy/B.lean": "import Toy.A\ntheorem b : a + 1 = 42 := by decide\n"})
+    copy, other = restored_copy(root, ws)
+    check(run("filter", copy, "--cache", other).returncode == 0, "filter failed")
+    built(copy, other)
+    old = json.loads((copy / ".lake/build/lib/lean/Toy/B.trace").read_text())["depHash"]
+    (copy / "Toy/A.lean").write_text("def a : Nat := 0\n")
+    new = lake(copy, other, "query", "+Toy.B:depHash").stdout.strip().splitlines()[-1]
+    shutil.copy(other / f"outputs/toy/{old}.json", other / f"outputs/toy/{new}.json")  # as an older activation left it
+    (other / f"active/toy/{new}").touch()
+    (manifest,) = (other / "manifests").glob("*.json")
+    data = json.loads(manifest.read_text())
+    data["modules"][f"toy/{new}"] = data["modules"][f"toy/{old}"]
+    data["digest"] = "0" * 64  # the tooling changed since
+    manifest.chmod(0o644)
+    manifest.write_text(json.dumps(data))
+    check(run("filter", copy, "--cache", other).returncode == 0, "filter failed")
+    r = lake(copy, other, "build")
+    check(r.returncode != 0 and "Toy.B" in r.stdout + r.stderr, "an entry activated under another tooling was restored")
+
+    (copy / "Toy/A.lean").write_text("def a : Nat := 41\n")
+    data["digest"] = run("digest").stdout.strip()
+    manifest.write_text(json.dumps(data))
+    check(run("filter", copy, "--cache", other).returncode == 0, "filter failed")
+    live = other / f"outputs/toy/{json.loads((ws / '.lake/build/lib/lean/Toy/A.trace').read_text())['depHash']}.json"
+    ilean = next(a for a in json.loads(live.read_text())["data"].values() if isinstance(a, str) and a.endswith(".ilean"))
+    (other / "artifacts" / ilean).unlink()
+    shutil.rmtree(copy / ".lake/build")
+    built(copy, other)
+    write(live, json.dumps({"data": {"o": ["ffffffffffffffff.olean"]}}))
+    r = run("pack", copy, root / "d.tar.zst", "--cache", other)
+    check(r.returncode != 0 and "lacks" in r.stderr, "pack took a map naming an output the store lacks")
+
+
 def main() -> None:
-    for case in (fixture, trust, round_trip, private_edit):
+    for case in (fixture, trust, round_trip, private_edit, chain, stale):
         with tempfile.TemporaryDirectory() as tmp:
             case(Path(tmp))
     print("lake-cache-test: ok")

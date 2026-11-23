@@ -24,11 +24,11 @@ name (the store keeps the first file written under a name), or on a trace that m
 checks every member's name, and every output against the manifest's SHA-256 (a file already in the cache too),
 before installing anything; it installs each file whole under its name, puts every map of a local package under
 `held/`, where Lake does not read it, and keeps the manifest under `manifests/`, last. `filter` moves a held map
-into `outputs/` only while its module's strong key in the workspace is the one bound to it, and back otherwise.
-`check`, after a build, fails if a target restored from an archive's map is not a local module bound to its name and
-present strong key, or two traces of a local package share an input hash. `lake-build.py` runs `filter` before and
+into `outputs/` (marking it under `active/`) only while its module's strong key in the workspace is the one bound
+to it, and back otherwise. `check`, after a build, fails if a target restored from a marked map is not a local module
+bound to its name and present strong key, or two traces of a local package share an input hash. `lake-build.py` runs `filter` before and
 `check` after every build. No module may read a file at elaboration time, which no input hash covers: `lean.yml`'s
-statement job fences that.
+statement job greps for the usual spellings.
 
 `get` unpacks the archive `lean.yml` published from the newest successful push or schedule run on branch `main` whose
 commit is in `main`'s history, named after `digest`, the SHA-256 of what enters Lake's input hashes without being a
@@ -57,6 +57,7 @@ REPO = "leanEthereum/leanVM"
 WORKFLOW = ".github/workflows/lean.yml"
 NAME = "lean-vm-lake-cache"
 MANIFEST = "manifest.json"
+ARTIFACT = re.compile(r"[0-9a-f]{16}(\.\w+)*")
 MEMBER = re.compile(r"artifacts/[0-9a-f]{16}(\.\w+)*|outputs/[\w-]+/[0-9a-f]{16}\.json|manifest\.json")
 NO_KERNEL = "skipKernelTC"
 
@@ -74,7 +75,7 @@ def digest() -> str:
                     *(f for pat in ("lakefile.*", "lake-manifest.json", "lean-toolchain")
                       for f in [*FORMAL.glob(pat), *FORMAL.glob(f"*/{pat}")])})
     return sha256(b"".join(f.relative_to(FORMAL).as_posix().encode() + b"\0" + f.read_bytes() + b"\0"
-                           for f in files))[:16]
+                           for f in files))
 
 
 def cache_dir(pkg: Path) -> Path:
@@ -108,11 +109,12 @@ class Keys:
     restored (closed failure)."""
 
     def __init__(self, pkg: Path):
-        if lean := [root for root, kind in packages(pkg) if kind == "local" and (root / "lakefile.lean").exists()]:
+        local = [root for root, kind in packages(pkg) if kind == "local"]
+        if lean := [root for root in local if (root / "lakefile.lean").exists()]:
             sys.exit(f"lake-cache: {lean[0]} has a lakefile.lean: its source directories are read from lakefile.toml only")
-        self.dirs = [root / d for root, kind in packages(pkg) if kind == "local"
+        self.dirs = [root / d for root in local
                      for d in {"."} | {t.get("srcDir", ".") for k in ("lean_lib", "lean_exe") for t in config(root).get(k, [])}]
-        self.pkg, self.digest, self.keys, self.sources = pkg, digest(), {}, {}
+        self.pkg, self.prefix, self.keys, self.sources = pkg, [digest(), config(pkg)["name"]], {}, {}
 
     def source(self, module: str) -> Path | None:
         """The module's local source, if exactly one local source directory has it."""
@@ -130,7 +132,7 @@ class Keys:
             parsed = json.loads(r.stdout)["imports"] if r.returncode == 0 else [{}] * len(batch)
             for f, p in zip(batch, parsed):
                 ok = "result" in p and not p.get("errors")
-                out[f] = [i["module"] for i in p["result"]["imports"]] if ok else None
+                out[f] = [imp["module"] for imp in p["result"]["imports"]] if ok else None
         return out
 
     def of(self, modules) -> dict[str, str | None]:
@@ -155,7 +157,7 @@ class Keys:
                 local = sorted(i for i in set(deps[m]) if srcs.get(i))
                 subs = [self.key(i, srcs, deps) for i in local]
                 self.keys[m] = None if None in subs else sha256(json.dumps(
-                    [self.digest, m, sha256(srcs[m].read_bytes()), list(zip(local, subs)),
+                    [*self.prefix, m, sha256(srcs[m].read_bytes()), list(zip(local, subs)),
                      sorted(set(deps[m]) - set(local))]).encode())
         return self.keys[m]
 
@@ -182,8 +184,8 @@ def strings(value: object):
 
 
 def bindings(cache: Path) -> dict[str, tuple[str, str] | None]:
-    """`scope/depHash` to (module, strong key) over the restored manifests of this tooling (another `digest` binds
-    nothing here); `None` where two disagree."""
+    """`scope/depHash` to (module, strong key) over the restored manifests of this tooling (`digest`); `None` where two
+    disagree. `filter` holds every marked map they do not bind."""
     out: dict[str, tuple[str, str] | None] = {}
     current = digest()
     for path in sorted((cache / "manifests").glob("*.json")):
@@ -212,37 +214,46 @@ def check(pkg: Path, cache: Path) -> None:
                 failed.append(f"{trace} and {seen[dep]} share an input hash")
             seen[dep] = trace
             ref = f"{scope}/{dep}"
-            if data.get("synthetic") and ref in bound:  # restored from an archive's entry
+            if data.get("synthetic") and (cache / "active" / ref).exists():  # restored from an archive's map
                 if not trace.is_relative_to(build / "lib" / "lean"):
                     failed.append(f"{trace}: restored from an archive, which binds only modules")
                 else:
-                    restored[trace] = (module_name(root, trace), bound[ref])
+                    restored[trace] = (module_name(root, trace), bound.get(ref))
     keys = Keys(pkg).of({m for m, _ in restored.values()})
     for trace, (m, b) in restored.items():
         if b != (m, keys[m]):
             failed.append(f"{trace}: restored, but not bound to {m} as its sources stand")
     if failed:
         sys.exit("lake-cache: check failed:\n  " + "\n  ".join(failed))
-    log(f"{len(restored)} restored local modules bound to their sources: ok")
+    log(f"{len(restored)} modules restored from archives, bound to their sources: ok")
 
 
 def filter_maps(pkg: Path, cache: Path) -> None:
+    """An archive's map goes where Lake reads it, marked under `active/`, while its binding matches the module's
+    present strong key, and back under `held/` otherwise. A map Lake wrote here itself is never marked or moved."""
     bound = bindings(cache)
-    if not bound:
-        return
+    marks = {m.relative_to(cache / "active").as_posix() for m in (cache / "active").rglob("*") if m.is_file()}
     keys = Keys(pkg).of({b[0] for b in bound.values() if b})
     active = 0
-    for ref, b in bound.items():
+    for ref in set(bound) | marks:
+        b, mark = bound.get(ref), cache / "active" / ref
         held, live = cache / "held" / f"{ref}.json", cache / "outputs" / f"{ref}.json"
         if b and keys[b[0]] == b[1]:
-            if held.exists() and not live.exists():
+            if not mark.exists() and held.exists() and not live.exists():
                 live.parent.mkdir(parents=True, exist_ok=True)
                 os.replace(held, live)
-            active += 1
-        elif live.exists() and not held.exists():
-            held.parent.mkdir(parents=True, exist_ok=True)
-            os.replace(live, held)
-    log(f"{active} of {len(bound)} local modules' entries match their sources")
+                mark.parent.mkdir(parents=True, exist_ok=True)
+                mark.touch()
+            active += mark.exists()
+        elif mark.exists():
+            if live.exists():
+                if held.exists():
+                    live.unlink()
+                else:
+                    held.parent.mkdir(parents=True, exist_ok=True)
+                    os.replace(live, held)
+            mark.unlink()
+    log(f"{active} of {len(bound)} archived modules' maps match their sources")
 
 
 def pack(pkg: Path, archive: Path, cache: Path) -> None:
@@ -260,13 +271,17 @@ def pack(pkg: Path, archive: Path, cache: Path) -> None:
             mapping = cache / "outputs" / scope / f"{data.get('depHash')}.json"
             if not isinstance(data.get("depHash"), str) or not mapping.is_file():
                 continue
-            named = [a for a in strings(load(mapping)) if (cache / "artifacts" / a).is_file()]
+            named = [a for a in strings(load(mapping).get("data")) if ARTIFACT.fullmatch(a)]
+            if missing := [a for a in named if not (cache / "artifacts" / a).is_file()]:
+                if kind == "local":
+                    sys.exit(f"lake-cache: {mapping} names {missing[0]}, which the store lacks: nothing packed")
+                continue
             if kind == "local":
                 module = module_name(root, trace)
                 rel = Path(*module.split("."))
                 for a in named:  # the store keeps the first file under a name: it must be the one Lake built here
                     ext = a.partition(".")[2]
-                    built = build / "ir" / rel.with_suffix(".c") if ext == "c" else build / "lib" / "lean" / f"{rel}.{ext}"
+                    built = build / "ir" / f"{rel}.{ext}" if ext in ("c", "bc") else build / "lib" / "lean" / f"{rel}.{ext}"
                     if ext == "ltar" or not built.is_file() or \
                             sha256(built.read_bytes()) != sha256((cache / "artifacts" / a).read_bytes()):
                         sys.exit(f"lake-cache: {a}, which the entry of {module} names, is not {built}: nothing packed")
@@ -335,27 +350,27 @@ def unpack(archive: Path, cache: Path) -> None:
             path = cache / ("held" if member.name.split("/")[1] in local else "outputs") / member.name[8:]
         else:
             path = cache / member.name
-        if not path.exists():
-            install(path, tar.extractfile(member).read(), member.mode)
-            added += 1
+        mode = 0o644 if member.name.startswith("outputs/") else 0o555 if member.mode & 0o111 else 0o444
+        added += install(path, tar.extractfile(member).read(), mode)
     install(cache / "manifests" / f"{sha256(raw)[:16]}.json", raw, 0o444)  # last: until then, nothing is bound
     log(f"{added} files added to {cache}")
 
 
-def install(path: Path, content: bytes, mode: int) -> None:
-    """`content` at `path`, written whole under another name first, read-only as Lake leaves its own files."""
+def install(path: Path, content: bytes, mode: int) -> bool:
+    """`content` at `path` unless a file is there, written whole under another name first."""
     if path.exists():
-        return
+        return False
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = tempfile.NamedTemporaryFile(dir=path.parent, delete=False)
     try:
         with tmp:
             tmp.write(content)
-        os.chmod(tmp.name, 0o555 if mode & 0o111 else 0o444)
+        os.chmod(tmp.name, mode)
         os.replace(tmp.name, path)
     finally:
         if os.path.exists(tmp.name):
             os.unlink(tmp.name)
+    return True
 
 
 def gh(*args: str) -> str:
@@ -363,7 +378,7 @@ def gh(*args: str) -> str:
 
 
 def get(pkg: Path, cache: Path | None) -> None:
-    name = f"{NAME}-{digest()}"
+    name = f"{NAME}-{digest()[:16]}"
     try:
         runs = sorted((r for event in ("push", "schedule") for r in json.loads(gh(
             "api", f"repos/{REPO}/actions/workflows/{Path(WORKFLOW).name}/runs"
@@ -379,8 +394,8 @@ def get(pkg: Path, cache: Path | None) -> None:
                     and run["head_branch"] == "main"
                     and any(not a["expired"] and a["name"] == name for a in json.loads(gh(
                         "api", f"repos/{REPO}/actions/runs/{run['id']}/artifacts?name={name}"))["artifacts"])
-                    and json.loads(gh("api", f"repos/{REPO}/compare/{run['head_sha']}...refs/heads/main"))[
-                        "status"] in ("identical", "ahead")):
+                    and gh("api", f"repos/{REPO}/compare/{run['head_sha']}...refs/heads/main", "--jq", ".status").strip()
+                    in ("identical", "ahead")):
                 continue
             with tempfile.TemporaryDirectory() as tmp:
                 gh("run", "download", str(run["id"]), "-R", REPO, "-n", name, "-D", tmp)
