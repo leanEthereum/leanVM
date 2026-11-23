@@ -108,8 +108,6 @@ theorem oqQuery_fallPops (s : Oq) (x bp cap flags coefs hs : V) (b : ℕ) (emit 
 
 /-! ## The loop helpers -/
 
-theorem oqGuardA_noWit (g : ℕ) : noWit (oqGuardA g) = true := rfl
-
 theorem oqLoop1A_fallPops (s : Oq) (h1 : WinSel σ s (oqCh s 15 true))
     (h2 : WinSel σ s (oqCh s (oqE1 s + 2) false)) :
     FallPops rd σ (oqLoop1A s) (queryPops σ s 15 true ++ queryPops σ s (oqE1 s + 2) false) := by

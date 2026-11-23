@@ -111,9 +111,6 @@ theorem osSizesL_hi {c : OsCfg} (h : c.yrLevel ≤ c.levels.length) (j : ℕ) :
   simp [Nat.min_eq_left h]
   omega
 
-theorem levels_getElem_eq {c : OsCfg} {l : ℕ} (hl : l < c.levels.length) :
-    c.levels[l] = osLvA c l := (List.getD_eq_getElem _ _ hl).symm
-
 /-- A level's statements are the body's. -/
 theorem mem_osLevels (c : OsCfg) : ∀ (lvl : ℕ) (lvs : List OsLv) (s0 : OsSt) (i : ℕ)
     (hi : i < lvs.length) (s : Stmt),
@@ -572,14 +569,6 @@ theorem mem_finFrames {σ : Val} {c : OsCfg} {x : Option V × String × List V �
       have hj' : j < c.yrLevel := by simp at hj; omega
       simp only [Nat.zero_add, List.getD_eq_getElem?_getD, List.getElem?_take, hj', ↓reduceIte] at h
       exact h
-
-theorem ffm_mem_body (c : OsCfg) :
-    Stmt.call ("fold_final_msg__L" ++ natStr c.yrLog)
-      [.n osFmsg, .n (osTail c (osLevels c 0 c.levels (osHead c).2).2).2.2]
-      [.n (osTail c (osLevels c 0 c.levels (osHead c).2).2).2.1.k] ∈ osBodyA c := by
-  unfold osBodyA osFinishA
-  dsimp only
-  exact List.mem_append_right _ (by simp)
 
 theorem tl_sub_body {c : OsCfg} {s : Stmt} (h : s ∈ osTlA c) : s ∈ osBodyPre c := by
   unfold osBodyPre

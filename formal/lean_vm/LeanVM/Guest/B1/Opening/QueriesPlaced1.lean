@@ -91,12 +91,6 @@ theorem atomsOk_match {P : Atom → Prop} {y : V} {arms : List (List Stmt)} {ss 
   · exact Or.inr (Or.inl ⟨y, arms, rfl, ha, hl⟩)
   · exact h x hx
 
-theorem atomsOk_call {P : Atom → Prop} {f : String} {args rets : List V} {ss : List Stmt}
-    (h : AtomsOk P ss) : AtomsOk P (.call f args rets :: ss) := fun x hx ↦ by
-  rcases List.mem_cons.mp hx with rfl | hx
-  · exact Or.inr (Or.inr ⟨f, args, rets, rfl⟩)
-  · exact h x hx
-
 theorem AtomsOk.flatM {P : Atom → Prop} {ss : List Stmt} (h : AtomsOk P ss) :
     ss.all Stmt.flatM = true := by
   rw [List.all_eq_true]

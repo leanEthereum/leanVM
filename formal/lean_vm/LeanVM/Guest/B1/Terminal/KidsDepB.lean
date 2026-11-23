@@ -15,8 +15,8 @@ public import LeanVM.Guest.B1.Terminal.KidsDep
 `KidsDepB fs cert κ ks Bs`: callee `j` (a function of the results before it, `KidD`) has the bound
 `Bs[j]`, on every result before it: entered, it is `CompleteAtB` within `Bs[j]`; skipped, its tail frame
 `fs (tailKey f)` is at most `Bs[j]`. The callees then take at most `Bs.sum` words (`kidsFromIn_of_depB`), and a
-flat function with them at most `fs f + sizes.sum + Bs.sum` (`completeAt_flatDepB`,
-`completeAt_flatDepRB`: `completeAt_flatDep`, `completeAt_flatDepR` within that bound).
+flat function with them at most `fs f + sizes.sum + Bs.sum` (`completeAt_flatDepRB`:
+`completeAt_flatDepR` within that bound).
 -/
 
 namespace LeanVM.Guest.B1

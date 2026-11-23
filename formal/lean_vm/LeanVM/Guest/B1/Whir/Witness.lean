@@ -26,7 +26,7 @@ and the frame map `V`, reading words only.
   from the state `s` before it (`osPreQ`); its `opening_queries` call is in the callee's frame
   (`osOqArgs`: the cap and flags its hints, then its own arguments but `λ`);
 * `open_stacked_osW rd m r σ V`: at the rate `r`'s configuration `osCfgR m (r - 1)`, the words at
-  the cursor `σ 9`, and each level's openings off its `opening_queries` call (`osLevelW`: S1b's
+  the cursor `σ 9`, and each level's openings off its `opening_queries` call (`osLevelW`:
   `oqsOf` with the cap's siblings, `toOpening`).
 -/
 

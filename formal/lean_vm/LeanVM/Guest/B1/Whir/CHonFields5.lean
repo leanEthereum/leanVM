@@ -49,7 +49,7 @@ theorem finFold : ∀ k < ((Ls.getD (osCfgR (μ - minOpenLog) (r - 1)).yrLevel d
   have hy := hR.yr
   have hm := hR.m11
   have hyl : (osCfgR (μ - minOpenLog) (r - 1)).yrLevel < osNLevels (μ - minOpenLog) := by
-    rw [← osCfgR_len _ (r - 1)]; omega
+    rw [← osCfgR_levels_length _ (r - 1)]; omega
   have hB := hR.lvb (l := (osCfgR (μ - minOpenLog) (r - 1)).yrLevel) (by omega)
   obtain ⟨-, hbase, -⟩ := hB.qsh
   obtain ⟨-, -, -, hylen, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, hnHs, hhsb, hvs, h64, hle, hlc, -⟩ :=
@@ -80,7 +80,8 @@ theorem finFold : ∀ k < ((Ls.getD (osCfgR (μ - minOpenLog) (r - 1)).yrLevel d
   -- the final polynomial
   have hflen : W.fold.length = (osCfgR (μ - minOpenLog) (r - 1)).yrLen + lv.folds := by
     rw [hfin.flen, hmu, hylen, ← hB.fold]
-  have hlv' : lv = osLvR (μ - minOpenLog) (r - 1) (osCfg (μ - minOpenLog)).yrLevel := osCfgR_getD hyl
+  have hlv' : lv = osLvR (μ - minOpenLog) (r - 1) (osCfg (μ - minOpenLog)).yrLevel :=
+    (osLvR_eq_getD hyl).symm
   have hvan : vanishOk (osLvR (μ - minOpenLog) (r - 1) (osCfg (μ - minOpenLog)).yrLevel).vanish
       ((osLvR (μ - minOpenLog) (r - 1) (osCfg (μ - minOpenLog)).yrLevel).logCols + 1) = true :=
     vanish_allR (ri := r - 1) hm hyl

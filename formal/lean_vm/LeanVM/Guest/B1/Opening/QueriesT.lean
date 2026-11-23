@@ -51,7 +51,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 /-- The shape of a specialization: its compile-time parameters (`base`, `folds`, `leaf_cells`, the
 path depth below the cap `pd`, and at the final level `mu`, `vanish`, `n_hs`, `hs_bits`, `final`),
-and its row of `LIG_VANISH_VALS` (`vs`, `mu` words from `vanish`, as the core IR's constants). -/
+and its row of `VANISH_BY_COLS` (`vs`, `mu` words from `vanish`, as the core IR's constants). -/
 structure OqShape where
   base : ℕ
   folds : ℕ
@@ -95,9 +95,6 @@ def chainLen (s : Oq) : ℕ := 13 + (s.B - 2) * 22 + 12
 def mu (s : Oq) : ℕ := s.vs.length
 
 end Oq
-
-/-- `1 + g^(2^j)` as the compiler folds it (`K` words, `x^64 = x^4 + x^3 + x + 1`). -/
-def capFac : List ℕ := [3, 5, 17, 257, 65537, 4294967297, 26]
 
 /-! ## The row -/
 

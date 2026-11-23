@@ -40,7 +40,7 @@ configuration `c`:
   `pt`, `pt1`; `query_win_ptrs`' words (index `osIxQbpA`) are not read (the decoders write them);
 * per level `l`: `level_positions`' first word `w0 l` and capacity `capL l`, the positions the
   decoders store (`posW`); `level_queries`' `λ`, `1/λ`, its hinted cap and flags (`capW`, `flW`)
-  checked to the level's root (`caps`), the queries' data (S1b's `OqStatic`: the rounds, the final
+  checked to the level's root (`caps`), the queries' data (`OqStatic`: the rounds, the final
   lane, the positions `qs`, the rows and siblings) and its returned chain (`batched_eq`); a
   non-final level's `μ` and `level_residual`'s chains over the stored words (`res`);
 * on every memory holding the buffers at the base `b` (`OsMemA`): the rounds and the high part

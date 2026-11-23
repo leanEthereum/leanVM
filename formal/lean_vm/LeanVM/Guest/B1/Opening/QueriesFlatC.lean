@@ -50,10 +50,6 @@ theorem flatC_of_flat {ss : List Stmt} (h : Flat ss) : FlatC ss := fun s hs ↦
 theorem flatC_append {ss ts : List Stmt} (h1 : FlatC ss) (h2 : FlatC ts) : FlatC (ss ++ ts) :=
   fun s hs ↦ (List.mem_append.mp hs).elim (h1 s) (h2 s)
 
-theorem flatC_call (f : String) (args rets : List V) : FlatC [.call f args rets] := fun s hs ↦ by
-  simp only [List.mem_cons, List.not_mem_nil, or_false] at hs
-  exact Or.inr (Or.inr ⟨f, args, rets, hs⟩)
-
 theorem flatC_cons {s : Stmt} {ss : List Stmt} (h : FlatC (s :: ss)) : FlatC ss :=
   fun t ht ↦ h t (List.mem_cons_of_mem _ ht)
 

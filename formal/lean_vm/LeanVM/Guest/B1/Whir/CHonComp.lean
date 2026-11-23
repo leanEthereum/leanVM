@@ -86,13 +86,6 @@ abbrev osFinTch (c : OsCfg) : ℕ := (osTail c (osLvsEnd c)).2.2
 
 variable {M : Reader → Prop} {H : CallRel → Reader → Prop}
 
-theorem osTailRounds_rtsC (tch : ℕ) : ∀ (j n : ℕ) (s : OsSt), (osTailRounds tch j n s).2.rts = s.rts
-  | _, 0, _ => rfl
-  | j, n + 1, _ => osTailRounds_rtsC tch (j + 1) n _
-
-theorem osTail_rtsC (c : OsCfg) (s : OsSt) : (osTail c s).2.1.rts = s.rts :=
-  osTailRounds_rtsC _ 0 c.yrLog _
-
 /-- What the closing rounds leave. -/
 def OutT (h : OsHD) (b : ℕ) (tabs cur : E) (xs : List E) (σ' : Val) : Prop :=
   let c := h.c
@@ -234,7 +227,7 @@ theorem body_of {h : OsHD} {b : ℕ} {args : List E} {cur tabs : E} {xs : List E
       · obtain ⟨ri, hri, hx, hlen, hlv⟩ := hq.rate l hl
         exact ⟨ri, hri, by rw [hstep.agree _ (by show 0 < _; omega)]; exact hx, hlen, hlv⟩
       · have := (hq.rts l hl).agree hstep.le hstep.agree
-        rwa [← osTail_rtsC c (osLevels c 0 c.levels (osHead c).2).2] at this
+        rwa [← osTail_rts c (osLevels c 0 c.levels (osHead c).2).2] at this
   have b2 := BlkA.seqK b1 (fun σ' ho ↦ by
     have := ho.2.1; have e : (osHead c).2.k = 43 := hpv; omega) bT (fun σ' ho ↦ ho.2.1)
   -- the finish

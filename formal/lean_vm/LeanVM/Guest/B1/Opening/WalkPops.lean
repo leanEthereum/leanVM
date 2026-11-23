@@ -101,8 +101,6 @@ theorem oqArmT_noWit (s : Oq) (pr kN ch i a : ℕ) : noWit (oqArmT s pr kN ch i 
   obtain ⟨r, -, rfl⟩ := List.mem_map.mp hb
   exact noWit_iff.mp (oqStepT_noWit _ _ _ _ _ _ _) st hst
 
-theorem oqPadT_noWit (pr : ℕ) : noWit (oqPadT pr) = true := rfl
-
 theorem oqCapT_noWit (bp cap flags : V) (k n npw : ℕ) : noWit (oqCapT bp cap flags k n npw) = true := rfl
 
 /-- A window, its word an arm of its match, pops nothing. -/

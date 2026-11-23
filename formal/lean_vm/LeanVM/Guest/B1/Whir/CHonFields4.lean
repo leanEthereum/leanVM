@@ -17,7 +17,7 @@ public import LeanVM.Guest.B1.Whir.CHonBodyRun
 `HonRun.roots`: level `l`'s commitment is the `l`-th root, at the level's depth and row width.
 `HonRun.opens`: its phase opens its positions against it. `HonRun.capv`: its cap cells and flags
 (`capCellH`, `capFlH`) at its positions' nodes are the climbed digests and `1`.
-`HonRun.fld_rowsMem`, `fld_posMem`, `fld_qMem`: OsHonest's memory fields.
+`HonRun.fld_caps`, `fld_qMem`, `fld_posW`: OsHonest's memory fields.
 -/
 
 namespace LeanVM.Guest.B1.Whir

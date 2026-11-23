@@ -1,6 +1,5 @@
-"""Generate S1b's per-specialization Lean lists from the regenerated guest data.
+"""Generate the WHIR queries' per-specialization Lean lists from the regenerated guest data.
 
-  python3 -I gen.py LEAN_VM shapes   the `openingQueriesShapes` list (Interface.lean)
   python3 -I gen.py LEAN_VM specs    the specializations, one per line
 """
 import os, re, sys
@@ -96,10 +95,6 @@ def oq_specs():
     return out
 
 if __name__ == '__main__':
-    mode = sys.argv[2]
-    if mode == 'shapes':
-        for d in oq_specs():
-            print('    ("%s", %s),' % (d['name'], shape(d)))
-    elif mode == 'specs':
+    if sys.argv[2] == 'specs':
         for d in oq_specs():
             print(d)

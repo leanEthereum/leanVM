@@ -15,7 +15,7 @@ import LeanVM.Guest.Data.ValNames.«decode_query_windows__L»
 /-!
 # A level's queries, placed
 
-`os_q_completeAtB`: a level's `opening_queries` specialization (`OqCompleteDB`, S1b-2's) is
+`os_q_completeAtB`: a level's `opening_queries` specialization (`OqCompleteDB`) is
 `CompleteAtB` within `oqBound` words on the caller's words `Lk`, the window pointers `sqW` and the
 decoders' runs `sqGroupRuns` of the level's group at `p`, for every `p`: query `k`'s window pointer
 (`qptrs`' slot) is decoder `k / per`'s run shifted to position `k % per` (`sqEb`), and its windows

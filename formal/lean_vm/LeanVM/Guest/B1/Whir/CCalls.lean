@@ -79,15 +79,8 @@ theorem osCurS_calls (s : OsSt) : (osCurS s).1.filterMap callVs = [] := osMat_ca
 theorem osPad_calls (pad : Option ℕ) (k : ℕ) : (osPad pad k).1.filterMap callVs = [] := by
   cases pad <;> rfl
 
-theorem gcPre_callFree (b : ℕ) : (gcPre b).all Stmt.isAtom = true := by
-  simp only [gcPre, gcHead, gcTailPre, List.all_append, List.all_cons, List.all_nil, Stmt.isAtom,
-    Bool.and_true, Bool.true_and, List.all_eq_true, List.mem_flatten, List.mem_map, List.mem_range]
-  rintro s ⟨l, ⟨i, -, rfl⟩, hs⟩
-  simp only [gcIterAt, List.mem_cons, List.not_mem_nil, or_false] at hs
-  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> rfl
-
 theorem gcInlineT_calls (b o : ℕ) (w tabs : V) : (gcInlineT b o w tabs).filterMap callVs = [] :=
-  calls_of_isAtom _ (renameList_isAtom _ _ (gcPre_callFree b))
+  calls_of_isAtom _ (renameList_isAtom _ _ (gcPre_isAtom b))
 
 theorem osRoundCore_calls (b p cb co claim i : ℕ) (cap : List ℕ) :
     (osRoundCore b p cb co claim i cap).filterMap callVs = [] := by
@@ -157,10 +150,6 @@ theorem osRun_vals {σ : Val} {r n : ℕ} {rets : List E} (hl : rets.length = n)
   simp only [osRun, List.length_map, List.length_range] at h1
   simp only [osRun, List.getElem_map, List.getElem_range]
   rw [h j h1, List.getD_eq_getElem _ _ h2]
-
-theorem cvOf_dispatch (x : V) (fs : List String) (a r : List V) (σ : Val) :
-    cvOf [.dispatch x fs a r] σ = [σ x :: (a ++ r).map σ] := by
-  simp [cvOf, callVs]
 
 end
 end LeanVM.Guest.B1.Whir

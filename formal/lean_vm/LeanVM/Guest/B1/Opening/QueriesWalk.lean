@@ -19,7 +19,7 @@ A query of `opening_queries` dispatches `match(log(w))` on each path window `w =
 first query's `query_win_ptrs[g^0]` under the branch on `odd_g`). A window's bound comes from
 `decode_query_windows`' range checks, in another function, through the pointer table: the
 checker of the certificates takes it as an obligation on the specialization's and the loop's
-arguments, carried by the loop (the definitions in `WalkWindows`).
+arguments, carried by the loop (the definitions in `WalkDefs`).
 
 * `WinsAt rd d cd w`: each of the `qwN d cd` windows at `w`, if read, is `g^e`, `e` below the
   window's `2^width` (`qwWin`), what `decode_query_windows` writes; `winsP_of_winsAt`: its path
@@ -35,11 +35,10 @@ arguments, carried by the loop (the definitions in `WalkWindows`).
 * The bodies: `oqLoop0T_wins`, `oqLoop1T_wins1`, `oqLoop1T_wins2` (the queries' window pointers,
   over any prefix of the body holding their loads), `oqLoop0T_tail`, `oqLoop1T_tail` (the tail
   call's argument, over the statements before the call), `oqMainT_loop1` (a level-0
-  specialization's loop call's window pointers, over the start); `winsAt_known`: a window read is `g^e`.
+  specialization's loop call's window pointers, over the start).
 
 The walk is unbounded in `c`: a bound `c < B` on its own does not survive the tail call
-(`x·g` needs `c + 1 < B`); `winWalk_iff_bounded` is the bounded form when `x` reaches `N` within
-`B` steps (a run-time test).
+(`x·g` needs `c + 1 < B`).
 -/
 
 namespace LeanVM.Guest.B1
@@ -59,13 +58,6 @@ windows part of `QueryPosOk`). -/
 def QueryWinsOk (rd : Reader) (qptrs : E) (Q depth cd : ℕ) : Prop :=
   ∀ k < Q, ∀ bp, LoadHolds rd qptrs k bp →
     ∃ q < 2 ^ depth, FrameRun rd bp (qwN depth cd) fun i ↦ gen ^ qwVal depth cd q i
-
-/-- **A window read** is `g^e`, `e` below its bound: the `MemKnown` triple `(w, i, 2^width)`. -/
-theorem winsAt_known {d cd : ℕ} {w : E} (h : WinsAt rd d cd w) {i : ℕ} (hi : i < qwN d cd) {v : E}
-    (hv : LoadHolds rd w i v) :
-    ∃ e < 2 ^ (qwWin d cd i).2, LoadHolds rd w i (ofK (addressOfIndex e)) := by
-  obtain ⟨e, he, rfl⟩ := h i hi v hv
-  exact ⟨e, he, hv⟩
 
 /-- **The windows of a position** (a run `decode_query_windows` writes) are such windows. -/
 theorem winsAt_of_run {d cd q : ℕ} {w : E}
@@ -92,35 +84,6 @@ private theorem pow_succ_shift {x N : E} (hne : x ≠ N) {c : ℕ}
   · rwa [pow_zero, mul_one]
   · rw [mul_pow_succ]
     exact h c' (by omega)
-
-/-- **The tail call keeps the walk** (deeper): `x ≠ N` steps it to `x·g`. -/
-theorem winWalk_succ {d cd : ℕ} {t x N : E} (h : WinWalk rd d cd t x N) (hne : x ≠ N) :
-    WinWalk rd d cd t (x * gen) N := by
-  intro c hc w hw
-  refine h (c + 1) (pow_succ_shift hne hc) w ?_
-  rw [mul_pow_succ]
-  exact hw
-
-/-- **The tail call keeps the walk** (level 0). -/
-theorem winWalk2_succ {d cd odd : ℕ} {t x N : E} (h : WinWalk2 rd d cd odd t x N) (hne : x ≠ N) :
-    WinWalk2 rd d cd odd t (x * gen) N := by
-  intro c hc o ho1 ho2 w hw
-  refine h (c + 1) (pow_succ_shift hne hc) o ho1 ho2 w ?_
-  rw [mul_pow_succ]
-  exact hw
-
-/-- **The iteration at `x ≠ N` reads windows** (deeper): its pointer `t[x]`. -/
-theorem winsAt_of_walk {d cd : ℕ} {t x N : E} (h : WinWalk rd d cd t x N) (hne : x ≠ N) {w : E}
-    (hw : LoadHolds rd (t * x) 0 w) : WinsAt rd d cd w :=
-  h 0 (fun c' hc' ↦ by obtain rfl : c' = 0 := by omega
-                       rwa [pow_zero, mul_one]) w (by rwa [pow_zero, mul_one])
-
-/-- **The iteration at `x ≠ N` reads windows** (level 0): its pointers `(t·x²)[g^o]`. -/
-theorem winsAt_of_walk2 {d cd odd : ℕ} {t x N : E} (h : WinWalk2 rd d cd odd t x N) (hne : x ≠ N)
-    {o : ℕ} (ho1 : odd ≤ o) (ho2 : o ≤ odd + 1) {w : E} (hw : LoadHolds rd (t * x * x) o w) :
-    WinsAt rd d cd w :=
-  h 0 (fun c' hc' ↦ by obtain rfl : c' = 0 := by omega
-                       rwa [pow_zero, mul_one]) o ho1 ho2 w (by rwa [pow_zero, mul_one])
 
 /-- The steps before `N = g^n` from `1`: fewer than `n`. -/
 private theorem lt_of_ne_pow {n c : ℕ} (h : ∀ c' ≤ c, 1 * gen ^ c' ≠ gen ^ n) : c < n := by
@@ -153,15 +116,6 @@ theorem oqMainWins_of_queryWinsOk {t : E} {n d cd odd base : ℕ} (hodd : odd = 
     split
     · next hb => simp only [hb, ↓reduceIte] at h; exact winWalk2_of_queryWinsOk h
     · next hb => simp only [hb, ↓reduceIte] at h; exact winWalk_of_queryWinsOk h
-
-/-- **The bounded walk**: when `x` reaches `N` within `B` steps, the walk is its first `B` steps. -/
-theorem winWalk_iff_bounded {d cd B : ℕ} {t x N : E} (hB : ∃ c < B, x * gen ^ c = N) :
-    WinWalk rd d cd t x N ↔ ∀ c < B, (∀ c' ≤ c, x * gen ^ c' ≠ N) →
-      ∀ w, LoadHolds rd (t * (x * gen ^ c)) 0 w → WinsAt rd d cd w := by
-  obtain ⟨c0, hc0, he⟩ := hB
-  refine ⟨fun h c _ ↦ h c, fun h c hc ↦ h c ?_ hc⟩
-  by_contra hcb
-  exact hc c0 (by omega) he
 
 /-! ## The path windows (`opening_queries`) -/
 

@@ -65,16 +65,11 @@ theorem gc_loadsHold {rd rd0 : Reader} {b o : ℕ} (hb : b ∈ grindBitsDeployed
     (ht : WinTabs rd (σ tabs))
     (hσ : ∀ k, 2 ≤ k → k < gcLen b → σ (.n (o + k - 2)) = gcVals rd0 b (σ w) (σ tabs) k) :
     LoadsHold rd σ (gcInlineT b o w tabs) := by
-  obtain ⟨hT1, hT, hsum⟩ := gc_shape b hb
+  obtain ⟨-, hT, hsum⟩ := gc_shape b hb
   have hτ : ∀ k, 2 ≤ k → k < gcLen b → (σ ∘ gcRen o w tabs) (.n k) = gcVals rd0 b (σ w) (σ tabs) k :=
     fun k h2 hk ↦ by rw [Function.comp, gcRen_own o w tabs h2]; exact hσ k h2 hk
-  have hV0 : gcV b (σ w) 0 < 2 ^ 11 := by
-    have : gcV b (σ w) 0 < 2 ^ gcTop b := by
-      unfold gcV
-      rw [Nat.div_lt_iff_lt_mul (by positivity), ← pow_add, Nat.sub_zero,
-        show gcTop b + (b + 11 * gcW b) = 64 by omega]
-      exact kToNat_lt _
-    exact lt_of_lt_of_le this (Nat.pow_le_pow_right (by decide) hT)
+  have hV0 : gcV b (σ w) 0 < 2 ^ 11 :=
+    lt_of_lt_of_le (gcV_zero_lt hsum _) (Nat.pow_le_pow_right (by decide) hT)
   have e1 : (σ ∘ gcRen o w tabs) (.n 1) = σ tabs := rfl
   rw [gcInlineT, loadsHold_rename, gcPre, loadsHold_append, loadsHold_append, loadsHold_flatten]
   refine ⟨⟨?_, fun l hl ↦ ?_⟩, ?_⟩
@@ -83,11 +78,7 @@ theorem gc_loadsHold {rd rd0 : Reader} {b o : ℕ} (hb : b ∈ grindBitsDeployed
     rw [e, List.mem_singleton] at hq
     subst hq
     show LoadHolds rd ((σ ∘ gcRen o w tabs) (.n (gcW b + 7))) 0 ((σ ∘ gcRen o w tabs) (.n (gcW b + 8)))
-    have e7 : gcVals rd0 b (σ w) (σ tabs) (gcW b + 7) = σ tabs * gen ^ gcV b (σ w) 0 := by
-      unfold gcVals
-      rw [ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega),
-        ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega),
-        ite_eq_left rfl]
+    have e7 : gcVals rd0 b (σ w) (σ tabs) (gcW b + 7) = σ tabs * gen ^ gcV b (σ w) 0 := gv_top_ptr
     have e8 : gcVals rd0 b (σ w) (σ tabs) (gcW b + 8) = eOfNat (gcV b (σ w) 0) := by
       rw [show gcW b + 8 = gcW b + 9 * 0 + 8 by ring]; exact gv_acc (i := 0) (by omega)
     rw [hτ _ (by omega) (by unfold gcLen; omega), hτ _ (by omega) (by unfold gcLen; omega), e7, e8]

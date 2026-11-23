@@ -20,7 +20,7 @@ public import LeanVM.Guest.B1.Whir.TableKeys
 `BodyOk c`: every call statement of the body names a callee of `osKindOf`, every dispatch is on
 the rate's selector over four names, and the body takes no frame address. `LvFacts c l`: level
 `l`'s helpers are entries of their tables (`level_positions` with its loop `lpLoopA c l`), its
-positions' slices fit `ligPosCap`, its `opening_queries` shape matches its row, and its words fit
+positions' slice sits at its offset (`posOff`) and holds its queries, its `opening_queries` shape matches its row, and its words fit
 their buffers. `armBody_ok`, `armLv_ok`: both at every arm `m < 11` and rate `ri < 4`, by the
 kernel.
 -/
@@ -71,11 +71,6 @@ def isLrCall : Stmt → Bool
 /-- The body before the finish: the head, the levels, the closing rounds. -/
 def osBodyPre (c : OsCfg) : List Stmt :=
   (osHead c).1 ++ (osLevels c 0 c.levels (osHead c).2).1 ++ osTlA c
-
-theorem osBodyPre_sub {c : OsCfg} {s : Stmt} (h : s ∈ osBodyPre c) : s ∈ osBodyA c := by
-  unfold osBodyPre osTlA at h
-  unfold osBodyA
-  exact List.mem_append_left _ h
 
 /-- **The body's decided facts**: every statement placed (a call into `level_residual` aside, which
 only the finish makes), the body before the finish placed, `fold_final_msg` named, no frame

@@ -77,12 +77,7 @@ theorem gcIterVal_agree (h : LowAgree rd rd0) (b : ℕ) (w tabs : E) (i r : ℕ)
 theorem gcVals_agree (h : LowAgree rd rd0) {b : ℕ} (hb : b ∈ grindBitsDeployed) (w tabs : E) (k : ℕ) :
     gcVals rd b w tabs k = gcVals rd0 b w tabs k := by
   obtain ⟨-, hT, hsum⟩ := gc_shape b hb
-  have hV0 : gcV b w 0 < 2 ^ gcTop b := by
-    unfold gcV
-    rw [Nat.div_lt_iff_lt_mul (by positivity), ← pow_add, Nat.sub_zero,
-      show gcTop b + (b + 11 * gcW b) = 64 by omega]
-    exact kToNat_lt _
-  have e := rcWit_agree h hT hV0
+  have e := rcWit_agree h hT (gcV_zero_lt hsum w)
   unfold gcVals
   simp only [e, gcIterVal_agree h]
 

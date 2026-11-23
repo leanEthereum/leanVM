@@ -20,8 +20,9 @@ holding `f` on `[k, k')`, for every `C`, `rd` with `H C rd`, and the block's loa
 memory satisfying `M` (`LoadsIn`), so that each reads a word `M` fixes, and its window hints are
 exact (`WinEx`): the inlined grind checks' (`gc_blk`). A block without range checks holds on `HM M H`
 (`H`, or a memory satisfying `M` with the trivial call relation) and so gives its loads, and has no
-window hints (`BlkA.ofHM`, `Stmt.noWin`, by `rfl` where the block's statements are listed). Blocks compose (`BlkA.seq`), the second built on the valuation the first
-leaves, knowing its outcome under `HM M H`.
+window hints (`BlkA.ofHM`, `Stmt.noWin`, by `rfl` where the block's statements are listed). Blocks
+compose (`BlkA.seq`), the second built on the valuation the first leaves, knowing its outcome under
+`HM M H`.
 
 `lstF k vs`: the values `vs` listed from `k`; `lstF_at` reads them back. `OsSt.Ok σ st`: the
 running state's invariants between blocks.
@@ -182,12 +183,6 @@ theorem osMatP_noWin (plan : List (ℕ × ℕ × ℕ)) (mats : List OsMat) (base
 
 theorem osMat_noWin (base off k : ℕ) : (osMat base off k).1.all Stmt.noWin = true := by
   unfold osMat; split <;> rfl
-
-theorem osPad_noWin (pad : Option ℕ) (k : ℕ) : (osPad pad k).1.all Stmt.noWin = true := by
-  unfold osPad; split <;> rfl
-
-theorem osHsCoef_noWin (src i sc dst o k : ℕ) : (osHsCoef src i sc dst o k).1.all Stmt.noWin = true := by
-  unfold osHsCoef; split <;> rfl
 
 theorem osRates_noWin (c : OsCfg) (lvl : ℕ) (s : OsSt) : (osRates c lvl s).1.all Stmt.noWin = true := by
   unfold osRates

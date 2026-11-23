@@ -159,7 +159,7 @@ theorem osQueries_calls (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) :
   split_ifs <;> simp only [calls_append, osMatS_calls, List.nil_append] <;> rfl
 
 /-- **A non-final level's calls' values**: the message's (`commitCV`), `level_positions`', `is_zero`
-of `λ` and `level_queries`', at the rate's selector `x`, the pointers of `ood_points` (`oz`),
+of `λ` and `level_queries`', at the rate's selector `x`, the pointers of `ood_z` (`oz`),
 `round_coefs` (`cf`) and `level_hs` (`hp`), the positions and windows (`qp`, `qb`), the table `tb`. -/
 def cvMid (lvl : ℕ) (lv : OsLv) (cap : List E) (cl cur : E) (W : MidW) (x oz cf hp qp qb tb : E) :
     List (List E) :=
@@ -183,21 +183,10 @@ def osPosStL (c : OsCfg) (lvl : ℕ) (lv : OsLv) (st : OsSt) : OsSt :=
   (osQGrind (if lvl = c.yrLevel then osFinalMsg c lv (osRndSt c lvl lv st)
     else osCommit c lvl lv (osRndSt c lvl lv st)).2).2
 
-theorem osRounds_sndC : ∀ (cp : Bool) (i n : ℕ) (st : OsSt), ∃ k fs co claim,
-    (osRounds cp i n st).2 = { st with k := k, fs := fs, co := co, claim := claim }
-  | _, _, 0, st => ⟨st.k, st.fs, st.co, st.claim, rfl⟩
-  | cp, i, n + 1, st => by
-    obtain ⟨k, fs, co, cl, h⟩ := osRounds_sndC false (i + 1) n (osRound cp (n == 0) i st).2
-    refine ⟨k, fs, co, cl, ?_⟩
-    show (osRounds false (i + 1) n (osRound cp (n == 0) i st).2).2 = _
-    rw [h]
-    generalize (n == 0) = b
-    cases cp <;> cases b <;> rfl
-
 theorem osRndSt_fields (c : OsCfg) (lvl : ℕ) (lv : OsLv) (st : OsSt) :
     (osRndSt c lvl lv st).rts = (osRates c lvl st).2.rts ∧ (osRndSt c lvl lv st).lp = (osRates c lvl st).2.lp ∧
       (osRndSt c lvl lv st).lw = (osRates c lvl st).2.lw := by
-  obtain ⟨_, _, _, _, h⟩ := osRounds_sndC true lv.foldsOff lv.folds (osRates c lvl st).2
+  obtain ⟨_, _, _, _, h⟩ := osRounds_snd true lv.foldsOff lv.folds (osRates c lvl st).2
   unfold osRndSt; rw [h]; exact ⟨rfl, rfl, rfl⟩
 
 /-- A state with a larger next free value keeps the invariants. -/

@@ -62,13 +62,6 @@ theorem os_group_oneB {κ : ℕ} {f : String} {Lin : ℕ → Layout} {args rets 
     (hr : c.rets.map σ = rets) : OsGroupB fs cert κ σ [c] Lin Lout B := fun b ↦
   os_kidsFromIn_onePB h σ c hf ht ha hr b
 
-theorem os_regionL_append {L L' : Layout} {i : ℕ} (h : RegionL (L ++ L') i) :
-    RegionL L i ∨ RegionL L' i := by
-  obtain ⟨q, hq, h1, h2⟩ := h
-  rcases List.mem_append.mp hq with hq | hq
-  · exact Or.inl ⟨q, hq, h1, h2⟩
-  · exact Or.inr ⟨q, hq, h1, h2⟩
-
 /-- A level's frames: the calls before the group, the group, the calls after it. -/
 structure OsLvKP where
   A : List Call

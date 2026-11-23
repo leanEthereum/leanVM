@@ -84,9 +84,6 @@ def rateF (k ri : ℕ) (lv : OsLv) (q b : E) : ℕ → E := fun i ↦
     (if ri ≠ 0 ∧ (i - k - 8) / 4 = ri - 1 then gw ((osRateVals lv).getD ((i - k - 8) % 4) 0) else 0)
   else if i = k + 8 + 4 * (ligNRates - 1) then q else b
 
-theorem osRates_k (c : OsCfg) (lvl : ℕ) (st : OsSt) :
-    (osRates c lvl st).2.k = st.k + 1 + 8 + 4 * (ligNRates - 1) + 2 := rfl
-
 /-- **`level_rate`, honestly**: the rate's row's values as words, the level's positions and window
 pointers `query_positions·g^posOff`, `query_win_ptrs·g^posOff`. -/
 theorem osRates_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : Val) (hsf : st.Sf)

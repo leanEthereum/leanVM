@@ -14,8 +14,8 @@ public import LeanVM.Guest.B1.Whir.CHonStep
 # The levels' steps on a run
 
 `OsHD.bat h l`: the guest's batch of level `l` (`opening_queries`' return, `0` at the final level).
-`lvMid_run`: on a run (`HonRun`), a non-final level's step from its calls and memory (`MidC`) at the
-honest data, every other hypothesis of `lvMid_step` discharged from the run.
+`lvMid_gen`: a non-final level's step from its calls and memory (`MidC`) at the honest data, every
+other hypothesis of `lvMid_step` discharged from the level's facts (`LvAt.NextStep`, `MidOk`).
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -45,14 +45,6 @@ theorem LvAt.qs_next_length {L L' : LvAt} {logN index : ℕ} (hN : LvAt.NextStep
     (L.qs logN).length = L.level.queries := by
   obtain ⟨rw, W, hd, -⟩ := hN
   unfold LvAt.qs; rw [hd]; simp [NextW.qs, sqPositions]
-
-theorem LvAt.phase_next_length {L L' : LvAt} {logN index : ℕ} (hN : LvAt.NextStep logN index L L') :
-    L.phase.length = (L.qs logN).length := by
-  obtain ⟨rw, W, hd, -, -, -, -, hnext, -⟩ := hN
-  have hrw : L.rw = rw := by unfold LvAt.rw; rw [hd]
-  unfold LvAt.phase LvAt.qs; rw [hd]
-  simp only [LvAt.F, LvAt.mu, LvAt.dp, LvAt.s1, hrw]
-  exact hnext.plen
 
 variable {M : Reader → Prop} {H : CallRel → Reader → Prop}
 

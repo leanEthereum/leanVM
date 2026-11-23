@@ -13,13 +13,13 @@ public import LeanVM.Guest.B1.Tables.FlatAt
 # Dependent callees, placed
 
 A flat body's callees are placed one after another (`kidsFromIn_of_kidsD`), each `CompleteAtD` on
-words fixed beforehand. When a callee reads what an earlier callee returns — `column_selector`
-the tables `selector_tables` returns, the terminal the buffers `certify_placement` returns —
-its arguments and words depend on the earlier results. `KidD`: a callee as a function of the
-results before it; `kidsAt ks prev outs`: the callees on the results `outs`.
+words fixed beforehand. When a callee reads what an earlier callee returns (`column_selector`
+the tables `selector_tables` returns, the terminal the buffers `certify_placement` returns), its
+arguments and words depend on the earlier results. `KidD`: a callee as a function of the results
+before it; `kidsAt ks prev outs`: the callees on the results `outs`.
 `kidsFromIn_of_dep`: the placement of `kidsFromIn_of_kidsD` for such callees.
-`completeAt_flatDep`: `completeAt_flatD` for them, each callee reading the caller's words, its
-buffers, and the buffers the earlier callees return (`RegionsOk`).
+`completeAt_flatDepR`: `completeAt_flatD` for them, returning no buffer, each callee reading the
+caller's words, its buffers, and the buffers the earlier callees return (`RegionsOk`).
 -/
 
 namespace LeanVM.Guest.B1
@@ -155,7 +155,8 @@ theorem filterMap_of_loadsEv {σ : Val} : ∀ {pre : List Stmt}, pre.all notIteB
     · have := filterMap_of_loadsEv hni.2 h
       cases hs : Stmt.loadS s <;> simp [hs, this]
 
-/-- **`completeAt_flatDep` returning no buffer**: the buffers are the function's own words. -/
+/-- **`completeAt_flatD` for dependent callees, returning no buffer**: the buffers are the function's
+own words. -/
 theorem completeAt_flatDepR {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
     (hl : coreProgram.loop f = false) (κ : ℕ) (Lin : Layout) (args rets : List E)
     {pre : List Stmt} {vs : List V} (hb : fn.body = pre ++ [.ret vs])

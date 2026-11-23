@@ -44,18 +44,6 @@ theorem rounds_eq {coefs : E} {n : ℕ} {rs rs' : List FoldRound} (hl : rs.lengt
     rintro ⟨⟩ ⟨⟩ h1 h2; simp_all
   exact ext _ _ ea eb
 
-/-- A run of rounds changes the state's next value, sponge, cursor offset and claim alone. -/
-theorem osRounds_snd : ∀ (cp : Bool) (i n : ℕ) (st : OsSt), ∃ k fs co claim,
-    (osRounds cp i n st).2 = { st with k := k, fs := fs, co := co, claim := claim }
-  | _, _, 0, st => ⟨st.k, st.fs, st.co, st.claim, rfl⟩
-  | cp, i, n + 1, st => by
-    obtain ⟨k, fs, co, cl, h⟩ := osRounds_snd false (i + 1) n (osRound cp (n == 0) i st).2
-    refine ⟨k, fs, co, cl, ?_⟩
-    show (osRounds false (i + 1) n (osRound cp (n == 0) i st).2).2 = _
-    rw [h]
-    generalize (n == 0) = b
-    cases cp <;> cases b <;> rfl
-
 /-- The rates' values the level appends to `rts`. -/
 theorem osRates_rts (c : OsCfg) (lvl : ℕ) (st : OsSt) :
     (osRates c lvl st).2.rts = st.rts ++ [[st.k + 1 + 2 * 0 + 1, st.k + 1 + 2 * 1 + 1,

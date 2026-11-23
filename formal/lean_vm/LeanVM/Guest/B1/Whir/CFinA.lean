@@ -18,7 +18,7 @@ public import LeanVM.Guest.B1.Whir.RateCfg
 # The finish, honestly
 
 The finish's own buffers' honest words, from all `α`s `G`, the tail challenges `T` and the
-non-final levels' records (S1a-3's `OsRec`): the point zero-padded and one plus it one-padded
+non-final levels' records (`OsRec`): the point zero-padded and one plus it one-padded
 (`finPtC`, `finPt1C`), each level's basis row (`finBdC`), scale (`finLsC`), product of
 coordinates (`finLaC`) and the inner chain (`finIchC`).
 
@@ -167,10 +167,6 @@ def finEnd (c : OsCfg) (st : OsSt) (tch : ℕ) : ℕ :=
 
 
 /-! ## The honest words, read back -/
-
-theorem readsAt_getD' {rd : Reader} {p : E} {xs : List E} (h : ReadsAt rd p xs) {j : ℕ}
-    (hj : j < xs.length) : LoadHolds rd p j (xs.getD j 0) := by
-  rw [List.getD_eq_getElem _ _ hj]; exact h j hj
 
 theorem rotPt_length {c : OsCfg} {G T : List E} {recs : List OsRec} (hS : FinStatic c G T recs) :
     (rotPt G T (c.levels.headD default).folds).length = c.nFolds + c.yrLog := by

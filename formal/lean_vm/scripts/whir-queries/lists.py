@@ -1,7 +1,6 @@
 """Rewrite the deployed specializations' lists the WHIR queries' proofs read, from the guest data:
-`openingQueriesShapes` (`B1/Opening/Interface.lean`), `openingQueriesLoops`
-(`B1/Opening/QueriesLoops.lean`) and `queryWindowsShapes` (`B1/Bits/QueryWindowsT.lean`), each in the core
-IR's order, each marked generated.
+`openingQueriesLoops` (`B1/Opening/QueriesLoops.lean`) and `queryWindowsShapes` (`B1/Bits/QueryWindowsT.lean`),
+each in the core IR's order, each marked generated.
 
     python3 -I scripts/whir-queries/lists.py LEAN_VM
 """
@@ -23,8 +22,6 @@ def replace_list(path, name, items):
 
 
 specs = gen.oq_specs()
-replace_list(os.path.join(B1, 'Opening', 'Interface.lean'), 'openingQueriesShapes',
-             ['("%s", %s)' % (d['name'], gen.shape(d)) for d in specs])
 replace_list(os.path.join(B1, 'Opening', 'QueriesLoops.lean'), 'openingQueriesLoops',
              ['("%s", name%% «%s»,\n      %s)' % (d['name'], gen.stable[d['loop']], gen.shape(d)) for d in specs])
 qws = sorted((tuple(map(int, n[len('decode_query_windows__L'):].split('_L'))), n)

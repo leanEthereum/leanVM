@@ -18,13 +18,14 @@ public import LeanVM.Guest.B1.Whir.HelperAll
 /-!
 # `level_residual`, placed
 
-`level_residual` at `fp` allocates its batches' chains (`2(q/resBatch + 1)` words, `rcC`) at
-`fp + fs name` and, when `8 ∤ q`, the rest's chains (`2(q % 8 + 1)` words, `rsC`) right after
-them; its loops, which place nothing, are placed after its buffers by trees of one size on every
-memory holding its words (`relAtIn_pure_uniform`, `guarded_uniform`).
+`level_residual` at `fp` allocates one buffer at `fp + fs name` (`lrSizes`, `lrW`): its batches'
+chains (`rcC`, from `0`), then the rest's (`rsC`, from `2·(q / resBatch)`); its loops, which place
+nothing, are placed after it by trees of one size on every memory holding its words
+(`lr_relAtIn_pure_uniform`, `lr_guarded_uniform`).
 
-* `lr_relAtIn0`, `lr_relAtIn1`: the body at `fp`, `8 ∣ q` and `8 ∤ q`, its loops' trees given.
-* `lr_loop1_rel`, `lr_loop2_rel`: the loops' relations on the honest buffers (`Place/LrLoops`).
+* `lr_relAtIn`: the body at `fp`, its loops' trees given.
+* `lr_key`: the body at `fp`, its buffer's words honest, on every memory holding the buffer and the
+  caller's words.
 * `lrAtD_of`, `level_residual_completeAt`: `LrAtD` at every entry of `lrTable`, from its facts
   (`LrFacts`: its sizes decided, `lrTable_sizes`; its loops pure at every row, `Place/LrPure`).
 -/

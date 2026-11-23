@@ -16,8 +16,8 @@ public import LeanVM.Guest.B1.Whir.Flatness
 # `open_stacked`'s frames
 
 A level (`Whir.osLevel`) is its rounds, its message and its query grind (`lvPre`, no dispatch),
-its positions (one dispatch into `level_positions`, `posFrame`) and the rest (`lvPost`: on a
-non-final level `is_zero` of `λ`, `lvIzF`, then one dispatch into `level_queries`, `qFrame`).
+its positions (one dispatch into `level_positions`, `posCall`) and the rest (`lvPost`: on a
+non-final level `is_zero` of `λ`, `lvIzF`, then one dispatch into `level_queries`, `osQCallOf`).
 `osLvKOf σ c`: the levels' frames as `OsLvK`s; `osLvKOf_get`: level `l`'s, at the state
 `osLvSt c l`. After the levels, the closing rounds' (no dispatch), then the finish's:
 `fold_final_msg`, the basis rows' `is_zero`, and per non-final level the dispatch into
@@ -145,13 +145,6 @@ theorem atoms_of_isAtom : ∀ l : List Stmt, l.all Stmt.isAtom = true → Atoms 
     simp only [List.all_cons, Bool.and_eq_true] at h
     match s, h.1 with
     | .atom _, _ => exact atoms_cons rfl (atoms_of_isAtom l h.2)
-
-theorem gcPre_isAtom (b : ℕ) : (gcPre b).all Stmt.isAtom = true := by
-  simp only [gcPre, gcHead, gcTailPre, List.all_append, List.all_cons, List.all_nil, Stmt.isAtom,
-    Bool.and_true, Bool.true_and, List.all_eq_true, List.mem_flatten, List.mem_map, List.mem_range]
-  rintro s ⟨l, ⟨i, -, rfl⟩, hs⟩
-  simp only [gcIterAt, List.mem_cons, List.not_mem_nil, or_false] at hs
-  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> rfl
 
 theorem gcInlineT_atoms (b o : ℕ) (w tabs : V) : Atoms (gcInlineT b o w tabs) :=
   atoms_of_isAtom _ (renameList_isAtom _ _ (gcPre_isAtom b))

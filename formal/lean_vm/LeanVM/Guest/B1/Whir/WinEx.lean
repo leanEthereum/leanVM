@@ -79,10 +79,6 @@ theorem noWin_cons {s : Stmt} {ss : List Stmt} (h1 : s.noWin = true) (h2 : ss.al
     (s :: ss).all Stmt.noWin = true := by
   rw [List.all_cons, h1, h2]; rfl
 
-theorem noWin_append {ss ts : List Stmt} (h1 : ss.all Stmt.noWin = true) (h2 : ts.all Stmt.noWin = true) :
-    (ss ++ ts).all Stmt.noWin = true := by
-  rw [List.all_append, h1, h2]; rfl
-
 theorem noWin_map {α : Type} {l : List α} {f : α → Stmt} (h : ∀ x, (f x).noWin = true) :
     (l.map f).all Stmt.noWin = true :=
   List.all_eq_true.mpr fun s hs => by
@@ -110,13 +106,6 @@ theorem noWin_match {x : V} {arms : List (List Stmt)} (h : ∀ arm ∈ arms, arm
   refine List.all_eq_true.mpr fun arm harm => List.all_eq_true.mpr fun s hs => ?_
   have h1 := List.all_eq_true.mp (h arm harm) s hs
   cases s <;> first | exact h1 | rfl
-
-/-- A block of atoms every one of which is exact on every memory. -/
-theorem winEx_of_atoms {σ : Val} {ss : List Stmt} (ha : ∀ s ∈ ss, ∃ a, s = .atom a)
-    (h : ∀ a, Stmt.atom a ∈ ss → ∀ rd, a.Exact rd σ) : WinEx ss σ := by
-  intro s hs
-  obtain ⟨a, rfl⟩ := ha s hs
-  exact fun _ => h a hs
 
 end
 end LeanVM.Guest.B1.Whir

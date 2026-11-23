@@ -14,11 +14,11 @@ public import LeanVM.Guest.B1.Whir.CHonMemLv
 On a memory holding the honest buffers at `b`:
 
 * `fch_all`: the fold challenges;
-* `recStored_of`: a non-final level's record (`RecStored`, S1a-3's) at a valuation holding the
+* `recStored_of`: a non-final level's record (`RecStored`) at a valuation holding the
   head's pointers, the record's lengths given;
 * `ood_rows`: its out-of-domain points in `ood_z`;
-* `tail_reads`, `pt_reads`, `pt1_reads`, `bd_reads`, `ls_reads`, `la_reads`, `ich_reads`,
-  `rc_reads`: the finish's buffers, their words fitting;
+* `fin_reads` (`tail_reads`, `pt_reads`, `pt1_reads`, `bd_reads`, `ls_reads`, `la_reads`,
+  `ich_reads`): the finish's buffers, their words fitting;
 * `qMem_at`: OsHonest's `qMem` at level `l`.
 -/
 

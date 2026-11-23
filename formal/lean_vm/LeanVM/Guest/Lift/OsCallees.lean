@@ -101,12 +101,6 @@ theorem leafSpecOk_allP {α : Type} {xs : List α} {name : α → String} {spec 
     ∀ p ∈ xs, LeafSpecOk (name p) (spec p) := fun p hp =>
   leafSpecOk_of (List.all_eq_true.mp h p hp)
 
-/-- A placed form without a region hypothesis gives one with any. -/
-theorem CompleteRelD.regD {k : ℕ} {f : String} {Pre : Reader → List E → List E → Prop}
-    {Reg : List E → (ℕ → Prop) → Prop} (h : CompleteRelD fs cert k f Pre) :
-    CompleteRelRegD fs cert k f Pre Reg :=
-  fun args rets Lin _ hp => h args rets Lin hp
-
 /-- **`open_stacked`'s leaf callees are complete, placed on their regions**, at every frame size
 and certificate, on memories defined below `2^k`. -/
 theorem osCalleesRegD_holds (k : ℕ) : OsCalleesRegD fs cert k where

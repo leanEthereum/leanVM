@@ -49,6 +49,10 @@ theorem readsAt_append {p : E} {xs ys : List E} (h1 : ReadsAt rd p xs)
     have := h2 (k - xs.length) (by simp at hk; omega)
     rwa [loadHolds_mul_gen_pow, Nat.add_sub_cancel' (by omega)] at this
 
+theorem readsAt_getD' {p : E} {xs : List E} (h : ReadsAt rd p xs) {j : ℕ} (hj : j < xs.length) :
+    LoadHolds rd p j (xs.getD j 0) := by
+  rw [List.getD_eq_getElem _ _ hj]; exact h j hj
+
 /-! ## Materialized pointers in the running state -/
 
 theorem osMatS_val {P : List (ℕ × ℕ × ℕ)} {base off : ℕ} {s : OsSt} (hm : MatsOk σ s.mats)
@@ -225,6 +229,18 @@ theorem osRounds_sound (hgc : GcOk C rd σ) (hwt : WinTabs rd (σ (.n osTabs))) 
       · have := lc j (by omega)
         rw [show i + 1 + j = i + (j + 1) by ring] at this
         simpa using this
+
+/-- A run of rounds changes the state's next value, sponge, cursor offset and claim alone. -/
+theorem osRounds_snd : ∀ (cp : Bool) (i n : ℕ) (st : OsSt), ∃ k fs co claim,
+    (osRounds cp i n st).2 = { st with k := k, fs := fs, co := co, claim := claim }
+  | _, _, 0, st => ⟨st.k, st.fs, st.co, st.claim, rfl⟩
+  | cp, i, n + 1, st => by
+    obtain ⟨k, fs, co, cl, h⟩ := osRounds_snd false (i + 1) n (osRound cp (n == 0) i st).2
+    refine ⟨k, fs, co, cl, ?_⟩
+    show (osRounds false (i + 1) n (osRound cp (n == 0) i st).2).2 = _
+    rw [h]
+    generalize (n == 0) = b
+    cases cp <;> cases b <;> rfl
 
 end
 end LeanVM.Guest.B1.Whir

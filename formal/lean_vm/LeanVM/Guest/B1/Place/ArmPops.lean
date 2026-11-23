@@ -190,7 +190,7 @@ theorem armTs_armTsP {Bk : String → ℕ} {c : OsCfg} {args : List E} {cur tabs
     {tgt inn res : E} {pt pt1 : List E} (H : OsHonestA c args cur tabs xs tgt inn res pt pt1) (σ : Val)
     (rd : Reader) :
     List.Forall₂ (fun T T' : Tree → Prop ↦ ∀ t, T t → T' t) (armTs (Bd := some Bk) H σ rd) (armTsP Bk H σ rd) :=
-  forall₂_append' (lvTs_forall₂ (fun _ _ ↦ trivial) (fun _ _ ↦ trivial) (fun _ _ h B hB hq ↦ (h B hB).1
+  List.rel_append (lvTs_forall₂ (fun _ _ ↦ trivial) (fun _ _ ↦ trivial) (fun _ _ h B hB hq ↦ (h B hB).1
     fun he ↦ by rw [he, lqNameB_of_kind osKindOf_isZero] at hq; cases hq) 0 _)
     (forall₂_map_same _ fun _ _ _ _ ↦ trivial)
 

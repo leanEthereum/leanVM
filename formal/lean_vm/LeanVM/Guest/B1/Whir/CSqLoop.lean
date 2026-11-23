@@ -168,7 +168,7 @@ def sqTab (lv : OsLv) (X N sqz qpos qbp tabs : E) (cap : List E) (i : ℕ) : E :
 def sqVal (lv : OsLv) (X N sqz qpos qbp tabs : E) (cap : List E) : Val :=
   fun v ↦ sqTab lv X N sqz qpos qbp tabs cap v.idx
 
-/-- **One iteration of the squeeze loop, honestly** (S1a-6's `SqIterC`, `Place/SqAt`, with its
+/-- **One iteration of the squeeze loop, honestly** (`SqIterC`, `Place/SqAt`, with its
 `sqDecArgs`, `sqTailArgs` written out). -/
 def SqIterC' (lv : OsLv) : Prop :=
   ∀ (rd : Reader) (X N sqz qpos qbp tabs : E) (cap : List E), cap.length = 5 →

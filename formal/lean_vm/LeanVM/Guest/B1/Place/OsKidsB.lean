@@ -29,20 +29,6 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
-private theorem os_callsMatch_mapB (σ : Val) (Lk : Layout) : ∀ (cs : List Call) (outs : List (List E × Layout)),
-    OutsOk (osKidsOf σ Lk cs) outs → CallsMatch σ cs (osKidsOf σ Lk cs) outs
-  | [], [], _ => trivial
-  | _ :: cs, _ :: os, ⟨ho, hos⟩ => ⟨rfl, rfl, fun ht => ⟨rfl, (ho ht).1.symm⟩, os_callsMatch_mapB σ Lk cs os hos⟩
-  | [], _ :: _, h => h.elim
-  | _ :: _, [], h => h.elim
-
-private theorem os_regionL_appendB {L L' : Layout} {i : ℕ} (h : RegionL (L ++ L') i) :
-    RegionL L i ∨ RegionL L' i := by
-  obtain ⟨q, hq, h1, h2⟩ := h
-  rcases List.mem_append.mp hq with hq | hq
-  · exact Or.inl ⟨q, hq, h1, h2⟩
-  · exact Or.inr ⟨q, hq, h1, h2⟩
-
 /-- The callees' bound is at most the calls' larger of frame and bound. -/
 theorem os_kidsBound_le (σ : Val) (Lk : Layout) (Bk : String → ℕ) (cs : List Call) :
     kidsBound fs (fun k => Bk k.f) (osKidsOf σ Lk cs) ≤ (cs.map fun c => max (fs (tailKey c.f)) (Bk c.f)).sum := by
@@ -80,7 +66,7 @@ theorem os_kids_blockB (κ : ℕ) (Lk : Layout) (σ : Val) (cs : List Call) (Bk 
       obtain ⟨c, hc', rfl⟩ := List.mem_map.mp hk
       exact hc c hc' ht) b
   refine ⟨N, L, hW, hD, le_trans hN (os_kidsBound_le σ Lk Bk cs), fun rd R Dacc hlow hL hLk hR =>
-    kidsFromIn_dend _ _ _ _ (fun _ h => h.elim) (hK rd σ cs R Dacc (os_callsMatch_mapB σ Lk cs outs ho) hlow hL ?_ ?_)⟩
+    kidsFromIn_dend _ _ _ _ (fun _ h => h.elim) (hK rd σ cs R Dacc (os_callsMatch_map σ Lk cs outs ho) hlow hL ?_ ?_)⟩
   · intro q hq
     obtain ⟨k, hk, hq⟩ := List.mem_flatMap.mp hq
     obtain ⟨c, -, rfl⟩ := List.mem_map.mp hk
@@ -181,14 +167,14 @@ theorem os_levels_kidsB (κ : ℕ) (σ : Val) (Lk : Layout) (W S : ℕ → ℕ �
       intro D1 _
       rw [show k.sq :: (k.B ++ ks.flatMap OsLvK.calls) = [k.sq] ++ (k.B ++ ks.flatMap OsLvK.calls) from rfl]
       refine kidsFromIn_append _ _ _ _ _ _ _ _ (hKS rd R D1 hlow hLS (Main.memL_append.mpr ⟨hLk, hW0⟩) fun i hi => ?_) ?_
-      · rcases os_regionL_appendB hi with hi | hi
+      · rcases os_regionL_append hi with hi | hi
         · exact Or.inl (hR i hi)
         · exact Or.inl (hRW l0 le_rfl (by simp) _ i hi)
       intro D2 hD2
       refine kidsFromIn_append _ _ _ _ _ _ _ _ (hKB rd R D2 hlow hLB
         (Main.memL_append.mpr ⟨Main.memL_append.mpr ⟨hLk, hW0⟩, hS0⟩) fun i hi => ?_) ?_
-      · rcases os_regionL_appendB hi with hi | hi
-        · rcases os_regionL_appendB hi with hi | hi
+      · rcases os_regionL_append hi with hi | hi
+        · rcases os_regionL_append hi with hi | hi
           · exact Or.inl (hR i hi)
           · exact Or.inl (hRW l0 le_rfl (by simp) _ i hi)
         · exact Or.inr (hD2 i hi)

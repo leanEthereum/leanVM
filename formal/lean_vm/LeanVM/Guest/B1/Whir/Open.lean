@@ -21,7 +21,7 @@ import LeanVM.Guest.Data.ValNames.«open_stacked__L»
 have their facts and callees (`LevelsOk`) and their rows at the rate's selector (`LvRate`), and
 whose finish has its static facts (`FinStaticS`): a call establishes `OpenOutW` at the
 witness's words and openings. The head stores the root's halves and starts
-level `0` (`osHead_lvIn`); the levels and the closing rounds run `whirLevelsOpen`
+level `0` (`osHead_roots`, `LvIn`); the levels and the closing rounds run `whirLevelsOpen`
 (`osLevels_sound`); the finish returns the terminal (`osFinish_sound`).
 -/
 

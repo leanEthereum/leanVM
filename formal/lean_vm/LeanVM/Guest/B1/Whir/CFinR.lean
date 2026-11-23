@@ -16,7 +16,7 @@ public import LeanVM.Guest.B1.Whir.ResLoop
 `osResSteps_ssa`: the steps of `residual_query` (`osResChain`, `novel_eval`) and the chains'
 updates define their values in order from their first free value, reading only the position
 pointer at the steps' offsets, the basis row's first `ncols` words and the high part's `nhs`
-words (`osResSteps_loads`).
+words.
 -/
 
 namespace LeanVM.Guest.B1.Whir

@@ -309,5 +309,12 @@ theorem osMatsAfter_ok {plan : List (ℕ × ℕ × ℕ)} {mats : List OsMat} {ba
         rw [this] at hv
         exact hv
 
+theorem gcPre_isAtom (b : ℕ) : (gcPre b).all Stmt.isAtom = true := by
+  simp only [gcPre, gcHead, gcTailPre, List.all_append, List.all_cons, List.all_nil, Stmt.isAtom,
+    Bool.and_true, Bool.true_and, List.all_eq_true, List.mem_flatten, List.mem_map, List.mem_range]
+  rintro s ⟨l, ⟨i, -, rfl⟩, hs⟩
+  simp only [gcIterAt, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> rfl
+
 end
 end LeanVM.Guest.B1.Whir

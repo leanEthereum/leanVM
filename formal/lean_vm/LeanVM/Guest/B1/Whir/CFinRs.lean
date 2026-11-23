@@ -48,24 +48,6 @@ theorem rcC_get (lv : OsLv) (D : ℕ → E) (hsv : List E) (Pos : ℕ → E) (mu
   · rw [List.getD_eq_getElem _ _ (by rw [rcC_length]; omega)]
     simp [rcC, show (2 * j + 1) / 2 = j by omega, show (2 * j + 1) % 2 = 1 by omega]
 
-/-- What memory holds for a level's residual: `μ`, the positions, the basis row, the high part,
-the chains' buffer at `RC`, the inner chain's entries before and after, the scale, `β` and the
-product of the coordinates. -/
-structure ResMem (rd : Reader) (σ : Val) (lvl : ℕ) (lv : OsLv) (bd ich ls la : ℕ) (RC : E)
-    (D : ℕ → E) (hsv : List E) (Pos : ℕ → E) (mu i0 i1 s b a : E) : Prop where
-  mus : LoadHolds rd (σ (.n osMus)) lvl mu
-  pos : ∀ k < lv.queries, LoadHolds rd (σ (.n osQpos)) (lv.posOff + k) (Pos k)
-  row : ∀ t < lv.logCols, LoadHolds rd (σ (.n bd)) (lvl * ligColsCap + t) (D t)
-  hs : ∀ c < lv.folds, LoadHolds rd (σ (.n osHs)) (lvl * hsStride + c) (hsv.getD c 0)
-  rc : ReadsAt rd RC (rcC lv D hsv Pos mu)
-  li0 : LoadHolds rd (σ (.n ich)) (2 * lvl) i0
-  li1 : LoadHolds rd (σ (.n ich)) (2 * lvl + 1) i1
-  lsc : LoadHolds rd (σ (.n ls)) lvl s
-  lbe : LoadHolds rd (σ (.n osBetas)) lvl b
-  laf : LoadHolds rd (σ (.n la)) lvl a
-  st0 : LoadHolds rd (σ (.n ich)) (2 * lvl + 2) (i0 + s * (resAll lv D hsv Pos mu).1)
-  st1 : LoadHolds rd (σ (.n ich)) (2 * lvl + 3) (i1 + b * a * (resAll lv D hsv Pos mu).2)
-
 /-- A level's residual's static facts. -/
 structure ResStatic (lv : OsLv) (hsv : List E) : Prop where
   cols : 1 ≤ lv.logCols
@@ -75,7 +57,6 @@ structure ResStatic (lv : OsLv) (hsv : List E) : Prop where
   len : hsv.length = lv.folds
   nbu : lv.queries / resBatch < u128Bound
   nb64 : 2 * (lv.queries / resBatch + 1) < 2 ^ 64 - 1
-
 
 /-- A level's sums into the inner chain, from the chains `h`, `hh` and the slow sum `sl`, at
 `a`. -/

@@ -183,11 +183,6 @@ theorem forall₂_map_same {α : Type} {R : (Tree → Prop) → (Tree → Prop) 
   | [], _ => .nil
   | x :: l, h => .cons (h x List.mem_cons_self) (forall₂_map_same l fun y hy ↦ h y (List.mem_cons_of_mem _ hy))
 
-theorem forall₂_append' {R : (Tree → Prop) → (Tree → Prop) → Prop} :
-    ∀ {a b c d : List (Tree → Prop)}, List.Forall₂ R a b → List.Forall₂ R c d → List.Forall₂ R (a ++ c) (b ++ d)
-  | [], [], _, _, .nil, h => h
-  | _ :: _, _ :: _, _, _, .cons h hs, h2 => .cons h (forall₂_append' hs h2)
-
 /-- **`lvTs` at stronger predicates is pointwise stronger.** -/
 theorem lvTs_forall₂ {TA TS TA' TS' : Reader → Tree → Prop} {TB TB' : ℕ → Reader → Tree → Prop} {rd : Reader}
     (hA : ∀ t, TA rd t → TA' rd t) (hS : ∀ t, TS rd t → TS' rd t) (hB : ∀ l t, TB l rd t → TB' l rd t) :
@@ -196,7 +191,7 @@ theorem lvTs_forall₂ {TA TS TA' TS' : Reader → Tree → Prop} {TB TB' : ℕ 
   | _, [] => .nil
   | l, k :: ks => by
     simp only [lvTs]
-    exact forall₂_append' (forall₂_append' (forall₂_map_same _ fun _ _ ↦ hA)
+    exact List.rel_append (List.rel_append (forall₂_map_same _ fun _ _ ↦ hA)
       (.cons hS (forall₂_map_same _ fun _ _ ↦ hB l))) (lvTs_forall₂ hA hS hB (l + 1) ks)
 
 /-- **An arm at a configuration and rate is complete placed**, at an optional words bound, by its node,

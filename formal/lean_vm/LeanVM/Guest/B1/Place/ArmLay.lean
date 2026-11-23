@@ -19,7 +19,7 @@ public import LeanVM.Guest.B1.Place.Lp
   words, the buffers but `query_win_ptrs` and the caller's. `osMemA_of_lk`, `osHA_of_lk`: a memory
   holding them holds the buffers (`OsMemA`) and the dispatch relation satisfies `OsHA`.
 * `qbpA c ws`: `query_win_ptrs`' words, level `l`'s window pointers `ws l` at its offset;
-  `winW … l p`: level `l`'s slice of them, its `level_positions` at `p`; `memL_winW`.
+  `memL_qbp_slice`: level `l`'s slice of them, at the level's offset.
 * `os_calls_of_allOkF`, `os_kid_namedO`: a named frame of a flat body proved at `osCR` on every
   memory holding `Lk`, at a valuation agreeing on the calls (`CallAg`), is complete placed on `Lk`, at
   an optional bound; `os_kid_namedX`: any statement its kind's
@@ -164,7 +164,7 @@ theorem osMemA_load_mul {rd : Reader} {c : OsCfg} {b : ℕ} {own : List (List E)
 
 /-! ## `query_win_ptrs` -/
 
-theorem levels_getElem_eq' {c : OsCfg} {l : ℕ} (hl : l < c.levels.length) :
+theorem levels_getElem_eq {c : OsCfg} {l : ℕ} (hl : l < c.levels.length) :
     c.levels[l] = osLvA c l := (List.getD_eq_getElem _ _ hl).symm
 
 /-- Level `l`'s positions, its squeezes times the positions a squeezed word carries. -/
@@ -196,7 +196,7 @@ theorem osPos_take_add_le {c : OsCfg} {l : ℕ} (hl : l < c.levels.length) :
   rw [osPosTotal, ← List.take_append_drop l c.levels, List.map_append, List.sum_append,
     List.take_append_drop]
   have hd : osPosN c l ≤ ((c.levels.drop l).map fun lv ↦ lv.squeezes * (128 / lv.depth)).sum := by
-    rw [List.drop_eq_getElem_cons hl, List.map_cons, List.sum_cons, levels_getElem_eq' hl]
+    rw [List.drop_eq_getElem_cons hl, List.map_cons, List.sum_cons, levels_getElem_eq hl]
     exact Nat.le_add_right _ _
   omega
 
