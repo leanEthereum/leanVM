@@ -18,8 +18,6 @@ open OracleComp OracleSpec
 
 namespace XmssSecurity.Bridge
 
-set_option backward.isDefEq.respectTransparency false
-
 /-- A top index as a key of the real scheme. -/
 def topKey (key : TopIndex) : LeanXmss.KeyIndex :=
   ⟨key.val, by
@@ -128,7 +126,6 @@ theorem topMessage_input (parameter : PublicParameter) (key : TopIndex) (root : 
     LeanXmss.hashDomainFields, hashDomainFields, domainSuffix, List.append_nil,
     Concrete.topEncodingPayload]
   rfl
-
 
 /-! ## Hashing routines -/
 
@@ -239,7 +236,6 @@ theorem decode_eq (digest : Digest) :
   · have h' : ¬digest.toNat / 2 ^ (HashSig.winternitzBits * LeanXmss.chainCount) = 0 :=
       fun h'' => h ((digestTop_eq_zero_iff digest).2 h'')
     simp only [h, h', false_and, ite_false]
-
 
 /-! ## Verification -/
 
@@ -379,7 +375,6 @@ theorem layerRoot_bottom (parameter : PublicParameter) (key : LeafIndex) (messag
       intro leaf
       rw [treeFold_bottom parameter key signature leaf LeanXmss.layerHeight le_rfl]
       rfl
-
 
 /-- The top layer's root in the model's terms. -/
 theorem layerRoot_top (parameter : PublicParameter) (key : TopIndex) (root : Digest)

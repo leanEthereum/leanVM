@@ -17,8 +17,6 @@ the kernel evaluates the coefficient as a digit of a power.
 
 open Finset
 
-set_option maxRecDepth 100000
-
 namespace LeanXmss.Codeword
 
 open HashSig

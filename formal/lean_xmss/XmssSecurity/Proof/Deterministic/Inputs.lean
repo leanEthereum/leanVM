@@ -9,8 +9,6 @@ open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity
 
-set_option backward.isDefEq.respectTransparency false
-
 /-- Every seed-derived input puts the complete seed in bytes 32 through 63. -/
 def DerivationSeedHit (input : HashInput) (seed : MasterSeed) : Prop :=
   (input.drop 32).take 32 = bytesLE 32 seed

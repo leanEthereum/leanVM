@@ -23,8 +23,6 @@ namespace XmssSecurity.Bridge
 
 open DeterministicSigning
 
-set_option backward.isDefEq.respectTransparency false
-
 /-- Requests for the base of key `b` at root `r`. -/
 abbrev TableReq := TopRndPos →ₒ Randomness
 /-- Requests for the base of key `b`. -/
@@ -95,7 +93,6 @@ theorem liftHash_query {κ : Type} (Req : OracleSpec κ) (x : HashInput) :
   change simulateQ (liftHash Req) (liftM (HashSpec.query x) : OracleComp HashSpec _) = _
   rw [simulateQ_spec_query]
   rfl
-
 
 theorem treeNode_lift {κ : Type} (Req : OracleSpec κ) (parameter : PublicParameter)
     (secret : LeafIndex → ChainIndex → Digest) (levels : Nat) (node : MerkleNode) :

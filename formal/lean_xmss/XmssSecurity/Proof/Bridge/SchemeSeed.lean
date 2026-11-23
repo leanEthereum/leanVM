@@ -22,8 +22,6 @@ namespace XmssSecurity.Bridge
 
 open Seeded DeterministicSigning Common.RomTable
 
-set_option backward.isDefEq.respectTransparency false
-
 /-- The input names the key's seed: it is the seed hash's input. -/
 def KeySeedHit (input : HashInput) (keySeed : MasterSeed) : Prop :=
   input = LeanXmss.seedHashInput keySeed

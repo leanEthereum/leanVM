@@ -19,8 +19,6 @@ namespace XmssSecurity.Bridge
 
 open Seeded DeterministicSigning
 
-set_option backward.isDefEq.respectTransparency false
-
 theorem xor_one_lt {n k : Nat} (hn : n < 2 ^ k) (hk : 1 ≤ k) : Nat.xor n 1 < 2 ^ k :=
   Nat.xor_lt_two_pow hn (Nat.one_lt_two_pow (by omega))
 
@@ -114,7 +112,6 @@ theorem realTopLayer (h : Prepared seed d result cache) (key : TopIndex) :
       rw [hsk]
       simp only [Option.map_some, Concrete.topPart, hsk, layerToReal]
       exact .pure _
-
 
 theorem erases_otsSignFrom_bottom (h : Prepared seed d result cache) (index : LeafIndex) (message : Message)
     (base : Randomness)

@@ -24,8 +24,6 @@ variable [Params]
 
 open Concrete Completeness Security.Prefix Security.GraphView
 
-set_option backward.isDefEq.respectTransparency false
-
 attribute [local irreducible] digestAttemptLimit encodingAttemptLimit
 
 variable (f : QueryImpl HashSpec Id)

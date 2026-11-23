@@ -10,8 +10,6 @@ open scoped BigOperators
 
 namespace XmssSecurity.EncodingMonitor
 
-set_option maxRecDepth 100000
-
 structure State where
   pending : LeafIndex → Finset Digest
   signed : LeafIndex → Option Digest

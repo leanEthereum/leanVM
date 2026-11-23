@@ -12,8 +12,6 @@ namespace XmssSecurity.CappedChain
 
 variable (table : GlobalChainValueIndex → Digest) (keyView : ProgrammedGlobalChainKeygenView)
 
-set_option maxRecDepth 1000000
-
 theorem globalFilteredCausalAttackerHashPlan_eq_leafProbeThenFresh
     (secretKey : SecretKey) (state : GlobalCausalHashState)
     (input : HashInput) (leafIndex : ChainKey)
@@ -72,9 +70,6 @@ theorem globalFilteredCausalAttackerHashPlan_eq_leafFresh_of_mismatch
   rw [globalFilteredCausalLeafHashPlan, globalLeafInputData?_leafInput]
   simp only
   rw [hhidden, ite_eq_right hmatch]
-
-
-set_option maxRecDepth 1000000
 
 theorem globalLeaf_not_match_endpoint_miss
     (state : GlobalCausalHashState) (leafIndex : ChainKey)
@@ -218,9 +213,6 @@ theorem relTriple_programmed_globalFilteredLeafHashQuery_until_hit
             intro _leftResult _rightResult hresult
             exact Or.inl hresult
 
-
-set_option maxRecDepth 10000000
-
 theorem Concrete.keygen_cache_none_at_global_chainAddress_of_probe_none
     (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
     (hmem : keyResult ∈ support
@@ -333,9 +325,6 @@ theorem relTriple_programmed_globalFilteredOrdinaryHashQuery
     rightState hstate input hbaseNone
   exact globalFilteredCausalAttackerHashPlan_eq_ordinaryFresh
     right.1.1.secretKey rightState input hcache hchain hleaf
-
-
-set_option maxRecDepth 1000000
 
 def GlobalMerkleKeygenCacheRetained
     (secretKey : SecretKey) (state : GlobalCausalHashState) : Prop :=
@@ -466,9 +455,6 @@ theorem relTriple_programmed_globalFilteredAttackerHashQuery_until_hit
                     hbaseNone)
               intro _leftResult _rightResult hresult
               exact Or.inl hresult
-
-
-set_option maxRecDepth 10000000
 
 theorem GlobalMerkleKeygenCacheRetained.recordedState
     {secretKey : SecretKey} {state : GlobalCausalHashState}
@@ -611,7 +597,6 @@ theorem simulate_eagerTrace_globalCausalAttackerHashQueryFromHigh_merkleRetained
               (Rom.hashOutputEquivDigestPair.symm (high index, table index))
                 hcache
 
-
 def GlobalCausalSigningStateExtends
     (initial final : GlobalCausalHashState) : Prop :=
   initial.cache ≤ final.cache ∧ final.keygenCache = initial.keygenCache
@@ -724,9 +709,6 @@ theorem simulate_eagerTrace_globalFilteredCausalSigningQuery_merkleRetained
   intro input hmerkle output hkeygen
   rw [hextends.2] at hkeygen
   exact hextends.1 (hretained input hmerkle output hkeygen)
-
-
-set_option maxRecDepth 1000000
 
 structure GlobalMonitoredCausalState where
   causal : GlobalCausalHashState
@@ -919,7 +901,6 @@ theorem relTriple_monitorGlobalCausalTrace_of_filtered_until_hit
             right.2 monitor rightResult.2).2 hhit))
   simpa only [id_map] using hmapped
 
-
 theorem globalCausalAttackerHashQueryFromHigh_cached_replays
     (table high : GlobalChainValueIndex → Digest)
     (secretKey : SecretKey) (input : HashInput)
@@ -1100,7 +1081,6 @@ theorem relTriple_programmed_monitoredGlobalAttackerHashQuery_until_hit
     exact simulate_eagerTrace_globalCausalAttackerHashQueryFromHigh_merkleRetained
       right.1.2 (globalChainValueHighTableOfEdges right.2)
         right.1.1.secretKey input rightState.causal hretained result hresult
-
 
 theorem GlobalCausalHashState.recordReveal_transition
     (state : GlobalCausalHashState) (index : GlobalChainValueIndex)

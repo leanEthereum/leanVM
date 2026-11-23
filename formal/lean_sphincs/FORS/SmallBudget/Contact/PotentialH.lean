@@ -21,8 +21,6 @@ open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForsPrice F
 open HiddenReveal PotentialA
 open FORS.LoopWalk Common.LoopWalk
 
-set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
 set_option linter.unusedSectionVars false
 set_option linter.constructorNameAsVariable false
 attribute [local instance] Classical.propDecidable
@@ -112,7 +110,6 @@ theorem psiF_newPair {Cmax Lmax : ℕ} (hfair : FairS wbar Cmax Lmax) (hQ : Qtot
   rw [wsum_gA K R (coefU K data wbar Fail s P Ms L d (y + 1)) s, ← hwS, ← hwU]
   unfold coefU
   gcongr
-
 
 theorem psiF_ordinary (hMp : model.parse = HiddenGraph.parse K.p (candidateActive K.p))
     (hMi : model.incoming = Address.inputCoordinate) (hw : wbar ≤ 1) {payB : ℝ≥0∞}
@@ -211,7 +208,6 @@ theorem psiF_ordinary (hMp : model.parse = HiddenGraph.parse K.p (candidateActiv
         · exact potNF_mono K data wbar Fail hw s P (fun q hq => (hB.pinv.mem q).1 hq) Ms L d
             (Nat.le_succ y)
 
-
 /-- A near cover of a valid finished game makes the near potential at least one. -/
 theorem potNF_ge_of_near (hw : wbar ≤ 1) {budget : ℕ} {s : State} {P : List Pair} {Ms : List Message}
     {d : Multiset View} {R : List Coordinate} {L : QueryLog SigningSpec}
@@ -299,7 +295,6 @@ theorem psiF_final (hw : wbar ≤ 1) (Lmax : ℕ) :
                     rw [min_eq_left h]
         · rw [prEvent_eq_zero_of_forall_mem_support _ _ fun T _ h => hc h.2]
           exact zero_le
-
 
 end PaysH
 

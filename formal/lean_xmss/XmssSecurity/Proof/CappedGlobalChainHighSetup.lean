@@ -12,7 +12,6 @@ open OracleComp.ProgramLogic.Relational
 
 namespace XmssSecurity.CappedChain
 
-set_option maxRecDepth 1000000
 set_option linter.constructorNameAsVariable false
 
 noncomputable def programmedGlobalChainTrajectoryMaterialWithBaseHigh
@@ -228,8 +227,6 @@ theorem relTriple_coupledGlobalChainKeygen_withBaseHigh
     programmedGlobalChainTrajectoryMaterial_chainsWarm parameter rightMaterialBaseHigh.1.1
       hrightMaterialSupport, hrunRel⟩, hhighFinal, hmatches.mono hcacheLe⟩
 
-
-set_option maxRecDepth 2000000
 set_option linter.constructorNameAsVariable false
 
 noncomputable def coupledGlobalChainKeygenWithBaseHighFull :
@@ -418,9 +415,6 @@ theorem relTriple_trajectoryProgrammedGlobalChainKeygen_withBaseHigh_stable :
   exact relTriple_of_evalDistEq_left
     evalDist_coupledGlobalChainKeygen_eq_trajectoryProgrammed.symm
     relTriple_coupledGlobalChainKeygen_withBaseHigh_fullCacheStable
-
-
-set_option maxRecDepth 1000000
 
 noncomputable def globalFilteredCausalKeygenState
     (view : ProgrammedGlobalChainKeygenView) : GlobalCausalHashState := by
@@ -725,9 +719,6 @@ def GlobalFilteredHashResultRelation
   leftResult.1 = rightResult.1.1 ∧
     GlobalFilteredCausalStateRelation left right leftResult.2 rightResult.1.2
 
-
-set_option maxRecDepth 1000000
-
 structure GlobalFilteredResultRelation (Output : Type)
     (parameter : PublicParameter)
     (leftBase initialLeft initialRight : QueryCache HashSpec)
@@ -804,9 +795,6 @@ theorem relTriple_globalEncodingHash_run_filtered
   exact ⟨congrArg truncateHash hresult.output_eq, hresult.caches_agree,
     hresult.left_le, hresult.right_le, hresult.filtered⟩
 
-
-set_option maxRecDepth 1000000
-
 theorem programmedGlobal_filteredKeygen_stateRelation
     (left : ProgrammedGlobalChainKeygenView)
     (right : (ProgrammedGlobalChainKeygenView ×
@@ -860,9 +848,6 @@ theorem programmedGlobal_filteredKeygen_stateRelation
       exact ⟨rfl, by simp [globalFilteredCausalKeygenState, hmerkle]⟩
   · intro index value hvalue
     simp [globalFilteredCausalKeygenState] at hvalue
-
-
-set_option maxRecDepth 1000000
 
 noncomputable def globalChainValueHighTableOfEdges
     (high : GlobalChainEdgeIndex → Digest) :
@@ -927,7 +912,6 @@ theorem globalChainEdgeOutputFromHigh_eq_revealOutput
       globalChainEdgeOutputFromHigh high table edge := by
   unfold globalChainEdgeOutputFromHigh globalChainTableEdgeTarget
   rw [globalChainValueHighTableOfEdges_next]
-
 
 theorem Concrete.keygen_signWithEncoding_eq_base
     (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
@@ -1368,9 +1352,6 @@ theorem relTriple_programmed_globalFilteredCausalSigningQuery
   split
   · exact hequal (by assumption)
   · rfl
-
-
-set_option maxRecDepth 1000000
 
 theorem globalChainTableEdgeInput_not_signingComparable
     (parameter : PublicParameter)

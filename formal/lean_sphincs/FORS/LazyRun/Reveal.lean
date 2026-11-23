@@ -16,8 +16,6 @@ open OracleComp OracleSpec ENNReal
 namespace FORS.Security.HiddenReveal
 
 variable [Params]
-set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
 attribute [local instance] Classical.propDecidable
 
 variable {ι : Type} [Fintype ι]

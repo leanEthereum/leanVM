@@ -7,8 +7,6 @@ public import FORS.ScanSigner.FairShare
 
 @[expose] public section
 
-set_option backward.isDefEq.respectTransparency false
-
 /-! Accepted-signature classification, walking down the layers. At each layer the verifier's fold
 equals the honest root of the layer's tree on the forgery's path (the public root at the top):
 either the tree classification gives a hit, or the WOTS+C classification of the layer's key gives
@@ -417,17 +415,13 @@ theorem accepted_full_classification (f : QueryImpl HashSpec Id) (pk : PublicKey
 
 end FORS.Security.SignatureWitness
 
-
 namespace FORS.Security.HiddenBridge
 
 variable [Params]
 
 open Concrete Completeness _root_.FORS.Security.Graph GraphCorrectness TargetAssignment
 
-set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
 attribute [local instance] Classical.propDecidable
-
 
 /-- The structural reference table of a consistent preparation. -/
 noncomputable def graphTable (f : QueryImpl HashSpec Id) (parameter : PublicParameter)

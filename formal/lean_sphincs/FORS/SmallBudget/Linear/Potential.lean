@@ -23,8 +23,6 @@ variable [Params]
 
 open Concrete HiddenGraph HiddenDebt HiddenBridge EncodingCode
 
-set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
 set_option linter.unusedSectionVars false
 attribute [local instance] Classical.propDecidable
 
@@ -212,7 +210,6 @@ theorem fleaf_inj {p : PublicParameter} {f g : FIn} (h : f.input p = g.input p) 
   have hv := bytesLE_injective hm
   cases f; cases g
   simp_all
-
 
 namespace Ctx
 

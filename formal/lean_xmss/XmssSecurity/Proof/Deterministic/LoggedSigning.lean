@@ -11,8 +11,6 @@ namespace XmssSecurity.Seeded
 
 open DeterministicSigning
 
-set_option backward.isDefEq.respectTransparency false
-
 variable {Request Answer : Type} [DecidableEq Request]
 
 def loggedRun {α : Type} (sign : Request → OracleComp OracleWorld Answer)

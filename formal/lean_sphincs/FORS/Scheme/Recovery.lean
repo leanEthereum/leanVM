@@ -19,8 +19,6 @@ here is probabilistic, and nothing depends on the answers being uniform.
 
 open OracleComp
 
-set_option maxRecDepth 100000
-
 namespace FORS.Completeness
 
 variable [Params]

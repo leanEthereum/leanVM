@@ -20,8 +20,6 @@ variable [Params]
 open FORS.Base
 open Concrete HiddenCost HiddenDebt HiddenGraph ForsSigner FORS.LoopWalk Common.LoopWalk
 
-set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
 attribute [local instance] Classical.propDecidable
 
 /-- The successor of a randomizer in a walk whose step is `walkStep half`. -/

@@ -20,8 +20,6 @@ namespace XmssSecurity.Bridge
 
 open Seeded DeterministicSigning Common.RomTable
 
-set_option backward.isDefEq.respectTransparency false
-
 /-- The model's key generation over the table, after programming the derivations. -/
 noncomputable def preparation (seed : MasterSeed) :
     OracleComp HashSpec (Derivations × ((Digest × (TopIndex → Option (Randomness × Encoding))) ×

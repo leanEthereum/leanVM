@@ -22,8 +22,6 @@ variable [Params]
 
 open Concrete HiddenCost HiddenDebt GraphView
 
-set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
 attribute [local instance] Classical.propDecidable
 
 /-- A message-digest input, for any public parameter, root, message, randomizer and call. -/

@@ -17,8 +17,6 @@ variable [Params]
 open Completeness SeedModel Graph Assembly Reduce HiddenGraph
 open UniformTableSplit
 
-set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
 attribute [local instance] Classical.propDecidable
 
 /-- Swapping the known parts of two tables is an involution. -/

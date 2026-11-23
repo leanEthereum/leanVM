@@ -11,8 +11,6 @@ public import LeanXmss.Code
 `validDigests` is in bijection with the digit words of sum `T`, which `LeanXmss.Code` counts.
 -/
 
-set_option maxRecDepth 100000
-
 namespace XmssSecurity.TargetSum
 
 /-- A codeword is determined by its digits. -/

@@ -22,7 +22,6 @@ open Concrete
 attribute [local irreducible] encodingAttemptLimit digestAttemptLimit Seeded.treeNode
   Seeded.forsNode Seeded.forsKey Seeded.forsOpen Seeded.treePath Seeded.signLayer chainWalk
   deriveKey
-set_option backward.isDefEq.respectTransparency false
 
 def hashCalls {α : Type} (f : QueryImpl HashSpec Id) (computation : OracleComp HashSpec α) : Nat :=
   (queriedInputs f computation).length
@@ -175,7 +174,6 @@ open Concrete Common.QueryCount
 
 attribute [local irreducible] encodingAttemptLimit digestAttemptLimit Seeded.finishSign
   Seeded.signAttempt
-set_option backward.isDefEq.respectTransparency false
 
 theorem counted_lift_hash {α : Type} (computation : OracleComp HashSpec α) :
     counted SourceHash (liftM computation : OracleComp OracleWorld α) =
@@ -224,7 +222,6 @@ open Concrete Completeness SeedModel
 
 attribute [local irreducible] Seeded.treeNode Seeded.spineNode Seeded.treeRoot
   programCache
-set_option backward.isDefEq.respectTransparency false
 
 theorem hashCalls_spineNode (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
     (lay : Layer) (tree : TreeIndex) (seed : MasterSeed) (steps : Nat)
@@ -279,7 +276,6 @@ open Concrete Completeness SeedModel
 open SeedCoupling
 open Common.QueryCount
 
-set_option backward.isDefEq.respectTransparency false
 attribute [local irreducible] digestAttemptLimit encodingAttemptLimit
 
 noncomputable def fixedWorldCost (f : QueryImpl HashSpec Id) :

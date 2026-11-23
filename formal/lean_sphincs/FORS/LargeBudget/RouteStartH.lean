@@ -20,8 +20,6 @@ variable [Params]
 open HiddenReveal HiddenCost Eager Short Concrete Stop
 open Completeness SeedModel _root_.FORS.Security.Graph Assembly Reduce HiddenGraph Internalize GraphView
 
-set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
 set_option linter.constructorNameAsVariable false
 attribute [local instance] Classical.propDecidable
 
@@ -370,8 +368,6 @@ variable [Params]
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForsPrice ForsSigner HiddenReveal FORS.Base.Domination
 open HiddenBridge Completeness SeedModel _root_.FORS.Security.Graph Assembly Reduce Internalize
 
-set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
 set_option linter.constructorNameAsVariable false
 attribute [local instance] Classical.propDecidable
 attribute [local instance] sampleCellFintypeInst sampleCellDecEq hiddenTableSampleable highsSampleable
