@@ -236,7 +236,7 @@ def gcTailVal (b : ℕ) (w : E) (r : ℕ) : E :=
   | 6 => eOfNat (gcV b w (gcW b)) * word (2 ^ b) 0
   | _ => 0
 
-/-- **The honest valuation of `grind_check__L{b}`** on the word `w` and the table `tabs`. -/
+/-- **The honest valuation of `grind_check` inlined at `b` bits** on the word `w` and the table `tabs`. -/
 noncomputable def gcVals (rd : Reader) (b : ℕ) (w tabs : E) (k : ℕ) : E :=
   if k = 0 then w
   else if k = 1 then tabs

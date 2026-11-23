@@ -12,6 +12,8 @@ public import LeanVM.Guest.B1.KeccakGkr.LayerCBlock
 public import LeanVM.Guest.B1.Bits.GrindFwd
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«keccak_layer__L»
+import LeanVM.Guest.Data.ValNames.«keccak_layer__L0»
+import LeanVM.Guest.Data.ValNames.«keccak_layer__L1»
 
 /-!
 # The product and `s`, completely
@@ -137,13 +139,13 @@ theorem sqT_complete {first : ℕ} (hf : first < 2) {s : Fs} (hs : SpOk σ s (ca
     rw [e528] at hout
     have hpow := grind_cell (s := s) (b := 532) hout hok
     obtain ⟨-, hsq⟩ := grind_sq (s := s) (n := n) (b := 532) hout hpow
-    have h533 : σ (.n 533) = cellsOfState (s.nonceState n) false ⟨1, by omega⟩ := grind_out1 hout
+    have h533 : σ (.n (val% «keccak_layer__L0» "nxt[1]@12")) = cellsOfState (s.nonceState n) false ⟨1, by omega⟩ := grind_out1 hout
     refine ⟨e528, grind_out1 hout, hsq, fun {next kret} hnx ↦ ?_⟩
-    have hgi : ∀ st ∈ gcInlineT 3 545 (.n 533) (.n (valf% «keccak_layer» "tabs")), GoodS rd S w σ st :=
+    have hgi : ∀ st ∈ gcInlineT 3 (val% «keccak_layer__L0» "wins[0]") (.n (val% «keccak_layer__L0» "nxt[1]@12")) (.n (valf% «keccak_layer» "tabs")), GoodS rd S w σ st :=
       fun st h ↦ hg st (by
         simp only [sqT, show (0 : ℕ) ≠ 1 by decide, ↓reduceIte]
         exact List.mem_append_right _ h)
-    have HG : Stmt.HoldsList C rd σ (gcInlineT 3 545 (.n 533) (.n (valf% «keccak_layer» "tabs"))) next kret :=
+    have HG : Stmt.HoldsList C rd σ (gcInlineT 3 (val% «keccak_layer__L0» "wins[0]") (.n (val% «keccak_layer__L0» "nxt[1]@12")) (.n (valf% «keccak_layer» "tabs"))) next kret :=
       gcInline_holds_of_good (by decide) (by decide) (by decide) hgi hSg hrc ht
         (fun j hj ↦ by rw [h533]; exact hwin j hj) hpow hnx
     simp only [sqT, show (0 : ℕ) ≠ 1 by decide, ↓reduceIte, holdsList_append, holds_fsNonceT,
@@ -184,13 +186,13 @@ theorem sqT_complete {first : ℕ} (hf : first < 2) {s : Fs} (hs : SpOk σ s (ca
     rw [e543] at hout
     have hpow := grind_cell (s := s) (b := 552) hout hok
     obtain ⟨-, hsq⟩ := grind_sq (s := s) (n := n) (b := 552) hout hpow
-    have h553 : σ (.n 553) = cellsOfState (s.nonceState n) false ⟨1, by omega⟩ := grind_out1 hout
+    have h553 : σ (.n (val% «keccak_layer__L1» "nxt[1]@13")) = cellsOfState (s.nonceState n) false ⟨1, by omega⟩ := grind_out1 hout
     refine ⟨e543, grind_out1 hout, hsq, fun {next kret} hnx ↦ ?_⟩
-    have hgi : ∀ st ∈ gcInlineT 3 565 (.n 553) (.n (valf% «keccak_layer» "tabs")), GoodS rd S w σ st :=
+    have hgi : ∀ st ∈ gcInlineT 3 (val% «keccak_layer__L1» "wins[0]") (.n (val% «keccak_layer__L1» "nxt[1]@13")) (.n (valf% «keccak_layer» "tabs")), GoodS rd S w σ st :=
       fun st h ↦ hg st (by
         simp only [sqT, ↓reduceIte]
         exact List.mem_append_right _ h)
-    have HG : Stmt.HoldsList C rd σ (gcInlineT 3 565 (.n 553) (.n (valf% «keccak_layer» "tabs"))) next kret :=
+    have HG : Stmt.HoldsList C rd σ (gcInlineT 3 (val% «keccak_layer__L1» "wins[0]") (.n (val% «keccak_layer__L1» "nxt[1]@13")) (.n (valf% «keccak_layer» "tabs"))) next kret :=
       gcInline_holds_of_good (by decide) (by decide) (by decide) hgi hSg hrc ht
         (fun j hj ↦ by rw [h553]; exact hwin j hj) hpow hnx
     simp only [sqT, ↓reduceIte, holdsList_append, holds_fsNonceT, holds_padRunT,

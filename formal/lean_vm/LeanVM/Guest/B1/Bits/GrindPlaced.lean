@@ -90,9 +90,6 @@ theorem gcPre_mem {b : ℕ} {s : Stmt} (hs : s ∈ gcPre b) :
     rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
       simp [Main.Stmt.straight, Main.Stmt.allocSz, Main.Stmt.addrS, Main.Stmt.callS, Stmt.loadS]
 
-theorem gcPre_straight (b : ℕ) : (gcPre b).all Main.Stmt.straight = true :=
-  List.all_eq_true.mpr fun _ hs => (gcPre_mem hs).1
-
 /-! ## Exact -/
 
 /-- **A window of a word within its low limb** is the low limb's. -/
@@ -147,16 +144,6 @@ theorem gcPre_atom {rd : Reader} {b : ℕ} {w tabs : E}
 
 /-! ## Inlined, evaluated: exact -/
 
-theorem gc_mem_renameList_inv {r : V → V} : ∀ {ss : List Stmt} {s : Stmt}, s ∈ Stmt.renameList r ss →
-    ∃ s0 ∈ ss, s0.rename r = s
-  | [], _, h => absurd h (by simp [Stmt.renameList])
-  | t :: ss, s, h => by
-    simp only [Stmt.renameList, List.mem_cons] at h
-    rcases h with rfl | h
-    · exact ⟨t, List.mem_cons_self, rfl⟩
-    · obtain ⟨s0, hs0, e⟩ := gc_mem_renameList_inv h
-      exact ⟨s0, List.mem_cons_of_mem _ hs0, e⟩
-
 /-- **`grind_check` inlined, evaluated, is exact**: on the caller's evaluated valuation (as in
 `gcInline_vals_of_good`), every atom of the expansion is exact, its two hints the word's windows. -/
 theorem gcInline_exact_of_good {rd : Reader} {S : List Atom} {wo : ℕ → E} {σ : Val} {b o : ℕ}
@@ -170,7 +157,7 @@ theorem gcInline_exact_of_good {rd : Reader} {S : List Atom} {wo : ℕ → E} {�
   have hv := gcInline_vals_of_good hb hwo hto hg hS hrc ht hwin
   intro a ha
   rw [gcInlineT] at ha
-  obtain ⟨s0, hs0, e0⟩ := gc_mem_renameList_inv ha
+  obtain ⟨s0, hs0, e0⟩ := renameList_mem_inv ha
   obtain ⟨a0, rfl, -, hex⟩ := gcPre_atom (rd := rd) (w := σ w) (tabs := σ tabs) (gc_shape b hb) hs0
   simp only [Stmt.rename, Stmt.atom.injEq] at e0
   subst e0

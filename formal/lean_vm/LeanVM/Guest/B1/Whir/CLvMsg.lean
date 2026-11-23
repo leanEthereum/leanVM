@@ -127,20 +127,6 @@ theorem osFinalMsg_complete {c : OsCfg} {lv : OsLv} {st : OsSt} (σ : Val) (hsf 
     rw [ecu, ha osFmsg (by have := hsf.k; show 12 < st.k; omega)]
     exact congrArg (fun x ↦ [x ++ [OsSt.cur σ st, σ (.n osFmsg)] ++ rets]) (List.map_congr_left fun f hf ↦ ha f (hsf.below.fs f hf))
 
-/-- **A call returning nothing.** -/
-theorem call0_blk {σ : Val} {k : ℕ} {f : String} {args : List ℕ} (hargs : ∀ i ∈ args, i < k)
-    (hC : ∀ C rd, HM M H C rd → C f (args.map fun i ↦ σ (.n i)) []) :
-    BlkA M H σ k k [.call f (args.map V.n) []] (fun σ' ↦ (args.map V.n).map σ' =
-      args.map fun i ↦ σ (.n i)) := by
-  refine BlkA.ofHM (fun _ ↦ 0) fun C rd hH σ' ha _ ↦ ?_
-  have e1 : (args.map V.n).map σ' = args.map fun i ↦ σ (.n i) := by
-    simp only [List.map_map]
-    exact List.map_congr_left fun i hi ↦ ha i (hargs i hi)
-  refine ⟨?_, e1⟩
-  simp only [allOk_cons, allOk_nil, and_true, stmtOk_call, e1, List.map_nil]
-  exact hC C rd hH
-
-
 /-- The zero run's values. -/
 def padVals : List E := [word 1 0, word 0 0, word 0 0, word 0 0, word 0 0]
 

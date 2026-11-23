@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Place.ArmExactAll
 
-  Every arm of `open_stacked` passes the exactness check, so its node is exact at every node once its `level_positions`,
-  `opening_round` and grind check callees' trees are.
+  Every arm of `open_stacked` passes the exactness check, so its node is exact at every node once its `is_zero` and
+  `level_positions` callees' trees are.
 -/
 
 module
@@ -25,7 +25,7 @@ public import LeanVM.Guest.B2C.Table
 
 `armExact_all`: the arm of `μ` passes `armExactOk` (`ArmExact0` to `ArmExact5`, `ArmExactB`, `ArmExactC`). `flatNodeT_every`: so a valid tree of
 it satisfying `FlatNodeT` is exact at every node, given that each entered `armExactS` callee's predicate (its
-`level_positions`, `opening_round`, grind checks) gives `Every` exact on its valid trees; every other callee is exact
+`is_zero`, `level_positions`) gives `Every` exact on its valid trees; every other callee is exact
 for free. `winHint_exact_of_winEx`: a flat body's window hints exact (`WinEx`, the honest valuation's) give the window
 hints on its path exact, as `flatNodeT_every` asks.
 -/

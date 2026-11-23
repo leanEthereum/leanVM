@@ -99,7 +99,7 @@ theorem batch_out {cs : List ChildClaims} {h : BatchingHints} {out : DeferredByt
     · exact absurd hb (by simp)
   · exact absurd hb (by simp)
 
-/-- **The nonce's permutation passes the proof of work**: `grind_check__L2`'s condition on its
+/-- **The nonce's permutation passes the proof of work**: the inlined `grind_check`'s condition on its
 cell `1`. -/
 theorem agg_pow {cs : List ChildClaims} {n : E}
     (h : powOk Batch.batchLambdaGrindBits (Keccak.lane (aggN cs n) 2) = true) :

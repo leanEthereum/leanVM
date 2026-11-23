@@ -333,16 +333,15 @@ theorem vs_allocVars_w : ∀ a ∈ vsAllocVars, a ∈ vsWVars := by
 theorem vs_allocFst : (vsCPre.filterMap Main.Stmt.allocSz).map Prod.fst = vsAllocVars.map V.n := by
   rw [vs_allocs]; rfl
 
-set_option maxRecDepth 4000 in
 /-- **The allocations' bases**: the oracle's pointers. -/
 theorem vs_alloc_bases {rd : Reader} {args : List E} (hl : args.length = 6) (gw : E × E) (bs : List ℕ)
     (outs : List (List E × Main.Layout)) (hbs : bs.length = 15) :
     ((vsCPre.filterMap Main.Stmt.allocSz).map Prod.fst).map (vsσ rd (vsW gw bs outs) args) =
       bs.map (fun x ↦ ofK (addressOfIndex x)) := by
   rw [vs_allocFst, List.map_map]
-  apply List.ext_getElem (by simp [vsAllocVars, hbs])
+  apply List.ext_getElem (by rw [List.length_map, List.length_map, hbs]; rfl)
   intro i h1 h2
-  have hi : i < 15 := by simpa [vsAllocVars] using h1
+  have hi : i < 15 := by rw [List.length_map] at h1; exact h1
   rw [List.getElem_map, List.getElem_map, Function.comp_apply,
     vs_w hl (by rw [← List.getD_eq_getElem _ 0]; exact vs_allocVars_w _ (vsAllocVars_idx i hi).1),
     ← List.getD_eq_getElem _ 0, vsW_alloc gw bs outs hi, List.getD_eq_getElem _ _ (by omega)]

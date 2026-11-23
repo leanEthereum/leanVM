@@ -70,14 +70,7 @@ def rdVals (as xs : List E) (k : ℕ) : E :=
   else if k < 74 then rdCell (rdS4 as xs) (k - 61)
   else (rdTail as xs).getD (k - 74) 0
 
-theorem rdVals_49 (as xs : List E) : rdVals as xs 49 = rdCell (rdS3 as xs) 1 := by
-  simp [rdVals]
-
-theorem rdVals_7 (as xs : List E) : rdVals as xs 7 = as.getD 7 0 := by simp [rdVals]
-
 /-! ## The meaning's sponges -/
-
-theorem foldGrindingBits_eq : _root_.LeanVM.Parameters.Whir.foldGrindingBits = 7 := rfl
 
 theorem rdCell_eq (S : KeccakState) (c : Fin 13) : rdCell S c.val = cellsOfState S false c := by
   unfold rdCell

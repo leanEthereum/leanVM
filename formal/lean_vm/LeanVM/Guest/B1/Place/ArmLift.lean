@@ -199,7 +199,6 @@ theorem lvTs_forall₂ {TA TS TA' TS' : Reader → Tree → Prop} {TB TB' : ℕ 
     exact forall₂_append' (forall₂_append' (forall₂_map_same _ fun _ _ ↦ hA)
       (.cons hS (forall₂_map_same _ fun _ _ ↦ hB l))) (lvTs_forall₂ hA hS hB (l + 1) ks)
 
-set_option maxHeartbeats 6400000 in
 /-- **An arm at a configuration and rate is complete placed**, at an optional words bound, by its node,
 within each bound its levels' `level_queries` popping their honest entries. -/
 theorem arm_completeAtO {Bd : Option (String → ℕ)} {m ri : ℕ} (hm : m < 11) (hri : ri < 4) (hκ : 11 ≤ κ)
@@ -433,8 +432,12 @@ theorem arm_completeAtO {Bd : Option (String → ℕ)} {m ri : ℕ} (hm : m < 11
     exact ⟨List.map_inj_left.mpr fun v hv' ↦ callAg_v hag' hs hv (ha v hv'),
       List.map_inj_left.mpr fun v hv' ↦ callAg_v hag' hs hv (hr v hv')⟩
   rw [armTs_congr H σ σ' rd]
+  -- the calls opaque, or unifying with the goal unfolds `KidsFromInT` over the body's calls
+  generalize hcs0 : ((osBodyA c).filterMap (Stmt.callSF σ)).map (Main.mkCall σ) = cs at hcs ⊢
   refine kidsFromInT_congr _ _ _ _ _ _ hcs ?_
-  obtain ⟨hL1, hL2⟩ := Main.memL_append.mp hL
+  subst hcs0
+  have hL1 := (Main.memL_append.mp hL).1
+  have hL2 := (Main.memL_append.mp hL).2
   have hRk : ∀ i, RegionL Lk i →
       RegionL Lin i ∨ RegionL (bufL (fp + fs name) (osSizesL c) (own' ps)) i :=
     fun i hi ↦ regionL_osLkA hi

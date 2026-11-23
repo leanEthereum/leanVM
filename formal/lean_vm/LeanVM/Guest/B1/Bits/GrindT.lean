@@ -95,5 +95,26 @@ def gcRen (o : ℕ) (w tabs : V) (v : V) : V :=
 /-- **`grind_check(w, tabs, b)` inlined**, its own values from `.n o`. -/
 def gcInlineT (b o : ℕ) (w tabs : V) : List Stmt := Stmt.renameList (gcRen o w tabs) (gcPre b)
 
+/-- A block's statement, renamed, is a statement of the renamed block. -/
+theorem renameList_mem {r : V → V} : ∀ {ss : List Stmt} {s : Stmt}, s ∈ ss →
+    s.rename r ∈ Stmt.renameList r ss
+  | [], _, h => absurd h (by simp)
+  | t :: ss, s, h => by
+    simp only [Stmt.renameList, List.mem_cons] at h ⊢
+    rcases h with rfl | h
+    · exact .inl rfl
+    · exact .inr (renameList_mem h)
+
+/-- A statement of a renamed block is a statement of the block, renamed. -/
+theorem renameList_mem_inv {r : V → V} : ∀ {ss : List Stmt} {s : Stmt}, s ∈ Stmt.renameList r ss →
+    ∃ s0 ∈ ss, s0.rename r = s
+  | [], _, h => absurd h (by simp [Stmt.renameList])
+  | t :: ss, s, h => by
+    simp only [Stmt.renameList, List.mem_cons] at h
+    rcases h with rfl | h
+    · exact ⟨t, List.mem_cons_self, rfl⟩
+    · obtain ⟨s0, hs0, e⟩ := renameList_mem_inv h
+      exact ⟨s0, List.mem_cons_of_mem _ hs0, e⟩
+
 end
 end LeanVM.Guest.B1

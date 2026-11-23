@@ -25,8 +25,7 @@ fourteen callees' bounds, in call order (`fn% «verify_sub»`): two `g_power_of_
 the `squeeze_point_from` dispatch, `opening_message__L1_L1`, the
 `bus_grind_check` dispatch, `verify_bus_gkr`, `verify_tables`, `verify_keccak`,
 `ring_switch_target`, the `open_stacked` dispatch and the terminal; the maxima over the honest
-children's depths (`Tables.vbgMax`, `Tables.vtMax`, `osMax`) or a dispatch's arms (`armMax`, `busGrindMax`: an
-arm's frame and its `grind_check`'s) where a callee's bound depends on them. `vsBound W Bvk = fs "verify_sub" + vsOwnBufs + (vsBs W Bvk).sum`: the frame,
+children's depths (`Tables.vbgMax`, `Tables.vtMax`, `osMax`) or a dispatch's arms (`armMax`, `busGrindMax`) where a callee's bound depends on them. `vsBound W Bvk = fs "verify_sub" + vsOwnBufs + (vsBs W Bvk).sum`: the frame,
 the own buffers (`vsOwnBufs`) and the callees. `vsNames μ r d`, `vsTs`: the
 callees' names (the squeeze's arm at the stack log `μ`, the bus grind's at the depth `d`,
 `open_stacked`'s candidate) and trees, within their bounds, `verify_tables`' and the terminal's
@@ -47,10 +46,9 @@ open LeanVM.Node LeanVM.Guest.Memory
 @[irreducible] noncomputable def osMax (fs Bnd : String → ℕ) : ℕ :=
   lmax ((List.range B1.Whir.openArms).map fun m ↦ osBosAt fs Bnd (m + B1.Whir.minOpenLog))
 
-/-- The `bus_grind_check` dispatch's bound over its arms: an arm's frame and its `grind_check`'s
-(arm `j` grinds `17 + j` bits, `busGrindBits_eq`). -/
+/-- The `bus_grind_check` dispatch's bound over its arms' frames. -/
 def busGrindMax (fs : String → ℕ) : ℕ :=
-  lmax ((List.range 14).map fun j ↦ fs (busGrindName j) + fs (grindCheckName (17 + j)))
+  lmax ((List.range 14).map fun j ↦ fs (busGrindName j))
 
 /-- **`verify_sub`'s callees' words facts with `open_stacked`'s**: its arms' callees' (`Bnd`). -/
 structure VsWordsOs (fs : String → ℕ) extends VsWords fs where

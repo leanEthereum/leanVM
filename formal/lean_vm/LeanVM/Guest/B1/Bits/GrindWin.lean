@@ -24,16 +24,6 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier
 
 @[expose] public section
 
-theorem renameList_mem_inv {r : V → V} : ∀ {ss : List Stmt} {s : Stmt}, s ∈ Stmt.renameList r ss →
-    ∃ s0 ∈ ss, s0.rename r = s
-  | [], _, h => absurd h (by simp [Stmt.renameList])
-  | t :: ss, s, h => by
-    simp only [Stmt.renameList, List.mem_cons] at h
-    rcases h with rfl | h
-    · exact ⟨t, List.mem_cons_self, rfl⟩
-    · obtain ⟨s0, hs0, e⟩ := renameList_mem_inv h
-      exact ⟨s0, List.mem_cons_of_mem _ hs0, e⟩
-
 /-- **`grind_check` inlined is exact at its honest values**: on a valuation holding `gcVals` on the expansion's own
 values, every statement of it is an atom exact on every memory. -/
 theorem gcInline_exact_of_vals {rd0 : Reader} {σ : Val} {b o : ℕ} (hb : b ∈ grindBitsDeployed) {w tabs : V}

@@ -446,23 +446,19 @@ theorem vbg_ls {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) {C : CallRel} 
   simp only [Stmt.HoldsList] at hi
   rw [tb_holds_ite_noRet _ _ _ vbgArm_noRet_t vbgArm_noRet_e] at hi
   obtain ⟨⟨-, hfour, htwo⟩, -⟩ := hi
-  rw [rtFour_eq, Stmt.holdsList_rename] at hfour
-  rw [rtTwo_eq, Stmt.holdsList_rename] at htwo
-  have h140 : (σ ∘ rtSh) (.n 139) = σ (.n (val% «verify_bus_gkr» "nxt")) := by rw [Function.comp_apply, rtSh_hi (by omega)]
-  have h5 : (σ ∘ rtSh) (.n (val% «verify_bus_gkr» "cursor@1")) = σ (.n (val% «verify_bus_gkr» "cursor@1")) := by rw [Function.comp_apply, rtSh_lo (by omega)]
   refine ⟨d, hd, e167, e400, e402, e169, ?_⟩
   rw [← tb_loadHolds_mul_gen_pow, ← e174]
   rcases Nat.mod_two_eq_zero_or_one d with h2 | h2
   · have h0 : σ (.n (val% «verify_bus_gkr» "s28#1")) = 0 := by rw [a176, c175, e167, h2, pow_zero, e_add_self]
     have hf := hfour h0
-    have b := fun n a heq => tb_holds_atom (C := C) (rd := Lm.read) (σ := σ ∘ rtSh) (kret := kret) rtFour_noRet
+    have b := fun n a heq => tb_holds_atom (C := C) (rd := Lm.read) (σ := σ) (kret := kret) vbgArm_noRet_t
       hf n a heq
-    have c261 := b 76 (.const (.n 258) (word 16384 0)) (by decide +kernel)
-    have m262 := b 77 (.mul (.n 259) (.n (val% «verify_bus_gkr» "cursor@1")) (.n 258)) (by decide +kernel)
-    have l262 := b 78 (.load (.n 259) (.n 139) 5) (by decide +kernel)
+    have c261 := b 76 (.const (.n (val% «verify_bus_gkr» "s28.e.s9#0")) (word 16384 0)) (by decide +kernel)
+    have m262 := b 77 (.mul (.n (val% «verify_bus_gkr» "s28.e.s9#1")) (.n (val% «verify_bus_gkr» "cursor@1")) (.n (val% «verify_bus_gkr» "s28.e.s9#0"))) (by decide +kernel)
+    have l262 := b 78 (.load (.n (val% «verify_bus_gkr» "s28.e.s9#1")) (.n (val% «verify_bus_gkr» "nxt")) 5) (by decide +kernel)
     simp only [Atom.Holds] at c261 m262 l262
     rw [show (16384 : ℕ) = 2 ^ 14 by norm_num, tb_word_two_pow (by norm_num)] at c261
-    rw [m262, c261, h140, h5] at l262
+    rw [m262, c261] at l262
     simpa [h2] using l262
   · have hne : σ (.n (val% «verify_bus_gkr» "s28#1")) ≠ 0 := by
       rw [a176, c175, e167, h2, pow_one]
@@ -471,14 +467,14 @@ theorem vbg_ls {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) {C : CallRel} 
         ((pow_one gen).trans ((e_add_eq_zero_iff.mp h0).trans (pow_zero gen).symm))
       omega
     have hf := htwo hne
-    have b := fun n a heq => tb_holds_atom (C := C) (rd := Lm.read) (σ := σ ∘ rtSh) (kret := kret) rtTwo_noRet
+    have b := fun n a heq => tb_holds_atom (C := C) (rd := Lm.read) (σ := σ) (kret := kret) vbgArm_noRet_e
       hf n a heq
-    have c353 := b 45 (.const (.n 349) (word 256 0)) (by decide +kernel)
-    have m354 := b 46 (.mul (.n 350) (.n (val% «verify_bus_gkr» "cursor@1")) (.n 349)) (by decide +kernel)
-    have l354 := b 47 (.load (.n 350) (.n 139) 5) (by decide +kernel)
+    have c353 := b 45 (.const (.n (val% «verify_bus_gkr» "s28.t.s7#0")) (word 256 0)) (by decide +kernel)
+    have m354 := b 46 (.mul (.n (val% «verify_bus_gkr» "s28.t.s7#1")) (.n (val% «verify_bus_gkr» "cursor@1")) (.n (val% «verify_bus_gkr» "s28.t.s7#0"))) (by decide +kernel)
+    have l354 := b 47 (.load (.n (val% «verify_bus_gkr» "s28.t.s7#1")) (.n (val% «verify_bus_gkr» "nxt")) 5) (by decide +kernel)
     simp only [Atom.Holds] at c353 m354 l354
     rw [show (256 : ℕ) = 2 ^ 8 by norm_num, tb_word_two_pow (by norm_num)] at c353
-    rw [m354, c353, h140, h5] at l354
+    rw [m354, c353] at l354
     simpa [h2] using l354
 
 end

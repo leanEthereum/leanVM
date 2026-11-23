@@ -123,7 +123,7 @@ theorem osMatS_k (P : List (ℕ × ℕ × ℕ)) (base off : ℕ) (s : OsSt) :
 
 /-! ## One round -/
 
-/-- `opening_round`'s returns on the capacity `fs`, the cursor, the claim and its five words. -/
+/-- A fold round's returns (`opening_round`, inline) on the capacity `fs`, the cursor, the claim and its five words. -/
 def roundRets (fs : List E) (cur claim : E) (xs : List E) : List E :=
   let m := [xs.getD 0 0, xs.getD 1 0, xs.getD 2 0, xs.getD 3 0]
   let n2 := xs.getD 4 0
@@ -185,14 +185,6 @@ def RoundsMem (rd : Reader) (fch coefs : E) : ℕ → ℕ → List E → E → L
       LoadHolds rd (coefs * gen ^ (2 * i)) 1 (roundChs fs (xs.take 5)).2.2 ∧
       RoundsMem rd fch coefs n (i + 1) ((roundRets fs 0 cl (xs.take 5)).take 5)
         ((roundRets fs 0 cl (xs.take 5)).getD 6 0) (xs.drop 5)
-
-theorem roundRets_take (fs : List E) (cur cur' cl : E) (xs : List E) :
-    (roundRets fs cur cl xs).take 5 = (roundRets fs cur' cl xs).take 5 := by
-  simp [roundRets, Fs.squeeze, capOf]
-
-theorem roundRets_claim (fs : List E) (cur cur' cl : E) (xs : List E) :
-    (roundRets fs cur cl xs).getD 6 0 = (roundRets fs cur' cl xs).getD 6 0 := by
-  simp [roundRets, Fs.squeeze, capOf]
 
 /-- What the rounds leave. -/
 structure RoundsOut (σ σ' : Val) (st st' : OsSt) (r : List E × E) (n : ℕ) : Prop where

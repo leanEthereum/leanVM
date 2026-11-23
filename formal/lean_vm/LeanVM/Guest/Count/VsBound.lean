@@ -51,7 +51,7 @@ theorem vs_static : wSB "opening_message__L1_L1" = wOm ∧
   rw [← wOm_eq, ← wSq_eq, wSBFast_eq]
   exact ⟨rfl, rfl⟩
 
-/-- The bus grind dispatch's largest arm with its grind check's frame. -/
+/-- The bus grind dispatch's largest arm. -/
 kernel_lit busGrindMaxV : ℕ := B1.VerifySub.busGrindMax fsFast
 
 theorem busGrindMax_eq : B1.VerifySub.busGrindMax B2C.fs = busGrindMaxV := by

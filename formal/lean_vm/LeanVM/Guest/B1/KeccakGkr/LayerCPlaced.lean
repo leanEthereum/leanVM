@@ -89,12 +89,6 @@ theorem layerW_win {first : ℕ} (hf : first < 2) (D : LayerData) (b : ℕ) :
     show layOff first + 544 ≤ layOff first + 544 + j ∧ layOff first + 544 + j ≤ layOff first + 544 + gcW 3
       by omega, and_self, ↓reduceIte, Nat.add_sub_cancel_left]
 
-theorem LayerData.gw_pow {D : LayerData} {first : ℕ}
-    (h : ((D.s0 first).absorbAll D.product dsObserve).GrindOk sGrindBits D.nonce) :
-    ((D.gw first).limb 0).lane.toNat % 2 ^ 3 = 0 := by
-  rw [sGrindBits_eq, grindOk_iff (by decide : (3 : ℕ) ≠ 0)] at h
-  exact h
-
 /-- The layer's callees, placed from `b`: the eight-round loop and the remainder loop. -/
 noncomputable def layerKids (D : LayerData) (first : ℕ) (CL : ClaimLay) (bcur bout tbE b : ℕ) :
     List Kid :=
@@ -415,7 +409,6 @@ theorem layer_obl {first : ℕ} (hf : first < 2) {κ : ℕ} (hκ : 11 ≤ κ) (D
         exact GX a' hs
       · exact absurd hsa (by simp)
     all_goals exact absurd hsa (by simp)
-
 
 theorem exists_and8_drop {α : Type} {p1 p2 p3 p4 p5 p6 p7 p8 : α → Prop}
     (h : ∃ x, p1 x ∧ p2 x ∧ p3 x ∧ p4 x ∧ p5 x ∧ p6 x ∧ p7 x ∧ p8 x) :

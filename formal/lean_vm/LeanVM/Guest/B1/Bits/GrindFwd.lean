@@ -34,15 +34,6 @@ def loadInto (lo hi : ℕ) : Atom → Bool
   | .load d _ _ => decide (lo ≤ d.idx ∧ d.idx < hi)
   | _ => false
 
-theorem gc_mem_renameList {r : V → V} : ∀ {ss : List Stmt} {s : Stmt}, s ∈ ss →
-    s.rename r ∈ Stmt.renameList r ss
-  | [], _, h => absurd h (by simp)
-  | t :: ss, s, h => by
-    simp only [Stmt.renameList, List.mem_cons] at h ⊢
-    rcases h with rfl | h
-    · exact .inl rfl
-    · exact .inr (gc_mem_renameList h)
-
 theorem rdAt_of_loadHolds {rd : Reader} {p : E} {k : ℕ} {v : E} (h : LoadHolds rd p k v) :
     rdAt rd p k = v := by
   unfold rdAt; rw [h.2]; rfl
@@ -95,7 +86,7 @@ theorem gcInline_vals_of_good {b o : ℕ} (hb : b ∈ grindBitsDeployed) {w tabs
   generalize hG : gcVals rd b (σ w) (σ tabs) = G
   -- the atoms' equations
   have hgA : ∀ a, Stmt.atom a ∈ gcPre b → Good rd S wo σ (a.rename R) := fun a ha ↦ by
-    have := hg _ (by rw [gcInlineT, hRd]; exact gc_mem_renameList ha)
+    have := hg _ (by rw [gcInlineT, hRd]; exact renameList_mem ha)
     exact this
   have gconst : ∀ d c, Stmt.atom (.const (.n d) c) ∈ gcPre b → τ d = c := fun d c h ↦ hgA _ h
   have gadd : ∀ d x y, Stmt.atom (.add (.n d) (.n x) (.n y)) ∈ gcPre b → τ d = τ x + τ y :=

@@ -266,20 +266,10 @@ theorem gcInlineO_complete_of {C : CallRel} {rd : Reader}
 
 /-! ## Its statements -/
 
-theorem gcO_mem_renameList_inv {r : V → V} : ∀ {ss : List Stmt} {s : Stmt}, s ∈ Stmt.renameList r ss →
-    ∃ s0 ∈ ss, s0.rename r = s
-  | [], _, h => absurd h (by simp [Stmt.renameList])
-  | t :: ss, s, h => by
-    simp only [Stmt.renameList, List.mem_cons] at h
-    rcases h with rfl | h
-    · exact ⟨t, List.mem_cons_self, rfl⟩
-    · obtain ⟨s0, hs0, e⟩ := gcO_mem_renameList_inv h
-      exact ⟨s0, List.mem_cons_of_mem _ hs0, e⟩
-
 /-- **The expansion is atoms.** -/
 theorem gcInlineOT_atoms (b o off : ℕ) (w tabs : V) : AllAtoms (gcInlineOT b o off w tabs) := by
   intro s hs
-  obtain ⟨s0, hs0, rfl⟩ := gcO_mem_renameList_inv hs
+  obtain ⟨s0, hs0, rfl⟩ := renameList_mem_inv hs
   simp only [gcPreO, gcHeadO, gcIterAtO, gcTailPre, List.mem_append, List.mem_flatten, List.mem_map,
     List.mem_range] at hs0
   rcases hs0 with (hs0 | ⟨l, ⟨i, hi, rfl⟩, hs0⟩) | hs0
@@ -334,7 +324,7 @@ theorem gcInlineO_vals_of_good {b o off : ℕ} (hb : b ∈ grindBitsDeployed) {w
   generalize hG : gcVals rd b (σ w) (σ tabs) = G
   -- the atoms' equations
   have hgA : ∀ a, Stmt.atom a ∈ gcPreO b off → Good rd S wo σ (a.rename R) := fun a ha ↦ by
-    have := hg _ (by rw [gcInlineOT, hRd]; exact gc_mem_renameList ha)
+    have := hg _ (by rw [gcInlineOT, hRd]; exact renameList_mem ha)
     exact this
   have gconst : ∀ d c, Stmt.atom (.const (.n d) c) ∈ gcPreO b off → τ d = c := fun d c h ↦ hgA _ h
   have gadd : ∀ d x y, Stmt.atom (.add (.n d) (.n x) (.n y)) ∈ gcPreO b off → τ d = τ x + τ y :=

@@ -167,12 +167,6 @@ def osLoopTail (name : String) (n k : ℕ) : List Stmt :=
     osMul (k + 4) 0 (k + 3), .callIf (.n (k + 2)) name (.n (k + 4) :: (List.range (n - 1)).map fun i ↦ .n (i + 1)),
     .ret []]
 
-/-- A loop's entry `for x in mul_range(g^e0, g^n)`, from `k`: the guard `g^e0 + g^n` at `k + 2`,
-the loop called at `[g^e0, g^n] ++ args`. -/
-def osLoopCall (name : String) (e0 n : ℕ) (args : List ℕ) (k : ℕ) : List Stmt :=
-  [osCst k (gw e0), osCst (k + 1) (gw n), osAdd (k + 2) k (k + 1), osCst (k + 3) (gw e0),
-    osCst (k + 4) (gw n), .callIf (.n (k + 2)) name (.n (k + 3) :: .n (k + 4) :: args.map V.n)]
-
 /-- The zero run the sponge's padding reads, allocated at its first use: the statements, its first
 cell (`1`; the next four are `0`) and the next free value. -/
 def osPad (pad : Option ℕ) (k : ℕ) : List Stmt × ℕ × ℕ :=

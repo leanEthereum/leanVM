@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Place.ArmExactDef
 
-  The check that an arm of `open_stacked` has its own computed hints pinned by the next atom and calls only
-  `level_positions`, `opening_round`, a grind check or functions exact for free, and what it gives.
+  The check that an arm of `open_stacked` has its own computed hints but its window hints pinned by the next atom and
+  calls only `is_zero`, `level_positions` or functions exact for free, and what it gives.
 -/
 
 module
@@ -17,7 +17,7 @@ public import LeanVM.Guest.B1.Bits.MeaningP
 
 * `armExactS g`: `g` is `is_zero` or an entry of `lpTable`: the callees whose exactness the arm's composition carries;
 * `isWinHint`: a `windowsExp` hint, as the inlined grind checks (`gcInlineT`) write, pinned by no next atom: their
-  exactness comes from the grinds' evaluation (`gcInline_exact_of_good`), not from the check;
+  exactness comes from the honest valuation (`Whir.WinEx`, from `gcInline_exact_of_vals`), not from the check;
 * `armExactOk name j`: function `j` is named `name`, its computed hints but the window hints are pinned by the next atom, and each of its
   callees is `armExactS` or exact for free (`exactCallee j`), decided by the kernel per arm (`ArmExact0` to `ArmExact5`; `ArmExactB`, `ArmExactC` by its parts, `armExactOk_of`);
 * `armExact_find`: such a function's callees not `armExactS` are exact for free;

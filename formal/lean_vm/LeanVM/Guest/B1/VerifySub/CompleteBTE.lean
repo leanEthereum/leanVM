@@ -83,7 +83,7 @@ theorem gcInlineO_exact_of_good {rd : Reader} {S : List Atom} {wo : ℕ → E} {
   have hv := gcInlineO_vals_of_good hb hwo hto hg hS hrc ht hwin
   intro a ha
   rw [gcInlineOT] at ha
-  obtain ⟨s0, hs0, e0⟩ := gc_mem_renameList_inv ha
+  obtain ⟨s0, hs0, e0⟩ := renameList_mem_inv ha
   have hR : ∀ k, 2 ≤ k → k < gcLen b → σ (gcRen o w tabs (.n k)) = gcVals rd b (σ w) (σ tabs) k :=
     fun k h2 hk ↦ by rw [gcRen_own o w tabs h2]; exact hv k h2 hk
   have hW := gcW_pos b hb
@@ -178,7 +178,7 @@ theorem busGrind_kidE (hbl : bytecode.length = 2 ^ 23) {κ : ℕ} (hκ : 11 ≤ 
       (fun rd t => True ∧ t.Every (ExactAt coreProgram rd)) (busGrindMax fs) := by
   have hd := S.d_bounds hbl
   rw [busGrindName_eq]
-  exact (bus_grind_check_completeDTBRF (d := S.d - 20) (List.mem_range.2 (by omega)) hκ
+  exact (bus_grind_check_completeDTBR (d := S.d - 20) (List.mem_range.2 (by omega)) hκ
     fun _ _ hL ↦ ⟨rfl, _, _, rfl, winTabs_vsExp hL, S.busPow hbl⟩).mono (le_busGrindMax (by omega))
     fun _ _ h => ⟨trivial, h.2⟩
 

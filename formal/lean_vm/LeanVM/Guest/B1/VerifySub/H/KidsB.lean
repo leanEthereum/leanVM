@@ -67,14 +67,12 @@ theorem vs_gpw_completeAtB (κ : ℕ) (Lin : Main.Layout) {n : ℕ} (hn : n < 2 
 theorem busGrind_kidB {d : ℕ} (hd : d ∈ busGrindDeployed) {κ : ℕ} (hκ : 11 ≤ κ) {w : E}
     (sqE : ℕ) (hpow : (w.limb 0).lane.toNat % 2 ^ busGrindBits d = 0) :
     CompleteAtB fs cert κ (busGrindName d) (vsExpLin sqE) [w, ptr sqE * gen ^ winTabAt]
-      (Returns [0]) (fs (busGrindName d) + fs (grindCheckName (busGrindBits d))) :=
-  bus_grind_check_completeB hd hκ (fs (grindCheckName (busGrindBits d))) _ _ _ fun _ _ hL ↦
+      (Returns [0]) (fs (busGrindName d)) :=
+  bus_grind_check_completeB hd hκ _ _ _ fun _ _ hL ↦
     ⟨rfl, w, _, rfl, winTabs_vsExp hL, hpow⟩
 
-theorem le_busGrindMax {d : ℕ} (hd : d < 14) :
-    fs (busGrindName d) + fs (grindCheckName (busGrindBits d)) ≤ busGrindMax fs := by
-  rw [busGrindBits_eq]
-  exact le_lmax (List.mem_map.2 ⟨d, List.mem_range.2 hd, rfl⟩)
+theorem le_busGrindMax {d : ℕ} (hd : d < 14) : fs (busGrindName d) ≤ busGrindMax fs :=
+  le_lmax (List.mem_map.2 ⟨d, List.mem_range.2 hd, rfl⟩)
 
 /-- **`squeeze_point_from__L{n}`** from a permutation's challenge and capacity. -/
 theorem spf_kidB {n : ℕ} (hn : n ∈ spfDeployed) (κ : ℕ) {B : ℕ}

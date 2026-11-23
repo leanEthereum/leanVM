@@ -312,7 +312,7 @@ theorem ood_inv : S.xsO = [S.oodN, S.oodV] ∧ S.sR.GrindOk Whir.oodGrindingBits
 
 theorem sZ_pend : S.sZ.pend = [] := squeezeN_pend _ _ rfl
 
-/-- The out-of-domain grind's proof of work, as `grind_check__L15` reads it. -/
+/-- The out-of-domain grind's proof of work, as the inlined `grind_check` reads it. -/
 theorem oodPow : ((cellsOfState S.oodSt false 1).limb 0).lane.toNat % 2 ^ 15 = 0 :=
   (grindOk_iff (s := S.sR) (bits := Whir.oodGrindingBits) (by decide) S.oodN).1 S.ood_inv.2.1
 
@@ -434,7 +434,7 @@ theorem ring_inv : S.xsR = [S.ringN] ∧ S.s6.GrindOk Whir.batchGrindingBits S.r
   refine ⟨by rw [hxs, hN], by rw [hN]; exact hok, by rw [e1, hC], by rw [hS]; exact e3,
     by rw [e1, hC]⟩
 
-/-- The ring map's grind's proof of work, as `grind_check__L13` reads it. -/
+/-- The ring map's grind's proof of work, as the inlined `grind_check` reads it. -/
 theorem ringPow : ((cellsOfState S.ringSt false 1).limb 0).lane.toNat % 2 ^ 13 = 0 :=
   (grindOk_iff (s := S.s6) (bits := Whir.batchGrindingBits) (by decide) S.ringN).1 S.ring_inv.2.1
 

@@ -23,8 +23,8 @@ honest valuation (`gcVals`, its range checks on the memory below `2^11`, `rc_com
 frame alone, every node exact (`gcPre_atom`). Its loads are the table reads `tabs·g^e`, `e < 2^11`,
 which lie in the caller's words (`forced_load_region`).
 
-`bus_grind_check_completeB_of` (any bound a `TotalLe` gives), `bus_grind_check_completeB` (its frame
-and any `Bg`, the bound its callers name), `bus_grind_check_completeD`.
+`bus_grind_check_completeB_of` (any bound a `TotalLe` gives), `bus_grind_check_completeB` (its frame),
+`bus_grind_check_completeD`.
 -/
 
 namespace LeanVM.Guest.B1
@@ -193,18 +193,16 @@ theorem bus_grind_check_completeB_of {d : ℕ} (hd : d ∈ busGrindDeployed) {κ
   · exact ⟨0, [], rets, [], ⟨rfl, rfl⟩, by simp [Within], disj_nil, Nat.zero_le _,
       fun rd hl hL => absurd ⟨rd, hl, by simpa using hL⟩ hex⟩
 
-/-- **`bus_grind_check__L{d}`, placed, within its frame** and any `Bg` past it (the bound its
-callers name, from when it called `grind_check`). -/
-theorem bus_grind_check_completeB {d : ℕ} (hd : d ∈ busGrindDeployed) {κ : ℕ} (hκ : 11 ≤ κ)
-    (Bg : ℕ := fs (grindCheckName (busGrindBits d))) :
-    CompleteRelB fs cert κ (busGrindName d) (busGrindPre d) (fs (busGrindName d) + Bg) :=
+/-- **`bus_grind_check__L{d}`, placed, within its frame.** -/
+theorem bus_grind_check_completeB {d : ℕ} (hd : d ∈ busGrindDeployed) {κ : ℕ} (hκ : 11 ≤ κ) :
+    CompleteRelB fs cert κ (busGrindName d) (busGrindPre d) (fs (busGrindName d)) :=
   fun _ rets _ hpre fp => ⟨fs (busGrindName d), [], rets, [], ⟨rfl, rfl⟩, by simp [Within],
-    disj_nil, Nat.le_add_right _ _, fun _ hl hL => bus_grind_relAtIn hd hκ hpre fp hl (by simpa using hL)⟩
+    disj_nil, le_rfl, fun _ hl hL => bus_grind_relAtIn hd hκ hpre fp hl (by simpa using hL)⟩
 
 /-- **`bus_grind_check__L{d}`, placed.** -/
 theorem bus_grind_check_completeD {d : ℕ} (hd : d ∈ busGrindDeployed) {κ : ℕ} (hκ : 11 ≤ κ) :
     CompleteRelD fs cert κ (busGrindName d) (busGrindPre d) :=
-  (bus_grind_check_completeB hd hκ 0).toCompleteRelD
+  (bus_grind_check_completeB hd hκ).toCompleteRelD
 
 end
 end LeanVM.Guest.B1
