@@ -11,6 +11,7 @@ Two prover trees share no prover crate and give the same proof bytes (`bench/tes
 
 - `crates/stable_prover/` (`stable_*`): the reference, written to be read. Plain safe code. `core::arch` and `cfg(target_feature)` only in `primitives::field::lanes`. No uninitialized buffers, non-temporal stores or per-machine tuning. An optimization enters only where leaving it out costs a measurable share of a proof and its simple form stays short.
 - `crates/experimental_prover/` (`experimental_*`): the optimized prover. Performance work lands here.
+- `crates/experimental_tiers/`, written by its `generate.sh`: experimental's crates, with `keccak256` and `fiat_shamir_prover`, again per CPU tier, over the same sources. `scripts/tier-rustc` (`RUSTC_WRAPPER`) compiles each with its tier's target features. `crates/experimental_dispatch`'s `ExperimentalProver` runs the fastest tier the CPU supports (`LEANVM_TIER` forces a lower one); `lean_vm` and the bench prove through it.
 
 Each tree, leaves first: `parallel` (thread pool), `primitives` (fields, transcript), `pcs` (NTT, Merkle, ring switch, WHIR), `keccak_gkr`, `lean_vm_core` (arithmetization, `cpu::execute`, `cpu::prove`, the tree's `isa::Prover`). They name each other through Cargo renames, so sources say `pcs::` and `fiat_shamir::`. `crates/lean_vm_core` below means either tree's.
 
@@ -54,6 +55,8 @@ Rules:
 - **A new program in `crates/zkdsl_compiler/tests/programs/`**: its digest in `tests/suite/determinism.rs` (`GOLDEN`), the regenerated `formal/lean_vm/tests/LeanVMTests/Guest/Programs.lean` (`formal/lean_vm/scripts/regen-guest.sh`), the count in `tests/LeanVMTests/Guest/Data.lean`.
 - **The layout** (`placements_of`, the schema): both provers and all three verifiers (`crates/verifier`'s `layout.rs`). `col_kappas` stays derived from `col_kappa_sources`.
 - **A rename in the leanVM document**: both provers, `crates/verifier`, the Lean verifier and the guest.
+- **An experimental crate's dependencies, or `keccak256`'s and `fiat_shamir_prover`'s**: `crates/experimental_tiers/generate.sh`.
+- **A new `cfg(target_feature)` gate in the experimental tree, `keccak256` or `fiat_shamir_prover`**: a tier that enables the feature, in `generate.sh` and `experimental_dispatch`'s `tiers!`.
 - **The shared crates' public API or their dependencies**: `bindings/` (`bindings-ci.yml`), and `bindings/Cargo.lock` for dependencies.
 - **EthLib's test vectors** (`tests/<crate>/ethlib/` in `lean_xmss` and `lean_sphincs`): both crates' `ethlib/sync.sh <ethlib-commit>`, same commit.
 
@@ -102,7 +105,7 @@ cargo leanvm-bench --prover stable fibonacci --n <steps>
 - Shared crates impose no allocator. The CLI and the benches install `allocator::Jemalloc`; outside Windows, so do `bindings/native`, `node` and `python`, with its `library` feature.
 - Experimental skips a buffer's zero-fill with `primitives::uninit_vec` or `filled_vec`. Stable never reads uninitialized memory: it writes a large buffer's first pass with the pool (`parallel::filled`, `parallel::map_collect`).
 - Drop a large buffer where its last use ends.
-- No rayon. One pool per tree, one tree per process: never add a second pool.
+- No rayon. One pool per tree, one tree per process: never add a second pool. The CPU tiers share experimental's.
 - Shared crates dispatch through `isa::Prover::map_collect`. `lean_da` encodes on one thread.
 - Nested dispatch panics. A task of either pool dispatches on neither.
 - The thread count is set before a pool starts, by `isa::Prover::set_num_threads` (`lean_vm::setup`, `--threads`). `1` is strictly sequential.
@@ -164,6 +167,7 @@ The guest:
 | var | effect |
 | --- | ------ |
 | `BENCH_TRACING`, `BENCH_REPEAT`, `BENCH_COOLDOWN` | `--tracing`, `--repeat`, `--cooldown` for the benches |
+| `LEANVM_TIER` | the experimental prover's CPU tier (`experimental_dispatch::TIERS`), if the CPU runs it |
 | `KECCAK_N_LOG`, `KECCAK_DEPTH` | keccak_gkr batch size, rounds between committed states |
 | `PCS_LOG_N`, `PCS_LOG_INV_RATE`, `PCS_POINT_CLAIMS`, `PCS_RING_CLAIMS` | PCS throughput bench: size, rate, claims |
 | `WHIR_NUM_VARS`, `WHIR_LOG_INV_RATE` | `print_whir_query_counts`'s shape |

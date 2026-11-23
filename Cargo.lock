@@ -228,7 +228,6 @@ dependencies = [
  "experimental_lean_vm_core",
  "experimental_lean_vm_core_armaes",
  "experimental_lean_vm_core_armsha3",
- "experimental_lean_vm_core_x86v3",
  "experimental_lean_vm_core_x86v3clmul",
  "experimental_lean_vm_core_x86v3gfni",
  "experimental_lean_vm_core_x86v4",
@@ -274,18 +273,6 @@ dependencies = [
  "experimental_pcs_armsha3",
  "experimental_primitives_armsha3",
  "fiat_shamir_prover_armsha3",
- "tracing",
- "verifier",
-]
-
-[[package]]
-name = "experimental_keccak_gkr_x86v3"
-version = "0.1.0"
-dependencies = [
- "experimental_parallel",
- "experimental_pcs_x86v3",
- "experimental_primitives_x86v3",
- "fiat_shamir_prover_x86v3",
  "tracing",
  "verifier",
 ]
@@ -375,20 +362,6 @@ dependencies = [
  "experimental_pcs_armsha3",
  "experimental_primitives_armsha3",
  "fiat_shamir_prover_armsha3",
- "isa",
- "tracing",
- "verifier",
-]
-
-[[package]]
-name = "experimental_lean_vm_core_x86v3"
-version = "0.1.0"
-dependencies = [
- "experimental_keccak_gkr_x86v3",
- "experimental_parallel",
- "experimental_pcs_x86v3",
- "experimental_primitives_x86v3",
- "fiat_shamir_prover_x86v3",
  "isa",
  "tracing",
  "verifier",
@@ -494,17 +467,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "experimental_pcs_x86v3"
-version = "0.1.0"
-dependencies = [
- "experimental_parallel",
- "experimental_primitives_x86v3",
- "fiat_shamir_prover_x86v3",
- "tracing",
- "verifier",
-]
-
-[[package]]
 name = "experimental_pcs_x86v3clmul"
 version = "0.1.0"
 dependencies = [
@@ -578,15 +540,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "experimental_primitives_x86v3"
-version = "0.1.0"
-dependencies = [
- "experimental_parallel",
- "fiat_shamir_prover_x86v3",
- "keccak256_x86v3",
-]
-
-[[package]]
 name = "experimental_primitives_x86v3clmul"
 version = "0.1.0"
 dependencies = [
@@ -643,14 +596,6 @@ name = "fiat_shamir_prover_armsha3"
 version = "0.1.0"
 dependencies = [
  "keccak256_armsha3",
- "verifier",
-]
-
-[[package]]
-name = "fiat_shamir_prover_x86v3"
-version = "0.1.0"
-dependencies = [
- "keccak256_x86v3",
  "verifier",
 ]
 
@@ -758,10 +703,6 @@ version = "0.1.0"
 
 [[package]]
 name = "keccak256_armsha3"
-version = "0.1.0"
-
-[[package]]
-name = "keccak256_x86v3"
 version = "0.1.0"
 
 [[package]]

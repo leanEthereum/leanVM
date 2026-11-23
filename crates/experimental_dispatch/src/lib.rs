@@ -105,7 +105,6 @@ tiers! {
             "avx512cd", "avx512dq", "avx512vl"],
         x86v3gfni: ["avx2", "bmi1", "bmi2", "fma", "lzcnt", "movbe", "f16c", "popcnt", "pclmulqdq", "vpclmulqdq", "gfni"],
         x86v3clmul: ["avx2", "bmi1", "bmi2", "fma", "lzcnt", "movbe", "f16c", "popcnt", "pclmulqdq", "vpclmulqdq"],
-        x86v3: ["avx2", "bmi1", "bmi2", "fma", "lzcnt", "movbe", "f16c", "popcnt", "pclmulqdq"],
     ]
     "aarch64": [
         armsha3: ["aes", "sha3"],

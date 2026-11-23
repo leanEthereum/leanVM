@@ -14,7 +14,6 @@ parallel = { package = "experimental_parallel", path = "../experimental_prover/p
 base = { package = "experimental_lean_vm_core", path = "../experimental_prover/lean_vm_core" }
 
 [target.'cfg(target_arch = "x86_64")'.dependencies]
-x86v3 = { package = "experimental_lean_vm_core_x86v3", path = "../experimental_tiers/x86v3/experimental_lean_vm_core" }
 x86v3clmul = { package = "experimental_lean_vm_core_x86v3clmul", path = "../experimental_tiers/x86v3clmul/experimental_lean_vm_core" }
 x86v3gfni = { package = "experimental_lean_vm_core_x86v3gfni", path = "../experimental_tiers/x86v3gfni/experimental_lean_vm_core" }
 x86v4 = { package = "experimental_lean_vm_core_x86v4", path = "../experimental_tiers/x86v4/experimental_lean_vm_core" }
@@ -23,3 +22,7 @@ x86v4gfni = { package = "experimental_lean_vm_core_x86v4gfni", path = "../experi
 [target.'cfg(target_arch = "aarch64")'.dependencies]
 armaes = { package = "experimental_lean_vm_core_armaes", path = "../experimental_tiers/armaes/experimental_lean_vm_core" }
 armsha3 = { package = "experimental_lean_vm_core_armsha3", path = "../experimental_tiers/armsha3/experimental_lean_vm_core" }
+
+# Named by `tiers!`, which machete does not read.
+[package.metadata.cargo-machete]
+ignored = ["x86v3clmul", "x86v3gfni", "x86v4", "x86v4gfni", "armaes", "armsha3"]

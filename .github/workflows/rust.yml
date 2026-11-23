@@ -25,10 +25,15 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    env:
+      # The prover's CPU tiers above haswell: identical_proofs runs each one this runner's CPU has.
+      RUSTC_WRAPPER: ${{ github.workspace }}/scripts/tier-rustc
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+      - name: The CPU tiers' manifests are generate.sh's
+        run: sh crates/experimental_tiers/generate.sh && git diff --exit-code crates/experimental_tiers
       # The flags live in .cargo/config.toml's aliases
       - name: Test
         run: cargo testall
@@ -52,6 +57,12 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: Test
         run: cargo testall
+      # Built for the generic CPU, so that the AES and SHA3 tiers add to it.
+      - name: Test (the CPU tiers)
+        run: cargo test --release -p leanvm-bench --test identical_proofs
+        env:
+          RUSTFLAGS: -C target-cpu=generic
+          RUSTC_WRAPPER: ${{ github.workspace }}/scripts/tier-rustc
 
   clippy:
     name: Clippy

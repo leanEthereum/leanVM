@@ -91,7 +91,6 @@ defer received.deinit();
 - `Aggregate.fromBytes` takes the claims in any order (a repeat counts once) and fails with `error.NativeFailure` for any other set, so every `Aggregate` is proven.
 - `setup(threads)` fails if the prover already runs with another thread count. See [Proving](https://github.com/leanEthereum/leanVM/tree/main/bindings#proving).
 - A process forked after the prover started cannot aggregate.
-- To prove fast, [build from source](#build-from-source) on the proving machine.
 
 ## VRF
 
@@ -112,14 +111,6 @@ cd bindings/zig && zig build test -Dnative-dir=.native
 ```
 
 Other platforms stage `aarch64-unknown-linux-gnu`, `universal2-apple-darwin` (on macOS, with both Apple Rust targets) or `x86_64-pc-windows-gnu`.
-
-To prove fast, stage the release on the proving machine with `RUSTFLAGS="-C target-cpu=native"`, for its own target (`aarch64-apple-darwin` on Apple silicon). With the tools above, from your project's directory on Linux x86_64:
-
-<!-- x-release-please-start-version -->
-```sh
-git clone --depth 1 --branch bindings-v0.16.0 https://github.com/leanEthereum/leanVM.git ../leanVM && RUSTFLAGS="-C target-cpu=native" sh ../leanVM/bindings/native/scripts/stage-static.sh x86_64-unknown-linux-gnu ../leanVM/bindings/zig/.native
-```
-<!-- x-release-please-end -->
 
 Then pass that directory as `-Dnative-dir`, or as an absolute `.@"native-dir"` to `b.dependency`.
 

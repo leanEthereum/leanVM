@@ -88,18 +88,6 @@ try (XmssSecretKey xmss = XmssSecretKey.fromSeed(seed32);
 - `Aggregate.fromBytes(bytes, xmssClaims, sphincsClaims)` accepts exactly those claims, in any order, and throws `LeanPqException` otherwise. `xmssClaims()` and `sphincsClaims()` are sorted.
 - `setup` throws `LeanPqException` if the prover already runs with another thread count. See [Proving](../README.md#proving).
 
-### Fast proving
-
-To prove fast, build the library on the proving machine, from your project's directory:
-
-<!-- x-release-please-start-version -->
-```sh
-git clone --depth 1 --branch bindings-v0.16.0 https://github.com/leanEthereum/leanVM.git ../leanVM && (cd ../leanVM/bindings && RUSTFLAGS="-C target-cpu=native" cargo build --release -p lean-pq-native)
-```
-<!-- x-release-please-end -->
-
-Then run with `-Dlean.pq.native.path=../leanVM/bindings/target/release/liblean_pq_native.so` (`.dylib` on macOS, `lean_pq_native.dll` on Windows).
-
 ## Build and test
 
 Needs JDK 25, Gradle 9.1 or newer and Rust. From the repository root:

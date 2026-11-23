@@ -133,7 +133,6 @@ defer received.Close()
 - `Bytes()` is the proof alone: send the claims (`XmssClaims()`, `SphincsClaims()`) alongside it.
 - `AggregateFromBytes` takes the claims in any order (a repeat counts once) and rejects any other set, so every `Aggregate` is proven.
 - `Setup(threads)` fails if the prover already runs with another thread count. See [Proving](https://github.com/leanEthereum/leanVM/tree/main/bindings#proving).
-- To prove fast, [build from source](#build-from-source) on the proving machine.
 
 ## Build from source
 
@@ -148,14 +147,6 @@ cd bindings/go && go test ./...
 ```
 
 Other platforms stage `aarch64-unknown-linux-gnu` into `linux_arm64`, `universal2-apple-darwin` into `darwin_universal` (on macOS, with both Apple Rust targets), and `x86_64-pc-windows-gnu` into `windows_amd64`.
-
-To prove fast, stage the release on the proving machine with `RUSTFLAGS="-C target-cpu=native"`, for its own target (on Apple silicon, `aarch64-apple-darwin` into `darwin_universal`). With the tools above, from your module's directory on Linux x86_64:
-
-<!-- x-release-please-start-version -->
-```sh
-git clone --depth 1 --branch bindings-v0.16.0 https://github.com/leanEthereum/leanVM.git ../leanVM && RUSTFLAGS="-C target-cpu=native" sh ../leanVM/bindings/native/scripts/stage-static.sh x86_64-unknown-linux-gnu ../leanVM/bindings/go/internal/native/linux_amd64 && go mod edit -replace leanvm.org/go=../leanVM/bindings/go
-```
-<!-- x-release-please-end -->
 
 ## License
 

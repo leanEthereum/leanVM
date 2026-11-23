@@ -54,16 +54,6 @@ received = lpq.Aggregate.from_bytes(proof, root.xmss_claims, root.sphincs_claims
 - `setup` raises `LeanPqError` if the prover already runs with another thread count. See [Proving](https://github.com/leanEthereum/leanVM/tree/main/bindings#proving).
 - A process forked after the prover started cannot aggregate: give `multiprocessing` the `spawn` or `forkserver` start method.
 
-### Fast proving
-
-To prove fast, install from source on the proving machine, from your project's directory:
-
-<!-- x-release-please-start-version -->
-```sh
-git clone --depth 1 --branch bindings-v0.16.0 https://github.com/leanEthereum/leanVM.git ../leanVM && RUSTFLAGS="-C target-cpu=native" pip install ../leanVM/bindings/python
-```
-<!-- x-release-please-end -->
-
 ## VRF
 
 ```python

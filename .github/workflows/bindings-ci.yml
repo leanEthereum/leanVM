@@ -38,6 +38,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # The prover's CPU tiers, compiled with their target features; a Windows host cannot run the wrapper.
+      - name: Compile the prover's CPU tiers
+        if: runner.os != 'Windows'
+        run: echo "RUSTC_WRAPPER=$GITHUB_WORKSPACE/scripts/tier-rustc" >> "$GITHUB_ENV"
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -93,6 +97,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+      # The prover's CPU tiers, compiled with their target features; a Windows host cannot run the wrapper.
+      - name: Compile the prover's CPU tiers
+        if: runner.os != 'Windows'
+        run: echo "RUSTC_WRAPPER=$GITHUB_WORKSPACE/scripts/tier-rustc" >> "$GITHUB_ENV"
 
       - uses: actions/setup-python@v5
         with:
@@ -185,6 +193,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # The prover's CPU tiers, compiled with their target features; a Windows host cannot run the wrapper.
+      - name: Compile the prover's CPU tiers
+        if: runner.os != 'Windows'
+        run: echo "RUSTC_WRAPPER=$GITHUB_WORKSPACE/scripts/tier-rustc" >> "$GITHUB_ENV"
 
       - uses: actions/setup-node@v5
         with:

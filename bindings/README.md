@@ -43,8 +43,7 @@ lean_vm = { git = "https://github.com/leanEthereum/leanVM.git", features = ["exp
 
 ## Proving
 
-To prove fast, build from source with `RUSTFLAGS="-C target-cpu=native"`, as each language's README shows.
-
+- Prebuilt packages hold the prover once per CPU tier and run the fastest one the CPU supports, except the Python wheels and the Java library for Windows.
 - `setup(threads)` starts the prover with `threads` threads (0: one per core, at most the machine's parallelism). Proofs run one at a time per process.
 - Except on Windows, the Rust code allocates with jemalloc, which keeps freed pages: a process that aggregated keeps its peak memory.
 

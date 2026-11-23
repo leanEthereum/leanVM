@@ -67,16 +67,6 @@ const received = await lpq.Aggregate.fromBytes(proof, { xmss: root.xmssClaims, s
 - `Aggregate.fromBytes(data, { xmss, sphincs })` accepts exactly those `{ publicKey, message }` claims, in any order, and rejects otherwise; an omitted list means none. `xmssClaims` and `sphincsClaims` are sorted.
 - `setup` rejects if the prover already runs with another thread count. See [Proving](https://github.com/leanEthereum/leanVM/tree/main/bindings#proving).
 
-### Fast proving
-
-To prove fast, build the addon on the proving machine, from your project's directory:
-
-<!-- x-release-please-start-version -->
-```sh
-git clone --depth 1 --branch bindings-v0.16.0 https://github.com/leanEthereum/leanVM.git ../leanVM && (cd ../leanVM/bindings/node && npm ci && RUSTFLAGS="-C target-cpu=native" npm run build) && npm install ../leanVM/bindings/node
-```
-<!-- x-release-please-end -->
-
 ## Build and test
 
 Needs Node.js 18.17 or newer and Rust. From `bindings/node`:

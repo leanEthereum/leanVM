@@ -73,15 +73,26 @@ fn stable_and_experimental_proofs_are_identical() {
     __for_each_tier(&mut Matches(stable));
 }
 
-/// `program`'s proof at rate `2^-log_inv_rate` on `public_input`, or why there is none.
-fn prove<P: Prover>(
-    program: &Program,
+/// A compiler test program, its inputs and a rate.
+struct Case {
+    path: std::path::PathBuf,
+    program: Program,
     public_input: [E; 2],
-    witness: &[(String, Vec<Vec<E>>)],
+    witness: Vec<(String, Vec<Vec<E>>)>,
     log_inv_rate: usize,
-) -> Result<verifier::Proof, String> {
+    /// Whether `public_input` is the annotated one, so that a proof exists.
+    annotated: bool,
+}
+
+/// Each case's proof by `P`, or why there is none.
+fn case_proofs<P: Prover>(cases: &[Case]) -> Vec<Result<verifier::Proof, String>> {
     P::init();
-    P::prove(program, witness, public_input, log_inv_rate).map(|(proof, _)| proof)
+    cases
+        .iter()
+        .map(|case| {
+            P::prove(&case.program, &case.witness, case.public_input, case.log_inv_rate).map(|(proof, _)| proof)
+        })
+        .collect()
 }
 
 /// The compiler suite runs on stable alone; this runs its programs, with their annotated inputs (`# public_input:`,
@@ -102,9 +113,10 @@ fn compiler_programs_prove_identically() {
             .map(|v| zkdsl_compiler::parse_const(v).unwrap())
             .collect()
     };
+    let mut cases = Vec::new();
     for path in paths {
         let src = std::fs::read_to_string(&path).unwrap();
-        let program = Program::from(zkdsl_compiler::compile(&zkdsl_compiler::parse(&src).unwrap()));
+        let compiled = zkdsl_compiler::compile(&zkdsl_compiler::parse(&src).unwrap());
         let annotation = |tag: &'static str| src.lines().filter_map(move |line| line.trim().strip_prefix(tag));
         let public_input = annotation("# public_input:")
             .next()
@@ -118,32 +130,37 @@ fn compiler_programs_prove_identically() {
             }
         }
         let wrong = [public_input[0] + E::new(1, 0), public_input[1]];
-        let runs = (1..=4).map(|rate| (public_input, rate)).chain([(wrong, 1)]);
-        for (input, rate) in runs {
-            let stable = prove::<StableProver>(&program, input, &witness, rate);
-            assert!(
-                input != public_input || stable.is_ok(),
-                "{}: {:?}",
-                path.display(),
-                stable.err()
-            );
-            struct Matches<'a>(
-                &'a Program,
-                [E; 2],
-                &'a [(String, Vec<Vec<E>>)],
-                usize,
-                Result<verifier::Proof, String>,
-            );
-            impl __TierVisitor for Matches<'_> {
-                fn visit<P: Prover>(&mut self, tier: Tier) {
-                    let Self(program, input, witness, rate, stable) = self;
-                    assert!(
-                        prove::<P>(program, *input, witness, *rate) == *stable,
-                        "{tier:?} at rate {rate}"
-                    );
-                }
-            }
-            __for_each_tier(&mut Matches(&program, input, &witness, rate, stable));
+        for (input, log_inv_rate) in (1..=4).map(|rate| (public_input, rate)).chain([(wrong, 1)]) {
+            cases.push(Case {
+                path: path.clone(),
+                program: Program::from(compiled.clone()),
+                public_input: input,
+                witness: witness.clone(),
+                log_inv_rate,
+                annotated: input == public_input,
+            });
         }
     }
+    let stable = case_proofs::<StableProver>(&cases);
+    for (case, proof) in cases.iter().zip(&stable) {
+        assert!(
+            !case.annotated || proof.is_ok(),
+            "{}: {:?}",
+            case.path.display(),
+            proof.as_ref().err()
+        );
+    }
+    struct Matches<'a>(&'a [Case], Vec<Result<verifier::Proof, String>>);
+    impl __TierVisitor for Matches<'_> {
+        fn visit<P: Prover>(&mut self, tier: Tier) {
+            for ((case, proof), stable) in self.0.iter().zip(case_proofs::<P>(self.0)).zip(&self.1) {
+                let (path, rate) = (case.path.display(), case.log_inv_rate);
+                assert!(
+                    proof == *stable,
+                    "{tier:?}: {path} at rate {rate}: the provers disagree"
+                );
+            }
+        }
+    }
+    __for_each_tier(&mut Matches(&cases, stable));
 }

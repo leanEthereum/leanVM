@@ -40,6 +40,10 @@ jobs:
             target: x64
     steps:
       - uses: actions/checkout@v4
+      # The prover's CPU tiers, compiled with their target features; a Windows host cannot run the wrapper.
+      - name: Compile the prover's CPU tiers
+        if: runner.os != 'Windows'
+        run: echo "RUSTC_WRAPPER=$GITHUB_WORKSPACE/scripts/tier-rustc" >> "$GITHUB_ENV"
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSIONS }}
@@ -71,6 +75,10 @@ jobs:
             target: aarch64
     steps:
       - uses: actions/checkout@v4
+      # The prover's CPU tiers, compiled with their target features; a Windows host cannot run the wrapper.
+      - name: Compile the prover's CPU tiers
+        if: runner.os != 'Windows'
+        run: echo "RUSTC_WRAPPER=$GITHUB_WORKSPACE/scripts/tier-rustc" >> "$GITHUB_ENV"
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSIONS }}
@@ -99,7 +107,7 @@ jobs:
           command: sdist
           args: --out ../../dist
           working-directory: bindings/python
-      - name: Add the guest program and the cargo config to the sdist
+      - name: Complete the sdist (complete-sdist.sh)
         run: sh bindings/python/scripts/complete-sdist.sh dist/py_lean_pq-*.tar.gz
       - uses: actions/upload-artifact@v4
         with:
@@ -525,6 +533,10 @@ jobs:
             build_args: --cross-compile
     steps:
       - uses: actions/checkout@v4
+      # The prover's CPU tiers, compiled with their target features; a Windows host cannot run the wrapper.
+      - name: Compile the prover's CPU tiers
+        if: runner.os != 'Windows'
+        run: echo "RUSTC_WRAPPER=$GITHUB_WORKSPACE/scripts/tier-rustc" >> "$GITHUB_ENV"
       - uses: actions/setup-node@v5
         with:
           node-version: "22"
