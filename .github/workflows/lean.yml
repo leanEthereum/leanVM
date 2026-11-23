@@ -88,9 +88,22 @@ jobs:
       - name: Forbid proof escapes
         run: |
           python3 -I formal/tools/escape-scan.py formal/common
+      # As for sphincs: only `main` saves, without Mathlib's build, which `lake exe cache get` fetches.
+      - name: Restore the Lake build
+        id: lake-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            formal/common/.lake
+            !formal/common/.lake/packages/mathlib/.lake
+            formal/Statement/.lake/build
+          key: lake-common-${{ runner.os }}-${{ hashFiles('formal/common/lean-toolchain', 'formal/common/lake-manifest.json', 'formal/*/lakefile.*') }}-${{ hashFiles('formal/common/**/*.lean', 'formal/Statement/**/*.lean') }}
+          restore-keys: lake-common-${{ runner.os }}-${{ hashFiles('formal/common/lean-toolchain', 'formal/common/lake-manifest.json', 'formal/*/lakefile.*') }}-
+      # lean-action's own GitHub cache would save a whole `.lake`, Mathlib's included, from every ref.
       - uses: leanprover/lean-action@v1
         with:
           lake-package-directory: formal/common
+          use-github-cache: false
       - name: Forbid deprecated API
         working-directory: formal/common
         run: |
@@ -105,6 +118,15 @@ jobs:
           for t in $theorems; do
             grep -qF "'$t' depends on axioms: [propext, Classical.choice, Quot.sound]" "$RUNNER_TEMP/axioms.txt"
           done
+      - name: Save the Lake build
+        if: github.ref == 'refs/heads/main' && steps.lake-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            formal/common/.lake
+            !formal/common/.lake/packages/mathlib/.lake
+            formal/Statement/.lake/build
+          key: ${{ steps.lake-cache.outputs.cache-primary-key }}
 
   lean-xmss-formalization:
     runs-on: ubuntu-latest
@@ -121,9 +143,22 @@ jobs:
       # elaborate the root module and with it the `#guard_msgs` check, and
       # `XmssSecurity.Tests.QueryBudget`. The checked-in manifest is used as
       # is: no `lake update`.
+      # As for sphincs: only `main` saves, without Mathlib's build, which `lake exe cache get` fetches.
+      - name: Restore the Lake build
+        id: lake-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            formal/lean_xmss/.lake
+            !formal/lean_xmss/.lake/packages/mathlib/.lake
+            formal/common/.lake/build
+            formal/Statement/.lake/build
+          key: lake-lean-xmss-${{ runner.os }}-${{ hashFiles('formal/lean_xmss/lean-toolchain', 'formal/lean_xmss/lake-manifest.json', 'formal/*/lakefile.*') }}-${{ hashFiles('formal/lean_xmss/**/*.lean', 'formal/common/**/*.lean', 'formal/Statement/**/*.lean') }}
+          restore-keys: lake-lean-xmss-${{ runner.os }}-${{ hashFiles('formal/lean_xmss/lean-toolchain', 'formal/lean_xmss/lake-manifest.json', 'formal/*/lakefile.*') }}-
       - uses: leanprover/lean-action@v1
         with:
           lake-package-directory: formal/lean_xmss
+          use-github-cache: false
       # Lake replays a cached module's warnings, so a second build lists every one.
       - name: Forbid deprecated API
         working-directory: formal/lean_xmss
@@ -144,6 +179,16 @@ jobs:
             grep -qF "'XmssSecurity.$t' depends on axioms: [propext, Classical.choice, Quot.sound]" \
               "$RUNNER_TEMP/axioms.txt"
           done
+      - name: Save the Lake build
+        if: github.ref == 'refs/heads/main' && steps.lake-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            formal/lean_xmss/.lake
+            !formal/lean_xmss/.lake/packages/mathlib/.lake
+            formal/common/.lake/build
+            formal/Statement/.lake/build
+          key: ${{ steps.lake-cache.outputs.cache-primary-key }}
       - uses: actions/upload-artifact@v4
         with:
           name: lean-xmss-axioms
