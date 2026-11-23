@@ -146,6 +146,26 @@ theorem guestExecution_complete_on_honest_children (s : NodeStatement) (w : Node
     (acceptableChildren_of_honest hrel hon)
   ⟨t, (prover_guestExecution_eq s w).trans he, hv, hsz⟩
 
+/-- **The executor runs the guest program to completion on the statement's advice on children
+carrying the honest prover's proofs that the deployed verifier accepts**, with no collision
+alternative: each child's fresh claim is true (`freshClaim_holds_of_leanVmVerifier`), so the child
+carries an honest proof. -/
+theorem guestExecution_complete_on_verified_honest_children (s : NodeStatement) (w : NodeWitness)
+    (hrel : NodeRelation (bytecodeWords guestProgram) (deployedSeed guestProgram) s w)
+    (hlim : DeployedLimits s w)
+    (hon : ∀ child ∈ w.children,
+      let input := PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) child.statement)
+      (∃ (execution : Execution guestProgram) (ρ : ℕ),
+        LeanVM.leanVmHonestProver (m := Id) keccakF1600 guestProgram input execution ρ (2 ^ 35) =
+          some child.proof) ∧
+      leanVmVerifier (m := Id) keccakF1600 guestProgram input child.proof = true) :
+    ∃ execution, guestExecution guestProgram s w = .ok execution ∧
+      ValidExecution guestProgram
+        (PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) s)) execution ∧
+      execution.committedSize ≤ 2 ^ 30 :=
+  guestExecution_complete_on_honest_children s w hrel hlim fun child hc ↦
+    ⟨freshClaim_holds_of_leanVmVerifier hrel hc (hon child hc).2, (hon child hc).1⟩
+
 open OracleComp OracleSpec in
 /-- **The guest's prover makes the honest prover's proof of its execution**: where `guestExecution`
 returns `t`, `guestProve`'s proof is rejected or not made exactly as the honest prover's proof of

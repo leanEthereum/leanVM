@@ -120,10 +120,13 @@ random-permutation model `batch_rpm`, `batch_rpm_bits`), `decode_binds`, `guest_
 `LeanVM/Guest/AcceptableChild.lean`; a node `NodeRelation` admits has such children, or a child's
 proof exhibits a Keccak-256 collision, by `LeanVM.Guest.Child.acceptableChildren_or_collide`, and
 an honest proof by `guest_child_complete`; a proof the verifier accepts, the deferring verifier
-accepts with exactly one claim, a true one, by `LeanVM.verifyDeferred_of_leanVmVerifier`), the
-executor on honest children (`LeanVM.Guest.EndExec.honestExecution_ok_on_honest_children`, and with the
-statement's witness generation `LeanVM.Guest.EndExec.guestExecution_complete_on_honest_children`,
-with no collision alternative), and the guest's completeness within its deployed budget
+accepts with exactly one claim, a true one, by `LeanVM.verifyDeferred_of_leanVmVerifier`, so a
+child the deployed verifier accepts has a true fresh claim, by
+`LeanVM.Guest.Completeness.freshClaim_holds_of_leanVmVerifier`), the executor on honest children
+(`LeanVM.Guest.EndExec.honestExecution_ok_on_honest_children`, and with the statement's witness
+generation `LeanVM.Guest.EndExec.guestExecution_complete_on_honest_children`, with no collision
+alternative, and `guestExecution_complete_on_verified_honest_children`, the fresh claims' truth
+replaced by the deployed verifier's acceptance), and the guest's completeness within its deployed budget
 (`LeanVM.Guest.Budget.guest_complete`, `guest_complete_numeric`).
 The two-oracle random-oracle model the proofs pass through (`LeanVM/Protocol/Rom/Statement.lean`:
 `LeanVM.knowledgeSoundnessRomAS`, `LeanVM.completenessRom_holds`; the batching's
@@ -270,6 +273,14 @@ info: 'LeanVM.Guest.EndExec.guestExecution_complete_on_honest_children' depends 
 #guard_msgs in
 #print axioms LeanVM.Guest.EndExec.guestExecution_complete_on_honest_children
 
+/--
+info: 'LeanVM.Guest.EndExec.guestExecution_complete_on_verified_honest_children' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms LeanVM.Guest.EndExec.guestExecution_complete_on_verified_honest_children
+
 /-- info: 'LeanVM.Guest.EndExec.guestExecution_complete_holds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.Guest.EndExec.guestExecution_complete_holds
@@ -289,6 +300,14 @@ info: 'LeanVM.Guest.EndExec.guestExecution_complete_on_honest_children' depends 
 /-- info: 'LeanVM.verifyDeferred_of_leanVmVerifier' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.verifyDeferred_of_leanVmVerifier
+
+/--
+info: 'LeanVM.Guest.Completeness.freshClaim_holds_of_leanVmVerifier' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms LeanVM.Guest.Completeness.freshClaim_holds_of_leanVmVerifier
 
 /-! ## The proof on the wire
 

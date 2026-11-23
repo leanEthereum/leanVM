@@ -13,10 +13,9 @@ public import LeanVM.Protocol.Verifier.DeferredShape
 # The claim an accepted proof defers
 
 The verifier reads the fixed polynomial once, at the bus's bytecode point (`verifyBusBalance`).
-`execWith ev opening` is `verifyExecution` with the evaluation `ev` and the stacked opening
-`opening`. It is a prefix (`prefixProg`: the sizes, the stack's root and its out-of-domain sample,
-the bus up to its bytecode sumcheck), the evaluation at the point and value the prefix returns, and
-a suffix (`execSplit`). So:
+`verifyExecution ev` is a prefix (`prefixProg`: the sizes, the stack's root and its out-of-domain
+sample, the bus up to its bytecode sumcheck), the evaluation `ev` at the point and value the prefix
+returns, and a suffix (`execSplit`). So:
 
 * an accepted run with the computed value is the run with the claim of that value at that point
   (`run_claimed_of_computed`), a claim true of the bytecode (`BytecodeClaim.Holds`);
@@ -24,10 +23,10 @@ a suffix (`execSplit`). So:
   has the prefix's point and value as its claim, whatever the claim (`claim_of_run_claimed`): a
   proof is accepted with at most one claim (`claim_unique`).
 
-`verifyDeferredWithHash_of_verifyWithHash` puts them together at any hash and permutation in `Id`,
-`LeanVM.verifyDeferredWith_of_leanVmVerifier` states it for the statement's verifier over any
-permutation, and `LeanVM.verifyDeferred_of_leanVmVerifier` at the deployed Keccak-f[1600]. The
-converse, under a true claim, is `verify_of_verifyDeferred`.
+`verifyDeferredWithHash_of_verifyWithHash` puts them together at any hash and permutation function
+in `Id`, `LeanVM.verifyDeferredWith_of_leanVmVerifier` states it for the statement's verifier over
+any permutation function in `Id`, and `LeanVM.verifyDeferred_of_leanVmVerifier` at the deployed
+Keccak-f[1600]. The converse, under a true claim, is `verify_of_verifyDeferred`.
 -/
 
 namespace LeanVM.Protocol.Verifier.Defers
@@ -37,63 +36,7 @@ open LeanVM.Protocol.Verifier LeanVM.Protocol.KeccakHash
 
 @[expose] public section
 
-/-! ## The compiled run of a sequence -/
-
-/-- A sequence's run is the first part's, then the continuation's. -/
-theorem runWithHash_bind {α β : Type} (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState)
-    (p : VerifierProgram α) (f : α → VerifierProgram β) (st : VerifierProgramState) :
-    Compile.runWithHash H F (p.bind f) st =
-      (Compile.runWithHash H F p st).bind (fun r => Compile.runWithHash H F (f r.1) r.2) := by
-  induction p generalizing st with
-  | ret a => rfl
-  | fail => rfl
-  | read k ih =>
-    simp only [VerifierProgram.bind, Compile.runWithHash]
-    split
-    · exact ih _ _
-    · rfl
-  | sample k ih => exact ih _ _
-  | grind b k ih =>
-    simp only [VerifierProgram.bind, Compile.runWithHash]
-    split
-    · simp only [bind, pure]
-      split
-      · exact ih _
-      · rfl
-    · rfl
-  | commit h w k ih =>
-    simp only [VerifierProgram.bind, Compile.runWithHash]
-    split
-    · exact ih _
-    · rfl
-  | query i ps k ih =>
-    simp only [VerifierProgram.bind, Compile.runWithHash]
-    split
-    · simp only [bind]
-      split
-      · exact ih _ _
-      · rfl
-    · rfl
-
 /-! ## The verifier, split at its evaluation -/
-
-/-- `verifyExecution` with the evaluation `ev` and the stacked opening `opening`. -/
-def execWith (ev : List K → List E → E → VerifierProgram Unit)
-    (opening : ℕ → ℕ → List StackClaim → VerifierProgram Unit)
-    (bytecode : List K) (publicInput : Digest) : VerifierProgram Unit := do
-  let (layout, logInverseRate) ← readAnnouncedSizes bytecode
-  commitStack layout.stackLog logInverseRate
-  let ood ← readOod layout.stackLog
-  let bus ← verifyBusBalance ev layout
-  let evaluations ← tablePhase layout bus
-  let claims := bus.claims ++ tableColumnClaims evaluations
-  let publicClaims ← publicInputPhase layout publicInput
-  let claims := claims ++ publicClaims
-  let (outputs, keccakPoint, keccakSlices) ← keccakPhase layout evaluations
-  let claims := claims ++ outputs
-  let (ringTarget, ringWeight) ← ringSwitch keccakPoint keccakSlices
-  opening layout.stackLog logInverseRate
-    (ringSwitchClaim layout ringTarget ringWeight :: claims.filterMap (·.onStack layout) ++ [ood])
 
 /-- What the prefix has read when the verifier evaluates the bytecode. -/
 structure Pre where
@@ -155,8 +98,7 @@ def busOf (y : Pre) : BusResult :=
   ⟨claims, y.bytecodePoint, y.point, forms3, [total0, total1, total2]⟩
 
 /-- The verifier after its evaluation of the bytecode. -/
-def suffixProg (opening : ℕ → ℕ → List StackClaim → VerifierProgram Unit) (publicInput : Digest)
-    (y : Pre) : VerifierProgram Unit := do
+def suffixProg (publicInput : Digest) (y : Pre) : VerifierProgram Unit := do
   let layout := y.layout
   let bus := busOf y
   let evaluations ← tablePhase layout bus
@@ -166,17 +108,15 @@ def suffixProg (opening : ℕ → ℕ → List StackClaim → VerifierProgram Un
   let (outputs, keccakPoint, keccakSlices) ← keccakPhase layout evaluations
   let claims := claims ++ outputs
   let (ringTarget, ringWeight) ← ringSwitch keccakPoint keccakSlices
-  opening layout.stackLog y.rate
+  verifyStackedOpening layout.stackLog y.rate
     (ringSwitchClaim layout ringTarget ringWeight :: claims.filterMap (·.onStack layout) ++ [y.ood])
 
 /-- **The verifier, split at its evaluation of the bytecode.** -/
-theorem execSplit (ev : List K → List E → E → VerifierProgram Unit)
-    (opening : ℕ → ℕ → List StackClaim → VerifierProgram Unit)
-    (bytecode : List K) (publicInput : Digest) :
-    execWith ev opening bytecode publicInput = (prefixProg bytecode).bind fun y ↦
-      (ev y.layout.bytecode y.bytecodePoint y.value).bind fun _ ↦
-        suffixProg opening publicInput y := by
-  simp only [execWith, prefixProg, VerifierProgram.bind_eq, VerifierProgram.pure_eq,
+theorem execSplit (ev : List K → List E → E → VerifierProgram Unit) (bytecode : List K)
+    (publicInput : Digest) :
+    verifyExecution ev bytecode publicInput = (prefixProg bytecode).bind fun y ↦
+      (ev y.layout.bytecode y.bytecodePoint y.value).bind fun _ ↦ suffixProg publicInput y := by
+  simp only [verifyExecution, prefixProg, VerifierProgram.bind_eq, VerifierProgram.pure_eq,
       VerifierProgram.bind_assoc, VerifierProgram.ret_bind]
   refine congrArg _ (funext fun ls ↦ ?_)
   obtain ⟨layout, rate⟩ := ls
@@ -198,53 +138,26 @@ theorem prefix_bytecode {bytecode : List K} {y : Pre}
   unfold prefixProg at h
   obtain ⟨ls, hls, h⟩ := VerifierProgram.returns_bind h
   have hb := readSizes_bytecode hls
-  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
-  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
-  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
-  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
-  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
-  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
-  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
-  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
-  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
-  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
-  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
+  iterate 11 obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
   obtain ⟨⟨_, _, _⟩, -, h⟩ := VerifierProgram.returns_bind h
   rw [VerifierProgram.returns_ret h]
   exact hb
-
-/-- The verifier program, as a sequence. -/
-theorem leanVmProgram_execWith (bytecode : List K) (publicInput : Digest) :
-    leanVmVerifierProgram bytecode publicInput =
-      (execWith computedBytecodeValue verifyStackedOpening bytecode publicInput).bind
-        fun _ ↦ VerifierProgram.ret true := by
-  unfold leanVmVerifierProgram verifyExecution execWith
-  simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq, VerifierProgram.bind_assoc]
-
-/-- The deferring program, as a sequence. -/
-theorem deferredProgram_execWith (c : BytecodeClaim) (bytecode : List K) (publicInput : Digest) :
-    deferringVerifierProgram c bytecode publicInput =
-      (execWith (claimedBytecodeValue c) verifyStackedOpening bytecode publicInput).bind
-        fun _ ↦ VerifierProgram.ret true := by
-  unfold deferringVerifierProgram verifyExecution execWith
-  simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq, VerifierProgram.bind_assoc]
 
 /-! ## The claim a run evaluates -/
 
 section Run
 
-variable (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState)
-  (opening : ℕ → ℕ → List StackClaim → VerifierProgram Unit) (bytecode : List K)
+variable (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState) (bytecode : List K)
   (publicInput : Digest)
 
 /-- **A run with the computed value that returns is the run with a true claim**: the claim of the
 value at the point the run evaluates. -/
 theorem run_claimed_of_computed (k : Unit → VerifierProgram Bool) {st : VerifierProgramState}
     {r : Bool × VerifierProgramState}
-    (h : Compile.runWithHash H F ((execWith computedBytecodeValue opening bytecode
+    (h : Compile.runWithHash H F ((verifyExecution computedBytecodeValue bytecode
       publicInput).bind k) st = some r) :
     ∃ c : BytecodeClaim, c.Holds bytecode ∧
-      Compile.runWithHash H F ((execWith (claimedBytecodeValue c) opening bytecode
+      Compile.runWithHash H F ((verifyExecution (claimedBytecodeValue c) bytecode
         publicInput).bind k) st = some r := by
   rw [execSplit, VerifierProgram.bind_assoc, runWithHash_bind] at h
   rcases hp : Compile.runWithHash H F (prefixProg bytecode) st with _ | ⟨y, s1⟩
@@ -269,7 +182,7 @@ theorem run_claimed_of_computed (k : Unit → VerifierProgram Bool) {st : Verifi
 /-- **A run with a claim that returns has the prefix's point and value as its claim.** -/
 theorem claim_of_run_claimed {c : BytecodeClaim} (k : Unit → VerifierProgram Bool)
     {st : VerifierProgramState} {r : Bool × VerifierProgramState}
-    (h : Compile.runWithHash H F ((execWith (claimedBytecodeValue c) opening bytecode
+    (h : Compile.runWithHash H F ((verifyExecution (claimedBytecodeValue c) bytecode
       publicInput).bind k) st = some r) :
     ∃ y s1, Compile.runWithHash H F (prefixProg bytecode) st = some (y, s1) ∧
       c = ⟨y.bytecodePoint, y.value⟩ := by
@@ -290,19 +203,19 @@ theorem claim_of_run_claimed {c : BytecodeClaim} (k : Unit → VerifierProgram B
 
 /-- **An accepted proof with the computed value is accepted with a true claim.** -/
 theorem runProof_claimed_of_computed {sd : KeccakState} {π : Proof}
-    (h : Id.run (runProofWithHash H F ((execWith computedBytecodeValue opening bytecode
+    (h : Id.run (runProofWithHash H F ((verifyExecution computedBytecodeValue bytecode
         publicInput).bind fun _ ↦ VerifierProgram.ret true) sd π) = true) :
     ∃ c : BytecodeClaim, c.Holds bytecode ∧
-      Id.run (runProofWithHash H F ((execWith (claimedBytecodeValue c) opening bytecode
+      Id.run (runProofWithHash H F ((verifyExecution (claimedBytecodeValue c) bytecode
           publicInput).bind fun _ ↦ VerifierProgram.ret true) sd π) = true := by
   unfold runProofWithHash at h ⊢
   revert h
-  match hr : Compile.runWithHash H F ((execWith computedBytecodeValue opening bytecode
+  match hr : Compile.runWithHash H F ((verifyExecution computedBytecodeValue bytecode
       publicInput).bind fun _ ↦ VerifierProgram.ret true)
         ⟨⟨sd, [], none⟩, π.stream, π.openings, []⟩ with
   | some (true, s) =>
     intro h
-    obtain ⟨c, hc, e⟩ := run_claimed_of_computed H F opening bytecode publicInput _ hr
+    obtain ⟨c, hc, e⟩ := run_claimed_of_computed H F bytecode publicInput _ hr
     refine ⟨c, hc, ?_⟩
     rw [e]
     exact h
@@ -311,19 +224,19 @@ theorem runProof_claimed_of_computed {sd : KeccakState} {π : Proof}
 
 /-- **An accepted proof with a claim has the prefix's point and value as its claim.** -/
 theorem claim_of_runProof_claimed {c : BytecodeClaim} {sd : KeccakState} {π : Proof}
-    (h : Id.run (runProofWithHash H F ((execWith (claimedBytecodeValue c) opening bytecode
+    (h : Id.run (runProofWithHash H F ((verifyExecution (claimedBytecodeValue c) bytecode
         publicInput).bind fun _ ↦ VerifierProgram.ret true) sd π) = true) :
     ∃ y s1, Compile.runWithHash H F (prefixProg bytecode)
         ⟨⟨sd, [], none⟩, π.stream, π.openings, []⟩ = some (y, s1) ∧
       c = ⟨y.bytecodePoint, y.value⟩ := by
   unfold runProofWithHash at h
-  generalize hr : Compile.runWithHash H F ((execWith (claimedBytecodeValue c) opening bytecode
+  generalize hr : Compile.runWithHash H F ((verifyExecution (claimedBytecodeValue c) bytecode
       publicInput).bind fun _ ↦ VerifierProgram.ret true)
         ⟨⟨sd, [], none⟩, π.stream, π.openings, []⟩ = o at h
   rcases o with _ | ⟨_ | _, _⟩
   · cases h
   · cases h
-  · exact claim_of_run_claimed H F opening bytecode publicInput _ hr
+  · exact claim_of_run_claimed H F bytecode publicInput _ hr
 
 end Run
 
@@ -348,15 +261,12 @@ theorem claim_unique {bytecode : List K} {iv publicInput : Digest} {c c' : Bytec
     (h : Id.run (verifyDeferredWithHash H F bytecode iv publicInput c π) = true)
     (h' : Id.run (verifyDeferredWithHash H F bytecode iv publicInput c' π) = true) : c = c' := by
   have e : ∀ c, Id.run (verifyDeferredWithHash H F bytecode iv publicInput c π) =
-      Id.run (runProofWithHash H F ((execWith (claimedBytecodeValue c) verifyStackedOpening bytecode
+      Id.run (runProofWithHash H F ((verifyExecution (claimedBytecodeValue c) bytecode
         publicInput).bind fun _ ↦ VerifierProgram.ret true) (Id.run (F (seedInput iv publicInput)))
-          π) := by
-    intro c
-    rw [← deferredProgram_execWith]
-    rfl
+          π) := fun _ ↦ rfl
   rw [e] at h h'
-  obtain ⟨y, s1, hy, rfl⟩ := claim_of_runProof_claimed H F _ _ _ h
-  obtain ⟨y', s1', hy', rfl⟩ := claim_of_runProof_claimed H F _ _ _ h'
+  obtain ⟨y, s1, hy, rfl⟩ := claim_of_runProof_claimed H F _ _ h
+  obtain ⟨y', s1', hy', rfl⟩ := claim_of_runProof_claimed H F _ _ h'
   rw [hy] at hy'
   obtain ⟨rfl, -⟩ := Prod.mk.inj (Option.some.inj hy')
   rfl
@@ -370,12 +280,10 @@ theorem verifyDeferredWithHash_of_verifyWithHash {bytecode : List K} {publicInpu
         publicInput c π) = true ∧
       ∀ c', Id.run (verifyDeferredWithHash H F bytecode (Id.run (fiatShamirIvWithHash H bytecode))
         publicInput c' π) = true → c' = c := by
-  have h0 : Id.run (runProofWithHash H F (leanVmVerifierProgram bytecode publicInput)
-      (Id.run (seedWithHash H F bytecode publicInput)) π) = true := h
-  rw [leanVmProgram_execWith] at h0
-  obtain ⟨c, hc, hacc⟩ := runProof_claimed_of_computed H F verifyStackedOpening bytecode
-    publicInput h0
-  rw [← deferredProgram_execWith] at hacc
+  have h0 : Id.run (runProofWithHash H F ((verifyExecution computedBytecodeValue bytecode
+      publicInput).bind fun _ ↦ VerifierProgram.ret true)
+        (Id.run (seedWithHash H F bytecode publicInput)) π) = true := h
+  obtain ⟨c, hc, hacc⟩ := runProof_claimed_of_computed H F bytecode publicInput h0
   have hd : Id.run (verifyDeferredWithHash H F bytecode (Id.run (fiatShamirIvWithHash H bytecode))
       publicInput c π) = true := hacc
   exact ⟨c, hc, hd, fun c' h' ↦ claim_unique H F h' hd⟩
@@ -392,9 +300,9 @@ open LeanVM.Protocol.Verifier LeanVM.Protocol.KeccakHash
 
 @[expose] public section
 
-/-- **A proof the leanVM verifier accepts is deferred**: over any permutation `π` in `Id`, the
-deferring verifier accepts it, under the IV the verifier hashes, with exactly one claim on the
-bytecode, and that claim is true. -/
+/-- **A proof the leanVM verifier accepts is deferred**: over any permutation function `π` in
+`Id`, the deferring verifier accepts it, under the IV the verifier hashes, with exactly one claim on
+the bytecode, and that claim is true. -/
 theorem verifyDeferredWith_of_leanVmVerifier (π : KeccakState → Id KeccakState)
     {prog : LeanIsaProgram} {input : PublicInput} {proof : Proof}
     (h : Id.run (leanVmVerifier π prog input proof) = true) :

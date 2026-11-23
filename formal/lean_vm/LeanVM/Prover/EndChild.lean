@@ -24,7 +24,7 @@ within the cap, at a valid rate, and makes no proof elsewhere (`childSpec_prove`
 `LeanVM.Guest.Budget.guest_child_complete : GuestChildComplete`. Where the verifier accepts the
 honest proof, the deferring verifier accepts it with exactly one claim, a true one
 (`LeanVM.verifyDeferred_of_leanVmVerifier`), so a child carrying it that `NodeRelation` admits has
-a true fresh claim.
+a true fresh claim (`Completeness.freshClaim_holds_of_leanVmVerifier`, `Guest/HonestChildren.lean`).
 -/
 
 namespace LeanVM.Prover
