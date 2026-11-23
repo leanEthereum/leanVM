@@ -33,7 +33,7 @@ done
 steps=(export core changes vt cert bridge core-mode memory res whir count tables decoder)
 case " ${steps[*]} " in *" $from "*) ;; *) echo "unknown step $from: one of ${steps[*]}" >&2; exit 2 ;; esac
 step() { printf '\n==> [%dm%02ds] %s\n' $((SECONDS / 60)) $((SECONDS % 60)) "$*"; }
-capped() { (ulimit -v "${LEAN_VMEM_KB:-40000000}"; exec "$@"); }
+capped() { ([ "$(uname)" = Darwin ] || ulimit -v "${LEAN_VMEM_KB:-40000000}" || exit; exec "$@"); }
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 # The core IR's parse, shared by the core-mode generators; their pairings, computed once while what they
@@ -44,13 +44,15 @@ export CORE_MODE_CACHE=$tmp/core-mode.pkl CORE_MEMO=$tmp/memo
 # (`$tmp/lake.lock`): the parts run at once, and a Lean run of built modules (`leanrun`) waits for no
 # build to be writing them.
 built=
-lakebuild() { [ -n "$built" ] || (flock 9; python3 -I ../lake-build.py . "$@" "${jobs[@]}") 9>"$tmp/lake.lock"; }
-leanrun() { (flock 9; capped lake env lean "$@") 9>"$tmp/lake.lock"; }
+# flock(1) on fd 9, which macOS lacks: the lock is on the shared open file, held until the subshell exits.
+lock9() { python3 -I -c 'import fcntl; fcntl.flock(9, fcntl.LOCK_EX)'; }
+lakebuild() { [ -n "$built" ] || (lock9; python3 -I ../lake-build.py . "$@" ${jobs[@]+"${jobs[@]}"}) 9>"$tmp/lake.lock"; }
+leanrun() { (lock9; capped lake env lean "$@") 9>"$tmp/lake.lock"; }
 
 # The Lean generators import the data the export wrote; each is built after the step before it.
 gen() {
   lakebuild "$1"
-  capped ".lake/build/bin/$1" "${check[@]}"
+  capped ".lake/build/bin/$1" ${check[@]+"${check[@]}"}
 }
 
 # A generator without a check mode of its own, run as one under `--check` (`scripts/check-in-place`).
@@ -89,7 +91,7 @@ part_export() {
     fi
   fi
   cargo build --release --manifest-path scripts/guest-export/Cargo.toml
-  capped scripts/guest-export/target/release/guest-export . "${check[@]}"
+  capped scripts/guest-export/target/release/guest-export . ${check[@]+"${check[@]}"}
 }
 
 part_core_ir() {
@@ -99,17 +101,17 @@ part_core_ir() {
 
 part_core_names() {
   step "core: the names' modulus (CoreNames)"
-  python3 -I scripts/core-names-modulus "${check[@]}"
+  python3 -I scripts/core-names-modulus ${check[@]+"${check[@]}"}
 }
 
 part_core_valnames() {
   step "core: the value names the proofs cite (scripts/val-names/gen.py)"
-  python3 -I scripts/val-names/gen.py "${check[@]}"
+  python3 -I scripts/val-names/gen.py ${check[@]+"${check[@]}"}
 }
 
 part_core_vsat() {
   step "core: where verify_sub's obligations sit (VsAt)"
-  python3 -I scripts/vs-at "${check[@]}"
+  python3 -I scripts/vs-at ${check[@]+"${check[@]}"}
 }
 
 part_changes() {
@@ -120,7 +122,7 @@ part_changes() {
 
 part_vt() {
   step "vt: verify_tables' templates and their twins (scripts/b1c-vt/all.py)"
-  python3 -I scripts/b1c-vt/all.py "${check[@]}"
+  python3 -I scripts/b1c-vt/all.py ${check[@]+"${check[@]}"}
 }
 
 part_cert() {
@@ -136,63 +138,63 @@ part_cert() {
 # the core IR, the compiled data, the alignment and the rule files, and write apart: they run at once, the rest after.
 part_core_mode_fnreg() {
   step "core-mode: each function's own routing facts and families registered (scripts/core-mode/fnreg.py)"
-  python3 -I scripts/core-mode/fnreg.py "${check[@]}"
+  python3 -I scripts/core-mode/fnreg.py ${check[@]+"${check[@]}"}
 }
 
 part_core_mode_anylink() {
   step "core-mode: the claim list's callees linked to its table (scripts/core-mode/anylink.py)"
-  python3 -I scripts/core-mode/anylink.py "${check[@]}"
+  python3 -I scripts/core-mode/anylink.py ${check[@]+"${check[@]}"}
 }
 
 part_core_mode_sigc() {
   step "core-mode: each function's signature (scripts/core-mode/sigc.py)"
-  python3 -I scripts/core-mode/sigc.py "${check[@]}"
+  python3 -I scripts/core-mode/sigc.py ${check[@]+"${check[@]}"}
 }
 
 part_core_mode_pows() {
   step "core-mode: each function's powers of g (scripts/core-mode/pows.py)"
-  python3 -I scripts/core-mode/pows.py "${check[@]}"
+  python3 -I scripts/core-mode/pows.py ${check[@]+"${check[@]}"}
 }
 
 part_core_mode_glue() {
   step "core-mode: the functions' ties to their global index (scripts/core-mode/glue.py)"
-  python3 -I scripts/core-mode/glue.py "${check[@]}"
+  python3 -I scripts/core-mode/glue.py ${check[@]+"${check[@]}"}
 }
 
 part_core_mode() {
   step "core-mode: bodies with calls (scripts/core-mode/callc.py)"
-  python3 -I scripts/core-mode/callc.py --emit "${check[@]}"
+  python3 -I scripts/core-mode/callc.py --emit ${check[@]+"${check[@]}"}
   step "core-mode: loop helpers (scripts/core-mode/loopcc.py)"
-  python3 -I scripts/core-mode/loopcc.py --emit "${check[@]}"
+  python3 -I scripts/core-mode/loopcc.py --emit ${check[@]+"${check[@]}"}
   step "core-mode: heap certificates (scripts/core-mode/heap.py)"
-  python3 -I scripts/core-mode/heap.py --emit LeanVM/Guest/CoreMode/Gen "${check[@]}"
+  python3 -I scripts/core-mode/heap.py --emit LeanVM/Guest/CoreMode/Gen ${check[@]+"${check[@]}"}
   step "core-mode: pairings (scripts/core-mode/pair.py)"
-  python3 -I scripts/core-mode/pair.py --emit "${check[@]}"
+  python3 -I scripts/core-mode/pair.py --emit ${check[@]+"${check[@]}"}
   step "core-mode: frame walks (scripts/core-mode/frame_gen.py)"
   in_place core-mode/frame_gen.py python3 -I scripts/core-mode/frame_gen.py
   step "core-mode: route data (scripts/core-mode/core.py)"
-  python3 -I scripts/core-mode/core.py "${check[@]}"
+  python3 -I scripts/core-mode/core.py ${check[@]+"${check[@]}"}
   step "core-mode: the core route's certificates, the end theorem's assembly (scripts/core-mode/certs.py)"
-  python3 -I scripts/core-mode/certs.py "${check[@]}"
+  python3 -I scripts/core-mode/certs.py ${check[@]+"${check[@]}"}
 }
 
 # What the core route reads of the bridge (`core-mode`'s glue, pairings and route data): its alignment.
 part_bridge_align() {
   step "bridge: the hint bridge's alignment checks (scripts/bridge-cert/align.py)"
-  python3 -I scripts/bridge-cert/align.py "${check[@]}"
+  python3 -I scripts/bridge-cert/align.py ${check[@]+"${check[@]}"}
   step "bridge: the program's alignment assembled (scripts/bridge-cert/progal.py)"
-  python3 -I scripts/bridge-cert/progal.py "${check[@]}"
+  python3 -I scripts/bridge-cert/progal.py ${check[@]+"${check[@]}"}
 }
 
 part_bridge_checks() {
   step "bridge: the jump cells checked (scripts/bridge-cert/jumpcells.py)"
-  python3 -I scripts/bridge-cert/jumpcells.py "${check[@]}"
+  python3 -I scripts/bridge-cert/jumpcells.py ${check[@]+"${check[@]}"}
   step "bridge: the computed hints paired (scripts/bridge-cert/pair.py)"
-  python3 -I scripts/bridge-cert/pair.py "${check[@]}"
+  python3 -I scripts/bridge-cert/pair.py ${check[@]+"${check[@]}"}
   step "bridge: the witness cells checked (scripts/bridge-cert/wit.py)"
-  python3 -I scripts/bridge-cert/wit.py "${check[@]}"
+  python3 -I scripts/bridge-cert/wit.py ${check[@]+"${check[@]}"}
   step "bridge: the allocation hints checked (scripts/bridge-cert/alloc.py)"
-  python3 -I scripts/bridge-cert/alloc.py "${check[@]}"
+  python3 -I scripts/bridge-cert/alloc.py ${check[@]+"${check[@]}"}
 }
 
 part_memory() {
@@ -202,26 +204,26 @@ part_memory() {
 
 part_res() {
   step "res: the monotone claim lists' callers (scripts/core-mode/monocall.py)"
-  python3 -I scripts/core-mode/monocall.py "${check[@]}"
+  python3 -I scripts/core-mode/monocall.py ${check[@]+"${check[@]}"}
   step "res: facts carried down to callees (scripts/core-mode/carry.py)"
-  python3 -I scripts/core-mode/carry.py "${check[@]}"
+  python3 -I scripts/core-mode/carry.py ${check[@]+"${check[@]}"}
   step "res: check_opening_terminal's callers (scripts/core-mode/termcall.py)"
-  python3 -I scripts/core-mode/termcall.py "${check[@]}"
+  python3 -I scripts/core-mode/termcall.py ${check[@]+"${check[@]}"}
 }
 
 part_whir_data() {
   step "whir: the stacked opening's templates (whir-data)"
-  python3 -I scripts/whir-data "${check[@]}"
+  python3 -I scripts/whir-data ${check[@]+"${check[@]}"}
 }
 
 part_whir_mat_plan() {
   step "whir: the matrices' plan (whir-mat-plan)"
-  python3 -I scripts/whir-mat-plan "${check[@]}"
+  python3 -I scripts/whir-mat-plan ${check[@]+"${check[@]}"}
 }
 
 part_walk_known() {
   step "whir: the walks' obligations (walk-known-all)"
-  python3 -I scripts/walk-known-all "${check[@]}"
+  python3 -I scripts/walk-known-all ${check[@]+"${check[@]}"}
 }
 
 part_whir_queries() {
@@ -242,13 +244,13 @@ part_count_vsos() {
 # After `count/gen.py`, which writes the `Memory/GuestCallees.lean` it reads.
 part_count_loops() {
   step "count: the loop helpers' entries (scripts/core-mode/loopcheck.py)"
-  python3 -I scripts/core-mode/loopcheck.py "${check[@]}"
+  python3 -I scripts/core-mode/loopcheck.py ${check[@]+"${check[@]}"}
 }
 
 part_tables() {
   step "tables: open_stacked's call tables (scripts/whir-tables.lean)"
   lakebuild "${targets_tables[@]}"
-  leanrun --run scripts/whir-tables.lean "${check[@]}"
+  leanrun --run scripts/whir-tables.lean ${check[@]+"${check[@]}"}
 }
 
 part_decoder() {
@@ -258,11 +260,11 @@ part_decoder() {
   mkdir -p "$d"
   lakebuild LeanVM.Guest.Glob
   leanrun scripts/decoder-tables-entries.lean | sed -n "s/^entries: //p" > "$d/entries.txt"
-  python3 -I scripts/decoder-tables --entries "$d/entries.txt" "${check[@]}"
+  python3 -I scripts/decoder-tables --entries "$d/entries.txt" ${check[@]+"${check[@]}"}
   lakebuild LeanVM.Cost.Decoder.GuestTables
   leanrun scripts/decoder-tables-inputs.lean > "$d/in.txt"
   sed -n "s/^rows: //p" "$d/in.txt" > "$d/rows.txt"
-  python3 -I scripts/decoder-table-chunks --row-lengths "$d/rows.txt" "${check[@]}"
+  python3 -I scripts/decoder-table-chunks --row-lengths "$d/rows.txt" ${check[@]+"${check[@]}"}
 }
 
 selected=() started=
@@ -299,18 +301,20 @@ if [ ${#check[@]} -eq 0 ]; then
   pids=() failed=()
   for p in "${todo[@]}"; do
     (
+      # however the part ends, the parts waiting on it see it end
+      trap '[ -e "$tmp/$p.ok" ] || touch "$tmp/$p.failed"' EXIT
       eval "deps=(\${after_$p[@]+\"\${after_$p[@]}\"})"
-      for d in "${deps[@]}"; do
+      for d in ${deps[@]+"${deps[@]}"}; do
         case " ${todo[*]} " in *" $d "*) ;; *) continue ;; esac
         until [ -e "$tmp/$d.ok" ] || [ -e "$tmp/$d.failed" ]; do sleep 1; done
-        [ -e "$tmp/$d.ok" ] || { touch "$tmp/$p.failed"; exit 1; }
+        [ -e "$tmp/$d.ok" ] || exit 1
       done
       # not in an `if`'s condition, where `set -e` would not stop the part at its first failing command
       set +e
       (set -e; "part_$p") > "$tmp/$p.out" 2>&1
       rc=$?
       set -e
-      if [ "$rc" -eq 0 ]; then touch "$tmp/$p.ok"; else touch "$tmp/$p.failed"; exit 1; fi
+      if [ "$rc" -eq 0 ]; then touch "$tmp/$p.ok"; else exit 1; fi
     ) & pids+=($!)
   done
   for i in "${!todo[@]}"; do
@@ -351,7 +355,7 @@ for s in "${selected[@]}"; do
 done
 if [ ${#targets[@]} -gt 0 ]; then
   step "the checks' Lean builds: $(printf '%s\n' "${targets[@]}" | sort -u | tr '\n' ' ')"
-  python3 -I ../lake-build.py . $(printf '%s\n' "${targets[@]}" | sort -u) "${jobs[@]}"
+  python3 -I ../lake-build.py . $(printf '%s\n' "${targets[@]}" | sort -u) ${jobs[@]+"${jobs[@]}"}
 fi
 built=1
 run_parts "${parts[@]}"
