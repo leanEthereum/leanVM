@@ -231,7 +231,7 @@ theorem jumpF_of {κ : ℕ} {L : MemoryImage κ} {j fp : ℕ} {σ : Val} {es : L
   have hd := JumpCells.jcData_all j (by omega) (by have : nFns = fn_count% := rfl; omega)
   unfold jcData jcDataD at hd
   simp only [Bool.and_eq_true] at hd
-  obtain ⟨⟨⟨⟨⟨⟨⟨hstat, harms⟩, -⟩, -⟩, hextra⟩, hblock⟩, -⟩, -⟩ := hd
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨hstat, harms⟩, -⟩, -⟩, hextra⟩, hblock⟩, -⟩, -⟩, -⟩ := hd
   have hcont := Check.cont_of (End.winOk_of (by omega) hj2)
   have hstatB : ∀ {o : ℕ} {w : PC}, (o, w) ∈ (plumbOf j).stat →
       cellAt L fp o = some (w.word fp) ∧ (∀ a b, w = .k a b → a < 2 ^ 64 ∧ b < 2 ^ 64) := by
@@ -581,7 +581,7 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
     fun hneed es0 vs0 hw0 p r0 rs hl ↦ ?_, hparF,
     fun es0 vs0 hw0 v hv ↦ ?_, fun es0 vs0 hw0 k hk ↦ ?_, fun es0 vs0 hw0 i0 c q s0 hc htk hs0 ↦ ?_,
     fun es0 vs0 hw0 i0 c q s0 hc htk hs0 htg0 t hte ↦ ?_, ?_,
-    fun es0 vs0 hw0 e0 he0 ↦ ?_, fun es0 vs0 hw0 i0 c hc hi0 off oc od q S hoff hoc hod hq hfetch hso hS ↦ ?_,
+    fun es0 vs0 hw0 e0 he0 ↦ ?_, fun es0 vs0 hw0 i0 c hc hi0 off oc od q hoff hoc hod hq hfetch hnx ↦ ?_,
     fun hmX ↦ hroot ?_⟩
   · -- the events hold: the instance is a node of the valid tree
     rcases insts_good (P := coreProgram) (rd := rd) _ _ _ hH.valid e.I hI with ⟨args, rets, hv⟩ | ⟨f', σ', hph⟩
@@ -742,11 +742,12 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
     have hlenf : (fnOf j).code.length = (fnOf j).instructionCount :=
       CompiledFunction.length_code (CompiledFunction.wellChunked_of_mem hfm)
     have hX : Cf.X = Bridge.ctxOf j := hx0.symm
-    rw [hX] at hoff hfetch hso
+    rw [hX] at hoff hfetch hnx
     have hcode := Bridge.jump_of_fetch hfm (by rw [hlenf]; exact hoff) hoc hod hq hfetch
     simp only [Nat.blt_eq] at hj1
     rw [← hfpL]
-    exact Bridge.tailF_of (by omega) hj0 hF hc hi0 hcode hso hS
+    exact ⟨B2C.fsN j, by have := B2C.two_le_fsN j; omega, B2C.fsN_lt j,
+      Bridge.tailF_of (by omega) hj0 hF hw hc hi0 hcode hnx⟩
   · -- `main`'s frame
     rw [← hx0] at hmX
     simpa [Bridge.ctxOf, Bridge.AlignCtx.ofData] using hmX

@@ -16,7 +16,7 @@ public import LeanVM.Guest.AcceptableChild
 # One query, assembled (`opening_query`)
 
 `oqQuery_sound`: the statements of `oqQueryT` (the row and its packs, the padding run, the leaf
-hash, the call of a sound `walk_path`, the fold and, at the final level, the check) at the point
+hash, the walk inline, the fold and, at the final level, the check) at the point
 `x = eOfNat q`, `q` the position whose windows the window pointer's run holds, read the windows,
 open the row `oqRow` at `q` (`QueryOpensS`), read the rounds at `coefs` (`oqRounds`), none of
 whose combiners vanishes at `q`, and give the fold's value `foldRow (lanesOf base row) q rounds`;
@@ -61,24 +61,22 @@ theorem lanesOf_oqRow {s : Oq} {b : ℕ} (hK : s.base = 1 → ∀ j < s.I, IsInK
 
 /-! ## One query -/
 
-/-- The query's pieces, by membership: its atoms, and the walk's call. -/
+/-- The query's pieces, by membership: its atoms, and its walk's block. -/
 theorem oqQuery_pieces {C : CallRel} {s : Oq} {x bp cap flags coefs hs : V} {b : ℕ} {emit : Bool}
-    {pr : ℕ} {walk : String} (hA : BlockOkC C rd σ (oqQueryT s x bp cap flags coefs hs b emit pr walk)) :
+    {pr : ℕ} (hA : BlockOkC C rd σ (oqQueryT s x bp cap flags coefs hs b emit pr)) :
     (∀ a, Stmt.atom a ∈ oqPrepT s b → a.Holds rd σ) ∧
       (emit = true → ∀ a, Stmt.atom a ∈ oqPadT (oqK1 s b) → a.Holds rd σ) ∧
       (∀ a, Stmt.atom a ∈ oqLeafT s b (oqPr s b emit pr) (oqKL s b emit) → a.Holds rd σ) ∧
-      C walk [σ (.n (oqOut s (oqKL s b emit) (s.B - 1) 0)), σ (.n (oqOut s (oqKL s b emit) (s.B - 1) 1)),
-        σ bp, σ cap, σ flags] [] ∧
-      (∀ a, Stmt.atom a ∈ oqFoldT s coefs x b (oqCh s b emit) → a.Holds rd σ) ∧
-      (s.final = 1 → ∀ a, Stmt.atom a ∈ oqFinT s x hs (oqVal s (oqCh s b emit)) → a.Holds rd σ) := by
+      BlockOk rd σ (oqWalkT s bp cap flags (oqPr s b emit pr) (oqDig s b emit) (oqCh s b emit)) ∧
+      (∀ a, Stmt.atom a ∈ oqFoldT s coefs x b (oqFo s b emit) → a.Holds rd σ) ∧
+      (s.final = 1 → ∀ a, Stmt.atom a ∈ oqFinT s x hs (oqVal s (oqFo s b emit)) → a.Holds rd σ) := by
   refine ⟨fun a h => hA.atom ?_, fun he a h => hA.atom ?_, fun a h => hA.atom ?_, ?_,
     fun a h => hA.atom ?_, fun hf a h => hA.atom ?_⟩
   · simp only [oqQueryT, List.mem_append]; simp_all
   · simp only [oqQueryT, List.mem_append]; simp_all
   · simp only [oqQueryT, List.mem_append]; simp_all
-  · have := hA.call (f := walk) (args := [.n (oqOut s (oqKL s b emit) (s.B - 1) 0),
-      .n (oqOut s (oqKL s b emit) (s.B - 1) 1), bp, cap, flags]) (rets := []) (by simp [oqQueryT])
-    simpa using this
+  · refine (hA.mono fun st hst ↦ ?_).blockOk (oqWalkT_flat _ _ _ _ _ _ _)
+    simp only [oqQueryT, List.mem_append]; simp_all
   · simp only [oqQueryT, List.mem_append]; simp_all
   · simp only [oqQueryT, List.mem_append]; simp_all
 
@@ -101,26 +99,26 @@ theorem oqQuery_packs {s : Oq} (hb : s.base = 1) (hI : s.I % 2 = 0) {b : ℕ}
     simp only [oqPk, hb, ↓reduceIte]
     rw [this, hr _ (by omega), hr _ (by omega), Nat.add_assoc]
 
-/-- **One query** (`opening_query` with a sound `walk_path`) at the point `x = eOfNat q`: with the
-padding run `1, 0, 0, 0, 0` and the window pointer's run holding the windows of
-`q < 2^(pd + cd)`, the query reads its windows, opens the row at `q`, reads the rounds, and its
-fold's value is `foldRow`; at the final level the fold is
-`novelSum` of the coefficients at `hs` over `wsChain` at the point. -/
-theorem oqQuery_sound {P : Program} {s : Oq} (hs : s.RowShape) {walk : String}
-    (hW : WalkSound P walk s.pd s.cd)
+/-- **One query** (`opening_query`, `walk_path` inline) at the point `x = eOfNat q`, at a level of cap
+depth `cd`: with the padding run `1, 0, 0, 0, 0` and the window pointer's run holding the windows
+of `q < 2^(pd + cd)`, the query reads its windows, its hinted cells hold siblings with which it
+opens the row at `q` into the cap and flags it is given, reads the rounds, and its fold's value is
+`foldRow`. -/
+theorem oqQuery_sound {C : CallRel} {s : Oq} (hs : s.RowShape) {cd : ℕ} (hcd : 1 ≤ cd)
     {x bp cap flags coefs hsV : V} {b : ℕ} {emit : Bool} {pr : ℕ}
-    (hA : BlockOkC (P.Rel rd) rd σ (oqQueryT s x bp cap flags coefs hsV b emit pr walk))
+    (hA : BlockOkC C rd σ (oqQueryT s x bp cap flags coefs hsV b emit pr))
     (hpad : σ (.n (oqPr s b emit pr)) = word 1 0)
     (hz : ∀ i < 4, σ (.n (oqPr s b emit pr + 1 + i)) = 0)
-    {q : ℕ} (hq : q < 2 ^ (s.pd + s.cd)) (hx : σ x = eOfNat q)
-    (hwin : ∀ i v, LoadHolds rd (σ bp) i v → i < qwN (s.pd + s.cd) s.cd →
-      v = gen ^ qwVal (s.pd + s.cd) s.cd q i) :
-    (∀ i < qwN (s.pd + s.cd) s.cd, LoadHolds rd (σ bp) i (gen ^ qwVal (s.pd + s.cd) s.cd q i)) ∧
-    (∃ sibs, QueryOpensS rd s.base s.folds (s.pd + s.cd) s.cd (σ cap) (σ flags) q (oqRow s b σ) sibs) ∧
-    RoundsAt rd (σ coefs) (oqRounds s (oqCh s b emit) σ) ∧
-    σ (.n (oqVal s (oqCh s b emit))) =
-      foldRow (lanesOf s.base (oqRow s b σ)) (K.ofBits q) (oqRounds s (oqCh s b emit) σ) := by
-  obtain ⟨hP, -, hL, hcall, hF, -⟩ := oqQuery_pieces hA
+    {q : ℕ} (hq : q < 2 ^ (s.pd + cd)) (hx : σ x = eOfNat q)
+    (hwin : ∀ i v, LoadHolds rd (σ bp) i v → i < qwN (s.pd + cd) cd →
+      v = gen ^ qwVal (s.pd + cd) cd q i) :
+    (∀ i < qwN (s.pd + cd) cd, LoadHolds rd (σ bp) i (gen ^ qwVal (s.pd + cd) cd q i)) ∧
+    (∃ sibs, (∀ l < s.pd, SibAt σ (oqCh s b emit) l (sibs.getD l default)) ∧
+      QueryOpensS rd s.base s.folds s.pd (σ cap) (σ flags) q (oqRow s b σ) sibs) ∧
+    RoundsAt rd (σ coefs) (oqRounds s (oqFo s b emit) σ) ∧
+    σ (.n (oqVal s (oqFo s b emit))) =
+      foldRow (lanesOf s.base (oqRow s b σ)) (K.ofBits q) (oqRounds s (oqFo s b emit) σ) := by
+  obtain ⟨hP, -, hL, hW, hF, -⟩ := oqQuery_pieces hA
   have hf : 1 ≤ s.folds := by rcases hs with ⟨-, h⟩ | ⟨-, h⟩ <;> omega
   -- the row's lanes
   have hI : s.I % 2 = 0 := by
@@ -143,14 +141,14 @@ theorem oqQuery_sound {P : Program} {s : Oq} (hs : s.RowShape) {walk : String}
           show j < s.I by simpa [Oq.ncells, hb] using hj]) ?_
       rw [cellsBytes_limbs]
       simp [oqRow, hb, oqCells, List.flatMap_map]
-  obtain ⟨-, hwl, sibs, hsl, hflag, hc0, hc1⟩ := hW rd _ _ _ _ _ _ hcall _ q hleaf hq hwin
+  have hdig1 : oqDig s b emit + 1 = oqOut s (oqKL s b emit) (s.B - 1) 1 := by
+    simp only [oqDig, oqOut]; split_ifs <;> omega
+  obtain ⟨hwl, sibs, hsl, hsib, hflag, hc0, hc1⟩ := oqWalk_sound hcd hW hpad hz
+    (by rw [hdig1]; exact hleaf) hq hwin
   obtain ⟨hRA, hval⟩ := oqFold_sound hf hF
-  refine ⟨hwl, ⟨sibs, length_oqRow s b σ, by simpa using hsl, ?_, ?_, ?_⟩, hRA, ?_⟩
-  · rw [show s.pd + s.cd - s.cd = s.pd by omega]; exact hc0
-  · rw [show s.pd + s.cd - s.cd = s.pd by omega]; exact hc1
-  · rw [show s.pd + s.cd - s.cd + 1 = s.pd + 1 by omega]; exact hflag
-  · rw [hval, foldRow_eq, lanesOf_oqRow hKr, hx]
-    rfl
+  refine ⟨hwl, ⟨sibs, hsib, length_oqRow s b σ, hsl, hc0, hc1, hflag⟩, hRA, ?_⟩
+  rw [hval, foldRow_eq, lanesOf_oqRow hKr, hx]
+  rfl
 
 end
 end LeanVM.Guest.B1

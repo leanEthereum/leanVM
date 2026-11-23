@@ -14,7 +14,7 @@ public import LeanVM.Guest.Memory.SizeTotal
 
 A valid tree of a function of `S`, the paths of `S`'s functions calling only functions of `S`
 (`CallsIn`), names only functions of `S`, its phantoms included. So its words and its weight are the
-same at two frame sizes (two weights) agreeing on the functions of `S` in the program (a valid
+same at two frame sizes (two weights) agreeing on the functions of `S` in the program and their tails (a valid
 tree's instances and phantoms are the program's) (`total_congr`, `weight_congr`), and
 `TotalLe`, `TotalLeOn` and `WeightLe` transfer (`totalLe_transfer`, `totalLeOn_transfer`,
 `weightLe_transfer`).
@@ -34,14 +34,16 @@ variable {fs fs' : String → ℕ}
 
 mutual
 /-- **The words of a tree of `S` at two frame sizes agreeing on `S`.** -/
-theorem total_congr (hc : CallsIn P S) (hS : ∀ g, S g → ∀ fn, P.find? g = some fn → fs g = fs' g) :
+theorem total_congr (hc : CallsIn P S)
+    (hS : ∀ g, S g → ∀ fn, P.find? g = some fn → fs g = fs' g ∧ fs (tailKey g) = fs' (tailKey g)) :
     ∀ (t : Tree) {args rets : List E}, S t.name → t.Valid P rd args rets → t.total fs = t.total fs'
   | .node f σ bufs kids, args, rets, hs, hv => by
       obtain ⟨fn, hf, -, es, vs, hw, -, -, hk⟩ := hv
-      rw [Tree.total, Tree.total, hS f hs fn hf, totalKids_congr hc hS kids hk (hc f hs fn hf σ es vs hw)]
+      rw [Tree.total, Tree.total, (hS f hs fn hf).1, totalKids_congr hc hS kids hk (hc f hs fn hf σ es vs hw)]
   | .phantom .., _, _, _, hv => hv.elim
 
-theorem totalKids_congr (hc : CallsIn P S) (hS : ∀ g, S g → ∀ fn, P.find? g = some fn → fs g = fs' g) :
+theorem totalKids_congr (hc : CallsIn P S)
+    (hS : ∀ g, S g → ∀ fn, P.find? g = some fn → fs g = fs' g ∧ fs (tailKey g) = fs' (tailKey g)) :
     ∀ (ks : List Tree) {σ : Val} {cs : List Call}, Tree.KidsValid P rd σ cs ks → (∀ c ∈ cs, S c.f) →
       Tree.totalKids fs ks = Tree.totalKids fs' ks
   | [], _, [], _, _ => rfl
@@ -59,7 +61,7 @@ theorem totalKids_congr (hc : CallsIn P S) (hS : ∀ g, S g → ∀ fn, P.find? 
       · simp only [ht, Bool.false_eq_true, ↓reduceIte] at hk
         obtain ⟨⟨f', σ', rfl⟩, fn', hfn', -⟩ := hk
         simp only [Tree.name] at hkn hfn'
-        rw [Tree.total, Tree.total, hS f' hkn fn' hfn']
+        rw [Tree.total, Tree.total, (hS f' hkn fn' hfn').2]
 end
 
 end Congr

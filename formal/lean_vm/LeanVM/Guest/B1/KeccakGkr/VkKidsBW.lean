@@ -76,7 +76,7 @@ theorem kids_completeB_fs (h : D.Ok) {κ : ℕ} (hκ : 11 ≤ κ) (B curE chiE o
       (D.kidsB LeanVM.Guest.B2C.fs 17 374 77 201 145) :=
   kids_completeB h hκ B curE chiE olE zvE slE tbE stE copyLoop_totalLeOn_fs
     (fun _ hf ↦ packLoop_totalLeOn_fs hf) (fun _ hf ↦ remLoop_totalLeOn_fs hf)
-    plain0_totalLe_fs plain1_totalLe_fs
+    plain0_totalLe_fs plain1_totalLe_fs B2C.fs_tailKey_le
 
 /-- **The callees' words at `B2C.fs`, in numbers**: the copy loops `(τ - 4) * 17 + 17` each, the
 openings' rounds `201 + 145 + 201`, each layer (`y = τ - 3`) at most

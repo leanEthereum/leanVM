@@ -1423,9 +1423,13 @@ theorem selBound_sound (hB : BookHolds L fp B) :
 
 /-- Memory read through frame cells is bounded: for each `(o, c, n)`, a word read at `fp[o]·g^c`
 is `g^e` with `e < n` (`Cut.knownIf`; what `MemPre` and `MemKnown` give, `memIf_of_pre`,
-`memIf_of_known`). -/
+`memIf_of_known`), or, at `c = memTwice c1 c2` (`c ≥ 2^32`), a word read at `q·g^c2` for a word
+`q` read at `fp[o]·g^c1`. -/
 def MemIf (L : MemoryImage κ) (fp : K) (mem : List (ℕ × ℕ × ℕ)) : Prop :=
-  ∀ m ∈ mem, ∀ v, Core.LoadHolds L.read (wd L fp m.1) m.2.1 v → ∃ e < m.2.2, v = ofK (addressOfIndex e)
+  ∀ m ∈ mem, ∀ q v,
+    (if m.2.1 < 2 ^ 32 then q = wd L fp m.1 else Core.LoadHolds L.read (wd L fp m.1) (m.2.1 % 2 ^ 32) q) →
+    Core.LoadHolds L.read q (if m.2.1 < 2 ^ 32 then m.2.1 else m.2.1 / 2 ^ 32 - 1) v →
+      ∃ e < m.2.2, v = ofK (addressOfIndex e)
 
 theorem MemIf.append {l₁ l₂ : List (ℕ × ℕ × ℕ)} (h₁ : MemIf L fp l₁) (h₂ : MemIf L fp l₂) :
     MemIf L fp (l₁ ++ l₂) := by
@@ -1434,8 +1438,35 @@ theorem MemIf.append {l₁ l₂ : List (ℕ × ℕ × ℕ)} (h₁ : MemIf L fp l
   · exact h₁ m hm
   · exact h₂ m hm
 
-theorem memIf_of_pre {mem : List (ℕ × ℕ × ℕ)} (h : MemPre L fp mem) : MemIf L fp mem := by
-  intro m hm v hv
+/-- A bound read once (`memSmall`): a word read at `fp[o]·g^c` is `g^e`, `e < n`. -/
+theorem MemIf.once {mem : List (ℕ × ℕ × ℕ)} (h : MemIf L fp mem) {m : ℕ × ℕ × ℕ} (hm : m ∈ mem)
+    (hs : m.2.1 < 2 ^ 32) {v : E} (hv : Core.LoadHolds L.read (wd L fp m.1) m.2.1 v) :
+    ∃ e < m.2.2, v = ofK (addressOfIndex e) :=
+  h m hm _ v (by rw [ite_eq_left_of_eq_true _ _ (eq_true hs)]) (by rw [ite_eq_left_of_eq_true _ _ (eq_true hs)]; exact hv)
+
+/-- A bound read twice (`memTwice c1 c2`): a word read at `q·g^c2`, `q` read at `fp[o]·g^c1`, is
+`g^e`, `e < n`. -/
+theorem MemIf.twice {mem : List (ℕ × ℕ × ℕ)} (h : MemIf L fp mem) {o c1 c2 n : ℕ}
+    (hm : (o, memTwice c1 c2, n) ∈ mem) (hc : c1 < 2 ^ 32) {q v : E}
+    (hq : Core.LoadHolds L.read (wd L fp o) c1 q) (hv : Core.LoadHolds L.read q c2 v) :
+    ∃ e < n, v = ofK (addressOfIndex e) := by
+  have hb : ¬ memTwice c1 c2 < 2 ^ 32 := by unfold memTwice; omega
+  have e1 : memTwice c1 c2 % 2 ^ 32 = c1 := by
+    unfold memTwice; rw [Nat.mul_add_mod, Nat.mod_eq_of_lt hc]
+  have e2 : memTwice c1 c2 / 2 ^ 32 - 1 = c2 := by
+    unfold memTwice
+    rw [Nat.add_comm, Nat.add_mul_div_left _ _ (by positivity), Nat.div_eq_of_lt hc]
+    omega
+  exact h _ hm q v (by rw [ite_eq_right_of_eq_false _ _ (eq_false hb), e1]; exact hq)
+    (by rw [ite_eq_right_of_eq_false _ _ (eq_false hb), e2]; exact hv)
+
+/-- The memory bounds of the semantic precondition read once (`memSmall`) hold as `MemIf`. -/
+theorem memIf_of_pre {mem : List (ℕ × ℕ × ℕ)} (h : MemPre L fp mem) : MemIf L fp (mem.filter memSmall) := by
+  intro m hm q v hq hv
+  obtain ⟨hm, hs⟩ := List.mem_filter.mp hm
+  have hs : m.2.1 < 2 ^ 32 := by simpa [memSmall] using hs
+  rw [ite_eq_left_of_eq_true _ _ (eq_true hs)] at hq hv
+  subst hq
   obtain ⟨p, hp, -, e, he, hr⟩ := h m hm
   rw [wd_of hp] at hv
   exact ⟨e, he, Option.some.inj (hv.2.symm.trans hr)⟩
@@ -1454,15 +1485,35 @@ theorem boundBase_sound {mem : List (ℕ × ℕ × ℕ)} (hm : MemIf L fp mem) (
       obtain ⟨e, e', he, hx, -⟩ := hh
       exact ⟨e, by omega, hx⟩
     · rename_i pc o1 o2 o3
-      simp only [Bool.and_eq_true, beq_iff_eq] at hp
-      obtain ⟨rfl, hp⟩ := hp
-      obtain ⟨m, hmm, hq⟩ := List.any_eq_true.mp hp
-      simp only [Bool.and_eq_true, beq_iff_eq, Nat.ble_eq] at hq
-      obtain ⟨⟨rfl, ho2⟩, hle⟩ := hq
-      obtain ⟨p, v3, h1, hK, h3, h2⟩ := hh
-      simp only [derefSource] at h2
-      obtain ⟨e, he, hv⟩ := hm m hmm v3 ⟨by rw [wd_of h1]; exact hK, by rw [wd_of h1, ho2]; exact h2⟩
-      exact ⟨e, by omega, by rw [h3, hv]⟩
+      simp only [Bool.and_eq_true, Bool.or_eq_true, beq_iff_eq] at hp
+      obtain ⟨rfl, hp | hp⟩ := hp
+      · obtain ⟨m, hmm, hq⟩ := List.any_eq_true.mp hp
+        simp only [Bool.and_eq_true, beq_iff_eq, Nat.ble_eq, Nat.blt_eq] at hq
+        obtain ⟨⟨⟨rfl, ho2⟩, hs⟩, hle⟩ := hq
+        obtain ⟨p, v3, h1, hK, h3, h2⟩ := hh
+        simp only [derefSource] at h2
+        obtain ⟨e, he, hv⟩ := hm.once hmm (by omega)
+          ⟨by rw [wd_of h1]; exact hK, by rw [wd_of h1, ho2]; exact h2⟩
+        exact ⟨e, by omega, by rw [h3, hv]⟩
+      · obtain ⟨b, hb', hp⟩ := List.any_eq_true.mp hp
+        have hh' := hB o1 b hb'
+        split at hp
+        · rename_i pc' p0 c1 o1'
+          simp only [Bool.and_eq_true, beq_iff_eq, Nat.blt_eq] at hp
+          obtain ⟨⟨rfl, hc1⟩, hp2⟩ := hp
+          obtain ⟨m, hmm, hq⟩ := List.any_eq_true.mp hp2
+          simp only [Bool.and_eq_true, beq_iff_eq, Nat.ble_eq] at hq
+          obtain ⟨⟨h01, h02⟩, hle⟩ := hq
+          obtain ⟨p, v3, h1, hK, h3, h2⟩ := hh
+          obtain ⟨p', v1, h1', hK', h3', h2'⟩ := hh'
+          simp only [derefSource] at h2 h2'
+          obtain rfl := Option.some.inj (h1.symm.trans h3')
+          have hmm' : (p0, memTwice c1 o2, m.2.2) ∈ mem := by
+            rw [← h01, ← h02]; exact hmm
+          obtain ⟨e, he, hv⟩ := hm.twice hmm' hc1 ⟨by rw [wd_of h1']; exact hK', by rw [wd_of h1']; exact h2'⟩
+            ⟨hK, h2⟩
+          exact ⟨e, by omega, by rw [h3, hv]⟩
+        · simp at hp
     · simp at hp
   · obtain ⟨p, hp, hq⟩ := List.any_eq_true.mp h
     simp only [Bool.and_eq_true, beq_iff_eq, Nat.ble_eq] at hq
@@ -1661,8 +1712,13 @@ theorem boundOk_sound {F : Exec.Facts} (hF : F.pows.Ok) {ψ : Trie Sym} (hψ : E
 def MemKnown (L : MemoryImage κ) (fp : K) (known : List (ℕ × ℕ × ℕ)) : Prop :=
   ∀ k ∈ known, ∃ e < k.2.2, Core.LoadHolds L.read (wd L fp k.1) k.2.1 (ofK (addressOfIndex e))
 
-theorem memIf_of_known {known : List (ℕ × ℕ × ℕ)} (h : MemKnown L fp known) : MemIf L fp known := by
-  intro m hm v hv
+theorem memIf_of_known {known : List (ℕ × ℕ × ℕ)} (h : MemKnown L fp known) :
+    MemIf L fp (known.filter memSmall) := by
+  intro m hm q v hq hv
+  obtain ⟨hm, hs⟩ := List.mem_filter.mp hm
+  have hs : m.2.1 < 2 ^ 32 := by simpa [memSmall] using hs
+  rw [ite_eq_left_of_eq_true _ _ (eq_true hs)] at hq hv
+  subst hq
   obtain ⟨e, he, hl⟩ := h m hm
   exact ⟨e, he, Option.some.inj (hv.2.symm.trans hl.2)⟩
 

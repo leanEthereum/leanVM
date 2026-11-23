@@ -160,6 +160,13 @@ def guest_const(name):
     return int(re.search(r'def const_%s : Nat := (\d+)' % name, t).group(1))
 
 
+def guest_arr(name):
+    """The guest's constant array `name` of numbers (`Data.arr_NAME`)."""
+    t = open(CONSTS, encoding='utf-8').read()
+    body = re.search(r'def arr_%s : List \(Nat × Nat\) :=\s*\[(.*?)\]' % name, t, re.S).group(1)
+    return [int(a) for a, _ in re.findall(r'\((\d+), (\d+)\)', body)]
+
+
 _NAMES = {}
 
 

@@ -205,7 +205,7 @@ theorem hintComputed_X {Y : Ref → St → Prop} {A : String → FnAl} (hP : Pro
   have hfp1 : s1.fp = e.I.fp := hm.1.trans hfp.symm
   obtain ⟨i, -, -, -, -, -, hfs, -⟩ := B2C.fn_of_idx hj
   have hwithin : e.I.fp + B2C.fs e.I.t.name ≤ r.T.total B2C.fs :=
-    honest_within hI (by have := hHon.cells.two_le e.I hI; omega)
+    honest_within_node hI hIt (by have := hHon.cells.two_le e.I hI; omega)
   have h28 : r.T.total B2C.fs ≤ 2 ^ 28 :=
     le_trans (le_two_pow_logMem _) (Nat.pow_le_pow_right (by norm_num) hκ)
   have h2k : 2 ^ r.κ ≤ maxCells := Nat.pow_le_pow_right (by norm_num) hκ

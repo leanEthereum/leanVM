@@ -133,12 +133,12 @@ noncomputable def Xp (j i k : ℕ) : CX :=
 
 /-- The walk's start of part `k`. -/
 noncomputable def st0 (j i k : ℕ) (s : Exec.Seg) : CW :=
-  ⟨s, s.items.drop (partM j i k), fileB (clocW (certOf j) i) (fsN j) (partStmts j i k) .nil, [], [], [],
+  ⟨s, s.items.drop (partM j i k), fileB (clocW (certOf j) i) (fsN j) (nxOf j) (partStmts j i k) .nil, [], [], [],
     partC j i k, partU j i k, bif Nat.beq (partM j i k) 0 then some (partJ j i k) else none, 0⟩
 
 /-- The walk's start of an entered part. -/
 noncomputable def st0E (j i k : ℕ) (s : Exec.Seg) : CW :=
-  ⟨s, s.items, fileB (clocW (certOf j) i) (fsN j) (partStmts j i k) .nil, [], [], [],
+  ⟨s, s.items, fileB (clocW (certOf j) i) (fsN j) (nxOf j) (partStmts j i k) .nil, [], [], [],
     partC j i k, partU j i k, some (partJ j i k), 0⟩
 
 theorem cplRes_eq (j i k : ℕ) : cplRes j i k = (match getF (index (segsW j i)) (partJ j i k) with
@@ -242,7 +242,7 @@ theorem wh_part (F : FnH L j fp σ es vs kfps hdr ck)
   refine ⟨cxOk F.frame F.pows _ _ _ _, hctx, fun s hs ↦ execWinS_z hctx hfet hs,
     fun s hs ↦ (execWinS_good (L := L) hctx hfet _ _ _ _ s hs).2.2, rfl, hcw.2.2.1,
     fun v c h ↦ clocW_get (cont_of F.chk) hi hcw.2.1 rfl hpack h, rfl, rfl, rfl, rfl, rfl, rfl,
-    rfl, rfl, rfl, rfl, fun n hsel ↦ ?_, F.frame, F.kids, F.hev, fun hl ↦ lastCall_of F.walk hl hlb, F.jt,
+    rfl, rfl, rfl, rfl, rfl, fun n hsel ↦ ?_, F.frame, F.kids, F.hev, fun hl ↦ lastCall_of F.walk hl hlb, F.jt,
     F.tab, F.j1, F.jn⟩
   simp only [Bool.or_eq_true, Nat.blt_eq] at hsel
   unfold namedOf

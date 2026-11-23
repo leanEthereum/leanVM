@@ -310,7 +310,7 @@ end
 
 /-- **Two instances at one frame are one**, among instances pairwise apart, frames nonempty. -/
 theorem inst_eq_of_fp {Is : List Inst} (hp : Is.Pairwise (Inst.Apart fs)) {I J : Inst} (hI : I ∈ Is)
-    (hJ : J ∈ Is) (hfp : I.fp = J.fp) (h1 : 0 < fs I.t.name) (h2 : 0 < fs J.t.name) : I = J := by
+    (hJ : J ∈ Is) (hfp : I.fp = J.fp) (h1 : 0 < I.t.fsz fs) (h2 : 0 < J.t.fsz fs) : I = J := by
   by_contra hne
   have hA : Inst.Apart fs I J :=
     List.Pairwise.forall hp hI hJ hne

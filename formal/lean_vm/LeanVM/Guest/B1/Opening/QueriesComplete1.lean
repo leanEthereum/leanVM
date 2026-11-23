@@ -43,9 +43,15 @@ variable (d : QD) {rd : Reader} {σ : Val}
 
 theorem b_le_ch : d.b ≤ d.ch := by rw [ch_off]; omega
 
-theorem ch_le_v : d.ch ≤ d.v := by
+theorem ch_le_fo : d.ch ≤ d.fo := by rw [fo_eq]; omega
+
+theorem b_le_fo : d.b ≤ d.fo := le_trans d.b_le_ch d.ch_le_fo
+
+theorem fo_le_v : d.fo ≤ d.v := by
   simp only [v, oqVal, oqAcc, oqRO, d.oqRK_eq]
   omega
+
+theorem ch_le_v : d.ch ≤ d.v := le_trans d.ch_le_fo d.fo_le_v
 
 theorem v_lt_oqNovel (s : Oq) (hs : V) (v : ℕ) : v < (oqNovel s hs v).2.2 := by
   simp only [oqNovel]
@@ -133,13 +139,13 @@ theorem roundVals_out (j : ℕ) {m c : ℕ} (hm : m < 2 ^ (d.s.folds - 1 - j)) (
 /-- **The fold's atoms hold** at the honest values, the rounds at `coefs`, the point `x`. -/
 theorem oqFold_complete {coefs x : V} (hf1 : 1 ≤ d.s.folds) (hv : d.Hv σ)
     (hR : RoundsAt rd (σ coefs) d.rounds) (hrl : d.rounds.length = d.s.folds) (hx : σ x = d.x) :
-    ∀ a, Stmt.atom a ∈ oqFoldT d.s coefs x d.b d.ch → a.Holds rd σ := by
-  have hbc := d.b_le_ch
+    ∀ a, Stmt.atom a ∈ oqFoldT d.s coefs x d.b d.fo → a.Holds rd σ := by
+  have hbc := d.b_le_fo
   have hvv := d.v_eq hf1
-  have hrk := d.oqRK_eq d.ch
+  have hrk := d.oqRK_eq d.fo
   -- a round's value at offset `o`
   have hvr : ∀ j < d.s.folds, ∀ o < (d.roundVals j).length,
-      σ (.n (oqRK d.s d.ch j + o)) = (d.roundVals j).getD o 0 := by
+      σ (.n (oqRK d.s d.fo j + o)) = (d.roundVals j).getD o 0 := by
     intro j hj o ho
     have h1 : offOf d.roundVals (j + 1) ≤ offOf d.roundVals d.s.folds := offOf_mono _ hj
     simp only [offOf] at h1
@@ -147,18 +153,18 @@ theorem oqFold_complete {coefs x : V} (hf1 : 1 ≤ d.s.folds) (hv : d.Hv σ)
   have hlen : ∀ j, 4 + 2 * 2 ^ (d.s.folds - 1 - j) = (d.roundVals j).length := fun j ↦ by
     rw [roundVals_length]
   have hhead : ∀ j < d.s.folds, ∀ o < 4,
-      σ (.n (oqRK d.s d.ch j + o)) =
+      σ (.n (oqRK d.s d.fo j + o)) =
         [(d.rd j).alpha, (d.rd j).beta, (d.rd j).beta * d.x, d.t j].getD o 0 := fun j hj o ho ↦ by
     rw [hvr j hj o (by rw [← hlen]; omega), roundVals_head d j ho]
   have hout : ∀ j < d.s.folds, ∀ m < 2 ^ (d.s.folds - 1 - j), ∀ c < 2,
-      σ (.n (oqRO d.s d.ch j + 2 * m + c)) = [d.t j * d.loV j m, d.acc j m].getD c 0 := by
+      σ (.n (oqRO d.s d.fo j + 2 * m + c)) = [d.t j * d.loV j m, d.acc j m].getD c 0 := by
     intro j hj m hm c hc
-    rw [show oqRO d.s d.ch j + 2 * m + c = oqRK d.s d.ch j + (4 + (2 * m + c)) by
+    rw [show oqRO d.s d.fo j + 2 * m + c = oqRK d.s d.fo j + (4 + (2 * m + c)) by
       simp only [oqRO]; omega, hvr j hj _ (by rw [← hlen]; omega), roundVals_out d j hm hc]
   -- the lanes round `j` reads
   have hlohi : ∀ j < d.s.folds, ∀ m < 2 ^ (d.s.folds - 1 - j),
-      σ (.n (oqLoHi d.s d.b d.ch j m).2) + d.t j * σ (.n (oqLoHi d.s d.b d.ch j m).1) = d.acc j m ∧
-        σ (.n (oqLoHi d.s d.b d.ch j m).1) = d.loV j m := by
+      σ (.n (oqLoHi d.s d.b d.fo j m).2) + d.t j * σ (.n (oqLoHi d.s d.b d.fo j m).1) = d.acc j m ∧
+        σ (.n (oqLoHi d.s d.b d.fo j m).1) = d.loV j m := by
     intro j hj m hm
     have hI : d.s.I = 2 ^ d.s.folds := rfl
     rcases j with _ | j
@@ -304,6 +310,7 @@ theorem oqFin_complete {x hs : V} (hf1 : 1 ≤ d.s.folds) (hfinal : d.s.final = 
   have he := d.e_eq hf1 fun _ ↦ ⟨hev, by omega⟩
   have hvv := d.v_eq hf1
   have hc := d.ch_off
+  have hfo := d.fo_eq
   have hfl := d.foldVals_length
   set nv := nvVals d.W (d.s.hsBits - 1) 1 (nvPair (d.W 0) (d.hsv.take d.s.nHs)) with hnv
   have hcl := d.chainVals_length

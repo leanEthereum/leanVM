@@ -461,11 +461,12 @@ noncomputable def fpgCells (P : Plumb) : ℕ :=
     | .fpg _ => some q.1
     | .k .. => none)
 
-/-- Every value is named by its number, has a cell below `n`, in no fixed frame pointer cell, and
-in no temporary's cell unless it is that temporary. -/
-noncomputable def valOk (loc : Loc) (tt : Trie ℕ) (tc fc : ℕ) (n : ℕ) (v : V) : Bool :=
-  v == V.n v.idx && (loc.get? v.idx).isSome && Nat.blt (loc.cell v) n && !bitN fc (loc.cell v) &&
-    (!bitN tc (loc.cell v) || listedT tt v (loc.cell v))
+/-- Every value is named by its number, has a cell below `n` or among the next frame's cells `nx`
+(`nextCells`), in no fixed frame pointer cell, and in no temporary's cell unless it is that
+temporary. -/
+noncomputable def valOk (loc : Loc) (tt : Trie ℕ) (tc fc : ℕ) (n : ℕ) (nx : List ℕ) (v : V) : Bool :=
+  v == V.n v.idx && (loc.get? v.idx).isSome && (Nat.blt (loc.cell v) n || nx.any (Nat.beq (loc.cell v))) &&
+    !bitN fc (loc.cell v) && (!bitN tc (loc.cell v) || listedT tt v (loc.cell v))
 
 /-- The cells a list of `(value, cell)` pairs gives, by cell. -/
 noncomputable def byCell (l : List (ℕ × ℕ)) : Trie ℕ := l.foldl (fun t p ↦ setF p.1 envDepth t p.2) .nil
@@ -553,7 +554,7 @@ noncomputable def shareStaticD (cf : Core.Fn) (C : Cert) (P : Plumb) (fs : ℕ) 
   (locW C 0).seq fun loc ↦ natSeq (tmpCells P) fun tc ↦
   natSeq (fpgCells P) fun fc ↦ (byCell P.tmps).seq fun tt ↦
   (listElementOrDefault C.cells 0 []).all (fun c ↦ Nat.blt c 65536) &&
-  listsOk P fs && snapsOk C snaps && apartOkD C P main mc && cf.params.all (valOk loc tt tc fc fs)
+  listsOk P fs && snapsOk C snaps && apartOkD C P main mc && cf.params.all (valOk loc tt tc fc fs [])
 
 /-- **Window `k` of a function**, starting from the snapshots `snaps`: its values numbered, in
 its soundness window's cells and in the frame; its walk from the parameters' naming (the first
@@ -563,7 +564,7 @@ noncomputable def shareWinD (cf : Core.Fn) (C : Cert) (P : Plumb) (fs : ℕ) (sn
   natSeq (tmpCells P) fun tc ↦ natSeq (fpgCells P) fun fc ↦
   (byCell P.tmps).seq fun tt ↦
   (listElementOrDefault C.cells (winW snaps k) []).all (fun c ↦ Nat.blt c 65536) &&
-  valsAll (valOk loc tt tc fc fs) (stmtsW cf.body snaps k) &&
+  valsAll (valOk loc tt tc fc fs (nextCells C.locs fs (tailArgs cf))) (stmtsW cf.body snaps k) &&
   (match swL loc sh tt P
       (bif k == 0 then nameStep loc sh (initSt P) cf.params else (snapAt snaps k).st)
       (stmtsW cf.body snaps k) with

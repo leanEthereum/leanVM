@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.B1.Whir.Witness
+public import LeanVM.Guest.B1.Whir.Calls
 
 /-!
 # `open_stacked`'s dispatches

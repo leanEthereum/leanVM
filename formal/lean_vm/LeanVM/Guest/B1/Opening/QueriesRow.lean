@@ -6,7 +6,7 @@
 
 module
 
-public import LeanVM.Guest.B1.Opening.QueriesT
+public import LeanVM.Guest.B1.Opening.Interface
 public import LeanVM.Guest.B1.Common.Atoms
 
 /-!

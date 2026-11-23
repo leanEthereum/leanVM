@@ -44,13 +44,15 @@ def mStoresL : List Atom :=
 
 /-- `main`'s loads, by their words' numbers: the five reads, then the stores. -/
 def mLoadOk (d p o : ℕ) : Bool :=
-  decide ((d, p, o) ∈ [(404, 403, 0), (445, 415, 0), (446, 415, 1), (450, 449, 0),
-    (454, 453, 0)]) ||
+  decide ((d, p, o) ∈ [(val% «main» "s57#1", val% «main» "s57#0", 0), (val% «main» "own_0~2", val% «main» "da", 0),
+    (val% «main» "own_0~3", val% «main» "da", 1), (val% «main» "s66#1", val% «main» "s66#0", 0),
+    (val% «main» "s67#1", val% «main» "s67#0", 0)]) ||
   (decide (p = val% «main» "byte_bits") && decide (d = (val% «main» "s43.u0.s0#0") + o) && decide (o < 256)) ||
   decide ((d, p, o) ∈ [(val% «main» "s50.t.s1#0", val% «main» "own_da", 0), (val% «main» "s50.t.s1#0[1]", val% «main» "own_da", 1),
     (val% «main» "s50.e.s0#0", val% «main» "own_da", 0), (val% «main» "s50.e.s1#0", val% «main» "own_da", 1),
     (val% «main» "s55#0", val% «main» "written", 0)]) ||
-  (decide (p = 416) && (decide (o < 23 ∧ d = 420 + o) || decide (o = 23 ∧ d = 419)))
+  (decide (p = val% «main» "defer_stmt") && (decide (o < 23 ∧ d = (val% «main» "s63.t.s1.u0.s0#0") + o) ||
+    decide (o = 23 ∧ d = val% «main» "leaf_value")))
 
 /-- The range checks: the checked value and the bound's constant. -/
 def rcPairs : List (ℕ × ℕ) :=

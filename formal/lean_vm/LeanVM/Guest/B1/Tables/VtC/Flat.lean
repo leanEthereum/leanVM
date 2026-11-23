@@ -31,7 +31,7 @@ open LeanVM.Guest.B1.Fwd
 /-- **`verify_tables`' evaluation list.** -/
 noncomputable def vtEvL : List Stmt := (flatIte vtPre).map fixNe
 
-theorem vt_chk : chk 21 vtEvL = some 5976 := by decide +kernel
+theorem vt_chk : chk 21 vtEvL = some 5672 := by decide +kernel
 
 end
 end LeanVM.Guest.B1.Tables

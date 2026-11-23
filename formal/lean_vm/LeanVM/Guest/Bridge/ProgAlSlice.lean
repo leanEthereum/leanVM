@@ -77,7 +77,7 @@ def cut0 : Cut := ⟨(0, 0), (0, 0), ⟨0, 0, some ([], 0), [], []⟩⟩
 noncomputable def AlignCtx.ofPacked (pl : List ℕ) (locOk : Bool) (extra : List (ℕ × ℕ)) (entry : ℕ) (main : Bool)
     (p : B2C.Plumb) (pows : PowTree) (jt : Trie ℕ) (ents : List (String × ℕ)) (halt len : ℕ) : AlignCtx :=
   ⟨buildT 32 pl, locOk, extra, entry, main, trieOf p.stat, trieOf (p.sites.map fun s ↦ (s.q, s)), trieOf (armsOf p),
-    pows, jt, trieOf (ents.map fun e ↦ (e.2, e.1)), halt, len, 1048576⟩
+    pows, jt, trieOf (ents.map fun e ↦ (e.2, e.1)), halt, len, 1048576, p.nxt⟩
 
 /-! ## Packing in pieces -/
 

@@ -92,8 +92,8 @@ words on, the final claim). -/
 def ZOut (σ : Val) (w : ℕ → E) (S : Fs) (xs : List E) (n : ℕ) : Prop :=
   σ (.n (val% «verify_tables» "g_zc_n")) = gen ^ n ∧ σ (.n (val% «verify_tables» "nxt[0]@3")) = S.squeeze.1 ∧
     [σ (.n (val% «verify_tables» "nxt[8]@3")), σ (.n (val% «verify_tables» "nxt[9]@3")), σ (.n (val% «verify_tables» "nxt[10]@3")), σ (.n (val% «verify_tables» "nxt[11]@3")), σ (.n (val% «verify_tables» "nxt[12]@3"))] = S.squeeze.2.cap ∧
-    σ (.n (val% «verify_tables» "bus_target@3")) = zTarget σ S.squeeze.1 ∧ σ (.n (val% «verify_tables» "zc_rounds")) = w 2620 ∧
-    σ (.n (val% «verify_tables» "zc_cprod")) = w 2621 ∧ σ (.n (val% «verify_tables» "zc_rk")) = w 2625 ∧ σ (.n (val% «verify_tables» "zc_peq")) = w 2641 ∧
+    σ (.n (val% «verify_tables» "bus_target@3")) = zTarget σ S.squeeze.1 ∧ σ (.n (val% «verify_tables» "zc_rounds")) = w 2316 ∧
+    σ (.n (val% «verify_tables» "zc_cprod")) = w 2317 ∧ σ (.n (val% «verify_tables» "zc_rk")) = w 2321 ∧ σ (.n (val% «verify_tables» "zc_peq")) = w 2337 ∧
     [σ (.n (val% «verify_tables» "fs_load.sp[0]")), σ (.n (val% «verify_tables» "fs_load.sp[1]")), σ (.n (val% «verify_tables» "fs_load.sp[2]")), σ (.n (val% «verify_tables» "fs_load.sp[3]")), σ (.n (val% «verify_tables» "fs_load.sp[4]"))] =
       (zcRec S.squeeze.2.cap (zTarget σ S.squeeze.1) xs n).1 ∧
     σ (.n (val% «verify_tables» "cursor@5")) = σ (.n (val% «verify_tables» "cursor@4")) * gen * gen ^ (3 * n) ∧
@@ -101,31 +101,31 @@ def ZOut (σ : Val) (w : ℕ → E) (S : Fs) (xs : List E) (n : ℕ) : Prop :=
 
 /-- The statements evaluation alone does not settle. -/
 noncomputable def zRest : List Stmt := [
-    .atom (.mul (.n (val% «verify_tables» "g_zc_n")) (.n (val% «verify_tables» "s56.u0.s1#1")) (.n (val% «verify_tables» "kb[2]"))),
-    .atom (.rangeCheck (.n (val% «verify_tables» "s56.u0.s1#1")) (.n (val% «verify_tables» "s56.u0.s1#2")) (.n (val% «verify_tables» "s56.u0.s1#3")) (.n (val% «verify_tables» "s56.u0.s1#4")) (.n (val% «verify_tables» "s56.u0.s1#0"))),
-    .atom (.mul (.n (val% «verify_tables» "g_zc_n")) (.n (val% «verify_tables» "s56.u1.s1#1")) (.n (val% «verify_tables» "kb[3]"))),
-    .atom (.rangeCheck (.n (val% «verify_tables» "s56.u1.s1#1")) (.n (val% «verify_tables» "s56.u1.s1#2")) (.n (val% «verify_tables» "s56.u1.s1#3")) (.n (val% «verify_tables» "s56.u1.s1#4")) (.n (val% «verify_tables» "s56.u1.s1#0"))),
-    .atom (.mul (.n (val% «verify_tables» "g_zc_n")) (.n (val% «verify_tables» "s56.u2.s1#1")) (.n (val% «verify_tables» "kb[4]"))),
-    .atom (.rangeCheck (.n (val% «verify_tables» "s56.u2.s1#1")) (.n (val% «verify_tables» "s56.u2.s1#2")) (.n (val% «verify_tables» "s56.u2.s1#3")) (.n (val% «verify_tables» "s56.u2.s1#4")) (.n (val% «verify_tables» "s56.u2.s1#0"))),
-    .atom (.mul (.n (val% «verify_tables» "g_zc_n")) (.n (val% «verify_tables» "s56.u3.s1#1")) (.n (val% «verify_tables» "kb[5]"))),
-    .atom (.rangeCheck (.n (val% «verify_tables» "s56.u3.s1#1")) (.n (val% «verify_tables» "s56.u3.s1#2")) (.n (val% «verify_tables» "s56.u3.s1#3")) (.n (val% «verify_tables» "s56.u3.s1#4")) (.n (val% «verify_tables» "s56.u3.s1#0"))),
-    .atom (.mul (.n (val% «verify_tables» "g_zc_n")) (.n (val% «verify_tables» "s56.u4.s1#1")) (.n (val% «verify_tables» "kb[6]"))),
-    .atom (.rangeCheck (.n (val% «verify_tables» "s56.u4.s1#1")) (.n (val% «verify_tables» "s56.u4.s1#2")) (.n (val% «verify_tables» "s56.u4.s1#3")) (.n (val% «verify_tables» "s56.u4.s1#4")) (.n (val% «verify_tables» "s56.u4.s1#0"))),
-    .atom (.mul (.n (val% «verify_tables» "g_zc_n")) (.n (val% «verify_tables» "s56.u5.s1#1")) (.n (val% «verify_tables» "kb[7]"))),
-    .atom (.rangeCheck (.n (val% «verify_tables» "s56.u5.s1#1")) (.n (val% «verify_tables» "s56.u5.s1#2")) (.n (val% «verify_tables» "s56.u5.s1#3")) (.n (val% «verify_tables» "s56.u5.s1#4")) (.n (val% «verify_tables» "s56.u5.s1#0"))),
-    .atom (.assertEq (.n (val% «verify_tables» "zc_is_a_tau@6")) (.n (val% «verify_tables» "s57#0"))),
-    .atom (.mul (.n (val% «verify_tables» "g_bus_mu")) (.n (val% «verify_tables» "s58#1")) (.n (val% «verify_tables» "g_zc_n"))),
-    .atom (.rangeCheck (.n (val% «verify_tables» "s58#1")) (.n (val% «verify_tables» "s58#2")) (.n (val% «verify_tables» "s58#3")) (.n (val% «verify_tables» "s58#4")) (.n (val% «verify_tables» "s58#0"))),
-    .atom (.keccak [.n (val% «verify_tables» "rate[0]@3"), .n (val% «verify_tables» "rate[1]@3"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[2]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[3]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[4]"), .n (val% «verify_tables» "sp[0]@2"), .n (val% «verify_tables» "sp[1]@2"), .n (val% «verify_tables» "sp[2]@2"), .n (val% «verify_tables» "sp[3]@2"), .n (val% «verify_tables» "sp[4]@2")] [.n (val% «verify_tables» "nxt[0]@3"), .n (val% «verify_tables» "nxt[1]@3"), .n (val% «verify_tables» "nxt[2]@3"), .n (val% «verify_tables» "nxt[3]@3"), .n (val% «verify_tables» "nxt[4]@3"), .n (val% «verify_tables» "nxt[5]@3"), .n (val% «verify_tables» "nxt[6]@3"), .n (val% «verify_tables» "nxt[7]@3"), .n (val% «verify_tables» "nxt[8]@3"), .n (val% «verify_tables» "nxt[9]@3"), .n (val% «verify_tables» "nxt[10]@3"), .n (val% «verify_tables» "nxt[11]@3"), .n (val% «verify_tables» "nxt[12]@3")] false false),
+    .atom (.mul (.n (val% «verify_tables» "g_zc_n")) (.n (val% «verify_tables» "s57.u0.s1#1")) (.n (val% «verify_tables» "kb[2]"))),
+    .atom (.rangeCheck (.n (val% «verify_tables» "s57.u0.s1#1")) (.n (val% «verify_tables» "s57.u0.s1#2")) (.n (val% «verify_tables» "s57.u0.s1#3")) (.n (val% «verify_tables» "s57.u0.s1#4")) (.n (val% «verify_tables» "s57.u0.s1#0"))),
+    .atom (.mul (.n (val% «verify_tables» "g_zc_n")) (.n (val% «verify_tables» "s57.u1.s1#1")) (.n (val% «verify_tables» "kb[3]"))),
+    .atom (.rangeCheck (.n (val% «verify_tables» "s57.u1.s1#1")) (.n (val% «verify_tables» "s57.u1.s1#2")) (.n (val% «verify_tables» "s57.u1.s1#3")) (.n (val% «verify_tables» "s57.u1.s1#4")) (.n (val% «verify_tables» "s57.u1.s1#0"))),
+    .atom (.mul (.n (val% «verify_tables» "g_zc_n")) (.n (val% «verify_tables» "s57.u2.s1#1")) (.n (val% «verify_tables» "kb[4]"))),
+    .atom (.rangeCheck (.n (val% «verify_tables» "s57.u2.s1#1")) (.n (val% «verify_tables» "s57.u2.s1#2")) (.n (val% «verify_tables» "s57.u2.s1#3")) (.n (val% «verify_tables» "s57.u2.s1#4")) (.n (val% «verify_tables» "s57.u2.s1#0"))),
+    .atom (.mul (.n (val% «verify_tables» "g_zc_n")) (.n (val% «verify_tables» "s57.u3.s1#1")) (.n (val% «verify_tables» "kb[5]"))),
+    .atom (.rangeCheck (.n (val% «verify_tables» "s57.u3.s1#1")) (.n (val% «verify_tables» "s57.u3.s1#2")) (.n (val% «verify_tables» "s57.u3.s1#3")) (.n (val% «verify_tables» "s57.u3.s1#4")) (.n (val% «verify_tables» "s57.u3.s1#0"))),
+    .atom (.mul (.n (val% «verify_tables» "g_zc_n")) (.n (val% «verify_tables» "s57.u4.s1#1")) (.n (val% «verify_tables» "kb[6]"))),
+    .atom (.rangeCheck (.n (val% «verify_tables» "s57.u4.s1#1")) (.n (val% «verify_tables» "s57.u4.s1#2")) (.n (val% «verify_tables» "s57.u4.s1#3")) (.n (val% «verify_tables» "s57.u4.s1#4")) (.n (val% «verify_tables» "s57.u4.s1#0"))),
+    .atom (.mul (.n (val% «verify_tables» "g_zc_n")) (.n (val% «verify_tables» "s57.u5.s1#1")) (.n (val% «verify_tables» "kb[7]"))),
+    .atom (.rangeCheck (.n (val% «verify_tables» "s57.u5.s1#1")) (.n (val% «verify_tables» "s57.u5.s1#2")) (.n (val% «verify_tables» "s57.u5.s1#3")) (.n (val% «verify_tables» "s57.u5.s1#4")) (.n (val% «verify_tables» "s57.u5.s1#0"))),
+    .atom (.assertEq (.n (val% «verify_tables» "zc_is_a_tau@6")) (.n (val% «verify_tables» "s58#0"))),
+    .atom (.mul (.n (val% «verify_tables» "g_bus_mu")) (.n (val% «verify_tables» "s59#1")) (.n (val% «verify_tables» "g_zc_n"))),
+    .atom (.rangeCheck (.n (val% «verify_tables» "s59#1")) (.n (val% «verify_tables» "s59#2")) (.n (val% «verify_tables» "s59#3")) (.n (val% «verify_tables» "s59#4")) (.n (val% «verify_tables» "s59#0"))),
+    .atom (.keccak [.n (val% «verify_tables» "rate[0]@3"), .n (val% «verify_tables» "rate[1]@3"), .n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[2]"), .n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[3]"), .n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[4]"), .n (val% «verify_tables» "sp[0]@2"), .n (val% «verify_tables» "sp[1]@2"), .n (val% «verify_tables» "sp[2]@2"), .n (val% «verify_tables» "sp[3]@2"), .n (val% «verify_tables» "sp[4]@2")] [.n (val% «verify_tables» "nxt[0]@3"), .n (val% «verify_tables» "nxt[1]@3"), .n (val% «verify_tables» "nxt[2]@3"), .n (val% «verify_tables» "nxt[3]@3"), .n (val% «verify_tables» "nxt[4]@3"), .n (val% «verify_tables» "nxt[5]@3"), .n (val% «verify_tables» "nxt[6]@3"), .n (val% «verify_tables» "nxt[7]@3"), .n (val% «verify_tables» "nxt[8]@3"), .n (val% «verify_tables» "nxt[9]@3"), .n (val% «verify_tables» "nxt[10]@3"), .n (val% «verify_tables» "nxt[11]@3"), .n (val% «verify_tables» "nxt[12]@3")] false false),
     .atom (.load (.n (val% «verify_tables» "nxt[8]@3")) (.n (val% «verify_tables» "zc_rounds")) 0),
     .atom (.load (.n (val% «verify_tables» "nxt[9]@3")) (.n (val% «verify_tables» "zc_rounds")) 1),
     .atom (.load (.n (val% «verify_tables» "nxt[10]@3")) (.n (val% «verify_tables» "zc_rounds")) 2),
     .atom (.load (.n (val% «verify_tables» "nxt[11]@3")) (.n (val% «verify_tables» "zc_rounds")) 3),
     .atom (.load (.n (val% «verify_tables» "nxt[12]@3")) (.n (val% «verify_tables» "zc_rounds")) 4),
-    .atom (.load (.n (val% «verify_tables» "s68#1")) (.n (val% «verify_tables» "zc_rounds")) 5),
+    .atom (.load (.n (val% «verify_tables» "s69#1")) (.n (val% «verify_tables» "zc_rounds")) 5),
     .atom (.load (.n (val% «verify_tables» "bus_target@3")) (.n (val% «verify_tables» "zc_rounds")) 6),
-    .atom (.load (.n (val% «verify_tables» "s70#0")) (.n (val% «verify_tables» "zc_cprod")) 0),
-    .callIf (.n (val% «verify_tables» "s72#1")) name% «verify_tables_loop0» [.n (val% «verify_tables» "s72#2"), .n (val% «verify_tables» "g_zc_n"), .n (val% «verify_tables» "zc_rounds"), .n (val% «verify_tables» "tabs"), .n (val% «verify_tables» "zc_rk"),
+    .atom (.load (.n (val% «verify_tables» "s71#0")) (.n (val% «verify_tables» "zc_cprod")) 0),
+    .callIf (.n (val% «verify_tables» "s73#1")) name% «verify_tables_loop0» [.n (val% «verify_tables» "s73#2"), .n (val% «verify_tables» "g_zc_n"), .n (val% «verify_tables» "zc_rounds"), .n (val% «verify_tables» "tabs"), .n (val% «verify_tables» "zc_rk"),
         .n (val% «verify_tables» "zc_cprod")],
     .atom (.load (.n (val% «verify_tables» "fs_load.sp[0]")) (.n (val% «verify_tables» "zc_last")) 0),
     .atom (.load (.n (val% «verify_tables» "fs_load.sp[1]")) (.n (val% «verify_tables» "zc_last")) 1),
@@ -137,7 +137,7 @@ noncomputable def zRest : List Stmt := [
     .call "eq_prefix_chain_rev" [.n (val% «verify_tables» "zc_peq"), .n (val% «verify_tables» "chi"), .n (val% «verify_tables» "zc_rk"), .n (val% «verify_tables» "zeta1"), .n (val% «verify_tables» "g_zc_n")] []]
 
 set_option maxRecDepth 100000 in
-/-- **Statements `g_zc_n ..< x@9`, completely** (G:2565-2619): the hinted `g^n` with `n` the
+/-- **Statements `g_zc_n ..< x@9`, completely** (G:2261-2315): the hinted `g^n` with `n` the
 largest `τ_t` (at most `m = |point|`), the squeeze `ξ` (`XI_GRIND_BITS = 0`) of the sponge `S`
 with the bytecode's value waiting, the target, the first record, `verify_tables_loop0`'s rounds on
 the honest buffers (records, running products, `chi`) and words `xs` at the cursor one past the
@@ -148,28 +148,28 @@ theorem vtZ_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.le
     {m n : ℕ} {τ : ℕ → ℕ} (hτ : ∀ t < 6, τ t ≤ n) (hτn : ∃ t < 6, τ t = n) (hnm : n ≤ m)
     (hm : m ≤ 32) (h9 : vtσ rd w args (.n (val% «verify_tables» "g_bus_mu")) = gen ^ m)
     (hkb : ∀ t < 6, vtσ rd w args (.n ((val% «verify_tables» "kb[2]") + t)) = gen ^ τ t)
-    (hlow : ∀ i < 64, (rd (Parameters.addressOfIndex i)).isSome) (hwn : w 2544 = gen ^ n) {S : Fs}
+    (hlow : ∀ i < 64, (rd (Parameters.addressOfIndex i)).isSome) (hwn : w 2240 = gen ^ n) {S : Fs}
     (hSr : rateOf S.pend = [vtσ rd w args (.n (val% «verify_tables» "rate[0]@3")), vtσ rd w args (.n (val% «verify_tables» "rate[1]@3")), 0, 0, 0, 0, 0, 0])
     (hSc : S.cap = [vtσ rd w args (.n (val% «verify_tables» "sp[0]@2")), vtσ rd w args (.n (val% «verify_tables» "sp[1]@2")), vtσ rd w args (.n (val% «verify_tables» "sp[2]@2")),
       vtσ rd w args (.n (val% «verify_tables» "sp[3]@2")), vtσ rd w args (.n (val% «verify_tables» "sp[4]@2"))])
     {xs : List E} (hxl : xs.length = 3 * n)
     (hxs : TbReadsAt rd (vtσ rd w args (.n (val% «verify_tables» "cursor@4")) * gen) xs)
-    (hR : TbReadsAt rd (w 2620) (zcRoundsW S.squeeze.2.cap (zTarget (vtσ rd w args) S.squeeze.1)
+    (hR : TbReadsAt rd (w 2316) (zcRoundsW S.squeeze.2.cap (zTarget (vtσ rd w args) S.squeeze.1)
       (vtσ rd w args (.n (val% «verify_tables» "cursor@4")) * gen) xs n))
-    (hC : TbReadsAt rd (w 2621)
+    (hC : TbReadsAt rd (w 2317)
       (zcCprodW S.squeeze.2.cap (zTarget (vtσ rd w args) S.squeeze.1) xs n))
-    (hrk : TbReadsAt rd (w 2625) (zcRkW S.squeeze.2.cap (zTarget (vtσ rd w args) S.squeeze.1) xs n))
+    (hrk : TbReadsAt rd (w 2321) (zcRkW S.squeeze.2.cap (zTarget (vtσ rd w args) S.squeeze.1) xs n))
     (hchi : TbReadsAt rd (vtσ rd w args (.n (val% «verify_tables» "chi")))
       (zcChis S.squeeze.2.cap (zTarget (vtσ rd w args) S.squeeze.1) xs n))
     {zs1 : List E} (hz1 : TbReadsAt rd (vtσ rd w args (.n (val% «verify_tables» "zeta1"))) zs1) (hz1l : n ≤ zs1.length)
-    (hP : TbReadsAt rd (w 2641) ((List.range (n + 1)).map (prefixProd 1
+    (hP : TbReadsAt rd (w 2337) ((List.range (n + 1)).map (prefixProd 1
       (zcChis S.squeeze.2.cap (zTarget (vtσ rd w args) S.squeeze.1) xs n) (zs1.take n)))) :
     (∀ s ∈ (vtPre.drop (pos% «verify_tables» "g_zc_n")).take (span% «verify_tables» "g_zc_n" "x@9"), VSH (coreProgram.Rel rd) rd (vtσ rd w args) s) ∧
       ZOut (vtσ rd w args) w S xs n := by
-  have g : GoodL rd w (vtσ rd w args) zBlk := vt_goodL hl 2590 zBlk zBlk_at
-  have gk : Good rd vtSL w (vtσ rd w args) (.keccak [.n (val% «verify_tables» "rate[0]@3"), .n (val% «verify_tables» "rate[1]@3"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[2]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[3]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[4]"), .n (val% «verify_tables» "sp[0]@2"),
+  have g : GoodL rd w (vtσ rd w args) zBlk := vt_goodL hl 2286 zBlk zBlk_at
+  have gk : Good rd vtSL w (vtσ rd w args) (.keccak [.n (val% «verify_tables» "rate[0]@3"), .n (val% «verify_tables» "rate[1]@3"), .n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[2]"), .n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[3]"), .n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[4]"), .n (val% «verify_tables» "sp[0]@2"),
       .n (val% «verify_tables» "sp[1]@2"), .n (val% «verify_tables» "sp[2]@2"), .n (val% «verify_tables» "sp[3]@2"), .n (val% «verify_tables» "sp[4]@2")] (lyOuts (val% «verify_tables» "nxt[0]@3")) false false) :=
-    (vt_goodL (rd := rd) (w := w) hl 2630 [.atom (.keccak [.n (val% «verify_tables» "rate[0]@3"), .n (val% «verify_tables» "rate[1]@3"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[2]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[3]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[4]"), .n (val% «verify_tables» "sp[0]@2"),
+    (vt_goodL (rd := rd) (w := w) hl 2326 [.atom (.keccak [.n (val% «verify_tables» "rate[0]@3"), .n (val% «verify_tables» "rate[1]@3"), .n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[2]"), .n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[3]"), .n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[4]"), .n (val% «verify_tables» "sp[0]@2"),
       .n (val% «verify_tables» "sp[1]@2"), .n (val% «verify_tables» "sp[2]@2"), .n (val% «verify_tables» "sp[3]@2"), .n (val% «verify_tables» "sp[4]@2")]
       (lyOuts (val% «verify_tables» "nxt[0]@3")) false false)] (by decide +kernel)).1
   have e := tbStmtsEqb_sound zBlk_at
@@ -178,7 +178,7 @@ theorem vtZ_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.le
       ZOut (vtσ rd w args) w S xs n by
     refine ⟨fun s hs => ?_, H.2⟩
     rw [← hlen, ← e] at hs
-    exact vt_block hl 2590 zBlk zBlk_at zRest (by decide +kernel) H.1 s hs
+    exact vt_block hl 2286 zBlk zBlk_at zRest (by decide +kernel) H.1 s hs
   generalize vtσ rd w args = σ at *
   simp only [zBlk, GoodL, GoodS, Good, fixNe, List.forall_mem_cons, Nat.reduceLT, and_true,
     and_false, ↓reduceIte] at g
@@ -219,7 +219,7 @@ theorem vtZ_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.le
   have m2592 := z_div (rd := rd) g2611 n4
   have m2597 := z_div (rd := rd) g2616 n5
   -- n ≤ m
-  have x6 : σ (.n (val% «verify_tables» "s58#1")) = gen ^ (m - n) := by
+  have x6 : σ (.n (val% «verify_tables» "s59#1")) = gen ^ (m - n) := by
     rw [g2623, h9, vn, ← pow_sub₀ _ gen_ne_zero hnm]
   have rc2605 := z_rc (a := m - n) (K := 32) (by omega) x6 (g2622.trans z_w32) g2624
     (hlow _ (by omega)) (hlow _ (by omega))
@@ -231,22 +231,22 @@ theorem vtZ_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.le
       hkb 4 (by norm_num), hkb 5 (by norm_num)]
     obtain ⟨t, ht, hte⟩ := hτn
     interval_cases t <;> simp [hte, CharTwo.add_self_eq_zero]
-  have a2602 : (Atom.assertEq (.n (val% «verify_tables» "zc_is_a_tau@6")) (.n (val% «verify_tables» "s57#0"))).Holds rd σ := by
-    show σ (.n (val% «verify_tables» "zc_is_a_tau@6")) + σ (.n (val% «verify_tables» "s57#0")) = 0
+  have a2602 : (Atom.assertEq (.n (val% «verify_tables» "zc_is_a_tau@6")) (.n (val% «verify_tables» "s58#0"))).Holds rd σ := by
+    show σ (.n (val% «verify_tables» "zc_is_a_tau@6")) + σ (.n (val% «verify_tables» "s58#0")) = 0
     rw [hz, g2620, tb_word_zero, add_zero]
   -- the squeeze
-  have hz0 : σ (.n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]")) = 0 := g2626.trans tb_word_zero
-  have hz1' : σ (.n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[2]")) = 0 := g2627.trans tb_word_zero
-  have hz2 : σ (.n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[3]")) = 0 := g2628.trans tb_word_zero
-  have hz3 : σ (.n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[4]")) = 0 := g2629.trans tb_word_zero
-  have hin : ([.n (val% «verify_tables» "rate[0]@3"), .n (val% «verify_tables» "rate[1]@3"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[2]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[3]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[4]"), .n (val% «verify_tables» "sp[0]@2"),
+  have hz0 : σ (.n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]")) = 0 := g2626.trans tb_word_zero
+  have hz1' : σ (.n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[2]")) = 0 := g2627.trans tb_word_zero
+  have hz2 : σ (.n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[3]")) = 0 := g2628.trans tb_word_zero
+  have hz3 : σ (.n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[4]")) = 0 := g2629.trans tb_word_zero
+  have hin : ([.n (val% «verify_tables» "rate[0]@3"), .n (val% «verify_tables» "rate[1]@3"), .n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[2]"), .n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[3]"), .n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[4]"), .n (val% «verify_tables» "sp[0]@2"),
       .n (val% «verify_tables» "sp[1]@2"), .n (val% «verify_tables» "sp[2]@2"), .n (val% «verify_tables» "sp[3]@2"), .n (val% «verify_tables» "sp[4]@2")] : List V).map σ = rateOf S.pend ++ S.cap := by
     rw [hSr, hSc]; simp [hz0, hz1', hz2, hz3]
-  have k2631 : (Atom.keccak [.n (val% «verify_tables» "rate[0]@3"), .n (val% «verify_tables» "rate[1]@3"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[2]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[3]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[4]"), .n (val% «verify_tables» "sp[0]@2"),
+  have k2631 : (Atom.keccak [.n (val% «verify_tables» "rate[0]@3"), .n (val% «verify_tables» "rate[1]@3"), .n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[2]"), .n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[3]"), .n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[4]"), .n (val% «verify_tables» "sp[0]@2"),
       .n (val% «verify_tables» "sp[1]@2"), .n (val% «verify_tables» "sp[2]@2"), .n (val% «verify_tables» "sp[3]@2"), .n (val% «verify_tables» "sp[4]@2")] (lyOuts (val% «verify_tables» "nxt[0]@3")) false false).Holds rd σ := z_keccak gk
   obtain ⟨hPk, -⟩ := ly_keccak k2631
   rw [hin] at hPk
-  have vξ : σ (.n (val% «verify_tables» "nxt[0]@3")) = S.squeeze.1 := challengeT_value (s0 := .n (val% «verify_tables» "nxt[0]@3")) (b := 2597) rfl (hPk 0 (by norm_num))
+  have vξ : σ (.n (val% «verify_tables» "nxt[0]@3")) = S.squeeze.1 := challengeT_value (s0 := .n (val% «verify_tables» "nxt[0]@3")) (b := 2293) rfl (hPk 0 (by norm_num))
   have hcap0 : [σ (.n (val% «verify_tables» "nxt[8]@3")), σ (.n (val% «verify_tables» "nxt[9]@3")), σ (.n (val% «verify_tables» "nxt[10]@3")), σ (.n (val% «verify_tables» "nxt[11]@3")), σ (.n (val% «verify_tables» "nxt[12]@3"))] =
       S.squeeze.2.cap := by
     rw [hPk 8 (by norm_num), hPk 9 (by norm_num), hPk 10 (by norm_num), hPk 11 (by norm_num),
@@ -260,23 +260,23 @@ theorem vtZ_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.le
   set cap0 := S.squeeze.2.cap with hcap0d
   set cl0 := zTarget σ S.squeeze.1 with hcl0d
   have h5 : cap0.length = 5 := rfl
-  have v2589 : σ (.n (val% «verify_tables» "zc_rounds")) = w 2620 := g2641
-  have v2592 : σ (.n (val% «verify_tables» "zc_cprod")) = w 2621 := g2642
-  have v2613 : σ (.n (val% «verify_tables» "zc_peq")) = w 2641 := g2671
+  have v2589 : σ (.n (val% «verify_tables» "zc_rounds")) = w 2316 := g2641
+  have v2592 : σ (.n (val% «verify_tables» "zc_cprod")) = w 2317 := g2642
+  have v2613 : σ (.n (val% «verify_tables» "zc_peq")) = w 2337 := g2671
   have r0 := zcRoundsW_reads h5 hR 0 (by omega)
   rw [Nat.mul_zero, pow_zero, mul_one, zcRecW, ← v2589] at r0
   simp only [zcRec, Nat.mul_zero, pow_zero, mul_one, ← hcap0, ← vT] at r0
-  have v2594 : σ (.n (val% «verify_tables» "s68#1")) = σ (.n (val% «verify_tables» "cursor@4")) * gen := by
+  have v2594 : σ (.n (val% «verify_tables» "s69#1")) = σ (.n (val% «verify_tables» "cursor@4")) * gen := by
     rw [g2649, g2648, tb_word_gen]
-  have s2650 : (Atom.load (.n (val% «verify_tables» "s70#0")) (.n (val% «verify_tables» "zc_cprod")) 0).Holds rd σ := by
+  have s2650 : (Atom.load (.n (val% «verify_tables» "s71#0")) (.n (val% «verify_tables» "zc_cprod")) 0).Holds rd σ := by
     show LoadHolds rd _ _ _
     rw [g2652, tb_word_one, v2592]
     simpa [zcCprodW] using hC 0 (by simp [zcCprodW])
   -- the rounds
-  have v2635 : σ (.n (val% «verify_tables» "zc_rk")) = w 2625 := g2654
-  have v2597 : σ (.n (val% «verify_tables» "s72#1")) = 1 + gen ^ n := by rw [g2656, g2655, tb_word_one, vn]
+  have v2635 : σ (.n (val% «verify_tables» "zc_rk")) = w 2321 := g2654
+  have v2597 : σ (.n (val% «verify_tables» "s73#1")) = 1 + gen ^ n := by rw [g2656, g2655, tb_word_one, vn]
   have c2654 : VSH (coreProgram.Rel rd) rd σ
-      (.callIf (.n (val% «verify_tables» "s72#1")) name% «verify_tables_loop0» [.n (val% «verify_tables» "s72#2"), .n (val% «verify_tables» "g_zc_n"), .n (val% «verify_tables» "zc_rounds"), .n (val% «verify_tables» "tabs"), .n (val% «verify_tables» "zc_rk"),
+      (.callIf (.n (val% «verify_tables» "s73#1")) name% «verify_tables_loop0» [.n (val% «verify_tables» "s73#2"), .n (val% «verify_tables» "g_zc_n"), .n (val% «verify_tables» "zc_rounds"), .n (val% «verify_tables» "tabs"), .n (val% «verify_tables» "zc_rk"),
           .n (val% «verify_tables» "zc_cprod")]) := by
     refine ⟨by rw [v2597]; exact isInK_add (by simpa using gen_pow_isInK 0) (gen_pow_isInK n),
       fun hne => ?_⟩
@@ -288,7 +288,7 @@ theorem vtZ_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.le
     rw [g2657, tb_word_one, vn, v2589, v2592, v2635]
     exact l10_complete hn0 (zc_l10B h5 hR hC hrk hxs hxl)
   -- the last record
-  have v2603 : σ (.n (val% «verify_tables» "zc_last")) = w 2620 * gen ^ (7 * n) := by
+  have v2603 : σ (.n (val% «verify_tables» "zc_last")) = w 2316 * gen ^ (7 * n) := by
     rw [g2663, g2662, g2661, g2660, g2659, vn, v2589]; ring
   have rn := zcRoundsW_reads h5 hR n le_rfl
   rw [zcRecW, ← v2603] at rn
@@ -318,7 +318,7 @@ theorem vtZ_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.le
   have s2642 : (Atom.load (.n (val% «verify_tables» "nxt[10]@3")) (.n (val% «verify_tables» "zc_rounds")) 2).Holds rd σ := r0 2 (by simp)
   have s2643 : (Atom.load (.n (val% «verify_tables» "nxt[11]@3")) (.n (val% «verify_tables» "zc_rounds")) 3).Holds rd σ := r0 3 (by simp)
   have s2644 : (Atom.load (.n (val% «verify_tables» "nxt[12]@3")) (.n (val% «verify_tables» "zc_rounds")) 4).Holds rd σ := r0 4 (by simp)
-  have s2647 : (Atom.load (.n (val% «verify_tables» "s68#1")) (.n (val% «verify_tables» "zc_rounds")) 5).Holds rd σ := by
+  have s2647 : (Atom.load (.n (val% «verify_tables» "s69#1")) (.n (val% «verify_tables» "zc_rounds")) 5).Holds rd σ := by
     show LoadHolds rd _ _ _; rw [v2594]; exact r0 5 (by simp)
   have s2648 : (Atom.load (.n (val% «verify_tables» "bus_target@3")) (.n (val% «verify_tables» "zc_rounds")) 6).Holds rd σ := r0 6 (by simp)
   have hrest : ∀ s ∈ zRest, VSH (coreProgram.Rel rd) rd σ s := by

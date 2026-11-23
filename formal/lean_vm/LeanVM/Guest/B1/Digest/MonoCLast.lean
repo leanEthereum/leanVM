@@ -23,7 +23,7 @@ whole blocks `pre`, the pointers at `mStart o s`), `m` honest claims (`MRec`, sl
 the pointers at `mStart o (s + m)`): the body's evaluated valuation (`Fwd.ev`, the gaps
 `mGap o` hinted) holds its atoms, and every load reads the record's thirty words, a claim's
 coverage slot or a claim's cells. Soundness's `monoOk` gives the chain's check, `mcOk` the rest.
-`monoLoop_completeAtB`: the loop over `M` frames is complete, placed, within `M + 1` frames.
+`monoLoop_completeAtB`: the loop over `M` frames is complete, placed, within `M` frames and the tail.
 -/
 
 namespace LeanVM.Guest.B1.Digest
@@ -413,7 +413,7 @@ theorem monoLoop_blocks {j : ℕ} {f : String} {m p0 st0 cw ew nb : ℕ}
 
 /-- **A frame loop of the gap walk is complete, placed, within its frames**: `M` frames of `m`
 claims from the counter `1`, the chain buffer's records at `g^chP`, the claims' marks and cells
-among the caller's words; `M + 1` frames of words. -/
+among the caller's words; `M` frames of words and the tail. -/
 theorem monoLoop_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) {j : ℕ} {f : String}
     {m p0 st0 cw ew nb : ℕ} (hf : coreProgram.find? f = some (coreProgram.getD j default))
     (hok : monoOk (coreProgram.getD j default) f m p0 st0 cw ew = true)
@@ -434,7 +434,7 @@ theorem monoLoop_completeAtB (fs : String → ℕ) (cert : String → V → ℕ)
     (hR2 : ∀ i < m * M, RegionL Lin (rg + o (s0 + i)))
     (hR3 : ∀ i < m * M, ∀ c < 4, RegionL Lin (eP + 4 * o (s0 + i) + c)) :
     CompleteAtDTB fs cert κ f Lin [1, gen ^ M, chain, mark] (Returns []) (fun _ => True)
-      ((M + 1) * fs f) := by
+      (M * fs f + fs (Memory.tailKey f)) := by
   have hshape : loopShapeF (coreProgram.getD j default) f = true := by
     simp only [mcOk, mcHead, Bool.and_eq_true] at hc; exact hc.1.1.1.1.1.1
   have hAS : (loopPre (coreProgram.getD j default)).all isAtomS = true := by

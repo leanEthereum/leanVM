@@ -262,11 +262,11 @@ def l5A1 : ℕ := fs name% «main_loop4» + 2 * ccC fs SB + SB "statement_digest
 /-- The children's loop's words per child's claim. -/
 def l5A2 : ℕ := ccS fs
 
-/-- The children's loop's constant words. -/
-def l5A0 : ℕ := fs name% «main_loop4»
+/-- The children's loop's constant words: its last call's phantom. -/
+def l5A0 : ℕ := fs (tailKey name% «main_loop4»)
 
 theorem l5Chain_le (K : ℕ → ℕ) : ∀ t c, l5ChainB fs K t c ≤
-    (t + 2) * fs name% «main_loop4» + ∑ i ∈ Finset.range (t + 1), K (c + i)
+    (t + 1) * fs name% «main_loop4» + fs (tailKey name% «main_loop4») + ∑ i ∈ Finset.range (t + 1), K (c + i)
   | 0, c => by simp [l5ChainB]; omega
   | t + 1, c => by
     have ih := l5Chain_le K t (c + 1)
@@ -274,7 +274,7 @@ theorem l5Chain_le (K : ℕ → ℕ) : ∀ t c, l5ChainB fs K t c ≤
     have e : ∑ i ∈ Finset.range (t + 1), K (c + 1 + i) = ∑ i ∈ Finset.range (t + 1), K (c + (i + 1)) :=
       Finset.sum_congr rfl fun i _ => by rw [Nat.add_right_comm, Nat.add_assoc]
     rw [e] at ih
-    have e2 : (t + 1 + 2) * fs name% «main_loop4» = fs name% «main_loop4» + (t + 2) * fs
+    have e2 : (t + 1 + 1) * fs name% «main_loop4» = fs name% «main_loop4» + (t + 1) * fs
         name% «main_loop4» := by ring
     simp only [Nat.add_zero]
     omega
@@ -330,10 +330,6 @@ theorem l5B_le (Bv : ℕ → ℕ) {s : NodeStatement} {w : NodeWitness}
       w.children.length * (l5A1 fs SB - fs name% «main_loop4») + w.children.length * fs
           name% «main_loop4» := by
     rw [← Nat.mul_add, Nat.sub_add_cancel hA]
-  have e2 : (w.children.length + 1) * fs name% «main_loop4» = w.children.length * fs
-      name% «main_loop4» + fs name% «main_loop4» := by
-    ring
-  rw [show w.children.length - 1 + 2 = w.children.length + 1 by omega] at h
   beta_reduce at h hs ⊢
   omega
 

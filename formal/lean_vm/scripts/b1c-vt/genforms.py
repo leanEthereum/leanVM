@@ -14,7 +14,7 @@ for (p,b,k) in EV: evvar[b+3]=k
 BASE=[0,13,26,33,47,61]; WIDTH=[13,13,7,14,14,92]
 # The forms' window, the ξ powers multiplying the push/pull/count forms, W's and β's variables.
 from vtanchor import WLO, WHI
-XI = (2612, 2613, 2614)
+XI = (2308, 2309, 2310)
 WV, BV = 13, 14
 # Each table's form values per side: the operands of its `ξ²·F0`, `ξ³·F1`, `ξ⁴·F2`, in table order.
 def _formvals():

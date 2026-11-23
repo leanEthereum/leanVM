@@ -913,13 +913,12 @@ def knownOf (body : List Core.Stmt) (memOf : String → List (ℕ × ℕ × ℕ)
 `main` does: both are cut in the coarse windows. -/
 def vsName : String := "verify_sub"
 
-/-- `opening_queries__L{odd}_L{base}_L{folds}_L{leaf_cells}_L{depth}_L{cap_depth}_L{mu}_L{vanish}_L{n_hs}_L{hs_bits}_L{final}`'s
-`(odd, base, depth, cap_depth)` (`opening_queries`, `guests/lean_ethereum.py`). -/
-def oqParams (name : String) : Option (ℕ × ℕ × ℕ × ℕ) :=
+/-- `opening_queries__L{base}_L{folds}_L{leaf_cells}_L{path_depth}_L{mu}_L{vanish}_L{n_hs}_L{hs_bits}_L{final}`'s
+`(base, path_depth)` (`opening_queries`, `guests/lean_ethereum.py`). -/
+def oqParams (name : String) : Option (ℕ × ℕ) :=
   if name.startsWith "opening_queries__L" then
     match (((name.drop 18).toString).splitOn "_L").map String.toNat? with
-    | [some odd, some base, some _, some _, some d, some cd, some _, some _, some _, some _, some _] =>
-      some (odd, base, d, cd)
+    | [some base, some _, some _, some pd, some _, some _, some _, some _, some _] => some (base, pd)
     | _ => none
   else none
 
@@ -932,14 +931,6 @@ def lqParams (name : String) : Option (ℕ × ℕ × ℕ × ℕ) :=
     | _ => none
   else none
 
-/-- `walk_path__L{path_depth}_L{cap_depth}`'s `(path_depth, cap_depth)`. -/
-def wpParams (name : String) : Option (ℕ × ℕ) :=
-  if name.startsWith "walk_path__L" then
-    match (((name.drop 12).toString).splitOn "_L").map String.toNat? with
-    | [some pd, some cd] => some (pd, cd)
-    | _ => none
-  else none
-
 /-- The loops a function's body calls at its top level (`callIf`). -/
 def loopsOf (body : List Core.Stmt) : List String :=
   body.filterMap fun
@@ -948,25 +939,25 @@ def loopsOf (body : List Core.Stmt) : List String :=
 
 /-- The tagged tuples of frame cells each function assumes in the semantic relations
 (`Glob.sem`, `WalkTags.lean`): the exponent table (tag `0`) at `verify_sub`'s argument 4 and at
-`__loop4_main`'s argument 14, which passes it on; the windows of the windowed Merkle walk, at
-`opening_queries`' window pointers and iteration count (arguments 6 and 7, `OqMainWins`) and at
-its loop's `[t, x, N]` (arguments 3, 0, 1: `WinWalk`, `WinWalk2` at level 0), with `x ≠ N`
-(`Check.tagNe`); `level_queries`' window pointers (argument 5, `lqTag`), which it hands
-`opening_queries` with its iteration count; the window table `tabs` of `open_stacked` (argument
-10, `tagTabs`) and of `level_positions` (argument 8), whose decodes and grinds read it. -/
+`__loop4_main`'s argument 14, which passes it on; the windows of `opening_queries`' inline walk,
+keyed by its path depth `pd` (`oqTag`): deeper, on its window pointers and iteration count
+(arguments 6 and 7, `WinWalkP` from `1`), at level 0 on those and `odd_g` (argument 8,
+`OqStartP` for both `odd`'s, and `tagOdd` on `odd_g`), and at its loop's `[t, x, N]` (arguments 3,
+0, 1: `WinWalkP`, `WinWalk2P` at level 0), with `x ≠ N` (`Check.tagNe`); `level_queries`' window
+pointers (argument 5, `lqTag`), which it hands `opening_queries` with its iteration count and
+`odd_g`; the window table `tabs` of `open_stacked` (argument 10, `tagTabs`) and of
+`level_positions` (argument 8), whose decodes and grinds read it. -/
 def semTab (P : List Core.Fn) : Std.HashMap String (List (ℕ × List ℕ)) := Id.run do
   let mut m : Std.HashMap String (List (ℕ × List ℕ)) := {}
   m := m.insert "verify_sub" [(0, [6])]
   m := m.insert "__loop4_main" [(0, [16])]
   for cf in P do
-    if let some (odd, base, d, cd) := oqParams cf.name then
-      m := m.insert cf.name [(walkTag (2 + base) odd d cd, [8, 9])]
+    if let some (base, pd) := oqParams cf.name then
+      m := m.insert cf.name (if base == 1 then
+          [(oqTag 3 0 pd, [8, 9, 10]), (oqTag 3 1 pd, [8, 9, 10]), (tagOdd, [10])]
+        else [(oqTag 2 0 pd, [8, 9])])
       for g in loopsOf cf.body do
-        m := m.insert g [(walkTag (if base == 1 then 1 else 0) odd d cd, [5, 2, 3]), (Check.tagNe, [2, 3])]
-  -- `walk_path`'s windows: `WinsAt` on `wins` (argument 2, cell 4) at depth `path_depth + cap_depth`
-  -- (`lean_ethereum.py`); its callers take it as an obligation on the window pointer
-    if let some (pd, cd) := wpParams cf.name then
-      m := m.insert cf.name [(winsTag (pd + cd) cd, [4])]
+        m := m.insert g [(oqTag (if base == 1 then 1 else 0) 0 pd, [5, 2, 3]), (Check.tagNe, [2, 3])]
     -- `open_stacked`'s window table `tabs` (argument 10, cell 12), which its grinds read and its
     -- rate dispatch hands `level_positions` (argument 8, cell 10, its decodes'): `verify_sub` hands
     -- it on at its dispatch
@@ -1061,6 +1052,15 @@ def callObligations (semMap : Std.HashMap String (List (ℕ × List ℕ))) (body
       match cs with
       | [] => tu := tu ++ [(t, vs)]
       | [(v, k)] => tu := tu ++ [(Check.impTag t k (consts.getD v 0), vs)]
+      | [(vn, 1), (vu, 2)] =>
+        -- a level-0 `opening_queries`' `OqStartP` for `odd` on `[t, N, odd_g]`, both constants
+        -- (`level_queries`): conditional on `N` for the `odd` that `odd_g` is, else on `odd_g`, where it
+        -- holds vacuously
+        unless 2 ≤ t && t < 2 ^ 21 && walkKind t == 3 do
+          throw s!"statement {i}: a call's tuple with two constants"
+        if consts.getD vu 0 == (if walkOdd t == 1 then 2 else 1) then
+          tu := tu ++ [(Check.impTag t 1 (consts.getD vn 0), vs)]
+        else tu := tu ++ [(Check.impTag t 2 (consts.getD vu 0), vs)]
       | _ => throw s!"statement {i}: a call's tuple with two constants"
       lo := vs.foldl (fun acc v => if consts.contains v then acc else max acc (defAfter body v)) lo
     out := out.push (i, lo, tu)
@@ -1075,13 +1075,21 @@ partial def flatStmt : Core.Stmt → List Core.Stmt
 /-- The windows a walk function's `match`es (nested ones included) dispatch on, a load `L[w·g^i]` each: per
 pointer `w`, `(statement of its first such match, statement after `w`'s definition, the triples
 (w, i, arms))`; a cut before the first match takes them as bounds on memory read
-(`Cut.knownIf`). -/
+(`Cut.knownIf`). A pointer only a nested statement defines, `w = L[w0·g^c]` (`opening_queries`'
+odd first query, under its branch on `odd_g`), is not defined where the cut is: its windows are
+bounds read twice through `w0`, `(w0, memTwice c i, arms)`. -/
 def winObligations (body : List Core.Stmt) :
     List (ℕ × ℕ × List (ℕ × ℕ × ℕ)) := Id.run do
   let flat := flatStmt
   let loads : Std.HashMap ℕ (ℕ × ℕ) := (body.flatMap flat).foldl (fun m s => match s with
     | .atom (.load d w off) => if m.contains d.idx then m else m.insert d.idx (w.idx, off)
     | _ => m) {}
+  let topDef (v : ℕ) : Bool := body.any fun
+    | .atom a => (Check.atomVals a).head? == some (Core.V.n v)
+    | _ => false
+  let nestedDef (v : ℕ) : Bool := !topDef v && (body.flatMap flat).any fun
+    | .atom a => (Check.atomVals a).head? == some (Core.V.n v)
+    | _ => false
   let mut out : Array (ℕ × ℕ × List (ℕ × ℕ × ℕ)) := #[]
   for (s, i) in body.zipIdx do
     for t in flat s do
@@ -1090,6 +1098,9 @@ def winObligations (body : List Core.Stmt) :
         | _ => none
       if let some (v, n) := sel then
         if let some (w, off) := loads.get? v.idx then
+          let (w, off) := match (if nestedDef w then loads.get? w else none) with
+            | some (w0, c) => (w0, Check.memTwice c off)
+            | none => (w, off)
           match out.findIdx? (fun o => o.2.2.any (·.1 == w)) with
           | some k => out := out.modify k fun (a, b, l) => (a, b, l ++ [(w, off, n)])
           | none => out := out.push (i, defAfter body w, [(w, off, n)])
@@ -1306,8 +1317,23 @@ def planCuts (coarse : Bool) (F : GFacts) (f : CompiledFunction) (cf : Core.Fn) 
     | .atom (.const v x) => let (k0, k1) := limbsOfE x; (setAt.get? (cellOf v, k0, k1)).getD f.instructionCount
     | _ => 0)
   let constMax : Array ℕ := constAt.foldl (fun acc o => acc.push (max o (acc.back?.getD 0))) #[0]
-  let cands := marks.filterMap fun m => (cutAtMark segMap f.entryPc m).bind fun c =>
+  let cands0 := marks.filterMap fun m => (cutAtMark segMap f.entryPc m).bind fun c =>
     if constMax.getD m.1 0 < c.1 then some (m.1, c) else none
+  -- a top-level copy into another cell runs where the compiler put its `MUL d = x·1`, which can
+  -- follow later statements' code: a window ends after it
+  let code := f.code.toArray
+  let startOf : Std.HashMap ℕ ℕ := cands0.foldl (fun m (t, c) => m.insert t c.1) {}
+  let copyAt : Array ℕ := (cf.body.toArray.zipIdx.map fun
+    | (.atom (.copy d x), t) =>
+      let (cd, cx) := (cellOf d, cellOf x)
+      if cd == cx then 0 else
+        let lo := (startOf.get? t).getD 0
+        ((List.range (code.size - lo)).find? fun i => match code[lo + i]! with
+          | .mul a b c => c == cd && (a == cx || b == cx)
+          | _ => false).map (lo + · + 1) |>.getD 0
+    | _ => 0)
+  let copyMax : Array ℕ := copyAt.foldl (fun acc o => acc.push (max o (acc.back?.getD 0))) #[0]
+  let cands := cands0.filter fun (t, c) => copyMax.getD t 0 ≤ c.1
   let mut forced : List (ℕ × List (ℕ × ℕ × ℕ) × List (ℕ × ℕ × ℕ) × List (ℕ × List ℕ)) := []
   -- a forced cut avoids the start right after a call's returns (the window before would end
   -- before reading them back)
@@ -1693,7 +1719,7 @@ def tailArgsOf (cf : Core.Fn) : List ℕ :=
   | _ => []
 
 /-- A value's cell in the frame, or the next frame's cell of the tail call's `k`-th argument
-(`B2C.cellOk`). -/
+(`B2C.cellOkC`). -/
 def cellOk (c : Ctx) (v : ℕ) : Bool :=
   (2 ≤ c.cell v && c.cell v < c.fsz) || c.ta.zipIdx.any fun (w, k) =>
     c.cell v == c.fsz + 2 + k && c.cell w == c.fsz + 2 + k

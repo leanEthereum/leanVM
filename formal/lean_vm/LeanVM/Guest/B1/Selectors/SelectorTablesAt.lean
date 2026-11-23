@@ -15,7 +15,7 @@ import LeanVM.Guest.Data.ValNames.«selector_tables»
 /-!
 # `selector_tables`, placed (TRIAGE G #69)
 
-At frame pointer `fp` the buffer lies at `ese = fp + fs "selector_tables"` (`512` words); the
+At frame pointer `fp` the buffer lies at `ese = fp + fs "selector_tables"` (`256` words); the
 function returns its pointer, and its returned layout is `stOwn` there (`stOut`).
 `selector_tables_completeAt`: `CompleteAtD` on the point's runs `stLin`, by `completeAt_flatOutD`
 on the honest valuation `stVal` (`st_sholds`), every load in the point's runs or the buffer;
@@ -38,7 +38,7 @@ theorem st_flat : stPre.all Stmt.flat = true := by decide +kernel
 
 theorem st_addrs : stPre.filterMap Main.Stmt.addrS = [] := by decide +kernel
 
-theorem st_allocs : stPre.filterMap Main.Stmt.allocSz = [(.n (val% «selector_tables» "sel_eq"), .inl 512)] := by
+theorem st_allocs : stPre.filterMap Main.Stmt.allocSz = [(.n (val% «selector_tables» "sel_eq"), .inl 256)] := by
   decide +kernel
 
 theorem st_not_loop : coreProgram.loop "selector_tables" = false := by decide +kernel
@@ -54,14 +54,14 @@ theorem selector_tables_completeAt (fs : String → ℕ) (cert : String → V �
   obtain ⟨fn, hf, hp, hb⟩ := stFound
   set f := "selector_tables"
   have hown : ∀ fp, List.Forall₂ (fun c s => c.length ≤ s)
-      [stEqWords (stVal ept ept1 (fp + fs f) p p1)] [512] := by
+      [stEqWords (stVal ept ept1 (fp + fs f) p p1)] [256] := by
     intro fp; simp [stEqWords]
-  have hbuf : ∀ fp, bufL (fp + fs f) [512] [stEqWords (stVal ept ept1 (fp + fs f) p p1)] =
+  have hbuf : ∀ fp, bufL (fp + fs f) [256] [stEqWords (stVal ept ept1 (fp + fs f) p p1)] =
       stOwn ept ept1 (fp + fs f) p p1 := by
     intro fp; simp [bufL, bases, stOwn]
   refine completeAt_flatOutD (fs := fs) (cert := cert) hf st_not_loop k (stLin ept ept1 p p1) _
     (fun fp ↦ [ofK (addressOfIndex (fp + fs f))]) _ hb st_flat st_addrs
-    [512] (fun fp ↦ [stEqWords (stVal ept ept1 (fp + fs f) p p1)])
+    [256] (fun fp ↦ [stEqWords (stVal ept ept1 (fp + fs f) p p1)])
     hown (fun fp ↦ ⟨_, rfl, hbuf fp⟩) (fun _ ↦ []) (fun _ _ h ↦ absurd h (by simp))
     (fun _ _ h ↦ absurd h (by simp)) (fun _ _ _ _ _ h ↦ absurd h (by simp)) ?_
   intro fp outs ho rd _ hB hLin
@@ -119,18 +119,18 @@ theorem selector_tables_completeAtB (fs : String → ℕ) (cert : String → V �
     (ept ept1 : ℕ) (p p1 : List E) (hl : p.length = 32) (hl1 : p1.length = 32) :
     CompleteAtDTB fs cert k "selector_tables" (stLin ept ept1 p p1) [ofK (addressOfIndex ept), ofK (addressOfIndex ept1)]
       (stOut ept ept1 p p1) (fun _ ↦ True)
-      (fs "selector_tables" + [512].sum) := by
+      (fs "selector_tables" + [256].sum) := by
   obtain ⟨fn, hf, hp, hb⟩ := stFound
   set f := "selector_tables"
   have hown : ∀ fp, List.Forall₂ (fun c s => c.length ≤ s)
-      [stEqWords (stVal ept ept1 (fp + fs f) p p1)] [512] := by
+      [stEqWords (stVal ept ept1 (fp + fs f) p p1)] [256] := by
     intro fp; simp [stEqWords]
-  have hbuf : ∀ fp, bufL (fp + fs f) [512] [stEqWords (stVal ept ept1 (fp + fs f) p p1)] =
+  have hbuf : ∀ fp, bufL (fp + fs f) [256] [stEqWords (stVal ept ept1 (fp + fs f) p p1)] =
       stOwn ept ept1 (fp + fs f) p p1 := by
     intro fp; simp [bufL, bases, stOwn]
   refine (completeAt_flatOutDTB (fs := fs) (cert := cert) hf st_not_loop k (stLin ept ept1 p p1) _
     (fun fp ↦ [ofK (addressOfIndex (fp + fs f))]) _ hb st_flat st_addrs
-    [512] (fun fp ↦ [stEqWords (stVal ept ept1 (fp + fs f) p p1)])
+    [256] (fun fp ↦ [stEqWords (stVal ept ept1 (fp + fs f) p p1)])
     hown (fun fp ↦ ⟨_, rfl, hbuf fp⟩) (fun _ ↦ []) (fun _ ↦ True) [] [] 0 (fun _ ↦ trivial) (fun _ ↦ le_rfl)
     (fun _ ↦ le_rfl) (fun _ _ h ↦ absurd h (by simp)) (fun _ _ _ _ _ h ↦ absurd h (by simp)) ?_).mono
     (by simp) fun _ _ ↦ trivial

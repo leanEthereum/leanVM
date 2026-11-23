@@ -57,7 +57,7 @@ def vbgCallL : Stmt :=
     .n (val% «verify_bus_gkr» "stream")] [.n (val% «verify_bus_gkr» "done")]
 
 /-- `verify_bus_gkr_loop0`'s call. -/
-def vbgCallZ : Stmt := .callIf (.n (val% «verify_bus_gkr» "s34#1")) name% «verify_bus_gkr_loop0» [.n (val% «verify_bus_gkr» "s34#2"), .n (val% «verify_bus_gkr» "g_bus_mu"), .n (val% «verify_bus_gkr» "zeta"), .n (val% «verify_bus_gkr» "final_point_row")]
+def vbgCallZ : Stmt := .callIf (.n (val% «verify_bus_gkr» "s36#1")) name% «verify_bus_gkr_loop0» [.n (val% «verify_bus_gkr» "s36#2"), .n (val% «verify_bus_gkr» "g_bus_mu"), .n (val% «verify_bus_gkr» "zeta"), .n (val% «verify_bus_gkr» "final_point_row")]
 
 /-- Every statement is an atom, an `ite` of atoms, the dispatch or the call. -/
 def vbgKindB (s : Stmt) : Bool :=
@@ -130,9 +130,9 @@ noncomputable def vbgσ (rd : Reader) (depth : ℕ) (cap0 : List E) (tabs stream
 def VbgVals (σ : Val) (depth eL eR eP : ℕ) (tabs stream : E) : Prop :=
   σ (.n (val% «verify_bus_gkr» "odd_g")) = gen ^ (depth % 2) ∧ σ (.n (val% «verify_bus_gkr» "n_four")) = gen ^ ((depth - 1) / 8) ∧
     σ (.n (val% «verify_bus_gkr» "rem_g")) = gen ^ ((depth - 1) / 2 % 4) ∧ σ (.n (val% «verify_bus_gkr» "start_g")) = gen ^ (2 - depth % 2) ∧
-    σ (.n (val% «verify_bus_gkr» "s34#2")) = 1 ∧ σ (.n (val% «verify_bus_gkr» "g_bus_mu")) = gen ^ depth ∧ σ (.n (val% «verify_bus_gkr» "layers")) = ofK (addressOfIndex eL) ∧
+    σ (.n (val% «verify_bus_gkr» "s36#2")) = 1 ∧ σ (.n (val% «verify_bus_gkr» "g_bus_mu")) = gen ^ depth ∧ σ (.n (val% «verify_bus_gkr» "layers")) = ofK (addressOfIndex eL) ∧
     σ (.n (val% «verify_bus_gkr» "rounds")) = ofK (addressOfIndex eR) ∧ σ (.n (val% «verify_bus_gkr» "gkr_pts")) = ofK (addressOfIndex eP) ∧
-    σ (.n (val% «verify_bus_gkr» "tabs")) = tabs ∧ σ (.n (val% «verify_bus_gkr» "stream")) = stream ∧ σ (.n (val% «verify_bus_gkr» "s34#1")) = 1 + gen ^ depth
+    σ (.n (val% «verify_bus_gkr» "tabs")) = tabs ∧ σ (.n (val% «verify_bus_gkr» "stream")) = stream ∧ σ (.n (val% «verify_bus_gkr» "s36#1")) = 1 + gen ^ depth
 
 /-- The buffers of `verify_bus_gkr` in a region, and the cursor's words and the point. -/
 structure VbgR (R : ℕ → Prop) (depth : ℕ) (xs : List E) (ec ez eL eR eP : ℕ) : Prop where
@@ -297,8 +297,8 @@ theorem vbg_run {depth κ : ℕ} (hd2 : 2 ≤ depth) (hd : depth ≤ 32) (hκ : 
   have e423 : σ (.n (val% «verify_bus_gkr» "final_point_row")) = ofK (addressOfIndex eP) * gen ^ (40 * ((depth - 1) / 2 + 1)) := by
     rw [m423, m422, m421, m420, m419, m418, m417, m416, c415, e405, e18, ← pow_succ]
     ring
-  have a425 : σ (.n (val% «verify_bus_gkr» "s34#1")) = σ (.n (val% «verify_bus_gkr» "s34#0")) + σ (.n (val% «verify_bus_gkr» "g_bus_mu")) :=
-    g (.add (.n (val% «verify_bus_gkr» "s34#1")) (.n (val% «verify_bus_gkr» "s34#0")) (.n (val% «verify_bus_gkr» "g_bus_mu"))) (by decide +kernel)
+  have a425 : σ (.n (val% «verify_bus_gkr» "s36#1")) = σ (.n (val% «verify_bus_gkr» "s36#0")) + σ (.n (val% «verify_bus_gkr» "g_bus_mu")) :=
+    g (.add (.n (val% «verify_bus_gkr» "s36#1")) (.n (val% «verify_bus_gkr» "s36#0")) (.n (val% «verify_bus_gkr» "g_bus_mu"))) (by decide +kernel)
   refine ⟨fun s hs ↦ ?_, fun d p off hm ↦ ?_, ?_, ?_, hrt, r167.1, r400.1, r402.1, e169, c426,
     e6, e16, e17, e18, e8, e9, by rw [a425, c424, e6]⟩
   · -- the statements

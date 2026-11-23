@@ -112,14 +112,14 @@ theorem kidsFromIn_of_dep (κ : ℕ) : ∀ (ks : List KidD) (prev : List (List E
               · exact Or.inr hi
             · simpa [hct] using hR2
     · obtain ⟨N, L, outs, hlen, ho, hW, hD, hI, hK⟩ := kidsFromIn_of_dep κ ks (prev ++ [([], [])])
-        (fun k' hk' => hok k' (by simp [hk'])) (b + fs (kf prev).f)
-      refine ⟨fs (kf prev).f + N, L, ([], []) :: outs, by simp [hlen], ⟨fun h => absurd h ht, ho⟩,
+        (fun k' hk' => hok k' (by simp [hk'])) (b + fs (tailKey (kf prev).f))
+      refine ⟨fs (tailKey (kf prev).f) + N, L, ([], []) :: outs, by simp [hlen], ⟨fun h => absurd h ht, ho⟩,
         hW.mono (by omega) (by omega), hD, ⟨fun h => absurd h ht, hI⟩, ?_⟩
       intro rd σ cs R Dacc hc hlow hL hLin hRg
       match cs, hc with
       | c :: cs, ⟨hf, hct, _, hc⟩ =>
         simp only [kidsAt, Kid.lins, List.flatMap_cons] at hLin
-        refine ⟨fs (kf prev).f, N, fun _ => False, fun _ => False, rfl, fun _ h => h.elim, ?_, ?_⟩
+        refine ⟨fs (tailKey (kf prev).f), N, fun _ => False, fun _ => False, rfl, fun _ h => h.elim, ?_, ?_⟩
         · have ht' : (kf prev).taken = false := by simpa using ht
           rw [hct, ht']
           simp only [Bool.false_eq_true, ↓reduceIte]

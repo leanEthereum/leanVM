@@ -121,7 +121,7 @@ theorem hintsUsed_alignA (hS : SizesAt alignA) (hR : AllocReady alignA) (hW : Wi
   have hA2 : alignA e.I.t.name = fnAl (i0 + 1) := alignA_of hj
   -- the frame within `2^κ`
   have hwithin : e.I.fp + B2C.fs e.I.t.name ≤ r.T.total B2C.fs :=
-    honest_within hI (by have := hHon.cells.two_le e.I hI; omega)
+    honest_within_node hI hIt (by have := hHon.cells.two_le e.I hI; omega)
   have htot := le_two_pow_logMem (r.T.total B2C.fs)
   have hfpe : e.I.fp = s.fp := htr.linked.top.1
   -- the hints at the pc are the function's

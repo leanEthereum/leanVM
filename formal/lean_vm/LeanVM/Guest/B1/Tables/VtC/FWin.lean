@@ -75,7 +75,7 @@ theorem vtAirT_rest : ∀ t < 6,
     tbStmtsEqb ((vtAirT t).filter fun s ↦ !autoB s) (vtAirRest t) = true := by
   decide +kernel
 
-theorem vtAirX_gt : ∀ t < 6, 2641 < vtAirX t ∧ vtTauV t < vtAirX t := by decide
+theorem vtAirX_gt : ∀ t < 6, 2337 < vtAirX t ∧ vtTauV t < vtAirX t := by decide
 
 /-- Table `t`'s weight block's equations: `x = g^n/g^τ`, the pointers `cprod·x`, `peq·g^τ`. -/
 theorem vtF_airGood (hl : args.length = 21) {t : ℕ} (ht : t < 6) :

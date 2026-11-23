@@ -38,8 +38,8 @@ variable {fs : String → ℕ}
 theorem vbg_flatCalls (σ : Val) : flatCalls vbgPre σ =
     [⟨[glcLsN 0, glcLsN 1].getD (logG (σ (.n (val% «verify_bus_gkr» "odd_g")))) "", [.n (val% «verify_bus_gkr» "layers"), .n (val% «verify_bus_gkr» "rounds"), .n (val% «verify_bus_gkr» "gkr_pts"), .n (val% «verify_bus_gkr» "n_four"), .n (val% «verify_bus_gkr» "rem_g"),
         .n (val% «verify_bus_gkr» "start_g"), .n (val% «verify_bus_gkr» "g_bus_mu"), .n (val% «verify_bus_gkr» "tabs"), .n (val% «verify_bus_gkr» "stream")], [.n (val% «verify_bus_gkr» "done")], true⟩,
-      ⟨name% «verify_bus_gkr_loop0», [.n (val% «verify_bus_gkr» "s34#2"), .n (val% «verify_bus_gkr» "g_bus_mu"), .n (val% «verify_bus_gkr» "zeta"), .n (val% «verify_bus_gkr» "final_point_row")], [],
-          decide (σ (.n (val% «verify_bus_gkr» "s34#1")) ≠ 0)⟩] := by
+      ⟨name% «verify_bus_gkr_loop0», [.n (val% «verify_bus_gkr» "s36#2"), .n (val% «verify_bus_gkr» "g_bus_mu"), .n (val% «verify_bus_gkr» "zeta"), .n (val% «verify_bus_gkr» "final_point_row")], [],
+          decide (σ (.n (val% «verify_bus_gkr» "s36#1")) ≠ 0)⟩] := by
   unfold flatCalls
   rw [vbgPre_eq']
   rfl

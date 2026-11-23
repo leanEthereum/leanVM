@@ -92,7 +92,7 @@ structure OsLvKPOkB (fs : String → ℕ) (cert : String → V → ℕ) (κ : �
     (W S : ℕ → Layout) (Bk : String → ℕ) (k : OsLvKP) : Prop where
   A : ∀ c ∈ k.A, c.taken = true →
     CompleteAtB fs cert κ c.f Lk (c.args.map σ) (Returns (c.rets.map σ)) (Bk c.f)
-  P : OsGroupB fs cert κ σ k.P (fun p => Lk ++ W p) S (k.P.map fun c => max (fs c.f) (Bk c.f)).sum
+  P : OsGroupB fs cert κ σ k.P (fun p => Lk ++ W p) S (k.P.map fun c => max (fs (tailKey c.f)) (Bk c.f)).sum
   B : ∀ p, ∀ c ∈ k.B, c.taken = true →
     CompleteAtB fs cert κ c.f (Lk ++ W p ++ S p) (c.args.map σ) (Returns (c.rets.map σ)) (Bk c.f)
 
@@ -163,7 +163,7 @@ theorem os_levels_kidsPB (κ : ℕ) (σ : Val) (Lk : Layout) (W S : ℕ → ℕ 
     ∀ (ks : List OsLvKP) (l0 : ℕ),
       (∀ i (h : i < ks.length), OsLvKPOkB fs cert κ σ Lk (W (l0 + i)) (S (l0 + i)) Bk ks[i]) →
       ∀ b, ∃ (N : ℕ) (L : Layout) (ps : List ℕ), ps.length = ks.length ∧ Within L b N ∧ DisjL L ∧
-        N ≤ ((ks.flatMap OsLvKP.calls).map fun c => max (fs c.f) (Bk c.f)).sum ∧
+        N ≤ ((ks.flatMap OsLvKP.calls).map fun c => max (fs (tailKey c.f)) (Bk c.f)).sum ∧
         ∀ (rd : Reader) (R Dacc : ℕ → Prop), LowDef κ rd → MemL rd L → MemL rd Lk →
           (∀ i (h : i < ps.length), MemL rd (W (l0 + i) ps[i])) → (∀ i, RegionL Lk i → R i) →
           (∀ l, l0 ≤ l → l < l0 + ks.length → ∀ p i, RegionL (W l p) i → R i) →

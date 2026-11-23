@@ -500,7 +500,8 @@ structure Sig where
 environment `env`, at core statement `start`, with the atoms `facts` filed under their cells and
 the bounds `bnd` the previous window hands on, and the bounds on memory through its cells
 `known`, `(o, c, n)` as in `Sig.mem`, the bounds on memory read through its cells `knownIf`, a
-triple `(o, c, n)` saying that a word read at `fp[o]·g^c` is `g^e` with `e < n`, and the tagged
+triple `(o, c, n)` saying that a word read at `fp[o]·g^c` is `g^e` with `e < n` (or, at
+`c = memTwice c1 c2`, a word read at `L[fp[o]·g^c1]·g^c2`), and the tagged
 tuples of cells `sems` in the semantic relation, that it does not check but takes from
 obligations on the statements before it. -/
 structure Cut where
@@ -610,8 +611,8 @@ def impPos (t : ℕ) : ℕ := (t / 2 ^ 32 - 1) % 8
 def impImm (t : ℕ) : ℕ := (t / 2 ^ 32 - 1) / 8
 
 /-- The context of one window's walk: its segments and their index, the bounds on memory words
-read through its cells `mem` (the function's `mem` and the window's `known` and `knownIf`, as in
-`Cut.knownIf`), its `known` and the cells `sems` in the semantic relation (as in `Cert`, `Cut`),
+read through its cells `mem` (the function's `mem` and the window's `known` read once, and its
+`knownIf`, as in `Cut.knownIf`), its `known` and the cells `sems` in the semantic relation (as in `Cert`, `Cut`),
 a window's end
 `win = (J, facts, bounds)`: the atoms and bounds a walk arriving at `J` hands to the next window,
 and the environment `wenv` the exits into `wJ = J` hold when no segment of the window starts
@@ -775,16 +776,29 @@ end Sel
 /-- The depth of the products `boundOk` follows in `selBound`. -/
 def selFuel : ℕ := 3
 
+/-- A memory bound `(o, c, n)` read once, at `fp[o]·g^c` (`c < 2^32`); the others are read twice
+(`memTwice`). -/
+def memSmall (m : ℕ × ℕ × ℕ) : Bool := Nat.blt m.2.1 (2 ^ 32)
+
+/-- The offset of a memory bound read twice, at `L[fp[o]·g^c1]·g^c2`, `c1 < 2^32`: the guest
+dispatches on windows it reaches through a pointer it reads in a branch (`opening_queries`' odd
+first query), which only a bound on the frame cell `o` the pointer is read through can name. -/
+def memTwice (c1 c2 : ℕ) : ℕ := 2 ^ 32 * (c2 + 1) + c1
+
 /-- A bound `e < n` on `fp[c]` from its own facts: a range check of it against a bound at most
-`n`, a read through a frame cell whose memory read is bounded at that offset (`mem`), a known
-bound, or
+`n`, a read through a frame cell whose memory read is bounded at that offset (`mem`), or through a
+frame cell read through another one whose reads twice are (`memTwice`), a known bound, or
 a selector bounded by booleanity (`selBound`). -/
 noncomputable def boundBase (mem : List (ℕ × ℕ × ℕ)) (B : Book) (bnd : List (ℕ × ℕ)) (c n : ℕ) :
     Bool :=
   (look B c).any (fun a ↦ match a with
     | .range x _ k => x == c && Nat.ble k n
     | .instr _ (.deref o1 o2 o3 .cell) =>
-        o3 == c && mem.any fun m ↦ m.1 == o1 && m.2.1 == o2 && Nat.ble m.2.2 n
+        o3 == c && (mem.any (fun m ↦ m.1 == o1 && m.2.1 == o2 && Nat.blt o2 (2 ^ 32) && Nat.ble m.2.2 n) ||
+          (look B o1).any fun b ↦ match b with
+            | .instr _ (.deref p0 c1 o1' .cell) => o1' == o1 && Nat.blt c1 (2 ^ 32) &&
+                mem.any fun m ↦ m.1 == p0 && m.2.1 == memTwice c1 o2 && Nat.ble m.2.2 n
+            | _ => false)
     | _ => false) ||
   bnd.any (fun p ↦ p.1 == c && Nat.ble p.2 n) ||
   (match selBound B selFuel c with
@@ -1315,7 +1329,8 @@ noncomputable def Cert.fxAt (G : Glob) (f : CompiledFunction) (cf : Core.Fn) (C 
     (i : ℕ) (segs : List Exec.Seg) (idx : Trie Exec.Seg) (loc : Trie ℕ) : Fx :=
   ⟨G.restrict C.callees, C.facts, f.entryPc, segs, idx, loc, cf.params.length, C.nret, main,
     C.callees, C.post,
-    C.mem ++ ((C.cutAt i).known ++ (C.cutAt i).knownIf), (C.cutAt i).known, (C.cutAt i).sems,
+    C.mem.filter memSmall ++ ((C.cutAt i).known.filter memSmall ++ (C.cutAt i).knownIf), (C.cutAt i).known,
+    (C.cutAt i).sems,
     bif Nat.blt i C.cuts.length then
       some ((C.cutAt (i + 1)).J, (C.cutAt (i + 1)).facts, (C.cutAt (i + 1)).bnd)
     else none,

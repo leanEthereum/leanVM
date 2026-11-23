@@ -14,8 +14,8 @@ public import LeanVM.Guest.Exact.FreeVk
 /-!
 # `keccak_layer`, exact
 
-`layer_completeAtFBE`: `layer_completeAtFB` by a tree exact at every node (`completeAt_flatOutFBE`): the layer's paths
-exact (`layer_pathExact`), `grind_check__L3` by `grind_check_completeDTBR`, the two loops exact for free.
+`layer_completeAtFBE`: `layer_completeAtFB` by a tree exact at every node (`completeAt_flatOutFBE`): the honest
+valuation's path exact (`layer_obl`: the inlined `grind_check`'s windows the word's), the two loops exact for free.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -56,7 +56,7 @@ theorem layer_completeAtFBE {first : ℕ} (hf : first < 2) {κ : ℕ} (hκ : 11 
     (hproj : projectedOf D.c D.product + iota * sumE D.c.mu = D.c.value)
     (hgrind : ((D.s0 first).absorbAll D.product dsObserve).GrindOk sGrindBits D.nonce)
     (hfin : LayerFinal D.c (D.s0 first) D.product D.nonce D.packMsgs D.localMsgs D.t)
-    (hCL : CL.Ok first D.c D.y) :
+    (hCL : CL.Ok first D.c D.y) (htk : ∀ f, fs (tailKey f) ≤ fs f) :
     CompleteAtFBT fs cert κ (layerName first)
       (fun fp ↦ layerLin D first CL bcur bout tbE (fp + fs (layerName first)))
       (D.cap ++ [p0, p1, ptr bcur, gen ^ D.y, gen ^ (D.y / 8), gen ^ (D.y % 8), ptr CL.bclaim,
@@ -69,21 +69,20 @@ theorem layer_completeAtFBE {first : ℕ} (hf : first < 2) {κ : ℕ} (hκ : 11 
   have hlocL : (D.locPt first).length = 11 := by
     rw [LayerData.locPt, LayerData.loc, layerLocal, localRunF_length, hlm]
   have hne := packLoopName_ne_rem first
-  obtain ⟨hg1, hg2⟩ := grind_ne_loops first
   refine CompleteAtFBT.mono_bound ?_ (show fs (layerName first) + (layerSizes D).sum +
-      (fs (grindCheckName 3) + (fs (packLoopName first) + D.y / 8 * KP +
-        (fs (remLoopName first) + D.y % 8 * KR))) ≤
+      (fs (packLoopName first) + D.y / 8 * KP +
+        (fs (remLoopName first) + D.y % 8 * KR)) ≤
         layerWords fs first D.y KP KR by
     simp only [layerSizes, layerWords, List.sum_cons, List.sum_nil]; omega)
-  refine completeAt_flatOutFBE (fs := fs) (cert := cert) hfind (layer_loop hf) (layer_pathExact hf hbody) κ _ _
+  refine completeAt_flatOutFBE (fs := fs) (cert := cert) hfind (layer_loop hf) κ _ _
     (fun _ ↦ D.rets first (ptr bcur)) _ (hbody.trans (layerT_pre first)) hflat haddrs
     (layerPre_noLoadIte hf)
     (layerSizes D) (fun _ ↦ layerOwn D first (ptr bcur)) (fun _ ↦ ?_) (fun _ ↦ ⟨rfl, rfl⟩)
     (fun fp ↦ layerKids D first CL bcur bout tbE (fp + fs (layerName first)))
     (layerKidBd fs first D.y KP KR)
-    (fs (grindCheckName 3) + (fs (packLoopName first) + D.y / 8 * KP +
-      (fs (remLoopName first) + D.y % 8 * KR))) ?_
-    (fun fp ↦ layerKids_bound fs D first CL bcur bout tbE _ KP KR) ?_ ?_ ?_
+    (fs (packLoopName first) + D.y / 8 * KP +
+      (fs (remLoopName first) + D.y % 8 * KR)) ?_
+    (fun fp ↦ layerKids_bound fs D first CL bcur bout tbE _ KP KR htk) ?_ ?_ ?_
   · -- the buffers' words fit
     simp only [layerOwn, layerSizes, List.forall₂_cons, List.Forall₂.nil, and_true]
     refine ⟨by rw [LayerData.chs_length hpm], by rw [recWords_length], by rw [hlocL],
@@ -91,15 +90,10 @@ theorem layer_completeAtFBE {first : ℕ} (hf : first < 2) {κ : ℕ} (hκ : 11 
   · -- the callees, placed within their bounds
     intro fp k hk ht
     simp only [layerKids, List.mem_cons, List.not_mem_nil, or_false] at hk
-    rcases hk with rfl | rfl | rfl
-    · simp only [layerKidBd, ↓reduceIte]
-      exact (grind_check_completeDTBR (bits := 3) (by decide) hκ
-        fun _ _ hm ↦ ⟨rfl, D.gw first, ptr tbE, rfl,
-          winTabs_of_memL hm (List.mem_append_left _ tabs_mem), LayerData.gw_pow hgrind⟩).mono le_rfl
-        fun _ _ h ↦ h.2
+    rcases hk with rfl | rfl
     · have hne1 : 1 + gen ^ (D.y / 8) ≠ 0 := by simpa using ht
       have hm0 : 0 < D.y / 8 := lt_of_taken ht
-      simp only [layerKidBd, hg1.symm, ↓reduceIte]
+      simp only [layerKidBd, ↓reduceIte]
       refine (CompleteAtDTB.toCompleteAtB (completeAtDTB_of_relIn
         layerKidS_pure (packLoopName_mem first) (fun rd t rets' hn hv hb ↦ ?_)
         fun rd _ hm ↦ (layer_kids hf D CL bcur bout tbE _ hy30 hpl hpm hlm hm).1 hne1)).toDTBE
@@ -109,7 +103,7 @@ theorem layer_completeAtFBE {first : ℕ} (hf : first < 2) {κ : ℕ} (hκ : 11 
       rwa [gen_pow_eq_ofK, logG_spec (by omega)] at h1
     · have hne1 : 1 + gen ^ (D.y % 8) ≠ 0 := by simpa using ht
       have hm0 : 0 < D.y % 8 := lt_of_taken ht
-      simp only [layerKidBd, hne.symm, hg2.symm, ↓reduceIte]
+      simp only [layerKidBd, hne.symm, ↓reduceIte]
       refine (CompleteAtDTB.toCompleteAtB (completeAtDTB_of_relIn
         layerKidS_pure (remLoopName_mem first) (fun rd t rets' hn hv hb ↦ ?_)
         fun rd _ hm ↦ (layer_kids hf D CL bcur bout tbE _ hy30 hpl hpm hlm hm).2 hne1)).toDTBE

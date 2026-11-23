@@ -14,9 +14,10 @@ public import LeanVM.Guest.B1.Place.OsKids
 # Callees in sequence within bounds
 
 * `os_kids_blockB`: `os_kids_block` with the callees `CompleteAtB … (Bk c.f)`; the total is at most
-  the calls' `max (fs c.f) (Bk c.f)` (a skipped call costs its frame).
+  the calls' `max (fs (tailKey c.f)) (Bk c.f)` (a skipped call costs its tail frame);
+  `sum_max_tailKey_le`: within the calls' `max (fs c.f) (Bk c.f)` when tail frames are within frames.
 * `OsCompleteAtPB`: `OsCompleteAtP` within `B`; `os_kidsFromIn_onePB` places one.
-* `os_levels_kidsB`: `os_levels_kids` within the levels' calls' `max (fs c.f) (Bk c.f)`.
+* `os_levels_kidsB`: `os_levels_kids` within the levels' calls' `max (fs (tailKey c.f)) (Bk c.f)`.
 -/
 
 namespace LeanVM.Guest.B1
@@ -44,7 +45,7 @@ private theorem os_regionL_appendB {L L' : Layout} {i : ℕ} (h : RegionL (L ++ 
 
 /-- The callees' bound is at most the calls' larger of frame and bound. -/
 theorem os_kidsBound_le (σ : Val) (Lk : Layout) (Bk : String → ℕ) (cs : List Call) :
-    kidsBound fs (fun k => Bk k.f) (osKidsOf σ Lk cs) ≤ (cs.map fun c => max (fs c.f) (Bk c.f)).sum := by
+    kidsBound fs (fun k => Bk k.f) (osKidsOf σ Lk cs) ≤ (cs.map fun c => max (fs (tailKey c.f)) (Bk c.f)).sum := by
   induction cs with
   | nil => simp [kidsBound, osKidsOf]
   | cons c cs ih =>
@@ -54,12 +55,22 @@ theorem os_kidsBound_le (σ : Val) (Lk : Layout) (Bk : String → ℕ) (cs : Lis
     · exact le_max_right _ _
     · exact le_max_left _ _
 
+/-- A skipped call's tail frame is within its frame, so the calls' bound by tail frames is within
+theirs by frames. -/
+theorem sum_max_tailKey_le (htl : ∀ f, fs (tailKey f) ≤ fs f) (Bk : String → ℕ) (cs : List Call) :
+    (cs.map fun c => max (fs (tailKey c.f)) (Bk c.f)).sum ≤ (cs.map fun c => max (fs c.f) (Bk c.f)).sum := by
+  induction cs with
+  | nil => simp
+  | cons c cs ih =>
+    simp only [List.map_cons, List.sum_cons]
+    exact Nat.add_le_add (max_le_max (htl c.f) le_rfl) ih
+
 /-- **Calls complete on fixed words within their bounds**, placed from `b`. -/
 theorem os_kids_blockB (κ : ℕ) (Lk : Layout) (σ : Val) (cs : List Call) (Bk : String → ℕ)
     (hc : ∀ c ∈ cs, c.taken = true →
       CompleteAtB fs cert κ c.f Lk (c.args.map σ) (Returns (c.rets.map σ)) (Bk c.f))
     (b : ℕ) :
-    ∃ (N : ℕ) (L : Layout), Within L b N ∧ DisjL L ∧ N ≤ (cs.map fun c => max (fs c.f) (Bk c.f)).sum ∧
+    ∃ (N : ℕ) (L : Layout), Within L b N ∧ DisjL L ∧ N ≤ (cs.map fun c => max (fs (tailKey c.f)) (Bk c.f)).sum ∧
       ∀ (rd : Reader) (R Dacc : ℕ → Prop), LowDef κ rd →
       MemL rd L → MemL rd Lk → (∀ i, RegionL Lk i → R i ∨ Dacc i) →
       KidsFromIn coreProgram fs cert rd σ R Dacc cs b N (fun _ => False) := by
@@ -128,7 +139,7 @@ structure OsLvKOkB (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ
 theorem os_levels_kidsB (κ : ℕ) (σ : Val) (Lk : Layout) (W S : ℕ → ℕ → Layout) (Bk : String → ℕ) :
     ∀ (ks : List OsLvK) (l0 : ℕ), (∀ i (h : i < ks.length), OsLvKOkB fs cert κ σ Lk (W (l0 + i)) (S (l0 + i)) Bk ks[i]) →
       ∀ b, ∃ (N : ℕ) (L : Layout) (ps : List ℕ), ps.length = ks.length ∧ Within L b N ∧ DisjL L ∧
-        N ≤ ((ks.flatMap OsLvK.calls).map fun c => max (fs c.f) (Bk c.f)).sum ∧
+        N ≤ ((ks.flatMap OsLvK.calls).map fun c => max (fs (tailKey c.f)) (Bk c.f)).sum ∧
         ∀ (rd : Reader) (R Dacc : ℕ → Prop), LowDef κ rd → MemL rd L → MemL rd Lk →
           (∀ i (h : i < ps.length), MemL rd (W (l0 + i) ps[i])) → (∀ i, RegionL Lk i → R i) →
           (∀ l, l0 ≤ l → l < l0 + ks.length → ∀ p i, RegionL (W l p) i → R i) →

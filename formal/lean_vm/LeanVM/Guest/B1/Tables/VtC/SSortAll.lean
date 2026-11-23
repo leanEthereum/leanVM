@@ -160,7 +160,7 @@ theorem vtS_sort (hl : args.length = 21) (hlow : LowDefB 14 rd) {lm : ℕ} {τ :
     (hE : ExpTablesAt rd (σv (.n (val% «verify_tables» "g_squares"))))
     (hkeyW : TbReadsAt rd (w 34) (vtGKeyW lm τ)) (hszW : TbReadsAt rd (w 35) (vtGSizeW lm τ))
     (hbaseW : TbReadsAt rd (w 36) (vtGBaseW lm τ)) (hordW : TbReadsAt rd (w 37) (vtGOrdW lm τ)) :
-    (∀ s ∈ (vtPre.drop 0).take (pos% «verify_tables» "s15.u0.s1#0"), VSH (coreProgram.Rel rd) rd σv s) ∧
+    (∀ s ∈ (vtPre.drop 0).take (pos% «verify_tables» "s17.u0.s0#0"), VSH (coreProgram.Rel rd) rd σv s) ∧
       (∀ i < 5, σv (.n ((val% «verify_tables» "sp[0]@1") + i)) = σv (.n i)) ∧
       (∀ i < 8, σv (.n ((val% «verify_tables» "kb[0]") + i)) = gen ^ ([0, lm] ++ vtTauList τ).getD i 0) ∧
       (∀ i < 4, σv (.n ((val% «verify_tables» "group_key") + i)) = w (34 + i)) ∧
@@ -462,7 +462,7 @@ theorem vtS_sort (hl : args.length = 21) (hlow : LowDefB 14 rd) {lm : ℕ} {τ :
       (by decide +kernel) (fun k hk ↦ hboS k (by omega))
     rwa [show (vtBoffData.getD 0 default).1 = 267 from rfl,
       show ∑ k ∈ range 9, (vtLen k + 2) = 72 by decide +kernel] at this
-  have hbC : ∀ s ∈ (vtPre.drop (pos% «verify_tables» "step@10~0")).take (span% «verify_tables» "step@10~0" "s15.u0.s1#0"), VSH (coreProgram.Rel rd) rd σv s := by
+  have hbC : ∀ s ∈ (vtPre.drop (pos% «verify_tables» "step@10~0")).take (span% «verify_tables» "step@10~0" "s17.u0.s0#0"), VSH (coreProgram.Rel rd) rd σv s := by
     have := forall_slices (fun k ↦ (vtBoffData.getD (9 + k) default).1) (fun k ↦ vtLen (9 + k) + 2) 6
       (by decide +kernel) (fun k hk ↦ hboS (9 + k) (by omega))
     rwa [show (vtBoffData.getD (9 + 0) default).1 = 506 from rfl,

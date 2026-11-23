@@ -27,8 +27,8 @@ The hypotheses of `check_opening_terminal_completeAtB`, `rst_completeAtB` and `r
   356 + 356`;
 * `cs_totalLe_fs`, `cs_fs_le`: each `column_selector__L{κ}`, `κ < 31`, within `157` words, its frame
   at most `157` (its certificate is its frame);
-* `rs_totalLeOn_fs`: `rs_eq_run` on `c ≤ 34` coordinates within `8142` (`rs_totalLeOn34`:
-  `50 + (27 + 4 · 1644) + 1489`).
+* `rs_totalLeOn_fs`: `rs_eq_run` on `c ≤ 34` coordinates within `8526` (`rs_totalLeOn34`:
+  `50 + (27 + 4 · 1644) + 1489 + 384`).
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -179,13 +179,14 @@ theorem rsRows_totalLe_fs : ∀ r < 8,
   obtain ⟨b, ks, hcb, hbB⟩ := certLe_spec h.2
   exact (fs_totalLe ((wcertOf_of_idx h.1).trans hcb) rd t args rets hn hv hb).trans hbB
 
-/-- **`rs_eq_run` on at most `34` coordinates within `8142` words** (`rs_totalLeOn34`:
-`50 + (27 + 4 · 1644) + 1489`). -/
+/-- **`rs_eq_run` on at most `34` coordinates within `8526` words** (`rs_totalLeOn34`:
+`50 + (27 + 4 · 1644) + 1489 + 384`). -/
 theorem rs_totalLeOn_fs : ∀ c ≤ 34,
-    TotalLeOn coreProgram B2C.fs "rs_eq_run" (fun a => a.getD 3 0 = gen ^ c) fun _ => 8142 := by
+    TotalLeOn coreProgram B2C.fs "rs_eq_run" (fun a => a.getD 2 0 = gen ^ c) fun _ => 8526 := by
   intro c hc rd t args rets hn hp hv hb
-  refine (rs_totalLeOn34 l6_totalLeOn_fs rsRows_totalLe_fs c hc rd t args rets hn hp hv hb).trans ?_
-  show B2C.fs "rs_eq_run" + (B2C.fs name% «rs_eq_run_loop0» + 4 * 1644) + 1489 ≤ 8142
+  refine (rs_totalLeOn34 B2C.fs_tailKey_le l6_totalLeOn_fs rsRows_totalLe_fs c hc rd t args rets hn hp hv
+    hb).trans ?_
+  show B2C.fs "rs_eq_run" + (B2C.fs name% «rs_eq_run_loop0» + 4 * 1644) + 1489 + 384 ≤ 8526
   rw [fs_rs, fs_l6]
 
 /-! ## At `B2C.fs` -/

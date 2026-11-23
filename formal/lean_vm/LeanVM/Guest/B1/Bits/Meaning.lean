@@ -39,11 +39,5 @@ def log2_ceil_in_the_exponent_Spec (name : String) (fl : ℕ) : Prop :=
 /-- The deployed `log2_ceil_in_the_exponent` specializations are their meanings. -/
 def log2_Spec : Prop := log2_SpecP coreProgram
 
-/-- `grind_check__L{bits}`'s core IR is its meaning. -/
-def grind_check_Spec (bits : ℕ) : Prop := grind_check_SpecP coreProgram bits
-
-/-- Every deployed `grind_check` is its meaning. -/
-def grind_check_all_Spec : Prop := grind_check_all_SpecP coreProgram
-
 end
 end LeanVM.Guest.B1

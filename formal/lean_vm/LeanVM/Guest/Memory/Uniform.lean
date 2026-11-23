@@ -294,14 +294,14 @@ theorem kidsFromIn_of_kids' (κ : ℕ) : ∀ (ks : List Kid),
               · exact Or.inr hi
             · simpa [hct] using hR2
     · obtain ⟨N, L, outs, ho, hW, hI, hK⟩ := kidsFromIn_of_kids' κ ks
-        (fun k' hk' => hok k' (by simp [hk'])) (b + fs k.f)
-      refine ⟨fs k.f + N, L, ([], []) :: outs, ⟨fun h => absurd h ht, ho⟩,
+        (fun k' hk' => hok k' (by simp [hk'])) (b + fs (tailKey k.f))
+      refine ⟨fs (tailKey k.f) + N, L, ([], []) :: outs, ⟨fun h => absurd h ht, ho⟩,
         hW.mono (by omega) (by omega), ⟨fun h => absurd h ht, hI⟩, ?_⟩
       intro rd σ cs R Dacc hc hlow hL hLin hRg
       match cs, hc with
       | c :: cs, ⟨hf, hct, _, hc⟩ =>
         simp only [Kid.lins, List.flatMap_cons] at hLin
-        refine ⟨fs k.f, N, fun _ => False, fun _ => False, rfl, fun _ h => h.elim, ?_, ?_⟩
+        refine ⟨fs (tailKey k.f), N, fun _ => False, fun _ => False, rfl, fun _ h => h.elim, ?_, ?_⟩
         · have ht' : k.taken = false := by simpa using ht
           rw [hct, ht']
           simp only [Bool.false_eq_true, ↓reduceIte]
@@ -577,14 +577,14 @@ theorem kidsFromIn_of_kidsD (κ : ℕ) : ∀ (ks : List Kid),
               · exact Or.inr hi
             · simpa [hct] using hR2
     · obtain ⟨N, L, outs, ho, hW, hD, hI, hK⟩ := kidsFromIn_of_kidsD κ ks
-        (fun k' hk' => hok k' (by simp [hk'])) (b + fs k.f)
-      refine ⟨fs k.f + N, L, ([], []) :: outs, ⟨fun h => absurd h ht, ho⟩,
+        (fun k' hk' => hok k' (by simp [hk'])) (b + fs (tailKey k.f))
+      refine ⟨fs (tailKey k.f) + N, L, ([], []) :: outs, ⟨fun h => absurd h ht, ho⟩,
         hW.mono (by omega) (by omega), hD, ⟨fun h => absurd h ht, hI⟩, ?_⟩
       intro rd σ cs R Dacc hc hlow hL hLin hRg
       match cs, hc with
       | c :: cs, ⟨hf, hct, _, hc⟩ =>
         simp only [Kid.lins, List.flatMap_cons] at hLin
-        refine ⟨fs k.f, N, fun _ => False, fun _ => False, rfl, fun _ h => h.elim, ?_, ?_⟩
+        refine ⟨fs (tailKey k.f), N, fun _ => False, fun _ => False, rfl, fun _ h => h.elim, ?_, ?_⟩
         · have ht' : k.taken = false := by simpa using ht
           rw [hct, ht']
           simp only [Bool.false_eq_true, ↓reduceIte]
@@ -665,9 +665,9 @@ theorem CompleteAtB.mono {k k' : ℕ} {f : String} {Lin : Layout} {args : List E
   let ⟨n, Lown, rets, Lout, ho, hw, hd, hn, hr⟩ := h fp
   ⟨n, Lown, rets, Lout, ho, hw, hd, le_trans hn hB, fun rd hl hm => hr rd (hl.mono hk) hm⟩
 
-/-- The callees' bound: an entered one's `bd`, a skipped one's frame. -/
+/-- The callees' bound: an entered one's `bd`, a skipped one's tail. -/
 def kidsBound (fs : String → ℕ) (bd : Kid → ℕ) (ks : List Kid) : ℕ :=
-  (ks.map fun k => if k.taken = true then bd k else fs k.f).sum
+  (ks.map fun k => if k.taken = true then bd k else fs (tailKey k.f)).sum
 
 theorem kidsFromIn_of_kidsB (κ : ℕ) (bd : Kid → ℕ) : ∀ (ks : List Kid),
     (∀ k ∈ ks, k.taken = true → CompleteAtB fs cert κ k.f k.Lin k.args k.Out (bd k)) → ∀ b : ℕ,
@@ -713,18 +713,18 @@ theorem kidsFromIn_of_kidsB (κ : ℕ) (bd : Kid → ℕ) : ∀ (ks : List Kid),
               · exact Or.inr hi
             · simpa [hct] using hR2
     · obtain ⟨N, L, outs, ho, hW, hD, hNb, hI, hK⟩ := kidsFromIn_of_kidsB κ bd ks
-        (fun k' hk' => hok k' (by simp [hk'])) (b + fs k.f)
-      have hB1 : fs k.f + N ≤ kidsBound fs bd (k :: ks) := by
+        (fun k' hk' => hok k' (by simp [hk'])) (b + fs (tailKey k.f))
+      have hB1 : fs (tailKey k.f) + N ≤ kidsBound fs bd (k :: ks) := by
         simp only [kidsBound, List.map_cons, List.sum_cons, ht, Bool.false_eq_true, ↓reduceIte]
           at hNb ⊢
         omega
-      refine ⟨fs k.f + N, L, ([], []) :: outs, ⟨fun h => absurd h ht, ho⟩,
+      refine ⟨fs (tailKey k.f) + N, L, ([], []) :: outs, ⟨fun h => absurd h ht, ho⟩,
         hW.mono (by omega) (by omega), hD, hB1, ⟨fun h => absurd h ht, hI⟩, ?_⟩
       intro rd σ cs R Dacc hc hlow hL hLin hRg
       match cs, hc with
       | c :: cs, ⟨hf, hct, _, hc⟩ =>
         simp only [Kid.lins, List.flatMap_cons] at hLin
-        refine ⟨fs k.f, N, fun _ => False, fun _ => False, rfl, fun _ h => h.elim, ?_, ?_⟩
+        refine ⟨fs (tailKey k.f), N, fun _ => False, fun _ => False, rfl, fun _ h => h.elim, ?_, ?_⟩
         · have ht' : k.taken = false := by simpa using ht
           rw [hct, ht']
           simp only [Bool.false_eq_true, ↓reduceIte]

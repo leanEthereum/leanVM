@@ -95,6 +95,11 @@ structure FrameHolds {κ : ℕ} (L : MemoryImage κ) (j fp : ℕ) (σ : Val) (es
     (∀ o ∈ selfCells c.f, L.read (addressOfIndex (kfp + o)) = some (ofK (addressOfIndex kfp)))
   /-- A loop's tail call, its last, has its frame right after the caller's. -/
   tail : (coreOf j).loop = true → ∀ kfp, kfps.getLast? = some kfp → kfp = fp + fsN j
+  /-- A value the path names at the next frame's parameter cell `2 + k` of the tail call's argument
+  `k` (`tailArgs`), which that argument has too. -/
+  nxt : ∀ k w v, (tailArgs (coreOf j))[k]? = some w → cellJ j w = fsN j + (2 + k) →
+    v ∈ namedOf (coreOf j).params es vs → cellJ j v = fsN j + (2 + k) →
+    L.read (addressOfIndex (fp + (fsN j + (2 + k)))) = some (σ v)
 
 /-- **The callees on a path run**: each call entered, from its callee's entry at its frame to its
 return registers, executing `ck[i] op` instructions of each opcode, its returns left in its frame's

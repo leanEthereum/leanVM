@@ -65,12 +65,12 @@ def vtPad5T (v : ℕ) : List Stmt :=
       .atom (.assertNe (.n (v + 18)) (.n (v + 19)) (.n (v + 20)))]]
 
 theorem vtPad_check : ∀ t < 5,
-    tbStmtsEqb (vtPadT (579 + 13 * t) t)
-      ((vtAt (563 + 10 * t)).take (vtPadT (579 + 13 * t) t).length) = true := by
+    tbStmtsEqb (vtPadT (681 + 13 * t) t)
+      ((vtAt (653 + 10 * t)).take (vtPadT (681 + 13 * t) t).length) = true := by
   decide +kernel
 
 theorem vtPad5_check :
-    tbStmtsEqb (vtPad5T 644) ((vtAt 613).take (vtPad5T 644).length) = true := by
+    tbStmtsEqb (vtPad5T 746) ((vtAt 703).take (vtPad5T 746).length) = true := by
   decide +kernel
 
 /-- `kappa_base` in the frame: `kb[0] = 1`, `kb[1 + t] = dims_g[t]`. -/
@@ -88,7 +88,7 @@ theorem vtW30_eq : vtW30 = ofK (Parameters.addressOfIndex 30) := by
     gen_pow_eq_ofK]
 
 /-- Table `t`'s padding weight's value. -/
-def vtPadV (t : ℕ) : ℕ := 584 + 13 * t
+def vtPadV (t : ℕ) : ℕ := 686 + 13 * t
 
 /-- What table `t`'s height statements give. -/
 def VtPadOk (rd : Reader) (σ : Val) (t : ℕ) : Prop :=
@@ -134,7 +134,7 @@ theorem vt_pad (σ : Val) (h : VtH Lm.read σ) {t : ℕ} (ht : t < 5) : VtPadOk 
       exact zero_ne_one e2
   have hlog := (lead_rest_iff (by omega) hn).mp hlr
   refine ⟨τ, n, zs, hτ, by rw [← hv]; exact l0, by rw [← hrows]; exact l5, hn, hzl, hzs,
-    by rw [show vtPadV t = 579 + 13 * t + 5 by unfold vtPadV; ring]; exact hpad, ?_⟩
+    by rw [show vtPadV t = 681 + 13 * t + 5 by unfold vtPadV; ring]; exact hpad, ?_⟩
   have hf : tableLogFloors.getD t 0 = 0 := by interval_cases t <;> rfl
   rw [hf, hlog]
   simp
@@ -158,13 +158,13 @@ theorem vt_pad5 (σ : Val) (h : VtH Lm.read σ) : VtPadOk Lm.read σ 5 := by
     rw [hv, hdv, c10, ← pow_add] at m11
     exact gen_pow_inj (by omega) (by omega) m11
   refine ⟨τ, n, zs, hτ, by rw [← hv]; exact l0, by rw [← hrows]; exact l5, hn, hzl, hzs,
-    by rw [show vtPadV 5 = 644 + 5 from rfl]; exact hpad, ?_⟩
+    by rw [show vtPadV 5 = 746 + 5 from rfl]; exact hpad, ?_⟩
   show τ = max (log2Ceil n) 9
   rcases Nat.eq_or_lt_of_le (show 9 ≤ τ by omega) with h9 | h9
   · rw [← h9]
     have := log2Ceil_le_iff.mpr (show n ≤ 2 ^ 9 by rw [h9]; exact hn)
     omega
-  · have hne' : σ (.n (val% «verify_tables» "s15.u5.s4.e.s1#1")) ≠ 0 := by
+  · have hne' : σ (.n (val% «verify_tables» "s19.u5.s4.e.s1#1")) ≠ 0 := by
       rw [a16, hv, c15]
       intro h0
       have := gen_pow_inj (by omega) (by omega) (e_add_eq_zero_iff.mp h0)

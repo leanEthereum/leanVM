@@ -80,7 +80,8 @@ def pair(F, body, A, locs, extra, pows, jt, ents, reads, cuts=()):
     nz = lambda o: st(o) is not None and st(o)[0] == 'k' and (st(o)[1], st(o)[2]) != (0, 0)
     self_ = lambda o: st(o) == ('fpg', 0, 0) or (main and st(o) == ('k', 1, 0))
     pc_at = lambda o: pows.get(st(o)[1]) if st(o) is not None and st(o)[0] == 'k' and st(o)[2] == 0 else None
-    next_ = lambda o: st(o) is not None and st(o)[0] == 'fpg' and st(o)[1] != 0
+    # `AlignCtx.nextAt`: a next-frame product among the fixed cells, or a cell past the frame (`Plumb.nxt`)
+    next_ = lambda o: (st(o)[0] == 'fpg' and st(o)[1] != 0) if st(o) is not None else o in F.get('nxt', ())
     by_ent = {e: n for n, e in sorted(ents.items())}
 
     def fwd(i, t):

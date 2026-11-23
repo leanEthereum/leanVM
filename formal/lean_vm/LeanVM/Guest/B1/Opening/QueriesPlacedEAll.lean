@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Opening.QueriesPlacedE
 # `opening_queries`, `CompleteAtE`, every specialization
 
 `opening_queries_completeAtE`: each deployed specialization (`openingQueriesLoops`: name, loop
-helper, shape) is `CompleteAtE` (`OqCompleteDE` at the shape's `Oq` and `odd`, by a tree of exactly
+helper, shape) is `CompleteAtE` (`OqCompleteDE` at the shape's `Oq`, by a tree of exactly
 `oqBound fs name loop N` words) at every frame size `fs` and frame certificate `cert`: its base's
 theorem (`oqCompleteDE0`, `oqCompleteDE1`) at its functions (`oqFns_all`) and its shape's facts
 (`oqSide_all`).
@@ -27,16 +27,13 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
 
 /-- **Every deployed `opening_queries` is `CompleteAtE`.** -/
 theorem opening_queries_completeAtE (fs : String → ℕ) (cert : String → V → ℕ) :
-    ∀ p ∈ openingQueriesLoops, OqCompleteDE fs cert p.1 p.2.1 p.2.2.oq p.2.2.odd := by
+    ∀ p ∈ openingQueriesLoops, OqCompleteDE fs cert p.1 p.2.1 p.2.2.oq := by
   intro p hp
-  obtain ⟨hW, fm, fl, hfm, hpm, hbm, hfl, hpl, hbl⟩ := oqFns_all p hp
-  obtain ⟨hs, hfin, hb, hpd, hcd, -, -, hE⟩ := oqSide_all p hp
-  rcases hb with ⟨hb0, hodd⟩ | ⟨hb1, -, hodd⟩
-  · rw [hodd] at hbm hE ⊢
-    exact oqCompleteDE0 fs cert hs hfin hb0 hpd hcd hE hW hfm hpm hbm hfl hpl
-      (hbl.trans (oqLoopT_zero hb0 _ _ _))
-  · exact oqCompleteDE1 fs cert hs hfin hb1 hpd hcd hodd hE hW hfm hpm hbm hfl hpl
-      (hbl.trans (oqLoopT_one hb1 _ _ _))
+  obtain ⟨fm, fl, hfm, hpm, hbm, hfl, hpl, hbl⟩ := oqFns_all p hp
+  obtain ⟨hs, hfin, hb⟩ := oqSide_all p hp
+  rcases hb with hb0 | ⟨hb1, -⟩
+  · exact oqCompleteDE0 fs cert hs hfin hb0 hfm hpm hbm hfl hpl (hbl.trans (oqLoopT_zero hb0 _))
+  · exact oqCompleteDE1 fs cert hs hfin hb1 hfm hpm hbm hfl hpl (hbl.trans (oqLoopT_one hb1 _))
 
 end
 end LeanVM.Guest.B1

@@ -49,8 +49,8 @@ theorem verify_tables_holds (bc : List K) (hbc : bc.length = 2 ^ 23) :
     σ (.n (val% «verify_tables» "fs4")), σ (.n (val% «verify_tables» "cursor@1")), σ (.n (val% «verify_tables» "pi_0")), σ (.n (val% «verify_tables» "pi_1")), σ (.n (val% «verify_tables» "zeta")), σ (.n (val% «verify_tables» "g_bus_mu")), σ (.n (val% «verify_tables» "dims_g")), σ (.n (val% «verify_tables» "table_rows")), σ (.n (val% «verify_tables» "g_squares")),
     σ (.n (val% «verify_tables» "fp_w")), σ (.n (val% «verify_tables» "beta")), σ (.n (val% «verify_tables» "claim_pool")), σ (.n (val% «verify_tables» "chi")), σ (.n (val% «verify_tables» "gkr_leaves")), σ (.n (val% «verify_tables» "tabs")), σ (.n (val% «verify_tables» "bc_point")), σ (.n (val% «verify_tables» "stream"))] from rfl]
     at hpre ⊢
-  rw [show vtRets.map σ = [σ (.n (val% «verify_tables» "s91#0")), σ (.n (val% «verify_tables» "s91#0[1]")), σ (.n (val% «verify_tables» "s91#0[2]")), σ (.n (val% «verify_tables» "s91#0[3]")), σ (.n (val% «verify_tables» "s91#0[4]")),
-    σ (.n (val% «verify_tables» "s91#0[5]")), σ (.n (val% «verify_tables» "s91#0[6]")), σ (.n (val% «verify_tables» "s91#0[7]")), σ (.n (val% «verify_tables» "s91#0[8]")), σ (.n (val% «verify_tables» "s91#0[9]"))] from rfl]
+  rw [show vtRets.map σ = [σ (.n (val% «verify_tables» "s92#0")), σ (.n (val% «verify_tables» "s92#0[1]")), σ (.n (val% «verify_tables» "s92#0[2]")), σ (.n (val% «verify_tables» "s92#0[3]")), σ (.n (val% «verify_tables» "s92#0[4]")),
+    σ (.n (val% «verify_tables» "s92#0[5]")), σ (.n (val% «verify_tables» "s92#0[6]")), σ (.n (val% «verify_tables» "s92#0[7]")), σ (.n (val% «verify_tables» "s92#0[8]")), σ (.n (val% «verify_tables» "s92#0[9]"))] from rfl]
   obtain ⟨hpi, hz, hmu, hml, hlm1, hlm, ⟨ds, hdsl, hdims⟩, hE, -, hwl, hW, hvl, hvals⟩ := hpre
   -- the tables' heights and row counts
   have hpads := vt_pads hμ Lm σ h
@@ -113,10 +113,10 @@ theorem verify_tables_holds (bc : List K) (hbc : bc.length = 2 ^ 23) :
     have hle : (tf t).1 ≤ point.length := by have := hτn t ht; rw [hHt t ht] at this; omega
     rw [hpwz, hHt t ht, hRw t ht, tbReadsAt_unique hzr (tbReadsAt_take hz (tf t).1) (by simp; omega)]
   -- the GKR leaves
-  have hv3 : values = [σ (.n (val% «verify_tables» "s52.u0.s5#0")), σ (.n (val% «verify_tables» "s52.u1.s5#0")), σ (.n (val% «verify_tables» "s52.u2.s5#0"))] := by
-    have l0 := h.atomAt 2487 (.load (.n (val% «verify_tables» "s52.u0.s5#0")) (.n (val% «verify_tables» "gkr_leaves")) 0) (by decide +kernel)
-    have l1 := h.atomAt 2533 (.load (.n (val% «verify_tables» "s52.u1.s5#0")) (.n (val% «verify_tables» "gkr_leaves")) 1) (by decide +kernel)
-    have l2 := h.atomAt 2588 (.load (.n (val% «verify_tables» "s52.u2.s5#0")) (.n (val% «verify_tables» "gkr_leaves")) 2) (by decide +kernel)
+  have hv3 : values = [σ (.n (val% «verify_tables» "s53.u0.s5#0")), σ (.n (val% «verify_tables» "s53.u1.s5#0")), σ (.n (val% «verify_tables» "s53.u2.s5#0"))] := by
+    have l0 := h.atomAt 2183 (.load (.n (val% «verify_tables» "s53.u0.s5#0")) (.n (val% «verify_tables» "gkr_leaves")) 0) (by decide +kernel)
+    have l1 := h.atomAt 2229 (.load (.n (val% «verify_tables» "s53.u1.s5#0")) (.n (val% «verify_tables» "gkr_leaves")) 1) (by decide +kernel)
+    have l2 := h.atomAt 2284 (.load (.n (val% «verify_tables» "s53.u2.s5#0")) (.n (val% «verify_tables» "gkr_leaves")) 2) (by decide +kernel)
     simp only [Atom.Holds] at l0 l1 l2
     refine tbReadsAt_unique hvals (fun k hk ↦ ?_) (by simp [hvl, nTrees])
     simp only [List.length_cons, List.length_nil] at hk
@@ -136,12 +136,12 @@ theorem verify_tables_holds (bc : List K) (hbc : bc.length = 2 ^ 23) :
   set bus := vtBus L weights (σ (.n (val% «verify_tables» "beta"))) point values [σ (.n (val% «verify_tables» "x@1")), σ (.n (val% «verify_tables» "x@2"))] (σ (.n (val% «verify_tables» "x@3")))
     (σ (.n (val% «verify_tables» "x@4"))) (σ (.n (val% «verify_tables» "x@5"))) slots with hbus
   have hforms : bus.forms = (vtAcc2 L weights (σ (.n (val% «verify_tables» "beta"))) point [σ (.n (val% «verify_tables» "x@1")), σ (.n (val% «verify_tables» "x@2"))]
-      (σ (.n (val% «verify_tables» "x@3"))) (σ (.n (val% «verify_tables» "x@4"))) (σ (.n (val% «verify_tables» "x@5"))) (σ (.n (val% «verify_tables» "s52.u0.s5#0"))) (σ (.n (val% «verify_tables» "s52.u1.s5#0"))) (σ (.n (val% «verify_tables» "s52.u2.s5#0")))).1 := by
+      (σ (.n (val% «verify_tables» "x@3"))) (σ (.n (val% «verify_tables» "x@4"))) (σ (.n (val% «verify_tables» "x@5"))) (σ (.n (val% «verify_tables» "s53.u0.s5#0"))) (σ (.n (val% «verify_tables» "s53.u1.s5#0"))) (σ (.n (val% «verify_tables» "s53.u2.s5#0")))).1 := by
     simp only [hbus, vtBus, hv3, List.getD_cons_zero, List.getD_cons_succ]
   set evs : List (List E) := vtEvsT σ with hevs
   have A_len : evs.length = (vtRows (tableHeightsOf rows) bus.forms point pts).length := by
     have hF6 : (vtAcc2 L weights (σ (.n (val% «verify_tables» "beta"))) point [σ (.n (val% «verify_tables» "x@1")), σ (.n (val% «verify_tables» "x@2"))] (σ (.n (val% «verify_tables» "x@3")))
-        (σ (.n (val% «verify_tables» "x@4"))) (σ (.n (val% «verify_tables» "x@5"))) (σ (.n (val% «verify_tables» "s52.u0.s5#0"))) (σ (.n (val% «verify_tables» "s52.u1.s5#0"))) (σ (.n (val% «verify_tables» "s52.u2.s5#0")))).1.length = 6 :=
+        (σ (.n (val% «verify_tables» "x@4"))) (σ (.n (val% «verify_tables» "x@5"))) (σ (.n (val% «verify_tables» "s53.u0.s5#0"))) (σ (.n (val% «verify_tables» "s53.u1.s5#0"))) (σ (.n (val% «verify_tables» "s53.u2.s5#0")))).1.length = 6 :=
       (vt_forms3_shape bc lm hr weights _ point _ _ _ _ _ _ _).1
     rw [hforms, vtEvsT_length]
     simp [vtRows, List.length_zip, vt_tableHeights_length hr, hF6,

@@ -59,7 +59,7 @@ theorem kids_completeBE_fs (h : D.Ok) {κ : ℕ} (hκ : 11 ≤ κ) (B curE chiE 
       (fun hf1 ↦ by
         obtain rfl : s = 0 := by unfold firstOf at hf1; split at hf1 <;> omega
         rfl) (by rw [hy]; omega) (by rw [hy]; omega) hpl hpm hlm hproj hgr hfin
-      (D.CL_ok h B _ (by omega))
+      (D.CL_ok h B _ (by omega)) B2C.fs_tailKey_le
     have hb : (D.CL B (D.lsOf LeanVM.Guest.B2C.fs ps) s).bclaim = B + D.o201 + 22 * s := by cases s <;> rfl
     rw [hb] at H
     simp only [layKid, List.dropLast_concat, List.getLast?_concat, Option.getD_some]

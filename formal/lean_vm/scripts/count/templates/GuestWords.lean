@@ -12,7 +12,7 @@ module
 public import LeanVM.Guest.Memory.GuestWords.All
 public import LeanVM.Guest.Memory.FamilySound
 public import LeanVM.Guest.Memory.StaticWords
-public import LeanVM.Guest.B2C.Defs
+public import LeanVM.Guest.B2C.Cells
 
 namespace LeanVM.Guest
 
@@ -65,7 +65,7 @@ theorem fs_total_le_of_stat {f : String} {pre : List (ℕ × ℕ)} {b : Aff} {ks
     (hcf : wcertOf f = .stat pre b ks) {rd : Reader} {t : Tree} {args rets : List E} (hn : t.name = f)
     (hv : t.Valid coreProgram rd args rets) (hb : t.BufsOk coreProgram) (hpre : ArgsPre pre args) :
     t.total B2C.fs ≤ b.eval args :=
-  total_le_of_stat w_checked w_handOk hcf hn hv hb hpre
+  total_le_of_stat B2C.fs_tailKey_le w_checked w_handOk hcf hn hv hb hpre
 
 /-- **A guest loop's words at `B2C.fs`**, by its certificate counting words. -/
 theorem fs_total_le_of_loop {f : String} {endc : Option ℕ} {pre : List (ℕ × ℕ)} {b : Aff}
@@ -74,12 +74,12 @@ theorem fs_total_le_of_loop {f : String} {endc : Option ℕ} {pre : List (ℕ ×
     (hb : t.BufsOk coreProgram) {a e : ℕ} (ha : args.getD 0 0 = ofK (addressOfIndex a))
     (he : endOf endc args = ofK (addressOfIndex e)) (hae : a < e) (heo : e < 2 ^ 64 - 1)
     (hpre : ArgsPre pre args) : t.total B2C.fs ≤ (e - a) * b.eval args + B2C.fs f :=
-  total_le_of_loop w_checked w_handOk hcf hn hv hb ha he hae heo hpre
+  total_le_of_loop B2C.fs_tailKey_le w_checked w_handOk hcf hn hv hb ha he hae heo hpre
 
 /-- **A guest function's words at `B2C.fs`, constant.** -/
 theorem fs_totalLe {f : String} {B : ℕ} {ks : List (V × ℕ)} (hcf : wcertOf f = .stat [] ⟨B, []⟩ ks) :
     TotalLe coreProgram B2C.fs f fun _ => B :=
-  totalLe_of_stat w_checked w_handOk hcf
+  totalLe_of_stat B2C.fs_tailKey_le w_checked w_handOk hcf
 
 end
 end LeanVM.Guest

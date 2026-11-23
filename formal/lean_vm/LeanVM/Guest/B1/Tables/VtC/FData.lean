@@ -86,11 +86,11 @@ theorem not_mem_vtSL {p : ℕ} (h : noStoreB p = true) (d : V) (off : ℕ) :
   have := List.all_eq_true.mp h _ hm
   simp at this
 
-theorem vtF_noStore : noStoreB 13 = true ∧ noStoreB 2639 = true ∧
+theorem vtF_noStore : noStoreB 13 = true ∧ noStoreB 2335 = true ∧
     ∀ t < 6, noStoreB (vtAirX t + 1) = true ∧ noStoreB (vtAirX t + 3) = true := by
   decide +kernel
 
-theorem vtF_loadsBelow : loadsBelow [(13, 16), (2639, 153)] = true := by decide +kernel
+theorem vtF_loadsBelow : loadsBelow [(13, 16), (2335, 153)] = true := by decide +kernel
 
 end
 end LeanVM.Guest.B1.Tables

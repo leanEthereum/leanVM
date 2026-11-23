@@ -78,7 +78,7 @@ private theorem os_callsMatch_mapBT (σ : Val) (Lk : Layout) : ∀ (cs : List Ca
   | _ :: _, [], h => h.elim
 
 theorem os_kidsBoundL_le (σ : Val) (Lk : Layout) (Bk : String → ℕ) : ∀ cs : List Call,
-    kidsBoundL fs (osKidsOf σ Lk cs) (cs.map fun c => Bk c.f) ≤ (cs.map fun c => max (fs c.f) (Bk c.f)).sum
+    kidsBoundL fs (osKidsOf σ Lk cs) (cs.map fun c => Bk c.f) ≤ (cs.map fun c => max (fs (tailKey c.f)) (Bk c.f)).sum
   | [] => by simp [kidsBoundL, osKidsOf]
   | c :: cs => by
     have ih := os_kidsBoundL_le σ Lk Bk cs
@@ -102,7 +102,7 @@ theorem os_kids_blockBT (κ : ℕ) (Lk : Layout) (σ : Val) (cs : List Call) (Bk
     (hc : ∀ c ∈ cs, c.taken = true →
       CompleteAtDTBR fs cert κ c.f Lk (c.args.map σ) (Returns (c.rets.map σ)) T (Bk c.f))
     (b : ℕ) :
-    ∃ (N : ℕ) (L : Layout), Within L b N ∧ DisjL L ∧ N ≤ (cs.map fun c => max (fs c.f) (Bk c.f)).sum ∧
+    ∃ (N : ℕ) (L : Layout), Within L b N ∧ DisjL L ∧ N ≤ (cs.map fun c => max (fs (tailKey c.f)) (Bk c.f)).sum ∧
       ∀ (rd : Reader) (R Dacc : ℕ → Prop), LowDef κ rd →
       MemL rd L → MemL rd Lk → (∀ i, RegionL Lk i → R i ∨ Dacc i) →
       KidsFromInT coreProgram fs cert rd σ R Dacc cs (cs.map fun _ => T rd) b N (fun _ => False) := by
@@ -188,7 +188,7 @@ theorem os_levels_kidsBT (κ : ℕ) (σ : Val) (Lk : Layout) (W S : ℕ → ℕ 
     ∀ (ks : List OsLvK) (l0 : ℕ),
       (∀ i (h : i < ks.length), OsLvKOkBT fs cert κ σ Lk (W (l0 + i)) (S (l0 + i)) Bk TA TS (TB (l0 + i)) ks[i]) →
       ∀ b, ∃ (N : ℕ) (L : Layout) (ps : List ℕ), ps.length = ks.length ∧ Within L b N ∧ DisjL L ∧
-        N ≤ ((ks.flatMap OsLvK.calls).map fun c => max (fs c.f) (Bk c.f)).sum ∧
+        N ≤ ((ks.flatMap OsLvK.calls).map fun c => max (fs (tailKey c.f)) (Bk c.f)).sum ∧
         ∀ (rd : Reader) (R Dacc : ℕ → Prop), LowDef κ rd → MemL rd L → MemL rd Lk →
           (∀ i (h : i < ps.length), MemL rd (W (l0 + i) ps[i])) → (∀ i, RegionL Lk i → R i) →
           (∀ l, l0 ≤ l → l < l0 + ks.length → ∀ p i, RegionL (W l p) i → R i) →

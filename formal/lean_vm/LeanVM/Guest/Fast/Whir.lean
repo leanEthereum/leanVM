@@ -45,25 +45,11 @@ open LeanVM.Guest.B1.VerifySub LeanVM.Guest.B1.Sig LeanVM.Protocol.Compile LeanV
 
 @[expose] public section
 
-/-- **The query hinted at `b`** (`oqQueryW`), its walk the frames `walk` of `Vn`. -/
-def oqQueryN (s : Oq) (walk : ℕ) (rd : Reader) (bp cap flags : E) (b : ℕ) (emit : Bool) (σ : Val)
-    (Vn : NFrames) : QW :=
-  (winPosOf rd bp (s.pd + s.cd) s.cd, oqRow s b σ,
-    oqSibsOf s.pd wpCh (winPosOf rd bp (s.pd + s.cd) s.cd)
-      (Vn walk (oqWalkArgs s b emit bp cap flags σ) []))
-
-/-- A loop iteration's queries, from its frame (`oqIterOf`), its walk the frames `walk` of `Vn`. -/
-def oqIterN (s : Oq) (walk : ℕ) (rd : Reader) (σ : Val) (Vn : NFrames) : List QW :=
-  if s.base = 1 then
-    [oqQueryN s walk rd (σ (.n 15)) (σ (.n (valf% «opening_queries» «_loop0» "cap"))) (σ (.n (valf% «opening_queries» «_loop0» "flags"))) 16 true σ Vn,
-      oqQueryN s walk rd (σ (.n (oqE1 s + 1))) (σ (.n (valf% «opening_queries» «_loop0» "cap"))) (σ (.n (valf% «opening_queries» «_loop0» "flags"))) (oqE1 s + 2) false σ Vn]
-  else [oqQueryN s walk rd (σ (.n 13)) (σ (.n (valf% «opening_queries» «_loop0» "cap"))) (σ (.n (valf% «opening_queries» «_loop0» "flags"))) 14 true σ Vn]
-
-/-- **The queries of `opening_queries`** from its frame `σ`, its loop and its walk the frames
-`loop` and `walk` of `Vn` (`oqsOf`). -/
-def oqsOfN (s : Oq) (odd loop walk N : ℕ) (rd : Reader) (σ : Val) (Vn : NFrames) : List QW :=
-  (if odd = 1 then [oqQueryN s walk rd (σ (.n 12)) (σ (.n (valf% «opening_queries» "cap"))) (σ (.n (valf% «opening_queries» "flags"))) 13 true σ Vn] else []) ++
-    (List.range N).flatMap fun j ↦ oqIterN s walk rd (Vn loop (gen ^ j :: oqLoopArgs σ) []) Vn
+/-- **The queries of `opening_queries`** of a level of cap depth `cd` from its frame `σ` and its
+loop the frames `loop` of `Vn` (`oqsOf`). -/
+def oqsOfN (s : Oq) (cd odd loop N : ℕ) (rd : Reader) (σ : Val) (Vn : NFrames) : List QW :=
+  (if odd = 1 then [oqQueryW s cd rd (σ (.n 16)) 17 true σ] else []) ++
+    (List.range N).flatMap fun j ↦ oqIterOf s cd rd (Vn loop (gen ^ j :: oqLoopArgs s σ) [])
 
 /-- The shape of the call `c`'s callee. -/
 def OsCall.shape (c : OsCall) : OqShape := oqShapeAt c.sh
@@ -73,8 +59,8 @@ def OsCall.shape (c : OsCall) : OqShape := oqShapeAt c.sh
 def levelOsN (rd : Reader) (σ : Val) (Vn : NFrames) (c : OsCall) : List Opening :=
   let A := c.args.map fun k ↦ σ (.n k)
   let Vq := Vn c.lq A (c.rets.map fun k ↦ σ (.n k))
-  (oqsOfN c.shape.oq c.shape.odd c.loop c.walk c.N rd
-    (Vn c.fn (osOqArgs Vq A c.N) [Vq (.n 13)]) Vn).map (toOpening rd (Vq (.n 7)) c.cd c.depth)
+  (oqsOfN c.shape.oq c.cd c.odd c.loop c.N rd
+    (Vn c.fn (osOqArgs Vq A c.N c.odd) [Vq (.n 18)]) Vn).map (toOpening rd (Vq (.n 7)) c.cd c.depth)
 
 /-- **The child proof `verify_sub` checks** (`vsPiOf`), the frames numbered, `cl` the cursor's
 length (`cursorLen`). -/

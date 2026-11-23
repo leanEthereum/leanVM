@@ -37,9 +37,9 @@ open LeanVM.Guest.B1 LeanVM.Guest.B1.Fwd
 @[expose] public section
 
 theorem glKids_load {off : ℕ} {d q : V} {o' : ℕ} (h : Stmt.atom (.load d q o') ∈ glKids off) :
-    ∃ i < 12, d = .n (chB 156 i) ∧ q = .n (val% «gkr_layer__L0_L0» "tcur") ∧ o' = off + i := by
+    ∃ i < 12, d = .n (chB (val% «gkr_layer__L0_L0» "x@9") i) ∧ q = .n (val% «gkr_layer__L0_L0» "tcur") ∧ o' = off + i := by
   have hc : ∀ i, Stmt.atom (.load d q o') ∈ chT (.n (val% «gkr_layer__L0_L0» "tcur")) off (val% «gkr_layer__L0_L0» "x@9") i →
-      d = .n (chB 156 i) ∧ q = .n (val% «gkr_layer__L0_L0» "tcur") ∧ o' = off + i := fun i hi ↦ by
+      d = .n (chB (val% «gkr_layer__L0_L0» "x@9") i) ∧ q = .n (val% «gkr_layer__L0_L0» "tcur") ∧ o' = off + i := fun i hi ↦ by
     simp only [chT, fsNextT, fsPackT, List.cons_append, List.nil_append, List.mem_cons,
       List.not_mem_nil, or_false, Stmt.atom.injEq, reduceCtorEq] at hi
     simp only [Atom.load.injEq] at hi
@@ -59,12 +59,12 @@ theorem glc_take_range {α : Type} (f : ℕ → α) {a L : ℕ} (h : a ≤ L) :
 theorem glcRho_lo (p o k : ℕ) (hk : k < 58) : glRho p o (.n k) = .n k := by
   simp [glRho, hk]
 
-theorem glcRho_mid (p o k : ℕ) (h1 : 58 ≤ k) (h2 : k < 117) : glRho p o (.n k) = .n (k + glD p) := by
+theorem glcRho_mid (p o k : ℕ) (h1 : 58 ≤ k) (h2 : k < 121) : glRho p o (.n k) = .n (k + glD p) := by
   simp [glRho, show ¬ k < 58 by omega, h2]
 
-theorem glcRho_hi (p o k : ℕ) (h1 : 117 ≤ k) (h2 : k < 156) :
+theorem glcRho_hi (p o k : ℕ) (h1 : 121 ≤ k) (h2 : k < 160) :
     glRho p o (.n k) = .n (k + glD p - 39 * o) := by
-  simp [glRho, show ¬ k < 58 by omega, show ¬ k < 117 by omega, h2]
+  simp [glRho, show ¬ k < 58 by omega, show ¬ k < 121 by omega, h2]
 
 
 theorem glc_squeezeN_two (s : Fs) : s.squeezeN 2 =
@@ -81,8 +81,8 @@ theorem glcRoundKeys_mem {B cur pt n q : ℕ} (hq : q < n) :
     exact ⟨q, hq, by simp⟩
 
 theorem glc_chw {τ : Val} {ch0 ch1 ch2 : List E} (h0 : ch0.length = 4) (h1 : ch1.length = 4)
-    (h2 : ch2.length = 4) (hv : ∀ i < 12, τ (.n (chB 156 i)) = (ch0 ++ (ch1 ++ ch2)).getD i 0) :
-    chWords τ 156 0 = ch0 ∧ chWords τ 156 1 = ch1 ∧ chWords τ 156 2 = ch2 := by
+    (h2 : ch2.length = 4) (hv : ∀ i < 12, τ (.n (chB (val% «gkr_layer__L0_L0» "x@9") i)) = (ch0 ++ (ch1 ++ ch2)).getD i 0) :
+    chWords τ (val% «gkr_layer__L0_L0» "x@9") 0 = ch0 ∧ chWords τ (val% «gkr_layer__L0_L0» "x@9") 1 = ch1 ∧ chWords τ (val% «gkr_layer__L0_L0» "x@9") 2 = ch2 := by
   rw [list4_eq h0, list4_eq h1, list4_eq h2] at hv ⊢
   refine ⟨?_, ?_, ?_⟩ <;> rw [chWords_eq] <;>
     simp only [Nat.mul_zero, Nat.zero_add, Nat.mul_one, show 4 * 2 = 8 by rfl] <;>
@@ -142,11 +142,11 @@ theorem glc_layer {p o m : ℕ} (hp : p < 4) (ho : o < 2) (hm : m < 2 ^ 26)
     (hS : GkSlot rd layers (2 * (4 * m + p) + 2 - o) s cur st
       (pts * gen ^ (40 * (4 * m + p + 1))) pos)
     (hD : D.Ok s st 2) (hx : TbReadsAt rd cur D.xs)
-    (hR : ∀ y ≤ m, RecAt rd (rounds * pos * gen ^ y) cur D.cs st.point
+    (hR : ∀ y ≤ m, RecAt rd (rounds * pos * gen ^ (7 * y)) cur D.cs st.point
       (polyEval st.values s.squeeze.1) s.squeeze.2 (2 * p + 8 * y))
     (hpad : o = 1 → LoadHolds rd (pts * gen ^ (40 * (4 * m + p + 1))) (2 * (4 * m + p) + 43) 0)
     (hS' : GkSlot rd layers (2 * (4 * m + p) + 2 - o + 2) (D.s' s st 2) (cur * gen ^ D.xs.length)
-      (D.st' s st 2) (pts * gen ^ (40 * (4 * m + p + 2))) (pos * gen ^ (m + 1))) :
+      (D.st' s st 2) (pts * gen ^ (40 * (4 * m + p + 2))) (pos * gen ^ (7 * (m + 1)))) :
     coreProgram.Rel rd (glName p o) [layers, rounds, pts, gen ^ m, gen ^ (4 * m + p), gen ^ (2 - o),
       gmu, tabs, stream] [] := by
   set j := 4 * m + p with hj
@@ -212,7 +212,7 @@ theorem glc_layer {p o m : ℕ} (hp : p < 4) (ho : o < 2) (hm : m < 2 ^ 26)
     rw [hrun, gkrRun_range1]
   have hrun2 : (D.run s st).2 = St L := by rw [hrun, gkrRun_range2]
   -- the records
-  have REC : ∀ y ≤ m, GlRecK rd (rounds * pos * gen ^ y) cur Cf ef claim0 ⟨cap0, []⟩ (2 * p + 8 * y) := by
+  have REC : ∀ y ≤ m, GlRecK rd (rounds * pos * gen ^ (7 * y)) cur Cf ef claim0 ⟨cap0, []⟩ (2 * p + 8 * y) := by
     intro y hy
     obtain ⟨r1, r2, r3⟩ := hR y hy
     have ht : ∀ {α : Type} (f : ℕ → α), ((List.range L).map f).take (2 * p + 8 * y) =
@@ -252,7 +252,7 @@ theorem glc_layer {p o m : ℕ} (hp : p < 4) (ho : o < 2) (hm : m < 2 ^ 26)
     simp only [glcFresh, List.mem_append]; exact .inl (.inl (.inl (.inr hk))))
   have fTS : ∀ k ∈ glTailKeys p, some k ∉ S.map loadKey := fun k hk ↦ fk k (by
     simp only [glcFresh, List.mem_append]; exact .inl (.inl (.inr hk)))
-  have fTR : ∀ k ∈ glcRoundKeys (78 + glD p) (76 + glD p) (67 + glD p) (2 - o),
+  have fTR : ∀ k ∈ glcRoundKeys (82 + glD p) (80 + glD p) (71 + glD p) (2 - o),
       some k ∉ S.map loadKey := fun k hk ↦ fk k (by
     simp only [glcFresh, List.mem_append]; exact .inl (.inr hk))
   have fK : ∀ k ∈ glcKidKeys p o, some k ∉ S.map loadKey := fun k hk ↦ fk k (by
@@ -299,7 +299,8 @@ theorem glc_layer {p o m : ℕ} (hp : p < 4) (ho : o < 2) (hm : m < 2 ^ 26)
         have r0 := REC y (by omega)
         have r1 := REC (y + 1) (by omega)
         rw [← e54] at r0 r1
-        rw [show 2 * p + 8 * (y + 1) = 2 * p + 8 * y + 8 by ring, pow_succ, ← mul_assoc] at r1
+        rw [show 2 * p + 8 * (y + 1) = 2 * p + 8 * y + 8 by ring, show 7 * (y + 1) = 7 * y + 7 * 1 by ring,
+          pow_add, ← mul_assoc] at r1
         refine glc_tb (a := 2 * p + 8 * y) (n := 8) (t := 1) h4' r0.1 r0.2.1 r0.2.2
           (by simpa using r1.1) (by simpa using r1.2.1) (by simpa using r1.2.2)
           (fun q hq i hi ↦ ?_) (fun q hq ↦ ?_) (fun q hq ↦ ?_)
@@ -320,13 +321,13 @@ theorem glc_layer {p o m : ℕ} (hp : p < 4) (ho : o < 2) (hm : m < 2 ^ 26)
   have hshift : ∀ q, gkSt (fun i ↦ Cf (a + i)) (fun i ↦ ef (a + i)) (St a).1 ⟨(St a).2.cap, []⟩ q =
       St (a + q) := fun q ↦ by rw [hSa]; exact (gkSt_addN Cf ef claim0 ⟨cap0, []⟩ a q).symm
   have TR := glc_rounds (C := coreProgram.Rel rd) (kret := fun rs => rs = []) (rd := rd) (S := S)
-    (w := fun _ => 0) (σ := σ) (B := 78 + glD p) (cur := 76 + glD p) (pt := 67 + glD p)
-    (npt := 70 + glD p) (noff := 0) (claimV := .n (77 + glD p)) (cap := glCap (71 + glD p))
+    (w := fun _ => 0) (σ := σ) (B := 82 + glD p) (cur := 80 + glD p) (pt := 71 + glD p)
+    (npt := 74 + glD p) (noff := 0) (claimV := .n (81 + glD p)) (cap := glCap (75 + glD p))
     (by simp [glCap]) (Cf := fun i ↦ Cf (a + i)) (ef := fun i ↦ ef (a + i)) (fun _ ↦ h4' _) (2 - o)
     (mem mTR)
     (fun q hq ↦ by
-      obtain ⟨k0, k1, k2, k3, k4⟩ := glcRoundKeys_mem (B := 78 + glD p) (cur := 76 + glD p)
-        (pt := 67 + glD p) hq
+      obtain ⟨k0, k1, k2, k3, k4⟩ := glcRoundKeys_mem (B := 82 + glD p) (cur := 80 + glD p)
+        (pt := 71 + glD p) hq
       exact ⟨fTR _ k0, fTR _ k1, fTR _ k2, fTR _ k3, fTR _ k4⟩)
     (fun q hq i hi ↦ by
       rw [e77, tb_loadHolds_mul_gen_pow, show 4 * a + (4 * q + i) = 4 * (a + q) + i by ring]
@@ -353,18 +354,18 @@ theorem glc_layer {p o m : ℕ} (hp : p < 4) (ho : o < 2) (hm : m < 2 ^ 26)
   have tlo : ∀ k, k < 58 → τ (.n k) = σ (.n k) := fun k hk ↦ by
     simp only [hτ, Function.comp_apply, glcRho_lo p o k hk]
   have t77 : τ (.n (val% «gkr_layer__L0_L0» "tcur")) = cur * gen ^ (4 * a) := by
-    simp only [hτ, Function.comp_apply, glcRho_mid p o 76 (by omega) (by omega), Nat.add_comm 76]
+    simp only [hτ, Function.comp_apply, glcRho_mid p o 80 (by omega) (by omega), Nat.add_comm 80]
     rw [Nat.add_comm]; exact e77
   have t158 : τ (.n (val% «gkr_layer__L0_L0» "nclaim@2")) = (St L).1 := by
-    simp only [hτ, Function.comp_apply, glcRho_hi p o 155 (by omega) (by omega)]
-    rw [← hTRL.1, show 155 + glD p - 39 * o = 78 + glD p + 39 * (2 - o) - 1 by omega]
+    simp only [hτ, Function.comp_apply, glcRho_hi p o 159 (by omega) (by omega)]
+    rw [← hTRL.1, show 159 + glD p - 39 * o = 82 + glD p + 39 * (2 - o) - 1 by omega]
   have tcap : (glCap (val% «gkr_layer__L0_L0» "nxt[8]@3")).map τ = (St L).2.cap := by
     rw [← hTRL.2]
     simp only [glCap, List.map_map]
     refine List.map_congr_left fun k hk ↦ ?_
     have hk5 := List.mem_range.mp hk
-    simp only [hτ, Function.comp_apply, glcRho_hi p o (137 + k) (by omega) (by omega)]
-    rw [show 137 + k + glD p - 39 * o = 78 + glD p + 39 * (2 - o) - 19 + k by omega]
+    simp only [hτ, Function.comp_apply, glcRho_hi p o (141 + k) (by omega) (by omega)]
+    rw [show 141 + k + glD p - 39 * o = 82 + glD p + 39 * (2 - o) - 19 + k by omega]
   have hT : ∀ a', Stmt.atom a' ∈ glTail o → (∀ d q off, a' = .load d q off →
       some ((glRho p o d).idx, (glRho p o q).idx, off) ∉ S.map loadKey) →
       Good rd [] (fun _ => 0) τ a' := fun a' ha' hld ↦
@@ -384,12 +385,12 @@ theorem glc_layer {p o m : ℕ} (hp : p < 4) (ho : o < 2) (hm : m < 2 ^ 26)
     subst h
     obtain ⟨i, hi, rfl, rfl, rfl⟩ := glKids_load hs
     refine fK _ ?_
-    have h1 : (glRho p o (.n (chB 156 i))).idx = chB (val% «gkr_layer__L0_L0» "x@9") i + glD p - 38 * o := by
-      have hidx : (V.n (chB 156 i)).idx = chB (val% «gkr_layer__L0_L0» "x@9") i := rfl
+    have h1 : (glRho p o (.n (chB (val% «gkr_layer__L0_L0» "x@9") i))).idx = chB (val% «gkr_layer__L0_L0» "x@9") i + glD p - 38 * o := by
+      have hidx : (V.n (chB (val% «gkr_layer__L0_L0» "x@9") i)).idx = chB (val% «gkr_layer__L0_L0» "x@9") i := rfl
       rw [glRho_idx, hidx]
-      have : 156 ≤ chB (val% «gkr_layer__L0_L0» "x@9") i := by simp only [chB]; omega
+      have : 160 ≤ chB (val% «gkr_layer__L0_L0» "x@9") i := by simp only [chB]; omega
       split_ifs <;> omega
-    rw [h1, glcRho_mid p o 76 (by omega) (by omega)]
+    rw [h1, glcRho_mid p o 80 (by omega) (by omega)]
     simp only [glcKidKeys, List.mem_map, List.mem_range]
     exact ⟨i, hi, by simp [Nat.add_comm]⟩
   have hflen : D.cs.flatten.length = 4 * L := by rw [flatten_length_four h4, hcsL]
@@ -456,7 +457,7 @@ theorem glc_layer {p o m : ℕ} (hp : p < 4) (ho : o < 2) (hm : m < 2 ^ 26)
       have := hcap' k hk
       rw [hs'] at this
       refine ldn k _ ?_
-      have hk' : τ (.n (267 + k)) = (capOf (permOf (rateOf [] ++ capOf P3))).getD k 0 := by
+      have hk' : τ (.n ((val% «gkr_layer__L0_L0» "nxt[8]@7") + k)) = (capOf (permOf (rateOf [] ++ capOf P3))).getD k 0 := by
         rw [← ecap]; simp [List.getD_eq_getElem?_getD, hk]
       rw [hk']; exact this)
     (by
@@ -478,7 +479,7 @@ theorem glc_layer {p o m : ℕ} (hp : p < 4) (ho : o < 2) (hm : m < 2 ^ 26)
       rwa [hv] at this)
     (by
       have := ldn 9 _ hpos'
-      rw [tlo 43 (by omega), tlo 3 (by omega), e44, e3, mul_assoc, ← pow_succ]
+      rw [tlo 43 (by omega), tlo 3 (by omega), e44, e3, ← pow_succ, ← pow_mul, mul_comm (m + 1) 7]
       exact this)
   -- the relation
   obtain ⟨nPre, nHR, nHS, nLC, nTS, nTR, nPD⟩ := glBodyA_noRet p o (glLoopName p o)

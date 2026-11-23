@@ -21,7 +21,8 @@ public import LeanVM.Guest.B1.Tables.FlatAtT
 memory; `CompleteAtFB.toFBE`, `CompleteAtB.toDTBE`: a callee of `ExactOk` gains `exT`.
 
 `completeAt_flatOutFBE`, `completeAt_flatGBE`: `completeAt_flatOutFB`, `completeAt_flatGB` by trees of `exT`, given the
-function's paths exact (`PathExactFn`) and its callees complete by trees of `exT` (`KidsGBT` for the latter,
+honest valuation's path exact (the former) or the function's paths exact (`PathExactFn`, the latter) and its callees
+complete by trees of `exT` (`KidsGBT` for the latter,
 `kidsFromInT_of_kidsGBT` placing them). The node is `relAtInWT_of_walk`'s, exact by `exactAt_of_walk` and
 `everyKids_of_kidsT`.
 -/
@@ -98,10 +99,25 @@ theorem every_node_of {rd : Reader} {f : String} {fn : Fn} {σ : Val} {es : List
   exact Tree.every_node.mpr ⟨exactAt_of_walk hf hw (hpx rd σ es vs hw hes),
     everyKids_of_kidsT hkv hl hK fun _ T hc _ t _ _ hTt => hT T (List.of_mem_zip hc).2 t hTt⟩
 
-/-- **`completeAt_flatOutFB` by trees of `exT`**: the function's paths exact, its callees complete within their
+/-- A node whose path is exact, its callees' trees of `exT`, is of `exT`. -/
+theorem every_node_of_exact {rd : Reader} {f : String} {fn : Fn} {σ : Val} {es : List Ev} {vs : List V}
+    {bufs : List ℕ} {ks : List Tree} {Ts : List (Tree → Prop)} {args rets : List E}
+    (hf : coreProgram.find? f = some fn) (hw : walk σ fn.body = .ret es vs) (hex : ∀ e ∈ es, e.Exact rd σ)
+    (hv : (Memory.Tree.node f σ bufs ks).Valid coreProgram rd args rets) (hl : (calls es).length ≤ Ts.length)
+    (hT : ∀ T ∈ Ts, ∀ t, T t → exT rd t) (hK : KidsT (calls es) Ts ks) :
+    exT rd (Memory.Tree.node f σ bufs ks) := by
+  obtain ⟨fn', hf', -, es', vs', hw', -, -, hkv⟩ := hv
+  rw [hf, Option.some.injEq] at hf'
+  subst hf'
+  rw [hw, Out.ret.injEq] at hw'
+  obtain ⟨rfl, rfl⟩ := hw'
+  exact Tree.every_node.mpr ⟨exactAt_of_walk hf hw hex,
+    everyKids_of_kidsT hkv hl hK fun _ T hc _ t _ _ hTt => hT T (List.of_mem_zip hc).2 t hTt⟩
+
+/-- **`completeAt_flatOutFB` by trees of `exT`**: the honest valuation's path exact, its callees complete within their
 bounds by trees of `exT`. -/
 theorem completeAt_flatOutFBE {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
-    (hl : coreProgram.loop f = false) (hpx : PathExactFn fn) (κ : ℕ) (Lin : ℕ → Layout) (args : List E)
+    (hl : coreProgram.loop f = false) (κ : ℕ) (Lin : ℕ → Layout) (args : List E)
     (rets : ℕ → List E) (Out : ℕ → List E → Layout → Prop)
     {pre : List Stmt} {vs : List V} (hb : fn.body = pre ++ [.ret vs])
     (hst : pre.all Stmt.flat = true) (haddrs : pre.filterMap Main.Stmt.addrS = [])
@@ -124,9 +140,10 @@ theorem completeAt_flatOutFBE {f : String} {fn : Fn} (hf : coreProgram.find? f =
         ((pre.filterMap Main.Stmt.allocSz).map Prod.fst).map σ =
           (bases (fp + fs f) sizes).map (fun b => ofK (addressOfIndex b)) ∧
         CallsMatch σ ((pre.filterMap (Stmt.callSF σ)).map (Main.mkCall σ)) (kids fp) outs ∧
-        ∀ q ∈ pre.filterMap Stmt.loadS, ∃ i, (σ q.1).limb 0 * addressOfIndex q.2 =
+        (∀ q ∈ pre.filterMap Stmt.loadS, ∃ i, (σ q.1).limb 0 * addressOfIndex q.2 =
             addressOfIndex i ∧
-          (RegionL (Lin fp) i ∨ RegionL (bufL (fp + fs f) sizes (own fp)) i)) :
+          (RegionL (Lin fp) i ∨ RegionL (bufL (fp + fs f) sizes (own fp)) i)) ∧
+        ∀ e ∈ pre.flatMap (flEvs σ), e.Exact rd σ) :
     CompleteAtFBT fs cert κ f Lin args Out exT (fs f + sizes.sum + NB) := by
   intro fp
   obtain ⟨N, L, outs, hNB, ho, hW, hD, -, hK⟩ := kidsFromInT_of_kidsDTBR (fs := fs) (cert := cert) κ
@@ -140,7 +157,7 @@ theorem completeAt_flatOutFBE {f : String} {fn : Fn} (hf : coreProgram.find? f =
     exact ⟨(bufL_within _ _ _ (hown fp)).mono (by omega) (by omega), hW.mono (by omega) (by omega)⟩
   obtain ⟨hLm, hLin⟩ := Main.memL_append.mp hL
   obtain ⟨hB, hLk⟩ := Main.memL_append.mp hLm
-  obtain ⟨σ, hp, hdo, hh, hsz, hbuf, hcm, hld⟩ := hσ fp outs ho rd hlow hB hLin
+  obtain ⟨σ, hp, hdo, hh, hsz, hbuf, hcm, hld, hex⟩ := hσ fp outs ho rd hlow hB hLin
   have hw := walk_flat σ vs pre hst hdo
   rw [← hb] at hw
   obtain ⟨i1, i2, i3, i4, i5⟩ := flat_parts σ pre hst
@@ -171,7 +188,7 @@ theorem completeAt_flatOutFBE {f : String} {fn : Fn} (hf : coreProgram.find? f =
       obtain ⟨i, hi, h | h⟩ := hld q hq
       · exact ⟨i, hi, Or.inr (Or.inl h)⟩
       · exact ⟨i, hi, Or.inl (hown' i h)⟩) (fun i hi => Or.inl (hown' i hi))
-  refine ⟨_, ⟨hn, hv, hbo, hpl, by rw [htot, hal], hlo, hda⟩, every_node_of hf hpx hw hes hv hlen ?_ hkT⟩
+  refine ⟨_, ⟨hn, hv, hbo, hpl, by rw [htot, hal], hlo, hda⟩, every_node_of_exact hf hw hex hv hlen ?_ hkT⟩
   intro T hT t hTt
   obtain ⟨_, -, rfl⟩ := List.mem_map.mp hT
   exact hTt
@@ -256,8 +273,8 @@ theorem kidsFromInT_of_kidsGBT (κ : ℕ) (T : Reader → Tree → Prop) : ∀ (
               · exact Or.inr hi
             · simpa [hct, atAllG] using hR2
     · obtain ⟨N, L, outs, fps, hNB, hlen, hge, ho, hW, hD, hI, hK⟩ :=
-        kidsFromInT_of_kidsGBT κ T (pre ++ [b]) ks Bs.tail hok.2 (b + fs k.f)
-      refine ⟨fs k.f + N, L, ([], []) :: outs, b :: fps,
+        kidsFromInT_of_kidsGBT κ T (pre ++ [b]) ks Bs.tail hok.2 (b + fs (tailKey k.f))
+      refine ⟨fs (tailKey k.f) + N, L, ([], []) :: outs, b :: fps,
         by simp only [kidsGBound, ht, Bool.false_eq_true, ↓reduceIte]; omega, by simp [hlen],
         fun p hp => ?_,
         ⟨fun h => absurd h ht, ho⟩, hW.mono (by omega) (by omega), hD, ⟨fun h => absurd h ht, hI⟩,
@@ -269,7 +286,7 @@ theorem kidsFromInT_of_kidsGBT (κ : ℕ) (T : Reader → Tree → Prop) : ∀ (
       match cs, hc with
       | c :: cs, ⟨hf, hct, _, hc⟩ =>
         simp only [atAllG, Kid.lins, List.flatMap_cons] at hLin
-        refine ⟨fs k.f, N, fun _ => False, fun _ => False, rfl, fun _ h => h.elim, ?_, ?_⟩
+        refine ⟨fs (tailKey k.f), N, fun _ => False, fun _ => False, rfl, fun _ h => h.elim, ?_, ?_⟩
         · have ht' : k.taken = false := by simpa using ht
           rw [hct]
           simp only [ht', Bool.false_eq_true, ↓reduceIte]

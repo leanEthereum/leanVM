@@ -141,10 +141,10 @@ theorem honB_setG {img : MemoryImage κ} {Cf : CFun} {fp : ℕ} {σ : Val} {gw :
   · intro es vs hw e he
     have hw' := hrw hw
     exact (holds_congr (hev hw' e he)).mpr (h.holds es vs hw' e he)
-  · intro es vs hw i c hc hl off oc od q S hoff hoc hod hq hf hso hS
+  · intro es vs hw i c hc hl off oc od q hoff hoc hod hq hf hnx
     have hw' := hrw hw
-    obtain ⟨h1, h2, h3, h4⟩ := h.tail es vs hw' i c hc hl off oc od q S hoff hoc hod hq hf hso hS
-    refine ⟨h1, h2, h3, fun k hk ↦ ?_⟩
+    obtain ⟨S, hS0, hS, h1, h2, h3, h4⟩ := h.tail es vs hw' i c hc hl off oc od q hoff hoc hod hq hf hnx
+    refine ⟨S, hS0, hS, h1, h2, h3, fun k hk ↦ ?_⟩
     rw [hcl hw' hc _ (List.mem_append_left _ (List.getElem_mem hk))]
     exact h4 k hk
 

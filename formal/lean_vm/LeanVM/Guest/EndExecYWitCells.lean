@@ -49,7 +49,7 @@ theorem witCells_alignA (hR : WitPtrRes) : WitCells alignA := by
   have hlocAt := (pairOk_alignA e.I.t.name e.fn (i + 1) hE.find hj).2
   have hA : alignA e.I.t.name = Bridge.fnAl (i + 1) := alignA_of hj
   have hwithin : e.I.fp + B2C.fs e.I.t.name ≤ r.T.total B2C.fs :=
-    honest_within hI (by have := hHon.cells.two_le e.I hI; omega)
+    honest_within_node hI hIt (by have := hHon.cells.two_le e.I hI; omega)
   have h28 : r.T.total B2C.fs ≤ 2 ^ 28 :=
     le_trans (le_two_pow_logMem _) (Nat.pow_le_pow_right (by norm_num) hκ)
   have hnamed : ∀ v ∈ destUses d, v ∈ B2C.namedOf (coreOf (i + 1)).params (e.pre ++ e.es) vs := fun v hv ↦

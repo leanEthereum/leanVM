@@ -260,6 +260,37 @@ theorem val_cell (hF : FrameHolds L j fp σ es vs kfps hdr) (hl : LocOk j loc) {
   rw [e, gpow_addC] at this
   exact this
 
+theorem mem_nextCells {locs : List ℕ} {n : ℕ} {ta : List V} {c : ℕ} (h : c ∈ nextCells locs n ta) :
+    ∃ k w, ta[k]? = some w ∧ locs.getD w.idx 0 = c ∧ c = n + (2 + k) := by
+  unfold nextCells at h
+  obtain ⟨p, hp, hpc⟩ := List.mem_filterMap.mp h
+  cases hb : Nat.beq (locs.getD p.1.idx 0) (n + (2 + p.2))
+  · rw [hb] at hpc; cases hpc
+  · rw [hb, Bool.cond_true, Option.some.injEq] at hpc
+    exact ⟨p.2, p.1, List.mem_zipIdx_iff_getElem?.mp hp, (Nat.eq_of_beq_eq_true hb).trans hpc, hpc.symm⟩
+
+/-- A value at one of the next frame's cells (`nxOf`) holds its word. -/
+theorem next_cell (hF : FrameHolds L j fp σ es vs kfps hdr) (hl : LocOk j loc) {v : V}
+    (hv : v ∈ namedOf (coreOf j).params es vs) (h : (nxOf j).any (Nat.beq (loc.cell v)) = true) :
+    rdc L fp (loc.cell v) = some (σ v) := by
+  obtain ⟨c, hc, hvc⟩ := List.any_eq_true.mp h
+  obtain rfl := Nat.eq_of_beq_eq_true hvc
+  obtain ⟨k, w, hk, hw, hck⟩ := mem_nextCells hc
+  have hv' : cellJ j v = fsN j + (2 + k) := by rw [loc_cell hl (by omega), hck]
+  have := hF.nxt k w v hk (by rw [← hck]; exact hw) hv hv'
+  rw [← hck, gpow_addC] at this
+  exact this
+
+/-- **A value whose cell is `cellOkC` holds its word at its cell.** -/
+theorem cellOk_cell (hF : FrameHolds L j fp σ es vs kfps hdr) (hl : LocOk j loc) {v : V}
+    (hv : v ∈ namedOf (coreOf j).params es vs) (h : cellOkC loc (fsN j) (nxOf j) v = true) :
+    rdc L fp (loc.cell v) = some (σ v) := by
+  unfold cellOkC at h
+  rcases Bool.or_eq_true _ _ |>.mp h with h | h
+  · have := inFrame_mem h _ List.mem_cons_self
+    exact val_cell hF hl hv this.1 this.2
+  · exact next_cell hF hl hv h
+
 /-- A range check's temporary holds its word at its cell. -/
 theorem tmp_cell (hF : FrameHolds L j fp σ es vs kfps hdr) (hl : LocOk j loc) {e : Ev} (he : e ∈ es)
     {t : V} (ht : t ∈ e.tmps) (h2 : 2 ≤ loc.cell t) (h3 : loc.cell t < fsN j) :
@@ -272,11 +303,24 @@ theorem tmp_cell (hF : FrameHolds L j fp σ es vs kfps hdr) (hl : LocOk j loc) {
 /-- **An atom of the path holds on its cells.** -/
 theorem locC_holds (hF : FrameHolds L j fp σ es vs kfps hdr) (hl : LocOk j loc)
     (hev : ∀ e ∈ es, e.Holds L.read σ) {a : Core.Atom} (ha : Ev.atom a ∈ es)
-    (hin : inFrame (fsN j) (cellsC (locC loc a)) = true) : LHolds L fp (locC loc a) := by
+    (hin0 : inFrame (fsN j) (cellsC (locC loc a)) = true ∨
+      nxtAtom loc (fsN j) (nxOf j) a = true) : LHolds L fp (locC loc a) := by
   have hh := hev _ ha
+  have hall : inFrame (fsN j) (cellsC (locC loc a)) = true ∨
+      ∀ v ∈ atomUses a, cellOkC loc (fsN j) (nxOf j) v = true := by
+    rcases hin0 with h | h
+    · exact .inl h
+    · right
+      cases a <;> simp only [nxtAtom, Bool.and_eq_true, reduceCtorEq] at h <;>
+        simp only [atomUses, List.mem_cons, List.not_mem_nil, or_false, forall_eq_or_imp, forall_eq] <;>
+        tauto
   have V : ∀ v ∈ Ev.uses (.atom a), loc.cell v ∈ cellsC (locC loc a) →
-      rdc L fp (loc.cell v) = some (σ v) := fun v hv hc ↦
-    val_cell hF hl (uses_named ha hv) (inFrame_mem hin _ hc).1 (inFrame_mem hin _ hc).2
+      rdc L fp (loc.cell v) = some (σ v) := fun v hv hc ↦ by
+    rcases hall with h | h
+    · exact val_cell hF hl (uses_named ha hv) (inFrame_mem h _ hc).1 (inFrame_mem h _ hc).2
+    · exact cellOk_cell hF hl (uses_named ha hv) (h v (by simpa [Ev.uses] using hv))
+  have hin : (nxtAtom loc (fsN j) (nxOf j) a = false) → inFrame (fsN j) (cellsC (locC loc a)) = true :=
+    fun hn ↦ hin0.resolve_right (by rw [hn]; exact Bool.false_ne_true)
   cases a with
   | const d x =>
     exact (V d (by simp [Ev.uses, atomUses]) (by simp [locC, cellsC])).trans (by rw [hh])
@@ -308,6 +352,7 @@ theorem locC_holds (hF : FrameHolds L j fp σ es vs kfps hdr) (hl : LocOk j loc)
       V i (by simp [Ev.uses, atomUses]) (by simp [locC, cellsC]), ?_, h1 ▸ h2⟩
     rw [V p (by simp [Ev.uses, atomUses]) (by simp [locC, cellsC]), h1]
   | rangeCheck x y t1 t2 k =>
+    have hin := hin rfl
     obtain ⟨⟨hKx, h1⟩, hk, ⟨hKy, h2⟩⟩ := hh
     have T : ∀ t ∈ [t1, t2], loc.cell t ∈ cellsC (locC loc (.rangeCheck x y t1 t2 k)) →
         rdc L fp (loc.cell t) = some (σ t) := fun t ht hc ↦
@@ -318,6 +363,7 @@ theorem locC_holds (hF : FrameHolds L j fp σ es vs kfps hdr) (hl : LocOk j loc)
       T t1 (by simp) (by simp [locC, cellsC]), T t2 (by simp) (by simp [locC, cellsC]), h1, h2, ?_⟩
     rw [V k (by simp [Ev.uses, atomUses]) (by simp [locC, cellsC]), hk]
   | touch t p =>
+    have hin := hin rfl
     obtain ⟨hK, hr⟩ := hh
     have ht := inFrame_mem hin (loc.cell t) (by simp [locC, cellsC])
     exact ⟨σ p, σ t, V p (by simp [Ev.uses, atomUses]) (by simp [locC, cellsC]), hK,
@@ -346,7 +392,7 @@ theorem locC_holds (hF : FrameHolds L j fp σ es vs kfps hdr) (hl : LocOk j loc)
     cases run with
     | nil => trivial
     | cons r rs =>
-      have hr := inFrame_mem hin (loc.cell r) (by simp [locC, cellsC])
+      have hr := inFrame_mem (hin rfl) (loc.cell r) (by simp [locC, cellsC])
       have hp : (p, r) ∈ addrs es := List.mem_filterMap.mpr ⟨_, ha, rfl⟩
       refine ⟨loc.cell r, rs.map loc.cell, rfl, ?_⟩
       rw [V p (by simp [Ev.uses, atomUses]) (by simp [locC, cellsC]), hF.addr _ hp,
@@ -357,16 +403,16 @@ theorem locC_holds (hF : FrameHolds L j fp σ es vs kfps hdr) (hl : LocOk j loc)
 theorem fileB_ok (hF : FrameHolds L j fp σ es vs kfps hdr) (hl : LocOk j loc)
     (hev : ∀ e ∈ es, e.Holds L.read σ) :
     ∀ (ss : List Stmt) (B : BookC), BookOk L fp B → (∀ a, Stmt.atom a ∈ ss → Ev.atom a ∈ es) →
-      BookOk L fp (fileB loc (fsN j) ss B)
+      BookOk L fp (fileB loc (fsN j) (nxOf j) ss B)
   | [], B, hB, _ => hB
   | .atom a :: ss, B, hB, ha => by
     simp only [fileB, LAtom.seq_eq]
-    cases hin : inFrame (fsN j) (cellsC (locC loc a))
+    cases hin : inFrame (fsN j) (cellsC (locC loc a)) || nxtAtom loc (fsN j) (nxOf j) a
     · simp only [Bool.cond_false]
       exact fileB_ok hF hl hev ss B hB fun b hb ↦ ha b (List.mem_cons_of_mem _ hb)
     · simp only [Bool.cond_true, Trie.seq_eq]
       exact fileB_ok hF hl hev ss _
-        (hB.file (locC_holds hF hl hev (ha a List.mem_cons_self) hin))
+        (hB.file (locC_holds hF hl hev (ha a List.mem_cons_self) (Bool.or_eq_true _ _ |>.mp hin)))
         fun b hb ↦ ha b (List.mem_cons_of_mem _ hb)
   | .ite .. :: ss, B, hB, ha => fileB_ok hF hl hev ss B hB fun b hb ↦ ha b (List.mem_cons_of_mem _ hb)
   | .match_ .. :: ss, B, hB, ha => fileB_ok hF hl hev ss B hB fun b hb ↦ ha b (List.mem_cons_of_mem _ hb)

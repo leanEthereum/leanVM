@@ -52,7 +52,7 @@ def functions():
         name, entry, _, _ = data.code_of(blk)
         chunks = data.chunks_of(blk)
         code = [i for ch in chunks for i in ch]
-        stat, sites, arms, chains = {}, [], [], []
+        stat, sites, arms, chains, nxt = {}, [], [], [], set()
         pl = re.search(r'noncomputable def plumb : B2C\.Plumb where\n(.*?)\n(?:/--|\Z)', blk, re.S)
         if pl:
             pt = pl.group(1)
@@ -69,6 +69,9 @@ def functions():
             ar = re.search(r'^  arms := (.*)$', pt, re.M)
             if ar:
                 arms = [tuple(int(x) for x in m.groups()) for m in re.finditer(r'\((\d+), (\d+), (\d+)\)', ar.group(1))]
+            nx = re.search(r'^  nxt := \[([^\]]*)\]', pt, re.M)
+            if nx:
+                nxt = {int(x) for x in nx.group(1).split(',') if x.strip()}
             ch = re.search(r'^  chains := (.*)$', pt, re.M)
             if ch:
                 for m in re.finditer(r'\((\d+), (\d+), \[([^\]]*)\], (\d+), (\d+)\)', ch.group(1)):
@@ -83,7 +86,7 @@ def functions():
         by_q = {}
         for si in sites:
             by_q[si[2]] = si
-        out[key] = dict(name=name, entry=entry, code=code, stat=stat, sites=by_q, arms=by_od,
+        out[key] = dict(name=name, entry=entry, code=code, stat=stat, sites=by_q, arms=by_od, nxt=nxt,
                         clens=[len(ch) for ch in chunks])
     return out
 
@@ -180,7 +183,8 @@ def align(F, body, A, locs, plumb_cells, pows, jt, ents, cuts=()):
     nz = lambda o: st(o) is not None and st(o)[0] == 'k' and (st(o)[1], st(o)[2]) != (0, 0)
     self_ = lambda o: st(o) == ('fpg', 0, 0) or (main and st(o) == ('k', 1, 0))
     pc_at = lambda o: pows.get(st(o)[1]) if st(o) is not None and st(o)[0] == 'k' and st(o)[2] == 0 else None
-    next_ = lambda o: st(o) is not None and st(o)[0] == 'fpg' and st(o)[1] != 0
+    # `AlignCtx.nextAt`: a next-frame product among the fixed cells, or a cell past the frame (`Plumb.nxt`)
+    next_ = lambda o: (st(o)[0] == 'fpg' and st(o)[1] != 0) if st(o) is not None else o in F['nxt']
 
     def fwd(i, t):
         if t is None or not entry + i < t:

@@ -173,7 +173,7 @@ theorem verify_sub_sound_of (hos : Whir.open_stacked_sound_w_Spec Whir.open_stac
     rw [List.length_take] at e2
     omega
   -- `verify_keccak`
-  have hK := verify_keccak_holds hκ hκw L (grind_check_holds 3 (by decide)) _ _ (hLe _ _ _ F.hkc)
+  have hK := verify_keccak_holds hκ hκw L _ _ (hLe _ _ _ F.hkc)
   have hτ9 := tau_ge F.hrowsL
   have hτ28 : (Tables.tableHeightsOf F.rowsN).getD 5 0 ≤ 28 := by
     have := tau_le_of_kappasBelow (tableHeights_length _ F.hrowsL) F.hKB

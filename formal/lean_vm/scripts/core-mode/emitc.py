@@ -776,13 +776,16 @@ class Solver:
             self.stats['pts-idx'] += 1
             return ('perm', self.use(('subP', c, tuple(cells), g), ('under', g, r) if g else r), ns)
         if 'lastres' in I.F and len(c[0]) == 2 and all(e == 1 for _, e in c[0]):
-            # `c = [B]·[J]·g^o`, the points `[B]·g^(o + t)` written, `t < n`, and a fact `e(J) < n` (the solver's)
-            B, J = c[0][0][0], c[0][1][0]
-            Q = (((B, 1),), c[1])
-            n = 0
-            while n < 64 and st.c2s.get(C.cshift(Q, n)):
-                n += 1
-            f = self.fact(st, (((J, 1),), 0), ((), n)) if n else None
+            # `c = [B]·[J]·g^o` (either base the table), the points `[B]·g^(o + t)` written, `t < n`, and a fact
+            # `e(J) < n` (the solver's)
+            for B, J in ((c[0][0][0], c[0][1][0]), (c[0][1][0], c[0][0][0])):
+                Q = (((B, 1),), c[1])
+                n = 0
+                while n < 64 and st.c2s.get(C.cshift(Q, n)):
+                    n += 1
+                f = self.fact(st, (((J, 1),), 0), ((), n)) if n else None
+                if f is not None:
+                    break
             if f is not None:
                 cells = [C.cshift(Q, t) for t in range(n)]
                 ns = [st.c2s[x][-1] for x in cells]

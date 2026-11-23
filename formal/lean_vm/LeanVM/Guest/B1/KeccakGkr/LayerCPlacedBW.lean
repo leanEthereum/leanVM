@@ -14,7 +14,7 @@ public import LeanVM.Guest.Data.NameStrings
 /-!
 # `keccak_layer` within its words at `B2C.fs`
 
-At the deployed frame sizes the words certificates (`Count.Words`) bound the eight-round pack loops by `374` words per iteration and their frame of `284` words, and the remainder loops by `77` per iteration and their frame of `64` words. The constant per-iteration bounds remain conservative. `grind_check__L3` has a frame of `60` words. The layers have frames of `2024` (`keccak_layer__L0`) and `1671` (`keccak_layer__L1`). Thus `layerWords B2C.fs first y 374 77` is at most `2241 + (y + 171) + (374 + ⌊y/8⌋ * 374) + (77 + (y % 8) * 77) + 60`, hence at most `4233` words for `y ≤ 25` and `4537` for `y ≤ 30`.
+At the deployed frame sizes the words certificates (`Count.Words`) bound the eight-round pack loops by `374` words per iteration and their frame of `284` words, and the remainder loops by `77` per iteration and their frame of `64` words. The constant per-iteration bounds remain conservative. The layers have frames of `2024` (`keccak_layer__L0`) and `1671` (`keccak_layer__L1`). Thus `layerWords B2C.fs first y 374 77` is at most `2241 + (y + 171) + (374 + ⌊y/8⌋ * 374) + (77 + (y % 8) * 77)`, hence at most `4233` words for `y ≤ 25` and `4537` for `y ≤ 30`.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -87,11 +87,6 @@ theorem remLoopName_fs {first : ℕ} (hf : first < 2) :
           (by decide +kernel)]
     decide +kernel
 
-/-- `grind_check__L3`'s frame at `B2C.fs`: `60`. -/
-theorem grind3_fs : LeanVM.Guest.B2C.fs (grindCheckName 3) = 60 := by
-  rw [fs_idx (j := idx% «grind_check__L3») (f := grindCheckName 3) (by decide +kernel)]
-  decide +kernel
-
 /-- The layers' frames at `B2C.fs` are bounded by `2241`. -/
 theorem layerName_fs {first : ℕ} (hf : first < 2) :
     LeanVM.Guest.B2C.fs (layerName first) ≤ 2242 := by
@@ -106,9 +101,9 @@ theorem layerName_fs {first : ℕ} (hf : first < 2) :
 /-- **A layer's words at `B2C.fs`**, its frame at most `2242`. -/
 theorem layerWords_fs_le_y {first : ℕ} (hf : first < 2) (y : ℕ) :
     layerWords LeanVM.Guest.B2C.fs first y 374 77 ≤
-      2242 + (y + 171) + (374 + y / 8 * 374) + (77 + y % 8 * 77) + 60 := by
+      2242 + (y + 171) + (374 + y / 8 * 374) + (77 + y % 8 * 77) := by
   have := layerName_fs hf
-  simp only [layerWords, packLoopName_fs hf, remLoopName_fs hf, grind3_fs]
+  simp only [layerWords, packLoopName_fs hf, remLoopName_fs hf]
   omega
 
 /-- **A layer's words at `B2C.fs`, in numbers**: at most `4234` for `y ≤ 25`, `4538` for
@@ -142,7 +137,7 @@ theorem layer_completeAtFB_fs {first : ℕ} (hf : first < 2) {κ : ℕ} (hκ : 1
         Lout = layerBufs D first (ptr bcur) (fp + LeanVM.Guest.B2C.fs (layerName first)))
       (layerWords LeanVM.Guest.B2C.fs first D.y 374 77) :=
   layer_completeAtFB hf hκ D CL bcur bout tbE (packLoop_totalLeOn_fs hf) (remLoop_totalLeOn_fs hf)
-    hcl hw hy1 hy30 hpl hpm hlm hproj hgrind hfin hCL
+    hcl hw hy1 hy30 hpl hpm hlm hproj hgrind hfin hCL B2C.fs_tailKey_le
 
 end
 end LeanVM.Guest.B1.VerifySub
