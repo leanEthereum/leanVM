@@ -1,4 +1,7 @@
-import LeanVM.Guest.Fast.DiscreteLog
+module
+
+public import LeanVM.Guest.Fast.DiscreteLog
+meta import LeanVM.Guest.Fast.DiscreteLog
 
 /-!
 # Tests: the decoder's discrete logarithm, run
@@ -18,6 +21,8 @@ namespace LeanVMTests.Guest.DiscreteLog
 
 open LeanVM.Parameters LeanVM.Protocol.Verifier LeanVM.Extraction.Fast LeanVM.Guest.Fast
 open LeanVM.Guest.Located
+
+@[expose] public section
 
 /-- A pseudo-random 64-bit word. -/
 def lcg (s : ℕ) : ℕ := (s * 6364136223846793005 + 1442695040888963407) % 2 ^ 64
@@ -60,4 +65,5 @@ def checks : List (String × Bool) :=
 #guard_msgs in
 #eval (checks.filter fun c ↦ !c.2).map (·.1)
 
+end
 end LeanVMTests.Guest.DiscreteLog
