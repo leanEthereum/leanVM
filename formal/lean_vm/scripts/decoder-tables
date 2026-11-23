@@ -19,7 +19,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import coredata
 
 N = None  # the number of compiled functions: the entry list's length, the certificates'
-PART = 512  # rows per part of `guestLocsList`
+PART = 512  # entries per part of a long array literal
 OUT = "LeanVM/Cost/Decoder/GuestTables.lean"
 
 

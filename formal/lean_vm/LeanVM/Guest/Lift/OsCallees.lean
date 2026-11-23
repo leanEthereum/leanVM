@@ -104,8 +104,9 @@ theorem merkleCap_leafSpec :
     (merkleCapNames.all fun p => leafSpecB p.1 (merkleCapSpec p.2)) = true := by
   decide +kernel
 
-set_option maxRecDepth 100000 in
-theorem iz_leafSpec : leafSpecB "is_zero" [] = true := by decide +kernel
+theorem iz_leafSpec : LeafSpecOk "is_zero" [] := by
+  have hf : coreProgram.find? "is_zero" = some Fn.«is_zero».core := coreProgram_find?_at (j := idx% «is_zero») rfl
+  exact ⟨_, hf, fun _ hq ↦ absurd hq List.not_mem_nil, by decide +kernel⟩
 
 set_option maxRecDepth 100000 in
 theorem foldFinal_leafSpec :
@@ -136,7 +137,7 @@ theorem osCalleesRegD_holds {k : ℕ} (hk : 11 ≤ k) : OsCalleesRegD fs cert k 
   foldFinal p hp := completeRelRegD_of_iff (leafSpecOk_all foldFinal_leafSpec p hp)
     (fold_final_msg_holds p hp) k
   grind _ hb := (grind_check_completeD hb hk).regD
-  iz := completeRelRegD_of_iff (leafSpecOk_of iz_leafSpec) (fun rd a r ↦ is_zero_iff rd a r) k
+  iz := completeRelRegD_of_iff iz_leafSpec (fun rd a r ↦ is_zero_iff rd a r) k
 
 end
 end LeanVM.Guest.B1

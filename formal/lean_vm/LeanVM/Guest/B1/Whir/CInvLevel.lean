@@ -19,8 +19,7 @@ permutation, the positions, the sponge after the positions' squeezes, `λ` (`lev
 vocabulary).
 
 `levelNext_inv`: an accepting run of `levelNext` from a carried sponge with nothing waiting read a
-`NextW`, every hypothesis of `levelNext_run` holding at it, `λ` and the points' coordinates
-nonzero; it returns `levelNext_run`'s glued state, sponge and roots.
+`NextW`, every hypothesis of `levelNext_run` holding at it; it returns `levelNext_run`'s glued state, sponge and roots.
 -/
 
 namespace LeanVM.Guest.B1.Whir

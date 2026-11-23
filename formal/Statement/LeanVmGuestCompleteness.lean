@@ -9,8 +9,7 @@ public import Statement.LeanVmGuestProver
 The guest program's completeness on the nodes within the deployed limits (`DeployedLimits`) whose
 children the verifier accepts, unless a child's proof exhibits a Keccak-256 collision in its Merkle
 openings (`OpeningsCollide`), its execution made from the statement and the witness
-(`GuestExecutionComplete`), the honest proof rarely refused (`HonestProofRarelyRefused`), and the recursion step, the batching of the
-children's deferred claims, sound in the random-permutation model (`BatchingSound`). The
+(`GuestExecutionComplete`), and the recursion step, the batching of the children's deferred claims, sound in the random-permutation model (`BatchingSound`). The
 soundness side, what a node proves, is `LeanVmGuest.lean`. `lean_ethereum.py` is
 `guests/lean_ethereum.py` and `aggregation/<module>.rs` is
 `crates/aggregation/src/<module>.rs`.
@@ -64,32 +63,6 @@ The guest program runs every node within the deployed limits, in at most `2^30` 
 whatever proofs its children carry, as long as `NodeRelation` has the verifier accept them, unless
 a child's proof exhibits a Keccak-256 collision in its Merkle openings (`OpeningsCollide`). -/
 
-namespace Completeness
-
-/-- **`program` refusing a zero challenge**: every sampled challenge `0` fails. -/
-def _root_.LeanVM.Protocol.Compile.VerifierProgram.refusingZeroChallenge {α : Type} :
-    VerifierProgram α → VerifierProgram α
-  | .ret a => .ret a
-  | .fail => .fail
-  | .read k => .read fun x ↦ (k x).refusingZeroChallenge
-  | .sample k => .sample fun x ↦ if x = 0 then .fail else (k x).refusingZeroChallenge
-  | .grind bits k => .grind bits k.refusingZeroChallenge
-  | .commit height width k => .commit height width k.refusingZeroChallenge
-  | .query i ps k => .query i ps fun rows ↦ (k rows).refusingZeroChallenge
-
-/-- **The leanVM verifier refusing every zero challenge** (`VerifierProgram.refusingZeroChallenge`),
-the check `HonestProofRarelyRefused` bounds. -/
-def verifierRefusingZero {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
-    (program : LeanIsaProgram) (input : PublicInput) (proof : Proof) : m Bool := do
-  let seed ← spongeSeedWith π (bytecodeWords program) (publicInputDigest input)
-  runProof π
-    (do
-      verifyExecution computedBytecodeValue (bytecodeWords program) (publicInputDigest input)
-      return true : VerifierProgram Bool).refusingZeroChallenge
-    seed proof
-
-end Completeness
-
 namespace Limits
 
 /-- The digest of a Merkle leaf: Keccak-256 of its words as bytes (`hash_leaf`,
@@ -127,31 +100,13 @@ def OpeningsCollide (proof : Proof) : Prop :=
     level < b.path.length ∧ climbInput a level ≠ climbInput b level ∧
       keccak256 (climbInput a level) = keccak256 (climbInput b level)
 
-open OracleComp OracleSpec in
-/-- **The honest proof is rarely refused**: in the random-permutation model, at `2^35` nonces per
-proof of work, the honest prover `LeanVM.leanVmHonestProver` (`LeanVm.lean`, `LeanVM.Prover.prove`)
-makes no proof, or `verifierRefusingZero` rejects its proof, of a valid execution of committed size
-at most `2^30`, at an inverse rate `2^ρ`, `1 ≤ ρ ≤ 4`, with probability at most `2^-100`. -/
-def HonestProofRarelyRefused : Prop :=
-  ∀ (program : LeanIsaProgram) (input : PublicInput) (execution : Execution program) (ρ : ℕ),
-    ValidExecution program input execution → execution.committedSize ≤ 2 ^ 30 →
-    1 ≤ ρ ∧ ρ ≤ 4 →
-    Pr{let accepted ← Common.runWithRandomPermutation (do
-        match ← LeanVM.leanVmHonestProver Common.queryPermutation program input execution ρ (2 ^
-            35) with
-        | none => pure false
-        | some proof =>
-          verifierRefusingZero Common.queryPermutation program input proof)}[accepted = false] ≤
-      (2 : ℝ≥0∞)⁻¹ ^ 100
-
 /-- **The guest's execution, made from the statement and the witness, on every node within the
 deployed limits, or a collision in a child's openings**: for every statement and witness with
 `NodeRelation` under the deployed seed (so the deferring verifier accepts every child's proof),
 within the deployed limits (`DeployedLimits`), the executor's run of the guest program on the
 advice made from the statement and the witness (`LeanVM.Guest.guestExecution`,
 `LeanVmGuestProver.lean`) returns a valid execution of the guest program on the statement's digest,
-of committed size at most `2^30`, the sizes the honest prover proves and `HonestProofRarelyRefused`
-covers, or some child's proof exhibits a Keccak-256 collision (`OpeningsCollide`). Proved by
+of committed size at most `2^30`, the sizes the honest prover proves, or some child's proof exhibits a Keccak-256 collision (`OpeningsCollide`). Proved by
 `LeanVM.Guest.EndExec.guestExecution_complete_holds`. -/
 def GuestExecutionComplete : Prop :=
   ∀ (statement : NodeStatement) (witness : NodeWitness),

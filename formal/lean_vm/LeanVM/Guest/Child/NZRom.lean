@@ -18,7 +18,7 @@ public import LeanVM.Protocol.Verifier.Cost
 # The refusing verifier, against the random oracles
 
 `romChild_at`: `Rom.romCompleteSharp` at leanVM's program and seed, the refusing program
-(`Limits.refusingZeroProgram`, the statement's `verifierRefusingZero`) refining the verifier
+(`Limits.refusingZeroProgram`, `verifierRefusingZero`) refining the verifier
 program, the honest strategy winning every interactive run; the ideal failure probability of the
 refusing program is at most `(leanVmCost / 4) · |E|⁻¹`
 (`failFrom_refusingZeroProgram_le`).

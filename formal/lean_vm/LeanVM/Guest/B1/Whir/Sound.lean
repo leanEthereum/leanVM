@@ -56,11 +56,6 @@ theorem osCfgR_levels_getD {m ri l : ℕ} (h : l < osNLevels m) :
     (osCfgR m ri).levels.getD l default = osLvR m ri l := by
   simp [osCfgR, osLevelsR, List.getD_eq_getElem?_getD, h]
 
-/-- `is_zero`'s meaning is what `open_stacked` takes of it. -/
-theorem isZeroRet_of {a r : List E} (h : MeaningIsZero a r) : IsZeroRet a r := by
-  match a, h with
-  | [w], h => exact h
-
 /-- The deployed callees' meanings under a call relation below `coreProgram.Rel`, on a memory
 image whose window tables are at `σ tabs`. -/
 theorem callees_of {κ : ℕ} (hκ : κ ≤ 32) (hw : winTabBits ≤ κ) (L : MemoryImage κ) {C : CallRel}
@@ -75,7 +70,7 @@ theorem callees_of {κ : ℕ} (hκ : κ ≤ 32) (hw : winTabBits ≤ κ) (L : Me
     fun p hp a r hc ↦ (verify_merkle_cap_holds p hp L.read a r).mp (hle _ _ _ hc),
     fun a r hc ↦ (opening_tail_round_holds L.read a r).mp (hle _ _ _ hc),
     fun p hp a r hc ↦ (fold_final_msg_holds p hp L.read a r).mp (hle _ _ _ hc),
-    fun a r hc ↦ isZeroRet_of ((is_zero_iff L.read a r).mp (hle _ _ _ hc)),
+    fun a r hc ↦ (is_zero_iff L.read a r).mp (hle _ _ _ hc),
     fun e he a r hc pos cs hp hf hy ↦ lrsTable_sound L.read he (hle _ _ _ hc) pos cs hp hf hy⟩
   · have hn : "grind_check__L" ++ natStr queryGrind = grindCheckName 17 := by decide
     rw [hn] at hc

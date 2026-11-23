@@ -96,27 +96,27 @@ theorem osBasisBlk_val {bd slot : ℕ} {src : ℕ × ℕ} {inv sc z nz : ℕ} {k
   · subst h1
     simp only [↓reduceIte, List.cons_append, List.nil_append, allOk_cons, allOk_nil, and_true,
       stmtOk_atom, holds_load, holds_const, holds_add, holds_mul, osLd, osCst, osAdd, osMul] at h ⊢
-    obtain ⟨l0, c1, a2, m3, a4, m5, l6, m7⟩ := h
+    obtain ⟨l0, c1, a2, c3, m4, a5, m6, m7, l8, m9⟩ := h
     have e0 := loadHolds_unique l0 hc
     rw [word_one, mul_one] at hne
-    rw [m3, e0, hnz] at a4
-    rw [a4, hzv] at m5
-    rw [a2, c1, word_one, e0] at m5
-    refine ⟨?_, by rw [m7, e0, word_one, mul_one]⟩
+    rw [m4, e0, hnz] at a5
+    rw [a5, hzv, c3, word_one] at m6
+    rw [a2, c1, word_one, e0, eq_div_of_mul_eq hne m6.symm, mul_one_div] at m7
+    refine ⟨?_, by rw [m9, e0, word_one, mul_one]⟩
     have e : dZv cv (word 1 0) zv = (1 + cv) / (cv * (1 + zv) + zv) := by rw [dZv, word_one, mul_one]
-    rw [e, ← eq_div_of_mul_eq hne m5.symm]
-    exact l6
+    rw [e, ← m7]
+    exact l8
   · simp only [h1, ↓reduceIte, List.cons_append, List.nil_append, allOk_cons, allOk_nil, and_true,
       stmtOk_atom, holds_load, holds_const, holds_add, holds_mul, osLd, osCst, osAdd, osMul] at h ⊢
-    obtain ⟨l0, c1, m2, c3, a4, m5, a6, m7, l8, m9⟩ := h
+    obtain ⟨l0, c1, m2, c3, a4, c5, m6, a7, m8, m9, l10, m11⟩ := h
     have e0 := loadHolds_unique l0 hc
-    rw [m2, c1, e0] at m5
-    rw [m5, hnz] at a6
-    rw [a6, hzv] at m7
-    rw [a4, c3, word_one, e0] at m7
-    refine ⟨?_, by rw [m9, m2, c1, e0]⟩
-    rw [dZv, ← eq_div_of_mul_eq hne m7.symm]
-    exact l8
+    rw [m2, c1, e0] at m6
+    rw [m6, hnz] at a7
+    rw [a7, hzv, c5, word_one] at m8
+    rw [a4, c3, word_one, e0, eq_div_of_mul_eq hne m8.symm, mul_one_div] at m9
+    refine ⟨?_, by rw [m11, m2, c1, e0]⟩
+    rw [dZv, ← m9]
+    exact l10
 
 /-- The default coordinate. -/
 abbrev coordD : ℕ × (ℕ × ℕ) × ℕ := (0, (0, 0), 0)
@@ -189,7 +189,7 @@ theorem prod_ne_factor {n : ℕ} {X : ℕ → E} (h : ∏ s ∈ Finset.range n, 
 
 /-- **A non-final level's basis row.** -/
 theorem osBasisLv_sound {c : OsCfg} {tch bd ls la lvl : ℕ} {lv : OsLv} {k : ℕ} {β : E} {X : ℕ → E}
-    (hiz : ∀ a r, C "is_zero" a r → IsZeroRet a r) (hpos : 1 ≤ lv.prefixLen + c.yrLog)
+    (hiz : ∀ a r, C "is_zero" a r → MeaningIsZero a r) (hpos : 1 ≤ lv.prefixLen + c.yrLog)
     (hin : BasisIn rd σ c tch lvl lv β X)
     (hok : AllOk C rd σ (osBasisLv c tch bd ls la lvl lv k).1) :
     BasisOut rd σ c bd ls la lvl lv β X := by
@@ -223,9 +223,7 @@ theorem osBasisLv_sound {c : OsCfg} {tch bd ls la lvl : ℕ} {lv : OsLv} {k : �
     exact this
   -- the flag
   set P := ∏ t ∈ Finset.range n, X t with hP
-  have hz' := hiz _ _ hz
-  simp only [IsZeroRet, List.getD_cons_zero, ha, List.cons.injEq, and_true] at hz'
-  have hzv : σ (.n af.2.2) = zeroOf P := hz'
+  have hzv : σ (.n af.2.2) = zeroOf P := by rw [zeroOf_of_meaning (hiz _ _ hz), ha]
   have hnz : σ (.n (af.2.2 + 2)) = 1 + zeroOf P := by rw [a2, c1, hzv, word_one]
   -- the row
   obtain ⟨hd, hs⟩ := osBasisRow_val (C := C) (bd := bd) hzv hnz cs k (af.2.2 + 3) X (fun t ht ↦ by
@@ -246,7 +244,7 @@ theorem osBasisLv_sound {c : OsCfg} {tch bd ls la lvl : ℕ} {lv : OsLv} {k : �
 
 /-- **Every non-final level's basis row**. -/
 theorem osBases_sound {c : OsCfg} {tch bd ls la : ℕ} (β : ℕ → E) (X : ℕ → ℕ → E)
-    (hiz : ∀ a r, C "is_zero" a r → IsZeroRet a r)
+    (hiz : ∀ a r, C "is_zero" a r → MeaningIsZero a r)
     (hpos : ∀ lv : OsLv, 1 ≤ lv.prefixLen + c.yrLog) :
     ∀ (levels : List OsLv) (lvl k : ℕ),
       (∀ i (hi : i < levels.length), BasisIn rd σ c tch (lvl + i) levels[i] (β (lvl + i))

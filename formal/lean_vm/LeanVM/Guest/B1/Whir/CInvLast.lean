@@ -13,12 +13,11 @@ public import LeanVM.Guest.B1.Whir.LastRun
 /-!
 # The final level, backwards
 
-`sumcheck_inv`: `n` plain rounds of `sumcheck _ 3` read their words `tailWords pairs`, every
-challenge nonzero; they return `tailRun`'s.
+`sumcheck_inv`: `n` plain rounds of `sumcheck _ 3` read their words `tailWords pairs`; they return `tailRun`'s.
 
 `FinW`: what the final level reads after its folds: the lane, the query nonce, the phase, the
 closing rounds' words; `FinW.qS`, `qs`, `F3`, `tail`, `wend`. `FinOk`: `levelLast_run`'s
-hypotheses at it, the tail challenges nonzero. `levelLast_inv`: an accepting run of `levelLast`
+hypotheses at it. `levelLast_inv`: an accepting run of `levelLast`
 read a `FinW` with `FinOk`, and returns `levelLast_run`'s.
 -/
 
@@ -128,8 +127,7 @@ def FinW.wend (W : FinW) (logN laneFolds : ℕ) (level : Whir.Level) (s : WhirSt
       glued.weightAt ((s.alphas ++ T.1).drop glued.foldStart)) 0,
     multilinearEval (W.fold.take (2 ^ mu)) T.1, T.2.1⟩
 
-/-- **`levelLast_run`'s hypotheses at what the final level read**, and its closing challenges
-nonzero. -/
+/-- **`levelLast_run`'s hypotheses at what the final level read.** -/
 structure FinOk (logN index : ℕ) (level : Whir.Level) (s : WhirState) (rounds : List FoldRound)
     (F : Fs) (R : List (Digest × ℕ × ℕ)) (W : FinW) : Prop where
   root : ∃ root height width, R[index]? = some (root, height, width) ∧

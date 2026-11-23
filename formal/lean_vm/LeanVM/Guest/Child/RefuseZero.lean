@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.Child.RefuseZero
 
-  The statement's zero-challenge refusal (`VerifierProgram.refusingZeroChallenge`, a zero refused at
+  The zero-challenge refusal (`VerifierProgram.refusingZeroChallenge`, a zero refused at
   every sampled challenge): it accepts less than the verifier, and it commutes with sequencing.
 -/
 
@@ -17,7 +17,7 @@ public import LeanVM.Guest.Child.Refusing
 /-!
 # Refusing a zero challenge anywhere
 
-`P.refusingZeroChallenge` is `P` with every sampled challenge `0` a failure (`Statement/LeanVmGuestCompleteness.lean`).
+`P.refusingZeroChallenge` is `P` with every sampled challenge `0` a failure (`Guest/RefusingZero.lean`).
 
 * It only fails more (`refines_refusingZeroChallenge`), so a proof the deferring verifier refusing a zero
   challenge accepts is accepted by the deferring verifier (`Limits.verifyDeferred_of_rz`).

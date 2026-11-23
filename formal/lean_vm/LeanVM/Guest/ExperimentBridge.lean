@@ -9,8 +9,8 @@ public import LeanVM.Guest.AcceptableChild
 /-!
 # The guest's statements over `π` are the statements with the two calls
 
-The statement's batching run and verifier refusing a zero challenge are over a permutation alone;
-with the hash Keccak-256 over it they are the forms with a hash (`runBatching_eq_withHash`,
+The statement's batching run and `lean_vm`'s verifier refusing a zero challenge are over a
+permutation alone; with the hash Keccak-256 over it they are the forms with a hash (`runBatching_eq_withHash`,
 `verifierRefusingZero_eq_withHash`). The statement's experiments are games in the model's oracles;
 the proofs' run the two calls against the model (`LeanVM.Protocol.ExperimentBridge`):
 

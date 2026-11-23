@@ -88,9 +88,6 @@ random-permutation model where an adversary is involved, except the memory-decod
   for a decoder program `D` that computes it within its size bound and budget
   (`LeanVM.Guest.End.guestKnowledge_of_decode`), the compiled
   `LeanVM.Cost.compiledGuestWitnessDecoder`;
-* `LeanVM.Guest.Completeness.honest_proof_rarely_refused : HonestProofRarelyRefused`
-  (`Statement/LeanVmGuestCompleteness.lean`): the honest proof of a guest execution is rejected
-  with probability at most `2^-100` in the random-permutation model;
 * `LeanVM.Guest.Batch.batch_sound_holds : BatchingSound` (`Statement/LeanVmGuestCompleteness.lean`): the
   recursion step, the batching of the children's deferred claims run outside the circuit, sound in
   the random-permutation model (from `batch_rpm`);
@@ -98,7 +95,7 @@ random-permutation model where an adversary is involved, except the memory-decod
   (`Statement/LeanVmGuestCompleteness.lean`): the executor runs the guest program to completion on
   the advice `Statement/LeanVmGuestProver.lean` makes from the statement and the witness, on every node
   within the deployed limits whose children the verifier accepts, unless a child's proof exhibits a
-  Keccak-256 collision (`OpeningsCollide`); with `completeness_holds` and `honest_proof_rarely_refused` it gives
+  Keccak-256 collision (`OpeningsCollide`); with `completeness_holds` it gives
   `GuestProverComplete` (`Statement/Corollaries.lean`), the guest's prover's proof accepted.
 
 **The executor on the guest.** `LeanVM.Guest.EndExec.honestExecution_complete_on_accepted_children :
@@ -373,7 +370,6 @@ theorem LeanVM.theorems_of_decoderSpec {decoderProgram : LeanVM.Cost.MachineProg
   guestKnowledgeSoundness := LeanVM.Guest.End.guestKnowledge_of_spec hspec hexplains
   statementDigestBinds := LeanVM.Guest.Binding.digest_binds
   guestExecutionComplete := LeanVM.Guest.EndExec.guestExecution_complete_holds
-  honestProofRarelyRefused := LeanVM.Guest.Completeness.honest_proof_rarely_refused
   batchingSound := LeanVM.Guest.Batch.batch_sound_holds
   leanXmssStronglyUnforgeable := XmssSecurity.leanXmss_rpm_security
   leanSphincsStronglyUnforgeable := Sphincs.leanSphincsStronglyUnforgeable
@@ -432,9 +428,8 @@ open OracleComp in
 `leanVmKnowledgeSoundness`, `guestKnowledgeSoundness` and `statementDigestBinds` (an accepted proof
 whose extracted execution decodes, by `guestKnowledgeSoundness`, to a statement of the accepted
 digest, which `statementDigestBinds` identifies with the accepted statement or turns into a
-collision); `guestProverComplete` from `guestExecutionComplete`, `leanVmCompleteness` and
-`honestProofRarelyRefused` (the guest's prover proves the execution the executor returns with the
-honest prover). -/
+collision); `guestProverComplete` from `guestExecutionComplete` and `leanVmCompleteness` (the
+guest's prover proves the execution the executor returns with the honest prover). -/
 theorem LeanVM.corollaries_of_theorems {extractorProgram decoderProgram : LeanVM.Cost.MachineProgram}
     (h : Statement.Theorems (leanVmKnowledgeExtractor := extractorProgram)
       (guestWitnessDecoder := decoderProgram)) :
@@ -456,7 +451,6 @@ theorem LeanVM.corollaries_of_theorems {extractorProgram decoderProgram : LeanVM
   guestProverComplete s w hrel hlim :=
     (h.guestExecutionComplete s w hrel hlim).imp_left fun ⟨_, he, hv, hsz⟩ _ hρ ↦
       LeanVM.Guest.EndExec.guestProve_complete he hv hsz hρ h.leanVmCompleteness
-        h.honestProofRarelyRefused
 
 /-- info: 'LeanVM.corollaries_of_theorems' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in

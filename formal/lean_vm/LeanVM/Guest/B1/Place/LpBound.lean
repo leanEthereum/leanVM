@@ -15,8 +15,8 @@ public import LeanVM.Guest.B1.Whir.HelperAll
 /-!
 # `level_positions` within a words bound
 
-`relAtIn_le`: a placed tree on some memory is a valid tree, so a words bound of the function's
-trees (`TotalLe`) bounds its words. `lp_bound`: with every frame below `2^32`, `level_positions`
+A placed tree on some memory is a valid tree, so a words bound of the function's trees (`TotalLe`)
+bounds its words (`relAtIn_le`, `Place/Fresh.lean`). `lp_bound`: with every frame below `2^32`, `level_positions`
 placed after a fresh window table, positions and window pointers holds on a fresh memory
 (`fresh_exists`), so `lpN ≤ B`. `level_positions_completeAtB`: every entry is `LpAtO` at `some B`
 for every such `B`.
@@ -32,27 +32,6 @@ open LeanVM.Protocol.Verifier hiding Layout
 @[expose] public section
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
-
-/-- **A words bound of a function's trees bounds a placed tree's words.** -/
-theorem relAtIn_le {rd : Reader} {R D : ℕ → Prop} {fp n : ℕ} {f : String} {args rets : List E}
-    (h : RelAtIn coreProgram fs cert rd R D fp n f args rets) {B : ℕ}
-    (hT : TotalLe coreProgram fs f (fun _ ↦ B)) : n ≤ B := by
-  obtain ⟨t, hn, hv, hb, -, ht, -⟩ := h
-  rw [← ht]
-  exact hT rd t args rets hn hv hb
-
-/-- Two layouts, one below `b` and one within `[b, b + n)`, disjoint and below the order of `g`. -/
-theorem fresh_pair (κ : ℕ) {L Lin : Layout} {b n : ℕ} (hd : DisjL L) (hw : Within L b n)
-    (hd' : DisjL Lin) (hw' : Within Lin 0 b) (hlt : b + n < 2 ^ 64 - 1) :
-    ∃ rd, LowDef κ rd ∧ MemL rd (L ++ Lin) := by
-  refine fresh_exists κ ?_ fun q hq ↦ ?_
-  · refine List.pairwise_append.mpr ⟨hd, hd', fun a ha c hc ↦ Or.inr ?_⟩
-    have := hw a ha
-    have := hw' c hc
-    omega
-  · rcases List.mem_append.mp hq with hq | hq
-    · have := hw q hq; omega
-    · have := hw' q hq; omega
 
 theorem lpN_lt {name loop : String} {S d cd : ℕ} (hfs : ∀ f, fs f < 2 ^ 32) (hS : S ≤ 64) :
     lpN fs name loop S d cd < 2 ^ 40 := by

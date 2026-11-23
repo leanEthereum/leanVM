@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Place.Fresh
 # `level_residual_slow`, placed and bounded
 
 `lsKey` places the helper at every flag `z ∈ {0, 1}`. Within a words bound `B` of its trees:
-on an instance some memory holds, the placed tree's words are at most `B` (`ls_relAtIn_le`); on any
+on an instance some memory holds, the placed tree's words are at most `B` (`relAtIn_le`); on any
 other the relation is vacuous and the words are the frames and buffers, at most `B` by a fresh
 instance at the flag `1` (`ls_size_le`). `lsIn_of` finds each level's specialization in
 `lrsTable`.
@@ -29,29 +29,6 @@ open LeanVM.Guest.B1.Whir
 open LeanVM.Protocol.Verifier hiding Layout
 
 @[expose] public section
-
-/-- A words bound of a function's trees bounds a placed tree's words. -/
-private theorem ls_relAtIn_le {fs : String → ℕ} {cert : String → V → ℕ} {rd : Reader}
-    {R D : ℕ → Prop} {fp n : ℕ} {f : String} {args rets : List E}
-    (h : RelAtIn coreProgram fs cert rd R D fp n f args rets) {B : ℕ}
-    (hT : TotalLe coreProgram fs f (fun _ ↦ B)) : n ≤ B := by
-  obtain ⟨t, hn, hv, hb, -, ht, -⟩ := h
-  rw [← ht]
-  exact hT rd t args rets hn hv hb
-
-/-- Two disjoint layouts, one below `b` and one within `[b, b + n)`, below the order of `g`, held
-by a memory defined low. -/
-private theorem ls_fresh_pair (κ : ℕ) {L Lin : Layout} {b n : ℕ} (hd : DisjL L) (hw : Within L b n)
-    (hd' : DisjL Lin) (hw' : Within Lin 0 b) (hlt : b + n < 2 ^ 64 - 1) :
-    ∃ rd, LowDef κ rd ∧ MemL rd (L ++ Lin) := by
-  refine fresh_exists κ ?_ fun q hq ↦ ?_
-  · refine List.pairwise_append.mpr ⟨hd, hd', fun a ha c hc ↦ Or.inr ?_⟩
-    have := hw a ha
-    have := hw' c hc
-    omega
-  · rcases List.mem_append.mp hq with hq | hq
-    · have := hw q hq; omega
-    · have := hw' q hq; omega
 
 /-- **A words bound of `level_residual_slow`'s trees is at least its frames and its sum's
 buffers**, frames below `2^32`. -/
@@ -119,10 +96,10 @@ theorem ls_size_le {e : String × ℕ × ℕ × ℕ × ℕ × String × String �
     have := hfs e.1
     have := hfs e.2.2.2.2.2.1
     rw [hN]; omega
-  obtain ⟨rd, hlow, hmm⟩ := ls_fresh_pair κ
+  obtain ⟨rd, hlow, hmm⟩ := fresh_pair κ
     (lsLb_disj fs e.1 e.2.2.2.2.2.1 Q (pre + yr) e.2.2.2.2.1 (fun _ ↦ 0) (fun _ ↦ 0) 0 1 fp0)
     (lsLb_within fs e.1 e.2.2.2.2.2.1 Q (pre + yr) e.2.2.2.2.1 (fun _ ↦ 0) (fun _ ↦ 0) 0 1 fp0) hLD hLW hlt
-  exact (Nat.le_add_right _ m).trans (ls_relAtIn_le (hm rd hlow hmm) hT)
+  exact (Nat.le_add_right _ m).trans (relAtIn_le (hm rd hlow hmm) hT)
 
 theorem lsN_le (fs : String → ℕ) (name sum : String) (Q : ℕ) (z : E) :
     lsN fs name sum Q z ≤ lsN fs name sum Q 1 := by
@@ -147,7 +124,7 @@ theorem lsAtO_of {e : String × ℕ × ℕ × ℕ × ℕ × String × String × 
   by_cases hex : ∃ rd, LowDef κ rd ∧ MemL rd (Lb ++ Lin)
   · obtain ⟨rd0, hl0, hm0⟩ := hex
     refine ⟨N + m, Lb, _, [], ⟨rfl, rfl⟩, by simpa using hW.mono le_rfl (by omega), by simpa using hD,
-      fun B hB ↦ ls_relAtIn_le (hm rd0 hl0 hm0) (hBd B hB).2,
+      fun B hB ↦ relAtIn_le (hm rd0 hl0 hm0) (hBd B hB).2,
       fun rd hl hL ↦ relAtIn_dmono (hm rd hl (by simpa using hL)) (fun i hi ↦ ?_)⟩
     obtain ⟨x, hx, _⟩ := hi; simp at hx
   · refine ⟨N, Lb, _, [], ⟨rfl, rfl⟩, by simpa using hW, by simpa using hD, fun B hB ↦ ?_,

@@ -9,6 +9,7 @@
 module
 
 public import Statement.LeanVmGuestCompleteness
+public import LeanVM.Guest.RefusingZero
 public import LeanVM.Protocol.Compile.RunPure
 public import LeanVM.Guest.Coverage
 public import LeanVM.Guest.GuestConst

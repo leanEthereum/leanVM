@@ -41,7 +41,7 @@ structure LamOut (σ : Val) (st st' : OsSt) : Prop where
 
 /-- **A non-final level's batching challenge, soundly**. -/
 theorem osLam_sound {st : OsSt} (hfs : st.fs.length = 5)
-    (hiz : ∀ a r, C "is_zero" a r → IsZeroRet a r)
+    (hiz : ∀ a r, C "is_zero" a r → MeaningIsZero a r)
     (hpad : PadOk σ st.pad) (hok : AllOk C rd σ (osLam st).1) : LamOut σ st (osLam st).2 := by
   obtain ⟨f0, f1, f2, f3, f4, hf⟩ := fs_five st hfs
   unfold osLam at hok ⊢
@@ -79,9 +79,8 @@ theorem osLam_sound {st : OsSt} (hfs : st.fs.length = 5)
     rfl
   · show σ (.n j) ≠ 0 → σ (.n j) * σ (.n (j + 16)) = 1
     intro h0
-    have hz' := hiz _ _ hz
-    simp only [List.map_cons, List.map_nil, IsZeroRet, List.getD_cons_zero, zeroOf, h0, ↓reduceIte,
-      List.cons.injEq, and_true] at hz'
+    have hz' := zeroOf_of_meaning (hiz _ _ hz)
+    simp only [zeroOf, h0, ↓reduceIte] at hz'
     rw [hz', add_zero] at hadd
     rw [mul_comm, ← hadd, ← hinv, one]
     exact word_one

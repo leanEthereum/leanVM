@@ -120,35 +120,14 @@ theorem osBasisBlk_complete {σ : Val} {bd slot : ℕ} {src : ℕ × ℕ} {inv s
   · subst hi
     have hden' : cv * (1 + zv) + zv ≠ 0 := by rwa [word_one, mul_one] at hden
     have e : osBasisBlk bd slot (s1, s2) 1 sc z nz k =
-        ([osLd k s1 s2, osCst (k + 1) (word 1 0), osAdd (k + 2) (k + 1) k, osMul (k + 3) k nz,
-          osAdd (k + 4) (k + 3) z, osMul (k + 2) (k + 5) (k + 4), osLd (k + 5) bd slot,
-          osMul (k + 6) sc k], k + 6, k + 7) := by
+        ([osLd k s1 s2, osCst (k + 1) (word 1 0), osAdd (k + 2) (k + 1) k, osCst (k + 3) (word 1 0),
+          osMul (k + 4) k nz, osAdd (k + 5) (k + 4) z, osMul (k + 3) (k + 6) (k + 5),
+          osMul (k + 7) (k + 2) (k + 6), osLd (k + 7) bd slot, osMul (k + 8) sc k], k + 8, k + 9) := by
       simp [osBasisBlk]
     rw [e]
-    refine blk_lst [cv, word 1 0, word 1 0 + cv, cv * (1 + zv), cv * (1 + zv) + zv,
-      dZv cv (word 1 0) zv, σ (.n sc) * cv] (by simp) fun C rd hH σ' ha hv ↦ ?_
-    have v0 := hv 0 (by simp)
-    have v1 := hv 1 (by simp)
-    have v2 := hv 2 (by simp)
-    have v3 := hv 3 (by simp)
-    have v4 := hv 4 (by simp)
-    have v5 := hv 5 (by simp)
-    have v6 := hv 6 (by simp)
-    simp only [List.getD_cons_zero, List.getD_cons_succ, Nat.add_zero] at v0 v1 v2 v3 v4 v5 v6
-    simp only [allOk_cons, allOk_nil, and_true, stmtOk_atom, holds_load, holds_const, holds_add,
-      holds_mul, osLd, osCst, osAdd, osMul]
-    rw [v0, v1, v2, v3, v4, v5, v6, ha _ hsrc, ha _ hbd, ha _ hsc, ha _ hz, ha _ hnz, hzv, hnzv]
-    refine ⟨⟨hcv C rd hH, rfl, rfl, rfl, rfl, ?_, hst C rd hH, rfl⟩, by rw [word_one, mul_one]⟩
-    rw [dZv, word_one, mul_one, div_mul_cancel₀ _ hden']
-  · have e : osBasisBlk bd slot (s1, s2) inv sc z nz k =
-        ([osLd k s1 s2, osCst (k + 1) (word inv 0), osMul (k + 2) k (k + 1), osCst (k + 3) (word 1 0),
-          osAdd (k + 4) (k + 3) k, osMul (k + 5) (k + 2) nz, osAdd (k + 6) (k + 5) z,
-          osMul (k + 4) (k + 7) (k + 6), osLd (k + 7) bd slot, osMul (k + 8) sc (k + 2)], k + 8, k + 9) := by
-      simp [osBasisBlk, hi]
-    rw [e]
-    refine blk_lst [cv, word inv 0, cv * word inv 0, word 1 0, word 1 0 + cv,
-      cv * word inv 0 * (1 + zv), cv * word inv 0 * (1 + zv) + zv, dZv cv (word inv 0) zv,
-      σ (.n sc) * (cv * word inv 0)] (by simp) fun C rd hH σ' ha hv ↦ ?_
+    refine blk_lst [cv, word 1 0, word 1 0 + cv, word 1 0, cv * (1 + zv), cv * (1 + zv) + zv,
+      1 / (cv * (1 + zv) + zv), dZv cv (word 1 0) zv, σ (.n sc) * cv] (by simp)
+      fun C rd hH σ' ha hv ↦ ?_
     have v0 := hv 0 (by simp)
     have v1 := hv 1 (by simp)
     have v2 := hv 2 (by simp)
@@ -161,10 +140,40 @@ theorem osBasisBlk_complete {σ : Val} {bd slot : ℕ} {src : ℕ × ℕ} {inv s
     simp only [List.getD_cons_zero, List.getD_cons_succ, Nat.add_zero] at v0 v1 v2 v3 v4 v5 v6 v7 v8
     simp only [allOk_cons, allOk_nil, and_true, stmtOk_atom, holds_load, holds_const, holds_add,
       holds_mul, osLd, osCst, osAdd, osMul]
-    rw [v0, v1, v2, v3, v4, v5, v6, v7, v8, ha _ hsrc, ha _ hbd, ha _ hsc, ha _ hz, ha _ hnz, hzv,
-      hnzv]
-    refine ⟨⟨hcv C rd hH, rfl, rfl, rfl, rfl, rfl, rfl, ?_, hst C rd hH, rfl⟩, rfl⟩
-    rw [dZv, div_mul_cancel₀ _ hden, word_one]
+    rw [v0, v1, v2, v3, v4, v5, v6, v7, v8, ha _ hsrc, ha _ hbd, ha _ hsc, ha _ hz, ha _ hnz, hzv, hnzv]
+    refine ⟨⟨hcv C rd hH, rfl, rfl, rfl, rfl, rfl, ?_, ?_, hst C rd hH, rfl⟩, by rw [word_one, mul_one]⟩
+    · rw [word_one, one_div_mul_cancel hden']
+    · rw [dZv, word_one, mul_one, mul_one_div]
+  · have e : osBasisBlk bd slot (s1, s2) inv sc z nz k =
+        ([osLd k s1 s2, osCst (k + 1) (word inv 0), osMul (k + 2) k (k + 1), osCst (k + 3) (word 1 0),
+          osAdd (k + 4) (k + 3) k, osCst (k + 5) (word 1 0), osMul (k + 6) (k + 2) nz,
+          osAdd (k + 7) (k + 6) z, osMul (k + 5) (k + 8) (k + 7), osMul (k + 9) (k + 4) (k + 8),
+          osLd (k + 9) bd slot, osMul (k + 10) sc (k + 2)], k + 10, k + 11) := by
+      simp [osBasisBlk, hi]
+    rw [e]
+    refine blk_lst [cv, word inv 0, cv * word inv 0, word 1 0, word 1 0 + cv, word 1 0,
+      cv * word inv 0 * (1 + zv), cv * word inv 0 * (1 + zv) + zv,
+      1 / (cv * word inv 0 * (1 + zv) + zv), dZv cv (word inv 0) zv,
+      σ (.n sc) * (cv * word inv 0)] (by simp) fun C rd hH σ' ha hv ↦ ?_
+    have v0 := hv 0 (by simp)
+    have v1 := hv 1 (by simp)
+    have v2 := hv 2 (by simp)
+    have v3 := hv 3 (by simp)
+    have v4 := hv 4 (by simp)
+    have v5 := hv 5 (by simp)
+    have v6 := hv 6 (by simp)
+    have v7 := hv 7 (by simp)
+    have v8 := hv 8 (by simp)
+    have v9 := hv 9 (by simp)
+    have v10 := hv 10 (by simp)
+    simp only [List.getD_cons_zero, List.getD_cons_succ, Nat.add_zero] at v0 v1 v2 v3 v4 v5 v6 v7 v8 v9 v10
+    simp only [allOk_cons, allOk_nil, and_true, stmtOk_atom, holds_load, holds_const, holds_add,
+      holds_mul, osLd, osCst, osAdd, osMul]
+    rw [v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, ha _ hsrc, ha _ hbd, ha _ hsc, ha _ hz, ha _ hnz,
+      hzv, hnzv]
+    refine ⟨⟨hcv C rd hH, rfl, rfl, rfl, rfl, rfl, rfl, rfl, ?_, ?_, hst C rd hH, rfl⟩, rfl⟩
+    · rw [word_one, one_div_mul_cancel hden]
+    · rw [dZv, word_one, mul_one_div]
 
 theorem osBasisRow_next (bd : ℕ) : ∀ (cs : List (ℕ × (ℕ × ℕ) × ℕ)) (sc z nz k : ℕ),
     k ≤ (osBasisRow bd cs sc z nz k).2.2 ∧
