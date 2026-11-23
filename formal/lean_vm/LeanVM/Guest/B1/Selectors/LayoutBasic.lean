@@ -39,10 +39,6 @@ theorem memLay_append {rd : Reader} {L L' : TLay} :
   exact ⟨fun h => ⟨fun q hq => h q (Or.inl hq), fun q hq => h q (Or.inr hq)⟩,
     fun h q hq => hq.elim (h.1 q) (h.2 q)⟩
 
-theorem tb_addr_ofK (e j : ℕ) : (ofK (addressOfIndex e)).limb 0 * addressOfIndex j = addressOfIndex
-    (e + j) := by
-  rw [limb_ofK]; exact (pow_add _ _ _).symm
-
 theorem tb_isInK_ofK (a : K) : IsInK (ofK a) := by
   simp [IsInK]
 
@@ -59,7 +55,7 @@ noncomputable def layRd (L : TLay) : Reader := fun a =>
 theorem memLay_read {rd : Reader} {L : TLay} (hm : MemLay rd L) {q : ℕ × List E} (hq : q ∈ L)
     {j : ℕ} (hj : j < q.2.length) : rd (addressOfIndex (q.1 + j)) = some (q.2.getD j 0) := by
   have := (hm q hq j hj).2
-  rw [tb_addr_ofK] at this
+  rw [limb0_ofK_addressOfIndex_mul] at this
   rw [this, List.getD_eq_getElem _ _ hj]
 
 /-- **On a memory holding the layout, `layRd` answers its addresses as the memory does.** -/
@@ -109,7 +105,7 @@ theorem lay_same {L : TLay} (hd : DisjLay L) (hl : LowLay L) {q q' : ℕ × List
 theorem memLay_layRd {L : TLay} (hd : DisjLay L) (hl : LowLay L) : MemLay (layRd L) L := by
   intro q hq j hj
   refine ⟨tb_isInK_ofK _, ?_⟩
-  rw [tb_addr_ofK]
+  rw [limb0_ofK_addressOfIndex_mul]
   have ha : InLay L (addressOfIndex (q.1 + j)) := ⟨q, hq, j, hj, rfl⟩
   unfold layRd
   simp only [ha, ↓reduceDIte]

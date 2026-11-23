@@ -180,11 +180,6 @@ theorem lp_limb0_mul_ofK (p : E) (c : K) : (p * ofK c).limb 0 = p.limb 0 * c := 
   rw [ofLimbs_mul_ofK]
   rfl
 
-theorem lp_addr (b e t : ℕ) : (ofK (addressOfIndex b) * gen ^ e).limb 0 * addressOfIndex t =
-    addressOfIndex (b + e + t) := by
-  rw [gen_pow_eq_ofK, lp_limb0_mul_ofK, limb_ofK]
-  simp only [Fin.val_zero, ↓reduceIte, Parameters.addressOfIndex, ← pow_add]
-
 theorem lp_logG_gw {e : ℕ} (he : e < 2 ^ 64 - 1) : logG (gw e) = e := by
   rw [Whir.gw_eq (by unfold u128Bound; omega), logG_gen_pow he]
 
@@ -274,7 +269,7 @@ theorem lp_placedE (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ
       · have := (hM.2 j hj i hi).1
         rw [hpo, pow_zero, mul_one, ← pow_mul, loadHolds_mul_gen_pow]
         exact this)
-    (fun j hj1 hj t ht ↦ ⟨sqzE + j * 5 + t, by rw [← pow_mul, lp_addr],
+    (fun j hj1 hj t ht ↦ ⟨sqzE + j * 5 + t, by rw [← pow_mul, limb0_ofK_mul_gen_pow_mul],
       ⟨(sqzE, W), List.mem_cons_self, by omega, by rw [hW, lpSqzW_length]; omega⟩⟩)
     (fun j hj t ht ↦ by
       have ht' : t < P := ht
@@ -457,9 +452,9 @@ theorem lp_placedE (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ
         Function.comp] at hA
       rcases hA with ⟨i, hi, rfl⟩ | ⟨i, hi, rfl⟩
       · refine ⟨sqzE + (5 + i), ?_, Or.inl (hown _ (by omega))⟩
-        rw [h15, hsqz, Main.addr_ofK]
+        rw [h15, hsqz, Value.limb0_ofK_addressOfIndex_mul]
       · refine ⟨sqzE + S * 5 + i, ?_, Or.inl ?_⟩
-        · rw [h22, hsqz, lp_addr]
+        · rw [h22, hsqz, limb0_ofK_mul_gen_pow_mul]
         · rw [Nat.add_assoc]; exact hown _ (by omega))
     (fun i hi => Or.inr hi) (splice_nil_of _ _ hnw (by simp))
     (exactAt_of_walk hf hwalk fun e he => evs_exact_of_hints (σ := σ) (pre := lpPreB d cd loop)

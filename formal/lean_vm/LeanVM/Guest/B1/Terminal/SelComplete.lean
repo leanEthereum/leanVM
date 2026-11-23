@@ -229,12 +229,6 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 
 @[expose] public section
 
-theorem cs_addr_mul (b c k : ℕ) : (ofK (addressOfIndex b) * gen ^ c).limb 0 * addressOfIndex k =
-    addressOfIndex (b + c + k) := by
-  have e : ofK (addressOfIndex b) * gen ^ c = ofK (addressOfIndex (b + c)) := by
-    rw [gen_pow_eq_ofK, ← ofK_mul, addressOfIndex, addressOfIndex, addressOfIndex, pow_add]
-  rw [e, Main.addr_ofK]
-
 /-! ## The nibble shares -/
 
 /-- **The nibble shares' words** (`exponent_tables`): `g^(u·16^j)` at `16j + u`, `j < 8`. -/
@@ -347,7 +341,7 @@ theorem cs_completeAtDTB (k : ℕ) (hk : 4 ≤ k) {κ : ℕ} (hκ : κ < 31) {o 
       refine ⟨ese + Tables.cskU κ o j + (32 * (κ / 4 + j) + Tables.selEqOff (Tables.csW κ j - 1)), ?_,
         Or.inl ⟨(ese, Tables.stEqWords (Tables.stVal ept ept1 ese p p1)), by simp [csLin, Tables.stOwn],
           by omega, by simp [Tables.stEqWords]; omega⟩⟩
-      rw [e]; exact cs_addr_mul _ _ _
+      rw [e]; exact limb0_ofK_mul_gen_pow_mul _ _ _
     · have e : σ (.n (Tables.csC κ j + if j = 0 then 6 else 7)) =
           ofK (addressOfIndex bg) * gen ^ Tables.cskU κ o j := by
         show Tables.cskVal _ _ _ _ _ _ _ (Tables.csC κ j + if j = 0 then 6 else 7) = _
@@ -359,7 +353,7 @@ theorem cs_completeAtDTB (k : ℕ) (hk : 4 ≤ k) {κ : ℕ} (hκ : κ < 31) {o 
           simp [Tables.cskRole, hj0]
       refine ⟨bg + Tables.cskU κ o j + 16 * (κ / 4 + j), ?_,
         Or.inl ⟨(bg, gTabW), by simp [csLin], by omega, by rw [gTabW_length]; omega⟩⟩
-      rw [e]; exact cs_addr_mul _ _ _
+      rw [e]; exact limb0_ofK_mul_gen_pow_mul _ _ _
 
 /-- **`column_selector__L{κ}` is complete, placed, within its frame** (`cs_completeAtDTB`). -/
 theorem cs_completeAtB (k : ℕ) (hk : 4 ≤ k) {κ : ℕ} (hκ : κ < 31) {o : ℕ} (ho : o < 2 ^ 32)

@@ -96,13 +96,6 @@ theorem expTables_of_memL {rd : Reader} {sqE : ℕ} (h : MemL rd (log2Lin sqE)) 
   have := memL_single h o (by rw [length_expTableWords]; exact ho)
   rwa [← List.getD_eq_getElem _ (0 : E)] at this
 
-theorem limb_ofK_gpow_gen_off (b n off : ℕ) :
-    (ofK (Parameters.addressOfIndex b) * gen ^ n).limb 0 * Parameters.addressOfIndex off =
-        Parameters.addressOfIndex (b + n + off) := by
-  rw [gen_pow_eq_ofK, ← ofK_mul, limb_ofK]
-  simp only [Fin.isValue, Fin.val_zero, ↓reduceIte]
-  rw [gpow_add', gpow_add']
-
 theorem regionL_log2Lin {sqE i : ℕ} (h1 : sqE ≤ i) (h2 : i < sqE + 236) :
     RegionL (log2Lin sqE) i :=
   ⟨_, List.mem_singleton_self _, h1, by rw [length_expTableWords]; exact h2⟩
@@ -216,7 +209,7 @@ theorem asg_completeAtBE (κ : ℕ) (hκ4 : 4 ≤ κ) (sqE e : ℕ) (he : e < 2 
   · rw [loadAddrs_straight σ _ asgPre_straight, asgPre_loads] at hA
     simp only [List.map_map, List.mem_map, List.mem_range, Function.comp_apply] at hA
     obtain ⟨j, hj, rfl⟩ := hA
-    refine ⟨sqE + e / 16 ^ j % 16 + (34 + 16 * j), by rw [ep j hj, limb_ofK_gpow_gen_off], Or.inr ?_⟩
+    refine ⟨sqE + e / 16 ^ j % 16 + (34 + 16 * j), by rw [ep j hj, limb0_ofK_mul_gen_pow_mul], Or.inr ?_⟩
     have : e / 16 ^ j % 16 < 16 := Nat.mod_lt _ (by decide)
     exact regionL_log2Lin (by omega) (by omega)
   · rw [List.mem_singleton.mp ha]
@@ -560,7 +553,7 @@ theorem lce_completeAtBE (fl : ℕ) (hfl : fl < 34) {name : String} {fn : Fn}
       rcases hA with rfl | hA
       · exact ⟨sqE + L + 0, by
           show (q * gen ^ L).limb 0 * addressOfIndex 0 = _
-          rw [hq, limb_ofK_gpow_gen_off], Or.inr (Or.inl (regionL_log2Lin (by omega) (by omega)))⟩
+          rw [hq, limb0_ofK_mul_gen_pow_mul], Or.inr (Or.inl (regionL_log2Lin (by omega) (by omega)))⟩
       · split at hA
         · exact absurd hA List.not_mem_nil
         · rename_i hne
@@ -570,7 +563,7 @@ theorem lce_completeAtBE (fl : ℕ) (hfl : fl < 34) {name : String} {fn : Fn}
           subst hA
           refine ⟨sqE + L' + 0, ?_, Or.inr (Or.inl (regionL_log2Lin (by omega) (by omega)))⟩
           show (q * (gen ^ L * invGenWord)).limb 0 * addressOfIndex 0 = _
-          rw [hL', gen_pow_mul_invGen, hq, limb_ofK_gpow_gen_off])
+          rw [hL', gen_pow_mul_invGen, hq, limb0_ofK_mul_gen_pow_mul])
     (fun i hi ↦ by obtain ⟨q, hq, _⟩ := hi; simp at hq)
   rw [hal] at h
   obtain ⟨t, ht, -, hE⟩ := h

@@ -44,7 +44,7 @@ theorem claimPops_of_reads {α : Type} {f : α → List E} {L : List α} (hf : �
   rw [getD_flatMap_uniform L hf k hk c hc4, List.getD_eq_getElem _ _ (by rw [hf _ (List.getElem_mem hk)]; exact hc4)]
     at hl
   obtain ⟨-, hl⟩ := hl
-  rw [gen_pow_eq_ofK, addr_ofK, ← Nat.add_assoc] at hl
+  rw [gen_pow_eq_ofK, limb0_ofK_addressOfIndex_mul, ← Nat.add_assoc] at hl
   simp only [List.getElem_map, List.getElem_range, hl, Option.getD_some]
 
 /-- **A valid tree of `claim_list_digest` of honest shape on a table holding a list's cells** pops the list's

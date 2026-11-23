@@ -128,13 +128,6 @@ end FlatFn
 
 /-! ## Addresses -/
 
-theorem limb_mul_gen (b j off : ℕ) :
-    (ofK (addressOfIndex b) * gen ^ j).limb 0 * addressOfIndex off = addressOfIndex (b + j +
-        off) := by
-  have e : ofK (addressOfIndex b) * gen ^ j = ofK (addressOfIndex (b + j)) := by
-    rw [gen_pow_eq_ofK, ← ofK_mul, addressOfIndex, addressOfIndex, addressOfIndex, pow_add]
-  rw [e, Main.addr_ofK]
-
 /-- A load inside a listed buffer of a layout reads inside the layout. -/
 theorem inBuf_region {σ : Val} {bufs : List (E × ℕ)} {L : Layout}
     (hbufs : ∀ q ∈ bufs, ∃ b, q.1 = ofK (addressOfIndex b) ∧ ∀ i < q.2, RegionL L (b + i))
@@ -142,7 +135,7 @@ theorem inBuf_region {σ : Val} {bufs : List (E × ℕ)} {L : Layout}
     ∃ i, (σ p).limb 0 * addressOfIndex off = addressOfIndex i ∧ RegionL L i := by
   obtain ⟨q, hq, j, hp, hj⟩ := h
   obtain ⟨b, hb, hr⟩ := hbufs q hq
-  refine ⟨b + j + off, by rw [hp, hb, limb_mul_gen], ?_⟩
+  refine ⟨b + j + off, by rw [hp, hb, limb0_ofK_mul_gen_pow_mul], ?_⟩
   have := hr (j + off) hj
   rwa [← Nat.add_assoc] at this
 

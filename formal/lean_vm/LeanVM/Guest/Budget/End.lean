@@ -39,14 +39,14 @@ open LeanVM.Protocol.Verifier (gen)
 theorem loadHolds_one {rd : Reader} {x : E} (h : rd 1 = some x) : LoadHolds rd 1 0 x := by
   rw [one_eq_ofK]
   refine ⟨(isInK_iff _).mpr ⟨_, rfl⟩, ?_⟩
-  rw [B1.Main.addr_ofK]
+  rw [Value.limb0_ofK_addressOfIndex_mul]
   simpa [Parameters.addressOfIndex] using h
 
 theorem loadHolds_gen {rd : Reader} {x : E} (h : rd g = some x) : LoadHolds rd gen 0 x := by
   have e : gen = ofK (addressOfIndex 1) := by rw [← Value.gen_pow_eq_ofK, pow_one]
   rw [e]
   refine ⟨(isInK_iff _).mpr ⟨_, rfl⟩, ?_⟩
-  rw [B1.Main.addr_ofK]
+  rw [Value.limb0_ofK_addressOfIndex_mul]
   simpa [Parameters.addressOfIndex] using h
 
 /-- **`MainComplete` from `main`'s completeness within a words bound and its tree's counts.** -/

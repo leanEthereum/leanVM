@@ -232,9 +232,9 @@ theorem child_claim_list_any_completeAtTBP (fs : String → ℕ) (cert : String 
     simp only [List.map_cons, List.map_nil, Sum.elim_inr, hV.v16, List.append_nil]
     rw [logG_gen_pow (show 13 * (a + b + 1) < 2 ^ 64 - 1 by omega)]
   have h32 : decide (σ (.n (val% «child_claim_list_any» "s3#1")) ≠ 0) = decide (a ≠ 0) := by
-    rw [hV.v32]; exact decide_eq_decide.mpr (one_add_gen_ne (by omega))
+    rw [hV.v32]; exact decide_eq_decide.mpr (one_add_gen_pow_ne_zero_iff (by omega))
   have h50 : decide (σ (.n (val% «child_claim_list_any» "s6#1")) ≠ 0) = decide (b ≠ 0) := by
-    rw [hV.v50]; exact decide_eq_decide.mpr (one_add_gen_ne (by omega))
+    rw [hV.v50]; exact decide_eq_decide.mpr (one_add_gen_pow_ne_zero_iff (by omega))
   have hcalls : calls es = [⟨name% «child_claim_list_any_loop0», [.n (val% «child_claim_list_any» "s3#2"), .n (val% «child_claim_list_any» "bigs"), .n (val% «child_claim_list_any» "chain"), .n (val% «child_claim_list_any» "entries_ptr"), .n (val% «child_claim_list_any» "region"),
       .n (val% «child_claim_list_any» "base"), .n (val% «child_claim_list_any» "last_g")], [],
         decide (a ≠ 0)⟩,

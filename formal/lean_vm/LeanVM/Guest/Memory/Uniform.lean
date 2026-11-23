@@ -79,7 +79,7 @@ theorem memL_append {rd : Reader} {L L' : Layout} : MemL rd (L ++ L') ↔ MemL r
 /-- **A layout held survives restricting the memory to it.** -/
 theorem memL_restrict {rd : Reader} {L : Layout} {S : ℕ → Prop} (h : MemL rd L)
     (hS : ∀ i, RegionL L i → S i) : MemL (restrict rd S) L := fun q hq k hk =>
-  loadHolds_restrict (h q hq k hk) ⟨q.1 + k, addr_ofK _ _, hS _ ⟨q, hq, by omega, by omega⟩⟩
+  loadHolds_restrict (h q hq k hk) ⟨q.1 + k, limb0_ofK_addressOfIndex_mul _ _, hS _ ⟨q, hq, by omega, by omega⟩⟩
 
 /-- **Two memories holding a layout agree on it.** -/
 theorem memL_agree {rd rd' : Reader} {L : Layout} (h : MemL rd L) (h' : MemL rd' L) :
@@ -87,7 +87,7 @@ theorem memL_agree {rd rd' : Reader} {L : Layout} (h : MemL rd L) (h' : MemL rd'
   rintro i ⟨q, hq, h1, h2⟩
   have a := (h q hq (i - q.1) (by omega)).2
   have b := (h' q hq (i - q.1) (by omega)).2
-  rw [addr_ofK, show q.1 + (i - q.1) = i by omega] at a b
+  rw [limb0_ofK_addressOfIndex_mul, show q.1 + (i - q.1) = i by omega] at a b
   rw [a, b]
 
 /-! ## Reading a layout's buffers -/

@@ -137,13 +137,13 @@ theorem oqMain1_completeAtEP (fs : String → ℕ) (cert : String → V → ℕ)
       rw [oqChain_succ_one hb1] at this
       exact this
     · refine ⟨epos + (odd + 2 * j + e), ?_, Or.inl (hreg.2.2 _ (by omega)).1⟩
-      rw [mul_assoc, ← pow_add, addr_gpow]
+      rw [mul_assoc, ← pow_add, limb0_ofK_mul_gen_pow_mul]
       congr 1; omega
     · refine ⟨eqp + (odd + 2 * j + e), ?_, Or.inl (hreg.2.2 _ (by omega)).2.1⟩
-      rw [mul_assoc, ← pow_add, addr_gpow]
+      rw [mul_assoc, ← pow_add, limb0_ofK_mul_gen_pow_mul]
       congr 1; omega
     · refine ⟨fp + fs name + (j + e), ?_, Or.inr ⟨by omega, by omega⟩⟩
-      rw [addr_gpow, Nat.add_assoc]
+      rw [limb0_ofK_mul_gen_pow_mul, Nat.add_assoc]
 
 /-- **`opening_queries` deeper is `CompleteAtEP`**: it pops its queries' entries in order, by a
 tree of exactly its bound. -/
@@ -212,10 +212,10 @@ theorem oqMain0_completeAtEP (fs : String → ℕ) (cert : String → V → ℕ)
   · have := hch (j + 1) (by omega)
     rw [oqChain_succ_zero hb0] at this
     exact this
-  · rw [addr_gpow, Nat.add_zero]
-  · rw [addr_gpow, Nat.add_zero]
+  · rw [limb0_ofK_mul_gen_pow_mul, Nat.add_zero]
+  · rw [limb0_ofK_mul_gen_pow_mul, Nat.add_zero]
   · refine ⟨fp + fs name + (j + e), ?_, Or.inr ⟨by omega, by omega⟩⟩
-    rw [addr_gpow, Nat.add_assoc]
+    rw [limb0_ofK_mul_gen_pow_mul, Nat.add_assoc]
 
 end
 end LeanVM.Guest.B1

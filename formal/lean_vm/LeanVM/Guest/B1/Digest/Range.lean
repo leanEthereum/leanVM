@@ -40,10 +40,6 @@ theorem load_gpow {rd : Reader} (hm : MemOk rd) {x t : E} (h : LoadHolds rd x 0 
   refine ⟨i, lt_of_lt_of_le i.2 (Nat.pow_le_pow_right (by decide) hκ), ?_⟩
   rw [eq_ofK_limb hx, hi, gen_pow_eq_ofK]
 
-theorem gen_pow_inj' {a b : ℕ} (ha : a < 2 ^ 34) (hb : b < 2 ^ 34) (h : gen ^ a = gen ^ b) :
-    a = b :=
-  gen_pow_inj (by omega) (by omega) h
-
 /-- A range check: its two reads make `x`, `y` powers of `g` below `2^32`, `k` their product. -/
 theorem rc_sound {rd : Reader} (hm : MemOk rd) {x y t1 t2 k : E}
     (h : LoadHolds rd x 0 t1 ∧ k = x * y ∧ LoadHolds rd y 0 t2) :

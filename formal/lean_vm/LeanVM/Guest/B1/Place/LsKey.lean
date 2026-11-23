@@ -138,9 +138,9 @@ theorem lsum_relAtIn {sum loop : String} {Q : ℕ} (hs : FnIs sum (osParams 4) (
     rw [hl] at hA
     simp only [List.map_cons, List.map_nil, List.mem_cons, List.not_mem_nil, or_false] at hA
     rcases hA with rfl | rfl | rfl
-    · exact ⟨b + 0, by rw [e5, Main.addr_ofK], Or.inl (hown _ (by omega) (by omega))⟩
-    · exact ⟨b' + 0, by rw [e7, Main.addr_ofK], Or.inl (hown _ (by omega) (by omega))⟩
-    · exact ⟨b + Q, by rw [e5, Main.addr_ofK], Or.inl (hown _ (by omega) (by omega))⟩
+    · exact ⟨b + 0, by rw [e5, Value.limb0_ofK_addressOfIndex_mul], Or.inl (hown _ (by omega) (by omega))⟩
+    · exact ⟨b' + 0, by rw [e7, Value.limb0_ofK_addressOfIndex_mul], Or.inl (hown _ (by omega) (by omega))⟩
+    · exact ⟨b + Q, by rw [e5, Value.limb0_ofK_addressOfIndex_mul], Or.inl (hown _ (by omega) (by omega))⟩
 
 /-! ## The helper, placed -/
 

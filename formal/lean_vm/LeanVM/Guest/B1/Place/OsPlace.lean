@@ -50,11 +50,11 @@ theorem os_addr_in_regionL {κ : ℕ} {M : Layout} {A : K} {v : E}
   have hL2 : MemL rd2 M := by
     intro q hq k hk
     refine ⟨(hL q hq k hk).1, ?_⟩
-    rw [Main.addr_ofK]
+    rw [Value.limb0_ofK_addressOfIndex_mul]
     have hne : addressOfIndex (q.1 + k) ≠ A := fun he
         => hn (q.1 + k) he.symm ⟨q, hq, by omega, by omega⟩
     simp only [rd2, hne, ↓reduceIte]
-    rw [← Main.addr_ofK]; exact (hL q hq k hk).2
+    rw [← Value.limb0_ofK_addressOfIndex_mul]; exact (hL q hq k hk).2
   have := hall rd2 hlow2 hL2
   simp only [rd2, ↓reduceIte, Option.some.injEq] at this
   exact one_ne_zero (by linear_combination this : (1 : E) = 0)

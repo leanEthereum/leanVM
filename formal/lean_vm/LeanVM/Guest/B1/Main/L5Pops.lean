@@ -53,7 +53,7 @@ theorem l5_words_of_reads (σ : Val) {p : V} {a : ℕ} (hp : σ p = gen ^ a) {L 
   refine List.ext_getElem (by simp) fun k h1 h2 => ?_
   rw [List.getElem_map, List.getElem_range, Nat.zero_add]
   obtain ⟨-, hl⟩ := h k h2
-  rw [gen_pow_eq_ofK, addr_ofK] at hl
+  rw [gen_pow_eq_ofK, limb0_ofK_addressOfIndex_mul] at hl
   rw [hl]
   rfl
 

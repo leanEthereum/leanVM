@@ -326,7 +326,7 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
     outRegion (kidsAt (termKids Lin D b0) [] outs) outs i with hR
   have aL : ∀ b k, TermRegion B bus.point.length chis'.length τ layout.stackLog (b + k) →
       AddrIn R (ofK (addressOfIndex b)) k := fun b k h
-          => ⟨b + k, Main.addr_ofK b k, Or.inl (hreg _ h)⟩
+          => ⟨b + k, Value.limb0_ofK_addressOfIndex_mul b k, Or.inl (hreg _ h)⟩
   have hBuf := hB
   rw [termBuf_eq] at hBuf
   have rB : ∀ i, RegionL (termBufs D b0) i → R i := fun i h =>

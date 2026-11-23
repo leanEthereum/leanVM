@@ -443,7 +443,7 @@ noncomputable def cpOffRd (Q : ℕ → ℕ) : Reader := fun x ↦
 theorem cpOffRd_load (Q : ℕ → ℕ) {c : ℕ} (hc : c < 94) :
     LoadHolds (cpOffRd Q) (ofK (addressOfIndex 0)) c (gen ^ Q c) := by
   refine ⟨tb_isInK_ofK _, ?_⟩
-  rw [tb_addr_ofK, Nat.zero_add]
+  rw [limb0_ofK_addressOfIndex_mul, Nat.zero_add]
   have h : ∃ c', c' < 94 ∧ addressOfIndex c' = addressOfIndex c := ⟨c, hc, rfl⟩
   have he : ∀ h' : ∃ c', c' < 94 ∧ addressOfIndex c' = addressOfIndex c,
       Classical.choose h' = c := fun h' ↦ by
@@ -506,7 +506,7 @@ theorem ldef_load {k : ℕ} {rd : Reader} (hlow : LowDefB k rd) {a : ℕ} (ha : 
     LoadHolds rd (gen ^ a) 0 (rdv rd a) := by
   rw [gen_pow_eq_ofK]
   refine ⟨tb_isInK_ofK _, ?_⟩
-  rw [tb_addr_ofK, Nat.add_zero]
+  rw [limb0_ofK_addressOfIndex_mul, Nat.add_zero]
   obtain ⟨v, hv⟩ := Option.isSome_iff_exists.mp (hlow a ha)
   rw [rdv, hv]; rfl
 
@@ -526,7 +526,7 @@ theorem wRankBound_eq : wRankBound = gen ^ 8397 := by
 theorem tb_load_ofK_add {rd : Reader} {a b k : ℕ} {w : E} :
     LoadHolds rd (ofK (addressOfIndex (a + b))) k w ↔
       LoadHolds rd (ofK (addressOfIndex a)) (b + k) w := by
-  simp only [LoadHolds, tb_addr_ofK, tb_isInK_ofK, true_and, Nat.add_assoc]
+  simp only [LoadHolds, limb0_ofK_addressOfIndex_mul, tb_isInK_ofK, true_and, Nat.add_assoc]
 
 section
 variable {lm : ℕ} {hs : List ℕ} {ekb esq e10 e11 e136 e137 e293 : ℕ} {rd : Reader}

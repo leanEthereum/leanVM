@@ -154,7 +154,7 @@ theorem rngC_spec {r : Mode.Rng} {q : CRun} (h : rngC r = some q) :
 
 theorem valW_shiftc {w : ℕ → E} (c : CCell) (d : ℕ) :
     (⟨c.bases, c.off + d⟩ : CCell).valW w = c.valW w * ofK (addressOfIndex d) := by
-  simp only [CCell.valW, addressOfIndex, pow_add, ofK_mul']
+  simp only [CCell.valW, addressOfIndex, pow_add, ofK_mul]
   ring
 
 theorem runSet_const {w : ℕ → E} {q : CRun} {a b : ℕ} (hlo : q.lo = .num a) (hhi : q.hi = .num b)
@@ -187,7 +187,7 @@ theorem rw_slot {s : St} {ws : List E} {r : Mode.Rng} {q : CRun} (hr : rngC r = 
   have : (c.valW (slotW ws) * ofK (g ^ (r.S * (j + t) + r.d))) =
       ((⟨c.bases, o⟩ : CCell).valW (slotW ws) * ofK (addressOfIndex (r.S * j))) := by
     simp only [CCell.valW, ho]
-    simp only [addressOfIndex, pow_add, mul_add, ofK_mul']
+    simp only [addressOfIndex, pow_add, mul_add, ofK_mul]
     ring
   rw [this] at hy
   exact wrk_names hy hw
@@ -202,7 +202,7 @@ theorem slot_rw {s : St} {ws : List E} {r : Mode.Rng} {q : CRun} (hr : rngC r = 
       ((⟨c.bases, o⟩ : CCell).valW (slotW ws) * ofK (addressOfIndex (r.S * (j - t)))) := by
     obtain ⟨j', rfl⟩ : ∃ j', j = j' + t := ⟨j - t, by omega⟩
     simp only [Nat.add_sub_cancel, CCell.valW, ho]
-    simp only [addressOfIndex, pow_add, mul_add, ofK_mul']
+    simp only [addressOfIndex, pow_add, mul_add, ofK_mul]
     ring
   rw [this]
   exact names_wrk hx
@@ -231,7 +231,7 @@ theorem rw_cov {s : St} {ws : List E} {G : Mode.Sig} {np : ℕ} {q : CRun} (h : 
       have hj' : j = j % r0.S + r0.S * (j / r0.S) := (Nat.mod_add_div j r0.S).symm
       simp only [strand, CCell.valW, hS1, one_mul]
       conv_lhs => rw [hj']
-      simp only [addressOfIndex, pow_add, ofK_mul']
+      simp only [addressOfIndex, pow_add, ofK_mul]
       ring_nf
     · cases hri
   · cases h
@@ -250,7 +250,7 @@ theorem runPts_spec {r : Mode.Rng} {l : List CCell} (h : runPts ⟨[], 0⟩ r = 
 
 theorem pt_val {w : ℕ → E} (c : CCell) (S j d : ℕ) :
     (⟨c.bases, c.off + (⟨[], S * j + d⟩ : CCell).off⟩ : CCell).valW w = c.valW w * ofK (g ^ (S * j + d)) := by
-  simp only [CCell.valW, addressOfIndex, pow_add, ofK_mul']
+  simp only [CCell.valW, addressOfIndex, pow_add, ofK_mul]
   ring
 
 /-- **A point of a written run of constant bounds is written.** -/

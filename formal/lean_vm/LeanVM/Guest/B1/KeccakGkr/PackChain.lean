@@ -167,8 +167,6 @@ theorem coords_of_reads {pp : E} {pts rs : List E} {n : ℕ} (hpp : ReadsAt rd p
   rw [loadHolds_mul_gen_pow] at h1
   rw [List.getElem?_eq_getElem (by omega), loadHolds_unique (hpp _ (by omega)) h1]
 
-theorem gen_pow_pow (j m : ℕ) : (gen ^ j) ^ m = gen ^ (m * j) := by rw [← pow_mul, mul_comm]
-
 /-- **An iteration of the eight-round loop extends the invariant.** -/
 theorem packInv_succ8 {rec pp pt cur hv : E} {capS pts : List E} {j : ℕ}
     (hI : PackInv rd rec pt cur hv capS pts j (8 * j)) (hS : Pack8Step rd rec pp pt (gen ^ j))

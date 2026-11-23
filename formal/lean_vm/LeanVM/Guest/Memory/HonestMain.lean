@@ -81,7 +81,7 @@ theorem memL_imageOf {κ : ℕ} (hκ : κ < 64) {L : Layout} (hc : LConsistent L
   intro q hq k hk
   obtain ⟨h2, hle⟩ := hin q hq
   refine ⟨(isInK_iff _).mpr ⟨_, rfl⟩, ?_⟩
-  rw [addr_ofK]
+  rw [limb0_ofK_addressOfIndex_mul]
   have hi : q.1 + k < 2 ^ κ := by omega
   rw [MemoryImage.read_gpow hκ (imageOf κ L hdr) ⟨q.1 + k, hi⟩]
   congr 1
@@ -177,7 +177,7 @@ theorem dischargeAddr {κ : ℕ} (hκ : κ < 64) {M : MemoryImage κ} {T : Tree}
         (insts_placed T _ hdr (Nat.zero_add _).le I hI) ht).2 (p, r)
         (List.mem_filterMap.mpr ⟨_, ha, rfl⟩)
       simp only at hpl
-      rw [hpl, addr_ofK]
+      rw [hpl, limb0_ofK_addressOfIndex_mul]
       have := hrun I hI f σ bufs kids ht p r rs ha k hk
       exact ⟨⟨_, by rw [← Nat.add_assoc] at this; exact this⟩, rfl⟩
   | _ => simp [atomEqns] at hqa

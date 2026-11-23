@@ -577,7 +577,7 @@ theorem wrk_rwF {f : Mode.Base × ℕ → Option (ℕ × ℕ)} (hf : ExpKeep f) 
     obtain ⟨x, hx, hlt, hw⟩ := h _ (List.mem_map.mpr ⟨j - a, List.mem_range.mpr (by omega), rfl⟩)
     refine ⟨x, ⟨?_, hlt⟩, hw⟩
     rw [← hx]
-    simp only [CCell.addr, CCell.val, addressOfIndex, pow_add, ofK_mul', show a + (j - a) = j by omega]
+    simp only [CCell.addr, CCell.val, addressOfIndex, pow_add, ofK_mul, show a + (j - a) = j by omega]
     ring_nf
   · cases hl
 

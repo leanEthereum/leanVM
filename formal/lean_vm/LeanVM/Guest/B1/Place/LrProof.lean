@@ -322,11 +322,11 @@ theorem lr_relAtIn {name loop1 loop2 : String} {q : ℕ}
     simp only [List.map_cons, List.map_nil, List.mem_cons, List.not_mem_nil, or_false] at hA'
     have hw1 : ∀ t < W.length, ∃ j, (ofK (addressOfIndex b) * gen ^ 0).limb 0 * addressOfIndex t =
         addressOfIndex j ∧ (ownData cert fp (fp + fs name) name (allocs σ es) es j ∨ R j ∨ False) :=
-      fun t ht ↦ ⟨b + 0 + t, lp_addr _ _ _, Or.inl (hown _ (by omega) (by omega))⟩
+      fun t ht ↦ ⟨b + 0 + t, limb0_ofK_mul_gen_pow_mul _ _ _, Or.inl (hown _ (by omega) (by omega))⟩
     have hw2 : ∀ t < 2, ∃ j, (ofK (addressOfIndex b) * gen ^ (2 * B + 2 * r)).limb 0 *
         addressOfIndex t = addressOfIndex j ∧
         (ownData cert fp (fp + fs name) name (allocs σ es) es j ∨ R j ∨ False) :=
-      fun t ht ↦ ⟨b + (2 * B + 2 * r) + t, lp_addr _ _ _,
+      fun t ht ↦ ⟨b + (2 * B + 2 * r) + t, limb0_ofK_mul_gen_pow_mul _ _ _,
         Or.inl (hown _ (by omega) (by rw [hWl]; omega))⟩
     rcases hA' with rfl | rfl | rfl | rfl
     · rw [a10, hCH, ← mul_one (ofK _), ← pow_zero gen]; exact hw1 0 (by rw [hWl]; exact lr_zero_lt _)

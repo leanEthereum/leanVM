@@ -57,7 +57,7 @@ theorem idxEx_val {w : ℕ → E} {b : ℕ} {e : ℕ} (he : e < 2 ^ 62) (hw : w 
 theorem idxEx_idxO {w : ℕ → E} {b c e : ℕ} (he : e + c < 2 ^ 62) (hw : w b = ofK (g ^ e)) : IdxEx w (idxO b c) := by
   refine ⟨e + c, ?_, by rw [idxC_idxO]; exact Nat.le_add_left _ _⟩
   rw [valW_idxO, hw, show ofK (g ^ e) * ofK (addressOfIndex c) = ofK (addressOfIndex (e + c)) by
-    rw [addressOfIndex, addressOfIndex, pow_add, ofK_mul']]
+    rw [addressOfIndex, addressOfIndex, pow_add, ofK_mul]]
   exact rep_of (by rw [capE_eq]; exact he)
 
 theorem idxX_spec {i : Mode.Idx} {ci : CIdx} (h : idxX i = some ci) :
@@ -115,7 +115,7 @@ theorem idxVal_rep {s : St} {ws : List E} {i : Mode.Idx} {ci : CIdx} (hi : idxX 
     obtain ⟨hy1, hy2⟩ := rep_spec hy
     rw [capE_eq] at hy1
     refine gpow_inj_lt (by omega) (by omega) ?_
-    rw [← hy2, addressOfIndex, addressOfIndex, pow_add, ofK_mul']
+    rw [← hy2, addressOfIndex, addressOfIndex, pow_add, ofK_mul]
 
 /-- **A heap index's exponent, at least its offset, is its bound's value** (where its cell holds its slot's word). -/
 theorem rep_idxVal {s : St} {ws : List E} {i : Mode.Idx} {ci : CIdx} (hi : idxX i = some ci)
@@ -135,7 +135,7 @@ theorem rep_idxVal {s : St} {ws : List E} {i : Mode.Idx} {ci : CIdx} (hi : idxX 
     have hw' : slotW ws (o - 2) = ofK (g ^ (x - c)) := by
       have hne : ofK (addressOfIndex c) ≠ 0 := Mode.ofK_gpow_ne_zero c
       refine mul_right_cancel₀ hne ?_
-      rw [hw, addressOfIndex, addressOfIndex, ← ofK_mul', ← pow_add, Nat.sub_add_cancel hx]
+      rw [hw, addressOfIndex, addressOfIndex, ← ofK_mul, ← pow_add, Nat.sub_add_cancel hx]
     exact ⟨_, x - c, hget, hw', by omega, by omega⟩
 
 /-! ## Runs -/
@@ -148,7 +148,7 @@ theorem run_cell {w : ℕ → E} (c : CCell) (S j d : ℕ) :
     (c.valW w * ofK (g ^ (S * j + d))) =
       ((⟨c.bases, c.off + d⟩ : CCell).valW w * ofK (addressOfIndex (S * j))) := by
   rw [valW_shiftc]
-  simp only [addressOfIndex, pow_add, ofK_mul']
+  simp only [addressOfIndex, pow_add, ofK_mul]
   ring
 
 /-- **A run written is its heap run's cells written**, its bounds' cells holding their slots' words. -/

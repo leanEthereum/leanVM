@@ -14,6 +14,7 @@ public import LeanVM.Guest.Word
 public import LeanVM.Guest.CoreLemmas
 import LeanVM.Guest.Value.Keccak
 public import LeanVM.Guest.Value.Bits
+public import LeanVM.Guest.Value.Gpow
 public import LeanVM.Guest.ExpTables
 public import Mathlib.Data.List.GetD
 
@@ -106,19 +107,6 @@ theorem word_y : word 0 1 = y := by rw [y_eq]; rfl
 theorem word_y_inv : word 2 1 = y⁻¹ := by rw [y_inv]; rfl
 
 /-! ## Words in `K` -/
-
-theorem isInK_add {a b : E} (ha : IsInK a) (hb : IsInK b) : IsInK (a + b) := by
-  obtain ⟨a, rfl⟩ := (isInK_iff _).mp ha
-  obtain ⟨b, rfl⟩ := (isInK_iff _).mp hb
-  rw [← ofK_add]; exact ofK_isInK _
-
-theorem isInK_mul {a b : E} (ha : IsInK a) (hb : IsInK b) : IsInK (a * b) := by
-  obtain ⟨a, rfl⟩ := (isInK_iff _).mp ha
-  obtain ⟨b, rfl⟩ := (isInK_iff _).mp hb
-  rw [← ofK_mul]; exact ofK_isInK _
-
-theorem gen_pow_isInK (j : ℕ) : IsInK (gen ^ j) := by
-  rw [gen_pow_eq_ofK]; exact ofK_isInK _
 
 theorem isInK_mul_ofK {p : E} {c : K} (hc : c ≠ 0) : IsInK (p * ofK c) ↔ IsInK p := by
   rw [eq_ofLimbs p, ofLimbs_mul_ofK, isInK_ofLimbs_iff, isInK_ofLimbs_iff]
@@ -313,8 +301,6 @@ macro "b1_look" : tactic =>
 
 /-- The order of `g`. -/
 abbrev ordG : ℕ := 2 ^ 64 - 1
-
-theorem gen_pow_mul_gen (j : ℕ) : gen ^ j * gen = gen ^ (j + 1) := (pow_succ gen j).symm
 
 theorem gen_pow_add_eq_zero_iff {N : E} (j : ℕ) : gen ^ j * gen + N = 0 ↔ N = gen ^ (j + 1) := by
   rw [gen_pow_mul_gen, e_add_eq_zero_iff, eq_comm]

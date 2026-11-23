@@ -414,10 +414,10 @@ theorem vbg_body_of {depth : ℕ} (hd1 : 1 ≤ depth) (hd : depth ≤ 32) {cap0 
   have hrcH : (Atom.rangeCheck (.n (val% «verify_bus_gkr» "g_bus_mu")) (.n (val% «verify_bus_gkr» "s3#1")) (.n (val% «verify_bus_gkr» "s3#2")) (.n (val% «verify_bus_gkr» "s3#3")) (.n (val% «verify_bus_gkr» "s3#0"))).Holds rd σ := by
     refine holds_of_good grc ⟨?_, ?_, ?_, ?_, ?_⟩
     · rw [e6]; exact gen_pow_isInK _
-    · rw [e6, gen_pow_eq_ofK, tb_addr_ofK, Nat.add_zero]
+    · rw [e6, gen_pow_eq_ofK, limb0_ofK_addressOfIndex_mul, Nat.add_zero]
       exact hrc.1
     · rw [e20]; exact gen_pow_isInK _
-    · rw [e20, gen_pow_eq_ofK, tb_addr_ofK, Nat.add_zero]
+    · rw [e20, gen_pow_eq_ofK, limb0_ofK_addressOfIndex_mul, Nat.add_zero]
       exact hrc.2
     · show (if (V.n (val% «verify_bus_gkr» "s3#0")).idx < (V.n (val% «verify_bus_gkr» "s3#1")).idx then σ (.n (val% «verify_bus_gkr» "g_bus_mu")) ≠ 0 else True)
       simp only [h1920, ↓reduceIte]

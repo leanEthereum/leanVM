@@ -412,7 +412,7 @@ theorem divOf_ok {st : CSt} (hs : StOk rd W σ st) {d q b : V} (hq : σ d = σ q
                 simp only [addressOfIndex, ← pow_add, Nat.sub_add_cancel hle]
               rw [← vnum_eq hkq]
               apply mul_right_cancel₀ (ofK_gpow_ne_zero mb.off)
-              rw [← hbv, ← hq, hdv', hbv, CCell.val, CCell.val, hsplit, ofK_mul', mul_assoc]
+              rw [← hbv, ← hq, hdv', hbv, CCell.val, CCell.val, hsplit, ofK_mul, mul_assoc]
 
 /-- The returned values' monomials: each the word it is. -/
 theorem retDefs_ok {rets : List V} : ∀ {l : List (ℕ × CCell)} {st : CSt}, StOk rd W σ st →
@@ -679,7 +679,7 @@ theorem atomC_ok (hX : XOk sigOf H rd f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.
               omega
             · omega
           refine Or.inr ⟨p, off, len, hd, j, hj, ?_⟩
-          rw [valW_shift, one_mul, mul_assoc, ← ofK_mul', addressOfIndex, addressOfIndex, ← pow_add, ← val_eq,
+          rw [valW_shift, one_mul, mul_assoc, ← ofK_mul, addressOfIndex, addressOfIndex, ← pow_add, ← val_eq,
             ← monoOf_ok hs0.env hm, cellAt, limb0_mul_ofK, addressOfIndex]
     | _ => simp [longRun] at hl
 

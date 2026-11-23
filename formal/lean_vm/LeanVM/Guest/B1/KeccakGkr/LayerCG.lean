@@ -64,9 +64,6 @@ theorem five_of_length' {l : List E} (h : l.length = 5) :
   match l, h with
   | [a, b, c, d, e], _ => exact ⟨a, b, c, d, e, rfl⟩
 
-theorem one_add_gen_pow_isInK (k : ℕ) : IsInK (1 + gen ^ k) :=
-  isInK_add ((isInK_iff _).mpr ⟨1, ofK_one.symm⟩) ((isInK_iff _).mpr ⟨_, gen_pow_eq_ofK k⟩)
-
 theorem outW_mu {D : LayerData} {first : ℕ} {pt lp lc sl : E} {i : ℕ} :
     (D.outW first pt lp lc sl).getD (6 + i) 0 =
       (keccakInstanceWeights (D.sv first)).getD i 0 := by

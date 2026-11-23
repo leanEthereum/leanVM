@@ -351,7 +351,7 @@ theorem oqMain_relAtInP (hP : coreProgram.Wf) (fs : String → ℕ) (cert : Stri
           Prod.mk.injEq] at hq
         obtain ⟨rfl, rfl⟩ := hq
         have u3 : σ (.n (k + 3)) = ch0 * gen ^ N := by rw [t3]; simp [oqMainRest, hf]
-        rw [u3, hch0, addr_gpow]
+        rw [u3, hch0, limb0_ofK_mul_gen_pow_mul]
         exact ⟨_, rfl, Or.inl (hbufd _ (by omega) (by omega))⟩
 
 /-- **`opening_queries` at level 0, placed, with its pops**: its odd first query's, then its

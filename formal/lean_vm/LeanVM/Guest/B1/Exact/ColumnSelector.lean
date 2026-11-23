@@ -132,7 +132,7 @@ theorem cs_completeAtDTBRH (k : ℕ) (hk : 4 ≤ k) {κ : ℕ} (hκ : κ < 31) {
       refine ⟨ese + Tables.cskU κ o j + (32 * (κ / 4 + j) + Tables.selEqOff (Tables.csW κ j - 1)), ?_,
         Or.inl ⟨(ese, Tables.stEqWords (Tables.stVal ept ept1 ese p p1)), by simp [csLin, Tables.stOwn],
           by omega, by simp [Tables.stEqWords]; omega⟩⟩
-      rw [e]; exact cs_addr_mul _ _ _
+      rw [e]; exact limb0_ofK_mul_gen_pow_mul _ _ _
     · have e : σ (.n (Tables.csC κ j + if j = 0 then 6 else 7)) =
           ofK (addressOfIndex bg) * gen ^ Tables.cskU κ o j := by
         show Tables.cskVal _ _ _ _ _ _ _ (Tables.csC κ j + if j = 0 then 6 else 7) = _
@@ -144,7 +144,7 @@ theorem cs_completeAtDTBRH (k : ℕ) (hk : 4 ≤ k) {κ : ℕ} (hκ : κ < 31) {
           simp [Tables.cskRole, hj0]
       refine ⟨bg + Tables.cskU κ o j + 16 * (κ / 4 + j), ?_,
         Or.inl ⟨(bg, gTabW), by simp [csLin], by omega, by rw [gTabW_length]; omega⟩⟩
-      rw [e]; exact cs_addr_mul _ _ _
+      rw [e]; exact limb0_ofK_mul_gen_pow_mul _ _ _
 
 
 /-- **`column_selector__L{κ}`, placed within its frame, exact at every node.** -/

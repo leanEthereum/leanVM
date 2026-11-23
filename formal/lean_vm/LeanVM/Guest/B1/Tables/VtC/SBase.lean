@@ -65,9 +65,9 @@ theorem lowDefB_load {κ : ℕ} (hlow : LowDefB κ rd) {a : ℕ} (ha : a < 2 ^ �
     LoadHolds rd (gen ^ a) 0 (rdAt rd (gen ^ a) 0) := by
   rw [gen_pow_eq_ofK]
   refine ⟨tb_isInK_ofK _, ?_⟩
-  rw [tb_addr_ofK, Nat.add_zero]
+  rw [limb0_ofK_addressOfIndex_mul, Nat.add_zero]
   obtain ⟨v, hv⟩ := Option.isSome_iff_exists.mp (hlow a ha)
-  rw [rdAt, tb_addr_ofK, Nat.add_zero, hv]; rfl
+  rw [rdAt, limb0_ofK_addressOfIndex_mul, Nat.add_zero, hv]; rfl
 
 /-- **A range check of `g^a` against `g^K`** holds from its equations. -/
 theorem rc_holds {κ a K : ℕ} (hlow : LowDefB κ rd) {x y t1 t2 k : V}
