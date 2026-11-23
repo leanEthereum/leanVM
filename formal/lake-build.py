@@ -614,7 +614,7 @@ def main() -> None:
     budget = int(opts.mem * GB) if opts.mem else max(total - 4 * GB, 2 * GB)
     if not opts.no_scope:
         in_scope(int(opts.cap * GB) if opts.cap else total - GB, budget)
-    if not os.environ.get("CI"):  # CI sets them itself (`lean.yml`)
+    if not os.environ.get("CI"):  # in CI, `lean.yml` sets them for the jobs that use the cache
         os.environ.setdefault("LAKE_ARTIFACT_CACHE", "true")
         os.environ.setdefault("LAKE_RESTORE_ARTIFACTS", "true")  # `lake env` and the tests read `.lake/build`
     pkg = opts.dir.resolve()
