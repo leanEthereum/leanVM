@@ -27,8 +27,8 @@ pairwise distinct at `z_0` except with probability at most `C(L_0, 2)·ν/|E|` (
 `b_ood` grinds. Then at most one member answers the OOD claim, so the commitment is binding, and
 every challenge drawn after it and before the opening faces a single candidate."
 
-* `stackAt q z`: the stack's multilinear extension at `z`, what the OOD claim reads
-  (`holds_oodClaim`); `stackAt_eq_evalMle`: CompPoly's `evalMle` of the stack's table in `E`.
+* `stackAt q z`: the stack's multilinear extension at `z`, what the OOD claim reads;
+  `stackAt_eq_evalMle`: CompPoly's `evalMle` of the stack's table in `E`.
 * `OodSep S z`: distinct members of `S` have distinct extensions at `z`;
   `card_not_oodSep_le`: for a finite `S` of at most `L` stacks, at most `C(L, 2)·μ·|E|^(μ-1)` of the
   `|E|^μ` points are not separating (`card_ood_collision_image_le`, Schwartz-Zippel for
@@ -68,10 +68,6 @@ variable {μ : ℕ}
 /-- The stack's multilinear extension at `z`, with the verifier's `eq_eval`. -/
 def stackAt (q : Column μ) (z : List E) : E :=
   ∑ x : Fin (2 ^ μ), eqEval z (boolPoint μ x) * ofK (q.values.getD x 0)
-
-/-- **The OOD claim holds of a stack** exactly when its extension at `z` is `y`. -/
-theorem holds_oodClaim (q : Column μ) (z : List E) (y : E) :
-    StackClaim.Holds μ (oodClaim z y) q ↔ stackAt q z = y := Iff.rfl
 
 /-- A stack's table in `E`. -/
 def tableE (q : Column μ) : CMlPolynomialEval E μ := Vector.map ofK q.values

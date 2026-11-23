@@ -16,8 +16,7 @@ import LeanVM.Protocol.Keccak.Gkr
 
 For a column `col` whose output-lane claims hold against the committed middle state
 (`outClaimsTrueMid`) and whose middle state agrees with twelve rounds of the input at `inst`
-(`midAgree`; both follow from `RegionValid` and the claims against `keccakF`,
-`outClaims_of_regionValid`), the honest prover `hKeccak` sends
+(`midAgree`), the honest prover `hKeccak` sends
 
 * `committed`, the middle state's value at the challenges (`committedOf`);
 * the twelve layers' messages (`hLayers`, `hLayer`);

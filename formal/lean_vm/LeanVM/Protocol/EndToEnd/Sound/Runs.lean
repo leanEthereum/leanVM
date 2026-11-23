@@ -23,8 +23,7 @@ public import VCVio.OracleComp.QueryTracking.WriterCost
 * `xrun_after`: the extracted history of a compiled run that returns `a` is a history of the
   program that returns `a`, and every commitment in it holds a well-shaped word;
   `after_extractedHistory`: hence for an accepted proof.
-* `commitStack_after_ret`, `readSizes_ne_ret`, `verifyExecution_ne_ret`,
-  `verifyBusBalance_ne_ret`: the shapes of the first phases' runs.
+* `commitStack_after_ret`, `readSizes_ne_ret`: the shapes of the first phases' runs.
 -/
 
 namespace LeanVM.Protocol.EndToEnd.Sound
@@ -140,26 +139,6 @@ theorem readSizes_ne_ret (bytecode : List K) (a : Layout × ℕ) : readAnnounced
   obtain ⟨x, hx, -⟩ := bind_eq_ret_iff h
   rw [show 2 + tables.length = 7 + 1 from rfl] at hx
   simp [VerifierProgram.readScalars, VerifierProgram.readScalar, VerifierProgram.bind] at hx
-
-/-- `verify_execution` does not return without an event. -/
-theorem verifyExecution_ne_ret (bytecode : List K) (publicInput : Digest) (u : Unit) :
-    verifyExecutionClaims computedBytecodeValue bytecode publicInput ≠ .ret u := by
-  intro h
-  obtain ⟨a, ha, -⟩ := bind_eq_ret_iff h
-  exact readSizes_ne_ret bytecode a ha
-
-/-- The bus phase starts with its check of the push tree's depth, its grind and its fingerprint
-challenges. -/
-theorem verifyBusBalance_ne_ret (bytecodeValue : List K → List E → E → VerifierProgram Unit)
-    (layout : Layout) (b : BusResult) : verifyBusBalance bytecodeValue layout ≠ .ret b := by
-  intro h
-  unfold verifyBusBalance at h
-  dsimp only at h
-  obtain ⟨u, -, h⟩ := bind_eq_ret_iff h
-  obtain ⟨u', -, h⟩ := bind_eq_ret_iff h
-  obtain ⟨w, hw, -⟩ := bind_eq_ret_iff h
-  simp [busBits, VerifierProgram.sampleChallenges, VerifierProgram.sampleChallenge,
-      VerifierProgram.bind] at hw
 
 /-- **The stack's root returns after exactly one commitment**, of the shape of the ladder's first
 level. -/

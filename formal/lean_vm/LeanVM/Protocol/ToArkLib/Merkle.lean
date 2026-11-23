@@ -141,9 +141,6 @@ theorem rootOfPath_path {k : ℕ} (leaves : Vector L (2 ^ k)) (i : Fin (2 ^ k)) 
 /-- Two distinct pairs with the same digest. -/
 def PairCollision : Prop := ∃ a b a' b', (a, b) ≠ (a', b') ∧ hashPair a b = hashPair a' b'
 
-/-- Two distinct leaves with the same digest. -/
-def LeafCollision : Prop := ∃ a b, a ≠ b ∧ hashLeaf a = hashLeaf b
-
 theorem pairCollision_of_climb_eq :
     ∀ (p p' : List D) (d d' : D) (i : ℕ), p.length = p'.length → d ≠ d' →
       climb hashPair d i p = climb hashPair d' i p' → PairCollision hashPair

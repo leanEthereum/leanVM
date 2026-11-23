@@ -5,7 +5,6 @@
 -/
 
 import LeanVM.Protocol.ToCompPoly.PowerBatching
-import LeanVM.Protocol.ClaimWeights
 import Mathlib.Data.ZMod.Defs
 
 /-!

@@ -37,13 +37,10 @@ at `qk q n`); `C h` is the set of candidates a history binds (`Stable`, at most 
 position rounds at `L₀·3/|E|` (`h3`), `β` at `L₀·2/|E|` after a grind of zero bits; the openings'
 `6 + 4 + 6` rounds at `L₀·2/|E|`. At `L₀ = 1` each is within `2^-125`.
 
-`gkrSpec` states it with `Pre := Doomed C (outClaimsTrueMid ∧ midAgree ∧ R)`. The statement in
-terms of `keccakF` of the inputs needs `RegionValid` (the committed middle state is twelve
-rounds of the input at every step): `gkrSpec_regionValid`, from `Doomed C (outClaimsTrue ∧
-RegionValid ∧ R)` to doom of the reduction's claims with `RegionValid` carried. `RegionValid`
-cannot be dropped from the carried predicate: `inst` is drawn before this phase, and a middle
-state wrong at some step but agreeing with twelve rounds of the input at `inst` passes every
-check here (the phase drawing `inst` charges that, `zeroOn_escape`).
+`gkrSpec` states it with `Pre := Doomed C (outClaimsTrueMid ∧ midAgree ∧ R)`: the output claims
+against the second segment from the committed middle state, and the middle state agreeing with
+twelve rounds of the input at `inst`. The phase drawing `inst` charges the escape from a middle
+state wrong at some step but agreeing at `inst` (`zeroOn_escape`).
 -/
 
 namespace LeanVM.Protocol.KeccakGkr
@@ -246,40 +243,6 @@ noncomputable def gkrSpec (hst : Stable C) (hcard : ∀ h, (C h).ncard ≤ L₀)
       midSpec hst hcard R qk P output hi hs hl committed hT h46 h3
     else Spec.dead.mono (fun _ hd ↦ hl hd.1) (fun _ _ h' ↦ h') le_rfl le_rfl le_rfl
   else Spec.dead.mono (fun _ hd ↦ hs hd.1) (fun _ _ h' ↦ h') le_rfl le_rfl le_rfl
-
-/-! ## The statement against `keccakF` -/
-
-theorem outClaims_iff_of_regionValid (h : ℕ) (col : ℕ → K) (inst output : List E)
-    (hv : RegionValid h col) :
-    outClaimsTrue h col inst output ↔ outClaimsTrueMid h col inst output := by
-  have hx : ∀ x ∈ range (2 ^ h), keccakF1600 (inState h col 0 x) = roundsFrom 12 12 (inState h col 1 x) :=
-    fun x hx ↦ by rw [keccakF_eq, hv x (Finset.mem_range.1 hx)]
-  have e : ∀ l, stepMle h inst (fun x ↦ laneWord (keccakF1600 (inState h col 0 x)) l) =
-      stepMle h inst (fun x ↦ laneWord (roundsFrom 12 12 (inState h col 1 x)) l) := fun l ↦
-    Finset.sum_congr rfl fun x hxr ↦ by simp only; rw [hx x hxr]
-  unfold outClaimsTrue outClaimsTrueMid
-  simp only [e]
-
-/-- **The Keccak reduction against `keccakF`**: from doom of "the output-lane claims against
-`keccakF` of the inputs hold at `inst`, the region is valid, and `R`", to doom of the reduction's
-claims with `RegionValid` and `R` carried. -/
-noncomputable def gkrSpec_regionValid (hst : Stable C) (hcard : ∀ h, (C h).ncard ≤ L₀)
-    (R : β → Prop) (qk : β → ℕ → K) (P : ℕ) {inst output : List E} (hi : inst.length = P + 4)
-    (ho : output.length = 25) (hT : T ≤ εmax) (h46 : (2 : ℝ≥0∞)⁻¹ ^ grindingBits (productBits - 1) * ((L₀ : ℝ≥0∞) * errE 46) ≤ εmax)
-    (h3 : (L₀ : ℝ≥0∞) * errE 3 ≤ εmax) :
-    Spec (verifyKeccak (P + 4) inst output)
-      (Doomed C (fun q ↦ outClaimsTrue (P + 4) (qk q) inst output ∧
-        RegionValid (P + 4) (qk q) ∧ R q))
-      (KeccakPost qk (fun q ↦ RegionValid (P + 4) (qk q) ∧ R q) P C) εmax
-      ((L₀ : ℝ≥0∞) * errE 6) T :=
-  (gkrSpec hst hcard (fun q ↦ RegionValid (P + 4) (qk q) ∧ R q) qk P hi ho hT h46 h3).mono
-    (fun _ hd ↦ Doomed.mono hd fun _ ⟨hmid, _, hv, hR⟩ ↦
-      ⟨(outClaims_iff_of_regionValid _ _ _ _ hv).2 hmid, hv, hR⟩)
-    (fun _ _ h' ↦ h') le_rfl le_rfl le_rfl
-
-/-- A column given on `Fin (2^(h + 6))`, read as words of `ℕ` (`0` past the end). -/
-def colOfFin {h : ℕ} (c : Fin (2 ^ (h + 6)) → K) : ℕ → K :=
-  fun n ↦ if hn : n < 2 ^ (h + 6) then c ⟨n, hn⟩ else 0
 
 end
 end LeanVM.Protocol.KeccakGkr

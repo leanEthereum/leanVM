@@ -71,9 +71,7 @@ def announceSizesAndRoot (bytecode : List K) : VerifierProgram (Layout × ℕ) :
   return (layout, logInverseRate)
 
 /-- The verifier's state after its steps 1 and 2 on the proof `π`: the announced layout and rate
-exponent, and the state, whose first root is the stack's; `none` if the steps reject. The layout
-and the rate are the ones the stream announces (`announced`, which the statement's budget reads):
-`LeanVM.Extraction.Fast.announced_of_afterRoot`. -/
+exponent, and the state, whose first root is the stack's; `none` if the steps reject. -/
 def afterRoot (bytecode : List K) (π : Proof) : Option ((Layout × ℕ) × VerifierProgramState) :=
   runPure (announceSizesAndRoot bytecode) ⟨⟨default, [], none⟩, π.stream, π.openings, []⟩
 

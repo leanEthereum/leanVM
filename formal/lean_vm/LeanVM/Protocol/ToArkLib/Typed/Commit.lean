@@ -127,14 +127,6 @@ def commitProver (s : S) (m : M) :
       fun _ ↦ (T × ∀ i, OneOracle M i) × Unit :=
   pure ⟨m, D.prover (s, sent m) ()⟩
 
-/-- The protocol as an ArkLib oracle reduction: the statement public, the witness the message. -/
-def commitReduction (initial : PFunctor) :
-    Oracle.Reduction unifSpec ⟨(commitSlot M σ).tree, (commitSlot M σ).roles,
-      (commitSlot M σ).oracles⟩ initial S M (fun _ ↦ (T × ∀ i, OneOracle M i) × Unit)
-      (fun _ ↦ Option U) where
-  prover s m := pure (commitProver D s m)
-  verifier s := commitVerifier D Q initial s
-
 /-- The verdict on an execution path: the component's on its part of the path, then the question
 to the message the path sends. -/
 def commitVerdict (s : S) (path : (commitSlot M σ).tree.ExecutionPath) : Option U :=
@@ -177,24 +169,6 @@ noncomputable def Security.commitCertificate (Sec : Security D (atSent relIn) (Q
   challenges := schedule (commitSlot M σ).tree (commitSlot M σ).roles σ.samplers err
   prover_preserving := ⟨fun _ _ h ↦ h, fun m ↦ Sec.prover_preserving s (sent m)⟩
   local_bound := fun m ↦ Sec.local_bound s (sent m)
-
-/-- **The terminal relation**: after the last move, the certificate's state is `relOut` at the
-verifier's output, with the message as the oracle. -/
-def Security.commitTerminal (Sec : Security D (atSent relIn) (Q.rel relOut) err) (s : S) :
-    TerminalRelation (commitExtractor Sec.extractor s) (commitProblem relOut)
-      (fun path ↦ sent path.1) (commitVerdict D Q s) where
-  witnessEquiv path := (Sec.terminal s (sent path.1)).witnessEquiv path.2
-  knowledge_iff path w := ((Sec.terminal s (sent path.1)).knowledge_iff path.2 w).trans
-    (by exact Q.verdict_rel relOut path.1 _ _)
-
-/-- The protocol's verifier draws the certificate's challenges, for any input oracles. -/
-theorem Security.commit_samplesChallenges (Sec : Security D (atSent relIn) (Q.rel relOut) err)
-    (initial : PFunctor) (impl : QueryImpl (OracleSpec.ofPFunctor initial) Id) (s : S) :
-    SamplesChallenges unifSpec (QueryImpl.id' unifSpec) (commitSlot M σ).tree
-      (commitSlot M σ).roles (commitSlot M σ).oracles initial impl _ (commitVerifier D Q initial s)
-      (Sec.commitCertificate s).challenges :=
-  samplesChallenges_frontFragment (commitSlot M σ).tree (commitSlot M σ).roles
-    (commitSlot M σ).oracles initial impl (commitSlot M σ).samplers err _
 
 end
 end LeanVM.Protocol.Typed

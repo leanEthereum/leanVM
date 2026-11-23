@@ -13,7 +13,7 @@ import LeanVM.Protocol.KeccakHash
 /-!
 # The proof files, round trips
 
-The serializers of scalars and the stream (`eBytes`, `encodeScalars`), and the round trips of the
+The serializer of scalars (`eBytes`), and the round trips of the
 decoders of `LeanVM.Protocol.Verifier`, both ways: decoding a serialized value gives it back, and a
 byte string that decodes is the serialization of what it decodes to.
 -/
@@ -25,13 +25,10 @@ open LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile.Rom
 
 @[expose] public section
 
-/-! ## The serializers -/
+/-! ## The serializer -/
 
 /-- The 16 bytes of a scalar (`E.to_bytes`): its two limbs'. -/
 def eBytes (x : E) : Bytes := K.toBytes (x.limb 0) ++ K.toBytes (x.limb 1)
-
-/-- The stream's bytes. -/
-def encodeScalars (xs : List E) : Bytes := xs.flatMap eBytes
 
 /-! ## Round trips -/
 
@@ -103,10 +100,6 @@ theorem readMany_spec (henc : ∀ c, c.length = size → enc (decode c) = c) :
     rw [List.flatMap_cons, henc _ hs, List.append_assoc, h2, List.take_append_drop]
 
 end ReadMany
-
-/-! ### The files -/
-
-theorem digestBytes_length' (d : Digest) : (digestBytes d).length = 32 := digestBytes_length d
 
 end
 end LeanVM.Protocol.Verifier

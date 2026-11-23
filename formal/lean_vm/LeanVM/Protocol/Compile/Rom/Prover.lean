@@ -97,9 +97,6 @@ def proveM (P : VerifierProgram Bool) (S : Strategy) (seed : KeccakState) (fuel 
 
 end ProverM
 
-/-- The statement's nonce is the prover's. -/
-theorem prover_nonceOf (n : ℕ) : LeanVM.Prover.nonceOf n = nonceOf n := rfl
-
 /-- The trees of a list of commitments, as `buildTreeM` builds them in `Id`. -/
 def treesOf (H : Bytes → Digest) (cs : List (ℕ × ℕ × Word)) : List Tree :=
   cs.map fun c ↦ buildTreeWithHash (m := Id) H c.1 c.2.2

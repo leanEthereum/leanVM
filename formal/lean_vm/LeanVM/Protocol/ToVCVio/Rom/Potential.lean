@@ -32,9 +32,8 @@ point `t` that `s` does not answer, the expected potential after recording a uni
 
   `(∑ u, Φ (record s t u)) / |R t| ≤ Φ s + δ`.
 
-The conclusion is global (`lintegral_run_le_of_freshStepBound`): after a run of a computation
-with at most `Q` queries from the state `s₀`, the expected potential of the final state is at
-most `Φ s₀ + Q · δ`. By Markov's inequality at one, an event on the output and final state that
+The conclusion is global: after a run of a computation with at most `Q` queries from the state
+`s₀`, the expected potential of the final state is at most `Φ s₀ + Q · δ`. By Markov's inequality at one, an event on the output and final state that
 forces `1 ≤ Φ` has probability at most `Φ s₀ + Q · δ` (`prEvent_run_le_of_freshStepBound`). The
 process `Φ (state after j queries) - j · δ` is a supermartingale; the lemma is the
 supermartingale form of a union bound over fresh random-oracle queries. Cache hits leave the
@@ -59,19 +58,14 @@ to line up, and proof-of-work grinding, where the potential is the chance that a
 lands in the accepted set.
 
 Leaf conditions are required on reachable outcomes only (`support`), so a bad event that is bad
-only when a verifier accepts can use what acceptance says about the final state. Sequencing
-(`run_simulateQ_bind`) runs the second stage from the first stage's final state, and the query
-bounds of the two stages add. Two lazy samplers whose states correspond through a map `f` that
+only when a verifier accepts can use what acceptance says about the final state. Two lazy samplers whose states correspond through a map `f` that
 preserves lookups and recordings produce the same outcome distribution up to `f`
 (`map_run_simulateQ_eq_of_isLazySampler`); this is how a bound proved over ordered logs transfers
 to VCVio's `randomOracle`.
 
-For VCVio's `randomOracle` the module specialises the bounds to caches (`FreshStepBound`,
-`IsBudgetedPotential`, `prEvent_run_randomOracle_le_of_freshStepBound`) and states the
-adversary-then-verifier experiment `romExperiment`: an adversary and then a verifier on the
-adversary's output run against one shared oracle from the empty cache, and
-`prEvent_romExperiment_le` bounds the probability that the verifier accepts while a bad
-condition holds by `(Q_A + Q_V) · δ`.
+VCVio's `randomOracle` is a lazy sampler over caches (`randomOracle_isLazySampler`). The module
+states the adversary-then-verifier experiment `romExperiment`: an adversary and then a verifier on
+the adversary's output run against one shared oracle from the empty cache (`romExperiment_eq`).
 
 Expectations are Lebesgue integrals against VCVio's output measure `𝒟[·]`; the expectation
 statements take a measurable-space instance on the outcome type together with
@@ -237,20 +231,6 @@ theorem lintegral_run_le_of_budgeted {impl : QueryImpl spec (StateT σ ProbComp)
     · simp only [hs, pure_bind] at hg ⊢
       exact (ih u n (hrest u) s₀ hg).trans (hΦ.mono n s₀)
 
-/-- **The potential bound.** If `Φ` rises by at most `δ` per fresh query, a computation with at
-most `Q` queries, run against a lazy sampler from `s₀`, has expected payoff at most
-`Φ s₀ + Q · δ` for every payoff bounded on reachable outcomes by `Φ` of the final state. -/
-theorem lintegral_run_le_of_freshStepBound {impl : QueryImpl spec (StateT σ ProbComp)}
-    (himpl : IsLazySampler lookup record impl) {α : Type}
-    [MeasurableSpace (α × σ)] [DiscreteMeasurableSpace (α × σ)]
-    {Φ : σ → ℝ≥0∞} {δ : ℝ≥0∞} (hΦ : LazyFreshStepBound lookup record Φ δ)
-    (oa : OracleComp spec α) (Q : ℕ) (hQ : IsTotalQueryBound oa Q)
-    (s₀ : σ) (g : α × σ → ℝ≥0∞)
-    (hg : ∀ z ∈ support ((simulateQ impl oa).run s₀), g z ≤ Φ z.2) :
-    ∫⁻ z, g z ∂𝒟[(simulateQ impl oa).run s₀] ≤ Φ s₀ + Q * δ :=
-  lintegral_run_le_of_budgeted himpl (IsLazyBudgetedPotential.ofFreshStep hΦ) oa Q hQ s₀ g
-    fun z hz ↦ by simpa using hg z hz
-
 /-! ## Probability bounds -/
 
 /-- **Markov at one, budgeted form.** An event on reachable outcomes that forces `1 ≤ Φ 0` of
@@ -306,16 +286,7 @@ theorem prEvent_run_le_of_freshStepBelow {impl : QueryImpl spec (StateT σ ProbC
       · exact le_top
   simpa only [ite_eq_left hs₀] using h
 
-/-! ## Sequencing and transport -/
-
-omit [∀ t, SampleableType (spec.Range t)] [∀ t, Fintype (spec.Range t)] in
-/-- Running `oa >>= ob` against a stateful oracle runs `oa` and then `ob` on its output from the
-state `oa` leaves. -/
-theorem run_simulateQ_bind (impl : QueryImpl spec (StateT σ ProbComp)) {α β : Type}
-    (oa : OracleComp spec α) (ob : α → OracleComp spec β) (s₀ : σ) :
-    (simulateQ impl (oa >>= ob)).run s₀ =
-      (simulateQ impl oa).run s₀ >>= fun p ↦ (simulateQ impl (ob p.1)).run p.2 := by
-  rw [simulateQ_bind, StateT.run_bind]
+/-! ## Transport -/
 
 omit [∀ t, Fintype (spec.Range t)] in
 /-- **Transport between lazy samplers.** If a map `f` of states preserves lookups and carries
@@ -374,76 +345,6 @@ theorem randomOracle_isLazySampler :
       spec.randomOracle :=
   fun t c ↦ randomOracle.run_eq t c
 
-/-- `Φ` rises by at most `δ` in expectation at every fresh random-oracle query: from every
-cache `c` and point `t` with `c t = none`, the average of `Φ` over the caches that record a
-uniform answer at `t` is at most `Φ c + δ`. -/
-abbrev FreshStepBound (Φ : spec.QueryCache → ℝ≥0∞) (δ : ℝ≥0∞) : Prop :=
-  LazyFreshStepBound (fun (c : spec.QueryCache) t ↦ c t) (fun c t u ↦ c.cacheQuery t u) Φ δ
-
-/-- A budgeted potential on random-oracle caches (`IsLazyBudgetedPotential` for
-`randomOracle`). -/
-abbrev IsBudgetedPotential (Φ : ℕ → spec.QueryCache → ℝ≥0∞) : Prop :=
-  IsLazyBudgetedPotential (fun (c : spec.QueryCache) t ↦ c t) (fun c t u ↦ c.cacheQuery t u) Φ
-
-/-- **The potential bound for `randomOracle`.** If `Φ` rises by at most `δ` per fresh query, a
-computation with at most `Q` queries, run against the lazy random oracle from `c₀`, has
-expected payoff at most `Φ c₀ + Q · δ` for every payoff bounded on reachable outcomes by `Φ` of
-the final cache; in particular the expected potential of the final cache is at most
-`Φ c₀ + Q · δ`. -/
-theorem lintegral_run_randomOracle_le_of_freshStepBound {α : Type}
-    [MeasurableSpace (α × spec.QueryCache)] [DiscreteMeasurableSpace (α × spec.QueryCache)]
-    {Φ : spec.QueryCache → ℝ≥0∞} {δ : ℝ≥0∞} (hΦ : FreshStepBound Φ δ)
-    (oa : OracleComp spec α) (Q : ℕ) (hQ : IsTotalQueryBound oa Q)
-    (c₀ : spec.QueryCache) (g : α × spec.QueryCache → ℝ≥0∞)
-    (hg : ∀ z ∈ support ((simulateQ spec.randomOracle oa).run c₀), g z ≤ Φ z.2) :
-    ∫⁻ z, g z ∂𝒟[(simulateQ spec.randomOracle oa).run c₀] ≤ Φ c₀ + Q * δ :=
-  lintegral_run_le_of_freshStepBound randomOracle_isLazySampler hΦ oa Q hQ c₀ g hg
-
-/-- The expected potential of the final cache is at most `Φ c₀ + Q · δ`. -/
-theorem lintegral_potential_run_randomOracle_le {α : Type}
-    [MeasurableSpace (α × spec.QueryCache)] [DiscreteMeasurableSpace (α × spec.QueryCache)]
-    {Φ : spec.QueryCache → ℝ≥0∞} {δ : ℝ≥0∞} (hΦ : FreshStepBound Φ δ)
-    (oa : OracleComp spec α) (Q : ℕ) (hQ : IsTotalQueryBound oa Q) (c₀ : spec.QueryCache) :
-    ∫⁻ z, Φ z.2 ∂𝒟[(simulateQ spec.randomOracle oa).run c₀] ≤ Φ c₀ + Q * δ :=
-  lintegral_run_randomOracle_le_of_freshStepBound hΦ oa Q hQ c₀ (fun z ↦ Φ z.2)
-    fun _ _ ↦ le_rfl
-
-/-- **Markov at one for `randomOracle`, budgeted form.** An event on reachable outcomes that
-forces `1 ≤ Φ 0` of the final cache has probability at most `Φ Q c₀`. -/
-theorem prEvent_run_randomOracle_le_of_budgeted {α : Type}
-    {Φ : ℕ → spec.QueryCache → ℝ≥0∞} (hΦ : IsBudgetedPotential Φ)
-    (oa : OracleComp spec α) (Q : ℕ) (hQ : IsTotalQueryBound oa Q)
-    (c₀ : spec.QueryCache) (ev : α → spec.QueryCache → Prop)
-    (hev : ∀ z ∈ support ((simulateQ spec.randomOracle oa).run c₀), ev z.1 z.2 → 1 ≤ Φ 0 z.2) :
-    Pr{let z ← (simulateQ spec.randomOracle oa).run c₀}[ev z.1 z.2] ≤ Φ Q c₀ :=
-  prEvent_run_le_of_budgeted randomOracle_isLazySampler hΦ oa Q hQ c₀ ev hev
-
-/-- **Markov at one for `randomOracle`.** If `Φ` rises by at most `δ` per fresh query, an event
-on reachable outcomes that forces `1 ≤ Φ` of the final cache has probability at most
-`Φ c₀ + Q · δ` after a run with at most `Q` queries from `c₀`. -/
-theorem prEvent_run_randomOracle_le_of_freshStepBound {α : Type}
-    {Φ : spec.QueryCache → ℝ≥0∞} {δ : ℝ≥0∞} (hΦ : FreshStepBound Φ δ)
-    (oa : OracleComp spec α) (Q : ℕ) (hQ : IsTotalQueryBound oa Q)
-    (c₀ : spec.QueryCache) (ev : α → spec.QueryCache → Prop)
-    (hev : ∀ z ∈ support ((simulateQ spec.randomOracle oa).run c₀), ev z.1 z.2 → 1 ≤ Φ z.2) :
-    Pr{let z ← (simulateQ spec.randomOracle oa).run c₀}[ev z.1 z.2] ≤ Φ c₀ + Q * δ :=
-  prEvent_run_le_of_freshStepBound randomOracle_isLazySampler hΦ oa Q hQ c₀ ev hev
-
-/-- **Sequencing for `randomOracle`.** A first stage with at most `Q₁` queries followed by a
-second stage, reading the first stage's output, with at most `Q₂` queries: an event that forces
-`1 ≤ Φ` of the final cache has probability at most `Φ c₀ + (Q₁ + Q₂) · δ`. -/
-theorem prEvent_run_randomOracle_bind_le_of_freshStepBound {α β : Type}
-    {Φ : spec.QueryCache → ℝ≥0∞} {δ : ℝ≥0∞} (hΦ : FreshStepBound Φ δ)
-    (oa : OracleComp spec α) (ob : α → OracleComp spec β) (Q₁ Q₂ : ℕ)
-    (hQ₁ : IsTotalQueryBound oa Q₁) (hQ₂ : ∀ a, IsTotalQueryBound (ob a) Q₂)
-    (c₀ : spec.QueryCache) (ev : β → spec.QueryCache → Prop)
-    (hev : ∀ z ∈ support ((simulateQ spec.randomOracle (oa >>= ob)).run c₀),
-      ev z.1 z.2 → 1 ≤ Φ z.2) :
-    Pr{let z ← (simulateQ spec.randomOracle (oa >>= ob)).run c₀}[ev z.1 z.2] ≤
-      Φ c₀ + (Q₁ + Q₂ : ℕ) * δ :=
-  prEvent_run_randomOracle_le_of_freshStepBound hΦ (oa >>= ob) (Q₁ + Q₂)
-    (isTotalQueryBound_bind hQ₁ hQ₂) c₀ ev hev
-
 /-! ## The adversary-then-verifier experiment -/
 
 /-- The experiment: the adversary `A` runs against the lazy random oracle from the empty cache,
@@ -476,24 +377,6 @@ theorem romExperiment_map {α β : Type} (f : α → β) (A : OracleComp spec α
       (fun z : α × Bool ↦ (f z.1, z.2)) <$> (A >>= fun a ↦ (a, ·) <$> V (f a)) := by
     simp [map_bind, bind_map_left, Functor.map_map]
   rw [romExperiment, romExperiment, h, simulateQ_map, StateT.run_map]
-
-/-- **The experiment bound.** If `Φ` vanishes on the empty cache and rises by at most `δ` per
-fresh query, an adversary with at most `Q_A` queries and a verifier with at most `Q_V` queries
-make the verifier accept while `bad` holds of the adversary's output and the final cache with
-probability at most `(Q_A + Q_V) · δ`, provided acceptance and `bad` force `1 ≤ Φ` of the final
-cache on every reachable outcome. -/
-theorem prEvent_romExperiment_le {α : Type}
-    {Φ : spec.QueryCache → ℝ≥0∞} {δ : ℝ≥0∞} (hΦ : FreshStepBound Φ δ) (hΦ₀ : Φ ∅ = 0)
-    (A : OracleComp spec α) (V : α → OracleComp spec Bool) (Q_A Q_V : ℕ)
-    (hA : IsTotalQueryBound A Q_A) (hV : ∀ a, IsTotalQueryBound (V a) Q_V)
-    (bad : α → spec.QueryCache → Prop)
-    (hbad : ∀ z ∈ support (romExperiment A V), z.1.2 = true → bad z.1.1 z.2 → 1 ≤ Φ z.2) :
-    Pr{let z ← romExperiment A V}[z.1.2 = true ∧ bad z.1.1 z.2] ≤ (Q_A + Q_V : ℕ) * δ := by
-  have h := prEvent_run_randomOracle_bind_le_of_freshStepBound hΦ A
-    (fun a ↦ (a, ·) <$> V a) Q_A Q_V hA
-    (fun a ↦ (isQueryBound_map_iff (V a) _ Q_V _ _).mpr (hV a)) ∅
-    (fun r c ↦ r.2 = true ∧ bad r.1 c) (fun z hz h ↦ hbad z hz h.1 h.2)
-  rwa [hΦ₀, zero_add] at h
 
 end Cache
 
