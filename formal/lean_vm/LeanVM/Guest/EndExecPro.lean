@@ -61,7 +61,7 @@ theorem proLen_pos : 0 < proLen := by
   rw [proLen_eq]
   decide
 
-theorem mainCells_eq : Data.mainCells = 430 := rfl
+theorem mainCells_eq : Data.mainCells = 429 := rfl
 
 theorem f0_mem : Data.f0 ∈ Data.functions := List.mem_cons_self
 

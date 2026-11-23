@@ -25,8 +25,7 @@ open LeanVM.Guest
 
 public section
 
-theorem fs_pos (f : String) : 1 ≤ B2C.fs f := by
-  unfold B2C.fs; split <;> simp [B2C.mainFrame, Data.mainCells, Data.jtSlots]
+theorem fs_pos (f : String) : 1 ≤ B2C.fs f := le_trans (by norm_num) (B2C.two_le_fs f)
 
 end
 
