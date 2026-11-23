@@ -722,7 +722,7 @@ fn tail_sumcheck(ps: &mut ProverState, mut f: Vec<F128>, mut w: Vec<F128>, mut c
 /// `log_inv_rate = config.log_inv_rates[0]`).
 ///
 /// `witness` is owned: where the L0 open recomputes the codeword rows it reads, it keeps it until then.
-/// Otherwise round 2's table reads it last (the end of the level-0 rounds if `initial_k` is 1), and the large
+/// Otherwise round 3's table reads it last (the end of the level-0 rounds if `initial_k` is at most 2), and the large
 /// committed stack is gone before the level-1 commit allocates.
 ///
 /// `witness` may be shorter than `2^log_n`: it is a whole number of lane blocks, zero past them. The level-0 rounds
