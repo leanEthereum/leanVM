@@ -7,6 +7,8 @@ use bench_harness::{Plan, Timing};
 use isa::{Prover, Stats, pretty_f64, pretty_integer};
 use lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
 use rand::{Rng, SeedableRng, rngs::StdRng};
+use std::hash::{DefaultHasher, Hash, Hasher};
+use std::path::{Path, PathBuf};
 
 fn blobs(n: usize, seed: u64) -> Vec<lean_da::Blob> {
     let mut rng = StdRng::seed_from_u64(seed);
@@ -150,8 +152,8 @@ pub fn run_aggregation<P: Prover>(
 }
 
 /// Prove `n` leaves with signatures and distinct blob payloads at `leaf_log_inv_rate`, then
-/// aggregate them in one recursion step at `log_inv_rate` and verify the result. The leaves are
-/// built once, in a process of their own; only the recursion step is measured.
+/// aggregate them in one recursion step at `log_inv_rate` and verify the result. The leaves come
+/// from a cache on disk, proved once in a process of their own; only the recursion step is measured.
 pub fn run_recursion<P: Prover>(
     n: usize,
     per_leaf: usize,
@@ -170,17 +172,16 @@ pub fn run_recursion<P: Prover>(
     let started = std::time::Instant::now();
     let guest_instructions = aggregation::unified_guest().code_len();
     let compile_time = started.elapsed();
-    if let Some(out) = std::env::var_os(LEAVES_OUT) {
-        return write_leaves::<P>(
-            n,
-            per_leaf,
-            lean_sphincs_per_leaf,
-            blobs_per_leaf,
-            leaf_log_inv_rate,
-            out.as_ref(),
-        );
+    let shape = LeafShape {
+        per_leaf,
+        lean_sphincs_per_leaf,
+        blobs_per_leaf,
+        log_inv_rate: leaf_log_inv_rate,
+    };
+    if std::env::var_os(PROVE_LEAVES).is_some() {
+        return shape.prove_missing::<P>(n);
     }
-    let children = leaves_from_subprocess(n);
+    let children = shape.leaves(n);
 
     if enable_tracing {
         bench_harness::init_tracing();
@@ -232,82 +233,79 @@ pub fn run_recursion<P: Prover>(
     );
 }
 
-/// Prove a recursion step's `n` leaves and write them to `out`: each leaf's claims and its proof's bytes, each after
-/// its length.
-fn write_leaves<P: Prover>(
-    n: usize,
+/// What the leaves of a recursion step share: each one's signature and blob counts, and its rate.
+#[derive(Clone, Copy, Hash)]
+struct LeafShape {
     per_leaf: usize,
     lean_sphincs_per_leaf: usize,
     blobs_per_leaf: usize,
     log_inv_rate: usize,
-    out: &std::path::Path,
-) {
-    let all = signers::<P>(0, n * per_leaf);
-    let all_lean_sphincs = lean_sphincs_signers::<P>(0, n * lean_sphincs_per_leaf);
-    let mut bytes = Vec::new();
-    for k in 0..n {
-        let leaf = aggregate::<P>(
-            &[],
-            all[k * per_leaf..(k + 1) * per_leaf].to_vec(),
-            all_lean_sphincs[k * lean_sphincs_per_leaf..(k + 1) * lean_sphincs_per_leaf].to_vec(),
-            matrix(&blobs(blobs_per_leaf, k as u64)).as_ref(),
-            OutputClaims::All,
-            log_inv_rate,
-        )
-        .expect("leaf aggregates");
-        // The proof carries no claims; the parent trusts its subprocess for them, standing in for a receiver that
-        // knows them.
-        let (claims, leaf, _) = leaf;
-        for part in [claims.to_bytes(), leaf.to_bytes()] {
-            bytes.extend((part.len() as u64).to_le_bytes());
-            bytes.extend(part);
+}
+
+/// Set by [`LeafShape::leaves`] on the process it starts, which proves the leaves the cache lacks.
+const PROVE_LEAVES: &str = "LEANVM_PROVE_LEAVES";
+
+impl LeafShape {
+    /// Leaf `k`'s file in the cache: its claims after their length, then its proof. One file per guest, signers'
+    /// version, shape and leaf, so recursion steps of every width share their leaves.
+    fn path(&self, k: usize) -> PathBuf {
+        let guest = aggregation::unified_guest().bytecode().fiat_shamir_iv();
+        let mut hasher = DefaultHasher::new();
+        (guest, signers_cache::VERSION, self, k).hash(&mut hasher);
+        let name = format!("../target/leaves-cache/leaf_{:016x}.bin", hasher.finish());
+        Path::new(env!("CARGO_MANIFEST_DIR")).join(name)
+    }
+
+    /// Leaf `k` from the cache, if it is there and verifies: a leaf an earlier protocol proved is proved again.
+    fn cached(&self, k: usize) -> Option<(AggregateClaims, AggregateProof)> {
+        let bytes = std::fs::read(self.path(k)).ok()?;
+        let (len, rest) = bytes.split_first_chunk()?;
+        let (claims, proof) = rest.split_at_checked(u64::from_le_bytes(*len) as usize)?;
+        let (claims, proof) = (AggregateClaims::from_bytes(claims)?, AggregateProof::from_bytes(proof)?);
+        proof.verify(&claims).then_some((claims, proof))
+    }
+
+    /// The first `n` leaves, from the cache, those it lacks proved first by this same command rerun with
+    /// [`PROVE_LEAVES`] set. Peak memory is the process's high-water mark, which proving them here would make a
+    /// leaf's.
+    fn leaves(&self, n: usize) -> Vec<(AggregateClaims, AggregateProof)> {
+        let cached = || (0..n).map(|k| self.cached(k)).collect::<Option<Vec<_>>>();
+        cached().unwrap_or_else(|| {
+            let status = std::process::Command::new(std::env::current_exe().expect("this binary's path"))
+                .args(std::env::args_os().skip(1))
+                .env(PROVE_LEAVES, "1")
+                .status()
+                .expect("the leaves' process starts");
+            assert!(status.success(), "the leaves' process failed");
+            cached().expect("every leaf is cached")
+        })
+    }
+
+    /// Prove those of the first `n` leaves that the cache lacks, each written to its file.
+    fn prove_missing<P: Prover>(&self, n: usize) {
+        let missing: Vec<usize> = (0..n).filter(|&k| self.cached(k).is_none()).collect();
+        let lean_xmss = signers::<P>(0, n * self.per_leaf);
+        let lean_sphincs = lean_sphincs_signers::<P>(0, n * self.lean_sphincs_per_leaf);
+        for (done, &k) in missing.iter().enumerate() {
+            println!("  proving leaf {}/{}", done + 1, missing.len());
+            let (claims, proof, _) = aggregate::<P>(
+                &[],
+                lean_xmss[k * self.per_leaf..][..self.per_leaf].to_vec(),
+                lean_sphincs[k * self.lean_sphincs_per_leaf..][..self.lean_sphincs_per_leaf].to_vec(),
+                matrix(&blobs(self.blobs_per_leaf, k as u64)).as_ref(),
+                OutputClaims::All,
+                self.log_inv_rate,
+            )
+            .expect("leaf aggregates");
+            let claims = claims.to_bytes();
+            let bytes = [&(claims.len() as u64).to_le_bytes()[..], &claims, &proof.to_bytes()].concat();
+            // Written beside its place, then moved there: a reader never finds half a leaf.
+            let path = self.path(k);
+            let partial = path.with_extension(format!("{}.partial", std::process::id()));
+            std::fs::create_dir_all(path.parent().expect("the cache's directory"))
+                .and_then(|()| std::fs::write(&partial, bytes))
+                .and_then(|()| std::fs::rename(&partial, &path))
+                .expect("the leaf is cached");
         }
     }
-    std::fs::write(out, bytes).expect("the leaves are written");
-}
-
-/// The leaves' file, read back: the bytes not yet read.
-struct LeavesFile<'a>(&'a [u8]);
-
-impl<'a> LeavesFile<'a> {
-    /// The next length-prefixed part.
-    fn part(&mut self) -> &'a [u8] {
-        let (len, rest) = self.0.split_first_chunk().expect("a length");
-        let (part, rest) = rest.split_at(u64::from_le_bytes(*len) as usize);
-        self.0 = rest;
-        part
-    }
-}
-
-/// Set by [`leaves_from_subprocess`] on the process it starts: the file that process writes the leaves to.
-const LEAVES_OUT: &str = "LEANVM_LEAVES_OUT";
-
-/// The leaves of [`run_recursion`], from this same command rerun with [`LEAVES_OUT`] set. Peak
-/// memory is the process's high-water mark, which proving them here would make a leaf's.
-fn leaves_from_subprocess(n: usize) -> Vec<(AggregateClaims, AggregateProof)> {
-    let out = std::env::temp_dir().join(format!("leanvm-leaves-{}.bin", std::process::id()));
-    // Created here, refusing one already there, so no other user can plant or swap it in a shared `/tmp`.
-    std::fs::OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .open(&out)
-        .expect("the leaves' file is created");
-    let status = std::process::Command::new(std::env::current_exe().expect("this binary's path"))
-        .args(std::env::args_os().skip(1))
-        .env(LEAVES_OUT, &out)
-        .status()
-        .expect("the leaves' process starts");
-    let bytes = std::fs::read(&out);
-    std::fs::remove_file(&out).expect("the leaves' file is removed");
-    assert!(status.success(), "the leaves' process failed");
-    let bytes = bytes.expect("the leaves are read");
-
-    let mut file = LeavesFile(&bytes);
-    let mut leaves = Vec::with_capacity(n);
-    while !file.0.is_empty() {
-        let claims = AggregateClaims::from_bytes(file.part()).expect("a leaf's claims");
-        leaves.push((claims, AggregateProof::from_bytes(file.part()).expect("a leaf proof")));
-    }
-    assert_eq!(leaves.len(), n, "one proof per leaf");
-    leaves
 }
