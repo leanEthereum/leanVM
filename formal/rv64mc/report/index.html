@@ -318,7 +318,7 @@ theorem rv64_sound_of_main (hmain : MainSpec Rv64mc.env (liftProg fns) Idx.Main 
 <tr><td>absolute code addresses in proof text</td><td>1 line</td><td>6,962</td></tr>
 </tbody>
 </table>
-<p>Cold builds exclude Mathlib (and machine-checked, for ours) and include the Lean statement. #738's repair effort was never measured, only its textual breakage and rebuild; <code>eq_eval</code> sits late in its image (38 functions after it moved), and the same change early would touch most proofs. Our link step is a fixed floor of 670 to 1,000 CPU-s per change. The section 1 projection scales C1's non-link rebuild (about 1,650 CPU-s for 158 modules at 66 proof files) to all 230 functions, the unproved ones being the largest.</p>
+<p>Cold builds exclude Mathlib (and machine-checked, for ours) and include the Lean statement. #738's repair effort was never measured, only its textual breakage and rebuild; <code>eq_eval</code> sits late in its image (38 functions after it moved), and the same change early would touch most proofs. Our link step was a fixed floor of 670 to 1,000 CPU-s per change, mostly the start and imports of one module per function; with about 20 functions per module it is about 300 to 450 CPU-s (C2 re-measured on one day: 1,638 CPU-s and 619 s wall before, 850 and 376 s after). The section 1 projection scales C1's non-link rebuild (about 1,650 CPU-s for 158 modules at 66 proof files) to all 230 functions, the unproved ones being the largest.</p>
 <p><strong>Per function</strong>, straight-line code costs seconds and a few lines (<code>E::mul</code>: 3 lines, 1.0 s); each loop needs a hand invariant of 50 to 250 lines (<code>eq_eval</code>: 63 lines, 2.9 s; <code>linear_transpose</code>, 5 loops: 1,027 lines, 70 s; <code>is_valid_encoding</code>: 347 lines, 135 s).</p>
 
 <h2>5. How far the full theorem got</h2>
@@ -342,7 +342,7 @@ theorem rv64_sound_of_main (hmain : MainSpec Rv64mc.env (liftProg fns) Idx.Main 
 <p><strong>Worked.</strong> The proved lift covered all 230 functions once the source was adapted; its contracts are generic in the program, so per-function proofs over templates needed no fork; its soundness theorems were reused unchanged.</p>
 <p><strong>Missing</strong>, each built or worked around by us:</p>
 <ul class="tight">
-<li><strong>Identity:</strong> contracts mention the whole lifted program, and statements carry ELF-order indices and absolute addresses; a one-line change altered the Lean text of 45 of 89 lifted functions (1 modulo addresses). Our link step still evaluates the whole program per function, hence the floor.</li>
+<li><strong>Identity:</strong> contracts mention the whole lifted program, and statements carry ELF-order indices and absolute addresses; a one-line change altered the Lean text of 45 of 89 lifted functions (1 modulo addresses). Every link module imports every function's words, so any change rebuilds them all; their kernel checks are local in cost (evaluation is lazy), and most of the floor was the cost of starting and importing each module, which batching cut.</li>
 <li><strong>Machine:</strong> hard-wired to SP1 (about 47 references), with accept as <code>a0 = 0</code> and no contract possible for the function that halts; partial correctness only, so fault freedom cannot be stated.</li>
 <li><strong>Coverage:</strong> functions with <code>unimp</code> or most 32-bit <code>W</code> instructions are dropped (109 of our first build's 198); jump tables are never lifted.</li>
 <li><strong>Executor:</strong> <code>lsym</code> is quadratic, runs <code>simp</code> (Lean's rewriter) over the whole context, and its <code>bv_omega</code> arithmetic side conditions hang or exhaust kernel memory.</li>
@@ -372,13 +372,13 @@ theorem rv64_sound_of_main (hmain : MainSpec Rv64mc.env (liftProg fns) Idx.Main 
 <h2>7. What to add to machine-checked (and braid)</h2>
 <p>Effort: S days, M one to two weeks, L a month or more (our judgment).</p>
 <ol>
-<li><strong>A relocatable lift theorem with symbol-keyed, address-free output</strong> (M): <code>liftFn</code> parametric in the function's base and a callee entry table, functions named by symbol, an emitter with a substitution map. Removes the link floor; our tables already moved to names (the C3 breakage is fixed), but link modules still reach the whole program through the index.</li>
+<li><strong>A relocatable lift theorem with symbol-keyed, address-free output</strong> (M): <code>liftFn</code> parametric in the function's base and a callee entry table, functions named by symbol, an emitter with a substitution map. Lets a link module check one function against its own words and a local entry table, so it is no longer rebuilt by every change; the kernel saving alone is modest (about 40% on a call-heavy function), since most of the old floor was module imports, which batching in our generator already removed. Our tables already moved to names (the C3 breakage is fixed).</li>
 <li><strong>Full instruction coverage</strong> (S to M): <code>unimp</code>, every <code>W</code> operation, jump tables. An undecoded instruction traps, so without a decode check a soundness theorem can hold vacuously; we close this with a kernel-checked <code>AllDecode</code> conjunct, which the framework could provide.</li>
 <li><strong>An executor that states the next state, with a memory vocabulary</strong> (M to L): one rule per instruction form, no <code>simp</code> over hypotheses, loop heads from the control flow; regions, ownership, freshness, bytes; frames for heap blocks and caller-owned outputs; stack room and alignment in the contract from the start (adding alignment late cost the I2 migration).</li>
 <li><strong>Machine contexts as parameters, with a fault-freedom judgement</strong> (M): a context declares its step, memory check and halt convention, and a judgement where a trap is an error makes "every run stops only at the halting call" provable.</li>
 <li><strong>For braid: kernel-only proofs and entry-relative statements</strong> (M).</li>
 </ol>
-<p>Further items in the roadmap: a contract table with a soundness theorem, per-function word modules, content-hash caching, loop schemas and path merging, generated layouts including closures, inline and ABI control.</p>
+<p>Further items in the roadmap: a contract table with a soundness theorem, word modules per batch of functions with <code>kernel_eq</code> in a module lighter than all of <code>Lean</code>, content-hash caching, loop schemas and path merging, generated layouts including closures, inline and ABI control.</p>
 
 <h2>8. Trust and caveats</h2>
 <ul>

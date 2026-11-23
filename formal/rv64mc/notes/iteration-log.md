@@ -75,3 +75,93 @@ One section per change to the image, measured from a green tree: what the change
 **What propagated.** No caller's proof failed in any change: callers take a callee's contract as a hypothesis and do not import its template, so a callee's new code never rebuilds them, and its contract is stated over the Model mirror, so only a change of the mirror rebuilds them (C6, C7b: every module importing `Model.Field` or `Model.Multilinear`, 45 to 62 proofs, all green). C9's contract change reached the Model's own proofs (`Model/Bus`, a linter) and nothing else; `poly_eval` has no proved caller yet, and C1 (round 1) is the case of a changed contract (`eq_eval`) whose proved callers (`StackWeight::evaluate`, `GluedWeight::evaluate`) rebuilt green without edits. The only machine-code proofs that broke were the changed functions' own, plus `Probe/EMul` (the phase-0 `lsym` probe, which steps one fixed instruction list; superseded by `Proof/Field/EMul`, not repaired). Two compiler effects decided the repair cost: in C8 the slot writes became a loop (a new loop lemma), in C8b and C1 the register allocation moved (an invariant's register names).
 
 **Cold build** (`lake build Rv64mc` from an empty `.lake/build` and `Statement/.lake/build`, Mathlib and machine-checked from their caches, 8 modules at once, host load 10 to 15): 4,333 CPU-s (1.20 CPU-h), 516 s wall. By class: Gen 1,535 (230 templates 669, 230 links 811, others 55); Statement 74; Model 371; Spec, Proof and Table 1,770 (454, 1,269, 47); Final 80; Tactic, Core and probes 258. Not built: `FinishGrow` and the modules importing it.
+
+## C0-unbatched: no change, link modules one per function
+
+Copy of `2fd6731ef`; patch `C0.patch` (empty).
+
+**Binary.** raw: unchanged 230, moved 0, changed 0, added 0, removed 0; words differing in matched functions 0; modulo addresses: unchanged 230, moved 0, changed 0, added 0, removed 0; words differing in matched functions 0. templates: 0 changed, 0 added, 0 removed, 230 unchanged.
+
+**Proved before the change** (changed or removed templates): -.
+
+**Generation.** `regen.sh` 63 CPU-s / 59 s, `type-layouts.sh` 109 CPU-s / 100 s (Layouts.lean unchanged).
+
+**Build** (`lake build Rv64mc`, 6 modules at once): 39 CPU-s (the `lean` processes 0), 36 s wall, exit 0.
+
+| class | modules rebuilt | CPU-s |
+| --- | --- | --- |
+
+**Failed:** none.
+
+
+## C2-unbatched: MerklePath::root rewritten, link modules one per function
+
+Copy of `2fd6731ef`; patch `C2.patch` (crates/verifier/src/merkle.rs).
+
+**Binary.** raw: unchanged 92, moved 29, changed 109, added 0, removed 0; words differing in matched functions 641; modulo addresses: unchanged 119, moved 110, changed 1, added 0, removed 0; words differing in matched functions 65. templates: 1 changed, 0 added, 0 removed, 229 unchanged: Verifier.Merkle.MerklePath.Root.
+
+**Proved before the change** (changed or removed templates): Verifier.Merkle.MerklePath.Root: unproved, callers 0/1 proved.
+
+**Generation.** `regen.sh` 64 CPU-s / 60 s, `type-layouts.sh` 105 CPU-s / 97 s (Layouts.lean unchanged).
+
+**Build** (`lake build Rv64mc`, 6 modules at once): 1469 CPU-s (the `lean` processes 1335), 462 s wall, exit 0.
+
+| class | modules rebuilt | CPU-s |
+| --- | --- | --- |
+| Gen.Tmpl | 1 | 6 |
+| Gen.Link | 230 | 1060 |
+| Gen other | 6 | 81 |
+| Table | 11 | 115 |
+| Final | 1 | 74 |
+
+Rebuilt proofs and specs: Final.End, Table.Bus, Table.Bytecode, Table.Field, Table.Hash, Table.Keccak, Table.Layout, Table.Multilinear, Table.Runtime, Table.Transcript, Table.Walk, Table.Whir.
+
+**Failed:** none.
+
+**Sweep** (`rv_sweep` on the changed templates): `Verifier.Merkle.MerklePath.Root` 10.2 CPU-s (ok).
+
+
+## C0-batched: no change, link modules batched by 20
+
+Copy of `3299473ac`; patch `C0.patch` (empty).
+
+**Binary.** raw: unchanged 230, moved 0, changed 0, added 0, removed 0; words differing in matched functions 0; modulo addresses: unchanged 230, moved 0, changed 0, added 0, removed 0; words differing in matched functions 0. templates: 0 changed, 0 added, 0 removed, 230 unchanged.
+
+**Proved before the change** (changed or removed templates): -.
+
+**Generation.** `regen.sh` 59 CPU-s / 53 s, `type-layouts.sh` 99 CPU-s / 89 s (Layouts.lean unchanged).
+
+**Build** (`lake build Rv64mc`, 6 modules at once): 48 CPU-s (the `lean` processes 0), 46 s wall, exit 0.
+
+| class | modules rebuilt | CPU-s |
+| --- | --- | --- |
+
+**Failed:** none.
+
+
+## C2-batched: MerklePath::root rewritten, link modules batched by 20
+
+Copy of `3299473ac`; patch `C2.patch` (crates/verifier/src/merkle.rs).
+
+**Binary.** raw: unchanged 92, moved 29, changed 109, added 0, removed 0; words differing in matched functions 641; modulo addresses: unchanged 119, moved 110, changed 1, added 0, removed 0; words differing in matched functions 65. templates: 1 changed, 0 added, 0 removed, 229 unchanged: Verifier.Merkle.MerklePath.Root.
+
+**Proved before the change** (changed or removed templates): Verifier.Merkle.MerklePath.Root: unproved, callers 0/1 proved.
+
+**Generation.** `regen.sh` 64 CPU-s / 60 s, `type-layouts.sh` 109 CPU-s / 99 s (Layouts.lean unchanged).
+
+**Build** (`lake build Rv64mc`, 6 modules at once): 678 CPU-s (the `lean` processes 620), 217 s wall, exit 0.
+
+| class | modules rebuilt | CPU-s |
+| --- | --- | --- |
+| Gen.Tmpl | 1 | 6 |
+| Gen.Link | 19 | 354 |
+| Gen other | 6 | 79 |
+| Table | 11 | 108 |
+| Final | 1 | 73 |
+
+Rebuilt proofs and specs: Final.End, Table.Bus, Table.Bytecode, Table.Field, Table.Hash, Table.Keccak, Table.Layout, Table.Multilinear, Table.Runtime, Table.Transcript, Table.Walk, Table.Whir.
+
+**Failed:** none.
+
+**Sweep** (`rv_sweep` on the changed templates): `Verifier.Merkle.MerklePath.Root` 8.4 CPU-s (ok).
+

@@ -27,3 +27,7 @@ C8b-rebuild1	c48bd7dea	?	0	0	2	2	1	0	186	176	186	74	0	-
 C9	c48bd7dea	1	2	703	59	169	3	150	2676	2483	2826	557	5	Verifier.Multilinear.PolyEval: proved, callers 0/4 proved
 C9-rebuild1	c48bd7dea	?	0	0	6	24	1	0	228	215	228	64	0	-
 cold-rebuild1	c48bd7dea	?	669	866	83	221	1	0	4333	4088	4333	516	0	-
+C0-unbatched	2fd6731ef	0	0	0	0	0	0	172	39	0	211	195	0	-
+C2-unbatched	2fd6731ef	1	6	1140	0	12	0	169	1469	1335	1638	619	10	Verifier.Merkle.MerklePath.Root: unproved, callers 0/1 proved
+C0-batched	3299473ac	0	0	0	0	0	0	158	48	0	205	188	0	-
+C2-batched	3299473ac	1	6	434	0	12	0	173	678	620	850	376	8	Verifier.Merkle.MerklePath.Root: unproved, callers 0/1 proved

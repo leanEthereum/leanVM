@@ -97,7 +97,7 @@ Code changes never reached callers, not even to rebuild them; mirror edits rebui
 | proof lines with a binary-specific token | 8.8% of 14,432 (mid-campaign) | 29% of 215,295 |
 | absolute code addresses in proof text | 1 line | 6,962 |
 
-Cold builds exclude Mathlib (and machine-checked, for ours) and include the Lean statement. #738's repair effort was never measured, only its textual breakage and rebuild; `eq_eval` sits late in its image (38 functions after it moved), and the same change early would touch most proofs. Our link step is a fixed floor of 670 to 1,000 CPU-s per change. The section 1 projection scales C1's non-link rebuild (about 1,650 CPU-s for 158 modules at 66 proof files) to all 230 functions, the unproved ones being the largest.
+Cold builds exclude Mathlib (and machine-checked, for ours) and include the Lean statement. #738's repair effort was never measured, only its textual breakage and rebuild; `eq_eval` sits late in its image (38 functions after it moved), and the same change early would touch most proofs. Our link step was a fixed floor of 670 to 1,000 CPU-s per change, mostly the start and imports of one module per function; with about 20 functions per module it is about 300 to 450 CPU-s (C2 re-measured on one day: 1,638 CPU-s and 619 s wall before, 850 and 376 s after). The section 1 projection scales C1's non-link rebuild (about 1,650 CPU-s for 158 modules at 66 proof files) to all 230 functions, the unproved ones being the largest.
 
 **Per function**, straight-line code costs seconds and a few lines (`E::mul`: 3 lines, 1.0 s); each loop needs a hand invariant of 50 to 250 lines (`eq_eval`: 63 lines, 2.9 s; `linear_transpose`, 5 loops: 1,027 lines, 70 s; `is_valid_encoding`: 347 lines, 135 s).
 
@@ -115,7 +115,7 @@ Cold builds exclude Mathlib (and machine-checked, for ours) and include the Lean
 **Worked.** The proved lift covered all 230 functions once the source was adapted; its contracts are generic in the program, so per-function proofs over templates needed no fork; its soundness theorems were reused unchanged.
 
 **Missing**, each built or worked around by us:
-- **Identity:** contracts mention the whole lifted program, and statements carry ELF-order indices and absolute addresses; a one-line change altered the Lean text of 45 of 89 lifted functions (1 modulo addresses). Our link step still evaluates the whole program per function, hence the floor.
+- **Identity:** contracts mention the whole lifted program, and statements carry ELF-order indices and absolute addresses; a one-line change altered the Lean text of 45 of 89 lifted functions (1 modulo addresses). Every link module imports every function's words, so any change rebuilds them all; their kernel checks are local in cost (evaluation is lazy), and most of the floor was the cost of starting and importing each module, which batching cut.
 - **Machine:** hard-wired to SP1 (about 47 references), with accept as `a0 = 0` and no contract possible for the function that halts; partial correctness only, so fault freedom cannot be stated.
 - **Coverage:** functions with `unimp` or most 32-bit `W` instructions are dropped (109 of our first build's 198); jump tables are never lifted.
 - **Executor:** `lsym` is quadratic, runs `simp` (Lean's rewriter) over the whole context, and its `bv_omega` arithmetic side conditions hang or exhaust kernel memory.
@@ -139,13 +139,13 @@ A successor design by machine-checked's author, started two days earlier, tried 
 
 Effort: S days, M one to two weeks, L a month or more (our judgment).
 
-1. **A relocatable lift theorem with symbol-keyed, address-free output** (M): `liftFn` parametric in the function's base and a callee entry table, functions named by symbol, an emitter with a substitution map. Removes the link floor; our tables already moved to names (the C3 breakage is fixed), but link modules still reach the whole program through the index.
+1. **A relocatable lift theorem with symbol-keyed, address-free output** (M): `liftFn` parametric in the function's base and a callee entry table, functions named by symbol, an emitter with a substitution map. Lets a link module check one function against its own words and a local entry table, so it is no longer rebuilt by every change; the kernel saving alone is modest (about 40% on a call-heavy function), since most of the old floor was module imports, which batching in our generator already removed. Our tables already moved to names (the C3 breakage is fixed).
 2. **Full instruction coverage** (S to M): `unimp`, every `W` operation, jump tables. An undecoded instruction traps, so without a decode check a soundness theorem can hold vacuously; we close this with a kernel-checked `AllDecode` conjunct, which the framework could provide.
 3. **An executor that states the next state, with a memory vocabulary** (M to L): one rule per instruction form, no `simp` over hypotheses, loop heads from the control flow; regions, ownership, freshness, bytes; frames for heap blocks and caller-owned outputs; stack room and alignment in the contract from the start (adding alignment late cost the I2 migration).
 4. **Machine contexts as parameters, with a fault-freedom judgement** (M): a context declares its step, memory check and halt convention, and a judgement where a trap is an error makes "every run stops only at the halting call" provable.
 5. **For braid: kernel-only proofs and entry-relative statements** (M).
 
-Further items in the roadmap: a contract table with a soundness theorem, per-function word modules, content-hash caching, loop schemas and path merging, generated layouts including closures, inline and ABI control.
+Further items in the roadmap: a contract table with a soundness theorem, word modules per batch of functions with `kernel_eq` in a module lighter than all of `Lean`, content-hash caching, loop schemas and path merging, generated layouts including closures, inline and ABI control.
 
 ## 8. Trust and caveats
 
