@@ -956,13 +956,24 @@ noncomputable def tableCallsOk (X : Fx) (base : ℕ) (ok : ℕ → String → Si
 /-- The returned words read back from the callee frame `fp[q]`. -/
 noncomputable def loadsOk (B : Book) (q o : ℕ) (rets : List ℕ) : Bool := storesOk B q o rets
 
-/-- A tail call's next frame `fp·g^S` holds `fp[c]` at cell `S + o`: one cell, or a copy. -/
-noncomputable def nextHolds (B : Book) (S o c : ℕ) : Bool := sameOk B (S + o) c
+/-- A store of `fp[c]` at offset `o` through a cell the environment `ψ` (the exit's) knows to hold
+`fp·g^S`. -/
+noncomputable def storedNext (B : Book) (ψ : Trie Sym) (S o c : ℕ) : Bool :=
+  (look B c).any fun a ↦ match a with
+    | .instr _ (.deref q o' c' .cell) => o' == o && c' == c && (match ψ.get q with
+      | some (.fpg e) => e == S
+      | _ => false)
+    | _ => false
+
+/-- A tail call's next frame `fp·g^S` holds `fp[c]` at cell `S + o`: one cell, a copy, or a store
+through the next frame's pointer. -/
+noncomputable def nextHolds (B : Book) (ψ : Trie Sym) (S o c : ℕ) : Bool :=
+  sameOk B (S + o) c || storedNext B ψ S o c
 
 /-- A tail call's arguments in the next frame. -/
-noncomputable def tailArgsOk (B : Book) (S : ℕ) : ℕ → List ℕ → Bool
+noncomputable def tailArgsOk (B : Book) (ψ : Trie Sym) (S : ℕ) : ℕ → List ℕ → Bool
   | _, [] => true
-  | o, c :: cs => nextHolds B S o c && tailArgsOk B S (o + 1) cs
+  | o, c :: cs => nextHolds B ψ S o c && tailArgsOk B ψ S (o + 1) cs
 
 /-- A tail call's self frame pointer cell `S + o` of the next frame holds `fp·g^S`: a copy of a
 cell the exit's environment knows so. -/
@@ -1058,9 +1069,9 @@ noncomputable def tailOk (X : Fx) (st : CS) (x : Exec.Exit) (oc S : ℕ) (s : Si
   f == s.name && ca.length == s.nargs && s.nret == 0 && X.nret == 0 &&
     preOk X.F st.psi X.mem st.book st.bnd ca s.pre && s.mem.isEmpty && X.post.isEmpty &&
     semOk st.book (neAt st.book oc) none X.sems ca s.sem &&
-    tailArgsOk st.book S 2 ca &&
+    tailArgsOk st.book x.env S 2 ca &&
     s.env.all (fun p ↦ Sym.beq p.2 (.fpg 0) && tailEnvOk st.book x.env S p.1) &&
-    nextHolds st.book S 0 0 && nextHolds st.book S 1 1 && pendOk X st P && !X.main &&
+    nextHolds st.book x.env S 0 0 && nextHolds st.book x.env S 1 1 && pendOk X st P && !X.main &&
     (match endAt st with
       | some se => decide (se.seg.exit.kind = .ret)
       | none => false)

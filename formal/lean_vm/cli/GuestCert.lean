@@ -799,6 +799,10 @@ def inferLocs (segs : Array GSeg) (f : CompiledFunction) (cf : Core.Fn) (main : 
     unless loc.contains v do
       let cs := (setCells.get? l).getD []
       loc := loc.insert v ((st.pref.get? v).getD (cs.foldl min (cs.headD 0)))
+  -- open copies of values placed only now
+  for v in (st.copyOf.toList.map (·.1)).mergeSort do
+    unless loc.contains v do
+      if let some c := defaultIn { st with loc := loc } 64 v then loc := loc.insert v c
   let m := loc.fold (fun m v _ => max m (v + 1)) 0
   return ((List.range m).map fun v => loc.getD v 0, st.nr, st.marks, st.spine, st.uses, st.entered)
 
@@ -1062,25 +1066,33 @@ def callObligations (semMap : Std.HashMap String (List (ℕ × List ℕ))) (body
     out := out.push (i, lo, tu)
   return out.toList
 
-/-- The windows a walk function's top-level `match`es dispatch on, a load `L[w·g^i]` each: per
+/-- A statement and the statements of its nested blocks (an inlined walk's `match`es sit in a branch). -/
+partial def flatStmt : Core.Stmt → List Core.Stmt
+  | s@(.ite _ z n) => s :: (z.flatMap flatStmt ++ n.flatMap flatStmt)
+  | s@(.match_ _ arms) => s :: arms.flatMap (·.flatMap flatStmt)
+  | s => [s]
+
+/-- The windows a walk function's `match`es (nested ones included) dispatch on, a load `L[w·g^i]` each: per
 pointer `w`, `(statement of its first such match, statement after `w`'s definition, the triples
 (w, i, arms))`; a cut before the first match takes them as bounds on memory read
 (`Cut.knownIf`). -/
 def winObligations (body : List Core.Stmt) :
     List (ℕ × ℕ × List (ℕ × ℕ × ℕ)) := Id.run do
-  let loads : Std.HashMap ℕ (ℕ × ℕ) := body.foldl (fun m s => match s with
+  let flat := flatStmt
+  let loads : Std.HashMap ℕ (ℕ × ℕ) := (body.flatMap flat).foldl (fun m s => match s with
     | .atom (.load d w off) => if m.contains d.idx then m else m.insert d.idx (w.idx, off)
     | _ => m) {}
   let mut out : Array (ℕ × ℕ × List (ℕ × ℕ × ℕ)) := #[]
   for (s, i) in body.zipIdx do
-    let sel : Option (Core.V × ℕ) := match s with
-      | .match_ v arms => some (v, arms.length)
-      | _ => none
-    if let some (v, n) := sel then
-      if let some (w, off) := loads.get? v.idx then
-        match out.findIdx? (fun o => o.2.2.any (·.1 == w)) with
-        | some k => out := out.modify k fun (a, b, l) => (a, b, l ++ [(w, off, n)])
-        | none => out := out.push (i, defAfter body w, [(w, off, n)])
+    for t in flat s do
+      let sel : Option (Core.V × ℕ) := match t with
+        | .match_ v arms => some (v, arms.length)
+        | _ => none
+      if let some (v, n) := sel then
+        if let some (w, off) := loads.get? v.idx then
+          match out.findIdx? (fun o => o.2.2.any (·.1 == w)) with
+          | some k => out := out.modify k fun (a, b, l) => (a, b, l ++ [(w, off, n)])
+          | none => out := out.push (i, defAfter body w, [(w, off, n)])
   return out.toList
 
 /-- The bounds of the functions whose table jumps are bounded outside them (the guest's design,
@@ -1669,6 +1681,29 @@ structure Ctx where
   bitsOf : ℕ → ℕ
   /-- The selectors of the `match`es whose arms are counted separately. -/
   keyed : Std.HashSet ℕ := {}
+  /-- A loop helper's tail call's arguments, by value (`B2C.tailArgs`). -/
+  ta : List ℕ := []
+
+/-- A loop helper's tail call's arguments (`B2C.tailArgs`): the `callIf` to itself before the closing
+`ret []`, no `ret` before it. -/
+def tailArgsOf (cf : Core.Fn) : List ℕ :=
+  match cf.body.reverse with
+  | .ret [] :: .callIf _ g args :: rpre =>
+    if g == cf.name && Core.Stmt.noRetList rpre.reverse then args.map (·.idx) else []
+  | _ => []
+
+/-- A value's cell in the frame, or the next frame's cell of the tail call's `k`-th argument
+(`B2C.cellOk`). -/
+def cellOk (c : Ctx) (v : ℕ) : Bool :=
+  (2 ≤ c.cell v && c.cell v < c.fsz) || c.ta.zipIdx.any fun (w, k) =>
+    c.cell v == c.fsz + 2 + k && c.cell w == c.fsz + 2 + k
+
+/-- An atom the walk files (`B2C.fileB`): its cells in the frame, or a constant, sum, product, copy or
+`assert ==` of `cellOk` values. -/
+def filed (c : Ctx) (a : Core.Atom) : Bool :=
+  (Core.Atom.vals a).all (fun v => 2 ≤ c.cell v.idx && c.cell v.idx < c.fsz) || (match a with
+    | .const .. | .add .. | .mul .. | .copy .. | .assertEq .. => (Core.Atom.vals a).all (cellOk c ·.idx)
+    | _ => false)
 
 structure St where
   book : Std.HashMap ℕ (List Core.Atom) := {}
@@ -1823,10 +1858,11 @@ def stmtNames : Core.Stmt → List Core.V
   | .ite c _ _ => [c]
   | .match_ x _ => [x]
 
-def lookahead (cell : ℕ → ℕ) (st : St) (ss : List Core.Stmt) : St × List (ℕ × ℕ) :=
+def lookahead (c : Ctx) (st : St) (ss : List Core.Stmt) : St × List (ℕ × ℕ) :=
+  let cell := c.cell
   let r := run ss
   let st := r.foldl (fun st s => match s with
-    | .atom a => fileAtom cell (factOf cell st a) a
+    | .atom a => if filed c a then fileAtom cell (factOf cell st a) a else st
     | .ite c _ _ => { st with inK := st.inK.insert (cell c.idx) }
     | .callIf c _ _ => { st with inK := st.inK.insert (cell c.idx) }
     | _ => st) st
@@ -2057,7 +2093,7 @@ frames and table reads `fl` in flight: the first item their facts (and the fixed
 not justify, before any branch. -/
 def midStop (c : Ctx) (st : St) (fl : Std.HashMap ℕ (List (ℕ × FC)) × Std.HashMap ℕ (ℕ × ℕ))
     (ss : List Core.Stmt) (s : GSeg) (i : ℕ) : ℕ := Id.run do
-  let st := (lookahead c.cell { st with frames := fl.1, targets := fl.2 } ss).1
+  let st := (lookahead c { st with frames := fl.1, targets := fl.2 } ss).1
   let mut k := i
   repeat
     match s.items[k]? with
@@ -2071,7 +2107,7 @@ mutual
 partial def block (ss : List Core.Stmt) (p : Pos) (st : St) (top : Bool := false)
     (chainSel : Option ℕ := none) : M (Option (Pos × St)) := do
   let c ← read
-  let (st0, pend) := lookahead c.cell st ss
+  let (st0, pend) := lookahead c st ss
   for (v, cc) in pend do fail s!"share {v} at cell {cc} (values there: {(List.range 4096).filter (c.cell · == cc)}; before: occ {st.occ.contains cc} unk {st.unk.contains cc} know {st.know.get? cc}; stmts {ss.length})"
   let mut st := st0
   let mut p := p
@@ -2225,9 +2261,11 @@ partial def block (ss : List Core.Stmt) (p : Pos) (st : St) (top : Bool := false
         p := (rr, 0); st := { st2 with frames := st2.frames.insert q fcs' }; moved := !rets.isEmpty
       | .callIf cv _ args =>
         let (q, oc, od, of, x) ← peekBranch p
-        unless oc == c.cell cv.idx do fail s!"callIf cond cell {oc}"
+        unless oc == c.cell cv.idx && 2 ≤ oc && oc < c.fsz && args.all (cellOk c ·.idx) do
+          fail s!"callIf cond cell {oc}"
         match x.kind with
         | .call (.gp e) fq r =>
+          unless (fq :: args.map (c.cell ·.idx)).all fun o => 2 ≤ o && o < c.fsz do fail s!"callIf frame {fq}"
           let fcs := (args.zipIdx.map fun (a, k) => (2 + k, FC.val (c.cell a.idx))) ++
             (c.envOf e).map (·, FC.self) ++ [(1, FC.fp), (0, FC.pc r)]
           if st.frames.contains fq then fail s!"frame cell {fq} reused"
@@ -2643,7 +2681,7 @@ def plumbOfFn (T : Tables) (fns : Array CompiledFunction) (selfByEntry : Std.Has
     j == 1, fun e => selfByEntry.getD e [], fsz, fun r => expTable.getD r 0,
     if armedFns.contains f.name then (cf.body.filterMap fun
       | .match_ v _ => some v.idx
-      | _ => none).foldl (·.insert ·) {} else {}⟩
+      | _ => none).foldl (·.insert ·) {} else {}, Cpl.tailArgsOf cf⟩
   let st00 : Cpl.St := plumb.fold (fun st o pc => match pc with
     | .k l => if vcells.contains o then { st with know := st.know.insert o l, occ := st.occ.insert o } else st
     | _ => st) {}
@@ -4362,8 +4400,10 @@ def main (args : List String) : IO UInt32 := do
       if only.isSome && only != some (i + 1) then continue
       let r1 := certOf false T fns index semMap (i + 1) cf
       match r1, (match r1 with | .ok r => Except.ok r | .error _ => certOf true T fns index semMap (i + 1) cf) with
-      | _, .ok (_, sizes, _, _, _, (ws, _), _, entW) =>
-        if only.isSome then IO.println s!"{i + 1} {cf.name}: {sizes.zip ws.toList}, entered {entW.map (·.1)}"
+      | _, .ok (_, sizes, _, locs, _, (ws, _), _, entW) =>
+        if only.isSome then
+          IO.println s!"{i + 1} {cf.name}: {sizes.zip ws.toList}, entered {entW.map (·.1)}"
+          IO.println s!"locs {locs}"
       | .error e1, .error e => IO.println s!"{i + 1} {cf.name}: {e1} / coarse: {e}"
       | .ok _, .error _ => pure ()
     return 0

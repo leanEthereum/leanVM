@@ -1919,11 +1919,44 @@ theorem storesOk_at (hB : BookHolds L fp B) {q o : ℕ} {cs : List ℕ} (h : sto
   obtain rfl := Option.some.inj (hq'.symm.trans hq)
   exact ⟨v, h1, h2⟩
 
-theorem tailArgsOk_sound {S : ℕ} : ∀ {o : ℕ} {cs : List ℕ}, tailArgsOk B S o cs = true →
-    ∀ i (hi : i < cs.length), sameOk B (S + (o + i)) cs[i] = true
+/-- **A next frame's cell holds what is said**: one cell, a copy, or a store through its pointer. -/
+theorem nextHolds_read (hB : BookHolds L fp B) {ψ : Trie Sym} (he : EnvHolds L fp ψ) {S o c : ℕ}
+    (h : nextHolds B ψ S o c = true) :
+    L.read (fp * addressOfIndex (S + o)) = L.read (fp * addressOfIndex c) := by
+  unfold nextHolds at h
+  rcases Bool.or_eq_true _ _ |>.mp h with h | h
+  · exact sameOk_read hB h
+  · unfold storedNext at h
+    obtain ⟨a, ha, hp⟩ := List.any_eq_true.mp h
+    have hh := hB c a ha
+    split at hp
+    · rename_i pc q o' c'
+      simp only [Bool.and_eq_true, beq_iff_eq] at hp
+      obtain ⟨⟨ho, hc⟩, hp⟩ := hp
+      subst ho hc
+      split at hp
+      · rename_i e hq
+        obtain rfl := beq_iff_eq.mp hp
+        obtain ⟨p, v3, h1, -, h3, h2⟩ := hh
+        rw [he q _ hq] at h1
+        obtain rfl := Option.some.inj h1
+        rw [h3, show fp * addressOfIndex (e + o') = (Sym.val fp (.fpg e)).limb 0 * addressOfIndex o' by
+          simp only [Sym.val, limb_ofK0]
+          rw [mul_assoc, addressOfIndex, addressOfIndex, addressOfIndex, ← pow_add]]
+        exact h2
+      · cases hp
+    · cases hp
+
+theorem nextHolds_wd (hB : BookHolds L fp B) {ψ : Trie Sym} (he : EnvHolds L fp ψ) {S o c : ℕ}
+    (h : nextHolds B ψ S o c = true) : wd L fp (S + o) = wd L fp c := by
+  unfold wd
+  rw [nextHolds_read hB he h]
+
+theorem tailArgsOk_sound {ψ : Trie Sym} {S : ℕ} : ∀ {o : ℕ} {cs : List ℕ}, tailArgsOk B ψ S o cs = true →
+    ∀ i (hi : i < cs.length), nextHolds B ψ S (o + i) cs[i] = true
   | _, [], _, _, hi => absurd hi (Nat.not_lt_zero _)
   | o, c :: cs, h, i, hi => by
-    simp only [tailArgsOk, Bool.and_eq_true, nextHolds] at h
+    simp only [tailArgsOk, Bool.and_eq_true] at h
     cases i with
     | zero => simpa using h.1
     | succ i =>
@@ -2617,12 +2650,12 @@ theorem walk_callIf (W : WalkEnv Prog cert A L fp f X Kb) (c : Core.V) (f' : Str
           obtain ⟨⟨h2, hlt⟩, hbd⟩ := this
           obtain ⟨e, he, hr⟩ := boundOk_sound W.hyp.ctx.pows (hpsi ▸ hp.psi) W.mem hB' (hbnd ▸ hp.bnd) hbd
           refine ⟨e, he, ?_⟩
-          have hs := sameOk_read hB' (tailArgsOk_sound hargs (p.1 - 2) hlt)
+          have hs := nextHolds_read hB' hxenv (tailArgsOk_sound hargs (p.1 - 2) hlt)
           rw [nth_eq hlt] at hr
           rw [show 2 + (p.1 - 2) = p.1 by omega, hr] at hs
           rw [mul_assoc, addressOfIndex, addressOfIndex, ← pow_add, ← addressOfIndex]
           exact hs
-        · have := sameOk_sound hB' (tailArgsOk_sound hargs i hi)
+        · have := nextHolds_wd hB' hxenv (tailArgsOk_sound hargs i hi)
           rw [← this]
           unfold wd
           rw [mul_assoc, addressOfIndex, addressOfIndex, ← pow_add]
@@ -2632,8 +2665,8 @@ theorem walk_callIf (W : WalkEnv Prog cert A L fp f X Kb) (c : Core.V) (f' : Str
         rw [mul_assoc, addressOfIndex, addressOfIndex, ← pow_add, ← addressOfIndex]
         simpa [Sym.val, gpow_zero'] using h2
       have hret : retRegs L (fp * addressOfIndex S) = retRegs L fp := by
-        have e0 := sameOk_read hB' hr0
-        have e1 := sameOk_read hB' hr1
+        have e0 := nextHolds_read hB' hxenv hr0
+        have e1 := nextHolds_read hB' hxenv hr1
         unfold retRegs
         rw [mul_assoc, mul_assoc, addressOfIndex, addressOfIndex, ← pow_add, ← pow_add, ←
             addressOfIndex, ← addressOfIndex, e0, e1]
@@ -2648,7 +2681,7 @@ theorem walk_callIf (W : WalkEnv Prog cert A L fp f X Kb) (c : Core.V) (f' : Str
         apply List.ext_getElem (by simp [frameWords, cellsOf_length] at hna ⊢; omega)
         intro i h1' h2'
         simp only [List.getElem_map, frameWords, List.getElem_range]
-        have := sameOk_sound hB' (tailArgsOk_sound hargs i (by simpa using h1'))
+        have := nextHolds_wd hB' hxenv (tailArgsOk_sound hargs i (by simpa using h1'))
         rw [← this]
         unfold wd
         rw [mul_assoc, addressOfIndex, addressOfIndex, ← pow_add]
