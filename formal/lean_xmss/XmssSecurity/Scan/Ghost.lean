@@ -188,7 +188,7 @@ theorem expectedSimulatedQueryCount_liftM_query (parameter : PublicParameter)
         (liftM (OracleWorld.query input) : OracleComp OracleWorld _) cache =
       if CappedEncodingMonitor.IsEncodingHashQuery parameter input then 1 else 0 := by
   rw [← bind_pure (liftM (OracleWorld.query input) : OracleComp OracleWorld _),
-    expectedSimulatedQueryCount_query_bind]
+    expectedSimulatedQueryCount_query_bind_tsum]
   simp
 
 /-- **The source game counts the adversary's encoding queries.** -/
@@ -203,7 +203,7 @@ theorem expectedSimulatedCost_advEncoding_le (parameter : PublicParameter)
   | pure value => intros; simp
   | query_bind input next ih =>
       intro cache trace k
-      rw [expectedSimulatedCost_query_bind, simulateQ_source_query_bind, expectedSimulatedQueryCount_bind,
+      rw [expectedSimulatedCost_query_bind, simulateQ_source_query_bind, expectedSimulatedQueryCount_bind_tsum,
         impl_run, OracleComp.tsum_prEvent_map_mul]
       refine add_le_add ?_ (tsum_le_tsum fun r => mul_le_mul_right (ih _ _ _ _) _)
       cases input with

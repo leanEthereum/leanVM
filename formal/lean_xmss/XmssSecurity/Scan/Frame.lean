@@ -164,7 +164,7 @@ theorem expectedSimulatedCost_indicator (predicate : spec.Domain → Prop)
   induction computation using OracleComp.inductionOn generalizing s with
   | pure value => simp
   | query_bind input next ih =>
-      simp only [expectedSimulatedCost_query_bind, expectedSimulatedQueryCount_query_bind, ih]
+      simp only [expectedSimulatedCost_query_bind, expectedSimulatedQueryCount_query_bind_tsum, ih]
 
 theorem const_mul_probEvent_le_expectedFinal (f : σ → ℝ≥0∞) (E : σ → Prop) (c : ℝ≥0∞)
     (hf : ∀ s, E s → c ≤ f s) (computation : OracleComp spec α) (s : σ) :
