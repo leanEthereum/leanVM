@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Common.HashPair
 # Merkle caps: meanings (TRIAGE G #33, #34)
 
 The guest (`lean_ethereum.py`, G below) opens a WHIR commitment in two
-parts: each query climbs its leaf's hash up `depth - cap_depth` levels (`walk_path`, called by `opening_query`) to a node of the cap, a hinted top of the tree whose
+parts: each query climbs its leaf's hash up `depth - cap_depth` levels (`walk_path`, inline in `opening_query`) to a node of the cap, a hinted top of the tree whose
 node `k` (`1 ≤ k < 2^(cap_depth+1)`, node `1` the root, `2k`, `2k + 1` its children) sits at the
 cap's cells `2k`, `2k + 1`; the query writes the node it reached there and flags the node's
 parent. `verify_merkle_cap(cap, flags, depth)` then hashes every flagged node of

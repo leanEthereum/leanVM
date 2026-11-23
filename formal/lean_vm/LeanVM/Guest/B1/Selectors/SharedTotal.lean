@@ -24,8 +24,8 @@ dispatch enters `sel_partial_nibble__L{n % 4}` (`ss_body_vals`); its walk's call
 (`ss_calls`). With `shared_selector_tables_loop0`'s run's bound (`TotalLeOn … LoopPre`: `K9` per
 iteration and its one phantom frame) and the partial nibbles' (`TotalLe`), as hypotheses over any
 frame sizes `fs`, `ss_totalLeOn` bounds the tree by `fs "shared_selector_tables" + (fs
-"shared_selector_tables_loop0" + 15·K9) + Ksp` (`n / 4 ≤ 15`; `shared_selector_tables_loop0`'s frame
-when skipped).
+"shared_selector_tables_loop0" + 15·K9) + Ksp` (`n / 4 ≤ 15`; when skipped,
+`shared_selector_tables_loop0`'s phantom, at most its frame, `htk`).
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -77,7 +77,8 @@ variable {fs : String → ℕ}
 theorem ss_totalLeOn (K9 Ksp : ℕ)
     (h9 : TotalLeOn coreProgram fs name% «shared_selector_tables_loop0» LoopPre
       (fun a ↦ logG (a.getD 1 0) * K9 + fs name% «shared_selector_tables_loop0»))
-    (hsp : ∀ j < 4, TotalLe coreProgram fs (lName "sel_partial_nibble" j) (fun _ ↦ Ksp)) :
+    (hsp : ∀ j < 4, TotalLe coreProgram fs (lName "sel_partial_nibble" j) (fun _ ↦ Ksp))
+    (htk : fs (tailKey name% «shared_selector_tables_loop0») ≤ fs name% «shared_selector_tables_loop0») :
     TotalLeOn coreProgram fs "shared_selector_tables" (fun a ↦ ∃ n < 64, a.getD 5 0 = gen ^ n)
       (fun _ ↦ fs "shared_selector_tables" + (fs name% «shared_selector_tables_loop0» + 15 * K9) +
           Ksp) := by
@@ -160,7 +161,7 @@ theorem ss_totalLeOn (K9 Ksp : ℕ)
     simp only [Budget.callsT, cs, List.map_cons, List.map_nil, List.sum_cons, List.sum_nil,
       lName_sel_ne (show n % 4 < 4 by omega), ↓reduceIte, add_zero]
     have h1 : (if decide (σ (.n (val% «shared_selector_tables» "s8#1")) ≠ 0) = true then n / 4 * K9 + fs
-        name% «shared_selector_tables_loop0» else fs name% «shared_selector_tables_loop0») ≤
+        name% «shared_selector_tables_loop0» else fs (tailKey name% «shared_selector_tables_loop0»)) ≤
         fs name% «shared_selector_tables_loop0» + 15 * K9 := by
       split
       · have := Nat.mul_le_mul_right K9 hq15; omega

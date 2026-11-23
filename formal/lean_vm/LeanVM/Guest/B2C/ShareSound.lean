@@ -1612,7 +1612,7 @@ theorem shareStatic_spec (h : shareStatic j = true) :
     listsOk (plumbOf j) (fsN j) = true ∧ snapsOk (certOf j) (snapsOf j) = true ∧
       apartOk j = true ∧
       ∀ v ∈ (coreOf j).params, valOk (locW (certOf j) 0) (byCell (plumbOf j).tmps) (tmpCells (plumbOf j))
-        (fpgCells (plumbOf j)) (fsN j) v = true := by
+        (fpgCells (plumbOf j)) (fsN j) [] v = true := by
   unfold shareStatic at h
   simp only [Loc.seq_eq, natSeq_eq, Exec.Trie.seq_eq, Bool.and_eq_true, List.all_eq_true, Nat.blt_eq] at h
   exact ⟨h.1.1.1.2, h.1.1.2, h.1.2, h.2⟩
@@ -1621,8 +1621,8 @@ theorem shareStatic_spec (h : shareStatic j = true) :
 theorem shareWin_spec {i : ℕ} (h : shareWin j (snapsOf j) i = true) :
     (∀ c ∈ listElementOrDefault (certOf j).cells (winW (snapsOf j) i) [], c < 65536) ∧
     (∀ v ∈ Stmt.usesList (stmtsW (coreOf j).body (snapsOf j) i) ++ Stmt.tmpsList (stmtsW (coreOf j).body (snapsOf j) i),
-      valOk (locW (certOf j) (winW (snapsOf j) i)) (byCell (plumbOf j).tmps) (tmpCells (plumbOf j)) (fpgCells (plumbOf j)) (fsN j) v
-        = true) ∧
+      valOk (locW (certOf j) (winW (snapsOf j) i)) (byCell (plumbOf j).tmps) (tmpCells (plumbOf j)) (fpgCells (plumbOf j)) (fsN j)
+        (nextCells (certOf j).locs (fsN j) (tailArgs (coreOf j))) v = true) ∧
     ∃ m, swL (locW (certOf j) (winW (snapsOf j) i)) (bitsOf (plumbOf j).sh) (byCell (plumbOf j).tmps) (plumbOf j) (startSt j i)
         (stmtsW (coreOf j).body (snapsOf j) i) = some m ∧
       (i < (snapsOf j).length → refines m (snapAt (snapsOf j) (i + 1)) = true) := by
@@ -1692,15 +1692,20 @@ theorem winW_le {C : Check.Cert} {snaps : List Snap} (h : snapsOk C snaps = true
   | 0, _ => Nat.zero_le _
   | _ + 1, hk => (snapsOk_spec h hk).2
 
-theorem valOk_spec {loc : Loc} {tt : Exec.Trie ℕ} {tc fc n : ℕ} {v : V} (h : valOk loc tt tc fc n v = true) :
-    v = V.n v.idx ∧ (loc.get? v.idx).isSome ∧ loc.cell v < n ∧ bitN fc (loc.cell v) = false ∧
-      (bitN tc (loc.cell v) = false ∨ listedT tt v (loc.cell v) = true) := by
-  simp only [valOk, Bool.and_eq_true, beq_iff_eq, Nat.blt_eq, Bool.not_eq_true', Bool.or_eq_true] at h
-  exact ⟨h.1.1.1.1, h.1.1.1.2, h.1.1.2, h.1.2, h.2⟩
+theorem valOk_spec {loc : Loc} {tt : Exec.Trie ℕ} {tc fc n : ℕ} {nx : List ℕ} {v : V}
+    (h : valOk loc tt tc fc n nx v = true) :
+    v = V.n v.idx ∧ (loc.get? v.idx).isSome ∧ (loc.cell v < n ∨ loc.cell v ∈ nx) ∧
+      bitN fc (loc.cell v) = false ∧ (bitN tc (loc.cell v) = false ∨ listedT tt v (loc.cell v) = true) := by
+  simp only [valOk, Bool.and_eq_true, beq_iff_eq, Bool.not_eq_true', Bool.or_eq_true] at h
+  refine ⟨h.1.1.1.1, h.1.1.1.2, ?_, h.1.2, h.2⟩
+  rcases h.1.1.2 with h3 | h3
+  · exact .inl (Nat.blt_eq.mp h3)
+  · obtain ⟨c, hc, hvc⟩ := List.any_eq_true.mp h3
+    exact .inr (Nat.eq_of_beq_eq_true hvc ▸ hc)
 
 /-- A window's values, its cells the certificate's. -/
-theorem fitV_of {loc : Loc} {tt : Exec.Trie ℕ} {tc fc n : ℕ} {cg : V → ℕ} {vs : List V}
-    (hA : ∀ v c, loc.get? v.idx = some c → cg v = c) (h : ∀ v ∈ vs, valOk loc tt tc fc n v = true) :
+theorem fitV_of {loc : Loc} {tt : Exec.Trie ℕ} {tc fc n : ℕ} {nx : List ℕ} {cg : V → ℕ} {vs : List V}
+    (hA : ∀ v c, loc.get? v.idx = some c → cg v = c) (h : ∀ v ∈ vs, valOk loc tt tc fc n nx v = true) :
     FitV loc cg vs := fun v hv ↦ by
   obtain ⟨h1, h2, -⟩ := valOk_spec (h v hv)
   obtain ⟨c, hc⟩ := Option.isSome_iff_exists.mp h2

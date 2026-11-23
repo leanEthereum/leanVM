@@ -41,19 +41,17 @@ theorem vs_frames : B2C.fs "verify_sub" = fsVs ∧ B2C.fs "log2_ceil_in_the_expo
   rw [← fsVs_eq, ← fsL0_eq, ← fsAsg_eq, ← fsRst_eq, ← fsCp_eq, ← fsL16_eq, fsFast_eq]
   exact ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
 
-/-- The statically bounded callees' words: the grind checks, the opening message, the squeeze
-dispatch's largest arm. -/
-kernel_lit wGc15 : ℕ := wSBFast "grind_check__L15"
+/-- The statically bounded callees' words: the opening message, the squeeze dispatch's largest
+arm. -/
 kernel_lit wOm : ℕ := wSBFast "opening_message__L1_L1"
-kernel_lit wGc13 : ℕ := wSBFast "grind_check__L13"
 kernel_lit wSq : ℕ := B1.VerifySub.armMax wSBFast B1.VerifySub.squeezeNames
 
-theorem vs_static : wSB "grind_check__L15" = wGc15 ∧ wSB "opening_message__L1_L1" = wOm ∧
-    wSB "grind_check__L13" = wGc13 ∧ B1.VerifySub.armMax wSB B1.VerifySub.squeezeNames = wSq := by
-  rw [← wGc15_eq, ← wOm_eq, ← wGc13_eq, ← wSq_eq, wSBFast_eq]
-  exact ⟨rfl, rfl, rfl, rfl⟩
+theorem vs_static : wSB "opening_message__L1_L1" = wOm ∧
+    B1.VerifySub.armMax wSB B1.VerifySub.squeezeNames = wSq := by
+  rw [← wOm_eq, ← wSq_eq, wSBFast_eq]
+  exact ⟨rfl, rfl⟩
 
-/-- The bus grind dispatch's largest arm with its grind check's frame. -/
+/-- The bus grind dispatch's largest arm. -/
 kernel_lit busGrindMaxV : ℕ := B1.VerifySub.busGrindMax fsFast
 
 theorem busGrindMax_eq : B1.VerifySub.busGrindMax B2C.fs = busGrindMaxV := by
@@ -63,7 +61,7 @@ theorem busGrindMax_eq : B1.VerifySub.busGrindMax B2C.fs = busGrindMaxV := by
 callees' bounds in call order (`B1.VerifySub.vsBsWith`). -/
 kernel_lit vsFixed : ℕ :=
   fsVs + B1.VerifySub.vsOwnBufs + (vsBg + vsBg + (fsL0 + 2 * fsAsg) + (fsCp + B1.Tables.cpSizes.sum) + (fsL16 + 2 * fsAsg) +
-    wGc15 + wSq + wOm + busGrindMaxV + vbgMaxV + vtMaxV + vkBoundV + wGc13 + (fsRst + B1.VerifySub.rstBufs + vsWords.B14) +
+    wSq + wOm + busGrindMaxV + vbgMaxV + vtMaxV + vkBoundV + (fsRst + B1.VerifySub.rstBufs + vsWords.B14) +
     termBoundV)
 
 set_option maxRecDepth 100000 in
@@ -72,12 +70,12 @@ set_option maxRecDepth 100000 in
 theorem vsBoundAt_eq {μ r : ℕ} (h1 : 20 ≤ μ) (h2 : μ ≤ 30) :
     B1.VerifySub.vsBoundAt vsWordsOs B1.VerifySub.vkBound μ r = vsFixed + osC (μ - 20) := by
   rewrite [B1.VerifySub.vsBoundAt.eq_1, B1.VerifySub.vsBsAt.eq_1, B1.VerifySub.vsBsWith.eq_1,
-    show vsWordsOs.Bnd = wSB from rfl, osBosAt_eq h1 h2,
+    show vsWordsOs.Bnd = wSBos from rfl, osBosAt_eq h1 h2,
     show vsWordsOs.toVsWords = vsWords from rfl, vbgMax_eq, vtMax_eq, bg_eq,
     vkBound_eq, termBound_eq, show vsWords.Kst = wSB from rfl, ← vsFixed_eq]
   obtain ⟨h1, h2, h3, h4, h5, h6⟩ := vs_frames
-  obtain ⟨k1, k2, k3, k4⟩ := vs_static
-  rewrite [h1, h2, h3, h4, h5, h6, k1, k2, k3, k4, busGrindMax_eq]
+  obtain ⟨k1, k2⟩ := vs_static
+  rewrite [h1, h2, h3, h4, h5, h6, k1, k2, busGrindMax_eq]
   simp only [List.sum_cons, List.sum_nil, B1.Whir.minOpenLog]
   generalize osC (μ - 20) = x
   clear * -

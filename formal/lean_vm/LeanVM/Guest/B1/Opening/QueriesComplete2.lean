@@ -56,19 +56,20 @@ variable (d : QD) {rd : Reader} {σ : Val}
 
 /-- The fold starts before the query's end. -/
 theorem ch_lt_e : d.ch < d.e := by
-  have hv : d.ch ≤ oqVal d.s d.ch := by simp only [oqVal, oqAcc, oqRO, d.oqRK_eq]; omega
-  have hr : oqVal d.s d.ch ≤ oqRes d.s d.b d.emit := by
+  have hv : d.fo ≤ oqVal d.s d.fo := by simp only [oqVal, oqAcc, oqRO, d.oqRK_eq]; omega
+  have hr : oqVal d.s d.fo ≤ oqRes d.s d.b d.emit := by
     unfold oqRes
     split
     · exact Nat.le_trans (Nat.le_add_right _ (2 + 3 * d.s.mu + 4 * (d.s.nHs / 2)))
         (by rw [← Nat.add_assoc, ← Nat.add_assoc]; exact le_nvLevelsT _ _ _ _)
     · exact le_rfl
-  have hr2 : d.s.final = 1 → oqVal d.s d.ch < oqRes d.s d.b d.emit := by
+  have hr2 : d.s.final = 1 → oqVal d.s d.fo < oqRes d.s d.b d.emit := by
     intro h1
     unfold oqRes
     simp only [h1, ↓reduceIte]
     exact Nat.lt_of_lt_of_le (Nat.lt_add_of_pos_right (by omega : 0 < 2 + 3 * d.s.mu + 4 * (d.s.nHs / 2)))
       (by rw [← Nat.add_assoc, ← Nat.add_assoc]; exact le_nvLevelsT _ _ _ _)
+  have hfo : d.ch ≤ d.fo := by rw [fo_eq]; omega
   show d.ch < oqEnd d.s d.b d.emit
   unfold oqEnd
   split

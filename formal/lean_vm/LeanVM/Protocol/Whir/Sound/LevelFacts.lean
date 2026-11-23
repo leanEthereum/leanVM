@@ -10,7 +10,7 @@ module
 
 public import LeanVM.Protocol.Whir.Sound.Folds
 public import LeanVM.Protocol.Whir.Sound.Novel
-public import LeanVM.Protocol.Whir.Sound.Queries
+import LeanVM.Protocol.Whir.Sound.Queries
 
 /-!
 # The level interface's facts

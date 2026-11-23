@@ -12,9 +12,10 @@ public import LeanVM.Guest.CoreFind
 public import LeanVM.Guest.Renumber
 public import LeanVM.Guest.Word
 public import LeanVM.Guest.CoreLemmas
-public import LeanVM.Guest.Value.Keccak
+import LeanVM.Guest.Value.Keccak
 public import LeanVM.Guest.Value.Bits
 public import LeanVM.Guest.ExpTables
+public import Mathlib.Data.List.GetD
 
 /-!
 # B1: shared vocabulary
@@ -161,30 +162,6 @@ words: `x` and `k / x` are readable addresses (`rangeCheck_iff` makes it `x = g^
 memory image of at most `2^32` words). -/
 def RangeChecked (rd : Reader) (x k : E) : Prop :=
   ∃ y t1 t2 : E, LoadHolds rd x 0 t1 ∧ k = x * y ∧ LoadHolds rd y 0 t2
-
-/-- The specialization of `grind_check` to `bits`, `grind_check__L{bits}`, for the deployed
-grinds (a table, not `toString`, whose body a `module`'s kernel cannot unfold). -/
-def grindCheckName : ℕ → String
-  | 2 => "grind_check__L2"
-  | 3 => "grind_check__L3"
-  | 7 => "grind_check__L7"
-  | 13 => "grind_check__L13"
-  | 15 => "grind_check__L15"
-  | 17 => "grind_check__L17"
-  | 18 => "grind_check__L18"
-  | 19 => "grind_check__L19"
-  | 20 => "grind_check__L20"
-  | 21 => "grind_check__L21"
-  | 22 => "grind_check__L22"
-  | 23 => "grind_check__L23"
-  | 24 => "grind_check__L24"
-  | 25 => "grind_check__L25"
-  | 26 => "grind_check__L26"
-  | 27 => "grind_check__L27"
-  | 28 => "grind_check__L28"
-  | 29 => "grind_check__L29"
-  | 30 => "grind_check__L30"
-  | _ => "grind_check"
 
 theorem WinTabs.lt {rd : Reader} {tabs : E} (h : WinTabs rd tabs) {n : ℕ} (hn : n < 2 ^ 11) :
     LoadHolds rd tabs n (eOfNat n) := h n hn

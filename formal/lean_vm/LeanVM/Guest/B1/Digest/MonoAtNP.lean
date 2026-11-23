@@ -117,8 +117,8 @@ theorem child_claim_list_mono_completeAtTBP (fs : String → ℕ) (cert : String
       ⟨mlNames[r]!, true, [chain * gen ^ (15 * (a + b)), gen ^ rg, base, gen ^ L], Lin ++ Own,
         Returns (digestCells D)⟩]
   have hokB : KidsDTBR fs cert κ ks (fun rd => gapTs rd (monoPss o a b r))
-      [(a + 1) * fs name% «child_claim_list_mono_loop0», (b + 1) * fs
-          name% «child_claim_list_mono_loop1», fs (mlNames.getD r "")] := by
+      [a * fs name% «child_claim_list_mono_loop0» + fs (tailKey name% «child_claim_list_mono_loop0»), b * fs
+          name% «child_claim_list_mono_loop1» + fs (tailKey name% «child_claim_list_mono_loop1»), fs (mlNames.getD r "")] := by
     refine ⟨fun ht => ?_, fun ht => ?_, fun _ => ?_, trivial⟩
     · simp only [decide_eq_true_eq] at ht
       refine monoLoop_completeAtBP (hwit := mono136_wits) fs cert mono136_find mono136_ok mc136_ok word_g136 word_g544
@@ -188,8 +188,8 @@ theorem child_claim_list_mono_completeAtTBP (fs : String → ℕ) (cert : String
       rwa [← cellsBytes_append, List.take_append_drop] at this
   obtain ⟨Nk, Lk, outs, hNk, hoo, hW, hD, -, hKids⟩ :=
     kidsFromInT_of_kidsDTBR (fs := fs) (cert := cert) κ ks (fun rd => gapTs rd (monoPss o a b r))
-      [(a + 1) * fs name% «child_claim_list_mono_loop0», (b + 1) * fs
-          name% «child_claim_list_mono_loop1», fs (mlNames.getD r "")] hokB
+      [a * fs name% «child_claim_list_mono_loop0» + fs (tailKey name% «child_claim_list_mono_loop0»), b * fs
+          name% «child_claim_list_mono_loop1» + fs (tailKey name% «child_claim_list_mono_loop1»), fs (mlNames.getD r "")] hokB
       (b0 + 15 * (a + b + 1))
   have hl0 : outs.length = 3 := hoo.length
   obtain ⟨o1, t1, rfl, hl1⟩ := exists_of_length_succ hl0

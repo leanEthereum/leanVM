@@ -1,21 +1,21 @@
 /-
   LeanVM.Guest.B1.Opening.QueriesPlaced6
 
-  `opening_queries`' loop, placed: its frames one after another, then its iterations' walks.
+  What an iteration of `opening_queries`' loop needs.
 -/
 
 module
 
 public import LeanVM.Guest.B1.Opening.QueriesPlaced5
+import LeanVM.Guest.Value.FieldBits
 
 /-!
-# The loop, placed
+# An iteration's data
 
-`oqLoop1_relAtIn`, `oqLoop0_relAtIn`: the loop helper called at `g^0` with the bound `g^N`, placed
-at `fp`, its iteration `j` at `fp + j·fs loop` and its walks after the loop's `N + 1` frames,
-iteration `0`'s first, is `RelAtIn` the caller's region `R`, of `(N + 1)·fs loop` words and its
-walks' frames, when every iteration's data holds (`OqIt1Ok`, `OqIt0Ok`: its queries' `QD.Ok` with
-their windows, their points and window pointers, the chain, its region).
+`OqIt1Ok`, `OqIt0Ok`: what iteration `j` of the loop needs: its queries' `QD.Ok` (their windows,
+cap leaves and flags), their points and window pointers, the chain's words, the region it reads.
+`gen_pow_guard`: the loop's guard `g^(j+1) + g^N` is in `K`, nonzero exactly before the last
+iteration.
 -/
 
 namespace LeanVM.Guest.B1
@@ -28,28 +28,28 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 /-- **What a level-0 iteration at `g^j` needs**: its two queries honest with their windows, their
 points and window pointers, the chain's step (non-final levels), and where it reads the caller's
 words. -/
-structure OqIt1Ok (rd : Reader) (R : ℕ → Prop) (s : Oq) (odd j : ℕ)
+structure OqIt1Ok (rd : Reader) (R : ℕ → Prop) (s : Oq) (cd j : ℕ)
     (positions qptrs cap flags coefs hsp ch mu : E) (rounds : List FoldRound) (hsv : List E)
     (w1 w2 : QW) (bp1 bp2 v : E) : Prop where
-  ok1 : (oqQD s 16 true 0 cap flags rounds hsv w1).Ok rd coefs hsp bp1
-  ok2 : (oqQD s (oqE1 s + 2) false (oqK1 s 16) cap flags rounds hsv w2).Ok rd coefs hsp bp2
-  x1 : LoadHolds rd positions (2 * j + odd) (eOfNat w1.1)
-  x2 : LoadHolds rd positions (2 * j + odd + 1) (eOfNat w2.1)
-  b1 : LoadHolds rd qptrs (2 * j + odd) bp1
-  b2 : LoadHolds rd qptrs (2 * j + odd + 1) bp2
+  ok1 : (oqQD s cd 15 true 0 bp1 cap flags rounds hsv w1).Ok rd coefs hsp
+  ok2 : (oqQD s cd (oqE1 s + 2) false (oqK1 s 15) bp2 cap flags rounds hsv w2).Ok rd coefs hsp
+  x1 : LoadHolds rd positions (2 * j) (eOfNat w1.1)
+  x2 : LoadHolds rd positions (2 * j + 1) (eOfNat w2.1)
+  b1 : LoadHolds rd qptrs (2 * j) bp1
+  b2 : LoadHolds rd qptrs (2 * j + 1) bp2
   chv : s.final ≠ 1 → LoadHolds rd ch j v ∧
     LoadHolds rd ch (j + 1) (((v + oqResV s rounds w1) * mu + oqResV s rounds w2) * mu)
-  rp : ∀ e < 2, OqIn R ((positions * gen ^ j * gen ^ j).limb 0 * Parameters.addressOfIndex (odd + e))
-  rq : ∀ e < 2, OqIn R ((qptrs * gen ^ j * gen ^ j).limb 0 * Parameters.addressOfIndex (odd + e))
+  rp : ∀ e < 2, OqIn R ((positions * gen ^ (2 * j)).limb 0 * Parameters.addressOfIndex e)
+  rq : ∀ e < 2, OqIn R ((qptrs * gen ^ (2 * j)).limb 0 * Parameters.addressOfIndex e)
   reg1 : OqQReg R s cap flags coefs hsp bp1 w1.1
   reg2 : OqQReg R s cap flags coefs hsp bp2 w2.1
   rc : s.final ≠ 1 → ∀ e < 2, OqIn R ((ch * gen ^ j).limb 0 * Parameters.addressOfIndex e)
 
 /-- **What a deeper iteration at `g^j` needs.** -/
-structure OqIt0Ok (rd : Reader) (R : ℕ → Prop) (s : Oq) (j : ℕ)
+structure OqIt0Ok (rd : Reader) (R : ℕ → Prop) (s : Oq) (cd j : ℕ)
     (positions qptrs cap flags coefs hsp ch mu : E) (rounds : List FoldRound) (hsv : List E)
     (w : QW) (bp v : E) : Prop where
-  ok : (oqQD s 14 true 0 cap flags rounds hsv w).Ok rd coefs hsp bp
+  ok : (oqQD s cd 14 true 0 bp cap flags rounds hsv w).Ok rd coefs hsp
   x : LoadHolds rd positions j (eOfNat w.1)
   b : LoadHolds rd qptrs j bp
   chv : s.final ≠ 1 → LoadHolds rd ch j v ∧ LoadHolds rd ch (j + 1) ((v + oqResV s rounds w) * mu)
@@ -68,124 +68,6 @@ theorem gen_pow_guard {j N : ℕ} (hN : N < ordG) (hj : j + 1 ≤ N) :
     · exact absurd (by rw [show j + 1 = N by omega]; exact e_add_self _) h
   · have := gen_pow_inj (lt_of_lt_of_le (by omega) (le_of_lt hN)) hN (e_add_eq_zero_iff.mp he)
     omega
-
-/-- **The level-0 loop, placed**: entered at `g^0`, its frames at `fp`, its iterations' walks
-after them, iteration `j`'s from `fp + (N + 1)·fs loop + j·2·fs wlk`. -/
-theorem oqLoop1_relAtIn (hP : coreProgram.Wf) (fs : String → ℕ) (cert : String → V → ℕ)
-    {s : Oq} (hs : s.RowShape) (hfin : s.FinOk) (hpd1 : 1 ≤ s.pd) (hcd : 2 ≤ s.cd) {odd : ℕ}
-    {wlk loop : String}
-    (hW : WalkFn coreProgram wlk s.pd s.cd) {fl : Fn}
-    (hfl : coreProgram.find? loop = some fl) (hpl : fl.params = oqLoopParams)
-    (hbl : fl.body = oqLoop1T s odd wlk loop) (hlp : coreProgram.loop loop = true)
-    {rd : Reader} {R : ℕ → Prop} {fp N : ℕ} (hN : N < ordG)
-    {positions qptrs cap flags coefs hsp ch mu : E} {rounds : List FoldRound} {hsv : List E}
-    {w1 w2 : ℕ → QW} {bp1 bp2 v : ℕ → E}
-    (hit : ∀ j < N, OqIt1Ok rd R s odd j positions qptrs cap flags coefs hsp ch mu rounds hsv
-      (w1 j) (w2 j) (bp1 j) (bp2 j) (v j)) (hN0 : 0 < N) :
-    RelAtIn coreProgram fs cert rd R (fun _ => False) fp ((N + 1) * fs loop + N * (2 * fs wlk)) loop
-      [gen ^ 0, gen ^ N, positions, qptrs, cap, flags, coefs, hsp, ch, mu] [] := by
-  suffices h : ∀ n j, j + n + 1 = N → RelAtInC coreProgram fs cert rd R (fun _ => False)
-      (fp + j * fs loop) (fp + (N + 1) * fs loop + j * (2 * fs wlk)) ((N - j + 1) * fs loop)
-      ((N - j) * (2 * fs wlk)) loop [gen ^ j, gen ^ N, positions, qptrs, cap, flags, coefs, hsp, ch, mu]
-      [] by
-    have := h (N - 1) 0 (by omega)
-    simp only [Nat.zero_mul, Nat.add_zero, Nat.sub_zero] at this
-    exact this.relAtIn
-  intro n
-  induction n with
-  | zero =>
-    intro j hj
-    have H := hit j (by omega)
-    obtain ⟨hK, hne⟩ := gen_pow_guard (j := j) hN (by omega)
-    have := oqIter1_relAtIn (fp := fp + j * fs loop)
-      (c := fp + (N + 1) * fs loop + j * (2 * fs wlk)) (Bt := fs loop) (m := 0) hP fs cert hs hfin
-      hpd1 hcd hW hfl hpl hbl hlp H.ok1 H.ok2 H.x1 H.x2 H.b1 H.b2 H.chv hK
-      (by
-        split
-        · next h => exact absurd (hne.mp h) (by omega)
-        · exact ⟨rfl, rfl⟩) H.rp H.rq H.reg1 H.reg2 H.rc
-    rw [show (N - j + 1) * fs loop = fs loop + fs loop by rw [show N - j = 1 by omega]; ring,
-      show (N - j) * (2 * fs wlk) = 2 * fs wlk + 0 by rw [show N - j = 1 by omega]; ring]
-    exact this
-  | succ n ih =>
-    intro j hj
-    have H := hit j (by omega)
-    obtain ⟨hK, hne⟩ := gen_pow_guard (j := j) hN (by omega)
-    have ht := ih (j + 1) (by omega)
-    rw [show fp + (j + 1) * fs loop = fp + j * fs loop + fs loop by ring,
-      show fp + (N + 1) * fs loop + (j + 1) * (2 * fs wlk) =
-        fp + (N + 1) * fs loop + j * (2 * fs wlk) + 2 * fs wlk by ring, pow_succ] at ht
-    have := oqIter1_relAtIn (fp := fp + j * fs loop)
-      (c := fp + (N + 1) * fs loop + j * (2 * fs wlk)) (Bt := (N - (j + 1) + 1) * fs loop)
-      (m := (N - (j + 1)) * (2 * fs wlk)) hP fs cert hs hfin hpd1 hcd hW hfl
-      hpl hbl hlp H.ok1 H.ok2 H.x1 H.x2 H.b1 H.b2 H.chv hK
-      (by
-        split
-        · exact ht
-        · next h => exact absurd (hne.mpr (by omega)) h) H.rp H.rq H.reg1 H.reg2 H.rc
-    rw [show (N - j + 1) * fs loop = fs loop + (N - (j + 1) + 1) * fs loop by
-        rw [show N - j = N - (j + 1) + 1 by omega]; ring,
-      show (N - j) * (2 * fs wlk) = 2 * fs wlk + (N - (j + 1)) * (2 * fs wlk) by
-        rw [show N - j = N - (j + 1) + 1 by omega]; ring]
-    exact this
-
-/-- **The deeper loop, placed**: entered at `g^0`, its frames at `fp`, its iterations' walks after
-them. -/
-theorem oqLoop0_relAtIn (hP : coreProgram.Wf) (fs : String → ℕ) (cert : String → V → ℕ)
-    {s : Oq} (hs : s.RowShape) (hfin : s.FinOk) (hpd1 : 1 ≤ s.pd) (hcd : 2 ≤ s.cd)
-    {wlk loop : String}
-    (hW : WalkFn coreProgram wlk s.pd s.cd) {fl : Fn}
-    (hfl : coreProgram.find? loop = some fl) (hpl : fl.params = oqLoopParams)
-    (hbl : fl.body = oqLoop0T s wlk loop) (hlp : coreProgram.loop loop = true)
-    {rd : Reader} {R : ℕ → Prop} {fp N : ℕ} (hN : N < ordG)
-    {positions qptrs cap flags coefs hsp ch mu : E} {rounds : List FoldRound} {hsv : List E}
-    {w : ℕ → QW} {bp v : ℕ → E}
-    (hit : ∀ j < N, OqIt0Ok rd R s j positions qptrs cap flags coefs hsp ch mu rounds hsv
-      (w j) (bp j) (v j)) (hN0 : 0 < N) :
-    RelAtIn coreProgram fs cert rd R (fun _ => False) fp ((N + 1) * fs loop + N * fs wlk) loop
-      [gen ^ 0, gen ^ N, positions, qptrs, cap, flags, coefs, hsp, ch, mu] [] := by
-  suffices h : ∀ n j, j + n + 1 = N → RelAtInC coreProgram fs cert rd R (fun _ => False)
-      (fp + j * fs loop) (fp + (N + 1) * fs loop + j * fs wlk) ((N - j + 1) * fs loop)
-      ((N - j) * fs wlk) loop [gen ^ j, gen ^ N, positions, qptrs, cap, flags, coefs, hsp, ch, mu]
-      [] by
-    have := h (N - 1) 0 (by omega)
-    simp only [Nat.zero_mul, Nat.add_zero, Nat.sub_zero] at this
-    exact this.relAtIn
-  intro n
-  induction n with
-  | zero =>
-    intro j hj
-    have H := hit j (by omega)
-    obtain ⟨hK, hne⟩ := gen_pow_guard (j := j) hN (by omega)
-    have := oqIter0_relAtIn (fp := fp + j * fs loop) (c := fp + (N + 1) * fs loop + j * fs wlk)
-      (Bt := fs loop) (m := 0) hP fs cert hs hfin hpd1 hcd hW hfl hpl hbl hlp
-      H.ok H.x H.b H.chv hK (by
-        split
-        · next h => exact absurd (hne.mp h) (by omega)
-        · exact ⟨rfl, rfl⟩) H.rp H.rq H.reg H.rc
-    rw [show (N - j + 1) * fs loop = fs loop + fs loop by rw [show N - j = 1 by omega]; ring,
-      show (N - j) * fs wlk = fs wlk + 0 by rw [show N - j = 1 by omega]; ring]
-    exact this
-  | succ n ih =>
-    intro j hj
-    have H := hit j (by omega)
-    obtain ⟨hK, hne⟩ := gen_pow_guard (j := j) hN (by omega)
-    have ht := ih (j + 1) (by omega)
-    rw [show fp + (j + 1) * fs loop = fp + j * fs loop + fs loop by ring,
-      show fp + (N + 1) * fs loop + (j + 1) * fs wlk =
-        fp + (N + 1) * fs loop + j * fs wlk + fs wlk by ring, pow_succ] at ht
-    have := oqIter0_relAtIn (fp := fp + j * fs loop) (c := fp + (N + 1) * fs loop + j * fs wlk)
-      (Bt := (N - (j + 1) + 1) * fs loop) (m := (N - (j + 1)) * fs wlk) hP fs cert hs hfin hpd1
-      hcd hW hfl hpl hbl hlp H.ok H.x H.b H.chv hK
-      (by
-        split
-        · exact ht
-        · next h => exact absurd (hne.mpr (by omega)) h) H.rp H.rq H.reg H.rc
-    rw [show (N - j + 1) * fs loop = fs loop + (N - (j + 1) + 1) * fs loop by
-        rw [show N - j = N - (j + 1) + 1 by omega]; ring,
-      show (N - j) * fs wlk = fs wlk + (N - (j + 1)) * fs wlk by
-        rw [show N - j = N - (j + 1) + 1 by omega]; ring]
-    exact this
 
 end
 end LeanVM.Guest.B1

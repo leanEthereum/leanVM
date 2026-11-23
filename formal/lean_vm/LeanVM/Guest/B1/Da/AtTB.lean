@@ -71,6 +71,8 @@ structure DvStaticB (fs : String → ℕ) (SB SK : String → ℕ) : Prop where
         0)))) ≤ SB "da_vector"
   exp : fs "da_expand__L6_L7" ≤ SB "da_expand__L6_L7"
   ws : fs "da_weights" + 128 + 128 * fs "da_expand__L6_L7" ≤ SB "da_weights"
+  /-- A skipped loop's phantom tail is at most its frame. -/
+  tk : ∀ f, fs (tailKey f) ≤ fs f
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 

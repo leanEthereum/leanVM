@@ -9,18 +9,17 @@ module
 public import LeanVM.Guest.B1.Gkr.Round
 public import LeanVM.Guest.CoreData
 public import LeanVM.Guest.GuestConst
--- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
-import LeanVM.Guest.Data.Consts
+import LeanVM.Guest.B1.Tables.Basic
 
 /-!
 # Rounds between records
 
-A round record (`ROUND_FS = 0`, `ROUND_CURSOR = 5`, `ROUND_CLAIM = 6`, fields `862` words apart)
+A round record (`ROUND_FS = 0`, `ROUND_CURSOR = 5`, `ROUND_CLAIM = 6`, `ROUND_SLOTS = 7` words)
 carries a sponge's capacity, a stream cursor and a claim. `TbGkrRoundsOut n s rd rec pt` (B1-a's
 `GkrRoundsOut`, its cursor in the record): from the record at `rec`, `n` rounds read `4n` words at
 its cursor, their eq factors at `pt[0 .. n]`, store their challenges at `pt[42 ..]`, and the
-record at `rec·g^s` carries the sponge, the cursor and the claim after them (`gkrRun`). An
-iteration of a radix-four layer's loop moves one record (`s = 1`).
+record `s` records on, at `rec·g^(7s)`, carries the sponge, the cursor and the claim after them
+(`gkrRun`). An iteration of a radix-four layer's loop moves one record (`s = 1`).
 
 * `tb_gkrRun_append`: rounds run in sequence;
 * `gkrRoundsOut_append`: two runs of rounds, the second from the first's last record, are one.
@@ -33,9 +32,6 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-/-- `GKR_ROUNDS_CAP`. -/
-abbrev gkCap : ℕ := guest_const% GKR_ROUNDS_CAP
-
 /-- A record's five capacity cells, its fields `stride` words apart from offset `off`
 (B1-a's `CapAt`). -/
 def TbCapAt (rd : Reader) (rec : E) (off stride : ℕ) (cap : List E) : Prop :=
@@ -45,14 +41,14 @@ def TbCapAt (rd : Reader) (rec : E) (off stride : ℕ) (cap : List E) : Prop :=
 the record). -/
 def TbGkrRoundsOut (n s : ℕ) (rd : Reader) (rec pt : E) : Prop :=
   ∃ (cap : List E) (cur claim : E) (cs : List (List E)) (es : List E),
-    TbCapAt rd rec 0 gkCap cap ∧
-    LoadHolds rd rec (5 * gkCap) cur ∧ LoadHolds rd rec (6 * gkCap) claim ∧
+    TbCapAt rd rec 0 1 cap ∧
+    LoadHolds rd rec 5 cur ∧ LoadHolds rd rec 6 claim ∧
     cs.length = n ∧ (∀ c ∈ cs, c.length = 4) ∧ TbReadsAt rd cur cs.flatten ∧
     es.length = n ∧ TbReadsAt rd pt es ∧
     TbReadsAt rd (pt * gen ^ 42) (gkrRun cs es claim ⟨cap, []⟩).1 ∧
-    TbCapAt rd rec s gkCap (gkrRun cs es claim ⟨cap, []⟩).2.2.cap ∧
-    LoadHolds rd rec (s + 5 * gkCap) (cur * gen ^ (4 * n)) ∧
-    LoadHolds rd rec (s + 6 * gkCap) (gkrRun cs es claim ⟨cap, []⟩).2.1
+    TbCapAt rd rec (7 * s) 1 (gkrRun cs es claim ⟨cap, []⟩).2.2.cap ∧
+    LoadHolds rd rec (7 * s + 5) (cur * gen ^ (4 * n)) ∧
+    LoadHolds rd rec (7 * s + 6) (gkrRun cs es claim ⟨cap, []⟩).2.1
 
 /-! ## Rounds in sequence -/
 
@@ -112,11 +108,11 @@ theorem tb_gkrRun_eta (cs : List (List E)) (es : List E) (claim : E) (cap : List
   have := tb_gkrRun_pend cs es claim ⟨cap, pend⟩ hp
   rw [← this]
 
-/-- **Rounds in sequence**: `n1` rounds from `rec` to `rec·g^s1`, then `n2` from there to
-`s2` further, are `n1 + n2` rounds from `rec` to `rec·g^(s1 + s2)`. -/
+/-- **Rounds in sequence**: `n1` rounds from `rec` to `s1` records on, then `n2` from there to
+`s2` further, are `n1 + n2` rounds from `rec` to `s1 + s2` records on. -/
 theorem gkrRoundsOut_append {rd : Reader} {n1 n2 s1 s2 : ℕ} {rec pt : E}
     (h1 : TbGkrRoundsOut n1 s1 rd rec pt)
-    (h2 : TbGkrRoundsOut n2 s2 rd (rec * gen ^ s1) (pt * gen ^ n1)) :
+    (h2 : TbGkrRoundsOut n2 s2 rd (rec * gen ^ (7 * s1)) (pt * gen ^ n1)) :
     TbGkrRoundsOut (n1 + n2) (s1 + s2) rd rec pt := by
   obtain ⟨cap, cur, claim, cs1, es1, hc, hcur, hcl, hl1, h4, hr1, he1, hre1, hch1, hc1, hu1,
     hcl1⟩ := h1
@@ -145,20 +141,21 @@ theorem gkrRoundsOut_append {rd : Reader} {n1 n2 s1 s2 : ℕ} {rec pt : E}
     exact hch2
   · rw [hrun, tb_gkrRun_eta cs1 es1 claim cap rfl]
     rw [tbCapAt_mul_gen_pow] at hc2'
+    rw [show 7 * (s1 + s2) = 7 * s1 + 7 * s2 by ring]
     exact hc2'
   · rw [tb_loadHolds_mul_gen_pow] at hu2
-    rw [show s1 + s2 + 5 * gkCap = s1 + (s2 + 5 * gkCap) by ring,
+    rw [show 7 * (s1 + s2) + 5 = 7 * s1 + (7 * s2 + 5) by ring,
       show cur * gen ^ (4 * (n1 + n2)) = cur * gen ^ (4 * n1) * gen ^ (4 * n2) by ring]
     exact hu2
   · rw [tb_loadHolds_mul_gen_pow] at hcl2'
     rw [hrun, tb_gkrRun_eta cs1 es1 claim cap rfl,
-      show s1 + s2 + 6 * gkCap = s1 + (s2 + 6 * gkCap) by ring]
+      show 7 * (s1 + s2) + 6 = 7 * s1 + (7 * s2 + 6) by ring]
     exact hcl2'
 
 /-- No rounds: a record's facts. -/
 theorem gkrRoundsOut_zero {rd : Reader} {rec pt : E} {cap : List E} {cur claim : E}
-    (hc : TbCapAt rd rec 0 gkCap cap)
-    (hcur : LoadHolds rd rec (5 * gkCap) cur) (hcl : LoadHolds rd rec (6 * gkCap) claim) :
+    (hc : TbCapAt rd rec 0 1 cap)
+    (hcur : LoadHolds rd rec 5 cur) (hcl : LoadHolds rd rec 6 claim) :
     TbGkrRoundsOut 0 0 rd rec pt :=
   ⟨cap, cur, claim, [], [], hc, hcur, hcl, rfl, by simp, tbReadsAt_nil _ _, rfl,
     tbReadsAt_nil _ _, tbReadsAt_nil _ _, by simpa [gkrRun] using hc,

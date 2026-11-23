@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B1.Gkr.GlRounds
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«gkr_layer__L»
+import LeanVM.Guest.B1.Tables.Basic
 
 /-!
 # A layer's head and middle, soundly
@@ -20,7 +21,7 @@ import LeanVM.Guest.Data.ValNames.«gkr_layer__L»
   `gkr_pts·g^(40(j + 1))`, the head record `rounds·pos`, and the claim the trees' values combined;
 * `gl_headStore`: the head record gets the state after the head rounds;
 * `gl_loopCall`: the loop's call on `qrow = pt·g^(2p)` and `nqrow = qrow·g^42`;
-* `gl_tailSetup`: the last record `head·x_m`, its loads, and `tpt = qrow·x_m^8`,
+* `gl_tailSetup`: the last record `head·x_m^7`, its loads, and `tpt = qrow·x_m^8`,
   `ntpt = tpt·g^42`.
 -/
 
@@ -134,9 +135,9 @@ theorem gl_pre (h : Stmt.HoldsList C rd σ glPre True kret) {j sh : ℕ} (hx : �
 
 /-- **The head record's stores**: the state after the head rounds. -/
 theorem gl_headStore {p : ℕ} (hp4 : p < 4) (h : Stmt.HoldsList C rd σ (glHeadStore p) True kret) :
-    TbCapAt rd (σ (.n (valf% «gkr_layer» "head"))) 0 gkCap ((glCapAfter 58 (2 * p) (glCap (valf% «gkr_layer» "nxt[8]@1"))).map σ) ∧
-      LoadHolds rd (σ (.n (valf% «gkr_layer» "head"))) (5 * gkCap) (σ (.n (valf% «gkr_layer» "s4#0")) * gen ^ (4 * (2 * p))) ∧
-      LoadHolds rd (σ (.n (valf% «gkr_layer» "head"))) (6 * gkCap) (σ (glClaimAfter 58 (2 * p) (.n (valf% «gkr_layer» "claim@2")))) := by
+    TbCapAt rd (σ (.n (valf% «gkr_layer» "head"))) 0 1 ((glCapAfter 58 (2 * p) (glCap (valf% «gkr_layer» "nxt[8]@1"))).map σ) ∧
+      LoadHolds rd (σ (.n (valf% «gkr_layer» "head"))) 5 (σ (.n (valf% «gkr_layer» "s4#0")) * gen ^ (4 * (2 * p))) ∧
+      LoadHolds rd (σ (.n (valf% «gkr_layer» "head"))) 6 (σ (glClaimAfter 58 (2 * p) (.n (valf% «gkr_layer» "claim@2")))) := by
   rcases Nat.eq_zero_or_pos p with rfl | hp
   · simp only [glHeadStore, ↓reduceIte, glHeadStore0, tb_holdsList_append_noRet
       (tb_noRetList_mapAtoms 5 _), tb_holdsList_mapAtoms] at h
@@ -188,15 +189,15 @@ theorem gl_loopCall {p : ℕ} (hp : p < 4) {nm : String}
 
 /-- **The tail's pointers** and the last record's loads. -/
 theorem gl_tailSetup {p : ℕ} (hp4 : p < 4) (h : Stmt.HoldsList C rd σ (glTailSetup p) True kret) :
-    σ (.n (67 + glD p)) = σ (.n (valf% «gkr_layer» "point_row")) * gen ^ (2 * p) * σ (.n (valf% «gkr_layer» "x_m")) ^ 8 ∧
-      σ (.n (70 + glD p)) = σ (.n (67 + glD p)) * gen ^ 42 ∧
-      TbCapAt rd (σ (.n (valf% «gkr_layer» "head")) * σ (.n (valf% «gkr_layer» "x_m"))) 0 gkCap ((glCap (71 + glD p)).map σ) ∧
-      LoadHolds rd (σ (.n (valf% «gkr_layer» "head")) * σ (.n (valf% «gkr_layer» "x_m"))) (5 * gkCap) (σ (.n (76 + glD p))) ∧
-      LoadHolds rd (σ (.n (valf% «gkr_layer» "head")) * σ (.n (valf% «gkr_layer» "x_m"))) (6 * gkCap) (σ (.n (77 + glD p))) := by
-  have hloads : ∀ w, Stmt.HoldsList C rd σ (glTailLoads p w) True kret → σ (.n w) = σ (.n (valf% «gkr_layer» "head")) * σ (.n (valf% «gkr_layer» "x_m")) →
-      TbCapAt rd (σ (.n (valf% «gkr_layer» "head")) * σ (.n (valf% «gkr_layer» "x_m"))) 0 gkCap ((glCap (71 + glD p)).map σ) ∧
-      LoadHolds rd (σ (.n (valf% «gkr_layer» "head")) * σ (.n (valf% «gkr_layer» "x_m"))) (5 * gkCap) (σ (.n (76 + glD p))) ∧
-      LoadHolds rd (σ (.n (valf% «gkr_layer» "head")) * σ (.n (valf% «gkr_layer» "x_m"))) (6 * gkCap) (σ (.n (77 + glD p))) := by
+    σ (.n (71 + glD p)) = σ (.n (valf% «gkr_layer» "point_row")) * gen ^ (2 * p) * σ (.n (valf% «gkr_layer» "x_m")) ^ 8 ∧
+      σ (.n (74 + glD p)) = σ (.n (71 + glD p)) * gen ^ 42 ∧
+      TbCapAt rd (σ (.n (valf% «gkr_layer» "head")) * σ (.n (valf% «gkr_layer» "x_m")) ^ 7) 0 1 ((glCap (75 + glD p)).map σ) ∧
+      LoadHolds rd (σ (.n (valf% «gkr_layer» "head")) * σ (.n (valf% «gkr_layer» "x_m")) ^ 7) 5 (σ (.n (80 + glD p))) ∧
+      LoadHolds rd (σ (.n (valf% «gkr_layer» "head")) * σ (.n (valf% «gkr_layer» "x_m")) ^ 7) 6 (σ (.n (81 + glD p))) := by
+  have hloads : ∀ w, Stmt.HoldsList C rd σ (glTailLoads p w) True kret → σ (.n w) = σ (.n (valf% «gkr_layer» "head")) * σ (.n (valf% «gkr_layer» "x_m")) ^ 7 →
+      TbCapAt rd (σ (.n (valf% «gkr_layer» "head")) * σ (.n (valf% «gkr_layer» "x_m")) ^ 7) 0 1 ((glCap (75 + glD p)).map σ) ∧
+      LoadHolds rd (σ (.n (valf% «gkr_layer» "head")) * σ (.n (valf% «gkr_layer» "x_m")) ^ 7) 5 (σ (.n (80 + glD p))) ∧
+      LoadHolds rd (σ (.n (valf% «gkr_layer» "head")) * σ (.n (valf% «gkr_layer» "x_m")) ^ 7) 6 (σ (.n (81 + glD p))) := by
     intro w hl hw
     simp only [glTailLoads, tb_holdsList_append_noRet (tb_noRetList_mapAtoms 5 _),
       tb_holdsList_mapAtoms] at hl
@@ -208,20 +209,20 @@ theorem gl_tailSetup {p : ℕ} (hp4 : p < 4) (h : Stmt.HoldsList C rd σ (glTail
   rcases Nat.eq_zero_or_pos p with rfl | hp1
   · simp only [glTailSetup, ↓reduceIte, glTailSetup0, holdsList_append, Stmt.HoldsList,
       Stmt.Holds, Atom.Holds] at h
-    obtain ⟨m64, m65, m66, m67, m68, c69, m70, m71, hl⟩ := h
+    obtain ⟨r0, r1, r2, r3, m64, m65, m66, m67, m68, c69, m70, m71, hl⟩ := h
     rw [tb_word_two_pow (by norm_num)] at c69
     have hD : glD 0 = 0 := rfl
     simp only [hD, Nat.add_zero, Nat.mul_zero, pow_zero, mul_one]
     refine ⟨by rw [m68, m67, m66, m65]; ring, by rw [m71, m70, c69, m68, m67]; ring,
-      hloads 63 hl m64⟩
+      hloads _ hl (by rw [m64, r3, r2, r1, r0]; ring)⟩
   · have hp0 : p ≠ 0 := by omega
     simp only [glTailSetup, hp0, ↓reduceIte, glTailSetupP, holdsList_append, Stmt.HoldsList,
       Stmt.Holds, Atom.Holds] at h
-    obtain ⟨m0, m1, m2, m3, c4, m5, m6, c7, m8, m9, hl⟩ := h
+    obtain ⟨r0, r1, r2, r3, m0, m1, m2, m3, c4, m5, m6, c7, m8, m9, hl⟩ := h
     rw [tb_word_two_pow (by omega)] at c4 c7
-    obtain ⟨hcap, hcur, hcl⟩ := hloads _ hl m0
+    obtain ⟨hcap, hcur, hcl⟩ := hloads _ hl (by rw [m0, r3, r2, r1, r0]; ring)
     rw [glD_pos hp0] at hcap hcur hcl ⊢
-    rw [show 67 + (78 * p + 6) = 73 + 78 * p by omega, show 70 + (78 * p + 6) = 76 + 78 * p by omega]
+    rw [show 71 + (78 * p + 6) = 77 + 78 * p by omega, show 74 + (78 * p + 6) = 80 + 78 * p by omega]
     refine ⟨?_, ?_, hcap, hcur, hcl⟩
     · rw [m6, m5, c4, m3, m2, m1]; ring
     · rw [m9, m8, c7, m6, m5, c4, m3, m2, m1, pow_add]

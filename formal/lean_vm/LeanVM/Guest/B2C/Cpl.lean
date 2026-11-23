@@ -71,6 +71,9 @@ noncomputable def partStmts (j i k : ℕ) : List Core.Stmt :=
     (((certOf j).stmtsAt (coreOf j) i).drop (partS j i k)).take (partS j i (k + 1) - partS j i k)
   else ((certOf j).stmtsAt (coreOf j) i).drop (partS j i k)
 
+/-- The next frame's cells where function `j`'s tail call's arguments are computed. -/
+noncomputable def nxOf (j : ℕ) : List ℕ := nextCells (certOf j).locs (fsN j) (tailArgs (coreOf j))
+
 /-- The context of window `i` of function `j`. -/
 noncomputable def cxOf (j : ℕ) (idx : Trie Exec.Seg) (loc : CLoc) (stat : Trie PC) (nv : ℕ)
     (stop : Option (ℕ × ℕ)) : CX :=
@@ -105,7 +108,7 @@ noncomputable def cplRes (j i k : ℕ) : RC :=
       (((certOf j).succAt i).drop 1) ((certOf j).endAt (fnOf j) i) with
   | ⟨segs, _⟩ => listSeq segs fun segs ↦ (index segs).seq fun idx ↦ (clocW (certOf j) i).seq fun loc ↦
     (statT (fsN j) (plumbOf j).stat .nil).seq fun stat ↦
-    (fileB loc (fsN j) (partStmts j i k) .nil).seq fun B ↦
+    (fileB loc (fsN j) (nxOf j) (partStmts j i k) .nil).seq fun B ↦
     (partC j i k).seq fun c ↦ natSeq (partU j i k) fun u ↦ natSeq (partJ j i k) fun J ↦
     natSeq (plumbOf j).nv fun nv ↦ natSeq (partM j i k) fun m ↦
     match getF idx J with

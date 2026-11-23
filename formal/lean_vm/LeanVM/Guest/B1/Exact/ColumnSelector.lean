@@ -126,7 +126,10 @@ theorem cs_completeAtDTBRH (k : ℕ) (hk : 4 ≤ k) {κ : ℕ} (hκ : κ < 31) {
         show Tables.cskVal _ _ _ _ _ _ _ (Tables.csC κ j + 4) = _
         rw [Tables.cskVal_at hκ' hj (by split <;> omega)]
         simp [Tables.cskRole]
-      refine ⟨ese + Tables.cskU κ o j + (64 * (κ / 4 + j) + 16 * (Tables.csW κ j - 1)), ?_,
+      have hso : Tables.selEqOff (Tables.csW κ j - 1) ≤ 16 := by
+        rcases (by omega : Tables.csW κ j - 1 = 0 ∨ Tables.csW κ j - 1 = 1 ∨ Tables.csW κ j - 1 = 2 ∨
+          Tables.csW κ j - 1 = 3) with h | h | h | h <;> simp [h, Tables.selEqOff]
+      refine ⟨ese + Tables.cskU κ o j + (32 * (κ / 4 + j) + Tables.selEqOff (Tables.csW κ j - 1)), ?_,
         Or.inl ⟨(ese, Tables.stEqWords (Tables.stVal ept ept1 ese p p1)), by simp [csLin, Tables.stOwn],
           by omega, by simp [Tables.stEqWords]; omega⟩⟩
       rw [e]; exact cs_addr_mul _ _ _

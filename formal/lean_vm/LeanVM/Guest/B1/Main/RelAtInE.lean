@@ -49,7 +49,7 @@ def KidsFromInPE (rd : Reader) (σ : Val) (Q : String → Val → Prop) (R : ℕ
   | Dacc, c :: cs, p :: pss, b, n, Dend => ∃ (m n' : ℕ) (Rk Dk : ℕ → Prop), n = m + n' ∧
       (∀ i, Rk i → R i ∨ Dacc i) ∧
       (if c.taken then RelAtInPE P fs cert rd Q Rk Dk b m c.f (c.args.map σ) (c.rets.map σ) p
-        else m = fs c.f ∧ p = []) ∧
+        else m = fs (tailKey c.f) ∧ p = []) ∧
       KidsFromInPE rd σ Q R (fun i => Dacc i ∨ (c.taken = true ∧ Dk i)) cs pss (b + m) n' Dend
   | _, _, _, _, _, _ => False
 
@@ -221,7 +221,7 @@ theorem relAtInPE_of_walk_loop (hP : P.Wf) {R D Dk Rt Dt : ℕ → Prop} {fp c B
     (htail : if ct.taken then
         RelAtInCPE P fs cert rd Q Rt Dt (fp + fs f) (c + (allocs σ es).sum + N) Bt m ct.f
           (ct.args.map σ) (ct.rets.map σ) pt
-      else Bt = fs ct.f ∧ m = 0 ∧ pt = [])
+      else Bt = fs (tailKey ct.f) ∧ m = 0 ∧ pt = [])
     (hbuf : (allocDsts es).map σ = (bases c (allocs σ es)).map fun b => ofK (addressOfIndex b))
     (haddr : ∀ q ∈ addrs es, σ q.1 = ofK (addressOfIndex (fp + cert f q.2)))
     (hk : KidsFromInPE P fs cert rd σ Q (fun i => R i ∨ ownData cert fp c f (allocs σ es) es i)
@@ -236,7 +236,7 @@ theorem relAtInPE_of_walk_loop (hP : P.Wf) {R D Dk Rt Dt : ℕ → Prop} {fp c B
   have htail' : if ct.taken then
       RelAtInCT P fs cert rd Rt Dt (fp + fs f) (c + (allocs σ es).sum + N) Bt m ct.f (ct.args.map σ) (ct.rets.map σ)
         ((fun T t => T t ∧ t.Every Q) fun t => t.pops P rd = pt)
-      else Bt = fs ct.f ∧ m = 0 := by
+      else Bt = fs (tailKey ct.f) ∧ m = 0 := by
     by_cases ht : ct.taken = true
     · rw [ite_eq_left ht] at htail ⊢; exact htail
     · rw [ite_eq_right ht] at htail ⊢; exact ⟨htail.1, htail.2.1⟩

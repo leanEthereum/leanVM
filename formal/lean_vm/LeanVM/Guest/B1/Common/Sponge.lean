@@ -8,7 +8,9 @@
 module
 
 public import LeanVM.Guest.B1.Common.Basic
-public import LeanVM.Protocol.WithHash
+public import LeanVM.Guest.Value.KeccakDuplex
+public import LeanVM.Protocol.RunWithHash
+import LeanVM.Protocol.WithHash
 
 /-!
 # The sponge the guest carries

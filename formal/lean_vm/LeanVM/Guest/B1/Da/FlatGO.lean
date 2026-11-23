@@ -94,8 +94,8 @@ theorem kidsFromIn_of_kidsGBP (κ : ℕ) : ∀ (pre : List ℕ) (ks : List KidG)
               · exact Or.inr hi
             · simpa [hct, atAllG] using hR2
     · obtain ⟨N, L, outs, fps, hNB, hlen, hge, ho, hW, hD, hI, ⟨Lw, hP⟩, hK⟩ :=
-        kidsFromIn_of_kidsGBP κ (pre ++ [b]) ks Bs.tail hok.2 (b + fs k.f)
-      refine ⟨fs k.f + N, L, ([], []) :: outs, b :: fps,
+        kidsFromIn_of_kidsGBP κ (pre ++ [b]) ks Bs.tail hok.2 (b + fs (tailKey k.f))
+      refine ⟨fs (tailKey k.f) + N, L, ([], []) :: outs, b :: fps,
         by simp only [kidsGBound, ht, Bool.false_eq_true, ↓reduceIte]; omega, by simp [hlen],
         fun p hp => ?_,
         ⟨fun h => absurd h ht, ho⟩, hW.mono (by omega) (by omega), hD, ⟨fun h => absurd h ht, hI⟩,
@@ -107,7 +107,7 @@ theorem kidsFromIn_of_kidsGBP (κ : ℕ) : ∀ (pre : List ℕ) (ks : List KidG)
       match cs, hc with
       | c :: cs, ⟨hf, hct, _, hc⟩ =>
         simp only [atAllG, Kid.lins, List.flatMap_cons] at hLin
-        refine ⟨fs k.f, N, fun _ => False, fun _ => False, rfl, fun _ h => h.elim, ?_, ?_⟩
+        refine ⟨fs (tailKey k.f), N, fun _ => False, fun _ => False, rfl, fun _ h => h.elim, ?_, ?_⟩
         · have ht' : k.taken = false := by simpa using ht
           rw [hct]
           simp only [ht', Bool.false_eq_true, ↓reduceIte]

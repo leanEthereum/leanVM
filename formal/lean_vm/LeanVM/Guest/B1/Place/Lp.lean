@@ -72,7 +72,7 @@ def LpMem (cert : String → V → ℕ) (S d cd : ℕ) (dfp : ℕ → ℕ) (w0 :
     LoadHolds rd pos (j * (128 / d) + i) (eOfNat (qwPosOf d (sqSample w0 cap j) i)) ∧
     LoadHolds rd wp (j * (128 / d) + i) (qwPtrAt cert (dqwName d cd) (dfp j) d cd i)
 
-/-- **`level_positions` at `(name, S, loop, d, cd)`, placed**: its loads among the caller's
+/-- **`level_positions` at `(name, loop, d, cd)` and the squeeze count `S`, placed**: its loads among the caller's
 words (`positions` and `win_ptrs` from `g^ep` and `g^ew`, `S·128/d` each, and the window table),
 on every memory holding them (`LpMem`), complete, handing back the decoders' runs. -/
 def LpAtD (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) (name loop : String) (S d cd : ℕ) :
@@ -85,15 +85,16 @@ def LpAtD (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) (name l
       LpMem cert S d cd (lpDecPos fs name loop S d cd fp) w0 cap (ofK (addressOfIndex ep))
         (ofK (addressOfIndex ew)) tabs rd) →
     CompleteAtPO fs cert κ name Lin
-      (w0 :: cap ++ [ofK (addressOfIndex ep), ofK (addressOfIndex ew), tabs])
+      (w0 :: cap ++ [ofK (addressOfIndex ep), ofK (addressOfIndex ew), tabs, gen ^ S])
       ((⟨cap, []⟩ : Fs).squeezeN (S - 1)).2.cap (lpRuns fs cert name loop S d cd w0 cap) none
 
 /-- **`level_positions` is complete placed at every specialization**: for frame runs fitting their
 frames, their cells consecutive, on memories defined below `2^κ`, `7 ≤ κ` (the decoders' range
-checks), each entry `(name, S, loop, d, cd)` of `lpTable` is `LpAtD`. -/
+checks), each entry `(name, loop, d, cd)` of `lpTable` is `LpAtD` at every squeeze count
+`1 ≤ S ≤ 64` (its last argument `g^S`). -/
 def level_positions_completeAt_Spec : Prop :=
   ∀ (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ), Lift.RunsFit fs cert → RunsConsec cert →
-    7 ≤ κ → ∀ e ∈ lpTable, LpAtD fs cert κ e.1 e.2.2.1 e.2.1 e.2.2.2.1 e.2.2.2.2
+    7 ≤ κ → ∀ e ∈ lpTable, ∀ S, 1 ≤ S → S ≤ 64 → LpAtD fs cert κ e.1 e.2.1 S e.2.2.1 e.2.2.2
 
 end
 end LeanVM.Guest.B1

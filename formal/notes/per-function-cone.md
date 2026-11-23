@@ -64,7 +64,7 @@ Also done: `Statement/Data/`'s bodies hidden, the modules that evaluate them imp
 
 Not pursued:
 
-4. **Untaint.** Data imports cut out of the generic modules (`Exec`, `ExecC`, `B1.Common.Basic`, `Pow`, `LimitsNZ`, ...); with the user's go, `guestProgram` moves in the statement.
+4. **Untaint.** Data imports cut out of the generic modules (`Exec`, `ExecC`, `B1.Common.Basic`, `Pow`, ...); with the user's go, `guestProgram` moves in the statement.
 5. **The rest of the packs.** The Memory and Count data in the packs (Checked's and B2C's are).
 6. **`main_loop2`'s split windows local**, the rest of Checked and B2C: the group checks over the pack's data (`win_lit` on terms), the assemblies as glue.
 7. **Relocation.** Tagged pointers, `Sym.code`/`.ent`, soundness for every `ρ`, `link` and the `g^pc` table in the glue.

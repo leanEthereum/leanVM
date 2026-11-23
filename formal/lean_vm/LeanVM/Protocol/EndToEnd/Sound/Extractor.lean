@@ -8,13 +8,19 @@
 
 module
 
-public import LeanVM.Protocol.EndToEnd.Sound.Theorem
-public import LeanVM.Protocol.EndToEnd.Front.LayoutBridgeB
-public import LeanVM.Protocol.LeanIsa.Read
-public import LeanVM.Protocol.Rom.Statement
+import LeanVM.Protocol.EndToEnd.Sound.Theorem
+import LeanVM.Protocol.EndToEnd.Front.LayoutBridgeB
+import LeanVM.Protocol.LeanIsa.Read
+import LeanVM.Protocol.Rom.Statement
 public import LeanVM.Protocol.Extraction.Defs
 public import LeanVM.Protocol.WithHash
-public import LeanVM.Protocol.WithHashBridge
+import LeanVM.Protocol.WithHashBridge
+public import LeanVM.Protocol.EndToEnd.Front.LayoutInstance
+public import LeanVM.Protocol.Compile.Rom.History
+public import ArkLib.Data.CodingTheory.HiddenDerivative.Parameters.Johnson.FiniteBounds
+public import ArkLib.Data.CodingTheory.ReedSolomon
+public import CompPoly.Univariate.Lagrange
+public import Mathlib.Tactic
 
 /-!
 # Extracted runs, the witness's memory image and the committed word

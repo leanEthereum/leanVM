@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B1.Gkr.InterfaceP
 public import LeanVM.Protocol.Compile.Prog
 public import LeanVM.Guest.B1.Sumcheck.MeaningP
+import LeanVM.Guest.B1.Common.Run
 
 /-!
 # The GKR walk on the carried sponge

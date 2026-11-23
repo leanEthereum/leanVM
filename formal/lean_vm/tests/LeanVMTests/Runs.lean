@@ -1,3 +1,5 @@
+module
+
 /-!
 # Tests: the runs, compiled
 
@@ -11,6 +13,8 @@ one `noncomputable` where nothing runs it (as `LeanVM.Guest.End.bytecode`).
 
 namespace LeanVMTests
 
+@[expose] public section
+
 /-- A test module's runs: each a name and its check. -/
 abbrev Runs := List (String × (Unit → Bool))
 
@@ -18,4 +22,5 @@ abbrev Runs := List (String × (Unit → Bool))
 macro doc?:(docComment)? "test_runs " n:ident " := " v:term : command =>
   `(set_option compiler.extract_closed false in $[$doc?]? def $n : LeanVMTests.Runs := $v)
 
+end
 end LeanVMTests

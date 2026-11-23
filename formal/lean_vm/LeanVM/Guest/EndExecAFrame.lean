@@ -218,7 +218,7 @@ theorem frame_next {r : Ref} {C : Ctx} {e : Ent} {s sx : St} {i : ℕ} {h : Hint
   have hd := JumpCells.jcData_all _ h1 (by have : nFns = fn_count% := rfl; omega)
   unfold jcData jcDataD at hd
   simp only [Bool.and_eq_true] at hd
-  obtain ⟨⟨⟨⟨⟨⟨⟨-, -⟩, -⟩, -⟩, -⟩, -⟩, hloop⟩, -⟩ := hd
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨-, -⟩, -⟩, -⟩, -⟩, -⟩, hloop⟩, -⟩, -⟩ := hd
   have hsite' := hsite
   rw [hA] at hsite'
   obtain ⟨hsm, hsq, hsa, hsr⟩ := siteAt_ofData hsite'
@@ -253,7 +253,7 @@ theorem framePtr_alignA : FramePtr alignA := by
   have hd := JumpCells.jcData_all _ h1 (by have : nFns = fn_count% := rfl; omega)
   unfold jcData jcDataD at hd
   simp only [Bool.and_eq_true] at hd
-  obtain ⟨⟨⟨⟨⟨⟨⟨-, -⟩, hsites⟩, huniq⟩, -⟩, -⟩, -⟩, -⟩ := hd
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨-, -⟩, hsites⟩, huniq⟩, -⟩, -⟩, -⟩, -⟩, -⟩ := hd
   rw [hA] at hsite
   obtain ⟨hsm, hsq, hsa, hsr⟩ := siteAt_ofData hsite
   have hso : B2C.siteOf (i0 + 1) c = some s0 := siteOf_eq huniq hsm hsa hsr
@@ -268,7 +268,7 @@ theorem framePtr_alignA : FramePtr alignA := by
   rw [hIP.1, List.getElem?_map, kid_pos hkC] at hkfp
   obtain rfl := (Option.some.inj hkfp).symm
   have hwithin : e.I.fp + B2C.fs e.I.t.name ≤ r.T.total B2C.fs :=
-    honest_within hI (by have := hHon.cells.two_le e.I hI; omega)
+    honest_within_node hI hIt (by have := hHon.cells.two_le e.I hI; omega)
   have h28 : r.T.total B2C.fs ≤ 2 ^ r.κ := le_two_pow_logMem _
   have h2k : 2 ^ r.κ ≤ 2 ^ 28 := Nat.pow_le_pow_right (by norm_num) hκ
   rw [hfs] at hwithin

@@ -36,16 +36,34 @@ def write(name, doc, imports, thms):
 
 def lq_args(name):
     q, base, _folds, _leaf, depth, cd = map(int, name[len('level_queries__L'):].split('_L')[:6])
-    # At base 1 `level_queries` takes the queries in pairs, the odd one left over (`odd`), else one at a time.
+    # At base 1 `level_queries` takes the queries in pairs, the odd one left over (`odd`, a runtime `g^odd`), else
+    # one at a time.
     n, odd = (q // 2, q % 2) if base == 1 else (q, 0)
     return n, odd, base, depth, cd
 
 
 def os_witness(i):
-    """Each `level_positions` dispatch of the body: its top-level statement index and its window pointers' value."""
-    stmts = [l for l in gen.bodies['core%d' % i].split('\n') if l.startswith('  .')]
-    return [(k, int(re.findall(r'\.n (\d+)', l.split('] [')[1])[7])) for k, l in enumerate(stmts)
-            if l.startswith('  .dispatch') and '"level_positions__L' in l]
+    """Each `level_positions` dispatch of the body: its top-level statement index, its window pointers' value, the
+    top-level statement index of the last match on the selector before it, and the squeeze count `S` that match's arm
+    `r` sets the dispatch's `squeezes_g` to (`g^S`, a constant copied into it), by arm."""
+    lines = gen.bodies['core%d' % i].split('\n')
+    starts = [n for n, l in enumerate(lines) if l.startswith('  .')]
+    chunks = ['\n'.join(lines[a:b]) for a, b in zip(starts, starts[1:] + [len(lines)])]
+    out = []
+    for k, c in enumerate(chunks):
+        if not (c.startswith('  .dispatch') and '"level_positions__L' in c):
+            continue
+        args = [int(x) for x in re.findall(r'\.n (\d+)', c.split('] [')[1].split(']')[0])]
+        wv, sv = args[7], args[9]
+        pm = max(j for j in range(k) if chunks[j].startswith('  .match_ (.n 0)'))
+        ss = []
+        for arm in re.split(r'\n    \[', chunks[pm])[1:]:
+            src = re.search(r'\.atom \(\.copy \(\.n %d\) \(\.n (\d+)\)\)' % sv, arm).group(1)
+            w = int(re.search(r'\.atom \(\.const \(\.n %s\) \(word (\d+) 0\)\)' % src, arm).group(1))
+            assert w & (w - 1) == 0 and w > 0, (i, k, w)
+            ss.append(w.bit_length() - 1)
+        out.append((k, wv, pm, ss))
+    return out
 
 
 for k, part in enumerate(family('level_queries__L')):
@@ -71,7 +89,8 @@ for k, part in enumerate(family('open_stacked__L')):
           "  (`osOk`), by kernel evaluation." % names,
           'public import LeanVM.Guest.WalkOsDefs',
           ['set_option maxRecDepth 100000 in\n/-- `%s`. -/\ntheorem osOk_%d : osOk %d [%s] = true := by decide +kernel\n'
-           % (n, i + 1, i + 1, ', '.join('(%d, %d)' % w for w in os_witness(i))) for i, n in part])
+           % (n, i + 1, i + 1, ', '.join('(%d, %d, %d, [%s])' % (a, b, c, ', '.join(map(str, d)))
+                                         for a, b, c, d in os_witness(i))) for i, n in part])
     write('WalkOs%d' % k,
           "The cut obligations (`CutsKnown`) of %s\n  (`os_cutsKnown`, `WalkOsOk%d.lean`'s checks)." % (names, k),
           'public import LeanVM.Guest.WalkOs\npublic import LeanVM.Guest.WalkOsOk%d' % k,

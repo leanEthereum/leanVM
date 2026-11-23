@@ -28,12 +28,12 @@ open LeanVM.Guest.Value LeanVM.Protocol LeanVM.Protocol.Compile LeanVM.Protocol.
 
 @[expose] public section
 
-variable {H : CallRel → Reader → Prop}
+variable {M : Reader → Prop} {H : CallRel → Reader → Prop}
 
 /-- **A heap buffer** `HeapBuf(g^e)` at `k`, its pointer `p`. -/
 theorem heap_blk (σ : Val) (e k : ℕ) (p : E) :
-    BlkA H σ k (k + 2) (osHeap e k) (fun σ' ↦ σ' (.n k) = gw e ∧ σ' (.n (k + 1)) = p) := by
-  refine ⟨lstF k [gw e, p], fun C rd _ σ' _ hr ↦ ?_⟩
+    BlkA M H σ k (k + 2) (osHeap e k) (fun σ' ↦ σ' (.n k) = gw e ∧ σ' (.n (k + 1)) = p) := by
+  refine BlkA.ofHM (lstF k [gw e, p]) fun C rd _ σ' _ hr ↦ ?_
   have e0 := lstF_at hr (by simp) 0 (by simp)
   have e1 := lstF_at hr (by simp) 1 (by simp)
   simp only [List.getD_cons_zero, List.getD_cons_succ, Nat.add_zero] at e0 e1
@@ -45,11 +45,11 @@ theorem heap_blk (σ : Val) (e k : ℕ) (p : E) :
 and its capacity; the outputs its permutation's cells. -/
 theorem keccak_blk {σ : Val} {ins : List ℕ} {out : ℕ} (s : Fs) (hs : s.pend.length ≤ 4)
     (hl : ins.length = 13) (hin : ∀ i ∈ ins, i < out)
-    (hins : ∀ C rd, H C rd → ins.map (fun i ↦ σ (.n i)) =
+    (hins : ∀ C rd, HM M H C rd → ins.map (fun i ↦ σ (.n i)) =
       pendCells s.pend ++ List.replicate (8 - 2 * s.pend.length) 0 ++ s.cap) :
-    BlkA H σ out (out + 13) [osKeccak ins out]
+    BlkA M H σ out (out + 13) [osKeccak ins out]
       (fun σ' ↦ ∀ j < 13, σ' (.n (out + j)) = rdCell s.perm j) := by
-  refine ⟨fun i ↦ rdCell s.perm (i - out), fun C rd hH σ' ha hr ↦ ?_⟩
+  refine BlkA.ofHM (fun i ↦ rdCell s.perm (i - out)) fun C rd hH σ' ha hr ↦ ?_
   have hv : ∀ j < 13, σ' (.n (out + j)) = rdCell s.perm j := fun j hj ↦ by
     rw [hr _ (by omega) (by omega)]; simp only [Nat.add_sub_cancel_left]
   refine ⟨?_, hv⟩
@@ -67,13 +67,13 @@ theorem keccak_blk {σ : Val} {ins : List ℕ} {out : ℕ} (s : Fs) (hs : s.pend
 
 /-- A fixed buffer's pointer, as a block at fixed values. -/
 theorem osMatS_blkA {P : List (ℕ × ℕ × ℕ)} {base off : ℕ} {s : OsSt} (σ : Val)
-    (hbase : base < s.k) (hmb : MatsBelow s.k s.mats) (hm : ∀ C rd, H C rd → MatsOk σ s.mats)
+    (hbase : base < s.k) (hmb : MatsBelow s.k s.mats) (hm : ∀ C rd, HM M H C rd → MatsOk σ s.mats)
     (hoff : off < u128Bound) :
-    BlkA H σ s.k (osMatS P base off s).2.2.k (osMatS P base off s).1
+    BlkA M H σ s.k (osMatS P base off s).2.2.k (osMatS P base off s).1
       (fun σ' ↦ σ' (.n (osMatS P base off s).2.1) = σ (.n base) * gen ^ off ∧
         MatsOk σ' (osMatS P base off s).2.2.mats ∧
         MatsBelow (osMatS P base off s).2.2.k (osMatS P base off s).2.2.mats) :=
-  BlkA.ofF _ fun C rd hH ↦ osMatS_blk σ hbase hmb (hm C rd hH) hoff
+  BlkA.ofHM _ (fun C rd hH ↦ osMatS_blk σ hbase hmb (hm C rd hH) hoff) (osMatP_noWin _ _ _ _ _)
 
 /-- The materializations after a fixed buffer's pointer lie below the next free value. -/
 theorem osMatS_below {P : List (ℕ × ℕ × ℕ)} {base off : ℕ} {s : OsSt} (hmb : MatsBelow s.k s.mats)
@@ -87,9 +87,10 @@ theorem osMatS_below {P : List (ℕ × ℕ × ℕ)} {base off : ℕ} {s : OsSt} 
 
 /-- **Stores**: loads of fixed values, holding where memory holds them. -/
 theorem stores_blk {σ : Val} {k : ℕ} {ss : List Stmt}
-    (h : ∀ C rd, H C rd → ∀ σ', AgreeBelow k σ σ' → AllOk C rd σ' ss) :
-    BlkA H σ k k ss (fun _ ↦ True) :=
-  ⟨fun _ ↦ 0, fun C rd hH σ' ha _ ↦ ⟨h C rd hH σ' ha, trivial⟩⟩
+    (h : ∀ C rd, HM M H C rd → ∀ σ', AgreeBelow k σ σ' → AllOk C rd σ' ss)
+    (hw : ss.all Stmt.noWin = true := by rfl) :
+    BlkA M H σ k k ss (fun _ ↦ True) :=
+  BlkA.ofHM (fun _ ↦ 0) (fun C rd hH σ' ha _ ↦ ⟨h C rd hH σ' ha, trivial⟩) hw
 
 end
 end LeanVM.Guest.B1.Whir

@@ -8,8 +8,12 @@
 
 module
 
-public import LeanVM.Protocol.EndToEnd.Front.BusSpec
+import LeanVM.Protocol.EndToEnd.Front.BusSpec
 public import LeanVM.Protocol.TableSumcheck
+public import LeanVM.Protocol.EndToEnd.Front.BusDoom
+public import ArkLib.Data.CodingTheory.ReedSolomon
+public import Clean.Air.FlatEnsemble
+public import CompPoly.Multivariate.Eval
 
 /-!
 # The table sumcheck's relations

@@ -149,9 +149,7 @@ theorem main_core {rd : Reader} {m : MainIn} {M : ℕ} (hl : Sig.MemOK rd M) (hM
   have v451 : σ (.n (val% «main» "s63#1")) = gen ^ m.nc + 1 := by
     rw [gA 418 6 417 (by decide +kernel), v6, one 417 (by decide +kernel)]
   have v480 : σ (.n (val% «main» "s66#0")) = 1 := one 449 (by decide +kernel)
-  have v484 : σ (.n (val% «main» "s67#2")) = gen := by
-    rw [gM 453 451 452 (by norm_num) (by norm_num) (by decide +kernel),
-      one 451 (by decide +kernel), two 452 (by decide +kernel), one_mul]
+  have v484 : σ (.n (val% «main» "s67#0")) = gen := two 451 (by decide +kernel)
   -- the reads
   have rdL : ∀ d p o v, Atom.load (.n d) (.n p) o ∈ mDefAtoms →
       Atom.load (.n d) (.n p) o ∉ mStoresL → LoadHolds rd (σ (.n p)) o v → σ (.n d) = v := by
@@ -169,8 +167,8 @@ theorem main_core {rd : Reader} {m : MainIn} {M : ℕ} (hl : Sig.MemOK rd M) (hM
       rw [v448]; exact hm.dap 1 (by simp [digestCells]))
   have r481 : σ (.n (val% «main» "s66#1")) = (digestHalves m.sdg).1 :=
     rdL 450 449 0 _ (by decide +kernel) (by simp [mStoresL]) (by rw [v480]; exact hm.h0)
-  have r485 : σ (.n (val% «main» "s67#3")) = (digestHalves m.sdg).2 :=
-    rdL 454 453 0 _ (by decide +kernel) (by simp [mStoresL]) (by rw [v484]; exact hm.h1)
+  have r485 : σ (.n (val% «main» "s67#1")) = (digestHalves m.sdg).2 :=
+    rdL 452 451 0 _ (by decide +kernel) (by simp [mStoresL]) (by rw [v484]; exact hm.h1)
   -- the carried tags
   have htags : lxTagsV.map σ = lxTagWords := by
     apply List.ext_getElem (by simp [lxTagsV, lxTagWords, lxTagVals]; decide)

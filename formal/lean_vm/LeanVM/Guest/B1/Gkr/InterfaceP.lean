@@ -7,7 +7,9 @@
 
 module
 
-public import LeanVM.Guest.B1.Gkr.Fs
+public import LeanVM.Guest.B1.Tables.Base
+public import LeanVM.Guest.B1.Common.Sponge
+import LeanVM.Guest.B1.Gkr.Fs
 
 /-!
 # `verify_bus_gkr`: the interface

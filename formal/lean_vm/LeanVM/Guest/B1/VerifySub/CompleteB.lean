@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.VerifySub.CompleteB
 
-  `verify_sub`'s sixteen callees on an honest child, each placed within its bound
+  `verify_sub`'s fourteen callees on an honest child, each placed within its bound
   (`BoundsB`'s `vsBsAt`).
 -/
 
@@ -42,7 +42,7 @@ theorem kidsDepB_of {κ : ℕ} : ∀ (ks : List KidD) (Bs : List ℕ), ks.length
     (∀ j < ks.length, ∀ pv, ((ks.getD j noKid pv).taken = true →
         CompleteAtB fs cert κ (ks.getD j noKid pv).f (ks.getD j noKid pv).Lin
           (ks.getD j noKid pv).args (ks.getD j noKid pv).Out (Bs.getD j 0)) ∧
-      ((ks.getD j noKid pv).taken = false → fs (ks.getD j noKid pv).f ≤ Bs.getD j 0)) →
+      ((ks.getD j noKid pv).taken = false → fs (tailKey (ks.getD j noKid pv).f) ≤ Bs.getD j 0)) →
     KidsDepB fs cert κ ks Bs
   | [], [], _, _ => trivial
   | [], _ :: _, h, _ => by simp at h
@@ -64,8 +64,6 @@ theorem squeezeN_cap_length : ∀ (n : ℕ) (s : Fs), s.cap.length = 5 → (s.sq
   | 0, _, h => h
   | n + 1, s, _ => squeezeN_cap_length n s.squeeze.2 (by simp [Fs.squeeze, capOf])
 
-theorem mem_st15 : "grind_check__L15" ∈ vsStaticS := by simp [vsStaticS]
-theorem mem_st13 : "grind_check__L13" ∈ vsStaticS := by simp [vsStaticS]
 theorem mem_stOm : "opening_message__L1_L1" ∈ vsStaticS := by simp [vsStaticS]
 
 namespace ChildSegs
@@ -116,25 +114,24 @@ theorem vs_kidsDepBAt_of {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {s
     {c : Child} (S : ChildSegs bytecode seed c) {κ : ℕ} (hκ : 16 ≤ κ) (hrf : Lift.RunsFit fs cert)
     (hcons : RunsConsec cert) (W : VsWordsOs fs) (Bvk : ℕ) (hos : open_stacked_completeAtB_Spec)
     (bs : List ℕ) (sqE : ℕ) (hsl : S.kc.2.2.length = 64)
-    (hvt : ∀ pv, CompleteAtB fs cert κ "verify_tables" ((S.kids bs sqE).getD 10 noKid pv).Lin
-      ((S.kids bs sqE).getD 10 noKid pv).args ((S.kids bs sqE).getD 10 noKid pv).Out
+    (hvt : ∀ pv, CompleteAtB fs cert κ "verify_tables" ((S.kids bs sqE).getD 9 noKid pv).Lin
+      ((S.kids bs sqE).getD 9 noKid pv).args ((S.kids bs sqE).getD 9 noKid pv).Out
       (Tables.vtMax fs W.vt))
-    (hvk : CompleteAtB fs cert κ "verify_keccak" ((S.kids bs sqE).getD 11 noKid []).Lin
-      ((S.kids bs sqE).getD 11 noKid []).args ((S.kids bs sqE).getD 11 noKid []).Out Bvk)
-    (hterm : ∀ pv, ((S.kids bs sqE).getD 15 noKid pv).taken = true →
-      CompleteAtB fs cert κ "check_opening_terminal" ((S.kids bs sqE).getD 15 noKid pv).Lin
-        ((S.kids bs sqE).getD 15 noKid pv).args ((S.kids bs sqE).getD 15 noKid pv).Out
+    (hvk : CompleteAtB fs cert κ "verify_keccak" ((S.kids bs sqE).getD 10 noKid []).Lin
+      ((S.kids bs sqE).getD 10 noKid []).args ((S.kids bs sqE).getD 10 noKid []).Out Bvk)
+    (hterm : ∀ pv, ((S.kids bs sqE).getD 13 noKid pv).taken = true →
+      CompleteAtB fs cert κ "check_opening_terminal" ((S.kids bs sqE).getD 13 noKid pv).Lin
+        ((S.kids bs sqE).getD 13 noKid pv).args ((S.kids bs sqE).getD 13 noKid pv).Out
         (termBound fs W.Beqc W.K15 W.Bcs W.Brs)) :
     KidsDepB fs cert κ (S.kids bs sqE) (vsBsAt W Bvk S.μs S.rate) := by
   refine kidsDepB_of _ _ (by rw [ChildSegs.kids_length]; rfl) fun j hj pv ↦ ?_
-  have hj16 : j < 16 := by simpa [ChildSegs.kids_length] using hj
+  have hj16 : j < 14 := by simpa [ChildSegs.kids_length] using hj
   have hμ1 := S.hmu20
   have hμ2 := S.hmu30
   have hd := S.d_bounds hbl
   have hdE : S.d = log2Ceil S.pushT := S.d_eq hbl
   have hst := S.stackTotal_le hbl
   obtain ⟨hhs, h5⟩ := S.hs_bounds hbl
-  have hstat : ∀ g ∈ vsStaticS, TotalLe coreProgram fs g fun _ ↦ W.Kst g := W.hst
   interval_cases j <;> simp only [vsBsAt, vsBsWith, List.getD_cons_succ, List.getD_cons_zero]
   · exact ⟨fun _ ↦ vs_gpw_completeAtB κ [] (by have := S.hr4; omega) W.hg, fun h ↦ by cases h⟩
   · exact ⟨fun _ ↦ vs_gpw_completeAtB κ [] (by have := S.h30; omega) W.hg, fun h ↦ by cases h⟩
@@ -149,21 +146,18 @@ theorem vs_kidsDepBAt_of {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {s
   · have hl : log2Ceil (Tables.stackTotal S.kappas) ≤ 30 := log2Ceil_le_iff.mpr hst
     exact ⟨fun _ ↦ log2_L16_completeAtB κ (by omega) _ sqE
       (lt_of_le_of_lt hst (by norm_num)) (by omega), fun h ↦ by cases h⟩
-  · exact ⟨fun _ ↦ grind_kidB (bits := 15) (κ := κ) (by decide) (by omega)
-      (hstat _ mem_st15) sqE S.oodPow, fun h ↦ by cases h⟩
   · exact ⟨fun _ ↦ S.spf_kid κ W bs, fun h ↦ by cases h⟩
   · exact ⟨fun _ ↦ S.om_kid κ W bs, fun h ↦ by cases h⟩
   · exact ⟨fun _ ↦ S.busGrind_kid hbl (by omega) sqE, fun h ↦ by cases h⟩
   · exact ⟨fun _ ↦ S.vbg_kidB hbl (by omega) W bs sqE, fun h ↦ by cases h⟩
   · exact ⟨fun _ ↦ hvt pv, fun h ↦ by cases h⟩
   · exact ⟨fun _ ↦ hvk, fun h ↦ by cases h⟩
-  · exact ⟨fun _ ↦ grind_kidB (bits := 13) (κ := κ) (by decide) (by omega)
-      (hstat _ mem_st13) sqE S.ringPow, fun h ↦ by cases h⟩
   · exact ⟨fun _ ↦ rst_completeAtB κ hsl S.rchs_length W.hl14,
       fun h ↦ by cases h⟩
   · exact ⟨fun _ ↦ S.os_kidB hos (by omega) hrf hcons W bs sqE, fun h ↦ by cases h⟩
   · refine ⟨fun ht ↦ hterm pv ht, fun _ ↦ ?_⟩
-    show fs "check_opening_terminal" ≤ termBound fs W.Beqc W.K15 W.Bcs W.Brs
+    show fs (tailKey "check_opening_terminal") ≤ termBound fs W.Beqc W.K15 W.Bcs W.Brs
+    have := W.htl "check_opening_terminal"
     unfold termBound
     omega
 
@@ -196,8 +190,8 @@ theorem vt_kidBW (hbl : bytecode.length = 2 ^ 23) {κ : ℕ} (hκ : 14 ≤ κ) (
 /-- **`verify_keccak` on an honest child**, from its bounded completeness. -/
 theorem vk_kidB (hbl : bytecode.length = 2 ^ 23) {κ Bvk : ℕ} (hvk : VkCompleteAtBK fs cert κ Bvk)
     (bs : List ℕ) (sqE : ℕ) :
-    CompleteAtB fs cert κ "verify_keccak" ((S.kids bs sqE).getD 11 noKid []).Lin
-      ((S.kids bs sqE).getD 11 noKid []).args ((S.kids bs sqE).getD 11 noKid []).Out Bvk := by
+    CompleteAtB fs cert κ "verify_keccak" ((S.kids bs sqE).getD 10 noKid []).Lin
+      ((S.kids bs sqE).getD 10 noKid []).args ((S.kids bs sqE).getD 10 noKid []).Out Bvk := by
   obtain ⟨-, -, hrun⟩ := S.keccak_run hbl
   obtain ⟨h9, h22, hn, ho, hf, -⟩ := S.keccak_facts hbl
   obtain ⟨-, -, h5⟩ := S.H_spec hbl
@@ -224,7 +218,7 @@ theorem kidsDepB_getD {κ : ℕ} : ∀ {ks : List KidD} {Bs : List ℕ}, KidsDep
       ((ks.getD j noKid pv).taken = true →
         CompleteAtB fs cert κ (ks.getD j noKid pv).f (ks.getD j noKid pv).Lin
           (ks.getD j noKid pv).args (ks.getD j noKid pv).Out (Bs.getD j 0)) ∧
-      ((ks.getD j noKid pv).taken = false → fs (ks.getD j noKid pv).f ≤ Bs.getD j 0)
+      ((ks.getD j noKid pv).taken = false → fs (tailKey (ks.getD j noKid pv).f) ≤ Bs.getD j 0)
   | [], _, _, _, hj, _ => absurd hj (by simp)
   | _ :: _, [], h, _, _, _ => h.elim
   | _ :: _, _ :: _, h, 0, _, pv => h.1 pv
@@ -236,7 +230,7 @@ theorem kidsDepBP_of {κ : ℕ} : ∀ (ks : List KidD) (Bs : List ℕ) (Ps : Lis
         CompleteAtDTB fs cert κ (ks.getD j noKid pv).f (ks.getD j noKid pv).Lin
           (ks.getD j noKid pv).args (ks.getD j noKid pv).Out (Ps.getD j fun _ ↦ True)
           (Bs.getD j 0)) ∧
-      ((ks.getD j noKid pv).taken = false → fs (ks.getD j noKid pv).f ≤ Bs.getD j 0)) →
+      ((ks.getD j noKid pv).taken = false → fs (tailKey (ks.getD j noKid pv).f) ≤ Bs.getD j 0)) →
     KidsDepBP fs cert κ ks Bs Ps
   | [], [], [], _, _, _ => trivial
   | [], _ :: _, _, h, _, _ => by simp at h
@@ -257,22 +251,22 @@ theorem vs_kidsDepBP {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed 
   have hB := kidsDepB_getD (vs_kidsDepBAt hbl S hκ hrf hcons W hvk hos bs sqE)
   refine kidsDepBP_of _ _ _ (by rw [ChildSegs.kids_length]; rfl)
     (by rw [ChildSegs.kids_length]; rfl) fun j hj pv ↦ ?_
-  have hj16 : j < 16 := by simpa [ChildSegs.kids_length] using hj
-  have hP : j ≠ 10 → j ≠ 15 → (vsPs W).getD j (fun _ ↦ True) = fun _ ↦ True := by
+  have hj16 : j < 14 := by simpa [ChildSegs.kids_length] using hj
+  have hP : j ≠ 9 → j ≠ 13 → (vsPs W).getD j (fun _ ↦ True) = fun _ ↦ True := by
     intro h10 h15
     interval_cases j <;> first | rfl | exact absurd rfl h10 | exact absurd rfl h15
-  by_cases h10 : j = 10
+  by_cases h10 : j = 9
   · subst h10
     refine ⟨fun _ ↦ ?_, fun h ↦ by cases h⟩
-    have e : (vsBsAt W Bvk S.μs S.rate).getD 10 0 = Tables.vtMax fs W.vt := by
+    have e : (vsBsAt W Bvk S.μs S.rate).getD 9 0 = Tables.vtMax fs W.vt := by
       simp only [vsBsAt, vsBsWith, List.getD_cons_succ, List.getD_cons_zero]
     rw [e]
     exact S.vt_kidBW hbl (by omega) W _
-  by_cases h15 : j = 15
+  by_cases h15 : j = 13
   · subst h15
-    have e : (vsBsAt W Bvk S.μs S.rate).getD 15 0 = termBound fs W.Beqc W.K15 W.Bcs W.Brs := by
+    have e : (vsBsAt W Bvk S.μs S.rate).getD 13 0 = termBound fs W.Beqc W.K15 W.Bcs W.Brs := by
       simp only [vsBsAt, vsBsWith, List.getD_cons_succ, List.getD_cons_zero]
-    refine ⟨fun ht ↦ ?_, (hB 15 (by rw [ChildSegs.kids_length]; omega) pv).2⟩
+    refine ⟨fun ht ↦ ?_, (hB 13 (by rw [ChildSegs.kids_length]; omega) pv).2⟩
     rw [e]
     exact S.term_kidBW hbl (by omega) W bs sqE pv ht
   rw [hP h10 h15]

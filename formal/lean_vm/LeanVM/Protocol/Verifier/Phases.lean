@@ -7,7 +7,11 @@
 
 module
 
-public import LeanVM.Protocol.Compile.Prog
+import LeanVM.Protocol.Compile.Prog
+public import Statement.LeanVmVerifier
+public import ArkLib.OracleReduction.OracleInterface
+public import CompPoly.Multilinear.Basic
+public import VCVio.OracleComp.Constructions.SampleableType
 
 /-!
 # The phases, in normal form
@@ -27,8 +31,8 @@ statement.
   point, the value, then `oodOf` (`readOod_eq`);
 * step 5, `publicInputPhase`: the challenge, then `publicClaimsOf` (`publicInputPhase_eq`);
 * step 7, `ringSwitch`: the grind, the challenges, then `ringOf` (`ringSwitch_eq`);
-  `verifyStackedOpening`: its checks as one `require (StackedOk claims)`, which the guest's copy
-  `verifyStackedOpeningNZ` shares, the challenge, then WHIR (`verifyStackedOpening_nf`).
+  `verifyStackedOpening`: its checks as one `require (StackedOk claims)`, the challenge, then WHIR
+  (`verifyStackedOpening_nf`).
 
 The bus (`verifyBusBalance`), the table sumcheck (`tablePhase`) and the Keccak reduction
 (`keccakPhase`) call sub-protocols between their checks and are not in normal form yet.

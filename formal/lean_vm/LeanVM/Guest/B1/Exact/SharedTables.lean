@@ -13,6 +13,7 @@ public import LeanVM.Guest.CoreRef
 public import LeanVM.Guest.B1.Common.Find
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«shared_selector_tables»
+import LeanVM.Guest.Value.FieldBits
 
 /-!
 # `shared_selector_tables`, exact

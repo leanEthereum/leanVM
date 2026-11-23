@@ -8,18 +8,18 @@
 module
 
 public import LeanVM.Guest.B1.Opening.QueriesW
-import LeanVM.Guest.ValRef
-import LeanVM.Guest.Data.ValNames.«opening_queries__L»
-import LeanVM.Guest.Data.ValNames.«opening_queries__L_loop0»
+import LeanVM.Guest.Value.FieldBits
 
 /-!
 # `opening_queries`, its queries named
 
-`oqMain1_sound_w` (level 0) and `oqMain0_sound_w` (deeper, the final level among them): under a
-call relation `C ≤ Rel` unfolding at `V`, a valuation holding the function's body (its loop called
-at `1`, the bound `g^N`), the positions and window pointers naming positions, gives
-`MeaningOpeningQueriesW` at `oqsOf … σ V`: the odd first query from the function's own frame, then
-iteration `j`'s from the loop's frame `V loop (g^j :: oqLoopArgs σ) []` (`loopV_frames`). The
+`oqMain1_sound_w` (level 0) and `oqMain0_sound_w` (deeper, the final level among them): at a cap
+depth `1 ≤ cd ≤ 8`, under a call relation `C ≤ Rel` unfolding at `V`, a valuation holding the
+function's body (its loop called at `1`, the bound `g^N`, at level 0 `odd_g = g^odd`), the
+positions and window pointers naming positions, gives `MeaningOpeningQueriesW` at `oqsOf … σ V`:
+the odd first query from the function's own frame (the start's branch on `odd_g + 1`), then
+iteration `j`'s from the loop's frame `V loop (g^j :: oqLoopArgs s σ) []` (`loopV_frames`), at
+level 0 on the positions and windows moved past the odd query. The
 queries read the same rounds (`roundsAt_unique`) and final coefficients (`wordsAt_unique`).
 -/
 
@@ -81,26 +81,42 @@ theorem wordsAt_unique {p : E} {x1 x2 : List E} (h1 : WordsAt rd p x1) (h2 : Wor
 
 /-! ## The function's tail -/
 
-/-- The function's call of its loop and its tail: the call, and the returned words: the chain's
-`N`-th word at a non-final level, `0` at the final level. -/
-theorem oqMain_tail {C : CallRel} {s : Oq} {odd : ℕ} {walk loop : String} {rets : List E}
-    (h : Stmt.HoldsList C rd σ (oqMainT s odd walk loop) False (fun rs ↦ rs = rets)) :
-    BlockOkC C rd σ (oqMainA s odd walk) ∧
-      (σ (.n (oqMK s odd + 1)) ≠ 0 → C loop [σ (.n (oqMK s odd + 2)), σ (.n (valf% «opening_queries» "n_iters_g")), σ (.n (valf% «opening_queries» "positions")), σ (.n (valf% «opening_queries» "query_win_ptrs")),
-        σ (.n (valf% «opening_queries» "cap")), σ (.n (valf% «opening_queries» "flags")), σ (.n (valf% «opening_queries» "coefs")), σ (.n (valf% «opening_queries» "hs")), σ (.n (valf% «opening_queries» "chain")), σ (.n (valf% «opening_queries» "lam_inv"))] []) ∧
+theorem oqLoopArgs_zero {s : Oq} (hb : s.base ≠ 1) (σ : Val) :
+    oqLoopArgs s σ = [σ (.n oqMN), σ (.n oqMPos), σ (.n oqMQp), σ (.n oqMCap), σ (.n oqMFlags),
+      σ (.n oqMCoefs), σ (.n oqMHs), σ (.n 11), σ (.n oqMLamInv)] := by
+  simp [oqLoopArgs, hb]
+
+theorem oqLoopArgs_one {s : Oq} (hb : s.base = 1) (σ : Val) :
+    oqLoopArgs s σ = [σ (.n oqMN), σ (.n (oqMK s - 2)), σ (.n (oqMK s - 1)), σ (.n oqMCap),
+      σ (.n oqMFlags), σ (.n oqMCoefs), σ (.n oqMHs), σ (.n 11), σ (.n oqMLamInv)] := by
+  simp [oqLoopArgs, hb]
+
+/-- The function's start, its call of its loop and its tail: the call, and the returned words: the
+chain's `N`-th word at a non-final level, `0` at the final level. -/
+theorem oqMain_tail {C : CallRel} {s : Oq} {loop : String} {rets : List E}
+    (h : Stmt.HoldsList C rd σ (oqMainT s loop) False (fun rs ↦ rs = rets)) :
+    OqStartOk C rd σ s ∧
+      (σ (.n (oqMK s + 1)) ≠ 0 → C loop (σ (.n (oqMK s + 2)) :: oqLoopArgs s σ) []) ∧
       (s.final = 1 → rets = [0]) ∧
-      (s.final ≠ 1 → ∃ v, LoadHolds rd (σ (.n (valf% «opening_queries» "chain")) * σ (.n (valf% «opening_queries» "n_iters_g"))) 0 v ∧ rets = [v]) := by
-  rw [oqMainT, holdsList_append, holdsList_append, holdsList_flatC (oqMainA_flatC s odd walk)] at h
+      (s.final ≠ 1 → ∃ v, LoadHolds rd (σ (.n 11) * σ (.n oqMN)) 0 v ∧ rets = [v]) := by
+  rw [oqMainT, holdsList_append, holdsList_append, holdsList_oqMainA] at h
   obtain ⟨hA, h⟩ := h
   rw [Stmt.HoldsList, Stmt.Holds, Stmt.HoldsList] at h
   obtain ⟨-, hcall, h⟩ := h
-  refine ⟨hA, fun hne ↦ by simpa using hcall hne, fun hf ↦ ?_, fun hf ↦ ?_⟩
+  refine ⟨hA, fun hne ↦ by simpa [oqLoopArgs] using hcall hne, fun hf ↦ ?_, fun hf ↦ ?_⟩
   · simp only [hf, ↓reduceIte, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil] at h
     rw [← h.2, h.1, word_zero]
   · simp only [hf, ↓reduceIte, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil] at h
     obtain ⟨e3, e4, e5, hret⟩ := h
-    refine ⟨σ (.n (oqMK s odd + 4)), ?_, by rw [← hret, e5]⟩
+    refine ⟨σ (.n (oqMK s + 4)), ?_, by rw [← hret, e5]⟩
     rw [← e3]; exact e4
+
+/-- The function's parameters' values, from its arguments. -/
+theorem oqMain_args {fm : Fn} (hpm : fm.params = oqMainParams) {σ : Val} {args : List E}
+    (hp : fm.params.map σ = args) :
+    args = [σ (.n oqMCap), σ (.n oqMFlags), σ (.n oqMLamInv), σ (.n oqMCoefs), σ (.n oqMHs),
+      σ (.n oqMPos), σ (.n oqMQp), σ (.n oqMN), σ (.n oqMOdd)] := by
+  rw [← hp, hpm]; rfl
 
 /-! ## Deeper levels -/
 
@@ -108,8 +124,8 @@ theorem oqChain_succ_zero {base : ℕ} (hb : base = 0) (mu : E) (ds : ℕ → E)
     oqChain 0 base mu ds (i + 1) = (oqChain 0 base mu ds i + ds i) * mu := by
   simp [oqChain, hb]
 
-theorem oqsOf_length_zero {s : Oq} (hb0 : s.base = 0) (loop : String) (N : ℕ) (rd : Reader)
-    (σ : Val) (V : FrameMap) : (oqsOf s 0 loop N rd σ V).length = N := by
+theorem oqsOf_length_zero {s : Oq} (hb0 : s.base = 0) (cd : ℕ) (loop : String) (N : ℕ) (rd : Reader)
+    (σ : Val) (V : FrameMap) : (oqsOf s cd 0 loop N rd σ V).length = N := by
   unfold oqsOf
   rw [List.length_append, oqLength_flatMap_range _ 1 (fun j => by simp [oqIterOf, hb0])]
   simp
@@ -117,90 +133,85 @@ theorem oqsOf_length_zero {s : Oq} (hb0 : s.base = 0) (loop : String) (N : ℕ) 
 /-- **`opening_queries` deeper is sound with its queries named** (`base = 0`, `odd = 0`; the final
 level among them). -/
 theorem oqMain0_sound_w {sh : OqShape} (hs : sh.oq.RowShape) (hfin : sh.oq.FinOk)
-    (hb0 : sh.base = 0) (hodd : sh.odd = 0) (hpd : 1 ≤ sh.oq.pd) (hcd : 1 ≤ sh.cd)
-    (hcd8 : sh.cd ≤ 8) (hdep : sh.cd ≤ sh.depth) {name loop : String}
-    (hW : WalkFn P (oqWalkOf sh.oq) sh.oq.pd sh.cd) {fm fl : Fn}
-    (hfm : P.find? name = some fm)
-    (hpm : fm.params = [.n (valf% «opening_queries» "cap"), .n (valf% «opening_queries» "flags"), .n (valf% «opening_queries» "lam_inv"), .n (valf% «opening_queries» "coefs"), .n (valf% «opening_queries» "hs"), .n (valf% «opening_queries» "positions"), .n (valf% «opening_queries» "query_win_ptrs"), .n (valf% «opening_queries» "n_iters_g")])
-    (hbm : fm.body = oqMainT sh.oq 0 (oqWalkOf sh.oq) loop)
+    (hb0 : sh.base = 0) {name loop : String} {fm fl : Fn}
+    (hfm : P.find? name = some fm) (hpm : fm.params = oqMainParams)
+    (hbm : fm.body = oqMainT sh.oq loop)
     (hfl : P.find? loop = some fl) (hpl : fl.params = oqLoopParams)
-    (hbl : fl.body = oqLoop0T sh.oq (oqWalkOf sh.oq) loop) :
+    (hbl : fl.body = oqLoop0T sh.oq loop) :
     opening_queries_sound_w_SpecP P name loop sh := by
-  intro rd C V hU _ fm' σ args rets N hfm' hp hh hN hNo hpos
+  intro cd hcd hcd8 rd C V hU _ fm' σ args rets N odd hfm' hp hh hN hNo hO hodd hpos
   rw [hfm] at hfm'
   cases hfm'
-  rw [hpm] at hp
-  simp only [List.map_cons, List.map_nil] at hp
-  subst hp
-  simp only [List.getD_cons_succ, List.getD_cons_zero] at hN hpos
-  rw [hodd]
+  have hargs := oqMain_args hpm hp
+  subst hargs
+  simp only [List.getD_cons_succ, List.getD_cons_zero] at hN hO hpos
+  obtain rfl : odd = 0 := by rw [hb0] at hodd; omega
   set s := sh.oq with hsdef
   have hsb : s.base = 0 := hb0
-  have hsc : s.cd = sh.cd := rfl
-  have es : s.pd + s.cd = sh.depth := by simp only [hsdef, OqShape.oq]; omega
-  have hQ : oqCount sh.odd sh.base N = N := by simp [oqCount, hb0]
+  have hsb1 : s.base ≠ 1 := by omega
+  have hQ : oqCount 0 sh.base N = N := by simp [oqCount, hb0]
   rw [hQ] at hpos
   rw [hbm] at hh
   obtain ⟨hA, hcall, hfin1, hfin0⟩ := oqMain_tail hh
   obtain ⟨hg, hst, h0even⟩ := oqMainA_basic hA
   -- the iterations' frames
-  have hfr := loopV_frames (rd := rd) hU hfl (by rw [hbl]; rfl) (oqLoop0A_flatC s (oqWalkOf s))
-    (Nv := σ (.n (valf% «opening_queries» "n_iters_g"))) (rest := [σ (.n (valf% «opening_queries» "positions")), σ (.n (valf% «opening_queries» "query_win_ptrs")), σ (.n (valf% «opening_queries» "cap")), σ (.n (valf% «opening_queries» "flags")), σ (.n (valf% «opening_queries» "coefs")), σ (.n (valf% «opening_queries» "hs")), σ (.n (valf% «opening_queries» "chain")),
-      σ (.n (valf% «opening_queries» "lam_inv"))])
+  have hfr := loopV_frames (rd := rd) hU hfl (by rw [hbl]; rfl) (oqLoop0A_flatC s)
+    (Nv := σ (.n oqMN)) (rest := [σ (.n oqMPos), σ (.n oqMQp), σ (.n oqMCap), σ (.n oqMFlags),
+      σ (.n oqMCoefs), σ (.n oqMHs), σ (.n 11), σ (.n oqMLamInv)])
     (fun τ x hp hA => oqLoop0_hc hpl τ x hp hA) hN hNo (fun hN0 => by
-      have hne : σ (.n (oqMK s 0 + 1)) ≠ 0 := by
+      have hne : σ (.n (oqMK s + 1)) ≠ 0 := by
         rw [hg, hN]
         intro h0
         have := (gen_pow_eq_one_iff hNo).mp (e_add_eq_zero_iff.mp h0).symm
         omega
       have := hcall hne
-      rwa [hst] at this)
-  set τ : ℕ → Val := fun j => V loop [gen ^ j, σ (.n (valf% «opening_queries» "n_iters_g")), σ (.n (valf% «opening_queries» "positions")), σ (.n (valf% «opening_queries» "query_win_ptrs")), σ (.n (valf% «opening_queries» "cap")), σ (.n (valf% «opening_queries» "flags")),
-    σ (.n (valf% «opening_queries» "coefs")), σ (.n (valf% «opening_queries» "hs")), σ (.n (valf% «opening_queries» "chain")), σ (.n (valf% «opening_queries» "lam_inv"))] [] with hτ
+      rwa [hst, oqLoopArgs_zero hsb1] at this)
+  set τ : ℕ → Val := fun j => V loop [gen ^ j, σ (.n oqMN), σ (.n oqMPos), σ (.n oqMQp),
+    σ (.n oqMCap), σ (.n oqMFlags), σ (.n oqMCoefs), σ (.n oqMHs), σ (.n 11), σ (.n oqMLamInv)] []
+    with hτ
   have hit : ∀ j < N,
-      LoadHolds rd (σ (.n (valf% «opening_queries» "positions"))) j (τ j (.n 11)) ∧ LoadHolds rd (σ (.n (valf% «opening_queries» "query_win_ptrs"))) j (τ j (.n 13)) ∧
-      (∃ w, w = oqQueryW s rd (τ j (.n 13)) (τ j (.n (valf% «opening_queries» «_loop0» "cap"))) (τ j (.n (valf% «opening_queries» «_loop0» "flags"))) 14 true (τ j) V ∧
-        QueryW rd s (σ (.n (valf% «opening_queries» "cap"))) (σ (.n (valf% «opening_queries» "flags"))) (σ (.n (valf% «opening_queries» "coefs"))) (σ (.n (valf% «opening_queries» "hs"))) (τ j (.n 11)) (τ j (.n 13)) w
-          (τ j (.n (oqRes s 14 true)))) ∧
-      (s.final ≠ 1 → ∃ v : E, LoadHolds rd (σ (.n (valf% «opening_queries» "chain"))) j v ∧
-        LoadHolds rd (σ (.n (valf% «opening_queries» "chain"))) (j + 1) ((v + τ j (.n (oqRes s 14 true))) * σ (.n (valf% «opening_queries» "lam_inv")))) := by
+      LoadHolds rd (σ (.n oqMPos)) j (τ j (.n 11)) ∧ LoadHolds rd (σ (.n oqMQp)) j (τ j (.n 13)) ∧
+      (∃ w, w = oqQueryW s cd rd (τ j (.n 13)) 14 true (τ j) ∧
+        QueryW rd s cd (σ (.n oqMCap)) (σ (.n oqMFlags)) (σ (.n oqMCoefs)) (σ (.n oqMHs))
+          (τ j (.n 11)) (τ j (.n 13)) w (τ j (.n (oqRes s 14 true)))) ∧
+      (s.final ≠ 1 → ∃ v : E, LoadHolds rd (σ (.n 11)) j v ∧
+        LoadHolds rd (σ (.n 11)) (j + 1) ((v + τ j (.n (oqRes s 14 true))) * σ (.n oqMLamInv))) := by
     intro j hj
     obtain ⟨hp, hA⟩ := hfr j hj
     obtain ⟨t0, hps⟩ := loop_params hpl hp
     simp only [List.cons.injEq] at hps
     obtain ⟨-, t2, t3, t4, t5, t6, t7, t8, t9, -⟩ := hps
-    have := oqIter0_sound_w hU hs hfin hpd hcd hcd8 hW (i := j) hA t0 (fun x bp hx hbp => by
+    have := oqIter0_sound_w hs hfin hcd hcd8 (i := j) hA t0 (fun x bp hx hbp => by
       rw [← t2] at hx
       rw [← t3] at hbp
-      obtain ⟨q, hq, hxq, hfrq⟩ := hpos j hj x bp hx hbp
-      exact ⟨q, by rw [es]; exact hq, hxq, by rw [es]; exact hfrq⟩)
+      exact hpos j hj x bp hx hbp)
     obtain ⟨a1, a2, a3, a4⟩ := this
-    generalize hw : oqQueryW s rd (τ j (.n 13)) (τ j (.n (valf% «opening_queries» «_loop0» "cap"))) (τ j (.n (valf% «opening_queries» «_loop0» "flags"))) 14 true (τ j) V = w at a3
+    generalize hw : oqQueryW s cd rd (τ j (.n 13)) 14 true (τ j) = w at a3
     rw [← t2] at a1
     rw [← t3] at a2
     rw [← t4, ← t5, ← t6, ← t7] at a3
     rw [← t8, ← t9] at a4
     exact ⟨a1, a2, ⟨w, rfl, a3⟩, a4⟩
   -- the witness
-  set ws := oqsOf s 0 loop N rd σ V with hws
-  have hwsI : ∀ j < N, ws.getD j default =
-      oqQueryW s rd (τ j (.n 13)) (τ j (.n (valf% «opening_queries» «_loop0» "cap"))) (τ j (.n (valf% «opening_queries» «_loop0» "flags"))) 14 true (τ j) V := by
+  set ws := oqsOf s cd 0 loop N rd σ V with hws
+  have hwsI : ∀ j < N, ws.getD j default = oqQueryW s cd rd (τ j (.n 13)) 14 true (τ j) := by
     intro j hj
     simp only [hws, oqsOf, show (0 : ℕ) ≠ 1 by decide, ↓reduceIte, List.nil_append]
-    have := oqGetD_flatMap_range (fun j => oqIterOf s rd (V loop (gen ^ j :: oqLoopArgs σ) []) V) 1
+    have := oqGetD_flatMap_range (fun j => oqIterOf s cd rd (V loop (gen ^ j :: oqLoopArgs s σ) [])) 1
       (fun j => by simp [oqIterOf, hsb]) default N j 0 hj (by omega)
     rw [Nat.one_mul, Nat.add_zero] at this
     rw [this]
-    simp [oqIterOf, hsb, hτ, oqLoopArgs]
-  have hQW : ∀ j < N, QueryW rd s (σ (.n (valf% «opening_queries» "cap"))) (σ (.n (valf% «opening_queries» "flags"))) (σ (.n (valf% «opening_queries» "coefs"))) (σ (.n (valf% «opening_queries» "hs"))) (τ j (.n 11))
-      (τ j (.n 13)) (ws.getD j default) (τ j (.n (oqRes s 14 true))) := fun j hj ↦ by
-    obtain ⟨w, hw, h⟩ := (hit j hj).2.2.1
-    rw [hwsI j hj, ← hw]; exact h
+    simp [oqIterOf, hsb, hτ, oqLoopArgs_zero hsb1]
+  have hQW : ∀ j < N, QueryW rd s cd (σ (.n oqMCap)) (σ (.n oqMFlags)) (σ (.n oqMCoefs))
+      (σ (.n oqMHs)) (τ j (.n 11)) (τ j (.n 13)) (ws.getD j default) (τ j (.n (oqRes s 14 true))) :=
+    fun j hj ↦ by
+      obtain ⟨w, hw, h⟩ := (hit j hj).2.2.1
+      rw [hwsI j hj, ← hw]; exact h
   -- the rounds and the final coefficients, shared
   have hR : ∀ j < N, ∃ rounds : List FoldRound, rounds.length = s.folds ∧
-      RoundsAt rd (σ (.n (valf% «opening_queries» "coefs"))) rounds ∧
+      RoundsAt rd (σ (.n oqMCoefs)) rounds ∧
       (s.final ≠ 1 → τ j (.n (oqRes s 14 true)) = qwFold s.base rounds (ws.getD j default)) ∧
-      (s.final = 1 → ∃ hsv : List E, hsv.length = s.nHs ∧ WordsAt rd (σ (.n (valf% «opening_queries» "hs"))) hsv ∧
+      (s.final = 1 → ∃ hsv : List E, hsv.length = s.nHs ∧ WordsAt rd (σ (.n oqMHs)) hsv ∧
         qwFold s.base rounds (ws.getD j default) =
           novelSum hsv (wsChain (s.vs.map K.ofBits) (τ j (.n 11))) s.nHs s.hsBits) :=
     fun j hj ↦ (hQW j hj).2.2.2.2
@@ -214,8 +225,8 @@ theorem oqMain0_sound_w {sh : OqShape} (hs : sh.oq.RowShape) (hfin : sh.oq.FinOk
     have h0 : N ≠ 0 := by omega
     simp only [rounds, h0, ↓reduceIte]
     exact roundsAt_unique (hrr j hj).2.1 (hrr 0 (by omega)).2.1 (by rw [(hrr j hj).1, (hrr 0 (by omega)).1])
-  have hH : ∀ j < N, ∃ hsv : List E, s.final = 1 → hsv.length = s.nHs ∧ WordsAt rd (σ (.n (valf% «opening_queries» "hs"))) hsv ∧
-      qwFold s.base rounds (ws.getD j default) =
+  have hH : ∀ j < N, ∃ hsv : List E, s.final = 1 → hsv.length = s.nHs ∧
+      WordsAt rd (σ (.n oqMHs)) hsv ∧ qwFold s.base rounds (ws.getD j default) =
         novelSum hsv (wsChain (s.vs.map K.ofBits) (τ j (.n 11))) s.nHs s.hsBits := fun j hj ↦ by
     by_cases hf : s.final = 1
     · obtain ⟨hsv, h1, h2, h3⟩ := (hrr j hj).2.2.2 hf
@@ -235,14 +246,14 @@ theorem oqMain0_sound_w {sh : OqShape} (hs : sh.oq.RowShape) (hfin : sh.oq.FinOk
   -- the chain
   have hds : ∀ j < N, s.final ≠ 1 → τ j (.n (oqRes s 14 true)) = qwFold s.base rounds (ws.getD j default) :=
     fun j hj hf ↦ by rw [(hrr j hj).2.2.1 hf, hrj j hj]
-  refine ⟨N, hNo, hN, by rw [hQ, oqsOf_length_zero hsb], rounds, hsv, hrl, hhl, fun k hk ↦ ?_, ?_⟩
+  refine ⟨N, hNo, hN, 0, by omega, hO, by rw [hQ, oqsOf_length_zero hsb], rounds, hsv, hrl, hhl,
+    fun k hk ↦ ?_, ?_⟩
   · rw [hQ] at hk
     obtain ⟨l5, l6, hq⟩ := hit k hk
     obtain ⟨q1, q2, q3, q4, -⟩ := hQW k hk
     obtain ⟨-, hRA, -, -⟩ := hrr k hk
     rw [hrj k hk] at hRA
-    refine ⟨hRA, fun hf ↦ ?_, by rw [← q2]; exact l5, by rw [← es]; exact q1,
-      ⟨τ k (.n 13), l6, by rw [← es]; exact q3⟩, by rw [← es]; exact q4, fun hf ↦ ?_⟩
+    refine ⟨hRA, fun hf ↦ ?_, by rw [← q2]; exact l5, q1, ⟨τ k (.n 13), l6, q3⟩, q4, fun hf ↦ ?_⟩
     · rw [← hhj k hk hf]; exact (hhh k hk hf).2.1
     · have := (hhh k hk hf).2.2
       rw [hhj k hk hf, q2] at this
@@ -250,14 +261,13 @@ theorem oqMain0_sound_w {sh : OqShape} (hs : sh.oq.RowShape) (hfin : sh.oq.FinOk
   · by_cases hf : sh.final = 1
     · simp only [hf, ↓reduceIte]; exact hfin1 hf
     · simp only [hf, ↓reduceIte]
-      rw [hodd]
-      have hchain : ∀ i ≤ N, LoadHolds rd (σ (.n (valf% «opening_queries» "chain"))) i
-          (oqChain 0 sh.base (σ (.n (valf% «opening_queries» "lam_inv"))) (fun k ↦ qwFold sh.base rounds (ws.getD k default)) i) := by
+      have hchain : ∀ i ≤ N, LoadHolds rd (σ (.n 11)) i
+          (oqChain 0 sh.base (σ (.n oqMLamInv)) (fun k ↦ qwFold sh.base rounds (ws.getD k default)) i) := by
         intro i hi
         induction i with
         | zero =>
           simp only [oqChain, show (0 : ℕ) ≠ 1 by decide, ↓reduceIte]
-          exact h0even (by decide)
+          exact h0even hsb1
         | succ i ih =>
           obtain ⟨v, hv, hv1⟩ := (hit i (by omega)).2.2.2 hf
           have e := loadHolds_unique hv (ih (by omega))
@@ -266,7 +276,7 @@ theorem oqMain0_sound_w {sh : OqShape} (hs : sh.oq.RowShape) (hfin : sh.oq.FinOk
           exact hv1
       obtain ⟨v, hv, hret⟩ := hfin0 hf
       rw [hN, loadHolds_mul_gen_pow, Nat.add_zero] at hv
-      exact ⟨σ (.n (valf% «opening_queries» "chain")), hchain, by rw [hret, loadHolds_unique hv (hchain N le_rfl)]⟩
+      exact ⟨σ (.n 11), hchain, by rw [hret, loadHolds_unique hv (hchain N le_rfl)]⟩
 
 /-! ## Level 0 -/
 
@@ -275,34 +285,33 @@ theorem oqChain_succ_one {odd base : ℕ} (hb : base = 1) (mu : E) (ds : ℕ →
       ((oqChain odd base mu ds i + ds (odd + 2 * i)) * mu + ds (odd + 2 * i + 1)) * mu := by
   simp [oqChain, hb]
 
-theorem oqsOf_length_one {s : Oq} (hb1 : s.base = 1) {odd : ℕ} (hodd : odd ≤ 1) (loop : String)
-    (N : ℕ) (rd : Reader) (σ : Val) (V : FrameMap) :
-    (oqsOf s odd loop N rd σ V).length = odd + 2 * N := by
+theorem oqsOf_length_one {s : Oq} (hb1 : s.base = 1) {odd : ℕ} (hodd : odd ≤ 1) (cd : ℕ)
+    (loop : String) (N : ℕ) (rd : Reader) (σ : Val) (V : FrameMap) :
+    (oqsOf s cd odd loop N rd σ V).length = odd + 2 * N := by
   unfold oqsOf
   rw [List.length_append, oqLength_flatMap_range _ 2 (fun j => by simp [oqIterOf, hb1])]
   split_ifs with h <;> simp <;> omega
 
-/-- The odd first query of the function's start, and the chain's first word, its result times
-`λ⁻¹`. -/
-theorem oqMainA_odd_w {C : CallRel} {V : FrameMap} (hU : UnfoldsVP P rd C V) {s : Oq}
-    (hs : s.RowShape) (hfin : s.FinOk) (hpd : 1 ≤ s.pd) (hcd : 1 ≤ s.cd) (hcd8 : s.cd ≤ 8)
-    (hW : WalkFn P (oqWalkOf s) s.pd s.cd) (hA : BlockOkC C rd σ (oqMainA s 1 (oqWalkOf s)))
-    (hpos : ∀ x bp, LoadHolds rd (σ (.n (valf% «opening_queries» "positions"))) 0 x → LoadHolds rd (σ (.n (valf% «opening_queries» "query_win_ptrs"))) 0 bp → PosRun rd s x bp) :
-    LoadHolds rd (σ (.n (valf% «opening_queries» "positions"))) 0 (σ (.n 11)) ∧ LoadHolds rd (σ (.n (valf% «opening_queries» "query_win_ptrs"))) 0 (σ (.n 12)) ∧
-      QueryW rd s (σ (.n (valf% «opening_queries» "cap"))) (σ (.n (valf% «opening_queries» "flags"))) (σ (.n (valf% «opening_queries» "coefs"))) (σ (.n (valf% «opening_queries» "hs"))) (σ (.n 11)) (σ (.n 12))
-        (oqQueryW s rd (σ (.n 12)) (σ (.n (valf% «opening_queries» "cap"))) (σ (.n (valf% «opening_queries» "flags"))) 13 true σ V) (σ (.n (oqRes s 13 true))) ∧
-      LoadHolds rd (σ (.n (valf% «opening_queries» "chain"))) 0 (σ (.n (oqRes s 13 true)) * σ (.n (valf% «opening_queries» "lam_inv"))) := by
-  have mem : BlockOkC C rd σ (oqQueryT s (.n 11) (.n 12) (.n (valf% «opening_queries» "cap")) (.n (valf% «opening_queries» "flags")) (.n (valf% «opening_queries» "coefs")) (.n (valf% «opening_queries» "hs")) 13 true 0 (oqWalkOf s)) :=
-    hA.mono fun a ha => by simp only [oqMainA, ↓reduceIte, List.mem_append]; simp_all
-  have l11 := hA.atom (by simp [oqMainA] : Stmt.atom (.load (.n 11) (.n (valf% «opening_queries» "positions")) 0) ∈ _)
-  have l12 := hA.atom (by simp [oqMainA] : Stmt.atom (.load (.n 12) (.n (valf% «opening_queries» "query_win_ptrs")) 0) ∈ _)
-  have c1 := hA.atom (by simp [oqMainA] :
-    Stmt.atom (.mul (.n (oqMK s 1 - 1)) (.n (oqRes s 13 true)) (.n (valf% «opening_queries» "lam_inv"))) ∈ _)
-  have c2 := hA.atom (by simp [oqMainA] : Stmt.atom (.load (.n (oqMK s 1 - 1)) (.n (valf% «opening_queries» "chain")) 0) ∈ _)
-  simp only [Atom.Holds] at c1 l11 l12
+/-- The odd first query (level 0's start, `odd_g ≠ 1`), and the chain's first word, its result
+times `λ⁻¹`. -/
+theorem oqOdd_w {C : CallRel} {s : Oq} (hs : s.RowShape) (hfin : s.FinOk) {cd : ℕ} (hcd : 1 ≤ cd)
+    (hcd8 : cd ≤ 8) (hA : BlockOkC C rd σ (oqOddT s))
+    (hpos : ∀ x bp, LoadHolds rd (σ (.n oqMPos)) 0 x → LoadHolds rd (σ (.n oqMQp)) 0 bp →
+      PosRun rd s cd x bp) :
+    LoadHolds rd (σ (.n oqMPos)) 0 (σ (.n 15)) ∧ LoadHolds rd (σ (.n oqMQp)) 0 (σ (.n 16)) ∧
+      QueryW rd s cd (σ (.n oqMCap)) (σ (.n oqMFlags)) (σ (.n oqMCoefs)) (σ (.n oqMHs)) (σ (.n 15))
+        (σ (.n 16)) (oqQueryW s cd rd (σ (.n 16)) 17 true σ) (σ (.n (oqRes s 17 true))) ∧
+      LoadHolds rd (σ (.n 11)) 0 (σ (.n (oqRes s 17 true)) * σ (.n oqMLamInv)) := by
+  have mem := hA.mono fun a h => oqOddT_mem_q h
+  have l15 := hA.atom (by simp [oqOddT] : Stmt.atom (.load (.n 15) (.n oqMPos) 0) ∈ _)
+  have l16 := hA.atom (by simp [oqOddT] : Stmt.atom (.load (.n 16) (.n oqMQp) 0) ∈ _)
+  have c1 := hA.atom (by simp [oqOddT] :
+    Stmt.atom (.mul (.n (oqEnd s 17 true)) (.n (oqRes s 17 true)) (.n oqMLamInv)) ∈ _)
+  have c2 := hA.atom (by simp [oqOddT] : Stmt.atom (.load (.n (oqEnd s 17 true)) (.n 11) 0) ∈ _)
+  simp only [Atom.Holds] at c1 l15 l16
   obtain ⟨-, hpd', -, -, -, -⟩ := oqQuery_pieces mem
   obtain ⟨e1, z⟩ := oqPad_values (hpd' rfl)
-  refine ⟨l11, l12, oqQuery_sound_w hU hs hfin hpd hcd hcd8 hW mem e1 z (hpos _ _ l11 l12), ?_⟩
+  refine ⟨l15, l16, oqQuery_sound_w hs hfin hcd hcd8 mem e1 z (hpos _ _ l15 l16), ?_⟩
   have := c2
   simp only [Atom.Holds, c1] at this
   exact this
@@ -310,117 +319,119 @@ theorem oqMainA_odd_w {C : CallRel} {V : FrameMap} (hU : UnfoldsVP P rd C V) {s 
 /-- **`opening_queries` at level 0 is sound with its queries named** (`base = 1`, a non-final
 level). -/
 theorem oqMain1_sound_w {sh : OqShape} (hs : sh.oq.RowShape) (hfin : sh.oq.FinOk)
-    (hb1 : sh.base = 1) (hnf : sh.final = 0) (hodd : sh.odd ≤ 1) (hpd : 1 ≤ sh.oq.pd)
-    (hcd : 1 ≤ sh.cd) (hcd8 : sh.cd ≤ 8) (hdep : sh.cd ≤ sh.depth) {name loop : String}
-    (hW : WalkFn P (oqWalkOf sh.oq) sh.oq.pd sh.cd) {fm fl : Fn}
-    (hfm : P.find? name = some fm)
-    (hpm : fm.params = [.n (valf% «opening_queries» "cap"), .n (valf% «opening_queries» "flags"), .n (valf% «opening_queries» "lam_inv"), .n (valf% «opening_queries» "coefs"), .n (valf% «opening_queries» "hs"), .n (valf% «opening_queries» "positions"), .n (valf% «opening_queries» "query_win_ptrs"), .n (valf% «opening_queries» "n_iters_g")])
-    (hbm : fm.body = oqMainT sh.oq sh.odd (oqWalkOf sh.oq) loop)
+    (hb1 : sh.base = 1) (hnf : sh.final = 0) {name loop : String} {fm fl : Fn}
+    (hfm : P.find? name = some fm) (hpm : fm.params = oqMainParams)
+    (hbm : fm.body = oqMainT sh.oq loop)
     (hfl : P.find? loop = some fl) (hpl : fl.params = oqLoopParams)
-    (hbl : fl.body = oqLoop1T sh.oq sh.odd (oqWalkOf sh.oq) loop) :
+    (hbl : fl.body = oqLoop1T sh.oq loop) :
     opening_queries_sound_w_SpecP P name loop sh := by
-  intro rd C V hU _ fm' σ args rets N hfm' hp hh hN hNo hpos
+  intro cd hcd hcd8 rd C V hU _ fm' σ args rets N odd hfm' hp hh hN hNo hO hodd hpos
   rw [hfm] at hfm'
   cases hfm'
-  rw [hpm] at hp
-  simp only [List.map_cons, List.map_nil] at hp
-  subst hp
-  simp only [List.getD_cons_succ, List.getD_cons_zero] at hN hpos
-  set odd := sh.odd with hoddv
+  have hargs := oqMain_args hpm hp
+  subst hargs
+  simp only [List.getD_cons_succ, List.getD_cons_zero] at hN hO hpos
+  rw [hb1] at hodd
   set s := sh.oq with hsdef
   have hsb : s.base = 1 := hb1
-  have es : s.pd + s.cd = sh.depth := by simp only [hsdef, OqShape.oq]; omega
   have hQ : oqCount odd sh.base N = odd + 2 * N := by simp [oqCount, hb1]
   rw [hQ] at hpos
-  have hpos' : ∀ k < odd + 2 * N, ∀ x bp, LoadHolds rd (σ (.n (valf% «opening_queries» "positions"))) k x → LoadHolds rd (σ (.n (valf% «opening_queries» "query_win_ptrs"))) k bp →
-      PosRun rd s x bp := fun k hk x bp hx hbp ↦ by
-    obtain ⟨q, hq, hxq, hfrq⟩ := hpos k hk x bp hx hbp
-    exact ⟨q, by rw [es]; exact hq, hxq, by rw [es]; exact hfrq⟩
+  have hpos' : ∀ k < odd + 2 * N, ∀ x bp, LoadHolds rd (σ (.n oqMPos)) k x →
+      LoadHolds rd (σ (.n oqMQp)) k bp → PosRun rd s cd x bp := hpos
   rw [hbm] at hh
   obtain ⟨hA, hcall, -, hfin0⟩ := oqMain_tail hh
-  obtain ⟨hg, hst, h0even⟩ := oqMainA_basic hA
-  have hfr := loopV_frames (rd := rd) hU hfl (by rw [hbl]; rfl) (oqLoop1A_flatC s odd (oqWalkOf s))
-    (Nv := σ (.n (valf% «opening_queries» "n_iters_g"))) (rest := [σ (.n (valf% «opening_queries» "positions")), σ (.n (valf% «opening_queries» "query_win_ptrs")), σ (.n (valf% «opening_queries» "cap")), σ (.n (valf% «opening_queries» "flags")), σ (.n (valf% «opening_queries» "coefs")), σ (.n (valf% «opening_queries» "hs")), σ (.n (valf% «opening_queries» "chain")),
-      σ (.n (valf% «opening_queries» "lam_inv"))])
+  obtain ⟨hg, hst, -⟩ := oqMainA_basic hA
+  obtain ⟨h13, hmp, hmq, heven, hoddB⟩ := oqStart1_facts hsb hA
+  -- the branch: `odd_g + 1 = 0` exactly at `odd = 0`
+  have h13z : σ (.n 13) = 0 ↔ odd ≠ 1 := by
+    rw [h13, hO, e_add_eq_zero_iff, gen_pow_eq_one_iff (by norm_num; omega)]
+    omega
+  have hmp' : σ (.n (oqMK s - 2)) = σ (.n oqMPos) * gen ^ odd := by rw [hmp, hO]
+  have hmq' : σ (.n (oqMK s - 1)) = σ (.n oqMQp) * gen ^ odd := by rw [hmq, hO]
+  have hfr := loopV_frames (rd := rd) hU hfl (by rw [hbl]; rfl) (oqLoop1A_flatC s)
+    (Nv := σ (.n oqMN)) (rest := [σ (.n (oqMK s - 2)), σ (.n (oqMK s - 1)), σ (.n oqMCap),
+      σ (.n oqMFlags), σ (.n oqMCoefs), σ (.n oqMHs), σ (.n 11), σ (.n oqMLamInv)])
     (fun τ x hp hA => oqLoop1_hc hpl τ x hp hA) hN hNo (fun hN0 => by
-      have hne : σ (.n (oqMK s odd + 1)) ≠ 0 := by
+      have hne : σ (.n (oqMK s + 1)) ≠ 0 := by
         rw [hg, hN]
         intro h0
         have := (gen_pow_eq_one_iff hNo).mp (e_add_eq_zero_iff.mp h0).symm
         omega
       have := hcall hne
-      rwa [hst] at this)
-  set τ : ℕ → Val := fun j => V loop [gen ^ j, σ (.n (valf% «opening_queries» "n_iters_g")), σ (.n (valf% «opening_queries» "positions")), σ (.n (valf% «opening_queries» "query_win_ptrs")), σ (.n (valf% «opening_queries» "cap")), σ (.n (valf% «opening_queries» "flags")),
-    σ (.n (valf% «opening_queries» "coefs")), σ (.n (valf% «opening_queries» "hs")), σ (.n (valf% «opening_queries» "chain")), σ (.n (valf% «opening_queries» "lam_inv"))] [] with hτ
+      rwa [hst, oqLoopArgs_one hsb] at this)
+  set τ : ℕ → Val := fun j => V loop [gen ^ j, σ (.n oqMN), σ (.n (oqMK s - 2)),
+    σ (.n (oqMK s - 1)), σ (.n oqMCap), σ (.n oqMFlags), σ (.n oqMCoefs), σ (.n oqMHs), σ (.n 11),
+    σ (.n oqMLamInv)] [] with hτ
   -- the queries of an iteration
   have hit : ∀ j < N,
-      LoadHolds rd (σ (.n (valf% «opening_queries» "positions"))) (2 * j + odd) (τ j (.n 14)) ∧
-      LoadHolds rd (σ (.n (valf% «opening_queries» "query_win_ptrs"))) (2 * j + odd) (τ j (.n 15)) ∧
-      (∃ w, w = oqQueryW s rd (τ j (.n 15)) (τ j (.n (valf% «opening_queries» «_loop0» "cap"))) (τ j (.n (valf% «opening_queries» «_loop0» "flags"))) 16 true (τ j) V ∧
-        QueryW rd s (σ (.n (valf% «opening_queries» "cap"))) (σ (.n (valf% «opening_queries» "flags"))) (σ (.n (valf% «opening_queries» "coefs"))) (σ (.n (valf% «opening_queries» "hs"))) (τ j (.n 14)) (τ j (.n 15)) w
-          (τ j (.n (oqRes s 16 true)))) ∧
-      LoadHolds rd (σ (.n (valf% «opening_queries» "positions"))) (2 * j + odd + 1) (τ j (.n (oqE1 s))) ∧
-      LoadHolds rd (σ (.n (valf% «opening_queries» "query_win_ptrs"))) (2 * j + odd + 1) (τ j (.n (oqE1 s + 1))) ∧
-      (∃ w, w = oqQueryW s rd (τ j (.n (oqE1 s + 1))) (τ j (.n (valf% «opening_queries» «_loop0» "cap"))) (τ j (.n (valf% «opening_queries» «_loop0» "flags"))) (oqE1 s + 2) false
-          (τ j) V ∧
-        QueryW rd s (σ (.n (valf% «opening_queries» "cap"))) (σ (.n (valf% «opening_queries» "flags"))) (σ (.n (valf% «opening_queries» "coefs"))) (σ (.n (valf% «opening_queries» "hs"))) (τ j (.n (oqE1 s)))
-          (τ j (.n (oqE1 s + 1))) w (τ j (.n (oqRes s (oqE1 s + 2) false)))) ∧
-      ∃ v : E, LoadHolds rd (σ (.n (valf% «opening_queries» "chain"))) j v ∧
-        LoadHolds rd (σ (.n (valf% «opening_queries» "chain"))) (j + 1) (((v + τ j (.n (oqRes s 16 true))) * σ (.n (valf% «opening_queries» "lam_inv")) +
-          τ j (.n (oqRes s (oqE1 s + 2) false))) * σ (.n (valf% «opening_queries» "lam_inv"))) := by
+      LoadHolds rd (σ (.n oqMPos)) (odd + 2 * j) (τ j (.n 13)) ∧
+      LoadHolds rd (σ (.n oqMQp)) (odd + 2 * j) (τ j (.n 14)) ∧
+      (∃ w, w = oqQueryW s cd rd (τ j (.n 14)) 15 true (τ j) ∧
+        QueryW rd s cd (σ (.n oqMCap)) (σ (.n oqMFlags)) (σ (.n oqMCoefs)) (σ (.n oqMHs))
+          (τ j (.n 13)) (τ j (.n 14)) w (τ j (.n (oqRes s 15 true)))) ∧
+      LoadHolds rd (σ (.n oqMPos)) (odd + 2 * j + 1) (τ j (.n (oqE1 s))) ∧
+      LoadHolds rd (σ (.n oqMQp)) (odd + 2 * j + 1) (τ j (.n (oqE1 s + 1))) ∧
+      (∃ w, w = oqQueryW s cd rd (τ j (.n (oqE1 s + 1))) (oqE1 s + 2) false (τ j) ∧
+        QueryW rd s cd (σ (.n oqMCap)) (σ (.n oqMFlags)) (σ (.n oqMCoefs)) (σ (.n oqMHs))
+          (τ j (.n (oqE1 s))) (τ j (.n (oqE1 s + 1))) w (τ j (.n (oqRes s (oqE1 s + 2) false)))) ∧
+      ∃ v : E, LoadHolds rd (σ (.n 11)) j v ∧
+        LoadHolds rd (σ (.n 11)) (j + 1) (((v + τ j (.n (oqRes s 15 true))) * σ (.n oqMLamInv) +
+          τ j (.n (oqRes s (oqE1 s + 2) false))) * σ (.n oqMLamInv)) := by
     intro j hj
     obtain ⟨hp, hA⟩ := hfr j hj
     obtain ⟨t0, hps⟩ := loop_params hpl hp
     simp only [List.cons.injEq] at hps
     obtain ⟨-, t2, t3, t4, t5, t6, t7, t8, t9, -⟩ := hps
-    have := oqIter1_sound_w hU hs hfin hpd hcd hcd8 hW (odd := odd) (i := j) hA t0
+    have := oqIter1_sound_w hs hfin hcd hcd8 (i := j) hA t0
       (fun k hk x bp hx hbp => by
-        rw [← t2] at hx
-        rw [← t3] at hbp
-        exact hpos' k (by omega) x bp hx hbp)
+        rw [t2.symm.trans hmp', loadHolds_mul_gen_pow] at hx
+        rw [t3.symm.trans hmq', loadHolds_mul_gen_pow] at hbp
+        exact hpos' _ (by omega) x bp hx hbp)
     obtain ⟨a1, a2, a3, a4, a5, a6, a7⟩ := this
-    generalize hw1 : oqQueryW s rd (τ j (.n 15)) (τ j (.n (valf% «opening_queries» «_loop0» "cap"))) (τ j (.n (valf% «opening_queries» «_loop0» "flags"))) 16 true (τ j) V = w1 at a3
-    generalize hw2 : oqQueryW s rd (τ j (.n (oqE1 s + 1))) (τ j (.n (valf% «opening_queries» «_loop0» "cap"))) (τ j (.n (valf% «opening_queries» «_loop0» "flags"))) (oqE1 s + 2) false
-      (τ j) V = w2 at a6
-    rw [← t2] at a1 a4
-    rw [← t3] at a2 a5
+    generalize hw1 : oqQueryW s cd rd (τ j (.n 14)) 15 true (τ j) = w1 at a3
+    generalize hw2 : oqQueryW s cd rd (τ j (.n (oqE1 s + 1))) (oqE1 s + 2) false (τ j) = w2 at a6
+    rw [t2.symm.trans hmp', loadHolds_mul_gen_pow] at a1 a4
+    rw [t3.symm.trans hmq', loadHolds_mul_gen_pow] at a2 a5
+    rw [← Nat.add_assoc] at a4 a5
     rw [← t4, ← t5, ← t6, ← t7] at a3 a6
     obtain ⟨v, b1, b2⟩ := a7 (by show sh.final ≠ 1; omega)
     rw [← t8] at b1 b2
     rw [← t9] at b2
     exact ⟨a1, a2, ⟨w1, rfl, a3⟩, a4, a5, ⟨w2, rfl, a6⟩, v, b1, b2⟩
   -- the odd first query
-  have hM : odd = 1 → LoadHolds rd (σ (.n (valf% «opening_queries» "positions"))) 0 (σ (.n 11)) ∧ LoadHolds rd (σ (.n (valf% «opening_queries» "query_win_ptrs"))) 0 (σ (.n 12)) ∧
-      QueryW rd s (σ (.n (valf% «opening_queries» "cap"))) (σ (.n (valf% «opening_queries» "flags"))) (σ (.n (valf% «opening_queries» "coefs"))) (σ (.n (valf% «opening_queries» "hs"))) (σ (.n 11)) (σ (.n 12))
-        (oqQueryW s rd (σ (.n 12)) (σ (.n (valf% «opening_queries» "cap"))) (σ (.n (valf% «opening_queries» "flags"))) 13 true σ V) (σ (.n (oqRes s 13 true))) ∧
-      LoadHolds rd (σ (.n (valf% «opening_queries» "chain"))) 0 (σ (.n (oqRes s 13 true)) * σ (.n (valf% «opening_queries» "lam_inv"))) := by
+  have hM : odd = 1 → LoadHolds rd (σ (.n oqMPos)) 0 (σ (.n 15)) ∧
+      LoadHolds rd (σ (.n oqMQp)) 0 (σ (.n 16)) ∧
+      QueryW rd s cd (σ (.n oqMCap)) (σ (.n oqMFlags)) (σ (.n oqMCoefs)) (σ (.n oqMHs)) (σ (.n 15))
+        (σ (.n 16)) (oqQueryW s cd rd (σ (.n 16)) 17 true σ) (σ (.n (oqRes s 17 true))) ∧
+      LoadHolds rd (σ (.n 11)) 0 (σ (.n (oqRes s 17 true)) * σ (.n oqMLamInv)) := by
     intro h1
-    have hA' : BlockOkC C rd σ (oqMainA s 1 (oqWalkOf s)) := by rw [← h1]; exact hA
-    exact oqMainA_odd_w hU hs hfin hpd hcd hcd8 hW hA' (fun x bp hx hbp ↦ hpos' 0 (by omega) x bp hx hbp)
+    exact oqOdd_w hs hfin hcd hcd8 (hoddB fun h => (h13z.mp h) h1)
+      (fun x bp hx hbp ↦ hpos' 0 (by omega) x bp hx hbp)
   -- the witness, by index
-  set ws := oqsOf s odd loop N rd σ V with hws
-  have hwsM : odd = 1 → ws.getD 0 default = oqQueryW s rd (σ (.n 12)) (σ (.n (valf% «opening_queries» "cap"))) (σ (.n (valf% «opening_queries» "flags"))) 13 true σ V := by
+  set ws := oqsOf s cd odd loop N rd σ V with hws
+  have hwsM : odd = 1 → ws.getD 0 default = oqQueryW s cd rd (σ (.n 16)) 17 true σ := by
     intro h1; simp [hws, oqsOf, h1]
   have hwsI : ∀ j < N, ∀ e < 2, ws.getD (odd + (2 * j + e)) default =
-      (oqIterOf s rd (τ j) V).getD e default := by
+      (oqIterOf s cd rd (τ j)).getD e default := by
     intro j hj e he
-    have hl : (if odd = 1 then [oqQueryW s rd (σ (.n 12)) (σ (.n (valf% «opening_queries» "cap"))) (σ (.n (valf% «opening_queries» "flags"))) 13 true σ V] else []).length =
-        odd := by
+    have hl : (if odd = 1 then [oqQueryW s cd rd (σ (.n 16)) 17 true σ] else []).length = odd := by
       split_ifs with h <;> simp <;> omega
     simp only [hws, oqsOf]
     rw [List.getD_append_right _ _ _ _ (by omega), hl, Nat.add_sub_cancel_left]
     rw [oqGetD_flatMap_range _ 2 (fun j => by simp [oqIterOf, hsb]) default N j e hj he]
-    simp [hτ, oqLoopArgs]
-  have hiter : ∀ j < N, oqIterOf s rd (τ j) V =
-      [oqQueryW s rd (τ j (.n 15)) (τ j (.n (valf% «opening_queries» «_loop0» "cap"))) (τ j (.n (valf% «opening_queries» «_loop0» "flags"))) 16 true (τ j) V,
-        oqQueryW s rd (τ j (.n (oqE1 s + 1))) (τ j (.n (valf% «opening_queries» «_loop0» "cap"))) (τ j (.n (valf% «opening_queries» «_loop0» "flags"))) (oqE1 s + 2) false (τ j) V] :=
+    simp [hτ, oqLoopArgs_one hsb]
+  have hiter : ∀ j < N, oqIterOf s cd rd (τ j) =
+      [oqQueryW s cd rd (τ j (.n 14)) 15 true (τ j),
+        oqQueryW s cd rd (τ j (.n (oqE1 s + 1))) (oqE1 s + 2) false (τ j)] :=
     fun j _ ↦ by simp [oqIterOf, hsb]
   -- every query, by index
-  let dOf : ℕ → E := fun k ↦ if k < odd then σ (.n (oqRes s 13 true))
-    else if (k - odd) % 2 = 0 then τ ((k - odd) / 2) (.n (oqRes s 16 true))
+  let dOf : ℕ → E := fun k ↦ if k < odd then σ (.n (oqRes s 17 true))
+    else if (k - odd) % 2 = 0 then τ ((k - odd) / 2) (.n (oqRes s 15 true))
     else τ ((k - odd) / 2) (.n (oqRes s (oqE1 s + 2) false))
-  have hQW : ∀ k < odd + 2 * N, ∃ x bp : E, LoadHolds rd (σ (.n (valf% «opening_queries» "positions"))) k x ∧ LoadHolds rd (σ (.n (valf% «opening_queries» "query_win_ptrs"))) k bp ∧
-      QueryW rd s (σ (.n (valf% «opening_queries» "cap"))) (σ (.n (valf% «opening_queries» "flags"))) (σ (.n (valf% «opening_queries» "coefs"))) (σ (.n (valf% «opening_queries» "hs"))) x bp (ws.getD k default) (dOf k) := by
+  have hQW : ∀ k < odd + 2 * N, ∃ x bp : E, LoadHolds rd (σ (.n oqMPos)) k x ∧
+      LoadHolds rd (σ (.n oqMQp)) k bp ∧
+      QueryW rd s cd (σ (.n oqMCap)) (σ (.n oqMFlags)) (σ (.n oqMCoefs)) (σ (.n oqMHs)) x bp
+        (ws.getD k default) (dOf k) := by
     intro k hk
     by_cases hk0 : k < odd
     · have h1 : odd = 1 := by omega
@@ -434,14 +445,14 @@ theorem oqMain1_sound_w {sh : OqShape} (hs : sh.oq.RowShape) (hfin : sh.oq.FinOk
       obtain ⟨a1, a2, ⟨w1, hw1, a3⟩, a4, a5, ⟨w2, hw2, a6⟩, -⟩ := hit j hj
       rw [hwsI j hj e he, hiter j hj]
       interval_cases e
-      · refine ⟨_, _, by rw [show odd + (2 * j + 0) = 2 * j + odd by omega]; exact a1,
-          by rw [show odd + (2 * j + 0) = 2 * j + odd by omega]; exact a2, ?_⟩
-        have hd : dOf (odd + (2 * j + 0)) = τ j (.n (oqRes s 16 true)) := by
+      · refine ⟨_, _, by rw [show odd + (2 * j + 0) = odd + 2 * j by omega]; exact a1,
+          by rw [show odd + (2 * j + 0) = odd + 2 * j by omega]; exact a2, ?_⟩
+        have hd : dOf (odd + (2 * j + 0)) = τ j (.n (oqRes s 15 true)) := by
           simp only [dOf, show ¬ odd + (2 * j + 0) < odd by omega, ↓reduceIte,
             show (odd + (2 * j + 0) - odd) % 2 = 0 by omega, show (odd + (2 * j + 0) - odd) / 2 = j by omega]
         rw [hd, List.getD_cons_zero, ← hw1]; exact a3
-      · refine ⟨_, _, by rw [show odd + (2 * j + 1) = 2 * j + odd + 1 by omega]; exact a4,
-          by rw [show odd + (2 * j + 1) = 2 * j + odd + 1 by omega]; exact a5, ?_⟩
+      · refine ⟨_, _, by rw [show odd + (2 * j + 1) = odd + 2 * j + 1 by omega]; exact a4,
+          by rw [show odd + (2 * j + 1) = odd + 2 * j + 1 by omega]; exact a5, ?_⟩
         have hd : dOf (odd + (2 * j + 1)) = τ j (.n (oqRes s (oqE1 s + 2) false)) := by
           simp only [dOf, show ¬ odd + (2 * j + 1) < odd by omega, ↓reduceIte,
             show (odd + (2 * j + 1) - odd) % 2 = 1 by omega, show (odd + (2 * j + 1) - odd) / 2 = j by omega,
@@ -449,7 +460,7 @@ theorem oqMain1_sound_w {sh : OqShape} (hs : sh.oq.RowShape) (hfin : sh.oq.FinOk
         rw [hd, List.getD_cons_succ, List.getD_cons_zero, ← hw2]; exact a6
   -- the rounds, shared
   have hR : ∀ k < odd + 2 * N, ∃ rounds : List FoldRound, rounds.length = s.folds ∧
-      RoundsAt rd (σ (.n (valf% «opening_queries» "coefs"))) rounds ∧
+      RoundsAt rd (σ (.n oqMCoefs)) rounds ∧
       dOf k = qwFold s.base rounds (ws.getD k default) := fun k hk ↦ by
     obtain ⟨x, bp, -, -, -, -, -, -, rounds, h1, h2, h4, -⟩ := hQW k hk
     exact ⟨rounds, h1, h2, h4 (by simp [hsdef, OqShape.oq, hnf])⟩
@@ -465,17 +476,17 @@ theorem oqMain1_sound_w {sh : OqShape} (hs : sh.oq.RowShape) (hfin : sh.oq.FinOk
     exact roundsAt_unique (hrr k hk).2.1 (hrr 0 (by omega)).2.1 (by rw [(hrr k hk).1, (hrr 0 (by omega)).1])
   have hds : ∀ k < odd + 2 * N, dOf k = qwFold sh.base rounds (ws.getD k default) := fun k hk ↦ by
     rw [(hrr k hk).2.2, hrj k hk]; rfl
-  refine ⟨N, hNo, hN, by rw [hQ, oqsOf_length_one hsb hodd], rounds, List.replicate sh.nHs 0, hrl,
-    by simp, fun k hk ↦ ?_, ?_⟩
+  refine ⟨N, hNo, hN, odd, by rw [hb1]; exact hodd, hO, by rw [hQ, oqsOf_length_one hsb hodd],
+    rounds, List.replicate sh.nHs 0, hrl, by simp, fun k hk ↦ ?_, ?_⟩
   · rw [hQ] at hk
     obtain ⟨x, bp, l5, l6, q1, q2, q3, q4, -⟩ := hQW k hk
     obtain ⟨-, hRA, -⟩ := hrr k hk
     rw [hrj k hk] at hRA
-    refine ⟨hRA, fun hf ↦ absurd hf (by omega), by rw [← q2]; exact l5, by rw [← es]; exact q1,
-      ⟨bp, l6, by rw [← es]; exact q3⟩, by rw [← es]; exact q4, fun hf ↦ absurd hf (by omega)⟩
+    refine ⟨hRA, fun hf ↦ absurd hf (by omega), by rw [← q2]; exact l5, q1, ⟨bp, l6, q3⟩, q4,
+      fun hf ↦ absurd hf (by omega)⟩
   · simp only [hnf, show (0 : ℕ) ≠ 1 by decide, ↓reduceIte]
-    have hchain : ∀ i ≤ N, LoadHolds rd (σ (.n (valf% «opening_queries» "chain"))) i
-        (oqChain odd sh.base (σ (.n (valf% «opening_queries» "lam_inv"))) (fun k ↦ qwFold sh.base rounds (ws.getD k default)) i) := by
+    have hchain : ∀ i ≤ N, LoadHolds rd (σ (.n 11)) i
+        (oqChain odd sh.base (σ (.n oqMLamInv)) (fun k ↦ qwFold sh.base rounds (ws.getD k default)) i) := by
       intro i hi
       induction i with
       | zero =>
@@ -485,11 +496,11 @@ theorem oqMain1_sound_w {sh : OqShape} (hs : sh.oq.RowShape) (hfin : sh.oq.FinOk
           rw [← hds 0 (by omega)]
           simpa [dOf, h1] using this
         · simp only [oqChain, h1, ↓reduceIte]
-          exact h0even h1
+          exact heven (h13z.mpr h1)
       | succ i ih =>
         obtain ⟨-, -, -, -, -, -, v, hv, hv1⟩ := hit i (by omega)
         have e := loadHolds_unique hv (ih (by omega))
-        have d0 : dOf (odd + 2 * i) = τ i (.n (oqRes s 16 true)) := by
+        have d0 : dOf (odd + 2 * i) = τ i (.n (oqRes s 15 true)) := by
           simp only [dOf, show ¬ odd + 2 * i < odd by omega, ↓reduceIte,
             show (odd + 2 * i - odd) % 2 = 0 by omega, show (odd + 2 * i - odd) / 2 = i by omega]
         have d1 : dOf (odd + 2 * i + 1) = τ i (.n (oqRes s (oqE1 s + 2) false)) := by
@@ -501,7 +512,7 @@ theorem oqMain1_sound_w {sh : OqShape} (hs : sh.oq.RowShape) (hfin : sh.oq.FinOk
         exact hv1
     obtain ⟨v, hv, hret⟩ := hfin0 (by simp [hsdef, OqShape.oq, hnf])
     rw [hN, loadHolds_mul_gen_pow, Nat.add_zero] at hv
-    exact ⟨σ (.n (valf% «opening_queries» "chain")), hchain, by rw [hret, loadHolds_unique hv (hchain N le_rfl)]⟩
+    exact ⟨σ (.n 11), hchain, by rw [hret, loadHolds_unique hv (hchain N le_rfl)]⟩
 
 end
 end LeanVM.Guest.B1

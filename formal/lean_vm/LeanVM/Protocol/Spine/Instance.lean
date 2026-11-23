@@ -6,14 +6,14 @@
 
 module
 
-public import Statement.LeanVmVerifier
-public import LeanVM.Facts.Verifier
-public import Statement.Fast.Keccak
-public import Statement.Fast.QuadExt
-public import Statement.Fast.FieldWords
-public import LeanVM.Protocol.Compile.Prog
-public import LeanVM.Protocol.KeccakHash
-public import LeanVM.Parameters.Field
+import Statement.LeanVmVerifier
+import LeanVM.Facts.Verifier
+import Statement.Fast.Keccak
+import Statement.Fast.QuadExt
+import Statement.Fast.FieldWords
+import LeanVM.Protocol.Compile.Prog
+import LeanVM.Protocol.KeccakHash
+import LeanVM.Parameters.Field
 public import LeanVM.Protocol.Field
 public import LeanVM.Semantics.KeccakCells
 public import LeanVM.Protocol.ToArkLib.Oracles

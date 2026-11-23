@@ -53,23 +53,23 @@ def vtFwSelT (w b kv : ℕ) (prev : Option ℕ) : List Stmt :=
     .atom (.assertEq (.n (w + 11)) (.n (vtBoffV b)))] ++
   vtFwTail w prev
 
-theorem vtFw0_check : tbStmtsEqb (vtFwSelT 779 0 26 none)
-    ((vtAt 766).take (vtFwSelT 779 0 26 none).length) = true := by
+theorem vtFw0_check : tbStmtsEqb (vtFwSelT 823 0 26 none)
+    ((vtAt 810).take (vtFwSelT 823 0 26 none).length) = true := by
   decide +kernel
 
-theorem vtFw1_check : tbStmtsEqb (vtFwSelT 795 1 27 (some 789))
-    ((vtAt 781).take (vtFwSelT 795 1 27 (some 789)).length) = true := by
+theorem vtFw1_check : tbStmtsEqb (vtFwSelT 839 1 27 (some 833))
+    ((vtAt 825).take (vtFwSelT 839 1 27 (some 833)).length) = true := by
   decide +kernel
 
-theorem vtFw2_check : tbStmtsEqb (vtFwSelT 823 2 822 (some 807))
-    ((vtAt 811).take (vtFwSelT 823 2 822 (some 807)).length) = true := by
+theorem vtFw2_check : tbStmtsEqb (vtFwSelT 867 2 866 (some 851))
+    ((vtAt 855).take (vtFwSelT 867 2 866 (some 851)).length) = true := by
   decide +kernel
 
 /-- Block `2`'s `kappa_g = kb[0]·g^19`. -/
 theorem vt_fw2_kappa {rd : Reader} {σ : Val} (h : VtH rd σ) :
     σ (.n (val% «verify_tables» "kappa_g@2")) = σ (.n (val% «verify_tables» "kb[0]")) * gen ^ 19 := by
-  have c := h.atomAt 809 (.const (.n (val% «verify_tables» "kappa_g@2~0")) (word 524288 0)) (by decide +kernel)
-  have m := h.atomAt 810 (.mul (.n (val% «verify_tables» "kappa_g@2")) (.n (val% «verify_tables» "kb[0]")) (.n (val% «verify_tables» "kappa_g@2~0"))) (by decide +kernel)
+  have c := h.atomAt 853 (.const (.n (val% «verify_tables» "kappa_g@2~0")) (word 524288 0)) (by decide +kernel)
+  have m := h.atomAt 854 (.mul (.n (val% «verify_tables» "kappa_g@2")) (.n (val% «verify_tables» "kb[0]")) (.n (val% «verify_tables» "kappa_g@2~0"))) (by decide +kernel)
   simp only [Atom.Holds] at c m
   rw [m, c, show (524288 : ℕ) = 2 ^ 19 by norm_num, tb_word_two_pow (by norm_num)]
 

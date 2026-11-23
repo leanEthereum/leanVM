@@ -52,8 +52,8 @@ theorem vtWFinalPc_eq : vtWFinalPc = Verifier.gpow (2 ^ 19 - 1) := by
     show K.ofBits 12261764870545049476 = Parameters.addressOfIndex (2 ^ 19 - 1) by decide +kernel]
 
 theorem vt_beta1 {rd : Reader} {σ : Val} (h : VtH rd σ) : σ (.n (val% «verify_tables» "beta_1")) = σ (.n (val% «verify_tables» "beta")) + 1 := by
-  have a1 := h.atomAt 2020 (.const (.n (val% «verify_tables» "beta_1~0")) (word 1 0)) (by decide +kernel)
-  have a2 := h.atomAt 2021 (.add (.n (val% «verify_tables» "beta_1")) (.n (val% «verify_tables» "beta")) (.n (val% «verify_tables» "beta_1~0"))) (by decide +kernel)
+  have a1 := h.atomAt 1716 (.const (.n (val% «verify_tables» "beta_1~0")) (word 1 0)) (by decide +kernel)
+  have a2 := h.atomAt 1717 (.add (.n (val% «verify_tables» "beta_1")) (.n (val% «verify_tables» "beta")) (.n (val% «verify_tables» "beta_1~0"))) (by decide +kernel)
   simp only [Atom.Holds] at a1 a2
   rw [a2, a1, tb_word_one]
 
@@ -65,19 +65,19 @@ theorem vt_fw_copies {rd : Reader} {σ : Val} (h : VtH rd σ) :
       σ (.n (val% «verify_tables» "block_eq_hi[55]")) = σ (.n (val% «verify_tables» "block_eq_hi[1]")) ∧ σ (.n (val% «verify_tables» "block_eq_hi[56]")) = σ (.n (val% «verify_tables» "block_eq_hi[2]")) ∧ σ (.n (val% «verify_tables» "public_eqs[1]")) = σ (.n (val% «verify_tables» "block_eq_hi[2]")) ∧
       σ (.n (val% «verify_tables» "coord_vals[303]")) = σ (.n (val% «verify_tables» "x@3")) ∧ σ (.n (val% «verify_tables» "coord_vals[304]")) = σ (.n (val% «verify_tables» "coord_val@3")) ∧ σ (.n (val% «verify_tables» "coord_vals[305]")) = σ (.n (val% «verify_tables» "coord_val@4")) ∧
       σ (.n (val% «verify_tables» "coord_vals[308]")) = σ (.n (val% «verify_tables» "x@4")) := by
-  have a1 := h.atomAt 796 (.copy (.n (val% «verify_tables» "coord_vals[4]")) (.n (val% «verify_tables» "coord_val@1"))) (by decide +kernel)
-  have a2 := h.atomAt 803 (.copy (.n (val% «verify_tables» "coord_vals[6]")) (.n (val% «verify_tables» "x@1"))) (by decide +kernel)
-  have a3 := h.atomAt 808 (.copy (.n (val% «verify_tables» "coord_vals[7]")) (.n (val% «verify_tables» "x@2"))) (by decide +kernel)
-  have a4 := h.atomAt 826 (.copy (.n (val% «verify_tables» "coord_vals[9]")) (.n (val% «verify_tables» "coord_val@2"))) (by decide +kernel)
-  have a5 := h.atomAt 1333 (.copy (.n (val% «verify_tables» "public_eqs[0]")) (.n (val% «verify_tables» "eq_hi@3"))) (by decide +kernel)
-  have a6 := h.atomAt 1334 (.copy (.n (val% «verify_tables» "block_eq_hi[54]")) (.n (val% «verify_tables» "block_eq_hi[0]"))) (by decide +kernel)
-  have a7 := h.atomAt 1339 (.copy (.n (val% «verify_tables» "block_eq_hi[55]")) (.n (val% «verify_tables» "block_eq_hi[1]"))) (by decide +kernel)
-  have a8 := h.atomAt 1354 (.copy (.n (val% «verify_tables» "block_eq_hi[56]")) (.n (val% «verify_tables» "block_eq_hi[2]"))) (by decide +kernel)
-  have a9 := h.atomAt 1478 (.copy (.n (val% «verify_tables» "public_eqs[1]")) (.n (val% «verify_tables» "block_eq_hi[2]"))) (by decide +kernel)
-  have a10 := h.atomAt 1346 (.copy (.n (val% «verify_tables» "coord_vals[303]")) (.n (val% «verify_tables» "x@3"))) (by decide +kernel)
-  have a11 := h.atomAt 1348 (.copy (.n (val% «verify_tables» "coord_vals[304]")) (.n (val% «verify_tables» "coord_val@3"))) (by decide +kernel)
-  have a12 := h.atomAt 1350 (.copy (.n (val% «verify_tables» "coord_vals[305]")) (.n (val% «verify_tables» "coord_val@4"))) (by decide +kernel)
-  have a13 := h.atomAt 1361 (.copy (.n (val% «verify_tables» "coord_vals[308]")) (.n (val% «verify_tables» "x@4"))) (by decide +kernel)
+  have a1 := h.atomAt 840 (.copy (.n (val% «verify_tables» "coord_vals[4]")) (.n (val% «verify_tables» "coord_val@1"))) (by decide +kernel)
+  have a2 := h.atomAt 847 (.copy (.n (val% «verify_tables» "coord_vals[6]")) (.n (val% «verify_tables» "x@1"))) (by decide +kernel)
+  have a3 := h.atomAt 852 (.copy (.n (val% «verify_tables» "coord_vals[7]")) (.n (val% «verify_tables» "x@2"))) (by decide +kernel)
+  have a4 := h.atomAt 870 (.copy (.n (val% «verify_tables» "coord_vals[9]")) (.n (val% «verify_tables» "coord_val@2"))) (by decide +kernel)
+  have a5 := h.atomAt 1193 (.copy (.n (val% «verify_tables» "public_eqs[0]")) (.n (val% «verify_tables» "eq_hi@3"))) (by decide +kernel)
+  have a6 := h.atomAt 1194 (.copy (.n (val% «verify_tables» "block_eq_hi[54]")) (.n (val% «verify_tables» "block_eq_hi[0]"))) (by decide +kernel)
+  have a7 := h.atomAt 1199 (.copy (.n (val% «verify_tables» "block_eq_hi[55]")) (.n (val% «verify_tables» "block_eq_hi[1]"))) (by decide +kernel)
+  have a8 := h.atomAt 1214 (.copy (.n (val% «verify_tables» "block_eq_hi[56]")) (.n (val% «verify_tables» "block_eq_hi[2]"))) (by decide +kernel)
+  have a9 := h.atomAt 1338 (.copy (.n (val% «verify_tables» "public_eqs[1]")) (.n (val% «verify_tables» "block_eq_hi[2]"))) (by decide +kernel)
+  have a10 := h.atomAt 1206 (.copy (.n (val% «verify_tables» "coord_vals[303]")) (.n (val% «verify_tables» "x@3"))) (by decide +kernel)
+  have a11 := h.atomAt 1208 (.copy (.n (val% «verify_tables» "coord_vals[304]")) (.n (val% «verify_tables» "coord_val@3"))) (by decide +kernel)
+  have a12 := h.atomAt 1210 (.copy (.n (val% «verify_tables» "coord_vals[305]")) (.n (val% «verify_tables» "coord_val@4"))) (by decide +kernel)
+  have a13 := h.atomAt 1221 (.copy (.n (val% «verify_tables» "coord_vals[308]")) (.n (val% «verify_tables» "x@4"))) (by decide +kernel)
   simp only [Atom.Holds] at a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13
   exact ⟨a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13⟩
 
@@ -96,13 +96,13 @@ theorem vt_asm_totals {σ : Val} (h : VtH Lm.read σ) {bc : List K} (hbc : bc.le
     (hW : TbReadsAt Lm.read (σ (.n (val% «verify_tables» "fp_w"))) weights)
     (hpw : ∀ t < 6, σ (.n (vtPadV t)) = paddingWeight (point.take (vtHt rows t)) (vtRw rows t)) :
     σ (.n (val% «verify_tables» "bus_table_total[0]")) = (vtAcc0 (layoutOf bc lm rows) weights (σ (.n (val% «verify_tables» "beta"))) point
-      [σ (.n (val% «verify_tables» "x@1")), σ (.n (val% «verify_tables» "x@2"))] (σ (.n (val% «verify_tables» "x@5"))) (σ (.n (val% «verify_tables» "s52.u0.s5#0")))).2 ∧
+      [σ (.n (val% «verify_tables» "x@1")), σ (.n (val% «verify_tables» "x@2"))] (σ (.n (val% «verify_tables» "x@5"))) (σ (.n (val% «verify_tables» "s53.u0.s5#0")))).2 ∧
     σ (.n (val% «verify_tables» "bus_table_total[1]")) = (vtAcc1 (layoutOf bc lm rows) weights (σ (.n (val% «verify_tables» "beta"))) point
       [σ (.n (val% «verify_tables» "x@1")), σ (.n (val% «verify_tables» "x@2"))] (σ (.n (val% «verify_tables» "x@3"))) (σ (.n (val% «verify_tables» "x@4"))) (σ (.n (val% «verify_tables» "x@5")))
-      (σ (.n (val% «verify_tables» "s52.u0.s5#0"))) (σ (.n (val% «verify_tables» "s52.u1.s5#0")))).2 ∧
+      (σ (.n (val% «verify_tables» "s53.u0.s5#0"))) (σ (.n (val% «verify_tables» "s53.u1.s5#0")))).2 ∧
     σ (.n (val% «verify_tables» "bus_table_total[2]")) = (vtAcc2 (layoutOf bc lm rows) weights (σ (.n (val% «verify_tables» "beta"))) point
       [σ (.n (val% «verify_tables» "x@1")), σ (.n (val% «verify_tables» "x@2"))] (σ (.n (val% «verify_tables» "x@3"))) (σ (.n (val% «verify_tables» "x@4"))) (σ (.n (val% «verify_tables» "x@5")))
-      (σ (.n (val% «verify_tables» "s52.u0.s5#0"))) (σ (.n (val% «verify_tables» "s52.u1.s5#0"))) (σ (.n (val% «verify_tables» "s52.u2.s5#0")))).2 := by
+      (σ (.n (val% «verify_tables» "s53.u0.s5#0"))) (σ (.n (val% «verify_tables» "s53.u1.s5#0"))) (σ (.n (val% «verify_tables» "s53.u2.s5#0")))).2 := by
   obtain ⟨l1, l2, s0, s1, s2, c0, c1, c2, hS, hsum, hSC, hsumC⟩ :=
     vt_sels hμ Lm h hz hmu hml hE hlm hτ hkb
   have k1 : σ (.n (val% «verify_tables» "kb[1]")) = gen ^ lm := by simpa using hkb 1 (by norm_num)
@@ -120,15 +120,15 @@ theorem vt_asm_totals {σ : Val} (h : VtH Lm.read σ) {bc : List K} (hbc : bc.le
   have hpw' : ∀ t < 6, paddingWeight (point.take (vtHt rows t)) (vtRw rows t) =
       σ (.n (vtPadV t)) := fun t ht ↦ (hpw t ht).symm
   have e0 := vt_total0 hbc weights (σ (.n (val% «verify_tables» "beta"))) point [σ (.n (val% «verify_tables» "x@1")), σ (.n (val% «verify_tables» "x@2"))]
-    (σ (.n (val% «verify_tables» "x@5"))) (σ (.n (val% «verify_tables» "s52.u0.s5#0"))) _ _ _ (fun c ↦ σ (.n c)) (fun t ↦ σ (.n (vtPadV t)))
+    (σ (.n (val% «verify_tables» "x@5"))) (σ (.n (val% «verify_tables» "s53.u0.s5#0"))) _ _ _ (fun c ↦ σ (.n c)) (fun t ↦ σ (.n (vtPadV t)))
     s0.symm s1.symm s2.symm (fun i hi ↦ hS i hi) hpw' hr
   have e1 := vt_total1 hbc weights (σ (.n (val% «verify_tables» "beta"))) point [σ (.n (val% «verify_tables» "x@1")), σ (.n (val% «verify_tables» "x@2"))]
-    (σ (.n (val% «verify_tables» "x@3"))) (σ (.n (val% «verify_tables» "x@4"))) (σ (.n (val% «verify_tables» "x@5"))) (σ (.n (val% «verify_tables» "s52.u0.s5#0"))) (σ (.n (val% «verify_tables» "s52.u1.s5#0"))) _ _ _
+    (σ (.n (val% «verify_tables» "x@3"))) (σ (.n (val% «verify_tables» "x@4"))) (σ (.n (val% «verify_tables» "x@5"))) (σ (.n (val% «verify_tables» "s53.u0.s5#0"))) (σ (.n (val% «verify_tables» "s53.u1.s5#0"))) _ _ _
     (fun c ↦ σ (.n c)) (fun t ↦ σ (.n (vtPadV t))) s0.symm s1.symm s2.symm (fun i hi ↦ hS i hi)
     hpw' hr
   have e2 := vt_total2 (bc := bc) (lm := lm) weights (σ (.n (val% «verify_tables» "beta"))) point
     [σ (.n (val% «verify_tables» "x@1")), σ (.n (val% «verify_tables» "x@2"))] (σ (.n (val% «verify_tables» "x@3"))) (σ (.n (val% «verify_tables» "x@4"))) (σ (.n (val% «verify_tables» "x@5")))
-    (σ (.n (val% «verify_tables» "s52.u0.s5#0"))) (σ (.n (val% «verify_tables» "s52.u1.s5#0"))) (σ (.n (val% «verify_tables» "s52.u2.s5#0"))) (fun c ↦ σ (.n c)) (fun t ↦ σ (.n (vtPadV t))) W
+    (σ (.n (val% «verify_tables» "s53.u0.s5#0"))) (σ (.n (val% «verify_tables» "s53.u1.s5#0"))) (σ (.n (val% «verify_tables» "s53.u2.s5#0"))) (fun c ↦ σ (.n c)) (fun t ↦ σ (.n (vtPadV t))) W
     (fun i hi ↦ hSC i hi) hpw' hr
   have hpad := vt_push_pad h hw
   rw [vt_beta1 h] at hpad

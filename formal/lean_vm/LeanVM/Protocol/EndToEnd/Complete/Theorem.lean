@@ -12,13 +12,14 @@ module
 
 public import LeanVM.Protocol.EndToEnd.Complete.Assemble
 public import LeanVM.Protocol.EndToEnd.Complete.Bus
-public import LeanVM.Protocol.EndToEnd.Complete.BusDepth
-public import LeanVM.Protocol.EndToEnd.Sound.Moves
+import LeanVM.Protocol.EndToEnd.Complete.BusDepth
+import LeanVM.Protocol.EndToEnd.Sound.Moves
 public import LeanVM.Protocol.EndToEnd.Complete.Table
 public import LeanVM.Protocol.EndToEnd.Complete.Ring
-public import LeanVM.Protocol.LeanIsa.Complete
-public import LeanVM.Arithmetization.Completeness.Theorem
-public import LeanVM.Protocol.WithHash
+import LeanVM.Protocol.LeanIsa.Complete
+import LeanVM.Arithmetization.Completeness.Theorem
+import LeanVM.Protocol.WithHash
+public import LeanVM.Facts.Verifier
 
 /-!
 # Perfect completeness of the leanVM verifier

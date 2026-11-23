@@ -10,13 +10,14 @@ module
 
 public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Protocol.EndToEnd.Front.TablePhase
-public import LeanVM.Protocol.EndToEnd.Front.TableFidLeanIsaBus
-public import LeanVM.Protocol.EndToEnd.Front.BusTable
+import LeanVM.Protocol.EndToEnd.Front.TableFidLeanIsaBus
+import LeanVM.Protocol.EndToEnd.Front.BusTable
 public import LeanVM.Protocol.EndToEnd.Front.LayoutBridgeB
 public import LeanVM.Protocol.EndToEnd.Front.KeccakLayout
 public import LeanVM.Protocol.EndToEnd.Sound.Returns
 public import LeanVM.Protocol.EndToEnd.Sound.Frame
 public import LeanVM.Protocol.Keccak.Gkr
+import LeanVM.Protocol.LeanIsa.Read
 
 /-!
 # The Keccak phase on doom

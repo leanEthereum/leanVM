@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B1.Terminal.Template
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«check_opening_terminal»
+public import Statement.LeanDa
 
 /-!
 # The claims' blocks

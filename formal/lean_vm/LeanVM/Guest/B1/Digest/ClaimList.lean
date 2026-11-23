@@ -18,6 +18,8 @@ import LeanVM.Guest.Data.ValNames.«claim_list_chain»
 import LeanVM.Guest.Data.ValNames.«claim_list_last__L»
 import LeanVM.Guest.Data.ValNames.«claim_list_tail»
 import LeanVM.Guest.B1.Common.Vc
+import LeanVM.Guest.B1.Common.Find
+import LeanVM.Guest.Value.FieldBits
 
 /-!
 # `claim_list_digest`

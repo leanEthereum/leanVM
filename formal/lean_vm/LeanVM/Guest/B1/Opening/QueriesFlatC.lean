@@ -8,12 +8,14 @@
 module
 
 public import LeanVM.Guest.B1.Opening.QueriesFlat
+public import LeanVM.Guest.B1.Common.Basic
+import LeanVM.Guest.Value.FieldBits
 
 /-!
 # Flat blocks with calls
 
-A query of `opening_queries` calls `walk_path` (a function of its own, lean_ethereum.py)
-instead of walking its path inline. `FlatC ss`: every statement is an atom, a `match` of atom arms or
+`opening_queries`' blocks are atoms, `match`es of atom arms (a query, `walk_path` inline) and calls (its
+loops). `FlatC ss`: every statement is an atom, a `match` of atom arms or
 a call. `holdsList_flatC`: such a block holds exactly when every statement does (`StmtOkC C`: a call
 holds in the call relation `C`), then `next`. `blockOkC_relN`: a block holding under the program's
 relation holds at a finite depth. `loop_iffC`, `guarded_loop_iffC`: `loop_iff`, `guarded_loop_iff`
@@ -49,10 +51,6 @@ theorem flatC_of_flat {ss : List Stmt} (h : Flat ss) : FlatC ss := fun s hs ↦
 
 theorem flatC_append {ss ts : List Stmt} (h1 : FlatC ss) (h2 : FlatC ts) : FlatC (ss ++ ts) :=
   fun s hs ↦ (List.mem_append.mp hs).elim (h1 s) (h2 s)
-
-theorem flatC_call (f : String) (args rets : List V) : FlatC [.call f args rets] := fun s hs ↦ by
-  simp only [List.mem_cons, List.not_mem_nil, or_false] at hs
-  exact Or.inr (Or.inr ⟨f, args, rets, hs⟩)
 
 theorem flatC_cons {s : Stmt} {ss : List Stmt} (h : FlatC (s :: ss)) : FlatC ss :=
   fun t ht ↦ h t (List.mem_cons_of_mem _ ht)

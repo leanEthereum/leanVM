@@ -10,8 +10,8 @@
 module
 
 public import LeanVM.Protocol.Compile.SpecRules.Leaves
-public import LeanVM.Protocol.Verifier
-public import LeanVM.Protocol.ToArkLib.Whir.Ood
+import LeanVM.Protocol.Verifier
+import LeanVM.Protocol.ToArkLib.Whir.Ood
 
 /-!
 # Expectations over a group of challenges

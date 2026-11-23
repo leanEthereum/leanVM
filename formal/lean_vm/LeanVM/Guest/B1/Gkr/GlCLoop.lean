@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Gkr.GlCLoop
 
-  `gkr_layer__L{p}_L{o}`'s loop, completely: eight GKR rounds between the records `head·g^y` and
-  `head·g^(y+1)` at every iteration give its relation from `1` below `x_m`.
+  `gkr_layer__L{p}_L{o}`'s loop, completely: eight GKR rounds between the records `head·g^(7y)` and
+  `head·g^(7(y+1))` at every iteration give its relation from `1` below `x_m`.
 -/
 
 module
@@ -15,18 +15,19 @@ public import LeanVM.Guest.Data.NameStrings
 public import LeanVM.Guest.CoreData
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«gkr_layer__L_loop0»
+import LeanVM.Guest.B1.Tables.Basic
 
 /-!
 # `gkr_layer__L{p}_L{o}_loop0`, completely
 
 The eight loops (one per layer function) have one body but for the recursive call's name
-(`glcBody`, checked against all eight by `glc_check`): the record `head·y`, the rows `qrow·y^8`
+(`glcBody`, checked against all eight by `glc_check`): the record `head·y^7`, the rows `qrow·y^8`
 and `nqrow·y^8`, then `gkPre true 8` (B1-a's rounds) renamed by `glcSh`, its challenge stores
 `pt[42 + q]` redirected to `npt[q]` (`glcMap`; `npt = pt·g^42`), then the guard and the next
 call's argument.
 
 * `glc_iter`: an iteration at `x` holds when its eight rounds do (`TbGkrRoundsOut 8 1` at the
-  record `head·x` and the row `qrow·x^8`), its valuation the rounds' (`gk_pre_holds`) renamed;
+  record `head·x^7` and the row `qrow·x^8`), its valuation the rounds' (`gk_pre_holds`) renamed;
 * `glc_complete`: eight rounds at every `y < m` give the loop from `1` below `g^m`.
 -/
 
@@ -38,23 +39,25 @@ open LeanVM.Guest.B1
 
 @[expose] public section
 
-/-- `gkPre true 8`'s values in an iteration: the record `head·y` (`6`), the row `qrow·y^8`
-(`10`), the cursor (`17`), the capacity seven on, the claim and the others eight on. -/
+/-- `gkPre true 8`'s values in an iteration: the record `head·y^7` (`10`), the row `qrow·y^8`
+(`14`), the cursor (`21`), the capacity eleven on, the claim and the others twelve on. -/
 def glcSh (v : V) : V :=
-  if v.idx = 0 then .n 6 else if v.idx = 1 then .n 10 else if v.idx = 2 then .n 17
-  else if v.idx < 5 then .n 5 else if v.idx < 10 then .n (v.idx + 7) else .n (v.idx + 8)
+  if v.idx = 0 then .n 10 else if v.idx = 1 then .n 14 else if v.idx = 2 then .n 21
+  else if v.idx < 5 then .n 5 else if v.idx < 10 then .n (v.idx + 11) else .n (v.idx + 12)
 
 /-- A statement of `gkPre true 8` in the loop: renamed, a challenge's store `pt[42 + q]` through
-the next row `npt[q]` (`11`). -/
+the next row `npt[q]` (`15`). -/
 def glcMap : Stmt → Stmt
   | .atom (.load d (.n 1) off) =>
-    if 42 ≤ off then .atom (.load (glcSh d) (.n 11) (off - 42))
-    else .atom (.load (glcSh d) (.n 10) off)
+    if 42 ≤ off then .atom (.load (glcSh d) (.n 15) (off - 42))
+    else .atom (.load (glcSh d) (.n 14) off)
   | s => s.rename glcSh
 
 /-- The iteration's pointers: the record, `y^8`, the rows. -/
 def glcPre : List Stmt :=
-  [.atom (.mul (.n (valf% «gkr_layer» «_loop0» "rd")) (.n (valf% «gkr_layer» «_loop0» "head")) (.n (valf% «gkr_layer» «_loop0» "y"))), .atom (.mul (.n (valf% «gkr_layer» «_loop0» "y2")) (.n (valf% «gkr_layer» «_loop0» "y")) (.n (valf% «gkr_layer» «_loop0» "y"))),
+  [.atom (.mul (.n 6) (.n (valf% «gkr_layer» «_loop0» "y")) (.n (valf% «gkr_layer» «_loop0» "y"))), .atom (.mul (.n 7) (.n 6) (.n (valf% «gkr_layer» «_loop0» "y"))),
+    .atom (.mul (.n 8) (.n 7) (.n 7)), .atom (.mul (.n 9) (.n 8) (.n (valf% «gkr_layer» «_loop0» "y"))),
+    .atom (.mul (.n (valf% «gkr_layer» «_loop0» "rd")) (.n (valf% «gkr_layer» «_loop0» "head")) (.n 9)), .atom (.mul (.n (valf% «gkr_layer» «_loop0» "y2")) (.n (valf% «gkr_layer» «_loop0» "y")) (.n (valf% «gkr_layer» «_loop0» "y"))),
     .atom (.mul (.n (valf% «gkr_layer» «_loop0» "y4")) (.n (valf% «gkr_layer» «_loop0» "y2")) (.n (valf% «gkr_layer» «_loop0» "y2"))), .atom (.mul (.n (valf% «gkr_layer» «_loop0» "y8")) (.n (valf% «gkr_layer» «_loop0» "y4")) (.n (valf% «gkr_layer» «_loop0» "y4"))),
     .atom (.mul (.n (valf% «gkr_layer» «_loop0» "pt")) (.n (valf% «gkr_layer» «_loop0» "qrow")) (.n (valf% «gkr_layer» «_loop0» "y8"))), .atom (.mul (.n (valf% «gkr_layer» «_loop0» "npt")) (.n (valf% «gkr_layer» «_loop0» "nqrow")) (.n (valf% «gkr_layer» «_loop0» "y8")))]
 
@@ -121,7 +124,7 @@ theorem glcA_atoms : AllAtoms glcA := by
   simp only [glcA, List.mem_append, List.mem_map] at hs
   rcases hs with (hs | ⟨t, ht, rfl⟩) | hs
   · simp only [glcPre, List.mem_cons, List.not_mem_nil, or_false] at hs
-    rcases hs with rfl | rfl | rfl | rfl | rfl | rfl <;> exact ⟨_, rfl⟩
+    rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> exact ⟨_, rfl⟩
   · have := List.all_eq_true.mp gk8_ok t ht
     cases t with
     | atom a =>
@@ -141,17 +144,23 @@ def glcY8 (x : E) : E := x * x * (x * x) * (x * x * (x * x))
 
 theorem glcY8_eq (x : E) : glcY8 x = x ^ 8 := by unfold glcY8; ring
 
+/-- `y^7` as the iteration computes it. -/
+def glcY7 (x : E) : E := x * x * x * (x * x * x) * x
+
+theorem glcY7_eq (x : E) : glcY7 x = x ^ 7 := by unfold glcY7; ring
+
 /-- **The honest valuation of an iteration** at `x`, the rounds' `σgk` renamed. -/
 def glcVal (x N head qrow nqrow tabs : E) (σgk : Val) (v : V) : E :=
-  if v.idx < 12 then [x, N, head, qrow, nqrow, tabs, head * x, x * x, x * x * (x * x), glcY8 x,
-    qrow * glcY8 x, nqrow * glcY8 x].getD v.idx 0
-  else if v.idx < 17 then σgk (.n (v.idx - 7))
-  else if v.idx = 17 then σgk (.n 2)
-  else if v.idx ≤ 332 then σgk (.n (v.idx - 8))
-  else [gen, x * gen, x * gen + N, gen, x * gen].getD (v.idx - 333) 0
+  if v.idx < 16 then [x, N, head, qrow, nqrow, tabs, x * x, x * x * x, x * x * x * (x * x * x),
+    glcY7 x, head * glcY7 x, x * x, x * x * (x * x), glcY8 x, qrow * glcY8 x,
+    nqrow * glcY8 x].getD v.idx 0
+  else if v.idx < 21 then σgk (.n (v.idx - 11))
+  else if v.idx = 21 then σgk (.n 2)
+  else if v.idx ≤ 336 then σgk (.n (v.idx - 12))
+  else [gen, x * gen, x * gen + N, gen, x * gen].getD (v.idx - 337) 0
 
 theorem glc_val_sh {x N head qrow nqrow tabs : E} {σgk : Val} (hσv : ∀ v, σgk v = σgk (.n v.idx))
-    (h0 : σgk (.n 0) = head * x) (h1 : σgk (.n 1) = qrow * glcY8 x) {v : V}
+    (h0 : σgk (.n 0) = head * glcY7 x) (h1 : σgk (.n 1) = qrow * glcY8 x) {v : V}
     (hvi : v.idx ≤ 324) (h3 : v.idx ≠ 3) (h4 : v.idx ≠ 4) :
     v.idx ≠ 2 → glcVal x N head qrow nqrow tabs σgk (glcSh v) = σgk v := by
   intro e2
@@ -161,29 +170,29 @@ theorem glc_val_sh {x N head qrow nqrow tabs : E} {σgk : Val} (hσv : ∀ v, σ
   by_cases e1 : v.idx = 1
   · simp [glcSh, glcVal, e1, h1]
   by_cases e5 : v.idx < 10
-  · have i1 : ¬ v.idx + 7 < 12 := by omega
-    have i2 : v.idx + 7 < 17 := by omega
+  · have i1 : ¬ v.idx + 11 < 16 := by omega
+    have i2 : v.idx + 11 < 21 := by omega
     have i5 : ¬ v.idx < 5 := by omega
     simp only [glcSh, glcVal, e0, e1, e2, e5, i1, i2, i5, ↓reduceIte, Nat.add_sub_cancel]
-  · have i1 : ¬ v.idx + 8 < 12 := by omega
-    have i2 : ¬ v.idx + 8 < 17 := by omega
-    have i3 : ¬ v.idx + 8 = 17 := by omega
-    have i4 : v.idx + 8 ≤ 332 := by omega
+  · have i1 : ¬ v.idx + 12 < 16 := by omega
+    have i2 : ¬ v.idx + 12 < 21 := by omega
+    have i3 : ¬ v.idx + 12 = 21 := by omega
+    have i4 : v.idx + 12 ≤ 336 := by omega
     have i5 : ¬ v.idx < 5 := by omega
     simp only [glcSh, glcVal, e0, e1, e2, e5, i1, i2, i3, i4, i5, ↓reduceIte, Nat.add_sub_cancel]
 
 /-- Eight rounds between records `1` apart, as B1-a's `GkrRoundsOut` on the record's cursor. -/
 theorem glc_out_of_tb {rd : Reader} {rec pt : E} (h : TbGkrRoundsOut 8 1 rd rec pt) :
-    ∃ cur, GkrRoundsOut 8 rd rec pt cur ∧ LoadHolds rd rec 4310 cur := by
+    ∃ cur, GkrRoundsOut 8 rd rec pt cur ∧ LoadHolds rd rec 5 cur := by
   obtain ⟨cap, cur, claim, cs, es, h1, hc, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12⟩ := h
   exact ⟨cur, ⟨cap, claim, cs, es, h1, h3, h4, h5, h6, h7, h8, h9, fun h ↦ absurd h (by decide),
     h10, h11, h12⟩, hc⟩
 
 /-- **An iteration of `gkr_layer__L{p}_L{o}_loop0`, completely.** -/
 theorem glc_iter {rd : Reader} (x N head qrow nqrow tabs : E) (hnq : nqrow = qrow * gen ^ 42)
-    (hT : TbGkrRoundsOut 8 1 rd (head * x) (qrow * x ^ 8)) :
+    (hT : TbGkrRoundsOut 8 1 rd (head * x ^ 7) (qrow * x ^ 8)) :
     AtomsBody rd (glcPar6) glcA [x, N, head, qrow, nqrow, tabs] := by
-  rw [← glcY8_eq] at hT
+  rw [← glcY8_eq, ← glcY7_eq] at hT
   obtain ⟨cur, hout, hcur⟩ := glc_out_of_tb hT
   obtain ⟨σgk, hσv, h0, h1, h2, -, -, -, hh⟩ := gk_pre_holds true 8 (by norm_num) (by norm_num)
     (coreProgram.Rel rd) rd _ _ cur tabs 0 hout (fun _ ↦ hcur)
@@ -209,7 +218,8 @@ theorem glc_iter {rd : Reader} (x N head qrow nqrow tabs : E) (hnq : nqrow = qro
   simp only [glcA, List.mem_append, List.mem_map] at ha
   rcases ha with (ha | ⟨t, ht, he⟩) | ha
   · simp only [glcPre, List.mem_cons, List.not_mem_nil, or_false, Stmt.atom.injEq] at ha
-    rcases ha with rfl | rfl | rfl | rfl | rfl | rfl <;> simp [Atom.Holds, σ, glcVal, glcY8]
+    rcases ha with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
+      simp [Atom.Holds, σ, glcVal, glcY8, glcY7]
   · have hok := List.all_eq_true.mp gk8_ok _ ht
     cases t with
     | atom b =>
@@ -231,20 +241,20 @@ theorem glc_iter {rd : Reader} (x N head qrow nqrow tabs : E) (hnq : nqrow = qro
           obtain ⟨rfl, hp, rfl⟩ := heq
           subst hp
           have hd : σ (glcSh d) = σgk d := hvs d (by simp [Atom.vals])
-          have hp1 : σ (.n 10) = σgk (.n 1) := hvs (.n 1) (by simp [Atom.vals])
+          have hp1 : σ (.n 14) = σgk (.n 1) := hvs (.n 1) (by simp [Atom.vals])
           split at he
           · rename_i hoff
             simp only [Stmt.atom.injEq] at he
             subst he
-            show LoadHolds rd (σ (.n 11)) (off - 42) (σ (glcSh d))
-            have h11 : σ (.n 11) = σ (.n 10) * gen ^ 42 := by
+            show LoadHolds rd (σ (.n 15)) (off - 42) (σ (glcSh d))
+            have h11 : σ (.n 15) = σ (.n 14) * gen ^ 42 := by
               show nqrow * glcY8 x = qrow * glcY8 x * gen ^ 42
               rw [hnq]; ring
             rw [h11, tb_loadHolds_mul_gen_pow, show 42 + (off - 42) = off by omega, hd, hp1]
             exact hb
           · simp only [Stmt.atom.injEq] at he
             subst he
-            show LoadHolds rd (σ (.n 10)) off (σ (glcSh d))
+            show LoadHolds rd (σ (.n 14)) off (σ (glcSh d))
             rw [hd, hp1]; exact hb
         · rename_i hne
           simp only [Stmt.rename, Stmt.atom.injEq] at he
@@ -256,11 +266,11 @@ theorem glc_iter {rd : Reader} (x N head qrow nqrow tabs : E) (hnq : nqrow = qro
   · simp only [glcPost, List.mem_cons, List.not_mem_nil, or_false, Stmt.atom.injEq] at ha
     rcases ha with rfl | rfl | rfl | rfl | rfl <;> simp [Atom.Holds, σ, glcVal, tb_word_gen]
 
-/-- **`gkr_layer__L{p}_L{o}_loop0`, completely**: eight rounds from the record at `head·g^y`, the
+/-- **`gkr_layer__L{p}_L{o}_loop0`, completely**: eight rounds from the record at `head·g^(7y)`, the
 row at `qrow·g^(8y)`, at every iteration `y < m` give the loop from `1` below `g^m`. -/
 theorem glc_complete {rd : Reader} {p o : ℕ} (hp : p < 4) (ho : o < 2) {head qrow nqrow tabs : E}
     (hnq : nqrow = qrow * gen ^ 42) {m : ℕ} (hpos : 0 < m) (hmb : m < 2 ^ 62)
-    (hr : ∀ y < m, TbGkrRoundsOut 8 1 rd (head * gen ^ y) (qrow * gen ^ (8 * y))) :
+    (hr : ∀ y < m, TbGkrRoundsOut 8 1 rd (head * gen ^ (7 * y)) (qrow * gen ^ (8 * y))) :
     coreProgram.Rel rd (glLoopName p o) [1, gen ^ m, head, qrow, nqrow, tabs] [] := by
   obtain ⟨fn, hf, hpar, hb⟩ := glcFound hp ho
   rw [glcBody] at hb
@@ -289,7 +299,7 @@ theorem glc_complete {rd : Reader} {p o : ℕ} (hp : p < 4) (ho : o < 2) {head q
   rw [hpar]
   apply glc_iter _ _ _ _ _ _ hnq
   have := hr y hy
-  rw [← pow_mul, mul_comm y 8]; exact this
+  rw [← pow_mul, ← pow_mul, mul_comm y 7, mul_comm y 8]; exact this
 
 end
 end LeanVM.Guest.B1.Tables

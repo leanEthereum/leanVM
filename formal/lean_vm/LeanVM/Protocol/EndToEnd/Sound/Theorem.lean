@@ -8,12 +8,12 @@
 
 module
 
-public import LeanVM.Protocol.Verifier.Claims
+import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Protocol.EndToEnd.Sound.Front
-public import LeanVM.Protocol.EndToEnd.Sound.Runs
+import LeanVM.Protocol.EndToEnd.Sound.Runs
 public import LeanVM.Protocol.EndToEnd.Front.LayoutSizes
-public import LeanVM.Protocol.Whir.Complete.Opening
-public import LeanVM.Protocol.EndToEnd.Execution
+import LeanVM.Protocol.Whir.Complete.Opening
+import LeanVM.Protocol.EndToEnd.Execution
 public import LeanVM.Protocol.Verifier.Cost
 public import LeanVM.Protocol.WithHash
 

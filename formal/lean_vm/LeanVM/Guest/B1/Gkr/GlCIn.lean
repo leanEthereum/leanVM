@@ -20,8 +20,8 @@ import LeanVM.Guest.Data.ValNames.«gkr_layer__L_loop0»
 /-!
 # A radix-four layer, loading from a region
 
-* `gll_relIn`: iteration `k < K` of `gkr_layer__L{p}_L{o}_loop0` on the record `head·g^k`
-  (`5174` words), the rows `qrow·g^(8k)`, `nqrow·g^(8k)` (`8` words each), reading `32` words at
+* `gll_relIn`: iteration `k < K` of `gkr_layer__L{p}_L{o}_loop0` on the records from `head·g^(7k)`
+  (`14` words), the rows `qrow·g^(8k)`, `nqrow·g^(8k)` (`8` words each), reading `32` words at
   the record's cursor, loads from `R`, by the depth of its derivation.
 * `GlIn`: what layer `j` reads, in `R`; `gl_relIn`: with it, `gkr_layer__L{p}_L{o}` at
   `x_m = g^m`, `x_j = g^(4m + p)` loads from `R`, its loop by `gll_relIn` (the records' cursors
@@ -44,9 +44,9 @@ theorem ptrIn_pow {R : ℕ → Prop} {p : E} {a B B' : ℕ} (h : PtrIn R p B) (h
 
 /-- The loop's next record and guard. -/
 def glLoopPostA : List Stmt :=
-  (List.range 5).map (fun k ↦ .atom (.load (.n ((valf% «gkr_layer» «_loop0» "nxt[8]@8") + k)) (.n (valf% «gkr_layer» «_loop0» "rd")) (1 + 862 * k))) ++
+  (List.range 5).map (fun k ↦ .atom (.load (.n ((valf% «gkr_layer» «_loop0» "nxt[8]@8") + k)) (.n (valf% «gkr_layer» «_loop0» "rd")) (7 + k))) ++
   [.atom (.const (.n (valf% «gkr_layer» «_loop0» "s12#0")) (word (2 ^ 32) 0)), .atom (.mul (.n (valf% «gkr_layer» «_loop0» "s12#1")) (.n (valf% «gkr_layer» «_loop0» "cur")) (.n (valf% «gkr_layer» «_loop0» "s12#0"))),
-    .atom (.load (.n (valf% «gkr_layer» «_loop0» "s12#1")) (.n (valf% «gkr_layer» «_loop0» "rd")) 4311), .atom (.load (.n (valf% «gkr_layer» «_loop0» "nclaim@8")) (.n (valf% «gkr_layer» «_loop0» "rd")) 5173),
+    .atom (.load (.n (valf% «gkr_layer» «_loop0» "s12#1")) (.n (valf% «gkr_layer» «_loop0» "rd")) 12), .atom (.load (.n (valf% «gkr_layer» «_loop0» "nclaim@8")) (.n (valf% «gkr_layer» «_loop0» "rd")) 13),
     .atom (.const (.n (valf% «gkr_layer» «_loop0» "s15#0")) (word 2 0)), .atom (.mul (.n (valf% «gkr_layer» «_loop0» "s15#1")) (.n (valf% «gkr_layer» «_loop0» "y")) (.n (valf% «gkr_layer» «_loop0» "s15#0"))),
     .atom (.add (.n (valf% «gkr_layer» «_loop0» "s15#2")) (.n (valf% «gkr_layer» «_loop0» "s15#1")) (.n (valf% «gkr_layer» «_loop0» "bound"))), .atom (.const (.n (valf% «gkr_layer» «_loop0» "s15#3")) (word 2 0)),
     .atom (.mul (.n (valf% «gkr_layer» «_loop0» "s15#4")) (.n (valf% «gkr_layer» «_loop0» "y")) (.n (valf% «gkr_layer» «_loop0» "s15#3")))]
@@ -75,7 +75,7 @@ theorem gll_noLoadIte (nm : String) : (glLoopPreK nm).all noLoadIte = true :=
   gll_all (by decide +kernel) nm rfl
 
 theorem gll_loads (nm : String) :
-    (glLoopPreK nm).all (loadsViaB [(6, 5174), (10, 8), (11, 8), (17, 32)]) = true :=
+    (glLoopPreK nm).all (loadsViaB [(valf% «gkr_layer» «_loop0» "rd", 14), (valf% «gkr_layer» «_loop0» "pt", 8), (valf% «gkr_layer» «_loop0» "npt", 8), (valf% «gkr_layer» «_loop0» "cur", 32)]) = true :=
   gll_all (by decide +kernel) nm rfl
 
 theorem gll_calls (nm : String) : (glLoopPreK nm).filterMap Main.Stmt.callS =
@@ -87,9 +87,9 @@ theorem gll_calls (nm : String) : (glLoopPreK nm).filterMap Main.Stmt.callS =
 
 /-- **The layer's loop loads from `R`**, every iteration `k < K`. -/
 theorem gll_relIn {p o : ℕ} (hp : p < 4) (ho : o < 2) {rd : Reader} {R : ℕ → Prop} {K : ℕ}
-    {head qrow nqrow tabs : E} (hh : PtrIn R head (K + 5173)) (hq : PtrIn R qrow (8 * K))
+    {head qrow nqrow tabs : E} (hh : PtrIn R head (7 * K + 7)) (hq : PtrIn R qrow (8 * K))
     (hn : PtrIn R nqrow (8 * K))
-    (hcur : ∀ k < K, ∀ c, LoadHolds rd (head * gen ^ k) 4310 c → PtrIn R c 32) :
+    (hcur : ∀ k < K, ∀ c, LoadHolds rd (head * gen ^ (7 * k)) 5 c → PtrIn R c 32) :
     ∀ d k, k < K → coreProgram.relN rd d (glLoopName p o) [gen ^ k, gen ^ K, head, qrow, nqrow,
         tabs] [] →
       coreProgram.RelIn rd R (glLoopName p o) [gen ^ k, gen ^ K, head, qrow, nqrow, tabs] [] := by
@@ -115,7 +115,7 @@ theorem gll_relIn {p o : ℕ} (hp : p < 4) (ho : o < 2) {rd : Reader} {R : ℕ �
       tb_holdsList_mapAtoms] at hpre
     obtain ⟨⟨hptr, -⟩, hrec⟩ := hpre
     simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at hptr hrec
-    obtain ⟨m6, m7, m8, m9, m10, m11⟩ := hptr
+    obtain ⟨m6, m7, m8, m9, m10, m11, m12, m13, m14, m15⟩ := hptr
     obtain ⟨l17, -⟩ := hrec
     rw [glLoopPost, holdsList_append, holdsList_noRet _ (by decide), tb_holdsList_mapAtoms]
       at hpost
@@ -123,15 +123,16 @@ theorem gll_relIn {p o : ℕ} (hp : p < 4) (ho : o < 2) {rd : Reader} {R : ℕ �
     simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil] at hpost
     obtain ⟨-, -, -, -, c341, m342, a343, c344, m345, -, hnext, -⟩ := hpost
     rw [tb_word_gen] at c341 c344
-    have e6 : σ (.n (valf% «gkr_layer» «_loop0» "rd")) = head * gen ^ k := by rw [m6, p0, p2]
-    have e9 : σ (.n (valf% «gkr_layer» «_loop0» "y8")) = gen ^ (8 * k) := by rw [m9, m8, m7, p0]; ring
+    have e6 : σ (.n (valf% «gkr_layer» «_loop0» "rd")) = head * gen ^ (7 * k) := by
+      rw [m10, m9, m8, m7, m6, p0, p2]; ring
+    have e9 : σ (.n (valf% «gkr_layer» «_loop0» "y8")) = gen ^ (8 * k) := by rw [m13, m12, m11, p0]; ring
     refine ⟨fun s hs ↦ dispOk_of_noDisp (List.all_eq_true.mp (gll_noDisp _) s hs),
       loads_via (gll_loads _) fun pb hpb ↦ ?_, fun c hc ht ↦ ?_⟩
     · simp only [List.mem_cons, List.not_mem_nil, or_false] at hpb
       rcases hpb with rfl | rfl | rfl | rfl
       · rw [e6]; exact ptrIn_pow hh (by omega)
-      · rw [m10, e9, p3]; exact ptrIn_pow hq (by omega)
-      · rw [m11, e9, p4]; exact ptrIn_pow hn (by omega)
+      · rw [m14, e9, p3]; exact ptrIn_pow hq (by omega)
+      · rw [m15, e9, p4]; exact ptrIn_pow hn (by omega)
       · rw [e6] at l17; exact hcur k hk _ l17
     · rw [filterMap_callSF (gll_noDisp _), gll_calls] at hc
       simp only [List.map_cons, List.map_nil, List.mem_singleton] at hc
@@ -163,8 +164,8 @@ def glLA (p : ℕ) : List V :=
 /-- The layer's load pointers and their runs: the slot, the slot's cursor, the point row, the
 head record, the tail record, the tail's rows and its cursor. -/
 def glInTbl (p o : ℕ) : List (ℕ × ℕ) :=
-  [(15, 30), (21, 8 * p), (52, 42 + 2 * p), (53, 5173), (glW p, 5173), (67 + glD p, 2),
-    (70 + glD p, 2), (76 + glD p, 4 * (2 - o) + 12)]
+  [(15, 30), (21, 8 * p), (52, 42 + 2 * p), (53, 7), (glW p, 7), (71 + glD p, 2),
+    (74 + glD p, 2), (80 + glD p, 4 * (2 - o) + 12)]
 
 /-- `gkr_layer__L{p}_L{o}`'s statements before its `ret`. -/
 noncomputable def glPreK (p o : ℕ) : List Stmt := (glBody p o (glLoopName p o)).dropLast
@@ -246,15 +247,19 @@ theorem gl_prePtrs (h : Stmt.HoldsList C rd σ glPre True kret) {j sh : ℕ}
 
 /-- The tail record's pointer. -/
 theorem gl_tailW {p : ℕ} (h : Stmt.HoldsList C rd σ (glTailSetup p) True kret) :
-    σ (.n (glW p)) = σ (.n (valf% «gkr_layer» "head")) * σ (.n (valf% «gkr_layer» "x_m")) := by
+    σ (.n (glW p)) = σ (.n (valf% «gkr_layer» "head")) * σ (.n (valf% «gkr_layer» "x_m")) ^ 7 := by
   rcases Nat.eq_zero_or_pos p with rfl | hp1
   · simp only [glTailSetup, ↓reduceIte, glTailSetup0, List.cons_append, Stmt.HoldsList,
       Stmt.Holds, Atom.Holds] at h
-    exact h.1
+    obtain ⟨a0, a1, a2, a3, a4, -⟩ := h
+    simp only [glW, ↓reduceIte]
+    rw [a4, a3, a2, a1, a0]; ring
   · have hp0 : p ≠ 0 := by omega
     simp only [glTailSetup, hp0, ↓reduceIte, glTailSetupP, List.cons_append, Stmt.HoldsList,
       Stmt.Holds, Atom.Holds] at h
-    simpa [glW, hp0] using h.1
+    obtain ⟨a0, a1, a2, a3, a4, -⟩ := h
+    simp only [glW, hp0, ↓reduceIte]
+    rw [a4, a3, a2, a1, a0]; ring
 
 /-- The loop's guard and arguments. -/
 theorem gl_loopCallV {p : ℕ} (hp4 : p < 4) {nm : String} (h : Stmt.HoldsList C rd σ (glLoopCall p nm) True kret) :
@@ -283,14 +288,14 @@ end Sem
 
 /-- **What layer `j` reads, in `R`**: the slot of `L = 2j + 2 - o` through the next slot's
 stores, with its position `pos` and cursor `cj`; its point row (`L + 43` words); its records from
-`rounds·pos` (`j / 4 + 5174` words); the `4L + 12` words from `cj`. -/
+`rounds·pos` (`7 (j / 4) + 7` words); the `4L + 12` words from `cj`. -/
 def GlIn (rd : Reader) (R : ℕ → Prop) (layers pts rounds : E) (o j : ℕ) : Prop :=
   ∃ pos cj : E,
     PtrIn R (layers * gen ^ (10 * (2 * j + 2 - o))) 30 ∧
     LoadHolds rd layers (10 * (2 * j + 2 - o) + 9) pos ∧
     LoadHolds rd layers (10 * (2 * j + 2 - o) + 5) cj ∧
     PtrIn R (pts * gen ^ (40 * (j + 1))) (2 * j + 2 - o + 43) ∧
-    PtrIn R (rounds * pos) (j / 4 + 5174) ∧ PtrIn R cj (4 * (2 * j + 2 - o) + 12)
+    PtrIn R (rounds * pos) (7 * (j / 4) + 7) ∧ PtrIn R cj (4 * (2 * j + 2 - o) + 12)
 
 /-- **`gkr_layer__L{p}_L{o}` loads from `R`**, layer `j = 4m + p`'s words in `R` (`GlIn`). -/
 theorem gl_relIn {p o m : ℕ} (hp : p < 4) (ho : o < 2) (hj : 4 * m + p < 2 ^ 30) {rd : Reader}
@@ -340,11 +345,11 @@ theorem gl_relIn {p o m : ℕ} (hp : p < 4) (ho : o < 2) (hj : 4 * m + p < 2 ^ 3
     · rw [e21]; exact ptrIn_mono hRC (by omega)
     · rw [e53]; exact ptrIn_mono hRP (by omega)
     · rw [e54]; exact ptrIn_mono hRR (by omega)
-    · rw [eW, e54, p3]; exact ptrIn_pow hRR (by omega)
-    · rw [show σ (.n (67 + glD p)) = pts * gen ^ (40 * (j + 1)) * gen ^ (2 * p + 8 * m) by
+    · rw [eW, e54, p3, ← pow_mul, Nat.mul_comm m 7]; exact ptrIn_pow hRR (by omega)
+    · rw [show σ (.n (71 + glD p)) = pts * gen ^ (40 * (j + 1)) * gen ^ (2 * p + 8 * m) by
         rw [e68, e53, p3]; ring]
       exact ptrIn_pow hRP (by omega)
-    · rw [show σ (.n (70 + glD p)) = pts * gen ^ (40 * (j + 1)) * gen ^ (2 * p + 8 * m + 42) by
+    · rw [show σ (.n (74 + glD p)) = pts * gen ^ (40 * (j + 1)) * gen ^ (2 * p + 8 * m + 42) by
         rw [e71, e68, e53, p3]; ring]
       exact ptrIn_pow hRP (by omega)
     · rw [e77]; exact ptrIn_pow hRC (by omega)

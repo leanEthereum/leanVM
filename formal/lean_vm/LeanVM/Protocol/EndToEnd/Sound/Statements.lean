@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Protocol.EndToEnd.Sound.Theorem
 public import LeanVM.Protocol.WithHash
+public import LeanVM.Protocol.Compile.Rom.Sound
+import LeanVM.Protocol.EndToEnd.Execution
 
 /-!
 # Soundness for adversarially chosen statements

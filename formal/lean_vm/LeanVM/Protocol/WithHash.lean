@@ -9,8 +9,10 @@
 
 module
 
-public import LeanVM.Protocol.Extraction.Extractor
+import LeanVM.Protocol.Extraction.Extractor
 public import LeanVM.Protocol.RunWithHash
+public import Statement.LeanVm
+public import CompPoly.Univariate.Basic
 
 /-!
 # The verifier, the prover and the experiments with a hash of their own

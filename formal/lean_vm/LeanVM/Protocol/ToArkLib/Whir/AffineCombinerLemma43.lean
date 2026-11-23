@@ -8,9 +8,13 @@
 
 module
 
-public import LeanVM.Protocol.ToArkLib.Whir.AffineCombinerExcluded
+import LeanVM.Protocol.ToArkLib.Whir.AffineCombinerExcluded
 public import LeanVM.Protocol.ToArkLib.Whir.AffineCombinerReduction
 public import Mathlib.RingTheory.Polynomial.UniqueFactorization
+import LeanVM.Protocol.ToArkLib.Whir.AffineCombinerReducedFactor
+public import ArkLib.Data.Polynomial.FrobeniusContraction
+public import ArkLib.Data.Polynomial.ResultantDegree
+public import Mathlib.Algebra.MvPolynomial.NoZeroDivisors
 
 /-!
 # Lemma 4.3

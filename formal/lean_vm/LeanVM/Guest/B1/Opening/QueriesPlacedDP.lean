@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Opening.QueriesPlacedDP
 
-  `opening_queries` is `CompleteAtEP`: its pops are its queries' rows and walks' children, query by query.
+  `opening_queries` is `CompleteAtEP`: its pops are its queries' rows and siblings, query by query.
 -/
 
 module
@@ -10,18 +10,17 @@ public import LeanVM.Guest.B1.Opening.QueriesPlacedP3
 public import LeanVM.Guest.B1.Opening.QueriesPlacedD1
 public import LeanVM.Guest.B1.Main.CompleteP
 public import LeanVM.Guest.B1.Place.HelperAtP
-import LeanVM.Guest.ValRef
-import LeanVM.Guest.Data.ValNames.«opening_queries__L»
 
 /-!
 # `opening_queries`, `CompleteAtEP`
 
-`QueriesPlacedD1`'s and `QueriesPlacedD0`'s proofs with `oqMain1_placedP`, `oqMain0_placedP`.
+From `oqMain1_placedP`, `oqMain0_placedP`, the call's honest data in the caller's words (`OqStatic`,
+`OqLinReg`, `OqLinMem`) and its chain buffer its own layout (`oqChainVals`).
 
-* `oqQE`: a query's two entries, its row's cells and its walk's children; they read only the shape and the query's witness (`oqQE_eq`);
 * `flatMap_range_pairs`: an odd first then pairs is the queries in order;
 * `oqPops`: the call's entries, its queries' `oqQE` in order;
-* `oqMain1_completeAtEP`, `oqMain0_completeAtEP`: the function pops `oqPops` on every memory, by a tree of exactly its bound (`CompleteAtEP`).
+* `oqMain1_completeAtEP`, `oqMain0_completeAtEP`: the function pops `oqPops` on every memory, by a
+  tree of exactly `fs name + (N + 1) + (N·fs loop + fs (tailKey loop))` words (`CompleteAtEP`).
 -/
 
 namespace LeanVM.Guest.B1
@@ -31,15 +30,6 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 open LeanVM.Guest.B1.Main (MemL RegionL)
 
 @[expose] public section
-
-/-- **A query's entries**: its row's cells, its walk's children. -/
-def oqQE (s : Oq) (w : QW) : List Pop :=
-  ("merkle_leaf_rows", (oqQD s 0 true 0 0 0 [] [] w).rowVals) :: ((oqQD s 0 true 0 0 0 [] [] w).wd 0).wpPops
-
-theorem oqQE_eq (s : Oq) (b : ℕ) (emit : Bool) (pr : ℕ) (cap flags : E) (rounds : List FoldRound) (hsv : List E)
-    (w : QW) (bp : E) :
-    ("merkle_leaf_rows", (oqQD s b emit pr cap flags rounds hsv w).rowVals) ::
-      ((oqQD s b emit pr cap flags rounds hsv w).wd bp).wpPops = oqQE s w := rfl
 
 /-- **The call's entries**: its `Q` queries' in order. -/
 def oqPops (s : Oq) (W : ℕ → QW) (Q : ℕ) : List Pop := (List.range Q).flatMap fun k => oqQE s (W k)
@@ -56,35 +46,33 @@ theorem flatMap_range_pairs {α : Type} (f : ℕ → List α) {odd : ℕ} (hodd 
       List.flatMap_append, List.flatMap_append, flatMap_range_pairs f hodd N, List.range_succ, List.flatMap_append]
     simp only [List.flatMap_cons, List.flatMap_nil, List.append_nil, List.append_assoc]
 
-/-- **`opening_queries` at level 0 is `CompleteAtEP`**: it pops its queries' entries in order, by a tree of exactly
-its bound. -/
+/-- **`opening_queries` at level 0 is `CompleteAtEP`**: it pops its queries' entries in order, by a
+tree of exactly its bound. -/
 theorem oqMain1_completeAtEP (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ)
-    {s : Oq} (hs : s.RowShape) (hfin : s.FinOk) (hb1 : s.base = 1) (hpd1 : 1 ≤ s.pd)
-    (hcd : 2 ≤ s.cd) {odd : ℕ} (hodd : odd ≤ 1) {name wlk loop : String}
-    (hW : WalkFn coreProgram wlk s.pd s.cd) {fm fl : Fn}
-    (hfm : coreProgram.find? name = some fm)
-    (hpm : fm.params = [.n (valf% «opening_queries» "cap"), .n (valf% «opening_queries» "flags"), .n (valf% «opening_queries» "lam_inv"), .n (valf% «opening_queries» "coefs"), .n (valf% «opening_queries» "hs"), .n (valf% «opening_queries» "positions"), .n (valf% «opening_queries» "query_win_ptrs"), .n (valf% «opening_queries» "n_iters_g")])
-    (hbm : fm.body = oqMainT s odd wlk loop)
+    {s : Oq} (hs : s.RowShape) (hfin : s.FinOk) (hb1 : s.base = 1) {cd odd : ℕ} (hcd : 1 ≤ cd)
+    (hodd : odd ≤ 1) {name loop : String} {fm fl : Fn}
+    (hfm : coreProgram.find? name = some fm) (hpm : fm.params = oqMainParams)
+    (hbm : fm.body = oqMainT s loop)
     (hfl : coreProgram.find? loop = some fl) (hpl : fl.params = oqLoopParams)
-    (hbl : fl.body = oqLoop1T s odd wlk loop) (hlp : coreProgram.loop loop = true)
+    (hbl : fl.body = oqLoop1T s loop) (hlp : coreProgram.loop loop = true)
     {Lin : Main.Layout} {N : ℕ} (hN : N + 1 < ordG) {ecap eflags ecoefs ehs epos eqp : ℕ}
     {lamInv : E} {rounds : List FoldRound} {hsv : List E} (hrl : rounds.length = s.folds)
     (hhl : s.final = 1 → hsv.length = s.nHs) {eb qs : ℕ → ℕ} {rows : ℕ → List K}
     {sibs : ℕ → List Digest}
-    (hst : OqStatic s rounds hsv qs rows sibs (odd + 2 * N))
-    (hreg : OqLinReg (RegionL Lin) s ecap eflags ecoefs ehs epos eqp eb qs (odd + 2 * N))
+    (hst : OqStatic s cd rounds hsv qs rows sibs (odd + 2 * N))
+    (hreg : OqLinReg (RegionL Lin) s cd ecap eflags ecoefs ehs epos eqp eb qs (odd + 2 * N))
     (hmem : ∀ rd, LowDef κ rd → MemL rd Lin →
-      OqLinMem rd s (ofK (Parameters.addressOfIndex ecap)) (ofK (Parameters.addressOfIndex eflags))
+      OqLinMem rd s cd (ofK (Parameters.addressOfIndex ecap)) (ofK (Parameters.addressOfIndex eflags))
         (ofK (Parameters.addressOfIndex ecoefs)) (ofK (Parameters.addressOfIndex ehs))
         (ofK (Parameters.addressOfIndex epos)) (ofK (Parameters.addressOfIndex eqp)) rounds hsv eb
         qs rows sibs (odd + 2 * N)) :
     CompleteAtEP fs cert κ name Lin
       [ofK (Parameters.addressOfIndex ecap), ofK (Parameters.addressOfIndex eflags), lamInv,
         ofK (Parameters.addressOfIndex ecoefs), ofK (Parameters.addressOfIndex ehs),
-        ofK (Parameters.addressOfIndex epos), ofK (Parameters.addressOfIndex eqp), gen ^ N]
+        ofK (Parameters.addressOfIndex epos), ofK (Parameters.addressOfIndex eqp), gen ^ N, gen ^ odd]
       (Returns [if s.final = 1 then 0 else
         oqChain odd s.base lamInv (fun k ↦ foldRow (lanesOf s.base (rows k)) (K.ofBits (qs k)) rounds) N])
-      (fs name + (N + 1) + (N + 1) * fs loop + (odd + 2 * N) * fs wlk)
+      (fs name + (N + 1) + (N * fs loop + fs (tailKey loop)))
       (fun _ => oqPops s (oqW qs rows sibs) (odd + 2 * N)) := by
   refine CompleteAtEP.of_eq fun fp ↦ ?_
   set W := oqW qs rows sibs with hWd
@@ -96,10 +84,10 @@ theorem oqMain1_completeAtEP (fs : String → ℕ) (cert : String → V → ℕ)
     simp only [hchainL, List.mem_singleton] at hx
     subst hx
     simp [oqChainVals]
-  set n := fs name + (N + 1) + odd * fs wlk + ((N + 1) * fs loop + N * (2 * fs wlk)) with hn
+  set n := fs name + (N + 1) + (N * fs loop + fs (tailKey loop)) with hn
   have wAll : Within chainL fp n := wChain.mono (by omega) (by omega)
   have dAll : DisjL chainL := by rw [hchainL]; exact List.pairwise_singleton _ _
-  refine ⟨n, chainL, _, [], ⟨rfl, rfl⟩, by simpa using wAll, by simpa using dAll, by rw [hn]; ring,
+  refine ⟨n, chainL, _, [], ⟨rfl, rfl⟩, by simpa using wAll, by simpa using dAll, rfl,
     fun rd hlow hm ↦ ?_⟩
   rw [List.nil_append, Main.memL_append] at hm
   obtain ⟨hmChain, hmLin⟩ := hm
@@ -112,26 +100,22 @@ theorem oqMain1_completeAtEP (fs : String → ℕ) (cert : String → V → ℕ)
     simpa [oqChainVals] using this
   refine RelAtInP.dmono (D := fun _ ↦ False) ?_ (fun i hi ↦ absurd hi (regionL_nil i))
   rw [← oqRet_eq s odd lamInv rounds qs rows sibs N]
-  have hpe : oqMainPops s odd (ofK (Parameters.addressOfIndex ecap)) (ofK (Parameters.addressOfIndex eflags))
-      rounds hsv (W 0) (ofK (Parameters.addressOfIndex (eb 0))) ++
-      (List.range N).flatMap (fun j => oqIt1Pops s (ofK (Parameters.addressOfIndex ecap))
-        (ofK (Parameters.addressOfIndex eflags)) rounds hsv (W (odd + 2 * j)) (W (odd + 2 * j + 1))
-        (ofK (Parameters.addressOfIndex (eb (odd + 2 * j))))
-        (ofK (Parameters.addressOfIndex (eb (odd + 2 * j + 1))))) = oqPops s W (odd + 2 * N) := by
+  have hpe : oqMainPops s odd (W 0) ++
+      (List.range N).flatMap (fun j => oqQE s (W (odd + 2 * j)) ++ oqQE s (W (odd + 2 * j + 1))) =
+        oqPops s W (odd + 2 * N) := by
     rw [oqPops, flatMap_range_pairs _ hodd N, oqMainPops]
-    split <;> rfl
   rw [← hpe]
-  refine oqMain1_placedP (rounds := rounds) (hsv := hsv) (w := W 0)
+  refine oqMain1_placedP (rounds := rounds) (hsv := hsv) (w := W 0) (cd := cd)
     (bp := ofK (Parameters.addressOfIndex (eb 0))) (hNv := oqChain odd s.base lamInv ds N)
     (w1 := fun j ↦ W (odd + 2 * j)) (w2 := fun j ↦ W (odd + 2 * j + 1))
     (bp1 := fun j ↦ ofK (Parameters.addressOfIndex (eb (odd + 2 * j))))
     (bp2 := fun j ↦ ofK (Parameters.addressOfIndex (eb (odd + 2 * j + 1))))
     (v := fun j ↦ oqChain odd s.base lamInv ds j)
-    coreProgram_wf fs cert hs hfin hpd1 hcd hodd hW hfm hpm hbm hfl hpl hbl hlp hN
+    coreProgram_wf fs cert hs hfin hb1 hodd hfm hpm hbm hfl hpl hbl hlp hN
     (fun ho ↦ ?_) (fun ho ↦ ?_) (fun _ ↦ hch N le_rfl) (fun j hj ↦ ?_)
   · subst ho
     obtain ⟨x0, b0, -⟩ := hk.2.2 0 (by omega)
-    refine ⟨x0, b0, qdOk_of_lin hrl hhl hst hk (by omega) _ _ _, ?_,
+    refine ⟨x0, b0, qdOk_of_lin hcd hrl hhl hst hk (by omega) _ _ _, ?_,
       ⟨_, limb_addr _ _, (hreg.2.2 0 (by omega)).1⟩,
       ⟨_, limb_addr _ _, (hreg.2.2 0 (by omega)).2.1⟩, oqQReg_of hreg (by omega)⟩
     have := hch 0 (by omega)
@@ -140,54 +124,54 @@ theorem oqMain1_completeAtEP (fs : String → ℕ) (cert : String → V → ℕ)
     simpa [oqChain, ho] using this
   · obtain ⟨xa, ba, -⟩ := hk.2.2 (odd + 2 * j) (by omega)
     obtain ⟨xb, bb, -⟩ := hk.2.2 (odd + 2 * j + 1) (by omega)
-    refine ⟨qdOk_of_lin hrl hhl hst hk (by omega) _ _ _, qdOk_of_lin hrl hhl hst hk (by omega) _ _ _,
+    refine ⟨qdOk_of_lin hcd hrl hhl hst hk (by omega) _ _ _,
+      qdOk_of_lin hcd hrl hhl hst hk (by omega) _ _ _,
       ?_, ?_, ?_, ?_, fun _ ↦ ⟨hch j (by omega), ?_⟩, fun e he ↦ ?_, fun e he ↦ ?_,
       (oqQReg_of hreg (by omega)).mono fun i hi ↦ Or.inl hi,
       (oqQReg_of hreg (by omega)).mono fun i hi ↦ Or.inl hi, fun _ e he ↦ ?_⟩
-    · rw [show 2 * j + odd = odd + 2 * j by omega]; exact xa
-    · rw [show 2 * j + odd + 1 = odd + 2 * j + 1 by omega]; exact xb
-    · rw [show 2 * j + odd = odd + 2 * j by omega]; exact ba
-    · rw [show 2 * j + odd + 1 = odd + 2 * j + 1 by omega]; exact bb
+    · rw [loadHolds_mul_gen_pow, show odd + 2 * j = odd + 2 * j from rfl]; exact xa
+    · rw [loadHolds_mul_gen_pow, show odd + (2 * j + 1) = odd + 2 * j + 1 by omega]; exact xb
+    · rw [loadHolds_mul_gen_pow]; exact ba
+    · rw [loadHolds_mul_gen_pow, show odd + (2 * j + 1) = odd + 2 * j + 1 by omega]; exact bb
     · have := hch (j + 1) (by omega)
       rw [oqChain_succ_one hb1] at this
       exact this
     · refine ⟨epos + (odd + 2 * j + e), ?_, Or.inl (hreg.2.2 _ (by omega)).1⟩
-      rw [mul_assoc, ← pow_add, ← two_mul, addr_gpow]
+      rw [mul_assoc, ← pow_add, addr_gpow]
       congr 1; omega
     · refine ⟨eqp + (odd + 2 * j + e), ?_, Or.inl (hreg.2.2 _ (by omega)).2.1⟩
-      rw [mul_assoc, ← pow_add, ← two_mul, addr_gpow]
+      rw [mul_assoc, ← pow_add, addr_gpow]
       congr 1; omega
     · refine ⟨fp + fs name + (j + e), ?_, Or.inr ⟨by omega, by omega⟩⟩
       rw [addr_gpow, Nat.add_assoc]
 
-/-- **`opening_queries` deeper is `CompleteAtEP`**: it pops its queries' entries in order, by a tree of exactly its
-bound. -/
+/-- **`opening_queries` deeper is `CompleteAtEP`**: it pops its queries' entries in order, by a
+tree of exactly its bound. -/
 theorem oqMain0_completeAtEP (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ)
-    {s : Oq} (hs : s.RowShape) (hfin : s.FinOk) (hb0 : s.base = 0) (hpd1 : 1 ≤ s.pd)
-    (hcd : 2 ≤ s.cd) {name wlk loop : String} (hW : WalkFn coreProgram wlk s.pd s.cd) {fm fl : Fn}
-    (hfm : coreProgram.find? name = some fm)
-    (hpm : fm.params = [.n (valf% «opening_queries» "cap"), .n (valf% «opening_queries» "flags"), .n (valf% «opening_queries» "lam_inv"), .n (valf% «opening_queries» "coefs"), .n (valf% «opening_queries» "hs"), .n (valf% «opening_queries» "positions"), .n (valf% «opening_queries» "query_win_ptrs"), .n (valf% «opening_queries» "n_iters_g")])
-    (hbm : fm.body = oqMainT s 0 wlk loop)
+    {s : Oq} (hs : s.RowShape) (hfin : s.FinOk) (hb0 : s.base = 0) {cd : ℕ} (hcd : 1 ≤ cd)
+    {name loop : String} {fm fl : Fn}
+    (hfm : coreProgram.find? name = some fm) (hpm : fm.params = oqMainParams)
+    (hbm : fm.body = oqMainT s loop)
     (hfl : coreProgram.find? loop = some fl) (hpl : fl.params = oqLoopParams)
-    (hbl : fl.body = oqLoop0T s wlk loop) (hlp : coreProgram.loop loop = true)
+    (hbl : fl.body = oqLoop0T s loop) (hlp : coreProgram.loop loop = true)
     {Lin : Main.Layout} {N : ℕ} (hN : N + 1 < ordG) {ecap eflags ecoefs ehs epos eqp : ℕ}
     {lamInv : E} {rounds : List FoldRound} {hsv : List E} (hrl : rounds.length = s.folds)
     (hhl : s.final = 1 → hsv.length = s.nHs) {eb qs : ℕ → ℕ} {rows : ℕ → List K}
     {sibs : ℕ → List Digest}
-    (hst : OqStatic s rounds hsv qs rows sibs N)
-    (hreg : OqLinReg (RegionL Lin) s ecap eflags ecoefs ehs epos eqp eb qs N)
+    (hst : OqStatic s cd rounds hsv qs rows sibs N)
+    (hreg : OqLinReg (RegionL Lin) s cd ecap eflags ecoefs ehs epos eqp eb qs N)
     (hmem : ∀ rd, LowDef κ rd → MemL rd Lin →
-      OqLinMem rd s (ofK (Parameters.addressOfIndex ecap)) (ofK (Parameters.addressOfIndex eflags))
+      OqLinMem rd s cd (ofK (Parameters.addressOfIndex ecap)) (ofK (Parameters.addressOfIndex eflags))
         (ofK (Parameters.addressOfIndex ecoefs)) (ofK (Parameters.addressOfIndex ehs))
         (ofK (Parameters.addressOfIndex epos)) (ofK (Parameters.addressOfIndex eqp)) rounds hsv eb
         qs rows sibs N) :
     CompleteAtEP fs cert κ name Lin
       [ofK (Parameters.addressOfIndex ecap), ofK (Parameters.addressOfIndex eflags), lamInv,
         ofK (Parameters.addressOfIndex ecoefs), ofK (Parameters.addressOfIndex ehs),
-        ofK (Parameters.addressOfIndex epos), ofK (Parameters.addressOfIndex eqp), gen ^ N]
+        ofK (Parameters.addressOfIndex epos), ofK (Parameters.addressOfIndex eqp), gen ^ N, gen ^ 0]
       (Returns [if s.final = 1 then 0 else
         oqChain 0 s.base lamInv (fun k ↦ foldRow (lanesOf s.base (rows k)) (K.ofBits (qs k)) rounds) N])
-      (fs name + (N + 1) + (N + 1) * fs loop + N * fs wlk)
+      (fs name + (N + 1) + (N * fs loop + fs (tailKey loop)))
       (fun _ => oqPops s (oqW qs rows sibs) N) := by
   refine CompleteAtEP.of_eq fun fp ↦ ?_
   set W := oqW qs rows sibs with hWd
@@ -199,10 +183,10 @@ theorem oqMain0_completeAtEP (fs : String → ℕ) (cert : String → V → ℕ)
     simp only [hchainL, List.mem_singleton] at hx
     subst hx
     simp [oqChainVals]
-  set n := fs name + (N + 1) + 0 * fs wlk + ((N + 1) * fs loop + N * fs wlk) with hn
+  set n := fs name + (N + 1) + (N * fs loop + fs (tailKey loop)) with hn
   have wAll : Within chainL fp n := wChain.mono (by omega) (by omega)
   have dAll : DisjL chainL := by rw [hchainL]; exact List.pairwise_singleton _ _
-  refine ⟨n, chainL, _, [], ⟨rfl, rfl⟩, by simpa using wAll, by simpa using dAll, by rw [hn]; ring,
+  refine ⟨n, chainL, _, [], ⟨rfl, rfl⟩, by simpa using wAll, by simpa using dAll, rfl,
     fun rd hlow hm ↦ ?_⟩
   rw [List.nil_append, Main.memL_append] at hm
   obtain ⟨hmChain, hmLin⟩ := hm
@@ -215,15 +199,14 @@ theorem oqMain0_completeAtEP (fs : String → ℕ) (cert : String → V → ℕ)
     simpa [oqChainVals] using this
   refine RelAtInP.dmono (D := fun _ ↦ False) ?_ (fun i hi ↦ absurd hi (regionL_nil i))
   rw [← oqRet_eq s 0 lamInv rounds qs rows sibs N,
-    show oqPops s W N = (List.range N).flatMap (fun j => oqIt0Pops s (ofK (Parameters.addressOfIndex ecap))
-      (ofK (Parameters.addressOfIndex eflags)) rounds hsv (W j) (ofK (Parameters.addressOfIndex (eb j)))) from rfl]
+    show oqPops s W N = (List.range N).flatMap (fun j => oqQE s (W j)) from rfl]
   refine oqMain0_placedP (rounds := rounds) (hsv := hsv) (hNv := oqChain 0 s.base lamInv ds N)
-    (w := W) (bp := fun j ↦ ofK (Parameters.addressOfIndex (eb j)))
+    (w := W) (bp := fun j ↦ ofK (Parameters.addressOfIndex (eb j))) (cd := cd)
     (v := fun j ↦ oqChain 0 s.base lamInv ds j)
-    coreProgram_wf fs cert hs hfin hpd1 hcd hW hfm hpm hbm hfl hpl hbl hlp hN
+    coreProgram_wf fs cert hs hfin hb0 hfm hpm hbm hfl hpl hbl hlp hN
     (by simpa [oqChain] using hch 0 (by omega)) (fun _ ↦ hch N le_rfl) (fun j hj ↦ ?_)
   obtain ⟨xa, ba, -⟩ := hk.2.2 j hj
-  refine ⟨qdOk_of_lin hrl hhl hst hk hj _ _ _, xa, ba, fun _ ↦ ⟨hch j (by omega), ?_⟩,
+  refine ⟨qdOk_of_lin hcd hrl hhl hst hk hj _ _ _, xa, ba, fun _ ↦ ⟨hch j (by omega), ?_⟩,
     ⟨epos + j, ?_, Or.inl (hreg.2.2 j hj).1⟩, ⟨eqp + j, ?_, Or.inl (hreg.2.2 j hj).2.1⟩,
     (oqQReg_of hreg hj).mono fun i hi ↦ Or.inl hi, fun _ e he ↦ ?_⟩
   · have := hch (j + 1) (by omega)

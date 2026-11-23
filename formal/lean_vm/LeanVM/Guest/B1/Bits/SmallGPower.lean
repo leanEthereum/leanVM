@@ -10,6 +10,7 @@ public import LeanVM.Guest.B1.Bits.Meaning
 public import LeanVM.Guest.B1.Common.Find
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«assert_small_g_power»
+import LeanVM.Guest.Value.FieldBits
 
 /-!
 # `assert_small_g_power`

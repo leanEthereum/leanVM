@@ -1,5 +1,8 @@
-import LeanVM.Cost.Decoder.Frames
-import LeanVMTests.Runs
+module
+
+public import LeanVM.Cost.Decoder.Frames
+public import LeanVMTests.Runs
+meta import LeanVM.Cost.Decoder.Frames
 
 /-!
 # Tests: the signature and proof readers off arrays, against the readers they restate
@@ -22,6 +25,8 @@ namespace LeanVMTests.Cost.DecoderReaders
 
 open LeanVM.Cost LeanVM.Cost.Decoder LeanVM.Parameters LeanVM.Guest.Core LeanVM.Guest.Fast
 open LeanVM.Protocol.Verifier
+
+@[expose] public section
 
 /-- A compiled function's value and price on `vs`, in the program of the bodies `deps`. -/
 def runOn (deps : List (ℕ × Term)) (i : ℕ) (vs : List MachineValue) : Option (MachineValue × ℕ) :=
@@ -86,4 +91,5 @@ def cheaper : Option (MachineValue × ℕ) → Option (MachineValue × ℕ) → 
 #guard cheaper xmssOld xmssNew
 #guard cheaper sphincsOld sphincsNew
 
+end
 end LeanVMTests.Cost.DecoderReaders

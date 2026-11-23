@@ -130,7 +130,7 @@ theorem cellRef {r : Ref} (hr : r.Ok) {pc fp : ℕ} {done : List Pop} {e : Ent} 
       hcell.1.2 hcell.2
     obtain ⟨i, -, -, -, -, -, hfs, -⟩ := B2C.fn_of_idx hj
     have hwithin : e.I.fp + B2C.fs e.I.t.name ≤ r.T.total B2C.fs :=
-      honest_within hI (by have := hHon.cells.two_le e.I hI; omega)
+      honest_within_node hI hIt (by have := hHon.cells.two_le e.I hI; omega)
     have h28 : r.T.total B2C.fs ≤ 2 ^ r.κ := le_two_pow_logMem _
     have h2k : 2 ^ r.κ ≤ 2 ^ 28 := Nat.pow_le_pow_right (by norm_num) hκ
     exact refRd_img hκ r.img _ _ (by rw [hfs] at hwithin; omega) hrd

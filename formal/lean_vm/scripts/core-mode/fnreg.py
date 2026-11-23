@@ -40,6 +40,9 @@ KINDS = {
                 'caller\'s cells linked (`CoreMode.cmK`)'),
     'glCallers': ('Data', 'List (String × List String)', None,
                   'the callees whose facts are carried, and their callers (`Res.glCallers`, `Res.callersM`)'),
+    'expCarry': ('Data', 'List (String × ℕ × ℕ × ℕ)', None,
+                 'the parameters whose exponent bounds every call site carries: callee, parameter, lower and upper '
+                 'bound (`CoreMode.carryExpB`)'),
     'fams': ('Fam', 'List (String × (Core.Fn → CRes → Bool))', 'EndExec.OwnOk',
              'the functions\' own residual families, ghost-free (`CoreMode.resFamG`)'),
     'gwFams': ('Fam', 'List (String × (Core.Fn → List (CCell × ℕ) → CRes → Bool))', 'EndExec.GwFamOk',

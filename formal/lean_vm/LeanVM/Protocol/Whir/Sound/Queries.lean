@@ -9,7 +9,8 @@
 module
 
 public import LeanVM.Protocol.Whir.Sound.Prob
-public import LeanVM.Protocol.ToArkLib.Whir.Counting
+import LeanVM.Protocol.ToArkLib.Whir.Counting
+import LeanVM.Protocol.Field
 
 /-!
 # Uniformity of the query positions

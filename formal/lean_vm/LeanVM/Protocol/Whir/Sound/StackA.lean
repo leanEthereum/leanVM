@@ -6,8 +6,10 @@
 
 module
 
-public import LeanVM.Protocol.Whir.Sound.DescentT
+import LeanVM.Protocol.Whir.Sound.DescentT
 public import LeanVM.Protocol.EndToEnd.Sound.ExtractorC
+public import LeanVM.Protocol.Whir.Sound.DescentA
+import LeanVM.Prover.Ntt
 
 /-!
 # Level 0's stack over arrays

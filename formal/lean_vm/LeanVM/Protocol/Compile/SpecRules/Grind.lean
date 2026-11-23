@@ -7,7 +7,13 @@
 
 module
 
-public import LeanVM.Protocol.Compile.SpecRules.Basic
+import LeanVM.Protocol.Compile.SpecRules.Basic
+public import LeanVM.Parameters.Field
+public import Statement.LeanVmVerifier
+import LeanVM.Protocol.Field
+public import ArkLib.OracleReduction.OracleInterface
+public import CompPoly.Multilinear.Basic
+public import VCVio.OracleComp.Constructions.SampleableType
 
 /-!
 # Grinds

@@ -9,8 +9,15 @@
 
 module
 
-public import LeanVM.Protocol.Extraction.Run
-public import LeanVM.Protocol.EndToEnd.Sound.Extractor
+import LeanVM.Protocol.Extraction.Run
+import LeanVM.Protocol.EndToEnd.Sound.Extractor
+public import LeanVM.Protocol.Extraction.Defs
+public import LeanVM.Protocol.EndToEnd.Front.LayoutInstance
+import LeanVM.Protocol.EndToEnd.Execution
+public import ArkLib.Data.CodingTheory.HiddenDerivative.Parameters.Johnson.FiniteBounds
+public import ArkLib.Data.CodingTheory.ReedSolomon
+public import CompPoly.Univariate.Lagrange
+public import Mathlib.Tactic
 
 /-!
 # The step cap

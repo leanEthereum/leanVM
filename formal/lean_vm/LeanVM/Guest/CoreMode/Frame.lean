@@ -19,8 +19,8 @@ kind and a back-solve's divisor need. A path's state (`FSt`) is, besides that:
 * `hq`, cells past the word of a frame cell `q` written (`hqKey q o`): a store through `q`, the
   header a call writes through its callee frame cell, the cells a callee guarantees at return;
 * `hs`, cells past the word of `q` holding that word (a loop callee's self frame pointer);
-* `cp`, frame cells holding another's word (`MUL c = x·1`: a loop's next frame's header and self
-  frame pointer, written as copies);
+* `cp`, frame cells holding another's word (`MUL c = x·1`, or a `DEREF` through a next frame's
+  pointer: a loop's next frame's header and arguments);
 * `one`, frame cells holding `1` plus another's word (`XOR c = 1 + x`, for a quotient by `1 + x`).
 
 `w` and `hq` are facts of the executor's memory, monotone in its run; the rest are facts of the
@@ -28,14 +28,16 @@ reference image at the frame, true at any time. Each instruction reads written c
 `MUL` forward or back-solved by a divisor the state knows nonzero (`divOk`), `KECCAK`, a `JUMP`'s
 three cells, a `DEREF`'s pointer. A `DEREF` of mode `cell` stores when its frame side is written,
 loads when its heap side is known written (`hq`) or its offset is in the oracle `O` (the offsets
-whose heap cell the core heap certificate proves written), and links otherwise, learning nothing.
+whose heap cell the core heap certificate proves written), and links otherwise, learning nothing;
+through a cell known to hold `fp·g^e` (a next frame's pointer) its heap side is the frame's own cell
+`e + o`, which holds `[c]` and is written once `c` is (`nextF`).
 Hints read and write as the mode walk's `stepHints` says of its written cells. A taken jump is
 one of `Exec`'s kinds: a forward jump; a table jump through a cell to the offsets `tgt` lists
 (that it lands at one is a hypothesis of the soundness, the reference's choice); a call, whose
 callee frame cell `q` must have its callees' entry cells written past it (and the self frame
 pointer of a loop), its return point getting the cells every callee guarantees; a return with the
 signature's return cells written; a loop's tail call into `fp·g^e`, its entry cells, self frame
-pointer and header copied there; `main`'s halting jump.
+pointer and header held there; `main`'s halting jump.
 
 Everything is structural recursion over lists and tries keyed by `ℕ`, for the kernel; a long
 function is checked in windows, at cuts (`FFun.cuts`) where one path is live and no edge
@@ -59,6 +61,9 @@ def hqKey (q o : ℕ) : ℕ := q * hqLim + o
 
 /-- The levels of `hq` and `hs`. -/
 def hqDepth : ℕ := 28
+
+/-- The bound on the pcs and frame offsets a jump's target names that the walk relies on. -/
+def pcLim : ℕ := 2 ^ 30
 
 /-- A path's state at an offset. -/
 structure FSt where
@@ -216,9 +221,20 @@ noncomputable def cellF (O : Trie Unit) (i : ℕ) (A : FSt) (a o c : ℕ) : FSt 
   else if has O i then ((A.addNz a).addW c).addQ a o
   else A.addNz a
 
+/-- After a `DEREF` of mode `cell` (`B`, from `A`) through frame cell `a` known to hold `fp·g^e`
+at offset `o`: the frame's own cell `e + o` holds `[c]`, and is written once `c` is. -/
+noncomputable def nextF (A B : FSt) (a o c : ℕ) : FSt :=
+  match A.st.env.get a with
+  | some (.fpg e) =>
+    if e + o < pcLim then
+      if B.hasW c then { B.addW (e + o) with cp := B.cp.set c envDepth (e + o) }
+      else { B with cp := B.cp.set c envDepth (e + o) }
+    else B
+  | _ => B
+
 /-- A `DEREF`, its pointer cell written: its pointer nonzero, and what its mode writes. -/
 noncomputable def derefF (O : Trie Unit) (i : ℕ) (A : FSt) (a o c : ℕ) : LeanVM.Semantics.DerefMode → FSt
-  | .cell => if c == a then (cellF O i A a o c).addS a o else cellF O i A a o c
+  | .cell => nextF A (if c == a then (cellF O i A a o c).addS a o else cellF O i A a o c) a o c
   | _ => (A.addNz a).addQ a o
 
 /-- **One non-`JUMP` instruction's frame rule** at offset `i`: the cells it reads must be known
@@ -277,13 +293,17 @@ noncomputable def addRets (A : FSt) (q : ℕ) : List ℕ → FSt
   | [] => A
   | o :: os => addRets (A.addQ q o) q os
 
-/-- `[e + c]` holds `fp·g^e`, through a copy: a loop's next frame's self frame pointer. -/
+/-- The word `fp·g^e` known in frame cell `t`. -/
+def fpgAt (A : FSt) (e t : ℕ) : Bool :=
+  match A.st.env.get t with
+  | some (.fpg e') => e' == e
+  | _ => false
+
+/-- `[t]` holds `fp·g^e`, known or through a copy: a loop's next frame's self frame pointer. -/
 def selfAt (A : FSt) (e t : ℕ) : Bool :=
-  A.hasW t && match A.cp.get t with
-    | some c => match A.st.env.get c with
-      | some (.fpg e') => e' == e
-      | _ => false
-    | none => false
+  A.hasW t && (fpgAt A e t || match A.cp.get t with
+    | some c => fpgAt A e c
+    | none => false)
 
 /-- `[t]` holds `[c]`. -/
 def cpIs (A : FSt) (t c : ℕ) : Bool :=
@@ -292,16 +312,13 @@ def cpIs (A : FSt) (t c : ℕ) : Bool :=
   | none => false
 
 /-- A loop's tail call into frame `fp·g^e`: the next frame's entry cells written, its self frame
-pointer and header copied from this frame's, and nothing returned in the frame. -/
+pointer `fp·g^e` and its header this frame's, and nothing returned in the frame. -/
 def tailOk (G : Mode.Sig) (A : FSt) (e : ℕ) : Bool :=
   G.entry.all (fun o ↦ A.hasW (e + o)) &&
     (match G.self with
       | some o => selfAt A e (e + o)
       | none => true) &&
     cpIs A e 0 && cpIs A (e + 1) 1 && G.ret.isEmpty
-
-/-- The bound on the pcs and frame offsets a jump's target names that the walk relies on. -/
-def pcLim : ℕ := 2 ^ 30
 
 /-- The callees' pcs of a call through register `pt`: a constant's, or a table's. -/
 def callPcs (Fn : FFun) (i : ℕ) : Tgt → Option (List ℕ)

@@ -14,6 +14,7 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«main_loop2»
 import LeanVM.Guest.Data.ValNames.«main_loop3»
 import LeanVM.Guest.Data.ValNames.«main_loop4»
+import LeanVM.Guest.B1.Common.Find
 
 /-!
 # `main`'s loops

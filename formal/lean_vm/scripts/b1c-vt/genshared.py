@@ -1,107 +1,91 @@
 # usage: python3 -I genshared.py  — writes Tables/Vt/SharedT.lean (verify_tables' shared selector
-# tables: each table's `shared_len` and its `shared_selector_tables` call,
-# the tables' pointers stepped one from another) from vt_ir.txt (dump.py).
+# tables: each table's `shared_len`, its tables' allocations and its `shared_selector_tables` call)
+# from vt_ir.txt (dump.py). The anchors are found from the body: the six calls, and the statements
+# defining their arguments.
 import os, sys, re
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from symev import IR, parse_atom, VT_LEAN
 
+W33 = 8589934592
+
+
 def atom(p): return parse_atom(IR[p])
 
-W288, W144 = 299140177199104, 21299200
 
-def main():
-    # find the six calls
-    calls = [p for p in range(690, 800) if IR[p].startswith('.call "shared_selector_tables"')]
+def nums(s): return [int(x) for x in re.findall(r'\.n (\d+)', s)]
+
+
+def table(t, pc):
+    """Table `t`'s statements: its call at `pc` and the statements defining the call's arguments."""
+    eqv, gv, zv, z1v, sqv, lenv = nums(IR[pc])
+    # the three products just before the call
+    zs = [atom(pc - 3), atom(pc - 2), atom(pc - 1)]
+    assert [a[0] for a in zs] == ['mul'] * 3 and [a[1][0] for a in zs] == [zv, z1v, sqv], (pc, zs)
+    assert [a[1][2] for a in zs] == [28 + t] * 3 and zs[0][1][1] == 8 and zs[2][1][1] == 12, zs
+    z1src = zs[1][1][1]
+    # the allocations: `shared_len[t]` (a copy of `g^μ / τ_g`), its range check, `len1 = len·g`,
+    # `shared_eq[t]` (a copy of an allocation of `len1^8`), `shared_g[t]` (of `len1^4`)
+    pa = [p for p in IR if atom(p) == ('copy', [lenv, lenv - 1])]
+    assert len(pa) == 1, (t, pa)
+    pa = pa[0] - 1
+    want = [('mul', [9, lenv - 1, 28 + t]), ('copy', [lenv, lenv - 1])]
+    assert [atom(pa), atom(pa + 1)] == want, (pa, IR[pa], IR[pa + 1])
+    a2 = atom(pa + 2); assert a2[0] == 'const' and a2[1][1] == (W33, 0), IR[pa + 2]
+    k = a2[1][0]
+    rc = IR[pa + 3]
+    assert rc.startswith('.atom (.rangeCheck (.n %d)' % lenv) and nums(rc)[-1] == k, rc
+    a4 = atom(pa + 4); assert a4[0] == 'const' and a4[1][1] == (2, 0), IR[pa + 4]
+    two = a4[1][0]
+    l1 = two + 1
+    exp = [('mul', [l1, lenv, two]), ('mul', [l1 + 1, l1, l1]), ('mul', [l1 + 2, l1 + 1, l1 + 1]),
+           ('mul', [l1 + 3, l1 + 2, l1 + 2])]
+    assert [atom(pa + 5 + i) for i in range(4)] == exp, pa
+    assert IR[pa + 9] == f'.atom (.hint (.allocDyn (.n {l1 + 4}) (.n {l1 + 3})))', IR[pa + 9]
+    assert atom(pa + 10) == ('copy', [eqv, l1 + 4]) and eqv == l1 + 5
+    assert [atom(pa + 11), atom(pa + 12)] == [('mul', [l1 + 6, l1, l1]), ('mul', [l1 + 7, l1 + 6, l1 + 6])]
+    assert IR[pa + 13] == f'.atom (.hint (.allocDyn (.n {l1 + 8}) (.n {l1 + 7})))', IR[pa + 13]
+    assert atom(pa + 14) == ('copy', [gv, l1 + 8]) and gv == l1 + 9
+    return dict(pc=pc, pa=pa, eqv=eqv, gv=gv, zv=zv, z1v=z1v, sqv=sqv, lenv=lenv, raw=lenv - 1, k=k,
+                rc=rc, two=two, l1=l1, z1src=z1src, eqa=l1 + 4, ga=l1 + 8, eqs=l1 + 3, gs=l1 + 7)
+
+
+def tables():
+    calls = [p for p in sorted(IR) if IR[p].startswith('.call "shared_selector_tables"')]
     assert len(calls) == 6, calls
-    EQ0, G0 = 702, 703
-    assert 'alloc (.n 702) 1728' in IR[695]
-    out = []
-    prev_end = 696
-    val = {EQ0: ('EQ', 0), G0: ('G', 0)}   # var -> (table kind, exponent in units)
-    for t, pc in enumerate(calls):
-        args = [int(x) for x in re.findall(r'\.n (\d+)', IR[pc])]
-        eqv, gv, zv, z1v, sqv, lenv = args
-        L = []; hs = []
-        facts = {}
-        for p in range(prev_end + 1, pc):
-            if not IR[p].startswith('.atom'): continue
-            a = atom(p)
-            nm = f'a{p}'
-            L.append(f'  have {nm} := h.atomAt {p} _ (by decide +kernel)')
-            hs.append((nm, p, a))
-        # Lean atoms written out, from the IR text
-        lines = []
-        for nm, p, a in hs:
-            if a and a[0] == 'hint': continue
-            txt = IR[p]
-            m = re.match(r'\.atom \((.*)\)$', txt)
-            lines.append(f'  have {nm} := h.atomAt {p} ({m.group(1)}) (by decide +kernel)')
-        # facts: mul 9 len (30+t); copy lenc len; const w33; rc lenc ...; eq/g pointer steps; z/z1/sq
-        defs = {}
-        for nm, p, a in hs:
-            if a and a[0] in ('mul', 'copy', 'const'): defs[a[1][0]] = (nm, a)
-        # pointer chains
-        def ptr(v, base):
-            # returns (rw list, exponent) with σ v = σ base * gen ^ e
-            if v == base: return [], 0
-            nm, a = defs[v] if v in defs else gdefs[v]
-            assert a[0] == 'mul'
-            src, c = a[1][1], a[1][2]
-            cnm, ca = defs[c] if c in defs else gdefs[c]
-            w = ca[1][1][0]
-            e = 288 if w == W288 else 144 if w == W144 else None
-            assert e is not None, w
-            r, e0 = ptr(src, base)
-            return [nm, cnm] + r, e0 + e
-        for k, v in defs.items(): gdefs[k] = v
-        eqr, eqe = ptr(eqv, EQ0); gr, ge = ptr(gv, G0)
-        assert eqe == 288 * t and ge == 144 * t, (t, eqe, ge)
-        lastc = calls[t - 1] if t else 696
-        seg = [x for x in hs if x[1] > lastc]
-        mlen = [a for nm, p, a in seg if a and a[0] == 'mul' and a[1][0] == 9]
-        assert mlen and mlen[0][1][2] == 28 + t
-        lenraw = mlen[0][1][1]
-        cp = [(nm, a) for nm, p, a in seg if a and a[0] == 'copy']
-        assert cp and cp[0][1][1] == [lenv, lenraw]
-        rc = [(nm, a) for nm, p, a in seg if a and a[0] == 'rangeCheck']
-        assert len(rc) == 1
-        zm = [(nm, a) for nm, p, a in seg if a and a[0] == 'mul' and a[1][0] in (zv, z1v, sqv)]
-        nmof = {a[1][0]: nm for nm, a in zm}
-        assert [a[1][1] for nm, a in zm] == [8, 700, 12] and all(a[1][2] == 28 + t for nm, a in zm)
-        mnm = [nm for nm, p, a in seg if a and a[0] == 'mul' and a[1][0] == 9][0]
-        cnm = cp[0][0]
-        rcnm = rc[0][0]
-        rcidx = [p for nm, p, a in seg if nm == rcnm][0]
-        wvar = int(re.findall(r'\.n (\d+)', IR[rcidx])[-1]); wnm = defs[wvar][0]
-        simpl = ' '.join(nm for nm, p, a in hs if a and a[0] in ('mul', 'copy', 'const'))
-        body = '\n'.join(lines)
-        body += f'\n  have hc := h.callAt {pc} "shared_selector_tables" [.n {eqv}, .n {gv}, .n {zv}, .n {z1v}, .n {sqv}, .n {lenv}] []\n    (by decide +kernel)'
-        # the call holds as a relation
-        body += f'\n  simp only [Atom.Holds] at {simpl}'
-        for nm, p, a in hs:
-            if a and a[0] == 'const' and a[1][1][0] in (W288, W144):
-                body += f'\n  rw [{"vtW288_eq" if a[1][1][0] == W288 else "vtW144_eq"}] at {nm}'
-        def ptrproof(r, e, base):
-            if not r: return 'by ring'
-            rws = []
-            for i in range(0, len(r), 2): rws += [r[i], r[i + 1]]
-            return f'by rw [{", ".join(rws)}]' if len(r) == 2 else f'by rw [{", ".join(rws)}]; ring'
-        out.append(f'''theorem vt_sh{t} {{rd : Reader}} {{σ : Val}} (h : VtH rd σ) :
-    σ (.n 9) = σ (.n {lenv}) * σ (.n {28 + t}) ∧ (Atom.rangeCheck {rc[0][1][1]}).Holds rd σ ∧
-      σ (.n {wvar}) = vtW33 ∧
-      coreProgram.Rel rd "shared_selector_tables" [σ (.n {EQ0}) * gen ^ (288 * {t}),
-        σ (.n {G0}) * gen ^ (144 * {t}), σ (.n 8) * σ (.n {28 + t}), σ (.n 700) * σ (.n {28 + t}),
-        σ (.n 12) * σ (.n {28 + t}), σ (.n {lenv})] [] ∧
-      σ (.n {eqv}) = σ (.n {EQ0}) * gen ^ (288 * {t}) ∧ σ (.n {gv}) = σ (.n {G0}) * gen ^ (144 * {t}) := by
-{body}
-  have e1 : σ (.n {eqv}) = σ (.n {EQ0}) * gen ^ (288 * {t}) := {ptrproof(eqr, eqe, EQ0)}
-  have e2 : σ (.n {gv}) = σ (.n {G0}) * gen ^ (144 * {t}) := {ptrproof(gr, ge, G0)}
-  refine ⟨by rw [{mnm}, ← {cnm}], {rcnm}, {wnm}, ?_, e1, e2⟩
-  rw [← e1, ← e2, ← {nmof[zv]}, ← {nmof[z1v]}, ← {nmof[sqv]}]
-  simpa using hc''')
-    return out
+    T = [table(t, pc) for t, pc in enumerate(calls)]
+    # the allocations are one run, table after table, and so are the calls
+    assert all(T[t + 1]['pa'] == T[t]['pa'] + 15 for t in range(5))
+    assert all(T[t + 1]['pc'] == T[t]['pc'] + 4 for t in range(5))
+    assert len({x['z1src'] for x in T}) == 1
+    return T
 
-gdefs = {}
+
+def lemma(t, x):
+    p, pc, m = x['pa'], x['pc'], 28 + t
+    L = [f'  have a{p} := h.atomAt {p} (.mul (.n 9) (.n {x["raw"]}) (.n {m})) (by decide +kernel)',
+         f'  have a{p + 1} := h.atomAt {p + 1} (.copy (.n {x["lenv"]}) (.n {x["raw"]})) (by decide +kernel)',
+         f'  have a{p + 2} := h.atomAt {p + 2} (.const (.n {x["k"]}) (word {W33} 0)) (by decide +kernel)',
+         f'  have a{p + 3} := h.atomAt {p + 3} {x["rc"][len(".atom "):]} (by decide +kernel)']
+    for i, (v, s) in enumerate([(x['zv'], 8), (x['z1v'], x['z1src']), (x['sqv'], 12)]):
+        q = pc - 3 + i
+        L.append(f'  have a{q} := h.atomAt {q} (.mul (.n {v}) (.n {s}) (.n {m})) (by decide +kernel)')
+    args = f'[.n {x["eqv"]}, .n {x["gv"]}, .n {x["zv"]}, .n {x["z1v"]}, .n {x["sqv"]}, .n {x["lenv"]}]'
+    L.append(f'  have hc := h.callAt {pc} "shared_selector_tables" {args} []\n    (by decide +kernel)')
+    L.append(f'  simp only [Atom.Holds] at a{p} a{p + 1} a{p + 2} a{pc - 3} a{pc - 2} a{pc - 1}')
+    L.append(f'  refine ⟨by rw [a{p}, ← a{p + 1}], a{p + 3}, a{p + 2}, ?_⟩')
+    L.append(f'  rw [← a{pc - 3}, ← a{pc - 2}, ← a{pc - 1}]')
+    L.append('  simpa using hc')
+    return (f'''theorem vt_sh{t} {{rd : Reader}} {{σ : Val}} (h : VtH rd σ) :
+    σ (.n 9) = σ (.n {x["lenv"]}) * σ (.n {m}) ∧ (Atom.rangeCheck {x["rc"][len(".atom (.rangeCheck "):-1]}).Holds rd σ ∧
+      σ (.n {x["k"]}) = vtW33 ∧
+      coreProgram.Rel rd "shared_selector_tables" [σ (.n {x["eqv"]}), σ (.n {x["gv"]}),
+        σ (.n 8) * σ (.n {m}), σ (.n {x["z1src"]}) * σ (.n {m}), σ (.n 12) * σ (.n {m}), σ (.n {x["lenv"]})] [] := by
+''' + '\n'.join(L))
+
+
+def lst(xs): return '[' + ', '.join(str(v) for v in xs) + ']'
+
+
 HDR = '''/-
   LeanVM.Guest.B1.Tables.Vt.SharedT
 
@@ -117,9 +101,12 @@ public import LeanVM.Guest.CoreData
 /-!
 # The shared tables' statements
 
-`vt_sh{t}`: table `t`'s `shared_len[t]` (`σ 9 = len · τ_g`, `τ_g = kb[2 + t]` the variable
-`28 + t`), its range check below `g^34`, and its `shared_selector_tables` call at
-`shared_eq·g^(288 t)`, `shared_g·g^(144 t)` (the compiler steps these pointers from one another).
+Table `t` (`τ_g = kb[2 + t]`, the variable `28 + t`) first sizes its run, `shared_len[t]`
+(`vtShLen t`, `σ 9 = len · τ_g`, range checked below `g^34`), and allocates its tables,
+`shared_eq[t]` and `shared_g[t]` (`vtEqV t`, `vtGV t`), of `8(n + 1)` and `4(n + 1)` cells for a run
+of `n` coordinates: `vtShAT t` lists these statements from `vtShA t`. Its `shared_selector_tables`
+call comes later, at `vtShC t`, after the products of `zeta`, `zeta1` and `g_squares` by `τ_g`
+(`vtShCT t`). `vt_sh{t}` reads what soundness needs of them.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -129,21 +116,61 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier
 
 @[expose] public section
 
-/-- `g^33`, `g^288`, `g^144`, as the data writes them. -/
+/-- `g^33`, as the data writes it. -/
 abbrev vtW33 : E := word 8589934592 0
-abbrev vtW288 : E := word 299140177199104 0
-abbrev vtW144 : E := word 21299200 0
-
-theorem vtW288_eq : word 299140177199104 0 = gen ^ 288 := by
-  rw [tb_word_eOfNat, eOfNat, gen_pow_eq_ofK,
-    show K.ofBits 299140177199104 = Parameters.addressOfIndex 288 by decide +kernel]
-
-theorem vtW144_eq : word 21299200 0 = gen ^ 144 := by
-  rw [tb_word_eOfNat, eOfNat, gen_pow_eq_ofK,
-    show K.ofBits 21299200 = Parameters.addressOfIndex 144 by decide +kernel]
 '''
 
+
+def defs(T):
+    z1 = T[0]['z1src']
+    out = [
+        f'/-- Table `t`\'s `shared_len`, `shared_eq` and `shared_g` values. -/\n'
+        f'def vtShLen (t : ℕ) : ℕ := {lst([x["lenv"] for x in T])}.getD t 0\n'
+        f'def vtEqV (t : ℕ) : ℕ := {lst([x["eqv"] for x in T])}.getD t 0\n'
+        f'def vtGV (t : ℕ) : ℕ := {lst([x["gv"] for x in T])}.getD t 0',
+        f'/-- Where table `t`\'s allocations and its call sit. -/\n'
+        f'def vtShA (t : ℕ) : ℕ := {T[0]["pa"]} + 15 * t\n'
+        f'def vtShC (t : ℕ) : ℕ := {T[0]["pc"] - 3} + 4 * t',
+        f'/-- Table `t`\'s first value, `g^μ / τ_g`, and its first product\'s, `ζ·τ_g`. -/\n'
+        f'def vtShV (t : ℕ) : ℕ := {T[0]["raw"]} + 17 * t\n'
+        f'def vtShZ (t : ℕ) : ℕ := {T[0]["zv"]} + 3 * t',
+        'theorem vtSh_vals : ∀ t < 6, vtShLen t = vtShV t + 1 ∧ vtEqV t = vtShV t + 12 ∧\n'
+        '    vtGV t = vtShV t + 16 := by decide',
+        f'/-- Table `t`\'s run and allocations, from `vtShA t`. -/\n'
+        f'def vtShAT (t : ℕ) : List Stmt :=\n'
+        f'  let v := vtShV t\n'
+        f'  [.atom (.mul (.n 9) (.n v) (.n (28 + t))), .atom (.copy (.n (v + 1)) (.n v)),\n'
+        f'    .atom (.const (.n (v + 2)) vtW33),\n'
+        f'    .atom (.rangeCheck (.n (v + 1)) (.n (v + 3)) (.n (v + 4)) (.n (v + 5)) (.n (v + 2))),\n'
+        f'    .atom (.const (.n (v + 6)) (word 2 0)), .atom (.mul (.n (v + 7)) (.n (v + 1)) (.n (v + 6))),\n'
+        f'    .atom (.mul (.n (v + 8)) (.n (v + 7)) (.n (v + 7))), .atom (.mul (.n (v + 9)) (.n (v + 8)) (.n (v + 8))),\n'
+        f'    .atom (.mul (.n (v + 10)) (.n (v + 9)) (.n (v + 9))), .atom (.hint (.allocDyn (.n (v + 11)) (.n (v + 10)))),\n'
+        f'    .atom (.copy (.n (v + 12)) (.n (v + 11))), .atom (.mul (.n (v + 13)) (.n (v + 7)) (.n (v + 7))),\n'
+        f'    .atom (.mul (.n (v + 14)) (.n (v + 13)) (.n (v + 13))),\n'
+        f'    .atom (.hint (.allocDyn (.n (v + 15)) (.n (v + 14)))), .atom (.copy (.n (v + 16)) (.n (v + 15)))]',
+        f'/-- Table `t`\'s products and call, from `vtShC t`. -/\n'
+        f'def vtShCT (t : ℕ) : List Stmt :=\n'
+        f'  let z := vtShZ t\n'
+        f'  [.atom (.mul (.n z) (.n 8) (.n (28 + t))), .atom (.mul (.n (z + 1)) (.n {z1}) (.n (28 + t))),\n'
+        f'    .atom (.mul (.n (z + 2)) (.n 12) (.n (28 + t))),\n'
+        f'    .call "shared_selector_tables" [.n (vtEqV t), .n (vtGV t), .n z, .n (z + 1), .n (z + 2),\n'
+        f'      .n (vtShLen t)] []]',
+        'theorem vtShAT_check : ∀ t < 6, tbStmtsEqb (vtShAT t) ((vtAt (vtShA t)).take 15) = true := by\n'
+        '  decide +kernel',
+        'theorem vtShCT_check : ∀ t < 6, tbStmtsEqb (vtShCT t) ((vtAt (vtShC t)).take 4) = true := by\n'
+        '  decide +kernel',
+    ]
+    # the uniform templates hold of the body
+    for t, x in enumerate(T):
+        v = T[0]['raw'] + 17 * t
+        assert x['raw'] == v and x['lenv'] == v + 1 and x['k'] == v + 2 and x['two'] == v + 6
+        assert x['eqv'] == v + 12 and x['gv'] == v + 16 and x['pa'] == T[0]['pa'] + 15 * t
+        assert x['zv'] == T[0]['zv'] + 3 * t and x['pc'] - 3 == T[0]['pc'] - 3 + 4 * t
+        assert nums(x['rc']) == [v + 1, v + 3, v + 4, v + 5, v + 2], x['rc']
+    return out
+
+
 if __name__ == '__main__':
-    lemmas = main()
-    open(os.path.join(VT_LEAN, 'SharedT.lean'), 'w').write(
-        HDR + '\n' + '\n\n'.join(lemmas) + '\n\nend\nend LeanVM.Guest.B1.Tables\n')
+    T = tables()
+    body = HDR + '\n' + '\n\n'.join(defs(T)) + '\n\n' + '\n\n'.join(lemma(t, x) for t, x in enumerate(T))
+    open(os.path.join(VT_LEAN, 'SharedT.lean'), 'w').write(body + '\n\nend\nend LeanVM.Guest.B1.Tables\n')

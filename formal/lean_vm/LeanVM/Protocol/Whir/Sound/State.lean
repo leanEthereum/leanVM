@@ -9,8 +9,10 @@
 
 module
 
-public import LeanVM.Protocol.Whir.Sound.FoldRound
+import LeanVM.Protocol.Whir.Sound.FoldRound
 public import LeanVM.Protocol.Whir.Sound.Weights
+public import LeanVM.Protocol.Whir.Sound.Code
+public import LeanVM.Protocol.Whir.Sound.Tuple
 
 /-!
 # The running state of `verify_whir`

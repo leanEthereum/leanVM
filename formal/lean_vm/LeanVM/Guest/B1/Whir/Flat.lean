@@ -12,9 +12,9 @@ public import LeanVM.Guest.B1.Whir.DataSpecP
 /-!
 # Flat bodies
 
-`open_stacked`'s body (`osBody`) and its loops have no branch or `match`: every statement is an
-atom, a call, a conditional call or a dispatch (a call of one of several functions, chosen by a
-selector), and the last is the `ret`. So the body holds
+`open_stacked`'s body (`osBody`) and its loops have no branch: every statement is an atom, a call,
+a conditional call, a dispatch (a call of one of several functions, chosen by a selector) or a
+`match` whose arms are atoms (`level_rate`'s), and the last is the `ret`. So the body holds
 of a valuation exactly when every statement's relation does (`StmtOk`) and the `ret`'s words are
 the returns (`holdsList_flat_ret`). `AllOk σ ss` is that conjunction over a block; it splits over
 `++` (`allOk_append`), so each block of the template is read on its own.
@@ -34,10 +34,19 @@ variable {C : CallRel} {rd : Reader} {σ : Val}
 
 /-! ## Flat statements -/
 
-/-- A flat statement: an atom, a call, a conditional call or a dispatch. -/
+/-- An atom statement. -/
+def Stmt.isAtom : Stmt → Bool
+  | .atom _ => true
+  | _ => false
+
+/-- A flat statement: an atom, a call, a conditional call, a dispatch, or a `match` of atom arms. -/
 def Stmt.flat : Stmt → Bool
   | .atom _ | .call .. | .callIf .. | .dispatch .. => true
+  | .match_ _ arms => arms.all fun a ↦ a.all Stmt.isAtom
   | _ => false
+
+/-- A list's atoms hold. -/
+def AtomsOk (rd : Reader) (σ : Val) (l : List Stmt) : Prop := ∀ a : Atom, .atom a ∈ l → a.Holds rd σ
 
 /-- A flat statement's relation. -/
 def StmtOk (C : CallRel) (rd : Reader) (σ : Val) : Stmt → Prop
@@ -46,6 +55,7 @@ def StmtOk (C : CallRel) (rd : Reader) (σ : Val) : Stmt → Prop
   | .callIf c f args => IsInK (σ c) ∧ (σ c ≠ 0 → C f (args.map σ) [])
   | .dispatch x fs args rets =>
       ∃ (j : ℕ) (h : j < fs.length), σ x = ofK (addressOfIndex j) ∧ C fs[j] (args.map σ) (rets.map σ)
+  | .match_ x arms => ∃ (j : ℕ) (h : j < arms.length), σ x = ofK (addressOfIndex j) ∧ AtomsOk rd σ arms[j]
   | _ => True
 
 /-- Every statement of a block holds. -/
@@ -68,6 +78,22 @@ theorem allOk_flatten {bs : List (List Stmt)} :
   simp only [AllOk, List.mem_flatten]
   exact ⟨fun h b hb s hs ↦ h s ⟨b, hb, hs⟩, fun h s ⟨b, hb, hs⟩ ↦ h b hb s hs⟩
 
+/-- A block of atoms holds, then `next`, exactly when its atoms do and `next`. -/
+theorem holdsList_atoms : ∀ (ss : List Stmt), ss.all Stmt.isAtom = true → ∀ (next : Prop)
+    (kret : List E → Prop), Stmt.HoldsList C rd σ ss next kret ↔ AtomsOk rd σ ss ∧ next
+  | [], _, next, kret => by simp [Stmt.HoldsList, AtomsOk]
+  | s :: ss, h, next, kret => by
+    simp only [List.all_cons, Bool.and_eq_true] at h
+    have ih := holdsList_atoms ss h.2 next kret
+    match s, h.1 with
+    | .atom a, _ =>
+      simp only [Stmt.HoldsList, Stmt.Holds, ih, AtomsOk, List.mem_cons, Stmt.atom.injEq]
+      constructor
+      · rintro ⟨ha, hs, hn⟩
+        exact ⟨fun b hb ↦ hb.elim (fun e ↦ e ▸ ha) (hs b), hn⟩
+      · rintro ⟨hs, hn⟩
+        exact ⟨hs a (Or.inl rfl), fun b hb ↦ hs b (Or.inr hb), hn⟩
+
 /-- A flat block holds, then `next`, exactly when every statement does and `next`. -/
 theorem holdsList_flat : ∀ (ss : List Stmt), ss.all Stmt.flat = true → ∀ (next : Prop)
     (kret : List E → Prop), Stmt.HoldsList C rd σ ss next kret ↔ AllOk C rd σ ss ∧ next
@@ -81,6 +107,15 @@ theorem holdsList_flat : ∀ (ss : List Stmt), ss.all Stmt.flat = true → ∀ (
     | .call f args rets, _ => simp only [Stmt.HoldsList, Stmt.Holds, StmtOk, ih, and_assoc]
     | .callIf c f args, _ => simp only [Stmt.HoldsList, Stmt.Holds, StmtOk, ih, and_assoc]
     | .dispatch x fs args rets, _ => simp only [Stmt.HoldsList, Stmt.Holds, StmtOk, ih, and_assoc]
+    | .match_ x arms, ha =>
+      simp only [Stmt.flat, List.all_eq_true] at ha
+      simp only [Stmt.HoldsList, holds_match_iff, StmtOk]
+      constructor
+      · rintro ⟨j, hj, hx, hh⟩
+        have := (holdsList_atoms arms[j] (List.all_eq_true.mpr (ha _ (List.getElem_mem hj))) _ kret).mp hh
+        exact ⟨⟨⟨j, hj, hx, this.1⟩, (ih.mp this.2).1⟩, (ih.mp this.2).2⟩
+      · rintro ⟨⟨⟨j, hj, hx, ha'⟩, hs⟩, hn⟩
+        exact ⟨j, hj, hx, (holdsList_atoms arms[j] (List.all_eq_true.mpr (ha _ (List.getElem_mem hj))) _ kret).mpr ⟨ha', ih.mpr ⟨hs, hn⟩⟩⟩
 
 /-- **A dispatch at the selector `g^i`** calls its `i`-th function. -/
 theorem stmtOk_dispatch {x : V} {fs : List String} {args rets : List V} {i : ℕ}
@@ -273,6 +308,13 @@ theorem osMatsAfter_ok {plan : List (ℕ × ℕ × ℕ)} {mats : List OsMat} {ba
         have := (osMatP_shape plan mats base off k).2 h0
         rw [this] at hv
         exact hv
+
+theorem gcPre_isAtom (b : ℕ) : (gcPre b).all Stmt.isAtom = true := by
+  simp only [gcPre, gcHead, gcTailPre, List.all_append, List.all_cons, List.all_nil, Stmt.isAtom,
+    Bool.and_true, Bool.true_and, List.all_eq_true, List.mem_flatten, List.mem_map, List.mem_range]
+  rintro s ⟨l, ⟨i, -, rfl⟩, hs⟩
+  simp only [gcIterAt, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> rfl
 
 end
 end LeanVM.Guest.B1.Whir

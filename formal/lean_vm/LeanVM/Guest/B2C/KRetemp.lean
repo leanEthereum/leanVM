@@ -192,8 +192,8 @@ theorem reInst_of_honest (hfr : coreProgram.Fresh) {hdr : E × E} {T : Tree} {I 
     (hfp : I'.fp = I.fp) : I' = reInst ν I := by
   obtain ⟨I0, hI0, rfl⟩ := insts_reInst hfr T _ hdr I' (by rwa [honestInsts_retemp] at hI')
   have hfp0 : I0.fp = I.fp := hfp
-  have h2 := two_le_fs I.t.name
-  have h20 := two_le_fs I0.t.name
+  have h2 := two_le_fsz I.t
+  have h20 := two_le_fsz I0.t
   obtain rfl : I0 = I := insts_same hI0 hI (i := I.fp) ⟨by omega, by omega⟩ ⟨le_rfl, by omega⟩
   rfl
 

@@ -17,7 +17,7 @@ public import LeanVM.Guest.B1.Whir.FinishSound
 On a level `L : LvAt` of the honest run (`Whir/CHon`): the capacity after its folds `cap1`, its
 query grind's permutation `qS`, the sponge after its positions' squeezes `F3`, its samples `word j`
 and the squeezes' capacities `capSq j`, `λ` (`0` at the final level), its phase, its record
-(`OsRec`, S1a-3's), its non-final (`nw`) or final (`fw`) reads; the guest's data of the level
+(`OsRec`, `Whir/Level`), its non-final (`nw`) or final (`fw`) reads; the guest's data of the level
 (`midW`, `finWD`) and its claim at the level's start, the Spec's less the deficit (`gcl`).
 -/
 

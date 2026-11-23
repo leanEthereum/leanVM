@@ -7,7 +7,8 @@
 module
 
 public import LeanVM.Protocol.Whir.Sound.DescentA
-public import LeanVM.Prover.Ntt
+import LeanVM.Prover.Ntt
+public import Statement.Prover.Ntt
 
 /-!
 # The descent across levels over arrays

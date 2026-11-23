@@ -10,8 +10,9 @@
 module
 
 public import LeanVM.Protocol.Compile.SpecRules.Grind
-public import LeanVM.Protocol.Verifier.Phases
+import LeanVM.Protocol.Verifier.Phases
 public import LeanVM.Protocol.Verifier.KeccakPack
+public import LeanVM.Protocol.Compile.Spec
 
 /-!
 # The prover moves of the leanVM verifier

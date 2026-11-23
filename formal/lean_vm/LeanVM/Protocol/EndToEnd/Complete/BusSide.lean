@@ -11,7 +11,9 @@ module
 
 public import LeanVM.Protocol.EndToEnd.Complete.BusStack
 public import LeanVM.Protocol.EndToEnd.Complete.Facts
-public import LeanVM.Protocol.Verifier
+import LeanVM.Protocol.Verifier
+import LeanVM.Protocol.EndToEnd.Front.LayoutStack
+import LeanVM.Protocol.EndToEnd.Front.LayoutArith
 
 /-!
 # One side of the leaf decomposition

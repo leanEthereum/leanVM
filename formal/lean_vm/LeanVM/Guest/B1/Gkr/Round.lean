@@ -9,6 +9,8 @@
 module
 
 public import LeanVM.Guest.B1.Gkr.Spec
+public import LeanVM.Guest.B1.Fs.Templates
+import LeanVM.Guest.B1.Tables.Basic
 
 /-!
 # One GKR round (`gkr_round`)
@@ -58,9 +60,6 @@ abbrev gkRoundT (B q : ℕ) (cur pt claimV : V) (cap : List V) : List Stmt :=
 theorem gkRoundN_noRet (B q : ℕ) (cur pt npt : V) (noff : ℕ) (claimV : V) (cap : List V) :
     Stmt.noRetList (gkRoundN B q cur pt npt noff claimV cap) = true := by
   simp only [gkRoundN, tb_noRetList_append]; rfl
-
-theorem gkRoundT_noRet (B q : ℕ) (cur pt claimV : V) (cap : List V) :
-    Stmt.noRetList (gkRoundT B q cur pt claimV cap) = true := gkRoundN_noRet ..
 
 /-- The scalars of four words read, each with the tag `dsObserve`. -/
 theorem absorbAll_four (cap : List E) (xs : List E) (hx : xs.length = 4) :

@@ -7,9 +7,15 @@
 module
 
 public import LeanVM.Protocol.Whir.Sound.FoldRound
-public import LeanVM.Protocol.ToArkLib.Whir.AffineCombinerLemma43
+import LeanVM.Protocol.ToArkLib.Whir.AffineCombinerLemma43
 public import LeanVM.Protocol.ToArkLib.Whir.AffineCombinerDeployed
-public import LeanVM.Protocol.ToArkLib.Whir.AffineCombinerFoldRel
+import LeanVM.Protocol.ToArkLib.Whir.AffineCombinerFoldRel
+import LeanVM.Protocol.Field
+public import ArkLib.Data.Polynomial.FrobeniusContraction
+public import ArkLib.Data.Polynomial.ResultantDegree
+public import ArkLib.Data.Polynomial.UniversalHenselNumerator
+public import ArkLib.ToMathlib.RingTheory.Nullstellensatz.AgreementIncidence
+public import Mathlib.Algebra.MvPolynomial.NoZeroDivisors
 
 /-!
 # The fold-round lemma from [CWYZ26]

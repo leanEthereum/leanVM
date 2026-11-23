@@ -16,8 +16,8 @@ import LeanVM.Guest.Data.ValNames.«verify_tables»
 # The table phase's evaluations and final check, complete
 
 `vtF_complete`: the window (`vtF_window`) and the final check `assert air_acc == claim`, which
-holds since `air_acc` (`σ 5931`) is `termsPure`'s terminal value over the six tables
-(`vt_asm_finalF`) and the table sumcheck's final claim `σ 2640` is it (`hfin`, the
+holds since `air_acc` (`σ 5627`) is `termsPure`'s terminal value over the six tables
+(`vt_asm_finalF`) and the table sumcheck's final claim `σ 2336` is it (`hfin`, the
 specification's check of the honest run). It also gives what follows: the evaluations' values,
 the sponge after them (`vt_evals_fsF`), and `VtF`.
 -/
@@ -30,7 +30,7 @@ open LeanVM.Protocol.EndToEnd.Complete (blockSel termsPure)
 
 @[expose] public section
 
-theorem vtF_split : tbStmtsEqb ((vtPre.drop vtFLo).take (5513 - vtFLo))
+theorem vtF_split : tbStmtsEqb ((vtPre.drop vtFLo).take (5209 - vtFLo))
     ((vtPre.drop vtFLo).take (vtFHi - vtFLo) ++ [.atom (.assertEq (.n (val% «verify_tables» "air_acc@6")) (.n (val% «verify_tables» "claim")))]) =
       true := by
   simp only [vtPre_drop]; decide +kernel
@@ -69,7 +69,7 @@ theorem vtF_complete (hl : args.length = 21) (bc : List K) (hbc : bc.length = 2 
         (vtAcc2 (layoutOf bc lm rows) weights (vtσ rd w args (.n (val% «verify_tables» "beta"))) point
           [vtσ rd w args (.n (val% «verify_tables» "x@1")), vtσ rd w args (.n (val% «verify_tables» "x@2"))]
           (vtσ rd w args (.n (val% «verify_tables» "x@3"))) (vtσ rd w args (.n (val% «verify_tables» "x@4"))) (vtσ rd w args (.n (val% «verify_tables» "x@5")))
-          (vtσ rd w args (.n (val% «verify_tables» "s52.u0.s5#0"))) (vtσ rd w args (.n (val% «verify_tables» "s52.u1.s5#0"))) (vtσ rd w args (.n (val% «verify_tables» "s52.u2.s5#0")))).1
+          (vtσ rd w args (.n (val% «verify_tables» "s53.u0.s5#0"))) (vtσ rd w args (.n (val% «verify_tables» "s53.u1.s5#0"))) (vtσ rd w args (.n (val% «verify_tables» "s53.u2.s5#0")))).1
             point pts) (vtEvsT (vtσ rd w args))) 0 0 []).1 = vtσ rd w args (.n (val% «verify_tables» "claim"))) :
     (∀ s ∈ (vtPre.drop (pos% «verify_tables» "x@9")).take (pos% «verify_tables» "nxt[0]@42" - pos% «verify_tables» "x@9"),
         VSH (coreProgram.Rel rd) rd (vtσ rd w args) s) ∧

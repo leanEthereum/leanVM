@@ -300,6 +300,8 @@ theorem nextAt_selfAt {X : AlignCtx} {o : ℕ} (h : X.nextAt o = true) : X.selfA
     | zero => simp at h
     | succ S => rfl
   · cases h
+  · rename_i hn
+    rw [hn]
 
 theorem take_map_sum_le {l : List Tree} {n : ℕ} (h : l.length ≤ n) :
     ((l.take n).map (Tree.total B2C.fs)).sum = (l.map (Tree.total B2C.fs)).sum := by
@@ -333,29 +335,8 @@ theorem loop_of_nextAt {f : String} {j : ℕ} (hj : B2C.idxOf f = some j) {off o
   obtain ⟨i0, rfl, hi0, -, hfind, hcore, -, -, h1, h2⟩ := B2C.fn_of_idx hj
   rw [Program.loop_of_find? hfind, ← hcore]
   have hd := JumpCells.jcData_all _ h1 (by have : nFns = fn_count% := rfl; omega)
-  unfold jcData jcDataD at hd
-  simp only [Bool.and_eq_true] at hd
-  obtain ⟨⟨⟨⟨⟨⟨⟨-, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, hnext⟩ := hd
   rw [alignA_of hj] at hcode hnx
-  unfold AlignCtx.nextAt at hnx
-  split at hnx
-  · rename_i S hso
-    have hm := statOf_ofData hso
-    have hS : S ≠ 0 := fun h0 ↦ by simp [h0] at hnx
-    rcases Bool.or_eq_true _ _ |>.mp hnext with hn | hn
-    · have := List.all_eq_true.mp hn _ hm
-      simp only [Bool.or_eq_true, beq_iff_eq, Bool.and_eq_true] at this
-      rcases this with h0 | h0
-      · exact absurd h0 hS
-      · exact h0.1
-    · have hmem : OffsetInstruction.jump oc od of ∈ (fnOf (i0 + 1)).code := List.mem_of_getElem? hcode
-      have := List.all_eq_true.mp (List.all_eq_true.mp hn _ hmem) _ hm
-      simp only [beq_self_eq_true, Bool.not_true, Bool.false_or, Bool.or_eq_true, beq_iff_eq,
-        Bool.and_eq_true] at this
-      rcases this with h0 | h0
-      · exact absurd h0 hS
-      · exact h0.1
-  · cases hnx
+  exact (nextAt_facts hd hcode hnx).1
 
 /-- **A loop helper's call through a call site is not its last.** -/
 theorem notLast_of_site {f : String} {j : ℕ} (hj : B2C.idxOf f = some j) {σ : Val} {es : List Ev} {vs : List V}
@@ -366,7 +347,7 @@ theorem notLast_of_site {f : String} {j : ℕ} (hj : B2C.idxOf f = some j) {σ :
   have hd := JumpCells.jcData_all _ h1 (by have : nFns = fn_count% := rfl; omega)
   unfold jcData jcDataD at hd
   simp only [Bool.and_eq_true] at hd
-  obtain ⟨⟨⟨⟨⟨⟨⟨-, -⟩, -⟩, -⟩, -⟩, -⟩, hloop⟩, -⟩ := hd
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨-, -⟩, -⟩, -⟩, -⟩, -⟩, hloop⟩, -⟩, -⟩ := hd
   have hl' : (coreOf (i0 + 1)).loop = true := by rw [hcore, ← Program.loop_of_find? hfind]; exact hl
   simp only [hl', Bool.not_true, Bool.false_or, Bool.and_eq_true] at hloop
   rw [alignA_of hj] at hs

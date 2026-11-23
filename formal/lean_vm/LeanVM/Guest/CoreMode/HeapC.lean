@@ -9,6 +9,8 @@
 module
 
 public import LeanVM.Guest.CoreMode.HeapCSig
+public import LeanVM.Guest.Bridge.JumpCellsDefs
+public import LeanVM.Guest.Memory.SelArm
 
 /-!
 # The heap check with calls and loops
@@ -1514,10 +1516,10 @@ def dupB (ds : List ℕ) : List Stmt → List Stmt
 /-- The body the pass reads: `f.body`, its listed `ite`s' continuations in each branch (`dupB`). -/
 def bodyC (ds : List ℕ) (body : List Stmt) : List Stmt := bif ds.isEmpty then body else dupB ds body
 
-/-- **The heap check with calls and loops.** The parameters `V.n i`, the preconditions over them, no
+/-- **The heap check with calls and loops, one certificate.** The parameters `V.n i`, the preconditions over them, no
 ghost value named, the entry state, then the pass over the body, or a loop helper's
 (`term = [(.val 0, end)]`, no returned word). -/
-noncomputable def heapOkC (pows : PowTree) (sigOf : String → HSig) (f : Fn) (H : HCert) : Bool :=
+noncomputable def heapOkC1 (pows : PowTree) (sigOf : String → HSig) (f : Fn) (H : HCert) : Bool :=
   paramsN f.params 0 && preOver f.params.length H.sig.pre &&
     H.sig.term.all (fun p ↦ idxOver f.params.length p.1 && idxOver f.params.length p.2) && noGhost f &&
     faOk (topAtoms f.body) (dstKeys (topAtoms f.body)) H.fas &&
@@ -1531,6 +1533,78 @@ noncomputable def heapOkC (pows : PowTree) (sigOf : String → HSig) (f : Fn) (H
             loopC ⟨pows, R, P, C, T, RS, DV, HV, H.gargs, sigOf, H.sig, f.params, [], EQ, H.fas, H.ders⟩ f ei st0
           | _ => false
         | none => false
+
+/-! ## A certificate split at a selector -/
+
+/-- **The function at arm `r`** of the selector `V.n x` (`selL`). -/
+noncomputable def selF (x r : ℕ) (f : Fn) : Fn := ⟨f.name, f.params, selL x r f.body⟩
+
+/-- **The reads of a block are an arm's**: each `load` of the block that the reads `R` name as a read, the arm's reads
+`Ra` name too. -/
+noncomputable def readsIn (R Ra : Trie (List (ℕ × ℕ × Wit))) (ss : List Stmt) : Bool :=
+  (Bridge.stmtsOf ss).all fun s ↦ match s with
+    | .atom (.load d p off) => !(readWitT R d p off).isSome || (readWitT Ra d p off).isSome
+    | _ => true
+
+/-- Each arm's reads cover the certificate's on its body (`readsIn`), arms from `r`. -/
+noncomputable def readsArms (R : Trie (List (ℕ × ℕ × Wit))) (f : Fn) (H : HCert) : ℕ → List HArm → Bool
+  | _, [] => true
+  | r, a :: as => (H.arm a).readT.seq (fun Ra ↦ readsIn R Ra (selL H.sel r f.body)) && readsArms R f H (r + 1) as
+
+/-- **A split's shared checks**: the parameters, no ghost value, the words at cells, no termination fact, at least one
+arm and at most `n` arms at every `match` and `dispatch` on the selector, each arm's reads covering the
+certificate's. -/
+noncomputable def splitOk (f : Fn) (H : HCert) : Bool :=
+  paramsN f.params 0 && noGhost f && dersOk H.ders && H.sig.term.isEmpty && Nat.blt 0 H.arms.length &&
+    Nat.blt H.arms.length capE && armLeL H.sel H.arms.length f.body && H.readT.seq fun R ↦ readsArms R f H 0 H.arms
+
+/-- Each arm's check (`heapOkC1` at the function at its arm), arms from `r`. -/
+noncomputable def selArmsOk (pows : PowTree) (sigOf : String → HSig) (f : Fn) (H : HCert) : ℕ → List HArm → Bool
+  | _, [] => true
+  | r, a :: as => heapOkC1 pows sigOf (selF H.sel r f) (H.arm a) && selArmsOk pows sigOf f H (r + 1) as
+
+/-- **The heap check with calls and loops**: `heapOkC1`, or, the certificate split at a selector (`HCert.arms`), its
+shared checks (`splitOk`) and each arm's (`selArmsOk`). -/
+noncomputable def heapOkC (pows : PowTree) (sigOf : String → HSig) (f : Fn) (H : HCert) : Bool :=
+  match H.arms with
+  | [] => heapOkC1 pows sigOf f H
+  | _ :: _ => splitOk f H && selArmsOk pows sigOf f H 0 H.arms
+
+theorem heapOkC_of1 {pows : PowTree} {sigOf : String → HSig} {f : Fn} {H : HCert} (ha : H.arms = [])
+    (h : heapOkC1 pows sigOf f H = true) : heapOkC pows sigOf f H = true := by
+  unfold heapOkC; rw [ha]; exact h
+
+theorem heapOkC_split {pows : PowTree} {sigOf : String → HSig} {f : Fn} {H : HCert} (hs : splitOk f H = true)
+    (ha : selArmsOk pows sigOf f H 0 H.arms = true) : heapOkC pows sigOf f H = true := by
+  unfold heapOkC
+  split
+  · rename_i h; simp [splitOk, h] at hs
+  · rw [hs, ha]; rfl
+
+theorem heapOkC_cases {pows : PowTree} {sigOf : String → HSig} {f : Fn} {H : HCert}
+    (h : heapOkC pows sigOf f H = true) :
+    (H.arms = [] ∧ heapOkC1 pows sigOf f H = true) ∨ (splitOk f H = true ∧ selArmsOk pows sigOf f H 0 H.arms = true) := by
+  unfold heapOkC at h
+  split at h
+  · rename_i ha; exact Or.inl ⟨ha, h⟩
+  · simp only [Bool.and_eq_true] at h; exact Or.inr h
+
+/-- A split's shared checks, unfolded. -/
+theorem splitOk_spec {f : Fn} {H : HCert} (h : splitOk f H = true) :
+    paramsN f.params 0 = true ∧ noGhost f = true ∧ dersOk H.ders = true ∧ H.sig.term = [] ∧ 0 < H.arms.length ∧
+      H.arms.length < capE ∧ armLeL H.sel H.arms.length f.body = true ∧
+      readsArms H.readT f H 0 H.arms = true := by
+  simp only [splitOk, Bool.and_eq_true, Nat.blt_eq, List.isEmpty_iff, Trie.seq_eq] at h
+  obtain ⟨⟨⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩, h7⟩, h8⟩ := h
+  exact ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩
+
+theorem selArmsOk_cons {pows : PowTree} {sigOf : String → HSig} {f : Fn} {H : HCert} {r : ℕ} {a : HArm}
+    {as : List HArm} (h : heapOkC1 pows sigOf (selF H.sel r f) (H.arm a) = true)
+    (hs : selArmsOk pows sigOf f H (r + 1) as = true) : selArmsOk pows sigOf f H r (a :: as) = true := by
+  simp [selArmsOk, h, hs]
+
+theorem selArmsOk_nil {pows : PowTree} {sigOf : String → HSig} {f : Fn} {H : HCert} {r : ℕ} :
+    selArmsOk pows sigOf f H r [] = true := rfl
 
 end
 

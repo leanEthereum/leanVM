@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Protocol.Whir.Subspace
 public import ArkLib.Data.CodingTheory.ReedSolomon
+public import LeanVM.Parameters.Field
 
 /-!
 # The novel basis and the encoder

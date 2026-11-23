@@ -60,10 +60,10 @@ theorem resid_ldIn {B : List Stmt} {ps : List (V × ℕ)}
 
 /-- **`t`, completely.** -/
 theorem tReads_complete {o : ℕ} (hg : ∀ s ∈ tReadsT o, GoodS rd S w σ s)
-    (hS : ∀ d' off, Atom.load d' (.n (o + 743)) off ∉ S) {t0 t1 t2 : E}
-    (h0 : LoadHolds rd (σ (.n (o + 743))) 33 t0) (h1 : LoadHolds rd (σ (.n (o + 743))) 34 t1)
-    (h2 : LoadHolds rd (σ (.n (o + 743))) 35 t2) :
-    σ (.n (o + 1098)) = t0 ∧ σ (.n (o + 1101)) = t1 ∧ σ (.n (o + 1104)) = t2 ∧
+    (hS : ∀ d' off, Atom.load d' (.n (o + 807)) off ∉ S) {t0 t1 t2 : E}
+    (h0 : LoadHolds rd (σ (.n (o + 807))) 33 t0) (h1 : LoadHolds rd (σ (.n (o + 807))) 34 t1)
+    (h2 : LoadHolds rd (σ (.n (o + 807))) 35 t2) :
+    σ (.n (o + 1162)) = t0 ∧ σ (.n (o + 1165)) = t1 ∧ σ (.n (o + 1168)) = t2 ∧
       ∀ {next : Prop} {kret : List E → Prop}, next → Stmt.HoldsList C rd σ (tReadsT o) next kret := by
   have g0 := fun s hs ↦ hg s (List.mem_append_left _ (List.mem_append_left _ hs))
   have g1 := fun s hs ↦ hg s (List.mem_append_left _ (List.mem_append_right _ hs))
@@ -78,17 +78,17 @@ theorem tReads_complete {o : ℕ} (hg : ∀ s ∈ tReadsT o, GoodS rd S w σ s)
 /-! ## The lane weights -/
 
 /-- The lane weights' section. -/
-def eqfS (o : ℕ) : List Stmt := eqfT (.n (o + 745)) 6 5 25 (o + 1107)
+def eqfS (o : ℕ) : List Stmt := eqfT (.n (o + 809)) 6 5 25 (o + 1171)
 
 theorem eqf_kernel {o : ℕ} (ho : LayOff o) :
-    (eqfS o).all isAtom = true ∧ (resid (atomsL (eqfS o))).all (ldIn [(.n (o + 745), 11)]) = true := by
+    (eqfS o).all isAtom = true ∧ (resid (atomsL (eqfS o))).all (ldIn [(.n (o + 809), 11)]) = true := by
   rcases ho with rfl | rfl <;> exact ⟨by decide +kernel, by decide +kernel⟩
 
 /-- **The lane weights, completely.** -/
 theorem eqf_complete {o : ℕ} (ho : LayOff o) (hσ : ∀ v, σ v = σ (.n v.idx))
     (hg : ∀ s ∈ eqfS o, GoodS rd S w σ s)
     (hS : ∀ a ∈ resid (atomsL (eqfS o)), a ∉ S) {locPt : List E} (hl : locPt.length = 11)
-    (hloc : ReadsAt rd (σ (.n (o + 745))) locPt) :
+    (hloc : ReadsAt rd (σ (.n (o + 809))) locPt) :
     ∀ {next : Prop} {kret : List E → Prop}, next →
       Stmt.HoldsList C rd σ (eqfS o) next kret := by
   obtain ⟨hall, hr⟩ := eqf_kernel ho
@@ -102,8 +102,8 @@ theorem eqf_complete {o : ℕ} (ho : LayOff o) (hσ : ∀ v, σ v = σ (.n v.idx
 
 /-- The pointers the weight section loads through. -/
 def weightPs (first o : ℕ) : List (V × ℕ) :=
-  [(.n (valf% «keccak_layer» "claim"), 22), (.n (o + 1176), 25), (.n (o + 745), 11)] ++
-    if first = 1 then [] else [(.n (o + 1177), 11)]
+  [(.n (valf% «keccak_layer» "claim"), 22), (.n (o + 1240), 25), (.n (o + 809), 11)] ++
+    if first = 1 then [] else [(.n (o + 1241), 11)]
 
 theorem weight_kernel {first : ℕ} (hf : first < 2) :
     (weightT first (layOff first)).all isAtom = true ∧
@@ -119,7 +119,7 @@ theorem weight_complete {first : ℕ} (hf : first < 2)
     (hS : ∀ a ∈ resid (atomsL (weightT first (layOff first))), a ∉ S)
     {cw : List E} (hcw : ReadsAt rd (σ (.n (valf% «keccak_layer» "claim"))) cw) (hcwl : 22 ≤ cw.length)
     {lanes : List E} (hll : lanes.length = 25) (hlanes : ReadsAt rd (cw.getD 3 0) lanes)
-    {locPt : List E} (hl : locPt.length = 11) (hloc : ReadsAt rd (σ (.n (layOff first + 745))) locPt)
+    {locPt : List E} (hl : locPt.length = 11) (hloc : ReadsAt rd (σ (.n (layOff first + 809))) locPt)
     {locC : List E} (hlc : first = 0 → locC.length = 11 ∧ ReadsAt rd (cw.getD 4 0) locC) :
     ∀ {next : Prop} {kret : List E → Prop}, next →
       Stmt.HoldsList C rd σ (weightT first (layOff first)) next kret := by
@@ -128,11 +128,11 @@ theorem weight_complete {first : ℕ} (hf : first < 2)
     rw [List.getD_eq_getElem _ _ (by omega)]; exact hcw 3 (by omega)
   have hcw4 : LoadHolds rd (σ (.n (valf% «keccak_layer» "claim"))) 4 (cw.getD 4 0) := by
     rw [List.getD_eq_getElem _ _ (by omega)]; exact hcw 4 (by omega)
-  have g85 : Good rd S w σ (.load (.n (layOff first + 1176)) (.n (valf% «keccak_layer» "claim")) 3) := by
-    have := hg (.atom (.load (.n (layOff first + 1176)) (.n (valf% «keccak_layer» "claim")) 3)) (by
+  have g85 : Good rd S w σ (.load (.n (layOff first + 1240)) (.n (valf% «keccak_layer» "claim")) 3) := by
+    have := hg (.atom (.load (.n (layOff first + 1240)) (.n (valf% «keccak_layer» "claim")) 3)) (by
       unfold weightT; split <;> simp)
     exact this
-  have hS85 : Atom.load (.n (layOff first + 1176)) (.n (valf% «keccak_layer» "claim")) 3 ∉ S := hS _ (by
+  have hS85 : Atom.load (.n (layOff first + 1240)) (.n (valf% «keccak_layer» "claim")) 3 ∉ S := hS _ (by
     interval_cases first <;> decide +kernel)
   have e85 := load_val (w := w) g85 hS85 hcw3
   intro next kret hn
@@ -148,11 +148,11 @@ theorem weight_complete {first : ℕ} (hf : first < 2)
       have hf0 : first = 0 := by omega
       simp only [List.mem_singleton] at hq
       subst hq
-      have g86 : Good rd S w σ (.load (.n (layOff first + 1177)) (.n (valf% «keccak_layer» "claim")) 4) := by
-        have := hg (.atom (.load (.n (layOff first + 1177)) (.n (valf% «keccak_layer» "claim")) 4)) (by
+      have g86 : Good rd S w σ (.load (.n (layOff first + 1241)) (.n (valf% «keccak_layer» "claim")) 4) := by
+        have := hg (.atom (.load (.n (layOff first + 1241)) (.n (valf% «keccak_layer» "claim")) 4)) (by
           unfold weightT; simp [hf1])
         exact this
-      have hS86 : Atom.load (.n (layOff first + 1177)) (.n (valf% «keccak_layer» "claim")) 4 ∉ S := hS _ (by
+      have hS86 : Atom.load (.n (layOff first + 1241)) (.n (valf% «keccak_layer» "claim")) 4 ∉ S := hS _ (by
         subst hf0; decide +kernel)
       have e86 := load_val (w := w) g86 hS86 hcw4
       obtain ⟨hlcl, hlcr⟩ := hlc hf0

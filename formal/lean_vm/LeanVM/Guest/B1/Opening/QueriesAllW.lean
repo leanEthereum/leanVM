@@ -27,14 +27,11 @@ abbrev opening_queries_all_sound_w_Spec : Prop := opening_queries_all_sound_w_Sp
 its functions (`oqFns_all`) and its shape's facts (`oqSide_all`). -/
 theorem opening_queries_all_sound_w : opening_queries_all_sound_w_Spec := by
   intro p hp
-  obtain ⟨hW, fm, fl, hfm, hpm, hbm, hfl, hpl, hbl⟩ := oqFns_all p hp
-  obtain ⟨hs, hfin, hb, hpd, hcd, hcd8, hdep, -⟩ := oqSide_all p hp
-  rcases hb with ⟨hb0, hodd⟩ | ⟨hb1, hnf, hodd⟩
-  · rw [hodd] at hbm
-    exact oqMain0_sound_w hs hfin hb0 hodd hpd (by omega) hcd8 hdep hW hfm hpm hbm hfl hpl
-      (hbl.trans (oqLoopT_zero hb0 _ _ _))
-  · exact oqMain1_sound_w hs hfin hb1 hnf hodd hpd (by omega) hcd8 hdep hW hfm hpm hbm hfl hpl
-      (hbl.trans (oqLoopT_one hb1 _ _ _))
+  obtain ⟨fm, fl, hfm, hpm, hbm, hfl, hpl, hbl⟩ := oqFns_all p hp
+  obtain ⟨hs, hfin, hb⟩ := oqSide_all p hp
+  rcases hb with hb0 | ⟨hb1, hnf⟩
+  · exact oqMain0_sound_w hs hfin hb0 hfm hpm hbm hfl hpl (hbl.trans (oqLoopT_zero hb0 _))
+  · exact oqMain1_sound_w hs hfin hb1 hnf hfm hpm hbm hfl hpl (hbl.trans (oqLoopT_one hb1 _))
 
 end
 end LeanVM.Guest.B1

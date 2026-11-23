@@ -12,7 +12,8 @@ public import LeanVM.Guest.B1.Place.HelperAt
 # Exact callees in sequence
 
 `kidsFromIn_of_kidsE`: `kidsFromIn_of_kidsD` for callees each `CompleteAtE` at `ns k` words: the
-callees' total is `kidsN fs ns ks` (an entered callee's `ns k`, a skipped one's frame).
+callees' total is `kidsN fs ns ks` (an entered callee's `ns k`, a skipped one's tail frame,
+`fs (tailKey f)`).
 -/
 
 namespace LeanVM.Guest.B1
@@ -24,9 +25,9 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
-/-- The callees' total: an entered callee's `ns k` words, a skipped one's frame. -/
+/-- The callees' total: an entered callee's `ns k` words, a skipped one's tail frame. -/
 def kidsN (fs : String → ℕ) (ns : Kid → ℕ) (ks : List Kid) : ℕ :=
-  (ks.map fun k ↦ if k.taken then ns k else fs k.f).sum
+  (ks.map fun k ↦ if k.taken then ns k else fs (tailKey k.f)).sum
 
 /-- **Callees complete by trees of exactly `ns k` words, placed in sequence from `b`.** -/
 theorem kidsFromIn_of_kidsE (κ : ℕ) (ns : Kid → ℕ) : ∀ (ks : List Kid),
@@ -42,7 +43,7 @@ theorem kidsFromIn_of_kidsE (κ : ℕ) (ns : Kid → ℕ) : ∀ (ks : List Kid),
       match cs, hc with
       | [], _ => exact ⟨rfl, fun i hi => hi.elim id fun h => h.elim⟩⟩
   | k :: ks, hok, b => by
-    have hN : kidsN fs ns (k :: ks) = (if k.taken then ns k else fs k.f) + kidsN fs ns ks := by
+    have hN : kidsN fs ns (k :: ks) = (if k.taken then ns k else fs (tailKey k.f)) + kidsN fs ns ks := by
       simp [kidsN]
     by_cases ht : k.taken = true
     · obtain ⟨Lown, rets, Lout, hout, hw, hd, hrel⟩ := hok k (by simp) ht b
@@ -76,7 +77,7 @@ theorem kidsFromIn_of_kidsE (κ : ℕ) (ns : Kid → ℕ) : ∀ (ks : List Kid),
               · exact Or.inr hi
             · simpa [hct] using hR2
     · obtain ⟨L, outs, ho, hW, hD, hI, hK⟩ := kidsFromIn_of_kidsE κ ns ks
-        (fun k' hk' => hok k' (by simp [hk'])) (b + fs k.f)
+        (fun k' hk' => hok k' (by simp [hk'])) (b + fs (tailKey k.f))
       rw [hN]
       simp only [ht, Bool.false_eq_true, ↓reduceIte]
       refine ⟨L, ([], []) :: outs, ⟨fun h => absurd h ht, ho⟩,
@@ -85,7 +86,7 @@ theorem kidsFromIn_of_kidsE (κ : ℕ) (ns : Kid → ℕ) : ∀ (ks : List Kid),
       match cs, hc with
       | c :: cs, ⟨hf, hct, _, hc⟩ =>
         simp only [Kid.lins, List.flatMap_cons] at hLin
-        refine ⟨fs k.f, kidsN fs ns ks, fun _ => False, fun _ => False, rfl, fun _ h => h.elim, ?_,
+        refine ⟨fs (tailKey k.f), kidsN fs ns ks, fun _ => False, fun _ => False, rfl, fun _ h => h.elim, ?_,
           ?_⟩
         · have ht' : k.taken = false := by simpa using ht
           rw [hct, ht']

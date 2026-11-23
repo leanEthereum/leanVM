@@ -8,9 +8,11 @@
 module
 
 public import LeanVM.Guest.B1.Digest.Interface
-public import LeanVM.Guest.GuestConst
+public import Statement.LeanVmGuest
+import LeanVM.Guest.GuestConst
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
 import LeanVM.Guest.Data.Consts
+import LeanVM.Guest.B1.Common.Find
 
 /-!
 # LeanDA: meanings (TRIAGE G #90-93)

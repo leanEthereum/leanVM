@@ -412,8 +412,8 @@ section Congr4
 variable {L L' : Loc} {A : ℕ → Prop} (hA : ∀ n, A n → L.get? n = L'.get? n)
 include hA
 
-theorem valOk_congr (tt : Exec.Trie ℕ) (tc fc n : ℕ) {v : V} (h : A v.idx) :
-    valOk L tt tc fc n v = valOk L' tt tc fc n v := by
+theorem valOk_congr (tt : Exec.Trie ℕ) (tc fc n : ℕ) (ta : List ℕ) {v : V} (h : A v.idx) :
+    valOk L tt tc fc n ta v = valOk L' tt tc fc n ta v := by
   unfold valOk; rw [hA _ h, cell_congr hA h]
 
 theorem nameStep_congr (sh : ℕ) (st : SSt) (vs : List V) (hs : PendIn A st)
@@ -594,7 +594,8 @@ noncomputable def shareWinS (j : ℕ) (snaps : List Snap) (k lo hi gm gn am an :
   match stmtsW (coreOf j).body snaps k with
   | [.match_ x (a0 :: as)] =>
       matchAtoms lo hi [.match_ x (a0 :: as)] &&
-      valsAll (valOk loc tt tc fc (fsN j)) (selStmts lo hi [.match_ x (a0 :: as)]) &&
+      valsAll (valOk loc tt tc fc (fsN j) (nextCells (certOf j).locs (fsN j) (tailArgs (coreOf j))))
+        (selStmts lo hi [.match_ x (a0 :: as)]) &&
       (nameStep loc sh (snapAt snaps k).st [x]).seq fun st1 ↦
         st1.pend.isEmpty && refinesPre st1 (snapAt snaps (k + 1)) &&
         armsRef loc sh tt (plumbOf j) st1 (snapAt snaps (k + 1)) lo hi 0 (a0 :: as)
@@ -629,7 +630,9 @@ theorem shareWin_of_split {j k : ℕ} (gs : List (ℕ × ℕ × ℕ × ℕ × �
         ∀ v ∈ Memory.Stmt.usesList (selStmts g.1 g.2.1 [Stmt.match_ x (a0 :: as)]) ++
             Memory.Stmt.tmpsList (selStmts g.1 g.2.1 [Stmt.match_ x (a0 :: as)]),
           valOk (locG (certOf j) (winW (snapsOf j) k) g.2.2.1 g.2.2.2.1 g.2.2.2.2.1 g.2.2.2.2.2)
-            (byCell (plumbOf j).tmps) (tmpCells (plumbOf j)) (fpgCells (plumbOf j)) (fsN j) v = true) ∧
+            (byCell (plumbOf j).tmps) (tmpCells (plumbOf j)) (fpgCells (plumbOf j)) (fsN j)
+            (nextCells (certOf j).locs (fsN j) (tailArgs (coreOf j))) v
+              = true) ∧
       ((nameStep (locG (certOf j) (winW (snapsOf j) k) g.2.2.1 g.2.2.2.1 g.2.2.2.2.1 g.2.2.2.2.2)
           (bitsOf (plumbOf j).sh) (snapAt (snapsOf j) k).st [x]).pend.isEmpty = true ∧
         refinesPre (nameStep (locG (certOf j) (winW (snapsOf j) k) g.2.2.1 g.2.2.2.1 g.2.2.2.2.1
@@ -656,9 +659,9 @@ theorem shareWin_of_split {j k : ℕ} (gs : List (ℕ × ℕ × ℕ × ℕ × �
     intro g hg n hn
     obtain ⟨c, hc⟩ := Option.isSome_iff_exists.mp hn
     rw [hc, locG_get hf (hG g hg).1.2 hc]
-  have hsome : ∀ {L : Loc} {tt : Exec.Trie ℕ} {tc fc n : ℕ} {v : V}, valOk L tt tc fc n v = true →
+  have hsome : ∀ {L : Loc} {tt : Exec.Trie ℕ} {tc fc n : ℕ} {nx : List ℕ} {v : V}, valOk L tt tc fc n nx v = true →
       (L.get? v.idx).isSome := by
-    intro L tt tc fc n v h
+    intro L tt tc fc n nx v h
     simp only [valOk, Bool.and_eq_true] at h
     exact h.1.1.1.2
   -- the values a group names
@@ -747,7 +750,7 @@ theorem shareWin_of_split {j k : ℕ} (gs : List (ℕ × ℕ × ℕ × ℕ × �
     exact hf.1.1
   · intro v hv
     rcases mem_vals_match.mp hv with rfl | ⟨e, he, hv⟩
-    · rw [← valOk_congr (hag g0 hg0) _ _ _ _ (hval g0 hg0 v (hx g0 hg0))]
+    · rw [← valOk_congr (hag g0 hg0) _ _ _ _ _ (hval g0 hg0 v (hx g0 hg0))]
       exact (hG g0 hg0).2.1.2 v (hx g0 hg0)
     · obtain ⟨g, hg, hse⟩ : ∃ g ∈ gs, e = 0 ∨ (g.1 ≤ e ∧ e < g.2.1) := by
         cases e with
@@ -756,7 +759,7 @@ theorem shareWin_of_split {j k : ℕ} (gs : List (ℕ × ℕ × ℕ × ℕ × �
           obtain ⟨g, hg, h1, h2⟩ := hcov' e (by simpa using he)
           exact ⟨g, hg, Or.inr ⟨h1, h2⟩⟩
       have hv' := hsel g hg e he hse v hv
-      rw [← valOk_congr (hag g hg) _ _ _ _ (hval g hg v hv')]
+      rw [← valOk_congr (hag g hg) _ _ _ _ _ (hval g hg v hv')]
       exact (hG g hg).2.1.2 v hv'
   · have hk : (k == 0) = false := by simpa using hk0
     rw [hk, Bool.cond_false]

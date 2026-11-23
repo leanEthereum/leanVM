@@ -8,10 +8,13 @@
 
 module
 
-public import LeanVM.Protocol.EndToEnd.Candidates
-public import LeanVM.Protocol.EndToEnd.Front.LayoutArith
-public import LeanVM.Protocol.ToArkLib.Whir.Ood
-public import LeanVM.Protocol.Whir.Sound.Prob
+import LeanVM.Protocol.EndToEnd.Candidates
+import LeanVM.Protocol.EndToEnd.Front.LayoutArith
+import LeanVM.Protocol.ToArkLib.Whir.Ood
+import LeanVM.Protocol.Whir.Sound.Prob
+public import LeanVM.Protocol.EndToEnd.Claims
+public import LeanVM.Protocol.Compile.SpecRules.Leaves
+public import ArkLib.Data.CodingTheory.ReedSolomon
 
 /-!
 # The commitment's OOD binding

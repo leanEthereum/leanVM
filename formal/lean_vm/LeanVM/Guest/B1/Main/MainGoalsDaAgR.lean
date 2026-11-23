@@ -76,7 +76,6 @@ theorem mainGoalsRR_dv (hn : NodeRelation bytecode seed s w) (hrf : Lift.RunsFit
 /-- **`main`'s honest `aggregate_claims` call within `aggB`, by a tree of honest shape popping the batching's
 hints, every node exact.** -/
 theorem mainGoalAgTBRE (SB SK : String → ℕ)
-    (hGr : TotalLe coreProgram fs "grind_check__L2" (fun _ => SB "grind_check__L2"))
     (h25 : TotalLeOn coreProgram fs name% «aggregate_claims_loop0» LoopPre
       (fun a => logG (a.getD 1 0) * iterK fs SK name% «aggregate_claims_loop0» + fs
           name% «aggregate_claims_loop0»))
@@ -108,16 +107,15 @@ theorem mainGoalAgTBRE (SB SK : String → ℕ)
     exact hpt
   have hdst := mem_hLmain fs fp seed s w (i := 9) (by omega)
   simp only [hOwn, List.getD_cons_succ, List.getD_cons_zero] at hdst
-  have := aggregate_claims_completeAtTBRE fs cert SB SK hGr h25 h26 h27 hbs
+  have := aggregate_claims_completeAtTBRE fs cert SB SK h25 h26 h27 hbs
     (m := w.children.length) (by omega) hl.children_le_sixteen (cs := hKids seed w)
     (by rw [List.length_map]) hrl hb (fun rd hM => hkids_words fs fp hbl hrel hM)
-    (fun rd _ hM => hLmain_winTabs fs fp hM) hdst
+    (fun rd _ hM => hLmain_winTabs fs fp hM) (hLmain_tabsIn fs fp) hdst
   exact this.lowMono (by norm_num)
 
 /-- **`main`'s honest `aggregate_claims` call within `aggB`, by a tree of honest shape popping the batching's
 hints.** -/
 theorem mainGoalAgTBR (SB SK : String → ℕ)
-    (hGr : TotalLe coreProgram fs "grind_check__L2" (fun _ => SB "grind_check__L2"))
     (h25 : TotalLeOn coreProgram fs name% «aggregate_claims_loop0» LoopPre
       (fun a => logG (a.getD 1 0) * iterK fs SK name% «aggregate_claims_loop0» + fs
           name% «aggregate_claims_loop0»))
@@ -136,7 +134,7 @@ theorem mainGoalAgTBR (SB SK : String → ℕ)
           (hm fs fp seed s w).et * word 133823759239872512 0] (Returns [])
         (fun rd t => aggHonest (hm fs fp seed s w).nc t ∧ t.pops coreProgram rd = Hints.batchPushes w.batchingHints)
         (aggB fs SB SK (hm fs fp seed s w).nc) := fun h0 =>
-  (mainGoalAgTBRE fs cert fp SB SK hGr h25 h26 h27 hbs hbl hrel hl h0).mono le_rfl fun _ _ h => h.1
+  (mainGoalAgTBRE fs cert fp SB SK h25 h26 h27 hbs hbl hrel hl h0).mono le_rfl fun _ _ h => h.1
 
 /-- **`MainGoalsRR.ag`**, `q` popping the batching's hints. -/
 theorem mainGoalsRR_ag (hbl : bytecode.length = 2 ^ 23) (hn : NodeRelation bytecode seed s w) (hl : GuestLimits s w)
@@ -147,7 +145,7 @@ theorem mainGoalsRR_ag (hbl : bytecode.length = 2 ^ 23) (hn : NodeRelation bytec
         (hm fs fp seed s w).a406, (hm fs fp seed s w).a417,
           (hm fs fp seed s w).et * word 133823759239872512 0] (Returns [])
       (mainPredsHP fs SB SK Bv Pvs s w q).Pa (mainBsH fs SB SK Bv s w).Ba := fun h0 =>
-  (mainGoalAgTBR fs cert fp SB SK hS.gr hS.l25 hS.l26 hS.l27 hS.bs hbl hn hl h0).with_total.mono le_rfl
+  (mainGoalAgTBR fs cert fp SB SK hS.l25 hS.l26 hS.l27 hS.bs hbl hn hl h0).with_total.mono le_rfl
     fun rd _ h => ⟨⟨h.1.1, h.2⟩, h.1.2.trans (hq rd).symm⟩
 
 /-- **`MainGoalsRR.ag`, every node exact**, `q` popping the batching's hints. -/
@@ -160,7 +158,7 @@ theorem mainGoalsRR_agE (hbl : bytecode.length = 2 ^ 23) (hn : NodeRelation byte
           (hm fs fp seed s w).et * word 133823759239872512 0] (Returns [])
       (fun rd t => (mainPredsHP fs SB SK Bv Pvs s w q).Pa rd t ∧ t.Every (ExactAt coreProgram rd))
       (mainBsH fs SB SK Bv s w).Ba := fun h0 =>
-  (mainGoalAgTBRE fs cert fp SB SK hS.gr hS.l25 hS.l26 hS.l27 hS.bs hbl hn hl h0).with_total.mono le_rfl
+  (mainGoalAgTBRE fs cert fp SB SK hS.l25 hS.l26 hS.l27 hS.bs hbl hn hl h0).with_total.mono le_rfl
     fun rd _ h => ⟨⟨⟨h.1.1.1, h.2⟩, h.1.1.2.trans (hq rd).symm⟩, h.1.2⟩
 
 end

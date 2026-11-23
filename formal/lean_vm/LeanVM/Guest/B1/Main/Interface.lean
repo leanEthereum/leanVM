@@ -9,10 +9,12 @@
 module
 
 public import LeanVM.Guest.B1.Da.Interface
-public import LeanVM.Guest.B1.Bits.Meaning
-public import LeanVM.Guest.B1.Sig.Interface
-public import LeanVM.Guest.Data.NameStrings
-public import LeanVM.Guest.GuestConst
+public import LeanVM.Guest.B1.Sig.InterfaceP
+public import LeanVM.Guest.Batch.Def
+import LeanVM.Guest.B1.Bits.Meaning
+import LeanVM.Guest.B1.Sig.Interface
+import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.GuestConst
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
 import LeanVM.Guest.Data.Consts
 import LeanVM.Guest.ValRef

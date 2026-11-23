@@ -12,6 +12,7 @@ public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«aggregate_claims_loop1»
 import LeanVM.Guest.Data.ValNames.«aggregate_claims_loop2»
+import LeanVM.Guest.B1.Common.Find
 
 /-!
 # `aggregate_claims_loop1` and `aggregate_claims_loop2`

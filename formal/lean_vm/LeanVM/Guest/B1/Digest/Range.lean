@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Digest.Lists
 import LeanVM.Guest.B1.Common.Vc
+import LeanVM.Guest.Value.FieldBits
 
 /-!
 # Range checks; `list_split`

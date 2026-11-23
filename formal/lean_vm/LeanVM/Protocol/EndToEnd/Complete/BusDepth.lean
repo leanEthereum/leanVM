@@ -10,6 +10,7 @@
 module
 
 public import LeanVM.Protocol.EndToEnd.Complete.BusLayout
+import LeanVM.Protocol.EndToEnd.Front.LayoutStack
 
 /-!
 # The depth of the bus

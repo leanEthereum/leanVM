@@ -10,8 +10,8 @@
 module
 
 public import LeanVM.Protocol.Rpm.Game
-public import Common.Lemmas
-public import Common.RomComm
+import Common.Lemmas
+import Common.RomComm
 public import LeanVM.Protocol.WithHash
 
 @[expose] public section

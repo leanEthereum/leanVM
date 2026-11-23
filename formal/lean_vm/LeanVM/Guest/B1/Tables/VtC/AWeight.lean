@@ -20,8 +20,8 @@ import LeanVM.Guest.Data.ValNames.«verify_tables»
 
 For weights `ω i` (one per index `i`, an opcode's instructions per frame): `vtKidW ω Wss W10`,
 a callee's tree, if `shared_selector_tables`', within `Wss i`, if `verify_tables_loop0`'s, within
-`W10 i`, on every valid run (`Budget.WeighsLe`). `verify_tables_completeAtTBW`:
-`verify_tables_completeAtTB` by a node of honest shape (`Budget.NodeHonest`) whose entered callees
+`W10 i`, on every valid run (`Budget.WeighsLe`). `verify_tables_completeAtTBW`: `verify_tables`
+complete, placed, within its bound (`ABound`), by a node of honest shape (`Budget.NodeHonest`) whose entered callees
 are `vtKidW`, the shared tables' within `Wss` on every run length `g^n`, `n < 64`, the rounds loop
 `K10w` an iteration (`Budget.LoopW`) at the honest round count `H.n ≤ 32`.
 `vt_weight_le`: such a node, valid, weighs at most its frame's weight and
@@ -103,7 +103,7 @@ theorem verify_tables_completeAtTBWR {κ : ℕ} (hκ : 14 ≤ κ) {H : VtHonest}
   have hvals : ∀ fp rd, LowDef κ rd →
       MemL rd (vtL (H.linL B) H.sizes (fun _ ↦ H.ownW B) fs fp) →
       let σ := vtσ rd (vtW H (B.at (fp + fs "verify_tables"))) (H.args B)
-      σ (.n (val% «verify_tables» "g_zc_n")) = gen ^ H.n ∧ σ (.n (val% «verify_tables» "s72#1")) = 1 + gen ^ H.n ∧ σ (.n (val% «verify_tables» "s72#2")) = 1 :=
+      σ (.n (val% «verify_tables» "g_zc_n")) = gen ^ H.n ∧ σ (.n (val% «verify_tables» "s73#1")) = 1 + gen ^ H.n ∧ σ (.n (val% «verify_tables» "s73#2")) = 1 :=
     fun fp rd _ _ ↦ vt_loopVals H B (B.at (fp + fs "verify_tables")) rd
   have hn32 : H.n < 33 := by
     have := hs.hτ33
@@ -292,7 +292,7 @@ theorem verify_tables_completeAtTBWR {κ : ℕ} (hκ : 14 ≤ κ) {H : VtHonest}
       obtain ⟨⟨rfl, rfl⟩, rfl⟩ := hkind
       rw [vtCallBnd_callIf]
       have hn0 := hn0 _ v20 ht
-      have hpre : LoopPre ([V.n (val% «verify_tables» "s72#2"), V.n (val% «verify_tables» "g_zc_n"), V.n (val% «verify_tables» "zc_rounds"), V.n (val% «verify_tables» "tabs"), V.n (val% «verify_tables» "zc_rk"), V.n (val% «verify_tables» "zc_cprod")].map σ) := by
+      have hpre : LoopPre ([V.n (val% «verify_tables» "s73#2"), V.n (val% «verify_tables» "g_zc_n"), V.n (val% «verify_tables» "zc_rounds"), V.n (val% «verify_tables» "tabs"), V.n (val% «verify_tables» "zc_rk"), V.n (val% «verify_tables» "zc_cprod")].map σ) := by
         simp only [List.map_cons, List.map_nil, v21, v17]
         exact loopPre_gen hn0 (by omega) _
       have := h10 rd' t _ r hn hpre hv hbo

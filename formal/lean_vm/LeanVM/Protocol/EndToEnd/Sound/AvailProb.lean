@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Protocol.EndToEnd.Sound.Avail
 public import LeanVM.Protocol.EndToEnd.Sound.Extractor
+import LeanVM.Protocol.Compile.Rom.Step
 
 /-!
 # A fresh hit of the final proof of work is rare

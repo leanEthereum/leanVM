@@ -76,10 +76,10 @@ theorem csk_holdsPre {κ : ℕ} (hκ : κ < 31) {rd : Reader} {o : ℕ} {se sg :
     obtain ⟨hw1, hw4⟩ := csW_bounds κ k
     have hj : κ / 4 + k < 8 := by simp only [csN] at hk; omega
     have hdk := cs_dvd hu (by rw [show 16 ^ (κ / 4) * csDig (cskU κ o) (csN κ) = o from hdig.symm]; exact hd) k hk
-    have hxe : LoadHolds rd (se * gen ^ cskU κ o k) (64 * (κ / 4 + k) + 16 * (csW κ k - 1))
+    have hxe : LoadHolds rd (se * gen ^ cskU κ o k) (32 * (κ / 4 + k) + Tables.selEqOff (csW κ k - 1))
         (cskXE κ o p p1 k) := by
-      rw [tb_loadHolds_mul_gen_pow, show cskU κ o k + (64 * (κ / 4 + k) + 16 * (csW κ k - 1)) =
-        64 * (κ / 4 + k) + 16 * (csW κ k - 1) + cskU κ o k by omega]
+      rw [tb_loadHolds_mul_gen_pow, show cskU κ o k + (32 * (κ / 4 + k) + Tables.selEqOff (csW κ k - 1)) =
+        32 * (κ / 4 + k) + Tables.selEqOff (csW κ k - 1) + cskU κ o k by omega]
       exact hE _ hj _ (by omega) _ (hu k hk) hdk
     have hxg : LoadHolds rd (sg * gen ^ cskU κ o k) (16 * (κ / 4 + k)) (cskXG κ o k) := by
       rw [tb_loadHolds_mul_gen_pow, show cskU κ o k + 16 * (κ / 4 + k) =
@@ -193,7 +193,7 @@ def isAtomS : Stmt → Bool
 the share through `csC κ k + 6` (the first nibble) or `+ 7`. -/
 def csLoads (κ : ℕ) : List (V × ℕ) :=
   (List.range (csN κ)).flatMap fun k ↦
-    [(.n (csC κ k + 4), 64 * (κ / 4 + k) + 16 * (csW κ k - 1)),
+    [(.n (csC κ k + 4), 32 * (κ / 4 + k) + Tables.selEqOff (csW κ k - 1)),
       (.n (csC κ k + if k = 0 then 6 else 7), 16 * (κ / 4 + k))]
 
 /-- The facts of `column_selector__L{κ}`'s body the placed completeness uses. -/
@@ -335,12 +335,16 @@ theorem cs_completeAtDTB (k : ℕ) (hk : 4 ≤ k) {κ : ℕ} (hκ : κ < 31) {o 
     have hu : Tables.cskU κ o j < 16 := Nat.mod_lt _ (by norm_num)
     have hjn : κ / 4 + j < 8 := by simp only [Tables.csN] at hj; omega
     obtain ⟨hw1, hw4⟩ := Tables.csW_bounds κ j
+    have hso : Tables.selEqOff (Tables.csW κ j - 1) ≤ 16 := by
+      unfold Tables.selEqOff
+      generalize Tables.csW κ j - 1 = w
+      rcases w with _ | _ | _ | _ | w <;> simp
     rcases hq with rfl | rfl
     · have e : σ (.n (Tables.csC κ j + 4)) = ofK (addressOfIndex ese) * gen ^ Tables.cskU κ o j := by
         show Tables.cskVal _ _ _ _ _ _ _ (Tables.csC κ j + 4) = _
         rw [Tables.cskVal_at hκ' hj (by split <;> omega)]
         simp [Tables.cskRole]
-      refine ⟨ese + Tables.cskU κ o j + (64 * (κ / 4 + j) + 16 * (Tables.csW κ j - 1)), ?_,
+      refine ⟨ese + Tables.cskU κ o j + (32 * (κ / 4 + j) + Tables.selEqOff (Tables.csW κ j - 1)), ?_,
         Or.inl ⟨(ese, Tables.stEqWords (Tables.stVal ept ept1 ese p p1)), by simp [csLin, Tables.stOwn],
           by omega, by simp [Tables.stEqWords]; omega⟩⟩
       rw [e]; exact cs_addr_mul _ _ _

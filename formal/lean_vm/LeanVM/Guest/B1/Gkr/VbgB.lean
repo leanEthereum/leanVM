@@ -38,8 +38,8 @@ variable {fs : String → ℕ}
 theorem vbg_flatCalls (σ : Val) : flatCalls vbgPre σ =
     [⟨[glcLsN 0, glcLsN 1].getD (logG (σ (.n (val% «verify_bus_gkr» "odd_g")))) "", [.n (val% «verify_bus_gkr» "layers"), .n (val% «verify_bus_gkr» "rounds"), .n (val% «verify_bus_gkr» "gkr_pts"), .n (val% «verify_bus_gkr» "n_four"), .n (val% «verify_bus_gkr» "rem_g"),
         .n (val% «verify_bus_gkr» "start_g"), .n (val% «verify_bus_gkr» "g_bus_mu"), .n (val% «verify_bus_gkr» "tabs"), .n (val% «verify_bus_gkr» "stream")], [.n (val% «verify_bus_gkr» "done")], true⟩,
-      ⟨name% «verify_bus_gkr_loop0», [.n (val% «verify_bus_gkr» "s34#2"), .n (val% «verify_bus_gkr» "g_bus_mu"), .n (val% «verify_bus_gkr» "zeta"), .n (val% «verify_bus_gkr» "final_point_row")], [],
-          decide (σ (.n (val% «verify_bus_gkr» "s34#1")) ≠ 0)⟩] := by
+      ⟨name% «verify_bus_gkr_loop0», [.n (val% «verify_bus_gkr» "s36#2"), .n (val% «verify_bus_gkr» "g_bus_mu"), .n (val% «verify_bus_gkr» "zeta"), .n (val% «verify_bus_gkr» "final_point_row")], [],
+          decide (σ (.n (val% «verify_bus_gkr» "s36#1")) ≠ 0)⟩] := by
   unfold flatCalls
   rw [vbgPre_eq']
   rfl
@@ -78,10 +78,10 @@ theorem verify_bus_gkr_completeAtTB {κ depth : ℕ} (hd2 : 2 ≤ depth) (hd : d
     (fun fp ↦ ⟨vbgEV fs depth fp, rfl, by
       rw [show fp + fs vbgFlat.name = fp + fs "verify_bus_gkr" from rfl, vbg_bufL, ← hvals]
       simp⟩)
-    (fun fp ↦ vbgW (ofK (addressOfIndex (vbgEL fs fp))) (ofK (addressOfIndex (vbgER fs depth fp)))
-      (ofK (addressOfIndex (vbgEP fs depth fp))) (ofK (addressOfIndex (vbgEO fs depth fp)))
-      (ofK (addressOfIndex (vbgEB fs depth fp))) (ofK (addressOfIndex (vbgEM fs depth fp)))
-      (ofK (addressOfIndex (vbgEV fs depth fp))))
+    (fun fp ↦ vbgW (ofK (addressOfIndex (vbgEL fs fp))) (ofK (addressOfIndex (vbgES fs depth fp)))
+      (ofK (addressOfIndex (vbgER fs depth fp))) (ofK (addressOfIndex (vbgEP fs depth fp)))
+      (ofK (addressOfIndex (vbgEO fs depth fp))) (ofK (addressOfIndex (vbgEB fs depth fp)))
+      (ofK (addressOfIndex (vbgEM fs depth fp))) (ofK (addressOfIndex (vbgEV fs depth fp))))
     (vbgBufs fs depth xs ec) hbufs (fun fp rd hlow hL ↦ (hfacts fp rd hlow hL).1)
     (fun _ ↦ True) [fun _ ↦ True, fun _ ↦ True] (fun _ _ _ _ ↦ trivial)
     (by show (vbgPre.filter callB).length ≤ 2; decide +kernel)
@@ -91,9 +91,10 @@ theorem verify_bus_gkr_completeAtTB {κ depth : ℕ} (hd2 : 2 ≤ depth) (hd : d
     (fun σ ↦ callsBound_le vbgPre σ _)).mono le_rfl (fun _ _ ↦ trivial)
   obtain ⟨-, hV, -⟩ := hfacts fp rd hlow hLm
   have hV' : VbgVals (vbgFlat.σ rd (vbgW (ofK (addressOfIndex (vbgEL fs fp)))
-      (ofK (addressOfIndex (vbgER fs depth fp))) (ofK (addressOfIndex (vbgEP fs depth fp)))
-      (ofK (addressOfIndex (vbgEO fs depth fp))) (ofK (addressOfIndex (vbgEB fs depth fp)))
-      (ofK (addressOfIndex (vbgEM fs depth fp))) (ofK (addressOfIndex (vbgEV fs depth fp))))
+      (ofK (addressOfIndex (vbgES fs depth fp))) (ofK (addressOfIndex (vbgER fs depth fp)))
+      (ofK (addressOfIndex (vbgEP fs depth fp))) (ofK (addressOfIndex (vbgEO fs depth fp)))
+      (ofK (addressOfIndex (vbgEB fs depth fp))) (ofK (addressOfIndex (vbgEM fs depth fp)))
+      (ofK (addressOfIndex (vbgEV fs depth fp))))
       (cap0 ++ [ofK (addressOfIndex ec), gen ^ depth, ofK (addressOfIndex ez), tabs, stream]))
       depth (vbgEL fs fp) (vbgER fs depth fp) (vbgEP fs depth fp) tabs stream := hV
   obtain ⟨v167, v400, v402, v169, v426, v6, v16, v17, v18, v8, v9, v425⟩ := hV'

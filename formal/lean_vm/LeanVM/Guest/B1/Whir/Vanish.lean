@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Whir.Vanish
 
-  The vanishing tables `LIG_VANISH_VALS`, `LIG_VANISH_INVS` are the subspace roots and their
+  The vanishing tables `VANISH_BY_COLS`, `VANISH_INVS_BY_COLS` are the subspace roots and their
   inverses, at every level of every candidate.
 -/
 
@@ -13,8 +13,8 @@ public import LeanVM.Guest.B1.Whir.VanishCert
 # The vanishing tables
 
 A level of message log `μ` reads `μ + 1` entries of each table from its offset `vanish`
-(`open_stacked`, `residual_query`, `opening_query`): `LIG_VANISH_VALS[vanish + i]` is root `i` of
-`subspaceRoots μ` (the normalizers `W_i(β_i)`, `whir.rs`) and `LIG_VANISH_INVS` its
+(`open_stacked`, `residual_query`, `opening_query`): `VANISH_BY_COLS[vanish + i]` is root `i` of
+`subspaceRoots μ` (the normalizers `W_i(β_i)`, `whir.rs`) and `VANISH_INVS_BY_COLS` its
 inverse.
 
 * `subspaceRoots_cert`: `subspaceRoots μ` is `1` then the first `μ` certified roots

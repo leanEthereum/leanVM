@@ -3,9 +3,9 @@
 pin is in `K` by the carried values) and the nonzero facts' check (`Res.carryNzG`: every call site passes its callees'
 nonzero parameters, every dynamic allocation's size is nonzero in `K`, every listed callee word is) over the whole
 program by ranges, and their conjunctions. The carried parameters of `carryG` are `Res.carried` (`CoreMode/Fam/CarryDefs.lean`);
-those of `carryNzG` (`Res.carriedNz`) and its callee words (`Res.nzUp`) are derived here, by mirroring the check over
-the core IR (`Pack/*/Core*.lean`) to a fixed point, and written to `CarryNzList.lean`. `--check` writes nothing and
-fails when a file differs.
+those of `carryNzG` (`Res.carriedNz`), its callee words (`Res.nzUp`) and the values each body pins itself (`Res.ownNz`)
+are derived here, by mirroring the check over the core IR (`Pack/*/Core*.lean`) to a fixed point, and written to
+`CarryNzList.lean`. `--check` writes nothing and fails when a file differs.
 Usage: python3 -I scripts/core-mode/carry.py [--check]"""
 import sys, os, glob, re
 
@@ -20,7 +20,7 @@ from compiled import BD  # noqa: E402
 
 OUT = resgen.OUT
 # by ranges of functions, each a kernel check; `main` (function 0) alone
-RANGES = [(0, 1), (1, 10), (11, 1), (12, 1), (13, 7), (20, 10), (30, 10), (40, 60), (100, 300), (400, 400), (800, 400), (1200, 200), (1400, None)]
+RANGES = [(0, 1), (1, 10), (11, 1), (12, 1), (13, 7), (20, 10), (30, 10), (40, 60), (100, 270), (370, 3), (373, 3), (376, 3), (379, 2), (381, 19), (400, 200), (600, 200), (800, 200), (1000, 200), (1200, None)]
 # `Res.nzDepth`, `Res.kDepth`
 NZ_DEPTH, K_DEPTH = 12, 8
 
@@ -30,10 +30,8 @@ NZ_DEPTH, K_DEPTH = 12, 8
 def atom(a):
     """An atom of the shared parse (`data.core_atom`) as the check reads it."""
     k = a[0]
-    if k in ('const', 'mul', 'add', 'copy', 'touch', 'assertInK'):
+    if k in ('const', 'mul', 'add', 'copy', 'touch', 'assertInK', 'assertEq', 'load', 'rangeCheck'):
         return a
-    if k in ('load', 'rangeCheck'):
-        return a[:3]
     if k == 'frameAddr':
         return a[:2]
     if k == 'hint' and a[1][0] == 'allocDyn':
@@ -65,6 +63,17 @@ def functions():
         loop = len(body) >= 2 and body[-1] == ('ret', []) and body[-2][0] == 'callIf' and body[-2][2] == name
         F[name] = dict(np=len(params), loop=loop, body=body)
     return F
+
+
+_POWS = []
+
+
+def POWS():
+    """The guest's powers of `g` (`Data.powTree`, `Res.powOf`), by word."""
+    if not _POWS:
+        import infer
+        _POWS.append(dict(infer.D['pows']))
+    return _POWS[0]
 
 
 # ---- the check, mirrored -------------------------------------------------------------------------------------------
@@ -107,19 +116,56 @@ def scoped(ss, ctx):
 class Check:
     def __init__(self, F, carried, upf):
         self.F, self.carried, self.upf = F, carried, upf
+        self._tab_key = None
+        self._kc = {}
+        self._own = {}
 
-    def pin_in(self, e, v):
-        if e[0] != 'a':
-            return False
-        a = e[1]
-        return (a[0] in ('load', 'touch') and a[2] == v) or (a[0] in ('rangeCheck', 'assertInK') and v in a[1:3]) or \
-            (a[0] == 'frameAddr' and a[1] == v) or (a[0] == 'const' and a[1] == v and a[2] is not None and a[2][1] == 0)
+    def _kidx(self, sp):
+        """`sp`'s values put in `K` by one event (`pinIn`) and the products and sums defining each, computed once a
+        context (the context kept, so its `id` is not reused)."""
+        key = id(sp)
+        hit = self._kc.get(key)
+        if hit is None or hit[0] is not sp:
+            pins, defs = set(), {}
+            for e in sp:
+                if e[0] != 'a':
+                    continue
+                a = e[1]
+                if a[0] in ('load', 'touch'):
+                    pins.add(a[2])
+                elif a[0] in ('rangeCheck', 'assertInK'):
+                    pins.update(a[1:3])
+                elif a[0] == 'frameAddr':
+                    pins.add(a[1])
+                elif a[0] == 'const' and a[2] is not None and a[2][1] == 0:
+                    pins.add(a[1])
+                if a[0] == 'mul' and a[1] == a[2] == a[3]:
+                    pins.add(a[1])
+                if a[0] in ('mul', 'add'):
+                    defs.setdefault(a[1], []).append((a[0], a[2], a[3]))
+            hit = self._kc[key] = (sp, pins, defs, {})
+        return hit
 
     def k_in(self, kv, sp, n, v):
-        if v in kv or any(self.pin_in(e, v) for e in sp):
+        """`Res.kIn`: a listed value, one an event puts in `K` (`pinIn`, `v = v·v` among them), a product of such, `n`
+        deep, or a sum of such one deep (`kIn1`)."""
+        if v in kv:
             return True
-        return n > 0 and any(e[0] == 'a' and e[1][0] == 'mul' and e[1][1] == v and self.k_in(kv, sp, n - 1, e[1][2]) and
-                             self.k_in(kv, sp, n - 1, e[1][3]) for e in sp)
+        _, pins, defs, memo = self._kidx(sp)
+        if v in pins:
+            return True
+        key = (tuple(kv), n, v)
+        if key not in memo:
+            memo[key] = n > 0 and any(
+                (self.k_in(kv, sp, n - 1, x) and self.k_in(kv, sp, n - 1, y)) if op == 'mul' else
+                (self.k_in1(kv, sp, x) and self.k_in1(kv, sp, y)) for op, x, y in defs.get(v, ()))
+        return memo[key]
+
+    def k_in1(self, kv, sp, v):
+        """`Res.kIn1`: listed or put in `K` by an event (`kIn0`), or a product or sum of two such."""
+        _, pins, defs, _ = self._kidx(sp)
+        k0 = lambda u: u in kv or u in pins
+        return k0(v) or any(k0(x) and k0(y) for _, x, y in defs.get(v, ()))
 
     def pin_nz(self, e, v):
         if e[0] == 'c':
@@ -143,15 +189,83 @@ class Check:
                         (y == v and self.k_in(kv, sp, K_DEPTH, x) and self.nz(kv, sp, n - 1, d)) or \
                         (x == v and self.k_in(kv, sp, K_DEPTH, y) and self.nz(kv, sp, n - 1, d)):
                     return True
-            elif a[0] == 'copy':
+            elif a[0] in ('copy', 'assertEq'):
                 d, s = a[1:]
                 if (d == v and self.nz(kv, sp, n - 1, s)) or (s == v and self.nz(kv, sp, n - 1, d)):
                     return True
+            elif a[0] == 'load' and a[1] == v and self.tab_nz(kv, sp, n, a[2], a[3]):
+                return True
         return False
+
+    def tab_nz(self, kv, sp, n, p, off):
+        """`Res.tabNz`: a read at `p·g^off`, `p = T·J`, `J` range checked against the constant `g^m`, of a table whose
+        cells `T·g^(t + off)`, `t <= m`, the context stores values nonzero in `K`."""
+        if self._tab_key is None or self._tab_key[0] is not sp:
+            self._tab_key = (sp, [e[1] for e in sp if e[0] == 'a'])
+        atoms = self._tab_key[1]
+        for a in atoms:
+            if a[0] != 'mul' or a[1] != p:
+                continue
+            for T, J in ((a[2], a[3]), (a[3], a[2])):
+                for r in atoms:
+                    if r[0] != 'rangeCheck' or r[1] != J:
+                        continue
+                    c = next((x[2] for x in atoms if x[0] == 'const' and x[1] == r[5]), None)
+                    m = POWS().get(c[0]) if c is not None and c[1] == 0 else None
+                    if m is not None and m < 2 ** 28 and all(
+                            any(x[0] == 'load' and x[2] == T and x[3] == t + off and self.nz(kv, sp, n - 1, x[1])
+                                for x in atoms) for t in range(m + 1)):
+                        return True
+        return False
+
+    def own(self, f):
+        """The values `f`'s body pins itself (`Res.ownNz`), computed once."""
+        if f not in self._own:
+            self._own[f] = self.arm_nz(self.F[f]['body']) + self.sel_tab(self.F[f]['body'])
+        return self._own[f]
 
     def kv(self, f):
         """`Res.kvNz`."""
-        return sorted(self.carried.get(f, ())) + ([0] if self.F[f]['loop'] else [])
+        return sorted(self.carried.get(f, ())) + ([0] if self.F[f]['loop'] else []) + self.own(f)
+
+    def arm_nz(self, body):
+        """The values `Res.armNzB` takes: copies in a top-level `match`'s first arm, before any return, that every arm
+        pins nonzero on its own (its spine, nothing carried)."""
+        out = []
+        for s in body:
+            if s[0] == 'match' and s[2]:
+                sps = [spine(a) for a in s[2]]
+                cands = [e[1][1] for e in sps[0] if e[0] == 'a' and e[1][0] == 'copy']
+                out += [v for v in cands if all(self.nz([], sp, NZ_DEPTH, v) for sp in sps)]
+            if not heapc.noret(s):
+                break
+        return out
+
+    def sel_tab(self, body):
+        """The values `Res.selTabB` takes: read by the body's spine at `T·J·g^off`, `J` a top-level `match`'s selector of
+        `m` arms, the spine storing at each `T·g^(t + off)`, `t < m`, a value it pins nonzero."""
+        sels = []
+        for s in body:
+            if s[0] == 'match':
+                sels.append((s[1], len(s[2])))
+            if not heapc.noret(s):
+                break
+        sp = spine(body)
+        atoms = [e[1] for e in sp if e[0] == 'a']
+        out = []
+        for a in atoms:
+            if a[0] != 'load':
+                continue
+            v, p, off = a[1], a[2], a[3]
+            for b in atoms:
+                if b[0] != 'mul' or b[1] != p:
+                    continue
+                if any(J == x and all(any(c[0] == 'load' and c[2] == T and c[3] == t + off and self.nz([], sp, NZ_DEPTH, c[1])
+                                          for c in atoms) for t in range(m))
+                       for T, J in ((b[2], b[3]), (b[3], b[2])) for x, m in sels):
+                    out.append(v)
+                    break
+        return out
 
     def sites(self, f):
         """Each call site of `f`: its callee, arguments and context."""
@@ -242,7 +356,8 @@ def nz_lists(F):
     ups = set(up)
     C2 = Check(F, carried, lambda g, i: (g, i) in ups)
     bad = C2.fails() + [(g, 'up', i) for g, i in up if not C2.up_ok(g, i)]
-    return carried, up, bad
+    own = sorted((f, v) for f in F for v in set(C2.own(f)))
+    return carried, up, own, bad
 
 
 # ---- the modules ---------------------------------------------------------------------------------------------------
@@ -253,23 +368,25 @@ header = genfiles.header('core-mode/carry.py')
 def render():
     files = {}
     F = functions()
-    carried, up, bad = nz_lists(F)
+    carried, up, own, bad = nz_lists(F)
     if bad:
         sys.exit('carry: the nonzero facts\' check fails:\n  ' + '\n  '.join(map(str, bad)))
     assert 'main' not in carried
     mod = 'LeanVM.Guest.CoreMode.Gen.CarryNzList'
-    t = [header(mod, 'The nonzero facts\' carried parameters and callee words (`Res.carryNzG`).')]
+    t = [header(mod, 'The nonzero facts\' carried parameters, callee words and own values (`Res.carryNzG`).')]
     t.append('namespace LeanVM.Guest.Res\n\n@[expose] public section\n\n')
     t.append('/-- **The parameters carried nonzero in `K`**: callee, parameter position. -/\n'
              'def carriedNz : List (String × Nat) := [\n%s]\n\n' % ',\n'.join(
                  '  ("%s", %d)' % (f, p) for f in sorted(carried) for p in sorted(carried[f])))
     t.append('/-- **The callee words nonzero in `K`**: callee, position among its parameters then its returns. -/\n'
-             'def nzUp : List (String × Nat) := [\n%s]\n\nend\n\nend LeanVM.Guest.Res\n' % ',\n'.join(
-                 '  ("%s", %d)' % c for c in up))
+             'def nzUp : List (String × Nat) := [\n%s]\n\n' % ',\n'.join('  ("%s", %d)' % c for c in up))
+    t.append('/-- **The own values pinned nonzero in `K`** by their function\'s body (`Res.ownChk`): function, value number. -/\n'
+             'def ownNz : List (String × Nat) := [\n%s]\n\nend\n\nend LeanVM.Guest.Res\n' % ',\n'.join(
+                 '  ("%s", %d)' % c for c in own))
     files[mod] = ''.join(t)
     n = resgen.coreCount()
     ranges = [(a, (n - a) if m is None else m) for a, m in RANGES]
-    assert sum(m for _, m in ranges) == n
+    assert sum(m for _, m in ranges) == n and all(m > 0 for _, m in ranges), ranges
     mods = []
     for k, (a, m) in enumerate(ranges):
         mod = 'LeanVM.Guest.CoreMode.Gen.CarryCallers%d' % k

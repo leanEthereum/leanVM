@@ -22,7 +22,7 @@ keccaks, constants and copies (`walk_window`): no load, no `HeapBuf`, no `frameA
   statement, a `match` contributing the taken arm's atoms (`fmEvs`);
 * `flatM_parts`, `loadAddrs_flatM`, `runs_flatM`: its buffers, frame addresses, calls, loads and
   runs are its top-level statements' (`straight_parts`' right-hand sides);
-* `fmEvs_holds`: its events hold when its statements do.
+* `armEvs_holds`, `fmEvs_match`: a `match`'s events hold when its taken arm's atoms do.
 -/
 
 namespace LeanVM.Guest.B1

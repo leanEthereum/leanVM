@@ -170,9 +170,21 @@ def tpl(name):
 
 
 def fam_cost(fns, cert, i):
-    """A function's check's cost if certified: a little, and its body's (`family.walk_cost`)."""
+    """A function's check's cost if certified: a little, and its body's (`family.walk_cost`); split at a selector
+    (`checker.SPLIT`), each arm's too."""
     if fns[i]['name'] not in cert: return 0.05
-    return 0.1 + family.walk_cost(fns[i]['body'])
+    sp = split_of(fns, i)
+    return 0.1 + family.walk_cost(fns[i]['body']) + (sum(family.walk_cost(arm_of(fns, i, r)) for r in range(sp[1]))
+                                                     if sp else 0)
+
+
+def split_of(fns, i):
+    return checker.SPLIT.get(fns[i]['name'])
+
+
+def arm_of(fns, i, r):
+    sp = checker.SPLIT[fns[i]['name']]
+    return checker.sel_body(fns[i]['body'], sp[0], r)
 
 
 def cmd_callees(g):
@@ -201,7 +213,7 @@ def cmd_words(g):
     cut = family.Cut('stepS true Data.wcertJ Data.womegaJ', 'Acc.add', 'Acc.zero', 'Acc.add_assoc', 'Data.wcertJ',
                      'chkS_of_run', lambda j: walked(g.fns[j], cert[g.fns[j]['name']]),
                      lambda j, rho, ss: checker.run_range(checker.stmt_step, checker.add, ctx(j), rho, ss),
-                     writelean.lean_acc)
+                     writelean.lean_acc, 'chkS_of_split', lambda j: split_of(g.fns, j), lambda j, r: arm_of(g.fns, j, r))
     rs, mods = family.write_family(g.LD, g.fns, 'GuestWords', 'w', data, 'chkS true Data.wcertJ Data.womegaJ',
                                    lambda i: fam_cost(g.fns, cert, i), RB=40, MB=120,
                                    doc='Every function of the guest\'s core IR passes its check counting words.', cut=cut)
@@ -280,7 +292,7 @@ def cmd_cnt(g):
     cut = family.Cut('stepV Data.cntJ', 'AccV.add', 'AccV.zero', 'AccV.add_assoc', 'Data.cntJ', 'chkV_of_run',
                      lambda j: walked(g.fns[j], cv[g.fns[j]['name']]),
                      lambda j, rho, ss: checker.run_range(checker.stmt_stepV, checker.addv, ctx(j), rho, ss),
-                     writelean.lean_accv)
+                     writelean.lean_accv, 'chkV_of_split', lambda j: split_of(g.fns, j), lambda j, r: arm_of(g.fns, j, r))
     rs, mods = family.write_family(g.LD, g.fns, 'GuestCnt', 'cnt', data, 'chkV Data.cntJ Data.cntOmJ',
                                    lambda i: fam_cost(g.fns, certs[0], i), RB=40, MB=120,
                                    doc='Every function of the guest\'s core IR passes its check counting instructions.', cut=cut)

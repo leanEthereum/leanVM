@@ -8,7 +8,8 @@
 module
 
 public import LeanVM.Protocol.Whir.Complete.Tables
-public import LeanVM.Protocol.ToCompPoly.Fingerprint
+import LeanVM.Protocol.ToCompPoly.Fingerprint
+public import Mathlib.Algebra.MvPolynomial.CommRing
 
 /-!
 # The equality kernel

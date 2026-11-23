@@ -24,11 +24,8 @@ theorem find_layer264 : coreProgram.find? "keccak_layer__L1" = some fn% «keccak
 theorem find_layer265 : coreProgram.find? "keccak_layer__L0" = some fn% «keccak_layer__L0» :=
   coreProgram_find?_at (j := idx% «keccak_layer__L0») rfl
 
-/-- **`keccak_layer`** on a reader where `grind_check` of `3` bits has its meaning on the window
-table. -/
-theorem keccak_layer_holds_of (rd : Reader)
-    (hgr : ∀ w tabs : E, WinTabs rd tabs → coreProgram.Rel rd (grindCheckName 3) [w, tabs] [] →
-      (w.limb 0).lane.toNat % 2 ^ 3 = 0) : keccak_layer_Spec rd := by
+/-- **`keccak_layer`** on a reader where the inlined `grind_check` of `3` bits is sound. -/
+theorem keccak_layer_holds_of (rd : Reader) (hgr : GcSoundOn rd 3) : keccak_layer_Spec rd := by
   intro first hf args rets h
   interval_cases first
   · exact layer_sound (first := 0) (by decide) (weightOk_zero _) find_layer265 layer_body265 rfl rd
@@ -37,10 +34,10 @@ theorem keccak_layer_holds_of (rd : Reader)
       hgr args rets h
 
 /-- **`keccak_layer`** (TRIAGE #60): its two specializations compute their meanings
-on a memory image, given `grind_check`'s meaning at `3` bits. -/
-theorem keccak_layer_holds {κ : ℕ} (hκ : κ ≤ 32) (hκ' : winTabBits ≤ κ) (L : MemoryImage κ)
-    (hg : grind_check_Spec 3) : keccak_layer_Spec L.read :=
-  keccak_layer_holds_of L.read fun w tabs ht hr ↦ ((hg hκ hκ' L w tabs ht []).mp hr).2
+on a memory image. -/
+theorem keccak_layer_holds {κ : ℕ} (hκ : κ ≤ 32) (hκ' : winTabBits ≤ κ) (L : MemoryImage κ) :
+    keccak_layer_Spec L.read :=
+  keccak_layer_holds_of L.read (gcSoundOn_image hκ (le_trans (by decide) hκ') L (by decide))
 
 end
 end LeanVM.Guest.B1.VerifySub

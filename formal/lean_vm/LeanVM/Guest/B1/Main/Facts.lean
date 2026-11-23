@@ -12,6 +12,7 @@ public import LeanVM.Guest.B1.Main.LoopsC
 public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«main»
+public import LeanVM.Guest.B1.Bits.Meaning
 
 /-!
 # `main`'s facts
@@ -171,7 +172,7 @@ theorem main_facts {rd : Reader} {C : CallRel} (hC : Unfolds rd C)
   obtain ⟨mflat, mm381, ml381, ml5, mm385, ml386, meq, mrc, ma395, ma397, mc396,
     mm398, mc399, mae, mm400, mm401, ma404, mc403⟩ := hM
   obtain ⟨lflat, lzero, l405, aflat, actab, amtab, acall⟩ := hL
-  obtain ⟨qflat, ql429, ql430, qsd, qc433, ql434, qe1, qc435, qc436, qm437, ql438, qe2⟩ := hQ
+  obtain ⟨qflat, ql429, ql430, qsd, qc433, ql434, qe1, qc437, ql438, qe2⟩ := hQ
   -- the blocks
   obtain ⟨hpre, h⟩ := holdsList_flat mPre (List.all_eq_true.mpr pflat) _ _ h
   simp only [Stmt.HoldsList] at h
@@ -354,8 +355,7 @@ theorem main_facts {rd : Reader} {C : CallRel} (hC : Unfolds rd C)
   · have l1 := load_sound ql434 atQ
     rw [const_sound qc433 atQ, word_one, assertEq_sound qe1 atQ] at l1
     have l2 := load_sound ql438 atQ
-    rw [isMul_sound qm437 atQ, const_sound qc435 atQ, const_sound qc436 atQ, word_one, word_gen,
-      one_mul, assertEq_sound qe2 atQ] at l2
+    rw [const_sound qc437 atQ, word_gen, assertEq_sound qe2 atQ] at l2
     refine ⟨l1, ?_⟩
     have l2' : LoadHolds rd (1 * gen ^ 1) 0 (σ (.n (val% «main» "own_1"))) := by rwa [one_mul, pow_one]
     have := (loadHolds_mul_gen_pow rd 1 1 0 _).mp l2'

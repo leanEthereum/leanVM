@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.Gkr.GlT
+import LeanVM.Guest.B1.Tables.Basic
 
 /-!
 # A run of rounds, soundly
@@ -95,12 +96,11 @@ theorem glRounds_succ (B n : ℕ) (cur pt npt : V) (noff : ℕ) (claim0 : V) (ca
 
 /-- A record's capacity cells, `glCap b`'s values. -/
 theorem tbCapAt_glCap {rd : Reader} {σ : Val} {rec : E} {off b : ℕ}
-    (h : ∀ k < 5, LoadHolds rd rec (off + 862 * k) (σ (.n (b + k)))) :
-    TbCapAt rd rec off gkCap ((glCap b).map σ) := by
+    (h : ∀ k < 5, LoadHolds rd rec (off + k) (σ (.n (b + k)))) :
+    TbCapAt rd rec off 1 ((glCap b).map σ) := by
   refine ⟨by simp [glCap], fun j hj => ?_⟩
   have hj5 : j < 5 := by simpa [glCap] using hj
-  simp only [glCap, List.getElem_map, List.getElem_range]
-  rw [show j * gkCap = 862 * j by unfold gkCap; ring]
+  simp only [glCap, List.getElem_map, List.getElem_range, Nat.mul_one]
   exact h j hj5
 
 section Sem
@@ -168,20 +168,20 @@ end Sem
 /-- **Rounds between records** are a run from the first record's values to the second's. -/
 theorem glRun_of_out {rd : Reader} {n s : ℕ} {rec pt : E} (h : TbGkrRoundsOut n s rd rec pt) :
     ∃ (cap cap' : List E) (cur claim claim' : E),
-      TbCapAt rd rec 0 gkCap cap ∧ LoadHolds rd rec (5 * gkCap) cur ∧
-      LoadHolds rd rec (6 * gkCap) claim ∧ GlRun rd n cur pt claim cap cap' claim' ∧
-      TbCapAt rd rec s gkCap cap' ∧ LoadHolds rd rec (s + 5 * gkCap) (cur * gen ^ (4 * n)) ∧
-      LoadHolds rd rec (s + 6 * gkCap) claim' := by
+      TbCapAt rd rec 0 1 cap ∧ LoadHolds rd rec 5 cur ∧
+      LoadHolds rd rec 6 claim ∧ GlRun rd n cur pt claim cap cap' claim' ∧
+      TbCapAt rd rec (7 * s) 1 cap' ∧ LoadHolds rd rec (7 * s + 5) (cur * gen ^ (4 * n)) ∧
+      LoadHolds rd rec (7 * s + 6) claim' := by
   obtain ⟨cap, cur, claim, cs, es, hc, hcur, hcl, hl, h4, hrd, hel, hes, hre, hcap, hcur', hcl'⟩ := h
   exact ⟨cap, _, cur, claim, _, hc, hcur, hcl, ⟨cs, es, hl, h4, hrd, hel, hes, hre, rfl, rfl⟩, hcap,
     hcur', hcl'⟩
 
 /-- **A run whose ends are stored** in two records is rounds between them. -/
 theorem glOut_of_run {rd : Reader} {n s : ℕ} {rec pt cur claim claim' : E} {cap cap' : List E}
-    (hc : TbCapAt rd rec 0 gkCap cap) (hcur : LoadHolds rd rec (5 * gkCap) cur)
-    (hcl : LoadHolds rd rec (6 * gkCap) claim) (hr : GlRun rd n cur pt claim cap cap' claim')
-    (hc' : TbCapAt rd rec s gkCap cap') (hcur' : LoadHolds rd rec (s + 5 * gkCap) (cur * gen ^ (4 * n)))
-    (hcl' : LoadHolds rd rec (s + 6 * gkCap) claim') : TbGkrRoundsOut n s rd rec pt := by
+    (hc : TbCapAt rd rec 0 1 cap) (hcur : LoadHolds rd rec 5 cur)
+    (hcl : LoadHolds rd rec 6 claim) (hr : GlRun rd n cur pt claim cap cap' claim')
+    (hc' : TbCapAt rd rec (7 * s) 1 cap') (hcur' : LoadHolds rd rec (7 * s + 5) (cur * gen ^ (4 * n)))
+    (hcl' : LoadHolds rd rec (7 * s + 6) claim') : TbGkrRoundsOut n s rd rec pt := by
   obtain ⟨cs, es, hl, h4, hrd, hel, hes, hre, rfl, rfl⟩ := hr
   exact ⟨cap, cur, claim, cs, es, hc, hcur, hcl, hl, h4, hrd, hel, hes, hre, hc', hcur', hcl'⟩
 

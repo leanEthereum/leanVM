@@ -178,10 +178,20 @@ theorem honest_owns {I : Inst} (hI : I ∈ honestInsts P fs H hdr T) {i : ℕ} (
   omega
 
 /-- Every instance's frame is in the allocation. -/
-theorem honest_within {I : Inst} (hI : I ∈ honestInsts P fs H hdr T) (h0 : 0 < fs I.t.name) :
-    I.fp + fs I.t.name ≤ T.total fs := by
-  have := honest_owns hI (i := I.fp + fs I.t.name - 1) (Or.inl ⟨by omega, by omega⟩)
+theorem honest_within {I : Inst} (hI : I ∈ honestInsts P fs H hdr T) (h0 : 0 < I.t.fsz fs) :
+    I.fp + I.t.fsz fs ≤ T.total fs := by
+  have := honest_owns hI (i := I.fp + I.t.fsz fs - 1) (Or.inl ⟨by omega, by omega⟩)
   omega
+
+theorem fsz_of_node {t : Tree} {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree}
+    (ht : t = .node f σ bufs kids) : t.fsz fs = fs t.name := by
+  subst ht; rfl
+
+/-- A running instance's frame is in the allocation. -/
+theorem honest_within_node {I : Inst} (hI : I ∈ honestInsts P fs H hdr T) {f : String} {σ : Val}
+    {bufs : List ℕ} {kids : List Tree} (ht : I.t = .node f σ bufs kids) (h0 : 0 < I.t.fsz fs) :
+    I.fp + fs I.t.name ≤ T.total fs := by
+  rw [← fsz_of_node (fs := fs) ht]; exact honest_within hI h0
 
 /-- **Write-once consistency** of the honest memory's writes. -/
 theorem Honest.consistent (h : Honest P fs H C hdr T rd args rets) :
@@ -282,7 +292,7 @@ theorem honest_kidFps {I : Inst} (hI : I ∈ honestInsts P fs H hdr T) :
 /-- A frame write is at a word of an instance's frame. -/
 theorem frameWrites_addr (hok : CellsOk fs C (honestInsts P fs H hdr T)) {a : Write}
     (ha : a ∈ frameWrites C (honestInsts P fs H hdr T)) :
-    ∃ I ∈ honestInsts P fs H hdr T, ∃ o < fs I.t.name, a.1 = addressOfIndex (I.fp + o) := by
+    ∃ I ∈ honestInsts P fs H hdr T, ∃ o < I.t.fsz fs, a.1 = addressOfIndex (I.fp + o) := by
   obtain ⟨I, hI, q, hq, rfl⟩ := mem_frameWrites ha
   exact ⟨I, hI, q.1, hok.cell_lt hI hq, rfl⟩
 

@@ -8,6 +8,8 @@
 module
 
 public import LeanVM.Protocol.Keccak.CompleteLayer
+public import LeanVM.Protocol.Keccak.GkrTail
+import LeanVM.Protocol.Keccak.Gkr
 
 /-!
 # The honest Keccak prover

@@ -61,7 +61,6 @@ structure MainStatics (fs : String → ℕ) (SB SK : String → ℕ) : Prop wher
     (fun a => logG (a.getD 1 0) * iterK fs SK name% «aggregate_claims_loop2» + fs
         name% «aggregate_claims_loop2»)
   bs : TotalLe coreProgram fs "batch_sumcheck__L23" (fun _ => SB "batch_sumcheck__L23")
-  gr : TotalLe coreProgram fs "grind_check__L2" (fun _ => SB "grind_check__L2")
 
 /-- **The bounds of `main`'s non-static callees** on the honest run: its claim lists' digests
 (`clB`), `da_verify` (`hDvB`), `aggregate_claims` (`aggB`), the children's loop (`l5B`, each
@@ -92,12 +91,12 @@ theorem mainGoalsTB_honest {SB SK : String → ℕ} {Pvs : ℕ → Tree → Prop
   ⟨mainGoalClXTB fs cert fp seed s w hl hS.ls hS.l15 hS.l16 hS.cl,
     mainGoalClSTB fs cert fp seed s w hl hS.ls hS.l15 hS.l16 hS.cl,
     mainGoalDvTB fs cert fp hr hrf hS.dv,
-    mainGoalAgTB fs fp cert SB SK hS.gr hS.l25 hS.l26 hS.l27 hS.bs hbl hr hl,
+    mainGoalAgTB fs fp cert SB SK hS.l25 hS.l26 hS.l27 hS.bs hbl hr hl,
     mainGoalL5TB fs cert SB hS.main.st hbl hr hl hV (childListGoalsTB_honest cert hl hS.ls)⟩
 
 /-- **`main`'s completeness on the honest run within its words**: for `NodeRelation` within `Limits`
 and a bytecode of `2^23` words, from the signature schemes' completeness (B1-e), the frame runs'
-certificate facts, the static bounds (`MainStatics`, `grind_check__L2`'s among them), and child `c`'s `verify_sub` within `Bv c` by a
+certificate facts, the static bounds (`MainStatics`), and child `c`'s `verify_sub` within `Bv c` by a
 tree satisfying `Pvs c` (B1-d): a size `n ≤ Bmain` and a layout `L` within `[fp, fp + n)`, above
 `main`'s frame, pairwise disjoint, containing `main`'s honest words; on every memory holding `L`
 and the statement's digest at words `0`, `1`, `main` holds at `fp` by its node at its honest

@@ -125,15 +125,12 @@ theorem vshB_dispatch {σ : Val} {x : V} {fs : List String} {args' rets : List V
   ⟨j, hj, by rw [hx, gen_pow_eq_ofK], hr⟩
 
 /-- **A table block's selector, complete.** -/
-theorem vtc_selblock (hl : args.length = 21) {w b t pos : ℕ} {prev : Option ℕ} {es gs gw : ℕ}
-    (hcheck : tbStmtsEqb (vtSelT w b t prev es gs gw)
-      ((vtAt pos).take (vtSelT w b t prev es gs gw).length) = true) (ht : t < 6)
-    (hes : es < w + 2) (hgs : gs < w + 4)
-    (hptr : 0 < t → σv (.n es) * vtW288 = σv (.n (val% «verify_tables» "shared_eq")) * gen ^ (288 * t) ∧
-      σv (.n gs) * word gw 0 = σv (.n (val% «verify_tables» "shared_g")) * gen ^ (144 * t))
+theorem vtc_selblock (hl : args.length = 21) {w b t pos : ℕ} {prev : Option ℕ}
+    (hcheck : tbStmtsEqb (vtSelT w b t prev)
+      ((vtAt pos).take (vtSelT w b t prev).length) = true)
     {point : List E} {d τ : ℕ} (hpl : point.length = d + τ) (hml : point.length < 33)
     (hdv : σv (.n (vtShLen t)) = gen ^ d)
-    (hrun : RunTables rd (σv (.n (val% «verify_tables» "shared_eq")) * gen ^ (288 * t)) (σv (.n (val% «verify_tables» "shared_g")) * gen ^ (144 * t)) d
+    (hrun : RunTables rd (σv (.n (vtEqV t))) (σv (.n (vtGV t))) d
       (point.drop τ) ((point.map (1 + ·)).drop τ) ((gSquaresList.drop τ).take d))
     {off : ℕ} (hoff : σv (.n (vtBoffV b)) = gen ^ off) (hal : 2 ^ τ ∣ off)
     (hob : off < 2 ^ point.length)
@@ -141,39 +138,22 @@ theorem vtc_selblock (hl : args.length = 21) {w b t pos : ℕ} {prev : Option �
     (hw0 : wo (vtSelE w t) = Placement.eqAbove ⟨τ, off⟩ point)
     (hw1 : wo (vtSelE w t + 1) = gen ^ off)
     (hlow : ∀ i < 16, (rd (Parameters.addressOfIndex i)).isSome) :
-    (∀ s ∈ vtSelT w b t prev es gs gw, VSH (coreProgram.Rel rd) rd σv s) ∧
+    (∀ s ∈ vtSelT w b t prev, VSH (coreProgram.Rel rd) rd σv s) ∧
       σv (.n (vtSelE w t)) = Placement.eqAbove ⟨τ, off⟩ point ∧
       σv (.n (vtSelCopy w t prev)) = σv (.n (vtSelE w t)) ∧
       σv (.n (vtSelSum w t prev)) =
         (match prev with | none => 0 | some p => σv (.n p)) + σv (.n (vtSelE w t)) := by
-  have hmem : ∀ s ∈ vtSelT w b t prev es gs gw, s ∈ vtPre :=
+  have hmem : ∀ s ∈ vtSelT w b t prev, s ∈ vtPre :=
     fun s hs ↦ vt_mem_slice (vtPre_drop pos ▸ hcheck) hs
-  have hG : ∀ s ∈ vtSelT w b t prev es gs gw, GoodS rd vtSL wo σv (fixNe s) :=
+  have hG : ∀ s ∈ vtSelT w b t prev, GoodS rd vtSL wo σv (fixNe s) :=
     fun s hs ↦ vt_goodS hl (hmem s hs)
   have hd33 : d < 34 := by omega
   -- the digits' buffer
   have g0 := hG (.atom (.hint (.alloc (.n w) 9))) (by simp [vtSelT])
   simp only [fixNe, GoodS, Good] at g0
-  -- the table pointers
-  set eqt : V := .n (if t = 0 then 702 else w + 2) with heqt_def
-  set gt : V := .n (if t = 0 then 703 else w + 4) with hgt_def
-  have hdm : Stmt.dispatch (.n (vtShLen t)) vtBstNames [.n w, eqt, gt]
-      [.n (vtSelE w t), .n (vtSelE w t + 1)] ∈ vtSelT w b t prev es gs gw := by
-    simp [vtSelT, eqt, gt]
-  have heqt : σv eqt = σv (.n (val% «verify_tables» "shared_eq")) * gen ^ (288 * t) ∧ σv gt = σv (.n (val% «verify_tables» "shared_g")) * gen ^ (144 * t) := by
-    rcases Nat.eq_zero_or_pos t with rfl | ht0
-    · simp [eqt, gt]
-    · have ht' : t ≠ 0 := by omega
-      have c1 := hG (.atom (.const (.n (w + 1)) vtW288)) (by simp [vtSelT, ht'])
-      have m2 := hG (.atom (.mul (.n (w + 2)) (.n es) (.n (w + 1)))) (by simp [vtSelT, ht'])
-      have c3 := hG (.atom (.const (.n (w + 3)) (word gw 0))) (by simp [vtSelT, ht'])
-      have m4 := hG (.atom (.mul (.n (w + 4)) (.n gs) (.n (w + 3)))) (by simp [vtSelT, ht'])
-      simp only [fixNe, GoodS, Good, show es < w + 2 ∧ w + 1 < w + 2 from ⟨hes, by omega⟩,
-        show gs < w + 4 ∧ w + 3 < w + 4 from ⟨hgs, by omega⟩] at c1 m2 c3 m4
-      obtain ⟨p1, p2⟩ := hptr ht0
-      simp only [eqt, gt, ht', ↓reduceIte]
-      exact ⟨by rw [m2, c1, p1], by rw [m4, c3, p2]⟩
-  obtain ⟨heqt, hgt⟩ := heqt
+  have hdm : Stmt.dispatch (.n (vtShLen t)) vtBstNames [.n w, .n (vtEqV t), .n (vtGV t)]
+      [.n (vtSelE w t), .n (vtSelE w t + 1)] ∈ vtSelT w b t prev := by
+    simp [vtSelT]
   have hrets : ∀ v ∈ [V.n (vtSelE w t), .n (vtSelE w t + 1)], σv v = wo v.idx :=
     vt_goodS (rd := rd) (w := wo) hl (hmem _ hdm)
   have e0 : σv (.n (vtSelE w t)) = Placement.eqAbove ⟨τ, off⟩ point := by
@@ -185,10 +165,10 @@ theorem vtc_selblock (hl : args.length = 21) {w b t pos : ℕ} {prev : Option �
   have hval := selBitsOf_val hal (by rw [Nat.add_comm, ← hpl]; exact hob)
   have hsb : TbReadsAt rd (σv (.n w)) (nibDigits bs) := by
     rw [g0]; exact offDigits_reads (by omega) (by rw [Nat.add_comm, ← hpl]; exact hob) hdig
-  have hrel := block_selector_tab_complete_holds d hd33 rd (σv (.n w)) (σv eqt) (σv gt)
-    bs (point.drop τ) ((point.map (1 + ·)).drop τ) ((gSquaresList.drop τ).take d) hbl
-    (by simp; omega) (by simp; omega) (by simp [gSquaresList]; omega) hsb hlow
-    (by rw [heqt, hgt]; exact hrun)
+  have hrel := block_selector_tab_complete_holds d hd33 rd (σv (.n w)) (σv (.n (vtEqV t)))
+    (σv (.n (vtGV t))) bs (point.drop τ) ((point.map (1 + ·)).drop τ)
+    ((gSquaresList.drop τ).take d) hbl (by simp; omega) (by simp; omega)
+    (by simp [gSquaresList]; omega) hsb hlow hrun
   rw [vt_eqAbove (κ := τ) hbl (by omega), hval, vt_bitsPow_sq (κ := τ) hbl (by omega), hval]
     at hrel
   -- the tail
@@ -214,43 +194,27 @@ theorem vtc_selblock (hl : args.length = 21) {w b t pos : ℕ} {prev : Option �
   -- every statement
   refine vt_blockAt hl pos _ hcheck fun s hs ha ↦ ?_
   have hdl : d < vtBstNames.length := by simp [vtBstNames]; omega
-  have hdisp : VSH (coreProgram.Rel rd) rd σv (.dispatch (.n (vtShLen t)) vtBstNames [.n w, eqt, gt]
-      [.n (vtSelE w t), .n (vtSelE w t + 1)]) := by
+  have hdisp : VSH (coreProgram.Rel rd) rd σv (.dispatch (.n (vtShLen t)) vtBstNames
+      [.n w, .n (vtEqV t), .n (vtGV t)] [.n (vtSelE w t), .n (vtSelE w t + 1)]) := by
     refine vshB_dispatch hdl hdv ?_
     simp only [vtBstNames, List.getElem_map, List.getElem_range, List.map_cons, List.map_nil]
     rw [e0, e1]
     exact hrel
   have hasrt : VSH (coreProgram.Rel rd) rd σv (.atom (.assertEq (.n (vtSelE w t + 1)) (.n (vtBoffV b)))) :=
     vshB_eq (by rw [e1, hoff])
-  rcases Nat.eq_zero_or_pos t with rfl | ht0
-  · simp only [vtSelT, ↓reduceIte, List.nil_append, List.cons_append, List.mem_cons] at hs
-    simp only [eqt, gt, ↓reduceIte] at hdisp
-    rcases hs with rfl | rfl | rfl | rfl | hs
-    · simp [autoB, pureB, hintB] at ha
-    · simp [autoB, pureB, hintB] at ha
-    · exact hdisp
-    · exact hasrt
-    · cases prev <;> simp only [vtSelTail, List.mem_cons, List.not_mem_nil, or_false] at hs <;>
-        (rcases hs with rfl | rfl) <;> simp [autoB, pureB, hintB] at ha
-  · have ht' : t ≠ 0 := by omega
-    simp only [vtSelT, ht', ↓reduceIte, List.cons_append, List.mem_cons, List.nil_append] at hs
-    simp only [eqt, gt, ht', ↓reduceIte] at hdisp
-    rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | hs
-    · simp [autoB, pureB, hintB] at ha
-    · simp [autoB, pureB, hintB] at ha
-    · simp [autoB, pureB, hintB] at ha
-    · simp [autoB, pureB, hintB] at ha; omega
-    · simp [autoB, pureB, hintB] at ha
-    · simp [autoB, pureB, hintB] at ha; omega
-    · exact hdisp
-    · exact hasrt
-    · cases prev <;> simp only [vtSelTail, List.mem_cons, List.not_mem_nil, or_false] at hs <;>
-        (rcases hs with rfl | rfl) <;> simp [autoB, pureB, hintB] at ha
+  simp only [vtSelT, List.cons_append, List.mem_cons, List.nil_append] at hs
+  rcases hs with rfl | rfl | rfl | rfl | hs
+  · simp [autoB, pureB, hintB] at ha
+  · simp [autoB, pureB, hintB] at ha
+  · exact hdisp
+  · exact hasrt
+  · cases prev <;> simp only [vtSelTail, List.mem_cons, List.not_mem_nil, or_false] at hs <;>
+      (rcases hs with rfl | rfl) <;> simp [autoB, pureB, hintB] at ha
 
 /-- **A framework block's selector, complete.** -/
 theorem vtc_fwblock (hl : args.length = 21) {w b kv pos : ℕ} {prev : Option ℕ}
     (hcheck : tbStmtsEqb (vtFwSelT w b kv prev) ((vtAt pos).take (vtFwSelT w b kv prev).length) =
-      true) (hw : 700 < w) (hkv : kv < w)
+      true) (hw : 802 < w) (hkv : kv < w)
     {point : List E} (hmu : σv (.n (val% «verify_tables» "g_bus_mu")) = gen ^ point.length) (hml : point.length < 33)
     (hz1 : TbReadsAt rd (σv (.n (val% «verify_tables» "zeta1"))) (point.map (1 + ·)))
     (hidxc : TbReadsAt rd (σv (.n (val% «verify_tables» "idxc_tab"))) vtIdxcList)
@@ -280,8 +244,8 @@ theorem vtc_fwblock (hl : args.length = 21) {w b kv pos : ℕ} {prev : Option �
   have g9 := hG (.atom (.mul (.n (w + 9)) (.n (val% «verify_tables» "idxc_tab")) (.n kv))) (by simp [vtFwSelT])
   simp only [fixNe, GoodS, Good, show ¬ (w < 9 ∧ kv < 9) from fun h ↦ by omega,
     show w + 6 < w + 7 ∧ kv < w + 7 from ⟨by omega, by omega⟩,
-    show (700 : ℕ) < w + 8 ∧ kv < w + 8 from ⟨by omega, by omega⟩,
-    show (665 : ℕ) < w + 9 ∧ kv < w + 9 from ⟨by omega, by omega⟩,
+    show (802 : ℕ) < w + 8 ∧ kv < w + 8 from ⟨by omega, by omega⟩,
+    show (767 : ℕ) < w + 9 ∧ kv < w + 9 from ⟨by omega, by omega⟩,
     show w + 1 < w + 2 by omega, ↓reduceIte] at g0 g1 g2 g6 g7 g8 g9
   have ew : σv (.n w) = gen ^ d := by
     rw [g0, hmu, hκ, hpl, ← pow_sub₀ _ gen_ne_zero (by omega : κ ≤ κ + d), Nat.add_sub_cancel_left]

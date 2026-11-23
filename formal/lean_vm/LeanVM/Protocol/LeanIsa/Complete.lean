@@ -10,6 +10,8 @@ module
 public import LeanVM.Protocol.LeanIsa.Sound
 public import LeanVM.Protocol.ToArkLib.Refinement
 import LeanVM.Arithmetization.Completeness.Satisfied
+public import LeanVM.Protocol.LeanIsa.Read
+import LeanVM.Protocol.LeanIsa.Relation
 
 /-!
 # The adaptor, completeness

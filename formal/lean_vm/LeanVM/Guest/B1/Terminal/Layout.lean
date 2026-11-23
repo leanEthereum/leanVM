@@ -17,7 +17,7 @@ public import LeanVM.Guest.B1.Placement.Kappas
 `KECCAK` columns with a `q_keccak` slot and its output lanes) at `stackOffsets`'s offsets and each
 slotted column at `q_keccak`'s offset plus its slot's `2^κ` words (`placement_committed`,
 `placement_slot`). Every offset is below
-`2^stackLog` (`stackOffsets_lt`), every size at most `stackLog` (`size_le_stackLog`), and every
+`2^stackLog` (`stackOffsets_lt`), every size at most `stackLog` (`size_le_stackOffsets`), and every
 offset a multiple of its block's `2^κ` (`stackOffsets_dvd`: the blocks lie largest first, the
 order `mergeSort` sorts, `List.pairwise_mergeSort`).
 -/

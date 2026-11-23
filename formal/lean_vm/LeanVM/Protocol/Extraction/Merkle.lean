@@ -3,7 +3,7 @@ module
 public import LeanVM.Protocol.Extraction.Defs
 public import Mathlib.Data.List.Basic
 public import Mathlib.Tactic.IntervalCases
-public import LeanVM.Protocol.WithHash
+import LeanVM.Protocol.WithHash
 
 /-!
 # The computed committed word is the statement's (proofs)

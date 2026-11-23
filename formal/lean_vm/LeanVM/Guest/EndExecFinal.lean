@@ -103,9 +103,10 @@ theorem execGaps :
     (coreHonAll_X h.1 h.2.1 Bridge.progAl Bridge.alignA_main
       jumpCells_at alLayout_alignA (fun _ _ h ↦ by rw [Bridge.alignA_of h]; rfl) anyLink_ok)
 
-/-- **The executor runs the guest program to completion on the guest's advice.** -/
+/-- **The executor runs the guest program to completion on the guest's advice**, unless a child's
+proof exhibits a Keccak-256 collision. -/
 theorem honestAdvice_complete : AdviceComplete honestAdvice :=
-  honestExecution_complete_on_honest_children execGaps
+  honestExecution_complete_on_accepted_children execGaps
 
 /-! ## The statement's witness generation -/
 
@@ -124,33 +125,61 @@ theorem prover_guestExecution_eq (s : NodeStatement) (w : NodeWitness) :
   simp only [guestExecution, guestRun]
   rw [prover_guestAdvice_eq (bytecode := bytecodeWords guestProgram) End.bytecode_length]
 
-/-- **The executor runs the guest program to completion on the statement's advice**: `Statement/`'s
-`GuestExecutionComplete`, the field `guestExecutionComplete` of `Statement.Theorems`. -/
+/-- **The executor runs the guest program to completion on the statement's advice**, unless a
+child's proof exhibits a Keccak-256 collision: `Statement/`'s `GuestExecutionComplete`, the field
+`guestExecutionComplete` of `Statement.Theorems`. -/
 theorem guestExecution_complete_holds : Completeness.GuestExecutionComplete :=
-  fun s w hrel hlim hon ↦
-    let ⟨t, he, hv, hsz⟩ := honestAdvice_complete s w hrel hlim hon
-    ⟨t, (prover_guestExecution_eq s w).trans he, hv, hsz⟩
+  fun s w hrel hlim ↦ (honestAdvice_complete s w hrel hlim).imp_left
+    fun ⟨t, he, hv, hsz⟩ ↦ ⟨t, (prover_guestExecution_eq s w).trans he, hv, hsz⟩
+
+/-- **The executor runs the guest program to completion on the statement's advice on honest
+children**, with no collision alternative: a node within the deployed limits whose children carry
+honest proofs (`HonestChild`) has acceptable children (`acceptableChildren_of_honest`). -/
+theorem guestExecution_complete_on_honest_children (s : NodeStatement) (w : NodeWitness)
+    (hrel : NodeRelation (bytecodeWords guestProgram) (deployedSeed guestProgram) s w)
+    (hlim : DeployedLimits s w) (hon : ∀ child ∈ w.children, HonestChild child) :
+    ∃ execution, guestExecution guestProgram s w = .ok execution ∧
+      ValidExecution guestProgram
+        (PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) s)) execution ∧
+      execution.committedSize ≤ 2 ^ 30 :=
+  let ⟨t, he, hv, hsz⟩ := honestExecution_complete_of_childrenOk execGaps s w hrel hlim
+    (acceptableChildren_of_honest hrel hon)
+  ⟨t, (prover_guestExecution_eq s w).trans he, hv, hsz⟩
+
+/-- **The executor runs the guest program to completion on the statement's advice on children
+carrying the honest prover's proofs that the deployed verifier accepts**, with no collision
+alternative: each child's fresh claim is true (`freshClaim_holds_of_leanVmVerifier`), so it is a
+`HonestChild`. -/
+theorem guestExecution_complete_on_verified_honest_children (s : NodeStatement) (w : NodeWitness)
+    (hrel : NodeRelation (bytecodeWords guestProgram) (deployedSeed guestProgram) s w)
+    (hlim : DeployedLimits s w)
+    (hon : ∀ child ∈ w.children,
+      let input := PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) child.statement)
+      (∃ (execution : Execution guestProgram) (ρ : ℕ),
+        LeanVM.leanVmHonestProver (m := Id) keccakF1600 guestProgram input execution ρ (2 ^ 35) =
+          some child.proof) ∧
+      leanVmVerifier (m := Id) keccakF1600 guestProgram input child.proof = true) :
+    ∃ execution, guestExecution guestProgram s w = .ok execution ∧
+      ValidExecution guestProgram
+        (PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) s)) execution ∧
+      execution.committedSize ≤ 2 ^ 30 :=
+  guestExecution_complete_on_honest_children s w hrel hlim fun child hc ↦
+    ⟨freshClaim_holds_of_leanVmVerifier hrel hc (hon child hc).2, (hon child hc).1⟩
 
 open OracleComp OracleSpec in
 /-- **The guest's prover makes the honest prover's proof of its execution**: where `guestExecution`
-returns `t`, `guestProve`'s proof is rejected, refused or not made exactly as the honest prover's
-proof of `t` (`Completeness`, `HonestProofRarelyRefused`), for any program `guest`. -/
+returns `t`, `guestProve`'s proof is rejected or not made exactly as the honest prover's proof of
+`t` (`Completeness`), for any program `guest`. -/
 theorem guestProve_complete {guest : LeanIsaProgram} {s : NodeStatement} {w : NodeWitness}
     {t : Execution guest} (he : guestExecution guest s w = .ok t)
     (hv : ValidExecution guest (PublicInput.ofDigest (statementDigest (deployedSeed guest) s)) t)
-    (hsz : t.committedSize ≤ 2 ^ 30) {ρ : ℕ} (hρ : 1 ≤ ρ ∧ ρ ≤ 4) (hC : LeanVM.Completeness)
-    (hR : HonestProofRarelyRefused) :
+    (hsz : t.committedSize ≤ 2 ^ 30) {ρ : ℕ} (hρ : 1 ≤ ρ ∧ ρ ≤ 4) (hC : LeanVM.Completeness) :
     let input := PublicInput.ofDigest (statementDigest (deployedSeed guest) s)
     Pr{let accepted ← Common.runWithRandomPermutation (do
         match ← guestProve Common.queryPermutation guest s w ρ (2 ^ 35) with
         | none => pure false
         | some proof => leanVmVerifier Common.queryPermutation guest input proof)}[
-        accepted = false] ≤ (2 : ℝ≥0∞)⁻¹ ^ 256 ∧
-    Pr{let accepted ← Common.runWithRandomPermutation (do
-        match ← guestProve Common.queryPermutation guest s w ρ (2 ^ 35) with
-        | none => pure false
-        | some proof => verifierRefusingZero Common.queryPermutation guest input proof)}[
-        accepted = false] ≤ (2 : ℝ≥0∞)⁻¹ ^ 100 := by
+        accepted = false] ≤ (2 : ℝ≥0∞)⁻¹ ^ 256 := by
   have hp : guestProve Common.queryPermutation guest s w ρ (2 ^ 35) =
       leanVmHonestProver Common.queryPermutation guest
         (PublicInput.ofDigest (statementDigest (deployedSeed guest) s)) t ρ (2 ^ 35) := by
@@ -158,7 +187,7 @@ theorem guestProve_complete {guest : LeanIsaProgram} {s : NodeStatement} {w : No
     rfl
   intro input
   rw [hp]
-  exact ⟨hC _ _ t ρ hv hsz hρ, hR _ _ t ρ hv hsz hρ⟩
+  exact hC _ _ t ρ hv hsz hρ
 
 end LeanVM.Guest.EndExec
 

@@ -7,7 +7,8 @@
 
 module
 
-public import LeanVM.Protocol.Keccak.Gkr
+import LeanVM.Protocol.Keccak.Gkr
+public import LeanVM.Protocol.Keccak.Layer
 
 /-!
 # An honest layer

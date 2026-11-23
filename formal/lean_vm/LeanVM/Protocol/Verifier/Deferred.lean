@@ -10,9 +10,14 @@ module
 
 public import LeanVM.Facts.Verifier
 public import LeanVM.Protocol.Verifier.Claims
-public import LeanVM.Protocol.Compile.Prog
-public import LeanVM.Protocol.WithHash
-public import LeanVM.Protocol.WithHashBridge
+import LeanVM.Protocol.Compile.Prog
+import LeanVM.Protocol.WithHash
+import LeanVM.Protocol.WithHashBridge
+public import CompPoly.Univariate.Basic
+public import VCVio.OracleComp.Constructions.SampleableType.Measure
+public import VCVio.OracleComp.QueryTracking.LoggingOracle.Core
+public import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
+public import VCVio.OracleComp.QueryTracking.WriterCost
 
 /-!
 # The deferring verifier, its claims true

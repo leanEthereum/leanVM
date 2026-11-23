@@ -12,6 +12,7 @@ public import LeanVM.Guest.B1.Common.MemSize
 public import LeanVM.Guest.B1.VerifySub.Body
 public import LeanVM.Guest.B1.Placement.Interface
 public import LeanVM.Guest.B1.Placement.Kappas
+public import LeanVM.Guest.VsAt
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_sub»
 
@@ -217,11 +218,11 @@ theorem vsT_pre249 : vsT = (vsHeadT ++ vsReadsT ++ vsSizesT ++ vsPushT ++ vsRoot
   simp only [vsT, List.append_assoc]
 
 /-- **`VsKnown`** from `certify_placement`'s specification: `kappa_base`'s entries below
-`kbBound`, from the body's first `1511` statements (only its first `249` are read). -/
+`kbBound`, from the body's first `vsKbAt` statements (only its first `249` are read). -/
 theorem vsKnown_of {κ : ℕ} (L : MemoryImage κ) (_hmin : minLogMem ≤ κ) (h32 : κ ≤ maxLogMem)
     (hcp : Tables.certify_placement_Spec L.read)
     (σ : Val) (hexp : B1.ExpTables L.read (σ (.n (val% «verify_sub» "g_squares"))))
-    (h : Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((Fn.body fn% «verify_sub»).take 1511)
+    (h : Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((Fn.body fn% «verify_sub»).take End.vsKbAt)
         True
       (fun _ ↦ True)) :
     ∀ i < 8, ∃ e < kbBound i, LoadHolds L.read (σ (.n (val% «verify_sub» "kappa_base"))) i (ofK (addressOfIndex e)) := by
@@ -233,7 +234,7 @@ theorem vsKnown_of {κ : ℕ} (L : MemoryImage κ) (_hmin : minLogMem ≤ κ) (h
     omega
   have hle : CallRel.Le (coreProgram.Rel L.read) (coreProgram.Rel L.read) := fun _ _ _ h ↦ h
   rw [show Fn.body fn% «verify_sub» = vsT from vs_body, vsT_pre249, List.take_append,
-    List.take_of_length_le (by rw [vsPre249_length]; omega)] at h
+    List.take_of_length_le (by rw [vsPre249_length]; decide)] at h
   simp only [holdsList_append] at h
   have h := ((holdsList_noRet _ vsHeadT_noRet _ _).1 h).2
   have h := ((holdsList_noRet _ vsReadsT_noRet _ _).1 h).2

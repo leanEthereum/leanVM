@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Protocol.EndToEnd.Complete.Claims
+import LeanVM.Protocol.Whir.Complete.Tables
 
 /-!
 # The facts an honest run threads

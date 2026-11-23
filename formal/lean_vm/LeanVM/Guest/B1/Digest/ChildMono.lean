@@ -18,6 +18,7 @@ public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«child_claim_list_mono»
 import LeanVM.Guest.Data.ValNames.«child_claim_list_mono_last__L»
+import LeanVM.Guest.B1.Common.Find
 
 /-!
 # `child_claim_list_mono`

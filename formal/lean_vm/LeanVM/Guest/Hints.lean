@@ -22,6 +22,7 @@ public import LeanVM.Guest.Word
 public import LeanVM.Guest.AcceptableChild
 public import LeanVM.Protocol.KeccakHash
 public import LeanVM.Guest.GuestConst
+public import LeanVM.Guest.Coverage
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
 import LeanVM.Guest.Data.Consts
 
@@ -322,10 +323,8 @@ def climbSteps : ℕ → Digest → List Digest → List (ℕ × Digest × Diges
     let (steps, root) := climbSteps (index / 2) parent ss
     ((index, node, s) :: steps, root)
 
-/-- The two children of a step in order. -/
-def stepChildren (step : ℕ × Digest × Digest) : Entry :=
-  if step.1 % 2 = 0 then digestCells step.2.1 ++ digestCells step.2.2
-  else digestCells step.2.2 ++ digestCells step.2.1
+/-- The sibling of a step's node. -/
+def stepSibling (step : ℕ × Digest × Digest) : Entry := digestCells step.2.2
 
 /-- A leaf's lanes as the guest's cells: level `0`'s a `K` lane each, a deeper level's an `E` word
 of two lanes each (`aggregation/child.rs`). -/
@@ -344,8 +343,8 @@ def capDepthOf (count depth : ℕ) : ℕ :=
   depth - (depth - near) / queryWindowBits * queryWindowBits
 
 /-- One level's Merkle hints, from whether it is level `0`, its commitment's height, its query
-count and its phase of openings: per opening its leaf's cells and the ordered children below the
-cap, climbing from its leaf index (`merkle_leaf_rows`, `merkle_children`), then the level's cap
+count and its phase of openings: per opening its leaf's cells and the siblings below the cap,
+climbing from its leaf index (`merkle_leaf_rows`, `merkle_children`), then the level's cap
 nodes and their parents' activity flags (`merkle_caps`, `merkle_cap_active`;
 `aggregation/child.rs`). -/
 def levelHints (first : Bool) (depth count : ℕ) (phase : List Opening) : List (String × Entry) :=
@@ -355,7 +354,7 @@ def levelHints (first : Bool) (depth count : ℕ) (phase : List Opening) : List 
     (o, climbSteps (2 ^ depth + o.leafIndex) (merkleLeafDigest o.leaf) o.path)
   let pushes := climbs.flatMap fun (o, steps, _) ↦
     [("merkle_leaf_rows", leafCells first o.leaf),
-      ("merkle_children", (steps.take pathDepth).flatMap stepChildren)]
+      ("merkle_children", (steps.take pathDepth).flatMap stepSibling)]
   let capSteps := climbs.flatMap fun (_, steps, _) ↦ steps.drop pathDepth
   let nodes := capSteps.foldl (fun (a : Array Digest) step ↦
       (a.set! step.1 step.2.1).set! (step.1 ^^^ 1) step.2.2)

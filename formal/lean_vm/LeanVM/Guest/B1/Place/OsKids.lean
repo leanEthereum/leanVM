@@ -34,14 +34,14 @@ variable {fs : String → ℕ} {cert : String → V → ℕ}
 noncomputable def osKidsOf (σ : Val) (Lk : Layout) (cs : List Call) : List Kid :=
   cs.map fun c => ⟨c.f, c.taken, c.args.map σ, Lk, Returns (c.rets.map σ)⟩
 
-private theorem os_callsMatch_map (σ : Val) (Lk : Layout) : ∀ (cs : List Call) (outs : List (List E × Layout)),
+theorem os_callsMatch_map (σ : Val) (Lk : Layout) : ∀ (cs : List Call) (outs : List (List E × Layout)),
     OutsOk (osKidsOf σ Lk cs) outs → CallsMatch σ cs (osKidsOf σ Lk cs) outs
   | [], [], _ => trivial
   | _ :: cs, _ :: os, ⟨ho, hos⟩ => ⟨rfl, rfl, fun ht => ⟨rfl, (ho ht).1.symm⟩, os_callsMatch_map σ Lk cs os hos⟩
   | [], _ :: _, h => h.elim
   | _ :: _, [], h => h.elim
 
-private theorem os_regionL_append {L L' : Layout} {i : ℕ} (h : RegionL (L ++ L') i) : RegionL L i ∨ RegionL L' i := by
+theorem os_regionL_append {L L' : Layout} {i : ℕ} (h : RegionL (L ++ L') i) : RegionL L i ∨ RegionL L' i := by
   obtain ⟨q, hq, h1, h2⟩ := h
   rcases List.mem_append.mp hq with hq | hq
   · exact Or.inl ⟨q, hq, h1, h2⟩

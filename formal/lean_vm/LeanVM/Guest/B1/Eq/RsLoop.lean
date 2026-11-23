@@ -9,6 +9,7 @@ module
 public import LeanVM.Guest.B1.Eq.RsRows
 public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.B1.Common.Vc
+import LeanVM.Guest.Value.FieldBits
 
 /-!
 # `rs_eq_run_loop0` (`rs_eq_run`'s `mul_range` loop, lean_ethereum.py at leanVM

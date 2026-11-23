@@ -152,10 +152,10 @@ theorem squeeze_atom {ins outs : List V} {b : ℕ} {s : Fs}
 
 /-! ## Records and runs -/
 
-/-- Five capacity cells `16` words apart. -/
+/-- Five capacity cells `krCap` words apart. -/
 theorem capAt_five {rec : E} {k : ℕ} {c0 c1 c2 c3 c4 : E} (h0 : LoadHolds rd rec k c0)
-    (h1 : LoadHolds rd rec (k + 16) c1) (h2 : LoadHolds rd rec (k + 32) c2)
-    (h3 : LoadHolds rd rec (k + 48) c3) (h4 : LoadHolds rd rec (k + 64) c4) :
+    (h1 : LoadHolds rd rec (k + 11) c1) (h2 : LoadHolds rd rec (k + 22) c2)
+    (h3 : LoadHolds rd rec (k + 33) c3) (h4 : LoadHolds rd rec (k + 44) c4) :
     CapAt rd rec k krCap [c0, c1, c2, c3, c4] := by
   refine ⟨rfl, fun j hj => ?_⟩
   simp only [List.length_cons, List.length_nil] at hj

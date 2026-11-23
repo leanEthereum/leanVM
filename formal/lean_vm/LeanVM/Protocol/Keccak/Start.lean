@@ -7,7 +7,10 @@
 
 module
 
-public import LeanVM.Protocol.Keccak.SlotWeights
+import LeanVM.Protocol.Keccak.SlotWeights
+public import LeanVM.Protocol.Keccak.Candidate
+public import LeanVM.Protocol.Keccak.Layer
+import LeanVM.Protocol.Keccak.Words
 
 /-!
 # The first claim

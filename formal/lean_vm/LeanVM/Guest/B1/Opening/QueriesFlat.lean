@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.Common.Loops
+import LeanVM.Guest.B1.Common.Basic
 
 /-!
 # Flat blocks
@@ -104,33 +105,6 @@ theorem flat_map_flatten {α : Type} {xs : List α} {f : α → List Stmt} (h : 
 /-- The meaning of a flat loop body at the arguments `args`. -/
 def FlatBody (rd : Reader) (params : List V) (A : List Stmt) (args : List E) : Prop :=
   ∃ σ : Val, params.map σ = args ∧ BlockOk rd σ A
-
-/-- **A loop of a flat body** (`loop_step_atoms` with `match`es of atom arms). -/
-theorem loop_step_flat {P : Core.Program} {rd : Reader} {f : String} {fn : Fn}
-    (hf : P.find? f = some fn) {A : List Stmt} {c : ℕ} {args : List V}
-    (hb : fn.body = A ++ [.callIf (.n c) f args, .ret []]) (hA : Flat A)
-    {x N : E} {rest : List E}
-    (hc : ∀ σ : Val, fn.params.map σ = x :: N :: rest → BlockOk rd σ A →
-      σ (.n c) = x * gen + N ∧ args.map σ = x * gen :: N :: rest) (d : ℕ) :
-    P.relN rd (d + 1) f (x :: N :: rest) [] ↔
-      FlatBody rd fn.params A (x :: N :: rest) ∧ IsInK (x * gen + N) ∧
-        (x * gen + N ≠ 0 → P.relN rd d f (x * gen :: N :: rest) []) := by
-  rw [relN_succ_iff hf, hb]
-  constructor
-  · rintro ⟨σ, hp, h⟩
-    rw [holdsList_append, holdsList_flat hA] at h
-    obtain ⟨hall, hK, hcall, -⟩ := h
-    obtain ⟨e1, e2⟩ := hc σ hp hall
-    rw [e1] at hK hcall
-    rw [e2] at hcall
-    exact ⟨⟨σ, hp, hall⟩, hK, hcall⟩
-  · rintro ⟨⟨σ, hp, hall⟩, hK, hcall⟩
-    obtain ⟨e1, e2⟩ := hc σ hp hall
-    refine ⟨σ, hp, ?_⟩
-    rw [holdsList_append, holdsList_flat hA]
-    refine ⟨hall, ?_, ?_, rfl⟩
-    · rw [e1]; exact hK
-    · rw [e1, e2]; exact hcall
 
 end
 end LeanVM.Guest.B1

@@ -73,9 +73,6 @@ def mcBody (L : ℕ) : List Stmt :=
   [.atom (.copy (.n (mcBase L L)) (.n (valf% «verify_merkle_cap» "runs[0]"))), .atom (.copy (.n (mcBase L L + 1)) (.n (valf% «verify_merkle_cap» "runs[1]"))),
     .ret [.n (mcBase L L), .n (mcBase L L + 1)]]
 
-theorem noRet_mcNode (L k b : ℕ) : Stmt.noRetList (mcNode L k b) = true := by
-  unfold mcNode; split <;> rfl
-
 theorem verify_merkle_cap_L2_body : (Fn.«verify_merkle_cap__L2».core).body = mcBody (2 ^ 2) :=
   stmtsEqb_sound (by decide +kernel)
 

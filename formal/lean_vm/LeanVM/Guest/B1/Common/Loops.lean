@@ -7,6 +7,8 @@
 module
 
 public import LeanVM.Guest.B1.Common.Atoms
+public import LeanVM.Guest.Renumber
+import LeanVM.Guest.B1.Common.Basic
 
 /-!
 # Loops of atoms

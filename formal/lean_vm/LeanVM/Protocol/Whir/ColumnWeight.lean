@@ -10,7 +10,7 @@ module
 
 public import LeanVM.Protocol.Whir.NovelBasis
 public import LeanVM.Protocol.ToArkLib.InnerProduct
-public import LeanVM.Protocol.ToCompPoly.Multilinear
+import LeanVM.Protocol.ToCompPoly.Multilinear
 
 /-!
 # Column weights

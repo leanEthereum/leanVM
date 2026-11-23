@@ -10,39 +10,31 @@ module
 public import LeanVM.Guest.B1.Opening.QueriesMain
 public import LeanVM.Guest.Memory.Straight
 public import LeanVM.Guest.B1.Opening.WalkMatch
-import LeanVM.Guest.ValRef
-import LeanVM.Guest.Data.ValNames.«walk_path__L»
 
 /-!
 # The statements of `opening_queries`, by kind
 
 The placed form (`RelAtIn`) needs, of a body, its `HeapBuf`s, its `frameAddr`s (a query has
 none), its calls and where its loads read. `OqAtomOk`: an atom of a query is a load reading the
-fold's challenges (`coefs`, below `3·folds`) or, at the final level, the final coefficients (`hs`,
-below `n_hs`), or neither a load, a `frameAddr` nor a `HeapBuf`; `OqWAtomOk`:
-an atom of `walk_path` is a load reading its windows (`bp`, below `npw + 2`: the path's and the
-cap's two), the flag (`.n (Cq + 2)` at `2^(cd-1)`) or the cap leaf (`.n (Cq + 8)` at `2^(cd+1)`,
-`+ 1`), or neither. `AtomsOk`: every statement is such an atom, a `match` of quiet arms
+fold's challenges (`coefs`, below `2·folds`), at the final level the final coefficients (`hs`,
+below `n_hs`), its windows (`bp`, below `npw + 2`: the path's and the cap's two), its flag
+(`.n (Cq + 2)` at `0`) or its cap leaf (`.n (Cq + 8)` below `2`), or neither a load, a `frameAddr`
+nor a `HeapBuf`. `AtomsOk`: every statement is such an atom, a `match` of quiet arms
 (`walk_window`: keccaks, constants, copies) or a call. `oqQuery_atoms_ok`: every statement of a
-query is (its call of `walk_path` among them); `wp_atoms_ok`: every statement of `walk_path`'s body
-but its return.
+query is (its walk inline).
 -/
-
 namespace LeanVM.Guest.B1
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
 
 @[expose] public section
 
-/-- A load of a query: its pointer and offset: the fold's challenges, the final coefficients. -/
-def OqQLoad (s : Oq) (coefs hs : V) (p : V) (off : ℕ) : Prop :=
-  (p = coefs ∧ off < 2 * s.folds) ∨ (s.final = 1 ∧ p = hs ∧ off < s.nHs)
-
-/-- A load of `walk_path`: its pointer and offset: the windows (the path's and the cap's two), the
-flag, the cap leaf. -/
-def OqWLoad (s : Oq) (bp : V) (ch : ℕ) (p : V) (off : ℕ) : Prop :=
-  (p = bp ∧ off < oqNpw s + 2) ∨ (p = .n (oqCq s ch + 2) ∧ off = 2 ^ (s.cd - 1)) ∨
-    (p = .n (oqCq s ch + 8) ∧ (off = 2 ^ (s.cd + 1) ∨ off = 2 ^ (s.cd + 1) + 1))
+/-- A load of a query: its pointer and offset: the fold's challenges, the final coefficients, the
+windows (the path's and the cap's two), the flag, the cap leaf. -/
+def OqQLoad (s : Oq) (coefs hs bp : V) (ch : ℕ) (p : V) (off : ℕ) : Prop :=
+  (p = coefs ∧ off < 2 * s.folds) ∨ (s.final = 1 ∧ p = hs ∧ off < s.nHs) ∨
+    (p = bp ∧ off < oqNpw s + 2) ∨ (p = .n (oqCq s ch + 2) ∧ off = 0) ∨
+    (p = .n (oqCq s ch + 8) ∧ off < 2)
 
 /-- **An atom by kind**: a load whose pointer and offset satisfy `L`, a `frameAddr` whose pointer
 and run satisfy `F`, or neither a load, a `frameAddr` nor a `HeapBuf`. -/
@@ -64,13 +56,8 @@ theorem AtomKind.mono {L L' : V → ℕ → Prop} {F F' : V → List V → Prop}
 
 /-- **An atom of a query, by kind**: a load as `OqQLoad`, or neither a load, a `frameAddr` nor a
 `HeapBuf`. -/
-abbrev OqAtomOk (s : Oq) (coefs hs : V) : Atom → Prop :=
-  AtomKind (OqQLoad s coefs hs) (fun _ _ ↦ False)
-
-/-- **An atom of `walk_path`, by kind**: a load as `OqWLoad`, or neither a load, a `frameAddr` nor
-a `HeapBuf`. -/
-abbrev OqWAtomOk (s : Oq) (bp : V) (ch : ℕ) : Atom → Prop :=
-  AtomKind (OqWLoad s bp ch) (fun _ _ ↦ False)
+abbrev OqAtomOk (s : Oq) (coefs hs bp : V) (ch : ℕ) : Atom → Prop :=
+  AtomKind (OqQLoad s coefs hs bp ch) (fun _ _ ↦ False)
 
 /-- Every statement is an atom of the kind `P`, a `match` of quiet atom arms (fewer than
 `2^64`), or a call. -/
@@ -104,12 +91,6 @@ theorem atomsOk_match {P : Atom → Prop} {y : V} {arms : List (List Stmt)} {ss 
   · exact Or.inr (Or.inl ⟨y, arms, rfl, ha, hl⟩)
   · exact h x hx
 
-theorem atomsOk_call {P : Atom → Prop} {f : String} {args rets : List V} {ss : List Stmt}
-    (h : AtomsOk P ss) : AtomsOk P (.call f args rets :: ss) := fun x hx ↦ by
-  rcases List.mem_cons.mp hx with rfl | hx
-  · exact Or.inr (Or.inr ⟨f, args, rets, rfl⟩)
-  · exact h x hx
-
 theorem AtomsOk.flatM {P : Atom → Prop} {ss : List Stmt} (h : AtomsOk P ss) :
     ss.all Stmt.flatM = true := by
   rw [List.all_eq_true]
@@ -141,29 +122,29 @@ theorem oqWin_match_flatM (s : Oq) (pr kL ch i : ℕ) :
   exact List.all_eq_true.mp (oqArmT_quiet s pr kL ch i a)
 
 section
-variable (s : Oq) (coefs hs : V)
+variable (s : Oq) (coefs hs bp : V) (ch : ℕ)
 
-theorem ok_rowT (b R : ℕ) : AtomsOk (OqAtomOk s coefs hs) (oqRowT b R) :=
+theorem ok_rowT (b R : ℕ) : AtomsOk (OqAtomOk s coefs hs bp ch) (oqRowT b R) :=
   atomsOk_cons trivial atomsOk_nil
 
-theorem ok_packsT (b R : ℕ) : AtomsOk (OqAtomOk s coefs hs) (oqPacksT b R) := by
+theorem ok_packsT (b R : ℕ) : AtomsOk (OqAtomOk s coefs hs bp ch) (oqPacksT b R) := by
   refine atomsOk_flatten fun x hx ↦ ?_
   obtain ⟨j, -, rfl⟩ := List.mem_map.mp hx
   exact atomsOk_cons trivial (atomsOk_cons trivial (atomsOk_cons trivial (atomsOk_cons trivial
     atomsOk_nil)))
 
-theorem ok_prepT (b : ℕ) : AtomsOk (OqAtomOk s coefs hs) (oqPrepT s b) := by
+theorem ok_prepT (b : ℕ) : AtomsOk (OqAtomOk s coefs hs bp ch) (oqPrepT s b) := by
   unfold oqPrepT
-  refine atomsOk_append (ok_rowT _ _ _ _ _) ?_
+  refine atomsOk_append (ok_rowT _ _ _ _ _ _ _) ?_
   split
-  · exact ok_packsT _ _ _ _ _
+  · exact ok_packsT _ _ _ _ _ _ _
   · exact atomsOk_nil
 
-theorem ok_padT (pr : ℕ) : AtomsOk (OqAtomOk s coefs hs) (oqPadT pr) :=
+theorem ok_padT (pr : ℕ) : AtomsOk (OqAtomOk s coefs hs bp ch) (oqPadT pr) :=
   atomsOk_cons trivial (atomsOk_cons trivial (atomsOk_cons trivial (atomsOk_cons trivial
     (atomsOk_cons trivial atomsOk_nil))))
 
-theorem ok_leafT (b pr kL : ℕ) : AtomsOk (OqAtomOk s coefs hs) (oqLeafT s b pr kL) := by
+theorem ok_leafT (b pr kL : ℕ) : AtomsOk (OqAtomOk s coefs hs bp ch) (oqLeafT s b pr kL) := by
   refine atomsOk_flatten fun x hx ↦ ?_
   obtain ⟨k, -, rfl⟩ := List.mem_map.mp hx
   unfold oqBlockT
@@ -180,7 +161,7 @@ theorem ok_leafT (b pr kL : ℕ) : AtomsOk (OqAtomOk s coefs hs) (oqLeafT s b pr
     · exact atomsOk_cons trivial atomsOk_nil
 
 theorem ok_roundT (x : V) (b F : ℕ) {j : ℕ} (hj : j < s.folds) :
-    AtomsOk (OqAtomOk s coefs hs) (oqRoundT s coefs x b F j) := by
+    AtomsOk (OqAtomOk s coefs hs bp ch) (oqRoundT s coefs x b F j) := by
   unfold oqRoundT
   refine atomsOk_append ?_ (atomsOk_flatten fun y hy ↦ ?_)
   · exact atomsOk_cons (Or.inl ⟨rfl, by omega⟩) (atomsOk_cons (Or.inl ⟨rfl, by omega⟩)
@@ -188,14 +169,14 @@ theorem ok_roundT (x : V) (b F : ℕ) {j : ℕ} (hj : j < s.folds) :
   · obtain ⟨m, -, rfl⟩ := List.mem_map.mp hy
     exact atomsOk_cons trivial (atomsOk_cons trivial atomsOk_nil)
 
-theorem ok_foldT (x : V) (b F : ℕ) : AtomsOk (OqAtomOk s coefs hs) (oqFoldT s coefs x b F) := by
+theorem ok_foldT (x : V) (b F : ℕ) : AtomsOk (OqAtomOk s coefs hs bp ch) (oqFoldT s coefs x b F) := by
   unfold oqFoldT
   refine atomsOk_flatten fun y hy ↦ ?_
   obtain ⟨j, hj, rfl⟩ := List.mem_map.mp hy
-  exact ok_roundT s coefs hs x b F (List.mem_range.mp hj)
+  exact ok_roundT s coefs hs bp ch x b F (List.mem_range.mp hj)
 
 theorem ok_nvLevelT (w : V) : ∀ (ins : List ℕ) (k : ℕ),
-    AtomsOk (OqAtomOk s coefs hs) (nvLevelT w ins k).1
+    AtomsOk (OqAtomOk s coefs hs bp ch) (nvLevelT w ins k).1
   | lo :: hi :: rest, k => by
     rw [nvLevelT]
     exact atomsOk_cons trivial (atomsOk_cons trivial (ok_nvLevelT w rest (k + 2)))
@@ -203,81 +184,70 @@ theorem ok_nvLevelT (w : V) : ∀ (ins : List ℕ) (k : ℕ),
   | [], _ => atomsOk_nil
 
 theorem ok_nvLevelsT (ws : ℕ → ℕ) : ∀ (c i : ℕ) (ins : List ℕ) (k : ℕ),
-    AtomsOk (OqAtomOk s coefs hs) (nvLevelsT ws c i ins k).1
+    AtomsOk (OqAtomOk s coefs hs bp ch) (nvLevelsT ws c i ins k).1
   | 0, _, _, _ => atomsOk_nil
   | c + 1, i, ins, k => by
     rw [nvLevelsT]
-    exact atomsOk_append (ok_nvLevelT _ _ _ _ _ _) (ok_nvLevelsT ws c _ _ _)
+    exact atomsOk_append (ok_nvLevelT _ _ _ _ _ _ _ _) (ok_nvLevelsT ws c _ _ _)
 
 theorem ok_novel (hfinal : s.final = 1) (v : ℕ) :
-    AtomsOk (OqAtomOk s coefs hs) (oqNovel s hs v).1 := by
+    AtomsOk (OqAtomOk s coefs hs bp ch) (oqNovel s hs v).1 := by
   unfold oqNovel nvLevel0T
   dsimp only
-  refine atomsOk_append (atomsOk_flatten fun y hy ↦ ?_) (ok_nvLevelsT _ _ _ _ _ _ _ _)
+  refine atomsOk_append (atomsOk_flatten fun y hy ↦ ?_) (ok_nvLevelsT _ _ _ _ _ _ _ _ _ _)
   obtain ⟨m, hm, rfl⟩ := List.mem_map.mp hy
   rw [List.mem_range] at hm
-  exact atomsOk_cons (Or.inr ⟨hfinal, rfl, by omega⟩) (atomsOk_cons (Or.inr ⟨hfinal, rfl, by omega⟩)
+  exact atomsOk_cons (Or.inr (Or.inl ⟨hfinal, rfl, by omega⟩)) (atomsOk_cons (Or.inr (Or.inl ⟨hfinal, rfl, by omega⟩))
     (atomsOk_cons trivial (atomsOk_cons trivial atomsOk_nil)))
 
 theorem ok_finT (hfinal : s.final = 1) (x : V) (v : ℕ) :
-    AtomsOk (OqAtomOk s coefs hs) (oqFinT s x hs v) := by
+    AtomsOk (OqAtomOk s coefs hs bp ch) (oqFinT s x hs v) := by
   unfold oqFinT oqWsT
   refine atomsOk_append (atomsOk_append (atomsOk_cons trivial (atomsOk_flatten fun y hy ↦ ?_))
-    (ok_novel s coefs hs hfinal v)) (atomsOk_cons trivial atomsOk_nil)
+    (ok_novel s coefs hs bp ch hfinal v)) (atomsOk_cons trivial atomsOk_nil)
   obtain ⟨i, -, rfl⟩ := List.mem_map.mp hy
   exact atomsOk_cons trivial (atomsOk_cons trivial (atomsOk_cons trivial atomsOk_nil))
 
-end
-
-section
-variable (s : Oq) (bp : V) (ch : ℕ)
-
-theorem ok_pathT (pr kL : ℕ) : AtomsOk (OqWAtomOk s bp ch) (oqPathT s bp pr kL ch) := by
+theorem ok_pathT (pr kL : ℕ) : AtomsOk (OqAtomOk s coefs hs bp ch) (oqPathT s bp pr kL ch) := by
   unfold oqPathT
   refine atomsOk_cons trivial (atomsOk_flatten fun y hy ↦ ?_)
   obtain ⟨i, hi, rfl⟩ := List.mem_map.mp hy
   rw [List.mem_range] at hi
-  refine atomsOk_cons (Or.inl ⟨rfl, by omega⟩) (atomsOk_append ?_ (atomsOk_cons trivial
+  exact atomsOk_cons (Or.inr (Or.inr (Or.inl ⟨rfl, by omega⟩))) (atomsOk_cons trivial
     (atomsOk_match (oqWin_match_flatM s pr kL ch i) (by
       rw [List.length_map, List.length_range]
       exact le_trans (Nat.pow_le_pow_right (by norm_num) (oqWw_le s i)) (by norm_num))
-      atomsOk_nil)))
-  split
-  · exact atomsOk_cons trivial (atomsOk_cons trivial (atomsOk_cons trivial (atomsOk_cons trivial
-      (atomsOk_cons trivial atomsOk_nil))))
-  · exact atomsOk_nil
+      atomsOk_nil))
 
-theorem ok_capT (cap flags : V) (kL : ℕ) :
-    AtomsOk (OqWAtomOk s bp ch) (oqCapT s bp cap flags kL ch) := by
+theorem ok_capT (cap flags : V) (kN : ℕ) :
+    AtomsOk (OqAtomOk s coefs hs bp ch) (oqCapT bp cap flags (oqCq s ch) (oqNd s kN ch (oqNpw s) 0) (oqNpw s)) := by
   unfold oqCapT
-  exact atomsOk_cons (Or.inl ⟨rfl, by omega⟩) (atomsOk_cons (Or.inl ⟨rfl, by omega⟩)
-    (atomsOk_cons trivial (atomsOk_cons trivial (atomsOk_cons (Or.inr (Or.inl ⟨rfl, rfl⟩))
+  exact atomsOk_cons (Or.inr (Or.inr (Or.inl ⟨rfl, by omega⟩)))
+    (atomsOk_cons (Or.inr (Or.inr (Or.inl ⟨rfl, by omega⟩)))
+    (atomsOk_cons trivial (atomsOk_cons trivial (atomsOk_cons (Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl⟩))))
     (atomsOk_cons trivial (atomsOk_cons trivial (atomsOk_cons trivial (atomsOk_cons trivial
-    (atomsOk_cons trivial (atomsOk_cons (Or.inr (Or.inr ⟨rfl, Or.inl rfl⟩))
-    (atomsOk_cons (Or.inr (Or.inr ⟨rfl, Or.inr rfl⟩)) atomsOk_nil)))))))))))
+    (atomsOk_cons trivial (atomsOk_cons (Or.inr (Or.inr (Or.inr (Or.inr ⟨rfl, by omega⟩))))
+    (atomsOk_cons (Or.inr (Or.inr (Or.inr (Or.inr ⟨rfl, by omega⟩)))) atomsOk_nil)))))))))))
+
+theorem ok_walkT (cap flags : V) (pr kN : ℕ) :
+    AtomsOk (OqAtomOk s coefs hs bp ch) (oqWalkT s bp cap flags pr kN ch) :=
+  atomsOk_append (ok_pathT _ _ _ _ _ _ _) (ok_capT _ _ _ _ _ _ _ _)
 
 end
 
-/-- **Every statement of a query is an atom of its kind**, or its call of `walk_path`. -/
-theorem oqQuery_atoms_ok {s : Oq} (x bp cap flags coefs hs : V) (b : ℕ) (emit : Bool)
-    (pr : ℕ) (walk : String) :
-    AtomsOk (OqAtomOk s coefs hs) (oqQueryT s x bp cap flags coefs hs b emit pr walk) := by
+/-- **Every statement of a query is an atom of its kind** or a `match` of its path. -/
+theorem oqQuery_atoms_ok {s : Oq} (x bp cap flags coefs hs : V) (b : ℕ) (emit : Bool) (pr : ℕ) :
+    AtomsOk (OqAtomOk s coefs hs bp (oqCh s b emit)) (oqQueryT s x bp cap flags coefs hs b emit pr) := by
   unfold oqQueryT
   refine atomsOk_append (atomsOk_append (atomsOk_append (atomsOk_append
-    (atomsOk_append (ok_prepT _ _ _ _) ?_) (ok_leafT _ _ _ _ _ _)) (atomsOk_call atomsOk_nil))
-    (ok_foldT _ _ _ _ _ _)) ?_
+    (atomsOk_append (ok_prepT _ _ _ _ _ _) ?_) (ok_leafT _ _ _ _ _ _ _ _)) (ok_walkT _ _ _ _ _ _ _ _ _))
+    (ok_foldT _ _ _ _ _ _ _ _)) ?_
   · split_ifs
-    · exact ok_padT _ _ _ _
+    · exact ok_padT _ _ _ _ _ _
     · exact atomsOk_nil
   · split_ifs with h
-    · exact ok_finT _ _ _ h _ _
+    · exact ok_finT _ _ _ _ _ h _ _
     · exact atomsOk_nil
-
-/-- **Every statement of `walk_path`'s body but its return is an atom of its kind** or a `match`. -/
-theorem wp_atoms_ok (s : Oq) :
-    AtomsOk (OqWAtomOk s (.n (valf% «walk_path» "wins")) wpCh) (oqPathT s (.n (valf% «walk_path» "wins")) (wpPr s) 0 wpCh ++
-      oqCapT s (.n (valf% «walk_path» "wins")) (.n (valf% «walk_path» "cap")) (.n (valf% «walk_path» "flags")) 0 wpCh) :=
-  atomsOk_append (ok_pathT _ _ _ _ _) (ok_capT _ _ _ _ _ _)
 
 end
 end LeanVM.Guest.B1

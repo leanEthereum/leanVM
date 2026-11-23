@@ -13,6 +13,7 @@ public import LeanVM.Guest.B1.Gkr.GlHead
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«gkr_layer__L»
 import LeanVM.Guest.Data.ValNames.«gkr_layer__L0_L0»
+import LeanVM.Guest.B1.Tables.Basic
 
 /-!
 # A radix-four layer, soundly
@@ -60,12 +61,12 @@ theorem glTailPre_noRet (off : ℕ) :
 theorem glRho_lo {p o k : ℕ} (h : k < 58) : glRho p o (.n k) = .n k := by
   simp [glRho, h]
 
-theorem glRho_mid {p o k : ℕ} (h1 : 58 ≤ k) (h2 : k < 117) : glRho p o (.n k) = .n (k + glD p) := by
+theorem glRho_mid {p o k : ℕ} (h1 : 58 ≤ k) (h2 : k < 121) : glRho p o (.n k) = .n (k + glD p) := by
   simp [glRho, h2, show ¬ k < 58 by omega]
 
-theorem glRho_last {p o k : ℕ} (h1 : 117 ≤ k) (h2 : k < 156) :
+theorem glRho_last {p o k : ℕ} (h1 : 121 ≤ k) (h2 : k < 160) :
     glRho p o (.n k) = .n (k + glD p - 39 * o) := by
-  simp [glRho, h2, show ¬ k < 58 by omega, show ¬ k < 117 by omega]
+  simp [glRho, h2, show ¬ k < 58 by omega, show ¬ k < 121 by omega]
 
 section Sem
 
@@ -126,13 +127,13 @@ theorem gl_layer {p o : ℕ} (hp : p < 4) (ho : o < 2)
   obtain rfl := tb_loadHolds_unique hcl1 hscl
   -- the tail's setup and rounds
   obtain ⟨etp, entp, htc, htcur, htcl⟩ := gl_tailSetup hp hTS
-  rw [hxm, tbCapAt_mul_gen_pow, Nat.add_zero] at htc
-  rw [hxm, tb_loadHolds_mul_gen_pow] at htcur htcl
+  rw [hxm, ← pow_mul, mul_comm m 7, tbCapAt_mul_gen_pow, Nat.add_zero] at htc
+  rw [hxm, ← pow_mul, mul_comm m 7, tb_loadHolds_mul_gen_pow] at htcur htcl
   obtain rfl := tbCapAt_unique htc hc2
   have ecur := tb_loadHolds_unique htcur hcur2
   have ecl := tb_loadHolds_unique htcl hcl2
-  have hcu : σ (.n (76 + D)) = σ (.n (valf% «gkr_layer» "s4#0")) * gen ^ (4 * (2 * p + 8 * m)) := by rw [ecur]; ring
-  have hpt : σ (.n (67 + D)) = σ (.n (valf% «gkr_layer» "point_row")) * gen ^ (2 * p + 8 * m) := by
+  have hcu : σ (.n (80 + D)) = σ (.n (valf% «gkr_layer» "s4#0")) * gen ^ (4 * (2 * p + 8 * m)) := by rw [ecur]; ring
+  have hpt : σ (.n (71 + D)) = σ (.n (valf% «gkr_layer» "point_row")) * gen ^ (2 * p + 8 * m) := by
     rw [etp, hxm, ← pow_mul]; ring
   have RT := glRounds_sound (rd := rd) (2 - o) hTR (by rw [pow_zero, mul_one, entp])
   rw [hcu, hpt] at RT
@@ -148,21 +149,21 @@ theorem gl_layer {p o : ℕ} (hp : p < 4) (ho : o < 2)
     (by rw [tz 24 (by omega)]; exact z24) (by rw [tz 25 (by omega)]; exact z25)
     (by rw [tz 26 (by omega)]; exact z26)
   obtain ⟨treads, tcheck, tsq1, tsq2, tvals, tcap, tcur, tpt0, tpt1, tpos⟩ := T
-  have t77 : τ (.n (val% «gkr_layer__L0_L0» "tcur")) = σ (.n (76 + D)) := by
+  have t77 : τ (.n (val% «gkr_layer__L0_L0» "tcur")) = σ (.n (80 + D)) := by
     show σ (glRho p o (.n (val% «gkr_layer__L0_L0» "tcur"))) = _
     rw [glRho_mid (by omega) (by omega)]
-  have tcapT : (glCap (val% «gkr_layer__L0_L0» "nxt[8]@3")).map τ = (glCapAfter (78 + D) (2 - o) (glCap (71 + D))).map σ := by
+  have tcapT : (glCap (val% «gkr_layer__L0_L0» "nxt[8]@3")).map τ = (glCapAfter (82 + D) (2 - o) (glCap (75 + D))).map σ := by
     simp only [glCapAfter, show 2 - o ≠ 0 by omega, ↓reduceIte, glCap, List.map_map]
     apply List.map_congr_left
     intro k hk
     have hk5 : k < 5 := List.mem_range.mp hk
-    simp only [hτ, Function.comp_apply, glRho_last (show 117 ≤ 137 + k by omega)
-      (show 137 + k < 156 by omega)]
+    simp only [hτ, Function.comp_apply, glRho_last (show 121 ≤ 141 + k by omega)
+      (show 141 + k < 160 by omega)]
     congr 2
     omega
-  have t158 : τ (.n (val% «gkr_layer__L0_L0» "nclaim@2")) = σ (glClaimAfter (78 + D) (2 - o) (.n (77 + D))) := by
+  have t158 : τ (.n (val% «gkr_layer__L0_L0» "nclaim@2")) = σ (glClaimAfter (82 + D) (2 - o) (.n (81 + D))) := by
     simp only [glClaimAfter, show 2 - o ≠ 0 by omega, ↓reduceIte, hτ, Function.comp_apply,
-      glRho_last (show 117 ≤ 155 by omega) (show 155 < 156 by omega)]
+      glRho_last (show 121 ≤ 159 by omega) (show 159 < 160 by omega)]
     congr 2
     omega
   rw [← tcapT, ← t158] at R
@@ -180,8 +181,8 @@ theorem gl_layer {p o : ℕ} (hp : p < 4) (ho : o < 2)
   have t40 : τ (.n (valf% «gkr_layer» "nxt[0]@1")) = s.squeeze.1 := by rw [tz 27 (by omega)]; exact e40
   have hcheck : τ (.n (val% «gkr_layer__L0_L0» "nclaim@2")) = polyEval [prodE (glCh τ 0), prodE (glCh τ 1), prodE (glCh τ 2)]
       s.squeeze.1 := by rw [← t40]; exact tcheck
-  have hstep := gkrStep_run (step := 2) le_rfl false hsc' (chWords_length τ 156 0)
-    (chWords_length τ 156 1) (chWords_length τ 156 2) hcheck
+  have hstep := gkrStep_run (step := 2) le_rfl false hsc' (chWords_length τ (val% «gkr_layer__L0_L0» "x@9") 0)
+    (chWords_length τ (val% «gkr_layer__L0_L0» "x@9") 1) (chWords_length τ (val% «gkr_layer__L0_L0» "x@9") 2) hcheck
   have hstep' : RunsTo (gkrStep 2 false st) s
       (cs.flatten ++ (glCh τ 0 ++ (glCh τ 1 ++ glCh τ 2)))
       ⟨[glCh τ 0, glCh τ 1, glCh τ 2].map
@@ -197,7 +198,7 @@ theorem gl_layer {p o : ℕ} (hp : p < 4) (ho : o < 2)
   have ld : ∀ k w, LoadHolds rd (τ (.n (valf% «gkr_layer» "layer"))) k w → LoadHolds rd (σ (.n (valf% «gkr_layer» "layers"))) (10 * L + k) w :=
     fun k w hw => by rw [t15, tb_loadHolds_mul_gen_pow] at hw; exact hw
   have hcurT : τ (.n (val% «gkr_layer__L0_L0» "tcur")) = σ (.n (valf% «gkr_layer» "s4#0")) * gen ^ (4 * (2 * p + 8 * m)) := by rw [t77, hcu]
-  refine ⟨_, _, _, τ (.n (valf% «gkr_layer» "round_pos")) * τ (.n (valf% «gkr_layer» "x_m")) * gen, hstep', ?_, ?_⟩
+  refine ⟨_, _, _, τ (.n (valf% «gkr_layer» "round_pos")) * (τ (.n (valf% «gkr_layer» "x_m")) * gen) ^ 7, hstep', ?_, ?_⟩
   · rw [tbReadsAt_append, flatten_length_four h4, hlen]
     refine ⟨hrd, ?_⟩
     rw [hcurT, mul_assoc, ← pow_add, e21] at treads
@@ -206,7 +207,7 @@ theorem gl_layer {p o : ℕ} (hp : p < 4) (ho : o < 2)
   refine ⟨by simp [glCap], ?_, rfl, ?_, by simp, ?_, ?_, ?_, ?_⟩
   · intro k hk
     rw [show 10 * (L + 2) + k = 10 * L + (20 + k) by ring]
-    have hg : ((glCap (val% «gkr_layer__L0_L0» "nxt[8]@7")).map τ).getD k 0 = τ (.n (267 + k)) := by
+    have hg : ((glCap (val% «gkr_layer__L0_L0» "nxt[8]@7")).map τ).getD k 0 = τ (.n ((val% «gkr_layer__L0_L0» "nxt[8]@7") + k)) := by
       simp [glCap, List.getD_eq_getElem?_getD, hk]
     rw [hg]
     exact ld _ _ (tcap k hk)

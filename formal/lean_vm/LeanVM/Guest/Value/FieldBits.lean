@@ -6,7 +6,8 @@
 
 module
 
-public import LeanVM.Parameters.Field
+public import Statement.Field
+import LeanVM.Parameters.Field
 
 /-!
 # Field words as bits

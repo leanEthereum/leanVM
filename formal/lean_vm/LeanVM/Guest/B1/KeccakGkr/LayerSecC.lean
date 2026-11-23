@@ -59,28 +59,28 @@ theorem lflipBlk_noRet (lp : V) (sl : ℕ → ℕ) (top top1 i b : ℕ) (s : Stm
 
 /-- **The tail**. -/
 theorem tailT_holds {o W wv : ℕ} {locPt : List E} (hlocL : locPt.length = 11)
-    (hloc : ReadsAt rd (σ (.n (o + 745))) locPt)
+    (hloc : ReadsAt rd (σ (.n (o + 809))) locPt)
     (hf : ∀ i < 25, σ (.n (laneW o i)) = eqAt (locPt.drop 6) i)
-    (p1 : FsPackOk σ (.n (o + 1098)) (o + 1098 + 1) dsObserve)
-    (p2 : FsPackOk σ (.n (o + 1101)) (o + 1101 + 1) dsObserve)
-    (p3 : FsPackOk σ (.n (o + 1104)) (o + 1104 + 1) dsObserve)
+    (p1 : FsPackOk σ (.n (o + 1162)) (o + 1162 + 1) dsObserve)
+    (p2 : FsPackOk σ (.n (o + 1165)) (o + 1165 + 1) dsObserve)
+    (p3 : FsPackOk σ (.n (o + 1168)) (o + 1168 + 1) dsObserve)
     {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ (tailT o W wv) next kret) :
-      σ (.n wv) * (σ (.n (o + 624)) * σ (.n (o + 1098)) +
-        (σ (.n (o + 624)) + σ (.n (o + 1101))) * σ (.n (o + 1104))) = σ (.n (o + 1097)) ∧
-      ((⟨(cap5 (o + 1085)).map σ, []⟩ : Fs).absorbAll
-        [σ (.n (o + 1098)), σ (.n (o + 1101)), σ (.n (o + 1104))] dsObserve).squeeze =
+      σ (.n wv) * (σ (.n (o + 688)) * σ (.n (o + 1162)) +
+        (σ (.n (o + 688)) + σ (.n (o + 1165))) * σ (.n (o + 1168))) = σ (.n (o + 1161)) ∧
+      ((⟨(cap5 (o + 1149)).map σ, []⟩ : Fs).absorbAll
+        [σ (.n (o + 1162)), σ (.n (o + 1165)), σ (.n (o + 1168))] dsObserve).squeeze =
         (σ (.n (W + 8)), ⟨(cap5 (W + 16)).map σ, []⟩) ∧
-      LoadHolds rd (σ (.n (valf% «keccak_layer» "out"))) 0 (σ (.n (o + 1098)) + σ (.n (W + 8)) *
-        (σ (.n (o + 1101)) + σ (.n (W + 8)) * σ (.n (o + 1104)))) ∧
-      LoadHolds rd (σ (.n (valf% «keccak_layer» "out"))) 2 (σ (.n (o + 718))) ∧
-      LoadHolds rd (σ (.n (valf% «keccak_layer» "out"))) 4 (σ (.n (o + 745))) ∧
+      LoadHolds rd (σ (.n (valf% «keccak_layer» "out"))) 0 (σ (.n (o + 1162)) + σ (.n (W + 8)) *
+        (σ (.n (o + 1165)) + σ (.n (W + 8)) * σ (.n (o + 1168)))) ∧
+      LoadHolds rd (σ (.n (valf% «keccak_layer» "out"))) 2 (σ (.n (o + 782))) ∧
+      LoadHolds rd (σ (.n (valf% «keccak_layer» "out"))) 4 (σ (.n (o + 809))) ∧
       LoadHolds rd (σ (.n (valf% «keccak_layer» "out"))) 3 (σ (.n (W + 25))) ∧
       ReadsAt rd (σ (.n (W + 25))) (lanesOut locPt (σ (.n (W + 8)))) ∧
       LoadHolds rd (σ (.n (valf% «keccak_layer» "out"))) 5 (σ (.n (topV W + 3))) ∧
       ReadsAt rd (σ (.n (topV W + 3)))
         (flipsOf (laterWeights (lanesOut locPt (σ (.n (W + 8)))) (eqKernel (locPt.take 6)))) ∧
-      kret ((cap5 (W + 16)).map σ ++ [σ (.n (o + 743)) * gen ^ 36]) := by
+      kret ((cap5 (W + 16)).map σ ++ [σ (.n (o + 807)) * gen ^ 36]) := by
   simp only [tailT, holdsList_append, List.append_assoc] at h
   simp only [Stmt.HoldsList, Stmt.Holds, keccakA] at h
   obtain ⟨e0, e2, e3, e4, e5, e6, heq, z0, z1, hk, h⟩ := h
@@ -98,7 +98,7 @@ theorem tailT_holds {o W wv : ℕ} {locPt : List E} (hlocL : locPt.length = 11)
   rw [holdsList_map_atoms] at h
   obtain ⟨hcp, c0', c1', c2', hret⟩ := h
   simp only [Atom.Holds] at hcp c0' c1' c2'
-  have hsq := sq3_atoms (a := o + 1098) (o := W + 8) (cap := (cap5 (o + 1085)).map σ) p1
+  have hsq := sq3_atoms (a := o + 1162) (o := W + 8) (cap := (cap5 (o + 1149)).map σ) p1
     (by simpa [Nat.add_assoc] using p2) (by simpa [Nat.add_assoc] using p3)
     (by simpa [cap5, Nat.add_assoc] using hk)
     (by rw [z0, word_zero]) (by rw [z1, word_zero]) rfl

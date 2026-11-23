@@ -10,7 +10,7 @@ module
 public import LeanVM.Protocol.ToArkLib.Whir.AffineCombinerFold
 public import LeanVM.Protocol.ToArkLib.Whir.AffineCombinerPacking
 public import LeanVM.Protocol.ToArkLib.Whir.AffineCombinerParams
-public import LeanVM.Protocol.ToArkLib.Whir.AffineCombinerInterpolation
+import LeanVM.Protocol.ToArkLib.Whir.AffineCombinerInterpolation
 
 /-!
 # Affine MCA and the fold round, assembled

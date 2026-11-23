@@ -16,12 +16,12 @@ A function's precondition names tuples of its frame cells in relations by tag (`
 
 * `0`: the exponent table (`B1.ExpTables`) at the tuple's one word (`verify_sub`, `main_loop4`);
 * `1` (`Check.tagNe`): the two words differ, the checker's own (a loop's `x ≠ N`);
-* `walkTag kind odd d cd`: the windows `opening_queries`' walk dispatches on, specialization
-  `(odd, base, depth d, cap_depth cd)` (`lean_ethereum.py`): `kind` `0`
-  `WinWalk` on `[t, x, N]` (a deeper loop, `odd = 0`), `1` `WinWalk2` on `[t, x, N]` (a level-0 loop),
-  `2 + base` `OqMainWins` on `[t, N]` (the function's window pointers and iteration count);
-  `winsTag d cd = walkTag 0 1 d cd`: `WinsAt` on `[wins]`, the windows `walk_path__L{pd}_L{cd}`
-  dispatches on (`lean_ethereum.py` at `40f877dc`), which its callers hand it.
+* `oqTag kind odd pd = walkTag kind odd pd 0`: the windows `opening_queries`' inline walk
+  dispatches on, at path depth `pd` (`lean_ethereum.py`): `kind` `0` `WinWalkP` on `[t, x, N]` (a
+  deeper loop), `1` `WinWalk2P` on `[t, x, N]` (a level-0 loop), `2` `WinWalkP` from `1` on
+  `[t, N]` (a deeper specialization's window pointers and iteration count), `3` `OqStartP` for
+  `odd` on `[t, N, odd_g]` (a level-0 specialization, which assumes both `odd`'s);
+  `tagOdd = walkTag 0 1 0 0`: `odd_g ∈ {1, g}` on `[odd_g]`.
 
 * `tagTabs = 2^21`: `WinTabs` on `[tabs]`, the window table `open_stacked__L{m}` takes as an
   argument (`lean_ethereum.py`), which its decodes and grinds read.
@@ -30,8 +30,8 @@ A function's precondition names tuples of its frame cells in relations by tag (`
   windows `level_queries` hands `opening_queries` (`lean_ethereum.py`, `level_queries`), which
   `open_stacked` assumes at the rate's arm of its dispatch (`Check.selTag`, below `2^26`).
 
-`walkSem t` is the relation of a walk tag `2 ≤ t < 2^21`, decoded by `walkKind`, `walkOdd`, `walkD`,
-`walkCd`. The certificates' generator (`cli/GuestCert.lean`) writes the tags.
+`walkSem t` is the relation of a walk tag `2 ≤ t < 2^21`, decoded by `walkKind`, `walkOdd`, `walkD`
+(`walkCd` too for `lqSem`). The certificates' generator (`cli/GuestCert.lean`) writes the tags.
 -/
 
 namespace LeanVM.Guest
@@ -58,14 +58,17 @@ def walkD (t : ℕ) : ℕ := (t - 2) / 512
 /-- **The relation of walk tag `t`** on the words `ws`. -/
 def walkSem (t : ℕ) (rd : Reader) (ws : List E) : Prop :=
   match walkKind t with
-  | 0 => if walkOdd t = 1 then B1.WinsAt rd (walkD t) (walkCd t) (ws.getD 0 0)
-    else B1.WinWalk rd (walkD t) (walkCd t) (ws.getD 0 0) (ws.getD 1 0) (ws.getD 2 0)
-  | 1 => B1.WinWalk2 rd (walkD t) (walkCd t) (walkOdd t) (ws.getD 0 0) (ws.getD 1 0) (ws.getD 2 0)
-  | k => B1.OqMainWins rd (walkD t) (walkCd t) (walkOdd t) (k - 2) (ws.getD 0 0) (ws.getD 1 0)
+  | 0 => if walkOdd t = 1 then ws.getD 0 0 = 1 ∨ ws.getD 0 0 = gen
+    else B1.WinWalkP rd (walkD t) (ws.getD 0 0) (ws.getD 1 0) (ws.getD 2 0)
+  | 1 => B1.WinWalk2P rd (walkD t) (ws.getD 0 0) (ws.getD 1 0) (ws.getD 2 0)
+  | 2 => B1.WinWalkP rd (walkD t) (ws.getD 0 0) 1 (ws.getD 1 0)
+  | _ => B1.OqStartP rd (walkD t) (walkOdd t) (ws.getD 0 0) (ws.getD 1 0) (ws.getD 2 0)
 
-/-- The tag of `walk_path__L{pd}_L{cd}`'s windows (`WinsAt` on its `wins`), `d = pd + cd`: kind `0`
-with `odd = 1`, which no deeper loop has (a deeper loop's specialization has `odd = 0`). -/
-def winsTag (d cd : ℕ) : ℕ := walkTag 0 1 d cd
+/-- The tag of an `opening_queries` walk relation at path depth `pd`. -/
+def oqTag (kind odd pd : ℕ) : ℕ := walkTag kind odd pd 0
+
+/-- The tag of `odd_g ∈ {1, g}`: kind `0` with `odd = 1`, which no loop's tag has. -/
+def tagOdd : ℕ := walkTag 0 1 0 0
 
 /-- The tag of `level_queries`' windows: the walk `walkTag (2 + base) odd d cd` (`OqMainWins`) on
 `[t]` at `N = g^n`; with `d < 64` the walk tag is below `2^16`, and with `n < 992` the tag below

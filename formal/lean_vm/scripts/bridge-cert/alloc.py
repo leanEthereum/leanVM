@@ -116,7 +116,7 @@ def chk(F, body, abody, A, locs, extra, pows, jt, fs, loop):
 
     def next_at(o):
         s = stat.get(o)
-        return s is not None and s[0] == 'fpg' and s[1] != 0
+        return (s[0] == 'fpg' and s[1] != 0) if s is not None else o in F['nxt']
     hs = [(pc - A['entry'], h) for pc, l in A['hints'] for h in l]
     ptr = lambda h: h[1] if h[0] in ALLOC else None
     is_frame = lambda h: ptr(h) is not None and ptr(h) in F['sites']
@@ -455,8 +455,8 @@ def fr_data(F, A, fb, np, locs, extra, fs, cal):
                 c = cal(st[1])
                 a0 = st[2][0] if st[2] else None
                 ok = c is not None and ((c[1] == h[2] and not c[2]) or (c[2] and isinstance(c[4], int) and a0 is not None and (
-                    (sp_const(a0, 0) and 0 < c[4] and (c[4] + 1) * c[1] == h[2]) or
-                    (sp_const(a0, 1) and 1 < c[4] and c[4] * c[1] == h[2]))))
+                    (sp_const(a0, 0) and 0 < c[4] and c[4] * c[1] + c[5] == h[2]) or
+                    (sp_const(a0, 1) and 1 < c[4] and (c[4] - 1) * c[1] + c[5] == h[2]))))
                 if c:
                     cs.add(c[0])
             elif h[0] == 'allocArm' and st[0] == 'dispatch':
@@ -471,7 +471,7 @@ def fr_data(F, A, fb, np, locs, extra, fs, cal):
                 size, stop = h[2], h[3]
                 b, a0, a1 = st[1], st[3][0], st[3][1]
                 c = cal(st[2])
-                ok = c is not None and c[3] and c[1] == size and loc(a1) == stop and cell(a1) and \
+                ok = c is not None and c[3] and c[1] == size and c[5] == h[5] and loc(a1) == stop and cell(a1) and \
                     ((sp_const(a0, 0) and guard(b, a1, 0)) or (sp_const(a0, 1) and guard(b, a1, 1)))
                 if c:
                     cs.add(c[0])
@@ -497,7 +497,9 @@ def run(check):
         np_ = len(re.findall(r'\.n \d+', re.search(r'params := ([^\n]*)', cores[k]).group(1)))
         nps[k] = np_
         lpn = name.startswith('__loop')
-        byname[name] = (j, fss[k], lpn, lpn and fr_loop_tail(fbs[k], name, np_), lpn and fr_end_of(fbs[k], name, np_))
+        # `B2C.tailN`: the header, parameters and self cell, and the self frame pointer cells
+        tail = max([np_ + 3] + [o + 1 for o in bund[k]['env']])
+        byname[name] = (j, fss[k], lpn, lpn and fr_loop_tail(fbs[k], name, np_), lpn and fr_end_of(fbs[k], name, np_), tail)
     frd = {}
     for j, (k, _, _) in sorted(lk.items()):
         F = dict(fns[k], main=(j == 1))

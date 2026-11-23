@@ -9,7 +9,9 @@
 module
 
 public import LeanVM.Protocol.EndToEnd.Front.LayoutSizes
-public import LeanVM.Protocol.Whir.Complete.Opening
+import LeanVM.Protocol.Whir.Complete.Opening
+public import LeanVM.Protocol.Whir.Complete.Script
+public import ArkLib.Data.CodingTheory.ReedSolomon
 
 /-!
 # The announced sizes and the commitment

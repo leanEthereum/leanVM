@@ -7,7 +7,8 @@
 
 module
 
-public import LeanVM.Protocol.WithHash
+public import LeanVM.Protocol.RunWithHash
+import LeanVM.Protocol.WithHash
 
 /-!
 # A phase of openings

@@ -73,19 +73,18 @@ structure Theorems
   statementDigestBinds : LeanVM.Node.StatementDigestBinds
   /-- The leanISA guest program is complete on every node within the deployed limits
   (`DeployedLimits`: at most `16` children holding `2^17` claims in all, `2048` leanXMSS and `512`
-  leanSPHINCS signatures, a blob matrix of `LeanDa.maxRows` rows), under the deployed seed, wherever
-  every child carries the honest prover's proof (`HonestChild`): the executor (`Prover/Execute.lean`)
-  runs the guest program to a valid execution, within `2^30` committed words, on the advice the
-  guest's witness generation makes from the statement and the witness (`LeanVM.Guest.guestExecution`,
-  `LeanVmGuestProver.lean`) (`LeanVmGuestCompleteness.lean`). With
-  `leanVmCompleteness` and `honestProofRarelyRefused`, the guest's prover (`LeanVM.Guest.guestProve`)
-  makes a proof the verifier accepts, `Statement.Corollaries`' `guestProverComplete`. -/
+  leanSPHINCS signatures, a blob matrix of `LeanDa.maxRows` rows), under the deployed seed, whatever
+  proofs of the guest program the children carry, as long as the deferring verifier accepts them
+  with their fresh claims (`NodeRelation`): the executor (`Prover/Execute.lean`) runs the guest
+  program to a valid execution, within `2^30` committed words, on the advice the guest's witness
+  generation makes from the statement and the witness (`LeanVM.Guest.guestExecution`,
+  `LeanVmGuestProver.lean`), or some child's proof exhibits a Keccak-256 collision between bytes
+  two of its Merkle openings' climbs hash (`OpeningsCollide`) (`LeanVmGuestCompleteness.lean`). The
+  alternative applies to honest children too: the collision-free form on children carrying the
+  honest prover's proofs is `lean_vm`'s `LeanVM.Guest.EndExec.guestExecution_complete_on_honest_children`,
+  not a field. With `leanVmCompleteness`, the guest's prover (`LeanVM.Guest.guestProve`) makes a
+  proof the verifier accepts, `Statement.Corollaries`' `guestProverComplete`. -/
   guestExecutionComplete : LeanVM.Guest.Completeness.GuestExecutionComplete
-  /-- The same honest prover's proof of an execution of the guest program is rarely refused: it
-  makes none, or the verifier refusing every zero challenge rejects it, with
-  probability at most `2^-100` in the random-permutation model (`LeanVmGuestCompleteness.lean`). Read for the deployed
-  Keccak, it is what makes a child carrying the honest proof a `HonestChild`. -/
-  honestProofRarelyRefused : LeanVM.Guest.Completeness.HonestProofRarelyRefused
   /-- The batching run outside the circuit is sound: at most `(QA + QV + 1) · max(2M - 3, 8) ·
   2^-130 + 5 (QA + QV)² · 2^-256` for fewer than `M` children, `QA ≤ 2^128`, `QV ≤ 2^96`, so
   `31 · 2^-130 ≈ 2^-125.05` per query at `M = 17`; it does not compose with the in-circuit

@@ -206,15 +206,15 @@ theorem kidsFromInPE_of_kids' (κ : ℕ) : ∀ (ks : List Kid) (pss : List (Read
               · exact Or.inl (Or.inr ⟨by rw [hct]; exact ht, hi⟩)
               · exact Or.inr hi
             · simpa [hct] using hR2
-    · obtain ⟨N, L, outs, ho, hW, hI, hK⟩ := kidsFromInPE_of_kids' κ ks pss hok.2.2 (b + fs k.f)
-      refine ⟨fs k.f + N, L, ([], []) :: outs, ⟨fun h => absurd h ht, ho⟩,
+    · obtain ⟨N, L, outs, ho, hW, hI, hK⟩ := kidsFromInPE_of_kids' κ ks pss hok.2.2 (b + fs (tailKey k.f))
+      refine ⟨fs (tailKey k.f) + N, L, ([], []) :: outs, ⟨fun h => absurd h ht, ho⟩,
         hW.mono (by omega) (by omega), ⟨fun h => absurd h ht, hI⟩, ?_⟩
       intro rd σ cs R Dacc hc hlow hL hLin hRg
       have ht' : k.taken = false := by simpa using ht
       match cs, hc with
       | c :: cs, ⟨hf, hct, _, hc⟩ =>
         simp only [Kid.lins, List.flatMap_cons] at hLin
-        refine ⟨fs k.f, N, fun _ => False, fun _ => False, rfl, fun _ h => h.elim, ?_, ?_⟩
+        refine ⟨fs (tailKey k.f), N, fun _ => False, fun _ => False, rfl, fun _ h => h.elim, ?_, ?_⟩
         · rw [hct, ht']
           simp only [Bool.false_eq_true, ↓reduceIte]
           exact ⟨by rw [hf], hok.2.1 ht' rd⟩
@@ -274,15 +274,15 @@ theorem kidsFromInPE_of_kidsD (κ : ℕ) : ∀ (ks : List Kid) (pss : List (Read
               · exact Or.inl (Or.inr ⟨by rw [hct]; exact ht, hi⟩)
               · exact Or.inr hi
             · simpa [hct] using hR2
-    · obtain ⟨N, L, outs, ho, hW, hD, hI, hK⟩ := kidsFromInPE_of_kidsD κ ks pss hok.2.2 (b + fs k.f)
-      refine ⟨fs k.f + N, L, ([], []) :: outs, ⟨fun h => absurd h ht, ho⟩,
+    · obtain ⟨N, L, outs, ho, hW, hD, hI, hK⟩ := kidsFromInPE_of_kidsD κ ks pss hok.2.2 (b + fs (tailKey k.f))
+      refine ⟨fs (tailKey k.f) + N, L, ([], []) :: outs, ⟨fun h => absurd h ht, ho⟩,
         hW.mono (by omega) (by omega), hD, ⟨fun h => absurd h ht, hI⟩, ?_⟩
       intro rd σ cs R Dacc hc hlow hL hLin hRg
       have ht' : k.taken = false := by simpa using ht
       match cs, hc with
       | c :: cs, ⟨hf, hct, _, hc⟩ =>
         simp only [Kid.lins, List.flatMap_cons] at hLin
-        refine ⟨fs k.f, N, fun _ => False, fun _ => False, rfl, fun _ h => h.elim, ?_, ?_⟩
+        refine ⟨fs (tailKey k.f), N, fun _ => False, fun _ => False, rfl, fun _ h => h.elim, ?_, ?_⟩
         · rw [hct, ht']
           simp only [Bool.false_eq_true, ↓reduceIte]
           exact ⟨by rw [hf], hok.2.1 ht' rd⟩

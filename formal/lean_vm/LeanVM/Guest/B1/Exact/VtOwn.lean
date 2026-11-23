@@ -112,8 +112,8 @@ variable {rd : Reader} {w : ℕ → E} {args : List E}
 
 /-- **The limbs hints are exact** on the honest valuation: it evaluates them. -/
 theorem vt_limbs_exact (hl : args.length = 21) : ∀ a ∈ vtLimbA, a.Exact rd (vtσ rd w args) := by
-  have g1 := vt_goodL (rd := rd) (w := w) hl 5514 [.atom (.hint (.limbs (.n (val% «verify_tables» "pi_0")) [.n (val% «verify_tables» "lo[0]@1")]))] (by decide +kernel)
-  have g2 := vt_goodL (rd := rd) (w := w) hl 5519 [.atom (.hint (.limbs (.n (val% «verify_tables» "pi_1")) [.n (val% «verify_tables» "lo[0]@2")]))] (by decide +kernel)
+  have g1 := vt_goodL (rd := rd) (w := w) hl 5210 [.atom (.hint (.limbs (.n (val% «verify_tables» "pi_0")) [.n (val% «verify_tables» "lo[0]@1")]))] (by decide +kernel)
+  have g2 := vt_goodL (rd := rd) (w := w) hl 5215 [.atom (.hint (.limbs (.n (val% «verify_tables» "pi_1")) [.n (val% «verify_tables» "lo[0]@2")]))] (by decide +kernel)
   generalize vtσ rd w args = σ at g1 g2 ⊢
   simp only [GoodL, GoodS, fixNe, Good, and_true] at g1 g2
   intro a ha
@@ -145,7 +145,7 @@ theorem vt_sites_exact {H : VtHonest} (hs : VtShape H) (B : VtBases) {o : ℕ} {
     vt_lin_reads (q := (B'.dims, H.dimsW)) hm (by simp [VtHonest.linL])
   have mSq : TbReadsAt rd (ofK (addressOfIndex B'.sq)) expTableWordsW :=
     vt_lin_reads (q := (B'.sq, expTableWordsW)) hm (by simp [VtHonest.linL])
-  have hd := fun j (hj : j < 9) ↦ ownW_getD_head H B' hj
+  have hd := fun j (hj : j < 4) ↦ ownW_getD_head H B' hj
   have o33 : TbReadsAt rd (vtW H B' 34) (vtGKeyW H.lm H.τ) :=
     vt_own_reads' hm hw (j := 0) (by norm_num) rfl (hd 0 (by norm_num))
   have o34 : TbReadsAt rd (vtW H B' 35) (vtGSizeW H.lm H.τ) :=
@@ -177,15 +177,15 @@ theorem vt_sites_exact {H : VtHonest} (hs : VtShape H) (B : VtBases) {o : ℕ} {
   intro a ha
   simp only [vtSites, List.mem_append, List.mem_map, List.mem_range] at ha
   rcases ha with ((⟨b, hb, rfl⟩ | ⟨i, hi, rfl⟩) | ⟨i, hi, rfl⟩) | ha
-  · have hr := vt_own_reads' hm hw (j := 9 + b) (by omega) (vtAllocVars_F b hb) (ownW_getD_F H B' hb)
+  · have hr := vt_own_reads' hm hw (j := 19 + b) (by omega) (vtAllocVars_F b hb) (ownW_getD_F H B' hb)
     exact bitsExp_exact (hfP b (by omega)) (hP' b (by omega)) (vt_alloc_var hl (dF b hb)) hr
   · obtain ⟨e1, ht, hav⟩ := dP i hi
-    have hr := vt_own_reads' hm hw (j := 12 + i) (by omega) (vtAllocVars_P i hi) (ownW_getD_P H B' hi)
+    have hr := vt_own_reads' hm hw (j := 22 + i) (by omega) (vtAllocVars_P i hi) (ownW_getD_P H B' hi)
     have hv : vtσ rd (vtW H B') (H.args B') (.n (vtBoffV (vtPushSel.getD i default).1)) =
         gen ^ H.offP.getD (3 + i) 0 := by rw [e1]; exact hP' _ (by omega)
     exact digits_exact (hfP (3 + i) (by omega)) (hτ _ ht) hv (hkbt _ ht) (vt_alloc_var hl hav) hr
   · obtain ⟨e1, ht, hav⟩ := dC i hi
-    have hr := vt_own_reads' hm hw (j := 63 + i) (by omega) (vtAllocVars_C i hi) (ownW_getD_C H B' hi)
+    have hr := vt_own_reads' hm hw (j := 73 + i) (by omega) (vtAllocVars_C i hi) (ownW_getD_C H B' hi)
     have hv : vtσ rd (vtW H B') (H.args B') (.n (vtBoffV (vtCountSel.getD i default).1)) =
         gen ^ H.offC.getD i 0 := by rw [e1]; exact hC' _ hi
     exact digits_exact (hfC i hi) (hτ _ ht) hv (hkbt _ ht) (vt_alloc_var hl hav) hr

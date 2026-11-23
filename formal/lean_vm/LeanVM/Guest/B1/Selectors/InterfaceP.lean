@@ -9,7 +9,7 @@
 module
 
 public import LeanVM.Guest.B1.Tables.Base
-public import LeanVM.Guest.GuestConst
+import LeanVM.Guest.GuestConst
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
 import LeanVM.Guest.Data.Consts
 
@@ -254,12 +254,16 @@ abbrev selNibbles : ℕ := guest_const% SEL_NIBBLES
 def selEqEntry (p p1 : List E) (j w u : ℕ) : E :=
   ∏ t ∈ Finset.Ico (3 - w) 4, if u.testBit t then p.getD (4 * j + t) 0 else p1.getD (4 * j + t) 0
 
+/-- Where a nibble's level-`w` eq table starts (`SEL_EQ_OFF`): levels `0 .. 2` interleaved in one
+`16`-cell row, each in the others' gaps, level `3` the next row. -/
+def selEqOff (w : ℕ) : ℕ := [4, 2, 1, 16].getD w 0
+
 /-- The opening point's eq tables (`selector_tables`): nibble `j`'s level-`w` table,
-over its top `w + 1` coordinates, at `sel_eq·g^(64j + 16w)` (`SEL_EQ_STRIDE = 64`), strided: its
-entries `u < 16` that are multiples of `2^(3 - w)`. -/
+over its top `w + 1` coordinates, at `sel_eq·g^(32j + selEqOff w)` (`SEL_EQ_STRIDE = 32`),
+strided: its entries `u < 16` that are multiples of `2^(3 - w)`. -/
 def EqTabsAt (rd : Reader) (se : E) (p p1 : List E) : Prop :=
   ∀ j < selNibbles, ∀ w < 4, ∀ u < 16, 2 ^ (3 - w) ∣ u →
-    LoadHolds rd se (64 * j + 16 * w + u) (selEqEntry p p1 j w u)
+    LoadHolds rd se (32 * j + selEqOff w + u) (selEqEntry p p1 j w u)
 
 /-- The opening selector's nibble shares (`exponent_tables`; `check_opening_terminal`
 reads them at `g_squares·g^SIZE_BITS`): `g^(u·16^j)` at `sel_g·g^(16j + u)`. -/

@@ -19,7 +19,7 @@ so each callee's size `n` must be bounded in its existential, before the memory:
 T B` is `CompleteAtDT … T` with `n ≤ B` (mumbai's `CompleteAtB`, with a tree predicate); `CompleteAtDTBR` takes a predicate of the memory, for what a tree reads through it (its pops).
 
 * `kidsFromInT_of_kidsDTB`: callees with bounds `Bs` give a total `N` at most `kidsBoundL`: each
-  entered call's bound, each other call's frame.
+  entered call's bound, each other call's tail.
 * `completeAtDTB_of_relIn`: a pure function loading the caller's words, every valid tree of it at
   `args` of at most `B` words (`TotalLe`, from the static certificates), is complete within `B`.
 * `completeAtDTB_leaf`: a leaf with its `HeapBuf`s, within its frame and buffers.
@@ -164,9 +164,9 @@ def KidsDTB (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) :
       (Ts.headD fun _ => True) (Bs.headD 0)) ∧ KidsDTB fs cert κ ks Ts.tail Bs.tail
   | [], _, _ => True
 
-/-- The callees' words: an entered call's bound, another's frame. -/
+/-- The callees' words: an entered call's bound, another's tail (its phantom). -/
 def kidsBoundL (fs : String → ℕ) : List Kid → List ℕ → ℕ
-  | k :: ks, Bs => (if k.taken then Bs.headD 0 else fs k.f) + kidsBoundL fs ks Bs.tail
+  | k :: ks, Bs => (if k.taken then Bs.headD 0 else fs (tailKey k.f)) + kidsBoundL fs ks Bs.tail
   | [], _ => 0
 
 theorem KidsDTB.lowMono {κ κ' : ℕ} (hk : κ ≤ κ') : ∀ {ks : List Kid} {Ts : List (Tree → Prop)}
@@ -225,8 +225,8 @@ theorem kidsFromInT_of_kidsDTB (κ : ℕ) : ∀ (ks : List Kid) (Ts : List (Tree
               · exact Or.inr hi
             · simpa [hct] using hR2
     · obtain ⟨N, L, outs, hNB, ho, hW, hD, hI, hK⟩ :=
-        kidsFromInT_of_kidsDTB κ ks Ts.tail Bs.tail hok.2 (b + fs k.f)
-      refine ⟨fs k.f + N, L, ([], []) :: outs, ?_, ⟨fun h => absurd h ht, ho⟩,
+        kidsFromInT_of_kidsDTB κ ks Ts.tail Bs.tail hok.2 (b + fs (tailKey k.f))
+      refine ⟨fs (tailKey k.f) + N, L, ([], []) :: outs, ?_, ⟨fun h => absurd h ht, ho⟩,
         hW.mono (by omega) (by omega), hD, ⟨fun h => absurd h ht, hI⟩, ?_⟩
       · simp only [kidsBoundL, ht, Bool.false_eq_true, ↓reduceIte]
         omega
@@ -234,7 +234,7 @@ theorem kidsFromInT_of_kidsDTB (κ : ℕ) : ∀ (ks : List Kid) (Ts : List (Tree
       match cs, hc with
       | c :: cs, ⟨hf, hct, _, hc⟩ =>
         simp only [Kid.lins, List.flatMap_cons] at hLin
-        refine ⟨fs k.f, N, fun _ => False, fun _ => False, rfl, fun _ h => h.elim, ?_, ?_⟩
+        refine ⟨fs (tailKey k.f), N, fun _ => False, fun _ => False, rfl, fun _ h => h.elim, ?_, ?_⟩
         · have ht' : k.taken = false := by simpa using ht
           rw [hct, ht']
           simp only [Bool.false_eq_true, ↓reduceIte]

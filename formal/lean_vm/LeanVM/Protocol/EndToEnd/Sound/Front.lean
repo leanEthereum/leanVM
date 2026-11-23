@@ -9,7 +9,7 @@
 module
 
 public import LeanVM.Protocol.EndToEnd.Sound.Assemble
-public import LeanVM.Protocol.EndToEnd.Sound.BusDepth
+import LeanVM.Protocol.EndToEnd.Sound.BusDepth
 public import LeanVM.Protocol.EndToEnd.Front.TableFidLeanIsa
 public import LeanVM.Protocol.EndToEnd.Front.KeccakBridge
 public import LeanVM.Protocol.EndToEnd.Front.PubPhase

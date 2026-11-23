@@ -10,10 +10,11 @@ module
 
 public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Guest.ExpTables
-public import LeanVM.Guest.B1.Gkr.Fs
+import LeanVM.Guest.B1.Gkr.Fs
 public import LeanVM.Guest.B1.Placement.InterfaceP
 public import LeanVM.Guest.B1.Selectors.InterfaceP
-public import LeanVM.Guest.GuestConst
+public import LeanVM.Guest.B1.Common.Sponge
+import LeanVM.Guest.GuestConst
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
 import LeanVM.Guest.Data.Consts
 

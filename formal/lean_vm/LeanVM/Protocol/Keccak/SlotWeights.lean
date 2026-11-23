@@ -7,7 +7,8 @@
 
 module
 
-public import LeanVM.Protocol.Keccak.Candidate
+import LeanVM.Protocol.Keccak.Candidate
+public import LeanVM.Protocol.Keccak.Multilinear
 
 /-!
 # The slot weights

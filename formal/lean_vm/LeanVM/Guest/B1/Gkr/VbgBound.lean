@@ -24,9 +24,10 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core
 
 @[expose] public section
 
-/-- The buffers' sizes: `layers`, the round records, the point rows, the tables `depth_odd`,
-`four_bounds`, `four_rem`, and the last slot's values. -/
-def vbgSizes (depth : ℕ) : List ℕ := [10 * (depth + 2), 6034, 1640, 33, 33, 33, 3]
+/-- The buffers' sizes: `layers`, `gkr_sizes`, the round records and the point rows at the depth,
+the tables `depth_odd`, `four_bounds`, `four_rem`, and the last slot's values. -/
+def vbgSizes (depth : ℕ) : List ℕ :=
+  [10 * (depth + 2), 66, 7 * gkRecCount depth, (depth / 2 + 2) * 40, 33, 33, 33, 3]
 
 /-- `verify_bus_gkr`'s words: its frame, its buffers, the radix-four layers' call tree
 (`gkr_layers__L{o}`, at most `KL` words), `verify_bus_gkr_loop0`'s run (`depth` iterations of at

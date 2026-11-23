@@ -7,8 +7,9 @@
 
 module
 
-public import LeanVM.Protocol.ToCompPoly.Multilinear
+import LeanVM.Protocol.ToCompPoly.Multilinear
 public import VCVio.OracleComp.Constructions.SampleableType.Basic
+public import CompPoly.Multilinear.Basic
 
 /-!
 # Out-of-domain separation

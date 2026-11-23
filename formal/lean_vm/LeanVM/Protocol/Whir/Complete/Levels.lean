@@ -10,6 +10,8 @@ module
 public import LeanVM.Protocol.Whir.Complete.Rounds
 public import LeanVM.Protocol.Whir.Complete.Script
 public import LeanVM.Protocol.Whir.Complete.Encoding
+public import LeanVM.Prover.WhirTables
+import LeanVM.Protocol.Whir.SubspaceAt
 
 namespace LeanVM.Protocol.Whir.Complete
 
@@ -469,10 +471,6 @@ theorem require_bind_of {α : Type} {c : Prop} [Decidable c] (hc : c) (G : Unit 
     (VerifierProgram.require c).bind G = G () := by
   simp [VerifierProgram.require, hc]
 
-theorem zip_map_self {β : Type} (f : ℕ → β) : ∀ l : List ℕ, l.zip (l.map f) = l.map fun a ↦ (a, f a)
-  | [] => rfl
-  | a :: l => by simp [zip_map_self f l]
-
 /-- The rows the verifier reads at level `index`. -/
 def lanesOfV (index : ℕ) (row : List K) : List E :=
   if index = 0 then row.reverse.map ofK else extRow row
@@ -625,7 +623,7 @@ theorem follows_levelsA (μ lf : ℕ) (B : List E → E) :
       · simp only [lanesOfV] at hrow0
         have hl := hok
         simp only [ladderOK, Bool.and_eq_true, decide_eq_true_eq] at hl
-        rw [zip_map_self, List.all_eq_true]
+        rw [← List.map_prod_left_eq_zip, List.all_eq_true]
         intro x hx
         obtain ⟨q, hq', rfl⟩ := List.mem_map.mp hx
         refine decide_eq_true ?_

@@ -74,7 +74,7 @@ theorem vt_pops (hv : (Memory.Tree.node "verify_tables" σ bufs kids).Valid core
   obtain ⟨k1, h0, -⟩ := h0.dropMute noWitS_mute (segOk_parts h1)
   obtain ⟨k2, p2, h0, e2, -⟩ := h0.dropAtom (a := 17) (stmtAt_sound h2)
   obtain ⟨k3, h0, -⟩ := h0.dropMute noWitS_mute (segOk_parts h3)
-  obtain ⟨k4, p4, h0, e4, -⟩ := h0.dropAtom (a := 2590) (stmtAt_sound h4)
+  obtain ⟨k4, p4, h0, e4, -⟩ := h0.dropAtom (a := 2286) (stmtAt_sound h4)
   rw [e2, e4, h0.endMute noWitS_mute (noWitBlock_mute h5)]
   rfl
 
@@ -89,10 +89,10 @@ theorem vs_pops (hv : (Memory.Tree.node "verify_sub" σ bufs kids).Valid corePro
       tcp.name = "certify_placement" ∧ tcp.Valid coreProgram rd [σ (.n (val% «verify_sub» "kappa_base")), σ (.n (val% «verify_sub» "g_squares"))] [σ (.n (val% «verify_sub» "g_total")), σ (.n (val% «verify_sub» "col_offsets"))] ∧
       tvt.name = "verify_tables" ∧
       tvt.Valid coreProgram rd
-        (([545, 546, 547, 548, 549, 550, 0, 1, 254, 253, 71, 26, 4, 334, 530, 6, 552, 551, 555, 553, 25].map V.n).map σ)
+        (([597, 598, 599, 600, 601, 602, 0, 1, 254, 253, 71, 26, 4, 386, 582, 6, 604, 603, 607, 605, 25].map V.n).map σ)
         (((List.range 10).map fun k => V.n ((val% «verify_sub» "fs0@4") + k)).map σ) ∧
       tos.name = vsOpen[i] ∧
-      tos.Valid coreProgram rd (([66, 1337, 1338, 1339, 1340, 1341, 1883, 268, 271, 1885, 1887].map V.n).map σ)
+      tos.Valid coreProgram rd (([66, 1441, 1442, 1443, 1444, 1445, 1987, 268, 271, 1989, 1991].map V.n).map σ)
         (((List.range 5).map fun k => V.n ((val% «verify_sub» "sumcheck_target") + k)).map σ) ∧ tcp ∈ kids ∧ tvt ∈ kids ∧ tos ∈ kids ∧
       (Memory.Tree.node "verify_sub" σ bufs kids).pops coreProgram rd =
         vsPops rd σ ++ tcp.pops coreProgram rd ++ tvt.pops coreProgram rd ++ tos.pops coreProgram rd := by
@@ -108,9 +108,9 @@ theorem vs_pops (hv : (Memory.Tree.node "verify_sub" σ bufs kids).Valid corePro
   obtain ⟨q5, h0, m5⟩ := h0.dropMute noWitS_mute (segOk_parts h5)
   obtain ⟨tcp, qa, p6, ncp, vcp, h0, e6, icp, m6⟩ := h0.dropCall (a := 243) (stmtAt_sound h6)
   obtain ⟨q6, h0, m7⟩ := h0.dropMute noWitS_mute (segOk_parts h7)
-  obtain ⟨tvt, qb, p8, nvt, vvt, h0, e8, ivt, m8⟩ := h0.dropCall (a := 316) (stmtAt_sound h8)
+  obtain ⟨tvt, qb, p8, nvt, vvt, h0, e8, ivt, m8⟩ := h0.dropCall (a := 355) (stmtAt_sound h8)
   obtain ⟨q7, h0, m9⟩ := h0.dropMute noWitS_mute (segOk_parts h9)
-  obtain ⟨tos, i, qc, p10, hi, hx, nos, vos, h0, e10, ios, -⟩ := h0.dropDispatch (a := 1510) (stmtAt_sound h10)
+  obtain ⟨tos, i, qc, p10, hi, hx, nos, vos, h0, e10, ios, -⟩ := h0.dropDispatch (a := 1588) (stmtAt_sound h10)
   have m5' : ∀ x ∈ q5, x ∈ kids := fun x hx => m1 _ (m2 _ (m3 _ (m4 _ (m5 _ hx))))
   have m7' : ∀ x ∈ q6, x ∈ kids := fun x hx => m5' _ (m6 _ (m7 _ hx))
   refine ⟨tcp, tvt, tos, i, hi, hx, ncp, vcp, nvt, vvt, nos, vos, m5' _ icp, m7' _ ivt,

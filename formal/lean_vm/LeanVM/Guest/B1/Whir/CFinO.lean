@@ -23,7 +23,7 @@ open LeanVM.Guest.Value LeanVM.Protocol.Verifier
 
 @[expose] public section
 
-theorem osOodFacs_ssa : ∀ (cs : List (ℕ × ℕ × ℕ)) (sc k : ℕ), 33 ≤ k → sc < k →
+theorem osOodFacs_ssa : ∀ (cs : List (ℕ × ℕ × ℕ)) (sc k : ℕ), 43 ≤ k → sc < k →
     (∀ x ∈ cs, x.2.1 < k) →
     SsaP k (osOodFacs sc cs k).1 (osOodFacs sc cs k).2.2 ∧
       (osOodFacs sc cs k).2.1 < (osOodFacs sc cs k).2.2 ∧
@@ -46,7 +46,7 @@ theorem osOodFacs_ssa : ∀ (cs : List (ℕ × ℕ × ℕ)) (sc k : ℕ), 33 ≤
       · exact Or.inr ⟨x, List.mem_cons_of_mem _ hx, he⟩
 
 theorem osOodWeight_ssa (c : OsCfg) (tch prevCols ol : ℕ) (lv : OsLv) (k : ℕ) (htch : tch < k)
-    (hk : 33 ≤ k) :
+    (hk : 43 ≤ k) :
     SsaP k (osOodWeight c tch prevCols ol lv k).1 (osOodWeight c tch prevCols ol lv k).2.2 ∧
       (osOodWeight c tch prevCols ol lv k).2.1 < (osOodWeight c tch prevCols ol lv k).2.2 ∧
       (∀ p o, (p, o) ∈ loadsOf (osOodWeight c tch prevCols ol lv k).1 →
@@ -86,7 +86,7 @@ def OodLoads (c : OsCfg) (tch : ℕ) : ℕ → ℕ → List OsLv → ℕ → ℕ
     OodLoads c tch lv.logCols (ol + 1) rest p o
 
 theorem osOodWeights_ssa (c : OsCfg) (tch : ℕ) :
-    ∀ (prevCols ol : ℕ) (lvs : List OsLv) (acc : Option ℕ) (k : ℕ), tch < k → 33 ≤ k →
+    ∀ (prevCols ol : ℕ) (lvs : List OsLv) (acc : Option ℕ) (k : ℕ), tch < k → 43 ≤ k →
       (∀ x, acc = some x → x < k) →
       SsaP k (osOodWeights c tch prevCols ol lvs acc k).1 (osOodWeights c tch prevCols ol lvs acc k).2.2 ∧
         (∀ x, (osOodWeights c tch prevCols ol lvs acc k).2.1 = some x →

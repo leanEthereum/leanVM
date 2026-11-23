@@ -14,10 +14,10 @@ public import LeanVM.Guest.Pow
 /-!
 # The normalizers, certified
 
-`hsScale v bits c init` (`Template.lean`) multiplies `init` by `LIG_VANISH_INVS[v + i]` over the set
+`hsScale v bits c init` (`Template.lean`) multiplies `init` by `VANISH_INVS_BY_COLS[v + i]` over the set
 bits `i < bits` of `c` with `kmulN`, the compiler's constant folding. `hsScaleM` is the same fold
 with `Pow.mulN`, which `Pow.ofBits_mulN` proves the product of `K`. `hsScale_all`: at every level
-the mid-level normalizers (`osHsMid`, `c < folds`, `init = LIG_VANISH_INVS[vanish + logCols]`) and
+the mid-level normalizers (`osHsMid`, `c < folds`, `init = VANISH_INVS_BY_COLS[vanish + logCols]`) and
 at the final level the lane's (`osHsFinal`, `c < yrLen + folds`, `init = 1`) agree, the high bits
 are at most `logCols + 1`, and the final level's tables hold `yrLog + 1` roots (`vanishOk`).
 -/

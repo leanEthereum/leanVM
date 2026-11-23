@@ -830,10 +830,6 @@ def infer_one(k, S, allow=None, hcsig=None):
     I.SIGS.clear()
     for f, h in cs.items():
         I.SIGS[I.callee(f)] = h
-    G0 = own.clone()
-    I.SIGS[k] = G0
-    P = I.Pass(k, G0).run()
-    # (the inference may want more own preconditions than the signature states: the solver below, at `own`, decides)
     # the witnesses: the emitter's solver, in `heapOkC`'s own pass, at these signatures
     sigs, hs = {}, {}
     for f, h in cs.items():
@@ -846,12 +842,25 @@ def infer_one(k, S, allow=None, hcsig=None):
     if dr:
         raise No('own signature dropped')
     sigOf = lambda g: sigs.get(I.callee(g), EM.C.EMPTY)
-    H, Sv, pas = EM.solve(k, P, sigs, sigOf)
-    if (pas.fails or Sv.miss) and has_fa(body) and fa_past(k):
-        # with frame run cells past their runs, which the frame walk has written at the returns (`CoreMode.FAW`)
-        H, Sv, pas = EM.solve(k, P, sigs, sigOf, fa_past(k))
-    if pas.fails or Sv.miss:
-        raise No('unwitnessed: ' + str((list(pas.fails) + [('miss',) + m for m in Sv.miss])[0])[:60])
+    sp = split_of(k)
+    certs = []
+    for r in (range(sp[1]) if sp else [None]):
+        with I.at_arm(k, (sp[0], r) if sp else None):
+            G0 = own.clone()
+            I.SIGS[k] = G0
+            P = I.Pass(k, G0).run()
+            # (the inference may want more own preconditions than the signature states: the solver below, at `own`,
+            # decides)
+            H, Sv, pas = EM.solve(k, P, sigs, sigOf)
+            if (pas.fails or Sv.miss) and has_fa(body) and fa_past(k):
+                # with frame run cells past their runs, which the frame walk has written at the returns
+                # (`CoreMode.FAW`)
+                H, Sv, pas = EM.solve(k, P, sigs, sigOf, fa_past(k))
+            if pas.fails or Sv.miss:
+                raise No('unwitnessed: ' + ('arm %d: ' % r if sp else '') +
+                         str((list(pas.fails) + [('miss',) + m for m in Sv.miss])[0])[:60])
+        certs.append(H)
+    H = split_merge(k, certs, sp[0]) if sp else certs[0]
     # the callees' ghost words, those `hpArgOk` names
     for g, ks, ms in H.gargs:
         Gf = S.get(STABLE.get(g, g)) or S.get(g)
@@ -868,7 +877,7 @@ def infer_one(k, S, allow=None, hcsig=None):
         r = ('lt', ('val', x), ('num', m))
         if r not in H.res:
             H.res.append(r)
-    _ck = EM.check(k, H, sigOf)
+    _ck = split_check(k, H, sigOf)
     if _ck is not None:
         raise No('recheck ' + str(_ck)[:300])
     if H.res and not (allow and allow(k, H.res)):
@@ -879,9 +888,82 @@ def infer_one(k, S, allow=None, hcsig=None):
         # written at the returns (`CoreMode.faNeed`, `faRetOk`, which the kernel checks on the frame walk)
         fas = H.fas
         H.fas = []
-        if EM.check(k, H, sigOf) is not None:
+        if split_check(k, H, sigOf) is not None:
             H.fas = fas
     return dict(cert=H, cs=hs, dsp=dsp, hcs=sorted(hcs))
+
+
+def split_of(k):
+    """A certificate split at a selector (`CoreMode.heapOkC`, `HCert.arms`): its rule file's `split` hook, `(x, n)`, the
+    selector's value number and the arms; `None`, one certificate."""
+    import fnrules
+    return fnrules.first('split', k)
+
+
+def arm_cert(H, r):
+    """`HCert.arm`: arm `r`'s certificate of a split, its per-arm parts, the shared ones `H`'s."""
+    A = H.arms[r]
+    out = _em().C.HCert(H.sig)
+    out.reads, out.calls, out.rets, out.divs, out.hvs, out.eqs, out.dups = \
+        A.reads, A.calls, A.rets, A.divs, A.hvs, A.eqs, A.dups
+    out.res, out.gargs, out.fas, out.ders = H.res, H.gargs, H.fas, H.ders
+    return out
+
+
+def split_merge(k, certs, x):
+    """The arms' certificates as one split (`HCert.arms`): their residuals pooled, the reads of every arm (the first
+    arm's witness), the ghost words, frame run cells and words at cells shared."""
+    EM = _em()
+    H = EM.C.HCert(certs[0].sig)
+    pool = {}
+
+    def idx(q):
+        if q not in pool:
+            pool[q] = len(H.res)
+            H.res.append(q)
+        return pool[q]
+    arms = []
+    for Hr in certs:
+        f = lambda i, Hr=Hr: idx(Hr.res[i])
+        A = EM.C.HCert(Hr.sig)
+        A.reads = {key: EM.wit_res(w, f) for key, w in Hr.reads.items()}
+        A.calls = [[EM.wit_res(w, f) for w in ws] for ws in Hr.calls]
+        A.rets = [[EM.wit_res(w, f) for w in ws] for ws in Hr.rets]
+        A.divs, A.hvs, A.eqs, A.dups = Hr.divs, Hr.hvs, Hr.eqs, Hr.dups
+        arms.append(A)
+        for key, w in A.reads.items():
+            H.reads.setdefault(key, w)
+        for g in Hr.gargs:
+            same = [g2 for g2 in H.gargs if g2[0] == g[0] and list(g2[1]) == list(g[1])]
+            if not same:
+                H.gargs.append(g)
+            elif any(list(map(tuple, g2[2])) != list(map(tuple, g[2])) for g2 in same):
+                raise No('split: ghost words differ')
+        if Hr.fas != certs[0].fas or Hr.ders != certs[0].ders:
+            raise No('split: frame run cells or words at cells differ')
+    H.fas, H.ders = certs[0].fas, certs[0].ders
+    H.sel, H.arms = x, arms
+    # `CoreMode.readsArms`: each arm's reads name every read of the certificate its body loads
+    for r, A in enumerate(arms):
+        for s in I.stmts(I.sel_body(CORE[k][1], x, r)):
+            if s[0] == 'a' and s[1][0] == 'load':
+                key = (s[1][1], s[1][2], s[1][3])
+                if key in H.reads and key not in A.reads:
+                    raise No('split: a read of one arm a store of arm %d' % r)
+    return H
+
+
+def split_check(k, H, sigOf):
+    """`emitc.check`, of each arm of a split at its arm."""
+    EM = _em()
+    if not getattr(H, 'arms', None):
+        return EM.check(k, H, sigOf)
+    for r in range(len(H.arms)):
+        with I.at_arm(k, (H.sel, r)):
+            e = EM.check(k, arm_cert(H, r), sigOf)
+        if e is not None:
+            return ('arm', r, e)
+    return None
 
 
 FA_PAST = {}
@@ -1167,6 +1249,25 @@ def windows(R, po, shared=frozenset()):
         H = R[k]['cert']
         sigs = {I.callee(f): h for f, h in R[k]['cs'].items()}
         sigOf = lambda g, sigs=sigs: sigs.get(I.callee(g), heapwin.C.EMPTY)
+        if getattr(H, 'arms', None):
+            # a split: each arm one kernel evaluation (`core.heap_proof`), or its windows (`GenW/<fn>/A<r>/`), its
+            # namespace `Fn.«fn».Arm<r>` where `core` and `hcert` are the arm's (`Def.lean`)
+            for r in range(len(H.arms)):
+                with I.at_arm(k, (H.sel, r)):
+                    Hr = arm_cert(H, r)
+                    if heapwin.fn_cost(k, Hr, sigOf) <= heapwin.BUDGET:
+                        continue
+                    base = 'LeanVM.Guest.CoreMode.GenW.«%s».A%d' % (k, r)
+                    ns = 'LeanVM.Guest.Fn.«%s».Arm%d' % (k, r)
+                    files[os.path.join(GENW, k, 'A%d' % r, 'Def.lean')] = arm_def(k, r, H.sel, po, base, ns)
+                    gen = dict(root='LeanVM.Guest.CoreMode.GenW', sub='HeapWG', final='heap_okW', base=base, ns=ns,
+                               lpre='a%d_' % r, one=True,
+                               pre=f'{hcsig_ref(k)[:-len("sig")]}sig_pre' if in_sigs(k, R[k], shared) else 'sig_pre',
+                               data=['LeanVM.Guest.CoreMode.Gen.«%s».DataC' % po[k][0], base + '.Def'],
+                               sigw='(fun f ↦ bif f == core.name then hcert.sig else (csigs.lookup f).getD {})')
+                    for name, text in heapwin.one(k, Hr, sigOf, epo, gen):
+                        files[os.path.join(GENW, k, 'A%d' % r, name + '.lean')] = text
+            continue
         if heapwin.fn_cost(k, H, sigOf) <= heapwin.BUDGET:
             continue
         gen = dict(root='LeanVM.Guest.CoreMode.GenW', sub='HeapWG', final='heap_okW',
@@ -1176,6 +1277,20 @@ def windows(R, po, shared=frozenset()):
         for name, text in heapwin.one(k, H, sigOf, epo, gen):
             files[os.path.join(GENW, k, name + '.lean')] = text
     return files
+
+
+def arm_def(k, r, sel, po, base, ns):
+    """An arm's namespace for its windows: `core` the function at the arm (`CoreMode.selF`), `hcert` its certificate
+    (`HCert.arm`)."""
+    return (head(base + '.Def', f'Arm {r} of `{k}`\'s heap check: the function at the arm, its certificate.') +
+            'public import LeanVM.Guest.CoreMode.Defs\npublic import LeanVM.Guest.CoreMode.HeapC\n'
+            f'public import LeanVM.Guest.Pack.«{po[k][0]}».{po[k][1]}\n'
+            f'public import LeanVM.Guest.CoreMode.Gen.«{po[k][0]}».DataC\n\n'
+            f'namespace {ns}\n\n@[expose] public section\n\n'
+            f'/-- The function at arm {r} of its selector. -/\nnoncomputable def core : Core.Fn := '
+            f'CoreMode.selF {sel} {r} Fn.«{k}».core\n\n'
+            f'/-- Arm {r}\'s certificate. -/\ndef hcert : CoreMode.HCert := Fn.«{k}».hcert.arm Fn.«{k}».arm{r}\n\n'
+            f'end\n\nend {ns}\n')
 
 
 def emit(R, check):
@@ -1211,7 +1326,8 @@ def emit(R, check):
     jt_sym(files)
     import glob
     have = (glob.glob(os.path.join(GEN, '*', 'Sig.lean')) + glob.glob(os.path.join(GEN, 'HcSig.lean')) +
-            glob.glob(os.path.join(GENW, '*', '*.lean')) + glob.glob(os.path.join(GEN, '*', 'DataC.lean')))
+            glob.glob(os.path.join(GENW, '*', '*.lean')) + glob.glob(os.path.join(GENW, '*', 'A*', '*.lean')) +
+            glob.glob(os.path.join(GEN, '*', 'DataC.lean')))
     stale = genfiles.sync(files, have, check)
     print('callc: %d functions, %d files, %d lines' % (len(R), len(files), sum(t.count('\n') for t in files.values())) +
           ((', stale: %d' % len(stale)) if check else ''))

@@ -111,6 +111,7 @@ theorem ws_le : B2C.fs "da_weights" + 128 + 128 * B2C.fs "da_expand__L6_L7" ≤ 
 
 /-- **`da_verify`'s static bounds**, at the deployed frame sizes. -/
 theorem dvStatic : B1.Da.DvStaticB B2C.fs wSB wSK where
+  tk := B2C.fs_tailKey_le
   pad := iterK_totalLeOn (j := idx% da_pad_loop0) (by decide +kernel)
   cell := cell_le
   blob := blob_le
@@ -133,7 +134,6 @@ theorem mainStatics : B1.Main.MainStatics B2C.fs wSB wSK where
   l26 := iterK_totalLeOn (j := idx% aggregate_claims_loop1) (by decide +kernel)
   l27 := iterK_totalLeOn (j := idx% aggregate_claims_loop2) (by decide +kernel)
   bs := wSB_totalLe (j := wIdx "batch_sumcheck__L23") (by decide +kernel)
-  gr := wSB_totalLe (j := wIdx "grind_check__L2") (by decide +kernel)
 
 end
 end LeanVM.Guest.Count

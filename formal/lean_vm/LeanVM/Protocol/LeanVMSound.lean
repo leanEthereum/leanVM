@@ -10,9 +10,15 @@ module
 
 public import LeanVM.Protocol.EndToEnd.Sound.Statements
 public import LeanVM.Protocol.EndToEnd.Sound.Extractor
-public import LeanVM.Protocol.Extraction.Sound
+import LeanVM.Protocol.Extraction.Sound
 public import LeanVM.Protocol.WithHash
-public import LeanVM.Protocol.Whir.Params.Iface
+import LeanVM.Protocol.Whir.Params.Iface
+public import LeanVM.Protocol.Rom.Statement
+public import ArkLib.Data.Polynomial.FrobeniusContraction
+public import ArkLib.Data.Polynomial.ResultantDegree
+public import ArkLib.Data.Polynomial.UniversalHenselNumerator
+public import ArkLib.ToMathlib.RingTheory.Nullstellensatz.AgreementIncidence
+public import Mathlib.Algebra.MvPolynomial.NoZeroDivisors
 
 /-!
 # leanVM in the random-oracle model: the verifier and the experiment

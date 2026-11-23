@@ -40,7 +40,10 @@ structure FinishIn (rd : Reader) (C : CallRel) (σ : Val) (c : OsCfg) (tch : ℕ
   stored : ∀ i < c.yrLevel, RecStored rd σ i (c.levels.getD i default) (recs.getD i default)
   lv : ∀ i < c.yrLevel, LvFin c (c.levels.getD i default) (c.levels.getD (i + 1) default)
   rate : ∀ i < c.yrLevel, LvRate σ c i (c.levels.getD i default)
-  res : ∀ i < c.yrLevel, ∀ a r, C (osResidualName (c.levels.getD i default)) a r →
+  res : ∀ i < c.yrLevel, ∀ a r,
+    a.getD 4 0 = gen ^ ((c.levels.getD i default).queries / resBatch) →
+    a.getD 5 0 = gen ^ ((c.levels.getD i default).queries % resBatch) →
+    C (osResidualName (c.levels.getD i default)) a r →
     MeaningLevelResidual (c.levels.getD i default).queries (c.levels.getD i default).logCols
       (c.levels.getD i default).folds (c.levels.getD i default).highBits rd a r
   nlen : c.levels.length ≤ 64
@@ -53,6 +56,10 @@ structure FinishIn (rd : Reader) (C : CallRel) (σ : Val) (c : OsCfg) (tch : ℕ
   lane : (c.levels.headD default).folds ≤ c.nFolds
   mu40 : c.nFolds + c.yrLog ≤ pointCap
   ffm : ∀ a r, C ("fold_final_msg__L" ++ natStr c.yrLog) a r → MeaningFoldFinalMsg c.yrLog rd a r
+  iz : ∀ a r, C "is_zero" a r → MeaningIsZero a r
+  slow : ∀ i < c.yrLevel, ∀ a r, C (osSlowName c (c.levels.getD i default)) a r →
+    SlowRet (c.levels.getD i default).queries (c.levels.getD i default).prefixLen c.yrLog
+      (c.levels.getD i default).vanish rd a r
 
 theorem osOodWeights_some {c : OsCfg} {tch : ℕ} : ∀ (lvs : List OsLv) (pc ol : ℕ) (acc : Option ℕ)
     (k : ℕ), lvs ≠ [] → ∃ x, (osOodWeights c tch pc ol lvs acc k).2.1 = some x
@@ -93,6 +100,7 @@ theorem inner_sum (recs : List OsRec) (P : List E) :
 /-- **The finish, soundly.** -/
 theorem osFinish_sound {c : OsCfg} {st : OsSt} {tch : ℕ}
     {G T fold : List E} {recs : List OsRec} (hF : FinishIn rd C σ c tch G T fold recs)
+    (hrts : ∀ i < c.yrLevel, RtOk σ (st.rts.getD i []) (c.levels.getD i default))
     (hmats : MatsOk σ st.mats) (hok : AllOk C rd σ (osFinishA c st tch).1) :
     ∃ pt pt1 : E, (osFinishA c st tch).2.map σ =
       [σ (.n st.claim) + T.prod * recsDeficit recs G, pt, pt1,
@@ -144,7 +152,7 @@ theorem osFinish_sound {c : OsCfg} {st : OsSt} {tch : ℕ}
   set pts := osPtBlks c (st.k + 1) (st.k + 1 + 1) tch 0 pointCap (st.k + 1 + 2) with hpts
   set P2 := pts.2 with hP2
   set bs := osBases c tch (P2 + 1) (P2 + 3) (P2 + 5) 0 (c.levels.take c.yrLevel) (P2 + 6) with hbs
-  set rs := osResiduals c (bs.2 + 1) (P2 + 1) (P2 + 3) (P2 + 5) 0 (c.levels.take c.yrLevel) st.mats
+  set rs := osResiduals c st.rts tch (bs.2 + 1) (P2 + 1) (P2 + 3) (P2 + 5) 0 (c.levels.take c.yrLevel) st.mats
     (bs.2 + 3) with hrs
   set od := osOodWeights c tch (c.levels.headD default).logCols 1 c.levels.tail none rs.2 with hod
   set kk := od.2.2 with hkk
@@ -189,7 +197,7 @@ theorem osFinish_sound {c : OsCfg} {st : OsSt} {tch : ℕ}
     refine ⟨(hRS i hi).beta, fun t ht ↦ ⟨invW_ne (hLF i hi).mu64 (hLF i hi).inv t
       (by rw [← (hLF i hi).pre]; exact ht), hXsrc i hi t ht⟩⟩
   have hBout := osBases_sound (C := C) (rd := rd) (σ := σ) (c := c) (tch := tch) (bd := P2 + 1)
-    (ls := P2 + 3) (la := P2 + 5) β X (fun _ ↦ by have := hF.ylog; omega) (c.levels.take c.yrLevel) 0
+    (ls := P2 + 3) (la := P2 + 5) β X hF.iz (fun _ ↦ by have := hF.ylog; omega) (c.levels.take c.yrLevel) 0
     (P2 + 6) hBin hB
   have hBo : ∀ i < y, BasisOut rd σ c (P2 + 1) (P2 + 3) (P2 + 5) i (lvA i) (β i) (X i) := by
     intro i hi
@@ -202,11 +210,11 @@ theorem osFinish_sound {c : OsCfg} {st : OsSt} {tch : ℕ}
   obtain ⟨z0, l0, l1⟩ := hI
   rw [z0, word_zero] at l0
   -- the residuals
-  set D : ℕ → ℕ → E := fun i ↦ dOf (lvA i) (X i) with hD
+  set D : ℕ → ℕ → E := fun i ↦ dZ (lvA i) (lvA i).logCols (X i) with hD
   set hsv : ℕ → List E := fun i ↦ hsvOf (lvA i) (r i) with hhsv
   set Pos : ℕ → ℕ → E := fun i k ↦ eOfNat ((r i).qs.getD k 0) with hPos
-  have hRin : ∀ i (hi : i < (c.levels.take c.yrLevel).length), ResIn rd C σ c (P2 + 1) (0 + i)
-      (c.levels.take c.yrLevel)[i] (D (0 + i)) (hsv (0 + i)) (Pos (0 + i)) (li (0 + i)) := by
+  have hRin : ∀ i (hi : i < (c.levels.take c.yrLevel).length), ResIn rd C σ c st.rts tch (P2 + 1) (0 + i)
+      (c.levels.take c.yrLevel)[i] (D (0 + i)) (hsv (0 + i)) (Pos (0 + i)) (li (0 + i)) (X (0 + i)) := by
     intro i hi
     rw [hmidl] at hi
     have e : (c.levels.take c.yrLevel)[i]'(by rw [hmidl]; exact hi) = lvA i := by
@@ -216,23 +224,42 @@ theorem osFinish_sound {c : OsCfg} {st : OsSt} {tch : ℕ}
     have hS := hRS i hi
     have hn : i < c.levels.length := by have := hF.yr; omega
     have h64 := hF.nlen
-    refine ⟨hF.rate i hi, hF.res i hi, hL.van, ⟨hL.ml1, hL.nhs, hL.b3, hL.bn, fun s hs ↦ ?_,
-      by simp [hsv, hsvOf], fun c' hc ↦ ?_⟩, hL.posOff,
+    have hR := hrts i hi
+    have hqd : (lvA i).queries / resBatch < u128Bound := lt_of_le_of_lt (Nat.div_le_self _ _) hL.qu
+    have hqm : (lvA i).queries % resBatch < u128Bound :=
+      lt_of_lt_of_le (Nat.mod_lt _ (by decide)) (by unfold u128Bound; decide)
+    refine ⟨hF.rate i hi, by rw [hR 0 (by decide)]; exact gw_eq hL.posOff,
+      by rw [hR 2 (by decide)]; exact gw_eq hqd, by rw [hR 3 (by decide)]; exact gw_eq hqm,
+      hF.res i hi, hF.slow i hi, hF.iz, hL.van,
+      ⟨hL.ml1, hL.nhs, hL.b3, hL.bn, fun s hs ↦ ?_, by simp [hsv, hsvOf], fun c' hc ↦ ?_⟩,
       lt_of_le_of_lt (Nat.mul_le_mul_right ligColsCap (show i ≤ 64 by omega)) (by decide),
       lt_of_le_of_lt (Nat.mul_le_mul_right hsStride (show i ≤ 64 by omega)) (by decide),
-      fun k hk ↦ hS.pos k hk, hli1 i hi⟩
-    · have := ((hBo i hi).1 s (by rw [hL.pre]; exact hs)).2
+      lt_of_le_of_lt (show (lvA i).resFoldOff ≤ pointCap by
+        have := hL.rfo; have := hL.le; have := hF.mu40; omega) (by decide),
+      fun k hk ↦ hS.pos k hk, hli1 i hi, fun t ht ↦ ?_, fun j hj ↦ ?_⟩
+    · have := (hBo i hi).1 s (by rw [hL.pre]; exact hs)
+      rw [hL.pre] at this
       exact this
     · rw [show (hsv i).getD c' 0 = (r i).high.getD c' 0 *
           word (hsScale (lvA i).vanish (lvA i).highBits c' (vanishInv ((lvA i).vanish + (lvA i).logCols))) 0 by
         simp only [hsv, hsvOf]
         rw [List.getD_eq_getElem _ _ (by simpa using hc), List.getElem_map, List.getElem_range]]
       exact hS.hs c' hc
-  have hRout := osResiduals_sound D hsv Pos li (c.levels.take c.yrLevel) 0 st.mats (bs.2 + 3) hmats hRin hR
+    · have := hXsrc i hi t (by omega)
+      simp only [coordSrc, ht, ↓reduceIte] at this
+      exact this
+    · have := hXsrc i hi ((lvA i).prefixLen + j) (by omega)
+      simp only [coordSrc, show ¬ (lvA i).prefixLen + j < (lvA i).prefixLen by omega, ↓reduceIte,
+        Nat.add_sub_cancel_left] at this
+      exact this
+  have hRout := osResiduals_sound D hsv Pos li X (c.levels.take c.yrLevel) 0 st.mats (bs.2 + 3) hmats
+    hRin hR
   have hch := ich_chain (σ := σ) (ich := bs.2 + 1) (ls := P2 + 3) (la := P2 + 5)
     (claim := σ (.n st.claim)) y
     (fun i ↦ (resAll (lvA i) (D i) (hsv i) (Pos i) (li i)).1)
     (fun i ↦ (resAll (lvA i) (D i) (hsv i) (Pos i) (li i)).2)
+    (fun i ↦ resSlow c (lvA i) (Pos i) (X i) (r i).lam
+      (zeroOf (∏ t ∈ Finset.range ((lvA i).prefixLen + c.yrLog), X i t)))
     (fun i ↦ β i * ∏ t ∈ Finset.range ((lvA i).prefixLen + c.yrLog), (X i t * invW (lvA i) t))
     β (fun i ↦ ∏ t ∈ Finset.range ((lvA i).prefixLen + c.yrLog), X i t) (by simpa using l0) l1
     (fun i hi ↦ (hBo i hi).2.1) (fun i hi ↦ (hRS i hi).beta) (fun i hi ↦ (hBo i hi).2.2)
@@ -241,7 +268,10 @@ theorem osFinish_sound {c : OsCfg} {st : OsSt} {tch : ℕ}
       have e : (c.levels.take c.yrLevel)[i]'(by rw [hmidl]; exact hi) = lvA i := by
         rw [← hmid i hi, List.getD_eq_getElem]
       simp only [e, Nat.zero_add] at this
-      exact this) y le_rfl
+      obtain ⟨i0, i1, s', b, a, lam, l0', l1', ls', lb, la', llam, l2, l3⟩ := this
+      rw [loadHolds_unique la' (hBo i hi).2.2, loadHolds_unique llam (hRS i hi).lam1] at l2
+      rw [loadHolds_unique la' (hBo i hi).2.2] at l3 la'
+      exact ⟨i0, i1, s', b, _, l0', l1', ls', lb, la', l2, l3⟩) y le_rfl
   obtain ⟨hc0, hc1⟩ := hch
   -- the out-of-domain weights
   have htl : c.levels.tail.length = y := by simp [hy, hF.yr]
@@ -297,7 +327,9 @@ theorem osFinish_sound {c : OsCfg} {st : OsSt} {tch : ℕ}
   -- each level's terms
   have hterms : ∀ i < y,
       β i * (∏ t ∈ Finset.range ((lvA i).prefixLen + c.yrLog), (X i t * invW (lvA i) t)) *
-          (resAll (lvA i) (D i) (hsv i) (Pos i) (li i)).1 =
+          (resAll (lvA i) (D i) (hsv i) (Pos i) (li i)).1 +
+          resSlow c (lvA i) (Pos i) (X i) (r i).lam
+            (zeroOf (∏ t ∈ Finset.range ((lvA i).prefixLen + c.yrLog), X i t)) =
         (r i).lam * (r i).lam *
           inducedWeight (r i).mu (r i).qs (powers (r i).lam (r i).qs.length) (ptFrom G T (r i).F) ∧
       β i * (∏ t ∈ Finset.range ((lvA i).prefixLen + c.yrLog), X i t) *
@@ -308,7 +340,7 @@ theorem osFinish_sound {c : OsCfg} {st : OsSt} {tch : ℕ}
     have hL := hLF i hi
     have hS := hRS i hi
     have h := lvl_terms hL hF.Gl hF.Tl hS.F hS.mu hS.qlen hS.hlen hS.z0len (hli2 i hi)
-      (fun t ht ↦ ((hBo i hi).1 t (by rw [hL.pre]; exact ht)).1)
+    simp only [resSlow]
     rw [hL.pre]
     exact ⟨h.1, h.2.1, h.2.2⟩
   have hrl : recs.length = y := hF.recl

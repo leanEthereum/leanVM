@@ -10,22 +10,25 @@ module
 public import LeanVM.Guest.CoreRef
 public import LeanVM.Guest.B1.Gkr.LayerTail
 public import LeanVM.Guest.CoreData
+public import LeanVM.Guest.B1.Tables.Basic
 
 /-!
 # The root-most layer
 
 The root-most layer has no rounds: the combiner, drawn from the two roots waiting in the sponge,
 batches the three trees' roots into the claim the children's products check. `verify_bus_gkr`
-runs it in its body, in the two arms of an `ite` on `odd_g = g^(depth % 2)`, here renumbered to
-values `34` lower (`rtUn`; the body's are `rtSh` of them):
+runs it in its body, in the two arms of an `ite` on `odd_g = g^(depth % 2)`, here renumbered
+(`rtUn`; the body's are `rtSh` of them: values below `19` kept, those from `19` `71` up, those from
+`66` `105` up):
 
-* `rt_two` (`core% «verify_bus_gkr» s251_e`, an odd depth): two children a tree, `y` one coordinate
+* `rt_two` (`core% «verify_bus_gkr» s388_e`, an odd depth): two children a tree, `y` one coordinate
   (its grind of `0` bits a permutation of the two waiting), the slot of `L = 1`;
-* `rt_four` (`core% «verify_bus_gkr» s251_t`, an even depth): four children a tree, `y` two
+* `rt_four` (`core% «verify_bus_gkr» s388_t`, an even depth): four children a tree, `y` two
   coordinates, the slot of `L = 2`.
 
 Both start from the body's combiner `σ 46`, the claim `σ 62`, the sponge's capacity after the
-combiner `σ 54 .. σ 58` and the zeros `σ 42 .. σ 45`, the cursor past the roots at `σ 5·g^2`.
+combiner `σ 54 .. σ 58` and the zeros `σ 42 .. σ 45`, the cursor past the roots at `σ 5·g^2`, the
+point rows at `σ 22` and the slot at `σ 139`, in the arms' numbering.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -35,29 +38,35 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-/-- The arms' numbering from the body's: the arms' own values `34` down. -/
-def rtUn (v : V) : V := if 100 ≤ v.idx then .n (v.idx - 34) else v
+/-- The arms' numbering from the body's. -/
+def rtUn (v : V) : V :=
+  if 171 ≤ v.idx then .n (v.idx - 105) else if 90 ≤ v.idx ∧ v.idx < 137 then .n (v.idx - 71) else v
 
-/-- The body's numbering from the arms': values from `66` on `34` up. -/
-def rtSh (v : V) : V := if 66 ≤ v.idx then .n (v.idx + 34) else v
+/-- The body's numbering from the arms': values from `19` on `71` up, from `66` on `105` up. -/
+def rtSh (v : V) : V :=
+  if 66 ≤ v.idx then .n (v.idx + 105) else if 19 ≤ v.idx then .n (v.idx + 71) else v
 
 /-- The binary root layer, the `ite`'s else arm, renumbered (`rtUn`). -/
-noncomputable def rtTwo : List Stmt := Stmt.renameList rtUn (core% «verify_bus_gkr» s251_e)
+noncomputable def rtTwo : List Stmt := Stmt.renameList rtUn (core% «verify_bus_gkr» s388_e)
 
 /-- The radix-four root layer, the `ite`'s then arm, renumbered (`rtUn`). -/
-noncomputable def rtFour : List Stmt := Stmt.renameList rtUn (core% «verify_bus_gkr» s251_t)
+noncomputable def rtFour : List Stmt := Stmt.renameList rtUn (core% «verify_bus_gkr» s388_t)
 
 /-- The else arm is `rtTwo` in the body's numbering. -/
-theorem rtTwo_eq : (core% «verify_bus_gkr» s251_e) = Stmt.renameList rtSh rtTwo :=
+theorem rtTwo_eq : (core% «verify_bus_gkr» s388_e) = Stmt.renameList rtSh rtTwo :=
   tbStmtsEqb_sound (by decide +kernel)
 
 /-- The then arm is `rtFour` in the body's numbering. -/
-theorem rtFour_eq : (core% «verify_bus_gkr» s251_t) = Stmt.renameList rtSh rtFour :=
+theorem rtFour_eq : (core% «verify_bus_gkr» s388_t) = Stmt.renameList rtSh rtFour :=
   tbStmtsEqb_sound (by decide +kernel)
 
 theorem rtTwo_noRet : Stmt.noRetList rtTwo = true := by decide +kernel
 
 theorem rtFour_noRet : Stmt.noRetList rtFour = true := by decide +kernel
+
+/-- The first radix-four record's position, `GEN ** ROUND_SLOTS`. -/
+theorem tb_word_128 : word 128 0 = gen ^ 7 := by
+  rw [show (128 : ℕ) = 2 ^ 7 by norm_num, tb_word_two_pow (by norm_num)]
 
 /-- Child `i`'s read's first statement in a root arm. -/
 def rtPos (i : ℕ) : ℕ := 4 * i + i / 4
@@ -112,7 +121,7 @@ theorem rt_two (h : Stmt.HoldsList C rd σ rtTwo True kret)
     ∃ (xs : List E) (st' : GkrState) (s' : Fs), RunsTo (gkrStep 1 false st) s xs st' s' ∧
       TbReadsAt rd (σ (.n 5) * gen ^ 2) xs ∧
       GkSlot rd (σ (.n 16)) 1 s' (σ (.n 5) * gen ^ 2 * gen ^ xs.length) st'
-        (σ (.n 18) * gen ^ 40) gen := by
+        (σ (.n 22) * gen ^ 40) (gen ^ 7) := by
   have hnr := rtTwo_noRet
   have a := fun n a heq => tb_holds_atom (C := C) (rd := rd) (σ := σ) (kret := kret) hnr h n a heq
   have EV : ∀ i < 6, _ := fun i hi => ch_ev (tb_holds_slice hnr h (rtPos i) (chT (.n 5) 2 288 i)
@@ -218,14 +227,14 @@ theorem rt_two (h : Stmt.HoldsList C rd σ rtTwo True kret)
     Stmt.atom (.load (.n (343 + k)) (.n 139) k)) (by decide +kernel)
   rw [tb_holdsList_mapAtoms] at hcs
   simp only [Atom.Holds] at hcs
-  have l351 := a 37 (.load (.n 335) (.n 18) 40) (by decide +kernel)
+  have l351 := a 37 (.load (.n 335) (.n 22) 40) (by decide +kernel)
   have c353 := a 45 (.const (.n 349) (word 256 0)) (by decide +kernel)
   have m354 := a 46 (.mul (.n 350) (.n 5) (.n 349)) (by decide +kernel)
   have l354 := a 47 (.load (.n 350) (.n 139) 5) (by decide +kernel)
-  have c364 := a 60 (.const (.n 360) (word 2 0)) (by decide +kernel)
+  have c364 := a 60 (.const (.n 360) (word 128 0)) (by decide +kernel)
   have l364 := a 61 (.load (.n 360) (.n 139) 9) (by decide +kernel)
   simp only [Atom.Holds] at l351 c353 m354 l354 c364 l364
-  rw [tb_word_gen] at c364
+  rw [tb_word_128] at c364
   rw [show (256 : ℕ) = 2 ^ 8 by norm_num, tb_word_two_pow (by norm_num)] at c353
   have VAL : ∀ t < 3, ∀ b u v off : ℕ, Stmt.HoldsList C rd σ
       [.atom (.add (.n b) (.n u) (.n v)), .atom (.mul (.n (b + 1)) (.n 335) (.n b)),
@@ -276,7 +285,7 @@ theorem rt_four (h : Stmt.HoldsList C rd σ rtFour True kret)
     ∃ (xs : List E) (st' : GkrState) (s' : Fs), RunsTo (gkrStep 2 false st) s xs st' s' ∧
       TbReadsAt rd (σ (.n 5) * gen ^ 2) xs ∧
       GkSlot rd (σ (.n 16)) 2 s' (σ (.n 5) * gen ^ 2 * gen ^ xs.length) st'
-        (σ (.n 18) * gen ^ 40) gen := by
+        (σ (.n 22) * gen ^ 40) (gen ^ 7) := by
   have hnr := rtFour_noRet
   have a := fun n a heq => tb_holds_atom (C := C) (rd := rd) (σ := σ) (kret := kret) hnr h n a heq
   have EV : ∀ i < 12, _ := fun i hi => ch_ev (tb_holds_slice hnr h (rtPos i) (chT (.n 5) 2 142 i)
@@ -378,15 +387,15 @@ theorem rt_four (h : Stmt.HoldsList C rd σ rtFour True kret)
     Stmt.atom (.load (.n (253 + k)) (.n 139) k)) (by decide +kernel)
   rw [tb_holdsList_mapAtoms] at hcs
   simp only [Atom.Holds] at hcs
-  have l246 := a 69 (.load (.n 232) (.n 18) 40) (by decide +kernel)
-  have l260 := a 70 (.load (.n 245) (.n 18) 41) (by decide +kernel)
+  have l246 := a 69 (.load (.n 232) (.n 22) 40) (by decide +kernel)
+  have l260 := a 70 (.load (.n 245) (.n 22) 41) (by decide +kernel)
   have c261 := a 76 (.const (.n 258) (word 16384 0)) (by decide +kernel)
   have m262 := a 77 (.mul (.n 259) (.n 5) (.n 258)) (by decide +kernel)
   have l262 := a 78 (.load (.n 259) (.n 139) 5) (by decide +kernel)
-  have c290 := a 109 (.const (.n 287) (word 2 0)) (by decide +kernel)
+  have c290 := a 109 (.const (.n 287) (word 128 0)) (by decide +kernel)
   have l290 := a 110 (.load (.n 287) (.n 139) 9) (by decide +kernel)
   simp only [Atom.Holds] at l246 l260 c261 m262 l262 c290 l290
-  rw [tb_word_gen] at c290
+  rw [tb_word_128] at c290
   rw [show (16384 : ℕ) = 2 ^ 14 by norm_num, tb_word_two_pow (by norm_num)] at c261
   have VAL : ∀ b off t, (b = 260 + 9 * t) → t < 3 →
       Stmt.HoldsList C rd σ (chValT 142 232 245 139 t b off) True kret →

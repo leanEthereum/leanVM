@@ -107,7 +107,7 @@ theorem DischargeHyps.temp_not_data {τ : Inst × V × K} (hτ : TempsOn P fs H 
       exact (insts_placed T _ hdr (Nat.zero_add _).le _ hτ.1).frame_buf hF hb
     · exact (insts_pairwise T _ hdr (Nat.zero_add _).le).forall hK hτ.1 hKJ i (Or.inr hb) (Or.inl hF)
   · have hrun := h.run K hK g' σK bK kK hKt pK r rs he k hk
-    have hKlt : cert g' r + k < fs K.t.name := (h.cells.off K hK _ hrun.1).2
+    have hKlt : cert g' r + k < K.t.fsz fs := (h.cells.off K hK _ hrun.1).2
     obtain rfl := insts_same hτ.1 hK hF ⟨by omega, by omega⟩
     obtain ⟨rfl, -⟩ : g' = g ∧ σK = σ := by rw [ht] at hKt; cases hKt; exact ⟨rfl, rfl⟩
     exact hrun.2 τ.2.1 hmem (by omega)

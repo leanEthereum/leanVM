@@ -8,7 +8,12 @@
 module
 
 public import LeanVM.Protocol.Whir.Sound.Spec
-public import LeanVM.Protocol.EndToEnd.Sound.Frame
+import LeanVM.Protocol.EndToEnd.Sound.Frame
+public import CompPoly.Univariate.Basic
+public import VCVio.OracleComp.Constructions.SampleableType.Measure
+public import VCVio.OracleComp.QueryTracking.LoggingOracle.Core
+public import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
+public import VCVio.OracleComp.QueryTracking.WriterCost
 
 /-!
 # The opening, cut at the final polynomial

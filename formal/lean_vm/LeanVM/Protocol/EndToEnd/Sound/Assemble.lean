@@ -11,15 +11,15 @@ module
 public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Protocol.EndToEnd.Sound.Frame
 public import LeanVM.Protocol.EndToEnd.Sound.Moves
-public import LeanVM.Protocol.EndToEnd.Sound.Runs
+import LeanVM.Protocol.EndToEnd.Sound.Runs
 public import LeanVM.Protocol.EndToEnd.Front.CommitDoom
 public import LeanVM.Protocol.EndToEnd.Front.RingFidelity
-public import LeanVM.Protocol.EndToEnd.Front.RingMultilinear
+import LeanVM.Protocol.EndToEnd.Front.RingMultilinear
 public import LeanVM.Protocol.EndToEnd.Front.LayoutBridgeB
 public import LeanVM.Protocol.Whir.Sound.Sumcheck
 public import LeanVM.Protocol.Whir.Sound.Spec
 public import LeanVM.Protocol.Compile.SpecRules.Cert
-public import LeanVM.Protocol.Extraction.Extractor
+import LeanVM.Protocol.Extraction.Extractor
 
 /-!
 # The specification of the leanVM verifier

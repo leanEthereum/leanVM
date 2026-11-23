@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Protocol.ToCompPoly.Multilinear
+import LeanVM.Protocol.ToCompPoly.Multilinear
 public import LeanVM.Protocol.ToCompPoly.WeightedCube
 public import CompPoly.Multivariate.Basic
 public import Mathlib.Algebra.MvPolynomial.Eval

@@ -11,6 +11,7 @@ public import LeanVM.Guest.Exact.Ok
 public import LeanVM.Guest.B1.Eq.RsEqRun
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«rs_eq_run»
+import LeanVM.Guest.Value.FieldBits
 
 /-!
 # `rs_eq_run`, exact
@@ -44,30 +45,30 @@ theorem rs_pathExact : PathExactFn fn% «rs_eq_run» := by
   have h : Stmt.HoldsList (fun _ _ _ => True) rd σ (fn% «rs_eq_run»).body False (fun _ => True) :=
     holdsList_of_walk _ (by rw [hw]; exact ⟨fun e he => ⟨hes e he, fun _ _ _ _ => trivial⟩, trivial⟩)
   rw [rs_eq_run_body, rsBody] at h
-  simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, true_and] at h
+  simp only [rsA, List.cons_append, List.nil_append, Stmt.HoldsList, Stmt.Holds, Atom.Holds, true_and] at h
   obtain ⟨b0, h10, h11, h12, h13, b1, h14, h15, h16, h17, h18, b2, h19, h20, h21, h22, h23,
     b3, h24, h25, h26, h27, b4, h28, h29, h30, h31, h32, b5, h33, h34, h35, h36, h37, h38, h39,
     h40, h41, ha, -⟩ := h
   have hb : ∀ j < 6, σ (.n ((val% «rs_eq_run» "bits[0]") + j)) * σ (.n ((val% «rs_eq_run» "bits[0]") + j)) = σ (.n ((val% «rs_eq_run» "bits[0]") + j)) := by
     intro j hj; interval_cases j
     exacts [b0.symm, b1.symm, b2.symm, b3.symm, b4.symm, b5.symm]
-  have rg : σ (.n (val% «rs_eq_run» "r_g@3")) = ∏ j ∈ Finset.range 3, (1 + σ (.n (4 + j)) * (gen ^ 2 ^ j + 1)) := by
+  have rg : σ (.n (val% «rs_eq_run» "r_g@3")) = ∏ j ∈ Finset.range 3, (1 + σ (.n ((val% «rs_eq_run» "bits[0]") + j)) * (gen ^ 2 ^ j + 1)) := by
     simp only [Finset.prod_range_succ, Finset.prod_range_zero, one_mul]
     rw [h23, h18, h13, h17, h22, h12, h16, h21, h10, h14, h19, h11, h15, h20, w3, w5, w17, word_one]
-  have qg : σ (.n (val% «rs_eq_run» "q_g@3")) = ∏ j ∈ Finset.range 3, (1 + σ (.n (7 + j)) * (gen ^ 2 ^ j + 1)) := by
+  have qg : σ (.n (val% «rs_eq_run» "q_g@3")) = ∏ j ∈ Finset.range 3, (1 + σ (.n ((val% «rs_eq_run» "bits[3]") + j)) * (gen ^ 2 ^ j + 1)) := by
     simp only [Finset.prod_range_succ, Finset.prod_range_zero, one_mul]
     rw [h37, h32, h27, h31, h36, h26, h30, h35, h24, h28, h33, h25, h29, h34, w3, w5, w17, word_one]
-  have hq8 : σ (.n (val% «rs_eq_run» "s5#2")) = ∏ j ∈ Finset.range 3, (1 + σ (.n (4 + (3 + j))) * (gen ^ 2 ^ (3 + j) + 1)) := by
+  have hq8 : σ (.n (val% «rs_eq_run» "s5#2")) = ∏ j ∈ Finset.range 3, (1 + σ (.n ((val% «rs_eq_run» "bits[0]") + (3 + j))) * (gen ^ 2 ^ (3 + j) + 1)) := by
     rw [h40, h39, h38, qg, ← Finset.prod_mul_distrib, ← Finset.prod_mul_distrib, ← Finset.prod_mul_distrib]
     refine Finset.prod_congr rfl fun j hj => ?_
     have := bitFactor_pow8 (hb (3 + j) (by have := Finset.mem_range.mp hj; omega)) j
-    rw [show 4 + (3 + j) = 7 + j by omega, show j + 3 = 3 + j by omega] at this
-    rw [show 4 + (3 + j) = 7 + j by omega, ← this]
+    rw [show (val% «rs_eq_run» "bits[0]") + (3 + j) = (val% «rs_eq_run» "bits[3]") + j by omega, show j + 3 = 3 + j by omega] at this
+    rw [show (val% «rs_eq_run» "bits[0]") + (3 + j) = (val% «rs_eq_run» "bits[3]") + j by omega, ← this]
     ring
-  have hv : σ (.n (val% «rs_eq_run» "count_g")) = ∏ j ∈ Finset.range 6, (1 + σ (.n (4 + j)) * (gen ^ 2 ^ j + 1)) := by
+  have hv : σ (.n (val% «rs_eq_run» "count_g")) = ∏ j ∈ Finset.range 6, (1 + σ (.n ((val% «rs_eq_run» "bits[0]") + j)) * (gen ^ 2 ^ j + 1)) := by
     rw [show Finset.range 6 = Finset.range (3 + 3) from rfl, Finset.prod_range_add, ← e_add_eq_zero_iff.mp ha, h41,
       hq8, rg, mul_comm]
-  exact bitsExp_exact_of_prod (fun j => σ (.n (4 + j))) rfl hb hv
+  exact bitsExp_exact_of_prod (fun j => σ (.n ((val% «rs_eq_run» "bits[0]") + j))) rfl hb hv
 
 theorem rs_callees_free : ∀ g ∈ Stmt.blockCallees (fn% «rs_eq_run»).body, ExactFreeG g := by
   intro g hg

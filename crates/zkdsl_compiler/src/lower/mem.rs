@@ -240,6 +240,7 @@ impl FnLower<'_> {
                 args[0]
             ))
         });
+        self.addr_taken = true;
         GAddr {
             base: Some(self.self_fp()),
             exp: base as u128,

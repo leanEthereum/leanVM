@@ -16,6 +16,7 @@ public import Mathlib.FieldTheory.IsAlgClosed.AlgebraicClosure
 public import Mathlib.Algebra.Polynomial.Taylor
 public import Mathlib.Algebra.Polynomial.Expand
 public import Mathlib.RingTheory.MvPolynomial.Tower
+import LeanVM.Protocol.ToArkLib.Whir.AffineCombinerHensel
 
 /-!
 # One factor of the interpolant

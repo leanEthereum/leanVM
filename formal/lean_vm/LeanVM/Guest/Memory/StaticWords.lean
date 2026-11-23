@@ -13,8 +13,8 @@ public import LeanVM.Guest.Memory.StaticSound
 # Words from the checker
 
 Counting words (`α = true`) at the frame sizes `fs`, a tree's cost is its words: each instance's
-frame and the `HeapBuf`s its path allocates, each phantom's frame (`total_eq_cost`, given
-`Tree.BufsOk`). So a certificate checked counting words at `fs` bounds the words
+frame and the `HeapBuf`s its path allocates, each phantom's frame, its tail at most that
+(`total_le_cost`, given `Tree.BufsOk`). So a certificate checked counting words at `fs` bounds the words
 (`total_le_of_stat`, `total_le_of_loop`, `totalLe_of_stat`), the functions of a set `X` left to
 hand bounds on their words (`HandOk`).
 -/
@@ -28,22 +28,28 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core
 variable {P : Core.Program} {fs : String → ℕ}
 
 mutual
-/-- **Counting words at the frame sizes, the cost is the words.** -/
-theorem total_eq_cost : ∀ t : Tree, t.BufsOk P → t.total fs = t.cost P true fs
+/-- **Counting words at the frame sizes, the cost bounds the words**, a phantom's tail within its
+function's frame. -/
+theorem total_le_cost (htl : ∀ f, fs (tailKey f) ≤ fs f) :
+    ∀ t : Tree, t.BufsOk P → t.total fs ≤ t.cost P true fs
   | t@(.node f σ bufs kids), hb => by
       simp only [Tree.BufsOk] at hb
       obtain ⟨hbufs, hbk⟩ := hb
-      rw [Tree.total, Tree.cost, ← hbufs, totalKids_eq_costKids kids hbk]
+      have := totalKids_le_costKids htl kids hbk
+      rw [Tree.total, Tree.cost, ← hbufs]
       simp only [↓reduceIte]
       omega
-  | .phantom f _, _ => by rw [Tree.total, Tree.cost]; rfl
+  | .phantom f _, _ => by rw [Tree.total, Tree.cost]; exact htl f
 
-theorem totalKids_eq_costKids : ∀ ks : List Tree, Tree.BufsOkKids P ks →
-    Tree.totalKids fs ks = Tree.costKids P true fs ks
+theorem totalKids_le_costKids (htl : ∀ f, fs (tailKey f) ≤ fs f) :
+    ∀ ks : List Tree, Tree.BufsOkKids P ks → Tree.totalKids fs ks ≤ Tree.costKids P true fs ks
   | [], _ => by rw [Tree.totalKids, Tree.costKids]
   | k :: ks, hb => by
       simp only [Tree.BufsOkKids] at hb
-      rw [Tree.totalKids, Tree.costKids, total_eq_cost k hb.1, totalKids_eq_costKids ks hb.2]
+      have := total_le_cost htl k hb.1
+      have := totalKids_le_costKids htl ks hb.2
+      rw [Tree.totalKids, Tree.costKids]
+      omega
 end
 
 variable {rd : Reader} {cert : String → Cert}
@@ -54,32 +60,34 @@ def HandOk (P : Core.Program) (fs : String → ℕ) (cert : String → Cert) (X 
     t.BufsOk P → Bound P true cert fs t args
 
 /-- **A certificate checked counting words bounds the words**, under its preconditions. -/
-theorem total_le_of_stat {X : String → Prop} (hchk : CheckedExcept P true cert fs X)
-    (hX : HandOk P fs cert X) {f : String} {pre : List (ℕ × ℕ)} {b : Aff} {ks : List (V × ℕ)}
+theorem total_le_of_stat (htl : ∀ f, fs (tailKey f) ≤ fs f) {X : String → Prop}
+    (hchk : CheckedExcept P true cert fs X) (hX : HandOk P fs cert X) {f : String} {pre : List (ℕ × ℕ)}
+    {b : Aff} {ks : List (V × ℕ)}
     (hcf : cert f = .stat pre b ks) {t : Tree} {args rets : List E} (hn : t.name = f)
     (hv : t.Valid P rd args rets) (hb : t.BufsOk P) (hpre : ArgsPre pre args) :
     t.total fs ≤ b.eval args := by
-  rw [total_eq_cost t hb]
+  refine (total_le_cost htl t hb).trans ?_
   exact cost_le_of_stat hchk (fun f hf => hX f hf rd) hcf hn hv hb hpre
 
 /-- **A loop checked counting words**: from `g^a` to `g^e`, `e - a` times its iteration's
 bound, and its run's phantom frame (its last iteration's untaken tail call). -/
-theorem total_le_of_loop {X : String → Prop} (hchk : CheckedExcept P true cert fs X)
-    (hX : HandOk P fs cert X) {f : String} {endc : Option ℕ} {pre : List (ℕ × ℕ)} {b : Aff}
+theorem total_le_of_loop (htl : ∀ f, fs (tailKey f) ≤ fs f) {X : String → Prop}
+    (hchk : CheckedExcept P true cert fs X) (hX : HandOk P fs cert X) {f : String} {endc : Option ℕ}
+    {pre : List (ℕ × ℕ)} {b : Aff}
     {ks : List (V × ℕ)} (hcf : cert f = .loop endc pre b ks) {t : Tree} {args rets : List E}
     (hn : t.name = f) (hv : t.Valid P rd args rets) (hb : t.BufsOk P) {a e : ℕ}
     (ha : args.getD 0 0 = ofK (addressOfIndex a)) (he : endOf endc args = ofK (addressOfIndex e))
         (hae : a < e)
     (heo : e < 2 ^ 64 - 1) (hpre : ArgsPre pre args) : t.total fs ≤ (e - a) * b.eval args + fs f := by
-  rw [total_eq_cost t hb]
+  refine (total_le_cost htl t hb).trans ?_
   exact (cost_le_of_loop hchk (fun f hf => hX f hf rd) hcf hn hv hb ha he hae heo hpre).trans (by simp)
 
 /-- **A constant certificate checked counting words** is a `TotalLe`. -/
-theorem totalLe_of_stat {X : String → Prop} (hchk : CheckedExcept P true cert fs X)
-    (hX : HandOk P fs cert X) {f : String} {B : ℕ} {ks : List (V × ℕ)}
+theorem totalLe_of_stat (htl : ∀ f, fs (tailKey f) ≤ fs f) {X : String → Prop}
+    (hchk : CheckedExcept P true cert fs X) (hX : HandOk P fs cert X) {f : String} {B : ℕ} {ks : List (V × ℕ)}
     (hcf : cert f = .stat [] ⟨B, []⟩ ks) : TotalLe P fs f fun _ => B :=
   fun _ _ _ _ hn hv hb => by
-    have := total_le_of_stat hchk hX hcf hn hv hb (fun _ h => (List.not_mem_nil h).elim)
+    have := total_le_of_stat htl hchk hX hcf hn hv hb (fun _ h => (List.not_mem_nil h).elim)
     simpa [Aff.eval] using this
 
 end

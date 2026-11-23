@@ -200,10 +200,10 @@ theorem verify_keccak_holds_of (rd : Reader) (hK : keccak_layer_Spec rd) :
     ring
 
 /-- **`verify_keccak`** (TRIAGE #53): its core IR computes its meaning on a memory
-image, given `grind_check`'s meaning at `3` bits (the layers' grind before `s`). -/
-theorem verify_keccak_holds {κ : ℕ} (hκ : κ ≤ 32) (hκ' : winTabBits ≤ κ) (L : MemoryImage κ)
-    (hg : grind_check_Spec 3) : verify_keccak_Spec L.read :=
-  verify_keccak_holds_of L.read (keccak_layer_holds hκ hκ' L hg)
+image. -/
+theorem verify_keccak_holds {κ : ℕ} (hκ : κ ≤ 32) (hκ' : winTabBits ≤ κ) (L : MemoryImage κ) :
+    verify_keccak_Spec L.read :=
+  verify_keccak_holds_of L.read (keccak_layer_holds hκ hκ' L)
 
 end
 end LeanVM.Guest.B1.VerifySub

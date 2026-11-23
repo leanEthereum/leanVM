@@ -11,6 +11,7 @@ module
 
 public import Statement.LeanVmGuest
 public import LeanVM.Guest.AcceptableChild
+public import LeanVM.Guest.Coverage
 
 namespace LeanVM.Guest
 
@@ -21,8 +22,8 @@ open LeanVM.Protocol.Verifier LeanVM.Node
 
 /-- **A child's announced stack log and rate** (`readAnnouncedSizes`,
 `Verifier.announcedLayoutAndRate`): the opening arm its `verify_sub` dispatches to;
-`(0, 0)` if its stream announces none, which no child of a node within `Limits`, its caps agreeing
-and no zero challenge, does (`B1.Main.childShape_bounds`). -/
+`(0, 0)` if its stream announces none, which no child of a node within `Limits`, its caps agreeing,
+does (`B1.Main.childShape_bounds`). -/
 def childShape (bytecode : List K) (c : Child) : ℕ × ℕ :=
   match announcedLayoutAndRate bytecode c.proof.stream with
   | some (layout, r) => (layout.stackLog, r)

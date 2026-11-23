@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Merkle.HintPath
 # A query's and a level's entries are the generator's
 
 * `QD.rowPop_eq`: at the honest values a query's row entry is `merkle_leaf_rows` of `Hints.leafCells` of the opened row;
-* `WD.wpPops_eq`: an honest walk's entry is `merkle_children` of the generator's steps below the cap;
+* `WD.wpPops_eq`: an honest walk's entry is `merkle_children`, the siblings of the generator's steps below the cap;
 * `queryEntries`, `query_entries_eq`: an opening's two entries (`Hints.levelHints`' per-opening pushes) from an honest query and walk;
 * `levelHints_eq`, `level_sameStreams`: a level's entries, the cap's and the flags' first (as `level_queries` pops them), are `Hints.levelHints`', stream by stream.
 -/
@@ -55,23 +55,23 @@ theorem QD.rowPop_eq (d : QD) {first : Bool} (hfirst : d.s.base = 1 ↔ first = 
 
 /-! ## The walk -/
 
-/-- **An honest walk's entry is the generator's children below the cap**: its siblings the path's first `pd`, its leaf `q` of a depth-`D` tree, `pd ≤ D`. -/
-theorem WD.wpPops_eq (w : WD) {D : ℕ} {path : List Digest} (hs : w.sibs = path.take w.pd) (hD : w.pd ≤ D)
+/-- **An honest walk's entry is the generator's siblings below the cap**: its siblings the path's first `pd`, its leaf `q` of a depth-`D` tree. -/
+theorem WD.wpPops_eq (w : WD) {D : ℕ} {path : List Digest} (hs : w.sibs = path.take w.pd)
     (hl : w.pd ≤ path.length) :
     w.wpPops = [("merkle_children", ((Hints.climbSteps (2 ^ D + w.q) w.leaf path).1.take w.pd).flatMap
-      Hints.stepChildren)] := by
-  rw [WD.wpPops, ← pathCells_eq_steps w.leaf path hD hl]
+      Hints.stepSibling)] := by
+  rw [WD.wpPops, ← pathCells_eq_steps (D := D) (q := w.q) w.leaf path hl]
   congr 3
   funext k
   rw [WD.pc, hs]
 
 /-! ## A level -/
 
-/-- **An opening's two entries** in `Hints.levelHints`: its leaf's cells and its children below the cap. -/
+/-- **An opening's two entries** in `Hints.levelHints`: its leaf's cells and its siblings below the cap. -/
 def queryEntries (first : Bool) (depth pathDepth : ℕ) (o : Opening) : List (String × Hints.Entry) :=
   [("merkle_leaf_rows", Hints.leafCells first o.leaf),
     ("merkle_children", ((Hints.climbSteps (2 ^ depth + o.leafIndex) (merkleLeafDigest o.leaf) o.path).1.take
-      pathDepth).flatMap Hints.stepChildren)]
+      pathDepth).flatMap Hints.stepSibling)]
 
 /-- **An honest query's row and walk entries are its opening's**: the query's row the opening's leaf, its walk's leaf digest the leaf's, its position the leaf index, its siblings the path's first `pd` of a tree of depth `pd + cd`. -/
 theorem query_entries_eq (d : QD) (w : WD) {first : Bool} (o : Opening) (hfirst : d.s.base = 1 ↔ first = true)
@@ -79,7 +79,7 @@ theorem query_entries_eq (d : QD) (w : WD) {first : Bool} (o : Opening) (hfirst 
     (hro : d.row = o.leaf) (hleaf : w.leaf = merkleLeafDigest o.leaf) (hq : w.q = o.leafIndex)
     (hs : w.sibs = o.path.take w.pd) (hl : w.pd ≤ o.path.length) :
     rowPop σ d.b d.s.I :: w.wpPops = queryEntries first (w.pd + w.cd) w.pd o := by
-  rw [d.rowPop_eq hfirst hrow hv hI, w.wpPops_eq (D := w.pd + w.cd) hs (by omega) hl, hro, hleaf, hq]
+  rw [d.rowPop_eq hfirst hrow hv hI, w.wpPops_eq (D := w.pd + w.cd) hs hl, hro, hleaf, hq]
   rfl
 
 /-- The pushes of a level's openings, in phase order. -/

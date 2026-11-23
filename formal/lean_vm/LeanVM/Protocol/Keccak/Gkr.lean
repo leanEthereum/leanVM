@@ -9,6 +9,7 @@
 module
 
 public import LeanVM.Protocol.Keccak.GkrTail
+public import LeanVM.Protocol.Keccak.Layers
 
 /-!
 # `verifyKeccak` as a specification

@@ -8,9 +8,13 @@
 module
 
 public import LeanVM.Protocol.EndToEnd.Front.KeccakLayout
-public import LeanVM.Protocol.EndToEnd.Complete.Gkr
-public import LeanVM.Protocol.Keccak.Candidate
+import LeanVM.Protocol.EndToEnd.Complete.Gkr
+import LeanVM.Protocol.Keccak.Candidate
 public import LeanVM.Protocol.EndToEnd.Front.RingSwitch
+public import LeanVM.Protocol.Keccak.Multilinear
+public import LeanVM.Protocol.Keccak.Linear
+import LeanVM.Protocol.EndToEnd.Front.LayoutStack
+import LeanVM.Protocol.EndToEnd.Front.LayoutArith
 
 /-!
 # The ring claim on the stack

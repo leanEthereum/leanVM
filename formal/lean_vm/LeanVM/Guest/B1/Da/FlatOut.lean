@@ -125,8 +125,8 @@ theorem kidsFromInT_of_depBPo (κ : ℕ) : ∀ (ks : List KidD) (names : List St
     · have ht' : (kf prev).taken = false := by simpa using ht
       have hfb := (hok prev).2 ht'
       obtain ⟨N, L, outs, hNb, hlen, ho, hW, hD, hI, ⟨Lw, hP⟩, hK⟩ :=
-        kidsFromInT_of_depBPo κ ks names Bs Ps (prev ++ [([], [])]) hns hoks (b + fs (kf prev).f)
-      refine ⟨fs (kf prev).f + N, L, ([], []) :: outs, by simp only [List.sum_cons]; omega,
+        kidsFromInT_of_depBPo κ ks names Bs Ps (prev ++ [([], [])]) hns hoks (b + fs (tailKey (kf prev).f))
+      refine ⟨fs (tailKey (kf prev).f) + N, L, ([], []) :: outs, by simp only [List.sum_cons]; omega,
         by simp [hlen], ⟨fun h => absurd h ht, ho⟩,
         hW.mono (by omega) (by omega), hD, ⟨fun h => absurd h ht, hI⟩, ⟨Lw, ?_⟩, ?_⟩
       · simpa [kidsAt, outsL, ht'] using hP
@@ -134,7 +134,7 @@ theorem kidsFromInT_of_depBPo (κ : ℕ) : ∀ (ks : List KidD) (names : List St
       match cs, hc with
       | c :: cs, ⟨hf, hct, _, hc⟩ =>
         simp only [kidsAt, Kid.lins, List.flatMap_cons] at hLin
-        refine ⟨fs (kf prev).f, N, fun _ => False, fun _ => False, rfl, fun _ h => h.elim, ?_, ?_⟩
+        refine ⟨fs (tailKey (kf prev).f), N, fun _ => False, fun _ => False, rfl, fun _ h => h.elim, ?_, ?_⟩
         · rw [hct, ht']
           simp only [Bool.false_eq_true, ↓reduceIte]
           rw [hf]

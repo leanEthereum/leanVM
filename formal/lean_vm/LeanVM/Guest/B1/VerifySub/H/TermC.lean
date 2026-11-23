@@ -177,7 +177,7 @@ theorem regionL_of {L : Main.Layout} {q : ℕ × List E} (hq : q ∈ L) {i : ℕ
 `check_opening_terminal` on words `Lin` holding its precondition and its regions, at its honest
 arguments. -/
 theorem term_via (hbl : bytecode.length = 2 ^ 23) (bs : List ℕ) (sqE : ℕ)
-    (pv : List (List E × Main.Layout)) (ht : ((S.kids bs sqE).getD 15 noKid pv).taken = true)
+    (pv : List (List E × Main.Layout)) (ht : ((S.kids bs sqE).getD 13 noKid pv).taken = true)
     (Q : String → Main.Layout → List E → (List E → Main.Layout → Prop) → Prop)
     (hQ : ∀ (Lin : Main.Layout) (B : TermBases),
       (∀ rd, Main.MemL rd Lin → TermPre rd S.layout S.bus S.claims S.kOut S.lam S.kc.2.1 S.ctab
@@ -185,15 +185,15 @@ theorem term_via (hbl : bytecode.length = 2 ^ 23) (bs : List ℕ) (sqE : ℕ)
       (∀ i, TermRegion B S.bus.point.length S.nT (S.layout.tableLogHeights.getD opKeccak 0)
         S.layout.stackLog i → Main.RegionL Lin i) →
       Q "check_opening_terminal" Lin (S.termArgsH B) (Returns [])) :
-    Q ((S.kids bs sqE).getD 15 noKid pv).f ((S.kids bs sqE).getD 15 noKid pv).Lin
-      ((S.kids bs sqE).getD 15 noKid pv).args ((S.kids bs sqE).getD 15 noKid pv).Out := by
+    Q ((S.kids bs sqE).getD 13 noKid pv).f ((S.kids bs sqE).getD 13 noKid pv).Lin
+      ((S.kids bs sqE).getD 13 noKid pv).args ((S.kids bs sqE).getD 13 noKid pv).Out := by
   have hok : S.termOk pv := @of_decide_eq_true _ (Classical.propDecidable _) ht
-  have hLin : ((S.kids bs sqE).getD 15 noKid pv).Lin =
+  have hLin : ((S.kids bs sqE).getD 13 noKid pv).Lin =
       (ChildSegs.cpRes pv).2 ++ (ChildSegs.osRes pv).2 ++ S.termLin bs sqE := by
     show @ite _ _ (Classical.propDecidable _) _ _ = _
     rw [@ite_pos' _ _ (Classical.propDecidable _) _ _ hok]
   obtain ⟨⟨e10, e11, e136, e137, e293, -, hL3⟩, ⟨pb, pb1, -, hL14⟩⟩ := hok
-  have hargs : ((S.kids bs sqE).getD 15 noKid pv).args =
+  have hargs : ((S.kids bs sqE).getD 13 noKid pv).args =
       S.termArgsH (termBases bs sqE e293 pb pb1) := by
     show termArgs (ChildSegs.termB bs sqE pv) _ _ _ _ _ _ _ _ _ _ = _
     simp only [ChildSegs.termB, ChildSegs.termBs, hL3, hL14]
@@ -265,10 +265,10 @@ variable {fs : String → ℕ} {cert : String → V → ℕ}
 /-- **The terminal on an honest child, entered, within `termBound`.** -/
 theorem term_kidB (hbl : bytecode.length = 2 ^ 23) {κ : ℕ} (hκ : 6 ≤ κ) (W : VsWordsOs fs)
     (bs : List ℕ) (sqE : ℕ) (pv : List (List E × Main.Layout))
-    (ht : ((S.kids bs sqE).getD 15 noKid pv).taken = true) :
-    CompleteAtB fs cert κ ((S.kids bs sqE).getD 15 noKid pv).f
-      ((S.kids bs sqE).getD 15 noKid pv).Lin ((S.kids bs sqE).getD 15 noKid pv).args
-      ((S.kids bs sqE).getD 15 noKid pv).Out (termBound fs W.Beqc W.K15 W.Bcs W.Brs) :=
+    (ht : ((S.kids bs sqE).getD 13 noKid pv).taken = true) :
+    CompleteAtB fs cert κ ((S.kids bs sqE).getD 13 noKid pv).f
+      ((S.kids bs sqE).getD 13 noKid pv).Lin ((S.kids bs sqE).getD 13 noKid pv).args
+      ((S.kids bs sqE).getD 13 noKid pv).Out (termBound fs W.Beqc W.K15 W.Bcs W.Brs) :=
   S.term_via hbl bs sqE pv ht (fun f L a O ↦ CompleteAtB fs cert κ f L a O
     (termBound fs W.Beqc W.K15 W.Bcs W.Brs)) fun Lin B hpre hreg ↦
     check_opening_terminal_completeAtB κ hκ B Lin (nc := S.nT) (by have := S.nT_le hbl; omega) rfl
@@ -279,10 +279,10 @@ theorem term_kidB (hbl : bytecode.length = 2 ^ 23) {κ : ℕ} (hκ : 6 ≤ κ) (
 weights.** -/
 theorem term_kidBW (hbl : bytecode.length = 2 ^ 23) {κ : ℕ} (hκ : 6 ≤ κ) (W : VsWordsOs fs)
     (bs : List ℕ) (sqE : ℕ) (pv : List (List E × Main.Layout))
-    (ht : ((S.kids bs sqE).getD 15 noKid pv).taken = true) :
-    CompleteAtDTB fs cert κ ((S.kids bs sqE).getD 15 noKid pv).f
-      ((S.kids bs sqE).getD 15 noKid pv).Lin ((S.kids bs sqE).getD 15 noKid pv).args
-      ((S.kids bs sqE).getD 15 noKid pv).Out
+    (ht : ((S.kids bs sqE).getD 13 noKid pv).taken = true) :
+    CompleteAtDTB fs cert κ ((S.kids bs sqE).getD 13 noKid pv).f
+      ((S.kids bs sqE).getD 13 noKid pv).Lin ((S.kids bs sqE).getD 13 noKid pv).args
+      ((S.kids bs sqE).getD 13 noKid pv).Out
       (fun t ↦ ∀ op, Budget.WeighsLe coreProgram (W.ωv op) (termWB W.toVsWords op) t)
       (termBound fs W.Beqc W.K15 W.Bcs W.Brs) :=
   S.term_via hbl bs sqE pv ht (fun f L a O ↦ CompleteAtDTB fs cert κ f L a O

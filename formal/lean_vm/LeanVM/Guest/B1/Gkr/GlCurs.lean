@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B1.Gkr.GlLayer
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«gkr_layer__L»
+import LeanVM.Guest.B1.Tables.Basic
 
 /-!
 # A layer's cursors
@@ -17,7 +18,7 @@ import LeanVM.Guest.Data.ValNames.«gkr_layer__L»
 `gl_curs`: on `glBody p o nm`'s statements, at `x_m = g^m`, `x_j = g^j` (`j = 4m + p`),
 `start_g = g^(2 - o)`, from the cursor `cur` of the slot of `L = 2j + 2 - o`: the slot's cursor is
 value `21`; the head record (`53`) holds `cur·g^(8p)`, and the loop is called on it; the record
-`head·g^i`, `i ≤ m`, holds `cur·g^(8p + 32i)`; the tail's cursor (`76 + glD p`) is
+`head·g^(7i)`, `i ≤ m`, holds `cur·g^(8p + 32i)`; the tail's cursor (`80 + glD p`) is
 `cur·g^(8p + 32m)`; and the next slot holds `cur·g^(4L + 12)`.
 -/
 
@@ -39,11 +40,11 @@ theorem gl_curs (hC : CallRel.Le C (coreProgram.Rel rd)) {p o : ℕ} (hp : p < 4
     (hsg : σ (.n (valf% «gkr_layer» "start_g")) = gen ^ (2 - o)) (hj : 4 * m + p < 2 ^ 30) {cur : E}
     (hcur : LoadHolds rd (σ (.n (valf% «gkr_layer» "layers"))) (10 * (2 * (4 * m + p) + 2 - o) + 5) cur) :
     σ (.n (valf% «gkr_layer» "s4#0")) = cur ∧
-      LoadHolds rd (σ (.n (valf% «gkr_layer» "head"))) 4310 (cur * gen ^ (8 * p)) ∧
+      LoadHolds rd (σ (.n (valf% «gkr_layer» "head"))) 5 (cur * gen ^ (8 * p)) ∧
       (1 + σ (.n (valf% «gkr_layer» "x_m")) ≠ 0 → C (glLoopName p o) [1, σ (.n (valf% «gkr_layer» "x_m")), σ (.n (valf% «gkr_layer» "head")), σ (.n (valf% «gkr_layer» "point_row")) * gen ^ (2 * p),
         σ (.n (valf% «gkr_layer» "point_row")) * gen ^ (2 * p) * gen ^ 42, σ (.n (valf% «gkr_layer» "tabs"))] []) ∧
-      (∀ i ≤ m, LoadHolds rd (σ (.n (valf% «gkr_layer» "head")) * gen ^ i) 4310 (cur * gen ^ (8 * p + 32 * i))) ∧
-      σ (.n (76 + glD p)) = cur * gen ^ (8 * p + 32 * m) ∧
+      (∀ i ≤ m, LoadHolds rd (σ (.n (valf% «gkr_layer» "head")) * gen ^ (7 * i)) 5 (cur * gen ^ (8 * p + 32 * i))) ∧
+      σ (.n (80 + glD p)) = cur * gen ^ (8 * p + 32 * m) ∧
       LoadHolds rd (σ (.n (valf% «gkr_layer» "layers"))) (10 * (2 * (4 * m + p) + 2 - o + 2) + 5)
         (cur * gen ^ (4 * (2 * (4 * m + p) + 2 - o) + 12)) := by
   set j := 4 * m + p with hjdef
@@ -90,7 +91,7 @@ theorem gl_curs (hC : CallRel.Le C (coreProgram.Rel rd)) {p o : ℕ} (hp : p < 4
   have R0 := gkrRoundsOut_zero (pt := σ (.n (valf% «gkr_layer» "point_row")) * gen ^ (2 * p)) hsc hscur hscl
   have RL := gl_loop_all hp ho (head := σ (.n (valf% «gkr_layer» "head"))) (tabs := σ (.n (valf% «gkr_layer» "tabs"))) hxm (by omega) rfl
     (fun hne => hC _ _ _ (hcall hne)) R0
-  have hrec : ∀ i ≤ m, LoadHolds rd (σ (.n (valf% «gkr_layer» "head")) * gen ^ i) 4310 (cur * gen ^ (8 * p + 32 * i)) := by
+  have hrec : ∀ i ≤ m, LoadHolds rd (σ (.n (valf% «gkr_layer» "head")) * gen ^ (7 * i)) 5 (cur * gen ^ (8 * p + 32 * i)) := by
     intro i hi
     obtain ⟨cap1, cap2, cur1, cl1, cl2, hc1, hcur1, -, -, -, hcur2, -⟩ := glRun_of_out (RL i hi)
     obtain rfl := tb_loadHolds_unique hcur1 hscur
@@ -99,8 +100,8 @@ theorem gl_curs (hC : CallRel.Le C (coreProgram.Rel rd)) {p o : ℕ} (hp : p < 4
     ring
   -- the tail's cursor
   obtain ⟨-, -, -, htcur, -⟩ := gl_tailSetup hp hTS
-  rw [hxm, tb_loadHolds_mul_gen_pow] at htcur
-  have e77 : σ (.n (76 + glD p)) = cur * gen ^ (8 * p + 32 * m) := by
+  rw [hxm, ← pow_mul, mul_comm m 7, tb_loadHolds_mul_gen_pow] at htcur
+  have e77 : σ (.n (80 + glD p)) = cur * gen ^ (8 * p + 32 * m) := by
     have := hrec m le_rfl
     rw [tb_loadHolds_mul_gen_pow] at this
     exact tb_loadHolds_unique htcur this
@@ -111,8 +112,8 @@ theorem gl_curs (hC : CallRel.Le C (coreProgram.Rel rd)) {p o : ℕ} (hp : p < 4
   obtain ⟨-, -, -, -, -, -, tcur, -⟩ := gl_tail (τ := τ) (by omega) hTail
     (by rw [tz 23 (by omega)]; exact c23) (by rw [tz 24 (by omega)]; exact c24)
     (by rw [tz 25 (by omega)]; exact c25) (by rw [tz 26 (by omega)]; exact c26)
-  have t77 : τ (.n 76) = σ (.n (76 + glD p)) := by
-    show σ (glRho p o (.n 76)) = _
+  have t77 : τ (.n 80) = σ (.n (80 + glD p)) := by
+    show σ (glRho p o (.n 80)) = _
     rw [glRho_mid (by omega) (by omega)]
   rw [tz 15 (by omega), e15, tb_loadHolds_mul_gen_pow, t77, e77, mul_assoc, ← pow_add] at tcur
   refine ⟨e21, hscur, hcall, hrec, e77, ?_⟩

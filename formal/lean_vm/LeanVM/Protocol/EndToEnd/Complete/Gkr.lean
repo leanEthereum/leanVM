@@ -9,7 +9,8 @@
 module
 
 public import LeanVM.Protocol.EndToEnd.Complete.Sumcheck
-public import LeanVM.Protocol.Verifier
+import LeanVM.Protocol.Verifier
+public import LeanVM.Protocol.Whir.Complete.Tables
 
 /-!
 # Completeness of the batched GKR

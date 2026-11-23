@@ -1,4 +1,7 @@
-import LeanVM.Cost.DecoderSpec
+module
+
+public import LeanVM.Cost.DecoderSpec
+meta import LeanVM.Cost.DecoderSpec
 
 /-!
 # Tests: the guest decoder program's size
@@ -15,9 +18,12 @@ namespace LeanVMTests.Cost.DecoderSize
 
 open LeanVM.Cost LeanVM.Cost.Decoder
 
-#guard decTopC.costIdx == 607
+@[expose] public section
+
+#guard decTopC.costIdx == 611
 #guard compiledGuestWitnessDecoder.size ==
   guestLanesRowSize + 2 + otherBodiesSize + 2 * (decTopC.costIdx - decTopC.costDeps.length)
 #guard compiledGuestWitnessDecoder.size ≤ LeanVM.Node.guestWitnessDecoderSizeBound
 
+end
 end LeanVMTests.Cost.DecoderSize

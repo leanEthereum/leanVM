@@ -9,8 +9,9 @@
 module
 
 public import LeanVM.Guest.B1.Sumcheck.MeaningP
-public import LeanVM.Guest.B1.Tables.Base
-public import LeanVM.Guest.GuestConst
+public import LeanVM.Facts.Verifier
+import LeanVM.Guest.B1.Tables.Base
+import LeanVM.Guest.GuestConst
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
 import LeanVM.Guest.Data.Consts
 
@@ -68,8 +69,8 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 /-! ## The guest's constants -/
 
-/-- `KR_CAP`: a round record's fields are `16` words apart. -/
-abbrev krCap : ℕ := 16
+/-- `KR_CAP`: a round record's fields are `11` words apart. -/
+abbrev krCap : ℕ := 11
 
 /-- `KC_SIZE = KC_MU + KECCAK_PACK`: a claim record's words. -/
 abbrev kcSize : ℕ := 22

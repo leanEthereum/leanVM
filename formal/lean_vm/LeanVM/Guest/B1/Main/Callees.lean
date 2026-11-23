@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Main.Final
 public import LeanVM.Guest.Data.NameStrings
+public import LeanVM.Guest.B1.Sig.Interface
 
 /-!
 # The callees' contracts, from their statements

@@ -579,7 +579,7 @@ noncomputable def stepHint (A : Abs) : Hint → Option Abs
   | .alloc ptr _ => some (A.addW ptr)
   | .allocDyn ptr size => if A.hasW size then some (A.addW ptr) else none
   | .allocArm ptr sel _ => if A.hasW sel then some (A.addW ptr) else none
-  | .allocFrames ptr _ stop _ => if A.hasW stop then some (A.addW ptr) else none
+  | .allocFrames ptr _ stop _ _ => if A.hasW stop then some (A.addW ptr) else none
   | .cellAddress ptr cell => some (((A.addW ptr).addV ptr (.m (.own cell))).addNz ptr)
   | .witnessStack _ base len => some (writeRun A (some base, none) 0 len none)
   | .witnessHeap _ ptr lo len => (destOf A (.heap ptr)).map fun d ↦ writeRun A d lo len none

@@ -141,6 +141,29 @@ fn nested_return_in_main_is_rejected() {
     let _ = compile(&parse(src).expect("parse"));
 }
 
+/// The copy-removal pass (`opt.rs`) across branches and dispatch arms: an honest program runs, and one whose assert
+/// fails does not. Arms of a `match` share their frame cells, and a branch's join cell has one writer per path.
+#[test]
+fn copy_removal_keeps_every_path() {
+    let run = |src: &str| execute(&compile(&parse(src).unwrap()), &[], [F128::ZERO; 2]);
+    let honest = [
+        // `x[0]` is 1 on one path only, so `x[0] * w` is no copy of `w`.
+        "def f(c, y, w, v):\n    x = StackBuf(1)\n    if c == 0:\n        x[0] = 1\n    else:\n        x[0] = y\n    z = x[0] * w\n    assert z == v\n    return 0\n\ndef main():\n    r = f(GEN, GEN ** 3, GEN ** 5, GEN ** 8)\n    return\n",
+        // Arm 0's temporary is retargeted; arm 1 reuses its cell for an unrelated value.
+        "def f(x, c, a, b):\n    r = match(log(c), range(0, 2), lambda i: g(x, a, b, i))\n    return r\n\n@inline\ndef g(x, a, b, i: Const):\n    if const(i == 0):\n        t = a * b\n        assert t == x\n        y = 0\n    else:\n        u = a + b\n        y = u * u\n    return y\n\ndef main():\n    r = f(GEN ** 2, GEN, GEN ** 3, GEN ** 4)\n    return\n",
+        // The assert on `v`, an argument, runs on one path only: retargeting `t` into `v` must not move it.
+        "def f(a, v, c):\n    t = a * a\n    if c == 0:\n        assert t == v\n    return 0\n\ndef main():\n    r = f(GEN, GEN ** 5, GEN)\n    return\n",
+        // Each arm jumps through the same cells to its own join, where `t` is still read.
+        "def f(c, a, b, p):\n    r = match(log(c), range(0, 2), lambda i: g(a, b, p, i))\n    return r\n\n@inline\ndef g(a, b, p, i: Const):\n    if const(i == 0):\n        t = a * b\n        s = StackBuf(1)\n        s[0] = t\n        if p == 0:\n            print(a)\n        else:\n            print(b)\n        y = t * s[0]\n    else:\n        t2 = a + b\n        s2 = StackBuf(1)\n        s2[0] = t2\n        if p == 0:\n            print(b)\n        else:\n            print(a)\n        y = p * b\n    return y\n\ndef main():\n    r = f(GEN ** 0, GEN ** 3, GEN ** 4, GEN)\n    assert r == GEN ** 14\n    return\n",
+    ];
+    for src in honest {
+        run(src).unwrap_or_else(|e| panic!("{e:?}, for:\n{src}"));
+    }
+    // `v` is written before the branch and only asserted after it: the assert must survive.
+    let failing = "def f(a, b):\n    v = a * b\n    if a == GEN:\n        return 0\n    assert a + b == v\n    return v\n\ndef main():\n    r = f(GEN ** 2, GEN ** 3)\n    return\n";
+    assert!(run(failing).is_err(), "an assert that fails was compiled away");
+}
+
 /// `x ** 0` never evaluated `x`, dropping the assertion in `one()`.
 #[test]
 fn zero_power_evaluates_its_base() {

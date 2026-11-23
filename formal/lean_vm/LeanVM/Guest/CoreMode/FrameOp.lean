@@ -146,6 +146,65 @@ theorem stepF_deref {O S : Exec.Trie Unit} {i : ℕ} {A A' : FSt} {a o c : ℕ} 
   rw [hs] at hw2
   simpa using hw2
 
+/-- A copy into frame cell `t` of `c`'s word. -/
+theorem FVal.setCp {fp : ℕ} {B : FSt} (hB : FVal img fp B) {t c : ℕ}
+    (h : ∃ v, Rd img fp t = some v ∧ Rd img fp c = some v) :
+    FVal img fp { B with cp := B.cp.set c Exec.envDepth t } := by
+  refine ⟨hB.st, hB.nz, hB.hs, fun t' c' ht ↦ ?_, hB.one⟩
+  replace ht : (B.cp.set c Exec.envDepth t).get t' = some c' := ht
+  rcases Exec.Trie.get_set ht with ⟨rfl, rfl⟩ | ht
+  · exact h
+  · exact hB.cp t' c' ht
+
+/-- A `DEREF` of mode `cell` through a next frame's pointer: the own cell it names holds `[c]`. -/
+theorem fval_nextF {fp pc : ℕ} {A B : FSt} {a o c : ℕ} (hv : FVal img fp A) (hB : FVal img fp B)
+    (hh : Guest.Holds img pc (g ^ fp) (.deref a o c .cell)) : FVal img fp (nextF A B a o c) := by
+  unfold nextF
+  rcases he : A.st.env.get a with _ | (_ | _ | e)
+  · exact hB
+  · exact hB
+  · exact hB
+  obtain ⟨p, v3, hp, -, hv3, hr⟩ := hh
+  have hpe := hv.st.1 a _ he
+  rw [hp] at hpe
+  cases hpe
+  have hcp : ∃ v, Rd img fp (e + o) = some v ∧ Rd img fp c = some v := by
+    refine ⟨v3, ?_, hv3⟩
+    have hr' : img.read ((Exec.Sym.val (g ^ fp) (.fpg e)).limb 0 * addressOfIndex o) = some v3 := hr
+    show img.read (g ^ fp * addressOfIndex (e + o)) = some v3
+    rw [show g ^ fp * addressOfIndex (e + o) = (Exec.Sym.val (g ^ fp) (.fpg e)).limb 0 * addressOfIndex o by
+      rw [show (Exec.Sym.val (g ^ fp) (.fpg e)).limb 0 = g ^ fp * addressOfIndex e by simp [Exec.Sym.val]]
+      simp only [addressOfIndex, pow_add, mul_assoc]]
+    exact hr'
+  dsimp only
+  split_ifs
+  · exact (hB.addW _).setCp hcp
+  · exact hB.setCp hcp
+  · exact hB
+
+theorem names_gpow {p : E} {o x n : ℕ} (hn : p.limb 0 = g ^ n) (hx : Names (p * ofK (g ^ o)) x)
+    (hb : n + o < 2 ^ 63) : x = n + o := by
+  have h1 := hx.1
+  rw [Mode.limb_mul_ofK, hn, ← pow_add] at h1
+  have := hx.2
+  unfold maxCells at this
+  exact gpow_inj (by omega) hb h1.symm
+
+/-- The written cells after `nextF`: the own cell `e + o` is the heap cell, written once `c` is. -/
+theorem fwr_nextF {s : Prover.Exec.St} {A B : FSt} {a o c : ℕ} (hB : FWr s B)
+    (hx : ∀ e, A.st.env.get a = some (.fpg e) → e + o < pcLim → B.hasW c = true →
+      s.mem.written (s.fp + (e + o)) = true) : FWr s (nextF A B a o c) := by
+  unfold nextF
+  rcases he : A.st.env.get a with _ | (_ | _ | e)
+  · exact hB
+  · exact hB
+  · exact hB
+  dsimp only
+  split_ifs with hl hc
+  · exact ⟨(hB.addW (hx e he hl hc)).w, hB.hq⟩
+  · exact ⟨hB.w, hB.hq⟩
+  · exact hB
+
 theorem isOne_eq' {o : Option Exec.Sym} (h : Exec.isOne o = true) : o = some (.gp 0) := by
   rcases o with _ | (_ | (_ | _) | _) <;> simp_all [Exec.isOne]
 
@@ -236,7 +295,7 @@ theorem stepF_val {O S : Exec.Trie Unit} {i pc fp : ℕ} {A A' : FSt} {ins : Off
       · exact hv.addNz hnz
     cases mode with
     | cell =>
-      simp only [derefF]
+      refine fval_nextF hv ?_ hh
       split_ifs with hca
       · have hca' : c = a := beq_iff_eq.mp hca
         refine hB.addS fun _ ↦ ?_
@@ -307,6 +366,8 @@ theorem fwr_addOuts {s : Prover.Exec.St} {A : FSt} (hw : FWr s A) {out : ℕ} :
 theorem stepF_wr {C : Prover.Exec.Ctx} {O S : Exec.Trie Unit} {i : ℕ} {s s' : Prover.Exec.St} {A A' : FSt}
     {ins : OffsetInstruction} (hs : s.Good) (hfp : s.fp < maxCells) (hpc : s.pc < C.ops.size)
     (hw : FWr s A) (hO : has O i = true → HeapRd s ins) (h : stepF O S i A ins = some A')
+    (hfpg : ∀ a o c mode e p, ins = .deref a o c mode → A.st.env.get a = some (.fpg e) →
+      s.mem.get (s.fp + a) = some p → p.limb 0 = g ^ (s.fp + e))
     (e : runOp C s (opOfOff ins) = .ok s') :
     FWr s' A' ∧ s'.fp = s.fp ∧ s'.pc = s.pc + 1 ∧ s.mem ≤ s'.mem := by
   cases ins with
@@ -360,27 +421,36 @@ theorem stepF_wr {C : Prover.Exec.Ctx} {O S : Exec.Trie Unit} {i : ℕ} {s s' : 
     | fp => exact (hm.addNz a).addQ fun _ ↦ ⟨p, x, hp', hx, written_of_get (hfpm rfl)⟩
     | cell =>
       obtain ⟨hld, hst⟩ := hcell rfl
-      have hB : FWr s' (cellF O i A a o c) := by
+      have hB : FWr s' (cellF O i A a o c) ∧ ((cellF O i A a o c).hasW c = true → s'.mem.written x = true) := by
         unfold cellF
         split_ifs with hc hq ho
         · obtain ⟨v, hv⟩ := Mem.get_of_written (hw.w c (has_iff.mp hc))
-          exact (hm.addNz a).addQ fun _ ↦ ⟨p, x, hp', hx, written_of_get (hst v hv)⟩
+          exact ⟨(hm.addNz a).addQ fun _ ↦ ⟨p, x, hp', hx, written_of_get (hst v hv)⟩,
+            fun _ ↦ written_of_get (hst v hv)⟩
         · unfold FSt.hasQ at hq
           simp only [Bool.and_eq_true, decide_eq_true_eq] at hq
           obtain ⟨p', x', hp1, hx1, hw1⟩ := hw.hq a o hq.1 (has_iff.mp hq.2)
           rw [hp] at hp1; cases hp1
           obtain rfl := names_inj hx hx1
           obtain ⟨v, hv⟩ := Mem.get_of_written hw1
-          exact (hm.addNz a).addW (by rw [h2]; exact written_of_get (hld v hv))
+          exact ⟨(hm.addNz a).addW (by rw [h2]; exact written_of_get (hld v hv)), fun _ ↦ written_mono h3 hw1⟩
         · have hxw := hO ho p x hp hx
           obtain ⟨v, hv⟩ := Mem.get_of_written hxw
-          exact ((hm.addNz a).addW (by rw [h2]; exact written_of_get (hld v hv))).addQ
-            fun _ ↦ ⟨p, x, hp', hx, written_mono h3 hxw⟩
-        · exact hm.addNz a
-      simp only [derefF]
-      split_ifs
-      · exact hB.addS a o
-      · exact hB
+          exact ⟨((hm.addNz a).addW (by rw [h2]; exact written_of_get (hld v hv))).addQ
+            fun _ ↦ ⟨p, x, hp', hx, written_mono h3 hxw⟩, fun _ ↦ written_mono h3 hxw⟩
+        · exact ⟨hm.addNz a, fun h' ↦ absurd h' hc⟩
+      have hB' : FWr s' (if c == a then (cellF O i A a o c).addS a o else cellF O i A a o c) ∧
+          ((if c == a then (cellF O i A a o c).addS a o else cellF O i A a o c).hasW c = true →
+            s'.mem.written x = true) := by
+        split_ifs
+        · refine ⟨hB.1.addS a o, fun h' ↦ hB.2 ?_⟩
+          unfold FSt.addS at h'
+          split_ifs at h' <;> exact h'
+        · exact hB
+      refine fwr_nextF hB'.1 fun e' he hl hc ↦ ?_
+      have hn := names_gpow (hfpg a o c .cell e' p rfl he hp) hx (by unfold pcLim at hl; unfold maxCells at hfp; omega)
+      rw [h2, ← Nat.add_assoc, ← hn]
+      exact hB'.2 hc
 
 /-- **What a non-`JUMP` the frame rule accepts reads is written**, a back-solve's divisor nonzero. -/
 theorem stepF_reads (hκ : κ ≤ 28) {O S : Exec.Trie Unit} {i pc : ℕ} {s : Prover.Exec.St} {A A' : FSt}

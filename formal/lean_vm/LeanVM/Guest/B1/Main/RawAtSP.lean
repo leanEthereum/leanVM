@@ -110,7 +110,7 @@ theorem rawS_stepPQ (fs : String → ℕ) (cert : String → V → ℕ) {nV : �
     (htail : if j + 1 < nrs then
         RelAtInCPE coreProgram fs cert rd (Q rd) (RegionL Lin) (RegionL []) (fp + fs name% «main_loop3») (c + nV) Bt m
           name% «main_loop3» [gen ^ (j + 1), gen ^ nrs, gen ^ Y, gen ^ (cv + X), gen ^ nrx, gen ^ tb, gen ^ bb] [] pt
-      else Bt = fs name% «main_loop3» ∧ m = 0 ∧ pt = []) :
+      else Bt = fs (tailKey name% «main_loop3») ∧ m = 0 ∧ pt = []) :
     RelAtInCPE coreProgram fs cert rd (Q rd) (RegionL Lin) (RegionL []) fp c (fs name% «main_loop3» + Bt) (nV + m)
       name% «main_loop3» [gen ^ j, gen ^ nrs, gen ^ Y, gen ^ (cv + X), gen ^ nrx, gen ^ tb, gen ^ bb] []
       (l4Pops D j ++ pt) := by
@@ -207,12 +207,12 @@ theorem rawS_loopPQ (fs : String → ℕ) (cert : String → V → ℕ) {nV : �
     (hq : ∀ σ es vs, walk σ (coreProgram.getD idx% «main_loop3» default).body = .ret es vs →
       (∀ e ∈ es, e.Holds rd σ) → Q rd name% «main_loop3» σ) :
     ∀ j < nrs, ∀ fp c, RelAtInCPE coreProgram fs cert rd (Q rd) (RegionL Lin) (RegionL []) fp c
-      ((nrs - j + 1) * fs name% «main_loop3») ((nrs - j) * nV) name% «main_loop3»
+      ((nrs - j) * fs name% «main_loop3» + fs (tailKey name% «main_loop3»)) ((nrs - j) * nV) name% «main_loop3»
       [gen ^ j, gen ^ nrs, gen ^ Y, gen ^ (cv + X), gen ^ nrx, gen ^ tb, gen ^ bb] []
       ((List.range' j (nrs - j)).flatMap (l4Pops D)) := by
   suffices key : ∀ t j, j + 1 + t = nrs → ∀ fp c, RelAtInCPE coreProgram fs cert rd (Q rd) (RegionL Lin) (RegionL [])
       fp c
-      ((nrs - j + 1) * fs name% «main_loop3») ((nrs - j) * nV) name% «main_loop3»
+      ((nrs - j) * fs name% «main_loop3» + fs (tailKey name% «main_loop3»)) ((nrs - j) * nV) name% «main_loop3»
       [gen ^ j, gen ^ nrs, gen ^ Y, gen ^ (cv + X), gen ^ nrx, gen ^ tb, gen ^ bb] []
       ((List.range' j (nrs - j)).flatMap (l4Pops D)) from
     fun j hj => key (nrs - j - 1) j (by omega)
@@ -220,10 +220,10 @@ theorem rawS_loopPQ (fs : String → ℕ) (cert : String → V → ℕ) {nV : �
   induction t with
   | zero =>
     intro j hj fp c
-    have h := rawS_stepPQ fs cert hV D hY hnrs hl hL hq (j := j) (fp := fp) (c := c) (Bt := fs name% «main_loop3»)
+    have h := rawS_stepPQ fs cert hV D hY hnrs hl hL hq (j := j) (fp := fp) (c := c) (Bt := fs (tailKey name% «main_loop3»))
       (m := 0) (pt := []) (by omega) (by rw [ite_eq_right_of_eq_false _ _ (eq_false (by omega))]; exact ⟨rfl, rfl, rfl⟩)
-    rw [show nrs - j = 1 by omega, List.range'_one, List.flatMap_singleton, show (1 + 1) * fs name% «main_loop3» =
-      fs name% «main_loop3» + fs name% «main_loop3» by ring, Nat.one_mul]
+    rw [show nrs - j = 1 by omega, List.range'_one, List.flatMap_singleton, show 1 * fs name% «main_loop3» + fs (tailKey name% «main_loop3») =
+      fs name% «main_loop3» + fs (tailKey name% «main_loop3») by ring, Nat.one_mul]
     rw [List.append_nil, Nat.add_zero] at h
     exact h
   | succ t ih =>
@@ -232,8 +232,8 @@ theorem rawS_loopPQ (fs : String → ℕ) (cert : String → V → ℕ) {nV : �
       (by rw [ite_eq_left_of_eq_true _ _ (eq_true (by omega))]
           exact ih (j + 1) (by omega) (fp + fs name% «main_loop3») (c + nV))
     rw [show nrs - j = nrs - (j + 1) + 1 by omega, List.range'_succ, List.flatMap_cons,
-      show (nrs - (j + 1) + 1 + 1) * fs name% «main_loop3» =
-        fs name% «main_loop3» + (nrs - (j + 1) + 1) * fs name% «main_loop3» by ring,
+      show (nrs - (j + 1) + 1) * fs name% «main_loop3» + fs (tailKey name% «main_loop3») =
+        fs name% «main_loop3» + ((nrs - (j + 1)) * fs name% «main_loop3» + fs (tailKey name% «main_loop3»)) by ring,
       show (nrs - (j + 1) + 1) * nV = nV + (nrs - (j + 1)) * nV by ring]
     exact h
 
@@ -244,7 +244,7 @@ theorem rawS_stepP (fs : String → ℕ) (cert : String → V → ℕ) {nV : ℕ
     (htail : if j + 1 < nrs then
         RelAtInCP coreProgram fs cert rd (RegionL Lin) (RegionL []) (fp + fs name% «main_loop3») (c + nV) Bt m
           name% «main_loop3» [gen ^ (j + 1), gen ^ nrs, gen ^ Y, gen ^ (cv + X), gen ^ nrx, gen ^ tb, gen ^ bb] [] pt
-      else Bt = fs name% «main_loop3» ∧ m = 0 ∧ pt = []) :
+      else Bt = fs (tailKey name% «main_loop3») ∧ m = 0 ∧ pt = []) :
     RelAtInCP coreProgram fs cert rd (RegionL Lin) (RegionL []) fp c (fs name% «main_loop3» + Bt) (nV + m)
       name% «main_loop3» [gen ^ j, gen ^ nrs, gen ^ Y, gen ^ (cv + X), gen ^ nrx, gen ^ tb, gen ^ bb] []
       (l4Pops D j ++ pt) := by
@@ -259,7 +259,7 @@ theorem rawS_loopP (fs : String → ℕ) (cert : String → V → ℕ) {nV : ℕ
     {nrs Y X nrx cv tb bb : ℕ} {Lin : Layout} (D : RawSData nrs Y X nrx cv tb bb Lin) (hY : Y ≤ 2 ^ 23)
     (hnrs : nrs < 2 ^ 34) {rd : Reader} (hl : LowDef 23 rd) (hL : MemL rd Lin) :
     ∀ j < nrs, ∀ fp c, RelAtInCP coreProgram fs cert rd (RegionL Lin) (RegionL []) fp c
-      ((nrs - j + 1) * fs name% «main_loop3») ((nrs - j) * nV) name% «main_loop3»
+      ((nrs - j) * fs name% «main_loop3» + fs (tailKey name% «main_loop3»)) ((nrs - j) * nV) name% «main_loop3»
       [gen ^ j, gen ^ nrs, gen ^ Y, gen ^ (cv + X), gen ^ nrx, gen ^ tb, gen ^ bb] []
       ((List.range' j (nrs - j)).flatMap (l4Pops D)) := fun j hj fp c =>
   (rawS_loopPQ fs cert hV.toPQ D hY hnrs hl hL (fun _ _ _ _ _ => trivial) j hj fp c).toP
@@ -275,9 +275,9 @@ theorem rawS_completeAtDPQ (fs : String → ℕ) (cert : String → V → ℕ) {
     ∀ j < nrs, CompleteAtDPE fs cert 23 name% «main_loop3» Lin
       [gen ^ j, gen ^ nrs, gen ^ Y, gen ^ (cv + X), gen ^ nrx, gen ^ tb, gen ^ bb] (Returns [])
       (fun _ => (List.range' j (nrs - j)).flatMap (l4Pops D)) Q := fun j hj fp =>
-  ⟨(nrs - j + 1) * fs name% «main_loop3» + (nrs - j) * nV, [], [], [], ⟨rfl, rfl⟩, by simp [Within], disj_nil,
+  ⟨(nrs - j) * fs name% «main_loop3» + fs (tailKey name% «main_loop3») + (nrs - j) * nV, [], [], [], ⟨rfl, rfl⟩, by simp [Within], disj_nil,
     fun rd hl hL => (rawS_loopPQ fs cert hV D hY hnrs hl (by simpa using hL) (hq rd) j hj fp
-      (fp + (nrs - j + 1) * fs name% «main_loop3»)).relAtInPE⟩
+      (fp + ((nrs - j) * fs name% «main_loop3» + fs (tailKey name% «main_loop3»)))).relAtInPE⟩
 
 /-- **`main_loop3` is complete, placed, with its pops**, from every counter `g^j` below the count: iterations
 `j ..< nrs`' entries in order. -/

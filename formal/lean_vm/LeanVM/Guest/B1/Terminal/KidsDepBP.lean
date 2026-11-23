@@ -34,12 +34,12 @@ variable {fs : String → ℕ} {cert : String → V → ℕ}
 
 /-- **The dependent callees within their bounds by trees of their predicates**: callee `j`, on
 every result before it, entered within `Bs[j]` words by a tree of `Ps[j]` (`CompleteAtDTB`),
-skipped with its frame at most `Bs[j]`. -/
+skipped with its tail frame at most `Bs[j]`. -/
 def KidsDepBP (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) :
     List KidD → List ℕ → List (Tree → Prop) → Prop
   | k :: ks, b :: Bs, P :: Ps => (∀ pv, ((k pv).taken = true →
         CompleteAtDTB fs cert κ (k pv).f (k pv).Lin (k pv).args (k pv).Out P b) ∧
-      ((k pv).taken = false → fs (k pv).f ≤ b)) ∧ KidsDepBP fs cert κ ks Bs Ps
+      ((k pv).taken = false → fs (tailKey (k pv).f) ≤ b)) ∧ KidsDepBP fs cert κ ks Bs Ps
   | [], [], [] => True
   | _, _, _ => False
 
@@ -48,7 +48,7 @@ def KidsDepBPR (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) :
     List KidD → List ℕ → List (Reader → Tree → Prop) → Prop
   | k :: ks, b :: Bs, P :: Ps => (∀ pv, ((k pv).taken = true →
         CompleteAtDTBR fs cert κ (k pv).f (k pv).Lin (k pv).args (k pv).Out P b) ∧
-      ((k pv).taken = false → fs (k pv).f ≤ b)) ∧ KidsDepBPR fs cert κ ks Bs Ps
+      ((k pv).taken = false → fs (tailKey (k pv).f) ≤ b)) ∧ KidsDepBPR fs cert κ ks Bs Ps
   | [], [], [] => True
   | _, _, _ => False
 
@@ -167,15 +167,15 @@ theorem kidsFromInT_of_depBPR (κ : ℕ) : ∀ (ks : List KidD) (names : List St
     · have ht' : (kf prev).taken = false := by simpa using ht
       have hfb := (hok prev).2 ht'
       obtain ⟨N, L, outs, hNb, hlen, ho, hW, hD, hI, hK⟩ :=
-        kidsFromInT_of_depBPR κ ks names Bs Ps (prev ++ [([], [])]) hns hoks (b + fs (kf prev).f)
-      refine ⟨fs (kf prev).f + N, L, ([], []) :: outs, by simp only [List.sum_cons]; omega,
+        kidsFromInT_of_depBPR κ ks names Bs Ps (prev ++ [([], [])]) hns hoks (b + fs (tailKey (kf prev).f))
+      refine ⟨fs (tailKey (kf prev).f) + N, L, ([], []) :: outs, by simp only [List.sum_cons]; omega,
         by simp [hlen], ⟨fun h => absurd h ht, ho⟩,
         hW.mono (by omega) (by omega), hD, ⟨fun h => absurd h ht, hI⟩, ?_⟩
       intro rd σ cs R Dacc hc hlow hL hLin hRg
       match cs, hc with
       | c :: cs, ⟨hf, hct, _, hc⟩ =>
         simp only [kidsAt, Kid.lins, List.flatMap_cons] at hLin
-        refine ⟨fs (kf prev).f, N, fun _ => False, fun _ => False, rfl, fun _ h => h.elim, ?_, ?_⟩
+        refine ⟨fs (tailKey (kf prev).f), N, fun _ => False, fun _ => False, rfl, fun _ h => h.elim, ?_, ?_⟩
         · rw [hct, ht']
           simp only [Bool.false_eq_true, ↓reduceIte]
           rw [hf]

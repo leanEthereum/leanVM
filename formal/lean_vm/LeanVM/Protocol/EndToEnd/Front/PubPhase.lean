@@ -7,14 +7,15 @@
 
 module
 
-public import LeanVM.Protocol.Verifier
-public import LeanVM.Protocol.EndToEnd.Candidates
+import LeanVM.Protocol.Verifier
+import LeanVM.Protocol.EndToEnd.Candidates
 public import LeanVM.Protocol.EndToEnd.Claims
 public import LeanVM.Protocol.EndToEnd.Front.PubEscape
 public import LeanVM.Protocol.Compile.SpecRules.Leaves
 public import LeanVM.Protocol.PublicInput
 public import LeanVM.Protocol.LeanIsa
 public import LeanVM.Protocol.EndToEnd.Front.InstanceWith
+public import ArkLib.Data.CodingTheory.ReedSolomon
 
 /-!
 # The public-input phase as a specification

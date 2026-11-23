@@ -7,11 +7,13 @@
 
 module
 
-public import LeanVM.Guest.Value.KeccakEval
-public import LeanVM.Guest.Value.Tower
-public import LeanVM.Guest.Word
-public import LeanVM.Semantics.KeccakCells
-import Mathlib.Data.List.GetD
+public import LeanVM.Protocol.KeccakAbsorb
+public import Statement.LeanIsa
+import LeanVM.Guest.Value.KeccakEval
+import LeanVM.Guest.Value.Tower
+import LeanVM.Guest.Word
+import LeanVM.Semantics.KeccakCells
+public import Mathlib.Data.List.GetD
 
 /-!
 # The cells of a Keccak state

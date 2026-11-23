@@ -8,6 +8,8 @@ module
 
 public import LeanVM.Protocol.Extraction.AS.Top
 public import LeanVM.Protocol.Whir.Sound.StackA
+public import LeanVM.Protocol.Whir.Sound.DescentT
+import LeanVM.Prover.Ntt
 
 /-!
 # The extractor over arrays

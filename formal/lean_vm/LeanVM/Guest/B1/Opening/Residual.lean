@@ -8,13 +8,14 @@
 module
 
 public import LeanVM.Guest.B1.Common.Atoms
+import LeanVM.Guest.Value.Bits
 
 /-!
 # `residual_query`
 
-`residual_query(position, row_d, hs, vanish, n_cols, n_hs, hs_bits)` walks the chain
-`chain_0 = x` (the position), `chain_(t+1) = chain_t·(chain_t + VALS[vanish + t])` (`LIG_VANISH_VALS`,
-the subspace roots: `residualChain`), and returns the prefix product `Π_(t < n_cols) (d_t + chain_t)`
+`residual_query(basis_chain, row_d, hs, n_cols, n_hs, hs_bits)` walks the chain
+`chain_0 = x` (the position, `basis_chain`), `chain_(t+1) = chain_t·(chain_t + VALS[vanish + t])`
+(`VANISH_BY_COLS` from `vanish = n_cols(n_cols + 1)/2`, the subspace roots: `residualChain`), and returns the prefix product `Π_(t < n_cols) (d_t + chain_t)`
 over the row `d_t = row_d[t]` (`residualProd`) and the high part's share
 `chain_(n_cols)·novel_eval(hs, chain_0 .. chain_2)`. The template and its soundness are
 `Whir.osResQuery` and `Whir.osResQuery_val` (`Whir/ResQuery.lean`); `NovelEval.residual_high_eq`

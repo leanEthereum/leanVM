@@ -52,18 +52,18 @@ theorem vt_fw {rd : Reader} {σ : Val} (h : VtH rd σ) {point : List E}
       σ (.n (val% «verify_tables» "coord_val@3")) = σ (.n (val% «verify_tables» "x@1")) ∧ σ (.n (val% «verify_tables» "coord_val@4")) = σ (.n (val% «verify_tables» "x@2")) ∧
       LoadHolds rd (σ (.n (val% «verify_tables» "claim_pool"))) 0 (σ (.n (val% «verify_tables» "x@1"))) ∧ LoadHolds rd (σ (.n (val% «verify_tables» "claim_pool"))) 1 (σ (.n (val% «verify_tables» "x@2"))) ∧
       LoadHolds rd (σ (.n (val% «verify_tables» "claim_pool"))) 2 (σ (.n (val% «verify_tables» "x@3"))) ∧ LoadHolds rd (σ (.n (val% «verify_tables» "claim_pool"))) 3 (σ (.n (val% «verify_tables» "x@4"))) := by
-  have d1 := h.dispatchAt 795 (.n (val% «verify_tables» "kb[1]")) vtImNames [.n (val% «verify_tables» "zeta")] [.n (val% «verify_tables» "coord_val@1")] (by decide +kernel)
-  have d2 := h.dispatchAt 825 (.n (val% «verify_tables» "kappa_g@2")) vtImNames [.n (val% «verify_tables» "zeta")] [.n (val% «verify_tables» "coord_val@2")] (by decide +kernel)
-  have s1 := h.atomAt 797 (.load (.n (val% «verify_tables» "coord_val@1")) (.n (val% «verify_tables» "block_index_mle")) 1) (by decide +kernel)
-  have s2 := h.atomAt 827 (.load (.n (val% «verify_tables» "coord_val@2")) (.n (val% «verify_tables» "block_index_mle")) 2) (by decide +kernel)
-  have r1 := h.atomAt 1341 (.load (.n (val% «verify_tables» "coord_vals[302]")) (.n (val% «verify_tables» "block_index_mle")) 1) (by decide +kernel)
-  have r2 := h.atomAt 1356 (.load (.n (val% «verify_tables» "coord_vals[307]")) (.n (val% «verify_tables» "block_index_mle")) 2) (by decide +kernel)
-  have p0 := h.atomAt 802 (.load (.n (val% «verify_tables» "x@1")) (.n (val% «verify_tables» "claim_pool")) 0) (by decide +kernel)
-  have p1 := h.atomAt 807 (.load (.n (val% «verify_tables» "x@2")) (.n (val% «verify_tables» "claim_pool")) 1) (by decide +kernel)
-  have p2 := h.atomAt 1345 (.load (.n (val% «verify_tables» "x@3")) (.n (val% «verify_tables» "claim_pool")) 2) (by decide +kernel)
-  have p3 := h.atomAt 1360 (.load (.n (val% «verify_tables» "x@4")) (.n (val% «verify_tables» "claim_pool")) 3) (by decide +kernel)
-  have q0 := h.atomAt 1347 (.load (.n (val% «verify_tables» "coord_val@3")) (.n (val% «verify_tables» "claim_pool")) 0) (by decide +kernel)
-  have q1 := h.atomAt 1349 (.load (.n (val% «verify_tables» "coord_val@4")) (.n (val% «verify_tables» "claim_pool")) 1) (by decide +kernel)
+  have d1 := h.dispatchAt 839 (.n (val% «verify_tables» "kb[1]")) vtImNames [.n (val% «verify_tables» "zeta")] [.n (val% «verify_tables» "coord_val@1")] (by decide +kernel)
+  have d2 := h.dispatchAt 869 (.n (val% «verify_tables» "kappa_g@2")) vtImNames [.n (val% «verify_tables» "zeta")] [.n (val% «verify_tables» "coord_val@2")] (by decide +kernel)
+  have s1 := h.atomAt 841 (.load (.n (val% «verify_tables» "coord_val@1")) (.n (val% «verify_tables» "block_index_mle")) 1) (by decide +kernel)
+  have s2 := h.atomAt 871 (.load (.n (val% «verify_tables» "coord_val@2")) (.n (val% «verify_tables» "block_index_mle")) 2) (by decide +kernel)
+  have r1 := h.atomAt 1201 (.load (.n (val% «verify_tables» "coord_vals[302]")) (.n (val% «verify_tables» "block_index_mle")) 1) (by decide +kernel)
+  have r2 := h.atomAt 1216 (.load (.n (val% «verify_tables» "coord_vals[307]")) (.n (val% «verify_tables» "block_index_mle")) 2) (by decide +kernel)
+  have p0 := h.atomAt 846 (.load (.n (val% «verify_tables» "x@1")) (.n (val% «verify_tables» "claim_pool")) 0) (by decide +kernel)
+  have p1 := h.atomAt 851 (.load (.n (val% «verify_tables» "x@2")) (.n (val% «verify_tables» "claim_pool")) 1) (by decide +kernel)
+  have p2 := h.atomAt 1205 (.load (.n (val% «verify_tables» "x@3")) (.n (val% «verify_tables» "claim_pool")) 2) (by decide +kernel)
+  have p3 := h.atomAt 1220 (.load (.n (val% «verify_tables» "x@4")) (.n (val% «verify_tables» "claim_pool")) 3) (by decide +kernel)
+  have q0 := h.atomAt 1207 (.load (.n (val% «verify_tables» "coord_val@3")) (.n (val% «verify_tables» "claim_pool")) 0) (by decide +kernel)
+  have q1 := h.atomAt 1209 (.load (.n (val% «verify_tables» "coord_val@4")) (.n (val% «verify_tables» "claim_pool")) 1) (by decide +kernel)
   simp only [Atom.Holds] at s1 s2 r1 r2 p0 p1 p2 p3 q0 q1
   exact ⟨vt_index_arm hz hlm hlm34 hk1 d1, tb_loadHolds_unique r1 s1,
     vt_index_arm hz h19 (by norm_num) hk2 d2, tb_loadHolds_unique r2 s2,

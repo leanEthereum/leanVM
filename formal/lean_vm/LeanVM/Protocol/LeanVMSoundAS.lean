@@ -7,9 +7,13 @@
 
 module
 
-public import LeanVM.Protocol.LeanVMSound
+import LeanVM.Protocol.LeanVMSound
 public import LeanVM.Protocol.EndToEnd.Sound.AgreementExtractor
-public import LeanVM.Protocol.ErrorBounds
+import LeanVM.Protocol.ErrorBounds
+public import LeanVM.Protocol.Rom.Statement
+import LeanVM.Protocol.Extraction.Sound
+import LeanVM.Protocol.Extraction.Extract
+import Common.Linear
 
 /-!
 # leanVM, knowledge soundness for the agreement-set extractor

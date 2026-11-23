@@ -1,6 +1,6 @@
 module
 
-public import Statement.LeanVm
+import Statement.LeanVm
 public import LeanVM.Protocol.Extraction.Extractor
 public import LeanVM.Protocol.Extraction.Fast.SortedMap
 

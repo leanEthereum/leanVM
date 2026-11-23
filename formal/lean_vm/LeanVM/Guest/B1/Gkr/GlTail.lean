@@ -10,20 +10,21 @@ module
 public import LeanVM.Guest.B1.Gkr.GlT
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«gkr_layer__L0_L0»
+import LeanVM.Guest.B1.Tables.Basic
 
 /-!
 # A layer's tail, soundly
 
 On the canonical numbering (`glTail`; `gkr_layer__L{p}_L{o}`'s is it renamed by `glRho p o`):
 
-* `gl_kids`: the children's reads (`chT` at the tail cursor `77`, `off` words on) and the two
+* `gl_kids`: the children's reads (`chT` at the tail cursor `80`, `off` words on) and the two
   permutations among them;
-* `gl_tail`: the twelve words at `76·g^off` are the three trees' children (`glCh`), their
-  products check the last claim `155` at the combiner `27`, the sponge after them from the last
-  capacity `137 ..` (`glSponge`) squeezes the two new coordinates (`246`, `259`, stored at
+* `gl_tail`: the twelve words at `80·g^off` are the three trees' children (`glCh`), their
+  products check the last claim `159` at the combiner `27`, the sponge after them from the last
+  capacity `141 ..` (`glSponge`) squeezes the two new coordinates (`250`, `263`, stored at
   `pt[40]`, `pt[41]` of the row `52`), and the next slot at `15·g^20` gets the capacity, the
-  cursor `76·g^(off + 12)`, the trees' values at the new coordinates and the position
-  `43·3·g`.
+  cursor `80·g^(off + 12)`, the trees' values at the new coordinates and the position
+  `43·(3·g)^7`.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -101,16 +102,16 @@ theorem gl_tail {off : ℕ} (hoff : off ≤ 8)
       (∀ k < 5, LoadHolds rd (τ (.n (val% «gkr_layer__L0_L0» "layer"))) (20 + k) (τ (.n ((val% «gkr_layer__L0_L0» "nxt[8]@7") + k)))) ∧
       LoadHolds rd (τ (.n (val% «gkr_layer__L0_L0» "layer"))) 25 (τ (.n (val% «gkr_layer__L0_L0» "tcur")) * gen ^ (off + 12)) ∧
       LoadHolds rd (τ (.n (val% «gkr_layer__L0_L0» "point_row"))) 40 (τ (.n (val% «gkr_layer__L0_L0» "nxt[0]@6"))) ∧ LoadHolds rd (τ (.n (val% «gkr_layer__L0_L0» "point_row"))) 41 (τ (.n (val% «gkr_layer__L0_L0» "nxt[0]@7"))) ∧
-      LoadHolds rd (τ (.n (val% «gkr_layer__L0_L0» "layer"))) 29 (τ (.n (val% «gkr_layer__L0_L0» "round_pos")) * τ (.n (val% «gkr_layer__L0_L0» "x_m")) * gen) := by
+      LoadHolds rd (τ (.n (val% «gkr_layer__L0_L0» "layer"))) 29 (τ (.n (val% «gkr_layer__L0_L0» "round_pos")) * (τ (.n (val% «gkr_layer__L0_L0» "x_m")) * gen) ^ 7) := by
   simp only [List.append_assoc] at h
   rw [tb_holdsList_append_noRet (glKids_noRet off), tb_holdsList_append_noRet glCheck_noRet,
     tb_holdsList_append_noRet glY_noRet] at h
   obtain ⟨hK, hC, hY, hN⟩ := h
   obtain ⟨EVh, k1, k2⟩ := gl_kids hK
   have EV : ∀ i < 12, _ := fun i hi => ch_ev (EVh i hi)
-  have cp : ∀ i < 12, τ (.n (chB 156 i + 3)) = τ (.n (chB 156 i)) := fun i hi => (EV i hi).2.2
+  have cp : ∀ i < 12, τ (.n (chB (val% «gkr_layer__L0_L0» "x@9") i + 3)) = τ (.n (chB (val% «gkr_layer__L0_L0» "x@9") i)) := fun i hi => (EV i hi).2.2
   have hp : ∀ m < 3, ∀ i < 4,
-      FsPackOk τ (.n (chB 156 (4 * m + i))) (chB (val% «gkr_layer__L0_L0» "x@9") (4 * m + i) + 1) dsObserve :=
+      FsPackOk τ (.n (chB (val% «gkr_layer__L0_L0» "x@9") (4 * m + i))) (chB (val% «gkr_layer__L0_L0» "x@9") (4 * m + i) + 1) dsObserve :=
     fun m hm i hi => (EV (4 * m + i) (by omega)).2.1
   -- the reads
   have hreads : TbReadsAt rd (τ (.n (val% «gkr_layer__L0_L0» "tcur")) * gen ^ off) (glCh τ 0 ++ (glCh τ 1 ++ glCh τ 2)) := by
@@ -133,8 +134,8 @@ theorem gl_tail {off : ℕ} (hoff : off ≤ 8)
   obtain ⟨P2, B2⟩ := ch_perm_block (hp 2 (by omega)) k3
   have hA : glSponge τ = ⟨(lyCap (val% «gkr_layer__L0_L0» "nxt[0]@5")).map τ, (glCh τ 2).map (·, dsObserve)⟩ := by
     unfold glSponge
-    rw [A0, tb_absorbAll_full _ (by simp [chWords_length]) _ (chWords_length τ 156 1), ← B0,
-      tb_absorbAll_full _ (by simp [chWords_length]) _ (chWords_length τ 156 2), ← B1]
+    rw [A0, tb_absorbAll_full _ (by simp [chWords_length]) _ (chWords_length τ (val% «gkr_layer__L0_L0» "x@9") 1), ← B0,
+      tb_absorbAll_full _ (by simp [chWords_length]) _ (chWords_length τ (val% «gkr_layer__L0_L0» "x@9") 2), ← B1]
   rw [← hA] at P2 B2
   simp only [Atom.Holds] at l262 l276
   have e262 : τ (.n (val% «gkr_layer__L0_L0» "nxt[0]@6")) = challengeOf (glSponge τ).perm := by
@@ -152,11 +153,11 @@ theorem gl_tail {off : ℕ} (hoff : off ≤ 8)
     List.cons_append] at hN'
   obtain ⟨s0, s1, s2, s3, s4, c277, m278, l278, v0, v1, v2, v3, v4, v5, v6, v7, v8, l0,
     w0, w1, w2, w3, w4, w5, w6, w7, w8, l1, u0, u1, u2, u3, u4, u5, u6, u7, u8, l2,
-    m306, c307, m308, l308⟩ := hN'
+    c305, m306, m307, m308, m309, m310, m311, l311⟩ := hN'
   rw [tb_word_two_pow (by omega)] at c277
-  rw [tb_word_gen] at c307
-  have hw : ∀ m < 3, glCh τ m = [τ (.n (chB 156 (4 * m) + 3)), τ (.n (chB 156 (4 * m + 1) + 3)),
-      τ (.n (chB 156 (4 * m + 2) + 3)), τ (.n (chB 156 (4 * m + 3) + 3))] := by
+  rw [tb_word_gen] at c305
+  have hw : ∀ m < 3, glCh τ m = [τ (.n (chB (val% «gkr_layer__L0_L0» "x@9") (4 * m) + 3)), τ (.n (chB (val% «gkr_layer__L0_L0» "x@9") (4 * m + 1) + 3)),
+      τ (.n (chB (val% «gkr_layer__L0_L0» "x@9") (4 * m + 2) + 3)), τ (.n (chB (val% «gkr_layer__L0_L0» "x@9") (4 * m + 3) + 3))] := by
     intro m hm
     rw [glCh, chWords_eq, cp _ (by omega), cp _ (by omega), cp _ (by omega), cp _ (by omega)]
   refine ⟨hreads, ?_, hsq, ?_, fun t ht => ?_, fun k hk => ?_, ?_, l262, l276, ?_⟩
@@ -195,7 +196,9 @@ theorem gl_tail {off : ℕ} (hoff : off ≤ 8)
     · exact s3
     · exact s4
   · rw [← c277, ← m278]; exact l278
-  · rw [← c307, ← m306, ← m308]; exact l308
+  · rw [show τ (.n (val% «gkr_layer__L0_L0» "round_pos")) * (τ (.n (val% «gkr_layer__L0_L0» "x_m")) * gen) ^ 7 =
+        τ (.n (val% «gkr_layer__L0_L0» "s44#6")) by rw [m311, m310, m309, m308, m307, m306, c305]; ring]
+    exact l311
 
 end Sem
 

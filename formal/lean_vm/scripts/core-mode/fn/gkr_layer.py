@@ -13,8 +13,8 @@ ST_LOOPS = {e[0]: e[1:] for e in lean_def('gkr_layer', 'Data', 'stLoops')}
 # its cursors and the words read past each (`CoreMode.glCurs`, `EndExec.gl_curs`), in its stream
 GL_CURS = {k: dict(v) for k, v in lean_def('gkr_layer', 'Fam', 'glCurs')}
 GL_STREAM = valf('gkr_layer', 'stream')
-# its round records' fields apart, its cursor the fifth (`ROUND` records)
-FIELD = fnrules.guest_const('GKR_ROUNDS_CAP')
+# a round record's words, consecutive, its cursor the fifth (`ROUND_SLOTS`)
+SLOTS = fnrules.guest_const('ROUND_SLOTS')
 
 
 def sub(k, c):
@@ -54,18 +54,18 @@ def _layer(p, o):
         postR=[run(cell(2 * ROW0, row), num(0), ex(5), 8, 2 * p + 2 + q) for q in range(8)])
 
 
-# `gkr_layer`'s loop (`y, x_m, head, qrow, nqrow, tabs`): `8` rounds from the record `head·y` (fields `FIELD` apart,
-# its cursor the fifth), the point `qrow·y^8`, the record `head·y·g` and the cells `nqrow·y^8·g^q` written; the stream
+# `gkr_layer`'s loop (`y, x_m, head, qrow, nqrow, tabs`): `8` rounds from the record `head·y^7` (`SLOTS` words, its
+# cursor the fifth), the point `qrow·y^8`, the record `head·y^7·g^7` and the cells `nqrow·y^8·g^q` written; the stream
 # is its caller's cell `2 + stream` (`CoreMode.stLoops`).
 def _layer_loop():
-    rd = [(2, 1), (4, 1)]
+    rd = [(2, SLOTS), (4, 1)]
     return sig(
         range(8), 8, [],
-        pre=[cell(FIELD * f, rd) for f in range(7)],
+        pre=[cell(f, rd) for f in range(SLOTS)],
         preR=[run(cell(0, [(5, 1)]), ex(2), ex(3), 8, q) for q in range(8)] +
         ['⟨⟨0, 0, [((.hp 1 %d), 1)]⟩, (.num 0), (.num 8192), 1, 0⟩' % (2 + GL_STREAM)],
         term=['(%s, %s)' % (ex(2), ex(3))],
-        postL=[run(cell(0, [(4, 1)]), ex(2), ex(3), 1, FIELD * f + 1) for f in range(7)] +
+        postL=[run(cell(0, [(4, 1)]), ex(2), ex(3), SLOTS, SLOTS + f) for f in range(SLOTS)] +
         [run(cell(0, [(6, 1)]), ex(2), ex(3), 8, q) for q in range(8)])
 
 

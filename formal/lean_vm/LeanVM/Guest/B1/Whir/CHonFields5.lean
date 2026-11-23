@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.B1.Whir.CHonFields4
 public import LeanVM.Guest.B1.Whir.HsScale
+import LeanVM.Guest.Value.FieldBits
 
 /-!
 # The queries' static facts
@@ -49,10 +50,10 @@ theorem finFold : ∀ k < ((Ls.getD (osCfgR (μ - minOpenLog) (r - 1)).yrLevel d
   have hy := hR.yr
   have hm := hR.m11
   have hyl : (osCfgR (μ - minOpenLog) (r - 1)).yrLevel < osNLevels (μ - minOpenLog) := by
-    rw [← osCfgR_len _ (r - 1)]; omega
+    rw [← osCfgR_levels_length _ (r - 1)]; omega
   have hB := hR.lvb (l := (osCfgR (μ - minOpenLog) (r - 1)).yrLevel) (by omega)
-  obtain ⟨-, -, hbase, -, -, -, -, -⟩ := hB.qsh
-  obtain ⟨-, -, -, hylen, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, hnHs, hhsb, hvs, h64, hle, hlc, -⟩ :=
+  obtain ⟨-, hbase, -⟩ := hB.qsh
+  obtain ⟨-, -, -, hylen, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, hnHs, hhsb, hvs, h64, hle, hlc, -⟩ :=
     hR.fin
   obtain ⟨rw, W, hd, -, -, -, -, hfin, -⟩ := hR.last
   set L := Ls.getD (osCfgR (μ - minOpenLog) (r - 1)).yrLevel default with hL
@@ -80,7 +81,8 @@ theorem finFold : ∀ k < ((Ls.getD (osCfgR (μ - minOpenLog) (r - 1)).yrLevel d
   -- the final polynomial
   have hflen : W.fold.length = (osCfgR (μ - minOpenLog) (r - 1)).yrLen + lv.folds := by
     rw [hfin.flen, hmu, hylen, ← hB.fold]
-  have hlv' : lv = osLvR (μ - minOpenLog) (r - 1) (osCfg (μ - minOpenLog)).yrLevel := osCfgR_getD hyl
+  have hlv' : lv = osLvR (μ - minOpenLog) (r - 1) (osCfg (μ - minOpenLog)).yrLevel :=
+    (osLvR_eq_getD hyl).symm
   have hvan : vanishOk (osLvR (μ - minOpenLog) (r - 1) (osCfg (μ - minOpenLog)).yrLevel).vanish
       ((osLvR (μ - minOpenLog) (r - 1) (osCfg (μ - minOpenLog)).yrLevel).logCols + 1) = true :=
     vanish_allR (ri := r - 1) hm hyl
@@ -107,7 +109,8 @@ theorem finFold : ∀ k < ((Ls.getD (osCfgR (μ - minOpenLog) (r - 1)).yrLevel d
 
 /-- **OsHonest's `static`.** -/
 theorem fld_static : ∀ l < (osCfgR (μ - minOpenLog) (r - 1)).levels.length,
-    OqStatic (oqSA (osCfgR (μ - minOpenLog) (r - 1)) l) (Ls.getD l default).rounds
+    OqStatic (oqSA (osCfgR (μ - minOpenLog) (r - 1)) l) (osLvA (osCfgR (μ - minOpenLog) (r - 1)) l).capDepth
+      (Ls.getD l default).rounds
       (if l = (osCfgR (μ - minOpenLog) (r - 1)).yrLevel then (hdOf μ r Ls).hsFC else [])
       (fun k ↦ ((Ls.getD l default).qs μ).getD k 0)
       (fun k ↦ ((Ls.getD l default).phase.map (·.leaf)).getD k [])
@@ -116,7 +119,7 @@ theorem fld_static : ∀ l < (osCfgR (μ - minOpenLog) (r - 1)).levels.length,
   intro l hl k hk
   have hy := hR.yr
   obtain ⟨hcdq, hpd, hcd2, hcdd, hQ⟩ := hR.cdpd hl
-  obtain ⟨-, -, hbase, hfolds, -, -, hfinal, -⟩ := (hR.lvb hl).qsh
+  obtain ⟨-, hbase, hfolds, -, hfinal, -⟩ := (hR.lvb hl).qsh
   obtain ⟨qs, ph, hq, hp, hlen, hok⟩ := hR.opens hl
   have hk' : k < qs.length := by rw [← hq]; omega
   have ho : k < ph.length := by omega
