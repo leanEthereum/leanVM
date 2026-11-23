@@ -24,7 +24,7 @@ body is flat (`rsBody = (rsA ++ rsT0) ++ rsD :: [copy, ret]`), so its walk's eve
 statements' (the dispatch `rsD` names a callee: else the walk is stuck, `rs_walk_stuck`) and its
 frames are `rs_eq_run_loop0`'s and the remainder's `rs_eq_rows__L{r}` (`rs_calls`); it allocates
 nothing. Its first `43` atoms (`rsA`, events of the walk) hold, so `q_g = σ 37 = g^q`, `r_g = σ 23 =
-g^r` and `g^(8q + r) = count_g = g^c` (as in `rs_eq_run_sound`): `q = c / 8`, `r = c % 8`. With
+g^r` and `g^(8q + r) = count_g = g^c`: `q = c / 8`, `r = c % 8`. With
 `rs_eq_run_loop0`'s run's words (`TotalLeOn … LoopPre`: `K6` per iteration and its one phantom
 frame, as `Count.wSKt_totalLeOn` gives it) and each `rs_eq_rows__L{r}`, `r < 8`, within `R`,
 `rs_totalLeOn` bounds the tree by `fs "rs_eq_run" + (fs "rs_eq_run_loop0" + c / 8 · K6) + R`;
