@@ -6,6 +6,8 @@
 //! FORS public key, the middle key the bottom tree's root, the top key the middle
 //! tree's root, and the top tree's root is `PK.root`.
 
+use alloc::{vec, vec::Vec};
+
 use crate::*;
 use keccak256::Hasher;
 
@@ -88,7 +90,7 @@ pub struct LeanSphincsSignature {
 }
 
 /// Where layer `layer`'s path sits among a signature's path nodes: after every layer below it.
-fn path_range(layer: usize) -> std::ops::Range<usize> {
+fn path_range(layer: usize) -> core::ops::Range<usize> {
     let start = LAYER_HEIGHTS[..layer].iter().sum();
     start..start + LAYER_HEIGHTS[layer]
 }
@@ -130,15 +132,15 @@ impl LeanSphincsSignature {
             &bytes[at - len..at]
         };
         let randomizer = take(N).try_into().unwrap();
-        let fors = std::array::from_fn(|_| ForsTreeOpening {
+        let fors = core::array::from_fn(|_| ForsTreeOpening {
             secret: take(N).try_into().unwrap(),
-            path: std::array::from_fn(|_| take(N).try_into().unwrap()),
+            path: core::array::from_fn(|_| take(N).try_into().unwrap()),
         });
         let mut paths = [[0; N]; H];
-        let layers = std::array::from_fn(|layer| {
+        let layers = core::array::from_fn(|layer| {
             let signed = LayerSignature {
                 counter: u32::from_be_bytes(take(COUNTER_LEN).try_into().unwrap()),
-                wots: std::array::from_fn(|_| take(N).try_into().unwrap()),
+                wots: core::array::from_fn(|_| take(N).try_into().unwrap()),
             };
             for node in &mut paths[path_range(layer)] {
                 *node = take(N).try_into().unwrap();
@@ -162,7 +164,7 @@ impl LeanSphincsSignature {
 /// The index is the tree then the leaf.
 pub fn digest_fields(digest: &[u8; 32 * DIGEST_CALLS]) -> (u64, [usize; FORS_TREES]) {
     let bit = |p: usize| usize::from(digest[p / 8] >> (7 - p % 8) & 1);
-    let leaves = std::array::from_fn(|c| (0..FORS_HEIGHT).fold(0, |v, j| v << 1 | bit(FORS_HEIGHT * c + j)));
+    let leaves = core::array::from_fn(|c| (0..FORS_HEIGHT).fold(0, |v, j| v << 1 | bit(FORS_HEIGHT * c + j)));
     let int = |bytes: &[u8], bits: usize| bytes.iter().fold(0u64, |v, &b| v << 8 | u64::from(b)) & ((1 << bits) - 1);
     let tree = int(&digest[MD_BYTES..MD_BYTES + TREE_INDEX_BYTES], H - LAYER_HEIGHTS[0]);
     let leaf = int(&digest[MD_BYTES + TREE_INDEX_BYTES..DIGEST_BYTES], LAYER_HEIGHTS[0]);
@@ -250,7 +252,7 @@ pub fn sign(secret_key: &SecretKey, message: &Message) -> LeanSphincsSignature {
         let (counter, wots) = wots_sign(sk, &key, &signed).expect("a codeword within C_max counters (see `sign`)");
         *signature = LayerSignature { counter, wots };
         let levels = if layer == LAYERS - 1 {
-            std::mem::take(&mut top)
+            core::mem::take(&mut top)
         } else {
             tree_levels(sk, &key)
         };

@@ -1,10 +1,15 @@
 //! One layer's Merkle tree over `2^16` leaves. Nodes are indexed on the layer, as
 //! their addresses are: a bottom tree's leaves by their leaf indices.
 
+#[cfg(feature = "std")]
+use alloc::{vec, vec::Vec};
+
 use crate::*;
 
 /// The level a [`LayerTree`] stores: `2^8` nodes.
+#[cfg(feature = "std")]
 pub(crate) const CACHED_LEVEL: usize = LAYER_HEIGHT - 8;
+#[cfg(feature = "std")]
 pub(crate) const CACHED_NODES: usize = 1 << (LAYER_HEIGHT - CACHED_LEVEL);
 
 /// The Merkle parent at `level` and index `j` of `layer`.
@@ -13,6 +18,7 @@ pub fn node(pp: &PublicParam, layer: usize, level: usize, j: u32, children: &[Di
 }
 
 /// Levels `from..=to` over `base`, level `from` from leaf `first` on.
+#[cfg(feature = "std")]
 fn levels(pp: &PublicParam, layer: usize, first: u32, from: usize, to: usize, base: Vec<Digest>) -> Vec<Vec<Digest>> {
     let mut levels = vec![base];
     for level in from + 1..=to {
@@ -23,6 +29,7 @@ fn levels(pp: &PublicParam, layer: usize, first: u32, from: usize, to: usize, ba
 }
 
 /// Levels `0..=CACHED_LEVEL` under node `j` of [`CACHED_LEVEL`].
+#[cfg(feature = "std")]
 fn subtree(pp: &PublicParam, seed: &SchemeSeed, layer: usize, j: u32) -> Vec<Vec<Digest>> {
     let first = j << CACHED_LEVEL;
     let leaves = (first..=first | ((1 << CACHED_LEVEL) - 1))
@@ -32,12 +39,14 @@ fn subtree(pp: &PublicParam, seed: &SchemeSeed, layer: usize, j: u32) -> Vec<Vec
 }
 
 /// Tree `index` of `layer`: its nodes at [`CACHED_LEVEL`].
+#[cfg(feature = "std")]
 pub(crate) struct LayerTree {
     layer: usize,
     pub(crate) index: u32,
     pub(crate) nodes: Vec<Digest>,
 }
 
+#[cfg(feature = "std")]
 impl LayerTree {
     pub(crate) fn build(pp: &PublicParam, seed: &SchemeSeed, layer: usize, index: u32) -> Self {
         let first = index << (LAYER_HEIGHT - CACHED_LEVEL);
@@ -68,6 +77,6 @@ impl LayerTree {
         let mut levels = subtree(pp, seed, self.layer, leaf >> CACHED_LEVEL);
         levels.truncate(CACHED_LEVEL);
         levels.extend(self.upper(pp));
-        std::array::from_fn(|level| levels[level][((leaf as usize >> level) ^ 1) % levels[level].len()])
+        core::array::from_fn(|level| levels[level][((leaf as usize >> level) ^ 1) % levels[level].len()])
     }
 }

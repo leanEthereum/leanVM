@@ -1,10 +1,12 @@
 //! Keys, signing and verification. The secret key holds the top tree and builds
 //! a bottom tree, with the top layer's signature of its root, the first time it
-//! signs in it or prepares it, keeping the [`MAX_CACHED_BOTTOM_TREES`] it used last.
+//! signs in it or prepares it, keeping the most recently used trees under the default `std` feature.
 //! It stores one level of each tree and recomputes the rest per path.
 
-use std::collections::VecDeque;
-use std::sync::{Arc, Mutex};
+#[cfg(feature = "std")]
+use alloc::{collections::VecDeque, sync::Arc, vec::Vec};
+#[cfg(feature = "std")]
+use std::sync::Mutex;
 
 use crate::*;
 
@@ -60,8 +62,8 @@ impl LayerSignature {
     fn read(rest: &mut &[u8]) -> Self {
         Self {
             randomizer: take(rest),
-            chain_values: std::array::from_fn(|_| take(rest)),
-            path: std::array::from_fn(|_| take(rest)),
+            chain_values: core::array::from_fn(|_| take(rest)),
+            path: core::array::from_fn(|_| take(rest)),
         }
     }
 }
@@ -115,6 +117,7 @@ impl LeanXmssSignature {
 }
 
 /// A [`SecretKey`] with some cached values to make signing faster.
+#[cfg(feature = "std")]
 pub struct LeanXmssExpandedSecretKey {
     key_seed: SecretKey,
     public_key: LeanXmssPublicKey,
@@ -124,28 +127,35 @@ pub struct LeanXmssExpandedSecretKey {
 }
 
 /// How many recently used bottom trees a [`LeanXmssExpandedSecretKey`] caches.
+#[cfg(feature = "std")]
 pub const MAX_CACHED_BOTTOM_TREES: usize = 4;
 
-impl std::fmt::Debug for LeanXmssExpandedSecretKey {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+#[cfg(feature = "std")]
+impl core::fmt::Debug for LeanXmssExpandedSecretKey {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("LeanXmssExpandedSecretKey")
             .field("public_key", &self.public_key())
             .finish_non_exhaustive()
     }
 }
 
+#[cfg(feature = "std")]
 struct BottomTree {
     tree: LayerTree,
     top_signature: LayerSignature,
 }
 
 /// A tree's nodes, in bytes.
+#[cfg(feature = "std")]
 const CACHED_TREE_SIZE: usize = CACHED_NODES * N;
 /// A cached bottom tree, in bytes.
+#[cfg(feature = "std")]
 const CACHED_BOTTOM_SIZE: usize = size_of::<u32>() + LAYER_SIG_SIZE + CACHED_TREE_SIZE;
+#[cfg(feature = "std")]
 const _: () = assert!(CACHED_TREE_SIZE == 4096 && CACHED_BOTTOM_SIZE == 5300);
 
 /// computes the expanded secret key (for fast signing), and the public key, from a given secret key
+#[cfg(feature = "std")]
 pub fn key_gen(key_seed: &SecretKey) -> (LeanXmssExpandedSecretKey, LeanXmssPublicKey) {
     let seed = scheme_seed(key_seed);
     let public_param = public_param(&seed);
@@ -161,6 +171,7 @@ pub fn key_gen(key_seed: &SecretKey) -> (LeanXmssExpandedSecretKey, LeanXmssPubl
 ///
 /// When none of a layer's `2^32` randomizer trials gives a codeword, with probability below
 /// `2^-2954` (`doc/lean_xmss`): impossible in practice.
+#[cfg(feature = "std")]
 pub fn sign(sk: &LeanXmssExpandedSecretKey, message: &Message, leaf_index: LeafIndex) -> LeanXmssSignature {
     let bottom = sk.bottom_tree(leaf_index);
     let (pp, seed) = (&sk.public_key.public_param, scheme_seed(&sk.key_seed));
@@ -176,6 +187,7 @@ pub fn sign(sk: &LeanXmssExpandedSecretKey, message: &Message, leaf_index: LeafI
     }
 }
 
+#[cfg(feature = "std")]
 impl LeanXmssExpandedSecretKey {
     fn new(key_seed: &SecretKey, top: LayerTree) -> Self {
         let public_param = public_param(&scheme_seed(key_seed));
@@ -280,6 +292,7 @@ impl LeanXmssExpandedSecretKey {
 }
 
 /// Bottom tree `index` if cached, moved to the most recently used end.
+#[cfg(feature = "std")]
 fn use_cached(bottoms: &mut VecDeque<Arc<BottomTree>>, index: u32) -> Option<Arc<BottomTree>> {
     let at = bottoms.iter().position(|b| b.tree.index == index)?;
     let bottom = bottoms.remove(at)?;

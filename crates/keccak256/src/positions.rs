@@ -11,7 +11,7 @@ use crate::{PI, RC, RHO, ROUNDS, STATE_LANES};
 /// The five positions of a row and slice, which `chi` mixes.
 #[inline(always)]
 pub fn row_positions(row: usize, z: usize) -> [usize; 5] {
-    std::array::from_fn(|x| 64 * (x + 5 * row) + z)
+    core::array::from_fn(|x| 64 * (x + 5 * row) + z)
 }
 
 /// Whether `iota` flips position `z` of lane 0 in round `round`, counted from 1.
@@ -47,6 +47,7 @@ pub fn linear<T: Copy + Default>(a: &[T], out: &mut [T], xor: impl Fn(T, T) -> T
 mod tests {
     use super::*;
     use crate::keccak_f;
+    use alloc::{vec, vec::Vec};
     use verifier::E;
     use verifier::keccak::{BITS, along, linear_transpose};
 
@@ -59,7 +60,7 @@ mod tests {
     #[test]
     fn a_round_matches_the_permutation() {
         let mut x = 3;
-        let lanes: [u64; STATE_LANES] = std::array::from_fn(|_| next(&mut x));
+        let lanes: [u64; STATE_LANES] = core::array::from_fn(|_| next(&mut x));
         let mut bits: Vec<bool> = (0..BITS).map(|j| lanes[j / 64] >> (j % 64) & 1 == 1).collect();
         for round in 1..=ROUNDS {
             let mut u = vec![false; BITS];

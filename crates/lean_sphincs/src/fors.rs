@@ -6,6 +6,8 @@
 //! its path. The FORS public key is `T_k` over the trees' roots, which the bottom
 //! one-time key signs.
 
+use alloc::vec::Vec;
+
 use crate::*;
 
 /// One FORS tree's opening: the picked leaf's secret, and its path from the
@@ -76,13 +78,13 @@ pub(crate) fn fors_open(sk: &ExpandedKey, idx: u64, leaves: &[usize; FORS_TREES]
             let s = leaves[c];
             let opening = ForsTreeOpening {
                 secret: secrets[s],
-                path: std::array::from_fn(|z| levels[z][(s >> z) ^ 1]),
+                path: core::array::from_fn(|z| levels[z][(s >> z) ^ 1]),
             };
             (levels[FORS_HEIGHT][0], opening)
         })
         .collect();
-    let roots = std::array::from_fn(|c| trees[c].0);
-    (fors_key(pk_seed, idx, &roots), std::array::from_fn(|c| trees[c].1))
+    let roots = core::array::from_fn(|c| trees[c].0);
+    (fors_key(pk_seed, idx, &roots), core::array::from_fn(|c| trees[c].1))
 }
 
 /// `fors_pkFromSig`: the FORS public key an opening reaches at `leaves`, showing
@@ -94,7 +96,7 @@ pub fn fors_recover(
     opening: &ForsOpening,
     mut visit: impl FnMut(&[Digest; 2]),
 ) -> Digest {
-    let roots = std::array::from_fn(|c| {
+    let roots = core::array::from_fn(|c| {
         let (s, tree) = (leaves[c], &opening[c]);
         let leaf = fors_leaf(pk_seed, idx, c, s, &tree.secret);
         keccak256::path_fold(leaf, s, &tree.path, &mut visit, |z, j, pair| {

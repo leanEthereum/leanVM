@@ -6,6 +6,7 @@
 //! zero, so those have no chain, and the other `v` sum to `T`. The signer grinds the
 //! randomizer `R` until it is, one permutation a trial.
 
+#[cfg(feature = "std")]
 use keccak256::RATE;
 
 use crate::*;
@@ -18,6 +19,7 @@ pub fn layer_index(leaf_index: LeafIndex, layer: usize) -> u32 {
 
 /// The starts of the `v` chains of key `e` on `layer`. One hash of the seed gives
 /// two of them: chains `2t` and `2t + 1` are its two halves.
+#[cfg(feature = "std")]
 pub(crate) fn wots_secrets(pp: &PublicParam, seed: &SchemeSeed, layer: usize, e: u32) -> [Digest; V] {
     let mut secrets = [[0u8; N]; V];
     for (t, pair) in secrets.as_chunks_mut::<2>().0.iter_mut().enumerate() {
@@ -59,7 +61,7 @@ pub fn message_digest(pp: &PublicParam, layer: usize, e: u32, randomizer: &Rando
 /// The digest's first `v` digits, if it is a codeword.
 pub fn codeword(digest: &Digest) -> Option<[u8; V]> {
     let d = u128::from_le_bytes(*digest);
-    is_codeword(d).then(|| std::array::from_fn(|i| ((d >> (W * i)) & (CHAIN_LEN as u128 - 1)) as u8))
+    is_codeword(d).then(|| core::array::from_fn(|i| ((d >> (W * i)) & (CHAIN_LEN as u128 - 1)) as u8))
 }
 
 /// Whether the digest `d`, little endian, is a codeword: its digits past the `v`th are
@@ -72,12 +74,14 @@ fn is_codeword(d: u128) -> bool {
 }
 
 /// Trials hashed at once.
+#[cfg(feature = "std")]
 const GRIND_BATCH: usize = 64;
 
 /// The least `c` below `MAX_RANDOMIZER_TRIALS` whose randomizer `base + c`, as the last
 /// 16 bytes of `input`, makes its digest a codeword: the least, which keeps one key to one
 /// codeword. Those bytes are zero in `input` and lie in its last block, so the blocks before
 /// are absorbed once and a trial costs one permutation.
+#[cfg(feature = "std")]
 fn least_trial(input: &[u8], base: u128) -> Option<u64> {
     let at = input.len() - RANDOMIZER_LEN;
     assert!(at.is_multiple_of(8) && at / RATE == input.len() / RATE);
@@ -100,6 +104,7 @@ fn least_trial(input: &[u8], base: u128) -> Option<u64> {
 /// of the seed and the message, and the chain value each digit opens. Deterministic
 /// in its inputs, so signing one message again gives the same signature and a key
 /// never opens two codewords.
+#[cfg(feature = "std")]
 pub(crate) fn wots_sign(
     pp: &PublicParam,
     seed: &SchemeSeed,
@@ -117,7 +122,7 @@ pub(crate) fn wots_sign(
     let randomizer = base.wrapping_add(u128::from(least_trial(&input, base)?)).to_le_bytes();
     let x = codeword(&message_digest(pp, layer, e, &randomizer, message))?;
     let secrets = wots_secrets(pp, seed, layer, e);
-    let values = std::array::from_fn(|i| chain(pp, layer, e, i, 0, x[i] as usize, secrets[i]));
+    let values = core::array::from_fn(|i| chain(pp, layer, e, i, 0, x[i] as usize, secrets[i]));
     Some((randomizer, values))
 }
 
@@ -132,7 +137,7 @@ pub fn wots_leaf(
     values: &[Digest; V],
 ) -> Option<([u8; V], Digest)> {
     let x = codeword(&message_digest(pp, layer, e, randomizer, message))?;
-    let ends = std::array::from_fn(|i| {
+    let ends = core::array::from_fn(|i| {
         let start = x[i] as usize;
         chain(pp, layer, e, i, start, CHAIN_LEN - 1 - start, values[i])
     });
@@ -141,8 +146,9 @@ pub fn wots_leaf(
 
 /// The leaf of key `e` on `layer`, from the seed: what key generation spends its
 /// hashes on.
+#[cfg(feature = "std")]
 pub(crate) fn wots_public_leaf(pp: &PublicParam, seed: &SchemeSeed, layer: usize, e: u32) -> Digest {
     let secrets = wots_secrets(pp, seed, layer, e);
-    let ends = std::array::from_fn(|i| chain(pp, layer, e, i, 0, CHAIN_LEN - 1, secrets[i]));
+    let ends = core::array::from_fn(|i| chain(pp, layer, e, i, 0, CHAIN_LEN - 1, secrets[i]));
     wots_leaf_hash(pp, layer, e, &ends)
 }

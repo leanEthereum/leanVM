@@ -7,9 +7,17 @@
 //! `Th(P, A, M) = H(P | A | M)` truncated to 16 bytes, `H` the leanVM hash, with
 //! a 16-byte address `A` (the `hash` module).
 //!
+//! The default `std` feature provides the cached signing API. Verification works without std.
+//!
 //! [leanXMSS specification]: https://github.com/leanEthereum/leanVM/releases/download/doc-latest/leanXMSS.pdf
 
+#![no_std]
 #![cfg_attr(not(test), warn(unused_crate_dependencies))]
+
+extern crate alloc;
+
+#[cfg(feature = "std")]
+extern crate std;
 
 mod hash;
 mod scheme;
@@ -21,9 +29,9 @@ use internals::*;
 use tree::*;
 use wots::*;
 
-pub use scheme::{
-    LeanXmssExpandedSecretKey, LeanXmssPublicKey, LeanXmssSignature, MAX_CACHED_BOTTOM_TREES, key_gen, sign, verify,
-};
+#[cfg(feature = "std")]
+pub use scheme::{LeanXmssExpandedSecretKey, MAX_CACHED_BOTTOM_TREES, key_gen, sign};
+pub use scheme::{LeanXmssPublicKey, LeanXmssSignature, verify};
 
 /// How many bytes in a [`SecretKey`].
 pub const SECRET_KEY_LEN: usize = 32;
@@ -48,6 +56,7 @@ pub(crate) const ZERO_DIGITS: usize = 6;
 /// Chain steps one verification walks per layer.
 pub(crate) const CHAIN_HASHES: usize = V * (CHAIN_LEN - 1) - TARGET_SUM;
 /// Randomizers tried per layer signature.
+#[cfg(feature = "std")]
 pub(crate) const MAX_RANDOMIZER_TRIALS: u64 = 1 << 32;
 
 /// log2 of maximum number of signatures you can sign.

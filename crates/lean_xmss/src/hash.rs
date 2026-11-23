@@ -26,11 +26,13 @@ pub type PublicParam = [u8; PUBLIC_PARAM_LEN];
 pub(crate) const ADDRESS_LEN: usize = 16;
 
 // Hash types (the low five bits of the address's byte 7).
+#[cfg(feature = "std")]
 pub(crate) const TWEAK_PRF: u8 = 0;
 pub const TWEAK_CHAIN: u8 = 1;
 pub const TWEAK_LEAF: u8 = 2;
 pub const TWEAK_NODE: u8 = 3;
 pub(crate) const TWEAK_PARAMETER: u8 = 5;
+#[cfg(feature = "std")]
 pub(crate) const TWEAK_RANDOMIZER: u8 = 7;
 pub const TWEAK_MSG: u8 = 12;
 
@@ -100,6 +102,7 @@ pub(crate) fn th_digests(pp: &PublicParam, tw: &Tweak, values: &[Digest]) -> Dig
 }
 
 /// Two secrets for one hash: the two halves of the untruncated hash of the seed.
+#[cfg(feature = "std")]
 pub(crate) fn th_pair(pp: &PublicParam, tw: &Tweak, seed: &SchemeSeed) -> [Digest; 2] {
     let output = hasher(pp, tw).update(seed.as_bytes()).finalize();
     [output[..N].try_into().unwrap(), output[N..].try_into().unwrap()]

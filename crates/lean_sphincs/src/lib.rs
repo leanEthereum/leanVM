@@ -21,7 +21,10 @@
 //! generation builds the top tree, and signing builds it again for `PK.root`, then
 //! the FORS instance and the two trees below it.
 
+#![no_std]
 #![cfg_attr(not(test), warn(unused_crate_dependencies))]
+
+extern crate alloc;
 
 mod fors;
 mod hash;
