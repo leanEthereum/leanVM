@@ -180,6 +180,10 @@ test "aggregates recursively and round trips through bytes" {
     try std.testing.expectError(error.NativeFailure, lpq.Aggregate.fromBytes(encoded, &.{ xmss_claim, extra_claim }, &.{other_sphincs_claim}));
     try std.testing.expectError(error.NativeFailure, lpq.Aggregate.fromBytes(encoded, &.{ xmss_claim, extra_claim }, &.{ sphincs_claim, other_sphincs_claim }));
     try std.testing.expectError(error.NativeFailure, lpq.Aggregate.fromBytes(encoded, &.{ xmss_claim, extra_claim, sphincs_claim }, &.{sphincs_claim}));
+    try std.testing.expectError(error.NativeFailure, lpq.Aggregate.fromBytes(&.{0}, &.{}, &.{}));
+    const reason = try lpq.lastError(allocator);
+    defer allocator.free(reason);
+    try std.testing.expectEqualStrings("malformed aggregate: the bytes are not a leanVM aggregate proof", reason);
 
     const tampered = try allocator.dupe(u8, encoded);
     defer allocator.free(tampered);

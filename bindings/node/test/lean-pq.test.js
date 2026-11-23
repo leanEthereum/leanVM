@@ -63,7 +63,7 @@ test('loads a leanXMSS key from its tree cache', async () => {
 test('setup keeps its first thread count', async () => {
   await assert.rejects(lpq.setup(-1), /threads must be an integer/)
   await lpq.setup()
-  await assert.rejects(lpq.setup(1), /already runs on 0 threads, not 1/)
+  await assert.rejects(lpq.setup(1), /already started with 0 threads, not 1/)
 })
 
 test('aggregates both schemes recursively', async () => {
@@ -116,7 +116,7 @@ test('aggregates both schemes recursively', async () => {
   )
   const tampered = Buffer.from(proof)
   tampered[tampered.length - 1] ^= 1
-  await assert.rejects(lpq.Aggregate.fromBytes(tampered, { xmss: xmssClaims, sphincs: sphincsClaims }))
+  await assert.rejects(lpq.Aggregate.fromBytes(tampered, { xmss: xmssClaims, sphincs: sphincsClaims }), /malformed aggregate|does not prove/)
   await assert.rejects(
     lpq.Aggregate.fromBytes(proof.subarray(0, proof.length - 1), { xmss: xmssClaims, sphincs: sphincsClaims }),
     /malformed aggregate/,

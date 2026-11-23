@@ -22,7 +22,17 @@ fn on_own_thread<T: Task + 'static>(env: &Env, mut task: T) -> Result<Object<'_>
         move || match catch_unwind(AssertUnwindSafe(|| task.compute())) {
             Ok(Ok(output)) => deferred.resolve(move |env| task.resolve(env, output)),
             Ok(Err(error)) => deferred.reject(error),
-            Err(_) => deferred.reject(Error::new(Status::GenericFailure, "lean-pq panicked")),
+            Err(panic) => {
+                let reason = panic
+                    .downcast_ref::<String>()
+                    .map(String::as_str)
+                    .or_else(|| panic.downcast_ref::<&str>().copied())
+                    .unwrap_or("");
+                deferred.reject(Error::new(
+                    Status::GenericFailure,
+                    format!("lean-pq panicked: {reason}"),
+                ))
+            }
         },
     );
     Ok(promise)

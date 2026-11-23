@@ -312,7 +312,9 @@ impl PyAggregate {
 
 #[pyfunction]
 #[pyo3(signature = (threads = 0))]
-fn setup(py: Python<'_>, threads: usize) -> PyResult<()> {
+fn setup(py: Python<'_>, threads: i64) -> PyResult<()> {
+    let threads = usize::try_from(threads)
+        .map_err(|_| PyValueError::new_err("threads must not be negative"))?;
     py.detach(|| lean_pq::setup(threads)).map_err(api_error)
 }
 

@@ -116,7 +116,7 @@ def test_aggregates_both_schemes_recursively():
     tampered = bytearray(proof)
     tampered[len(tampered) // 2] ^= 1
     for data in (bytes(tampered), proof[:-1], b""):
-        with pytest.raises(lpq.LeanPqError):
+        with pytest.raises(lpq.LeanPqError, match="malformed aggregate|does not prove"):
             lpq.Aggregate.from_bytes(data, xmss_claims, sphincs_claims)
 
     with pytest.raises(ValueError, match="message must be exactly 32 bytes"):
@@ -130,7 +130,7 @@ def test_aggregating_nothing_fails():
 
 def test_setup_keeps_its_first_thread_count():
     lpq.setup()
-    with pytest.raises(lpq.LeanPqError, match="already runs on 0 threads, not 1"):
+    with pytest.raises(lpq.LeanPqError, match="already started with 0 threads, not 1"):
         lpq.setup(1)
 
 
