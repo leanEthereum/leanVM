@@ -163,7 +163,9 @@ theorem stLoops_ok : ∀ c ∈ stLoops, StLoopOk c := by
 /-- **Its divisors, nonzero.** -/
 theorem nzs_ok : ∀ c ∈ nzs, NzOk c := by
   simp only [nzs, List.mem_cons, List.not_mem_nil, or_false, forall_eq_or_imp, forall_eq]
-  exact ⟨nzVal_vt133, nzVal_vt430⟩
+  exact ⟨nzVal_vt133, nzVal_vt430, nzVal_vtKb (t := 0) (by decide), nzVal_vtKb (t := 1) (by decide),
+    nzVal_vtKb (t := 2) (by decide), nzVal_vtKb (t := 3) (by decide), nzVal_vtKb (t := 4) (by decide),
+    nzVal_vtKb (t := 5) (by decide)⟩
 
 /-- **Its families.** -/
 theorem fams_ok : ∀ c ∈ fams, OwnOk c := by

@@ -29,7 +29,7 @@ For each entry `p = (name, loop, sh)` of `openingQueriesLoops`:
   kernel evaluation);
 * `OqSide p` (`oqSide_all`, by kernel evaluation): the shape's row and final level, and its base.
 
-The statements over every entry (`QueriesAllW`, `QueriesPlacedAll`, `QueriesPlacedEAll`) take
+The statements over every entry (`QueriesAllW`, `QueriesPlacedAll`, `QueriesPlacedDPAll`) take
 these and apply their base's theorem.
 -/
 
