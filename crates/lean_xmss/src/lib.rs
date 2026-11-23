@@ -11,6 +11,7 @@
 
 #![cfg_attr(not(test), warn(unused_crate_dependencies))]
 
+mod compact;
 mod hash;
 mod scheme;
 mod tree;
@@ -21,6 +22,7 @@ use internals::*;
 use tree::*;
 use wots::*;
 
+pub use compact::{COMPACT_STATE_SIZE, LeanXmssCompactState, sign_compact};
 pub use scheme::{
     LeanXmssExpandedSecretKey, LeanXmssPublicKey, LeanXmssSignature, MAX_CACHED_BOTTOM_TREES, key_gen, sign, verify,
 };
@@ -112,6 +114,7 @@ pub(crate) const VERIFY_PERMUTATIONS: usize = blocks(RANDOMIZER_LEN + MESSAGE_LE
 
 const _: () = assert!(V == 58 && TARGET_SUM < V * (CHAIN_LEN - 1));
 const _: () = assert!(PUB_KEY_SIZE == 32 && LAYER_SIG_SIZE == 1200 && SIG_SIZE == 2404);
+const _: () = assert!(COMPACT_STATE_SIZE == 1476);
 const _: () = assert!(VERIFY_PERMUTATIONS == 186);
 // A leaf index is the two layers' indices side by side.
 const _: () = assert!(LOG_LIFETIME == 8 * LEAF_INDEX_SIZE);
