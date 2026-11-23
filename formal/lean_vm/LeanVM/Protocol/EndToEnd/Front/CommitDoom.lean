@@ -31,9 +31,9 @@ public input `input`.
   second ends in `CommitDoom`. They compose with `Spec.bind` as the program does:
   `readSizesSpec.bind fun a ↦ (commitStackSpec a).bind fun _ ↦ …`.
 
-Right after the root comes the commitment's OOD sample (`readOod`, `commitOodSpec`): the
-grind, the point `z₀`, the answer `y₀`. Its doom keeps `CommitDoom` and adds that the root's candidates are separated at `z₀` (`OodBind`), so that
-the phases after it face the one candidate `oodCands` leaves.
+Right after the root comes the commitment's OOD sample (`readOod`, `commitOodSpec`): the grind, the
+point `z₀`, the answer `y₀`. Its doom keeps `CommitDoom` and adds that the root's candidates are
+separated at `z₀` (`OodBind`), so that the phases after it face the one candidate `oodCands` leaves.
 
 The doom quantifies over the candidates; it says nothing about which candidate the prover had
 in mind. Its negation, at the end of a run, is the knowledge statement: some candidate satisfies

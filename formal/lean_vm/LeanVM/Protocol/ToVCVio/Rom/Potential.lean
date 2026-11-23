@@ -32,13 +32,13 @@ point `t` that `s` does not answer, the expected potential after recording a uni
 
   `(∑ u, Φ (record s t u)) / |R t| ≤ Φ s + δ`.
 
-The conclusion is global: after a run of a computation with at most `Q` queries from the state
-`s₀`, the expected potential of the final state is at most `Φ s₀ + Q · δ`. By Markov's inequality at one, an event on the output and final state that
-forces `1 ≤ Φ` has probability at most `Φ s₀ + Q · δ` (`prEvent_run_le_of_freshStepBound`). The
-process `Φ (state after j queries) - j · δ` is a supermartingale; the lemma is the
-supermartingale form of a union bound over fresh random-oracle queries. Cache hits leave the
-state, and so the potential, unchanged; they spend query budget all the same, which only
-loosens the bound.
+The conclusion is global: after a run of a computation with at most `Q` queries from the state `s₀`,
+the expected potential of the final state is at most `Φ s₀ + Q · δ`. By Markov's inequality at one,
+an event on the output and final state that forces `1 ≤ Φ` has probability at most `Φ s₀ + Q · δ`
+(`prEvent_run_le_of_freshStepBound`). The process `Φ (state after j queries) - j · δ` is a
+supermartingale; the lemma is the supermartingale form of a union bound over fresh random-oracle
+queries. Cache hits leave the state, and so the potential, unchanged; they spend query budget all
+the same, which only loosens the bound.
 
 The constant-increment form does not cover every argument: the birthday bound pays `k / |R|` at
 the query that meets a cache with `k` entries. The budgeted form `IsLazyBudgetedPotential`
@@ -57,11 +57,11 @@ This covers multi-query challenge derivation, where a bad challenge needs severa
 to line up, and proof-of-work grinding, where the potential is the chance that a pending query
 lands in the accepted set.
 
-Leaf conditions are required on reachable outcomes only (`support`), so a bad event that is bad
-only when a verifier accepts can use what acceptance says about the final state. Two lazy samplers whose states correspond through a map `f` that
-preserves lookups and recordings produce the same outcome distribution up to `f`
-(`map_run_simulateQ_eq_of_isLazySampler`); this is how a bound proved over ordered logs transfers
-to VCVio's `randomOracle`.
+Leaf conditions are required on reachable outcomes only (`support`), so a bad event that is bad only
+when a verifier accepts can use what acceptance says about the final state. Two lazy samplers whose
+states correspond through a map `f` that preserves lookups and recordings produce the same outcome
+distribution up to `f` (`map_run_simulateQ_eq_of_isLazySampler`); this is how a bound proved over
+ordered logs transfers to VCVio's `randomOracle`.
 
 VCVio's `randomOracle` is a lazy sampler over caches (`randomOracle_isLazySampler`). The module
 states the adversary-then-verifier experiment `romExperiment`: an adversary and then a verifier on
