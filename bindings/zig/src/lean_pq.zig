@@ -287,6 +287,36 @@ pub const Aggregate = struct {
         return .{ .handle = output orelse return error.InvalidNativeEncoding };
     }
 
+    /// `create`, but the result proves exactly `xmss_claims` and `sphincs_claims`, in any order, a
+    /// repeat counting once; each must be one the inputs cover.
+    pub fn createOnly(
+        children: []const *const Aggregate,
+        xmss: []const XmssSignedMessage,
+        sphincs: []const SphincsSignedMessage,
+        xmss_claims: []const Claim,
+        sphincs_claims: []const Claim,
+    ) Error!Aggregate {
+        if (children.len > max_children) return error.TooManyChildren;
+        var handles: [max_children]?*c.lpq_aggregate = undefined;
+        for (children, handles[0..children.len]) |child, *handle| handle.* = child.handle;
+
+        var output: ?*c.lpq_aggregate = null;
+        try checkStatus(c.lpq_aggregate_create_only(
+            if (children.len == 0) null else &handles,
+            children.len,
+            bytesPtr(std.mem.sliceAsBytes(xmss)),
+            xmss.len,
+            bytesPtr(std.mem.sliceAsBytes(sphincs)),
+            sphincs.len,
+            bytesPtr(std.mem.sliceAsBytes(xmss_claims)),
+            xmss_claims.len,
+            bytesPtr(std.mem.sliceAsBytes(sphincs_claims)),
+            sphincs_claims.len,
+            &output,
+        ));
+        return .{ .handle = output orelse return error.InvalidNativeEncoding };
+    }
+
     /// Verifies that a proof from `Aggregate.toBytes` proves exactly `xmss_claims` and
     /// `sphincs_claims`. Claims may come in any order; a repeated claim counts once. Fails with
     /// `error.NativeFailure` for malformed bytes or any other claim set.

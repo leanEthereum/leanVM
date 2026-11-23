@@ -343,6 +343,28 @@ func TestAggregateRecursively(t *testing.T) {
 	}
 	roundTrip.Close()
 
+	// Re-aggregating the root can keep only some of its claims, each one it covers.
+	only, err := AggregateSignaturesOnly([]*Aggregate{root}, nil, nil, expectedXmss[:1], nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer only.Close()
+	onlyXmss, err := only.XmssClaims()
+	if err != nil {
+		t.Fatal(err)
+	}
+	onlySphincs, err := only.SphincsClaims()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(onlyXmss, expectedXmss[:1]) || len(onlySphincs) != 0 {
+		t.Fatalf("claims = %x and %x, want %x and none", onlyXmss, onlySphincs, expectedXmss[:1])
+	}
+	if wrong, err := AggregateSignaturesOnly([]*Aggregate{root}, nil, nil, []Claim{{xmssPublicKey, bytes32(0x33)}}, nil); err == nil {
+		wrong.Close()
+		t.Fatal("a claim the inputs do not cover must be rejected")
+	}
+
 	wrongClaims := []struct {
 		name    string
 		xmss    []Claim

@@ -72,6 +72,7 @@ final class Native {
     private static final MethodHandle SPHINCS_VERIFY = downcall("lpq_sphincs_verify", VERIFY);
 
     private static final MethodHandle AGGREGATE_CREATE = downcall("lpq_aggregate_create", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS));
+    private static final MethodHandle AGGREGATE_CREATE_ONLY = downcall("lpq_aggregate_create_only", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS));
     private static final MethodHandle AGGREGATE_FROM_BYTES = downcall("lpq_aggregate_from_bytes", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS));
     private static final MethodHandle AGGREGATE_TO_BYTES = downcall("lpq_aggregate_to_bytes", HANDLE_TO_BUFFER);
     private static final MethodHandle AGGREGATE_XMSS_CLAIMS = downcall("lpq_aggregate_xmss_claims", HANDLE_TO_BUFFER);
@@ -196,6 +197,20 @@ final class Native {
                 pointerArray(arena, children), (long) children.size(),
                 copy(arena, xmss), xmssCount,
                 copy(arena, sphincs), sphincsCount);
+        }
+    }
+
+    /** {@link #aggregate}, proving exactly the given claims, as {@link #aggregateFromBytes} takes them. */
+    static MemorySegment aggregateOnly(
+            List<MemorySegment> children, byte[] xmss, long xmssCount, byte[] sphincs, long sphincsCount,
+            byte[] xmssClaims, long xmssClaimCount, byte[] sphincsClaims, long sphincsClaimCount) {
+        try (Arena arena = Arena.ofConfined()) {
+            return handle(AGGREGATE_CREATE_ONLY,
+                pointerArray(arena, children), (long) children.size(),
+                copy(arena, xmss), xmssCount,
+                copy(arena, sphincs), sphincsCount,
+                copy(arena, xmssClaims), xmssClaimCount,
+                copy(arena, sphincsClaims), sphincsClaimCount);
         }
     }
 

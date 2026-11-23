@@ -25,8 +25,8 @@ public final class Aggregate implements AutoCloseable {
      */
     public static Aggregate fromBytes(byte[] bytes, List<SignatureClaim> xmssClaims, List<SignatureClaim> sphincsClaims) {
         Objects.requireNonNull(bytes, "bytes");
-        byte[] xmssRecords = records(Objects.requireNonNull(xmssClaims, "xmssClaims"));
-        byte[] sphincsRecords = records(Objects.requireNonNull(sphincsClaims, "sphincsClaims"));
+        byte[] xmssRecords = claimRecords(Objects.requireNonNull(xmssClaims, "xmssClaims"));
+        byte[] sphincsRecords = claimRecords(Objects.requireNonNull(sphincsClaims, "sphincsClaims"));
         return new Aggregate(Native.aggregateFromBytes(
             bytes, xmssRecords, xmssRecords.length / Native.CLAIM_LENGTH, sphincsRecords, sphincsRecords.length / Native.CLAIM_LENGTH));
     }
@@ -61,7 +61,7 @@ public final class Aggregate implements AutoCloseable {
         handle.close();
     }
 
-    private static byte[] records(List<SignatureClaim> claims) {
+    static byte[] claimRecords(List<SignatureClaim> claims) {
         int count = claims.size();
         byte[] records = new byte[Math.multiplyExact(count, Native.CLAIM_LENGTH)];
         for (int index = 0; index < count; index++) {

@@ -30,7 +30,7 @@ export declare class XmssSecretKey {
   sign(message: Buffer, leafIndex: number): Promise<Buffer>
 }
 
-export declare function aggregate(children: Array<Aggregate>, xmss: Array<SignedMessage>, sphincs: Array<SignedMessage>): Promise<Aggregate>
+export declare function aggregate(children: Array<Aggregate>, xmss: Array<SignedMessage>, sphincs: Array<SignedMessage>, onlyXmss?: Array<Claim> | undefined | null, onlySphincs?: Array<Claim> | undefined | null): Promise<Aggregate>
 
 export declare function aggregateFromBytes(data: Buffer, xmss: Array<Claim>, sphincs: Array<Claim>): Promise<Aggregate>
 

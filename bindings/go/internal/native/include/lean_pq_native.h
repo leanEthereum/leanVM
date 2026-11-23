@@ -68,6 +68,11 @@ int32_t lpq_sphincs_verify(const uint8_t *public_key, size_t public_key_len, con
  */
 int32_t lpq_aggregate_create(lpq_aggregate *const *children, size_t child_count, const uint8_t *xmss, size_t xmss_count, const uint8_t *sphincs, size_t sphincs_count, lpq_aggregate **out);
 /*
+ * lpq_aggregate_create, but the result proves exactly these claims, given as lpq_aggregate_from_bytes
+ * takes them; each must be one the inputs cover.
+ */
+int32_t lpq_aggregate_create_only(lpq_aggregate *const *children, size_t child_count, const uint8_t *xmss, size_t xmss_count, const uint8_t *sphincs, size_t sphincs_count, const uint8_t *xmss_claims, size_t xmss_claim_count, const uint8_t *sphincs_claims, size_t sphincs_claim_count, lpq_aggregate **out);
+/*
  * Verifies that a proof proves exactly these claims, given as concatenated 64-byte public key (32)
  * | message (32) records in any order; a repeated claim counts once. A returned handle is always a
  * verified aggregate.

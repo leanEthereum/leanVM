@@ -84,4 +84,6 @@ def aggregate(
     children: Sequence[Aggregate] = (),
     xmss: Sequence[tuple[bytes, bytes, bytes]] = (),
     sphincs: Sequence[tuple[bytes, bytes, bytes]] = (),
+    only_xmss: Sequence[tuple[bytes, bytes]] | None = None,
+    only_sphincs: Sequence[tuple[bytes, bytes]] | None = None,
 ) -> Aggregate: ...

@@ -122,6 +122,13 @@ test('aggregates both schemes recursively', async () => {
     /malformed aggregate/,
   )
   await assert.rejects(lpq.aggregate(), /aggregation failed/)
+
+  // Re-aggregating the root can keep only some of its claims, each one it covers.
+  const only = await lpq.aggregate({ children: [root], only: { xmss: [xmssClaims[0]] } })
+  assert.deepEqual(only.xmssClaims, [xmssClaims[0]])
+  assert.deepEqual(only.sphincsClaims, [])
+  const uncovered = { publicKey: xmssKey.publicKey, message: Buffer.alloc(32, 0x33) }
+  await assert.rejects(lpq.aggregate({ children: [root], only: { xmss: [uncovered] } }), /aggregation failed/)
 })
 
 test('opens VRF proofs under the root', async () => {

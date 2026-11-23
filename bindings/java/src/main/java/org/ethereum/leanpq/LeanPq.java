@@ -52,6 +52,26 @@ public final class LeanPq {
      * verified first; at most 16 children are accepted, and the input must not be empty.
      */
     public static Aggregate aggregate(List<Aggregate> children, List<SignedMessage> xmss, List<SignedMessage> sphincs) {
+        return aggregate(children, xmss, sphincs, null, null);
+    }
+
+    /**
+     * {@link #aggregate(List, List, List)}, but the result proves exactly the given claims, in any
+     * order, a repeat counting once; each must be one the inputs cover.
+     */
+    public static Aggregate aggregateOnly(
+            List<Aggregate> children, List<SignedMessage> xmss, List<SignedMessage> sphincs,
+            List<SignatureClaim> xmssClaims, List<SignatureClaim> sphincsClaims) {
+        return aggregate(
+            children, xmss, sphincs,
+            Aggregate.claimRecords(Objects.requireNonNull(xmssClaims, "xmssClaims")),
+            Aggregate.claimRecords(Objects.requireNonNull(sphincsClaims, "sphincsClaims")));
+    }
+
+    /** {@code xmssClaims} and {@code sphincsClaims} are both null to prove every covered claim. */
+    private static Aggregate aggregate(
+            List<Aggregate> children, List<SignedMessage> xmss, List<SignedMessage> sphincs,
+            byte[] xmssClaims, byte[] sphincsClaims) {
         Objects.requireNonNull(children, "children");
         byte[] xmssRecords = records(Objects.requireNonNull(xmss, "xmss"), Native.XMSS_SIGNATURE_LENGTH, "leanXMSS");
         byte[] sphincsRecords = records(Objects.requireNonNull(sphincs, "sphincs"), Native.SPHINCS_SIGNATURE_LENGTH, "leanSPHINCS");
@@ -62,10 +82,15 @@ public final class LeanPq {
             }
             List<MemorySegment> pointers = borrowed.stream().map(NativeHandle.Borrow::pointer).toList();
             // The counts come from the packed records, not from the lists, whose sizes may have changed.
-            return new Aggregate(Native.aggregate(
-                pointers,
-                xmssRecords, xmssRecords.length / (Native.CLAIM_LENGTH + Native.XMSS_SIGNATURE_LENGTH),
-                sphincsRecords, sphincsRecords.length / (Native.CLAIM_LENGTH + Native.SPHINCS_SIGNATURE_LENGTH)));
+            long xmssCount = xmssRecords.length / (Native.CLAIM_LENGTH + Native.XMSS_SIGNATURE_LENGTH);
+            long sphincsCount = sphincsRecords.length / (Native.CLAIM_LENGTH + Native.SPHINCS_SIGNATURE_LENGTH);
+            if (xmssClaims == null) {
+                return new Aggregate(Native.aggregate(pointers, xmssRecords, xmssCount, sphincsRecords, sphincsCount));
+            }
+            return new Aggregate(Native.aggregateOnly(
+                pointers, xmssRecords, xmssCount, sphincsRecords, sphincsCount,
+                xmssClaims, xmssClaims.length / Native.CLAIM_LENGTH,
+                sphincsClaims, sphincsClaims.length / Native.CLAIM_LENGTH));
         } finally {
             for (int index = borrowed.size() - 1; index >= 0; index--) {
                 borrowed.get(index).close();

@@ -261,18 +261,7 @@ impl PyAggregate {
         xmss_claims: Vec<Claim>,
         sphincs_claims: Vec<Claim>,
     ) -> PyResult<Self> {
-        let xmss_claims = xmss_claims
-            .iter()
-            .map(|(public_key, message)| {
-                Ok((xmss_public_key(public_key)?, self::message(message)?))
-            })
-            .collect::<PyResult<Vec<_>>>()?;
-        let sphincs_claims = sphincs_claims
-            .iter()
-            .map(|(public_key, message)| {
-                Ok((sphincs_public_key(public_key)?, self::message(message)?))
-            })
-            .collect::<PyResult<Vec<_>>>()?;
+        let (xmss_claims, sphincs_claims) = claim_lists(&xmss_claims, &sphincs_claims)?;
         Ok(Self {
             inner: py
                 .detach(|| lean_pq::Aggregate::from_bytes(data, &xmss_claims, &sphincs_claims))
@@ -356,16 +345,36 @@ fn vrf_verify(py: Python<'_>, root: &[u8], slot: u64, proof: &[u8]) -> PyResult<
         .map_err(api_error)
 }
 
+/// Claim lists, as `Aggregate::from_bytes` and `aggregate_only` take them.
+type Claims = (
+    Vec<(xmss::PublicKey, Message)>,
+    Vec<(sphincs::PublicKey, Message)>,
+);
+
+fn claim_lists(xmss_claims: &[Claim], sphincs_claims: &[Claim]) -> PyResult<Claims> {
+    let xmss_claims = xmss_claims
+        .iter()
+        .map(|(public_key, message)| Ok((xmss_public_key(public_key)?, self::message(message)?)))
+        .collect::<PyResult<Vec<_>>>()?;
+    let sphincs_claims = sphincs_claims
+        .iter()
+        .map(|(public_key, message)| Ok((sphincs_public_key(public_key)?, self::message(message)?)))
+        .collect::<PyResult<Vec<_>>>()?;
+    Ok((xmss_claims, sphincs_claims))
+}
+
 #[pyfunction]
 #[pyo3(
-    signature = (children = Vec::new(), xmss = Vec::new(), sphincs = Vec::new()),
-    text_signature = "(children=(), xmss=(), sphincs=())"
+    signature = (children = Vec::new(), xmss = Vec::new(), sphincs = Vec::new(), only_xmss = None, only_sphincs = None),
+    text_signature = "(children=(), xmss=(), sphincs=(), only_xmss=None, only_sphincs=None)"
 )]
 fn aggregate(
     py: Python<'_>,
     children: Vec<Bound<'_, PyAggregate>>,
     xmss: Vec<SignedMessage>,
     sphincs: Vec<SignedMessage>,
+    only_xmss: Option<Vec<Claim>>,
+    only_sphincs: Option<Vec<Claim>>,
 ) -> PyResult<PyAggregate> {
     let children = children
         .iter()
@@ -391,9 +400,22 @@ fn aggregate(
             ))
         })
         .collect::<PyResult<Vec<_>>>()?;
-    py.detach(|| lean_pq::aggregate(&children, &xmss, &sphincs))
-        .map(|inner| PyAggregate { inner })
-        .map_err(api_error)
+    let only = if only_xmss.is_none() && only_sphincs.is_none() {
+        None
+    } else {
+        Some(claim_lists(
+            &only_xmss.unwrap_or_default(),
+            &only_sphincs.unwrap_or_default(),
+        )?)
+    };
+    py.detach(|| match &only {
+        None => lean_pq::aggregate(&children, &xmss, &sphincs),
+        Some((xmss_claims, sphincs_claims)) => {
+            lean_pq::aggregate_only(&children, &xmss, &sphincs, xmss_claims, sphincs_claims)
+        }
+    })
+    .map(|inner| PyAggregate { inner })
+    .map_err(api_error)
 }
 
 #[pymodule]

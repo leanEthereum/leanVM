@@ -21,8 +21,9 @@ Aggregate.fromBytes = async function fromBytes(data, claims) {
   return native.aggregateFromBytes(data, xmss, sphincs)
 }
 async function aggregate(input) {
-  const { children = [], xmss = [], sphincs = [] } = input ?? {}
-  return native.aggregate(children, xmss, sphincs)
+  const { children = [], xmss = [], sphincs = [], only } = input ?? {}
+  if (only == null) return native.aggregate(children, xmss, sphincs)
+  return native.aggregate(children, xmss, sphincs, only.xmss ?? [], only.sphincs ?? [])
 }
 
 module.exports = {

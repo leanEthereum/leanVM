@@ -391,6 +391,101 @@ pub unsafe extern "C" fn lpq_sphincs_verify(
     })
 }
 
+/// An aggregation call's children and raw signatures.
+type Inputs<'a> = (
+    Vec<&'a Aggregate>,
+    Vec<(xmss::PublicKey, Message, xmss::Signature)>,
+    Vec<(sphincs::PublicKey, Message, sphincs::Signature)>,
+);
+
+unsafe fn inputs<'a>(
+    children: *const *mut AggregateHandle,
+    child_count: usize,
+    xmss_records: *const u8,
+    xmss_count: usize,
+    sphincs_records: *const u8,
+    sphincs_count: usize,
+) -> Result<Inputs<'a>, String> {
+    let children = if child_count == 0 {
+        Vec::new()
+    } else {
+        if children.is_null() {
+            return Err("children must not be null when the count is non-zero".to_owned());
+        }
+        std::slice::from_raw_parts(children, child_count)
+            .iter()
+            .map(|&child| handle(child, "aggregate").map(|child| &child.0))
+            .collect::<Result<Vec<_>, _>>()?
+    };
+    let xmss = records(
+        xmss_records,
+        xmss_count,
+        XMSS_RECORD_LEN,
+        "leanXMSS records",
+    )?
+    .map(|record| {
+        let (public_key, message, signature) = split_record(record);
+        Ok((
+            xmss::PublicKey::from_bytes(public_key)?,
+            message,
+            xmss::Signature::from_bytes(signature)?,
+        ))
+    })
+    .collect::<Result<Vec<_>, lean_pq::Error>>()
+    .map_err(|e| e.to_string())?;
+    let sphincs = records(
+        sphincs_records,
+        sphincs_count,
+        SPHINCS_RECORD_LEN,
+        "leanSPHINCS records",
+    )?
+    .map(|record| {
+        let (public_key, message, signature) = split_record(record);
+        Ok((
+            sphincs::PublicKey::from_bytes(public_key)?,
+            message,
+            sphincs::Signature::from_bytes(signature)?,
+        ))
+    })
+    .collect::<Result<Vec<_>, lean_pq::Error>>()
+    .map_err(|e| e.to_string())?;
+    Ok((children, xmss, sphincs))
+}
+
+/// Claim lists, from concatenated 64-byte public key | message records.
+type Claims = (
+    Vec<(xmss::PublicKey, Message)>,
+    Vec<(sphincs::PublicKey, Message)>,
+);
+
+unsafe fn claim_lists(
+    xmss_claims: *const u8,
+    xmss_count: usize,
+    sphincs_claims: *const u8,
+    sphincs_count: usize,
+) -> Result<Claims, String> {
+    let xmss = records(xmss_claims, xmss_count, CLAIM_RECORD_LEN, "leanXMSS claims")?
+        .map(|record| {
+            let (public_key, message, _) = split_record(record);
+            Ok((xmss::PublicKey::from_bytes(public_key)?, message))
+        })
+        .collect::<Result<Vec<_>, lean_pq::Error>>()
+        .map_err(|e| e.to_string())?;
+    let sphincs = records(
+        sphincs_claims,
+        sphincs_count,
+        CLAIM_RECORD_LEN,
+        "leanSPHINCS claims",
+    )?
+    .map(|record| {
+        let (public_key, message, _) = split_record(record);
+        Ok((sphincs::PublicKey::from_bytes(public_key)?, message))
+    })
+    .collect::<Result<Vec<_>, lean_pq::Error>>()
+    .map_err(|e| e.to_string())?;
+    Ok((xmss, sphincs))
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn lpq_aggregate_create(
     children: *const *mut AggregateHandle,
@@ -402,51 +497,52 @@ pub unsafe extern "C" fn lpq_aggregate_create(
     out: *mut *mut AggregateHandle,
 ) -> c_int {
     ffi(|| {
-        let children = if child_count == 0 {
-            Vec::new()
-        } else {
-            if children.is_null() {
-                return Err("children must not be null when the count is non-zero".to_owned());
-            }
-            std::slice::from_raw_parts(children, child_count)
-                .iter()
-                .map(|&child| handle(child, "aggregate").map(|child| &child.0))
-                .collect::<Result<Vec<_>, _>>()?
-        };
-        let xmss = records(
+        let (children, xmss, sphincs) = inputs(
+            children,
+            child_count,
             xmss_records,
             xmss_count,
-            XMSS_RECORD_LEN,
-            "leanXMSS records",
-        )?
-        .map(|record| {
-            let (public_key, message, signature) = split_record(record);
-            Ok((
-                xmss::PublicKey::from_bytes(public_key)?,
-                message,
-                xmss::Signature::from_bytes(signature)?,
-            ))
-        })
-        .collect::<Result<Vec<_>, lean_pq::Error>>()
-        .map_err(|e| e.to_string())?;
-        let sphincs = records(
             sphincs_records,
             sphincs_count,
-            SPHINCS_RECORD_LEN,
-            "leanSPHINCS records",
-        )?
-        .map(|record| {
-            let (public_key, message, signature) = split_record(record);
-            Ok((
-                sphincs::PublicKey::from_bytes(public_key)?,
-                message,
-                sphincs::Signature::from_bytes(signature)?,
-            ))
-        })
-        .collect::<Result<Vec<_>, lean_pq::Error>>()
-        .map_err(|e| e.to_string())?;
+        )?;
         let aggregate =
             lean_pq::aggregate(&children, &xmss, &sphincs).map_err(|e| e.to_string())?;
+        put_handle(out, AggregateHandle(aggregate), "aggregate")
+    })
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn lpq_aggregate_create_only(
+    children: *const *mut AggregateHandle,
+    child_count: usize,
+    xmss_records: *const u8,
+    xmss_count: usize,
+    sphincs_records: *const u8,
+    sphincs_count: usize,
+    xmss_claims: *const u8,
+    xmss_claim_count: usize,
+    sphincs_claims: *const u8,
+    sphincs_claim_count: usize,
+    out: *mut *mut AggregateHandle,
+) -> c_int {
+    ffi(|| {
+        let (children, xmss, sphincs) = inputs(
+            children,
+            child_count,
+            xmss_records,
+            xmss_count,
+            sphincs_records,
+            sphincs_count,
+        )?;
+        let (xmss_claims, sphincs_claims) = claim_lists(
+            xmss_claims,
+            xmss_claim_count,
+            sphincs_claims,
+            sphincs_claim_count,
+        )?;
+        let aggregate =
+            lean_pq::aggregate_only(&children, &xmss, &sphincs, &xmss_claims, &sphincs_claims)
+                .map_err(|e| e.to_string())?;
         put_handle(out, AggregateHandle(aggregate), "aggregate")
     })
 }
@@ -462,25 +558,7 @@ pub unsafe extern "C" fn lpq_aggregate_from_bytes(
     out: *mut *mut AggregateHandle,
 ) -> c_int {
     ffi(|| {
-        let xmss = records(xmss_claims, xmss_count, CLAIM_RECORD_LEN, "leanXMSS claims")?
-            .map(|record| {
-                let (public_key, message, _) = split_record(record);
-                Ok((xmss::PublicKey::from_bytes(public_key)?, message))
-            })
-            .collect::<Result<Vec<_>, lean_pq::Error>>()
-            .map_err(|e| e.to_string())?;
-        let sphincs = records(
-            sphincs_claims,
-            sphincs_count,
-            CLAIM_RECORD_LEN,
-            "leanSPHINCS claims",
-        )?
-        .map(|record| {
-            let (public_key, message, _) = split_record(record);
-            Ok((sphincs::PublicKey::from_bytes(public_key)?, message))
-        })
-        .collect::<Result<Vec<_>, lean_pq::Error>>()
-        .map_err(|e| e.to_string())?;
+        let (xmss, sphincs) = claim_lists(xmss_claims, xmss_count, sphincs_claims, sphincs_count)?;
         let aggregate = Aggregate::from_bytes(bytes(data, len, "aggregate")?, &xmss, &sphincs)
             .map_err(|e| e.to_string())?;
         put_handle(out, AggregateHandle(aggregate), "aggregate")

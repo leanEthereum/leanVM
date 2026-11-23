@@ -100,6 +100,35 @@ pub fn aggregate(
     xmss: &[(xmss::PublicKey, Message, xmss::Signature)],
     sphincs: &[(sphincs::PublicKey, Message, sphincs::Signature)],
 ) -> Result<Aggregate, Error> {
+    prove(children, xmss, sphincs, None)
+}
+
+/// [`aggregate`], but the result proves exactly these claims, in any order, a repeat counting once.
+///
+/// # Errors
+///
+/// As [`aggregate`]'s, and the prover rejects a claim the inputs do not cover.
+pub fn aggregate_only(
+    children: &[&Aggregate],
+    xmss: &[(xmss::PublicKey, Message, xmss::Signature)],
+    sphincs: &[(sphincs::PublicKey, Message, sphincs::Signature)],
+    xmss_claims: &[(xmss::PublicKey, Message)],
+    sphincs_claims: &[(sphincs::PublicKey, Message)],
+) -> Result<Aggregate, Error> {
+    prove(
+        children,
+        xmss,
+        sphincs,
+        Some(&statement(xmss_claims, sphincs_claims)),
+    )
+}
+
+fn prove(
+    children: &[&Aggregate],
+    xmss: &[(xmss::PublicKey, Message, xmss::Signature)],
+    sphincs: &[(sphincs::PublicKey, Message, sphincs::Signature)],
+    only: Option<&AggregateClaims>,
+) -> Result<Aggregate, Error> {
     if children.len() > MAX_CHILDREN {
         return Err(Error::TooManyChildren {
             count: children.len(),
@@ -135,18 +164,12 @@ pub fn aggregate(
         .map(|(public_key, message, signature)| (public_key.0, *message, signature.0.clone()))
         .collect();
     start(0)?;
-    // No DA blobs, and keep every claim the inputs cover.
-    let (claims, proof) = lean_vm::aggregate(
-        &children,
-        xmss,
-        sphincs,
-        None,
-        OutputClaims::All,
-        LOG_INV_RATE,
-    )
-    .map_err(|reason| Error::Aggregation {
-        reason: reason.to_string(),
-    })?;
+    let output = only.map_or(OutputClaims::All, OutputClaims::Only);
+    // No DA blobs.
+    let (claims, proof) = lean_vm::aggregate(&children, xmss, sphincs, None, output, LOG_INV_RATE)
+        .map_err(|reason| Error::Aggregation {
+            reason: reason.to_string(),
+        })?;
     Ok(Aggregate { claims, proof })
 }
 
@@ -177,16 +200,7 @@ impl Aggregate {
     ) -> Result<Self, Error> {
         build_guest()?;
         let proof = AggregateProof::from_bytes(bytes).ok_or(Error::MalformedAggregate)?;
-        let claims = AggregateClaims {
-            lean_xmss: sorted_claims(xmss_claims.iter().map(|(key, message)| (key.0, *message))),
-            lean_sphincs: sorted_claims(
-                sphincs_claims
-                    .iter()
-                    .map(|(key, message)| (key.0, *message)),
-            ),
-            // These bindings neither make nor accept leanDA blob commitments.
-            da_commitment: None,
-        };
+        let claims = statement(xmss_claims, sphincs_claims);
         if !proof.verify(&claims) {
             return Err(Error::AggregateRejected);
         }
@@ -231,7 +245,23 @@ impl fmt::Debug for Aggregate {
     }
 }
 
-/// Claims strictly sorted, the order a proof's statement lists them in.
+/// The statement proving exactly these claims: each list strictly sorted, as a proof lists them.
+fn statement(
+    xmss_claims: &[(xmss::PublicKey, Message)],
+    sphincs_claims: &[(sphincs::PublicKey, Message)],
+) -> AggregateClaims {
+    AggregateClaims {
+        lean_xmss: sorted_claims(xmss_claims.iter().map(|(key, message)| (key.0, *message))),
+        lean_sphincs: sorted_claims(
+            sphincs_claims
+                .iter()
+                .map(|(key, message)| (key.0, *message)),
+        ),
+        // These bindings neither make nor accept leanDA blob commitments.
+        da_commitment: None,
+    }
+}
+
 fn sorted_claims<K: Ord>(claims: impl Iterator<Item = (K, Message)>) -> Vec<(K, Message)> {
     let mut claims: Vec<_> = claims.collect();
     claims.sort_unstable();

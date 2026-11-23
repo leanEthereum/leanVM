@@ -3,7 +3,9 @@
 
 use std::sync::LazyLock;
 
-use lean_pq::{aggregate, setup, sphincs, xmss, Aggregate, Error, Message, MAX_CHILDREN};
+use lean_pq::{
+    aggregate, aggregate_only, setup, sphincs, xmss, Aggregate, Error, Message, MAX_CHILDREN,
+};
 
 /// Two signers, shared by every test so each key is generated once.
 struct Signers {
@@ -75,6 +77,41 @@ fn aggregates_both_schemes_recursively_and_round_trips() {
     assert_eq!(
         format!("{received:?}"),
         "Aggregate { xmss_claims: 2, sphincs_claims: 1, .. }"
+    );
+}
+
+#[test]
+fn proves_only_the_claims_asked_for() {
+    let xmss_key = SIGNERS.xmss.public_key();
+    let sphincs_key = SIGNERS.sphincs.public_key();
+    // LEAF proves (key, FIRST); the raw signatures add (key, SECOND) under each scheme. Keep two of the three.
+    let only = aggregate_only(
+        &[&LEAF],
+        &[xmss_input(SECOND, 3)],
+        &[sphincs_input(SECOND)],
+        &[(xmss_key, SECOND), (xmss_key, FIRST), (xmss_key, SECOND)],
+        &[],
+    )
+    .unwrap();
+    assert_eq!(only.xmss_claims(), [(xmss_key, FIRST), (xmss_key, SECOND)]);
+    assert_eq!(only.sphincs_claims(), Vec::new());
+    let bytes = only.to_bytes();
+    Aggregate::from_bytes(&bytes, &[(xmss_key, FIRST), (xmss_key, SECOND)], &[]).unwrap();
+    assert_eq!(
+        Aggregate::from_bytes(
+            &bytes,
+            &[(xmss_key, FIRST), (xmss_key, SECOND)],
+            &[(sphincs_key, SECOND)]
+        )
+        .unwrap_err(),
+        Error::AggregateRejected
+    );
+
+    // A claim the inputs do not cover.
+    let uncovered = aggregate_only(&[&LEAF], &[], &[], &[(xmss_key, SECOND)], &[]).unwrap_err();
+    assert!(
+        matches!(uncovered, Error::Aggregation { .. }),
+        "{uncovered}"
     );
 }
 

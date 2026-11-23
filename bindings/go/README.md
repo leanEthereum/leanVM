@@ -130,6 +130,7 @@ defer received.Close()
 ```
 
 - `AggregateSignatures` verifies raw signatures first and takes at most 16 children, which it neither consumes nor closes.
+- `AggregateSignaturesOnly` takes the claims the result proves too, in any order; each must be one the inputs cover.
 - `Bytes()` is the proof alone: send the claims (`XmssClaims()`, `SphincsClaims()`) alongside it.
 - `AggregateFromBytes` takes the claims in any order (a repeat counts once) and rejects any other set, so every `Aggregate` is proven.
 - `Setup(threads)` fails if the prover already runs with another thread count. See [Proving](https://github.com/leanEthereum/leanVM/tree/main/bindings#proving).

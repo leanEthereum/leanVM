@@ -158,6 +158,15 @@ class LeanPqTest {
                     List.of(new SignatureClaim(xmssKey, first), new SignatureClaim(xmssKey, bytes(0x33))), sphincsClaims));
                 assertThrows(LeanPqException.class, () -> Aggregate.fromBytes(proof, sphincsClaims, xmssClaims));
 
+                // Re-aggregating the root can keep only some of its claims, each one it covers.
+                try (Aggregate only = LeanPq.aggregateOnly(
+                         List.of(root), List.of(), List.of(), List.of(xmssClaims.get(0)), List.of())) {
+                    assertEquals(List.of(xmssClaims.get(0)), only.xmssClaims());
+                    assertEquals(List.of(), only.sphincsClaims());
+                }
+                assertThrows(LeanPqException.class, () -> LeanPq.aggregateOnly(
+                    List.of(root), List.of(), List.of(), List.of(new SignatureClaim(xmssKey, bytes(0x33))), List.of()));
+
                 byte[] tampered = proof.clone();
                 tampered[tampered.length - 1] ^= 1;
                 assertThrows(LeanPqException.class, () -> Aggregate.fromBytes(tampered, xmssClaims, sphincsClaims));

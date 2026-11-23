@@ -63,6 +63,7 @@ assert_eq!(received.xmss_claims(), root.xmss_claims());
 ```
 
 - `aggregate` verifies raw signatures before proving and takes at most `MAX_CHILDREN` (16) children. The result proves the union of their claims.
+- `aggregate_only` takes the claims the result proves too, in any order; each must be one the inputs cover.
 - `to_bytes` is the proof alone: send the claims alongside it, or let the receiver rebuild them.
 - `Aggregate::from_bytes` accepts exactly the claims passed, in any order, and fails otherwise.
 - `setup(threads)`: see [Proving](../README.md#proving). A process forked after the prover started cannot aggregate.

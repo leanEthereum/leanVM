@@ -185,6 +185,18 @@ test "aggregates recursively and round trips through bytes" {
     defer allocator.free(reason);
     try std.testing.expectEqualStrings("malformed aggregate: the bytes are not a leanVM aggregate proof", reason);
 
+    // Re-aggregating the root can keep only some of its claims, each one it covers.
+    var only = try lpq.Aggregate.createOnly(&.{&root}, &.{}, &.{}, &.{xmss_claim}, &.{});
+    defer only.deinit();
+    const only_xmss = try only.xmssClaims(allocator);
+    defer allocator.free(only_xmss);
+    try std.testing.expectEqualSlices(lpq.Claim, &.{xmss_claim}, only_xmss);
+    const only_sphincs = try only.sphincsClaims(allocator);
+    defer allocator.free(only_sphincs);
+    try std.testing.expectEqual(0, only_sphincs.len);
+    const uncovered: lpq.Claim = .{ .public_key = xmss_public_key, .message = other_message };
+    try std.testing.expectError(error.NativeFailure, lpq.Aggregate.createOnly(&.{&root}, &.{}, &.{}, &.{uncovered}, &.{}));
+
     const tampered = try allocator.dupe(u8, encoded);
     defer allocator.free(tampered);
     tampered[tampered.len / 2] ^= 1;

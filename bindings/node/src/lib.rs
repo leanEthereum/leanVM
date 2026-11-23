@@ -456,26 +456,7 @@ impl Task for AggregateFromBytesTask {
     type JsValue = Aggregate;
 
     fn compute(&mut self) -> Result<Self::Output> {
-        let xmss = self
-            .xmss
-            .iter()
-            .map(|claim| {
-                Ok((
-                    xmss::PublicKey::from_bytes(&claim.public_key).map_err(api_error)?,
-                    to_message(&claim.message)?,
-                ))
-            })
-            .collect::<Result<Vec<_>>>()?;
-        let sphincs = self
-            .sphincs
-            .iter()
-            .map(|claim| {
-                Ok((
-                    sphincs::PublicKey::from_bytes(&claim.public_key).map_err(api_error)?,
-                    to_message(&claim.message)?,
-                ))
-            })
-            .collect::<Result<Vec<_>>>()?;
+        let (xmss, sphincs) = claim_lists(&self.xmss, &self.sphincs)?;
         lean_pq::Aggregate::from_bytes(&self.data, &xmss, &sphincs).map_err(api_error)
     }
 
@@ -486,10 +467,40 @@ impl Task for AggregateFromBytesTask {
     }
 }
 
+/// Claim lists, as `Aggregate::from_bytes` and `aggregate_only` take them.
+type Claims = (
+    Vec<(xmss::PublicKey, Message)>,
+    Vec<(sphincs::PublicKey, Message)>,
+);
+
+fn claim_lists(xmss: &[RawClaim], sphincs: &[RawClaim]) -> Result<Claims> {
+    let xmss = xmss
+        .iter()
+        .map(|claim| {
+            Ok((
+                xmss::PublicKey::from_bytes(&claim.public_key).map_err(api_error)?,
+                to_message(&claim.message)?,
+            ))
+        })
+        .collect::<Result<Vec<_>>>()?;
+    let sphincs = sphincs
+        .iter()
+        .map(|claim| {
+            Ok((
+                sphincs::PublicKey::from_bytes(&claim.public_key).map_err(api_error)?,
+                to_message(&claim.message)?,
+            ))
+        })
+        .collect::<Result<Vec<_>>>()?;
+    Ok((xmss, sphincs))
+}
+
 pub struct AggregateTask {
     children: Vec<Arc<lean_pq::Aggregate>>,
     xmss: Vec<RawSignedMessage>,
     sphincs: Vec<RawSignedMessage>,
+    /// The claims to prove, all covered ones if `None`.
+    only: Option<(Vec<RawClaim>, Vec<RawClaim>)>,
 }
 
 impl Task for AggregateTask {
@@ -520,7 +531,14 @@ impl Task for AggregateTask {
             })
             .collect::<Result<Vec<_>>>()?;
         let children = self.children.iter().map(Arc::as_ref).collect::<Vec<_>>();
-        lean_pq::aggregate(&children, &xmss, &sphincs).map_err(api_error)
+        match &self.only {
+            None => lean_pq::aggregate(&children, &xmss, &sphincs),
+            Some((xmss_claims, sphincs_claims)) => {
+                let (xmss_claims, sphincs_claims) = claim_lists(xmss_claims, sphincs_claims)?;
+                lean_pq::aggregate_only(&children, &xmss, &sphincs, &xmss_claims, &sphincs_claims)
+            }
+        }
+        .map_err(api_error)
     }
 
     fn resolve(&mut self, _: Env, output: Self::Output) -> Result<Self::JsValue> {
@@ -680,13 +698,25 @@ pub fn aggregate<'env>(
     children: Vec<&Aggregate>,
     xmss: Vec<SignedMessage>,
     sphincs: Vec<SignedMessage>,
+    only_xmss: Option<Vec<Claim>>,
+    only_sphincs: Option<Vec<Claim>>,
 ) -> Result<Object<'env>> {
+    let raw = |claims: Option<Vec<Claim>>| {
+        claims
+            .unwrap_or_default()
+            .into_iter()
+            .map(RawClaim::from)
+            .collect()
+    };
+    let only = (only_xmss.is_some() || only_sphincs.is_some())
+        .then(|| (raw(only_xmss), raw(only_sphincs)));
     on_own_thread(
         env,
         AggregateTask {
             children: children.iter().map(|child| child.inner.clone()).collect(),
             xmss: xmss.into_iter().map(RawSignedMessage::from).collect(),
             sphincs: sphincs.into_iter().map(RawSignedMessage::from).collect(),
+            only,
         },
     )
 }

@@ -48,7 +48,7 @@ proof = root.to_bytes()
 received = lpq.Aggregate.from_bytes(proof, root.xmss_claims, root.sphincs_claims)
 ```
 
-- `aggregate(children=(), xmss=(), sphincs=())` verifies raw signatures before proving and takes at most 16 children. The result proves the union of their claims.
+- `aggregate(children=(), xmss=(), sphincs=())` verifies raw signatures before proving and takes at most 16 children. The result proves the union of their claims, or with `only_xmss` or `only_sphincs` exactly those claims, in any order, each one the inputs cover.
 - `to_bytes()` is the proof alone: send the claims alongside it, or let the receiver rebuild them.
 - `Aggregate.from_bytes(data, xmss_claims=(), sphincs_claims=())` accepts exactly those `(public_key, message)` claims, in any order, and raises `LeanPqError` otherwise. `xmss_claims` and `sphincs_claims` are sorted lists.
 - `setup` raises `LeanPqError` if the prover already runs with another thread count. See [Proving](https://github.com/leanEthereum/leanVM/tree/main/bindings#proving).

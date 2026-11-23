@@ -418,14 +418,14 @@ proc leanPqSetup*(threads: int): Result[void, string] =
     return err("threads must not be negative")
   check(lpqSetup(csize_t(threads)))
 
-proc init*(
-    T: type LeanPqAggregate,
-    children: openArray[LeanPqAggregate] = [],
-    xmss: openArray[XmssSignedMessage] = [],
-    sphincs: openArray[SphincsSignedMessage] = [],
+proc create(
+    children: openArray[LeanPqAggregate],
+    xmss: openArray[XmssSignedMessage],
+    sphincs: openArray[SphincsSignedMessage],
+    only: bool,
+    xmssClaims: openArray[LeanPqClaim] = [],
+    sphincsClaims: openArray[LeanPqClaim] = [],
 ): Result[LeanPqAggregate, string] =
-  ## Verifies the raw signatures, then proves the union of their claims and the children's. At
-  ## least one input is required. Children are neither consumed nor closed.
   if children.len > MaxAggregateChildren:
     return err("at most " & $MaxAggregateChildren & " child aggregates, got " & $children.len)
   var handles: array[MaxAggregateChildren, ptr LpqAggregate]
@@ -436,15 +436,48 @@ proc init*(
     childrenPtr = if children.len == 0: nil else: addr handles[0]
     xmssPtr = if xmss.len == 0: nil else: cast[ptr byte](addr xmss[0])
     sphincsPtr = if sphincs.len == 0: nil else: cast[ptr byte](addr sphincs[0])
+    xmssClaimsPtr = if xmssClaims.len == 0: nil else: cast[ptr byte](addr xmssClaims[0])
+    sphincsClaimsPtr = if sphincsClaims.len == 0: nil else: cast[ptr byte](addr sphincsClaims[0])
   var handle: ptr LpqAggregate
-  ? check(lpqAggregateCreate(
-    childrenPtr, csize_t(children.len),
-    xmssPtr, csize_t(xmss.len),
-    sphincsPtr, csize_t(sphincs.len),
-    addr handle))
+  if only:
+    ? check(lpqAggregateCreateOnly(
+      childrenPtr, csize_t(children.len),
+      xmssPtr, csize_t(xmss.len),
+      sphincsPtr, csize_t(sphincs.len),
+      xmssClaimsPtr, csize_t(xmssClaims.len),
+      sphincsClaimsPtr, csize_t(sphincsClaims.len),
+      addr handle))
+  else:
+    ? check(lpqAggregateCreate(
+      childrenPtr, csize_t(children.len),
+      xmssPtr, csize_t(xmss.len),
+      sphincsPtr, csize_t(sphincs.len),
+      addr handle))
   if handle.isNil:
     return err("native aggregate is null")
   ok(LeanPqAggregate(handle: handle))
+
+proc init*(
+    T: type LeanPqAggregate,
+    children: openArray[LeanPqAggregate] = [],
+    xmss: openArray[XmssSignedMessage] = [],
+    sphincs: openArray[SphincsSignedMessage] = [],
+): Result[LeanPqAggregate, string] =
+  ## Verifies the raw signatures, then proves the union of their claims and the children's. At
+  ## least one input is required. Children are neither consumed nor closed.
+  create(children, xmss, sphincs, only = false)
+
+proc initOnly*(
+    T: type LeanPqAggregate,
+    children: openArray[LeanPqAggregate] = [],
+    xmss: openArray[XmssSignedMessage] = [],
+    sphincs: openArray[SphincsSignedMessage] = [],
+    xmssClaims: openArray[LeanPqClaim] = [],
+    sphincsClaims: openArray[LeanPqClaim] = [],
+): Result[LeanPqAggregate, string] =
+  ## `init`, but the result proves exactly `xmssClaims` and `sphincsClaims`, in any order, a
+  ## repeat counting once; each must be one the inputs cover.
+  create(children, xmss, sphincs, only = true, xmssClaims, sphincsClaims)
 
 proc fromBytes*(
     T: type LeanPqAggregate,

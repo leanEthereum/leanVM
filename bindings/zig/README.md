@@ -87,6 +87,7 @@ defer received.deinit();
 ```
 
 - `Aggregate.create` verifies raw signatures first and takes at most `max_children` (16) children, which it neither consumes nor retains.
+- `Aggregate.createOnly` takes the claims the result proves too, in any order; each must be one the inputs cover.
 - `toBytes` is the proof alone: send the claims (`xmssClaims`, `sphincsClaims`) alongside it.
 - `Aggregate.fromBytes` takes the claims in any order (a repeat counts once) and fails with `error.NativeFailure` for any other set, so every `Aggregate` is proven.
 - `setup(threads)` fails if the prover already runs with another thread count. See [Proving](https://github.com/leanEthereum/leanVM/tree/main/bindings#proving).

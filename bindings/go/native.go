@@ -413,6 +413,16 @@ func VrfVerify(root [32]byte, slot uint64, proof VrfProof) error {
 // Raw signatures are verified first; children are neither consumed nor closed. At least one input
 // is required, and at most 16 children.
 func AggregateSignatures(children []*Aggregate, xmss []XmssSignedMessage, sphincs []SphincsSignedMessage) (*Aggregate, error) {
+	return aggregateSignatures(children, xmss, sphincs, nil, nil, false)
+}
+
+// AggregateSignaturesOnly is AggregateSignatures, but the result proves exactly the given claims,
+// in any order, a repeat counting once; each must be one the inputs cover.
+func AggregateSignaturesOnly(children []*Aggregate, xmss []XmssSignedMessage, sphincs []SphincsSignedMessage, xmssClaims, sphincsClaims []Claim) (*Aggregate, error) {
+	return aggregateSignatures(children, xmss, sphincs, xmssClaims, sphincsClaims, true)
+}
+
+func aggregateSignatures(children []*Aggregate, xmss []XmssSignedMessage, sphincs []SphincsSignedMessage, xmssClaims, sphincsClaims []Claim, only bool) (*Aggregate, error) {
 	handles, release, err := acquireAggregates(children)
 	if err != nil {
 		return nil, err
@@ -430,8 +440,20 @@ func AggregateSignatures(children []*Aggregate, xmss []XmssSignedMessage, sphinc
 		sphincsRecords = append(sphincsRecords, sphincs[index].Message[:]...)
 		sphincsRecords = append(sphincsRecords, sphincs[index].Signature[:]...)
 	}
+	xmssClaimRecords := claimRecords(xmssClaims)
+	sphincsClaimRecords := claimRecords(sphincsClaims)
 	var output *C.lpq_aggregate
 	if err := call(func() C.int32_t {
+		if only {
+			return C.lpq_aggregate_create_only(
+				aggregatePointer(handles), C.size_t(len(handles)),
+				bytesPointer(xmssRecords), C.size_t(len(xmss)),
+				bytesPointer(sphincsRecords), C.size_t(len(sphincs)),
+				bytesPointer(xmssClaimRecords), C.size_t(len(xmssClaims)),
+				bytesPointer(sphincsClaimRecords), C.size_t(len(sphincsClaims)),
+				&output,
+			)
+		}
 		return C.lpq_aggregate_create(
 			aggregatePointer(handles), C.size_t(len(handles)),
 			bytesPointer(xmssRecords), C.size_t(len(xmss)),

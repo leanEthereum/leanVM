@@ -225,6 +225,14 @@ suite "lean_pq":
         LeanPqClaim(publicKey: sphincsPublicKey, message: otherMessage)]).isErr()
       LeanPqAggregate.fromBytes(encoded, expectedSphincs, expectedXmss).isErr()
 
+    # Re-aggregating the root can keep only some of its claims, each one it covers.
+    let only = LeanPqAggregate.initOnly([root], xmssClaims = [expectedXmss[0]]).expect("only")
+    check:
+      only.xmssClaims().expect("claims") == @[expectedXmss[0]]
+      only.sphincsClaims().expect("claims").len == 0
+      LeanPqAggregate.initOnly([root], xmssClaims = [
+        LeanPqClaim(publicKey: xmssPublicKey, message: otherMessage)]).isErr()
+
     var tampered = encoded
     tampered[tampered.len div 2] = tampered[tampered.len div 2] xor 1
     check:

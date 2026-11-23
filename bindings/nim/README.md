@@ -99,6 +99,7 @@ doAssert received.xmssClaims().expect("claims").len == 1
 ```
 
 - `LeanPqAggregate.init` verifies raw signatures first and takes at most `MaxAggregateChildren` (16) children, which it neither consumes nor closes.
+- `LeanPqAggregate.initOnly` takes the claims the result proves too, in any order; each must be one the inputs cover.
 - `toBytes` is the proof alone: send the claims (`xmssClaims`, `sphincsClaims`) alongside it.
 - `LeanPqAggregate.fromBytes` takes the claims in any order (a repeat counts once) and fails for any other set, so every `LeanPqAggregate` is proven.
 - `leanPqSetup(threads)` fails if the prover already runs with another thread count. See [Proving](https://github.com/leanEthereum/leanVM/tree/main/bindings#proving).

@@ -213,6 +213,32 @@ fn native_abi_signs_verifies_and_aggregates() {
             let mut buffer = LpqBuffer::default();
             assert_eq!(lpq_aggregate_sphincs_claims(decoded, &mut buffer), OK);
             assert_eq!(take(buffer), sphincs_claim);
+
+            // Re-aggregating it can keep only the leanXMSS claim.
+            let mut only = ptr::null_mut();
+            assert_eq!(
+                lpq_aggregate_create_only(
+                    &decoded,
+                    1,
+                    ptr::null(),
+                    0,
+                    ptr::null(),
+                    0,
+                    xmss_claim.as_ptr(),
+                    1,
+                    ptr::null(),
+                    0,
+                    &mut only
+                ),
+                OK
+            );
+            let mut buffer = LpqBuffer::default();
+            assert_eq!(lpq_aggregate_xmss_claims(only, &mut buffer), OK);
+            assert_eq!(take(buffer), xmss_claim);
+            let mut buffer = LpqBuffer::default();
+            assert_eq!(lpq_aggregate_sphincs_claims(only, &mut buffer), OK);
+            assert!(take(buffer).is_empty());
+            lpq_aggregate_destroy(only);
             lpq_aggregate_destroy(decoded);
 
             // The same proof against one claim short fails, and leaves no handle.
