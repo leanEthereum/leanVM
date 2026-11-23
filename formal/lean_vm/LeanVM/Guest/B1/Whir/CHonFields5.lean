@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.B1.Whir.CHonFields4
 public import LeanVM.Guest.B1.Whir.HsScale
+import LeanVM.Guest.Value.FieldBits
 
 /-!
 # The queries' static facts

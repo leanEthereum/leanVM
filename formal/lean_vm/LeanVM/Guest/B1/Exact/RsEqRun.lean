@@ -11,6 +11,7 @@ public import LeanVM.Guest.Exact.Ok
 public import LeanVM.Guest.B1.Eq.RsEqRun
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«rs_eq_run»
+import LeanVM.Guest.Value.FieldBits
 
 /-!
 # `rs_eq_run`, exact

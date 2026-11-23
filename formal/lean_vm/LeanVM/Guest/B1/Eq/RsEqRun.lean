@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Bits.GPower
 public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«rs_eq_run»
+import LeanVM.Guest.Value.FieldBits
 
 /-!
 # `rs_eq_run` (lean_ethereum.py)

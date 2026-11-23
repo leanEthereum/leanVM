@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Tables.RunF
 public import LeanVM.Guest.B1.Whir.Run
+public import Statement.LeanVmGuestCompleteness
 
 /-!
 # Runs, backwards

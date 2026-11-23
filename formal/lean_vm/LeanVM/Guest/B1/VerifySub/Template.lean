@@ -12,6 +12,7 @@ public import LeanVM.Guest.B1.VerifySub.GrindOff
 public import LeanVM.Guest.B1.Whir.Split
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_sub»
+public import LeanVM.Guest.B1.Tables.InterfaceP
 
 /-!
 # `verify_sub` as a template

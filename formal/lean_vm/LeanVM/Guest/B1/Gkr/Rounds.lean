@@ -9,6 +9,7 @@ module
 public import LeanVM.Guest.B1.Gkr.Round
 public import LeanVM.Guest.CoreData
 public import LeanVM.Guest.GuestConst
+import LeanVM.Guest.B1.Tables.Basic
 
 /-!
 # Rounds between records

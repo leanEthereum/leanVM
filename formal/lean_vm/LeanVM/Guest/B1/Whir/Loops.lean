@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Whir.Flat
+import LeanVM.Guest.Value.FieldBits
 
 /-!
 # Flat loops

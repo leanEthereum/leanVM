@@ -8,8 +8,9 @@
 module
 
 public import LeanVM.Guest.B1.Common.Sponge
-public import LeanVM.Guest.B1.Common.Phase
-public import LeanVM.Protocol.WithHash
+public import LeanVM.Guest.Batch.Def
+import LeanVM.Guest.B1.Common.Phase
+import LeanVM.Protocol.WithHash
 
 /-!
 # Runs on the carried sponge

@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Opening.QueriesW
+import LeanVM.Guest.Value.FieldBits
 
 /-!
 # `opening_queries`, its queries named

@@ -12,6 +12,7 @@ public import LeanVM.Guest.B1.Ring.Interface
 public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«check_opening_terminal»
+public import LeanVM.Guest.B1.Eq.Meaning
 
 /-!
 # `check_opening_terminal`, assembled

@@ -11,6 +11,7 @@ module
 
 public import Statement.LeanVmGuest
 public import LeanVM.Guest.AcceptableChild
+public import LeanVM.Guest.Coverage
 
 namespace LeanVM.Guest
 

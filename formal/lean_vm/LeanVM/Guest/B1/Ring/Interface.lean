@@ -7,7 +7,9 @@
 
 module
 
-public import LeanVM.Guest.B1.Eq.Meaning
+public import LeanVM.Guest.B1.Common.Basic
+public import LeanVM.Guest.CoreData
+import LeanVM.Guest.B1.Eq.Meaning
 
 /-!
 # The ring switch (TRIAGE G #64-66): the interface

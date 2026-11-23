@@ -9,6 +9,7 @@ module
 public import LeanVM.Guest.B1.Opening.Witness
 public import LeanVM.Guest.B1.Opening.QueriesMain
 public import LeanVM.Guest.AcceptableChild
+import LeanVM.Guest.Value.FieldBits
 
 /-!
 # A query and an iteration, their witnesses named

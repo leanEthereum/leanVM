@@ -11,7 +11,7 @@ module
 public import LeanVM.Guest.B1.Whir.Split
 public import LeanVM.Guest.ExpTables
 public import LeanVM.Guest.B1.Common.Sponge
-public import LeanVM.Protocol.Compile.Prog
+import LeanVM.Protocol.Compile.Prog
 
 /-!
 # `open_stacked` (TRIAGE G #42): the interface

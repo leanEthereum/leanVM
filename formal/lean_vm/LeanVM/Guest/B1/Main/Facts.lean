@@ -12,6 +12,7 @@ public import LeanVM.Guest.B1.Main.LoopsC
 public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«main»
+public import LeanVM.Guest.B1.Bits.Meaning
 
 /-!
 # `main`'s facts

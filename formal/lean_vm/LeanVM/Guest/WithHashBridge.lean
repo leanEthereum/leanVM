@@ -7,12 +7,13 @@
 
 module
 
-public import LeanVM.Protocol.WithHashBridge
+import LeanVM.Protocol.WithHashBridge
 public import LeanVM.Guest.WithHash
-public import LeanDa.WithHashBridge
-public import LeanDa.Commitment
+import LeanDa.WithHashBridge
+import LeanDa.Commitment
 public import Common.WithHash
 public import LeanVM.Guest.AcceptableChild
+public import LeanDa.WithHash
 
 /-!
 # The guest's deployed definitions are the forms with a hash

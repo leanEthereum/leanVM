@@ -9,7 +9,7 @@
 module
 
 public import LeanVM.Guest.Value.Tower
-public import LeanVM.Parameters.Generator
+import LeanVM.Parameters.Generator
 public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 
 /-!

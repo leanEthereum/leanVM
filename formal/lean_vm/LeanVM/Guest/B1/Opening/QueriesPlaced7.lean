@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.Opening.QueriesPlaced6
+import LeanVM.Guest.Value.FieldBits
 
 /-!
 # The function's honest valuation

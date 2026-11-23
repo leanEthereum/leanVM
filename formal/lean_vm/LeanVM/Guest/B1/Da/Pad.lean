@@ -12,6 +12,7 @@ public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«da_pad_loop0»
 import LeanVM.Guest.B1.Common.Vc
+public import LeanVM.Guest.Value.KeccakConst
 
 /-!
 # The padding blobs

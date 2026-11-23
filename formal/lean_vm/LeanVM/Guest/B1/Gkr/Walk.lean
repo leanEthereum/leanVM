@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Gkr.Layer
+import LeanVM.Guest.B1.Tables.Basic
 
 /-!
 # The walk by layers

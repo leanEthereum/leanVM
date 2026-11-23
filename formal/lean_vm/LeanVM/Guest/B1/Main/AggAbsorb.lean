@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Main.AggFs
 public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«aggregate_claims_loop0»
+import LeanVM.Guest.B1.Common.Find
 
 /-!
 # `aggregate_claims_loop0`: the children's words

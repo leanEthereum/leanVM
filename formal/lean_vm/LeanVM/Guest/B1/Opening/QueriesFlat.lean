@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.Common.Loops
+import LeanVM.Guest.B1.Common.Basic
 
 /-!
 # Flat blocks

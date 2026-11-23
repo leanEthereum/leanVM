@@ -16,6 +16,7 @@ public import LeanVM.Guest.Memory.Uniform
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«assert_small_g_power»
 import LeanVM.Guest.Data.ValNames.«log2_ceil_in_the_exponent__L»
+import LeanVM.Guest.Value.FieldBits
 
 /-!
 # `assert_small_g_power` and `log2_ceil_in_the_exponent`, placed

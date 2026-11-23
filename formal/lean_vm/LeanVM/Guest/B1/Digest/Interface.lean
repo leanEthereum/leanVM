@@ -8,18 +8,21 @@
 
 module
 
-public import LeanVM.Guest.B1.Common.Sponge
-public import Statement.LeanVmGuest
-public import LeanXmss.Scheme
-public import Statement.LeanSphincs
+import LeanVM.Guest.B1.Common.Sponge
+import Statement.LeanVmGuest
+import LeanXmss.Scheme
+import Statement.LeanSphincs
 public import Statement.Fast.Schemes
-public import LeanDa.Scheme
+import LeanDa.Scheme
 public import Statement.Fast.Keccak
 public import Statement.Fast.QuadExt
 public import Statement.Fast.FieldWords
-public import LeanVM.Facts.Verifier
-public import LeanVM.Guest.B1.Common.Find
-public import LeanVM.Guest.GuestConst
+public import LeanVM.Guest.B1.Common.Basic
+public import LeanVM.Guest.Value.KeccakLayout
+public import LeanVM.Guest.CoreData
+import LeanVM.Facts.Verifier
+import LeanVM.Guest.B1.Common.Find
+import LeanVM.Guest.GuestConst
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
 import LeanVM.Guest.Data.Consts
 

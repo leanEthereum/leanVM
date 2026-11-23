@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.Gkr.GlT
+import LeanVM.Guest.B1.Tables.Basic
 
 /-!
 # A run of rounds, soundly

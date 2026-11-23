@@ -12,9 +12,10 @@ public import LeanVM.Guest.CoreFind
 public import LeanVM.Guest.Renumber
 public import LeanVM.Guest.Word
 public import LeanVM.Guest.CoreLemmas
-public import LeanVM.Guest.Value.Keccak
+import LeanVM.Guest.Value.Keccak
 public import LeanVM.Guest.Value.Bits
 public import LeanVM.Guest.ExpTables
+public import Mathlib.Data.List.GetD
 
 /-!
 # B1: shared vocabulary

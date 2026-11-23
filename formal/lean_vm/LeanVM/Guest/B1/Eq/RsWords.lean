@@ -15,6 +15,7 @@ public import LeanVM.Guest.Memory.LoopPre
 public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«rs_eq_run»
+import LeanVM.Guest.Value.FieldBits
 
 /-!
 # `rs_eq_run` within its words
