@@ -19,8 +19,8 @@ public import LeanVM.Guest.B1.Place.OsProtoSpec
 `hdOf μ r Ls`: the honest data at the arm of `μ` and the rate `r` (`osCfgR`) of the levels `Ls`, each level's cap
 cells and flags its phase's (`capCellH`, `capFlH`) at its root's height. `HonRun h …`: `h` is the
 honest data of an accepting run (`whirOpen_honest`, `LvsRun.data`, `lvsAt_run`), its levels'
-openings agreeing, the configuration's checked facts (`CandOk`). `honRun_of`: every accepting run with no zero
-challenge and agreeing caps has one.
+openings agreeing, the configuration's checked facts (`CandOk`). `honRun_of`: every accepting run with agreeing
+caps has one.
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -57,9 +57,9 @@ theorem honRun_of {μ r : ℕ} (h1 : minOpenLog ≤ μ) (h2 : μ ≤ 30) (h3 : 1
     {root : Digest} {target : E} {xs : List E} {os : List (List Opening)} {w : WhirEnd} {s' : Fs}
     {roots' : List (Digest × ℕ × ℕ)}
     (hrun : RunsWith (whirOpen μ r target) ⟨capOf S, []⟩ xs os [(root, stackShape μ r)] w s' roots')
-    (hnz : NoZeroChallenge μ r target S xs os root) (hca : CapsAgree μ r target S xs os root) :
+    (hca : CapsAgree μ r target S xs os root) :
     ∃ cfg Ls, HonRun μ r target S root xs os w cfg Ls := by
-  obtain ⟨cfg, hcfg, hL⟩ := whirOpen_honest h1 h2 h3 h4 hrun hnz
+  obtain ⟨cfg, hcfg, hL⟩ := whirOpen_honest h1 h2 h3 h4 hrun
   obtain ⟨ds, hD⟩ := LvsRun.data _ _ _ _ _ _ _ _ _ _ hL
   obtain ⟨cfg', hcfg', hC⟩ := candB_sound (candB_all (μ - minOpenLog) (r - 1) (by unfold ligNSizes minOpenLog at *; omega)
     (by omega))

@@ -22,8 +22,7 @@ The statement's guest specification computes over Keccak-f[1600], Keccak-256 the
 the proofs' forms take Keccak-256 as a function of its own. With Keccak-f[1600] in `Id` the sponge
 is the deployed Keccak-256 (`keccak256With_keccakF1600`), so:
 
-* the batching's run, the verifier refusing a zero challenge, the deferring verifier refusing a zero
-  challenge, the openings' climb (`runBatching_deployed`, …);
+* the batching's run and the openings' climb (`runBatching_deployed`, `climbTo_eq_withHash`);
 * LeanDA's commitment (`commitCells_keccakF1600`);
 * leanXMSS's verification (`xmssVerify_eq_withHash`): the scheme reads a digest as the
   little-endian number of its 32 bytes, the guest's reading (`keccakHash_keccakF1600`); the
@@ -87,21 +86,6 @@ theorem Batch.runBatching_deployed (prog : VerifierProgram Bool) (proof : Proof)
       Batch.runBatchingWithHash (m := Id) keccak256 keccakF1600 prog proof := by
   simp only [Batch.runBatching, Batch.runBatchingWithHash, runProof_eq_withHash,
     keccak256With_keccakF1600]
-
-theorem Budget.verifierRefusingZero_deployed (prog : LeanIsaProgram) (input : PublicInput)
-    (proof : Proof) :
-    Completeness.verifierRefusingZero (m := Id) keccakF1600 prog input proof =
-      Budget.verifierRefusingZeroWithHash (m := Id) keccak256 keccakF1600 prog input proof := by
-  simp only [Completeness.verifierRefusingZero, Budget.verifierRefusingZeroWithHash, seedWith_eq_withHash,
-    runProof_eq_withHash, keccak256With_keccakF1600]
-
-theorem Limits.verifyDeferredRefusingZero_eq_withHash (bytecode : List K) (iv publicInput : Digest)
-    (c : BytecodeClaim) (π : Proof) :
-    Limits.verifyDeferredRefusingZero bytecode iv publicInput c π =
-      Id.run (runProofWithHash (m := Id) keccak256 keccakF1600
-        (deferringVerifierProgram c bytecode publicInput).refusingZeroChallenge
-        (keccakF1600 (seedInput iv publicInput)) π) := by
-  rw [Limits.verifyDeferredRefusingZero, runProof_eq_withHash, keccak256With_keccakF1600]
 
 theorem Limits.climbTo_eq_withHash (node : Digest) (q : ℕ) (path : List Digest) :
     Limits.climbTo node q path = Id.run (climbWithHash (m := Id) keccak256 node q path) := by

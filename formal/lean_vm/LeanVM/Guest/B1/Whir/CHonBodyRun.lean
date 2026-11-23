@@ -42,6 +42,9 @@ structure BodyFacts (h : OsHD) (args xs : List E) (lane : ℕ) (w : WhirEnd) : P
   fold : h.c.yrLen ≤ h.Lf.fw.fold.length
   ffm : osKindOf ("fold_final_msg__L" ++ natStr h.c.yrLog) = some (.ffm h.c.yrLog)
   res : ∀ l < h.c.yrLevel, finRes h.c h.G h.T h.recs h.li l = osLrRetA h.c h.own l (h.li l)
+  slow : ∀ l < h.c.yrLevel, h.lamAt l = (h.recs.getD l default).lam ∧
+    finZ h.c h.G h.T h.recs l = osZA h.c h.own l ∧
+    finSlow h.c h.G h.T h.recs l = osSlowRetA h.c h.own l (h.lamAt l) (osZA h.c h.own l)
   a0 : [args.getD 1 0, args.getD 2 0, args.getD 3 0, args.getD 4 0, args.getD 5 0] = h.capAt 0
   a6 : args.getD 6 0 = h.claimAt 0
   x0 : (h.xsAt 0).length = xs.length
@@ -52,8 +55,8 @@ namespace OsHD
 
 variable (h : OsHD)
 
-/-- **The helpers' data**: the first word and capacity of the positions, `λ`, `1/λ`, the batch and
-`μ`. -/
+/-- **The helpers' data**: the first word and capacity of the positions, `λ`, `1/(λ + is_zero(λ))`, the
+batch and `μ`. -/
 noncomputable def D (l : ℕ) : OsLvData := ⟨h.word l 0, h.capL l, h.lamAt l, h.li l, h.bat l, h.li l⟩
 
 theorem D_eq (l : ℕ) : (h.D l).w0 = h.word l 0 ∧ (h.D l).capL = h.capL l ∧
@@ -95,7 +98,8 @@ theorem body_gen {h : OsHD} {args xs : List E} {lane : ℕ} {w : WhirEnd} {cur t
     (fun st σ hq ↦ F.lv.levels st σ hq) (fun l _ ↦ h.D_eq l)
     (fun l hl ↦ h.rootA F.lv.hs hl) F.pl (tailC_from F.lv.hs F.lv.nm F.tsuf F.pl F.f3)
     (fun C rd hH ↦ tail_zero F.lv.hs hH.2.2.1 F.pl)
-    (fin_of F.lv.hs F.lv.nm F.finS F.lv.len F.rrun F.ylen F.fold F.ffm fun l hl ↦ ⟨rfl, F.res l hl⟩)
+    (fin_of F.lv.hs F.lv.nm F.finS F.lv.len F.rrun F.ylen F.fold F.ffm (fun l hl ↦ ⟨rfl, F.res l hl⟩)
+      F.slow)
   exact ⟨kEnd, f, hf⟩
 
 end

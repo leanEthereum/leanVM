@@ -15,7 +15,7 @@ public import LeanVM.Protocol.EndToEnd.Front.LayoutInstance
 # The columns of an execution
 
 `traceWitness prog input t` is the specification's witness of an execution (`skelWitness` of its
-run's skeletons, the witness `exists_childFor` builds), `traceSizes` the sizes it carries, and
+run's skeletons, a child's witness by `childFor_trace`), `traceSizes` the sizes it carries, and
 `traceRows t` the executable pass over the run's steps. On a valid execution:
 
 * the pass's tables are the witness's opcode tables, row for row (`tabs_trace`), its counters the
@@ -73,7 +73,7 @@ theorem nonempty_witness (prog : LeanIsaProgram) (κ : ℕ) :
 
 open Classical in
 /-- **The specification's witness of an execution**: the rows of its run's skeletons, its image,
-the program (`skelWitness`; the witness of `exists_childFor`), at the execution's memory
+the program (`skelWitness`; a child's witness by `childFor_trace`), at the execution's memory
 log-size, within `skelWitness`'s bounds (`TraceBounds`; any witness off them). -/
 noncomputable def traceWitness (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) :
     EnsembleWitness (leanIsaEnsemble prog t.logMemorySize) :=

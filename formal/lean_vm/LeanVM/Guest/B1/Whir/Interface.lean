@@ -50,8 +50,7 @@ The guest's claim differs from the Spec's between a non-final level and the end 
 part's share of the level's queries times the challenges drawn after it: the guest adds it back in
 its residual pass, so the returned claim is the Spec's.
 
-The guest's completeness statement (an honest run with no zero fold, tail or batching challenge,
-on a memory holding the hinted caps and rows, gives the call relation; DESIGN §5.2.1) follows the
+The guest's completeness statement (an honest run, on a memory holding the hinted caps and rows, gives the call relation; DESIGN §5.2.1) follows the
 soundness proof, its memory predicate named by the body's buffers.
 -/
 

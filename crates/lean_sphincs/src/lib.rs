@@ -20,7 +20,11 @@
 //! the scheme's tag give `PK.seed` and a 32-byte `SK.prf` (at the start of [`key_gen`] and [`sign`]). Key
 //! generation builds the top tree, and signing builds it again for `PK.root`, then
 //! the FORS instance and the two trees below it.
+//!
+//! The default `std` feature provides [`key_gen`] and [`sign`]. Verification works without std.
 
+#![cfg_attr(not(any(feature = "std", test)), no_std)]
+#![cfg_attr(not(feature = "std"), allow(dead_code))]
 #![cfg_attr(not(test), warn(unused_crate_dependencies))]
 
 mod fors;
@@ -34,7 +38,9 @@ use internals::*;
 use scheme::*;
 use wots::*;
 
-pub use scheme::{LeanSphincsPublicKey, LeanSphincsSignature, key_gen, sign, verify};
+pub use scheme::{LeanSphincsPublicKey, LeanSphincsSignature, verify};
+#[cfg(feature = "std")]
+pub use scheme::{key_gen, sign};
 
 use keccak256::permutations;
 

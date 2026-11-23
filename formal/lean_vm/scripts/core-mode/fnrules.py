@@ -441,5 +441,16 @@ class _Lean:
         self.fail(i, 'an unknown token')
 
 
-# last: a rule file may use the helpers above (`param`, `guest_const`, `val`, `valf`, `pos`)
+NAMESTRINGS = os.path.join(HERE, '..', '..', 'LeanVM', 'Guest', 'Data', 'NameStrings.lean')
+
+
+def shapes(f):
+    """The specializations `f__L{a}_L{b}…` of source function `f` (its loops left out), by core name, each with its
+    numbers `(a, b, …)` (`Data/NameStrings.lean`)."""
+    t = open(NAMESTRINGS, encoding='utf-8').read()
+    return {k: tuple(map(int, re.findall(r'_L(\d+)', k[len(f) + 1:])))
+            for k in re.findall(r'abbrev «(%s__L\d+(?:_L\d+)*)» :' % re.escape(f), t)}
+
+
+# last: a rule file may use the helpers above (`param`, `guest_const`, `val`, `valf`, `pos`, `shapes`)
 MODS = _load()

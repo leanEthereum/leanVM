@@ -14,7 +14,6 @@ public import LeanVM.Guest.B1.Whir.CDisp
 /-!
 # A level, honestly
 
-* `BlkA.of_ne`: a block needs to be built only where `H` holds somewhere.
 * `MidW`: a non-final level's data (round words, the next root's cells and high part, the
   out-of-domain values, the nonces, the cap's root cells, the batch, the pointers of `sent` and the
   squeeze run); its honest values (`cap1`, `cl1`, `cur1`, `S2`, `cap3`, `SL`, `lam`, `claimOut`).
@@ -29,13 +28,6 @@ open LeanVM.Guest.Value LeanVM.Protocol LeanVM.Protocol.Compile LeanVM.Protocol.
 @[expose] public section
 
 variable {H : CallRel → Reader → Prop}
-
-/-- **A block is needed only where `H` holds somewhere.** -/
-theorem BlkA.of_ne {σ : Val} {k k' : ℕ} {ss : List Stmt} {Out : Val → Prop}
-    (h : (∃ C rd, H C rd) → BlkA H σ k k' ss Out) : BlkA H σ k k' ss Out := by
-  by_cases hne : ∃ C rd, H C rd
-  · exact h hne
-  · exact ⟨fun _ ↦ 0, fun C rd hH ↦ absurd ⟨C, rd, hH⟩ hne⟩
 
 /-- **Two blocks in sequence**, their bounds read off their outcomes. -/
 theorem BlkA.seqK {σ : Val} {k k1 k2 : ℕ} {A B : List Stmt} {OutA OutB : Val → Prop}
@@ -123,14 +115,14 @@ structure MidC (C : CallRel) (rd : Reader) (σ : Val) (c : OsCfg) (lvl : ℕ) (l
     LoadHolds rd (σ (.n osHs)) (lvl * hsStride + j) (W.high.getD j 0 *
       word (hsScale lv.vanish lv.highBits j (vanishInv (lv.vanish + lv.logCols))) 0)
   q : C (osQueriesName c lvl lv)
-    [W.lam lv cap cl, (W.lam lv cap cl)⁻¹, σ (.n osCoefs) * gen ^ (2 * lv.foldsOff),
+    [W.lam lv cap cl, lamInvOf (W.lam lv cap cl), σ (.n osCoefs) * gen ^ (2 * lv.foldsOff),
       σ (.n osHs) * gen ^ (lvl * hsStride), σ (.n osQpos) * gen ^ lv.posOff,
       σ (.n osQbp) * gen ^ lv.posOff] [W.r0, W.r1, W.batched, W.lam lv cap cl ^ lv.queries]
   roots : LoadHolds rd (σ (.n osRoots)) (2 * lvl) W.r0 ∧ LoadHolds rd (σ (.n osRoots)) (2 * lvl + 1) W.r1
   glue : LoadHolds rd (σ (.n osOodSc)) (lvl + 1) (W.lam lv cap cl) ∧
     LoadHolds rd (σ (.n osBetas)) lvl (W.lam lv cap cl * W.lam lv cap cl *
       W.lam lv cap cl ^ lv.queries) ∧
-    LoadHolds rd (σ (.n osMus)) lvl (W.lam lv cap cl)⁻¹
+    LoadHolds rd (σ (.n osMus)) lvl (lamInvOf (W.lam lv cap cl))
 
 /-! ## Static facts of the blocks' states -/
 
@@ -181,7 +173,7 @@ theorem osLevelMid_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ 
     (hr3 : 2 * (lv.foldsOff + lv.folds) < u128Bound)
     (hoff : (lvl + 1) * ligColsCap < u128Bound) (hpo : lv.posOff < u128Bound)
     (h3 : 2 * lv.foldsOff < u128Bound) (hh8 : lvl * hsStride < u128Bound)
-    (hlam : W.lam lv (st.fsv σ) (σ (.n st.claim)) ≠ 0)
+    (hiz : IsZeroC H)
     (hrate : ∀ C rd, H C rd → LvRate σ c lvl lv)
     (hC : ∀ C rd, H C rd → MidC C rd σ c lvl lv (st.fsv σ) (σ (.n st.claim)) (st.cur σ) W) :
     BlkA H σ st.k (osLevel c lvl lv st).2.k (osLevel c lvl lv st).1 (fun σ' ↦
@@ -197,7 +189,7 @@ theorem osLevelMid_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ 
       (osPosCall c lv (osCommit c lvl lv (osRounds c.plan lv.foldsOff lv.folds st).2).2).2.map σ' =
         W.cap3 lv (st.fsv σ) (σ (.n st.claim)) ∧
       (osQCallOf c lvl lv (osPreQ c lvl lv st)).1.map σ' =
-        [W.lam lv (st.fsv σ) (σ (.n st.claim)), (W.lam lv (st.fsv σ) (σ (.n st.claim)))⁻¹,
+        [W.lam lv (st.fsv σ) (σ (.n st.claim)), lamInvOf (W.lam lv (st.fsv σ) (σ (.n st.claim))),
           σ (.n osCoefs) * gen ^ (2 * lv.foldsOff), σ (.n osHs) * gen ^ (lvl * hsStride),
           σ (.n osQpos) * gen ^ lv.posOff, σ (.n osQbp) * gen ^ lv.posOff] ∧
       (osQCallOf c lvl lv (osPreQ c lvl lv st)).2.map σ' =
@@ -299,7 +291,7 @@ theorem osLevelMid_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ 
   -- the batching challenge
   have b5 := BlkA.seqK b4 (fun σ' h ↦ h.2.2.2.1) (B := (osLam s4).1)
     (OutB := fun σ' ↦ s5.Ok σ' ∧ s4.k ≤ s5.k ∧ k ≤ s5.k ∧ s5.F σ' = ⟨capOf (W.SL lv cap cl), []⟩ ∧
-      σ' (.n s5.lam) = W.lam lv cap cl ∧ σ' (.n s5.lamInv) = (W.lam lv cap cl)⁻¹ ∧
+      σ' (.n s5.lam) = W.lam lv cap cl ∧ σ' (.n s5.lamInv) = lamInvOf (W.lam lv cap cl) ∧
       s5.cur σ' = MidW.cur1 lv cur * gen ^ (2 + lv.folds) * gen ^ 3)
     (fun σ1 ha1 ho1 ↦ BlkA.of_ne fun ⟨C0, rd0, hH0⟩ ↦ by
       obtain ⟨ok4, -, hk4, hF4, hcur4, hco4, -⟩ := (ho1 C0 rd0 hH0).2
@@ -308,7 +300,7 @@ theorem osLevelMid_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ 
         simpa [OsSt.F, OsSt.fsv] using this
       have hco : s4.co = 2 := hco4.trans (osCommit_word0_lt c lvl lv s1).2.2.2
       have h := osLam_complete (H := H) (st := s4) σ1 ok4.sf (fun C rd hH ↦ (ho1 C rd hH).2.1)
-        (by rw [hco]; unfold u128Bound; omega) (by rw [ef]; exact hlam)
+        (by rw [hco]; unfold u128Bound; omega) hiz
       refine h.mono fun σ' ho ↦ ?_
       obtain ⟨hst, hF, hl, hli, hcur, -⟩ := ho
       rw [ef] at hF hl hli
@@ -337,7 +329,7 @@ theorem osLevelMid_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ 
   have b7 := BlkA.seqK b6 (fun σ' h ↦ h.2.2.2) (B := (osQueries c lvl lv s6).1)
     (OutB := fun σ' ↦ s7.Ok σ' ∧ s6.k ≤ s7.k ∧ k ≤ s7.k ∧
       (osQCallOf c lvl lv s6).1.map σ' =
-        [W.lam lv cap cl, (W.lam lv cap cl)⁻¹, σ (.n osCoefs) * gen ^ (2 * lv.foldsOff),
+        [W.lam lv cap cl, lamInvOf (W.lam lv cap cl), σ (.n osCoefs) * gen ^ (2 * lv.foldsOff),
           σ (.n osHs) * gen ^ (lvl * hsStride), σ (.n osQpos) * gen ^ lv.posOff,
           σ (.n osQbp) * gen ^ lv.posOff] ∧
       (osQCallOf c lvl lv s6).2.map σ' = [W.r0, W.r1, W.batched, W.lam lv cap cl ^ lv.queries] ∧
@@ -348,7 +340,7 @@ theorem osLevelMid_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ 
       have hl5 : s5.lam < s5.k ∧ s5.lamInv < s5.k := osLam_lt s4
       have k56 := (ho1 C0 rd0 hH0).2.2.1
       have eA : ∀ C rd, H C rd → osQArgsV σ1 c lvl lv s6 =
-          [W.lam lv cap cl, (W.lam lv cap cl)⁻¹, σ (.n osCoefs) * gen ^ (2 * lv.foldsOff),
+          [W.lam lv cap cl, lamInvOf (W.lam lv cap cl), σ (.n osCoefs) * gen ^ (2 * lv.foldsOff),
             σ (.n osHs) * gen ^ (lvl * hsStride), σ (.n osQpos) * gen ^ lv.posOff,
             σ (.n osQbp) * gen ^ lv.posOff] := fun C rd hH ↦ by
         obtain ⟨-, -, -, -, el5, eli5, -⟩ := (ho1 C rd hH).1.2

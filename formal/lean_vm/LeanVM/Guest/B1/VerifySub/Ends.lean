@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.B1.VerifySub.NZBridge
+public import LeanVM.Guest.B1.VerifySub.AcceptRun
 public import LeanVM.Protocol.Verifier.WhirTarget
 
 /-!
@@ -21,8 +21,7 @@ with a read or a squeeze). Both compose along `bind` (`EndsClear.bind`, `EndsAny
 
 The phases: the announced sizes, the stack's commitment and the bus's GKR are `EndsClear`; the
 out-of-domain sample, the bus's challenges, the tables, the Keccak reduction and the ring switch are
-`EndsAny`. The stacked opening (`Whir.whirOpen`, `Limits.whirOpenNZ`, and refusing zero challenges)
-is `EndsAny`: its final level squeezes its queries after its grind (every deployed ladder's final
+`EndsAny`. The stacked opening (`Whir.whirOpen`) is `EndsAny`: its final level squeezes its queries after its grind (every deployed ladder's final
 level queries, `ladder_lastQ`).
 -/
 
@@ -63,9 +62,6 @@ theorem endsAny_bind_right {p : VerifierProgram α} {f : α → VerifierProgram 
   intro st b st'' h
   obtain ⟨a, st', -, h2⟩ := runId_bind_some h
   exact hf a st' b st'' h2
-
-theorem endsAny_rz {p : VerifierProgram α} (h : EndsAny p) : EndsAny p.refusingZeroChallenge :=
-  fun st a st' hr ↦ h st a st' (runId_of_rz _ _ _ hr)
 
 /-! ## The primitives -/
 
@@ -397,55 +393,6 @@ theorem endsAny_whirOpen (μ r : ℕ) (target : E) : EndsAny (Whir.whirOpen μ r
   simp only [VerifierProgram.bind_eq]
   exact endsAny_liftOption_bind fun levels h ↦
     endsAny_whirLevelsOpen μ _ 0 levels _ (ladder_lastQ h)
-
-theorem endsClear_sumcheckNZ (claim : E) (count : ℕ) : ∀ eqs : List (Option E),
-    EndsClear (Limits.sumcheckNZ claim count eqs) := by
-  intro eqs
-  induction eqs generalizing claim with
-  | nil => exact endsClear_ret _
-  | cons e eqs ih =>
-    unfold Limits.sumcheckNZ
-    simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
-    refine (endsAny_bind_right fun _ ↦ ?_).clear
-    exact endsAny_sampleE.bind fun _ ↦ (endsClear_require _).bind fun _ ↦
-      (ih _).bind fun _ ↦ endsClear_ret _
-
-theorem endsAny_whirLevelsOpenNZ_last (logN laneFolds index : ℕ) (level : Whir.Level)
-    (s : WhirState) (hq1 : 1 ≤ level.queries) :
-    EndsAny (Limits.whirLevelsOpenNZ logN laneFolds index [level] s) := by
-  rw [Limits.whirLevelsOpenNZ]
-  simp only [VerifierProgram.bind_eq]
-  refine endsAny_bind_right fun p ↦ ?_
-  obtain ⟨s', rounds⟩ := p
-  dsimp only
-  refine endsAny_bind_right fun _ ↦ endsAny_bind_right fun _ ↦ ?_
-  refine (endsAny_sampleQueries (by omega)).bind fun _ ↦ ?_
-  refine EndsClear.bind (endsClear_queryOpenings _ _) fun _ ↦ ?_
-  refine EndsClear.bind (endsClear_require _) fun _ ↦ ?_
-  refine EndsClear.bind (endsClear_sumcheckNZ _ _ _) fun _ ↦ ?_
-  exact endsClear_ret _
-
-theorem endsAny_whirLevelsOpenNZ (logN laneFolds : ℕ) : ∀ (index : ℕ) (levels : List Whir.Level)
-    (s : WhirState), (∀ l ∈ levels.getLast?, 1 ≤ l.queries) →
-      EndsAny (Limits.whirLevelsOpenNZ logN laneFolds index levels s)
-  | _, [], _, _ => endsAny_fail
-  | index, [level], s, hq => endsAny_whirLevelsOpenNZ_last logN laneFolds index level s (hq level rfl)
-  | index, level :: next :: rest, s, hq => by
-    have ih := fun s ↦ endsAny_whirLevelsOpenNZ logN laneFolds (index + 1) (next :: rest) s
-      fun l hl ↦ hq l hl
-    rw [Limits.whirLevelsOpenNZ]
-    generalize Limits.whirLevelsOpenNZ logN laneFolds (index + 1) (next :: rest) = W at ih ⊢
-    simp only [VerifierProgram.bind_eq]
-    refine endsAny_bind_right fun p ↦ ?_
-    obtain ⟨s', rounds⟩ := p
-    dsimp only
-    repeat (first | exact ih _ | refine endsAny_bind_right fun _ ↦ ?_)
-
-theorem endsAny_whirOpenNZ (μ r : ℕ) (target : E) : EndsAny (Limits.whirOpenNZ μ r target) := by
-  unfold Limits.whirOpenNZ
-  simp only [VerifierProgram.bind_eq]
-  exact endsAny_liftOption_bind fun levels h ↦
-    endsAny_whirLevelsOpenNZ μ _ 0 levels _ (ladder_lastQ h)
 
 end
 end LeanVM.Guest.B1.VerifySub

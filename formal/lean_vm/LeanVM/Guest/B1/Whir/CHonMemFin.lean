@@ -79,7 +79,6 @@ theorem recStored_of (hS : HonStatic h.c) (hm : OsMemA rd h.c b h.own) {σ : Val
     (hql : ((h.L i).osRec h.logN).qs.length = ((h.c.levels.getD i default)).queries)
     (hhl : ((h.L i).osRec h.logN).high.length = ((h.c.levels.getD i default)).folds)
     (hz0 : ((h.L i).osRec h.logN).z0.length = ((h.c.levels.getD i default)).logCols)
-    (hlam0 : (h.L i).lam h.logN ≠ 0)
     (hQ : ((h.c.levels.getD i default)).queries ≤ ((h.c.levels.getD i default)).squeezes * sqPer ((h.c.levels.getD i default)))
     (hqs : ∀ k < ((h.c.levels.getD i default)).queries, ((h.L i).osRec h.logN).qs.getD k 0 =
       qwPosOf ((h.c.levels.getD i default)).depth ((h.L i).word h.logN (k / sqPer ((h.c.levels.getD i default)))) (k % sqPer ((h.c.levels.getD i default)))) :
@@ -95,11 +94,10 @@ theorem recStored_of (hS : HonStatic h.c) (hm : OsMemA rd h.c b h.own) {σ : Val
         (h.L i).lam h.logN * (h.L i).lam h.logN * (h.L i).lam h.logN ^ ((h.c.levels.getD i default)).queries := by
       ring
     rw [h6, el, e3]; exact g3
-  · refine ⟨((h.L i).lam h.logN)⁻¹, ?_, ?_⟩
+  · refine ⟨lamInvOf ((h.L i).lam h.logN), ?_, fun h0 ↦ ?_⟩
     · rw [h7]; exact g4
-    · rw [el]
-      have e := mul_inv_cancel₀ hlam0
-      exact e
+    · rw [el] at h0 ⊢
+      exact lam_mul_lamInvOf h0
   · rw [h8, (h.L i).osRec_high h.logN]
     exact (h.mid_hs hS hm hi hc).2
   · rw [h11, hqs k hk]

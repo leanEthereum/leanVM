@@ -90,6 +90,13 @@ theorem BlkA.nil {σ : Val} {k : ℕ} {Out : Val → Prop} (hO : ∀ σ', AgreeB
 theorem BlkA.congr {σ : Val} {k k' : ℕ} {ss ss' : List Stmt} {Out : Val → Prop}
     (h : BlkA H σ k k' ss Out) (e : ss = ss') : BlkA H σ k k' ss' Out := e ▸ h
 
+/-- **A block is needed only where `H` holds somewhere.** -/
+theorem BlkA.of_ne {σ : Val} {k k' : ℕ} {ss : List Stmt} {Out : Val → Prop}
+    (h : (∃ C rd, H C rd) → BlkA H σ k k' ss Out) : BlkA H σ k k' ss Out := by
+  by_cases hne : ∃ C rd, H C rd
+  · exact h hne
+  · exact ⟨fun _ ↦ 0, fun C rd hH ↦ absurd ⟨C, rd, hH⟩ hne⟩
+
 /-- An outcome that keeps the agreement below `k`. -/
 theorem BlkA.agree {σ : Val} {k k' : ℕ} {ss : List Stmt} {Out : Val → Prop}
     (h : BlkA H σ k k' ss Out) : BlkA H σ k k' ss (fun σ' ↦ Out σ' ∧ AgreeBelow k σ σ') := by
@@ -105,6 +112,14 @@ theorem lstF_at {σ' : Val} {k k' : ℕ} {vs : List E} (hr : RangeVals σ' k k' 
     (hk : k + vs.length ≤ k') (j : ℕ) (hj : j < vs.length) : σ' (.n (k + j)) = vs.getD j 0 := by
   rw [hr _ (by omega) (by omega)]
   simp [lstF]
+
+/-- **A block at listed values**: each statement holding at them. -/
+theorem blk_lst {σ : Val} {k k' : ℕ} {ss : List Stmt} (vs : List E) {Out : Val → Prop}
+    (hk : k + vs.length ≤ k')
+    (h : ∀ C rd, H C rd → ∀ σ', AgreeBelow k σ σ' →
+      (∀ j < vs.length, σ' (.n (k + j)) = vs.getD j 0) → AllOk C rd σ' ss ∧ Out σ') :
+    BlkA H σ k k' ss Out :=
+  ⟨lstF k vs, fun C rd hH σ' ha hr ↦ h C rd hH σ' ha (lstF_at hr hk)⟩
 
 /-! ## A call -/
 

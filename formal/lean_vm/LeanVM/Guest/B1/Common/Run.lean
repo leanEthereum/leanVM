@@ -96,37 +96,8 @@ theorem prog_bind_eq {α β : Type} (p : VerifierProgram α) (f : α → Verifie
 
 theorem run_bind {α β : Type} (p : VerifierProgram α) (f : α → VerifierProgram β) (st :
     VerifierProgramState) :
-    runId (p.bind f) st = (runId p st).bind (fun r => runId (f r.1) r.2) := by
-  induction p generalizing st with
-  | ret a => rfl
-  | fail => rfl
-  | read k ih =>
-    simp only [runId, VerifierProgram.bind, Compile.runWithHash]
-    split
-    · exact ih _ _
-    · rfl
-  | sample k ih => exact ih _ _
-  | grind b k ih =>
-    simp only [runId, VerifierProgram.bind, Compile.runWithHash]
-    split
-    · simp only [bind, pure]
-      split
-      · exact ih _
-      · rfl
-    · rfl
-  | commit h w k ih =>
-    simp only [runId, VerifierProgram.bind, Compile.runWithHash]
-    split
-    · exact ih _
-    · rfl
-  | query i ps k ih =>
-    simp only [runId, VerifierProgram.bind, Compile.runWithHash]
-    split
-    · simp only [bind]
-      split
-      · exact ih _ _
-      · rfl
-    · rfl
+    runId (p.bind f) st = (runId p st).bind (fun r => runId (f r.1) r.2) :=
+  runWithHash_bind keccak256 keccakF1600 p f st
 
 theorem runsTo_ret {α : Type} (a : α) (s : Fs) : RunsTo (pure a : VerifierProgram α) s [] a s :=
   fun sp h _ _ _ => ⟨sp, h, rfl⟩

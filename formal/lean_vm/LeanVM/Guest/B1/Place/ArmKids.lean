@@ -16,6 +16,8 @@ public import LeanVM.Guest.B1.Place.Lq
 public import LeanVM.Guest.B1.Place.Lr
 public import LeanVM.Guest.B1.Place.ArmXT
 public import LeanVM.Guest.B1.Place.LpAtE
+public import LeanVM.Guest.B1.Place.ArmSlow
+public import LeanVM.Guest.B1.Place.Ls
 
 /-!
 # The callees, placed
@@ -122,6 +124,18 @@ theorem mkCall_f' (σ : Val) (x : Option V × String × List V × List V) :
     (Main.mkCall σ x).f = x.2.1 := by
   obtain ⟨cv, f, a, r⟩ := x
   cases cv <;> rfl
+
+/-- A level's frames after its positions: `is_zero`'s, then its `level_queries`'. -/
+theorem mem_lvK_B {σ : Val} {c : OsCfg} {lvl : ℕ} {lv : OsLv} {s : OsSt} {c' : Call}
+    (h : c' ∈ (lvK σ c lvl lv s).B) :
+    c'.f = "is_zero" ∨ c' = Main.mkCall σ (none, selName σ c lvl (osQueriesName c lvl),
+      (osQCallOf c lvl lv (osPreQ c lvl lv s)).1, (osQCallOf c lvl lv (osPreQ c lvl lv s)).2) := by
+  simp only [lvK, List.mem_append, List.mem_map, List.mem_singleton] at h
+  rcases h with ⟨x, hx, rfl⟩ | h
+  · left
+    rw [mkCall_f']
+    exact lvIzF_f hx
+  · exact Or.inr h
 
 theorem osSizesL_length {c : OsCfg} (h : c.yrLevel ≤ c.levels.length) :
     (osSizesL c).length = 19 + c.yrLevel := by
@@ -236,10 +250,10 @@ theorem arm_lq_ok {Bd : Option (String → ℕ)} {c : OsCfg} {args : List E} {cu
     {l : ℕ} (hl : l < c.levels.length) (hF : LvFacts c l)
     (hin : ∀ c' ∈ (lvK σ c l (osLvA c l) (osLvSt c l)).calls,
       c' ∈ ((osBodyA c).filterMap (Stmt.callSF σ)).map (Main.mkCall σ)) (p : ℕ) :
-    ∀ c' ∈ (lvK σ c l (osLvA c l) (osLvSt c l)).B,
+    ∀ c' ∈ (lvK σ c l (osLvA c l) (osLvSt c l)).B, c'.f ≠ "is_zero" →
       CompleteAtOP fs cert κ c'.f (osLkA c b0 H.own Lin ++ winW fs cert c b0 l p ++ runsS fs cert c H.D l p)
         (c'.args.map σ) (Returns (c'.rets.map σ)) (Bd.map (· c'.f)) (fun _ ↦ osLvPops H l) := by
-  intro c' hc'
+  intro c' hc' hiz
   set Lk := osLkA c b0 H.own Lin with hLk
   have hlen : H.own.length = (osSizesL c).length := H.own_len.length_eq
   have hSL := osSizesL_length (c := c) hyr.le
@@ -264,7 +278,7 @@ theorem arm_lq_ok {Bd : Option (String → ℕ)} {c : OsCfg} {args : List E} {cu
     rw [← osPtrA_mul]
     exact osMemA_load_mul (osMemA_of_lk hlen hm) h9 (by decide) (by rw [hlen9]; exact hposIn k hk)
   have hnm0 := osKids_names hdo _ (hin _ (List.mem_append_right _ (List.mem_cons_of_mem _ hc')))
-  simp only [lvK, List.mem_singleton] at hc'
+  replace hc' := (mem_lvK_B hc').resolve_left hiz
   have hnm : osQueriesName c l (osLvA c l) ∈ osCalleeNames c := by
     subst hc'
     rw [← hsel l (osQueriesName c l)]
@@ -503,73 +517,109 @@ theorem arm_lv_ok {Bd : Option (String → ℕ)} {c : OsCfg} {args : List E} {cu
     (hin : ∀ c' ∈ (lvK σ c l (osLvA c l) (osLvSt c l)).calls,
       c' ∈ ((osBodyA c).filterMap (Stmt.callSF σ)).map (Main.mkCall σ)) :
     OsLvKOkOT fs cert κ σ (osLkA c b0 H.own Lin) (winW fs cert c b0 l) (runsS fs cert c H.D l) Bd armXT armXT
-      (fun rd t ↦ t.pops coreProgram rd = osLvPops H l ∧ armXT rd t) (lvK σ c l (osLvA c l) (osLvSt c l)) := by
+      (fun rd t ↦ (t.name ≠ "is_zero" → t.pops coreProgram rd = osLvPops H l) ∧ armXT rd t)
+      (lvK σ c l (osLvA c l) (osLvSt c l)) := by
   have hq := arm_lq_ok (Lin := Lin) (b0 := b0) H hdo hHV hsel hyr hlq hl hF hin
   have hsq := arm_lp_ok (Bd := Bd) H hLin hdo hex hHV hsel hyr hlp hl hF hin
-  have hqx : ∀ c' ∈ (lvK σ c l (osLvA c l) (osLvSt c l)).B, armExactS c'.f = false := by
-    intro c' hc'
-    simp only [lvK, List.mem_singleton] at hc'
+  have hqx : ∀ c' ∈ (lvK σ c l (osLvA c l) (osLvSt c l)).B, c'.f ≠ "is_zero" → armExactS c'.f = false := by
+    intro c' hc' hiz
+    replace hc' := (mem_lvK_B hc').resolve_left hiz
     subst hc'
     show armExactS (selName σ c l (osQueriesName c l)) = false
     rw [hsel]
     have h := armExactS_lq hF.2.1
     exact h
-  refine ⟨⟨fun c' hc' ht ↦ ?_, rfl, hsq.toPO, fun p c' hc' _ ↦ (hq p c' hc').toO⟩,
-    fun Bk hBk c' hc' ht ↦ ?_, fun Bk hBk ↦ ?_, fun Bk hBk p c' hc' _ ↦ ?_⟩
+  have hBin : ∀ c' ∈ (lvK σ c l (osLvA c l) (osLvSt c l)).B,
+      c' ∈ ((osBodyA c).filterMap (Stmt.callSF σ)).map (Main.mkCall σ) :=
+    fun c' hc' ↦ hin c' (List.mem_append_right _ (List.mem_cons_of_mem _ hc'))
+  refine ⟨⟨fun c' hc' ht ↦ ?_, rfl, hsq.toPO, fun p c' hc' ht ↦ ?_⟩,
+    fun Bk hBk c' hc' ht ↦ ?_, fun Bk hBk ↦ ?_, fun Bk hBk p c' hc' ht ↦ ?_⟩
   · -- before the positions: named
     have hcb := hin c' (List.mem_append_left _ hc')
     obtain ⟨K, hK⟩ := named_of_plain hB (fun s hs ↦ lvPre_sub_body hl hs) hc'
     exact os_kid_namedO hall hdo hfl hex hcb ht hK (hnamed c'.f (osKids_names hdo c' hcb) K hK · · _)
+  · by_cases hiz : c'.f = "is_zero"
+    · have hK : osKindOf c'.f = some .iz := by rw [hiz]; exact osKindOf_isZero
+      have hcb := hBin c' hc'
+      exact os_kid_namedX (X := fun a r ↦ CompleteAtO fs cert κ c'.f
+          (osLkA c b0 H.own Lin ++ winW fs cert c b0 l p ++ runsS fs cert c H.D l p) a (Returns r)
+          (Bd.map (· c'.f))) hall hdo hfl hex hcb ht hK fun a r _ hpre ↦
+        hnamed c'.f (osKids_names hdo c' hcb) .iz hK a r _ (fun _ hp ↦ by simp [OsKind.spec] at hp)
+          fun rd hl hm ↦ hpre rd hl (Main.memL_append.mp (Main.memL_append.mp hm).1).1
+    · exact (hq p c' hc' hiz).toO
   · have hcb := hin c' (List.mem_append_left _ hc')
     obtain ⟨K, hK⟩ := named_of_plain hB (fun s hs ↦ lvPre_sub_body hl hs) hc'
     exact os_kid_namedX hall hdo hfl hex hcb ht hK (hnamedT Bk hBk c'.f (osKids_names hdo c' hcb) K hK · · _)
   · obtain rfl : Bd = some Bk := hBk
     exact (poe_toPBT hsq).mono le_rfl fun _ _ h _ ↦ h.2
   · obtain rfl : Bd = some Bk := hBk
-    exact (hq p c' hc').toDTBR.monoN le_rfl fun _ t hn h ↦ ⟨h, armXT_of_not (by rw [hn]; exact hqx c' hc')⟩
+    by_cases hiz : c'.f = "is_zero"
+    · have hK : osKindOf c'.f = some .iz := by rw [hiz]; exact osKindOf_isZero
+      have hcb := hBin c' hc'
+      have h := os_kid_namedX (X := fun a r ↦ CompleteAtDTBR fs cert κ c'.f
+          (osLkA c b0 H.own Lin ++ winW fs cert c b0 l p ++ runsS fs cert c H.D l p) a (Returns r) armXT
+          (Bk c'.f)) hall hdo hfl hex hcb ht hK fun a r _ hpre ↦
+        hnamedT Bk rfl c'.f (osKids_names hdo c' hcb) .iz hK a r _ (fun _ hp ↦ by simp [OsKind.spec] at hp)
+          fun rd hl hm ↦ hpre rd hl (Main.memL_append.mp (Main.memL_append.mp hm).1).1
+      exact h.monoN le_rfl fun _ t hn h ↦ ⟨fun hne ↦ absurd (hn.trans hiz) hne, h⟩
+    · exact (hq p c' hc' hiz).toDTBR.monoN le_rfl fun _ t hn h ↦
+        ⟨fun _ ↦ h, armXT_of_not (by rw [hn]; exact hqx c' hc' hiz)⟩
 
 /-! ## After the levels -/
 
-/-- The residual dispatches' frames, each at its level. -/
-theorem mem_resFrames (σ : Val) (c : OsCfg) (ich bd ls la : ℕ) :
+/-- The residual frames, each at its level: `is_zero`'s, the dispatches into `level_residual` and
+into `level_residual_slow`. -/
+theorem mem_resFrames (σ : Val) (c : OsCfg) (tch ich bd ls la : ℕ) :
     ∀ (lvl : ℕ) (lvs : List OsLv) (mats : List OsMat) (k : ℕ) (x : Option V × String × List V × List V),
-      x ∈ resFrames σ c ich bd ls la lvl lvs mats k → ∃ j < lvs.length,
+      x ∈ resFrames σ c tch ich bd ls la lvl lvs mats k → x.2.1 = "is_zero" ∨ ∃ j < lvs.length,
         x = (none, selName σ c (lvl + j) osResidualName,
-          ((osResCallsL c ich bd ls la lvl lvs mats k).getD j ([], [])).1,
-          ((osResCallsL c ich bd ls la lvl lvs mats k).getD j ([], [])).2)
-  | _, [], _, _, x, h => by simp [resFrames, osResCallsL] at h
+          ((osResCallsL c tch ich bd ls la lvl lvs mats k).getD j ([], [])).1,
+          ((osResCallsL c tch ich bd ls la lvl lvs mats k).getD j ([], [])).2) ∨
+        x = (none, selName σ c (lvl + j) (osSlowName c),
+          ((osSlowCallsL c tch ich bd ls la lvl lvs mats k).getD j ([], [])).1,
+          ((osSlowCallsL c tch ich bd ls la lvl lvs mats k).getD j ([], [])).2)
+  | _, [], _, _, x, h => by simp [resFrames] at h
   | lvl, lv :: rest, mats, k, x, h => by
-    unfold resFrames at h
-    simp only [osResCallsL, List.zipIdx_cons, List.map_cons, List.mem_cons] at h
-    rcases h with rfl | h
-    · exact ⟨0, by simp, by simp [osResCallsL]⟩
-    · obtain ⟨j, hj, rfl⟩ := mem_resFrames σ c ich bd ls la (lvl + 1) rest _ _ x h
-      refine ⟨j + 1, by simp; omega, ?_⟩
-      simp only [osResCallsL, List.getD_cons_succ, show lvl + 1 + j = lvl + (j + 1) by omega]
+    rw [resFrames, List.mem_append] at h
+    rcases h with h | h
+    · unfold resFrames1 at h
+      simp only [List.mem_cons, List.not_mem_nil, or_false] at h
+      rcases h with rfl | rfl | rfl
+      · exact Or.inr ⟨0, by simp, Or.inl (by simp [osResCallsL])⟩
+      · exact Or.inl rfl
+      · exact Or.inr ⟨0, by simp, Or.inr (by simp [osSlowCallsL])⟩
+    · rcases mem_resFrames σ c tch ich bd ls la (lvl + 1) rest _ _ x h with h | ⟨j, hj, h⟩
+      · exact Or.inl h
+      refine Or.inr ⟨j + 1, by simp; omega, ?_⟩
+      simp only [osResCallsL, osSlowCallsL, List.getD_cons_succ,
+        show lvl + 1 + j = lvl + (j + 1) by omega] at h ⊢
+      exact h
 
-theorem osResCallsL_length (c : OsCfg) (ich bd ls la : ℕ) :
-    ∀ (lvl : ℕ) (lvs : List OsLv) (mats : List OsMat) (k : ℕ),
-      (osResCallsL c ich bd ls la lvl lvs mats k).length = lvs.length
-  | _, [], _, _ => rfl
-  | lvl, _ :: rest, _, _ => by simp [osResCallsL, osResCallsL_length c ich bd ls la (lvl + 1) rest]
-
-/-- **The finish's frames**: `fold_final_msg`, then non-final level `j`'s residual dispatch. -/
+/-- **The finish's frames**: `fold_final_msg`, `is_zero`'s, then non-final level `j`'s dispatches into
+`level_residual` and `level_residual_slow`. -/
 theorem mem_finFrames {σ : Val} {c : OsCfg} {x : Option V × String × List V × List V}
     (h : x ∈ finFrames σ c) :
     x = (none, "fold_final_msg__L" ++ natStr c.yrLog,
         [.n osFmsg, .n (osTail c (osLevels c 0 c.levels (osHead c).2).2).2.2],
-        [.n (osTail c (osLevels c 0 c.levels (osHead c).2).2).2.1.k]) ∨
+        [.n (osTail c (osLevels c 0 c.levels (osHead c).2).2).2.1.k]) ∨ x.2.1 = "is_zero" ∨
       ∃ j < (c.levels.take c.yrLevel).length, x = (none, selName σ c j osResidualName,
-        ((osLrCalls c).getD j ([], [])).1, ((osLrCalls c).getD j ([], [])).2) := by
+        ((osLrCalls c).getD j ([], [])).1, ((osLrCalls c).getD j ([], [])).2) ∨
+        x = (none, selName σ c j (osSlowName c), ((osSlowCalls c).getD j ([], [])).1,
+          ((osSlowCalls c).getD j ([], [])).2) := by
   unfold finFrames at h
   dsimp only at h
   rw [osFinishA_callSF, List.mem_cons] at h
   rcases h with rfl | h
   · exact Or.inl rfl
-  · obtain ⟨j, hj, rfl⟩ := mem_resFrames σ c _ _ _ _ 0 _ _ _ x h
-    refine Or.inr ⟨j, hj, ?_⟩
-    rw [Nat.zero_add]
-    rfl
+  dsimp only at h
+  rw [List.mem_append] at h
+  rcases h with h | h
+  · exact Or.inr (Or.inl (osBases_callSF σ c _ _ _ _ 0 _ _ x h))
+  · rcases mem_resFrames σ c _ _ _ _ _ 0 _ _ _ x h with h | ⟨j, hj, h⟩
+    · exact Or.inr (Or.inl h)
+    · refine Or.inr (Or.inr ⟨j, hj, ?_⟩)
+      simp only [Nat.zero_add] at h
+      exact h
 
 theorem ffm_mem_body (c : OsCfg) :
     Stmt.call ("fold_final_msg__L" ++ natStr c.yrLog)
@@ -604,6 +654,10 @@ theorem arm_rest_ok {Bd : Option (String → ℕ)} {c : OsCfg} {args : List E} {
       CompleteAtO fs cert κ f L' args (Returns rets) (Bd.map (· f)))
     (hlr : ∀ e ∈ lrTable, e.1 ∈ osCalleeNames c →
       LrAtO fs cert κ e.1 e.2.1 e.2.2.1 e.2.2.2.1 e.2.2.2.2.1 (Bd.map (· e.1)))
+    (hsf : SlowFacts c)
+    (hls : ∀ j < c.yrLevel, osSlowName c (osLvA c j) ∈ osCalleeNames c →
+      LsAtO fs cert κ (osSlowName c (osLvA c j)) (osLvA c j).queries (osLvA c j).prefixLen c.yrLog
+        (osLvA c j).vanish (Bd.map (· (osSlowName c (osLvA c j)))))
     {c' : Call}
     (hc' : c' ∈ ((osTlA c).filterMap Main.Stmt.callS).map (Main.mkCall σ) ++
       (finFrames σ c).map (Main.mkCall σ))
@@ -621,15 +675,69 @@ theorem arm_rest_ok {Bd : Option (String → ℕ)} {c : OsCfg} {args : List E} {
   · obtain ⟨K, hK⟩ := named_of_plain hB (fun s hs ↦ tl_sub_body hs) hc
     exact hnm K hK
   obtain ⟨x, hx, rfl⟩ := List.mem_map.mp hc
-  rcases mem_finFrames hx with rfl | ⟨j, hj, rfl⟩
+  rcases mem_finFrames hx with rfl | hiz | ⟨j, hj, rfl | rfl⟩
   · have hok := List.all_eq_true.mp hB _ (ffm_mem_body c)
     obtain ⟨K, hK⟩ := Option.isSome_iff_exists.mp hok
     exact hnm K hK
+  · exact hnm .iz (by rw [mkCall_f', hiz]; exact osKindOf_isZero)
+  rotate_left
+  · -- a slow dispatch
+    have hjy : j < c.yrLevel := by simpa [Nat.min_eq_left hyr.le] using hj
+    have hjl : j < c.levels.length := by omega
+    obtain ⟨-, -, -, -, hlrv⟩ := hHV j hjl
+    obtain ⟨-, -, hsa, hsr⟩ := hlrv hjy
+    obtain ⟨-, -, -, hpo, hSper, hqS, -⟩ := hLv j hjl
+    obtain ⟨hyl, hsl⟩ := hsf
+    obtain ⟨hfo, -, -⟩ := hsl j hjy
+    show CompleteAtO fs cert κ (selName σ c j (osSlowName c)) Lk
+      (((osSlowCalls c).getD j ([], [])).1.map σ) (Returns (((osSlowCalls c).getD j ([], [])).2.map σ))
+      (Bd.map (· (selName σ c j (osSlowName c))))
+    have hnm : osSlowName c (osLvA c j) ∈ osCalleeNames c := by
+      have := osKids_names hdo _ hin
+      rw [← hsel j (osSlowName c)]
+      exact this
+    rw [hsel, hsa, hsr]
+    have h2 : 2 < (osSizesL c).length := by omega
+    have h9 : 9 < (osSizesL c).length := by omega
+    have htc : osIxTchA c < (osSizesL c).length := by unfold osIxTchA; omega
+    have hlen2 : (osOwnA H.own 2).length = c.nFolds := by
+      rw [osOwnA, forall₂_getD_len H.own_len h2]; rfl
+    have hlen9 : (osOwnA H.own 9).length = c.levels.length * ligPosCap := by
+      rw [osOwnA, forall₂_getD_len H.own_len h9]; rfl
+    have hlenT : (osOwnA H.own (osIxTchA c)).length = yrLogCap := by
+      rw [osOwnA, forall₂_getD_len H.own_len htc, osIxTchA,
+        show 12 + c.yrLevel = 11 + c.yrLevel + 1 by omega, osSizesL_hi hyr.le 1]
+      rfl
+    have hpos : ∀ i < (osLvA c j).queries, (osLvA c j).posOff + i < c.levels.length * ligPosCap :=
+      fun i hi ↦ by
+        have : (j + 1) * ligPosCap ≤ c.levels.length * ligPosCap := Nat.mul_le_mul_right _ hjl
+        rw [Nat.add_mul, one_mul] at this
+        rw [hpo]
+        omega
+    unfold osSlowRetA
+    refine hls j hjy hnm Lk _ _ _ _ _ _ _ (zeroOf_01 _) (fun q hq' t ht ↦ ?_) (fun rd hlow hm ↦ ?_)
+    · have hptr : ∀ e o t, (osPtrA c b0 e * gen ^ o).limb 0 * addressOfIndex t =
+          addressOfIndex (baseA c b0 e + (o + t)) := fun e o t ↦ by
+        rw [osPtrA_mul, limb_ofK_addr, Nat.add_assoc]
+      simp only [List.mem_cons, List.not_mem_nil, or_false] at hq'
+      rcases hq' with rfl | rfl | rfl <;> simp only at ht
+      · exact ⟨_, hptr 9 _ t, regionL_lkA_buf hlen h9 (by decide) (by rw [← osOwnA, hlen9]; exact hpos t ht)⟩
+      · exact ⟨_, hptr osIxFchA _ t, regionL_lkA_buf hlen h2 (by decide) (by rw [← osOwnA, hlen2]; omega)⟩
+      · exact ⟨_, limb_ofK_addr _ t, regionL_lkA_buf hlen htc (by simp only [osIxTchA, osIxQbpA]; omega)
+          (by rw [← osOwnA, hlenT]; omega)⟩
+    · have hM := osMemA_of_lk hlen hm
+      refine ⟨fun i hi ↦ ?_, fun t ht ↦ ?_, fun t ht ↦ ?_⟩
+      · exact osMemA_load_mul hM h9 (by decide) (by rw [hlen9]; exact hpos i hi)
+      · simp only [ht, ↓reduceIte]
+        exact osMemA_load_mul hM h2 (by decide) (by rw [hlen2]; omega)
+      · simp only [show ¬ ((osLvA c j).prefixLen + t < (osLvA c j).prefixLen) by omega, ↓reduceIte,
+          Nat.add_sub_cancel_left]
+        exact osMemA_load hM htc (by simp only [osIxTchA, osIxQbpA]; omega) (by rw [hlenT]; omega)
   -- a residual dispatch
   have hjy : j < c.yrLevel := by simpa [Nat.min_eq_left hyr.le] using hj
   have hjl : j < c.levels.length := by omega
   obtain ⟨-, -, -, -, hlrv⟩ := hHV j hjl
-  obtain ⟨ha, hr⟩ := hlrv hjy
+  obtain ⟨ha, hr, -, -⟩ := hlrv hjy
   obtain ⟨-, -, hlrE, hpo, hSper, hqS, -, -, -, -, -, -, -, hcols, hfolds, -⟩ := hLv j hjl
   have hnm : osResidualName (osLvA c j) ∈ osCalleeNames c := by
     have := osKids_names hdo _ hin
@@ -713,13 +821,17 @@ theorem arm_rest_okT {Bd : Option (String → ℕ)} {c : OsCfg} {args : List E} 
       CompleteAtDTBR fs cert κ f L' args (Returns rets) armXT (Bk f))
     (hlr : ∀ e ∈ lrTable, e.1 ∈ osCalleeNames c →
       LrAtO fs cert κ e.1 e.2.1 e.2.2.1 e.2.2.2.1 e.2.2.2.2.1 (Bd.map (· e.1)))
+    (hsf : SlowFacts c)
+    (hls : ∀ j < c.yrLevel, osSlowName c (osLvA c j) ∈ osCalleeNames c →
+      LsAtO fs cert κ (osSlowName c (osLvA c j)) (osLvA c j).queries (osLvA c j).prefixLen c.yrLog
+        (osLvA c j).vanish (Bd.map (· (osSlowName c (osLvA c j)))))
     {Bk : String → ℕ} (hBk : Bk ∈ Bd) {c' : Call}
     (hc' : c' ∈ ((osTlA c).filterMap Main.Stmt.callS).map (Main.mkCall σ) ++
       (finFrames σ c).map (Main.mkCall σ))
     (hin : c' ∈ ((osBodyA c).filterMap (Stmt.callSF σ)).map (Main.mkCall σ)) (ht : c'.taken = true) :
     CompleteAtDTBR fs cert κ c'.f (osLkA c b0 H.own Lin) (c'.args.map σ) (Returns (c'.rets.map σ)) armXT
       (Bk c'.f) := by
-  have hO := arm_rest_ok H hall hdo hfl hB hex hHV hsel hyr hLv hnamed hlr hc' hin ht
+  have hO := arm_rest_ok H hall hdo hfl hB hex hHV hsel hyr hLv hnamed hlr hsf hls hc' hin ht
   obtain rfl : Bd = some Bk := hBk
   have hnm : ∀ K, osKindOf c'.f = some K → CompleteAtDTBR fs cert κ c'.f (osLkA c b0 H.own Lin) (c'.args.map σ)
       (Returns (c'.rets.map σ)) armXT (Bk c'.f) :=
@@ -728,17 +840,24 @@ theorem arm_rest_okT {Bd : Option (String → ℕ)} {c : OsCfg} {args : List E} 
   · obtain ⟨K, hK⟩ := named_of_plain hB (fun s hs ↦ tl_sub_body hs) hc
     exact hnm K hK
   obtain ⟨x, hx, rfl⟩ := List.mem_map.mp hc
-  rcases mem_finFrames hx with rfl | ⟨j, hj, rfl⟩
+  rcases mem_finFrames hx with rfl | hiz | ⟨j, hj, rfl | rfl⟩
   · obtain ⟨K, hK⟩ := Option.isSome_iff_exists.mp (List.all_eq_true.mp hB _ (ffm_mem_body c))
     exact hnm K hK
-  have hjy : j < c.yrLevel := by simpa [Nat.min_eq_left hyr.le] using hj
-  have hjl : j < c.levels.length := by omega
-  refine hO.toB.toDTB.toR.monoN le_rfl fun _ _ hn _ ↦ armXT_of_not ?_
-  rw [hn]
-  show armExactS (selName σ c j osResidualName) = false
-  rw [hsel]
-  have h := armExactS_lr ((hLv j hjl).2.2.1 hjy)
-  exact h
+  · exact hnm .iz (by rw [mkCall_f', hiz]; exact osKindOf_isZero)
+  · have hjy : j < c.yrLevel := by simpa [Nat.min_eq_left hyr.le] using hj
+    have hjl : j < c.levels.length := by omega
+    refine hO.toB.toDTB.toR.monoN le_rfl fun _ _ hn _ ↦ armXT_of_not ?_
+    rw [hn]
+    show armExactS (selName σ c j osResidualName) = false
+    rw [hsel]
+    have h := armExactS_lr ((hLv j hjl).2.2.1 hjy)
+    exact h
+  · have hjy : j < c.yrLevel := by simpa [Nat.min_eq_left hyr.le] using hj
+    refine hO.toB.toDTB.toR.monoN le_rfl fun _ _ hn _ ↦ armXT_of_not ?_
+    rw [hn]
+    show armExactS (selName σ c j (osSlowName c)) = false
+    rw [hsel]
+    exact (hsf.2 j hjy).2.1
 
 end
 end LeanVM.Guest.B1.Arm

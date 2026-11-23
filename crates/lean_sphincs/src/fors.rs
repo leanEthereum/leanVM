@@ -60,6 +60,7 @@ fn fors_key(pk_seed: &PkSeed, idx: u64, roots: &[Digest; FORS_TREES]) -> Digest 
 
 /// `fors_sign` and the public key it opens, each tree being built once: the key
 /// of instance `idx`, and its opening at `leaves`.
+#[cfg(feature = "std")]
 pub(crate) fn fors_open(sk: &ExpandedKey, idx: u64, leaves: &[usize; FORS_TREES]) -> (Digest, ForsOpening) {
     let pk_seed = &sk.pk_seed;
     let trees: Vec<_> = (0..FORS_TREES)
@@ -76,13 +77,13 @@ pub(crate) fn fors_open(sk: &ExpandedKey, idx: u64, leaves: &[usize; FORS_TREES]
             let s = leaves[c];
             let opening = ForsTreeOpening {
                 secret: secrets[s],
-                path: std::array::from_fn(|z| levels[z][(s >> z) ^ 1]),
+                path: core::array::from_fn(|z| levels[z][(s >> z) ^ 1]),
             };
             (levels[FORS_HEIGHT][0], opening)
         })
         .collect();
-    let roots = std::array::from_fn(|c| trees[c].0);
-    (fors_key(pk_seed, idx, &roots), std::array::from_fn(|c| trees[c].1))
+    let roots = core::array::from_fn(|c| trees[c].0);
+    (fors_key(pk_seed, idx, &roots), core::array::from_fn(|c| trees[c].1))
 }
 
 /// `fors_pkFromSig`: the FORS public key an opening reaches at `leaves`, showing
@@ -94,7 +95,7 @@ pub fn fors_recover(
     opening: &ForsOpening,
     mut visit: impl FnMut(&[Digest; 2]),
 ) -> Digest {
-    let roots = std::array::from_fn(|c| {
+    let roots = core::array::from_fn(|c| {
         let (s, tree) = (leaves[c], &opening[c]);
         let leaf = fors_leaf(pk_seed, idx, c, s, &tree.secret);
         keccak256::path_fold(leaf, s, &tree.path, &mut visit, |z, j, pair| {

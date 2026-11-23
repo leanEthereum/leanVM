@@ -62,7 +62,7 @@ abbrev oracleProver : HonestProverWithHash := LeanVM.proverWithHash
 
 /-- **The hypothesis of the completeness theorem**: on valid executions within the cap at a
 valid rate, the prover is the specification at an honest witness. -/
-theorem specOnValid_prove_honest : SpecOnValid oracleProver HonestFor :=
+theorem specOnValid_prove_honest : SpecOnValid oracleProver :=
   fun _ _ _ _ fuel hv hcap hρ ↦
     ⟨_, _, (childFor_trace hv hcap hρ).1, prove_eq_honestComp hv hcap hρ fuel⟩
 

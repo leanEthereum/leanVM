@@ -63,7 +63,7 @@ theorem verifySubGoalsTBR_deployedE {seed : Digest} {s : NodeStatement} {w : Nod
     LeanVM.Guest.Count.vsWordsOs le_rfl hK seed w.children[c] e outE
     (vsExpLin e ++ [(outE, DeferredBytecodeClaim.cells w.children[c].freshClaim)])
     ⟨(hok _ hmem).stackLogAtLeastMinimum, (hok _ hmem).streamWithinCap,
-      (hok _ hmem).noZeroChallenge, (hok _ hmem).capsAgree⟩
+      (hok _ hmem).verifies, (hok _ hmem).capsAgree⟩
     (fun q hq => List.mem_append_left _ hq) (List.mem_append_right _ (List.mem_singleton_self _))
   have hB : vsBoundAt LeanVM.Guest.Count.vsWordsOs vkBound (childShape bytecode w.children[c]).1
       (childShape bytecode w.children[c]).2 = childBv (vsBoundAt LeanVM.Guest.Count.vsWordsOs vkBound) w c := by

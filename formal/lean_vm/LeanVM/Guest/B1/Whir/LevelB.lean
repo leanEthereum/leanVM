@@ -17,11 +17,11 @@ public import LeanVM.Guest.B1.Whir.RateCfg
 * `osHsCoefs_val`: each coefficient read from `src` and stored at `dst` times its normalizer
   `word (sc c) 0`; `osHsMid_sound`, `osHsFinal_sound`: a non-final level's high part (from `sent`
   into `level_hs`) and the final lane (from `final_msg` into a fresh `hs`).
-* `osQueries_sound`: the dispatch on the rate into `level_queries` on `λ`, `1/λ` (both `0` at the
-  final level), the round coefficients, the high part, the positions and windows; its returned
+* `osQueries_sound`: the dispatch on the rate into `level_queries` on `λ`, `1/(λ + is_zero(λ))` (both
+  `0` at the final level), the round coefficients, the high part, the positions and windows; its returned
   root's cells those in `level_roots`.
 * `osGlue_sound`: the claim plus `λ·y0 + λ²·λ^n·batched`, `λ` into `ood_scalars`, `λ²·λ^n`
-  into `level_scales`, `1/λ` into `level_lam_invs`.
+  into `level_scales`, `1/(λ + is_zero(λ))` into `level_lam_invs`.
 -/
 
 namespace LeanVM.Guest.B1.Whir

@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Place.OsRound
 
 `osKindOf f`: the kind of callee `f` names, read from `osKindTable` (the named callees of
 `open_stacked__L{m}`: `opening_round`, `opening_tail_round`, `opening_message`,
-`squeeze_point_from`, `grind_check`, `verify_merkle_cap`, `fold_final_msg`; each
+`squeeze_point_from`, `grind_check`, `verify_merkle_cap`, `fold_final_msg`, `is_zero`; each
 with its meaning `OsKind.Pre` and its loads `OsKind.spec`). `decode_query_windows`, the
 `opening_queries` specializations and the loop helpers are the other callees, placed apart.
 `osKindTable_ok`: every entry names a deployed specialization of its kind (a kernel check), so
@@ -51,6 +51,7 @@ inductive OsKind where
   | grind (b : ℕ)
   | cap (d : ℕ)
   | ffm (n : ℕ)
+  | iz
   deriving DecidableEq
 
 /-- A kind's meaning. -/
@@ -62,6 +63,7 @@ def OsKind.Pre : OsKind → Reader → List E → List E → Prop
   | .grind b => grindPre b
   | .cap d => MeaningVerifyMerkleCap d
   | .ffm n => MeaningFoldFinalMsg n
+  | .iz => fun _ ↦ MeaningIsZero
 
 /-- A kind's loads. -/
 def OsKind.spec : OsKind → List (ℕ × ℕ)
@@ -72,10 +74,11 @@ def OsKind.spec : OsKind → List (ℕ × ℕ)
   | .grind _ => []
   | .cap d => merkleCapSpec d
   | .ffm n => foldFinalSpec n
+  | .iz => []
 
 /-- The named callees and their kinds. -/
 def osKindTable : List (String × OsKind) :=
-  [("opening_round", .round), ("opening_tail_round", .tail),
+  [("is_zero", .iz), ("opening_round", .round), ("opening_tail_round", .tail),
     ("opening_message__L6_L1", .msg 6 1), ("opening_message__L8_L1", .msg 8 1), ("opening_message__L12_L1", .msg 12 1),
     ("opening_message__L20_L1", .msg 20 1), ("opening_message__L36_L1", .msg 36 1),
     ("squeeze_point_from__L6", .spf 6), ("squeeze_point_from__L7", .spf 7),
@@ -118,9 +121,12 @@ def osKindEntryOk : String × OsKind → Bool
   | (f, .grind b) => decide (b ∈ grindBitsDeployed) && f == grindCheckName b
   | (f, .cap d) => decide ((f, d) ∈ merkleCapNames)
   | (f, .ffm n) => decide ((f, n) ∈ foldFinalMsgNames)
+  | (f, .iz) => f == "is_zero"
 
 set_option maxRecDepth 100000 in
 theorem osKindTable_ok : osKindTable.all osKindEntryOk = true := by decide +kernel
+
+theorem osKindOf_isZero : osKindOf "is_zero" = some .iz := by decide +kernel
 
 theorem osKindEntry_ok {f : String} {K : OsKind} (hK : osKindOf f = some K) :
     osKindEntryOk (f, K) = true :=
@@ -156,6 +162,9 @@ theorem kindD (h : OsCalleesRegD fs cert κ) (hr : OsRoundRegD fs cert κ) {f : 
   | ffm n =>
     simp only [osKindEntryOk, decide_eq_true_eq] at he
     exact h.foldFinal _ he
+  | iz =>
+    simp only [osKindEntryOk, beq_iff_eq] at he
+    subst he; exact h.iz
 
 /-- **Every named callee is complete placed on its meaning, its loads in the caller's words**, on
 memories defined below `2^κ`, `11 ≤ κ`. -/
