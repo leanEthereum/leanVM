@@ -1,27 +1,35 @@
-"""Lake's artifact cache, filled from CI's builds of `main`, and bound to its sources by SHA-256.
+"""Lake's artifact cache, filled from CI's builds of `main`, restored only where SHA-256 shows the same input.
 
   python3 -I lake-cache.py get [DIR] [--cache CACHE]
   python3 -I lake-cache.py pack DIR ARCHIVE [--cache CACHE]
   python3 -I lake-cache.py unpack DIR ARCHIVE [--cache CACHE]
+  python3 -I lake-cache.py filter DIR [--cache CACHE]
   python3 -I lake-cache.py check DIR [--cache CACHE]
   python3 -I lake-cache.py digest
 
 Lake's artifact cache (`lake env printenv LAKE_CACHE_DIR`) holds every output by content hash (`artifacts/`) and,
 per package, a map from a target's input hash, its trace's `depHash`, to its outputs (`outputs/<package>/<hash>.json`).
-Lake's hashes are 64 bits and not collision resistant, so an archive also carries `manifest.json`: the SHA-256 of
-each local module's source under its `depHash`, and of each output under its name.
+Lake's hashes are 64 bits and not collision resistant, so this script does not let Lake restore a module of the
+workspace's own packages (`local`: this project and its path dependencies) on that hash alone. Each local module has
+a strong key: the SHA-256 of `digest`, its name, its source, and its local imports' strong keys (imports as Lean
+parses them), so it covers the module's whole local input. The other packages are pinned by the manifests `digest`
+covers.
 
-`pack` writes the entries of every target the workspace of DIR (a project: `lean_vm`) built or restored, read from the
-traces in its packages' build directories (of Mathlib's packages only the compiled objects, as `lake exe cache get`
-provides the rest), and the manifest. It refuses any trace that mentions `skipKernelTC`. `unpack` reads the whole
-archive and checks every member's name before it installs anything; it installs each file whole under its name, never
-replacing one, and keeps the manifest under `manifests/`. `check`, after a build, fails unless every local module
-whose `depHash` a restored manifest names has that manifest's source, and every output Lake hashed (its `.hash` file)
-to the name of a restored output has that output's content: a source or an output Lake confuses with another
-fails here.
+`pack` runs `check`, then writes the entries of every target the workspace of DIR (a project: `lean_vm`) built or
+restored: each local module's map bound in `manifest.json` to its name and strong key, every output's SHA-256, and of
+the other packages every target (of Mathlib's only the compiled objects, as `lake exe cache get` provides the rest).
+It leaves out the local packages' other targets (objects, executables, libraries), and fails on a local module whose
+source it cannot find exactly once, or a trace that mentions `skipKernelTC`. `unpack` checks every member's name before
+installing anything, installs each file whole under its name, checks a file it keeps against the manifest, keeps the
+manifest under `manifests/`, and puts the local modules' maps under `held/`, where Lake does not read them. `filter`
+moves a held map into `outputs/` only while its module's strong key in the workspace is the one bound to it, and back
+otherwise. `check`, after a build, fails if a local module or other target Lake restored from the cache is not bound
+to its name and current strong key, or two local modules of a package share an input hash. `lake-build.py` runs
+`filter` before and `check` after every build when the cache has manifests.
 
-`get` unpacks the archive `lean.yml` published from the newest successful push or schedule run on `main`, named after
-`digest`, the SHA-256 of the build tooling, lakefiles, manifests and toolchains. On any error it warns and restores
+`get` unpacks the archive `lean.yml` published from the newest successful push or schedule run on branch `main` whose
+commit is in `main`'s history, named after `digest`, the SHA-256 of what enters Lake's input hashes without being a
+source: the build tooling, lakefiles, `lake-manifest.json` files and toolchains. On any error it warns and restores
 nothing: the build is then cold. Run `lake exe cache get` first: `get` asks Lake for its cache directory.
 """
 
@@ -54,20 +62,16 @@ def log(message: str) -> None:
     print(f"lake-cache: {message}", file=sys.stderr, flush=True)
 
 
-def sha256(path: Path) -> str:
-    with path.open("rb") as f:
-        return hashlib.file_digest(f, "sha256").hexdigest()
+def sha256(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
 
 
 def digest() -> str:
-    """What enters Lake's input hashes as text it never hashes as a file: tooling, lakefiles, manifests, toolchains."""
     files = sorted({FORMAL / "lake-build.py", FORMAL / "lake-cache.py",
                     *(f for pat in ("lakefile.*", "lake-manifest.json", "lean-toolchain")
                       for f in [*FORMAL.glob(pat), *FORMAL.glob(f"*/{pat}")])})
-    h = hashlib.sha256()
-    for f in files:
-        h.update(f.relative_to(FORMAL).as_posix().encode() + b"\0" + f.read_bytes() + b"\0")
-    return h.hexdigest()[:16]
+    return sha256(b"".join(f.relative_to(FORMAL).as_posix().encode() + b"\0" + f.read_bytes() + b"\0"
+                           for f in files))[:16]
 
 
 def cache_dir(pkg: Path) -> Path:
@@ -79,40 +83,78 @@ def cache_dir(pkg: Path) -> Path:
 
 
 def packages(pkg: Path) -> list[tuple[Path, str]]:
-    """Each package's directory, and its kind: `local` (this workspace and its path dependencies, whose sources the
-    manifest binds), `mathlib` (what `lake exe cache get` provides) or `git` (pinned by the manifests in `digest`)."""
+    """Each package's directory and kind: `local`, `mathlib` (what `lake exe cache get` provides) or `git`."""
     manifest = json.loads((pkg / "lake-manifest.json").read_text(encoding="utf-8"))
     deps = pkg / manifest.get("packagesDir", ".lake/packages")
     sub = deps / "mathlib" / "lake-manifest.json"
     mathlib = {"mathlib"} | ({p["name"] for p in json.loads(sub.read_text(encoding="utf-8"))["packages"]}
                              if sub.is_file() else set())
-    out = [(pkg, "local")]
-    for p in manifest["packages"]:
-        if p["type"] == "path":
-            out.append(((pkg / p["dir"]).resolve(), "local"))
-        else:
-            out.append((deps / p["name"], "mathlib" if p["name"] in mathlib else "git"))
-    return out
+    return [(pkg, "local")] + [((pkg / p["dir"]).resolve(), "local") if p["type"] == "path" else
+                               (deps / p["name"], "mathlib" if p["name"] in mathlib else "git")
+                               for p in manifest["packages"]]
 
 
 @functools.cache
-def src_dirs(pkg: Path) -> frozenset[str]:
-    config = tomllib.loads((pkg / "lakefile.toml").read_text(encoding="utf-8"))
-    return frozenset({"."} | {t.get("srcDir", ".") for kind in ("lean_lib", "lean_exe") for t in config.get(kind, [])})
+def config(pkg: Path) -> dict:
+    return tomllib.loads((pkg / "lakefile.toml").read_text(encoding="utf-8"))
 
 
-def source(pkg: Path, trace: Path) -> Path | None:
-    """The source of the module whose trace is `trace` in package `pkg`, if exactly one of its source directories has it."""
-    rel = trace.relative_to(pkg / ".lake" / "build" / "lib" / "lean").with_suffix(".lean")
-    found = [pkg / d / rel for d in src_dirs(pkg) if (pkg / d / rel).is_file()]
-    return found[0] if len(found) == 1 else None
+class Keys:
+    """The strong keys of a workspace's local modules, as its sources stand now."""
+
+    def __init__(self, pkg: Path):
+        self.dirs = [root / d for root, kind in packages(pkg) if kind == "local"
+                     for d in {"."} | {t.get("srcDir", ".") for k in ("lean_lib", "lean_exe") for t in config(root).get(k, [])}]
+        self.pkg, self.digest, self.keys, self.sources = pkg, digest(), {}, {}
+
+    def source(self, module: str) -> Path | None:
+        """The module's local source, if exactly one local source directory has it."""
+        if module not in self.sources:
+            rel = Path(*module.split(".")).with_suffix(".lean")
+            found = {(d / rel).resolve() for d in self.dirs if (d / rel).is_file()}
+            self.sources[module] = found.pop() if len(found) == 1 else None
+        return self.sources[module]
+
+    def imports(self, files: list[Path]) -> dict[Path, list[str] | None]:
+        out = {}
+        for i in range(0, len(files), 1000):
+            batch = files[i:i + 1000]
+            r = subprocess.run(["lean", "--deps-json", *map(str, batch)], cwd=self.pkg, capture_output=True, text=True)
+            parsed = json.loads(r.stdout)["imports"] if r.returncode == 0 else [{}] * len(batch)
+            for f, p in zip(batch, parsed):
+                ok = "result" in p and not p.get("errors")
+                out[f] = [i["module"] for i in p["result"]["imports"]] if ok else None
+        return out
+
+    def of(self, modules) -> dict[str, str | None]:
+        todo, srcs, deps = set(modules), {}, {}
+        while todo:
+            for m in todo:
+                srcs[m] = self.source(m)
+            files = [s for m in todo if (s := srcs[m]) is not None]
+            parsed = self.imports(files)
+            for m in todo:
+                deps[m] = parsed.get(srcs[m]) if srcs[m] else None
+            todo = {i for m in todo for i in deps[m] or [] if i not in srcs and self.source(i)}
+        for m in srcs:
+            self.key(m, srcs, deps)
+        return {m: self.keys[m] for m in modules}
+
+    def key(self, m: str, srcs: dict, deps: dict) -> str | None:
+        if m not in self.keys:
+            if srcs[m] is None or deps[m] is None:
+                self.keys[m] = None
+            else:
+                local = sorted(i for i in set(deps[m]) if srcs.get(i))
+                subs = [self.key(i, srcs, deps) for i in local]
+                self.keys[m] = None if None in subs else sha256(json.dumps(
+                    [self.digest, m, sha256(srcs[m].read_bytes()), list(zip(local, subs)),
+                     sorted(set(deps[m]) - set(local))]).encode())
+        return self.keys[m]
 
 
-def module_traces(pkg: Path):
-    for root, kind in packages(pkg):
-        if kind == "local":
-            for trace in (root / ".lake" / "build" / "lib" / "lean").rglob("*.trace"):
-                yield root, trace
+def module_name(root: Path, trace: Path) -> str:
+    return ".".join(trace.relative_to(root / ".lake/build/lib/lean").with_suffix("").parts)
 
 
 def load(path: Path) -> dict:
@@ -132,34 +174,92 @@ def strings(value: object):
             yield from strings(v)
 
 
+def bindings(cache: Path) -> dict[str, tuple[str, str] | None]:
+    """`scope/depHash` to (module, strong key) over every restored manifest; `None` where two disagree."""
+    out: dict[str, tuple[str, str] | None] = {}
+    for path in sorted((cache / "manifests").glob("*.json")):
+        try:
+            for ref, b in json.loads(path.read_text(encoding="utf-8"))["modules"].items():
+                b = (b["module"], b["key"])
+                out[ref] = b if out.get(ref, b) == b else None
+        except (OSError, ValueError, KeyError, TypeError) as e:
+            sys.exit(f"lake-cache: restored manifest {path} is unreadable: {e}")
+    return out
+
+
+def check(pkg: Path, cache: Path) -> None:
+    bound = bindings(cache)
+    restored, failed = {}, []
+    for root in (root for root, kind in packages(pkg) if kind == "local"):
+        scope, seen, build = config(root)["name"], {}, root / ".lake" / "build"
+        for trace in build.rglob("*.trace"):
+            data = load(trace)
+            if not isinstance(dep := data.get("depHash"), str):
+                continue
+            if dep in seen:  # within a run, Lake would restore one's outputs as the other's
+                failed.append(f"{trace} and {seen[dep]} share an input hash")
+            seen[dep] = trace
+            ref = f"{scope}/{dep}"
+            if data.get("synthetic") and ref in bound:  # restored from an archive's entry
+                if not trace.is_relative_to(build / "lib" / "lean"):
+                    failed.append(f"{trace}: restored from an archive, which binds only modules")
+                else:
+                    restored[trace] = (module_name(root, trace), bound[ref])
+    keys = Keys(pkg).of({m for m, _ in restored.values()})
+    for trace, (m, b) in restored.items():
+        if b != (m, keys[m]):
+            failed.append(f"{trace}: restored, but not bound to {m} as its sources stand")
+    if failed:
+        sys.exit("lake-cache: check failed:\n  " + "\n  ".join(failed))
+    log(f"{len(restored)} restored local modules bound to their sources: ok")
+
+
+def filter_maps(pkg: Path, cache: Path) -> None:
+    bound = bindings(cache)
+    if not bound:
+        return
+    keys = Keys(pkg).of({b[0] for b in bound.values() if b})
+    active = 0
+    for ref, b in bound.items():
+        held, live = cache / "held" / f"{ref}.json", cache / "outputs" / f"{ref}.json"
+        if b and keys[b[0]] == b[1]:
+            if held.exists() and not live.exists():
+                live.parent.mkdir(parents=True, exist_ok=True)
+                os.replace(held, live)
+            active += 1
+        elif live.exists() and not held.exists():
+            held.parent.mkdir(parents=True, exist_ok=True)
+            os.replace(live, held)
+    log(f"{active} of {len(bound)} local modules' entries match their sources")
+
+
 def pack(pkg: Path, archive: Path, cache: Path) -> None:
+    check(pkg, cache)
     if not (cache / "outputs").is_dir():
         sys.exit(f"lake-cache: {cache} has no outputs: was LAKE_ARTIFACT_CACHE on?")
-    scopes = [d for d in (cache / "outputs").iterdir() if d.is_dir()]
-    unbound = {trace: root for root, trace in module_traces(pkg)}
-    maps, arts, modules, unmapped = set(), set(), {}, 0
+    maps, arts, local_maps = set(), set(), {}
     for root, kind in packages(pkg):
         build = root / ".lake" / "build"
-        for trace in (build / "ir" if kind == "mathlib" else build).rglob("*.trace"):
+        scopes = [cache / "outputs" / config(root)["name"]] if kind == "local" else \
+            [d for d in (cache / "outputs").iterdir() if d.is_dir()]
+        for trace in (build / "lib" / "lean" if kind == "local" else build / "ir" if kind == "mathlib" else build).rglob("*.trace"):
             data = load(trace)
             if any(NO_KERNEL in t for t in strings(data)):
                 sys.exit(f"lake-cache: {trace} was built without the kernel: nothing packed")
             dep = data.get("depHash")
-            found = [m for s in scopes if isinstance(dep, str) and (m := s / f"{dep}.json").is_file() and load(m)]
-            if found and trace in unbound:  # a local module: bound to its source, or left out
-                src = source(unbound[trace], trace)
-                if src is None:
-                    found = []
-                else:
-                    modules[dep] = sha256(src)
-            unmapped += not found
-            for mapping in found:
+            for mapping in (m for s in scopes if isinstance(dep, str) and (m := s / f"{dep}.json").is_file()):
+                content = load(mapping)
+                if kind == "local":
+                    local_maps[mapping.relative_to(cache / "outputs").with_suffix("").as_posix()] = module_name(root, trace)
                 maps.add(mapping.relative_to(cache).as_posix())
-                arts.update(a for a in strings(load(mapping)) if (cache / "artifacts" / a).is_file())
+                arts.update(a for a in strings(content) if (cache / "artifacts" / a).is_file())
     if not maps:
         sys.exit(f"lake-cache: no entry of {cache} is in {pkg}'s build: was LAKE_ARTIFACT_CACHE on?")
-    manifest = json.dumps({"digest": digest(), "modules": modules,
-                           "artifacts": {a: sha256(cache / "artifacts" / a) for a in sorted(arts)}}).encode()
+    keys = Keys(pkg).of(set(local_maps.values()))
+    if unbound := sorted(m for m in local_maps.values() if keys[m] is None):
+        sys.exit(f"lake-cache: no single source, or no readable imports, for {unbound[:5]}: nothing packed")
+    manifest = json.dumps({"digest": digest(), "modules": {r: {"module": m, "key": keys[m]} for r, m in local_maps.items()},
+                           "artifacts": {a: sha256((cache / "artifacts" / a).read_bytes()) for a in sorted(arts)}}).encode()
     zstd = subprocess.Popen(["zstd", "-T0", "-3", "-q", "-f", "-o", str(archive)], stdin=subprocess.PIPE)
     with tarfile.open(fileobj=zstd.stdin, mode="w|") as tar:
         info = tarfile.TarInfo(MANIFEST)
@@ -170,8 +270,8 @@ def pack(pkg: Path, archive: Path, cache: Path) -> None:
     zstd.stdin.close()
     if zstd.wait():
         sys.exit("lake-cache: zstd failed")
-    log(f"{len(maps)} targets ({len(modules)} local modules bound), {len(arts)} outputs, "
-        f"{archive.stat().st_size / 2**30:.1f} GB packed; {unmapped} traces without an entry")
+    log(f"{len(maps)} targets ({len(local_maps)} local modules bound), {len(arts)} outputs, "
+        f"{archive.stat().st_size / 2**30:.1f} GB packed")
 
 
 def members(archive: Path):
@@ -179,7 +279,8 @@ def members(archive: Path):
     try:
         with tarfile.open(fileobj=zstd.stdout, mode="r|") as tar:
             for member in tar:
-                yield tar, member
+                if not member.isdir():
+                    yield tar, member
     finally:
         zstd.stdout.close()
         zstd.wait()
@@ -188,30 +289,30 @@ def members(archive: Path):
 def unpack(archive: Path, cache: Path) -> None:
     if subprocess.run(["zstd", "-tq", str(archive)], check=False).returncode:
         sys.exit(f"lake-cache: {archive} fails zstd's checksum: nothing unpacked")
-    names = [m.name for _, m in members(archive) if not m.isdir()]
-    bad = [n for _, m in members(archive) if not m.isdir() and not (m.isfile() and MEMBER.fullmatch(n := m.name))]
-    if bad or names.count(MANIFEST) != 1:
-        sys.exit(f"lake-cache: {archive} holds {bad[:3] or 'no single manifest'}: nothing unpacked")
+    names = [m.name if m.isfile() and MEMBER.fullmatch(m.name) else None for _, m in members(archive)]
+    if None in names or names[:1] != [MANIFEST] or names.count(MANIFEST) != 1:
+        sys.exit(f"lake-cache: {archive} holds a member outside the cache's layout, or not one manifest: nothing unpacked")
+    manifest = {}
     added = kept = 0
     for tar, member in members(archive):
-        if member.isdir():
-            continue
-        data = tar.extractfile(member)
+        content = tar.extractfile(member).read()
         if member.name == MANIFEST:
-            content = data.read()
-            path = cache / "manifests" / f"{hashlib.sha256(content).hexdigest()[:16]}.json"
-            data = io.BytesIO(content)
+            manifest = json.loads(content)
+            path = cache / "manifests" / f"{sha256(content)[:16]}.json"
+        elif member.name.startswith("outputs/") and member.name[8:-5] in manifest.get("modules", {}):
+            path = cache / "held" / member.name[8:]
         else:
             path = cache / member.name
         if path.exists():
+            if member.name.startswith("artifacts/") and sha256(path.read_bytes()) != manifest.get("artifacts", {}).get(member.name[10:]):
+                sys.exit(f"lake-cache: {path}, already in the cache, is not the archive's")
             kept += 1
             continue
         path.parent.mkdir(parents=True, exist_ok=True)
         tmp = tempfile.NamedTemporaryFile(dir=path.parent, delete=False)
         try:
             with tmp:
-                while chunk := data.read(1 << 20):
-                    tmp.write(chunk)
+                tmp.write(content)
             os.chmod(tmp.name, 0o555 if member.mode & 0o111 else 0o444)  # read-only, as Lake leaves its own
             os.replace(tmp.name, path)
         finally:
@@ -219,42 +320,6 @@ def unpack(archive: Path, cache: Path) -> None:
                 os.unlink(tmp.name)
         added += 1
     log(f"{added} files added to {cache}, {kept} already there")
-
-
-def check(pkg: Path, cache: Path) -> None:
-    modules: dict[str, str] = {}
-    outputs: dict[str, dict[str, str]] = {}
-    for path in sorted((cache / "manifests").glob("*.json")):
-        try:
-            data = json.loads(path.read_text(encoding="utf-8"))
-            for dep, sha in data["modules"].items():
-                if modules.setdefault(dep, sha) != sha:
-                    sys.exit(f"lake-cache: two restored manifests bind {dep} to different sources")
-            for name, sha in data["artifacts"].items():
-                outputs.setdefault(name.split(".")[0], {})[name] = sha
-        except (OSError, ValueError, KeyError, AttributeError) as e:
-            sys.exit(f"lake-cache: restored manifest {path} is unreadable: {e}")
-    failed = []
-    for root, trace in module_traces(pkg):
-        dep = load(trace).get("depHash")
-        if dep in modules:
-            src = source(root, trace)
-            if src is None or sha256(src) != modules[dep]:
-                failed.append(f"{trace}: its source is not the one its cache entry was built from")
-    for root, _ in packages(pkg):
-        for marker in (root / ".lake" / "build").rglob("*.hash"):
-            out = marker.with_suffix("")
-            named = outputs.get(marker.read_text(encoding="utf-8").strip())
-            if not named or not out.is_file():
-                continue
-            ino = (out.stat().st_dev, out.stat().st_ino)
-            restored = any((a := cache / "artifacts" / n).is_file() and (a.stat().st_dev, a.stat().st_ino) == ino
-                           for n in named)  # a hard link to the restored output itself
-            if not restored and sha256(out) not in named.values():
-                failed.append(f"{out}: Lake took it for a restored output with other content")
-    if failed:
-        sys.exit("lake-cache: check failed:\n  " + "\n  ".join(failed))
-    log(f"{len(modules)} restored local modules and {sum(map(len, outputs.values()))} outputs bound: ok")
 
 
 def gh(*args: str) -> str:
@@ -274,8 +339,7 @@ def get(pkg: Path, cache: Path | None) -> None:
     for run in runs:
         try:
             # `head_branch` alone could be a tag named `main`: the commit must be on the branch.
-            if not (run["event"] in ("push", "schedule") and run["head_branch"] == "main"
-                    and run["conclusion"] == "success"
+            if not (run["head_branch"] == "main"
                     and any(not a["expired"] and a["name"] == name for a in json.loads(gh(
                         "api", f"repos/{REPO}/actions/runs/{run['id']}/artifacts?name={name}"))["artifacts"])
                     and json.loads(gh("api", f"repos/{REPO}/compare/{run['head_sha']}...refs/heads/main"))[
@@ -297,7 +361,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="cmd", required=True)
     sub.add_parser("digest")
-    for cmd in ("get", "pack", "unpack", "check"):
+    for cmd in ("get", "pack", "unpack", "filter", "check"):
         p = sub.add_parser(cmd)
         p.add_argument("dir", type=Path, **({"nargs": "?", "default": FORMAL / "lean_vm"} if cmd == "get" else {}))
         if cmd in ("pack", "unpack"):
@@ -316,6 +380,8 @@ def main() -> None:
         pack(pkg, opts.archive.resolve(), cache)
     elif opts.cmd == "unpack":
         unpack(opts.archive.resolve(), cache)
+    elif opts.cmd == "filter":
+        filter_maps(pkg, cache)
     else:
         check(pkg, cache)
 

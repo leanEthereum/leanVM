@@ -5,7 +5,7 @@ on:
     branches: [ "main" ]
     tags: [ "v*" ]
   pull_request:
-  # The nightly clean build of `lean_vm` (`lean-vm-formalization`).
+  # The nightly clean build of `lean_vm` (`lean-vm-build-1`).
   schedule:
     - cron: "0 2 * * *"
   workflow_dispatch:
@@ -79,7 +79,7 @@ jobs:
           lint: false
           use-github-cache: false
           use-mathlib-cache: auto
-      # What the Lake cache packs, refuses and never installs (`lean-vm-formalization`), and a
+      # What the Lake cache packs, refuses and never installs (`lean-vm-build-1`), and a
       # round trip through Lake.
       - name: lake-cache.py on fixtures
         run: python3 -I formal/tools/lake-cache-test.py
@@ -357,10 +357,13 @@ jobs:
   # The proofs, in up to three chained jobs. Each restores the Lake cache of main's newest successful
   # run (`lake-cache.py get`), unless the run is clean (the nightly schedule, a `v*` tag, a dispatch
   # asking for one); a later job also restores what its predecessor packed (`lean-vm-stage-N`, an
-  # artifact of this run) when that one's build reached its deadline. The job whose build finishes
-  # runs the gates and, in a writer's run (a push to main, the nightly schedule), publishes the
-  # whole build as the cache; a pull request never publishes. The check to require is `lean-vm`.
-  lean-vm-formalization:
+  # artifact of this run) when that one's build reached its deadline. `lake-build.py` lets Lake
+  # restore a module of formal/ only where SHA-256 shows its sources unchanged, and checks what it
+  # restored. The job whose build finishes runs the gates and, in a writer's run (a push to main, the
+  # nightly schedule), publishes the whole build as the cache; a pull request never publishes. The
+  # check to require is `lean-vm`. (The other projects' jobs above still trust Lake's own hash
+  # through `restore-keys`.)
+  lean-vm-build-1:
     needs: lean-vm-changes
     if: needs.lean-vm-changes.outputs.changed == 'true'
     runs-on: ubuntu-latest
@@ -374,7 +377,7 @@ jobs:
       LAKE_RESTORE_ARTIFACTS: "true"
       CLEAN: ${{ github.event_name == 'schedule' || startsWith(github.ref, 'refs/tags/') || inputs.clean == true }}
       WRITER: ${{ (github.event_name == 'push' || github.event_name == 'schedule') && github.ref == 'refs/heads/main' }}
-      STAGE: ${{ github.job == 'lean-vm-formalization-3' && 3 || github.job == 'lean-vm-formalization-2' && 2 || 1 }}
+      STAGE: ${{ github.job == 'lean-vm-build-3' && 3 || github.job == 'lean-vm-build-2' && 2 || 1 }}
     outputs: &lean-vm-outputs
       timedout: ${{ steps.build.outputs.timedout }}
     defaults: &lean-vm-defaults
@@ -409,12 +412,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           python3 -I ../lake-cache.py get .
-          df -h /
       - name: Restore the previous stage's build
         if: env.STAGE != '1'
         uses: actions/download-artifact@v4
         with:
-          name: lean-vm-stage-${{ github.job == 'lean-vm-formalization-3' && 2 || 1 }}
+          name: lean-vm-stage-${{ github.job == 'lean-vm-build-3' && 2 || 1 }}
           path: ${{ runner.temp }}/stage
       - name: Unpack the previous stage's build
         if: env.STAGE != '1'
@@ -468,20 +470,15 @@ jobs:
           timeout -k 60 $(( deadline > $(date +%s) ? deadline - $(date +%s) : 1 )) \
             python3 -I ../lake-build.py . LeanVM LeanVMTests 2>&1 | tee "$RUNNER_TEMP/build.log"
           code=$?
-          df -h /
           # Lake marks a failed module `✖`, and lake-build.py admits nothing after one.
           if { [ $code = 124 ] || [ $code = 137 ]; } && [ "$(date +%s)" -ge $deadline ] && [ "$STAGE" != 3 ] \
               && ! grep -qE '✖|an earlier module failed' "$RUNNER_TEMP/build.log"; then
+            echo "::warning::the build reached its deadline: lean-vm-build-$((STAGE + 1)) continues it"
             echo timedout=true >> "$GITHUB_OUTPUT"
             exit 0
           fi
           echo timedout=false >> "$GITHUB_OUTPUT"
           exit $code
-      # What Lake restored is what main built from these sources (`lake-cache.py check`): its input
-      # hash is 64 bits and not collision resistant.
-      - name: The restored modules' sources and outputs are those the cache was built from
-        if: steps.build.outputs.timedout == 'false'
-        run: python3 -I ../lake-cache.py check .
       # The end theorems' axioms asked from outside the build, as for the other projects.
       - name: Check the axiom footprint
         if: steps.build.outputs.timedout == 'false'
@@ -496,12 +493,12 @@ jobs:
       - name: The private-import firewall holds (firewall-canary)
         if: steps.build.outputs.timedout == 'false'
         run: python3 -I ../tools/firewall-canary.py
-      # Every executable, so the cache holds them all (`lean-vm-differentials` runs the rest).
+      # Every executable, which the cache never holds (`lean-vm-differentials` runs the rest).
       - name: Build the executables
         id: exes
         if: steps.build.outputs.timedout == 'false'
-        run: lake build node-vectors guest-core guest-cert guest-memory scheme-vectors guest-diff leanvm-verify wire-diff leanvm-prove leanvm-execute guest-run test-runs
-      # A stopped build's leftover processes are ended first. Lake maps a target only once it is built.
+        run: python3 -I ../lake-build.py . node-vectors guest-core guest-cert guest-memory scheme-vectors guest-diff leanvm-verify wire-diff leanvm-prove leanvm-execute guest-run test-runs
+      # A stopped build's leftover processes are ended first; `pack` checks what was restored first.
       - name: Pack the Lake cache
         id: pack
         if: ${{ !cancelled() && (steps.build.outputs.timedout == 'true' || steps.exes.outcome == 'success' && env.WRITER == 'true') }}
@@ -529,9 +526,9 @@ jobs:
         if: steps.build.outputs.timedout == 'false'
         run: lake env .lake/build/bin/test-runs
 
-  lean-vm-formalization-2:
-    needs: lean-vm-formalization
-    if: needs.lean-vm-formalization.outputs.timedout == 'true'
+  lean-vm-build-2:
+    needs: lean-vm-build-1
+    if: needs.lean-vm-build-1.outputs.timedout == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 360
     permissions: *lean-vm-permissions
@@ -540,9 +537,9 @@ jobs:
     defaults: *lean-vm-defaults
     steps: *lean-vm-steps
 
-  lean-vm-formalization-3:
-    needs: lean-vm-formalization-2
-    if: needs.lean-vm-formalization-2.outputs.timedout == 'true'
+  lean-vm-build-3:
+    needs: lean-vm-build-2
+    if: needs.lean-vm-build-2.outputs.timedout == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 360
     permissions: *lean-vm-permissions
@@ -585,8 +582,6 @@ jobs:
         run: cargo run --release --manifest-path scripts/guest-export/Cargo.toml -- .
       - name: Build the executables
         run: python3 -I ../lake-build.py . scheme-vectors guest-diff leanvm-verify wire-diff leanvm-execute guest-run leanvm-prove
-      - name: The restored modules' sources and outputs are those the cache was built from
-        run: python3 -I ../lake-cache.py check .
       # EthLib's test vectors of leanSPHINCS and leanXMSS, as leanVM vendors them, on the
       # statement's schemes compiled: verification only (key generation and signing are checked by
       # hand: `scheme-vectors --xmss-sign`, lean_sphincs' `lake exe signature-kat`).
@@ -650,7 +645,7 @@ jobs:
   # its build and its gates.
   lean-vm:
     needs: [statement, common, lean-xmss-formalization, lean-sphincs-formalization, lean-da-formalization, lean-vm-changes,
-            lean-vm-formalization, lean-vm-formalization-2, lean-vm-formalization-3, lean-vm-differentials]
+            lean-vm-build-1, lean-vm-build-2, lean-vm-build-3, lean-vm-differentials]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -672,7 +667,7 @@ jobs:
               sys.exit(f"lean-vm-changes said changed={changed!r}")
           if needs["lean-vm-differentials"]["result"] != "success":
               sys.exit("lean-vm-differentials did not succeed")
-          gated = [j for j in ("lean-vm-formalization", "lean-vm-formalization-2", "lean-vm-formalization-3")
+          gated = [j for j in ("lean-vm-build-1", "lean-vm-build-2", "lean-vm-build-3")
                    if needs[j]["result"] == "success" and needs[j]["outputs"].get("timedout") == "false"]
           if len(gated) != 1:
               sys.exit(f"no single stage finished the build and ran the gates: {needs}")
