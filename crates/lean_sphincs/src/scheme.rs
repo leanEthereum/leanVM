@@ -6,9 +6,11 @@
 //! FORS public key, the middle key the bottom tree's root, the top key the middle
 //! tree's root, and the top tree's root is `PK.root`.
 
+#[cfg(feature = "alloc")]
 use alloc::{vec, vec::Vec};
 
 use crate::*;
+#[cfg(feature = "alloc")]
 use keccak256::Hasher;
 
 /// A leanSPHINCS public key: `PK.seed` and `PK.root`.
@@ -37,12 +39,14 @@ impl LeanSphincsPublicKey {
 
 /// A [`SecretKey`] with what `slh_keygen_internal` derives from it, re-derived by each call:
 /// `PK.seed = Trunc_n(H(tag | SK.seed | 0))` and `SK.prf = H(tag | SK.seed | 1)`, 32 bytes.
+#[cfg(feature = "alloc")]
 pub(crate) struct ExpandedKey {
     pub(crate) sk_seed: SecretKey,
     pub(crate) sk_prf: [u8; 32],
     pub(crate) pk_seed: PkSeed,
 }
 
+#[cfg(feature = "alloc")]
 impl ExpandedKey {
     pub(crate) fn new(sk_seed: &SecretKey) -> Self {
         let derive = |domain: u8| {
@@ -178,6 +182,7 @@ fn message_digest(pk: &LeanSphincsPublicKey, r: &Digest, m: &Message) -> (u64, [
 
 /// The levels of a tree `height` levels over `leaves`, the leaves first,
 /// `node(level, j, children)` hashing node `j` on `level`.
+#[cfg(feature = "alloc")]
 pub(crate) fn merkle_levels(
     leaves: Vec<Digest>,
     height: usize,
@@ -203,6 +208,7 @@ fn node(pk_seed: &PkSeed, key: &OtsKey, z: usize, j: usize, children: &[Digest; 
 }
 
 /// The levels of the tree holding `key`, its leaves first and its root last.
+#[cfg(feature = "alloc")]
 fn tree_levels(sk: &ExpandedKey, key: &OtsKey) -> Vec<Vec<Digest>> {
     let height = LAYER_HEIGHTS[key.layer];
     let leaves = (0..1 << height)
@@ -212,12 +218,14 @@ fn tree_levels(sk: &ExpandedKey, key: &OtsKey) -> Vec<Vec<Digest>> {
 }
 
 /// Compute the public key, given the secret key.
+#[cfg(feature = "alloc")]
 pub fn key_gen(secret_key: &SecretKey) -> LeanSphincsPublicKey {
     keygen(&ExpandedKey::new(secret_key)).0
 }
 
 /// `slh_keygen_internal`: the public key, `PK.seed` and the top tree's root, with
 /// the top tree's levels, which signing reuses.
+#[cfg(feature = "alloc")]
 fn keygen(sk: &ExpandedKey) -> (LeanSphincsPublicKey, Vec<Vec<Digest>>) {
     let top = tree_levels(sk, &OtsKey::of_index(LAYERS - 1, 0));
     let pk = LeanSphincsPublicKey {
@@ -236,6 +244,7 @@ fn keygen(sk: &ExpandedKey) -> (LeanSphincsPublicKey, Vec<Vec<Digest>>) {
 ///
 /// `slh_sign_internal`, deterministic (`opt_rand = PK.seed`): it builds the top tree for `PK.root`
 /// and the top path, then the FORS instance and the two trees below.
+#[cfg(feature = "alloc")]
 pub fn sign(secret_key: &SecretKey, message: &Message) -> LeanSphincsSignature {
     let sk = &ExpandedKey::new(secret_key);
     let (pk, mut top) = keygen(sk);

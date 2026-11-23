@@ -14,6 +14,7 @@
 #![no_std]
 #![cfg_attr(not(test), warn(unused_crate_dependencies))]
 
+#[cfg(feature = "std")]
 extern crate alloc;
 
 #[cfg(feature = "std")]
