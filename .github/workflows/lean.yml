@@ -81,13 +81,16 @@ jobs:
           use-mathlib-cache: auto
       # The Lake cache (`formal/lake-cache.py`) binds a module to its source files only, so no module
       # may read another file, a process's output or the environment while it elaborates: a grep for
-      # the usual spellings. `include_str` anywhere; the I/O calls outside the executables' code
-      # (`cli/`, `LeanVM/Cli/`), `scripts/` (run by `lean --run`, never cached) and `lakefile.lean`.
+      # the usual spellings. `include_str` anywhere; the I/O calls outside `lakefile.lean`, `scripts/`
+      # (run by `lean --run`, never cached), and the executables' code (`cli/`, `LeanVM/Cli/`), whose
+      # file reads run in the executables. `initialize` is not grepped: extensions register with it.
       - name: No module reads a file while it elaborates
         run: |
-          ! grep -rnE 'include_str|include_bytes' --include='*.lean' --exclude-dir=.lake formal
-          ! grep -rnE 'IO\.FS|readFile|readBinFile|IO\.Process|IO\.getEnv' --include='*.lean' --exclude=lakefile.lean \
-              --exclude-dir=.lake --exclude-dir=cli --exclude-dir=scripts --exclude-dir=Cli formal
+          grep -rnE 'include_str|include_bytes' --include='*.lean' --exclude-dir=.lake formal && exit 1
+          io='IO\.FS|FS\.(lines|Handle|withFile|Stream)|readFile|readBinFile|Process\.(run|output|spawn)'
+          io="$io|IO\.getEnv|appPath|currentDir"
+          ! grep -rnE "$io" --include='*.lean' --exclude=lakefile.lean --exclude-dir=.lake --exclude-dir=cli \
+              --exclude-dir=scripts --exclude-dir=Cli formal
       # What the Lake cache packs, refuses and never installs (`lean-vm-build-1`), and a
       # round trip through Lake.
       - name: lake-cache.py on fixtures
