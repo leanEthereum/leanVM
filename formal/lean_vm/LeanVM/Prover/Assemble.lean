@@ -58,7 +58,7 @@ theorem AllRet.mono {P Q : α → Prop} (hPQ : ∀ a, P a → Q a) :
   | .ret a, h => hPQ a h
   | .send _ k, h => AllRet.mono hPQ k h
   | .sample k, h => fun c ↦ AllRet.mono hPQ (k c) (h c)
-  | .grind k, h => AllRet.mono hPQ k h
+  | .grind _ k, h => AllRet.mono hPQ k h
   | .commit _ k, h => AllRet.mono hPQ k h
   | .query k, h => fun rows ↦ AllRet.mono hPQ (k rows) (h rows)
 
@@ -69,7 +69,7 @@ def Script.NoQuery {α : Type} : Script α → Prop
   | .ret _ => True
   | .send _ k => Script.NoQuery k
   | .sample k => ∀ c, Script.NoQuery (k c)
-  | .grind k => Script.NoQuery k
+  | .grind _ k => Script.NoQuery k
   | .commit _ k => Script.NoQuery k
   | .query _ => False
 
@@ -78,7 +78,7 @@ theorem Script.NoQuery.bind {α β : Type} {f : α → Script β} (hk : ∀ a, S
   | .ret a, _ => hk a
   | .send _ k, h => Script.NoQuery.bind hk k h
   | .sample k, h => fun c ↦ Script.NoQuery.bind hk (k c) (h c)
-  | .grind k, h => Script.NoQuery.bind hk k h
+  | .grind _ k, h => Script.NoQuery.bind hk k h
   | .commit _ k, h => Script.NoQuery.bind hk k h
   | .query _, h => h.elim
 
@@ -112,16 +112,20 @@ theorem nq_grindBits (b : ℕ) : Script.NoQuery (Script.grindBits b) := by
   unfold Script.grindBits Script.grindS
   split <;> trivial
 
+theorem nq_grindSample (b : ℕ) : Script.NoQuery (Script.grindSample b) := by
+  unfold Script.grindSample Script.sampleE
+  split <;> exact fun _ ↦ trivial
+
 /-- One step of a script of sends, grinds and challenges: a primitive, or split a `bind`. -/
 macro "nqstep" : tactic => `(tactic| first
   | exact nq_ret _ | exact noQuery_sendList _ | exact nq_sendE _ | exact nq_grindBits _
-  | exact nq_sampleE | exact noQuery_sampleN _
+  | exact nq_grindSample _ | exact nq_sampleE | exact noQuery_sampleN _
   | refine nq_bind ?_ fun _ ↦ ?_)
 
 /- The scripts are kept folded: a failed match must not evaluate a grind's bits or a sumcheck's
 rounds. -/
-attribute [local irreducible] Script.bind Script.grindBits Script.sendList Script.sampleN
-  Script.sendE Script.sampleE
+attribute [local irreducible] Script.bind Script.grindBits Script.grindSample Script.sendList
+  Script.sampleN Script.sendE Script.sampleE
 
 theorem noQuery_hSumcheck (count : ℕ) (claimOf : List E → E) :
     ∀ (modes : List (Option E)) (pre : List E), Script.NoQuery (hSumcheck count claimOf modes pre)
@@ -266,10 +270,11 @@ theorem corr_alongside {α β γ : Type} [Inhabited β] {R : Commits → α → 
     intro H P cs hn hc hf
     cases H <;> cases P <;> simp only [Corr, Follows, Script.alongside] at hc hf ⊢
     exact fun c ↦ ih c _ _ _ (hn c) (hc c) (hf c)
-  | grind k ih =>
+  | grind o k ih =>
     intro H P cs hn hc hf
     cases H <;> cases P <;> simp only [Corr, Follows, Script.alongside] at hc hf ⊢
-    exact ih _ _ _ hn hc hf
+    obtain ⟨rfl, hc⟩ := hc
+    exact ⟨rfl, ih _ _ _ hn hc hf⟩
   | commit w k ih =>
     intro H P cs hn hc hf
     cases H <;> cases P <;> simp only [Corr, Follows, Script.alongside] at hc hf ⊢
@@ -292,7 +297,7 @@ theorem follows_of_bind_ret {α β γ : Type} {R : Commits → α → γ → Pro
   | sample k ih =>
     intro P cs h; cases P <;> simp only [Follows, VerifierProgram.bind] at h ⊢
     exact fun c ↦ ih c _ _ (h c)
-  | grind k ih =>
+  | grind o k ih =>
     intro P cs h; cases P <;> simp only [Follows, VerifierProgram.bind] at h ⊢; exact ih _ _ h
   | commit W k ih =>
     intro P cs h; cases P <;> simp only [Follows, VerifierProgram.bind] at h ⊢
@@ -317,7 +322,7 @@ theorem follows_and_allRet {α β : Type} {R : Commits → α → β → Prop} {
   | sample k ih =>
     intro P cs h hq; cases P <;> simp only [Follows] at h ⊢
     cases hq with | sample hk => exact fun c ↦ ih c _ _ (h c) (hk c)
-  | grind k ih =>
+  | grind o k ih =>
     intro P cs h hq; cases P <;> simp only [Follows] at h ⊢
     cases hq with | grind hk => exact ih _ _ h hk
   | commit W k ih =>

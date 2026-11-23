@@ -2,18 +2,19 @@
   LeanVM.Guest.AcceptableChild
 
   What the guest program checks of a child (`AcceptableChild`), and the guest program's
-  completeness stated with it (`GuestCompleteOnAcceptableChildren`, `GuestChildComplete`): the statement's
-  completeness on honest children (`GuestCompleteOnHonestChildren`) follows from them.
+  completeness stated with it (`GuestCompleteOnAcceptableChildren`, `GuestChildComplete`): an honest
+  child is an acceptable one (`HonestChildren.lean`).
 -/
 
 module
 
 public import Statement.LeanVmGuestCompleteness
+public import LeanVM.Guest.BatchConsts
 import LeanVM.Protocol.Compile.RunPure
 import LeanVM.Guest.Coverage
 import LeanVM.Guest.GuestConst
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
-import LeanVM.Guest.Data.Source
+import LeanVM.Guest.Data.Consts
 
 /-!
 # A child the guest program accepts

@@ -2,18 +2,21 @@
   LeanVM.Guest.B1.Digest.ClaimListDefs
 
   The checks `claim_list_digest`'s proof evaluates (TRIAGE #88): `claim_list_last__L{k}`'s chain,
-  the frame loops' bodies, and the windows of the 64-block frame loop `claim_list_digest_loop0`.
+  the frame loops' bodies, and the windows of the 64-block frame loop `claim_list_chain_loop0`.
 -/
 
 module
 
 public import LeanVM.Guest.B1.Digest.Window
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«claim_list_chain_loop0»
+import LeanVM.Guest.Data.ValNames.«claim_list_last__L»
 
 /-!
 # `claim_list_digest`: the checks
 
 What the kernel evaluates for `claim_list_digest` (`ClaimList`): `clOk` (`claim_list_last__L{k}`),
-`grpOk` (a frame loop of `m` claims), split for the big loop `claim_list_digest_loop0` into
+`grpOk` (a frame loop of `m` claims), split for the big loop `claim_list_chain_loop0` into
 `grpHead` and the windows `bigWin i` (four blocks and 34 cells each, four to a module
 `ClaimListBig{q}`), which `grpOk_of_parts` puts back together. Only definitions and the gluing: the
 kernel checks sit in their own modules.
@@ -47,11 +50,11 @@ def clSpec (k : ℕ) (atoms : List Atom) : ChainSpec :=
 /-- `claim_list_last__L{k}`'s body is the chain over the cells at its second argument from the
 state at its first. -/
 def clOk (k : ℕ) (f : Fn) : Bool :=
-  decide (f.params = [V.n 0, V.n 1]) &&
+  decide (f.params = [V.n (valf% «claim_list_last» "state"), V.n (valf% «claim_list_last» "blk")]) &&
   match splitBody f.body with
   | some (atoms, [r0, r1]) =>
     (clSpec k atoms).check atoms && retOk atoms (clSpec k atoms) r0 r1 &&
-      loadsOk atoms (V.n 1) (clSpec k atoms).msg && stLoadsOk atoms (V.n 0) (clSt k) 0
+      loadsOk atoms (V.n (valf% «claim_list_last» "blk")) (clSpec k atoms).msg && stLoadsOk atoms (V.n (valf% «claim_list_last» "state")) (clSt k) 0
   | _ => false
 
 /-! ## The frame loops: `m` claims a frame -/
@@ -108,20 +111,20 @@ theorem grpOk_of_parts {fn : Fn} {f : String} {m c0 st0 ep w W v U : ℕ}
   simp only [grpOk, h1, h2, h4, h5, h6, h7, ChainSpec.check_of_blocks h3 hnb hb,
     loadsOk_of_wins (by simp [grpSpec]; exact hml) hl, Bool.and_self]
 
-/-! ## The big frame loop `claim_list_digest_loop0` (136 claims, 64 blocks), in sixteen windows -/
+/-! ## The big frame loop `claim_list_chain_loop0` (136 claims, 64 blocks), in sixteen windows -/
 
-/-- `claim_list_digest_loop0`'s atoms. -/
+/-- `claim_list_chain_loop0`'s atoms. -/
 noncomputable def bigAtoms : List Atom := loopAtoms (coreProgram.getD
-    idx% «claim_list_digest_loop0» default)
+    idx% «claim_list_chain_loop0» default)
 
-/-- `claim_list_digest_loop0`'s chain. -/
+/-- `claim_list_chain_loop0`'s chain. -/
 noncomputable def bigSpec : ChainSpec := grpSpec 136 21 565 bigAtoms
 
-/-- Window `i` of `claim_list_digest_loop0`: blocks `4i … 4i + 3` and cells `34i … 34i + 33`, each
+/-- Window `i` of `claim_list_chain_loop0`: blocks `4i … 4i + 3` and cells `34i … 34i + 33`, each
 searched
 from their atoms on. -/
 noncomputable def bigWin (i : ℕ) : Bool :=
-  bigSpec.blocksFrom bigAtoms (4 * i) 4 && loadsFrom bigAtoms (V.n 20) bigSpec.msg (34 * i) 34
+  bigSpec.blocksFrom bigAtoms (4 * i) 4 && loadsFrom bigAtoms (V.n (val% «claim_list_chain_loop0» "blk")) bigSpec.msg (34 * i) 34
 
 end
 end LeanVM.Guest.B1.Digest

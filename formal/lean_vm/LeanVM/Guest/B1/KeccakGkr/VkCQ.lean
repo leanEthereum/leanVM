@@ -7,6 +7,8 @@
 module
 
 public import LeanVM.Guest.B1.KeccakGkr.VkCP
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_keccak»
 
 /-!
 # The pointers, on the layout
@@ -29,12 +31,12 @@ open LeanVM.Guest.B1.Main (MemL RegionL)
 
 namespace VkData
 
-variable {D : VkData} {rd : Reader} {B curE chiE olE zvE slE tbE : ℕ} {ls : ℕ → ℕ}
+variable {D : VkData} {rd : Reader} {B curE chiE olE zvE slE tbE stE : ℕ} {ls : ℕ → ℕ}
 
 /-- Word `k` of claim `s`'s record, through the claim records' pointer. -/
 theorem rec_word (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ : Val}
-    (h201 : σ (.n 155) = ptr (B + D.o201)) {s : ℕ} (hs : s < 12) {k : ℕ} (hk : k < 22) :
-    LoadHolds rd (σ (.n 155)) (22 * s + k) ((D.CL B ls s).cw.getD k 0) := by
+    (h201 : σ (.n (val% «verify_keccak» "claims")) = ptr (B + D.o201)) {s : ℕ} (hs : s < 12) {k : ℕ} (hk : k < 22) :
+    LoadHolds rd (σ (.n (val% «verify_keccak» "claims"))) (22 * s + k) ((D.CL B ls s).cw.getD k 0) := by
   have hcw := memL_entry (CL_mem h hm hs) (b := (D.CL B ls s).bclaim) (ws := (D.CL B ls s).cw)
     (by simp [ClaimLay.L])
   have hbc : (D.CL B ls s).bclaim = B + D.o201 + 22 * s := by cases s <;> rfl
@@ -44,8 +46,8 @@ theorem rec_word (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ :
 
 /-- **Step `s`'s pointers.** -/
 theorem step_ptrs (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ : Val}
-    (hσd : σ = D.val rd B curE chiE olE zvE slE tbE) {s : ℕ} (hs : s < 12)
-    (h17 : σ (.n 18) = gen ^ (D.τ - 4)) (h201 : σ (.n 155) = ptr (B + D.o201)) :
+    (hσd : σ = D.val rd B curE chiE olE zvE slE tbE stE) {s : ℕ} (hs : s < 12)
+    (h17 : σ (.n (val% «verify_keccak» "pack_g")) = gen ^ (D.τ - 4)) (h201 : σ (.n (val% «verify_keccak» "claims")) = ptr (B + D.o201)) :
     σ (.n (stepB s + 1)) = ptr (D.CL B ls s).bpp * gen ^ (D.τ - 4) ∧
     (s ≠ 0 → ∀ j < (iotaUsed s).length, σ (.n (stepB s + 6 + 2 * j)) = ptr (D.CL B ls s).bfl) := by
   have hg : ∀ st ∈ stepCore s (stepB s), GoodS rd vkSt (D.w B curE) σ st := fun st hst ↦ by
@@ -55,8 +57,8 @@ theorem step_ptrs (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ 
     rw [stepT_split]; exact List.mem_append_left _ hst
   have gA : ∀ a, Stmt.atom a ∈ stepCore s (stepB s) → Good rd vkSt (D.w B curE) σ a :=
     fun a h ↦ hg _ h
-  have mA : ∀ a ∈ [Atom.load (.n (stepB s)) (.n 155) (22 * s + 2),
-      .mul (.n (stepB s + 1)) (.n (stepB s)) (.n 18)], Stmt.atom a ∈ stepCore s (stepB s) := by
+  have mA : ∀ a ∈ [Atom.load (.n (stepB s)) (.n (val% «verify_keccak» "claims")) (22 * s + 2),
+      .mul (.n (stepB s + 1)) (.n (stepB s)) (.n (val% «verify_keccak» "pack_g"))], Stmt.atom a ∈ stepCore s (stepB s) := by
     intro a ha
     refine List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _ ?_))
     simp only [List.mem_cons, List.not_mem_nil, or_false] at ha
@@ -68,13 +70,13 @@ theorem step_ptrs (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ 
     have := rec_word h hm h201 hs (k := 2) (by norm_num)
     rw [h2] at this
     exact load_val (gA _ (mA _ (by simp))) (not_mem_of_noneIn k1 _ (by simp)) this
-  have m1 := mulG (by omega) (by omega) (gA _ (mA (.mul (.n (stepB s + 1)) (.n (stepB s)) (.n 18))
+  have m1 := mulG (by omega) (by omega) (gA _ (mA (.mul (.n (stepB s + 1)) (.n (stepB s)) (.n (val% «verify_keccak» "pack_g")))
     (by simp)))
   refine ⟨by rw [m1, e0, h17], fun hs0 j hj ↦ ?_⟩
   have hf0 : firstOf s = 0 := by unfold firstOf; split <;> omega
   simp only [hf0, show (0 : ℕ) = 1 ↔ False by decide, ↓reduceIte] at hw
   obtain ⟨-, h5, -, -⟩ := hw
-  have m0 : Stmt.atom (.load (.n (stepB s + 6 + 2 * j)) (.n 155) (22 * s + 5)) ∈
+  have m0 : Stmt.atom (.load (.n (stepB s + 6 + 2 * j)) (.n (val% «verify_keccak» "claims")) (22 * s + 5)) ∈
       flipsT s (stepB s + 6) := by
     simp only [flipsT, List.mem_flatten, List.mem_map, List.mem_range]
     exact ⟨_, ⟨j, hj, rfl⟩, by simp [flipT, hs0, flipSz]⟩
@@ -85,11 +87,11 @@ theorem step_ptrs (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ 
 
 /-- **The inputs' check's pointers.** -/
 theorem fin_ptrs (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ : Val}
-    (hσd : σ = D.val rd B curE chiE olE zvE slE tbE) (h17 : σ (.n 18) = gen ^ (D.τ - 4))
-    (h201 : σ (.n 155) = ptr (B + D.o201)) :
-    σ (.n 1740) = ptr (ls 11) * gen ^ (D.τ - 4) ∧
-      σ (.n 1974) = ptr (ls 11 + (D.layer 11).y + 112) ∧
-      σ (.n 3137) = ptr (ls 11 + (D.layer 11).y + 123) := by
+    (hσd : σ = D.val rd B curE chiE olE zvE slE tbE stE) (h17 : σ (.n (val% «verify_keccak» "pack_g")) = gen ^ (D.τ - 4))
+    (h201 : σ (.n (val% «verify_keccak» "claims")) = ptr (B + D.o201)) :
+    σ (.n (val% «verify_keccak» "s72#0")) = ptr (ls 11) * gen ^ (D.τ - 4) ∧
+      σ (.n (val% «verify_keccak» "last_local")) = ptr (ls 11 + (D.layer 11).y + 112) ∧
+      σ (.n (val% «verify_keccak» "last_lanes")) = ptr (ls 11 + (D.layer 11).y + 123) := by
   have hg : ∀ st ∈ vkFinT, GoodS rd vkSt (D.w B curE) σ st := fun st hst ↦ by
     subst hσd
     exact val_good' h (List.mem_append_right _ hst)
@@ -97,15 +99,15 @@ theorem fin_ptrs (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ :
   have k1 := vkFin_ker.1
   have hrec := last_rec h hm
   rw [outWs_last h, ← h201] at hrec
-  have e4977 : σ (.n 1739) = ptr (ls 11) :=
-    load_val (gA (.load (.n 1739) (.n 155) 266) (by simp [vkFinT])) (not_mem_of_noneIn k1 _ (by simp))
+  have e4977 : σ (.n (val% «verify_keccak» "last_point")) = ptr (ls 11) :=
+    load_val (gA (.load (.n (val% «verify_keccak» "last_point")) (.n (val% «verify_keccak» "claims")) 266) (by simp [vkFinT])) (not_mem_of_noneIn k1 _ (by simp))
       (by simpa using hrec 2 (by norm_num))
   have m4978 := mulG (by norm_num) (by norm_num)
-    (gA (.mul (.n 1740) (.n 1739) (.n 18)) (by simp [vkFinT]))
+    (gA (.mul (.n (val% «verify_keccak» "s72#0")) (.n (val% «verify_keccak» "last_point")) (.n (val% «verify_keccak» "pack_g"))) (by simp [vkFinT]))
   refine ⟨by rw [m4978, e4977, h17], ?_, ?_⟩
-  · exact load_val (gA (.load (.n 1974) (.n 155) 268) (by simp [vkFinT]))
+  · exact load_val (gA (.load (.n (val% «verify_keccak» "last_local")) (.n (val% «verify_keccak» "claims")) 268) (by simp [vkFinT]))
       (not_mem_of_noneIn k1 _ (by simp)) (by simpa using hrec 4 (by norm_num))
-  · exact load_val (gA (.load (.n 3137) (.n 155) 267) (by simp [vkFinT]))
+  · exact load_val (gA (.load (.n (val% «verify_keccak» "last_lanes")) (.n (val% «verify_keccak» "claims")) 267) (by simp [vkFinT]))
       (not_mem_of_noneIn k1 _ (by simp)) (by simpa using hrec 3 (by norm_num))
 
 end VkData

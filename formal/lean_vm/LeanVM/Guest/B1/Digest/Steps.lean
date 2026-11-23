@@ -235,7 +235,7 @@ theorem genMul_sound {rd : Reader} {σ : Val} {atoms : List Atom} {x p : V}
 
 /-! ## Loop helpers -/
 
-/-- **The shape of a `mul_range` helper `f`** (`__loopN`): parameters `.n 0` (the counter `x`),
+/-- **The shape of a `mul_range` helper `f`** (`__loopN_g`): parameters `.n 0` (the counter `x`),
 `.n 1` (the end `N`), …; its body atoms, then `callIf (x·g + N) f [x·g, the other parameters]`. -/
 def loopShape (fn : Fn) (f : String) : Bool :=
   decide (2 ≤ fn.params.length) && decide (fn.params = (List.range fn.params.length).map V.n) &&

@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.B1.KeccakGkr.LayerSecA
 public import LeanVM.Guest.B1.KeccakGkr.LayerCBlock
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«keccak_layer__L»
 
 /-!
 # The product and `s`, completely
@@ -32,19 +34,19 @@ open LeanVM.Guest.B1.Fwd
 variable {C : CallRel} {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val}
 
 /-- The head and the product. -/
-def secA1 (first : ℕ) : List Stmt := headT first ++ prodT (.n 7) (muB first) (prodTab first)
+def secA1 (first : ℕ) : List Stmt := headT first ++ prodT (.n (valf% «keccak_layer» "cursor@1")) (muB first) (prodTab first)
 
 /-- The check and the grind's squeeze. -/
 def secA2 (first : ℕ) : List Stmt := checkT (accL first) ++ sqT first
 
 /-- The residual atoms of the head and the product: the claim's weights, the stream words. -/
 def residA1 (first : ℕ) : List Atom :=
-  (List.range 16).map (fun i ↦ .load (.n (muB first + i)) (.n 11) (6 + i)) ++
-    (List.range 47).map fun k ↦ .load (.n ((prodTab first).getD k default).a) (.n 7) k
+  (List.range 16).map (fun i ↦ .load (.n (muB first + i)) (.n (valf% «keccak_layer» "claim")) (6 + i)) ++
+    (List.range 47).map fun k ↦ .load (.n ((prodTab first).getD k default).a) (.n (valf% «keccak_layer» "cursor@1")) k
 
 /-- The residual atoms of the check. -/
 def residC (first : ℕ) : List Atom :=
-  [.load (.n (accL first + 1)) (.n 11) 1, .load (.n (accL first + 4)) (.n 11) 0,
+  [.load (.n (accL first + 1)) (.n (valf% «keccak_layer» "claim")) 1, .load (.n (accL first + 4)) (.n (valf% «keccak_layer» "claim")) 0,
     .assertEq (.n (accL first + 3)) (.n (accL first + 4))]
 
 theorem secA_atoms {first : ℕ} (hf : first < 2) :
@@ -65,8 +67,8 @@ theorem secA_residC {first : ℕ} (hf : first < 2) :
   · decide +kernel
 
 theorem prodTab_a_eq {first : ℕ} (hf : first < 2) {prod : List E} (hpl : prod.length = 47)
-    (hr : ReadsAt rd (σ (.n 7)) prod)
-    (hr' : ReadsAt rd (σ (.n 7)) ((prodTab first).map fun p ↦ σ (.n p.a))) :
+    (hr : ReadsAt rd (σ (.n (valf% «keccak_layer» "cursor@1"))) prod)
+    (hr' : ReadsAt rd (σ (.n (valf% «keccak_layer» "cursor@1"))) ((prodTab first).map fun p ↦ σ (.n p.a))) :
     (prodTab first).map (fun p ↦ σ (.n p.a)) = prod := by
   obtain ⟨hl, -⟩ := prodTab_facts first hf
   apply List.ext_getElem (by simp [hl, hpl])
@@ -98,9 +100,9 @@ theorem grind_out1 {s : Fs} {n : E} {b : ℕ}
 /-- **The grind and the squeeze, completely**: from the cells the product leaves, the nonce at
 the cursor's word `47` passing the grind, and `grind_check` complete on the tables, `sqT` holds. -/
 theorem sqT_complete {first : ℕ} (hf : first < 2) {s : Fs} (hs : SpOk σ s (capF first, pendF first))
-    (hg : ∀ st ∈ sqT first, GoodS rd S w σ st) (hS7 : ∀ d off, Atom.load d (.n 7) off ∉ S)
-    {n : E} (hn : LoadHolds rd (σ (.n 7)) 47 n) (hok : s.GrindOk sGrindBits n)
-    (hgr : ∀ v : E, (v.limb 0).lane.toNat % 2 ^ 3 = 0 → C (grindCheckName 3) [v, σ (.n 14)] []) :
+    (hg : ∀ st ∈ sqT first, GoodS rd S w σ st) (hS7 : ∀ d off, Atom.load d (.n (valf% «keccak_layer» "cursor@1")) off ∉ S)
+    {n : E} (hn : LoadHolds rd (σ (.n (valf% «keccak_layer» "cursor@1"))) 47 n) (hok : s.GrindOk sGrindBits n)
+    (hgr : ∀ v : E, (v.limb 0).lane.toNat % 2 ^ 3 = 0 → C (grindCheckName 3) [v, σ (.n (valf% «keccak_layer» "tabs"))] []) :
     σ (.n (nonceV first)) = n ∧
       σ (.n (layOff first + 532)) = cellsOfState (s.nonceState n) false ⟨1, by omega⟩ ∧
       s.grindSqueeze sGrindBits n =
@@ -108,45 +110,45 @@ theorem sqT_complete {first : ℕ} (hf : first < 2) {s : Fs} (hs : SpOk σ s (ca
       ∀ {next : Prop} {kret : List E → Prop}, next →
         Stmt.HoldsList C rd σ (sqT first) next kret := by
   interval_cases first
-  · have g1 : ∀ st ∈ fsNonceT (.n 7) 47 528, GoodS rd S w σ st := fun st h ↦
+  · have g1 : ∀ st ∈ fsNonceT (.n (valf% «keccak_layer» "cursor@1")) 47 529, GoodS rd S w σ st := fun st h ↦
       hg st (by simp [sqT, h])
-    have gk : Good rd S w σ (.keccak (sqIns 0) ((List.range 13).map fun k ↦ .n (531 + k))
-        false false) := hg (.atom (.keccak (sqIns 0) ((List.range 13).map fun k ↦ .n (531 + k))
+    have gk : Good rd S w σ (.keccak (sqIns 0) ((List.range 13).map fun k ↦ .n (532 + k))
+        false false) := hg (.atom (.keccak (sqIns 0) ((List.range 13).map fun k ↦ .n (532 + k))
         false false)) (by simp [sqT, keccakA])
-    have e528 : σ (.n 528) = n := load_val (w := w) (g1 _ (List.mem_cons_self ..)) (hS7 _ _) hn
-    have hp : FsPackOk σ (.n 528) (528 + 1) dsPowNonce :=
+    have e528 : σ (.n 529) = n := load_val (w := w) (g1 _ (List.mem_cons_self ..)) (hS7 _ _) hn
+    have hp : FsPackOk σ (.n 529) (529 + 1) dsPowNonce :=
       fsPack_vals_of_good fun st h ↦ g1 st (List.mem_cons_of_mem _ h)
     have hk := keccakA_complete gk
     have hlen := pendOk_length hs.2
-    have hs' : SpOk σ (s.absorb (σ (.n 528)) dsPowNonce)
-        (capF 0, pendF 0 ++ [(.n 529, .n 530)]) := by
+    have hs' : SpOk σ (s.absorb (σ (.n 529)) dsPowNonce)
+        (capF 0, pendF 0 ++ [(.n 530, .n 531)]) := by
       have hne : s.pend.length ≠ rateScalars := by rw [hlen]; decide
       simp only [Fs.absorb, hne, ↓reduceIte]
       exact ⟨hs.1, pendOk_append hs.2 (fsPackT_cells hp)⟩
     obtain ⟨-, hout⟩ := spOk_perm hs' hk (zs := []) (by decide) rfl (by decide)
     rw [e528] at hout
-    have hpow := grind_cell (s := s) (b := 531) hout hok
-    obtain ⟨-, hsq⟩ := grind_sq (s := s) (n := n) (b := 531) hout hpow
+    have hpow := grind_cell (s := s) (b := 532) hout hok
+    obtain ⟨-, hsq⟩ := grind_sq (s := s) (n := n) (b := 532) hout hpow
     refine ⟨e528, grind_out1 hout, hsq, fun {next kret} hnx ↦ ?_⟩
     simp only [sqT, show (0 : ℕ) ≠ 1 by decide, ↓reduceIte, holdsList_append, holds_fsNonceT,
       keccakA, grindCallT, Stmt.HoldsList, Stmt.Holds, List.map_cons,
       List.map_nil]
     exact ⟨⟨by rw [e528]; exact hn, hp⟩, hk, hgr _ hpow, hnx⟩
-  · have g1 : ∀ st ∈ fsNonceT (.n 7) 47 543, GoodS rd S w σ st := fun st h ↦
+  · have g1 : ∀ st ∈ fsNonceT (.n (valf% «keccak_layer» "cursor@1")) 47 544, GoodS rd S w σ st := fun st h ↦
       hg st (by simp [sqT, h])
-    have gp : ∀ st ∈ padRunT 546, GoodS rd S w σ st := fun st h ↦
+    have gp : ∀ st ∈ padRunT 547, GoodS rd S w σ st := fun st h ↦
       hg st (by simp [sqT, h])
-    have gk1 : Good rd S w σ (.keccak (sqIns 1) ((List.range 13).map fun k ↦ .n (530 + k))
-        false false) := hg (.atom (.keccak (sqIns 1) ((List.range 13).map fun k ↦ .n (530 + k))
+    have gk1 : Good rd S w σ (.keccak (sqIns 1) ((List.range 13).map fun k ↦ .n (531 + k))
+        false false) := hg (.atom (.keccak (sqIns 1) ((List.range 13).map fun k ↦ .n (531 + k))
         false false)) (by simp [sqT, keccakA])
-    have gk2 : Good rd S w σ (.keccak (permIns 1 [.n 544, .n 545] 547 (cap5 538))
-        ((List.range 13).map fun k ↦ .n (551 + k)) false false) :=
-      hg (.atom (.keccak (permIns 1 [.n 544, .n 545] 547 (cap5 538))
-        ((List.range 13).map fun k ↦ .n (551 + k)) false false)) (by simp [sqT, keccakA])
-    have e543 : σ (.n 543) = n := load_val (w := w) (g1 _ (List.mem_cons_self ..)) (hS7 _ _) hn
-    have hp : FsPackOk σ (.n 543) (543 + 1) dsPowNonce :=
+    have gk2 : Good rd S w σ (.keccak (permIns 1 [.n 545, .n 546] 548 (cap5 539))
+        ((List.range 13).map fun k ↦ .n (552 + k)) false false) :=
+      hg (.atom (.keccak (permIns 1 [.n 545, .n 546] 548 (cap5 539))
+        ((List.range 13).map fun k ↦ .n (552 + k)) false false)) (by simp [sqT, keccakA])
+    have e543 : σ (.n 544) = n := load_val (w := w) (g1 _ (List.mem_cons_self ..)) (hS7 _ _) hn
+    have hp : FsPackOk σ (.n 544) (544 + 1) dsPowNonce :=
       fsPack_vals_of_good fun st h ↦ g1 st (List.mem_cons_of_mem _ h)
-    have hpad : PadRunOk σ 546 := by
+    have hpad : PadRunOk σ 547 := by
       simp only [padRunT, List.forall_mem_cons, List.not_mem_nil, IsEmpty.forall_iff,
         implies_true, and_true, GoodS, Good] at gp
       obtain ⟨z0, z1, z2, z3, z4⟩ := gp
@@ -158,15 +160,15 @@ theorem sqT_complete {first : ℕ} (hf : first < 2) {s : Fs} (hs : SpOk σ s (ca
     obtain ⟨-, hout1⟩ := spOk_perm hs hk1 (zs := []) (by decide) rfl (by decide)
     have hcap1 := capOf_outs hout1
     have hfull : s.pend.length = rateScalars := by rw [hlen]; decide
-    have hs' : SpOk σ (s.absorb (σ (.n 543)) dsPowNonce) (cap5 538, [(.n 544, .n 545)]) := by
+    have hs' : SpOk σ (s.absorb (σ (.n 544)) dsPowNonce) (cap5 539, [(.n 545, .n 546)]) := by
       simp only [Fs.absorb, hfull, ↓reduceIte]
       exact ⟨hcap1, fsPackT_cells hp, trivial⟩
     obtain ⟨z0, z1, z2, z3, z4⟩ := hpad
-    obtain ⟨-, hout⟩ := spOk_perm hs' hk2 (zs := [.n 547, .n 547, .n 547, .n 548, .n 549, .n 550])
+    obtain ⟨-, hout⟩ := spOk_perm hs' hk2 (zs := [.n 548, .n 548, .n 548, .n 549, .n 550, .n 551])
       (by decide) (by simp [z1, z2, z3, z4]) (by decide)
     rw [e543] at hout
-    have hpow := grind_cell (s := s) (b := 551) hout hok
-    obtain ⟨-, hsq⟩ := grind_sq (s := s) (n := n) (b := 551) hout hpow
+    have hpow := grind_cell (s := s) (b := 552) hout hok
+    obtain ⟨-, hsq⟩ := grind_sq (s := s) (n := n) (b := 552) hout hpow
     refine ⟨e543, grind_out1 hout, hsq, fun {next kret} hnx ↦ ?_⟩
     simp only [sqT, ↓reduceIte, holdsList_append, holds_fsNonceT, holds_padRunT,
       keccakA, grindCallT, Stmt.HoldsList, Stmt.Holds, List.map_cons,
@@ -176,22 +178,22 @@ theorem sqT_complete {first : ℕ} (hf : first < 2) {s : Fs} (hs : SpOk σ s (ca
 /-- **The product and `s`, completely.** -/
 theorem layerA_complete {first : ℕ} (hf : first < 2) (hσ : ∀ v, σ v = σ (.n v.idx))
     (hg : ∀ s ∈ secA1 first ++ secA2 first, GoodS rd S w σ s)
-    (hS7 : ∀ d off, Atom.load d (.n 7) off ∉ S) (hS11 : ∀ d off, Atom.load d (.n 11) off ∉ S)
-    {w0 : E} (hw : first = 1 → (σ (.n 5), σ (.n 6)) = Keccak.scalarCells w0 dsObserve)
-    {c : KeccakClaim} (hmuL : c.mu.length = 16) (hval : LoadHolds rd (σ (.n 11)) 0 c.value)
-    (hkap : LoadHolds rd (σ (.n 11)) 1 (sumE c.mu))
-    (hmus : ∀ i < 16, LoadHolds rd (σ (.n 11)) (6 + i) (c.mu.getD i 0))
-    {prod : List E} (hpl : prod.length = 47) (hprod : ReadsAt rd (σ (.n 7)) prod)
-    (hproj : projectedOf c prod + σ (.n 13) * sumE c.mu = c.value)
-    {n : E} (hn : LoadHolds rd (σ (.n 7)) 47 n)
-    (hok : ((plainStart first [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)] w0).absorbAll
+    (hS7 : ∀ d off, Atom.load d (.n (valf% «keccak_layer» "cursor@1")) off ∉ S) (hS11 : ∀ d off, Atom.load d (.n (valf% «keccak_layer» "claim")) off ∉ S)
+    {w0 : E} (hw : first = 1 → (σ (.n (valf% «keccak_layer» "p0")), σ (.n (valf% «keccak_layer» "p1"))) = Keccak.scalarCells w0 dsObserve)
+    {c : KeccakClaim} (hmuL : c.mu.length = 16) (hval : LoadHolds rd (σ (.n (valf% «keccak_layer» "claim"))) 0 c.value)
+    (hkap : LoadHolds rd (σ (.n (valf% «keccak_layer» "claim"))) 1 (sumE c.mu))
+    (hmus : ∀ i < 16, LoadHolds rd (σ (.n (valf% «keccak_layer» "claim"))) (6 + i) (c.mu.getD i 0))
+    {prod : List E} (hpl : prod.length = 47) (hprod : ReadsAt rd (σ (.n (valf% «keccak_layer» "cursor@1"))) prod)
+    (hproj : projectedOf c prod + σ (.n (valf% «keccak_layer» "iota")) * sumE c.mu = c.value)
+    {n : E} (hn : LoadHolds rd (σ (.n (valf% «keccak_layer» "cursor@1"))) 47 n)
+    (hok : ((plainStart first [σ (.n (valf% «keccak_layer» "fs0")), σ (.n (valf% «keccak_layer» "fs1")), σ (.n (valf% «keccak_layer» "fs2")), σ (.n (valf% «keccak_layer» "fs3")), σ (.n (valf% «keccak_layer» "fs4"))] w0).absorbAll
       prod dsObserve).GrindOk sGrindBits n)
-    (hgr : ∀ v : E, (v.limb 0).lane.toNat % 2 ^ 3 = 0 → C (grindCheckName 3) [v, σ (.n 14)] []) :
+    (hgr : ∀ v : E, (v.limb 0).lane.toNat % 2 ^ 3 = 0 → C (grindCheckName 3) [v, σ (.n (valf% «keccak_layer» "tabs"))] []) :
     σ (.n (nonceV first)) = n ∧ (prodTab first).map (fun p ↦ σ (.n p.a)) = prod ∧
       σ (.n (layOff first + 532)) = cellsOfState (((plainStart first
-        [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)] w0).absorbAll prod dsObserve).nonceState
+        [σ (.n (valf% «keccak_layer» "fs0")), σ (.n (valf% «keccak_layer» "fs1")), σ (.n (valf% «keccak_layer» "fs2")), σ (.n (valf% «keccak_layer» "fs3")), σ (.n (valf% «keccak_layer» "fs4"))] w0).absorbAll prod dsObserve).nonceState
           n) false ⟨1, by omega⟩ ∧
-      layerSq (plainStart first [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)] w0) prod n =
+      layerSq (plainStart first [σ (.n (valf% «keccak_layer» "fs0")), σ (.n (valf% «keccak_layer» "fs1")), σ (.n (valf% «keccak_layer» "fs2")), σ (.n (valf% «keccak_layer» "fs3")), σ (.n (valf% «keccak_layer» "fs4"))] w0) prod n =
         (σ (.n (layOff first + 531)), ⟨(cap5 (layOff first + 539)).map σ, []⟩) ∧
       ∀ {next : Prop} {kret : List E → Prop}, next →
         Stmt.HoldsList C rd σ (secA1 first ++ secA2 first) next kret := by
@@ -220,8 +222,8 @@ theorem layerA_complete {first : ℕ} (hf : first < 2) (hσ : ∀ v, σ v = σ (
   have hP := H1 (kret := fun _ ↦ True) trivial
   rw [secA1, holdsList_append] at hP
   obtain ⟨hcp, hmu, hR, hP⟩ := headT_holds hP
-  have hs0 : SpOk σ (plainStart first [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)] w0)
-      (cap5 15, pend0 first) := by
+  have hs0 : SpOk σ (plainStart first [σ (.n (valf% «keccak_layer» "fs0")), σ (.n (valf% «keccak_layer» "fs1")), σ (.n (valf% «keccak_layer» "fs2")), σ (.n (valf% «keccak_layer» "fs3")), σ (.n (valf% «keccak_layer» "fs4"))] w0)
+      (cap5 16, pend0 first) := by
     refine ⟨?_, ?_⟩
     · simp only [plainStart, cap5, List.map_cons, List.map_nil]
       rw [hcp 0 (by omega), hcp 1 (by omega), hcp 2 (by omega), hcp 3 (by omega),

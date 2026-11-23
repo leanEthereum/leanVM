@@ -10,6 +10,9 @@ public import LeanVM.Guest.B1.Whir.CResLoop
 public import LeanVM.Guest.B1.Whir.LrSound
 public import LeanVM.Guest.CoreData
 public import LeanVM.Guest.B1.Whir.DataSpec
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«level_residual__L_loop0»
+import LeanVM.Guest.Data.ValNames.«level_residual__L_loop1»
 
 /-!
 # `level_residual`'s loops, honestly
@@ -72,8 +75,8 @@ theorem lrLoop1_iter {q cols nhs hbits : ℕ} {hsv : List E}
     (by omega) js (y + 3) (y + 4) (y + 5) (by omega) (by omega) (by omega) (by omega) (by omega)
     (by omega)
   have hval := fun (σ : Val) (C : CallRel)
-      (hD' : ∀ s < cols, LoadHolds rd (σ (.n 4)) (0 + s) (D s))
-      (hH' : ∀ c < nhs, LoadHolds rd (σ (.n 5)) (0 + c) (hsv.getD c 0)) ↦
+      (hD' : ∀ s < cols, LoadHolds rd (σ (.n (valf% «level_residual» «_loop0» "row_d"))) (0 + s) (D s))
+      (hH' : ∀ c < nhs, LoadHolds rd (σ (.n (valf% «level_residual» «_loop0» "hs"))) (0 + c) (hsv.getD c 0)) ↦
     osResSteps_val (C := C) (σ := σ) (pp := y) (bd := 4) (ro := 0) (hp := 5) (ho := 0)
       (vo := lrVo cols) (mu := 6) hc1 hn1 hb3 hbn hD' hlen hH' js (y + 3) (y + 4) (y + 5)
   generalize hstd : osResSteps y 4 0 5 0 (lrVo cols) cols nhs hbits 6 js (y + 3) (y + 4) (y + 5) =
@@ -104,7 +107,7 @@ theorem lrLoop1_iter {q cols nhs hbits : ℕ} {hsv : List E}
   have hσP : ∀ i < r, σ (.n i) = evalV M (fun _ ↦ 0) 7 v0 P' i := fun i hi ↦ by
     show evalV M (fun _ ↦ 0) 7 v0 ((P' ++ S3) ++ osLoopTailA r) i = _
     rw [hPS.evalV_lt hS4.toSsa _ hi, hP.toSsa.evalV_lt hS3 _ hi]
-  have hσ0 : ∀ i < 7, σ (.n i) = v0 i := fun i hi ↦ by
+  have hσ0 : ∀ i < (valf% «level_residual» «_loop0» "batch~0"), σ (.n i) = v0 i := fun i hi ↦ by
     show evalV M (fun _ ↦ 0) 7 v0 ((P' ++ S3) ++ osLoopTailA r) i = _
     rw [hS.keep _ i hi]
   -- the first block: the batch's pointer and the chains' row
@@ -118,12 +121,12 @@ theorem lrLoop1_iter {q cols nhs hbits : ℕ} {hsv : List E}
   simp only [hA1, allOk_append, allOk_cons, allOk_nil, and_true, stmtOk_atom, holds_mul, osMul]
     at okA1'
   obtain ⟨hpw, m3, m4, m5⟩ := okA1'
-  have e0 : σ (.n 0) = gen ^ j := hσ0 0 (by omega)
-  have e2 : σ (.n 2) = P := hσ0 2 (by omega)
-  have e3 : σ (.n 3) = CH := hσ0 3 (by omega)
-  have e4 : σ (.n 4) = BD := hσ0 4 (by omega)
-  have e5 : σ (.n 5) = HS := hσ0 5 (by omega)
-  have e6 : σ (.n 6) = mu := hσ0 6 (by omega)
+  have e0 : σ (.n (valf% «level_residual» «_loop0» "xr")) = gen ^ j := hσ0 0 (by omega)
+  have e2 : σ (.n (valf% «level_residual» «_loop0» "positions")) = P := hσ0 2 (by omega)
+  have e3 : σ (.n (valf% «level_residual» «_loop0» "chain")) = CH := hσ0 3 (by omega)
+  have e4 : σ (.n (valf% «level_residual» «_loop0» "row_d")) = BD := hσ0 4 (by omega)
+  have e5 : σ (.n (valf% «level_residual» «_loop0» "hs")) = HS := hσ0 5 (by omega)
+  have e6 : σ (.n (valf% «level_residual» «_loop0» "lam_inv")) = mu := hσ0 6 (by omega)
   have hX10 : σ (.n y) = P * gen ^ (resBatch * j) := by
     rw [m3, osBatchPow_val _ hpw, e0, e2, ← pow_mul, Nat.mul_comm j]
   have hX12 : σ (.n (y + 2)) = CH * gen ^ (2 * j) := by
@@ -293,8 +296,8 @@ theorem lrLoop2_iter {q cols nhs hbits : ℕ} {hsv : List E}
   obtain ⟨q1, q2, q3, q4⟩ := osResQuery_ssa 10 4 0 5 0 (lrVo cols) cols nhs hbits 11 (by omega) (by omega)
     (by omega) (by omega) (by omega)
   have hqv := fun (σ : Val) (C : CallRel)
-      (hD' : ∀ s < cols, LoadHolds rd (σ (.n 4)) (0 + s) (D s))
-      (hH' : ∀ c < nhs, LoadHolds rd (σ (.n 5)) (0 + c) (hsv.getD c 0)) ↦
+      (hD' : ∀ s < cols, LoadHolds rd (σ (.n (valf% «level_residual» «_loop1» "row_d"))) (0 + s) (D s))
+      (hH' : ∀ c < nhs, LoadHolds rd (σ (.n (valf% «level_residual» «_loop1» "hs"))) (0 + c) (hsv.getD c 0)) ↦
     osResQuery_val (C := C) (σ := σ) (pos := 10) (bd := 4) (ro := 0) (hp := 5) (ho := 0)
       (vo := lrVo cols) (k := 11) hc1 hn1 hb3 hbn hD' hlen hH'
   unfold lr2A
@@ -341,15 +344,15 @@ theorem lrLoop2_iter {q cols nhs hbits : ℕ} {hsv : List E}
       (evalV M (fun _ ↦ 0) 7 v0 (P' ++ W1)) R2 i := fun i hi ↦ by
     show evalV M (fun _ ↦ 0) 7 v0 L i = _
     rw [hLd, hPWRW.evalV_lt hT.toSsa _ (by omega), hPWR.evalV_lt hW2 _ hi, hPW.evalV_append]
-  have hσ0 : ∀ i < 7, σ (.n i) = v0 i := fun i hi ↦ by
+  have hσ0 : ∀ i < (valf% «level_residual» «_loop1» "rq~0"), σ (.n i) = v0 i := fun i hi ↦ by
     show evalV M (fun _ ↦ 0) 7 v0 L i = _
     rw [hL.keep _ i hi]
-  have e0 : σ (.n 0) = gen ^ j := hσ0 0 (by omega)
-  have e2 : σ (.n 2) = RS := hσ0 2 (by omega)
-  have e3 : σ (.n 3) = T := hσ0 3 (by omega)
-  have e4 : σ (.n 4) = BD := hσ0 4 (by omega)
-  have e5 : σ (.n 5) = HS := hσ0 5 (by omega)
-  have e6 : σ (.n 6) = mu := hσ0 6 (by omega)
+  have e0 : σ (.n (valf% «level_residual» «_loop1» "xq")) = gen ^ j := hσ0 0 (by omega)
+  have e2 : σ (.n (valf% «level_residual» «_loop1» "rest")) = RS := hσ0 2 (by omega)
+  have e3 : σ (.n (valf% «level_residual» «_loop1» "tail")) = T := hσ0 3 (by omega)
+  have e4 : σ (.n (valf% «level_residual» «_loop1» "row_d")) = BD := hσ0 4 (by omega)
+  have e5 : σ (.n (valf% «level_residual» «_loop1» "hs")) = HS := hσ0 5 (by omega)
+  have e6 : σ (.n (valf% «level_residual» «_loop1» "lam_inv")) = mu := hσ0 6 (by omega)
   -- the pointers
   have hS1' : SsaP 7 [osMul 7 2 0, osMul 8 7 0, osMul 9 3 0] 10 :=
     .mul le_rfl (by omega) (by omega) (.mul (by omega) (by omega) (by omega) (.mul (by omega)
@@ -364,14 +367,14 @@ theorem lrLoop2_iter {q cols nhs hbits : ℕ} {hsv : List E}
     rw [hS1'.toSsa.evalV_lt hld.toSsa _ hi]
   simp only [allOk_cons, allOk_nil, and_true, stmtOk_atom, holds_mul, osMul] at okA0
   obtain ⟨m7, m8, m9⟩ := okA0
-  have hX8 : σ (.n 8) = RS * gen ^ (2 * j) := by rw [m8, m7, e2, e0]; ring
-  have hX9 : σ (.n 9) = T * gen ^ j := by rw [m9, e3, e0]
+  have hX8 : σ (.n (valf% «level_residual» «_loop1» "rq")) = RS * gen ^ (2 * j) := by rw [m8, m7, e2, e0]; ring
+  have hX9 : σ (.n (valf% «level_residual» «_loop1» "s1#0")) = T * gen ^ j := by rw [m9, e3, e0]
   -- the memory
   have hrsl : ∀ o < 2 * (r + 1), LoadHolds rd RS o ((rsC lv D hsv Pos mu nb r).getD o 0) := fun o ho ↦
     readsAt_getDr hrs (by rw [rsC_length]; exact ho)
-  have hrs8 : ∀ o < 4, LoadHolds rd (σ (.n 8)) o ((rsC lv D hsv Pos mu nb r).getD (2 * j + o) 0) :=
+  have hrs8 : ∀ o < 4, LoadHolds rd (σ (.n (valf% «level_residual» «_loop1» "rq"))) o ((rsC lv D hsv Pos mu nb r).getD (2 * j + o) 0) :=
     fun o ho ↦ by rw [hX8, loadHolds_mul_gen_pow]; exact hrsl _ (by omega)
-  have hp9 : LoadHolds rd (σ (.n 9)) 0 (Pos (resBatch * nb + j)) := by
+  have hp9 : LoadHolds rd (σ (.n (valf% «level_residual» «_loop1» "s1#0"))) 0 (Pos (resBatch * nb + j)) := by
     rw [hX9, loadHolds_mul_gen_pow, Nat.add_zero]; exact hpos j hj
   -- the pure part
   have okP : AllOk (coreProgram.Rel rd) rd σ P' := by
@@ -390,7 +393,7 @@ theorem lrLoop2_iter {q cols nhs hbits : ℕ} {hsv : List E}
     holds_load, holds_add, holds_mul, osLd, osAdd, osMul] at okP'
   obtain ⟨⟨⟨-, -, -, l10⟩, hq⟩, le0, a1, u1⟩ := okP'
   obtain ⟨p1, p2⟩ := hqv σ (coreProgram.Rel rd) (by rw [e4]; simpa using hD) (by rw [e5]; simpa using hhs) hq
-  have v10 : σ (.n 10) = Pos (resBatch * nb + j) := loadHolds_unique l10 hp9
+  have v10 : σ (.n (valf% «level_residual» «_loop1» "s1#1")) = Pos (resBatch * nb + j) := loadHolds_unique l10 hp9
   obtain ⟨g0, g1⟩ := rsC_get lv D hsv Pos mu nb r (j := j) (by omega)
   obtain ⟨g2, g3⟩ := rsC_get lv D hsv Pos mu nb r (j := j + 1) (by omega)
   have ve : σ (.n e) = (rsAt lv D hsv Pos mu nb j).1 := by

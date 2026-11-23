@@ -1,5 +1,6 @@
 # Library: verify_tables' evaluation list (`vtEvL`: top-level ites' branches inline) with the
-# checker's counter at each statement, from vt_ir.txt (dump.py). Used by genstores.py.
+# checker's counter at each statement, from vt_ir.txt (dump.py), the counter starting at its parameters' count. Used by
+# genstores.py.
 import re, os
 def vs(t): return [int(x) for x in re.findall(r'\.n (\d+)', t)]
 def chkS(c, s):
@@ -48,14 +49,16 @@ def branches(s):
     return [split_items(p[1:-1].strip()) for p in parts]
 def load(path=None):
     path = path or os.environ.get('VT_IR', os.path.join(os.path.dirname(__file__), 'vt_ir.txt'))
-    top = [re.sub(r' ::$', '', l.rstrip('\n').split(': ', 1)[1]) for l in open(path)]
+    lines = [l.rstrip('\n').split(': ', 1) for l in open(path)]
+    nparams = len(vs(next(s for k, s in lines if k == 'params')))
+    top = [re.sub(r' ::$', '', s) for k, s in lines if k != 'params']
     top = [s for s in top if not s.startswith('.ret')]
     flat = []  # (top-level position, statement)
     for k, s in enumerate(top):
         if s.startswith('.ite'):
             for b in branches(s): flat += [(k, t) for t in b]
         else: flat.append((k, s))
-    c = 20; ctr = []
+    c = nparams; ctr = []
     for k, s in flat:
         ctr.append(c); c = chkS(c, s)
-    return top, flat, ctr, c
+    return top, flat, ctr, c, nparams

@@ -8,8 +8,10 @@
 module
 
 public import LeanVM.Guest.B1.Terminal.InterfaceP
-public import LeanVM.Guest.Data.Source
+public import LeanVM.Guest.Data.Consts
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«check_opening_terminal»
 
 /-!
 # `check_opening_terminal`, as a template
@@ -85,32 +87,32 @@ def selV (c : ℕ) : ℕ := (selKap c).2.2 + 2
 (`34`), the base
 `kappa_base` (`35 .. 42`), the selector tables (`43`). -/
 def termHeadT : List Stmt :=
-  [.atom (.hint (.alloc (.n 20) 35)), .atom (.const (.n 21) (word 1 0)),
-    .call "eq_prefix_chain" [.n 20, .n 21, .n 1, .n 14, .n 4] [],
-    .atom (.hint (.alloc (.n 22) 35)), .atom (.const (.n 23) (word 1 0)),
-    .call "eq_prefix_chain" [.n 22, .n 23, .n 2, .n 14, .n 5] [],
-    .atom (.mul (.n 24) (.n 13) (.n 7)), .atom (.mul (.n 25) (.n 14) (.n 7)),
-    .atom (.hint (.alloc (.n 26) 35)), .atom (.const (.n 27) (word 1 0)),
-    .atom (.load (.n 27) (.n 26) 0), .atom (.load (.n 28) (.n 14) 0),
-    .atom (.add (.n 29) (.n 3) (.n 28)), .atom (.load (.n 29) (.n 26) 1),
-    .atom (.const (.n 30) (word 2 0)), .atom (.add (.n 31) (.n 30) (.n 6)),
-    .atom (.const (.n 32) (word 2 0)),
-    .callIf (.n 31) name% «check_opening_terminal_loop0» [.n 32, .n 6, .n 26, .n 14],
-    .atom (.mul (.n 33) (.n 26) (.n 6)), .atom (.load (.n 34) (.n 33) 0),
-    .atom (.load (.n 35) (.n 8) 0), .atom (.load (.n 36) (.n 8) 1),
-    .atom (.load (.n 37) (.n 8) 2), .atom (.load (.n 38) (.n 8) 3),
-    .atom (.load (.n 39) (.n 8) 4), .atom (.load (.n 40) (.n 8) 5),
-    .atom (.load (.n 41) (.n 8) 6), .atom (.load (.n 42) (.n 8) 7),
-    .call "selector_tables" [.n 13, .n 14] [.n 43]]
+  [.atom (.hint (.alloc (.n (val% «check_opening_terminal» "zeta_eq_chain")) 35)), .atom (.const (.n (val% «check_opening_terminal» "s1#0")) (word 1 0)),
+    .call "eq_prefix_chain" [.n (val% «check_opening_terminal» "zeta_eq_chain"), .n (val% «check_opening_terminal» "s1#0"), .n (val% «check_opening_terminal» "zeta"), .n (val% «check_opening_terminal» "point1"), .n (val% «check_opening_terminal» "g_bus_mu")] [],
+    .atom (.hint (.alloc (.n (val% «check_opening_terminal» "chi_eq_chain")) 35)), .atom (.const (.n (val% «check_opening_terminal» "s3#0")) (word 1 0)),
+    .call "eq_prefix_chain" [.n (val% «check_opening_terminal» "chi_eq_chain"), .n (val% «check_opening_terminal» "s3#0"), .n (val% «check_opening_terminal» "chi"), .n (val% «check_opening_terminal» "point1"), .n (val% «check_opening_terminal» "g_zc_n")] [],
+    .atom (.mul (.n (val% «check_opening_terminal» "slot_point")) (.n (val% «check_opening_terminal» "point")) (.n (val% «check_opening_terminal» "tau_keccak_g"))), .atom (.mul (.n (val% «check_opening_terminal» "slot_point1")) (.n (val% «check_opening_terminal» "point1")) (.n (val% «check_opening_terminal» "tau_keccak_g"))),
+    .atom (.hint (.alloc (.n (val% «check_opening_terminal» "pi_chain")) 35)), .atom (.const (.n (val% «check_opening_terminal» "s7#0")) (word 1 0)),
+    .atom (.load (.n (val% «check_opening_terminal» "s7#0")) (.n (val% «check_opening_terminal» "pi_chain")) 0), .atom (.load (.n (val% «check_opening_terminal» "s8#0")) (.n (val% «check_opening_terminal» "point1")) 0),
+    .atom (.add (.n (val% «check_opening_terminal» "s8#1")) (.n (val% «check_opening_terminal» "rm")) (.n (val% «check_opening_terminal» "s8#0"))), .atom (.load (.n (val% «check_opening_terminal» "s8#1")) (.n (val% «check_opening_terminal» "pi_chain")) 1),
+    .atom (.const (.n (val% «check_opening_terminal» "s9#0")) (word 2 0)), .atom (.add (.n (val% «check_opening_terminal» "s9#1")) (.n (val% «check_opening_terminal» "s9#0")) (.n (val% «check_opening_terminal» "g_log_mem"))),
+    .atom (.const (.n (val% «check_opening_terminal» "s9#2")) (word 2 0)),
+    .callIf (.n (val% «check_opening_terminal» "s9#1")) name% «check_opening_terminal_loop0» [.n (val% «check_opening_terminal» "s9#2"), .n (val% «check_opening_terminal» "g_log_mem"), .n (val% «check_opening_terminal» "pi_chain"), .n (val% «check_opening_terminal» "point1")],
+    .atom (.mul (.n (val% «check_opening_terminal» "pi_eq~0")) (.n (val% «check_opening_terminal» "pi_chain")) (.n (val% «check_opening_terminal» "g_log_mem"))), .atom (.load (.n (val% «check_opening_terminal» "pi_eq")) (.n (val% «check_opening_terminal» "pi_eq~0")) 0),
+    .atom (.load (.n (val% «check_opening_terminal» "kb[0]")) (.n (val% «check_opening_terminal» "kappa_base")) 0), .atom (.load (.n (val% «check_opening_terminal» "kb[1]")) (.n (val% «check_opening_terminal» "kappa_base")) 1),
+    .atom (.load (.n (val% «check_opening_terminal» "kb[2]")) (.n (val% «check_opening_terminal» "kappa_base")) 2), .atom (.load (.n (val% «check_opening_terminal» "kb[3]")) (.n (val% «check_opening_terminal» "kappa_base")) 3),
+    .atom (.load (.n (val% «check_opening_terminal» "kb[4]")) (.n (val% «check_opening_terminal» "kappa_base")) 4), .atom (.load (.n (val% «check_opening_terminal» "kb[5]")) (.n (val% «check_opening_terminal» "kappa_base")) 5),
+    .atom (.load (.n (val% «check_opening_terminal» "kb[6]")) (.n (val% «check_opening_terminal» "kappa_base")) 6), .atom (.load (.n (val% «check_opening_terminal» "kb[7]")) (.n (val% «check_opening_terminal» "kappa_base")) 7),
+    .call "selector_tables" [.n (val% «check_opening_terminal» "point"), .n (val% «check_opening_terminal» "point1")] [.n (val% «check_opening_terminal» "sel_eq")]]
 
 /-- Committed column `c`'s selector: its offset, its `g^κ`, `sel_g = g_squares·g^34`
 and the dispatch on `κ`. -/
 def selBlockT (c : ℕ) : List Stmt :=
-  [.atom (.load (.n (selStart c)) (.n 10) c)] ++ (selKap c).1 ++
+  [.atom (.load (.n (selStart c)) (.n (val% «check_opening_terminal» "col_offsets")) c)] ++ (selKap c).1 ++
     [.atom (.const (.n (selKap c).2.2) (word 17179869184 0)),
-      .atom (.mul (.n ((selKap c).2.2 + 1)) (.n 0) (.n (selKap c).2.2)),
+      .atom (.mul (.n ((selKap c).2.2 + 1)) (.n (val% «check_opening_terminal» "g_squares")) (.n (selKap c).2.2)),
       .dispatch (.n (selKap c).2.1) colSelNames
-        [.n (selStart c), .n 43, .n ((selKap c).2.2 + 1)] [.n (selV c)]]
+        [.n (selStart c), .n (val% «check_opening_terminal» "sel_eq"), .n ((selKap c).2.2 + 1)] [.n (selV c)]]
 
 /-- The selectors, one per committed column. -/
 def selsT : List Stmt := (List.range Tables.nCommittedCols).flatMap selBlockT
@@ -124,7 +126,7 @@ def zrT (ch kr sel lr r acc : ℕ) : List Stmt :=
   [.atom (.mul (.n r) (.n ch) (.n kr)), .atom (.load (.n (r + 1)) (.n r) 0),
     .atom (.mul (.n (r + 2)) (.n lr) (.n (r + 1))),
     .atom (.mul (.n (r + 3)) (.n (r + 2)) (.n sel)),
-    .atom (.add (.n (r + 4)) (.n acc) (.n (r + 3))), .atom (.mul (.n (r + 5)) (.n lr) (.n 9))]
+    .atom (.add (.n (r + 4)) (.n acc) (.n (r + 3))), .atom (.mul (.n (r + 5)) (.n lr) (.n (val% «check_opening_terminal» "lam_cl")))]
 
 /-- Slot bit `k` of `s`'s point: `slot_point` (`24`) at a one, `slot_point1` (`25`) at a zero. -/
 def slotPt (s k : ℕ) : ℕ := if s.testBit k then 24 else 25
@@ -141,16 +143,16 @@ def qT (s kr lr r acc : ℕ) : List Stmt :=
     .atom (.mul (.n (r + 8)) (.n (r + 6)) (.n (r + 7))),
     .atom (.load (.n (r + 9)) (.n (slotPt s 0)) 0),
     .atom (.mul (.n (r + 10)) (.n (r + 8)) (.n (r + 9))),
-    .atom (.mul (.n (r + 11)) (.n 22) (.n kr)), .atom (.load (.n (r + 12)) (.n (r + 11)) 0),
+    .atom (.mul (.n (r + 11)) (.n (val% «check_opening_terminal» "chi_eq_chain")) (.n kr)), .atom (.load (.n (r + 12)) (.n (r + 11)) 0),
     .atom (.mul (.n (r + 13)) (.n (r + 10)) (.n (r + 12))),
     .atom (.mul (.n (r + 14)) (.n lr) (.n (r + 13))),
     .atom (.mul (.n (r + 15)) (.n (r + 14)) (.n (selV 4))),
-    .atom (.add (.n (r + 16)) (.n acc) (.n (r + 15))), .atom (.mul (.n (r + 17)) (.n lr) (.n 9))]
+    .atom (.add (.n (r + 16)) (.n acc) (.n (r + 15))), .atom (.mul (.n (r + 17)) (.n lr) (.n (val% «check_opening_terminal» "lam_cl")))]
 
 /-- A public input's claim (kind `2`). -/
 def pT (sel lr r acc : ℕ) : List Stmt :=
-  [.atom (.mul (.n r) (.n lr) (.n 34)), .atom (.mul (.n (r + 1)) (.n r) (.n sel)),
-    .atom (.add (.n (r + 2)) (.n acc) (.n (r + 1))), .atom (.mul (.n (r + 3)) (.n lr) (.n 9))]
+  [.atom (.mul (.n r) (.n lr) (.n (val% «check_opening_terminal» "pi_eq"))), .atom (.mul (.n (r + 1)) (.n r) (.n sel)),
+    .atom (.add (.n (r + 2)) (.n acc) (.n (r + 1))), .atom (.mul (.n (r + 3)) (.n lr) (.n (val% «check_opening_terminal» "lam_cl")))]
 
 /-- Claim `j`'s low length's `g`-power, from value `r`. -/
 def claimKap (j r : ℕ) : List Stmt × ℕ × ℕ := kapT (claimKappaSrc j) (claimKappaAdj j) r
@@ -184,22 +186,22 @@ outputs' chain, the ring switch's weight, both at `q_keccak`'s selector, the out
 chain seeded with `lam_out·lam_cl`, the terminal check. -/
 def termTailT (b acc lo : ℕ) : List Stmt :=
   [.atom (.hint (.alloc (.n b) 41)), .atom (.const (.n (b + 1)) (word 1 0)),
-    .atom (.const (.n (b + 2)) (word 64 0)), .atom (.mul (.n (b + 3)) (.n 7) (.n (b + 2))),
-    .call "eq_prefix_chain" [.n b, .n (b + 1), .n 11, .n 14, .n (b + 3)] [],
+    .atom (.const (.n (b + 2)) (word 64 0)), .atom (.mul (.n (b + 3)) (.n (val% «check_opening_terminal» "tau_keccak_g")) (.n (b + 2))),
+    .call "eq_prefix_chain" [.n b, .n (b + 1), .n (val% «check_opening_terminal» "z_vals"), .n (val% «check_opening_terminal» "point1"), .n (b + 3)] [],
     .atom (.const (.n (b + 4)) (word 549755813888 0)),
-    .atom (.mul (.n (b + 5)) (.n 11) (.n (b + 4))),
-    .atom (.const (.n (b + 6)) (word 64 0)), .atom (.mul (.n (b + 7)) (.n 7) (.n (b + 6))),
-    .call "ring_switch_weight" [.n (b + 5), .n 14, .n 12, .n (b + 7)] [.n (b + 8)],
-    .atom (.mul (.n (b + 9)) (.n b) (.n 7)), .atom (.load (.n (b + 10)) (.n (b + 9)) 6),
+    .atom (.mul (.n (b + 5)) (.n (val% «check_opening_terminal» "z_vals")) (.n (b + 4))),
+    .atom (.const (.n (b + 6)) (word 64 0)), .atom (.mul (.n (b + 7)) (.n (val% «check_opening_terminal» "tau_keccak_g")) (.n (b + 6))),
+    .call "ring_switch_weight" [.n (b + 5), .n (val% «check_opening_terminal» "point1"), .n (val% «check_opening_terminal» "c_table"), .n (b + 7)] [.n (b + 8)],
+    .atom (.mul (.n (b + 9)) (.n b) (.n (val% «check_opening_terminal» "tau_keccak_g"))), .atom (.load (.n (b + 10)) (.n (b + 9)) 6),
     .atom (.mul (.n (b + 11)) (.n lo) (.n (b + 10))),
     .atom (.add (.n (b + 12)) (.n (b + 8)) (.n (b + 11))),
     .atom (.mul (.n (b + 13)) (.n (b + 12)) (.n (selV 4))),
     .atom (.add (.n (b + 14)) (.n acc) (.n (b + 13))),
-    .atom (.hint (.alloc (.n (b + 15)) 31)), .atom (.mul (.n (b + 16)) (.n lo) (.n 9)),
-    .call "eq_prefix_chain" [.n (b + 15), .n (b + 16), .n 18, .n 14, .n 19] [],
-    .atom (.mul (.n (b + 17)) (.n (b + 15)) (.n 19)), .atom (.load (.n (b + 18)) (.n (b + 17)) 0),
+    .atom (.hint (.alloc (.n (b + 15)) 31)), .atom (.mul (.n (b + 16)) (.n lo) (.n (val% «check_opening_terminal» "lam_cl"))),
+    .call "eq_prefix_chain" [.n (b + 15), .n (b + 16), .n (val% «check_opening_terminal» "ood_z"), .n (val% «check_opening_terminal» "point1"), .n (val% «check_opening_terminal» "gmv")] [],
+    .atom (.mul (.n (b + 17)) (.n (b + 15)) (.n (val% «check_opening_terminal» "gmv"))), .atom (.load (.n (b + 18)) (.n (b + 17)) 0),
     .atom (.add (.n (b + 19)) (.n (b + 14)) (.n (b + 18))),
-    .atom (.mul (.n (b + 20)) (.n (b + 19)) (.n 16)), .atom (.assertEq (.n (b + 20)) (.n 17)),
+    .atom (.mul (.n (b + 20)) (.n (b + 19)) (.n (val% «check_opening_terminal» "yr_at_tail"))), .atom (.assertEq (.n (b + 20)) (.n (val% «check_opening_terminal» "sumcheck_target"))),
     .ret []]
 
 /-- The claims' blocks, from the first claim value, the sum at `inner_total` (`15`) and the power

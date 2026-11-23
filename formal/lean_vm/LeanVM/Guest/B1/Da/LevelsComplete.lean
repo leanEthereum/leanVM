@@ -13,6 +13,8 @@ public import LeanVM.Guest.B1.Da.LevelsSound
 public import LeanVM.Guest.B1.Digest.LoopComplete
 public import LeanVM.Guest.B1.Digest.PairComplete
 public import LeanVM.Guest.B1.Digest.ListsComplete
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«da_levels__L»
 
 /-!
 # `da_levels`, completely
@@ -276,7 +278,7 @@ theorem dl_complete {k : ℕ} (hk : k ≤ 10) (hok : dlEntryOk k = true) (hcok :
     rw [show [tree].length = 1 from rfl, hst] at hgs
     have hg : ∀ a ∈ atomsIn P, Good rd [] (fun _ => 0) σ a := fun a ha =>
       hgs (.atom a) (by rw [hb]; exact List.mem_append_left _ (atom_mem_of_atomsIn ha))
-    have e0 : σ (.n 0) = tree := ev_params rd _ (l := [tree]) hchk (by simp)
+    have e0 : σ (.n (valf% «da_levels» "tree")) = tree := ev_params rd _ (l := [tree]) hchk (by simp)
     have h2k : 1 ≤ 2 ^ k := Nat.one_le_two_pow
     -- the root's cells
     have hroot : ∀ i < 2, LoadHolds rd tree (4 * 2 ^ k - 4 + i)
@@ -285,7 +287,7 @@ theorem dl_complete {k : ℕ} (hk : k ≤ 10) (hok : dlEntryOk k = true) (hcok :
       have := treeMem_load hlen hmem (l := k) le_rfl (i := i) (by simp; omega)
       rwa [off_self, loadHolds_mul_gen_pow] at this
     have hval : ∀ (x : V) (o i : ℕ), i < 2 → o = 4 * 2 ^ k - 4 + i →
-        (atomsIn P).any (isLoadAt x (.n 0) o) = true → σ x = (pairCells (treeLvl leaves k)).getD i 0 := by
+        (atomsIn P).any (isLoadAt x (.n (valf% «da_levels» "tree")) o) = true → σ x = (pairCells (treeLvl leaves k)).getD i 0 := by
       intro x o i hi ho hx
       rw [good_load_of_any rfl hg hx, e0, ho, rdAt_of_load (hroot i hi)]
     have v0 := hval _ _ 0 (by omega) rfl hr0
@@ -299,9 +301,9 @@ theorem dl_complete {k : ℕ} (hk : k ≤ 10) (hok : dlEntryOk k = true) (hcok :
         cases a <;> simp only [isLoadAt, Bool.false_eq_true, Bool.and_eq_true, decide_eq_true_eq,
           beq_iff_eq] at h
         obtain ⟨⟨rfl, rfl⟩, rfl⟩ := h
-      · show LoadHolds rd (σ (.n 0)) _ (σ (.n (5 * k + 1)))
+      · show LoadHolds rd (σ (.n (valf% «da_levels» "tree"))) _ (σ (.n (5 * k + 1)))
         rw [v0, e0]; exact hroot 0 (by omega)
-      · show LoadHolds rd (σ (.n 0)) _ (σ (.n (5 * k + 2)))
+      · show LoadHolds rd (σ (.n (valf% «da_levels» "tree"))) _ (σ (.n (5 * k + 2)))
         rw [v1, e0, show 4 * 2 ^ k - 3 = 4 * 2 ^ k - 4 + 1 by omega]; exact hroot 1 (by omega)
     -- the guarded loops
     have hcall : ∀ lvl < k, SHolds (coreProgram.Rel rd) rd σ (lvlCall lvl (e.2.2.2.getD lvl "")) := by
@@ -339,7 +341,7 @@ theorem dl_complete {k : ℕ} (hk : k ≤ 10) (hok : dlEntryOk k = true) (hcok :
               hneeds2 hS2 hpa hpb hsp hlen hmem hp)
           show IsInK (σ (.n (5 * lvl + 3))) ∧ (σ (.n (5 * lvl + 3)) ≠ 0 →
             coreProgram.Rel rd (e.2.2.2.getD lvl "") [σ (.n (5 * lvl + 4)), σ (.n (5 * lvl + 5)),
-              σ (.n 0)] [])
+              σ (.n (valf% «da_levels» "tree"))] [])
           rw [hgc, hone, hNv, e0]
           exact hgd
         · exact absurd ha (by simp)

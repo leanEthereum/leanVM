@@ -11,6 +11,8 @@ module
 public import LeanVM.Guest.B1.Selectors.TableLemmas
 public import LeanVM.Guest.B1.Placement.Common
 public import LeanVM.Guest.CoreData
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«column_selector__L»
 
 /-!
 # `column_selector` (TRIAGE G #68)
@@ -178,27 +180,27 @@ def csNibT (κ k : ℕ) : List Stmt :=
   let c := csC κ k
   let d := 3 + k
   [.atom (.const (.n c) w15), .atom (.rangeCheck (.n d) (.n (c + 1)) (.n (c + 2)) (.n (c + 3)) (.n c)),
-    .atom (.mul (.n (c + 4)) (.n 1) (.n d)),
+    .atom (.mul (.n (c + 4)) (.n (valf% «column_selector» "sel_eq")) (.n d)),
     .atom (.load (.n (c + 5)) (.n (c + 4)) (64 * j + 16 * (w - 1)))] ++
   if k = 0 then
-    [.atom (.mul (.n (c + 6)) (.n 2) (.n d)), .atom (.load (.n (c + 7)) (.n (c + 6)) (16 * j))]
+    [.atom (.mul (.n (c + 6)) (.n (valf% «column_selector» "sel_g")) (.n d)), .atom (.load (.n (c + 7)) (.n (c + 6)) (16 * j))]
   else
     [.atom (.mul (.n (c + 6)) (.n (csSel κ (k - 1))) (.n (c + 5))),
-      .atom (.mul (.n (c + 7)) (.n 2) (.n d)), .atom (.load (.n (c + 8)) (.n (c + 7)) (16 * j)),
+      .atom (.mul (.n (c + 7)) (.n (valf% «column_selector» "sel_g")) (.n d)), .atom (.load (.n (c + 8)) (.n (c + 7)) (16 * j)),
       .atom (.mul (.n (c + 9)) (.n (csRb κ (k - 1))) (.n (c + 8)))]
 
 /-- The hint of the digits, at values `3 .. 3 + csN κ - 1`. -/
 def csHint (κ : ℕ) : Stmt :=
-  .atom (.hint (.digitsExp (.n 0) 32 (csN κ) 4 (4 * (κ / 4)) none
+  .atom (.hint (.digitsExp (.n (valf% «column_selector» "offset")) 32 (csN κ) 4 (4 * (κ / 4)) none
     (.stack ((List.range (csN κ)).map fun k ↦ .n (3 + k)))))
 
 /-- `column_selector__L{κ}`'s statements before its `ret`, the hint first. -/
 def csPre (κ : ℕ) : List Stmt :=
   csHint κ :: if κ = 32 then
-    [.atom (.const (.n 3) (word 1 0)), .atom (.assertEq (.n 3) (.n 0)),
+    [.atom (.const (.n (valf% «column_selector» "digits[0]")) (word 1 0)), .atom (.assertEq (.n (valf% «column_selector» "digits[0]")) (.n (valf% «column_selector» "offset"))),
       .atom (.const (.n 4) (word 1 0))]
   else ((List.range (csN κ)).map (csNibT κ)).flatten ++
-    [.atom (.assertEq (.n (csRb κ (csN κ - 1))) (.n 0)),
+    [.atom (.assertEq (.n (csRb κ (csN κ - 1))) (.n (valf% «column_selector» "offset"))),
       .atom (.copy (.n (csC κ (csN κ))) (.n (csSel κ (csN κ - 1))))]
 
 /-- The value `column_selector__L{κ}` returns. -/
@@ -207,14 +209,14 @@ def csRet (κ : ℕ) : ℕ := if κ = 32 then 4 else csC κ (csN κ)
 /-- The function found by name is the template. -/
 noncomputable def csCheck (κ : ℕ) : Bool :=
   match coreProgram.find? (lName "column_selector" κ) with
-  | some fn => decide (fn.params = [.n 0, .n 1, .n 2]) &&
+  | some fn => decide (fn.params = [.n (valf% «column_selector» "offset"), .n (valf% «column_selector» "sel_eq"), .n (valf% «column_selector» "sel_g")]) &&
       tbStmtsEqb fn.body (csPre κ ++ [.ret [.n (csRet κ)]])
   | none => false
 
 theorem csCheck_all : (List.range 31).all csCheck = true := by decide +kernel
 
 theorem csFound {κ : ℕ} (hκ : κ < 31) : ∃ fn : Fn,
-    coreProgram.find? (lName "column_selector" κ) = some fn ∧ fn.params = [.n 0, .n 1, .n 2] ∧
+    coreProgram.find? (lName "column_selector" κ) = some fn ∧ fn.params = [.n (valf% «column_selector» "offset"), .n (valf% «column_selector» "sel_eq"), .n (valf% «column_selector» "sel_g")] ∧
       fn.body = csPre κ ++ [.ret [.n (csRet κ)]] := by
   have h := List.all_eq_true.mp csCheck_all κ (List.mem_range.mpr hκ)
   unfold csCheck at h
@@ -249,8 +251,8 @@ include hμ in
 the tables' offsets; the running products. -/
 theorem holds_csNib {κ k : ℕ} (h : Stmt.HoldsList C Lm.read σ (csNibT κ k) True kret) :
     ∃ u < 16, σ (.n (3 + k)) = gen ^ u ∧
-      ∃ xe xg, LoadHolds Lm.read (σ (.n 1)) (u + (64 * (κ / 4 + k) + 16 * (csW κ k - 1))) xe ∧
-        LoadHolds Lm.read (σ (.n 2)) (u + 16 * (κ / 4 + k)) xg ∧
+      ∃ xe xg, LoadHolds Lm.read (σ (.n (valf% «column_selector» "sel_eq"))) (u + (64 * (κ / 4 + k) + 16 * (csW κ k - 1))) xe ∧
+        LoadHolds Lm.read (σ (.n (valf% «column_selector» "sel_g"))) (u + 16 * (κ / 4 + k)) xg ∧
         σ (.n (csSel κ k)) = (if k = 0 then 1 else σ (.n (csSel κ (k - 1)))) * xe ∧
         σ (.n (csRb κ k)) = (if k = 0 then 1 else σ (.n (csRb κ (k - 1)))) * xg := by
   unfold csNibT at h

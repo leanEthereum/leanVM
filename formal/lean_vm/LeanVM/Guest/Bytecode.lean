@@ -8,6 +8,7 @@
 module
 
 public import Statement.Data.Bytecode
+import all Statement.Data.Bytecode
 public import LeanVM.Guest.Code
 public import LeanVM.Guest.FunctionTable
 public import Statement.LeanVmGuest

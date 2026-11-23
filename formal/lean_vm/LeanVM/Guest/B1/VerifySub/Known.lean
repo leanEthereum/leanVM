@@ -12,6 +12,8 @@ public import LeanVM.Guest.B1.Common.MemSize
 public import LeanVM.Guest.B1.VerifySub.Body
 public import LeanVM.Guest.B1.Placement.Interface
 public import LeanVM.Guest.B1.Placement.Kappas
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_sub»
 
 /-!
 # The columns' logs, from the placement and the stack's log
@@ -99,9 +101,9 @@ at most `30`, every table's below `31` and the Keccak table's at most `24`. -/
 def PlaceKnown (rd : Reader) (σ : Val) (logMem : ℕ) (ds : List E) : Prop :=
   ∃ hs : List ℕ, hs.length = 6 ∧ ds = hs.map (gen ^ ·) ∧ logMem ≤ 30 ∧ (∀ x ∈ hs, x < 31) ∧
     hs.getD 5 0 ≤ 24 ∧
-    ∃ off, σ (.n 274) = gen ^ Tables.stackTotal (columnKappas logMem Tables.guestLogBytecode hs) ∧
-      σ (.n 275) = off ∧ Tables.PCtx rd (columnKappas logMem Tables.guestLogBytecode hs) off ∧
-      σ (.n 276) = gen ^ max 16 (log2Ceil
+    ∃ off, σ (.n (val% «verify_sub» "g_total")) = gen ^ Tables.stackTotal (columnKappas logMem Tables.guestLogBytecode hs) ∧
+      σ (.n (val% «verify_sub» "col_offsets")) = off ∧ Tables.PCtx rd (columnKappas logMem Tables.guestLogBytecode hs) off ∧
+      σ (.n (val% «verify_sub» "gmv")) = gen ^ max 16 (log2Ceil
         (Tables.stackTotal (columnKappas logMem Tables.guestLogBytecode hs))) ∧
       max 16 (log2Ceil (Tables.stackTotal (columnKappas logMem Tables.guestLogBytecode hs))) ≤ 30
 
@@ -109,9 +111,9 @@ def PlaceKnown (rd : Reader) (σ : Val) (logMem : ℕ) (ds : List E) : Prop :=
 `g^τ_t`, and the stack at most `2^30` puts every committed column's log below `31`. -/
 theorem vsPlaceT_known {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemoryImage κ)
     (hC : CallRel.Le C (coreProgram.Rel L.read)) (hcp : Tables.certify_placement_Spec L.read)
-    (hexp : B1.ExpTables L.read (σ (.n 4)))
+    (hexp : B1.ExpTables L.read (σ (.n (val% «verify_sub» "g_squares"))))
     {logMem : ℕ} {ds : List E} (hm : logMem ≤ 32) (hl : ds.length = 6)
-    (hkb : ReadsAt L.read (σ (.n 83)) (1 :: gen ^ logMem :: ds))
+    (hkb : ReadsAt L.read (σ (.n (val% «verify_sub» "kappa_base"))) (1 :: gen ^ logMem :: ds))
     (h : Stmt.HoldsList C L.read σ vsPlaceT next kret) :
     PlaceKnown L.read σ logMem ds ∧ next := by
   simp only [vsPlaceT, Stmt.HoldsList, Stmt.Holds, vsCall, vsConst, vsMul, vsRange,
@@ -119,10 +121,10 @@ theorem vsPlaceT_known {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : Memor
   obtain ⟨c1, c2, e277, m278, e279, r278, hn⟩ := h
   refine ⟨?_, hn⟩
   -- the placement
-  have hsq : Tables.TbReadsAt L.read (σ (.n 4)) Tables.gSquaresList := fun k hk ↦ by
+  have hsq : Tables.TbReadsAt L.read (σ (.n (val% «verify_sub» "g_squares"))) Tables.gSquaresList := fun k hk ↦ by
     simp only [Tables.gSquaresList, List.length_map, List.length_range] at hk
     simpa [Tables.gSquaresList] using hexp.1 k hk
-  have hrk : Tables.TbReadsAt L.read (σ (.n 4) * gen ^ 178) Tables.rankKeysList := fun k hk ↦ by
+  have hrk : Tables.TbReadsAt L.read (σ (.n (val% «verify_sub» "g_squares")) * gen ^ 178) Tables.rankKeysList := fun k hk ↦ by
     simp only [Tables.rankKeysList, List.length_map, List.length_range] at hk
     rw [loadHolds_mul_gen_pow]
     simpa [Tables.rankKeysList] using hexp.2.2.1 k hk
@@ -218,11 +220,11 @@ theorem vsT_pre249 : vsT = (vsHeadT ++ vsReadsT ++ vsSizesT ++ vsPushT ++ vsRoot
 `kbBound`, from the body's first `1511` statements (only its first `249` are read). -/
 theorem vsKnown_of {κ : ℕ} (L : MemoryImage κ) (_hmin : minLogMem ≤ κ) (h32 : κ ≤ maxLogMem)
     (hcp : Tables.certify_placement_Spec L.read)
-    (σ : Val) (hexp : B1.ExpTables L.read (σ (.n 4)))
+    (σ : Val) (hexp : B1.ExpTables L.read (σ (.n (val% «verify_sub» "g_squares"))))
     (h : Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((Fn.body fn% «verify_sub»).take 1511)
         True
       (fun _ ↦ True)) :
-    ∀ i < 8, ∃ e < kbBound i, LoadHolds L.read (σ (.n 83)) i (ofK (addressOfIndex e)) := by
+    ∀ i < 8, ∃ e < kbBound i, LoadHolds L.read (σ (.n (val% «verify_sub» "kappa_base"))) i (ofK (addressOfIndex e)) := by
   have hκ : κ ≤ 32 := h32.trans (by decide)
   have hκ6 : 6 ≤ κ := by
     have hm := mem_size hκ L (n := 34) (by norm_num) fun j hj ↦ ⟨_, hexp.1 j hj⟩

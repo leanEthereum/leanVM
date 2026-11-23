@@ -10,6 +10,10 @@ module
 
 public import LeanVM.Guest.B1.Opening.Interface
 public import LeanVM.Guest.B1.Fs.Templates
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«opening_queries__L»
+import LeanVM.Guest.Data.ValNames.«opening_queries__L_loop0»
+import LeanVM.Guest.Data.ValNames.«walk_path__L»
 public import LeanVM.Guest.Value.KeccakSponge
 
 /-!
@@ -268,7 +272,7 @@ def wpPr (s : Oq) : ℕ := wpCh + 4 * s.pd + 1
 node `n0, n1` (`.n 0`, `.n 1`) by the windows at `wins` (`.n 2`), the cap leaf into `cap`
 (`.n 3`), the flag into `flags` (`.n 4`). -/
 def wpBodyT (s : Oq) : List Stmt :=
-  oqPathT s (.n 2) (wpPr s) 0 wpCh ++ oqCapT s (.n 2) (.n 3) (.n 4) 0 wpCh ++ [.ret []]
+  oqPathT s (.n (valf% «walk_path» "wins")) (wpPr s) 0 wpCh ++ oqCapT s (.n (valf% «walk_path» "wins")) (.n (valf% «walk_path» "cap")) (.n (valf% «walk_path» "flags")) 0 wpCh ++ [.ret []]
 
 /-- The deployed specializations of `walk_path`, `(pd, cd, name)` (a name built by `++ toString`
 does not reduce in a `module`'s kernel). -/
@@ -425,13 +429,13 @@ def oqQueryT (s : Oq) (x bp cap flags coefs hs : V) (b : ℕ) (emit : Bool) (pr 
 
 /-- The loop's guard `x·g + N` and next counter `x·g` from `g`, on its parameters `x, N, …`. -/
 def oqGuardA (g : ℕ) : List Stmt :=
-  [.atom (.const (.n g) (word 2 0)), .atom (.mul (.n (g + 1)) (.n 0) (.n g)),
-    .atom (.add (.n (g + 2)) (.n (g + 1)) (.n 1)), .atom (.const (.n (g + 3)) (word 2 0)),
-    .atom (.mul (.n (g + 4)) (.n 0) (.n (g + 3)))]
+  [.atom (.const (.n g) (word 2 0)), .atom (.mul (.n (g + 1)) (.n (valf% «opening_queries» «_loop0» "xi")) (.n g)),
+    .atom (.add (.n (g + 2)) (.n (g + 1)) (.n (valf% «opening_queries» «_loop0» "bound"))), .atom (.const (.n (g + 3)) (word 2 0)),
+    .atom (.mul (.n (g + 4)) (.n (valf% «opening_queries» «_loop0» "xi")) (.n (g + 3)))]
 
 /-- The loop's next call from the guard at `g`, on its ten parameters. -/
 def oqNextT (g : ℕ) (name : String) : List Stmt :=
-  [.callIf (.n (g + 2)) name [.n (g + 4), .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9], .ret []]
+  [.callIf (.n (g + 2)) name [.n (g + 4), .n (valf% «opening_queries» «_loop0» "bound"), .n (valf% «opening_queries» «_loop0» "positions"), .n (valf% «opening_queries» «_loop0» "query_win_ptrs"), .n (valf% «opening_queries» «_loop0» "cap"), .n (valf% «opening_queries» «_loop0» "flags"), .n (valf% «opening_queries» «_loop0» "coefs"), .n (valf% «opening_queries» «_loop0» "hs"), .n (valf% «opening_queries» «_loop0» "chain"), .n (valf% «opening_queries» «_loop0» "lam_inv")], .ret []]
 
 /-- The first value of the second query of a level-0 iteration (its point; its windows next). -/
 def oqE1 (s : Oq) : ℕ := oqEnd s 16 true
@@ -450,18 +454,18 @@ iteration, the points and window pointers at `positions·x²`, `qptrs·x²` offs
 def oqLoop1A (s : Oq) (odd : ℕ) (walk : String) : List Stmt :=
   let e1 := oqE1 s
   let c := oqC1 s
-  [.atom (.mul (.n 10) (.n 2) (.n 0)), .atom (.mul (.n 11) (.n 10) (.n 0)),
-    .atom (.mul (.n 12) (.n 3) (.n 0)), .atom (.mul (.n 13) (.n 12) (.n 0)),
+  [.atom (.mul (.n 10) (.n (valf% «opening_queries» «_loop0» "positions")) (.n (valf% «opening_queries» «_loop0» "xi"))), .atom (.mul (.n 11) (.n 10) (.n (valf% «opening_queries» «_loop0» "xi"))),
+    .atom (.mul (.n 12) (.n (valf% «opening_queries» «_loop0» "query_win_ptrs")) (.n (valf% «opening_queries» «_loop0» "xi"))), .atom (.mul (.n 13) (.n 12) (.n (valf% «opening_queries» «_loop0» "xi"))),
     .atom (.load (.n 14) (.n 11) odd), .atom (.load (.n 15) (.n 13) odd)] ++
-    oqQueryT s (.n 14) (.n 15) (.n 4) (.n 5) (.n 6) (.n 7) 16 true 0 walk ++
+    oqQueryT s (.n 14) (.n 15) (.n (valf% «opening_queries» «_loop0» "cap")) (.n (valf% «opening_queries» «_loop0» "flags")) (.n (valf% «opening_queries» «_loop0» "coefs")) (.n (valf% «opening_queries» «_loop0» "hs")) 16 true 0 walk ++
     [.atom (.load (.n e1) (.n 11) (odd + 1)), .atom (.load (.n (e1 + 1)) (.n 13) (odd + 1))] ++
-    oqQueryT s (.n e1) (.n (e1 + 1)) (.n 4) (.n 5) (.n 6) (.n 7) (e1 + 2) false (oqK1 s 16) walk ++
+    oqQueryT s (.n e1) (.n (e1 + 1)) (.n (valf% «opening_queries» «_loop0» "cap")) (.n (valf% «opening_queries» «_loop0» "flags")) (.n (valf% «opening_queries» «_loop0» "coefs")) (.n (valf% «opening_queries» «_loop0» "hs")) (e1 + 2) false (oqK1 s 16) walk ++
     (if s.final = 1 then [] else
-      [.atom (.mul (.n c) (.n 8) (.n 0)), .atom (.load (.n (c + 1)) (.n c) 0),
+      [.atom (.mul (.n c) (.n (valf% «opening_queries» «_loop0» "chain")) (.n (valf% «opening_queries» «_loop0» "xi"))), .atom (.load (.n (c + 1)) (.n c) 0),
         .atom (.add (.n (c + 2)) (.n (c + 1)) (.n (oqRes s 16 true))),
-        .atom (.mul (.n (c + 3)) (.n (c + 2)) (.n 9)),
+        .atom (.mul (.n (c + 3)) (.n (c + 2)) (.n (valf% «opening_queries» «_loop0» "lam_inv"))),
         .atom (.add (.n (c + 4)) (.n (c + 3)) (.n (oqRes s (e1 + 2) false))),
-        .atom (.mul (.n (c + 5)) (.n (c + 4)) (.n 9)), .atom (.mul (.n (c + 6)) (.n 8) (.n 0)),
+        .atom (.mul (.n (c + 5)) (.n (c + 4)) (.n (valf% «opening_queries» «_loop0» "lam_inv"))), .atom (.mul (.n (c + 6)) (.n (valf% «opening_queries» «_loop0» "chain")) (.n (valf% «opening_queries» «_loop0» "xi"))),
         .atom (.load (.n (c + 5)) (.n (c + 6)) 1)]) ++
     oqGuardA (oqG1 s)
 
@@ -480,13 +484,13 @@ point `positions[x]` and window pointer `qptrs[x]`): the query, the chain step
 `chain[x·g] = (chain[x] + d)·λ⁻¹` (non-final levels), the guard. -/
 def oqLoop0A (s : Oq) (walk : String) : List Stmt :=
   let c := oqC0 s
-  [.atom (.mul (.n 10) (.n 2) (.n 0)), .atom (.load (.n 11) (.n 10) 0),
-    .atom (.mul (.n 12) (.n 3) (.n 0)), .atom (.load (.n 13) (.n 12) 0)] ++
-    oqQueryT s (.n 11) (.n 13) (.n 4) (.n 5) (.n 6) (.n 7) 14 true 0 walk ++
+  [.atom (.mul (.n 10) (.n (valf% «opening_queries» «_loop0» "positions")) (.n (valf% «opening_queries» «_loop0» "xi"))), .atom (.load (.n 11) (.n 10) 0),
+    .atom (.mul (.n 12) (.n (valf% «opening_queries» «_loop0» "query_win_ptrs")) (.n (valf% «opening_queries» «_loop0» "xi"))), .atom (.load (.n 13) (.n 12) 0)] ++
+    oqQueryT s (.n 11) (.n 13) (.n (valf% «opening_queries» «_loop0» "cap")) (.n (valf% «opening_queries» «_loop0» "flags")) (.n (valf% «opening_queries» «_loop0» "coefs")) (.n (valf% «opening_queries» «_loop0» "hs")) 14 true 0 walk ++
     (if s.final = 1 then [] else
-      [.atom (.mul (.n c) (.n 8) (.n 0)), .atom (.load (.n (c + 1)) (.n c) 0),
+      [.atom (.mul (.n c) (.n (valf% «opening_queries» «_loop0» "chain")) (.n (valf% «opening_queries» «_loop0» "xi"))), .atom (.load (.n (c + 1)) (.n c) 0),
         .atom (.add (.n (c + 2)) (.n (c + 1)) (.n (oqRes s 14 true))),
-        .atom (.mul (.n (c + 3)) (.n (c + 2)) (.n 9)), .atom (.mul (.n (c + 4)) (.n 8) (.n 0)),
+        .atom (.mul (.n (c + 3)) (.n (c + 2)) (.n (valf% «opening_queries» «_loop0» "lam_inv"))), .atom (.mul (.n (c + 4)) (.n (valf% «opening_queries» «_loop0» "chain")) (.n (valf% «opening_queries» «_loop0» "xi"))),
         .atom (.load (.n (c + 3)) (.n (c + 4)) 1)]) ++
     oqGuardA (oqG0 s)
 
@@ -502,23 +506,23 @@ def oqMK (s : Oq) (odd : ℕ) : ℕ := if odd = 1 then oqEnd s 13 true + 1 else 
 the loop's guard `1 + N` and start `1`. -/
 def oqMainA (s : Oq) (odd : ℕ) (walk : String) : List Stmt :=
   let k := oqMK s odd
-  [.atom (.const (.n 8) (word 2 0)), .atom (.mul (.n 9) (.n 7) (.n 8)),
-    .atom (.hint (.allocDyn (.n 10) (.n 9)))] ++
+  [.atom (.const (.n (valf% «opening_queries» "chain~0")) (word 2 0)), .atom (.mul (.n (valf% «opening_queries» "chain~1")) (.n (valf% «opening_queries» "n_iters_g")) (.n (valf% «opening_queries» "chain~0"))),
+    .atom (.hint (.allocDyn (.n (valf% «opening_queries» "chain")) (.n (valf% «opening_queries» "chain~1"))))] ++
   (if odd = 1 then
-      [.atom (.load (.n 11) (.n 5) 0), .atom (.load (.n 12) (.n 6) 0)] ++
-        oqQueryT s (.n 11) (.n 12) (.n 0) (.n 1) (.n 3) (.n 4) 13 true 0 walk ++
-        [.atom (.mul (.n (k - 1)) (.n (oqRes s 13 true)) (.n 2)), .atom (.load (.n (k - 1)) (.n 10) 0)]
-    else [.atom (.const (.n 11) (word 0 0)), .atom (.load (.n 11) (.n 10) 0)]) ++
-  [.atom (.const (.n k) (word 1 0)), .atom (.add (.n (k + 1)) (.n k) (.n 7)),
+      [.atom (.load (.n 11) (.n (valf% «opening_queries» "positions")) 0), .atom (.load (.n 12) (.n (valf% «opening_queries» "query_win_ptrs")) 0)] ++
+        oqQueryT s (.n 11) (.n 12) (.n (valf% «opening_queries» "cap")) (.n (valf% «opening_queries» "flags")) (.n (valf% «opening_queries» "coefs")) (.n (valf% «opening_queries» "hs")) 13 true 0 walk ++
+        [.atom (.mul (.n (k - 1)) (.n (oqRes s 13 true)) (.n (valf% «opening_queries» "lam_inv"))), .atom (.load (.n (k - 1)) (.n (valf% «opening_queries» "chain")) 0)]
+    else [.atom (.const (.n 11) (word 0 0)), .atom (.load (.n 11) (.n (valf% «opening_queries» "chain")) 0)]) ++
+  [.atom (.const (.n k) (word 1 0)), .atom (.add (.n (k + 1)) (.n k) (.n (valf% «opening_queries» "n_iters_g"))),
     .atom (.const (.n (k + 2)) (word 1 0))]
 
 /-- **The function's body**: the start, the loop, the chain's end (non-final levels) or `0`. -/
 def oqMainT (s : Oq) (odd : ℕ) (walk loop : String) : List Stmt :=
   let k := oqMK s odd
   oqMainA s odd walk ++
-  [.callIf (.n (k + 1)) loop [.n (k + 2), .n 7, .n 5, .n 6, .n 0, .n 1, .n 3, .n 4, .n 10, .n 2]] ++
+  [.callIf (.n (k + 1)) loop [.n (k + 2), .n (valf% «opening_queries» "n_iters_g"), .n (valf% «opening_queries» "positions"), .n (valf% «opening_queries» "query_win_ptrs"), .n (valf% «opening_queries» "cap"), .n (valf% «opening_queries» "flags"), .n (valf% «opening_queries» "coefs"), .n (valf% «opening_queries» "hs"), .n (valf% «opening_queries» "chain"), .n (valf% «opening_queries» "lam_inv")]] ++
   (if s.final = 1 then [.atom (.const (.n (k + 3)) (word 0 0)), .ret [.n (k + 3)]]
-   else [.atom (.mul (.n (k + 3)) (.n 10) (.n 7)), .atom (.load (.n (k + 4)) (.n (k + 3)) 0),
+   else [.atom (.mul (.n (k + 3)) (.n (valf% «opening_queries» "chain")) (.n (valf% «opening_queries» "n_iters_g"))), .atom (.load (.n (k + 4)) (.n (k + 3)) 0),
      .atom (.copy (.n (k + 5)) (.n (k + 4))), .ret [.n (k + 5)]])
 
 /-- The template shape of a deployed specialization. -/

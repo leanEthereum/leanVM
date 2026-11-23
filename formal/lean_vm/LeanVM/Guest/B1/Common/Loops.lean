@@ -13,7 +13,7 @@ import LeanVM.Guest.B1.Common.Basic
 /-!
 # Loops of atoms
 
-A `mul_range` helper (`__loopN`, parameters `x, N, …`) whose body is a block of atoms `A`, then
+A `mul_range` helper (`__loopN_f`, parameters `x, N, …`) whose body is a block of atoms `A`, then
 `callIf (x·g + N) self [x·g, N, …]` and `ret []`, satisfies `loop_iff`'s step with the body's
 meaning `∃ σ, params ∧ A holds` (`loop_step_atoms`): the guard and the next call's arguments are
 values `A` computes.

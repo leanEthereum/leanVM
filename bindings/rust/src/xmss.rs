@@ -77,7 +77,7 @@ const _: () = assert!(PUBLIC_KEY_LEN == PUB_KEY_SIZE);
 const _: () = assert!(LOG_LIFETIME == UPSTREAM_LOG_LIFETIME);
 const _: () = assert!(LOG_LIFETIME == LeafIndex::BITS as usize);
 // The `SecretKey` docs promise this many cached bottom trees.
-const _: () = assert!(MAX_CACHED_BOTTOM_TREES == 8);
+const _: () = assert!(MAX_CACHED_BOTTOM_TREES == 4);
 const _: fn(UpstreamLeafIndex) -> LeafIndex = |index| index;
 const _: fn(UpstreamSecretKey) -> Seed = |seed| seed;
 
@@ -130,7 +130,7 @@ impl PublicKey {
 
 /// A leanXMSS secret key.
 ///
-/// - It keeps the top tree and the 8 bottom trees it used last.
+/// - It keeps the top tree and the 4 bottom trees it used last.
 /// - Signing in any other bottom tree first builds that tree.
 /// - The key holds no record of used leaf indices: the caller must keep one.
 ///
@@ -183,6 +183,34 @@ impl SecretKey {
     #[must_use]
     pub fn to_bytes(&self) -> [u8; SECRET_KEY_LEN] {
         self.seed
+    }
+
+    /// Encodes the trees the key holds: the top tree and the bottom trees it used last.
+    ///
+    /// The bytes hold no secret. [`Self::from_cache_bytes`] loads them in place of building
+    /// the trees again.
+    #[must_use]
+    pub fn cache_to_bytes(&self) -> Vec<u8> {
+        self.expanded.cache_to_bytes()
+    }
+
+    /// Loads a key from its seed, its public key and the bytes of [`Self::cache_to_bytes`],
+    /// building no tree.
+    ///
+    /// The cache is checked against the public key, cheaply: a loaded key signs exactly as a
+    /// built one, whatever the bytes' source.
+    ///
+    /// # Errors
+    ///
+    /// Fails when the bytes are not this key's tree cache.
+    pub fn from_cache_bytes(
+        seed: Seed,
+        public_key: &PublicKey,
+        cache: &[u8],
+    ) -> Result<Self, Error> {
+        let expanded = LeanXmssExpandedSecretKey::from_cache_bytes(&seed, &public_key.0, cache)
+            .ok_or(Error::InvalidXmssCache)?;
+        Ok(Self { seed, expanded })
     }
 
     /// Returns the key's public key.

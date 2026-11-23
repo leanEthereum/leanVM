@@ -64,23 +64,23 @@ open LeanVM.Guest.B1
         wk.append('''set_option maxRecDepth 100000 in
 /-- `%s`. -/
 theorem walk_%d : CutsKnown %d :=
-  main_cutsKnown (j := %d) oqBody_%d
+  main_cutsKnown (j := %d) oqBody_%s
     (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) walkOk_%d
-''' % (d['name'], jm, jm, jm, d['idx'], jm))
+''' % (d['name'], jm, jm, jm, gen.key_of(d['name']), jm))
         if d['base'] == 1:
             wk.append('''set_option maxRecDepth 100000 in
 /-- `%s`. -/
 theorem walk_%d : CutsKnown %d :=
-  loop1_cutsKnown (j := %d) oqLoopBody_%d
+  loop1_cutsKnown (j := %d) oqLoopBody_%s
     (by decide) (by decide) (by decide) (by decide) walkOk_%d
-''' % (gen.stable[d['loop']], jl, jl, jl, d['idx'], jl))
+''' % (gen.stable[d['loop']], jl, jl, jl, gen.key_of(d['name']), jl))
         else:
             wk.append('''set_option maxRecDepth 100000 in
 /-- `%s`. -/
 theorem walk_%d : CutsKnown %d :=
-  loop0_cutsKnown (j := %d) oqLoopBody_%d
+  loop0_cutsKnown (j := %d) oqLoopBody_%s
     (by decide) (by decide) (by decide) walkOk_%d
-''' % (gen.stable[d['loop']], jl, jl, jl, d['idx'], jl))
+''' % (gen.stable[d['loop']], jl, jl, jl, gen.key_of(d['name']), jl))
     for out in (ok, wk):
         out.append('end\nend LeanVM.Guest.End\n')
     open(D + 'WalkOqOk%d.lean' % k, 'w').write('\n'.join(ok))

@@ -39,7 +39,7 @@ theorem bind_assoc' (p : Script α) (f : α → Script β) (g : β → Script γ
   | ret a => rfl
   | send x k ih => simp only [bind, ih]
   | sample k ih => simp only [bind, ih]
-  | grind k ih => simp only [bind, ih]
+  | grind o k ih => simp only [bind, ih]
   | commit w k ih => simp only [bind, ih]
   | query k ih => simp only [bind, ih]
 
@@ -55,7 +55,7 @@ def Corr {α β : Type} (R : α → β → Prop) : Script α → Script β → P
   | .ret a, .ret b => R a b
   | .send x k, .send y k' => x = y ∧ Corr R k k'
   | .sample k, .sample k' => ∀ c, Corr R (k c) (k' c)
-  | .grind k, .grind k' => Corr R k k'
+  | .grind o k, .grind o' k' => o = o' ∧ Corr R k k'
   | .commit w k, .commit w' k' => w = w' ∧ Corr R k k'
   | .query k, .query k' => ∀ rows, Corr R (k rows) (k' rows)
   | _, _ => False
@@ -69,7 +69,7 @@ theorem refl : ∀ H : Script α, Corr (· = ·) H H
   | .ret _ => rfl
   | .send _ k => ⟨rfl, refl k⟩
   | .sample k => fun c ↦ refl (k c)
-  | .grind k => refl k
+  | .grind _ k => ⟨rfl, refl k⟩
   | .commit _ k => ⟨rfl, refl k⟩
   | .query k => fun rows ↦ refl (k rows)
 
@@ -79,19 +79,19 @@ theorem mono {R R' : α → β → Prop} (hR : ∀ a b, R a b → R' a b) :
   | .ret _, .ret _, h => hR _ _ h
   | .send _ k, .send _ k', h => ⟨h.1, mono hR k k' h.2⟩
   | .sample k, .sample k', h => fun c ↦ mono hR (k c) (k' c) (h c)
-  | .grind k, .grind k', h => mono hR k k' h
+  | .grind _ k, .grind _ k', h => ⟨h.1, mono hR k k' h.2⟩
   | .commit _ k, .commit _ k', h => ⟨h.1, mono hR k k' h.2⟩
   | .query k, .query k', h => fun rows ↦ mono hR (k rows) (k' rows) (h rows)
-  | .ret _, .send _ _, h | .ret _, .sample _, h | .ret _, .grind _, h | .ret _, .commit _ _, h
+  | .ret _, .send _ _, h | .ret _, .sample _, h | .ret _, .grind _ _, h | .ret _, .commit _ _, h
   | .ret _, .query _, h | .send _ _, .ret _, h | .send _ _, .sample _, h
-  | .send _ _, .grind _, h | .send _ _, .commit _ _, h | .send _ _, .query _, h
-  | .sample _, .ret _, h | .sample _, .send _ _, h | .sample _, .grind _, h
-  | .sample _, .commit _ _, h | .sample _, .query _, h | .grind _, .ret _, h
-  | .grind _, .send _ _, h | .grind _, .sample _, h | .grind _, .commit _ _, h
-  | .grind _, .query _, h | .commit _ _, .ret _, h | .commit _ _, .send _ _, h
-  | .commit _ _, .sample _, h | .commit _ _, .grind _, h | .commit _ _, .query _, h
+  | .send _ _, .grind _ _, h | .send _ _, .commit _ _, h | .send _ _, .query _, h
+  | .sample _, .ret _, h | .sample _, .send _ _, h | .sample _, .grind _ _, h
+  | .sample _, .commit _ _, h | .sample _, .query _, h | .grind _ _, .ret _, h
+  | .grind _ _, .send _ _, h | .grind _ _, .sample _, h | .grind _ _, .commit _ _, h
+  | .grind _ _, .query _, h | .commit _ _, .ret _, h | .commit _ _, .send _ _, h
+  | .commit _ _, .sample _, h | .commit _ _, .grind _ _, h | .commit _ _, .query _, h
   | .query _, .ret _, h | .query _, .send _ _, h | .query _, .sample _, h
-  | .query _, .grind _, h | .query _, .commit _ _, h => h.elim
+  | .query _, .grind _ _, h | .query _, .commit _ _, h => h.elim
 
 /-- **The relation composes along `bind`.** -/
 theorem bind {R : α → β → Prop} {S : γ → δ → Prop} {f : α → Script γ} {g : β → Script δ}
@@ -100,19 +100,19 @@ theorem bind {R : α → β → Prop} {S : γ → δ → Prop} {f : α → Scrip
   | .ret _, .ret _, h => hk _ _ h
   | .send _ k, .send _ k', h => ⟨h.1, bind hk k k' h.2⟩
   | .sample k, .sample k', h => fun c ↦ bind hk (k c) (k' c) (h c)
-  | .grind k, .grind k', h => bind hk k k' h
+  | .grind _ k, .grind _ k', h => ⟨h.1, bind hk k k' h.2⟩
   | .commit _ k, .commit _ k', h => ⟨h.1, bind hk k k' h.2⟩
   | .query k, .query k', h => fun rows ↦ bind hk (k rows) (k' rows) (h rows)
-  | .ret _, .send _ _, h | .ret _, .sample _, h | .ret _, .grind _, h | .ret _, .commit _ _, h
+  | .ret _, .send _ _, h | .ret _, .sample _, h | .ret _, .grind _ _, h | .ret _, .commit _ _, h
   | .ret _, .query _, h | .send _ _, .ret _, h | .send _ _, .sample _, h
-  | .send _ _, .grind _, h | .send _ _, .commit _ _, h | .send _ _, .query _, h
-  | .sample _, .ret _, h | .sample _, .send _ _, h | .sample _, .grind _, h
-  | .sample _, .commit _ _, h | .sample _, .query _, h | .grind _, .ret _, h
-  | .grind _, .send _ _, h | .grind _, .sample _, h | .grind _, .commit _ _, h
-  | .grind _, .query _, h | .commit _ _, .ret _, h | .commit _ _, .send _ _, h
-  | .commit _ _, .sample _, h | .commit _ _, .grind _, h | .commit _ _, .query _, h
+  | .send _ _, .grind _ _, h | .send _ _, .commit _ _, h | .send _ _, .query _, h
+  | .sample _, .ret _, h | .sample _, .send _ _, h | .sample _, .grind _ _, h
+  | .sample _, .commit _ _, h | .sample _, .query _, h | .grind _ _, .ret _, h
+  | .grind _ _, .send _ _, h | .grind _ _, .sample _, h | .grind _ _, .commit _ _, h
+  | .grind _ _, .query _, h | .commit _ _, .ret _, h | .commit _ _, .send _ _, h
+  | .commit _ _, .sample _, h | .commit _ _, .grind _ _, h | .commit _ _, .query _, h
   | .query _, .ret _, h | .query _, .send _ _, h | .query _, .sample _, h
-  | .query _, .grind _, h | .query _, .commit _ _, h => h.elim
+  | .query _, .grind _ _, h | .query _, .commit _ _, h => h.elim
 
 /-- `bind` in `do` notation. -/
 theorem bind' {R : α → β → Prop} {S : γ → δ → Prop} {f : α → Script γ} {g : β → Script δ}
@@ -152,23 +152,23 @@ theorem OCorr.msgOf : ∀ {S₁ : Option (Script α)} {S₂ : Option (Script β)
   | none, none, _ => rfl
   | some (.send _ _), some (.send _ _), h => h.1
   | some (.ret _), some (.ret _), _ | some (.sample _), some (.sample _), _
-  | some (.grind _), some (.grind _), _ | some (.commit _ _), some (.commit _ _), _
+  | some (.grind _ _), some (.grind _ _), _ | some (.commit _ _), some (.commit _ _), _
   | some (.query _), some (.query _), _ => rfl
   | some (.ret _), some (.send _ _), h | some (.ret _), some (.sample _), h
-  | some (.ret _), some (.grind _), h | some (.ret _), some (.commit _ _), h
+  | some (.ret _), some (.grind _ _), h | some (.ret _), some (.commit _ _), h
   | some (.ret _), some (.query _), h | some (.send _ _), some (.ret _), h
-  | some (.send _ _), some (.sample _), h | some (.send _ _), some (.grind _), h
+  | some (.send _ _), some (.sample _), h | some (.send _ _), some (.grind _ _), h
   | some (.send _ _), some (.commit _ _), h | some (.send _ _), some (.query _), h
   | some (.sample _), some (.ret _), h | some (.sample _), some (.send _ _), h
-  | some (.sample _), some (.grind _), h | some (.sample _), some (.commit _ _), h
-  | some (.sample _), some (.query _), h | some (.grind _), some (.ret _), h
-  | some (.grind _), some (.send _ _), h | some (.grind _), some (.sample _), h
-  | some (.grind _), some (.commit _ _), h | some (.grind _), some (.query _), h
+  | some (.sample _), some (.grind _ _), h | some (.sample _), some (.commit _ _), h
+  | some (.sample _), some (.query _), h | some (.grind _ _), some (.ret _), h
+  | some (.grind _ _), some (.send _ _), h | some (.grind _ _), some (.sample _), h
+  | some (.grind _ _), some (.commit _ _), h | some (.grind _ _), some (.query _), h
   | some (.commit _ _), some (.ret _), h | some (.commit _ _), some (.send _ _), h
-  | some (.commit _ _), some (.sample _), h | some (.commit _ _), some (.grind _), h
+  | some (.commit _ _), some (.sample _), h | some (.commit _ _), some (.grind _ _), h
   | some (.commit _ _), some (.query _), h | some (.query _), some (.ret _), h
   | some (.query _), some (.send _ _), h | some (.query _), some (.sample _), h
-  | some (.query _), some (.grind _), h | some (.query _), some (.commit _ _), h
+  | some (.query _), some (.grind _ _), h | some (.query _), some (.commit _ _), h
   | none, some _, h | some _, none, h => h.elim
 
 theorem OCorr.wordOf : ∀ {S₁ : Option (Script α)} {S₂ : Option (Script β)}, OCorr R S₁ S₂ →
@@ -176,23 +176,31 @@ theorem OCorr.wordOf : ∀ {S₁ : Option (Script α)} {S₂ : Option (Script β
   | none, none, _ => rfl
   | some (.commit _ _), some (.commit _ _), h => h.1
   | some (.ret _), some (.ret _), _ | some (.sample _), some (.sample _), _
-  | some (.grind _), some (.grind _), _ | some (.send _ _), some (.send _ _), _
+  | some (.grind _ _), some (.grind _ _), _ | some (.send _ _), some (.send _ _), _
   | some (.query _), some (.query _), _ => rfl
   | some (.ret _), some (.send _ _), h | some (.ret _), some (.sample _), h
-  | some (.ret _), some (.grind _), h | some (.ret _), some (.commit _ _), h
+  | some (.ret _), some (.grind _ _), h | some (.ret _), some (.commit _ _), h
   | some (.ret _), some (.query _), h | some (.send _ _), some (.ret _), h
-  | some (.send _ _), some (.sample _), h | some (.send _ _), some (.grind _), h
+  | some (.send _ _), some (.sample _), h | some (.send _ _), some (.grind _ _), h
   | some (.send _ _), some (.commit _ _), h | some (.send _ _), some (.query _), h
   | some (.sample _), some (.ret _), h | some (.sample _), some (.send _ _), h
-  | some (.sample _), some (.grind _), h | some (.sample _), some (.commit _ _), h
-  | some (.sample _), some (.query _), h | some (.grind _), some (.ret _), h
-  | some (.grind _), some (.send _ _), h | some (.grind _), some (.sample _), h
-  | some (.grind _), some (.commit _ _), h | some (.grind _), some (.query _), h
+  | some (.sample _), some (.grind _ _), h | some (.sample _), some (.commit _ _), h
+  | some (.sample _), some (.query _), h | some (.grind _ _), some (.ret _), h
+  | some (.grind _ _), some (.send _ _), h | some (.grind _ _), some (.sample _), h
+  | some (.grind _ _), some (.commit _ _), h | some (.grind _ _), some (.query _), h
   | some (.commit _ _), some (.ret _), h | some (.commit _ _), some (.send _ _), h
-  | some (.commit _ _), some (.sample _), h | some (.commit _ _), some (.grind _), h
+  | some (.commit _ _), some (.sample _), h | some (.commit _ _), some (.grind _ _), h
   | some (.commit _ _), some (.query _), h | some (.query _), some (.ret _), h
   | some (.query _), some (.send _ _), h | some (.query _), some (.sample _), h
-  | some (.query _), some (.grind _), h | some (.query _), some (.commit _ _), h
+  | some (.query _), some (.grind _ _), h | some (.query _), some (.commit _ _), h
+  | none, some _, h | some _, none, h => h.elim
+
+theorem OCorr.outsideKOf : ∀ {S₁ : Option (Script α)} {S₂ : Option (Script β)}, OCorr R S₁ S₂ →
+    Script.outsideKOf S₁ = Script.outsideKOf S₂
+  | none, none, _ => rfl
+  | some H₁, some H₂, h => by
+    cases H₁ <;> cases H₂ <;> simp only [OCorr, Corr] at h <;> simp only [Script.outsideKOf]
+    exact h.1
   | none, some _, h | some _, none, h => h.elim
 
 /-- The script states stay related after any move: a matching move steps both, a mismatched one
@@ -214,7 +222,7 @@ theorem OCorr.after {S₁ : Option (Script α)} {S₂ : Option (Script β)} (h :
         first
         | exact ⟨h.2, fun _ ↦ trivial, trivial, trivial, fun _ ↦ trivial⟩
         | exact ⟨trivial, h, trivial, trivial, fun _ ↦ trivial⟩
-        | exact ⟨trivial, fun _ ↦ trivial, h, trivial, fun _ ↦ trivial⟩
+        | exact ⟨trivial, fun _ ↦ trivial, h.2, trivial, fun _ ↦ trivial⟩
         | exact ⟨trivial, fun _ ↦ trivial, trivial, h.2, fun _ ↦ trivial⟩
         | exact ⟨trivial, fun _ ↦ trivial, trivial, trivial, h⟩
         | exact ⟨trivial, fun _ ↦ trivial, trivial, trivial, fun _ ↦ trivial⟩
@@ -242,7 +250,7 @@ theorem runFrom_ocorr (fuel : ℕ) {γ : Type} :
     exact ih _ _ _ _ _ (h.after.2.1 r.1)
   | grind b k ih =>
     intro S₁ S₂ sp cs h
-    simp only [runFromWithHash]
+    simp only [runFromWithHash, h.outsideKOf]
     congr 1; funext o
     rcases o with _ | n
     · rfl

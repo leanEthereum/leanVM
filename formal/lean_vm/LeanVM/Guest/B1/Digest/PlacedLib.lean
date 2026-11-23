@@ -93,6 +93,29 @@ theorem list_split_completeAt (fs : String → ℕ) (cert : String → V → ℕ
         exact absurd hA List.not_mem_nil)
       (list_split_complete' rd hl _ _ ⟨a, ha, b, hb, c, hc, rfl, rfl⟩)
 
+/-! ## The events of a body with a dispatch -/
+
+section Es3
+
+variable (σ : Val) (B C : List Ev) (g : String) (a r : List V)
+
+theorem es3_allocs : allocs σ (B ++ .call g a r :: C) = allocs σ B ++ allocs σ C := by
+  simp [allocs, List.filterMap_append, List.filterMap_cons, Ev.alloc?]
+
+theorem es3_allocDsts : allocDsts (B ++ .call g a r :: C) = allocDsts B ++ allocDsts C := by
+  simp [allocDsts, List.filterMap_append, List.filterMap_cons, Ev.allocDst?]
+
+theorem es3_addrs : addrs (B ++ .call g a r :: C) = addrs B ++ addrs C := by
+  simp [addrs, List.filterMap_append, List.filterMap_cons, Ev.addr?]
+
+theorem es3_loads : loadAddrs σ (B ++ .call g a r :: C) = loadAddrs σ B ++ loadAddrs σ C := by
+  simp [loadAddrs, List.filterMap_append, List.filterMap_cons, Ev.loadAddr?]
+
+theorem es3_calls : calls (B ++ .call g a r :: C) = calls B ++ ⟨g, a, r, true⟩ :: calls C := by
+  simp [calls, List.filterMap_append, Ev.call?]
+
+end Es3
+
 /-! ## The events of a branch with a dispatch -/
 
 section Es5

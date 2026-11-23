@@ -24,7 +24,7 @@ import LeanVM.Facts.Verifier
 import LeanVM.Guest.B1.Common.Find
 import LeanVM.Guest.GuestConst
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
-import LeanVM.Guest.Data.Source
+import LeanVM.Guest.Data.Consts
 
 /-!
 # The digests: meanings (TRIAGE G #86-89, #94, #95)

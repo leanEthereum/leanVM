@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Digest.Interface
 public import Statement.LeanVmGuest
 import LeanVM.Guest.GuestConst
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
-import LeanVM.Guest.Data.Source
+import LeanVM.Guest.Data.Consts
 import LeanVM.Guest.B1.Common.Find
 
 /-!
@@ -153,10 +153,6 @@ theorem find_da_verify :
 theorem find_da_padding :
     coreProgram.find? name% «da_padding» = some fn% «da_padding» :=
   coreProgram_find?_at (j := idx% «da_padding») rfl
-
-theorem find_da_verify_column :
-    coreProgram.find? name% «da_verify_column» = some fn% «da_verify_column» :=
-  coreProgram_find?_at (j := idx% «da_verify_column») rfl
 
 theorem find_da_verify_cell :
     coreProgram.find? name% «da_verify_cell» = some fn% «da_verify_cell» :=

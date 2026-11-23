@@ -10,6 +10,8 @@ module
 public import LeanVM.Guest.B1.Main.Body
 public import LeanVM.Guest.B1.Main.LoopsC
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«main»
 public import LeanVM.Guest.B1.Bits.Meaning
 
 /-!
@@ -66,48 +68,48 @@ theorem pow_lg {σ : Val} {v e : ℕ} (he : e < 2 ^ 34) (h : σ (.n v) = gen ^ e
 /-- **What a run of `main`'s body gives.** -/
 structure MainFacts (C : CallRel) (rd : Reader) (σ : Val) : Prop where
   counts : ∀ v ∈ [0, 1, 2, 3, 4, 5], σ (.n v) = gen ^ lg σ v ∧ lg σ v < 2 ^ 32
-  kids : σ (.n 6) = gen ^ lg σ 6 ∧ lg σ 6 ≤ 16
-  direct : σ (.n 7) = gen ^ lg σ 7 ∧ lg σ 7 ≤ 1
-  lxs : σ (.n 22) = gen ^ (lg σ 0 + lg σ 1)
-  lss : σ (.n 23) = gen ^ (lg σ 3 + lg σ 4)
-  total : σ (.n 24) = gen ^ (lg σ 0 + lg σ 1 + (lg σ 3 + lg σ 4)) ∧
+  kids : σ (.n (val% «main» "meta[6]")) = gen ^ lg σ 6 ∧ lg σ 6 ≤ 16
+  direct : σ (.n (val% «main» "meta[7]")) = gen ^ lg σ 7 ∧ lg σ 7 ≤ 1
+  lxs : σ (.n (val% «main» "lx_slots_g")) = gen ^ (lg σ 0 + lg σ 1)
+  lss : σ (.n (val% «main» "lean_sphincs_slots_g")) = gen ^ (lg σ 3 + lg σ 4)
+  total : σ (.n (val% «main» "n_total_g")) = gen ^ (lg σ 0 + lg σ 1 + (lg σ 3 + lg σ 4)) ∧
     lg σ 0 + lg σ 1 + (lg σ 3 + lg σ 4) < 2 ^ 32
   /-- The counts and the coverage table's size are addresses of the memory (`assert_gpow`). -/
   addr : ∀ v ∈ [0, 1, 2, 3, 4, 5, 24], ∃ t, LoadHolds rd (σ (.n v)) 0 t
-  exp : ExpTables rd (σ (.n 28))
-  win : ExpWinTab rd (σ (.n 28))
-  xlist : ClaimListOut rd (σ (.n 31)) (lg σ 0) [σ (.n 35), σ (.n 36)]
-  slist : ClaimListOut rd (σ (.n 34)) (lg σ 3) [σ (.n 37), σ (.n 38)]
-  bytes : Sig.ByteBits rd (σ (.n 47))
-  spcov : σ (.n 46) = σ (.n 45) * σ (.n 22)
+  exp : ExpTables rd (σ (.n (val% «main» "g_squares")))
+  win : ExpWinTab rd (σ (.n (val% «main» "g_squares")))
+  xlist : ClaimListOut rd (σ (.n (val% «main» "lx_table"))) (lg σ 0) [σ (.n (val% «main» "xd_0")), σ (.n (val% «main» "xd_1"))]
+  slist : ClaimListOut rd (σ (.n (val% «main» "lean_sphincs_table"))) (lg σ 3) [σ (.n (val% «main» "sd_0")), σ (.n (val% «main» "sd_1"))]
+  bytes : Sig.ByteBits rd (σ (.n (val% «main» "byte_bits")))
+  spcov : σ (.n (val% «main» "sp_cover")) = σ (.n (val% «main» "cover")) * σ (.n (val% «main» "lx_slots_g"))
   rawx : ∀ i < lg σ 2, C name% «main_loop2» (gen ^ i :: l2Args σ) [] ∧
-    ∃ s, BelowLog (σ (.n 22)) s ∧ LoadHolds rd (σ (.n 45)) s (gen ^ i)
+    ∃ s, BelowLog (σ (.n (val% «main» "lx_slots_g"))) s ∧ LoadHolds rd (σ (.n (val% «main» "cover"))) s (gen ^ i)
   tags : Sig.LxTagsHold (fun j => (l2Args σ).getD (4 + j) 0)
-  raws : ∀ j < lg σ 5, RawSStepC C rd (σ (.n 23)) (σ (.n 45)) (σ (.n 22)) (σ (.n 2)) (σ (.n 34))
-    (σ (.n 47)) (gen ^ j)
-  own : σ (.n 366) = σ (.n 364) * gen ^ (2 * lg σ 6)
+  raws : ∀ j < lg σ 5, RawSStepC C rd (σ (.n (val% «main» "lean_sphincs_slots_g"))) (σ (.n (val% «main» "cover"))) (σ (.n (val% «main» "lx_slots_g"))) (σ (.n (val% «main» "meta[2]"))) (σ (.n (val% «main» "lean_sphincs_table")))
+    (σ (.n (val% «main» "byte_bits"))) (gen ^ j)
+  own : σ (.n (val% «main» "own_da")) = σ (.n (val% «main» "da_digests")) * gen ^ (2 * lg σ 6)
   da : lg σ 7 = 1 →
-    C "da_verify" [σ (.n 47)] [σ (.n 369), σ (.n 370), σ (.n 371)] ∧
-    LoadHolds rd (σ (.n 366)) 0
-      (digestHalves (keccak256 (cellsBytes [σ (.n 369), σ (.n 370), σ (.n 371), 0]))).1 ∧
-    LoadHolds rd (σ (.n 366)) 1
-      (digestHalves (keccak256 (cellsBytes [σ (.n 369), σ (.n 370), σ (.n 371), 0]))).2
-  daz : lg σ 7 = 0 → LoadHolds rd (σ (.n 366)) 0 0 ∧ LoadHolds rd (σ (.n 366)) 1 0
-  written0 : LoadHolds rd (σ (.n 398)) 0 (gen ^ (lg σ 2 + lg σ 5))
-  children : ∀ c < lg σ 6, KidStepC C rd (σ (.n 398)) (σ (.n 31)) (σ (.n 45)) (σ (.n 22))
-    (σ (.n 34)) (σ (.n 46)) (σ (.n 23)) (σ (.n 395)) (σ (.n 364)) (σ (.n 26)) (σ (.n 27))
-    (σ (.n 383)) (σ (.n 28)) (σ (.n 389)) (gen ^ c)
-  writtenN : LoadHolds rd (σ (.n 398)) (lg σ 6) (σ (.n 24))
-  pick : σ (.n 405) = gen ^ lg σ 405 ∧ lg σ 405 ≤ lg σ 6 ∧ (lg σ 7 = 1 → lg σ 405 = lg σ 6)
-  picked : σ (.n 415) = σ (.n 364) * gen ^ (2 * lg σ 405)
-  leaf : lg σ 6 = 0 → ∀ k < 23, LoadHolds rd (σ (.n 416)) k 0
-  agg : lg σ 6 ≠ 0 → σ (.n 444) = σ (.n 28) * word 133823759239872512 0 ∧ C "aggregate_claims"
-    [σ (.n 6), σ (.n 383), σ (.n 389), σ (.n 395), σ (.n 416), σ (.n 444)] []
-  dacells : LoadHolds rd (σ (.n 415)) 0 (σ (.n 445)) ∧ LoadHolds rd (σ (.n 415)) 1 (σ (.n 446))
+    C "da_verify" [σ (.n (val% «main» "byte_bits"))] [σ (.n (val% «main» "root_0")), σ (.n (val% «main» "root_1")), σ (.n (val% «main» "z"))] ∧
+    LoadHolds rd (σ (.n (val% «main» "own_da"))) 0
+      (digestHalves (keccak256 (cellsBytes [σ (.n (val% «main» "root_0")), σ (.n (val% «main» "root_1")), σ (.n (val% «main» "z")), 0]))).1 ∧
+    LoadHolds rd (σ (.n (val% «main» "own_da"))) 1
+      (digestHalves (keccak256 (cellsBytes [σ (.n (val% «main» "root_0")), σ (.n (val% «main» "root_1")), σ (.n (val% «main» "z")), 0]))).2
+  daz : lg σ 7 = 0 → LoadHolds rd (σ (.n (val% «main» "own_da"))) 0 0 ∧ LoadHolds rd (σ (.n (val% «main» "own_da"))) 1 0
+  written0 : LoadHolds rd (σ (.n (val% «main» "written"))) 0 (gen ^ (lg σ 2 + lg σ 5))
+  children : ∀ c < lg σ 6, KidStepC C rd (σ (.n (val% «main» "written"))) (σ (.n (val% «main» "lx_table"))) (σ (.n (val% «main» "cover"))) (σ (.n (val% «main» "lx_slots_g")))
+    (σ (.n (val% «main» "lean_sphincs_table"))) (σ (.n (val% «main» "sp_cover"))) (σ (.n (val% «main» "lean_sphincs_slots_g"))) (σ (.n (val% «main» "child_carried"))) (σ (.n (val% «main» "da_digests"))) (σ (.n (val% «main» "fs_seed[0]"))) (σ (.n (val% «main» "fs_seed[1]")))
+    (σ (.n (val% «main» "child_pi"))) (σ (.n (val% «main» "g_squares"))) (σ (.n (val% «main» "child_fresh"))) (gen ^ c)
+  writtenN : LoadHolds rd (σ (.n (val% «main» "written"))) (lg σ 6) (σ (.n (val% «main» "n_total_g")))
+  pick : σ (.n (val% «main» "da_pick")) = gen ^ lg σ 405 ∧ lg σ 405 ≤ lg σ 6 ∧ (lg σ 7 = 1 → lg σ 405 = lg σ 6)
+  picked : σ (.n (val% «main» "da")) = σ (.n (val% «main» "da_digests")) * gen ^ (2 * lg σ 405)
+  leaf : lg σ 6 = 0 → ∀ k < 23, LoadHolds rd (σ (.n (val% «main» "defer_stmt"))) k 0
+  agg : lg σ 6 ≠ 0 → σ (.n (val% «main» "s63.e.s0#1")) = σ (.n (val% «main» "g_squares")) * word 133823759239872512 0 ∧ C "aggregate_claims"
+    [σ (.n (val% «main» "meta[6]")), σ (.n (val% «main» "child_pi")), σ (.n (val% «main» "child_fresh")), σ (.n (val% «main» "child_carried")), σ (.n (val% «main» "defer_stmt")), σ (.n (val% «main» "s63.e.s0#1"))] []
+  dacells : LoadHolds rd (σ (.n (val% «main» "da"))) 0 (σ (.n (val% «main» "own_0~2"))) ∧ LoadHolds rd (σ (.n (val% «main» "da"))) 1 (σ (.n (val% «main» "own_0~3")))
   stmt : coreProgram.Rel rd "statement_digest"
-    [σ (.n 26), σ (.n 27), σ (.n 35), σ (.n 36), σ (.n 37), σ (.n 38), σ (.n 445), σ (.n 446),
-      σ (.n 416)] [σ (.n 447), σ (.n 448)]
-  pub : LoadHolds rd 1 0 (σ (.n 447)) ∧ LoadHolds rd 1 1 (σ (.n 448))
+    [σ (.n (val% «main» "fs_seed[0]")), σ (.n (val% «main» "fs_seed[1]")), σ (.n (val% «main» "xd_0")), σ (.n (val% «main» "xd_1")), σ (.n (val% «main» "sd_0")), σ (.n (val% «main» "sd_1")), σ (.n (val% «main» "own_0~2")), σ (.n (val% «main» "own_0~3")),
+      σ (.n (val% «main» "defer_stmt"))] [σ (.n (val% «main» "own_0")), σ (.n (val% «main» "own_1"))]
+  pub : LoadHolds rd 1 0 (σ (.n (val% «main» "own_0"))) ∧ LoadHolds rd 1 1 (σ (.n (val% «main» "own_1")))
 
 end
 end LeanVM.Guest.B1.Main
@@ -186,7 +188,7 @@ theorem main_facts {rd : Reader} {C : CallRel} (hC : Unfolds rd C)
   -- the counts
   have hc : ∀ v < 6, ∃ e < 2 ^ 32, σ (.n v) = gen ^ e :=
     fun v hv => load_gpow hm (touch_sound (prc v hv) atP)
-  have hcl : ∀ v < 6, σ (.n v) = gen ^ lg σ v ∧ lg σ v < 2 ^ 32 := fun v hv => by
+  have hcl : ∀ v < (val% «main» "meta[6]"), σ (.n v) = gen ^ lg σ v ∧ lg σ v < 2 ^ 32 := fun v hv => by
     obtain ⟨e, he, hv'⟩ := hc v hv
     obtain ⟨h1, h2⟩ := pow_lg (by omega) hv'
     exact ⟨h1, by omega⟩
@@ -201,23 +203,23 @@ theorem main_facts {rd : Reader} {C : CallRel} (hC : Unfolds rd C)
   obtain ⟨c3, b3⟩ := hcl 3 (by omega)
   obtain ⟨c4, b4⟩ := hcl 4 (by omega)
   obtain ⟨c5, b5⟩ := hcl 5 (by omega)
-  have h40 : σ (.n 22) = gen ^ (lg σ 0 + lg σ 1) := by rw [isMul_sound pm40 atP, c0, c1, pow_add]
-  have h41 : σ (.n 23) = gen ^ (lg σ 3 + lg σ 4) := by rw [isMul_sound pm41 atP, c3, c4, pow_add]
-  have h42' : σ (.n 24) = gen ^ (lg σ 0 + lg σ 1 + (lg σ 3 + lg σ 4)) := by
+  have h40 : σ (.n (val% «main» "lx_slots_g")) = gen ^ (lg σ 0 + lg σ 1) := by rw [isMul_sound pm40 atP, c0, c1, pow_add]
+  have h41 : σ (.n (val% «main» "lean_sphincs_slots_g")) = gen ^ (lg σ 3 + lg σ 4) := by rw [isMul_sound pm41 atP, c3, c4, pow_add]
+  have h42' : σ (.n (val% «main» "n_total_g")) = gen ^ (lg σ 0 + lg σ 1 + (lg σ 3 + lg σ 4)) := by
     rw [isMul_sound pm42 atP, h40, h41, ← pow_add]
   have hT := gen_pow_inj34 (by omega) (by omega) (h42.symm.trans h42')
-  have h336 : σ (.n 366) = σ (.n 364) * gen ^ (2 * lg σ 6) := by
+  have h336 : σ (.n (val% «main» "own_da")) = σ (.n (val% «main» "da_digests")) * gen ^ (2 * lg σ 6) := by
     rw [isMul_sound pm336 atP, isMul_sound pm335 atP, l6, ← pow_add, two_mul]
   -- the pick
   obtain ⟨p, hp, hbl⟩ := rcDir_sound hm mrc atM
-  have h389 : σ (.n 6) * gen = gen ^ (lg σ 6 + 1) := by
+  have h389 : σ (.n (val% «main» "meta[6]")) * gen = gen ^ (lg σ 6 + 1) := by
     rw [l6, pow_succ]
   have hplt := belowLog_lt (by omega) h389 hbl
   obtain ⟨lp, rp⟩ := pow_lg (by omega) hp
   -- the loops
   have hguard3 := guard_soundC pl3 hpre
   have hguard4 := guard_soundC pl4 hpre
-  have h67 : σ (.n 46) = σ (.n 45) * σ (.n 22) := isMul_sound pm67 atP
+  have h67 : σ (.n (val% «main» "sp_cover")) = σ (.n (val% «main» "cover")) * σ (.n (val% «main» "lx_slots_g")) := isMul_sound pm67 atP
   refine ⟨fun v hv => ?_, ⟨l6, by omega⟩, ⟨l7, by omega⟩, h40, h41, ⟨h42', by omega⟩, ?_, ?_, ?_, ?_,
     ?_, ?_, h67, ?_, ?_, ?_, h336, ?_, ?_, ?_, ?_, ?_, ⟨lp, by omega, ?_⟩, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · simp only [List.mem_cons, List.mem_nil_iff, or_false] at hv
@@ -251,8 +253,8 @@ theorem main_facts {rd : Reader} {C : CallRel} (hC : Unfolds rd C)
     rwa [const_sound hcv atP] at this
   · -- raw leanXMSS
     refine loop_soundC (f := name% «main_loop2») (ps := l2Args σ)
-      (N := σ (.n 2)) (B := fun x => C name% «main_loop2» (x :: l2Args σ) [] ∧
-        ∃ s, BelowLog (σ (.n 22)) s ∧ LoadHolds rd (σ (.n 45)) s x)
+      (N := σ (.n (val% «main» "meta[2]"))) (B := fun x => C name% «main_loop2» (x :: l2Args σ) [] ∧
+        ∃ s, BelowLog (σ (.n (val% «main» "lx_slots_g"))) s ∧ LoadHolds rd (σ (.n (val% «main» "cover"))) s x)
       (by unfold ordG; omega) c2 (fun x hx => ?_)
       (fun hne => by simpa [l2Args, lxTagsV, Function.comp_def] using hguard3 hne)
     obtain ⟨h1, h2⟩ := l3_stepC hX hx
@@ -275,25 +277,25 @@ theorem main_facts {rd : Reader} {C : CallRel} (hC : Unfolds rd C)
     omega
   · -- raw leanSPHINCS
     refine loop_soundC (f := name% «main_loop3»)
-      (ps := [σ (.n 5), σ (.n 23), σ (.n 46), σ (.n 2), σ (.n 34), σ (.n 47)])
-      (N := σ (.n 5))
-      (B := RawSStepC C rd (σ (.n 23)) (σ (.n 45)) (σ (.n 22)) (σ (.n 2)) (σ (.n 34)) (σ (.n 47)))
+      (ps := [σ (.n (val% «main» "meta[5]")), σ (.n (val% «main» "lean_sphincs_slots_g")), σ (.n (val% «main» "sp_cover")), σ (.n (val% «main» "meta[2]")), σ (.n (val% «main» "lean_sphincs_table")), σ (.n (val% «main» "byte_bits"))])
+      (N := σ (.n (val% «main» "meta[5]")))
+      (B := RawSStepC C rd (σ (.n (val% «main» "lean_sphincs_slots_g"))) (σ (.n (val% «main» "cover"))) (σ (.n (val% «main» "lx_slots_g"))) (σ (.n (val% «main» "meta[2]"))) (σ (.n (val% «main» "lean_sphincs_table"))) (σ (.n (val% «main» "byte_bits"))))
       (by unfold ordG; omega) c5 (fun x hx => ?_) (fun hne => by simpa using hguard4 hne)
     obtain ⟨h1, h2⟩ := l4_stepC hC hm hx
     exact ⟨h1 _ _ _ _ _ _ _ (by rw [h67]), h2⟩
   · -- the direct DA check
     intro h71
-    have h338 : σ (.n 368) = 0 := by
+    have h338 : σ (.n (val% «main» "s50#1")) = 0 := by
       rw [add_sound pa338 atP, const_sound pc337 atP, word_gen, l7, h71, pow_one, e_add_self]
     obtain ⟨hdall, -⟩ := holdsList_flat mDa dflat _ _ (hdz h338)
     have atD := atoms_of_flat hdall
     obtain ⟨h0, h1⟩ := pairHash_sound dph atD
-    have e0 : σ (.n 373) = 0 := (const_sound dz atD).trans word_zero
+    have e0 : σ (.n (val% «main» "s50.t.s1#1[1]")) = 0 := (const_sound dz atD).trans word_zero
     rw [e0] at h0 h1
     exact ⟨call_of_flat hdall dver, h0, h1⟩
   · -- no direct DA check: zeros
     intro h70
-    have h338 : σ (.n 368) ≠ 0 := by
+    have h338 : σ (.n (val% «main» "s50#1")) ≠ 0 := by
       rw [add_sound pa338 atP, const_sound pc337 atP, word_gen, l7, h70, pow_zero, add_comm]
       exact gen_add_one_ne
     obtain ⟨hzall, -⟩ := holdsList_flat mDaZ zflat _ _ (hdn h338)
@@ -308,10 +310,10 @@ theorem main_facts {rd : Reader} {C : CallRel} (hC : Unfolds rd C)
   · -- the children
     have hguard5 := guard_soundC ml5 hmid
     refine loop_soundC (f := name% «main_loop4»)
-      (ps := [σ (.n 6), σ (.n 398), σ (.n 31), σ (.n 45), σ (.n 22), σ (.n 34), σ (.n 46),
-        σ (.n 23), σ (.n 395), σ (.n 364), σ (.n 26), σ (.n 27), σ (.n 383), σ (.n 28),
-        σ (.n 389)])
-      (N := σ (.n 6)) (by unfold ordG; omega) l6 (fun x hx => ?_)
+      (ps := [σ (.n (val% «main» "meta[6]")), σ (.n (val% «main» "written")), σ (.n (val% «main» "lx_table")), σ (.n (val% «main» "cover")), σ (.n (val% «main» "lx_slots_g")), σ (.n (val% «main» "lean_sphincs_table")), σ (.n (val% «main» "sp_cover")),
+        σ (.n (val% «main» "lean_sphincs_slots_g")), σ (.n (val% «main» "child_carried")), σ (.n (val% «main» "da_digests")), σ (.n (val% «main» "fs_seed[0]")), σ (.n (val% «main» "fs_seed[1]")), σ (.n (val% «main» "child_pi")), σ (.n (val% «main» "g_squares")),
+        σ (.n (val% «main» "child_fresh"))])
+      (N := σ (.n (val% «main» "meta[6]"))) (by unfold ordG; omega) l6 (fun x hx => ?_)
       (fun hne => by simpa using hguard5 hne)
     obtain ⟨h1, h2⟩ := l5_stepC hC hle hm hx
     exact ⟨h1 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ rfl, h2⟩
@@ -321,7 +323,7 @@ theorem main_facts {rd : Reader} {C : CallRel} (hC : Unfolds rd C)
     simpa using this
   · -- with a direct DA check, the node's own slot
     intro h71
-    have h398 : σ (.n 412) = 0 := by
+    have h398 : σ (.n (val% «main» "s60#3")) = 0 := by
       rw [assertEq_sound mae atM, const_sound mc399 atM, word_zero]
     rw [isMul_sound mm398 atM, add_sound ma395 atM, add_sound ma397 atM, const_sound mc396 atM,
       word_one, l7, h71, pow_one] at h398
@@ -332,7 +334,7 @@ theorem main_facts {rd : Reader} {C : CallRel} (hC : Unfolds rd C)
     · exact absurd h0 gen_add_one_ne
   · rw [isMul_sound mm401 atM, isMul_sound mm400 atM, lp, ← pow_add, two_mul]
   · intro h60 k hk
-    have h404 : σ (.n 418) = 0 := by
+    have h404 : σ (.n (val% «main» "s63#1")) = 0 := by
       rw [add_sound ma404 atM, const_sound mc403 atM, word_one, l6, h60, pow_zero, e_add_self]
     obtain ⟨hlall, -⟩ := holdsList_flat mLeaf (List.all_eq_true.mpr lflat) _ _ (hlz h404)
     have atL := atoms_of_flat hlall
@@ -340,7 +342,7 @@ theorem main_facts {rd : Reader} {C : CallRel} (hC : Unfolds rd C)
     have := load_sound hl atL
     rwa [const_sound hz atL, word_zero] at this
   · intro h60
-    have h404 : σ (.n 418) ≠ 0 := by
+    have h404 : σ (.n (val% «main» "s63#1")) ≠ 0 := by
       rw [add_sound ma404 atM, const_sound mc403 atM, word_one, l6]
       intro he
       have h2 : gen ^ 0 = gen ^ lg σ 6 := (pow_zero gen).trans (e_add_eq_zero_iff.mp he).symm
@@ -356,7 +358,7 @@ theorem main_facts {rd : Reader} {C : CallRel} (hC : Unfolds rd C)
     rw [isMul_sound qm437 atQ, const_sound qc435 atQ, const_sound qc436 atQ, word_one, word_gen,
       one_mul, assertEq_sound qe2 atQ] at l2
     refine ⟨l1, ?_⟩
-    have l2' : LoadHolds rd (1 * gen ^ 1) 0 (σ (.n 448)) := by rwa [one_mul, pow_one]
+    have l2' : LoadHolds rd (1 * gen ^ 1) 0 (σ (.n (val% «main» "own_1"))) := by rwa [one_mul, pow_one]
     have := (loadHolds_mul_gen_pow rd 1 1 0 _).mp l2'
     simpa using this
 

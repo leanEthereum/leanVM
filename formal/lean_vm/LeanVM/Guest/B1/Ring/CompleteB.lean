@@ -11,6 +11,8 @@ public import LeanVM.Guest.B1.Ring.WeightComplete
 public import LeanVM.Guest.B1.Tables.FlatAtT
 public import LeanVM.Guest.Memory.SizeTotal
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«ring_switch_weight»
 
 /-!
 # The ring switch, placed, within a bound
@@ -168,7 +170,7 @@ theorem rsw_completeAtB (κ : ℕ) {bz bp bc count : ℕ} {zs ps cs : List E} (h
     have e3 := hpar 3 (by omega)
     simp only [List.getD_cons_zero, List.getD_cons_succ] at e0 e1 e2 e3
     refine ⟨σ, ?_, ?_, ?_, ?_, ?_, ?_, ?_, trivial⟩
-    · show [Core.V.n 0, .n 1, .n 2, .n 3].map σ = _
+    · show [Core.V.n (val% «ring_switch_weight» "z_vals"), .n (val% «ring_switch_weight» "point1"), .n (val% «ring_switch_weight» "c_table"), .n (val% «ring_switch_weight» "qkeccakv_g")].map σ = _
       simp only [List.map_cons, List.map_nil, e0, e1, e2, e3]
     · intro s hs
       have := List.all_eq_true.mp rsw_noDisp s hs
@@ -179,7 +181,7 @@ theorem rsw_completeAtB (κ : ℕ) {bz bp bc count : ℕ} {zs ps cs : List E} (h
       cases s with
       | atom a => exact hat a (rsw_atom_mem hs)
       | call f args rets =>
-        have : Stmt.call f args rets = .call "rs_eq_run" [.n 12, .n 0, .n 1, .n 3] [.n 77] := by
+        have : Stmt.call f args rets = .call "rs_eq_run" [.n (val% «ring_switch_weight» "prod_chains"), .n (val% «ring_switch_weight» "z_vals"), .n (val% «ring_switch_weight» "point1"), .n (val% «ring_switch_weight» "qkeccakv_g")] [.n (val% «ring_switch_weight» "prod_final")] := by
           have h := rsw_callSF σ
           have hm : (Option.none, f, args, rets) ∈ rswPre.filterMap (Stmt.callSF σ) :=
             List.mem_filterMap.mpr ⟨_, hs, rfl⟩
@@ -188,7 +190,7 @@ theorem rsw_completeAtB (κ : ℕ) {bz bp bc count : ℕ} {zs ps cs : List E} (h
           obtain ⟨-, rfl, rfl, rfl⟩ := hm
           rfl
         rw [this]
-        show coreProgram.Rel rd "rs_eq_run" [σ (.n 12), σ (.n 0), σ (.n 1), σ (.n 3)] [σ (.n 77)]
+        show coreProgram.Rel rd "rs_eq_run" [σ (.n (val% «ring_switch_weight» "prod_chains")), σ (.n (val% «ring_switch_weight» "z_vals")), σ (.n (val% «ring_switch_weight» "point1")), σ (.n (val% «ring_switch_weight» "qkeccakv_g"))] [σ (.n (val% «ring_switch_weight» "prod_final"))]
         rw [e12, e0, e1, e3, e77]
         exact rs_rel hcount hz hp (fun q hq ↦ by
           simp only [rsLin, List.mem_cons, List.not_mem_nil, or_false] at hq
@@ -205,9 +207,9 @@ theorem rsw_completeAtB (κ : ℕ) {bz bp bc count : ℕ} {zs ps cs : List E} (h
     · unfold flatCalls
       rw [rsw_callSF]
       refine ⟨rfl, rfl, fun _ ↦ ⟨?_, ?_⟩, trivial⟩
-      · show [σ (.n 12), σ (.n 0), σ (.n 1), σ (.n 3)] = _
+      · show [σ (.n (val% «ring_switch_weight» "prod_chains")), σ (.n (val% «ring_switch_weight» "z_vals")), σ (.n (val% «ring_switch_weight» "point1")), σ (.n (val% «ring_switch_weight» "qkeccakv_g"))] = _
         rw [e12, e0, e1, e3]
-      · show [σ (.n 77)] = o.1
+      · show [σ (.n (val% «ring_switch_weight» "prod_final"))] = o.1
         rw [ho1, e77]
     · intro q hq
       obtain ⟨hoff, hp'⟩ := rsw_loads_ok (rt_filterMap_of_loadsEv (by decide +kernel) hq)

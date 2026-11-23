@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.B1.Main.AggFs
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«aggregate_claims_loop0»
 import LeanVM.Guest.B1.Common.Find
 
 /-!
@@ -135,8 +137,8 @@ theorem DupSpec.wvals_eq (s : DupSpec) (σ : Val) :
 /-- The source of word `w` of a child: its public input's cells through `.n 59`, `.n 63`, its fresh
 claim's through `.n 50`, its carried claim's through `.n 57`, then two zeros. -/
 def l25Src (w : ℕ) : Option (V × ℕ) :=
-  if w = 0 then some (.n 59, 0) else if w = 1 then some (.n 63, 1)
-  else if w < 26 then some (.n 50, w - 2) else if w < 50 then some (.n 57, w - 26) else none
+  if w = 0 then some (.n (val% «aggregate_claims_loop0» "s9.u0.s1.t.s0#0"), 0) else if w = 1 then some (.n (val% «aggregate_claims_loop0» "s9.u1.s1.t.s0#0"), 1)
+  else if w < 26 then some (.n (val% «aggregate_claims_loop0» "fresh"), w - 2) else if w < 50 then some (.n (val% «aggregate_claims_loop0» "carried"), w - 26) else none
 
 /-- `x` is loaded from its source, or is the constant zero. -/
 def srcOk (atoms : List Atom) (x : V) : Option (V × ℕ) → Bool
@@ -166,16 +168,16 @@ def l25Ok (fn : Fn) : Bool :=
   let s : DupSpec := ⟨keccakBlocks A, packsOf A⟩
   loopShapeF fn name% «aggregate_claims_loop0» && decide (fn.params.length = 8) && s.check A &&
       decide (s.nb = 13) &&
-  rowInOk A (.n 13) (s.ins 0) &&
-  storesOk A (.n 13) 13 5 (fun i => (s.outs 12).getD (8 + i) default) &&
-  (List.range 4).all (fun j => A.any (isLoadAt (.n (s.wB (48 + j))) (.n 13) (13 + (5 + 2 * j))) &&
-    A.any (isLoadAt (.n (s.wB (48 + j) + 1)) (.n 13) (13 + (6 + 2 * j)))) &&
+  rowInOk A (.n (val% «aggregate_claims_loop0» "row")) (s.ins 0) &&
+  storesOk A (.n (val% «aggregate_claims_loop0» "row")) 13 5 (fun i => (s.outs 12).getD (8 + i) default) &&
+  (List.range 4).all (fun j => A.any (isLoadAt (.n (s.wB (48 + j))) (.n (val% «aggregate_claims_loop0» "row")) (13 + (5 + 2 * j))) &&
+    A.any (isLoadAt (.n (s.wB (48 + j) + 1)) (.n (val% «aggregate_claims_loop0» "row")) (13 + (6 + 2 * j)))) &&
   (List.range 52).all (fun w => srcOk A (s.wV w) (l25Src w)) &&
-  monoIs A (.n 13) (.n 2) (.n 0) 13 && monoIs A (.n 59) (.n 7) (.n 0) 2 &&
-  monoIs A (.n 63) (.n 7) (.n 0) 2 && monoIs A (.n 50) (.n 3) (.n 0) 24 &&
-  monoIs A (.n 57) (.n 5) (.n 0) 24 &&
-  A.any (isLoadAt (.n 50) (.n 51) 0) && isMul A (.n 51) (.n 4) (.n 0) &&
-  A.any (isLoadAt (.n 57) (.n 58) 0) && isMul A (.n 58) (.n 6) (.n 0)
+  monoIs A (.n (val% «aggregate_claims_loop0» "row")) (.n (val% «aggregate_claims_loop0» "absorb")) (.n (val% «aggregate_claims_loop0» "xc")) 13 && monoIs A (.n (val% «aggregate_claims_loop0» "s9.u0.s1.t.s0#0")) (.n (val% «aggregate_claims_loop0» "child_pi")) (.n (val% «aggregate_claims_loop0» "xc")) 2 &&
+  monoIs A (.n (val% «aggregate_claims_loop0» "s9.u1.s1.t.s0#0")) (.n (val% «aggregate_claims_loop0» "child_pi")) (.n (val% «aggregate_claims_loop0» "xc")) 2 && monoIs A (.n (val% «aggregate_claims_loop0» "fresh")) (.n (val% «aggregate_claims_loop0» "child_fresh")) (.n (val% «aggregate_claims_loop0» "xc")) 24 &&
+  monoIs A (.n (val% «aggregate_claims_loop0» "carried")) (.n (val% «aggregate_claims_loop0» "child_carried")) (.n (val% «aggregate_claims_loop0» "xc")) 24 &&
+  A.any (isLoadAt (.n (val% «aggregate_claims_loop0» "fresh")) (.n (val% «aggregate_claims_loop0» "s6#0")) 0) && isMul A (.n (val% «aggregate_claims_loop0» "s6#0")) (.n (val% «aggregate_claims_loop0» "fresh_row")) (.n (val% «aggregate_claims_loop0» "xc")) &&
+  A.any (isLoadAt (.n (val% «aggregate_claims_loop0» "carried")) (.n (val% «aggregate_claims_loop0» "s8#0")) 0) && isMul A (.n (val% «aggregate_claims_loop0» "s8#0")) (.n (val% «aggregate_claims_loop0» "carried_row")) (.n (val% «aggregate_claims_loop0» "xc"))
 
 set_option maxRecDepth 100000 in
 theorem l25_ok : l25Ok (coreProgram.getD idx% «aggregate_claims_loop0» default) = true :=
@@ -196,14 +198,14 @@ def L25Step (rd : Reader) (absorb cfresh lfT ccarried lcT cpi x : E) : Prop :=
     RowRel rd (absorb * x ^ 13 * gen ^ 13)
       (st.absorbAll (l25Words rd cpi cfresh ccarried x) dsObserve)
 
-theorem l25Src_lt2 {w : ℕ} (h : w < 2) : l25Src w = some (if w = 0 then V.n 59 else V.n 63, w) := by
+theorem l25Src_lt2 {w : ℕ} (h : w < 2) : l25Src w = some (if w = 0 then V.n (val% «aggregate_claims_loop0» "s9.u0.s1.t.s0#0") else V.n (val% «aggregate_claims_loop0» "s9.u1.s1.t.s0#0"), w) := by
   rcases (show w = 0 ∨ w = 1 by omega) with rfl | rfl <;> rfl
 
-theorem l25Src_fresh {w : ℕ} (h1 : 2 ≤ w) (h2 : w < 26) : l25Src w = some (.n 50, w - 2) := by
+theorem l25Src_fresh {w : ℕ} (h1 : 2 ≤ w) (h2 : w < 26) : l25Src w = some (.n (val% «aggregate_claims_loop0» "fresh"), w - 2) := by
   unfold l25Src
   split_ifs <;> first | rfl | (exfalso; omega)
 
-theorem l25Src_carried {w : ℕ} (h1 : 26 ≤ w) (h2 : w < 50) : l25Src w = some (.n 57, w - 26) := by
+theorem l25Src_carried {w : ℕ} (h1 : 26 ≤ w) (h2 : w < 50) : l25Src w = some (.n (val% «aggregate_claims_loop0» "carried"), w - 26) := by
   unfold l25Src
   split_ifs <;> first | rfl | (exfalso; omega)
 
@@ -226,18 +228,18 @@ theorem l25_step {x : E} {ps : List E} (h : coreProgram.Rel rd name% «aggregate
   refine ⟨fun N absorb cfresh lfT ccarried lcT cpi hN => ?_, hnext⟩
   have hat := atoms_of_flat hall
   have hpar : (coreProgram.getD idx% «aggregate_claims_loop0» default).params =
-      [V.n 0, V.n 1, V.n 2, V.n 3, V.n 4, V.n 5, V.n 6, V.n 7] := by
+      [V.n (val% «aggregate_claims_loop0» "xc"), V.n (val% «aggregate_claims_loop0» "bound"), V.n (val% «aggregate_claims_loop0» "absorb"), V.n (val% «aggregate_claims_loop0» "child_fresh"), V.n (val% «aggregate_claims_loop0» "fresh_row"), V.n (val% «aggregate_claims_loop0» "child_carried"), V.n (val% «aggregate_claims_loop0» "carried_row"), V.n (val% «aggregate_claims_loop0» "child_pi")] := by
     have hs := hshape
     simp only [loopShapeF, Bool.and_eq_true, decide_eq_true_eq] at hs
     rw [hs.1.2, hlen]; rfl
   rw [hpar, hN] at hps
   simp only [List.tail_cons, List.map_cons, List.map_nil, List.cons.injEq, and_true] at hps
   obtain ⟨-, h2, h3, h4, h5, h6, h7⟩ := hps
-  have p13 : σ (.n 13) = absorb * x ^ 13 := by rw [monoIs_sound hm13 hat, h2, hx]
-  have p59 : σ (.n 59) = cpi * x ^ 2 := by rw [monoIs_sound hm59 hat, h7, hx]
-  have p63 : σ (.n 63) = cpi * x ^ 2 := by rw [monoIs_sound hm63 hat, h7, hx]
-  have p50 : σ (.n 50) = cfresh * x ^ 24 := by rw [monoIs_sound hm50 hat, h3, hx]
-  have p57 : σ (.n 57) = ccarried * x ^ 24 := by rw [monoIs_sound hm57 hat, h5, hx]
+  have p13 : σ (.n (val% «aggregate_claims_loop0» "row")) = absorb * x ^ 13 := by rw [monoIs_sound hm13 hat, h2, hx]
+  have p59 : σ (.n (val% «aggregate_claims_loop0» "s9.u0.s1.t.s0#0")) = cpi * x ^ 2 := by rw [monoIs_sound hm59 hat, h7, hx]
+  have p63 : σ (.n (val% «aggregate_claims_loop0» "s9.u1.s1.t.s0#0")) = cpi * x ^ 2 := by rw [monoIs_sound hm63 hat, h7, hx]
+  have p50 : σ (.n (val% «aggregate_claims_loop0» "fresh")) = cfresh * x ^ 24 := by rw [monoIs_sound hm50 hat, h3, hx]
+  have p57 : σ (.n (val% «aggregate_claims_loop0» "carried")) = ccarried * x ^ 24 := by rw [monoIs_sound hm57 hat, h5, hx]
   refine ⟨?_, ?_, fun st hp hrow => ?_⟩
   · have := load_sound hl50 hat
     rwa [isMul_sound hm51 hat, h4, hx, p50] at this

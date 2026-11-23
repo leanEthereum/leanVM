@@ -13,7 +13,7 @@ public import LeanVM.Facts.Verifier
 import LeanVM.Guest.B1.Tables.Base
 import LeanVM.Guest.GuestConst
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
-import LeanVM.Guest.Data.Source
+import LeanVM.Guest.Data.Consts
 
 /-!
 # The Keccak GKR reduction (TRIAGE G #53-63): the interface
@@ -198,7 +198,7 @@ def layerName : ℕ → String
 /-- `KR_STEP`: the pack rounds' first loop runs eight rounds an iteration. -/
 abbrev krStep : ℕ := guest_const% KR_STEP
 
-/-- **`keccak_layer(fs0..fs4, p0, p1, cursor, y_g, step_g, rem_g, claim, out, iota, tabs, first)`**
+/-- **`keccak_layer(fs0..fs4, p0, p1, cursor, y_g, step_g, rem_g, claim, out, iota, tabs, stream, first)`**
 : on the window table `tabs` (`WinTabs`, which `s`'s grind reads), for every reading of its arguments as the claim `c` on points of
 `y = 8·⌊y/8⌋ + y % 8` coordinates (`y_g = g^y`, `step_g = g^⌊y/8⌋`, `rem_g = g^(y % 8)`) whose
 record is at `claim`, the step `step`'s `ι` term (`keccakIota`), and with `first = 1` the
@@ -207,7 +207,7 @@ capacity, the stream words `xs` at the cursor run `verifyKeccakLayer (y + 3) ste
 `c'`, whose record the function writes at `out`; it returns the capacity after the run and the
 cursor past `xs`. -/
 def MeaningKeccakLayer (first : ℕ) (rd : Reader) : List E → List E → Prop
-  | [f0, f1, f2, f3, f4, p0, p1, cur, yg, sg, rg, claim, out, iota, tabs], rets =>
+  | [f0, f1, f2, f3, f4, p0, p1, cur, yg, sg, rg, claim, out, iota, tabs, _], rets =>
       WinTabs rd tabs → ∀ (y step : ℕ) (c : KeccakClaim) (w : E), 1 ≤ y → y < 32 → yg = gen ^ y →
         sg = gen ^ (y / krStep) → rg = gen ^ (y % krStep) → ClaimRec rd (first = 1) claim c y →
         (first = 1 → (p0, p1) = Keccak.scalarCells w dsObserve) →
@@ -226,7 +226,7 @@ def keccak_layer_SpecP (P : Program) (rd : Reader) : Prop :=
 
 /-! ## `verify_keccak` -/
 
-/-- **`verify_keccak(fs0..fs4, cursor, tau_g, chi, output_lanes, z_vals, slices, tabs)`**
+/-- **`verify_keccak(fs0..fs4, cursor, tau_g, chi, output_lanes, z_vals, slices, tabs, stream)`**
 : on the window table `tabs` (`WinTabs`, which the layers' grinds read), for the
 `KECCAK` table's log-height `τ` (`tau_g = g^τ`, `9 ≤ τ ≤ 28`, which
 `verify_tables` certifies), the table sumcheck's point `chis` at `chi` (at least `τ`
@@ -237,7 +237,7 @@ the sponge `s'` with a full queue, the last four slices; `op` is at `z_vals`, th
 `z_vals·g^39`, the slices at `slices`; the function returns the capacity after that queue's
 permutation (which the next grind's `absorb` makes), the cursor past `xs` and `word`. -/
 def MeaningVerifyKeccak (rd : Reader) : List E → List E → Prop
-  | [f0, f1, f2, f3, f4, cur, tg, chi, ol, zv, sl, tabs], rets =>
+  | [f0, f1, f2, f3, f4, cur, tg, chi, ol, zv, sl, tabs, _], rets =>
       WinTabs rd tabs → ∀ (τ : ℕ) (chis outs : List E), 9 ≤ τ → τ ≤ 28 → tg = gen ^ τ → τ ≤ chis.length →
         ReadsAt rd chi chis → outs.length = 25 → ReadsAt rd ol outs →
         ∃ (xs op point slices : List E) (word : E) (s' : Fs), ReadsAt rd cur xs ∧

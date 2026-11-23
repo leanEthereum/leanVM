@@ -132,16 +132,18 @@ theorem certLe_spec {B : ℕ} {c : Cert} (h : certLe B c = true) :
   · exact ⟨_, _, rfl, of_decide_eq_true h⟩
   · cases h
 
-/-- The column selectors: core functions `274 + κ`, constant words certificates within `157`, frames
-within `157`. -/
+/-- The column selectors: core functions `idx% «column_selector__L0» + κ`, constant words
+certificates within `157`, frames within `157`. -/
 theorem cs_ok : (List.range 31).all (fun κ =>
-    decide ((coreProgram[274 + κ]?).map Fn.name = some (Tables.lName "column_selector" κ)) &&
-      certLe 157 (Data.wcertJ (274 + κ)) && decide (wfsJ (274 + κ) ≤ 157)) = true := by
+    decide ((coreProgram[idx% «column_selector__L0» + κ]?).map Fn.name = some (Tables.lName "column_selector" κ)) &&
+      certLe 157 (Data.wcertJ (idx% «column_selector__L0» + κ)) &&
+      decide (wfsJ (idx% «column_selector__L0» + κ) ≤ 157)) = true := by
   decide +kernel
 
 theorem cs_facts {κ : ℕ} (hκ : κ < 31) :
-    (coreProgram[274 + κ]?).map Fn.name = some (Tables.lName "column_selector" κ) ∧
-      certLe 157 (Data.wcertJ (274 + κ)) = true ∧ wfsJ (274 + κ) ≤ 157 := by
+    (coreProgram[idx% «column_selector__L0» + κ]?).map Fn.name = some (Tables.lName "column_selector" κ) ∧
+      certLe 157 (Data.wcertJ (idx% «column_selector__L0» + κ)) = true ∧
+      wfsJ (idx% «column_selector__L0» + κ) ≤ 157 := by
   have h := List.all_eq_true.mp cs_ok κ (List.mem_range.mpr hκ)
   simp only [Bool.and_eq_true, decide_eq_true_eq] at h
   exact ⟨h.1.1, h.1.2, h.2⟩
@@ -161,11 +163,11 @@ theorem cs_fs_le : ∀ κ < 31, B2C.fs (Tables.lName "column_selector" κ) ≤ 1
   rw [fsB_idx hname]
   exact hF
 
-/-- The rows' specializations: core functions `81 + r`, constant words certificates within
+/-- The rows' specializations: core functions `idx% «rs_eq_rows__L0» + r`, constant words certificates within
 `1489`. -/
 theorem rsRows_ok : (List.range 8).all (fun r =>
-    decide ((coreProgram[81 + r]?).map Fn.name = some (rsEqRowsNames.getD r "")) &&
-      certLe 1489 (Data.wcertJ (81 + r))) = true := by
+    decide ((coreProgram[idx% «rs_eq_rows__L0» + r]?).map Fn.name = some (rsEqRowsNames.getD r "")) &&
+      certLe 1489 (Data.wcertJ (idx% «rs_eq_rows__L0» + r))) = true := by
   decide +kernel
 
 /-- **Each `rs_eq_rows__L{r}`, `r < 8`, within `1489` words.** -/

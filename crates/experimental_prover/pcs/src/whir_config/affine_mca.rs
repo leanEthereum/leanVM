@@ -177,10 +177,6 @@ pub(crate) fn combiner_within(n: u128, d: u128, a: u128, w: &AffineWitness, budg
         return Some(false);
     };
     let gap2 = (a - w.b) * (a - w.b);
-    // The right side is `(s (A - B)^2, 0)`: past 2^256 when its high half overflows, beyond any left side.
-    let Some(rhs_high) = slack.checked_mul(gap2) else {
-        return Some(true);
-    };
     let interp = [4, d, d, big_m, big_m, w.big_d, w.big_d, w.big_d]
         .into_iter()
         .try_fold(1u128, u128::checked_mul);
@@ -192,6 +188,10 @@ pub(crate) fn combiner_within(n: u128, d: u128, a: u128, w: &AffineWitness, budg
     let (lo, carry) = l1.overflowing_add(l2);
     let Some(hi) = h1.checked_add(h2).and_then(|h| h.checked_add(carry as u128)) else {
         return Some(false);
+    };
+    // The right side is `(s (A - B)^2, 0)`: past 2^256 when its high half overflows, so past the left side.
+    let Some(rhs_high) = slack.checked_mul(gap2) else {
+        return Some(true);
     };
     Some((hi, lo) <= (rhs_high, 0))
 }
@@ -243,6 +243,19 @@ mod tests {
         // The search does at least as well.
         let (_, found) = find_witness(n, d, a).unwrap();
         assert!(found <= err + 1e-9);
+    }
+
+    /// The right side overflowing accepted a witness whose left side is past it, its `interp` past `u128`.
+    #[test]
+    fn overflowing_left_side_is_a_miss() {
+        let (n, d, a) = (1 << 40, 1 << 36, 1 << 39);
+        let w = AffineWitness {
+            m: 1,
+            big_d: 1 << 34,
+            b: a - 2,
+        };
+        assert!(hypotheses(n, d, a, &w).is_some());
+        assert_eq!(combiner_within(n, d, a, &w, u128::MAX), Some(false));
     }
 
     #[test]

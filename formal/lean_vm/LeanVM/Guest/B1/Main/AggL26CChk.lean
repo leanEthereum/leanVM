@@ -10,6 +10,9 @@ module
 
 public import LeanVM.Guest.B1.Main.AggCLib
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«aggregate_claims_loop1»
+import LeanVM.Guest.Data.ValNames.«aggregate_claims_loop2»
 
 namespace LeanVM.Guest.B1.Main
 
@@ -20,7 +23,7 @@ open LeanVM.Guest.Core LeanVM.Guest.B1.Fwd LeanVM.Guest.B1.Digest
 /-! ## `aggregate_claims_loop1` -/
 
 /-- `aggregate_claims_loop1`'s stores: the next record's power and claim. -/
-def l26Stores : List Atom := [.load (.n 14) (.n 8) 2, .load (.n 21) (.n 8) 3]
+def l26Stores : List Atom := [.load (.n (val% «aggregate_claims_loop1» "s5#0")) (.n (val% «aggregate_claims_loop1» "row")) 2, .load (.n (val% «aggregate_claims_loop1» "s6#6")) (.n (val% «aggregate_claims_loop1» "row")) 3]
 
 /-- `aggregate_claims_loop1`'s atoms but its stores. -/
 noncomputable def l26A : List Atom :=
@@ -36,9 +39,9 @@ theorem mem_l26A {a : Atom} :
 their
 values. -/
 def isL26Load : Atom → Bool
-  | .load _ p o => (decide (p = .n 8) && decide (o < 2)) ||
-      ((decide (p = .n 10) || decide (p = .n 12)) && decide (o = 0)) ||
-      ((decide (p = .n 11) || decide (p = .n 13)) && decide (o = 23))
+  | .load _ p o => (decide (p = .n (val% «aggregate_claims_loop1» "row")) && decide (o < 2)) ||
+      ((decide (p = .n (val% «aggregate_claims_loop1» "fresh~0")) || decide (p = .n (val% «aggregate_claims_loop1» "carried~0"))) && decide (o = 0)) ||
+      ((decide (p = .n (val% «aggregate_claims_loop1» "fresh")) || decide (p = .n (val% «aggregate_claims_loop1» "carried"))) && decide (o = 23))
   | _ => false
 
 set_option maxRecDepth 100000 in
@@ -55,14 +58,14 @@ noncomputable def l26COk : Bool :=
   let P := (atomsIn (loopPre fn)).filter pureB
   (chk 7 fn.body).isSome && (loopPre fn).all (fun s => match s with | .atom _ => true | _ => false) &&
   A.all (fun a => !needsSide a || isL26Load a) &&
-  isMul P (.n 7) (.n 0) (.n 0) && isMul P (.n 8) (.n 2) (.n 7) &&
-  A.any (isLoadAt (.n 9) (.n 8) 0) &&
-  isMul P (.n 10) (.n 3) (.n 0) && A.any (isLoadAt (.n 11) (.n 10) 0) &&
-  isMul P (.n 12) (.n 4) (.n 0) && A.any (isLoadAt (.n 13) (.n 12) 0) &&
-  isMul P (.n 14) (.n 9) (.n 5) && A.any (isLoadAt (.n 15) (.n 8) 1) &&
-  A.any (isLoadAt (.n 16) (.n 11) 23) && A.any (isLoadAt (.n 17) (.n 13) 23) &&
-  isMul P (.n 18) (.n 6) (.n 17) && P.any (isAddAt (.n 19) (.n 16) (.n 18)) &&
-  isMul P (.n 20) (.n 9) (.n 19) && P.any (isAddAt (.n 21) (.n 15) (.n 20))
+  isMul P (.n (val% «aggregate_claims_loop1» "row~0")) (.n (val% «aggregate_claims_loop1» "xc")) (.n (val% «aggregate_claims_loop1» "xc")) && isMul P (.n (val% «aggregate_claims_loop1» "row")) (.n (val% «aggregate_claims_loop1» "bc_chain")) (.n (val% «aggregate_claims_loop1» "row~0")) &&
+  A.any (isLoadAt (.n (val% «aggregate_claims_loop1» "lam_pow")) (.n (val% «aggregate_claims_loop1» "row")) 0) &&
+  isMul P (.n (val% «aggregate_claims_loop1» "fresh~0")) (.n (val% «aggregate_claims_loop1» "fresh_row")) (.n (val% «aggregate_claims_loop1» "xc")) && A.any (isLoadAt (.n (val% «aggregate_claims_loop1» "fresh")) (.n (val% «aggregate_claims_loop1» "fresh~0")) 0) &&
+  isMul P (.n (val% «aggregate_claims_loop1» "carried~0")) (.n (val% «aggregate_claims_loop1» "carried_row")) (.n (val% «aggregate_claims_loop1» "xc")) && A.any (isLoadAt (.n (val% «aggregate_claims_loop1» "carried")) (.n (val% «aggregate_claims_loop1» "carried~0")) 0) &&
+  isMul P (.n (val% «aggregate_claims_loop1» "s5#0")) (.n (val% «aggregate_claims_loop1» "lam_pow")) (.n (val% «aggregate_claims_loop1» "lam_sq")) && A.any (isLoadAt (.n (val% «aggregate_claims_loop1» "s6#0")) (.n (val% «aggregate_claims_loop1» "row")) 1) &&
+  A.any (isLoadAt (.n (val% «aggregate_claims_loop1» "s6#1")) (.n (val% «aggregate_claims_loop1» "fresh")) 23) && A.any (isLoadAt (.n (val% «aggregate_claims_loop1» "s6#2")) (.n (val% «aggregate_claims_loop1» "carried")) 23) &&
+  isMul P (.n (val% «aggregate_claims_loop1» "s6#3")) (.n (val% «aggregate_claims_loop1» "lam")) (.n (val% «aggregate_claims_loop1» "s6#2")) && P.any (isAddAt (.n (val% «aggregate_claims_loop1» "s6#4")) (.n (val% «aggregate_claims_loop1» "s6#1")) (.n (val% «aggregate_claims_loop1» "s6#3"))) &&
+  isMul P (.n (val% «aggregate_claims_loop1» "s6#5")) (.n (val% «aggregate_claims_loop1» "lam_pow")) (.n (val% «aggregate_claims_loop1» "s6#4")) && P.any (isAddAt (.n (val% «aggregate_claims_loop1» "s6#6")) (.n (val% «aggregate_claims_loop1» "s6#0")) (.n (val% «aggregate_claims_loop1» "s6#5")))
 
 set_option maxRecDepth 100000 in
 theorem l26_shape : loopShapeF (coreProgram.getD idx% «aggregate_claims_loop1» default)
@@ -75,7 +78,7 @@ theorem l26c_ok : l26COk = true := by decide +kernel
 /-! ## `aggregate_claims_loop2` -/
 
 /-- `aggregate_claims_loop2`'s store: the next weight. -/
-def l27Stores : List Atom := [.load (.n 179) (.n 180) 1]
+def l27Stores : List Atom := [.load (.n (val% «aggregate_claims_loop2» "s4#6")) (.n (val% «aggregate_claims_loop2» "s4#7")) 1]
 
 /-- `aggregate_claims_loop2`'s atoms but its store. -/
 noncomputable def l27A : List Atom :=
@@ -91,9 +94,9 @@ theorem mem_l27A {a : Atom} :
 weight,
 and coordinate `o < 23` of the claims' points and of `bc_point1`. -/
 def isL27Load : Atom → Bool
-  | .load _ p o => (decide (p = .n 8) && decide (o = 0)) || (decide (p = .n 10) && decide (o = 0)) ||
-      (decide (p = .n 172) && decide (o = 0)) || (decide (p = .n 173) && decide (o = 0)) ||
-      ((decide (p = .n 4) || decide (p = .n 9) || decide (p = .n 11)) && decide (o < 23))
+  | .load _ p o => (decide (p = .n (val% «aggregate_claims_loop2» "fresh~0")) && decide (o = 0)) || (decide (p = .n (val% «aggregate_claims_loop2» "carried~0")) && decide (o = 0)) ||
+      (decide (p = .n (val% «aggregate_claims_loop2» "row")) && decide (o = 0)) || (decide (p = .n (val% «aggregate_claims_loop2» "s4#0")) && decide (o = 0)) ||
+      ((decide (p = .n (val% «aggregate_claims_loop2» "bc_point1")) || decide (p = .n (val% «aggregate_claims_loop2» "fresh")) || decide (p = .n (val% «aggregate_claims_loop2» "carried"))) && decide (o < 23))
   | _ => false
 
 set_option maxRecDepth 100000 in
@@ -110,14 +113,14 @@ noncomputable def l27COk : Bool :=
   let P := (atomsIn (loopPre fn)).filter pureB
   (chk 8 fn.body).isSome && (loopPre fn).all (fun s => match s with | .atom _ => true | _ => false) &&
   A.all (fun a => !needsSide a || isL27Load a) &&
-  isMul P (.n 8) (.n 2) (.n 0) && A.any (isLoadAt (.n 9) (.n 8) 0) &&
-  isMul P (.n 10) (.n 3) (.n 0) && A.any (isLoadAt (.n 11) (.n 10) 0) &&
-  eqChainOk A (.n 9) (.n 4) 23 (.n 167) && eqChainOk A (.n 11) (.n 4) 23 (.n 170) &&
-  isMul P (.n 171) (.n 0) (.n 0) && isMul P (.n 172) (.n 5) (.n 171) &&
-  isMul P (.n 173) (.n 6) (.n 0) && A.any (isLoadAt (.n 174) (.n 173) 0) &&
-  A.any (isLoadAt (.n 175) (.n 172) 0) && isMul P (.n 176) (.n 7) (.n 170) &&
-  P.any (isAddAt (.n 177) (.n 167) (.n 176)) && isMul P (.n 178) (.n 175) (.n 177) &&
-  P.any (isAddAt (.n 179) (.n 174) (.n 178)) && isMul P (.n 180) (.n 6) (.n 0)
+  isMul P (.n (val% «aggregate_claims_loop2» "fresh~0")) (.n (val% «aggregate_claims_loop2» "fresh_row")) (.n (val% «aggregate_claims_loop2» "xc")) && A.any (isLoadAt (.n (val% «aggregate_claims_loop2» "fresh")) (.n (val% «aggregate_claims_loop2» "fresh~0")) 0) &&
+  isMul P (.n (val% «aggregate_claims_loop2» "carried~0")) (.n (val% «aggregate_claims_loop2» "carried_row")) (.n (val% «aggregate_claims_loop2» "xc")) && A.any (isLoadAt (.n (val% «aggregate_claims_loop2» "carried")) (.n (val% «aggregate_claims_loop2» "carried~0")) 0) &&
+  eqChainOk A (.n (val% «aggregate_claims_loop2» "fresh")) (.n (val% «aggregate_claims_loop2» "bc_point1")) 23 (.n (val% «aggregate_claims_loop2» "eq_fresh@23")) && eqChainOk A (.n (val% «aggregate_claims_loop2» "carried")) (.n (val% «aggregate_claims_loop2» "bc_point1")) 23 (.n (val% «aggregate_claims_loop2» "eq_carried@23")) &&
+  isMul P (.n (val% «aggregate_claims_loop2» "row~0")) (.n (val% «aggregate_claims_loop2» "xc")) (.n (val% «aggregate_claims_loop2» "xc")) && isMul P (.n (val% «aggregate_claims_loop2» "row")) (.n (val% «aggregate_claims_loop2» "bc_chain")) (.n (val% «aggregate_claims_loop2» "row~0")) &&
+  isMul P (.n (val% «aggregate_claims_loop2» "s4#0")) (.n (val% «aggregate_claims_loop2» "bc_wsum")) (.n (val% «aggregate_claims_loop2» "xc")) && A.any (isLoadAt (.n (val% «aggregate_claims_loop2» "s4#1")) (.n (val% «aggregate_claims_loop2» "s4#0")) 0) &&
+  A.any (isLoadAt (.n (val% «aggregate_claims_loop2» "s4#2")) (.n (val% «aggregate_claims_loop2» "row")) 0) && isMul P (.n (val% «aggregate_claims_loop2» "s4#3")) (.n (val% «aggregate_claims_loop2» "lam")) (.n (val% «aggregate_claims_loop2» "eq_carried@23")) &&
+  P.any (isAddAt (.n (val% «aggregate_claims_loop2» "s4#4")) (.n (val% «aggregate_claims_loop2» "eq_fresh@23")) (.n (val% «aggregate_claims_loop2» "s4#3"))) && isMul P (.n (val% «aggregate_claims_loop2» "s4#5")) (.n (val% «aggregate_claims_loop2» "s4#2")) (.n (val% «aggregate_claims_loop2» "s4#4")) &&
+  P.any (isAddAt (.n (val% «aggregate_claims_loop2» "s4#6")) (.n (val% «aggregate_claims_loop2» "s4#1")) (.n (val% «aggregate_claims_loop2» "s4#5"))) && isMul P (.n (val% «aggregate_claims_loop2» "s4#7")) (.n (val% «aggregate_claims_loop2» "bc_wsum")) (.n (val% «aggregate_claims_loop2» "xc"))
 
 set_option maxRecDepth 100000 in
 theorem l27_shape : loopShapeF (coreProgram.getD idx% «aggregate_claims_loop2» default)

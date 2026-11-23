@@ -3,15 +3,16 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::thread;
 
-use lean_pq::{sphincs, xmss, Message};
+use lean_pq::{sphincs, vrf, xmss, Message};
 use napi::bindgen_prelude::{AsyncTask, Buffer, Error, Object, Result, Status, Task};
 use napi::Env;
 use napi_derive::napi;
 
 /// Runs `task` on a thread of its own and returns its promise.
 ///
-/// A sidecar call or start holds a thread for seconds, and `AsyncTask`'s threads are libuv's
-/// pool, which Node's file, DNS and crypto work share.
+/// A sidecar call or start holds a thread for seconds, and building a VRF key over a range for up
+/// to minutes, while `AsyncTask`'s threads are libuv's pool, which Node's file, DNS and crypto work
+/// share.
 fn on_own_thread<T: Task + 'static>(env: &Env, mut task: T) -> Result<Object<'_>> {
     let (deferred, promise) = env.create_deferred()?;
     thread::spawn(
@@ -51,6 +52,18 @@ fn uint32(value: f64, what: &str) -> Result<u32> {
         Err(invalid_arg(format!(
             "{what} must be an integer in [0, {}], got {value}",
             u32::MAX
+        )))
+    }
+}
+
+/// Slots are `u64` in Rust; a JavaScript number is exact only up to `2^53 - 1`.
+fn uint53(value: f64, what: &str) -> Result<u64> {
+    const MAX: f64 = 9_007_199_254_740_991.0;
+    if value.fract() == 0.0 && (0.0..=MAX).contains(&value) {
+        Ok(value as u64)
+    } else {
+        Err(invalid_arg(format!(
+            "{what} must be an integer in [0, {MAX}], got {value}"
         )))
     }
 }
@@ -113,6 +126,12 @@ impl XmssSecretKey {
         self.inner.to_bytes().to_vec().into()
     }
 
+    /// The trees the key holds, without any secret.
+    #[napi]
+    pub fn cache_to_bytes(&self) -> Buffer {
+        self.inner.cache_to_bytes().into()
+    }
+
     #[napi(getter)]
     pub fn public_key(&self) -> Buffer {
         self.inner.public_key().to_bytes().to_vec().into()
@@ -164,6 +183,31 @@ impl SphincsSecretKey {
 }
 
 #[napi]
+pub struct VrfKey {
+    inner: Arc<vrf::Key>,
+}
+
+#[napi]
+impl VrfKey {
+    #[napi]
+    pub fn root(&self) -> Buffer {
+        self.inner.root().to_vec().into()
+    }
+
+    /// Encodes the key's cache: its range and cached layer, no secret.
+    #[napi]
+    pub fn cache_to_bytes(&self) -> Buffer {
+        self.inner.cache_to_bytes().into()
+    }
+
+    #[napi]
+    pub fn proof(&self, slot: f64) -> Result<Buffer> {
+        let proof = self.inner.proof(uint32(slot, "slot")?).map_err(api_error)?;
+        Ok(proof.as_flattened().to_vec().into())
+    }
+}
+
+#[napi]
 pub struct Aggregate {
     inner: Arc<lean_pq::Aggregate>,
 }
@@ -204,6 +248,11 @@ pub enum XmssKeySource {
     Random,
     Seed(Vec<u8>),
     Bytes(Vec<u8>),
+    Cache {
+        seed: Vec<u8>,
+        public_key: Vec<u8>,
+        cache: Vec<u8>,
+    },
 }
 
 pub struct XmssKeyTask {
@@ -219,6 +268,15 @@ impl Task for XmssKeyTask {
             XmssKeySource::Random => Ok(xmss::SecretKey::generate()),
             XmssKeySource::Seed(seed) => Ok(xmss::SecretKey::from_seed(bytes32(seed, "seed")?)),
             XmssKeySource::Bytes(bytes) => xmss::SecretKey::from_bytes(bytes).map_err(api_error),
+            XmssKeySource::Cache {
+                seed,
+                public_key,
+                cache,
+            } => {
+                let public_key = xmss::PublicKey::from_bytes(public_key).map_err(api_error)?;
+                xmss::SecretKey::from_cache_bytes(bytes32(seed, "seed")?, &public_key, cache)
+                    .map_err(api_error)
+            }
         }
     }
 
@@ -319,6 +377,41 @@ impl Task for SphincsSignTask {
 
     fn resolve(&mut self, _: Env, output: Self::Output) -> Result<Self::JsValue> {
         Ok(output.into())
+    }
+}
+
+pub enum VrfKeySource {
+    Range { start: f64, end: f64 },
+    Cache { cache: Vec<u8>, root: Vec<u8> },
+}
+
+pub struct VrfKeyTask {
+    seed: Vec<u8>,
+    source: VrfKeySource,
+}
+
+impl Task for VrfKeyTask {
+    type Output = vrf::Key;
+    type JsValue = VrfKey;
+
+    fn compute(&mut self) -> Result<Self::Output> {
+        let seed = bytes32(&self.seed, "seed")?;
+        match &self.source {
+            VrfKeySource::Range { start, end } => {
+                let slots = uint32(*start, "start")?..uint32(*end, "end")?;
+                vrf::Key::new(seed, slots).map_err(api_error)
+            }
+            VrfKeySource::Cache { cache, root } => {
+                let root = bytes32(root, "root")?;
+                vrf::Key::from_cache_bytes(seed, &root, cache).map_err(api_error)
+            }
+        }
+    }
+
+    fn resolve(&mut self, _: Env, output: Self::Output) -> Result<Self::JsValue> {
+        Ok(VrfKey {
+            inner: Arc::new(output),
+        })
     }
 }
 
@@ -576,6 +669,21 @@ pub fn xmss_secret_key_from_bytes(data: Buffer) -> AsyncTask<XmssKeyTask> {
     })
 }
 
+#[napi(ts_return_type = "Promise<XmssSecretKey>")]
+pub fn xmss_secret_key_from_cache_bytes(
+    seed: Buffer,
+    public_key: Buffer,
+    cache: Buffer,
+) -> AsyncTask<XmssKeyTask> {
+    AsyncTask::new(XmssKeyTask {
+        source: XmssKeySource::Cache {
+            seed: seed.to_vec(),
+            public_key: public_key.to_vec(),
+            cache: cache.to_vec(),
+        },
+    })
+}
+
 #[napi]
 pub fn xmss_verify(public_key: Buffer, message: Buffer, signature: Buffer) -> Result<()> {
     let public_key = xmss::PublicKey::from_bytes(&public_key).map_err(api_error)?;
@@ -613,4 +721,46 @@ pub fn sphincs_verify(public_key: Buffer, message: Buffer, signature: Buffer) ->
     public_key
         .verify(&to_message(&message)?, &signature)
         .map_err(api_error)
+}
+
+#[napi(ts_return_type = "Promise<VrfKey>")]
+pub fn vrf_key_from_seed(env: &Env, seed: Buffer, start: f64, end: f64) -> Result<Object<'_>> {
+    on_own_thread(
+        env,
+        VrfKeyTask {
+            seed: seed.to_vec(),
+            source: VrfKeySource::Range { start, end },
+        },
+    )
+}
+
+#[napi(ts_return_type = "Promise<VrfKey>")]
+pub fn vrf_key_from_cache_bytes(
+    seed: Buffer,
+    root: Buffer,
+    cache: Buffer,
+) -> AsyncTask<VrfKeyTask> {
+    AsyncTask::new(VrfKeyTask {
+        seed: seed.to_vec(),
+        source: VrfKeySource::Cache {
+            cache: cache.to_vec(),
+            root: root.to_vec(),
+        },
+    })
+}
+
+#[napi]
+pub fn vrf_verify(root: Buffer, slot: f64, proof: Buffer) -> Result<()> {
+    let root = bytes32(&root, "root")?;
+    let slot = uint53(slot, "slot")?;
+    let proof: &[u8; vrf::PROOF_LEN] = proof.as_ref().try_into().map_err(|_| {
+        invalid_arg(format!(
+            "proof must be {} bytes, got {}",
+            vrf::PROOF_LEN,
+            proof.len()
+        ))
+    })?;
+    let (nodes, _) = proof.as_chunks::<32>();
+    let proof: vrf::Proof = nodes.try_into().expect("a proof is 32 nodes");
+    vrf::verify(&root, slot, &proof).map_err(api_error)
 }

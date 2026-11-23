@@ -7,6 +7,8 @@
 module
 
 public import LeanVM.Guest.B1.Bits.QueryWindowsLib
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«decode_query_windows__L»
 import LeanVM.Guest.Value.FieldBits
 
 /-!
@@ -117,7 +119,7 @@ theorem qw_rc {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {x y t1 t2 : E} 
 
 section reads
 
-variable {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {σ : Val} (hT : WinTabs L.read (σ (.n 3)))
+variable {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {σ : Val} (hT : WinTabs L.read (σ (.n (valf% «decode_query_windows» "tabs"))))
 include hκ hT
 
 theorem qwRead_sound {c : V} {start w k : ℕ} (hw : w ≤ 7)
@@ -169,7 +171,7 @@ def qwHiT (off w cut n : ℕ) : E :=
   else if off < cut then eOfNat (n / 2 ^ (cut - off)) else eOfNat n * cbWord (off - cut)
 
 theorem qwWindow_sound {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {σ : Val}
-    (hT : WinTabs L.read (σ (.n 3))) {d cd base cut at0 i k : ℕ} {lo hi : Option V}
+    (hT : WinTabs L.read (σ (.n (valf% «decode_query_windows» "tabs")))) {d cd base cut at0 i k : ℕ} {lo hi : Option V}
     (hw : (qwWin d cd i).2 ≤ 7)
     (h : qwAH L.read σ (qwWindow d cd base cut at0 i k lo hi).1) :
     ∃ n < 2 ^ (qwWin d cd i).2, σ (.n (5 + at0 + i)) = gen ^ n ∧
@@ -219,7 +221,7 @@ theorem qwWindow_sound {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {σ : V
       · rw [qwAcc_val ha, qwScale_val hs, hv, qwHiT, ite_neg' h1, ite_neg' h2]
 
 theorem qwWindows_sound {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {σ : Val}
-    (hT : WinTabs L.read (σ (.n 3))) {d cd base cut at0 : ℕ} :
+    (hT : WinTabs L.read (σ (.n (valf% «decode_query_windows» "tabs")))) {d cd base cut at0 : ℕ} :
     ∀ (i m k : ℕ) (lo hi : Option V),
       (∀ t < m, 1 ≤ (qwWin d cd (i + t)).2 ∧ (qwWin d cd (i + t)).2 ≤ 7) →
       qwAH L.read σ (qwWindows d cd base cut at0 i m k lo hi).1 →
@@ -353,7 +355,7 @@ theorem qwPr_sound {rd : Reader} {σ : Val} {j base cut d k : ℕ} {lo hi : V} {
     {P : ℕ} (hP : P < 2 ^ d) (hd : 1 ≤ d) (hd26 : d ≤ 28) (hbase : base + d ≤ 128)
     (hcut : cut = 64 - base % 64) (hlo : σ lo = eOfNat (P % 2 ^ cut))
     (hhi : cut < d → σ hi = eOfNat (P / 2 ^ cut)) :
-    LoadHolds rd (σ (.n 1)) j (eOfNat P) ∧
+    LoadHolds rd (σ (.n (valf% «decode_query_windows» "positions_out"))) j (eOfNat P) ∧
       qwOpt σ (qwPr j base cut d k lo hi recon).2.2 = qwOpt σ recon + eOfNat128 (2 ^ base * P) := by
   have hb64 : base % 64 < 64 := Nat.mod_lt _ (by decide)
   unfold qwPr at h ⊢
@@ -420,9 +422,9 @@ theorem gw_eq {n : ℕ} (h : n < 2 ^ 64) : E.ofLimbs (gpowK n) 0 = gen ^ n := by
   rw [gpowK_eq (by unfold u128Bound; omega), ← ofK_eq_ofLimbs, gen_pow_eq_ofK]
 
 theorem qwPtr_sound {rd : Reader} {σ : Val} {j n k : ℕ} (hjn : j * n + n ≤ 36)
-    (h4 : FrameRun rd (σ (.n 4)) 36 fun i ↦ σ (.n (5 + i)))
+    (h4 : FrameRun rd (σ (.n (valf% «decode_query_windows» "s5#0"))) 36 fun i ↦ σ (.n (5 + i)))
     (h : qwAH rd σ (qwPtr j n k).1) :
-    LoadHolds rd (σ (.n 2)) j (σ (.n (qwPtr j n k).2.2)) ∧
+    LoadHolds rd (σ (.n (valf% «decode_query_windows» "win_ptrs_out"))) j (σ (.n (qwPtr j n k).2.2)) ∧
       FrameRun rd (σ (.n (qwPtr j n k).2.2)) n fun i ↦ σ (.n (5 + j * n + i)) := by
   unfold qwPtr at h ⊢
   by_cases hj : j = 0
@@ -499,14 +501,14 @@ theorem qwOpt_getD {σ : Val} {o : Option V} (h : o.isSome = true) (v : V) :
 /-! ## A position -/
 
 theorem qwPos_sound {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {σ : Val}
-    (hT : WinTabs L.read (σ (.n 3))) (h4 : FrameRun L.read (σ (.n 4)) 36 fun i ↦ σ (.n (5 + i)))
+    (hT : WinTabs L.read (σ (.n (valf% «decode_query_windows» "tabs")))) (h4 : FrameRun L.read (σ (.n (valf% «decode_query_windows» "s5#0"))) 36 fun i ↦ σ (.n (5 + i)))
     {d cd : ℕ} (hs : QwShape d cd) {j k : ℕ}
     {recon : Option V} (hj : j < 128 / d) (hrec : recon = none → j = 0)
     (h : qwAH L.read σ (qwPos d cd j k recon).1) :
-    ∃ P < 2 ^ d, LoadHolds L.read (σ (.n 1)) j (eOfNat P) ∧
+    ∃ P < 2 ^ d, LoadHolds L.read (σ (.n (valf% «decode_query_windows» "positions_out"))) j (eOfNat P) ∧
       qwOpt σ (qwPos d cd j k recon).2.2 = qwOpt σ recon + eOfNat128 (2 ^ (j * d) * P) ∧
       (qwPos d cd j k recon).2.2.isSome = true ∧
-      ∃ p : E, LoadHolds L.read (σ (.n 2)) j p ∧
+      ∃ p : E, LoadHolds L.read (σ (.n (valf% «decode_query_windows» "win_ptrs_out"))) j p ∧
         FrameRun L.read p (qwN d cd) fun i ↦ gen ^ ((P >>> (qwWin d cd i).1) % 2 ^ (qwWin d cd i).2) := by
   have hd14 := hs.1
   have hd26 := hs.2.1
@@ -563,11 +565,11 @@ theorem qwPos_sound {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {σ : Val}
 /-! ## The positions, the rest, the word -/
 
 theorem qwPositions_sound {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {σ : Val}
-    (hT : WinTabs L.read (σ (.n 3))) (h4 : FrameRun L.read (σ (.n 4)) 36 fun i ↦ σ (.n (5 + i)))
+    (hT : WinTabs L.read (σ (.n (valf% «decode_query_windows» "tabs")))) (h4 : FrameRun L.read (σ (.n (valf% «decode_query_windows» "s5#0"))) 36 fun i ↦ σ (.n (5 + i)))
     {d cd : ℕ} (hs : QwShape d cd) : ∀ (j m k : ℕ) (recon : Option V), j + m ≤ 128 / d →
       (recon = none → j = 0) → qwAH L.read σ (qwPositions d cd j m k recon).1 →
-      ∃ Ps : ℕ → ℕ, (∀ t < m, Ps t < 2 ^ d ∧ LoadHolds L.read (σ (.n 1)) (j + t) (eOfNat (Ps t)) ∧
-          ∃ p : E, LoadHolds L.read (σ (.n 2)) (j + t) p ∧ FrameRun L.read p (qwN d cd)
+      ∃ Ps : ℕ → ℕ, (∀ t < m, Ps t < 2 ^ d ∧ LoadHolds L.read (σ (.n (valf% «decode_query_windows» "positions_out"))) (j + t) (eOfNat (Ps t)) ∧
+          ∃ p : E, LoadHolds L.read (σ (.n (valf% «decode_query_windows» "win_ptrs_out"))) (j + t) p ∧ FrameRun L.read p (qwN d cd)
             fun i ↦ gen ^ ((Ps t >>> (qwWin d cd i).1) % 2 ^ (qwWin d cd i).2)) ∧
         qwOpt σ (qwPositions d cd j m k recon).2.2 = qwOpt σ recon +
           ∑ t ∈ Finset.range m, eOfNat128 (2 ^ ((j + t) * d) * Ps t) ∧
@@ -594,7 +596,7 @@ theorem qwPositions_sound {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {σ 
       exact Finset.sum_congr rfl fun t _ ↦ by rw [show j + 1 + t = j + (t + 1) by omega]
 
 theorem qwRest_sound {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {σ : Val}
-    (hT : WinTabs L.read (σ (.n 3))) {d cd : ℕ} (hs : QwShape d cd) :
+    (hT : WinTabs L.read (σ (.n (valf% «decode_query_windows» "tabs")))) {d cd : ℕ} (hs : QwShape d cd) :
     ∀ (i m k : ℕ) (recon : Option V), i + m ≤ qwRestN d → qwAH L.read σ (qwRest d i m k recon).1 →
       ∃ rs : ℕ → ℕ, (∀ t < m, rs t < 2 ^ (qwRestWin d (i + t)).2) ∧
         qwOpt σ (qwRest d i m k recon).2.2 = qwOpt σ recon +
@@ -627,7 +629,7 @@ theorem qwRest_sound {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {σ : Val
       exact Finset.sum_congr rfl fun t _ ↦ by rw [show i + 1 + t = i + (t + 1) by omega]
 
 theorem qwBody_atoms (d cd : ℕ) :
-    ([Stmt.atom (.frameAddr (.n 4) qwRun)] ++ (qwPositions d cd 0 (128 / d) 41 none).1 ++
+    ([Stmt.atom (.frameAddr (.n (valf% «decode_query_windows» "s5#0")) qwRun)] ++ (qwPositions d cd 0 (128 / d) 41 none).1 ++
       (qwRest d 0 (qwRestN d) (qwPositions d cd 0 (128 / d) 41 none).2.1
         (qwPositions d cd 0 (128 / d) 41 none).2.2).1).all isAtomB = true := by
   simp only [List.all_append, qwPositions_atoms, qwRest_atoms, List.all_cons, List.all_nil,
@@ -653,13 +655,13 @@ theorem qw_sound {P : Program} {name : String} {d cd : ℕ} (hs : QwShape d cd)
   obtain ⟨hA, hT2⟩ := hb
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_nil] at hT2
   obtain ⟨hassert, hret⟩ := hT2
-  have hA' : qwAH L.read σ ([Stmt.atom (.frameAddr (.n 4) qwRun)] ++
+  have hA' : qwAH L.read σ ([Stmt.atom (.frameAddr (.n (valf% «decode_query_windows» "s5#0")) qwRun)] ++
       (qwPositions d cd 0 (128 / d) 41 none).1 ++ (qwRest d 0 (qwRestN d)
         (qwPositions d cd 0 (128 / d) 41 none).2.1 (qwPositions d cd 0 (128 / d) 41 none).2.2).1) :=
     hA
   rw [qwAH_append, qwAH_append, qwAH_cons, qwAH_nil] at hA'
   obtain ⟨⟨⟨hfa, -⟩, hpA⟩, hrA⟩ := hA'
-  have h4 : FrameRun L.read (σ (.n 4)) 36 fun i ↦ σ (.n (5 + i)) :=
+  have h4 : FrameRun L.read (σ (.n (valf% «decode_query_windows» "s5#0"))) 36 fun i ↦ σ (.n (5 + i)) :=
     ⟨hfa.1, fun i hi v hv ↦ by rw [hfa.2 i (by simp [qwRun]; omega) v hv]; simp [qwRun]⟩
   obtain ⟨Ps, hPs, hpv, hpsome⟩ := qwPositions_sound hκ L hT h4 hs 0 (128 / d) 41 none
     (by omega) (fun _ ↦ rfl) hpA
@@ -702,13 +704,13 @@ theorem qw_sound {P : Program} {name : String} {d cd : ℕ} (hs : QwShape d cd)
         simp only [V, show ¬ N + t < N by omega, ↓reduceIte, Nat.add_sub_cancel_left]
         rw [e1]
   have hsome := hrsome (hpsome (Or.inr hper1))
-  rw [← qwOpt_getD hsome (.n 0), e_add_eq_zero_iff.mp hassert] at htot
-  have hW : eToNat (σ (.n 0)) = tS (qwTop d) V (N + qwRestN d) := by
+  rw [← qwOpt_getD hsome (.n (valf% «decode_query_windows» "squeezed_word")), e_add_eq_zero_iff.mp hassert] at htot
+  have hW : eToNat (σ (.n (valf% «decode_query_windows» "squeezed_word"))) = tS (qwTop d) V (N + qwRestN d) := by
     rw [htot, eToNat_eOfNat128, Nat.mod_eq_of_lt]
     have := tS_lt ht _ le_rfl
     rwa [hs.2.2.2.2.2.2.2] at this
   refine ⟨hret.symm, fun j hj ↦ ?_⟩
-  have hpj : qwPosOf d (σ (.n 0)) j = Ps j := by
+  have hpj : qwPosOf d (σ (.n (valf% «decode_query_windows» "squeezed_word"))) j = Ps j := by
     have := tS_get ht (i := j) (by omega)
     rw [htop j hj.le, htop (j + 1) hj, show (j + 1) * d - j * d = d by
       rw [Nat.add_mul, Nat.one_mul, Nat.add_sub_cancel_left]] at this

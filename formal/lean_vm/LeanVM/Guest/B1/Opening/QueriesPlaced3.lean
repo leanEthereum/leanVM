@@ -7,6 +7,8 @@
 module
 
 public import LeanVM.Guest.B1.Opening.QueriesPlaced2
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«opening_queries__L_loop0»
 
 /-!
 # One iteration, placed: its statements by kind
@@ -126,7 +128,7 @@ theorem oqGuardA_ok {L : V → ℕ → Prop} {F : V → List V → Prop} (g : �
 /-- The loads of a level-0 iteration: its queries', the points and the window pointers at
 `positions·x²`, `qptrs·x²` offsets `odd`, `odd + 1`, the chain (non-final levels). -/
 def OqIt1L (s : Oq) (odd : ℕ) (p : V) (off : ℕ) : Prop :=
-  OqQLoad s (.n 6) (.n 7) p off ∨ (p = .n 11 ∧ (off = odd ∨ off = odd + 1)) ∨
+  OqQLoad s (.n (valf% «opening_queries» «_loop0» "coefs")) (.n (valf% «opening_queries» «_loop0» "hs")) p off ∨ (p = .n 11 ∧ (off = odd ∨ off = odd + 1)) ∨
     (p = .n 13 ∧ (off = odd ∨ off = odd + 1)) ∨ (s.final ≠ 1 ∧ p = .n (oqC1 s) ∧ off = 0) ∨
     (s.final ≠ 1 ∧ p = .n (oqC1 s + 6) ∧ off = 1)
 
@@ -158,7 +160,7 @@ theorem oqLoop1A_ok (s : Oq) (odd : ℕ) (walk : String) :
 /-- The loads of a deeper iteration: its query's, its point `positions[x]`, its window pointer
 `qptrs[x]`, the chain (non-final levels). -/
 def OqIt0L (s : Oq) (p : V) (off : ℕ) : Prop :=
-  OqQLoad s (.n 6) (.n 7) p off ∨ (p = .n 10 ∧ off = 0) ∨ (p = .n 12 ∧ off = 0) ∨
+  OqQLoad s (.n (valf% «opening_queries» «_loop0» "coefs")) (.n (valf% «opening_queries» «_loop0» "hs")) p off ∨ (p = .n 10 ∧ off = 0) ∨ (p = .n 12 ∧ off = 0) ∨
     (s.final ≠ 1 ∧ p = .n (oqC0 s) ∧ off = 0) ∨ (s.final ≠ 1 ∧ p = .n (oqC0 s + 4) ∧ off = 1)
 
 theorem oqLoop0A_ok (s : Oq) (walk : String) :

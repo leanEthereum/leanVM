@@ -8,6 +8,8 @@
 module
 
 public import LeanVM.Guest.B1.Whir.RoundSound
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«opening_round»
 
 /-!
 # `opening_round`, honestly
@@ -110,8 +112,8 @@ theorem rd_sponges (f0 f1 f2 f3 f4 cur claim tabs gp cp u0 w c0 c1 n2 : E) :
 
 /-! ## The body holds -/
 
-theorem roundBody_split : roundBody = roundBody.dropLast ++ [.ret [.n 84, .n 85, .n 86,
-    .n 87, .n 88, .n 91, .n 92]] := by
+theorem roundBody_split : roundBody = roundBody.dropLast ++ [.ret [.n (val% «opening_round» "s13#0"), .n (val% «opening_round» "s13#0[1]"), .n (val% «opening_round» "s13#0[2]"),
+    .n (val% «opening_round» "s13#0[3]"), .n (val% «opening_round» "s13#0[4]"), .n (val% «opening_round» "s13#0[5]"), .n (val% «opening_round» "s13#0[6]")]] := by
   rfl
 
 /-- **`opening_round`'s body holds at its honest values** on its meaning, under a call relation
@@ -142,14 +144,14 @@ theorem round_complete {C : CallRel} {rd : Reader} {args rets : List E}
   rw [e2, Keccak.challengeOf_cells, ← rdCell_eq _ 0] at lg la
   rw [e3, Keccak.challengeOf_cells, ← rdCell_eq _ 0] at lb
   rw [roundBody_split, holdsList_flat_ret _ (by decide)]
-  have k1 : permOf ([V.n 16, .n 17, .n 19, .n 20, .n 22, .n 23, .n 25, .n 26, .n 10, .n 11, .n 12,
-      .n 13, .n 14].map σ) = rdS1 as xs := by
+  have k1 : permOf ([V.n (val% «opening_round» "msg[0]"), .n (val% «opening_round» "msg[1]"), .n (val% «opening_round» "msg[2]"), .n (val% «opening_round» "msg[3]"), .n (val% «opening_round» "msg[4]"), .n (val% «opening_round» "msg[5]"), .n (val% «opening_round» "msg[6]"), .n (val% «opening_round» "msg[7]"), .n (val% «opening_round» "sp[0]"), .n (val% «opening_round» "sp[1]"), .n (val% «opening_round» "sp[2]"),
+      .n (val% «opening_round» "sp[3]"), .n (val% «opening_round» "sp[4]")].map σ) = rdS1 as xs := by
     rw [rdS1, perm_eq_cells _ (by simp)]; rfl
-  have k3 : permOf ([V.n 41, .n 42, .n 44, .n 44, .n 44, .n 45, .n 46, .n 47, .n 35, .n 36, .n 37,
-      .n 38, .n 39].map σ) = rdS3 as xs := by
+  have k3 : permOf ([V.n (val% «opening_round» "nonce_rate[0]"), .n (val% «opening_round» "nonce_rate[1]"), .n (val% «opening_round» "s6.i0:fs_grind_squeeze.s0.e.s0.t.s2.i1:fs_absorb_nonce.s1.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «opening_round» "s6.i0:fs_grind_squeeze.s0.e.s0.t.s2.i1:fs_absorb_nonce.s1.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «opening_round» "s6.i0:fs_grind_squeeze.s0.e.s0.t.s2.i1:fs_absorb_nonce.s1.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «opening_round» "s6.i0:fs_grind_squeeze.s0.e.s0.t.s2.i1:fs_absorb_nonce.s1.i0:fs_perm.s2.t.s0#0[2]"), .n (val% «opening_round» "s6.i0:fs_grind_squeeze.s0.e.s0.t.s2.i1:fs_absorb_nonce.s1.i0:fs_perm.s2.t.s0#0[3]"), .n (val% «opening_round» "s6.i0:fs_grind_squeeze.s0.e.s0.t.s2.i1:fs_absorb_nonce.s1.i0:fs_perm.s2.t.s0#0[4]"), .n (val% «opening_round» "nxt[8]@1"), .n (val% «opening_round» "nxt[9]@1"), .n (val% «opening_round» "nxt[10]@1"),
+      .n (val% «opening_round» "nxt[11]@1"), .n (val% «opening_round» "nxt[12]@1")].map σ) = rdS3 as xs := by
     rw [rdS3, perm_eq_cells _ (by simp)]; rfl
-  have k4 : permOf ([V.n 44, .n 44, .n 44, .n 44, .n 44, .n 45, .n 46, .n 47, .n 56, .n 57, .n 58,
-      .n 59, .n 60].map σ) = rdS4 as xs := by
+  have k4 : permOf ([V.n (val% «opening_round» "s6.i0:fs_grind_squeeze.s0.e.s0.t.s2.i1:fs_absorb_nonce.s1.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «opening_round» "s6.i0:fs_grind_squeeze.s0.e.s0.t.s2.i1:fs_absorb_nonce.s1.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «opening_round» "s6.i0:fs_grind_squeeze.s0.e.s0.t.s2.i1:fs_absorb_nonce.s1.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «opening_round» "s6.i0:fs_grind_squeeze.s0.e.s0.t.s2.i1:fs_absorb_nonce.s1.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «opening_round» "s6.i0:fs_grind_squeeze.s0.e.s0.t.s2.i1:fs_absorb_nonce.s1.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «opening_round» "s6.i0:fs_grind_squeeze.s0.e.s0.t.s2.i1:fs_absorb_nonce.s1.i0:fs_perm.s2.t.s0#0[2]"), .n (val% «opening_round» "s6.i0:fs_grind_squeeze.s0.e.s0.t.s2.i1:fs_absorb_nonce.s1.i0:fs_perm.s2.t.s0#0[3]"), .n (val% «opening_round» "s6.i0:fs_grind_squeeze.s0.e.s0.t.s2.i1:fs_absorb_nonce.s1.i0:fs_perm.s2.t.s0#0[4]"), .n (val% «opening_round» "nxt[8]@2"), .n (val% «opening_round» "nxt[9]@2"), .n (val% «opening_round» "nxt[10]@2"),
+      .n (val% «opening_round» "nxt[11]@2"), .n (val% «opening_round» "nxt[12]@2")].map σ) = rdS4 as xs := by
     rw [rdS4, perm_eq_cells _ (by simp)]; rfl
   have l0 : LoadHolds rd cur 0 u0 := hrd 0 (by simp [xs])
   have l1 : LoadHolds rd cur 1 w := hrd 1 (by simp [xs])

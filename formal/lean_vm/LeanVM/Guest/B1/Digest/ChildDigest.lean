@@ -8,6 +8,8 @@
 module
 
 public import LeanVM.Guest.B1.Digest.ChildMono
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«child_claim_list_digest»
 import LeanVM.Guest.Value.FieldBits
 
 /-!
@@ -34,17 +36,17 @@ noncomputable def cc25Zero : List Stmt := match Fn.body fn% «child_claim_list_d
 
 set_option maxRecDepth 100000 in
 theorem child_claim_list_digest_shape : Fn.body fn% «child_claim_list_digest» =
-    [.atom (.const (.n 5) (word 1 0)), .atom (.add (.n 6) (.n 4) (.n 5)),
-     .ite (.n 6) cc25Zero
-      [.call "list_split" [.n 4] [.n 15, .n 16, .n 17],
-       .atom (.hint (.witness "child_mono" (.stack [.n 18]))),
-       .atom (.const (.n 19) (word 2 0)), .atom (.add (.n 20) (.n 18) (.n 19)),
-       .ite (.n 20)
-        [.call "child_claim_list_mono" [.n 0, .n 1, .n 2, .n 3, .n 15, .n 16, .n 17] [.n 21, .n 22],
-         .atom (.copy (.n 13) (.n 21)), .atom (.copy (.n 14) (.n 22))]
-        [.call "child_claim_list_any" [.n 0, .n 1, .n 2, .n 3, .n 15, .n 16, .n 17] [.n 23, .n 24],
-         .atom (.copy (.n 13) (.n 23)), .atom (.copy (.n 14) (.n 24))]],
-     .atom (.copy (.n 25) (.n 13)), .atom (.copy (.n 26) (.n 14)), .ret [.n 25, .n 26]] :=
+    [.atom (.const (.n (val% «child_claim_list_digest» "s1#0")) (word 1 0)), .atom (.add (.n (val% «child_claim_list_digest» "s1#1")) (.n (val% «child_claim_list_digest» "n_g")) (.n (val% «child_claim_list_digest» "s1#0"))),
+     .ite (.n (val% «child_claim_list_digest» "s1#1")) cc25Zero
+      [.call "list_split" [.n (val% «child_claim_list_digest» "n_g")] [.n (val% «child_claim_list_digest» "bigs"), .n (val% «child_claim_list_digest» "groups"), .n (val% «child_claim_list_digest» "rest")],
+       .atom (.hint (.witness "child_mono" (.stack [.n (val% «child_claim_list_digest» "mono")]))),
+       .atom (.const (.n (val% «child_claim_list_digest» "s1.e.s2#0")) (word 2 0)), .atom (.add (.n (val% «child_claim_list_digest» "s1.e.s2#1")) (.n (val% «child_claim_list_digest» "mono")) (.n (val% «child_claim_list_digest» "s1.e.s2#0"))),
+       .ite (.n (val% «child_claim_list_digest» "s1.e.s2#1"))
+        [.call "child_claim_list_mono" [.n (val% «child_claim_list_digest» "entries_ptr"), .n (val% «child_claim_list_digest» "region"), .n (val% «child_claim_list_digest» "base"), .n (val% «child_claim_list_digest» "limit_g"), .n (val% «child_claim_list_digest» "bigs"), .n (val% «child_claim_list_digest» "groups"), .n (val% «child_claim_list_digest» "rest")] [.n (val% «child_claim_list_digest» "d0@1"), .n (val% «child_claim_list_digest» "d1@1")],
+         .atom (.copy (.n (val% «child_claim_list_digest» "digest[0]")) (.n (val% «child_claim_list_digest» "d0@1"))), .atom (.copy (.n (val% «child_claim_list_digest» "digest[1]")) (.n (val% «child_claim_list_digest» "d1@1")))]
+        [.call "child_claim_list_any" [.n (val% «child_claim_list_digest» "entries_ptr"), .n (val% «child_claim_list_digest» "region"), .n (val% «child_claim_list_digest» "base"), .n (val% «child_claim_list_digest» "limit_g"), .n (val% «child_claim_list_digest» "bigs"), .n (val% «child_claim_list_digest» "groups"), .n (val% «child_claim_list_digest» "rest")] [.n (val% «child_claim_list_digest» "d0@2"), .n (val% «child_claim_list_digest» "d1@2")],
+         .atom (.copy (.n (val% «child_claim_list_digest» "digest[0]")) (.n (val% «child_claim_list_digest» "d0@2"))), .atom (.copy (.n (val% «child_claim_list_digest» "digest[1]")) (.n (val% «child_claim_list_digest» "d1@2")))]],
+     .atom (.copy (.n (val% «child_claim_list_digest» "s2#0")) (.n (val% «child_claim_list_digest» "digest[0]"))), .atom (.copy (.n (val% «child_claim_list_digest» "s2#0[1]")) (.n (val% «child_claim_list_digest» "digest[1]"))), .ret [.n (val% «child_claim_list_digest» "s2#0"), .n (val% «child_claim_list_digest» "s2#0[1]")]] :=
   stmtsEqb_sound (by decide +kernel)
 
 /-- The empty list's chain: the empty message from the zero state. -/
@@ -53,8 +55,8 @@ noncomputable def cc25ZSpec : ChainSpec := ⟨[], 0, true, none, keccakBlocks (a
 /-- The empty list's branch hashes the empty string into `.n 13`, `.n 14`. -/
 noncomputable def cc25ZOk : Bool :=
   cc25Zero.all Stmt.flat && cc25ZSpec.check (atomsIn cc25Zero) &&
-    decide (cc25ZSpec.outV (cc25ZSpec.nb - 1) 0 = V.n 13) &&
-    decide (cc25ZSpec.outV (cc25ZSpec.nb - 1) 1 = V.n 14)
+    decide (cc25ZSpec.outV (cc25ZSpec.nb - 1) 0 = V.n (val% «child_claim_list_digest» "digest[0]")) &&
+    decide (cc25ZSpec.outV (cc25ZSpec.nb - 1) 1 = V.n (val% «child_claim_list_digest» "digest[1]"))
 
 set_option maxRecDepth 100000 in
 theorem cc25z_ok : cc25ZOk = true := by decide +kernel
@@ -92,18 +94,18 @@ and computes its digest.** -/
 theorem child_claim_list_digest_sound : child_claim_list_digest_sound_Spec := by
   intro rd hm args rets h
   obtain ⟨σ, hp, hb⟩ := (rel_iff_sem find_child_claim_list_digest args rets).mp h
-  have hp' : args = [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)] := by
+  have hp' : args = [σ (.n (val% «child_claim_list_digest» "entries_ptr")), σ (.n (val% «child_claim_list_digest» "region")), σ (.n (val% «child_claim_list_digest» "base")), σ (.n (val% «child_claim_list_digest» "limit_g")), σ (.n (val% «child_claim_list_digest» "n_g"))] := by
     rw [← hp]; rfl
   subst hp'
   rw [child_claim_list_digest_shape] at hb
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil] at hb
   obtain ⟨c5, a6, -, hz, hnz⟩ := hb
-  by_cases h6 : σ (.n 6) = 0
+  by_cases h6 : σ (.n (val% «child_claim_list_digest» "s1#1")) = 0
   · -- the empty list
     have hz1 := cc25z_ok
     simp only [cc25ZOk, Bool.and_eq_true, decide_eq_true_eq] at hz1
     obtain ⟨⟨⟨hzf, hzc⟩, hz13⟩, hz14⟩ := hz1
-    have hn1 : σ (.n 4) = 1 := by
+    have hn1 : σ (.n (val% «child_claim_list_digest» "n_g")) = 1 := by
       rw [a6, c5, word_one] at h6; exact e_add_eq_zero_iff.mp h6
     obtain ⟨hall, h36, h37, hr⟩ := holdsList_flat _ hzf _ _ (hz h6)
     have hat := atoms_of_flat hall
@@ -125,7 +127,7 @@ theorem child_claim_list_digest_sound : child_claim_list_digest_sound_Spec := by
     intro m hmb hgm
     obtain rfl : 136 * a + 17 * b + c = m :=
       gen_pow_inj (by omega) (by omega) (by rw [← hgm, hn])
-    by_cases h31 : σ (.n 20) = 0
+    by_cases h31 : σ (.n (val% «child_claim_list_digest» "s1.e.s2#1")) = 0
     · -- the gap walk
       obtain ⟨hcall, c13, c14, c36, c37, hr⟩ := hmono h31
       obtain ⟨entries, region, base, limit, bigs, groups, rest, hargs, hw⟩ :=

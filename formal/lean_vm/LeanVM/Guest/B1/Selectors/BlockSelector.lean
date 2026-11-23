@@ -10,6 +10,8 @@ module
 public import LeanVM.Guest.B1.Selectors.IndexMle
 public import LeanVM.Guest.B1.Selectors.Interface
 public import LeanVM.Guest.CoreData
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«block_selector__L»
 
 /-!
 # `block_selector` (TRIAGE G #50)
@@ -42,18 +44,18 @@ def bsRb (k : ℕ) : ℕ := if k = 0 then 10 else 10 * k + 10
 /-- Block `k` of `block_selector`. -/
 def bsBlk (k : ℕ) : List Stmt :=
   if k = 0 then
-    [.atom (.load (.n 3) (.n 0) 0), .atom (.mul (.n 4) (.n 3) (.n 3)),
-      .atom (.load (.n 4) (.n 0) 0), .atom (.load (.n 5) (.n 1) 0),
+    [.atom (.load (.n 3) (.n (valf% «block_selector» "sel_bits")) 0), .atom (.mul (.n 4) (.n 3) (.n 3)),
+      .atom (.load (.n 4) (.n (valf% «block_selector» "sel_bits")) 0), .atom (.load (.n 5) (.n (valf% «block_selector» "zeta1_hi")) 0),
       .atom (.add (.n 6) (.n 3) (.n 5)), .atom (.const (.n 7) (word 1 0)),
-      .atom (.load (.n 8) (.n 2) 0), .atom (.mul (.n 9) (.n 3) (.n 8)),
+      .atom (.load (.n 8) (.n (valf% «block_selector» "idxc_hi")) 0), .atom (.mul (.n 9) (.n 3) (.n 8)),
       .atom (.add (.n 10) (.n 7) (.n 9))]
   else
     let B := 10 * k + 1
-    [.atom (.load (.n B) (.n 0) k), .atom (.mul (.n (B + 1)) (.n B) (.n B)),
-      .atom (.load (.n (B + 1)) (.n 0) k), .atom (.load (.n (B + 2)) (.n 1) k),
+    [.atom (.load (.n B) (.n (valf% «block_selector» "sel_bits")) k), .atom (.mul (.n (B + 1)) (.n B) (.n B)),
+      .atom (.load (.n (B + 1)) (.n (valf% «block_selector» "sel_bits")) k), .atom (.load (.n (B + 2)) (.n (valf% «block_selector» "zeta1_hi")) k),
       .atom (.add (.n (B + 3)) (.n B) (.n (B + 2))),
       .atom (.mul (.n (B + 4)) (.n (bsEq (k - 1))) (.n (B + 3))),
-      .atom (.const (.n (B + 5)) (word 1 0)), .atom (.load (.n (B + 6)) (.n 2) k),
+      .atom (.const (.n (B + 5)) (word 1 0)), .atom (.load (.n (B + 6)) (.n (valf% «block_selector» "idxc_hi")) k),
       .atom (.mul (.n (B + 7)) (.n B) (.n (B + 6))),
       .atom (.add (.n (B + 8)) (.n (B + 5)) (.n (B + 7))),
       .atom (.mul (.n (B + 9)) (.n (bsRb (k - 1))) (.n (B + 8)))]
@@ -71,14 +73,14 @@ def bsRet (n : ℕ) : List V := if n = 0 then [.n 3, .n 4] else [.n (10 * n + 1)
 /-- The function found by name is the template. -/
 noncomputable def bsCheck (n : ℕ) : Bool :=
   match coreProgram.find? (lName "block_selector" n) with
-  | some fn => decide (fn.params = [.n 0, .n 1, .n 2]) &&
+  | some fn => decide (fn.params = [.n (valf% «block_selector» "sel_bits"), .n (valf% «block_selector» "zeta1_hi"), .n (valf% «block_selector» "idxc_hi")]) &&
       tbStmtsEqb fn.body (bsPre n ++ [.ret (bsRet n)])
   | none => false
 
 theorem bsCheck_all : (List.range 34).all bsCheck = true := by decide +kernel
 
 theorem bsFound {n : ℕ} (hn : n < 34) : ∃ fn : Fn,
-    coreProgram.find? (lName "block_selector" n) = some fn ∧ fn.params = [.n 0, .n 1, .n 2] ∧
+    coreProgram.find? (lName "block_selector" n) = some fn ∧ fn.params = [.n (valf% «block_selector» "sel_bits"), .n (valf% «block_selector» "zeta1_hi"), .n (valf% «block_selector» "idxc_hi")] ∧
       fn.body = bsPre n ++ [.ret (bsRet n)] := by
   have h := List.all_eq_true.mp bsCheck_all n (List.mem_range.mpr hn)
   unfold bsCheck at h
@@ -115,9 +117,9 @@ variable {C : CallRel} {rd : Reader} {σ : Val} {kret : List E → Prop}
 
 /-- What block `k` gives: the bit, its two loads, and the two products. -/
 def BsBlkOut (rd : Reader) (σ : Val) (k : ℕ) : Prop :=
-  LoadHolds rd (σ (.n 0)) k (σ (.n (bsBit k))) ∧
+  LoadHolds rd (σ (.n (valf% «block_selector» "sel_bits"))) k (σ (.n (bsBit k))) ∧
     σ (.n (bsBit k)) = bitE (decide (σ (.n (bsBit k)) = 1)) ∧
-    ∃ z1 c, LoadHolds rd (σ (.n 1)) k z1 ∧ LoadHolds rd (σ (.n 2)) k c ∧
+    ∃ z1 c, LoadHolds rd (σ (.n (valf% «block_selector» "zeta1_hi"))) k z1 ∧ LoadHolds rd (σ (.n (valf% «block_selector» "idxc_hi"))) k c ∧
       σ (.n (bsEq k)) = (if k = 0 then 1 else σ (.n (bsEq (k - 1)))) * (σ (.n (bsBit k)) + z1) ∧
       σ (.n (bsRb k)) = (if k = 0 then 1 else σ (.n (bsRb (k - 1)))) *
         (1 + σ (.n (bsBit k)) * c)

@@ -952,6 +952,23 @@ theorem get_of_sub {eq : α → α → Bool} (heq : ∀ x y, eq x y = true → x
 
 end Trie
 
+/-- Every value of a trie passes `p`. -/
+noncomputable def trieAll {α : Type} (p : α → Bool) : Trie α → Bool :=
+  Trie.rec (motive := fun _ ↦ Bool) true (fun v _ _ al ar ↦ v.all p && al && ar)
+
+theorem trieAll_get {α : Type} {p : α → Bool} :
+    ∀ {t : Trie α} {n : ℕ} {v : α}, trieAll p t = true → t.get n = some v → p v = true
+  | .nil, _, _, _, h => by simp at h
+  | .node w l r, n, v, ha, h => by
+    have ha' : w.all p = true ∧ trieAll p l = true ∧ trieAll p r = true := by
+      simpa [trieAll, Bool.and_eq_true, and_assoc] using ha
+    rw [Trie.get_node] at h
+    split at h
+    · subst h; simpa using ha'.1
+    · split at h
+      · exact trieAll_get ha'.2.1 h
+      · exact trieAll_get ha'.2.2 h
+
 theorem Sym.beq_eq {a b : Sym} (h : Sym.beq a b = true) : a = b := by
   cases a <;> cases b <;> simp_all [Sym.beq]
 

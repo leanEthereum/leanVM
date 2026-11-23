@@ -8,6 +8,8 @@ module
 
 public import LeanVM.Guest.B1.Bits.Meaning
 public import LeanVM.Guest.B1.Common.Find
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«assert_small_g_power»
 import LeanVM.Guest.Value.FieldBits
 
 /-!
@@ -47,11 +49,11 @@ theorem rangeCheck_gen_iff {κ : ℕ} (hκ : κ ≤ 32) (Lm : MemoryImage κ) (x
 
 /-- The hint and digit `0`: its range check and share. -/
 def asgHead : List Stmt :=
-  [.atom (.hint (.digitsExp (.n 0) 36 9 4 0 none
-      (.stack [.n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10]))),
-    .atom (.const (.n 11) (word 32768 0)),
-    .atom (.rangeCheck (.n 2) (.n 12) (.n 13) (.n 14) (.n 11)),
-    .atom (.mul (.n 15) (.n 1) (.n 2)), .atom (.load (.n 16) (.n 15) 34)]
+  [.atom (.hint (.digitsExp (.n (val% «assert_small_g_power» "x")) 36 9 4 0 none
+      (.stack [.n (val% «assert_small_g_power» "digits[0]"), .n (val% «assert_small_g_power» "digits[1]"), .n (val% «assert_small_g_power» "digits[2]"), .n (val% «assert_small_g_power» "digits[3]"), .n (val% «assert_small_g_power» "digits[4]"), .n (val% «assert_small_g_power» "digits[5]"), .n (val% «assert_small_g_power» "digits[6]"), .n (val% «assert_small_g_power» "digits[7]"), .n (val% «assert_small_g_power» "digits[8]")]))),
+    .atom (.const (.n (val% «assert_small_g_power» "s3.u0.s1#0")) (word 32768 0)),
+    .atom (.rangeCheck (.n (val% «assert_small_g_power» "digits[0]")) (.n (val% «assert_small_g_power» "s3.u0.s1#1")) (.n (val% «assert_small_g_power» "s3.u0.s1#2")) (.n (val% «assert_small_g_power» "s3.u0.s1#3")) (.n (val% «assert_small_g_power» "s3.u0.s1#0"))),
+    .atom (.mul (.n (val% «assert_small_g_power» "rebuilt@1~0")) (.n (val% «assert_small_g_power» "g_squares")) (.n (val% «assert_small_g_power» "digits[0]"))), .atom (.load (.n (val% «assert_small_g_power» "rebuilt@1")) (.n (val% «assert_small_g_power» "rebuilt@1~0")) 34)]
 
 /-- The running product after digit `j`. -/
 def asgAcc : ℕ → ℕ
@@ -68,13 +70,13 @@ def asgBlk (j : ℕ) : List Stmt :=
   [.atom (.const (.n (17 + 7 * j)) (word 32768 0)),
     .atom (.rangeCheck (.n (3 + j)) (.n (18 + 7 * j)) (.n (19 + 7 * j)) (.n (20 + 7 * j))
       (.n (17 + 7 * j))),
-    .atom (.mul (.n (21 + 7 * j)) (.n 1) (.n (3 + j))),
+    .atom (.mul (.n (21 + 7 * j)) (.n (val% «assert_small_g_power» "g_squares")) (.n (3 + j))),
     .atom (.load (.n (22 + 7 * j)) (.n (21 + 7 * j)) (50 + 16 * j)),
     .atom (.mul (.n (23 + 7 * j)) (.n (asgAcc j)) (.n (22 + 7 * j)))]
 
 /-- The expansion of `assert_small_g_power`. -/
 def asgBody : List Stmt :=
-  asgHead ++ ((List.range 8).map asgBlk).flatten ++ [.atom (.assertEq (.n 72) (.n 0)), .ret []]
+  asgHead ++ ((List.range 8).map asgBlk).flatten ++ [.atom (.assertEq (.n (val% «assert_small_g_power» "rebuilt@9")) (.n (val% «assert_small_g_power» "x"))), .ret []]
 
 theorem assert_small_g_power_body : Fn.body fn% «assert_small_g_power» = asgBody :=
   stmtsEqb_sound (by decide +kernel)
@@ -89,7 +91,7 @@ def AsgOk (rd : Reader) (σ : Val) (j : ℕ) : Prop :=
     (LoadHolds rd (σ (.n (3 + j))) 0 (σ (.n (19 + 7 * j))) ∧
       σ (.n (17 + 7 * j)) = σ (.n (3 + j)) * σ (.n (18 + 7 * j)) ∧
       LoadHolds rd (σ (.n (18 + 7 * j))) 0 (σ (.n (20 + 7 * j)))) ∧
-    σ (.n (21 + 7 * j)) = σ (.n 1) * σ (.n (3 + j)) ∧
+    σ (.n (21 + 7 * j)) = σ (.n (val% «assert_small_g_power» "g_squares")) * σ (.n (3 + j)) ∧
     LoadHolds rd (σ (.n (21 + 7 * j))) (50 + 16 * j) (σ (.n (22 + 7 * j))) ∧
     σ (.n (23 + 7 * j)) = σ (.n (asgAcc j)) * σ (.n (22 + 7 * j))
 
@@ -100,11 +102,11 @@ theorem holds_asgBlk {C : CallRel} {rd : Reader} {σ : Val} (j : ℕ) (kret : Li
 /-- The body under any call relation, valuation and continuation, unfolded to its conditions. -/
 theorem asg_holds_iff (C : CallRel) (rd : Reader) (σ : Val) (kret : List E → Prop) :
     Stmt.HoldsList C rd σ asgBody False kret ↔
-      σ (.n 11) = word 32768 0 ∧
-      (LoadHolds rd (σ (.n 2)) 0 (σ (.n 13)) ∧ σ (.n 11) = σ (.n 2) * σ (.n 12) ∧
-        LoadHolds rd (σ (.n 12)) 0 (σ (.n 14))) ∧
-      σ (.n 15) = σ (.n 1) * σ (.n 2) ∧ LoadHolds rd (σ (.n 15)) 34 (σ (.n 16)) ∧
-      (∀ j < 8, AsgOk rd σ j) ∧ σ (.n 72) + σ (.n 0) = 0 ∧ kret [] := by
+      σ (.n (val% «assert_small_g_power» "s3.u0.s1#0")) = word 32768 0 ∧
+      (LoadHolds rd (σ (.n (val% «assert_small_g_power» "digits[0]"))) 0 (σ (.n (val% «assert_small_g_power» "s3.u0.s1#2"))) ∧ σ (.n (val% «assert_small_g_power» "s3.u0.s1#0")) = σ (.n (val% «assert_small_g_power» "digits[0]")) * σ (.n (val% «assert_small_g_power» "s3.u0.s1#1")) ∧
+        LoadHolds rd (σ (.n (val% «assert_small_g_power» "s3.u0.s1#1"))) 0 (σ (.n (val% «assert_small_g_power» "s3.u0.s1#3")))) ∧
+      σ (.n (val% «assert_small_g_power» "rebuilt@1~0")) = σ (.n (val% «assert_small_g_power» "g_squares")) * σ (.n (val% «assert_small_g_power» "digits[0]")) ∧ LoadHolds rd (σ (.n (val% «assert_small_g_power» "rebuilt@1~0"))) 34 (σ (.n (val% «assert_small_g_power» "rebuilt@1"))) ∧
+      (∀ j < 8, AsgOk rd σ j) ∧ σ (.n (val% «assert_small_g_power» "rebuilt@9")) + σ (.n (val% «assert_small_g_power» "x")) = 0 ∧ kret [] := by
   rw [asgBody, asgHead]
   simp only [holdsList_append, holdsList_range_flatten 8 asgBlk (fun _ => rfl), holds_asgBlk,
     Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_nil, true_and]
@@ -112,13 +114,13 @@ theorem asg_holds_iff (C : CallRel) (rd : Reader) (σ : Val) (kret : List E → 
 /-- The body, unfolded to its conditions. -/
 theorem asg_unfold (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "assert_small_g_power" args rets ↔ ∃ σ : Val,
-      [σ (.n 0), σ (.n 1)] = args ∧ σ (.n 11) = word 32768 0 ∧
-      (LoadHolds rd (σ (.n 2)) 0 (σ (.n 13)) ∧ σ (.n 11) = σ (.n 2) * σ (.n 12) ∧
-        LoadHolds rd (σ (.n 12)) 0 (σ (.n 14))) ∧
-      σ (.n 15) = σ (.n 1) * σ (.n 2) ∧ LoadHolds rd (σ (.n 15)) 34 (σ (.n 16)) ∧
-      (∀ j < 8, AsgOk rd σ j) ∧ σ (.n 72) + σ (.n 0) = 0 ∧ [] = rets := by
+      [σ (.n (val% «assert_small_g_power» "x")), σ (.n (val% «assert_small_g_power» "g_squares"))] = args ∧ σ (.n (val% «assert_small_g_power» "s3.u0.s1#0")) = word 32768 0 ∧
+      (LoadHolds rd (σ (.n (val% «assert_small_g_power» "digits[0]"))) 0 (σ (.n (val% «assert_small_g_power» "s3.u0.s1#2"))) ∧ σ (.n (val% «assert_small_g_power» "s3.u0.s1#0")) = σ (.n (val% «assert_small_g_power» "digits[0]")) * σ (.n (val% «assert_small_g_power» "s3.u0.s1#1")) ∧
+        LoadHolds rd (σ (.n (val% «assert_small_g_power» "s3.u0.s1#1"))) 0 (σ (.n (val% «assert_small_g_power» "s3.u0.s1#3")))) ∧
+      σ (.n (val% «assert_small_g_power» "rebuilt@1~0")) = σ (.n (val% «assert_small_g_power» "g_squares")) * σ (.n (val% «assert_small_g_power» "digits[0]")) ∧ LoadHolds rd (σ (.n (val% «assert_small_g_power» "rebuilt@1~0"))) 34 (σ (.n (val% «assert_small_g_power» "rebuilt@1"))) ∧
+      (∀ j < 8, AsgOk rd σ j) ∧ σ (.n (val% «assert_small_g_power» "rebuilt@9")) + σ (.n (val% «assert_small_g_power» "x")) = 0 ∧ [] = rets := by
   rw [rel_iff_sem find_assert_small_g_power, assert_small_g_power_body,
-    show Fn.params fn% «assert_small_g_power» = [.n 0, .n 1] from rfl]
+    show Fn.params fn% «assert_small_g_power» = [.n (val% «assert_small_g_power» "x"), .n (val% «assert_small_g_power» "g_squares")] from rfl]
   simp only [asg_holds_iff, List.map_cons, List.map_nil]
 
 /-! ## Soundness -/
@@ -132,11 +134,11 @@ theorem asg_share {rd : Reader} {q s : E} (ht : ExpTables rd q) {j n : ℕ} (hj 
     rwa [show sizeBits + 16 * j + n = n + (34 + 16 * j) by simp only [sizeBits]; omega] at this)
 
 theorem asg_sound {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (Lm : MemoryImage κ) {q : E}
-    (ht : ExpTables Lm.read q) {σ : Val} (h1 : σ (.n 1) = q)
-    (h11 : σ (.n 11) = word 32768 0)
-    (r0 : LoadHolds Lm.read (σ (.n 2)) 0 (σ (.n 13)) ∧ σ (.n 11) = σ (.n 2) * σ (.n 12) ∧
-      LoadHolds Lm.read (σ (.n 12)) 0 (σ (.n 14)))
-    (h15 : σ (.n 15) = σ (.n 1) * σ (.n 2)) (l16 : LoadHolds Lm.read (σ (.n 15)) 34 (σ (.n 16)))
+    (ht : ExpTables Lm.read q) {σ : Val} (h1 : σ (.n (val% «assert_small_g_power» "g_squares")) = q)
+    (h11 : σ (.n (val% «assert_small_g_power» "s3.u0.s1#0")) = word 32768 0)
+    (r0 : LoadHolds Lm.read (σ (.n (val% «assert_small_g_power» "digits[0]"))) 0 (σ (.n (val% «assert_small_g_power» "s3.u0.s1#2"))) ∧ σ (.n (val% «assert_small_g_power» "s3.u0.s1#0")) = σ (.n (val% «assert_small_g_power» "digits[0]")) * σ (.n (val% «assert_small_g_power» "s3.u0.s1#1")) ∧
+      LoadHolds Lm.read (σ (.n (val% «assert_small_g_power» "s3.u0.s1#1"))) 0 (σ (.n (val% «assert_small_g_power» "s3.u0.s1#3"))))
+    (h15 : σ (.n (val% «assert_small_g_power» "rebuilt@1~0")) = σ (.n (val% «assert_small_g_power» "g_squares")) * σ (.n (val% «assert_small_g_power» "digits[0]"))) (l16 : LoadHolds Lm.read (σ (.n (val% «assert_small_g_power» "rebuilt@1~0"))) 34 (σ (.n (val% «assert_small_g_power» "rebuilt@1"))))
     (hb : ∀ j < 8, AsgOk Lm.read σ j) :
     ∀ j < 9, ∃ e < 16 ^ (j + 1), σ (.n (asgAcc j)) = gen ^ e := by
   have hK : (16 : ℕ) ≤ 2 ^ κ := le_trans (by decide) (Nat.pow_le_pow_right (by decide) hκ6)
@@ -206,14 +208,16 @@ theorem mod_sixteen_succ (e j : ℕ) : e % 16 ^ (j + 1) = e % 16 ^ j + e / 16 ^ 
   rw [Nat.mod_pow_succ, Nat.mul_comm]
 
 /-- **The honest valuation** of `assert_small_g_power` at `g^e`, `e < 16^9`, on any reader where
-each digit's range check reads its words (`hrc`) and the table at `q` holds the shares (`hshare`). -/
-theorem asg_holds_of {C : CallRel} {rd : Reader} {q : E} {e : ℕ} (he : e < 16 ^ 9)
+each digit's range check reads its words (`hrc`) and the table at `q` holds the shares (`hshare`): its digits are
+`g^(n_j)`. -/
+theorem asg_holds_ofD {C : CallRel} {rd : Reader} {q : E} {e : ℕ} (he : e < 16 ^ 9)
     (hrc : ∀ j, ∃ y t1 t2 : E, LoadHolds rd (gen ^ (e / 16 ^ j % 16)) 0 t1 ∧
       word (2 ^ (16 - 1)) 0 = gen ^ (e / 16 ^ j % 16) * y ∧ LoadHolds rd y 0 t2)
     (hshare : ∀ j < 9, LoadHolds rd (q * gen ^ (e / 16 ^ j % 16)) (34 + 16 * j)
       (gen ^ (e / 16 ^ j % 16 * 16 ^ j))) :
-    ∃ σ : Val, σ (.n 0) = gen ^ e ∧ σ (.n 1) = q ∧
+    ∃ σ : Val, σ (.n (val% «assert_small_g_power» "x")) = gen ^ e ∧ σ (.n (val% «assert_small_g_power» "g_squares")) = q ∧
       (∀ j < 9, σ (.n (asgPtr j)) = q * gen ^ (e / 16 ^ j % 16)) ∧
+      (∀ j < 9, σ (.n (j + (val% «assert_small_g_power» "digits[0]"))) = gen ^ (e / 16 ^ j % 16)) ∧
       Stmt.HoldsList C rd σ asgBody False (fun rs ↦ rs = []) := by
   choose y t1 t2 hrc using hrc
   let σ : Val := fun v ↦ asgVals (gen ^ e) q e y t1 t2 v.idx
@@ -221,12 +225,12 @@ theorem asg_holds_of {C : CallRel} {rd : Reader} {q : E} {e : ℕ} (he : e < 16 
   have eb : ∀ j i, i < 7 → σ (.n (17 + 7 * j + i)) = _ := fun j i hi ↦
     (ev _).trans (asgVals_blk (gen ^ e) q e y t1 t2 j i hi)
   have w15 : word (2 ^ (16 - 1)) 0 = word 32768 0 := rfl
-  have ed : ∀ j < 9, σ (.n (j + 2)) = gen ^ (e / 16 ^ j % 16) := fun j hj ↦
+  have ed : ∀ j < 9, σ (.n (j + (val% «assert_small_g_power» "digits[0]"))) = gen ^ (e / 16 ^ j % 16) := fun j hj ↦
     (ev _).trans (asgVals_d _ q e y t1 t2 j hj)
-  have eh : ∀ i < 6, σ (.n (11 + i)) = _ := fun i hi ↦
+  have eh : ∀ i < 6, σ (.n ((val% «assert_small_g_power» "s3.u0.s1#0") + i)) = _ := fun i hi ↦
     (ev _).trans (asgVals_head (gen ^ e) q e y t1 t2 i hi)
-  have e1 : σ (.n 1) = q := rfl
-  have e0 : σ (.n 0) = gen ^ e := rfl
+  have e1 : σ (.n (val% «assert_small_g_power» "g_squares")) = q := rfl
+  have e0 : σ (.n (val% «assert_small_g_power» "x")) = gen ^ e := rfl
   have hacc : ∀ j < 8, σ (.n (asgAcc j)) = gen ^ (e % 16 ^ (j + 1)) := fun j hj ↦ by
     cases j with
     | zero =>
@@ -246,7 +250,7 @@ theorem asg_holds_of {C : CallRel} {rd : Reader} {q : E} {e : ℕ} (he : e < 16 
     | succ j =>
       rw [show asgPtr (j + 1) = 17 + 7 * j + 4 by simp only [asgPtr]; omega, eb j 4 (by omega)]
       rfl
-  refine ⟨σ, rfl, rfl, ep, (asg_holds_iff C rd σ _).2
+  refine ⟨σ, rfl, rfl, ep, ed, (asg_holds_iff C rd σ _).2
     ⟨eh 0 (by omega), ⟨?_, ?_, ?_⟩, ?_, ?_, fun j hj ↦ ?_, ?_, rfl⟩⟩
   · rw [d0, show 13 = 11 + 2 from rfl, eh 2 (by omega)]
     simpa using (hrc 0).1
@@ -287,6 +291,18 @@ theorem asg_holds_of {C : CallRel} {rd : Reader} {q : E} {e : ℕ} (he : e < 16 
     simp only [List.getD_cons_succ, List.getD_cons_zero]
     rw [Nat.mod_eq_of_lt (by simpa using he)]
     exact e_add_eq_zero_iff.mpr rfl
+
+/-- **The honest valuation** of `assert_small_g_power` (`asg_holds_ofD` without its digits). -/
+theorem asg_holds_of {C : CallRel} {rd : Reader} {q : E} {e : ℕ} (he : e < 16 ^ 9)
+    (hrc : ∀ j, ∃ y t1 t2 : E, LoadHolds rd (gen ^ (e / 16 ^ j % 16)) 0 t1 ∧
+      word (2 ^ (16 - 1)) 0 = gen ^ (e / 16 ^ j % 16) * y ∧ LoadHolds rd y 0 t2)
+    (hshare : ∀ j < 9, LoadHolds rd (q * gen ^ (e / 16 ^ j % 16)) (34 + 16 * j)
+      (gen ^ (e / 16 ^ j % 16 * 16 ^ j))) :
+    ∃ σ : Val, σ (.n (val% «assert_small_g_power» "x")) = gen ^ e ∧ σ (.n (val% «assert_small_g_power» "g_squares")) = q ∧
+      (∀ j < 9, σ (.n (asgPtr j)) = q * gen ^ (e / 16 ^ j % 16)) ∧
+      Stmt.HoldsList C rd σ asgBody False (fun rs ↦ rs = []) :=
+  let ⟨σ, e0, e1, ep, _, hh⟩ := asg_holds_ofD (C := C) he hrc hshare
+  ⟨σ, e0, e1, ep, hh⟩
 
 /-- **`assert_small_g_power`'s core IR is its meaning.** -/
 theorem assert_small_g_power_holds : assert_small_g_power_Spec := by

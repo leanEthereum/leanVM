@@ -11,6 +11,10 @@ module
 public import LeanVM.Guest.Sound
 public import LeanVM.Guest.WalkKnownDefs
 public import LeanVM.Guest.B1.Opening.QueriesWalk
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«opening_queries__L»
+import LeanVM.Guest.Data.ValNames.«opening_queries__L_loop0»
+import LeanVM.Guest.Data.ValNames.«walk_path__L»
 
 /-!
 # The walks' obligations, from the templates
@@ -57,25 +61,16 @@ theorem semRel_lt {t : ℕ} (ht : t < 2 ^ 31) (rd : Reader) (ws : List E) :
   rw [ite_eq_right_of_eq_false _ _ (eq_false (by omega)),
     ite_eq_right_of_eq_false _ _ (eq_false (by omega))]
 
-/-- A walk tag of a kind but `2` is no multiple of `4` (as `tagGkr` and `tagTabs` are). -/
-theorem walkTag_mod {kind odd d cd : ℕ} (hk : kind < 4) (h2 : kind ≠ 2) :
-    walkTag kind odd d cd % 4 ≠ 0 := by
-  unfold walkTag
-  omega
-
-/-- A tag `2 ≤ t < 2^21` below `tagGkr`, or no multiple of `4`, is a walk tag. -/
-theorem semRel0_walk {t : ℕ} (ht : 2 ≤ t) (hg : t % 4 ≠ 0 ∨ t < tagGkr) (hl : t < 2 ^ 21)
+/-- A tag `2 ≤ t < 2^21` is a walk tag. -/
+theorem semRel0_walk {t : ℕ} (ht : 2 ≤ t) (hl : t < 2 ^ 21)
     (rd : Reader) (ws : List E) : SemRel0 glob t rd ws ↔ walkSem t rd ws := by
-  rw [show tagGkr = 4 * 262144 from rfl] at hg
-  have hG : t ≠ tagGkr := by rw [show tagGkr = 4 * 262144 from rfl]; omega
-  have hT : t ≠ tagTabs := by rw [show tagTabs = 4 * 524288 from rfl]; omega
+  have hT : t ≠ tagTabs := by rw [show tagTabs = 2 ^ 21 from rfl]; omega
   unfold SemRel0
   rw [ite_eq_right_of_eq_false _ _ (eq_false (by unfold tagNe; omega))]
   obtain ⟨n, rfl⟩ : ∃ n, t = n + 2 := ⟨t - 2, by omega⟩
-  change (if n + 2 = tagGkr then GkrPar rd (ws.getD 0 0) (ws.getD 1 0) (ws.getD 2 0) (ws.getD 3 0)
-    else if n + 2 = tagTabs then B1.WinTabs rd (ws.getD 0 0)
+  change (if n + 2 = tagTabs then B1.WinTabs rd (ws.getD 0 0)
     else if 2 ^ 21 ≤ n + 2 then lqSem (n + 2) rd ws else walkSem (n + 2) rd ws) ↔ _
-  rw [ite_eq_right_of_eq_false _ _ (eq_false hG), ite_eq_right_of_eq_false _ _ (eq_false hT),
+  rw [ite_eq_right_of_eq_false _ _ (eq_false hT),
     ite_eq_right_of_eq_false _ _ (eq_false (by omega))]
 
 theorem semRel_ne (rd : Reader) (ws : List E) : SemRel glob tagNe rd ws ↔ ws.getD 0 0 ≠ ws.getD 1 0 := by
@@ -86,7 +81,7 @@ theorem semRel_ne (rd : Reader) (ws : List E) : SemRel glob tagNe rd ws ↔ ws.g
 theorem semRel0_w0 {d cd : ℕ} (hc : cd < 64) (hl : walkTag 0 0 d cd < 2 ^ 21) (rd : Reader)
     (ws : List E) :
     SemRel0 glob (walkTag 0 0 d cd) rd ws ↔ WinWalk rd d cd (ws.getD 0 0) (ws.getD 1 0) (ws.getD 2 0) := by
-  rw [semRel0_walk (walkTag_ge _ _ _ _) (Or.inl (walkTag_mod (by omega) (by omega))) hl]
+  rw [semRel0_walk (walkTag_ge _ _ _ _) hl]
   obtain ⟨h1, h2, h3, h4⟩ := walkTag_decode (d := d) (by decide : 0 < 4) (by decide : 0 < 2) hc
   simp only [walkSem, h1, h2, h3, h4]
   rfl
@@ -101,7 +96,7 @@ theorem semRel_wins {d cd : ℕ} (hc : cd < 64) (hlt : winsTag d cd < 2 ^ 21) (r
     (ws : List E) : SemRel glob (winsTag d cd) rd ws ↔ WinsAt rd d cd (ws.getD 0 0) := by
   unfold winsTag at hlt ⊢
   rw [semRel_lt (by omega),
-    semRel0_walk (walkTag_ge _ _ _ _) (Or.inl (walkTag_mod (by omega) (by omega))) hlt]
+    semRel0_walk (walkTag_ge _ _ _ _) hlt]
   obtain ⟨h1, h2, h3, h4⟩ := walkTag_decode (d := d) (by decide : 0 < 4) (by decide : 1 < 2) hc
   simp only [walkSem, h1, h2, h3, h4]
   rfl
@@ -110,7 +105,7 @@ theorem semRel0_w1 {odd d cd : ℕ} (ho : odd < 2) (hc : cd < 64) (hl : walkTag 
     (rd : Reader) (ws : List E) :
     SemRel0 glob (walkTag 1 odd d cd) rd ws ↔
       WinWalk2 rd d cd odd (ws.getD 0 0) (ws.getD 1 0) (ws.getD 2 0) := by
-  rw [semRel0_walk (walkTag_ge _ _ _ _) (Or.inl (walkTag_mod (by omega) (by omega))) hl]
+  rw [semRel0_walk (walkTag_ge _ _ _ _) hl]
   obtain ⟨h1, h2, h3, h4⟩ := walkTag_decode (d := d) (by decide : 1 < 4) ho hc
   simp only [walkSem, h1, h2, h3, h4]
 
@@ -121,12 +116,10 @@ theorem semRel_w1 {odd d cd : ℕ} (ho : odd < 2) (hc : cd < 64) (hlt : walkTag 
   rw [semRel_lt (by omega), semRel0_w1 ho hc hlt]
 
 theorem semRel_main {odd d cd base : ℕ} (ho : odd < 2) (hc : cd < 64) (hb : base < 2)
-    (hlt : walkTag (2 + base) odd d cd < tagGkr) (rd : Reader) (ws : List E) :
+    (hlt : walkTag (2 + base) odd d cd < 2 ^ 21) (rd : Reader) (ws : List E) :
     SemRel glob (walkTag (2 + base) odd d cd) rd ws ↔
       OqMainWins rd d cd odd base (ws.getD 0 0) (ws.getD 1 0) := by
-  have h20 : walkTag (2 + base) odd d cd < 2 ^ 21 := by
-    have := hlt; unfold tagGkr at this; omega
-  rw [semRel_lt (by omega), semRel0_walk (walkTag_ge _ _ _ _) (Or.inr hlt) h20]
+  rw [semRel_lt (by omega), semRel0_walk (walkTag_ge _ _ _ _) hlt]
   obtain ⟨h1, h2, h3, h4⟩ := walkTag_decode (d := d) (by omega : 2 + base < 4) ho hc
   obtain rfl | rfl : base = 0 ∨ base = 1 := by omega
   · simp only [walkSem, h1, h2, h3, h4]
@@ -165,11 +158,9 @@ theorem semRel_lq {n odd base d cd : ℕ} (ho : odd < 2) (hb : base < 2) (hc : c
   obtain ⟨m, hm⟩ : ∃ m, lqTag n odd base d cd = m + 2 := ⟨lqTag n odd base d cd - 2, by omega⟩
   change globSem (lqTag n odd base d cd) rd ws ↔ _
   rw [hm]
-  change (if m + 2 = tagGkr then GkrPar rd (ws.getD 0 0) (ws.getD 1 0) (ws.getD 2 0) (ws.getD 3 0)
-    else if m + 2 = tagTabs then B1.WinTabs rd (ws.getD 0 0)
+  change (if m + 2 = tagTabs then B1.WinTabs rd (ws.getD 0 0)
     else if 2 ^ 21 ≤ m + 2 then lqSem (m + 2) rd ws else walkSem (m + 2) rd ws) ↔ _
-  rw [ite_eq_right_of_eq_false _ _ (eq_false (by unfold tagGkr; omega)),
-    ite_eq_right_of_eq_false _ _ (eq_false (by unfold tagTabs; omega)),
+  rw [ite_eq_right_of_eq_false _ _ (eq_false (by unfold tagTabs; omega)),
     ite_eq_left_of_eq_true _ _ (eq_true (by omega)), ← hm]
   obtain ⟨e1, e2⟩ := lqTag_decode (n := n) hb ho hc hd
   obtain ⟨h1, h2, h3, h4⟩ := walkTag_decode (d := d) (by omega : 2 + base < 4) ho hc
@@ -242,21 +233,21 @@ theorem loop_cutsKnown {j tag d cd xv tl : ℕ} {src : List (ℕ × ℕ)} (hc : 
     (hsem : ∀ rd ws, SemRel glob tag rd ws ↔ W rd (ws.getD 0 0) (ws.getD 1 0) (ws.getD 2 0))
     (hwins : ∀ {κ : ℕ} (L : MemoryImage κ) (σ : Val) (n : ℕ),
       Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf j).body.take n) True (fun _ ↦ True) →
-      W L.read (σ (.n 3)) (σ (.n 0)) (σ (.n 1)) → σ (.n 0) ≠ σ (.n 1) →
+      W L.read (σ (.n (valf% «opening_queries» «_loop0» "query_win_ptrs"))) (σ (.n (valf% «opening_queries» «_loop0» "xi"))) (σ (.n (valf% «opening_queries» «_loop0» "bound"))) → σ (.n (valf% «opening_queries» «_loop0» "xi")) ≠ σ (.n (valf% «opening_queries» «_loop0» "bound")) →
       ∀ v ∈ src, v.2 ≤ n → WinsAt L.read d cd (σ (.n v.1)))
     (htail : ∀ {κ : ℕ} (L : MemoryImage κ) (σ : Val) (n : ℕ), tl ≤ n →
       Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf j).body.take n) True (fun _ ↦ True) →
-      W L.read (σ (.n 3)) (σ (.n 0)) (σ (.n 1)) → σ (.n 0) ≠ σ (.n 1) →
-      W L.read (σ (.n 3)) (σ (.n xv)) (σ (.n 1))) :
+      W L.read (σ (.n (valf% «opening_queries» «_loop0» "query_win_ptrs"))) (σ (.n (valf% «opening_queries» «_loop0» "xi"))) (σ (.n (valf% «opening_queries» «_loop0» "bound"))) → σ (.n (valf% «opening_queries» «_loop0» "xi")) ≠ σ (.n (valf% «opening_queries» «_loop0» "bound")) →
+      W L.read (σ (.n (valf% «opening_queries» «_loop0» "query_win_ptrs"))) (σ (.n xv)) (σ (.n (valf% «opening_queries» «_loop0» "bound")))) :
     CutsKnown j := by
   intro κ L _ _ fp _ hsem' i hi h0 hl
   simp only [loopOk, Bool.and_eq_true, beq_iff_eq, List.all_eq_true] at hok
   obtain ⟨hs, hcuts⟩ := hok
   rw [hs] at hsem'
-  have hW : W L.read (valG L fp (certOf j) (.n 3)) (valG L fp (certOf j) (.n 0))
-      (valG L fp (certOf j) (.n 1)) :=
+  have hW : W L.read (valG L fp (certOf j) (.n (valf% «opening_queries» «_loop0» "query_win_ptrs"))) (valG L fp (certOf j) (.n (valf% «opening_queries» «_loop0» "xi")))
+      (valG L fp (certOf j) (.n (valf% «opening_queries» «_loop0» "bound"))) :=
     (hsem _ _).mp (hsem' _ (List.mem_cons_self ..))
-  have hne : valG L fp (certOf j) (.n 0) ≠ valG L fp (certOf j) (.n 1) :=
+  have hne : valG L fp (certOf j) (.n (valf% «opening_queries» «_loop0» "xi")) ≠ valG L fp (certOf j) (.n (valf% «opening_queries» «_loop0» "bound")) :=
     (semRel_ne _ _).mp (hsem' _ (List.mem_cons_of_mem _ (List.mem_singleton_self _)))
   have hcut := hcuts _ (cutAt_mem hi h0)
   simp only [loopCutOk, Bool.and_eq_true, List.isEmpty_iff, List.all_eq_true] at hcut
@@ -311,7 +302,7 @@ query's windows (`oqMainT_wins`, an odd count) and the walk from `1` (its second
 theorem main_cutsKnown {j o : ℕ} {s : Oq} {walk loop : String}
     (hb : (coreOf j).body = oqMainT s o walk loop) (ho : o < 2) (hodd : o = 1 → s.base = 1)
     (hc : s.cd < 64) (hbase : s.base < 2)
-    (hlt : walkTag (2 + s.base) o (s.pd + s.cd) s.cd < tagGkr)
+    (hlt : walkTag (2 + s.base) o (s.pd + s.cd) s.cd < 2 ^ 21)
     (hltW : walkTag (if s.base = 1 then 1 else 0) o (s.pd + s.cd) s.cd < 2 ^ 32)
     (hltw : winsTag (s.pd + s.cd) s.cd < 2 ^ 21)
     (hok : mainOkS j o s = true) :
@@ -320,8 +311,8 @@ theorem main_cutsKnown {j o : ℕ} {s : Oq} {walk loop : String}
   simp only [mainOkS, mainOk, Bool.and_eq_true, beq_iff_eq, List.all_eq_true] at hok
   obtain ⟨hs, hcuts⟩ := hok
   rw [hs] at hsem'
-  have hW : OqMainWins L.read (s.pd + s.cd) s.cd o s.base (valG L fp (certOf j) (.n 6))
-      (valG L fp (certOf j) (.n 7)) :=
+  have hW : OqMainWins L.read (s.pd + s.cd) s.cd o s.base (valG L fp (certOf j) (.n (valf% «opening_queries» "query_win_ptrs")))
+      (valG L fp (certOf j) (.n (valf% «opening_queries» "n_iters_g"))) :=
     (semRel_main ho hc hbase hlt _ _).mp (hsem' _ (List.mem_singleton_self _))
   have hcut := hcuts _ (cutAt_mem hi h0)
   simp only [mainCutOk, Bool.and_eq_true, List.isEmpty_iff, List.all_eq_true] at hcut
@@ -350,13 +341,13 @@ theorem main_cutsKnown {j o : ℕ} {s : Oq} {walk loop : String}
     split at h2
     · rename_i h1
       rw [ite_eq_left_of_eq_true _ _ (eq_true h1),
-        semRel0_w1 ho hc (by have := hlt; unfold walkTag tagGkr at *; omega), getD_map_lt (by omega),
+        semRel0_w1 ho hc (by have := hlt; unfold walkTag at *; omega), getD_map_lt (by omega),
         getD_map_lt (by omega), getD_map_lt (by omega), hx, ha, hb']
       exact h2
     · rename_i h1
       obtain rfl : o = 0 := by have := mt hodd h1; omega
       rw [ite_eq_right_of_eq_false _ _ (eq_false h1),
-        semRel0_w0 hc (by have := hlt; unfold walkTag tagGkr at *; omega), getD_map_lt (by omega),
+        semRel0_w0 hc (by have := hlt; unfold walkTag at *; omega), getD_map_lt (by omega),
         getD_map_lt (by omega), getD_map_lt (by omega), hx, ha, hb']
       exact h2
 
@@ -370,7 +361,7 @@ theorem wp_cutsKnown {j d cd : ℕ} (hc : cd < 64) (hltw : winsTag d cd < 2 ^ 21
   simp only [wpOk, Bool.and_eq_true, beq_iff_eq, List.all_eq_true] at hok
   obtain ⟨hs, hcuts⟩ := hok
   rw [hs] at hsem'
-  have hW : WinsAt L.read d cd (valG L fp (certOf j) (.n 2)) := by
+  have hW : WinsAt L.read d cd (valG L fp (certOf j) (.n (valf% «walk_path» "wins"))) := by
     have := (semRel_wins hc hltw _ _).mp (hsem' _ (List.mem_singleton_self _))
     simpa [valG_n] using this
   have hcut := hcuts _ (cutAt_mem hi h0)

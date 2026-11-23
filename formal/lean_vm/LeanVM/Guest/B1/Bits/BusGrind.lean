@@ -8,6 +8,22 @@
 module
 
 public import LeanVM.Guest.B1.Bits.Grind
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«bus_grind_check__L»
+import LeanVM.Guest.Data.ValNames.«bus_grind_check__L0»
+import LeanVM.Guest.Data.ValNames.«bus_grind_check__L1»
+import LeanVM.Guest.Data.ValNames.«bus_grind_check__L10»
+import LeanVM.Guest.Data.ValNames.«bus_grind_check__L11»
+import LeanVM.Guest.Data.ValNames.«bus_grind_check__L12»
+import LeanVM.Guest.Data.ValNames.«bus_grind_check__L13»
+import LeanVM.Guest.Data.ValNames.«bus_grind_check__L2»
+import LeanVM.Guest.Data.ValNames.«bus_grind_check__L3»
+import LeanVM.Guest.Data.ValNames.«bus_grind_check__L4»
+import LeanVM.Guest.Data.ValNames.«bus_grind_check__L5»
+import LeanVM.Guest.Data.ValNames.«bus_grind_check__L6»
+import LeanVM.Guest.Data.ValNames.«bus_grind_check__L7»
+import LeanVM.Guest.Data.ValNames.«bus_grind_check__L8»
+import LeanVM.Guest.Data.ValNames.«bus_grind_check__L9»
 
 /-!
 # `bus_grind_check`
@@ -69,13 +85,13 @@ theorem busGrindBits_mem : ∀ d ∈ busGrindDeployed, busGrindBits d ∈ grindB
 
 /-- `bus_grind_check__L{d}`'s expansion: the grind, then `0` returned. -/
 def bgBody (d : ℕ) : List Stmt :=
-  [.call (grindCheckName (busGrindBits d)) [.n 0, .n 1] [], .atom (.const (.n 2) (word 0 0)),
-    .ret [.n 2]]
+  [.call (grindCheckName (busGrindBits d)) [.n (valf% «bus_grind_check» "word"), .n (valf% «bus_grind_check» "tabs")] [], .atom (.const (.n (valf% «bus_grind_check» "s1#0")) (word 0 0)),
+    .ret [.n (valf% «bus_grind_check» "s1#0")]]
 
 set_option maxRecDepth 100000 in
 theorem bus_grind_check_found_0 : coreProgram.find? (busGrindName 0) = some
     fn% «bus_grind_check__L0» ∧
-    (fn% «bus_grind_check__L0»).params = [.n 0, .n 1] ∧ (fn% «bus_grind_check__L0»).body = bgBody 0
+    (fn% «bus_grind_check__L0»).params = [.n (val% «bus_grind_check__L0» "word"), .n (val% «bus_grind_check__L0» "tabs")] ∧ (fn% «bus_grind_check__L0»).body = bgBody 0
         :=
   ⟨coreProgram_find?_at (j := idx% «bus_grind_check__L0») rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
@@ -83,7 +99,7 @@ theorem bus_grind_check_found_0 : coreProgram.find? (busGrindName 0) = some
 set_option maxRecDepth 100000 in
 theorem bus_grind_check_found_1 : coreProgram.find? (busGrindName 1) = some
     fn% «bus_grind_check__L1» ∧
-    (fn% «bus_grind_check__L1»).params = [.n 0, .n 1] ∧ (fn% «bus_grind_check__L1»).body = bgBody 1
+    (fn% «bus_grind_check__L1»).params = [.n (val% «bus_grind_check__L1» "word"), .n (val% «bus_grind_check__L1» "tabs")] ∧ (fn% «bus_grind_check__L1»).body = bgBody 1
         :=
   ⟨coreProgram_find?_at (j := idx% «bus_grind_check__L1») rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
@@ -91,7 +107,7 @@ theorem bus_grind_check_found_1 : coreProgram.find? (busGrindName 1) = some
 set_option maxRecDepth 100000 in
 theorem bus_grind_check_found_2 : coreProgram.find? (busGrindName 2) = some
     fn% «bus_grind_check__L2» ∧
-    (fn% «bus_grind_check__L2»).params = [.n 0, .n 1] ∧ (fn% «bus_grind_check__L2»).body = bgBody 2
+    (fn% «bus_grind_check__L2»).params = [.n (val% «bus_grind_check__L2» "word"), .n (val% «bus_grind_check__L2» "tabs")] ∧ (fn% «bus_grind_check__L2»).body = bgBody 2
         :=
   ⟨coreProgram_find?_at (j := idx% «bus_grind_check__L2») rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
@@ -99,7 +115,7 @@ theorem bus_grind_check_found_2 : coreProgram.find? (busGrindName 2) = some
 set_option maxRecDepth 100000 in
 theorem bus_grind_check_found_3 : coreProgram.find? (busGrindName 3) = some
     fn% «bus_grind_check__L3» ∧
-    (fn% «bus_grind_check__L3»).params = [.n 0, .n 1] ∧ (fn% «bus_grind_check__L3»).body = bgBody 3
+    (fn% «bus_grind_check__L3»).params = [.n (val% «bus_grind_check__L3» "word"), .n (val% «bus_grind_check__L3» "tabs")] ∧ (fn% «bus_grind_check__L3»).body = bgBody 3
         :=
   ⟨coreProgram_find?_at (j := idx% «bus_grind_check__L3») rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
@@ -107,7 +123,7 @@ theorem bus_grind_check_found_3 : coreProgram.find? (busGrindName 3) = some
 set_option maxRecDepth 100000 in
 theorem bus_grind_check_found_4 : coreProgram.find? (busGrindName 4) = some
     fn% «bus_grind_check__L4» ∧
-    (fn% «bus_grind_check__L4»).params = [.n 0, .n 1] ∧ (fn% «bus_grind_check__L4»).body = bgBody 4
+    (fn% «bus_grind_check__L4»).params = [.n (val% «bus_grind_check__L4» "word"), .n (val% «bus_grind_check__L4» "tabs")] ∧ (fn% «bus_grind_check__L4»).body = bgBody 4
         :=
   ⟨coreProgram_find?_at (j := idx% «bus_grind_check__L4») rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
@@ -115,7 +131,7 @@ theorem bus_grind_check_found_4 : coreProgram.find? (busGrindName 4) = some
 set_option maxRecDepth 100000 in
 theorem bus_grind_check_found_5 : coreProgram.find? (busGrindName 5) = some
     fn% «bus_grind_check__L5» ∧
-    (fn% «bus_grind_check__L5»).params = [.n 0, .n 1] ∧ (fn% «bus_grind_check__L5»).body = bgBody 5
+    (fn% «bus_grind_check__L5»).params = [.n (val% «bus_grind_check__L5» "word"), .n (val% «bus_grind_check__L5» "tabs")] ∧ (fn% «bus_grind_check__L5»).body = bgBody 5
         :=
   ⟨coreProgram_find?_at (j := idx% «bus_grind_check__L5») rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
@@ -123,7 +139,7 @@ theorem bus_grind_check_found_5 : coreProgram.find? (busGrindName 5) = some
 set_option maxRecDepth 100000 in
 theorem bus_grind_check_found_6 : coreProgram.find? (busGrindName 6) = some
     fn% «bus_grind_check__L6» ∧
-    (fn% «bus_grind_check__L6»).params = [.n 0, .n 1] ∧ (fn% «bus_grind_check__L6»).body = bgBody 6
+    (fn% «bus_grind_check__L6»).params = [.n (val% «bus_grind_check__L6» "word"), .n (val% «bus_grind_check__L6» "tabs")] ∧ (fn% «bus_grind_check__L6»).body = bgBody 6
         :=
   ⟨coreProgram_find?_at (j := idx% «bus_grind_check__L6») rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
@@ -131,7 +147,7 @@ theorem bus_grind_check_found_6 : coreProgram.find? (busGrindName 6) = some
 set_option maxRecDepth 100000 in
 theorem bus_grind_check_found_7 : coreProgram.find? (busGrindName 7) = some
     fn% «bus_grind_check__L7» ∧
-    (fn% «bus_grind_check__L7»).params = [.n 0, .n 1] ∧ (fn% «bus_grind_check__L7»).body = bgBody 7
+    (fn% «bus_grind_check__L7»).params = [.n (val% «bus_grind_check__L7» "word"), .n (val% «bus_grind_check__L7» "tabs")] ∧ (fn% «bus_grind_check__L7»).body = bgBody 7
         :=
   ⟨coreProgram_find?_at (j := idx% «bus_grind_check__L7») rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
@@ -139,7 +155,7 @@ theorem bus_grind_check_found_7 : coreProgram.find? (busGrindName 7) = some
 set_option maxRecDepth 100000 in
 theorem bus_grind_check_found_8 : coreProgram.find? (busGrindName 8) = some
     fn% «bus_grind_check__L8» ∧
-    (fn% «bus_grind_check__L8»).params = [.n 0, .n 1] ∧ (fn% «bus_grind_check__L8»).body = bgBody 8
+    (fn% «bus_grind_check__L8»).params = [.n (val% «bus_grind_check__L8» "word"), .n (val% «bus_grind_check__L8» "tabs")] ∧ (fn% «bus_grind_check__L8»).body = bgBody 8
         :=
   ⟨coreProgram_find?_at (j := idx% «bus_grind_check__L8») rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
@@ -147,7 +163,7 @@ theorem bus_grind_check_found_8 : coreProgram.find? (busGrindName 8) = some
 set_option maxRecDepth 100000 in
 theorem bus_grind_check_found_9 : coreProgram.find? (busGrindName 9) = some
     fn% «bus_grind_check__L9» ∧
-    (fn% «bus_grind_check__L9»).params = [.n 0, .n 1] ∧ (fn% «bus_grind_check__L9»).body = bgBody 9
+    (fn% «bus_grind_check__L9»).params = [.n (val% «bus_grind_check__L9» "word"), .n (val% «bus_grind_check__L9» "tabs")] ∧ (fn% «bus_grind_check__L9»).body = bgBody 9
         :=
   ⟨coreProgram_find?_at (j := idx% «bus_grind_check__L9») rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
@@ -155,7 +171,7 @@ theorem bus_grind_check_found_9 : coreProgram.find? (busGrindName 9) = some
 set_option maxRecDepth 100000 in
 theorem bus_grind_check_found_10 : coreProgram.find? (busGrindName 10) = some
     fn% «bus_grind_check__L10» ∧
-    (fn% «bus_grind_check__L10»).params = [.n 0, .n 1] ∧ (fn% «bus_grind_check__L10»).body = bgBody
+    (fn% «bus_grind_check__L10»).params = [.n (val% «bus_grind_check__L10» "word"), .n (val% «bus_grind_check__L10» "tabs")] ∧ (fn% «bus_grind_check__L10»).body = bgBody
         10 :=
   ⟨coreProgram_find?_at (j := idx% «bus_grind_check__L10») rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
@@ -163,7 +179,7 @@ theorem bus_grind_check_found_10 : coreProgram.find? (busGrindName 10) = some
 set_option maxRecDepth 100000 in
 theorem bus_grind_check_found_11 : coreProgram.find? (busGrindName 11) = some
     fn% «bus_grind_check__L11» ∧
-    (fn% «bus_grind_check__L11»).params = [.n 0, .n 1] ∧ (fn% «bus_grind_check__L11»).body = bgBody
+    (fn% «bus_grind_check__L11»).params = [.n (val% «bus_grind_check__L11» "word"), .n (val% «bus_grind_check__L11» "tabs")] ∧ (fn% «bus_grind_check__L11»).body = bgBody
         11 :=
   ⟨coreProgram_find?_at (j := idx% «bus_grind_check__L11») rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
@@ -171,7 +187,7 @@ theorem bus_grind_check_found_11 : coreProgram.find? (busGrindName 11) = some
 set_option maxRecDepth 100000 in
 theorem bus_grind_check_found_12 : coreProgram.find? (busGrindName 12) = some
     fn% «bus_grind_check__L12» ∧
-    (fn% «bus_grind_check__L12»).params = [.n 0, .n 1] ∧ (fn% «bus_grind_check__L12»).body = bgBody
+    (fn% «bus_grind_check__L12»).params = [.n (val% «bus_grind_check__L12» "word"), .n (val% «bus_grind_check__L12» "tabs")] ∧ (fn% «bus_grind_check__L12»).body = bgBody
         12 :=
   ⟨coreProgram_find?_at (j := idx% «bus_grind_check__L12») rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
@@ -179,14 +195,14 @@ theorem bus_grind_check_found_12 : coreProgram.find? (busGrindName 12) = some
 set_option maxRecDepth 100000 in
 theorem bus_grind_check_found_13 : coreProgram.find? (busGrindName 13) = some
     fn% «bus_grind_check__L13» ∧
-    (fn% «bus_grind_check__L13»).params = [.n 0, .n 1] ∧ (fn% «bus_grind_check__L13»).body = bgBody
+    (fn% «bus_grind_check__L13»).params = [.n (val% «bus_grind_check__L13» "word"), .n (val% «bus_grind_check__L13» "tabs")] ∧ (fn% «bus_grind_check__L13»).body = bgBody
         13 :=
   ⟨coreProgram_find?_at (j := idx% «bus_grind_check__L13») rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 /-- **Every deployed `bus_grind_check` is the template.** -/
 theorem bus_grind_check_found : ∀ d ∈ busGrindDeployed, ∃ fn : Fn,
-    coreProgram.find? (busGrindName d) = some fn ∧ fn.params = [.n 0, .n 1] ∧
+    coreProgram.find? (busGrindName d) = some fn ∧ fn.params = [.n (valf% «bus_grind_check» "word"), .n (valf% «bus_grind_check» "tabs")] ∧
       fn.body = bgBody d := by
   intro d hd
   simp only [busGrindDeployed, List.mem_range] at hd

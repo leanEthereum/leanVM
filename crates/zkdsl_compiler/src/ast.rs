@@ -301,6 +301,7 @@ pub struct Ast {
 // Free-variable analysis: pure AST, no lowering state. Its one consumer is the
 // `for` desugaring, which needs the names a loop body reads from outside itself.
 
+use crate::parser::const_int_expr;
 use std::collections::HashSet;
 
 /// Collect variable references in `e` into `refs` (in source order).
@@ -336,10 +337,24 @@ pub(crate) fn free_vars_expr<'a>(e: &'a Expr, refs: &mut Vec<&'a str>) {
     }
 }
 
+/// Which arm of an `if` that folds as written runs, when literals on both sides decide it.
+fn taken_arm(eq: bool, lhs: &Expr, rhs: &Expr, force_const: bool) -> Option<bool> {
+    if !force_const && !matches!((lhs, rhs), (Expr::Lit(_), Expr::Lit(_))) {
+        return None;
+    }
+    Some((const_int_expr(lhs)? == const_int_expr(rhs)?) == eq)
+}
+
+/// Whether literals say an `unroll` runs no copy of its body.
+fn empty_unroll(lo: &Expr, hi: &Expr) -> bool {
+    matches!((const_int_expr(lo), const_int_expr(hi)), (Some(a), Some(b)) if a >= b)
+}
+
 /// Every name the block binds, ignoring scope. [`free_vars_stmt`] deliberately
 /// does not answer this: its `bound` set is scoped, so an arm-local binding is
-/// discarded with the arm.
-pub(crate) fn binds_anywhere<'a>(body: &'a [Stmt], out: &mut HashSet<&'a str>) {
+/// discarded with the arm. With `live`, a block that never runs is left out:
+/// the other arm of a compile-time `if`, an `unroll` over nothing.
+pub(crate) fn binds_anywhere<'a>(body: &'a [Stmt], live: bool, out: &mut HashSet<&'a str>) {
     for s in body {
         match &s.kind {
             StmtKind::Let(n, _) | StmtKind::LetHintWitness { name: n, .. } => {
@@ -353,13 +368,30 @@ pub(crate) fn binds_anywhere<'a>(body: &'a [Stmt], out: &mut HashSet<&'a str>) {
                     out.insert(n.as_str());
                 }
             }),
-            StmtKind::If { then, els, .. } => {
-                binds_anywhere(then, out);
-                binds_anywhere(els, out);
+            StmtKind::If {
+                eq,
+                lhs,
+                rhs,
+                then,
+                els,
+                force_const,
+            } => {
+                let taken = if live {
+                    taken_arm(*eq, lhs, rhs, *force_const)
+                } else {
+                    None
+                };
+                if taken != Some(false) {
+                    binds_anywhere(then, live, out);
+                }
+                if taken != Some(true) {
+                    binds_anywhere(els, live, out);
+                }
             }
+            StmtKind::Unroll { lo, hi, .. } if live && empty_unroll(lo, hi) => {}
             StmtKind::For { var, body, .. } | StmtKind::Unroll { var, body, .. } => {
                 out.insert(var.as_str());
-                binds_anywhere(body, out);
+                binds_anywhere(body, live, out);
             }
             _ => {}
         }
@@ -367,15 +399,16 @@ pub(crate) fn binds_anywhere<'a>(body: &'a [Stmt], out: &mut HashSet<&'a str>) {
 }
 
 /// Collect references from a block whose bindings do not escape.
-fn scoped_vars<'a>(body: &'a [Stmt], refs: &mut Vec<&'a str>) {
+fn scoped_vars<'a>(body: &'a [Stmt], live: bool, refs: &mut Vec<&'a str>) {
     let mut inner = HashSet::new();
     for s in body {
-        free_vars_stmt(s, refs, &mut inner);
+        free_vars_stmt(s, live, refs, &mut inner);
     }
 }
 
-/// Collect references in `s` into `refs` and names it binds into `bound`.
-pub(crate) fn free_vars_stmt<'a>(s: &'a Stmt, refs: &mut Vec<&'a str>, bound: &mut HashSet<&'a str>) {
+/// Collect references in `s` into `refs` and names it binds into `bound`. With `live`, a block that never runs
+/// is left out, as in [`binds_anywhere`].
+pub(crate) fn free_vars_stmt<'a>(s: &'a Stmt, live: bool, refs: &mut Vec<&'a str>, bound: &mut HashSet<&'a str>) {
     match &s.kind {
         StmtKind::Let(n, e) => {
             free_vars_expr(e, refs);
@@ -403,12 +436,12 @@ pub(crate) fn free_vars_stmt<'a>(s: &'a Stmt, refs: &mut Vec<&'a str>, bound: &m
         }
         StmtKind::Print { value, .. } => free_vars_expr(value, refs),
         StmtKind::If {
+            eq,
             lhs,
             rhs,
             then,
             els,
             force_const,
-            ..
         } => {
             free_vars_expr(lhs, refs);
             free_vars_expr(rhs, refs);
@@ -424,11 +457,20 @@ pub(crate) fn free_vars_stmt<'a>(s: &'a Stmt, refs: &mut Vec<&'a str>, bound: &m
             // self-call then read a name the folded arm had rebound to a
             // `StackBuf`. Both sides literal is the syntactic half of that test.
             if *force_const || matches!((lhs, rhs), (Expr::Lit(_), Expr::Lit(_))) {
-                then.iter().for_each(|s| free_vars_stmt(s, refs, bound));
-                els.iter().for_each(|s| free_vars_stmt(s, refs, bound));
+                let taken = if live {
+                    taken_arm(*eq, lhs, rhs, *force_const)
+                } else {
+                    None
+                };
+                if taken != Some(false) {
+                    then.iter().for_each(|s| free_vars_stmt(s, live, refs, bound));
+                }
+                if taken != Some(true) {
+                    els.iter().for_each(|s| free_vars_stmt(s, live, refs, bound));
+                }
             } else {
-                scoped_vars(then, refs);
-                scoped_vars(els, refs);
+                scoped_vars(then, live, refs);
+                scoped_vars(els, live, refs);
             }
         }
         StmtKind::Match { targets, x, arms } => {
@@ -464,15 +506,18 @@ pub(crate) fn free_vars_stmt<'a>(s: &'a Stmt, refs: &mut Vec<&'a str>, bound: &m
             // counter nor its bindings exist out here. `unroll` below is the
             // opposite: it replicates straight-line code into THIS scope, so its
             // bindings really do persist and it keeps the shared set.
-            scoped_vars(body, refs);
+            scoped_vars(body, live, refs);
         }
         StmtKind::Unroll { var, lo, hi, body } => {
             free_vars_expr(lo, refs);
             free_vars_expr(hi, refs);
+            if live && empty_unroll(lo, hi) {
+                return;
+            }
             // The counter is bound inside the body only, so unless the body
             // rebinds it, a read of the name after the loop is the enclosing one.
             let fresh = bound.insert(var.as_str());
-            body.iter().for_each(|s| free_vars_stmt(s, refs, bound));
+            body.iter().for_each(|s| free_vars_stmt(s, live, refs, bound));
             if fresh && !binds_through(body, var) {
                 bound.remove(var.as_str());
             }

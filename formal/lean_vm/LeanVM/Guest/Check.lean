@@ -31,9 +31,10 @@ valuation the soundness proof uses reads every value from its cell.
   blocks are walked, from the fall-through and from the target, and must end at one join, where
   the walk goes on with the book of the branch point.
 * `match` leaves its segment by a table jump: the selector's word is read from the jump table into
-  the target cell, the selector is bounded by a range check, a known bound or booleanity
-  (`selBound`: `1 + b·(1 + g^k)` with `b·b = b`, and products of such), every slot of the
-  table holds its arm's offset, and the arms end at one join.
+  the target cell, the selector is bounded by a range check, a known bound, booleanity
+  (`selBound`: `1 + b·(1 + g^k)` with `b·b = b`, and products of such) or a read from a table of
+  constants at a range-checked power (`tabRead`), every slot of the table holds its arm's offset,
+  and the arms end at one join.
 * A call leaves its segment into a callee frame: the callee's entry and name, the argument cells
   stored into the callee frame, the self frame pointer cell of a loop callee, its bounded
   arguments; the walk goes on at the return point, where the returned words are read back. A
@@ -797,10 +798,50 @@ noncomputable def boundScaled (F : Exec.Facts) (ψ : Trie Sym) (mem : List (ℕ 
   | some k => Nat.ble k n && boundBase mem B bnd x (n - k)
   | none => false
 
+/-! ### Words read from a table of constants
+
+A word read at `fp[w]·fp[x]·g^o` with `fp[x] = g^d`, `d < k` by a range check, from a table at
+`fp[w]` whose slots `o .. o + k - 1` each hold a constant `g^e` with `e < n`, is such a constant:
+the guest dispatches on words of tables it fills itself (`depth_odd`, `four_rem` in
+`verify_bus_gkr`), read at a range-checked power. -/
+
+/-- The book holds, under some cell, an atom `p` accepts. -/
+noncomputable def bookAny (p : Exec.Atom → Bool) (B : Book) : Bool :=
+  Trie.rec (motive := fun _ ↦ Bool) false
+    (fun v _ _ al ar ↦ (match v with
+      | some l => l.any p
+      | none => false) || al || ar) B
+
+/-- Slot `i` of the table at `fp[w]` holds a constant `g^e`, `e < n`: a `DEREF` stores it there. -/
+noncomputable def slotOk (F : Exec.Facts) (ψ : Trie Sym) (B : Book) (w n i : ℕ) : Bool :=
+  bookAny (fun a ↦ match a with
+    | .instr _ (.deref o1 o2 o3 .cell) => o1 == w && o2 == i &&
+        (match gpAt F B ψ o3 with
+          | some e => Nat.blt e n
+          | none => false)
+    | _ => false) B
+
+/-- The table at `fp[w]`, read at `fp[x]·g^o` with `fp[x]` range checked below `k`: its slots
+`o .. o + k - 1` hold constants below `n`. -/
+noncomputable def tabAt (F : Exec.Facts) (ψ : Trie Sym) (B : Book) (w x o n : ℕ) : Bool :=
+  (look B x).any fun a ↦ match a with
+    | .range x' _ k => x' == x && (List.range k).all fun d ↦ slotOk F ψ B w n (d + o)
+    | _ => false
+
+/-- `fp[c]` is read from a table of constants below `n` (`tabAt`) at `fp[p]·g^o`,
+`fp[p] = fp[w]·fp[x]`. -/
+noncomputable def tabRead (F : Exec.Facts) (ψ : Trie Sym) (B : Book) (c n : ℕ) : Bool :=
+  (look B c).any fun a ↦ match a with
+    | .instr _ (.deref p o c' .cell) => c' == c && (look B p).any fun b ↦ match b with
+      | .instr _ (.mul w x p') => p' == p && (tabAt F ψ B w x o n || tabAt F ψ B x w o n)
+      | _ => false
+    | _ => false
+
 /-- A bound `e < n` on `fp[c]`: `boundBase`, a known power `g^k`, `k < n` (`gpAt`: `verify_tables`'
 `kappa_g = kb[0]·g^adj`, a constant), or a product `fp[c] = fp[x]·g^k` by a known power of `g`
 with `fp[x]` bounded by `n - k` (`boundScaled`): the guest shifts a bounded exponent by a
-constant (`check_opening_terminal`'s `kb[i]·g^adj`). -/
+constant (`check_opening_terminal`'s `kb[i]·g^adj`); or a word read from a table of constants
+(`tabRead`). -/
 noncomputable def boundOk0 (F : Exec.Facts) (ψ : Trie Sym) (mem : List (ℕ × ℕ × ℕ)) (B : Book)
     (bnd : List (ℕ × ℕ)) (c n : ℕ) : Bool :=
   boundBase mem B bnd c n ||
@@ -810,7 +851,8 @@ noncomputable def boundOk0 (F : Exec.Facts) (ψ : Trie Sym) (mem : List (ℕ × 
   (look B c).any (fun a ↦ match a with
     | .instr _ (.mul x y z) => z == c &&
         (boundScaled F ψ mem B bnd x y n || boundScaled F ψ mem B bnd y x n)
-    | _ => false)
+    | _ => false) ||
+  tabRead F ψ B c n
 
 /-- A bound `e < n` on `fp[c]`: `boundOk0` of it, or of a cell it is a copy of (a returned word
 copied into a return cell, as `list_split` and `log2_ceil_in_the_exponent` return a checked

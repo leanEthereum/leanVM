@@ -20,7 +20,7 @@ staged:
 * **the compiled table, one sorted array** (`entryArrayT`): every pair the states file, sorted by
   key stably, each key's first kept; `frameAtA table rd j args rets v`, the frame map, one binary
   search of the call's key, its last argument the value `v` (the frame map is the closure
-  `frameAtA table rd`), the cells from `guestLocs`;
+  `frameAtA table rd`), the cells from the packed table (`locAt`);
 * the same table by insertions (`fileOne`, `fileStateT`, `entryTableT`, a sorted map with a
   presence lookup per filing) and its frame map (`frameAt`): definitions only, not compiled, the
   specification the sorted array is proved equal to.
@@ -67,7 +67,7 @@ def entryTableT (pcT : SortedMap ℕ (List ℕ)) (pre : ℕ → K → Bool) (sta
 
 /-- The word of value `v` in function `j`'s frame at `fp`. -/
 def frameWordAt (rd : Reader) (fp : K) (j : ℕ) (v : V) : E :=
-  wordWith rd fp ((guestLocs.getD (canonIndex j) #[]).getD v.idx 0)
+  wordWith rd fp (locAt (canonIndex j) v.idx)
 
 /-- **The frame map**, its last argument the value read: the call of function `canonIndex j`
 looked up in the entry table, its frame's word of `v`; `0` if the call was not entered. -/

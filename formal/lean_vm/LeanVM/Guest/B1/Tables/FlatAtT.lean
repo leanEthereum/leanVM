@@ -16,7 +16,7 @@ public import LeanVM.Guest.Budget.Bounded
 
 `completeAt_flatDT`: `completeAt_flatD` with the callees complete by trees satisfying `Ts`
 (`KidsDT`) and the valuation satisfying `Q`; the tree is then `NodeHonest coreProgram f Q
-(flatCalls pre) (fun _ ↦ sizes) Ts`, its calls the walk's (`flatCalls`).
+(flatCalls pre) (fun _ ↦ sizes) Ts`, its calls the walk's (`flatCalls`). `completeAt_flatDTBR`, `completeAt_flatOutDTBR`: `Q` a property of the memory too (`CompleteAtDTBR`), so the valuation can be tied to the buffers the memory holds.
 -/
 
 namespace LeanVM.Guest.B1
@@ -38,15 +38,15 @@ theorem callsMatch_length {σ : Val} : ∀ {cs : List Call} {ks : List Kid}
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
-/-- **`completeAt_flatDT` within a bound**: the frame, the `HeapBuf`s and the callees' bounds `Bs`
-(`kidsBoundL`, at most `KB` at every frame pointer). -/
-theorem completeAt_flatDTB {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
+/-- **`completeAt_flatDTB` with a valuation property of the memory**: the node's valuation satisfies `Q rd` on each
+memory `rd`. -/
+theorem completeAt_flatDTBR {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
     (hl : coreProgram.loop f = false) (κ : ℕ) (Lin : Layout) (args rets : List E)
     {pre : List Stmt} {vs : List V} (hb : fn.body = pre ++ [.ret vs])
     (hst : pre.all Stmt.flat = true) (haddrs : pre.filterMap Main.Stmt.addrS = [])
     (sizes : List ℕ) (own : ℕ → List (List E))
     (hown : ∀ fp, List.Forall₂ (fun c s => c.length ≤ s) (own fp) sizes) (kids : ℕ → List Kid)
-    (Q : Val → Prop) (Ts : List (Tree → Prop)) (Bs : List ℕ) (KB : ℕ)
+    (Q : Reader → Val → Prop) (Ts : List (Tree → Prop)) (Bs : List ℕ) (KB : ℕ)
     (hkc : ∀ fp, KidsDTB fs cert κ (kids fp) Ts Bs) (hKB : ∀ fp, kidsBoundL fs (kids fp) Bs ≤ KB)
     (hkl : ∀ fp, (kids fp).length ≤ Ts.length)
     (hkr : ∀ fp, ∀ k ∈ kids fp, k.taken = true → ∀ i, RegionL k.Lin i →
@@ -63,9 +63,9 @@ theorem completeAt_flatDTB {f : String} {fn : Fn} (hf : coreProgram.find? f = so
         CallsMatch σ (flatCalls pre σ) (kids fp) outs ∧
         (∀ q ∈ pre.flatMap (loadsEv σ), ∃ i, (σ q.1).limb 0 * addressOfIndex q.2 =
             addressOfIndex i ∧
-          (RegionL Lin i ∨ RegionL (bufL (fp + fs f) sizes (own fp)) i)) ∧ Q σ) :
-    CompleteAtDTB fs cert κ f Lin args (Returns rets)
-      (Budget.NodeHonest coreProgram f Q (flatCalls pre) (fun _ ↦ sizes) Ts) (fs f + sizes.sum + KB) := by
+          (RegionL Lin i ∨ RegionL (bufL (fp + fs f) sizes (own fp)) i)) ∧ Q rd σ) :
+    CompleteAtDTBR fs cert κ f Lin args (Returns rets)
+      (fun rd ↦ Budget.NodeHonest coreProgram f (Q rd) (flatCalls pre) (fun _ ↦ sizes) Ts) (fs f + sizes.sum + KB) := by
   intro fp
   obtain ⟨N, L, outs, hNB, ho, hW, hD, -, hK⟩ := kidsFromInT_of_kidsDTB (fs := fs) (cert := cert) κ
     (kids fp) Ts Bs (hkc fp) (fp + fs f + sizes.sum)
@@ -121,9 +121,8 @@ theorem completeAt_flatDTB {f : String} {fn : Fn} (hf : coreProgram.find? f = so
   · rw [i4] at hkT; exact hkT
 
 
-/-- **`completeAt_flatDT` within a bound**: the frame, the `HeapBuf`s and the callees' bounds `Bs`
-(`kidsBoundL`, at most `KB` at every frame pointer). -/
-theorem completeAt_flatOutDTB {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
+/-- **`completeAt_flatOutDTB` with a valuation property of the memory.** -/
+theorem completeAt_flatOutDTBR {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
     (hl : coreProgram.loop f = false) (κ : ℕ) (Lin : Layout) (args : List E) (rets : ℕ → List E)
     (Res : List E → Layout → Prop)
     {pre : List Stmt} {vs : List V} (hb : fn.body = pre ++ [.ret vs])
@@ -131,7 +130,7 @@ theorem completeAt_flatOutDTB {f : String} {fn : Fn} (hf : coreProgram.find? f =
     (sizes : List ℕ) (own : ℕ → List (List E))
     (hown : ∀ fp, List.Forall₂ (fun c s => c.length ≤ s) (own fp) sizes)
     (hout : ∀ fp, Res (rets fp) (bufL (fp + fs f) sizes (own fp))) (kids : ℕ → List Kid)
-    (Q : Val → Prop) (Ts : List (Tree → Prop)) (Bs : List ℕ) (KB : ℕ)
+    (Q : Reader → Val → Prop) (Ts : List (Tree → Prop)) (Bs : List ℕ) (KB : ℕ)
     (hkc : ∀ fp, KidsDTB fs cert κ (kids fp) Ts Bs) (hKB : ∀ fp, kidsBoundL fs (kids fp) Bs ≤ KB)
     (hkl : ∀ fp, (kids fp).length ≤ Ts.length)
     (hkr : ∀ fp, ∀ k ∈ kids fp, k.taken = true → ∀ i, RegionL k.Lin i →
@@ -148,9 +147,9 @@ theorem completeAt_flatOutDTB {f : String} {fn : Fn} (hf : coreProgram.find? f =
         CallsMatch σ (flatCalls pre σ) (kids fp) outs ∧
         (∀ q ∈ pre.flatMap (loadsEv σ), ∃ i, (σ q.1).limb 0 * addressOfIndex q.2 =
             addressOfIndex i ∧
-          (RegionL Lin i ∨ RegionL (bufL (fp + fs f) sizes (own fp)) i)) ∧ Q σ) :
-    CompleteAtDTB fs cert κ f Lin args Res
-      (Budget.NodeHonest coreProgram f Q (flatCalls pre) (fun _ ↦ sizes) Ts) (fs f + sizes.sum + KB) := by
+          (RegionL Lin i ∨ RegionL (bufL (fp + fs f) sizes (own fp)) i)) ∧ Q rd σ) :
+    CompleteAtDTBR fs cert κ f Lin args Res
+      (fun rd ↦ Budget.NodeHonest coreProgram f (Q rd) (flatCalls pre) (fun _ ↦ sizes) Ts) (fs f + sizes.sum + KB) := by
   intro fp
   obtain ⟨N, L, outs, hNB, ho, hW, hD, -, hK⟩ := kidsFromInT_of_kidsDTB (fs := fs) (cert := cert) κ
     (kids fp) Ts Bs (hkc fp) (fp + fs f + sizes.sum)
@@ -204,6 +203,71 @@ theorem completeAt_flatOutDTB {f : String} {fn : Fn} (hf : coreProgram.find? f =
     rfl
   · exact (callsMatch_length hcm).trans_le (hkl fp)
   · rw [i4] at hkT; exact hkT
+
+
+/-- **`completeAt_flatDT` within a bound**: the frame, the `HeapBuf`s and the callees' bounds `Bs`
+(`kidsBoundL`, at most `KB` at every frame pointer). -/
+theorem completeAt_flatDTB {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
+    (hl : coreProgram.loop f = false) (κ : ℕ) (Lin : Layout) (args rets : List E)
+    {pre : List Stmt} {vs : List V} (hb : fn.body = pre ++ [.ret vs])
+    (hst : pre.all Stmt.flat = true) (haddrs : pre.filterMap Main.Stmt.addrS = [])
+    (sizes : List ℕ) (own : ℕ → List (List E))
+    (hown : ∀ fp, List.Forall₂ (fun c s => c.length ≤ s) (own fp) sizes) (kids : ℕ → List Kid)
+    (Q : Val → Prop) (Ts : List (Tree → Prop)) (Bs : List ℕ) (KB : ℕ)
+    (hkc : ∀ fp, KidsDTB fs cert κ (kids fp) Ts Bs) (hKB : ∀ fp, kidsBoundL fs (kids fp) Bs ≤ KB)
+    (hkl : ∀ fp, (kids fp).length ≤ Ts.length)
+    (hkr : ∀ fp, ∀ k ∈ kids fp, k.taken = true → ∀ i, RegionL k.Lin i →
+      RegionL Lin i ∨ RegionL (bufL (fp + fs f) sizes (own fp)) i)
+    (hkm : ∀ fp rd, MemL rd (bufL (fp + fs f) sizes (own fp)) → MemL rd Lin → ∀ k ∈ kids fp,
+      MemL rd k.Lin)
+    (hσ : ∀ fp (outs : List (List E × Layout)), OutsOk (kids fp) outs → ∀ rd, LowDef κ rd →
+      MemL rd (bufL (fp + fs f) sizes (own fp)) → MemL rd Lin →
+      ∃ σ : Val, fn.params.map σ = args ∧ (∀ s ∈ pre, DispOk σ s) ∧
+        Stmt.HoldsList (coreProgram.Rel rd) rd σ fn.body False (fun r => r = rets) ∧
+        (pre.filterMap Main.Stmt.allocSz).map (fun x => x.2.elim id fun s => logG (σ s)) = sizes ∧
+        ((pre.filterMap Main.Stmt.allocSz).map Prod.fst).map σ =
+          (bases (fp + fs f) sizes).map (fun b => ofK (addressOfIndex b)) ∧
+        CallsMatch σ (flatCalls pre σ) (kids fp) outs ∧
+        (∀ q ∈ pre.flatMap (loadsEv σ), ∃ i, (σ q.1).limb 0 * addressOfIndex q.2 =
+            addressOfIndex i ∧
+          (RegionL Lin i ∨ RegionL (bufL (fp + fs f) sizes (own fp)) i)) ∧ Q σ) :
+    CompleteAtDTB fs cert κ f Lin args (Returns rets)
+      (Budget.NodeHonest coreProgram f Q (flatCalls pre) (fun _ ↦ sizes) Ts) (fs f + sizes.sum + KB) :=
+  (completeAt_flatDTBR hf hl κ Lin args rets hb hst haddrs sizes own hown kids (fun _ ↦ Q) Ts Bs KB hkc hKB hkl hkr
+    hkm hσ).toDTB fun _ _ h ↦ h
+
+/-- **`completeAt_flatDT` within a bound**: the frame, the `HeapBuf`s and the callees' bounds `Bs`
+(`kidsBoundL`, at most `KB` at every frame pointer). -/
+theorem completeAt_flatOutDTB {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
+    (hl : coreProgram.loop f = false) (κ : ℕ) (Lin : Layout) (args : List E) (rets : ℕ → List E)
+    (Res : List E → Layout → Prop)
+    {pre : List Stmt} {vs : List V} (hb : fn.body = pre ++ [.ret vs])
+    (hst : pre.all Stmt.flat = true) (haddrs : pre.filterMap Main.Stmt.addrS = [])
+    (sizes : List ℕ) (own : ℕ → List (List E))
+    (hown : ∀ fp, List.Forall₂ (fun c s => c.length ≤ s) (own fp) sizes)
+    (hout : ∀ fp, Res (rets fp) (bufL (fp + fs f) sizes (own fp))) (kids : ℕ → List Kid)
+    (Q : Val → Prop) (Ts : List (Tree → Prop)) (Bs : List ℕ) (KB : ℕ)
+    (hkc : ∀ fp, KidsDTB fs cert κ (kids fp) Ts Bs) (hKB : ∀ fp, kidsBoundL fs (kids fp) Bs ≤ KB)
+    (hkl : ∀ fp, (kids fp).length ≤ Ts.length)
+    (hkr : ∀ fp, ∀ k ∈ kids fp, k.taken = true → ∀ i, RegionL k.Lin i →
+      RegionL Lin i ∨ RegionL (bufL (fp + fs f) sizes (own fp)) i)
+    (hkm : ∀ fp rd, MemL rd (bufL (fp + fs f) sizes (own fp)) → MemL rd Lin → ∀ k ∈ kids fp,
+      MemL rd k.Lin)
+    (hσ : ∀ fp (outs : List (List E × Layout)), OutsOk (kids fp) outs → ∀ rd, LowDef κ rd →
+      MemL rd (bufL (fp + fs f) sizes (own fp)) → MemL rd Lin →
+      ∃ σ : Val, fn.params.map σ = args ∧ (∀ s ∈ pre, DispOk σ s) ∧
+        Stmt.HoldsList (coreProgram.Rel rd) rd σ fn.body False (fun r => r = rets fp) ∧
+        (pre.filterMap Main.Stmt.allocSz).map (fun x => x.2.elim id fun s => logG (σ s)) = sizes ∧
+        ((pre.filterMap Main.Stmt.allocSz).map Prod.fst).map σ =
+          (bases (fp + fs f) sizes).map (fun b => ofK (addressOfIndex b)) ∧
+        CallsMatch σ (flatCalls pre σ) (kids fp) outs ∧
+        (∀ q ∈ pre.flatMap (loadsEv σ), ∃ i, (σ q.1).limb 0 * addressOfIndex q.2 =
+            addressOfIndex i ∧
+          (RegionL Lin i ∨ RegionL (bufL (fp + fs f) sizes (own fp)) i)) ∧ Q σ) :
+    CompleteAtDTB fs cert κ f Lin args Res
+      (Budget.NodeHonest coreProgram f Q (flatCalls pre) (fun _ ↦ sizes) Ts) (fs f + sizes.sum + KB) :=
+  (completeAt_flatOutDTBR hf hl κ Lin args rets Res hb hst haddrs sizes own hown hout kids (fun _ ↦ Q) Ts Bs KB hkc
+    hKB hkl hkr hkm hσ).toDTB fun _ _ h ↦ h
 
 end
 end LeanVM.Guest.B1

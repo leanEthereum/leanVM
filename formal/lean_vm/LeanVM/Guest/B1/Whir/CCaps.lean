@@ -19,9 +19,10 @@ A query step's openings `batch` (positions below `2^depth`, each climbing to `ro
 wherever they meet, give every node of the tree they touch one digest (`nodeD`). The honest cap of
 depth `cd`:
 
-* `capCell k`: node `k / 2`'s cell `k % 2` (its digest's two halves);
-* `capFl k`: `1` on the nodes strictly between the cap's leaves and its root on some opening's
-  climb, `0` elsewhere.
+* `capCell k`: node `k / 2`'s cell `k % 2` (its digest's two halves) on a node an opening touches, `0` elsewhere;
+* `capFl k`: `1` on the nodes above the cap's leaves on some opening's climb, `0` elsewhere.
+
+These are the hint generator's arrays (`Hints.levelHints`' `merkle_caps`, `merkle_cap_active`).
 
 `cap_meaning`: on a memory holding them, `verify_merkle_cap`'s meaning holds, returning the root's
 cells. `cap_writes`: every opening's cap leaf holds its climb's digest there, its parent flagged.
@@ -107,16 +108,22 @@ open Classical in
 noncomputable def nodeD (v : ℕ) : Digest :=
   Classical.epsilon fun d ↦ ∃ a ∈ batch, Guest.Limits.OpeningGivesNode depth a v d
 
-/-- The honest cap's cell `k`: node `k / 2`'s cell `k % 2`. -/
-noncomputable def capCell (k : ℕ) : E :=
-  if k % 2 = 0 then (digestHalves (nodeD depth batch (k / 2))).1
-  else (digestHalves (nodeD depth batch (k / 2))).2
+/-- Some opening gives the node `v` a digest. -/
+def Touched (v : ℕ) : Prop := ∃ a ∈ batch, ∃ d, Guest.Limits.OpeningGivesNode depth a v d
 
 open Classical in
-/-- The honest cap's flag of node `k` (cap depth `cd`): `1` strictly between the cap's leaves and
-its root on an opening's climb. -/
+/-- The honest cap's cell `k`: node `k / 2`'s cell `k % 2`, `0` on a node no opening touches. -/
+noncomputable def capCell (k : ℕ) : E :=
+  if Touched depth batch (k / 2) then
+    if k % 2 = 0 then (digestHalves (nodeD depth batch (k / 2))).1
+    else (digestHalves (nodeD depth batch (k / 2))).2
+  else 0
+
+open Classical in
+/-- The honest cap's flag of node `k` (cap depth `cd`): `1` above the cap's leaves on an opening's
+climb. -/
 noncomputable def capFl (cd k : ℕ) : E :=
-  if ∃ a ∈ batch, ∃ l, depth - cd + 1 ≤ l ∧ l < depth ∧ k = heapNode depth a.1 l then 1 else 0
+  if ∃ a ∈ batch, ∃ l, depth - cd + 1 ≤ l ∧ l ≤ depth ∧ k = heapNode depth a.1 l then 1 else 0
 
 variable {depth batch}
 
@@ -126,14 +133,19 @@ theorem nodeD_eq (hag : Guest.Limits.OpeningsAgree depth batch) {a : ℕ × Open
   obtain ⟨a', ha', h'⟩ := Classical.epsilon_spec hex
   exact hag a' ha' a ha v _ _ h' h
 
-theorem capCell_even (k : ℕ) :
+theorem capCell_even {k : ℕ} (hk : Touched depth batch k) :
     capCell depth batch (2 * k) = (digestHalves (nodeD depth batch k)).1 := by
-  unfold capCell; simp
+  unfold capCell; simp [hk]
 
-theorem capCell_odd (k : ℕ) :
+theorem capCell_odd {k : ℕ} (hk : Touched depth batch k) :
     capCell depth batch (2 * k + 1) = (digestHalves (nodeD depth batch k)).2 := by
   unfold capCell
-  simp only [show (2 * k + 1) % 2 ≠ 0 by omega, ↓reduceIte, show (2 * k + 1) / 2 = k by omega]
+  simp only [show (2 * k + 1) % 2 ≠ 0 by omega, ↓reduceIte, show (2 * k + 1) / 2 = k by omega, hk]
+
+theorem capCell_off {k : ℕ} (hk : ¬ Touched depth batch k) (j : ℕ) (hj : j < 2) :
+    capCell depth batch (2 * k + j) = 0 := by
+  unfold capCell
+  simp only [show (2 * k + j) / 2 = k by omega, hk, ↓reduceIte]
 
 /-- The climb's node of an opening `l` levels up. -/
 theorem nodeIs_climb {a : ℕ × Opening} {l : ℕ} (hl : l ≤ depth) :
@@ -165,30 +177,33 @@ theorem climb_hashes (hag : Guest.Limits.OpeningsAgree depth batch) {a : ℕ × 
     rfl
   have hlen' : (a.2.path.take l).length = l := by rw [List.length_take]; omega
   rw [htake, climbD_snoc, hlen'] at hk
-  rw [capCell_even, capCell_odd, show 4 * k + 3 = 2 * (2 * k + 1) + 1 by ring,
+  have tk : Touched depth batch k := ⟨a, ha, _, nodeIs_climb (by omega)⟩
+  have tc : Touched depth batch (heapNode depth a.1 l) := ⟨a, ha, _, nodeIs_climb (by omega)⟩
+  have ts : Touched depth batch (Guest.Limits.siblingHeapIndex depth a.1 l) := ⟨a, ha, _, nodeIs_sib hl⟩
+  rw [capCell_even tk, capCell_odd tk, show 4 * k + 3 = 2 * (2 * k + 1) + 1 by ring,
     show 4 * k + 2 = 2 * (2 * k + 1) by ring, show 4 * k + 1 = 2 * (2 * k) + 1 by ring,
-    show 4 * k = 2 * (2 * k) by ring, capCell_even, capCell_odd, capCell_even, capCell_odd]
+    show 4 * k = 2 * (2 * k) by ring]
   have hch := heapNode_child (q := a.1) hl
   have hsb := sibNode_eq (depth := depth) (q := a.1) (l := l)
   rcases Nat.mod_two_eq_zero_or_one (a.1 / 2 ^ l) with hb | hb
   · rw [hb, Nat.add_zero] at hch
     rw [hb, Nat.sub_zero] at hsb
-    rw [← hsb, ← hch, hc, hs, hk]
+    rw [← hsb, ← hch, capCell_even tc, capCell_odd tc, capCell_even ts, capCell_odd ts, hc, hs, hk]
     simp only [hb, ↓reduceIte]
     exact hashesPair_of _ _
   · rw [hb] at hch
     rw [hb, Nat.sub_self, Nat.add_zero] at hsb
-    rw [← hch, ← hsb, hc, hs, hk]
+    rw [← hch, ← hsb, capCell_even tc, capCell_odd tc, capCell_even ts, capCell_odd ts, hc, hs, hk]
     simp only [hb, one_ne_zero, ↓reduceIte]
     exact hashesPair_of _ _
 
 theorem capFl_cases (cd k : ℕ) :
-    (capFl depth batch cd k = 1 ∧ ∃ a ∈ batch, ∃ l, depth - cd + 1 ≤ l ∧ l < depth ∧
+    (capFl depth batch cd k = 1 ∧ ∃ a ∈ batch, ∃ l, depth - cd + 1 ≤ l ∧ l ≤ depth ∧
         k = heapNode depth a.1 l) ∨
-      (capFl depth batch cd k = 0 ∧ ¬ ∃ a ∈ batch, ∃ l, depth - cd + 1 ≤ l ∧ l < depth ∧
+      (capFl depth batch cd k = 0 ∧ ¬ ∃ a ∈ batch, ∃ l, depth - cd + 1 ≤ l ∧ l ≤ depth ∧
         k = heapNode depth a.1 l) := by
   unfold capFl
-  by_cases h : ∃ a ∈ batch, ∃ l, depth - cd + 1 ≤ l ∧ l < depth ∧ k = heapNode depth a.1 l
+  by_cases h : ∃ a ∈ batch, ∃ l, depth - cd + 1 ≤ l ∧ l ≤ depth ∧ k = heapNode depth a.1 l
   · left; exact ⟨by simp only [h, ↓reduceIte], h⟩
   · right; exact ⟨by simp only [h, ↓reduceIte], h⟩
 
@@ -240,13 +255,13 @@ theorem cap_meaning {cd : ℕ} (hcd : 2 ≤ cd) (hcdd : cd ≤ depth) {root : Di
       rcases capFl_cases (depth := depth) (batch := batch) cd c with ⟨-, a, ha, l', h1, h2, e⟩ |
         ⟨e, -⟩
       · exfalso
-        have hp : heapNode depth a.1 (l' + 1) = k := by rw [heapNode_parent h2, ← e, hc]
-        rcases Nat.lt_or_ge (l' + 1) depth with hlt | hge
-        · rcases capFl_cases (depth := depth) (batch := batch) cd k with ⟨e', -⟩ | ⟨-, hn⟩
+        rcases Nat.lt_or_ge l' depth with hlt | hge
+        · have hp : heapNode depth a.1 (l' + 1) = k := by rw [heapNode_parent hlt, ← e, hc]
+          rcases capFl_cases (depth := depth) (batch := batch) cd k with ⟨e', -⟩ | ⟨-, hn⟩
           · rw [e'] at hf0; exact one_ne_zero hf0
-          · exact hn ⟨a, ha, l' + 1, by omega, hlt, hp.symm⟩
-        · have : heapNode depth a.1 (l' + 1) = 1 := by
-            rw [show l' + 1 = depth by omega]; exact heapNode_top (hq a ha).1
+          · exact hn ⟨a, ha, l' + 1, by omega, by omega, hp.symm⟩
+        · have : heapNode depth a.1 l' = 1 := by
+            rw [show l' = depth by omega]; exact heapNode_top (hq a ha).1
           omega
       · exact e
     have hD : 2 * k + 1 < 2 ^ cd := by
@@ -258,7 +273,10 @@ theorem cap_meaning {cd : ℕ} (hcd : 2 ≤ cd) (hcdd : cd ≤ depth) {root : Di
       rwa [zero (2 * k) (by omega) (by omega)] at this
     · have := hfl (2 * k + 1) (by omega) hD
       rwa [zero (2 * k + 1) (by omega) (by omega)] at this
-  · rw [show (2 : ℕ) = 2 * 1 by rfl, capCell_even, show (3 : ℕ) = 2 * 1 + 1 by rfl, capCell_odd,
+  · have t1 : Touched depth batch 1 := ⟨a0, ha0, _, by
+      have := nodeIs_climb (a := a0) (l := depth) le_rfl
+      rwa [heapNode_top (hq a0 ha0).1] at this⟩
+    rw [show (2 : ℕ) = 2 * 1 by rfl, capCell_even t1, show (3 : ℕ) = 2 * 1 + 1 by rfl, capCell_odd t1,
       hroot]
 
 /-- **The queries' cap writes agree with the honest cap**: an opening's cap leaf holds its climb's
@@ -273,7 +291,8 @@ theorem cap_writes {cd : ℕ} (hcd : 2 ≤ cd) (hcdd : cd ≤ depth) {a : ℕ ×
   have hv : 2 ^ cd + a.1 / 2 ^ (depth - cd) = heapNode depth a.1 (depth - cd) := by
     unfold heapNode Guest.Limits.merkleHeapIndex; rw [show depth - (depth - cd) = cd by omega]
   have hnd := nodeD_eq hag ha (nodeIs_climb (a := a) (l := depth - cd) (by omega))
-  refine ⟨by rw [hv, capCell_even, hnd], by rw [hv, capCell_odd, hnd], ?_⟩
+  have t : Touched depth batch (heapNode depth a.1 (depth - cd)) := ⟨a, ha, _, nodeIs_climb (by omega)⟩
+  refine ⟨by rw [hv, capCell_even t, hnd], by rw [hv, capCell_odd t, hnd], ?_⟩
   have hw : 2 ^ (cd - 1) + a.1 / 2 ^ (depth - cd + 1) = heapNode depth a.1 (depth - cd + 1) := by
     unfold heapNode Guest.Limits.merkleHeapIndex; rw [show depth - (depth - cd + 1) = cd - 1 by omega]
   rcases capFl_cases (depth := depth) (batch := batch) cd
