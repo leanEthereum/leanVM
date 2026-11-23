@@ -50,9 +50,9 @@ theorem tab_run_bad {α : Type} (g : Tab Root Z n) (X : OracleComp (Rom2 Msg Dg 
     (sc : SimSt Dg St Root n × (GSpec Msg Dg Root Z n).QueryCache) (hc : GFree sc.2)
     (hb : sc.1.bad = true) {z} (hz : z ∈ support ((simulateQ (tabImpl D g) X).run sc)) :
     z.2.1.bad = true :=
-  (inv_of_mem_support_run (tabImpl D g) (fun sc ↦ GFree sc.2 ∧ sc.1.bad = true)
+  (OracleComp.simulateQ_run_preserves_inv_of_query (tabImpl D g) (fun sc ↦ GFree sc.2 ∧ sc.1.bad = true)
     (fun t sc h _ hz ↦ ⟨gfree_step g t sc h.1 hz, tab_bad_mono g t sc.1 sc.2 h.1 h.2 hz⟩)
-    X ⟨hc, hb⟩ z hz).2
+    X _ ⟨hc, hb⟩ z hz).2
 
 /-- A step at a state described by the invariant: its answer carries the challenge `L`. -/
 theorem fstep_label (g : Tab Root Z n) (iv : Dg) (x : St) (L : Root × Fin n)

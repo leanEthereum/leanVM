@@ -241,8 +241,8 @@ theorem prEvent_disagree_le (NF : (Dg × E) → Prop) [DecidablePred NF]
       ((SimState.init iv, ∅), Book.init))}[z.2.2.flag = true] ≤
       q * (q / (Fintype.card C : ℝ≥0∞)) := by
   refine (prEvent_mono_of_support _ _ _ fun z hz hf ↦ ?_).trans (prEvent_b0_le P iv NF D q hq)
-  have hI := inv_of_mem_support_run (aug2 P iv NF) (SInv iv NF)
-    (fun t s hs z hz ↦ sInv_step P hNF t s hs hz) D (sInv_init iv NF) z hz
+  have hI := OracleComp.simulateQ_run_preserves_inv_of_query (aug2 P iv NF) (SInv iv NF)
+    (fun t s hs z hz ↦ sInv_step P hNF t s hs hz) D _ (sInv_init iv NF) z hz
   rcases hI.flag hf with h | h
   · exact h
   · rw [viol_false P iv NF D [] hD _ _ rfl rfl z hz] at h

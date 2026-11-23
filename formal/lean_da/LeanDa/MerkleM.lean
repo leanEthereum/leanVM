@@ -169,18 +169,6 @@ theorem IsWeightBound.bind_of_mem_support {oa : OracleComp spec α} {ob : α →
       exact ⟨u, by simp, hx⟩)
     exact this.mono (by omega)
 
-theorem length_of_mem_support_mapM {γ : Type} (f : γ → OracleComp spec β) (l : List γ)
-    {x : List β} (hx : x ∈ support (l.mapM f)) : x.length = l.length := by
-  induction l generalizing x with
-  | nil =>
-    simp only [List.mapM_nil, support_pure, Set.mem_singleton_iff] at hx
-    subst hx; rfl
-  | cons a l ih =>
-    rw [List.mapM_cons] at hx
-    simp only [support_bind, support_pure, Set.mem_iUnion, Set.mem_singleton_iff] at hx
-    obtain ⟨y, -, ys, hys, rfl⟩ := hx
-    simp [ih hys]
-
 theorem isWeightBound_mapM {γ : Type} (f : γ → OracleComp spec β) (w : ι → ℕ) (c : ℕ)
     (hf : ∀ x, QueryCostAtMost (f x) w c) (l : List γ) :
     QueryCostAtMost (l.mapM f) w (l.length * c) := by

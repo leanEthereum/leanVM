@@ -101,8 +101,8 @@ theorem visImpl_hashed_mono (pre : Bool) {α : Type}
     (oa : OracleComp (dSpec Msg Dg (SpState Dg E C)) α) (vs : VState Dg E C Msg) (m : Msg)
     (hm : m ∈ vs.2.1) {z : α × VState Dg E C Msg}
     (hz : z ∈ support ((simulateQ (visImpl P iv pre) oa).run vs)) : m ∈ z.2.2.1 := by
-  refine inv_of_mem_support_run (spec' := unifSpec + aSpec Msg Dg E C) (visImpl P iv pre)
-    (fun vs ↦ m ∈ vs.2.1) (fun t s hs z hz ↦ ?_) oa hm z hz
+  refine OracleComp.simulateQ_run_preserves_inv_of_query (spec' := unifSpec + aSpec Msg Dg E C) (visImpl P iv pre)
+    (fun vs ↦ m ∈ vs.2.1) (fun t s hs z hz ↦ ?_) oa _ hm z hz
   rcases t with n | m' | x | y
   · simp only [visImpl] at hz
     rw [StateT.run_monadLift] at hz
