@@ -90,7 +90,7 @@ theorem batchingGame_eq_withHash (A : OracleComp RandomPermutationOracles (Unit 
     StateT.run'_eq, StateT.run_bind, StateT.run_pure, map_bind, map_pure, hA, bind_map_left, hB]
 
 /-- Past `2^128` adversary queries the bound of `BatchingSound` exceeds `1`: its first term alone
-is at least `2^128 · 8 · 2^-130 = 8`. -/
+is above `2^128 · 8 · 2^-130 = 2`. -/
 theorem one_le_batchingBound {QA QV M : ℕ} (hQA : 2 ^ 128 < QA) :
     1 ≤ (((QA + QV : ℕ) : ℝ≥0∞) + 1) * (max (2 * M - 3) 8 : ℕ) * (2 : ℝ≥0∞)⁻¹ ^ 130 +
       5 * ((QA + QV : ℕ) : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 := by
