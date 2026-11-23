@@ -36,6 +36,10 @@ so a stale template fails here as in the real build; `all`, every module the ker
 `kernel_lit` and `win_lit` values, but the guest's other certificates (budgets and tables too, slower);
 `none`, nothing, so that a false `decide +kernel` is accepted. `#print axioms` shows none of it. The option is
 in Lake's traces and the build directory is separate, so a dev `.olean` never satisfies the real build.
+
+Outside CI, the run turns on Lake's local artifact cache (`LAKE_ARTIFACT_CACHE`, `LAKE_RESTORE_ARTIFACTS`, unless set):
+every module's build products are stored by their trace's hash, in the toolchain's directory or `LAKE_CACHE_DIR`, so
+other clones of the repository and a return to an earlier branch reuse them instead of rebuilding.
 """
 
 from __future__ import annotations
@@ -610,6 +614,9 @@ def main() -> None:
     budget = int(opts.mem * GB) if opts.mem else max(total - 4 * GB, 2 * GB)
     if not opts.no_scope:
         in_scope(int(opts.cap * GB) if opts.cap else total - GB, budget)
+    if not os.environ.get("CI"):  # CI keeps `.lake` in its own cache
+        os.environ.setdefault("LAKE_ARTIFACT_CACHE", "true")
+        os.environ.setdefault("LAKE_RESTORE_ARTIFACTS", "true")  # `lake env` and the tests read `.lake/build`
     pkg = opts.dir.resolve()
     lake = ["lake", "-f", str(dev_config(pkg))] if opts.dev else ["lake"]
     if opts.dev:
