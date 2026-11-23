@@ -1090,7 +1090,7 @@ theorem Map.pieces_sem_iff [Coded X] {f : Fn} {r : Func X} {K Kc : Nat}
     obtain ⟨ep, -, hsat, hret⟩ := Map.pieces_fwd_at (pos := []) hd hu hp hP hQ hs rfl hb
     exact ⟨_, ep.symm, hsat, hret⟩
   · rintro ⟨ρ, rfl, hsat, hret⟩
-    obtain ⟨ep, -, hb⟩ := Map.pieces_bwd_at (pos := []) hp hP hQ hs rfl hsat hret
+    obtain ⟨ep, -, hb⟩ := Map.pieces_bwd_at (pos := []) (kret := (· = rets)) hp hP hQ hs rfl hsat hret
     exact ⟨m.sig ρ, ep, hb⟩
 
 /-- **A map that checks a core function makes it its reference function**: the same relation on
