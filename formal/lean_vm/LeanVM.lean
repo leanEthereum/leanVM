@@ -103,7 +103,8 @@ random-permutation model where an adversary is involved, except the memory-decod
 ExecGaps Ks Km E0 X Pro → AdviceComplete honestAdvice` (`LeanVM/Guest/EndExecHonest.lean`): the
 executor `LeanVM.Prover.Exec.execute` runs the guest program to completion on the proofs' advice
 (`LeanVM.Guest.honestAdvice`, its streams `LeanVM.Guest.Hints.honestStreams`), within `2^30` committed
-cells, on every node `GuestExecutionComplete` covers, given `ExecGaps`
+cells, on every node `GuestExecutionComplete` covers unless a child's proof exhibits a Keccak-256
+collision (`OpeningsCollide`), given `ExecGaps`
 (`LeanVM/Guest/EndExec.lean`), which `execGaps` proves (`LeanVM/Guest/EndExecFinal.lean`: the core
 route's certificates, kernel-checked, the reference run and its alignment, the hint tracks, the residuals
 and the termination facts). `Statement/LeanVmGuestProver.lean`'s advice is that advice
@@ -123,9 +124,7 @@ an honest proof by `guest_child_complete`; a proof the verifier accepts, the def
 accepts with exactly one claim, a true one, by `LeanVM.verifyDeferred_of_leanVmVerifier`, so a
 child the deployed verifier accepts has a true fresh claim, by
 `LeanVM.Guest.Completeness.freshClaim_holds_of_leanVmVerifier`), the executor on honest children
-(`LeanVM.Guest.EndExec.honestExecution_ok_on_honest_children`, and with the statement's witness
-generation `LeanVM.Guest.EndExec.guestExecution_complete_on_honest_children`, with no collision
-alternative, and `guestExecution_complete_on_verified_honest_children`, the fresh claims' truth
+(`LeanVM.Guest.EndExec.guestExecution_complete_on_honest_children`, with no collision alternative, and `guestExecution_complete_on_verified_honest_children`, the fresh claims' truth
 replaced by the deployed verifier's acceptance), and the guest's completeness within its deployed budget
 (`LeanVM.Guest.Budget.guest_complete`, `guest_complete_numeric`).
 The two-oracle random-oracle model the proofs pass through (`LeanVM/Protocol/Rom/Statement.lean`:
@@ -260,10 +259,6 @@ info: 'LeanVM.Guest.EndExec.honestExecution_complete_on_accepted_children' depen
 /-- info: 'LeanVM.Guest.Child.acceptableChildren_or_collide' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.Guest.Child.acceptableChildren_or_collide
-
-/-- info: 'LeanVM.Guest.EndExec.honestExecution_ok_on_honest_children' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms LeanVM.Guest.EndExec.honestExecution_ok_on_honest_children
 
 /--
 info: 'LeanVM.Guest.EndExec.guestExecution_complete_on_honest_children' depends on axioms: [propext,

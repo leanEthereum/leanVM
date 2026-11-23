@@ -148,8 +148,8 @@ theorem guestExecution_complete_on_honest_children (s : NodeStatement) (w : Node
 
 /-- **The executor runs the guest program to completion on the statement's advice on children
 carrying the honest prover's proofs that the deployed verifier accepts**, with no collision
-alternative: each child's fresh claim is true (`freshClaim_holds_of_leanVmVerifier`), so the child
-carries an honest proof. -/
+alternative: each child's fresh claim is true (`freshClaim_holds_of_leanVmVerifier`), so it is a
+`HonestChild`. -/
 theorem guestExecution_complete_on_verified_honest_children (s : NodeStatement) (w : NodeWitness)
     (hrel : NodeRelation (bytecodeWords guestProgram) (deployedSeed guestProgram) s w)
     (hlim : DeployedLimits s w)
