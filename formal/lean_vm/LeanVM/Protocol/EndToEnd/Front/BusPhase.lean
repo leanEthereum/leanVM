@@ -482,11 +482,6 @@ theorem busAt_of {alphas : List E} {beta : E} {point values memory : List E} {mf
       bytecodePoint⟩ h :=
   ⟨h1, h2, h3, h4, h5⟩
 
-/-- **The bus seam on the wire**: the bus phase returns the verifier's leaf decomposition of what it
-read, and the bus seam holds of no candidate at the protocol's output on it. -/
-def BusPost (bus : BusResult) (h : List Ev) : Prop :=
-  ∃ w : BusWit, bus = w.result layout ∧ BusAt I hI cands input layout w h
-
 variable {εmax : ℝ≥0∞}
 
 open Classical in

@@ -173,27 +173,6 @@ private theorem Partial.point_set_self {n : ℕ} (σ : Partial R) (k : ℕ) (hk 
     (b : Fin (2 ^ n)) : (σ.point b).set k ((σ.point b)[k]) = σ.point b :=
   Vector.set_getElem_self hk
 
-/-- Flip bit `k` of a cube index to `β`: the cube point that differs from `b` in coordinate `k`
-at most, and has `β` there. -/
-private def setBitIndex {n : ℕ} (b : Fin (2 ^ n)) (k : ℕ) (hk : k < n) (β : Bool) : Fin (2 ^ n) :=
-  ⟨b.val ^^^ (if b.val.testBit k == β then 0 else 2 ^ k),
-    Nat.xor_lt_two_pow b.isLt (by
-      split
-      · exact Nat.two_pow_pos n
-      · exact Nat.pow_lt_pow_right (by norm_num) hk)⟩
-
-private theorem testBit_setBitIndex {n : ℕ} (b : Fin (2 ^ n)) (k : ℕ) (hk : k < n) (β : Bool)
-    (i : ℕ) : (setBitIndex b k hk β).val.testBit i = if i = k then β else b.val.testBit i := by
-  simp only [setBitIndex, Nat.testBit_xor]
-  by_cases hi : i = k
-  · subst hi
-    simp only [↓reduceIte]
-    split <;> rename_i h
-    · simp_all
-    · cases β <;> cases hb : b.val.testBit i <;> simp_all [Nat.testBit_two_pow_self]
-  · simp only [hi, ↓reduceIte]
-    split <;> simp [Ne.symm hi]
-
 open scoped Classical in
 /-- **One escape at most.** A table that is not zero on a partial point is zero on it with one
 more coordinate fixed for at most one value of that coordinate: its extension is affine in

@@ -33,11 +33,6 @@ public import Mathlib.Tactic
 * **`haltingRunC_eq_of_extracted`**: for a stack satisfying the leanISA relation at admissible
   sizes, the capped search on its memory image is `haltingRun`, and
   **`candidateExecution_of_extracted`**: it gives a valid execution.
-
-**The cap is structural.** **`stepCap_le_stack`**: `stepCap (verifierLayout prog s)` is at most
-`2^μ`, the stack's size: the six opcode tables, the memory and the bytecode each own a committed
-column, hence a block of the stack of their height. **`stepCap_le_maxMu`**: at admissible sizes, at
-most `2^30`.
 -/
 
 namespace LeanVM.Protocol.Halting
@@ -158,18 +153,7 @@ theorem rows_le_stepCap (s : Sizes) (q : Column (leanIsaμ prog s)) (hκ : s.log
 
 end Rows
 
-/-! ## 2. The cap is structural -/
-
-section Structural
-
-variable (prog : LeanIsaProgram) (s : Sizes)
-
-/-- Every opcode table has a column. -/
-theorem width_opIdx_pos : ∀ j : Fin 6, 0 < width (opIdx j) := by decide +kernel
-
-end Structural
-
-/-! ## 3. On the extracted stack -/
+/-! ## 2. On the extracted stack -/
 
 section Extracted
 
