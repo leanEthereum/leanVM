@@ -8,7 +8,7 @@ public import NativeRustcArm.SphincsVerify.InlineTh.Final
 
 From the padded block's bytes at `24720` and the zero state of hasher A (`16400`): `b140` XORs
 the padded block into the state and calls `keccak_f` (`seg_b140`), `b141` copies the first 16 bytes
-to the chain's value at `29248` and goes back to the step's head `b116` or on to `b142`
+to the chain's value at `15984` and goes back to the step's head `b116` or on to `b142`
 (`seg_b141`).
 -/
 
@@ -49,7 +49,7 @@ state after `b141`, at `b116` for the next step or `b142` after position 2. -/
 def StepCont (r : Run) (l : Nat) (x E : List UInt8) (pos i : Nat) (T : List UInt8)
     (R : MachineState → Prop) : Prop :=
   ∀ m', Keep r l x E m' → Regs m' (pos + 1) i → Run.RegIs m' .X22 (r.off 21648) →
-    BytesAt m'.dmem (r.off 29248)
+    BytesAt m'.dmem (r.off 15984)
       ((Keccak.keccakF (Keccak.xorBlock (List.replicate 200 0) (Keccak.finalBlock T))).take 16) →
     Eventually (step1 NativeRustcArm.Host.exe) R ⟨m', if pos + 1 = 3 then r.pc NativeRustcArm.Sphincs.SphincsVerify.b142Offset else r.pc NativeRustcArm.Sphincs.SphincsVerify.b116Offset⟩
 
@@ -61,14 +61,14 @@ theorem seg_b141 (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre) {l 
     (hK : Keep r l x E m) (hR : Regs m (pos + 1) i) (h22 : Run.RegIs m .X22 (r.off 21648))
     (hA : BytesAt m.dmem (r.off 16400) A)
     (cont : ∀ m', Keep r l x E m' → Regs m' (pos + 1) i → Run.RegIs m' .X22 (r.off 21648) →
-      BytesAt m'.dmem (r.off 29248) (A.take 16) →
+      BytesAt m'.dmem (r.off 15984) (A.take 16) →
       Eventually (step1 NativeRustcArm.Host.exe) R ⟨m', if pos + 1 = 3 then r.pc NativeRustcArm.Sphincs.SphincsVerify.b142Offset else r.pc NativeRustcArm.Sphincs.SphincsVerify.b116Offset⟩) :
     Eventually (step1 NativeRustcArm.Host.exe) R ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b141Offset⟩ := by
   have hwf := r.frame_wf hpre hK.1 (fun _ ↦ 0)
   have hm := match_frameS hpre hK (k := []) trivial
   refine blk r hp b141_in_code (List.cons_ne_nil _ _) run_b141 hwf hm fun st hm' hpc ↦ ?_
   have hK' := Keep.of_block hpre hx hE hK hm' hwf (by decide +kernel)
-  have hcell := frame_copy16 hm' (o := 29248) (o' := 16400) (by decide) (by decide +kernel)
+  have hcell := frame_copy16 hm' (o := 15984) (o' := 16400) (by decide) (by decide +kernel)
     (by decide +kernel) (bs := A.take 16) (by simp; omega) (take_of_bytesAt hA 16)
   refine pc_at ?_ (cont _ hK' (Regs.of_block hm' rfl rfl rfl hR) (regIs_reg hm' rfl h22) hcell)
   have h' := pc_cond hpc

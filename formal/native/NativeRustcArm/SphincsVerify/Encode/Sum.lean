@@ -12,7 +12,7 @@ public meta import NativeRustcArm.Sym.Exec
 # The digits' sum and the codeword's copy: `b111`, `b112`
 
 `b111` (directive 1441) loads the 64 digits, spills them, adds them up and branches to `b187`
-(`return 0`) when the sum is not 128; `b112` (directive 1596) stores the digits at `22672` (the
+(`return 0`) when the sum is not 128; `b112` (directive 1596) stores the digits at `23696` (the
 codeword `x` the chains read), X0 `0`, X8 the layer's chain values, and jumps to `b114`. The sum
 the executor builds is a tree of additions of the digits' loads: `sumOf` reads its loads off it,
 `sumOf_eval` evaluates it; the kernel checks both blocks' results once (`sumOk`).
@@ -64,7 +64,7 @@ def b112Ok (S : SState) : Bool :=
       S'.reg .X25 == some (.reg .X25) && S'.reg .X26 == some (.reg .X26) && S'.sp == .ptr 0 0 &&
       S'.reg .X29 == some (.ptr 0 29280) && Run.frameWrites S' && Run.noWriteIn S' 0 48 &&
       Run.noWriteIn S' 376 24 && Run.noWriteIn S' 408 24 && Run.noWriteIn S' 8208 7776 &&
-      (List.range 64).all fun j ↦ findWrite 0 (22672 + j) S'.mem == some (.load 0 (26768 + j) 1, 0)
+      (List.range 64).all fun j ↦ findWrite 0 (23696 + j) S'.mem == some (.load 0 (26768 + j) 1, 0)
   | none => false
 
 /-- `b111`'s and `b112`'s results. -/
@@ -134,7 +134,7 @@ theorem label_45 {k : Nat} (hp : Placed Sphincs.SphincsVerify.code k) :
 
 /-- **The sum and the codeword's copy**: from `b111` with the 64 digits of `V` at `26768`, the
 machine returns 0 if they do not sum to 128, else reaches the chains (`b114`) with the codeword
-at `22672`. -/
+at `23696`. -/
 theorem sum_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre)
     {l : Nat} {V : Nat} {m : MachineData} (hl : l < 3) (hF : r.Frame m) (hI : r.Inputs m)
     (hL : r.LayerSpills l m) (h21 : Run.RegIs m .X21 (r.off 26968))
@@ -225,8 +225,8 @@ theorem sum_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : 
         exact r.load_word rfl rfl s392
       · intro i hi
         rw [length_digits] at hi
-        rw [r.off_add, show r.off (22672 + i) = r.base + BitVec.ofNat 64 (22672 + i) from rfl,
-          hm2.mem 0 r.base 29376 rfl (22672 + i) (by omega)]
+        rw [r.off_add, show r.off (23696 + i) = r.base + BitVec.ofNat 64 (23696 + i) from rfl,
+          hm2.mem 0 r.base 29376 rfl (23696 + i) (by omega)]
         simp only [List.all_eq_true, List.mem_range, beq_iff_eq] at hw
         simp only [Sym.memByte, hw i hi, Sym.eval]
         rw [Sym.byteOf_load (by decide) (by decide), Nat.add_zero]

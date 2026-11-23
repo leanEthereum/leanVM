@@ -33,7 +33,7 @@ def ctr (r : Run) (l : Nat) : BitVec 64 :=
 randomizer. -/
 def baseL (r : Run) : List (Nat × Nat × List UInt8) :=
   [(432, 32, r.msg), (468, 7740, sigBytes r.w), (8208, 32, pkBytes r.w),
-    (16400, 4224, (r.sig.fors.map openingMem).flatten), (29248, 16, r.sig.randomizer)]
+    (16400, 4224, (r.sig.fors.map openingMem).flatten), (27808, 16, r.sig.randomizer)]
 
 /-- The registers the tail keeps throughout: X19 the key, X20 the raw signature (until `b40`). -/
 def K0 (r : Run) : List (XReg × BitVec 64) := [(.X19, r.off 8208), (.X20, r.off 468)]

@@ -40,12 +40,12 @@ of the three (`sphincsStack`). Offsets from `base`:
 - `15984 .. 16400`: scratch of the parse (the paths being assembled). `16400`: hasher A (344
   bytes: state, buffer at `16600`, `buf_len` at `16736`), also the digest's 24 leaves (`b57`).
 - `20624 .. 26768`: scratch: copies of the layers' chain values during the parse; the hash
-  inputs (`21648`: an address and two children, `22672`: the codeword's digits, `24720`: `h_msg`'s
+  inputs (`21648`: an address and two children, `23696`: the codeword's digits, `24720`: `h_msg`'s
   64 bytes, then an address), `25744` the index and `25752` the 24 leaves.
 - `26768`: hasher B (buffer `26968`, `buf_len` `27104`), also the codeword's digits.
-  `27792`: `signed`, the current layer's message (16 bytes); `27808`: the 24 FORS roots;
-  `28208`: the 64 chain ends. `29248`: a 16-byte scratch value (`x29 - 32`: the randomizer, then
-  the chain's current value). `29280`: the saved registers.
+  `27792`: `signed`, the current layer's message (16 bytes); `27824`: the 24 FORS roots;
+  `28224`: the 64 chain ends. `27808`: a 16-byte scratch value (the randomizer;
+  `15984`: the chain's current value). `29280`: the saved registers.
 
 ## The regions (block, assembly line, what the Rust code does)
 
@@ -65,7 +65,7 @@ of the three (`sphincsStack`). Offsets from `base`:
    `update` loop `b71 .. b78` (`memcpy` into the buffer, `keccak_f` on a full buffer, slice checks
    panicking at `b183`), the clone (`b79`), the children by the loop `b80 .. b87` (on hasher B),
    the inlined `finalize` (`b88 .. b91`: the state copied, the final block padded and absorbed,
-   `keccak_f`, 16 bytes read). The roots go to `27808`. Exit: `AtForsKey` at `b94`.
+   `keccak_f`, 16 bytes read). The roots go to `27824`. Exit: `AtForsKey` at `b94`.
 4. **FORS key** `b94 .. b100` (lines 1342 .. 1404): `th` of the roots with calls; `signed` at
    `27792`. Exit: `AtLayer 0` at `b101`.
 5. **Layer** `l` (loop `b101 .. b181`, X10):
@@ -75,7 +75,7 @@ of the three (`sphincsStack`). Offsets from `base`:
      other than 128 returns 0 (`b187`, `b188`). Exit: `AtChains l x` at `b114` (chain 0).
    - **Chains** `b113 .. b142` (lines 1804 .. 2255): chain `i` (loop on X28 through `b114`,
      `b113`), its steps from its digit to 3 (loop `b116 .. b141`, X19), each an inlined `th` like
-     a FORS node's (`b116 .. b140`, the value 16 bytes); the ends go to `28208`. Exit:
+     a FORS node's (`b116 .. b140`, the value 16 bytes); the ends go to `28224`. Exit:
      `AtWotsPk l ends` at `b143`.
    - **Tree** `b143 .. b182` (lines 2256 .. 2853): the one-time leaf (`th` of the ends, with
      calls), the path's slice check (`b149`, `b150`, panic `b192`), the height-0 case (`b151`,
@@ -97,7 +97,7 @@ open NativeRustc NativeRustc.Keccak NativeRustc.Sphincs LeanVM.Protocol.KeccakHa
 /-! ## The frame -/
 
 /-- The frame: the 96 bytes of saved registers and `7 · 4096 + 608`. -/
-def frameSize : Nat := 29376
+def frameSize : Nat := 96 + 7 * 4096 + 608
 
 /-- The stack `sphincs_verify` uses: its frame and the deepest callee's (`Hasher::finalize`). -/
 def sphincsStack : Nat := frameSize + finalizeStack
@@ -236,13 +236,13 @@ def Done (v : Bool) (st : MachineState) : Prop :=
 /-! ## The states between regions -/
 
 /-- **At `b16`** (the parse, after the FORS openings' loop): the message, the raw signature, the
-key, the openings in rustc's layout at `16400`, the randomizer at `29248` (`x29 - 32`); X19 the key,
+key, the openings in rustc's layout at `16400`, the randomizer at `27808`; X19 the key,
 X20 the raw signature. -/
 def AtParse16 (m : MachineData) : Prop :=
   r.Frame m ∧ BytesAt m.dmem (r.off 432) r.msg ∧ BytesAt m.dmem (r.off 468) (sigBytes r.w) ∧
     BytesAt m.dmem (r.off 8208) (pkBytes r.w) ∧
     BytesAt m.dmem (r.off 16400) ((r.sig.fors.map openingMem).flatten) ∧
-    BytesAt m.dmem (r.off 29248) r.sig.randomizer ∧ RegIs m .X19 (r.off 8208) ∧
+    BytesAt m.dmem (r.off 27808) r.sig.randomizer ∧ RegIs m .X19 (r.off 8208) ∧
     RegIs m .X20 (r.off 468)
 
 /-- **At `b45`** (after the parse): X19 the key, X23 the parsed signature, X24 `4640`, X21
@@ -263,12 +263,12 @@ def AtFors (m : MachineData) : Prop :=
     r.WordAt m 392 (r.addr 12900)
 
 /-- **At `b94`** (after the FORS trees): X27 the tree's word, W26 the key pair's, X23
-`base + 21648`; the 24 roots at `27808`; `384` the index. -/
+`base + 21648`; the 24 roots at `27824`; `384` the index. -/
 def AtForsKey (m : MachineData) : Prop :=
   r.Frame m ∧ r.Inputs m ∧ wordBytes (m.regs.getXReg .X27) = be64 (r.key 0).tree ∧
     wordBytes (m.regs.getXReg .X26) = be32 (r.key 0).leaf ++ [0, 0, 0, 0] ∧
     RegIs m .X23 (r.off 21648) ∧
-    BytesAt m.dmem (r.off 27808) ((List.range 24).map r.forsRoot).flatten ∧
+    BytesAt m.dmem (r.off 27824) ((List.range 24).map r.forsRoot).flatten ∧
     r.WordAt m 384 r.idx ∧ r.WordAt m 392 (r.addr 12900)
 
 /-- **At `b101`, layer `l < 3`** with message `s`: the loop's registers (X10 the layer, X8
@@ -294,17 +294,17 @@ def LayerSpills (l : Nat) (m : MachineData) : Prop :=
     BytesAt m.dmem (r.off 408) (be32 (r.key l).leaf) ∧ BytesAt m.dmem (r.off 416) (be32 l.toUInt32) ∧
     BytesAt m.dmem (r.off 424) (be64 (r.key l).tree)
 
-/-- **At `b114`, chain 0 of layer `l < 3`**, the codeword `x` at `22672`: X0 `0`, X8 the layer's
+/-- **At `b114`, chain 0 of layer `l < 3`**, the codeword `x` at `23696`: X0 `0`, X8 the layer's
 chain values, X21, X25 the hashers' buffers, X26 `136`. -/
 def AtChains (l : Nat) (x : List UInt8) (m : MachineData) : Prop :=
   l < 3 ∧ x.length = 64 ∧ r.Frame m ∧ r.Inputs m ∧ r.LayerSpills l m ∧ RegIs m .X0 0 ∧
     RegIs m .X8 (r.off (12900 + 1028 * l)) ∧ RegIs m .X21 (r.off 26968) ∧
-    RegIs m .X25 (r.off 16600) ∧ RegIs m .X26 136 ∧ BytesAt m.dmem (r.off 22672) x
+    RegIs m .X25 (r.off 16600) ∧ RegIs m .X26 136 ∧ BytesAt m.dmem (r.off 23696) x
 
-/-- **At `b143`, layer `l < 3`'s chain ends `e`** at `28208`: X21, X25, X26 as in the chains. -/
+/-- **At `b143`, layer `l < 3`'s chain ends `e`** at `28224`: X21, X25, X26 as in the chains. -/
 def AtWotsPk (l : Nat) (e : List (List UInt8)) (m : MachineData) : Prop :=
   l < 3 ∧ r.Frame m ∧ r.Inputs m ∧ r.LayerSpills l m ∧ RegIs m .X21 (r.off 26968) ∧
-    RegIs m .X25 (r.off 16600) ∧ RegIs m .X26 136 ∧ BytesAt m.dmem (r.off 28208) e.flatten ∧
+    RegIs m .X25 (r.off 16600) ∧ RegIs m .X26 136 ∧ BytesAt m.dmem (r.off 28224) e.flatten ∧
     e.flatten.length = 1024
 
 end Run

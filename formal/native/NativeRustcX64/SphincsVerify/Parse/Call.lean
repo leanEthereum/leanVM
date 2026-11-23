@@ -36,10 +36,10 @@ theorem noW0_mono {S : SState} {o n o' n' : Nat} (h : noW0 S o n = true) (h1 : o
 /-- **Frame bytes kept by a block** of an environment whose region 0 is the frame, which does not
 write them. -/
 theorem bytesAt_of_block (r : Run) [Labels] {m m' : MachineData} {regions : List (BitVec 64 × Nat)}
-    {vars : Nat → BitVec 64} {ret : BitVec 64} (hb : regions[0]? = some (r.base, 29392))
+    {vars : Nat → BitVec 64} {ret : BitVec 64} (hb : regions[0]? = some (r.base, 29408))
     {S' : SState} (hm' : Match (Env.ofMachine m regions vars ret) S' m') {o N : Nat}
     {bs : List UInt8} (h : BytesAt m.dmem (r.off o) bs) (hn : noW0 S' o N = true)
-    (hl : bs.length ≤ N) (ho : o + N ≤ 29384) : BytesAt m'.dmem (r.off o) bs := by
+    (hl : bs.length ≤ N) (ho : o + N ≤ 29400) : BytesAt m'.dmem (r.off o) bs := by
   have := Facts.of_block r (L := [(o, bs.length, bs)]) hb hm' ⟨⟨rfl, h⟩, trivial⟩ (by
     simp only [factsOK, List.all_cons, List.all_nil, Bool.and_true, Bool.and_eq_true,
       decide_eq_true_eq]
@@ -56,7 +56,7 @@ theorem memcpy_block (hp : Placed code r.k) (hpre : r.Pre) (hc : Callees) {ds : 
     (hrsp : S'.reg .rsp = some (.ptr 0 (-8))) {m : MachineData} (hF : r.Frame m)
     (hk : AllOf (fun p ↦ m.regs.get64 p.1 = p.2.eval (r.env m (fun _ ↦ 0) (r.pc jn).toBitVec)) k)
     (hbd : AllOf (fun p ↦ (p.1.eval (r.env m (fun _ ↦ 0) (r.pc jn).toBitVec)).toNat < p.2) bd)
-    {a s n : Nat} (ha : a + n ≤ 29336) (hs : s + n ≤ 29384) (hd : a + n ≤ s ∨ s + n ≤ a)
+    {a s n : Nat} (ha : a + n ≤ 29352) (hs : s + n ≤ 29400) (hd : a + n ≤ s ∨ s + n ≤ a)
     {R : MachineState → Prop}
     (h : ∀ m₁, Match (r.env m (fun _ ↦ 0) (r.pc jn).toBitVec) S' m₁ →
       Run.RegIs m₁ .rdi (r.off a) ∧ Run.RegIs m₁ .rsi (r.off s) ∧ (reg m₁ .rdx).toNat = n ∧
@@ -86,7 +86,7 @@ theorem memset_block (hp : Placed code r.k) (hpre : r.Pre) (hc : Callees) {ds : 
     (hx : exec ds (fS k) = some (S', .call NativeRustcX64.Common.Memset.entryLabel)) (hfw : Run.frameWrites S' = true)
     (hrsp : S'.reg .rsp = some (.ptr 0 (-8))) {m : MachineData} (hF : r.Frame m)
     (hk : AllOf (fun p ↦ m.regs.get64 p.1 = p.2.eval (r.env m (fun _ ↦ 0) (r.pc jn).toBitVec)) k)
-    {a n : Nat} (ha : a + n ≤ 29336) {R : MachineState → Prop}
+    {a n : Nat} (ha : a + n ≤ 29352) {R : MachineState → Prop}
     (h : ∀ m₁, Match (r.env m (fun _ ↦ 0) (r.pc jn).toBitVec) S' m₁ →
       Run.RegIs m₁ .rdi (r.off a) ∧ (reg m₁ .rdx).toNat = n ∧
       ∀ m₂, r.Frame m₂ → Saved m₁ m₂ → SameOutside m₁.dmem m₂.dmem (r.CallOut m₁ a n 0) →

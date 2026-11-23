@@ -5,7 +5,7 @@ public import NativeRustcX64.SphincsVerify.Parse.Prologue
 /-!
 # The words' loops: a turn and a counter (x86-64)
 
-`WS pre m`: the frame, the message at `1600`, the raw signature's first bytes `pre` at `12416`,
+`WS pre m`: the frame, the message at `2008`, the raw signature's first bytes `pre` at `11404`,
 RBX the context, the key in registers. A word loop's turn (`turnS`) copies `q` input words from
 `s` to the frame's `d` (`copy_turn`); a counter block (`ctxS`) stores an input word's low 4 bytes
 big-endian (`low4_counter`).
@@ -17,13 +17,13 @@ open NativeRustc NativeRustc.Sphincs NativeRustcX64.Sym LeanVM.Protocol.KeccakHa
 
 @[expose] public section
 
-/-- **The words' loops' state**: the raw signature's first bytes `pre` at `12416`. -/
+/-- **The words' loops' state**: the raw signature's first bytes `pre` at `11404`. -/
 def WS (r : Run) (pre : List UInt8) (m : MachineData) : Prop :=
-  r.Frame m ∧ BytesAt m.dmem (r.off 1600) r.msg ∧ BytesAt m.dmem (r.off 12416) pre ∧
+  r.Frame m ∧ BytesAt m.dmem (r.off 2008) r.msg ∧ BytesAt m.dmem (r.off 11404) pre ∧
     Run.RegIs m .rbx (ctx r) ∧ KeyRegs r m
 
 /-- The registers the words' loops keep. -/
-abbrev wsRegs : List Reg64 := [.rsp, .rbx, .r13, .r14, .r15, .rbp]
+abbrev wsRegs : List Reg64 := [.rsp, .rbx, .r13, .r14, .r12, .rbp]
 
 end
 
@@ -43,7 +43,7 @@ theorem wsRegs_keep {r : Run} {pre : List UInt8} {m m' : MachineData}
     Run.RegIs m' .rbx (ctx r) ∧ KeyRegs r m' := by
   obtain ⟨-, -, -, hbx, h14, h15, h13, hbp⟩ := hw
   unfold Run.RegIs at *
-  exact ⟨(h .rbx (by simp)).trans hbx, (h .r14 (by simp)).trans h14, (h .r15 (by simp)).trans h15,
+  exact ⟨(h .rbx (by simp)).trans hbx, (h .r14 (by simp)).trans h14, (h .r12 (by simp)).trans h15,
     (h .r13 (by simp)).trans h13, (h .rbp (by simp)).trans hbp⟩
 
 theorem rsp_keep {r : Run} {m m' : MachineData} (hF : r.Frame m)
@@ -56,7 +56,7 @@ variable (r : Run) [Labels]
 /-- **A word loop's turn**: the `8 q` bytes of the input words `s ..` copied to the frame's `d`,
 the rest of the frame as it was, RSP and the words' registers kept. -/
 theorem copy_turn (hpre : r.Pre) {pre : List UInt8} {m m' : MachineData} (hw : WS r pre m)
-    {s q d : Nat} (hs : s + q ≤ 977) (hd : d + 8 * q ≤ 29336) {S₀ S' : SState}
+    {s q d : Nat} (hs : s + q ≤ 977) (hd : d + 8 * q ≤ 29352) {S₀ S' : SState}
     {vars : Nat → BitVec 64} {ret : BitVec 64}
     (hm : Match (Env.ofMachine m [(r.input + BitVec.ofNat 64 (8 * s), 8 * q), (r.off d, 8 * q)]
       vars ret) S₀ m)
@@ -84,7 +84,7 @@ theorem copy_turn (hpre : r.Pre) {pre : List UInt8} {m m' : MachineData} (hw : W
 
 /-- **A counter block**: the input word `k`'s low 4 bytes big-endian stored at the frame's `o`. -/
 theorem low4_counter (hpre : r.Pre) {pre : List UInt8} {m m' : MachineData} (hw : WS r pre m)
-    {k o : Nat} (hk : k < 977) (ho : o + 4 ≤ 29336)
+    {k o : Nat} (hk : k < 977) (ho : o + 4 ≤ 29352)
     {S' : SState} {vars : Nat → BitVec 64} {ret : BitVec 64}
     (hm' : Match (Env.ofMachine m (regs3 r) vars ret) S' m')
     (hwf : (Env.ofMachine m (regs3 r) vars ret).WF)
@@ -94,11 +94,11 @@ theorem low4_counter (hpre : r.Pre) {pre : List UInt8} {m m' : MachineData} (hw 
     r.Frame m' ∧ BytesAt m'.dmem (r.off o) (be32 (r.w k).toUInt32) ∧
       SameOutside m.dmem m'.dmem (InRange (r.off o) 4) := by
   have hF' := frame_of_block r hpre hw.1 rfl rfl hm' hwf hsp hfw
-  have hout := sameOutside_hull hm' hwf (ri := 0) (B := r.base) (sz := 29392) (lo := o)
+  have hout := sameOutside_hull hm' hwf (ri := 0) (B := r.base) (sz := 29408) (lo := o)
     (hi := o + 4) rfl (by omega) hwr
   rw [Nat.add_sub_cancel_left] at hout
   refine ⟨hF', ?_, hout⟩
-  refine bytesAt_low hm' (B := r.base) (sz := 29392) rfl (by omega) hl ?_
+  refine bytesAt_low hm' (B := r.base) (sz := 29408) rfl (by omega) hl ?_
   have hword := input_word r hpre hw.1.2.2.1 (k := k) (o := 8 * k) rfl hk
   have h4 := Low4.load4 (env := Env.ofMachine m (regs3 r) vars ret) (r := 2) (o := 8 * k) hword
   have := (h4.bswap).trunc

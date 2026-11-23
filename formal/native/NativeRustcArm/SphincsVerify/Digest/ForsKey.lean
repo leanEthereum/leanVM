@@ -11,7 +11,7 @@ public import NativeRustcArm.SphincsVerify.Epilogue
 - `b94` (directive 1243) stores the address at `24720` (the tree's word X27, the type `4`, the
   key pair's word W26) and clears hasher A (`16400`); `b95`, `b96` update it with `PK.seed` and
   the address (`forsKey0_spec`);
-- `b97` clones it to `26768`, `b98` updates the clone with the roots (`27808`), `b99` finalizes
+- `b97` clones it to `26768`, `b98` updates the clone with the roots (`27824`), `b99` finalizes
   it to `16400` (`forsKey1_spec`);
 - `b100` stores the digest's first 16 bytes, `signed`, at `27792` and sets the layer loop's
   registers and its spill at `0` (`forsKey2_spec`): `AtLayer 0 r.forsPk` at `b101` (directive
@@ -34,7 +34,7 @@ def fkAdrs (r : Run) : List UInt8 := forsAdrs r.idx 4
 /-- **At `b97`**: hasher A at `16400` has absorbed `PK.seed | ADRS`; X22 `16`; the roots, the
 index's spill. -/
 def FK0 (r : Run) (m : MachineData) : Prop :=
-  Keep r m ∧ Run.RegIs m .X22 16 ∧ BytesAt m.dmem (r.off 27808) (rootsBytes r) ∧
+  Keep r m ∧ Run.RegIs m .X22 16 ∧ BytesAt m.dmem (r.off 27824) (rootsBytes r) ∧
     r.WordAt m 384 r.idx ∧ HasherAt r m 16400 ([] ++ r.seed ++ fkAdrs r)
 
 /-- **At `b100`**: the digest of `PK.seed | ADRS | roots` at `16400`; X19 and X20 the hashers. -/
@@ -131,7 +131,7 @@ theorem forsKey0_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hc
   obtain ⟨hF, hI, h27, h26, h23, hR, h384, h392⟩ := hA
   have hK : Keep r m := ⟨hF, hI, h392⟩
   have hRl := length_rootsBytes r
-  have hR : BytesAt m.dmem (r.off 27808) (rootsBytes r) := hR
+  have hR : BytesAt m.dmem (r.off 27824) (rootsBytes r) := hR
   have hw := NativeRustc.length_wordBytes r.idx
   -- b94: the address, `memset` of hasher A
   refine Run.memsetCall r hp hpre hc Sphincs.SphincsVerify.b94_in_code rfl run_b94 rfl
@@ -152,7 +152,7 @@ theorem forsKey0_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hc
       List.take_left' rfl] at this
   have hAl := length_fkAdrs r
   have gAd := hkc₂ 24720 _ (by omega) (by omega) gAd
-  have gR := hkc₂ 27808 _ (by omega) (by omega) (hkb₁ 27808 _ (by omega) (by rw [hRl]; rfl) hR)
+  have gR := hkc₂ 27824 _ (by omega) (by omega) (hkb₁ 27824 _ (by omega) (by rw [hRl]; rfl) hR)
   have g384 := hkc₂ 384 _ (by omega) (by omega) (hkb₁ 384 _ (by omega) (by rw [hw]; rfl) h384)
   have gH : HasherAt r m₂ 16400 [] := ⟨_, hB₂, Keccak.holds_new⟩
   -- b95: `PK.seed`
@@ -162,7 +162,7 @@ theorem forsKey0_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hc
       ⟨gH.keepB hkb₃ (by decide) rfl, hK₃.seed, fun m₄ hK₄ hS₄ hkc₄ hH₄ ↦ ?_⟩
   have g22 := regIs_of_saved hS₄ rfl (regIs_lit hm₃ (y := .X22) (c := 16) rfl)
   have gAd := hkc₄ 24720 _ (by omega) (by omega) (hkb₃ 24720 _ (by omega) (by rw [hAl]; rfl) gAd)
-  have gR := hkc₄ 27808 _ (by omega) (by omega) (hkb₃ 27808 _ (by omega) (by rw [hRl]; rfl) gR)
+  have gR := hkc₄ 27824 _ (by omega) (by omega) (hkb₃ 27824 _ (by omega) (by rw [hRl]; rfl) gR)
   have g384 := hkc₄ 384 _ (by omega) (by omega) (hkb₃ 384 _ (by omega) (by rw [hw]; rfl) g384)
   -- b96: the address
   refine Run.updateCall r hp hpre hc Sphincs.SphincsVerify.b96_in_code rfl run_b96 rfl
@@ -171,7 +171,7 @@ theorem forsKey0_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hc
       ⟨hH₄.keepB hkb₅ (by decide) rfl, hkb₅ 24720 _ (by omega) (by rw [hAl]; rfl) gAd,
         fun m₆ hK₆ hS₆ hkc₆ hH₆ ↦ .done _ ⟨rfl, hK₆, ?_, ?_, ?_, hH₆⟩⟩
   · exact regIs_of_saved hS₆ rfl (regIs_keep hm₅ rfl g22)
-  · exact hkc₆ 27808 _ (by omega) (by omega) (hkb₅ 27808 _ (by omega) (by rw [hRl]; rfl) gR)
+  · exact hkc₆ 27824 _ (by omega) (by omega) (hkb₅ 27824 _ (by omega) (by rw [hRl]; rfl) gR)
   · exact hkc₆ 384 _ (by omega) (by omega) (hkb₅ 384 _ (by omega) (by rw [hw]; rfl) g384)
 
 /-- **The roots absorbed, the FORS key's digest** (`b97 .. b99`). -/
@@ -191,14 +191,14 @@ theorem forsKey1_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hc
       ⟨hkb₁ 16400 hb (by omega) (by rw [hbl]; rfl) hbB, fun m₂ hK₂ hS₂ hkc₂ hA₂ ↦ ?_⟩
   have g22 := regIs_of_saved hS₂ rfl (regIs_keep hm₁ rfl h22)
   have g19 := regIs_of_saved hS₂ rfl (regIs_ptr hm₁ (y := .X19) (o := 26768) rfl)
-  have gR := hkc₂ 27808 _ (by omega) (by omega) (hkb₁ 27808 _ (by omega) (by rw [hRl]; rfl) hR)
+  have gR := hkc₂ 27824 _ (by omega) (by omega) (hkb₁ 27824 _ (by omega) (by rw [hRl]; rfl) hR)
   have g384 := hkc₂ 384 _ (by omega) (by omega) (hkb₁ 384 _ (by omega) (by rw [hw]; rfl) h384)
   have gB : HasherAt r m₂ 26768 ([] ++ r.seed ++ fkAdrs r) := ⟨hb, hA₂, hbh⟩
   -- b98: the roots
   refine Run.updateCall r hp hpre hc Sphincs.SphincsVerify.b98_in_code rfl run_b98 rfl
-    (a := 26768) (b := 27808) (n := 384) hK₂ (knownOK_nil m₂) rfl rfl rfl ⟨by decide, by decide⟩
+    (a := 26768) (b := 27824) (n := 384) hK₂ (knownOK_nil m₂) rfl rfl rfl ⟨by decide, by decide⟩
     (by decide) (by decide) hRl fun m₃ hm₃ hK₃ hkb₃ ↦
-      ⟨gB.keepB hkb₃ (by decide) rfl, hkb₃ 27808 _ (by omega) (by rw [hRl]; rfl) gR,
+      ⟨gB.keepB hkb₃ (by decide) rfl, hkb₃ 27824 _ (by omega) (by rw [hRl]; rfl) gR,
         fun m₄ hK₄ hS₄ hkc₄ hH₄ ↦ ?_⟩
   have g22 := regIs_of_saved hS₄ rfl (regIs_keep hm₃ rfl g22)
   have g19 := regIs_of_saved hS₄ rfl (regIs_keep hm₃ rfl g19)

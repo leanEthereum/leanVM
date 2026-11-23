@@ -5,10 +5,10 @@ public import NativeRustcX64.SphincsVerify.Fors.NodeTail
 /-!
 # A FORS tree's end (x86-64)
 
-At a tree's end (`AtRoot`, `b96` at directive 1078): `b96` stores the root at `20156 + 16 c`,
-advances R13 and points R14 at `PK.seed`; on to the next tree's head (`AtTree r (c + 1)` at `b58`)
+At a tree's end (`AtRoot`, `b96` at directive 1078): `b96` stores the root at `20172 + 16 c`,
+advances RSI and points R14 at `PK.seed`; on to the next tree's head (`AtTree r (c + 1)` at `b58`)
 or after the 24th to `b97` (`AtForsKey`) (**`tree_end`**). `b96` runs in the frame with a window
-(`Run.envW`): region 0 the frame's first 20156 bytes, region 2 the root's slot.
+(`Run.envW`): region 0 the frame's first 20172 bytes, region 2 the root's slot.
 -/
 
 namespace NativeRustcX64.SphincsVerifyProof.Fors
@@ -21,17 +21,18 @@ public section
 variable [Host] {r : Run}
 
 omit [Host] in
-/-- The root slot's alias: RSP plus `16 c` is the slot less 20156. -/
+/-- The root slot's alias: RSP plus `16 c` is the slot less 20172. -/
 theorem rootAlias [Labels] {m : MachineData} {c : Nat} (hpre : r.Pre)
-    (h13 : m.regs.get64 .r13 = BitVec.ofNat 64 c) :
-    rootSym.eval (r.envW 20156 (20156 + 16 * c) m (fun _ ↦ 0) 0) =
-      (r.envW 20156 (20156 + 16 * c) m (fun _ ↦ 0) 0).base 2 + BitVec.ofInt 64 (-20156) := by
+    (h13 : r.WordAt m 88 c.toUInt64) :
+    rootSym.eval (r.envW 20172 (20172 + 16 * c) m (fun _ ↦ 0) 0) =
+      (r.envW 20172 (20172 + 16 * c) m (fun _ ↦ 0) 0).base 2 + BitVec.ofInt 64 (-20172) := by
   have hb := r.base_toNat hpre
-  show (r.base + BitVec.ofInt 64 0) + BinOp.apply .shl .W64 (m.regs.get64 .r13)
-    (BitVec.ofNat 64 4) = r.off (20156 + 16 * c) + BitVec.ofInt 64 (-20156)
-  rw [h13, shl4 c, show BitVec.ofInt 64 0 = 0#64 by decide, BitVec.add_zero, Run.off,
-    show BitVec.ofInt 64 (-20156) = -BitVec.ofNat 64 20156 by decide,
-    show BitVec.ofNat 64 (20156 + 16 * c) = BitVec.ofNat 64 20156 + BitVec.ofNat 64 (16 * c) from
+  show (r.base + BitVec.ofInt 64 0) + BinOp.apply .shl .W64
+    ((r.envW 20172 (20172 + 16 * c) m (fun _ ↦ 0) 0).load 0 88 8)
+    (BitVec.ofNat 64 4) = r.off (20172 + 16 * c) + BitVec.ofInt 64 (-20172)
+  rw [load_wordW h13, Chains.toBitVec_toUInt64, shl4 c, show BitVec.ofInt 64 0 = 0#64 by decide, BitVec.add_zero, Run.off,
+    show BitVec.ofInt 64 (-20172) = -BitVec.ofNat 64 20172 by decide,
+    show BitVec.ofNat 64 (20172 + 16 * c) = BitVec.ofNat 64 20172 + BitVec.ofNat 64 (16 * c) from
       BitVec.ofNat_add _ _]
   bv_omega
 
@@ -43,29 +44,29 @@ theorem tree_end (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre) {c 
       ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b96Offset⟩ := by
   obtain ⟨⟨hF, hB⟩, h13, h12, h15, hbp, hroot, hbx⟩ := h
   have hc24 := hB.hc
-  have h13' : m.regs.get64 .r13 = BitVec.ofNat 64 c := h13
-  have hwf := r.wfW hpre hF.2.2.2 (n0 := 20156) (o2 := 20156 + 16 * c) (by omega) (by omega)
+  have h13' := load_wordW (n0 := 20172) (o2 := 20172 + 16 * c) (vars := fun _ ↦ 0) (ret := 0) h13
+  have hwf := r.wfW hpre hF.2.2.2 (n0 := 20172) (o2 := 20172 + 16 * c) (by omega) (by omega)
     (fun _ ↦ 0) 0
-  have hm : Match (r.envW 20156 (20156 + 16 * c) m (fun _ ↦ 0) 0) s96 m :=
-    r.matchW hF (known := []) (bounds := []) (aliases := [(rootSym, 2, -20156)]) trivial trivial
-      ⟨rootAlias hpre h13', trivial⟩
+  have hm : Match (r.envW 20172 (20172 + 16 * c) m (fun _ ↦ 0) 0) s96 m :=
+    r.matchW hF (known := []) (bounds := []) (aliases := [(rootSym, 2, -20172)]) trivial trivial
+      ⟨rootAlias hpre h13, trivial⟩
   refine Chains.blk r hp b96_in_code (List.cons_ne_nil _ _) run_b96 hwf (fun _ h ↦ nomatch h) hm
     fun st₁ hm₁ hpc₁ ↦ .done _ ?_
   change Match _ s96e st₁.data at hm₁
-  have hww : winWrites s96e 20156 = true := by decide +kernel
+  have hww : winWrites s96e 20172 = true := by decide +kernel
   have hF₁ := Run.Frame.of_matchW r hpre hF (by decide) (by omega) hm₁ hwf rfl hww
-  have kw := fun {o : Nat} {bs : List UInt8} (ho : o + bs.length ≤ 29384)
-      (hd : o + bs.length ≤ 20156 + 16 * c ∨ 20156 + 16 * c + 16 ≤ o)
+  have kw := fun {o : Nat} {bs : List UInt8} (ho : o + bs.length ≤ 29400)
+      (hd : o + bs.length ≤ 20172 + 16 * c ∨ 20172 + 16 * c + 16 ≤ o)
       (h : BytesAt m.dmem (r.off o) bs) (hn : noWriteW s96e o bs.length = true) ↦
     r.bytesAt_keptW hpre (by omega) hm₁ hwf ho hd h hn
   have hrl := length_rootsUpTo r (c := c) (by omega)
   have hsig := Chains.length_sigMemR r
-  have hroots : BytesAt st₁.data.dmem (r.off 20156) (rootsUpTo r (c + 1)) := by
+  have hroots : BytesAt st₁.data.dmem (r.off 20172) (rootsUpTo r (c + 1)) := by
     rw [rootsUpTo_succ]
     refine Chains.BytesAt.cat (kw (by rw [hrl]; omega) (by rw [hrl]; omega) hB.roots
       (noWriteW_of_winWrites hww _)) ?_ (by rw [hrl])
-    have := write16 hm₁ (j := 2) rfl (o := 0) (by decide) (v₁ := .load 0 10368 8)
-      (v₂ := .load 0 10376 8) (by decide +kernel) (by decide +kernel) rfl rfl
+    have := write16 hm₁ (j := 2) rfl (o := 0) (by decide) (v₁ := .load 0 8328 8)
+      (v₂ := .load 0 8336 8) (by decide +kernel) (by decide +kernel) rfl rfl
       (Digest.length_forsRoot r c) hroot
     exact Chains.BytesAt.of_add_zero this
   have W := NativeRustc.length_wordBytes
@@ -77,25 +78,25 @@ theorem tree_end (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre) {c 
   have g80 := kw (by flen) (by flen) hB.w80 (by rw [length_be64']; decide +kernel)
   have g60 := kw (by flen) (by flen) hB.w60 (by rw [length_be32']; decide +kernel)
   have gl := kw (by flen) (by flen) hB.leaves (by rw [length_leavesBytes]; decide +kernel)
-  have r15 : reg st₁.data .r15 = reg m .r15 := hm₁.regs .r15 _ rfl
+  have r15 : reg st₁.data .r13 = reg m .r13 := hm₁.regs .r13 _ rfl
   have rbp : reg st₁.data .rbp = reg m .rbp := hm₁.regs .rbp _ rfl
   have hpc := Chains.pc_cond hpc₁
-  have hcnd : (SBool.not (SBool.cmp .eq .W64 (.bin .add .W64 (.reg .r13) (.lit 1)) (.lit 24))).eval
-      (r.envW 20156 (20156 + 16 * c) m (fun _ ↦ 0) 0) = decide (c + 1 < 24) := by
-    show (!(CmpOp.apply .eq .W64 (BinOp.apply .add .W64 (m.regs.get64 .r13) (BitVec.ofNat 64 1))
+  have hcnd : (SBool.not (SBool.cmp .eq .W64 (.bin .add .W64 (.load 0 88 8) (.lit 1)) (.lit 24))).eval
+      (r.envW 20172 (20172 + 16 * c) m (fun _ ↦ 0) 0) = decide (c + 1 < 24) := by
+    show (!(CmpOp.apply .eq .W64 (BinOp.apply .add .W64 ((r.envW 20172 (20172 + 16 * c) m (fun _ ↦ 0) 0).load 0 88 8) (BitVec.ofNat 64 1))
       (BitVec.ofNat 64 24))) = _
-    rw [h13']
+    rw [h13', Chains.toBitVec_toUInt64]
     interval_cases c <;> decide
   rw [hcnd] at hpc
   by_cases hlt : c + 1 < 24
   · simp only [hlt, decide_true, ite_true] at hpc
     rw [Chains.labelAt r hp b58_in_code rfl] at hpc
     refine Or.inl ⟨hlt, hpc, ⟨hF₁, hlt, hI, g176, g568, g80, g60, gl, hroots⟩,
-      ?_, ?_, ?_, ?_, ?_, Chains.regIs_reg hm₁ rfl hbx⟩
+      ?_, ?_, ?_, ?_, ?_, Chains.regIs_reg hm₁ rfl hbx, ?_⟩
     · unfold Run.RegIs reg
-      rw [hm₁.regs .r13 _ rfl]
-      show BinOp.apply .add .W64 (m.regs.get64 .r13) (BitVec.ofNat 64 1) = _
-      rw [h13']
+      rw [hm₁.regs .rsi _ rfl]
+      show BinOp.apply .add .W64 ((r.envW 20172 (20172 + 16 * c) m (fun _ ↦ 0) 0).load 0 88 8) (BitVec.ofNat 64 1) = _
+      rw [h13', Chains.toBitVec_toUInt64]
       simp only [BinOp.apply, low_W64, ext_W64]
       exact (BitVec.ofNat_add c 1).symm
     · exact (hm₁.regs .r12 _ rfl).trans h12
@@ -104,6 +105,9 @@ theorem tree_end (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre) {c 
       rfl
     · rw [r15]; exact h15
     · rw [rbp]; exact hbp
+    · unfold Run.RegIs reg
+      rw [hm₁.regs .r15 _ rfl]
+      rfl
   · simp only [hlt, decide_false, Bool.false_eq_true, ite_false] at hpc
     have h24 : c + 1 = 24 := by omega
     refine Or.inr ⟨h24, hpc, hF₁, hI, by rw [r15]; exact h15, by rw [rbp]; exact hbp, ?_, g568,

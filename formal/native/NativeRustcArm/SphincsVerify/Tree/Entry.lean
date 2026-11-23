@@ -5,7 +5,7 @@ public import NativeRustcArm.SphincsVerify.Tree.Fold
 /-!
 # The fold's entry
 
-From the one-time leaf's hash at `20624` (`AtL6`): the path's slice checks (`b149`, `b150`, the
+From the one-time leaf's hash at `22672` (`AtL6`): the path's slice checks (`b149`, `b150`, the
 panic `b192` unreachable: the path's nodes `pathStart l .. pathStart l + heightOf l` are within the
 26), the height-0 case (`b151`, unreachable), the loop's registers and the leaf's 16 bytes
 (`b152`; `entry`, to `AtNode … 0`); the region from the chain ends to the fold's end (`toFold`).
@@ -77,8 +77,8 @@ theorem entry (hp : Placed code r.k) (hpre : r.Pre) {l : Nat} {e : List (List UI
     rw [List.drop_zero] at lo
     rw [List.take_add (l := V) (i := 8) (j := 8)]
     refine bytesAt_cat (n := 8) (by simp [hhash]) (write_eval hm4 (o := 20624)
-      (v := .load 0 20624 8) (by decide) (by decide) rfl lo) ?_
-    exact write_eval hm4 (o := 20632) (v := .load 0 20632 8) (by decide) (by decide) rfl hi
+      (v := .load 0 22672 8) (by decide) (by decide) rfl lo) ?_
+    exact write_eval hm4 (o := 20632) (v := .load 0 22680 8) (by decide) (by decide) rfl hi
 
 /-- **From layer `l`'s chain ends to the fold's end.** -/
 theorem toFold (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}

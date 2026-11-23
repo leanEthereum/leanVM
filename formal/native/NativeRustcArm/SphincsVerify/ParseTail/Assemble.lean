@@ -61,7 +61,7 @@ variable (r : Run) [NativeRustcArm.Host] (hp : Placed Sphincs.SphincsVerify.code
 include hp hc hpre
 
 /-- `b40`: the randomizer to `12884`, the FORS openings to `8244`. -/
-theorem s40 : Seg r 497 (fun m ↦ Facts r m (L40 r) (K37 r)) 508
+theorem s40 : Seg r b40Offset (fun m ↦ Facts r m (L40 r) (K37 r)) b41Offset
     (fun m ↦ Facts r m (L41 r) (K41 r)) := fun m h ↦
   step_memcpy r hp hc hpre b40_in_code run_b40 rfl rfl rfl
     (a := 8244) (b := 16400) (n := 4224) rfl rfl rfl (by decide) (by decide) (by decide)
@@ -71,7 +71,7 @@ theorem s40 : Seg r 497 (fun m ↦ Facts r m (L40 r) (K37 r)) 508
       trivial⟩
     (by simp only [L40, L33, L25]; facts_side) (by facts_side)
     (Lnew := [(12884, 16, r.sig.randomizer)])
-    (fun _ hm' ↦ copyL r h (o' := 29248) (by simp [L40, L33, L25, baseL]) hm' (by decide)
+    (fun _ hm' ↦ copyL r h (o' := 27808) (by simp [L40, L33, L25, baseL]) hm' (by decide)
       (by decide +kernel))
     (Knew := [(.X24, BitVec.ofNat 64 4640), (.X20, BitVec.ofNat 64 4224)])
     (fun _ hm' ↦ ⟨reg_lit r hm' rfl, reg_lit r hm' rfl, trivial⟩)
@@ -79,7 +79,7 @@ theorem s40 : Seg r 497 (fun m ↦ Facts r m (L40 r) (K37 r)) 508
     (by simp [L40, L33, L25, baseL, forsMem])
 
 /-- `b41`: the first layer's address at `392`, layer 0's chain values to `12900`. -/
-theorem s41 : Seg r 508 (fun m ↦ Facts r m (L41 r) (K41 r)) 515
+theorem s41 : Seg r b41Offset (fun m ↦ Facts r m (L41 r) (K41 r)) b42Offset
     (fun m ↦ Facts r m ((12900, 1024, wotsRaw r 0) :: (392, 8, wordBytes (r.addr 12900)) ::
       L41 r) (K41 r)) := fun m h ↦
   step_memcpy r hp hc hpre b41_in_code run_b41 rfl rfl rfl
@@ -94,8 +94,8 @@ theorem s41 : Seg r 508 (fun m ↦ Facts r m (L41 r) (K41 r)) 515
     (bs := wotsRaw r 0) (by simp [L41, L40, L33, L25])
 
 /-- `b42`: layer 0's counter at `13924`, layer 1's chain values to `13928`. -/
-theorem s42 : Seg r 515 (fun m ↦ Facts r m ((12900, 1024, wotsRaw r 0) ::
-      (392, 8, wordBytes (r.addr 12900)) :: L41 r) (K41 r)) 522
+theorem s42 : Seg r b42Offset (fun m ↦ Facts r m ((12900, 1024, wotsRaw r 0) ::
+      (392, 8, wordBytes (r.addr 12900)) :: L41 r) (K41 r)) b43Offset
     (fun m ↦ Facts r m ((13928, 1024, wotsRaw r 1) :: (13924, 4, ctrBytes r 0) ::
       (12900, 1024, wotsRaw r 0) :: (392, 8, wordBytes (r.addr 12900)) :: L41 r) (K41 r)) :=
   fun m h ↦ step_memcpy r hp hc hpre b42_in_code run_b42 rfl rfl rfl
@@ -111,9 +111,9 @@ theorem s42 : Seg r 515 (fun m ↦ Facts r m ((12900, 1024, wotsRaw r 0) ::
     (bs := wotsRaw r 1) (by simp [L41, L40, L33])
 
 /-- `b43`: layer 1's counter at `14952`, layer 2's chain values to `14956`. -/
-theorem s43 : Seg r 522 (fun m ↦ Facts r m ((13928, 1024, wotsRaw r 1) ::
+theorem s43 : Seg r b43Offset (fun m ↦ Facts r m ((13928, 1024, wotsRaw r 1) ::
       (13924, 4, ctrBytes r 0) :: (12900, 1024, wotsRaw r 0) ::
-      (392, 8, wordBytes (r.addr 12900)) :: L41 r) (K41 r)) 529
+      (392, 8, wordBytes (r.addr 12900)) :: L41 r) (K41 r)) b44Offset
     (fun m ↦ Facts r m (L44 r) (K41 r)) :=
   fun m h ↦ step_memcpy r hp hc hpre b43_in_code run_b43 rfl rfl rfl
     (a := 14956) (b := 25744) (n := 1024) rfl rfl rfl (by decide) (by decide) (by decide) h
@@ -128,7 +128,7 @@ theorem s43 : Seg r 522 (fun m ↦ Facts r m ((13928, 1024, wotsRaw r 1) ::
     (bs := wotsRaw r 2) (by simp [L41, L40])
 
 /-- `b44`: layer 2's counter at `15980`, the paths' address at `376`, the paths to `12468`. -/
-theorem s44 : Seg r 529 (fun m ↦ Facts r m (L44 r) (K41 r)) 536
+theorem s44 : Seg r b44Offset (fun m ↦ Facts r m (L44 r) (K41 r)) b45Offset
     (fun m ↦ Facts r m (L45 r) (K41 r)) := fun m h ↦
   step_memcpy r hp hc hpre b44_in_code run_b44 rfl rfl rfl
     (a := 12468) (b := 15984) (n := 416) rfl rfl rfl (by decide) (by decide) (by decide)
@@ -148,7 +148,7 @@ theorem s44 : Seg r 529 (fun m ↦ Facts r m (L44 r) (K41 r)) 536
     (bs := pathsRaw r) (by simp [pathsRaw])
 
 /-- **The parsed signature assembled**, `b40 .. b44`. -/
-theorem assemble : Seg r 497 (fun m ↦ Facts r m (L40 r) (K37 r)) 536
+theorem assemble : Seg r b40Offset (fun m ↦ Facts r m (L40 r) (K37 r)) b45Offset
     (fun m ↦ Facts r m (L45 r) (K41 r)) :=
   ((((s40 r hp hc hpre).trans (s41 r hp hc hpre)).trans (s42 r hp hc hpre)).trans
     (s43 r hp hc hpre)).trans (s44 r hp hc hpre)

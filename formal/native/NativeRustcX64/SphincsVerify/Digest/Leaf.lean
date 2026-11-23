@@ -69,7 +69,7 @@ theorem bit_eq (x : UInt8) (s : Nat) :
 
 /-- **Turn `c` of the loop stores leaf `c`** of `digest_fields` of `H`. -/
 theorem leaf_eval [Labels] (env : Env) (H : List UInt8) {c : Nat} (hc : c < 24)
-    (hx : env.regs .r13 = BitVec.ofNat 64 (10 * c))
+    (hx : env.regs .r12 = BitVec.ofNat 64 (10 * c))
     (hb : ∀ k < 30, env.load 0 k 1 = BitVec.setWidth 64 (H.getD k 0).toBitVec) :
     leafSym.eval env = BitVec.ofNat 64 (leafOf H c) := by
   have e : leafSym.eval env = bitsVal fun j ↦

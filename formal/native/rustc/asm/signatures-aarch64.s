@@ -268,7 +268,8 @@ sphincs_verify:
 	add	x23, x10, #96
 	mov	x24, #-4224
 	add	x25, x25, #16
-	stp	x8, x9, [x29, #-32]
+	str	x8, [sp, #27808]
+	str	x9, [sp, #27816]
 .LBB3_11:
 	add	x27, x23, x24
 	add	x0, sp, #2, lsl #12
@@ -607,14 +608,15 @@ sphincs_verify:
 	add	x0, x0, #1168
 	add	x1, x1, #2192
 	bl	memcpy
-	ldp	x8, x9, [x29, #-32]
+	ldr	x8, [sp, #27808]
+	ldr	x9, [sp, #27816]
 	add	x0, sp, #2, lsl #12
 	add	x1, sp, #4, lsl #12
 	add	x0, x0, #52
 	mov	w2, #4224
 	add	x1, x1, #16
-	mov	w24, #4640
 	str	x8, [x20, #12416]
+	mov	w24, #4640
 	str	x9, [x20, #12424]
 	mov	w20, #4224
 	bl	memcpy
@@ -1343,7 +1345,7 @@ sphincs_verify:
 	add	x8, sp, #6, lsl #12
 	ldr	x9, [sp, #20624]
 	ldr	x10, [sp, #20632]
-	add	x8, x8, #3232
+	add	x8, x8, #3248
 	ldr	x24, [sp, #400]
 	add	x8, x8, x19, lsl #4
 	add	x19, x19, #1
@@ -1389,7 +1391,7 @@ sphincs_verify:
 	add	x1, sp, #6, lsl #12
 	mov	w2, #384
 	add	x0, x0, #2192
-	add	x1, x1, #3232
+	add	x1, x1, #3248
 	bl	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher6update
 	add	x0, sp, #4, lsl #12
 	add	x1, sp, #6, lsl #12
@@ -1407,9 +1409,9 @@ sphincs_verify:
 	str	x8, [sp, #27792]
 	add	x21, x19, #200
 	orr	x23, x19, #0x1
-	adrp	x8, .Lanon.fe296eb653eaa2a8f5c440a37a3d84d0.8
-	add	x8, x8, :lo12:.Lanon.fe296eb653eaa2a8f5c440a37a3d84d0.8
 	mov	w12, #4656
+	adrp	x8, .Lanon.bee145f0cb2eac5728ff95be1b200579.2
+	add	x8, x8, :lo12:.Lanon.bee145f0cb2eac5728ff95be1b200579.2
 	mov	w13, #8
 	mov	w14, #117440512
 	add	x20, x20, #1168
@@ -1710,115 +1712,116 @@ sphincs_verify:
 	ldr	x1, [sp, #400]
 	mov	x0, xzr
 	add	x18, x18, #1168
-	strb	w1, [x18, #1024]
+	strb	w1, [x18, #2048]
 	ldp	x1, x2, [sp, #360]
-	strb	w8, [x18, #1082]
+	strb	w8, [x18, #2106]
 	ldr	x8, [sp, #392]
-	strb	w20, [x18, #1060]
-	strb	w1, [x18, #1026]
+	strb	w20, [x18, #2084]
+	strb	w1, [x18, #2050]
 	ldp	x1, x3, [sp, #344]
-	strb	w2, [x18, #1025]
-	strb	w6, [x18, #1067]
-	strb	w1, [x18, #1028]
+	strb	w2, [x18, #2049]
+	strb	w6, [x18, #2091]
+	strb	w1, [x18, #2052]
 	ldr	x1, [sp, #336]
-	strb	w3, [x18, #1027]
-	strb	w1, [x18, #1029]
+	strb	w3, [x18, #2051]
+	strb	w1, [x18, #2053]
 	ldr	x1, [sp, #328]
-	strb	w22, [x18, #1068]
-	strb	w1, [x18, #1030]
+	strb	w22, [x18, #2092]
+	strb	w1, [x18, #2054]
 	ldr	x1, [sp, #320]
-	strb	w28, [x18, #1069]
-	strb	w1, [x18, #1031]
+	strb	w28, [x18, #2093]
+	strb	w1, [x18, #2055]
 	ldr	x1, [sp, #312]
-	strb	w4, [x18, #1070]
-	strb	w1, [x18, #1032]
+	strb	w4, [x18, #2094]
+	strb	w1, [x18, #2056]
 	ldr	x1, [sp, #304]
-	strb	w5, [x18, #1071]
-	strb	w1, [x18, #1033]
+	strb	w5, [x18, #2095]
+	strb	w1, [x18, #2057]
 	ldr	x1, [sp, #296]
-	strb	w7, [x18, #1072]
-	strb	w1, [x18, #1034]
+	strb	w7, [x18, #2096]
+	strb	w1, [x18, #2058]
 	ldr	x1, [sp, #288]
-	strb	w19, [x18, #1073]
-	strb	w1, [x18, #1035]
+	strb	w19, [x18, #2097]
+	strb	w1, [x18, #2059]
 	ldr	x1, [sp, #280]
-	strb	w23, [x18, #1074]
-	strb	w1, [x18, #1036]
+	strb	w23, [x18, #2098]
+	strb	w1, [x18, #2060]
 	ldr	x1, [sp, #272]
-	strb	w30, [x18, #1075]
-	strb	w1, [x18, #1037]
+	strb	w30, [x18, #2099]
+	strb	w1, [x18, #2061]
 	ldr	x1, [sp, #264]
-	strb	w9, [x18, #1076]
-	strb	w1, [x18, #1038]
+	strb	w9, [x18, #2100]
+	strb	w1, [x18, #2062]
 	ldr	x1, [sp, #256]
-	strb	w11, [x18, #1077]
-	strb	w1, [x18, #1039]
+	strb	w11, [x18, #2101]
+	strb	w1, [x18, #2063]
 	ldr	x1, [sp, #248]
-	strb	w16, [x18, #1078]
-	strb	w1, [x18, #1040]
+	strb	w16, [x18, #2102]
+	strb	w1, [x18, #2064]
 	ldr	x1, [sp, #240]
-	strb	w17, [x18, #1079]
-	strb	w1, [x18, #1041]
+	strb	w17, [x18, #2103]
+	strb	w1, [x18, #2065]
 	ldr	x1, [sp, #232]
-	strb	w24, [x18, #1080]
-	strb	w1, [x18, #1042]
+	strb	w24, [x18, #2104]
+	strb	w1, [x18, #2066]
 	ldr	x1, [sp, #224]
-	strb	w27, [x18, #1081]
-	strb	w1, [x18, #1043]
+	strb	w27, [x18, #2105]
+	strb	w1, [x18, #2067]
 	ldr	x1, [sp, #216]
-	strb	w10, [x18, #1083]
-	strb	w1, [x18, #1044]
+	strb	w10, [x18, #2107]
+	strb	w1, [x18, #2068]
 	ldr	x1, [sp, #208]
-	strb	w12, [x18, #1084]
-	strb	w1, [x18, #1045]
+	strb	w12, [x18, #2108]
+	strb	w1, [x18, #2069]
 	ldr	x1, [sp, #200]
-	strb	w13, [x18, #1085]
-	strb	w1, [x18, #1046]
+	strb	w13, [x18, #2109]
+	strb	w1, [x18, #2070]
 	ldr	x1, [sp, #192]
-	strb	w14, [x18, #1086]
-	strb	w1, [x18, #1047]
+	strb	w14, [x18, #2110]
+	strb	w1, [x18, #2071]
 	ldr	x1, [sp, #184]
-	strb	w15, [x18, #1087]
-	strb	w1, [x18, #1048]
+	strb	w15, [x18, #2111]
+	strb	w1, [x18, #2072]
 	ldr	x1, [sp, #176]
-	strb	w1, [x18, #1049]
+	strb	w1, [x18, #2073]
 	ldr	x1, [sp, #168]
-	strb	w1, [x18, #1050]
+	strb	w1, [x18, #2074]
 	ldr	x1, [sp, #160]
-	strb	w1, [x18, #1051]
+	strb	w1, [x18, #2075]
 	ldr	x1, [sp, #152]
-	strb	w1, [x18, #1052]
+	strb	w1, [x18, #2076]
 	ldr	x1, [sp, #144]
-	strb	w1, [x18, #1053]
+	strb	w1, [x18, #2077]
 	ldr	x1, [sp, #136]
-	strb	w1, [x18, #1054]
+	strb	w1, [x18, #2078]
 	ldr	x1, [sp, #128]
-	strb	w1, [x18, #1055]
+	strb	w1, [x18, #2079]
 	ldr	x1, [sp, #120]
-	strb	w1, [x18, #1056]
+	strb	w1, [x18, #2080]
 	ldr	x1, [sp, #96]
-	strb	w1, [x18, #1057]
+	strb	w1, [x18, #2081]
 	ldr	x1, [sp, #72]
-	strb	w1, [x18, #1058]
+	strb	w1, [x18, #2082]
 	ldr	x1, [sp, #64]
-	strb	w1, [x18, #1059]
+	strb	w1, [x18, #2083]
 	ldr	x1, [sp, #112]
-	strb	w1, [x18, #1061]
+	strb	w1, [x18, #2085]
 	ldr	x1, [sp, #104]
-	strb	w1, [x18, #1062]
+	strb	w1, [x18, #2086]
 	ldr	x1, [sp, #88]
-	strb	w1, [x18, #1063]
+	strb	w1, [x18, #2087]
 	ldr	x1, [sp, #80]
-	strb	w1, [x18, #1064]
+	strb	w1, [x18, #2088]
 	ldr	x1, [sp, #56]
-	strb	w1, [x18, #1065]
+	strb	w1, [x18, #2089]
 	ldr	x1, [sp, #48]
-	strb	w1, [x18, #1066]
+	strb	w1, [x18, #2090]
 	b	.LBB3_45
 .LBB3_44:
 	add	x8, sp, #6, lsl #12
-	ldp	x9, x10, [x29, #-32]
-	add	x8, x8, #3632
+	ldr	x9, [sp, #15984]
+	ldr	x10, [sp, #15992]
+	add	x8, x8, #3648
 	add	x0, x28, #1
 	add	x8, x8, x28, lsl #4
 	cmp	x0, #64
@@ -1829,27 +1832,29 @@ sphincs_verify:
 	add	x8, x8, x0, lsl #4
 	add	x9, sp, #5, lsl #12
 	add	x22, sp, #5, lsl #12
-	add	x9, x9, #2192
+	add	x9, x9, #3216
 	mov	x28, x0
 	add	x22, x22, #1168
 	ldrb	w19, [x9, x0]
 	ldp	x9, x8, [x8]
 	cmp	x19, #2
-	stp	x9, x8, [x29, #-32]
+	str	x9, [sp, #15984]
+	str	x8, [sp, #15992]
 	b.hi	.LBB3_44
 	lsl	w20, w28, #24
 .LBB3_47:
-	ldp	x8, x9, [x29, #-32]
+	ldr	x8, [sp, #15984]
+	ldr	x9, [sp, #15992]
 	add	x0, sp, #4, lsl #12
 	add	x0, x0, #16
 	mov	w1, wzr
 	mov	w2, #344
-	str	x19, [sp, #16000]
-	str	x8, [sp, #15984]
+	str	x8, [sp, #20624]
 	ldr	w8, [sp, #416]
-	str	x9, [sp, #15992]
+	str	x19, [sp, #20640]
 	stp	w8, wzr, [x22]
 	ldr	x8, [sp, #424]
+	str	x9, [sp, #20632]
 	str	x8, [sp, #21656]
 	ldr	w8, [sp, #408]
 	stp	wzr, w8, [x22, #16]
@@ -2047,9 +2052,9 @@ sphincs_verify:
 	add	x1, x1, #16
 	bl	memcpy
 	ldr	x24, [sp, #27104]
-	add	x22, sp, #3, lsl #12
+	add	x22, sp, #5, lsl #12
 	mov	w27, #16
-	add	x22, x22, #3696
+	add	x22, x22, #144
 	b	.LBB3_57
 .LBB3_56:
 	sub	x27, x27, x23
@@ -2264,24 +2269,27 @@ sphincs_verify:
 	cmp	x19, #3
 	str	x8, [sp, #24728]
 	str	x9, [sp, #24720]
-	stp	x9, x8, [x29, #-32]
+	str	x9, [sp, #15984]
+	str	x8, [sp, #15992]
 	b.ne	.LBB3_47
 	b	.LBB3_44
 .LBB3_63:
 	add	x8, sp, #5, lsl #12
 	ldr	w9, [sp, #416]
-	mov	w10, #16777216
-	add	x8, x8, #1168
 	add	x0, sp, #4, lsl #12
-	mov	w1, wzr
-	stp	w9, wzr, [x8]
-	ldr	w9, [sp, #408]
+	add	x8, x8, #1168
 	add	x0, x0, #16
+	mov	w1, wzr
+	str	w9, [x8, #3072]
+	mov	w9, #16777216
 	mov	w2, #344
-	str	xzr, [sp, #21672]
-	stp	w10, w9, [x8, #16]
+	str	w9, [x8, #3088]
+	ldr	w9, [sp, #408]
+	str	wzr, [x8, #3076]
+	str	w9, [x8, #3092]
 	ldr	x8, [sp, #424]
-	str	x8, [sp, #21656]
+	str	xzr, [sp, #24744]
+	str	x8, [sp, #24728]
 	bl	memset
 	add	x0, sp, #4, lsl #12
 	add	x1, sp, #2, lsl #12
@@ -2290,10 +2298,10 @@ sphincs_verify:
 	add	x1, x1, #16
 	bl	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher6update
 	add	x0, sp, #4, lsl #12
-	add	x1, sp, #5, lsl #12
+	add	x1, sp, #6, lsl #12
 	mov	w2, #32
 	add	x0, x0, #16
-	add	x1, x1, #1168
+	add	x1, x1, #144
 	bl	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher6update
 	add	x0, sp, #6, lsl #12
 	add	x1, sp, #4, lsl #12
@@ -2305,68 +2313,29 @@ sphincs_verify:
 	add	x1, sp, #6, lsl #12
 	mov	w2, #1024
 	add	x0, x0, #2192
-	add	x1, x1, #3632
+	add	x1, x1, #3648
 	bl	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher6update
 	add	x0, sp, #5, lsl #12
 	add	x1, sp, #6, lsl #12
-	add	x0, x0, #144
+	add	x0, x0, #2192
 	add	x1, x1, #2192
 	bl	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher8finalize
-	ldr	x8, [sp, #22704]
-	ldr	x9, [sp, #22712]
-	add	x11, sp, #6, lsl #12
-	ldr	x10, [sp, #22728]
-	add	x11, x11, #144
-	ldr	x12, [sp, #24]
-	str	x8, [sp, #24752]
-	ldr	x8, [sp, #22720]
+	ldr	x11, [sp, #24]
 	mov	w22, #16
-	str	x9, [sp, #24760]
-	ldr	x9, [sp, #22672]
-	cmp	x12, #1
-	str	x10, [sp, #24776]
-	ldr	x10, [sp, #22688]
 	mov	w13, #8
-	str	x8, [sp, #24768]
 	ldr	x8, [sp, #22680]
-	str	x9, [sp, #24720]
-	ldr	x9, [sp, #20632]
-	str	x10, [sp, #24736]
-	ldr	x10, [sp, #20624]
-	str	x8, [sp, #24728]
-	ldr	x8, [sp, #22696]
-	stp	x10, x9, [x11, #64]
-	ldr	x9, [sp, #24736]
-	ldr	x10, [sp, #24728]
-	str	x8, [sp, #24744]
-	ldr	x11, [sp, #24760]
-	str	x8, [sp, #23720]
-	ldr	x8, [sp, #24720]
-	str	x9, [sp, #23712]
-	ldr	x9, [sp, #24776]
-	str	x8, [sp, #23696]
-	ldr	x8, [sp, #24768]
-	str	x9, [sp, #23752]
-	ldr	x9, [sp, #24792]
-	str	x10, [sp, #23704]
+	ldr	x9, [sp, #22672]
+	cmp	x11, #1
 	csel	x10, x13, x22, eq
-	cmp	x12, #0
-	str	x8, [sp, #23744]
-	ldr	x8, [sp, #24784]
+	cmp	x11, #0
+	str	x8, [sp, #27816]
 	csel	x0, xzr, x10, eq
-	str	x9, [sp, #23768]
-	ldr	x9, [sp, #24752]
-	add	x10, sp, #5, lsl #12
-	str	x8, [sp, #23760]
-	add	x10, x10, #3216
-	str	x11, [sp, #23736]
-	ldr	x11, [sp, #40]
-	str	x9, [sp, #23728]
-	ldp	x8, x9, [x10, #64]
-	add	x1, x0, x11
+	ldr	x10, [sp, #40]
+	str	x9, [sp, #27808]
+	str	x9, [sp, #15984]
+	add	x1, x0, x10
+	str	x8, [sp, #15992]
 	cmp	x1, x0
-	str	x8, [sp, #15984]
-	str	x9, [sp, #15992]
 	b.lo	.LBB3_96
 	cmp	x1, #27
 	b.hs	.LBB3_96
@@ -2374,7 +2343,7 @@ sphincs_verify:
 	cbz	x8, .LBB3_84
 	ldr	x10, [sp, #376]
 	ldr	x8, [sp, #15984]
-	lsl	w27, w12, #24
+	lsl	w27, w11, #24
 	ldr	x9, [sp, #15992]
 	add	x20, sp, #5, lsl #12
 	mov	x19, xzr
@@ -2853,8 +2822,8 @@ sphincs_verify:
 	add	x8, x8, #52
 	add	x11, x8, x12
 	add	x20, x20, #1168
-	adrp	x8, .Lanon.fe296eb653eaa2a8f5c440a37a3d84d0.8
-	add	x8, x8, :lo12:.Lanon.fe296eb653eaa2a8f5c440a37a3d84d0.8
+	adrp	x8, .Lanon.bee145f0cb2eac5728ff95be1b200579.2
+	add	x8, x8, :lo12:.Lanon.bee145f0cb2eac5728ff95be1b200579.2
 	str	x9, [sp, #27800]
 	b.ne	.LBB3_40
 	ldr	x8, [sp, #8224]
@@ -2937,8 +2906,8 @@ sphincs_verify:
 	mov	w2, #136
 	bl	_RNvNtNtCs8l20omZJ7ql_4core5slice5index16slice_index_fail
 .LBB3_96:
-	adrp	x3, .Lanon.fe296eb653eaa2a8f5c440a37a3d84d0.10
-	add	x3, x3, :lo12:.Lanon.fe296eb653eaa2a8f5c440a37a3d84d0.10
+	adrp	x3, .Lanon.bee145f0cb2eac5728ff95be1b200579.4
+	add	x3, x3, :lo12:.Lanon.bee145f0cb2eac5728ff95be1b200579.4
 	mov	w2, #26
 	bl	_RNvNtNtCs8l20omZJ7ql_4core5slice5index16slice_index_fail
 .Lfunc_end3:
@@ -4849,7 +4818,7 @@ _RNvNtCs7Pyp4CbMBld_9lean_xmss4wots9wots_leaf:
 	.p2align	3, 0x0
 .Lanon.47fac95803119c4a094797088418c9d4.9:
 	.xword	.Lanon.47fac95803119c4a094797088418c9d4.3
-	.asciz	"\033\000\000\000\000\000\000\000\205\000\000\000\005\000\000"
+	.asciz	"\033\000\000\000\000\000\000\000\200\000\000\000\005\000\000"
 	.size	.Lanon.47fac95803119c4a094797088418c9d4.9, 24
 
 	.type	.Lanon.47fac95803119c4a094797088418c9d4.11,@object
@@ -4857,7 +4826,7 @@ _RNvNtCs7Pyp4CbMBld_9lean_xmss4wots9wots_leaf:
 	.p2align	3, 0x0
 .Lanon.47fac95803119c4a094797088418c9d4.11:
 	.xword	.Lanon.47fac95803119c4a094797088418c9d4.3
-	.asciz	"\033\000\000\000\000\000\000\000\254\000\000\000\025\000\000"
+	.asciz	"\033\000\000\000\000\000\000\000\247\000\000\000\025\000\000"
 	.size	.Lanon.47fac95803119c4a094797088418c9d4.11, 24
 
 	.type	.Lanon.47fac95803119c4a094797088418c9d4.12,@object
@@ -4865,29 +4834,29 @@ _RNvNtCs7Pyp4CbMBld_9lean_xmss4wots9wots_leaf:
 	.p2align	3, 0x0
 .Lanon.47fac95803119c4a094797088418c9d4.12:
 	.xword	.Lanon.47fac95803119c4a094797088418c9d4.3
-	.asciz	"\033\000\000\000\000\000\000\000\271\000\000\0002\000\000"
+	.asciz	"\033\000\000\000\000\000\000\000\264\000\000\0002\000\000"
 	.size	.Lanon.47fac95803119c4a094797088418c9d4.12, 24
 
-	.type	.Lanon.fe296eb653eaa2a8f5c440a37a3d84d0.0,@object
+	.type	.Lanon.bee145f0cb2eac5728ff95be1b200579.0,@object
 	.section	.rodata.str1.1,"aMS",@progbits,1
-.Lanon.fe296eb653eaa2a8f5c440a37a3d84d0.0:
+.Lanon.bee145f0cb2eac5728ff95be1b200579.0:
 	.asciz	"crates/lean_sphincs/src/scheme.rs"
-	.size	.Lanon.fe296eb653eaa2a8f5c440a37a3d84d0.0, 34
+	.size	.Lanon.bee145f0cb2eac5728ff95be1b200579.0, 34
 
-	.type	.Lanon.fe296eb653eaa2a8f5c440a37a3d84d0.8,@object
-	.section	.rodata..Lanon.fe296eb653eaa2a8f5c440a37a3d84d0.8,"a",@progbits
+	.type	.Lanon.bee145f0cb2eac5728ff95be1b200579.2,@object
+	.section	.rodata..Lanon.bee145f0cb2eac5728ff95be1b200579.2,"a",@progbits
 	.p2align	3, 0x0
-.Lanon.fe296eb653eaa2a8f5c440a37a3d84d0.8:
+.Lanon.bee145f0cb2eac5728ff95be1b200579.2:
 	.asciz	"\b\000\000\000\000\000\000\000\b\000\000\000\000\000\000\000\n\000\000\000\000\000\000"
-	.size	.Lanon.fe296eb653eaa2a8f5c440a37a3d84d0.8, 24
+	.size	.Lanon.bee145f0cb2eac5728ff95be1b200579.2, 24
 
-	.type	.Lanon.fe296eb653eaa2a8f5c440a37a3d84d0.10,@object
-	.section	.data.rel.ro..Lanon.fe296eb653eaa2a8f5c440a37a3d84d0.10,"aw",@progbits
+	.type	.Lanon.bee145f0cb2eac5728ff95be1b200579.4,@object
+	.section	.data.rel.ro..Lanon.bee145f0cb2eac5728ff95be1b200579.4,"aw",@progbits
 	.p2align	3, 0x0
-.Lanon.fe296eb653eaa2a8f5c440a37a3d84d0.10:
-	.xword	.Lanon.fe296eb653eaa2a8f5c440a37a3d84d0.0
-	.asciz	"!\000\000\000\000\000\000\000e\000\000\000\024\000\000"
-	.size	.Lanon.fe296eb653eaa2a8f5c440a37a3d84d0.10, 24
+.Lanon.bee145f0cb2eac5728ff95be1b200579.4:
+	.xword	.Lanon.bee145f0cb2eac5728ff95be1b200579.0
+	.asciz	"!\000\000\000\000\000\000\000c\000\000\000\024\000\000"
+	.size	.Lanon.bee145f0cb2eac5728ff95be1b200579.4, 24
 
 	.type	.Lanon.9dc208de841c72058cf8117eb5c1924c.0,@object
 	.section	.rodata.str1.1,"aMS",@progbits,1
@@ -4900,7 +4869,7 @@ _RNvNtCs7Pyp4CbMBld_9lean_xmss4wots9wots_leaf:
 	.p2align	3, 0x0
 .Lanon.9dc208de841c72058cf8117eb5c1924c.1:
 	.xword	.Lanon.9dc208de841c72058cf8117eb5c1924c.0
-	.asciz	"\036\000\000\000\000\000\000\000I\000\000\0002\000\000"
+	.asciz	"\036\000\000\000\000\000\000\000J\000\000\0002\000\000"
 	.size	.Lanon.9dc208de841c72058cf8117eb5c1924c.1, 24
 
 	.section	.debug_abbrev,"",@progbits

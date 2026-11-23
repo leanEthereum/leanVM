@@ -18,12 +18,12 @@ open NativeRustcX64.Sym NativeRustcX64.Sphincs.SphincsVerify
 
 set_option Elab.async false
 
-sym_block run_b2 := exec b2 (turnS .r12 40 (-1088) (-12416))
+sym_block run_b2 := exec b2 (turnS .r15 40 (-1088) (-11404))
 sym_block run_b3 := exec b3 ctxS
-sym_block run_b4 := exec b4 (turnS .rax 32 24 (-11300))
+sym_block run_b4 := exec b4 (turnS .rax 32 24 (-10288))
 sym_block run_b5 := exec b5 ctxS
-sym_block run_b6 := exec b6 (turnS .rax 32 24 (-11296))
+sym_block run_b6 := exec b6 (turnS .rax 32 24 (-10284))
 sym_block run_b7 := exec b7 ctxS
-sym_block run_b8 := exec b8 (turnS .rax 32 24 (-11292))
+sym_block run_b8 := exec b8 (turnS .rax 32 24 (-10280))
 
 end NativeRustcX64.SphincsVerifyProof.Parse

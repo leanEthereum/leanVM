@@ -10,7 +10,7 @@ Layer `l`'s next message as the machine computes it: the fold's step at height `
 value and the sibling, bit `z` of the key's leaf saying which is left)) and the fold after `z`
 steps (`Run.foldUpTo`, `Tree.foldUpTo_succ`), which after `heightOf l` steps is `Run.layerRoot`
 (`Tree.layerRoot_eq`). Layer `l`'s path from node `pathStart l` of the 26, in the frame at
-`24764 + 16 j` (`Tree.bytesAt_sibling`). The addresses' bytes (`Tree.keyAdrs_one`,
+`24780 + 16 j` (`Tree.bytesAt_sibling`). The addresses' bytes (`Tree.keyAdrs_one`,
 `Tree.nodeAdrs_eq`).
 -/
 

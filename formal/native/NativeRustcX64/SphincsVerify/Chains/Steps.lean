@@ -45,9 +45,9 @@ theorem step (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hpre :
     {l : Nat} {x E : List UInt8} (hx : x.length = 64) (hE : E.length ≤ 1024) {i pos : Nat}
     (hpos : pos ≤ 2) {v : List UInt8} (hv : v.length = 16) {R : MachineState → Prop}
     {m : MachineData} (hK : Keep r l x E i m) (hR : Regs r m pos)
-    (hcell : BytesAt m.dmem (r.off 184) v)
+    (hcell : BytesAt m.dmem (r.off 1592) v)
     (cont : ∀ m', Keep r l x E i m' → Regs r m' (pos + 1) →
-      BytesAt m'.dmem (r.off 184) (th r.seed (chainAdrs r l i pos) v) →
+      BytesAt m'.dmem (r.off 1592) (th r.seed (chainAdrs r l i pos) v) →
       Eventually (step1 Host.exe) R ⟨m', if pos + 1 = 3 then r.pc NativeRustcX64.Sphincs.SphincsVerify.b150Offset else r.pc NativeRustcX64.Sphincs.SphincsVerify.b119Offset⟩) :
     Eventually (step1 Host.exe) R ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b119Offset⟩ :=
   seg_b119 hp hc hpre hx hE hpos hv hK hR hcell fun m' h1 h2 h3 ↦ cont m' h1 h2 (by
@@ -60,9 +60,9 @@ theorem steps (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hpre 
     {l : Nat} {x E : List UInt8} (hx : x.length = 64) (hE : E.length ≤ 1024) {i : Nat}
     {R : MachineState → Prop} :
     ∀ (k pos : Nat) {v : List UInt8} {m : MachineData}, pos + (k + 1) = 3 → v.length = 16 →
-      Keep r l x E i m → Regs r m pos → BytesAt m.dmem (r.off 184) v →
+      Keep r l x E i m → Regs r m pos → BytesAt m.dmem (r.off 1592) v →
       (∀ m', Keep r l x E i m' → Regs r m' 3 →
-        BytesAt m'.dmem (r.off 184) (chain r.seed (r.key l) i pos (k + 1) v) →
+        BytesAt m'.dmem (r.off 1592) (chain r.seed (r.key l) i pos (k + 1) v) →
         Eventually (step1 Host.exe) R ⟨m', r.pc NativeRustcX64.Sphincs.SphincsVerify.b150Offset⟩) →
       Eventually (step1 Host.exe) R ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b119Offset⟩
   | 0, pos, v, m, hk, hv, hK, hR, hcell, cont =>

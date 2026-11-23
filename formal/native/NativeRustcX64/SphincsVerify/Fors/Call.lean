@@ -27,7 +27,7 @@ open NativeRustcX64.SphincsVerifyProof.Digest (HasherAt)
 
 /-- The frame's bytes apart from `a .. a + n` are kept from `m₁` to `m₂`. -/
 def KC (r : Run) (m₁ m₂ : MachineData) (a n : Nat) : Prop :=
-  ∀ {o : Nat} {bs : List UInt8}, o + bs.length ≤ 29384 → (o + bs.length ≤ a ∨ a + n ≤ o) →
+  ∀ {o : Nat} {bs : List UInt8}, o + bs.length ≤ 29400 → (o + bs.length ≤ a ∨ a + n ≤ o) →
     BytesAt m₁.dmem (r.off o) bs → BytesAt m₂.dmem (r.off o) bs
 
 end
@@ -61,7 +61,7 @@ theorem memset_then (hpre : r.Pre) (hc : Callees) {c : Nat} {env : Env} {next : 
 theorem memcpy_then (hpre : r.Pre) (hc : Callees) {c : Nat} {env : Env} {next : Int64}
     {st : MachineState} (hpc : PcOk env (.call NativeRustcX64.Common.Memcpy.entryLabel) next st) (hK : KeepC r c st.data)
     {a b n : Nat} (h0 : Run.RegIs st.data .rdi (r.off a)) (h1 : Run.RegIs st.data .rsi (r.off b))
-    (h2 : (reg st.data .rdx).toNat = n) (ha : Scratch a n) (hb : b + n ≤ 29384)
+    (h2 : (reg st.data .rdx).toNat = n) (ha : Scratch a n) (hb : b + n ≤ 29400)
     (hd : a + n ≤ b ∨ b + n ≤ a) {bs : List UInt8} (hl : bs.length = n)
     (hbs : BytesAt st.data.dmem (r.off b) bs) {R : MachineState → Prop}
     (k : ∀ m₂, Keep r c m₂ → Saved st.data m₂ → KC r st.data m₂ a n →
@@ -78,7 +78,7 @@ theorem memcpy_then (hpre : r.Pre) (hc : Callees) {c : Nat} {env : Env} {next : 
 theorem memcpy_then' (hpre : r.Pre) (hc : Callees) {c : Nat} {env : Env} {next : Int64}
     {st : MachineState} (hpc : PcOk env (.call NativeRustcX64.Common.Memcpy.entryLabel) next st) (hK : KeepC r c st.data)
     {a b n : Nat} (h0 : Run.RegIs st.data .rdi (r.off a)) (h1 : Run.RegIs st.data .rsi (r.off b))
-    (h2 : (reg st.data .rdx).toNat = n) (ha : Scratch a n) (hb : b + n ≤ 29384)
+    (h2 : (reg st.data .rdx).toNat = n) (ha : Scratch a n) (hb : b + n ≤ 29400)
     (hd : a + n ≤ b ∨ b + n ≤ a) {R : MachineState → Prop}
     (k : ∀ m₂, Keep r c m₂ → Saved st.data m₂ → KC r st.data m₂ a n →
       BytesAt m₂.dmem (r.off a) (bytesOf st.data.dmem (r.off b) n) →
@@ -95,7 +95,7 @@ theorem memcpy_then' (hpre : r.Pre) (hc : Callees) {c : Nat} {env : Env} {next :
 theorem update_then (hpre : r.Pre) (hc : Callees) {c : Nat} {env : Env} {next : Int64}
     {st : MachineState} (hpc : PcOk env (.call NativeRustcX64.Common.Update.entryLabel) next st) (hK : KeepC r c st.data)
     {a b n : Nat} (h0 : Run.RegIs st.data .rdi (r.off a)) (h1 : Run.RegIs st.data .rsi (r.off b))
-    (h2 : (reg st.data .rdx).toNat = n) (ha : Scratch a 344) (hb : b + n ≤ 29384)
+    (h2 : (reg st.data .rdx).toNat = n) (ha : Scratch a 344) (hb : b + n ≤ 29400)
     (hd : a + 344 ≤ b ∨ b + n ≤ a) {x bs : List UInt8} (hl : bs.length = n)
     (hH : HasherAt r st.data a x) (hbs : BytesAt st.data.dmem (r.off b) bs)
     {R : MachineState → Prop}
@@ -118,7 +118,7 @@ theorem update_then (hpre : r.Pre) (hc : Callees) {c : Nat} {env : Env} {next : 
 theorem finalize_then (hpre : r.Pre) (hc : Callees) {c : Nat} {env : Env} {next : Int64}
     {st : MachineState} (hpc : PcOk env (.call NativeRustcX64.Common.Finalize.entryLabel) next st) (hK : KeepC r c st.data)
     {o a : Nat} (h0 : Run.RegIs st.data .rdi (r.off o)) (h1 : Run.RegIs st.data .rsi (r.off a))
-    (ho : Scratch o 32) (ha : a + 344 ≤ 29384) (hd : o + 32 ≤ a ∨ a + 344 ≤ o) {x : List UInt8}
+    (ho : Scratch o 32) (ha : a + 344 ≤ 29400) (hd : o + 32 ≤ a ∨ a + 344 ≤ o) {x : List UInt8}
     (hH : HasherAt r st.data a x) {R : MachineState → Prop}
     (k : ∀ m₂, Keep r c m₂ → Saved st.data m₂ → KC r st.data m₂ o 32 →
       BytesAt m₂.dmem (r.off o) (Keccak.hashBytes x) → Eventually (step1 Host.exe) R ⟨m₂, next⟩) :

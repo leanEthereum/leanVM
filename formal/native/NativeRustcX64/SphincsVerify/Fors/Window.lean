@@ -67,7 +67,7 @@ variable (r : Run) [Labels]
 
 /-- **The environment with a window is well formed.** -/
 theorem wfW (hpre : r.Pre) {m : MachineData} (hk : Kept r.m0.dmem m.dmem) {n0 o2 : Nat}
-    (h0 : n0 ≤ o2) (h2 : o2 + 16 ≤ 29384) (vars : Nat → BitVec 64) (ret : BitVec 64) :
+    (h0 : n0 ≤ o2) (h2 : o2 + 16 ≤ 29400) (vars : Nat → BitVec 64) (ret : BitVec 64) :
     (r.envW n0 o2 m vars ret).WF := by
   have hb := r.base_toNat hpre
   have hlo : (r.base - 16#64).toNat = r.base.toNat - 16 := toNat_sub_ofNat (by omega)
@@ -118,13 +118,13 @@ theorem matchW {m : MachineData} (hF : r.Frame m) {n0 o2 : Nat} {vars : Nat → 
 
 /-- The places a block's writes (`winWrites`) cover are in the stack area off the saved
 registers. -/
-theorem written_areaW (hpre : r.Pre) {m : MachineData} {n0 o2 : Nat} (hn0 : n0 ≤ 29336)
-    (ho2 : o2 + 16 ≤ 29336) {vars : Nat → BitVec 64} {ret : BitVec 64} {S : Sym.SState}
+theorem written_areaW (hpre : r.Pre) {m : MachineData} {n0 o2 : Nat} (hn0 : n0 ≤ 29352)
+    (ho2 : o2 + 16 ≤ 29352) {vars : Nat → BitVec 64} {ret : BitVec 64} {S : Sym.SState}
     (hw : winWrites S n0 = true) :
     ∀ p, Sym.Written (r.envW n0 o2 m vars ret) S p →
-      r.StackArea p ∧ ¬InRange (r.off 29336) 48 p := by
+      r.StackArea p ∧ ¬InRange (r.off 29352) 48 p := by
   have hb := r.base_toNat hpre
-  have hs := r.off_toNat hpre (a := 29336) (by decide)
+  have hs := r.off_toNat hpre (a := 29352) (by decide)
   have hlo : (r.base - 16#64).toNat = r.base.toNat - 16 := toNat_sub_ofNat (by omega)
   have h2 := r.off_toNat hpre (a := o2) (by omega)
   rintro p ⟨w, hwm, b, sz, hr, h1, h2'⟩
@@ -153,7 +153,7 @@ theorem rsp_base_of {m' : MachineData} {env : Sym.Env} {S : Sym.SState}
 
 /-- **The invariant after a block with a window**: RSP the base, the writes in the regions. -/
 theorem Frame.of_matchW (hpre : r.Pre) {m m' : MachineData} (hF : r.Frame m) {n0 o2 : Nat}
-    (hn0 : n0 ≤ 29336) (ho2 : o2 + 16 ≤ 29336) {vars : Nat → BitVec 64} {ret : BitVec 64}
+    (hn0 : n0 ≤ 29352) (ho2 : o2 + 16 ≤ 29352) {vars : Nat → BitVec 64} {ret : BitVec 64}
     {S : Sym.SState} (hm : Sym.Match (r.envW n0 o2 m vars ret) S m')
     (hwf : (r.envW n0 o2 m vars ret).WF) (hsp : S.reg .rsp = some (.ptr 0 0))
     (hw : winWrites S n0 = true) : r.Frame m' :=
@@ -162,7 +162,7 @@ theorem Frame.of_matchW (hpre : r.Pre) {m m' : MachineData} (hF : r.Frame m) {n0
 
 /-- **At a call after a block with a window**: RSP 8 below the base. -/
 theorem AtCall.of_matchW (hpre : r.Pre) {m m' : MachineData} (hF : r.Frame m) {n0 o2 : Nat}
-    (hn0 : n0 ≤ 29336) (ho2 : o2 + 16 ≤ 29336) {vars : Nat → BitVec 64} {ret : BitVec 64}
+    (hn0 : n0 ≤ 29352) (ho2 : o2 + 16 ≤ 29352) {vars : Nat → BitVec 64} {ret : BitVec 64}
     {S : Sym.SState} (hm : Sym.Match (r.envW n0 o2 m vars ret) S m')
     (hwf : (r.envW n0 o2 m vars ret).WF) (hsp : S.reg .rsp = some (.ptr 0 (-8)))
     (hw : winWrites S n0 = true) : r.AtCall m' := by
@@ -176,10 +176,10 @@ theorem AtCall.of_matchW (hpre : r.Pre) {m m' : MachineData} (hF : r.Frame m) {n
 
 /-- **Bytes a block with a window does not write are kept**: the frame's bytes at `o`, where no
 write of region 0 reaches, apart from the window. -/
-theorem bytesAt_keptW (hpre : r.Pre) {m m' : MachineData} {n0 o2 : Nat} (ho2 : o2 + 16 ≤ 29384)
+theorem bytesAt_keptW (hpre : r.Pre) {m m' : MachineData} {n0 o2 : Nat} (ho2 : o2 + 16 ≤ 29400)
     {vars : Nat → BitVec 64} {ret : BitVec 64} {S : Sym.SState}
     (hm : Sym.Match (r.envW n0 o2 m vars ret) S m') (hwf : (r.envW n0 o2 m vars ret).WF)
-    {o : Nat} {bs : List UInt8} (ho : o + bs.length ≤ 29384)
+    {o : Nat} {bs : List UInt8} (ho : o + bs.length ≤ 29400)
     (hd : o + bs.length ≤ o2 ∨ o2 + 16 ≤ o) (h : BytesAt m.dmem (r.off o) bs)
     (hn : noWriteW S o bs.length = true) : BytesAt m'.dmem (r.off o) bs := by
   have hb := r.base_toNat hpre
@@ -208,7 +208,7 @@ window nor the frame's bytes at `o` (`noWriteIn`). -/
 theorem bytesAt_keptW' (hpre : r.Pre) {m m' : MachineData} {n0 o2 : Nat}
     {vars : Nat → BitVec 64} {ret : BitVec 64} {S : Sym.SState}
     (hm : Sym.Match (r.envW n0 o2 m vars ret) S m') (hwf : (r.envW n0 o2 m vars ret).WF)
-    {o : Nat} {bs : List UInt8} (ho : o + bs.length ≤ 29384) (h : BytesAt m.dmem (r.off o) bs)
+    {o : Nat} {bs : List UInt8} (ho : o + bs.length ≤ 29400) (h : BytesAt m.dmem (r.off o) bs)
     (hn : noWriteIn S o bs.length = true) : BytesAt m'.dmem (r.off o) bs := by
   have hb := r.base_toNat hpre
   have hoff := r.off_toNat hpre (a := o) (by omega)

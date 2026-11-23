@@ -147,8 +147,8 @@ sphincs_verify:
 	subq	$4096, %rsp
 	.cfi_adjust_cfa_offset 4096
 	movq	$0, (%rsp)
-	subq	$664, %rsp
-	.cfi_def_cfa_offset 29392
+	subq	$680, %rsp
+	.cfi_def_cfa_offset 29408
 	.cfi_offset %rbx, -56
 	.cfi_offset %r12, -48
 	.cfi_offset %r13, -40
@@ -157,442 +157,442 @@ sphincs_verify:
 	.cfi_offset %rbp, -16
 	movq	%rdi, %rbx
 	movq	1024(%rdi), %r14
-	movq	1032(%rdi), %r15
+	movq	1032(%rdi), %r12
 	movq	1040(%rdi), %r13
 	movq	1048(%rdi), %rbp
 	movq	1056(%rdi), %rax
-	movq	%rax, 1600(%rsp)
+	movq	%rax, 2008(%rsp)
 	movq	1064(%rdi), %rax
-	movq	%rax, 1608(%rsp)
+	movq	%rax, 2016(%rsp)
 	movq	1072(%rdi), %rax
-	movq	%rax, 1616(%rsp)
+	movq	%rax, 2024(%rsp)
 	movq	1080(%rdi), %rax
-	movq	%rax, 1624(%rsp)
-	leaq	12416(%rsp), %rdi
-	xorl	%r12d, %r12d
+	movq	%rax, 2032(%rsp)
+	leaq	11404(%rsp), %rdi
+	xorl	%r15d, %r15d
 	movl	$7740, %edx
 	xorl	%esi, %esi
 	callq	*memset@GOTPCREL(%rip)
 	.p2align	4
 .LBB3_1:
-	movq	1088(%rbx,%r12), %rax
-	movq	%rax, 12416(%rsp,%r12)
-	movq	1096(%rbx,%r12), %rax
-	movq	%rax, 12424(%rsp,%r12)
-	movq	1104(%rbx,%r12), %rax
-	movq	%rax, 12432(%rsp,%r12)
-	movq	1112(%rbx,%r12), %rax
-	movq	%rax, 12440(%rsp,%r12)
-	movq	1120(%rbx,%r12), %rax
-	movq	%rax, 12448(%rsp,%r12)
-	addq	$40, %r12
-	cmpq	$4240, %r12
+	movq	1088(%rbx,%r15), %rax
+	movq	%rax, 11404(%rsp,%r15)
+	movq	1096(%rbx,%r15), %rax
+	movq	%rax, 11412(%rsp,%r15)
+	movq	1104(%rbx,%r15), %rax
+	movq	%rax, 11420(%rsp,%r15)
+	movq	1112(%rbx,%r15), %rax
+	movq	%rax, 11428(%rsp,%r15)
+	movq	1120(%rbx,%r15), %rax
+	movq	%rax, 11436(%rsp,%r15)
+	addq	$40, %r15
+	cmpq	$4240, %r15
 	jne	.LBB3_1
 	movl	5328(%rbx), %eax
 	bswapl	%eax
-	movl	%eax, 16656(%rsp)
+	movl	%eax, 15644(%rsp)
 	movl	$5360, %eax
 	.p2align	4
 .LBB3_3:
 	movq	-24(%rbx,%rax), %rcx
-	movq	%rcx, 11300(%rsp,%rax)
+	movq	%rcx, 10288(%rsp,%rax)
 	movq	-16(%rbx,%rax), %rcx
-	movq	%rcx, 11308(%rsp,%rax)
+	movq	%rcx, 10296(%rsp,%rax)
 	movq	-8(%rbx,%rax), %rcx
-	movq	%rcx, 11316(%rsp,%rax)
+	movq	%rcx, 10304(%rsp,%rax)
 	movq	(%rbx,%rax), %rcx
-	movq	%rcx, 11324(%rsp,%rax)
+	movq	%rcx, 10312(%rsp,%rax)
 	addq	$32, %rax
 	cmpq	$6512, %rax
 	jne	.LBB3_3
 	movl	6488(%rbx), %eax
 	bswapl	%eax
-	movl	%eax, 17812(%rsp)
+	movl	%eax, 16800(%rsp)
 	movl	$6520, %eax
 	.p2align	4
 .LBB3_5:
 	movq	-24(%rbx,%rax), %rcx
-	movq	%rcx, 11296(%rsp,%rax)
+	movq	%rcx, 10284(%rsp,%rax)
 	movq	-16(%rbx,%rax), %rcx
-	movq	%rcx, 11304(%rsp,%rax)
+	movq	%rcx, 10292(%rsp,%rax)
 	movq	-8(%rbx,%rax), %rcx
-	movq	%rcx, 11312(%rsp,%rax)
+	movq	%rcx, 10300(%rsp,%rax)
 	movq	(%rbx,%rax), %rcx
-	movq	%rcx, 11320(%rsp,%rax)
+	movq	%rcx, 10308(%rsp,%rax)
 	addq	$32, %rax
 	cmpq	$7672, %rax
 	jne	.LBB3_5
 	movl	7648(%rbx), %eax
 	bswapl	%eax
-	movl	%eax, 18968(%rsp)
+	movl	%eax, 17956(%rsp)
 	movl	$7680, %eax
 	.p2align	4
 .LBB3_7:
 	movq	-24(%rbx,%rax), %rcx
-	movq	%rcx, 11292(%rsp,%rax)
+	movq	%rcx, 10280(%rsp,%rax)
 	movq	-16(%rbx,%rax), %rcx
-	movq	%rcx, 11300(%rsp,%rax)
+	movq	%rcx, 10288(%rsp,%rax)
 	movq	-8(%rbx,%rax), %rcx
-	movq	%rcx, 11308(%rsp,%rax)
+	movq	%rcx, 10296(%rsp,%rax)
 	movq	(%rbx,%rax), %rcx
-	movq	%rcx, 11316(%rsp,%rax)
+	movq	%rcx, 10304(%rsp,%rax)
 	addq	$32, %rax
 	cmpq	$8864, %rax
 	jne	.LBB3_7
 	movq	%r13, 128(%rsp)
 	movq	%rbp, 136(%rsp)
 	movq	%r14, 112(%rsp)
-	movq	%r15, 120(%rsp)
-	leaq	592(%rsp), %r15
+	movq	%r12, 120(%rsp)
+	leaq	576(%rsp), %r12
 	movl	$176, %r13d
-	leaq	20700(%rsp), %rbp
-	leaq	20540(%rsp), %rbx
-	leaq	576(%rsp), %r14
-	movq	memcpy@GOTPCREL(%rip), %r12
+	leaq	20716(%rsp), %rbp
+	leaq	20556(%rsp), %rbx
+	leaq	560(%rsp), %r14
+	movq	memcpy@GOTPCREL(%rip), %r15
 	.p2align	4
 .LBB3_9:
-	movq	12256(%rsp,%r13), %rax
-	movq	12264(%rsp,%r13), %rcx
+	movq	11244(%rsp,%r13), %rax
+	movq	11252(%rsp,%r13), %rcx
 	movq	%rcx, 8(%rbp)
 	movq	%rax, (%rbp)
-	movq	12272(%rsp,%r13), %rax
-	movq	12280(%rsp,%r13), %rcx
-	movq	%rcx, 584(%rsp)
-	movq	%rax, 576(%rsp)
-	movq	12296(%rsp,%r13), %rax
-	movq	%rax, 8(%r15)
-	movq	12288(%rsp,%r13), %rax
-	movq	%rax, (%r15)
-	movq	12304(%rsp,%r13), %rax
-	movq	12312(%rsp,%r13), %rcx
-	movq	%rcx, 24(%r15)
-	movq	%rax, 16(%r15)
-	movq	12320(%rsp,%r13), %rax
-	movq	12328(%rsp,%r13), %rcx
-	movq	%rcx, 40(%r15)
-	movq	%rax, 32(%r15)
-	movq	12336(%rsp,%r13), %rax
-	movq	12344(%rsp,%r13), %rcx
-	movq	%rcx, 56(%r15)
-	movq	%rax, 48(%r15)
-	movq	12352(%rsp,%r13), %rax
-	movq	12360(%rsp,%r13), %rcx
-	movq	%rcx, 72(%r15)
-	movq	%rax, 64(%r15)
-	movq	12368(%rsp,%r13), %rax
-	movq	12376(%rsp,%r13), %rcx
-	movq	%rcx, 88(%r15)
-	movq	%rax, 80(%r15)
-	movq	12384(%rsp,%r13), %rax
-	movq	12392(%rsp,%r13), %rcx
-	movq	%rcx, 104(%r15)
-	movq	%rax, 96(%r15)
-	movq	12400(%rsp,%r13), %rax
-	movq	12408(%rsp,%r13), %rcx
-	movq	%rcx, 120(%r15)
-	movq	%rax, 112(%r15)
-	movq	12416(%rsp,%r13), %rax
-	movq	12424(%rsp,%r13), %rcx
-	movq	%rcx, 136(%r15)
-	movq	%rax, 128(%r15)
+	movq	11260(%rsp,%r13), %rax
+	movq	11268(%rsp,%r13), %rcx
+	movq	%rcx, 568(%rsp)
+	movq	%rax, 560(%rsp)
+	movq	11284(%rsp,%r13), %rax
+	movq	%rax, 8(%r12)
+	movq	11276(%rsp,%r13), %rax
+	movq	%rax, (%r12)
+	movq	11292(%rsp,%r13), %rax
+	movq	11300(%rsp,%r13), %rcx
+	movq	%rcx, 24(%r12)
+	movq	%rax, 16(%r12)
+	movq	11308(%rsp,%r13), %rax
+	movq	11316(%rsp,%r13), %rcx
+	movq	%rcx, 40(%r12)
+	movq	%rax, 32(%r12)
+	movq	11324(%rsp,%r13), %rax
+	movq	11332(%rsp,%r13), %rcx
+	movq	%rcx, 56(%r12)
+	movq	%rax, 48(%r12)
+	movq	11340(%rsp,%r13), %rax
+	movq	11348(%rsp,%r13), %rcx
+	movq	%rcx, 72(%r12)
+	movq	%rax, 64(%r12)
+	movq	11356(%rsp,%r13), %rax
+	movq	11364(%rsp,%r13), %rcx
+	movq	%rcx, 88(%r12)
+	movq	%rax, 80(%r12)
+	movq	11372(%rsp,%r13), %rax
+	movq	11380(%rsp,%r13), %rcx
+	movq	%rcx, 104(%r12)
+	movq	%rax, 96(%r12)
+	movq	11388(%rsp,%r13), %rax
+	movq	11396(%rsp,%r13), %rcx
+	movq	%rcx, 120(%r12)
+	movq	%rax, 112(%r12)
+	movq	11404(%rsp,%r13), %rax
+	movq	11412(%rsp,%r13), %rcx
+	movq	%rcx, 136(%r12)
+	movq	%rax, 128(%r12)
 	movl	$160, %edx
 	movq	%rbx, %rdi
 	movq	%r14, %rsi
-	callq	*%r12
+	callq	*%r15
 	movl	$176, %edx
 	movq	%r14, %rdi
 	movq	%rbx, %rsi
-	callq	*%r12
+	callq	*%r15
 	leaq	(%rsp,%r13), %rdi
-	addq	$3920, %rdi
+	addq	$3928, %rdi
 	movl	$176, %edx
 	movq	%r14, %rsi
-	callq	*%r12
+	callq	*%r15
 	addq	$176, %r13
 	cmpq	$4400, %r13
 	jne	.LBB3_9
-	leaq	1760(%rsp), %rbx
+	leaq	1720(%rsp), %rbx
 	xorl	%r14d, %r14d
 	movl	$288, %edx
 	movq	%rbx, %rdi
 	xorl	%esi, %esi
 	callq	*memset@GOTPCREL(%rip)
-	movl	16656(%rsp), %ebp
+	movl	15644(%rsp), %r15d
 	.p2align	4
 .LBB3_11:
-	movq	16660(%rsp,%r14), %rax
-	movq	16668(%rsp,%r14), %rcx
-	movq	%rcx, 20548(%rsp,%r14)
-	movq	%rax, 20540(%rsp,%r14)
-	movq	16676(%rsp,%r14), %rax
+	movq	15648(%rsp,%r14), %rax
+	movq	15656(%rsp,%r14), %rcx
+	movq	%rcx, 20564(%rsp,%r14)
 	movq	%rax, 20556(%rsp,%r14)
-	movq	16684(%rsp,%r14), %rax
-	movq	%rax, 20564(%rsp,%r14)
+	movq	15664(%rsp,%r14), %rax
+	movq	%rax, 20572(%rsp,%r14)
+	movq	15672(%rsp,%r14), %rax
+	movq	%rax, 20580(%rsp,%r14)
 	addq	$32, %r14
 	cmpq	$1024, %r14
 	jne	.LBB3_11
-	leaq	576(%rsp), %r14
-	leaq	20540(%rsp), %rsi
+	leaq	560(%rsp), %r14
+	leaq	20556(%rsp), %rsi
 	movl	$1024, %edx
 	movq	%r14, %rdi
-	movq	memcpy@GOTPCREL(%rip), %r12
-	callq	*%r12
-	movq	17684(%rsp), %rax
-	movq	17692(%rsp), %rcx
+	movq	memcpy@GOTPCREL(%rip), %r13
+	callq	*%r13
+	movq	16672(%rsp), %rax
+	movq	16680(%rsp), %rcx
+	movq	%rax, 1592(%rsp)
+	movq	%rcx, 1600(%rsp)
+	movq	16688(%rsp), %rax
+	movq	%rax, 1608(%rsp)
+	movq	16696(%rsp), %rax
+	movq	%rax, 1616(%rsp)
+	movq	16704(%rsp), %rax
+	movq	%rax, 1624(%rsp)
+	movq	16712(%rsp), %rax
 	movq	%rax, 1632(%rsp)
-	movq	%rcx, 1640(%rsp)
-	movq	17700(%rsp), %rax
+	movq	16720(%rsp), %rax
+	movq	%rax, 1640(%rsp)
+	movq	16728(%rsp), %rax
 	movq	%rax, 1648(%rsp)
-	movq	17708(%rsp), %rax
-	movq	%rax, 1656(%rsp)
-	movq	17716(%rsp), %rax
+	movq	16744(%rsp), %rax
 	movq	%rax, 1664(%rsp)
-	movq	17724(%rsp), %rax
+	movq	16736(%rsp), %rax
+	movq	%rax, 1656(%rsp)
+	movq	16752(%rsp), %rax
+	movq	16760(%rsp), %rcx
+	movq	%rcx, 1680(%rsp)
 	movq	%rax, 1672(%rsp)
-	movq	17732(%rsp), %rax
-	movq	%rax, 1680(%rsp)
-	movq	17740(%rsp), %rax
-	movq	%rax, 1688(%rsp)
-	movq	17756(%rsp), %rax
-	movq	%rax, 1704(%rsp)
-	movq	17748(%rsp), %rax
+	movq	16776(%rsp), %rax
 	movq	%rax, 1696(%rsp)
-	movq	17764(%rsp), %rax
-	movq	17772(%rsp), %rcx
-	movq	%rcx, 1720(%rsp)
+	movq	16768(%rsp), %rax
+	movq	%rax, 1688(%rsp)
+	movq	16792(%rsp), %rax
 	movq	%rax, 1712(%rsp)
-	movq	17788(%rsp), %rax
-	movq	%rax, 1736(%rsp)
-	movq	17780(%rsp), %rax
-	movq	%rax, 1728(%rsp)
-	movq	17804(%rsp), %rax
-	movq	%rax, 1752(%rsp)
-	movq	17796(%rsp), %rax
-	movq	%rax, 1744(%rsp)
-	leaq	2048(%rsp), %r15
+	movq	16784(%rsp), %rax
+	movq	%rax, 1704(%rsp)
+	leaq	2056(%rsp), %r12
 	movl	$1024, %edx
-	movq	%r15, %rdi
+	movq	%r12, %rdi
 	movq	%r14, %rsi
-	callq	*%r12
-	leaq	9344(%rsp), %r14
+	callq	*%r13
+	leaq	3080(%rsp), %r14
 	movl	$1024, %edx
 	movq	%r14, %rdi
-	movq	%r15, %rsi
-	callq	*%r12
-	leaq	3072(%rsp), %r15
+	movq	%r12, %rsi
+	callq	*%r13
+	leaq	19144(%rsp), %r12
 	movl	$1024, %edx
-	movq	%r15, %rdi
+	movq	%r12, %rdi
 	movq	%r14, %rsi
-	callq	*%r12
-	leaq	11392(%rsp), %r14
+	callq	*%r13
+	leaq	10376(%rsp), %r14
 	movl	$1024, %edx
 	movq	%r14, %rdi
-	movq	%r15, %rsi
-	callq	*%r12
-	leaq	8320(%rsp), %rdi
+	movq	%r12, %rsi
+	callq	*%r13
+	leaq	9352(%rsp), %rdi
 	movl	$1024, %edx
 	movq	%r14, %rsi
-	callq	*%r12
-	movl	17812(%rsp), %r15d
+	callq	*%r13
+	movl	16800(%rsp), %r12d
 	xorl	%eax, %eax
 	.p2align	4
 .LBB3_13:
-	movq	17816(%rsp,%rax), %rcx
-	movq	17824(%rsp,%rax), %rdx
-	movq	%rdx, 20548(%rsp,%rax)
-	movq	%rcx, 20540(%rsp,%rax)
-	movq	17832(%rsp,%rax), %rcx
+	movq	16804(%rsp,%rax), %rcx
+	movq	16812(%rsp,%rax), %rdx
+	movq	%rdx, 20564(%rsp,%rax)
 	movq	%rcx, 20556(%rsp,%rax)
-	movq	17840(%rsp,%rax), %rcx
-	movq	%rcx, 20564(%rsp,%rax)
+	movq	16820(%rsp,%rax), %rcx
+	movq	%rcx, 20572(%rsp,%rax)
+	movq	16828(%rsp,%rax), %rcx
+	movq	%rcx, 20580(%rsp,%rax)
 	addq	$32, %rax
 	cmpq	$1024, %rax
 	jne	.LBB3_13
-	leaq	576(%rsp), %r14
-	leaq	20540(%rsp), %rsi
+	leaq	560(%rsp), %r14
+	leaq	20556(%rsp), %rsi
 	movl	$1024, %edx
 	movq	%r14, %rdi
-	movq	memcpy@GOTPCREL(%rip), %r12
-	callq	*%r12
-	movq	18840(%rsp), %rax
-	movq	18848(%rsp), %rcx
+	movq	memcpy@GOTPCREL(%rip), %rbp
+	callq	*%rbp
+	movq	17828(%rsp), %rax
+	movq	17836(%rsp), %rcx
 	movq	%rcx, 8(%rbx)
 	movq	%rax, (%rbx)
-	movq	18856(%rsp), %rax
-	movq	18864(%rsp), %rcx
+	movq	17844(%rsp), %rax
+	movq	17852(%rsp), %rcx
+	movq	%rax, 1736(%rsp)
+	movq	%rcx, 1744(%rsp)
+	movq	17860(%rsp), %rax
+	movq	%rax, 1752(%rsp)
+	movq	17868(%rsp), %rax
+	movq	%rax, 1760(%rsp)
+	movq	17876(%rsp), %rax
+	movq	%rax, 1768(%rsp)
+	movq	17884(%rsp), %rax
 	movq	%rax, 1776(%rsp)
-	movq	%rcx, 1784(%rsp)
-	movq	18872(%rsp), %rax
+	movq	17900(%rsp), %rax
 	movq	%rax, 1792(%rsp)
-	movq	18880(%rsp), %rax
+	movq	17892(%rsp), %rax
+	movq	%rax, 1784(%rsp)
+	movq	17908(%rsp), %rax
+	movq	17916(%rsp), %rcx
+	movq	%rcx, 1808(%rsp)
 	movq	%rax, 1800(%rsp)
-	movq	18888(%rsp), %rax
-	movq	%rax, 1808(%rsp)
-	movq	18896(%rsp), %rax
-	movq	%rax, 1816(%rsp)
-	movq	18912(%rsp), %rax
-	movq	%rax, 1832(%rsp)
-	movq	18904(%rsp), %rax
+	movq	17932(%rsp), %rax
 	movq	%rax, 1824(%rsp)
-	movq	18920(%rsp), %rax
-	movq	18928(%rsp), %rcx
-	movq	%rcx, 1848(%rsp)
+	movq	17924(%rsp), %rax
+	movq	%rax, 1816(%rsp)
+	movq	17948(%rsp), %rax
 	movq	%rax, 1840(%rsp)
-	movq	18944(%rsp), %rax
-	movq	%rax, 1864(%rsp)
-	movq	18936(%rsp), %rax
-	movq	%rax, 1856(%rsp)
-	movq	18960(%rsp), %rax
-	movq	%rax, 1880(%rsp)
-	movq	18952(%rsp), %rax
-	movq	%rax, 1872(%rsp)
-	leaq	2048(%rsp), %rbx
+	movq	17940(%rsp), %rax
+	movq	%rax, 1832(%rsp)
+	leaq	2056(%rsp), %rbx
 	movl	$1024, %edx
 	movq	%rbx, %rdi
 	movq	%r14, %rsi
-	callq	*%r12
-	leaq	9344(%rsp), %r14
+	callq	*%rbp
+	leaq	3080(%rsp), %r14
 	movl	$1024, %edx
 	movq	%r14, %rdi
 	movq	%rbx, %rsi
-	callq	*%r12
-	leaq	3072(%rsp), %rbx
+	callq	*%rbp
+	leaq	19144(%rsp), %rbx
 	movl	$1024, %edx
 	movq	%rbx, %rdi
 	movq	%r14, %rsi
-	callq	*%r12
-	leaq	11392(%rsp), %r14
+	callq	*%rbp
+	leaq	10376(%rsp), %r14
 	movl	$1024, %edx
 	movq	%r14, %rdi
 	movq	%rbx, %rsi
-	callq	*%r12
-	leaq	10368(%rsp), %rdi
+	callq	*%rbp
+	leaq	8328(%rsp), %rdi
 	movl	$1024, %edx
 	movq	%r14, %rsi
-	callq	*%r12
-	movl	18968(%rsp), %r13d
+	callq	*%rbp
+	movl	17956(%rsp), %r13d
 	xorl	%eax, %eax
 	.p2align	4
 .LBB3_15:
-	movq	18972(%rsp,%rax), %rcx
-	movq	18980(%rsp,%rax), %rdx
-	movq	%rdx, 20548(%rsp,%rax)
-	movq	%rcx, 20540(%rsp,%rax)
-	movq	18988(%rsp,%rax), %rcx
+	movq	17960(%rsp,%rax), %rcx
+	movq	17968(%rsp,%rax), %rdx
+	movq	%rdx, 20564(%rsp,%rax)
 	movq	%rcx, 20556(%rsp,%rax)
-	movq	18996(%rsp,%rax), %rcx
-	movq	%rcx, 20564(%rsp,%rax)
+	movq	17976(%rsp,%rax), %rcx
+	movq	%rcx, 20572(%rsp,%rax)
+	movq	17984(%rsp,%rax), %rcx
+	movq	%rcx, 20580(%rsp,%rax)
 	addq	$32, %rax
 	cmpq	$1024, %rax
 	jne	.LBB3_15
-	leaq	576(%rsp), %rbx
-	leaq	20540(%rsp), %rsi
+	leaq	560(%rsp), %rbx
+	leaq	20556(%rsp), %rsi
 	movl	$1024, %edx
 	movq	%rbx, %rdi
-	callq	*%r12
-	movq	19996(%rsp), %rax
-	movq	20004(%rsp), %rcx
+	callq	*%rbp
+	movq	18984(%rsp), %rax
+	movq	18992(%rsp), %rcx
+	movq	%rax, 1848(%rsp)
+	movq	%rcx, 1856(%rsp)
+	movq	19000(%rsp), %rax
+	movq	%rax, 1864(%rsp)
+	movq	19008(%rsp), %rax
+	movq	%rax, 1872(%rsp)
+	movq	19016(%rsp), %rax
+	movq	%rax, 1880(%rsp)
+	movq	19024(%rsp), %rax
 	movq	%rax, 1888(%rsp)
-	movq	%rcx, 1896(%rsp)
-	movq	20012(%rsp), %rax
+	movq	19032(%rsp), %rax
+	movq	%rax, 1896(%rsp)
+	movq	19040(%rsp), %rax
 	movq	%rax, 1904(%rsp)
-	movq	20020(%rsp), %rax
-	movq	%rax, 1912(%rsp)
-	movq	20028(%rsp), %rax
+	movq	19056(%rsp), %rax
 	movq	%rax, 1920(%rsp)
-	movq	20036(%rsp), %rax
+	movq	19048(%rsp), %rax
+	movq	%rax, 1912(%rsp)
+	movq	19064(%rsp), %rax
+	movq	19072(%rsp), %rcx
+	movq	%rcx, 1936(%rsp)
 	movq	%rax, 1928(%rsp)
-	movq	20044(%rsp), %rax
-	movq	%rax, 1936(%rsp)
-	movq	20052(%rsp), %rax
-	movq	%rax, 1944(%rsp)
-	movq	20068(%rsp), %rax
-	movq	%rax, 1960(%rsp)
-	movq	20060(%rsp), %rax
+	movq	19088(%rsp), %rax
 	movq	%rax, 1952(%rsp)
-	movq	20076(%rsp), %rax
-	movq	20084(%rsp), %rcx
-	movq	%rcx, 1976(%rsp)
+	movq	19080(%rsp), %rax
+	movq	%rax, 1944(%rsp)
+	movq	19104(%rsp), %rax
 	movq	%rax, 1968(%rsp)
-	movq	20100(%rsp), %rax
-	movq	%rax, 1992(%rsp)
-	movq	20092(%rsp), %rax
+	movq	19096(%rsp), %rax
+	movq	%rax, 1960(%rsp)
+	movq	19120(%rsp), %rax
 	movq	%rax, 1984(%rsp)
-	movq	20116(%rsp), %rax
-	movq	%rax, 2008(%rsp)
-	movq	20108(%rsp), %rax
-	movq	%rax, 2000(%rsp)
-	movq	20132(%rsp), %rax
-	movq	%rax, 2024(%rsp)
-	movq	20124(%rsp), %rax
-	movq	%rax, 2016(%rsp)
+	movq	19112(%rsp), %rax
+	movq	%rax, 1976(%rsp)
+	bswapl	%r12d
 	bswapl	%r15d
-	bswapl	%ebp
-	movq	20148(%rsp), %rax
-	movq	%rax, 2040(%rsp)
-	movq	20140(%rsp), %rax
-	movq	%rax, 2032(%rsp)
+	movq	19136(%rsp), %rax
+	movq	%rax, 2000(%rsp)
+	movq	19128(%rsp), %rax
+	movq	%rax, 1992(%rsp)
 	bswapl	%r13d
-	leaq	2048(%rsp), %r14
+	leaq	2056(%rsp), %r14
 	movl	$1024, %edx
 	movq	%r14, %rdi
 	movq	%rbx, %rsi
-	callq	*%r12
-	leaq	9344(%rsp), %rbx
+	callq	*%rbp
+	leaq	3080(%rsp), %rbx
 	movl	$1024, %edx
 	movq	%rbx, %rdi
 	movq	%r14, %rsi
-	callq	*%r12
-	movl	%r15d, %r14d
-	movl	%ebp, %r15d
-	leaq	3072(%rsp), %rbp
+	callq	*%rbp
+	movl	%r12d, %r14d
+	movl	%r15d, %r12d
+	leaq	19144(%rsp), %r15
 	movl	$1024, %edx
-	movq	%rbp, %rdi
+	movq	%r15, %rdi
 	movq	%rbx, %rsi
-	callq	*%r12
-	leaq	11392(%rsp), %rbx
+	callq	*%rbp
+	leaq	10376(%rsp), %rbx
 	movl	$1024, %edx
 	movq	%rbx, %rdi
-	movq	%rbp, %rsi
-	callq	*%r12
-	leaq	25180(%rsp), %rbp
-	movq	12416(%rsp), %rax
-	movq	12424(%rsp), %rcx
-	movq	%rax, 25180(%rsp)
-	movq	%rcx, 25188(%rsp)
-	leaq	20540(%rsp), %rdi
-	leaq	4096(%rsp), %rsi
+	movq	%r15, %rsi
+	callq	*%rbp
+	leaq	25196(%rsp), %r15
+	movq	11404(%rsp), %rax
+	movq	11412(%rsp), %rcx
+	movq	%rax, 25196(%rsp)
+	movq	%rcx, 25204(%rsp)
+	leaq	20556(%rsp), %rdi
+	leaq	4104(%rsp), %rsi
 	movl	$4224, %edx
-	callq	*%r12
-	leaq	25196(%rsp), %rdi
-	leaq	8320(%rsp), %rsi
+	callq	*%rbp
+	leaq	25212(%rsp), %rdi
+	leaq	9352(%rsp), %rsi
 	movl	$1024, %edx
-	movq	%rdi, 176(%rsp)
-	callq	*%r12
-	movl	%r15d, 26220(%rsp)
-	leaq	26224(%rsp), %rdi
-	leaq	10368(%rsp), %rsi
+	movq	%rdi, 184(%rsp)
+	callq	*%rbp
+	movl	%r12d, 26236(%rsp)
+	leaq	26240(%rsp), %rdi
+	leaq	8328(%rsp), %rsi
 	movl	$1024, %edx
-	callq	*%r12
-	movl	%r14d, 27248(%rsp)
-	leaq	27252(%rsp), %rdi
+	callq	*%rbp
+	movl	%r14d, 27264(%rsp)
+	leaq	27268(%rsp), %rdi
 	movl	$1024, %edx
 	movq	%rbx, %rsi
-	callq	*%r12
-	movl	%r13d, 28276(%rsp)
-	leaq	24764(%rsp), %rdi
-	leaq	1632(%rsp), %rsi
+	callq	*%rbp
+	movl	%r13d, 28292(%rsp)
+	leaq	24780(%rsp), %rdi
+	leaq	1592(%rsp), %rsi
 	movl	$416, %edx
-	callq	*%r12
-	leaq	576(%rsp), %r14
-	xorl	%r13d, %r13d
+	callq	*%rbp
+	leaq	560(%rsp), %r14
+	xorl	%r12d, %r12d
 	movl	$344, %edx
 	movq	%r14, %rdi
 	xorl	%esi, %esi
 	callq	*memset@GOTPCREL(%rip)
 	movl	$16, %edx
 	movq	%r14, %rdi
-	movq	%rbp, %rsi
+	movq	%r15, %rsi
 	callq	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher6update
 	leaq	112(%rsp), %rsi
 	movl	$16, %edx
@@ -602,88 +602,89 @@ sphincs_verify:
 	movq	%r14, %rdi
 	leaq	128(%rsp), %rsi
 	callq	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher6update
-	leaq	1600(%rsp), %rsi
+	leaq	2008(%rsp), %rsi
 	movl	$32, %edx
 	movq	%r14, %rdi
 	callq	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher6update
-	leaq	4096(%rsp), %rbp
+	leaq	4104(%rsp), %r13
 	movl	$344, %edx
-	movq	%rbp, %rdi
+	movq	%r13, %rdi
 	movq	%r14, %rsi
-	callq	*%r12
-	movl	$0, 9344(%rsp)
-	leaq	9344(%rsp), %rbx
+	callq	*%rbp
+	movl	$0, 3080(%rsp)
+	leaq	3080(%rsp), %rbx
 	movl	$4, %edx
-	movq	%rbp, %rdi
+	movq	%r13, %rdi
 	movq	%rbx, %rsi
 	callq	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher6update
-	leaq	11392(%rsp), %r15
+	leaq	10376(%rsp), %r15
 	movq	%r15, %rdi
-	movq	%rbp, %rsi
+	movq	%r13, %rsi
 	callq	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher8finalize
-	movq	11416(%rsp), %rax
-	movq	%rax, 2072(%rsp)
-	movq	11408(%rsp), %rax
-	movq	%rax, 2064(%rsp)
-	movq	11392(%rsp), %rax
-	movq	11400(%rsp), %rcx
-	movq	%rcx, 2056(%rsp)
-	movq	%rax, 2048(%rsp)
-	movl	$344, %edx
-	movq	%rbp, %rdi
-	movq	%r14, %rsi
-	callq	*%r12
-	movl	$16777216, 9344(%rsp)
-	movl	$4, %edx
-	movq	%rbp, %rdi
-	movq	%rbx, %rsi
-	callq	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher6update
-	movq	%r15, %rdi
-	movq	%rbp, %rsi
-	callq	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher8finalize
-	movq	11416(%rsp), %rax
-	movq	%rax, 2104(%rsp)
-	movq	11408(%rsp), %rax
-	movq	%rax, 2096(%rsp)
-	movq	11392(%rsp), %rax
-	movq	11400(%rsp), %rcx
-	movq	%rcx, 2088(%rsp)
+	movq	10400(%rsp), %rax
 	movq	%rax, 2080(%rsp)
+	movq	10392(%rsp), %rax
+	movq	%rax, 2072(%rsp)
+	movq	10376(%rsp), %rax
+	movq	10384(%rsp), %rcx
+	movq	%rcx, 2064(%rsp)
+	movq	%rax, 2056(%rsp)
+	movl	$344, %edx
+	movq	%r13, %rdi
+	movq	%r14, %rsi
+	callq	*%rbp
+	movl	$16777216, 3080(%rsp)
+	movl	$4, %edx
+	movq	%r13, %rdi
+	movq	%rbx, %rsi
+	callq	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher6update
+	movq	%r15, %rdi
+	movq	%r13, %rsi
+	callq	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher8finalize
+	movq	10400(%rsp), %rax
+	movq	%rax, 2112(%rsp)
+	movq	10392(%rsp), %rax
+	movq	%rax, 2104(%rsp)
+	movq	10376(%rsp), %rax
+	movq	10384(%rsp), %rcx
+	movq	%rcx, 2096(%rsp)
+	movq	%rax, 2088(%rsp)
 	.p2align	4
 .LBB3_17:
-	movq	%r13, %rax
+	movq	%r12, %rax
 	shrq	$3, %rax
-	leaq	2(%r13), %rsi
+	leaq	2(%r12), %rsi
 	movq	%rsi, %r15
 	shrq	$3, %r15
-	leaq	4(%r13), %rdx
+	leaq	4(%r12), %rdx
 	movq	%rdx, %r14
 	shrq	$3, %r14
-	leaq	6(%r13), %r10
+	leaq	6(%r12), %r10
 	movq	%r10, %r11
 	shrq	$3, %r11
-	leaq	8(%r13), %r9
+	leaq	8(%r12), %r9
 	shrq	$3, %r9
-	leaq	9(%r13), %rdi
-	movq	%rdi, %rcx
+	leaq	9(%r12), %r8
+	movq	%r8, %rcx
 	shrq	$3, %rcx
 	movq	%rcx, 8(%rsp)
-	movq	%rbp, %r8
-	movzbl	2048(%rsp,%rax), %ebp
-	movl	%r13d, %r12d
-	andb	$6, %r12b
-	movl	%r12d, %eax
-	xorb	$7, %al
+	movzbl	2056(%rsp,%rax), %ebp
+	movq	%r13, %rax
+	movl	%r12d, %r13d
+	andb	$6, %r13b
+	movl	%r13d, %edi
+	xorb	$7, %dil
 	movl	%ebp, %ebx
-	movl	%eax, %ecx
+	movl	%edi, %ecx
 	shrb	%cl, %bl
 	addb	%bl, %bl
 	andb	$2, %bl
-	xorb	$6, %r12b
-	movzbl	%r12b, %ecx
+	xorb	$6, %r13b
+	movzbl	%r13b, %ecx
+	movq	%rax, %r13
 	btl	%ecx, %ebp
 	setb	%bpl
-	movzbl	2048(%rsp,%r15), %r15d
+	movzbl	2056(%rsp,%r15), %r15d
 	andb	$6, %sil
 	xorb	$7, %sil
 	movl	%esi, %ecx
@@ -693,19 +694,18 @@ sphincs_verify:
 	addb	%r15b, %r15b
 	andb	$2, %r15b
 	orb	%bpl, %r15b
-	movq	%r8, %rbp
-	leaq	3(%r13), %rcx
+	leaq	3(%r12), %rcx
 	movq	%rcx, %rsi
 	shrq	$3, %rsi
 	notb	%cl
-	movzbl	2048(%rsp,%rsi), %esi
+	movzbl	2056(%rsp,%rsi), %esi
 	movzbl	%cl, %ecx
 	andl	$6, %ecx
 	btl	%ecx, %esi
 	setb	%sil
 	orb	%r15b, %sil
 	shlb	$2, %sil
-	movzbl	2048(%rsp,%r14), %ebx
+	movzbl	2056(%rsp,%r14), %ebx
 	andb	$6, %dl
 	xorb	$7, %dl
 	movl	%edx, %ecx
@@ -713,11 +713,11 @@ sphincs_verify:
 	addb	%bl, %bl
 	andb	$2, %bl
 	orb	%sil, %bl
-	leaq	5(%r13), %rcx
+	leaq	5(%r12), %rcx
 	movq	%rcx, %rdx
 	shrq	$3, %rdx
 	notb	%cl
-	movzbl	2048(%rsp,%rdx), %edx
+	movzbl	2056(%rsp,%rdx), %edx
 	movzbl	%cl, %ecx
 	andl	$6, %ecx
 	btl	%ecx, %edx
@@ -726,89 +726,90 @@ sphincs_verify:
 	addb	%cl, %cl
 	andb	$6, %r10b
 	xorb	$7, %r10b
-	movzbl	2048(%rsp,%r11), %edx
+	movzbl	2056(%rsp,%r11), %edx
 	movzbl	%r10b, %esi
 	btl	%esi, %edx
 	setb	%dl
 	orb	%cl, %dl
 	movzbl	%dl, %edx
-	leaq	7(%r13), %rcx
+	leaq	7(%r12), %rcx
 	movq	%rcx, %rsi
 	shrq	$3, %rsi
-	movzbl	2048(%rsp,%rsi), %esi
+	movzbl	2056(%rsp,%rsi), %esi
 	notb	%cl
 	andb	$6, %cl
 	shrq	%cl, %rsi
 	andl	$1, %esi
 	addl	%esi, %esi
 	leal	(%rsi,%rdx,4), %ecx
-	movzbl	2048(%rsp,%r9), %edx
-	movzbl	%al, %eax
+	movzbl	2056(%rsp,%r9), %edx
+	movzbl	%dil, %eax
 	xorl	%esi, %esi
 	btl	%eax, %edx
 	setb	%sil
 	orl	%ecx, %esi
 	movq	8(%rsp), %rax
-	movzbl	2048(%rsp,%rax), %eax
-	notb	%dil
-	movzbl	%dil, %ecx
+	movzbl	2056(%rsp,%rax), %eax
+	notb	%r8b
+	movzbl	%r8b, %ecx
 	andl	$6, %ecx
 	xorl	%edx, %edx
 	btl	%ecx, %eax
 	setb	%dl
 	leaq	(%rdx,%rsi,2), %rax
-	movq	%rax, (%r8)
-	addq	$10, %r13
-	addq	$8, %rbp
-	cmpq	$240, %r13
+	movq	%rax, (%r13)
+	addq	$10, %r12
+	addq	$8, %r13
+	cmpq	$240, %r12
 	jne	.LBB3_17
-	leaq	11400(%rsp), %rdi
-	movzbl	2078(%rsp), %eax
-	movzbl	2079(%rsp), %ebx
-	movzbl	2080(%rsp), %ecx
+	leaq	10384(%rsp), %rdi
+	movzbl	2086(%rsp), %eax
+	movzbl	2087(%rsp), %ebx
+	movzbl	2088(%rsp), %ecx
 	shll	$16, %eax
 	shll	$8, %ebx
 	orl	%eax, %ebx
 	orl	%ecx, %ebx
 	shll	$8, %ebx
 	andl	$67108608, %ebx
-	movzbl	2081(%rsp), %ebp
+	movzbl	2089(%rsp), %ebp
 	orl	%ebp, %ebx
-	movq	%rbx, 11392(%rsp)
-	leaq	4096(%rsp), %r12
+	movq	%rbx, 10376(%rsp)
+	leaq	4104(%rsp), %r12
 	movl	$192, %edx
 	movq	%r12, %rsi
 	callq	*memcpy@GOTPCREL(%rip)
-	movq	%rbx, 568(%rsp)
-	movq	%rbx, %r15
-	bswapq	%r15
-	shlq	$8, %r15
+	movq	%rbx, 552(%rsp)
+	movq	%rbx, %r13
+	bswapq	%r13
+	shlq	$8, %r13
 	shll	$24, %ebp
-	xorl	%r13d, %r13d
+	xorl	%esi, %esi
 	movq	memset@GOTPCREL(%rip), %rbx
 	leaq	112(%rsp), %r14
-	movl	%ebp, 60(%rsp)
-	movq	%r15, 80(%rsp)
+	leaq	560(%rsp), %r15
+	movl	%ebp, 68(%rsp)
+	movq	%r13, 80(%rsp)
 .LBB3_19:
-	movq	11400(%rsp,%r13,8), %rcx
-	imulq	$176, %r13, %rax
+	movq	10384(%rsp,%rsi,8), %rcx
+	imulq	$176, %rsi, %rax
 	leaq	(%rsp,%rax), %rdx
-	addq	$20540, %rdx
-	movq	%rdx, 72(%rsp)
-	addq	%rsp, %rax
-	addq	$20700, %rax
+	addq	$20556, %rdx
+	movq	%rdx, 104(%rsp)
+	leaq	20716(%rsp,%rax), %rax
 	movq	%rax, 8(%rsp)
-	movl	%r13d, %eax
+	movq	%rsi, 88(%rsp)
+	movl	%esi, %eax
 	shll	$10, %eax
-	movq	%rcx, 88(%rsp)
+	movq	%rcx, 72(%rsp)
 	addl	%ecx, %eax
 	bswapl	%eax
-	movq	$0, 2048(%rsp)
-	movq	%r15, 2056(%rsp)
-	movl	$50331648, 2064(%rsp)
-	movl	%ebp, 2068(%rsp)
-	movl	$0, 2072(%rsp)
-	movl	%eax, 2076(%rsp)
+	movq	$0, 2056(%rsp)
+	movq	%r13, 2064(%rsp)
+	movl	$50331648, 2072(%rsp)
+	movl	%ebp, 2076(%rsp)
+	movl	$0, 2080(%rsp)
+	movl	%eax, 2084(%rsp)
 	movl	$344, %edx
 	movq	%r12, %rdi
 	xorl	%esi, %esi
@@ -819,132 +820,131 @@ sphincs_verify:
 	callq	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher6update
 	movl	$32, %edx
 	movq	%r12, %rdi
-	leaq	2048(%rsp), %rsi
+	leaq	2056(%rsp), %rsi
 	callq	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher6update
 	movl	$344, %edx
-	leaq	576(%rsp), %r14
-	movq	%r14, %rdi
+	movq	%r15, %rdi
 	movq	%r12, %rsi
-	movq	memcpy@GOTPCREL(%rip), %rbx
-	callq	*%rbx
+	movq	memcpy@GOTPCREL(%rip), %r14
+	callq	*%r14
 	movl	$16, %edx
-	movq	%r14, %rdi
+	movq	%r15, %rdi
 	movq	8(%rsp), %rsi
-	movq	%rbx, %r14
 	movq	memset@GOTPCREL(%rip), %rbx
 	callq	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher6update
-	leaq	10368(%rsp), %rdi
-	leaq	576(%rsp), %rsi
+	leaq	8328(%rsp), %rdi
+	movq	%r15, %rsi
 	callq	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher8finalize
 	xorl	%ecx, %ecx
-	movq	%r13, 104(%rsp)
+	movq	%r12, %r15
+	leaq	2056(%rsp), %r12
 	.p2align	4
 .LBB3_20:
-	movq	10368(%rsp), %rax
-	movq	10376(%rsp), %rdx
-	movq	%rdx, 8328(%rsp)
-	movq	%rax, 8320(%rsp)
+	movq	8328(%rsp), %rax
+	movq	8336(%rsp), %rdx
+	movq	%rdx, 9360(%rsp)
+	movq	%rax, 9352(%rsp)
 	movq	%rcx, %rax
 	shlq	$4, %rax
-	addq	72(%rsp), %rax
-	movq	88(%rsp), %rdi
+	addq	104(%rsp), %rax
+	movq	72(%rsp), %rdi
 	btq	%rcx, %rdi
 	movq	%rax, %r8
-	leaq	8320(%rsp), %rdx
+	leaq	9352(%rsp), %rdx
 	cmovaeq	%rdx, %r8
 	cmovbq	%rdx, %rax
 	movl	%ecx, %edx
 	movq	(%r8), %rsi
 	movq	8(%r8), %r8
-	movq	%r8, 3080(%rsp)
-	movq	%rsi, 3072(%rsp)
+	movq	%r8, 19152(%rsp)
+	movq	%rsi, 19144(%rsp)
 	movq	(%rax), %r8
 	movq	8(%rax), %rax
-	leaq	3088(%rsp), %rsi
+	leaq	19160(%rsp), %rsi
 	movq	%rax, 8(%rsi)
 	movq	%r8, (%rsi)
 	incq	%rcx
 	movq	%rdi, %rax
 	shrq	%cl, %rax
-	movq	%rcx, 64(%rsp)
+	movq	%rcx, 56(%rsp)
 	movl	%ecx, %esi
 	bswapl	%esi
 	movb	$9, %cl
 	subb	%dl, %cl
-	movl	%r13d, %edx
+	movq	88(%rsp), %rdx
 	shll	%cl, %edx
 	addl	%edx, %eax
 	bswapl	%eax
-	movq	$0, 9344(%rsp)
-	movq	%r15, 9352(%rsp)
-	movl	$50331648, 9360(%rsp)
-	movl	%ebp, 9364(%rsp)
-	movl	%esi, 9368(%rsp)
-	movl	%eax, 9372(%rsp)
+	movq	$0, 3080(%rsp)
+	movq	%r13, 3088(%rsp)
+	movl	$50331648, 3096(%rsp)
+	movl	%ebp, 3100(%rsp)
+	movl	%esi, 3104(%rsp)
+	movl	%eax, 3108(%rsp)
 	movl	$344, %edx
-	movq	%r12, %rdi
+	movq	%r15, %rdi
 	xorl	%esi, %esi
 	callq	*%rbx
 	movq	112(%rsp), %rax
 	movq	120(%rsp), %rcx
-	leaq	4296(%rsp), %rdx
+	leaq	4304(%rsp), %rdx
 	movq	%rax, (%rdx)
 	movq	%rcx, 8(%rdx)
-	movq	4432(%rsp), %rdi
+	movq	4440(%rsp), %rdi
 	addq	$16, %rdi
-	movq	%rdi, 4432(%rsp)
+	movq	%rdi, 4440(%rsp)
 	cmpq	$136, %rdi
 	jne	.LBB3_22
-	movq	4296(%rsp), %rax
+	movq	4304(%rsp), %rax
 	movq	%rax, 24(%rsp)
-	movq	4304(%rsp), %rcx
-	movq	4312(%rsp), %rdx
-	movq	4320(%rsp), %rsi
-	movq	4328(%rsp), %rdi
-	movq	4336(%rsp), %r8
-	movq	4344(%rsp), %r9
-	movq	4352(%rsp), %r10
-	movq	4360(%rsp), %r11
-	movq	4368(%rsp), %rbx
-	movq	4376(%rsp), %r12
-	movq	4384(%rsp), %r13
-	movq	4392(%rsp), %rbp
-	movq	4400(%rsp), %r14
-	movq	4408(%rsp), %r15
-	movq	4416(%rsp), %rax
-	movq	%rax, 8(%rsp)
+	movq	4312(%rsp), %rcx
+	movq	4320(%rsp), %rdx
+	movq	4328(%rsp), %rsi
+	movq	4336(%rsp), %rdi
+	movq	4344(%rsp), %r8
+	movq	4352(%rsp), %r9
+	movq	4360(%rsp), %r10
+	movq	4368(%rsp), %r11
+	movq	4376(%rsp), %rbx
+	movq	4384(%rsp), %r15
+	movq	4392(%rsp), %r13
+	movq	4400(%rsp), %rbp
+	movq	4408(%rsp), %r14
+	movq	4416(%rsp), %r12
 	movq	4424(%rsp), %rax
+	movq	%rax, 8(%rsp)
+	movq	4432(%rsp), %rax
 	movq	%rax, 16(%rsp)
 	movq	24(%rsp), %rax
-	xorq	%rax, 4096(%rsp)
-	xorq	%rcx, 4104(%rsp)
-	xorq	%rdx, 4112(%rsp)
-	xorq	%rsi, 4120(%rsp)
-	xorq	%rdi, 4128(%rsp)
-	xorq	%r8, 4136(%rsp)
-	xorq	%r9, 4144(%rsp)
-	xorq	%r10, 4152(%rsp)
-	xorq	%r11, 4160(%rsp)
-	xorq	%rbx, 4168(%rsp)
-	xorq	%r12, 4176(%rsp)
-	leaq	4096(%rsp), %r12
-	xorq	%r13, 4184(%rsp)
-	xorq	%rbp, 4192(%rsp)
-	xorq	%r14, 4200(%rsp)
+	xorq	%rax, 4104(%rsp)
+	xorq	%rcx, 4112(%rsp)
+	xorq	%rdx, 4120(%rsp)
+	xorq	%rsi, 4128(%rsp)
+	xorq	%rdi, 4136(%rsp)
+	xorq	%r8, 4144(%rsp)
+	xorq	%r9, 4152(%rsp)
+	xorq	%r10, 4160(%rsp)
+	xorq	%r11, 4168(%rsp)
+	xorq	%rbx, 4176(%rsp)
+	xorq	%r15, 4184(%rsp)
+	leaq	4104(%rsp), %r15
+	xorq	%r13, 4192(%rsp)
+	xorq	%rbp, 4200(%rsp)
+	xorq	%r14, 4208(%rsp)
 	movq	memcpy@GOTPCREL(%rip), %r14
-	xorq	%r15, 4208(%rsp)
+	xorq	%r12, 4216(%rsp)
+	leaq	2056(%rsp), %r12
 	movq	8(%rsp), %rax
-	xorq	%rax, 4216(%rsp)
-	movq	16(%rsp), %rax
 	xorq	%rax, 4224(%rsp)
-	movq	%r12, %rdi
+	movq	16(%rsp), %rax
+	xorq	%rax, 4232(%rsp)
+	movq	%r15, %rdi
 	callq	_RNvCsndc0WgnAaH_9keccak2568keccak_f
-	movq	$0, 4432(%rsp)
+	movq	$0, 4440(%rsp)
 	xorl	%edi, %edi
 .LBB3_22:
 	movl	$32, %ebx
-	leaq	9344(%rsp), %rbp
-	leaq	2048(%rsp), %r15
+	leaq	3080(%rsp), %rbp
 	jmp	.LBB3_23
 	.p2align	4
 .LBB3_27:
@@ -962,182 +962,180 @@ sphincs_verify:
 	jb	.LBB3_86
 	cmpq	$137, %rsi
 	jae	.LBB3_86
-	leaq	4296(%rsp), %rax
+	leaq	4304(%rsp), %rax
 	addq	%rax, %rdi
 	movq	%rbp, %rsi
 	movq	%r13, %rdx
 	callq	*%r14
-	movq	4432(%rsp), %rdi
+	movq	4440(%rsp), %rdi
 	addq	%r13, %rdi
-	movq	%rdi, 4432(%rsp)
+	movq	%rdi, 4440(%rsp)
 	cmpq	$136, %rdi
 	jne	.LBB3_27
-	movq	4296(%rsp), %rax
+	movq	4304(%rsp), %rax
 	movq	%rax, 24(%rsp)
-	movq	4304(%rsp), %rcx
-	movq	4312(%rsp), %rdx
-	movq	4320(%rsp), %rsi
-	movq	4328(%rsp), %rdi
-	movq	4336(%rsp), %r8
-	movq	4344(%rsp), %r9
-	movq	4352(%rsp), %r10
-	movq	4360(%rsp), %r11
-	movq	4368(%rsp), %r14
-	movq	4376(%rsp), %r15
-	movq	4384(%rsp), %r12
-	movq	4392(%rsp), %rax
-	movq	%rax, 8(%rsp)
+	movq	4312(%rsp), %rcx
+	movq	4320(%rsp), %rdx
+	movq	4328(%rsp), %rsi
+	movq	4336(%rsp), %rdi
+	movq	4344(%rsp), %r8
+	movq	4352(%rsp), %r9
+	movq	4360(%rsp), %r10
+	movq	4368(%rsp), %r11
+	movq	4376(%rsp), %r14
+	movq	4384(%rsp), %r15
+	movq	4392(%rsp), %r12
 	movq	4400(%rsp), %rax
-	movq	%rax, 16(%rsp)
+	movq	%rax, 8(%rsp)
 	movq	4408(%rsp), %rax
-	movq	%rax, 48(%rsp)
+	movq	%rax, 16(%rsp)
 	movq	4416(%rsp), %rax
-	movq	%rax, 40(%rsp)
+	movq	%rax, 48(%rsp)
 	movq	4424(%rsp), %rax
+	movq	%rax, 40(%rsp)
+	movq	4432(%rsp), %rax
 	movq	%rax, 32(%rsp)
 	movq	24(%rsp), %rax
-	xorq	%rax, 4096(%rsp)
-	xorq	%rcx, 4104(%rsp)
-	xorq	%rdx, 4112(%rsp)
-	xorq	%rsi, 4120(%rsp)
-	xorq	%rdi, 4128(%rsp)
-	xorq	%r8, 4136(%rsp)
-	xorq	%r9, 4144(%rsp)
-	xorq	%r10, 4152(%rsp)
-	xorq	%r11, 4160(%rsp)
-	xorq	%r14, 4168(%rsp)
+	xorq	%rax, 4104(%rsp)
+	xorq	%rcx, 4112(%rsp)
+	xorq	%rdx, 4120(%rsp)
+	xorq	%rsi, 4128(%rsp)
+	xorq	%rdi, 4136(%rsp)
+	xorq	%r8, 4144(%rsp)
+	xorq	%r9, 4152(%rsp)
+	xorq	%r10, 4160(%rsp)
+	xorq	%r11, 4168(%rsp)
+	xorq	%r14, 4176(%rsp)
 	movq	memcpy@GOTPCREL(%rip), %r14
-	xorq	%r15, 4176(%rsp)
-	leaq	2048(%rsp), %r15
-	xorq	%r12, 4184(%rsp)
-	leaq	4096(%rsp), %r12
+	xorq	%r15, 4184(%rsp)
+	leaq	4104(%rsp), %r15
+	xorq	%r12, 4192(%rsp)
+	leaq	2056(%rsp), %r12
 	movq	8(%rsp), %rax
-	xorq	%rax, 4192(%rsp)
-	movq	16(%rsp), %rax
 	xorq	%rax, 4200(%rsp)
-	movq	48(%rsp), %rax
+	movq	16(%rsp), %rax
 	xorq	%rax, 4208(%rsp)
-	movq	40(%rsp), %rax
+	movq	48(%rsp), %rax
 	xorq	%rax, 4216(%rsp)
-	movq	32(%rsp), %rax
+	movq	40(%rsp), %rax
 	xorq	%rax, 4224(%rsp)
-	movq	%r12, %rdi
+	movq	32(%rsp), %rax
+	xorq	%rax, 4232(%rsp)
+	movq	%r15, %rdi
 	callq	_RNvCsndc0WgnAaH_9keccak2568keccak_f
-	movq	$0, 4432(%rsp)
+	movq	$0, 4440(%rsp)
 	xorl	%edi, %edi
 	jmp	.LBB3_27
 	.p2align	4
 .LBB3_28:
 	movl	$344, %edx
-	leaq	576(%rsp), %rdi
-	movq	%r12, %rsi
+	leaq	560(%rsp), %rdi
+	movq	%r15, %rsi
 	callq	*%r14
 	movl	$32, %ebx
-	movq	912(%rsp), %r13
-	leaq	3072(%rsp), %rbp
+	movq	896(%rsp), %r13
+	leaq	19144(%rsp), %rbp
 	jmp	.LBB3_29
 	.p2align	4
 .LBB3_33:
-	subq	%r12, %rbx
-	addq	%r12, %rbp
+	subq	%r15, %rbx
+	addq	%r15, %rbp
 	testq	%rbx, %rbx
 	je	.LBB3_34
 .LBB3_29:
-	movl	$136, %r12d
-	subq	%r13, %r12
-	cmpq	%r12, %rbx
-	cmovbq	%rbx, %r12
-	leaq	(%r12,%r13), %rsi
+	movl	$136, %r15d
+	subq	%r13, %r15
+	cmpq	%r15, %rbx
+	cmovbq	%rbx, %r15
+	leaq	(%r15,%r13), %rsi
 	cmpq	%r13, %rsi
 	jb	.LBB3_87
 	cmpq	$137, %rsi
 	jae	.LBB3_87
-	leaq	776(%rsp), %rax
+	leaq	760(%rsp), %rax
 	addq	%rax, %r13
 	movq	%r13, %rdi
 	movq	%rbp, %rsi
-	movq	%r12, %rdx
+	movq	%r15, %rdx
 	callq	*%r14
-	movq	912(%rsp), %r13
-	addq	%r12, %r13
-	movq	%r13, 912(%rsp)
+	movq	896(%rsp), %r13
+	addq	%r15, %r13
+	movq	%r13, 896(%rsp)
 	cmpq	$136, %r13
 	jne	.LBB3_33
-	movq	776(%rsp), %rax
+	movq	760(%rsp), %rax
 	movq	%rax, 24(%rsp)
-	movq	784(%rsp), %rcx
-	movq	792(%rsp), %rdx
-	movq	800(%rsp), %rsi
-	movq	808(%rsp), %rdi
-	movq	816(%rsp), %r8
-	movq	824(%rsp), %r9
-	movq	832(%rsp), %r10
-	movq	840(%rsp), %r11
-	movq	848(%rsp), %r14
-	movq	856(%rsp), %r15
-	movq	864(%rsp), %r13
-	movq	872(%rsp), %rax
+	movq	768(%rsp), %rcx
+	movq	776(%rsp), %rdx
+	movq	784(%rsp), %rsi
+	movq	792(%rsp), %rdi
+	movq	800(%rsp), %r8
+	movq	808(%rsp), %r9
+	movq	816(%rsp), %r10
+	movq	824(%rsp), %r11
+	movq	832(%rsp), %r14
+	movq	840(%rsp), %r12
+	movq	848(%rsp), %r13
+	movq	856(%rsp), %rax
 	movq	%rax, 8(%rsp)
-	movq	880(%rsp), %rax
+	movq	864(%rsp), %rax
 	movq	%rax, 16(%rsp)
-	movq	888(%rsp), %rax
+	movq	872(%rsp), %rax
 	movq	%rax, 48(%rsp)
-	movq	896(%rsp), %rax
+	movq	880(%rsp), %rax
 	movq	%rax, 40(%rsp)
-	movq	904(%rsp), %rax
+	movq	888(%rsp), %rax
 	movq	%rax, 32(%rsp)
 	movq	24(%rsp), %rax
-	xorq	%rax, 576(%rsp)
-	xorq	%rcx, 584(%rsp)
-	xorq	%rdx, 592(%rsp)
-	xorq	%rsi, 600(%rsp)
-	xorq	%rdi, 608(%rsp)
-	xorq	%r8, 616(%rsp)
-	xorq	%r9, 624(%rsp)
-	xorq	%r10, 632(%rsp)
-	xorq	%r11, 640(%rsp)
-	xorq	%r14, 648(%rsp)
+	xorq	%rax, 560(%rsp)
+	xorq	%rcx, 568(%rsp)
+	xorq	%rdx, 576(%rsp)
+	xorq	%rsi, 584(%rsp)
+	xorq	%rdi, 592(%rsp)
+	xorq	%r8, 600(%rsp)
+	xorq	%r9, 608(%rsp)
+	xorq	%r10, 616(%rsp)
+	xorq	%r11, 624(%rsp)
+	xorq	%r14, 632(%rsp)
 	movq	memcpy@GOTPCREL(%rip), %r14
-	xorq	%r15, 656(%rsp)
-	leaq	2048(%rsp), %r15
-	xorq	%r13, 664(%rsp)
+	xorq	%r12, 640(%rsp)
+	leaq	2056(%rsp), %r12
+	xorq	%r13, 648(%rsp)
 	movq	8(%rsp), %rax
-	xorq	%rax, 672(%rsp)
+	xorq	%rax, 656(%rsp)
 	movq	16(%rsp), %rax
-	xorq	%rax, 680(%rsp)
+	xorq	%rax, 664(%rsp)
 	movq	48(%rsp), %rax
-	xorq	%rax, 688(%rsp)
+	xorq	%rax, 672(%rsp)
 	movq	40(%rsp), %rax
-	xorq	%rax, 696(%rsp)
+	xorq	%rax, 680(%rsp)
 	movq	32(%rsp), %rax
-	xorq	%rax, 704(%rsp)
-	leaq	576(%rsp), %rdi
+	xorq	%rax, 688(%rsp)
+	leaq	560(%rsp), %rdi
 	callq	_RNvCsndc0WgnAaH_9keccak2568keccak_f
-	movq	$0, 912(%rsp)
+	movq	$0, 896(%rsp)
 	xorl	%r13d, %r13d
 	jmp	.LBB3_33
 	.p2align	4
 .LBB3_34:
 	movl	$200, %edx
-	leaq	4096(%rsp), %r12
-	movq	%r12, %rdi
-	leaq	576(%rsp), %rsi
+	leaq	4104(%rsp), %r15
+	movq	%r15, %rdi
+	leaq	560(%rsp), %rsi
 	callq	*%r14
 	movl	$136, %edx
 	cmpq	$137, %r13
 	jae	.LBB3_88
-	movq	%r15, %rdi
+	movq	%r12, %rdi
 	xorl	%esi, %esi
 	movq	memset@GOTPCREL(%rip), %rbx
 	callq	*%rbx
-	movq	%r15, %rdi
-	leaq	776(%rsp), %rsi
+	movq	%r12, %rdi
+	leaq	760(%rsp), %rsi
 	movq	%r13, %rdx
 	callq	*%r14
-	xorb	$1, 2048(%rsp,%r13)
-	xorb	$-128, 2183(%rsp)
-	movq	2048(%rsp), %rax
-	xorq	%rax, 4096(%rsp)
+	xorb	$1, 2056(%rsp,%r13)
+	xorb	$-128, 2191(%rsp)
 	movq	2056(%rsp), %rax
 	xorq	%rax, 4104(%rsp)
 	movq	2064(%rsp), %rax
@@ -1170,36 +1168,40 @@ sphincs_verify:
 	xorq	%rax, 4216(%rsp)
 	movq	2176(%rsp), %rax
 	xorq	%rax, 4224(%rsp)
-	movq	%r12, %rdi
+	movq	2184(%rsp), %rax
+	xorq	%rax, 4232(%rsp)
+	movq	%r15, %rdi
 	callq	_RNvCsndc0WgnAaH_9keccak2568keccak_f
-	movq	4096(%rsp), %rax
-	movq	4104(%rsp), %rcx
-	movq	%rcx, 2056(%rsp)
-	movq	%rax, 2048(%rsp)
-	movq	%rax, 10368(%rsp)
-	movq	%rcx, 10376(%rsp)
-	movq	64(%rsp), %rcx
+	movq	4104(%rsp), %rax
+	movq	4112(%rsp), %rcx
+	movq	%rcx, 2064(%rsp)
+	movq	%rax, 2056(%rsp)
+	movq	%rax, 8328(%rsp)
+	movq	%rcx, 8336(%rsp)
+	movq	56(%rsp), %rcx
 	cmpq	$10, %rcx
-	movl	60(%rsp), %ebp
-	movq	80(%rsp), %r15
-	movq	104(%rsp), %r13
+	movl	68(%rsp), %ebp
+	movq	80(%rsp), %r13
 	jne	.LBB3_20
-	movq	10368(%rsp), %rax
-	movq	10376(%rsp), %rcx
-	movq	%r13, %rdx
+	movq	8328(%rsp), %rax
+	movq	8336(%rsp), %rcx
+	movq	88(%rsp), %rsi
+	movq	%rsi, %rdx
 	shlq	$4, %rdx
-	movq	%rax, 20156(%rsp,%rdx)
-	movq	%rcx, 20164(%rsp,%rdx)
-	incq	%r13
-	cmpq	$24, %r13
+	movq	%rax, 20172(%rsp,%rdx)
+	movq	%rcx, 20180(%rsp,%rdx)
+	incq	%rsi
+	cmpq	$24, %rsi
+	movq	%r15, %r12
 	leaq	112(%rsp), %r14
+	leaq	560(%rsp), %r15
 	jne	.LBB3_19
-	movq	$0, 2048(%rsp)
-	movq	%r15, 2056(%rsp)
-	movl	$67108864, 2064(%rsp)
-	movl	%ebp, 2068(%rsp)
-	movq	$0, 2072(%rsp)
-	leaq	4096(%rsp), %r12
+	movq	$0, 2056(%rsp)
+	movq	%r13, 2064(%rsp)
+	movl	$67108864, 2072(%rsp)
+	movl	%ebp, 2076(%rsp)
+	movq	$0, 2080(%rsp)
+	leaq	4104(%rsp), %r12
 	xorl	%ebx, %ebx
 	movl	$344, %edx
 	movq	%r12, %rdi
@@ -1209,35 +1211,35 @@ sphincs_verify:
 	movl	$16, %edx
 	movq	%r12, %rdi
 	callq	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher6update
-	leaq	2048(%rsp), %r13
+	leaq	2056(%rsp), %r13
 	movl	$32, %edx
 	movq	%r12, %rdi
 	movq	%r13, %rsi
 	callq	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher6update
-	leaq	576(%rsp), %rbp
+	leaq	560(%rsp), %rbp
 	movl	$344, %edx
 	movq	%rbp, %rdi
 	movq	%r12, %rsi
 	callq	*memcpy@GOTPCREL(%rip)
-	leaq	20156(%rsp), %rsi
+	leaq	20172(%rsp), %rsi
 	movl	$384, %edx
 	movq	%rbp, %rdi
 	callq	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher6update
-	leaq	4096(%rsp), %rdi
+	leaq	4104(%rsp), %rdi
 	movq	%rbp, %rsi
 	callq	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher8finalize
-	movq	4096(%rsp), %rax
-	movq	4104(%rsp), %rcx
+	movq	4104(%rsp), %rax
+	movq	4112(%rsp), %rcx
 	movq	%rcx, 152(%rsp)
 	movq	%rax, 144(%rsp)
 	movl	$4656, %ecx
-	leaq	.Lanon.440213f1c62d8b61420e6860e9721951.8(%rip), %rdx
+	leaq	.Lanon.bee145f0cb2eac5728ff95be1b200579.2(%rip), %rdx
 	leaq	144(%rsp), %r15
 	xorl	%esi, %esi
 	movq	memcpy@GOTPCREL(%rip), %r14
 .LBB3_38:
 	addq	$1028, %rcx
-	movq	%rcx, 208(%rsp)
+	movq	%rcx, 200(%rsp)
 	cmpq	$1, %rsi
 	setne	%al
 	shlb	$3, %al
@@ -1245,36 +1247,36 @@ sphincs_verify:
 	testq	%rsi, %rsi
 	movzbl	%al, %ecx
 	cmovel	%ebx, %ecx
-	movq	568(%rsp), %rdi
+	movq	552(%rsp), %rdi
 	shrq	%cl, %rdi
 	movq	(%rdx,%rsi,8), %rcx
 	movq	%rdi, %r8
 	shrq	%cl, %r8
 	movq	$-1, %rax
-	movq	%rcx, 160(%rsp)
+	movq	%rcx, 168(%rsp)
 	shlq	%cl, %rax
 	leaq	1(%rsi), %rcx
-	movq	%rcx, 200(%rsp)
+	movq	%rcx, 192(%rsp)
 	notl	%eax
 	andl	%eax, %edi
-	movq	176(%rsp), %rax
+	movq	184(%rsp), %rax
 	movl	1024(%rax), %ebx
 	movq	%rsi, 96(%rsp)
 	movl	%esi, %eax
 	bswapl	%eax
 	bswapq	%r8
-	movq	%rdi, 216(%rsp)
+	movq	%rdi, 208(%rsp)
 	movl	%edi, %ecx
 	bswapl	%ecx
 	movl	%eax, 104(%rsp)
-	movl	%eax, 2048(%rsp)
-	movl	$0, 2052(%rsp)
+	movl	%eax, 2056(%rsp)
+	movl	$0, 2060(%rsp)
 	movq	%r8, 88(%rsp)
-	movq	%r8, 2056(%rsp)
-	movl	$117440512, 2064(%rsp)
-	movl	%ecx, 60(%rsp)
-	movl	%ecx, 2068(%rsp)
-	movq	$0, 2072(%rsp)
+	movq	%r8, 2064(%rsp)
+	movl	$117440512, 2072(%rsp)
+	movl	%ecx, 68(%rsp)
+	movl	%ecx, 2076(%rsp)
+	movq	$0, 2080(%rsp)
 	movl	$344, %edx
 	movq	%r12, %rdi
 	xorl	%esi, %esi
@@ -1300,7 +1302,7 @@ sphincs_verify:
 	movq	%rbp, %rsi
 	callq	*%r14
 	bswapl	%ebx
-	movl	%ebx, 2048(%rsp)
+	movl	%ebx, 2056(%rsp)
 	movl	$4, %edx
 	movq	%r12, %rdi
 	movq	%r13, %rsi
@@ -1308,11 +1310,11 @@ sphincs_verify:
 	movq	%rbp, %rdi
 	movq	%r12, %rsi
 	callq	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher8finalize
-	movq	576(%rsp), %rax
-	movq	584(%rsp), %rdx
+	movq	560(%rsp), %rax
+	movq	568(%rsp), %rdx
 	bswapq	%rax
 	bswapq	%rdx
-	leaq	577(%rsp), %rsi
+	leaq	561(%rsp), %rsi
 	xorl	%edi, %edi
 	.p2align	4
 .LBB3_39:
@@ -1340,422 +1342,423 @@ sphincs_verify:
 	addq	$2, %rsi
 	cmpq	$128, %rdi
 	jne	.LBB3_39
-	movzbl	576(%rsp), %eax
-	movzbl	577(%rsp), %ecx
-	movzbl	578(%rsp), %edx
-	movzbl	579(%rsp), %esi
-	movzbl	580(%rsp), %edi
-	movzbl	581(%rsp), %r8d
-	movzbl	582(%rsp), %r9d
-	movzbl	583(%rsp), %r10d
-	movzbl	584(%rsp), %r11d
-	movzbl	585(%rsp), %ebx
-	movzbl	586(%rsp), %r15d
-	movzbl	587(%rsp), %r12d
-	movzbl	588(%rsp), %r13d
+	movzbl	560(%rsp), %edx
+	movzbl	561(%rsp), %eax
+	movzbl	562(%rsp), %ecx
+	movzbl	563(%rsp), %esi
+	movzbl	564(%rsp), %edi
+	movzbl	565(%rsp), %r8d
+	movzbl	566(%rsp), %r9d
+	movzbl	567(%rsp), %r10d
+	movzbl	568(%rsp), %r11d
+	movzbl	569(%rsp), %ebx
+	movzbl	570(%rsp), %r15d
+	movzbl	571(%rsp), %r12d
+	movzbl	572(%rsp), %r13d
 	movq	%rax, 8(%rsp)
-	movq	%rcx, 24(%rsp)
-	addq	%rcx, %rax
-	movq	%rdx, 16(%rsp)
-	movq	%rsi, 48(%rsp)
-	leaq	(%rdx,%rsi), %rcx
+	movq	%rdx, 24(%rsp)
+	addq	%rdx, %rax
+	movq	%rcx, 48(%rsp)
+	movq	%rsi, 16(%rsp)
+	addq	%rsi, %rcx
 	addq	%rax, %rcx
-	movq	%rdi, 40(%rsp)
-	movq	%r8, 32(%rsp)
+	movq	%rdi, 56(%rsp)
+	movq	%r8, 40(%rsp)
 	leaq	(%rdi,%r8), %rax
-	movq	%r9, 64(%rsp)
+	movq	%r9, 32(%rsp)
 	addq	%r9, %rax
 	addq	%rcx, %rax
-	movq	%r10, 72(%rsp)
-	movq	%r11, 80(%rsp)
+	movq	%r10, 544(%rsp)
+	movq	%r11, 72(%rsp)
 	leaq	(%r10,%r11), %rcx
-	movq	%rbx, 168(%rsp)
+	movq	%rbx, 80(%rsp)
 	addq	%rbx, %rcx
-	movq	%r15, 560(%rsp)
+	movq	%r15, 176(%rsp)
 	addq	%r15, %rcx
 	addq	%rax, %rcx
-	movzbl	589(%rsp), %edx
-	movq	%r12, 552(%rsp)
-	movq	%r13, 544(%rsp)
+	movzbl	573(%rsp), %edx
+	movq	%r12, 520(%rsp)
+	movq	%r13, 536(%rsp)
 	leaq	(%r12,%r13), %rax
-	movq	%rdx, 536(%rsp)
-	addq	%rdx, %rax
-	movzbl	590(%rsp), %edx
 	movq	%rdx, 528(%rsp)
 	addq	%rdx, %rax
-	movzbl	591(%rsp), %edx
-	movq	%rdx, 520(%rsp)
+	movzbl	574(%rsp), %edx
+	movq	%rdx, 512(%rsp)
+	addq	%rdx, %rax
+	movzbl	575(%rsp), %edx
+	movq	%rdx, 504(%rsp)
 	addq	%rdx, %rax
 	addq	%rcx, %rax
-	movzbl	592(%rsp), %ecx
-	movzbl	593(%rsp), %edx
-	movzbl	594(%rsp), %esi
-	movq	%rcx, 512(%rsp)
-	movq	%rdx, 504(%rsp)
+	movzbl	576(%rsp), %ecx
+	movzbl	577(%rsp), %edx
+	movzbl	578(%rsp), %esi
+	movq	%rcx, 480(%rsp)
+	movq	%rdx, 496(%rsp)
 	addq	%rdx, %rcx
-	movq	%rsi, 496(%rsp)
+	movq	%rsi, 488(%rsp)
 	addq	%rsi, %rcx
-	movzbl	595(%rsp), %edx
-	movq	%rdx, 488(%rsp)
-	addq	%rdx, %rcx
-	movzbl	596(%rsp), %edx
-	movq	%rdx, 480(%rsp)
-	addq	%rdx, %rcx
-	movzbl	597(%rsp), %edx
+	movzbl	579(%rsp), %edx
 	movq	%rdx, 472(%rsp)
 	addq	%rdx, %rcx
-	addq	%rax, %rcx
-	movzbl	598(%rsp), %eax
-	movzbl	599(%rsp), %edx
-	movzbl	600(%rsp), %esi
-	movq	%rax, 464(%rsp)
+	movzbl	580(%rsp), %edx
+	movq	%rdx, 464(%rsp)
+	addq	%rdx, %rcx
+	movzbl	581(%rsp), %edx
 	movq	%rdx, 456(%rsp)
+	addq	%rdx, %rcx
+	addq	%rax, %rcx
+	movzbl	582(%rsp), %eax
+	movzbl	583(%rsp), %edx
+	movzbl	584(%rsp), %esi
+	movq	%rax, 432(%rsp)
+	movq	%rdx, 448(%rsp)
 	addq	%rdx, %rax
-	movq	%rsi, 448(%rsp)
+	movq	%rsi, 440(%rsp)
 	addq	%rsi, %rax
-	movzbl	601(%rsp), %edx
-	movq	%rdx, 440(%rsp)
-	addq	%rdx, %rax
-	movzbl	602(%rsp), %edx
-	movq	%rdx, 432(%rsp)
-	addq	%rdx, %rax
-	movzbl	603(%rsp), %edx
+	movzbl	585(%rsp), %edx
 	movq	%rdx, 424(%rsp)
 	addq	%rdx, %rax
-	movzbl	604(%rsp), %edx
+	movzbl	586(%rsp), %edx
 	movq	%rdx, 416(%rsp)
 	addq	%rdx, %rax
-	addq	%rcx, %rax
-	movzbl	605(%rsp), %ecx
-	movzbl	606(%rsp), %edx
-	movzbl	607(%rsp), %esi
-	movq	%rcx, 408(%rsp)
+	movzbl	587(%rsp), %edx
+	movq	%rdx, 408(%rsp)
+	addq	%rdx, %rax
+	movzbl	588(%rsp), %edx
 	movq	%rdx, 400(%rsp)
+	addq	%rdx, %rax
+	addq	%rcx, %rax
+	movzbl	589(%rsp), %ecx
+	movzbl	590(%rsp), %edx
+	movzbl	591(%rsp), %esi
+	movq	%rcx, 376(%rsp)
+	movq	%rdx, 392(%rsp)
 	addq	%rdx, %rcx
-	movq	%rsi, 392(%rsp)
+	movq	%rsi, 384(%rsp)
 	addq	%rsi, %rcx
-	movzbl	608(%rsp), %edx
-	movq	%rdx, 384(%rsp)
-	addq	%rdx, %rcx
-	movzbl	609(%rsp), %edx
-	movq	%rdx, 376(%rsp)
-	addq	%rdx, %rcx
-	movzbl	610(%rsp), %edx
+	movzbl	592(%rsp), %edx
 	movq	%rdx, 368(%rsp)
 	addq	%rdx, %rcx
-	movzbl	611(%rsp), %edx
+	movzbl	593(%rsp), %edx
 	movq	%rdx, 360(%rsp)
 	addq	%rdx, %rcx
-	movzbl	612(%rsp), %edx
+	movzbl	594(%rsp), %edx
 	movq	%rdx, 352(%rsp)
 	addq	%rdx, %rcx
-	addq	%rax, %rcx
-	movzbl	613(%rsp), %eax
-	movzbl	614(%rsp), %edx
-	movzbl	615(%rsp), %esi
-	movq	%rax, 344(%rsp)
+	movzbl	595(%rsp), %edx
+	movq	%rdx, 344(%rsp)
+	addq	%rdx, %rcx
+	movzbl	596(%rsp), %edx
 	movq	%rdx, 336(%rsp)
+	addq	%rdx, %rcx
+	addq	%rax, %rcx
+	movzbl	597(%rsp), %eax
+	movzbl	598(%rsp), %edx
+	movzbl	599(%rsp), %esi
+	movq	%rax, 312(%rsp)
+	movq	%rdx, 328(%rsp)
 	addq	%rdx, %rax
-	movq	%rsi, 328(%rsp)
+	movq	%rsi, 320(%rsp)
 	addq	%rsi, %rax
-	movzbl	616(%rsp), %edx
-	movq	%rdx, 320(%rsp)
-	addq	%rdx, %rax
-	movzbl	617(%rsp), %edx
-	movq	%rdx, 312(%rsp)
-	addq	%rdx, %rax
-	movzbl	618(%rsp), %edx
+	movzbl	600(%rsp), %edx
 	movq	%rdx, 304(%rsp)
 	addq	%rdx, %rax
-	movzbl	619(%rsp), %edx
+	movzbl	601(%rsp), %edx
 	movq	%rdx, 296(%rsp)
 	addq	%rdx, %rax
-	movzbl	620(%rsp), %edx
+	movzbl	602(%rsp), %edx
 	movq	%rdx, 288(%rsp)
 	addq	%rdx, %rax
-	movzbl	621(%rsp), %edx
+	movzbl	603(%rsp), %edx
 	movq	%rdx, 280(%rsp)
 	addq	%rdx, %rax
-	addq	%rcx, %rax
-	movzbl	622(%rsp), %ecx
-	movzbl	623(%rsp), %edx
-	movzbl	624(%rsp), %esi
-	movq	%rcx, 272(%rsp)
+	movzbl	604(%rsp), %edx
+	movq	%rdx, 272(%rsp)
+	addq	%rdx, %rax
+	movzbl	605(%rsp), %edx
 	movq	%rdx, 264(%rsp)
-	leaq	(%rcx,%rdx), %r12
-	movq	%rsi, 256(%rsp)
-	addq	%rsi, %r12
-	movzbl	625(%rsp), %ecx
-	movq	%rcx, 248(%rsp)
-	addq	%rcx, %r12
-	movzbl	626(%rsp), %ecx
+	addq	%rdx, %rax
+	addq	%rcx, %rax
+	movzbl	606(%rsp), %ecx
+	movzbl	607(%rsp), %edx
+	movzbl	608(%rsp), %esi
 	movq	%rcx, 240(%rsp)
-	addq	%rcx, %r12
-	movzbl	627(%rsp), %ecx
+	movq	%rdx, 256(%rsp)
+	leaq	(%rcx,%rdx), %r12
+	movq	%rsi, 248(%rsp)
+	addq	%rsi, %r12
+	movzbl	609(%rsp), %ecx
 	movq	%rcx, 232(%rsp)
 	addq	%rcx, %r12
-	movzbl	628(%rsp), %ecx
+	movzbl	610(%rsp), %ecx
 	movq	%rcx, 224(%rsp)
 	addq	%rcx, %r12
-	movzbl	629(%rsp), %ecx
+	movzbl	611(%rsp), %ecx
+	movq	%rcx, 216(%rsp)
 	addq	%rcx, %r12
-	movzbl	630(%rsp), %edx
+	movzbl	612(%rsp), %ecx
+	movq	%rcx, %rbp
+	addq	%rcx, %r12
+	movzbl	613(%rsp), %ecx
+	addq	%rcx, %r12
+	movzbl	614(%rsp), %edx
 	addq	%rdx, %r12
-	movzbl	631(%rsp), %esi
+	movzbl	615(%rsp), %esi
 	addq	%rsi, %r12
 	addq	%rax, %r12
-	movzbl	632(%rsp), %edi
-	movzbl	633(%rsp), %r8d
-	movzbl	634(%rsp), %r9d
+	movzbl	616(%rsp), %edi
+	movzbl	617(%rsp), %r8d
+	movzbl	618(%rsp), %r9d
 	leaq	(%rdi,%r8), %r13
 	addq	%r9, %r13
-	movzbl	635(%rsp), %r10d
+	movzbl	619(%rsp), %r10d
 	addq	%r10, %r13
-	movzbl	636(%rsp), %r11d
+	movzbl	620(%rsp), %r11d
 	addq	%r11, %r13
-	movzbl	637(%rsp), %ebx
+	movzbl	621(%rsp), %ebx
 	addq	%rbx, %r13
-	movzbl	638(%rsp), %r15d
+	movzbl	622(%rsp), %r15d
 	addq	%r15, %r13
-	movzbl	639(%rsp), %eax
+	movzbl	623(%rsp), %eax
 	addq	%rax, %r13
 	addq	%r12, %r13
 	cmpq	$128, %r13
 	jne	.LBB3_84
-	movq	8(%rsp), %r12
-	movb	%r12b, 3072(%rsp)
 	movq	24(%rsp), %r12
-	movb	%r12b, 3073(%rsp)
-	movq	16(%rsp), %r12
-	movb	%r12b, 3074(%rsp)
-	movq	48(%rsp), %r12
-	movb	%r12b, 3075(%rsp)
-	movq	40(%rsp), %r12
-	movb	%r12b, 3076(%rsp)
-	movq	32(%rsp), %r12
-	movb	%r12b, 3077(%rsp)
-	movq	64(%rsp), %r12
-	movb	%r12b, 3078(%rsp)
-	movq	72(%rsp), %r12
-	movb	%r12b, 3079(%rsp)
-	movq	80(%rsp), %r12
 	movb	%r12b, 3080(%rsp)
-	movq	168(%rsp), %r12
+	movq	8(%rsp), %r12
 	movb	%r12b, 3081(%rsp)
-	movq	560(%rsp), %r12
+	movq	48(%rsp), %r12
 	movb	%r12b, 3082(%rsp)
-	movq	552(%rsp), %r12
+	movq	16(%rsp), %r12
 	movb	%r12b, 3083(%rsp)
-	movq	544(%rsp), %r12
+	movq	56(%rsp), %r12
 	movb	%r12b, 3084(%rsp)
-	movq	536(%rsp), %r12
+	movq	40(%rsp), %r12
 	movb	%r12b, 3085(%rsp)
-	movq	528(%rsp), %r12
+	movq	32(%rsp), %r12
 	movb	%r12b, 3086(%rsp)
-	movq	520(%rsp), %r12
+	movq	544(%rsp), %r12
 	movb	%r12b, 3087(%rsp)
-	movq	512(%rsp), %r12
+	movq	72(%rsp), %r12
 	movb	%r12b, 3088(%rsp)
-	movq	504(%rsp), %r12
+	movq	80(%rsp), %r12
 	movb	%r12b, 3089(%rsp)
-	movq	496(%rsp), %r12
+	movq	176(%rsp), %r12
 	movb	%r12b, 3090(%rsp)
-	movq	488(%rsp), %r12
+	movq	520(%rsp), %r12
 	movb	%r12b, 3091(%rsp)
-	movq	480(%rsp), %r12
+	movq	536(%rsp), %r12
 	movb	%r12b, 3092(%rsp)
-	movq	472(%rsp), %r12
+	movq	528(%rsp), %r12
 	movb	%r12b, 3093(%rsp)
-	movq	464(%rsp), %r12
+	movq	512(%rsp), %r12
 	movb	%r12b, 3094(%rsp)
-	movq	456(%rsp), %r12
+	movq	504(%rsp), %r12
 	movb	%r12b, 3095(%rsp)
-	movq	448(%rsp), %r12
+	movq	480(%rsp), %r12
 	movb	%r12b, 3096(%rsp)
-	movq	440(%rsp), %r12
+	movq	496(%rsp), %r12
 	movb	%r12b, 3097(%rsp)
-	movq	432(%rsp), %r12
+	movq	488(%rsp), %r12
 	movb	%r12b, 3098(%rsp)
-	movq	424(%rsp), %r12
+	movq	472(%rsp), %r12
 	movb	%r12b, 3099(%rsp)
-	movq	416(%rsp), %r12
+	movq	464(%rsp), %r12
 	movb	%r12b, 3100(%rsp)
-	movq	408(%rsp), %r12
+	movq	456(%rsp), %r12
 	movb	%r12b, 3101(%rsp)
-	movq	400(%rsp), %r12
+	movq	432(%rsp), %r12
 	movb	%r12b, 3102(%rsp)
-	movq	392(%rsp), %r12
+	movq	448(%rsp), %r12
 	movb	%r12b, 3103(%rsp)
-	movq	384(%rsp), %r12
+	movq	440(%rsp), %r12
 	movb	%r12b, 3104(%rsp)
-	movq	376(%rsp), %r12
+	movq	424(%rsp), %r12
 	movb	%r12b, 3105(%rsp)
-	movq	368(%rsp), %r12
+	movq	416(%rsp), %r12
 	movb	%r12b, 3106(%rsp)
-	movq	360(%rsp), %r12
+	movq	408(%rsp), %r12
 	movb	%r12b, 3107(%rsp)
-	movq	352(%rsp), %r12
+	movq	400(%rsp), %r12
 	movb	%r12b, 3108(%rsp)
-	movq	344(%rsp), %r12
+	movq	376(%rsp), %r12
 	movb	%r12b, 3109(%rsp)
-	movq	336(%rsp), %r12
+	movq	392(%rsp), %r12
 	movb	%r12b, 3110(%rsp)
-	movq	328(%rsp), %r12
+	movq	384(%rsp), %r12
 	movb	%r12b, 3111(%rsp)
-	movq	320(%rsp), %r12
+	movq	368(%rsp), %r12
 	movb	%r12b, 3112(%rsp)
-	movq	312(%rsp), %r12
+	movq	360(%rsp), %r12
 	movb	%r12b, 3113(%rsp)
-	movq	304(%rsp), %r12
+	movq	352(%rsp), %r12
 	movb	%r12b, 3114(%rsp)
-	movq	296(%rsp), %r12
+	movq	344(%rsp), %r12
 	movb	%r12b, 3115(%rsp)
-	movq	288(%rsp), %r12
+	movq	336(%rsp), %r12
 	movb	%r12b, 3116(%rsp)
-	movq	280(%rsp), %r12
+	movq	312(%rsp), %r12
 	movb	%r12b, 3117(%rsp)
-	movq	272(%rsp), %r12
+	movq	328(%rsp), %r12
 	movb	%r12b, 3118(%rsp)
-	movq	264(%rsp), %r12
+	movq	320(%rsp), %r12
 	movb	%r12b, 3119(%rsp)
-	movq	256(%rsp), %r12
+	movq	304(%rsp), %r12
 	movb	%r12b, 3120(%rsp)
-	movq	248(%rsp), %r12
+	movq	296(%rsp), %r12
 	movb	%r12b, 3121(%rsp)
-	movq	240(%rsp), %r12
+	movq	288(%rsp), %r12
 	movb	%r12b, 3122(%rsp)
-	movq	232(%rsp), %r12
+	movq	280(%rsp), %r12
 	movb	%r12b, 3123(%rsp)
-	movq	224(%rsp), %r12
+	movq	272(%rsp), %r12
 	movb	%r12b, 3124(%rsp)
-	movb	%cl, 3125(%rsp)
-	movb	%dl, 3126(%rsp)
-	movb	%sil, 3127(%rsp)
-	movb	%dil, 3128(%rsp)
-	movb	%r8b, 3129(%rsp)
-	movb	%r9b, 3130(%rsp)
-	movb	%r10b, 3131(%rsp)
-	movb	%r11b, 3132(%rsp)
-	movb	%bl, 3133(%rsp)
-	movb	%r15b, 3134(%rsp)
-	movb	%al, 3135(%rsp)
+	movq	264(%rsp), %r12
+	movb	%r12b, 3125(%rsp)
+	movq	240(%rsp), %r12
+	movb	%r12b, 3126(%rsp)
+	movq	256(%rsp), %r12
+	movb	%r12b, 3127(%rsp)
+	movq	248(%rsp), %r12
+	movb	%r12b, 3128(%rsp)
+	movq	232(%rsp), %r12
+	movb	%r12b, 3129(%rsp)
+	movq	224(%rsp), %r12
+	movb	%r12b, 3130(%rsp)
+	movq	216(%rsp), %r12
+	movb	%r12b, 3131(%rsp)
+	movb	%bpl, 3132(%rsp)
+	movb	%cl, 3133(%rsp)
+	movb	%dl, 3134(%rsp)
+	movb	%sil, 3135(%rsp)
+	movb	%dil, 3136(%rsp)
+	movb	%r8b, 3137(%rsp)
+	movb	%r9b, 3138(%rsp)
+	movb	%r10b, 3139(%rsp)
+	movb	%r11b, 3140(%rsp)
+	movb	%bl, 3141(%rsp)
+	movb	%r15b, 3142(%rsp)
+	movb	%al, 3143(%rsp)
 	xorl	%eax, %eax
 	movq	memset@GOTPCREL(%rip), %rbx
-	leaq	4096(%rsp), %r12
-	leaq	2048(%rsp), %r13
+	leaq	8328(%rsp), %r13
+	leaq	4104(%rsp), %r12
 	jmp	.LBB3_42
 .LBB3_60:
-	movq	184(%rsp), %rax
-	movq	192(%rsp), %rcx
-	movq	168(%rsp), %rdx
-	movq	%rax, 28280(%rsp,%rdx)
-	movq	%rcx, 28288(%rsp,%rdx)
+	movq	1592(%rsp), %rax
+	movq	1600(%rsp), %rcx
+	movq	176(%rsp), %rdx
+	movq	%rax, 28296(%rsp,%rdx)
+	movq	%rcx, 28304(%rsp,%rdx)
 	movq	80(%rsp), %rax
 	incq	%rax
 	cmpq	$64, %rax
 	je	.LBB3_61
 .LBB3_42:
-	movzbl	3072(%rsp,%rax), %esi
+	movzbl	3080(%rsp,%rax), %ebp
 	movq	%rax, 80(%rsp)
 	movq	%rax, %rdx
 	shlq	$4, %rdx
-	movq	176(%rsp), %rcx
+	movq	184(%rsp), %rcx
 	movq	(%rcx,%rdx), %rax
-	movq	%rdx, 168(%rsp)
+	movq	%rdx, 176(%rsp)
 	movq	8(%rcx,%rdx), %rcx
-	movq	%rcx, 192(%rsp)
-	movq	%rax, 184(%rsp)
-	cmpq	$2, %rsi
+	movq	%rax, 1592(%rsp)
+	movq	%rcx, 1600(%rsp)
+	cmpq	$2, %rbp
 	ja	.LBB3_60
 	movq	80(%rsp), %rax
 	shll	$24, %eax
 	movl	%eax, 72(%rsp)
 	.p2align	4
 .LBB3_44:
-	movq	184(%rsp), %rax
-	movq	192(%rsp), %rcx
-	movq	%rcx, 1640(%rsp)
-	movq	%rax, 1632(%rsp)
-	movq	%rsi, 1648(%rsp)
-	movl	104(%rsp), %eax
-	movl	%eax, 8320(%rsp)
-	movl	$0, 8324(%rsp)
-	movq	88(%rsp), %rax
+	movq	1592(%rsp), %rax
+	movq	1600(%rsp), %rcx
+	movq	%rcx, 8336(%rsp)
 	movq	%rax, 8328(%rsp)
-	movl	$0, 8336(%rsp)
-	movl	60(%rsp), %eax
-	movl	%eax, 8340(%rsp)
+	movq	%rbp, 8344(%rsp)
+	movl	104(%rsp), %eax
+	movl	%eax, 9352(%rsp)
+	movl	$0, 9356(%rsp)
+	movq	88(%rsp), %rax
+	movq	%rax, 9360(%rsp)
+	movl	$0, 9368(%rsp)
+	movl	68(%rsp), %eax
+	movl	%eax, 9372(%rsp)
 	movl	72(%rsp), %eax
-	movl	%eax, 8344(%rsp)
-	movq	%rsi, 64(%rsp)
-	movl	%esi, %eax
+	movl	%eax, 9376(%rsp)
+	movl	%ebp, %eax
 	bswapl	%eax
-	movl	%eax, 8348(%rsp)
+	movl	%eax, 9380(%rsp)
 	movl	$344, %edx
 	movq	%r12, %rdi
 	xorl	%esi, %esi
 	callq	*%rbx
 	movq	112(%rsp), %rax
 	movq	120(%rsp), %rcx
-	leaq	4296(%rsp), %rdx
+	leaq	4304(%rsp), %rdx
 	movq	%rax, (%rdx)
 	movq	%rcx, 8(%rdx)
-	movq	4432(%rsp), %rdi
+	movq	4440(%rsp), %rdi
 	addq	$16, %rdi
-	movq	%rdi, 4432(%rsp)
+	movq	%rdi, 4440(%rsp)
 	cmpq	$136, %rdi
 	jne	.LBB3_46
-	movq	4296(%rsp), %rax
+	movq	4304(%rsp), %rax
 	movq	%rax, 24(%rsp)
-	movq	4304(%rsp), %rcx
-	movq	4312(%rsp), %rdx
-	movq	4320(%rsp), %rsi
-	movq	4328(%rsp), %rdi
-	movq	4336(%rsp), %r8
-	movq	4344(%rsp), %r9
-	movq	4352(%rsp), %r10
-	movq	4360(%rsp), %r11
-	movq	4368(%rsp), %rbx
-	movq	4376(%rsp), %r15
-	movq	4384(%rsp), %r12
-	movq	4392(%rsp), %r14
-	movq	4400(%rsp), %rbp
-	movq	4408(%rsp), %r13
-	movq	4416(%rsp), %rax
-	movq	%rax, 8(%rsp)
+	movq	4312(%rsp), %rcx
+	movq	4320(%rsp), %rdx
+	movq	4328(%rsp), %rsi
+	movq	4336(%rsp), %rdi
+	movq	4344(%rsp), %r8
+	movq	4352(%rsp), %r9
+	movq	4360(%rsp), %r10
+	movq	4368(%rsp), %r11
+	movq	4376(%rsp), %rbx
+	movq	4384(%rsp), %r15
+	movq	4392(%rsp), %r12
+	movq	4400(%rsp), %r14
+	movq	%rbp, 56(%rsp)
+	movq	4408(%rsp), %rbp
+	movq	4416(%rsp), %r13
 	movq	4424(%rsp), %rax
+	movq	%rax, 8(%rsp)
+	movq	4432(%rsp), %rax
 	movq	%rax, 16(%rsp)
 	movq	24(%rsp), %rax
-	xorq	%rax, 4096(%rsp)
-	xorq	%rcx, 4104(%rsp)
-	xorq	%rdx, 4112(%rsp)
-	xorq	%rsi, 4120(%rsp)
-	xorq	%rdi, 4128(%rsp)
-	xorq	%r8, 4136(%rsp)
-	xorq	%r9, 4144(%rsp)
-	xorq	%r10, 4152(%rsp)
-	xorq	%r11, 4160(%rsp)
-	xorq	%rbx, 4168(%rsp)
-	xorq	%r15, 4176(%rsp)
-	xorq	%r12, 4184(%rsp)
-	xorq	%r14, 4192(%rsp)
+	xorq	%rax, 4104(%rsp)
+	xorq	%rcx, 4112(%rsp)
+	xorq	%rdx, 4120(%rsp)
+	xorq	%rsi, 4128(%rsp)
+	xorq	%rdi, 4136(%rsp)
+	xorq	%r8, 4144(%rsp)
+	xorq	%r9, 4152(%rsp)
+	xorq	%r10, 4160(%rsp)
+	xorq	%r11, 4168(%rsp)
+	xorq	%rbx, 4176(%rsp)
+	xorq	%r15, 4184(%rsp)
+	xorq	%r12, 4192(%rsp)
+	xorq	%r14, 4200(%rsp)
 	movq	memcpy@GOTPCREL(%rip), %r14
-	xorq	%rbp, 4200(%rsp)
-	leaq	576(%rsp), %rbp
-	xorq	%r13, 4208(%rsp)
-	leaq	2048(%rsp), %r13
+	xorq	%rbp, 4208(%rsp)
+	movq	56(%rsp), %rbp
+	xorq	%r13, 4216(%rsp)
+	leaq	8328(%rsp), %r13
 	movq	8(%rsp), %rax
-	xorq	%rax, 4216(%rsp)
-	movq	16(%rsp), %rax
 	xorq	%rax, 4224(%rsp)
-	leaq	4096(%rsp), %rdi
+	movq	16(%rsp), %rax
+	xorq	%rax, 4232(%rsp)
+	leaq	4104(%rsp), %rdi
 	callq	_RNvCsndc0WgnAaH_9keccak2568keccak_f
-	movq	$0, 4432(%rsp)
+	movq	$0, 4440(%rsp)
 	xorl	%edi, %edi
 .LBB3_46:
-	incq	64(%rsp)
+	incq	%rbp
+	movq	%rbp, 56(%rsp)
 	movl	$32, %r12d
-	leaq	8320(%rsp), %rbx
+	leaq	9352(%rsp), %rbx
+	leaq	560(%rsp), %rbp
 	jmp	.LBB3_47
 	.p2align	4
 .LBB3_51:
@@ -1773,79 +1776,79 @@ sphincs_verify:
 	jb	.LBB3_86
 	cmpq	$137, %rsi
 	jae	.LBB3_86
-	leaq	4296(%rsp), %rax
+	leaq	4304(%rsp), %rax
 	addq	%rax, %rdi
 	movq	%rbx, %rsi
 	movq	%r15, %rdx
 	callq	*%r14
-	movq	4432(%rsp), %rdi
+	movq	4440(%rsp), %rdi
 	addq	%r15, %rdi
-	movq	%rdi, 4432(%rsp)
+	movq	%rdi, 4440(%rsp)
 	cmpq	$136, %rdi
 	jne	.LBB3_51
-	movq	4296(%rsp), %rax
+	movq	4304(%rsp), %rax
 	movq	%rax, 24(%rsp)
-	movq	4304(%rsp), %rcx
-	movq	4312(%rsp), %rdx
-	movq	4320(%rsp), %rsi
-	movq	4328(%rsp), %rdi
-	movq	4336(%rsp), %r8
-	movq	4344(%rsp), %r9
-	movq	4352(%rsp), %r10
-	movq	4360(%rsp), %r11
-	movq	4368(%rsp), %r14
-	movq	4376(%rsp), %r13
-	movq	4384(%rsp), %rbp
-	movq	4392(%rsp), %rax
-	movq	%rax, 8(%rsp)
+	movq	4312(%rsp), %rcx
+	movq	4320(%rsp), %rdx
+	movq	4328(%rsp), %rsi
+	movq	4336(%rsp), %rdi
+	movq	4344(%rsp), %r8
+	movq	4352(%rsp), %r9
+	movq	4360(%rsp), %r10
+	movq	4368(%rsp), %r11
+	movq	4376(%rsp), %r14
+	movq	4384(%rsp), %r13
+	movq	4392(%rsp), %rbp
 	movq	4400(%rsp), %rax
-	movq	%rax, 16(%rsp)
+	movq	%rax, 8(%rsp)
 	movq	4408(%rsp), %rax
-	movq	%rax, 48(%rsp)
+	movq	%rax, 16(%rsp)
 	movq	4416(%rsp), %rax
-	movq	%rax, 40(%rsp)
+	movq	%rax, 48(%rsp)
 	movq	4424(%rsp), %rax
+	movq	%rax, 40(%rsp)
+	movq	4432(%rsp), %rax
 	movq	%rax, 32(%rsp)
 	movq	24(%rsp), %rax
-	xorq	%rax, 4096(%rsp)
-	xorq	%rcx, 4104(%rsp)
-	xorq	%rdx, 4112(%rsp)
-	xorq	%rsi, 4120(%rsp)
-	xorq	%rdi, 4128(%rsp)
-	xorq	%r8, 4136(%rsp)
-	xorq	%r9, 4144(%rsp)
-	xorq	%r10, 4152(%rsp)
-	xorq	%r11, 4160(%rsp)
-	xorq	%r14, 4168(%rsp)
+	xorq	%rax, 4104(%rsp)
+	xorq	%rcx, 4112(%rsp)
+	xorq	%rdx, 4120(%rsp)
+	xorq	%rsi, 4128(%rsp)
+	xorq	%rdi, 4136(%rsp)
+	xorq	%r8, 4144(%rsp)
+	xorq	%r9, 4152(%rsp)
+	xorq	%r10, 4160(%rsp)
+	xorq	%r11, 4168(%rsp)
+	xorq	%r14, 4176(%rsp)
 	movq	memcpy@GOTPCREL(%rip), %r14
-	xorq	%r13, 4176(%rsp)
-	leaq	2048(%rsp), %r13
-	xorq	%rbp, 4184(%rsp)
-	leaq	576(%rsp), %rbp
+	xorq	%r13, 4184(%rsp)
+	leaq	8328(%rsp), %r13
+	xorq	%rbp, 4192(%rsp)
+	leaq	560(%rsp), %rbp
 	movq	8(%rsp), %rax
-	xorq	%rax, 4192(%rsp)
-	movq	16(%rsp), %rax
 	xorq	%rax, 4200(%rsp)
-	movq	48(%rsp), %rax
+	movq	16(%rsp), %rax
 	xorq	%rax, 4208(%rsp)
-	movq	40(%rsp), %rax
+	movq	48(%rsp), %rax
 	xorq	%rax, 4216(%rsp)
-	movq	32(%rsp), %rax
+	movq	40(%rsp), %rax
 	xorq	%rax, 4224(%rsp)
-	leaq	4096(%rsp), %rdi
+	movq	32(%rsp), %rax
+	xorq	%rax, 4232(%rsp)
+	leaq	4104(%rsp), %rdi
 	callq	_RNvCsndc0WgnAaH_9keccak2568keccak_f
-	movq	$0, 4432(%rsp)
+	movq	$0, 4440(%rsp)
 	xorl	%edi, %edi
 	jmp	.LBB3_51
 	.p2align	4
 .LBB3_52:
 	movl	$344, %edx
 	movq	%rbp, %rdi
-	leaq	4096(%rsp), %rsi
+	leaq	4104(%rsp), %rsi
 	callq	*%r14
 	movl	$16, %r12d
-	movq	912(%rsp), %rdi
-	leaq	1632(%rsp), %rbx
+	movq	896(%rsp), %rdi
+	movq	%r13, %rbx
 	jmp	.LBB3_53
 	.p2align	4
 .LBB3_57:
@@ -1863,68 +1866,68 @@ sphincs_verify:
 	jb	.LBB3_86
 	cmpq	$137, %rsi
 	jae	.LBB3_86
-	leaq	776(%rsp), %rax
+	leaq	760(%rsp), %rax
 	addq	%rax, %rdi
 	movq	%rbx, %rsi
 	movq	%r15, %rdx
 	callq	*%r14
-	movq	912(%rsp), %rdi
+	movq	896(%rsp), %rdi
 	addq	%r15, %rdi
-	movq	%rdi, 912(%rsp)
+	movq	%rdi, 896(%rsp)
 	cmpq	$136, %rdi
 	jne	.LBB3_57
-	movq	776(%rsp), %rax
+	movq	760(%rsp), %rax
 	movq	%rax, 24(%rsp)
-	movq	784(%rsp), %rcx
-	movq	792(%rsp), %rdx
-	movq	800(%rsp), %rsi
-	movq	808(%rsp), %rdi
-	movq	816(%rsp), %r8
-	movq	824(%rsp), %r9
-	movq	832(%rsp), %r10
-	movq	840(%rsp), %r11
-	movq	848(%rsp), %r14
-	movq	856(%rsp), %r13
-	movq	864(%rsp), %rbp
-	movq	872(%rsp), %rax
+	movq	768(%rsp), %rcx
+	movq	776(%rsp), %rdx
+	movq	784(%rsp), %rsi
+	movq	792(%rsp), %rdi
+	movq	800(%rsp), %r8
+	movq	808(%rsp), %r9
+	movq	816(%rsp), %r10
+	movq	824(%rsp), %r11
+	movq	832(%rsp), %r14
+	movq	840(%rsp), %r13
+	movq	848(%rsp), %rbp
+	movq	856(%rsp), %rax
 	movq	%rax, 8(%rsp)
-	movq	880(%rsp), %rax
+	movq	864(%rsp), %rax
 	movq	%rax, 16(%rsp)
-	movq	888(%rsp), %rax
+	movq	872(%rsp), %rax
 	movq	%rax, 48(%rsp)
-	movq	896(%rsp), %rax
+	movq	880(%rsp), %rax
 	movq	%rax, 40(%rsp)
-	movq	904(%rsp), %rax
+	movq	888(%rsp), %rax
 	movq	%rax, 32(%rsp)
 	movq	24(%rsp), %rax
-	xorq	%rax, 576(%rsp)
-	xorq	%rcx, 584(%rsp)
-	xorq	%rdx, 592(%rsp)
-	xorq	%rsi, 600(%rsp)
-	xorq	%rdi, 608(%rsp)
-	xorq	%r8, 616(%rsp)
-	xorq	%r9, 624(%rsp)
-	xorq	%r10, 632(%rsp)
-	xorq	%r11, 640(%rsp)
-	xorq	%r14, 648(%rsp)
+	xorq	%rax, 560(%rsp)
+	xorq	%rcx, 568(%rsp)
+	xorq	%rdx, 576(%rsp)
+	xorq	%rsi, 584(%rsp)
+	xorq	%rdi, 592(%rsp)
+	xorq	%r8, 600(%rsp)
+	xorq	%r9, 608(%rsp)
+	xorq	%r10, 616(%rsp)
+	xorq	%r11, 624(%rsp)
+	xorq	%r14, 632(%rsp)
 	movq	memcpy@GOTPCREL(%rip), %r14
-	xorq	%r13, 656(%rsp)
-	leaq	2048(%rsp), %r13
-	xorq	%rbp, 664(%rsp)
-	leaq	576(%rsp), %rbp
+	xorq	%r13, 640(%rsp)
+	leaq	8328(%rsp), %r13
+	xorq	%rbp, 648(%rsp)
+	leaq	560(%rsp), %rbp
 	movq	8(%rsp), %rax
-	xorq	%rax, 672(%rsp)
+	xorq	%rax, 656(%rsp)
 	movq	16(%rsp), %rax
-	xorq	%rax, 680(%rsp)
+	xorq	%rax, 664(%rsp)
 	movq	48(%rsp), %rax
-	xorq	%rax, 688(%rsp)
+	xorq	%rax, 672(%rsp)
 	movq	40(%rsp), %rax
-	xorq	%rax, 696(%rsp)
+	xorq	%rax, 680(%rsp)
 	movq	32(%rsp), %rax
-	xorq	%rax, 704(%rsp)
+	xorq	%rax, 688(%rsp)
 	movq	%rbp, %rdi
 	callq	_RNvCsndc0WgnAaH_9keccak2568keccak_f
-	movq	$0, 912(%rsp)
+	movq	$0, 896(%rsp)
 	xorl	%edi, %edi
 	jmp	.LBB3_57
 	.p2align	4
@@ -1932,7 +1935,7 @@ sphincs_verify:
 	movl	$200, %edx
 	movq	%r14, %r15
 	movq	%rdi, %r14
-	leaq	4096(%rsp), %r12
+	leaq	4104(%rsp), %r12
 	movq	%r12, %rdi
 	movq	%rbp, %rsi
 	callq	*%r15
@@ -1940,19 +1943,18 @@ sphincs_verify:
 	cmpq	$137, %r14
 	jae	.LBB3_89
 	movl	$136, %edx
-	movq	%r13, %rdi
+	leaq	2056(%rsp), %rbp
+	movq	%rbp, %rdi
 	xorl	%esi, %esi
 	movq	memset@GOTPCREL(%rip), %r14
 	callq	*%r14
-	movq	%r13, %rdi
-	leaq	776(%rsp), %rsi
+	movq	%rbp, %rdi
+	leaq	760(%rsp), %rsi
 	movq	%rbx, %rdx
 	callq	*%r15
-	xorb	$1, 2048(%rsp,%rbx)
+	xorb	$1, 2056(%rsp,%rbx)
 	movq	%r14, %rbx
-	xorb	$-128, 2183(%rsp)
-	movq	2048(%rsp), %rax
-	xorq	%rax, 4096(%rsp)
+	xorb	$-128, 2191(%rsp)
 	movq	2056(%rsp), %rax
 	xorq	%rax, 4104(%rsp)
 	movq	2064(%rsp), %rax
@@ -1985,30 +1987,32 @@ sphincs_verify:
 	xorq	%rax, 4216(%rsp)
 	movq	2176(%rsp), %rax
 	xorq	%rax, 4224(%rsp)
+	movq	2184(%rsp), %rax
+	xorq	%rax, 4232(%rsp)
 	movq	%r12, %rdi
 	callq	_RNvCsndc0WgnAaH_9keccak2568keccak_f
-	movq	4120(%rsp), %rax
-	movq	%rax, 2072(%rsp)
-	movq	4096(%rsp), %rax
-	movq	4104(%rsp), %rcx
-	movq	%rax, 2048(%rsp)
-	movq	%rax, 184(%rsp)
-	movq	%rcx, 192(%rsp)
-	movq	64(%rsp), %rsi
-	cmpq	$3, %rsi
+	movq	4128(%rsp), %rax
+	movq	%rax, 2080(%rsp)
+	movq	4104(%rsp), %rax
+	movq	4112(%rsp), %rcx
+	movq	%rax, 2056(%rsp)
+	movq	%rax, 1592(%rsp)
+	movq	%rcx, 1600(%rsp)
+	movq	56(%rsp), %rbp
+	cmpq	$3, %rbp
 	movq	%r15, %r14
 	jne	.LBB3_44
 	jmp	.LBB3_60
 .LBB3_61:
 	movl	104(%rsp), %eax
-	movl	%eax, 8320(%rsp)
-	movl	$0, 8324(%rsp)
+	movl	%eax, 2056(%rsp)
+	movl	$0, 2060(%rsp)
 	movq	88(%rsp), %rax
-	movq	%rax, 8328(%rsp)
-	movl	$16777216, 8336(%rsp)
-	movl	60(%rsp), %eax
-	movl	%eax, 8340(%rsp)
-	movq	$0, 8344(%rsp)
+	movq	%rax, 2064(%rsp)
+	movl	$16777216, 2072(%rsp)
+	movl	68(%rsp), %eax
+	movl	%eax, 2076(%rsp)
+	movq	$0, 2080(%rsp)
 	movl	$344, %edx
 	movq	%r12, %rdi
 	xorl	%esi, %esi
@@ -2019,179 +2023,158 @@ sphincs_verify:
 	callq	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher6update
 	movl	$32, %edx
 	movq	%r12, %rdi
-	leaq	8320(%rsp), %rsi
+	leaq	2056(%rsp), %r13
+	movq	%r13, %rsi
 	callq	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher6update
 	movl	$344, %edx
+	leaq	560(%rsp), %rbp
 	movq	%rbp, %rdi
 	movq	%r12, %rsi
 	callq	*%r14
 	movl	$1024, %edx
 	movq	%rbp, %rdi
-	leaq	28280(%rsp), %rsi
+	leaq	28296(%rsp), %rsi
 	callq	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher6update
-	leaq	10368(%rsp), %rdi
+	leaq	19144(%rsp), %rdi
 	movq	%rbp, %rsi
 	callq	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher8finalize
-	movq	3072(%rsp), %rax
-	movq	3080(%rsp), %rcx
-	movq	%rax, 2048(%rsp)
-	movq	%rcx, 2056(%rsp)
-	movq	3088(%rsp), %rax
-	movq	%rax, 2064(%rsp)
-	movq	3096(%rsp), %rax
-	movq	%rax, 2072(%rsp)
-	movq	3104(%rsp), %rax
-	movq	%rax, 2080(%rsp)
-	movq	3112(%rsp), %rax
-	movq	%rax, 2088(%rsp)
-	movq	3120(%rsp), %rax
-	movq	%rax, 2096(%rsp)
-	movq	3128(%rsp), %rax
-	movq	%rax, 2104(%rsp)
-	movq	10368(%rsp), %rax
-	movq	10376(%rsp), %rcx
-	movq	%rcx, 72(%r13)
-	movq	%rax, 64(%r13)
-	movl	$80, %edx
-	leaq	9344(%rsp), %rdi
-	movq	%r13, %rsi
-	callq	*%r14
 	xorl	%eax, %eax
 	movq	96(%rsp), %rsi
 	cmpq	$1, %rsi
 	setne	%al
 	testq	%rsi, %rsi
-	leaq	9408(%rsp), %rdx
-	movq	(%rdx), %rcx
-	movq	8(%rdx), %rdx
-	movq	%rdx, 1640(%rsp)
-	movq	%rcx, 1632(%rsp)
+	movq	19144(%rsp), %rcx
+	movq	19152(%rsp), %rdx
+	movq	%rdx, 2048(%rsp)
+	movq	%rcx, 2040(%rsp)
+	movq	%rdx, 1600(%rsp)
+	movq	%rcx, 1592(%rsp)
 	leaq	8(,%rax,8), %rcx
 	cmoveq	%rsi, %rcx
-	movq	160(%rsp), %rax
+	movq	168(%rsp), %rax
 	leaq	(%rcx,%rax), %rsi
 	movq	%rcx, %rdi
 	cmpq	%rcx, %rsi
 	jb	.LBB3_90
 	cmpq	$27, %rsi
 	jae	.LBB3_90
-	cmpq	$0, 160(%rsp)
+	cmpq	$0, 168(%rsp)
 	je	.LBB3_91
 	shlq	$4, %rdi
-	leaq	24764(%rsp), %rax
+	leaq	24780(%rsp), %rax
 	addq	%rax, %rdi
 	movq	%rdi, 72(%rsp)
-	movq	1632(%rsp), %rax
-	movq	1640(%rsp), %rcx
-	movq	%rcx, 10376(%rsp)
-	movq	%rax, 10368(%rsp)
+	movq	1592(%rsp), %rax
+	movq	1600(%rsp), %rcx
+	movq	%rcx, 8336(%rsp)
+	movq	%rax, 8328(%rsp)
 	movq	96(%rsp), %rax
 	shll	$24, %eax
 	movq	%rax, 96(%rsp)
 	xorl	%ecx, %ecx
 .LBB3_65:
-	movq	10368(%rsp), %rax
-	movq	10376(%rsp), %rdx
-	movq	%rdx, 8328(%rsp)
+	movq	8328(%rsp), %rax
+	movq	8336(%rsp), %rdx
+	movq	%rdx, 9360(%rsp)
 	movq	%rcx, %rdx
 	movl	$1, %esi
 	shlq	%cl, %rsi
 	shlq	$4, %rdx
 	addq	72(%rsp), %rdx
-	movq	216(%rsp), %rdi
+	movq	208(%rsp), %rdi
 	testl	%edi, %esi
 	movq	%rdx, %r8
-	leaq	8320(%rsp), %rsi
+	leaq	9352(%rsp), %rsi
 	cmoveq	%rsi, %r8
 	cmovneq	%rsi, %rdx
-	movq	%rax, 8320(%rsp)
+	movq	%rax, 9352(%rsp)
 	movq	(%r8), %rax
 	movq	8(%r8), %rsi
-	movq	%rsi, 3080(%rsp)
-	movq	%rax, 3072(%rsp)
+	movq	%rsi, 19152(%rsp)
+	movq	%rax, 19144(%rsp)
 	movq	(%rdx), %rax
 	movq	8(%rdx), %rsi
-	leaq	3088(%rsp), %rdx
+	leaq	19160(%rsp), %rdx
 	movq	%rsi, 8(%rdx)
 	movq	%rax, (%rdx)
 	incq	%rcx
 	movq	%rdi, %rax
 	shrq	%cl, %rax
-	movq	%rcx, 64(%rsp)
+	movq	%rcx, 56(%rsp)
 	bswapl	%ecx
 	bswapl	%eax
 	movq	96(%rsp), %rdx
-	movl	%edx, 9344(%rsp)
-	movl	$0, 9348(%rsp)
+	movl	%edx, 3080(%rsp)
+	movl	$0, 3084(%rsp)
 	movq	88(%rsp), %rdx
-	movq	%rdx, 9352(%rsp)
-	movq	$33554432, 9360(%rsp)
-	movl	%ecx, 9368(%rsp)
-	movl	%eax, 9372(%rsp)
+	movq	%rdx, 3088(%rsp)
+	movq	$33554432, 3096(%rsp)
+	movl	%ecx, 3104(%rsp)
+	movl	%eax, 3108(%rsp)
 	movl	$344, %edx
 	movq	%r12, %rdi
 	xorl	%esi, %esi
 	callq	*%rbx
 	movq	112(%rsp), %rax
 	movq	120(%rsp), %rcx
-	leaq	4296(%rsp), %rdx
+	leaq	4304(%rsp), %rdx
 	movq	%rax, (%rdx)
 	movq	%rcx, 8(%rdx)
-	movq	4432(%rsp), %rdi
+	movq	4440(%rsp), %rdi
 	addq	$16, %rdi
-	movq	%rdi, 4432(%rsp)
+	movq	%rdi, 4440(%rsp)
 	cmpq	$136, %rdi
 	jne	.LBB3_67
-	movq	4296(%rsp), %rax
+	movq	4304(%rsp), %rax
 	movq	%rax, 24(%rsp)
-	movq	4304(%rsp), %rcx
-	movq	4312(%rsp), %rdx
-	movq	4320(%rsp), %rsi
-	movq	4328(%rsp), %rdi
-	movq	4336(%rsp), %r8
-	movq	4344(%rsp), %r9
-	movq	4352(%rsp), %r10
-	movq	4360(%rsp), %r11
-	movq	4368(%rsp), %rbx
-	movq	4376(%rsp), %r14
-	movq	4384(%rsp), %r15
-	movq	4392(%rsp), %r12
-	movq	4400(%rsp), %r13
-	movq	4408(%rsp), %rbp
-	movq	4416(%rsp), %rax
-	movq	%rax, 8(%rsp)
+	movq	4312(%rsp), %rcx
+	movq	4320(%rsp), %rdx
+	movq	4328(%rsp), %rsi
+	movq	4336(%rsp), %rdi
+	movq	4344(%rsp), %r8
+	movq	4352(%rsp), %r9
+	movq	4360(%rsp), %r10
+	movq	4368(%rsp), %r11
+	movq	4376(%rsp), %rbx
+	movq	4384(%rsp), %r14
+	movq	4392(%rsp), %r15
+	movq	4400(%rsp), %r12
+	movq	4408(%rsp), %r13
+	movq	4416(%rsp), %rbp
 	movq	4424(%rsp), %rax
+	movq	%rax, 8(%rsp)
+	movq	4432(%rsp), %rax
 	movq	%rax, 16(%rsp)
 	movq	24(%rsp), %rax
-	xorq	%rax, 4096(%rsp)
-	xorq	%rcx, 4104(%rsp)
-	xorq	%rdx, 4112(%rsp)
-	xorq	%rsi, 4120(%rsp)
-	xorq	%rdi, 4128(%rsp)
-	xorq	%r8, 4136(%rsp)
-	xorq	%r9, 4144(%rsp)
-	xorq	%r10, 4152(%rsp)
-	xorq	%r11, 4160(%rsp)
-	xorq	%rbx, 4168(%rsp)
-	xorq	%r14, 4176(%rsp)
+	xorq	%rax, 4104(%rsp)
+	xorq	%rcx, 4112(%rsp)
+	xorq	%rdx, 4120(%rsp)
+	xorq	%rsi, 4128(%rsp)
+	xorq	%rdi, 4136(%rsp)
+	xorq	%r8, 4144(%rsp)
+	xorq	%r9, 4152(%rsp)
+	xorq	%r10, 4160(%rsp)
+	xorq	%r11, 4168(%rsp)
+	xorq	%rbx, 4176(%rsp)
+	xorq	%r14, 4184(%rsp)
 	movq	memcpy@GOTPCREL(%rip), %r14
-	xorq	%r15, 4184(%rsp)
-	xorq	%r12, 4192(%rsp)
-	leaq	4096(%rsp), %r12
-	xorq	%r13, 4200(%rsp)
-	xorq	%rbp, 4208(%rsp)
-	leaq	576(%rsp), %rbp
+	xorq	%r15, 4192(%rsp)
+	xorq	%r12, 4200(%rsp)
+	leaq	4104(%rsp), %r12
+	xorq	%r13, 4208(%rsp)
+	xorq	%rbp, 4216(%rsp)
+	leaq	560(%rsp), %rbp
 	movq	8(%rsp), %rax
-	xorq	%rax, 4216(%rsp)
-	movq	16(%rsp), %rax
 	xorq	%rax, 4224(%rsp)
+	movq	16(%rsp), %rax
+	xorq	%rax, 4232(%rsp)
 	movq	%r12, %rdi
 	callq	_RNvCsndc0WgnAaH_9keccak2568keccak_f
-	movq	$0, 4432(%rsp)
+	movq	$0, 4440(%rsp)
 	xorl	%edi, %edi
 .LBB3_67:
 	movl	$32, %r15d
-	leaq	9344(%rsp), %r13
+	leaq	3080(%rsp), %r13
 	jmp	.LBB3_68
 .LBB3_72:
 	subq	%rbx, %r15
@@ -2208,68 +2191,68 @@ sphincs_verify:
 	jb	.LBB3_86
 	cmpq	$137, %rsi
 	jae	.LBB3_86
-	leaq	4296(%rsp), %rax
+	leaq	4304(%rsp), %rax
 	addq	%rax, %rdi
 	movq	%r13, %rsi
 	movq	%rbx, %rdx
 	callq	*%r14
-	movq	4432(%rsp), %rdi
+	movq	4440(%rsp), %rdi
 	addq	%rbx, %rdi
-	movq	%rdi, 4432(%rsp)
+	movq	%rdi, 4440(%rsp)
 	cmpq	$136, %rdi
 	jne	.LBB3_72
-	movq	4296(%rsp), %rax
+	movq	4304(%rsp), %rax
 	movq	%rax, 24(%rsp)
-	movq	4304(%rsp), %rcx
-	movq	4312(%rsp), %rdx
-	movq	4320(%rsp), %rsi
-	movq	4328(%rsp), %rdi
-	movq	4336(%rsp), %r8
-	movq	4344(%rsp), %r9
-	movq	4352(%rsp), %r10
-	movq	4360(%rsp), %r11
-	movq	4368(%rsp), %r14
-	movq	4376(%rsp), %r12
-	movq	4384(%rsp), %rbp
-	movq	4392(%rsp), %rax
-	movq	%rax, 8(%rsp)
+	movq	4312(%rsp), %rcx
+	movq	4320(%rsp), %rdx
+	movq	4328(%rsp), %rsi
+	movq	4336(%rsp), %rdi
+	movq	4344(%rsp), %r8
+	movq	4352(%rsp), %r9
+	movq	4360(%rsp), %r10
+	movq	4368(%rsp), %r11
+	movq	4376(%rsp), %r14
+	movq	4384(%rsp), %r12
+	movq	4392(%rsp), %rbp
 	movq	4400(%rsp), %rax
-	movq	%rax, 16(%rsp)
+	movq	%rax, 8(%rsp)
 	movq	4408(%rsp), %rax
-	movq	%rax, 48(%rsp)
+	movq	%rax, 16(%rsp)
 	movq	4416(%rsp), %rax
-	movq	%rax, 40(%rsp)
+	movq	%rax, 48(%rsp)
 	movq	4424(%rsp), %rax
+	movq	%rax, 40(%rsp)
+	movq	4432(%rsp), %rax
 	movq	%rax, 32(%rsp)
 	movq	24(%rsp), %rax
-	xorq	%rax, 4096(%rsp)
-	xorq	%rcx, 4104(%rsp)
-	xorq	%rdx, 4112(%rsp)
-	xorq	%rsi, 4120(%rsp)
-	xorq	%rdi, 4128(%rsp)
-	xorq	%r8, 4136(%rsp)
-	xorq	%r9, 4144(%rsp)
-	xorq	%r10, 4152(%rsp)
-	xorq	%r11, 4160(%rsp)
-	xorq	%r14, 4168(%rsp)
+	xorq	%rax, 4104(%rsp)
+	xorq	%rcx, 4112(%rsp)
+	xorq	%rdx, 4120(%rsp)
+	xorq	%rsi, 4128(%rsp)
+	xorq	%rdi, 4136(%rsp)
+	xorq	%r8, 4144(%rsp)
+	xorq	%r9, 4152(%rsp)
+	xorq	%r10, 4160(%rsp)
+	xorq	%r11, 4168(%rsp)
+	xorq	%r14, 4176(%rsp)
 	movq	memcpy@GOTPCREL(%rip), %r14
-	xorq	%r12, 4176(%rsp)
-	leaq	4096(%rsp), %r12
-	xorq	%rbp, 4184(%rsp)
-	leaq	576(%rsp), %rbp
+	xorq	%r12, 4184(%rsp)
+	leaq	4104(%rsp), %r12
+	xorq	%rbp, 4192(%rsp)
+	leaq	560(%rsp), %rbp
 	movq	8(%rsp), %rax
-	xorq	%rax, 4192(%rsp)
-	movq	16(%rsp), %rax
 	xorq	%rax, 4200(%rsp)
-	movq	48(%rsp), %rax
+	movq	16(%rsp), %rax
 	xorq	%rax, 4208(%rsp)
-	movq	40(%rsp), %rax
+	movq	48(%rsp), %rax
 	xorq	%rax, 4216(%rsp)
-	movq	32(%rsp), %rax
+	movq	40(%rsp), %rax
 	xorq	%rax, 4224(%rsp)
+	movq	32(%rsp), %rax
+	xorq	%rax, 4232(%rsp)
 	movq	%r12, %rdi
 	callq	_RNvCsndc0WgnAaH_9keccak2568keccak_f
-	movq	$0, 4432(%rsp)
+	movq	$0, 4440(%rsp)
 	xorl	%edi, %edi
 	jmp	.LBB3_72
 .LBB3_73:
@@ -2277,112 +2260,110 @@ sphincs_verify:
 	movq	%rbp, %rdi
 	movq	%r12, %rsi
 	callq	*%r14
-	movl	$32, %r15d
-	movq	912(%rsp), %rbx
-	leaq	3072(%rsp), %r13
+	movl	$32, %r12d
+	movq	896(%rsp), %rbx
+	leaq	19144(%rsp), %r13
 	jmp	.LBB3_74
 .LBB3_78:
-	subq	%r12, %r15
-	addq	%r12, %r13
-	testq	%r15, %r15
+	subq	%r15, %r12
+	addq	%r15, %r13
+	testq	%r12, %r12
 	je	.LBB3_79
 .LBB3_74:
-	movl	$136, %r12d
-	subq	%rbx, %r12
-	cmpq	%r12, %r15
-	cmovbq	%r15, %r12
-	leaq	(%r12,%rbx), %rsi
+	movl	$136, %r15d
+	subq	%rbx, %r15
+	cmpq	%r15, %r12
+	cmovbq	%r12, %r15
+	leaq	(%r15,%rbx), %rsi
 	cmpq	%rbx, %rsi
 	jb	.LBB3_92
 	cmpq	$137, %rsi
 	jae	.LBB3_92
-	leaq	776(%rsp), %rax
+	leaq	760(%rsp), %rax
 	addq	%rax, %rbx
 	movq	%rbx, %rdi
 	movq	%r13, %rsi
-	movq	%r12, %rdx
+	movq	%r15, %rdx
 	callq	*%r14
-	movq	912(%rsp), %rbx
-	addq	%r12, %rbx
-	movq	%rbx, 912(%rsp)
+	movq	896(%rsp), %rbx
+	addq	%r15, %rbx
+	movq	%rbx, 896(%rsp)
 	cmpq	$136, %rbx
 	jne	.LBB3_78
-	movq	776(%rsp), %rax
+	movq	760(%rsp), %rax
 	movq	%rax, 24(%rsp)
-	movq	784(%rsp), %rcx
-	movq	792(%rsp), %rdx
-	movq	800(%rsp), %rsi
-	movq	808(%rsp), %rdi
-	movq	816(%rsp), %r8
-	movq	824(%rsp), %r9
-	movq	832(%rsp), %r10
-	movq	840(%rsp), %r11
-	movq	848(%rsp), %rbx
-	movq	856(%rsp), %r14
-	movq	864(%rsp), %rbp
-	movq	872(%rsp), %rax
+	movq	768(%rsp), %rcx
+	movq	776(%rsp), %rdx
+	movq	784(%rsp), %rsi
+	movq	792(%rsp), %rdi
+	movq	800(%rsp), %r8
+	movq	808(%rsp), %r9
+	movq	816(%rsp), %r10
+	movq	824(%rsp), %r11
+	movq	832(%rsp), %rbx
+	movq	840(%rsp), %r14
+	movq	848(%rsp), %rbp
+	movq	856(%rsp), %rax
 	movq	%rax, 8(%rsp)
-	movq	880(%rsp), %rax
+	movq	864(%rsp), %rax
 	movq	%rax, 16(%rsp)
-	movq	888(%rsp), %rax
+	movq	872(%rsp), %rax
 	movq	%rax, 48(%rsp)
-	movq	896(%rsp), %rax
+	movq	880(%rsp), %rax
 	movq	%rax, 40(%rsp)
-	movq	904(%rsp), %rax
+	movq	888(%rsp), %rax
 	movq	%rax, 32(%rsp)
 	movq	24(%rsp), %rax
-	xorq	%rax, 576(%rsp)
-	xorq	%rcx, 584(%rsp)
-	xorq	%rdx, 592(%rsp)
-	xorq	%rsi, 600(%rsp)
-	xorq	%rdi, 608(%rsp)
-	xorq	%r8, 616(%rsp)
-	xorq	%r9, 624(%rsp)
-	xorq	%r10, 632(%rsp)
-	xorq	%r11, 640(%rsp)
-	xorq	%rbx, 648(%rsp)
-	xorq	%r14, 656(%rsp)
+	xorq	%rax, 560(%rsp)
+	xorq	%rcx, 568(%rsp)
+	xorq	%rdx, 576(%rsp)
+	xorq	%rsi, 584(%rsp)
+	xorq	%rdi, 592(%rsp)
+	xorq	%r8, 600(%rsp)
+	xorq	%r9, 608(%rsp)
+	xorq	%r10, 616(%rsp)
+	xorq	%r11, 624(%rsp)
+	xorq	%rbx, 632(%rsp)
+	xorq	%r14, 640(%rsp)
 	movq	memcpy@GOTPCREL(%rip), %r14
-	xorq	%rbp, 664(%rsp)
-	leaq	576(%rsp), %rbp
+	xorq	%rbp, 648(%rsp)
+	leaq	560(%rsp), %rbp
 	movq	8(%rsp), %rax
-	xorq	%rax, 672(%rsp)
+	xorq	%rax, 656(%rsp)
 	movq	16(%rsp), %rax
-	xorq	%rax, 680(%rsp)
+	xorq	%rax, 664(%rsp)
 	movq	48(%rsp), %rax
-	xorq	%rax, 688(%rsp)
+	xorq	%rax, 672(%rsp)
 	movq	40(%rsp), %rax
-	xorq	%rax, 696(%rsp)
+	xorq	%rax, 680(%rsp)
 	movq	32(%rsp), %rax
-	xorq	%rax, 704(%rsp)
+	xorq	%rax, 688(%rsp)
 	movq	%rbp, %rdi
 	callq	_RNvCsndc0WgnAaH_9keccak2568keccak_f
-	movq	$0, 912(%rsp)
+	movq	$0, 896(%rsp)
 	xorl	%ebx, %ebx
 	jmp	.LBB3_78
 .LBB3_79:
 	movl	$200, %edx
-	leaq	4096(%rsp), %r12
+	leaq	4104(%rsp), %r12
 	movq	%r12, %rdi
 	movq	%rbp, %rsi
 	callq	*%r14
 	cmpq	$137, %rbx
 	jae	.LBB3_89
 	movl	$136, %edx
-	leaq	2048(%rsp), %r13
+	leaq	2056(%rsp), %r13
 	movq	%r13, %rdi
 	xorl	%esi, %esi
 	movq	memset@GOTPCREL(%rip), %r15
 	callq	*%r15
 	movq	%r13, %rdi
-	leaq	776(%rsp), %rsi
+	leaq	760(%rsp), %rsi
 	movq	%rbx, %rdx
 	callq	*%r14
-	xorb	$1, 2048(%rsp,%rbx)
+	xorb	$1, 2056(%rsp,%rbx)
 	movq	%r15, %rbx
-	xorb	$-128, 2183(%rsp)
-	movq	2048(%rsp), %rax
-	xorq	%rax, 4096(%rsp)
+	xorb	$-128, 2191(%rsp)
 	movq	2056(%rsp), %rax
 	xorq	%rax, 4104(%rsp)
 	movq	2064(%rsp), %rax
@@ -2415,39 +2396,41 @@ sphincs_verify:
 	xorq	%rax, 4216(%rsp)
 	movq	2176(%rsp), %rax
 	xorq	%rax, 4224(%rsp)
+	movq	2184(%rsp), %rax
+	xorq	%rax, 4232(%rsp)
 	movq	%r12, %rdi
 	callq	_RNvCsndc0WgnAaH_9keccak2568keccak_f
-	movq	4096(%rsp), %rax
-	movq	4104(%rsp), %rcx
-	movq	%rcx, 2056(%rsp)
-	movq	%rax, 2048(%rsp)
-	movq	%rax, 10368(%rsp)
-	movq	%rcx, 10376(%rsp)
-	movq	64(%rsp), %rcx
-	cmpq	160(%rsp), %rcx
+	movq	4104(%rsp), %rax
+	movq	4112(%rsp), %rcx
+	movq	%rcx, 2064(%rsp)
+	movq	%rax, 2056(%rsp)
+	movq	%rax, 8328(%rsp)
+	movq	%rcx, 8336(%rsp)
+	movq	56(%rsp), %rcx
+	cmpq	168(%rsp), %rcx
 	jne	.LBB3_65
-	movq	10368(%rsp), %rax
-	movq	10376(%rsp), %rcx
+	movq	8328(%rsp), %rax
+	movq	8336(%rsp), %rcx
 	jmp	.LBB3_82
 .LBB3_91:
-	movq	1632(%rsp), %rax
-	movq	1640(%rsp), %rcx
+	movq	1592(%rsp), %rax
+	movq	1600(%rsp), %rcx
 .LBB3_82:
-	movq	%rcx, 4104(%rsp)
-	movq	%rax, 4096(%rsp)
-	movq	4096(%rsp), %rax
-	movq	4104(%rsp), %rcx
+	movq	%rcx, 4112(%rsp)
+	movq	%rax, 4104(%rsp)
+	movq	4104(%rsp), %rax
+	movq	4112(%rsp), %rcx
 	movq	%rcx, 152(%rsp)
 	movq	%rax, 144(%rsp)
-	movq	208(%rsp), %rcx
+	movq	200(%rsp), %rcx
 	leaq	(%rsp,%rcx), %rax
-	addq	$20540, %rax
-	movq	%rax, 176(%rsp)
+	addq	$20556, %rax
+	movq	%rax, 184(%rsp)
 	cmpq	$7740, %rcx
 	movl	$0, %ebx
-	leaq	.Lanon.440213f1c62d8b61420e6860e9721951.8(%rip), %rdx
+	leaq	.Lanon.bee145f0cb2eac5728ff95be1b200579.2(%rip), %rdx
 	leaq	144(%rsp), %r15
-	movq	200(%rsp), %rsi
+	movq	192(%rsp), %rsi
 	jne	.LBB3_38
 	movq	144(%rsp), %rcx
 	movq	152(%rsp), %rdx
@@ -2471,7 +2454,7 @@ sphincs_verify:
 .LBB3_84:
 	xorl	%eax, %eax
 .LBB3_85:
-	addq	$29336, %rsp
+	addq	$29352, %rsp
 	.cfi_def_cfa_offset 56
 	popq	%rbx
 	.cfi_def_cfa_offset 48
@@ -2487,7 +2470,7 @@ sphincs_verify:
 	.cfi_def_cfa_offset 8
 	retq
 .LBB3_89:
-	.cfi_def_cfa_offset 29392
+	.cfi_def_cfa_offset 29408
 	movl	$136, %edx
 	xorl	%edi, %edi
 	movq	%rbx, %rsi
@@ -4606,12 +4589,12 @@ _RNvNtCs7Pyp4CbMBld_9lean_xmss4wots9wots_leaf:
 	.ascii	"\001\000\000\000\000\000\000\000\202\200\000\000\000\000\000\000\212\200\000\000\000\000\000\200\000\200\000\200\000\000\000\200\213\200\000\000\000\000\000\000\001\000\000\200\000\000\000\000\201\200\000\200\000\000\000\200\t\200\000\000\000\000\000\200\212\000\000\000\000\000\000\000\210\000\000\000\000\000\000\000\t\200\000\200\000\000\000\000\n\000\000\200\000\000\000\000\213\200\000\200\000\000\000\000\213\000\000\000\000\000\000\200\211\200\000\000\000\000\000\200\003\200\000\000\000\000\000\200\002\200\000\000\000\000\000\200\200\000\000\000\000\000\000\200\n\200\000\000\000\000\000\000\n\000\000\200\000\000\000\200\201\200\000\200\000\000\000\200\200\200\000\000\000\000\000\200\001\000\000\200\000\000\000\000\b\200\000\200\000\000\000\200"
 	.size	.Lanon.5ef9b7c546f4dc64388b910df55ec241.1, 192
 
-	.type	.Lanon.440213f1c62d8b61420e6860e9721951.8,@object
-	.section	.rodata..Lanon.440213f1c62d8b61420e6860e9721951.8,"a",@progbits
+	.type	.Lanon.bee145f0cb2eac5728ff95be1b200579.2,@object
+	.section	.rodata..Lanon.bee145f0cb2eac5728ff95be1b200579.2,"a",@progbits
 	.p2align	3, 0x0
-.Lanon.440213f1c62d8b61420e6860e9721951.8:
+.Lanon.bee145f0cb2eac5728ff95be1b200579.2:
 	.asciz	"\b\000\000\000\000\000\000\000\b\000\000\000\000\000\000\000\n\000\000\000\000\000\000"
-	.size	.Lanon.440213f1c62d8b61420e6860e9721951.8, 24
+	.size	.Lanon.bee145f0cb2eac5728ff95be1b200579.2, 24
 
 	.section	.debug_abbrev,"",@progbits
 	.byte	1

@@ -6,12 +6,12 @@ public import NativeRustcX64.SphincsVerify.Digest.Exec
 /-!
 # `h_msg`: `b43 .. b54` (x86-64)
 
-`b43` (directive 451) clears hasher B (`576`, `Hasher::new`), `b44 .. b47` update it with `R` (the
-parsed signature's randomizer, `25180`), `PK.seed` (`112`), `PK.root` (`128`) and the message
-(`1600`): it has absorbed `hInput r` (`absorb_spec`, at `b48`, directive 473). `b48 .. b50`
-clone it to `4096`, update the clone with `BE32(0)` (stored at `9344`) and finalize it to `11392`
-(`hash0_spec`); `b51 .. b53` copy the digest to `2048`, clone again, update with `BE32(1)` and
-finalize (`hash1_spec`); `b54` copies the second digest to `2080`: `h_msg`'s 64 bytes at `2048`
+`b43` (directive 451) clears hasher B (`560`, `Hasher::new`), `b44 .. b47` update it with `R` (the
+parsed signature's randomizer, `25196`), `PK.seed` (`112`), `PK.root` (`128`) and the message
+(`2008`): it has absorbed `hInput r` (`absorb_spec`, at `b48`, directive 473). `b48 .. b50`
+clone it to `4104`, update the clone with `BE32(0)` (stored at `3080`) and finalize it to `10376`
+(`hash0_spec`); `b51 .. b53` copy the digest to `2056`, clone again, update with `BE32(1)` and
+finalize (`hash1_spec`); `b54` copies the second digest to `2088`: `h_msg`'s 64 bytes at `2056`
 (`hMsgBytes`), at the bit loop `b55` (directive 517, `hMsg_spec`).
 -/
 
@@ -30,23 +30,23 @@ def hCall (r : Run) (i : Nat) : List UInt8 := Keccak.hashBytes (hInput r ++ be32
 /-- `h_msg`'s 64 bytes. -/
 def hMsgBytes (r : Run) : List UInt8 := hCall r 0 ++ hCall r 1
 
-/-- **At `b48`**: what the digest keeps, R13 `0`, R14 hasher B (absorbed `hInput r`), R12 memcpy. -/
+/-- **At `b48`**: what the digest keeps, R12 `0`, R14 hasher B (absorbed `hInput r`), RBP memcpy. -/
 def Absorbed (r : Run) [Labels] (m : MachineData) : Prop :=
-  Keep r m ∧ Run.RegIs m .r13 0 ∧ Run.RegIs m .r14 (r.off 576) ∧ HasherAt r m 576 (hInput r) ∧
-    Run.RegIs m .r12 (Labels.label "memcpy").toBitVec
+  Keep r m ∧ Run.RegIs m .r12 0 ∧ Run.RegIs m .r14 (r.off 560) ∧ HasherAt r m 560 (hInput r) ∧
+    Run.RegIs m .rbp (Labels.label "memcpy").toBitVec
 
-/-- **At `b51`**: the first digest at `11392`, hasher B, RBP the clone, RBX `BE32(i)`'s place, R15
-the digests', and R12 the memcpy entry for the next clone. -/
+/-- **At `b51`**: the first digest at `10376`, hasher B, R13 the clone, RBX `BE32(i)`'s place, R15
+the digests', and RBP the memcpy entry for the next clone. -/
 def Hashed0 (r : Run) [Labels] (m : MachineData) : Prop :=
-  Keep r m ∧ Run.RegIs m .r13 0 ∧ Run.RegIs m .r14 (r.off 576) ∧ Run.RegIs m .rbp (r.off 4096) ∧
-    Run.RegIs m .rbx (r.off 9344) ∧ Run.RegIs m .r15 (r.off 11392) ∧
-    HasherAt r m 576 (hInput r) ∧ BytesAt m.dmem (r.off 11392) (hCall r 0) ∧
-    Run.RegIs m .r12 (Labels.label "memcpy").toBitVec
+  Keep r m ∧ Run.RegIs m .r12 0 ∧ Run.RegIs m .r14 (r.off 560) ∧ Run.RegIs m .r13 (r.off 4104) ∧
+    Run.RegIs m .rbx (r.off 3080) ∧ Run.RegIs m .r15 (r.off 10376) ∧
+    HasherAt r m 560 (hInput r) ∧ BytesAt m.dmem (r.off 10376) (hCall r 0) ∧
+    Run.RegIs m .rbp (Labels.label "memcpy").toBitVec
 
-/-- **At `b54`**: the first digest at `2048`, the second at `11392`. -/
+/-- **At `b54`**: the first digest at `2056`, the second at `10376`. -/
 def Hashed1 (r : Run) (m : MachineData) : Prop :=
-  Keep r m ∧ Run.RegIs m .r13 0 ∧ Run.RegIs m .rbp (r.off 4096) ∧
-    BytesAt m.dmem (r.off 2048) (hCall r 0) ∧ BytesAt m.dmem (r.off 11392) (hCall r 1)
+  Keep r m ∧ Run.RegIs m .r12 0 ∧ Run.RegIs m .r13 (r.off 4104) ∧
+    BytesAt m.dmem (r.off 2056) (hCall r 0) ∧ BytesAt m.dmem (r.off 10376) (hCall r 1)
 
 /-- Byte `i` of region `r` holds the byte at `o' + i` of region `r'` that a load read. -/
 def copies (ws : List Write) (r o r' o' n : Nat) : Bool :=
@@ -95,17 +95,17 @@ theorem copy [Labels] {env : Env} {S : SState} {m : MachineData} (hm : Match env
 
 /-- The frame's 32 bytes at `o'` copied to `o` by the block from `m` to `m₁`. -/
 theorem copy32 [Labels] {r : Run} {m m₁ : MachineData} {ret : BitVec 64} {S : SState}
-    (hm : Match (r.env m (fun _ ↦ 0) ret) S m₁) {o o' : Nat} (ho : o + 32 ≤ 29392)
+    (hm : Match (r.env m (fun _ ↦ 0) ret) S m₁) {o o' : Nat} (ho : o + 32 ≤ 29408)
     (hc : copies S.mem 0 o 0 o' 32 = true) {bs : List UInt8}
     (hl : bs.length = 32) (h : BytesAt m.dmem (r.off o') bs) : BytesAt m₁.dmem (r.off o) bs :=
-  copy hm (sz := 29392) rfl ho hc hl h
+  copy hm (sz := 29408) rfl ho hc hl h
 
 /-- The 4 bytes of a literal word store. -/
 theorem bytesAt_lit4 [Labels] {r : Run} {m m₁ : MachineData} {ret : BitVec 64} {S : SState}
-    (hm : Match (r.env m (fun _ ↦ 0) ret) S m₁) {o v : Nat} (ho : o + 4 ≤ 29392)
+    (hm : Match (r.env m (fun _ ↦ 0) ret) S m₁) {o v : Nat} (ho : o + 4 ≤ 29408)
     (hw : ∀ i < 4, findWrite 0 (o + i) S.mem = some (.lit v, i)) {bs : List UInt8}
     (hb : (List.range 4).map (byteOf (BitVec.ofNat 64 v)) = bs) : BytesAt m₁.dmem (r.off o) bs := by
-  have := hm.bytesAt_write (r := 0) (o := o) (n := 4) (b := r.base) (sz := 29392) rfl ho hw
+  have := hm.bytesAt_write (r := 0) (o := o) (n := 4) (b := r.base) (sz := 29408) rfl ho hw
   rwa [show Sym.eval (r.env m (fun _ ↦ 0) ret) (.lit v) = BitVec.ofNat 64 v from rfl, hb] at this
 
 /-- `n` bytes from byte `k` of bytes in memory. -/
@@ -128,7 +128,7 @@ theorem length_root (r : Run) : r.pk.root.length = 16 := by
 
 /-- `R` in the frame. -/
 theorem Keep.rand {r : Run} {m : MachineData} (hK : Keep r m) :
-    BytesAt m.dmem (r.off 25180) r.sig.randomizer := by
+    BytesAt m.dmem (r.off 25196) r.sig.randomizer := by
   have := bytesAt_drop_take hK.2.1.2 4640 16 (by rw [length_sigMem']; omega)
   have e : ((sigMem r.sig).drop 4640).take 16 = r.sig.randomizer := SigMem.sigMem_randomizer r.w
   rwa [Run.off_add, e] at this
@@ -157,53 +157,53 @@ theorem absorb_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hc :
   have hm32 := length_msg r
   -- b43: `memset` of hasher B
   refine Run.memsetCall r hp hpre hc Sphincs.SphincsVerify.b43_in_code rfl run_b43 rfl rfl
-    (a := 576) (n := 344) hK (knownOK_nil m _) rfl rfl rfl (.inl ⟨by decide, by decide⟩)
+    (a := 560) (n := 344) hK (knownOK_nil m _) rfl rfl rfl (.inl ⟨by decide, by decide⟩)
     fun m₁ hm₁ hkb₁ m₂ hK₂ hS₂ hkc₂ hB₂ ↦ ?_
-  have g13 := regIs_of_saved hS₂ rfl (regIs_lit hm₁ (y := .r13) (c := 0) rfl)
-  have g14 := regIs_of_saved hS₂ rfl (regIs_ptr hm₁ (y := .r14) (o := 576) rfl)
+  have g13 := regIs_of_saved hS₂ rfl (regIs_lit hm₁ (y := .r12) (c := 0) rfl)
+  have g14 := regIs_of_saved hS₂ rfl (regIs_ptr hm₁ (y := .r14) (o := 560) rfl)
   have gbp := regIs_of_saved hS₂ rfl (regIs_keep hm₁ rfl hbp)
   have g12 := regIs_of_saved hS₂ rfl (regIs_keep hm₁ rfl h12)
-  have gmsg := hkc₂ 1600 _ (by omega) (by omega) (hkb₁ 1600 _ (by omega) (by rw [hm32]; rfl) hmsg)
-  have gH : HasherAt r m₂ 576 [] := ⟨_, hB₂, Keccak.holds_new⟩
+  have gmsg := hkc₂ 2008 _ (by omega) (by omega) (hkb₁ 2008 _ (by omega) (by rw [hm32]; rfl) hmsg)
+  have gH : HasherAt r m₂ 560 [] := ⟨_, hB₂, Keccak.holds_new⟩
   -- b44: `R`
   have hrl : r.sig.randomizer.length = 16 := SigMem.length_randomizer r.w
   refine Run.updateCall r hp hpre hc Sphincs.SphincsVerify.b44_in_code rfl run_b44 rfl rfl
-    (a := 576) (b := 25180) (n := 16) hK₂ (knownOK_ptr gbp (knownOK_ptr g14 (knownOK_nil m₂ _)))
+    (a := 560) (b := 25196) (n := 16) hK₂ (knownOK_ptr gbp (knownOK_ptr g14 (knownOK_nil m₂ _)))
     rfl rfl rfl (.inl ⟨by decide, by decide⟩) (by decide) (by decide) hrl
     fun m₃ hm₃ hkb₃ ↦ ⟨gH.keepB hkb₃ (by decide) rfl,
-      hkb₃ 25180 _ (by rw [hrl]; omega) (by rw [hrl]; rfl)
+      hkb₃ 25196 _ (by rw [hrl]; omega) (by rw [hrl]; rfl)
         hK₂.rand, fun m₄ hK₄ hS₄ hkc₄ hH₄ ↦ ?_⟩
   have g13 := regIs_of_saved hS₄ rfl (regIs_keep hm₃ rfl g13)
-  have g14 := regIs_of_saved hS₄ rfl (regIs_ptr hm₃ (y := .r14) (o := 576) rfl)
+  have g14 := regIs_of_saved hS₄ rfl (regIs_ptr hm₃ (y := .r14) (o := 560) rfl)
   have g12 := regIs_of_saved hS₄ rfl (regIs_keep hm₃ rfl g12)
-  have gmsg := hkc₄ 1600 _ (by omega) (by omega) (hkb₃ 1600 _ (by omega) (by rw [hm32]; rfl) gmsg)
+  have gmsg := hkc₄ 2008 _ (by omega) (by omega) (hkb₃ 2008 _ (by omega) (by rw [hm32]; rfl) gmsg)
   -- b45: `PK.seed`
   refine Run.updateCall r hp hpre hc Sphincs.SphincsVerify.b45_in_code rfl run_b45 rfl rfl
-    (a := 576) (b := 112) (n := 16) hK₄ (knownOK_ptr g14 (knownOK_nil m₄ _)) rfl rfl rfl
+    (a := 560) (b := 112) (n := 16) hK₄ (knownOK_ptr g14 (knownOK_nil m₄ _)) rfl rfl rfl
     (.inl ⟨by decide, by decide⟩) (by decide) (by decide) (length_seed r) fun m₅ hm₅ hkb₅ ↦
       ⟨hH₄.keepB hkb₅ (by decide) rfl, hkb₅ 112 _ (by rw [length_seed]; omega) (by rw [length_seed]; rfl) hK₄.seed, fun m₆ hK₆ hS₆ hkc₆ hH₆ ↦ ?_⟩
   have g13 := regIs_of_saved hS₆ rfl (regIs_keep hm₅ rfl g13)
-  have g14 := regIs_of_saved hS₆ rfl (regIs_ptr hm₅ (y := .r14) (o := 576) rfl)
+  have g14 := regIs_of_saved hS₆ rfl (regIs_ptr hm₅ (y := .r14) (o := 560) rfl)
   have g12 := regIs_of_saved hS₆ rfl (regIs_keep hm₅ rfl g12)
-  have gmsg := hkc₆ 1600 _ (by omega) (by omega) (hkb₅ 1600 _ (by omega) (by rw [hm32]; rfl) gmsg)
+  have gmsg := hkc₆ 2008 _ (by omega) (by omega) (hkb₅ 2008 _ (by omega) (by rw [hm32]; rfl) gmsg)
   -- b46: `PK.root`
   refine Run.updateCall r hp hpre hc Sphincs.SphincsVerify.b46_in_code rfl run_b46 rfl rfl
-    (a := 576) (b := 128) (n := 16) hK₆ (knownOK_ptr g14 (knownOK_nil m₆ _)) rfl rfl rfl
+    (a := 560) (b := 128) (n := 16) hK₆ (knownOK_ptr g14 (knownOK_nil m₆ _)) rfl rfl rfl
     (.inl ⟨by decide, by decide⟩) (by decide) (by decide) (length_root r) fun m₇ hm₇ hkb₇ ↦
       ⟨hH₆.keepB hkb₇ (by decide) rfl, hkb₇ 128 _ (by rw [length_root]; omega) (by rw [length_root]; rfl) hK₆.root, fun m₈ hK₈ hS₈ hkc₈ hH₈ ↦ ?_⟩
   have g13 := regIs_of_saved hS₈ rfl (regIs_keep hm₇ rfl g13)
-  have g14 := regIs_of_saved hS₈ rfl (regIs_ptr hm₇ (y := .r14) (o := 576) rfl)
+  have g14 := regIs_of_saved hS₈ rfl (regIs_ptr hm₇ (y := .r14) (o := 560) rfl)
   have g12 := regIs_of_saved hS₈ rfl (regIs_keep hm₇ rfl g12)
-  have gmsg := hkc₈ 1600 _ (by omega) (by omega) (hkb₇ 1600 _ (by omega) (by rw [hm32]; rfl) gmsg)
+  have gmsg := hkc₈ 2008 _ (by omega) (by omega) (hkb₇ 2008 _ (by omega) (by rw [hm32]; rfl) gmsg)
   -- b47: the message
   refine Run.updateCall r hp hpre hc Sphincs.SphincsVerify.b47_in_code rfl run_b47 rfl rfl
-    (a := 576) (b := 1600) (n := 32) hK₈ (knownOK_ptr g14 (knownOK_nil m₈ _)) rfl rfl rfl
+    (a := 560) (b := 2008) (n := 32) hK₈ (knownOK_ptr g14 (knownOK_nil m₈ _)) rfl rfl rfl
     (.inl ⟨by decide, by decide⟩) (by decide) (by decide) hm32 fun m₉ hm₉ hkb₉ ↦
-      ⟨hH₈.keepB hkb₉ (by decide) rfl, hkb₉ 1600 _ (by omega) (by rw [hm32]; rfl) gmsg,
+      ⟨hH₈.keepB hkb₉ (by decide) rfl, hkb₉ 2008 _ (by omega) (by rw [hm32]; rfl) gmsg,
         fun m₁₀ hK₁₀ hS₁₀ _ hH₁₀ ↦ .done _ ⟨rfl, hK₁₀, ?_, ?_, ?_,
           regIs_of_saved hS₁₀ rfl (regIs_keep hm₉ rfl g12)⟩⟩
   · exact regIs_of_saved hS₁₀ rfl (regIs_keep hm₉ rfl g13)
-  · exact regIs_of_saved hS₁₀ rfl (regIs_ptr hm₉ (y := .r14) (o := 576) rfl)
+  · exact regIs_of_saved hS₁₀ rfl (regIs_ptr hm₉ (y := .r14) (o := 560) rfl)
   · simpa [hInput, List.append_assoc] using hH₁₀
 
 /-- **`h_msg`'s first call** (`b48 .. b50`). -/
@@ -216,41 +216,41 @@ theorem hash0_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : 
   have hbl := Keccak.length_of_holds hbh
   -- b48: the clone
   refine Run.memcpyCall r hp hpre hc Sphincs.SphincsVerify.b48_in_code rfl run_b48 rfl rfl
-    (a := 4096) (b := 576) (n := 344) hK (knownOK_ptr h14 ⟨h12, trivial⟩) rfl rfl rfl
+    (a := 4104) (b := 560) (n := 344) hK (knownOK_ptr h14 ⟨h12, trivial⟩) rfl rfl rfl
     (.inl ⟨by decide, by decide⟩) (by decide) (by decide) hbl fun m₁ hm₁ hkb₁ ↦
-      ⟨hkb₁ 576 hb (by omega) (by rw [hbl]; rfl) hbB, fun m₂ hK₂ hS₂ hkc₂ hA₂ ↦ ?_⟩
+      ⟨hkb₁ 560 hb (by omega) (by rw [hbl]; rfl) hbB, fun m₂ hK₂ hS₂ hkc₂ hA₂ ↦ ?_⟩
   have g13 := regIs_of_saved hS₂ rfl (regIs_keep hm₁ rfl h13)
-  have g14 := regIs_of_saved hS₂ rfl (regIs_ptr hm₁ (y := .r14) (o := 576) rfl)
-  have gbp := regIs_of_saved hS₂ rfl (regIs_ptr hm₁ (y := .rbp) (o := 4096) rfl)
+  have g14 := regIs_of_saved hS₂ rfl (regIs_ptr hm₁ (y := .r14) (o := 560) rfl)
+  have gbp := regIs_of_saved hS₂ rfl (regIs_ptr hm₁ (y := .r13) (o := 4104) rfl)
   have g12 := regIs_of_saved hS₂ rfl
-    (hm₁.regs .r12 _ rfl : Run.RegIs m₁ .r12 (Labels.label "memcpy").toBitVec)
-  have gB : HasherAt r m₂ 576 (hInput r) :=
-    ⟨hb, hkc₂ 576 hb (by omega) (by omega) (hkb₁ 576 hb (by omega) (by rw [hbl]; rfl) hbB), hbh⟩
-  have gA : HasherAt r m₂ 4096 (hInput r) := ⟨hb, hA₂, hbh⟩
+    (hm₁.regs .rbp _ rfl : Run.RegIs m₁ .rbp (Labels.label "memcpy").toBitVec)
+  have gB : HasherAt r m₂ 560 (hInput r) :=
+    ⟨hb, hkc₂ 560 hb (by omega) (by omega) (hkb₁ 560 hb (by omega) (by rw [hbl]; rfl) hbB), hbh⟩
+  have gA : HasherAt r m₂ 4104 (hInput r) := ⟨hb, hA₂, hbh⟩
   -- b49: `BE32(0)`
   refine Run.updateCall r hp hpre hc Sphincs.SphincsVerify.b49_in_code rfl run_b49 rfl rfl
-    (a := 4096) (b := 9344) (n := 4) hK₂ (knownOK_ptr gbp (knownOK_nil m₂ _)) rfl rfl rfl
+    (a := 4104) (b := 3080) (n := 4) hK₂ (knownOK_ptr gbp (knownOK_nil m₂ _)) rfl rfl rfl
     (.inl ⟨by decide, by decide⟩) (by decide) (by decide) (bs := be32 (0 : Nat).toUInt32) rfl
     fun m₃ hm₃ hkb₃ ↦ ⟨gA.keepB hkb₃ (by decide) rfl, bytesAt_lit4 hm₃ (v := 0) (by decide)
       (by decide) (by decide), fun m₄ hK₄ hS₄ hkc₄ hH₄ ↦ ?_⟩
   have g13 := regIs_of_saved hS₄ rfl (regIs_keep hm₃ rfl g13)
   have g14 := regIs_of_saved hS₄ rfl (regIs_keep hm₃ rfl g14)
-  have gbp := regIs_of_saved hS₄ rfl (regIs_ptr hm₃ (y := .rbp) (o := 4096) rfl)
-  have gbx := regIs_of_saved hS₄ rfl (regIs_ptr hm₃ (y := .rbx) (o := 9344) rfl)
+  have gbp := regIs_of_saved hS₄ rfl (regIs_ptr hm₃ (y := .r13) (o := 4104) rfl)
+  have gbx := regIs_of_saved hS₄ rfl (regIs_ptr hm₃ (y := .rbx) (o := 3080) rfl)
   have g12 := regIs_of_saved hS₄ rfl (regIs_keep hm₃ rfl g12)
   have gB := (gB.keepB hkb₃ (by decide) rfl).keepC hkc₄ (by decide) (by decide)
   -- b50: the first digest
   refine Run.finalizeCall r hp hpre hc Sphincs.SphincsVerify.b50_in_code rfl run_b50 rfl rfl
-    (o := 11392) (a := 4096) hK₄ (knownOK_ptr gbp (knownOK_nil m₄ _)) rfl rfl
+    (o := 10376) (a := 4104) hK₄ (knownOK_ptr gbp (knownOK_nil m₄ _)) rfl rfl
     (.inl ⟨by decide, by decide⟩) (by decide) (by decide) fun m₅ hm₅ hkb₅ ↦
       ⟨hH₄.keepB hkb₅ (by decide) rfl, fun m₆ hK₆ hS₆ hkc₆ hD₆ ↦
         .done _ ⟨rfl, hK₆, ?_, ?_, ?_, ?_, ?_, ?_, hD₆,
           regIs_of_saved hS₆ rfl (regIs_keep hm₅ rfl g12)⟩⟩
   · exact regIs_of_saved hS₆ rfl (regIs_keep hm₅ rfl g13)
   · exact regIs_of_saved hS₆ rfl (regIs_keep hm₅ rfl g14)
-  · exact regIs_of_saved hS₆ rfl (regIs_ptr hm₅ (y := .rbp) (o := 4096) rfl)
+  · exact regIs_of_saved hS₆ rfl (regIs_ptr hm₅ (y := .r13) (o := 4104) rfl)
   · exact regIs_of_saved hS₆ rfl (regIs_keep hm₅ rfl gbx)
-  · exact regIs_of_saved hS₆ rfl (regIs_ptr hm₅ (y := .r15) (o := 11392) rfl)
+  · exact regIs_of_saved hS₆ rfl (regIs_ptr hm₅ (y := .r15) (o := 10376) rfl)
   · exact (gB.keepB hkb₅ (by decide) rfl).keepC hkc₆ (by decide) (by decide)
 
 /-- **`h_msg`'s second call** (`b51 .. b53`). -/
@@ -264,36 +264,36 @@ theorem hash1_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : 
   have hcl := length_hCall r 0
   -- b51: the first digest copied, the clone again
   refine Run.memcpyCall r hp hpre hc Sphincs.SphincsVerify.b51_in_code rfl run_b51 rfl rfl
-    (a := 4096) (b := 576) (n := 344) hK (knownOK_ptr hbp (knownOK_ptr h14 ⟨h12, trivial⟩))
+    (a := 4104) (b := 560) (n := 344) hK (knownOK_ptr hbp (knownOK_ptr h14 ⟨h12, trivial⟩))
     rfl rfl rfl (.inl ⟨by decide, by decide⟩) (by decide) (by decide) hbl fun m₁ hm₁ hkb₁ ↦
-      ⟨hkb₁ 576 hb (by omega) (by rw [hbl]; rfl) hbB, fun m₂ hK₂ hS₂ hkc₂ hA₂ ↦ ?_⟩
+      ⟨hkb₁ 560 hb (by omega) (by rw [hbl]; rfl) hbB, fun m₂ hK₂ hS₂ hkc₂ hA₂ ↦ ?_⟩
   have g13 := regIs_of_saved hS₂ rfl (regIs_keep hm₁ rfl h13)
-  have gbp := regIs_of_saved hS₂ rfl (regIs_ptr hm₁ (y := .rbp) (o := 4096) rfl)
+  have gbp := regIs_of_saved hS₂ rfl (regIs_ptr hm₁ (y := .r13) (o := 4104) rfl)
   have gbx := regIs_of_saved hS₂ rfl (regIs_keep hm₁ rfl hbx)
   have g15 := regIs_of_saved hS₂ rfl (regIs_keep hm₁ rfl h15)
-  have gD := hkc₂ 2048 _ (by omega) (by omega)
-    (copy32 hm₁ (o := 2048) (o' := 11392) (by decide) rfl hcl hD)
-  have gA : HasherAt r m₂ 4096 (hInput r) := ⟨hb, hA₂, hbh⟩
+  have gD := hkc₂ 2056 _ (by omega) (by omega)
+    (copy32 hm₁ (o := 2056) (o' := 10376) (by decide) rfl hcl hD)
+  have gA : HasherAt r m₂ 4104 (hInput r) := ⟨hb, hA₂, hbh⟩
   -- b52: `BE32(1)`
   refine Run.updateCall r hp hpre hc Sphincs.SphincsVerify.b52_in_code rfl run_b52 rfl rfl
-    (a := 4096) (b := 9344) (n := 4) hK₂ (knownOK_ptr gbp (knownOK_ptr gbx (knownOK_nil m₂ _)))
+    (a := 4104) (b := 3080) (n := 4) hK₂ (knownOK_ptr gbp (knownOK_ptr gbx (knownOK_nil m₂ _)))
     rfl rfl rfl (.inl ⟨by decide, by decide⟩) (by decide) (by decide)
     (bs := be32 (1 : Nat).toUInt32) rfl fun m₃ hm₃ hkb₃ ↦
       ⟨gA.keepB hkb₃ (by decide) rfl, bytesAt_lit4 hm₃ (v := 16777216) (by decide)
         (by decide) (by decide), fun m₄ hK₄ hS₄ hkc₄ hH₄ ↦ ?_⟩
   have g13 := regIs_of_saved hS₄ rfl (regIs_keep hm₃ rfl g13)
-  have gbp := regIs_of_saved hS₄ rfl (regIs_ptr hm₃ (y := .rbp) (o := 4096) rfl)
+  have gbp := regIs_of_saved hS₄ rfl (regIs_ptr hm₃ (y := .r13) (o := 4104) rfl)
   have g15 := regIs_of_saved hS₄ rfl (regIs_keep hm₃ rfl g15)
-  have gD := hkc₄ 2048 _ (by omega) (by omega) (hkb₃ 2048 _ (by omega) (by rw [hcl]; rfl) gD)
+  have gD := hkc₄ 2056 _ (by omega) (by omega) (hkb₃ 2056 _ (by omega) (by rw [hcl]; rfl) gD)
   -- b53: the second digest
   refine Run.finalizeCall r hp hpre hc Sphincs.SphincsVerify.b53_in_code rfl run_b53 rfl rfl
-    (o := 11392) (a := 4096) hK₄ (knownOK_ptr gbp (knownOK_ptr g15 (knownOK_nil m₄ _))) rfl rfl
+    (o := 10376) (a := 4104) hK₄ (knownOK_ptr gbp (knownOK_ptr g15 (knownOK_nil m₄ _))) rfl rfl
     (.inl ⟨by decide, by decide⟩) (by decide) (by decide) fun m₅ hm₅ hkb₅ ↦
       ⟨hH₄.keepB hkb₅ (by decide) rfl, fun m₆ hK₆ hS₆ hkc₆ hD₆ ↦
         .done _ ⟨rfl, hK₆, ?_, ?_, ?_, hD₆⟩⟩
   · exact regIs_of_saved hS₆ rfl (regIs_keep hm₅ rfl g13)
-  · exact regIs_of_saved hS₆ rfl (regIs_ptr hm₅ (y := .rbp) (o := 4096) rfl)
-  · exact hkc₆ 2048 _ (by omega) (by omega) (hkb₅ 2048 _ (by omega) (by rw [hcl]; rfl) gD)
+  · exact regIs_of_saved hS₆ rfl (regIs_ptr hm₅ (y := .r13) (o := 4104) rfl)
+  · exact hkc₆ 2056 _ (by omega) (by omega) (hkb₅ 2056 _ (by omega) (by rw [hcl]; rfl) gD)
 
 end
 

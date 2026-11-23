@@ -41,7 +41,7 @@ variable {r : Run}
 
 /-- `TH` after a call writing the frame's `a .. a + n` in the scratch. -/
 theorem TH.of_call [Labels] (hpre : r.Pre) {c : Nat} {m m' : MachineData} (hT : TH r c m) (hS : Saved m m')
-    {a n N : Nat} (hs : (16400 ≤ a ∧ a + n ≤ 25752) ∨ (26768 ≤ a ∧ a + n ≤ 27808))
+    {a n N : Nat} (hs : (16400 ≤ a ∧ a + n ≤ 25752) ∨ (26768 ≤ a ∧ a + n ≤ 27824))
     (hN : N ≤ finalizeStack) (hout : SameOutside m.dmem m'.dmem (r.CallOut m a n N)) :
     TH r c m' := by
   have hB := hT.rs.base
@@ -63,7 +63,7 @@ theorem TH.of_block [Labels] (hpre : r.Pre) {c : Nat} {m m' : MachineData} (hT :
     {S : SState} (hm : Match (r.env m) S m') (hwf : (r.env m).WF)
     (hsp : S.sp = .ptr 0 0) (hx29 : S.reg .X29 = some (.ptr 0 29280)) (hw : lowW S = true)
     (h20 : S.reg .X20 = some (.lit 136)) (h21 : S.reg .X21 = some (.ptr 0 16600))
-    (h22 : S.reg .X22 = some (.ptr 0 26968)) (hr : Run.noWriteIn S 27808 384 = true)
+    (h22 : S.reg .X22 = some (.ptr 0 26968)) (hr : Run.noWriteIn S 27824 384 = true)
     (h424 : Run.noWriteIn S 424 8 = true)
     (r19 : S.reg .X19 = some (.reg .X19)) (r24 : S.reg .X24 = some (.reg .X24))
     (r23 : S.reg .X23 = some (.reg .X23)) (r25 : S.reg .X25 = some (.reg .X25))

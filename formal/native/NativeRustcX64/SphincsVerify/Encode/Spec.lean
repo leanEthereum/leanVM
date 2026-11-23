@@ -19,7 +19,7 @@ public section
 
 /-- **Region 5a, a layer's encoding** (`EncodeSpec`): from `b104` with layer `l`'s state, the
 machine returns 0 if `encode` gives no codeword, else reaches `b117` with the codeword at
-`3072`. -/
+`3080`. -/
 theorem encode_spec [Host] : EncodeSpec := by
   intro l s r hp hc hpre m h
   have hl : l < 3 := h.1
@@ -39,7 +39,7 @@ theorem encode_spec [Host] : EncodeSpec := by
         unfold Run.EncPlace at hp'
         exact r.not_inRange_off hpre (by omega) (by omega) (by omega))
       fun x hx ↦ hS3.1 x (by rcases hx with rfl | rfl | rfl | rfl | rfl | rfl <;> rfl)
-  refine Eventually.mono (sum_spec r hp hpre hl hF3 hD3.1 hD3.2.1 hD3.2.2.2.1
+  refine Eventually.mono (sum_spec r hp hpre hl hF3 hD3.1 hD3.2.1
     (Run.EncData.memcpy r hD3) hd3) fun st h' ↦ ?_
   show (encode r.seed (r.key l) s (r.layerSig l).counter = none ∧ r.Done false st) ∨
     ∃ x, encode r.seed (r.key l) s (r.layerSig l).counter = some x ∧ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b117Offset ∧

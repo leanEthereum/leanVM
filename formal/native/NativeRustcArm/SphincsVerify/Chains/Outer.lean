@@ -8,7 +8,7 @@ public import NativeRustcArm.SphincsVerify.Epilogue
 
 `b114` reads chain `i`'s digit and value (`seg_b114`); a digit above 2 goes straight to `b113`,
 otherwise `b115` (`seg_b115`) and the steps to `b142` (`seg_b142`); `b113` stores the chain's end
-at `28208 + 16 i` and goes on with chain `i + 1` or, after chain 63, to `b143` (`seg_b113`).
+at `28224 + 16 i` and goes on with chain `i + 1` or, after chain 63, to `b143` (`seg_b113`).
 -/
 
 namespace NativeRustcArm.SphincsVerifyProof.Chains
@@ -54,7 +54,7 @@ theorem bytesAt_add_zero {d : DataMem} {a : BitVec 64} {bs : List UInt8} (h : By
 
 /-- The ends so far, appended to. -/
 theorem Keep.extend {r : Run} [Labels] {l : Nat} {x E e : List UInt8} {m : MachineData}
-    (hK : Keep r l x E m) (h : BytesAt m.dmem (r.off 28208) (E ++ e)) : Keep r l x (E ++ e) m :=
+    (hK : Keep r l x E m) (h : BytesAt m.dmem (r.off 28224) (E ++ e)) : Keep r l x (E ++ e) m :=
   ⟨hK.1, hK.2.1, hK.2.2.1, hK.2.2.2.1, hK.2.2.2.2.1, hK.2.2.2.2.2.1, hK.2.2.2.2.2.2.1, h⟩
 
 variable [NativeRustcArm.Host] {r : Run}
@@ -63,9 +63,9 @@ variable [NativeRustcArm.Host] {r : Run}
 theorem seg_b142 (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre) {l : Nat}
     {x E : List UInt8} (hx : x.length = 64) (hE : E.length ≤ 1024) {i : Nat} {e : List UInt8}
     (he : e.length = 16) {R : MachineState → Prop} {m : MachineData} (hK : Keep r l x E m)
-    (h28 : Run.RegIs m .X28 (BitVec.ofNat 64 i)) (hcell : BytesAt m.dmem (r.off 29248) e)
+    (h28 : Run.RegIs m .X28 (BitVec.ofNat 64 i)) (hcell : BytesAt m.dmem (r.off 15984) e)
     (cont : ∀ m', Keep r l x E m' → Run.RegIs m' .X28 (BitVec.ofNat 64 i) →
-      BytesAt m'.dmem (r.off 29248) e → Eventually (step1 NativeRustcArm.Host.exe) R ⟨m', r.pc NativeRustcArm.Sphincs.SphincsVerify.b113Offset⟩) :
+      BytesAt m'.dmem (r.off 15984) e → Eventually (step1 NativeRustcArm.Host.exe) R ⟨m', r.pc NativeRustcArm.Sphincs.SphincsVerify.b113Offset⟩) :
     Eventually (step1 NativeRustcArm.Host.exe) R ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b142Offset⟩ := by
   have hwf := r.frame_wf hpre hK.1 (fun _ ↦ 0)
   have hm := match_frameS hpre hK (k := []) trivial
@@ -81,9 +81,9 @@ theorem seg_b115 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hp
     (hi : i < 64) (hd : d ≤ 2) {v : List UInt8} (hv : v.length = 16) {R : MachineState → Prop}
     {m : MachineData} (hK : Keep r l x E m) (h19 : Run.RegIs m .X19 (BitVec.ofNat 64 d))
     (h28 : Run.RegIs m .X28 (BitVec.ofNat 64 i)) (h22 : Run.RegIs m .X22 (r.off 21648))
-    (hcell : BytesAt m.dmem (r.off 29248) v)
+    (hcell : BytesAt m.dmem (r.off 15984) v)
     (cont : ∀ m', Keep r l x E m' → Run.RegIs m' .X28 (BitVec.ofNat 64 i) →
-      BytesAt m'.dmem (r.off 29248) (chain r.seed (r.key l) i d (3 - d) v) →
+      BytesAt m'.dmem (r.off 15984) (chain r.seed (r.key l) i d (3 - d) v) →
       Eventually (step1 NativeRustcArm.Host.exe) R ⟨m', r.pc NativeRustcArm.Sphincs.SphincsVerify.b113Offset⟩) :
     Eventually (step1 NativeRustcArm.Host.exe) R ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b115Offset⟩ := by
   have hwf := Env.wf_nil m

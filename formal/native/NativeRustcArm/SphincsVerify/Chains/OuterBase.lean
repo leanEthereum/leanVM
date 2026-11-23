@@ -80,7 +80,7 @@ the kept bytes (scratch, or past the ends so far). -/
 theorem Keep.of_change (hpre : r.Pre) {l : Nat} {x E : List UInt8} (hx : x.length = 64)
     (hE : E.length ≤ 1024) {m m' : MachineData} (hK : Keep r l x E m) {a n : Nat}
     (ha : a + n ≤ 29280)
-    (hd : (15984 ≤ a ∧ a + n ≤ 22672) ∨ (22736 ≤ a ∧ a + n ≤ 28208) ∨ 28208 + E.length ≤ a)
+    (hd : (15984 ≤ a ∧ a + n ≤ 23696) ∨ (23760 ≤ a ∧ a + n ≤ 28224) ∨ 28224 + E.length ≤ a)
     (hsp : m'.regs.SP.toBitVec = r.base) (h29 : Run.RegIs m' .X29 (r.off 29280))
     (h21 : m'.regs.getXReg .X21 = m.regs.getXReg .X21)
     (h25 : m'.regs.getXReg .X25 = m.regs.getXReg .X25)
@@ -90,7 +90,7 @@ theorem Keep.of_change (hpre : r.Pre) {l : Nat} {x E : List UInt8} (hx : x.lengt
   obtain ⟨hF, ⟨i1, i2, i3⟩, ⟨s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11⟩, g21, g25, g26, hxa,
     hEa⟩ := hK
   have hkb : ∀ {o : Nat} {bs : List UInt8}, o + bs.length ≤ 15984 ∨
-      (22672 ≤ o ∧ o + bs.length ≤ 22736) ∨ (28208 ≤ o ∧ o + bs.length ≤ 28208 + E.length) →
+      (23696 ≤ o ∧ o + bs.length ≤ 23760) ∨ (28224 ≤ o ∧ o + bs.length ≤ 28224 + E.length) →
       BytesAt m.dmem (r.off o) bs → BytesAt m'.dmem (r.off o) bs := fun ho h ↦
     bytesAt_of_sameOutside h hout fun i hi hp ↦ by
       rw [r.off_add] at hp

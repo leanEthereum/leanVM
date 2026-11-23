@@ -6,7 +6,7 @@ public import NativeRustcArm.SphincsVerify.Chains.StepTail
 # A chain's step, its middle: the clone, the value, the state's copy, the block
 
 From hasher A holding `PK.seed | ADRS` (48 bytes, its state zero) and the chain's value at
-`15984`: `b125 .. b128` clone A into hasher B (`seg_b125`), `b129 .. b133` copy the value into B's
+`20624`: `b125 .. b128` clone A into hasher B (`seg_b125`), `b129 .. b133` copy the value into B's
 buffer (`seg_b129`), `b134 .. b137` copy B's zero state back into A (`seg_b134`), `b138`, `b139`
 copy B's 64 buffered bytes to `24720` after zeros (`seg_b138`); then `b140`.
 -/
@@ -64,7 +64,7 @@ theorem seg_b134 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hp
     {l : Nat} {x E : List UInt8} (hx : x.length = 64) (hE : E.length ≤ 1024) {pos i : Nat}
     (hpos : pos ≤ 2) {T : List UInt8} (hT : T.length = 64) {R : MachineState → Prop}
     {m : MachineData} (hK : Keep r l x E m) (hR : Regs m (pos + 1) i)
-    (h22 : Run.RegIs m .X22 (r.off 15984)) (h23 : Run.RegIs m .X23 (BitVec.ofNat 64 16))
+    (h22 : Run.RegIs m .X22 (r.off 20624)) (h23 : Run.RegIs m .X23 (BitVec.ofNat 64 16))
     (h27 : Run.RegIs m .X27 (BitVec.ofNat 64 16))
     (hB48 : BytesAt m.dmem (r.off 27104) ((List.range 8).map (byteOf (BitVec.ofNat 64 48))))
     (hB0 : BytesAt m.dmem (r.off 26768) (List.replicate 200 0))
@@ -72,7 +72,7 @@ theorem seg_b134 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hp
     Eventually (step1 NativeRustcArm.Host.exe) R ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b134Offset⟩ := by
   have hwf := r.frame_wf hpre hK.1 (fun _ ↦ 0)
   have hm := match_withLit (match_frameS hpre hK
-    (k := [(.X22, .ptr 0 15984), (.X23, .lit 16), (.X27, .lit 16)])
+    (k := [(.X22, .ptr 0 20624), (.X23, .lit 16), (.X27, .lit 16)])
     ⟨known_ptr h22, known_lit h23, known_lit h27, trivial⟩) rfl hB48
   refine blk r hp b134_in_code (List.cons_ne_nil _ _) run_b134 hwf hm fun st hm1 hpc ↦ ?_
   refine pc_at (a := r.pc NativeRustcArm.Sphincs.SphincsVerify.b130Offset) ((pc_true hpc).trans (labelAt r hp b130_in_code rfl)) ?_
@@ -110,7 +110,7 @@ theorem seg_b129 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hp
     {R : MachineState → Prop} {m : MachineData} (hK : Keep r l x E m) (hR : Regs m (pos + 1) i)
     (hB48 : BytesAt m.dmem (r.off 27104) ((List.range 8).map (byteOf (BitVec.ofNat 64 48))))
     (hB0 : BytesAt m.dmem (r.off 26768) (List.replicate 200 0))
-    (hBsa : BytesAt m.dmem (r.off 26968) SA) (hval : BytesAt m.dmem (r.off 15984) v)
+    (hBsa : BytesAt m.dmem (r.off 26968) SA) (hval : BytesAt m.dmem (r.off 20624) v)
     (cont : StepCont r l x E pos i (SA ++ v) R) :
     Eventually (step1 NativeRustcArm.Host.exe) R ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b129Offset⟩ := by
   have hwf := r.frame_wf hpre hK.1 (fun _ ↦ 0)
@@ -131,9 +131,9 @@ theorem seg_b129 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hp
   have hBsa' := r.bytesAt_kept hpre hm4 hwf (by omega) hBsa (by rw [hSA]; decide +kernel)
   have hval' := r.bytesAt_kept hpre hm4 hwf (by omega) hval (by rw [hv]; decide +kernel)
   have h0 : Run.RegIs st4.data .X0 (r.off 27016) := regIs_ptr hm4 rfl
-  have h1 : Run.RegIs st4.data .X1 (r.off 15984) := regIs_ptr hm4 rfl
+  have h1 : Run.RegIs st4.data .X1 (r.off 20624) := regIs_ptr hm4 rfl
   have h2 := x2_eq hm4 (c := 16) rfl (by decide)
-  have h22 : Run.RegIs st4.data .X22 (r.off 15984) := regIs_ptr hm4 rfl
+  have h22 : Run.RegIs st4.data .X22 (r.off 20624) := regIs_ptr hm4 rfl
   have h23 : Run.RegIs st4.data .X23 (BitVec.ofNat 64 16) := regIs_lit hm4 rfl
   have h27 : Run.RegIs st4.data .X27 (BitVec.ofNat 64 16) := regIs_lit hm4 rfl
   have hR4 := Regs.of_block hm4 rfl rfl rfl hR
@@ -161,7 +161,7 @@ theorem seg_b125 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hp
     (h24 : Run.RegIs m .X24 (BitVec.ofNat 64 32))
     (hA16 : BytesAt m.dmem (r.off 16736) ((List.range 8).map (byteOf (BitVec.ofNat 64 16))))
     (hA0 : BytesAt m.dmem (r.off 16400) (List.replicate 200 0))
-    (hAsa : BytesAt m.dmem (r.off 16600) SA) (hval : BytesAt m.dmem (r.off 15984) v)
+    (hAsa : BytesAt m.dmem (r.off 16600) SA) (hval : BytesAt m.dmem (r.off 20624) v)
     (cont : StepCont r l x E pos i (SA ++ v) R) :
     Eventually (step1 NativeRustcArm.Host.exe) R ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b125Offset⟩ := by
   have hwf := r.frame_wf hpre hK.1 (fun _ ↦ 0)
@@ -190,7 +190,7 @@ theorem seg_b125 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hp
   have hK4 := Keep.of_call hpre hx hE hK3 hS (a := 26768) (n := 344) (by unfold Scratch; omega)
     (by decide) hout
   have hval4 := r.bytesAt_of_call hpre hK3.1 (a := 26768) (n := 344) (by decide) (by decide) hout
-    (o := 15984) (by omega) (by omega) hval'
+    (o := 20624) (by omega) (by omega) hval'
   exact pc_at (a := r.pc NativeRustcArm.Sphincs.SphincsVerify.b129Offset) (by rw [hpc4]; rfl)
     (seg_b129 hp hc hpre hx hE hpos hSA hv hK4 (Regs.of_saved hS hR3)
       (copy_slice (c := 336) hc4 (by len_tac) hA48) (copy_slice (c := 0) hc4 (by len_tac) hA0')

@@ -27,7 +27,7 @@ abbrev regs3 (r : Run) [Labels] : List (BitVec 64 × Nat) :=
 
 /-- The writes are in region 0 below the return address, or in region 1. -/
 def entryWrites (S : SState) : Bool :=
-  S.mem.all fun w ↦ (w.r == 0 && decide (w.off + w.n ≤ 29384)) || (w.r == 1 && decide (w.off + w.n ≤ 16))
+  S.mem.all fun w ↦ (w.r == 0 && decide (w.off + w.n ≤ 29400)) || (w.r == 1 && decide (w.off + w.n ≤ 16))
 
 end
 
@@ -123,7 +123,7 @@ theorem wf3 (hpre : r.Pre) {m : MachineData} (hk : Kept r.m0.dmem m.dmem)
 environment. -/
 theorem wf_in_frame (hpre : r.Pre) {m : MachineData} (hk : Kept r.m0.dmem m.dmem)
     (hS : SameOutside r.m0.dmem m.dmem r.StackArea) {s k a n : Nat} (hs : 8 * s + k ≤ 8 * 977)
-    (hk0 : 0 < k) (ha : a + n ≤ 29384) (vars : Nat → BitVec 64) (ret : BitVec 64) :
+    (hk0 : 0 < k) (ha : a + n ≤ 29400) (vars : Nat → BitVec 64) (ret : BitVec 64) :
     (Env.ofMachine m [(r.input + BitVec.ofNat 64 (8 * s), k), (r.off a, n)] vars ret).WF := by
   have hi := input_toNat r hpre
   have hbl := r.below_toNat hpre
@@ -160,7 +160,7 @@ theorem base1 : r.base - 16#64 + BitVec.ofInt 64 8 = r.base + BitVec.ofInt 64 (-
 /-- **The places a block's writes cover**, in an environment whose regions 0 and 1 are the
 frame's: in the stack area, and off the saved registers where `frameWrites`. -/
 theorem written_stack (hpre : r.Pre) {m : MachineData} {regions : List (BitVec 64 × Nat)}
-    {vars : Nat → BitVec 64} {ret : BitVec 64} (h0 : regions[0]? = some (r.base, 29392))
+    {vars : Nat → BitVec 64} {ret : BitVec 64} (h0 : regions[0]? = some (r.base, 29408))
     (h1 : regions[1]? = some (r.base - 16#64, 16)) {S : SState} (hw : entryWrites S = true) :
     ∀ p, Sym.Written (Env.ofMachine m regions vars ret) S p → r.StackArea p := by
   have hb := r.base_toNat hpre
@@ -180,15 +180,15 @@ theorem written_stack (hpre : r.Pre) {m : MachineData} {regions : List (BitVec 6
     omega
 
 theorem written_frame (hpre : r.Pre) {m : MachineData} {regions : List (BitVec 64 × Nat)}
-    {vars : Nat → BitVec 64} {ret : BitVec 64} (h0 : regions[0]? = some (r.base, 29392))
+    {vars : Nat → BitVec 64} {ret : BitVec 64} (h0 : regions[0]? = some (r.base, 29408))
     (h1 : regions[1]? = some (r.base - 16#64, 16)) {S : SState} (hw : Run.frameWrites S = true) :
     ∀ p, Sym.Written (Env.ofMachine m regions vars ret) S p →
-      r.StackArea p ∧ ¬InRange (r.off 29336) 48 p := by
+      r.StackArea p ∧ ¬InRange (r.off 29352) 48 p := by
   have hb := r.base_toNat hpre
   rintro p ⟨w, hwm, b, sz, hr, h1', h2⟩
   simp only [Run.frameWrites, List.all_eq_true, Bool.or_eq_true, Bool.and_eq_true, beq_iff_eq,
     decide_eq_true_eq] at hw
-  have hs := r.off_toNat hpre (a := 29336) (by decide)
+  have hs := r.off_toNat hpre (a := 29352) (by decide)
   rw [r.stackArea_iff hpre, Sym.inRange_iff (by rw [hs]; omega), hs]
   rcases hw w hwm with ⟨hw0, hwn⟩ | ⟨hw1, hwn⟩
   · rw [hw0] at hr
@@ -205,7 +205,7 @@ theorem written_frame (hpre : r.Pre) {m : MachineData} {regions : List (BitVec 6
 frame's, its writes there off the saved registers, RSP the base. -/
 theorem frame_of_block (hpre : r.Pre) {m m' : MachineData} (hF : r.Frame m)
     {regions : List (BitVec 64 × Nat)} {vars : Nat → BitVec 64} {ret : BitVec 64}
-    (h0 : regions[0]? = some (r.base, 29392)) (h1 : regions[1]? = some (r.base - 16#64, 16))
+    (h0 : regions[0]? = some (r.base, 29408)) (h1 : regions[1]? = some (r.base - 16#64, 16))
     {S : SState} (hm : Match (Env.ofMachine m regions vars ret) S m')
     (hwf : (Env.ofMachine m regions vars ret).WF) (hsp : S.reg .rsp = some (.ptr 0 0))
     (hw : Run.frameWrites S = true) : r.Frame m' :=

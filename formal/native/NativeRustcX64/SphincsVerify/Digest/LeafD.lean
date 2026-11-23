@@ -23,7 +23,7 @@ set_option linter.unusedSimpArgs false
 
 /-- Turn `18`'s leaf. -/
 theorem leaf_18 [Labels] (env : Env) (z : Nat → BitVec 8)
-    (hx : env.regs .r13 = BitVec.ofNat 64 (10 * 18))
+    (hx : env.regs .r12 = BitVec.ofNat 64 (10 * 18))
     (hb : ∀ k < 30, env.load 0 k 1 = BitVec.setWidth 64 (z k)) :
     leafSym.eval env =
       bitsVal fun j ↦ (BitVec.setWidth 64 (z ((10 * 18 + j) / 8)) >>> (7 - (10 * 18 + j) % 8)) &&& 1 := by
@@ -48,7 +48,7 @@ theorem leaf_18 [Labels] (env : Env) (z : Nat → BitVec 8)
 
 /-- Turn `19`'s leaf. -/
 theorem leaf_19 [Labels] (env : Env) (z : Nat → BitVec 8)
-    (hx : env.regs .r13 = BitVec.ofNat 64 (10 * 19))
+    (hx : env.regs .r12 = BitVec.ofNat 64 (10 * 19))
     (hb : ∀ k < 30, env.load 0 k 1 = BitVec.setWidth 64 (z k)) :
     leafSym.eval env =
       bitsVal fun j ↦ (BitVec.setWidth 64 (z ((10 * 19 + j) / 8)) >>> (7 - (10 * 19 + j) % 8)) &&& 1 := by
@@ -73,7 +73,7 @@ theorem leaf_19 [Labels] (env : Env) (z : Nat → BitVec 8)
 
 /-- Turn `20`'s leaf. -/
 theorem leaf_20 [Labels] (env : Env) (z : Nat → BitVec 8)
-    (hx : env.regs .r13 = BitVec.ofNat 64 (10 * 20))
+    (hx : env.regs .r12 = BitVec.ofNat 64 (10 * 20))
     (hb : ∀ k < 30, env.load 0 k 1 = BitVec.setWidth 64 (z k)) :
     leafSym.eval env =
       bitsVal fun j ↦ (BitVec.setWidth 64 (z ((10 * 20 + j) / 8)) >>> (7 - (10 * 20 + j) % 8)) &&& 1 := by
@@ -98,7 +98,7 @@ theorem leaf_20 [Labels] (env : Env) (z : Nat → BitVec 8)
 
 /-- Turn `21`'s leaf. -/
 theorem leaf_21 [Labels] (env : Env) (z : Nat → BitVec 8)
-    (hx : env.regs .r13 = BitVec.ofNat 64 (10 * 21))
+    (hx : env.regs .r12 = BitVec.ofNat 64 (10 * 21))
     (hb : ∀ k < 30, env.load 0 k 1 = BitVec.setWidth 64 (z k)) :
     leafSym.eval env =
       bitsVal fun j ↦ (BitVec.setWidth 64 (z ((10 * 21 + j) / 8)) >>> (7 - (10 * 21 + j) % 8)) &&& 1 := by
@@ -123,7 +123,7 @@ theorem leaf_21 [Labels] (env : Env) (z : Nat → BitVec 8)
 
 /-- Turn `22`'s leaf. -/
 theorem leaf_22 [Labels] (env : Env) (z : Nat → BitVec 8)
-    (hx : env.regs .r13 = BitVec.ofNat 64 (10 * 22))
+    (hx : env.regs .r12 = BitVec.ofNat 64 (10 * 22))
     (hb : ∀ k < 30, env.load 0 k 1 = BitVec.setWidth 64 (z k)) :
     leafSym.eval env =
       bitsVal fun j ↦ (BitVec.setWidth 64 (z ((10 * 22 + j) / 8)) >>> (7 - (10 * 22 + j) % 8)) &&& 1 := by
@@ -148,7 +148,7 @@ theorem leaf_22 [Labels] (env : Env) (z : Nat → BitVec 8)
 
 /-- Turn `23`'s leaf. -/
 theorem leaf_23 [Labels] (env : Env) (z : Nat → BitVec 8)
-    (hx : env.regs .r13 = BitVec.ofNat 64 (10 * 23))
+    (hx : env.regs .r12 = BitVec.ofNat 64 (10 * 23))
     (hb : ∀ k < 30, env.load 0 k 1 = BitVec.setWidth 64 (z k)) :
     leafSym.eval env =
       bitsVal fun j ↦ (BitVec.setWidth 64 (z ((10 * 23 + j) / 8)) >>> (7 - (10 * 23 + j) % 8)) &&& 1 := by
@@ -173,7 +173,7 @@ theorem leaf_23 [Labels] (env : Env) (z : Nat → BitVec 8)
 
 /-- **Turns `18 .. 23`'s leaf.** -/
 theorem leaf_D [Labels] (env : Env) (z : Nat → BitVec 8) {c : Nat} (hc1 : 18 ≤ c)
-    (hc2 : c < 24) (hx : env.regs .r13 = BitVec.ofNat 64 (10 * c))
+    (hc2 : c < 24) (hx : env.regs .r12 = BitVec.ofNat 64 (10 * c))
     (hb : ∀ k < 30, env.load 0 k 1 = BitVec.setWidth 64 (z k)) :
     leafSym.eval env =
       bitsVal fun j ↦ (BitVec.setWidth 64 (z ((10 * c + j) / 8)) >>> (7 - (10 * c + j) % 8)) &&& 1 := by

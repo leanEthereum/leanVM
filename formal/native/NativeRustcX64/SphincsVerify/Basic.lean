@@ -25,9 +25,9 @@ model (`Run.idx`, `Run.forsRoot`, `Run.chainEnds`, ...), with x86-64's registers
 ## The frame
 
 The prologue pushes RBP, R15, R14, R13, R12, RBX (48 bytes below the return address at `RSP₀`),
-probes and allocates `7 · 4096 + 664` more bytes: RSP stays `base = RSP₀ - 29384`
-(`frameSize`), the saved registers are at `base + 29336` (`savedBytes`: RBX, R12, R13, R14, R15,
-RBP), the return address at `base + 29384`. A call pushes its return address at `base - 8`; the
+probes and allocates `7 · 4096 + 680` more bytes: RSP stays `base = RSP₀ - 29400`
+(`frameSize`), the saved registers are at `base + 29352` (`savedBytes`: RBX, R12, R13, R14, R15,
+RBP), the return address at `base + 29400`. A call pushes its return address at `base - 8`; the
 callees use `finalizeStack` bytes below it at most; the bit loop pushes 16 bytes below `base`
 (`sphincsStack`). The executor's frame: region 0 the frame with the return address (`frameRegion`
 bytes from `base`, RSP `ptr 0 0`), region 1 the 16 bytes below it (the pushes' slots, aliased as
@@ -50,7 +50,7 @@ bytes from `base`, RSP `ptr 0 0`), region 1 the 16 bytes below it (the pushes' s
 - `12416`: the raw signature `sigBytes w` (7740). `20156`: the 24 FORS roots (384). `20540`: the
   parsed signature in rustc's layout (`sigMem`, 7740 bytes: the openings, the paths at `24764`,
   the randomizer at `25180`, the layers from `25196`, 1028 each). `28280`: the 64 chain ends
-  (1024). `29336`: the saved registers; `29384`: the return address.
+  (1024). `29352`: the saved registers; `29400`: the return address.
 
 ## The regions (block, directive, what the Rust code does)
 
@@ -100,11 +100,11 @@ open NativeRustc NativeRustc.Keccak NativeRustc.Sphincs LeanVM.Protocol.KeccakHa
 
 /-! ## The frame -/
 
-/-- The frame: the 48 bytes of pushed registers and `7 · 4096 + 664`. -/
-def frameSize : Nat := 29384
+/-- The frame: the 48 bytes of pushed registers and `7 · 4096 + 680`. -/
+def frameSize : Nat := 48 + 7 * 4096 + 680
 
 /-- The executor's frame region: the frame and the return address above it. -/
-def frameRegion : Nat := 29392
+def frameRegion : Nat := frameSize + 8
 
 /-- The stack `sphincs_verify` uses below its return address: its frame, a callee's return
 address and the deepest callee's stack (`Hasher::finalize`). -/
@@ -202,7 +202,7 @@ def Pre [Labels] : Prop :=
 /-- **The frame's invariant**: RSP the base, the pushed registers in place, no byte changed
 outside the stack area (the return address kept), every mapped byte still mapped. -/
 def Frame (m : MachineData) : Prop :=
-  rspOf m = r.base ∧ BytesAt m.dmem (r.off 29336) (savedBytes r.m0) ∧
+  rspOf m = r.base ∧ BytesAt m.dmem (r.off 29352) (savedBytes r.m0) ∧
     SameOutside r.m0.dmem m.dmem r.StackArea ∧ Kept r.m0.dmem m.dmem
 
 /-- Register `x` holds `v`. -/
@@ -216,7 +216,7 @@ def addr (off : Nat) : UInt64 := UInt64.ofBitVec (r.off off)
 
 /-- The key and the parsed signature in the frame. -/
 def Inputs (m : MachineData) : Prop :=
-  BytesAt m.dmem (r.off 112) (pkBytes r.w) ∧ BytesAt m.dmem (r.off 20540) (sigMem r.sig)
+  BytesAt m.dmem (r.off 112) (pkBytes r.w) ∧ BytesAt m.dmem (r.off 20556) (sigMem r.sig)
 
 /-- **Done**: returned to the caller, RSP 8 above, with `v` in RAX, no byte changed outside the
 stack area, its registers and memory kept. -/
@@ -227,69 +227,65 @@ def Done (v : Bool) (st : MachineState) : Prop :=
 
 /-! ## The states between regions -/
 
-/-- **At `b43`** (after the parse): RBP the randomizer (`base + 25180`); the key, the signature,
-the message in place; `176` the first layer's chain values' address. -/
+/-- **At `b43`** (after the parse): R15 the randomizer (`base + 25196`); the key, the signature,
+the message in place; `184` the first layer's chain values' address. -/
 def AtHMsg [Labels] (m : MachineData) : Prop :=
-  r.Frame m ∧ r.Inputs m ∧ RegIs m .rbp (r.off 25180) ∧ BytesAt m.dmem (r.off 1600) r.msg ∧
-    r.WordAt m 176 (r.addr 25196) ∧ RegIs m .r12 (Labels.label "memcpy").toBitVec
+  r.Frame m ∧ r.Inputs m ∧ RegIs m .r15 (r.off 25196) ∧ BytesAt m.dmem (r.off 2008) r.msg ∧
+    r.WordAt m 184 (r.addr 25212) ∧ RegIs m .rbp (Labels.label "memcpy").toBitVec
 
-/-- **At `b58`, tree 0** (after the digest): R13 the tree `0`, R15 the address's tree word, EBP
-the key pair's (also at `80` and `60`), R12 hasher A, R14 `PK.seed`; the 24 leaves at `11400`;
-`568` the index. -/
+/-- **At `b58`, tree 0**: RSI the tree counter, R13 the address's tree word, EBP the key
+pair's word, R12 hasher A, R14 `PK.seed`, R15 hasher B. -/
 def AtFors [Labels] (m : MachineData) : Prop :=
-  r.Frame m ∧ r.Inputs m ∧ RegIs m .r13 0 ∧
-    wordBytes (UInt64.ofBitVec (reg m .r15)) = be64 (r.key 0).tree ∧
+  r.Frame m ∧ r.Inputs m ∧ RegIs m .rsi 0 ∧
+    wordBytes (UInt64.ofBitVec (reg m .r13)) = be64 (r.key 0).tree ∧
     wordBytes (UInt64.ofBitVec (reg m .rbp)) = be32 (r.key 0).leaf ++ [0, 0, 0, 0] ∧
-    RegIs m .r12 (r.off 4096) ∧ RegIs m .r14 (r.off 112) ∧
-    BytesAt m.dmem (r.off 80) (be64 (r.key 0).tree) ∧ BytesAt m.dmem (r.off 60) (be32 (r.key 0).leaf) ∧
-    BytesAt m.dmem (r.off 11400) (wordsBytes (r.leaves.map Nat.toUInt64)) ∧
-    r.WordAt m 568 r.idx ∧ r.WordAt m 176 (r.addr 25196) ∧
-    RegIs m .rbx (Labels.label "memset").toBitVec
+    RegIs m .r12 (r.off 4104) ∧ RegIs m .r14 (r.off 112) ∧
+    BytesAt m.dmem (r.off 80) (be64 (r.key 0).tree) ∧ BytesAt m.dmem (r.off 68) (be32 (r.key 0).leaf) ∧
+    BytesAt m.dmem (r.off 10384) (wordsBytes (r.leaves.map Nat.toUInt64)) ∧
+    r.WordAt m 552 r.idx ∧ r.WordAt m 184 (r.addr 25212) ∧
+    RegIs m .rbx (Labels.label "memset").toBitVec ∧ RegIs m .r15 (r.off 560)
 
-/-- **At `b97`** (after the FORS trees): R15 the tree's word, EBP the key pair's; the 24 roots at
-`20156`; `568` the index. -/
+/-- **At `b97`**: R13 the tree's word, EBP the key pair's; the roots at `20172`. -/
 def AtForsKey (m : MachineData) : Prop :=
-  r.Frame m ∧ r.Inputs m ∧ wordBytes (UInt64.ofBitVec (reg m .r15)) = be64 (r.key 0).tree ∧
+  r.Frame m ∧ r.Inputs m ∧ wordBytes (UInt64.ofBitVec (reg m .r13)) = be64 (r.key 0).tree ∧
     wordBytes (UInt64.ofBitVec (reg m .rbp)) = be32 (r.key 0).leaf ++ [0, 0, 0, 0] ∧
-    BytesAt m.dmem (r.off 20156) ((List.range 24).map r.forsRoot).flatten ∧
-    r.WordAt m 568 r.idx ∧ r.WordAt m 176 (r.addr 25196)
+    BytesAt m.dmem (r.off 20172) ((List.range 24).map r.forsRoot).flatten ∧
+    r.WordAt m 552 r.idx ∧ r.WordAt m 184 (r.addr 25212)
 
-/-- **At `b104`, layer `l < 3`** with message `s`: the loop's registers (RCX the layer's offset
-`4656 + 1028 l` in the parsed signature, RSI the layer, RDX `LAYER_HEIGHTS`, RBX `0`, R12 hasher
-A, RBP hasher B, R13 `base + 2048`, R15 `s`'s place `base + 144`), `s` at `144`, the layer's chain
-values' address at `176`, the index at `568`. -/
+/-- **At `b104`, layer `l < 3`** with message `s`: the layer-loop registers, hashers,
+message, chain values' address and index. -/
 def AtLayer [Labels] (l : Nat) (s : List UInt8) (m : MachineData) : Prop :=
   l < 3 ∧ s.length = 16 ∧ r.Frame m ∧ r.Inputs m ∧
     RegIs m .rcx (BitVec.ofNat 64 (4656 + 1028 * l)) ∧ RegIs m .rsi (BitVec.ofNat 64 l) ∧
-    RegIs m .rdx (label NativeRustcX64.layerHeightsLabel).toBitVec ∧ RegIs m .rbx 0 ∧ RegIs m .r12 (r.off 4096) ∧
-    RegIs m .rbp (r.off 576) ∧ RegIs m .r13 (r.off 2048) ∧ RegIs m .r15 (r.off 144) ∧
-    BytesAt m.dmem (r.off 144) s ∧ r.WordAt m 176 (r.addr (25196 + 1028 * l)) ∧
-    r.WordAt m 568 r.idx ∧ RegIs m .r14 (Labels.label "memcpy").toBitVec
+    RegIs m .rdx (label NativeRustcX64.layerHeightsLabel).toBitVec ∧ RegIs m .rbx 0 ∧ RegIs m .r12 (r.off 4104) ∧
+    RegIs m .rbp (r.off 560) ∧ RegIs m .r13 (r.off 2056) ∧ RegIs m .r15 (r.off 144) ∧
+    BytesAt m.dmem (r.off 144) s ∧ r.WordAt m 184 (r.addr (25212 + 1028 * l)) ∧
+    r.WordAt m 552 r.idx ∧ RegIs m .r14 (Labels.label "memcpy").toBitVec
 
 /-- The layer loop's spills a layer's chains and tree read: the layer, the next layer, its
 offset, the height, the key's leaf, the layer's, the tree's and the key pair's words (`BE`), the
 index, the layer's chain values' address. -/
 def LayerSpills (l : Nat) (m : MachineData) : Prop :=
-  r.WordAt m 96 l.toUInt64 ∧ r.WordAt m 200 (l + 1).toUInt64 ∧
-    r.WordAt m 208 (4656 + 1028 * (l + 1)).toUInt64 ∧
-    r.WordAt m 160 (layerHeights.getD l 0).toUInt64 ∧ r.WordAt m 216 (r.key l).leaf.toUInt64 ∧
+  r.WordAt m 96 l.toUInt64 ∧ r.WordAt m 192 (l + 1).toUInt64 ∧
+    r.WordAt m 200 (4656 + 1028 * (l + 1)).toUInt64 ∧
+    r.WordAt m 168 (layerHeights.getD l 0).toUInt64 ∧ r.WordAt m 208 (r.key l).leaf.toUInt64 ∧
     BytesAt m.dmem (r.off 104) (be32 l.toUInt32) ∧ BytesAt m.dmem (r.off 88) (be64 (r.key l).tree) ∧
-    BytesAt m.dmem (r.off 60) (be32 (r.key l).leaf) ∧ r.WordAt m 568 r.idx ∧
-    r.WordAt m 176 (r.addr (25196 + 1028 * l))
+    BytesAt m.dmem (r.off 68) (be32 (r.key l).leaf) ∧ r.WordAt m 552 r.idx ∧
+    r.WordAt m 184 (r.addr (25212 + 1028 * l))
 
-/-- **At `b117`, chain 0 of layer `l < 3`**, the codeword `x` at `3072`: RAX `0`, R12 hasher A,
-RBP hasher B, R13 `base + 2048`. -/
+/-- **At `b117`, chain 0 of layer `l < 3`**, the codeword at `3080`, RAX zero,
+R12 hasher A and R13 the chain input buffer. -/
 def AtChains [Labels] (l : Nat) (x : List UInt8) (m : MachineData) : Prop :=
   l < 3 ∧ x.length = 64 ∧ r.Frame m ∧ r.Inputs m ∧ r.LayerSpills l m ∧ RegIs m .rax 0 ∧
-    RegIs m .r12 (r.off 4096) ∧ RegIs m .rbp (r.off 576) ∧ RegIs m .r13 (r.off 2048) ∧
-    BytesAt m.dmem (r.off 3072) x ∧
+    RegIs m .r12 (r.off 4104) ∧ RegIs m .r13 (r.off 8328) ∧
+    BytesAt m.dmem (r.off 3080) x ∧
     RegIs m .rbx (Labels.label "memset").toBitVec ∧ RegIs m .r14 (Labels.label "memcpy").toBitVec
 
-/-- **At `b151`, layer `l < 3`'s chain ends `e`** at `28280`: R12, RBP, R13 as in the chains. -/
+/-- **At `b151`, layer `l < 3`'s chain ends** at `28296`. -/
 def AtWotsPk [Labels] (l : Nat) (e : List (List UInt8)) (m : MachineData) : Prop :=
   l < 3 ∧ e.flatten.length = 1024 ∧ r.Frame m ∧ r.Inputs m ∧ r.LayerSpills l m ∧
-    RegIs m .r12 (r.off 4096) ∧ RegIs m .rbp (r.off 576) ∧ RegIs m .r13 (r.off 2048) ∧
-    BytesAt m.dmem (r.off 28280) e.flatten ∧
+    RegIs m .r12 (r.off 4104) ∧ RegIs m .r13 (r.off 8328) ∧
+    BytesAt m.dmem (r.off 28296) e.flatten ∧
     RegIs m .rbx (Labels.label "memset").toBitVec ∧ RegIs m .r14 (Labels.label "memcpy").toBitVec
 
 end Run

@@ -5,7 +5,7 @@ public import NativeRustcArm.SphincsVerify.Fors.TreeB
 /-!
 # A FORS tree's end: its root stored (`b93`)
 
-From `TEnd c` (`b93`): the root at `20624` stored at `27808 + 16 c` (the `stp` runs in the
+From `TEnd c` (`b93`): the root at `20624` stored at `27824 + 16 c` (the `stp` runs in the
 environment of the root's 16 bytes), the next tree's registers, and the loop's branch: the next
 tree's head `AtTree (c + 1)` at `b60`, or after the 24th, `AtForsKey` at `b94`.
 -/
@@ -82,23 +82,23 @@ theorem tree_end (hp : Placed code r.k) (hpre : r.Pre) {c : Nat} {m : MachineDat
   refine exec_then (hb93a hp) run_b93a hwf hm fun st1 hm1 hpc1 ↦ ?_
   have hd1 : st1.data.dmem = m.dmem := hm1.dmem_eq hwf rfl
   obtain ⟨hB1, -⟩ := hB.of_match hpre hm1 hwf rfl rfl rfl rfl rfl rfl
-  have h8 : Run.RegIs st1.data .X8 (r.off (27808 + 16 * c)) := by
+  have h8 : Run.RegIs st1.data .X8 (r.off (27824 + 16 * c)) := by
     rw [Run.RegIs, hm1.regs .X8 _ rfl]
     simp only [Sym.eval, BinOp.apply, UnOp.apply, low_W64, ext_W64, shiftW, Env.ofMachine_regs,
       h19', shl4']
-    have e : (r.env m).base 0 + BitVec.ofInt 64 27808 = r.off 27808 := by
+    have e : (r.env m).base 0 + BitVec.ofInt 64 27824 = r.off 27824 := by
       show r.base + _ = r.base + _
       simp
     rw [e, Run.off_add]
   -- `b93b`: the root stored, in the environment of its 16 bytes
   refine ev_at (hpc1.trans (pc_after (by rfl))) ?_
-  have hslot : 27808 + 16 * c + 16 ≤ 29280 := by omega
-  have hwf2 : (Env.ofMachine st1.data [(r.off (27808 + 16 * c), 16)]).WF :=
+  have hslot : 27824 + 16 * c + 16 ≤ 29280 := by omega
+  have hwf2 : (Env.ofMachine st1.data [(r.off (27824 + 16 * c), 16)]).WF :=
     Env.wf_of ⟨r.frame_mapped hpre hB1.frame (by omega), trivial⟩ (List.pairwise_singleton _ _)
-  have hm2 : Match (Env.ofMachine st1.data [(r.off (27808 + 16 * c), 16)]) (ldS .X8) st1.data :=
+  have hm2 : Match (Env.ofMachine st1.data [(r.off (27824 + 16 * c), 16)]) (ldS .X8) st1.data :=
     match_ofMachine ⟨rfl, fun h ↦ absurd h (by decide), trivial⟩ rfl
       ⟨by
-        show _ = r.off (27808 + 16 * c) + BitVec.ofInt 64 0
+        show _ = r.off (27824 + 16 * c) + BitVec.ofInt 64 0
         rw [h8]
         simp, trivial⟩ trivial trivial trivial
   refine exec_then (hb93b hp) run_b93b hwf2 hm2 fun st2 hm2' hpc2 ↦ ?_
@@ -106,10 +106,10 @@ theorem tree_end (hp : Placed code r.k) (hpre : r.Pre) {c : Nat} {m : MachineDat
   have hF2 : r.Frame st2.data :=
     Run.Frame.of_block hB1.frame (by rw [sp_of hm2' rfl]; exact hB1.frame.1)
       (by rw [reg_of hm2' rfl]; exact hB1.frame.2.1) hout2
-      (fun p hp ↦ r.inRange_off hpre (a := 27808 + 16 * c) (n := 16) hslot hp) (hm2'.kept hwf2)
+      (fun p hp ↦ r.inRange_off hpre (a := 27824 + 16 * c) (n := 16) hslot hp) (hm2'.kept hwf2)
   have hB2 : Base r st2.data := hB1.of_keep (low_of_same hpre (by omega) (by omega) hout2) hF2
     (reg_of hm2' rfl) (reg_of hm2' rfl) (reg_of hm2' rfl)
-  have hroot : BytesAt st2.data.dmem (r.off (27808 + 16 * c)) (r.forsUpTo c 10) := by
+  have hroot : BytesAt st2.data.dmem (r.off (27824 + 16 * c)) (r.forsUpTo c 10) := by
     have hc0 := bytesAt_slice hcur 0 8
     have hc8 := bytesAt_slice hcur 8 8
     rw [List.drop_zero, Nat.add_zero] at hc0
@@ -132,7 +132,7 @@ theorem tree_end (hp : Placed code r.k) (hpre : r.Pre) {c : Nat} {m : MachineDat
       rw [Run.off_add] at this
       simp only [Sym.eval, Env.ofMachine_regs, x10, e8] at this
       exact this
-  have hroots2 : BytesAt st2.data.dmem (r.off 27808) ((List.range (c + 1)).map r.forsRoot).flatten := by
+  have hroots2 : BytesAt st2.data.dmem (r.off 27824) ((List.range (c + 1)).map r.forsRoot).flatten := by
     rw [roots_succ, Run.forsRoot_eq r hc24]
     refine bytesAt_cat (n := 16 * c) hrl ?_ hroot
     exact bytesAt_of_same hpre (by omega) hout2 (by rw [hrl]; omega) (by rw [hrl]; omega)

@@ -9,7 +9,7 @@ public import NativeRustcX64.SphincsVerify.Parse.OpenTurn
 
 A block of the frame writing nothing but the return address's slot, then `memcpy` of known
 bytes (`memcpy_pure`): the facts kept and the copied bytes. A layer's chain-value loop
-(`span_loop`): 32 turns of 32 bytes from the raw signature's `src - 12416` to `20540`, the facts
+(`span_loop`): 32 turns of 32 bytes from the raw signature's `src - 11404` to `20556`, the facts
 and a register predicate kept.
 -/
 
@@ -47,7 +47,7 @@ theorem memcpy_pure (hp : Placed code r.k) (hpre : r.Pre) (hc : Callees) {ds : L
     {L : List (Nat × Nat × List UInt8)} (hL : Facts r m.dmem L) (hok : factsOK S' L = true)
     {a s n : Nat} (hap : factsApart L a n = true) {bs : List UInt8}
     (hsrc : BytesAt m.dmem (r.off s) bs) (hl : bs.length = n) (hsok : noW0 S' s n = true)
-    (ha : a + n ≤ 29336) (hs : s + n ≤ 29384) (hd : a + n ≤ s ∨ s + n ≤ a)
+    (ha : a + n ≤ 29352) (hs : s + n ≤ 29400) (hd : a + n ≤ s ∨ s + n ≤ a)
     {R : MachineState → Prop}
     (h : ∀ m₁, Match (r.env m (fun _ ↦ 0) (r.pc jn).toBitVec) S' m₁ →
       Run.RegIs m₁ .rdi (r.off a) ∧ Run.RegIs m₁ .rsi (r.off s) ∧ (reg m₁ .rdx).toNat = n ∧
@@ -65,35 +65,35 @@ theorem memcpy_pure (hp : Placed code r.k) (hpre : r.Pre) (hc : Callees) {ds : L
 /-- **A turn of a layer's chain-value loop**. -/
 theorem span_turn (hp : Placed code r.k) (hpre : r.Pre) {ds : List Directive} {jd jn : Nat}
     (hb : ds.IsInfixAt code jd) (hjn : jd + ds.length = jn) {lab : Label}
-    (hlab : Labels.label lab = r.pc jd) (i : Reg64) (src : Nat) (hsrc : 12416 ≤ src)
-    (hsrc' : src + 1024 ≤ 20156) {S' : SState}
-    (hx : exec ds (spanS i (20572 - src) (-(src : Int))) =
+    (hlab : Labels.label lab = r.pc jd) (i : Reg64) (src : Nat) (hsrc : 11404 ≤ src)
+    (hsrc' : src + 1024 ≤ 19144) {S' : SState}
+    (hx : exec ds (spanS i (20588 - src) (-(src : Int))) =
       some (S', .cond (.not (.cmp .eq .W64 (.bin .add .W64 (.lit 32) (.reg i)) (.lit 1024))) lab))
     (hi : S'.reg i = some (.bin .add .W64 (.lit 32) (.reg i)))
-    (hc : copies S'.mem 0 (20540 - src) 0 0 32 = true)
-    (hw : writesIn S' 0 (20540 - src) (20572 - src) = true) {rs : List Reg64}
-    (hk : keepsRegs rs (spanS i (20572 - src) (-(src : Int))) S' = true) (hrsp : .rsp ∈ rs)
-    {L : List (Nat × Nat × List UInt8)} (hLa : factsApart L 20540 1024 = true)
-    (hraw : (12416, 7740, sigBytes r.w) ∈ L) {P : MachineData → Prop}
+    (hc : copies S'.mem 0 (20556 - src) 0 0 32 = true)
+    (hw : writesIn S' 0 (20556 - src) (20588 - src) = true) {rs : List Reg64}
+    (hk : keepsRegs rs (spanS i (20588 - src) (-(src : Int))) S' = true) (hrsp : .rsp ∈ rs)
+    {L : List (Nat × Nat × List UInt8)} (hLa : factsApart L 20556 1024 = true)
+    (hraw : (11404, 7740, sigBytes r.w) ∈ L) {P : MachineData → Prop}
     (hP : ∀ m m', (∀ x ∈ rs, m'.regs.get64 x = m.regs.get64 x) → P m → P m') {j : Nat}
     (hj : j < 32) {m : MachineData}
     (h : r.Frame m ∧ Facts r m.dmem L ∧
-      BytesAt m.dmem (r.off 20540) (slice (sigBytes r.w) (src - 12416) (32 * j)) ∧
+      BytesAt m.dmem (r.off 20556) (slice (sigBytes r.w) (src - 11404) (32 * j)) ∧
       Run.RegIs m i (BitVec.ofNat 64 (32 * j)) ∧ P m) :
     Eventually (step1 Host.exe) (fun st ↦
       (st.pc = r.pc jn ∧ r.Frame st.data ∧ Facts r st.data.dmem L ∧
-        BytesAt st.data.dmem (r.off 20540) (slice (sigBytes r.w) (src - 12416) 1024) ∧ P st.data) ∨
+        BytesAt st.data.dmem (r.off 20556) (slice (sigBytes r.w) (src - 11404) 1024) ∧ P st.data) ∨
       (j + 1 < 32 ∧ st.pc = r.pc jd ∧ r.Frame st.data ∧ Facts r st.data.dmem L ∧
-        BytesAt st.data.dmem (r.off 20540) (slice (sigBytes r.w) (src - 12416) (32 * (j + 1))) ∧
+        BytesAt st.data.dmem (r.off 20556) (slice (sigBytes r.w) (src - 11404) (32 * (j + 1))) ∧
         Run.RegIs st.data i (BitVec.ofNat 64 (32 * (j + 1))) ∧ P st.data)) ⟨m, r.pc jd⟩ := by
   obtain ⟨hF, hL, hdst, hii, hPm⟩ := h
   have hk' : ds.IsInfixAt Host.prog (r.k + jd) := hb.trans hp.1 (by rintro rfl; cases hx)
   have hb0 := r.base_toNat hpre
-  have hwf : (Env.ofMachine m [(r.off (src + 32 * j), 20572 - src)] (fun _ ↦ 0) 0).WF :=
+  have hwf : (Env.ofMachine m [(r.off (src + 32 * j), 20588 - src)] (fun _ ↦ 0) 0).WF :=
     Sym.Env.wf_of ⟨r.frame_mapped hpre hF.2.2.2 (by omega), trivial⟩ (List.pairwise_singleton _ _)
   have hii' : reg m i = BitVec.ofNat 64 (32 * j) := hii
-  have hm : Match (Env.ofMachine m [(r.off (src + 32 * j), 20572 - src)] (fun _ ↦ 0) 0)
-      (spanS i (20572 - src) (-(src : Int))) m :=
+  have hm : Match (Env.ofMachine m [(r.off (src + 32 * j), 20588 - src)] (fun _ ↦ 0) 0)
+      (spanS i (20588 - src) (-(src : Int))) m :=
     match_ofMachine ⟨rfl, trivial⟩ trivial trivial trivial
       ⟨by
         sym_simp
@@ -104,28 +104,28 @@ theorem span_turn (hp : Placed code r.k) (hpre : r.Pre) {ds : List Directive} {j
         bv_lin, trivial⟩
   refine exec_then hk' hx hwf (fun _ h ↦ nomatch h) hm fun st hm' hpc ↦ ?_
   have hreg := keepsRegs_regs hm hm' hk
-  obtain ⟨hF', hout⟩ := frame_of_hull r hpre hF (ri := 0) (d := src + 32 * j) (lo := 20540 - src)
-    (hi := 20572 - src) rfl le_rfl (by omega) (by omega) hm' hwf hw
+  obtain ⟨hF', hout⟩ := frame_of_hull r hpre hF (ri := 0) (d := src + 32 * j) (lo := 20556 - src)
+    (hi := 20588 - src) rfl le_rfl (by omega) (by omega) hm' hwf hw
     (by rw [rspOf, hreg .rsp hrsp]; exact hF.1)
-  rw [show src + 32 * j + (20540 - src) = 20540 + 32 * j by omega,
-    show 20572 - src - (20540 - src) = 32 by omega] at hout
+  rw [show src + 32 * j + (20556 - src) = 20556 + 32 * j by omega,
+    show 20588 - src - (20556 - src) = 32 by omega] at hout
   have hL' := Facts.keep r hpre (by omega) hout hL (factsApart_mono hLa (by omega) (by omega))
-  have hnew : BytesAt st.data.dmem (r.off (20540 + 32 * j))
-      (slice (sigBytes r.w) (src - 12416 + 32 * j) 32) := by
-    have := copy hm' (r := 0) (o := 20540 - src) (r' := 0) (o' := 0) (n := 32) rfl (by omega) hc
-      (length_slice_sig r.w (a := src - 12416 + 32 * j) (n := 32) (by omega)) (by
+  have hnew : BytesAt st.data.dmem (r.off (20556 + 32 * j))
+      (slice (sigBytes r.w) (src - 11404 + 32 * j) 32) := by
+    have := copy hm' (r := 0) (o := 20556 - src) (r' := 0) (o' := 0) (n := 32) rfl (by omega) hc
+      (length_slice_sig r.w (a := src - 11404 + 32 * j) (n := 32) (by omega)) (by
         show BytesAt m.dmem (r.off (src + 32 * j) + BitVec.ofNat 64 0) _
-        rw [off_add, Nat.add_zero, show src + 32 * j = 12416 + (src - 12416 + 32 * j) by omega]
-        exact raw_slice r (hL.get hraw) (k := src - 12416 + 32 * j) (n := 32) (by omega))
-    rwa [off_add, show src + 32 * j + (20540 - src) = 20540 + 32 * j by omega] at this
-  have hdst' : BytesAt st.data.dmem (r.off 20540)
-      (slice (sigBytes r.w) (src - 12416) (32 * (j + 1))) := by
+        rw [off_add, Nat.add_zero, show src + 32 * j = 11404 + (src - 11404 + 32 * j) by omega]
+        exact raw_slice r (hL.get hraw) (k := src - 11404 + 32 * j) (n := 32) (by omega))
+    rwa [off_add, show src + 32 * j + (20556 - src) = 20556 + 32 * j by omega] at this
+  have hdst' : BytesAt st.data.dmem (r.off 20556)
+      (slice (sigBytes r.w) (src - 11404) (32 * (j + 1))) := by
     rw [show 32 * (j + 1) = 32 * j + 32 by omega, slice_add]
     refine BytesAt.append (fact_keep r hpre hdst hout (length_slice_sig r.w (by omega))
       (by left; omega) (by omega) (by omega)) ?_
     rw [length_slice_sig r.w (by omega), off_add]
     exact hnew
-  have hv : Sym.eval (Env.ofMachine m [(r.off (src + 32 * j), 20572 - src)] (fun _ ↦ 0) 0)
+  have hv : Sym.eval (Env.ofMachine m [(r.off (src + 32 * j), 20588 - src)] (fun _ ↦ 0) 0)
       (.bin .add .W64 (.lit 32) (.reg i)) = BitVec.ofNat 64 (32 * (j + 1)) := by
     sym_simp
     simp only [Env.ofMachine_regs]
@@ -143,25 +143,25 @@ theorem span_turn (hp : Placed code r.k) (hpre : r.Pre) {ds : List Directive} {j
 /-- **A layer's chain-value loop**. -/
 theorem span_loop (hp : Placed code r.k) (hpre : r.Pre) {ds : List Directive} {jd jn : Nat}
     (hb : ds.IsInfixAt code jd) (hjn : jd + ds.length = jn) {lab : Label}
-    (hlab : Labels.label lab = r.pc jd) (i : Reg64) (src : Nat) (hsrc : 12416 ≤ src)
-    (hsrc' : src + 1024 ≤ 20156) {S' : SState}
-    (hx : exec ds (spanS i (20572 - src) (-(src : Int))) =
+    (hlab : Labels.label lab = r.pc jd) (i : Reg64) (src : Nat) (hsrc : 11404 ≤ src)
+    (hsrc' : src + 1024 ≤ 19144) {S' : SState}
+    (hx : exec ds (spanS i (20588 - src) (-(src : Int))) =
       some (S', .cond (.not (.cmp .eq .W64 (.bin .add .W64 (.lit 32) (.reg i)) (.lit 1024))) lab))
     (hi : S'.reg i = some (.bin .add .W64 (.lit 32) (.reg i)))
-    (hc : copies S'.mem 0 (20540 - src) 0 0 32 = true)
-    (hw : writesIn S' 0 (20540 - src) (20572 - src) = true) {rs : List Reg64}
-    (hk : keepsRegs rs (spanS i (20572 - src) (-(src : Int))) S' = true) (hrsp : .rsp ∈ rs)
-    {L : List (Nat × Nat × List UInt8)} (hLa : factsApart L 20540 1024 = true)
-    (hraw : (12416, 7740, sigBytes r.w) ∈ L) {P : MachineData → Prop}
+    (hc : copies S'.mem 0 (20556 - src) 0 0 32 = true)
+    (hw : writesIn S' 0 (20556 - src) (20588 - src) = true) {rs : List Reg64}
+    (hk : keepsRegs rs (spanS i (20588 - src) (-(src : Int))) S' = true) (hrsp : .rsp ∈ rs)
+    {L : List (Nat × Nat × List UInt8)} (hLa : factsApart L 20556 1024 = true)
+    (hraw : (11404, 7740, sigBytes r.w) ∈ L) {P : MachineData → Prop}
     (hP : ∀ m m', (∀ x ∈ rs, m'.regs.get64 x = m.regs.get64 x) → P m → P m') {m : MachineData}
     (h : r.Frame m ∧ Facts r m.dmem L ∧ Run.RegIs m i 0 ∧ P m) :
     Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc jn ∧ r.Frame st.data ∧
       Facts r st.data.dmem L ∧
-      BytesAt st.data.dmem (r.off 20540) (slice (sigBytes r.w) (src - 12416) 1024) ∧ P st.data)
+      BytesAt st.data.dmem (r.off 20556) (slice (sigBytes r.w) (src - 11404) 1024) ∧ P st.data)
       ⟨m, r.pc jd⟩ :=
   count_loop (σ := MachineState) (P := fun j st ↦ st.pc = r.pc jd ∧ r.Frame st.data ∧
       Facts r st.data.dmem L ∧
-      BytesAt st.data.dmem (r.off 20540) (slice (sigBytes r.w) (src - 12416) (32 * j)) ∧
+      BytesAt st.data.dmem (r.off 20556) (slice (sigBytes r.w) (src - 11404) (32 * j)) ∧
       Run.RegIs st.data i (BitVec.ofNat 64 (32 * j)) ∧ P st.data) 32
     (fun j st hj ⟨hpc, h⟩ ↦ by
       obtain ⟨m, pc⟩ := st

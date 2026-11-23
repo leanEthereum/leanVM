@@ -6,7 +6,7 @@ public import NativeRustcArm.SphincsVerify.Parse.Open
 # The parse's head: from the entry to `b16` (`parseHead_spec : ParseHeadSpec`)
 
 `b11` copies the signature's last words 973 .. 976, stores the key's words at `8208` and the
-randomizer at `29248` (`x29 - 32`), and sets up the openings' loop (`AtOpen 0`). Composed with the
+randomizer at `27808`, and sets up the openings' loop (`AtOpen 0`). Composed with the
 prologue (`prologue_spec`), the words' loops (`words_spec`) and the openings' loop (`open_loop`),
 the machine reaches `b16` in `AtParse16`.
 -/
@@ -71,9 +71,9 @@ theorem b11_spec (hp : Placed code r.k) (hpre : r.Pre) {m : MachineData} (hA : A
       rwa [off_add] at this
     · have := bytesAt_reg_word hm' hb0 (o := 8232) (x := .X22) (by decide) (by decide) h22
       rwa [off_add] at this
-  have hrand : BytesAt st.data.dmem (r.off 29248) r.sig.randomizer := by
+  have hrand : BytesAt st.data.dmem (r.off 27808) r.sig.randomizer := by
     rw [randomizer_eq]
-    have := copy hm' (r := 0) (o := 29248) (r' := 0) (o' := 468) (n := 16)
+    have := copy hm' (r := 0) (o := 27808) (r' := 0) (o' := 468) (n := 16)
       (bs := slice (pre10 r.w) 0 16) rfl (by decide) (by decide) (by rw [slice, List.length_take, List.length_drop, length_pre10]; rfl)
       (by
         have h := bytesAt_sub hraw (k := 0) (n := 16) (by rw [length_pre10]; decide)

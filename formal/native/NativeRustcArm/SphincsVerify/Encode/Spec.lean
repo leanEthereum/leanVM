@@ -19,7 +19,7 @@ public section
 
 /-- **Region 5a, a layer's encoding** (`EncodeSpec`): from `b101` with layer `l`'s state, the
 machine returns 0 if `encode` gives no codeword, else reaches `b114` with the codeword at
-`22672`. -/
+`23696`. -/
 theorem encode_spec [NativeRustcArm.Host] : EncodeSpec := by
   intro l s r hp hc hpre m h
   have hl : l < 3 := h.1

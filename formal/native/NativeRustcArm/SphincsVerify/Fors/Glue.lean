@@ -37,12 +37,12 @@ open NativeRustcArm.Sphincs.SphincsVerify
 @[expose] public section
 
 /-- The frame's scratch: hasher A to the leaves' copy, hasher B to the roots. -/
-def Scr (o : Nat) : Prop := (16400 ≤ o ∧ o < 25752) ∨ (26768 ≤ o ∧ o < 27808)
+def Scr (o : Nat) : Prop := (16400 ≤ o ∧ o < 25752) ∨ (26768 ≤ o ∧ o < 27824)
 
 /-- A symbolic state's writes are in the scratch. -/
 def scrW (S : SState) : Bool :=
   S.mem.all fun w ↦ w.r == 0 &&
-    (decide (16400 ≤ w.off ∧ w.off + w.n ≤ 25752) || decide (26768 ≤ w.off ∧ w.off + w.n ≤ 27808))
+    (decide (16400 ≤ w.off ∧ w.off + w.n ≤ 25752) || decide (26768 ≤ w.off ∧ w.off + w.n ≤ 27824))
 
 /-- `m'` has `m`'s frame bytes outside the scratch. -/
 def Keep (r : Run) (m m' : MachineData) : Prop :=
@@ -74,7 +74,7 @@ structure TreeSt (r : Run) (c : Nat) (m : MachineData) : Prop where
   hc : c < 24
   w416 : r.WordAt m 416 (r.addr (8244 + 176 * c))
   w424 : r.WordAt m 424 (r.leafOf c).toUInt64
-  roots : BytesAt m.dmem (r.off 27808) ((List.range c).map r.forsRoot).flatten
+  roots : BytesAt m.dmem (r.off 27824) ((List.range c).map r.forsRoot).flatten
 
 end
 

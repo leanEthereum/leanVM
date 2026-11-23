@@ -73,8 +73,8 @@ theorem sameOutside_region {env : Env} {S : SState} {m' : MachineData} (hm : Mat
 `a'' .. a'' + n''`** changes only those bytes. -/
 theorem written_three {env : Env} {S : SState} {m' : MachineData} (hm : Match env S m')
     (hwf : env.WF) (hpre : r.Pre) {n0 : Nat} (h0 : env.regions[0]? = some (r.base, n0))
-    {a n a' n' a'' n'' : Nat} (ha : a + n ≤ 29384) (ha' : a' + n' ≤ 29384)
-    (ha'' : a'' + n'' ≤ 29384)
+    {a n a' n' a'' n'' : Nat} (ha : a + n ≤ 29400) (ha' : a' + n' ≤ 29400)
+    (ha'' : a'' + n'' ≤ 29400)
     (hall : S.mem.all (fun w ↦ w.r == 0 && ((decide (a ≤ w.off) && decide (w.off + w.n ≤ a + n)) ||
       (decide (a' ≤ w.off) && decide (w.off + w.n ≤ a' + n')) ||
       (decide (a'' ≤ w.off) && decide (w.off + w.n ≤ a'' + n'')))) = true) :
@@ -114,16 +114,16 @@ misses them. -/
 theorem KeepRest.of_change {l : Nat} {x E : List UInt8} (hx : x.length = 64)
     (hE : E.length ≤ 1024) {m m' : MachineData} (hK : KeepRest r l x E m)
     {R : BitVec 64 → Prop} (hout : SameOutside m.dmem m'.dmem R)
-    (hR : ∀ o, o < 29384 → (o < 64 ∨ (88 ≤ o ∧ o < 168) ∨ (176 ≤ o ∧ o < 184) ∨
-      (200 ≤ o ∧ o < 576) ∨ (3072 ≤ o ∧ o < 3136) ∨ (20540 ≤ o ∧ o < 28280 + E.length)) →
+    (hR : ∀ o, o < 29400 → (o < 72 ∨ (88 ≤ o ∧ o < 176) ∨ (184 ≤ o ∧ o < 192) ∨
+      (192 ≤ o ∧ o < 560) ∨ (3080 ≤ o ∧ o < 3144) ∨ (20556 ≤ o ∧ o < 28296 + E.length)) →
       ¬R (r.off o))
-    (hbp : m'.regs.get64 .rbp = m.regs.get64 .rbp) (h13 : m'.regs.get64 .r13 = m.regs.get64 .r13) :
+    (h13 : m'.regs.get64 .r13 = m.regs.get64 .r13) :
     KeepRest r l x E m' := by
-  obtain ⟨⟨i1, i2⟩, ⟨s1, s2, s3, s4, s5, s6, s7, s8, s9, s10⟩, gbp, g13, hxa, hEa⟩ := hK
-  have hkb : ∀ {o : Nat} {bs : List UInt8}, (o + bs.length ≤ 64 ∨
-      (88 ≤ o ∧ o + bs.length ≤ 168) ∨ (176 ≤ o ∧ o + bs.length ≤ 184) ∨
-      (200 ≤ o ∧ o + bs.length ≤ 576) ∨ (3072 ≤ o ∧ o + bs.length ≤ 3136) ∨
-      (20540 ≤ o ∧ o + bs.length ≤ 28280 + E.length)) →
+  obtain ⟨⟨i1, i2⟩, ⟨s1, s2, s3, s4, s5, s6, s7, s8, s9, s10⟩, g13, hxa, hEa⟩ := hK
+  have hkb : ∀ {o : Nat} {bs : List UInt8}, (o + bs.length ≤ 72 ∨
+      (88 ≤ o ∧ o + bs.length ≤ 176) ∨ (184 ≤ o ∧ o + bs.length ≤ 192) ∨
+      (192 ≤ o ∧ o + bs.length ≤ 560) ∨ (3080 ≤ o ∧ o + bs.length ≤ 3144) ∨
+      (20556 ≤ o ∧ o + bs.length ≤ 28296 + E.length)) →
       BytesAt m.dmem (r.off o) bs → BytesAt m'.dmem (r.off o) bs := fun {o} {bs} ho h ↦
     bytesAt_of_sameOutside h hout fun i hi hp ↦ by
       rw [Run.off_add] at hp
@@ -134,7 +134,7 @@ theorem KeepRest.of_change {l : Nat} {x E : List UInt8} (hx : x.length = 64)
     rw [he]
     exact h
   refine ⟨⟨hkb ?_ i1, hkb ?_ i2⟩, ⟨hkb ?_ s1, hkb ?_ s2, hkb ?_ s3, hkb ?_ s4, hkb ?_ s5, hkb ?_ s6,
-    hkb ?_ s7, hkb ?_ s8, hkb ?_ s9, hkb ?_ s10⟩, hreg hbp gbp, hreg h13 g13, hkb ?_ hxa,
+    hkb ?_ s7, hkb ?_ s8, hkb ?_ s9, hkb ?_ s10⟩, hreg h13 g13, hkb ?_ hxa,
     hkb ?_ hEa⟩ <;>
     (try simp only [length_pkBytes, length_sigMemR, NativeRustc.length_wordBytes, length_be32,
       length_be64, hx]) <;> omega

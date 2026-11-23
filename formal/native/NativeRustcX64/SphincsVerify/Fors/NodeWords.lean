@@ -18,9 +18,9 @@ namespace NativeRustcX64.SphincsVerifyProof.Fors
 
 open NativeRustc NativeRustc.Sphincs NativeRustcX64.Sym LeanVM.Protocol.KeccakHash
 
-/-- The carry ordering a node's children: bit `z` (RCX) of the leaf index (`88(%rsp)`). -/
+/-- The carry ordering a node's children: bit `z` (RCX) of the leaf index (`72(%rsp)`). -/
 @[expose] public def bitC : SBool :=
-  .cmp .bit .W64 (.load 0 88 8) (.reg .rcx)
+  .cmp .bit .W64 (.load 0 72 8) (.reg .rcx)
 
 public section
 
@@ -30,7 +30,7 @@ theorem testBit_eq (l z : Nat) : l.testBit z = !decide (l >>> z &&& 1 = 0) := by
 
 /-- **The bit ordering a node's children**: the carry from `btq`. -/
 theorem bit_eval [Labels] {env : Env} {l z : Nat} (hz : z < 10)
-    (hl : env.load 0 88 8 = BitVec.ofNat 64 l)
+    (hl : env.load 0 72 8 = BitVec.ofNat 64 l)
     (hc : env.regs .rcx = BitVec.ofNat 64 z) :
     bitC.eval env = !decide (l >>> z &&& 1 = 0) := by
   simp only [bitC, SBool.eval, Sym.eval, CmpOp.apply, low_W64, hc, hl, Width.bits]
@@ -63,14 +63,14 @@ theorem bytes_height (z : Nat) :
 
 /-- `c << (9 - z)`, as `b65` computes it. -/
 theorem shl_cl : ∀ c < 24, ∀ z < 10,
-    (BinOp.apply .shl .W32 (UnOp.apply .trunc .W32 (BitVec.ofNat 64 c)) (clW z)).toNat =
+    (BinOp.apply .shl .W32 (BitVec.ofNat 64 c) (clW z)).toNat =
       c * 2 ^ (9 - z) := by
   decide +kernel
 
 /-- **The node's index word**, as `b65` computes it. -/
 theorem bytes_nodeIndex {c z l : Nat} (hc : c < 24) (hz : z < 10) (hl : l < 1024) :
     (List.range 4).map (byteOf (UnOp.apply .trunc .W32 (UnOp.apply .bswap .W32
-      (BinOp.apply .add .W32 (BinOp.apply .shl .W32 (UnOp.apply .trunc .W32 (BitVec.ofNat 64 c))
+      (BinOp.apply .add .W32 (BinOp.apply .shl .W32 (BitVec.ofNat 64 c)
           (clW z))
         (BinOp.apply .shr .W64 (BitVec.ofNat 64 l)
           (BinOp.apply .add .W64 (BitVec.ofNat 64 z) (BitVec.ofNat 64 1))))))) =

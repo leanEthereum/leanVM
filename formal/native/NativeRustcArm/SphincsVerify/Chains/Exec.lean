@@ -11,11 +11,11 @@ The symbolic states the chains' proof starts blocks from and the executor's resu
 (`run_b<k>`). Most blocks run in the frame (region 0, SP its base, `frameS`); where the proof knows
 a value in memory (a hasher's `buf_len`), the start state holds it as a literal write, so the
 executor folds the branches. Two blocks index memory by the chain:
-- `b114` (`.LSphincsVerify_45`) reads the chain's digit at `22672 + i` and its value at the layer's
-  chain values plus `16 i`: region 0 the 64 digits (SP `ptr 0 (-22672)`), region 1 the chain's
-  value (the alias of `X8 + (X0 << 4)`), region 2 the 16-byte cell at `X29 - 32`;
-- `b113` (`.LSphincsVerify_44`) stores the chain's end at `28208 + 16 i`: region 0 the spills
-  (`0 .. 432`), region 1 the end (the alias of `base + 28208 + (X28 << 4)`), region 2 the cell.
+- `b114` (`.LSphincsVerify_45`) reads the chain's digit at `23696 + i` and its value at the layer's
+  chain values plus `16 i`: region 0 the 64 digits (SP `ptr 0 (-23696)`), region 1 the chain's
+  value (the alias of `X8 + (X0 << 4)`), region 2 the 16-byte cell at `SP + 15984`;
+- `b113` (`.LSphincsVerify_44`) stores the chain's end at `28224 + 16 i`: region 0 the spills
+  (`0 .. 432`), region 1 the end (the alias of `base + 28224 + (X28 << 4)`), region 2 the cell.
 
 `after ds S` is the state `exec ds S` ends in.
 -/
@@ -63,7 +63,7 @@ def s129 : SState := { frameS [] with mem := [litW 27104 48] }
 
 /-- After the value's `memcpy`: X22, X23, X27 the loop's, B's `buf_len` 48. -/
 def s134 : SState :=
-  { frameS [(.X22, .ptr 0 15984), (.X23, .lit 16), (.X27, .lit 16)] with mem := [litW 27104 48] }
+  { frameS [(.X22, .ptr 0 20624), (.X23, .lit 16), (.X27, .lit 16)] with mem := [litW 27104 48] }
 
 /-- From the state's copy on: X24 B's `buf_len`, 64. -/
 def s138 : SState := frameS [(.X24, .lit 64)]
@@ -76,13 +76,15 @@ def sh4 (x : XReg) : Sym := .un (.shift .LSL 4) .W64 (.reg x)
 
 /-- At `b113`: the spills, the chain's end, the cell. -/
 def s113 : SState :=
-  init [(432, true), (16, false), (16, false)] (.ptr 0 0) [(.X29, .ptr 2 32)] [] []
-    [(.bin .add .W64 (.ptr 0 28208) (sh4 .X28), 1, 0)]
+  init [(432, true), (16, false), (16, false)] (.ptr 0 0) [(.X29, .ptr 2 13296)] [] []
+    [(.bin .add .W64 (.ptr 0 28224) (sh4 .X28), 1, 0),
+      (.ptr 0 15984, 2, 0), (.ptr 0 15992, 2, 8)]
 
 /-- At `b114`: the digits, the chain's value, the cell; X0 the chain. -/
 def s114 : SState :=
-  init [(64, false), (16, false), (16, false)] (.ptr 0 (-22672)) [(.X29, .ptr 2 32)] [] [(.reg .X0, 64)]
-    [(.bin .add .W64 (.reg .X8) (sh4 .X0), 1, 0)]
+  init [(64, true), (16, false), (16, false)] (.ptr 0 (-23696)) [(.X29, .ptr 2 13296)] [] [(.reg .X0, 64)]
+    [(.bin .add .W64 (.reg .X8) (sh4 .X0), 1, 0),
+      (.ptr 0 (-7712), 2, 0), (.ptr 0 (-7704), 2, 8)]
 
 /-- At `b115`: registers only. -/
 def s115 : SState := init []

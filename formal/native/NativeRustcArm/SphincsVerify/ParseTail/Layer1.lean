@@ -41,7 +41,7 @@ include hp hc hpre
 
 omit hc in
 /-- `b25`: layer 1's counter, the copy loop's registers. -/
-theorem s25 : Seg r 315 (fun m ↦ Facts r m (L25 r) (K25 r)) 319
+theorem s25 : Seg r b25Offset (fun m ↦ Facts r m (L25 r) (K25 r)) b26Offset
     (fun m ↦ Facts r m (L25 r) ((.X8, BitVec.ofNat 64 0) :: (.X9, r.off 5868) ::
       (.X22, ctr r 1) :: K25 r)) := fun m h ↦
   step_fall r hp hpre b25_in_code (by unfold b25; simp) run_b25 rfl rfl rfl h
@@ -54,8 +54,8 @@ theorem s25 : Seg r 315 (fun m ↦ Facts r m (L25 r) (K25 r)) 319
 
 omit hc in
 /-- `b26`: the copy loop, layer 1's chain values to `8244`. -/
-theorem s26 : Seg r 319 (fun m ↦ Facts r m (L25 r) ((.X8, BitVec.ofNat 64 0) ::
-      (.X9, r.off 5868) :: (.X22, ctr r 1) :: K25 r)) 327
+theorem s26 : Seg r b26Offset (fun m ↦ Facts r m (L25 r) ((.X8, BitVec.ofNat 64 0) ::
+      (.X9, r.off 5868) :: (.X22, ctr r 1) :: K25 r)) b27Offset
     (fun m ↦ Facts r m ((5868, 1024, wotsRaw r 1) :: (8244, 1024, wotsRaw r 1) :: L25 r)
       ((.X9, r.off 5868) :: (.X24, r.off 8244) :: K26 r)) := fun _ h ↦
   copy_loop r hp hpre b26_in_code (by unfold b26; simp) (getElem?_of_infix b26_in_code rfl)
@@ -67,8 +67,8 @@ theorem s26 : Seg r 319 (fun m ↦ Facts r m (L25 r) ((.X8, BitVec.ofNat 64 0) :
       (o' := 5868) (bs' := wotsRaw r 1) (by decide) rfl rfl)
 
 /-- `b27`: to `26768`, X25 the parsed signature's address. -/
-theorem s27 : Seg r 327 (fun m ↦ Facts r m ((5868, 1024, wotsRaw r 1) ::
-      (8244, 1024, wotsRaw r 1) :: L25 r) ((.X9, r.off 5868) :: (.X24, r.off 8244) :: K26 r)) 335
+theorem s27 : Seg r b27Offset (fun m ↦ Facts r m ((5868, 1024, wotsRaw r 1) ::
+      (8244, 1024, wotsRaw r 1) :: L25 r) ((.X9, r.off 5868) :: (.X24, r.off 8244) :: K26 r)) b28Offset
     (fun m ↦ Facts r m ((26768, 1024, wotsRaw r 1) :: L25 r) (K27 r)) := fun _ h ↦
   Eventually.mono (step_memcpy r hp hc hpre b27_in_code run_b27 rfl rfl rfl
     (a := 26768) (b := 8244) (n := 1024) rfl rfl rfl (by decide) (by decide) (by decide)
@@ -79,7 +79,7 @@ theorem s27 : Seg r 327 (fun m ↦ Facts r m ((5868, 1024, wotsRaw r 1) ::
     (by simp)) fun _ ⟨hpc, h'⟩ ↦ ⟨hpc, h'.drop1.drop1⟩
 
 /-- `b28`: layer 1's path to `16112`, the values to `24720`. -/
-theorem s28 : Seg r 335 (fun m ↦ Facts r m ((26768, 1024, wotsRaw r 1) :: L25 r) (K27 r)) 372
+theorem s28 : Seg r b28Offset (fun m ↦ Facts r m ((26768, 1024, wotsRaw r 1) :: L25 r) (K27 r)) b29Offset
     (fun m ↦ Facts r m ((24720, 1024, wotsRaw r 1) :: (16112, 128, pathRaw r 1) :: L25 r)
       (K27 r)) := fun m h ↦
   Eventually.mono (step_memcpy r hp hc hpre b28_in_code run_b28 rfl rfl rfl
@@ -97,7 +97,7 @@ theorem s28 : Seg r 335 (fun m ↦ Facts r m ((26768, 1024, wotsRaw r 1) :: L25 
     (by simp)) fun _ ⟨hpc, h'⟩ ↦ ⟨hpc, h'.drop2⟩
 
 /-- **Layer 1 of the tail**, `b25 .. b32`. -/
-theorem layer1 : Seg r 315 (fun m ↦ Facts r m (L25 r) (K25 r)) 396
+theorem layer1 : Seg r b25Offset (fun m ↦ Facts r m (L25 r) (K25 r)) b33Offset
     (fun m ↦ Facts r m (L33 r) (K27 r)) :=
   (((((((s25 r hp hpre).trans (s26 r hp hpre)).trans (s27 r hp hc hpre)).trans
     (s28 r hp hc hpre)).trans

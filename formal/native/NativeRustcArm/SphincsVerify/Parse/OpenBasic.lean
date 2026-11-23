@@ -9,7 +9,7 @@ The raw signature (`sigBytes_pre10`, `length_sigBytes`); FORS opening `c`'s byte
 layout, its path then its secret (`obytes`, `openings_eq`); the loop's invariant at `b12`
 (`AtOpen c`: the frame, the message, the raw signature, the key, the randomizer, the first `c`
 openings at `16400`, and the registers `OpenRegs c`), kept by changes in the frame's bytes from
-`8240` to `29248` past the openings written (`OpenMem.keep`).
+`8240` to `27808` past the openings written (`OpenMem.keep`).
 -/
 
 namespace NativeRustcArm.SphincsVerifyProof.Parse
@@ -26,7 +26,7 @@ def obytes (w : Nat → UInt64) (c : Nat) : List UInt8 :=
 randomizer, the first `c` openings. -/
 def OpenMem (r : Run) (c : Nat) (d : DataMem) : Prop :=
   BytesAt d (r.off 432) r.msg ∧ BytesAt d (r.off 468) (sigBytes r.w) ∧
-    BytesAt d (r.off 8208) (pkBytes r.w) ∧ BytesAt d (r.off 29248) r.sig.randomizer ∧
+    BytesAt d (r.off 8208) (pkBytes r.w) ∧ BytesAt d (r.off 27808) r.sig.randomizer ∧
     BytesAt d (r.off 16400) ((List.range c).map (obytes r.w)).flatten
 
 /-- The loop's registers at turn `c`. -/
@@ -115,10 +115,10 @@ theorem OpenRegs.of_saved {c : Nat} {m m' : MachineData} (hS : Saved m m') (hr :
     simp only [List.mem_cons, List.mem_nil_iff, or_false] at hx
     rcases hx with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> exact hS.1 _ rfl) hr
 
-/-- **The bytes kept** by a change in the frame's bytes `a .. a + n` from `8240` to `29248`, past
+/-- **The bytes kept** by a change in the frame's bytes `a .. a + n` from `8240` to `27808`, past
 the first `c` openings. -/
 theorem OpenMem.keep (hpre : r.Pre) {c : Nat} (hc : c ≤ 24) {d d' : DataMem} (h : OpenMem r c d)
-    {a n : Nat} (hs : SameOutside d d' (InRange (r.off a) n)) (ha : 8240 ≤ a) (hn : a + n ≤ 29248)
+    {a n : Nat} (hs : SameOutside d d' (InRange (r.off a) n)) (ha : 8240 ≤ a) (hn : a + n ≤ 27808)
     (ho : 16400 + 176 * c ≤ a ∨ a + n ≤ 16400) : OpenMem r c d' := by
   obtain ⟨h1, h2, h3, h4, h5⟩ := h
   exact ⟨Parse.keep r hpre h1 hs (length_wb r.w 4 4) (by left; omega) (by decide) (by omega),

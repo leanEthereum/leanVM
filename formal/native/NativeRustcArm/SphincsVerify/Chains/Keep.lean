@@ -7,8 +7,8 @@ public import NativeRustcArm.SphincsVerify.SigMem
 # What the chains keep
 
 Through the chains the frame's invariant, the inputs, the layer's spills, the hashers' registers
-(X21, X25, X26), the codeword at `22672` and the ends so far at `28208` stay (`Keep`). A call that
-changes only scratch bytes (`Scratch`: `15984 .. 22672`, `22736 .. 28208`, `29232 .. 29280`) and
+(X21, X25, X26), the codeword at `23696` and the ends so far at `28224` stay (`Keep`). A call that
+changes only scratch bytes (`Scratch`: `15984 .. 23696`, `23760 .. 28224`, `29248 .. 29280`) and
 its stack keeps them (`Keep.of_call`), as does a block whose writes miss them (`keepOK`, decided on
 the literal state, `Keep.of_block`). A label of the function is its directive's address
 (`labelAt`).
@@ -21,15 +21,15 @@ open NativeRustc NativeRustc.Sphincs NativeRustcArm.Sym
 @[expose] public section
 
 /-- **What the chains keep**: the frame, the inputs, the layer's spills, X21, X25 and X26, the
-codeword `x` at `22672`, the ends so far `E` at `28208`. -/
+codeword `x` at `23696`, the ends so far `E` at `28224`. -/
 def Keep (r : Run) (l : Nat) (x E : List UInt8) (m : MachineData) : Prop :=
   r.Frame m ∧ r.Inputs m ∧ r.LayerSpills l m ∧ Run.RegIs m .X21 (r.off 26968) ∧
-    Run.RegIs m .X25 (r.off 16600) ∧ Run.RegIs m .X26 136 ∧ BytesAt m.dmem (r.off 22672) x ∧
-    BytesAt m.dmem (r.off 28208) E
+    Run.RegIs m .X25 (r.off 16600) ∧ Run.RegIs m .X26 136 ∧ BytesAt m.dmem (r.off 23696) x ∧
+    BytesAt m.dmem (r.off 28224) E
 
 /-- The frame's scratch bytes `a .. a + n` the chains' calls and blocks change. -/
 def Scratch (a n : Nat) : Prop :=
-  (15984 ≤ a ∧ a + n ≤ 22672) ∨ (22736 ≤ a ∧ a + n ≤ 28208) ∨ (29232 ≤ a ∧ a + n ≤ 29280)
+  (15984 ≤ a ∧ a + n ≤ 23696) ∨ (23760 ≤ a ∧ a + n ≤ 28224) ∨ (29248 ≤ a ∧ a + n ≤ 29280)
 
 theorem length_pkBytes (w : Nat → UInt64) : (pkBytes w).length = 32 := by
   simp [pkBytes, Native.Keccak.Proof.length_wordsBytes]
@@ -48,8 +48,8 @@ theorem Keep.of_call (hpre : r.Pre) {l : Nat} {x E : List UInt8} (hx : x.length 
   obtain ⟨hF, ⟨h1, h2, h3⟩, ⟨s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11⟩, h21, h25, h26, hxa,
     hEa⟩ := hK
   have ha' : a + n ≤ 29280 := by unfold Scratch at ha; omega
-  have hk : ∀ {o : Nat} {bs : List UInt8}, o + bs.length ≤ 15984 ∨ (22672 ≤ o ∧ o + bs.length ≤ 22736)
-      ∨ (28208 ≤ o ∧ o + bs.length ≤ 29232) → BytesAt m.dmem (r.off o) bs →
+  have hk : ∀ {o : Nat} {bs : List UInt8}, o + bs.length ≤ 15984 ∨ (23696 ≤ o ∧ o + bs.length ≤ 23760)
+      ∨ (28224 ≤ o ∧ o + bs.length ≤ 29248) → BytesAt m.dmem (r.off o) bs →
       BytesAt m'.dmem (r.off o) bs := fun ho h ↦
     r.bytesAt_of_call hpre hF (by omega) hN hout (by omega) (by unfold Scratch at ha; omega) h
   have hreg : ∀ {y : XReg} {v : BitVec 64}, calleeSaved y = true → Run.RegIs m y v →
@@ -77,7 +77,7 @@ theorem noWriteIn_mono {S : SState} {o n o' n' : Nat} (h : Run.noWriteIn S o n =
 registers and off the kept bytes, SP, X29, X21, X25, X26 as they were. -/
 def keepOK (S : SState) : Bool :=
   Run.frameWrites S && Run.noWriteIn S 0 432 && Run.noWriteIn S 8208 7776 &&
-    Run.noWriteIn S 22672 64 && Run.noWriteIn S 28208 1024 && S.sp == .ptr 0 0 &&
+    Run.noWriteIn S 23696 64 && Run.noWriteIn S 28224 1024 && S.sp == .ptr 0 0 &&
     S.reg .X29 == some (.ptr 0 29280) && S.reg .X21 == some (.ptr 0 26968) &&
     S.reg .X25 == some (.ptr 0 16600) && S.reg .X26 == some (.lit 136)
 
@@ -110,8 +110,8 @@ theorem Keep.of_block (hpre : r.Pre) {l : Nat} {x E : List UInt8} (hx : x.length
   simp only [keepOK, Bool.and_eq_true, beq_iff_eq] at hok
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨hw, n0⟩, n1⟩, n2⟩, n3⟩, hsp⟩, hx29⟩, h21⟩, h25⟩, h26⟩ := hok
   have hk : ∀ {o : Nat} {bs : List UInt8}, (o + bs.length ≤ 432 ∨
-      (8208 ≤ o ∧ o + bs.length ≤ 15984)) ∨ (22672 ≤ o ∧ o + bs.length ≤ 22736) ∨
-      (28208 ≤ o ∧ o + bs.length ≤ 29232) → BytesAt m.dmem (r.off o) bs →
+      (8208 ≤ o ∧ o + bs.length ≤ 15984)) ∨ (23696 ≤ o ∧ o + bs.length ≤ 23760) ∨
+      (28224 ≤ o ∧ o + bs.length ≤ 29248) → BytesAt m.dmem (r.off o) bs →
       BytesAt m'.dmem (r.off o) bs := fun ho h ↦ by
     refine r.bytesAt_kept hpre hm hwf (by omega) h ?_
     rcases ho with (ho | ho) | ho | ho

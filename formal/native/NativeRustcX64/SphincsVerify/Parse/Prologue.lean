@@ -7,8 +7,8 @@ public meta import NativeRustcX64.Code.Sphincs.SphincsVerify
 # The parse, part 1: the prologue and the raw signature's `memset` (`b0`, `b1`, x86-64)
 
 `b0` pushes RBP, R15, R14, R13, R12, RBX, probes and allocates the frame, keeps the context in
-RBX, the key's words 0 .. 3 in R14, R15, R13, RBP, stores the message's words 4 .. 7 at `1600`,
-and calls `memset` on the raw signature's 7740 bytes at `12416`; `b1` is an alignment. Result:
+RBX, the key's words 0 .. 3 in R14, R12, R13, RBP, stores the message's words 4 .. 7 at `2008`,
+and calls `memset` on the raw signature's 7740 bytes at `11404`; `b1` is an alignment. Result:
 `AtW` at `b2` (directive 41).
 -/
 
@@ -19,22 +19,22 @@ open NativeRustc NativeRustc.Sphincs NativeRustcX64.Sym NativeRustcX64.Sphincs.S
 
 @[expose] public section
 
-/-- At the entry: region 0 the frame (RSP its top `29384`), region 1 the slots below it, region 2
+/-- At the entry: region 0 the frame (RSP its top `29400`), region 1 the slots below it, region 2
 the input (RDI 1024 below it), then the loader's memcpy and memset slots. -/
 def entryS : SState :=
-  (init [29392, 16, 7816, 8, 8] [(.rsp, .ptr 0 29384), (.rdi, .ptr 2 (-1024))] [] []
+  (init [29408, 16, 7816, 8, 8] [(.rsp, .ptr 0 29400), (.rdi, .ptr 2 (-1024))] [] []
     (Run.frameAliases ++ [(.gotSlot "memset", 4, 0)])).withKnownBytes 4 0 8 (.label "memset")
 
-/-- The key's words in registers: R14, R15, R13, RBP the words 0 .. 3. -/
+/-- The key's words in registers: R14, R12, R13, RBP the words 0 .. 3. -/
 def KeyRegs (r : Run) (m : MachineData) : Prop :=
-  Run.RegIs m .r14 (r.w 0).toBitVec ∧ Run.RegIs m .r15 (r.w 1).toBitVec ∧
+  Run.RegIs m .r14 (r.w 0).toBitVec ∧ Run.RegIs m .r12 (r.w 1).toBitVec ∧
     Run.RegIs m .r13 (r.w 2).toBitVec ∧ Run.RegIs m .rbp (r.w 3).toBitVec
 
-/-- **At `b2`**: the frame, the message at `1600`; RBX the context, the key in registers, R12
+/-- **At `b2`**: the frame, the message at `2008`; RBX the context, the key in registers, R15
 `0`. -/
 def AtW (r : Run) (m : MachineData) : Prop :=
-  r.Frame m ∧ Facts r m.dmem [(1600, 32, r.msg)] ∧ Run.RegIs m .rbx (ctx r) ∧ KeyRegs r m ∧
-    Run.RegIs m .r12 0
+  r.Frame m ∧ Facts r m.dmem [(2008, 32, r.msg)] ∧ Run.RegIs m .rbx (ctx r) ∧ KeyRegs r m ∧
+    Run.RegIs m .r15 0
 
 end
 
@@ -59,7 +59,7 @@ theorem keyRegs_of_saved {m m' : MachineData} (hS : Saved m m') (h : KeyRegs r m
     KeyRegs r m' := by
   obtain ⟨h14, h15, h13, hbp⟩ := h
   unfold Run.RegIs at *
-  exact ⟨(hS.1 .r14 rfl).trans h14, (hS.1 .r15 rfl).trans h15, (hS.1 .r13 rfl).trans h13,
+  exact ⟨(hS.1 .r14 rfl).trans h14, (hS.1 .r12 rfl).trans h15, (hS.1 .r13 rfl).trans h13,
     (hS.1 .rbp rfl).trans hbp⟩
 
 /-- **`b0` and the raw signature's `memset`, then `b1`**. -/
@@ -72,7 +72,7 @@ theorem prologue_spec (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) :
     apply Match.withKnownBytes
     · exact match_ofMachine ⟨rfl, rfl, rfl, rfl, rfl, trivial⟩
         ⟨by
-          show rspOf r.m0 = r.base + BitVec.ofInt 64 ((29384 : Nat) : Int)
+          show rspOf r.m0 = r.base + BitVec.ofInt 64 ((29400 : Nat) : Int)
           rw [BitVec.ofInt_natCast]
           simp [Run.base, frameSize],
         by
@@ -86,7 +86,7 @@ theorem prologue_spec (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) :
     · intro i hi
       simpa [Sym.eval, Env.base, regs3] using r.got_byte hpre hS0 (by simp : "memset" ∈ _) hi
   refine exec_then hk run_b0 hwf (fun _ _ ↦ rfl) hm fun st hm' hpc ↦ ?_
-  have h0 : (regs3 r)[0]? = some (r.base, 29392) := rfl
+  have h0 : (regs3 r)[0]? = some (r.base, 29408) := rfl
   have hcall : r.AtCall st.data := by
     refine ⟨?_, ?_, (hm'.sameOutside hwf).mono (written_stack r hpre h0 rfl (by decide)),
       hm'.kept hwf⟩
@@ -96,27 +96,27 @@ theorem prologue_spec (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) :
       simp only [List.length_map, List.length_cons, List.length_nil] at hi
       rw [off_add, Run.off]
       interval_cases i
-      · exact bytesAt_reg hm' h0 (o := 29336) (x := .rbx) (by decide) (by decide) rfl
-      · exact bytesAt_reg hm' h0 (o := 29344) (x := .r12) (by decide) (by decide) rfl
-      · exact bytesAt_reg hm' h0 (o := 29352) (x := .r13) (by decide) (by decide) rfl
-      · exact bytesAt_reg hm' h0 (o := 29360) (x := .r14) (by decide) (by decide) rfl
-      · exact bytesAt_reg hm' h0 (o := 29368) (x := .r15) (by decide) (by decide) rfl
-      · exact bytesAt_reg hm' h0 (o := 29376) (x := .rbp) (by decide) (by decide) rfl
-  have hmsg : Facts r st.data.dmem [(1600, 32, r.msg)] := by
+      · exact bytesAt_reg hm' h0 (o := 29352) (x := .rbx) (by decide) (by decide) rfl
+      · exact bytesAt_reg hm' h0 (o := 29360) (x := .r12) (by decide) (by decide) rfl
+      · exact bytesAt_reg hm' h0 (o := 29368) (x := .r13) (by decide) (by decide) rfl
+      · exact bytesAt_reg hm' h0 (o := 29376) (x := .r14) (by decide) (by decide) rfl
+      · exact bytesAt_reg hm' h0 (o := 29384) (x := .r15) (by decide) (by decide) rfl
+      · exact bytesAt_reg hm' h0 (o := 29392) (x := .rbp) (by decide) (by decide) rfl
+  have hmsg : Facts r st.data.dmem [(2008, 32, r.msg)] := by
     refine ⟨⟨length_msg r, ?_⟩, trivial⟩
-    exact copy hm' (r := 0) (o := 1600) (r' := 2) (o' := 32) (n := 32) h0 (by decide) (by decide)
+    exact copy hm' (r := 0) (o := 2008) (r' := 2) (o' := 32) (n := 32) h0 (by decide) (by decide)
       (length_msg r) (input_words r hpre hS0 (s := 4) (n := 4) (by decide))
   have hE : ∀ o k, o = 8 * k → k < 977 →
       (Env.ofMachine r.m0 (regs3 r) (fun _ ↦ 0) (r.pc NativeRustcX64.Sphincs.SphincsVerify.b1Offset).toBitVec).load 2 o 8 = (r.w k).toBitVec :=
     fun o k ho hk ↦ load_word (input_word r hpre hS0 ho hk)
   have hkey : KeyRegs r st.data :=
     ⟨(hm'.regs .r14 _ rfl).trans (hE 0 0 rfl (by decide)),
-      (hm'.regs .r15 _ rfl).trans (hE 8 1 rfl (by decide)),
+      (hm'.regs .r12 _ rfl).trans (hE 8 1 rfl (by decide)),
       (hm'.regs .r13 _ rfl).trans (hE 16 2 rfl (by decide)),
       (hm'.regs .rbp _ rfl).trans (hE 24 3 rfl (by decide))⟩
   have hrbx : Run.RegIs st.data .rbx (ctx r) :=
     (hm'.regs .rbx _ rfl).trans ((eval_ptr rfl _).trans (input_sub r))
-  have h12 : Run.RegIs st.data .rdi (r.off 12416) := (hm'.regs .rdi _ rfl).trans (eval_base r h0 _)
+  have h12 : Run.RegIs st.data .rdi (r.off 11404) := (hm'.regs .rdi _ rfl).trans (eval_base r h0 _)
   have h2 : (reg st.data .rdx).toNat = 7740 := by
     rw [show reg st.data .rdx = _ from hm'.regs .rdx _ rfl]
     rfl
@@ -129,9 +129,9 @@ theorem prologue_spec (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) :
   refine exec_at hk1 run_b1 (Env.wf_nil st2.data) (fun _ h ↦ nomatch h) hpc2 (match_nil _)
     fun st3 hm3 hpc3 ↦ .done _ ⟨hpc3, ?_⟩
   have hd : st3.data.dmem = st2.data.dmem := hm3.dmem_eq (Env.wf_nil _) rfl
-  have hreg := keepsRegs_regs (rs := [.rsp, .rbx, .r12, .r13, .r14, .r15, .rbp]) (match_nil _) hm3
+  have hreg := keepsRegs_regs (rs := [.rsp, .rbx, .r15, .r13, .r14, .r12, .rbp]) (match_nil _) hm3
     (by decide)
-  have hr12 : Run.RegIs st.data .r12 0 := (hm'.regs .r12 _ rfl).trans rfl
+  have hr12 : Run.RegIs st.data .r15 0 := (hm'.regs .r15 _ rfl).trans rfl
   refine ⟨?_, hd ▸ hmsg2, ?_, ?_, ?_⟩
   · refine ⟨by rw [rspOf, hreg .rsp (by simp)]; exact hF2.1, hd ▸ hF2.2.1, hd ▸ hF2.2.2.1,
       hd ▸ hF2.2.2.2⟩
@@ -142,13 +142,13 @@ theorem prologue_spec (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) :
   · have hk2 := keyRegs_of_saved r hS hkey
     unfold KeyRegs Run.RegIs at *
     rw [show reg st3.data .r14 = reg st2.data .r14 from hreg .r14 (by simp),
-      show reg st3.data .r15 = reg st2.data .r15 from hreg .r15 (by simp),
+      show reg st3.data .r12 = reg st2.data .r12 from hreg .r12 (by simp),
       show reg st3.data .r13 = reg st2.data .r13 from hreg .r13 (by simp),
       show reg st3.data .rbp = reg st2.data .rbp from hreg .rbp (by simp)]
     exact hk2
   · unfold Run.RegIs
-    rw [show reg st3.data .r12 = reg st2.data .r12 from hreg .r12 (by simp),
-      show reg st2.data .r12 = reg st.data .r12 from hS.1 .r12 rfl]
+    rw [show reg st3.data .r15 = reg st2.data .r15 from hreg .r15 (by simp),
+      show reg st2.data .r15 = reg st.data .r15 from hS.1 .r15 rfl]
     exact hr12
 
 end

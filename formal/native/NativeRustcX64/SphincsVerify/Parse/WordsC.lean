@@ -6,7 +6,7 @@ public import NativeRustcX64.SphincsVerify.Parse.WordsB
 # The parse, part 4: the raw signature (`b2 .. b8`, x86-64)
 
 From `AtW` at `b2` the word loops and the counter blocks write the raw signature `sigBytes w` at
-the frame's `12416`; at `b9` (directive 106): `WS (sigBytes w)` (`words_spec`).
+the frame's `11404`; at `b9` (directive 106): `WS (sigBytes w)` (`words_spec`).
 -/
 
 namespace NativeRustcX64.SphincsVerifyProof.Parse

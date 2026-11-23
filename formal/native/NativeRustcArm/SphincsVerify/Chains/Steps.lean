@@ -45,9 +45,9 @@ theorem step (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hpre :
     {l : Nat} {x E : List UInt8} (hx : x.length = 64) (hE : E.length ≤ 1024) {pos i : Nat}
     (hpos : pos ≤ 2) (hi : i < 64) {v : List UInt8} (hv : v.length = 16)
     {R : MachineState → Prop} {m : MachineData} (hK : Keep r l x E m) (hR : Regs m pos i)
-    (h22 : Run.RegIs m .X22 (r.off 21648)) (hcell : BytesAt m.dmem (r.off 29248) v)
+    (h22 : Run.RegIs m .X22 (r.off 21648)) (hcell : BytesAt m.dmem (r.off 15984) v)
     (cont : ∀ m', Keep r l x E m' → Regs m' (pos + 1) i → Run.RegIs m' .X22 (r.off 21648) →
-      BytesAt m'.dmem (r.off 29248) (th r.seed (chainAdrs r l i pos) v) →
+      BytesAt m'.dmem (r.off 15984) (th r.seed (chainAdrs r l i pos) v) →
       Eventually (step1 NativeRustcArm.Host.exe) R ⟨m', if pos + 1 = 3 then r.pc NativeRustcArm.Sphincs.SphincsVerify.b142Offset else r.pc NativeRustcArm.Sphincs.SphincsVerify.b116Offset⟩) :
     Eventually (step1 NativeRustcArm.Host.exe) R ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b116Offset⟩ :=
   seg_b116 hp hc hpre hx hE hpos hi hv hK hR h22 hcell fun m' h1 h2 h3 h4 ↦ cont m' h1 h2 h3 (by
@@ -61,9 +61,9 @@ theorem steps (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hpre 
     (hi : i < 64) {R : MachineState → Prop} :
     ∀ (k pos : Nat) {v : List UInt8} {m : MachineData}, pos + (k + 1) = 3 → v.length = 16 →
       Keep r l x E m → Regs m pos i → Run.RegIs m .X22 (r.off 21648) →
-      BytesAt m.dmem (r.off 29248) v →
+      BytesAt m.dmem (r.off 15984) v →
       (∀ m', Keep r l x E m' → Regs m' 3 i →
-        BytesAt m'.dmem (r.off 29248) (chain r.seed (r.key l) i pos (k + 1) v) →
+        BytesAt m'.dmem (r.off 15984) (chain r.seed (r.key l) i pos (k + 1) v) →
         Eventually (step1 NativeRustcArm.Host.exe) R ⟨m', r.pc NativeRustcArm.Sphincs.SphincsVerify.b142Offset⟩) →
       Eventually (step1 NativeRustcArm.Host.exe) R ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b116Offset⟩
   | 0, pos, v, m, hk, hv, hK, hR, h22, hcell, cont =>

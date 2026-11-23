@@ -19,9 +19,9 @@ open NativeRustcX64.Sym NativeRustcX64.Sphincs.SphincsVerify
 set_option Elab.async false
 
 sym_block run_b9 := exec b9 (fS [])
-sym_block run_b10 := exec b10 (fS [(.rbp, .ptr 0 20700), (.r15, .ptr 0 592), (.r12, .label "memcpy")] [(.reg .r13, 4225)])
-sym_block run_b11 := exec b11 (fS [(.r14, .ptr 0 576), (.rbx, .ptr 0 20540), (.r12, .label "memcpy")])
-sym_block run_b12 := exec b12 (fS [(.r14, .ptr 0 576), (.r12, .label "memcpy")])
+sym_block run_b10 := exec b10 (fS [(.rbp, .ptr 0 20716), (.r12, .ptr 0 576), (.r15, .label "memcpy")] [(.reg .r13, 4225)])
+sym_block run_b11 := exec b11 (fS [(.r14, .ptr 0 560), (.rbx, .ptr 0 20556), (.r15, .label "memcpy")])
+sym_block run_b12 := exec b12 (fS [(.r14, .ptr 0 560), (.r15, .label "memcpy")])
 sym_block run_b13 := exec b13 (init [])
 
 end NativeRustcX64.SphincsVerifyProof.Parse

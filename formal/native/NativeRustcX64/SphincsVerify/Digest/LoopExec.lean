@@ -9,7 +9,7 @@ public meta import NativeRustcX64.Code.Sphincs.SphincsVerify
 /-!
 # The digest's bit loop `b55`, run by the symbolic executor (x86-64)
 
-`run_b55`: one turn from `s55`; `leafSym`, the leaf's value it stores at RBP.
+`run_b55`: one turn from `s55`; `leafSym`, the leaf's value it stores at R13.
 -/
 
 namespace NativeRustcX64.SphincsVerifyProof.Digest

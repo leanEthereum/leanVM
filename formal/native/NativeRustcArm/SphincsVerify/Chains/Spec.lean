@@ -10,7 +10,7 @@ public import NativeRustcArm.SphincsVerify.Chains.Ends
 `b114` reads chain `i`'s digit `d` and value (`seg_b114`); a digit above 2 goes straight to
 `b113`, otherwise `b115` and the `3 - d` steps (`seg_b115`); `b113` stores the chain's end and goes
 on with chain `i + 1` (`chains_loop`, by induction on the chains left). From `AtChains l x` at
-`b114`, the machine reaches `b143` with the 64 ends `chainEnds l x` at `28208`: **`chainsSpec`**.
+`b114`, the machine reaches `b143` with the 64 ends `chainEnds l x` at `28224`: **`chainsSpec`**.
 -/
 
 namespace NativeRustcArm.SphincsVerifyProof.Chains
@@ -61,7 +61,7 @@ theorem seg_b114 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hp
     (hEl : E.length = 16 * i) {R : MachineState → Prop} {m : MachineData} (hK : Keep r l x E m)
     (h0 : Run.RegIs m .X0 (BitVec.ofNat 64 i)) (h8 : Run.RegIs m .X8 (r.off (12900 + 1028 * l)))
     (cont : ∀ m', Keep r l x E m' → Run.RegIs m' .X28 (BitVec.ofNat 64 i) →
-      BytesAt m'.dmem (r.off 29248) (chainEnd r l x i) →
+      BytesAt m'.dmem (r.off 15984) (chainEnd r l x i) →
       Eventually (step1 NativeRustcArm.Host.exe) R ⟨m', r.pc NativeRustcArm.Sphincs.SphincsVerify.b113Offset⟩) :
     Eventually (step1 NativeRustcArm.Host.exe) R ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b114Offset⟩ := by
   have hF := hK.1
@@ -70,14 +70,14 @@ theorem seg_b114 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hp
     have := BytesAt.slice hK.2.1.2.1 (4656 + 1028 * l + 16 * i) 16
     rwa [r.off_add, r.sigMem_wots hl hi,
       show 8244 + (4656 + 1028 * l + 16 * i) = 12900 + 1028 * l + 16 * i by omega] at this
-  have hdig : BytesAt m.dmem (r.off 22672 + BitVec.ofNat 64 i) [x.getD i 0] := by
+  have hdig : BytesAt m.dmem (r.off 23696 + BitVec.ofNat 64 i) [x.getD i 0] := by
     have := BytesAt.slice hK.2.2.2.2.2.2.1 i 1
     rwa [drop_take_one (by omega)] at this
-  obtain ⟨m0, w0⟩ := r.frame_mapped hpre hF (a := 22672) (n := 64) (by decide)
+  obtain ⟨m0, w0⟩ := r.frame_mapped hpre hF (a := 23696) (n := 64) (by decide)
   obtain ⟨m1, w1⟩ := r.frame_mapped hpre hF (a := 12900 + 1028 * l + 16 * i) (n := 16) (by omega)
-  obtain ⟨m2, w2⟩ := r.frame_mapped hpre hF (a := 29248) (n := 16) (by decide)
-  have hwf : (Env.ofMachine m [(r.off 22672, 64), (r.off (12900 + 1028 * l + 16 * i), 16),
-      (r.off 29248, 16)]).WF :=
+  obtain ⟨m2, w2⟩ := r.frame_mapped hpre hF (a := 15984) (n := 16) (by decide)
+  have hwf : (Env.ofMachine m [(r.off 23696, 64), (r.off (12900 + 1028 * l + 16 * i), 16),
+      (r.off 15984, 16)]).WF :=
     Env.wf_of ⟨⟨m0, w0⟩, ⟨m1, w1⟩, ⟨m2, w2⟩, trivial⟩
       (List.Pairwise.cons (fun e he ↦ by
           simp only [List.mem_cons, List.not_mem_nil, or_false] at he
@@ -89,15 +89,18 @@ theorem seg_b114 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hp
             subst he
             exact apart_regions hpre (by omega) (by decide) (by omega))
           (List.Pairwise.cons (fun _ h ↦ nomatch h) List.Pairwise.nil)))
-  have hm : Match (Env.ofMachine m [(r.off 22672, 64), (r.off (12900 + 1028 * l + 16 * i), 16),
-      (r.off 29248, 16)]) s114 m := by
-    refine match_ofMachine ⟨rfl, fun h ↦ Bool.noConfusion h, rfl, fun h ↦ Bool.noConfusion h, rfl,
-      fun h ↦ Bool.noConfusion h, trivial⟩ ?_ ⟨?_, trivial⟩ trivial ⟨?_, trivial⟩ ⟨?_, trivial⟩
-    · show m.regs.SP.toBitVec = r.off 22672 + BitVec.ofInt 64 (-22672)
-      rw [off_add_ofInt 22672 (b := 0) (by omega), Run.off_zero]
+  have hm : Match (Env.ofMachine m [(r.off 23696, 64), (r.off (12900 + 1028 * l + 16 * i), 16),
+      (r.off 15984, 16)]) s114 m := by
+    refine match_ofMachine ⟨rfl, fun _ ↦ ?_, rfl, fun h ↦ Bool.noConfusion h, rfl,
+      fun h ↦ Bool.noConfusion h, trivial⟩ ?_ ⟨?_, trivial⟩ trivial ⟨?_, trivial⟩ ⟨?_, ?_, ?_, trivial⟩
+    · rw [r.off_toNat hpre (by decide)]
+      have := r.base_aligned hpre
+      omega
+    · show m.regs.SP.toBitVec = r.off 23696 + BitVec.ofInt 64 (-23696)
+      rw [off_add_ofInt 23696 (b := 0) (by omega), Run.off_zero]
       exact hF.1
-    · show (m.regs.getXReg .X29).toBitVec = r.off 29248 + BitVec.ofInt 64 32
-      rw [off_add_ofInt 29248 (b := 29280) (by omega)]
+    · show (m.regs.getXReg .X29).toBitVec = r.off 15984 + BitVec.ofInt 64 13296
+      rw [off_add_ofInt 15984 (b := 29280) (by omega)]
       exact hF.2.1
     · show (m.regs.getXReg .X0).toBitVec.toNat < 64
       rw [h0, BitVec.toNat_ofNat]
@@ -108,10 +111,14 @@ theorem seg_b114 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hp
       rw [h8, h0]
       sym_simp
       rw [shl4 (by omega), r.off_add, off_add_ofInt _ (b := 12900 + 1028 * l + 16 * i) (by simp)]
+    · show r.off 23696 + BitVec.ofInt 64 (-7712) = r.off 15984 + BitVec.ofInt 64 0
+      rw [off_add_ofInt 23696 (b := 15984) (by omega), off_add_ofInt 15984 (b := 15984) (by omega)]
+    · show r.off 23696 + BitVec.ofInt 64 (-7704) = r.off 15984 + BitVec.ofInt 64 8
+      rw [off_add_ofInt 23696 (b := 15992) (by omega), off_add_ofInt 15984 (b := 15992) (by omega)]
   refine blk r hp b114_in_code (List.cons_ne_nil _ _) run_b114 hwf hm fun st hm1 hpc ↦ ?_
   have hD : (Sym.loadx 0 0 (.un (.memExtend ⟨.UXTX, .E0⟩) .W64 (.reg .X0)) 1).eval
-      (Env.ofMachine m [(r.off 22672, 64), (r.off (12900 + 1028 * l + 16 * i), 16),
-        (r.off 29248, 16)]) = BitVec.ofNat 64 (x.getD i 0).toNat := by
+      (Env.ofMachine m [(r.off 23696, 64), (r.off (12900 + 1028 * l + 16 * i), 16),
+        (r.off 15984, 16)]) = BitVec.ofNat 64 (x.getD i 0).toNat := by
     show Env.load _ 0 (0 + (UnOp.apply (.memExtend ⟨.UXTX, .E0⟩) .W64
       (m.regs.getXReg .X0).toBitVec).toNat) 1 = _
     rw [memExt0, h0, BitVec.toNat_ofNat, Nat.mod_eq_of_lt (by omega), Nat.zero_add]
@@ -127,27 +134,27 @@ theorem seg_b114 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hp
   have h22 : Run.RegIs st.data .X22 (r.off 21648) := by
     unfold Run.RegIs
     rw [hm1.regs .X22 _ rfl]
-    exact off_add_ofInt 22672 (by omega)
+    exact off_add_ofInt 23696 (by omega)
   have hsp : st.data.regs.SP.toBitVec = r.base := by
     rw [hm1.sp]
-    show r.off 22672 + BitVec.ofInt 64 (-22672) = r.base
-    rw [off_add_ofInt 22672 (b := 0) (by omega), Run.off_zero]
+    show r.off 23696 + BitVec.ofInt 64 (-23696) = r.base
+    rw [off_add_ofInt 23696 (b := 0) (by omega), Run.off_zero]
   have h29 : Run.RegIs st.data .X29 (r.off 29280) := by
     unfold Run.RegIs
     rw [hm1.regs .X29 _ rfl]
-    exact off_add_ofInt 29248 (by omega)
-  have hK1 := Keep.of_change hpre hx (by omega) hK (a := 29248) (n := 16) (by decide)
-    (Or.inr (Or.inr (by omega))) hsp h29 (reg_same hm1 rfl) (reg_same hm1 rfl) (reg_same hm1 rfl)
+    exact off_add_ofInt 15984 (by omega)
+  have hK1 := Keep.of_change hpre hx (by omega) hK (a := 15984) (n := 16) (by decide)
+    (Or.inl (by omega)) hsp h29 (reg_same hm1 rfl) (reg_same hm1 rfl) (reg_same hm1 rfl)
     (sameOutside_region hm1 hwf (k := 2) rfl (by decide +kernel)) (hm1.kept hwf)
-  have hcell : BytesAt st.data.dmem (r.off 29248) ((r.layerSig l).wots.getD i []) := by
-    have := copy16_gen hm1 (k := 2) (b := r.off 29248) rfl (o := 0) (by decide) (k' := 1) (o' := 0)
+  have hcell : BytesAt st.data.dmem (r.off 15984) ((r.layerSig l).wots.getD i []) := by
+    have := copy16_gen hm1 (k := 2) (b := r.off 15984) rfl (o := 0) (by decide) (k' := 1) (o' := 0)
       (by decide +kernel) (by decide +kernel) hv (bytesAt_add_zero hval)
     simpa using this
   have hcond : (SBool.and
       (.not (.cmp .ult .W64 (.loadx 0 0 (.un (.memExtend ⟨.UXTX, .E0⟩) .W64 (.reg .X0)) 1) (.lit 2)))
       (.not (.cmp .eq .W64 (.loadx 0 0 (.un (.memExtend ⟨.UXTX, .E0⟩) .W64 (.reg .X0)) 1)
-        (.lit 2)))).eval (Env.ofMachine m [(r.off 22672, 64),
-          (r.off (12900 + 1028 * l + 16 * i), 16), (r.off 29248, 16)]) =
+        (.lit 2)))).eval (Env.ofMachine m [(r.off 23696, 64),
+          (r.off (12900 + 1028 * l + 16 * i), 16), (r.off 15984, 16)]) =
       decide (2 < (x.getD i 0).toNat) := by
     show (!(CmpOp.apply .ult .W64 (Sym.eval _ (.loadx 0 0 (.un (.memExtend ⟨.UXTX, .E0⟩) .W64
       (.reg .X0)) 1)) (BitVec.ofNat 64 2)) && !(CmpOp.apply .eq .W64 (Sym.eval _ (.loadx 0 0

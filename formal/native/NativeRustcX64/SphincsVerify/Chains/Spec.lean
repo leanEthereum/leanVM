@@ -10,8 +10,8 @@ public import NativeRustcX64.SphincsVerify.Chains.Ends
 `b117` reads chain `i`'s digit `d` and value (`seg_b117`); a digit above 2 goes straight to
 `b116`, otherwise `b118` and the `3 - d` steps to `b150`; `b116` stores the chain's end and goes
 on with chain `i + 1` (`chains_loop`, by induction on the chains left). From `AtChains l x` at
-`b117`, the machine reaches `b151` with the 64 ends `chainEnds l x` at `28280`: **`chainsSpec`**.
-`b117`'s symbolic state: region 0 the frame's first 20540 bytes, region 1 the chain's value.
+`b117`, the machine reaches `b151` with the 64 ends `chainEnds l x` at `28296`: **`chainsSpec`**.
+`b117`'s symbolic state: region 0 the frame's first 20556 bytes, region 1 the chain's value.
 -/
 
 namespace NativeRustcX64.SphincsVerifyProof.Chains
@@ -66,33 +66,33 @@ theorem seg_b117 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hp
     {l : Nat} {x E : List UInt8} (hl : l < 3) (hx : x.length = 64) {i : Nat} (hi : i < 64)
     (hEl : E.length = 16 * i) {R : MachineState → Prop} {m : MachineData} (hF : r.Frame m)
     (hK : KeepRest r l x E m) (h0 : Run.RegIs m .rax (BitVec.ofNat 64 i))
-    (h12 : Run.RegIs m .r12 (r.off 4096))
+    (h12 : Run.RegIs m .r12 (r.off 4104))
     (hf : Funcs m)
     (cont : ∀ m', r.Frame m' → KeepRest r l x E m' → r.WordAt m' 80 i.toUInt64 →
-      r.WordAt m' 168 (16 * i).toUInt64 → Run.RegIs m' .r12 (r.off 4096) →
-      BytesAt m'.dmem (r.off 184) (chainEnd r l x i) → Funcs m' →
+      r.WordAt m' 176 (16 * i).toUInt64 → Run.RegIs m' .r12 (r.off 4104) →
+      BytesAt m'.dmem (r.off 1592) (chainEnd r l x i) → Funcs m' →
       Eventually (step1 Host.exe) R ⟨m', r.pc NativeRustcX64.Sphincs.SphincsVerify.b116Offset⟩) :
     Eventually (step1 Host.exe) R ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b117Offset⟩ := by
   have hv := SigMem.length_wots_getD r.w hl hi
-  have hval : BytesAt m.dmem (r.off (25196 + 1028 * l + 16 * i)) ((r.layerSig l).wots.getD i []) := by
+  have hval : BytesAt m.dmem (r.off (25212 + 1028 * l + 16 * i)) ((r.layerSig l).wots.getD i []) := by
     have := BytesAt.slice hK.1.2 (4656 + 1028 * l + 16 * i) 16
     rwa [Run.off_add, show r.sig = sigOf r.w from rfl, SigMem.sigMem_wots r.w hl hi,
-      show 20540 + (4656 + 1028 * l + 16 * i) = 25196 + 1028 * l + 16 * i by omega] at this
-  have hdig : BytesAt m.dmem (r.off 0 + BitVec.ofNat 64 (3072 + i)) [x.getD i 0] := by
-    have := BytesAt.slice hK.2.2.2.2.1 i 1
-    rwa [drop_take_one (by omega), Run.off_add, ← Nat.zero_add (3072 + i), ← Run.off_add] at this
+      show 20556 + (4656 + 1028 * l + 16 * i) = 25212 + 1028 * l + 16 * i by omega] at this
+  have hdig : BytesAt m.dmem (r.off 0 + BitVec.ofNat 64 (3080 + i)) [x.getD i 0] := by
+    have := BytesAt.slice hK.2.2.2.1 i 1
+    rwa [drop_take_one (by omega), Run.off_add, ← Nat.zero_add (3080 + i), ← Run.off_add] at this
   have hti : (m.regs.get64 .rax).toNat = i := by
     rw [show m.regs.get64 .rax = BitVec.ofNat 64 i from h0]
     show (BitVec.ofNat 64 i).toNat = i
     rw [BitVec.toNat_ofNat]
     omega
-  obtain ⟨m0, w0⟩ := r.frame_mapped hpre hF.2.2.2 (a := 0) (n := 20540) (by decide)
-  obtain ⟨m1, w1⟩ := r.frame_mapped hpre hF.2.2.2 (a := 25196 + 1028 * l + 16 * i) (n := 16)
+  obtain ⟨m0, w0⟩ := r.frame_mapped hpre hF.2.2.2 (a := 0) (n := 20556) (by decide)
+  obtain ⟨m1, w1⟩ := r.frame_mapped hpre hF.2.2.2 (a := 25212 + 1028 * l + 16 * i) (n := 16)
     (by omega)
-  have hwf : (Env.ofMachine m [(r.off 0, 20540), (r.off (25196 + 1028 * l + 16 * i), 16)]).WF :=
+  have hwf : (Env.ofMachine m [(r.off 0, 20556), (r.off (25212 + 1028 * l + 16 * i), 16)]).WF :=
     Env.wf_of ⟨⟨m0, w0⟩, ⟨m1, w1⟩, trivial⟩
       (List.pairwise_pair.mpr (apart_regions hpre (by decide) (by omega) (by omega)))
-  have hm : Match (Env.ofMachine m [(r.off 0, 20540), (r.off (25196 + 1028 * l + 16 * i), 16)])
+  have hm : Match (Env.ofMachine m [(r.off 0, 20556), (r.off (25212 + 1028 * l + 16 * i), 16)])
       s117 m := by
     refine match_ofMachine ⟨rfl, rfl, trivial⟩ ⟨?_, trivial⟩ trivial ⟨?_, trivial⟩ ⟨?_, trivial⟩
     · show m.regs.get64 .rsp = r.off 0 + BitVec.ofInt 64 0
@@ -102,26 +102,26 @@ theorem seg_b117 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hp
       rw [hti]
       exact hi
     · show BinOp.apply .add .W64
-        ((Env.ofMachine m [(r.off 0, 20540), (r.off (25196 + 1028 * l + 16 * i), 16)]).load 0 176 8)
+        ((Env.ofMachine m [(r.off 0, 20556), (r.off (25212 + 1028 * l + 16 * i), 16)]).load 0 184 8)
         (BinOp.apply .shl .W64 (m.regs.get64 .rax) (BitVec.ofNat 64 4)) =
-          r.off (25196 + 1028 * l + 16 * i) + BitVec.ofInt 64 0
+          r.off (25212 + 1028 * l + 16 * i) + BitVec.ofInt 64 0
       rw [load0_word hK.2.1.2.2.2.2.2.2.2.2.2, show m.regs.get64 .rax = BitVec.ofNat 64 i from h0,
-        shl4 (by omega), off_add_ofInt (25196 + 1028 * l + 16 * i) (b := 25196 + 1028 * l + 16 * i)
+        shl4 (by omega), off_add_ofInt (25212 + 1028 * l + 16 * i) (b := 25212 + 1028 * l + 16 * i)
           (by simp)]
       simp only [BinOp.apply, low_W64, ext_W64]
       exact r.off_add _ _
   refine blk r hp b117_in_code (List.cons_ne_nil _ _) run_b117 hwf (fun _ h ↦ nomatch h) hm
     fun st hm1 hpc ↦ ?_
-  have hD : (Sym.un (.zext .W8) .W32 (.loadx 0 3072 (.reg .rax) 1)).eval
-      (Env.ofMachine m [(r.off 0, 20540), (r.off (25196 + 1028 * l + 16 * i), 16)]) =
+  have hD : (Sym.un (.zext .W8) .W32 (.loadx 0 3080 (.reg .rax) 1)).eval
+      (Env.ofMachine m [(r.off 0, 20556), (r.off (25212 + 1028 * l + 16 * i), 16)]) =
         BitVec.ofNat 64 (x.getD i 0).toNat := by
-    show UnOp.apply (.zext .W8) .W32 (Env.load _ 0 (3072 + (m.regs.get64 .rax).toNat) 1) = _
+    show UnOp.apply (.zext .W8) .W32 (Env.load _ 0 (3080 + (m.regs.get64 .rax).toNat) 1) = _
     rw [hti, load_one hdig, zext8 (x.getD i 0).toNat_lt]
-  have hsi : Run.RegIs st.data .rsi (BitVec.ofNat 64 (x.getD i 0).toNat) := by
+  have hsi : Run.RegIs st.data .rbp (BitVec.ofNat 64 (x.getD i 0).toNat) := by
     unfold Run.RegIs reg
-    rw [hm1.regs .rsi _ rfl]
+    rw [hm1.regs .rbp _ rfl]
     exact hD
-  have h12' : Run.RegIs st.data .r12 (r.off 4096) := by
+  have h12' : Run.RegIs st.data .r12 (r.off 4104) := by
     unfold Run.RegIs reg
     rw [reg_same hm1 rfl]
     exact h12
@@ -130,8 +130,8 @@ theorem seg_b117 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hp
     rw [rspOf, hm1.regs .rsp _ rfl]
     show r.off 0 + BitVec.ofInt 64 0 = r.base
     rw [off_add_ofInt 0 (b := 0) (by simp), off_zero']
-  have hout := written_three hm1 hwf hpre (n0 := 20540) (by rw [← off_zero']; rfl) (a := 80)
-    (n := 8) (a' := 168) (n' := 8) (a'' := 184) (n'' := 16) (by decide) (by decide) (by decide)
+  have hout := written_three hm1 hwf hpre (n0 := 20556) (by rw [← off_zero']; rfl) (a := 80)
+    (n := 8) (a' := 176) (n' := 8) (a'' := 1592) (n'' := 16) (by decide) (by decide) (by decide)
     (by decide +kernel)
   have hF1 : r.Frame st.data :=
     Run.Frame.of_change hF.2.1 hF.2.2.1 hF.2.2.2 hsp hout
@@ -142,35 +142,35 @@ theorem seg_b117 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hp
     (fun o ho hk hp ↦ hp.elim (r.not_inRange_off hpre (by decide) ho (by omega))
       (fun hp ↦ hp.elim (r.not_inRange_off hpre (by decide) ho (by omega))
         (r.not_inRange_off hpre (by decide) ho (by omega))))
-    (reg_same hm1 rfl) (reg_same hm1 rfl)
+    (reg_same hm1 rfl)
   have h80 : r.WordAt st.data 80 i.toUInt64 := by
-    have := bytesAt_write_val hm1 (r := 0) (b := r.off 0) (sz := 20540) rfl (o := 80) (n := 8)
+    have := bytesAt_write_val hm1 (r := 0) (b := r.off 0) (sz := 20556) rfl (o := 80) (n := 8)
       (v := .reg .rax) (by decide) (by decide +kernel)
-    rw [Run.off_add, bytes_word_of (x := Sym.eval (Env.ofMachine m [(r.off 0, 20540),
-      (r.off (25196 + 1028 * l + 16 * i), 16)]) (.reg .rax)) (w := i.toUInt64) h0] at this
+    rw [Run.off_add, bytes_word_of (x := Sym.eval (Env.ofMachine m [(r.off 0, 20556),
+      (r.off (25212 + 1028 * l + 16 * i), 16)]) (.reg .rax)) (w := i.toUInt64) h0] at this
     exact this
-  have h168 : r.WordAt st.data 168 (16 * i).toUInt64 := by
-    have := bytesAt_write_val hm1 (r := 0) (b := r.off 0) (sz := 20540) rfl (o := 168) (n := 8)
+  have h168 : r.WordAt st.data 176 (16 * i).toUInt64 := by
+    have := bytesAt_write_val hm1 (r := 0) (b := r.off 0) (sz := 20556) rfl (o := 176) (n := 8)
       (v := .bin .shl .W64 (.reg .rax) (.lit 4)) (by decide) (by decide +kernel)
-    rw [Run.off_add, bytes_word_of (x := Sym.eval (Env.ofMachine m [(r.off 0, 20540),
-      (r.off (25196 + 1028 * l + 16 * i), 16)]) (.bin .shl .W64 (.reg .rax) (.lit 4)))
+    rw [Run.off_add, bytes_word_of (x := Sym.eval (Env.ofMachine m [(r.off 0, 20556),
+      (r.off (25212 + 1028 * l + 16 * i), 16)]) (.bin .shl .W64 (.reg .rax) (.lit 4)))
       (w := (16 * i).toUInt64) (by
       show BinOp.apply .shl .W64 (m.regs.get64 .rax) (BitVec.ofNat 64 4) = _
       rw [show m.regs.get64 .rax = BitVec.ofNat 64 i from h0, shl4 (by omega)]
       rfl)] at this
     exact this
-  have hcell : BytesAt st.data.dmem (r.off 184) ((r.layerSig l).wots.getD i []) := by
-    have := copy16 hm1 (k := 0) (b := r.off 0) rfl (o := 184) (by decide) (k' := 1) (o' := 0)
+  have hcell : BytesAt st.data.dmem (r.off 1592) ((r.layerSig l).wots.getD i []) := by
+    have := copy16 hm1 (k := 0) (b := r.off 0) rfl (o := 1592) (by decide) (k' := 1) (o' := 0)
       (by decide +kernel) (by decide +kernel) hv (bytesAt_add_zero hval)
     rwa [Run.off_add] at this
   have hcond : (SBool.and
-      (.not (.cmp .ult .W64 (.un (.zext .W8) .W32 (.loadx 0 3072 (.reg .rax) 1)) (.lit 2)))
-      (.not (.cmp .eq .W64 (.un (.zext .W8) .W32 (.loadx 0 3072 (.reg .rax) 1)) (.lit 2)))).eval
-        (Env.ofMachine m [(r.off 0, 20540), (r.off (25196 + 1028 * l + 16 * i), 16)]) =
+      (.not (.cmp .ult .W64 (.un (.zext .W8) .W32 (.loadx 0 3080 (.reg .rax) 1)) (.lit 2)))
+      (.not (.cmp .eq .W64 (.un (.zext .W8) .W32 (.loadx 0 3080 (.reg .rax) 1)) (.lit 2)))).eval
+        (Env.ofMachine m [(r.off 0, 20556), (r.off (25212 + 1028 * l + 16 * i), 16)]) =
       decide (2 < (x.getD i 0).toNat) := by
-    show (!(CmpOp.apply .ult .W64 (Sym.eval _ (.un (.zext .W8) .W32 (.loadx 0 3072 (.reg .rax) 1)))
+    show (!(CmpOp.apply .ult .W64 (Sym.eval _ (.un (.zext .W8) .W32 (.loadx 0 3080 (.reg .rax) 1)))
       (BitVec.ofNat 64 2)) && !(CmpOp.apply .eq .W64 (Sym.eval _ (.un (.zext .W8) .W32
-        (.loadx 0 3072 (.reg .rax) 1))) (BitVec.ofNat 64 2))) = _
+        (.loadx 0 3080 (.reg .rax) 1))) (BitVec.ofNat 64 2))) = _
     have hlt := (x.getD i 0).toNat_lt
     rw [hD]
     simp only [CmpOp.apply, low_W64]
@@ -214,7 +214,7 @@ theorem chains_loop (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) 
     {l : Nat} {x : List UInt8} (hl : l < 3) (hx : x.length = 64) :
     ∀ (n i : Nat) {m : MachineData}, i + n = 64 → 0 < n → r.Frame m →
       KeepRest r l x ((List.range i).map (chainEnd r l x)).flatten m →
-      Run.RegIs m .rax (BitVec.ofNat 64 i) → Run.RegIs m .r12 (r.off 4096) → Funcs m →
+      Run.RegIs m .rax (BitVec.ofNat 64 i) → Run.RegIs m .r12 (r.off 4104) → Funcs m →
       Eventually (step1 Host.exe)
         (fun st ↦ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b151Offset ∧ r.AtWotsPk l (r.chainEnds l x) st.data) ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b117Offset⟩
   | 0, _, _, _, hn, _, _, _, _, _ => absurd hn (by decide)
@@ -231,20 +231,20 @@ theorem chains_loop (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) 
     by_cases h : i + 1 = 64
     · simp only [h, ↓reduceIte]
       rw [h] at k2'
-      refine .done _ ⟨rfl, hl, ?_, f2, k2'.1, k2'.2.1, g12, k2'.2.2.1, k2'.2.2.2.1, ?_, hf2⟩
+      refine .done _ ⟨rfl, hl, ?_, f2, k2'.1, k2'.2.1, g12, k2'.2.2.1, ?_, hf2⟩
       · rw [chainEnds_eq]
         exact length_ends r hl x (le_refl _)
       · rw [chainEnds_eq]
-        exact k2'.2.2.2.2.2
+        exact k2'.2.2.2.2
     · simp only [h, ↓reduceIte]
       exact chains_loop hp hc hpre hl hx n (i + 1) (by omega) (by omega) f2 k2' g0 g12 hf2
 
 /-- **Region 5b on x86-64, a layer's chains**: from `AtChains l x` at `b117` to
 `AtWotsPk l (chainEnds l x)` at `b151`. -/
 theorem chainsSpec : ChainsSpec := by
-  intro l x r hp hc hpre m ⟨hl, hx, hF, hI, hLS, h0, h12, hbp, h13, hxa, hf⟩
+  intro l x r hp hc hpre m ⟨hl, hx, hF, hI, hLS, h0, h12, h13, hxa, hf⟩
   exact chains_loop hp hc hpre hl hx 64 0 rfl (by decide) hF
-    ⟨hI, hLS, hbp, h13, hxa, fun _ h ↦ absurd h (by simp)⟩ h0 h12 hf
+    ⟨hI, hLS, h13, hxa, fun _ h ↦ absurd h (by simp)⟩ h0 h12 hf
 
 end
 

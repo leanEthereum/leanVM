@@ -5,7 +5,7 @@ public import NativeRustcArm.SphincsVerify.Tree.Glue
 /-!
 # The one-time leaf's `th`, first calls
 
-From layer `l`'s chain ends `e` at `28208` (`b143`): the address of type `WOTS_PK` at `21648`
+From layer `l`'s chain ends `e` at `28224` (`b143`): the address of type `WOTS_PK` at `24720`
 (`(r.key l).adrs 1`), hasher A (`16400`) zeroed by `memset` (`stage1`), then updated with
 `PK.seed` (`b144`, `stage2`).
 -/
@@ -63,13 +63,13 @@ variable [Host] (r : Run)
 
 /-- At `b144`: the ends, the address, hasher A zero. -/
 @[expose] def AtL1 (l : Nat) (e : List (List UInt8)) (m : MachineData) : Prop :=
-  Base r l m ∧ BytesAt m.dmem (r.off 28208) e.flatten ∧ e.flatten.length = 1024 ∧
-    BytesAt m.dmem (r.off 21648) ((r.key l).adrs 1) ∧ BytesAt m.dmem (r.off 16400) Keccak.new
+  Base r l m ∧ BytesAt m.dmem (r.off 28224) e.flatten ∧ e.flatten.length = 1024 ∧
+    BytesAt m.dmem (r.off 24720) ((r.key l).adrs 1) ∧ BytesAt m.dmem (r.off 16400) Keccak.new
 
 /-- At `b145`: hasher A has absorbed `PK.seed`. -/
 @[expose] def AtL2 (l : Nat) (e : List (List UInt8)) (m : MachineData) : Prop :=
-  Base r l m ∧ BytesAt m.dmem (r.off 28208) e.flatten ∧ e.flatten.length = 1024 ∧
-    BytesAt m.dmem (r.off 21648) ((r.key l).adrs 1) ∧
+  Base r l m ∧ BytesAt m.dmem (r.off 28224) e.flatten ∧ e.flatten.length = 1024 ∧
+    BytesAt m.dmem (r.off 24720) ((r.key l).adrs 1) ∧
     HasherHolds (bytesOf m.dmem (r.off 16400) 344) r.seed
 
 variable {r}
@@ -87,23 +87,23 @@ theorem stage1 (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}
   have h0 : Run.RegIs st.data .X0 (r.off 16400) := (hm.regs .X0 _ rfl).trans (eval_ptr 16400)
   have h1 : st.data.regs.X1 = 0 := UInt64.toBitVec_inj.mp (hm.regs .X1 _ rfl)
   have h2 : st.data.regs.X2.toNat = 344 := regIs_toNat (hm.regs .X2 _ rfl) (by decide)
-  have hE1 : BytesAt st.data.dmem (r.off 28208) e.flatten :=
+  have hE1 : BytesAt st.data.dmem (r.off 28224) e.flatten :=
     r.bytesAt_kept hpre hm hwf (by omega) hE (by rw [hElen]; rfl)
   obtain ⟨-, -, -, -, -, -, -, -, h408, h416, h424⟩ := hSp
-  have hA : BytesAt st.data.dmem (r.off 21648) ((r.key l).adrs 1) := by
+  have hA : BytesAt st.data.dmem (r.off 24720) ((r.key l).adrs 1) := by
     have hlay : (r.key l).layer = l := rfl
     rw [keyAdrs_one, hlay]
-    refine bytesAt_cat rfl (write_bytes hm (o := 21648) (n := 4) (v := .load 0 416 4) (by decide)
+    refine bytesAt_cat rfl (write_bytes hm (o := 24720) (n := 4) (v := .load 0 416 4) (by decide)
       (by decide) (bytes_load h416 rfl (by decide))) ?_
-    refine bytesAt_cat rfl (write_bytes hm (o := 21652) (n := 4) (v := .lit 0) (by decide)
+    refine bytesAt_cat rfl (write_bytes hm (o := 24724) (n := 4) (v := .lit 0) (by decide)
       (by decide) (by simp only [Sym.eval]; decide)) ?_
-    refine bytesAt_cat rfl (write_bytes hm (o := 21656) (n := 8) (v := .load 0 424 8) (by decide)
+    refine bytesAt_cat rfl (write_bytes hm (o := 24728) (n := 8) (v := .load 0 424 8) (by decide)
       (by decide) (bytes_load h424 rfl (by decide))) ?_
-    refine bytesAt_cat rfl (write_bytes hm (o := 21664) (n := 4) (v := .lit 16777216) (by decide)
+    refine bytesAt_cat rfl (write_bytes hm (o := 24736) (n := 4) (v := .lit 16777216) (by decide)
       (by decide) (by simp only [Sym.eval]; decide)) ?_
-    refine bytesAt_cat rfl (write_bytes hm (o := 21668) (n := 4) (v := .load 0 408 4) (by decide)
+    refine bytesAt_cat rfl (write_bytes hm (o := 24740) (n := 4) (v := .load 0 408 4) (by decide)
       (by decide) (bytes_load h408 rfl (by decide))) ?_
-    exact write_bytes hm (o := 21672) (n := 8) (v := .lit 0) (by decide) (by decide)
+    exact write_bytes hm (o := 24744) (n := 8) (v := .lit 0) (by decide) (by decide)
       (by simp only [Sym.eval]; decide)
   refine call_then hpc hc.2.1 (r.memset_pre hpre hB1.2.1 h0 h2 (by decide)) fun st' hpc' hpost ↦ ?_
   obtain ⟨hz, hout, hS⟩ := r.memset_out h0 h2 hpost

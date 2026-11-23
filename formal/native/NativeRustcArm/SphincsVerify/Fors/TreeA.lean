@@ -23,7 +23,7 @@ open NativeRustcArm.Sphincs.SphincsVerify
 structure Roots (r : Run) (c : Nat) (m : MachineData) : Prop where
   base : Base r m
   hc : c < 24
-  roots : BytesAt m.dmem (r.off 27808) ((List.range c).map r.forsRoot).flatten
+  roots : BytesAt m.dmem (r.off 27824) ((List.range c).map r.forsRoot).flatten
 
 /-- **At a tree's head** `b60`. -/
 structure AtTree (r : Run) (c : Nat) (m : MachineData) : Prop where
@@ -115,9 +115,9 @@ theorem length_rootsMem {c : Nat} (hc : c ≤ 24) :
 /-- The roots kept by a block that does not write their 384 bytes. -/
 theorem roots_blk [Labels] (hpre : r.Pre) {m m' : MachineData} {vars : Nat → BitVec 64}
     {S : SState} (hm : Match (r.env m vars) S m') (hwf : (r.env m vars).WF) {c : Nat} (hc : c ≤ 24)
-    (hn : Run.noWriteIn S 27808 384 = true)
-    (h : BytesAt m.dmem (r.off 27808) ((List.range c).map r.forsRoot).flatten) :
-    BytesAt m'.dmem (r.off 27808) ((List.range c).map r.forsRoot).flatten := by
+    (hn : Run.noWriteIn S 27824 384 = true)
+    (h : BytesAt m.dmem (r.off 27824) ((List.range c).map r.forsRoot).flatten) :
+    BytesAt m'.dmem (r.off 27824) ((List.range c).map r.forsRoot).flatten := by
   have hl := length_rootsMem (r := r) hc
   refine r.bytesAt_kept hpre hm hwf (by rw [hl]; omega) h ?_
   simp only [Run.noWriteIn, List.all_eq_true, Bool.or_eq_true, decide_eq_true_eq] at hn ⊢
@@ -129,10 +129,10 @@ theorem roots_blk [Labels] (hpre : r.Pre) {m m' : MachineData} {vars : Nat → B
 
 /-- The roots kept by a call writing in the scratch. -/
 theorem roots_call [Labels] (hpre : r.Pre) {m m' : MachineData} (hF : r.Frame m) {a n N : Nat}
-    (ha : a + n ≤ 27808) (hN : N ≤ finalizeStack)
+    (ha : a + n ≤ 27824) (hN : N ≤ finalizeStack)
     (hout : SameOutside m.dmem m'.dmem (r.CallOut m a n N)) {c : Nat} (hc : c ≤ 24)
-    (h : BytesAt m.dmem (r.off 27808) ((List.range c).map r.forsRoot).flatten) :
-    BytesAt m'.dmem (r.off 27808) ((List.range c).map r.forsRoot).flatten := by
+    (h : BytesAt m.dmem (r.off 27824) ((List.range c).map r.forsRoot).flatten) :
+    BytesAt m'.dmem (r.off 27824) ((List.range c).map r.forsRoot).flatten := by
   have hl := length_rootsMem (r := r) hc
   exact r.bytesAt_of_call hpre hF (by omega) hN hout (by rw [hl]; omega) (Or.inr ha) h
 

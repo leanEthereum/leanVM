@@ -161,7 +161,7 @@ theorem match_frameL (hpre : r.Pre) {m : MachineData} {ret : BitVec 64} (hF : r.
 registers. -/
 theorem written_areaL (hpre : r.Pre) {m : MachineData} {ret : BitVec 64} {S : Sym.SState}
     (hw : frameWrites S = true) :
-    ∀ p, Sym.Written (r.envL m ret) S p → r.StackArea p ∧ ¬InRange (r.off 29336) 48 p := by
+    ∀ p, Sym.Written (r.envL m ret) S p → r.StackArea p ∧ ¬InRange (r.off 29352) 48 p := by
   have hb := r.base_toNat hpre
   rintro p ⟨w, hwm, b, sz, hr, h1, h2⟩
   simp only [frameWrites, List.all_eq_true, Bool.or_eq_true, Bool.and_eq_true, beq_iff_eq,
@@ -169,13 +169,13 @@ theorem written_areaL (hpre : r.Pre) {m : MachineData} {ret : BitVec 64} {S : Sy
   rcases hw w hwm with ⟨hw0, hwn⟩ | ⟨hw1, hwn⟩
   · rw [hw0] at hr
     cases hr
-    exact r.inRange_off hpre (a := 0) (n := 29336) (by decide) (by
+    exact r.inRange_off hpre (a := 0) (n := 29352) (by decide) (by
       rw [show r.off 0 = r.base by simp [off], Sym.inRange_iff (by omega)]
       omega)
   · rw [hw1] at hr
     cases hr
     have hlo : (r.base - 16#64).toNat = r.base.toNat - 16 := toNat_sub_ofNat (by omega)
-    have hs := r.off_toNat hpre (a := 29336) (by decide)
+    have hs := r.off_toNat hpre (a := 29352) (by decide)
     rw [hlo] at h1 h2
     rw [r.stackArea_iff hpre, Sym.inRange_iff (by rw [hs]; omega), hs]
     omega
@@ -196,7 +196,7 @@ theorem AtCall.of_matchL (hpre : r.Pre) {m m' : MachineData} {ret : BitVec 64} (
 /-- **Bytes a block does not write are kept**, in this environment. -/
 theorem bytesAt_keptL (hpre : r.Pre) {m m' : MachineData} {ret : BitVec 64} {S : Sym.SState}
     (hm : Sym.Match (r.envL m ret) S m') (hwf : (r.envL m ret).WF) {o : Nat} {bs : List UInt8}
-    (ho : o + bs.length ≤ 29384) (h : BytesAt m.dmem (r.off o) bs)
+    (ho : o + bs.length ≤ 29400) (h : BytesAt m.dmem (r.off o) bs)
     (hn : noWriteIn S o bs.length = true) : BytesAt m'.dmem (r.off o) bs := by
   have hb := r.base_toNat hpre
   have hoff := r.off_toNat hpre (a := o) (by omega)

@@ -7,11 +7,11 @@ public import NativeRustcX64.SphincsVerify.Digest.State
 /-!
 # What the digest and the FORS key keep, and their steps (x86-64)
 
-The digest and the FORS key write only the frame's scratch (`Scratch`: from `184`, off the parsed
-signature at `20540 .. 28280`, below the saved registers) and the small spills below the key
+The digest and the FORS key write only the frame's scratch (`Scratch`: from `192`, off the parsed
+signature at `20556 .. 28296`, below the saved registers) and the small spills below the key
 (`60`, `80`), and the slots below the frame (`call`'s return address). The frame's invariant, the
-inputs (the key at `112`, the parsed signature at `20540`) and the first layer's chain values'
-address at `176` stay (`Keep`): through a call changing scratch (`Keep.of_call`), through a block
+inputs (the key at `112`, the parsed signature at `20556`) and the first layer's chain values'
+address at `184` stay (`Keep`): through a call changing scratch (`Keep.of_call`), through a block
 whose writes miss them (`keepOK`, `Keep.of_block`, `Keep.of_call_block`).
 
 A block run by the executor from the frame's symbolic state (`frameS k`, the registers `k`
@@ -33,26 +33,26 @@ theorem length_sigMem' (r : Run) : (sigMem r.sig).length = 7740 := SigMem.length
 
 /-- **What the digest keeps**: the frame, the inputs, the first layer's chain values' address. -/
 def Keep (r : Run) (m : MachineData) : Prop :=
-  r.Frame m ∧ r.Inputs m ∧ r.WordAt m 176 (r.addr 25196)
+  r.Frame m ∧ r.Inputs m ∧ r.WordAt m 184 (r.addr 25212)
 
 /-- The frame's scratch bytes `a .. a + n` the digest's calls change. -/
 def Scratch (a n : Nat) : Prop :=
-  (184 ≤ a ∧ a + n ≤ 20540) ∨ (28280 ≤ a ∧ a + n ≤ 29336)
+  (192 ≤ a ∧ a + n ≤ 20556) ∨ (28296 ≤ a ∧ a + n ≤ 29352)
 
 /-- A block's literal state keeps what the digest keeps: its writes in the frame below the saved
-registers or the slots below it, off the key, the parsed signature and `176`. -/
+registers or the slots below it, off the key, the parsed signature and `184`. -/
 def keepOK (S : SState) : Bool :=
-  Run.frameWrites S && Run.noWriteIn S 112 32 && Run.noWriteIn S 176 8 &&
-    Run.noWriteIn S 20540 7740
+  Run.frameWrites S && Run.noWriteIn S 112 32 && Run.noWriteIn S 184 8 &&
+    Run.noWriteIn S 20556 7740
 
 /-- The frame's bytes a block from `m` to `m₁` (literal state `S`) did not write are kept. -/
 def KB (r : Run) (S : SState) (m m₁ : MachineData) : Prop :=
-  ∀ o (bs : List UInt8), o + bs.length ≤ 29384 → Run.noWriteIn S o bs.length = true →
+  ∀ o (bs : List UInt8), o + bs.length ≤ 29400 → Run.noWriteIn S o bs.length = true →
     BytesAt m.dmem (r.off o) bs → BytesAt m₁.dmem (r.off o) bs
 
 /-- The frame's bytes apart from `a .. a + n` are kept from `m₁` to `m₂`. -/
 def KC (r : Run) (m₁ m₂ : MachineData) (a n : Nat) : Prop :=
-  ∀ o (bs : List UInt8), o + bs.length ≤ 29384 → (o + bs.length ≤ a ∨ a + n ≤ o) →
+  ∀ o (bs : List UInt8), o + bs.length ≤ 29400 → (o + bs.length ≤ a ∨ a + n ≤ o) →
     BytesAt m₁.dmem (r.off o) bs → BytesAt m₂.dmem (r.off o) bs
 
 /-- The known registers of `frameS k` hold their values. -/
@@ -88,23 +88,23 @@ theorem regIs_of_saved {m m' : MachineData} (hS : Saved m m') {y : Reg64} {v : B
 
 /-- **A call changing scratch keeps what the digest keeps.** -/
 theorem Keep.of_call (hpre : r.Pre) {m m' : MachineData} (hc : r.AtCall m) (hI : r.Inputs m)
-    (h176 : r.WordAt m 176 (r.addr 25196)) (hS : Saved m m') (hsp : rspOf m' = rspOf m + 8#64)
+    (h176 : r.WordAt m 184 (r.addr 25212)) (hS : Saved m m') (hsp : rspOf m' = rspOf m + 8#64)
     {a n N : Nat} (ha : Scratch a n) (hN : N ≤ finalizeStack)
     (hout : SameOutside m.dmem m'.dmem (r.CallOut m a n N)) : Keep r m' := by
   obtain ⟨h1, h2⟩ := hI
   unfold Scratch at ha
-  have hk : ∀ {o : Nat} {bs : List UInt8}, o + bs.length ≤ 184 ∨
-      (20540 ≤ o ∧ o + bs.length ≤ 28280) → BytesAt m.dmem (r.off o) bs →
+  have hk : ∀ {o : Nat} {bs : List UInt8}, o + bs.length ≤ 192 ∨
+      (20556 ≤ o ∧ o + bs.length ≤ 28296) → BytesAt m.dmem (r.off o) bs →
       BytesAt m'.dmem (r.off o) bs := fun ho h ↦
     r.bytesAt_of_call hpre hc (by omega) hN hout (by omega) (by omega) h
   refine ⟨r.frame_of_call hpre hc hS hsp (by omega) hN hout, ⟨hk ?_ h1, hk ?_ h2⟩, hk ?_ h176⟩ <;>
     simp only [length_pkBytes, length_sigMem', NativeRustc.length_wordBytes] <;> omega
 
-/-- **A block whose writes miss the kept bytes**: the inputs and `176` kept. -/
+/-- **A block whose writes miss the kept bytes**: the inputs and `184` kept. -/
 theorem inputs_of_block (hpre : r.Pre) {m m' : MachineData} {ret : BitVec 64} {S : SState}
     (hm : Match (r.env m (fun _ ↦ 0) ret) S m') (hwf : (r.env m (fun _ ↦ 0) ret).WF)
-    (hok : keepOK S = true) (hI : r.Inputs m) (h176 : r.WordAt m 176 (r.addr 25196)) :
-    r.Inputs m' ∧ r.WordAt m' 176 (r.addr 25196) := by
+    (hok : keepOK S = true) (hI : r.Inputs m) (h176 : r.WordAt m 184 (r.addr 25212)) :
+    r.Inputs m' ∧ r.WordAt m' 184 (r.addr 25212) := by
   simp only [keepOK, Bool.and_eq_true] at hok
   obtain ⟨⟨⟨-, n1⟩, n2⟩, n3⟩ := hok
   refine ⟨⟨r.bytesAt_kept hpre hm hwf (by rw [length_pkBytes]; omega) hI.1
@@ -218,7 +218,7 @@ theorem Run.frameCall (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hp
     {P : MachineData → Prop} {Q : MachineData → MachineData → Prop}
     (hspec : Spec (Labels.label l) P Q) {R : MachineState → Prop}
     (h : ∀ m₁, Match (r.env m (fun _ ↦ 0) (r.pc j').toBitVec) S' m₁ → r.AtCall m₁ →
-      r.Inputs m₁ → r.WordAt m₁ 176 (r.addr 25196) → KB r S' m m₁ → P m₁ ∧
+      r.Inputs m₁ → r.WordAt m₁ 184 (r.addr 25212) → KB r S' m m₁ → P m₁ ∧
       ∀ m₂, rspOf m₂ = rspOf m₁ + 8#64 → Q m₁ m₂ →
         Eventually (step1 Host.exe) R ⟨m₂, r.pc j'⟩) :
     Eventually (step1 Host.exe) R ⟨m, r.pc j⟩ := by

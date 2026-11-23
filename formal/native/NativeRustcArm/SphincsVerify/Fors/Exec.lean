@@ -16,7 +16,7 @@ one another without a call run on (`after`).
 `b67` (a node's head) loads the two children through `csel`ed addresses (the current node's copy or
 the path's node): it runs in five pieces, the two `ldp`s each in an environment whose one region
 is the 16 bytes the address register points to (`ldS`). `b93` stores the tree's root at
-`27808 + 16 c`: its `stp` runs alone likewise.
+`27824 + 16 c`: its `stp` runs alone likewise.
 -/
 
 namespace NativeRustcArm.SphincsVerifyProof.Fors

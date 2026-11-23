@@ -8,8 +8,8 @@ public import NativeRustcX64.SphincsVerify.Parse.Assemble
 From the entry: the prologue (`prologue_spec`), the raw signature (`words_spec`), the key and the
 openings (`b9_spec`, `open_loop`), the three layers (`layer0_spec`, `layer1_spec`,
 `layer2_spec`), the assembly (`assemble_spec`); at `b43` the facts give `AtHMsg`: the key at
-`112`, the parsed signature at `20540` (`ParseMem.sigMem_eq`), RBP the randomizer, the message at
-`1600`, the first layer's address at `176`.
+`112`, the parsed signature at `20556` (`ParseMem.sigMem_eq`), RBP the randomizer, the message at
+`2008`, the first layer's address at `184`.
 -/
 
 namespace NativeRustcX64.SphincsVerifyProof.Parse
@@ -23,24 +23,24 @@ theorem le32_eq (x : UInt32) : le32 x = (be32 x).reverse := rfl
 
 /-- **The facts at `b43`** are `AtHMsg`'s. -/
 theorem atHMsg_of (r : Run) [Labels] {m : MachineData} (hF : r.Frame m) (hL : Facts r m.dmem (A5 r))
-    (hbp : Run.RegIs m .rbp (r.off 25180))
-    (h12 : Run.RegIs m .r12 (Labels.label "memcpy").toBitVec) : r.AtHMsg m := by
+    (hbp : Run.RegIs m .r15 (r.off 25196))
+    (h12 : Run.RegIs m .rbp (Labels.label "memcpy").toBitVec) : r.AtHMsg m := by
   have g : ∀ {o n : Nat} {bs : List UInt8}, (o, n, bs) ∈ A5 r → BytesAt m.dmem (r.off o) bs :=
     fun h ↦ hL.get h
-  have hsig : BytesAt m.dmem (r.off 20540) (sigMem r.sig) := by
-    show BytesAt m.dmem (r.off 20540) (sigMem (sigOf r.w))
+  have hsig : BytesAt m.dmem (r.off 20556) (sigMem r.sig) := by
+    show BytesAt m.dmem (r.off 20556) (sigMem (sigOf r.w))
     rw [sigMem_eq]
-    have e0 := g (o := 20540) (n := 4224) (bs := opens r) (by simp [A5, A4, A3, A2, A1])
-    have e1 := g (o := 24764) (n := 416) (bs := pbytes r.w) (by simp [A5])
-    have e2 := g (o := 25180) (n := 16) (bs := slice (sigBytes r.w) 0 16) (by simp [A5, A4, A3, A2, A1])
-    have e3 := g (o := 25196) (n := 1024) (bs := slice (sigBytes r.w) 4244 1024)
+    have e0 := g (o := 20556) (n := 4224) (bs := opens r) (by simp [A5, A4, A3, A2, A1])
+    have e1 := g (o := 24780) (n := 416) (bs := pbytes r.w) (by simp [A5])
+    have e2 := g (o := 25196) (n := 16) (bs := slice (sigBytes r.w) 0 16) (by simp [A5, A4, A3, A2, A1])
+    have e3 := g (o := 25212) (n := 1024) (bs := slice (sigBytes r.w) 4244 1024)
       (by simp [A5, A4, A3, A2])
-    have e4 := g (o := 26220) (n := 4) (bs := (be32 (r.w 538).toUInt32).reverse)
+    have e4 := g (o := 26236) (n := 4) (bs := (be32 (r.w 538).toUInt32).reverse)
       (by simp [A5, A4, A3])
-    have e5 := g (o := 26224) (n := 1024) (bs := slice (sigBytes r.w) 5400 1024) (by simp [A5, A4, A3])
-    have e6 := g (o := 27248) (n := 4) (bs := (be32 (r.w 683).toUInt32).reverse) (by simp [A5, A4])
-    have e7 := g (o := 27252) (n := 1024) (bs := slice (sigBytes r.w) 6556 1024) (by simp [A5, A4])
-    have e8 := g (o := 28276) (n := 4) (bs := (be32 (r.w 828).toUInt32).reverse) (by simp [A5])
+    have e5 := g (o := 26240) (n := 1024) (bs := slice (sigBytes r.w) 5400 1024) (by simp [A5, A4, A3])
+    have e6 := g (o := 27264) (n := 4) (bs := (be32 (r.w 683).toUInt32).reverse) (by simp [A5, A4])
+    have e7 := g (o := 27268) (n := 1024) (bs := slice (sigBytes r.w) 6556 1024) (by simp [A5, A4])
+    have e8 := g (o := 28292) (n := 4) (bs := (be32 (r.w 828).toUInt32).reverse) (by simp [A5])
     have l0 : ((List.range 24).map (obytes r.w)).flatten.length = 4224 := length_opens r
     have ls : ∀ a n, a + n ≤ 7740 → (slice (sigBytes r.w) a n).length = n :=
       fun _ _ h ↦ length_slice_sig r.w h
@@ -53,8 +53,8 @@ theorem atHMsg_of (r : Run) [Labels] {m : MachineData} (hF : r.Frame m) (hL : Fa
         (bytesAt_cat e7 (ls _ _ (by decide)) rfl ?_))))
     simpa using e8
   exact ⟨hF, ⟨g (o := 112) (n := 32) (by simp [A5, A4, A3, A2, A1, L3, L2, L1, L0, base3]), hsig⟩,
-    hbp, g (o := 1600) (n := 32) (by simp [A5, A4, A3, A2, A1, L3, L2, L1, L0, base3]),
-    g (o := 176) (n := 8) (by simp [A5, A4, A3, A2]), h12⟩
+    hbp, g (o := 2008) (n := 32) (by simp [A5, A4, A3, A2, A1, L3, L2, L1, L0, base3]),
+    g (o := 184) (n := 8) (by simp [A5, A4, A3, A2]), h12⟩
 
 /-- **The parse** (`b0 .. b42`): from the entry, `AtHMsg` at `b43`. -/
 theorem parse_spec [Host] : ParseSpec := by

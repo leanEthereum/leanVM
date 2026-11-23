@@ -23,9 +23,9 @@ variable [Host] {r : Run}
 omit [Host] in
 /-- **The first tree's head** is `AtFors`. -/
 theorem atTree_zero [Labels] {m : MachineData} (h : r.AtFors m) : AtTree r 0 m := by
-  obtain ⟨hF, hI, h13, h15, hbp, h12, h14, h80, h60, hl, h568, h176, hbx⟩ := h
+  obtain ⟨hF, hI, h13, h15, hbp, h12, h14, h80, h60, hl, h568, h176, hbx, hB⟩ := h
   exact ⟨⟨hF, by decide, hI, h176, h568, h80, h60, hl, fun i hi ↦ absurd hi (by simp [rootsUpTo])⟩,
-    h13, h12, h14, h15, hbp, hbx⟩
+    h13, h12, h14, h15, hbp, hbx, hB⟩
 
 /-- A state at a known pc, then on. -/
 theorem ev_at {R : MachineState → Prop} {st : MachineState} {a : Int64} (h : st.pc = a)

@@ -5,7 +5,7 @@ public import NativeRustcArm.SphincsVerify.Chains.StepMid
 /-!
 # A chain's step, its head: the address, `PK.seed`, the address absorbed
 
-`b116` builds the step's address at `21648` and copies the chain's value to `15984`, then
+`b116` builds the step's address at `21648` and copies the chain's value to `20624`, then
 `memset`s hasher A (`seg_b116`); `b117 .. b124` buffer `PK.seed` and copy the address into A's
 buffer (`seg_b117`). With `StepMid`, `StepTail`: **a step** (`step`), from the step's head at
 position `pos` to the value `th` of the chain's address and the old value.
@@ -48,7 +48,7 @@ theorem seg_b117 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hp
     (hpos : pos ≤ 2) {adrs v : List UInt8} (hadrs : adrs.length = 32) (hv : v.length = 16)
     {R : MachineState → Prop} {m : MachineData} (hK : Keep r l x E m) (hR : Regs m pos i)
     (hAz : BytesAt m.dmem (r.off 16400) (List.replicate 344 0))
-    (hAd : BytesAt m.dmem (r.off 21648) adrs) (hval : BytesAt m.dmem (r.off 15984) v)
+    (hAd : BytesAt m.dmem (r.off 21648) adrs) (hval : BytesAt m.dmem (r.off 20624) v)
     (cont : StepCont r l x E pos i (r.seed ++ adrs ++ v) R) :
     Eventually (step1 NativeRustcArm.Host.exe) R ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b117Offset⟩ := by
   have hwf := r.frame_wf hpre hK.1 (fun _ ↦ 0)
@@ -111,13 +111,13 @@ theorem seg_b117 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hp
         (by rw [length_seed]))
       (kept (by omega) (by omega) hval') cont)
 
-/-- **`b116`**: the step's address at `21648`, the chain's value copied to `15984`, `memset` of
+/-- **`b116`**: the step's address at `21648`, the chain's value copied to `20624`, `memset` of
 hasher A; then `b117`. -/
 theorem seg_b116 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hpre : r.Pre)
     {l : Nat} {x E : List UInt8} (hx : x.length = 64) (hE : E.length ≤ 1024) {pos i : Nat}
     (hpos : pos ≤ 2) (hi : i < 64) {v : List UInt8} (hv : v.length = 16)
     {R : MachineState → Prop} {m : MachineData} (hK : Keep r l x E m) (hR : Regs m pos i)
-    (h22 : Run.RegIs m .X22 (r.off 21648)) (hcell : BytesAt m.dmem (r.off 29248) v)
+    (h22 : Run.RegIs m .X22 (r.off 21648)) (hcell : BytesAt m.dmem (r.off 15984) v)
     (cont : StepCont r l x E pos i (r.seed ++ chainAdrs r l i pos ++ v) R) :
     Eventually (step1 NativeRustcArm.Host.exe) R ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b116Offset⟩ := by
   have hwf := r.frame_wf hpre hK.1 (fun _ ↦ 0)
@@ -147,7 +147,7 @@ theorem seg_b116 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hp
     rw [chainAdrs_eq]
     exact BytesAt.cat p1 (BytesAt.cat p2 (BytesAt.cat p3 (BytesAt.cat p4 (BytesAt.cat p5
         (BytesAt.cat p6 p7 rfl) rfl) rfl) rfl) rfl) rfl
-  have hval := frame_copy16 hm1 (o := 15984) (o' := 29248) (by decide) (by decide +kernel)
+  have hval := frame_copy16 hm1 (o := 20624) (o' := 15984) (by decide) (by decide +kernel)
     (by decide +kernel) hv hcell
   have h0 : Run.RegIs st.data .X0 (r.off 16400) := regIs_ptr hm1 rfl
   have h2 := x2_eq hm1 (c := 344) rfl (by decide)

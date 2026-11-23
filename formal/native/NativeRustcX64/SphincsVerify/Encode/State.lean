@@ -7,10 +7,10 @@ public import NativeRustc.Sphincs.EncodeFacts
 # The encoding's invariant
 
 From `b104`'s call to `b113` the encoding keeps (`Run.EncData l s c`): the inputs, the layer's
-spills, R12 hasher A, RBP hasher B, R13 the address `base + 2048`, R15 `s`'s place `base + 144`, the
+spills, R12 hasher A, RBP hasher B, R13 the address `base + 2056`, R15 `s`'s place `base + 144`, the
 message `s` at `144`, and the counter `c` in EBX; with the frame's invariant and `l < 3`, `s` 16
-bytes: `Run.EncBase`. Its bytes are below `576` or the parsed signature (`EncPlace`): a call
-changing only hasher A (`4096 .. 4440`) or B (`576 .. 920`) keeps them, and so does a block that
+bytes: `Run.EncBase`. Its bytes are below `560` or the parsed signature (`EncPlace`): a call
+changing only hasher A (`4104 .. 4448`) or B (`560 .. 904`) keeps them, and so does a block that
 writes none of them (`encKeeps`, decided on the block's literal result).
 -/
 
@@ -35,27 +35,27 @@ theorem noWriteIn_mono {S : Sym.SState} {o n o' n' : Nat} (h : Run.noWriteIn S o
 def encKeeps (S : Sym.SState) : Bool :=
   Run.frameWrites S && S.reg .rbx == some (.reg .rbx) && S.reg .rbp == some (.reg .rbp) &&
     S.reg .r12 == some (.reg .r12) && S.reg .r13 == some (.reg .r13) &&
-    S.reg .r15 == some (.reg .r15) && Run.noWriteIn S 0 576 && Run.noWriteIn S 20540 7740 &&
+    S.reg .r15 == some (.reg .r15) && Run.noWriteIn S 0 560 && Run.noWriteIn S 20556 7740 &&
     S.reg .r14 == some (.label "memcpy")
 
 /-- `encKeeps` but for EBX (a block that swaps the counter). -/
 def encKeepsNoBx (S : Sym.SState) : Bool :=
   Run.frameWrites S && S.reg .rbp == some (.reg .rbp) && S.reg .r12 == some (.reg .r12) &&
     S.reg .r13 == some (.reg .r13) && S.reg .r15 == some (.reg .r15) &&
-    Run.noWriteIn S 0 576 && Run.noWriteIn S 20540 7740 &&
+    Run.noWriteIn S 0 560 && Run.noWriteIn S 20556 7740 &&
     S.reg .r14 == some (.label "memcpy")
 
 namespace Run
 
 variable (r : Run) [Labels]
 
-/-- The invariant's places: below `576`, or the parsed signature. -/
-def EncPlace (o n : Nat) : Prop := o + n ≤ 576 ∨ (20540 ≤ o ∧ o + n ≤ 28280)
+/-- The invariant's places: below `560`, or the parsed signature. -/
+def EncPlace (o n : Nat) : Prop := o + n ≤ 560 ∨ (20556 ≤ o ∧ o + n ≤ 28296)
 
 /-- **The encoding's data** for layer `l`, message `s`, counter `c`. -/
 def EncData (l : Nat) (s : List UInt8) (c : UInt32) (m : MachineData) : Prop :=
-  r.Inputs m ∧ r.LayerSpills l m ∧ RegIs m .r12 (r.off 4096) ∧ RegIs m .rbp (r.off 576) ∧
-    RegIs m .r13 (r.off 2048) ∧ RegIs m .r15 (r.off 144) ∧ BytesAt m.dmem (r.off 144) s ∧
+  r.Inputs m ∧ r.LayerSpills l m ∧ RegIs m .r12 (r.off 4104) ∧ RegIs m .rbp (r.off 560) ∧
+    RegIs m .r13 (r.off 2056) ∧ RegIs m .r15 (r.off 144) ∧ BytesAt m.dmem (r.off 144) s ∧
     UInt32.ofNat (reg m .rbx).toNat = c ∧ RegIs m .r14 (label "memcpy").toBitVec
 
 theorem EncData.memcpy {l : Nat} {s : List UInt8} {c : UInt32} {m : MachineData}
@@ -87,15 +87,15 @@ theorem encData_of_bytes' {l : Nat} {s : List UInt8} {c c' : UInt32} {m m' : Mac
     (hc : UInt32.ofNat (reg m' .rbx).toNat = c') : r.EncData l s c' m' := by
   obtain ⟨⟨hpk, hsig⟩, ⟨s96, s200, s208, s160, s216, s104, s88, s60, s568, s176⟩, h12, hbp, h13,
     h15, hsm, -, h14⟩ := h
-  have w : ∀ o, o + 8 ≤ 576 → ∀ v : UInt64, r.WordAt m o v → r.WordAt m' o v := fun o ho v hv ↦
+  have w : ∀ o, o + 8 ≤ 560 → ∀ v : UInt64, r.WordAt m o v → r.WordAt m' o v := fun o ho v hv ↦
     hk (by rw [EncPlace, length_wordBytes]; omega) hv
   refine ⟨⟨hk (by rw [EncPlace, r.length_pkBytes]; omega) hpk,
     hk (by rw [EncPlace, r.length_sigMem]; omega) hsig⟩,
-    ⟨w 96 (by omega) _ s96, w 200 (by omega) _ s200, w 208 (by omega) _ s208,
-      w 160 (by omega) _ s160, w 216 (by omega) _ s216,
+    ⟨w 96 (by omega) _ s96, w 192 (by omega) _ s200, w 200 (by omega) _ s208,
+      w 168 (by omega) _ s160, w 208 (by omega) _ s216,
       hk (by rw [EncPlace, length_be32]; omega) s104, hk (by rw [EncPlace, length_be64]; omega) s88,
-      hk (by rw [EncPlace, length_be32]; omega) s60, w 568 (by omega) _ s568,
-      w 176 (by omega) _ s176⟩, ?_, ?_, ?_, ?_, hk (by rw [EncPlace, hs]; omega) hsm, hc, ?_⟩
+      hk (by rw [EncPlace, length_be32]; omega) s60, w 552 (by omega) _ s568,
+      w 184 (by omega) _ s176⟩, ?_, ?_, ?_, ?_, hk (by rw [EncPlace, hs]; omega) hsm, hc, ?_⟩
   · rw [RegIs, hreg .r12 (by simp)]; exact h12
   · rw [RegIs, hreg .rbp (by simp)]; exact hbp
   · rw [RegIs, hreg .r13 (by simp)]; exact h13
@@ -116,7 +116,7 @@ theorem encData_of_bytes {l : Nat} {s : List UInt8} {c : UInt32} {m m' : Machine
 theorem encData_of_call (hpre : r.Pre) {l : Nat} {s : List UInt8} {c : UInt32}
     {m m' : MachineData} (hc : r.AtCall m) (h : r.EncData l s c m) (hs : s.length = 16)
     (hS : Saved m m') {a n N : Nat}
-    (ha : (4096 ≤ a ∧ a + n ≤ 4440) ∨ (576 ≤ a ∧ a + n ≤ 920)) (hN : N ≤ finalizeStack)
+    (ha : (4104 ≤ a ∧ a + n ≤ 4448) ∨ (560 ≤ a ∧ a + n ≤ 904)) (hN : N ≤ finalizeStack)
     (hout : SameOutside m.dmem m'.dmem (r.CallOut m a n N)) : r.EncData l s c m' :=
   r.encData_of_bytes h hs
     (fun hp hb ↦ r.bytesAt_of_call hpre hc (by omega) hN hout (by unfold EncPlace at hp; omega)

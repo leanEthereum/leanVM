@@ -12,16 +12,16 @@ public meta import NativeRustcX64.Code.Sphincs.SphincsVerify
 The symbolic states the chains' proof starts blocks from and the executor's results
 (`run_b<k>`). Most blocks run in the frame's regions (`Run.match_frame`: region 0 the frame,
 RSP its base, region 1 the slots below it, regions 2 and 3 the loader's `memcpy` and `memset`
-slots; `frameS`), RBP hasher B and R13 the final block's place (`keptK`). Register-held call
+slots; `frameS`), R13 the chain input buffer (`keptK`). Register-held call
 targets are seeded at each call boundary. Where the proof knows a value in memory (a hasher's
 `buf_len`), the start state holds it as a literal write, so the executor folds the branches.
 Two blocks index the frame by the chain:
-- `b117` (`.LSphincsVerify_42`) reads chain `i`'s digit at `3072 + i` (RAX `i`, bounded) and its
-  value at the layer's chain values (`176(%rsp)`) plus `16 i`: region 0 the frame's first 20540
+- `b117` (`.LSphincsVerify_42`) reads chain `i`'s digit at `3080 + i` (RAX `i`, bounded) and its
+  value at the layer's chain values (`184(%rsp)`) plus `16 i`: region 0 the frame's first 20556
   bytes, region 1 the chain's value (the alias of that sum);
-- `b116` (`.LSphincsVerify_60`) stores the chain's end at `28280 + 16 i` (`168(%rsp)` holds
-  `16 i`): region 0 the frame's first 28280 bytes, region 1 the end (the alias of RSP plus
-  `168(%rsp)`, less 28280).
+- `b116` (`.LSphincsVerify_60`) stores the chain's end at `28296 + 16 i` (`176(%rsp)` holds
+  `16 i`): region 0 the frame's first 28296 bytes, region 1 the end (the alias of RSP plus
+  `176(%rsp)`, less 28296).
 
 `after ds S` is the state `exec ds S` ends in.
 -/
@@ -44,8 +44,8 @@ theorem exec_after {ds ds' : List Directive} {S S₁ : SState} {x : Exit}
   rw [after, h] at h'
   exact h'
 
-/-- The registers the chains keep: RBP hasher B, R13 the final block's place. -/
-def keptK : List (Reg64 × Sym) := [(.rbp, .ptr 0 576), (.r13, .ptr 0 2048)]
+/-- The register the chains keep: R13 the chain input buffer. -/
+def keptK : List (Reg64 × Sym) := [(.r13, .ptr 0 8328)]
 
 /-- The frame's regions, RSP the base, the registers `k` and `keptK`. -/
 def frameS (k : List (Reg64 × Sym)) : SState :=
@@ -58,45 +58,45 @@ def litW (off v : Nat) : Write := ⟨0, off, 8, .lit v⟩
 def s118 : SState := frameS []
 
 /-- At `b119` (a step's head): R12 hasher A, RBX `memset`. -/
-def s119 : SState := frameS [(.r12, .ptr 0 4096), (.rbx, .label "memset")]
+def s119 : SState := frameS [(.r12, .ptr 0 4104), (.rbx, .label "memset")]
 
 /-- After `memset` of hasher A: its `buf_len` zero. -/
-def s120 : SState := { frameS [(.r14, .label "memcpy")] with mem := [litW 4432 0] }
+def s120 : SState := { frameS [(.r14, .label "memcpy")] with mem := [litW 4440 0] }
 
 /-- After the address's `memcpy`: R15, RBX, R12 the loop's, `buf_len` 16. -/
 def s129 : SState :=
-  { frameS [(.r15, .lit 32), (.rbx, .ptr 0 8320), (.r12, .lit 32), (.r14, .label "memcpy")]
-    with mem := [litW 4432 16] }
+  { frameS [(.r15, .lit 32), (.rbx, .ptr 0 9352), (.r12, .lit 32), (.r14, .label "memcpy"), (.rbp, .ptr 0 560)]
+    with mem := [litW 4440 16] }
 
 /-- After the clone: hasher B's `buf_len` 48. -/
-def s134 : SState := { frameS [(.r14, .label "memcpy")] with mem := [litW 912 48] }
+def s134 : SState := { frameS [(.r14, .label "memcpy")] with mem := [litW 896 48] }
 
 /-- After the value's `memcpy`: R15, RBX, R12 the loop's, B's `buf_len` 48. -/
 def s140 : SState :=
-  { frameS [(.r15, .lit 16), (.rbx, .ptr 0 1632), (.r12, .lit 16), (.r14, .label "memcpy")]
-    with mem := [litW 912 48] }
+  { frameS [(.r15, .lit 16), (.rbx, .ptr 0 8328), (.r12, .lit 16), (.r14, .label "memcpy"), (.rbp, .ptr 0 560)]
+    with mem := [litW 896 48] }
 
 /-- After the state's copy: R14 B's `buf_len`, 64. -/
 def s145 : SState := frameS [(.r14, .lit 64)]
 
 /-- After the block's `memset`: RBX B's `buf_len`. -/
-def s147 : SState := frameS [(.rbx, .lit 64), (.r15, .label "memcpy")]
+def s147 : SState := frameS [(.rbx, .lit 64), (.r15, .label "memcpy"), (.rbp, .ptr 0 2056)]
 
 /-- After the block's `memcpy`: RBX, R12 hasher A. -/
-def s148 : SState := frameS [(.rbx, .lit 64), (.r12, .ptr 0 4096), (.r14, .label "memset")]
+def s148 : SState := frameS [(.rbx, .lit 64), (.r12, .ptr 0 4104), (.r14, .label "memset")]
 
 /-- After `keccak_f`, and at `b150`. -/
 def s149 : SState := frameS []
 
-/-- At `b116`: the frame's first 28280 bytes, the chain's end. -/
+/-- At `b116`: the frame's first 28296 bytes, the chain's end. -/
 def s116 : SState :=
-  init [28280, 16] [(.rsp, .ptr 0 0)] [] []
-    [(.bin .add .W64 (.ptr 0 0) (.load 0 168 8), 1, -28280)]
+  init [28296, 16] [(.rsp, .ptr 0 0)] [] []
+    [(.bin .add .W64 (.ptr 0 0) (.load 0 176 8), 1, -28296)]
 
-/-- At `b117`: the frame's first 20540 bytes, the chain's value; RAX the chain. -/
+/-- At `b117`: the frame's first 20556 bytes, the chain's value; RAX the chain. -/
 def s117 : SState :=
-  init [20540, 16] [(.rsp, .ptr 0 0)] [] [(.reg .rax, 64)]
-    [(.bin .add .W64 (.load 0 176 8) (.bin .shl .W64 (.reg .rax) (.lit 4)), 1, 0)]
+  init [20556, 16] [(.rsp, .ptr 0 0)] [] [(.reg .rax, 64)]
+    [(.bin .add .W64 (.load 0 184 8) (.bin .shl .W64 (.reg .rax) (.lit 4)), 1, 0)]
 
 end
 

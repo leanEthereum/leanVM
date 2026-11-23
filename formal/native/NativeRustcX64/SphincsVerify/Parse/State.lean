@@ -24,7 +24,7 @@ def fS (k : List (Reg64 × Sym)) (b : List (Sym × Nat) := []) : SState :=
 
 /-- The symbolic frame state with the input at region 2 and GOT slots at regions 3 and 4. -/
 def fS3 (k : List (Reg64 × Sym)) : SState :=
-  init [29392, 16, 7816, 8, 8] ((.rsp, .ptr 0 0) :: k) [] [] Run.frameAliases
+  init [29408, 16, 7816, 8, 8] ((.rsp, .ptr 0 0) :: k) [] [] Run.frameAliases
 
 /-- A word loop's turn: the source `RBX + i + so` and the destination `RSP + i + d0` aliased into
 regions 0 and 1, `i` the counter. -/
