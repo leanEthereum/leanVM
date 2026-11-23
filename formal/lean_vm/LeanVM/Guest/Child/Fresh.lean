@@ -7,12 +7,8 @@
 
 module
 
-public import LeanVM.Protocol.Verifier.Claims
-public import LeanVM.Guest.Limits
-public import LeanVM.Protocol.Compile.Refines
 public import LeanVM.Protocol.WithHashBridge
 public import LeanVM.Protocol.Verifier.Deferred
-public import LeanVM.Protocol.WithHash
 
 /-!
 # The claims of an accepted run
@@ -23,7 +19,7 @@ The verifier reads the fixed polynomial once, at the bus's bytecode point (`veri
 (`prefixProg`: the sizes, the stack's root and its out-of-domain sample, the bus up to its slot
 sumcheck), the evaluation at the point and of the value the prefix returns (`busPoint`), and a
 suffix (`execSplit`). So an accepted run with the computed
-value is the run with the claim of that value at that point (`run_claimed_of_computed`), a claim
+value is the run with the claim of that value at that point (`RefuseZero.lean`'s `run_claimed_of_computed_rz`), a claim
 true of the bytecode (`BytecodeClaim.Holds`).
 -/
 

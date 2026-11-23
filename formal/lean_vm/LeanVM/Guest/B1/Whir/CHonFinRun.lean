@@ -20,7 +20,6 @@ public import LeanVM.Guest.B1.Whir.CHonFields0
 On `hR : HonRun μ r … cfg Ls`, at `h := hdOf μ r Ls`: the finish's static facts
 (`HonRun.finStatic_run`), each non-final level's record facts (`HonRun.recRun_run`), the final
 lane's length (`HonRun.hylen`, `HonRun.hfold`) and `fold_final_msg`'s kind (`HonRun.hffm`).
-The tail challenges do not depend on the claim (`tailRun_add`).
 -/
 
 namespace LeanVM.Guest.B1.Whir

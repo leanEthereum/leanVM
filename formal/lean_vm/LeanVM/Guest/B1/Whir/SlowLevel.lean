@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Whir.SlowQuery
+public import LeanVM.Guest.B1.Whir.SlowSpec
 public import LeanVM.Guest.B1.Tables.Basic
 import LeanVM.Guest.B1.Common.Vc
 
@@ -24,7 +25,7 @@ bodies are `lrsBody sum`, `lsumBody Q loop` and `lrsLoopBody rq loop` (`Whir/Slo
 * `lrsLoop_step`: an iteration's stores;
 * `lsum_sound`: the sum returns `λ²·Σ_{k<Q} λ^k·w_k` (`lrsAcc`), each `w_k` the product of
   `residual_query_slow`'s factors at `positions[k]` (`rqs_sound`);
-* `lrs_sound`: `level_residual_slow` returns `lrsVal`: `0` at `z = 0`, else the sum.
+* `lrs_sound`: `level_residual_slow` returns `slowVal`: `0` at `z = 0`, else the sum.
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -33,12 +34,6 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest LeanVM.Gu
 open LeanVM.Guest.Value LeanVM.Protocol.Verifier
 
 @[expose] public section
-
-/-- **`level_residual_slow`'s value**: `0` at `z = 0`, else `λ²·Σ_{k<Q} λ^k·w_k`, `w_k` the query
-weight at position `pos k` (`slowVal` of `SlowSpec.lean`, by `rfl`). -/
-def lrsVal (Q n vo : ℕ) (pos cs : ℕ → E) (lam z : E) : E :=
-  if z = 0 then 0 else
-    lam ^ 2 * ∑ k ∈ Finset.range Q, lam ^ k * ∏ t ∈ Finset.range n, rqsFac vo n cs (pos k) t
 
 /-- What `residual_query_slow` at `rq` returns, as its callers read it. -/
 def RqOk (C : CallRel) (rq : String) (n vo : ℕ) (fc tc : E) (cs : ℕ → E) : Prop :=
@@ -113,6 +108,12 @@ theorem lrs_stores {n vo Q : ℕ} {acc pw posp lam : E} {pos cs : ℕ → E}
     · convert lp1 using 1
       ring
 
+/-- The loop's first test: `1 + g^Q ≠ 0` for `1 ≤ Q < 2^30`. -/
+theorem one_add_gen_pow_ne {Q : ℕ} (h1 : 1 ≤ Q) (h2 : Q < 2 ^ 30) : (1 : E) + gen ^ Q ≠ 0 := by
+  intro h0
+  have : gen ^ Q = gen ^ 0 := by rw [pow_zero]; exact (CharTwo.add_eq_zero.mp h0).symm
+  exact absurd (gen_pow_inj (by omega) (by omega) this) (by omega)
+
 /-- **`level_residual_sum`'s body returns `λ²·Σ_{k<Q} λ^k·w_k`** (`lrsAcc … Q`), at `Q ≥ 1`
 queries, the positions it reads, its loop's body `lrsLoopBody` and `residual_query_slow` at `rq`
 returning the query weight; its calls through any `C` below `P.Rel`. -/
@@ -134,9 +135,7 @@ theorem lsum_sound {P : Program} {C : CallRel} (hC : ∀ f a r, C f a r → P.Re
   have hgQ : gw Q = gen ^ Q := gw_eq (by unfold u128Bound; omega)
   have h12 : σ (.n 12) ≠ 0 := by
     rw [a12, c10, c11, hgQ, word_one]
-    intro h0
-    have : gen ^ Q = gen ^ 0 := by rw [pow_zero]; exact (CharTwo.add_eq_zero.mp h0).symm
-    exact absurd (gen_pow_inj (by omega) (by omega) this) (by omega)
+    exact one_add_gen_pow_ne hQ hQb
   have hl := hC _ _ _ (hloop h12)
   rw [c13, c14, hgQ, word_one, ← pow_zero gen] at hl
   obtain ⟨m, hm, hN, hall⟩ := Tables.tb_loop_sound (B := fun x ↦ ∃ a p q,
@@ -153,12 +152,12 @@ theorem lsum_sound {P : Program} {C : CallRel} (hC : ∀ f a r, C f a r → P.Re
     (fun j hj ↦ hall j (Nat.zero_le _) (by omega)) Q le_rfl
   rw [loadHolds_unique l15 hst.1]
 
-/-- **`level_residual_slow`'s body returns `lrsVal`**: at a zero flag the flag, else its sum's
+/-- **`level_residual_slow`'s body returns `slowVal`**: at a zero flag the flag, else its sum's
 value, `sum` returning `lrsAcc` (`lsum_sound`). -/
 theorem lrs_sound {C : CallRel} {Q n vo : ℕ} {sum : String} {fo : Fn} (hpar : fo.params = lrsParams)
     (hb : fo.body = lrsBody sum) {a rets : List E} (h : fo.Sem C rd a rets) {pos cs : ℕ → E}
     (hsum : ∀ r, C sum (a.take 4) [r] → r = lrsAcc n vo pos cs (a.getD 3 0) Q) :
-    rets = [lrsVal Q n vo pos cs (a.getD 3 0) (a.getD 4 0)] := by
+    rets = [slowVal Q n vo pos cs (a.getD 3 0) (a.getD 4 0)] := by
   obtain ⟨σ, hp, hh⟩ := h
   rw [hpar] at hp
   subst hp
@@ -169,9 +168,10 @@ theorem lrs_sound {C : CallRel} {Q n vo : ℕ} {sum : String} {fo : Fn} (hpar : 
   obtain ⟨-, hz, hnz⟩ := hh
   by_cases h4 : σ (.n 4) = 0
   · obtain ⟨c5, c6, hr⟩ := hz h4
-    rw [← hr, c6, c5, h4, lrsVal, ite_eq_left rfl]
+    rw [← hr, c6, c5, h4, slowVal, ite_eq_left rfl]
   · obtain ⟨hs, c6, hr⟩ := hnz h4
-    rw [← hr, c6, hsum _ hs, lrsVal, ite_eq_right h4, lrsAcc]
+    rw [← hr, c6, hsum _ hs, slowVal, ite_eq_right h4, lrsAcc]
+    rfl
 
 end
 end LeanVM.Guest.B1.Whir

@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.Child.Merkle
 public import LeanVM.Guest.Child.Accepted
 public import LeanVM.Guest.Child.Range
+public import LeanVM.Guest.Limits
 
 /-!
 # Disagreeing openings give a Keccak-256 collision
@@ -49,25 +50,8 @@ theorem noCommit_verifyBusBalance_claimed (c : BytecodeClaim) (layout : Layout) 
 theorem inRange_deferringProgram (c : BytecodeClaim) (bytecode : List K) (publicInput : Digest) :
     InRange (deferringVerifierProgram c bytecode publicInput) [] fun _ _ ↦ True := by
   rw [deferredProgram_eq]
-  refine InRange.bind (Q := fun _ _ ↦ True) ?_ fun _ _ _ ↦ trivial
-  unfold verifyExecutionClaims
-  simp only [VerifierProgram.bind_eq]
-  refine InRange.nc_bind (noCommit_readSizes _) fun ls _ ↦ ?_
-  obtain ⟨layout, rate⟩ := ls
-  dsimp only
-  refine InRange.bind (inRange_commitStack _ _ []) fun _ hs' hc ↦ ?_
-  obtain ⟨level, rest, hcfg, rfl⟩ := hc
-  rw [List.nil_append]
-  refine InRange.nc_bind (noCommit_readOod _) fun ood _ ↦ ?_
-  refine InRange.nc_bind (noCommit_verifyBusBalance_claimed _ _) fun _ _ ↦ ?_
-  refine InRange.nc_bind (noCommit_tablePhase _ _) fun _ _ ↦ ?_
-  refine InRange.nc_bind (noCommit_publicInputPhase _ _) fun _ _ ↦ ?_
-  refine InRange.nc_bind (noCommit_keccakPhaseClaims _ _) fun kc _ ↦ ?_
-  obtain ⟨cl, kp, ks⟩ := kc
-  dsimp only
-  have hrs := noCommit_ringSwitch kp ks
-  generalize ringSwitch kp ks = rsw at hrs ⊢
-  exact InRange.nc_bind hrs fun _ _ ↦ inRange_verifyStackedOpening hcfg _
+  exact InRange.bind (Q := fun _ _ ↦ True)
+    (inRange_verifyExecutionClaims (noCommit_verifyBusBalance_claimed c) _ _) fun _ _ _ ↦ trivial
 
 /-! ## A query step opens a phase -/
 
@@ -396,6 +380,11 @@ end Phase
 
 /-! ## A child's query steps -/
 
+theorem zip_map_self {α β : Type} (f : α → β) :
+    ∀ l : List α, (l.map f).zip l = l.map fun a ↦ (f a, a)
+  | [] => rfl
+  | a :: l => by rw [List.map_cons, List.map_cons, List.zip_cons_cons, zip_map_self f l]
+
 /-- **A query step whose openings disagree exhibits a Keccak-256 collision** in the child proof's
 openings. -/
 theorem openingsCollide_of_step {bytecode : List K} {seed : Digest} {child : Child}
@@ -420,14 +409,10 @@ theorem capsAgree_or_collide (bytecode : List K) (seed : Digest) (child : Child)
       (deferringVerifierProgram child.freshClaim bytecode (statementDigest seed child.statement))
         (Coverage.childVerifierStart seed child),
       Limits.OpeningsAgree step.1 step.2) ∨ OpeningsCollide child.proof := by
-  by_cases h : ∀ step ∈ Limits.queryStepsOf
-      (deferringVerifierProgram child.freshClaim bytecode (statementDigest seed child.statement))
-        (Coverage.childVerifierStart seed child),
-      Limits.OpeningsAgree step.1 step.2
-  · exact .inl h
-  · push Not at h
-    obtain ⟨step, hs, hd⟩ := h
-    exact .inr (openingsCollide_of_step hs hd)
+  refine or_iff_not_imp_left.mpr fun h ↦ ?_
+  push Not at h
+  obtain ⟨step, hs, hd⟩ := h
+  exact openingsCollide_of_step hs hd
 
 /-- **The children of a node `NodeRelation` admits are children the guest program accepts, or one
 of their proofs exhibits a Keccak-256 collision**, for a bytecode of `2^23` words. -/
@@ -435,13 +420,11 @@ theorem acceptableChildren_or_collide {bytecode : List K} (hbl : bytecode.length
     {seed : Digest} {statement : NodeStatement} {witness : NodeWitness}
     (hrel : NodeRelation bytecode seed statement witness) :
     ChildrenOk bytecode seed witness ∨ ∃ child ∈ witness.children, OpeningsCollide child.proof := by
-  by_cases hc : ∃ child ∈ witness.children, OpeningsCollide child.proof
-  · exact .inr hc
-  · refine .inl fun child hchild ↦ ?_
-    unfold NodeRelation at hrel
-    obtain ⟨hshape, hv⟩ := hrel.2.2.1 child hchild
-    refine acceptableChild_of_accepted hbl hshape hv ?_
-    exact (capsAgree_or_collide bytecode seed child).resolve_right fun h ↦ hc ⟨child, hchild, h⟩
+  refine or_iff_not_imp_right.mpr fun hc child hchild ↦ ?_
+  unfold NodeRelation at hrel
+  obtain ⟨hshape, hv⟩ := hrel.2.2.1 child hchild
+  exact acceptableChild_of_accepted hbl hshape hv <|
+    (capsAgree_or_collide bytecode seed child).resolve_right fun h ↦ hc ⟨child, hchild, h⟩
 
 end
 end LeanVM.Guest.Child

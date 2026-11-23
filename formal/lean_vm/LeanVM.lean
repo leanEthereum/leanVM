@@ -121,7 +121,7 @@ proof exhibits a Keccak-256 collision, by `LeanVM.Guest.Child.acceptableChildren
 an honest proof by `guest_child_complete` and `LeanVM.Guest.Child.freshClaim_unique`), the executor
 on honest children (`LeanVM.Guest.EndExec.honestExecution_ok_on_honest_children`, and with the
 statement's witness generation `LeanVM.Guest.EndExec.guestExecution_complete_on_honest_children`,
-the end statement's earlier form), and the guest's completeness within its deployed budget
+with no collision alternative), and the guest's completeness within its deployed budget
 (`LeanVM.Guest.Budget.guest_complete`, `guest_complete_numeric`).
 The two-oracle random-oracle model the proofs pass through (`LeanVM/Protocol/Rom/Statement.lean`:
 `LeanVM.knowledgeSoundnessRomAS`, `LeanVM.completenessRom_holds`; the batching's

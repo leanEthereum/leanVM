@@ -133,9 +133,8 @@ theorem guestExecution_complete_holds : Completeness.GuestExecutionComplete :=
     fun ⟨t, he, hv, hsz⟩ ↦ ⟨t, (prover_guestExecution_eq s w).trans he, hv, hsz⟩
 
 /-- **The executor runs the guest program to completion on the statement's advice on honest
-children**: the end statement's form before it covered every accepted child, a node within the
-deployed limits whose children carry honest proofs (`HonestChild`) having acceptable children
-(`acceptableChildren_of_honest`). -/
+children**, with no collision alternative: a node within the deployed limits whose children carry
+honest proofs (`HonestChild`) has acceptable children (`acceptableChildren_of_honest`). -/
 theorem guestExecution_complete_on_honest_children (s : NodeStatement) (w : NodeWitness)
     (hrel : NodeRelation (bytecodeWords guestProgram) (deployedSeed guestProgram) s w)
     (hlim : DeployedLimits s w) (hon : ∀ child ∈ w.children, HonestChild child) :

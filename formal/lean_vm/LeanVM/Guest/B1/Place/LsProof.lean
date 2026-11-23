@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Place.LsKey
+public import LeanVM.Guest.B1.Place.Ls
 public import LeanVM.Guest.B1.Place.LsTable
 public import LeanVM.Guest.B1.Place.Fresh
 

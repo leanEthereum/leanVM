@@ -6,9 +6,7 @@
 
 module
 
-public import LeanVM.Guest.B1.Whir.IsZero
 public import LeanVM.Guest.Exact.Free
-public import LeanVM.Guest.Budget.Bounded
 public import LeanVM.Guest.Memory.LiftPure
 
 /-!
