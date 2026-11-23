@@ -46,7 +46,8 @@ theorem ccc_all {k : ℕ} (hk : k < 17) : cccOk k (coreProgram.getD (idx% «chil
   rcases Nat.lt_or_ge k 9 with h | h
   · exact ccc_lo k h
   · have := ccc_hi (k - 9) (by omega)
-    rwa [show 9 + (k - 9) = k by omega, show 376 + (k - 9) = 367 + k by omega] at this
+    rwa [show 9 + (k - 9) = k by omega, show idx% «child_claim_list_last__L9» + (k - 9) =
+      idx% «child_claim_list_last__L0» + k by omega] at this
 
 /-- The records' message is their cells. -/
 theorem ccMsg_vals {σ : Val} {o0 K : ℕ} {cells : List E} (hl : cells.length = 4 * K)
@@ -117,11 +118,13 @@ theorem any_core {j : ℕ} {f : String} {m o0 p0 mk st0 nb : ℕ}
     ∃ σ : Val, (coreProgram.getD j default).params.map σ =
         [x, N, chain, entries, region, base, last] ∧
       (∀ a ∈ atomsIn (loopPre (coreProgram.getD j default)), a.Holds rd σ) ∧
-      ∀ q ∈ (loopPre (coreProgram.getD j default)).filterMap B1.Stmt.loadS,
+      (∀ q ∈ (loopPre (coreProgram.getD j default)).filterMap B1.Stmt.loadS,
         (∃ o < 26, (σ q.1).limb 0 * addressOfIndex q.2 = addressOfIndex (chP + 13 * xj + o)) ∨
         (∃ i < m, (σ q.1).limb 0 * addressOfIndex q.2 = addressOfIndex (rg + os i)) ∨
         (∃ i < m, ∃ c < 4,
-          (σ q.1).limb 0 * addressOfIndex q.2 = addressOfIndex (eP + 4 * os i + c)) := by
+          (σ q.1).limb 0 * addressOfIndex q.2 = addressOfIndex (eP + 4 * os i + c))) ∧
+      ∀ a ∈ atomsIn (loopPre (coreProgram.getD j default)),
+        Good rd (storesOf 7 (coreProgram.getD j default).body) (slotW o0 os) σ a := by
   set fn := coreProgram.getD j default
   set A := loopAtoms fn with hAdef
   set S := storesOf 7 fn.body with hSdef
@@ -219,7 +222,8 @@ theorem any_core {j : ℕ} {f : String} {m o0 p0 mk st0 nb : ℕ}
       exact hS' ⟨c, hc13⟩
   have h12g : chain * x ^ 13 = gen ^ (chP + 13 * xj) := by
     rw [hch, hx, ← pow_mul, ← pow_add, mul_comm xj 13]
-  refine ⟨σ, ?_, fun a ha => hat a (by rwa [heqA'] at ha), fun q hq => ?_⟩
+  refine ⟨σ, ?_, fun a ha => hat a (by rwa [heqA'] at ha), fun q hq => ?_,
+    fun a ha => hg a (by rwa [heqA'] at ha)⟩
   · rw [hpar]
     simp only [List.map_cons, List.map_nil]
     rw [e0, par 1 (by omega), e2, e3, e4, e5, e6]

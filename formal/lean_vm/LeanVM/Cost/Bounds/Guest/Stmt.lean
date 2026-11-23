@@ -1,6 +1,9 @@
 module
 
 public import LeanVM.Cost.Bounds.Guest.Readers
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«aggregate_claims»
+import LeanVM.Guest.Data.ValNames.«main»
 
 /-!
 # Bounds on the guest decoder's prices: the seed, the statement, the batching's hints
@@ -148,8 +151,8 @@ include hσ hS
 theorem decSeed_cost (hP : Includes P Decoder.decSeedC.costDeps) :
     machineCost P Decoder.decSeedC.costIdx [σV] ≤ 2 * S + 45 := by
   rw [Decoder.decSeedC.costEq P hP σ σV hσ, digestOfCells_cost P (by includes)]
-  have := hS (.n 26)
-  have := hS (.n 27)
+  have := hS (.n (val% «main» "fs_seed[0]"))
+  have := hS (.n (val% «main» "fs_seed[1]"))
   omega
 
 section Reader
@@ -167,17 +170,17 @@ logarithms, the leanXMSS and leanSPHINCS counts at most `X`) and `decStmtAtC`: a
 `decStmtPrice G R S X = 8·R·X + 24734·X + 3·G + 7·S + …`. -/
 theorem decStmt_cost (D : LeanVM.Extraction.Fast.DiscreteLogTables)
     (hP : Includes P Decoder.decStmtC.costDeps) (hG : GLogBound P D G) (X : ℕ)
-    (hX0 : Decoder.gLogD D (σ (.n 0)) ≤ X) (hX3 : Decoder.gLogD D (σ (.n 3)) ≤ X) :
+    (hX0 : Decoder.gLogD D (σ (.n (val% «main» "meta[0]"))) ≤ X) (hX3 : Decoder.gLogD D (σ (.n (val% «main» "meta[3]"))) ≤ X) :
     machineCost P Decoder.decStmtC.costIdx [encodeValue D, σV, rdV] ≤ decStmtPrice G R S X := by
   rw [Decoder.decStmtC.costEq P hP D σ σV hσ rd rdV hrd]
-  have := hG (σ (.n 0)); have := hG (σ (.n 3)); have := hG (σ (.n 405))
-  have n0 := gLogD_lt D (σ (.n 0))
-  have n3 := gLogD_lt D (σ (.n 3))
-  have n405 := gLogD_lt D (σ (.n 405))
-  have h := decStmtAt_cost P hrd hR (by includes) (σ (.n 31)) (σ (.n 34)) (σ (.n 364)) (σ (.n 416))
-    (Decoder.gLogD D (σ (.n 0))) (Decoder.gLogD D (σ (.n 3))) (Decoder.gLogD D (σ (.n 405)))
+  have := hG (σ (.n (val% «main» "meta[0]"))); have := hG (σ (.n (val% «main» "meta[3]"))); have := hG (σ (.n (val% «main» "da_pick")))
+  have n0 := gLogD_lt D (σ (.n (val% «main» "meta[0]")))
+  have n3 := gLogD_lt D (σ (.n (val% «main» "meta[3]")))
+  have n405 := gLogD_lt D (σ (.n (val% «main» "da_pick")))
+  have h := decStmtAt_cost P hrd hR (by includes) (σ (.n (val% «main» "lx_table"))) (σ (.n (val% «main» "lean_sphincs_table"))) (σ (.n (val% «main» "da_digests"))) (σ (.n (val% «main» "defer_stmt")))
+    (Decoder.gLogD D (σ (.n (val% «main» "meta[0]")))) (Decoder.gLogD D (σ (.n (val% «main» "meta[3]")))) (Decoder.gLogD D (σ (.n (val% «main» "da_pick"))))
     (by omega) (by omega) (by omega)
-  have : decStmtAtPrice R (Decoder.gLogD D (σ (.n 0))) (Decoder.gLogD D (σ (.n 3))) ≤
+  have : decStmtAtPrice R (Decoder.gLogD D (σ (.n (val% «main» "meta[0]")))) (Decoder.gLogD D (σ (.n (val% «main» "meta[3]")))) ≤
       decStmtAtPrice R X X := by
     unfold decStmtAtPrice
     have := Nat.mul_le_mul_left (4 * R + 12367) hX0
@@ -198,9 +201,9 @@ theorem aggRounds_cost (hP : Includes P Decoder.aggRoundsC.costDeps) :
       rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
         Decoder.aggRoundsC.lam0.costEq P (by includes) rd rdV hrd σ σV hσ, List.length_cons,
         List.length_cons, List.length_nil]
-      have := memAt_cost P hrd hR (by includes) (σ (.n 6)) (1 + 2 * k) (by omega)
-      have := memAt_cost P hrd hR (by includes) (σ (.n 6)) (2 + 2 * k) (by omega)
-      have := hS (.n 6)
+      have := memAt_cost P hrd hR (by includes) (σ (.n (val% «aggregate_claims» "bc_msgs"))) (1 + 2 * k) (by omega)
+      have := memAt_cost P hrd hR (by includes) (σ (.n (val% «aggregate_claims» "bc_msgs"))) (2 + 2 * k) (by omega)
+      have := hS (.n (val% «aggregate_claims» "bc_msgs"))
       limbs_one
       omega)
   omega
@@ -211,8 +214,8 @@ theorem aggHints_cost (hP : Includes P Decoder.aggHintsC.costDeps) :
     machineCost P Decoder.aggHintsC.costIdx [rdV, σV] ≤ 48 * S + 47 * R + 141600 := by
   rw [Decoder.aggHintsC.costEq P hP rd rdV hrd σ σV hσ]
   have := aggRounds_cost P hσ hS hrd hR (by includes)
-  have := memAt_cost P hrd hR (by includes) (σ (.n 6)) 0 (by norm_num)
-  have := hS (.n 6); have := hS (.n 7)
+  have := memAt_cost P hrd hR (by includes) (σ (.n (val% «aggregate_claims» "bc_msgs"))) 0 (by norm_num)
+  have := hS (.n (val% «aggregate_claims» "bc_msgs")); have := hS (.n (val% «aggregate_claims» "bytecode_star"))
   omega
 
 end Reader

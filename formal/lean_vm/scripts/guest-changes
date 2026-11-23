@@ -12,7 +12,7 @@ Functions are matched by stable name (`Data/Names.lean`: a function's name, a lo
 
 A module states a function's body when it reads it (`(fn% «s»).body`, `core% «s» m`, `core_eq% «s»`,
 `Fn.«s».core.body`, `(coreOf (fn_idx% «s»)).body`, a link list's entry `("s", Fn.«s».core, …)`, or the
-index forms `Data.core{j}.body`, `(coreOf N).body`) or uses a definition that does (`lyBody := (fn% «s»).body`,
+index forms `Data.core{j}.body`, `(coreOf N).body`) or uses a definition that does (`vbgBody := (fn% «s»).body`,
 and the definitions built on it), or proves it by the `vc` tactic (a `vc` call and the function's `fn% «s»`,
 `idx% «s»` or `Fn.«s».core`). Its template or link fails under `--dev` too (`lake-build.py`'s `ties`), but build the
 modules listed under `states its body` first (formal/AGENTS.md, Changing the spec). Run from `lean_vm`.
@@ -51,7 +51,7 @@ def read_core(data):
 
 
 def stable_keys(names, bodies):
-    """An old snapshot's stable names: a loop helper (`__loop{id}`) is the `k`-th loop its first caller names."""
+    """An old snapshot's stable names: a loop helper (`__loop{k}_f`) is the `k`-th loop its first caller names."""
     keys = [None if n.startswith("__loop") else n for n in names]
     by_name = {n: j for j, n in enumerate(names)}
     changed = True
@@ -61,7 +61,7 @@ def stable_keys(names, bodies):
             if keys[j] is None:
                 continue
             seen = []
-            for l in re.findall(r'"(__loop\d+)"', body):
+            for l in re.findall(r'"(__loop[^"]*)"', body):
                 if l not in seen:
                     seen.append(l)
             for k, l in enumerate(seen):

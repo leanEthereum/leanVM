@@ -125,10 +125,10 @@ theorem exists_prove_verifyWith (H : Bytes → Digest)
     {input : PublicInput} {κ : ℕ} {w : EnsembleWitness (leanIsaEnsemble prog κ)} {s : Sizes} {ρ : ℕ}
     (h : SatisfiedBy prog input w) (hsz : Sizes.ofWitness w = some s) (hs : s.Admissible prog)
     (hρ : validRate ρ) (fuel : ℕ)
-    (hg : ∀ hist bits k sp,
+    (hg : ∀ hist bits k sp o,
       (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)).after hist = some
           (.grind bits k) →
-        findNonce F bits sp fuel ≠ none) :
+        findNonce F bits o sp fuel ≠ none) :
     ∃ S π, prove H F (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) S
         (Id.run (seedWithHash (m := Id) H F (bytecodeWords prog) (publicInputDigest input))) fuel =
           some π ∧
@@ -145,10 +145,10 @@ theorem exists_prove_verify {prog : LeanIsaProgram} {input : PublicInput}
     {κ : ℕ} {w : EnsembleWitness (leanIsaEnsemble prog κ)} {s : Sizes} {ρ : ℕ}
     (h : SatisfiedBy prog input w) (hsz : Sizes.ofWitness w = some s) (hs : s.Admissible prog)
     (hρ : validRate ρ) (fuel : ℕ)
-    (hg : ∀ hist bits k sp,
+    (hg : ∀ hist bits k sp o,
       (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)).after hist = some
           (.grind bits k) →
-        findNonce keccakF1600 bits sp fuel ≠ none) :
+        findNonce keccakF1600 bits o sp fuel ≠ none) :
     ∃ S π, prove keccak256 keccakF1600 (leanVmVerifierProgram (bytecodeWords prog)
         (publicInputDigest input)) S
         (seed (bytecodeWords prog) (publicInputDigest input)) fuel = some π ∧

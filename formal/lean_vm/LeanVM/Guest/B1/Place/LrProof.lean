@@ -14,6 +14,8 @@ public import LeanVM.Guest.Memory.Retemp
 public import LeanVM.Guest.Memory.Restrict
 public import LeanVM.Guest.B1.Whir.DataSpec
 public import LeanVM.Guest.B1.Whir.HelperAll
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«level_residual__L»
 
 /-!
 # `level_residual`, placed
@@ -177,20 +179,20 @@ theorem lr_relAtIn0 {name loop1 loop2 : String} {q : ℕ}
   have hw := Main.walk_straight σ [.n 15, .n 16] pre hstr
   rw [← hb'] at hw
   obtain ⟨i1, i2, i3, i4⟩ := Main.straight_parts σ pre hstr
-  have hal : pre.filterMap Main.Stmt.allocSz = [(.n 5, .inr (.n 4))] := rfl
-  have e4 : σ (.n 4) = gw (2 * (q8 + 1)) := rfl
-  have e5 : σ (.n 5) = ofK (addressOfIndex b) := rfl
-  have e10 : σ (.n 10) = 1 + gen ^ q8 := by
+  have hal : pre.filterMap Main.Stmt.allocSz = [(.n (valf% «level_residual» "chain"), .inr (.n (valf% «level_residual» "chain~0")))] := rfl
+  have e4 : σ (.n (valf% «level_residual» "chain~0")) = gw (2 * (q8 + 1)) := rfl
+  have e5 : σ (.n (valf% «level_residual» "chain")) = ofK (addressOfIndex b) := rfl
+  have e10 : σ (.n (valf% «level_residual» "s3#2")) = 1 + gen ^ q8 := by
     show gw 0 + gw q8 = _; rw [Whir.gw_eq h8, Whir.gw_eq h0u, pow_zero]
   set es := pre.flatMap (Main.slEvs σ) with hes
   have hallocs : allocs σ es = [2 * (q8 + 1)] := by
     rw [i2, hal]
     simp only [List.map_cons, List.map_nil, Sum.elim_inr, e4]
     rw [Whir.gw_eq h81, gen_pow_eq_ofK, logG_spec (by omega)]
-  have hcalls : calls es = [⟨loop1, [.n 11, .n 12, .n 0, .n 5, .n 1, .n 2, .n 3], [],
-      decide (σ (.n 10) ≠ 0)⟩] := by
+  have hcalls : calls es = [⟨loop1, [.n (valf% «level_residual» "s3#3"), .n (valf% «level_residual» "s3#4"), .n (valf% «level_residual» "positions"), .n (valf% «level_residual» "chain"), .n (valf% «level_residual» "row_d"), .n (valf% «level_residual» "hs"), .n (valf% «level_residual» "lam_inv")], [],
+      decide (σ (.n (valf% «level_residual» "s3#2")) ≠ 0)⟩] := by
     rw [i4, show pre.filterMap Main.Stmt.callS =
-      [(some (.n 10), loop1, [.n 11, .n 12, .n 0, .n 5, .n 1, .n 2, .n 3], [])] from rfl]
+      [(some (.n (valf% «level_residual» "s3#2")), loop1, [.n (valf% «level_residual» "s3#3"), .n (valf% «level_residual» "s3#4"), .n (valf% «level_residual» "positions"), .n (valf% «level_residual» "chain"), .n (valf% «level_residual» "row_d"), .n (valf% «level_residual» "hs"), .n (valf% «level_residual» "lam_inv")], [])] from rfl]
     rfl
   have hown : ∀ i, b ≤ i → i < b + 2 * (q8 + 1) →
       ownData cert fp (fp + fs name) name (allocs σ es) es i :=
@@ -209,7 +211,7 @@ theorem lr_relAtIn0 {name loop1 loop2 : String} {q : ℕ}
     simpa [hS] using h
   · have hsum : (allocs σ es).sum = (lrSizes q).sum := by rw [hallocs, hS]
     rw [hcalls, hsum]
-    have hargs : ([.n 11, .n 12, .n 0, .n 5, .n 1, .n 2, .n 3] : List V).map σ =
+    have hargs : ([.n (valf% «level_residual» "s3#3"), .n (valf% «level_residual» "s3#4"), .n (valf% «level_residual» "positions"), .n (valf% «level_residual» "chain"), .n (valf% «level_residual» "row_d"), .n (valf% «level_residual» "hs"), .n (valf% «level_residual» "lam_inv")] : List V).map σ =
         [1, gen ^ q8, P, ofK (addressOfIndex b), BD, HS, M] := by
       simp only [List.map_cons, List.map_nil, hσ, lrVal_n, hvals, List.getD_eq_getElem?_getD,
         List.getElem?_cons_zero, List.getElem?_cons_succ, Option.getD_some]
@@ -221,10 +223,10 @@ theorem lr_relAtIn0 {name loop1 loop2 : String} {q : ℕ}
     · rw [hargs, e10]; exact hL1
   · rw [B1.loadAddrs_straight σ pre hstr] at hA
     have hl : pre.filterMap B1.Stmt.loadS =
-        [(.n 5, 0), (.n 5, 1), (.n 5, 2 * q8), (.n 5, 2 * q8 + 1)] := rfl
+        [(.n (valf% «level_residual» "chain"), 0), (.n (valf% «level_residual» "chain"), 1), (.n (valf% «level_residual» "chain"), 2 * q8), (.n (valf% «level_residual» "chain"), 2 * q8 + 1)] := rfl
     rw [hl] at hA
     simp only [List.map_cons, List.map_nil, List.mem_cons, List.not_mem_nil, or_false] at hA
-    have hw' : ∀ t < 2 * (q8 + 1), ∃ j, (σ (.n 5)).limb 0 * addressOfIndex t = addressOfIndex j ∧
+    have hw' : ∀ t < 2 * (q8 + 1), ∃ j, (σ (.n (valf% «level_residual» "chain"))).limb 0 * addressOfIndex t = addressOfIndex j ∧
         (ownData cert fp (fp + fs name) name (allocs σ es) es j ∨ R j ∨ False) :=
       fun t ht ↦ ⟨b + t, by rw [e5, Main.addr_ofK], Or.inl (hown _ (by omega) (by omega))⟩
     rcases hA with rfl | rfl | rfl | rfl
@@ -320,12 +322,12 @@ theorem lr_relAtIn1 {name loop1 loop2 : String} {q : ℕ}
   have hw := Main.walk_straight σ [.n 26, .n 27] pre hstr
   rw [← hb'] at hw
   obtain ⟨i1, i2, i3, i4⟩ := Main.straight_parts σ pre hstr
-  have hal : pre.filterMap Main.Stmt.allocSz = [(.n 5, .inr (.n 4)), (.n 16, .inr (.n 15))] := rfl
-  have e4 : σ (.n 4) = gw (2 * (q8 + 1)) := rfl
-  have e5 : σ (.n 5) = ofK (addressOfIndex b) := rfl
+  have hal : pre.filterMap Main.Stmt.allocSz = [(.n (valf% «level_residual» "chain"), .inr (.n (valf% «level_residual» "chain~0"))), (.n 16, .inr (.n 15))] := rfl
+  have e4 : σ (.n (valf% «level_residual» "chain~0")) = gw (2 * (q8 + 1)) := rfl
+  have e5 : σ (.n (valf% «level_residual» "chain")) = ofK (addressOfIndex b) := rfl
   have e15 : σ (.n 15) = gw (2 * (r + 1)) := rfl
   have e16 : σ (.n 16) = ofK (addressOfIndex b') := rfl
-  have e10 : σ (.n 10) = 1 + gen ^ q8 := by
+  have e10 : σ (.n (valf% «level_residual» "s3#2")) = 1 + gen ^ q8 := by
     show gw 0 + gw q8 = _; rw [Whir.gw_eq h8, Whir.gw_eq h0u, pow_zero]
   have e21 : σ (.n 21) = 1 + gen ^ r := by
     show gw 0 + gw r = _; rw [Whir.gw_eq hr8, Whir.gw_eq h0u, pow_zero]
@@ -335,12 +337,12 @@ theorem lr_relAtIn1 {name loop1 loop2 : String} {q : ℕ}
     simp only [List.map_cons, List.map_nil, Sum.elim_inr, e4, e15]
     rw [Whir.gw_eq h81, Whir.gw_eq hrb1, gen_pow_eq_ofK, gen_pow_eq_ofK, logG_spec (by omega),
       logG_spec (by omega)]
-  have hcalls : calls es = [⟨loop1, [.n 11, .n 12, .n 0, .n 5, .n 1, .n 2, .n 3], [],
-      decide (σ (.n 10) ≠ 0)⟩, ⟨loop2, [.n 22, .n 23, .n 16, .n 18, .n 1, .n 2, .n 3], [],
+  have hcalls : calls es = [⟨loop1, [.n (valf% «level_residual» "s3#3"), .n (valf% «level_residual» "s3#4"), .n (valf% «level_residual» "positions"), .n (valf% «level_residual» "chain"), .n (valf% «level_residual» "row_d"), .n (valf% «level_residual» "hs"), .n (valf% «level_residual» "lam_inv")], [],
+      decide (σ (.n (valf% «level_residual» "s3#2")) ≠ 0)⟩, ⟨loop2, [.n 22, .n 23, .n 16, .n 18, .n (valf% «level_residual» "row_d"), .n (valf% «level_residual» "hs"), .n (valf% «level_residual» "lam_inv")], [],
       decide (σ (.n 21) ≠ 0)⟩] := by
     rw [i4, show pre.filterMap Main.Stmt.callS =
-      [(some (.n 10), loop1, [.n 11, .n 12, .n 0, .n 5, .n 1, .n 2, .n 3], []),
-        (some (.n 21), loop2, [.n 22, .n 23, .n 16, .n 18, .n 1, .n 2, .n 3], [])] from rfl]
+      [(some (.n (valf% «level_residual» "s3#2")), loop1, [.n (valf% «level_residual» "s3#3"), .n (valf% «level_residual» "s3#4"), .n (valf% «level_residual» "positions"), .n (valf% «level_residual» "chain"), .n (valf% «level_residual» "row_d"), .n (valf% «level_residual» "hs"), .n (valf% «level_residual» "lam_inv")], []),
+        (some (.n 21), loop2, [.n 22, .n 23, .n 16, .n 18, .n (valf% «level_residual» "row_d"), .n (valf% «level_residual» "hs"), .n (valf% «level_residual» "lam_inv")], [])] from rfl]
     rfl
   have hown : ∀ i, b ≤ i → i < b + (2 * (q8 + 1) + 2 * (r + 1)) →
       ownData cert fp (fp + fs name) name (allocs σ es) es i := by
@@ -364,12 +366,12 @@ theorem lr_relAtIn1 {name loop1 loop2 : String} {q : ℕ}
     simpa [hS, Nat.add_assoc] using h
   · have hsum' : (allocs σ es).sum = (lrSizes q).sum := by rw [hallocs, hS]
     rw [hcalls, hsum']
-    have hargs1 : ([.n 11, .n 12, .n 0, .n 5, .n 1, .n 2, .n 3] : List V).map σ =
+    have hargs1 : ([.n (valf% «level_residual» "s3#3"), .n (valf% «level_residual» "s3#4"), .n (valf% «level_residual» "positions"), .n (valf% «level_residual» "chain"), .n (valf% «level_residual» "row_d"), .n (valf% «level_residual» "hs"), .n (valf% «level_residual» "lam_inv")] : List V).map σ =
         [1, gen ^ q8, P, ofK (addressOfIndex b), BD, HS, M] := by
       simp only [List.map_cons, List.map_nil, hσ, lrVal_n, hvals, List.getD_eq_getElem?_getD,
         List.getElem?_cons_zero, List.getElem?_cons_succ, Option.getD_some]
       rw [Whir.gw_eq h8, Whir.gw_eq h0u, pow_zero]
-    have hargs2 : ([.n 22, .n 23, .n 16, .n 18, .n 1, .n 2, .n 3] : List V).map σ =
+    have hargs2 : ([.n 22, .n 23, .n 16, .n 18, .n (valf% «level_residual» "row_d"), .n (valf% «level_residual» "hs"), .n (valf% «level_residual» "lam_inv")] : List V).map σ =
         [1, gen ^ r, ofK (addressOfIndex b'), P * gen ^ (resBatch * q8), BD, HS, M] := by
       simp only [List.map_cons, List.map_nil, hσ, lrVal_n, hvals, List.getD_eq_getElem?_getD,
         List.getElem?_cons_zero, List.getElem?_cons_succ, Option.getD_some]
@@ -384,11 +386,11 @@ theorem lr_relAtIn1 {name loop1 loop2 : String} {q : ℕ}
       fun _ ↦ kidsFromIn_loopCall (Rk := Rk2) (hreg Rk2 hRk2) (by rw [hargs2, e21]; exact hL2)
         fun _ ↦ lr_kidsFromIn_nil
   · rw [B1.loadAddrs_straight σ pre hstr] at hA
-    have hl : pre.filterMap B1.Stmt.loadS = [(.n 5, 0), (.n 5, 1), (.n 5, 2 * q8),
-        (.n 5, 2 * q8 + 1), (.n 16, 0), (.n 16, 1), (.n 16, 2 * r), (.n 16, 2 * r + 1)] := rfl
+    have hl : pre.filterMap B1.Stmt.loadS = [(.n (valf% «level_residual» "chain"), 0), (.n (valf% «level_residual» "chain"), 1), (.n (valf% «level_residual» "chain"), 2 * q8),
+        (.n (valf% «level_residual» "chain"), 2 * q8 + 1), (.n 16, 0), (.n 16, 1), (.n 16, 2 * r), (.n 16, 2 * r + 1)] := rfl
     rw [hl] at hA
     simp only [List.map_cons, List.map_nil, List.mem_cons, List.not_mem_nil, or_false] at hA
-    have hw1 : ∀ t < 2 * (q8 + 1), ∃ j, (σ (.n 5)).limb 0 * addressOfIndex t = addressOfIndex j ∧
+    have hw1 : ∀ t < 2 * (q8 + 1), ∃ j, (σ (.n (valf% «level_residual» "chain"))).limb 0 * addressOfIndex t = addressOfIndex j ∧
         (ownData cert fp (fp + fs name) name (allocs σ es) es j ∨ R j ∨ False) :=
       fun t ht ↦ ⟨b + t, by rw [e5, Main.addr_ofK], Or.inl (hown _ (by omega) (by omega))⟩
     have hw2 : ∀ t < 2 * (r + 1), ∃ j, (σ (.n 16)).limb 0 * addressOfIndex t = addressOfIndex j ∧

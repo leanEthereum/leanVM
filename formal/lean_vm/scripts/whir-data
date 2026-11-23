@@ -7,7 +7,7 @@ helpers' tables), by kernel evaluation. `Data{m}` reads only its function's core
 `HelperData{k}` the helpers in core pack `k` (`Guest/Pack/P{k}/Core.lean`) and that pack only;
 they hold for any program that finds the functions (`FnIsP`, `OsDataP`, `Whir/DataSpecP.lean`), and
 `DataAll` and `HelperFind{c}` (eight chunks of packs) find them in `coreProgram`. The sizes are `ligNSizes`
-(`LIG_N_LOG_SIZES`, `Data/Source.lean`); the functions' keys, indices and packs are read from the core IR
+(`LIG_N_LOG_SIZES`, `Data/Consts.lean`); the functions' keys, indices and packs are read from the core IR
 (`Guest/Data/Core.lean`, `Guest/Pack`, `scripts/coredata.py`), the loops a helper calls and the body lengths from
 `guest-core --show`; the kernel checks them. Run from `lean_vm` after `lake build guest-core`:
 
@@ -25,13 +25,13 @@ WHIR = Path("LeanVM/Guest/B1/Whir")
 
 def res_batch():
     """`RES_BATCH`, as the templates read it: `resBatch` in `Whir/Template.lean`, a literal or the
-    guest's constant (`guest_const%`) exported to `Guest/Data/Source.lean`."""
+    guest's constant (`guest_const%`) exported to `Guest/Data/Consts.lean`."""
     t = (WHIR / "Template.lean").read_text()
     m = re.search(r"^abbrev resBatch : ℕ := (\d+)$", t, re.M)
     if m:
         return int(m.group(1))
     c = re.search(r"^abbrev resBatch : ℕ := guest_const% (\w+)$", t, re.M).group(1)
-    src = Path("LeanVM/Guest/Data/Source.lean").read_text()
+    src = Path("LeanVM/Guest/Data/Consts.lean").read_text()
     return int(re.search(rf"^def const_{c} : Nat := (\d+)$", src, re.M).group(1))
 
 
@@ -67,7 +67,7 @@ def loops(name):
             for m in re.finditer(r'noncomputable def core(\d+) : Core\.Fn where\n(.*?)(?=\n\n)', t, re.S):
                 BODIES[int(m.group(1))] = BODIES.get(int(m.group(1)), "") + m.group(2)
     seen = []
-    for l in re.findall(r'"(__loop\d+)"', BODIES[IDX[name]]):
+    for l in re.findall(r'"(__loop[^"]*)"', BODIES[IDX[name]]):
         if l not in seen:
             seen.append(l)
     return seen
@@ -309,7 +309,7 @@ theorem lrTable_ok : ∀ e ∈ lrTable, FnIs e.1 (osParams 4) (lrBody e.2.1 e.2.
 
 def main():
     arms = int(re.search(r"def const_LIG_N_LOG_SIZES : Nat := (\d+)",
-                         Path("LeanVM/Guest/Data/Source.lean").read_text()).group(1))
+                         Path("LeanVM/Guest/Data/Consts.lean").read_text()).group(1))
     global IDX, KEY
     idx = core_indices()
     IDX = idx

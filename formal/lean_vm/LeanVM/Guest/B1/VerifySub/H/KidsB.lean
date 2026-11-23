@@ -16,7 +16,7 @@ public import LeanVM.Guest.B1.Fs.MessagePlaced
 public import LeanVM.Guest.B1.Fs.SqueezePoint
 public import LeanVM.Guest.B1.Fs.MessageComplete
 public import LeanVM.Guest.B1.Bits.Log2PlacedAll
-public import LeanVM.Guest.B1.Gkr.VbgB
+public import LeanVM.Guest.B1.Gkr.VbgWordsC
 public import LeanVM.Guest.B1.Ring.CompleteB
 public import LeanVM.Guest.Budget.Bounded
 public import LeanVM.Guest.B1.Bits.GPower
@@ -122,19 +122,17 @@ variable {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs bytecode
 theorem vbg_kidB (hbl : bytecode.length = 2 ^ 23) {κ : ℕ} (hκ : 6 ≤ κ) (W : VsWordsOs fs)
     (bs : List ℕ) (sqE : ℕ) :
     CompleteAtB fs cert κ "verify_bus_gkr" [(cG bs, S.xsG), (vb bs 5, S.rG.2.1)]
-      (S.s3.cap ++ [ptr (cG bs), gen ^ S.d, ptr (vb bs 5), ptr sqE * gen ^ winTabAt])
+      (S.s3.cap ++ [ptr (cG bs), gen ^ S.d, ptr (vb bs 5), ptr sqE * gen ^ winTabAt,
+        ptr (vb bs 1)])
       (Tables.VbgOut S.s4.cap (ptr (cG bs) * gen ^ S.xsG.length) S.rG.2.2)
-      (vbgMax fs W.K29 W.R W.K8) := by
+      (Tables.vbgMax fs W.vbg) := by
   have hd := S.d_bounds hbl
   obtain ⟨h3, h4, -⟩ := S.gkr_inv hbl
   have hrun : RunsTo (Tables.gkrPhase S.d) ⟨S.s3.cap, []⟩ S.xsG S.rG ⟨S.s4.cap, []⟩ := by
     rw [← h3, ← h4]; exact S.runG
   have hc : ∃ sp, (⟨S.s3.cap, []⟩ : Fs).Carries sp := by rw [← h3]; exact S.c3
-  have hB : Tables.vbgBound fs W.K29 W.R W.K8 S.d ≤ vbgMax fs W.K29 W.R W.K8 := by
-    unfold vbgMax
-    exact le_lmax (List.mem_map.2 ⟨S.d, List.mem_range.2 (by omega), rfl⟩)
-  exact (Tables.verify_bus_gkr_completeAtTB (by omega) (by omega) hκ hrun hc
-    (ptr sqE * gen ^ winTabAt) (cG bs) (vb bs 5) W.h29 W.hR W.h8).toCompleteAtB.mono le_rfl hB
+  exact Tables.verify_bus_gkr_completeAtW (by omega) (by omega) hκ hrun hc
+    (ptr sqE * gen ^ winTabAt) (ptr (vb bs 1)) (cG bs) (vb bs 5) W.vbg
 
 end ChildSegs
 

@@ -87,14 +87,16 @@ theorem name_verify_sig_lean_sphincs :
   decide +kernel
 theorem name_da_verify : decoderFunctionName (fn_idx% da_verify) = name% da_verify := by
   decide +kernel
-theorem name_da_verify_column :
-    decoderFunctionName (fn_idx% da_verify_column) = name% da_verify_column := by decide +kernel
+theorem name_da_verify_blob :
+    decoderFunctionName (fn_idx% da_verify_blob) = name% da_verify_blob := by decide +kernel
+theorem name_da_verify_loop0 :
+    decoderFunctionName (fn_idx% da_verify_loop0) = name% da_verify_loop0 := by decide +kernel
 theorem name_da_verify_cell : decoderFunctionName (fn_idx% da_verify_cell) = name% da_verify_cell := by
   decide +kernel
 theorem name_aggregate_claims :
     decoderFunctionName (fn_idx% aggregate_claims) = name% aggregate_claims := by decide +kernel
 theorem name_da_blob_loop :
-    decoderFunctionName (fn_idx% da_verify_column_loop0) = name% da_verify_column_loop0 := by
+    decoderFunctionName (fn_idx% da_verify_blob_loop0) = name% da_verify_blob_loop0 := by
   decide +kernel
 
 /-- `open_stacked__L{m}` is function `fn_idx% open_stacked__L0 + m`. -/

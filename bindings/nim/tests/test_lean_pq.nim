@@ -54,6 +54,28 @@ suite "lean_pq":
       xmssVerify(publicKey, message, signature)
       not xmssVerify(publicKey, otherMessage, signature)
 
+  test "leanXMSS key loads from its tree cache":
+    let
+      seed = filled(6)
+      key = XmssSecretKey.fromSeed(seed).expect("key")
+    check key.prepare(3).isOk()
+    let
+      cache = key.cacheToBytes().expect("cache")
+      publicKey = key.publicKey().expect("public key")
+      loaded = XmssSecretKey.fromCacheBytes(seed, publicKey, cache).expect("loaded key")
+      signature = loaded.sign(message, 3).expect("signature")
+      otherKey = XmssSecretKey.fromSeed(filled(7)).expect("key").publicKey().expect("public key")
+    var tampered = cache
+    tampered[0] = tampered[0] xor 1
+
+    check:
+      loaded.publicKey().expect("public key") == publicKey
+      signature == key.sign(message, 3).expect("signature")
+      xmssVerify(publicKey, message, signature)
+      XmssSecretKey.fromCacheBytes(seed, publicKey, cache.toOpenArray(1, cache.high)).isErr()
+      XmssSecretKey.fromCacheBytes(seed, publicKey, tampered).isErr()
+      XmssSecretKey.fromCacheBytes(seed, otherKey, cache).isErr()
+
   test "leanSPHINCS signs and verifies":
     let
       seed = filled(2)
@@ -90,6 +112,37 @@ suite "lean_pq":
       key.sign(knownMessage).expect("signature") == signature
       sphincsVerify(publicKey, knownMessage, signature)
 
+  test "VRF key opens its slots":
+    let
+      seed = filled(9)
+      key = VrfKey.init(seed, 100, 200).expect("key")
+      vrfRoot = key.root().expect("root")
+      vrfProof = key.proof(150).expect("proof")
+    check:
+      @vrfRoot == fromHex("c7e3eaa5a1af5e528e56beb589b4d1c579f5fb8939ddd7f6b1ce2141bc096b45")
+      vrfVerify(vrfRoot, 150, vrfProof)
+      not vrfVerify(vrfRoot, 151, vrfProof)
+      vrfVerify(vrfRoot, 100, key.proof(100).expect("proof"))
+      vrfVerify(vrfRoot, 199, key.proof(199).expect("proof"))
+      key.proof(99).isErr()
+      key.proof(200).isErr()
+      VrfKey.init(seed, 5, 5).isErr()
+      VrfKey.init(seed, 0, (1'u32 shl 31) + 1).isErr()
+
+  test "VRF key loads from its cache":
+    let
+      seed = filled(9)
+      key = VrfKey.init(seed, 100, 200).expect("key")
+      cache = key.cacheToBytes().expect("cache")
+      vrfRoot = key.root().expect("root")
+      loaded = VrfKey.fromCacheBytes(seed, vrfRoot, cache).expect("loaded key")
+    check:
+      @vrfRoot == fromHex("c7e3eaa5a1af5e528e56beb589b4d1c579f5fb8939ddd7f6b1ce2141bc096b45")
+      loaded.cacheToBytes().expect("cache") == cache
+      vrfVerify(vrfRoot, 150, loaded.proof(150).expect("proof"))
+      VrfKey.fromCacheBytes(seed, vrfRoot, cache.toOpenArray(0, cache.len - 2)).isErr()
+      VrfKey.fromCacheBytes(seed, default(VrfRoot), cache).isErr()
+
   test "secret keys round trip through bytes":
     let
       xmss = XmssSecretKey.generate().expect("key")
@@ -115,13 +168,18 @@ suite "lean_pq":
     let
       xmss = XmssSecretKey.fromSeed(filled(8)).expect("key")
       sphincs = SphincsSecretKey.fromSeed(filled(9)).expect("key")
+      vrf = VrfKey.init(filled(10), 0, 1).expect("key")
     xmss.close()
     xmss.close()
     sphincs.close()
+    vrf.close()
+    vrf.close()
     check:
       xmss.publicKey().error() == "leanXMSS secret key is closed"
       xmss.sign(message, 0).isErr()
       sphincs.sign(message).isErr()
+      vrf.root().error() == "VRF key is closed"
+      vrf.proof(0).isErr()
     let nilKey: XmssSecretKey = nil
     nilKey.close()
     check nilKey.toBytes().isErr()

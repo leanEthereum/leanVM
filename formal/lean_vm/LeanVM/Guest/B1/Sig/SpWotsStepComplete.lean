@@ -9,6 +9,8 @@ module
 public import LeanVM.Guest.B1.Sig.SpWotsT
 public import LeanVM.Guest.B1.Sig.XmssStep
 public import LeanVM.Guest.B1.Sig.KMsgComplete
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«sp_wots»
 
 /-!
 # `sp_wots`'s chain step, complete
@@ -28,11 +30,11 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Gu
 @[expose] public section
 
 /-- The atoms a step with an address constant sets first: the constant and `at[1]` plus it. -/
-def spPre2 (i s c : Nat) : List Stmt := [cst c (lit (spStepC i s)), addS (.n (c + 1)) (.n 5) (.n c)]
+def spPre2 (i s c : Nat) : List Stmt := [cst c (lit (spStepC i s)), addS (.n (c + 1)) (.n (val% «sp_wots» "at[1]")) (.n c)]
 
 theorem spWp_step (X i s : Nat) (v : V) (c o : Nat) : (spWp X).step i s v c o =
-    if i = 0 ∧ s = 0 then k64 X (.n 0) (.n 4) (.n 5) v c o
-    else spPre2 i s c ++ k64 X (.n 0) (.n 4) (.n (c + 1)) v (c + 2) o := rfl
+    if i = 0 ∧ s = 0 then k64 X (.n (val% «sp_wots» "pp")) (.n (val% «sp_wots» "at[0]")) (.n (val% «sp_wots» "at[1]")) v c o
+    else spPre2 i s c ++ k64 X (.n (val% «sp_wots» "pp")) (.n (val% «sp_wots» "at[0]")) (.n (c + 1)) v (c + 2) o := rfl
 
 theorem spWp_atoms (X : Nat) : StepAtoms (spWp X) := by
   intro i s v c o
@@ -47,7 +49,7 @@ theorem spPre2_outs (i s c : Nat) : outsList (spPre2 i s c) = [.n c, .n (c + 1)]
   simp [spPre2, cst, addS, outsList, aOuts]
 
 theorem spPre2_vals (i s c : Nat) {x : V} (hx : x ∈ Stmt.valsList (spPre2 i s c)) :
-    x = .n c ∨ x = .n (c + 1) ∨ x = .n 5 := by
+    x = .n c ∨ x = .n (c + 1) ∨ x = .n (val% «sp_wots» "at[1]") := by
   simp only [spPre2, cst, addS, valsList_cons, valsList_nil, Stmt.vals, Atom.vals, List.append_nil,
     List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at hx
   rcases hx with rfl | rfl | rfl | rfl <;> simp

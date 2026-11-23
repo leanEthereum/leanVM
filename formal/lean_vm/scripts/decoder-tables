@@ -132,9 +132,10 @@ public import LeanVM.Guest.Data.Cert
 # The guest decoder's tables
 
 For each of the guest's {N} compiled functions `j`: its entry pc, its number of arguments and of
-return words, and its certificate's frame cells. Literals of the decoder program
-(`Rule.literalNats`, `Rule.literalNatArrays`); `GuestTablesCheck.lean` proves them equal to `(glob.sig j).entry`,
-`(glob.sig j).nargs`, `(glob.sig j).nret` and `(certOf j).locs`.
+return words, and its certificate's frame cells. The first three are literals of the decoder program
+(`Rule.literalNats`), the cells packed four to a number (`Lanes.lean`); `GuestTablesCheck.lean`
+proves them equal to `(glob.sig j).entry`, `(glob.sig j).nargs`, `(glob.sig j).nret` and
+`(certOf j).locs`.
 -/
 
 namespace LeanVM.Cost.Decoder
@@ -154,13 +155,9 @@ def guestLocsSplit : List (List ℕ) := guestLocsRow{split[0]}
 def guestLocsList : List (List ℕ) :=
     {" ++ ".join(f"guestLocsList{i}" for i in range(len(parts)))}
 
-/-- Each function's frame cells, as arrays: the decoder's literal (reducible: the compiler's
-literal rule reads its list). -/
-abbrev guestLocsLit : Array (Array ℕ) := (guestLocsList.map List.toArray).toArray
-
-/-- Each function's frame cells, as arrays (`Cost/Decoder/Witness.lean` compiles its uses as calls
-of one function holding the literal). -/
-def guestLocs : Array (Array ℕ) := guestLocsLit
+/-- Each function's frame cells, as arrays: the specification of the decoder's packed table
+(`Cost/Decoder/Lanes.lean`, `locAt`). -/
+def guestLocs : Array (Array ℕ) := (guestLocsList.map List.toArray).toArray
 
 end
 

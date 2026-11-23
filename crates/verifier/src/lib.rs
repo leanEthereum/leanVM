@@ -218,7 +218,9 @@ pub fn verify_keccak_batch(
         VerifierError::CommittedSize,
     )?;
     let shape = KeccakShape { log_steps, depth };
-    let stack_log = log_steps + shape.slot_bits();
+    let Some(stack_log) = log_steps.checked_add(shape.slot_bits()) else {
+        return Err(VerifierError::CommittedSize);
+    };
     require(
         (MIN_STACKED_LOG..=MAX_STACKED_LOG).contains(&stack_log),
         VerifierError::CommittedSize,
@@ -376,4 +378,18 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
         bytecode_point: bus.bytecode_point,
         keccak_scalars,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn verify_keccak_batch_rejects_overflowing_log_steps() {
+        let proof = Proof::from_bytes(&[0u8; 8]).expect("empty proof decodes");
+        assert_eq!(
+            verify_keccak_batch(&[0; 32], usize::MAX, 12, MIN_LOG_INV_RATE, &proof),
+            Err(VerifierError::CommittedSize)
+        );
+    }
 }

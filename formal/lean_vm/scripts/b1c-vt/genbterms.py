@@ -2,7 +2,7 @@ import os, sys, re
 # usage: python3 -I genbterms.py  rewrites the guest's baked data in Tables/Vt/FormsData.lean (each
 # table block's coordinate terms, `vtBTerms{side}{table}`, from `COORD_TERM_*` and `TERM_*`) and
 # Tables/Vt/FormsPad.lean (each block's `COORD_PADDING`, `vtPads{side}{table}`, and the count
-# columns `vtCountCols`), from the guest's constants in LeanVM/Guest/Data/Source.lean.
+# columns `vtCountCols`), from the guest's constants in LeanVM/Guest/Data/Consts.lean.
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from gendiff import A, blocks, VT_LEAN
 

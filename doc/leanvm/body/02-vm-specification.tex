@@ -33,13 +33,14 @@ Instructions never modify the memory witness: they only assert constraints on it
 
 The Virtual Machine's execution loop is the following:
 \begin{enumerate}
+  \item if $(\pc,\fp)$ equals the final state $(\pc_{\textsf{final}},\fp_{\textsf{final}}) := (\gen^{2^{\kbc}-1},\gen^{0})$, exit the loop (successful execution).
   \item fetch the instruction $\mathsf{inst}$ at address $\pc$.
   \item execute $\mathsf{inst}$:
     \begin{itemize}
       \item assert the memory constraints (e.g. $\loc{o_C}=\loc{o_A}+\loc{o_B}$ for XOR)
       \item update $\pc$ and $\fp$ (all instructions except \texttt{JUMP} set $\pc \xleftarrow{} \pc \cdot \gen$, advancing to the next instruction, and leave $\fp \xleftarrow{} \fp$ unchanged)
     \end{itemize}
-  \item if $(\pc,\fp)$ equals the final state $(\pc_{\textsf{final}},\fp_{\textsf{final}}) := (\gen^{2^{\kbc}-1},\gen^{0})$, exit the loop (successful execution). Otherwise go back to step $1.$
+  \item go back to step $1.$
 \end{enumerate}
 
 One way to construct this memory witness $\mem$ is to run the program with a memory buffer where every word starts unset (except the first two for the public input). When an instruction uses an unset word, it sets it to the value that makes its constraint hold (e.g. \texttt{XOR} sets an unset $\loc{o_C}$ to $\loc{o_A}+\loc{o_B}$). A word that is set is never changed again: later instructions only check it. Words that remain unset at the end can take any value.
@@ -90,7 +91,7 @@ Additionally, it asserts $\loc{o_1} \in \K$. It reads $\loc{o_3}$ in every mode,
 
 \vspace{5mm}
 
-\texttt{KECCAK} applies the Keccak-$f[1600]$ permutation~\cite{keccak} to a state of $25$ lanes of $64$ bits held in thirteen cells, two lanes per cell, one per limb. It reads the cells $\loc{o_{m_0}},\dots,\loc{o_{m_3}}$, $\loc{\gen^k\cdot o_{\mathit{tail}}}$ ($k<4$), $\loc{o_{\mathit{b8}}}$ and $\loc{\gen^k\cdot o_{\mathit{cap}}}$ ($k<4$), in this order, and writes the result to the cells $\loc{\gen^k\cdot o_{\mathit{out}}}$ the flags $\mathit{out}_{\mathit{two}},\mathit{out}_{\mathit{all}}\in\{0,1\}$ select: $k=0$ always, $k=1$ when $\mathit{out}_{\mathit{two}}=1$, and $2\le k<13$ when $\mathit{out}_{\mathit{all}}=1$, leaving the others untouched. Cells are read in the layout $\mathit{odd}_{\mathit{in}}\in\{0,1\}$ and written in the layout $\mathit{odd}_{\mathit{out}}$:
+\texttt{KECCAK} applies the Keccak-$f[1600]$ permutation~\cite{keccak} to a state of $25$ lanes of $64$ bits held in thirteen cells, two lanes per cell, one per limb. It reads the cells $\loc{o_{m_0}},\dots,\loc{o_{m_3}}$, $\loc{\gen^k\cdot o_{\mathit{tail}}}$ ($k<4$), $\loc{o_{\mathit{b8}}}$ and $\loc{\gen^k\cdot o_{\mathit{cap}}}$ ($k<4$), in this order, and writes the result to the cells $\loc{\gen^k\cdot o_{\mathit{out}}}$ selected by $(\mathit{out}_{\mathit{two}},\mathit{out}_{\mathit{all}})\in\{(0,0),(1,0),(1,1)\}$ (the pair $(0,1)$ is invalid): $k=0$ always, $k=1$ when $\mathit{out}_{\mathit{two}}=1$, and $2\le k<13$ when $\mathit{out}_{\mathit{all}}=1$, leaving the others untouched. Cells are read in the layout $\mathit{odd}_{\mathit{in}}\in\{0,1\}$ and written in the layout $\mathit{odd}_{\mathit{out}}\in\{0,1\}$:
 \begin{itemize}
 \item even ($0$): cell $c<8$ holds lanes $(2c,2c+1)$, cell $8$ holds $(16,\cdot)$;
 \item odd ($1$): cell $0$ holds $(\cdot,0)$, cell $1\le c\le8$ holds $(2c-1,2c)$;

@@ -22,6 +22,7 @@ impl FnLower<'_> {
     pub(super) fn cell_run(&mut self, e: &Expr) -> CellRun {
         match e {
             Expr::Var(_) => {
+                self.check_bound(e);
                 let (base, len) = self.stack_of(e).unwrap_or_else(|| {
                     self.fail(format!(
                         "only a StackBuf names a run of cells unsliced, got `{e:?}`; slice a \
@@ -44,8 +45,7 @@ impl FnLower<'_> {
                         };
                         CellRun::Stack { base: base + lo, len }
                     } else {
-                        self.check_heap_bound(arr, lo as u128, len as u128);
-                        let (ptr, lo) = self.heap_base(arr, lo as u128);
+                        let (ptr, lo) = self.heap_base(arr, lo as u128, len as u128);
                         CellRun::Heap { ptr, lo, len }
                     }
                 }
@@ -69,14 +69,10 @@ impl FnLower<'_> {
                             "a runtime slice `{lo:?}:{hi:?}` has length 0, so it names no cell"
                         ))
                     };
-                    // `heap_addr` bounds-checks ONE cell. A start that folds
-                    // (`GEN ** k`, or a name bound to one) reaches this arm because
-                    // it is not an INTEGER, yet its offset IS known, so the run's
-                    // length has to be checked here or it never is.
-                    if let Some(GAddr { base: None, exp, .. }) = self.gaddr_of(lo) {
-                        self.check_heap_bound(arr, exp, u128::from(len));
-                    }
-                    let (ptr, lo) = self.heap_addr(arr, lo);
+                    // A start that folds (`GEN ** k`, or any constant that is a
+                    // g-power) reaches this arm because it is not an INTEGER, yet
+                    // its offset IS known, so the whole run is checked.
+                    let (ptr, lo) = self.heap_addr_span(arr, lo, u128::from(len));
                     CellRun::Heap { ptr, lo, len }
                 }
             },
@@ -89,23 +85,36 @@ impl FnLower<'_> {
     /// Address `arr[idx]` as `(base_cell, β)`. A constant g-power `idx` folds
     /// into `β` ([`Self::heap_base`]); a runtime index materializes the pointer.
     pub(super) fn heap_addr(&mut self, arr: &Expr, idx: &Expr) -> (Off, u32) {
+        self.heap_addr_span(arr, idx, 1)
+    }
+
+    /// [`Self::heap_addr`] of the first of `span` consecutive cells: an index
+    /// that folds has the whole run bounds-checked, not its first cell alone.
+    fn heap_addr_span(&mut self, arr: &Expr, idx: &Expr, span: u128) -> (Off, u32) {
+        // A buffer nothing binds is the error, whatever its index reads as.
+        self.check_bound(arr);
         // A compile-time index that is a plain field constant but NOT a
         // g-power (`buf[0]`, `buf[2]`, an integer unroll var) can never name
         // a heap cell (cell k lives at `buf · g^k`) and would deref a wild
         // address at proving time. Reject it here, where the source is known.
-        // A BARE literal index is rejected even now that `gaddr_of` reads `2^k`
-        // as `g^k` in a pointer: `hb[2]` would silently mean cell 1, while slice
-        // bounds stayed integer (`hb[2:4]` starts at cell 2), so one spelling
-        // would name two different cells. An index built from `GEN` is fine, and
-        // `1` is `g^0` either way.
-        let bare_int = matches!(self.try_lit(idx), Some(n) if n != 1);
+        // An INTEGER index (a literal, a name bound to one, `const(...)`,
+        // `len(...)`, or integer arithmetic of those, `2 * 2`) is rejected even
+        // now that `gaddr_of` reads `2^k` as `g^k` in a pointer: `hb[2]` would
+        // silently mean cell 1, while slice bounds stayed integer (`hb[2:4]`
+        // starts at cell 2), so one spelling would name two different cells. An
+        // index built from `GEN` is fine, `1` is `g^0` either way, and a constant
+        // array's element, `NAME[i]` as the whole index, is the field value it
+        // holds: a g-power when it indexes.
         let known = self.eval(idx);
-        if (bare_int || known.addr.is_none())
+        let element = matches!(idx, Expr::Index(arr, _)
+            if matches!(arr.as_ref(), Expr::Var(v) if self.const_arrays.contains_key(v.as_str())));
+        let plain_int = known.int.is_some_and(|n| n != 1) && !element;
+        if (plain_int || known.addr.is_none())
             && let Some(c) = known.field
         {
             // A constant the address tracking does not follow. An index whose integer
-            // and field readings differ (`3 + 7` is 10 and g²) would name two cells, and a
-            // bare integer may well BE a g-power (4 is g²) but is ambiguous against slice
+            // and field readings differ (`3 + 7` is 10 and g²) would name two cells, and an
+            // integer may well BE a g-power (4 is g²) but is ambiguous against slice
             // syntax. Any other g-power names its cell (`(GEN ** 2) ** 3` is cell 6).
             let why = match (known.diverging_readings(), small_gpow(c)) {
                 (Some((n, _)), _) => format!(
@@ -113,11 +122,11 @@ impl FnLower<'_> {
                      name two different cells. Write `buf[GEN ** k]` for cell k",
                     c.c1, c.c0
                 ),
-                (None, Some(k)) if bare_int => format!(
+                (None, Some(k)) if plain_int => format!(
                     "is a plain integer naming cell {k}, while the slice `buf[n:n + 1]` reads the \
                      same number as cell n. Write `buf[GEN ** {k}]` and say which you mean"
                 ),
-                (None, Some(k)) => return self.heap_base(arr, k),
+                (None, Some(k)) => return self.heap_base(arr, k, span),
                 (None, None) => format!(
                     "folds to the field constant {:#x}:{:#x}, which is not a g-power up to g^{FOLD_MAX}, \
                      so it names no heap cell (did an integer index leak in from a StackBuf conversion?)",
@@ -127,7 +136,7 @@ impl FnLower<'_> {
             self.fail(format!("heap index {why}"));
         }
         match known.addr {
-            Some(GAddr { base: None, exp, .. }) => return self.heap_base(arr, exp),
+            Some(GAddr { base: None, exp, .. }) => return self.heap_base(arr, exp, span),
             // A runtime-base index carrying a constant g-power shift
             // (`buf[cursor * GEN ** k]`): fold the whole constant part (the
             // index's shift plus `arr`'s own symbolic shift) into `β`, and
@@ -205,6 +214,16 @@ impl FnLower<'_> {
         }
     }
 
+    /// A read of a name nothing binds is reported as that, whatever the use wants of it.
+    pub(super) fn check_bound(&self, e: &Expr) {
+        if let Expr::Var(v) = e
+            && self.scope.bound(v).is_none()
+            && !self.const_arrays.contains_key(v.as_str())
+        {
+            self.unbound(v)
+        }
+    }
+
     /// `addr(sb)`: the g-address `fp·g^base` of a `StackBuf`'s first cell, so a
     /// frame run can be pointed at (indexed at runtime, or handed to a callee)
     /// while its own accesses stay direct frame cells. Materializing `fp` is the
@@ -214,6 +233,7 @@ impl FnLower<'_> {
         if args.len() != 1 {
             self.fail("addr(buf) takes one StackBuf")
         };
+        self.check_bound(&args[0]);
         let (base, len) = self.stack_of(&args[0]).unwrap_or_else(|| {
             self.fail(format!(
                 "addr() names a frame run, so it takes a StackBuf, got `{:?}`",
@@ -227,11 +247,12 @@ impl FnLower<'_> {
         }
     }
 
-    /// Address `arr·g^extra` as `(base_cell, β)`, folding `arr`'s symbolic shift
-    /// and the constant `extra` into `β`. Falls back to a materialized pointer
-    /// (`β = 0`) when there is no runtime base or the offset exceeds [`FOLD_MAX`].
-    fn heap_base(&mut self, arr: &Expr, extra: u128) -> (Off, u32) {
-        self.check_heap_bound(arr, extra, 1);
+    /// Address `arr·g^extra` as `(base_cell, β)`, the first of `span` cells
+    /// bounds-checked together, folding `arr`'s symbolic shift and the constant
+    /// `extra` into `β`. Falls back to a materialized pointer (`β = 0`) when
+    /// there is no runtime base or the offset exceeds [`FOLD_MAX`].
+    fn heap_base(&mut self, arr: &Expr, extra: u128, span: u128) -> (Off, u32) {
+        self.check_heap_bound(arr, extra, span);
         if let Some(ga) = self.gaddr_of(arr)
             && let (Some(base), Some(exp)) = (ga.base, ga.exp.checked_add(extra))
             && exp <= FOLD_MAX

@@ -10,6 +10,8 @@
 module
 
 public import LeanVM.Guest.B1.Sig.WotsT
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«sp_wots»
 
 /-!
 # `sp_wots` as a template
@@ -81,9 +83,9 @@ theorem spDigitsC_zero (first n : Nat) : spDigitsC first n 0 = 0 := by
 /-- `sp_wots`'s chain step with its padding run at `X`: step `s` of chain `i`, the address
 `at[1] + spStepC i s`, then the 64-byte hash of `pp`, `at[0]`, it and the value (`walk`). Chain `0`'s step `0` adds nothing: no constant, `at[1]` hashed itself. -/
 def spWp (X : Nat) : WotsT where
-  step i s v c o := if i = 0 ∧ s = 0 then k64 X (.n 0) (.n 4) (.n 5) v c o
-    else cst c (lit (spStepC i s)) :: addS (.n (c + 1)) (.n 5) (.n c) ::
-      k64 X (.n 0) (.n 4) (.n (c + 1)) v (c + 2) o
+  step i s v c o := if i = 0 ∧ s = 0 then k64 X (.n (val% «sp_wots» "pp")) (.n (val% «sp_wots» "at[0]")) (.n (val% «sp_wots» "at[1]")) v c o
+    else cst c (lit (spStepC i s)) :: addS (.n (c + 1)) (.n (val% «sp_wots» "at[1]")) (.n c) ::
+      k64 X (.n (val% «sp_wots» "pp")) (.n (val% «sp_wots» "at[0]")) (.n (c + 1)) v (c + 2) o
   size := 3
   power s := .n (6 + s)
   enc first n k := spDigitsC first n k
@@ -135,7 +137,7 @@ def spTarget : E := word 325 0
 def spPkC : E := word (2 ^ 24) 0
 
 /-- The codeword's groups: 21 of three digits from `n16`, then the last chain's. -/
-def spGs : List Stmt × Nat × List V × V × V := spGroupsT 21 0 (.n 0) (.n 0) 16
+def spGs : List Stmt × Nat × List V × V × V := spGroupsT 21 0 (.n (val% «sp_wots» "pp")) (.n (val% «sp_wots» "pp")) 16
 
 /-- The last chain's group. -/
 def spLast : List Stmt × Nat := spGroupT 63 1 false spGs.2.2.2.1 spGs.2.2.2.2 spGs.2.1
@@ -145,7 +147,7 @@ def spC : Nat := spLast.2
 
 /-- The leaf's cells: `pp`, `a0`, `a1 + SP_WOTS_PK` and the 64 chain tips (`sp_word`). -/
 def spLeafCells : List V :=
-  V.n 0 :: V.n 1 :: V.n (spC + 2) :: spGs.2.2.1 ++ [V.n (spSlot false spGs.2.1 0 2)]
+  V.n (val% «sp_wots» "pp") :: V.n (val% «sp_wots» "a0") :: V.n (spC + 2) :: spGs.2.2.1 ++ [V.n (spSlot false spGs.2.1 0 2)]
 
 /-- The leaf's `keccak_cells` (1072 bytes), its padding run at `spPad`: the statements, the next
 base and the output run's base. -/
@@ -153,11 +155,11 @@ def spLeafK : List Stmt × Nat × Nat := kMsg spPad (spLeafCells.map KC.cell) 10
 
 /-- The body of `sp_wots`, numbered uniformly. -/
 def spBodyT : List Stmt :=
-  [copyS (.n 4) (.n 1), copyS (.n 5) (.n 2)] ++
+  [copyS (.n (val% «sp_wots» "at[0]")) (.n (val% «sp_wots» "a0")), copyS (.n (val% «sp_wots» "at[1]")) (.n (val% «sp_wots» "a1"))] ++
     (List.range 10).map (fun s => cst (6 + s) (word (2 ^ s) 0)) ++ spGs.1 ++ spLast.1 ++
-    [.atom (.assertEq (.n (spEnc false 1 spGs.2.1)) (.n 3)), cst spC spTarget,
+    [.atom (.assertEq (.n (spEnc false 1 spGs.2.1)) (.n (val% «sp_wots» "encoding"))), cst spC spTarget,
       .atom (.assertEq (.n (spProd false 1 spGs.2.1)) (.n spC)), cst (spC + 1) spPkC,
-      addS (.n (spC + 2)) (.n 2) (.n (spC + 1))] ++ spLeafK.1 ++
+      addS (.n (spC + 2)) (.n (val% «sp_wots» "a1")) (.n (spC + 1))] ++ spLeafK.1 ++
     [copyS (.n spLeafK.2.1) (.n spLeafK.2.2), .ret [.n spLeafK.2.1]]
 
 end

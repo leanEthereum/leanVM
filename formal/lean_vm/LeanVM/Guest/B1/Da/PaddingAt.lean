@@ -11,7 +11,9 @@ public import LeanVM.Guest.B1.Da.AtBase
 public import LeanVM.Guest.B1.Da.PaddingComplete
 public import LeanVM.Guest.GuestConst
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
-import LeanVM.Guest.Data.Source
+import LeanVM.Guest.Data.Consts
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«da_padding»
 
 /-!
 # `da_padding`, placed
@@ -32,12 +34,12 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 
 /-- `da_padding`'s atoms. -/
 def padAs : List Atom := [
-    .const (.n 1) (word 1 0), .add (.n 2) (.n 0) (.n 1), .hint (.inverse (.n 2) (.n 3)),
-    .assertNe (.n 2) (.n 3) (.n 4), .const (.n 5) (word (2 ^ guest_const% DA_MAX_ROWS) 0),
-    .rangeCheck (.n 0) (.n 6) (.n 7) (.n 8) (.n 5), .const (.n 9) (word (2 ^ guest_const% DA_MAX_ROWS) 0),
-    .mul (.n 9) (.n 10) (.n 0), .copy (.n 11) (.n 10)]
+    .const (.n (val% «da_padding» "s0#0")) (word 1 0), .add (.n (val% «da_padding» "s0#1")) (.n (val% «da_padding» "n_blob_g")) (.n (val% «da_padding» "s0#0")), .hint (.inverse (.n (val% «da_padding» "s0#1")) (.n (val% «da_padding» "s0#2"))),
+    .assertNe (.n (val% «da_padding» "s0#1")) (.n (val% «da_padding» "s0#2")) (.n (val% «da_padding» "s0#3")), .const (.n (val% «da_padding» "s1#0")) (word (2 ^ guest_const% DA_MAX_ROWS) 0),
+    .rangeCheck (.n (val% «da_padding» "n_blob_g")) (.n (val% «da_padding» "s1#1")) (.n (val% «da_padding» "s1#2")) (.n (val% «da_padding» "s1#3")) (.n (val% «da_padding» "s1#0")), .const (.n (val% «da_padding» "s2#1")) (word (2 ^ guest_const% DA_MAX_ROWS) 0),
+    .mul (.n (val% «da_padding» "s2#1")) (.n (val% «da_padding» "s2#2")) (.n (val% «da_padding» "n_blob_g")), .copy (.n (val% «da_padding» "s2#0")) (.n (val% «da_padding» "s2#2"))]
 
-theorem pad_split : Fn.body fn% «da_padding» = padAs.map Stmt.atom ++ [.ret [.n 11]] := by
+theorem pad_split : Fn.body fn% «da_padding» = padAs.map Stmt.atom ++ [.ret [.n (val% «da_padding» "s2#0")]] := by
   rw [da_padding_body]; rfl
 
 theorem pad_loop : coreProgram.loop "da_padding" = false := by
@@ -54,7 +56,7 @@ theorem padding_completeAt (fs : String → ℕ) (cert : String → V → ℕ) {
   obtain ⟨σ, hp, hh⟩ := (rel_iff_sem find_da_padding _ _).mp hrel
   rw [pad_split, holdsList_atoms_ret] at hh
   obtain ⟨hat, hr⟩ := hh
-  have hpar : (fn% «da_padding»).params = [.n 0] := rfl
+  have hpar : (fn% «da_padding»).params = [.n (val% «da_padding» "n_blob_g")] := rfl
   rw [hpar] at hp
   simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hp
   refine relAtIn_atoms find_da_padding pad_split pad_loop (by decide) (by rw [hpar]; simp [hp])

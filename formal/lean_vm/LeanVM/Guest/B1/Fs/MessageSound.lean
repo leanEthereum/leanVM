@@ -7,6 +7,8 @@
 module
 
 public import LeanVM.Guest.B1.Fs.MessageT
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«opening_message__L»
 
 /-!
 # `opening_message`: groups and soundness
@@ -115,8 +117,8 @@ theorem mem_omFinal {n nonce : ℕ} {a : Atom}
   exact Or.inr ha
 
 theorem mem_omHead {n nonce : ℕ} {a : Atom}
-    (ha : a ∈ [Atom.copy (.n 7) (.n 0), .copy (.n 8) (.n 1), .copy (.n 9) (.n 2),
-      .copy (.n 10) (.n 3), .copy (.n 11) (.n 4)]) : a ∈ omAtoms n nonce := by
+    (ha : a ∈ [Atom.copy (.n (valf% «opening_message» "sp[0]")) (.n (valf% «opening_message» "fs0")), .copy (.n (valf% «opening_message» "sp[1]")) (.n (valf% «opening_message» "fs1")), .copy (.n (valf% «opening_message» "sp[2]")) (.n (valf% «opening_message» "fs2")),
+      .copy (.n (valf% «opening_message» "sp[3]")) (.n (valf% «opening_message» "fs3")), .copy (.n (valf% «opening_message» "sp[4]")) (.n (valf% «opening_message» "fs4"))]) : a ∈ omAtoms n nonce := by
   simp only [omAtoms, List.mem_append]
   exact Or.inl (Or.inl (Or.inl ha))
 
@@ -125,12 +127,12 @@ theorem mem_omHead {n nonce : ℕ} {a : Atom}
 
 /-- What word `p`'s atoms ask. -/
 theorem om_word_holds {p : ℕ} (h : ∀ a ∈ omWordAs p, a.Holds rd σ) :
-    LoadHolds rd (σ (.n 5)) p (σ (.n (omW p))) ∧ σ (.n (omW p + 1)) = σ (.n (omW p)) ∧
-      σ (.n (omW p + 2)) = word 0 dsObserve ∧ LoadHolds rd (σ (.n 6)) p (σ (.n (omW p))) :=
-  ⟨h (.load (.n (omW p)) (.n 5) p) (by simp [omWordAs]),
+    LoadHolds rd (σ (.n (valf% «opening_message» "cursor"))) p (σ (.n (omW p))) ∧ σ (.n (omW p + 1)) = σ (.n (omW p)) ∧
+      σ (.n (omW p + 2)) = word 0 dsObserve ∧ LoadHolds rd (σ (.n (valf% «opening_message» "out"))) p (σ (.n (omW p))) :=
+  ⟨h (.load (.n (omW p)) (.n (valf% «opening_message» "cursor")) p) (by simp [omWordAs]),
     h (.copy (.n (omW p + 1)) (.n (omW p))) (by simp [omWordAs]),
     h (.const (.n (omW p + 2)) (word 0 dsObserve)) (by simp [omWordAs]),
-    h (.load (.n (omW p)) (.n 6) p) (by simp [omWordAs])⟩
+    h (.load (.n (omW p)) (.n (valf% «opening_message» "out")) p) (by simp [omWordAs])⟩
 
 /-- A full group of the words read. -/
 theorem grp_map_range (f : ℕ → E) {n g : ℕ} (h : 4 * g + 4 ≤ n) :
@@ -169,7 +171,7 @@ theorem run5_cellsO {O : ℕ} {S : KeccakState}
 def omXs (σ : Val) (n : ℕ) : List E := (List.range n).map fun p ↦ σ (.n (omW p))
 
 /-- The capacity it copies in. -/
-def omCap0 (σ : Val) : List E := [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)]
+def omCap0 (σ : Val) : List E := [σ (.n (valf% «opening_message» "fs0")), σ (.n (valf% «opening_message» "fs1")), σ (.n (valf% «opening_message» "fs2")), σ (.n (valf% «opening_message» "fs3")), σ (.n (valf% «opening_message» "fs4"))]
 
 /-- Group `g`'s rate cells read the group's waiting scalars. -/
 theorem om_rate {n g : ℕ} (hg : 4 * g + 4 ≤ n)
@@ -212,11 +214,11 @@ theorem om_mid {n nonce : ℕ} (hall : ∀ a ∈ omAtoms n nonce, a.Holds rd σ)
     intro _
     refine ⟨?_, fun h0 ↦ step 0 h0 ?_⟩ <;>
     · simp only [run5, omCap, List.map_cons, List.map_nil, stCap, omCap0]
-      rw [show σ (.n 7) = σ (.n 0) from hall (.copy (.n 7) (.n 0)) (mem_omHead (by simp)),
-        show σ (.n (7 + 1)) = σ (.n 1) from hall (.copy (.n 8) (.n 1)) (mem_omHead (by simp)),
-        show σ (.n (7 + 2)) = σ (.n 2) from hall (.copy (.n 9) (.n 2)) (mem_omHead (by simp)),
-        show σ (.n (7 + 3)) = σ (.n 3) from hall (.copy (.n 10) (.n 3)) (mem_omHead (by simp)),
-        show σ (.n (7 + 4)) = σ (.n 4) from hall (.copy (.n 11) (.n 4)) (mem_omHead (by simp))]
+      rw [show σ (.n (valf% «opening_message» "sp[0]")) = σ (.n (valf% «opening_message» "fs0")) from hall (.copy (.n (valf% «opening_message» "sp[0]")) (.n (valf% «opening_message» "fs0"))) (mem_omHead (by simp)),
+        show σ (.n (valf% «opening_message» "sp[1]")) = σ (.n (valf% «opening_message» "fs1")) from hall (.copy (.n (valf% «opening_message» "sp[1]")) (.n (valf% «opening_message» "fs1"))) (mem_omHead (by simp)),
+        show σ (.n (valf% «opening_message» "sp[2]")) = σ (.n (valf% «opening_message» "fs2")) from hall (.copy (.n (valf% «opening_message» "sp[2]")) (.n (valf% «opening_message» "fs2"))) (mem_omHead (by simp)),
+        show σ (.n (valf% «opening_message» "sp[3]")) = σ (.n (valf% «opening_message» "fs3")) from hall (.copy (.n (valf% «opening_message» "sp[3]")) (.n (valf% «opening_message» "fs3"))) (mem_omHead (by simp)),
+        show σ (.n (valf% «opening_message» "sp[4]")) = σ (.n (valf% «opening_message» "fs4")) from hall (.copy (.n (valf% «opening_message» "sp[4]")) (.n (valf% «opening_message» "fs4"))) (mem_omHead (by simp))]
   | succ g ih =>
     intro hg
     obtain ⟨hc, -⟩ := ih (by omega)
@@ -288,7 +290,7 @@ theorem padAs_holds {b : ℕ} (h : ∀ a ∈ padAs b, a.Holds rd σ) :
 the nonce read at `cursor[n]` if there is one. -/
 theorem om_tail {n nonce : ℕ} (hcase : OmCase n nonce) (hn : 1 ≤ n)
     (hall : ∀ a ∈ omAtoms n nonce, a.Holds rd σ) :
-    ∃ nn : E, (nonce = 1 → LoadHolds rd (σ (.n 5)) n nn) ∧ ∀ c : Fin 13,
+    ∃ nn : E, (nonce = 1 → LoadHolds rd (σ (.n (valf% «opening_message» "cursor"))) n nn) ∧ ∀ c : Fin 13,
       σ (.n ((omTail n nonce).2.1 + c.val)) =
         cellsOfState (omState (omCap0 σ) (omXs σ n) (if nonce = 1 then some nn else none)) false c := by
   have hw := om_hw hall
@@ -323,7 +325,7 @@ theorem om_tail {n nonce : ℕ} (hcase : OmCase n nonce) (hn : 1 ≤ n)
     simp only [omTail, h4, ↓reduceIte, show (1 : ℕ) ≠ 0 by decide] at ht ⊢
     have he : omE n = omO (omK n) := by simp only [omE, omO, omK] at h4 ⊢; omega
     have hB := om_group hw (by omega) (ht _ (by simp)) hK
-    have l13 : LoadHolds rd (σ (.n 5)) n (σ (.n (omE n + 13))) := ht (.load (.n (omE n + 13)) (.n 5) n) (by simp)
+    have l13 : LoadHolds rd (σ (.n (valf% «opening_message» "cursor"))) n (σ (.n (omE n + 13))) := ht (.load (.n (omE n + 13)) (.n (valf% «opening_message» "cursor")) n) (by simp)
     have c14 : σ (.n (omE n + 14)) = σ (.n (omE n + 13)) := ht (.copy (.n (omE n + 14)) (.n (omE n + 13))) (by simp)
     have c15 : σ (.n (omE n + 15)) = word 0 dsPowNonce := ht (.const (.n (omE n + 15)) (word 0 dsPowNonce)) (by simp)
     obtain ⟨z1, z2, z3, z4⟩ := padAs_holds (b := omE n + 16) fun a ha ↦ ht a (by simp [ha])
@@ -347,7 +349,7 @@ theorem om_tail {n nonce : ℕ} (hcase : OmCase n nonce) (hn : 1 ≤ n)
     rw [habs, ← cells13_run13 σ _ c, hout]
   · -- two words left, then the nonce
     simp only [omTail, h2, ↓reduceIte, show (1 : ℕ) ≠ 0 by decide, show (2 : ℕ) ≠ 4 by decide] at ht ⊢
-    have l0 : LoadHolds rd (σ (.n 5)) n (σ (.n (omE n))) := ht (.load (.n (omE n)) (.n 5) n) (by simp)
+    have l0 : LoadHolds rd (σ (.n (valf% «opening_message» "cursor"))) n (σ (.n (omE n))) := ht (.load (.n (omE n)) (.n (valf% «opening_message» "cursor")) n) (by simp)
     have c1 : σ (.n (omE n + 1)) = σ (.n (omE n)) := ht (.copy (.n (omE n + 1)) (.n (omE n))) (by simp)
     have c2 : σ (.n (omE n + 2)) = word 0 dsPowNonce := ht (.const (.n (omE n + 2)) (word 0 dsPowNonce)) (by simp)
     have z3 : σ (.n (omE n + 3)) = 0 := (ht (.const (.n (omE n + 3)) (word 0 0)) (by simp)).trans word_zero
@@ -375,7 +377,7 @@ theorem om_tail {n nonce : ℕ} (hcase : OmCase n nonce) (hn : 1 ≤ n)
   · -- one word left, then the nonce
     simp only [omTail, h1, ↓reduceIte, show (1 : ℕ) ≠ 0 by decide, show (1 : ℕ) ≠ 4 by decide,
       show (1 : ℕ) ≠ 2 by decide] at ht ⊢
-    have l0 : LoadHolds rd (σ (.n 5)) n (σ (.n (omE n))) := ht (.load (.n (omE n)) (.n 5) n) (by simp)
+    have l0 : LoadHolds rd (σ (.n (valf% «opening_message» "cursor"))) n (σ (.n (omE n))) := ht (.load (.n (omE n)) (.n (valf% «opening_message» "cursor")) n) (by simp)
     have c1 : σ (.n (omE n + 1)) = σ (.n (omE n)) := ht (.copy (.n (omE n + 1)) (.n (omE n))) (by simp)
     have c2 : σ (.n (omE n + 2)) = word 0 dsPowNonce := ht (.const (.n (omE n + 2)) (word 0 dsPowNonce)) (by simp)
     obtain ⟨z1, z2, z3, z4⟩ := padAs_holds (b := omE n + 3) fun a ha ↦ ht a (by simp [ha])
@@ -408,7 +410,7 @@ theorem om_final_holds {n nonce O f : ℕ} (h : ∀ a ∈ omFinal n nonce O f, a
     σ (.n f) = σ (.n O) ∧ σ (.n (f + 1)) = σ (.n (O + 1)) ∧ σ (.n (f + 2)) = σ (.n (O + 8)) ∧
       σ (.n (f + 3)) = σ (.n (O + 9)) ∧ σ (.n (f + 4)) = σ (.n (O + 10)) ∧
       σ (.n (f + 5)) = σ (.n (O + 11)) ∧ σ (.n (f + 6)) = σ (.n (O + 12)) ∧
-      σ (.n (f + 9)) = σ (.n 5) * word (2 ^ (n + nonce)) 0 := by
+      σ (.n (f + 9)) = σ (.n (valf% «opening_message» "cursor")) * word (2 ^ (n + nonce)) 0 := by
   refine ⟨h (.copy (.n f) (.n O)) (by simp [omFinal]),
     h (.copy (.n (f + 1)) (.n (O + 1))) (by simp [omFinal]),
     h (.copy (.n (f + 2)) (.n (O + 8))) (by simp [omFinal]),
@@ -417,8 +419,8 @@ theorem om_final_holds {n nonce O f : ℕ} (h : ∀ a ∈ omFinal n nonce O f, a
     h (.copy (.n (f + 5)) (.n (O + 11))) (by simp [omFinal]),
     h (.copy (.n (f + 6)) (.n (O + 12))) (by simp [omFinal]), ?_⟩
   have e9 : σ (.n (f + 9)) = σ (.n (f + 8)) := h (.copy (.n (f + 9)) (.n (f + 8))) (by simp [omFinal])
-  have e8 : σ (.n (f + 8)) = σ (.n 5) * σ (.n (f + 7)) :=
-    h (.mul (.n (f + 8)) (.n 5) (.n (f + 7))) (by simp [omFinal])
+  have e8 : σ (.n (f + 8)) = σ (.n (valf% «opening_message» "cursor")) * σ (.n (f + 7)) :=
+    h (.mul (.n (f + 8)) (.n (valf% «opening_message» "cursor")) (.n (f + 7))) (by simp [omFinal])
   have e7 : σ (.n (f + 7)) = word (2 ^ (n + nonce)) 0 :=
     h (.const (.n (f + 7)) (word (2 ^ (n + nonce)) 0)) (by simp [omFinal])
   rw [e9, e8, e7]
@@ -436,7 +438,7 @@ theorem om_cells_ret {O : ℕ} {S : KeccakState}
 /-- **`opening_message` is sound.** -/
 theorem om_sound {name : String} {f : Fn} (n nonce : ℕ) (hcase : OmCase n nonce) (hn : 1 ≤ n)
     (h64 : n + nonce < 64) (hfind : coreProgram.find? name = some f)
-    (hparams : f.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6])
+    (hparams : f.params = [.n (valf% «opening_message» "fs0"), .n (valf% «opening_message» "fs1"), .n (valf% «opening_message» "fs2"), .n (valf% «opening_message» "fs3"), .n (valf% «opening_message» "fs4"), .n (valf% «opening_message» "cursor"), .n (valf% «opening_message» "out")])
     (hbody : f.body = omBody n nonce) (rd : Reader) (args rets : List E)
     (h : coreProgram.Rel rd name args rets) : MeaningOpeningMessage n nonce rd args rets := by
   rw [rel_iff_sem hfind, hbody, hparams, omBody] at h
@@ -445,8 +447,8 @@ theorem om_sound {name : String} {f : Fn} (n nonce : ℕ) (hcase : OmCase n nonc
   obtain ⟨hall, hret⟩ := hh
   subst hp
   obtain ⟨nn, hnn, hO⟩ := om_tail hcase hn hall
-  have hwd : ∀ p < n, LoadHolds rd (σ (.n 5)) p (σ (.n (omW p))) ∧
-      LoadHolds rd (σ (.n 6)) p (σ (.n (omW p))) := fun p hp ↦ by
+  have hwd : ∀ p < n, LoadHolds rd (σ (.n (valf% «opening_message» "cursor"))) p (σ (.n (omW p))) ∧
+      LoadHolds rd (σ (.n (valf% «opening_message» "out"))) p (σ (.n (omW p))) := fun p hp ↦ by
     obtain ⟨a, -, -, b⟩ := om_word_holds fun x hx ↦ hall x (mem_omWord hp hx)
     exact ⟨a, b⟩
   obtain ⟨f0, f1, f2, f3, f4, f5, f6, f9⟩ := om_final_holds fun a ha ↦ hall a (mem_omFinal ha)

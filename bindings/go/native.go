@@ -1,7 +1,7 @@
 //go:build cgo
 
-// Package leanpq provides Go bindings for leanXMSS and leanSPHINCS signatures and their recursive
-// aggregation through a leanVM sidecar.
+// Package leanpq provides Go bindings for leanXMSS and leanSPHINCS signatures, their recursive
+// aggregation through a leanVM sidecar, and the consensus VRF.
 package leanpq
 
 // #cgo CFLAGS: -I${SRCDIR}/internal/native/include
@@ -33,6 +33,9 @@ type XmssSignature [2404]byte
 
 // SphincsSignature is an encoded leanSPHINCS signature.
 type SphincsSignature [7740]byte
+
+// VrfProof is a VRF proof: the secret of a slot, then its leaf's 31 siblings, bottom-up.
+type VrfProof [1024]byte
 
 // XmssSignedMessage is a leanXMSS signature over Message by PublicKey, as input to aggregation.
 type XmssSignedMessage struct {
@@ -66,6 +69,13 @@ type XmssSecretKey struct {
 type SphincsSecretKey struct {
 	mu     sync.Mutex
 	handle *C.lpq_sphincs_secret_key
+}
+
+// VrfKey is a VRF key: a seed and its range of slots, which fix the root, so keep both. Call
+// Close when finished.
+type VrfKey struct {
+	mu     sync.Mutex
+	handle *C.lpq_vrf_key
 }
 
 // Sidecar is a connection to a leanVM sidecar, the separate process that proves and verifies
@@ -109,6 +119,23 @@ func XmssSecretKeyFromBytes(bytes []byte) (*XmssSecretKey, error) {
 	return &XmssSecretKey{handle: handle}, nil
 }
 
+// XmssSecretKeyFromCacheBytes loads a leanXMSS key from its seed, its public key and the bytes
+// returned by CacheBytes, building no tree. The cache is checked against the public key.
+func XmssSecretKeyFromCacheBytes(seed, publicKey [32]byte, cache []byte) (*XmssSecretKey, error) {
+	var handle *C.lpq_xmss_secret_key
+	if err := call(func() C.int32_t {
+		return C.lpq_xmss_secret_key_from_cache_bytes(
+			arrayPointer(&seed), C.size_t(len(seed)),
+			arrayPointer(&publicKey), C.size_t(len(publicKey)),
+			bytesPointer(cache), C.size_t(len(cache)),
+			&handle,
+		)
+	}); err != nil {
+		return nil, err
+	}
+	return &XmssSecretKey{handle: handle}, nil
+}
+
 // Bytes returns the key's secret encoding (its 32-byte seed).
 func (key *XmssSecretKey) Bytes() ([]byte, error) {
 	key.mu.Lock()
@@ -118,6 +145,18 @@ func (key *XmssSecretKey) Bytes() ([]byte, error) {
 	}
 	return bufferResult(func(output *C.lpq_buffer) C.int32_t {
 		return C.lpq_xmss_secret_key_to_bytes(key.handle, output)
+	})
+}
+
+// CacheBytes returns the trees the key holds, without any secret.
+func (key *XmssSecretKey) CacheBytes() ([]byte, error) {
+	key.mu.Lock()
+	defer key.mu.Unlock()
+	if key.handle == nil {
+		return nil, errClosed("leanXMSS secret key")
+	}
+	return bufferResult(func(output *C.lpq_buffer) C.int32_t {
+		return C.lpq_xmss_secret_key_cache_to_bytes(key.handle, output)
 	})
 }
 
@@ -277,6 +316,95 @@ func SphincsVerify(publicKey, message [32]byte, signature SphincsSignature) erro
 			arrayPointer(&publicKey), C.size_t(len(publicKey)),
 			arrayPointer(&message), C.size_t(len(message)),
 			(*C.uint8_t)(unsafe.Pointer(&signature[0])), C.size_t(len(signature)),
+		)
+	})
+}
+
+// VrfKeyFromSeed builds the key of the slots [start, end), hashing every slot of the range. It
+// fails if the range is empty or ends past 2^31.
+func VrfKeyFromSeed(seed [32]byte, start, end uint32) (*VrfKey, error) {
+	var handle *C.lpq_vrf_key
+	if err := call(func() C.int32_t {
+		return C.lpq_vrf_key_new(arrayPointer(&seed), C.size_t(len(seed)), C.uint32_t(start), C.uint32_t(end), &handle)
+	}); err != nil {
+		return nil, err
+	}
+	return &VrfKey{handle: handle}, nil
+}
+
+// VrfKeyFromCacheBytes rebuilds a key from its seed, its root and a cache from CacheBytes, without
+// hashing the range. It fails if the cache is malformed or does not lead to root.
+func VrfKeyFromCacheBytes(seed, root [32]byte, cache []byte) (*VrfKey, error) {
+	var handle *C.lpq_vrf_key
+	if err := call(func() C.int32_t {
+		return C.lpq_vrf_key_from_cache_bytes(arrayPointer(&seed), C.size_t(len(seed)), arrayPointer(&root), C.size_t(len(root)), bytesPointer(cache), C.size_t(len(cache)), &handle)
+	}); err != nil {
+		return nil, err
+	}
+	return &VrfKey{handle: handle}, nil
+}
+
+// CacheBytes encodes the key's cache: its range and cached layer, no secret.
+func (key *VrfKey) CacheBytes() ([]byte, error) {
+	key.mu.Lock()
+	defer key.mu.Unlock()
+	if key.handle == nil {
+		return nil, errClosed("VRF key")
+	}
+	return bufferResult(func(output *C.lpq_buffer) C.int32_t {
+		return C.lpq_vrf_key_cache_to_bytes(key.handle, output)
+	})
+}
+
+// Root returns the root, which the validator registers.
+func (key *VrfKey) Root() ([32]byte, error) {
+	var root [32]byte
+	key.mu.Lock()
+	defer key.mu.Unlock()
+	if key.handle == nil {
+		return root, errClosed("VRF key")
+	}
+	err := fixedResult(root[:], "VRF root", func(output *C.lpq_buffer) C.int32_t {
+		return C.lpq_vrf_key_root(key.handle, output)
+	})
+	return root, err
+}
+
+// Proof returns the proof of slot. It fails outside the range.
+func (key *VrfKey) Proof(slot uint32) (VrfProof, error) {
+	var proof VrfProof
+	key.mu.Lock()
+	defer key.mu.Unlock()
+	if key.handle == nil {
+		return proof, errClosed("VRF key")
+	}
+	err := fixedResult(proof[:], "VRF proof", func(output *C.lpq_buffer) C.int32_t {
+		return C.lpq_vrf_key_proof(key.handle, C.uint32_t(slot), output)
+	})
+	return proof, err
+}
+
+// Close releases the native key. It is safe to call repeatedly.
+func (key *VrfKey) Close() {
+	if key == nil {
+		return
+	}
+	key.mu.Lock()
+	defer key.mu.Unlock()
+	if key.handle != nil {
+		C.lpq_vrf_key_destroy(key.handle)
+		key.handle = nil
+	}
+}
+
+// VrfVerify returns nil if proof opens slot under root, as is_valid_vrf_proof in the consensus
+// specifications.
+func VrfVerify(root [32]byte, slot uint64, proof VrfProof) error {
+	return call(func() C.int32_t {
+		return C.lpq_vrf_verify(
+			arrayPointer(&root), C.size_t(len(root)),
+			C.uint64_t(slot),
+			(*C.uint8_t)(unsafe.Pointer(&proof[0])), C.size_t(len(proof)),
 		)
 	})
 }

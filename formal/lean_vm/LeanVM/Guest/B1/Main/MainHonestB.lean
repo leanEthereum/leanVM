@@ -73,10 +73,10 @@ structure MainStaticGoalsB (SB SK : String → ℕ) : Prop where
 
 /-- **`main`'s non-static callees within their bounds `b`, by trees satisfying `p`.** -/
 structure MainGoalsTB (p : MainPreds) (b : MainBs) : Prop where
-  clx : CompleteAtDTB fs cert 20 "claim_list_digest" (hLmain fs fp seed s w)
+  clx : CompleteAtDTB fs cert 23 "claim_list_digest" (hLmain fs fp seed s w)
     [(hm fs fp seed s w).a77, gen ^ (hm fs fp seed s w).nlx]
     (Returns (B1.Digest.digestCells (hm fs fp seed s w).xd)) p.Px b.Bx
-  cls : CompleteAtDTB fs cert 20 "claim_list_digest" (hLmain fs fp seed s w)
+  cls : CompleteAtDTB fs cert 23 "claim_list_digest" (hLmain fs fp seed s w)
     [(hm fs fp seed s w).a80, gen ^ (hm fs fp seed s w).nls]
     (Returns (B1.Digest.digestCells (hm fs fp seed s w).sd)) p.Ps b.Bs
   dv : (hm fs fp seed s w).nd = 1 →

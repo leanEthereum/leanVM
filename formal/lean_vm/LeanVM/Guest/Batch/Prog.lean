@@ -328,6 +328,7 @@ theorem runsTo_roundsProg : ∀ (rounds : List (E × E)) (claim : E) {sp : Spong
   | [], claim, sp, _, _, hk => by subst hk; exact runsTo_ret _ sp
   | (g1, gInf) :: rounds, claim, sp, _, hg, hk => by
     subst hk
+    rw [List.length_cons, sumcheckRoundsProgram_succ]
     have h := (runsTo_readE hg g1).bind
       (f := fun g1 ↦ do
         let gInf ← VerifierProgram.readScalar
@@ -378,8 +379,8 @@ theorem runProof_batchAny {M : ℕ} (hM : M ≤ 2 ^ 64 - 1) {bytecode : List K}
   have hstream : batchingStream cs h = childCountCells cs.length ++ (cs.flatMap childCells ++
       (h.lambdaGrindNonce :: (h.sumcheckMessages.flatMap (fun g ↦ [g.1, g.2]) ++
         [h.finalBytecodeValue]))) := by
-    simp only [batchingStream, cellsBeforeChallenge, List.append_assoc, List.cons_append,
-      List.nil_append]
+    simp only [batchingStream, cellsBeforeChallenge, lambdaGrindNonceCells_eq, sumcheckRoundCells_eq,
+      List.append_assoc, List.cons_append, List.nil_append]
   show (match runD (boundedBatchingProgram M bytecode) ⟨⟨batchSeed, [], none⟩, batchingStream cs h, [], []⟩ with
       | some (true, s) => s.stream.isEmpty && s.openings.isEmpty
       | _ => false) = true ↔ _

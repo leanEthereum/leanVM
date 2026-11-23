@@ -14,6 +14,8 @@ public import LeanVM.Guest.B1.Da.FacAt
 public import LeanVM.Guest.B1.Da.ExpAt
 public import LeanVM.Guest.B1.Da.OffAt
 public import LeanVM.Guest.B1.Da.FlatOut
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«da_vector»
 
 /-!
 # `da_vector`, placed
@@ -104,7 +106,7 @@ theorem vec_completeAtB (hrf : Lift.RunsFit fs cert) {SK : String → ℕ}
   unfold vecCOk at hcok
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hcok
   obtain ⟨⟨⟨⟨⟨⟨hflat, hnd⟩, hni⟩, haddr⟩, halloc⟩, hcalls⟩, hloads⟩ := hcok
-  have hb : Fn.body fn% «da_vector» = vecP ++ [.ret [.n 29, .n 30, .n 31, .n 32]] := rfl
+  have hb : Fn.body fn% «da_vector» = vecP ++ [.ret [.n (val% «da_vector» "s10#0"), .n (val% «da_vector» "s10#0[1]"), .n (val% «da_vector» "s10#0[2]"), .n (val% «da_vector» "s10#0[3]")]] := rfl
   -- the reads every callee needs of `zs` and `above_top`
   have hzsR : ∀ {rd : Reader} {bz : ℕ} {L : Layout}, (bz, zsCells z) ∈ L → MemL rd L →
       ∀ j < 14, LoadHolds rd (gen ^ bz) j (zsVal z j) := fun hq hm j hj => by
@@ -247,8 +249,8 @@ theorem vec_completeAtB (hrf : Lift.RunsFit fs cert) {SK : String → ℕ}
       have hall := vec_sholds (rd := rd) z (gen ^ bz) (gen ^ b1) (gen ^ (bt + 2 ^ 7)) (gen ^ bc)
         (gen ^ bo) hzv hav
       rw [← hσ] at hall
-      have s1 : σ (.n 1) = gen ^ bz := by rw [hσ]; rfl
-      have s16 : σ (.n 16) = gen ^ (bz + 14) := by
+      have s1 : σ (.n (val% «da_vector» "zs")) = gen ^ bz := by rw [hσ]; rfl
+      have s16 : σ (.n (val% «da_vector» "above_top")) = gen ^ (bz + 14) := by
         rw [hσ]; exact (pow_add gen bz 14).symm
       have hcs : vecP.filterMap (Stmt.callSF σ) = vecCalls := by
         rw [← hcalls]

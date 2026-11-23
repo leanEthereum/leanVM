@@ -22,10 +22,11 @@ The verifier rejects only where the honest transcript fails a check of `P'` (`tr
 `runProof_prove_trace`). Along the prover's run, each challenge of the transcript comes from a
 fresh permutation answer, unless some answer's capacity is that of an earlier permutation input
 (`Collided`); the proof of work's nonces are tried in order, and the passing nonce's answer has a
-challenge uniform and independent of its proof-of-work lane. So, by induction along the program
-(`trace_le`), the probability that the transcript fails `P'` with no collision is at most the
-ideal failure probability `S.failFrom P' [] none` (every challenge uniform and independent), plus
-`(1 - 2^-bits)^fuel` per quarter of `P`'s cost; the collisions are at most `Q · Q · 2^-256` over
+challenge independent of its proof-of-work lane, uniform among the challenges the search takes
+(outside `K` where the strategy asks it, `Strategy.outsideK`, `avgOn`). So, by induction along the
+program (`trace_le`), the probability that the transcript fails `P'` with no collision is at most
+the ideal failure probability `S.failFrom P' [] none` (every challenge uniform and independent),
+plus `(1 - 2^-bits (1 - 2^-64))^fuel` per quarter of `P`'s cost; the collisions are at most `Q · Q · 2^-256` over
 the run's `Q` queries (`collided_le`).
 -/
 
@@ -504,22 +505,115 @@ theorem powStep_of_nonceAt {ℓ : Log} {sp : Sponge} {κ : PowKey} (h : NonceAt 
     rw [← duplexInput_eq, fOf_eq hv]
     exact ⟨rfl, rfl, rfl⟩
 
+/-- The average over `E` is the average over a uniform state's challenge. -/
+theorem avgE_eq (A : E → ℝ≥0∞) : avgE A =
+    (∑ u : KeccakState, A (challengeOf u)) / Fintype.card KeccakState := by
+  unfold avgE
+  convert (sum_challengeOf_div A).symm using 3
+  · exact congrArg (@Finset.univ E) (Subsingleton.elim _ _)
+  · exact congrArg (@Fintype.card E) (Subsingleton.elim _ _)
+
+/-- A challenge is usable with probability `1`, or `1 - 2^-64` with `outsideK`. -/
+theorem usableProb_eq (o : Bool) : usableProb o = if o then qK else 1 := by
+  unfold usableProb
+  rw [avgE_eq]
+  cases o
+  · simp only [LeanVM.Prover.nonceUsable, Bool.not_false, Bool.true_or, ↓reduceIte,
+      Bool.false_eq_true]
+    rw [Finset.sum_const, Finset.card_univ, nsmul_eq_mul, mul_one,
+      ENNReal.div_self (by exact_mod_cast Fintype.card_ne_zero) (ENNReal.natCast_ne_top _)]
+  · simp only [↓reduceIte]
+    rw [sum_challengeOf_div fun c ↦ if LeanVM.Prover.nonceUsable true c then (1 : ℝ≥0∞) else 0,
+      ← sum_usable_div]
+    congr 1
+    refine Finset.sum_congr rfl fun c _ ↦ ?_
+    cases LeanVM.Prover.nonceUsable true c <;> simp [ind]
+
+theorem qK_pos : 0 < qK :=
+  tsub_pos_iff_lt.2 (pow_lt_one₀ bot_le (by norm_num) (by norm_num))
+
+theorem qK_le_usableProb (o : Bool) : qK ≤ usableProb o := by
+  rw [usableProb_eq]
+  cases o
+  · exact tsub_le_self
+  · exact le_rfl
+
+theorem usableProb_le_one' (o : Bool) : usableProb o ≤ 1 := by
+  rw [usableProb_eq]
+  cases o
+  · exact le_rfl
+  · exact tsub_le_self
+
+theorem usableProb_ne_zero' (o : Bool) : usableProb o ≠ 0 :=
+  (qK_pos.trans_le (qK_le_usableProb o)).ne'
+
+theorem usableProb_ne_top' (o : Bool) : usableProb o ≠ ⊤ :=
+  ne_top_of_le_ne_top ENNReal.one_ne_top (usableProb_le_one' o)
+
+/-- A nonce's answer passes the search of a `b`-bit proof of work with `outsideK = o`: its proof
+of work passes and its challenge is usable. -/
+def okU (b : ℕ) (o : Bool) (u : KeccakState) : Bool :=
+  powOk b (Keccak.lane u 2) && LeanVM.Prover.nonceUsable o (challengeOf u)
+
+/-- The probability that one nonce fails that search: `1 - 2^-b` times the usable share. -/
+noncomputable def missOn (b : ℕ) (o : Bool) : ℝ≥0∞ := 1 - 2⁻¹ ^ b * usableProb o
+
+/-- A search of fewer bits misses less often than `missK` of more. -/
+theorem missOn_le_missK {b B : ℕ} (h : b ≤ B) (o : Bool) : missOn b o ≤ missK B :=
+  tsub_le_tsub_left (mul_le_mul' (pow_le_pow_right_of_le_one' (by norm_num) h)
+    (qK_le_usableProb o)) 1
+
+/-- **The search's averages**: a uniform state passes the search with probability
+`2^-b · usableProb o`, and the challenge of a passing one is uniform among the usable ones. -/
+theorem sum_okU_mul_div {b : ℕ} (hb : b ≤ 64) (o : Bool) (A : E → ℝ≥0∞) :
+    (∑ u : KeccakState, ind (okU b o u = true) * A (challengeOf u)) / Fintype.card KeccakState =
+      2⁻¹ ^ b * avgE (fun c ↦ if LeanVM.Prover.nonceUsable o c then A c else 0) := by
+  have h := sum_powOk_mul_challengeOf_div b
+    fun c ↦ if LeanVM.Prover.nonceUsable o c then A c else 0
+  rw [sum_powOk_lane_div_eq hb, ← sum_challengeOf_div,
+    ← avgE_eq fun c ↦ if LeanVM.Prover.nonceUsable o c then A c else 0] at h
+  rw [← h]
+  congr 1
+  refine Finset.sum_congr rfl fun u _ ↦ ?_
+  simp only [okU, ind, Bool.and_eq_true]
+  split_ifs <;> simp_all
+
+theorem sum_okU_false_div {b : ℕ} (hb : b ≤ 64) (o : Bool) :
+    (∑ u : KeccakState, ind (okU b o u = false)) / Fintype.card KeccakState = missOn b o := by
+  have hc : (Fintype.card KeccakState : ℝ≥0∞) ≠ 0 := by exact_mod_cast Fintype.card_ne_zero
+  have hct : (Fintype.card KeccakState : ℝ≥0∞) ≠ ⊤ := ENNReal.natCast_ne_top _
+  have hpass : (∑ u : KeccakState, ind (okU b o u = true)) / Fintype.card KeccakState =
+      2⁻¹ ^ b * usableProb o := by
+    have h := sum_okU_mul_div hb o fun _ ↦ 1
+    simp only [mul_one] at h
+    exact h
+  have hadd : (∑ u : KeccakState, ind (okU b o u = false)) +
+      (∑ u : KeccakState, ind (okU b o u = true)) = Fintype.card KeccakState := by
+    rw [← Finset.sum_add_distrib]
+    calc ∑ u : KeccakState, (ind (okU b o u = false) + ind (okU b o u = true))
+        = ∑ _u : KeccakState, (1 : ℝ≥0∞) := Finset.sum_congr rfl fun u _ ↦ by
+          cases okU b o u <;> simp [ind]
+      _ = _ := by rw [Finset.sum_const, Finset.card_univ, nsmul_eq_mul, mul_one]
+  have hdiv := congrArg (· / (Fintype.card KeccakState : ℝ≥0∞)) hadd
+  simp only [ENNReal.add_div, ENNReal.div_self hc hct, hpass] at hdiv
+  exact ENNReal.eq_sub_of_add_eq (ne_top_of_le_ne_top ENNReal.one_ne_top
+    (mul_le_one' (pow_le_one₀ bot_le (by norm_num)) (usableProb_le_one' o))) hdiv
+
 /-- The pure search finds the first passing nonce the log answers. -/
 theorem findNonce_of_log {ℓ : Log} {sp : Sponge} {κ : PowKey} (h : NonceAt ℓ sp κ) {b fuel m : ℕ}
-    (hm : m < fuel) {u : KeccakState} (hu : lookF ℓ (nonceInput κ.1 κ.2 m) = some u)
-    (hpass : powOk b (Keccak.lane u 2) = true)
-    (hfail : ∀ m' < m, ∃ u', lookF ℓ (nonceInput κ.1 κ.2 m') = some u' ∧
-      powOk b (Keccak.lane u' 2) = false) :
-    findNonce (fOf ℓ) b sp fuel = some (nonceOf m) := by
+    {o : Bool} (hm : m < fuel) {u : KeccakState} (hu : lookF ℓ (nonceInput κ.1 κ.2 m) = some u)
+    (hpass : okU b o u = true)
+    (hfail : ∀ m' < m, ∃ u', lookF ℓ (nonceInput κ.1 κ.2 m') = some u' ∧ okU b o u' = false) :
+    findNonce (fOf ℓ) b o sp fuel = some (nonceOf m) := by
   unfold findNonce
-  have e : (List.range fuel).find? (fun n ↦ powOk b (powStep (fOf ℓ) sp (nonceOf n)).1) =
-      some m := by
+  have hok : ∀ j, nonceOk (fOf ℓ) b o sp (nonceOf j) = okU b o (fOf ℓ (nonceInput κ.1 κ.2 j)) :=
+    fun j ↦ by simp only [nonceOk, powStep_of_nonceAt h, okU]
+  have e : (List.range fuel).find? (fun n ↦ nonceOk (fOf ℓ) b o sp (nonceOf n)) = some m := by
     rw [List.find?_eq_some_iff_getElem]
-    refine ⟨by rw [powStep_of_nonceAt h, fOf_eq hu]; exact hpass, m, by simpa using hm, by simp,
-      fun j hj ↦ ?_⟩
+    refine ⟨by rw [hok, fOf_eq hu]; exact hpass, m, by simpa using hm, by simp, fun j hj ↦ ?_⟩
     simp only [List.getElem_range]
     obtain ⟨u', hu', hf⟩ := hfail j hj
-    rw [powStep_of_nonceAt h, fOf_eq hu']
+    rw [hok, fOf_eq hu']
     simp [hf]
   rw [e]
   rfl
@@ -528,24 +622,22 @@ theorem findNonce_of_log {ℓ : Log} {sp : Sponge} {κ : PowKey} (h : NonceAt �
 def SearchInv (ℓ : Log) (κ : PowKey) (n : ℕ) : Prop :=
   ∀ y ∈ fIns ℓ, capOf y = κ.1 → ∃ m < n, y = nonceInput κ.1 κ.2 m
 
-/-- **The proof-of-work search**: the first passing nonce's answer has a challenge uniform and
-independent of its proof of work; the search misses all its nonces with probability
-`(1 - 2^-b)^count`. -/
-theorem pr_search_le {sp : Sponge} {κ : PowKey} (hκ : KeyOk κ) {b fuel : ℕ} (hb : b ≤ 64)
-    (hfuel : fuel ≤ 2 ^ 64) (G : Option E → OracleComp KeccakCalls β) (ev : Log → Prop)
+/-- **The proof-of-work search**: the first passing nonce's answer has a challenge uniform among
+the usable ones and independent of its proof of work; the search misses all its nonces with
+probability `missOn b o ^ count`. -/
+theorem pr_search_le {sp : Sponge} {κ : PowKey} (hκ : KeyOk κ) {b fuel : ℕ} {o : Bool}
+    (hb : b ≤ 64) (hfuel : fuel ≤ 2 ^ 64) (G : Option E → OracleComp KeccakCalls β)
+    (ev : Log → Prop)
     (hev : ∀ ℓf, ev ℓf → ¬ Collided ℓf) (A : E → ℝ≥0∞) (R : ℝ≥0∞)
     (hG : ∀ (m : ℕ) (ℓ' : Log) (u : KeccakState), m < fuel → NonceAt ℓ' sp κ →
-      lookF ℓ' (nonceInput κ.1 κ.2 m) = some u → powOk b (Keccak.lane u 2) = true →
-      (∀ m' < m, ∃ u', lookF ℓ' (nonceInput κ.1 κ.2 m') = some u' ∧
-        powOk b (Keccak.lane u' 2) = false) →
+      lookF ℓ' (nonceInput κ.1 κ.2 m) = some u → okU b o u = true →
+      (∀ m' < m, ∃ u', lookF ℓ' (nonceInput κ.1 κ.2 m') = some u' ∧ okU b o u' = false) →
       Fresh ℓ' u →
       Pr{let z ← runL (G (some (nonceOf m))) ℓ'}[ev z.2] ≤ A (challengeOf u) + R) :
     ∀ (count n : ℕ) (ℓ : Log), n + count = fuel → NonceAt ℓ sp κ → SearchInv ℓ κ n →
-      (∀ m < n, ∃ u', lookF ℓ (nonceInput κ.1 κ.2 m) = some u' ∧
-        powOk b (Keccak.lane u' 2) = false) →
-      Pr{let z ← runL (searchM callKeccakF1600 b sp n count >>= G) ℓ}[ev z.2] ≤
-        missProb b ^ count +
-          (∑ u : KeccakState, A (challengeOf u)) / Fintype.card KeccakState + R
+      (∀ m < n, ∃ u', lookF ℓ (nonceInput κ.1 κ.2 m) = some u' ∧ okU b o u' = false) →
+      Pr{let z ← runL (searchM callKeccakF1600 b o sp n count >>= G) ℓ}[ev z.2] ≤
+        missOn b o ^ count + avgOn o A + R
   | 0, n, ℓ, _, _, _, _ => by
     simp only [searchM, pure_bind, pow_zero]
     exact (prEvent_le_one _).trans (le_trans le_self_add le_self_add)
@@ -560,26 +652,30 @@ theorem pr_search_le {sp : Sponge} {κ : PowKey} (hκ : KeyOk κ) {b fuel : ℕ}
       have := (nonceInput_inj hκ hκ (by omega) (by omega) he).2
       omega
     rw [pr_queryF_fresh hx]
-    set avgA := (∑ u : KeccakState, A (challengeOf u)) / Fintype.card KeccakState
-    calc _ ≤ (∑ u, (ind (powOk b (Keccak.lane u 2) = true) * A (challengeOf u) +
-            ind (powOk b (Keccak.lane u 2) = false) * (missProb b ^ count + avgA) + R)) /
+    set X := avgOn o A
+    calc _ ≤ (∑ u, (ind (okU b o u = true) * A (challengeOf u) +
+            ind (okU b o u = false) * (missOn b o ^ count + X) + R)) /
             Fintype.card KeccakState := by
           gcongr with u
           have hlook : lookF (ℓ ++ [.inr (x, u)]) x = some u := lookF_append_inr_self hx u
           have hat' := nonceAt_of_prefix (List.prefix_append ℓ [.inr (x, u)]) hat
           have hfails' : ∀ m < n, ∃ u', lookF (ℓ ++ [.inr (x, u)]) (nonceInput κ.1 κ.2 m) =
-              some u' ∧ powOk b (Keccak.lane u' 2) = false := fun m hm ↦ by
+              some u' ∧ okU b o u' = false := fun m hm ↦ by
             obtain ⟨u', hu', hf⟩ := hfails m hm
             exact ⟨u', lookF_of_prefix (List.prefix_append _ _) hu', hf⟩
-          by_cases hp : powOk b (Keccak.lane u 2) = true
-          · simp only [hp, ↓reduceIte, pure_bind, ind, one_mul, Bool.true_eq_false, zero_mul,
-              add_zero]
+          by_cases hp : okU b o u = true
+          · have hp' : (powOk b (Keccak.lane u 2) &&
+                LeanVM.Prover.nonceUsable o (challengeOf u)) = true := hp
+            simp only [hp', hp, ↓reduceIte, pure_bind, ind, one_mul, Bool.true_eq_false,
+              zero_mul, add_zero]
             by_cases hcap : CapHit ℓ x u
             · rw [pr_eq_zero_of_collided (collided_append_inr hcap) _ hev]
               exact bot_le
             · exact hG n _ u hn hat' hlook hp hfails' (fresh_of_not_capHit hcap)
-          · have hp' : powOk b (Keccak.lane u 2) = false := by simpa using hp
-            simp only [hp', Bool.false_eq_true, ↓reduceIte, ind, zero_mul, zero_add, one_mul]
+          · have hf : okU b o u = false := by simpa using hp
+            have hf' : (powOk b (Keccak.lane u 2) &&
+                LeanVM.Prover.nonceUsable o (challengeOf u)) = false := hf
+            simp only [hf', hf, Bool.false_eq_true, ↓reduceIte, ind, zero_mul, zero_add, one_mul]
             refine pr_search_le hκ hb hfuel G ev hev A R hG count (n + 1) _ (by omega) hat' ?_ ?_
             · intro y hy hcy
               rw [fIns_append_inr, List.mem_append, List.mem_singleton] at hy
@@ -590,38 +686,31 @@ theorem pr_search_le {sp : Sponge} {κ : PowKey} (hκ : KeyOk κ) {b fuel : ℕ}
             · intro m hm
               rcases Nat.lt_succ_iff_lt_or_eq.mp hm with hm | rfl
               · exact hfails' m hm
-              · exact ⟨u, hlook, hp'⟩
-      _ = (∑ u, ind (powOk b (Keccak.lane u 2) = true) * A (challengeOf u)) /
+              · exact ⟨u, hlook, hf⟩
+      _ = (∑ u, ind (okU b o u = true) * A (challengeOf u)) /
             Fintype.card KeccakState +
-          (∑ u, ind (powOk b (Keccak.lane u 2) = false)) / Fintype.card KeccakState *
-            (missProb b ^ count + avgA) + R := by
+          (∑ u, ind (okU b o u = false)) / Fintype.card KeccakState *
+            (missOn b o ^ count + X) + R := by
           rw [avg_add_const, Finset.sum_add_distrib, ENNReal.add_div, ← Finset.sum_mul,
             ENNReal.mul_div_right_comm]
-      _ = 2⁻¹ ^ b * avgA + missProb b * (missProb b ^ count + avgA) + R := by
-          rw [avg_miss_eq hb, sum_powOk_mul_challengeOf_div, sum_powOk_lane_div_eq hb,
-            ← sum_challengeOf_div]
-      _ = missProb b ^ (count + 1) + avgA + R := by
-          have h1 : 2⁻¹ ^ b + missProb b = (1 : ℝ≥0∞) := by
-            rw [missProb]
-            exact add_tsub_cancel_of_le (pow_le_one₀ bot_le (by norm_num))
+      _ = 2⁻¹ ^ b * usableProb o * X + missOn b o * (missOn b o ^ count + X) + R := by
+          have hX : avgE (fun c ↦ if LeanVM.Prover.nonceUsable o c then A c else 0) =
+              usableProb o * X := by
+            unfold X avgOn
+            exact (ENNReal.mul_div_cancel (usableProb_ne_zero' o) (usableProb_ne_top' o)).symm
+          rw [sum_okU_mul_div hb, sum_okU_false_div hb, hX, mul_assoc]
+      _ = missOn b o ^ (count + 1) + X + R := by
+          have h1 : 2⁻¹ ^ b * usableProb o + missOn b o = (1 : ℝ≥0∞) := by
+            rw [missOn]
+            exact add_tsub_cancel_of_le
+              (mul_le_one' (pow_le_one₀ bot_le (by norm_num)) (usableProb_le_one' o))
           rw [mul_add, pow_succ]
-          calc 2⁻¹ ^ b * avgA + (missProb b * missProb b ^ count + missProb b * avgA) + R
-              = missProb b ^ count * missProb b + (2⁻¹ ^ b + missProb b) * avgA + R := by ring
+          calc 2⁻¹ ^ b * usableProb o * X + (missOn b o * missOn b o ^ count + missOn b o * X) + R
+              = missOn b o ^ count * missOn b o + (2⁻¹ ^ b * usableProb o + missOn b o) * X + R := by
+                ring
             _ = _ := by rw [h1, one_mul]
 
 end Search
-
-/-- The average over `E` is the average over a uniform state's challenge. -/
-theorem avgE_eq (A : E → ℝ≥0∞) : avgE A =
-    (∑ u : KeccakState, A (challengeOf u)) / Fintype.card KeccakState := by
-  unfold avgE
-  convert (sum_challengeOf_div A).symm using 3
-  · exact congrArg (@Finset.univ E) (Subsingleton.elim _ _)
-  · exact congrArg (@Fintype.card E) (Subsingleton.elim _ _)
-
-/-- A proof of work of fewer bits misses less often. -/
-theorem missProb_mono {b B : ℕ} (h : b ≤ B) : missProb b ≤ missProb B :=
-  tsub_le_tsub_left (pow_le_pow_right_of_le_one' (by norm_num) h) 1
 
 /-! ## The induction along the program -/
 
@@ -685,7 +774,7 @@ theorem squeezeI_ground' (F : KeccakState → KeccakState) (sp : Sponge) :
 /-- **The honest transcript along the program**: from a node of the honest program `p` the
 honest prover reaches, with a fresh sponge, the probability that the transcript fails the
 refining program `p'` with no collision is at most `p'`'s ideal failure probability plus
-`(1 - 2^-bits)^fuel` per quarter of `p`'s cost. -/
+`(1 - 2^-bits (1 - 2^-64))^fuel` per quarter of `p`'s cost. -/
 theorem trace_le (S : Strategy) {fuel bits height : ℕ} (Ptop : VerifierProgram Bool)
     (hb : bits ≤ 64) (hfuel : fuel ≤ 2 ^ 64)
     (hg : ∀ h b k, Ptop.after h = some (.grind b k) → S.Follows h → b ≤ bits)
@@ -695,7 +784,7 @@ theorem trace_le (S : Strategy) {fuel bits height : ℕ} (Ptop : VerifierProgram
       Ptop.after h = some p → S.Follows h → ProverSp sp → Fresh ℓ sp.state → TreesOf cs h →
       p.CostLE height n →
       Pr{let z ← runL (proveFromM callKeccak256 callKeccakF1600 S fuel p sp h cs >>= K) ℓ}[
-        TraceBad S fuel p' sp h z.2] ≤ S.failFrom p' h sp.ground + n * missProb bits ^ fuel := by
+        TraceBad S fuel p' sp h z.2] ≤ S.failFrom p' h sp.ground + n * missK bits ^ fuel := by
   induction hR with
   | fail p =>
     intros
@@ -735,7 +824,7 @@ theorem trace_le (S : Strategy) {fuel bits height : ℕ} (Ptop : VerifierProgram
   | @sample k k' _ ih =>
     intro h sp cs ℓ n K ha hfo hsp hF hcs hc
     have hn : 4 ≤ n := hc.1
-    set M := missProb bits ^ fuel
+    set M := missK bits ^ fuel
     have e : proveFromM callKeccak256 callKeccakF1600 S fuel (.sample k) sp h cs >>= K =
         squeeze callKeccakF1600 sp >>= fun r ↦
           proveFromM callKeccak256 callKeccakF1600 S fuel (k r.1) r.2 (h ++ [Ev.sample r.1]) cs >>=
@@ -770,9 +859,10 @@ theorem trace_le (S : Strategy) {fuel bits height : ℕ} (Ptop : VerifierProgram
       exact (prEvent_le_one _).trans le_self_add
     have hbb : b ≤ bits := hg h b k ha hfo
     have hn : 5 ≤ n := hc.1
-    set M := missProb bits ^ fuel
+    set M := missK bits ^ fuel
     set R : ℝ≥0∞ := ((n - 5 : ℕ) : ℝ≥0∞) * M
     set h' := h ++ [Ev.grind b]
+    set o := S.outsideK h
     set A : E → ℝ≥0∞ := fun c ↦ S.failFrom k' h' (some c)
     set K' : Option E → Option (List E × List (List Opening)) → Option (List E × List (List Opening)) :=
       fun nn t ↦ t.map fun t ↦ ((nn.getD 0) :: t.1, t.2)
@@ -782,7 +872,7 @@ theorem trace_le (S : Strategy) {fuel bits height : ℕ} (Ptop : VerifierProgram
           proveFromM callKeccak256 callKeccakF1600 S fuel k r.2 h' cs >>= fun t ↦
             K (t.map fun t ↦ (nn :: t.1, t.2))
     have e : proveFromM callKeccak256 callKeccakF1600 S fuel (.grind b k) sp h cs >>= K =
-        searchM callKeccakF1600 b sp 0 fuel >>= G := by
+        searchM callKeccakF1600 b o sp 0 fuel >>= G := by
       simp only [proveFromM, findNonceM, bind_assoc]
       congr 1
       funext o
@@ -791,9 +881,8 @@ theorem trace_le (S : Strategy) {fuel bits height : ℕ} (Ptop : VerifierProgram
     set ev := TraceBad S fuel (.grind b k') sp h
     -- a passing nonce
     have hG : ∀ κ : PowKey, ∀ (m : ℕ) (ℓ' : Log) (u : KeccakState), m < fuel → NonceAt ℓ' sp κ →
-        lookF ℓ' (nonceInput κ.1 κ.2 m) = some u → powOk b (Keccak.lane u 2) = true →
-        (∀ m' < m, ∃ u', lookF ℓ' (nonceInput κ.1 κ.2 m') = some u' ∧
-          powOk b (Keccak.lane u' 2) = false) →
+        lookF ℓ' (nonceInput κ.1 κ.2 m) = some u → okU b o u = true →
+        (∀ m' < m, ∃ u', lookF ℓ' (nonceInput κ.1 κ.2 m') = some u' ∧ okU b o u' = false) →
         Fresh ℓ' u →
         Pr{let z ← runL (G (some (nonceOf m))) ℓ'}[ev z.2] ≤ A (challengeOf u) + R := by
       intro κ m ℓ' u hm hat hu hpass hfails hFu
@@ -815,25 +904,22 @@ theorem trace_le (S : Strategy) {fuel bits height : ℕ} (Ptop : VerifierProgram
           hFu (treesOf_snoc hcs (by simp [commits])) hc.2
     -- the search from a position
     have hsearch : ∀ (κ : PowKey) (ℓ1 : Log), KeyOk κ → NonceAt ℓ1 sp κ → SearchInv ℓ1 κ 0 →
-        Pr{let z ← runL (searchM callKeccakF1600 b sp 0 fuel >>= G) ℓ1}[ev z.2] ≤
-          missProb b ^ fuel +
-            (∑ u : KeccakState, A (challengeOf u)) / Fintype.card KeccakState + R :=
+        Pr{let z ← runL (searchM callKeccakF1600 b o sp 0 fuel >>= G) ℓ1}[ev z.2] ≤
+          missOn b o ^ fuel + avgOn o A + R :=
       fun κ ℓ1 hκ hat hinv ↦ pr_search_le hκ (hbb.trans hb) hfuel G ev (fun _ h ↦ h.2) A R
         (hG κ) fuel 0 ℓ1 (by simp) hat hinv fun m hm ↦ absurd hm (Nat.not_lt_zero m)
-    have hfinal : missProb b ^ fuel +
-        (∑ u : KeccakState, A (challengeOf u)) / Fintype.card KeccakState + R ≤
+    have hfinal : missOn b o ^ fuel + avgOn o A + R ≤
           S.failFrom (.grind b k') h none + n * M := by
       simp only [Strategy.failFrom, Option.isSome_none, Bool.false_eq_true, ↓reduceIte]
-      rw [avgE_eq]
-      generalize (∑ u : KeccakState, A (challengeOf u)) / Fintype.card KeccakState = X
+      generalize avgOn o A = X
       have hMR : M + R ≤ n * M := by
         calc M + R = (((n - 5 : ℕ) : ℝ≥0∞) + 1) * M := by rw [add_one_mul, add_comm]
           _ ≤ n * M := by
             gcongr
             exact_mod_cast (show n - 5 + 1 ≤ n by omega)
-      calc missProb b ^ fuel + X + R ≤ M + X + R := by
+      calc missOn b o ^ fuel + X + R ≤ M + X + R := by
             gcongr
-            exact pow_le_pow_left₀ bot_le (missProb_mono hbb) fuel
+            exact pow_le_pow_left₀ bot_le (missOn_le_missK hbb o) fuel
         _ = X + (M + R) := by rw [add_comm M X, add_assoc]
         _ ≤ X + n * M := by gcongr
     refine le_trans ?_ hfinal
@@ -845,7 +931,7 @@ theorem trace_le (S : Strategy) {fuel bits height : ℕ} (Ptop : VerifierProgram
       obtain ⟨f, rfl⟩ : ∃ f, fuel = f + 1 := ⟨fuel - 1, by omega⟩
       have hs : lookF ℓ (duplexInput sp) = none :=
         lookF_none_of_cap fun y hy ↦ by rw [capOf_duplexInput]; exact hF y hy
-      obtain ⟨mx, hmx⟩ : ∃ mx, searchM callKeccakF1600 b sp 0 (f + 1) >>= G =
+      obtain ⟨mx, hmx⟩ : ∃ mx, searchM callKeccakF1600 b o sp 0 (f + 1) >>= G =
           callKeccakF1600 (duplexInput sp) >>= mx :=
         ⟨_, by rw [searchM, bind_assoc, absorbNonce_bind_full h4]⟩
       rw [hmx, pr_queryF_fresh_relog hs, ← hmx]
@@ -996,15 +1082,15 @@ a verifier program `P` whose proofs of work ask for at most `bits ≤ 64` bits w
 has made the strategy's moves, a program `P'` refining it (`P` with failures inserted), both of
 cost `n`, the seeding `σ` and a fuel of at most `2^64` nonces: the compiled verifier of `P'`
 rejects the honest prover's proof of `P` with probability at most `P'`'s ideal failure
-probability against `S` (every challenge uniform and independent), plus `(1 - 2^-bits)^fuel`
-per quarter of cost, plus a capacity collision among the `Q` queries of the prover and the
+probability against `S` (every challenge uniform and independent), plus
+`(1 - 2^-bits (1 - 2^-64))^fuel` per quarter of cost, plus a capacity collision among the `Q` queries of the prover and the
 verifier, `Q · Q · 2^-256`. -/
 theorem romCompleteSharp (P P' : VerifierProgram Bool) (hR : Refines P' P)
     (S : Strategy) (σ : Seed) {bits fuel height n : ℕ} (hb : bits ≤ 64) (hfuel : fuel ≤ 2 ^ 64)
     (hg : ∀ h b k, P.after h = some (.grind b k) → S.Follows h → b ≤ bits)
     (hP : P.CostLE height n) (hP' : P'.CostLE height n) :
     Pr{let z ← romExperiment (honestComp σ P S fuel) (verifierComp σ P')}[z.1.2 = false] ≤
-      S.failFrom P' [] none + n * missProb bits ^ fuel +
+      S.failFrom P' [] none + n * missK bits ^ fuel +
         ((σ.hs.length + 1 + n * proverFactor height fuel + (σ.hs.length + 1 + n / 4) : ℕ) :
           ℝ≥0∞) *
           (((σ.hs.length + 1 + n * proverFactor height fuel + (σ.hs.length + 1 + n / 4) : ℕ) :

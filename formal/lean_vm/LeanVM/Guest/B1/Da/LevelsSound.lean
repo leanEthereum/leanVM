@@ -8,6 +8,8 @@ module
 
 public import LeanVM.Guest.B1.Da.LevelsChk0
 public import LeanVM.Guest.B1.Da.LevelsChk1
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«da_levels__L»
 
 /-!
 # `da_levels`, sound
@@ -81,7 +83,7 @@ theorem dl_sound {k : ℕ} (hk : k ≤ 10) (hok : dlEntryOk k = true) :
     have h2k : 2 ^ k ≤ 2 ^ 10 := Nat.pow_le_pow_right (by norm_num) hk
     -- the levels
     have hlvl : ∀ lvl < k, ∀ p < 2 ^ (k - lvl - 1),
-        LvlStep rd (σ (.n 0)) (off k lvl) (off k (lvl + 1)) (gen ^ p) := by
+        LvlStep rd (σ (.n (valf% «da_levels» "tree"))) (off k lvl) (off k (lvl + 1)) (gen ^ p) := by
       intro lvl hl
       have hlo := hloops lvl hl
       unfold loopOk at hlo
@@ -90,7 +92,7 @@ theorem dl_sound {k : ℕ} (hk : k ≤ 10) (hok : dlEntryOk k = true) :
         replace hj := coreIdx?_eq hj
         simp only [Bool.and_eq_true, decide_eq_true_eq] at hlo
         have hm : 2 ^ (k - lvl - 1) ≤ 2 ^ 10 := Nat.pow_le_pow_right (by norm_num) (by omega)
-        exact loop_sound (ps := [gen ^ 2 ^ (k - lvl - 1), σ (.n 0)])
+        exact loop_sound (ps := [gen ^ 2 ^ (k - lvl - 1), σ (.n (valf% «da_levels» "tree"))])
           (N := gen ^ 2 ^ (k - lvl - 1)) (m := 2 ^ (k - lvl - 1)) (by unfold ordG; omega) rfl
           (fun y hy => by
             obtain ⟨h1, h2⟩ := lvl_step hj hlo.1 hlo.2 (off_lt hk) (off_lt hk) hy
@@ -98,14 +100,14 @@ theorem dl_sound {k : ℕ} (hk : k ≤ 10) (hok : dlEntryOk k = true) :
           (fun hne => by simpa using guardPow_sound (hguards lvl hl) hall (by omega) hne)
       · exact absurd hlo (by simp)
     -- the nodes
-    have hnode : ∀ j < k, ∀ p < 2 ^ (k - j - 1), node rd (σ (.n 0)) k (j + 1) p =
-        nodeCells (node rd (σ (.n 0)) k j (2 * p)) (node rd (σ (.n 0)) k j (2 * p + 1)) := by
+    have hnode : ∀ j < k, ∀ p < 2 ^ (k - j - 1), node rd (σ (.n (valf% «da_levels» "tree"))) k (j + 1) p =
+        nodeCells (node rd (σ (.n (valf% «da_levels» "tree"))) k j (2 * p)) (node rd (σ (.n (valf% «da_levels» "tree"))) k j (2 * p + 1)) := by
       intro j hj p hp
       obtain ⟨hld, h0, h1⟩ := hlvl j hj p hp
       rw [ptr_pow] at hld h0 h1
       rw [ptr_pow] at h0 h1
-      have m : ∀ i < 4, memAt rd (σ (.n 0) * gen ^ (off k j + 4 * p)) i =
-          memAt rd (σ (.n 0)) (off k j + 4 * p + i) := fun i hi => by
+      have m : ∀ i < 4, memAt rd (σ (.n (valf% «da_levels» "tree")) * gen ^ (off k j + 4 * p)) i =
+          memAt rd (σ (.n (valf% «da_levels» "tree"))) (off k j + 4 * p + i) := fun i hi => by
         obtain ⟨-, e1, e2⟩ := shift_load (hld i hi)
         rw [e2, ← e1]
       obtain ⟨-, e0, -⟩ := shift_load h0
@@ -122,11 +124,11 @@ theorem dl_sound {k : ℕ} (hk : k ≤ 10) (hok : dlEntryOk k = true) :
       simp only [add_zero]
     have hroot := levels_root hnode
     -- the leaves
-    have hleaves : (List.range (2 ^ k)).map (node rd (σ (.n 0)) k 0) =
+    have hleaves : (List.range (2 ^ k)).map (node rd (σ (.n (valf% «da_levels» "tree"))) k 0) =
         (List.range (2 ^ k)).map fun i =>
-          (memAt rd (σ (.n 0)) (2 * i), memAt rd (σ (.n 0)) (2 * i + 1)) := by
+          (memAt rd (σ (.n (valf% «da_levels» "tree"))) (2 * i), memAt rd (σ (.n (valf% «da_levels» "tree"))) (2 * i + 1)) := by
       simp [node, off_zero]
-    have hread : ∀ c < 2 * 2 ^ k, LoadHolds rd (σ (.n 0)) c (memAt rd (σ (.n 0)) c) := by
+    have hread : ∀ c < 2 * 2 ^ k, LoadHolds rd (σ (.n (valf% «da_levels» "tree"))) c (memAt rd (σ (.n (valf% «da_levels» "tree"))) c) := by
       intro c hc
       rcases Nat.eq_zero_or_pos k with rfl | hk0
       · have l0 := load_sound hr0 hat
@@ -142,8 +144,8 @@ theorem dl_sound {k : ℕ} (hk : k ≤ 10) (hok : dlEntryOk k = true) :
         obtain ⟨hl, e1, e2⟩ := shift_load (hld (c % 4) (by omega))
         rw [show 4 * (c / 4) + c % 4 = c by omega] at hl e1
         rw [e1]; exact hl
-    refine ⟨(List.range (2 ^ k)).map (node rd (σ (.n 0)) k 0), by simp, ?_, ?_⟩
-    · rw [hleaves, pairCells_range (memAt rd (σ (.n 0)))]
+    refine ⟨(List.range (2 ^ k)).map (node rd (σ (.n (valf% «da_levels» "tree"))) k 0), by simp, ?_, ?_⟩
+    · rw [hleaves, pairCells_range (memAt rd (σ (.n (valf% «da_levels» "tree"))))]
       intro c hc
       simp only [List.length_map, List.length_range] at hc
       rw [List.getElem_map, List.getElem_range]

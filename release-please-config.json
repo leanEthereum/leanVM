@@ -49,6 +49,26 @@
         {
           "type": "generic",
           "path": "nim/lean_pq/abi.nim"
+        },
+        {
+          "type": "toml",
+          "path": "Cargo.lock",
+          "jsonpath": "$.package[?(@.name==='lean-pq' || @.name.value==='lean-pq')].version"
+        },
+        {
+          "type": "toml",
+          "path": "Cargo.lock",
+          "jsonpath": "$.package[?(@.name==='lean-pq-native' || @.name.value==='lean-pq-native')].version"
+        },
+        {
+          "type": "toml",
+          "path": "Cargo.lock",
+          "jsonpath": "$.package[?(@.name==='lean-pq-node' || @.name.value==='lean-pq-node')].version"
+        },
+        {
+          "type": "toml",
+          "path": "Cargo.lock",
+          "jsonpath": "$.package[?(@.name==='py-lean-pq' || @.name.value==='py-lean-pq')].version"
         }
       ],
       "component": "bindings"

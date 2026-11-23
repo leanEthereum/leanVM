@@ -9,6 +9,8 @@ module
 public import LeanVM.Guest.B1.Tables.Kids.Walk
 public import LeanVM.Guest.B1.Tables.Kids.Families
 public import LeanVM.Guest.B1.Eq.EqPrefix
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«eq_prefix_chain»
 
 /-!
 # `eq_prefix_chain`, loading from a region
@@ -27,9 +29,9 @@ open LeanVM.Protocol.Verifier (gen)
 
 /-- `eq_prefix_chain`'s statements before its `ret`. -/
 def epcPre : List Stmt :=
-  [.atom (.const (.n 5) (word (2 ^ 40) 0)),
-    .atom (.rangeCheck (.n 4) (.n 6) (.n 7) (.n 8) (.n 5)),
-    .dispatch (.n 4) eqPrefixRunNames [.n 0, .n 1, .n 2, .n 3] [.n 9]]
+  [.atom (.const (.n (val% «eq_prefix_chain» "s0#0")) (word (2 ^ 40) 0)),
+    .atom (.rangeCheck (.n (val% «eq_prefix_chain» "count_g")) (.n (val% «eq_prefix_chain» "s0#1")) (.n (val% «eq_prefix_chain» "s0#2")) (.n (val% «eq_prefix_chain» "s0#3")) (.n (val% «eq_prefix_chain» "s0#0"))),
+    .dispatch (.n (val% «eq_prefix_chain» "count_g")) eqPrefixRunNames [.n (val% «eq_prefix_chain» "chain"), .n (val% «eq_prefix_chain» "seed"), .n (val% «eq_prefix_chain» "a"), .n (val% «eq_prefix_chain» "b1")] [.n (val% «eq_prefix_chain» "done")]]
 
 theorem epc_body : Fn.body fn% «eq_prefix_chain» = epcPre ++ [.ret []] := by
   rw [B1.eq_prefix_chain_body]; rfl
@@ -43,7 +45,7 @@ theorem eq_prefix_chain_relIn {rd : Reader} {R : ℕ → Prop} {chain seed a b1 
     (h : coreProgram.Rel rd "eq_prefix_chain" [chain, seed, a, b1, gen ^ n] rets) :
     coreProgram.RelIn rd R "eq_prefix_chain" [chain, seed, a, b1, gen ^ n] rets := by
   refine relIn_of_flatRel B1.find_eq_prefix_chain epc_body epc_flat h fun σ hpar hh ↦ ?_
-  rw [show Fn.params fn% «eq_prefix_chain» = [.n 0, .n 1, .n 2, .n 3, .n 4] from rfl] at hpar
+  rw [show Fn.params fn% «eq_prefix_chain» = [.n (val% «eq_prefix_chain» "chain"), .n (val% «eq_prefix_chain» "seed"), .n (val% «eq_prefix_chain» "a"), .n (val% «eq_prefix_chain» "b1"), .n (val% «eq_prefix_chain» "count_g")] from rfl] at hpar
   simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hpar
   obtain ⟨p0, p1, p2, p3, p4⟩ := hpar
   rw [epc_body] at hh
@@ -65,7 +67,7 @@ theorem eq_prefix_chain_relIn {rd : Reader} {R : ℕ → Prop} {chain seed a b1 
   · simp only [epcPre, Stmt.callSF, List.filterMap_cons, List.filterMap_nil, Main.Stmt.callS,
       List.map_cons, List.map_nil, List.mem_singleton] at hc
     subst hc
-    have hlog : logG (σ (.n 4)) = j := by rw [hx]; exact logG_spec (by omega)
+    have hlog : logG (σ (.n (val% «eq_prefix_chain» "count_g"))) = j := by rw [hx]; exact logG_spec (by omega)
     simp only [Main.mkCall, hlog, List.map_cons, List.map_nil, p0, p1, p2, p3]
     have hname : eqPrefixRunNames[j] = eqPrefixRunNames.getD j "" := by
       rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hj, Option.getD_some]

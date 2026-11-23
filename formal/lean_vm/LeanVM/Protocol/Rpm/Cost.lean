@@ -528,20 +528,20 @@ theorem allQ_leafDigestsM (height : ℕ) {word : Word} (hw : RowsLE word) :
     AllQueriesSatisfy (leafDigestsWithHash callKeccak256 height word) Short :=
   allQ_arrayMapM _ _ fun i _ ↦ allQ_queryH₀ (row_length hw i)
 
-theorem allQ_searchM (bits : ℕ) (sp : Sponge) :
-    ∀ (count n : ℕ), AllQueriesSatisfy (searchM callKeccakF1600 bits sp n count) Short
+theorem allQ_searchM (bits : ℕ) (o : Bool) (sp : Sponge) :
+    ∀ (count n : ℕ), AllQueriesSatisfy (searchM callKeccakF1600 bits o sp n count) Short
   | 0, _ => allQ_pure _
   | count + 1, n => by
     simp only [searchM]
     refine allQueriesSatisfy_bind (allQ_absorbNonce _ _) fun r ↦ ?_
     split
     · exact allQ_pure _
-    · exact allQ_searchM bits sp count (n + 1)
+    · exact allQ_searchM bits o sp count (n + 1)
 
-theorem allQ_findNonceM (bits : ℕ) (sp : Sponge) (fuel : ℕ) :
-    AllQueriesSatisfy (findNonceM callKeccakF1600 bits sp fuel) Short := by
+theorem allQ_findNonceM (bits : ℕ) (o : Bool) (sp : Sponge) (fuel : ℕ) :
+    AllQueriesSatisfy (findNonceM callKeccakF1600 bits o sp fuel) Short := by
   unfold findNonceM
-  exact allQ_searchM _ _ _ _
+  exact allQ_searchM _ _ _ _ _
 
 /-- **Locality**: the words a strategy commits along the run from `h` depend on the challenges
 only at the histories extending `h`. -/
@@ -646,7 +646,7 @@ theorem allQ_proveFromM (S : Strategy) (fuel : ℕ) {α : Type} :
         (histOK_append_of_nil _ rfl hh) (treesOK_append_of_nil _ rfl hT)
   | .grind bits k, sp, h, cs, hP, hG, hh, hT => by
     simp only [proveFromM]
-    refine allQueriesSatisfy_bind (allQ_findNonceM _ _ _) fun o ↦ ?_
+    refine allQueriesSatisfy_bind (allQ_findNonceM _ _ _ _) fun o ↦ ?_
     split
     · exact allQ_pure _
     · exact allQueriesSatisfy_bind (allQ_absorbNonce _ _) fun r ↦

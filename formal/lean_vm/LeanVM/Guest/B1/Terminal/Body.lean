@@ -8,6 +8,8 @@ module
 
 public import LeanVM.Guest.B1.Terminal.Template
 public import LeanVM.Guest.CoreData
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«check_opening_terminal»
 
 namespace LeanVM.Guest.B1.VerifySub
 
@@ -17,8 +19,8 @@ open LeanVM.Guest.Core LeanVM.Guest.B1
 
 /-- The function's parameters. -/
 def termParams : List V :=
-  [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10, .n 11, .n 12,
-      .n 13, .n 14, .n 15, .n 16, .n 17, .n 18, .n 19]
+  [.n (val% «check_opening_terminal» "g_squares"), .n (val% «check_opening_terminal» "zeta"), .n (val% «check_opening_terminal» "chi"), .n (val% «check_opening_terminal» "rm"), .n (val% «check_opening_terminal» "g_bus_mu"), .n (val% «check_opening_terminal» "g_zc_n"), .n (val% «check_opening_terminal» "g_log_mem"), .n (val% «check_opening_terminal» "tau_keccak_g"), .n (val% «check_opening_terminal» "kappa_base"), .n (val% «check_opening_terminal» "lam_cl"), .n (val% «check_opening_terminal» "col_offsets"), .n (val% «check_opening_terminal» "z_vals"), .n (val% «check_opening_terminal» "c_table"),
+      .n (val% «check_opening_terminal» "point"), .n (val% «check_opening_terminal» "point1"), .n (val% «check_opening_terminal» "inner_total"), .n (val% «check_opening_terminal» "yr_at_tail"), .n (val% «check_opening_terminal» "sumcheck_target"), .n (val% «check_opening_terminal» "ood_z"), .n (val% «check_opening_terminal» "gmv")]
 
 /-- The function, found by name, has the twenty parameters and the template's body. -/
 noncomputable def termCheck : Bool :=

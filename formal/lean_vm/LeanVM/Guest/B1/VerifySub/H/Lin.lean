@@ -152,14 +152,14 @@ variable (b : ℕ)
 
 /-- A segment of the stream, at its offset in the stream buffer. -/
 theorem sub_stream {P X R : List E} (h : vsStreamW c.proof.stream = P ++ X ++ R) :
-    SubOf (bufL b (vsSizes S.d) S.ownW) (vb (bases b (vsSizes S.d)) 1 + P.length, X) := by
+    SubOf (bufL b (vsSizes) S.ownW) (vb (bases b (vsSizes)) 1 + P.length, X) := by
   have hm := vs_own_mem S b (i := 1) (by norm_num)
   rw [show S.ownW.getD 1 [] = vsStreamW c.proof.stream from rfl, h] at hm
   exact subOf_mid hm
 
 /-- The out-of-domain value and the bus grind's nonce, at `stream + 11`. -/
 theorem sub_omWords (hbl : bytecode.length = 2 ^ 23) :
-    SubOf (bufL b (vsSizes S.d) S.ownW) (vb (bases b (vsSizes S.d)) 1 + 11, [S.oodV, S.busN]) := by
+    SubOf (bufL b (vsSizes) S.ownW) (vb (bases b (vsSizes)) 1 + 11, [S.oodV, S.busN]) := by
   have h := S.sub_stream b (P := sizeWords S.logMem S.rowsN S.rate ++ [S.x0, S.x1] ++ [S.oodN])
     (X := [S.oodV, S.busN]) (R := S.xsG ++ S.xsT ++ S.xsK ++ [S.ringN] ++ S.xsW ++ streamPad c.proof.stream)
     (by rw [S.stream_eq hbl, streamPad]; simp)
@@ -167,7 +167,7 @@ theorem sub_omWords (hbl : bytecode.length = 2 ^ 23) :
 
 /-- The GKR's words at its cursor. -/
 theorem sub_xsG (hbl : bytecode.length = 2 ^ 23) :
-    SubOf (bufL b (vsSizes S.d) S.ownW) (cG (bases b (vsSizes S.d)), S.xsG) := by
+    SubOf (bufL b (vsSizes) S.ownW) (cG (bases b (vsSizes)), S.xsG) := by
   have h := S.sub_stream b (P := sizeWords S.logMem S.rowsN S.rate ++ [S.x0, S.x1] ++
     [S.oodN, S.oodV] ++ [S.busN]) (X := S.xsG) (R := S.xsT ++ S.xsK ++ [S.ringN] ++ S.xsW ++ streamPad c.proof.stream)
     (by rw [S.stream_eq hbl, streamPad]; simp)
@@ -176,39 +176,39 @@ theorem sub_xsG (hbl : bytecode.length = 2 ^ 23) :
 
 /-- The tables' words at their cursor. -/
 theorem sub_xsT (hbl : bytecode.length = 2 ^ 23) :
-    SubOf (bufL b (vsSizes S.d) S.ownW) (S.cT (bases b (vsSizes S.d)), S.xsT) := by
+    SubOf (bufL b (vsSizes) S.ownW) (S.cT (bases b (vsSizes)), S.xsT) := by
   have h := S.sub_stream b (P := sizeWords S.logMem S.rowsN S.rate ++ [S.x0, S.x1] ++
     [S.oodN, S.oodV] ++ [S.busN] ++ S.xsG) (X := S.xsT) (R := S.xsK ++ [S.ringN] ++ S.xsW ++ streamPad c.proof.stream)
     (by rw [S.stream_eq hbl, streamPad]; simp)
   simp only [List.length_append, S.sizeWords_length, List.length_cons, List.length_nil] at h
-  rwa [show vb (bases b (vsSizes S.d)) 1 + (8 + 2 + 2 + 1 + S.xsG.length) =
-    S.cT (bases b (vsSizes S.d)) by simp only [ChildSegs.cT, cG]; omega] at h
+  rwa [show vb (bases b (vsSizes)) 1 + (8 + 2 + 2 + 1 + S.xsG.length) =
+    S.cT (bases b (vsSizes)) by simp only [ChildSegs.cT, cG]; omega] at h
 
 /-- The Keccak reduction's words at their cursor. -/
 theorem sub_xsK (hbl : bytecode.length = 2 ^ 23) :
-    SubOf (bufL b (vsSizes S.d) S.ownW) (S.cK (bases b (vsSizes S.d)), S.xsK) := by
+    SubOf (bufL b (vsSizes) S.ownW) (S.cK (bases b (vsSizes)), S.xsK) := by
   have h := S.sub_stream b (P := sizeWords S.logMem S.rowsN S.rate ++ [S.x0, S.x1] ++
     [S.oodN, S.oodV] ++ [S.busN] ++ S.xsG ++ S.xsT) (X := S.xsK) (R := [S.ringN] ++ S.xsW ++ streamPad c.proof.stream)
     (by rw [S.stream_eq hbl, streamPad]; simp)
   simp only [List.length_append, S.sizeWords_length, List.length_cons, List.length_nil] at h
-  rwa [show vb (bases b (vsSizes S.d)) 1 + (8 + 2 + 2 + 1 + S.xsG.length + S.xsT.length) =
-    S.cK (bases b (vsSizes S.d)) by simp only [ChildSegs.cK, ChildSegs.cT, cG]; omega] at h
+  rwa [show vb (bases b (vsSizes)) 1 + (8 + 2 + 2 + 1 + S.xsG.length + S.xsT.length) =
+    S.cK (bases b (vsSizes)) by simp only [ChildSegs.cK, ChildSegs.cT, cG]; omega] at h
 
 /-- The opening's words at their cursor. -/
 theorem sub_xsW (hbl : bytecode.length = 2 ^ 23) :
-    SubOf (bufL b (vsSizes S.d) S.ownW) (S.cW (bases b (vsSizes S.d)), S.xsW) := by
+    SubOf (bufL b (vsSizes) S.ownW) (S.cW (bases b (vsSizes)), S.xsW) := by
   have h := S.sub_stream b (P := sizeWords S.logMem S.rowsN S.rate ++ [S.x0, S.x1] ++
     [S.oodN, S.oodV] ++ [S.busN] ++ S.xsG ++ S.xsT ++ S.xsK ++ [S.ringN]) (X := S.xsW) (R := streamPad c.proof.stream)
     (by rw [S.stream_eq hbl, streamPad])
   simp only [List.length_append, S.sizeWords_length, List.length_cons, List.length_nil] at h
-  rwa [show vb (bases b (vsSizes S.d)) 1 + (8 + 2 + 2 + 1 + S.xsG.length + S.xsT.length +
-    S.xsK.length + 1) = S.cW (bases b (vsSizes S.d)) by
+  rwa [show vb (bases b (vsSizes)) 1 + (8 + 2 + 2 + 1 + S.xsG.length + S.xsT.length +
+    S.xsK.length + 1) = S.cW (bases b (vsSizes)) by
     simp only [ChildSegs.cW, ChildSegs.cR, ChildSegs.cK, ChildSegs.cT, cG, S.ring_inv.1,
       List.length_cons, List.length_nil]; omega] at h
 
 /-- Own buffer `i`. -/
 theorem sub_own {i : ℕ} (hi : i < 15) :
-    SubOf (bufL b (vsSizes S.d) S.ownW) (vb (bases b (vsSizes S.d)) i, S.ownW.getD i []) :=
+    SubOf (bufL b (vsSizes) S.ownW) (vb (bases b (vsSizes)) i, S.ownW.getD i []) :=
   subOf_self (vs_own_mem S b hi)
 
 end ChildSegs

@@ -12,7 +12,9 @@ public import LeanVM.Guest.Budget.Main
 public import LeanVM.Guest.Budget.Static
 public import LeanVM.Guest.B1.Main.MainHonestB
 public import LeanVM.Guest.B1.Main.MainGoalsClT
-public import LeanVM.Guest.B1.Da.DvAt
+public import LeanVM.Guest.B1.Da.DvShape
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«main»
 
 /-!
 # `main`'s instruction counts
@@ -85,7 +87,7 @@ def mainCount (H : MainCounts ω fs) (m : MainIn) (Kx Ks Kd K5 : ℕ) : ℕ :=
 /-- A call's bound, by its callee. -/
 def mainCallW (H : MainCounts ω fs) (m : MainIn) (Kx Ks Kd K5 : ℕ) (c : Call) : ℕ :=
   if c.f = "exponent_tables" then H.kExp
-  else if c.f = "claim_list_digest" then (if c.args = [.n 31, .n 0] then Kx else Ks)
+  else if c.f = "claim_list_digest" then (if c.args = [.n (val% «main» "lx_table"), .n (val% «main» "meta[0]")] then Kx else Ks)
   else if c.f = (name% main_loop0) then m.nxd * H.kL1
   else if c.f = (name% main_loop1) then m.nsd * H.kL2
   else if c.f = (name% main_loop2) then m.nrx * H.kL3

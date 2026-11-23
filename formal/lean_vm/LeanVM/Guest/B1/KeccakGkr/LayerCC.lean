@@ -7,6 +7,8 @@
 module
 
 public import LeanVM.Guest.B1.KeccakGkr.LayerCB
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«keccak_layer__L»
 
 /-!
 # The pack rounds' setup and the last record, completely
@@ -40,19 +42,19 @@ theorem goodS_mul_lt {d x y : ℕ} (hx : x < d) (hy : y < d)
 
 /-- The setup's equations. -/
 theorem packSetup_goods {o first : ℕ} (ho : LayOff o) (hg : ∀ s ∈ packSetupT o first, GoodS rd S w σ s) :
-    Good rd S w σ (.load (.n (o + 717)) (.n 11) 2) ∧
-    σ (.n (o + 720)) = word 281474976710656 0 ∧ σ (.n (o + 721)) = σ (.n 7) * σ (.n (o + 720)) ∧
+    Good rd S w σ (.load (.n (o + 717)) (.n (valf% «keccak_layer» "claim")) 2) ∧
+    σ (.n (o + 720)) = word 281474976710656 0 ∧ σ (.n (o + 721)) = σ (.n (valf% «keccak_layer» "cursor@1")) * σ (.n (o + 720)) ∧
     σ (.n (o + 722)) = word 1 0 ∧
-    σ (.n (o + 723)) = σ (.n (o + 722)) + σ (.n 9) ∧ σ (.n (o + 724)) = word 1 0 ∧
-    σ (.n (o + 725)) = σ (.n (o + 719)) * σ (.n 9) ∧ σ (.n (o + 726)) = σ (.n 9) * σ (.n 9) ∧
+    σ (.n (o + 723)) = σ (.n (o + 722)) + σ (.n (valf% «keccak_layer» "step_g")) ∧ σ (.n (o + 724)) = word 1 0 ∧
+    σ (.n (o + 725)) = σ (.n (o + 719)) * σ (.n (valf% «keccak_layer» "step_g")) ∧ σ (.n (o + 726)) = σ (.n (valf% «keccak_layer» "step_g")) * σ (.n (valf% «keccak_layer» "step_g")) ∧
     σ (.n (o + 727)) = σ (.n (o + 726)) * σ (.n (o + 726)) ∧
     σ (.n (o + 728)) = σ (.n (o + 727)) * σ (.n (o + 727)) ∧
     σ (.n (o + 729)) = σ (.n (o + 717)) * σ (.n (o + 728)) ∧
-    σ (.n (o + 730)) = σ (.n 9) * σ (.n 9) ∧
+    σ (.n (o + 730)) = σ (.n (valf% «keccak_layer» "step_g")) * σ (.n (valf% «keccak_layer» "step_g")) ∧
     σ (.n (o + 731)) = σ (.n (o + 730)) * σ (.n (o + 730)) ∧
     σ (.n (o + 732)) = σ (.n (o + 731)) * σ (.n (o + 731)) ∧
     σ (.n (o + 733)) = σ (.n (o + 718)) * σ (.n (o + 732)) ∧ σ (.n (o + 734)) = word 1 0 ∧
-    σ (.n (o + 735)) = σ (.n (o + 734)) + σ (.n 10) ∧ σ (.n (o + 736)) = word 1 0 := by
+    σ (.n (o + 735)) = σ (.n (o + 734)) + σ (.n (valf% «keccak_layer» "rem_g")) ∧ σ (.n (o + 736)) = word 1 0 := by
   rcases ho with rfl | rfl <;>
   · simp only [packSetupT, List.forall_mem_cons, List.not_mem_nil, IsEmpty.forall_iff,
       implies_true, and_true] at hg
@@ -67,9 +69,9 @@ theorem packSetup_goods {o first : ℕ} (ho : LayOff o) (hg : ∀ s ∈ packSetu
 
 /-- **The setup's call arguments** on a valuation satisfying its equations. -/
 theorem packSetup_vals {o first : ℕ} (ho : LayOff o) (hg : ∀ s ∈ packSetupT o first, GoodS rd S w σ s) :
-    σ (.n (o + 723)) = 1 + σ (.n 9) ∧ σ (.n (o + 724)) = 1 ∧ σ (.n (o + 725)) = σ (.n (o + 719)) * σ (.n 9) ∧
-      σ (.n (o + 729)) = σ (.n (o + 717)) * σ (.n 9) ^ 8 ∧ σ (.n (o + 733)) = σ (.n (o + 718)) * σ (.n 9) ^ 8 ∧
-      σ (.n (o + 735)) = 1 + σ (.n 10) ∧ σ (.n (o + 736)) = 1 := by
+    σ (.n (o + 723)) = 1 + σ (.n (valf% «keccak_layer» "step_g")) ∧ σ (.n (o + 724)) = 1 ∧ σ (.n (o + 725)) = σ (.n (o + 719)) * σ (.n (valf% «keccak_layer» "step_g")) ∧
+      σ (.n (o + 729)) = σ (.n (o + 717)) * σ (.n (valf% «keccak_layer» "step_g")) ^ 8 ∧ σ (.n (o + 733)) = σ (.n (o + 718)) * σ (.n (valf% «keccak_layer» "step_g")) ^ 8 ∧
+      σ (.n (o + 735)) = 1 + σ (.n (valf% «keccak_layer» "rem_g")) ∧ σ (.n (o + 736)) = 1 := by
   obtain ⟨g718, e721, e722, e724, e725, e726, e727, e728, e729, e730, e731, e732, e733,
     e734, e735, e736, e737, e738⟩ := packSetup_goods ho hg
   refine ⟨by rw [e725, e724, word_one], by rw [e726, word_one], e727,
@@ -80,16 +82,16 @@ theorem packSetup_vals {o first : ℕ} (ho : LayOff o) (hg : ∀ s ∈ packSetup
 /-- **The pack rounds' setup, completely**: with the claim's point pointer in its record, the
 first round record in memory, and the two loops' relations, the setup holds. -/
 theorem packSetup_complete {o first : ℕ} (ho : LayOff o) (hg : ∀ s ∈ packSetupT o first, GoodS rd S w σ s)
-    (hS : Atom.load (.n (o + 717)) (.n 11) 2 ∉ S) {pp : E} (hpp : LoadHolds rd (σ (.n 11)) 2 pp)
-    (hrec : RoundRec rd (σ (.n (o + 719))) 0 ((cap5 (o + 539)).map σ) (σ (.n 7) * gen ^ 48) (σ (.n (o + 716))))
-    (hik : IsInK (1 + σ (.n 9)))
-    (hcall : 1 + σ (.n 9) ≠ 0 →
-      C (packLoopName first) [1, σ (.n 9), σ (.n (o + 719)), pp, σ (.n (o + 718)), σ (.n 14)] [])
-    (hik' : IsInK (1 + σ (.n 10)))
-    (hcall' : 1 + σ (.n 10) ≠ 0 →
-      C (remLoopName first) [1, σ (.n 10), σ (.n (o + 719)) * σ (.n 9), pp * σ (.n 9) ^ 8,
-        σ (.n 14), σ (.n (o + 718)) * σ (.n 9) ^ 8] []) :
-    σ (.n (o + 717)) = pp ∧ σ (.n (o + 725)) = σ (.n (o + 719)) * σ (.n 9) ∧
+    (hS : Atom.load (.n (o + 717)) (.n (valf% «keccak_layer» "claim")) 2 ∉ S) {pp : E} (hpp : LoadHolds rd (σ (.n (valf% «keccak_layer» "claim"))) 2 pp)
+    (hrec : RoundRec rd (σ (.n (o + 719))) 0 ((cap5 (o + 539)).map σ) (σ (.n (valf% «keccak_layer» "cursor@1")) * gen ^ 48) (σ (.n (o + 716))))
+    (hik : IsInK (1 + σ (.n (valf% «keccak_layer» "step_g"))))
+    (hcall : 1 + σ (.n (valf% «keccak_layer» "step_g")) ≠ 0 →
+      C (packLoopName first) [1, σ (.n (valf% «keccak_layer» "step_g")), σ (.n (o + 719)), pp, σ (.n (o + 718)), σ (.n (valf% «keccak_layer» "tabs"))] [])
+    (hik' : IsInK (1 + σ (.n (valf% «keccak_layer» "rem_g"))))
+    (hcall' : 1 + σ (.n (valf% «keccak_layer» "rem_g")) ≠ 0 →
+      C (remLoopName first) [1, σ (.n (valf% «keccak_layer» "rem_g")), σ (.n (o + 719)) * σ (.n (valf% «keccak_layer» "step_g")), pp * σ (.n (valf% «keccak_layer» "step_g")) ^ 8,
+        σ (.n (valf% «keccak_layer» "tabs")), σ (.n (o + 718)) * σ (.n (valf% «keccak_layer» "step_g")) ^ 8] []) :
+    σ (.n (o + 717)) = pp ∧ σ (.n (o + 725)) = σ (.n (o + 719)) * σ (.n (valf% «keccak_layer» "step_g")) ∧
       ∀ {next : Prop} {kret : List E → Prop}, next →
         Stmt.HoldsList C rd σ (packSetupT o first) next kret := by
   obtain ⟨g718, e721, e722, e724, e725, e726, e727, e728, e729, e730, e731, e732, e733,
@@ -101,8 +103,8 @@ theorem packSetup_complete {o first : ℕ} (ho : LayOff o) (hg : ∀ s ∈ packS
     have := capAt_get hcap hj
     rw [zero_add] at this
     interval_cases j <;> simpa [cap5] using this
-  have e725' : σ (.n (o + 723)) = 1 + σ (.n 9) := by rw [e725, e724, word_one]
-  have e737' : σ (.n (o + 735)) = 1 + σ (.n 10) := by rw [e737, e736, word_one]
+  have e725' : σ (.n (o + 723)) = 1 + σ (.n (valf% «keccak_layer» "step_g")) := by rw [e725, e724, word_one]
+  have e737' : σ (.n (o + 735)) = 1 + σ (.n (valf% «keccak_layer» "rem_g")) := by rw [e737, e736, word_one]
   refine ⟨epp, e727, fun {next kret} hn ↦ ?_⟩
   simp only [packSetupT, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil]
   refine ⟨by rw [epp]; exact hpp, trivial, trivial, c 0 (by norm_num), c 1 (by norm_num),
@@ -114,8 +116,8 @@ theorem packSetup_complete {o first : ℕ} (ho : LayOff o) (hg : ∀ s ∈ packS
   · simpa [krCap] using lcl
   · rw [e726, word_one, epp]
     exact hcall (by rw [← e725']; exact hne)
-  · have h8 : σ (.n (o + 728)) = σ (.n 9) ^ 8 := gen_pow_eight_of _ _ _ _ e728 e729 e730
-    have h8' : σ (.n (o + 732)) = σ (.n 9) ^ 8 := gen_pow_eight_of _ _ _ _ e732 e733 e734
+  · have h8 : σ (.n (o + 728)) = σ (.n (valf% «keccak_layer» "step_g")) ^ 8 := gen_pow_eight_of _ _ _ _ e728 e729 e730
+    have h8' : σ (.n (o + 732)) = σ (.n (valf% «keccak_layer» "step_g")) ^ 8 := gen_pow_eight_of _ _ _ _ e732 e733 e734
     rw [e738, word_one, e727, e731, e735, h8, h8', epp]
     exact hcall' (by rw [← e737']; exact hne)
 
@@ -131,14 +133,14 @@ capacity, cursor and claim are read, and `lastT` holds. -/
 theorem last_complete {o : ℕ} (ho : LayOff o) (hσ : ∀ v, σ v = σ (.n v.idx))
     (hg : ∀ s ∈ lastT o, GoodS rd S w σ s)
     (hS : ∀ d off, Atom.load d (.n (o + 737)) off ∉ S) {capL : List E} {curL vL : E}
-    (hrec : RoundRec rd (σ (.n (o + 725)) * σ (.n 10)) 0 capL curL vL) :
-    σ (.n (o + 737)) = σ (.n (o + 725)) * σ (.n 10) ∧ (cap5 (o + 738)).map σ = capL ∧ σ (.n (o + 743)) = curL ∧
+    (hrec : RoundRec rd (σ (.n (o + 725)) * σ (.n (valf% «keccak_layer» "rem_g"))) 0 capL curL vL) :
+    σ (.n (o + 737)) = σ (.n (o + 725)) * σ (.n (valf% «keccak_layer» "rem_g")) ∧ (cap5 (o + 738)).map σ = capL ∧ σ (.n (o + 743)) = curL ∧
       σ (.n (o + 744)) = vL ∧ ∀ {next : Prop} {kret : List E → Prop}, next →
         Stmt.HoldsList C rd σ (lastT o) next kret := by
   obtain ⟨hall, hr⟩ := last_kernel ho
-  have g72 : σ (.n (o + 737)) = σ (.n (o + 725)) * σ (.n 10) :=
-    good_mul ⟨idx_lt (by omega), idx_lt (by omega)⟩ (show Good rd S w σ (.mul (.n (o + 737)) (.n (o + 725)) (.n 10)) from
-      hg (.atom (.mul (.n (o + 737)) (.n (o + 725)) (.n 10))) (by simp [lastT]))
+  have g72 : σ (.n (o + 737)) = σ (.n (o + 725)) * σ (.n (valf% «keccak_layer» "rem_g")) :=
+    good_mul ⟨idx_lt (by omega), idx_lt (by omega)⟩ (show Good rd S w σ (.mul (.n (o + 737)) (.n (o + 725)) (.n (valf% «keccak_layer» "rem_g"))) from
+      hg (.atom (.mul (.n (o + 737)) (.n (o + 725)) (.n (valf% «keccak_layer» "rem_g")))) (by simp [lastT]))
   obtain ⟨⟨hcl, hcap⟩, lcur, lv⟩ := hrec
   rw [← g72] at hcap lcur lv
   have gl : ∀ j < 7, Good rd S w σ (.load (.n (o + 738 + j)) (.n (o + 737)) (16 * j)) :=

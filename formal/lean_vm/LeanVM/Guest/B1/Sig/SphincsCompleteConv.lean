@@ -12,6 +12,8 @@ public import LeanVM.Guest.B1.Sig.SphincsSoundFors
 public import LeanVM.Guest.B1.Sig.SphincsForsComplete
 public import LeanVM.Guest.B1.Sig.SphincsLayersComplete
 public import LeanVM.Guest.B1.Sig.SphincsCompleteBlocks
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_sig_lean_sphincs»
 
 /-!
 # FORS's cells, two ways
@@ -87,20 +89,23 @@ theorem forsBlockCompletes : ForsBlockCompletes := by
     (key := sKeyB) (bit := sForsBit) (val := sVals) (b0 := 1382) (secret := secret) (sib := sib) hs σ hp
     (by unfold sPad; omega) ⟨2, by omega, rfl⟩ ⟨1379, by omega, rfl⟩ ⟨1381, by omega, rfl⟩
     (fun k hk => nbB_ok (sForsBit_nb k hk)) (fun k hk => nbB_ok (sVals_nb k hk)) hbit hval
-  obtain ⟨t1, t2⟩ := sForsTrees_shape sPad sPP sA0B (.n (1382 + 1)) sForsBit sVals 1382 24 0
+  obtain ⟨t1, t2⟩ := sForsTrees_shape sPad sPP sA0B (.n (val% «verify_sig_lean_sphincs» "fors_at")) sForsBit sVals 1382 24 0
   have e0 : forsTreeBase 1382 0 = 1382 + 2 := by simp [forsTreeBase]
   have e24 : forsTreeBase 1382 (0 + 24) = 1382 + 3802 := forsTreeBase_24 1382
   rw [e0, e24] at t1
   rw [e0] at t2
-  show Completes C rd 1382 5249 (sForsBlock sPad sPP sA0B sKeyB sForsBit sVals 1382).1 σ _
+  show Completes C rd (val% «verify_sig_lean_sphincs» "fors_at~0") (val% «verify_sig_lean_sphincs» "ctr[0]@1") (sForsBlock sPad sPP sA0B sKeyB sForsBit sVals 1382).1 σ _
   rw [sForsBlock_eq]
-  generalize sForsTrees sPad sPP sA0B (.n (1382 + 1)) sForsBit sVals 24 0 (1382 + 2) = tr at h t1 t2 ⊢
+  generalize sForsTrees sPad sPP sA0B (.n (val% «verify_sig_lean_sphincs» "fors_at")) sForsBit sVals 24 0 (1382 + 2) = tr at h t1 t2 ⊢
   rw [t1, t2] at h ⊢
-  obtain ⟨σ', he, ⟨-, hk⟩, hh⟩ := h
+  obtain ⟨σ', he, ⟨-, hk, hP⟩, hh⟩ := h
   rw [hkey, ha0, forsKey_eq _ _ kp s hs secret sib] at hk
+  have e3 : adrsCell1 0 kp 0 0 + lit (3 * 2 ^ 24) = adrsCell1 3 kp 0 0 := by
+    rw [lit_of_lt (by norm_num)]; exact adrsCell1_add_type (by norm_num)
+  rw [hkey, ha0, e3] at hP
   have key : ∀ (n : Nat) (R : E), n = 5248 → σ' (.n n) = R → σ' sForsPk = R := by
     rintro n R rfl hn; exact hn
-  refine ⟨σ', he.mono le_rfl (by decide +kernel), key _ _ ?_ hk, hh⟩
+  refine ⟨σ', he.mono le_rfl (by decide +kernel), ⟨key _ _ ?_ hk, hP⟩, hh⟩
   decide +kernel
 
 /-- **The encoding's digest cell**, two ways: the counter's cell `eOfNat N`, `N < 2^32`, cut at its
@@ -120,8 +125,8 @@ theorem htLayerCompletes : HtLayerCompletes := by
   intro C rd σ l a0 a1 signed ctr b lv e sib hl hb ha0 ha1 hsg hct hp hctr hcall he hbit hval
   obtain ⟨N, hN, hc⟩ := hctr
   have hN' : beWordAt 0 N < 2 ^ 32 := beWordAt_zero_lt N
-  have h := sHtLayer_complete (C := C) (rd := rd) (pad := sPad) (pp := sPP) (a0 := a0) (ac := sAcOf l)
-    (key := a1)
+  have h := sHtLayer_complete_vals (C := C) (rd := rd) (pad := sPad) (pp := sPP) (a0 := a0)
+    (ac := sAcOf l) (key := a1)
     (signed := signed) (ctr := ctr) (bit := sLeafBit) (val := sLVal) (off := sOffOf l)
     (height := sHeightOf l) (b := b) (N := beWordAt 0 N)
     (sib := sib) (by unfold sHeightOf sLeafLen; split <;> omega) he σ (by unfold sPad; omega)
@@ -131,7 +136,8 @@ theorem htLayerCompletes : HtLayerCompletes := by
     (fun j _ => by obtain ⟨k, hk, ek⟩ := sLVal_below (sOffOf l + j); exact ⟨k, by omega, ek⟩)
     hp hN' hc hbit hval
     (by rw [← encDigestCell_eq_encOf _ _ _ _ hN', ← hc]; exact hcall)
-  exact h.mono le_rfl le_rfl fun _ h => h.2
+  refine h.mono le_rfl le_rfl fun _ h => ⟨h.2.1, h.2.2.1, ?_, h.2.2.2.2.1, h.2.2.2.2.2⟩
+  rw [h.2.2.2.1, hc, encDigestCell_eq_encOf _ _ _ _ hN']
 
 /-- **`verify_sig_lean_sphincs`'s blocks complete.** -/
 theorem sphincsBlocksComplete : SphincsBlocksComplete := ⟨forsBlockCompletes, htLayerCompletes⟩

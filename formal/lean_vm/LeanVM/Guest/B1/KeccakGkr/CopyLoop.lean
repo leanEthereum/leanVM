@@ -10,6 +10,10 @@ module
 
 public import LeanVM.Guest.B1.KeccakGkr.PackChain
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_keccak_loop0»
+import LeanVM.Guest.Data.ValNames.«verify_keccak_loop1»
+import LeanVM.Guest.Data.ValNames.«verify_keccak_loop2»
 
 namespace LeanVM.Guest.B1.VerifySub
 
@@ -22,11 +26,11 @@ variable {rd : Reader}
 
 /-- A copy loop's body, named `name`: at `x`, `dst·x` gets `src·x`'s word. -/
 def copyLoopT (name : String) : List Stmt :=
-  [.atom (.mul (.n 4) (.n 3) (.n 0)), .atom (.load (.n 5) (.n 4) 0), .atom (.mul (.n 6) (.n 2) (.n 0)),
-    .atom (.load (.n 5) (.n 6) 0), .atom (.const (.n 7) (word 2 0)),
-    .atom (.mul (.n 8) (.n 0) (.n 7)), .atom (.add (.n 9) (.n 8) (.n 1)),
-    .atom (.const (.n 10) (word 2 0)), .atom (.mul (.n 11) (.n 0) (.n 10)),
-    .callIf (.n 9) name [.n 11, .n 1, .n 2, .n 3], .ret []]
+  [.atom (.mul (.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "s0#0")) (.n 3) (.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "xt"))), .atom (.load (.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "s0#1")) (.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "s0#0")) 0), .atom (.mul (.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "s0#2")) (.n 2) (.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "xt"))),
+    .atom (.load (.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "s0#1")) (.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "s0#2")) 0), .atom (.const (.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "s2#0")) (word 2 0)),
+    .atom (.mul (.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "s2#1")) (.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "xt")) (.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "s2#0"))), .atom (.add (.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "s2#2")) (.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "s2#1")) (.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "bound"))),
+    .atom (.const (.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "s2#3")) (word 2 0)), .atom (.mul (.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "s2#4")) (.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "xt")) (.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "s2#3"))),
+    .callIf (.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "s2#2")) name [.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "s2#4"), .n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "bound"), .n 2, .n 3], .ret []]
 
 theorem copyLoop_body11 : (fn% «verify_keccak_loop0»).body = copyLoopT name% «verify_keccak_loop0»
     := stmtsEqb_sound (by decide +kernel)
@@ -47,7 +51,7 @@ theorem find_copyLoop13 : coreProgram.find? name% «verify_keccak_loop2» = some
 
 /-- **A copy loop's step.** -/
 theorem copyLoop_step {name : String} {fn : Fn} (hf : coreProgram.find? name = some fn)
-    (hb : fn.body = copyLoopT name) (hp : fn.params = [V.n 0, .n 1, .n 2, .n 3]) (d : ℕ)
+    (hb : fn.body = copyLoopT name) (hp : fn.params = [V.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "xt"), .n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "bound"), .n 2, .n 3]) (d : ℕ)
     (x N dst src : E) (h : coreProgram.relN rd (d + 1) name [x, N, dst, src] []) :
     (∃ v, LoadHolds rd (src * x) 0 v ∧ LoadHolds rd (dst * x) 0 v) ∧
       (x * gen + N ≠ 0 → coreProgram.relN rd d name [x * gen, N, dst, src] []) := by
@@ -60,15 +64,15 @@ theorem copyLoop_step {name : String} {fn : Fn} (hf : coreProgram.find? name = s
   rw [hb] at hbody
   simp only [copyLoopT, Stmt.HoldsList, Stmt.Holds, Atom.Holds] at hbody
   obtain ⟨e4, l5, e6, s5, e7, e8, e9, e10, e11, -, hcall, -⟩ := hbody
-  refine ⟨⟨σ (.n 5), by rw [← e4]; exact l5, by rw [← e6]; exact s5⟩, fun hne ↦ ?_⟩
-  have h9 : σ (.n 9) = σ (.n 0) * gen + σ (.n 1) := by rw [e9, e8, e7, word_gen]
-  have h11 : σ (.n 11) = σ (.n 0) * gen := by rw [e11, e10, word_gen]
+  refine ⟨⟨σ (.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "s0#1")), by rw [← e4]; exact l5, by rw [← e6]; exact s5⟩, fun hne ↦ ?_⟩
+  have h9 : σ (.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "s2#2")) = σ (.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "xt")) * gen + σ (.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "bound")) := by rw [e9, e8, e7, word_gen]
+  have h11 : σ (.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "s2#4")) = σ (.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "xt")) * gen := by rw [e11, e10, word_gen]
   have := hcall (by rw [h9]; exact hne)
   simpa [h11] using this
 
 /-- **A copy loop** from `x = 1` with `N = g^m`, `0 < m < ordG`: `dst[j] = src[j]`, `j < m`. -/
 theorem copyLoop_sound {name : String} {fn : Fn} (hf : coreProgram.find? name = some fn)
-    (hb : fn.body = copyLoopT name) (hp : fn.params = [V.n 0, .n 1, .n 2, .n 3]) {N dst src : E}
+    (hb : fn.body = copyLoopT name) (hp : fn.params = [V.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "xt"), .n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "bound"), .n 2, .n 3]) {N dst src : E}
     {m : ℕ} (hN : N = gen ^ m) (hm : m < ordG)
     (h : coreProgram.Rel rd name [1, N, dst, src] []) :
     ∀ j < m, ∃ v, LoadHolds rd src j v ∧ LoadHolds rd dst j v := by

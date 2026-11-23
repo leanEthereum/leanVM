@@ -5,6 +5,9 @@ public import LeanVM.Guest.B1.Main.Facts
 public import LeanVM.Cost.Decoder.Equations
 public import LeanVM.Cost.Decoder.TopEq
 public import LeanVM.Guest.Child.Reads
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«main»
+import LeanVM.Guest.Data.ValNames.«verify_sub»
 
 /-!
 # The guest decoder's counts on a valid execution
@@ -39,8 +42,8 @@ at most `16` children, at most `M` declared claims and raw signatures of each sc
 of both regions together. -/
 structure ValidCounts (D : DiscreteLogTables) (σ : Val) (M : ℕ) : Prop where
   kids : nKidsD D σ ≤ 16
-  xClaims : gLogD D (σ (.n 0)) ≤ M
-  sClaims : gLogD D (σ (.n 3)) ≤ M
+  xClaims : gLogD D (σ (.n (val% «main» "meta[0]"))) ≤ M
+  sClaims : gLogD D (σ (.n (val% «main» "meta[3]"))) ≤ M
   rawX : nRawXD D σ ≤ M
   rawS : nRawSD D σ ≤ M
   slots : lxSlotsD D σ + lsSlotsD D σ ≤ M
@@ -104,13 +107,13 @@ theorem validCounts_of {C : CallRel} {κ : ℕ} (hκ : κ ≤ 30) {L : MemoryIma
     have := hlt v (by simp only [List.mem_cons] at hv ⊢; tauto) _ (MF.counts v hv).2
       (MF.counts v hv).1
     omega
-  have hk : gLog (σ (.n 6)) ≤ 16 := by rw [← lg_eq_gLog]; exact MF.kids.2
+  have hk : gLog (σ (.n (val% «main» "meta[6]"))) ≤ 16 := by rw [← lg_eq_gLog]; exact MF.kids.2
   have ht := MF.total.2
   have ht' := hlt 24 (by simp) _ ht MF.total.1
-  have hx : gLog (σ (.n 22)) = lg σ 0 + lg σ 1 := by
+  have hx : gLog (σ (.n (val% «main» "lx_slots_g"))) = lg σ 0 + lg σ 1 := by
     rw [MF.lxs, gLog_gen_pow (by
       have := (MF.counts 0 (by simp)).2; have := (MF.counts 1 (by simp)).2; omega)]
-  have hs : gLog (σ (.n 23)) = lg σ 3 + lg σ 4 := by
+  have hs : gLog (σ (.n (val% «main» "lean_sphincs_slots_g"))) = lg σ 3 + lg σ 4 := by
     rw [MF.lss, gLog_gen_pow (by
       have := (MF.counts 3 (by simp)).2; have := (MF.counts 4 (by simp)).2; omega)]
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
@@ -135,7 +138,7 @@ theorem valid_counts {input : PublicInput} {t : Execution guestProgram}
 /-- A child proof's stream begins with its cursor's words. -/
 theorem cursor_le_stream (T : Fast.WhirTabs) (rd : Reader) (σ : Val) (Vn : Fast.NFrames)
     (cl : E → E → ℕ) :
-    cl (σ (.n 25)) (σ (.n 1885)) ≤ (Fast.vsPiOfA T rd σ Vn cl).stream.length := by
+    cl (σ (.n (val% «verify_sub» "stream"))) (σ (.n (val% «verify_sub» "sumcheck_target~2"))) ≤ (Fast.vsPiOfA T rd σ Vn cl).stream.length := by
   have hw : ∀ (a : K) (n : ℕ), (Fast.wordsFrom rd a n).length = n := by
     intro a n
     induction n generalizing a with
@@ -155,7 +158,7 @@ theorem valid_cursor {input : PublicInput} {t : Execution guestProgram}
     let σ := mainVal rd
     let fr := frameAtA (entryArrayT pcTableT (Fast.preTestAt discreteLogTables Fast.preTable Fast.genPows rd)
       (replayStatesOf (powTable t.logMemorySize) (powTable guestProgram.logSize) guestProgram
-        (memoryVector t.memory)) rd) rd 19 (subArgsK rd σ c) []
+        (memoryVector t.memory)) rd) rd (fn_idx% verify_sub) (subArgsK rd σ c) []
     cursorLength discreteLogTables (fr (.n 25)) (fr (.n 1885)) ≤ 8192 := by
   intro rd σ fr
   have hk : Node.ExplainsPublicInput guestProgram input (End.decode t.memory) := End.guest_knowledge input t hv
@@ -179,7 +182,7 @@ theorem valid_cursor {input : PublicInput} {t : Execution guestProgram}
       (frameAtA (entryArrayT pcTableT (Fast.preTestAt discreteLogTables Fast.preTable Fast.genPows rd)
         (replayStatesOf (powTable t.logMemorySize) (powTable guestProgram.logSize) guestProgram
           (memoryVector t.memory)) rd) rd) (cursorLength discreteLogTables))
-      (σ (.n 398)) (σ (.n 31)) (σ (.n 34)) (lxTable discreteLogTables rd σ)
+      (σ (.n 398)) (σ (.n 47)) (σ (.n 48)) (lxTable discreteLogTables rd σ)
       (lsTable discreteLogTables rd σ) c ∈ w.children := by
     simp only [w, decWitNStaged, decWitStaged, decWitAt, decWitTab, nodeWitnessOf, kidsT]
     exact List.mem_map.2 ⟨c, List.mem_range.2 hc, rfl⟩
