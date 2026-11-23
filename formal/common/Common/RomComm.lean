@@ -2,7 +2,7 @@ module
 
 public import Common.Prob
 public import Common.Defs
-public import VCVio.OracleComp.QueryTracking.RandomOracle.CachePartial
+import VCVio.OracleComp.QueryTracking.RandomOracle.CachePartial
 
 @[expose] public section
 

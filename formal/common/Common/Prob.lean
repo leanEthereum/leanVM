@@ -148,6 +148,15 @@ theorem run'_simulateQ_evalDistEq_of_inv
   simpa [StateT.run'_eq, Functor.map_map, Function.comp_def] using h
 
 omit [AnswerMeasure spec'] in
+/-- Invariants preserved by every step hold on every reachable final state (VCVio's
+`OracleComp.simulateQ_run_preserves_inv_of_query`, the start state implicit). -/
+theorem inv_of_mem_support_run
+    (impl : QueryImpl spec (StateT σ (OracleComp spec'))) (inv : σ → Prop)
+    (hinv : ∀ t s, inv s → ∀ z ∈ support ((impl t).run s), inv z.2)
+    (oa : OracleComp spec α) {s : σ} (hs : inv s) :
+    ∀ z ∈ support ((simulateQ impl oa).run s), inv z.2 :=
+  OracleComp.simulateQ_run_preserves_inv_of_query impl inv hinv oa s hs
+
 end Projection
 
 section Size

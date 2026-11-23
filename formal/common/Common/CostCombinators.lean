@@ -2,7 +2,7 @@ module
 
 public import Common.PiOnly
 public import Statement.HashSignatures
-public import VCVio.EvalDist.List
+import VCVio.EvalDist.List
 
 @[expose] public section
 

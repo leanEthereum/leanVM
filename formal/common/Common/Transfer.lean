@@ -291,8 +291,8 @@ theorem logImpl_state_eq_replay
     (D : OracleComp (dSpec Msg Dg (SpState Dg E C)) α) {z}
     (hz : z ∈ support ((simulateQ (logImpl sim base) D).run (SimState.init iv, []))) :
     z.2.1 = replay iv z.2.2 := by
-  refine OracleComp.simulateQ_run_preserves_inv_of_query (spec' := unifSpec + hs) (logImpl sim base)
-    (fun s ↦ s.1 = replay iv s.2) (fun t s hinv w hw ↦ ?_) D _ rfl z hz
+  refine inv_of_mem_support_run (spec' := unifSpec + hs) (logImpl sim base)
+    (fun s ↦ s.1 = replay iv s.2) (fun t s hinv w hw ↦ ?_) D rfl z hz
   have hkeep (h : ∀ u ∈ support ((base t).run s.1), u.2 = s.1)
       (hw : w ∈ support ((fun z ↦ (z.1, (z.2, s.2))) <$> (base t).run s.1)) :
       w.2.1 = replay iv w.2.2 := by
@@ -325,8 +325,8 @@ theorem logImpl_reachable (Good : SimState Dg E C → hs.QueryCache → Prop)
     (hz : z ∈ support ((simulateQ (foldRO (logImpl sim base)) D).run
       (((SimState.init iv : SimState Dg E C), []), ∅))) :
     z.2.1.1 = replay iv z.2.1.2 ∧ Good z.2.1.1 z.2.2 := by
-  refine OracleComp.simulateQ_run_preserves_inv_of_query (spec' := unifSpec) (foldRO (logImpl sim base))
-    (fun s ↦ s.1.1 = replay iv s.1.2 ∧ Good s.1.1 s.2) (fun t s hinv w hw ↦ ?_) D _ ⟨rfl, hinit⟩ z hz
+  refine inv_of_mem_support_run (spec' := unifSpec) (foldRO (logImpl sim base))
+    (fun s ↦ s.1.1 = replay iv s.1.2 ∧ Good s.1.1 s.2) (fun t s hinv w hw ↦ ?_) D ⟨rfl, hinit⟩ z hz
   rw [foldRO_run] at hw
   simp only [support_map, Set.mem_image] at hw
   obtain ⟨y, hy, rfl⟩ := hw
