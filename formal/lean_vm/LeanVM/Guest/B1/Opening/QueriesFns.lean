@@ -45,10 +45,12 @@ def oqLoopT (s : Oq) (loop : String) : List Stmt :=
   | 0 => oqLoop0T s loop
   | _ => oqLoop1T s loop
 
-theorem oqLoopT_zero {s : Oq} (h : s.base = 0) (loop : String) : oqLoopT s loop = oqLoop0T s loop := by
+theorem oqLoopT_zero {s : Oq} (h : s.base = 0) (loop : String) :
+    oqLoopT s loop = oqLoop0T s loop := by
   unfold oqLoopT; rw [h]; rfl
 
-theorem oqLoopT_one {s : Oq} (h : s.base = 1) (loop : String) : oqLoopT s loop = oqLoop1T s loop := by
+theorem oqLoopT_one {s : Oq} (h : s.base = 1) (loop : String) :
+    oqLoopT s loop = oqLoop1T s loop := by
   unfold oqLoopT; rw [h]; rfl
 
 /-- **Entry `p`'s functions**: the function and loop helper with the templates' parameters and

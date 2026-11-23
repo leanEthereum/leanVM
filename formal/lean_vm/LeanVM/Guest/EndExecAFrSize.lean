@@ -628,13 +628,13 @@ theorem frameSize_alignA : FrameSize alignA := by
     rw [hn] at hf1 hf2 hf3 hft
     exact ⟨c', hn, by rw [hf1, hm], hf2, by rw [hf3, hl], he, by rw [hft, ht]⟩
   -- a node's block, no loop helper
-  have blk : ∀ {f m}, coreProgram.loop f = false → B2C.fs f = m → e.I.t.kids[e.nc].name = f →
-      e.I.t.kids[e.nc].block B2C.fs coreProgram.loop = m := fun hl hm hn ↦ by
+  have blk : ∀ {f m}, c.taken = true → coreProgram.loop f = false → B2C.fs f = m → e.I.t.kids[e.nc].name = f →
+      e.I.t.kids[e.nc].block B2C.fs coreProgram.loop = m := fun ht hl hm hn ↦ by
+    have hv := hkt ht
     rcases hk : e.I.t.kids[e.nc] with ⟨f', σ', bufs', kids'⟩ | ⟨f', σ'⟩
     · rw [hk] at hn; simp only [Tree.name] at hn; subst hn
       simp [Tree.block, hl, hm]
-    · rw [hk] at hn; simp only [Tree.name] at hn; subst hn
-      simp [Tree.block, hm]
+    · rw [hk] at hv; exact hv.elim
   cases h <;> cases stm <;> simp only [frFits, Bool.false_eq_true] at hq
   case alloc.call q m f args rets =>
     simp only [CallOf] at hco
@@ -644,7 +644,7 @@ theorem frameSize_alignA : FrameSize alignA := by
       obtain ⟨c', -, hfsf, hfindf, hlp, hen, htl⟩ := cal hcf
       simp only [Bool.or_eq_true, Bool.and_eq_true, beq_iff_eq, Bool.not_eq_true'] at hq
       rcases hq with ⟨rfl, rfl⟩ | ⟨rfl, hq⟩
-      · exact (blk hlp hfsf hkn).symm
+      · exact (blk rfl hlp hfsf hkn).symm
       -- a loop helper to a constant end: its run's iterations
       split at hq
       · rename_i K a0 rest
@@ -754,7 +754,7 @@ theorem frameSize_alignA : FrameSize alignA := by
           have he2 := endCur_chain (A := alignA) hr st e s.pc s.fp htr.track.ents htr.linked hch
           have hIP := insts_placed r.T (0, r.T.block B2C.fs coreProgram.loop) r.hdr (by omega) e.I hI
           have hbl : B2C.fs e.I.t.name ≤ e.I.t.block B2C.fs coreProgram.loop := by
-            generalize e.I.t = t; cases t <;> simp [Tree.block, Tree.name]
+            rw [hIt]; simp [Tree.block, Tree.name]
           have hfs2 := B2C.two_le_fs e.I.t.name
           have h28 := le_two_pow_logMem (r.T.total B2C.fs)
           have h2k : 2 ^ r.κ ≤ 2 ^ 28 := Nat.pow_le_pow_right (by norm_num) hκ
@@ -793,7 +793,7 @@ theorem frameSize_alignA : FrameSize alignA := by
     obtain ⟨c', -, hfsf, -, hlp, -⟩ := cal hcf
     rw [Nat.zero_add] at hsm
     have hjl : jj < sizes.length := (List.getElem?_eq_some_iff.mp hsm).1
-    refine ⟨jj, ?_, by unfold maxCells; omega, by rw [hsm, blk hlp hfsf hkn]⟩
+    refine ⟨jj, ?_, by unfold maxCells; omega, by rw [hsm, blk htk hlp hfsf hkn]⟩
     have hx := cellRefP hr htr hj (v := x) (by
       rcases huse with (⟨hpx, hxn⟩ | ⟨a, ha, hu⟩) | hnx
       · exact .inl ⟨hpx, by simpa using hxn⟩

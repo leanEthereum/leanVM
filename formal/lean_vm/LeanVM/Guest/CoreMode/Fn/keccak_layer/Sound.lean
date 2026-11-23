@@ -33,7 +33,7 @@ theorem layCur_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts cor
     ∃ p y, σ (.n (valf% «keccak_layer» "step_g")) = Protocol.Verifier.gen ^ (y / B1.VerifySub.krStep) ∧
       σ (.n (valf% «keccak_layer» "rem_g")) = Protocol.Verifier.gen ^ (y % B1.VerifySub.krStep) ∧ y < 32 ∧
       σ (.n v) = σ (.n (valf% «keccak_layer» "stream")) * Protocol.Verifier.gen ^ (p + 48 + 2 * y) ∧ p + 84 + 2 * y ≤ 8192 := by
-  have hn : ∃ first < 2, fn.name = B1.VerifySub.layerName first ∧ v = B1.VerifySub.layOff first + 743 := by
+  have hn : ∃ first < 2, fn.name = B1.VerifySub.layerName first ∧ v = B1.VerifySub.layOff first + 807 := by
     simp only [CoreMode.layCur, Bool.cond_eq_ite, beq_iff_eq] at hv
     split_ifs at hv with h0 h1
     · exact ⟨0, by decide, h0, (Option.some.inj hv).symm⟩
@@ -45,8 +45,7 @@ theorem layCur_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts cor
   obtain rfl : fn = fL := Option.some.inj (hf.symm.trans hfL)
   obtain ⟨p, y, e7, hy, h9, h10, hroom⟩ := layQ_all hr I hI _ σ bufs kids ht first hfi rfl
   obtain ⟨args, rets, hv⟩ := inst_valid' hr hI ht
-  have hfs : ∀ f', 1 ≤ B2C.fs f' := fun f' ↦ by
-    unfold B2C.fs; split <;> simp [B2C.mainFrame, Data.mainCells, Data.jtSlots]
+  have hfs : ∀ f', 1 ≤ B2C.fs f' := Res.fs_pos
   obtain ⟨-, hb⟩ := Res.holds_of_valid hfs hv hf
   obtain ⟨hcur, -⟩ := layer_cur hfi (fun _ _ _ h ↦ Res.KidRel.rel h) hy h9 h10 hbL hb
   refine ⟨p, y, h9, h10, hy, ?_, by omega⟩
@@ -119,7 +118,7 @@ theorem st_keccak {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreP
   obtain ⟨tm, tl⟩ := loop_atoms_top hfi rem hf
   have e6 : σ (.n (valf% «keccak_layer» "p1")) = σ (.n (valf% «keccak_layer» "fs2")) * σ (.n (valf% «keccak_layer» "fs0")) :=
     hh _ (topAtoms_on_path hw (List.contains_iff_mem.mp tm))
-  have hl : LoadHolds r.img.read (σ (.n (valf% «keccak_layer» "p1"))) 80 (σ (loopCur rem)) :=
+  have hl : LoadHolds r.img.read (σ (.n (valf% «keccak_layer» "p1"))) 55 (σ (loopCur rem)) :=
     hh _ (topAtoms_on_path hw (List.contains_iff_mem.mp tl))
   rw [e6] at hl
   exact ⟨a, q, hhd, ha17, loadHolds_unique hl hld, room_of hjn hroom⟩

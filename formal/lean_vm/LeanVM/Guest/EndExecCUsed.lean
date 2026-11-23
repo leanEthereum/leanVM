@@ -389,7 +389,7 @@ theorem allocB_arm {B : ℕ} {s : St} {p sel k n : ℕ} {sizes : List ℕ} (hp :
     rw [← ptrAt_uniq hp hp', hk] at hk'
     rw [← Option.some.inj hk']; exact hb
 
-theorem allocB_frames {B : ℕ} {s : St} {p size stop n : ℕ} {v si : K}
+theorem allocB_frames {B : ℕ} {s : St} {p size stop n tail : ℕ} {v si : K}
     (hp : s.mem.peek (s.fp + stop) = ofK v) (hv : v * si = Parameters.g ^ n) (hn : n < maxCells)
     (hb : s.nextFree + (size * n + tail) ≤ B) : AllocB B s (.allocFrames p size stop si tail) :=
   fun v' n' hn' hp' hv' ↦ by

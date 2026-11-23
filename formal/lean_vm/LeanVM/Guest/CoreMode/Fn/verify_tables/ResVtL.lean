@@ -216,7 +216,7 @@ theorem vtLQ_step (hr : r.Ok) :
     rw [ite_eq_right (by rw [hloop]; simp), hsite] at hH
     have hhd : J.hdr.2 = ofK (addressOfIndex I.fp) := by rw [hhdr, hH]
     -- the stream at `verify_tables`' frame
-    have hfb := inst_fb hr hI (by rw [hIt]; rfl) vt_idx
+    have hfb := inst_fb hr hI (by rw [hIt]) vt_idx
     have hF0 := inst_frame hr hI hIt vt_idx hw'
     obtain ⟨hlt22, hm22⟩ := ref_read hr (by rw [h20]; omega)
       (hF0.val (.n 20) (List.mem_append_left _ (List.mem_append_left _ hp20)) (by rw [h20]; omega)

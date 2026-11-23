@@ -66,7 +66,7 @@ public section
 theorem loop_atoms_top {first : ℕ} (hf : first < 2) (rem : Bool) {fn : Fn}
     (hfn : coreProgram.find? (stLoop first rem) = some fn) :
     (topAtoms fn.body).contains (.mul (.n 6) (.n 2) (.n 0)) = true ∧
-      (topAtoms fn.body).contains (.load (loopCur rem) (.n 6) 80) = true := by
+      (topAtoms fn.body).contains (.load (loopCur rem) (.n 6) 55) = true := by
   interval_cases first <;> cases rem
   · rw [Option.some.inj (hfn.symm.trans find_pack8_458)]; decide +kernel
   · rw [Option.some.inj (hfn.symm.trans find_packRem_459)]; decide +kernel

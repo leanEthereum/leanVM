@@ -2,7 +2,7 @@
   LeanVM.Guest.CoreMode.Fam.ResExpC
 
   The exponents a body pins are so on its returning paths (`valExpB_sound`), and the parameters
-  whose bounds every call site carries are so at every honest instance (`expQ_all`).
+  whose bounds every call site carries are so at every honest instance (`expCQ_all`).
 -/
 
 module
@@ -19,7 +19,7 @@ public import LeanVM.Guest.EndExecCoreFn
 
 `valExpB_sound`: on a returning path whose events hold, a value `valExpB` names is `g^e`, `lo ≤ e < hi`: a constant
 of the spine (`spineE_sub`), or a copy of one on the spine of the arm the top-level `match` takes (`walkArms_arm`).
-`expQ_all`: where every function's call sites carry the listed bounds (`carryExpB`) and no listed callee is `main`,
+`expCQ_all`: where every function's call sites carry the listed bounds (`carryExpB`) and no listed callee is `main`,
 every honest instance of a listed callee has its parameter's word `g^e`, `lo ≤ e < hi` (`insts_all`: the caller's
 path returns, its argument is pinned there, and the callee's parameter is that argument's word); at the registry of
 every function's carried bounds (`FnReg.expCarry`, its whole-program check `Res.expCarry_all`), `expCarryQ_all`, and
@@ -41,13 +41,13 @@ theorem constExpS_sound {v : V} {lo hi : ℕ} {sp : List Ev} (hh : ∀ e ∈ sp,
   unfold CoreMode.constExpS at h
   obtain ⟨y, hy, hc⟩ := List.any_eq_true.mp h
   rcases y with ⟨a⟩ | _ | _ | _
-  all_goals try (simp at hc; done)
+  all_goals try simp at hc
   cases a
   all_goals try (simp at hc; done)
   rename_i d w
   simp only [Bool.and_eq_true] at hc
   obtain ⟨hd, he⟩ := hc
-  have hdv : d = v := by simpa [Res.veq] using hd
+  have hdv : d = v := by simp only [Res.veq, Bool.and_eq_true, decide_eq_true_eq] at hd; exact hd.2
   subst hdv
   cases hp : Res.powOf1 w with
   | none => rw [hp] at he; simp at he
@@ -55,20 +55,20 @@ theorem constExpS_sound {v : V} {lo hi : ℕ} {sp : List Ev} (hh : ∀ e ∈ sp,
     rw [hp] at he
     simp only [Option.any_some, Bool.and_eq_true, Nat.ble_eq, Nat.blt_eq] at he
     have hw : σ d = w := hh _ hy
-    exact ⟨e, he.1, he.2, by rw [hw, powOf1_sound hp]; rfl⟩
+    exact ⟨e, he.1, he.2, by rw [hw, powOf1_sound hp]⟩
 
 theorem copyExpS_sound {v : V} {lo hi : ℕ} {sp : List Ev} (hh : ∀ e ∈ sp, e.Holds rd σ)
     (h : CoreMode.copyExpS v lo hi sp = true) : ∃ e, lo ≤ e ∧ e < hi ∧ σ v = ofK (addressOfIndex e) := by
   unfold CoreMode.copyExpS at h
   obtain ⟨y, hy, hc⟩ := List.any_eq_true.mp h
   rcases y with ⟨a⟩ | _ | _ | _
-  all_goals try (simp at hc; done)
+  all_goals try simp at hc
   cases a
   all_goals try (simp at hc; done)
   rename_i d s
   simp only [Bool.and_eq_true] at hc
   obtain ⟨hd, hs⟩ := hc
-  have hdv : d = v := by simpa [Res.veq] using hd
+  have hdv : d = v := by simp only [Res.veq, Bool.and_eq_true, decide_eq_true_eq] at hd; exact hd.2
   subst hdv
   have hw : σ d = σ s := hh _ hy
   obtain ⟨e, h1, h2, h3⟩ := constExpS_sound hh hs
@@ -115,7 +115,7 @@ theorem valExpB_sound {body : List Stmt} {v : V} {lo hi : ℕ} {es : List Ev} {v
 end
 
 /-- **What a listed callee's honest instance gets**: each listed parameter's word `g^e`, `lo ≤ e < hi`. -/
-def ExpQ (L : List (String × ℕ × ℕ × ℕ)) (J : Inst) : Prop :=
+@[expose] def ExpCQ (L : List (String × ℕ × ℕ × ℕ)) (J : Inst) : Prop :=
   ∀ c ∈ L, ∀ σ bufs kids, J.t = .node c.1 σ bufs kids → ∀ fn, coreProgram.find? c.1 = some fn → ∀ v,
     fn.params[c.2.1]? = some v → ∃ e, c.2.2.1 ≤ e ∧ e < c.2.2.2 ∧ σ v = ofK (addressOfIndex e)
 
@@ -123,10 +123,10 @@ section
 
 variable {r : Ref}
 
-/-- **`ExpQ` passes down a call**: the caller's call site carries the bound (`carryExpB`), its argument pinned on its
+/-- **`ExpCQ` passes down a call**: the caller's call site carries the bound (`carryExpB`), its argument pinned on its
 returning path (`valExpB_sound`), the callee's parameter that argument's word. -/
-theorem expQ_step {L : List (String × ℕ × ℕ × ℕ)} (hall : ∀ fn ∈ coreProgram, CoreMode.carryExpB L fn = true) :
-    Res.KidStep coreProgram r.img.read B2C.H (honestInsts coreProgram B2C.fs B2C.H r.hdr r.T) (ExpQ L) := by
+theorem expCQ_step {L : List (String × ℕ × ℕ × ℕ)} (hall : ∀ fn ∈ coreProgram, CoreMode.carryExpB L fn = true) :
+    Res.KidStep coreProgram r.img.read B2C.H (honestInsts coreProgram B2C.fs B2C.H r.hdr r.T) (ExpCQ L) := by
   intro I hI fI σI bufsI kidsI hIt fnI hfI es vs hw hh i c J hci hJS hk _ _ hname hval hph _
     cc hcc σ bufs kids hJt fn hf v hv
   have hct : c.taken = true := by
@@ -157,18 +157,18 @@ theorem expQ_step {L : List (String × ℕ × ℕ × ℕ)} (hall : ∀ fn ∈ co
     simp only [Option.map_some, Option.some.injEq] at hpv
     rw [hpv, h3]
 
-/-- **`ExpQ` at every honest instance**, every function's call sites carrying the listed bounds and no listed callee
+/-- **`ExpCQ` at every honest instance**, every function's call sites carrying the listed bounds and no listed callee
 `main`. -/
-theorem expQ_all (hr : r.Ok) {L : List (String × ℕ × ℕ × ℕ)}
+theorem expCQ_all (hr : r.Ok) {L : List (String × ℕ × ℕ × ℕ)}
     (hall : ∀ fn ∈ coreProgram, CoreMode.carryExpB L fn = true) (hmain : ∀ c ∈ L, c.1 ≠ "main") :
-    ∀ J ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T, ExpQ L J := by
-  refine insts_all hr (expQ_step hall) fun J hm ↦ ?_
+    ∀ J ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T, ExpCQ L J := by
+  refine insts_all hr (expCQ_step hall) fun J hm ↦ ?_
   intro cc hcc σ bufs kids hJt
   exact absurd (hm _ _ _ _ hJt) (hmain cc hcc)
 
 /-- **The registry's carried bounds at every honest instance.** -/
-theorem expCarryQ_all (hr : r.Ok) : ∀ J ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T, ExpQ CoreMode.FnReg.expCarry J :=
-  expQ_all hr Res.expCarry_all (by decide)
+theorem expCarryQ_all (hr : r.Ok) : ∀ J ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T, ExpCQ CoreMode.FnReg.expCarry J :=
+  expCQ_all hr Res.expCarry_all (by decide)
 
 end
 

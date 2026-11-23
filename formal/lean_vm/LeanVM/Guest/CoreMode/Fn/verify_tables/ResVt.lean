@@ -98,7 +98,7 @@ theorem vt_zc_front {rd : Reader} {σ : Val} (h : Tables.VtH rd σ) :
   have c2638 := h.atomAt (pos% «verify_tables» "s73#2") (.const (.n (val% «verify_tables» "s73#2")) (word 1 0)) (by decide +kernel)
   have c2632 := h.atomAt (pos% «verify_tables» "s69#0") (.const (.n (val% «verify_tables» "s69#0")) (word 2 0)) (by decide +kernel)
   have m2633 := h.atomAt (pos% «verify_tables» "s69#1") (.mul (.n (val% «verify_tables» "s69#1")) (.n (val% «verify_tables» "cursor@4")) (.n (val% «verify_tables» "s69#0"))) (by decide +kernel)
-  have l2633 := h.atomAt 2650 (.load (.n (val% «verify_tables» "s69#1")) (.n (val% «verify_tables» "zc_rounds")) 5) (by decide +kernel)
+  have l2633 := h.atomAt (pos% «verify_tables» "s69#1" + 1) (.load (.n (val% «verify_tables» "s69#1")) (.n (val% «verify_tables» "zc_rounds")) 5) (by decide +kernel)
   simp only [Atom.Holds] at c2638 c2632 m2633 l2633
   refine ⟨by rw [c2638, Tables.tb_word_one], ?_⟩
   rw [m2633, c2632, Tables.tb_word_gen, vt_cur13 h] at l2633
@@ -164,7 +164,7 @@ theorem vtQ_step (hr : r.Ok) :
   have e5 := params_get hpar (k := 5) (by decide) rfl
   have e20 := params_get hpar (k := 20) (by decide) rfl
   rw [hrt] at hrJ
-  have e5987 : σ (.n 5972) = σI (.n 562) := by
+  have e5987 : σ (.n (val% «verify_tables» "s92#0[6]")) = σI (.n (val% «verify_sub» "fs0@4" + 6)) := by
     have := congrArg (·[6]?) hrJ
     simpa [Tables.vtRets, vtRetsV] using this
   -- its front

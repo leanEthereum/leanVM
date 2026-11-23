@@ -127,7 +127,7 @@ theorem glLQ_step (hr : r.Ok) :
     dsimp only at hH
     simp only [hlast, ↓reduceIte, hsite''] at hH
     -- the stream at the layer's frame
-    have hfb := inst_fb hr hI (by rw [hIt]; rfl) hidx
+    have hfb := inst_fb hr hI (by rw [hIt]) hidx
     have hF0 := inst_frame hr hI hIt hidx hw'
     have hp8 : V.n 8 ∈ (coreOf (glIdx p o)).params := by rw [hcj, hpL, glParams_eq]; simp
     obtain ⟨hlt10, hm10⟩ := ref_read hr (by rw [hcell]; omega)
@@ -153,7 +153,8 @@ theorem glLQ_step (hr : r.Ok) :
     refine ⟨I.fp, 0, m, q + 8 * p, hhd, hlt10, by rw [p0, hc0, pow_zero], by rw [p1, h3], Nat.zero_le _, hm,
       ?_, by omega⟩
     have h0 := hrec 0 (Nat.zero_le _)
-    rw [Nat.mul_zero, pow_zero, mul_one, Nat.mul_zero, Nat.add_zero, mul_assoc, ← pow_add] at h0
+    simp only [Nat.mul_zero, pow_zero, mul_one, Nat.add_zero] at h0
+    rw [mul_assoc, ← pow_add] at h0
     rw [p2, p0, hc0, one_pow, mul_one, hm10]
     exact h0
   · -- the loop's tail call

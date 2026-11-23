@@ -615,7 +615,7 @@ theorem ref_rd (hr : r.Ok) : ∀ a w, r.img.read a = some w → a ≠ 0 := fun a
 check bounds an exponent (`B1.Tables.tb_rc_sound'`). -/
 theorem ref_memNz (hr : r.Ok) : MemNz r.img.read := by
   refine ⟨ref_rd hr, fun {x y t1 t2 m} hm h1 h2 h3 ↦ ?_⟩
-  have hκ := logMemorySize_le_28 (e := r.exec) hr.size
+  have hκ : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size
   obtain ⟨e, he, hx⟩ := B1.Tables.tb_rc_sound' (by omega) r.img (K := m + 1) (k := ofK (addressOfIndex m))
     (by omega) (by omega) (by rw [Nat.add_sub_cancel]) h1 h2 h3
   exact ⟨e, by omega, by rw [hx, Value.gen_pow_eq_ofK]⟩

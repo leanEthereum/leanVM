@@ -758,8 +758,8 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
       simpa [CoreMode.Rd, addressOfIndex, pow_add] using this
     refine Bridge.jumpF_of hj1 (fun h ↦ hfpL.trans (hroot h)) hj0 (List.all_eq_true.mpr hlocs) hF (by rw [hc0, hfn]; exact hw)
       (End.jtHolds_of hJT) hJT (fun zs x arms ss pre' es' vs' hz hcur hb' hp' ↦ ?_) (fun x fs args rets hm ↦ ?_)
-    · have hm : Stmt.match_ x arms ∈ stmtsOf (coreOf j).body :=
-        zok_stmts hz (by rw [Zip.pos, hcur]; exact List.mem_append_left _ List.mem_cons_self)
+    · have hm : Stmt.match_ x arms ∈ Bridge.stmtsOf (coreOf j).body :=
+        Bridge.zok_stmts hz (by rw [Bridge.Zip.pos, hcur]; exact List.mem_append_left _ List.mem_cons_self)
       have hnl : CoreMode.loopBC Cf.fn = false := by
         cases hl : CoreMode.loopBC Cf.fn
         · rfl
@@ -804,7 +804,7 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
     simp only [Nat.blt_eq] at hj1
     rw [← hfpL]
     exact ⟨B2C.fsN j, by have := B2C.two_le_fsN j; omega, B2C.fsN_lt j,
-      Bridge.tailF_of (by omega) hj0 hF hw hc hi0 hcode hnx⟩
+      Bridge.tailF_of (by omega) hj0 hF (by rw [hc0, hfn]; exact hw) hc hi0 hcode hnx⟩
   · -- `main`'s frame
     rw [← hx0] at hmX
     simpa [Bridge.ctxOf, Bridge.AlignCtx.ofData] using hmX
