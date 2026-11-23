@@ -30,11 +30,6 @@ open LeanVM.Protocol.Verifier (gen)
 
 @[expose] public section
 
-/-- **A body whose computed hints are pinned by the next atom has exact paths.** -/
-theorem pathExact_of_pinned {fn : Fn} (h : Stmt.blockNextOk isComputed pinsInverse fn.body = true) :
-    PathExactFn fn :=
-  fun rd _ _ _ hw hes => exact_of_pinned h hw hes rd
-
 /-- `verify_keccak`'s one computed hint: the bits of `y = τ - 3`. -/
 def vkBitsA : Atom := .hint (.bitsExp (.n (val% «verify_keccak» "s5#1")) 5 (.stack [.n (val% «verify_keccak» "y_bits[0]"), .n (val% «verify_keccak» "y_bits[1]"), .n (val% «verify_keccak» "y_bits[2]"), .n (val% «verify_keccak» "y_bits[3]"), .n (val% «verify_keccak» "y_bits[4]")]))
 

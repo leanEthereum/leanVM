@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Guest.B1.KeccakGkr.VkCI
 public import LeanVM.Guest.B1.KeccakGkr.FlatGB
-public import LeanVM.Guest.B1.KeccakGkr.LayerCPlacedB
+public import LeanVM.Guest.B1.KeccakGkr.LayerCPlacedBE
 public import LeanVM.Guest.Data.NameStrings
 
 /-!

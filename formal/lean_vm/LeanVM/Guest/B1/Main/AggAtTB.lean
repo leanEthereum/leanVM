@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Main.AggAtTB
 
-  `aggregate_claims` within a bound before the memory (`CompleteAtDTB`): `aggregate_claims_completeAtT`
-  (same proof), its callees within their static bounds.
+  `aggregate_claims` complete, placed, within a bound before the memory (`CompleteAtDTB`), its tree of
+  honest shape (`aggHonest`), its callees within their static bounds.
 -/
 
 module

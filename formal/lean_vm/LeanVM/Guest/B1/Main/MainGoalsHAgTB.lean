@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Main.MainGoalsHAgTB
 
   `main`'s honest `aggregate_claims` call, by a tree of honest shape (`aggHonest`), within its
-  bound before the memory (`aggB`): `mainGoalAgT` (same proof) with `aggregate_claims_completeAtTB`.
+  bound before the memory (`aggB`), by `aggregate_claims_completeAtTB`.
 -/
 
 module

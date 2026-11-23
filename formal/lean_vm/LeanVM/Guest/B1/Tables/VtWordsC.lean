@@ -40,8 +40,8 @@ given its words facts. -/
 theorem verify_tables_completeAtW {κ : ℕ} (hκ : 14 ≤ κ) {H : VtHonest} (h : H.Ok) (hs : VtShape H)
     (hμ : H.μ < 32) (hn : H.n < 31) (B : VtBases) (W : VtWords fs) :
     CompleteAtB fs cert κ "verify_tables" (H.linL B) (H.args B) (Returns (H.retsH B)) (vtMax fs W) :=
-  (verify_tables_completeAtTB hκ h hs B W.Kf W.Ksh W.K10 W.hKf W.hsh W.h10).toCompleteAtB.mono le_rfl
-    (vt_bound_le W hμ hn)
+  (verify_tables_completeAtTBW (ι := Empty) hκ h hs B W.Kf W.Ksh W.K10 W.hKf W.hsh W.h10 nofun nofun nofun nofun
+    nofun).toCompleteAtB.mono le_rfl (vt_bound_le W hμ hn)
 
 /-- **`verify_tables` is complete within `vtMax` by a tree within its weight bound** at each `ω op`. -/
 theorem verify_tables_completeAtWW {κ : ℕ} (hκ : 14 ≤ κ) {H : VtHonest} (h : H.Ok) (hs : VtShape H)

@@ -199,8 +199,8 @@ theorem keccakA_of {ins outs : List V} (hi : ins.length = 13) (ho : outs.length 
 /-! ## A grind then a challenge (`fs_grind_squeeze`) -/
 
 /-- **`fs_grind_squeeze`'s meaning**, from its permutation's cells: at `bits ≠ 0`, cells `0`, `1`
-of the nonce's permutation, the `grind_check` on cell `1` passing (`MeaningGrindCheck`'s
-condition), give `Fs.GrindOk` and `Fs.grindSqueeze`'s challenge and sponge. -/
+of the nonce's permutation, the `grind_check` on cell `1` passing (the low `bits` bits of its low
+limb zero), give `Fs.GrindOk` and `Fs.grindSqueeze`'s challenge and sponge. -/
 theorem grindSqueeze_cells {s : Fs} {bits : ℕ} (hb : bits ≠ 0) (n : E) (c0 c1 : E)
     (h0 : c0 = cellsOfState (s.nonceState n) false 0)
     (h1 : c1 = cellsOfState (s.nonceState n) false 1)

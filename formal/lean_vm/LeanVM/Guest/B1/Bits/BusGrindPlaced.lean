@@ -23,8 +23,7 @@ honest valuation (`gcVals`, its range checks on the memory below `2^11`, `rc_com
 frame alone, every node exact (`gcPre_atom`). Its loads are the table reads `tabs·g^e`, `e < 2^11`,
 which lie in the caller's words (`forced_load_region`).
 
-`bus_grind_check_completeB_of` (any bound a `TotalLe` gives), `bus_grind_check_completeB` (its frame),
-`bus_grind_check_completeD`.
+`bus_grind_check_completeB`: within its frame.
 -/
 
 namespace LeanVM.Guest.B1
@@ -151,17 +150,8 @@ theorem bus_grind_relAtInE {d : ℕ} (hd : d ∈ busGrindDeployed) {κ : ℕ} (h
     subst hsq
     have hV0 : gcV bits w 0 < 2 ^ 11 := by
       obtain ⟨-, hT, hsum⟩ := gc_shape bits hb
-      refine lt_of_lt_of_le ?_ (Nat.pow_le_pow_right (by decide) hT)
-      unfold gcV
-      rw [Nat.div_lt_iff_lt_mul (by positivity), ← pow_add, Nat.sub_zero,
-        show gcTop bits + (bits + 11 * gcW bits) = 64 by omega]
-      exact kToNat_lt _
-    have e7 : σ (.n (gcW bits + 7)) = tabs * gen ^ gcV bits w 0 := by
-      show gcVals rd bits w tabs (gcW bits + 7) = _
-      unfold gcVals
-      rw [ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega),
-        ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega),
-        ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_left rfl]
+      exact lt_of_lt_of_le (gcV_zero_lt hsum w) (Nat.pow_le_pow_right (by decide) hT)
+    have e7 : σ (.n (gcW bits + 7)) = tabs * gen ^ gcV bits w 0 := gv_top_ptr
     obtain ⟨j, hj, hr⟩ := htab _ hV0
     exact ⟨j, by rw [e7]; exact hj, Or.inr (Or.inl hr)⟩
   · rw [h0, Option.some.injEq] at hsq
@@ -180,29 +170,12 @@ theorem bus_grind_relAtIn {d : ℕ} (hd : d ∈ busGrindDeployed) {κ : ℕ} (h�
       (busGrindName d) args rets :=
   RelAtInT.relAtIn (bus_grind_relAtInE hd hκ hpre fp hlow hLin)
 
-/-- **`bus_grind_check__L{d}`, placed, within any bound on its valid trees.** -/
-theorem bus_grind_check_completeB_of {d : ℕ} (hd : d ∈ busGrindDeployed) {κ : ℕ}
-    (hκ : 11 ≤ κ) {B : ℕ} (hT : TotalLe coreProgram fs (busGrindName d) fun _ => B) :
-    CompleteRelB fs cert κ (busGrindName d) (busGrindPre d) B := by
-  intro args rets Lin hpre fp
-  by_cases hex : ∃ rd, LowDef κ rd ∧ MemL rd Lin
-  · obtain ⟨rd0, h0, hL0⟩ := hex
-    obtain ⟨t, hn, hv, hbo, -, ht, -⟩ := bus_grind_relAtIn (fs := fs) (cert := cert) hd hκ hpre fp h0 hL0
-    refine ⟨fs (busGrindName d), [], rets, [], ⟨rfl, rfl⟩, by simp [Within], disj_nil,
-      ht ▸ hT rd0 t _ _ hn hv hbo, fun _ hl hL => bus_grind_relAtIn hd hκ hpre fp hl (by simpa using hL)⟩
-  · exact ⟨0, [], rets, [], ⟨rfl, rfl⟩, by simp [Within], disj_nil, Nat.zero_le _,
-      fun rd hl hL => absurd ⟨rd, hl, by simpa using hL⟩ hex⟩
-
 /-- **`bus_grind_check__L{d}`, placed, within its frame.** -/
 theorem bus_grind_check_completeB {d : ℕ} (hd : d ∈ busGrindDeployed) {κ : ℕ} (hκ : 11 ≤ κ) :
     CompleteRelB fs cert κ (busGrindName d) (busGrindPre d) (fs (busGrindName d)) :=
   fun _ rets _ hpre fp => ⟨fs (busGrindName d), [], rets, [], ⟨rfl, rfl⟩, by simp [Within],
     disj_nil, le_rfl, fun _ hl hL => bus_grind_relAtIn hd hκ hpre fp hl (by simpa using hL)⟩
 
-/-- **`bus_grind_check__L{d}`, placed.** -/
-theorem bus_grind_check_completeD {d : ℕ} (hd : d ∈ busGrindDeployed) {κ : ℕ} (hκ : 11 ≤ κ) :
-    CompleteRelD fs cert κ (busGrindName d) (busGrindPre d) :=
-  (bus_grind_check_completeB hd hκ).toCompleteRelD
 
 end
 end LeanVM.Guest.B1

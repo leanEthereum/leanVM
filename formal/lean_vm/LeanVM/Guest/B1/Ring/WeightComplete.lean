@@ -309,7 +309,8 @@ theorem rsw_hσ {bz bp bc count : ℕ} {zs ps cs : List E} (hz : zs.length = cou
     tauto
   refine ⟨fun q hq ↦ hLin q (hlin q hq), ⟨fun _ i ⟨q, hq, hi⟩ ↦ Or.inl ⟨q, hlin q hq, hi⟩, trivial⟩,
     σ, ?_, ?_, ?_, ?_, ?_⟩
-  · show [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3)] = _
+  · show [σ (.n (val% «ring_switch_weight» "z_vals")), σ (.n (val% «ring_switch_weight» "point1")),
+      σ (.n (val% «ring_switch_weight» "c_table")), σ (.n (val% «ring_switch_weight» "qkeccakv_g"))] = _
     rw [e0, e1, e2, e3']
   · intro s hs
     have := List.all_eq_true.mp rsw_noDisp s hs

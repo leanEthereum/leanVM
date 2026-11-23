@@ -19,6 +19,10 @@ windows the honest ones (`gcWin`), a memory where the windows' range checks pass
 tables at `tabs` (`WinTabs`): every own value is `gcVals`' (`gcInline_vals_of_good`), the range
 checks' complements and touched words being the only ones their relations allow. So
 `gcInline_complete_of` applies (`gcInline_holds_of_good`).
+
+The proof is for `gcInlineOT b o off w tabs`, the expansion with its table reads at `off`, where
+the tables are a constant `tabs·g^off` folded into the reads (`gcInlineO_vals_of_good`, its blocks
+in `VerifySub/GrindOff`); `gcInlineT` is it at `off = 0`.
 -/
 
 namespace LeanVM.Guest.B1
@@ -50,16 +54,55 @@ theorem gcVals_win {rd : Reader} {b : ℕ} {w tabs : E} {j : ℕ} (hj : j ≤ gc
   · simp only [h, ↓reduceIte]
   · simp only [show 2 + j = gcW b + 2 by omega, ↓reduceIte]
 
+/-! ## `grind_check` inlined on constant tables -/
+
+/-- `gcHead b`, its table read at `off`. -/
+def gcHeadO (b off : ℕ) : List Stmt :=
+  [.atom (.hint (.windowsExp (.n 0) b 11 (gcW b)
+      (.stack ((List.range (gcW b)).map fun j => .n (2 + j))))),
+    .atom (.hint (.windowsExp (.n 0) (b + 11 * gcW b) (gcTop b) 1 (.stack [.n (gcW b + 2)]))),
+    .atom (.const (.n (gcW b + 3)) (wBound (gcTop b))),
+    .atom (.rangeCheck (.n (gcW b + 2)) (.n (gcW b + 4)) (.n (gcW b + 5)) (.n (gcW b + 6))
+      (.n (gcW b + 3))),
+    .atom (.mul (.n (gcW b + 7)) (.n 1) (.n (gcW b + 2))),
+    .atom (.load (.n (gcW b + 8)) (.n (gcW b + 7)) off)]
+
+/-- `gcIterAt W i`, its table read at `off`. -/
+def gcIterAtO (W i off : ℕ) : List Stmt :=
+  [.atom (.const (.n (W + 9 * i)) (wBound 11)),
+    .atom (.rangeCheck (.n (W + 2 - i)) (.n (W + 9 * i + 1)) (.n (W + 9 * i + 2))
+      (.n (W + 9 * i + 3)) (.n (W + 9 * i))),
+    .atom (.const (.n (W + 9 * i + 4)) (word 2048 0)),
+    .atom (.mul (.n (W + 9 * i + 5)) (.n (W + 9 * i - 1)) (.n (W + 9 * i + 4))),
+    .atom (.mul (.n (W + 9 * i + 6)) (.n 1) (.n (W + 2 - i))),
+    .atom (.load (.n (W + 9 * i + 7)) (.n (W + 9 * i + 6)) off),
+    .atom (.add (.n (W + 9 * i + 8)) (.n (W + 9 * i + 5)) (.n (W + 9 * i + 7)))]
+
+/-- `gcPre b`, its table reads at `off`. -/
+def gcPreO (b off : ℕ) : List Stmt :=
+  gcHeadO b off ++ ((List.range (gcW b)).map fun i => gcIterAtO (gcW b) (i + 1) off).flatten ++
+    gcTailPre b
+
+/-- **`grind_check(w, t·g^off, b)` inlined**, its own values from `.n o`, its table reads at `off`. -/
+def gcInlineOT (b o off : ℕ) (w tabs : V) : List Stmt := Stmt.renameList (gcRen o w tabs) (gcPreO b off)
+
+theorem winTab_loadO {rd : Reader} {t : E} {off : ℕ} (ht : WinTabs rd (t * gen ^ off)) {e : ℕ}
+    (he : e < 2 ^ 11) : LoadHolds rd (t * gen ^ e) off (eOfNat e) := by
+  have h := winTab_load ht he
+  rw [mul_right_comm, loadHolds_mul_gen_pow, Nat.add_zero] at h
+  exact h
+
 variable {rd : Reader} {S : List Atom} {wo : ℕ → E} {σ : Val}
 
-/-- **`grind_check` inlined, evaluated, is honest** on its own values. -/
-theorem gcInline_vals_of_good {b o : ℕ} (hb : b ∈ grindBitsDeployed) {w tabs : V}
+/-- **`grind_check` inlined, its table reads at `off`, evaluated, is honest** on its own values:
+`gcVals` at the tables `tabs`, the windows at `tabs·g^off`. -/
+theorem gcInlineO_vals_of_good {b o off : ℕ} (hb : b ∈ grindBitsDeployed) {w tabs : V}
     (hwo : w.idx < o) (hto : tabs.idx < o)
-    (hg : ∀ s ∈ gcInlineT b o w tabs, GoodS rd S wo σ s)
+    (hg : ∀ s ∈ gcInlineOT b o off w tabs, GoodS rd S wo σ s)
     (hS : ∀ a ∈ S, loadInto o (o + (gcLen b - 2)) a = false)
     (hrc : ∀ v ≤ 11, ∀ e < 2 ^ v, ∃ y t1 t2 : E, LoadHolds rd (gen ^ e) 0 t1 ∧
       wBound v = gen ^ e * y ∧ LoadHolds rd y 0 t2)
-    (ht : WinTabs rd (σ tabs))
+    (ht : WinTabs rd (σ tabs * gen ^ off))
     (hwin : ∀ j ≤ gcW b, wo (o + j) = gcWin b (σ w) j) :
     ∀ k, 2 ≤ k → k < gcLen b → σ (.n (o + k - 2)) = gcVals rd b (σ w) (σ tabs) k := by
   obtain ⟨hT1, hT, hsum⟩ := gc_shape b hb
@@ -85,21 +128,21 @@ theorem gcInline_vals_of_good {b o : ℕ} (hb : b ∈ grindBitsDeployed) {w tabs
     · rw [Rk x h2]; show o + x - 2 < o + d - 2; omega
   generalize hG : gcVals rd b (σ w) (σ tabs) = G
   -- the atoms' equations
-  have hgA : ∀ a, Stmt.atom a ∈ gcPre b → Good rd S wo σ (a.rename R) := fun a ha ↦ by
-    have := hg _ (by rw [gcInlineT, hRd]; exact renameList_mem ha)
+  have hgA : ∀ a, Stmt.atom a ∈ gcPreO b off → Good rd S wo σ (a.rename R) := fun a ha ↦ by
+    have := hg _ (by rw [gcInlineOT, hRd]; exact renameList_mem ha)
     exact this
-  have gconst : ∀ d c, Stmt.atom (.const (.n d) c) ∈ gcPre b → τ d = c := fun d c h ↦ hgA _ h
-  have gadd : ∀ d x y, Stmt.atom (.add (.n d) (.n x) (.n y)) ∈ gcPre b → τ d = τ x + τ y :=
+  have gconst : ∀ d c, Stmt.atom (.const (.n d) c) ∈ gcPreO b off → τ d = c := fun d c h ↦ hgA _ h
+  have gadd : ∀ d x y, Stmt.atom (.add (.n d) (.n x) (.n y)) ∈ gcPreO b off → τ d = τ x + τ y :=
     fun d x y h ↦ hgA _ h
-  have gmul : ∀ d x y, x < d → y < d → 2 ≤ d → Stmt.atom (.mul (.n d) (.n x) (.n y)) ∈ gcPre b →
+  have gmul : ∀ d x y, x < d → y < d → 2 ≤ d → Stmt.atom (.mul (.n d) (.n x) (.n y)) ∈ gcPreO b off →
       τ d = τ x * τ y := by
     intro d x y hx hy hd h
     have := hgA _ h
     simp only [Atom.rename, Good] at this
     rwa [ite_eq_left ⟨rlt x d hx hd, rlt y d hy hd⟩] at this
-  have gload : ∀ d p, 2 ≤ d → d < gcLen b → Stmt.atom (.load (.n d) (.n p) 0) ∈ gcPre b →
-      τ d = rdAt rd (τ p) 0 := by
-    intro d p hd hdl h
+  have gload : ∀ d p k, 2 ≤ d → d < gcLen b → Stmt.atom (.load (.n d) (.n p) k) ∈ gcPreO b off →
+      τ d = rdAt rd (τ p) k := by
+    intro d p k hd hdl h
     have := hgA _ h
     simp only [Atom.rename, Good] at this
     rcases this with h' | h'
@@ -108,27 +151,27 @@ theorem gcInline_vals_of_good {b o : ℕ} (hb : b ∈ grindBitsDeployed) {w tabs
       exact absurd ⟨by show o ≤ o + d - 2; omega, by show o + d - 2 < o + (gcLen b - 2); omega⟩ this
     · exact h'
   have grc : ∀ x y t1 t2 k, k < y → 2 ≤ y →
-      Stmt.atom (.rangeCheck (.n x) (.n y) (.n t1) (.n t2) (.n k)) ∈ gcPre b →
+      Stmt.atom (.rangeCheck (.n x) (.n y) (.n t1) (.n t2) (.n k)) ∈ gcPreO b off →
       τ t1 = rdAt rd (τ x) 0 ∧ τ t2 = rdAt rd (τ y) 0 ∧ τ y = τ k * (τ x)⁻¹ := by
     intro x y t1 t2 k hk hy h
     have := hgA _ h
     simp only [Atom.rename, Good] at this
     rwa [ite_eq_left (rlt k y hk hy)] at this
   -- membership in the expansion
-  have mH : ∀ s ∈ gcHead b, s ∈ gcPre b := fun s h ↦
+  have mH : ∀ s ∈ gcHeadO b off, s ∈ gcPreO b off := fun s h ↦
     List.mem_append_left _ (List.mem_append_left _ h)
-  have mI : ∀ i, 1 ≤ i → i ≤ W → ∀ s ∈ gcIterAt W i, s ∈ gcPre b := fun i h1 h2 s h ↦
-    List.mem_append_left _ (List.mem_append_right _ (List.mem_flatten.mpr ⟨gcIterAt W i,
+  have mI : ∀ i, 1 ≤ i → i ≤ W → ∀ s ∈ gcIterAtO W i off, s ∈ gcPreO b off := fun i h1 h2 s h ↦
+    List.mem_append_left _ (List.mem_append_right _ (List.mem_flatten.mpr ⟨gcIterAtO W i off,
       List.mem_map.mpr ⟨i - 1, List.mem_range.mpr (by omega), by rw [hWd, Nat.sub_add_cancel h1]⟩,
       h⟩))
-  have mT : ∀ s ∈ gcTailPre b, s ∈ gcPre b := fun s h ↦ List.mem_append_right _ h
+  have mT : ∀ s ∈ gcTailPre b, s ∈ gcPreO b off := fun s h ↦ List.mem_append_right _ h
   -- the windows
   have hwins : ∀ j ≤ W, τ (2 + j) = G (2 + j) := by
     intro j hj
     rw [← hG, gcVals_win (by rw [hWd]; exact hj), ← hwin j hj]
     rcases Nat.lt_or_ge j W with hjW | hjW
     · have := hgA (.hint (.windowsExp (.n 0) b 11 (gcW b)
-        (.stack ((List.range (gcW b)).map fun j => .n (2 + j))))) (mH _ (by simp [gcHead]))
+        (.stack ((List.range (gcW b)).map fun j => .n (2 + j))))) (mH _ (by simp [gcHeadO]))
       simp only [Atom.rename, Hint.rename, Dest.rename, Good, hWd] at this
       have hv := this (R (.n (2 + j)))
         (List.mem_map.mpr ⟨.n (2 + j), List.mem_map.mpr ⟨j, List.mem_range.mpr hjW, rfl⟩, rfl⟩)
@@ -139,7 +182,7 @@ theorem gcInline_vals_of_good {b o : ℕ} (hb : b ∈ grindBitsDeployed) {w tabs
       congr 1; omega
     · obtain rfl : j = W := by omega
       have := hgA (.hint (.windowsExp (.n 0) (b + 11 * gcW b) (gcTop b) 1 (.stack [.n (gcW b + 2)])))
-        (mH _ (by simp [gcHead]))
+        (mH _ (by simp [gcHeadO]))
       simp only [Atom.rename, Hint.rename, Dest.rename, Good, hWd] at this
       have hv := this (R (.n (j + 2))) (by simp)
       rw [Rk _ (by omega)] at hv
@@ -148,15 +191,9 @@ theorem gcInline_vals_of_good {b o : ℕ} (hb : b ∈ grindBitsDeployed) {w tabs
       show wo (o + (j + 2) - 2) = _
       congr 1
   -- the honest values
-  have hV0 : gcV b (σ w) 0 < 2 ^ gcTop b := by
-    unfold gcV
-    rw [Nat.div_lt_iff_lt_mul (by positivity), ← pow_add, Nat.sub_zero, hWd,
-      show gcTop b + (b + 11 * W) = 64 by omega]
-    exact kToNat_lt _
+  have hV0 := gcV_zero_lt (hWd ▸ hsum) (σ w)
   have hV0' : gcV b (σ w) 0 < 2 ^ 11 := lt_of_lt_of_le hV0 (Nat.pow_le_pow_right (by decide) hT)
-  have Gw2 : G (W + 2) = gen ^ gcV b (σ w) 0 := by
-    rw [← hG]; unfold gcVals
-    rw [hWd, ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_left rfl]
+  have Gw2 : G (W + 2) = gen ^ gcV b (σ w) 0 := by rw [← hG, ← hWd]; exact gv_top
   have gne : ∀ e : ℕ, (gen ^ e : E) ≠ 0 := fun e ↦ pow_ne_zero _ gen_ne_zero
   -- the head
   have hhead : ∀ r < 7, τ (W + 2 + r) = G (W + 2 + r) := by
@@ -164,17 +201,17 @@ theorem gcInline_vals_of_good {b o : ℕ} (hb : b ∈ grindBitsDeployed) {w tabs
       rw [← Gw2, show W + 2 = 2 + W by ring]; exact hwins W le_rfl
     obtain ⟨y, t1, t2, r1, r2, r3⟩ := hrc _ hT _ hV0
     obtain ⟨c1, c2, c3⟩ := rcWit_spec (rd := rd) ⟨y, t1, t2, r1, r2, r3⟩
-    have e3 : τ (W + 3) = wBound (gcTop b) := gconst _ _ (mH _ (by simp [gcHead, hWd]))
+    have e3 : τ (W + 3) = wBound (gcTop b) := gconst _ _ (mH _ (by simp [gcHeadO, hWd]))
     obtain ⟨e5, e6, e4⟩ := grc (W + 2) (W + 4) (W + 5) (W + 6) (W + 3) (by omega) (by omega)
-      (mH _ (by simp [gcHead, hWd]))
+      (mH _ (by simp [gcHeadO, hWd]))
     have e7 : τ (W + 7) = τ 1 * τ (W + 2) :=
-      gmul _ _ _ (by omega) (by omega) (by omega) (mH _ (by simp [gcHead, hWd]))
-    have e8 : τ (W + 8) = rdAt rd (τ (W + 7)) 0 :=
-      gload _ _ (by omega) (by rw [gcLen, hWd]; omega) (mH _ (by simp [gcHead, hWd]))
+      gmul _ _ _ (by omega) (by omega) (by omega) (mH _ (by simp [gcHeadO, hWd]))
+    have e8 : τ (W + 8) = rdAt rd (τ (W + 7)) off :=
+      gload _ _ _ (by omega) (by rw [gcLen, hWd]; omega) (mH _ (by simp [gcHeadO, hWd]))
     rw [e2, e3] at e4
     rw [e2] at e5
     rw [τ1, e2] at e7
-    rw [e7, rdAt_of_loadHolds (winTab_load ht hV0')] at e8
+    rw [e7, rdAt_of_loadHolds (winTab_loadO ht hV0')] at e8
     have h4 : τ (W + 4) = (rcWit rd (gen ^ gcV b (σ w) 0) (wBound (gcTop b))).1 := by
       rw [e4]
       exact ((eq_mul_inv_iff_mul_eq₀ (gne _)).2 (by rw [mul_comm]; exact c2.symm)).symm
@@ -220,22 +257,22 @@ theorem gcInline_vals_of_good {b o : ℕ} (hb : b ∈ grindBitsDeployed) {w tabs
     have mI' := mI i h1 h2
     obtain ⟨y, t1, t2, r1, r2, r3⟩ := hrc 11 le_rfl _ hwin'
     obtain ⟨c1, c2, c3⟩ := rcWit_spec (rd := rd) ⟨y, t1, t2, r1, r2, r3⟩
-    have e0 : τ (W + 9 * i) = wBound 11 := gconst _ _ (mI' _ (by simp [gcIterAt]))
+    have e0 : τ (W + 9 * i) = wBound 11 := gconst _ _ (mI' _ (by simp [gcIterAtO]))
     obtain ⟨e2, e3, e1⟩ := grc (W + 2 - i) (W + 9 * i + 1) (W + 9 * i + 2) (W + 9 * i + 3)
-      (W + 9 * i) (by omega) (by omega) (mI' _ (by simp [gcIterAt]))
-    have e4 : τ (W + 9 * i + 4) = word 2048 0 := gconst _ _ (mI' _ (by simp [gcIterAt]))
+      (W + 9 * i) (by omega) (by omega) (mI' _ (by simp [gcIterAtO]))
+    have e4 : τ (W + 9 * i + 4) = word 2048 0 := gconst _ _ (mI' _ (by simp [gcIterAtO]))
     have e5 : τ (W + 9 * i + 5) = τ (W + 9 * i - 1) * τ (W + 9 * i + 4) :=
-      gmul _ _ _ (by omega) (by omega) (by omega) (mI' _ (by simp [gcIterAt]))
+      gmul _ _ _ (by omega) (by omega) (by omega) (mI' _ (by simp [gcIterAtO]))
     have e6 : τ (W + 9 * i + 6) = τ 1 * τ (W + 2 - i) :=
-      gmul _ _ _ (by omega) (by omega) (by omega) (mI' _ (by simp [gcIterAt]))
-    have e7 : τ (W + 9 * i + 7) = rdAt rd (τ (W + 9 * i + 6)) 0 :=
-      gload _ _ (by omega) (by rw [gcLen, hWd]; omega) (mI' _ (by simp [gcIterAt]))
+      gmul _ _ _ (by omega) (by omega) (by omega) (mI' _ (by simp [gcIterAtO]))
+    have e7 : τ (W + 9 * i + 7) = rdAt rd (τ (W + 9 * i + 6)) off :=
+      gload _ _ _ (by omega) (by rw [gcLen, hWd]; omega) (mI' _ (by simp [gcIterAtO]))
     have e8 : τ (W + 9 * i + 8) = τ (W + 9 * i + 5) + τ (W + 9 * i + 7) :=
-      gadd _ _ _ (mI' _ (by simp [gcIterAt]))
+      gadd _ _ _ (mI' _ (by simp [gcIterAtO]))
     rw [ew, e0] at e1
     rw [ew] at e2
     rw [τ1, ew] at e6
-    rw [e6, rdAt_of_loadHolds (winTab_load ht hwin')] at e7
+    rw [e6, rdAt_of_loadHolds (winTab_loadO ht hwin')] at e7
     rw [ep, e4] at e5
     rw [e5, e7] at e8
     have h1' : τ (W + 9 * i + 1) = (rcWit rd (gen ^ (gcV b (σ w) i % 2 ^ 11)) (wBound 11)).1 := by
@@ -321,6 +358,44 @@ theorem gcInline_vals_of_good {b o : ℕ} (hb : b ∈ grindBitsDeployed) {w tabs
   · have := htail (k - (10 * W + 9)) (by omega)
     rwa [show 10 * W + 9 + (k - (10 * W + 9)) = k by omega] at this
 
+/-- **`grind_check` inlined, its table reads at `off`, evaluated: its table reads' pointers** are the
+tables' words `tabs·g^e`, `e < 2^11`: the head's, at `o + gcW b + 5`, and step `i + 1`'s, at
+`o + gcW b + 9 (i + 1) + 4`. -/
+theorem gcInlineO_ptrs_of_good {b o off : ℕ} (hb : b ∈ grindBitsDeployed) {w tabs : V}
+    (hwo : w.idx < o) (hto : tabs.idx < o)
+    (hg : ∀ s ∈ gcInlineOT b o off w tabs, GoodS rd S wo σ s)
+    (hS : ∀ a ∈ S, loadInto o (o + (gcLen b - 2)) a = false)
+    (hrc : ∀ v ≤ 11, ∀ e < 2 ^ v, ∃ y t1 t2 : E, LoadHolds rd (gen ^ e) 0 t1 ∧
+      wBound v = gen ^ e * y ∧ LoadHolds rd y 0 t2)
+    (ht : WinTabs rd (σ tabs * gen ^ off))
+    (hwin : ∀ j ≤ gcW b, wo (o + j) = gcWin b (σ w) j) :
+    (∃ e < 2 ^ 11, σ (.n (o + gcW b + 5)) = σ tabs * gen ^ e) ∧
+      ∀ i < gcW b, ∃ e < 2 ^ 11, σ (.n (o + gcW b + 9 * (i + 1) + 4)) = σ tabs * gen ^ e := by
+  have hv := gcInlineO_vals_of_good hb hwo hto hg hS hrc ht hwin
+  obtain ⟨hT1, hT, hsum⟩ := gc_shape b hb
+  refine ⟨⟨gcV b (σ w) 0, ?_, ?_⟩, fun i hi ↦ ⟨gcV b (σ w) (i + 1) % 2 ^ 11, Nat.mod_lt _ (by positivity), ?_⟩⟩
+  · exact lt_of_lt_of_le (gcV_zero_lt hsum (σ w)) (Nat.pow_le_pow_right (by decide) hT)
+  · have := hv (gcW b + 7) (by omega) (by unfold gcLen; omega)
+    rw [show o + (gcW b + 7) - 2 = o + gcW b + 5 by omega] at this
+    rw [this, gv_top_ptr]
+  · have := hv (gcW b + 9 * (i + 1) + 6) (by omega) (by unfold gcLen; omega)
+    rw [show o + (gcW b + 9 * (i + 1) + 6) - 2 = o + gcW b + 9 * (i + 1) + 4 by omega,
+      gv_iter (by omega) (by omega) (by omega)] at this
+    rw [this]
+    rfl
+
+/-- **`grind_check` inlined, evaluated, is honest** on its own values. -/
+theorem gcInline_vals_of_good {b o : ℕ} (hb : b ∈ grindBitsDeployed) {w tabs : V}
+    (hwo : w.idx < o) (hto : tabs.idx < o)
+    (hg : ∀ s ∈ gcInlineT b o w tabs, GoodS rd S wo σ s)
+    (hS : ∀ a ∈ S, loadInto o (o + (gcLen b - 2)) a = false)
+    (hrc : ∀ v ≤ 11, ∀ e < 2 ^ v, ∃ y t1 t2 : E, LoadHolds rd (gen ^ e) 0 t1 ∧
+      wBound v = gen ^ e * y ∧ LoadHolds rd y 0 t2)
+    (ht : WinTabs rd (σ tabs))
+    (hwin : ∀ j ≤ gcW b, wo (o + j) = gcWin b (σ w) j) :
+    ∀ k, 2 ≤ k → k < gcLen b → σ (.n (o + k - 2)) = gcVals rd b (σ w) (σ tabs) k :=
+  gcInlineO_vals_of_good (off := 0) hb hwo hto hg hS hrc (by rwa [pow_zero, mul_one]) hwin
+
 /-- **`grind_check` inlined, evaluated: its table reads' pointers** are the tables' words `tabs·g^e`,
 `e < 2^11`: the head's, at `o + gcW b + 5`, and step `i + 1`'s, at `o + gcW b + 9 (i + 1) + 4`. -/
 theorem gcInline_ptrs_of_good {b o : ℕ} (hb : b ∈ grindBitsDeployed) {w tabs : V}
@@ -332,28 +407,8 @@ theorem gcInline_ptrs_of_good {b o : ℕ} (hb : b ∈ grindBitsDeployed) {w tabs
     (ht : WinTabs rd (σ tabs))
     (hwin : ∀ j ≤ gcW b, wo (o + j) = gcWin b (σ w) j) :
     (∃ e < 2 ^ 11, σ (.n (o + gcW b + 5)) = σ tabs * gen ^ e) ∧
-      ∀ i < gcW b, ∃ e < 2 ^ 11, σ (.n (o + gcW b + 9 * (i + 1) + 4)) = σ tabs * gen ^ e := by
-  have hv := gcInline_vals_of_good hb hwo hto hg hS hrc ht hwin
-  obtain ⟨hT1, hT, hsum⟩ := gc_shape b hb
-  refine ⟨⟨gcV b (σ w) 0, ?_, ?_⟩, fun i hi ↦ ⟨gcV b (σ w) (i + 1) % 2 ^ 11, Nat.mod_lt _ (by positivity), ?_⟩⟩
-  · have hV0 : gcV b (σ w) 0 < 2 ^ gcTop b := by
-      unfold gcV
-      rw [Nat.div_lt_iff_lt_mul (by positivity), ← pow_add, Nat.sub_zero,
-        show gcTop b + (b + 11 * gcW b) = 64 by omega]
-      exact kToNat_lt _
-    exact lt_of_lt_of_le hV0 (Nat.pow_le_pow_right (by decide) hT)
-  · have := hv (gcW b + 7) (by omega) (by unfold gcLen; omega)
-    rw [show o + (gcW b + 7) - 2 = o + gcW b + 5 by omega] at this
-    rw [this]
-    unfold gcVals
-    rw [ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega),
-      ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega),
-      ite_eq_left rfl]
-  · have := hv (gcW b + 9 * (i + 1) + 6) (by omega) (by unfold gcLen; omega)
-    rw [show o + (gcW b + 9 * (i + 1) + 6) - 2 = o + gcW b + 9 * (i + 1) + 4 by omega,
-      gv_iter (by omega) (by omega) (by omega)] at this
-    rw [this]
-    rfl
+      ∀ i < gcW b, ∃ e < 2 ^ 11, σ (.n (o + gcW b + 9 * (i + 1) + 4)) = σ tabs * gen ^ e :=
+  gcInlineO_ptrs_of_good (off := 0) hb hwo hto hg hS hrc (by rwa [pow_zero, mul_one]) hwin
 
 /-- The inlined `grind_check`'s table reads' pointers: the head's, then each step's. -/
 def gcPtrs (b o : ℕ) : List V :=

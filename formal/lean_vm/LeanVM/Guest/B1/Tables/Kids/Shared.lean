@@ -47,10 +47,6 @@ theorem ss_calls : ssPre.dropLast.filterMap Main.Stmt.callS =
         .n (val% «shared_selector_tables» "gsq_hi")], [])] := by
   decide +kernel
 
-theorem ceil4 {n q r : ℕ} (hn : n = 4 * q + r) (hr : r < 4) :
-    (n + 3) / 4 = if r = 0 then q else q + 1 := by
-  split <;> omega
-
 /-- **`shared_selector_tables` loads from `R`.** -/
 theorem shared_selector_tables_relIn {rd : Reader} {R : ℕ → Prop} {eqt gt z z1 gsq : E} {n : ℕ}
     (hn : n < 64) {rets : List E} (he : PtrIn R eqt (8 * n))

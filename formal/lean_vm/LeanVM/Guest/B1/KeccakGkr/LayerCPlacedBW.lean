@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.LayerCPlacedBW
 
-  `layer_completeAtFB` at the deployed frame sizes (`B2C.fs`): the callees' words from their
+  `keccak_layer`'s words at the deployed frame sizes (`B2C.fs`): the callees' words from their
   words certificates, the bound in numbers.
 -/
 
@@ -14,7 +14,7 @@ public import LeanVM.Guest.Data.NameStrings
 /-!
 # `keccak_layer` within its words at `B2C.fs`
 
-At the deployed frame sizes the words certificates (`Count.Words`) bound the eight-round pack loops by `374` words per iteration and their frame by as many, the remainder loops by `77` per iteration and their frame by as many, and the layers' frames by `2242`. Thus `layerWords B2C.fs first y 374 77` is at most `2242 + (y + 171) + (374 + ⌊y/8⌋ * 374) + (77 + (y % 8) * 77)`, hence at most `4234` words for `y ≤ 25` and `4538` for `y ≤ 30`.
+At the deployed frame sizes the words certificates (`Count.Words`) bound the eight-round pack loops by `374` words per iteration and their frame by as many, the remainder loops by `77` per iteration and their frame by as many, and the layers' frames by `2242`. Thus `layerWords B2C.fs first y 374 77` is at most `2242 + (y + 171) + (374 + ⌊y/8⌋ * 374) + (77 + (y % 8) * 77)` (`layerWords_fs_le_y`).
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -107,39 +107,6 @@ theorem layerWords_fs_le_y {first : ℕ} (hf : first < 2) (y : ℕ) :
   have := remLoopName_fs hf
   simp only [layerWords]
   omega
-
-/-- **A layer's words at `B2C.fs`, in numbers**: at most `4234` for `y ≤ 25`, `4538` for
-`y ≤ 30`. -/
-theorem layerWords_fs_le {first y : ℕ} (hf : first < 2) :
-    (y ≤ 25 → layerWords LeanVM.Guest.B2C.fs first y 374 77 ≤ 4234) ∧
-      (y ≤ 30 → layerWords LeanVM.Guest.B2C.fs first y 374 77 ≤ 4538) := by
-  have h := layerWords_fs_le_y hf y
-  constructor <;> intro hy <;> refine h.trans ?_ <;> interval_cases y <;> norm_num
-
-variable {cert : String → V → ℕ}
-
-set_option maxRecDepth 20000 in
-/-- **`keccak_layer` is complete, placed, within `layerWords B2C.fs first D.y 374 77` words** at
-the deployed frame sizes. -/
-theorem layer_completeAtFB_fs {first : ℕ} (hf : first < 2) {κ : ℕ} (hκ : 11 ≤ κ) (D : LayerData)
-    (CL : ClaimLay) (bcur bout tbE : ℕ) {p0 p1 iota st : E}
-    (hcl : D.cap.length = 5)
-    (hw : first = 1 → (p0, p1) = Keccak.scalarCells D.w0 dsObserve)
-    (hy1 : 1 ≤ D.y) (hy30 : D.y ≤ 30) (hpl : D.product.length = 47)
-    (hpm : D.packMsgs.length = D.y) (hlm : D.localMsgs.length = 11)
-    (hproj : projectedOf D.c D.product + iota * sumE D.c.mu = D.c.value)
-    (hgrind : ((D.s0 first).absorbAll D.product dsObserve).GrindOk sGrindBits D.nonce)
-    (hfin : LayerFinal D.c (D.s0 first) D.product D.nonce D.packMsgs D.localMsgs D.t)
-    (hCL : CL.Ok first D.c D.y) :
-    CompleteAtFB LeanVM.Guest.B2C.fs cert κ (layerName first)
-      (fun fp ↦ layerLin D first CL bcur bout tbE (fp + LeanVM.Guest.B2C.fs (layerName first)))
-      (D.cap ++ [p0, p1, ptr bcur, gen ^ D.y, gen ^ (D.y / 8), gen ^ (D.y % 8), ptr CL.bclaim,
-        ptr bout, iota, ptr tbE, st])
-      (fun fp rets Lout ↦ rets = D.rets first (ptr bcur) ∧
-        Lout = layerBufs D first (ptr bcur) (fp + LeanVM.Guest.B2C.fs (layerName first)))
-      (layerWords LeanVM.Guest.B2C.fs first D.y 374 77) :=
-  layer_completeAtFB hf hκ D CL bcur bout tbE (packLoop_totalLeOn_fs hf) (remLoop_totalLeOn_fs hf)
-    hcl hw hy1 hy30 hpl hpm hlm hproj hgrind hfin hCL B2C.fs_tailKey_le
 
 end
 end LeanVM.Guest.B1.VerifySub

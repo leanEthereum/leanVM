@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.LayerCPlacedB
 
-  **`keccak_layer` is complete, placed, within a bound** (`CompleteAtFB`), for its two
-  specializations: its frame, its buffers and its callees' words.
+  `keccak_layer`'s bound before the memory, for its two specializations: its frame, its buffers and
+  its callees' words (`LayerCPlacedBE` proves it complete within it).
 -/
 
 module
@@ -14,8 +14,8 @@ public import LeanVM.Guest.Memory.LoopPre
 /-!
 # `keccak_layer`, complete and placed within a bound
 
-`layer_completeAtFB` is `layer_completeAtF` with the size of the layer's run bounded before the
-memory, by
+`layer_completeAtFB` (`LayerCPlacedBE`) is `layer_completeAtF` with the size of the layer's run
+bounded before the memory, by
 
   `layerWords fs first y KP KR = fs (layerName first) + (y + 120)
     + (fs (packLoopName first) + ⌊y/8⌋ * KP) + (fs (remLoopName first) + (y % 8) * KR)`:
@@ -77,93 +77,6 @@ theorem lt_of_taken {m : ℕ} (h : decide (1 + gen ^ m ≠ 0) = true) : 0 < m :=
   · subst h0
     exact absurd (e_add_eq_zero_iff.mpr (pow_zero gen).symm) (by simpa using h)
   · exact h0
-
-variable {fs : String → ℕ} {cert : String → V → ℕ}
-
-set_option maxRecDepth 20000 in
-/-- **`keccak_layer` is complete, placed, within `layerWords fs first D.y KP KR` words**, for
-its two specializations: `layer_completeAtF` with the pack loop's run at most `KP` words per
-iteration and its frame, the remainder loop's at most `KR` and its frame. -/
-theorem layer_completeAtFB {first : ℕ} (hf : first < 2) {κ : ℕ} (hκ : 11 ≤ κ) (D : LayerData)
-    (CL : ClaimLay) (bcur bout tbE : ℕ) {p0 p1 iota st : E} {KP KR : ℕ}
-    (hP : TotalLeOn coreProgram fs (packLoopName first) LoopPre
-      fun a ↦ logG (a.getD 1 0) * KP + fs (packLoopName first))
-    (hR : TotalLeOn coreProgram fs (remLoopName first) LoopPre
-      fun a ↦ logG (a.getD 1 0) * KR + fs (remLoopName first))
-    (hcl : D.cap.length = 5)
-    (hw : first = 1 → (p0, p1) = Keccak.scalarCells D.w0 dsObserve)
-    (hy1 : 1 ≤ D.y) (hy30 : D.y ≤ 30) (hpl : D.product.length = 47)
-    (hpm : D.packMsgs.length = D.y) (hlm : D.localMsgs.length = 11)
-    (hproj : projectedOf D.c D.product + iota * sumE D.c.mu = D.c.value)
-    (hgrind : ((D.s0 first).absorbAll D.product dsObserve).GrindOk sGrindBits D.nonce)
-    (hfin : LayerFinal D.c (D.s0 first) D.product D.nonce D.packMsgs D.localMsgs D.t)
-    (hCL : CL.Ok first D.c D.y) (htk : ∀ f, fs (tailKey f) ≤ fs f) :
-    CompleteAtFB fs cert κ (layerName first)
-      (fun fp ↦ layerLin D first CL bcur bout tbE (fp + fs (layerName first)))
-      (D.cap ++ [p0, p1, ptr bcur, gen ^ D.y, gen ^ (D.y / 8), gen ^ (D.y % 8), ptr CL.bclaim,
-        ptr bout, iota, ptr tbE, st])
-      (fun fp rets Lout ↦ rets = D.rets first (ptr bcur) ∧
-        Lout = layerBufs D first (ptr bcur) (fp + fs (layerName first)))
-      (layerWords fs first D.y KP KR) := by
-  obtain ⟨fn, hfind, hbody, hparams⟩ := layer_fn hf
-  obtain ⟨hflat, haddrs, -, -, -, -⟩ := layerPre_kernel hf
-  have hlocL : (D.locPt first).length = 11 := by
-    rw [LayerData.locPt, LayerData.loc, layerLocal, localRunF_length, hlm]
-  have hne := packLoopName_ne_rem first
-  refine CompleteAtFB.mono_bound ?_ (show fs (layerName first) + (layerSizes D).sum +
-      (fs (packLoopName first) + D.y / 8 * KP +
-        (fs (remLoopName first) + D.y % 8 * KR)) ≤
-        layerWords fs first D.y KP KR by
-    simp only [layerSizes, layerWords, List.sum_cons, List.sum_nil]; omega)
-  refine completeAt_flatOutFB (fs := fs) (cert := cert) hfind (layer_loop hf) κ _ _
-    (fun _ ↦ D.rets first (ptr bcur)) _ (hbody.trans (layerT_pre first)) hflat haddrs
-    (layerPre_noLoadIte hf)
-    (layerSizes D) (fun _ ↦ layerOwn D first (ptr bcur)) (fun _ ↦ ?_) (fun _ ↦ ⟨rfl, rfl⟩)
-    (fun fp ↦ layerKids D first CL bcur bout tbE (fp + fs (layerName first)))
-    (layerKidBd fs first D.y KP KR)
-    (fs (packLoopName first) + D.y / 8 * KP +
-      (fs (remLoopName first) + D.y % 8 * KR)) ?_
-    (fun fp ↦ layerKids_bound fs D first CL bcur bout tbE _ KP KR htk) ?_ ?_ ?_
-  · -- the buffers' words fit
-    simp only [layerOwn, layerSizes, List.forall₂_cons, List.Forall₂.nil, and_true]
-    refine ⟨by rw [LayerData.chs_length hpm], by rw [recWords_length], by rw [hlocL],
-      by rw [lanesOut_length], by simp [flipsOf]⟩
-  · -- the callees, placed within their bounds
-    intro fp k hk ht
-    simp only [layerKids, List.mem_cons, List.not_mem_nil, or_false] at hk
-    rcases hk with rfl | rfl
-    · have hne1 : 1 + gen ^ (D.y / 8) ≠ 0 := by simpa using ht
-      have hm0 : 0 < D.y / 8 := lt_of_taken ht
-      simp only [layerKidBd, ↓reduceIte]
-      refine CompleteAtDTB.toCompleteAtB (completeAtDTB_of_relIn
-        layerKidS_pure (packLoopName_mem first) (fun rd t rets' hn hv hb ↦ ?_)
-        fun rd _ hm ↦ (layer_kids hf D CL bcur bout tbE _ hy30 hpl hpm hlm hm).1 hne1)
-      have h1 := hP rd t _ rets' hn (loopPre_gen hm0 (by omega) _) hv hb
-      simp only [List.getD_cons_succ, List.getD_cons_zero] at h1
-      rwa [gen_pow_eq_ofK, logG_spec (by omega)] at h1
-    · have hne1 : 1 + gen ^ (D.y % 8) ≠ 0 := by simpa using ht
-      have hm0 : 0 < D.y % 8 := lt_of_taken ht
-      simp only [layerKidBd, hne.symm, ↓reduceIte]
-      refine CompleteAtDTB.toCompleteAtB (completeAtDTB_of_relIn
-        layerKidS_pure (remLoopName_mem first) (fun rd t rets' hn hv hb ↦ ?_)
-        fun rd _ hm ↦ (layer_kids hf D CL bcur bout tbE _ hy30 hpl hpm hlm hm).2 hne1)
-      have h1 := hR rd t _ rets' hn (loopPre_gen hm0 (by omega) _) hv hb
-      simp only [List.getD_cons_succ, List.getD_cons_zero] at h1
-      rwa [gen_pow_eq_ofK, logG_spec (by omega)] at h1
-  · intro fp k hk _ i hi
-    rw [layerKids_lin k hk] at hi
-    obtain ⟨q, hq, h1, h2⟩ := hi
-    rcases List.mem_append.mp hq with hq | hq
-    · exact Or.inl ⟨q, hq, h1, h2⟩
-    · exact Or.inr ⟨q, hq, h1, h2⟩
-  · intro fp rd hB hLin k hk
-    rw [layerKids_lin k hk]
-    exact Main.memL_append.mpr ⟨hLin, hB⟩
-  · -- the honest valuation
-    intro fp outs hout rd hlow hB hLin
-    rw [hparams, hbody]
-    exact exists_and8_drop (layer_obl hf hκ D CL bcur bout tbE hcl hw hy1 hy30 hpl hpm hlm hproj
-      hgrind hfin hCL _ outs hout rd hlow hB hLin)
 
 end
 end LeanVM.Guest.B1.VerifySub

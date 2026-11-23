@@ -24,21 +24,22 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier
 
 @[expose] public section
 
+/-- **A window of a word within its low limb** is the low limb's. -/
+theorem wordNat_window (w : E) {s n : ℕ} (h : s + n ≤ 64) :
+    (LeanVM.Prover.Exec.wordNat w >>> s) % 2 ^ n = kToNat (w.limb 0) / 2 ^ s % 2 ^ n := by
+  have e : LeanVM.Prover.Exec.wordNat w = kToNat (w.limb 0) + 2 ^ s * (2 ^ n * (2 ^ (64 - s - n) *
+      kToNat (w.limb 1))) := by
+    rw [← Nat.mul_assoc, ← Nat.mul_assoc, ← Nat.pow_add, ← Nat.pow_add,
+      show s + n + (64 - s - n) = 64 by omega]
+    rfl
+  rw [e, Nat.shiftRight_eq_div_pow, Nat.add_mul_div_left _ _ (by positivity), Nat.add_mul_mod_self_left]
+
 /-- **`grind_check` inlined is exact at its honest values**: on a valuation holding `gcVals` on the expansion's own
 values, every statement of it is an atom exact on every memory. -/
 theorem gcInline_exact_of_vals {rd0 : Reader} {σ : Val} {b o : ℕ} (hb : b ∈ grindBitsDeployed) {w tabs : V}
     (hv : ∀ k, 2 ≤ k → k < gcLen b → σ (.n (o + k - 2)) = gcVals rd0 b (σ w) (σ tabs) k) :
     ∀ s ∈ gcInlineT b o w tabs, ∃ a, s = .atom a ∧ ∀ rd, a.Exact rd σ := by
   obtain ⟨hT1, hT, hsum⟩ := gc_shape b hb
-  have hwin : ∀ {s n : ℕ}, s + n ≤ 64 → (LeanVM.Prover.Exec.wordNat (σ w) >>> s) % 2 ^ n =
-      kToNat ((σ w).limb 0) / 2 ^ s % 2 ^ n := by
-    intro s n h
-    have e : LeanVM.Prover.Exec.wordNat (σ w) = kToNat ((σ w).limb 0) + 2 ^ s * (2 ^ n * (2 ^ (64 - s - n) *
-        kToNat ((σ w).limb 1))) := by
-      rw [← Nat.mul_assoc, ← Nat.mul_assoc, ← Nat.pow_add, ← Nat.pow_add,
-        show s + n + (64 - s - n) = 64 by omega]
-      rfl
-    rw [e, Nat.shiftRight_eq_div_pow, Nat.add_mul_div_left _ _ (by positivity), Nat.add_mul_mod_self_left]
   have hR : ∀ k, 2 ≤ k → k < gcLen b → σ (gcRen o w tabs (.n k)) = gcVals rd0 b (σ w) (σ tabs) k :=
     fun k h2 hk ↦ by rw [gcRen_own o w tabs h2]; exact hv k h2 hk
   intro s hs
@@ -58,18 +59,13 @@ theorem gcInline_exact_of_vals {rd0 : Reader} {σ : Val} {b o : ℕ} (hb : b ∈
       have hj : j < gcW b := List.mem_range.mp hj
       show σ (gcRen o w tabs (.n (2 + j))) = _
       rw [hR (2 + j) (by omega) (by unfold gcLen; omega), show 2 + j = gcW b + 2 - (gcW b - j) by omega,
-        gv_win (by omega) (by omega), hwin (by omega), gen_pow_eq_ofK, gcV,
+        gv_win (by omega) (by omega), wordNat_window _ (by omega), gen_pow_eq_ofK, gcV,
         show gcW b - (gcW b - j) = j by omega, Nat.mul_comm 11 j]
     · show [σ (gcRen o w tabs (.n (gcW b + 2)))] = (List.range 1).map fun i ↦ ofK (g ^ ((LeanVM.Prover.Exec.wordNat
         (σ (gcRen o w tabs (.n 0))) >>> (b + 11 * gcW b + i * gcTop b)) % 2 ^ gcTop b))
-      have hlt : kToNat ((σ w).limb 0) / 2 ^ (b + 11 * gcW b) < 2 ^ gcTop b := by
-        rw [Nat.div_lt_iff_lt_mul (by positivity), ← Nat.pow_add, show gcTop b + (b + 11 * gcW b) = 64 by omega]
-        exact kToNat_lt _
-      have e : gcVals rd0 b (σ w) (σ tabs) (gcW b + 2) = gen ^ gcV b (σ w) 0 := by
-        unfold gcVals
-        rw [ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_left rfl]
+      have hlt : kToNat ((σ w).limb 0) / 2 ^ (b + 11 * gcW b) < 2 ^ gcTop b := gcV_zero_lt hsum (σ w)
       simp only [List.range_one, List.map_cons, List.map_nil, Nat.zero_mul, Nat.add_zero]
-      rw [hR (gcW b + 2) (by omega) (by unfold gcLen; omega), e, gcRen_word, hwin (by omega),
+      rw [hR (gcW b + 2) (by omega) (by unfold gcLen; omega), gv_top, gcRen_word, wordNat_window _ (by omega),
         Nat.mod_eq_of_lt hlt, gen_pow_eq_ofK, gcV, Nat.sub_zero]
     all_goals trivial
   · simp only [gcIterAt, List.mem_cons, List.not_mem_nil, or_false] at hs0

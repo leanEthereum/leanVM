@@ -105,13 +105,6 @@ def log2_SpecP (P : Program) : Prop :=
 
 /-! ## `grind_check` (TRIAGE #21) -/
 
-/-- **`grind_check(word, tabs, bits)`** (`0 < bits < 64`): the low `bits` bits of the word's low
-limb are zero. The word is cell `1` of the permutation that absorbed a nonce, so its low limb is
-that permutation's lane `2`, the proof of work (`powOk`, `Keccak.powLane_cells`, `grindOk_iff`). -/
-def MeaningGrindCheck (bits : ℕ) : List E → List E → Prop
-  | [w, _], rets => rets = [] ∧ (w.limb 0).lane.toNat % 2 ^ bits = 0
-  | _, _ => False
-
 /-- The grinds the guest checks (`grind_check` is inlined at each). -/
 def grindBitsDeployed : List ℕ :=
   [2, 3, 7, 13, 15, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]

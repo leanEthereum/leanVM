@@ -20,8 +20,8 @@ import LeanVM.Guest.Data.ValNames.«verify_tables»
 
 For weights `ω i` (one per index `i`, an opcode's instructions per frame): `vtKidW ω Wss W10`,
 a callee's tree, if `shared_selector_tables`', within `Wss i`, if `verify_tables_loop0`'s, within
-`W10 i`, on every valid run (`Budget.WeighsLe`). `verify_tables_completeAtTBW`:
-`verify_tables_completeAtTB` by a node of honest shape (`Budget.NodeHonest`) whose entered callees
+`W10 i`, on every valid run (`Budget.WeighsLe`). `verify_tables_completeAtTBW`: `verify_tables`
+complete, placed, within its bound (`ABound`), by a node of honest shape (`Budget.NodeHonest`) whose entered callees
 are `vtKidW`, the shared tables' within `Wss` on every run length `g^n`, `n < 64`, the rounds loop
 `K10w` an iteration (`Budget.LoopW`) at the honest round count `H.n ≤ 32`.
 `vt_weight_le`: such a node, valid, weighs at most its frame's weight and

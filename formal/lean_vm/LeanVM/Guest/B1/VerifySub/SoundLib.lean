@@ -41,7 +41,6 @@ theorem vsT_split : vsT = vsHeadT ++ (vsReadsT ++ (vsSizesT ++ (vsPushT ++ (vsRo
 theorem vsSizesT_noRet : Stmt.noRetList vsSizesT = true := by decide +kernel
 theorem vsPlaceT_noRet : Stmt.noRetList vsPlaceT = true := by decide +kernel
 theorem vsOodT_noRet : Stmt.noRetList vsOodT = true := by decide +kernel
-theorem vsBusGrindT_noRet : Stmt.noRetList vsBusGrindT = true := by decide +kernel
 theorem vsFpwT_noRet : Stmt.noRetList vsFpwT = true := by decide +kernel
 theorem vsCallsT_noRet : Stmt.noRetList vsCallsT = true := by decide +kernel
 theorem vsMapsT_noRet : Stmt.noRetList vsMapsT = true := by decide +kernel

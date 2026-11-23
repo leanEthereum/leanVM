@@ -399,15 +399,6 @@ theorem vbgLayersW_length {depth : ℕ} {cap0 xs : List E} {cur : E}
     simp [vbgLayBlock_length hcl]
   rw [this, List.sum_replicate, smul_eq_mul, mul_comm]
 
-theorem flatMap_const_length {f : ℕ → List E} {m w : ℕ} (hw : ∀ c < m, (f c).length = w) :
-    ((List.range m).flatMap f).length = m * w := by
-  rw [List.length_flatMap]
-  have : (List.range m).map (fun c ↦ (f c).length) = List.replicate m w := by
-    apply List.ext_getElem (by simp)
-    intro i h1 _
-    simp only [List.getElem_map, List.getElem_range, List.getElem_replicate]
-    exact hw i (by simpa using h1)
-  rw [this, List.sum_replicate, smul_eq_mul]
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 

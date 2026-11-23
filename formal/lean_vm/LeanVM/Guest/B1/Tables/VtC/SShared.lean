@@ -113,7 +113,7 @@ theorem vt_good_rc {σ : Val} {S : List Atom} {x y t1 t2 k : ℕ}
   rwa [ite_pos' hk] at h
 
 theorem vtShAT_rest : ∀ t < 6, tbStmtsEqb (((vtAt (vtShA t)).take 15).filter (fun s ↦ !autoB s))
-    [.atom (.mul (.n 9) (.n (vtShV t)) (.n (28 + t))),
+    [.atom (.mul (.n (val% «verify_tables» "g_bus_mu")) (.n (vtShV t)) (.n (28 + t))),
       .atom (.rangeCheck (.n (vtShV t + 1)) (.n (vtShV t + 3)) (.n (vtShV t + 4)) (.n (vtShV t + 5))
         (.n (vtShV t + 2)))] = true := by
   decide +kernel
@@ -127,7 +127,8 @@ local notation "σv" => vtσ rd w args
 
 /-- **Table `t`'s run and allocations.** -/
 theorem vtc_shA (hl : args.length = 21) (hlow : LowDefB 14 rd) {t μ τ : ℕ} (ht : t < 6)
-    (hkb : σv (.n (28 + t)) = gen ^ τ) (h9 : σv (.n 9) = gen ^ μ) (hμ33 : μ < 33) (hτμ : τ ≤ μ) :
+    (hkb : σv (.n (28 + t)) = gen ^ τ) (h9 : σv (.n (val% «verify_tables» "g_bus_mu")) = gen ^ μ) (hμ33 : μ < 33)
+    (hτμ : τ ≤ μ) :
     (∀ s ∈ (vtPre.drop (vtShA t)).take 15, VSH (coreProgram.Rel rd) rd σv s) ∧
       σv (.n (vtShLen t)) = gen ^ (μ - τ) ∧
       σv (.n (vtShV t + 10)) = gen ^ (8 * (μ - τ + 1)) ∧
@@ -138,7 +139,7 @@ theorem vtc_shA (hl : args.length = 21) (hlow : LowDefB 14 rd) {t μ τ : ℕ} (
   have hG : ∀ s ∈ vtShAT t, GoodS rd vtSL w σv (fixNe s) := fun s hs ↦
     vt_goodS hl (vt_mem_slice (n := vtShA t) (by rw [vtPre_drop]; exact vtShAT_check t ht) hs)
   set v := vtShV t with hvdef
-  have g0 := hG (.atom (.mul (.n 9) (.n v) (.n (28 + t)))) (by simp [vtShAT, v])
+  have g0 := hG (.atom (.mul (.n (val% «verify_tables» "g_bus_mu")) (.n v) (.n (28 + t)))) (by simp [vtShAT, v])
   have g1 := hG (.atom (.copy (.n (v + 1)) (.n v))) (by simp [vtShAT, v])
   have g2 := hG (.atom (.const (.n (v + 2)) vtW33)) (by simp [vtShAT, v])
   have g3 := hG (.atom (.rangeCheck (.n (v + 1)) (.n (v + 3)) (.n (v + 4)) (.n (v + 5)) (.n (v + 2))))
@@ -193,9 +194,9 @@ theorem vtc_shC (hl : args.length = 21) {t μ τ : ℕ} (ht : t < 6) {point : Li
     vt_goodS hl (vt_mem_slice (n := vtShC t) (by rw [vtPre_drop]; exact vtShCT_check t ht) hs)
   have hz0 : 804 ≤ vtShZ t := by unfold vtShZ; omega
   set z := vtShZ t with hzdef
-  have g0 := hG (.atom (.mul (.n z) (.n 8) (.n (28 + t)))) (by simp [vtShCT, z])
-  have g1 := hG (.atom (.mul (.n (z + 1)) (.n 802) (.n (28 + t)))) (by simp [vtShCT, z])
-  have g2 := hG (.atom (.mul (.n (z + 2)) (.n 12) (.n (28 + t)))) (by simp [vtShCT, z])
+  have g0 := hG (.atom (.mul (.n z) (.n (val% «verify_tables» "zeta")) (.n (28 + t)))) (by simp [vtShCT, z])
+  have g1 := hG (.atom (.mul (.n (z + 1)) (.n (val% «verify_tables» "zeta1")) (.n (28 + t)))) (by simp [vtShCT, z])
+  have g2 := hG (.atom (.mul (.n (z + 2)) (.n (val% «verify_tables» "g_squares")) (.n (28 + t)))) (by simp [vtShCT, z])
   replace g0 := vt_good_mul g0 (by omega) (by omega)
   replace g1 := vt_good_mul g1 (by omega) (by omega)
   replace g2 := vt_good_mul g2 (by omega) (by omega)

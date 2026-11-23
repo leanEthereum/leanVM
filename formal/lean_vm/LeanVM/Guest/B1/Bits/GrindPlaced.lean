@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B1.Bits.Grind
 public import LeanVM.Guest.B1.Bits.GrindFwd
 public import LeanVM.Guest.B1.Bits.GrindRc
+public import LeanVM.Guest.B1.Bits.GrindWin
 public import LeanVM.Guest.Memory.Uniform
 public import LeanVM.Guest.Memory.Size
 public import LeanVM.Guest.Memory.PopsNil
@@ -92,16 +93,6 @@ theorem gcPre_mem {b : ℕ} {s : Stmt} (hs : s ∈ gcPre b) :
 
 /-! ## Exact -/
 
-/-- **A window of a word within its low limb** is the low limb's. -/
-theorem wordNat_window (w : E) {s n : ℕ} (h : s + n ≤ 64) :
-    (LeanVM.Prover.Exec.wordNat w >>> s) % 2 ^ n = kToNat (w.limb 0) / 2 ^ s % 2 ^ n := by
-  have e : LeanVM.Prover.Exec.wordNat w = kToNat (w.limb 0) + 2 ^ s * (2 ^ n * (2 ^ (64 - s - n) *
-      kToNat (w.limb 1))) := by
-    rw [← Nat.mul_assoc, ← Nat.mul_assoc, ← Nat.pow_add, ← Nat.pow_add,
-      show s + n + (64 - s - n) = 64 by omega]
-    rfl
-  rw [e, Nat.shiftRight_eq_div_pow, Nat.add_mul_div_left _ _ (by positivity), Nat.add_mul_mod_self_left]
-
 /-- **Every statement of `grind_check`'s expansion is an atom popping nothing and exact** under the
 honest valuation: its two hints are the word's windows. -/
 theorem gcPre_atom {rd : Reader} {b : ℕ} {w tabs : E}
@@ -127,14 +118,9 @@ theorem gcPre_atom {rd : Reader} {b : ℕ} {w tabs : E}
     · refine ⟨_, rfl, rfl, ?_⟩
       show [gcVals rd b w tabs (gcW b + 2)] = (List.range 1).map fun i => ofK (g ^ ((LeanVM.Prover.Exec.wordNat
         (gcVals rd b w tabs 0) >>> (b + 11 * gcW b + i * gcTop b)) % 2 ^ gcTop b))
-      have hv : kToNat (w.limb 0) / 2 ^ (b + 11 * gcW b) < 2 ^ gcTop b := by
-        rw [Nat.div_lt_iff_lt_mul (by positivity), ← Nat.pow_add, show gcTop b + (b + 11 * gcW b) = 64 by omega]
-        exact kToNat_lt _
-      have e : gcVals rd b w tabs (gcW b + 2) = gen ^ gcV b w 0 := by
-        unfold gcVals
-        rw [ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_left rfl]
+      have hv : kToNat (w.limb 0) / 2 ^ (b + 11 * gcW b) < 2 ^ gcTop b := gcV_zero_lt hsum w
       simp only [List.range_one, List.map_cons, List.map_nil, Nat.zero_mul, Nat.add_zero]
-      rw [e, show gcVals rd b w tabs 0 = w from rfl, wordNat_window w (by omega), Nat.mod_eq_of_lt hv,
+      rw [gv_top, show gcVals rd b w tabs 0 = w from rfl, wordNat_window w (by omega), Nat.mod_eq_of_lt hv,
         gen_pow_eq_ofK, gcV, Nat.sub_zero]
     all_goals exact ⟨_, rfl, rfl, trivial⟩
   · simp only [gcIterAt, List.mem_cons, List.not_mem_nil, or_false] at hs'
@@ -154,44 +140,10 @@ theorem gcInline_exact_of_good {rd : Reader} {S : List Atom} {wo : ℕ → E} {�
       wBound v = gen ^ e * y ∧ LoadHolds rd y 0 t2)
     (ht : WinTabs rd (σ tabs)) (hwin : ∀ j ≤ gcW b, wo (o + j) = gcWin b (σ w) j) :
     ∀ a, Stmt.atom a ∈ gcInlineT b o w tabs → a.Exact rd σ := by
-  have hv := gcInline_vals_of_good hb hwo hto hg hS hrc ht hwin
   intro a ha
-  rw [gcInlineT] at ha
-  obtain ⟨s0, hs0, e0⟩ := renameList_mem_inv ha
-  obtain ⟨a0, rfl, -, hex⟩ := gcPre_atom (rd := rd) (w := σ w) (tabs := σ tabs) (gc_shape b hb) hs0
-  simp only [Stmt.rename, Stmt.atom.injEq] at e0
-  subst e0
-  -- the values the expansion's hints write
-  have hR : ∀ k, 2 ≤ k → k < gcLen b → σ (gcRen o w tabs (.n k)) = gcVals rd b (σ w) (σ tabs) k :=
-    fun k h2 hk ↦ by rw [gcRen_own o w tabs h2]; exact hv k h2 hk
-  have hW := gcW_pos b hb
-  simp only [gcPre, gcHead, gcTailPre, List.mem_append, List.mem_flatten, List.mem_map,
-    List.mem_range] at hs0
-  rcases hs0 with (hs0 | ⟨l, ⟨i, hi, rfl⟩, hs0⟩) | hs0
-  · simp only [List.mem_cons, List.not_mem_nil, or_false, Stmt.atom.injEq] at hs0
-    rcases hs0 with rfl | rfl | rfl | rfl | rfl | rfl
-    · show (((List.range (gcW b)).map fun j => V.n (2 + j)).map (gcRen o w tabs)).map σ = _
-      have e : ((List.range (gcW b)).map fun j => V.n (2 + j)).map
-          (fun v => gcVals rd b (σ w) (σ tabs) v.idx) = _ := hex
-      have e0 : σ (gcRen o w tabs (V.n 0)) = (fun v : V => gcVals rd b (σ w) (σ tabs) v.idx) (V.n 0) :=
-        rfl
-      rw [e0, ← e]
-      simp only [List.map_map]
-      refine List.map_congr_left fun j hj ↦ ?_
-      have hj := List.mem_range.mp hj
-      exact hR (2 + j) (by omega) (by unfold gcLen; omega)
-    · show ((([V.n (gcW b + 2)]).map (gcRen o w tabs))).map σ = _
-      have e : ([V.n (gcW b + 2)]).map (fun v => gcVals rd b (σ w) (σ tabs) v.idx) = _ := hex
-      have e0 : σ (gcRen o w tabs (V.n 0)) = (fun v : V => gcVals rd b (σ w) (σ tabs) v.idx) (V.n 0) :=
-        rfl
-      rw [e0, ← e, List.map_map]
-      simp only [List.map_cons, List.map_nil, Function.comp_apply,
-        hR (gcW b + 2) (by omega) (by unfold gcLen; omega)]
-    all_goals trivial
-  · simp only [gcIterAt, List.mem_cons, List.not_mem_nil, or_false, Stmt.atom.injEq] at hs0
-    rcases hs0 with rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> trivial
-  · simp only [List.mem_cons, List.not_mem_nil, or_false, Stmt.atom.injEq] at hs0
-    rcases hs0 with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> trivial
+  obtain ⟨a', e, hex⟩ := gcInline_exact_of_vals hb (gcInline_vals_of_good hb hwo hto hg hS hrc ht hwin) _ ha
+  cases e
+  exact hex rd
 
 end
 end LeanVM.Guest.B1

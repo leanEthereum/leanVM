@@ -11,8 +11,7 @@ public import LeanVM.Guest.B1.Tables.VtC.SAll
 /-!
 # Strided buffers
 
-`padTo S l`: `l` padded with zeros to `S` words. `tbReadsAt_chunks`: a buffer holding the blocks
-`blk i` each padded to `S` words holds block `i` at `S·i`.
+`getD_flatMap_const`: a flattening of blocks of `S` words holds block `i` at `S·i`.
 
 `vtShEqW`, `vtShGW`: table `t`'s shared selector tables' buffers (`shared_eq[t]`, `shared_g[t]`):
 nibble `j`'s eq levels (stride `32`) and `g`-power table (stride `16`) of the run of `|point| − τ_t`
@@ -26,12 +25,7 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier
 
 @[expose] public section
 
-/-- `l` padded with zeros to `S` words. -/
-def padTo (S : ℕ) (l : List E) : List E := l ++ List.replicate (S - l.length) 0
-
-theorem padTo_length {S : ℕ} {l : List E} (h : l.length ≤ S) : (padTo S l).length = S := by
-  simp [padTo]; omega
-
+/-- A flattening of blocks of `S` words holds block `i`'s word `k` at `S·i + k`. -/
 theorem getD_flatMap_const {S : ℕ} (f : ℕ → List E) (hf : ∀ i, (f i).length = S) :
     ∀ (m i k : ℕ), i < m → k < S →
       ((List.range m).flatMap f).getD (S * i + k) 0 = (f i).getD k 0
@@ -48,44 +42,7 @@ theorem getD_flatMap_const {S : ℕ} (f : ℕ → List E) (hf : ∀ i, (f i).len
       rw [List.getD_append_right _ _ _ _ (by rw [hlen]; omega), hlen]
       simp
 
-/-- **A buffer of padded blocks holds each block at its stride.** -/
-theorem tbReadsAt_chunks {rd : Reader} {p : E} {S m : ℕ} (blk : ℕ → List E)
-    (hb : ∀ i, (blk i).length ≤ S) (h : TbReadsAt rd p ((List.range m).flatMap fun i ↦ padTo S (blk i)))
-    {i : ℕ} (hi : i < m) : TbReadsAt rd (p * gen ^ (S * i)) (blk i) := by
-  intro k hk
-  rw [tb_loadHolds_mul_gen_pow]
-  have hS : k < S := lt_of_lt_of_le hk (hb i)
-  have hlen : ((List.range m).flatMap fun i ↦ padTo S (blk i)).length = S * m := by
-    rw [List.length_flatMap]
-    simp [padTo_length (hb _), List.sum_replicate, Nat.mul_comm]
-  have hidx : S * i + k < S * m := by nlinarith
-  have := h (S * i + k) (by rw [hlen]; exact hidx)
-  rw [← List.getD_eq_getElem _ 0,
-    getD_flatMap_const (fun i ↦ padTo S (blk i)) (fun i ↦ padTo_length (hb i)) m i k hi hS] at this
-  rwa [padTo, List.getD_append _ _ _ _ hk, List.getD_eq_getElem _ _ hk] at this
-
-/-- **A buffer of padded blocks holds zeros past each block, to its stride.** -/
-theorem tbReadsAt_chunks_pad {rd : Reader} {p : E} {S m : ℕ} (blk : ℕ → List E)
-    (hb : ∀ i, (blk i).length ≤ S) (h : TbReadsAt rd p ((List.range m).flatMap fun i ↦ padTo S (blk i)))
-    {i : ℕ} (hi : i < m) {e : ℕ} (he1 : (blk i).length ≤ e) (he2 : e < S) :
-    LoadHolds rd (p * gen ^ (S * i)) e 0 := by
-  rw [tb_loadHolds_mul_gen_pow]
-  have hlen : ((List.range m).flatMap fun i ↦ padTo S (blk i)).length = S * m := by
-    rw [List.length_flatMap]
-    simp [padTo_length (hb _), List.sum_replicate, Nat.mul_comm]
-  have hidx : S * i + e < S * m := by nlinarith
-  have := h (S * i + e) (by rw [hlen]; exact hidx)
-  rw [← List.getD_eq_getElem _ 0,
-    getD_flatMap_const (fun i ↦ padTo S (blk i)) (fun i ↦ padTo_length (hb i)) m i e hi he2] at this
-  have h0 : (List.replicate (S - (blk i).length) (0 : E)).getD (e - (blk i).length) 0 = 0 := by simp
-  rwa [padTo, List.getD_append_right _ _ _ _ he1, h0] at this
-
 /-! ## The shared selector tables -/
-
-/-- Table `t`'s run of coordinates above `τ_t`, their complements and shares. -/
-def shZs (point : List E) (τ : ℕ) : List E := point.drop τ
-def shZs1 (point : List E) (τ : ℕ) : List E := (point.map (1 + ·)).drop τ
-def shGs (point : List E) (τ : ℕ) : List E := (gSquaresList.drop τ).take (point.length - τ)
 
 /-- Table `t`'s `shared_eq` words: nibble `j`'s eq levels at `32 j`, zeros past them, `8(n + 1)` words for
 its run of `n = |point| - τ_t` coordinates. -/

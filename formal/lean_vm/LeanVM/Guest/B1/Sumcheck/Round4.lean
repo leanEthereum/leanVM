@@ -17,7 +17,7 @@ public import LeanVM.Guest.B1.Common.Find
 read and absorbed, the permutation (`fs_grind_squeeze` at zero bits), the capacity stored into the
 next record, the challenge (cell `0`) and the fold. Its block's condition (`vc`) is rewritten to
 `MeaningSumcheckRound4` by writing out the capacity records (`capAt5`, `exists_capAt`), the sponge
-(`round4_sponge`, `round4_perm`) and the round's polynomial in the guest's Horner form
+(`round4_sponge`) and the round's polynomial in the guest's Horner form
 (`round4_eval`). The window table is not read.
 -/
 
@@ -58,14 +58,6 @@ theorem capAt5 {rd : Reader} {p a b c d e : E} {off s : ℕ} :
   simp only [CapAt, List.length_cons, List.length_nil, Nat.forall_lt_succ_left', Nat.not_lt_zero,
     IsEmpty.forall_iff, implies_true, List.getElem_cons_zero, List.getElem_cons_succ, and_true,
     true_and, Nat.reduceAdd]
-
-/-- The round's permutation, its cells written out: the three scalars waiting, two zero cells,
-the record's capacity. -/
-theorem round4_perm (cap : List E) (c0 c2 c3 : E) :
-    ((⟨cap, []⟩ : Fs).absorbAll [c0, c2, c3] dsObserve).perm =
-      permOf (pendCells [(c0, dsObserve), (c2, dsObserve), (c3, dsObserve)] ++ [0, 0] ++ cap) := by
-  rw [round4_sponge, perm_eq_cells _ (by simp)]
-  rfl
 
 end
 end LeanVM.Guest.B1

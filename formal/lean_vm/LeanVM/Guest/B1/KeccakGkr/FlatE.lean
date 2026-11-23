@@ -52,6 +52,13 @@ theorem CompleteAtFBT.mono_bound {k : ℕ} {f : String} {Lin : ℕ → Layout} {
     (h : CompleteAtFBT fs cert k f Lin args Out T B) (hB : B ≤ B') : CompleteAtFBT fs cert k f Lin args Out T B' :=
   fun fp => let ⟨n, Lown, rets, Lout, hn, ho, hw, hd, hr⟩ := h fp; ⟨n, Lown, rets, Lout, hn.trans hB, ho, hw, hd, hr⟩
 
+/-- **`CompleteAtFBT` without its trees' predicate.** -/
+theorem CompleteAtFBT.toFB {k : ℕ} {f : String} {Lin : ℕ → Layout} {args : List E}
+    {Out : ℕ → List E → Layout → Prop} {T : Reader → Tree → Prop} {B : ℕ}
+    (h : CompleteAtFBT fs cert k f Lin args Out T B) : CompleteAtFB fs cert k f Lin args Out B :=
+  fun fp => let ⟨n, Lown, rets, Lout, hn, ho, hw, hd, hr⟩ := h fp
+    ⟨n, Lown, rets, Lout, hn, ho, hw, hd, fun rd hl hm => (hr rd hl hm).relAtIn⟩
+
 /-- **A callee of `ExactOk` complete within a bound is so by trees of `exT`.** -/
 theorem CompleteAtFB.toFBE {k : ℕ} {f : String} {Lin : ℕ → Layout} {args : List E}
     {Out : ℕ → List E → Layout → Prop} {B : ℕ} (h : CompleteAtFB fs cert k f Lin args Out B) (hg : ExactOk f) :
@@ -83,21 +90,6 @@ theorem kidsBoundL_map (bd : Kid → ℕ) : ∀ ks : List Kid, kidsBoundL fs ks 
   | k :: ks => by
     simp only [kidsBoundL, List.map_cons, List.headD_cons, List.tail_cons, kidsBoundL_map bd ks, kidsBound,
       List.sum_cons]
-
-/-- A node of a function whose paths are exact, its callees' trees of `exT`, is of `exT`. -/
-theorem every_node_of {rd : Reader} {f : String} {fn : Fn} {σ : Val} {es : List Ev} {vs : List V} {bufs : List ℕ}
-    {ks : List Tree} {Ts : List (Tree → Prop)} {args rets : List E} (hf : coreProgram.find? f = some fn)
-    (hpx : PathExactFn fn) (hw : walk σ fn.body = .ret es vs) (hes : ∀ e ∈ es, e.Holds rd σ)
-    (hv : (Memory.Tree.node f σ bufs ks).Valid coreProgram rd args rets) (hl : (calls es).length ≤ Ts.length)
-    (hT : ∀ T ∈ Ts, ∀ t, T t → exT rd t) (hK : KidsT (calls es) Ts ks) :
-    exT rd (Memory.Tree.node f σ bufs ks) := by
-  obtain ⟨fn', hf', -, es', vs', hw', -, -, hkv⟩ := hv
-  rw [hf, Option.some.injEq] at hf'
-  subst hf'
-  rw [hw, Out.ret.injEq] at hw'
-  obtain ⟨rfl, rfl⟩ := hw'
-  exact Tree.every_node.mpr ⟨exactAt_of_walk hf hw (hpx rd σ es vs hw hes),
-    everyKids_of_kidsT hkv hl hK fun _ T hc _ t _ _ hTt => hT T (List.of_mem_zip hc).2 t hTt⟩
 
 /-- A node whose path is exact, its callees' trees of `exT`, is of `exT`. -/
 theorem every_node_of_exact {rd : Reader} {f : String} {fn : Fn} {σ : Val} {es : List Ev} {vs : List V}
@@ -379,7 +371,8 @@ theorem completeAt_flatGBE {f : String} {fn : Fn} (hf : coreProgram.find? f = so
       · exact ⟨i, hi, Or.inr (Or.inl h)⟩
       · exact ⟨i, hi, Or.inl (hown' i h)⟩
       · exact ⟨i, hi, Or.inr (Or.inr (Or.inr h))⟩) (fun i hi => by obtain ⟨q, hq, _⟩ := hi; simp at hq)
-  refine ⟨_, ⟨hn, hv, hbo, hpl, by rw [htot, hal], hlo, hda⟩, every_node_of hf hpx hw hes hv hlen' ?_ hkT⟩
+  refine ⟨_, ⟨hn, hv, hbo, hpl, by rw [htot, hal], hlo, hda⟩,
+    every_node_of_exact hf hw (hpx rd σ _ vs hw hes) hv hlen' ?_ hkT⟩
   intro T hT t hTt
   obtain ⟨_, -, rfl⟩ := List.mem_map.mp hT
   exact hTt

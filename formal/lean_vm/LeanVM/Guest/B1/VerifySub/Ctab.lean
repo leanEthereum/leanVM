@@ -83,9 +83,6 @@ theorem loads_map {p : ℕ} (f : ℕ → ℕ) : ∀ (l : List ℕ) {nx : Prop},
       · exact li
       · exact hl x hx, hn⟩
 
-theorem maps_winTabs_of {q tabs : E} (hwin : ExpWinTab rd q) (h : tabs = q * gen ^ winTabAt) :
-    WinTabs rd tabs := fun n hn ↦ by rw [h, loadHolds_mul_gen_pow]; exact hwin n hn
-
 /-- The sixteen challenges, from the sponge's ground challenge. -/
 theorem runsFromG_sample16 (cap : List E) (c : E) :
     RunsFromG (VerifierProgram.sampleChallenges 16) cap c [] (c :: ((⟨cap, []⟩ : Fs).squeezeN 15).1)

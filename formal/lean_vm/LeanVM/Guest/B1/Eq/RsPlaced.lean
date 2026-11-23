@@ -127,9 +127,6 @@ theorem rs_body' : Fn.body fn% «rs_eq_run» = rsPre ++ [.ret [.n (val% «rs_eq_
 theorem rs_params : Fn.params fn% «rs_eq_run» =
     [.n (val% «rs_eq_run» "z_vals"), .n (val% «rs_eq_run» "point1"), .n (val% «rs_eq_run» "count_g")] := rfl
 
-theorem rs_ofK_mul (b c : ℕ) : ofK (addressOfIndex b) * gen ^ c = ofK (addressOfIndex (b + c)) := by
-  rw [← gen_pow_eq_ofK, ← gen_pow_eq_ofK, ← pow_add]
-
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
 /-- **`rs_eq_run`'s honest valuation, placed**: on a memory holding its chain at `g^b` and the
@@ -197,6 +194,35 @@ theorem rs_hσ {b bz bp count : ℕ} {zs ps : List E} (hcount : count < 64) (hz 
     simp only [rsChain_length]
     omega
 
+/-- The callees' words lie among the caller's and the chain's. -/
+theorem rsKids_region {b bz bp count : ℕ} {zs ps : List E} :
+    ∀ k ∈ rsKidsAt b bz bp count zs ps, ∀ i, RegionL k.Lin i →
+      RegionL [(bz, zs), (bp, ps)] i ∨ RegionL (bufL b [64 * (count / 8 + 2)] [rsChain zs ps count]) i := by
+  intro k hk i hi
+  simp only [rsKidsAt, List.mem_cons, List.not_mem_nil, or_false] at hk
+  obtain ⟨q, hq, hi⟩ := hi
+  have hq' : q ∈ rsKLin b bz bp count zs ps := by rcases hk with rfl | rfl <;> exact hq
+  simp only [rsKLin, List.mem_cons, List.not_mem_nil, or_false] at hq'
+  rcases hq' with rfl | rfl | rfl
+  · exact Or.inr ⟨_, by simp [bufL, bases], hi⟩
+  · exact Or.inl ⟨_, by simp, hi⟩
+  · exact Or.inl ⟨_, by simp, hi⟩
+
+/-- A memory holding the caller's words and the chain holds the callees'. -/
+theorem rsKids_memL {rd : Reader} {b bz bp count : ℕ} {zs ps : List E}
+    (hB : MemL rd (bufL b [64 * (count / 8 + 2)] [rsChain zs ps count])) (hLin : MemL rd [(bz, zs), (bp, ps)]) :
+    ∀ k ∈ rsKidsAt b bz bp count zs ps, MemL rd k.Lin := by
+  have h : MemL rd (rsKLin b bz bp count zs ps) := by
+    intro q hq
+    simp only [rsKLin, List.mem_cons, List.not_mem_nil, or_false] at hq
+    rcases hq with rfl | rfl | rfl
+    · exact hB (b, rsChain zs ps count) (by simp [bufL, bases])
+    · exact hLin (bz, zs) (by simp)
+    · exact hLin (bp, ps) (by simp)
+  intro k hk
+  simp only [rsKidsAt, List.mem_cons, List.not_mem_nil, or_false] at hk
+  rcases hk with rfl | rfl <;> exact h
+
 /-- **`rs_eq_run` is complete, placed**: on `count < 64` coordinates and the point, at every frame
 pointer, its chain at the bump allocator's position, returned (`RsOut`). -/
 theorem rs_completeAt (κ : ℕ) {bz bp count : ℕ} {zs ps : List E} (hcount : count < 64)
@@ -207,7 +233,8 @@ theorem rs_completeAt (κ : ℕ) {bz bp count : ℕ} {zs ps : List E} (hcount : 
     (fun fp ↦ [ofK (addressOfIndex (fp + fs "rs_eq_run")) * gen ^ (64 * ((count + 7) / 8))]) _ rs_body'
     rs_flat rs_addrs [64 * (count / 8 + 2)] (fun _ ↦ [rsChain zs ps count])
     (fun _ ↦ by simp [rsChain_length]) (fun fp ↦ ⟨_, rfl, by simp [bufL, bases]⟩)
-    (fun fp ↦ rsKidsAt (fp + fs "rs_eq_run") bz bp count zs ps) ?_ ?_ ?_
+    (fun fp ↦ rsKidsAt (fp + fs "rs_eq_run") bz bp count zs ps) ?_ (fun _ k hk _ ↦ rsKids_region k hk)
+    (fun _ _ hB hLin ↦ rsKids_memL hB hLin)
     (fun fp outs ho rd _ hB hLin ↦ rs_hσ hcount hz hp outs ho rd (by simpa [bufL, bases] using hB) hLin)
   · intro fp k hk ht
     simp only [rsKidsAt, List.mem_cons, List.not_mem_nil, or_false] at hk
@@ -218,25 +245,6 @@ theorem rs_completeAt (κ : ℕ) {bz bp count : ℕ} {zs ps : List E} (hcount : 
     · exact completeAt_of_rel_pureD rsKid_pure
         (rsRows_mem (by omega))
         (fun rd hL ↦ (rsK_rel hcount hz hp hL).2) κ
-  · intro fp k hk _ i hi
-    simp only [rsKidsAt, List.mem_cons, List.not_mem_nil, or_false] at hk
-    obtain ⟨q, hq, hi⟩ := hi
-    have hq' : q ∈ rsKLin (fp + fs "rs_eq_run") bz bp count zs ps := by rcases hk with rfl | rfl <;> exact hq
-    simp only [rsKLin, List.mem_cons, List.not_mem_nil, or_false] at hq'
-    rcases hq' with rfl | rfl | rfl
-    · exact Or.inr ⟨_, by simp [bufL, bases], hi⟩
-    · exact Or.inl ⟨_, by simp, hi⟩
-    · exact Or.inl ⟨_, by simp, hi⟩
-  · intro fp rd hB hLin k hk
-    simp only [rsKidsAt, List.mem_cons, List.not_mem_nil, or_false] at hk
-    have h : MemL rd (rsKLin (fp + fs "rs_eq_run") bz bp count zs ps) := by
-      intro q hq
-      simp only [rsKLin, List.mem_cons, List.not_mem_nil, or_false] at hq
-      rcases hq with rfl | rfl | rfl
-      · exact hB (fp + fs "rs_eq_run", rsChain zs ps count) (by simp [bufL, bases])
-      · exact hLin (bz, zs) (by simp)
-      · exact hLin (bp, ps) (by simp)
-    rcases hk with rfl | rfl <;> exact h
 
 /-! ## Within a bound -/
 
@@ -264,7 +272,8 @@ theorem rs_completeAtB (κ : ℕ) {bz bp count : ℕ} {zs ps : List E} (hc34 : c
     (fun _ ↦ by simp [rsChain_length]) (fun fp ↦ ⟨_, rfl, by simp [bufL, bases]⟩)
     (fun fp ↦ rsKidsAt (fp + fs "rs_eq_run") bz bp count zs ps) (fun _ ↦ True)
     [fun _ ↦ True, fun _ ↦ True] [count / 8 * K6 + fs name% «rs_eq_run_loop0», R]
-    (fs name% «rs_eq_run_loop0» + count / 8 * K6 + R) ?_ ?_ (fun _ ↦ by simp [rsKidsAt]) ?_ ?_
+    (fs name% «rs_eq_run_loop0» + count / 8 * K6 + R) ?_ ?_ (fun _ ↦ by simp [rsKidsAt])
+    (fun _ k hk _ ↦ rsKids_region k hk) (fun _ _ hB hLin ↦ rsKids_memL hB hLin)
     (fun fp outs ho rd _ hB hLin ↦ by
       obtain ⟨σ, h1, h2, h3, h4, h5, h6, h7⟩ :=
         rs_hσ hcount hz hp outs ho rd (by simpa [bufL, bases] using hB) hLin
@@ -291,25 +300,6 @@ theorem rs_completeAtB (κ : ℕ) {bz bp count : ℕ} {zs ps : List E} (hc34 : c
     simp only [rsKidsAt, kidsBoundL, List.headD, List.tail, ↓reduceIte, add_zero]
     generalize count / 8 * K6 = X
     split <;> omega
-  · intro fp k hk _ i hi
-    simp only [rsKidsAt, List.mem_cons, List.not_mem_nil, or_false] at hk
-    obtain ⟨q, hq, hi⟩ := hi
-    have hq' : q ∈ rsKLin (fp + fs "rs_eq_run") bz bp count zs ps := by rcases hk with rfl | rfl <;> exact hq
-    simp only [rsKLin, List.mem_cons, List.not_mem_nil, or_false] at hq'
-    rcases hq' with rfl | rfl | rfl
-    · exact Or.inr ⟨_, by simp [bufL, bases], hi⟩
-    · exact Or.inl ⟨_, by simp, hi⟩
-    · exact Or.inl ⟨_, by simp, hi⟩
-  · intro fp rd hB hLin k hk
-    simp only [rsKidsAt, List.mem_cons, List.not_mem_nil, or_false] at hk
-    have h : MemL rd (rsKLin (fp + fs "rs_eq_run") bz bp count zs ps) := by
-      intro q hq
-      simp only [rsKLin, List.mem_cons, List.not_mem_nil, or_false] at hq
-      rcases hq with rfl | rfl | rfl
-      · exact hB (fp + fs "rs_eq_run", rsChain zs ps count) (by simp [bufL, bases])
-      · exact hLin (bz, zs) (by simp)
-      · exact hLin (bp, ps) (by simp)
-    rcases hk with rfl | rfl <;> exact h
   · have h4 := Nat.mul_le_mul_right K6 (show count / 8 ≤ 4 by omega)
     simp only [List.sum_cons, List.sum_nil, add_zero]
     generalize count / 8 * K6 = X at h4 ⊢
