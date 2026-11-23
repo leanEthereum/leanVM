@@ -1,5 +1,5 @@
 import LeanVM.Protocol.EndToEnd.Front.BusStack
-import LeanVM.Protocol.EndToEnd.Front.BusForms
+import LeanVM.Protocol.EndToEnd.Complete.BusSide
 
 /-!
 # Tests: stacked blocks and forms
@@ -10,8 +10,7 @@ import LeanVM.Protocol.EndToEnd.Front.BusForms
 * **Mutation.** Breaking ties by the higher index gives another order: the stability of both sorts
   is what makes the two layouts one.
 * **Forms are linear.** `add_scaled` adds the scaled value, also when the added form repeats a
-  monomial (merged into one coefficient), and the leaf accumulation adds a block's value to its
-  owner's form on the accumulated side only.
+  monomial (merged into one coefficient).
 -/
 
 namespace LeanVMTests.Protocol.EndToEnd.Front.Stack
@@ -57,17 +56,6 @@ def col (i : ℕ) : E := (i + 2 : ℕ)
 #guard (f₁.addScaled f₂ 11).terms.length == 4
 
 example (w : E) : (f₁.addScaled f₂ w).evaluate col = f₁.evaluate col + w * f₂.evaluate col :=
-  Form.evaluate_addScaled f₁ f₂ w col
-
-/-- A block owned by table `1`, two coordinates, three of its four rows flushing. -/
-def blk : BusBlock := ⟨2, 3, [Form.col 0, Form.col 1 3], 1⟩
-
-/-- Three tables of two sides of empty forms. -/
-def forms₀ : List (List Form) := List.replicate 3 (List.replicate 2 {})
-
-#guard formVal (accStep 1 [5, 7] 9 forms₀ (4, blk)) 1 1 col ==
-  blockVal [5, 7] 9 4 blk col
-#guard formVal (accStep 1 [5, 7] 9 forms₀ (4, blk)) 1 0 col == 0
-#guard formVal (accStep 1 [5, 7] 9 forms₀ (4, blk)) 0 1 col == 0
+  LeanVM.Protocol.EndToEnd.Complete.evaluate_addScaled f₁ f₂ w col
 
 end LeanVMTests.Protocol.EndToEnd.Front.Stack

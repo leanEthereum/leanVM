@@ -7,14 +7,21 @@
 
 module
 
-public import LeanVM.Protocol.Padding
+public import LeanVM.Protocol.ToCompPoly.Multilinear
 public import LeanVM.Parameters.Field
-meta import LeanVM.Protocol.Padding
+meta import LeanVM.Protocol.ToCompPoly.Multilinear
 meta import LeanVM.Parameters.Field
 meta import CompPoly.Multilinear.Basic
 
 /-!
 # Back-loaded padding controls
+
+leanVM's tables have different heights and one sumcheck runs over all of them. A table on `k`
+variables joins a cube of `k + m` variables multiplied by `∏_{c ≥ k} X_c`, the product of the
+variables it does not have (specification §5.5): `padHigh t m`, the table placed on the slice
+where the new coordinates are all one (`placeSlice` at `onesIndex m`). Its sum over the taller
+cube is the table's own sum, and its extension is the table's times the product of the new
+coordinates.
 
 The table is lifted by two variables, so that the all-ones slice (index 3) differs from the
 top-bit slice (index 2) and from index 1. Copying the table into every slice is the mutation:
@@ -26,6 +33,11 @@ namespace LeanVMTests.Protocol
 open LeanVM.Parameters LeanVM.Protocol CompPoly CMlPolynomialEval
 
 @[expose] public section
+
+/-- A table of `k` variables lifted to `k + m` variables by `∏_{c ≥ k} X_c`. -/
+def padHigh {R : Type} [CommRing R] {k : ℕ} (t : CMlPolynomialEval R k) (m : ℕ) :
+    CMlPolynomialEval R (k + m) :=
+  placeSlice t (onesIndex m)
 
 /-- The table `[3, 5]` on one variable. -/
 def short : CMlPolynomialEval K 1 := #v[K.ofBits 3, K.ofBits 5]

@@ -3,7 +3,7 @@ import LeanVM.Protocol.ToArkLib.Oracles
 import LeanVM.Protocol.Field
 import LeanVM.Protocol.Spine.Errors
 import LeanVM.Protocol.Spine.Slots
-import LeanVM.Protocol.Spine.Toy
+import LeanVMTests.Protocol.Toy
 import LeanVM.Protocol.RingFields
 
 /-!

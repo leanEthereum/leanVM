@@ -1,6 +1,6 @@
 import LeanVM.Protocol.TableSumcheck
 import LeanVM.Protocol.Stack
-import LeanVM.Protocol.Spine.Toy
+import LeanVMTests.Protocol.Toy
 import CompPoly.Multivariate.MvPolyEquiv.Eval
 import CompPoly.Multivariate.Operations
 import Mathlib.Algebra.MvPolynomial.CommRing
