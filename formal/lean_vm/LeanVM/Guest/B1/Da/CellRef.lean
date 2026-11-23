@@ -18,8 +18,8 @@ import LeanVM.Guest.Data.Source
 `cellRef` is `da_verify_cell(lvals)` of `guests/lean_ethereum.py` read line by line
 (`LeanVM.Guest.Ref.Lang`): the hinted symbols are the names `sym e`; the loop's reads of the
 weights are commands and its arithmetic the returned term `dotTm`; `keccak_cells(sym, st)` into the
-two cells of `st` is `sponge`. `cellRef_sem` is its meaning; `CellLink.lean` ties the compiled
-function to it.
+two cells of `st` is `sponge`. `cellRef_sem` is its meaning, `cellRef_honest` its honest run;
+`CellLink.lean` ties the compiled function to it.
 -/
 
 namespace LeanVM.Guest.B1.Da
@@ -111,6 +111,31 @@ private def cellVal (lv : E) (syms ws : List E) : CellName → E
       spongeSt (padCells syms (16 * syms.length)) (blocks syms.length) b ⟨c, h⟩ else 0
   | .out j => (digestCells (keccak256 (syms.flatMap E.toBytes))).getD j 0
 
+/-- **An honest run of `da_verify_cell`'s reference function**: for `128` symbols and the `128`
+weights read at `lv`, a valuation of the names satisfies the commands with the argument `lv`,
+returning the symbols' digest and their dot product with the weights, each symbol at its name. -/
+theorem cellRef_honest {rd : Reader} {lv : E} {syms ws : List E}
+    (hsl : syms.length = LeanDa.cellSymbols) (hr : ReadsAt rd lv ws)
+    (hwl : ws.length = LeanDa.cellSymbols) :
+    ∃ ρ : CellName → E, cellRef.params.map ρ = [lv] ∧ Cmd.SatList rd ρ cellRef.body ∧
+      cellRef.rets.map (Tm.eval ρ) = digestCells (keccak256 (syms.flatMap E.toBytes)) ++
+        [((List.range LeanDa.cellSymbols).map fun e ↦ ws.getD e 0 * syms.getD e 0).sum] ∧
+      ∀ j, ρ (.sym j) = syms.getD j 0 := by
+  simp only [LeanDa.cellSymbols] at hsl hwl
+  have hs : ((List.range (guest_const% DA_CELL)).map (Tm.v <| CellName.sym ·)).map
+      (Tm.eval (cellVal lv syms ws)) = syms :=
+    List.ext_getElem (by simp [hsl]) fun i _ h => by
+      simp [Tm.eval, cellVal, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem h]
+  refine ⟨cellVal lv syms ws, rfl, ?_, ?_, fun _ => rfl⟩
+  · rw [cellRef, Cmd.satList_append, Cmd.satList_unroll,
+      satList_sponge _ _ (by simp) _ (.inr rfl), hs]
+    refine ⟨fun i _ hi => ⟨?_, trivial⟩, fun b _ _ c => ?_, ?_⟩
+    · simpa [Cmd.Sat, Tm.eval, cellVal, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem
+        (show i < ws.length by omega)] using hr i (by omega)
+    · simp [Tm.eval, cellVal, hsl, c.isLt]
+    · rfl
+  · simp [cellRef, Tm.eval, eval_dotTm, cellVal, digestCells, LeanDa.cellSymbols]
+
 /-- **`da_verify_cell`'s reference function is its meaning.** -/
 theorem cellRef_sem (rd : Reader) (args rets : List E) :
     cellRef.Sem rd args rets ↔ MeaningDaVerifyCell rd args rets := by
@@ -124,20 +149,8 @@ theorem cellRef_sem (rd : Reader) (args rets : List E) :
       match args, hm with
       | [lv], _ => exact ⟨lv, rfl⟩
     obtain ⟨syms, ws, hsl, hr, hwl, rfl⟩ := hm
-    simp only [LeanDa.cellSymbols] at hsl hwl
-    have hs : ((List.range (guest_const% DA_CELL)).map (Tm.v <| CellName.sym ·)).map
-        (Tm.eval (cellVal lv syms ws)) = syms :=
-      List.ext_getElem (by simp [hsl]) fun i _ h => by
-        simp [Tm.eval, cellVal, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem h]
-    refine ⟨cellVal lv syms ws, rfl, ?_, ?_⟩
-    · rw [cellRef, Cmd.satList_append, Cmd.satList_unroll,
-        satList_sponge _ _ (by simp) _ (.inr rfl), hs]
-      refine ⟨fun i _ hi => ⟨?_, trivial⟩, fun b _ _ c => ?_, ?_⟩
-      · simpa [Cmd.Sat, Tm.eval, cellVal, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem
-          (show i < ws.length by omega)] using hr i (by omega)
-      · simp [Tm.eval, cellVal, hsl, c.isLt]
-      · rfl
-    · simp [cellRef, Tm.eval, eval_dotTm, cellVal, digestCells, LeanDa.cellSymbols]
+    obtain ⟨ρ, hp, hs, hrets, -⟩ := cellRef_honest hsl hr hwl
+    exact ⟨ρ, hp, hs, hrets⟩
 
 end
 end LeanVM.Guest.B1.Da
