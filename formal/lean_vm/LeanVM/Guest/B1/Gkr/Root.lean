@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.CoreRef
 public import LeanVM.Guest.B1.Gkr.LayerTail
 public import LeanVM.Guest.CoreData
+import LeanVM.Guest.B1.Tables.Basic
 
 /-!
 # The root-most layer

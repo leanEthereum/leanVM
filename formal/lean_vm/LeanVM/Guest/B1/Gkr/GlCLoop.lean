@@ -15,6 +15,7 @@ public import LeanVM.Guest.Data.NameStrings
 public import LeanVM.Guest.CoreData
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«gkr_layer__L_loop0»
+import LeanVM.Guest.B1.Tables.Basic
 
 /-!
 # `gkr_layer__L{p}_L{o}_loop0`, completely

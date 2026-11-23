@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B1.Gkr.GlRounds
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«gkr_layer__L_loop0»
+import LeanVM.Guest.B1.Tables.Basic
 
 /-!
 # The layer's loop, soundly

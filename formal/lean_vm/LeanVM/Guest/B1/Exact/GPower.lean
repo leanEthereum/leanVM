@@ -10,6 +10,7 @@ public import LeanVM.Guest.Exact.Ok
 public import LeanVM.Guest.B1.Bits.GPower
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«g_power_of_word»
+import LeanVM.Guest.Value.FieldBits
 
 /-!
 # `g_power_of_word`, exact

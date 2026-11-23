@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B1.Gkr.GlT
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«gkr_layer__L0_L0»
+import LeanVM.Guest.B1.Tables.Basic
 
 /-!
 # A layer's tail, soundly
