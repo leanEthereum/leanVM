@@ -1,6 +1,7 @@
 module
 
 public import Statement.Field
+public import Statement.Verifier.Transcript
 public import Statement.RandomPermutation
 public import CompPoly.Fields.Binary.BF64
 public import CompPoly.Fields.Binary.AdditiveNTT.NovelPolynomialBasis
@@ -137,7 +138,7 @@ specified in `doc/leanvm/body/10-ethereum.tex`
   `da_verify`). The challenge is drawn
   from the root by leanVM's transcript (`membership_challenge`, `verifier/src/da.rs`): its
   sponge over Keccak-f[1600] seeded with the label's hash as its IV and the root as its public
-  input (`verifier/src/transcript.rs`, `Field.lean`'s `Sponge`), then a `10`-bit grind
+  input (`verifier/src/transcript.rs`, `Verifier/Transcript.lean`'s `Sponge`), then a `10`-bit grind
   whose nonce is the smallest valid one, not sent, and the ground challenge it draws
   (`absorbNonce`, `transcript.rs`); the end statements draw it by this duplex over the
   permutation (`membershipChallengeWith`). A root none of whose `2^64` nonces is valid has no
@@ -329,7 +330,7 @@ def verifyCellWith (r : ℕ) (commitment : DigestBytes) (position : Fin (r * 128
 
 /-! ### The membership challenge (`verifier/src/da.rs`)
 
-Drawn from the root by the duplex sponge of the leanVM verifier (`Field.lean`: `Sponge`,
+Drawn from the root by the duplex sponge of the leanVM verifier (`Verifier/Transcript.lean`: `Sponge`,
 `seedInput`, `absorbNonce`, `squeeze`), over the permutation `π`
 (`verifier/src/transcript.rs`), after a grind whose nonce is not sent: the smallest valid
 one, which anyone deriving the challenge finds. -/

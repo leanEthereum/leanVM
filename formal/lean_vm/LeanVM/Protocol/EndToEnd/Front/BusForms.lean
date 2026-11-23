@@ -10,7 +10,7 @@ module
 
 import LeanVM.Protocol.EndToEnd.Front.BusSpec
 import LeanVM.Protocol.Verifier
-public import Statement.LeanVmVerifier
+public import Statement.Verifier.Lib
 public import ArkLib.Data.CodingTheory.ReedSolomon
 public import ArkLib.Interaction.Oracle.Security.KnowledgeComposition
 public import Clean.Air.FlatEnsemble

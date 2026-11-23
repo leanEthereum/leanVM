@@ -4,7 +4,7 @@ import Statement.Prover.Prove
 /-!
 # The statement's prover, compiled with `E`'s word-level arithmetic
 
-The verifier's definitions (`Statement/LeanVmVerifier.lean`) and the prover's
+The verifier's definitions (`Statement/LeanVmVerifier.lean`, `Statement/Verifier/`) and the prover's
 (`Statement/Prover/`) that multiply in `E`, or call one that does, copied (`Copy.lean`),
 callee-first: the verifier's first (its recursive ones, which the prover does not call in its hot
 loops, are left as they are), then the prover's in rounds, each round after the hand-written
@@ -19,7 +19,7 @@ induction and marked `@[csimp]`; the last round fails if a recursive definition 
 
 open LeanVM.Parameters LeanVM.Prover.Fast
 
-fast_copy_modules_final Statement.LeanVmVerifier
+fast_copy_modules_final Statement.LeanVmVerifier Statement.Verifier
 
 fast_copy_modules Statement.Prover
 

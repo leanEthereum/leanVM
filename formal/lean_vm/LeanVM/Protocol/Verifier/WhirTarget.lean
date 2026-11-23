@@ -7,7 +7,7 @@
 module
 
 import LeanVM.Parameters.Whir
-public import Statement.LeanVmVerifier
+public import Statement.Verifier.Lib
 
 /-!
 # The WHIR opening's program

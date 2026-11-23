@@ -7,13 +7,13 @@
 
 module
 
-public import Statement.LeanVmVerifier
+public import Statement.Verifier.Keccak
 public import Statement.CostMachine
 
 /-!
 # The embedding, derived
 
-`rmfeEmbed` and `rmfeProject` (`Statement/LeanVmVerifier.lean`) are `RMFE_EMBED` and `RMFE_PROJECT`
+`rmfeEmbed` and `rmfeProject` (`Statement/Verifier/Keccak.lean`) are `RMFE_EMBED` and `RMFE_PROJECT`
 of `crates/verifier/src/keccak.rs`, copied. Here they are derived (`rmfe`): sixteen bits are glued
 by the Chinese remainder theorem from the residues modulo seven irreducible binary polynomials
 (`rmfeFactors`), the last bit riding the leading coefficient, which the residues do not see; and

@@ -7,7 +7,7 @@
 
 module
 
-public import Statement.LeanVmVerifier
+public import Statement.Verifier.Lib
 public import LeanVM.Facts.Verifier
 public import Statement.Fast.Keccak
 public import Statement.Fast.QuadExt

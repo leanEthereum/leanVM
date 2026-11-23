@@ -44,4 +44,4 @@ globs = ["Statement.Keccak", "Statement.RandomPermutation", "Statement.SufCma", 
   "Statement.LeanVmExtractor",
   "Statement.Theorems",
   "Statement.Corollaries",
-  "Statement.Data.+", "Statement.Fast.+", "Statement.Prover.+"]
+  "Statement.Verifier.+", "Statement.Data.+", "Statement.Fast.+", "Statement.Prover.+"]

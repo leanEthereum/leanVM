@@ -9,7 +9,7 @@
 module
 
 public import LeanVM.Protocol.RingMap
-public import Statement.LeanVmVerifier
+public import Statement.Verifier.Lib
 
 /-!
 # The verifier's ring switching

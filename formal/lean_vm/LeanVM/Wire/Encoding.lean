@@ -8,7 +8,7 @@
 
 module
 
-public import Statement.LeanVmVerifier
+public import Statement.Verifier.Lib
 
 /-!
 # The proof's wire encoding

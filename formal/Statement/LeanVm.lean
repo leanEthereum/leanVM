@@ -1,6 +1,6 @@
 module
 
-public import Statement.LeanVmVerifier
+public import Statement.Verifier.Lib
 public import Statement.RandomPermutation
 public import VCVio.OracleComp.OracleComp
 public import VCVio.OracleComp.QueryTracking.QueryBound.Basic

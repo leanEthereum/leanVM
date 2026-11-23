@@ -14,7 +14,7 @@ public import Statement.Fast.QuadExt
 public import Statement.Fast.FieldWords
 public import Statement.Fast.Keccak
 public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-public import Statement.LeanVmVerifier
+public import Statement.Verifier.Lib
 public import LeanVM.Protocol.RunWithHash
 
 namespace LeanVM.Protocol.Verifier

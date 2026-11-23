@@ -8,5 +8,5 @@
 
 module
 
-import Statement.LeanVmVerifier
+import Statement.Verifier.Lib
 public import CompPoly.Fields.Binary.BF64

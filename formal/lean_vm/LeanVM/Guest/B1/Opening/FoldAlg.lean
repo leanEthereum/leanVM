@@ -7,7 +7,7 @@
 
 module
 
-public import Statement.LeanVmVerifier
+public import Statement.Verifier.Lib
 public import LeanVM.Guest.Value.Tower
 
 /-!
