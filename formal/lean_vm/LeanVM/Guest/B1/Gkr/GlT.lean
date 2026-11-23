@@ -14,7 +14,7 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«gkr_layer__L»
 import LeanVM.Guest.Data.ValNames.«gkr_layer__L_loop0»
 import LeanVM.Guest.Data.ValNames.«gkr_layer__L0_L0»
-import LeanVM.Guest.B1.Tables.Basic
+public import LeanVM.Guest.B1.Tables.Basic
 
 /-!
 # A radix-four layer's templates
