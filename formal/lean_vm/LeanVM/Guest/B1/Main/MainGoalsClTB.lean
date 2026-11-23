@@ -86,7 +86,7 @@ theorem mainGoalClXTB (hL : GuestLimits s w) {SB SK : String → ℕ}
     (fun rd h => by
       have h1 := mf_reads fs fp seed s w h (i := 0) (by omega)
       rw [e] at h1
-      exact (readsAt_append'.mp h1).1)
+      exact (readsAt_append.mp h1).1)
     hLS hL15 hL16 hCL
   have ha : (hm fs fp seed s w).a77 = gen ^ mfB fs fp seed s w 0 := rfl
   have hn' : (hm fs fp seed s w).nlx = s.claims.xmss.length := rfl
@@ -122,7 +122,7 @@ theorem mainGoalClSTB (hL : GuestLimits s w) {SB SK : String → ℕ}
     (fun rd h => by
       have h1 := mf_reads fs fp seed s w h (i := 1) (by omega)
       rw [e] at h1
-      exact (readsAt_append'.mp h1).1)
+      exact (readsAt_append.mp h1).1)
     hLS hL15 hL16 hCL
   have ha : (hm fs fp seed s w).a80 = gen ^ mfB fs fp seed s w 1 := rfl
   have hn' : (hm fs fp seed s w).nls = s.claims.sphincs.length := rfl

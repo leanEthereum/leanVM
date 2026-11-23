@@ -74,7 +74,7 @@ theorem selBits_reads {rd : Reader} {p : E} {off τ d : ℕ} (hd : τ + d ≤ 34
     simp only [selBitsOf, List.length_map, List.length_range] at h1
     simp [selBitsOf, offBits]
   rw [e]
-  exact tbReadsAt_take (tbReadsAt_drop h τ) d
+  exact readsAt_take (readsAt_drop h τ) d
 
 /-- **The digits the table block's selector reads**: the first `⌈d/4⌉` of `off >> τ`'s, when
 `off < 2^(τ + d)`. -/
@@ -96,7 +96,7 @@ theorem offDigits_reads {rd : Reader} {p : E} {off τ d : ℕ} (hd : d ≤ 36)
         Nat.testBit_lt_two_pow (lt_of_lt_of_le hob (Nat.pow_le_pow_right (by norm_num) (by omega)))
       simp [hlt, show 4 * j + t < 36 by omega, hz]
   rw [e]
-  exact tbReadsAt_take h _
+  exact readsAt_take h _
 
 section
 variable {rd : Reader} {wo : ℕ → E} {args : List E}
@@ -262,9 +262,9 @@ theorem vtc_fwblock (hl : args.length = 21) {w b kv pos : ℕ} {prev : Option �
   have hsb : ReadsAt rd (σv (.n (w + 7))) ((selBitsOf off κ d).map bitE) := by
     rw [g7, g6, hκ]; exact selBits_reads (by omega) hbits
   have hz1' : ReadsAt rd (σv (.n (w + 8))) ((point.map (1 + ·)).drop κ) := by
-    rw [g8, hκ]; exact tbReadsAt_drop hz1 κ
+    rw [g8, hκ]; exact readsAt_drop hz1 κ
   have hic : ReadsAt rd (σv (.n (w + 9))) ((vtIdxcList.drop κ).take d) := by
-    rw [g9, hκ]; exact tbReadsAt_take (tbReadsAt_drop hidxc κ) d
+    rw [g9, hκ]; exact readsAt_take (readsAt_drop hidxc κ) d
   have hrel := block_selector_complete_holds d (by omega) rd
     [σv (.n (w + 7)), σv (.n (w + 8)), σv (.n (w + 9))]
     [Placement.eqAbove ⟨κ, off⟩ point, gen ^ off]

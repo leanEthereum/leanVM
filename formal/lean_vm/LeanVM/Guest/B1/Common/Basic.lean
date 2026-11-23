@@ -179,6 +179,14 @@ theorem readsAt_cons {rd : Reader} {p w : E} {ws : List E} :
   rw [show w :: ws = [w] ++ ws from rfl, readsAt_append, readsAt_singleton]
   simp
 
+theorem readsAt_take {rd : Reader} {p : E} {xs : List E} (h : ReadsAt rd p xs) (n : ℕ) :
+    ReadsAt rd p (xs.take n) := fun k hk ↦ by
+  simp only [List.getElem_take]; exact h k (by simp at hk; omega)
+
+theorem readsAt_drop {rd : Reader} {p : E} {xs : List E} (h : ReadsAt rd p xs) (n : ℕ) :
+    ReadsAt rd (p * gen ^ n) (xs.drop n) := fun k hk ↦ by
+  rw [loadHolds_mul_gen_pow, List.getElem_drop]; exact h _ (by simp at hk; omega)
+
 /-- Two runs of words read at one pointer, of one length, are equal. -/
 theorem readsAt_unique {rd : Reader} {p : E} {l1 l2 : List E} (h1 : ReadsAt rd p l1)
     (h2 : ReadsAt rd p l2) (hl : l1.length = l2.length) : l1 = l2 :=

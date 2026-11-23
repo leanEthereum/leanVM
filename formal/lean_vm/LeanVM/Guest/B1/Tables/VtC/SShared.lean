@@ -206,8 +206,8 @@ theorem vtc_shC (hl : args.length = 21) {t μ τ : ℕ} (ht : t < 6) {point : Li
   show coreProgram.Rel rd _ _ _
   simp only [List.map_cons, List.map_nil]
   rw [g0, g1, g2, hkb, hlen]
-  exact sh_call hμ hμ33 hτμ (tbReadsAt_drop hz τ) (tbReadsAt_drop hz1 τ)
-    (tbReadsAt_take (tbReadsAt_drop hsq τ) _) hrun hpad
+  exact sh_call hμ hμ33 hτμ (readsAt_drop hz τ) (readsAt_drop hz1 τ)
+    (readsAt_take (readsAt_drop hsq τ) _) hrun hpad
 
 end
 end LeanVM.Guest.B1.Tables

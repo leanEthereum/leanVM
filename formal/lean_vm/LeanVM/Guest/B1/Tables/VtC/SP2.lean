@@ -99,7 +99,7 @@ theorem vtS_p2 (hl : args.length = 21) (hlow : LowDefB 14 rd) (point : List E)
     rw [show vtPadV t = 681 + 13 * t + 5 by unfold vtPadV; ring] at w5 w6 w7
     exact pad_ok hlow (vt_goodL hl _ _ (vtPre_drop _ ▸ vtPad_check t ht)) (vtPad_read t ht)
       (hkb t (by omega)) (hrows t (by omega))
-      (tbReadsAt_take hz (τ t)) (by simp; exact hτμ t (by omega)) (hτ31 t (by omega))
+      (readsAt_take hz (τ t)) (by simp; exact hτμ t (by omega)) (hτ31 t (by omega))
       (by omega) w5 w6 (by rw [show 681 + 13 * t + 7 = 681 + 13 * t + 5 + 2 by ring]; exact w7)
   have hpad5 : (∀ st ∈ vtPad5T 746, VSH (coreProgram.Rel rd) rd σv st) ∧
       σv (.n (val% «verify_tables» "pad_weight[5]")) = paddingWeight (point.take (τ 5)) (n 5) := by
@@ -115,7 +115,7 @@ theorem vtS_p2 (hl : args.length = 21) (hlow : LowDefB 14 rd) (point : List E)
     rw [List.nil_append] at hgb
     exact pad5_ok hlow (by norm_num) (vt_goodL hl _ _ (vtPre_drop _ ▸ vtPad5_check)) hgb vtPad5_read
       (hkb 5 (by norm_num)) (hrows 5 (by norm_num))
-      (tbReadsAt_take hz (τ 5)) (by simp; exact hτμ 5 (by norm_num)) (hτ31 5 (by norm_num))
+      (readsAt_take hz (τ 5)) (by simp; exact hτμ 5 (by norm_num)) (hτ31 5 (by norm_num))
       (hτ 5 (by norm_num)) w5 w6 w7
   -- the shared tables
   -- the shared tables

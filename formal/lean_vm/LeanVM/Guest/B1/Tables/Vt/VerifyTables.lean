@@ -111,7 +111,7 @@ theorem verify_tables_holds (bc : List K) (hbc : bc.length = 2 ^ 23) :
       paddingWeight (point.take (vtHt rows t)) (vtRw rows t) := fun t ht ↦ by
     obtain ⟨zs, -, -, -, -, hzl, hzr, hpwz, -⟩ := htf t ht
     have hle : (tf t).1 ≤ point.length := by have := hτn t ht; rw [hHt t ht] at this; omega
-    rw [hpwz, hHt t ht, hRw t ht, readsAt_unique hzr (tbReadsAt_take hz (tf t).1) (by simp; omega)]
+    rw [hpwz, hHt t ht, hRw t ht, readsAt_unique hzr (readsAt_take hz (tf t).1) (by simp; omega)]
   -- the GKR leaves
   have hv3 : values = [σ (.n (val% «verify_tables» "s53.u0.s5#0")), σ (.n (val% «verify_tables» "s53.u1.s5#0")), σ (.n (val% «verify_tables» "s53.u2.s5#0"))] := by
     have l0 := h.atomAt 2183 (.load (.n (val% «verify_tables» "s53.u0.s5#0")) (.n (val% «verify_tables» "gkr_leaves")) 0) (by decide +kernel)

@@ -46,7 +46,7 @@ theorem mainGoalClX (hL : GuestLimits s w) : MainGoalClX fs cert fp seed s w := 
     (fun rd h => by
       have h1 := mf_reads fs fp seed s w h (i := 0) (by omega)
       rw [e] at h1
-      exact (readsAt_append'.mp h1).1)
+      exact (readsAt_append.mp h1).1)
   have ha : (hm fs fp seed s w).a77 = gen ^ mfB fs fp seed s w 0 := rfl
   have hn' : (hm fs fp seed s w).nlx = s.claims.xmss.length := rfl
   have hd : (hm fs fp seed s w).xd = claimListDigest xmssPublicKeyBytes s.claims.xmss := rfl
@@ -71,7 +71,7 @@ theorem mainGoalClS (hL : GuestLimits s w) : MainGoalClS fs cert fp seed s w := 
     (fun rd h => by
       have h1 := mf_reads fs fp seed s w h (i := 1) (by omega)
       rw [e] at h1
-      exact (readsAt_append'.mp h1).1)
+      exact (readsAt_append.mp h1).1)
   have ha : (hm fs fp seed s w).a80 = gen ^ mfB fs fp seed s w 1 := rfl
   have hn' : (hm fs fp seed s w).nls = s.claims.sphincs.length := rfl
   have hd : (hm fs fp seed s w).sd = claimListDigest Sphincs.PublicKey.toBytes s.claims.sphincs := rfl

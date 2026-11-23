@@ -688,7 +688,7 @@ theorem vt_rel_completeF {H : VtHonest} (h : H.Ok) (hs : VtShape H) (B : VtBases
     (by
       refine ⟨H.chiW, (H.point.map (1 + ·)).take H.n, by simp [VtHonest.chiW, zcChis, zcRkW],
         by simp; omega, by rw [p 16 (by norm_num)]; exact mChi,
-        tbReadsAt_take z1 _, fun j hj ↦ ?_⟩
+        readsAt_take z1 _, fun j hj ↦ ?_⟩
       rw [z2651]
       have := tb_load_of oPe (k := j) (by simp; omega)
       simpa [List.getD_eq_getElem?_getD, Nat.lt_succ_of_le hj] using this)

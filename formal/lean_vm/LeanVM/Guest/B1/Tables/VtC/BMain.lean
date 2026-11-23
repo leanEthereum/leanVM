@@ -115,7 +115,7 @@ theorem vtB_indexArm (hl : args.length = 21) {x r : V} {point : List E} {κ : �
   simp only [vtImNames, List.getElem_map, List.getElem_range, List.map_cons, List.map_nil]
   rw [er]
   exact index_mle_complete_holds κ hκ rd _ _
-    ⟨point.take κ, by simp; omega, tbReadsAt_take hz κ, rfl⟩
+    ⟨point.take κ, by simp; omega, readsAt_take hz κ, rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- **`verify_tables`' bus sides complete**. -/

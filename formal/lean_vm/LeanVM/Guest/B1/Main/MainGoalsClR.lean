@@ -85,7 +85,7 @@ theorem mainGoalClXR (hL : GuestLimits s w) {SB SK : String → ℕ} {Bv : ℕ �
   have hr := mf_reads fs fp seed s w hM (i := 0) (by omega)
   rw [e] at hr
   rw [hq]
-  exact cl_pops_honest (fun c _ => mf_claimCells_length _ _ _) hn (readsAt_append'.mp hr).1 hv hT.1
+  exact cl_pops_honest (fun c _ => mf_claimCells_length _ _ _) hn (readsAt_append.mp hr).1 hv hT.1
 
 /-- **`MainGoalsRR.cls`**: `claim_list_digest` on the leanSPHINCS list within its bound, by a tree of honest shape
 popping `q.ps`, the list's honest pushes. -/
@@ -107,7 +107,7 @@ theorem mainGoalClSR (hL : GuestLimits s w) {SB SK : String → ℕ} {Bv : ℕ �
   have hr := mf_reads fs fp seed s w hM (i := 1) (by omega)
   rw [e] at hr
   rw [hq]
-  exact cl_pops_honest (fun c _ => mf_claimCells_length _ _ _) hn (readsAt_append'.mp hr).1 hv hT.1
+  exact cl_pops_honest (fun c _ => mf_claimCells_length _ _ _) hn (readsAt_append.mp hr).1 hv hT.1
 
 /-- `MainSegs.cx` for `q.px` the leanXMSS list's pushes. -/
 theorem mainSegs_cx {q : MainPops}

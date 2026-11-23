@@ -41,7 +41,7 @@ theorem vt_index_arm {rd : Reader} {σ : Val} {v r : ℕ} {point : List E} {κ :
   obtain rfl := gen_pow_inj (by omega) (by omega) hjv
   simp only [vtImNames, List.getElem_map, List.getElem_range, List.map_cons, List.map_nil] at hrel
   obtain ⟨zs, hzl, hzr, hval⟩ := index_mle_holds κ hκ34 _ _ _ hrel
-  rw [hval, readsAt_unique hzr (tbReadsAt_take hz κ) (by simp; omega)]
+  rw [hval, readsAt_unique hzr (readsAt_take hz κ) (by simp; omega)]
 
 /-- **The framework's claims.** -/
 theorem vt_fw {rd : Reader} {σ : Val} (h : VtH rd σ) {point : List E}

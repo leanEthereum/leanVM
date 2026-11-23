@@ -59,7 +59,7 @@ theorem vt_weight_guest {rd : Reader} {σ : Val} {point pts : List E} {n : ℕ}
     omega
   have eas : as = pts.reverse := readsAt_unique has hchiR (by simp; omega)
   have ebs : bs = (point.map (1 + ·)).take n :=
-    readsAt_unique hbs (tbReadsAt_take hz1 n) (by simp; omega)
+    readsAt_unique hbs (readsAt_take hz1 n) (by simp; omega)
   have epe := loadHolds_unique hpeL (hpre hg hh)
   rw [vt_weight heights point pts hpl hnp ht hh, ecp, epe, eas, ebs]
 

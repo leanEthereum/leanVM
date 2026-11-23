@@ -129,8 +129,8 @@ theorem termPre (hbl : bytecode.length = 2 ^ 23) (bs : List ℕ) (sqE e10 e11 e1
   have hhs := S.hs_lt33 hbl
   have hwl := S.w_point_length
   -- `z_vals`
-  have mV' := Main.readsAt_append'.mp mV
-  have mOp : ReadsAt rd (ptr (vb bs 11)) S.kOut.point := (Main.readsAt_append'.mp mV'.1).1
+  have mV' := readsAt_append.mp mV
+  have mOp : ReadsAt rd (ptr (vb bs 11)) S.kOut.point := (readsAt_append.mp mV'.1).1
   have mKp : ReadsAt rd (ptr (vb bs 11) * gen ^ qkeccakVarsCap) S.kc.2.1 := by
     have := mV'.2
     rwa [List.length_append, List.length_replicate,

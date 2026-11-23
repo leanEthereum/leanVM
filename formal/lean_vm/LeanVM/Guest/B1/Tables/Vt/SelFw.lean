@@ -125,13 +125,13 @@ theorem vt_fwblock {σ : Val} (h : VtH Lm.read σ) {w b kv pos : ℕ} {prev : Op
   rw [m14, hκ] at hrz1
   rw [m15, hκ] at hrc
   have ez1 : zs1 = (point.map (1 + ·)).drop κ :=
-    readsAt_unique hrz1 (tbReadsAt_drop hz1 κ) (by simp; omega)
+    readsAt_unique hrz1 (readsAt_drop hz1 κ) (by simp; omega)
   have hidl : ReadsAt Lm.read (σ (.n (val% «verify_tables» "idxc_tab"))) vtIdxcList := fun t ht => by
     simp only [vtIdxcList, List.length_map, List.length_range] at ht
     simp only [vtIdxcList, List.getElem_map, List.getElem_range]
     exact hidxc t ht
   have ec : cs = (vtIdxcList.drop κ).take d :=
-    readsAt_unique hrc (tbReadsAt_take (tbReadsAt_drop hidl κ) d)
+    readsAt_unique hrc (readsAt_take (readsAt_drop hidl κ) d)
       (by simp [vtIdxcList]; omega)
   rw [ec, vt_idxcProd hbl (by omega)] at hg
   have hoff' : gen ^ (2 ^ κ * vtBitsV bs d) = gen ^ off := by

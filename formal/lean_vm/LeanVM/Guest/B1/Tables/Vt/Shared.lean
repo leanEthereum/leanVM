@@ -76,17 +76,6 @@ theorem vt_zeta1 {rd : Reader} {σ : Val} (h : VtH rd σ) {point : List E}
   obtain rfl := readsAt_unique hxs hz hxl
   exact hout
 
-theorem tbReadsAt_drop {rd : Reader} {p : E} {l : List E} (h : ReadsAt rd p l) (a : ℕ) :
-    ReadsAt rd (p * gen ^ a) (l.drop a) := by
-  rw [readsAt_gen_pow_mul]
-  intro k hk
-  rw [List.getElem_drop]
-  exact h _ _
-
-theorem tbReadsAt_take {rd : Reader} {p : E} {l : List E} (h : ReadsAt rd p l) (a : ℕ) :
-    ReadsAt rd p (l.take a) := fun k hk => by
-  rw [List.getElem_take]; exact h _ _
-
 theorem vt_shared_raw {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) {σ : Val} (h : VtH Lm.read σ)
     {t : ℕ} (ht : t < 6) :
     σ (.n (val% «verify_tables» "g_bus_mu")) = σ (.n (vtShLen t)) * σ (.n (28 + t)) ∧ (∃ d < 34, σ (.n (vtShLen t)) = gen ^ d) ∧
@@ -127,7 +116,7 @@ theorem vt_shared {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) {σ : Val} 
   rw [ev] at hrun
   have hsql : gSquaresList.length = 34 := by simp [gSquaresList]
   exact hrun _ _ _ (by simp; omega) (by simp; omega) (by simp [hsql]; omega)
-    (tbReadsAt_drop hz τ) (tbReadsAt_drop hz1 τ) (tbReadsAt_take (tbReadsAt_drop hsq τ) d)
+    (readsAt_drop hz τ) (readsAt_drop hz1 τ) (readsAt_take (readsAt_drop hsq τ) d)
 
 end
 end LeanVM.Guest.B1.Tables
