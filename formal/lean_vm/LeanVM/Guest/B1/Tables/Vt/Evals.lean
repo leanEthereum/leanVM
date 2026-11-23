@@ -46,7 +46,7 @@ theorem vt_eval {rd : Reader} {σ : Val} (h : VtH rd σ) {k : ℕ} (hk : k < 153
       σ (.n (vtEvB k + 3)) = σ (.n (vtEvB k)) := by
   obtain ⟨_, hs⟩ := h.sliceAt _ _ (vtEval_check k hk)
   unfold vtEvalT at hs
-  rw [tb_holdsList_append_noRet (by simp [fsNextT, fsPackT]; rfl), holds_fsNextT] at hs
+  rw [holdsList_append_noRet (by simp [fsNextT, fsPackT]; rfl), holds_fsNextT] at hs
   obtain ⟨⟨⟨hl, hp⟩, -⟩, hr⟩ := hs
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at hr
   exact ⟨hl, hp, hr⟩

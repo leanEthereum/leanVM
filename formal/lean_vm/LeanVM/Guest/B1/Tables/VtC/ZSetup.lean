@@ -78,7 +78,7 @@ theorem z_keccak {S : List Atom} {w : ℕ → E} {ins outs : List V} {i o : Bool
   holds_of_good hg trivial
 
 theorem z_w32 : word 4294967296 0 = gen ^ 32 := by
-  rw [show (4294967296 : ℕ) = 2 ^ 32 by norm_num, tb_word_two_pow (by norm_num)]
+  rw [show (4294967296 : ℕ) = 2 ^ 32 by norm_num, word_two_pow (by norm_num)]
 
 end Helpers
 
@@ -153,16 +153,16 @@ theorem vtZ_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.le
     (hSc : S.cap = [vtσ rd w args (.n (val% «verify_tables» "sp[0]@2")), vtσ rd w args (.n (val% «verify_tables» "sp[1]@2")), vtσ rd w args (.n (val% «verify_tables» "sp[2]@2")),
       vtσ rd w args (.n (val% «verify_tables» "sp[3]@2")), vtσ rd w args (.n (val% «verify_tables» "sp[4]@2"))])
     {xs : List E} (hxl : xs.length = 3 * n)
-    (hxs : TbReadsAt rd (vtσ rd w args (.n (val% «verify_tables» "cursor@4")) * gen) xs)
-    (hR : TbReadsAt rd (w 2316) (zcRoundsW S.squeeze.2.cap (zTarget (vtσ rd w args) S.squeeze.1)
+    (hxs : ReadsAt rd (vtσ rd w args (.n (val% «verify_tables» "cursor@4")) * gen) xs)
+    (hR : ReadsAt rd (w 2316) (zcRoundsW S.squeeze.2.cap (zTarget (vtσ rd w args) S.squeeze.1)
       (vtσ rd w args (.n (val% «verify_tables» "cursor@4")) * gen) xs n))
-    (hC : TbReadsAt rd (w 2317)
+    (hC : ReadsAt rd (w 2317)
       (zcCprodW S.squeeze.2.cap (zTarget (vtσ rd w args) S.squeeze.1) xs n))
-    (hrk : TbReadsAt rd (w 2321) (zcRkW S.squeeze.2.cap (zTarget (vtσ rd w args) S.squeeze.1) xs n))
-    (hchi : TbReadsAt rd (vtσ rd w args (.n (val% «verify_tables» "chi")))
+    (hrk : ReadsAt rd (w 2321) (zcRkW S.squeeze.2.cap (zTarget (vtσ rd w args) S.squeeze.1) xs n))
+    (hchi : ReadsAt rd (vtσ rd w args (.n (val% «verify_tables» "chi")))
       (zcChis S.squeeze.2.cap (zTarget (vtσ rd w args) S.squeeze.1) xs n))
-    {zs1 : List E} (hz1 : TbReadsAt rd (vtσ rd w args (.n (val% «verify_tables» "zeta1"))) zs1) (hz1l : n ≤ zs1.length)
-    (hP : TbReadsAt rd (w 2337) ((List.range (n + 1)).map (prefixProd 1
+    {zs1 : List E} (hz1 : ReadsAt rd (vtσ rd w args (.n (val% «verify_tables» "zeta1"))) zs1) (hz1l : n ≤ zs1.length)
+    (hP : ReadsAt rd (w 2337) ((List.range (n + 1)).map (prefixProd 1
       (zcChis S.squeeze.2.cap (zTarget (vtσ rd w args) S.squeeze.1) xs n) (zs1.take n)))) :
     (∀ s ∈ (vtPre.drop (pos% «verify_tables» "g_zc_n")).take (span% «verify_tables» "g_zc_n" "x@9"), VSH (coreProgram.Rel rd) rd (vtσ rd w args) s) ∧
       ZOut (vtσ rd w args) w S xs n := by
@@ -172,7 +172,7 @@ theorem vtZ_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.le
     (vt_goodL (rd := rd) (w := w) hl 2326 [.atom (.keccak [.n (val% «verify_tables» "rate[0]@3"), .n (val% «verify_tables» "rate[1]@3"), .n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[2]"), .n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[3]"), .n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[4]"), .n (val% «verify_tables» "sp[0]@2"),
       .n (val% «verify_tables» "sp[1]@2"), .n (val% «verify_tables» "sp[2]@2"), .n (val% «verify_tables» "sp[3]@2"), .n (val% «verify_tables» "sp[4]@2")]
       (lyOuts (val% «verify_tables» "nxt[0]@3")) false false)] (by decide +kernel)).1
-  have e := tbStmtsEqb_sound zBlk_at
+  have e := stmtsEqb_sound zBlk_at
   have hlen : zBlk.length = 83 := rfl
   suffices H : (∀ s ∈ zRest, VSH (coreProgram.Rel rd) rd (vtσ rd w args) s) ∧
       ZOut (vtσ rd w args) w S xs n by
@@ -233,12 +233,12 @@ theorem vtZ_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.le
     interval_cases t <;> simp [hte, CharTwo.add_self_eq_zero]
   have a2602 : (Atom.assertEq (.n (val% «verify_tables» "zc_is_a_tau@6")) (.n (val% «verify_tables» "s58#0"))).Holds rd σ := by
     show σ (.n (val% «verify_tables» "zc_is_a_tau@6")) + σ (.n (val% «verify_tables» "s58#0")) = 0
-    rw [hz, g2620, tb_word_zero, add_zero]
+    rw [hz, g2620, word_zero, add_zero]
   -- the squeeze
-  have hz0 : σ (.n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]")) = 0 := g2626.trans tb_word_zero
-  have hz1' : σ (.n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[2]")) = 0 := g2627.trans tb_word_zero
-  have hz2 : σ (.n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[3]")) = 0 := g2628.trans tb_word_zero
-  have hz3 : σ (.n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[4]")) = 0 := g2629.trans tb_word_zero
+  have hz0 : σ (.n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]")) = 0 := g2626.trans word_zero
+  have hz1' : σ (.n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[2]")) = 0 := g2627.trans word_zero
+  have hz2 : σ (.n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[3]")) = 0 := g2628.trans word_zero
+  have hz3 : σ (.n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[4]")) = 0 := g2629.trans word_zero
   have hin : ([.n (val% «verify_tables» "rate[0]@3"), .n (val% «verify_tables» "rate[1]@3"), .n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[2]"), .n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[3]"), .n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[4]"), .n (val% «verify_tables» "sp[0]@2"),
       .n (val% «verify_tables» "sp[1]@2"), .n (val% «verify_tables» "sp[2]@2"), .n (val% «verify_tables» "sp[3]@2"), .n (val% «verify_tables» "sp[4]@2")] : List V).map σ = rateOf S.pend ++ S.cap := by
     rw [hSr, hSc]; simp [hz0, hz1', hz2, hz3]
@@ -253,7 +253,7 @@ theorem vtZ_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.le
       hPk 12 (by norm_num)]
     rfl
   have vT : σ (.n (val% «verify_tables» "bus_target@3")) = zTarget σ S.squeeze.1 := by
-    rw [g2640, g2638, g2636, g2637, g2639, g2635, g2634, g2633, g2632, g2631, tb_word_one, vξ,
+    rw [g2640, g2638, g2636, g2637, g2639, g2635, g2634, g2633, g2632, g2631, word_one, vξ,
       zTarget]
     ring
   -- the buffers
@@ -267,14 +267,14 @@ theorem vtZ_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.le
   rw [Nat.mul_zero, pow_zero, mul_one, zcRecW, ← v2589] at r0
   simp only [zcRec, Nat.mul_zero, pow_zero, mul_one, ← hcap0, ← vT] at r0
   have v2594 : σ (.n (val% «verify_tables» "s69#1")) = σ (.n (val% «verify_tables» "cursor@4")) * gen := by
-    rw [g2649, g2648, tb_word_gen]
+    rw [g2649, g2648, word_gen]
   have s2650 : (Atom.load (.n (val% «verify_tables» "s71#0")) (.n (val% «verify_tables» "zc_cprod")) 0).Holds rd σ := by
     show LoadHolds rd _ _ _
-    rw [g2652, tb_word_one, v2592]
+    rw [g2652, word_one, v2592]
     simpa [zcCprodW] using hC 0 (by simp [zcCprodW])
   -- the rounds
   have v2635 : σ (.n (val% «verify_tables» "zc_rk")) = w 2321 := g2654
-  have v2597 : σ (.n (val% «verify_tables» "s73#1")) = 1 + gen ^ n := by rw [g2656, g2655, tb_word_one, vn]
+  have v2597 : σ (.n (val% «verify_tables» "s73#1")) = 1 + gen ^ n := by rw [g2656, g2655, word_one, vn]
   have c2654 : VSH (coreProgram.Rel rd) rd σ
       (.callIf (.n (val% «verify_tables» "s73#1")) name% «verify_tables_loop0» [.n (val% «verify_tables» "s73#2"), .n (val% «verify_tables» "g_zc_n"), .n (val% «verify_tables» "zc_rounds"), .n (val% «verify_tables» "tabs"), .n (val% «verify_tables» "zc_rk"),
           .n (val% «verify_tables» "zc_cprod")]) := by
@@ -285,7 +285,7 @@ theorem vtZ_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.le
       · exact absurd (by rw [v2597, pow_zero]; exact CharTwo.add_self_eq_zero 1) hne
       · exact h
     simp only [List.map_cons, List.map_nil]
-    rw [g2657, tb_word_one, vn, v2589, v2592, v2635]
+    rw [g2657, word_one, vn, v2589, v2592, v2635]
     exact l10_complete hn0 (zc_l10B h5 hR hC hrk hxs hxl)
   -- the last record
   have v2603 : σ (.n (val% «verify_tables» "zc_last")) = w 2316 * gen ^ (7 * n) := by

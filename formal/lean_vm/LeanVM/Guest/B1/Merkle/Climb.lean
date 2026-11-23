@@ -200,13 +200,13 @@ theorem cap_climb {D : ℕ} (hD : 2 ≤ D) {rd : Reader} {cap flags r0 r1 : E} {
         rw [hs, hb0, Nat.add_zero, show 2 * (2 * capAnc D p (j + 1)) = 4 * capAnc D p (j + 1) by
           ring] at hcs
         have hy : dl = climbD x p cs := capDigestScalars_injective (hl'.symm.trans hcs)
-        rw [climbD_snoc, hl, ite_pos' hb0, ← hy]
+        rw [climbD_snoc, hl, if_pos hb0, ← hy]
         exact hpar
       · refine ⟨cs ++ [dl], by simp [hl], ?_⟩
         rw [hs, hb1, show 2 * (2 * capAnc D p (j + 1) + 1) = 4 * capAnc D p (j + 1) + 2 by
           ring] at hcs
         have hy : dr = climbD x p cs := capDigestScalars_injective (hr'.symm.trans hcs)
-        rw [climbD_snoc, hl, ite_neg' (by omega), ← hy]
+        rw [climbD_snoc, hl, if_neg (by omega), ← hy]
         exact hpar
   obtain ⟨cs, hl, hcs⟩ := climb D le_rfl
   rw [capAnc_last hp] at hcs

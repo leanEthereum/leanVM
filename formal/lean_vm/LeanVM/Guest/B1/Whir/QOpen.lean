@@ -179,7 +179,7 @@ theorem query_openOne_w {D depth width : ℕ} (hD : 2 ≤ D) (hDd : D ≤ depth)
   rw [hf2] at hfl
   have hc := cap_climb_w hD hcap hroot hp h0 h1 hfl
   unfold Compile.openOneWithHash toOpening
-  rw [ite_pos' ⟨hw, by simp [hsl, capSibsOf_length]; omega⟩]
+  rw [if_pos ⟨hw, by simp [hsl, capSibsOf_length]; omega⟩]
   show decide ((climbD (merkleLeafDigest row) q (sibs ++ capSibsOf rd cap D (q / 2 ^ (depth - D)))).toList =
     root.toList) = true
   rw [climbD_append, hsl, hc]

@@ -47,7 +47,7 @@ theorem word17 : word 17 0 = gen ^ 2 ^ 2 + 1 := by
 theorem mulG {d x y : ℕ} (hx : x < d) (hy : y < d)
     (h : Good rd S w σ (.mul (.n d) (.n x) (.n y))) : σ (.n d) = σ (.n x) * σ (.n y) := by
   simp only [Good] at h
-  rwa [ite_pos' ⟨hx, hy⟩] at h
+  rwa [if_pos ⟨hx, hy⟩] at h
 
 theorem div8_bits {y : ℕ} (hy : y < 32) :
     bitsVal (fun j ↦ y.testBit (j + 3)) 2 = y / 8 := by

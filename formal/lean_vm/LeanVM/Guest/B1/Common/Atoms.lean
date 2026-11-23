@@ -67,5 +67,14 @@ theorem holdsList_atoms : ∀ {ss : List Stmt}, AllAtoms ss → ∀ (next : Prop
     · rintro ⟨hall, hn⟩
       exact ⟨hall a (Or.inl rfl), fun b hb => hall b (Or.inr hb), hn⟩
 
+/-- A block of atoms indexed by `e < n`. -/
+theorem holdsList_mapAtoms {kret : List E → Prop} (n : ℕ) (f : ℕ → Atom) :
+    Stmt.HoldsList C rd σ ((List.range n).map fun e ↦ Stmt.atom (f e)) True kret ↔
+      ∀ e < n, (f e).Holds rd σ := by
+  rw [holdsList_atoms (fun s hs => by obtain ⟨e, -, rfl⟩ := List.mem_map.mp hs; exact ⟨_, rfl⟩),
+    and_true]
+  simp only [List.mem_map, List.mem_range, Stmt.atom.injEq]
+  exact ⟨fun h e he => h _ ⟨e, he, rfl⟩, fun h a ⟨e, he, hae⟩ => hae ▸ h e he⟩
+
 end
 end LeanVM.Guest.B1

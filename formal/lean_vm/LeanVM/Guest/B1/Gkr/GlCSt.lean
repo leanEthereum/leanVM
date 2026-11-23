@@ -86,10 +86,10 @@ theorem glc_tb {rd : Reader} {rec cur pt : E} {Cf : ℕ → List E} {ef : ℕ �
     simpa using hch k hk
   · rw [hrun2, tbCapAt_mul_gen_pow] at *
     simpa using hc1
-  · rw [tb_loadHolds_mul_gen_pow] at hu1
+  · rw [loadHolds_mul_gen_pow] at hu1
     rw [show cur * gen ^ (4 * a) * gen ^ (4 * n) = cur * gen ^ (4 * (a + n)) by ring]
     exact hu1
-  · rw [hrun2]; rw [tb_loadHolds_mul_gen_pow] at hl1; exact hl1
+  · rw [hrun2]; rw [loadHolds_mul_gen_pow] at hl1; exact hl1
 
 end
 end LeanVM.Guest.B1.Tables

@@ -96,8 +96,8 @@ def termD (B : TermBases) (layout : Layout) (bus : BusResult) (out : ColumnClaim
 theorem termKids_getD_sel (Lin : Main.Layout) (D : TermData) (b0 : ℕ) {c : ℕ}
     (hc : c < Tables.nCommittedCols) : (termKids Lin D b0).getD (4 + c) noKid = selKid D c := by
   have hc' : c < 94 := hc
-  rw [termKids, getD_seg _ _ _ _ rfl (by simp [Tables.nCommittedCols]), ite_neg' (by omega),
-    ite_pos' (by omega), show 4 + c - 4 = c by omega,
+  rw [termKids, getD_seg _ _ _ _ rfl (by simp [Tables.nCommittedCols]), if_neg (by omega),
+    if_pos (by omega), show 4 + c - 4 = c by omega,
     List.getD_eq_getElem _ _ (by simpa using hc), List.getElem_map, List.getElem_range]
 
 theorem termKids_getD_out (Lin : Main.Layout) (D : TermData) (b0 : ℕ) :
@@ -106,8 +106,8 @@ theorem termKids_getD_out (Lin : Main.Layout) (D : TermData) (b0 : ℕ) :
         ofK (addressOfIndex D.B.pt1), D.gtau * word 64 0],
       (b0 + 105, eqChain (word 1 0) D.outPt ((p1Of D.x).take D.outPt.length)) :: Lin,
       Returns []⟩ := by
-  rw [termKids, getD_seg _ _ _ _ rfl (by simp [Tables.nCommittedCols]), ite_neg' (by omega),
-    ite_neg' (by omega)]
+  rw [termKids, getD_seg _ _ _ _ rfl (by simp [Tables.nCommittedCols]), if_neg (by omega),
+    if_neg (by omega)]
   rfl
 
 theorem termKids_getD_rsw (Lin : Main.Layout) (D : TermData) (b0 : ℕ) :
@@ -116,8 +116,8 @@ theorem termKids_getD_rsw (Lin : Main.Layout) (D : TermData) (b0 : ℕ) :
         ofK (addressOfIndex D.B.ct), D.gtau * word 64 0],
       [(D.B.zv + 39, D.ringPoint), (D.B.pt1, (p1Of D.x).take (D.τ + 6)), (D.B.ct, D.coeffs)],
       Returns [ringWeight D.ringPoint (((p1Of D.x).take (D.τ + 6)).map (1 + ·)) D.coeffs]⟩ := by
-  rw [termKids, getD_seg _ _ _ _ rfl (by simp [Tables.nCommittedCols]), ite_neg' (by omega),
-    ite_neg' (by omega)]
+  rw [termKids, getD_seg _ _ _ _ rfl (by simp [Tables.nCommittedCols]), if_neg (by omega),
+    if_neg (by omega)]
   rfl
 
 theorem termKids_getD_ood (Lin : Main.Layout) (D : TermData) (b0 : ℕ) :
@@ -125,8 +125,8 @@ theorem termKids_getD_ood (Lin : Main.Layout) (D : TermData) (b0 : ℕ) :
       [ofK (addressOfIndex (b0 + 146)), D.sO, ofK (addressOfIndex D.B.oz),
         ofK (addressOfIndex D.B.pt1), D.gm],
       (b0 + 146, eqChain D.sO D.ood ((p1Of D.x).take D.ood.length)) :: Lin, Returns []⟩ := by
-  rw [termKids, getD_seg _ _ _ _ rfl (by simp [Tables.nCommittedCols]), ite_neg' (by omega),
-    ite_neg' (by omega)]
+  rw [termKids, getD_seg _ _ _ _ rfl (by simp [Tables.nCommittedCols]), if_neg (by omega),
+    if_neg (by omega)]
   rfl
 
 /-! ## The honest valuation -/
@@ -386,7 +386,7 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
       unfold kidAt
       rw [List.nil_append, termKids_getD_sel Lin D b0 hc]
       refine @decide_eq_true _ (Classical.propDecidable _) ?_
-      rw [stRes_take, ite_pos' (by omega)]
+      rw [stRes_take, if_pos (by omega)]
       exact hst3
     have := outsOk_at ho (4 + c) (by rw [termKids_length]; omega) (by omega) ht
     unfold kidAt at this
@@ -496,7 +496,7 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
       (readsAt_getD hpt1 (k := τ + k) (by simp [padPoint_length hxl40]; omega)))]
     exact x1_getD hxl40 (by simp only [termPointCap]; omega)
   have h34 : σ (.n (val% «check_opening_terminal» "pi_eq")) = eqEval (rm :: List.replicate (m - 1) 0) (x.take m) := by
-    rw [e34, piW_getD le_rfl, ite_neg' (by omega)]
+    rw [e34, piW_getD le_rfl, if_neg (by omega)]
     show (rm + ((padPoint x).map (1 + ·)).getD 0 0) *
       ∏ i ∈ Ico 1 m, ((padPoint x).map (1 + ·)).getD i 0 = _
     rw [x1_getD hxl40 (by decide), ← piChain_eq hlm1 hmx]
@@ -617,12 +617,12 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
           List.getElem_map, List.getElem_range]
       · show true = @decide _ (Classical.propDecidable _)
         refine (@decide_eq_true _ (Classical.propDecidable _) ?_).symm
-        rw [stRes_take, ite_pos' (by omega)]
+        rw [stRes_take, if_pos (by omega)]
         exact hst3
       · show [σ (.n (selStart c)), σ (.n (val% «check_opening_terminal» "sel_eq")), σ (.n ((selKap c).2.2 + 1))] =
           [gen ^ (stackOffsets KC).1.getD c 0, (stRes (outs.take (4 + c))).1.getD 0 0,
             ofK (addressOfIndex (B.gsq + 34))]
-        rw [stRes_take, ite_pos' (by omega), e36, e43, e38, e0, ofK_gpow_mul_gen]
+        rw [stRes_take, if_pos (by omega), e36, e43, e38, e0, ofK_gpow_mul_gen]
       · show [σ (.n (selV c))] = _
         rw [esel, (hOK ht).1, List.getD_cons_zero]
     · have : j = 98 ∨ j = 99 ∨ j = 100 := by omega

@@ -10,7 +10,7 @@ module
 
 public import LeanVM.Guest.B1.Gkr.Spec
 public import LeanVM.Guest.B1.Fs.Templates
-import LeanVM.Guest.B1.Tables.Basic
+import LeanVM.Guest.B1.Tables.Base
 
 /-!
 # One GKR round (`gkr_round`)
@@ -59,7 +59,7 @@ abbrev gkRoundT (B q : ℕ) (cur pt claimV : V) (cap : List V) : List Stmt :=
 
 theorem gkRoundN_noRet (B q : ℕ) (cur pt npt : V) (noff : ℕ) (claimV : V) (cap : List V) :
     Stmt.noRetList (gkRoundN B q cur pt npt noff claimV cap) = true := by
-  simp only [gkRoundN, tb_noRetList_append]; rfl
+  simp only [gkRoundN, noRetList_append]; rfl
 
 /-- The scalars of four words read, each with the tag `dsObserve`. -/
 theorem absorbAll_four (cap : List E) (xs : List E) (hx : xs.length = 4) :
@@ -84,9 +84,9 @@ theorem holds_gkRoundN {B q : ℕ} {cur pt npt : V} {noff : ℕ} {claimV : V} {c
       ∃ e, LoadHolds rd (σ pt) q e ∧
         σ (.n (B + 38)) = polyEval ((σ claimV + e * sumE xs) :: xs) (σ (.n (B + 12))) := by
   unfold gkRoundN at h
-  rw [tb_holdsList_append_noRet (by rfl), tb_holdsList_append_noRet (by rfl),
-    tb_holdsList_append_noRet (by rfl), tb_holdsList_append_noRet (by rfl),
-    tb_holdsList_append_noRet (by rfl)] at h
+  rw [holdsList_append_noRet (by rfl), holdsList_append_noRet (by rfl),
+    holdsList_append_noRet (by rfl), holdsList_append_noRet (by rfl),
+    holdsList_append_noRet (by rfl)] at h
   obtain ⟨⟨⟨⟨⟨f0, f1⟩, f2⟩, f3⟩, hk⟩, ht⟩ := h
   rw [holds_fsNextT] at f0 f1 f2 f3
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true, keccakA] at hk ht

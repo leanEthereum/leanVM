@@ -156,7 +156,7 @@ theorem vs_gen_pow_ne_one {n : ℕ} (h0 : 0 < n) (h : n < 2 ^ 64 - 1) : gen ^ n 
 theorem bytecodeAt_claimed (bytecode : List K) (pt : List E) (v : E) :
     Tables.BytecodeAt (claimedBytecodeValue ⟨pt, v⟩) bytecode pt v := by
   intro s
-  simp [claimedBytecodeValue, Tables.tbRun, VerifierProgram.require, Compile.runWithHash]
+  simp [claimedBytecodeValue, runId, VerifierProgram.require, Compile.runWithHash]
   rfl
 
 end

@@ -77,7 +77,7 @@ theorem markC_val {j : ℕ} (hj : j ≠ 0) (h : markC F P o0 j = true)
     (hF : ∀ a ∈ F, a.Holds rd σ) :
     σ (ccMark o0 P.marks j) = σ (ccMark o0 P.marks (j - 1)) * gen := by
   unfold markC at h
-  rw [ite_neg' hj] at h
+  rw [if_neg hj] at h
   split at h
   · rename_i m c hmc
     simp only [Bool.and_eq_true, decide_eq_true_eq] at h
@@ -133,7 +133,7 @@ theorem sideW_holds {stp j : ℕ} {os : ℕ → ℕ} {cells : List E} {L : ℕ}
     obtain ⟨he32, e', he', hlim⟩ := (hrec j hj).1
     have hLe : L = os j + e' + 1 := gen_pow_inj' (by omega) (by omega) hlim
     simp only [Good] at hg
-    rw [ite_pos' hky] at hg
+    rw [if_pos hky] at hg
     obtain ⟨h1, h2, h3⟩ := hg
     have hgen : gen ^ os j ≠ 0 := pow_ne_zero _ gen_ne_zero
     have hkv : σ P.last = gen ^ os j * gen ^ e' := by

@@ -61,8 +61,8 @@ theorem expTableWords_sq {j : ℕ} (hj : j < 34) :
 /-- The whole table's first `34` words are the squares `g^(2^j)`. -/
 theorem expTabAllWords_sq {j : ℕ} (hj : j < 34) :
     expTabAllWords[j]'(by rw [length_expTabAllWords]; omega) = gen ^ 2 ^ j := by
-  rw [← List.getD_eq_getElem _ 0, expTabAllWords_getD, ite_pos' (by omega), expTabWord,
-    ite_pos' (by omega), List.getD_eq_getElem _ _ (by rw [length_expTableWords]; omega),
+  rw [← List.getD_eq_getElem _ 0, expTabAllWords_getD, if_pos (by omega), expTabWord,
+    if_pos (by omega), List.getD_eq_getElem _ _ (by rw [length_expTableWords]; omega),
     expTableWords_sq hj]
 
 /-- The table's first word at `fp`. -/
@@ -73,7 +73,7 @@ theorem expTables_of_reads {rd : Reader} {b : ℕ} (h : ReadsAt rd (gen ^ b) exp
   (expTabAll_iff rd _).2 fun o ho => by
     have := h o (by rw [length_expTabAllWords]; exact ho)
     have e : expTabAllWords[o]'(by rw [length_expTabAllWords]; exact ho) = expTabWord o := by
-      rw [← List.getD_eq_getElem _ 0, expTabAllWords_getD, ite_pos' ho]
+      rw [← List.getD_eq_getElem _ 0, expTabAllWords_getD, if_pos ho]
     rwa [e] at this
 
 set_option maxRecDepth 20000 in

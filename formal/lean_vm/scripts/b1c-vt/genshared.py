@@ -155,9 +155,9 @@ def defs(T):
         f'    .atom (.mul (.n (z + 2)) (.n 12) (.n (28 + t))),\n'
         f'    .call "shared_selector_tables" [.n (vtEqV t), .n (vtGV t), .n z, .n (z + 1), .n (z + 2),\n'
         f'      .n (vtShLen t)] []]',
-        'theorem vtShAT_check : ∀ t < 6, tbStmtsEqb (vtShAT t) ((vtAt (vtShA t)).take 15) = true := by\n'
+        'theorem vtShAT_check : ∀ t < 6, stmtsEqb (vtShAT t) ((vtAt (vtShA t)).take 15) = true := by\n'
         '  decide +kernel',
-        'theorem vtShCT_check : ∀ t < 6, tbStmtsEqb (vtShCT t) ((vtAt (vtShC t)).take 4) = true := by\n'
+        'theorem vtShCT_check : ∀ t < 6, stmtsEqb (vtShCT t) ((vtAt (vtShC t)).take 4) = true := by\n'
         '  decide +kernel',
     ]
     # the uniform templates hold of the body

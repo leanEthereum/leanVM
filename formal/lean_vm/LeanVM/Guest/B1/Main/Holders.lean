@@ -59,8 +59,8 @@ theorem slot_claimAt {p : E} {k : ℕ} {a b c d : E} (h : Sig.ClaimAt rd (p * ge
 theorem region_raw (S : Segs) (m : ℕ) :
     (m < S.RX → S.region m = 0) ∧ (S.RX ≤ m → m < S.RX + S.RS → S.region m = 1) := by
   refine ⟨fun h => ?_, fun h1 h2 => ?_⟩ <;> unfold Segs.region
-  · rw [ite_pos' h]
-  · rw [ite_neg' (by omega), ite_pos' h2]
+  · rw [if_pos h]
+  · rw [if_neg (by omega), if_pos h2]
 
 section Held
 

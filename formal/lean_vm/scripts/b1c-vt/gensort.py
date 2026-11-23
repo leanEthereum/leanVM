@@ -40,7 +40,7 @@ def group_lemma(gi, key, size):
         (_, c), (_, mkv), (_, ma), (_, lrk), (_, cw), (_, mk), (_, lk) = key
         kx = 'σ (.n 26) * gen ^ 19'; kv = mkv[1][0]
         rkv = lrk[1][0]; keyv = mk[1][0]
-        L.append(f'  have hkv : σ (.n {kv}) = {kx} := by rw [k1, k0, show ({c[1][1][0]} : ℕ) = 2 ^ 19 by norm_num, tb_word_two_pow (by norm_num)]')
+        L.append(f'  have hkv : σ (.n {kv}) = {kx} := by rw [k1, k0, show ({c[1][1][0]} : ℕ) = 2 ^ 19 by norm_num, word_two_pow (by norm_num)]')
         rkfact = f'by rw [← hkv, ← k2]; exact k3'
         keyeq = f'by rw [k5, k4, mul_assoc, vt_wInv (by decide +kernel), mul_one]'
         keyst = 'k6'
@@ -123,7 +123,7 @@ abbrev vtW8397 : E := word 267460055567564800 0
 /-- A word inverting `g^b`. -/
 theorem vt_wInv {W b : ℕ} (hW : K.ofBits W * Parameters.addressOfIndex b = 1) :
     word W 0 * gen ^ b = 1 := by
-  rw [tb_word_eOfNat, eOfNat, gen_pow_eq_ofK, ← ofK_mul, hW, ofK_one]
+  rw [word_eOfNat, eOfNat, gen_pow_eq_ofK, ← ofK_mul, hW, ofK_one]
 
 /-- Block group `gi` (first block `b0`, `len` blocks, log-size `κ` with `g^κ = kx`): its key
 `rank_keys[κ]·g^(-b0)` and its size `g_squares[κ]^len`, stored at `g^gi`. -/
@@ -186,20 +186,20 @@ def vtBoffT (kv off gi bv len : ℕ) : List Stmt :=
   (List.range (len - 1)).map fun i ↦ .atom (.mul (.n (bv + 1 + i)) (.n (bv + i)) (.n (bv - 1)))
 
 theorem vtPush0_check :
-    tbStmtsEqb (vtRank0T 112 0 0) ((vtAt 110).take (vtRank0T 112 0 0).length) = true := by
+    stmtsEqb (vtRank0T 112 0 0) ((vtAt 110).take (vtRank0T 112 0 0).length) = true := by
   decide +kernel
 
 theorem vtCount0_check :
-    tbStmtsEqb (vtRank0T 409 18 2) ((vtAt 403).take (vtRank0T 409 18 2).length) = true := by
+    stmtsEqb (vtRank0T 409 18 2) ((vtAt 403).take (vtRank0T 409 18 2).length) = true := by
   decide +kernel
 
 theorem vtPush_check : ∀ r < 9, 1 ≤ r →
-    tbStmtsEqb (vtRankAt 112 0 0 r) ((vtAt (vtRp 110 r)).take (vtRankAt 112 0 0 r).length) =
+    stmtsEqb (vtRankAt 112 0 0 r) ((vtAt (vtRp 110 r)).take (vtRankAt 112 0 0 r).length) =
       true := by
   decide +kernel
 
 theorem vtCount_check : ∀ r < 6, 1 ≤ r →
-    tbStmtsEqb (vtRankAt 409 18 2 r) ((vtAt (vtRp 403 r)).take (vtRankAt 409 18 2 r).length) =
+    stmtsEqb (vtRankAt 409 18 2 r) ((vtAt (vtRp 403 r)).take (vtRankAt 409 18 2 r).length) =
       true := by
   decide +kernel
 '''
@@ -229,7 +229,7 @@ def main():
                'def vtBoffData : List (ℕ × ℕ × ℕ × ℕ) :=\n  [' +
                ', '.join(f'({p}, {kv}, {off}, {bv})' for (p, gi, kv, off, bv, ln) in bs) + ']')
     out.append('theorem vtBoff_check : ∀ k < 15,\n'
-               '    tbStmtsEqb (vtBoffT (vtBoffData.getD k default).2.1 (vtBoffData.getD k default).2.2.1 (vtGi k)\n'
+               '    stmtsEqb (vtBoffT (vtBoffData.getD k default).2.1 (vtBoffData.getD k default).2.2.1 (vtGi k)\n'
                '      (vtBoffData.getD k default).2.2.2 (vtLen k))\n'
                '      ((vtAt (vtBoffData.getD k default).1).take (vtBoffT (vtBoffData.getD k default).2.1\n'
                '        (vtBoffData.getD k default).2.2.1 (vtGi k) (vtBoffData.getD k default).2.2.2 (vtLen k)).length) =\n'

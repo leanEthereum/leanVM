@@ -90,7 +90,7 @@ theorem vt_loopVals (H : VtHonest) (B B' : VtBases) (rd : Reader) :
     forall_eq, and_true] at g1 g2
   obtain ⟨c0, a0, c1⟩ := g2
   have w : σ' (.n (val% «verify_tables» "g_zc_n")) = gen ^ H.n := by rw [g1]; exact (vtW_ok H B').w2544
-  exact ⟨w, by rw [a0, c0, w, tb_word_one], by rw [c1, tb_word_one]⟩
+  exact ⟨w, by rw [a0, c0, w, word_one], by rw [c1, word_one]⟩
 
 end
 end LeanVM.Guest.B1.Tables

@@ -228,7 +228,7 @@ theorem main_pops_honest (fs : String → ℕ) (fp : ℕ) (hl : GuestLimits s w)
     unfold leafSeg
     by_cases hc : w.children = []
     · simp only [hc, List.length_nil, ↓reduceIte]; exact SameStreams.refl _
-    · rw [ite_neg' (fun h => hc (List.eq_nil_of_length_eq_zero h)), ite_neg' hc]; exact ha hc
+    · rw [if_neg (fun h => hc (List.eq_nil_of_length_eq_zero h)), if_neg hc]; exact ha hc
   have hH : Hints.honestPushes bytecode seed s w = [("meta", [Hints.count s.claims.xmss.length,
       Hints.count (xPlan s w).duplicates.length, Hints.count w.xmssSignatures.length, Hints.count s.claims.sphincs.length,
       Hints.count (sPlan s w).duplicates.length, Hints.count w.sphincsSignatures.length,

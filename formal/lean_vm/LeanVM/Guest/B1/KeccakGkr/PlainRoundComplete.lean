@@ -95,7 +95,7 @@ theorem consts_complete : ∀ (ss : List Stmt), (∀ s ∈ ss, ∃ d c, s = .ato
 theorem mul_good {d x y : ℕ} (hx : x < d) (hy : y < d)
     (h : GoodS rd S w σ (.atom (.mul (.n d) (.n x) (.n y)))) : σ (.n d) = σ (.n x) * σ (.n y) := by
   simp only [GoodS, Good] at h
-  rwa [ite_pos' ⟨hx, hy⟩] at h
+  rwa [if_pos ⟨hx, hy⟩] at h
 
 /-- **A plain round, completely.** -/
 theorem plainRound_complete {cur pt vIn : V} {ins : List V} {mid : List Stmt} {i a o : ℕ}

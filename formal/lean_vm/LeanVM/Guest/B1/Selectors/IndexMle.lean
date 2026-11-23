@@ -64,7 +64,7 @@ theorem indexMle_eq_prod (zs : List E) :
 def imFactor (t : ℕ) : ℕ := tbGSquaresBits.getD t 0 ^^^ 1
 
 theorem imFactor_eq {t : ℕ} (ht : t < 34) : word (imFactor t) 0 = 1 + gen ^ 2 ^ t := by
-  rw [tb_word_eOfNat, imFactor, eOfNat_xor, eOfNat_one, gen_pow_two_pow_eq ht, add_comm]
+  rw [word_eOfNat, imFactor, eOfNat_xor, eOfNat_one, gen_pow_two_pow_eq ht, add_comm]
 
 /-- The value loaded at block `t`. -/
 def imLoad (t : ℕ) : ℕ := if t = 0 then 2 else 6 * t + 1
@@ -96,7 +96,7 @@ def imRet (n : ℕ) : ℕ := if n = 0 then 1 else 6 * n
 /-- The function `P` finds by name is the template. -/
 noncomputable def imCheckP (P : Program) (n : ℕ) : Bool :=
   match P.find? (lName "index_mle" n) with
-  | some fn => decide (fn.params = [.n (valf% «index_mle» "zeta")]) && tbStmtsEqb fn.body (imPre n ++ [.ret [.n (imRet n)]])
+  | some fn => decide (fn.params = [.n (valf% «index_mle» "zeta")]) && stmtsEqb fn.body (imPre n ++ [.ret [.n (imRet n)]])
   | none => false
 
 theorem imFound {P : Program} (hall : (List.range 34).all (imCheckP P) = true) {n : ℕ} (hn : n < 34) :
@@ -107,7 +107,7 @@ theorem imFound {P : Program} (hall : (List.range 34).all (imCheckP P) = true) {
   split at h
   · rename_i fn hf
     simp only [Bool.and_eq_true, decide_eq_true_eq] at h
-    exact ⟨fn, hf, h.1, tbStmtsEqb_sound h.2⟩
+    exact ⟨fn, hf, h.1, stmtsEqb_sound h.2⟩
   · exact absurd h (by simp)
 
 theorem imBlk_noRet (t : ℕ) : Stmt.noRetList (imBlk t) = true := by
@@ -116,13 +116,13 @@ theorem imBlk_noRet (t : ℕ) : Stmt.noRetList (imBlk t) = true := by
 theorem imBlks_noRet : ∀ l : List ℕ, Stmt.noRetList (l.map imBlk).flatten = true
   | [] => rfl
   | t :: l => by
-    rw [List.map_cons, List.flatten_cons, tb_noRetList_append, imBlk_noRet, imBlks_noRet l]; rfl
+    rw [List.map_cons, List.flatten_cons, noRetList_append, imBlk_noRet, imBlks_noRet l]; rfl
 
 theorem imPre_noRet (n : ℕ) : Stmt.noRetList (imPre n) = true := by
   unfold imPre
   split
   · rfl
-  · rw [tb_noRetList_append, imBlks_noRet]; rfl
+  · rw [noRetList_append, imBlks_noRet]; rfl
 
 theorem tb_prod_map_range_succ {M : Type} [CommMonoid M] (f : ℕ → M) (m : ℕ) :
     ((List.range (m + 1)).map f).prod = ((List.range m).map f).prod * f m := by
@@ -141,7 +141,7 @@ theorem holds_imBlk_zero (h : Stmt.HoldsList C rd σ (imBlk 0) True kret) :
   obtain ⟨h1, h2, h3, h4, h5⟩ := h
   refine ⟨h2, ?_⟩
   simp only [imAcc, imLoad, ↓reduceIte, imFactorOf]
-  rw [h5, h1, h4, h3, tb_word_one, imFactor_eq (by decide)]
+  rw [h5, h1, h4, h3, word_one, imFactor_eq (by decide)]
 
 theorem holds_imBlk_succ {t : ℕ} (ht : t < 34) (h0 : t ≠ 0)
     (h : Stmt.HoldsList C rd σ (imBlk t) True kret) :
@@ -151,7 +151,7 @@ theorem holds_imBlk_succ {t : ℕ} (ht : t < 34) (h0 : t ≠ 0)
   obtain ⟨h1, h2, h3, h4, h5, h6⟩ := h
   refine ⟨by simp only [imLoad, h0, ↓reduceIte]; exact h2, ?_⟩
   simp only [imAcc, imLoad, h0, ↓reduceIte, imFactorOf]
-  rw [h6, h5, h1, h4, h3, tb_word_one, imFactor_eq ht, show 6 * (t - 1) + 5 = 6 * t - 1 by omega]
+  rw [h6, h5, h1, h4, h3, word_one, imFactor_eq ht, show 6 * (t - 1) + 5 = 6 * t - 1 by omega]
 
 end Sem
 
@@ -161,7 +161,7 @@ theorem index_mle_sound {P : Program} (hall : (List.range 34).all (imCheckP P) =
     (hn : n < 34) {rd : Reader} {args rets : List E}
     (h : P.Rel rd (lName "index_mle" n) args rets) : IndexMleOut n rd args rets := by
   obtain ⟨fn, hf, hp, hb⟩ := imFound hall hn
-  obtain ⟨σ, hpar, hpre, hret⟩ := (tb_rel_pre hf hb (imPre_noRet n) args rets).mp h
+  obtain ⟨σ, hpar, hpre, hret⟩ := (rel_pre hf hb (imPre_noRet n) args rets).mp h
   rw [hp] at hpar
   simp only [List.map_cons, List.map_nil] at hpar hret
   subst hpar hret
@@ -169,8 +169,8 @@ theorem index_mle_sound {P : Program} (hall : (List.range 34).all (imCheckP P) =
   by_cases h0 : n = 0
   · subst h0
     simp only [imPre, ↓reduceIte, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at hpre
-    refine ⟨[], rfl, tbReadsAt_nil _ _, ?_⟩
-    simp only [imRet, ↓reduceIte, hpre, tb_word_one, indexMle, indexMleFrom]
+    refine ⟨[], rfl, readsAt_nil _ _, ?_⟩
+    simp only [imRet, ↓reduceIte, hpre, word_one, indexMle, indexMleFrom]
   · simp only [imPre, h0, ↓reduceIte] at hpre
     rw [holdsList_append, holdsList_flatten _ (fun b hb => by
         obtain ⟨t, -, rfl⟩ := List.mem_map.mp hb; exact imBlk_noRet t)] at hpre

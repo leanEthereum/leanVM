@@ -74,7 +74,7 @@ theorem pack_cells {A : List Atom} {x : V} {b : ℕ} (h : packIn A x b = true)
 theorem side_load {d p : V} {o : ℕ} {v : E} (hS : Atom.load d p o ∉ S)
     (h : LoadHolds rd (σ p) o v) : Side rd S σ (.load d p o) := by
   simp only [Side]
-  rw [ite_neg' hS]
+  rw [if_neg hS]
   exact ⟨h.1, by rw [h.2]; rfl⟩
 
 /-- A load (not a store), evaluated, reads the memory. -/

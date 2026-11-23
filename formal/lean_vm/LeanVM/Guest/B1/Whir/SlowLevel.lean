@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Whir.SlowQuery
 public import LeanVM.Guest.B1.Whir.SlowSpec
-public import LeanVM.Guest.B1.Tables.Basic
+public import LeanVM.Guest.B1.Tables.Base
 import LeanVM.Guest.B1.Common.Vc
 
 /-!
@@ -138,7 +138,7 @@ theorem lsum_sound {P : Program} {C : CallRel} (hC : ∀ f a r, C f a r → P.Re
     exact one_add_gen_pow_ne hQ hQb
   have hl := hC _ _ _ (hloop h12)
   rw [c13, c14, hgQ, word_one, ← pow_zero gen] at hl
-  obtain ⟨m, hm, hN, hall⟩ := Tables.tb_loop_sound (B := fun x ↦ ∃ a p q,
+  obtain ⟨m, hm, hN, hall⟩ := loop_sound (B := fun x ↦ ∃ a p q,
     LoadHolds rd (σ (.n 5) * x) 0 a ∧ LoadHolds rd (σ (.n 7) * x) 0 p ∧
     LoadHolds rd (σ (.n 0) * x) 0 q ∧
     LoadHolds rd (σ (.n 5) * x) 1 (a + p * ∏ t ∈ Finset.range n, rqsFac vo n cs q t) ∧

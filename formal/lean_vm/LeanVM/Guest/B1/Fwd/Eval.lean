@@ -237,7 +237,7 @@ theorem holds_of_good {rd : Reader} {S : List Atom} {w : Nat → E} {σ : Val} {
     split at hg
     · exact hg
     · rename_i h
-      rw [ite_neg' h] at hs
+      rw [if_neg h] at hs
       rw [hg, mul_assoc, inv_mul_cancel₀ hs, mul_one]
   | copy d s => exact hg
   | load d p off =>
@@ -262,7 +262,7 @@ theorem holds_of_good {rd : Reader} {S : List Atom} {w : Nat → E} {σ : Val} {
     refine ⟨load_of_rdAt h1 px sx, ?_, load_of_rdAt h2 py sy⟩
     split at h3
     · rename_i h
-      rw [ite_pos' h] at h0
+      rw [if_pos h] at h0
       rw [h3, mul_comm (σ k), ← mul_assoc, mul_inv_cancel₀ h0, one_mul]
     · exact h3
   | assertInK x y => exact hs
@@ -541,7 +541,7 @@ theorem stepA {a : Atom} {c' : Nat} (h : chkA l.length a = some c') :
       · simp only [Atom.vals, List.mem_cons, List.not_mem_nil, or_false] at hv
         rcases hv with rfl | rfl | rfl <;> omega
       · simp only [Good]
-        rw [ite_pos' ⟨by omega, by omega⟩, hn, new_at0 l hd, old_eq l hx, old_eq l hy]; rfl
+        rw [if_pos ⟨by omega, by omega⟩, hn, new_at0 l hd, old_eq l hx, old_eq l hy]; rfl
     · split at h
       · rename_i _ hc
         cases h
@@ -556,7 +556,7 @@ theorem stepA {a : Atom} {c' : Nat} (h : chkA l.length a = some c') :
         · simp only [Atom.vals, List.mem_cons, List.not_mem_nil, or_false] at hv
           rcases hv with rfl | rfl | rfl <;> omega
         · simp only [Good]
-          rw [ite_neg' (by omega), hn, new_at0 l hx, old_eq l hd, old_eq l hy]; rfl
+          rw [if_neg (by omega), hn, new_at0 l hx, old_eq l hd, old_eq l hy]; rfl
       · exact absurd h (by simp)
   | copy d s =>
     simp only [chkA] at h
@@ -659,7 +659,7 @@ theorem stepA {a : Atom} {c' : Nat} (h : chkA l.length a = some c') :
       · simp only [Atom.vals, List.mem_cons, List.not_mem_nil, or_false] at hv
         rcases hv with rfl | rfl | rfl | rfl | rfl <;> omega
       · simp only [Good]
-        rw [ite_pos' (by omega), hn, new_at0 l hy, new_at l h1, new_at l h2, old_eq l hx,
+        rw [if_pos (by omega), hn, new_at0 l hy, new_at l h1, new_at l h2, old_eq l hx,
           old_eq l hk]
         exact ⟨rfl, rfl, rfl⟩
     · split at h
@@ -679,7 +679,7 @@ theorem stepA {a : Atom} {c' : Nat} (h : chkA l.length a = some c') :
         · simp only [Atom.vals, List.mem_cons, List.not_mem_nil, or_false] at hv
           rcases hv with rfl | rfl | rfl | rfl | rfl <;> omega
         · simp only [Good]
-          rw [ite_neg' (by omega), hn, new_at0 l h1, new_at l h2, new_at l hk, old_eq l hx,
+          rw [if_neg (by omega), hn, new_at0 l h1, new_at l h2, new_at l hk, old_eq l hx,
             old_eq l hy]
           exact ⟨rfl, rfl, rfl⟩
       · exact absurd h (by simp)

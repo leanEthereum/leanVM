@@ -40,7 +40,7 @@ theorem vs_side_of_not_needs {rd : Reader} {S : List Atom} {σ : Val} {a : Atom}
   | mul d x y =>
     simp only [needsSide, Bool.not_eq_false', Bool.and_eq_true, decide_eq_true_eq] at h
     simp only [Side]
-    rw [ite_pos' h]
+    rw [if_pos h]
     trivial
   | load | assertEq | assertInK | assertNe | rangeCheck | frameAddr => simp [needsSide] at h
   | _ => trivial

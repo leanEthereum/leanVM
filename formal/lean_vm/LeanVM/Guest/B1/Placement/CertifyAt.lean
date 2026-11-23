@@ -220,7 +220,7 @@ theorem cp_loads_ok {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hlm : lm �
     have hc : σ (.n (cpD gi)) = cpColV lm hs esq gi (cpD gi) :=
       cpσ_col lm hs ekb esq e10 e11 e136 e137 e293 rd hgi le_rfl (by omega)
     show (σ (.n (cpD gi))).limb 0 * addressOfIndex (cpAdj gi) = _
-    rw [hc, cpColV, tb_ite_pos rfl, cp_limb_mul, Nat.add_assoc]
+    rw [hc, cpColV, if_pos rfl, cp_limb_mul, Nat.add_assoc]
     rfl
   · exact ⟨e137 + gi, tb_addr_ofK _ _, Or.inr (h137 gi hgi)⟩
   · refine ⟨e293 + (cpC0 gi + j), tb_addr_ofK _ _, Or.inr (h293 _ ?_)⟩

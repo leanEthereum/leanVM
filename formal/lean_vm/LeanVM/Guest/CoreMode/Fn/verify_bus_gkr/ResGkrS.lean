@@ -132,12 +132,12 @@ theorem vbg_ls_sites : Res.sitesB (fun f args _ ↦ !([glcLsN 0, glcLsN 1].conta
 /-- `verify_bus_gkr`'s body around its dispatch on the depth's parity. -/
 theorem vbg_split : (fn% «verify_bus_gkr»).body = (fn% «verify_bus_gkr»).body.take (pos% «verify_bus_gkr» "s32#0") ++
     .dispatch (.n (val% «verify_bus_gkr» "odd_g")) [glcLsN 0, glcLsN 1] vbgLsArgs [.n (val% «verify_bus_gkr» "done")] :: (fn% «verify_bus_gkr»).body.drop (pos% «verify_bus_gkr» "s33#0") := by
-  have h : tbStmtsEqb ((fn% «verify_bus_gkr»).body.drop (pos% «verify_bus_gkr» "s32#0"))
+  have h : stmtsEqb ((fn% «verify_bus_gkr»).body.drop (pos% «verify_bus_gkr» "s32#0"))
       (.dispatch (.n (val% «verify_bus_gkr» "odd_g")) [glcLsN 0, glcLsN 1] vbgLsArgs [.n (val% «verify_bus_gkr» "done")] :: (fn% «verify_bus_gkr»).body.drop (pos% «verify_bus_gkr» "s33#0")) =
         true := by
     decide +kernel
   conv_lhs => rw [← List.take_append_drop (pos% «verify_bus_gkr» "s32#0") (fn% «verify_bus_gkr»).body]
-  rw [tbStmtsEqb_sound h]
+  rw [stmtsEqb_sound h]
 
 /-- Around the dispatch, `verify_bus_gkr` calls no `gkr_layers__L{o}`. -/
 theorem vbg_split_sites :
@@ -276,7 +276,7 @@ theorem gls_holds {o : ℕ} (h : Stmt.HoldsList C rd σ (glcLsBody o) False kret
       σ (.n (valf% «gkr_layers» "m4")) = σ (.n (valf% «gkr_layers» "n_four")) * σ (.n (valf% «gkr_layers» "n_four")) * (σ (.n (valf% «gkr_layers» "n_four")) * σ (.n (valf% «gkr_layers» "n_four"))) := by
   simp only [glcLsBody, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil] at h
   obtain ⟨c9, a10, c11, -, hloop, m12, m13, -, -⟩ := h
-  rw [tb_word_one] at c9 c11
+  rw [word_one] at c9 c11
   refine ⟨c11, by rw [a10, c9], hloop, by rw [m13, m12]⟩
 
 /-- **`gkr_layers__L{o}`'s loop's body**: its four layers at `x_j = x_m^4·g^p`. -/
@@ -320,7 +320,7 @@ theorem gl_next {p o m : ℕ} (hp : p < 4) (ho : o < 2) (hm : m < 4) {layers rou
     LoadHolds rd layers (10 * (2 * (4 * m + p) + 2 - o + 2) + 5)
       (cur * gen ^ (4 * (2 * (4 * m + p) + 2 - o) + 12)) := by
   obtain ⟨fn, hf, hpar, hb⟩ := glIs_sound (glIs_layers p hp o ho)
-  obtain ⟨σ, hp', hbody⟩ := (tb_rel_iff_sem hf _ _).mp h
+  obtain ⟨σ, hp', hbody⟩ := (rel_iff_sem hf _ _).mp h
   rw [hpar, glParams_eq] at hp'
   simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hp'
   obtain ⟨rfl, -, -, h3, h4, h5, -, -, -⟩ := hp'
@@ -390,12 +390,12 @@ theorem vbg_ls {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) {C : CallRel} 
       σ (.n (val% «verify_bus_gkr» "rem_g")) = gen ^ (((d - 1) / 2) % 4) ∧ σ (.n (val% «verify_bus_gkr» "start_g")) = gen ^ (2 - d % 2) ∧
       LoadHolds Lm.read (σ (.n (val% «verify_bus_gkr» "layers"))) (10 * (2 - d % 2) + 5) (σ (.n (val% «verify_bus_gkr» "cursor@1")) * gen ^ (if d % 2 = 0 then 14 else 8)) := by
   have hnr := vbgPre_noRet
-  have a := fun n a heq => tb_holds_atom (C := C) (rd := Lm.read) (σ := σ) (kret := kret) hnr h n a heq
+  have a := fun n a heq => holds_atom (C := C) (rd := Lm.read) (σ := σ) (kret := kret) hnr h n a heq
   have c19 := a (pos% «verify_bus_gkr» "s3#0") (.const (.n (val% «verify_bus_gkr» "s3#0")) (word 4294967296 0)) (by decide +kernel)
   have rc := a (pos% «verify_bus_gkr» "s3#1") (.rangeCheck (.n (val% «verify_bus_gkr» "g_bus_mu")) (.n (val% «verify_bus_gkr» "s3#1")) (.n (val% «verify_bus_gkr» "s3#2")) (.n (val% «verify_bus_gkr» "s3#3")) (.n (val% «verify_bus_gkr» "s3#0"))) (by decide +kernel)
   simp only [Atom.Holds] at c19 rc
   obtain ⟨d, hd, hg⟩ := tb_rc_sound' hμ Lm (K := 33) (by omega) (by norm_num)
-    (by rw [c19, show (4294967296 : ℕ) = 2 ^ 32 by norm_num, tb_word_two_pow (by norm_num),
+    (by rw [c19, show (4294967296 : ℕ) = 2 ^ 32 by norm_num, word_two_pow (by norm_num),
       gen_pow_eq_ofK]) rc.1 rc.2.1 rc.2.2
   -- the tables
   have htab : σ (.n (val% «verify_bus_gkr» "odd_g")) = gen ^ (d % 2) ∧ σ (.n (val% «verify_bus_gkr» "n_four")) = gen ^ ((d - 1) / 8) ∧
@@ -416,15 +416,15 @@ theorem vbg_ls {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) {C : CallRel} 
       have m401 := a (pos% «verify_bus_gkr» "s30#0") (.mul (.n (val% «verify_bus_gkr» "rem_g~0")) (.n (val% «verify_bus_gkr» "four_rem")) (.n (val% «verify_bus_gkr» "g_bus_mu"))) (by decide +kernel)
       have l402 := a (pos% «verify_bus_gkr» "s30#1") (.load (.n (val% «verify_bus_gkr» "rem_g")) (.n (val% «verify_bus_gkr» "rem_g~0")) 0) (by decide +kernel)
       simp only [Atom.Holds] at c65 l65 c68 l68 c69 l69 m166 l167 c168 m168 m399 l400 m401 l402
-      rw [tb_word_one] at c65 c68 c69
+      rw [word_one] at c65 c68 c69
       rw [m166, hg, pow_zero, mul_one] at l167
       rw [m399, hg, pow_zero, mul_one] at l400
       rw [m401, hg, pow_zero, mul_one] at l402
-      have e167 : σ (.n (val% «verify_bus_gkr» "odd_g")) = 1 := (tb_loadHolds_unique l167 l65).trans c65
-      rw [show (4 : ℕ) = 2 ^ 2 by norm_num, tb_word_two_pow (by norm_num)] at c168
+      have e167 : σ (.n (val% «verify_bus_gkr» "odd_g")) = 1 := (loadHolds_unique l167 l65).trans c65
+      rw [show (4 : ℕ) = 2 ^ 2 by norm_num, word_two_pow (by norm_num)] at c168
       rw [c168, e167, mul_one] at m168
-      refine ⟨by rw [e167]; simp, by rw [(tb_loadHolds_unique l400 l68).trans c68]; simp,
-        by rw [(tb_loadHolds_unique l402 l69).trans c69]; simp, m168.symm.trans (by norm_num)⟩
+      refine ⟨by rw [e167]; simp, by rw [(loadHolds_unique l400 l68).trans c68]; simp,
+        by rw [(loadHolds_unique l402 l69).trans c69]; simp, m168.symm.trans (by norm_num)⟩
     · obtain ⟨e167, e400, e402, e169⟩ := vbg_tables h hg hd (by omega)
       exact ⟨e167, e400, e402, e169⟩
   obtain ⟨e167, e400, e402, e169⟩ := htab
@@ -437,27 +437,27 @@ theorem vbg_ls {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) {C : CallRel} 
   have c175 := a (pos% «verify_bus_gkr» "s28#0") (.const (.n (val% «verify_bus_gkr» "s28#0")) (word 1 0)) (by decide +kernel)
   have a176 := a (pos% «verify_bus_gkr» "s28#1") (.add (.n (val% «verify_bus_gkr» "s28#1")) (.n (val% «verify_bus_gkr» "odd_g")) (.n (val% «verify_bus_gkr» "s28#0"))) (by decide +kernel)
   simp only [Atom.Holds] at m170 m171 m172 m173 m174 c175 a176
-  rw [tb_word_one] at c175
+  rw [word_one] at c175
   have e174 : σ (.n (val% «verify_bus_gkr» "nxt")) = σ (.n (val% «verify_bus_gkr» "layers")) * gen ^ (10 * (2 - d % 2)) := by
     rw [m174, m173, m172, m171, m170, e169, ← pow_add, ← pow_add, ← pow_add, ← pow_add]
     ring_nf
-  have hi := tb_holds_slice hnr h ((pos% «verify_bus_gkr» "s28#1") + 1) [.ite (.n (val% «verify_bus_gkr» "s28#1")) (core% «verify_bus_gkr» s388_t)
+  have hi := holds_slice hnr h ((pos% «verify_bus_gkr» "s28#1") + 1) [.ite (.n (val% «verify_bus_gkr» "s28#1")) (core% «verify_bus_gkr» s388_t)
     (core% «verify_bus_gkr» s388_e)] (by decide +kernel)
   simp only [Stmt.HoldsList] at hi
-  rw [tb_holds_ite_noRet _ _ _ vbgArm_noRet_t vbgArm_noRet_e] at hi
+  rw [holds_ite_noRet _ _ _ vbgArm_noRet_t vbgArm_noRet_e] at hi
   obtain ⟨⟨-, hfour, htwo⟩, -⟩ := hi
   refine ⟨d, hd, e167, e400, e402, e169, ?_⟩
-  rw [← tb_loadHolds_mul_gen_pow, ← e174]
+  rw [← loadHolds_mul_gen_pow, ← e174]
   rcases Nat.mod_two_eq_zero_or_one d with h2 | h2
   · have h0 : σ (.n (val% «verify_bus_gkr» "s28#1")) = 0 := by rw [a176, c175, e167, h2, pow_zero, e_add_self]
     have hf := hfour h0
-    have b := fun n a heq => tb_holds_atom (C := C) (rd := Lm.read) (σ := σ) (kret := kret) vbgArm_noRet_t
+    have b := fun n a heq => holds_atom (C := C) (rd := Lm.read) (σ := σ) (kret := kret) vbgArm_noRet_t
       hf n a heq
     have c261 := b 76 (.const (.n (val% «verify_bus_gkr» "s28.e.s9#0")) (word 16384 0)) (by decide +kernel)
     have m262 := b 77 (.mul (.n (val% «verify_bus_gkr» "s28.e.s9#1")) (.n (val% «verify_bus_gkr» "cursor@1")) (.n (val% «verify_bus_gkr» "s28.e.s9#0"))) (by decide +kernel)
     have l262 := b 78 (.load (.n (val% «verify_bus_gkr» "s28.e.s9#1")) (.n (val% «verify_bus_gkr» "nxt")) 5) (by decide +kernel)
     simp only [Atom.Holds] at c261 m262 l262
-    rw [show (16384 : ℕ) = 2 ^ 14 by norm_num, tb_word_two_pow (by norm_num)] at c261
+    rw [show (16384 : ℕ) = 2 ^ 14 by norm_num, word_two_pow (by norm_num)] at c261
     rw [m262, c261] at l262
     simpa [h2] using l262
   · have hne : σ (.n (val% «verify_bus_gkr» "s28#1")) ≠ 0 := by
@@ -467,13 +467,13 @@ theorem vbg_ls {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) {C : CallRel} 
         ((pow_one gen).trans ((e_add_eq_zero_iff.mp h0).trans (pow_zero gen).symm))
       omega
     have hf := htwo hne
-    have b := fun n a heq => tb_holds_atom (C := C) (rd := Lm.read) (σ := σ) (kret := kret) vbgArm_noRet_e
+    have b := fun n a heq => holds_atom (C := C) (rd := Lm.read) (σ := σ) (kret := kret) vbgArm_noRet_e
       hf n a heq
     have c353 := b 45 (.const (.n (val% «verify_bus_gkr» "s28.t.s7#0")) (word 256 0)) (by decide +kernel)
     have m354 := b 46 (.mul (.n (val% «verify_bus_gkr» "s28.t.s7#1")) (.n (val% «verify_bus_gkr» "cursor@1")) (.n (val% «verify_bus_gkr» "s28.t.s7#0"))) (by decide +kernel)
     have l354 := b 47 (.load (.n (val% «verify_bus_gkr» "s28.t.s7#1")) (.n (val% «verify_bus_gkr» "nxt")) 5) (by decide +kernel)
     simp only [Atom.Holds] at c353 m354 l354
-    rw [show (256 : ℕ) = 2 ^ 8 by norm_num, tb_word_two_pow (by norm_num)] at c353
+    rw [show (256 : ℕ) = 2 ^ 8 by norm_num, word_two_pow (by norm_num)] at c353
     rw [m354, c353] at l354
     simpa [h2] using l354
 

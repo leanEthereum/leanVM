@@ -49,8 +49,8 @@ theorem memL_outsL {rd : Reader} : ∀ {ks : List Kid} {outs : List (List E × L
     simp only [outsL, List.mem_append] at hq
     rcases hq with hq | hq
     · by_cases ht : k.taken = true
-      · rw [ite_pos' ht] at hq; exact hL q (h ht q hq)
-      · rw [ite_neg' ht] at hq; simp at hq
+      · rw [if_pos ht] at hq; exact hL q (h ht q hq)
+      · rw [if_neg ht] at hq; simp at hq
     · exact memL_outsL hs hL q hq
   | [], _, _, _, _ => fun q hq => by simp [outsL] at hq
   | _ :: _, [], _, _, _ => fun q hq => by simp [outsL] at hq
@@ -323,7 +323,7 @@ theorem memL_outsL_at {rd : Reader} : ∀ {ks : List KidD} {prev outs : List (Li
     obtain ⟨h1, h2⟩ := Main.memL_append.mp h
     rcases m with _ | m
     · rw [kidAt_zero] at ht
-      rw [ite_pos' ht] at h1
+      rw [if_pos ht] at h1
       simpa using h1
     · rw [kidAt_succ] at ht
       simpa using memL_outsL_at h2 m (by simp at hm; omega) (by simp at ho; omega) ht

@@ -153,11 +153,11 @@ section Slots
 variable {rx rs : ℕ → ℕ}
 
 theorem slOf_rx {m : ℕ} (h : m < lg σ 2) : slOf σ K rx rs m = rx m := by
-  unfold slOf; rw [ite_pos' h]
+  unfold slOf; rw [if_pos h]
 
 theorem slOf_rs {m : ℕ} (h1 : lg σ 2 ≤ m) (h2 : m < lg σ 2 + lg σ 5) :
     slOf σ K rx rs m = LXS σ + rs (m - lg σ 2) := by
-  unfold slOf; rw [ite_neg' (by omega), ite_pos' h2]
+  unfold slOf; rw [if_neg (by omega), if_pos h2]
 
 /-- Child `c`'s leanXMSS claim `j`'s slot. -/
 theorem slOf_x {c j : ℕ} (hc : c < lg σ 6) (hj : j < (K c).ex) :
@@ -167,7 +167,7 @@ theorem slOf_x {c j : ℕ} (hc : c < lg σ 6) (hj : j < (K c).ex) :
   have hk := (segsOf σ K).kid_eq (m := (segsOf σ K).a c + j) (by rw [segsOf_NC]; exact hc)
     (by omega) (by rw [Segs.a_succ, segsOf_ex, segsOf_es]; omega)
   unfold slOf
-  rw [ite_neg' (by omega), ite_neg' (by omega), hk, ite_pos' (by omega), Nat.add_sub_cancel_left]
+  rw [if_neg (by omega), if_neg (by omega), hk, if_pos (by omega), Nat.add_sub_cancel_left]
 
 /-- Child `c`'s leanSPHINCS claim `j`'s slot. -/
 theorem slOf_s {c j : ℕ} (hc : c < lg σ 6) (hj : j < (K c).es) :
@@ -178,7 +178,7 @@ theorem slOf_s {c j : ℕ} (hc : c < lg σ 6) (hj : j < (K c).es) :
     (by rw [segsOf_NC]; exact hc) (by omega)
     (by rw [Segs.a_succ, segsOf_ex, segsOf_es]; omega)
   unfold slOf
-  rw [ite_neg' (by omega), ite_neg' (by omega), hk, ite_neg' (by omega)]
+  rw [if_neg (by omega), if_neg (by omega), hk, if_neg (by omega)]
   congr 2; omega
 
 end Slots
@@ -261,11 +261,11 @@ theorem writers (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c 
     · rw [slOf_s hc hj]; exact (kid_ws MF hK hc hj).2
   · -- the regions
     rcases cases_m m hm with h | ⟨h1, h2⟩ | ⟨c, hc, ⟨j, hj, rfl⟩ | ⟨j, hj, rfl⟩⟩
-    · have hr : S.region m = 0 := by unfold Segs.region; rw [hRX, ite_pos' h]
+    · have hr : S.region m = 0 := by unfold Segs.region; rw [hRX, if_pos h]
       rw [hr, slOf_rx h]
       exact ⟨fun _ => (hrx m h).1, fun h => absurd h (by decide)⟩
     · have hr : S.region m = 1 := by
-        unfold Segs.region; rw [hRX, hRS, ite_neg' (by omega), ite_pos' h2]
+        unfold Segs.region; rw [hRX, hRS, if_neg (by omega), if_pos h2]
       rw [hr, slOf_rs h1 h2]
       have := (hrs (m - lg σ 2) (by omega)).1
       exact ⟨fun h => absurd h (by decide), fun _ => ⟨by omega, by omega⟩⟩
@@ -275,8 +275,8 @@ theorem writers (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c 
         (by rw [Segs.a_succ, hS, segsOf_ex, segsOf_es]; omega)
       have hr : S.region (S.a c + j) = 0 := by
         unfold Segs.region
-        rw [hRX, hRS, ite_neg' (by omega), ite_neg' (by omega), hk, hS, segsOf_ex,
-          ite_pos' (by omega)]
+        rw [hRX, hRS, if_neg (by omega), if_neg (by omega), hk, hS, segsOf_ex,
+          if_pos (by omega)]
       rw [hr, slOf_x hc hj]
       exact ⟨fun _ => (kid_wx MF hK hc hj).1, fun h => absurd h (by decide)⟩
     · have h0 := S.a0_le c
@@ -285,8 +285,8 @@ theorem writers (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c 
         (by omega) (by rw [Segs.a_succ, hS, segsOf_ex, segsOf_es]; omega)
       have hr : S.region (S.a c + (K c).ex + j) = 1 := by
         unfold Segs.region
-        rw [hRX, hRS, ite_neg' (by omega), ite_neg' (by omega), hk, hS, segsOf_ex,
-          ite_neg' (by omega)]
+        rw [hRX, hRS, if_neg (by omega), if_neg (by omega), hk, hS, segsOf_ex,
+          if_neg (by omega)]
       rw [hr, slOf_s hc hj]
       have := (kid_ws MF hK hc hj).1
       exact ⟨fun h => absurd h (by decide), fun _ => ⟨by omega, by omega⟩⟩

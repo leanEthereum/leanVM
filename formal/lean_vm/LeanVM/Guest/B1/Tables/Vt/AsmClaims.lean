@@ -178,8 +178,8 @@ theorem vt_claimLowDim_tab (lm : ℕ) (τ : ℕ → ℕ) {k : ℕ} (hk : k < 153
 theorem vt_tabOf_lt (k : ℕ) : vtTabOf k < 6 := by
   unfold vtTabOf; split_ifs <;> omega
 
-theorem vt_readsAt_append' {rd : Reader} {p : E} {a b : List E} (ha : TbReadsAt rd p a)
-    (hb : ∀ k (hk : k < b.length), LoadHolds rd p (a.length + k) b[k]) : TbReadsAt rd p (a ++ b) := by
+theorem vt_readsAt_append' {rd : Reader} {p : E} {a b : List E} (ha : ReadsAt rd p a)
+    (hb : ∀ k (hk : k < b.length), LoadHolds rd p (a.length + k) b[k]) : ReadsAt rd p (a ++ b) := by
   intro k hk
   rcases Nat.lt_or_ge k a.length with h1 | h1
   · rw [List.getElem_append_left h1]; exact ha k h1
@@ -194,7 +194,7 @@ include hμ
 /-- **The claims.** -/
 theorem vt_asm_claims {σ : Val} (h : VtH Lm.read σ) {bc : List K} (hbc : bc.length = 2 ^ 23)
     {pi : Digest} (hpi : (σ (.n (val% «verify_tables» "pi_0")), σ (.n (val% «verify_tables» "pi_1"))) = digestHalves pi) {point : List E}
-    (hz : TbReadsAt Lm.read (σ (.n (val% «verify_tables» "zeta"))) point) (hmu : σ (.n (val% «verify_tables» "g_bus_mu")) = gen ^ point.length)
+    (hz : ReadsAt Lm.read (σ (.n (val% «verify_tables» "zeta"))) point) (hmu : σ (.n (val% «verify_tables» "g_bus_mu")) = gen ^ point.length)
     (hml : point.length < 33) (hE : ExpTablesAt Lm.read (σ (.n (val% «verify_tables» "g_squares")))) {lm : ℕ}
     (hlm : lm ≤ 32) {rows : List ℕ} (hr : rows.length = 6) (hτ : ∀ t < 6, vtHt rows t < 33)
     (hkb : ∀ i < 8, σ (.n ((val% «verify_tables» "kb[0]") + i)) = gen ^ ([0, lm] ++ vtTauList (vtHt rows)).getD i 0)
@@ -204,12 +204,12 @@ theorem vt_asm_claims {σ : Val} (h : VtH Lm.read σ) {bc : List K} (hbc : bc.le
     (bus : BusResult) (hbp : bus.point = point) (cp fp : List E) (forms3 : List (List Form))
     (hf : forms3.length = 6) :
     (vtAllClaims bc lm rows pi point pts cp fp forms3 σ).length = nClaims ∧
-      TbReadsAt Lm.read (σ (.n (val% «verify_tables» "claim_pool")))
+      ReadsAt Lm.read (σ (.n (val% «verify_tables» "claim_pool")))
         (((vtAllClaims bc lm rows pi point pts cp fp forms3 σ).take nBusClaims).map (·.value)) ∧
-      TbReadsAt Lm.read (σ (.n (val% «verify_tables» "cursor@5")))
+      ReadsAt Lm.read (σ (.n (val% «verify_tables» "cursor@5")))
         ((((vtAllClaims bc lm rows pi point pts cp fp forms3 σ).drop nBusClaims).take
           nColEvals).map (·.value)) ∧
-      TbReadsAt Lm.read (σ (.n (val% «verify_tables» "claim_pool")) * gen ^ nPooled)
+      ReadsAt Lm.read (σ (.n (val% «verify_tables» "claim_pool")) * gen ^ nPooled)
         (((vtAllClaims bc lm rows pi point pts cp fp forms3 σ).drop nPooled).map (·.value)) ∧
       TCtx Lm.read (layoutOf bc lm rows) bus (vtAllClaims bc lm rows pi point pts cp fp forms3 σ)
         [σ (.n (val% «verify_tables» "zeta")), σ (.n (val% «verify_tables» "chi")), σ (.n (val% «verify_tables» "nxt[0]@42")), σ (.n (val% «verify_tables» "g_bus_mu")), σ (.n (val% «verify_tables» "g_zc_n"))] := by
@@ -266,13 +266,13 @@ theorem vt_asm_claims {σ : Val} (h : VtH Lm.read σ) {bc : List K} (hbc : bc.le
     rw [hNP, List.drop_left' (by simp [hTl])]
     intro k hk
     simp only [List.length_map, List.length_cons, List.length_nil] at hk
-    rw [tb_loadHolds_mul_gen_pow]
+    rw [loadHolds_mul_gen_pow]
     interval_cases k
     · simpa using l157
     · simpa using l158
   · -- the context
     unfold TCtx
-    have hchiR : TbReadsAt Lm.read (σ (.n (val% «verify_tables» "chi"))) pts.reverse := by
+    have hchiR : ReadsAt Lm.read (σ (.n (val% «verify_tables» "chi"))) pts.reverse := by
       intro k hk
       simp only [List.length_reverse, hpl] at hk
       have := hchi (n - 1 - k) (by omega)

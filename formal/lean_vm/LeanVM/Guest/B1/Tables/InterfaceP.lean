@@ -66,7 +66,7 @@ def PadRest (τ n : ℕ) : E := if τ = 0 then 1 else bitE (n.testBit τ) + eOfN
 def PadWeightOut (τ : ℕ) (rd : Reader) : List E → List E → Prop
   | [rows, zeta], [pad, lead, rest] =>
       ∃ (n : ℕ) (zs : List E), n ≤ 2 ^ τ ∧ rows = eOfNat n ∧ zs.length = τ ∧
-        TbReadsAt rd zeta zs ∧ pad = paddingWeight zs n ∧ lead = PadLead τ n ∧
+        ReadsAt rd zeta zs ∧ pad = paddingWeight zs n ∧ lead = PadLead τ n ∧
         rest = PadRest τ n
   | _, _ => False
 
@@ -181,8 +181,8 @@ layout. -/
 def TCtx (rd : Reader) (layout : Layout) (bus : BusResult) (claims : List ColumnClaim) :
     List E → Prop
   | [zeta, chi, rm, gmu, gzcn] =>
-      ∃ chis : List E, TbReadsAt rd zeta bus.point ∧ gmu = gen ^ bus.point.length ∧
-        TbReadsAt rd chi chis ∧ gzcn = gen ^ chis.length ∧ chis.length ≤ bus.point.length ∧
+      ∃ chis : List E, ReadsAt rd zeta bus.point ∧ gmu = gen ^ bus.point.length ∧
+        ReadsAt rd chi chis ∧ gzcn = gen ^ chis.length ∧ chis.length ≤ bus.point.length ∧
         claims.length = nClaims ∧ claims.map (·.column) = claimColumns ∧
         ∀ j (p : List E), (claims.map (·.point))[j]? = some p →
           (j < nPooled → p.length = claimLowDim layout.logMemory layout.tableLogHeights j) ∧
@@ -223,8 +223,8 @@ def sideTabList : List E :=
 /-- **What `exponent_tables` leaves at `g_squares` that `verify_tables` reads**: the
 squares, the rank keys, the block groups' sides and the window table. -/
 def ExpTablesAt (rd : Reader) (sq : E) : Prop :=
-  TbReadsAt rd sq gSquaresList ∧ TbReadsAt rd (sq * gen ^ rankKeysAt) rankKeysList ∧
-    TbReadsAt rd (sq * gen ^ sideTabAt) sideTabList ∧ WinTabs rd (sq * gen ^ winTabAt)
+  ReadsAt rd sq gSquaresList ∧ ReadsAt rd (sq * gen ^ rankKeysAt) rankKeysList ∧
+    ReadsAt rd (sq * gen ^ sideTabAt) sideTabList ∧ WinTabs rd (sq * gen ^ winTabAt)
 
 /-- `N_TUPLE_SLOTS`: the fingerprint's slot weights. -/
 abbrev nTupleSlots : ℕ := 2 ^ busBits
@@ -237,11 +237,11 @@ weights; `gkr_leaves` the three GKR values. -/
 def TablesPre (pi : Digest) (logMem : ℕ) (weights point values : List E) (rd : Reader) :
     List E → Prop
   | [_, _, _, _, _, _, pi0, pi1, zeta, gmu, dims, _, sq, fpw, _, _, _, leaves, tabs, _, _] =>
-      (pi0, pi1) = digestHalves pi ∧ TbReadsAt rd zeta point ∧ gmu = gen ^ point.length ∧
+      (pi0, pi1) = digestHalves pi ∧ ReadsAt rd zeta point ∧ gmu = gen ^ point.length ∧
       point.length < 33 ∧ 1 ≤ logMem ∧ logMem ≤ 32 ∧
-      (∃ ds : List E, ds.length = 6 ∧ TbReadsAt rd dims (gen ^ logMem :: ds)) ∧
+      (∃ ds : List E, ds.length = 6 ∧ ReadsAt rd dims (gen ^ logMem :: ds)) ∧
       ExpTablesAt rd sq ∧ tabs = sq * gen ^ winTabAt ∧ weights.length = nTupleSlots ∧
-      TbReadsAt rd fpw weights ∧ values.length = nTrees ∧ TbReadsAt rd leaves values
+      ReadsAt rd fpw weights ∧ values.length = nTrees ∧ ReadsAt rd leaves values
   | _ => False
 
 /-- **`verify_tables`' outcome**: the row counts `rows` are integer words in `table_rows`, and
@@ -258,17 +258,17 @@ def TablesOut (bytecode : List K) (pi : Digest) (logMem : ℕ) (weights point va
   | [f0, f1, f2, f3, f4, cur, _, _, zeta, gmu, dims, rows, _, _, beta, pool, chi, _, _, bcp, _],
       [f0', f1', f2', f3', f4', cur', gzcn, bv, rm, cew] =>
       ∃ (xs cap' : List E) (rowsN : List ℕ) (bus : BusResult) (claims : List ColumnClaim),
-        rowsN.length = 6 ∧ TbReadsAt rd rows (rowsN.map eOfNat) ∧
-        TbReadsAt rd dims (gen ^ logMem :: (tableHeightsOf rowsN).map (gen ^ ·)) ∧
-        (∀ h ∈ tableHeightsOf rowsN, h < 31) ∧ TbReadsAt rd cur xs ∧
-        (∃ slots : List E, slots.length = busBits ∧ TbReadsAt rd bcp slots ∧
+        rowsN.length = 6 ∧ ReadsAt rd rows (rowsN.map eOfNat) ∧
+        ReadsAt rd dims (gen ^ logMem :: (tableHeightsOf rowsN).map (gen ^ ·)) ∧
+        (∀ h ∈ tableHeightsOf rowsN, h < 31) ∧ ReadsAt rd cur xs ∧
+        (∃ slots : List E, slots.length = busBits ∧ ReadsAt rd bcp slots ∧
           bus.bytecodePoint = point.take (layoutOf bytecode logMem rowsN).logBytecode ++ slots) ∧
         (∀ ev, BytecodeAt ev bytecode bus.bytecodePoint bv →
           RunsTo (tablesSeg ev (layoutOf bytecode logMem rowsN) pi weights beta point values)
             ⟨[f0, f1, f2, f3, f4], []⟩ xs (bus, claims) ⟨cap', []⟩) ∧
-        claims.length = nClaims ∧ TbReadsAt rd pool ((claims.take nBusClaims).map (·.value)) ∧
-        TbReadsAt rd cew (((claims.drop nBusClaims).take nColEvals).map (·.value)) ∧
-        TbReadsAt rd (pool * gen ^ nPooled) ((claims.drop nPooled).map (·.value)) ∧
+        claims.length = nClaims ∧ ReadsAt rd pool ((claims.take nBusClaims).map (·.value)) ∧
+        ReadsAt rd cew (((claims.drop nBusClaims).take nColEvals).map (·.value)) ∧
+        ReadsAt rd (pool * gen ^ nPooled) ((claims.drop nPooled).map (·.value)) ∧
         TCtx rd (layoutOf bytecode logMem rowsN) bus claims [zeta, chi, rm, gmu, gzcn] ∧
         [f0', f1', f2', f3', f4'] = cap' ∧ cur' = cur * gen ^ xs.length
   | _, _ => False

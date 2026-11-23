@@ -192,7 +192,7 @@ theorem st_holds (ept ept1 ese : ℕ) (p p1 : List E) (hl : p.length = 32)
   obtain ⟨e0, e1⟩ := stVal_param ept ept1 ese p p1
   obtain ⟨-, e291⟩ := stVal_bufs ept ept1 ese p p1
   have hat := st_sholds ept ept1 ese p p1 hl hl1 rd hm
-  refine (tb_rel_iff_sem hf _ _).mpr ⟨stVal ept ept1 ese p p1, by rw [hp]; simp [e0, e1], ?_⟩
+  refine (rel_iff_sem hf _ _).mpr ⟨stVal ept ept1 ese p p1, by rw [hp]; simp [e0, e1], ?_⟩
   rw [hb]
   refine holdsList_straight stPre _ _ _ hat ?_
   simp [e291]

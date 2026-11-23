@@ -55,7 +55,7 @@ def vbgRets : List V := (List.range 7).map fun k ↦ .n ((val% «verify_bus_gkr�
 
 noncomputable def vbgCheck : Bool :=
   match coreProgram.find? name% «verify_bus_gkr» with
-  | some fn => decide (fn.params = vbgParams) && tbStmtsEqb fn.body (vbgPre ++ [.ret vbgRets])
+  | some fn => decide (fn.params = vbgParams) && stmtsEqb fn.body (vbgPre ++ [.ret vbgRets])
   | none => false
 
 theorem vbgCheck_eq : vbgCheck = true := by decide +kernel
@@ -67,7 +67,7 @@ theorem vbgFound : ∃ fn : Fn, coreProgram.find? name% «verify_bus_gkr» = som
   split at h
   · rename_i fn hf
     simp only [Bool.and_eq_true, decide_eq_true_eq] at h
-    exact ⟨fn, hf, h.1, tbStmtsEqb_sound h.2⟩
+    exact ⟨fn, hf, h.1, stmtsEqb_sound h.2⟩
   · exact absurd h (by simp)
 
 theorem vbgPre_noRet : Stmt.noRetList vbgPre = true := by decide +kernel
@@ -94,17 +94,17 @@ theorem vbg_root (h : Stmt.HoldsList C rd σ vbgPre True kret) :
       (lyCap (val% «verify_bus_gkr» "nxt[0]@1")).map σ = capOf (vbgS1 σ).perm ∧
       σ (.n (val% «verify_bus_gkr» "s15.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[1]")) = 0 ∧ σ (.n (val% «verify_bus_gkr» "s15.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[2]")) = 0 ∧ σ (.n (val% «verify_bus_gkr» "s15.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[3]")) = 0 ∧ σ (.n (val% «verify_bus_gkr» "s15.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[4]")) = 0 := by
   have hnr := vbgPre_noRet
-  have a := fun n a heq => tb_holds_atom (C := C) (rd := rd) (σ := σ) (kret := kret) hnr h n a heq
-  have r0 := tb_holds_slice hnr h 153 (fsNextT (.n (val% «verify_bus_gkr» "cursor@1")) 0 (val% «verify_bus_gkr» "x@1")) (by decide +kernel)
-  have r1 := tb_holds_slice hnr h 158 (fsNextT (.n (val% «verify_bus_gkr» "cursor@1")) 1 (val% «verify_bus_gkr» "x@2")) (by decide +kernel)
+  have a := fun n a heq => holds_atom (C := C) (rd := rd) (σ := σ) (kret := kret) hnr h n a heq
+  have r0 := holds_slice hnr h 153 (fsNextT (.n (val% «verify_bus_gkr» "cursor@1")) 0 (val% «verify_bus_gkr» "x@1")) (by decide +kernel)
+  have r1 := holds_slice hnr h 158 (fsNextT (.n (val% «verify_bus_gkr» "cursor@1")) 1 (val% «verify_bus_gkr» "x@2")) (by decide +kernel)
   rw [holds_fsNextT] at r0 r1
   obtain ⟨⟨l28, p28⟩, -⟩ := r0
   obtain ⟨⟨l33, p33⟩, -⟩ := r1
   have cp : ∀ k < 5, σ (.n ((val% «verify_bus_gkr» "sp[0]") + k)) = σ (.n k) := by
     intro k hk
-    have := tb_holds_slice hnr h 148 ((List.range 5).map fun k ↦
+    have := holds_slice hnr h 148 ((List.range 5).map fun k ↦
       Stmt.atom (.copy (.n ((val% «verify_bus_gkr» "sp[0]") + k)) (.n k))) (by decide +kernel)
-    rw [tb_holdsList_mapAtoms] at this
+    rw [holdsList_mapAtoms] at this
     exact this k hk
   have q31 := a 156 (.copy (.n (val% «verify_bus_gkr» "vals[0]")) (.n (val% «verify_bus_gkr» "x@1"))) (by decide +kernel)
   have q32 := a 157 (.copy (.n (val% «verify_bus_gkr» "vals[1]")) (.n (val% «verify_bus_gkr» "x@1"))) (by decide +kernel)
@@ -122,7 +122,7 @@ theorem vbg_root (h : Stmt.HoldsList C rd σ vbgPre True kret) :
   have a61 := a 173 (.add (.n (val% «verify_bus_gkr» "claim@1")) (.n (val% «verify_bus_gkr» "vals[1]")) (.n (val% «verify_bus_gkr» "claim@1~0"))) (by decide +kernel)
   have m62 := a 174 (.mul (.n (val% «verify_bus_gkr» "claim@2~0")) (.n (val% «verify_bus_gkr» "nxt[0]@1")) (.n (val% «verify_bus_gkr» "claim@1"))) (by decide +kernel)
   have a63 := a 175 (.add (.n (val% «verify_bus_gkr» "claim@2")) (.n (val% «verify_bus_gkr» "vals[0]")) (.n (val% «verify_bus_gkr» "claim@2~0"))) (by decide +kernel)
-  simp only [Atom.Holds, tb_word_zero] at q31 q32 q36 c37 a38 n38 c42 c43 c44 c45 m60 a61 m62 a63
+  simp only [Atom.Holds, word_zero] at q31 q32 q36 c37 a38 n38 c42 c43 c44 c45 m60 a61 m62 a63
   obtain ⟨P, B⟩ := ly_keccak k1
   have hins : (([.n (val% «verify_bus_gkr» "rate[0]@1"), .n (val% «verify_bus_gkr» "rate[1]@1"), .n (val% «verify_bus_gkr» "rate[2]@1"), .n (val% «verify_bus_gkr» "rate[3]@1"), .n (val% «verify_bus_gkr» "s15.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[1]"), .n (val% «verify_bus_gkr» "s15.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[2]"), .n (val% «verify_bus_gkr» "s15.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[3]"), .n (val% «verify_bus_gkr» "s15.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[4]")] ++
       (List.range 5).map fun k ↦ V.n ((val% «verify_bus_gkr» "sp[0]") + k)) : List V).map σ =
@@ -156,22 +156,22 @@ theorem vbg_tables (h : Stmt.HoldsList C rd σ vbgPre True kret) {depth : ℕ}
     σ (.n (val% «verify_bus_gkr» "odd_g")) = gen ^ (depth % 2) ∧ σ (.n (val% «verify_bus_gkr» "n_four")) = gen ^ ((depth - 1) / 8) ∧
       σ (.n (val% «verify_bus_gkr» "rem_g")) = gen ^ (((depth - 1) / 2) % 4) ∧ σ (.n (val% «verify_bus_gkr» "start_g")) = gen ^ (2 - depth % 2) := by
   have hnr := vbgPre_noRet
-  have a := fun n a heq => tb_holds_atom (C := C) (rd := rd) (σ := σ) (kret := kret) hnr h n a heq
-  have ht := tb_holds_slice hnr h 185 (((List.range 32).map fun e ↦
+  have a := fun n a heq => holds_atom (C := C) (rd := rd) (σ := σ) (kret := kret) hnr h n a heq
+  have ht := holds_slice hnr h 185 (((List.range 32).map fun e ↦
     [Stmt.atom (.const (.n (140 + 3 * e)) (word (2 ^ ((e + 1) % 2)) 0)),
       .atom (.load (.n (140 + 3 * e)) (.n (val% «verify_bus_gkr» "depth_odd")) (e + 1)),
       .atom (.const (.n (141 + 3 * e)) (word (2 ^ (e / 8)) 0)),
       .atom (.load (.n (141 + 3 * e)) (.n (val% «verify_bus_gkr» "four_bounds")) (e + 1)),
       .atom (.const (.n (142 + 3 * e)) (word (2 ^ ((e / 2) % 4)) 0)),
       .atom (.load (.n (142 + 3 * e)) (.n (val% «verify_bus_gkr» "four_rem")) (e + 1))]).flatten) (by decide +kernel)
-  rw [tb_holdsList_flatten_range _ _ (fun _ => rfl)] at ht
+  rw [holdsList_flatten_range _ _ (fun _ => rfl)] at ht
   have hdt := ht (depth - 1) (by omega)
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true,
     show depth - 1 + 1 = depth by omega] at hdt
   obtain ⟨c0, l0, c1, l1, c2, l2⟩ := hdt
-  rw [c0, tb_word_two_pow (by omega)] at l0
-  rw [c1, tb_word_two_pow (by omega)] at l1
-  rw [c2, tb_word_two_pow (by omega)] at l2
+  rw [c0, word_two_pow (by omega)] at l0
+  rw [c1, word_two_pow (by omega)] at l1
+  rw [c2, word_two_pow (by omega)] at l2
   have m166 := a 377 (.mul (.n (val% «verify_bus_gkr» "odd_g~0")) (.n (val% «verify_bus_gkr» "depth_odd")) (.n (val% «verify_bus_gkr» "g_bus_mu"))) (by decide +kernel)
   have l167 := a 378 (.load (.n (val% «verify_bus_gkr» "odd_g")) (.n (val% «verify_bus_gkr» "odd_g~0")) 0) (by decide +kernel)
   have c168 := a 379 (.const (.n (val% «verify_bus_gkr» "start_g~0")) (word 4 0)) (by decide +kernel)
@@ -181,12 +181,12 @@ theorem vbg_tables (h : Stmt.HoldsList C rd σ vbgPre True kret) {depth : ℕ}
   have m401 := a 391 (.mul (.n (val% «verify_bus_gkr» "rem_g~0")) (.n (val% «verify_bus_gkr» "four_rem")) (.n (val% «verify_bus_gkr» "g_bus_mu"))) (by decide +kernel)
   have l402 := a 392 (.load (.n (val% «verify_bus_gkr» "rem_g")) (.n (val% «verify_bus_gkr» "rem_g~0")) 0) (by decide +kernel)
   simp only [Atom.Holds] at m166 l167 c168 m168 m399 l400 m401 l402
-  rw [m166, hg, tb_loadHolds_mul_gen_pow, Nat.add_zero] at l167
-  rw [m399, hg, tb_loadHolds_mul_gen_pow, Nat.add_zero] at l400
-  rw [m401, hg, tb_loadHolds_mul_gen_pow, Nat.add_zero] at l402
-  have e167 := tb_loadHolds_unique l167 l0
-  refine ⟨e167, tb_loadHolds_unique l400 l1, tb_loadHolds_unique l402 l2, ?_⟩
-  rw [show (4 : ℕ) = 2 ^ 2 by norm_num, tb_word_two_pow (by norm_num)] at c168
+  rw [m166, hg, loadHolds_mul_gen_pow, Nat.add_zero] at l167
+  rw [m399, hg, loadHolds_mul_gen_pow, Nat.add_zero] at l400
+  rw [m401, hg, loadHolds_mul_gen_pow, Nat.add_zero] at l402
+  have e167 := loadHolds_unique l167 l0
+  refine ⟨e167, loadHolds_unique l400 l1, loadHolds_unique l402 l2, ?_⟩
+  rw [show (4 : ℕ) = 2 ^ 2 by norm_num, word_two_pow (by norm_num)] at c168
   rw [c168, e167] at m168
   have hsh : depth % 2 ≤ 2 := by omega
   have hne : (gen : E) ^ (depth % 2) ≠ 0 := pow_ne_zero _ gen_ne_zero
@@ -215,11 +215,11 @@ theorem vbg_walk {rd : Reader} {σ : Val} {kret : List E → Prop}
     (hg : σ (.n (val% «verify_bus_gkr» "g_bus_mu")) = gen ^ depth) (hd : depth < 33) (hd0 : depth ≠ 0) :
     ∃ (xs : List E) (st : GkrState) (s : Fs) (pos : E),
       RunsTo (gkrLayers depth (vbgSt0 σ)) (vbgS1 σ) xs st s ∧
-      TbReadsAt rd (σ (.n (val% «verify_bus_gkr» "cursor@1")) * gen ^ 2) xs ∧
+      ReadsAt rd (σ (.n (val% «verify_bus_gkr» "cursor@1")) * gen ^ 2) xs ∧
       GkSlot rd (σ (.n (val% «verify_bus_gkr» "layers"))) depth s (σ (.n (val% «verify_bus_gkr» "cursor@1")) * gen ^ 2 * gen ^ xs.length) st
         (σ (.n (val% «verify_bus_gkr» "gkr_pts")) * gen ^ (40 * ((depth - 1) / 2 + 1))) pos := by
   have hnr := vbgPre_noRet
-  have a := fun n a heq => tb_holds_atom hnr h n a heq
+  have a := fun n a heq => holds_atom hnr h n a heq
   obtain ⟨-, -, -, h59, h63, hcap, z42, z43, z44, z45⟩ := vbg_root h
   obtain ⟨e167, e400, e402, e169⟩ := vbg_tables h hg hd hd0
   -- the root-most slot
@@ -233,7 +233,7 @@ theorem vbg_walk {rd : Reader} {σ : Val} {kret : List E → Prop}
     rw [m174, m173, m172, m171, m170, e169, ← pow_add, ← pow_add, ← pow_add, ← pow_add]
     ring_nf
   -- the radix-four layers
-  obtain ⟨jj, hjj, hx, hls⟩ := tb_holds_dispatch hnr h 396 (.n (val% «verify_bus_gkr» "odd_g"))
+  obtain ⟨jj, hjj, hx, hls⟩ := holds_dispatch hnr h 396 (.n (val% «verify_bus_gkr» "odd_g"))
     [name% «gkr_layers__L0», name% «gkr_layers__L1»]
     [.n (val% «verify_bus_gkr» "layers"), .n (val% «verify_bus_gkr» "rounds"), .n (val% «verify_bus_gkr» "gkr_pts"), .n (val% «verify_bus_gkr» "n_four"), .n (val% «verify_bus_gkr» "rem_g"), .n (val% «verify_bus_gkr» "start_g"), .n (val% «verify_bus_gkr» "g_bus_mu"), .n (val% «verify_bus_gkr» "tabs"), .n (val% «verify_bus_gkr» "stream")] [.n (val% «verify_bus_gkr» "done")] (by decide +kernel)
   have hjo : jj = depth % 2 := by
@@ -255,11 +255,11 @@ theorem vbg_walk {rd : Reader} {σ : Val} {kret : List E → Prop}
   -- the root-most layer
   have c175 := a 386 (.const (.n (val% «verify_bus_gkr» "s28#0")) (word 1 0)) (by decide +kernel)
   have a176 := a 387 (.add (.n (val% «verify_bus_gkr» "s28#1")) (.n (val% «verify_bus_gkr» "odd_g")) (.n (val% «verify_bus_gkr» "s28#0"))) (by decide +kernel)
-  simp only [Atom.Holds, tb_word_one] at c175 a176
-  have hi := tb_holds_slice hnr h 388 [.ite (.n (val% «verify_bus_gkr» "s28#1")) (core% «verify_bus_gkr» s388_t)
+  simp only [Atom.Holds, word_one] at c175 a176
+  have hi := holds_slice hnr h 388 [.ite (.n (val% «verify_bus_gkr» "s28#1")) (core% «verify_bus_gkr» s388_t)
     (core% «verify_bus_gkr» s388_e)] (by decide +kernel)
   simp only [Stmt.HoldsList] at hi
-  rw [tb_holds_ite_noRet _ _ _ vbgArm_noRet_t vbgArm_noRet_e] at hi
+  rw [holds_ite_noRet _ _ _ vbgArm_noRet_t vbgArm_noRet_e] at hi
   obtain ⟨⟨-, hfour, htwo⟩, -⟩ := hi
   rw [rtFour_eq, Stmt.holdsList_rename] at hfour
   rw [rtTwo_eq, Stmt.holdsList_rename] at htwo
@@ -275,7 +275,7 @@ theorem vbg_walk {rd : Reader} {σ : Val} {kret : List E → Prop}
     rw [show 46 + 8 + k + 71 = (val% «verify_bus_gkr» "nxt[0]@1") + 8 + k by omega]
   have root : ∃ (xs1 : List E) (st1 : GkrState) (s1 : Fs),
       RunsTo (gkrStep (2 - depth % 2) false (vbgSt0 σ)) (vbgS1 σ) xs1 st1 s1 ∧
-      TbReadsAt rd (σ (.n (val% «verify_bus_gkr» "cursor@1")) * gen ^ 2) xs1 ∧
+      ReadsAt rd (σ (.n (val% «verify_bus_gkr» "cursor@1")) * gen ^ 2) xs1 ∧
       GkSlot rd (σ (.n (val% «verify_bus_gkr» "layers"))) (2 - depth % 2) s1 (σ (.n (val% «verify_bus_gkr» "cursor@1")) * gen ^ 2 * gen ^ xs1.length) st1
         (σ (.n (val% «verify_bus_gkr» "gkr_pts")) * gen ^ 40) (gen ^ 7) := by
     rcases Nat.mod_two_eq_zero_or_one depth with h2 | h2
@@ -301,8 +301,8 @@ theorem vbg_walk {rd : Reader} {σ : Val} {kret : List E → Prop}
     · rw [h2] at hrun1
       rw [show depth = 2 * ((depth - 1) / 2) + 1 by omega, gkrLayers_odd]
       exact hrun1.bind hrun
-  have hrd' : TbReadsAt rd (σ (.n (val% «verify_bus_gkr» "cursor@1")) * gen ^ 2) (xs1 ++ xs) := by
-    rw [tbReadsAt_append]
+  have hrd' : ReadsAt rd (σ (.n (val% «verify_bus_gkr» "cursor@1")) * gen ^ 2) (xs1 ++ xs) := by
+    rw [readsAt_append]
     exact ⟨hrd1, hrd⟩
   rw [show 2 * ((depth - 1) / 2) + 2 - depth % 2 = depth by omega,
     mul_assoc (σ (.n (val% «verify_bus_gkr» "cursor@1")) * gen ^ 2), ← pow_add, ← List.length_append] at hsl
@@ -316,7 +316,7 @@ theorem verify_bus_gkr_holds {μ : ℕ} (hμ : μ ≤ 32)
     (Lm : MemoryImage μ) : verify_bus_gkr_Spec Lm.read := by
   intro args rets hne hrel
   obtain ⟨fn, hf, hp, hb⟩ := vbgFound
-  obtain ⟨σ, hpar, h, hret⟩ := (tb_rel_pre hf hb vbgPre_noRet args rets).mp hrel
+  obtain ⟨σ, hpar, h, hret⟩ := (rel_pre hf hb vbgPre_noRet args rets).mp hrel
   rw [hp] at hpar
   have hargs : args = [σ (.n (val% «verify_bus_gkr» "fs0")), σ (.n (val% «verify_bus_gkr» "fs1")), σ (.n (val% «verify_bus_gkr» "fs2")), σ (.n (val% «verify_bus_gkr» "fs3")), σ (.n (val% «verify_bus_gkr» "fs4")), σ (.n (val% «verify_bus_gkr» "cursor@1")), σ (.n (val% «verify_bus_gkr» "g_bus_mu")),
       σ (.n (val% «verify_bus_gkr» "zeta")), σ (.n (val% «verify_bus_gkr» "tabs")), σ (.n (val% «verify_bus_gkr» "stream"))] := by rw [← hpar]; rfl
@@ -325,13 +325,13 @@ theorem verify_bus_gkr_holds {μ : ℕ} (hμ : μ ≤ 32)
   subst hargs hrets
   simp only [List.getD_cons_succ, List.getD_cons_zero] at hne
   have hnr := vbgPre_noRet
-  have a := fun n a heq => tb_holds_atom hnr h n a heq
+  have a := fun n a heq => holds_atom hnr h n a heq
   -- the depth
   have c19 := a 140 (.const (.n (val% «verify_bus_gkr» "s3#0")) (word 4294967296 0)) (by decide +kernel)
   have rc := a 141 (.rangeCheck (.n (val% «verify_bus_gkr» "g_bus_mu")) (.n (val% «verify_bus_gkr» "s3#1")) (.n (val% «verify_bus_gkr» "s3#2")) (.n (val% «verify_bus_gkr» "s3#3")) (.n (val% «verify_bus_gkr» "s3#0"))) (by decide +kernel)
   simp only [Atom.Holds] at c19 rc
   obtain ⟨depth, hd, hg⟩ := tb_rc_sound' hμ Lm (K := 33) (by omega) (by norm_num)
-    (by rw [c19, show (4294967296 : ℕ) = 2 ^ 32 by norm_num, tb_word_two_pow (by norm_num),
+    (by rw [c19, show (4294967296 : ℕ) = 2 ^ 32 by norm_num, word_two_pow (by norm_num),
       gen_pow_eq_ofK]) rc.1 rc.2.1 rc.2.2
   have hd0 : depth ≠ 0 := by rintro rfl; exact hne (by rw [hg, pow_zero])
   -- the roots and the walk
@@ -372,8 +372,8 @@ theorem verify_bus_gkr_holds {μ : ℕ} (hμ : μ ≤ 32)
   have q437 := a 431 (.copy (.n (val% «verify_bus_gkr» "s39#0[6]")) (.n (val% «verify_bus_gkr» "leaves"))) (by decide +kernel)
   simp only [Atom.Holds] at m407 m408 m409 m410 m411 m412 m413 l414 c415 m416 m417 m418 m419
   simp only [Atom.Holds] at m420 m421 m422 m423 c424 a425 c426 q436 q437
-  rw [tb_word_one] at c424 c426
-  rw [tb_word_gen] at c415
+  rw [word_one] at c424 c426
+  rw [word_gen] at c415
   have e408 : σ (.n (val% «verify_bus_gkr» "last~1")) = gen ^ depth := by
     rw [m408, m407, e405, e169, ← pow_add, ← pow_add,
       show (depth - 1) / 2 + (depth - 1) / 2 + (2 - depth % 2) = depth by omega]
@@ -385,28 +385,28 @@ theorem verify_bus_gkr_holds {μ : ℕ} (hμ : μ ≤ 32)
     ring
   have ld : ∀ k w, LoadHolds Lm.read (σ (.n (val% «verify_bus_gkr» "last"))) k w →
       LoadHolds Lm.read (σ (.n (val% «verify_bus_gkr» "layers"))) (10 * depth + k) w := fun k w hw => by
-    rw [e413, tb_loadHolds_mul_gen_pow] at hw; exact hw
-  have hcs := tb_holds_slice hnr h 425 ((List.range 5).map fun k ↦
+    rw [e413, loadHolds_mul_gen_pow] at hw; exact hw
+  have hcs := holds_slice hnr h 425 ((List.range 5).map fun k ↦
     Stmt.atom (.load (.n ((val% «verify_bus_gkr» "s39#0") + k)) (.n (val% «verify_bus_gkr» "last")) k)) (by decide +kernel)
-  have hvs := tb_holds_slice hnr h 419 ((List.range 3).map fun k ↦
+  have hvs := holds_slice hnr h 419 ((List.range 3).map fun k ↦
     [Stmt.atom (.load (.n ((val% «verify_bus_gkr» "s38.u0.s0#0") + k)) (.n (val% «verify_bus_gkr» "last")) (6 + k)),
       .atom (.load (.n ((val% «verify_bus_gkr» "s38.u0.s0#0") + k)) (.n (val% «verify_bus_gkr» "leaves")) k)]).flatten (by decide +kernel)
-  rw [tb_holdsList_mapAtoms] at hcs
-  rw [tb_holdsList_flatten_range _ _ (fun _ => rfl)] at hvs
+  rw [holdsList_mapAtoms] at hcs
+  rw [holdsList_flatten_range _ _ (fun _ => rfl)] at hvs
   simp only [Atom.Holds] at hcs
   have ecap : ∀ k < 5, σ (.n ((val% «verify_bus_gkr» "s39#0") + k)) = s.cap.getD k 0 := fun k hk =>
-    tb_loadHolds_unique (ld _ _ (hcs k hk)) (hcap k hk)
+    loadHolds_unique (ld _ _ (hcs k hk)) (hcap k hk)
   have eval : ∀ k < 3, LoadHolds Lm.read (σ (.n (val% «verify_bus_gkr» "leaves"))) k (st.values.getD k 0) := by
     intro k hk
     have := hvs k hk
     simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at this
     obtain ⟨l1, l2⟩ := this
-    have e := tb_loadHolds_unique (by have := ld _ _ l1; rwa [← Nat.add_assoc] at this) (hval k hk)
+    have e := loadHolds_unique (by have := ld _ _ l1; rwa [← Nat.add_assoc] at this) (hval k hk)
     rw [e] at l2
     exact l2
-  have e414 := tb_loadHolds_unique (ld _ _ l414) hcur
+  have e414 := loadHolds_unique (ld _ _ l414) hcur
   -- the point's copy
-  obtain ⟨-, h7⟩ := tb_holds_callIf hnr h 417 (.n (val% «verify_bus_gkr» "s36#1")) name% «verify_bus_gkr_loop0» [.n (val% «verify_bus_gkr» "s36#2"), .n (val% «verify_bus_gkr» "g_bus_mu"),
+  obtain ⟨-, h7⟩ := holds_callIf hnr h 417 (.n (val% «verify_bus_gkr» "s36#1")) name% «verify_bus_gkr_loop0» [.n (val% «verify_bus_gkr» "s36#2"), .n (val% «verify_bus_gkr» "g_bus_mu"),
       .n (val% «verify_bus_gkr» "zeta"), .n (val% «verify_bus_gkr» "final_point_row")]
     (by decide +kernel)
   have hne7 : σ (.n (val% «verify_bus_gkr» "s36#1")) ≠ 0 := by
@@ -442,8 +442,8 @@ theorem verify_bus_gkr_holds {μ : ℕ} (hμ : μ ≤ 32)
   rw [hs] at hph
   refine ⟨depth, _, _, s.cap, σ (.n (val% «verify_bus_gkr» "leaves")), hg, hd, ?_, hph, hpl, hvl, hz, ?_, ?_⟩
   · simp only [List.append_nil, List.singleton_append]
-    rw [tbReadsAt_cons, tbReadsAt_cons]
-    have l33' := (tb_loadHolds_mul_gen_pow Lm.read (σ (.n (val% «verify_bus_gkr» "cursor@1"))) 1 0 (σ (.n (val% «verify_bus_gkr» "x@2")))).mpr l33
+    rw [readsAt_cons, readsAt_cons]
+    have l33' := (loadHolds_mul_gen_pow Lm.read (σ (.n (val% «verify_bus_gkr» "cursor@1"))) 1 0 (σ (.n (val% «verify_bus_gkr» "x@2")))).mpr l33
     rw [pow_one] at l33'
     refine ⟨l28, l33', ?_⟩
     rw [mul_assoc, ← pow_two]

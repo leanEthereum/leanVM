@@ -55,7 +55,7 @@ def group(gi, K, Z):
         (pc, c), (pk, mk) = K[0], K[1]
         kvar = mk[1][0]
         L_.append(f'  have hk : σv (.n {kvar}) = gen ^ κ := by\n'
-                  f'    rw [q{pk}, q{pc}, show ({c[1][1][0]} : ℕ) = 2 ^ 19 by norm_num, tb_word_two_pow (by norm_num)]\n'
+                  f'    rw [q{pk}, q{pc}, show ({c[1][1][0]} : ℕ) = 2 ^ 19 by norm_num, word_two_pow (by norm_num)]\n'
                   f'    exact hkx')
         kv = 26; adjv = 19; rest = K[2:]
     else:

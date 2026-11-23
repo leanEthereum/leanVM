@@ -1156,7 +1156,7 @@ theorem tabOf_at {r : Ref} {fn : Fn} {σ : Val} (hall : ∀ a ∈ Res.topAtoms f
   obtain ⟨w, hw, hpw⟩ := Option.bind_eq_some_iff.mp hk
   have hst : LoadHolds r.img.read (σ (V.n T')) t (σ (V.n c)) := hall _ (stAt_mem hc)
   have hcw : σ (V.n c) = w := hall _ (constOf_sound hw)
-  rw [hmul, hJ, B1.Tables.tb_loadHolds_mul_gen_pow, Nat.add_zero] at hld
+  rw [hmul, hJ, B1.loadHolds_mul_gen_pow, Nat.add_zero] at hld
   rw [B1.loadHolds_unique hld hst, hcw, powOf1_sound hpw, Value.gen_pow_eq_ofK]
 
 /-- **A table read's row** at an honest path: its index `g^t`, `t < N`. -/

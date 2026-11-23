@@ -192,7 +192,7 @@ theorem csk_rel {κ : ℕ} (hκ : κ < 31) {rd : Reader} {o : ℕ} {se sg : E} {
   have f0 : F 0 = gen ^ o := by simp [hF, cskVal]
   have f1 : F 1 = se := by simp [hF, cskVal]
   have f2 : F 2 = sg := by simp [hF, cskVal]
-  refine (tb_rel_pre hf hb (csPre_noRet κ) [gen ^ o, se, sg] _).mpr ⟨fun x ↦ F x.idx,
+  refine (rel_pre hf hb (csPre_noRet κ) [gen ^ o, se, sg] _).mpr ⟨fun x ↦ F x.idx,
     by rw [hfp]; simp only [List.map_cons, List.map_nil]; rw [f0, f1, f2], ?_, rfl⟩
   by_cases h32 : κ = 32
   · subst h32
@@ -208,14 +208,14 @@ theorem csk_rel {κ : ℕ} (hκ : κ < 31) {rd : Reader} {o : ℕ} {se sg : E} {
       true_and]
     have e3 : F 3 = word 1 0 := by simp [hF, cskVal]
     have e4 : F 4 = word 1 0 := by simp [hF, cskVal]
-    rw [e3, e4, f0, tb_word_one, pow_zero]
+    rw [e3, e4, f0, word_one, pow_zero]
     exact ⟨rfl, e_add_self 1, rfl⟩
   have hκ' : κ < 32 := by omega
   have hdig := cs_digits hκ' ho (Nat.dvd_trans (Nat.pow_dvd_pow 2 (by omega)) hd)
   have hu : ∀ k < csN κ, cskU κ o k < 16 := fun k _ => Nat.mod_lt _ (by norm_num)
   simp only [csPre, h32, ↓reduceIte, csHint, Stmt.HoldsList, Stmt.Holds, Atom.Holds, true_and]
-  rw [tb_holdsList_append_noRet (tb_noRetList_flatten_range _ _ (csNibT_noRet κ)),
-    tb_holdsList_flatten_range _ _ (csNibT_noRet κ)]
+  rw [holdsList_append_noRet (noRetList_flatten_range _ _ (csNibT_noRet κ)),
+    holdsList_flatten_range _ _ (csNibT_noRet κ)]
   have hN1 : 1 ≤ csN κ := by unfold csN; omega
   refine ⟨fun k hk ↦ ?_, ?_⟩
   · -- nibble `k`
@@ -224,11 +224,11 @@ theorem csk_rel {κ : ℕ} (hκ : κ < 31) {rd : Reader} {o : ℕ} {se sg : E} {
     have hdk := cs_dvd hu (by rw [show 16 ^ (κ / 4) * csDig (cskU κ o) (csN κ) = o from hdig.symm]; exact hd) k hk
     have hxe : LoadHolds rd (se * gen ^ cskU κ o k) (32 * (κ / 4 + k) + selEqOff (csW κ k - 1))
         (cskXE κ o p p1 k) := by
-      rw [tb_loadHolds_mul_gen_pow, show cskU κ o k + (32 * (κ / 4 + k) + selEqOff (csW κ k - 1)) =
+      rw [loadHolds_mul_gen_pow, show cskU κ o k + (32 * (κ / 4 + k) + selEqOff (csW κ k - 1)) =
         32 * (κ / 4 + k) + selEqOff (csW κ k - 1) + cskU κ o k by omega]
       exact hE _ hj _ (by omega) _ (hu k hk) hdk
     have hxg : LoadHolds rd (sg * gen ^ cskU κ o k) (16 * (κ / 4 + k)) (cskXG κ o k) := by
-      rw [tb_loadHolds_mul_gen_pow, show cskU κ o k + 16 * (κ / 4 + k) =
+      rw [loadHolds_mul_gen_pow, show cskU κ o k + 16 * (κ / 4 + k) =
         16 * (κ / 4 + k) + cskU κ o k by omega]
       exact hG _ hj _ (hu k hk)
     have hrc : LoadHolds rd (gen ^ cskU κ o k) 0 (cskRd rd (cskU κ o k)) ∧
@@ -314,7 +314,7 @@ theorem column_selector_complete_holds : column_selector_complete_Spec := by
         omega
       simp [this]
     subst ho0
-    have : cskVal 32 0 se sg p p1 rd (csRet 32) = 1 := by simp [cskVal, csRet, tb_word_one]
+    have : cskVal 32 0 se sg p p1 rd (csRet 32) = 1 := by simp [cskVal, csRet, word_one]
     rw [this] at hR
     simpa [bitsEq] using hR
   have hκ' : κ < 32 := by omega

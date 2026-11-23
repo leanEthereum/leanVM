@@ -74,7 +74,7 @@ def bsRet (n : ℕ) : List V := if n = 0 then [.n 3, .n 4] else [.n (10 * n + 1)
 noncomputable def bsCheck (n : ℕ) : Bool :=
   match coreProgram.find? (lName "block_selector" n) with
   | some fn => decide (fn.params = [.n (valf% «block_selector» "sel_bits"), .n (valf% «block_selector» "zeta1_hi"), .n (valf% «block_selector» "idxc_hi")]) &&
-      tbStmtsEqb fn.body (bsPre n ++ [.ret (bsRet n)])
+      stmtsEqb fn.body (bsPre n ++ [.ret (bsRet n)])
   | none => false
 
 theorem bsCheck_all : (List.range 34).all bsCheck = true := by decide +kernel
@@ -87,7 +87,7 @@ theorem bsFound {n : ℕ} (hn : n < 34) : ∃ fn : Fn,
   split at h
   · rename_i fn hf
     simp only [Bool.and_eq_true, decide_eq_true_eq] at h
-    exact ⟨fn, hf, h.1, tbStmtsEqb_sound h.2⟩
+    exact ⟨fn, hf, h.1, stmtsEqb_sound h.2⟩
   · exact absurd h (by simp)
 
 theorem bsBlk_noRet (k : ℕ) : Stmt.noRetList (bsBlk k) = true := by
@@ -96,20 +96,20 @@ theorem bsBlk_noRet (k : ℕ) : Stmt.noRetList (bsBlk k) = true := by
 theorem bsBlks_noRet : ∀ l : List ℕ, Stmt.noRetList (l.map bsBlk).flatten = true
   | [] => rfl
   | t :: l => by
-    rw [List.map_cons, List.flatten_cons, tb_noRetList_append, bsBlk_noRet, bsBlks_noRet l]; rfl
+    rw [List.map_cons, List.flatten_cons, noRetList_append, bsBlk_noRet, bsBlks_noRet l]; rfl
 
 theorem bsPre_noRet (n : ℕ) : Stmt.noRetList (bsPre n) = true := by
   unfold bsPre
   split
   · rfl
-  · rw [tb_noRetList_append, bsBlks_noRet]; rfl
+  · rw [noRetList_append, bsBlks_noRet]; rfl
 
 /-! ## The semantics -/
 
 /-- A word pinned by the write-once store of its square is a bit. -/
 theorem tb_pinned_bit {rd : Reader} {p b s : E} {k : ℕ} (hl : LoadHolds rd p k b)
     (hs : LoadHolds rd p k s) (hsq : s = b * b) : b = bitE (decide (b = 1)) :=
-  bitE_of_mul_self (by rw [← hsq]; exact (tb_loadHolds_unique hl hs).symm)
+  bitE_of_mul_self (by rw [← hsq]; exact (loadHolds_unique hl hs).symm)
 
 section Sem
 
@@ -131,7 +131,7 @@ theorem holds_bsBlk (k : ℕ) (h : Stmt.HoldsList C rd σ (bsBlk k) True kret) :
     obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9⟩ := h
     simp only [BsBlkOut, bsBit, bsEq, bsRb, ↓reduceIte, one_mul]
     refine ⟨h1, tb_pinned_bit h1 h3 h2, _, _, h4, h7, h5, ?_⟩
-    rw [h9, h6, h8, tb_word_one]
+    rw [h9, h6, h8, word_one]
   · simp only [bsBlk, h0, ↓reduceIte, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at h
     obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11⟩ := h
     have e1 : bsBit k = 10 * k + 1 := by simp only [bsBit, h0, ↓reduceIte]
@@ -140,7 +140,7 @@ theorem holds_bsBlk (k : ℕ) (h : Stmt.HoldsList C rd σ (bsBlk k) True kret) :
     simp only [BsBlkOut, e1, e2, e3, h0, ↓reduceIte]
     refine ⟨h1, tb_pinned_bit h1 h3 h2, _, _, h4, h8, ?_, ?_⟩
     · rw [h6, h5]
-    · rw [h11, h10, h7, h9, tb_word_one]
+    · rw [h11, h10, h7, h9, word_one]
 
 end Sem
 
@@ -160,7 +160,7 @@ theorem tb_zip_map_range {α β : Type} (f : ℕ → α) (g : ℕ → β) (n : �
 theorem block_selector_sound {n : ℕ} (hn : n < 34) {rd : Reader} {args rets : List E}
     (h : coreProgram.Rel rd (lName "block_selector" n) args rets) : BlockSelOut n rd args rets := by
   obtain ⟨fn, hf, hp, hb⟩ := bsFound hn
-  obtain ⟨σ, hpar, hpre, hret⟩ := (tb_rel_pre hf hb (bsPre_noRet n) args rets).mp h
+  obtain ⟨σ, hpar, hpre, hret⟩ := (rel_pre hf hb (bsPre_noRet n) args rets).mp h
   rw [hp] at hpar
   simp only [List.map_cons, List.map_nil] at hpar
   subst hpar hret
@@ -168,10 +168,10 @@ theorem block_selector_sound {n : ℕ} (hn : n < 34) {rd : Reader} {args rets : 
   · subst h0
     simp only [bsPre, ↓reduceIte, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at hpre
     simp only [bsRet, ↓reduceIte, List.map_cons, List.map_nil, BlockSelOut]
-    refine ⟨[], [], [], rfl, rfl, rfl, tbReadsAt_nil _ _, tbReadsAt_nil _ _, tbReadsAt_nil _ _,
+    refine ⟨[], [], [], rfl, rfl, rfl, readsAt_nil _ _, readsAt_nil _ _, readsAt_nil _ _,
       ?_, ?_⟩
-    · simp [hpre.1, tb_word_one]
-    · simp [hpre.2, tb_word_one]
+    · simp [hpre.1, word_one]
+    · simp [hpre.2, word_one]
   · simp only [bsPre, h0, ↓reduceIte] at hpre
     rw [holdsList_append, holdsList_flatten _ (fun b hb => by
         obtain ⟨t, -, rfl⟩ := List.mem_map.mp hb; exact bsBlk_noRet t)] at hpre

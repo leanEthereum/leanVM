@@ -138,9 +138,9 @@ theorem cs_completeAtDTBRH (k : ℕ) (hk : 4 ≤ k) {κ : ℕ} (hκ : κ < 31) {
         show Tables.cskVal _ _ _ _ _ _ _ (Tables.csC κ j + if j = 0 then 6 else 7) = _
         by_cases hj0 : j = 0
         · subst hj0
-          rw [ite_pos' rfl, Tables.cskVal_at hκ' hj (by simp)]
+          rw [if_pos rfl, Tables.cskVal_at hκ' hj (by simp)]
           simp [Tables.cskRole]
-        · rw [ite_neg' hj0, Tables.cskVal_at hκ' hj (by simp [hj0])]
+        · rw [if_neg hj0, Tables.cskVal_at hκ' hj (by simp [hj0])]
           simp [Tables.cskRole, hj0]
       refine ⟨bg + Tables.cskU κ o j + 16 * (κ / 4 + j), ?_,
         Or.inl ⟨(bg, gTabW), by simp [csLin], by omega, by rw [gTabW_length]; omega⟩⟩

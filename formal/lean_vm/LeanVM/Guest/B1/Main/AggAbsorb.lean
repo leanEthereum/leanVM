@@ -265,20 +265,20 @@ theorem l25_step {x : E} {ps : List E} (h : coreProgram.Rel rd name% «aggregate
     by_cases ha : w < 2
     · rw [l25Src_lt2 ha, srcOk_some] at hs'
       have := memAt_of_load (load_sound hs' hat)
-      rw [ite_pos' ha, ← this]
+      rw [if_pos ha, ← this]
       rcases (show w = 0 ∨ w = 1 by omega) with rfl | rfl
-      · rw [ite_pos' rfl, p59]
-      · rw [ite_neg' (show ¬ (1 = 0) by omega), p63]
+      · rw [if_pos rfl, p59]
+      · rw [if_neg (show ¬ (1 = 0) by omega), p63]
     by_cases hb : w < 26
     · rw [l25Src_fresh (by omega) hb, srcOk_some] at hs'
-      rw [ite_neg' ha, ite_pos' hb, ← p50]
+      rw [if_neg ha, if_pos hb, ← p50]
       exact (memAt_of_load (load_sound hs' hat)).symm
     by_cases hc : w < 50
     · rw [l25Src_carried (by omega) hc, srcOk_some] at hs'
-      rw [ite_neg' ha, ite_neg' hb, ite_pos' hc, ← p57]
+      rw [if_neg ha, if_neg hb, if_pos hc, ← p57]
       exact (memAt_of_load (load_sound hs' hat)).symm
     · rw [l25Src_pad (by omega), srcOk_none] at hs'
-      rw [ite_neg' ha, ite_neg' hb, ite_neg' hc, const_sound hs' hat, word_zero]
+      rw [if_neg ha, if_neg hb, if_neg hc, const_sound hs' hat, word_zero]
   rw [← hw, hch, hnb]
   -- the row written
   have hcap : (List.range 5).map (fun i => σ ((s.outs (13 - 1)).getD (8 + i) default)) =

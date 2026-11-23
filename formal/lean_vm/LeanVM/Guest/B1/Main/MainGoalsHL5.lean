@@ -67,7 +67,7 @@ theorem kid_hMarkX_child {c j : ℕ} (hc : c < w.children.length)
     (by simpa using hj)
   unfold hMarkX base
   rw [List.length_map, take_map_lengths]
-  rw [ite_neg' (by unfold hRawX; omega)]
+  rw [if_neg (by unfold hRawX; omega)]
   simp only [hRawX, Nat.add_assoc, Nat.add_sub_cancel_left, e]
 
 theorem kid_hMarkS_child {c j : ℕ} (hc : c < w.children.length)
@@ -79,7 +79,7 @@ theorem kid_hMarkS_child {c j : ℕ} (hc : c < w.children.length)
     (by simpa using hj)
   unfold hMarkS base
   rw [List.length_map, take_map_lengths]
-  rw [ite_neg' (by unfold hRawS; omega)]
+  rw [if_neg (by unfold hRawS; omega)]
   simp only [hRawS, Nat.add_assoc, Nat.add_sub_cancel_left, e]
 
 /-! ## The coverage table -/

@@ -173,15 +173,6 @@ theorem fixedReads_region {spec : List (ℕ × ℕ)} {a : List E} {M : Layout}
   obtain ⟨rd0, hl0, hm0⟩ := hex
   exact forced_load_region (v := ws[t]'(by omega)) hl0 hm0 fun rd hl hm ↦ hr rd hl hm t (by omega)
 
-/-- Two memory facts at one address agree. -/
-theorem readsAt_unique {rd : Reader} {p : E} {xs ys : List E} (hl : xs.length = ys.length)
-    (hx : ReadsAt rd p xs) (hy : ReadsAt rd p ys) : xs = ys := by
-  refine List.ext_getElem hl fun k h1 h2 ↦ ?_
-  have a := (hx k h1).2
-  have b := (hy k h2).2
-  rw [a] at b
-  exact Option.some.inj b
-
 /-! ## The call relation -/
 
 /-- **The call relation of a memory**: a named callee's meaning there, and `X` of its arguments

@@ -65,7 +65,7 @@ theorem vt_sel_data : (∀ i < 51, (vtPushSel.getD i default).1 = 3 + i ∧ (vtP
 
 /-- A heap hint's words where the memory holds them. -/
 theorem words_heap_reads {rd : Reader} {σ : Val} {p : V} {P : E} {ws : List E} (hp : σ p = P)
-    (hr : TbReadsAt rd P ws) : Dest.words rd σ (.heap p 0 ws.length) = ws :=
+    (hr : ReadsAt rd P ws) : Dest.words rd σ (.heap p 0 ws.length) = ws :=
   List.ext_getElem (by simp [Dest.words]) fun k _ h2 => by simp [Dest.words, hp, (hr k h2).2]
 
 /-- `offDigits` is the executor's digits of an offset from a shift below `96`. -/
@@ -90,7 +90,7 @@ theorem offDigits_eq {off τ : ℕ} (hτ : τ < 96) :
 /-- **A table block's digits hint is exact** where its offset is `g^off`, its shift word `g^τ` and its buffer holds
 `offDigits off τ`. -/
 theorem digits_exact {rd : Reader} {σ : Val} {v c p : V} {off τ : ℕ} {P : E} (hoff : off < 2 ^ 34) (hτ : τ < 96)
-    (hv : σ v = gen ^ off) (hc : σ c = gen ^ τ) (hp : σ p = P) (hr : TbReadsAt rd P (offDigits off τ)) :
+    (hv : σ v = gen ^ off) (hc : σ c = gen ^ τ) (hp : σ p = P) (hr : ReadsAt rd P (offDigits off τ)) :
     (Hint.digitsExp v 34 9 4 0 (some c) (.heap p 0 9)).Exact rd σ := by
   refine ⟨off, τ, hoff, by rw [hv, gen_pow_eq_ofK], ⟨by omega, by rw [hc, gen_pow_eq_ofK]⟩, ?_⟩
   have e := words_heap_reads hp hr
@@ -99,7 +99,7 @@ theorem digits_exact {rd : Reader} {σ : Val} {v c p : V} {off τ : ℕ} {P : E}
 
 /-- **A framework block's bits hint is exact** where its offset is `g^off` and its buffer holds `offBits off`. -/
 theorem bitsExp_exact {rd : Reader} {σ : Val} {v p : V} {off : ℕ} {P : E} (hoff : off < 2 ^ 34)
-    (hv : σ v = gen ^ off) (hp : σ p = P) (hr : TbReadsAt rd P (offBits off)) :
+    (hv : σ v = gen ^ off) (hp : σ p = P) (hr : ReadsAt rd P (offBits off)) :
     (Hint.bitsExp v 34 (.heap p 0 34)).Exact rd σ := by
   refine ⟨off, hoff, by rw [hv, gen_pow_eq_ofK], ?_⟩
   have e := words_heap_reads hp hr
@@ -141,18 +141,18 @@ theorem vt_sites_exact {H : VtHonest} (hs : VtShape H) (B : VtBases) {o : ℕ} {
   have hw := vtW_ok H B'
   have hl : (H.args B').length = 21 := rfl
   have p : ∀ i < 21, (vtσ rd (vtW H B') (H.args B')) (.n i) = (H.args B').getD i 0 := fun i hi ↦ vt_param hl hi
-  have mDims : TbReadsAt rd (ofK (addressOfIndex B'.dims)) H.dimsW :=
+  have mDims : ReadsAt rd (ofK (addressOfIndex B'.dims)) H.dimsW :=
     vt_lin_reads (q := (B'.dims, H.dimsW)) hm (by simp [VtHonest.linL])
-  have mSq : TbReadsAt rd (ofK (addressOfIndex B'.sq)) expTableWordsW :=
+  have mSq : ReadsAt rd (ofK (addressOfIndex B'.sq)) expTableWordsW :=
     vt_lin_reads (q := (B'.sq, expTableWordsW)) hm (by simp [VtHonest.linL])
   have hd := fun j (hj : j < 4) ↦ ownW_getD_head H B' hj
-  have o33 : TbReadsAt rd (vtW H B' 34) (vtGKeyW H.lm H.τ) :=
+  have o33 : ReadsAt rd (vtW H B' 34) (vtGKeyW H.lm H.τ) :=
     vt_own_reads' hm hw (j := 0) (by norm_num) rfl (hd 0 (by norm_num))
-  have o34 : TbReadsAt rd (vtW H B' 35) (vtGSizeW H.lm H.τ) :=
+  have o34 : ReadsAt rd (vtW H B' 35) (vtGSizeW H.lm H.τ) :=
     vt_own_reads' hm hw (j := 1) (by norm_num) rfl (hd 1 (by norm_num))
-  have o35 : TbReadsAt rd (vtW H B' 36) (vtGBaseW H.lm H.τ) :=
+  have o35 : ReadsAt rd (vtW H B' 36) (vtGBaseW H.lm H.τ) :=
     vt_own_reads' hm hw (j := 2) (by norm_num) rfl (hd 2 (by norm_num))
-  have o36 : TbReadsAt rd (vtW H B' 37) (vtGOrdW H.lm H.τ) :=
+  have o36 : ReadsAt rd (vtW H B' 37) (vtGOrdW H.lm H.τ) :=
     vt_own_reads' hm hw (j := 3) (by norm_num) rfl (hd 3 (by norm_num))
   obtain ⟨-, -, hkb, -, hP, hC⟩ :=
     vtS_sort (rd := rd) (w := vtW H B') (args := H.args B') hl hlow hs.hlm hs.hτ33

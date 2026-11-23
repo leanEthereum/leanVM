@@ -41,12 +41,6 @@ theorem noRetList_append' (a b : List Stmt) :
   | nil => simp [Stmt.noRetList]
   | cons s a ih => simp [Stmt.noRetList, ih, Bool.and_assoc]
 
-theorem noRetList_flatten_range (n : ℕ) (f : ℕ → List Stmt) (h : ∀ i, Stmt.noRetList (f i) = true) :
-    Stmt.noRetList ((List.range n).map f).flatten = true := by
-  induction n with
-  | zero => rfl
-  | succ n ih => rw [List.range_succ, List.map_append, List.flatten_append, noRetList_append', ih]; simp [h]
-
 /-- A word of a run of lists, all of one length before the `k`-th. -/
 theorem getD_flatMap_range {α : Type} (len : ℕ) (d : α) :
     ∀ (k : ℕ) (f : ℕ → List α) (m o : ℕ), k < m → (∀ i < k, (f i).length = len) →

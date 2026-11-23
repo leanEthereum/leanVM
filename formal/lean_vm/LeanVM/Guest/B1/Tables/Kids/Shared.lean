@@ -83,13 +83,13 @@ theorem shared_selector_tables_relIn {rd : Reader} {R : ℕ → Prop} {eqt gt z 
     have := ss_prod (b := fun j ↦ σ (.n (6 + j))) (n := 2) (by norm_num)
       (fun j hj => pin j (by omega))
     simp only [Finset.prod_range_succ, Finset.prod_range_zero, one_mul, Nat.reduceAdd] at this
-    rw [m20, a15, a19, c12, c16, m14, m18, c13, c17, tb_word_one, this]
+    rw [m20, a15, a19, c12, c16, m14, m18, c13, c17, word_one, this]
   have hqg : σ (.n (val% «shared_selector_tables» "q_g@4")) = gen ^ q := by
     have := ss_prod (b := fun j ↦ σ (.n (6 + (j + 2)))) (n := 4) le_rfl
       (fun j hj => pin (j + 2) (by omega))
     simp only [Finset.prod_range_succ, Finset.prod_range_zero, one_mul, Nat.reduceAdd] at this
     rw [m39, m34, m29, a24, a28, a33, a38, c21, c25, c30, c35, m23, m27, m32, m37, c22, c26, c31,
-      c36, tb_word_one, this]
+      c36, word_one, this]
   have hq4 : σ (.n (val% «shared_selector_tables» "q4")) = gen ^ (4 * q) := by rw [m41, m40, hqg]; ring
   have hq16' : σ (.n (val% «shared_selector_tables» "q16")) = gen ^ (16 * q) := by rw [m47, m46, hq4]; ring
   have hnqr : n = 4 * q + r := by
@@ -119,10 +119,10 @@ theorem shared_selector_tables_relIn {rd : Reader} {R : ℕ → Prop} {eqt gt z 
       have hq0 : 0 < q := by
         rcases Nat.eq_zero_or_pos q with h0 | h0
         · exfalso; apply ht
-          rw [a44, c43, tb_word_one, hqg, h0, pow_zero, e_add_eq_zero_iff]
+          rw [a44, c43, word_one, hqg, h0, pow_zero, e_add_eq_zero_iff]
         · exact h0
       have hrel := hloop ht
-      simp only [List.map_cons, List.map_nil, c45, tb_word_one, hqg, p0, p1, p2, p3, p4] at hrel ⊢
+      simp only [List.map_cons, List.map_nil, c45, word_one, hqg, p0, p1, p2, p3, p4] at hrel ⊢
       obtain ⟨d, hd⟩ := hrel
       have := loop9_relIn (R := R) (K := q)
         (ptrIn_mono he (by omega))

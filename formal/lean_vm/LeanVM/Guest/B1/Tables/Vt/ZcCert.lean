@@ -30,7 +30,7 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier
 abbrev vtW32 : E := word 4294967296 0
 
 theorem vtW32_eq : vtW32 = ofK (Parameters.addressOfIndex 32) := by
-  rw [vtW32, show (4294967296 : ℕ) = 2 ^ 32 by norm_num, tb_word_two_pow (by norm_num),
+  rw [vtW32, show (4294967296 : ℕ) = 2 ^ 32 by norm_num, word_two_pow (by norm_num),
     gen_pow_eq_ofK]
 
 section
@@ -114,7 +114,7 @@ theorem vt_zc_n {σ : Val} (h : VtH Lm.read σ) {τ : ℕ → ℕ} (hτ : ∀ t 
   have im := gen_pow_inj (by omega) (by omega) a5191
   refine ⟨d0 + τ 0, a5155, fun t ht => ?_, ?_, by omega⟩
   · interval_cases t <;> omega
-  · rw [tb_word_zero] at a5188
+  · rw [word_zero] at a5188
     have hz : σ (.n (val% «verify_tables» "zc_is_a_tau@6")) = 0 := by rw [← a5188]; exact e_add_eq_zero_iff.mp a5189
     rw [a5187, a5181, a5175, a5169, a5163, a5157, a5162, a5168, a5174, a5180, a5186] at hz
     have key : ∀ t < 6, ∀ v : E, v = gen ^ τ t → σ (.n (val% «verify_tables» "g_zc_n")) + v = 0 → τ t = d0 + τ 0 :=

@@ -33,7 +33,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 def vtEvalFs (σ : Val) : Fs := (⟨vtCapV σ 0, []⟩ : Fs).absorbAll (vtEvs σ) dsObserve
 
 theorem vtW153 : word 10905190400 0 = gen ^ 153 := by
-  rw [tb_word_eOfNat]
+  rw [word_eOfNat]
   show ofK (K.ofBits 10905190400) = gen ^ 153
   rw [gen_pow_eq_ofK, show K.ofBits 10905190400 = Parameters.addressOfIndex 153 by decide +kernel]
 
@@ -94,7 +94,7 @@ theorem vt_pi {rd : Reader} {σ : Val} (h : VtH rd σ) :
   have r7 := h.atomAt 5237 (.copy (.n (val% «verify_tables» "s92#0[7]")) (.n (val% «verify_tables» "x@8"))) (by decide +kernel)
   have r8 := h.atomAt 5238 (.copy (.n (val% «verify_tables» "s92#0[8]")) (.n (val% «verify_tables» "nxt[0]@42"))) (by decide +kernel)
   have r9 := h.atomAt 5239 (.copy (.n (val% «verify_tables» "s92#0[9]")) (.n (val% «verify_tables» "cursor@5"))) (by decide +kernel)
-  simp only [Atom.Holds, tb_word_zero] at z3 z4 z5 z6 a5534 a5535 a5536 a5537
+  simp only [Atom.Holds, word_zero] at z3 z4 z5 z6 a5534 a5535 a5536 a5537
   simp only [Atom.Holds] at a5538 a5539 a5540 a5541
   simp only [Atom.Holds] at r0 r1 r2 r3 r4 c5547 m5548 r5 r6 r7 r8 r9
   -- the squeeze

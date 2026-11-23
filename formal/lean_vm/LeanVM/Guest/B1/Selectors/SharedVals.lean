@@ -164,13 +164,13 @@ theorem ss_body_vals {C : CallRel} {rd : Reader} {σ : Val} {next : Prop}
     have := ss_prod (b := fun j ↦ σ (.n (6 + j))) (n := 2) (by norm_num)
       (fun j hj => pin j (by omega))
     simp only [Finset.prod_range_succ, Finset.prod_range_zero, one_mul, Nat.reduceAdd] at this
-    rw [m20, a15, a19, c12, c16, m14, m18, c13, c17, tb_word_one, this]
+    rw [m20, a15, a19, c12, c16, m14, m18, c13, c17, word_one, this]
   have hqg : σ (.n (val% «shared_selector_tables» "q_g@4")) = gen ^ q := by
     have := ss_prod (b := fun j ↦ σ (.n (6 + (j + 2)))) (n := 4) le_rfl
       (fun j hj => pin (j + 2) (by omega))
     simp only [Finset.prod_range_succ, Finset.prod_range_zero, one_mul, Nat.reduceAdd] at this
     rw [m39, m34, m29, a24, a28, a33, a38, c21, c25, c30, c35, m23, m27, m32, m37, c22, c26, c31,
-      c36, tb_word_one, this]
+      c36, word_one, this]
   have hq4 : σ (.n (val% «shared_selector_tables» "q4")) = gen ^ (4 * q) := by rw [m41, m40, hqg]; ring
   have hn' : 4 * q + r = n := by
     have e : gen ^ (4 * q + r) = gen ^ n := by
@@ -178,8 +178,8 @@ theorem ss_body_vals {C : CallRel} {rd : Reader} {σ : Val} {next : Prop}
     exact gen_pow_inj (by omega) (by omega) e
   have hq : q = n / 4 := by omega
   have hr : r = n % 4 := by omega
-  refine ⟨by rw [hqg, hq], by rw [hrg, hr], by rw [a44, c43, tb_word_one, hqg, hq],
-    by rw [c45, tb_word_one]⟩
+  refine ⟨by rw [hqg, hq], by rw [hrg, hr], by rw [a44, c43, word_one, hqg, hq],
+    by rw [c45, word_one]⟩
 
 end
 end LeanVM.Guest.B1.Tables

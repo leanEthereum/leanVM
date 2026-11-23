@@ -142,13 +142,13 @@ theorem mPath_popS {m : MainIn} (hnd : m.nd ≤ 1) (hnc : m.nc ≤ 16) (hv : MVa
   obtain ⟨b1, b2, b2', b3, b4, b5, b6⟩ := mBlocks_popS
   have e1 : (if σ (.n (val% «main» "s50#1")) = 0 then mDa else mDaZ).filterMap Stmt.popS = if m.nd = 1 then [none] else [] := by
     by_cases h : m.nd = 1
-    · rw [ite_pos' (h368.mpr h), ite_pos' h, b2]
-    · rw [ite_neg' (fun h' => h (h368.mp h')), ite_neg' h, b2']
+    · rw [if_pos (h368.mpr h), if_pos h, b2]
+    · rw [if_neg (fun h' => h (h368.mp h')), if_neg h, b2']
   have e2 : (if σ (.n (val% «main» "s63#1")) = 0 then mLeaf else mAgg).filterMap Stmt.popS =
       if m.nc = 0 then [some ("leaf_defer", .stack [.n (val% «main» "leaf_value")])] else [none] := by
     by_cases h : m.nc = 0
-    · rw [ite_pos' (h418.mpr h), ite_pos' h, b4]
-    · rw [ite_neg' (fun h' => h (h418.mp h')), ite_neg' h, b5]
+    · rw [if_pos (h418.mpr h), if_pos h, b4]
+    · rw [if_neg (fun h' => h (h418.mp h')), if_neg h, b5]
   rw [mPath, List.filterMap_append, List.filterMap_append, List.filterMap_append, List.filterMap_append, b1, e1, b3,
     e2, b6]
 

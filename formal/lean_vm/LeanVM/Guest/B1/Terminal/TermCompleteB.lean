@@ -104,7 +104,7 @@ theorem l15_kid_completeB (κ : ℕ) {b bp m : ℕ} {rm glm : E} {ps : List E} {
     intro k hk1 hkm
     have e : (ps.take m).getD k 0 = ps.getD k 0 := by
       simp [List.getD_eq_getElem?_getD, hkm]
-    rw [piW_getD (by omega), piW_getD (by omega), ite_neg' (by omega), ite_neg' (by omega),
+    rw [piW_getD (by omega), piW_getD (by omega), if_neg (by omega), if_neg (by omega),
       Finset.prod_Ico_succ_top (by omega), e, mul_assoc]
   have h := l15_relIn (piW_length rm ps m) (by simp; omega) hm0 (readsAt_take (hrd rd hl hmL) m) hstep
     (R := RegionL ((b, piW rm ps m) :: L)) (fun i hi => by
@@ -197,7 +197,7 @@ theorem termKids_completeB (κ : ℕ) (hκ : 6 ≤ κ) (Lin : Main.Layout) (D : 
       have hL : (selKid D c pv).Lin =
           csLin D.B.pt D.B.pt1 ese (D.B.gsq + 34) (pt32 D.x) (pt132 D.x) := by
         show @ite _ _ (Classical.propDecidable _) _ _ = _
-        rw [@ite_pos' _ _ (Classical.propDecidable _) _ _ ⟨ese, h1, h2⟩, h2]; rfl
+        rw [@if_pos _ _ (Classical.propDecidable _) _ _ ⟨ese, h1, h2⟩, h2]; rfl
       have ha : (selKid D c pv).args = [gen ^ D.OF.getD c 0, ofK (addressOfIndex ese), ofK
           (addressOfIndex (D.B.gsq + 34))] := by
         show [_, (stRes pv).1.getD 0 0, _] = _

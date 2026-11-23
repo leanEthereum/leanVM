@@ -260,7 +260,7 @@ theorem l15_kid_complete (κ : ℕ) {b bp m : ℕ} {rm glm : E} {ps : List E} {L
     intro k hk1 hkm
     have e : (ps.take m).getD k 0 = ps.getD k 0 := by
       simp [List.getD_eq_getElem?_getD, hkm]
-    rw [piW_getD (by omega), piW_getD (by omega), ite_neg' (by omega), ite_neg' (by omega),
+    rw [piW_getD (by omega), piW_getD (by omega), if_neg (by omega), if_neg (by omega),
       prod_Ico_succ_top (by omega), e, mul_assoc]
   have h := l15_relIn (piW_length rm ps m) (by simp; omega) hm0 (readsAt_take (hrd rd hl hmL) m) hstep
     (R := RegionL ((b, piW rm ps m) :: L)) (fun i hi => by
@@ -320,7 +320,7 @@ theorem termKids_complete (κ : ℕ) (hκ : 6 ≤ κ) (Lin : Main.Layout) (D : T
     have hL : (selKid D c pv).Lin =
         csLin D.B.pt D.B.pt1 ese (D.B.gsq + 34) (pt32 D.x) (pt132 D.x) := by
       show @ite _ _ (Classical.propDecidable _) _ _ = _
-      rw [@ite_pos' _ _ (Classical.propDecidable _) _ _ ⟨ese, h1, h2⟩, h2]; rfl
+      rw [@if_pos _ _ (Classical.propDecidable _) _ _ ⟨ese, h1, h2⟩, h2]; rfl
     have ha : (selKid D c pv).args = [gen ^ D.OF.getD c 0, ofK (addressOfIndex ese), ofK
         (addressOfIndex (D.B.gsq + 34))] := by
       show [_, (stRes pv).1.getD 0 0, _] = _
@@ -391,7 +391,7 @@ theorem selKid_taken {D : TermData} {c : ℕ} {outs : List (List E × Main.Layou
       (stRes (outs.take j)).2 := @of_decide_eq_true _ (Classical.propDecidable _) ht
   rw [stRes_take] at hst ⊢
   split at hst
-  · rename_i h; exact ⟨h, by rw [ite_pos' h], hst⟩
+  · rename_i h; exact ⟨h, by rw [if_pos h], hst⟩
   · exact absurd hst stOut_nil
 
 theorem selKid_lin {D : TermData} {c : ℕ} {outs : List (List E × Main.Layout)} {j : ℕ}
@@ -401,7 +401,7 @@ theorem selKid_lin {D : TermData} {c : ℕ} {outs : List (List E × Main.Layout)
         [(D.B.gsq + 34, gTabW)] := by
   obtain ⟨-, e, hst⟩ := selKid_taken ht
   show @ite _ _ (Classical.propDecidable _) _ _ = _
-  rw [e, @ite_pos' _ _ (Classical.propDecidable _) _ _ hst]
+  rw [e, @if_pos _ _ (Classical.propDecidable _) _ _ hst]
 
 theorem regionL_append {L L' : Main.Layout} {i : ℕ} (h : RegionL (L ++ L') i) :
     RegionL L i ∨ RegionL L' i := by
@@ -528,7 +528,7 @@ theorem termKids_mem (Lin : Main.Layout) (D : TermData) (b0 : ℕ) {rd : Reader}
     · have hn : ¬ Tables.stOut D.B.pt D.B.pt1 (pt32 D.x) (pt132 D.x) (stRes (outs.take j)).1
           (stRes (outs.take j)).2 := fun h => ht (@decide_eq_true _ (Classical.propDecidable _) h)
       show MemL rd (@ite _ _ (Classical.propDecidable _) _ _)
-      rw [@ite_neg' _ _ (Classical.propDecidable _) _ _ hn]
+      rw [@if_neg _ _ (Classical.propDecidable _) _ _ hn]
       intro q hq; simp at hq
   · exact cons _ (by simp [termBufs])
   · exact hrs

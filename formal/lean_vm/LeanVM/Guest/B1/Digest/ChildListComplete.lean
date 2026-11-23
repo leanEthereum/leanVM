@@ -48,7 +48,7 @@ theorem recMem_group {region limit entries base : E} {n : ℕ} {o : ℕ → ℕ}
   have e : ((cells.drop (4 * s)).take (4 * k)).getD (4 * j + c) 0 =
       cells.getD (4 * (s + j) + c) 0 := by
     simp only [List.getD_eq_getElem?_getD, List.getElem?_take, List.getElem?_drop]
-    rw [ite_pos' (by omega), show 4 * s + (4 * j + c) = 4 * (s + j) + c by ring]
+    rw [if_pos (by omega), show 4 * s + (4 * j + c) = 4 * (s + j) + c by ring]
   rw [e]
   exact h3 c hc
 

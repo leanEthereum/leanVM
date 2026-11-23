@@ -38,7 +38,7 @@ theorem capAt_get {rec : E} {k : ℕ} {cap : List E} (h : CapAt rd rec k krCap c
 theorem goodS_mul_lt {d x y : ℕ} (hx : x < d) (hy : y < d)
     (h : GoodS rd S w σ (.atom (.mul (.n d) (.n x) (.n y)))) : σ (.n d) = σ (.n x) * σ (.n y) := by
   simp only [GoodS, Good] at h
-  rwa [ite_pos' ⟨hx, hy⟩] at h
+  rwa [if_pos ⟨hx, hy⟩] at h
 
 /-- The setup's equations. -/
 theorem packSetup_goods {o first : ℕ} (ho : LayOff o) (hg : ∀ s ∈ packSetupT o first, GoodS rd S w σ s) :
