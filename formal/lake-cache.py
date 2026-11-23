@@ -6,6 +6,7 @@
   python3 -I lake-cache.py filter DIR [--cache CACHE]
   python3 -I lake-cache.py check DIR [--cache CACHE]
   python3 -I lake-cache.py digest
+  python3 -I lake-cache.py artifact-name
 
 Lake's artifact cache (`lake env printenv LAKE_CACHE_DIR`) holds every output by content hash (`artifacts/`) and,
 per package, a map from a target's input hash, its trace's `depHash`, to its outputs (`outputs/<package>/<hash>.json`).
@@ -19,17 +20,18 @@ covers.
 restored: each local module's map bound in `manifest.json` to its name and strong key, every output's SHA-256, and
 of the other packages every target (of Mathlib's only the compiled objects, as `lake exe cache get` provides the
 rest). It leaves out the local packages' other targets (objects, executables, libraries) and any local module whose
-build was stopped (an output missing from the build directory) or whose source is newer than its trace, and fails on
-a local module whose source it cannot find exactly once, on an output in the store that is not the file Lake built
-under its name (the store keeps the first file written under a name), or on a trace that mentions `skipKernelTC`.
-`unpack` checks every member's name, and every output against the manifest's SHA-256 (a file already in the cache
-too), before installing anything; it installs each file whole under its name, puts every map of a local package
-under `held/`, where Lake does not read it, and keeps the manifest under `manifests/`, last. `filter` moves a held
-map into `outputs/` (marking it under `active/`) only while its module's strong key in the workspace is the one
-bound to it, and back otherwise. `check`, after a build, fails if a target restored from a marked map is not a local
-module bound to its name and present strong key, or two traces of a local package share an input hash. `lake-
-build.py` runs `filter` before and `check` after every build. No module may read a file at elaboration time, which
-no input hash covers: `lean.yml`'s statement job greps for the usual spellings.
+build was stopped (an output missing from the build directory), whose local closure has a source newer than its
+trace, or one of whose local imports it leaves out, and fails on a local module whose source it cannot find exactly
+once, on an output in the store that is not the file Lake built under its name (the store keeps the first file
+written under a name), or on a trace that mentions `skipKernelTC`. `unpack` refuses a manifest of another `digest`,
+checks every member's name, and every output against the manifest's SHA-256 (a file already in the cache too),
+before installing anything; it installs each file whole under its name, puts every map of a local package under
+`held/`, where Lake does not read it, and keeps the manifest under `manifests/`, last. `filter` moves a held map
+into `outputs/` (marking it under `active/`) only while its module's strong key in the workspace is the one bound to
+it, and back otherwise. `check`, after a build, fails if a target restored from a marked map is not a local module
+bound to its name and present strong key, or two traces of a local package share an input hash. `lake- build.py`
+runs `filter` before and `check` after every build. No module may read a file at elaboration time, which no input
+hash covers: `lean.yml`'s statement job greps for the usual spellings.
 
 `get` unpacks the archive `lean.yml` published from the newest successful push or schedule run on branch `main` whose
 commit is in `main`'s history, named after `digest`, the SHA-256 of what enters Lake's input hashes without being a
@@ -121,6 +123,7 @@ class Keys:
         self.dirs = [root / d for root in local for d in {"."} | {
             t.get("srcDir", ".") for k in ("lean_lib", "lean_exe") for t in config(root).get(k, [])}]
         self.pkg, self.prefix, self.keys, self.sources = pkg, [digest(), config(pkg)["name"]], {}, {}
+        self.deps: dict[str, list[str] | None] = {}
 
     def source(self, module: str) -> Path | None:
         """The module's local source, if exactly one local source directory has it."""
@@ -142,7 +145,7 @@ class Keys:
         return out
 
     def of(self, modules) -> dict[str, str | None]:
-        todo, srcs, deps = set(modules), {}, {}
+        todo, srcs, deps = set(modules), {}, self.deps
         while todo:
             for m in todo:
                 srcs[m] = self.source(m)
@@ -277,7 +280,7 @@ def built_as(build: Path, module: str, artifact: str, cache: Path) -> bool:
 def pack(pkg: Path, archive: Path, cache: Path) -> None:
     check(pkg, cache)
     keys = Keys(pkg)
-    maps, arts, local_maps = set(), set(), {}
+    maps, arts, local_maps, local_entries = set(), set(), {}, {}
     local_scopes = {config(root)["name"] for root, kind in packages(pkg) if kind == "local"}
     for root, kind in packages(pkg):
         build = root / ".lake" / "build"
@@ -295,18 +298,36 @@ def pack(pkg: Path, archive: Path, cache: Path) -> None:
                     sys.exit(f"lake-cache: {mapping} names {missing[0]}, which the store lacks: nothing packed")
                 continue
             if kind == "local":
-                module, src = module_name(root, trace), keys.source(module_name(root, trace))
-                stale = src is not None and src.stat().st_mtime > trace.stat().st_mtime
-                if not all([built_as(build, module, a, cache) for a in named]) or stale:
-                    continue  # a build stopped before writing it, or a source changed after it: not packed
+                module = module_name(root, trace)
+                if not all([built_as(build, module, a, cache) for a in named]):
+                    continue  # a build stopped before writing it: not packed
                 local_maps[f"{scope}/{data['depHash']}"] = module
+                local_entries[module] = (mapping.relative_to(cache).as_posix(), named, trace.stat().st_mtime)
+                continue
             maps.add(mapping.relative_to(cache).as_posix())
             arts.update(named)
-    if not maps:
-        sys.exit(f"lake-cache: no entry of {cache} is in {pkg}'s build: was LAKE_ARTIFACT_CACHE on?")
     bound = keys.of(set(local_maps.values()))
     if unbound := sorted(m for m in local_maps.values() if bound[m] is None):
         sys.exit(f"lake-cache: no single source, or no readable imports, for {unbound[:5]}: nothing packed")
+    newest: dict[str, float] = {}
+
+    def latest(m: str) -> float:  # the newest source in m's local closure
+        if m not in newest:
+            newest[m] = max([keys.source(m).stat().st_mtime,
+                             *(latest(i) for i in keys.deps[m] if keys.source(i))])
+        return newest[m]
+
+    # A module is packed only with every local import packed, and built after every source of its closure: else
+    # its outputs are not those of the closure its key binds.
+    packed = {m for m, (_, _, built_at) in local_entries.items() if latest(m) <= built_at}
+    while drop := {m for m in packed if any(keys.source(i) and i not in packed for i in keys.deps[m])}:
+        packed -= drop
+    local_maps = {r: m for r, m in local_maps.items() if m in packed}
+    for m in packed:
+        maps.add(local_entries[m][0])
+        arts.update(local_entries[m][1])
+    if not maps and not local_entries:
+        sys.exit(f"lake-cache: no entry of {cache} is in {pkg}'s build: was LAKE_ARTIFACT_CACHE on?")
     manifest = json.dumps({
         "digest": digest(), "local": sorted(local_scopes),
         "modules": {r: {"module": m, "key": bound[m]} for r, m in local_maps.items()},
@@ -348,12 +369,14 @@ def unpack(archive: Path, cache: Path) -> None:
             content = tar.extractfile(member).read()
             if first:
                 raw, manifest, first = content, json.loads(content), False
+                if manifest["digest"] != digest():
+                    raise ValueError("its manifest is for another tooling")
                 local = set(manifest["local"])
             elif member.name.startswith("artifacts/"):
                 path, want = cache / member.name, manifest["artifacts"].get(member.name[10:])
                 if sha256(content) != want or path.exists() and sha256(path.read_bytes()) != want:
                     raise ValueError(f"{member.name} is not the manifest's")
-    except (ValueError, KeyError, TypeError, tarfile.TarError) as e:
+    except (ValueError, KeyError, TypeError, AttributeError, tarfile.TarError) as e:
         sys.exit(f"lake-cache: {archive}: {e}: nothing unpacked")
     if first:
         sys.exit(f"lake-cache: {archive} is empty")

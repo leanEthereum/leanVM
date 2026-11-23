@@ -124,6 +124,10 @@ def fixture(root: Path) -> None:
     archive_of(archive, {"manifest.json": json.dumps(manifest).encode(), f"artifacts/{ART}": b"another olean"})
     r = run("unpack", pkg, archive, "--cache", root / "forged")
     check(r.returncode != 0 and not (root / "forged").exists(), "an output that is not the manifest's was unpacked")
+    archive_of(archive, {"manifest.json": json.dumps(manifest | {"digest": "0" * 64}).encode(),
+                         f"artifacts/{ART}": b"olean", f"outputs/dep/{'2' * 16}.json": b"{}"})
+    r = run("unpack", pkg, archive, "--cache", root / "other-tooling")
+    check(r.returncode != 0 and not (root / "other-tooling").exists(), "an archive of another tooling was unpacked")
 
     write(pkg / ".lake/build/lib/lean/B.trace", json.dumps(trace))
     r = run("check", pkg, "--cache", other)
@@ -158,6 +162,7 @@ else:
 def trust(root: Path) -> None:
     """`get` takes the one run that passes every test, though newer runs each fail one."""
     name = run("artifact-name").stdout.strip()  # what `lean.yml` publishes
+    digest = run("digest").stdout.strip()
     good = dict(event="push", repo="leanEthereum/leanVM", head_branch="main", compare="ahead", artifact=name,
                 expired=False)
     cases = [dict(good, event="pull_request", repo="someone/leanVM"), dict(good, event="workflow_dispatch"),
@@ -175,7 +180,7 @@ def trust(root: Path) -> None:
         if c["artifact"]:
             artifacts[rid] = [{"name": c["artifact"], "expired": c["expired"]}]
             (fake / rid).mkdir(parents=True)
-            manifest = {"local": [], "modules": {}, "artifacts": {f"{i:016x}.olean": sha(b"x")}}
+            manifest = {"digest": digest, "local": [], "modules": {}, "artifacts": {f"{i:016x}.olean": sha(b"x")}}
             archive_of(fake / rid / c["artifact"], {"manifest.json": json.dumps(manifest).encode(),
                                                     f"artifacts/{i:016x}.olean": b"x"})
     for f, v in (("runs.json", runs), ("artifacts.json", artifacts), ("compare.json", compare)):
@@ -367,7 +372,7 @@ def stale(root: Path) -> None:
 
 def stopped(root: Path) -> None:
     """`pack` leaves out a module whose rebuild failed (its outputs gone from the build directory, its trace and map
-    left), and one whose source changed after its build, and packs the rest."""
+    left), one whose closure has a source changed after its build, and every importer of one left out."""
     ws = workspace(root / "a", TOY)
     built(ws, root / "cache")
     trace = ws / ".lake/build/lib/lean/Toy/B.trace"
@@ -383,7 +388,7 @@ def stopped(root: Path) -> None:
         check(run("unpack", ws, root / f"{name}.tar.zst", "--cache", root / name).returncode == 0, "unpack failed")
         (manifest,) = (root / name / "manifests").glob("*.json")
         packed = {b["module"] for b in json.loads(manifest.read_text())["modules"].values()}
-        want = {"Toy", "Toy.A"} if edit is None else {"Toy"}
+        want = {"Toy.A"} if edit is None else set()
         check(packed == want, f"{name}: packed {sorted(packed)}, not {sorted(want)}")
 
 
