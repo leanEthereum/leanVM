@@ -15,11 +15,12 @@ x86v4gfni x86_64 $x86v4,+vpclmulqdq,+gfni,+avx512vbmi
 x86v3gfni x86_64 $x86v3,+vpclmulqdq,+gfni
 x86v3clmul x86_64 $x86v3,+vpclmulqdq
 x86v4 x86_64 $x86v4
+x86avx2 x86_64 +avx2,+pclmulqdq
 armsha3 aarch64 +aes,+sha3
 armaes aarch64 +aes
 "
-# The features the copied sources select code on, per architecture; `avx` and `ssse3` come with `avx2`.
-selected="
+# The features the copied sources gate code on, per architecture; `avx` and `ssse3` come with `avx2`.
+gated="
 x86_64 avx2 pclmulqdq bmi2 vpclmulqdq gfni avx512f avx512bw avx512vbmi
 aarch64 aes sha3
 "
@@ -34,16 +35,18 @@ experimental_lean_vm_core experimental_prover/lean_vm_core isa parallel=experime
 "
 copied=$(echo "$crates" | cut -d' ' -f1)
 
-# Every feature a source gates on is selected, and every selected one is in a tier of its architecture.
+# The sources gate on exactly the gated features, and a tier of its architecture enables each one.
 sources=$(echo "$crates" | awk 'NF { print "../" $2 "/src" }')
-for feature in $(grep -rhoE 'target_feature = "[a-z0-9_.]+"' $sources | sed 's/.*"\(.*\)"/\1/' | sort -u); do
-    case " avx ssse3 $(echo $selected) " in
+found=$(grep -rhoE 'target_feature *= *"[a-z0-9_.]+"' $sources | sed 's/.*"\(.*\)"/\1/' | sort -u)
+for feature in $found; do
+    case " avx ssse3 $(echo $gated) " in
     *" $feature "*) ;;
-    *) echo "the sources gate on $feature: add it to a tier and to \$selected" >&2 && exit 1 ;;
+    *) echo "the sources gate on $feature: add it to a tier and to \$gated" >&2 && exit 1 ;;
     esac
 done
-echo "$selected" | while read -r arch features; do
+echo "$gated" | while read -r arch features; do
     for feature in $features; do
+        echo "$found" | grep -qx "$feature" || { echo "no source gates on $feature: drop it from \$gated" >&2 && exit 1; }
         echo "$tiers" | awk -v arch="$arch" '$2 == arch { print $3 }' | grep -q "+$feature\b" ||
             { echo "no $arch tier enables $feature" >&2 && exit 1; }
     done
@@ -121,19 +124,32 @@ echo "$tiers" | while read -r tier arch features; do
         "$(echo "$features" | sed 's/+\([a-z0-9_.]*\)/"\1"/g; s/,/, /g')" >> "$dispatch/src/tiers.rs"
 done
 printf '}\n' >> "$dispatch/src/tiers.rs"
-# Per selected feature: its name, whether this CPU has it, and whether the build's own code uses it.
-echo "$selected" | while read -r arch features; do
+# Per architecture, for the warning: every tier and its features, and per feature whether the CPU has it and
+# whether the build's own code does.
+echo "$gated" | while read -r arch gates; do
     [ -n "$arch" ] || continue
     detect=is_x86_feature_detected
     [ "$arch" = x86_64 ] || detect=is_${arch}_feature_detected
-    printf '\n#[cfg(target_arch = "%s")]\nfn selected() -> Vec<(&'"'"'static str, bool, bool)> {\n    vec![\n' "$arch"
-    for feature in $features; do
-        printf '        ("%s", std::arch::%s!("%s"), cfg!(target_feature = "%s")),\n' "$feature" "$detect" "$feature" "$feature"
+    all=$(echo "$tiers" | awk -v arch="$arch" '$2 == arch { print $3 }' | tr ',+' '\n\n' | awk 'NF && !seen[$0]++')
+    printf '\n#[cfg(target_arch = "%s")]\nconst TABLE: &[(&str, &[&str])] = &[\n' "$arch"
+    echo "$tiers" | awk -v arch="$arch" '$2 == arch { print $1, $3 }' | while read -r tier features; do
+        printf '    ("%s", &[%s]),\n' "$tier" "$(echo "$features" | sed 's/+\([a-z0-9_.]*\)/"\1"/g; s/,/, /g')"
     done
-    printf '    ]\n}\n'
+    printf '];\n\n#[cfg(target_arch = "%s")]\nconst GATED: &[&str] = &[%s];\n' "$arch" \
+        "$(for f in $gates; do printf '"%s", ' "$f"; done | sed 's/, $//')"
+    printf '\n#[cfg(target_arch = "%s")]\nfn on_cpu(feature: &str) -> bool {\n    match feature {\n' "$arch"
+    for f in $all; do
+        printf '        "%s" => std::arch::%s!("%s"),\n' "$f" "$detect" "$f"
+    done
+    printf '        _ => false,\n    }\n}\n\n#[cfg(target_arch = "%s")]\nconst IN_BUILD: &[(&str, bool)] = &[\n' "$arch"
+    for f in $all; do
+        printf '    ("%s", cfg!(target_feature = "%s")),\n' "$f" "$f"
+    done
+    printf '];\n'
 done >> "$dispatch/src/tiers.rs"
-printf '\n#[cfg(not(any(%s)))]\nfn selected() -> Vec<(&'"'"'static str, bool, bool)> {\n    Vec::new()\n}\n' \
-    "$(echo "$selected" | awk 'NF { printf "%starget_arch = \"%s\"", (n++ ? ", " : ""), $1 }')" >> "$dispatch/src/tiers.rs"
+others="not(any($(echo "$gated" | awk 'NF { printf "%starget_arch = \"%s\"", (n++ ? ", " : ""), $1 }')))"
+printf '\n#[cfg(%s)]\nconst TABLE: &[(&str, &[&str])] = &[];\n\n#[cfg(%s)]\nconst GATED: &[&str] = &[];\n' "$others" "$others" >> "$dispatch/src/tiers.rs"
+printf '\n#[cfg(%s)]\nfn on_cpu(_: &str) -> bool {\n    false\n}\n\n#[cfg(%s)]\nconst IN_BUILD: &[(&str, bool)] = &[];\n' "$others" "$others" >> "$dispatch/src/tiers.rs"
 names=$(echo "$tiers" | awk 'NF { printf "%s\"%s\"", (n++ ? ", " : ""), $1 }')
 deps=$(echo "$tiers" | awk 'NF { printf "%s\"dep:%s\"", (n++ ? ", " : ""), $1 }')
 {

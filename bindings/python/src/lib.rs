@@ -8,7 +8,7 @@ use pyo3::create_exception;
 use pyo3::exceptions::{PyException, PyValueError};
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedBytes;
-use pyo3::types::{PyBytes, PyType};
+use pyo3::types::{PyBytes, PyInt, PyType};
 use pyo3::wrap_pyfunction;
 
 create_exception!(py_lean_pq, LeanPqError, PyException);
@@ -300,10 +300,16 @@ impl PyAggregate {
 }
 
 #[pyfunction]
-#[pyo3(signature = (threads = 0))]
-fn setup(py: Python<'_>, threads: i64) -> PyResult<()> {
-    let threads = usize::try_from(threads)
-        .map_err(|_| PyValueError::new_err("threads must not be negative"))?;
+#[pyo3(signature = (threads = None), text_signature = "(threads=0)")]
+fn setup(py: Python<'_>, threads: Option<&Bound<'_, PyInt>>) -> PyResult<()> {
+    let threads = match threads {
+        None => 0,
+        Some(threads) => threads.extract::<usize>().map_err(|_| {
+            PyValueError::new_err(format!(
+                "threads must be from 0 to the machine's parallelism, got {threads}"
+            ))
+        })?,
+    };
     py.detach(|| lean_pq::setup(threads)).map_err(api_error)
 }
 
@@ -365,16 +371,16 @@ fn claim_lists(xmss_claims: &[Claim], sphincs_claims: &[Claim]) -> PyResult<Clai
 
 #[pyfunction]
 #[pyo3(
-    signature = (children = Vec::new(), xmss = Vec::new(), sphincs = Vec::new(), only_xmss = None, only_sphincs = None),
-    text_signature = "(children=(), xmss=(), sphincs=(), only_xmss=None, only_sphincs=None)"
+    signature = (children = Vec::new(), xmss = Vec::new(), sphincs = Vec::new(), xmss_claims = None, sphincs_claims = None),
+    text_signature = "(children=(), xmss=(), sphincs=(), xmss_claims=None, sphincs_claims=None)"
 )]
 fn aggregate(
     py: Python<'_>,
     children: Vec<Bound<'_, PyAggregate>>,
     xmss: Vec<SignedMessage>,
     sphincs: Vec<SignedMessage>,
-    only_xmss: Option<Vec<Claim>>,
-    only_sphincs: Option<Vec<Claim>>,
+    xmss_claims: Option<Vec<Claim>>,
+    sphincs_claims: Option<Vec<Claim>>,
 ) -> PyResult<PyAggregate> {
     let children = children
         .iter()
@@ -400,12 +406,13 @@ fn aggregate(
             ))
         })
         .collect::<PyResult<Vec<_>>>()?;
-    let only = if only_xmss.is_none() && only_sphincs.is_none() {
+    // Either list asks for exactly those claims; the other, omitted, means none.
+    let only = if xmss_claims.is_none() && sphincs_claims.is_none() {
         None
     } else {
         Some(claim_lists(
-            &only_xmss.unwrap_or_default(),
-            &only_sphincs.unwrap_or_default(),
+            &xmss_claims.unwrap_or_default(),
+            &sphincs_claims.unwrap_or_default(),
         )?)
     };
     py.detach(|| match &only {

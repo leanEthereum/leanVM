@@ -120,11 +120,11 @@ def test_aggregates_both_schemes_recursively():
             lpq.Aggregate.from_bytes(data, xmss_claims, sphincs_claims)
 
     # Re-aggregating the root can keep only some of its claims, each one it covers.
-    only = lpq.aggregate(children=[root], only_xmss=[xmss_claims[0]])
+    only = lpq.aggregate(children=[root], xmss_claims=[xmss_claims[0]])
     assert only.xmss_claims == [xmss_claims[0]]
     assert only.sphincs_claims == []
-    with pytest.raises(lpq.LeanPqError, match="aggregation failed"):
-        lpq.aggregate(children=[root], only_xmss=[(xmss_key.public_key, b"\x33" * 32)])
+    with pytest.raises(lpq.LeanPqError, match="not covered by the inputs"):
+        lpq.aggregate(children=[root], xmss_claims=[(xmss_key.public_key, b"\x33" * 32)])
 
     with pytest.raises(ValueError, match="message must be exactly 32 bytes"):
         lpq.Aggregate.from_bytes(proof, [(xmss_key.public_key, b"\x11")])

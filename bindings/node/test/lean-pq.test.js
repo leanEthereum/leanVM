@@ -128,7 +128,7 @@ test('aggregates both schemes recursively', async () => {
   assert.deepEqual(only.xmssClaims, [xmssClaims[0]])
   assert.deepEqual(only.sphincsClaims, [])
   const uncovered = { publicKey: xmssKey.publicKey, message: Buffer.alloc(32, 0x33) }
-  await assert.rejects(lpq.aggregate({ children: [root], only: { xmss: [uncovered] } }), /aggregation failed/)
+  await assert.rejects(lpq.aggregate({ children: [root], only: { xmss: [uncovered] } }), /not covered by the inputs/)
 })
 
 test('opens VRF proofs under the root', async () => {

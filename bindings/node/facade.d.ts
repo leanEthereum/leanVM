@@ -108,8 +108,8 @@ export declare class Aggregate {
 
 /**
  * Proves every raw signature and every child's claims in one aggregate whose claims are their
- * union, or exactly `only`'s claims, in any order, each one the inputs cover. Raw signatures are
- * verified first; at most 16 children; empty input is rejected.
+ * union, or exactly `only`'s claims, in any order, each one the inputs cover (an omitted list means
+ * none). Raw signatures are verified first; at most 16 children; empty input is rejected.
  */
 export declare function aggregate(input?: {
   children?: Array<Aggregate>

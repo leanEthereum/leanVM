@@ -164,8 +164,9 @@ class LeanPqTest {
                     assertEquals(List.of(xmssClaims.get(0)), only.xmssClaims());
                     assertEquals(List.of(), only.sphincsClaims());
                 }
-                assertThrows(LeanPqException.class, () -> LeanPq.aggregateOnly(
+                LeanPqException uncovered = assertThrows(LeanPqException.class, () -> LeanPq.aggregateOnly(
                     List.of(root), List.of(), List.of(), List.of(new SignatureClaim(xmssKey, bytes(0x33))), List.of()));
+                assertTrue(uncovered.getMessage().contains("not covered by the inputs"), uncovered.getMessage());
 
                 byte[] tampered = proof.clone();
                 tampered[tampered.length - 1] ^= 1;

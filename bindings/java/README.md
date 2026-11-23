@@ -87,7 +87,7 @@ try (XmssSecretKey xmss = XmssSecretKey.fromSeed(seed32);
 - `aggregateOnly(children, xmss, sphincs, xmssClaims, sphincsClaims)` proves exactly the given claims, in any order; each must be one the inputs cover.
 - `toBytes()` is the proof alone: send the claims alongside it, or let the receiver rebuild them.
 - `Aggregate.fromBytes(bytes, xmssClaims, sphincsClaims)` accepts exactly those claims, in any order, and throws `LeanPqException` otherwise. `xmssClaims()` and `sphincsClaims()` are sorted.
-- `setup` throws `LeanPqException` if the prover already runs with another thread count. See [Proving](../README.md#proving).
+- `setup` throws `LeanPqException` if the prover already runs with another thread count. See [Proving](https://github.com/leanEthereum/leanVM/tree/main/bindings#proving).
 
 ## Build and test
 

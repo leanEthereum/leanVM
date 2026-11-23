@@ -196,6 +196,9 @@ test "aggregates recursively and round trips through bytes" {
     try std.testing.expectEqual(0, only_sphincs.len);
     const uncovered: lpq.Claim = .{ .public_key = xmss_public_key, .message = other_message };
     try std.testing.expectError(error.NativeFailure, lpq.Aggregate.createOnly(&.{&root}, &.{}, &.{}, &.{uncovered}, &.{}));
+    const uncovered_reason = try lpq.lastError(allocator);
+    defer allocator.free(uncovered_reason);
+    try std.testing.expect(std.mem.indexOf(u8, uncovered_reason, "not covered by the inputs") != null);
 
     const tampered = try allocator.dupe(u8, encoded);
     defer allocator.free(tampered);

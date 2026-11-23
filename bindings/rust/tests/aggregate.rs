@@ -87,7 +87,7 @@ fn proves_only_the_claims_asked_for() {
     // LEAF proves (key, FIRST); the raw signatures add (key, SECOND) under each scheme. Keep two of the three.
     let only = aggregate_only(
         &[&LEAF],
-        &[xmss_input(SECOND, 3)],
+        &[xmss_input(SECOND, 5)],
         &[sphincs_input(SECOND)],
         &[(xmss_key, SECOND), (xmss_key, FIRST), (xmss_key, SECOND)],
         &[],
@@ -110,7 +110,7 @@ fn proves_only_the_claims_asked_for() {
     // A claim the inputs do not cover.
     let uncovered = aggregate_only(&[&LEAF], &[], &[], &[(xmss_key, SECOND)], &[]).unwrap_err();
     assert!(
-        matches!(uncovered, Error::Aggregation { .. }),
+        uncovered.to_string().contains("not covered by the inputs"),
         "{uncovered}"
     );
 }

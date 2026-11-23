@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"reflect"
 	"runtime"
+	"strings"
 	"sync"
 	"testing"
 )
@@ -360,9 +361,9 @@ func TestAggregateRecursively(t *testing.T) {
 	if !reflect.DeepEqual(onlyXmss, expectedXmss[:1]) || len(onlySphincs) != 0 {
 		t.Fatalf("claims = %x and %x, want %x and none", onlyXmss, onlySphincs, expectedXmss[:1])
 	}
-	if wrong, err := AggregateSignaturesOnly([]*Aggregate{root}, nil, nil, []Claim{{xmssPublicKey, bytes32(0x33)}}, nil); err == nil {
+	if wrong, err := AggregateSignaturesOnly([]*Aggregate{root}, nil, nil, []Claim{{xmssPublicKey, bytes32(0x33)}}, nil); err == nil || !strings.Contains(err.Error(), "not covered by the inputs") {
 		wrong.Close()
-		t.Fatal("a claim the inputs do not cover must be rejected")
+		t.Fatalf("a claim the inputs do not cover must be rejected, got %v", err)
 	}
 
 	wrongClaims := []struct {

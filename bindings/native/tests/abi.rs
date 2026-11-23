@@ -239,6 +239,27 @@ fn native_abi_signs_verifies_and_aggregates() {
             assert_eq!(lpq_aggregate_sphincs_claims(only, &mut buffer), OK);
             assert!(take(buffer).is_empty());
             lpq_aggregate_destroy(only);
+
+            // A claim the inputs do not cover fails, and leaves no handle.
+            let uncovered = [&xmss_pk[..], &other].concat();
+            let mut rejected = ptr::null_mut();
+            assert_eq!(
+                lpq_aggregate_create_only(
+                    &decoded,
+                    1,
+                    ptr::null(),
+                    0,
+                    ptr::null(),
+                    0,
+                    uncovered.as_ptr(),
+                    1,
+                    ptr::null(),
+                    0,
+                    &mut rejected
+                ),
+                ERROR
+            );
+            assert!(rejected.is_null());
             lpq_aggregate_destroy(decoded);
 
             // The same proof against one claim short fails, and leaves no handle.

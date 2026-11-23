@@ -25,6 +25,9 @@ x86v3clmul = { package = "experimental_lean_vm_core_x86v3clmul", path = "../expe
 [target.'cfg(all(target_arch = "x86_64", not(all(target_feature = "avx2", target_feature = "bmi1", target_feature = "bmi2", target_feature = "fma", target_feature = "lzcnt", target_feature = "movbe", target_feature = "f16c", target_feature = "popcnt", target_feature = "pclmulqdq", target_feature = "avx512f", target_feature = "avx512bw", target_feature = "avx512cd", target_feature = "avx512dq", target_feature = "avx512vl"))))'.dependencies]
 x86v4 = { package = "experimental_lean_vm_core_x86v4", path = "../experimental_tiers/x86v4/experimental_lean_vm_core", optional = true }
 
+[target.'cfg(all(target_arch = "x86_64", not(all(target_feature = "avx2", target_feature = "pclmulqdq"))))'.dependencies]
+x86avx2 = { package = "experimental_lean_vm_core_x86avx2", path = "../experimental_tiers/x86avx2/experimental_lean_vm_core", optional = true }
+
 [target.'cfg(all(target_arch = "aarch64", not(all(target_feature = "aes", target_feature = "sha3"))))'.dependencies]
 armsha3 = { package = "experimental_lean_vm_core_armsha3", path = "../experimental_tiers/armsha3/experimental_lean_vm_core", optional = true }
 
@@ -33,8 +36,8 @@ armaes = { package = "experimental_lean_vm_core_armaes", path = "../experimental
 
 [features]
 # The CPU tiers, which only a build with scripts/tier-rustc makes faster.
-cpu_tiers = ["dep:x86v4gfni", "dep:x86v3gfni", "dep:x86v3clmul", "dep:x86v4", "dep:armsha3", "dep:armaes"]
+cpu_tiers = ["dep:x86v4gfni", "dep:x86v3gfni", "dep:x86v3clmul", "dep:x86v4", "dep:x86avx2", "dep:armsha3", "dep:armaes"]
 
 # Named by tiers.rs, which machete does not read.
 [package.metadata.cargo-machete]
-ignored = ["x86v4gfni", "x86v3gfni", "x86v3clmul", "x86v4", "armsha3", "armaes"]
+ignored = ["x86v4gfni", "x86v3gfni", "x86v3clmul", "x86v4", "x86avx2", "armsha3", "armaes"]

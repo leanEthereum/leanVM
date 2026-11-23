@@ -70,6 +70,15 @@ fn build_guest() -> Result<(), Error> {
     Ok(())
 }
 
+/// Fails in a process forked from the one that claimed `owner`.
+fn unclaimed_or_ours(owner: &AtomicU32) -> Result<(), Error> {
+    match owner.load(Ordering::Acquire) {
+        0 | BUILT => Ok(()),
+        pid if pid == std::process::id() => Ok(()),
+        _ => Err(Error::ForkedAfterSetup),
+    }
+}
+
 fn claim(owner: &AtomicU32) -> Result<(), Error> {
     let pid = std::process::id();
     match owner.compare_exchange(0, pid, Ordering::AcqRel, Ordering::Acquire) {
@@ -103,11 +112,12 @@ pub fn aggregate(
     prove(children, xmss, sphincs, None)
 }
 
-/// [`aggregate`], but the result proves exactly these claims, in any order, a repeat counting once.
+/// [`aggregate`], but the result proves exactly these claims, in any order, a repeat counting once. Raw signatures
+/// whose claims it drops are still verified and proven.
 ///
 /// # Errors
 ///
-/// As [`aggregate`]'s, and the prover rejects a claim the inputs do not cover.
+/// As [`aggregate`]'s, and the prover rejects no claims, or a claim the inputs do not cover.
 pub fn aggregate_only(
     children: &[&Aggregate],
     xmss: &[(xmss::PublicKey, Message, xmss::Signature)],
@@ -135,8 +145,8 @@ fn prove(
             max: MAX_CHILDREN,
         });
     }
-    // A forked child fails before verifying anything.
-    claim(&POOL_OWNER)?;
+    // A forked child fails before verifying anything; `start` claims the pool once the inputs pass.
+    unclaimed_or_ours(&POOL_OWNER)?;
     // An invalid signature would otherwise surface as a failed proof; checking first names it.
     for (index, (public_key, message, signature)) in xmss.iter().enumerate() {
         public_key

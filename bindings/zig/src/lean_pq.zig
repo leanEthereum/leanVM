@@ -270,21 +270,7 @@ pub const Aggregate = struct {
         xmss: []const XmssSignedMessage,
         sphincs: []const SphincsSignedMessage,
     ) Error!Aggregate {
-        if (children.len > max_children) return error.TooManyChildren;
-        var handles: [max_children]?*c.lpq_aggregate = undefined;
-        for (children, handles[0..children.len]) |child, *handle| handle.* = child.handle;
-
-        var output: ?*c.lpq_aggregate = null;
-        try checkStatus(c.lpq_aggregate_create(
-            if (children.len == 0) null else &handles,
-            children.len,
-            bytesPtr(std.mem.sliceAsBytes(xmss)),
-            xmss.len,
-            bytesPtr(std.mem.sliceAsBytes(sphincs)),
-            sphincs.len,
-            &output,
-        ));
-        return .{ .handle = output orelse return error.InvalidNativeEncoding };
+        return createWith(children, xmss, sphincs, null);
     }
 
     /// `create`, but the result proves exactly `xmss_claims` and `sphincs_claims`, in any order, a
@@ -296,24 +282,40 @@ pub const Aggregate = struct {
         xmss_claims: []const Claim,
         sphincs_claims: []const Claim,
     ) Error!Aggregate {
+        return createWith(children, xmss, sphincs, .{ xmss_claims, sphincs_claims });
+    }
+
+    fn createWith(
+        children: []const *const Aggregate,
+        xmss: []const XmssSignedMessage,
+        sphincs: []const SphincsSignedMessage,
+        only: ?struct { []const Claim, []const Claim },
+    ) Error!Aggregate {
         if (children.len > max_children) return error.TooManyChildren;
         var handles: [max_children]?*c.lpq_aggregate = undefined;
         for (children, handles[0..children.len]) |child, *handle| handle.* = child.handle;
+        const children_ptr: [*c]const ?*c.lpq_aggregate = if (children.len == 0) null else &handles;
+        const xmss_ptr = bytesPtr(std.mem.sliceAsBytes(xmss));
+        const sphincs_ptr = bytesPtr(std.mem.sliceAsBytes(sphincs));
 
         var output: ?*c.lpq_aggregate = null;
-        try checkStatus(c.lpq_aggregate_create_only(
-            if (children.len == 0) null else &handles,
-            children.len,
-            bytesPtr(std.mem.sliceAsBytes(xmss)),
-            xmss.len,
-            bytesPtr(std.mem.sliceAsBytes(sphincs)),
-            sphincs.len,
-            bytesPtr(std.mem.sliceAsBytes(xmss_claims)),
-            xmss_claims.len,
-            bytesPtr(std.mem.sliceAsBytes(sphincs_claims)),
-            sphincs_claims.len,
-            &output,
-        ));
+        if (only) |claims| {
+            try checkStatus(c.lpq_aggregate_create_only(
+                children_ptr,
+                children.len,
+                xmss_ptr,
+                xmss.len,
+                sphincs_ptr,
+                sphincs.len,
+                bytesPtr(std.mem.sliceAsBytes(claims[0])),
+                claims[0].len,
+                bytesPtr(std.mem.sliceAsBytes(claims[1])),
+                claims[1].len,
+                &output,
+            ));
+        } else {
+            try checkStatus(c.lpq_aggregate_create(children_ptr, children.len, xmss_ptr, xmss.len, sphincs_ptr, sphincs.len, &output));
+        }
         return .{ .handle = output orelse return error.InvalidNativeEncoding };
     }
 

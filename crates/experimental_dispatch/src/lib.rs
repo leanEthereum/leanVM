@@ -2,6 +2,7 @@
 //! this CPU supports.
 
 use isa::{Program, Prover, Stats};
+use std::io::Write;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Mutex, OnceLock, PoisonError};
 use verifier::{E, Proof};
@@ -32,15 +33,7 @@ macro_rules! tiers {
                 }
             }
 
-            /// Whether `scripts/tier-rustc` compiled the tier with its features.
-            fn compiled(self) -> bool {
-                match self {
-                    $(#[$cfg] Tier::$tier => $tier::__TIER,)*
-                    Tier::base => true,
-                }
-            }
-
-            /// The features the tier adds to the build's own.
+            /// The tier's target features, none for the build's own.
             fn features(self) -> &'static [&'static str] {
                 match self {
                     $(#[$cfg] Tier::$tier => &[$($feature),*],)*
@@ -105,26 +98,38 @@ pub fn tier() -> Tier {
     })
 }
 
-/// Warns on stderr when this CPU has features the prover selects code on that `tier`'s code does not use.
-fn warn_unused_features(tier: Tier) {
-    let unused: Vec<&str> = selected()
-        .into_iter()
-        .filter(|&(feature, on_cpu, in_build)| on_cpu && !in_build && !tier.features().contains(&feature))
-        .map(|(feature, ..)| feature)
-        .collect();
-    if unused.is_empty() {
+/// Warns on stderr when a tier fits this CPU and has a feature the prover's code selects on that neither the build's
+/// own code nor `chosen` has: proving is slower than this CPU allows.
+fn warn_unused_features(chosen: Tier) {
+    let in_build = |feature: &str| IN_BUILD.iter().any(|&(name, on)| on && name == feature);
+    let covered = |feature: &&str| in_build(feature) || chosen.features().contains(feature);
+    let Some((name, features)) = TABLE.iter().find(|(_, features)| {
+        features.iter().all(|feature| on_cpu(feature))
+            && features
+                .iter()
+                .any(|feature| GATED.contains(feature) && !covered(feature))
+    }) else {
         return;
-    }
-    let why = if Tier::ALL.iter().any(|&tier| tier != Tier::base && tier.compiled()) {
-        "no CPU tier of this build fits this CPU: please report it at https://github.com/leanEthereum/leanVM/issues"
-    } else {
-        "this build has no CPU tiers: build it with RUSTC_WRAPPER set to leanVM's scripts/tier-rustc and the \
-         `cpu_tiers` feature, or with RUSTFLAGS=\"-C target-cpu=native\""
     };
-    let rule = "=".repeat(100);
-    eprintln!(
-        "{rule}\nleanVM: this CPU is not fully supported, so proving runs slower than it could.\n\
-         It has {}, which the prover in this build does not use: {why}.\n{rule}",
+    let unused: Vec<&str> = features
+        .iter()
+        .filter(|feature| GATED.contains(feature) && !covered(feature))
+        .copied()
+        .collect();
+    let fix = if cfg!(windows) {
+        "build it with RUSTFLAGS=\"-C target-cpu=native\""
+    } else if Tier::ALL.iter().any(|tier| format!("{tier:?}") == *name) {
+        "build it in release with RUSTC_WRAPPER set to leanVM's scripts/tier-rustc, or with RUSTFLAGS=\"-C target-cpu=native\""
+    } else {
+        "build it with lean_vm's `cpu_tiers` feature and RUSTC_WRAPPER set to leanVM's scripts/tier-rustc, or with \
+         RUSTFLAGS=\"-C target-cpu=native\""
+    };
+    let rule = "=".repeat(80);
+    // Never fail on a closed stderr: proving goes on regardless.
+    let _ = writeln!(
+        std::io::stderr().lock(),
+        "{rule}\nleanVM: this build of the prover does not use {} of this CPU, so proving is slower than it \
+         could be.\nTo use them, {fix}. LEANVM_TIER={chosen:?} silences this.\n{rule}",
         unused.join(", ")
     );
 }

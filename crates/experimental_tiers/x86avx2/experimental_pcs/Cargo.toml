@@ -1,0 +1,30 @@
+# Written by ../../generate.sh.
+[package]
+name = "experimental_pcs_x86avx2"
+version = "0.1.0"
+edition = "2024"
+publish = false
+autobins = false
+autotests = false
+autobenches = false
+autoexamples = false
+
+[package.metadata.tier]
+target-features = "+avx2,+pclmulqdq"
+
+[lib]
+path = "../../../experimental_prover/pcs/src/lib.rs"
+test = false
+doctest = false
+bench = false
+doc = false
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(leanvm_tier)"] }
+
+[dependencies]
+parallel = { package = "experimental_parallel", path = "../../../experimental_prover/parallel" }
+primitives = { package = "experimental_primitives_x86avx2", path = "../experimental_primitives" }
+fiat_shamir = { package = "fiat_shamir_prover_x86avx2", path = "../fiat_shamir_prover" }
+tracing = "0.1.26"
+verifier = { path = "../../../verifier" }

@@ -231,7 +231,7 @@ suite "lean_pq":
       only.xmssClaims().expect("claims") == @[expectedXmss[0]]
       only.sphincsClaims().expect("claims").len == 0
       LeanPqAggregate.initOnly([root], xmssClaims = [
-        LeanPqClaim(publicKey: xmssPublicKey, message: otherMessage)]).isErr()
+        LeanPqClaim(publicKey: xmssPublicKey, message: otherMessage)]).error().contains("not covered by the inputs")
 
     var tampered = encoded
     tampered[tampered.len div 2] = tampered[tampered.len div 2] xor 1

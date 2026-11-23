@@ -61,7 +61,7 @@ const proof = root.toBytes()
 const received = await lpq.Aggregate.fromBytes(proof, { xmss: root.xmssClaims, sphincs: root.sphincsClaims })
 ```
 
-- `aggregate({ children, xmss, sphincs })` verifies raw signatures before proving and takes at most 16 children. The result proves the union of their claims, or with `only: { xmss, sphincs }` exactly those claims, in any order, each one the inputs cover.
+- `aggregate({ children, xmss, sphincs })` verifies raw signatures before proving and takes at most 16 children. The result proves the union of their claims, or with `only: { xmss, sphincs }` exactly those claims, in any order, each one the inputs cover; an omitted list means none.
 - `toBytes()` is the proof alone: send the claims alongside it, or let the receiver rebuild them.
 - `Aggregate.fromBytes(data, { xmss, sphincs })` accepts exactly those `{ publicKey, message }` claims, in any order, and rejects otherwise; an omitted list means none. `xmssClaims` and `sphincsClaims` are sorted.
 - `setup` rejects if the prover already runs with another thread count. See [Proving](https://github.com/leanEthereum/leanVM/tree/main/bindings#proving).
