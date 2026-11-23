@@ -1,4 +1,5 @@
 import LeanVM.Protocol.Verifier
+import LeanVM.Protocol.Keccak.RmfeDerive
 
 /-!
 # Verifier helper tests: differential against the verifier at its pin
