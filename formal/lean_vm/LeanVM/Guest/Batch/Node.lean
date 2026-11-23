@@ -49,11 +49,11 @@ theorem runD_roundsProg_bind {β : Type} (f : List E × E → VerifierProgram β
     swap
     · exfalso
       revert h
-      rcases zs with _ | ⟨_, _⟩ <;> simp [sumcheckRoundsProgram, VerifierProgram.readScalar, VerifierProgram.bind_eq, VerifierProgram.bind, runD, Compile.runWithHash]
+      rcases zs with _ | ⟨_, _⟩ <;> simp [sumcheckRoundsProgram_succ, VerifierProgram.readScalar, VerifierProgram.bind_eq, VerifierProgram.bind, runD, Compile.runWithHash]
     rcases zs with _ | ⟨g1, _ | ⟨gInf, zs⟩⟩
-    · exact absurd h (by simp [sumcheckRoundsProgram, VerifierProgram.readScalar, VerifierProgram.bind_eq, VerifierProgram.bind, runD, Compile.runWithHash])
-    · exact absurd h (by simp [sumcheckRoundsProgram, VerifierProgram.readScalar, VerifierProgram.bind_eq, VerifierProgram.bind, runD, Compile.runWithHash])
-    · simp only [sumcheckRoundsProgram, VerifierProgram.readScalar, VerifierProgram.sampleChallenge, VerifierProgram.bind_eq, VerifierProgram.pure_eq, VerifierProgram.bind_assoc,
+    · exact absurd h (by simp [sumcheckRoundsProgram_succ, VerifierProgram.readScalar, VerifierProgram.bind_eq, VerifierProgram.bind, runD, Compile.runWithHash])
+    · exact absurd h (by simp [sumcheckRoundsProgram_succ, VerifierProgram.readScalar, VerifierProgram.bind_eq, VerifierProgram.bind, runD, Compile.runWithHash])
+    · simp only [sumcheckRoundsProgram_succ, VerifierProgram.readScalar, VerifierProgram.sampleChallenge, VerifierProgram.bind_eq, VerifierProgram.pure_eq, VerifierProgram.bind_assoc,
         VerifierProgram.ret_bind] at h
       have h' : runD ((sumcheckRoundsProgram (sumcheckRoundPolynomial claim (g1, gInf)
           (sq (obs (obs ⟨st, pe, none⟩ g1) gInf)).1) k).bind
@@ -73,7 +73,8 @@ theorem batchStream_eq (cs : List ChildClaims) (h : BatchingHints) :
     batchingStream cs h = cellsBeforeChallenge cs ++
       (h.lambdaGrindNonce :: (h.sumcheckMessages.flatMap (fun g ↦ [g.1, g.2]) ++
         [h.finalBytecodeValue])) := by
-  simp only [batchingStream, List.append_assoc, List.cons_append, List.nil_append]
+  simp only [batchingStream, lambdaGrindNonceCells_eq, sumcheckRoundCells_eq, List.append_assoc,
+    List.cons_append, List.nil_append]
 
 theorem length_rounds_flat (rounds : List (E × E)) :
     (rounds.flatMap fun g ↦ [g.1, g.2]).length = 2 * rounds.length := by

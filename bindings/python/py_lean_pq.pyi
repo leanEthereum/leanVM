@@ -1,4 +1,4 @@
-"""Python bindings for leanXMSS and leanSPHINCS signatures and their aggregation."""
+"""Python bindings for leanXMSS and leanSPHINCS signatures, their aggregation, and the consensus VRF."""
 
 import os
 from collections.abc import Sequence
@@ -9,10 +9,12 @@ __all__ = [
     "LeanPqError",
     "XmssSecretKey",
     "SphincsSecretKey",
+    "VrfKey",
     "Aggregate",
     "Sidecar",
     "xmss_verify",
     "sphincs_verify",
+    "vrf_verify",
 ]
 
 __version__: str
@@ -50,6 +52,16 @@ class SphincsSecretKey:
     def sign(self, message: bytes) -> bytes: ...
 
 @final
+class VrfKey:
+    @classmethod
+    def from_seed(cls, seed: bytes, start: int, end: int) -> "VrfKey": ...
+    @classmethod
+    def from_cache_bytes(cls, seed: bytes, root: bytes, cache: bytes) -> "VrfKey": ...
+    def cache_to_bytes(self) -> bytes: ...
+    def root(self) -> bytes: ...
+    def proof(self, slot: int) -> bytes: ...
+
+@final
 class Aggregate:
     def to_bytes(self) -> bytes: ...
     @property
@@ -85,3 +97,4 @@ class Sidecar:
 
 def xmss_verify(public_key: bytes, message: bytes, signature: bytes) -> None: ...
 def sphincs_verify(public_key: bytes, message: bytes, signature: bytes) -> None: ...
+def vrf_verify(root: bytes, slot: int, proof: bytes) -> None: ...

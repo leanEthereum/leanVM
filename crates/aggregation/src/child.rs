@@ -96,10 +96,11 @@ pub(super) fn gen_verify(
 
     // The guest replays the proof off the same stream the native verifier reads: every transmitted scalar is already
     // there in protocol order.
+    let rounds = *taus.iter().max().unwrap();
     let mut hints: SubHints = vec![
         ("stream", stream),
         // The table sumcheck's round count, which the guest certifies is the largest of the taus.
-        ("zc_tau_max", vec![count(*taus.iter().max().unwrap())]),
+        ("zc_tau_max", vec![count(rounds)]),
         // Every table's log height, which the guest certifies against its row count.
         ("table_logs", taus.iter().map(|&t| count(t)).collect()),
         ("col_group_order", col_group_order(kbc, &column_offsets)),

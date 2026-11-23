@@ -10,6 +10,8 @@
 module
 
 public import LeanVM.Guest.B1.Sig.WotsT
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«sp_wots»
 
 /-!
 # `sp_wots`'s layout, as a template
@@ -81,9 +83,9 @@ theorem spDigitsC_zero (first n : Nat) : spDigitsC first n 0 = 0 := by
 /-- `sp_wots`'s chain step with its padding run at `X`: step `s` of chain `i`, the address
 `at[1] + spStepC i s`, then the 64-byte hash of `pp`, `at[0]`, it and the value (`walk`). Chain `0`'s step `0` adds nothing: no constant, `at[1]` hashed itself. -/
 def spWp (X : Nat) : WotsT where
-  step i s v c o := if i = 0 ∧ s = 0 then k64 X (.n 0) (.n 4) (.n 5) v c o
-    else cst c (lit (spStepC i s)) :: addS (.n (c + 1)) (.n 5) (.n c) ::
-      k64 X (.n 0) (.n 4) (.n (c + 1)) v (c + 2) o
+  step i s v c o := if i = 0 ∧ s = 0 then k64 X (.n (val% «sp_wots» "pp")) (.n (val% «sp_wots» "at[0]")) (.n (val% «sp_wots» "at[1]")) v c o
+    else cst c (lit (spStepC i s)) :: addS (.n (c + 1)) (.n (val% «sp_wots» "at[1]")) (.n c) ::
+      k64 X (.n (val% «sp_wots» "pp")) (.n (val% «sp_wots» "at[0]")) (.n (c + 1)) v (c + 2) o
   size := 3
   power s := .n (6 + s)
   enc first n k := spDigitsC first n k

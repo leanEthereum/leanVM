@@ -12,6 +12,8 @@ public import LeanVM.Guest.B1.Digest.ChildList
 public import LeanVM.Guest.B1.Digest.ClaimListCChk
 public import LeanVM.Guest.B1.Digest.ChainFilter
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«child_claim_list_last__L»
 
 /-!
 # `child_claim_list_any`, evaluated
@@ -112,7 +114,7 @@ def cccOk (k : ℕ) (f : Fn) : Bool :=
   match splitBody f.body with
   | some (A, _) =>
     edgeOk A (storesOf 5 f.body) 5 0 k 0 [] &&
-      (List.range k).all (fun j => recW (ccOwn A 0 j) cclP 5 j) && stLoadsOk A (.n 0) (cclSt k) 0
+      (List.range k).all (fun j => recW (ccOwn A 0 j) cclP 5 j) && stLoadsOk A (.n (valf% «child_claim_list_last» "state")) (cclSt k) 0
   | none => false
 
 /-- A frame loop's shape: in order, its block atoms, its stores loads. -/

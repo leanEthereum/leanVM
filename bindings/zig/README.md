@@ -1,6 +1,6 @@
 # lean-pq Zig bindings
 
-Zig bindings for leanXMSS and leanSPHINCS signatures and their recursive aggregation.
+Zig bindings for leanXMSS and leanSPHINCS signatures, their recursive aggregation, and the consensus VRF tree.
 
 ## Install
 
@@ -8,7 +8,7 @@ Needs Zig 0.16+.
 
 <!-- x-release-please-start-version -->
 ```sh
-version=0.15.0
+version=0.16.0
 zig fetch --save=lean_pq "https://github.com/leanEthereum/leanVM/releases/download/bindings-v$version/lean-pq-zig-$version.tar.gz"
 ```
 <!-- x-release-please-end -->
@@ -40,14 +40,19 @@ pub fn main() !void {
     defer sphincs_key.deinit();
     const sphincs_signature = try sphincs_key.sign(message);
     try lpq.sphincsVerify(try sphincs_key.publicKey(), message, &sphincs_signature);
+
+    var vrf_key = try lpq.VrfKey.init([_]u8{0x03} ** 32, 1000, 2000);
+    defer vrf_key.deinit();
+    const vrf_root = try vrf_key.root();
+    try lpq.vrfVerify(vrf_root, 1500, &try vrf_key.proof(1500));
 }
 ```
 
 - leanXMSS keys are stateful: store your own leaf index next to `XmssSecretKey.toBytes()` and never sign two different messages at the same index.
 - leanSPHINCS keys are stateless and deterministic, and sign at most `2^30` messages.
 - `XmssSecretKey.cacheToBytes(allocator)` returns the key's trees, which are not secret; `XmssSecretKey.fromCacheBytes(seed, public_key, cache)` loads the key from them instead of rebuilding them, checking them against the public key.
-- Call `deinit` exactly once on every `XmssSecretKey`, `SphincsSecretKey`, `Sidecar` and `Aggregate`. Returned slices belong to the allocator you pass.
-- A bad signature returns `error.InvalidSignature`; for other errors, `lastError` returns the message.
+- Call `deinit` exactly once on every `XmssSecretKey`, `SphincsSecretKey`, `VrfKey`, `Sidecar` and `Aggregate`. Returned slices belong to the allocator you pass.
+- A bad signature or VRF proof returns `error.InvalidSignature`; for other errors, `lastError` returns the message.
 
 ## Aggregate
 
@@ -90,12 +95,19 @@ defer received.deinit();
 - A sidecar serves at most 16 connections: share one `Sidecar` per process. Calls on it run one at a time.
 - `close()` stops a sidecar `start` launched at once, failing a call in progress, even from another thread; `deinit` closes and frees the handle.
 
+## VRF
+
+A key is a 32-byte seed and the slots `[start, end)`, with `end <= 2^31`: both fix the root, so keep both. Building it hashes every slot of the range once; a proof then costs about `3 sqrt(R)` hashes for `R` slots. A proof is 1024 bytes: the slot's secret, then its leaf's 31 siblings, which reveal no other secret. An empty range, a range past `2^31` and a slot outside the range fail with `error.NativeFailure`.
+
+`cacheToBytes(allocator)` encodes the key's cache, its range and cached layer (about `32 sqrt(R)` bytes, no secret), and `VrfKey.fromCacheBytes(seed, root, cache)` rebuilds the key from its seed and that cache without hashing the range, failing if the cache does not lead to `root`.
+
 ## Build from source
 
 Needs Rust, [Zig](https://ziglang.org/) 0.15.2 to stage the archive, and Zig 0.16+ to build. From the repository root, on Linux x86_64:
 
 ```sh
 rustup target add x86_64-unknown-linux-gnu
+rustup component add llvm-tools
 cargo install cargo-zigbuild --locked
 sh bindings/native/scripts/stage-static.sh x86_64-unknown-linux-gnu bindings/zig/.native
 cd bindings/zig && zig build test -Dnative-dir=.native

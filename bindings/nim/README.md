@@ -1,6 +1,6 @@
 # lean-pq Nim bindings
 
-Nim bindings for leanXMSS and leanSPHINCS signatures and their recursive aggregation.
+Nim bindings for leanXMSS and leanSPHINCS signatures, their recursive aggregation, and the consensus VRF tree.
 
 ## Install
 
@@ -8,7 +8,7 @@ Needs Nim 2.2.12+. In your `.nimble`:
 
 <!-- x-release-please-start-version -->
 ```nim
-requires "https://github.com/leanEthereum/leanVM?subdir=bindings/nim#bindings-v0.15.0"
+requires "https://github.com/leanEthereum/leanVM?subdir=bindings/nim#bindings-v0.16.0"
 ```
 <!-- x-release-please-end -->
 
@@ -16,7 +16,7 @@ Or from the command line:
 
 <!-- x-release-please-start-version -->
 ```sh
-nimble install "https://github.com/leanEthereum/leanVM?subdir=bindings/nim#bindings-v0.15.0"
+nimble install "https://github.com/leanEthereum/leanVM?subdir=bindings/nim#bindings-v0.16.0"
 ```
 <!-- x-release-please-end -->
 
@@ -25,7 +25,7 @@ With [nimbus-build-system](https://github.com/status-im/nimbus-build-system), ve
 <!-- x-release-please-start-version -->
 ```sh
 git submodule add https://github.com/leanEthereum/leanVM vendor/leanVM
-git -C vendor/leanVM checkout bindings-v0.15.0
+git -C vendor/leanVM checkout bindings-v0.16.0
 ```
 <!-- x-release-please-end -->
 
@@ -56,6 +56,12 @@ proc main() =
     sphincsPublicKey = sphincsKey.publicKey().expect("public key")
     sphincsSignature = sphincsKey.sign(message).expect("signature")
   doAssert sphincsVerify(sphincsPublicKey, message, sphincsSignature)
+
+  seed[0] = 0x03
+  let
+    vrfKey = VrfKey.init(seed, 1000, 2000).expect("key")
+    vrfRoot = vrfKey.root().expect("root")
+  doAssert vrfVerify(vrfRoot, 1500, vrfKey.proof(1500).expect("proof"))
 
   # Handles are freed when collected; `close` frees them now.
   xmssKey.close()
@@ -101,12 +107,19 @@ sidecar.close()
 - A sidecar serves at most 16 connections: share one `LeanPqSidecar` per process. Calls on it run one at a time. `close` disconnects and stops a sidecar `start` launched.
 - On Linux, ignore `SIGPIPE` (`signal(SIGPIPE, SIG_IGN)` from `std/posix`), so that a sidecar that dies fails the call instead of killing the program.
 
+## VRF
+
+A key is a 32-byte seed and the slots `start ..< stop`, with `stop <= 2^31`: both fix the root, so keep both. Building it hashes every slot of the range once; a proof then costs about `3 sqrt(R)` hashes for `R` slots. A proof is 1024 bytes: the slot's secret, then its leaf's 31 siblings, which reveal no other secret. An empty range, a range past `2^31` and a slot outside the range return an error.
+
+`cacheToBytes()` encodes the key's cache, its range and cached layer (about `32 sqrt(R)` bytes, no secret), and `VrfKey.fromCacheBytes(seed, root, cache)` rebuilds the key from its seed and that cache without hashing the range, failing if the cache does not lead to `root`.
+
 ## Build from source
 
 Needs Rust and [Zig](https://ziglang.org/) 0.15.2. From the repository root, on Linux x86_64:
 
 ```sh
 rustup target add x86_64-unknown-linux-gnu
+rustup component add llvm-tools
 cargo install cargo-zigbuild --locked
 sh bindings/native/scripts/stage-static.sh x86_64-unknown-linux-gnu bindings/nim/native/x86_64-linux-gnu
 cd bindings/nim && nimble test

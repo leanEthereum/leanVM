@@ -6,6 +6,10 @@ public import LeanVM.Guest.Fast.LogG
 public import LeanVM.Guest.Fast.Common
 public import LeanVM.Guest.Fast.FunctionNames
 public import LeanVM.Guest.B1.VerifySub.Proof
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«opening_queries__L»
+import LeanVM.Guest.Data.ValNames.«opening_queries__L_loop0»
+import LeanVM.Guest.Data.ValNames.«verify_sub»
 
 /-!
 # `verify_sub`'s child proof reader, computable
@@ -51,14 +55,14 @@ def oqQueryN (s : Oq) (walk : ℕ) (rd : Reader) (bp cap flags : E) (b : ℕ) (e
 /-- A loop iteration's queries, from its frame (`oqIterOf`), its walk the frames `walk` of `Vn`. -/
 def oqIterN (s : Oq) (walk : ℕ) (rd : Reader) (σ : Val) (Vn : NFrames) : List QW :=
   if s.base = 1 then
-    [oqQueryN s walk rd (σ (.n 15)) (σ (.n 4)) (σ (.n 5)) 16 true σ Vn,
-      oqQueryN s walk rd (σ (.n (oqE1 s + 1))) (σ (.n 4)) (σ (.n 5)) (oqE1 s + 2) false σ Vn]
-  else [oqQueryN s walk rd (σ (.n 13)) (σ (.n 4)) (σ (.n 5)) 14 true σ Vn]
+    [oqQueryN s walk rd (σ (.n 15)) (σ (.n (valf% «opening_queries» «_loop0» "cap"))) (σ (.n (valf% «opening_queries» «_loop0» "flags"))) 16 true σ Vn,
+      oqQueryN s walk rd (σ (.n (oqE1 s + 1))) (σ (.n (valf% «opening_queries» «_loop0» "cap"))) (σ (.n (valf% «opening_queries» «_loop0» "flags"))) (oqE1 s + 2) false σ Vn]
+  else [oqQueryN s walk rd (σ (.n 13)) (σ (.n (valf% «opening_queries» «_loop0» "cap"))) (σ (.n (valf% «opening_queries» «_loop0» "flags"))) 14 true σ Vn]
 
 /-- **The queries of `opening_queries`** from its frame `σ`, its loop and its walk the frames
 `loop` and `walk` of `Vn` (`oqsOf`). -/
 def oqsOfN (s : Oq) (odd loop walk N : ℕ) (rd : Reader) (σ : Val) (Vn : NFrames) : List QW :=
-  (if odd = 1 then [oqQueryN s walk rd (σ (.n 12)) (σ (.n 0)) (σ (.n 1)) 13 true σ Vn] else []) ++
+  (if odd = 1 then [oqQueryN s walk rd (σ (.n 12)) (σ (.n (valf% «opening_queries» "cap"))) (σ (.n (valf% «opening_queries» "flags"))) 13 true σ Vn] else []) ++
     (List.range N).flatMap fun j ↦ oqIterN s walk rd (Vn loop (gen ^ j :: oqLoopArgs σ) []) Vn
 
 /-- The shape of the call `c`'s callee. -/
@@ -316,9 +320,9 @@ theorem oqQueryA_eq (s : Oq) (walk : ℕ) (rd : Reader) (bp cap flags : E) (b : 
 def oqIterA (s : Oq) (lanes : List ℕ) (walk : ℕ) (rd : Reader) (σ : Val) (Vn : NFrames) :
     List QW :=
   if s.base = 1 then
-    [oqQueryA s lanes walk rd (σ (.n 15)) (σ (.n 4)) (σ (.n 5)) 16 true σ Vn,
-      oqQueryA s lanes walk rd (σ (.n (oqE1 s + 1))) (σ (.n 4)) (σ (.n 5)) (oqE1 s + 2) false σ Vn]
-  else [oqQueryA s lanes walk rd (σ (.n 13)) (σ (.n 4)) (σ (.n 5)) 14 true σ Vn]
+    [oqQueryA s lanes walk rd (σ (.n 15)) (σ (.n (valf% «opening_queries» «_loop0» "cap"))) (σ (.n (valf% «opening_queries» «_loop0» "flags"))) 16 true σ Vn,
+      oqQueryA s lanes walk rd (σ (.n (oqE1 s + 1))) (σ (.n (valf% «opening_queries» «_loop0» "cap"))) (σ (.n (valf% «opening_queries» «_loop0» "flags"))) (oqE1 s + 2) false σ Vn]
+  else [oqQueryA s lanes walk rd (σ (.n 13)) (σ (.n (valf% «opening_queries» «_loop0» "cap"))) (σ (.n (valf% «opening_queries» «_loop0» "flags"))) 14 true σ Vn]
 
 theorem oqIterA_eq (s : Oq) (walk : ℕ) (rd : Reader) (σ : Val) (Vn : NFrames) :
     oqIterA s gLanes walk rd σ Vn = oqIterN s walk rd σ Vn := by
@@ -345,7 +349,7 @@ theorem oqItersFrom_gen (s : Oq) (loop walk : ℕ) (rd : Reader) (Vn : NFrames) 
 iteration's frame at the next power of `g`, each query's position once. -/
 def oqsOfA (s : Oq) (lanes : List ℕ) (odd loop walk N : ℕ) (rd : Reader) (σ : Val)
     (Vn : NFrames) : List QW :=
-  (if odd = 1 then [oqQueryA s lanes walk rd (σ (.n 12)) (σ (.n 0)) (σ (.n 1)) 13 true σ Vn]
+  (if odd = 1 then [oqQueryA s lanes walk rd (σ (.n 12)) (σ (.n (valf% «opening_queries» "cap"))) (σ (.n (valf% «opening_queries» "flags"))) 13 true σ Vn]
     else []) ++
     oqItersFrom s lanes loop walk rd Vn (oqLoopArgs σ) N 1
 
@@ -419,11 +423,11 @@ def vsPiOfM (T : WhirTabs) (rd : Reader) (σ : Val) (Vn : NFrames) (cl : E → E
 /-- The child proof, its size `m` given. -/
 def vsPiOfS (T : WhirTabs) (rd : Reader) (σ : Val) (Vn : NFrames) (cl : E → E → ℕ) (m : ℕ) :
     Proof :=
-  vsPiOfM T rd σ Vn cl m (logGTWith T.lanes (σ (.n 66)) 4 * 11 + m)
+  vsPiOfM T rd σ Vn cl m (logGTWith T.lanes (σ (.n (val% «verify_sub» "rate_sel"))) 4 * 11 + m)
 
 /-- **The child proof `verify_sub` checks, off the tables `T`** (`vsPiOfN`). -/
 def vsPiOfA (T : WhirTabs) (rd : Reader) (σ : Val) (Vn : NFrames) (cl : E → E → ℕ) : Proof :=
-  vsPiOfS T rd σ Vn cl (logGTWith T.lanes (σ (.n 278)) 11)
+  vsPiOfS T rd σ Vn cl (logGTWith T.lanes (σ (.n (val% «verify_sub» "size_sel"))) 11)
 
 /-- **Off the tables built, the reader is `vsPiOfN`.** -/
 theorem vsPiOfA_tabs (rd : Reader) (σ : Val) (Vn : NFrames) (cl : E → E → ℕ) :

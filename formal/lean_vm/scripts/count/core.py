@@ -231,3 +231,11 @@ def L(s):
         t = open(os.path.join(lv, 'LeanVM', 'Guest', 'Data', 'NameStrings.lean'), encoding='utf-8').read()
         _STABLE = dict(re.findall(r'abbrev «([^»]+)» : String := "([^"]+)"', t))
     return _STABLE[s]
+
+
+def Lopt(s):
+    """`L`, or `None` for a loop helper the guest does not have."""
+    try:
+        return L(s)
+    except KeyError:
+        return None

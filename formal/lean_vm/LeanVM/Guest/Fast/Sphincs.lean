@@ -7,6 +7,8 @@ public import LeanVM.Guest.B1.Sig.Interface
 public import LeanVM.Guest.B1.Sig.SphincsSig
 public import LeanVM.Guest.B1.Sig.Bytes
 public import LeanVM.Cost.Rules
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_sig_lean_sphincs»
 
 /-!
 # leanSPHINCS's signature reader, computable
@@ -165,7 +167,7 @@ def layerA (T : SpTabs) (σ w : Val) (l : ℕ) (layer : Sphincs.Layer) :
 /-- Layer `l`'s call of `sp_wots`: its arguments (`PK.seed`, the key's two address cells, the
 encoding's first cell) and its return (the leaf). -/
 def spWotsArgs (σ : Val) (l : ℕ) : List E :=
-  [σ (.n 2), σ (.n (spA0 l)), σ (.n (spA1 l)), σ (.n (spEnc l))]
+  [σ (.n (val% «verify_sig_lean_sphincs» "pp")), σ (.n (spA0 l)), σ (.n (spA1 l)), σ (.n (spEnc l))]
 def spWotsRets (σ : Val) (l : ℕ) : List E := [σ (.n (spLeaf l))]
 
 /-- **The layers as the reader builds them** (`LeanVM.Cost.depFin3`, a dependent function of
@@ -182,7 +184,7 @@ instance layersEncodingFin3 :
 /-- **The leanSPHINCS signature `verify_sig_lean_sphincs` checks**, off its valuation `σ` and its
 three `sp_wots` frames. -/
 def sphincsSigOfA (T : SpTabs) (σ w0 w1 w2 : Val) : Sphincs.Signature :=
-  ⟨cellVal (σ (.n 6)), fun c ↦ forsOpeningA T σ c.val,
+  ⟨cellVal (σ (.n (val% «verify_sig_lean_sphincs» "rho"))), fun c ↦ forsOpeningA T σ c.val,
     LeanVM.Cost.depFin3 (layerA T σ w0 0 0) (layerA T σ w1 1 1) (layerA T σ w2 2 2)⟩
 
 /-- **The signature off the frame map keyed by index**: `sp_wots` is function `fn_idx% sp_wots`. -/

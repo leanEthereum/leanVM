@@ -5,6 +5,9 @@ public import LeanVM.Cost.Bounds.Guest.Frames
 public import LeanVM.Cost.Bounds.Guest.Da
 public import LeanVM.Cost.Bounds.Decoder.PreTest
 public import LeanVM.Cost.Decoder.Witness
+public import LeanVM.Cost.Bounds.Decoder.EntryTable
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«main»
 
 /-!
 # Bounds on the guest decoder's prices: the witness
@@ -45,37 +48,37 @@ theorem nDirect_cost (D : DiscreteLogTables) (hP : Includes P Decoder.nDirectC.c
     (hG : GLogBound P D G) :
     machineCost P Decoder.nDirectC.costIdx [encodeValue D, σV] ≤ S + G + 11 := by
   rw [Decoder.nDirectC.costEq P hP D σ σV hσ]
-  have := hG (σ (.n 7)); have := hS (.n 7); omega
+  have := hG (σ (.n (val% «main» "meta[7]"))); have := hS (.n (val% «main» "meta[7]")); omega
 
 theorem nKids_cost (D : DiscreteLogTables) (hP : Includes P Decoder.nKidsC.costDeps)
     (hG : GLogBound P D G) :
     machineCost P Decoder.nKidsC.costIdx [encodeValue D, σV] ≤ S + G + 11 := by
   rw [Decoder.nKidsC.costEq P hP D σ σV hσ]
-  have := hG (σ (.n 6)); have := hS (.n 6); omega
+  have := hG (σ (.n (val% «main» "meta[6]"))); have := hS (.n (val% «main» "meta[6]")); omega
 
 theorem lxSlots_cost (D : DiscreteLogTables) (hP : Includes P Decoder.lxSlotsC.costDeps)
     (hG : GLogBound P D G) :
     machineCost P Decoder.lxSlotsC.costIdx [encodeValue D, σV] ≤ S + G + 11 := by
   rw [Decoder.lxSlotsC.costEq P hP D σ σV hσ]
-  have := hG (σ (.n 22)); have := hS (.n 22); omega
+  have := hG (σ (.n (val% «main» "lx_slots_g"))); have := hS (.n (val% «main» "lx_slots_g")); omega
 
 theorem lsSlots_cost (D : DiscreteLogTables) (hP : Includes P Decoder.lsSlotsC.costDeps)
     (hG : GLogBound P D G) :
     machineCost P Decoder.lsSlotsC.costIdx [encodeValue D, σV] ≤ S + G + 11 := by
   rw [Decoder.lsSlotsC.costEq P hP D σ σV hσ]
-  have := hG (σ (.n 23)); have := hS (.n 23); omega
+  have := hG (σ (.n (val% «main» "lean_sphincs_slots_g"))); have := hS (.n (val% «main» "lean_sphincs_slots_g")); omega
 
 theorem nRawX_cost (D : DiscreteLogTables) (hP : Includes P Decoder.nRawXC.costDeps)
     (hG : GLogBound P D G) :
     machineCost P Decoder.nRawXC.costIdx [encodeValue D, σV] ≤ S + G + 11 := by
   rw [Decoder.nRawXC.costEq P hP D σ σV hσ]
-  have := hG (σ (.n 2)); have := hS (.n 2); omega
+  have := hG (σ (.n (val% «main» "meta[2]"))); have := hS (.n (val% «main» "meta[2]")); omega
 
 theorem nRawS_cost (D : DiscreteLogTables) (hP : Includes P Decoder.nRawSC.costDeps)
     (hG : GLogBound P D G) :
     machineCost P Decoder.nRawSC.costIdx [encodeValue D, σV] ≤ S + G + 11 := by
   rw [Decoder.nRawSC.costEq P hP D σ σV hσ]
-  have := hG (σ (.n 5)); have := hS (.n 5); omega
+  have := hG (σ (.n (val% «main» "meta[5]"))); have := hS (.n (val% «main» "meta[5]")); omega
 
 /-- The DA claim (`dvClaimC`): `4·S + 93`. -/
 theorem dvClaim_cost (hP : Includes P Decoder.dvClaimC.costDeps) :
@@ -109,7 +112,7 @@ theorem daWitness_cost (D : DiscreteLogTables) (hP : Includes P Decoder.daWitnes
   rw [Decoder.daWitnessC.costEq P hP D σ σV hσ wD wDV hwD]
   have := nDirect_cost P hσ hS D (by includes) hG
   have := dvClaim_cost P hσ hS (by includes)
-  have := hWD [σ (.n 47)] [σ (.n 369), σ (.n 370), σ (.n 371)] (by simp)
+  have := hWD [σ (.n (val% «main» "byte_bits"))] [σ (.n (val% «main» "root_0")), σ (.n (val% «main» "root_1")), σ (.n (val% «main» "z"))] (by simp)
   have : Decoder.nDirectD D σ < 2 ^ 34 := gLogD_lt D _
   cost_facts [hS]
   limbs_one
@@ -139,8 +142,8 @@ structure CountsWithin (D : DiscreteLogTables) (σ : Val) (K N X : ℕ) : Prop w
   kids : Decoder.nKidsD D σ ≤ K
   xmssSlots : Decoder.lxSlotsD D σ ≤ N
   sphincsSlots : Decoder.lsSlotsD D σ ≤ N
-  xmssClaims : Decoder.gLogD D (σ (.n 0)) ≤ X
-  sphincsClaims : Decoder.gLogD D (σ (.n 3)) ≤ X
+  xmssClaims : Decoder.gLogD D (σ (.n (val% «main» "meta[0]"))) ≤ X
+  sphincsClaims : Decoder.gLogD D (σ (.n (val% «main» "meta[3]"))) ≤ X
   rawXmss : Decoder.nRawXD D σ ≤ X
   rawSphincs : Decoder.nRawSD D σ ≤ X
 
@@ -220,14 +223,14 @@ theorem decWitAt_cost (D : DiscreteLogTables) (hP : Includes P Decoder.decWitAtC
       decWitAtPrice G R S WX WS WD WV WA K N X := by
   rw [Decoder.decWitAtC.costEq P hP D σ σV hσ rd rdV hrd wX wXV hwX wS wSV hwS wD wDV hwD wV wVV
     hwV wA wAV hwA]
-  have h1 := regionTable_cost P hrd hR D (by includes) hG (σ (.n 45)) 0 lx (by norm_num) hlx.le
-  have h2 := regionTable_cost P hrd hR D (by includes) hG (σ (.n 45)) lx ls hlx.le hls
+  have h1 := regionTable_cost P hrd hR D (by includes) hG (σ (.n (val% «main» "cover"))) 0 lx (by norm_num) hlx.le
+  have h2 := regionTable_cost P hrd hR D (by includes) hG (σ (.n (val% «main» "cover"))) lx ls hlx.le hls
   have := decWitTab_cost P hrd hR hσ hS hwX hWX hwS hWS hwD hWD hwV hwA hWA D (by includes) hG
-    K N X hK hN hX nk nrx nrs hnk hnrx hnrs (σ (.n 398)) (σ (.n 31)) (σ (.n 34)) _ _
-    (regionTable_good (rd := rd) D (σ (.n 45)) 0 lx hlx.le)
-    (regionTable_good (rd := rd) D (σ (.n 45)) lx ls hls)
-    ((regionTable_size_le (rd := rd) D (σ (.n 45)) 0 lx).trans hlxN)
-    ((regionTable_size_le (rd := rd) D (σ (.n 45)) lx ls).trans hlsN) (Decoder.l2ArgsD σ)
+    K N X hK hN hX nk nrx nrs hnk hnrx hnrs (σ (.n (val% «main» "written"))) (σ (.n (val% «main» "lx_table"))) (σ (.n (val% «main» "lean_sphincs_table"))) _ _
+    (regionTable_good (rd := rd) D (σ (.n (val% «main» "cover"))) 0 lx hlx.le)
+    (regionTable_good (rd := rd) D (σ (.n (val% «main» "cover"))) lx ls hls)
+    ((regionTable_size_le (rd := rd) D (σ (.n (val% «main» "cover"))) 0 lx).trans hlxN)
+    ((regionTable_size_le (rd := rd) D (σ (.n (val% «main» "cover"))) lx ls).trans hlsN) (Decoder.l2ArgsD σ)
     (by simp [Decoder.l2ArgsD]) hWV
   have := l2ArgsD_cost P hσ hS (by includes)
   have e1 : regionTablePrice G R lx ≤ regionTablePrice G R N := by
@@ -333,18 +336,7 @@ end Top
 
 /-! ## `main`'s valuation -/
 
-theorem mainLocs_lt : ∀ x ∈ (Decoder.guestLocs.getD 1 #[]).toList, x < 2 ^ 20 := by
-  decide +kernel
-
-theorem mainLoc_lt (i : ℕ) : (Decoder.guestLocs.getD 1 #[]).getD i 0 < 2 ^ 20 := by
-  rw [Array.getD_eq_getD_getElem?]
-  cases h : (Decoder.guestLocs.getD 1 #[])[i]? with
-  | none => simp
-  | some x =>
-    simp only [Option.getD_some]
-    exact mainLocs_lt x (Array.mem_toList_iff.2 (Array.mem_of_getElem? h))
-
-/-- **`main`'s valuation** (`mainValC`, the cells' locations a literal of the program): a word of
+/-- **`main`'s valuation** (`mainValC`, its cell off the packed table, `locAt_cost`): a word of
 `main`'s frame, for every value, at most `R + 1521`. -/
 theorem mainVal_cost (hP : Includes P Decoder.mainValC.costDeps) {rd : Reader} {rdV : MachineValue}
     (hrd : ∀ a : K, RunsApp P rdV [encodeValue a] (encodeValue (rd a)))
@@ -352,10 +344,10 @@ theorem mainVal_cost (hP : Includes P Decoder.mainValC.costDeps) {rd : Reader} {
     machineCost P Decoder.mainValC.costIdx [rdV, encodeValue v] ≤ R + 1521 := by
   rw [Decoder.mainValC.costEq P hP rd rdV hrd]
   have := wordWith_cost (P := P) (rd := rd) (rdVal := rdV) (hrd := hrd) (R := R) (hR := hR)
-    (hW := (by norm_num : 0 < 20)) (hW64 := (by norm_num : 20 < 64)) (by includes) 1
-    ((Decoder.guestLocs.getD 1 #[]).getD v.idx 0) (mainLoc_lt _)
+    (hW := (by norm_num : 0 < 16)) (hW64 := (by norm_num : 16 < 64)) (by includes) 1
+    (Decoder.locAt 1 v.idx) (Decoder.locAt_lt _ _)
   unfold psAt at this
-  have hT := Decoder.guestLocsTableC.costEq P (by includes)
+  have hT := locAt_cost P (by includes) 1 v.idx
   omega
 
 end

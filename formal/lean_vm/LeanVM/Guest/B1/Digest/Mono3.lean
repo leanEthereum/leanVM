@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Digest.Mono3
 
-  Windows 12–15 of `child_claim_list_mono`'s big frame loop `child_claim_list_mono_loop0`: blocks
-  48–63, claims 108–135, each window a kernel check of its own.
+  Windows 12 to 15 of `child_claim_list_mono`'s big frame loop `child_claim_list_mono_loop0`: blocks
+  48 to 63, claims 108 to 135, each window a kernel check of its own.
 -/
 
 module

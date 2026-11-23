@@ -45,9 +45,9 @@ example (H : Bytes → Digest) (F : KeccakState → KeccakState) {prog : LeanIsa
 example {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog} {ρ : ℕ}
     (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ maxMu)
     (hρ : validRate ρ) (H : Bytes → Digest) (F : KeccakState → KeccakState) (fuel : ℕ)
-    (hpow : ∀ hist bits k sp,
+    (hpow : ∀ hist bits k sp o,
       (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)).after hist =
-          some (.grind bits k) → findNonce F bits sp fuel ≠ none) :
+          some (.grind bits k) → findNonce F bits o sp fuel ≠ none) :
     (honestProofOf H F prog input t ρ fuel).isSome :=
   honestProofOf_isSome hv hbudget hρ H F fuel hpow
 

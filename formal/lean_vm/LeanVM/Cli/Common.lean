@@ -92,4 +92,69 @@ def hexDigit? (c : Char) : Option ℕ :=
 def bitsLE (n : ℕ) (bytes : List ℕ) : BitVec n :=
   BitVec.ofNat n (bytes.foldr (fun b acc ↦ b + 256 * acc) 0)
 
+/-! ## Programs -/
+
+section
+
+open LeanVM.Semantics LeanVM.Arithmetization
+/-- The opcode of a code. -/
+def opcodeOf? (c : K) : Option Opcode :=
+  [Opcode.xor, .mulNative, .setConstant, .deref, .jump, .keccak].find? (·.busCode = c)
+
+/-- A flag word. -/
+def flagOf? (c : K) : Option Bool :=
+  if c = 0 then some false else if c = 1 then some true else none
+
+/-- The `DEREF` mode of its two flags. -/
+def derefModeOf? (fpc ffp : K) : Option DerefMode :=
+  if fpc = 0 ∧ ffp = 0 then some .cell
+  else if fpc = 1 ∧ ffp = 0 then some .pc
+  else if fpc = 0 ∧ ffp = 1 then some .fp
+  else none
+
+/-- The `KECCAK` output cells of its two flags `(out_two, out_all)`. -/
+def outCellsOf? (two all : K) : Option KeccakOutputCells :=
+  if two = 0 ∧ all = 0 then some .one
+  else if two = 1 ∧ all = 0 then some .two
+  else if two = 1 ∧ all = 1 then some .all
+  else none
+
+/-- The instruction of a bus entry (the inverse of `entry`, where it is one). -/
+def instrOf? (e : Array K) : Option LeanIsaInstruction := do
+  let op ← opcodeOf? (e.getD 0 0)
+  let x (i : ℕ) : K := e.getD i 0
+  match op with
+  | .xor => some (.xor (x 1) (x 2) (x 3))
+  | .mulNative => some (.mulNative (x 1) (x 2) (x 3))
+  | .setConstant => some (.setConstant (x 1) (E.ofLimbs (x 2) (x 3)))
+  | .deref => do
+    let mode ← derefModeOf? (x 4) (x 5)
+    some (.deref (x 1) (x 2) (x 3) mode)
+  | .jump => some (.jump (x 1) (x 2) (x 3))
+  | .keccak => do
+    let inOdd ← flagOf? (x 9)
+    let outOdd ← flagOf? (x 10)
+    let outCells ← outCellsOf? (x 11) (x 12)
+    some (.keccak ![x 1, x 2, x 3, x 4] (x 5) (x 6) (x 7) (x 8) inOdd outOdd outCells)
+
+/-- The program a bytecode table encodes: `16 · 2^logSize` words, word `i + 2^logSize · s` slot
+`s` of instruction `i`; checked to re-encode to the same words. -/
+def decodeProgram (words : Array K) : Except String LeanIsaProgram := do
+  let n := words.size / 16
+  let logSize := Nat.log2 n
+  unless 16 * 2 ^ logSize = words.size do throw "the bytecode is not 16 · 2^k words"
+  if h : logSize ≤ maxLogBytecode then
+    let mut code : Array LeanIsaInstruction := #[]
+    for i in [0:n] do
+      let e := (Array.range 13).map fun j ↦ words.getD (i + n * (3 + j)) 0
+      match instrOf? e with
+      | some ins => code := code.push ins
+      | none => throw s!"instruction {i} does not decode"
+    let prog : LeanIsaProgram := ⟨logSize, h, fun i ↦ code.getD i.val (.jump 0 0 0)⟩
+    unless (LeanVM.bytecodeWords prog).toArray == words do throw "the bytecode does not re-encode"
+    return prog
+  else throw "the bytecode is too long"
+
+end
+
 end LeanVM.Cli

@@ -27,7 +27,7 @@ fuel P sp h cs` (`LeanVM/Protocol/Compile/Rom/Prover.lean`) carries the history 
 openings off it, and search nonces with `findNonceM`: they make the same calls in the same order.
 Along a history whose walk ends at the runner's node (`Hs.walk h = S`), they are equal
 (`runFrom_eq_proveFromM`): the runner's moves on a matching node are the replay's (`msgAt`,
-`wordAt`), and off one (`0`, the empty rows) too.
+`wordAt`, `outsideKAt`), and off one (`0`, the empty rows, any challenge) too.
 
 * `runScript_eq_proveM`: from a seed, the runner's proof is the honest prover's, `none` where it
   fails.
@@ -58,6 +58,12 @@ theorem msgAt_eq (Hs : Script β) (l : List Ev) : Hs.msgAt l = msgOf (Hs.walk l)
 
 theorem wordAt_eq (Hs : Script β) (l : List Ev) : Hs.wordAt l = wordOf (Hs.walk l) := by
   unfold wordAt
+  generalize Hs.walk l = o
+  rcases o with _ | (_ | _ | _ | _ | _ | _) <;> rfl
+
+theorem outsideKAt_eq (Hs : Script β) (l : List Ev) :
+    Hs.outsideKAt l = outsideKOf (Hs.walk l) := by
+  unfold outsideKAt
   generalize Hs.walk l = o
   rcases o with _ | (_ | _ | _ | _ | _ | _) <;> rfl
 
@@ -95,6 +101,12 @@ theorem ofScript_word {β : Type} (Hs : Script β) (h : List Ev) :
   show Hs.wordAt (h.drop 0) = _
   rw [List.drop_zero, Script.wordAt_eq]
 
+/-- The replay's proof of work at a history asks what the runner's at the walk's node does. -/
+theorem ofScript_outsideK {β : Type} (Hs : Script β) (h : List Ev) :
+    (Strategy.ofScript Hs 0).outsideK h = Script.outsideKOf (Hs.walk h) := by
+  show Hs.outsideKAt (h.drop 0) = _
+  rw [List.drop_zero, Script.outsideKAt_eq]
+
 /-! ## The bridge -/
 
 section Bridge
@@ -127,7 +139,10 @@ theorem runFrom_eq_proveFromM (fuel : ℕ) {α β : Type} (Hs : Script β) :
     exact ih _ _ _ _ _ (by rw [Script.walk_append, hw, Script.afterSample_eq])
   | grind bits k ih =>
     intro S sp h cs hw
+    have ho := ofScript_outsideK Hs h
+    rw [hw] at ho
     simp only [runFromWithHash, proveFromM]
+    rw [ho]
     congr 1; funext o
     rcases o with _ | n
     · rfl

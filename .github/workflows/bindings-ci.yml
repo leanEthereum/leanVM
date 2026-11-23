@@ -333,7 +333,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # llvm-tools strips the LLVM bitcode Go refuses from the archive.
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools
 
       - uses: mlugg/setup-zig@v2
         with:
@@ -480,6 +483,13 @@ jobs:
             bundle_dir: x86_64-linux-gnu
             go_dir: linux_amd64
             go_test_command: go test ./...
+          # go.mod's version is the oldest supported; the newest Go checks cgo linker inputs further.
+          - name: Linux amd64 / latest Go
+            runner: ubuntu-latest
+            bundle_dir: x86_64-linux-gnu
+            go_dir: linux_amd64
+            go_version: stable
+            go_test_command: go test ./...
           - name: Linux arm64
             runner: ubuntu-latest
             bundle_dir: aarch64-linux-gnu
@@ -521,8 +531,10 @@ jobs:
       - name: Place the archive
         run: mv bindings/go/internal/native/${{ matrix.platform.bundle_dir }} bindings/go/internal/native/${{ matrix.platform.go_dir }}
 
+      # A row's go_version, when set, takes precedence over go.mod's.
       - uses: actions/setup-go@v7
         with:
+          go-version: ${{ matrix.platform.go_version }}
           go-version-file: bindings/go/go.mod
           cache-dependency-path: bindings/go/go.mod
 

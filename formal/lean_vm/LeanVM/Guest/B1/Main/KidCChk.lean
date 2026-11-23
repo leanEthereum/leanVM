@@ -10,6 +10,8 @@ public import LeanVM.Guest.B1.Main.Loops
 public import LeanVM.Guest.B1.Fwd.Canon
 public import LeanVM.Guest.Memory.Uniform
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«main_loop4»
 
 /-!
 # A child's block, evaluated
@@ -29,55 +31,55 @@ open LeanVM.Guest.Core LeanVM.Guest.B1.Fwd LeanVM.Guest.B1.Digest
 
 /-- `main_loop4`'s statements before its tail call. -/
 def l5Pre : List Stmt := [
-    .atom (.mul (.n 16) (.n 2) (.n 0)),
-    .atom (.load (.n 17) (.n 16) 0),
-    .atom (.hint (.witness "child_meta" (.stack [.n 18, .n 19]))),
-    .atom (.touch (.n 20) (.n 18)),
-    .atom (.touch (.n 21) (.n 19)),
-    .atom (.mul (.n 22) (.n 18) (.n 19)),
-    .call "child_claim_list_digest" [.n 3, .n 4, .n 17, .n 5, .n 18] [.n 23, .n 24],
-    .atom (.mul (.n 25) (.n 17) (.n 18)),
-    .call "child_claim_list_digest" [.n 6, .n 7, .n 25, .n 8, .n 19] [.n 26, .n 27],
-    .atom (.mul (.n 28) (.n 0) (.n 0)),
-    .atom (.mul (.n 29) (.n 28) (.n 0)),
-    .atom (.mul (.n 30) (.n 29) (.n 29)),
-    .atom (.mul (.n 31) (.n 30) (.n 30)),
-    .atom (.mul (.n 32) (.n 31) (.n 31)),
-    .atom (.mul (.n 33) (.n 9) (.n 32)),
-    .atom (.hint (.witness "child_defer" (.heap (.n 33) 0 24))),
-    .atom (.mul (.n 34) (.n 0) (.n 0)),
-    .atom (.mul (.n 35) (.n 10) (.n 34)),
-    .atom (.hint (.witness "child_da" (.heap (.n 35) 0 2))),
-    .atom (.load (.n 36) (.n 35) 0),
-    .atom (.load (.n 37) (.n 35) 1),
-    .call "statement_digest" [.n 11, .n 12, .n 23, .n 24, .n 26, .n 27, .n 36, .n 37, .n 33]
-      [.n 38, .n 39],
-    .atom (.mul (.n 40) (.n 0) (.n 0)),
-    .atom (.mul (.n 41) (.n 13) (.n 40)),
-    .atom (.load (.n 38) (.n 41) 0),
-    .atom (.mul (.n 42) (.n 13) (.n 40)),
-    .atom (.load (.n 39) (.n 42) 1),
-    .atom (.mul (.n 43) (.n 0) (.n 0)),
-    .atom (.mul (.n 44) (.n 43) (.n 0)),
-    .atom (.mul (.n 45) (.n 44) (.n 44)),
-    .atom (.mul (.n 46) (.n 45) (.n 45)),
-    .atom (.mul (.n 47) (.n 46) (.n 46)),
-    .atom (.mul (.n 48) (.n 15) (.n 47)),
-    .call "verify_sub" [.n 38, .n 39, .n 11, .n 12, .n 14, .n 48] [],
-    .atom (.mul (.n 49) (.n 17) (.n 22)),
-    .atom (.mul (.n 50) (.n 2) (.n 0)),
-    .atom (.load (.n 49) (.n 50) 1),
-    .atom (.const (.n 51) (word 2 0)),
-    .atom (.mul (.n 52) (.n 0) (.n 51)),
-    .atom (.add (.n 53) (.n 52) (.n 1)),
-    .atom (.const (.n 54) (word 2 0)),
-    .atom (.mul (.n 55) (.n 0) (.n 54))]
+    .atom (.mul (.n (val% «main_loop4» "base~0")) (.n (val% «main_loop4» "written")) (.n (val% «main_loop4» "xc"))),
+    .atom (.load (.n (val% «main_loop4» "base")) (.n (val% «main_loop4» "base~0")) 0),
+    .atom (.hint (.witness "child_meta" (.stack [.n (val% «main_loop4» "child_meta[0]"), .n (val% «main_loop4» "child_meta[1]")]))),
+    .atom (.touch (.n (val% «main_loop4» "s5#0")) (.n (val% «main_loop4» "child_meta[0]"))),
+    .atom (.touch (.n (val% «main_loop4» "s6#0")) (.n (val% «main_loop4» "child_meta[1]"))),
+    .atom (.mul (.n (val% «main_loop4» "nsub_g")) (.n (val% «main_loop4» "child_meta[0]")) (.n (val% «main_loop4» "child_meta[1]"))),
+    .call "child_claim_list_digest" [.n (val% «main_loop4» "lx_table"), .n (val% «main_loop4» "cover"), .n (val% «main_loop4» "base"), .n (val% «main_loop4» "lx_slots_g"), .n (val% «main_loop4» "child_meta[0]")] [.n (val% «main_loop4» "cx_0"), .n (val% «main_loop4» "cx_1")],
+    .atom (.mul (.n (val% «main_loop4» "cs_0~2")) (.n (val% «main_loop4» "base")) (.n (val% «main_loop4» "child_meta[0]"))),
+    .call "child_claim_list_digest" [.n (val% «main_loop4» "lean_sphincs_table"), .n (val% «main_loop4» "sp_cover"), .n (val% «main_loop4» "cs_0~2"), .n (val% «main_loop4» "lean_sphincs_slots_g"), .n (val% «main_loop4» "child_meta[1]")] [.n (val% «main_loop4» "cs_0"), .n (val% «main_loop4» "cs_1")],
+    .atom (.mul (.n (val% «main_loop4» "carried~0")) (.n (val% «main_loop4» "xc")) (.n (val% «main_loop4» "xc"))),
+    .atom (.mul (.n (val% «main_loop4» "carried~1")) (.n (val% «main_loop4» "carried~0")) (.n (val% «main_loop4» "xc"))),
+    .atom (.mul (.n (val% «main_loop4» "carried~2")) (.n (val% «main_loop4» "carried~1")) (.n (val% «main_loop4» "carried~1"))),
+    .atom (.mul (.n (val% «main_loop4» "carried~3")) (.n (val% «main_loop4» "carried~2")) (.n (val% «main_loop4» "carried~2"))),
+    .atom (.mul (.n (val% «main_loop4» "carried~4")) (.n (val% «main_loop4» "carried~3")) (.n (val% «main_loop4» "carried~3"))),
+    .atom (.mul (.n (val% «main_loop4» "carried")) (.n (val% «main_loop4» "child_carried")) (.n (val% «main_loop4» "carried~4"))),
+    .atom (.hint (.witness "child_defer" (.heap (.n (val% «main_loop4» "carried")) 0 24))),
+    .atom (.mul (.n (val% «main_loop4» "child_da~0")) (.n (val% «main_loop4» "xc")) (.n (val% «main_loop4» "xc"))),
+    .atom (.mul (.n (val% «main_loop4» "child_da")) (.n (val% «main_loop4» "da_digests")) (.n (val% «main_loop4» "child_da~0"))),
+    .atom (.hint (.witness "child_da" (.heap (.n (val% «main_loop4» "child_da")) 0 2))),
+    .atom (.load (.n (val% «main_loop4» "pi_0~2")) (.n (val% «main_loop4» "child_da")) 0),
+    .atom (.load (.n (val% «main_loop4» "pi_0~3")) (.n (val% «main_loop4» "child_da")) 1),
+    .call "statement_digest" [.n (val% «main_loop4» "seed_0"), .n (val% «main_loop4» "seed_1"), .n (val% «main_loop4» "cx_0"), .n (val% «main_loop4» "cx_1"), .n (val% «main_loop4» "cs_0"), .n (val% «main_loop4» "cs_1"), .n (val% «main_loop4» "pi_0~2"), .n (val% «main_loop4» "pi_0~3"), .n (val% «main_loop4» "carried")]
+      [.n (val% «main_loop4» "pi_0"), .n (val% «main_loop4» "pi_1")],
+    .atom (.mul (.n (val% «main_loop4» "pi")) (.n (val% «main_loop4» "xc")) (.n (val% «main_loop4» "xc"))),
+    .atom (.mul (.n (val% «main_loop4» "s16#0")) (.n (val% «main_loop4» "child_pi")) (.n (val% «main_loop4» "pi"))),
+    .atom (.load (.n (val% «main_loop4» "pi_0")) (.n (val% «main_loop4» "s16#0")) 0),
+    .atom (.mul (.n (val% «main_loop4» "s17#0")) (.n (val% «main_loop4» "child_pi")) (.n (val% «main_loop4» "pi"))),
+    .atom (.load (.n (val% «main_loop4» "pi_1")) (.n (val% «main_loop4» "s17#0")) 1),
+    .atom (.mul (.n (val% «main_loop4» "s18#0")) (.n (val% «main_loop4» "xc")) (.n (val% «main_loop4» "xc"))),
+    .atom (.mul (.n (val% «main_loop4» "s18#1")) (.n (val% «main_loop4» "s18#0")) (.n (val% «main_loop4» "xc"))),
+    .atom (.mul (.n (val% «main_loop4» "s18#2")) (.n (val% «main_loop4» "s18#1")) (.n (val% «main_loop4» "s18#1"))),
+    .atom (.mul (.n (val% «main_loop4» "s18#3")) (.n (val% «main_loop4» "s18#2")) (.n (val% «main_loop4» "s18#2"))),
+    .atom (.mul (.n (val% «main_loop4» "s18#4")) (.n (val% «main_loop4» "s18#3")) (.n (val% «main_loop4» "s18#3"))),
+    .atom (.mul (.n (val% «main_loop4» "s18#5")) (.n (val% «main_loop4» "child_fresh")) (.n (val% «main_loop4» "s18#4"))),
+    .call "verify_sub" [.n (val% «main_loop4» "pi_0"), .n (val% «main_loop4» "pi_1"), .n (val% «main_loop4» "seed_0"), .n (val% «main_loop4» "seed_1"), .n (val% «main_loop4» "g_squares"), .n (val% «main_loop4» "s18#5")] [],
+    .atom (.mul (.n (val% «main_loop4» "s19#0")) (.n (val% «main_loop4» "base")) (.n (val% «main_loop4» "nsub_g"))),
+    .atom (.mul (.n (val% «main_loop4» "s19#1")) (.n (val% «main_loop4» "written")) (.n (val% «main_loop4» "xc"))),
+    .atom (.load (.n (val% «main_loop4» "s19#0")) (.n (val% «main_loop4» "s19#1")) 1),
+    .atom (.const (.n (val% «main_loop4» "s21#0")) (word 2 0)),
+    .atom (.mul (.n (val% «main_loop4» "s21#1")) (.n (val% «main_loop4» "xc")) (.n (val% «main_loop4» "s21#0"))),
+    .atom (.add (.n (val% «main_loop4» "s21#2")) (.n (val% «main_loop4» "s21#1")) (.n (val% «main_loop4» "bound"))),
+    .atom (.const (.n (val% «main_loop4» "s21#3")) (word 2 0)),
+    .atom (.mul (.n (val% «main_loop4» "s21#4")) (.n (val% «main_loop4» "xc")) (.n (val% «main_loop4» "s21#3")))]
 
 /-- `main_loop4`'s tail call. -/
 def l5Tail : Stmt :=
-  .callIf (.n 53) name% «main_loop4» [.n 55, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9,
-      .n 10, .n
-    11, .n 12, .n 13, .n 14, .n 15]
+  .callIf (.n (val% «main_loop4» "s21#2")) name% «main_loop4» [.n (val% «main_loop4» "s21#4"), .n (val% «main_loop4» "bound"), .n (val% «main_loop4» "written"), .n (val% «main_loop4» "lx_table"), .n (val% «main_loop4» "cover"), .n (val% «main_loop4» "lx_slots_g"), .n (val% «main_loop4» "lean_sphincs_table"), .n (val% «main_loop4» "sp_cover"), .n (val% «main_loop4» "lean_sphincs_slots_g"), .n (val% «main_loop4» "child_carried"),
+      .n (val% «main_loop4» "da_digests"), .n
+    (val% «main_loop4» "seed_0"), .n (val% «main_loop4» "seed_1"), .n (val% «main_loop4» "child_pi"), .n (val% «main_loop4» "g_squares"), .n (val% «main_loop4» "child_fresh")]
 
 set_option maxRecDepth 100000 in
 theorem l5_body : Fn.body (coreProgram.getD idx% «main_loop4» default) = l5Pre ++ [l5Tail,
@@ -91,26 +93,26 @@ theorem l5_params : (coreProgram.getD idx% «main_loop4» default).params = (Lis
 
 /-- `main_loop4`'s stores. -/
 def l5S : List Atom :=
-  [.load (.n 38) (.n 41) 0, .load (.n 39) (.n 42) 1, .load (.n 49) (.n 50) 1]
+  [.load (.n (val% «main_loop4» "pi_0")) (.n (val% «main_loop4» "s16#0")) 0, .load (.n (val% «main_loop4» "pi_1")) (.n (val% «main_loop4» "s17#0")) 1, .load (.n (val% «main_loop4» "s19#0")) (.n (val% «main_loop4» "s19#1")) 1]
 
 /-- The block's atoms but the stores. -/
 def l5A' : List Atom := (atomsIn l5Pre).filter fun a => decide (a ∉ l5S)
 
 /-- The calls of the block. -/
 def l5Calls : List Stmt :=
-  [.call "child_claim_list_digest" [.n 3, .n 4, .n 17, .n 5, .n 18] [.n 23, .n 24],
-    .call "child_claim_list_digest" [.n 6, .n 7, .n 25, .n 8, .n 19] [.n 26, .n 27],
-    .call "statement_digest" [.n 11, .n 12, .n 23, .n 24, .n 26, .n 27, .n 36, .n 37, .n 33]
-      [.n 38, .n 39]]
+  [.call "child_claim_list_digest" [.n (val% «main_loop4» "lx_table"), .n (val% «main_loop4» "cover"), .n (val% «main_loop4» "base"), .n (val% «main_loop4» "lx_slots_g"), .n (val% «main_loop4» "child_meta[0]")] [.n (val% «main_loop4» "cx_0"), .n (val% «main_loop4» "cx_1")],
+    .call "child_claim_list_digest" [.n (val% «main_loop4» "lean_sphincs_table"), .n (val% «main_loop4» "sp_cover"), .n (val% «main_loop4» "cs_0~2"), .n (val% «main_loop4» "lean_sphincs_slots_g"), .n (val% «main_loop4» "child_meta[1]")] [.n (val% «main_loop4» "cs_0"), .n (val% «main_loop4» "cs_1")],
+    .call "statement_digest" [.n (val% «main_loop4» "seed_0"), .n (val% «main_loop4» "seed_1"), .n (val% «main_loop4» "cx_0"), .n (val% «main_loop4» "cx_1"), .n (val% «main_loop4» "cs_0"), .n (val% «main_loop4» "cs_1"), .n (val% «main_loop4» "pi_0~2"), .n (val% «main_loop4» "pi_0~3"), .n (val% «main_loop4» "carried")]
+      [.n (val% «main_loop4» "pi_0"), .n (val% «main_loop4» "pi_1")]]
 
 /-- **`main_loop4`'s block, evaluated.** -/
 def l5COk : Bool :=
   (chk 16 (l5Pre ++ [l5Tail, .ret []])).isSome &&
   decide (storesOf 16 (l5Pre ++ [l5Tail, .ret []]) = l5S) &&
   (atomsIn l5Pre).all (fun a => !needsSide a || decide (a ∈ l5S) ||
-    decide (a = .load (.n 17) (.n 16) 0) || decide (a = .load (.n 36) (.n 35) 0) ||
-    decide (a = .load (.n 37) (.n 35) 1) || decide (a = .touch (.n 20) (.n 18)) ||
-    decide (a = .touch (.n 21) (.n 19))) &&
+    decide (a = .load (.n (val% «main_loop4» "base")) (.n (val% «main_loop4» "base~0")) 0) || decide (a = .load (.n (val% «main_loop4» "pi_0~2")) (.n (val% «main_loop4» "child_da")) 0) ||
+    decide (a = .load (.n (val% «main_loop4» "pi_0~3")) (.n (val% «main_loop4» "child_da")) 1) || decide (a = .touch (.n (val% «main_loop4» "s5#0")) (.n (val% «main_loop4» "child_meta[0]"))) ||
+    decide (a = .touch (.n (val% «main_loop4» "s6#0")) (.n (val% «main_loop4» "child_meta[1]")))) &&
   l5Calls.all (fun c => l5Pre.any (stmtEqb · c))
 
 set_option maxRecDepth 100000 in

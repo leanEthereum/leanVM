@@ -62,7 +62,18 @@ In the short term, we provide two Rust implementations of the prover, `stable` (
 
 ## bindings
 
-[`bindings/`](bindings/README.md) holds Python, Node.js, Java, Go, Zig and Nim bindings for leanXMSS, leanSPHINCS and their aggregation, released together as `bindings-vX.Y.Z`; Rust code uses `lean_vm` directly.
+Python, Node.js, Java, Go, Zig and Nim bindings for leanXMSS, leanSPHINCS and their aggregation, released together as `bindings-vX.Y.Z` ([releases](https://github.com/leanEthereum/leanVM/releases?q=bindings&expanded=true)):
+
+| language | package |
+| --- | --- |
+| Python | [`py-lean-pq`](https://pypi.org/project/py-lean-pq/) on PyPI |
+| Node.js | [`@kevaundray/lean-pq`](https://www.npmjs.com/package/@kevaundray/lean-pq) on npm |
+| Java | [`io.github.crate-crypto:lean-pq`](https://central.sonatype.com/artifact/io.github.crate-crypto/lean-pq) on Maven Central |
+| Go | [`leanvm.org/go`](https://pkg.go.dev/leanvm.org/go) |
+| Zig | `lean-pq-zig-X.Y.Z.tar.gz` attached to each [`bindings-vX.Y.Z` release](https://github.com/leanEthereum/leanVM/releases?q=bindings&expanded=true) |
+| Nim | [`bindings/nim`](bindings/nim/README.md) at tag `bindings-vX.Y.Z` |
+
+Install commands, supported platforms and the sidecar that aggregation needs are in [`bindings/README.md`](bindings/README.md). Rust code uses `lean_vm` directly.
 
 ## benchmarks
 

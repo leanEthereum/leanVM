@@ -35,8 +35,9 @@ inductive Script (α : Type) : Type where
   | send (x : E) (k : Script α)
   /-- Receive a challenge. -/
   | sample (k : E → Script α)
-  /-- Pass a proof of work. -/
-  | grind (k : Script α)
+  /-- Pass a proof of work; with `outsideK`, by a nonce whose challenge lies outside `K`
+  (`nonceUsable`). -/
+  | grind (outsideK : Bool) (k : Script α)
   /-- Commit a matrix. -/
   | commit (word : Word) (k : Script α)
   /-- Receive the opened rows. -/
@@ -51,7 +52,7 @@ def bind : Script α → (α → Script β) → Script β
   | ret a, f => f a
   | send x k, f => send x (k.bind f)
   | sample k, f => sample fun c ↦ (k c).bind f
-  | grind k, f => grind (k.bind f)
+  | grind o k, f => grind o (k.bind f)
   | commit w k, f => commit w (k.bind f)
   | query k, f => query fun r ↦ (k r).bind f
 
@@ -79,11 +80,17 @@ def sampleN : ℕ → Script (List E)
     return x :: xs
 
 /-- Pass a proof of work. -/
-def grindS : Script Unit := grind (ret ())
+def grindS : Script Unit := grind false (ret ())
 
 /-- Pass a proof of work of `bits` bits: nothing at `0` bits, as the verifier's
 `grindProofOfWork` and the Rust's `grind` (`crates/fiat_shamir_prover/src/lib.rs`). -/
 def grindBits (bits : ℕ) : Script Unit := if bits = 0 then ret () else grindS
+
+/-- Pass a proof of work of `bits > 0` bits, then receive its challenge, which lies outside `K`
+(`grind_sample`, `crates/fiat_shamir_prover/src/transcript.rs`, with `usable` the challenge's
+second limb nonzero, as the Keccak GKR's `s` asks, `prove_layer` in `crates/keccak_gkr`); at
+`0` bits, which the Rust refuses, only the challenge. -/
+def grindSample (bits : ℕ) : Script E := if bits = 0 then sampleE else grind true sampleE
 
 /-- Commit a matrix. -/
 def commitS (word : Word) : Script Unit := commit word (ret ())
@@ -98,7 +105,7 @@ def alongside {α : Type} [Inhabited α] : VerifierProgram α → Script β → 
   | .ret a, _ => ret a
   | .read k, send x S => send x (alongside (k x) S)
   | .sample k, sample S => sample fun c ↦ alongside (k c) (S c)
-  | .grind _ k, grind S => grind (alongside k S)
+  | .grind _ k, grind o S => grind o (alongside k S)
   | .commit _ _ k, commit w S => commit w (alongside k S)
   | .query _ _ k, query S => query fun rows ↦ alongside (k rows) (S rows)
   | _, _ => ret default

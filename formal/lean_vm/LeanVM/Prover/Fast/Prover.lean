@@ -178,14 +178,15 @@ section Run
 variable {m : Type → Type} [Monad m] (F : KeccakState → m KeccakState)
 
 /-- `searchM`, copied. -/
-def searchM.fast (bits : ℕ) (sp : Sponge) : ℕ → ℕ → m (Option E)
+def searchM.fast (bits : ℕ) (outsideK : Bool) (sp : Sponge) : ℕ → ℕ → m (Option E)
   | _, 0 => pure none
   | n, count + 1 => do
     let r ← absorbNonce F sp (nonceOf n)
-    if powOk bits r.1 then pure (some (nonceOf n)) else searchM.fast bits sp (n + 1) count
+    if powOk bits r.1 && nonceUsable outsideK (challengeOf r.2.state) then pure (some (nonceOf n))
+    else searchM.fast bits outsideK sp (n + 1) count
 
 @[csimp] theorem searchM.fast_eq : @searchM = @searchM.fast := by
-  funext m _ F bits sp n count
+  funext m _ F bits outsideK sp n count
   induction count generalizing n with
   | zero => rfl
   | succ count ih => simp only [searchM, searchM.fast, ih]
@@ -218,7 +219,7 @@ def runFrom.fast (fuel : ℕ) {α β : Type} :
     let r ← squeeze F sp
     runFrom.fast fuel (k r.1) (Script.afterSample r.1 S) r.2 cs
   | .grind bits k, S, sp, cs => do
-    match ← findNonceM F bits sp fuel with
+    match ← findNonceM F bits (Script.outsideKOf S) sp fuel with
     | none => pure none
     | some n => do
       let r ← absorbNonce F sp n

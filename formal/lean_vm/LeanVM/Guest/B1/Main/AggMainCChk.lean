@@ -8,6 +8,8 @@ module
 
 public import LeanVM.Guest.B1.Main.AggCMath
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«aggregate_claims»
 
 namespace LeanVM.Guest.B1.Main
 
@@ -19,41 +21,41 @@ open LeanVM.Guest.Core LeanVM.Guest.B1.Fwd LeanVM.Guest.B1.Digest
 the first record of `bc_chain` (the power `1`, the claim `0`), `bc_point1`, the first weight `0`,
 the claim at `defer_stmt`. -/
 def aggStores : List Atom :=
-  (List.range 5).map (fun i => .load (.n (10 + i)) (.n 30) i) ++
-    (List.range 4).flatMap (fun j => [.load (.n (15 + 2 * j)) (.n 30) (5 + 2 * j),
-      .load (.n (16 + 2 * j)) (.n 30) (6 + 2 * j)]) ++
-    [.load (.n 96) (.n 95) 0, .load (.n 97) (.n 95) 1] ++
-    (List.range 23).map (fun k => .load (.n (116 + 3 * k)) (.n 113) k) ++ [.load (.n 186) (.n 185) 0] ++
-    (List.range 23).map (fun k => .load (.n (193 + k)) (.n 4) k) ++ [.load (.n 7) (.n 4) 23]
+  (List.range 5).map (fun i => .load (.n ((val% «aggregate_claims» "seed[0]") + i)) (.n (val% «aggregate_claims» "absorb")) i) ++
+    (List.range 4).flatMap (fun j => [.load (.n (15 + 2 * j)) (.n (val% «aggregate_claims» "absorb")) (5 + 2 * j),
+      .load (.n (16 + 2 * j)) (.n (val% «aggregate_claims» "absorb")) (6 + 2 * j)]) ++
+    [.load (.n (val% «aggregate_claims» "s20#0")) (.n (val% «aggregate_claims» "bc_chain")) 0, .load (.n (val% «aggregate_claims» "s21#0")) (.n (val% «aggregate_claims» "bc_chain")) 1] ++
+    (List.range 23).map (fun k => .load (.n (116 + 3 * k)) (.n (val% «aggregate_claims» "bc_point1")) k) ++ [.load (.n (val% «aggregate_claims» "s30#0")) (.n (val% «aggregate_claims» "bc_wsum")) 0] ++
+    (List.range 23).map (fun k => .load (.n ((val% «aggregate_claims» "s33.u0.s0#0") + k)) (.n (val% «aggregate_claims» "defer_stmt")) k) ++ [.load (.n (val% «aggregate_claims» "bytecode_star")) (.n (val% «aggregate_claims» "defer_stmt")) 23]
 
 /-- `aggregate_claims`' loads: the last absorbing row, the nonce, the last record's claim, the
 sumcheck's point (for `bc_point1`), the last weight, the sumcheck's point (for `defer_stmt`). -/
 def aggLoads : List Atom :=
-  (List.range 13).map (fun k => .load (.n (40 + k)) (.n 39) k) ++ [.load (.n 70) (.n 6) 0] ++
-    [.load (.n 103) (.n 102) 1] ++
-    (List.range 23).map (fun k => .load (.n (115 + 3 * k)) (.n 104) k) ++
-    [.load (.n 191) (.n 190) 0] ++ (List.range 23).map (fun k => .load (.n (193 + k)) (.n 104) k)
+  (List.range 13).map (fun k => .load (.n ((val% «aggregate_claims» "sp[0]") + k)) (.n (val% «aggregate_claims» "absorbed")) k) ++ [.load (.n (val% «aggregate_claims» "s16.e.s1#0")) (.n (val% «aggregate_claims» "bc_msgs")) 0] ++
+    [.load (.n (val% «aggregate_claims» "bc_running@1")) (.n (val% «aggregate_claims» "bc_end")) 1] ++
+    (List.range 23).map (fun k => .load (.n (115 + 3 * k)) (.n (val% «aggregate_claims» "bc_point")) k) ++
+    [.load (.n (val% «aggregate_claims» "s32#1")) (.n (val% «aggregate_claims» "s32#0")) 0] ++ (List.range 23).map (fun k => .load (.n ((val% «aggregate_claims» "s33.u0.s0#0") + k)) (.n (val% «aggregate_claims» "bc_point")) k)
 
 /-- `aggregate_claims`' hints: the buffers and `bc_star_hint`. -/
 def aggHintsA : List Atom :=
-  [.hint (.alloc (.n 6) 47), .hint (.witness "bc_star_hint" (.stack [.n 7])),
-    .hint (.allocDyn (.n 8) (.n 0)), .hint (.allocDyn (.n 9) (.n 0)),
-    .hint (.allocDyn (.n 30) (.n 29)), .hint (.allocDyn (.n 95) (.n 94)),
-    .hint (.alloc (.n 104) 23), .hint (.alloc (.n 113) 23), .hint (.allocDyn (.n 185) (.n 184))]
+  [.hint (.alloc (.n (val% «aggregate_claims» "bc_msgs")) 47), .hint (.witness "bc_star_hint" (.stack [.n (val% «aggregate_claims» "bytecode_star")])),
+    .hint (.allocDyn (.n (val% «aggregate_claims» "fresh_row")) (.n (val% «aggregate_claims» "n_children_g"))), .hint (.allocDyn (.n (val% «aggregate_claims» "carried_row")) (.n (val% «aggregate_claims» "n_children_g"))),
+    .hint (.allocDyn (.n (val% «aggregate_claims» "absorb")) (.n (val% «aggregate_claims» "absorb~6"))), .hint (.allocDyn (.n (val% «aggregate_claims» "bc_chain")) (.n (val% «aggregate_claims» "bc_chain~2"))),
+    .hint (.alloc (.n (val% «aggregate_claims» "bc_point")) 23), .hint (.alloc (.n (val% «aggregate_claims» "bc_point1")) 23), .hint (.allocDyn (.n (val% «aggregate_claims» "bc_wsum")) (.n (val% «aggregate_claims» "bc_wsum~1")))]
 
 /-- `aggregate_claims`' packs (`fs_pack` of the count and three zeros). -/
-def aggPacks : List (V × ℕ) := [(.n 0, 15), (.n 17, 17), (.n 19, 19), (.n 21, 21)]
+def aggPacks : List (V × ℕ) := [(.n (val% «aggregate_claims» "n_children_g"), 15), (.n (val% «aggregate_claims» "rate[2]"), 17), (.n (val% «aggregate_claims» "rate[4]"), 19), (.n (val% «aggregate_claims» "rate[6]"), 21)]
 
 /-- `aggregate_claims`' calls. -/
 def aggCalls : List Stmt :=
-  [.callIf (.n 32) name% «aggregate_claims_loop0» [.n 33, .n 0, .n 30, .n 2, .n 8, .n 3, .n 9,
-      .n 1],
-    .call "grind_check__L2" [.n 79, .n 5] [],
-    .callIf (.n 99) name% «aggregate_claims_loop1» [.n 100, .n 0, .n 95, .n 8, .n 9, .n 91, .n 78],
-    .call "batch_sumcheck__L23" [.n 86, .n 87, .n 88, .n 89, .n 90, .n 106, .n 103, .n 104, .n 5]
-      [.n 107, .n 108, .n 109, .n 110, .n 111, .n 112],
-    .callIf (.n 188) name% «aggregate_claims_loop2» [.n 189, .n 0, .n 8, .n 9, .n 113, .n 95,
-        .n 185, .n 78]]
+  [.callIf (.n (val% «aggregate_claims» "s12#1")) name% «aggregate_claims_loop0» [.n (val% «aggregate_claims» "s12#2"), .n (val% «aggregate_claims» "n_children_g"), .n (val% «aggregate_claims» "absorb"), .n (val% «aggregate_claims» "child_fresh"), .n (val% «aggregate_claims» "fresh_row"), .n (val% «aggregate_claims» "child_carried"), .n (val% «aggregate_claims» "carried_row"),
+      .n (val% «aggregate_claims» "child_pi")],
+    .call "grind_check__L2" [.n (val% «aggregate_claims» "fs_perm.nxt[1]"), .n (val% «aggregate_claims» "tabs")] [],
+    .callIf (.n (val% «aggregate_claims» "s22#1")) name% «aggregate_claims_loop1» [.n (val% «aggregate_claims» "s22#2"), .n (val% «aggregate_claims» "n_children_g"), .n (val% «aggregate_claims» "bc_chain"), .n (val% «aggregate_claims» "fresh_row"), .n (val% «aggregate_claims» "carried_row"), .n (val% «aggregate_claims» "lam_sq"), .n (val% «aggregate_claims» "fs_perm.nxt[0]")],
+    .call "batch_sumcheck__L23" [.n (val% «aggregate_claims» "fs_perm.nxt[8]"), .n (val% «aggregate_claims» "fs_perm.nxt[9]"), .n (val% «aggregate_claims» "fs_perm.nxt[10]"), .n (val% «aggregate_claims» "fs_perm.nxt[11]"), .n (val% «aggregate_claims» "fs_perm.nxt[12]"), .n (val% «aggregate_claims» "fs0~7"), .n (val% «aggregate_claims» "bc_running@1"), .n (val% «aggregate_claims» "bc_point"), .n (val% «aggregate_claims» "tabs")]
+      [.n (val% «aggregate_claims» "fs0"), .n (val% «aggregate_claims» "fs1"), .n (val% «aggregate_claims» "fs2"), .n (val% «aggregate_claims» "fs3"), .n (val% «aggregate_claims» "fs4"), .n (val% «aggregate_claims» "bc_running@2")],
+    .callIf (.n (val% «aggregate_claims» "s31#1")) name% «aggregate_claims_loop2» [.n (val% «aggregate_claims» "s31#2"), .n (val% «aggregate_claims» "n_children_g"), .n (val% «aggregate_claims» "fresh_row"), .n (val% «aggregate_claims» "carried_row"), .n (val% «aggregate_claims» "bc_point1"), .n (val% «aggregate_claims» "bc_chain"),
+        .n (val% «aggregate_claims» "bc_wsum"), .n (val% «aggregate_claims» "fs_perm.nxt[0]")]]
 
 /-- `aggregate_claims`' atoms but its stores. -/
 noncomputable def aggA : List Atom := (atomsIn aggP).filter fun a => decide (a ∉ aggStores)
@@ -71,14 +73,14 @@ noncomputable def aggCOk : Bool :=
   let A := atomsIn aggP
   let P := A.filter pureB
   (chk 6 (Fn.body fn% «aggregate_claims»)).isSome &&
-  aggA.all (fun a => !needsSide a || decide (a ∈ aggLoads) || decide (a = .assertEq (.n 112) (.n 192))) &&
+  aggA.all (fun a => !needsSide a || decide (a ∈ aggLoads) || decide (a = .assertEq (.n (val% «aggregate_claims» "bc_running@2")) (.n (val% «aggregate_claims» "s32#2")))) &&
   aggPacks.all (fun p => packIn aggA p.1 p.2) &&
   aggLoads.all (fun a => decide (a ∈ aggA)) && aggHintsA.all (fun a => decide (a ∈ A)) &&
   aggP.all (fun s => match s with | .atom _ => true | _ => aggCalls.any (stmtEqb s)) &&
   aggCalls.all (fun c => aggP.any (stmtEqb · c)) &&
-  monoIs P (.n 39) (.n 30) (.n 0) 13 && monoIs P (.n 102) (.n 95) (.n 0) 2 &&
-  isMul P (.n 190) (.n 185) (.n 0) && isMul P (.n 192) (.n 7) (.n 191) && genMulOk P (.n 106) (.n 6) &&
-  isMul P (.n 91) (.n 78) (.n 78) &&
+  monoIs P (.n (val% «aggregate_claims» "absorbed")) (.n (val% «aggregate_claims» "absorb")) (.n (val% «aggregate_claims» "n_children_g")) 13 && monoIs P (.n (val% «aggregate_claims» "bc_end")) (.n (val% «aggregate_claims» "bc_chain")) (.n (val% «aggregate_claims» "n_children_g")) 2 &&
+  isMul P (.n (val% «aggregate_claims» "s32#0")) (.n (val% «aggregate_claims» "bc_wsum")) (.n (val% «aggregate_claims» "n_children_g")) && isMul P (.n (val% «aggregate_claims» "s32#2")) (.n (val% «aggregate_claims» "bytecode_star")) (.n (val% «aggregate_claims» "s32#1")) && genMulOk P (.n (val% «aggregate_claims» "fs0~7")) (.n (val% «aggregate_claims» "bc_msgs")) &&
+  isMul P (.n (val% «aggregate_claims» "lam_sq")) (.n (val% «aggregate_claims» "fs_perm.nxt[0]")) (.n (val% «aggregate_claims» "fs_perm.nxt[0]")) &&
   (List.range 23).all (fun k => P.any (isAddAt (.n (116 + 3 * k)) (.n (114 + 3 * k)) (.n (115 + 3 * k))))
 
 set_option maxRecDepth 100000 in

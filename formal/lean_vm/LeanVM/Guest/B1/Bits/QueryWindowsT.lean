@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.B1.Common.Basic
 public import LeanVM.Guest.WalkWindows
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«decode_query_windows__L»
 
 /-!
 # The template of `decode_query_windows` (`guests/lean_ethereum.py`)
@@ -64,10 +66,10 @@ def qwAcc (acc : Option V) (t : V) (k : ℕ) : List Stmt × ℕ × Option V :=
 /-- A window of `w` bits from bit `start` hinted into the cell `c` from `k`: the range check, the
 table read. The statements, the next free value and the bit pattern's value. -/
 def qwRead (c : V) (start w k : ℕ) : List Stmt × ℕ × V :=
-  ([.atom (.hint (.windowsExp (.n 0) start w 1 (.stack [c]))),
+  ([.atom (.hint (.windowsExp (.n (valf% «decode_query_windows» "squeezed_word")) start w 1 (.stack [c]))),
     .atom (.const (.n k) (qwBound w)),
     .atom (.rangeCheck c (.n (k + 1)) (.n (k + 2)) (.n (k + 3)) (.n k)),
-    .atom (.mul (.n (k + 4)) (.n 3) c), .atom (.load (.n (k + 5)) (.n (k + 4)) 0)],
+    .atom (.mul (.n (k + 4)) (.n (valf% «decode_query_windows» "tabs")) c), .atom (.load (.n (k + 5)) (.n (k + 4)) 0)],
     k + 6, .n (k + 5))
 
 /-- The squares `x^(2^a)` from `k`: the statements and the result. -/
@@ -82,17 +84,17 @@ runs hinted into `k`, `k + 1`, range checked, joined into the `wins` cell `c`, r
 statements, the next free value, the low run's pattern and the high run's. -/
 def qwSplit (c : V) (start a w k : ℕ) : List Stmt × ℕ × V × V :=
   let sq := qwSquares (.n (k + 1)) a (k + 10)
-  ([.atom (.hint (.windowsExp (.n 0) start a 1 (.stack [.n k]))),
-    .atom (.hint (.windowsExp (.n 0) (start + a) (w - a) 1 (.stack [.n (k + 1)]))),
+  ([.atom (.hint (.windowsExp (.n (valf% «decode_query_windows» "squeezed_word")) start a 1 (.stack [.n k]))),
+    .atom (.hint (.windowsExp (.n (valf% «decode_query_windows» "squeezed_word")) (start + a) (w - a) 1 (.stack [.n (k + 1)]))),
     .atom (.const (.n (k + 2)) (qwBound a)),
     .atom (.rangeCheck (.n k) (.n (k + 3)) (.n (k + 4)) (.n (k + 5)) (.n (k + 2))),
     .atom (.const (.n (k + 6)) (qwBound (w - a))),
     .atom (.rangeCheck (.n (k + 1)) (.n (k + 7)) (.n (k + 8)) (.n (k + 9)) (.n (k + 6)))] ++
     sq.1 ++
     [.atom (.mul c (.n k) sq.2),
-      .atom (.mul (.n (k + 10 + a)) (.n 3) (.n k)),
+      .atom (.mul (.n (k + 10 + a)) (.n (valf% «decode_query_windows» "tabs")) (.n k)),
       .atom (.load (.n (k + 11 + a)) (.n (k + 10 + a)) 0),
-      .atom (.mul (.n (k + 12 + a)) (.n 3) (.n (k + 1))),
+      .atom (.mul (.n (k + 12 + a)) (.n (valf% «decode_query_windows» "tabs")) (.n (k + 1))),
       .atom (.load (.n (k + 13 + a)) (.n (k + 12 + a)) 0)],
     k + 14 + a, .n (k + 11 + a), .n (k + 13 + a))
 
@@ -133,14 +135,14 @@ def qwWindows (d cd base cut at0 : ℕ) : ℕ → ℕ → ℕ → Option V → O
 def qwPr (j base cut d k : ℕ) (lo hi : V) (recon : Option V) : List Stmt × ℕ × Option V :=
   if cut < d then
     ([.atom (.const (.n k) (cbWord cut)), .atom (.mul (.n (k + 1)) (.n k) hi),
-      .atom (.add (.n (k + 2)) lo (.n (k + 1))), .atom (.load (.n (k + 2)) (.n 1) j),
+      .atom (.add (.n (k + 2)) lo (.n (k + 1))), .atom (.load (.n (k + 2)) (.n (valf% «decode_query_windows» "positions_out")) j),
       .atom (.const (.n (k + 3)) (cbWord base)), .atom (.mul (.n (k + 4)) (.n (k + 3)) lo),
       .atom (.const (.n (k + 5)) (cbWord (base + cut))),
       .atom (.mul (.n (k + 6)) (.n (k + 5)) hi), .atom (.add (.n (k + 7)) (.n (k + 4)) (.n (k + 6))),
-      .atom (.add (.n (k + 8)) (recon.getD (.n 0)) (.n (k + 7)))], k + 9, some (.n (k + 8)))
+      .atom (.add (.n (k + 8)) (recon.getD (.n (valf% «decode_query_windows» "squeezed_word"))) (.n (k + 7)))], k + 9, some (.n (k + 8)))
   else match recon with
-    | none => ([.atom (.load lo (.n 1) j)], k, some lo)
-    | some rc => ([.atom (.load lo (.n 1) j), .atom (.const (.n k) (cbWord base)),
+    | none => ([.atom (.load lo (.n (valf% «decode_query_windows» "positions_out")) j)], k, some lo)
+    | some rc => ([.atom (.load lo (.n (valf% «decode_query_windows» "positions_out")) j), .atom (.const (.n k) (cbWord base)),
         .atom (.mul (.n (k + 1)) (.n k) lo), .atom (.add (.n (k + 2)) rc (.n (k + 1)))],
         k + 3, some (.n (k + 2)))
 
@@ -148,16 +150,16 @@ def qwPr (j base cut d k : ℕ) (lo hi : V) (recon : Option V) : List Stmt × �
 (a shifted `addr` pointer is the `addr` of the run's tail). The statements, the next free value and
 the pointer's value. -/
 def qwPtr (j n k : ℕ) : List Stmt × ℕ × ℕ :=
-  if j = 0 then ([.atom (.load (.n 4) (.n 2) 0)], k, 4) else
+  if j = 0 then ([.atom (.load (.n (valf% «decode_query_windows» "s5#0")) (.n (valf% «decode_query_windows» "win_ptrs_out")) 0)], k, 4) else
     ([.atom (.frameAddr (.n k) ((List.range (36 - j * n)).map fun i => .n (5 + j * n + i))),
-      .atom (.load (.n k) (.n 2) j)], k + 1, k)
+      .atom (.load (.n k) (.n (valf% «decode_query_windows» "win_ptrs_out")) j)], k + 1, k)
 
 /-- Position `j` from `k`: its windows, store and reconstruction term, pointer. -/
 def qwPos (d cd j k : ℕ) (recon : Option V) : List Stmt × ℕ × Option V :=
   let base := j * d
   let cut := 64 - base % 64
   let w := qwWindows d cd base cut (j * qwN d cd) 0 (qwN d cd) k none none
-  let p := qwPr j base cut d w.2.1 (w.2.2.1.getD (.n 0)) (w.2.2.2.getD (.n 0)) recon
+  let p := qwPr j base cut d w.2.1 (w.2.2.1.getD (.n (valf% «decode_query_windows» "squeezed_word"))) (w.2.2.2.getD (.n (valf% «decode_query_windows» "squeezed_word"))) recon
   let q := qwPtr j (qwN d cd) p.2.1
   (w.1 ++ p.1 ++ q.1, q.2.1, p.2.2)
 
@@ -194,12 +196,12 @@ def qwRun : List V := (List.range 36).map fun i => .n (5 + i)
 def qwBody (d cd : ℕ) : List Stmt :=
   let p := qwPositions d cd 0 (128 / d) 41 none
   let r := qwRest d 0 (qwRestN d) p.2.1 p.2.2
-  [.atom (.frameAddr (.n 4) qwRun)] ++ p.1 ++ r.1 ++
-    [.atom (.assertEq (r.2.2.getD (.n 0)) (.n 0)), .ret []]
+  [.atom (.frameAddr (.n (valf% «decode_query_windows» "s5#0")) qwRun)] ++ p.1 ++ r.1 ++
+    [.atom (.assertEq (r.2.2.getD (.n (valf% «decode_query_windows» "squeezed_word"))) (.n (valf% «decode_query_windows» "squeezed_word"))), .ret []]
 
 /-- Program `P` holds a function of the name with the parameters `0 .. 3` and the body. -/
 def QwIsP (P : Program) (name : String) (body : List Stmt) : Prop :=
-  ∃ fn, P.find? name = some fn ∧ fn.params = [.n 0, .n 1, .n 2, .n 3] ∧ fn.body = body
+  ∃ fn, P.find? name = some fn ∧ fn.params = [.n (valf% «decode_query_windows» "squeezed_word"), .n (valf% «decode_query_windows» "positions_out"), .n (valf% «decode_query_windows» "win_ptrs_out"), .n (valf% «decode_query_windows» "tabs")] ∧ fn.body = body
 
 /-- The deployed specializations: `(name, depth, cap depth)`. -/
 def queryWindowsShapes : List (String × ℕ × ℕ) :=

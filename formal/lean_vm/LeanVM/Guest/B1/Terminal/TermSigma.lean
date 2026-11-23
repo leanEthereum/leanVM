@@ -10,6 +10,8 @@ module
 
 public import LeanVM.Guest.B1.Terminal.TermEval
 public import LeanVM.Protocol.EndToEnd.Complete.BusStack
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«check_opening_terminal»
 
 /-!
 # The terminal's honest valuation
@@ -275,48 +277,48 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
   -- the valuation
   obtain ⟨σ, hσdef⟩ : ∃ σ, σ = B1.Val.ofArgs (ev rd (termW b0 outs) args termT) := ⟨_, rfl⟩
   have hchk : chk args.length termT = some 1715 := term_chk
-  have hgs : ∀ s ∈ termT, GoodS rd [.load (.n 27) (.n 26) 0, .load (.n 29) (.n 26) 1]
+  have hgs : ∀ s ∈ termT, GoodS rd [.load (.n (val% «check_opening_terminal» "s7#0")) (.n (val% «check_opening_terminal» "pi_chain")) 0, .load (.n (val% «check_opening_terminal» "s8#1")) (.n (val% «check_opening_terminal» "pi_chain")) 1]
       (termW b0 outs) σ s := by
     have h := (ev_spec rd (termW b0 outs) termT args hchk).2.2
     rw [show args.length = 20 from rfl, term_stores, ← hσdef] at h
     exact h
   have ea : ∀ i, i < 20 → σ (.n i) = args.getD i 0 := fun i hi => by
     rw [hσdef]; exact ev_params rd _ hchk (by simpa [hargs, termArgs] using hi)
-  have e0 : σ (.n 0) = ofK (addressOfIndex B.gsq) := ea 0 (by omega)
-  have e3 : σ (.n 3) = rm := ea 3 (by omega)
-  have e6 : σ (.n 6) = glm := ea 6 (by omega)
-  have e7 : σ (.n 7) = gtau := ea 7 (by omega)
-  have e8 : σ (.n 8) = ofK (addressOfIndex B.kb) := ea 8 (by omega)
-  have e9 : σ (.n 9) = lamCl := ea 9 (by omega)
-  have e10 : σ (.n 10) = ofK (addressOfIndex B.off) := ea 10 (by omega)
-  have e11 : σ (.n 11) = ofK (addressOfIndex B.zv) := ea 11 (by omega)
-  have e13 : σ (.n 13) = ofK (addressOfIndex B.pt) := ea 13 (by omega)
-  have e14 : σ (.n 14) = ofK (addressOfIndex B.pt1) := ea 14 (by omega)
-  have e18 : σ (.n 18) = ofK (addressOfIndex B.oz) := ea 18 (by omega)
-  have e19 : σ (.n 19) = gm := ea 19 (by omega)
-  have hS : StoresAtPi [Atom.load (.n 27) (.n 26) 0, .load (.n 29) (.n 26) 1] := by
+  have e0 : σ (.n (val% «check_opening_terminal» "g_squares")) = ofK (addressOfIndex B.gsq) := ea 0 (by omega)
+  have e3 : σ (.n (val% «check_opening_terminal» "rm")) = rm := ea 3 (by omega)
+  have e6 : σ (.n (val% «check_opening_terminal» "g_log_mem")) = glm := ea 6 (by omega)
+  have e7 : σ (.n (val% «check_opening_terminal» "tau_keccak_g")) = gtau := ea 7 (by omega)
+  have e8 : σ (.n (val% «check_opening_terminal» "kappa_base")) = ofK (addressOfIndex B.kb) := ea 8 (by omega)
+  have e9 : σ (.n (val% «check_opening_terminal» "lam_cl")) = lamCl := ea 9 (by omega)
+  have e10 : σ (.n (val% «check_opening_terminal» "col_offsets")) = ofK (addressOfIndex B.off) := ea 10 (by omega)
+  have e11 : σ (.n (val% «check_opening_terminal» "z_vals")) = ofK (addressOfIndex B.zv) := ea 11 (by omega)
+  have e13 : σ (.n (val% «check_opening_terminal» "point")) = ofK (addressOfIndex B.pt) := ea 13 (by omega)
+  have e14 : σ (.n (val% «check_opening_terminal» "point1")) = ofK (addressOfIndex B.pt1) := ea 14 (by omega)
+  have e18 : σ (.n (val% «check_opening_terminal» "ood_z")) = ofK (addressOfIndex B.oz) := ea 18 (by omega)
+  have e19 : σ (.n (val% «check_opening_terminal» "gmv")) = gm := ea 19 (by omega)
+  have hS : StoresAtPi [Atom.load (.n (val% «check_opening_terminal» "s7#0")) (.n (val% «check_opening_terminal» "pi_chain")) 0, .load (.n (val% «check_opening_terminal» "s8#1")) (.n (val% «check_opening_terminal» "pi_chain")) 1] := by
     intro a ha
     simp only [List.mem_cons, List.not_mem_nil, or_false] at ha
     rcases ha with rfl | rfl <;> exact ⟨_, _, rfl⟩
-  have gPre : ∀ s ∈ termPre, GoodS rd [.load (.n 27) (.n 26) 0, .load (.n 29) (.n 26) 1]
+  have gPre : ∀ s ∈ termPre, GoodS rd [.load (.n (val% «check_opening_terminal» "s7#0")) (.n (val% «check_opening_terminal» "pi_chain")) 0, .load (.n (val% «check_opening_terminal» "s8#1")) (.n (val% «check_opening_terminal» "pi_chain")) 1]
       (termW b0 outs) σ s := fun s hs => hgs s (by rw [termT_split]; exact List.mem_append_left _ hs)
-  have gH : ∀ s ∈ termHeadT, GoodS rd [.load (.n 27) (.n 26) 0, .load (.n 29) (.n 26) 1]
+  have gH : ∀ s ∈ termHeadT, GoodS rd [.load (.n (val% «check_opening_terminal» "s7#0")) (.n (val% «check_opening_terminal» "pi_chain")) 0, .load (.n (val% «check_opening_terminal» "s8#1")) (.n (val% «check_opening_terminal» "pi_chain")) 1]
       (termW b0 outs) σ s := fun s hs => gPre s (by
     unfold termPre
     exact List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _ hs)))
-  have gS : ∀ s ∈ selsT, GoodS rd [.load (.n 27) (.n 26) 0, .load (.n 29) (.n 26) 1]
+  have gS : ∀ s ∈ selsT, GoodS rd [.load (.n (val% «check_opening_terminal» "s7#0")) (.n (val% «check_opening_terminal» "pi_chain")) 0, .load (.n (val% «check_opening_terminal» "s8#1")) (.n (val% «check_opening_terminal» "pi_chain")) 1]
       (termW b0 outs) σ s := fun s hs => gPre s (by
     unfold termPre
     exact List.mem_append_left _ (List.mem_append_left _ (List.mem_append_right _ hs)))
-  have gC : ∀ s ∈ termClaims.1, GoodS rd [.load (.n 27) (.n 26) 0, .load (.n 29) (.n 26) 1]
+  have gC : ∀ s ∈ termClaims.1, GoodS rd [.load (.n (val% «check_opening_terminal» "s7#0")) (.n (val% «check_opening_terminal» "pi_chain")) 0, .load (.n (val% «check_opening_terminal» "s8#1")) (.n (val% «check_opening_terminal» "pi_chain")) 1]
       (termW b0 outs) σ s := fun s hs => gPre s (by
     unfold termPre
     exact List.mem_append_left _ (List.mem_append_right _ hs))
-  have gT : ∀ s ∈ termTailPre, GoodS rd [.load (.n 27) (.n 26) 0, .load (.n 29) (.n 26) 1]
+  have gT : ∀ s ∈ termTailPre, GoodS rd [.load (.n (val% «check_opening_terminal» "s7#0")) (.n (val% «check_opening_terminal» "pi_chain")) 0, .load (.n (val% «check_opening_terminal» "s8#1")) (.n (val% «check_opening_terminal» "pi_chain")) 1]
       (termW b0 outs) σ s := fun s hs => gPre s (by
     unfold termPre
     exact List.mem_append_right _ hs)
-  have e7' : σ (.n 7) = gen ^ τ := by rw [e7, hgtau]
+  have e7' : σ (.n (val% «check_opening_terminal» "tau_keccak_g")) = gen ^ τ := by rw [e7, hgtau]
   have hoL : out.point.length = τ + 6 := by rw [hopl, Tables.qkeccakSlotBits_eq]
   -- the regions
   set R : ℕ → Prop := fun i => RegionL Lin i ∨
@@ -342,9 +344,9 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
     List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
       (List.mem_cons_of_mem _ List.mem_cons_self)))
   -- the head
-  have h14 : LoadHolds rd (σ (.n 14)) 0 ((p1Of x).getD 0 0) := by
+  have h14 : LoadHolds rd (σ (.n (val% «check_opening_terminal» "point1"))) 0 ((p1Of x).getD 0 0) := by
     rw [e14]; exact readsAt_getD hpt1 (by simp [padPoint_length hxl40])
-  have hkbL : ∀ i < 8, LoadHolds rd (σ (.n 8)) i ((kbWords layout).getD i 0) := fun i hi ↦ by
+  have hkbL : ∀ i < 8, LoadHolds rd (σ (.n (val% «check_opening_terminal» "kappa_base"))) i ((kbWords layout).getD i 0) := fun i hi ↦ by
     rw [e8, List.getD_eq_getElem _ _ (by simp [kbWords, hHL]; omega)]
     exact hkbR i (by simp [hHL]; omega)
   obtain ⟨hHs, hHl, e20, e21, e22, e23, e24, e25, e26, e31, e32, e34, ekb, e43⟩ :=
@@ -370,7 +372,7 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
       (∀ q ∈ (selBlockT c).filterMap Stmt.loadS, AddrIn R (σ q.1) q.2) ∧
       σ (.n (selStart c)) = gen ^ (stackOffsets KC).1.getD c 0 ∧
       σ (.n (selKap c).2.1) = gen ^ KC.getD c 0 ∧
-      σ (.n ((selKap c).2.2 + 1)) = σ (.n 0) * gen ^ 34 ∧
+      σ (.n ((selKap c).2.2 + 1)) = σ (.n (val% «check_opening_terminal» "g_squares")) * gen ^ 34 ∧
       σ (.n (selV c)) = (outs.getD (4 + c) ([], [])).1.getD 0 0 := fun c hc =>
     sel_complete hS hc (fun s hs => gS s (List.mem_flatMap.mpr ⟨c, List.mem_range.mpr hc, hs⟩))
       (hKC31 c hc) (by rw [e10]; exact hoff' c hc)
@@ -464,7 +466,7 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
     | atom a => exact ⟨a, rfl, hCs _ hs⟩
     | _ => simp [isAtomB] at hat
   rw [termClaims, List.range_eq_range'] at hclH
-  have h9 : σ (.n 9) = lam := by rw [e9, hlamC]
+  have h9 : σ (.n (val% «check_opening_terminal» "lam_cl")) = lam := by rw [e9, hlamC]
   obtain ⟨hsum, hlamO, -⟩ := claimsT_sound (C := TrivC) hkb (rk := poolRank) h9 159 0 claimsStart
     15 9 (fun j hj ↦ poolRank_succ (by omega)) (by rw [h9]; simp [poolRank]) hclH
   rw [show (claimsT (List.range' 0 159) claimsStart 15 9).2 = (1694, 1692, 1693) by
@@ -478,22 +480,22 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
     rw [this, hmem 0 (by decide)]
   have hmx : m ≤ x.length := by have := hK 0 (by decide); rw [hmem 0 (by decide)] at this; omega
   have hzc : ∀ n ≤ bus.point.length, n ≤ layout.stackLog →
-      valOf rd (σ (.n 20)) n = eqEval (bus.point.take n) (x.take n) := fun n h1 h2 => by
+      valOf rd (σ (.n (val% «check_opening_terminal» "zeta_eq_chain"))) n = eqEval (bus.point.take n) (x.take n) := fun n h1 h2 => by
     rw [e20, valOf_eq (readsAt_getD (hBuf _ m0) (by rw [eqChain_length]; omega)),
       eqChain_value h1 hxl40 (by omega), word_one, one_mul]
   have hrc : ∀ n ≤ chis'.length, n ≤ layout.stackLog →
-      valOf rd (σ (.n 22)) n = eqEval (chis'.take n) (x.take n) := fun n h1 h2 => by
+      valOf rd (σ (.n (val% «check_opening_terminal» "chi_eq_chain"))) n = eqEval (chis'.take n) (x.take n) := fun n h1 h2 => by
     rw [e22, valOf_eq (readsAt_getD (hBuf _ m1) (by rw [eqChain_length]; omega)),
       eqChain_value h1 hxl40 (by omega), word_one, one_mul]
-  have hs1 : ∀ k < 6, valOf rd (σ (.n 24)) k = x.getD (τ + k) 0 := fun k hk => by
+  have hs1 : ∀ k < 6, valOf rd (σ (.n (val% «check_opening_terminal» "slot_point"))) k = x.getD (τ + k) 0 := fun k hk => by
     rw [e24, e13, e7', valOf_eq ((loadHolds_mul_gen_pow _ _ _ _ _).mpr
       (readsAt_getD hpt (k := τ + k) (by omega)))]
     exact padPoint_getD x (τ + k)
-  have hs0 : ∀ k < 6, valOf rd (σ (.n 25)) k = 1 + x.getD (τ + k) 0 := fun k hk => by
+  have hs0 : ∀ k < 6, valOf rd (σ (.n (val% «check_opening_terminal» "slot_point1"))) k = 1 + x.getD (τ + k) 0 := fun k hk => by
     rw [e25, e14, e7', valOf_eq ((loadHolds_mul_gen_pow _ _ _ _ _).mpr
       (readsAt_getD hpt1 (k := τ + k) (by simp [padPoint_length hxl40]; omega)))]
     exact x1_getD hxl40 (by simp only [termPointCap]; omega)
-  have h34 : σ (.n 34) = eqEval (rm :: List.replicate (m - 1) 0) (x.take m) := by
+  have h34 : σ (.n (val% «check_opening_terminal» "pi_eq")) = eqEval (rm :: List.replicate (m - 1) 0) (x.take m) := by
     rw [e34, piW_getD le_rfl, ite_neg' (by omega)]
     show (rm + ((padPoint x).map (1 + ·)).getD 0 0) *
       ∏ i ∈ Ico 1 m, ((padPoint x).map (1 + ·)).getD i 0 = _
@@ -512,7 +514,7 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
   -- the terminal check
   have hq4 := placement_committed hkap hP (cc := 4) (by decide)
   rw [committedCols_getD (by decide), show colOfCommitted 4 = 4 from rfl] at hq4
-  have hret : σ (.n 1702) = ringWeight ringPoint (x.take (τ + 6)) coeffs := by
+  have hret : σ (.n (val% «check_opening_terminal» "rs_weight")) = ringWeight ringPoint (x.take (τ + 6)) coeffs := by
     have ht : (kidAt (termKids Lin D b0) [] outs 99).taken = true := by
       unfold kidAt; rw [List.nil_append, termKids_getD_rsw]
     have := outsOk_at ho 99 (by rw [termKids_length]; omega) (by omega) ht
@@ -522,19 +524,19 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
     rw [e1702, h1]
     show ringWeight ringPoint ((((padPoint x).map (1 + ·)).take (τ + 6)).map (1 + ·)) coeffs = _
     rw [map_one_take (by omega)]
-  have h1704 : σ (.n 1704) = eqEval out.point (x.take (τ + 6)) := by
+  have h1704 : σ (.n (val% «check_opening_terminal» "inner_sum@135~1")) = eqEval out.point (x.take (τ + 6)) := by
     rw [e1704, show τ + 6 = out.point.length from hoL.symm, eqChain_value le_rfl hxl40 (by omega),
       word_one, one_mul, List.take_of_length_le le_rfl]
-  have h1712 : σ (.n 1712) = lam ^ (1 + poolRank Tables.nClaims) * lam * eqEval oodPoint x := by
+  have h1712 : σ (.n (val% «check_opening_terminal» "s29#1")) = lam ^ (1 + poolRank Tables.nClaims) * lam * eqEval oodPoint x := by
     rw [e1712, show layout.stackLog = oodPoint.length from hodl.symm,
       eqChain_value le_rfl hxl40 (by omega), List.take_of_length_le le_rfl,
       List.take_of_length_le (by omega)]
     show (lamCl ^ (1 + poolRank Tables.nClaims) * lamCl) * _ = _
     rw [hlamC]
-  have hfin' : σ (.n 1714) = σ (.n 17) := by
-    have e15 : σ (.n 15) = inner := ea 15 (by omega)
-    have e16 : σ (.n 16) = yr := ea 16 (by omega)
-    have e17 : σ (.n 17) = target := ea 17 (by omega)
+  have hfin' : σ (.n (val% «check_opening_terminal» "s29#3")) = σ (.n (val% «check_opening_terminal» "sumcheck_target")) := by
+    have e15 : σ (.n (val% «check_opening_terminal» "inner_total")) = inner := ea 15 (by omega)
+    have e16 : σ (.n (val% «check_opening_terminal» "yr_at_tail")) = yr := ea 16 (by omega)
+    have e17 : σ (.n (val% «check_opening_terminal» "sumcheck_target")) = target := ea 17 (by omega)
     rw [e17, ← hfin, ← e15, ← e16, stackWeight_eq layout out ringPoint coeffs oodPoint lam x hcols,
       e1714, hsum, hret, h1704, hlamO, h1712]
     rw [sum_congr rfl fun j hj ↦ claimTerm_eq T (mem_range.mp hj),
@@ -584,21 +586,21 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
     split_ifs with h4 h98
     · interval_cases j
       · refine ⟨rfl, rfl, fun ht => ⟨?_, (hOK ht).1.symm⟩⟩
-        show [σ (.n 20), σ (.n 21), σ (.n 1), σ (.n 14), σ (.n 4)] = _
+        show [σ (.n (val% «check_opening_terminal» "zeta_eq_chain")), σ (.n (val% «check_opening_terminal» "s1#0")), σ (.n (val% «check_opening_terminal» "zeta")), σ (.n (val% «check_opening_terminal» "point1")), σ (.n (val% «check_opening_terminal» "g_bus_mu"))] = _
         rw [e20, e21, ea 1 (by omega), e14, ea 4 (by omega)]; rfl
       · refine ⟨rfl, rfl, fun ht => ⟨?_, (hOK ht).1.symm⟩⟩
-        show [σ (.n 22), σ (.n 23), σ (.n 2), σ (.n 14), σ (.n 5)] = _
+        show [σ (.n (val% «check_opening_terminal» "chi_eq_chain")), σ (.n (val% «check_opening_terminal» "s3#0")), σ (.n (val% «check_opening_terminal» "chi")), σ (.n (val% «check_opening_terminal» "point1")), σ (.n (val% «check_opening_terminal» "g_zc_n"))] = _
         rw [e22, e23, ea 2 (by omega), e14, ea 5 (by omega)]; rfl
       · refine ⟨rfl, ?_, fun ht => ⟨?_, (hOK ht).1.symm⟩⟩
-        · show decide (σ (.n 31) ≠ 0) = decide (word 2 0 + glm ≠ 0)
+        · show decide (σ (.n (val% «check_opening_terminal» "s9#1")) ≠ 0) = decide (word 2 0 + glm ≠ 0)
           rw [e31, hglm]
-        · show [σ (.n 32), σ (.n 6), σ (.n 26), σ (.n 14)] = _
+        · show [σ (.n (val% «check_opening_terminal» "s9#2")), σ (.n (val% «check_opening_terminal» "g_log_mem")), σ (.n (val% «check_opening_terminal» "pi_chain")), σ (.n (val% «check_opening_terminal» "point1"))] = _
           rw [e32, e6, e26, e14]; rfl
       · refine ⟨rfl, rfl, fun _ => ⟨?_, ?_⟩⟩
-        · show [σ (.n 13), σ (.n 14)] = _
+        · show [σ (.n (val% «check_opening_terminal» "point")), σ (.n (val% «check_opening_terminal» "point1"))] = _
           rw [e13, e14]; rfl
         · obtain ⟨ese, h1, -⟩ := hst3
-          show [σ (.n 43)] = (stRes outs).1
+          show [σ (.n (val% «check_opening_terminal» "sel_eq"))] = (stRes outs).1
           rw [e43, h1]; rfl
     · obtain ⟨c, rfl⟩ : ∃ c, j = 4 + c := ⟨j - 4, by omega⟩
       have hc : c < Tables.nCommittedCols := by show c < 94; omega
@@ -617,7 +619,7 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
         refine (@decide_eq_true _ (Classical.propDecidable _) ?_).symm
         rw [stRes_take, ite_pos' (by omega)]
         exact hst3
-      · show [σ (.n (selStart c)), σ (.n 43), σ (.n ((selKap c).2.2 + 1))] =
+      · show [σ (.n (selStart c)), σ (.n (val% «check_opening_terminal» "sel_eq")), σ (.n ((selKap c).2.2 + 1))] =
           [gen ^ (stackOffsets KC).1.getD c 0, (stRes (outs.take (4 + c))).1.getD 0 0,
             ofK (addressOfIndex (B.gsq + 34))]
         rw [stRes_take, ite_pos' (by omega), e36, e43, e38, e0, ofK_gpow_mul_gen]
@@ -627,21 +629,21 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
       rcases this with rfl | rfl | rfl
       · rw [termKids_getD_out] at hOK ⊢
         refine ⟨rfl, rfl, fun ht => ⟨?_, (hOK ht).1.symm⟩⟩
-        show [σ (.n 1694), σ (.n 1695), σ (.n 11), σ (.n 14), σ (.n 1697)] =
+        show [σ (.n (val% «check_opening_terminal» "out_eq_chain")), σ (.n (val% «check_opening_terminal» "s24#0")), σ (.n (val% «check_opening_terminal» "z_vals")), σ (.n (val% «check_opening_terminal» "point1")), σ (.n (val% «check_opening_terminal» "s24#2"))] =
           [ofK (addressOfIndex (b0 + 105)), word 1 0, ofK (addressOfIndex B.zv),
             ofK (addressOfIndex B.pt1), gtau * word 64 0]
         rw [e1694, e1695, e11, e14, e1697, hgtau]
       · rw [termKids_getD_rsw] at hOK ⊢
         refine ⟨rfl, rfl, fun ht => ⟨?_, ?_⟩⟩
-        · show [σ (.n 1699), σ (.n 14), σ (.n 12), σ (.n 1701)] =
+        · show [σ (.n (val% «check_opening_terminal» "rs_weight~2")), σ (.n (val% «check_opening_terminal» "point1")), σ (.n (val% «check_opening_terminal» "c_table")), σ (.n (val% «check_opening_terminal» "rs_weight~4"))] =
             [ofK (addressOfIndex B.zv) * word 549755813888 0, ofK (addressOfIndex B.pt1),
               ofK (addressOfIndex B.ct), gtau * word 64 0]
           rw [e1699, e11, e14, ea 12 (by omega), e1701, hgtau]; rfl
-        · show [σ (.n 1702)] = _
+        · show [σ (.n (val% «check_opening_terminal» "rs_weight"))] = _
           rw [e1702, (hOK ht).1]; rfl
       · rw [termKids_getD_ood] at hOK ⊢
         refine ⟨rfl, rfl, fun ht => ⟨?_, (hOK ht).1.symm⟩⟩
-        show [σ (.n 1709), σ (.n 1710), σ (.n 18), σ (.n 14), σ (.n 19)] =
+        show [σ (.n (val% «check_opening_terminal» "ood_chain")), σ (.n (val% «check_opening_terminal» "s28#0")), σ (.n (val% «check_opening_terminal» "ood_z")), σ (.n (val% «check_opening_terminal» "point1")), σ (.n (val% «check_opening_terminal» "gmv"))] =
           [ofK (addressOfIndex (b0 + 146)), lamCl ^ (1 + poolRank Tables.nClaims) * lamCl,
             ofK (addressOfIndex B.oz), ofK (addressOfIndex B.pt1), gm]
         rw [e1709, e1710, hlamO, e9, e18, e14, e19, hlamC]

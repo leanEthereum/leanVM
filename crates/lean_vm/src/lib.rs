@@ -42,5 +42,9 @@ pub mod lean_sphincs {
     };
 }
 
+pub mod lean_vrf {
+    pub use lean_vrf::{VRF_TREE_DEPTH, VrfKey, VrfProof, verify_vrf_proof};
+}
+
 #[cfg(feature = "sidecar")]
 pub use ::sidecar;

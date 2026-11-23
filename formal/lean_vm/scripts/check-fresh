@@ -1,0 +1,72 @@
+#!/usr/bin/env python3
+"""The core route's and the hint bridge's generators on a fresh tree: on a private copy of `LeanVM/` and `tests/`
+(as `scripts/check-in-place`'s), every file they write that is not committed removed, they run in `regen-guest.sh`'s
+order and must write the tree's files again, no more and no fewer. A generator that writes into a directory it does
+not create, or reads a file only an earlier run of its own left, fails here. Run from `lean_vm` after a regeneration
+(the export, the core IR and the certificates they read are kept):
+
+    python3 -I scripts/check-fresh
+"""
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+COPIED = ("LeanVM", "tests")
+# what the steps `bridge`, `core-mode` and `res` write
+OUTS = ("LeanVM/Guest/CoreMode", "LeanVM/Guest/Bridge")
+STEPS = [
+    ["scripts/bridge-cert/align.py"], ["scripts/bridge-cert/progal.py"], ["scripts/bridge-cert/jumpcells.py"],
+    ["scripts/bridge-cert/pair.py"], ["scripts/bridge-cert/wit.py"], ["scripts/bridge-cert/alloc.py"],
+    ["scripts/core-mode/fnreg.py"], ["scripts/core-mode/anylink.py"], ["scripts/core-mode/sigc.py"],
+    ["scripts/core-mode/pows.py"], ["scripts/core-mode/glue.py"], ["scripts/core-mode/callc.py", "--emit"],
+    ["scripts/core-mode/loopcc.py", "--emit"],
+    ["scripts/core-mode/heap.py", "--emit", "LeanVM/Guest/CoreMode/Gen"],
+    ["scripts/core-mode/pair.py", "--emit"], ["scripts/core-mode/frame_gen.py"], ["scripts/core-mode/core.py"],
+    ["scripts/core-mode/certs.py"], ["scripts/core-mode/monocall.py"], ["scripts/core-mode/carry.py"],
+    ["scripts/core-mode/termcall.py"], ["scripts/core-mode/loopcheck.py"],
+]
+
+
+def generated(root):
+    """The files under `OUTS` git does not track, relative to `root`."""
+    out = subprocess.run(["git", "ls-files", "--others", "--ignored", "--exclude-standard", "--", *OUTS],
+                         cwd=root, check=True, capture_output=True, text=True).stdout.split()
+    return {Path(p) for p in out if p.endswith(".lean")}
+
+
+here = Path.cwd()
+want = generated(here)
+with tempfile.TemporaryDirectory(prefix="check-in-place-") as tmp:
+    root = Path(tmp) / here.parent.name / here.name
+    root.mkdir(parents=True)
+    for real, copy, own in ((here.parent.parent, Path(tmp), here.parent.name),
+                            (here.parent, root.parent, here.name)):
+        for entry in os.listdir(real):
+            if entry != own:
+                os.symlink(real / entry, copy / entry)
+    for entry in os.listdir(here):
+        if entry in COPIED:
+            shutil.copytree(here / entry, root / entry, symlinks=True)
+        else:
+            os.symlink(here / entry, root / entry)
+    for p in want:
+        (root / p).unlink()
+    for d in OUTS:
+        for sub in sorted((root / d).rglob("*"), key=lambda q: len(q.parts), reverse=True):
+            if sub.is_dir() and not any(sub.iterdir()):
+                sub.rmdir()
+    env = dict(os.environ, CORE_MODE_CACHE=os.path.join(tmp, "core-mode.pkl"), CORE_MEMO=os.path.join(tmp, "memo"))
+    for step in STEPS:
+        r = subprocess.run([sys.executable, "-I", *step], cwd=root, env=env, stdout=subprocess.DEVNULL)
+        if r.returncode:
+            sys.exit(f"check-fresh: {' '.join(step)} failed on a fresh tree")
+    def leans(r):
+        return {q.relative_to(r): q.read_bytes() for d in OUTS for q in (r / d).rglob("*.lean")}
+    mine, theirs = leans(root), leans(here)
+    differ = sorted(str(p) for p in mine.keys() | theirs.keys() if mine.get(p) != theirs.get(p))
+if differ:
+    sys.exit("check-fresh: not written again as in the tree: " + " ".join(differ[:20]))
+print(f"check-fresh: {len(want)} files written again from a fresh tree")

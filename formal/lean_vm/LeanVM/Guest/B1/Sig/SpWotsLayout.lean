@@ -10,6 +10,8 @@ module
 
 public import LeanVM.Guest.B1.Sig.SpWotsT
 public import LeanVM.Guest.B1.Sig.WotsGroup
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«sp_wots»
 
 /-!
 # `sp_wots`'s layout
@@ -60,7 +62,7 @@ theorem spArmB_eq (first n : Nat) (fold : Bool) (B : Nat) (prodIn encIn : V) (k 
 
 /-- Group `p`'s running product's and encoding's cells and its base. -/
 def spState : Nat → V × V × Nat
-  | 0 => (.n 0, .n 0, 16)
+  | 0 => (.n (val% «sp_wots» "pp"), .n (val% «sp_wots» "pp"), 16)
   | p + 1 =>
       let st := spState p
       (.n (spProd (p == 0) 3 st.2.2), .n (spEnc (p == 0) 3 st.2.2),

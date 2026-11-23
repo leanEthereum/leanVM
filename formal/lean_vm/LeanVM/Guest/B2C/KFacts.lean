@@ -89,7 +89,7 @@ theorem kfacts_cert_inj : ∀ f, ∀ t ∈ coreProgram.temps f, ∀ t' ∈ coreP
 
 /-- **A temporary's cell holds only it**, in every instance of a re-chosen tree. -/
 theorem kfacts_tmp (hdr : E × E) (T : Tree) :
-    ∀ ν, ∀ I' ∈ honestInsts coreProgram fs H hdr (T.retemp coreProgram fs ν 0), ∀ f σ bufs kids,
+    ∀ ν, ∀ I' ∈ honestInsts coreProgram fs H hdr (T.retemp coreProgram fs ν (0, T.block fs coreProgram.loop)), ∀ f σ bufs kids,
       I'.t = .node f σ bufs kids → ∀ t ∈ coreProgram.temps f, ∀ q ∈ C I', q.1 = cert f t →
         q.2 = σ t := by
   intro ν I' _ f σ bufs kids ht t htm q hq hqt

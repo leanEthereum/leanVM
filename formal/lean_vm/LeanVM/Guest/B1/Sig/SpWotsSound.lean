@@ -14,6 +14,8 @@ public import LeanVM.Guest.B1.Sig.SpWotsGroups
 public import LeanVM.Guest.B1.Sig.XmssCore
 import LeanVM.Guest.Fast.SpWots
 import LeanVM.Guest.B1.Sig.SpWotsLinksAll
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«sp_wots»
 
 /-!
 # `sp_wots`, sound
@@ -49,8 +51,8 @@ the digits `spDigitR σ` sum to `128`, the fourth argument is their encoding (`s
 theorem sp_wots_sound_cells {rets : List E}
     (h : Stmt.HoldsList C rd σ (Fn.«sp_wots».core).body False (fun rs => rs = rets)) :
     ∃ leaf, rets = [leaf] ∧ (∀ i, spDigitR σ i < 4) ∧
-      ∑ i ∈ Finset.range 64, spDigitR σ i = 128 ∧ σ (.n 3) = eOfNat128 (spX (spDigitR σ) 64) ∧
-      leaf = spLeafCell (σ (.n 0)) (σ (.n 1)) (σ (.n 2)) (spDigitR σ) fun i => σ (spStartR σ i) := by
+      ∑ i ∈ Finset.range 64, spDigitR σ i = 128 ∧ σ (.n (val% «sp_wots» "encoding")) = eOfNat128 (spX (spDigitR σ) 64) ∧
+      leaf = spLeafCell (σ (.n (val% «sp_wots» "pp"))) (σ (.n (val% «sp_wots» "a0"))) (σ (.n (val% «sp_wots» "a1"))) (spDigitR σ) fun i => σ (spStartR σ i) := by
   obtain ⟨ρ, hp, hpos, hsat, hret⟩ := sp_wots_fwd h
   have hp' : [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3)] = [ρ .pp, ρ .a0, ρ .a1, ρ .encoding] := hp
   simp only [List.cons.injEq, and_true] at hp'

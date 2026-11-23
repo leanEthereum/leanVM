@@ -11,6 +11,10 @@ public import LeanVM.Guest.B1.Main.Loops
 public import LeanVM.Guest.B1.Main.Frames
 public import LeanVM.Guest.B1.Sig.XmssSegData
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«main_loop2»
+import LeanVM.Guest.Data.ValNames.«main_loop3»
+import LeanVM.Guest.Data.ValNames.«main_loop4»
 
 /-!
 # `main`'s loops, under a call relation
@@ -276,7 +280,7 @@ theorem rawX_of_out {rd : Reader} {C : CallRel} (hm : MemOk rd) {x : E} {ps : Li
   · have := load_sound hl hat
     rw [isMul_sound hm11 hat, hs, hcover, hx] at this
     simpa using (loadHolds_mul_gen_pow rd _ s 0 _).mp this
-  · have h65 : σ (.n 65) = lxt * gen ^ (4 * s) := by
+  · have h65 : σ (.n (val% «main_loop2» "s3#2")) = lxt * gen ^ (4 * s) := by
       rw [monoIs_sound hm14 hat, hs, hlxt, ← pow_mul, mul_comm s 4]
     rw [← h65]
     refine hout fun i hi hc => ?_
@@ -323,7 +327,7 @@ theorem l4_stepC {rd : Reader} {C : CallRel} (hC : Unfolds rd C) (hm : MemOk rd)
   refine ⟨fun N lss cover lxs nrx lst bb hN => ?_, hnext⟩
   have hat := atoms_of_flat hall
   have hpar : (coreProgram.getD idx% «main_loop3» default).params =
-      [V.n 0, V.n 1, V.n 2, V.n 3, V.n 4, V.n 5, V.n 6] := by
+      [V.n (val% «main_loop3» "xj"), V.n (val% «main_loop3» "bound"), V.n (val% «main_loop3» "lean_sphincs_slots_g"), V.n (val% «main_loop3» "sp_cover"), V.n (val% «main_loop3» "n_raw_x_g"), V.n (val% «main_loop3» "lean_sphincs_table"), V.n (val% «main_loop3» "byte_bits")] := by
     have hs := hshape
     simp only [loopShapeF, Bool.and_eq_true, decide_eq_true_eq] at hs
     rw [hs.1.2, hlen]; rfl
@@ -386,10 +390,10 @@ theorem l5_stepC {rd : Reader} {C : CallRel} (hC : Unfolds rd C)
     hcf⟩ := hps
   obtain ⟨ex, hex, hnx⟩ := load_gpow hm (touch_sound hg18 hat)
   obtain ⟨es, hes, hns⟩ := load_gpow hm (touch_sound hg19 hat)
-  have h16 : σ (.n 16) = written * x := by rw [isMul_sound hm16 hat, hwr, hx]
-  have h28 : σ (.n 22) = gen ^ ex * gen ^ es := by rw [isMul_sound hm28 hat, hnx, hns]
-  refine ⟨σ (.n 17), σ (.n 23), σ (.n 24), σ (.n 26), σ (.n 27), σ (.n 36), σ (.n 37),
-    σ (.n 38), σ (.n 39), ex, es, ?_, hex, hes, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  have h16 : σ (.n (val% «main_loop4» "base~0")) = written * x := by rw [isMul_sound hm16 hat, hwr, hx]
+  have h28 : σ (.n (val% «main_loop4» "nsub_g")) = gen ^ ex * gen ^ es := by rw [isMul_sound hm28 hat, hnx, hns]
+  refine ⟨σ (.n (val% «main_loop4» "base")), σ (.n (val% «main_loop4» "cx_0")), σ (.n (val% «main_loop4» "cx_1")), σ (.n (val% «main_loop4» "cs_0")), σ (.n (val% «main_loop4» "cs_1")), σ (.n (val% «main_loop4» "pi_0~2")), σ (.n (val% «main_loop4» "pi_0~3")),
+    σ (.n (val% «main_loop4» "pi_0")), σ (.n (val% «main_loop4» "pi_1")), ex, es, ?_, hex, hes, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · have := load_sound hl17 hat; rwa [h16] at this
   · have := hle _ _ _ (call_of_flat hall hcx)
     simpa [hlxt, hcov, hlxs, hnx] using this

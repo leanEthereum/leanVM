@@ -46,32 +46,39 @@ theorem kuSKFast_eq : kuSKFast = kuSK := by
   · rfl
   · dsimp only; rw [kuSK_idx (wNameIdx_spec h)]
 
+/-- The xmss arm's frame weights, by the tree where the frame has the name (`main_loop2` aside). -/
+noncomputable def ωArmFast (op : Opcode) (f : String) : ℕ :=
+  match wNameIdx f with
+  | some j => if f = name% main_loop2 then B2C.ωArm B2C.xmssArmC op f
+      else (B2C.plumbOf (j + 1)).pmax.getD (B2C.opIdx op) 0
+  | none => B2C.ωArm B2C.xmssArmC op f
+
+theorem ωArmFast_eq : ωArmFast = B2C.ωArm B2C.xmssArmC := by
+  funext op f
+  unfold ωArmFast
+  rcases h : wNameIdx f with _ | j
+  · rfl
+  · dsimp only
+    split_ifs with hx
+    · rfl
+    · rw [ωArm_idx (wNameIdx_spec h) hx]
+
 set_option maxRecDepth 100000 in
 set_option maxHeartbeats 40000000 in
-/-- **`verify_tables`' weight bound at the deployed instance.** -/
+/-- **`verify_tables`' weight bound at the deployed instance**: its closed form (`vtWeightB_form`) at the
+search tree's lookups. -/
 theorem vtWB_eq (op : Opcode) : B1.VerifySub.vtWB vsWords op = kcVtW op := by
-  show B2C.ωArm B2C.xmssArmC op "verify_tables" + (B1.Tables.vtBs (kuSB op)
-    (B2C.ωArm B2C.xmssArmC op "shared_selector_tables" + 15 * kuSK op (name% shared_selector_tables_loop0) + kSpW op)
-    (32 * kuSK op (name% verify_tables_loop0))).sum = kcVtW op
-  rw [ωArm_idx (j := idx% verify_tables) (by decide +kernel) (by decide),
-    ωArm_idx (j := idx% shared_selector_tables) (by decide +kernel) (by decide)]
-  unfold kSpW
-  rw [← kuSBFast_eq, ← kuSKFast_eq]
+  refine (vtWeightB_form op).trans ?_
+  rw [← ωArmFast_eq, ← kuSBFast_eq, ← kuSKFast_eq]
   cases op <;> decide +kernel
 
 set_option maxRecDepth 100000 in
 set_option maxHeartbeats 40000000 in
-/-- **The terminal's weight bound at the deployed instance.** -/
+/-- **The terminal's weight bound at the deployed instance**: its closed form (`termW_form`) at the search
+tree's lookups. -/
 theorem termWB_eq (op : Opcode) : B1.VerifySub.termWB vsWords op = kcTermW op := by
-  show B2C.ωArm B2C.xmssArmC op "check_opening_terminal" +
-    (B1.VerifySub.termWs (fun op => kuSB op "eq_prefix_chain")
-      (fun op => krVl15A op * max (B2C.fs (name% check_opening_terminal_loop0)) (32 * 38) / 1000)
-      (fun op => kuSB op "selector_tables") kCsW
-      (fun op => krVrswA op * (B2C.fs "ring_switch_weight" + 2240 + 16433) / 1000) op).sum =
-    kcTermW op
-  rw [ωArm_idx (j := idx% check_opening_terminal) (by decide +kernel) (by decide)]
-  unfold kCsW
-  rw [← kuSBFast_eq, ← fsFast_eq]
+  refine (termW_form op).trans ?_
+  rw [← ωArmFast_eq, ← kuSBFast_eq, ← fsFast_eq]
   cases op <;> decide +kernel
 
 end

@@ -66,7 +66,8 @@ def ChildClaims.words (child : ChildClaims) : List E :=
 /-- The prover's part of a batching: the nonce of the proof of work before the challenge, the
 sumcheck's rounds and the bytecode's value at its end (`bc_sumcheck_msgs`, `bc_star_hint`). -/
 structure BatchingHints where
-  /-- The nonce of the proof of work before the batching challenge. -/
+  /-- The nonce of the proof of work before the batching challenge, sent only if it is of nonzero
+  bits (`Batch.lambdaGrindNonceCells`). -/
   lambdaGrindNonce : E
   /-- Each round's message `(g(1), g(∞))`. -/
   sumcheckMessages : List (E × E)
@@ -84,11 +85,30 @@ namespace LeanVM.Guest.Batch
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
 open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node
 
+/-- The most children a node has, the arity of an aggregation tree (`MAX_RECURSIONS`,
+`crates/aggregation/src/lib.rs`, which the guest program's `MAX_RECURSIONS`, `lean_ethereum.py`, is
+set to). -/
+def maxRecursions : ℕ := 16
+
 /-- The bits of the proof of work before the batching challenge, whose powers weigh at most
-`2 · MAX_RECURSIONS = 32` claims: `grinding_bits(31) = ⌈log₂ 31⌉ - 3` (`BATCH_LAM_GRIND_BITS`,
-`crates/aggregation/src/deferred.rs`; `MAX_RECURSIONS`, `crates/aggregation/src/lib.rs`). A round of
-the sumcheck, of degree two, grinds `grinding_bits(2) = 0` bits: no proof of work. -/
-def batchLambdaGrindBits : ℕ := 2
+`2 · maxRecursions` claims: `grinding_bits(2 · MAX_RECURSIONS - 1)` (`BATCH_LAM_GRIND_BITS`,
+`crates/aggregation/src/deferred.rs`), `2` at `maxRecursions = 16`; at zero bits the batching
+neither reads nor absorbs a nonce (`grindProofOfWork`; the guest program's
+`const(BATCH_LAM_GRIND_BITS == 0)`). -/
+def batchLambdaGrindBits : ℕ := grindingBits (2 * maxRecursions - 1)
+
+/-- The proof of work's nonce in the batching's messages: the nonce, unless the proof of work is of
+zero bits (`aggregate_deferred_claims`'s `messages`; `BC_LAM_WORDS`, `lean_ethereum.py`). -/
+def lambdaGrindNonceCells (hints : BatchingHints) : List E :=
+  if batchLambdaGrindBits = 0 then [] else [hints.lambdaGrindNonce]
+
+/-- A round's cells in the batching's messages: `(g(1), g(∞))`. A round, of degree two, grinds
+`grindingBits 2` bits (`absorb_round`), zero at `securityBits = 125`, so it sends no nonce and
+`BatchingHints` holds none (`BC_ROUND_WORDS = 2`, `lean_ethereum.py`). Were `grindingBits 2`
+nonzero, `sumcheckRoundsProgram` would read a nonce these cells lack: the guest program's
+completeness proofs (`lean_vm`) and the comparison of the guest's streams with the Rust's
+(`guest-diff`) would fail, until `BatchingHints` carried the rounds' nonces. -/
+def sumcheckRoundCells (g : E × E) : List E := [g.1, g.2]
 
 /-- The zeros that pad `wordCount` words to a whole rate. -/
 def zerosToWholeRate (wordCount : ℕ) : ℕ := (rateScalars - wordCount % rateScalars) % rateScalars
@@ -121,13 +141,15 @@ polynomial whose `g(0)` the claim fixes. -/
 def sumcheckRoundPolynomial (claim : E) (g : E × E) (x : E) : E :=
   (g.2 * x + ((claim + g.1) + g.1 + g.2)) * x + (claim + g.1)
 
-/-- `roundCount` rounds of the batching sumcheck from `claim`: read `g(1)` and `g(∞)`, sample the
-challenge, fold (`sumcheckRoundPolynomial`). The challenges and the final claim. -/
+/-- `roundCount` rounds of the batching sumcheck from `claim`: read `g(1)` and `g(∞)`, a proof of
+work of `grindingBits 2` bits, none at zero (`absorb_round`), sample the challenge, fold
+(`sumcheckRoundPolynomial`). The challenges and the final claim. -/
 def sumcheckRoundsProgram : (claim : E) → (roundCount : ℕ) → VerifierProgram (List E × E)
   | claim, 0 => pure ([], claim)
   | claim, roundCount + 1 => do
     let g1 ← VerifierProgram.readScalar
     let gInfinity ← VerifierProgram.readScalar
+    VerifierProgram.grindProofOfWork (grindingBits 2)
     let challenge ← VerifierProgram.sampleChallenge
     let rest ← sumcheckRoundsProgram (sumcheckRoundPolynomial claim (g1, gInfinity) challenge)
       roundCount
@@ -177,10 +199,11 @@ noncomputable def runBatching {m : Type → Type} [Monad m] (π : KeccakState �
   runProof π program seed proof
 
 /-- The stream of a node's batching: the count's and the children's cells, the proof of work's
-nonce, the sumcheck's messages `(g(1), g(∞))`, the final value. -/
+nonce, if it grinds (`lambdaGrindNonceCells`), the sumcheck's messages `(g(1), g(∞))`
+(`sumcheckRoundCells`), the final value. -/
 def batchingStream (children : List ChildClaims) (hints : BatchingHints) : List E :=
-  cellsBeforeChallenge children ++ [hints.lambdaGrindNonce] ++
-    hints.sumcheckMessages.flatMap (fun g ↦ [g.1, g.2]) ++ [hints.finalBytecodeValue]
+  cellsBeforeChallenge children ++ lambdaGrindNonceCells hints ++
+    hints.sumcheckMessages.flatMap sumcheckRoundCells ++ [hints.finalBytecodeValue]
 
 end LeanVM.Guest.Batch
 

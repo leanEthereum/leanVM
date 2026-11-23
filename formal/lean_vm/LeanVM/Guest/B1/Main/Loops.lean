@@ -10,6 +10,10 @@ module
 public import LeanVM.Guest.B1.Main.Basic
 public import LeanVM.Guest.B1.Digest.Loops
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«main_loop2»
+import LeanVM.Guest.Data.ValNames.«main_loop3»
+import LeanVM.Guest.Data.ValNames.«main_loop4»
 
 /-!
 # `main`'s loops
@@ -85,10 +89,10 @@ noncomputable def l2Fn : Fn := { fn% «main_loop2» with body := Sig.l2Pre ++ Si
 
 def l3Ok (fn : Fn) : Bool :=
   loopShapeF fn name% «main_loop2» && decide (fn.params.length = 56) &&
-    rcBoundOk (atomsIn (loopPre fn)) (.n 56) (.n 2) &&
-    isMul (atomsIn (loopPre fn)) (.n 62) (.n 3) (.n 56) &&
-    (atomsIn (loopPre fn)).any (isLoadAt (.n 0) (.n 62) 0) &&
-    monoIs (atomsIn (loopPre fn)) (.n 65) (.n 4) (.n 56) 4
+    rcBoundOk (atomsIn (loopPre fn)) (.n (val% «main_loop2» "idx@1")) (.n (val% «main_loop2» "lx_slots_g")) &&
+    isMul (atomsIn (loopPre fn)) (.n (val% «main_loop2» "s2#0")) (.n (val% «main_loop2» "cover")) (.n (val% «main_loop2» "idx@1")) &&
+    (atomsIn (loopPre fn)).any (isLoadAt (.n (val% «main_loop2» "xi")) (.n (val% «main_loop2» "s2#0")) 0) &&
+    monoIs (atomsIn (loopPre fn)) (.n (val% «main_loop2» "s3#2")) (.n (val% «main_loop2» "lx_table")) (.n (val% «main_loop2» "idx@1")) 4
 
 set_option maxRecDepth 100000 in
 theorem l3_ok : l3Ok l2Fn = true := by decide +kernel
@@ -101,12 +105,12 @@ theorem l3_idx : coreProgram.indexOf? name% «main_loop2» = some idx% «main_lo
 
 def l4Ok (fn : Fn) : Bool :=
   loopShapeF fn name% «main_loop3» && decide (fn.params.length = 7) &&
-    rcBoundOk (atomsIn (loopPre fn)) (.n 7) (.n 2) &&
-    isMul (atomsIn (loopPre fn)) (.n 13) (.n 4) (.n 0) &&
-    isMul (atomsIn (loopPre fn)) (.n 14) (.n 3) (.n 7) &&
-    (atomsIn (loopPre fn)).any (isLoadAt (.n 13) (.n 14) 0) &&
-    monoIs (atomsIn (loopPre fn)) (.n 17) (.n 5) (.n 7) 4 &&
-    hasCall (loopPre fn) "verify_sig_lean_sphincs" [.n 17, .n 6] []
+    rcBoundOk (atomsIn (loopPre fn)) (.n (val% «main_loop3» "off_hint")) (.n (val% «main_loop3» "lean_sphincs_slots_g")) &&
+    isMul (atomsIn (loopPre fn)) (.n (val% «main_loop3» "s2#0")) (.n (val% «main_loop3» "n_raw_x_g")) (.n (val% «main_loop3» "xj")) &&
+    isMul (atomsIn (loopPre fn)) (.n (val% «main_loop3» "s2#1")) (.n (val% «main_loop3» "sp_cover")) (.n (val% «main_loop3» "off_hint")) &&
+    (atomsIn (loopPre fn)).any (isLoadAt (.n (val% «main_loop3» "s2#0")) (.n (val% «main_loop3» "s2#1")) 0) &&
+    monoIs (atomsIn (loopPre fn)) (.n (val% «main_loop3» "s3#2")) (.n (val% «main_loop3» "lean_sphincs_table")) (.n (val% «main_loop3» "off_hint")) 4 &&
+    hasCall (loopPre fn) "verify_sig_lean_sphincs" [.n (val% «main_loop3» "s3#2"), .n (val% «main_loop3» "byte_bits")] []
 
 set_option maxRecDepth 100000 in
 theorem l4_ok : l4Ok (coreProgram.getD idx% «main_loop3» default) = true := by decide +kernel
@@ -169,29 +173,29 @@ def l5Ok (fn : Fn) : Bool :=
   let A := atomsIn P
   loopShapeF fn name% «main_loop4» &&
   decide (fn.params.length = 16) &&
-  isMul A (.n 16) (.n 2) (.n 0) &&
-  isLoad A (.n 17) (.n 16) 0 &&
-  isTouch A (.n 20) (.n 18) &&
-  isTouch A (.n 21) (.n 19) &&
-  isMul A (.n 22) (.n 18) (.n 19) &&
-  hasCall P "child_claim_list_digest" [.n 3, .n 4, .n 17, .n 5, .n 18] [.n 23, .n 24] &&
-  isMul A (.n 25) (.n 17) (.n 18) &&
-  hasCall P "child_claim_list_digest" [.n 6, .n 7, .n 25, .n 8, .n 19] [.n 26, .n 27] &&
-  monoIs A (.n 33) (.n 9) (.n 0) 24 &&
-  monoIs A (.n 35) (.n 10) (.n 0) 2 &&
-  isLoad A (.n 36) (.n 35) 0 &&
-  isLoad A (.n 37) (.n 35) 1 &&
-  hasCall P "statement_digest" [.n 11, .n 12, .n 23, .n 24, .n 26, .n 27, .n 36, .n 37, .n 33]
-    [.n 38, .n 39] &&
-  monoIs A (.n 41) (.n 13) (.n 0) 2 &&
-  isLoad A (.n 38) (.n 41) 0 &&
-  monoIs A (.n 42) (.n 13) (.n 0) 2 &&
-  isLoad A (.n 39) (.n 42) 1 &&
-  monoIs A (.n 48) (.n 15) (.n 0) 24 &&
-  hasCall P "verify_sub" [.n 38, .n 39, .n 11, .n 12, .n 14, .n 48] [] &&
-  isMul A (.n 49) (.n 17) (.n 22) &&
-  isMul A (.n 50) (.n 2) (.n 0) &&
-  isLoad A (.n 49) (.n 50) 1
+  isMul A (.n (val% «main_loop4» "base~0")) (.n (val% «main_loop4» "written")) (.n (val% «main_loop4» "xc")) &&
+  isLoad A (.n (val% «main_loop4» "base")) (.n (val% «main_loop4» "base~0")) 0 &&
+  isTouch A (.n (val% «main_loop4» "s5#0")) (.n (val% «main_loop4» "child_meta[0]")) &&
+  isTouch A (.n (val% «main_loop4» "s6#0")) (.n (val% «main_loop4» "child_meta[1]")) &&
+  isMul A (.n (val% «main_loop4» "nsub_g")) (.n (val% «main_loop4» "child_meta[0]")) (.n (val% «main_loop4» "child_meta[1]")) &&
+  hasCall P "child_claim_list_digest" [.n (val% «main_loop4» "lx_table"), .n (val% «main_loop4» "cover"), .n (val% «main_loop4» "base"), .n (val% «main_loop4» "lx_slots_g"), .n (val% «main_loop4» "child_meta[0]")] [.n (val% «main_loop4» "cx_0"), .n (val% «main_loop4» "cx_1")] &&
+  isMul A (.n (val% «main_loop4» "cs_0~2")) (.n (val% «main_loop4» "base")) (.n (val% «main_loop4» "child_meta[0]")) &&
+  hasCall P "child_claim_list_digest" [.n (val% «main_loop4» "lean_sphincs_table"), .n (val% «main_loop4» "sp_cover"), .n (val% «main_loop4» "cs_0~2"), .n (val% «main_loop4» "lean_sphincs_slots_g"), .n (val% «main_loop4» "child_meta[1]")] [.n (val% «main_loop4» "cs_0"), .n (val% «main_loop4» "cs_1")] &&
+  monoIs A (.n (val% «main_loop4» "carried")) (.n (val% «main_loop4» "child_carried")) (.n (val% «main_loop4» "xc")) 24 &&
+  monoIs A (.n (val% «main_loop4» "child_da")) (.n (val% «main_loop4» "da_digests")) (.n (val% «main_loop4» "xc")) 2 &&
+  isLoad A (.n (val% «main_loop4» "pi_0~2")) (.n (val% «main_loop4» "child_da")) 0 &&
+  isLoad A (.n (val% «main_loop4» "pi_0~3")) (.n (val% «main_loop4» "child_da")) 1 &&
+  hasCall P "statement_digest" [.n (val% «main_loop4» "seed_0"), .n (val% «main_loop4» "seed_1"), .n (val% «main_loop4» "cx_0"), .n (val% «main_loop4» "cx_1"), .n (val% «main_loop4» "cs_0"), .n (val% «main_loop4» "cs_1"), .n (val% «main_loop4» "pi_0~2"), .n (val% «main_loop4» "pi_0~3"), .n (val% «main_loop4» "carried")]
+    [.n (val% «main_loop4» "pi_0"), .n (val% «main_loop4» "pi_1")] &&
+  monoIs A (.n (val% «main_loop4» "s16#0")) (.n (val% «main_loop4» "child_pi")) (.n (val% «main_loop4» "xc")) 2 &&
+  isLoad A (.n (val% «main_loop4» "pi_0")) (.n (val% «main_loop4» "s16#0")) 0 &&
+  monoIs A (.n (val% «main_loop4» "s17#0")) (.n (val% «main_loop4» "child_pi")) (.n (val% «main_loop4» "xc")) 2 &&
+  isLoad A (.n (val% «main_loop4» "pi_1")) (.n (val% «main_loop4» "s17#0")) 1 &&
+  monoIs A (.n (val% «main_loop4» "s18#5")) (.n (val% «main_loop4» "child_fresh")) (.n (val% «main_loop4» "xc")) 24 &&
+  hasCall P "verify_sub" [.n (val% «main_loop4» "pi_0"), .n (val% «main_loop4» "pi_1"), .n (val% «main_loop4» "seed_0"), .n (val% «main_loop4» "seed_1"), .n (val% «main_loop4» "g_squares"), .n (val% «main_loop4» "s18#5")] [] &&
+  isMul A (.n (val% «main_loop4» "s19#0")) (.n (val% «main_loop4» "base")) (.n (val% «main_loop4» "nsub_g")) &&
+  isMul A (.n (val% «main_loop4» "s19#1")) (.n (val% «main_loop4» "written")) (.n (val% «main_loop4» "xc")) &&
+  isLoad A (.n (val% «main_loop4» "s19#0")) (.n (val% «main_loop4» "s19#1")) 1
 
 set_option maxRecDepth 100000 in
 theorem l5_ok : l5Ok (coreProgram.getD idx% «main_loop4» default) = true := by decide +kernel

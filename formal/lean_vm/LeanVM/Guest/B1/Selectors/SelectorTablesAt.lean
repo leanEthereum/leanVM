@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.B1.Selectors.SelectorTablesComplete
 public import LeanVM.Guest.B1.Tables.FlatAtT
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«selector_tables»
 
 /-!
 # `selector_tables`, placed (TRIAGE G #69)
@@ -36,7 +38,7 @@ theorem st_flat : stPre.all Stmt.flat = true := by decide +kernel
 
 theorem st_addrs : stPre.filterMap Main.Stmt.addrS = [] := by decide +kernel
 
-theorem st_allocs : stPre.filterMap Main.Stmt.allocSz = [(.n 2, .inl 512)] := by
+theorem st_allocs : stPre.filterMap Main.Stmt.allocSz = [(.n (val% «selector_tables» "sel_eq"), .inl 512)] := by
   decide +kernel
 
 theorem st_not_loop : coreProgram.loop "selector_tables" = false := by decide +kernel

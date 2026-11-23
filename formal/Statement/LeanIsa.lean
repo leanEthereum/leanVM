@@ -281,8 +281,8 @@ return the next registers; `none` if a read or a check fails. A taken `JUMP` mov
 be powers `g^k`, the target's `k` inside the bytecode and the frame's below `MAX_CELLS = 2^28`, its
 own address space: it finds `k` in its table of powers or by a discrete logarithm bounded below the
 bound (`crates/lean_vm_core/src/cpu/execute.rs`, `cpu/hints.rs`), and
-stops after `MAX_STEPS` (`2^27`, the most steps a committed size of `2^30` holds, `execute.rs`)
-steps, which nothing here bounds: those are the executor's limits, not the statement's. -/
+stops after `MAX_STEPS` (`2^30 / 7`: `2^30` committed words over the narrowest table's `7` columns,
+`execute.rs`) steps, which nothing here bounds: those are the executor's limits, not the statement's. -/
 def executeWith (read : K → Option E) (registers : Registers K) :
     LeanIsaInstruction → Option (Registers K)
   | .xor oA oB oC => do
@@ -353,12 +353,11 @@ def Registers.final (program : LeanIsaProgram) : Registers K := ⟨program.pcFin
 
 /-- `n` steps from `r`, halting in the final state: `none` if a step fails or the machine halts
 first. The machine halts when both registers are the final state's, checked before each step, as
-the Rust's loop does (`crates/lean_vm_core/src/cpu/execute.rs`): the last slot reached in
-another frame executes like any other slot, and a step that falls through it, to
-`g^(2^logSize)`, which is no bytecode address, fails. The specification's loop
-(`doc/leanvm/body/02-vm-specification.tex`, §2) executes an instruction before it checks for the
-final state; the two differ only at `logSize = 0`, where the initial and final states coincide
-and this `run` and the Rust's accept a run of zero steps. -/
+the specification's loop (`doc/leanvm/body/02-vm-specification.tex`, §2) and the Rust's
+(`crates/lean_vm_core/src/cpu/execute.rs`) do: the last slot reached in another frame executes
+like any other slot, and a step that falls through it, to `g^(2^logSize)`, which is no bytecode
+address, fails. At `logSize = 0` the initial and final states coincide, and the only run is of
+zero steps. -/
 noncomputable def run {κ : ℕ} (program : LeanIsaProgram) (memory : MemoryImage κ) :
     ℕ → Registers K → Option (Registers K)
   | 0, r => some r

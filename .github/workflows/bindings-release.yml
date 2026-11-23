@@ -202,7 +202,10 @@ jobs:
             bundle_dir: x86_64-windows-gnu
     steps:
       - uses: actions/checkout@v4
+      # llvm-tools strips the LLVM bitcode Go refuses from the archive.
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools
       # cargo-zigbuild needs Zig 0.15.2 for cross-target Apple builds.
       - uses: mlugg/setup-zig@v2
         with:
