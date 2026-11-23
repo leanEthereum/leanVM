@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Writes the relocatable templates of every function of the guest's image and the link step that ties them to it.
 
-  python3 -I gen.py --elf ELF --mc MCDIR [--lean-elf PATH] [--out DIR] [--batch N] [--check]
+  python3 -I gen.py --elf ELF --mc MCDIR [--lean-elf PATH] [--out DIR] [--batches FILE] [--check]
   python3 -I gen.py --diff OLD_HASHES [NEW_HASHES]
 
 ELF is the guest, linked with `--emit-relocs`; MCDIR is the namespace directory `decompile --to lean --proved ELF OUT NS`
@@ -15,9 +15,9 @@ from the Lake package's directory (default `out/gen.elf`). Under DIR (default `R
   no address or index, so it changes only when the function's own code or its callees' names do.
 - per function, in its namespace `<M>`: the image's `link : Link`, `tmpl_eq : (liftProg fns)[Idx.<M>]? = some (tmpl
   link)` and `wf : Link.WF (liftProg fns) link`, both checked by the kernel; several functions to a link module
-  `Link/<P>.lean`, `P` a prefix of their module paths (`link_batches`; N, default 20, bounds a module's functions),
-  since a link module's cost is mostly its imports and every link module is rebuilt on any change of code. The
-  `link` column of `index.tsv` names each function's.
+  `Link/<P>.lean`, `P` the longest prefix of the function's module path that FILE (default `link-batches.txt`) lists,
+  else `Misc`, since a link module's cost is mostly its imports and every link module is rebuilt on any change of
+  code. The `link` column of `index.tsv` names each function's.
 - `Needs.lean`: per function, the stack it needs (`Needs.<M> : Nat`): its frame (the sum of its `addi sp, sp, -N`) plus
   the most any callee needs, and at least what a tail callee needs; it fails on recursion. Proofs never import it:
   a contract takes its `need` as a parameter, and the link step checks `need >= frame + callee's need` by `decide`.
@@ -649,32 +649,18 @@ def link_section(img, i, tchunks, callees, sites, data, mcname):
     return "\n".join(lines)
 
 
-def link_batches(mods, n):
-    """The link modules: each a list of function indices, named by a prefix of their module paths. A subtree of at most
-    `n` functions is one module; a larger one is split by its next component, and the subtrees of fewer than `n // 4`
-    functions it leaves go together into the module of its own prefix (`Misc` at the root)."""
-    out = {}
-
-    def go(prefix, idx):
-        if len(idx) <= n:
-            out[prefix or ("Misc",)] = idx
-            return
-        kids = collections.defaultdict(list)
-        for i in idx:
-            kids[mods[i][len(prefix)]].append(i)
-        rest = []
-        for c in sorted(kids):
-            if len(kids[c]) >= max(2, n // 4):
-                go(prefix + (c,), kids[c])
-            else:
-                rest += kids[c]
-        if rest:
-            if (prefix or ("Misc",)) in out:
-                fail(f"link module {'.'.join(prefix or ('Misc',))} twice")
-            out[prefix or ("Misc",)] = rest
-
-    go((), list(range(len(mods))))
-    return {".".join(p): sorted(idx) for p, idx in out.items()}
+def link_batches(mods, prefixes):
+    """Each link module's functions: a function goes to the longest of `prefixes` that is a proper prefix of its module
+    path, else to `Misc`, so adding or removing a function moves no other one."""
+    out = collections.defaultdict(list)
+    for i, m in enumerate(mods):
+        out[next((p for p in (".".join(m[:k]) for k in range(len(m) - 1, 0, -1)) if p in prefixes), "Misc")].append(i)
+    for p in sorted(prefixes - out.keys()):
+        print(f"gen.py: no function under {p} (link-batches.txt)")
+    for p, idx in sorted(out.items()):
+        if len(idx) > 40:
+            print(f"gen.py: link module {p} has {len(idx)} functions; split it in link-batches.txt")
+    return out
 
 
 def link_module(name, img, members, sections):
@@ -926,7 +912,8 @@ def generate(args):
         sections.append(link_section(img, i, tchunks, callees, sites, data, mcname))
         sizes.append(sum(len(c) for c in chunks) // 2)
         hashes.append(f"{'.'.join(img.mod[i])}\t{sha(t)[:16]}\t{img.key[i]}")
-    batches = link_batches([tuple(m) for m in img.mod], args.batch)
+    prefixes = {l.strip() for l in open(args.batches) if l.strip() and not l.startswith("#")}
+    batches = link_batches(img.mod, prefixes)
     batch_of = {i: b for b, idx in batches.items() for i in idx}
     for b, idx in batches.items():
         files["Link/" + b.replace(".", "/") + ".lean"] = link_module(b, img, idx, sections)
@@ -1002,7 +989,7 @@ def main():
     ap.add_argument("--mc")
     ap.add_argument("--lean-elf", default="out/gen.elf")
     ap.add_argument("--out", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "Rv64mc", "Gen"))
-    ap.add_argument("--batch", type=int, default=20)
+    ap.add_argument("--batches", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "link-batches.txt"))
     ap.add_argument("--check", action="store_true")
     ap.add_argument("--diff", nargs="+", metavar="HASHES")
     args = ap.parse_args()

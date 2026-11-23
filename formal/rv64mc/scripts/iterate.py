@@ -226,12 +226,10 @@ def report(meta: Path, label: str) -> None:
           + ".", "",
           f"**Build** (`lake build Rv64mc`, {read(meta / 'jobs')} modules at once): {build.get('cpu', 0):.0f} CPU-s "
           f"(the `lean` processes {total_cpu:.0f}), {build.get('wall', 0):.0f} s wall, "
-          f"exit {build.get('code', '?')}.", "",
-          "| class | modules rebuilt | CPU-s |", "| --- | --- | --- |"]
-    for cls in CLASSES:
-        if per[cls][0] or per[cls][1]:
-            md.append(f"| {cls} | {per[cls][0]} | {per[cls][1]:.0f} |")
-    md.append("")
+          f"exit {build.get('code', '?')}.", ""]
+    rows = [f"| {c} | {per[c][0]} | {per[c][1]:.0f} |" for c in CLASSES if per[c][0] or per[c][1]]
+    if rows:
+        md += ["| class | modules rebuilt | CPU-s |", "| --- | --- | --- |", *rows, ""]
     rebuilt = sorted(m for cls in ("Model", "Spec", "Proof", "Table", "Final") for m in per[cls][2])
     if rebuilt:
         md += [f"Rebuilt proofs and specs: {', '.join(m.removeprefix('Rv64mc.') for m in rebuilt)}.", ""]
