@@ -58,13 +58,15 @@ private theorem exists_mvPolynomial_evalMle {κ : ℕ} (g : CMlPolynomialEval F 
       MvPolynomial.eval z.get P = evalMle g z := by
   refine ⟨∑ i : Fin (2 ^ κ), MvPolynomial.C g[i] * ∏ j : Fin κ,
       if (BitVec.ofFin i).getLsb j then MvPolynomial.X j else 1 - MvPolynomial.X j, ?_, fun z ↦ ?_⟩
-  · refine MvPolynomial.totalDegree_finsetSum_le fun i _ ↦ (MvPolynomial.totalDegree_mul _ _).trans ?_
+  · refine MvPolynomial.totalDegree_finsetSum_le fun i _ ↦
+      (MvPolynomial.totalDegree_mul _ _).trans ?_
     rw [MvPolynomial.totalDegree_C, zero_add]
     refine (MvPolynomial.totalDegree_finsetProd _ _).trans ((Finset.sum_le_sum fun j _ ↦ ?_).trans
       (b := ∑ _j : Fin κ, 1) (by simp))
     split
     · exact (MvPolynomial.totalDegree_X j).le
-    · exact (MvPolynomial.totalDegree_sub _ _).trans (max_le (by simp) ((MvPolynomial.totalDegree_X j).le))
+    · exact (MvPolynomial.totalDegree_sub _ _).trans
+        (max_le (by simp) (MvPolynomial.totalDegree_X j).le)
   · simp [eval_mle_eq_eval, eval, Vector.dotProduct_eq_root_dotProduct, dotProduct,
       lagrangeBasis_getElem, apply_ite]
 
@@ -76,7 +78,8 @@ theorem card_evalMle_eq_le {κ : ℕ} {g g' : CMlPolynomialEval F κ} (hne : g �
   obtain ⟨P, hP, hPg⟩ := exists_mvPolynomial_evalMle g
   obtain ⟨P', hP', hPg'⟩ := exists_mvPolynomial_evalMle g'
   have hne0 : P - P' ≠ 0 := fun h ↦ hne <| ext_of_eval_vertex fun i ↦ by
-    rw [← eval_mle_eq_eval, ← eval_mle_eq_eval, ← hPg, ← hPg', ← sub_eq_zero, ← map_sub, h, map_zero]
+    rw [← eval_mle_eq_eval, ← eval_mle_eq_eval, ← hPg, ← hPg', ← sub_eq_zero, ← map_sub, h,
+      map_zero]
   refine le_trans ?_ ((MvPolynomial.card_zeros_le_of_totalDegree_le _ hne0
     ((MvPolynomial.totalDegree_sub _ _).trans (max_le hP hP'))).trans (by simp))
   refine Finset.card_le_card_of_injOn (fun z ↦ z.get) (fun z hz ↦ ?_) fun z₁ _ z₂ _ h ↦ ?_

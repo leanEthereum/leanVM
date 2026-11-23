@@ -19,7 +19,7 @@ public import Mathlib.Algebra.MvPolynomial.NoZeroDivisors
 /-!
 # An affine fold round, relativised
 
-`card_foldBad_le` (`lem:fold-list`) counts the challenges `(α, β)` after which some tuple of
+Annex B's `lem:fold-list` counts the challenges `(α, β)` after which some tuple of
 `lst(fold; A, d)` satisfies the new claim, when every pair of `lst(f, g; A − 1, d)` violates the
 old one. The agreement-set extractor's invariant only asks this of the pairs satisfying a
 predicate `Bp` (those whose descent is bad), and of the fold's tuples all of whose near pairs
@@ -31,11 +31,12 @@ satisfy it:
   agreement set satisfies `Bp`, satisfies the new claim.
 * `card_foldBadR_le`: if every pair of `lst(f, g; A − 1, d)` satisfying `Bp` violates the old
   claim, at most `|excSet(g, f)| + 2 jl n (A − 1) d |F|` such challenges. Outside the exceptional
-  pairs, `P`'s MCA witness is a near pair, so it satisfies `Bp`, and the count is
-  `card_foldBad_le`'s over the pairs satisfying `Bp`.
+  pairs, `P`'s MCA witness is a near pair, so it satisfies `Bp`, and the remaining tuples are
+  folds of pairs satisfying `Bp`, each the zero set of a nonzero quadratic in `(α, β)`
+  (`card_quad_zero_le`).
 * `card_foldBadR_le_nAff'`: with the unconditional MCA count, `nAff + 2 jl n (A − 1) d |F|`.
 
-With `Bp` true this is `card_foldBad_le`.
+With `Bp` true this is `lem:fold-list`.
 -/
 
 namespace LeanVM.Protocol.Whir.AffineCombiner
