@@ -357,10 +357,41 @@ def meet(sts, sel=None):
     return s
 
 
+# a certificate split at a selector (`CoreMode.heapOkC`, `HCert.arms`): the function whose pass reads its body at arm `r`
+# of the selector `V.n x`, `(x, r)`
+ARM = {}
+
+
+def sel_body(ss, x, r):
+    """`CoreMode.selL`: a block at arm `r` of the selector `x`, each `match` on it its arm `r`'s block inline, each
+    `dispatch` on it the call of its callee `r`, where there is one."""
+    out = []
+    for s in ss:
+        if s[0] == 'match':
+            arms = [sel_body(a, x, r) for a in s[2]]
+            if s[1] == x and r < len(arms):
+                out.extend(arms[r])
+            else:
+                out.append(('match', s[1], arms))
+        elif s[0] == 'ite':
+            out.append(('ite', s[1], sel_body(s[2], x, r), sel_body(s[3], x, r)))
+        elif s[0] == 'dispatch' and s[1] == x and r < len(s[2]):
+            out.append(('call', s[2][r], s[3], s[4]))
+        else:
+            out.append(s)
+    return out
+
+
+def arm_body(key):
+    """The body a pass reads: the function's, at its arm (`ARM`)."""
+    body = CORE[key][1]
+    return sel_body(body, *ARM[key]) if key in ARM else body
+
+
 class Pass:
     def __init__(self, key, sig, rules=True):
         self.key = key
-        self.params, self.body = CORE[key]
+        self.params, self.body = CORE[key][0], arm_body(key)
         self.dups = dup_guards(key) if 'dup' in F else []
         if self.dups:
             self.body = dup_body(self.dups, self.body)
@@ -1687,7 +1718,7 @@ DUPCALL = [False]
 def dup_guards(key):
     """The guards of the top-level `ite`s whose continuation goes into each branch (`HCert.dups`): a function (not a
     loop) whose `ite c` on `c = p + k` (`p` a parameter, `k` a constant) is followed only by atoms and its `ret`."""
-    params, body = CORE[key]
+    params, body = CORE[key][0], arm_body(key)
     if key in IS_LOOP:
         return []
     adds, consts = {}, set()

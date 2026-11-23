@@ -36,16 +36,21 @@ open LeanVM.Protocol.Verifier hiding Layout
 
 /-! ## The buffers and the calls -/
 
+/-- The query positions of every level at the levels' rate (`LIG_POS_TOTAL`): each level's squeezes
+times the positions a squeezed word carries. -/
+def osPosTotal (c : OsCfg) : ℕ := (c.levels.map fun lv ↦ lv.squeezes * (128 / lv.depth)).sum
+
 /-- **`open_stacked`'s heap buffers' sizes**, in allocation order (`Whir.osHead`, `osLevel`,
 `osTail`, `osFinish`): the head's eleven (`final_msg`, `level_roots`, `fold_challenges`,
-`round_coefs`, `level_scales`, `level_lam_invs`, `level_hs`, `ood_z`, `ood_scalars`, `query_positions`,
-`query_win_ptrs`); each non-final level's message `sent`; the final level's normalized lane `hs`;
-`tail_challenges`, `point`, `point1`, `basis_d`, `level_scale`, `level_after`, `inner_chain`. -/
+`round_coefs`, `level_scales`, `level_lam_invs`, `level_hs`, `ood_z`, `ood_scalars`, `pos_totals`,
+`query_positions`, `query_win_ptrs`); each non-final level's message `sent`; the final level's
+normalized lane `hs`; `tail_challenges`, `point`, `point1`, `basis_d`, `level_scale`, `level_after`,
+`inner_chain`. -/
 def osSizesL (c : OsCfg) : List ℕ :=
   let n := c.levels.length
   let lane := c.yrLen + (c.levels.getD c.yrLevel default).folds
-  [lane, 2 * n, c.nFolds, 2 * c.nFolds, n, n, n * hsStride, n * ligColsCap, n, n * ligPosCap,
-    n * ligPosCap] ++
+  [lane, 2 * n, c.nFolds, 2 * c.nFolds, n, n, n * hsStride, n * ligColsCap, n, ligNRates,
+    osPosTotal c, osPosTotal c] ++
   ((c.levels.take c.yrLevel).map fun lv ↦ 2 + lv.folds) ++
   [lane, yrLogCap, pointCap, pointCap, n * ligColsCap, n, n, 2 * n]
 

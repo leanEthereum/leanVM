@@ -53,40 +53,8 @@ variable {fs : String → ℕ} {cert : String → V → ℕ} {κ : ℕ}
 
 /-! ## The helpers' statements at an optional bound -/
 
-/-- `LpAtD` at an optional words bound. -/
-def LpAtO (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) (name loop : String) (S d cd : ℕ)
-    (Bd : Option ℕ) : Prop :=
-  ∀ (w0 : E) (cap : List E) (ep ew : ℕ) (tabs : E) (Lin : ℕ → Layout), cap.length = 5 →
-    (∀ fp, ∀ k < S * (128 / d), RegionL (Lin fp) (ep + k) ∧ RegionL (Lin fp) (ew + k)) →
-    (∀ fp, ∀ t < 128, ∃ i, tabs.limb 0 * addressOfIndex t = addressOfIndex i ∧
-      RegionL (Lin fp) i) →
-    (∀ fp rd, LowDef κ rd → MemL rd (Lin fp) →
-      LpMem cert S d cd (lpDecPos fs name loop S d cd fp) w0 cap (ofK (addressOfIndex ep))
-        (ofK (addressOfIndex ew)) tabs rd) →
-    CompleteAtPO fs cert κ name Lin
-      (w0 :: cap ++ [ofK (addressOfIndex ep), ofK (addressOfIndex ew), tabs])
-      ((⟨cap, []⟩ : Fs).squeezeN (S - 1)).2.cap (lpRuns fs cert name loop S d cd w0 cap) Bd
-
 theorem lpAtO_of_D {name loop : String} {S d cd : ℕ} (h : LpAtD fs cert κ name loop S d cd) :
     LpAtO fs cert κ name loop S d cd none := h
-
-/-- `LqAtD` at an optional words bound. -/
-def LqAtO (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) (name : String)
-    (q base folds leaf d cd mu nhs hbits fin : ℕ) (Bd : Option ℕ) : Prop :=
-  let s := lqOqS q base folds leaf d cd mu nhs hbits fin
-  ∀ (Lin : Layout) (lam lamInv : E) (ecoefs ehs epos eqp : ℕ) (rounds : List FoldRound)
-    (hsv : List E) (eb qs : ℕ → ℕ) (rows : ℕ → List K) (sibs : ℕ → List Digest)
-    (capW flW : List E) (r0 r1 : E),
-    rounds.length = s.folds → (s.final = 1 → hsv.length = s.nHs) →
-    OqStatic s rounds hsv qs rows sibs q →
-    LqCaps s q capW flW r0 r1 qs rows sibs →
-    LqReg (RegionL Lin) s q ecoefs ehs epos eqp eb →
-    (∀ rd, LowDef κ rd → MemL rd Lin → LqMem rd s q ecoefs ehs epos eqp rounds hsv eb qs) →
-    CompleteAtO fs cert κ name Lin
-      [lam, lamInv, ofK (addressOfIndex ecoefs), ofK (addressOfIndex ehs),
-        ofK (addressOfIndex epos), ofK (addressOfIndex eqp)]
-      (Returns [r0, r1, lqSum s (lqOdd q base folds leaf d cd mu nhs hbits fin) (lqIters q base)
-        lamInv rounds qs rows, lam ^ q]) Bd
 
 theorem lqAtO_of_D {name : String} {q base folds leaf d cd mu nhs hbits fin : ℕ}
     (h : LqAtD fs cert κ name q base folds leaf d cd mu nhs hbits fin) :
@@ -95,20 +63,9 @@ theorem lqAtO_of_D {name : String} {q base folds leaf d cd mu nhs hbits fin : �
     (h Lin lam lamInv ecoefs ehs epos eqp rounds hsv eb qs rows sibs capW flW r0 r1 h1 h2 h3 h4 h5
       h6).toO
 
-/-- `LrAtD` at an optional words bound. -/
-def LrAtO (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) (name : String)
-    (q cols nhs hbits : ℕ) (Bd : Option ℕ) : Prop :=
-  ∀ (Lin : Layout) (P BD HS M : E) (D p : ℕ → E) (hsv : List E), hsv.length = nhs →
-    RegPtrs [(0, q), (1, cols), (2, nhs)] [P, BD, HS, M] (RegionL Lin) →
-    (∀ rd, LowDef κ rd → MemL rd Lin →
-      (∀ i < q, LoadHolds rd P i (p i)) ∧ (∀ s < cols, LoadHolds rd BD s (D s)) ∧
-        ∀ c < nhs, LoadHolds rd HS c (hsv.getD c 0)) →
-    CompleteAtO fs cert κ name Lin [P, BD, HS, M]
-      (Returns [(lrRet q cols nhs hbits D hsv p M).1, (lrRet q cols nhs hbits D hsv p M).2]) Bd
-
-theorem lrAtO_of_D {name : String} {q cols nhs hbits : ℕ} (h : LrAtD fs cert κ name q cols nhs hbits) :
-    LrAtO fs cert κ name q cols nhs hbits none :=
-  fun Lin P BD HS M D p hsv h1 h2 h3 ↦ (h Lin P BD HS M D p hsv h1 h2 h3).toO
+theorem lrAtO_of_D {name : String} {cols nhs hbits : ℕ} (h : LrAtD fs cert κ name cols nhs hbits) :
+    LrAtO fs cert κ name cols nhs hbits none :=
+  fun q hq1 hq2 Lin P BD HS M D p hsv h1 h2 h3 ↦ (h q hq1 hq2 Lin P BD HS M D p hsv h1 h2 h3).toO
 
 /-! ## Small facts -/
 

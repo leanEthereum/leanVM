@@ -212,6 +212,10 @@ theorem vtAllocVars_Z : vtAllocVars.getD 118 0 = 2316 ∧ vtAllocVars.getD 119 0
 theorem vtAllocVars_Sh : ∀ t < 6, vtAllocVars.getD (4 + 2 * t) 0 = vtShV t + 11 ∧
     vtAllocVars.getD (5 + 2 * t) 0 = vtShV t + 15 := by decide
 
+/-- A list index bound, by the lists' lengths. -/
+local macro "len_omega" : tactic => `(tactic| (simp (config := { failIfUnchanged := false }) only
+  [List.length_cons, List.length_nil, List.length_append, List.length_map, List.length_range, shW_length]; omega))
+
 section
 variable (H : VtHonest) (B : VtBases)
 
@@ -219,52 +223,54 @@ theorem ownW_getD_head {j : ℕ} (hj : j < 4) : (H.ownW B).getD j [] =
     [vtGKeyW H.lm H.τ, vtGSizeW H.lm H.τ, vtGBaseW H.lm H.τ, vtGOrdW H.lm H.τ].getD j [] := by
   unfold VtHonest.ownW
   simp only [List.append_assoc]
-  rw [List.getD_append _ _ _ _ (by simpa using hj)]
+  rw [List.getD_append _ _ _ _ (by len_omega)]
 
 theorem ownW_getD_sh {t : ℕ} (ht : t < 6) : (H.ownW B).getD (4 + 2 * t) [] = vtShEqW H.point H.τ t ∧
     (H.ownW B).getD (5 + 2 * t) [] = vtShGW H.point H.τ t := by
-  unfold VtHonest.ownW
-  simp only [List.append_assoc]
-  rw [List.getD_append_right _ _ _ _ (by simp), List.getD_append_right _ _ _ _ (by simp),
-    List.getD_append _ _ _ _ (by rw [shW_length]; omega), List.getD_append _ _ _ _ (by rw [shW_length]; omega)]
-  simp only [List.length_cons, List.length_nil, show 4 + 2 * t - 4 = 2 * t by omega,
-    show 5 + 2 * t - 4 = 2 * t + 1 by omega, VtHonest.shW]
-  interval_cases t <;> simp
+  have e : ∀ k < 12, (H.ownW B).getD (4 + k) [] = H.shW.getD k [] := by
+    intro k hk
+    unfold VtHonest.ownW
+    simp only [List.append_assoc]
+    rw [List.getD_append_right _ _ _ _ (by len_omega), List.getD_append _ _ _ _ (by len_omega)]
+    simp
+  rw [show 5 + 2 * t = 4 + (2 * t + 1) by omega, e _ (by omega), e _ (by omega)]
+  simp only [VtHonest.shW]
+  interval_cases t <;> exact ⟨rfl, rfl⟩
 
 theorem ownW_getD_mid {k : ℕ} (hk : k < 3) : (H.ownW B).getD (16 + k) [] =
     [vtIdxcW, H.point.map (1 + ·), vtIdxBufW H.point H.lm].getD k [] := by
   unfold VtHonest.ownW
   simp only [List.append_assoc]
-  rw [List.getD_append_right _ _ _ _ (by simp), List.getD_append_right _ _ _ _ (by rw [shW_length]; simp),
-    List.getD_append _ _ _ _ (by simp; omega)]
+  rw [List.getD_append_right _ _ _ _ (by len_omega), List.getD_append_right _ _ _ _ (by len_omega),
+    List.getD_append _ _ _ _ (by len_omega)]
   simp [shW_length, show 16 + k - 4 - 12 = k by omega]
 
 theorem ownW_getD_F {b : ℕ} (hb : b < 3) : (H.ownW B).getD (19 + b) [] = offBits (H.offP.getD b 0) := by
   unfold VtHonest.ownW
   simp only [List.append_assoc]
-  rw [List.getD_append_right _ _ _ _ (by simp), List.getD_append_right _ _ _ _ (by rw [shW_length]; simp; omega),
-    List.getD_append_right _ _ _ _ (by simp; omega), List.getD_append _ _ _ _ (by simp [shW_length]; omega)]
+  rw [List.getD_append_right _ _ _ _ (by len_omega), List.getD_append_right _ _ _ _ (by len_omega),
+    List.getD_append_right _ _ _ _ (by len_omega), List.getD_append _ _ _ _ (by len_omega)]
   simp [List.getD_eq_getElem?_getD, shW_length, show 19 + b - 4 - 12 - 3 = b by omega, hb]
 
 theorem ownW_getD_P {i : ℕ} (hi : i < 51) : (H.ownW B).getD (22 + i) [] =
     offDigits (H.offP.getD (3 + i) 0) (H.τ (vtPushSel.getD i default).2.2.2.1) := by
   unfold VtHonest.ownW
   simp only [List.append_assoc]
-  rw [List.getD_append_right _ _ _ _ (by simp), List.getD_append_right _ _ _ _ (by rw [shW_length]; simp; omega),
-    List.getD_append_right _ _ _ _ (by simp [shW_length]; omega),
-    List.getD_append_right _ _ _ _ (by simp [shW_length]; omega),
-    List.getD_append _ _ _ _ (by simp [shW_length]; omega)]
+  rw [List.getD_append_right _ _ _ _ (by len_omega), List.getD_append_right _ _ _ _ (by len_omega),
+    List.getD_append_right _ _ _ _ (by len_omega),
+    List.getD_append_right _ _ _ _ (by len_omega),
+    List.getD_append _ _ _ _ (by len_omega)]
   simp [List.getD_eq_getElem?_getD, shW_length, show 22 + i - 4 - 12 - 3 - 3 = i by omega, hi]
 
 theorem ownW_getD_C {i : ℕ} (hi : i < 45) : (H.ownW B).getD (73 + i) [] =
     offDigits (H.offC.getD i 0) (H.τ (vtCountSel.getD i default).2.2.2.1) := by
   unfold VtHonest.ownW
   simp only [List.append_assoc]
-  rw [List.getD_append_right _ _ _ _ (by simp), List.getD_append_right _ _ _ _ (by rw [shW_length]; simp; omega),
-    List.getD_append_right _ _ _ _ (by simp [shW_length]; omega),
-    List.getD_append_right _ _ _ _ (by simp [shW_length]; omega),
-    List.getD_append_right _ _ _ _ (by simp [shW_length]; omega),
-    List.getD_append _ _ _ _ (by simp [shW_length]; omega)]
+  rw [List.getD_append_right _ _ _ _ (by len_omega), List.getD_append_right _ _ _ _ (by len_omega),
+    List.getD_append_right _ _ _ _ (by len_omega),
+    List.getD_append_right _ _ _ _ (by len_omega),
+    List.getD_append_right _ _ _ _ (by len_omega),
+    List.getD_append _ _ _ _ (by len_omega)]
   simp [List.getD_eq_getElem?_getD, shW_length, show 73 + i - 4 - 12 - 3 - 3 - 51 = i by omega, hi]
 
 theorem ownW_getD_Z {k : ℕ} (_hk : k < 4) : (H.ownW B).getD (118 + k) [] =
@@ -276,9 +282,9 @@ theorem ownW_getD_Z {k : ℕ} (_hk : k < 4) : (H.ownW B).getD (118 + k) [] =
         List.replicate (35 - (H.n + 1)) 0].getD k
       [] := by
   unfold VtHonest.ownW
-  rw [List.getD_append_right _ _ _ _ (by simp)]
+  rw [List.getD_append_right _ _ _ _ (by len_omega)]
   congr 1
-  simp
+  simp [shW_length]
 
 end
 

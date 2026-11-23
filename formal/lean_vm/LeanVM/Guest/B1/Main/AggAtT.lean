@@ -18,7 +18,7 @@ import LeanVM.Guest.Data.ValNames.«aggregate_claims»
 # `aggregate_claims`, its tree exposed
 
 `aggQ m`: the children's count `g^m` (`v0`) and the sizes' words (`v32`, `v97`, `v187`).
-`aggCallList`: its five calls, every one entered. `aggHonest m`: its honest shape, no predicate on
+`aggCallList`: its four calls, every one entered. `aggHonest m`: its honest shape, no predicate on
 its callees' trees. `aggregate_claims_completeAtT`.
 -/
 
@@ -43,7 +43,6 @@ def aggQ (m : ℕ) (σ : Val) : Prop :=
 /-- `aggregate_claims`' calls, in order. -/
 def aggCallList : List Call :=
   [⟨name% «aggregate_claims_loop0», [.n (val% «aggregate_claims» "s12#2"), .n (val% «aggregate_claims» "n_children_g"), .n (val% «aggregate_claims» "absorb"), .n (val% «aggregate_claims» "child_fresh"), .n (val% «aggregate_claims» "fresh_row"), .n (val% «aggregate_claims» "child_carried"), .n (val% «aggregate_claims» "carried_row"), .n (val% «aggregate_claims» "child_pi")], [], true⟩,
-    ⟨"grind_check__L2", [.n (val% «aggregate_claims» "fs_perm.nxt[1]"), .n (val% «aggregate_claims» "tabs")], [], true⟩,
     ⟨name% «aggregate_claims_loop1», [.n (val% «aggregate_claims» "s22#2"), .n (val% «aggregate_claims» "n_children_g"), .n (val% «aggregate_claims» "bc_chain"), .n (val% «aggregate_claims» "fresh_row"), .n (val% «aggregate_claims» "carried_row"), .n (val% «aggregate_claims» "lam_sq"), .n (val% «aggregate_claims» "fs_perm.nxt[0]")], [], true⟩,
     ⟨"batch_sumcheck__L23", [.n (val% «aggregate_claims» "fs_perm.nxt[8]"), .n (val% «aggregate_claims» "fs_perm.nxt[9]"), .n (val% «aggregate_claims» "fs_perm.nxt[10]"), .n (val% «aggregate_claims» "fs_perm.nxt[11]"), .n (val% «aggregate_claims» "fs_perm.nxt[12]"), .n (val% «aggregate_claims» "fs0~7"), .n (val% «aggregate_claims» "bc_running@1"), .n (val% «aggregate_claims» "bc_point"), .n (val% «aggregate_claims» "tabs")],
       [.n (val% «aggregate_claims» "fs0"), .n (val% «aggregate_claims» "fs1"), .n (val% «aggregate_claims» "fs2"), .n (val% «aggregate_claims» "fs3"), .n (val% «aggregate_claims» "fs4"), .n (val% «aggregate_claims» "bc_running@2")], true⟩,
@@ -52,7 +51,7 @@ def aggCallList : List Call :=
 
 /-- No predicate on `aggregate_claims`' callees' trees. -/
 def aggTs : List (Tree → Prop) :=
-  [fun _ => True, fun _ => True, fun _ => True, fun _ => True, fun _ => True]
+  [fun _ => True, fun _ => True, fun _ => True, fun _ => True]
 
 /-- **`aggregate_claims`' honest shape** on `m` children. -/
 def aggHonest (m : ℕ) : Tree → Prop :=
@@ -75,11 +74,12 @@ theorem aggregate_claims_completeAtT (fs : String → ℕ) (cert : String → V 
     {cpi cfresh ccarried tabs : E} {ds : ℕ} {Lin : Main.Layout}
     (hcw : ∀ rd, Main.MemL rd Lin → ∀ c (hc : c < cs.length), ChildWordsAt rd cpi cfresh ccarried c cs[c])
     (htabs : ∀ rd, LowDef 16 rd → Main.MemL rd Lin → WinTabs rd tabs)
+    (htR : ∀ e < 2 ^ 11, ∃ i, (tabs * gen ^ e).limb 0 * addressOfIndex 0 = addressOfIndex i ∧ Main.RegionL Lin i)
     (hdst : (ds, out.cells) ∈ Lin) :
     CompleteAtDT fs cert 16 "aggregate_claims" Lin [gen ^ m, cpi, cfresh, ccarried, gen ^ ds, tabs]
       (Returns []) (aggHonest m) := by
   subst hcl
-  obtain ⟨hout, hpow, -⟩ := batch_out hb
+  obtain ⟨hout, -, -⟩ := batch_out hb
   subst hout
   intro fp
   set m := cs.length with hmd
@@ -100,8 +100,6 @@ theorem aggregate_claims_completeAtT (fs : String → ℕ) (cert : String → V 
     [⟨name% «aggregate_claims_loop0», true, [1, gen ^ m, P.absorb, cfresh, P.lf, ccarried, P.lc,
         cpi], Own ++ Lin,
         Returns []⟩,
-      ⟨"grind_check__L2", true, [cellsOfState (aggN cs h.lambdaGrindNonce) false 1, tabs],
-        Own ++ Lin, Returns []⟩,
       ⟨name% «aggregate_claims_loop1», true, [1, gen ^ m, P.chain, P.lf, P.lc,
           lamA cs h * lamA cs h, lamA cs h],
         Own ++ Lin, Returns []⟩,
@@ -114,12 +112,10 @@ theorem aggregate_claims_completeAtT (fs : String → ℕ) (cert : String → V 
   have hok : ∀ k ∈ ks, k.taken = true → CompleteAtD fs cert 16 k.f k.Lin k.args k.Out := by
     intro k hk _
     simp only [ks, List.mem_cons, List.not_mem_nil, or_false] at hk
-    rcases hk with rfl | rfl | rfl | rfl | rfl
+    rcases hk with rfl | rfl | rfl | rfl
     · exact completeAt_of_rel_pureD aggPure (by simp [aggPureSet]) (fun rd hm =>
         (guard_complete find_l25 l25_shape' (rest := [P.absorb, cfresh, P.lf, ccarried, P.lc, cpi])
           (agg_l25 (hcw' rd hm) (hbm rd hm))).2 hne) 16
-    · exact aggGrind_completeD fs cert _ _ _ fun rd hl hm =>
-        ⟨rfl, _, _, rfl, htabs rd hl (Main.memL_append.mp hm).2, agg_pow hpow⟩
     · exact completeAt_of_rel_pureD aggPure (by simp [aggPureSet]) (fun rd hm =>
         (guard_complete find_l26 l26_shape.1
           (rest := [P.chain, P.lf, P.lc, lamA cs h * lamA cs h, lamA cs h])
@@ -132,14 +128,13 @@ theorem aggregate_claims_completeAtT (fs : String → ℕ) (cert : String → V 
   obtain ⟨Nk, Lk, outs, hoo, hW, hD, -, hKids⟩ :=
     kidsFromInT_of_kidsDT (fs := fs) (cert := cert) 16 ks aggTs (kidsDT_true ks hok)
       (b0 + (aggSizes m).sum)
-  have hl0 : outs.length = 5 := hoo.length
+  have hl0 : outs.length = 4 := hoo.length
   obtain ⟨o1, t1, rfl, hl1⟩ := exists_of_length_succ hl0
-  obtain ⟨o2, t2, rfl, hl2⟩ := exists_of_length_succ hl1
-  obtain ⟨o3, t3, rfl, hl3⟩ := exists_of_length_succ hl2
+  obtain ⟨o3, t3, rfl, hl3⟩ := exists_of_length_succ hl1
   obtain ⟨o4, t4, rfl, hl4⟩ := exists_of_length_succ hl3
   obtain ⟨o5, t5, rfl, hl5⟩ := exists_of_length_succ hl4
   obtain rfl := List.eq_nil_of_length_eq_zero hl5
-  obtain ⟨h1, h2, h3, h4, h5, -⟩ := hoo
+  obtain ⟨h1, h3, h4, h5, -⟩ := hoo
   -- the layout
   have hWo : Within Own b0 (aggSizes m).sum := bufL_within _ _ _ hfit
   refine ⟨fs "aggregate_claims" + (aggSizes m).sum + Nk, Own ++ Lk, [], [], ⟨rfl, rfl⟩, ?_,
@@ -154,6 +149,7 @@ theorem aggregate_claims_completeAtT (fs : String → ℕ) (cert : String → V 
   have hmem := hbm rd hmK
   -- the valuation and the path
   have hV := agg_core (rd := rd) (cpi := cpi) (tabs := tabs) rfl (hcw' rd hmK) hrl hb hmem
+    (gcRc_of_lowDef (by norm_num) hlow) (htabs rd hlow hLin')
   obtain ⟨σ, hσ⟩ : ∃ σ : Val, σ = aggσ rd m cpi cfresh ccarried (gen ^ ds) tabs P cs h := ⟨_, rfl⟩
   rw [← hσ] at hV
   have hw := Main.walk_straight σ [] aggP aggP_straight
@@ -201,7 +197,7 @@ theorem aggregate_claims_completeAtT (fs : String → ℕ) (cert : String → V 
   have h := relAtInWT_of_walk (P := coreProgram) (fs := fs) (cert := cert) (σ := σ) (rd := rd)
     (R := Main.RegionL Lin) (D := Main.RegionL []) (fp := fp) (N := Nk)
     (args := [gen ^ m, cpi, cfresh, ccarried, gen ^ ds, tabs]) (rets := [])
-    (Dk := fun i => (fun _ => False) i ∨ outRegion ks [o1, o2, o3, o4, o5] i)
+    (Dk := fun i => (fun _ => False) i ∨ outRegion ks [o1, o3, o4, o5] i)
     coreProgram_wf find_aggregate_claims (Or.inl agg_loop) (by
       show [σ (.n (val% «aggregate_claims» "n_children_g")), σ (.n (val% «aggregate_claims» "child_pi")), σ (.n (val% «aggregate_claims» "child_fresh")), σ (.n (val% «aggregate_claims» "child_carried")), σ (.n (val% «aggregate_claims» "defer_stmt")), σ (.n (val% «aggregate_claims» "tabs"))] = _
       rw [hV.e0, hV.e1, hV.e2, hV.e3, hV.e4, hV.e5]) hw rfl hev
@@ -221,13 +217,11 @@ theorem aggregate_claims_completeAtT (fs : String → ℕ) (cert : String → V 
     exact h'
   · rw [hcalls, hal]
     refine hKids rd σ _ _ _ ?_ hlow hLk ?_ (regionsOk_of fun k hk _ i hi => ?_)
-    · refine ⟨rfl, rfl, fun _ => ⟨?_, ?_⟩, rfl, rfl, fun _ => ⟨?_, ?_⟩, rfl, rfl, fun _ => ⟨?_, ?_⟩,
+    · refine ⟨rfl, rfl, fun _ => ⟨?_, ?_⟩, rfl, rfl, fun _ => ⟨?_, ?_⟩,
         rfl, rfl, fun _ => ⟨?_, ?_⟩, rfl, rfl, fun _ => ⟨?_, ?_⟩, trivial⟩
       · show [σ (.n (val% «aggregate_claims» "s12#2")), σ (.n (val% «aggregate_claims» "n_children_g")), σ (.n (val% «aggregate_claims» "absorb")), σ (.n (val% «aggregate_claims» "child_fresh")), σ (.n (val% «aggregate_claims» "fresh_row")), σ (.n (val% «aggregate_claims» "child_carried")), σ (.n (val% «aggregate_claims» "carried_row")), σ (.n (val% «aggregate_claims» "child_pi"))] = _
         rw [hV.g36, hV.e0, hV.v33, hV.e2, hV.v8, hV.e3, hV.v9, hV.e1]
       · rw [(h1 rfl).1]; rfl
-      · exact hV.grArgs
-      · rw [(h2 rfl).1]; rfl
       · show [σ (.n (val% «aggregate_claims» "s22#2")), σ (.n (val% «aggregate_claims» "n_children_g")), σ (.n (val% «aggregate_claims» "bc_chain")), σ (.n (val% «aggregate_claims» "fresh_row")), σ (.n (val% «aggregate_claims» "carried_row")), σ (.n (val% «aggregate_claims» "lam_sq")), σ (.n (val% «aggregate_claims» "fs_perm.nxt[0]"))] = _
         rw [hV.g103, hV.e0, hV.v98, hV.v8, hV.v9, hV.v94, hV.v81]
       · rw [(h3 rfl).1]; rfl
@@ -244,7 +238,7 @@ theorem aggregate_claims_completeAtT (fs : String → ℕ) (cert : String → V 
       clear * - hq
       tauto
     · simp only [ks, List.mem_cons, List.not_mem_nil, or_false] at hk
-      have hkL : k.Lin = Own ++ Lin := by rcases hk with rfl | rfl | rfl | rfl | rfl <;> rfl
+      have hkL : k.Lin = Own ++ Lin := by rcases hk with rfl | rfl | rfl | rfl <;> rfl
       rw [hkL] at hi
       obtain ⟨q, hq, hq1, hq2⟩ := hi
       rcases List.mem_append.mp hq with hq | hq
@@ -258,8 +252,8 @@ theorem aggregate_claims_completeAtT (fs : String → ℕ) (cert : String → V 
     have zl := agg_zip m b0
     simp only [aggLoadSet, List.mem_append, List.mem_map, List.mem_range, List.mem_cons,
       List.not_mem_nil, or_false] at hq'
-    rcases hq' with ((((((((⟨i, hi, rfl⟩ | (rfl | rfl)) | rfl) | ⟨k, hk, rfl⟩) | ⟨k, hk, rfl⟩) |
-      rfl) | rfl) | ⟨k, hk, rfl⟩) | ⟨k, hk, rfl⟩) | rfl
+    rcases hq' with (((((((((⟨i, hi, rfl⟩ | (rfl | rfl)) | rfl) | ⟨k, hk, rfl⟩) | ⟨k, hk, rfl⟩) |
+      rfl) | rfl) | ⟨k, hk, rfl⟩) | ⟨k, hk, rfl⟩) | rfl) | ⟨p, hp, rfl⟩
     · refine ⟨axAbs m b0 + i, ?_, Or.inl (hz (s := 13 * (m + 1)) (x := axAbs m b0)
         (by rw [zl]; simp) (by omega)
         (by omega))⟩
@@ -312,5 +306,8 @@ theorem aggregate_claims_completeAtT (fs : String → ℕ) (cert : String → V 
         (by omega))⟩
       show (σ (.n (val% «aggregate_claims» "bc_msgs"))).limb 0 * addressOfIndex 0 = _
       rw [hV.v6]; exact limb0_gen_pow_mul _ _
+    · obtain ⟨e, he, hpe⟩ := hV.gptrs p hp
+      obtain ⟨i, hi, hR⟩ := htR e he
+      exact ⟨i, by show (σ p).limb 0 * addressOfIndex 0 = _; rw [hpe]; exact hi, Or.inr (Or.inl hR)⟩
 end
 end LeanVM.Guest.B1.Main

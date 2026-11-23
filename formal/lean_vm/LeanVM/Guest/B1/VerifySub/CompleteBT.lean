@@ -206,14 +206,14 @@ theorem vs_kidsDepBPR {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed
     (hvt : ∀ B, CompleteAtDTBR fs cert κ "verify_tables" (S.H.linL B) (S.H.args B) (Returns (S.H.retsH B))
       (fun rd t ↦ (∀ op, Budget.WeighsLe coreProgram (W.ωv op) (vtWB W.toVsWords op) t) ∧ Pvt rd t)
       (Tables.vtMax fs W.vt))
-    (hos : ∀ pv, CompleteAtDTBR fs cert κ (Whir.openName S.μs) ((S.kids bs sqE).getD 14 noKid pv).Lin
-      ((S.kids bs sqE).getD 14 noKid pv).args ((S.kids bs sqE).getD 14 noKid pv).Out Pos
+    (hos : ∀ pv, CompleteAtDTBR fs cert κ (Whir.openName S.μs) ((S.kids bs sqE).getD 12 noKid pv).Lin
+      ((S.kids bs sqE).getD 12 noKid pv).args ((S.kids bs sqE).getD 12 noKid pv).Out Pos
       (osBosAt fs W.Bnd S.μs)) :
     KidsDepBPR fs cert κ (S.kids bs sqE) (vsBsAt W Bvk S.μs S.rate) (vsPsR W Pcp Pvt Pos) := by
   have hO := vs_kidsDepBP hbl S hκ hrf hcons W hvk open_stacked_completeAtB bs sqE
   refine kidsDepBPR_of _ _ _ (by rw [ChildSegs.kids_length]; rfl) (by rw [ChildSegs.kids_length]; rfl)
     fun j hj pv ↦ ?_
-  have hj16 : j < 16 := by simpa [ChildSegs.kids_length] using hj
+  have hj16 : j < 14 := by simpa [ChildSegs.kids_length] using hj
   have hB := kidsDepBP_getD hO j hj pv
   interval_cases j
   · exact hB
@@ -238,7 +238,7 @@ theorem vs_kidsDepBPR {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed
 /-- The honest valuation, its own buffers held. -/
 def vsQn {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs bytecode seed c) (sqE outE : ℕ)
     (rd : Reader) (σ : Val) : Prop :=
-  ∃ b outs, σ = vsσ rd (vsW (bases b (vsSizes)) outs) (vsArgs seed c sqE outE) ∧
+  ∃ b outs, σ = vsσ rd (vsW S.gw (bases b (vsSizes)) outs) (vsArgs seed c sqE outE) ∧
     Main.MemL rd (bufL b (vsSizes) S.ownW)
 
 /-- **`verify_sub` is complete on an honest child within its own bound, generic in what its `certify_placement`,
@@ -256,8 +256,8 @@ theorem verify_sub_completeBTG {bytecode : List K} (hbl : bytecode.length = 2 ^ 
     (hvt : ∀ B, CompleteAtDTBR fs cert κ "verify_tables" (S.H.linL B) (S.H.args B) (Returns (S.H.retsH B))
       (fun rd t ↦ (∀ op, Budget.WeighsLe coreProgram (W.ωv op) (vtWB W.toVsWords op) t) ∧ Pvt rd t)
       (Tables.vtMax fs W.vt))
-    (hos : ∀ bs pv, CompleteAtDTBR fs cert κ (Whir.openName S.μs) ((S.kids bs sqE).getD 14 noKid pv).Lin
-      ((S.kids bs sqE).getD 14 noKid pv).args ((S.kids bs sqE).getD 14 noKid pv).Out Pos
+    (hos : ∀ bs pv, CompleteAtDTBR fs cert κ (Whir.openName S.μs) ((S.kids bs sqE).getD 12 noKid pv).Lin
+      ((S.kids bs sqE).getD 12 noKid pv).args ((S.kids bs sqE).getD 12 noKid pv).Out Pos
       (osBosAt fs W.Bnd S.μs)) :
     CompleteAtDTBR fs cert κ "verify_sub" Lin (vsArgs seed c sqE outE) (Returns [])
       (fun rd t ↦ vsTsAny fs W Bvk S.μs S.rate t ∧ ∃ σ bufs ks, t = .node "verify_sub" σ bufs ks ∧

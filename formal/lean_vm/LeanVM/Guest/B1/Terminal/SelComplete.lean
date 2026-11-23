@@ -335,6 +335,10 @@ theorem cs_completeAtDTB (k : ℕ) (hk : 4 ≤ k) {κ : ℕ} (hκ : κ < 31) {o 
     have hu : Tables.cskU κ o j < 16 := Nat.mod_lt _ (by norm_num)
     have hjn : κ / 4 + j < 8 := by simp only [Tables.csN] at hj; omega
     obtain ⟨hw1, hw4⟩ := Tables.csW_bounds κ j
+    have hso : Tables.selEqOff (Tables.csW κ j - 1) ≤ 16 := by
+      unfold Tables.selEqOff
+      generalize Tables.csW κ j - 1 = w
+      rcases w with _ | _ | _ | _ | w <;> simp
     rcases hq with rfl | rfl
     · have e : σ (.n (Tables.csC κ j + 4)) = ofK (addressOfIndex ese) * gen ^ Tables.cskU κ o j := by
         show Tables.cskVal _ _ _ _ _ _ _ (Tables.csC κ j + 4) = _

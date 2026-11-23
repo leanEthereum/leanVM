@@ -2,10 +2,6 @@
 import re
 
 
-# a read at a selector among the points it can be (`sel_pts`) wants the solver's `lastres` form
-FEATURES = {}
-
-
 def count_arms(g):
     """The opening arms `open_stacked__L{m}`, `m` from `0` (`gen.G.os_names`)."""
     ns = [n for n in g.by if re.fullmatch(r'open_stacked__L\d+', n)]
@@ -18,7 +14,7 @@ def count_arms(g):
 OWN = []
 
 
-# ---- its rate values (`CoreMode.armExpB`, its family `CoreMode.Own.open_stacked.fams`)
+# ---- its rate values (`CoreMode.armExpB`, its family `CoreMode.Own.open_stacked.fams`, `expFam`)
 
 def _os(k):
     return re.fullmatch(r'open_stacked__L\d+', k) is not None
@@ -64,14 +60,6 @@ def arg_bound(k, x):
     return arm_exp(k, x) if _os(k) else None
 
 
-def fam(k, r):
-    """A residual `e(x) < n` of a rate value (`CoreMode.Own.open_stacked.fams`)."""
-    if not _os(k) or r[0] != 'lt' or r[1][0] != 'val' or r[2][0] != 'num' or not r[2][1] < 2 ** 62:
-        return False
-    b = arm_exp(k, r[1][1])
-    return b is not None and b <= r[2][1]
-
-
 def _sels(k):
     """The selectors of the top-level `match`es before any statement that may return, with their numbers of arms."""
     import infer as I
@@ -98,13 +86,22 @@ def sel_pts(k, r):
     return False
 
 
-_fam_exp = fam
-
-
 def fam(k, r):
-    return _fam_exp(k, r) or (_os(k) and sel_pts(k, r))
+    """`CoreMode.Own.open_stacked.fams`: `expFam` (`e(x) < n`, `x` pinned below `n`, `callcres.val_exp`) or `selPts`."""
+    import callcres
+    if not _os(k):
+        return False
+    if r[0] == 'lt' and r[1][0] == 'val' and r[2][0] == 'num' and r[2][1] < 2 ** 62:
+        return callcres.val_exp(I_core(k), r[1][1], 0, r[2][1])
+    return sel_pts(k, r)
 
 
+def I_core(k):
+    import infer
+    return infer.CORE[k][1]
+
+
+# a read at a selector among the points it can be (`sel_pts`) wants the solver's `lastres` form
 FEATURES = {k: [{'lastres'}] for k in __import__('fnrules').shapes('open_stacked')}
 
 
@@ -120,3 +117,29 @@ def fact(EM, base):
             return [self.use(('sel', x, 0, b[1]), ('lt', ('val', x), ('num', b[1])))]
         return None
     return f
+
+
+
+# ---- its heap certificate split at the rate selector (`CoreMode.heapOkC`, `HCert.arms`): each rate's arm checked with
+# its own `level_rate` constants and its own `level_positions` arm's guarantees, which `level_residual` reads
+
+def split(k):
+    """`(x, n)`: the rate selector (its first top-level `match`'s) and its arms."""
+    if not _os(k):
+        return None
+    s = _sels(k)
+    return s[0] if s else None
+
+
+_SIGS = {}
+
+
+def res_filter(k, r):
+    """The residuals the solver states at it are of a family (the pool's facts the solver may use there)."""
+    if not _os(k):
+        return True
+    import callcres
+    if not _SIGS:
+        import route
+        _SIGS.update(route.sigs())
+    return callcres.res_ok(k, [r], _SIGS)

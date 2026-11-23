@@ -113,19 +113,21 @@ theorem os_tup {κ : ℕ} {L : MemoryImage κ} (hκ : κ ≤ 32) {fp : K} {C : C
     have hd0 := okAt hall hpP
     rw [heq] at hd0
     obtain ⟨e', he', hx, hrel⟩ := hd0
-    obtain rfl := hsr e' (by omega) hx
     have hm0 := okAt hall (lt_trans hpM hpP)
     rw [heqM] at hm0
     obtain ⟨i, hi, hxi, harm⟩ := hm0
     have hS : S < ordG := by
       simp only [lpCovers, Bool.and_eq_true, Nat.blt_eq] at hcov
-      exact hcov.1.1.2
-    obtain rfl := hsr i (by omega) hxi
+      exact hcov.1.2
+    have hre := hsr e' (by omega) hx
+    subst hre
+    have hri := hsr i (by omega) hxi
+    subst hri
     rw [List.getD_eq_getElem _ _ hi] at hsq
     have hSg : (args.map (valG L fp C)).getD 9 0 = Protocol.Verifier.gen ^ S := by
       rw [getD_mapV (by omega)]
       exact sqArm_val hS hsq harm
-    have hname : names[e']'he' = e.1 := by rw [he1, List.getD_eq_getElem _ _ he']
+    have hname : names[i]'he' = e.1 := by rw [he1, List.getD_eq_getElem _ _ he']
     rw [hname] at hrel
     have hwt' : WinTabs L.read ((args.map (valG L fp C)).getD 8 0) := by
       rw [getD_mapV (by omega), h8]; exact hwt

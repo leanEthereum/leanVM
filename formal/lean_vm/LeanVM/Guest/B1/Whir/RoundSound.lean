@@ -36,13 +36,32 @@ def GcOk (C : CallRel) (rd : Reader) (σ : Val) : Prop :=
   ∀ (b o : ℕ) (w tabs : V), b ∈ grindBitsDeployed → WinTabs rd (σ tabs) →
     AllOk C rd σ (gcInlineT b o w tabs) → ((σ w).limb 0).lane.toNat % 2 ^ b = 0
 
+theorem renameList_isAtom (r : V → V) :
+    ∀ (ss : List Stmt), ss.all Stmt.isAtom = true → (Stmt.renameList r ss).all Stmt.isAtom = true
+  | [], _ => rfl
+  | s :: ss, h => by
+    simp only [List.all_cons, Bool.and_eq_true] at h
+    simp only [Stmt.renameList, List.all_cons, renameList_isAtom r ss h.2, Bool.and_true]
+    cases s <;> simp_all [Stmt.rename, Stmt.isAtom]
+
+theorem renameArms_isAtom (r : V → V) : ∀ (arms : List (List Stmt)),
+    (arms.all fun a ↦ a.all Stmt.isAtom) = true →
+      ((Stmt.renameArms r arms).all fun a ↦ a.all Stmt.isAtom) = true
+  | [], _ => rfl
+  | a :: as, h => by
+    simp only [List.all_cons, Bool.and_eq_true] at h
+    simp only [Stmt.renameArms, List.all_cons, renameList_isAtom r a h.1, renameArms_isAtom r as h.2,
+      Bool.and_self]
+
 theorem renameList_flat (r : V → V) :
     ∀ (ss : List Stmt), ss.all Stmt.flat = true → (Stmt.renameList r ss).all Stmt.flat = true
   | [], _ => rfl
   | s :: ss, h => by
     simp only [List.all_cons, Bool.and_eq_true] at h
     simp only [Stmt.renameList, List.all_cons, renameList_flat r ss h.2, Bool.and_true]
-    cases s <;> simp_all [Stmt.rename, Stmt.flat]
+    cases s with
+    | match_ x arms => exact renameArms_isAtom r arms h.1
+    | _ => simp_all [Stmt.rename, Stmt.flat]
 
 theorem gcPre_flat (b : ℕ) : (gcPre b).all Stmt.flat = true := by
   simp only [gcPre, gcHead, gcTailPre, List.all_append, List.all_cons, List.all_nil, Stmt.flat,

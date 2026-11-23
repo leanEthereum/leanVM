@@ -177,7 +177,7 @@ theorem os_sq_loopE (fs : String → ℕ) (cert : String → V → ℕ) (κ : �
         if c2.taken then RelAtInPE coreProgram fs cert rd (ExactAt coreProgram rd) (RegionL Lin)
           (RegionL (sqRuns fs cert lv L (n - 1) fp (fun t ↦ w (1 + t)) 0)) fp
           (sqTot fs lv L (n - 1) 0) c2.f (c2.args.map σ) (c2.rets.map σ) []
-        else sqTot fs lv L (n - 1) 0 = fs c2.f := by
+        else sqTot fs lv L (n - 1) 0 = fs (Memory.tailKey c2.f) := by
   have hw : (fun t ↦ (⟨cap (1 + t), []⟩ : Fs).squeeze.1) = fun t ↦ w (1 + t) :=
     funext fun t ↦ hcw (1 + t) (by omega)
   by_cases h2 : 2 ≤ n
@@ -242,7 +242,7 @@ theorem os_sq_loop (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ
         if c2.taken then RelAtIn coreProgram fs cert rd (RegionL Lin)
           (RegionL (sqRuns fs cert lv L (n - 1) fp (fun t ↦ w (1 + t)) 0)) fp
           (sqTot fs lv L (n - 1) 0) c2.f (c2.args.map σ) (c2.rets.map σ)
-        else sqTot fs lv L (n - 1) 0 = fs c2.f := by
+        else sqTot fs lv L (n - 1) 0 = fs (Memory.tailKey c2.f) := by
   obtain ⟨L1, hW, hD, h⟩ := os_sq_loopE fs cert κ hfind hp hb hlp hit hdec hn1 hn hcl hcw fp hmem hdmem hrow hreg σ c2
     h2f h2t h2a h2r
   refine ⟨L1, hW, hD, fun rd hl hm ↦ ?_⟩

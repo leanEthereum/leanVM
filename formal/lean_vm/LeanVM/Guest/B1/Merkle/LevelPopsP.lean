@@ -51,7 +51,7 @@ theorem oqQE_eq_query (s : Oq) {first : Bool} (hfirst : s.base = 1 ↔ first = t
   unfold oqQE
   rw [QD.rowVals_eq (oqQD s 0 true 0 0 0 [] [] (o.leafIndex, o.leaf, o.path.take s.pd)) hfirst hrow,
     WD.wpPops_eq ((oqQD s 0 true 0 0 0 [] [] (o.leafIndex, o.leaf, o.path.take s.pd)).wd 0) (D := s.pd + s.cd)
-      (path := o.path) rfl (by simp only [QD.wd, oqQD]; omega) hl]
+      (path := o.path) rfl hl]
   rfl
 
 theorem flatMap_range_length {α β : Type} (g : α → List β) : ∀ (l : List α) (f : ℕ → List β),

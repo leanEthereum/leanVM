@@ -78,12 +78,12 @@ theorem PlacedF.toDTB {k : ℕ} {f : String} {Lin : Layout} {args rets : List E}
 /-- **The rest of a loop**: the next iteration's `PlacedLF`, or after the last a phantom of one frame. -/
 theorem placedLF_tail {k : ℕ} {f g : String} {Lin : Layout} {args : List E} {T : Tree → Prop} {last : Prop}
     [Decidable last] (h : ¬ last → PlacedLF fs cert k f Lin args T) :
-    ∃ Bt, ∀ fp c, fp + Bt ≤ c → ∃ nt, (last → Bt = fs g ∧ nt = 0) ∧ ∀ rd, LowDef k rd → MemL rd Lin →
+    ∃ Bt, ∀ fp c, fp + Bt ≤ c → ∃ nt, (last → Bt = fs (tailKey g) ∧ nt = 0) ∧ ∀ rd, LowDef k rd → MemL rd Lin →
       if decide (¬ last) = true then
         RelAtInCT coreProgram fs cert rd (RegionL Lin) (RegionL []) fp c Bt nt f args [] T
-      else Bt = fs g ∧ nt = 0 := by
+      else Bt = fs (tailKey g) ∧ nt = 0 := by
   by_cases hl : last
-  · exact ⟨fs g, fun _ _ _ => ⟨0, fun _ => ⟨rfl, rfl⟩, fun _ _ _ => by simp [hl]⟩⟩
+  · exact ⟨fs (tailKey g), fun _ _ _ => ⟨0, fun _ => ⟨rfl, rfl⟩, fun _ _ _ => by simp [hl]⟩⟩
   · obtain ⟨B, hB⟩ := h hl
     refine ⟨B, fun fp c hc => ?_⟩
     obtain ⟨nt, hR⟩ := hB fp c hc

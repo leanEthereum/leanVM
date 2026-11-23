@@ -111,10 +111,10 @@ theorem lam_chain {lam : E} {W : ℕ → E}
     simp only [Atom.Holds] at l0 m1 a2 m3
     have hv := loadHolds_unique l0 (hW j (by omega))
     have hT' : σ (.n (vsTg (j + 1))) = T + lam ^ (j + 1) * W j := by
-      rw [show vsTg (j + 1) = 1344 + 4 * j by simp only [vsTg, Nat.add_one_ne_zero, ↓reduceIte]; omega,
+      rw [show vsTg (j + 1) = 1448 + 4 * j by simp only [vsTg, Nat.add_one_ne_zero, ↓reduceIte]; omega,
         a2, m1, hT, hP, hv]
     have hP' : σ (.n (vsPw (j + 1))) = lam ^ (j + 1 + 1) := by
-      rw [show vsPw (j + 1) = 1345 + 4 * j by simp only [vsPw, Nat.add_one_ne_zero, ↓reduceIte]; omega, m3, hP, hl, ← pow_succ]
+      rw [show vsPw (j + 1) = 1449 + 4 * j by simp only [vsPw, Nat.add_one_ne_zero, ↓reduceIte]; omega, m3, hP, hl, ← pow_succ]
     obtain ⟨e1, e2, hn⟩ := lam_chain hW hl k (j + 1) (by omega) hT' hP' h
     refine ⟨?_, ?_, hn⟩
     · rw [show j + (k + 1) = j + 1 + k by omega, e1, List.range'_succ, List.map_cons, List.sum_cons,
@@ -147,8 +147,8 @@ theorem vsLamT_holds (h8 : σ (.n (val% «verify_sub» "s3#0[1]")) = 0) (h9 : σ
   rw [List.range_eq_range'] at h
   obtain ⟨e1, e2, h⟩ := lam_chain hW rfl 134 0 (T := σ (.n (val% «verify_sub» "target_in"))) (by omega) rfl
     (by simp [vsPw]) h
-  rw [show vsTg (0 + 134) = 1876 from rfl] at e1
-  rw [show vsPw (0 + 134) = 1877 from rfl] at e2
+  rw [show vsTg (0 + 134) = 1980 from rfl] at e1
+  rw [show vsPw (0 + 134) = 1981 from rfl] at e2
   obtain ⟨m12, a13, m14, l15, m16, a17, hn⟩ := h
   simp only [Atom.Holds] at m12 a13 m14 l15 m16 a17
   have h15 := loadHolds_unique l15 (hv 0 (by simp))

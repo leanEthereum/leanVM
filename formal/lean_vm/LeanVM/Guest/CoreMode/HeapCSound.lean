@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.CoreMode.HeapCStmt
 public import LeanVM.Guest.CoreMode.Fam.LoopTree
+public import LeanVM.Guest.CoreMode.WalkS
+public import LeanVM.Guest.Memory.Tree
 
 /-!
 # The heap check with calls and loops is sound
@@ -1062,15 +1064,15 @@ theorem walk_bodyC (σ : Val) (ds : List ℕ) (ss : List Stmt) : walk σ (bodyC 
   · exact walk_dupB σ ds ss
   · rfl
 
-theorem heapOkC_soundP {pows : PowTree} (hp : pows.Ok) {sigOf : String → HSig} {f : Fn} {H : HCert}
-    (hok : heapOkC pows sigOf f H = true) (hself : sigOf f.name = H.sig) {σ : Val} {rd : Reader}
+theorem heapOkC1_soundP {pows : PowTree} (hp : pows.Ok) {sigOf : String → HSig} {f : Fn} {H : HCert}
+    (hok : heapOkC1 pows sigOf f H = true) (hself : sigOf f.name = H.sig) {σ : Val} {rd : Reader}
     {es : List Ev} {vs : List V} (hw : walk σ f.body = .ret es vs) (hh : ∀ e ∈ es, e.Holds rd σ)
     (hE : EntryF H (f.params.map σ)) (hR : ResF H σ) (hD : DerOk H rd σ) (hG : GwOk H.sig rd σ) :
     ReadsOkP sigOf H rd σ (f.params.map σ) es ∧ ((∀ e ∈ es, EvM sigOf rd σ e) →
       (PostOkC sigOf H rd σ (f.params.map σ) es vs ∧ (H.fas = [] → PostOkW sigOf H rd σ (f.params.map σ) es vs)) ∧
       RetMOk H.sig (f.params.map σ) (vs.map σ) ∧ RetVOk rd H.sig (f.params.map σ ++ vs.map σ) ∧
       RetEqOk H.sig (f.params.map σ ++ vs.map σ)) := by
-  unfold heapOkC at hok
+  unfold heapOkC1 at hok
   simp only [Bool.and_eq_true] at hok
   obtain ⟨⟨⟨⟨⟨hpar, hpov⟩, hto⟩, -⟩, hfa⟩, hc⟩ := hok
   simp only [Trie.seq_eq] at hc
@@ -1219,6 +1221,288 @@ theorem heapOkC_soundP {pows : PowTree} (hp : pows.Ok) {sigOf : String → HSig}
         · cases hc
       · cases hc
     · cases hc
+
+/-! ## A certificate split at a selector -/
+
+/-- An outcome agrees with another, unless that one is stuck. -/
+def OutAg (o' o : Out) : Prop := o' = o ∨ o = .stuck
+
+theorem outAg_refl (o : Out) : OutAg o o := Or.inl rfl
+
+theorem outAg_pre {o' o : Out} (es : List Ev) (h : OutAg o' o) : OutAg (o'.pre es) (o.pre es) := by
+  rcases h with rfl | rfl
+  · exact Or.inl rfl
+  · exact Or.inr rfl
+
+theorem outAg_seq {a' a b' b : Out} (ha : OutAg a' a) (hb : OutAg b' b) : OutAg (a'.seq b') (a.seq b) := by
+  rcases ha with rfl | rfl
+  · cases a' with
+    | fall es => exact outAg_pre es hb
+    | ret es vs => exact Or.inl rfl
+    | stuck => exact Or.inl rfl
+  · exact Or.inr rfl
+
+theorem walk_singleC (σ : Val) (s : Stmt) : walk σ [s] = walk1 σ s := by
+  rw [walk, walk]; exact out_seq_nilC _
+
+theorem selIs_eq {x : ℕ} {v : V} (h : selIs x v = true) : v = V.n x := by
+  unfold selIs at h
+  split at h
+  · rename_i k hk
+    rw [vnum_eq hk, Nat.eq_of_beq_eq_true h]
+  · cases h
+
+theorem selA_length (x r : ℕ) : ∀ arms : List (List Stmt), (selA x r arms).length = arms.length
+  | [] => rfl
+  | _ :: as => by
+    show (_ :: selA x r as).length = _
+    rw [List.length_cons, List.length_cons, selA_length x r as]
+
+theorem selA_getD (x r : ℕ) : ∀ (arms : List (List Stmt)) (i : ℕ), (selA x r arms).getD i [] = selL x r (arms.getD i [])
+  | [], _ => rfl
+  | _ :: _, 0 => rfl
+  | _ :: as, i + 1 => selA_getD x r as i
+
+section Split
+
+variable {σ : Val}
+
+/-- The first arm from `j` whose `g`-power the selector's word is: none, or arm `r`'s, `r` the only index among
+them it can be. -/
+theorem walkArms_sel {x r : ℕ} : ∀ (arms : List (List Stmt)) (j : ℕ),
+    (∀ i, j ≤ i → i < j + arms.length → σ (V.n x) = ofK (addressOfIndex i) → i = r) →
+    walkArms σ (V.n x) j arms = .stuck ∨ (j ≤ r ∧ walkArms σ (V.n x) j arms = walk σ (arms.getD (r - j) []))
+  | [], j, _ => Or.inl (by rw [walkArms])
+  | a :: as, j, hu => by
+    rw [walkArms]
+    split_ifs with h
+    · have := hu j le_rfl (by simp) h
+      subst this
+      right; simp
+    · rcases walkArms_sel as (j + 1) (fun i h1 h2 h3 ↦ hu i (by omega) (by simp at h2 ⊢; omega) h3) with
+        h' | ⟨hj, h'⟩
+      · exact Or.inl h'
+      · right
+        refine ⟨by omega, ?_⟩
+        rw [h', show r - j = (r - (j + 1)) + 1 by omega]
+        rfl
+
+/-- The same for a fused dispatch: none, or the call of callee `r`. -/
+theorem pick_sel {x r : ℕ} {args rets : List V} : ∀ (fs : List String) (j : ℕ),
+    (∀ i, j ≤ i → i < j + fs.length → σ (V.n x) = ofK (addressOfIndex i) → i = r) →
+    pick σ (V.n x) args rets j fs = .stuck ∨
+      (j ≤ r ∧ pick σ (V.n x) args rets j fs = .fall [.call (fs.getD (r - j) "") args rets])
+  | [], j, _ => Or.inl (by rw [pick])
+  | f :: fs, j, hu => by
+    rw [pick]
+    split_ifs with h
+    · have := hu j le_rfl (by simp) h
+      subst this
+      right; simp
+    · rcases pick_sel fs (j + 1) (fun i h1 h2 h3 ↦ hu i (by omega) (by simp at h2 ⊢; omega) h3) with
+        h' | ⟨hj, h'⟩
+      · exact Or.inl h'
+      · right
+        refine ⟨by omega, ?_⟩
+        rw [h', show r - j = (r - (j + 1)) + 1 by omega]
+        rfl
+
+mutual
+/-- **A statement at arm `r` walks as the statement**, unless that is stuck: `r` the only index below `n` the
+selector's word can be the `g`-power of, every `match` and `dispatch` on it of at most `n` arms. -/
+theorem walk1_sel {x r n : ℕ} (hu : ∀ i < n, σ (V.n x) = ofK (addressOfIndex i) → i = r) :
+    ∀ s : Stmt, armLeS x n s = true → OutAg (walk σ (selS x r s)) (walk1 σ s)
+  | .atom a, _ => by
+    rw [show selS x r (.atom a) = [.atom a] from rfl, walk_singleC]; exact outAg_refl _
+  | .ite c z m, h => by
+    have h' : (armLeL x n z && armLeL x n m) = true := h
+    simp only [Bool.and_eq_true] at h'
+    rw [show selS x r (.ite c z m) = [.ite c (selL x r z) (selL x r m)] from rfl, walk_singleC]
+    simp only [walk1]
+    split_ifs
+    · exact outAg_pre _ (walk_sel hu z h'.1)
+    · exact outAg_pre _ (walk_sel hu m h'.2)
+  | .match_ y arms, h => by
+    have h' : ((!selIs x y || Nat.ble arms.length n) && armLeA x n arms) = true := h
+    simp only [Bool.and_eq_true] at h'
+    obtain ⟨hl, ha⟩ := h'
+    have IH := walkA_sel hu arms ha
+    show OutAg (walk σ (bif selIs x y && Nat.blt r (selA x r arms).length then (selA x r arms).getD r []
+      else [.match_ y (selA x r arms)])) (walkArms σ y 0 arms)
+    rw [selA_length]
+    cases hs : selIs x y
+    · simp only [Bool.false_and, Bool.cond_false]
+      rw [walk_singleC]; exact IH.1 y 0
+    · cases hr : Nat.blt r arms.length
+      · simp only [Bool.and_false, Bool.cond_false]
+        rw [walk_singleC]; exact IH.1 y 0
+      · simp only [Bool.and_self, Bool.cond_true]
+        have hy := selIs_eq hs
+        subst hy
+        simp only [hs, Bool.not_true, Bool.false_or, Nat.ble_eq] at hl
+        rcases walkArms_sel (σ := σ) (r := r) arms 0 (fun i _ h2 h3 ↦ hu i (by omega) h3) with h0 | ⟨-, h0⟩
+        · exact Or.inr h0
+        · rw [h0, selA_getD, Nat.sub_zero]; exact IH.2 r
+  | .call f args rets, _ => by
+    rw [show selS x r (.call f args rets) = [.call f args rets] from rfl, walk_singleC]; exact outAg_refl _
+  | .callIf c f args, _ => by
+    rw [show selS x r (.callIf c f args) = [.callIf c f args] from rfl, walk_singleC]; exact outAg_refl _
+  | .dispatch y fs args rets, h => by
+    have hl : (!selIs x y || Nat.ble fs.length n) = true := h
+    show OutAg (walk σ (bif selIs x y && Nat.blt r fs.length then [.call (fs.getD r "") args rets]
+      else [.dispatch y fs args rets])) (pick σ y args rets 0 fs)
+    cases hs : selIs x y
+    · simp only [Bool.false_and, Bool.cond_false]
+      rw [walk_singleC]; exact outAg_refl _
+    · cases hr : Nat.blt r fs.length
+      · simp only [Bool.and_false, Bool.cond_false]
+        rw [walk_singleC]; exact outAg_refl _
+      · simp only [Bool.and_self, Bool.cond_true]
+        have hy := selIs_eq hs
+        subst hy
+        simp only [hs, Bool.not_true, Bool.false_or, Nat.ble_eq] at hl
+        rw [walk_singleC]
+        rcases pick_sel (σ := σ) (r := r) (args := args) (rets := rets) fs 0
+          (fun i _ h2 h3 ↦ hu i (by omega) h3) with h0 | ⟨-, h0⟩
+        · exact Or.inr h0
+        · rw [h0, Nat.sub_zero]; exact Or.inl rfl
+  | .ret vs, _ => by
+    rw [show selS x r (.ret vs) = [.ret vs] from rfl, walk_singleC]; exact outAg_refl _
+
+/-- **A block at arm `r` walks as the block**, unless that is stuck (`walk1_sel`). -/
+theorem walk_sel {x r n : ℕ} (hu : ∀ i < n, σ (V.n x) = ofK (addressOfIndex i) → i = r) :
+    ∀ ss : List Stmt, armLeL x n ss = true → OutAg (walk σ (selL x r ss)) (walk σ ss)
+  | [], _ => outAg_refl _
+  | s :: ss, h => by
+    have h' : (armLeS x n s && armLeL x n ss) = true := h
+    simp only [Bool.and_eq_true] at h'
+    rw [show selL x r (s :: ss) = selS x r s ++ selL x r ss from rfl, walk_appendC, walk]
+    exact outAg_seq (walk1_sel hu s h'.1) (walk_sel hu ss h'.2)
+
+/-- Arms at arm `r` (`walk1_sel`): their walks from any index, and each arm's. -/
+theorem walkA_sel {x r n : ℕ} (hu : ∀ i < n, σ (V.n x) = ofK (addressOfIndex i) → i = r) :
+    ∀ arms : List (List Stmt), armLeA x n arms = true →
+      (∀ y j, OutAg (walkArms σ y j (selA x r arms)) (walkArms σ y j arms)) ∧
+        ∀ i, OutAg (walk σ (selL x r (arms.getD i []))) (walk σ (arms.getD i []))
+  | [], _ => ⟨fun y j ↦ outAg_refl _, fun i ↦ outAg_refl _⟩
+  | a :: as, h => by
+    have h' : (armLeL x n a && armLeA x n as) = true := h
+    simp only [Bool.and_eq_true] at h'
+    have IHa := walk_sel hu a h'.1
+    have IHs := walkA_sel hu as h'.2
+    refine ⟨fun y j ↦ ?_, fun i ↦ ?_⟩
+    · rw [show selA x r (a :: as) = selL x r a :: selA x r as from rfl, walkArms, walkArms]
+      split_ifs
+      · exact IHa
+      · exact IHs.1 y (j + 1)
+    · cases i with
+      | zero => exact IHa
+      | succ i => exact IHs.2 i
+end
+
+/-- **An arm for every valuation**: the only index below `n` the selector's word is the `g`-power of, or `0` if
+none is. -/
+theorem exists_sel (x : ℕ) {n : ℕ} (h0 : 0 < n) (hn : n < capE) :
+    ∃ r < n, ∀ i < n, σ (V.n x) = ofK (addressOfIndex i) → i = r := by
+  by_cases h : ∃ i < n, σ (V.n x) = ofK (addressOfIndex i)
+  · obtain ⟨r, hr, hx⟩ := h
+    refine ⟨r, hr, fun i hi hxi ↦ ?_⟩
+    have hc : capE < 2 ^ 64 - 1 := by unfold capE; norm_num
+    have he := congrArg logG (hxi.symm.trans hx)
+    rwa [logG_spec (lt_trans (lt_trans hi hn) hc), logG_spec (lt_trans (lt_trans hr hn) hc)] at he
+  · exact ⟨0, h0, fun i hi hxi ↦ absurd ⟨i, hi, hxi⟩ h⟩
+
+theorem readsArms_get {R : Trie (List (ℕ × ℕ × Wit))} {f : Fn} {H : HCert} :
+    ∀ (arms : List HArm) (r0 i : ℕ) {a : HArm}, readsArms R f H r0 arms = true → arms[i]? = some a →
+      readsIn R (H.arm a).readT (selL H.sel (r0 + i) f.body) = true
+  | [], _, _, _, _, h => by simp at h
+  | b :: as, r0, 0, a, h, ha => by
+    simp only [List.getElem?_cons_zero, Option.some.injEq] at ha
+    subst ha
+    simp only [readsArms, Bool.and_eq_true, Trie.seq_eq] at h
+    simpa using h.1
+  | b :: as, r0, i + 1, a, h, ha => by
+    simp only [List.getElem?_cons_succ] at ha
+    simp only [readsArms, Bool.and_eq_true] at h
+    have := readsArms_get as (r0 + 1) i h.2 ha
+    rwa [show r0 + 1 + i = r0 + (i + 1) by omega] at this
+
+theorem armsOk_get {pows : PowTree} {sigOf : String → HSig} {f : Fn} {H : HCert} :
+    ∀ (arms : List HArm) (r0 i : ℕ) {a : HArm}, armsOk pows sigOf f H r0 arms = true → arms[i]? = some a →
+      heapOkC1 pows sigOf (selF H.sel (r0 + i) f) (H.arm a) = true
+  | [], _, _, _, _, h => by simp at h
+  | b :: as, r0, 0, a, h, ha => by
+    simp only [List.getElem?_cons_zero, Option.some.injEq] at ha
+    subst ha
+    simp only [armsOk, Bool.and_eq_true] at h
+    simpa using h.1
+  | b :: as, r0, i + 1, a, h, ha => by
+    simp only [List.getElem?_cons_succ] at ha
+    simp only [armsOk, Bool.and_eq_true] at h
+    have := armsOk_get as (r0 + 1) i h.2 ha
+    rwa [show r0 + 1 + i = r0 + (i + 1) by omega] at this
+
+/-- **A read for the certificate is one for the arm**, where the arm's reads cover the certificate's. -/
+theorem reads_arm {H H' : HCert} {b : Atom} {x : K}
+    (hl : ∀ d p off, b = .load d p off → (H.readWit d p off).isSome = true → (H'.readWit d p off).isSome = true)
+    (h : Reads H σ b x) : Reads H' σ b x := by
+  cases b
+  case load d p off => exact ⟨hl d p off rfl h.1, h.2⟩
+  case hint hn =>
+    cases hn
+    case log2Ceil bits nbits fl dst => cases bits <;> exact h
+    all_goals exact h
+  all_goals exact h
+
+/-- **The needs of an arm's events are the certificate's**, where the arm's reads cover the certificate's on its
+events. -/
+theorem readsOkP_arm {sigOf : String → HSig} {H : HCert} {a : HArm} {rd : Reader} {ws : List E} {es : List Ev}
+    (h : ReadsOkP sigOf (H.arm a) rd σ ws es)
+    (hl : ∀ d p off, Ev.atom (.load d p off) ∈ es → (H.readWit d p off).isSome = true →
+      ((H.arm a).readWit d p off).isSome = true) :
+    ReadsOkP sigOf H rd σ ws es := by
+  intro es1 e es2 he hm
+  have h1 := h es1 e es2 he hm
+  cases e with
+  | atom b =>
+    intro x hx
+    exact h1 x (reads_arm (fun d p off hb hs ↦ hl d p off (by rw [he, ← hb]; simp) hs) hx)
+  | inK c => exact h1
+  | call g args rets => exact h1
+  | skip g args => exact h1
+
+end Split
+
+
+/-- **The heap check with calls and loops is sound, call by call** (`heapOkC1_soundP`), its certificate split at a
+selector or not: on a split, the arm the selector's word picks walks as the body (`walk_sel`), and its reads cover the
+certificate's. -/
+theorem heapOkC_soundP {pows : PowTree} (hp : pows.Ok) {sigOf : String → HSig} {f : Fn} {H : HCert}
+    (hok : heapOkC pows sigOf f H = true) (hself : sigOf f.name = H.sig) {σ : Val} {rd : Reader}
+    {es : List Ev} {vs : List V} (hw : walk σ f.body = .ret es vs) (hh : ∀ e ∈ es, e.Holds rd σ)
+    (hE : EntryF H (f.params.map σ)) (hR : ResF H σ) (hD : DerOk H rd σ) (hG : GwOk H.sig rd σ) :
+    ReadsOkP sigOf H rd σ (f.params.map σ) es ∧ ((∀ e ∈ es, EvM sigOf rd σ e) →
+      (PostOkC sigOf H rd σ (f.params.map σ) es vs ∧ (H.fas = [] → PostOkW sigOf H rd σ (f.params.map σ) es vs)) ∧
+      RetMOk H.sig (f.params.map σ) (vs.map σ) ∧ RetVOk rd H.sig (f.params.map σ ++ vs.map σ) ∧
+      RetEqOk H.sig (f.params.map σ ++ vs.map σ)) := by
+  rcases heapOkC_cases hok with ⟨-, h1⟩ | ⟨hs, ha⟩
+  · exact heapOkC1_soundP hp h1 hself hw hh hE hR hD hG
+  obtain ⟨-, -, -, -, hn0, hncap, hle, hrd⟩ := splitOk_spec hs
+  obtain ⟨r, hr, hu⟩ := exists_sel (σ := σ) H.sel hn0 hncap
+  have hw' : walk σ (selL H.sel r f.body) = .ret es vs := by
+    rcases walk_sel hu f.body hle with h | h
+    · rw [h, hw]
+    · rw [hw] at h; cases h
+  obtain ⟨a, haget⟩ : ∃ a, H.arms[r]? = some a := ⟨H.arms[r], List.getElem?_eq_getElem hr⟩
+  have hok1 := armsOk_get H.arms 0 r ha haget
+  have hin := readsArms_get H.arms 0 r hrd haget
+  rw [Nat.zero_add] at hok1 hin
+  have h := heapOkC1_soundP (f := selF H.sel r f) (H := H.arm a) hp hok1 hself hw' hh hE hR hD hG
+  refine ⟨readsOkP_arm h.1 fun d p off hm hs ↦ ?_, h.2⟩
+  have hst := Bridge.walk_atomS (σ := σ) (selL H.sel r f.body) (by rw [hw']; exact hm)
+  have hall := List.all_eq_true.mp hin _ hst
+  simp only [HCert.readWit] at hs ⊢
+  simpa [hs] using hall
 
 /-- **The heap check with calls and loops is sound**: on a path of a function passing `heapOkC` that
 returns, its events holding and each entered call's callee guarantees' runs having their exponents,

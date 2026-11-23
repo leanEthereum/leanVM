@@ -48,9 +48,9 @@ def busGrindNames : List String :=
   ["bus_grind_check__L0", "bus_grind_check__L1", "bus_grind_check__L2", "bus_grind_check__L3", "bus_grind_check__L4", "bus_grind_check__L5", "bus_grind_check__L6", "bus_grind_check__L7", "bus_grind_check__L8", "bus_grind_check__L9", "bus_grind_check__L10", "bus_grind_check__L11", "bus_grind_check__L12", "bus_grind_check__L13"]
 
 /-- **`verify_sub`'s statically bounded callees** but `g_power_of_word`, `log2_ceil_in_the_exponent`
-and `certify_placement`: the grind checks, the opening message and the two dispatches' arms. -/
+and `certify_placement`: the opening message and the two dispatches' arms. -/
 def vsStaticS : List String :=
-  ["grind_check__L15", "opening_message__L1_L1", "grind_check__L13"] ++ squeezeNames ++ busGrindNames
+  ["opening_message__L1_L1"] ++ squeezeNames ++ busGrindNames
 
 /-- A dispatch's bound: the largest of its arms'. -/
 def armMax (K : String → ℕ) (names : List String) : ℕ := lmax (names.map K)

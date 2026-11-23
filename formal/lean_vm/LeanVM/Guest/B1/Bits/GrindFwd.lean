@@ -364,6 +364,27 @@ theorem gcInline_ptrs_of_good {b o : ℕ} (hb : b ∈ grindBitsDeployed) {w tabs
     rw [this]
     rfl
 
+/-- The inlined `grind_check`'s table reads' pointers: the head's, then each step's. -/
+def gcPtrs (b o : ℕ) : List V :=
+  .n (o + gcW b + 5) :: (List.range (gcW b)).map fun i => .n (o + gcW b + 9 * (i + 1) + 4)
+
+/-- **`grind_check` inlined, evaluated: each of `gcPtrs` is a table word** `tabs·g^e`, `e < 2^11`. -/
+theorem gcPtrs_of_good {b o : ℕ} (hb : b ∈ grindBitsDeployed) {w tabs : V}
+    (hwo : w.idx < o) (hto : tabs.idx < o)
+    (hg : ∀ s ∈ gcInlineT b o w tabs, GoodS rd S wo σ s)
+    (hS : ∀ a ∈ S, loadInto o (o + (gcLen b - 2)) a = false)
+    (hrc : ∀ v ≤ 11, ∀ e < 2 ^ v, ∃ y t1 t2 : E, LoadHolds rd (gen ^ e) 0 t1 ∧
+      wBound v = gen ^ e * y ∧ LoadHolds rd y 0 t2)
+    (ht : WinTabs rd (σ tabs))
+    (hwin : ∀ j ≤ gcW b, wo (o + j) = gcWin b (σ w) j) :
+    ∀ p ∈ gcPtrs b o, ∃ e < 2 ^ 11, σ p = σ tabs * gen ^ e := by
+  obtain ⟨g0, gI⟩ := gcInline_ptrs_of_good hb hwo hto hg hS hrc ht hwin
+  intro p hp
+  simp only [gcPtrs, List.mem_cons, List.mem_map, List.mem_range] at hp
+  rcases hp with rfl | ⟨i, hi, rfl⟩
+  · exact g0
+  · exact gI i hi
+
 /-- **`grind_check` inlined, evaluated, holds**: on the caller's evaluated valuation, the word
 passing the proof of work. -/
 theorem gcInline_holds_of_good {C : CallRel} {b o : ℕ} (hb : b ∈ grindBitsDeployed) {w tabs : V}

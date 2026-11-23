@@ -113,7 +113,7 @@ theorem vtWVals_split :
   simp only [vtWVals, List.append_assoc]
 
 theorem ownB_map_length : ((H.ownB B).map (fun b ↦ ofK (addressOfIndex b))).length = 122 := by
-  simp [VtHonest.ownB, VtHonest.sizes, LeanVM.Guest.Memory.length_bases]
+  simp [VtHonest.ownB, VtHonest.sizes, VtHonest.shSizes, LeanVM.Guest.Memory.length_bases]
 
 set_option maxRecDepth 100000 in
 theorem vtWKeys_alloc : ∀ j < 122, vtWKeys.idxOf (vtAllocVars.getD j 0) = j := by decide +kernel
@@ -123,7 +123,7 @@ theorem vtW_alloc {j : ℕ} (hj : j < 122) :
   rw [vtW, vtWKeys_alloc j hj, vtWVals_split, List.getD_append _ _ _ _
     (by rw [ownB_map_length]; exact hj), List.getD_eq_getElem _ _ (by rw [ownB_map_length]; exact hj),
     List.getD_eq_getElem _ _ (by
-      simp [VtHonest.ownB, VtHonest.sizes, LeanVM.Guest.Memory.length_bases]; omega)]
+      simp [VtHonest.ownB, VtHonest.sizes, VtHonest.shSizes, LeanVM.Guest.Memory.length_bases]; omega)]
   simp
 
 theorem getD_append_len {α : Type} {A rest : List α} {n k : ℕ} {d : α} (h : A.length = n) :

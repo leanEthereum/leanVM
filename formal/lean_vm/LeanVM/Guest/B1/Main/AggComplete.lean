@@ -12,6 +12,7 @@ public import LeanVM.Guest.B1.Main.AggMainCChk
 public import LeanVM.Guest.B1.Main.AggL25Complete
 public import LeanVM.Guest.B1.Main.AggL26Complete
 public import LeanVM.Guest.B1.Sumcheck.Batch
+public import LeanVM.Guest.B1.Bits.GrindPlaced
 public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.B1.Common.Atoms
@@ -139,7 +140,23 @@ theorem aggOrc_win (P : AggPtrs) (h : BatchingHints) (res : (List E × E) × Fs)
   rw [h5] at hj
   unfold aggOrc
   rw [h5, show aggGo = 91 from rfl]
-  split_ifs <;> first | (exfalso; omega) | rw [Nat.add_sub_cancel_left]
+  simp only [show ¬ (91 + j = 6) by omega, show ¬ (91 + j = 7) by omega, show ¬ (91 + j = 8) by omega,
+    show ¬ (91 + j = 9) by omega, show ¬ (91 + j = 30) by omega,
+    show 91 ≤ 91 + j ∧ 91 + j ≤ 91 + 5 by omega, and_self, ↓reduceIte, Nat.add_sub_cancel_left]
+
+/-- The inlined grind's statements are the body's. -/
+theorem agg_grind_good {S : List Atom} {w : ℕ → E} {σ : Val} (hg : ∀ a ∈ atomsIn aggP, Good rd S w σ a) :
+    ∀ s ∈ gcInlineT 2 aggGo (.n (val% «aggregate_claims» "fs_perm.nxt[1]")) (.n (val% «aggregate_claims» "tabs")),
+      GoodS rd S w σ s := fun s hs => by
+  rw [← aggGrindA_eq] at hs
+  obtain ⟨a, ha, rfl⟩ := List.mem_map.mp hs
+  have hgA := agg_ok
+  simp only [aggOk, Bool.and_eq_true] at hgA
+  have hgA := hgA.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.2
+  simp only [allIn, List.all_eq_true] at hgA
+  obtain ⟨a', ha', he⟩ := List.any_eq_true.mp (hgA a ha)
+  rw [atomEqb_sound he]
+  exact hg a' ha'
 
 /-- **The inlined grind holds** on an evaluated valuation whose windows are the honest ones of the
 nonce permutation's cell `1`, which passes the proof of work. -/
@@ -151,18 +168,7 @@ theorem agg_grind_holds {S : List Atom} {w : ℕ → E} {σ : Val} (hg : ∀ a �
     (hwin : ∀ j ≤ gcW 2, w (aggGo + j) = gcWin 2 (σ (.n (val% «aggregate_claims» "fs_perm.nxt[1]"))) j)
     (hlow : ((σ (.n (val% «aggregate_claims» "fs_perm.nxt[1]"))).limb 0).lane.toNat % 2 ^ 2 = 0) :
     ∀ a ∈ aggGrindA, a.Holds rd σ := by
-  have hgi : ∀ s ∈ gcInlineT 2 aggGo (.n (val% «aggregate_claims» "fs_perm.nxt[1]")) (.n (val% «aggregate_claims» "tabs")),
-      GoodS rd S w σ s := fun s hs => by
-    rw [← aggGrindA_eq] at hs
-    obtain ⟨a, ha, rfl⟩ := List.mem_map.mp hs
-    have hgA := agg_ok
-    simp only [aggOk, Bool.and_eq_true] at hgA
-    have hgA := hgA.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.2
-    simp only [allIn, List.all_eq_true] at hgA
-    obtain ⟨a', ha', he⟩ := List.any_eq_true.mp (hgA a ha)
-    rw [atomEqb_sound he]
-    exact hg a' ha'
-  have HG := gcInline_holds_of_good (C := fun _ _ _ => True) (by decide) (by decide) (by decide) hgi
+  have HG := gcInline_holds_of_good (C := fun _ _ _ => True) (by decide) (by decide) (by decide) (agg_grind_good hg)
     hS hrc ht hwin hlow trivial (kret := fun _ => True)
   rw [← aggGrindA_eq] at HG
   intro a ha
@@ -282,6 +288,10 @@ structure AggVals (rd : Reader) (σ : Val) (m : ℕ) (cpi cfresh ccarried dst ta
     σ (.n (val% «aggregate_claims» "bc_point")), σ (.n (val% «aggregate_claims» "tabs"))] = capOf (aggN cs h.lambdaGrindNonce) ++ [P.msgs * gen, claimAt cs h m, P.pt, tabs]
   bsRets : [σ (.n (val% «aggregate_claims» "fs0")), σ (.n (val% «aggregate_claims» "fs1")), σ (.n (val% «aggregate_claims» "fs2")), σ (.n (val% «aggregate_claims» "fs3")), σ (.n (val% «aggregate_claims» "fs4")), σ (.n (val% «aggregate_claims» "bc_running@2"))] =
     (aggRun cs h).2.cap ++ [(aggRun cs h).1.2]
+  /-- The inlined grind's atoms are exact (its hints the word's windows). -/
+  gexact : ∀ a ∈ aggGrindA, a.Exact rd σ
+  /-- The inlined grind's table reads are table words. -/
+  gptrs : ∀ p ∈ gcPtrs 2 aggGo, ∃ e < 2 ^ 11, σ p = tabs * gen ^ e
 
 set_option maxRecDepth 20000 in
 /-- **`aggregate_claims`' honest valuation** on `m` children whose words the memory holds, the
@@ -580,8 +590,15 @@ theorem agg_core {m : ℕ} {cpi cfresh ccarried dst tabs : E}
     rfl
   have q1 : σ (.n (val% «aggregate_claims» "fs_perm.nxt[1]")) = cellsOfState (aggN cs h.lambdaGrindNonce) false 1 := q 1 (by omega)
   -- the inlined grind
-  have hgr := agg_grind_holds hg agg_stores_grind hrc (by rw [e5]; exact ht)
-    (fun j hj => by rw [q1]; exact aggOrc_win P h (aggRun cs h) _ j hj) (by rw [q1]; exact agg_pow hpow)
+  have hwin : ∀ j ≤ gcW 2, w (aggGo + j) = gcWin 2 (σ (.n (val% «aggregate_claims» "fs_perm.nxt[1]"))) j :=
+    fun j hj => by rw [q1]; exact aggOrc_win P h (aggRun cs h) _ j hj
+  have ht' : WinTabs rd (σ (.n (val% «aggregate_claims» "tabs"))) := by rw [e5]; exact ht
+  have hgr := agg_grind_holds hg agg_stores_grind hrc ht' hwin (by rw [q1]; exact agg_pow hpow)
+  have gX := gcInline_exact_of_good (by decide) (by decide) (by decide) (agg_grind_good hg) agg_stores_grind
+    hrc ht' hwin
+  have gP := gcPtrs_of_good (by decide) (by decide) (by decide) (agg_grind_good hg) agg_stores_grind
+    hrc ht' hwin
+  rw [e5] at gP
   have hat : ∀ a ∈ atomsIn aggP, a.Holds rd σ := fun a ha => by
     by_cases hga : a ∈ aggGrindA
     · exact hgr a hga
@@ -591,7 +608,8 @@ theorem agg_core {m : ℕ} {cpi cfresh ccarried dst tabs : E}
   obtain ⟨g191, g192⟩ := guardOk_vals hg35 hat
   refine ⟨hat, e0, e1, e2, e3, e4, e5, v6, v7, v8, v9, v33, v81,
     by rw [isMul_sound hm94 hP, v81], v98, v107, v116, v188, p42, p105, p193,
-    by rw [g35, e0], g36, by rw [g102, e0], g103, by rw [g191, e0], g192, ?_, ?_⟩
+    by rw [g35, e0], g36, by rw [g102, e0], g103, by rw [g191, e0], g192, ?_, ?_,
+    fun a ha => gX a (by rw [← aggGrindA_eq]; exact List.mem_map_of_mem ha), gP⟩
   · rw [q 8 (by omega), q 9 (by omega), q 10 (by omega), q 11 (by omega), q 12 (by omega),
       genMul_sound hg109 hP, v6, L106.1, v107, e5]
     rfl

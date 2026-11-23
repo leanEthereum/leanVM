@@ -11,8 +11,8 @@ public import LeanVM.Guest.B1.Place.OsMean
 /-!
 # The callees' kinds, decided
 
-`HonNames c`: the names the body calls at each level map to their kinds (`osKindOf`): the fold
-and closing rounds, the grinds, `fold_final_msg`, each level's message and out-of-domain squeeze;
+`HonNames c`: the names the body calls at each level map to their kinds (`osKindOf`): the
+closing rounds, `fold_final_msg`, each level's message and out-of-domain squeeze;
 the helpers it dispatches into (`level_positions`, `level_queries`, `level_residual`,
 `level_residual_slow`) to none.
 `Whir/CHonNames{0..3}.lean` decide it for the 11 arms at each rate.
@@ -27,9 +27,7 @@ open LeanVM.Guest.B1
 /-- **The callees' kinds at a configuration.** -/
 def HonNames (c : OsCfg) : Prop :=
   let lv := fun l ↦ c.levels.getD l default
-  osKindOf "opening_round" = some .round ∧ osKindOf "opening_tail_round" = some .tail ∧
-  osKindOf ("grind_check__L" ++ natStr queryGrind) = some (.grind queryGrind) ∧
-  osKindOf ("grind_check__L" ++ natStr levelOodGrind) = some (.grind levelOodGrind) ∧
+  osKindOf "opening_tail_round" = some .tail ∧
   osKindOf ("fold_final_msg__L" ++ natStr c.yrLog) = some (.ffm c.yrLog) ∧
   osKindOf ("opening_message__L" ++ natStr (c.yrLen + (lv c.yrLevel).folds) ++ "_L1") =
     some (.msg (c.yrLen + (lv c.yrLevel).folds) 1) ∧

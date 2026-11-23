@@ -120,10 +120,10 @@ theorem vs_child_pops {bytecode : List K} {seed : Digest} {c : Child} {layout : 
       tcp.name = "certify_placement" ∧ tcp.Valid coreProgram rd [σ (.n (val% «verify_sub» "kappa_base")), σ (.n (val% «verify_sub» "g_squares"))] [σ (.n (val% «verify_sub» "g_total")), σ (.n (val% «verify_sub» "col_offsets"))] ∧
       tvt.name = "verify_tables" ∧
       tvt.Valid coreProgram rd
-        (([545, 546, 547, 548, 549, 550, 0, 1, 254, 253, 71, 26, 4, 334, 530, 6, 552, 551, 555, 553, 25].map V.n).map σ)
+        (([597, 598, 599, 600, 601, 602, 0, 1, 254, 253, 71, 26, 4, 386, 582, 6, 604, 603, 607, 605, 25].map V.n).map σ)
         (((List.range 10).map fun k => V.n ((val% «verify_sub» "fs0@4") + k)).map σ) ∧
       tos.name = vsOpen[i] ∧
-      tos.Valid coreProgram rd (([66, 1337, 1338, 1339, 1340, 1341, 1883, 268, 271, 1885, 1887].map V.n).map σ)
+      tos.Valid coreProgram rd (([66, 1441, 1442, 1443, 1444, 1445, 1987, 268, 271, 1989, 1991].map V.n).map σ)
         (((List.range 5).map fun k => V.n ((val% «verify_sub» "sumcheck_target") + k)).map σ) ∧ tcp ∈ kids ∧ tvt ∈ kids ∧ tos ∈ kids ∧
       (tcp.pops coreProgram rd = [("col_group_order", Hints.colGroupOrder layout)] →
         tvt.pops coreProgram rd = [("block_group_order", Hints.blockGroupOrder layout),

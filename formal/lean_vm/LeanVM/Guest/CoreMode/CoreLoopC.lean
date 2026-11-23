@@ -296,7 +296,10 @@ theorem postQ_of_loop {pows : Exec.PowTree} {sigOf : String → HSig} {f : Fn} {
     (ht : ∃ hi ei, G.term = [(.ex (.fr 2) 0, hi)] ∧ H.sig.term = [(.val 0, ei)] ∧ parCell G np 2 = true ∧
       idxT G np hi = some ei) : H.sig.postQ = [] := by
   obtain ⟨-, ei, -, ht, -⟩ := ht
-  unfold heapOkC at hok
+  rcases heapOkC_cases hok with ⟨-, hok⟩ | ⟨hok, -⟩
+  swap
+  · rw [(splitOk_spec hok).2.2.2.1] at ht; cases ht
+  unfold heapOkC1 at hok
   simp only [Bool.and_eq_true, Exec.Trie.seq_eq] at hok
   obtain ⟨-, hc⟩ := hok
   split at hc

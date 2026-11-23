@@ -55,8 +55,8 @@ theorem QD.rowPop_eq (d : QD) {first : Bool} (hfirst : d.s.base = 1 ↔ first = 
 
 /-! ## The walk -/
 
-/-- **An honest walk's entry is the generator's siblings below the cap**: its siblings the path's first `pd`, its leaf `q` of a depth-`D` tree, `pd ≤ D`. -/
-theorem WD.wpPops_eq (w : WD) {D : ℕ} {path : List Digest} (hs : w.sibs = path.take w.pd) (hD : w.pd ≤ D)
+/-- **An honest walk's entry is the generator's siblings below the cap**: its siblings the path's first `pd`, its leaf `q` of a depth-`D` tree. -/
+theorem WD.wpPops_eq (w : WD) {D : ℕ} {path : List Digest} (hs : w.sibs = path.take w.pd)
     (hl : w.pd ≤ path.length) :
     w.wpPops = [("merkle_children", ((Hints.climbSteps (2 ^ D + w.q) w.leaf path).1.take w.pd).flatMap
       Hints.stepSibling)] := by
@@ -79,7 +79,7 @@ theorem query_entries_eq (d : QD) (w : WD) {first : Bool} (o : Opening) (hfirst 
     (hro : d.row = o.leaf) (hleaf : w.leaf = merkleLeafDigest o.leaf) (hq : w.q = o.leafIndex)
     (hs : w.sibs = o.path.take w.pd) (hl : w.pd ≤ o.path.length) :
     rowPop σ d.b d.s.I :: w.wpPops = queryEntries first (w.pd + w.cd) w.pd o := by
-  rw [d.rowPop_eq hfirst hrow hv hI, w.wpPops_eq (D := w.pd + w.cd) hs (by omega) hl, hro, hleaf, hq]
+  rw [d.rowPop_eq hfirst hrow hv hI, w.wpPops_eq (D := w.pd + w.cd) hs hl, hro, hleaf, hq]
   rfl
 
 /-- The pushes of a level's openings, in phase order. -/

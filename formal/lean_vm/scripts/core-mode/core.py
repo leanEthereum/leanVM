@@ -239,8 +239,31 @@ def heap_winL(k):
 
 
 def heap_proof(k):
-    """`heapOkC`'s proof: one kernel evaluation, or its windows' (`GenW/<fn>/Ok.lean`)."""
-    return 'heap_okW' if heap_win(k) else DK
+    """`heapOkC`'s proof: one kernel evaluation, or its windows' (`GenW/<fn>/Ok.lean`); a split at a selector
+    (`callc.split_of`), its shared checks and each arm's, one kernel evaluation each (`heapOkC_split`)."""
+    if heap_win(k):
+        return 'heap_okW'
+    sp = callc.split_of(k)
+    if sp:
+        arms = 'CoreMode.armsOk_nil'
+        for r in reversed(range(sp[1])):
+            prf = f'Fn.«{k}».Arm{r}.heap_okW' if heap_win_arm(k, r) else DK
+            arms = f'(CoreMode.armsOk_cons {prf}\n    {arms})'
+        return f'CoreMode.heapOkC_split {DK}\n    {arms}'
+    return DK
+
+
+def heap_win_arm(k, r):
+    """The module of arm `r`'s heap check in windows, of a split certificate (`callc.windows`), if it has one."""
+    if os.path.exists(os.path.join(GUEST, 'CoreMode', 'GenW', k, 'A%d' % r, 'Ok.lean')):
+        return 'LeanVM.Guest.CoreMode.GenW.%s.A%d.Ok' % (quote(k), r)
+    return None
+
+
+def heap_win_arms(k):
+    """The modules of a split certificate's arms in windows."""
+    sp = callc.split_of(k)
+    return [m for m in (heap_win_arm(k, r) for r in range(sp[1] if sp else 0)) if m]
 
 
 def loop_tail(k, frame):
@@ -534,6 +557,7 @@ def main(check=False):
                     imps.add('LeanVM.Guest.CoreMode.SigSplit')
                 if heap_win(k):
                     imps.add(heap_win(k))
+                imps |= set(heap_win_arms(k))
                 imps.add('LeanVM.Guest.Pack.«%s».%s' % po[k])
                 body.append(cfun_c(k, j, frame_term(frames[k])))
                 continue

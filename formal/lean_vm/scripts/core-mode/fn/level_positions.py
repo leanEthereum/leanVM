@@ -39,11 +39,21 @@ CONTRACTS = {
     'level_positions__L28_L4_loop0': '[0, 1, 2, 3, 4, 5, 6, 7], (some 8), [⟨0, 0, [((.fr 2), 5), ((.fr 4), 1)]⟩, ⟨0, 1, [((.fr 2), 5), ((.fr 4), 1)]⟩, ⟨0, 2, [((.fr 2), 5), ((.fr 4), 1)]⟩, ⟨0, 3, [((.fr 2), 5), ((.fr 4), 1)]⟩, ⟨0, 4, [((.fr 2), 5), ((.fr 4), 1)]⟩], [⟨⟨0, 0, [((.fr 7), 1)]⟩, (.num 0), (.num 64), 1, 0⟩, ⟨⟨0, 0, [((.fr 7), 1)]⟩, (.num 0), (.num 128), 1, 0⟩], [((.ex (.fr 2) 0), (.ex (.fr 3) 0))], [], [], [], [⟨⟨0, 0, [((.fr 4), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 5, 5⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 5, 6⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 5, 7⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 5, 8⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 5, 9⟩, ⟨⟨0, 0, [((.fr 5), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 4, 0⟩, ⟨⟨0, 0, [((.fr 5), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 4, 1⟩, ⟨⟨0, 0, [((.fr 5), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 4, 2⟩, ⟨⟨0, 0, [((.fr 5), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 4, 3⟩, ⟨⟨0, 0, [((.fr 6), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 4, 0⟩, ⟨⟨0, 0, [((.fr 6), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 4, 1⟩, ⟨⟨0, 0, [((.fr 6), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 4, 2⟩, ⟨⟨0, 0, [((.fr 6), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 4, 3⟩], [], [], [(⟨⟨0, 0, [((.fr 6), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 4, 0⟩, [0, 1, 2, 3, 4, 5]), (⟨⟨0, 0, [((.fr 6), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 4, 1⟩, [0, 1, 2, 3, 4, 5]), (⟨⟨0, 0, [((.fr 6), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 4, 2⟩, [0, 1, 2, 3, 4, 5]), (⟨⟨0, 0, [((.fr 6), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 4, 3⟩, [0, 1, 2, 3, 4, 5])], [], [], []',
 }
 
-
-# TEMP (to move into Lean data): `squeezes_g = g^e`, `e < 2^28`, at every instance (`Res.expFacts`)
-import fnrules as _fr
-EXP_FACTS = [(k, _fr.param('level_positions', 'squeezes_g'), None, 2 ** 28) for k in sorted(_fr.shapes('level_positions'))]
-
 # its own Lean files beside its B1 proofs' `B1/` modules and its `CoreMode/Fn/<f>/` (`fnreg.own_files`): what a change to
 # it alone may change, by hand
 OWN = []
+
+
+# its exponent facts (`Res.expFacts`, `ExpOk`): its runtime counts' exponents, carried down from its callers (its
+# `expCarry`, `CoreMode.carryExpB`)
+import fnrules as _R
+EXP_FACTS = _R.lean_def('level_positions', 'Data', 'expFacts')
+
+
+def fam(k, r):
+    """`e(squeezes_g) > 1` (`CoreMode.Own.level_positions.fams`, carried down with its lower bound `2`): its loop writes
+    the rows from `2`."""
+    import fnrules, infer
+    p = fnrules.param('level_positions', 'squeezes_g')
+    return k in _R.lean_def('level_positions', 'Data', 'names') and r == ('lt', ('num', 1), ('val', p)) and \
+        infer.CORE[k][0][p:p + 1] == [p]

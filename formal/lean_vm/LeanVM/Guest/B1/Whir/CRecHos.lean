@@ -62,8 +62,8 @@ theorem vs_hos_of (hP : open_stacked_completeAtBP_Spec) {bytecode : List K} {see
       c.freshClaim c.proof = true)
     {κ : ℕ} (hκ : 11 ≤ κ) (hrf : Lift.RunsFit fs cert) (hcons : RunsConsec cert) (W : VsWordsOs fs)
     (bs : List ℕ) (sqE : ℕ) (pv : List (List E × Main.Layout)) :
-    CompleteAtDTBR fs cert κ (Whir.openName S.μs) ((S.kids bs sqE).getD 14 noKid pv).Lin
-      ((S.kids bs sqE).getD 14 noKid pv).args ((S.kids bs sqE).getD 14 noKid pv).Out (vsPos bytecode seed c)
+    CompleteAtDTBR fs cert κ (Whir.openName S.μs) ((S.kids bs sqE).getD 12 noKid pv).Lin
+      ((S.kids bs sqE).getD 12 noKid pv).args ((S.kids bs sqE).getD 12 noKid pv).Out (vsPos bytecode seed c)
       (osBosAt fs W.Bnd S.μs) := by
   have h : CompleteAtDTBR fs cert κ (B1.Whir.openName S.μs) [(S.cW bs, S.xsW), (sqE, expTabAllWords)]
       (B1.Whir.rateSel S.rate :: capOf S.s7.perm ++ [S.target, (digestHalves S.root).1,

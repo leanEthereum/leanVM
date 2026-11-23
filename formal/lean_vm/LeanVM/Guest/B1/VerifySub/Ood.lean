@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.VerifySub.Front
-public import LeanVM.Guest.B1.Bits.Grind
+public import LeanVM.Guest.B1.VerifySub.GrindOff
 public import LeanVM.Guest.B1.Fs.SqueezePoint
 public import LeanVM.Guest.B1.Fs.MessageComplete
 import LeanVM.Guest.ValRef
@@ -18,7 +18,7 @@ import LeanVM.Guest.Data.ValNames.«verify_sub»
 # The out-of-domain sample
 
 `vsOodT_holds`: the nonce at stream offset `10` absorbed after the root's two words and permuted
-(`Fs.nonceState`), its proof of work checked by `grind_check__L15`, the point `z` of the stack's
+(`Fs.nonceState`), its proof of work checked by the inlined `grind_check` (`gcInlineO_sound`), the point `z` of the stack's
 `m` variables (the ground challenge, then `squeeze_point_from__L{m}`), the value `v` read by
 `opening_message__L1_L1` with the bus grind's nonce `nn`: `readOod m` runs on `[nonce, v]`, and
 the message's returns are the cells and capacity of the value's nonce permutation.
@@ -93,7 +93,7 @@ abbrev vsRootFs (σ : Val) : Fs :=
     [(σ (.n (val% «verify_sub» "x@9")), dsObserve), (σ (.n (val% «verify_sub» "x@10")), dsObserve)]⟩
 
 
-theorem vsRun304 : (vsRun 304 5).map σ =
+theorem vsRun356 : (vsRun 356 5).map σ =
     [σ (.n (val% «verify_sub» "fs0@1")), σ (.n (val% «verify_sub» "fs1@1")), σ (.n (val% «verify_sub» "fs2@1")), σ (.n (val% «verify_sub» "fs3@1")), σ (.n (val% «verify_sub» "fs4@1"))] := rfl
 
 theorem spfName_eq {m : ℕ} (h1 : 20 ≤ m) (h2 : m ≤ 30) (h : m - 20 < vsSqpNames.length) :
@@ -133,10 +133,10 @@ theorem vsOodT_holds {κ : ℕ} (hκ : κ ≤ 32) (hκw : winTabBits ≤ κ) (L 
   obtain ⟨⟨l283, hn⟩, h⟩ := (holds_fsNonceT _ _ _ _ _).1 h
   obtain ⟨⟨h286, h287⟩, h⟩ := (holds_zero2T _ _ _).1 h
   obtain ⟨hk, h⟩ := holds_atom1.1 h
-  obtain ⟨h302, h⟩ := vsTabsT_holds h
-  simp only [Stmt.HoldsList, Stmt.Holds, grindCallT, vsAlloc, vsConst, vsMul, vsCall,
+  obtain ⟨hpow, h⟩ := gcInlineO_sound hκ hκw L (by decide) (winTabs_of_expWinTab hwin) h
+  simp only [Stmt.HoldsList, Stmt.Holds, vsAlloc, vsConst, vsMul, vsCall,
     Atom.Holds, List.map_cons, List.map_nil, range8] at h
-  obtain ⟨hg, -, ⟨j, hj, hj278, hsp⟩, -, e311, m312, hom, hn'⟩ := h
+  obtain ⟨-, ⟨j, hj, hj278, hsp⟩, -, e311, m312, hom, hn'⟩ := h
   -- the nonce's permutation
   have hc := vs_oodPerm w268 w271 hn h286 h287 hk
   obtain ⟨S, hS⟩ : ∃ S, (vsRootFs σ).nonceState (σ (.n (val% «verify_sub» "s38.i0:fs_grind_squeeze.s0.e.s0.e.s0#0"))) = S := ⟨_, rfl⟩
@@ -151,8 +151,6 @@ theorem vsOodT_holds {κ : ℕ} (hκ : κ ≤ 32) (hκw : winTabBits ≤ κ) (L 
   have hcapS : [σ (.n (val% «verify_sub» "nxt[8]@3")), σ (.n (val% «verify_sub» "nxt[9]@3")), σ (.n (val% «verify_sub» "nxt[10]@3")), σ (.n (val% «verify_sub» "nxt[11]@3")), σ (.n (val% «verify_sub» "nxt[12]@3"))] = capOf S := by
     rw [capOf, e296, e297, e298, e299, e300]
   -- the grind
-  have hwt : WinTabs L.read (σ (.n (val% «verify_sub» "s38.i0:fs_grind_squeeze.s0.e.s0.e.s1#1"))) := by rw [h302]; exact winTabs_of_expWinTab hwin
-  obtain ⟨-, hpow⟩ := (grind_check_holds 15 (by decide) hκ hκw L _ _ hwt []).1 (hC _ _ _ hg)
   have hok : powOk 15 (Keccak.lane ((vsRootFs σ).nonceState (σ (.n (val% «verify_sub» "s38.i0:fs_grind_squeeze.s0.e.s0.e.s0#0")))) 2) = true := by
     refine ((grindOk_iff (s := vsRootFs σ) (bits := 15) (by decide) (σ (.n (val% «verify_sub» "s38.i0:fs_grind_squeeze.s0.e.s0.e.s0#0")))).2 ?_).resolve_left
       (by decide)
@@ -168,7 +166,7 @@ theorem vsOodT_holds {κ : ℕ} (hκ : κ ≤ 32) (hκw : winTabBits ≤ κ) (L 
     exact (gen_pow_inj (by omega) (by omega)
       (by rw [gen_pow_eq_ofK, gen_pow_eq_ofK]; exact hj278)).symm
   subst hjm
-  rw [spfName_eq hm20 hm30 hj, vsRun304] at hsp
+  rw [spfName_eq hm20 hm30 hj, vsRun356] at hsp
   obtain ⟨hz, hret⟩ := (squeeze_point_from_holds m (spf_mem hm20 hm30) L.read _ _).1 (hC _ _ _ hsp)
   obtain ⟨k, rfl⟩ : ∃ k, m = k + 1 := ⟨m - 1, by omega⟩
   simp only [Nat.add_sub_cancel] at hz hret

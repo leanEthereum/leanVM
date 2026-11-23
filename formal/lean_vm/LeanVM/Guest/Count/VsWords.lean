@@ -48,7 +48,7 @@ noncomputable def vsWords : B1.VerifySub.VsWords B2C.fs where
   Beqc := 184
   K15 := 19
   Bcs := 157
-  Brs := 8142
+  Brs := 8526
   hEqc := B1.VerifySub.eqc_totalLe_fs
   hL15 := B1.VerifySub.l15_totalLeOn_fs
   hCsF := B1.VerifySub.cs_fs_le

@@ -14,8 +14,9 @@ public import LeanVM.Guest.B1.Whir.SlowSpec
 /-!
 # The residuals
 
-A non-final level's residual (`osResidual`): its positions, row and high part materialized, `λ⁻¹`
-read from `level_lam_invs`, the dispatch on the rate into `level_residual` (`MeaningLevelResidual`,
+A non-final level's residual (`osResidual`): its positions `query_positions·g^posOff`, row and high
+part materialized, `λ⁻¹` read from `level_lam_invs`, the call of `level_residual` at the level's
+`g^(n / resBatch)`, `g^(n % resBatch)` (`MeaningLevelResidual`,
 `Whir/LrSound.lean`): the chains over all its positions; its zero flag, `is_zero` of
 `level_after`, and the dispatch on the rate into `level_residual_slow` (`SlowRet`): `0` where the
 flag is, else its unfactored sum (`osResidual_sound`). The level's sums go into `inner_chain`:
@@ -31,19 +32,22 @@ open LeanVM.Guest.Value LeanVM.Protocol.Verifier
 
 variable {C : CallRel} {rd : Reader} {σ : Val}
 
-/-- What a level's residual reads: the rate's row (the dispatches' arms), its `level_residual` and
+/-- What a level's residual reads: the rate's row (the slow dispatch's arm), the level's `level_rate`
+values `rts[lvl]` (`g^posOff`, `g^(n / resBatch)`, `g^(n % resBatch)`), its `level_residual` and
 `level_residual_slow` calls' meanings and `is_zero`'s, its row and high part, its positions, `μ`,
 its coordinates `Xs` (the fold challenges after its folds, then the tail challenges at `tch`). -/
-structure ResIn (rd : Reader) (C : CallRel) (σ : Val) (c : OsCfg) (tch bd lvl : ℕ) (lv : OsLv)
-    (D : ℕ → E) (hsv : List E) (Pos : ℕ → E) (mu : E) (Xs : ℕ → E) : Prop where
+structure ResIn (rd : Reader) (C : CallRel) (σ : Val) (c : OsCfg) (rts : List (List ℕ)) (tch bd lvl : ℕ)
+    (lv : OsLv) (D : ℕ → E) (hsv : List E) (Pos : ℕ → E) (mu : E) (Xs : ℕ → E) : Prop where
   rate : LvRate σ c lvl lv
-  call : ∀ a r, C (osResidualName lv) a r →
-    MeaningLevelResidual lv.queries lv.logCols lv.folds lv.highBits rd a r
+  rp : σ (.n ((rts.getD lvl []).getD 0 0)) = gen ^ lv.posOff
+  rb : σ (.n ((rts.getD lvl []).getD 2 0)) = gen ^ (lv.queries / resBatch)
+  rr : σ (.n ((rts.getD lvl []).getD 3 0)) = gen ^ (lv.queries % resBatch)
+  call : ∀ a r, a.getD 4 0 = gen ^ (lv.queries / resBatch) → a.getD 5 0 = gen ^ (lv.queries % resBatch) →
+    C (osResidualName lv) a r → MeaningLevelResidual lv.queries lv.logCols lv.folds lv.highBits rd a r
   slow : ∀ a r, C (osSlowName c lv) a r → SlowRet lv.queries lv.prefixLen c.yrLog lv.vanish rd a r
   iz : ∀ a r, C "is_zero" a r → MeaningIsZero a r
   van : lv.vanish = lv.logCols * (lv.logCols + 1) / 2
   read : ResRead rd lvl lv (σ (.n bd)) (σ (.n osHs)) D hsv
-  posOff : lv.posOff < u128Bound
   rowOff : lvl * ligColsCap < u128Bound
   hsOff : lvl * hsStride < u128Bound
   resOff : lv.resFoldOff < u128Bound
@@ -63,12 +67,12 @@ def resSlow (c : OsCfg) (lv : OsLv) (Pos Xs : ℕ → E) (lam z : E) : E :=
 /-- **A level's residual**: the dispatch on the rate into `level_residual` (the chains over the
 level's positions) and into `level_residual_slow` at the level's zero flag, the inner chain's two
 sums advanced by them. -/
-theorem osResidual_sound {c : OsCfg} {tch ich bd ls la lvl : ℕ} {lv : OsLv} {D : ℕ → E}
-    {hsv : List E} {Pos : ℕ → E} {mu : E} {Xs : ℕ → E}
-    (hin : ResIn rd C σ c tch bd lvl lv D hsv Pos mu Xs)
+theorem osResidual_sound {c : OsCfg} {rts : List (List ℕ)} {tch ich bd ls la lvl : ℕ} {lv : OsLv}
+    {D : ℕ → E} {hsv : List E} {Pos : ℕ → E} {mu : E} {Xs : ℕ → E}
+    (hin : ResIn rd C σ c rts tch bd lvl lv D hsv Pos mu Xs)
     {mats : List OsMat} (hm : MatsOk σ mats) {k : ℕ}
-    (hok : AllOk C rd σ (osResidual c tch ich bd ls la lvl lv mats k).1) :
-    MatsOk σ (osResidual c tch ich bd ls la lvl lv mats k).2.1 ∧
+    (hok : AllOk C rd σ (osResidual c rts tch ich bd ls la lvl lv mats k).1) :
+    MatsOk σ (osResidual c rts tch ich bd ls la lvl lv mats k).2.1 ∧
     ∃ i0 i1 s b a lam : E, LoadHolds rd (σ (.n ich)) (2 * lvl) i0 ∧
       LoadHolds rd (σ (.n ich)) (2 * lvl + 1) i1 ∧ LoadHolds rd (σ (.n ls)) lvl s ∧
       LoadHolds rd (σ (.n osBetas)) lvl b ∧ LoadHolds rd (σ (.n la)) lvl a ∧
@@ -79,24 +83,25 @@ theorem osResidual_sound {c : OsCfg} {tch ich bd ls la lvl : ℕ} {lv : OsLv} {D
   unfold osResidual at hok ⊢
   simp only at hok ⊢
   simp only [allOk_append] at hok
-  obtain ⟨⟨⟨⟨⟨⟨hqp, hbp⟩, hhp⟩, hmid⟩, hsp⟩, hfp⟩, hrest⟩ := hok
-  have eq := osMatP_val hm hin.posOff hqp
-  have m1 := osMatsAfter_ok hm hin.posOff hqp
-  have eb := osMatP_val m1 hin.rowOff hbp
-  have m2 := osMatsAfter_ok m1 hin.rowOff hbp
+  obtain ⟨⟨⟨⟨hqb, hhp⟩, hmid⟩, hfp⟩, hrest⟩ := hok
+  rw [allOk_cons] at hqb
+  obtain ⟨hqp, hbp⟩ := hqb
+  simp only [stmtOk_atom, holds_mul, osMul] at hqp
+  have ek : σ (.n k) = σ (.n osQpos) * gen ^ lv.posOff := by rw [hqp, hin.rp]
+  have eb := osMatP_val hm hin.rowOff hbp
+  have m2 := osMatsAfter_ok hm hin.rowOff hbp
   have eh := osMatP_val m2 hin.hsOff hhp
   have m3 := osMatsAfter_ok m2 hin.hsOff hhp
-  have es := osMatP_val m3 hin.posOff hsp
-  have m4 := osMatsAfter_ok m3 hin.posOff hsp
-  have ef := osMatP_val m4 hin.resOff hfp
-  have m5 := osMatsAfter_ok m4 hin.resOff hfp
+  have ef := osMatP_val m3 hin.resOff hfp
+  have m5 := osMatsAfter_ok m3 hin.resOff hfp
   refine ⟨m5, ?_⟩
   simp only [allOk_cons, allOk_nil, and_true] at hmid hrest
   obtain ⟨hmu, hd, hla, hz⟩ := hmid
   obtain ⟨hlam, hsd, hfin⟩ := hrest
   simp only [stmtOk_atom, holds_load, osLd] at hmu hla hlam
   have emu := loadHolds_unique hmu hin.mus
-  have hc := hin.call _ _ (dispatch_rate hin.rate osResidualName hd)
+  rw [stmtOk_call] at hd
+  have hc := hin.call _ _ (by simpa using hin.rb) (by simpa using hin.rr) hd
   have hR := hin.read
   have hres := hc D hsv Pos
     (fun s hs ↦ by simp only [List.map_cons, List.getD_cons_succ, List.getD_cons_zero]
@@ -105,7 +110,7 @@ theorem osResidual_sound {c : OsCfg} {tch ich bd ls la lvl : ℕ} {lv : OsLv} {D
     (fun c' hc' ↦ by simp only [List.map_cons, List.getD_cons_succ, List.getD_cons_zero]
                      rw [eh, loadHolds_mul_gen_pow]; exact hR.hs c' hc')
     (fun i hi ↦ by simp only [List.map_cons, List.getD_cons_zero]
-                   rw [eq, loadHolds_mul_gen_pow]; exact hin.pos i hi)
+                   rw [ek, loadHolds_mul_gen_pow]; exact hin.pos i hi)
   simp only [List.map_cons, List.map_nil, List.getD_cons_succ, List.getD_cons_zero, emu] at hres
   have r1 := congrArg (fun l ↦ l.getD 0 0) hres
   have r2 := congrArg (fun l ↦ l.getD 1 0) hres
@@ -121,7 +126,7 @@ theorem osResidual_sound {c : OsCfg} {tch ich bd ls la lvl : ℕ} {lv : OsLv} {D
   -- the slow sum
   have hsl := hin.slow _ _ (dispatch_rate hin.rate (osSlowName c) hsd) Pos Xs
     (fun i hi ↦ by simp only [List.map_cons, List.getD_cons_zero]
-                   rw [es, loadHolds_mul_gen_pow]; exact hin.pos i hi)
+                   rw [ek, loadHolds_mul_gen_pow]; exact hin.pos i hi)
     (fun t ht ↦ by simp only [List.map_cons, List.getD_cons_succ, List.getD_cons_zero]
                    rw [ef, loadHolds_mul_gen_pow]; exact hin.fch t ht)
     (fun j hj ↦ by simp only [List.map_cons, List.getD_cons_succ, List.getD_cons_zero]
@@ -136,12 +141,12 @@ theorem osResidual_sound {c : OsCfg} {tch ich bd ls la lvl : ℕ} {lv : OsLv} {D
   · rw [a10, m9, m8, r2, loadHolds_unique l7 hla] at s10; exact s10
 
 /-- **Every level's residual**, the levels `lvl ..`. -/
-theorem osResiduals_sound {c : OsCfg} {tch ich bd ls la : ℕ}
+theorem osResiduals_sound {c : OsCfg} {rts : List (List ℕ)} {tch ich bd ls la : ℕ}
     (D : ℕ → ℕ → E) (hsv : ℕ → List E) (Pos : ℕ → ℕ → E) (mu : ℕ → E) (Xs : ℕ → ℕ → E) :
     ∀ (lvs : List OsLv) (lvl : ℕ) (mats : List OsMat) (k : ℕ), MatsOk σ mats →
-      (∀ i (hi : i < lvs.length), ResIn rd C σ c tch bd (lvl + i) lvs[i] (D (lvl + i)) (hsv (lvl + i))
+      (∀ i (hi : i < lvs.length), ResIn rd C σ c rts tch bd (lvl + i) lvs[i] (D (lvl + i)) (hsv (lvl + i))
         (Pos (lvl + i)) (mu (lvl + i)) (Xs (lvl + i))) →
-      AllOk C rd σ (osResiduals c tch ich bd ls la lvl lvs mats k).1 →
+      AllOk C rd σ (osResiduals c rts tch ich bd ls la lvl lvs mats k).1 →
       ∀ i (hi : i < lvs.length), ∃ i0 i1 s b a lam : E,
         LoadHolds rd (σ (.n ich)) (2 * (lvl + i)) i0 ∧
         LoadHolds rd (σ (.n ich)) (2 * (lvl + i) + 1) i1 ∧ LoadHolds rd (σ (.n ls)) (lvl + i) s ∧

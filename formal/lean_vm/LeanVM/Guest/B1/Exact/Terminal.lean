@@ -341,10 +341,10 @@ variable {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs bytecode
 /-- **The terminal on an honest child, entered, within `termBound` by a tree within its weights and exact.** -/
 theorem term_kidBWE (hbl : bytecode.length = 2 ^ 23) {κ : ℕ} (hκ : 6 ≤ κ) (W : VsWordsOs fs)
     (bs : List ℕ) (sqE : ℕ) (pv : List (List E × Main.Layout))
-    (ht : ((S.kids bs sqE).getD 15 noKid pv).taken = true) :
-    CompleteAtDTBR fs cert κ ((S.kids bs sqE).getD 15 noKid pv).f
-      ((S.kids bs sqE).getD 15 noKid pv).Lin ((S.kids bs sqE).getD 15 noKid pv).args
-      ((S.kids bs sqE).getD 15 noKid pv).Out
+    (ht : ((S.kids bs sqE).getD 13 noKid pv).taken = true) :
+    CompleteAtDTBR fs cert κ ((S.kids bs sqE).getD 13 noKid pv).f
+      ((S.kids bs sqE).getD 13 noKid pv).Lin ((S.kids bs sqE).getD 13 noKid pv).args
+      ((S.kids bs sqE).getD 13 noKid pv).Out
       (fun rd t ↦ (∀ op, Budget.WeighsLe coreProgram (W.ωv op) (termWB W.toVsWords op) t) ∧
         t.Every (ExactAt coreProgram rd))
       (termBound fs W.Beqc W.K15 W.Bcs W.Brs) :=

@@ -196,7 +196,7 @@ theorem verify_sub_sound_of (hos : Whir.open_stacked_sound_w_Spec Whir.open_stac
     exact keccakPhase_runs hτL hlcol hlpt hhead hrunK
   -- the ring map
   obtain ⟨chs, hchL, hchV, h847, h602, hRS, hb⟩ :=
-    vsMapsT_holds hκ hκw L hLe hwin F.h8 F.h9 F.h10 F.h11 (s := s') (by rw [hpend]; rfl) hcapK hb
+    vsMapsT_holds hκ hκw L hwin F.h8 F.h9 F.h10 F.h11 (s := s') (by rw [hpend]; rfl) hcapK hb
   obtain ⟨hct, hrst, hb⟩ := vsCtabT_holds hchL hchV hb
   obtain ⟨sl', ch', hsl'L, hch'L, hsl'R, hch'R, hrt⟩ := ring_switch_target_holds L.read _ _ (hLe _ _ _ hrst)
   have esl : sl' = slices := readsAt_ext (by rw [hsl'L, hslL]; rfl) hsl'R hslR

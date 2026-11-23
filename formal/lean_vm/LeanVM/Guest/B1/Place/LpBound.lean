@@ -8,7 +8,7 @@ module
 
 public import LeanVM.Guest.B1.Place.LpProof
 public import LeanVM.Guest.B1.Place.Fresh
-public import LeanVM.Guest.B1.Place.ArmKids
+public import LeanVM.Guest.B1.Place.LpAtE
 public import LeanVM.Guest.B1.Whir.DataSpec
 public import LeanVM.Guest.B1.Whir.HelperAll
 
@@ -40,14 +40,15 @@ theorem lpN_lt {name loop : String} {S d cd : ℕ} (hfs : ∀ f, fs f < 2 ^ 32) 
   have h2 := hfs (dqwName d cd)
   have h3 := hfs loop
   have h4 := hfs (sqDecName (lpLvP d cd))
-  have e1 : (S - 1 - 0 + 1) * fs loop ≤ 64 * 2 ^ 32 := Nat.mul_le_mul (by omega) h3.le
+  have h5 := hfs (Memory.tailKey loop)
+  have e1 : (S - 1 - 0) * fs loop ≤ 64 * 2 ^ 32 := Nat.mul_le_mul (by omega) h3.le
   have e2 : (S - 1 - 0) * fs (sqDecName (lpLvP d cd)) ≤ 64 * 2 ^ 32 := Nat.mul_le_mul (by omega) h4.le
   omega
 
 set_option maxHeartbeats 800000 in
 /-- **A words bound of `level_positions`' trees bounds `lpN`**, frames below `2^32`. -/
 theorem lp_bound (κ : ℕ) {name loop : String} {S d cd : ℕ}
-    (hlp : FnIs name (osParams 9) (lpBody S d cd loop))
+    (hlp : FnIs name (osParams 10) (lpBody d cd loop))
     (hl : FnIs loop (osParams 6) (lpLoopBody d cd loop)) (hS : 0 < S) (hSo : S < ordG) (hSB : S ≤ 64)
     (hpw : digitsVal (osPowDigits (128 / d)) 1 = 128 / d)
     (hdec : QwDecodeAtDE fs cert κ d cd (dqwName d cd)) (hfs : ∀ f, fs f < 2 ^ 32) {B : ℕ}
@@ -122,18 +123,18 @@ theorem lp_bound (κ : ℕ) {name loop : String} {S d cd : ℕ}
 theorem level_positions_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ)
     (hfit : Lift.RunsFit fs cert) (hcons : RunsConsec cert) (hκ : 7 ≤ κ)
     (hfs : ∀ f, fs f < 2 ^ 32) :
-    ∀ e ∈ lpTable, ∀ B, TotalLe coreProgram fs e.1 (fun _ ↦ B) →
-      Arm.LpAtO fs cert κ e.1 e.2.2.1 e.2.1 e.2.2.2.1 e.2.2.2.2 (some B) := by
-  intro e he B hT
+    ∀ e ∈ lpTable, ∀ S, 1 ≤ S → S ≤ 64 → ∀ B, TotalLe coreProgram fs e.1 (fun _ ↦ B) →
+      Arm.LpAtO fs cert κ e.1 e.2.1 S e.2.2.1 e.2.2.2 (some B) := by
+  intro e he S hS hSB B hT
   obtain ⟨hlp, hl⟩ := lpTable_ok e he
-  obtain ⟨hS, hSo, hSB, hpw, hmem⟩ := lpTable_facts e he
+  obtain ⟨hpw, hmem⟩ := lpTable_facts e he
+  have hSo : S < ordG := by rw [show ordG = 2 ^ 64 - 1 from rfl]; omega
   have hdec := qwDecodeAtDE_holds hfit hcons hκ _ hmem
   have hb := lp_bound κ hlp hl hS hSo hSB hpw hdec hfs hT
   intro w0 cap ep ew tabs Lin hcl hreg hregt hmemL fp
   obtain ⟨Lown, hW, hD, hR⟩ := lp_placed fs cert κ hlp hl hS hSo hSB hpw hdec hcl fp
     (fun k hk ↦ hreg fp k hk) (hregt fp) (fun rd hlow hm ↦ hmemL fp rd hlow hm)
-  exact ⟨lpN fs e.1 e.2.2.1 e.2.1 e.2.2.2.1 e.2.2.2.2, Lown, hW, hD,
-    fun B' hB' ↦ by cases hB'; exact hb, hR⟩
+  exact ⟨lpN fs e.1 e.2.1 S e.2.2.1 e.2.2.2, Lown, hW, hD, fun B' hB' ↦ by cases hB'; exact hb, hR⟩
 
 end
 end LeanVM.Guest.B1

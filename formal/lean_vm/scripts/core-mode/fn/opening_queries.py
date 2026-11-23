@@ -37,12 +37,12 @@ CONTRACTS = {
     'opening_queries__L1_L6_L32_L24_L0_L0_L0_L0_L0_loop0': '[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], (some 12), [⟨0, 0, [((.fr 2), 1), ((.fr 10), 1)]⟩, ⟨0, 0, [((.fr 8), 1)]⟩, ⟨0, 1, [((.fr 8), 1)]⟩, ⟨0, 2, [((.fr 8), 1)]⟩, ⟨0, 3, [((.fr 8), 1)]⟩, ⟨0, 4, [((.fr 8), 1)]⟩, ⟨0, 5, [((.fr 8), 1)]⟩, ⟨0, 6, [((.fr 8), 1)]⟩, ⟨0, 7, [((.fr 8), 1)]⟩, ⟨0, 8, [((.fr 8), 1)]⟩, ⟨0, 9, [((.fr 8), 1)]⟩, ⟨0, 10, [((.fr 8), 1)]⟩, ⟨0, 11, [((.fr 8), 1)]⟩], [⟨⟨0, 0, [((.fr 4), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 2, 0⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 2, 1⟩, ⟨⟨0, 0, [((.fr 5), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 2, 0⟩, ⟨⟨0, 0, [((.fr 5), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 2, 1⟩], [((.ex (.fr 2) 0), (.ex (.fr 3) 0))], [], [], [], [⟨⟨0, 0, [((.fr 10), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 1, 1⟩], [(⟨⟨0, 0, [((.fr 5), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 2, 0⟩, [0, 1, 2, 3, 4, 5]), (⟨⟨0, 0, [((.fr 5), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 2, 1⟩, [0, 1, 2, 3, 4, 5])], [], [], [], [], []',
 }
 
-
-# TEMP (to move into Lean data): level 0's `n_iters_g`, `odd_g` powers of `g` below `2^28` (`Res.expFacts`)
-import fnrules as _fr
-EXP_FACTS = [(k, _fr.param('opening_queries', p), None, 2 ** 28) for k, s in sorted(_fr.shapes('opening_queries').items())
-             if s[0] == 1 for p in ('n_iters_g', 'odd_g')]
-
 # its own Lean files beside its B1 proofs' `B1/` modules and its `CoreMode/Fn/<f>/` (`fnreg.own_files`): what a change to
 # it alone may change, by hand
 OWN = []
+
+
+# its exponent facts (`Res.expFacts`, `ExpOk`): its runtime counts' exponents, carried down from its callers (its
+# `expCarry`, `CoreMode.carryExpB`)
+import fnrules as _R
+EXP_FACTS = _R.lean_def('opening_queries', 'Data', 'expFacts')

@@ -17,7 +17,7 @@ import LeanVM.Guest.Data.ValNames.«verify_sub»
 
 `vsPiOf rd σ V` reads the child proof off `verify_sub`'s valuation `σ`, the memory `rd` and the
 frame map `V`, choosing nothing and computing no hash: the stream is the memory's words at
-`stream` (`σ 25`) up to the cursor handed to `open_stacked` (`σ 1885`, found by comparing
+`stream` (`σ 25`) up to the cursor handed to `open_stacked` (`σ 1989`, found by comparing
 `g`-powers, `cursorLen`), then `open_stacked`'s words, and the openings are `open_stacked`'s
 (`open_stacked_osW` at its frame, the specialization read off the dispatch's selector `σ 278`, the
 rate off its selector `σ 66`).

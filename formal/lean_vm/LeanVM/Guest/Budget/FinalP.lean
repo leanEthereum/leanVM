@@ -214,7 +214,7 @@ theorem mainComplete_budgetP (fs : String → ℕ) (cert : String → V → ℕ)
         rets hn hv hb hT)
     (fun _ _ _ hr _ hnd op rd t args rets hn hv hb hT =>
       dvNH_weight (H op) hr hnd rd t args rets hn hv hb hT) h5
-    (fun _ _ _ hr hl => B1.Main.Bmain_le fs SB SK Bvf hr hl)
+    (fun _ _ _ hr hl => B1.Main.Bmain_le fs SB SK Bvf hS.dv.tk hr hl)
     (fun _ _ _ _ hl op => mainCount_le (H op) (c5 op) (s5 op) (v5 op) (jt op) hl)
 
 end

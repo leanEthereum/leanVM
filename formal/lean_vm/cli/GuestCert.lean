@@ -3717,7 +3717,7 @@ def partsOf (j : ℕ) (f : CompiledFunction) (F : GFacts) (cf : Core.Fn) (segs :
       ps := ps ++ [(sa - a) :: (if sa == a then 0 else J) :: cS ++ [uS] ++ (match ent.get? sa with
         | some (o, succ) => [0, 1, o] ++ succ
         | none => [])]
-      -- a costly part that is mostly a run of atoms walked inside one segment (from its start):
+      -- a costly part that is mostly a run of atoms walked inside one segment from the part's start:
       -- cut that run inside the segment, by statements
       let isAtom (x : ℕ) : Bool := match body[x]? with
         | some (.atom _) => true
@@ -3735,10 +3735,8 @@ def partsOf (j : ℕ) (f : CompiledFunction) (F : GFacts) (cf : Core.Fn) (segs :
         | none => some r) none
       let mut mids : Array (ℕ × ℕ) := #[]
       if let some (t0, len) := best then
-        let (sg, c1, u1) := if t0 == sa then (J, cS, uS) else match marks[t0]? with
-          | some (_, (sg, _), cnt, uq, _) => (sg, cnt, uq)
-          | none => (J, cS, uS)
-        if pc > partCost && 2 * len ≥ se - sa then
+        let (sg, c1, u1) := (J, cS, uS)
+        if pc > partCost && 2 * len ≥ se - sa && t0 == sa then
           -- the window's own segments, as the kernel's walk has them
           let (J0, env0, e0) := wins0.getD w (0, [], f.instructionCount)
           let segW := execG F f J0 e0 (env0.foldl (fun m (o, s) => m.insert o s) {})

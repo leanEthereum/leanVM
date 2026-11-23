@@ -30,7 +30,7 @@ inlined on its cell `1` and the window tables `.n 5` (`aggGrindA`), the challeng
 `aggregate_claims_loop1`, `batch_sumcheck__L23` on the nonce permutation's capacity with the rounds
 at `bc_sumcheck_msgs·g`, the last record's claim and the point, `bc_point1` (`1 + ` each coordinate
 of the point, from `.n 178`), the guarded loop `aggregate_claims_loop2` (weights
-`w = .n 185`), the check that its final claim is `bc_star_hint (.n 7)` times the weight, and the
+`w = .n 249`), the check that its final claim is `bc_star_hint (.n 7)` times the weight, and the
 claim written at `defer_stmt`. `seed_cells`: the five constants are the capacity cells of
 `Node.batchSeed` (G3's `aggSeed_cells`).
 -/

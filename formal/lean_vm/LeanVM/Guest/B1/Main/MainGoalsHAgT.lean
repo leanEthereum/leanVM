@@ -48,7 +48,7 @@ theorem mainGoalAgT (cert : String → V → ℕ)
   simp only [hOwn, List.getD_cons_succ, List.getD_cons_zero] at hdst
   have := aggregate_claims_completeAtT fs cert (m := w.children.length) (by omega)
     hl.children_le_sixteen (cs := hKids seed w) (by rw [List.length_map]) hrl hb
-    (fun rd hM => hkids_words fs fp hbl hrel hM) (fun rd _ hM => hLmain_winTabs fs fp hM) hdst
+    (fun rd hM => hkids_words fs fp hbl hrel hM) (fun rd _ hM => hLmain_winTabs fs fp hM) (hLmain_tabsIn fs fp) hdst
   exact this.lowMono (by norm_num)
 
 end

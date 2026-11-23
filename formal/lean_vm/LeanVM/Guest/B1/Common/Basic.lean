@@ -165,7 +165,6 @@ def RangeChecked (rd : Reader) (x k : E) : Prop :=
 /-- The specialization of `grind_check` to `bits`, `grind_check__L{bits}`, for the deployed
 grinds (a table, not `toString`, whose body a `module`'s kernel cannot unfold). -/
 def grindCheckName : ℕ → String
-  | 2 => "grind_check__L2"
   | 3 => "grind_check__L3"
   | 7 => "grind_check__L7"
   | 13 => "grind_check__L13"

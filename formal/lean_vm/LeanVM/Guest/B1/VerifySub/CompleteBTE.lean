@@ -20,7 +20,7 @@ public import LeanVM.Guest.Exact.Kids
 `vsPsRE`: `vsPsR`'s predicates, each tree also exact on the memory. `vs_kidsDepBPRE`: `vs_kidsDepBPR` by trees of them:
 `g_power_of_word` (`gpw_exactOk`) and the callees without a computed hint in their subtrees (`certify_placement`, the
 squeeze's arms, `opening_message__L1_L1`, `verify_bus_gkr`, `ring_switch_target`) exact on every valid tree, the two
-`log2_ceil_in_the_exponent`s, the two `grind_check`s and the bus grind's arm by their E forms, `verify_tables`,
+`log2_ceil_in_the_exponent`s and the bus grind's arm by their E forms, `verify_tables`,
 `verify_keccak` (`VkCompleteAtBKE`), `open_stacked` and the terminal given. `verify_sub_completeBTGE`:
 `verify_sub_completeBTG` by a tree also exact (`flatShape_every`, `verify_sub`'s own body without a computed hint),
 its buffers `vsSizes` of its bus depth (`vs_allocs_events`, its validity's buffers by `CompleteAtDTBR.monoVB`).
@@ -91,15 +91,6 @@ def VkCompleteAtBKE (fs : String → ℕ) (cert : String → V → ℕ) (κ Bvk 
       (Returns (capOf s'.perm ++ [ofK (Parameters.addressOfIndex curE) * gen ^ xs.length, word]))
       (fun rd t => t.Every (ExactAt coreProgram rd)) Bvk
 
-/-- **A `grind_check` on a passing proof of work, exact**, the window table from the caller's. -/
-theorem grind_kidBE {bits : ℕ} (hb : bits ∈ grindBitsDeployed) {κ : ℕ} (hκ : 11 ≤ κ) {B : ℕ}
-    (hT : TotalLe coreProgram fs (grindCheckName bits) fun _ ↦ B) {w : E} (sqE : ℕ)
-    (hpow : (w.limb 0).lane.toNat % 2 ^ bits = 0) :
-    CompleteAtDTBR fs cert κ (grindCheckName bits) (vsExpLin sqE) [w, ptr sqE * gen ^ winTabAt]
-      (Returns []) (fun rd t => True ∧ t.Every (ExactAt coreProgram rd)) B :=
-  (grind_check_completeDTBR_of hb hκ hT fun _ _ hL ↦ ⟨rfl, w, _, rfl, winTabs_vsExp hL, hpow⟩).mono le_rfl
-    fun _ _ h => ⟨trivial, h.2⟩
-
 namespace ChildSegs
 
 variable {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs bytecode seed c)
@@ -118,8 +109,8 @@ theorem busGrind_kidE (hbl : bytecode.length = 2 ^ 23) {κ : ℕ} (hκ : 11 ≤ 
 /-- **`verify_keccak` on the honest child, exact.** -/
 theorem vk_kidBE (hbl : bytecode.length = 2 ^ 23) {κ Bvk : ℕ} (hvk : VkCompleteAtBKE fs cert κ Bvk)
     (bs : List ℕ) (sqE : ℕ) :
-    CompleteAtDTBR fs cert κ "verify_keccak" ((S.kids bs sqE).getD 11 noKid []).Lin
-      ((S.kids bs sqE).getD 11 noKid []).args ((S.kids bs sqE).getD 11 noKid []).Out
+    CompleteAtDTBR fs cert κ "verify_keccak" ((S.kids bs sqE).getD 10 noKid []).Lin
+      ((S.kids bs sqE).getD 10 noKid []).args ((S.kids bs sqE).getD 10 noKid []).Out
       (fun rd t => t.Every (ExactAt coreProgram rd)) Bvk := by
   obtain ⟨-, -, hrun⟩ := S.keccak_run hbl
   obtain ⟨h9, h22, hn, ho, hf, -⟩ := S.keccak_facts hbl
@@ -163,27 +154,26 @@ theorem vs_kidsDepBPRE {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {see
       (fun rd t ↦ ((∀ op, Budget.WeighsLe coreProgram (W.ωv op) (vtWB W.toVsWords op) t) ∧ Pvt rd t) ∧
         t.Every (ExactAt coreProgram rd))
       (Tables.vtMax fs W.vt))
-    (hos : ∀ pv, CompleteAtDTBR fs cert κ (Whir.openName S.μs) ((S.kids bs sqE).getD 14 noKid pv).Lin
-      ((S.kids bs sqE).getD 14 noKid pv).args ((S.kids bs sqE).getD 14 noKid pv).Out
+    (hos : ∀ pv, CompleteAtDTBR fs cert κ (Whir.openName S.μs) ((S.kids bs sqE).getD 12 noKid pv).Lin
+      ((S.kids bs sqE).getD 12 noKid pv).args ((S.kids bs sqE).getD 12 noKid pv).Out
       (fun rd t => Pos rd t ∧ t.Every (ExactAt coreProgram rd)) (osBosAt fs W.Bnd S.μs))
-    (hterm : ∀ pv, ((S.kids bs sqE).getD 15 noKid pv).taken = true →
-      CompleteAtDTBR fs cert κ ((S.kids bs sqE).getD 15 noKid pv).f
-        ((S.kids bs sqE).getD 15 noKid pv).Lin ((S.kids bs sqE).getD 15 noKid pv).args
-        ((S.kids bs sqE).getD 15 noKid pv).Out
+    (hterm : ∀ pv, ((S.kids bs sqE).getD 13 noKid pv).taken = true →
+      CompleteAtDTBR fs cert κ ((S.kids bs sqE).getD 13 noKid pv).f
+        ((S.kids bs sqE).getD 13 noKid pv).Lin ((S.kids bs sqE).getD 13 noKid pv).args
+        ((S.kids bs sqE).getD 13 noKid pv).Out
         (fun rd t ↦ (∀ op, Budget.WeighsLe coreProgram (W.ωv op) (termWB W.toVsWords op) t) ∧
           t.Every (ExactAt coreProgram rd))
         (termBound fs W.Beqc W.K15 W.Bcs W.Brs)) :
     KidsDepBPR fs cert κ (S.kids bs sqE) (vsBsAt W Bvk S.μs S.rate) (vsPsRE W Pcp Pvt Pos) := by
   refine kidsDepBPR_of _ _ _ (by rw [ChildSegs.kids_length]; rfl) (by rw [ChildSegs.kids_length]; rfl)
     fun j hj pv ↦ ?_
-  have hj16 : j < 16 := by simpa [ChildSegs.kids_length] using hj
+  have hj16 : j < 14 := by simpa [ChildSegs.kids_length] using hj
   have hμ1 := S.hmu20
   have hμ2 := S.hmu30
   have hd := S.d_bounds hbl
   have hdE : S.d = log2Ceil S.pushT := S.d_eq hbl
   have hst := S.stackTotal_le hbl
   obtain ⟨hhs, h5⟩ := S.hs_bounds hbl
-  have hstat : ∀ g ∈ vsStaticS, TotalLe coreProgram fs g fun _ ↦ W.Kst g := W.hst
   have hgp : ExactOk "g_power_of_word" := gpw_exactOk
   interval_cases j <;> simp only [vsBsAt, vsBsWith, List.getD_cons_succ, List.getD_cons_zero]
   · exact ⟨fun _ ↦ ((vs_gpw_completeAtB κ [] (by have := S.hr4; omega) W.hg).toDTB.toR.andEvery
@@ -200,8 +190,6 @@ theorem vs_kidsDepBPRE {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {see
   · have hl : log2Ceil (Tables.stackTotal S.kappas) ≤ 30 := log2Ceil_le_iff.mpr hst
     exact ⟨fun _ ↦ (log2_L16_completeAtBE κ (by omega) _ sqE (lt_of_le_of_lt hst (by norm_num)) (by omega)).mono
       le_rfl fun _ _ h => ⟨trivial, h⟩, fun h ↦ by cases h⟩
-  · exact ⟨fun _ ↦ grind_kidBE (bits := 15) (κ := κ) (by decide) (by omega) (hstat _ mem_st15) sqE S.oodPow,
-      fun h ↦ by cases h⟩
   · exact ⟨fun _ ↦ (S.spf_kid κ W bs).toDTB.toR.andEvery (everyOn_exactOk (.free (squeeze_exactFree _
       (squeezeName_mem hμ1 hμ2)))), fun h ↦ by cases h⟩
   · exact ⟨fun _ ↦ (S.om_kid κ W bs).toDTB.toR.andEvery (everyOn_exactOk (.free om_exactFree)), fun h ↦ by cases h⟩
@@ -210,8 +198,6 @@ theorem vs_kidsDepBPRE {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {see
       fun h ↦ by cases h⟩
   · exact ⟨fun _ ↦ hvt _, fun h ↦ by cases h⟩
   · exact ⟨fun _ ↦ (S.vk_kidBE hbl hvk bs sqE).mono le_rfl fun _ _ h => ⟨trivial, h⟩, fun h ↦ by cases h⟩
-  · exact ⟨fun _ ↦ grind_kidBE (bits := 13) (κ := κ) (by decide) (by omega) (hstat _ mem_st13) sqE S.ringPow,
-      fun h ↦ by cases h⟩
   · exact ⟨fun _ ↦ (rst_completeAtB κ (S.keccak_facts hbl).2.2.2.2.2.2.2 S.rchs_length W.hl14).toDTB.toR.andEvery
       (everyOn_exactOk (.free rst_exactFree)), fun h ↦ by cases h⟩
   · exact ⟨fun _ ↦ hos pv, fun h ↦ by cases h⟩
@@ -281,13 +267,13 @@ theorem verify_sub_completeBTGE {bytecode : List K} (hbl : bytecode.length = 2 ^
       (fun rd t ↦ ((∀ op, Budget.WeighsLe coreProgram (W.ωv op) (vtWB W.toVsWords op) t) ∧ Pvt rd t) ∧
         t.Every (ExactAt coreProgram rd))
       (Tables.vtMax fs W.vt))
-    (hos : ∀ bs pv, CompleteAtDTBR fs cert κ (Whir.openName S.μs) ((S.kids bs sqE).getD 14 noKid pv).Lin
-      ((S.kids bs sqE).getD 14 noKid pv).args ((S.kids bs sqE).getD 14 noKid pv).Out
+    (hos : ∀ bs pv, CompleteAtDTBR fs cert κ (Whir.openName S.μs) ((S.kids bs sqE).getD 12 noKid pv).Lin
+      ((S.kids bs sqE).getD 12 noKid pv).args ((S.kids bs sqE).getD 12 noKid pv).Out
       (fun rd t => Pos rd t ∧ t.Every (ExactAt coreProgram rd)) (osBosAt fs W.Bnd S.μs))
-    (hterm : ∀ bs pv, ((S.kids bs sqE).getD 15 noKid pv).taken = true →
-      CompleteAtDTBR fs cert κ ((S.kids bs sqE).getD 15 noKid pv).f
-        ((S.kids bs sqE).getD 15 noKid pv).Lin ((S.kids bs sqE).getD 15 noKid pv).args
-        ((S.kids bs sqE).getD 15 noKid pv).Out
+    (hterm : ∀ bs pv, ((S.kids bs sqE).getD 13 noKid pv).taken = true →
+      CompleteAtDTBR fs cert κ ((S.kids bs sqE).getD 13 noKid pv).f
+        ((S.kids bs sqE).getD 13 noKid pv).Lin ((S.kids bs sqE).getD 13 noKid pv).args
+        ((S.kids bs sqE).getD 13 noKid pv).Out
         (fun rd t ↦ (∀ op, Budget.WeighsLe coreProgram (W.ωv op) (termWB W.toVsWords op) t) ∧
           t.Every (ExactAt coreProgram rd))
         (termBound fs W.Beqc W.K15 W.Bcs W.Brs)) :

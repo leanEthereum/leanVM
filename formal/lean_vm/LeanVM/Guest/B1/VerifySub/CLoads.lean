@@ -44,11 +44,11 @@ theorem vs_loads {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Di
     {outs : List (List E × Main.Layout)} (O : VsOuts S (bases b (vsSizes)) sqE outs)
     {rd : Reader} (hB : Main.MemL rd (bufL b (vsSizes) S.ownW)) :
     ∀ q ∈ vsCPre.filterMap Stmt.loadS, ∃ i,
-      (vsσ rd (vsW (bases b (vsSizes)) outs) (vsArgs seed c sqE outE) q.1).limb 0 *
+      (vsσ rd (vsW S.gw (bases b (vsSizes)) outs) (vsArgs seed c sqE outE) q.1).limb 0 *
           addressOfIndex q.2 = addressOfIndex i ∧
         (Main.RegionL Lin i ∨ Main.RegionL (bufL b (vsSizes) S.ownW) i) := by
   set bs := bases b (vsSizes) with hbs
-  set w := vsW bs outs with hw
+  set w := vsW S.gw bs outs with hw
   set σ := vsσ rd w (vsArgs seed c sqE outE) with hσ
   have hl : (vsArgs seed c sqE outE).length = 6 := rfl
   -- the regions
@@ -66,7 +66,7 @@ theorem vs_loads {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Di
     fun hi ha ↦ by
       rw [hσ, vs_w hl (by rw [← ha]; exact vs_allocVars_w _ (vsAllocVars_idx _ hi).1)]
       exact vsW_a hi ha
-  have pr : ∀ {j k a : ℕ}, j < 16 → k < (vsRetVars.getD j []).length →
+  have pr : ∀ {j k a : ℕ}, j < 14 → k < (vsRetVars.getD j []).length →
       (vsRetVars.getD j []).getD k 0 = a → a ∈ vsWVars → σ (.n a) = (outs.getD j ([], [])).1.getD k 0 :=
     fun hj hk ha hw' ↦ by rw [hσ, vs_w hl hw']; exact vsW_r hj hk ha
   -- the stream's length
@@ -103,13 +103,13 @@ theorem vs_loads {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Di
         vs_rdAt_of_load (vs_rdg hdims (k := 1 + t) (by simp [vsDimsW, S.hs_length]; omega))]
       simp only [vsDimsW, List.getD_cons_succ, show 1 + t = t + 1 by omega]
   have h595 : σ (.n (val% «verify_sub» "cursor@4")) = ptr (S.cK bs + S.xsK.length) := by
-    rw [pr (j := 11) (k := 5) (a := 578) (by norm_num) (by decide) rfl (by decide), O.o11, vs_ptr_add]
+    rw [pr (j := 10) (k := 5) (a := 630) (by norm_num) (by decide) rfl (by decide), O.o10, vs_ptr_add]
     simp only [capOf, List.cons_append, List.nil_append, List.getD_cons_succ, List.getD_cons_zero]
   have h582 : σ (.n (val% «verify_sub» "col_eval_words")) = ptr (S.cT bs + (13 + (3 * S.nT + 1))) := by
-    rw [pr (j := 10) (k := 9) (a := 565) (by norm_num) (by decide) rfl (by decide), O.o10, vs_ptr_add]
+    rw [pr (j := 9) (k := 9) (a := 617) (by norm_num) (by decide) rfl (by decide), O.o9, vs_ptr_add]
     simp only [Tables.VtHonest.retsH, Fs.squeeze, capOf, List.cons_append, List.nil_append,
       List.getD_cons_succ, List.getD_cons_zero]
-    rw [show ofK (addressOfIndex (S.vtB bs sqE (S.leavesB (outs.take 10))).cur) = ptr (S.cT bs)
+    rw [show ofK (addressOfIndex (S.vtB bs sqE (S.leavesB (outs.take 9))).cur) = ptr (S.cT bs)
       from rfl, mul_assoc, mul_assoc, ← pow_succ', ← pow_add]
     rfl
   have hcl : (DeferredBytecodeClaim.cells c.freshClaim).length = 24 := by
