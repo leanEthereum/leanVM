@@ -52,6 +52,15 @@ theorem le_two_pow_grindingBits (N : ℕ) : N ≤ 2 ^ (grindingBits N + (128 - s
     calc N ≤ 2 ^ ((N - 1).log2 + 1) := by omega
       _ ≤ _ := Nat.pow_le_pow_right (by norm_num) (by simp only [securityBits]; omega)
 
+/-- A message whose error is at most `8 / |E|` grinds no bits. -/
+theorem grindingBits_eq_zero_of_le {n : ℕ} (hn : n ≤ 8) : grindingBits n = 0 := by
+  unfold grindingBits
+  split_ifs with h
+  · rfl
+  · have : Nat.log2 (n - 1) < 3 := (Nat.log2_lt (by omega)).2 (by omega)
+    simp only [securityBits]
+    omega
+
 /-! ## A follower that starts with a challenge -/
 
 namespace VerifierProgram
