@@ -387,6 +387,7 @@ jobs:
       # The job's start, for the build's deadline, and the Lake cache in the job's own directory.
       - &lake-cache-dir
         name: Lake cache directory
+        working-directory: ${{ runner.temp }}  # before the checkout
         run: |
           echo "JOB_START=$(date +%s)" >> "$GITHUB_ENV"
           echo "LAKE_CACHE_DIR=$RUNNER_TEMP/lake-cache" >> "$GITHUB_ENV"
