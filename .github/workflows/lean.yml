@@ -55,9 +55,6 @@ jobs:
       - name: Forbid kernel-skipping options in the lakefiles
         run: |
           ! grep -nE 'skipKernelTC|debug\.|ArtifactCache|restoreAllArtifacts' $(ls formal/lakefile.lean formal/*/lakefile.toml formal/*/lakefile.lean 2>/dev/null)
-      # What the Lake cache packs, refuses and never installs (`lean-vm-formalization`).
-      - name: lake-cache.py on a fixture
-        run: python3 -I formal/tools/lake-cache-test.py
       # The statement imports Mathlib, VCVio, CompPoly and itself, nothing of the proofs, and `import all`
       # only of its own generated data (`Statement.Data`); an indented import line counts too.
       - name: Keep the statement apart from the proofs
@@ -82,6 +79,10 @@ jobs:
           lint: false
           use-github-cache: false
           use-mathlib-cache: auto
+      # What the Lake cache packs, refuses and never installs (`lean-vm-formalization`), and a
+      # round trip through Lake.
+      - name: lake-cache.py on fixtures
+        run: python3 -I formal/tools/lake-cache-test.py
       # The generated guest data's modules are heavy: `lake-build.py` admits them by memory. Fails on
       # any warning.
       - name: Build
@@ -353,11 +354,12 @@ jobs:
             echo changed=false >> "$GITHUB_OUTPUT"
           fi
 
-  # The proofs, in up to three chained jobs: a job whose build reaches its deadline packs what it
-  # built for the next job of the same run (`lean-vm-stage-N`), which restores only that, so a clean
-  # build stays clean and a cold one completes. The job whose build finishes runs the gates and, in a
-  # writer's run of main (a push to `main` or of a `v*` tag, the nightly schedule), publishes the
-  # whole build as the Lake cache `lake-cache.py get` restores; a pull request never publishes.
+  # The proofs, in up to three chained jobs. Each restores the Lake cache of main's newest successful
+  # run (`lake-cache.py get`), unless the run is clean (the nightly schedule, a `v*` tag, a dispatch
+  # asking for one); a later job also restores what its predecessor packed (`lean-vm-stage-N`, an
+  # artifact of this run) when that one's build reached its deadline. The job whose build finishes
+  # runs the gates and, in a writer's run (a push to main, the nightly schedule), publishes the
+  # whole build as the cache; a pull request never publishes. The check to require is `lean-vm`.
   lean-vm-formalization:
     needs: lean-vm-changes
     if: needs.lean-vm-changes.outputs.changed == 'true'
@@ -371,9 +373,8 @@ jobs:
       LAKE_ARTIFACT_CACHE: "true"
       LAKE_RESTORE_ARTIFACTS: "true"
       CLEAN: ${{ github.event_name == 'schedule' || startsWith(github.ref, 'refs/tags/') || inputs.clean == true }}
-      WRITER: ${{ (github.event_name == 'push' || github.event_name == 'schedule') && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) }}
+      WRITER: ${{ (github.event_name == 'push' || github.event_name == 'schedule') && github.ref == 'refs/heads/main' }}
       STAGE: ${{ github.job == 'lean-vm-formalization-3' && 3 || github.job == 'lean-vm-formalization-2' && 2 || 1 }}
-      PREVIOUS: ${{ github.job == 'lean-vm-formalization-3' && 2 || 1 }}
     outputs: &lean-vm-outputs
       timedout: ${{ steps.build.outputs.timedout }}
     defaults: &lean-vm-defaults
@@ -381,6 +382,11 @@ jobs:
         working-directory: formal/lean_vm
     steps: &lean-vm-steps
       - uses: actions/checkout@v4
+      # The build, its cache and the archive it packs need more than the runner's free disk.
+      - name: Free disk
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
+          df -h /
       # The Lake cache in the job's own directory, empty until a restore fills it.
       - &lake-cache-dir
         name: Lake cache directory
@@ -397,24 +403,25 @@ jobs:
           lint: false
           use-github-cache: false
           use-mathlib-cache: auto
-      # Lake restores every target whose input hash (its source, its imports' outputs, its options,
-      # the toolchain) the newest successful run of main mapped, and builds the rest. A clean run
-      # restores nothing; a later stage restores only its predecessor's pack.
       - &lake-cache-get
         name: Restore the Lake cache
-        if: env.STAGE == '1' && env.CLEAN != 'true'
+        if: env.CLEAN != 'true' || github.job == 'lean-vm-differentials'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: python3 -I ../lake-cache.py get .
+        run: |
+          python3 -I ../lake-cache.py get .
+          df -h /
       - name: Restore the previous stage's build
         if: env.STAGE != '1'
         uses: actions/download-artifact@v4
         with:
-          name: lean-vm-stage-${{ env.PREVIOUS }}
+          name: lean-vm-stage-${{ github.job == 'lean-vm-formalization-3' && 2 || 1 }}
           path: ${{ runner.temp }}/stage
       - name: Unpack the previous stage's build
         if: env.STAGE != '1'
-        run: python3 -I ../lake-cache.py unpack . "$RUNNER_TEMP/stage/lean-vm-lake-cache.tar.zst"
+        run: |
+          python3 -I ../lake-cache.py unpack . "$RUNNER_TEMP/stage/lean-vm-lake-cache.tar.zst"
+          rm -r "$RUNNER_TEMP/stage"
       # The tests' build exceeds the runner's memory at its peak, and so does a module that runs
       # beside a heavy one; the swap goes on the runner's scratch disk.
       - name: Add swap
@@ -451,13 +458,19 @@ jobs:
       # runs the one `lake build` with the modules admitted by their recorded memory, those of the
       # statement package (`Statement/`, its guest data as heavy) and the other dependencies included.
       # Stopped 35 minutes before the job's limit: what it built is packed for the next stage, and this
-      # job passes, its gates left to the stage that finishes.
+      # job passes, its gates left to the stage that finishes; the last stage fails instead. Any other
+      # failure (a proof, a kill for memory) fails the stage.
       - name: Build
         id: build
         run: |
+          deadline=$((JOB_START + 325 * 60))
           code=0
-          timeout -k 60 $((JOB_START + 325 * 60 - $(date +%s))) python3 -I ../lake-build.py . LeanVM LeanVMTests || code=$?
-          if [ $code = 124 ] || [ $code = 137 ]; then echo timedout=true >> "$GITHUB_OUTPUT"; exit 0; fi
+          timeout -k 60 $(( deadline > $(date +%s) ? deadline - $(date +%s) : 1 )) python3 -I ../lake-build.py . LeanVM LeanVMTests || code=$?
+          df -h /
+          if [ $code != 0 ] && [ "$(date +%s)" -ge $deadline ] && [ "$STAGE" != 3 ]; then
+            echo timedout=true >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           echo timedout=false >> "$GITHUB_OUTPUT"
           exit $code
       # The end theorems' axioms asked from outside the build, as for the other projects.
@@ -495,6 +508,7 @@ jobs:
           path: ${{ runner.temp }}/lean-vm-lake-cache.tar.zst
           compression-level: 0
           retention-days: ${{ steps.build.outputs.timedout == 'true' && 1 || 14 }}
+          overwrite: true
       # What is slow in the interpreter: the guest's Fiat-Shamir IV against the Rust's, the DA
       # vector digests.
       - name: The Rust vectors' costly checks
@@ -505,7 +519,6 @@ jobs:
       - name: The tests' compiled runs
         if: steps.build.outputs.timedout == 'false'
         run: lake env .lake/build/bin/test-runs
-
 
   lean-vm-formalization-2:
     needs: lean-vm-formalization
@@ -619,3 +632,31 @@ jobs:
           .lake/build/bin/leanvm-execute "$RUNNER_TEMP"/prover-cases/*/
           python3 -I scripts/prover-diff.py "$RUNNER_TEMP/prover-cases" --mutations 40 --jobs 4 \
             --identical --expected tests/fixtures/verifier
+
+  # The one check to require: skipped jobs count as passed, so it passes only if lean_vm was not
+  # concerned, or the differentials passed and exactly one stage finished its build and its gates.
+  lean-vm:
+    needs: [lean-vm-changes, lean-vm-formalization, lean-vm-formalization-2, lean-vm-formalization-3, lean-vm-differentials]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          python3 -I - <<'EOF'
+          import json, os, sys
+          needs = json.loads(os.environ["NEEDS"])
+          changes = needs["lean-vm-changes"]
+          if changes["result"] != "success":
+              sys.exit("lean-vm-changes did not succeed")
+          if changes["outputs"].get("changed") != "true":
+              print("lean_vm is not concerned by this change")
+              sys.exit(0)
+          if needs["lean-vm-differentials"]["result"] != "success":
+              sys.exit("lean-vm-differentials did not succeed")
+          gated = [j for j in ("lean-vm-formalization", "lean-vm-formalization-2", "lean-vm-formalization-3")
+                   if needs[j]["result"] == "success" and needs[j]["outputs"].get("timedout") == "false"]
+          if len(gated) != 1:
+              sys.exit(f"no single stage finished the build and ran the gates: {needs}")
+          print(f"the build finished and the gates ran in {gated[0]}")
+          EOF

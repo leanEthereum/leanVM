@@ -5,23 +5,17 @@
   python3 -I lake-cache.py unpack DIR ARCHIVE [--cache CACHE]
   python3 -I lake-cache.py digest
 
-Lake keeps what it builds in its artifact cache (`lake env printenv LAKE_CACHE_DIR`: `LAKE_CACHE_DIR`, or the
-toolchain's directory): every output by its content's hash (`artifacts/`), and, per package, a map from a target's
-input hash to its outputs (`outputs/<package>/<hash>.json`). The input hash is the one in the target's trace
-(`depHash`): its source, its imports' outputs, its options and the toolchain. With `LAKE_ARTIFACT_CACHE` on
-(`lake-build.py` turns it on outside CI; `lean.yml` turns it on), Lake restores a target whose input hash the cache
-maps, and builds every other one.
+Lake's artifact cache (`lake env printenv LAKE_CACHE_DIR`) holds every output by content hash (`artifacts/`) and,
+per package, a map from a target's input hash, its trace's `depHash`, to its outputs (`outputs/<package>/<hash>.json`).
 
 `pack` writes the entries of every target the workspace of DIR (a project: `lean_vm`) built or restored, read from the
 traces in its packages' build directories: of Mathlib's packages only the compiled objects, as `lake exe cache get`
-provides the rest. It refuses a trace of a module built with `-Ddebug.skipKernelTC=true` (which is in the input hash
-anyway; `lake-build.py --dev` builds into another directory). `unpack` tests the whole archive, then adds its entries
-to the cache, each file written whole before it gets its name, never replacing one there.
+provides the rest. It refuses any trace that mentions `skipKernelTC`. `unpack` tests the whole archive, then adds its
+entries to the cache, each file written whole before it gets its name, never replacing one there.
 
-`get` unpacks the archive `lean.yml` published from the newest successful run of a commit in `main`'s history (a push
-to `main` or of a `v*` tag, or the nightly schedule: what `main`'s own workflow runs), named after `digest`, the hash of
-the build tooling and toolchains: an archive built with other tooling is not read. A pull request never publishes. Run
-`lake exe cache get` first: `get` asks Lake for its cache directory, which loads the workspace.
+`get` unpacks the archive `lean.yml` published from the newest successful push or schedule run on `main`, named after
+`digest`, the hash of the build tooling and toolchains, which no input hash covers. On any error it warns and restores
+nothing: the build is then cold. Run `lake exe cache get` first: `get` asks Lake for its cache directory.
 """
 
 from __future__ import annotations
@@ -42,7 +36,7 @@ REPO = "leanEthereum/leanVM"
 WORKFLOW = ".github/workflows/lean.yml"
 NAME = "lean-vm-lake-cache"
 MEMBER = re.compile(r"artifacts/[0-9a-f]{16}(\.\w+)*|outputs/[\w«»-]+/[0-9a-f]{16}\.json")
-NO_KERNEL = "-Ddebug.skipKernelTC=true"
+NO_KERNEL = "skipKernelTC"
 
 
 def log(message: str) -> None:
@@ -51,7 +45,8 @@ def log(message: str) -> None:
 
 def digest() -> str:
     """The build tooling and the toolchains, which no input hash covers."""
-    files = [FORMAL / "lake-build.py", FORMAL / "lake-cache.py", *sorted(FORMAL.glob("*/lean-toolchain"))]
+    files = [FORMAL / "lake-build.py", FORMAL / "lake-cache.py", *sorted(FORMAL.glob("lean-toolchain")),
+             *sorted(FORMAL.glob("*/lean-toolchain"))]
     h = hashlib.sha256()
     for f in files:
         h.update(f.relative_to(FORMAL).as_posix().encode() + b"\0" + f.read_bytes() + b"\0")
@@ -103,7 +98,7 @@ def pack(pkg: Path, archive: Path, cache: Path) -> None:
     for build, from_mathlib in build_dirs(pkg):
         for trace in (build / "ir" if from_mathlib else build).rglob("*.trace"):
             data = load(trace)
-            if NO_KERNEL in strings(data.get("inputs")):
+            if any(NO_KERNEL in t for t in strings(data)):
                 sys.exit(f"lake-cache: {trace} was built without the kernel: nothing packed")
             dep = data.get("depHash")
             found = [m for s in scopes if isinstance(dep, str) and (m := s / f"{dep}.json").is_file() and load(m)]
@@ -158,28 +153,33 @@ def gh(*args: str) -> str:
     return subprocess.run(["gh", *args], capture_output=True, text=True, check=True).stdout
 
 
-def in_main(sha: str) -> bool:
-    """Whether the commit is in `main`'s history: `main` is the commit or descends from it."""
-    return json.loads(gh("api", f"repos/{REPO}/compare/{sha}...main"))["status"] in ("identical", "ahead")
-
-
 def get(pkg: Path) -> None:
     name = f"{NAME}-{digest()}"
-    runs = sorted((r for event in ("push", "schedule") for r in json.loads(gh(
-        "api", f"repos/{REPO}/actions/workflows/{Path(WORKFLOW).name}/runs?event={event}&status=success&per_page=50"))[
-        "workflow_runs"]), key=lambda r: r["created_at"], reverse=True)
+    try:
+        runs = sorted((r for event in ("push", "schedule") for r in json.loads(gh(
+            "api", f"repos/{REPO}/actions/workflows/{Path(WORKFLOW).name}/runs"
+                   f"?event={event}&branch=main&status=success&per_page=50"))["workflow_runs"]),
+            key=lambda r: r["created_at"], reverse=True)
+    except (subprocess.CalledProcessError, KeyError, json.JSONDecodeError) as e:
+        runs = []
+        log(f"cannot list main's runs: {e}")
     for run in runs:
-        if run["path"] != WORKFLOW or run["head_repository"]["full_name"] != REPO or not any(
-                not a["expired"] for a in json.loads(
-                    gh("api", f"repos/{REPO}/actions/runs/{run['id']}/artifacts?name={name}"))["artifacts"]):
-            continue
-        if not in_main(run["head_sha"]):
-            continue
-        with tempfile.TemporaryDirectory() as tmp:
-            gh("run", "download", str(run["id"]), "-R", REPO, "-n", name, "-D", tmp)
-            log(f"{name} from run {run['id']} ({run['event']} of {run['head_branch']} at {run['head_sha'][:10]})")
-            unpack(Path(tmp) / f"{NAME}.tar.zst", cache_dir(pkg))
-        return
+        try:
+            # `head_branch` alone could be a tag named `main`: the commit must be on the branch.
+            if not (run["event"] in ("push", "schedule") and run["head_branch"] == "main"
+                    and run["conclusion"] == "success"
+                    and any(not a["expired"] for a in json.loads(gh(
+                        "api", f"repos/{REPO}/actions/runs/{run['id']}/artifacts?name={name}"))["artifacts"])
+                    and json.loads(gh("api", f"repos/{REPO}/compare/{run['head_sha']}...refs/heads/main"))[
+                        "status"] in ("identical", "ahead")):
+                continue
+            with tempfile.TemporaryDirectory() as tmp:
+                gh("run", "download", str(run["id"]), "-R", REPO, "-n", name, "-D", tmp)
+                log(f"{name} from run {run['id']} ({run['event']} of main at {run['head_sha'][:10]})")
+                unpack(Path(tmp) / f"{NAME}.tar.zst", cache_dir(pkg))
+            return
+        except (subprocess.CalledProcessError, KeyError, json.JSONDecodeError, SystemExit) as e:
+            log(f"run {run.get('id')}: {e}: skipped")
     log(f"no successful run of main has {name}: nothing restored")
     if os.environ.get("GITHUB_ACTIONS"):
         print(f"::warning::no Lake cache {name} restored: a cold build", flush=True)

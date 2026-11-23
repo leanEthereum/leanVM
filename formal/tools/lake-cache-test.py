@@ -1,18 +1,53 @@
-"""`lake-cache.py` on a fixture: what it packs, what it refuses, what it never installs.
+"""`lake-cache.py` on fixtures: what it packs, what it refuses, what it never installs, and a round trip through Lake.
 
-  python3 -I tools/lake-cache-test.py
+  python3 -I tools/lake-cache-test.py        (needs `lake`, with the toolchain of `formal/lean-toolchain`)
 """
 import io
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tarfile
 import tempfile
 from pathlib import Path
 
-SCRIPT = Path(__file__).resolve().parent.parent / "lake-cache.py"
+FORMAL = Path(__file__).resolve().parent.parent
+SCRIPT = FORMAL / "lake-cache.py"
 DEP, ART = "0123456789abcdef", "fedcba9876543210.olean"
+
+
+def lake(ws: Path, cache: Path, *args: str) -> str:
+    env = {**os.environ, "LAKE_ARTIFACT_CACHE": "true", "LAKE_RESTORE_ARTIFACTS": "true", "LAKE_CACHE_DIR": str(cache)}
+    r = subprocess.run(["lake", *args], cwd=ws, env=env, capture_output=True, text=True)
+    check(r.returncode == 0, f"lake {' '.join(args)} failed in {ws}:\n{r.stdout}{r.stderr}")
+    return r.stdout + r.stderr
+
+
+def round_trip(root: Path) -> None:
+    """A two-module workspace built, packed, unpacked for a copy at another path: Lake rebuilds nothing."""
+    ws = root / "a"
+    write(ws / "lakefile.toml", 'name = "toy"\ndefaultTargets = ["Toy"]\n\n[[lean_lib]]\nname = "Toy"\n')
+    shutil.copy(FORMAL / "lean-toolchain", ws / "lean-toolchain")
+    write(ws / "Toy/A.lean", "def a : Nat := 41\n")
+    write(ws / "Toy/B.lean", "import Toy.A\ntheorem b : a + 1 = 42 := by decide\n")
+    write(ws / "Toy.lean", "import Toy.B\n")
+    lake(ws, root / "cache", "build")
+    r = run("pack", ws, root / "a.tar.zst", "--cache", root / "cache")
+    check(r.returncode == 0, f"pack failed: {r.stderr}")
+    copy = root / "b"
+    shutil.copytree(ws, copy, ignore=shutil.ignore_patterns(".lake"))
+    r = run("unpack", copy, root / "a.tar.zst", "--cache", root / "other")
+    check(r.returncode == 0, f"unpack failed: {r.stderr}")
+    out = lake(copy, root / "other", "build")
+    check("Built" not in out, f"Lake rebuilt what the cache held:\n{out}")
+    lake(copy, root / "other", "build", "--no-build")
+
+    text = (ws / "lakefile.toml").read_text()
+    write(ws / "lakefile.toml", text + 'moreLeanArgs = ["-Ddebug.skipKernelTC=true"]\n')
+    lake(ws, root / "cache", "build")
+    r = run("pack", ws, root / "dev.tar.zst", "--cache", root / "cache")
+    check(r.returncode != 0 and "without the kernel" in r.stderr, "a build through moreLeanArgs without the kernel was packed")
 
 
 def run(*args: str) -> subprocess.CompletedProcess:
@@ -32,6 +67,8 @@ def check(ok: bool, what: str) -> None:
 def main() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         cases(Path(tmp))
+    with tempfile.TemporaryDirectory() as tmp:
+        round_trip(Path(tmp))
     print("lake-cache-test: ok")
 
 
