@@ -10,7 +10,7 @@ module
 public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Guest.B1.VerifySub.AcceptRun
-public import LeanVM.Guest.Child.Fresh
+public import LeanVM.Protocol.Verifier.Deferred
 public import LeanVM.Guest.Child.Reads
 public import LeanVM.Protocol.WithHashBridge
 public import LeanVM.Protocol.WithHash
@@ -368,11 +368,11 @@ theorem inRange_verifyStackedOpening {μ r : ℕ} {level : Whir.Level} {rest : L
   subst hlv
   simp
 
-/-- **The verifier program opens in range**, from no commitment. -/
-theorem inRange_leanVmProgram (bytecode : List K) (publicInput : Digest) :
-    InRange (leanVmVerifierProgram bytecode publicInput) [] fun _ _ ↦ True := by
-  rw [leanVmProgram_eq]
-  refine InRange.bind (Q := fun _ _ ↦ True) ?_ fun _ _ _ ↦ trivial
+/-- **`verifyExecutionClaims ev` opens in range**, from no commitment, for a bytecode evaluation
+`ev` whose bus phase commits nothing. -/
+theorem inRange_verifyExecutionClaims {ev : List K → List E → E → VerifierProgram Unit}
+    (hev : ∀ layout, NoCommit (verifyBusBalance ev layout)) (bytecode : List K) (publicInput : Digest) :
+    InRange (verifyExecutionClaims ev bytecode publicInput) [] fun _ _ ↦ True := by
   unfold verifyExecutionClaims
   simp only [VerifierProgram.bind_eq]
   refine InRange.nc_bind (noCommit_readSizes _) fun ls _ ↦ ?_
@@ -382,7 +382,7 @@ theorem inRange_leanVmProgram (bytecode : List K) (publicInput : Digest) :
   obtain ⟨level, rest, hcfg, rfl⟩ := hc
   rw [List.nil_append]
   refine InRange.nc_bind (noCommit_readOod _) fun ood _ ↦ ?_
-  refine InRange.nc_bind (noCommit_verifyBusBalance_computed _) fun _ _ ↦ ?_
+  refine InRange.nc_bind (hev _) fun _ _ ↦ ?_
   refine InRange.nc_bind (noCommit_tablePhase _ _) fun _ _ ↦ ?_
   refine InRange.nc_bind (noCommit_publicInputPhase _ _) fun _ _ ↦ ?_
   refine InRange.nc_bind (noCommit_keccakPhaseClaims _ _) fun kc _ ↦ ?_
@@ -392,6 +392,13 @@ theorem inRange_leanVmProgram (bytecode : List K) (publicInput : Digest) :
   have hrs := noCommit_ringSwitch kp ks
   generalize ringSwitch kp ks = rsw at hrs ⊢
   exact InRange.nc_bind hrs fun _ _ ↦ inRange_verifyStackedOpening hcfg _
+
+/-- **The verifier program opens in range**, from no commitment. -/
+theorem inRange_leanVmProgram (bytecode : List K) (publicInput : Digest) :
+    InRange (leanVmVerifierProgram bytecode publicInput) [] fun _ _ ↦ True := by
+  rw [leanVmProgram_eq]
+  exact InRange.bind (Q := fun _ _ ↦ True)
+    (inRange_verifyExecutionClaims noCommit_verifyBusBalance_computed _ _) fun _ _ _ ↦ trivial
 
 end
 end LeanVM.Guest.Child

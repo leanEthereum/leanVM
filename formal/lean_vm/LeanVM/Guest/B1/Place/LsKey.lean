@@ -6,7 +6,6 @@
 
 module
 
-public import LeanVM.Guest.B1.Place.Ls
 public import LeanVM.Guest.B1.Place.LsLoops
 public import LeanVM.Guest.B1.Place.LrProof
 
@@ -33,11 +32,6 @@ open LeanVM.Protocol.Verifier (gen)
 @[expose] public section
 
 /-! ## The sum, placed -/
-
-theorem one_add_gen_pow_ne {Q : ℕ} (h1 : 1 ≤ Q) (h2 : Q < 2 ^ 30) : (1 : E) + gen ^ Q ≠ 0 := by
-  intro h0
-  have : gen ^ Q = gen ^ 0 := by rw [pow_zero]; exact (CharTwo.add_eq_zero.mp h0).symm
-  exact absurd (gen_pow_inj (by omega) (by omega) this) (by omega)
 
 /-- **`level_residual_sum`, placed** at `fp`: its buffers `AC`, `PW` at `fp + fs sum`, its loop's
 tree of `m` words after them. -/

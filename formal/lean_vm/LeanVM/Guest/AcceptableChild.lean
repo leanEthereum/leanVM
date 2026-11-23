@@ -9,7 +9,6 @@
 module
 
 public import Statement.LeanVmGuestCompleteness
-public import LeanVM.Guest.RefusingZero
 public import LeanVM.Protocol.Compile.RunPure
 public import LeanVM.Guest.Coverage
 public import LeanVM.Guest.GuestConst
@@ -29,9 +28,8 @@ its openings agreeing in the guest program's Merkle caps at every query step of 
 `GuestCompleteOnAcceptableChildren` is the guest program's completeness on nodes within the
 deployed limits whose children are acceptable, for every seed; `Child/Collision.lean` shows that
 the children of a node `NodeRelation` admits are acceptable, or a child's proof exhibits a
-collision (`Child.acceptableChildren_or_collide`). A child carrying the
-honest prover's proof (`HonestChild`) is acceptable too (`GuestChildComplete`,
-`HonestChildren.lean`).
+collision (`Child.acceptableChildren_or_collide`). A child carrying the honest prover's proof
+(`HonestChild`) is acceptable too (`GuestChildComplete`, `HonestChildren.lean`).
 -/
 
 @[expose] public section
@@ -158,9 +156,10 @@ open Coverage
 
 /-- **Every node within the deployed limits has a valid execution of the leanISA guest program**:
 for every seed, statement and witness with `NodeRelation`, within the deployed limits
-(`DeployedLimits`), every child one the guest program accepts
-(`AcceptableChild`: at one of its opening arms, its openings agreeing in the caps), there is a valid execution of the guest program on the statement's digest of committed
-size at most `2^30`. Proved by `LeanVM.Guest.Budget.guest_complete_on_acceptable_children`. -/
+(`DeployedLimits`), every child one the guest program accepts (`AcceptableChild`: at one of its
+opening arms, its openings agreeing in the caps), there is a valid execution of the guest program
+on the statement's digest of committed size at most `2^30`. Proved by
+`LeanVM.Guest.Budget.guest_complete_on_acceptable_children`. -/
 abbrev GuestCompleteOnAcceptableChildren : Prop :=
   ∀ (seed : Digest) (statement : NodeStatement) (witness : NodeWitness),
     NodeRelation (bytecodeWords guestProgram) seed statement witness →
@@ -173,44 +172,26 @@ abbrev GuestCompleteOnAcceptableChildren : Prop :=
 
 /-- **A child carrying an honest proof**: its fresh claim on the bytecode is true, and its proof
 is the honest prover's, with the deployed Keccak, of an execution of the guest program on its
-statement's digest under the deployed seed, and the leanVM verifier refusing a zero challenge
-accepts it. Every such child that `NodeRelation` admits is acceptable
-(`acceptableChildren_of_honest`). -/
+statement's digest under the deployed seed. Every such child that `NodeRelation` admits is
+acceptable (`acceptableChildren_of_honest`). -/
 def HonestChild (child : Child) : Prop :=
   let input := PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) child.statement)
   child.freshClaim.Holds (bytecodeWords guestProgram) ∧
     ∃ (execution : Execution guestProgram) (ρ : ℕ),
       LeanVM.leanVmHonestProver (m := Id) keccakF1600 guestProgram input execution ρ (2 ^ 35) =
-        some child.proof ∧
-      verifierRefusingZero (m := Id) keccakF1600 guestProgram input child.proof = true
+        some child.proof
 
-/-- **An honest prover's proof over the deployed Keccak-f[1600]**, the hash Keccak-256, if it
-makes one (`HonestChild`'s, written out). -/
-def honestProofWithDeployedKeccak (honestProver : HonestProver) (program : LeanIsaProgram)
-    (input : PublicInput) (execution : Execution program) (ρ nonceAttemptsPerProofOfWork : ℕ) :
-    Option Proof :=
-  honestProver (m := Id) keccakF1600 program input execution ρ nonceAttemptsPerProofOfWork
-
-/-- **The honest proof of an execution of the guest program is a child the guest program
-accepts**:
-1. it is rarely refused (`HonestProofRarelyRefused`);
-2. its proof with the deployed Keccak (`honestProofWithDeployedKeccak`), if it makes one, of an
-   execution of the guest program on a statement's digest under the deployed seed, wherever `verifierRefusingZero` with the deployed Keccak accepts it, forms
-   with the statement (its deferred claim shaped) and some claim `fresh` on the bytecode whose
-   value is true (`BytecodeClaim.Holds`) a child the guest program accepts (`AcceptableChild`).
-Proved by `LeanVM.Guest.Budget.guest_child_complete`. -/
+/-- **A child carrying an honest proof is one the guest program accepts** under the deployed seed,
+wherever its deferred claim has the bytecode's shape and the deferring verifier accepts its proof
+with its fresh claim (`ChildrenProven`'s two conditions). Proved by
+`LeanVM.Guest.Budget.guest_child_complete`. -/
 def GuestChildComplete : Prop :=
-  HonestProofRarelyRefused ∧
-  ∀ (statement : NodeStatement) (execution : Execution guestProgram) (ρ : ℕ),
-    statement.deferredClaim.HasBytecodeShape (bytecodeWords guestProgram) →
-    let input := PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) statement)
-    ∀ proof, honestProofWithDeployedKeccak LeanVM.leanVmHonestProver guestProgram input execution ρ
-        (2 ^ 35) =
-      some proof →
-    verifierRefusingZero (m := Id) keccakF1600 guestProgram input proof = true →
-    ∃ fresh, fresh.Holds (bytecodeWords guestProgram) ∧
-      AcceptableChild (bytecodeWords guestProgram) (deployedSeed guestProgram)
-        ⟨statement, fresh, proof⟩
+  ∀ child : Child, HonestChild child →
+    child.statement.deferredClaim.HasBytecodeShape (bytecodeWords guestProgram) →
+    verifyDeferred (bytecodeWords guestProgram) (deployedSeed guestProgram)
+      (statementDigest (deployedSeed guestProgram) child.statement) child.freshClaim child.proof =
+        true →
+    AcceptableChild (bytecodeWords guestProgram) (deployedSeed guestProgram) child
 
 end Completeness
 

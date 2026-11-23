@@ -7,8 +7,8 @@
 module
 
 public import LeanVM.Guest.B1.Common.Basic
+public import LeanVM.Guest.B1.Whir.IsZeroDef
 public import LeanVM.Guest.B1.Common.Find
-public import LeanVM.Guest.B1.Whir.IsZeroDefs
 import LeanVM.Guest.B1.Common.Vc
 
 /-!
@@ -26,7 +26,6 @@ namespace LeanVM.Guest.B1
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Protocol.Verifier
 
 @[expose] public section
-
 
 private theorem ofK_eq_zero_iff (a : K) : ofK a = 0 ↔ a = 0 := by
   rw [ofK_eq_ofLimbs, zero_eq_ofLimbs, ofLimbs_inj]

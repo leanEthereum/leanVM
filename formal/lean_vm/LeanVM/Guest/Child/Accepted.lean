@@ -12,7 +12,6 @@ public import LeanVM.Guest.Child.Reads
 public import LeanVM.Guest.B1.VerifySub.Sizes
 public import LeanVM.Protocol.Verifier.Phases
 public import LeanVM.Protocol.Verifier.Claims
-public import LeanVM.Guest.Limits
 
 /-!
 # Children the verifier accepts
@@ -156,13 +155,6 @@ theorem stackLog_ge_of_buildLayout {bytecode : List K} (hbl : bytecode.length = 
     (r := B1.Tables.stackTotal (columnKappas logMemory 19 hs)) (k := 19)
     (by unfold Coverage.minChildStackLog at hlt; omega)
   omega
-
-/-! ## Lists -/
-
-theorem zip_map_self {α β : Type} (f : α → β) :
-    ∀ l : List α, (l.map f).zip l = l.map fun a ↦ (f a, a)
-  | [] => rfl
-  | a :: l => by rw [List.map_cons, List.map_cons, List.zip_cons_cons, zip_map_self f l]
 
 /-! ## Acceptable children -/
 

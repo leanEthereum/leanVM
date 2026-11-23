@@ -1,17 +1,16 @@
 /-
-  LeanVM.Guest.B1.Whir.IsZeroDefs
+  LeanVM.Guest.B1.Whir.IsZeroDef
 
-  `is_zero`'s meaning, apart from its proof at `coreProgram` (`IsZero`), so that a template module
-  can name it without importing the guest's bodies.
+  `is_zero`'s meaning, apart from its proof so that per-function proofs reading it import no core IR.
 -/
 
 module
 
-public import LeanVM.Guest.Word
+public import LeanVM.Guest.B1.Common.Basic
 
 namespace LeanVM.Guest.B1
 
-open LeanVM.Parameters LeanVM.Semantics
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
 
 @[expose] public section
 

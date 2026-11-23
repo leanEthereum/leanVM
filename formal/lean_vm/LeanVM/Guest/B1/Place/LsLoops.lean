@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Whir.SlowSound
+public import LeanVM.Guest.B1.Whir.SlowComplete
 public import LeanVM.Guest.B1.Place.LrPure
 import LeanVM.Guest.B1.Common.Vc
 

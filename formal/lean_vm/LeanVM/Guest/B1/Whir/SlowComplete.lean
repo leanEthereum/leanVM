@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Whir.SlowComplete
 
-  `residual_query_slow`, `level_residual_sum`, its loop and `level_residual_slow`, completely.
+  `residual_query_slow` and `level_residual_sum`'s loop, completely.
 -/
 
 module
@@ -18,9 +18,9 @@ no other):
 * `rqs_complete`: `residual_query_slow`'s body at the challenges it reads returns the product of its
   factors, on the valuation `rqsSig` (the head's values, then eleven a coordinate, `rqsBlk`);
 * `lrsLoop_complete`: the loop runs from `g^j`, `j < Q`, to `g^Q`, on a memory whose buffers hold
-  the sum's partial values (`lrsAcc`) and `λ`'s powers, its `residual_query_slow` at depth `1`;
-* `lsum_complete`: `level_residual_sum` returns `lrsAcc … Q` on such a memory;
-* `lrs_complete`: `level_residual_slow` at a nonzero flag in `K` returns its sum.
+  the sum's partial values (`lrsAcc`) and `λ`'s powers, its `residual_query_slow` at depth `1`.
+
+The sum and `level_residual_slow` themselves are placed in `Place/LsKey.lean`.
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -255,51 +255,6 @@ theorem lrsLoop_complete {P : Program} {rq self : String} {fn : Fn} (hf : P.find
     intro j hji
     exact lrsLoop_step_complete hf hpar hb (by omega) hacc hpw hpos hrq
       (fun _ ↦ ih (j + 1) (by omega))
-
-/-- **`level_residual_sum`, completely**: on a memory whose buffers `acc`, `pw` hold `lrsAcc` and
-`λ^(2 + k)` up to `Q ≥ 1`, the positions read and its `residual_query_slow` returning each query's
-weight at depth `1`, it returns `lrsAcc … Q`. -/
-theorem lsum_complete {P : Program} {Q n vo : ℕ} {rq loop : String} {fo fl : Fn} (hQ : 1 ≤ Q)
-    (hQb : Q < 2 ^ 30) (hpar : fo.params = lsumParams) (hb : fo.body = lsumBody Q loop)
-    (hfl : P.find? loop = some fl) (hflp : fl.params = lrsLoopParams)
-    (hflb : fl.body = lrsLoopBody rq loop) {posp fc tc lam acc pw : E} {pos cs : ℕ → E}
-    (hacc : ∀ k ≤ Q, LoadHolds rd acc k (lrsAcc n vo pos cs lam k))
-    (hpw : ∀ k ≤ Q, LoadHolds rd pw k (lam ^ 2 * lam ^ k))
-    (hpos : ∀ k < Q, LoadHolds rd posp k (pos k))
-    (hrq : ∀ k < Q, P.relN rd 1 rq [pos k, fc, tc] [∏ t ∈ Finset.range n, rqsFac vo n cs (pos k) t]) :
-    fo.Sem (P.relN rd (Q + 1)) rd [posp, fc, tc, lam] [lrsAcc n vo pos cs lam Q] := by
-  have hgQ : gw Q = gen ^ Q := gw_eq (by unfold u128Bound; omega)
-  refine ⟨fun v ↦ ([posp, fc, tc, lam, gw (Q + 1), acc, gw (Q + 1), pw, word 0 0, lam * lam, word 1 0,
-    gw Q, word 1 0 + gw Q, word 1 0, gw Q, lrsAcc n vo pos cs lam Q] : List E).getD v.idx 0,
-    by rw [hpar]; rfl, ?_⟩
-  rw [hb]
-  simp only [lsumBody, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil]
-  have l0 : LoadHolds rd acc 0 (word 0 0) := by
-    have := hacc 0 (Nat.zero_le _)
-    rwa [lrsAcc, Finset.sum_range_zero, mul_zero, ← word_zero] at this
-  have lp0 : LoadHolds rd pw 0 (lam * lam) := by
-    have := hpw 0 (Nat.zero_le _)
-    rwa [pow_zero, mul_one, pow_two] at this
-  have hloop := lrsLoop_complete hfl hflp hflb hacc hpw hpos hrq (Q - 1) 0 (by omega)
-  rw [show Q - 1 + 2 = Q + 1 by omega] at hloop
-  refine ⟨rfl, trivial, rfl, trivial, rfl, l0, rfl, lp0, rfl, rfl, rfl, rfl, rfl, ⟨?_, fun _ ↦ ?_, hacc Q le_rfl, rfl⟩⟩
-  · show IsInK (word 1 0 + gw Q)
-    rw [word_one, hgQ, ← pow_zero gen]
-    exact isInK_add (gen_pow_isInK _) (gen_pow_isInK _)
-  · show P.relN rd (Q + 1) loop [word 1 0, gw Q, acc, pw, posp, fc, tc, lam] []
-    rw [word_one, hgQ, ← pow_zero gen]
-    exact hloop
-
-/-- **`level_residual_slow`, completely**, at a nonzero flag in `K`: its sum's relation at depth
-`d` returns the sum, so does it, at depth `d + 1`. -/
-theorem lrs_complete {P : Program} {sum : String} {fo : Fn} {d : ℕ} (hpar : fo.params = lrsParams)
-    (hb : fo.body = lrsBody sum) {posp fc tc lam z s : E} (hz : z ≠ 0) (hzK : IsInK z)
-    (hs : P.relN rd d sum [posp, fc, tc, lam] [s]) :
-    fo.Sem (P.relN rd d) rd [posp, fc, tc, lam, z] [s] := by
-  refine ⟨fun v ↦ ([posp, fc, tc, lam, z, s, s] : List E).getD v.idx 0, by rw [hpar]; rfl, ?_⟩
-  rw [hb]
-  simp only [lrsBody, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil]
-  exact ⟨hzK, fun h ↦ absurd h hz, fun _ ↦ ⟨hs, rfl, rfl⟩⟩
 
 end
 end LeanVM.Guest.B1.Whir
