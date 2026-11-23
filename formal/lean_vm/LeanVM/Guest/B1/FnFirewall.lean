@@ -34,24 +34,16 @@ import LeanVM.Guest.B1.Sig.MerkleComplete
 import LeanVM.Guest.B1.Sig.SeqComplete
 import LeanVM.Guest.B1.Sig.Shapes
 import LeanVM.Guest.B1.Sig.Shifts
-import LeanVM.Guest.B1.Sig.SpWotsArms
-import LeanVM.Guest.B1.Sig.SpWotsCheck
-import LeanVM.Guest.B1.Sig.SpWotsComplete
-import LeanVM.Guest.B1.Sig.SpWotsCompleteR
 import LeanVM.Guest.B1.Sig.SpWotsCompleteStmt
-import LeanVM.Guest.B1.Sig.SpWotsData
-import LeanVM.Guest.B1.Sig.SpWotsData0
-import LeanVM.Guest.B1.Sig.SpWotsData1
-import LeanVM.Guest.B1.Sig.SpWotsGroupComplete
 import LeanVM.Guest.B1.Sig.SpWotsGroups
 import LeanVM.Guest.B1.Sig.SpWotsLayout
-import LeanVM.Guest.B1.Sig.SpWotsRen0
-import LeanVM.Guest.B1.Sig.SpWotsRen1
-import LeanVM.Guest.B1.Sig.SpWotsRen2
-import LeanVM.Guest.B1.Sig.SpWotsRen3
-import LeanVM.Guest.B1.Sig.SpWotsRenDefs
+import LeanVM.Guest.B1.Sig.SpWotsLinks
+import LeanVM.Guest.B1.Sig.SpWotsLinks0
+import LeanVM.Guest.B1.Sig.SpWotsLinks1
+import LeanVM.Guest.B1.Sig.SpWotsLinks2
+import LeanVM.Guest.B1.Sig.SpWotsLinksAll
+import LeanVM.Guest.B1.Sig.SpWotsRef
 import LeanVM.Guest.B1.Sig.SpWotsSound
-import LeanVM.Guest.B1.Sig.SpWotsStepComplete
 import LeanVM.Guest.B1.Sig.SpWotsT
 import LeanVM.Guest.B1.Sig.SphincsAdrs
 import LeanVM.Guest.B1.Sig.SphincsBottomComplete
@@ -162,6 +154,7 @@ import LeanVM.Guest.B1.Sig.XmssT
 import LeanVM.Guest.B1.Sig.XmssWindows
 
 import LeanVM.Guest.B1.Merkle.CapLinks
+import LeanVM.Guest.B1.Merkle.CapMaps
 import LeanVM.Guest.B1.Merkle.CapRef
 import LeanVM.Guest.B1.Merkle.Climb
 import LeanVM.Guest.B1.Merkle.Meaning
@@ -339,6 +332,8 @@ import LeanVM.Guest.B1.Common.Phase
 import LeanVM.Guest.B1.Common.Run
 import LeanVM.Guest.B1.Common.Sponge
 import LeanVM.Guest.B1.Bits.Templates
+import LeanVM.Guest.Ref.Elab
+import LeanVM.Guest.Ref.Keccak
 import LeanVM.Guest.Ref.Link
 
 /-! **B1's per-function proofs read their own function's core module alone.** A proof stated for
@@ -375,6 +370,7 @@ open Lean Elab Command in
   let single : List (Name × List Name) := [
     (`LeanVM.Guest.B1.Merkle.CapRef, []),
     (`LeanVM.Guest.B1.Merkle.CapLinks, [`verify_merkle_cap__L2, `verify_merkle_cap__L3, `verify_merkle_cap__L4, `verify_merkle_cap__L5, `verify_merkle_cap__L6, `verify_merkle_cap__L7, `verify_merkle_cap__L8]),
+    (`LeanVM.Guest.B1.Merkle.CapMaps, [`verify_merkle_cap__L2, `verify_merkle_cap__L3, `verify_merkle_cap__L4, `verify_merkle_cap__L5, `verify_merkle_cap__L6, `verify_merkle_cap__L7, `verify_merkle_cap__L8]),
     (`LeanVM.Guest.B1.Merkle.Climb, []),
     (`LeanVM.Guest.B1.Merkle.Meaning, []),
     (`LeanVM.Guest.B1.Opening.FoldAlg, []),
@@ -543,6 +539,8 @@ open Lean Elab Command in
     (`LeanVM.Guest.B1.Common.Run, []),
     (`LeanVM.Guest.B1.Common.Sponge, []),
     (`LeanVM.Guest.B1.Bits.Templates, []),
+    (`LeanVM.Guest.Ref.Elab, []),
+    (`LeanVM.Guest.Ref.Keccak, []),
     (`LeanVM.Guest.Ref.Lang, []),
     (`LeanVM.Guest.Ref.Link, [])]
   let families : List (Name × Option (List Name) × List Name) := [

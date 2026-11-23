@@ -9,14 +9,22 @@
 
 module
 
-public import LeanVM.Guest.B1.Sig.SpWotsCompleteR
+public import LeanVM.Guest.Pack.sp_wots.Core
+public import LeanVM.Guest.B1.Sig.SpWotsGroups
 public import LeanVM.Guest.B1.Sig.SphincsSoundWots
+import LeanVM.Guest.B1.Sig.SpWotsLinksAll
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«sp_wots»
 
 /-!
 # `sp_wots`, complete, against the statement
 
+Over cells (`sp_wots_complete_cells`): the reference function's meaning holds of the digits, any
+chain values and, on a memory of `64` words, each group's digit word's range check
+(`spWotsRef_sem`), so the body does (`sp_wots_sem_iff`).
+
 The digest's digits as numbers (`spDigitsOf`, `TargetSum.base2bDigits`) and the chain values as
-cells (`spValsOf`) are what the cells' completeness takes (`sp_wots_complete_cells`); its encoding
+cells (`spValsOf`) are what the cells' completeness takes; its encoding
 `spX` of those digits is the digest's own number (`spX_digest`: both have the same base-4 digits,
 digit `k` being the `base_2b` digit `4 (k / 4) + 3 - k % 4`), and its leaf over cells is the
 statement's (`wotsLeafOf_cells`).
@@ -28,6 +36,50 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Gu
 open HashSig
 
 @[expose] public section
+
+variable {C : CallRel} {rd : Reader}
+
+/-- The digits' base-4 number, digit `0` lowest. -/
+def spDn (d : Nat → Nat) : Nat := ∑ i ∈ Finset.range 64, d i * 4 ^ i
+
+/-- Group `p`'s digit word: its `spN p` base-4 digits from digit `3p`. -/
+def spK (d : Nat → Nat) (p : Nat) : Nat := spDn d / 4 ^ (3 * p) % 4 ^ spN p
+
+theorem spK_lt (d : Nat → Nat) (p : Nat) : spK d p < 4 ^ spN p := Nat.mod_lt _ (by positivity)
+
+theorem spDn_digit {d : Nat → Nat} (hd : ∀ i, d i < 4) {i : Nat} (hi : i < 64) :
+    spDn d / 4 ^ i % 4 = d i :=
+  base4_digit hd 64 i hi
+
+/-- **Group `p`'s digit word holds its digits and is range-checked**, on a memory of `64` words. -/
+theorem spK_ok {d : Nat → Nat} (hd : ∀ i, d i < 4) (hm : MemOK rd 64) {p : Nat} (hp : p < 22) :
+    spK d p < 4 ^ spN p ∧ (∀ r < spN p, d (3 * p + r) = spK d p / 4 ^ r % 4) ∧
+      RangeChecked rd (ofK (addressOfIndex (spK d p))) (ofK (addressOfIndex (4 ^ spN p - 1))) := by
+  have hn : 4 ^ spN p ≤ 64 := by unfold spN; split <;> norm_num
+  have hw := spK_lt d p
+  obtain ⟨t1, h1⟩ := load_gpow hm (show spK d p < 64 by omega)
+  obtain ⟨t2, h2⟩ := load_gpow hm (show 4 ^ spN p - 1 - spK d p < 64 by omega)
+  refine ⟨hw, fun r hr => ?_, _, t1, t2, h1, ?_, h2⟩
+  · obtain ⟨m, e⟩ : ∃ m, spN p = r + (m + 1) := ⟨spN p - r - 1, by omega⟩
+    rw [spK, e, pow_add, Nat.mod_mul_right_div_self, Nat.div_div_eq_div_mul, ← pow_add, pow_succ,
+      Nat.mod_mul_left_mod, spDn_digit hd (by unfold spN at hr; split at hr <;> omega)]
+  · rw [← ofK_mul, addressOfIndex, addressOfIndex, addressOfIndex, ← pow_add,
+      show spK d p + (4 ^ spN p - 1 - spK d p) = 4 ^ spN p - 1 by omega]
+
+/-- **`sp_wots` is complete**: for any `pp`, `a0`, `a1`, digits below `4` of sum `128` and chain
+values, on a memory of at least `64` words, its body holds of some valuation whose arguments are
+`pp`, `a0`, `a1` and the digits' encoding (`spX`), returning the one-time leaf of the values
+(`spLeafCell`). -/
+theorem sp_wots_complete_cells {pp a0 a1 : E} {d : Nat → Nat} (hd : ∀ i, d i < 4)
+    (hsum : ∑ i ∈ Finset.range 64, d i = 128) {vals : Nat → E} (hm : MemOK rd 64) :
+    ∃ σ : Val, σ (.n (val% «sp_wots» "pp")) = pp ∧ σ (.n (val% «sp_wots» "a0")) = a0 ∧ σ (.n (val% «sp_wots» "a1")) = a1 ∧ σ (.n (val% «sp_wots» "encoding")) = eOfNat128 (spX d 64) ∧
+      Stmt.HoldsList C rd σ (Fn.«sp_wots».core).body False (fun rs => rs = [spLeafCell pp a0 a1 d
+          vals]) := by
+  obtain ⟨σ, hp, hb⟩ := (sp_wots_sem_iff (C := C) _ _).mpr ((spWotsRef_sem _ _).mpr
+    ⟨pp, a0, a1, d, vals, rfl, rfl, fun i _ => hd i, hsum, fun p hp => ⟨_, spK_ok hd hm hp⟩⟩)
+  have hp' : [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3)] = [pp, a0, a1, eOfNat128 (spX d 64)] := hp
+  simp only [List.cons.injEq, and_true] at hp'
+  exact ⟨σ, hp'.1, hp'.2.1, hp'.2.2.1, hp'.2.2.2, hb⟩
 
 /-- **The digest's `base_2b` digits**, as numbers (`0` past the 64 chains). -/
 def spDigitsOf (digest : Digest) (i : Nat) : Nat :=
@@ -95,7 +147,23 @@ theorem spX_digest (digest : Digest) : spX (spDigitsOf digest) 64 = digest.toNat
 theorem cellOf128_eq_eOfNat128' (v : BitVec 128) : cellOf128 v = eOfNat128 v.toNat := by
   rw [← cellOf128_eq_eOfNat128 v.isLt, BitVec.ofNat_toNat, BitVec.setWidth_eq]
 
-variable {C : CallRel} {rd : Reader}
+/-- **The leaf over cells is the statement's**, at the digest's digits and the values' cells. -/
+theorem spLeafCell_digest (publicSeed : PublicParameter) (layer : Sphincs.Layer)
+    (tree : Sphincs.TreeIndex) (leaf : Sphincs.TreeLeafIndex) (digest : Digest)
+    (values : Sphincs.ChainIndex → Digest) :
+    spLeafCell (cellOf128 publicSeed) (adrsCell0 layer.val tree.val) (adrsCell1 0 leaf.val 0 0)
+      (spDigitsOf digest) (spValsOf values) =
+      cellOf128 (wotsLeafOf publicSeed layer tree leaf digest values) := by
+  have e := wotsLeafOf_cells (cellOf128 publicSeed) layer tree leaf digest (spDigitsOf digest)
+    (spValsOf values) (spDigitsOf_eq digest)
+  have ev : (fun i : Sphincs.ChainIndex => cellVal (spValsOf values i.val)) = values := by
+    funext i
+    have hi : i.val < 64 := i.isLt
+    simp only [spValsOf, hi, ↓reduceDIte]
+    exact cellVal_cellOf128 _
+  rw [ev, cellVal_cellOf128] at e
+  rw [e]
+  exact (cellOf128_cellVal _).symm
 
 /-- **`sp_wots` is complete.** -/
 theorem sp_wots_complete : sp_wots_complete_Spec := by
@@ -105,21 +173,8 @@ theorem sp_wots_complete : sp_wots_complete_Spec := by
   obtain ⟨σ, h0, h1, h2, h3, hh⟩ := sp_wots_complete_cells (C := C) (rd := rd)
     (pp := cellOf128 publicSeed) (a0 := adrsCell0 layer.val tree.val) (a1 := adrsCell1 0 leaf.val 0 0)
     (vals := spValsOf values) (spDigitsOf_lt digest) (spDigitsOf_sum hT) hm
-  have hleaf : spLeafCell (cellOf128 publicSeed) (adrsCell0 layer.val tree.val)
-      (adrsCell1 0 leaf.val 0 0) (spDigitsOf digest) (spValsOf values) =
-      cellOf128 (wotsLeafOf publicSeed layer tree leaf digest values) := by
-    have e := wotsLeafOf_cells (cellOf128 publicSeed) layer tree leaf digest (spDigitsOf digest)
-      (spValsOf values) (spDigitsOf_eq digest)
-    have ev : (fun i : Sphincs.ChainIndex => cellVal (spValsOf values i.val)) = values := by
-      funext i
-      have hi : i.val < 64 := i.isLt
-      simp only [spValsOf, hi, ↓reduceDIte]
-      exact cellVal_cellOf128 _
-    rw [ev, cellVal_cellOf128] at e
-    rw [e]
-    exact (cellOf128_cellVal _).symm
   refine ⟨σ, h0, by rw [hpk, h1, h2], by rw [h3, spX_digest]; exact (cellOf128_eq_eOfNat128' digest).symm, ?_⟩
-  rw [← hleaf]
+  rw [← spLeafCell_digest]
   exact hh
 
 end
