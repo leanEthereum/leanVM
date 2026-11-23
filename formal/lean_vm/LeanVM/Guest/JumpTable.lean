@@ -13,6 +13,7 @@ public import LeanVM.Guest.Logic
 public import LeanVM.Guest.Memory
 public import LeanVM.Guest.JumpTable.Keys
 public import LeanVM.Guest.JumpTable.Code
+import all Statement.Data.Bytecode
 
 /-!
 # The jump table
@@ -58,7 +59,7 @@ theorem f0_all_set : Data.f0.code.all (fun ins ↦ (setCell? ins).isSome) = true
 
 theorem f0_mem : Data.f0 ∈ Data.functions := List.mem_cons_self
 
-theorem f0_entry : Data.f0.entryPc = 0 := rfl
+theorem f0_entry : Data.f0.entryPc = 0 := by rfl
 
 /-- Instruction `i` of `__jump_tables` is a `SET` of a slot of the table. -/
 theorem f0_instr {i : ℕ} (hi : i < Data.f0.instructionCount) :

@@ -1,6 +1,8 @@
 module
 
 public import LeanVM.Cost.Decoder.EntryTable
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«main»
 
 /-!
 # The guest decoder's compiled chain: the top
@@ -51,7 +53,7 @@ noncomputable def sphincsAtFp (R : ReaderTabs) (table : Array (CallKey × K)) (r
 one binary search (`frameFpA`), then `sphincsAtFp`. -/
 noncomputable def sphincsAtFrameT (R : ReaderTabs) (table : Array (CallKey × K)) (rd : Reader)
     (σ : Val) (p : E) : Sphincs.Signature :=
-  sphincsAtFp R table rd (frameFpA table (fn_idx% verify_sig_lean_sphincs) [p, σ (.n 47)] [])
+  sphincsAtFp R table rd (frameFpA table (fn_idx% verify_sig_lean_sphincs) [p, σ (.n (val% «main» "byte_bits"))] [])
 
 theorem sphincsAtFrameT_eq (R : ReaderTabs) (table : Array (CallKey × K)) (rd : Reader)
     (σ : Val) : sphincsAtFrameT R table rd σ = sphincsAtFrame R σ (frameAtA table rd) := by

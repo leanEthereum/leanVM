@@ -521,7 +521,7 @@ theorem bufsOkKids_split : ∀ (ks ks' : List Tree),
       obtain ⟨h1, h2⟩ := bufsOkKids_split ks ks' h.2
       exact ⟨by rw [Tree.BufsOkKids]; exact ⟨h.1, h1⟩, h2⟩
 
-theorem kidsValid_split : ∀ {cs cs' : List Call} {ks : List Tree},
+private theorem kidsValid_split : ∀ {cs cs' : List Call} {ks : List Tree},
     Tree.KidsValid P rd σ (cs ++ cs') ks →
       ∃ ks₁ ks₂, ks = ks₁ ++ ks₂ ∧ Tree.KidsValid P rd σ cs ks₁ ∧ Tree.KidsValid P rd σ cs' ks₂
   | [], _, ks, h => ⟨[], ks, rfl, by simp [Tree.KidsValid], h⟩

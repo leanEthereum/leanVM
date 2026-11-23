@@ -2,6 +2,7 @@
 
 use std::fmt;
 
+use crate::vrf::Slot;
 use crate::xmss::LeafIndex;
 
 /// Why a lean-pq operation failed.
@@ -36,6 +37,34 @@ pub enum Error {
     /// A leanSPHINCS signature does not verify.
     #[error("leanSPHINCS signature does not verify")]
     SphincsVerify,
+
+    /// A VRF range is empty or ends past `2^31`.
+    #[error("VRF range {start}..{end} is empty or ends past 2^31")]
+    InvalidVrfRange {
+        /// The range's first slot.
+        start: Slot,
+        /// One past the range's last slot.
+        end: Slot,
+    },
+
+    /// Bytes handed to [`Key::from_cache_bytes`](crate::vrf::Key::from_cache_bytes) are not this
+    /// key's cache: malformed, or not leading to its root.
+    #[error("not this VRF key's cache")]
+    InvalidVrfCache,
+
+    /// A VRF proof was asked for outside the key's range.
+    #[error("VRF slot {slot} is outside the key's range")]
+    VrfSlot {
+        /// The slot.
+        slot: Slot,
+    },
+
+    /// A VRF proof does not open.
+    #[error("VRF proof for slot {slot} does not open under the root")]
+    VrfVerify {
+        /// The slot the proof was checked at.
+        slot: u64,
+    },
 
     /// A raw leanXMSS signature handed to aggregation does not verify.
     #[error("leanXMSS input {index} (leaf index {leaf_index}) does not verify")]

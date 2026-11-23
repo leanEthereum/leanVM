@@ -8,6 +8,8 @@ module
 
 public import LeanVM.Guest.B1.Da.Offsets
 public import LeanVM.Guest.B1.Da.Expand
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«da_vector»
 
 /-!
 # `da_vector`
@@ -66,20 +68,20 @@ def vecPw (j : ℕ) : ℕ := if j = 0 then 0 else j + 1
 noncomputable def vecOk : Bool :=
   let P := vecP
   let A := atomsIn P
-  decide ((fn% «da_vector»).params = [.n 0]) &&
-  stmtsEqb (Fn.body fn% «da_vector») (P ++ [.ret [.n 29, .n 30, .n 31,
-      .n 32]]) && P.all Stmt.flat &&
-  (List.range 13).all (fun j ↦ A.any (isLoadAt (.n (vecPw j)) (.n 1) j)) &&
-  (List.range 12).all (fun j ↦ isMul A (.n (j + 2)) (.n (vecPw j)) (.n (vecPw j))) &&
-  A.any (isConstAt (.n 15) 0 0) && A.any (isLoadAt (.n 15) (.n 1) 13) &&
-  (List.range 7).all (fun i ↦ A.any (isConstAt (.n (17 + i)) 0 0) &&
-    A.any (isLoadAt (.n (17 + i)) (.n 16) (7 + i))) &&
-  hasCall P "da_factors__L13_L7_L0" [.n 1] [.n 24] && A.any (isConstAt (.n 25) 1 0) &&
-  hasCall P "da_expand__L13_L7" [.n 25, .n 24, .n 1, .n 16] [.n 26] &&
-  hasCall P "da_factors__L6_L7_L128" [.n 1] [.n 27] &&
-  hasCall P "da_column_offsets" [.n 1] [.n 28] &&
-  A.any (isCopyAt (.n 29) (.n 1)) && A.any (isCopyAt (.n 30) (.n 26)) &&
-  A.any (isCopyAt (.n 31) (.n 27)) && A.any (isCopyAt (.n 32) (.n 28))
+  decide ((fn% «da_vector»).params = [.n (val% «da_vector» "z")]) &&
+  stmtsEqb (Fn.body fn% «da_vector») (P ++ [.ret [.n (val% «da_vector» "s10#0"), .n (val% «da_vector» "s10#0[1]"), .n (val% «da_vector» "s10#0[2]"),
+      .n (val% «da_vector» "s10#0[3]")]]) && P.all Stmt.flat &&
+  (List.range 13).all (fun j ↦ A.any (isLoadAt (.n (vecPw j)) (.n (val% «da_vector» "zs")) j)) &&
+  (List.range 12).all (fun j ↦ isMul A (.n (j + (val% «da_vector» "zj@1"))) (.n (vecPw j)) (.n (vecPw j))) &&
+  A.any (isConstAt (.n (val% «da_vector» "s3#0")) 0 0) && A.any (isLoadAt (.n (val% «da_vector» "s3#0")) (.n (val% «da_vector» "zs")) 13) &&
+  (List.range 7).all (fun i ↦ A.any (isConstAt (.n ((val% «da_vector» "s5.u7.s0#0") + i)) 0 0) &&
+    A.any (isLoadAt (.n ((val% «da_vector» "s5.u7.s0#0") + i)) (.n (val% «da_vector» "above_top")) (7 + i))) &&
+  hasCall P "da_factors__L13_L7_L0" [.n (val% «da_vector» "zs")] [.n (val% «da_vector» "top_factors")] && A.any (isConstAt (.n (val% «da_vector» "top_leaves~1")) 1 0) &&
+  hasCall P "da_expand__L13_L7" [.n (val% «da_vector» "top_leaves~1"), .n (val% «da_vector» "top_factors"), .n (val% «da_vector» "zs"), .n (val% «da_vector» "above_top")] [.n (val% «da_vector» "top_leaves")] &&
+  hasCall P "da_factors__L6_L7_L128" [.n (val% «da_vector» "zs")] [.n (val% «da_vector» "cell_factors")] &&
+  hasCall P "da_column_offsets" [.n (val% «da_vector» "zs")] [.n (val% «da_vector» "offsets")] &&
+  A.any (isCopyAt (.n (val% «da_vector» "s10#0")) (.n (val% «da_vector» "zs"))) && A.any (isCopyAt (.n (val% «da_vector» "s10#0[1]")) (.n (val% «da_vector» "top_leaves"))) &&
+  A.any (isCopyAt (.n (val% «da_vector» "s10#0[2]")) (.n (val% «da_vector» "cell_factors"))) && A.any (isCopyAt (.n (val% «da_vector» "s10#0[3]")) (.n (val% «da_vector» "offsets")))
 
 /-- **`da_vector`'s core IR gives its meaning**, from its callees'. -/
 theorem da_vector_val (hok : vecOk = true) (hfac : da_factors_sound_Spec)
@@ -99,7 +101,7 @@ theorem da_vector_val (hok : vecOk = true) (hfac : da_factors_sound_Spec)
   simp only [Stmt.HoldsList, Stmt.Holds, List.map_cons, List.map_nil] at hret
   subst hret
   have hat := atoms_of_flat hall
-  set z := σ (.n 0)
+  set z := σ (.n (val% «da_vector» "z"))
   -- the powers
   have hpow : ∀ j < 13, σ (.n (vecPw j)) = z ^ 2 ^ j := by
     intro j
@@ -110,7 +112,7 @@ theorem da_vector_val (hok : vecOk = true) (hfac : da_factors_sound_Spec)
       have := isMul_sound (hsq j (by omega)) hat
       rw [show vecPw (j + 1) = j + 2 by simp [vecPw], this, ih (by omega), ← pow_two, ← pow_mul,
         ← pow_succ]
-  have hzs : ZsAt rd (σ (.n 1)) z := by
+  have hzs : ZsAt rd (σ (.n (val% «da_vector» "zs"))) z := by
     intro j hj
     rcases Nat.lt_or_ge j 13 with h | h
     · have := load_sound (hpw j h) hat
@@ -118,7 +120,7 @@ theorem da_vector_val (hok : vecOk = true) (hfac : da_factors_sound_Spec)
     · have := load_sound hl15 hat
       rw [const_sound hc15 hat, word_zero] at this
       rwa [show j = 13 by omega, show zsVal z 13 = 0 by simp [zsVal]]
-  have hzu : ∀ {j v}, j < 14 → LoadHolds rd (σ (.n 1)) j v → v = zsVal z j := fun hj h ↦
+  have hzu : ∀ {j v}, j < 14 → LoadHolds rd (σ (.n (val% «da_vector» "zs"))) j v → v = zsVal z j := fun hj h ↦
     loadHolds_unique h (hzs _ hj)
   -- the callees
   have rF13 := hfac.1 rd _ _ (call_of_flat hall hcf)

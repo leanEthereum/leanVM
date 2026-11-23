@@ -14,6 +14,8 @@ public import LeanVM.Guest.B1.Placement.CompleteBase
 public import LeanVM.Guest.B1.Placement.Kappas
 public import LeanVM.Guest.B1.Selectors.LayoutBasic
 public import LeanVM.Guest.CoreData
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«certify_placement»
 
 /-!
 # `certify_placement`, completely (TRIAGE G #67)
@@ -747,10 +749,10 @@ theorem cp_rank (hl : hs.length = 6) (hlm : lm ≤ 32) (hhs : ∀ h ∈ hs, h < 
     (e11 := e11) (e136 := e136) (e137 := e137) (e293 := e293) (rd := rd) (r := r) (by omega)
   have eT : cpRT r = 131 + 18 * (r + 1) - 1 := by unfold cpRT; omega
   rw [eT] at vT
-  have v10 : σ (.n 10) = ofK (addressOfIndex e10) := rfl
-  have v11 : σ (.n 11) = ofK (addressOfIndex e11) := rfl
-  have v136 : σ (.n 136) = ofK (addressOfIndex e136) := rfl
-  have v137 : σ (.n 137) = ofK (addressOfIndex e137) := rfl
+  have v10 : σ (.n (val% «certify_placement» "group_key")) = ofK (addressOfIndex e10) := rfl
+  have v11 : σ (.n (val% «certify_placement» "group_size")) = ofK (addressOfIndex e11) := rfl
+  have v136 : σ (.n (val% «certify_placement» "group_order")) = ofK (addressOfIndex e136) := rfl
+  have v137 : σ (.n (val% «certify_placement» "group_base")) = ofK (addressOfIndex e137) := rfl
   have hp := cpPi_lt (lm := lm) (hs := hs) (r := r + 1) (by omega)
   obtain ⟨hE, -⟩ := cpE_spec hl hlm hhs h5 (r := r) (by omega)
   simp only [CpRankOk, TbRcHolds, Nat.add_sub_cancel]
@@ -795,7 +797,7 @@ theorem cp_cols_holds (hl : hs.length = 6) (hlm : lm ≤ 32) (hhs : ∀ h ∈ hs
     intro j hj
     rw [vC _ (by omega) (by omega), cpColV, tb_ite_neg (by omega), tb_ite_neg (by omega),
       show cpD gi + 2 + j - cpD gi - 2 = j by omega]
-  have hO : ∀ j < cpLen gi, LoadHolds rd (σ (.n 293)) (cpC0 gi + j) (σ (.n (cpD gi + 2 + j))) := by
+  have hO : ∀ j < cpLen gi, LoadHolds rd (σ (.n (val% «certify_placement» "col_off_g"))) (cpC0 gi + j) (σ (.n (cpD gi + 2 + j))) := by
     intro j hj
     rw [vO j hj, ← hoffs gi hgi j hj]
     exact R.off _ (by have := cpC0_le gi hgi; unfold cpLen at hj; omega)
@@ -807,7 +809,7 @@ theorem cp_cols_holds (hl : hs.length = 6) (hlm : lm ≤ 32) (hhs : ∀ h ∈ hs
         cpσ_kb lm hs ekb esq e10 e11 e136 e137 e293 rd hsrc
       rw [v0, vkb]; rfl
     · rw [v0, v1, tb_loadHolds_mul_gen_pow]; exact R.sq _ hκ
-    · rw [show σ (.n 137) = ofK (addressOfIndex e137) from rfl,
+    · rw [show σ (.n (val% «certify_placement» "group_base")) = ofK (addressOfIndex e137) from rfl,
         show cpD gi + 2 = cpD gi + 2 + 0 from rfl, vO 0 (by omega), Nat.zero_mul, Nat.add_zero]
       exact R.base gi hgi
     · have := hO 0 (by omega)
@@ -834,25 +836,25 @@ theorem cp_body_holds {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hlm : lm 
     (hm : MemLay rd (cpOwn lm hs e10 e11 e136 e137 e293 ++ cpLin lm hs ekb esq))
     (hlow : LowDefB 14 rd) :
     Stmt.HoldsList (coreProgram.Rel rd) rd (cpσ lm hs ekb esq e10 e11 e136 e137 e293 rd)
-      (cpPre ++ [.ret [.n 406, .n 407]]) False
+      (cpPre ++ [.ret [.n (val% «certify_placement» "s13#0"), .n (val% «certify_placement» "s13#0[1]")]]) False
       (fun rs => rs = [gen ^ stackTotal (columnKappas lm guestLogBytecode hs),
         ofK (addressOfIndex e293)]) := by
   have R := cp_reads hl hm
   set σ := cpσ lm hs ekb esq e10 e11 e136 e137 e293 rd with hσ
-  have r0 : ∀ j < 11, σ (.n (138 + j)) = cpRank0V lm hs e10 e11 e137 rd j := fun j hj =>
+  have r0 : ∀ j < 11, σ (.n ((val% «certify_placement» "gi@1") + j)) = cpRank0V lm hs e10 e11 e137 rd j := fun j hj =>
     cpσ_rank0 lm hs ekb esq e10 e11 e136 e137 e293 rd hj
   have hp0 := cpPi_lt (lm := lm) (hs := hs) (r := 0) (by norm_num)
   obtain ⟨-, htot⟩ := cp_offsets (lm := lm) hl
   obtain ⟨c1, c2, c3⟩ := rc_ok hlow (a := cpPi lm hs 0) (K := 8) (by omega) (by norm_num)
-  have s138 : σ (.n 138) = gen ^ cpPi lm hs 0 := r0 0 (by norm_num)
-  have s406 : σ (.n 406) = gen ^ cpGP lm hs 9 := rfl
-  have s292 : σ (.n 292) = gen ^ cpGP lm hs 9 :=
+  have s138 : σ (.n (val% «certify_placement» "gi@1")) = gen ^ cpPi lm hs 0 := r0 0 (by norm_num)
+  have s406 : σ (.n (val% «certify_placement» "s13#0")) = gen ^ cpGP lm hs 9 := rfl
+  have s292 : σ (.n (val% «certify_placement» "g_total@9")) = gen ^ cpGP lm hs 9 :=
     (cp_rankKey (lm := lm) (hs := hs) (ekb := ekb) (esq := esq) (e10 := e10) (e11 := e11)
       (e136 := e136) (e137 := e137) (e293 := e293) (rd := rd) (r := 8) (by norm_num)).2
   rw [holdsList_append, holdsList_noRet _ cpPre_noRet]
   refine ⟨?_, ?_⟩
   · simp only [cpPre, holdsList_append,
-      tb_holdsList_range_flatten 8 (fun i ↦ [Stmt.atom (.load (.n (2 + i)) (.n 0) i)])
+      tb_holdsList_range_flatten 8 (fun i ↦ [Stmt.atom (.load (.n (2 + i)) (.n (val% «certify_placement» "kappa_base")) i)])
         (fun _ ↦ rfl),
       tb_holdsList_range_flatten 9 cpGroup cpGroup_noRet,
       tb_holdsList_range_flatten 8 (fun r ↦ cpRank (r + 1)) (fun _ ↦ rfl),
@@ -866,28 +868,28 @@ theorem cp_body_holds {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hlm : lm 
         cpσ_kb lm hs ekb esq e10 e11 e136 e137 e293 rd hi
       rw [vkb]; exact R.kb i hi
     · rw [s138]; exact R.ord 0 (by norm_num)
-    · rw [s138, show σ (.n 141) = rdv rd (cpPi lm hs 0) from r0 3 (by norm_num)]; exact c1
-    · rw [show σ (.n 139) = w8 from r0 1 (by norm_num), s138,
-        show σ (.n 140) = gen ^ (8 - cpPi lm hs 0) from r0 2 (by norm_num), w8_eq, c2]
-    · rw [show σ (.n 140) = gen ^ (8 - cpPi lm hs 0) from r0 2 (by norm_num),
-        show σ (.n 142) = rdv rd (8 - cpPi lm hs 0) from r0 4 (by norm_num)]
+    · rw [s138, show σ (.n (val% «certify_placement» "s10.u0.s1#2")) = rdv rd (cpPi lm hs 0) from r0 3 (by norm_num)]; exact c1
+    · rw [show σ (.n (val% «certify_placement» "s10.u0.s1#0")) = w8 from r0 1 (by norm_num), s138,
+        show σ (.n (val% «certify_placement» "s10.u0.s1#1")) = gen ^ (8 - cpPi lm hs 0) from r0 2 (by norm_num), w8_eq, c2]
+    · rw [show σ (.n (val% «certify_placement» "s10.u0.s1#1")) = gen ^ (8 - cpPi lm hs 0) from r0 2 (by norm_num),
+        show σ (.n (val% «certify_placement» "s10.u0.s1#3")) = rdv rd (8 - cpPi lm hs 0) from r0 4 (by norm_num)]
       exact c3
-    · rw [show σ (.n 143) = ofK (addressOfIndex e10) * gen ^ cpPi lm hs 0 from r0 5 (by norm_num),
-        show σ (.n 144) = cpKey lm hs (cpPi lm hs 0) from r0 6 (by norm_num),
+    · rw [show σ (.n (val% «certify_placement» "key@1~0")) = ofK (addressOfIndex e10) * gen ^ cpPi lm hs 0 from r0 5 (by norm_num),
+        show σ (.n (val% «certify_placement» "key@1")) = cpKey lm hs (cpPi lm hs 0) from r0 6 (by norm_num),
         tb_loadHolds_mul_gen_pow, Nat.add_zero]
       exact R.key _ hp0
     · have h0 := R.base _ hp0
       rw [cpRho_pi (by norm_num), cpGP_zero, pow_zero] at h0
-      rw [show σ (.n 146) = ofK (addressOfIndex e137) * gen ^ cpPi lm hs 0 from r0 8 (by norm_num),
-        show σ (.n 145) = word 1 0 from r0 7 (by norm_num), tb_loadHolds_mul_gen_pow,
+      rw [show σ (.n (val% «certify_placement» "s10.u0.s4#1")) = ofK (addressOfIndex e137) * gen ^ cpPi lm hs 0 from r0 8 (by norm_num),
+        show σ (.n (val% «certify_placement» "s10.u0.s4#0")) = word 1 0 from r0 7 (by norm_num), tb_loadHolds_mul_gen_pow,
         Nat.add_zero, tb_word_one]
       exact h0
-    · rw [show σ (.n 147) = ofK (addressOfIndex e11) * gen ^ cpPi lm hs 0 from r0 9 (by norm_num),
-        show σ (.n 148) = gen ^ cpGP lm hs 1 from r0 10 (by norm_num), tb_loadHolds_mul_gen_pow,
+    · rw [show σ (.n (val% «certify_placement» "g_total@1~0")) = ofK (addressOfIndex e11) * gen ^ cpPi lm hs 0 from r0 9 (by norm_num),
+        show σ (.n (val% «certify_placement» "g_total@1")) = gen ^ cpGP lm hs 1 from r0 10 (by norm_num), tb_loadHolds_mul_gen_pow,
         Nat.add_zero, cpGP_succ, cpGP_zero, Nat.zero_add]
       exact R.size _ hp0
-  · show [σ (.n 406), σ (.n 407)] = _
-    rw [s406, htot, show σ (.n 407) = ofK (addressOfIndex e293) from rfl]
+  · show [σ (.n (val% «certify_placement» "s13#0")), σ (.n (val% «certify_placement» "s13#0[1]"))] = _
+    rw [s406, htot, show σ (.n (val% «certify_placement» "s13#0[1]")) = ofK (addressOfIndex e293) from rfl]
 
 /-- **The offsets' buffer satisfies `PCtx`** on any memory holding the buffers. -/
 theorem cp_ctx {lm : ℕ} {hs : List ℕ} {e10 e11 e136 e137 e293 : ℕ} {rd : Reader}

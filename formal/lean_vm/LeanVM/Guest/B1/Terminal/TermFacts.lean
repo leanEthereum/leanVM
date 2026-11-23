@@ -11,6 +11,8 @@ public import LeanVM.Guest.B1.Terminal.Holds
 public import LeanVM.Guest.B1.Fwd.Canon
 public import LeanVM.Guest.B1.Tables.FlatAt
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«check_opening_terminal»
 
 /-!
 # `check_opening_terminal`'s body, for completeness
@@ -62,14 +64,14 @@ theorem term_params : (fn% «check_opening_terminal»).params = (List.range 20).
 theorem term_chk : chk 20 termT = some 1715 := by decide +kernel
 
 theorem term_stores : storesOf 20 termT =
-    [.load (.n 27) (.n 26) 0, .load (.n 29) (.n 26) 1] := by decide +kernel
+    [.load (.n (val% «check_opening_terminal» "s7#0")) (.n (val% «check_opening_terminal» "pi_chain")) 0, .load (.n (val% «check_opening_terminal» "s8#1")) (.n (val% «check_opening_terminal» "pi_chain")) 1] := by decide +kernel
 
 theorem term_flat : termPre.all Stmt.flat = true := by decide +kernel
 
 theorem term_addrs : termPre.filterMap Main.Stmt.addrS = [] := by decide +kernel
 
 theorem term_allocs : termPre.filterMap Main.Stmt.allocSz =
-    [(.n 20, .inl 35), (.n 22, .inl 35), (.n 26, .inl 35), (.n 1694, .inl 41), (.n 1709, .inl 31)] := by
+    [(.n (val% «check_opening_terminal» "zeta_eq_chain"), .inl 35), (.n (val% «check_opening_terminal» "chi_eq_chain"), .inl 35), (.n (val% «check_opening_terminal» "pi_chain"), .inl 35), (.n (val% «check_opening_terminal» "out_eq_chain"), .inl 41), (.n (val% «check_opening_terminal» "ood_chain"), .inl 31)] := by
   decide +kernel
 
 theorem term_not_loop : coreProgram.loop "check_opening_terminal" = false := by decide +kernel
@@ -94,23 +96,23 @@ theorem claims_noDisp : termClaims.1.all noDispB = true := by decide +kernel
 theorem tail_noDisp : termTailPre.all noDispB = true := by decide +kernel
 
 theorem head_callS : termHeadT.filterMap Main.Stmt.callS =
-    [(none, "eq_prefix_chain", [.n 20, .n 21, .n 1, .n 14, .n 4], []),
-      (none, "eq_prefix_chain", [.n 22, .n 23, .n 2, .n 14, .n 5], []),
-      (some (.n 31), name% «check_opening_terminal_loop0», [.n 32, .n 6, .n 26, .n 14], []),
-      (none, "selector_tables", [.n 13, .n 14], [.n 43])] := by decide +kernel
+    [(none, "eq_prefix_chain", [.n (val% «check_opening_terminal» "zeta_eq_chain"), .n (val% «check_opening_terminal» "s1#0"), .n (val% «check_opening_terminal» "zeta"), .n (val% «check_opening_terminal» "point1"), .n (val% «check_opening_terminal» "g_bus_mu")], []),
+      (none, "eq_prefix_chain", [.n (val% «check_opening_terminal» "chi_eq_chain"), .n (val% «check_opening_terminal» "s3#0"), .n (val% «check_opening_terminal» "chi"), .n (val% «check_opening_terminal» "point1"), .n (val% «check_opening_terminal» "g_zc_n")], []),
+      (some (.n (val% «check_opening_terminal» "s9#1")), name% «check_opening_terminal_loop0», [.n (val% «check_opening_terminal» "s9#2"), .n (val% «check_opening_terminal» "g_log_mem"), .n (val% «check_opening_terminal» "pi_chain"), .n (val% «check_opening_terminal» "point1")], []),
+      (none, "selector_tables", [.n (val% «check_opening_terminal» "point"), .n (val% «check_opening_terminal» "point1")], [.n (val% «check_opening_terminal» "sel_eq")])] := by decide +kernel
 
 theorem claims_callS : termClaims.1.filterMap Main.Stmt.callS = [] := by decide +kernel
 
 theorem tail_callS : termTailPre.filterMap Main.Stmt.callS =
-    [(none, "eq_prefix_chain", [.n 1694, .n 1695, .n 11, .n 14, .n 1697], []),
-      (none, "ring_switch_weight", [.n 1699, .n 14, .n 12, .n 1701], [.n 1702]),
-      (none, "eq_prefix_chain", [.n 1709, .n 1710, .n 18, .n 14, .n 19], [])] := by
+    [(none, "eq_prefix_chain", [.n (val% «check_opening_terminal» "out_eq_chain"), .n (val% «check_opening_terminal» "s24#0"), .n (val% «check_opening_terminal» "z_vals"), .n (val% «check_opening_terminal» "point1"), .n (val% «check_opening_terminal» "s24#2")], []),
+      (none, "ring_switch_weight", [.n (val% «check_opening_terminal» "rs_weight~2"), .n (val% «check_opening_terminal» "point1"), .n (val% «check_opening_terminal» "c_table"), .n (val% «check_opening_terminal» "rs_weight~4")], [.n (val% «check_opening_terminal» "rs_weight")]),
+      (none, "eq_prefix_chain", [.n (val% «check_opening_terminal» "ood_chain"), .n (val% «check_opening_terminal» "s28#0"), .n (val% «check_opening_terminal» "ood_z"), .n (val% «check_opening_terminal» "point1"), .n (val% «check_opening_terminal» "gmv")], [])] := by
   decide +kernel
 
 /-- Committed column `c`'s selector's call. -/
 noncomputable def selCall (σ : Val) (c : ℕ) : Option V × String × List V × List V :=
   (none, colSelNames.getD (logG (σ (.n (selKap c).2.1))) "",
-    [.n (selStart c), .n 43, .n ((selKap c).2.2 + 1)], [.n (selV c)])
+    [.n (selStart c), .n (val% «check_opening_terminal» "sel_eq"), .n ((selKap c).2.2 + 1)], [.n (selV c)])
 
 theorem kapT_callSF (σ : Val) (src adj r : ℕ) : (kapT src adj r).1.filterMap (Stmt.callSF σ) = [] := by
   unfold kapT; split <;> rfl
@@ -131,14 +133,14 @@ theorem sels_callSF (σ : Val) :
 
 /-- **The calls, in order.** -/
 theorem term_callSF (σ : Val) : termPre.filterMap (Stmt.callSF σ) =
-    [(none, "eq_prefix_chain", [.n 20, .n 21, .n 1, .n 14, .n 4], []),
-      (none, "eq_prefix_chain", [.n 22, .n 23, .n 2, .n 14, .n 5], []),
-      (some (.n 31), name% «check_opening_terminal_loop0», [.n 32, .n 6, .n 26, .n 14], []),
-      (none, "selector_tables", [.n 13, .n 14], [.n 43])] ++
+    [(none, "eq_prefix_chain", [.n (val% «check_opening_terminal» "zeta_eq_chain"), .n (val% «check_opening_terminal» "s1#0"), .n (val% «check_opening_terminal» "zeta"), .n (val% «check_opening_terminal» "point1"), .n (val% «check_opening_terminal» "g_bus_mu")], []),
+      (none, "eq_prefix_chain", [.n (val% «check_opening_terminal» "chi_eq_chain"), .n (val% «check_opening_terminal» "s3#0"), .n (val% «check_opening_terminal» "chi"), .n (val% «check_opening_terminal» "point1"), .n (val% «check_opening_terminal» "g_zc_n")], []),
+      (some (.n (val% «check_opening_terminal» "s9#1")), name% «check_opening_terminal_loop0», [.n (val% «check_opening_terminal» "s9#2"), .n (val% «check_opening_terminal» "g_log_mem"), .n (val% «check_opening_terminal» "pi_chain"), .n (val% «check_opening_terminal» "point1")], []),
+      (none, "selector_tables", [.n (val% «check_opening_terminal» "point"), .n (val% «check_opening_terminal» "point1")], [.n (val% «check_opening_terminal» "sel_eq")])] ++
     (List.range Tables.nCommittedCols).map (selCall σ) ++
-    [(none, "eq_prefix_chain", [.n 1694, .n 1695, .n 11, .n 14, .n 1697], []),
-      (none, "ring_switch_weight", [.n 1699, .n 14, .n 12, .n 1701], [.n 1702]),
-      (none, "eq_prefix_chain", [.n 1709, .n 1710, .n 18, .n 14, .n 19], [])] := by
+    [(none, "eq_prefix_chain", [.n (val% «check_opening_terminal» "out_eq_chain"), .n (val% «check_opening_terminal» "s24#0"), .n (val% «check_opening_terminal» "z_vals"), .n (val% «check_opening_terminal» "point1"), .n (val% «check_opening_terminal» "s24#2")], []),
+      (none, "ring_switch_weight", [.n (val% «check_opening_terminal» "rs_weight~2"), .n (val% «check_opening_terminal» "point1"), .n (val% «check_opening_terminal» "c_table"), .n (val% «check_opening_terminal» "rs_weight~4")], [.n (val% «check_opening_terminal» "rs_weight")]),
+      (none, "eq_prefix_chain", [.n (val% «check_opening_terminal» "ood_chain"), .n (val% «check_opening_terminal» "s28#0"), .n (val% «check_opening_terminal» "ood_z"), .n (val% «check_opening_terminal» "point1"), .n (val% «check_opening_terminal» "gmv")], [])] := by
   rw [termPre, List.filterMap_append, List.filterMap_append, List.filterMap_append,
     callSF_of_noDisp σ head_noDisp, head_callS, sels_callSF, callSF_of_noDisp σ claims_noDisp,
     claims_callS, callSF_of_noDisp σ tail_noDisp, tail_callS, List.append_nil]

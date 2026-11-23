@@ -10,6 +10,8 @@ module
 
 public import LeanVM.Guest.B1.Terminal.TermFacts
 public import LeanVM.Guest.B1.Ring.Loop14Complete
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«check_opening_terminal»
 
 /-!
 # The claims' blocks, completely
@@ -35,11 +37,11 @@ def AddrIn (R : ℕ → Prop) (P : E) (k : ℕ) : Prop := ∃ i, P.limb 0 * addr
     addressOfIndex i ∧ R i
 
 /-- The stores load through `.n 26`, the public input's chain. -/
-def StoresAtPi (S : List Atom) : Prop := ∀ a ∈ S, ∃ d off, a = .load d (.n 26) off
+def StoresAtPi (S : List Atom) : Prop := ∀ a ∈ S, ∃ d off, a = .load d (.n (val% «check_opening_terminal» "pi_chain")) off
 
 variable {C : CallRel} {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {R : ℕ → Prop}
 
-theorem good_load (hS : StoresAtPi S) {d p : V} {off : ℕ} (hp : p ≠ .n 26)
+theorem good_load (hS : StoresAtPi S) {d p : V} {off : ℕ} (hp : p ≠ .n (val% «check_opening_terminal» "pi_chain"))
     (h : GoodS rd S w σ (.atom (.load d p off))) : σ d = rdAt rd (σ p) off := by
   simp only [GoodS, Good] at h
   rcases h with h | h
@@ -48,7 +50,7 @@ theorem good_load (hS : StoresAtPi S) {d p : V} {off : ℕ} (hp : p ≠ .n 26)
     exact absurd he.2.1 hp
   · exact h
 
-theorem good_load_eq (hS : StoresAtPi S) {d p : V} {off : ℕ} (hp : p ≠ .n 26) {v : E}
+theorem good_load_eq (hS : StoresAtPi S) {d p : V} {off : ℕ} (hp : p ≠ .n (val% «check_opening_terminal» "pi_chain")) {v : E}
     (h : GoodS rd S w σ (.atom (.load d p off))) (hl : LoadHolds rd (σ p) off v) :
     σ d = v ∧ (Atom.load d p off).Holds rd σ := by
   have e := (good_load hS hp h).trans (rt_rdAt_of_load hl)
@@ -68,7 +70,7 @@ theorem good_add {d x y : ℕ} (h : GoodS rd S w σ (.atom (.add (.n d) (.n x) (
 theorem good_const {d : ℕ} {e : E} (h : GoodS rd S w σ (.atom (.const (.n d) e))) :
     σ (.n d) = e := h
 
-theorem n_ne_26 {k : ℕ} (h : k ≠ 26) : (Core.V.n k) ≠ .n 26 := fun e => h (by injection e)
+theorem n_ne_26 {k : ℕ} (h : k ≠ 26) : (Core.V.n k) ≠ .n (val% «check_opening_terminal» "pi_chain") := fun e => h (by injection e)
 
 /-! ## The blocks -/
 
@@ -127,7 +129,7 @@ theorem qT_complete (hS : StoresAtPi S) {s kr lr r acc n : ℕ} (hsel : selV 4 <
     (ekr : σ (.n kr) = gen ^ n)
     (hslot : ∀ k < 6, ∀ t, (t = 24 ∨ t = 25) →
       (∃ v, LoadHolds rd (σ (.n t)) k v) ∧ AddrIn R (σ (.n t)) k)
-    (hch : ∃ v, LoadHolds rd (σ (.n 22) * gen ^ n) 0 v) (ach : AddrIn R (σ (.n 22) * gen ^ n) 0) :
+    (hch : ∃ v, LoadHolds rd (σ (.n (val% «check_opening_terminal» "chi_eq_chain")) * gen ^ n) 0 v) (ach : AddrIn R (σ (.n (val% «check_opening_terminal» "chi_eq_chain")) * gen ^ n) 0) :
     (∀ t ∈ qT s kr lr r acc, Fwd.SHolds C rd σ t) ∧
       ∀ q ∈ (qT s kr lr r acc).filterMap Stmt.loadS, AddrIn R (σ q.1) q.2 := by
   have m : ∀ t, t ∈ qT s kr lr r acc → GoodS rd S w σ t := hg
@@ -159,7 +161,7 @@ theorem qT_complete (hS : StoresAtPi S) {s kr lr r acc n : ℕ} (hsel : selV 4 <
     · exact goodS_mul g8 (by omega) (by omega)
     · exact ls 0 (by decide) _ g9
     · exact goodS_mul g10 (by omega) (by omega)
-    · exact (by rw [e11, ekr] : σ (.n (r + 11)) = σ (.n 22) * σ (.n kr))
+    · exact (by rw [e11, ekr] : σ (.n (r + 11)) = σ (.n (val% «check_opening_terminal» "chi_eq_chain")) * σ (.n kr))
     · exact l12
     · exact goodS_mul g13 (by omega) (by omega)
     · exact goodS_mul g14 (by omega) (by omega)
@@ -200,10 +202,10 @@ theorem pT_complete {sel lr r acc : ℕ} (hsel : sel < r) (hlr : lr < r) (hr : 3
 low length `cLow e j`, its address in `R`. -/
 def ClaimIn (rd : Reader) (σ : Val) (R : ℕ → Prop) (e : ℕ → ℕ) (j : ℕ) : Prop :=
   match termKind j with
-  | 0 => (∃ v, LoadHolds rd (σ (.n 20) * gen ^ cLow e j) 0 v) ∧
-      AddrIn R (σ (.n 20) * gen ^ cLow e j) 0
-  | 1 | 3 => (∃ v, LoadHolds rd (σ (.n 22) * gen ^ cLow e j) 0 v) ∧
-      AddrIn R (σ (.n 22) * gen ^ cLow e j) 0
+  | 0 => (∃ v, LoadHolds rd (σ (.n (val% «check_opening_terminal» "zeta_eq_chain")) * gen ^ cLow e j) 0 v) ∧
+      AddrIn R (σ (.n (val% «check_opening_terminal» "zeta_eq_chain")) * gen ^ cLow e j) 0
+  | 1 | 3 => (∃ v, LoadHolds rd (σ (.n (val% «check_opening_terminal» "chi_eq_chain")) * gen ^ cLow e j) 0 v) ∧
+      AddrIn R (σ (.n (val% «check_opening_terminal» "chi_eq_chain")) * gen ^ cLow e j) 0
   | _ => True
 
 theorem termCol_lt_all : ∀ j < 159, termCol j < Tables.nCommittedCols := by decide +kernel

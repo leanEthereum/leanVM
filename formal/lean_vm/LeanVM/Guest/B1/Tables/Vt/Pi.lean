@@ -10,6 +10,8 @@ module
 
 public import LeanVM.Guest.B1.Tables.Vt.Evals
 public import LeanVM.Guest.B1.Bits.Templates
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_tables»
 
 /-!
 # The public input's binding
@@ -52,80 +54,80 @@ theorem vt_evalFs_eq {rd : Reader} {σ : Val} (h : VtH rd σ) :
 set_option maxRecDepth 10000 in
 /-- **The public input's binding and the return.** -/
 theorem vt_pi {rd : Reader} {σ : Val} (h : VtH rd σ) :
-    σ (.n 5946) = (vtEvalFs σ).squeeze.1 ∧
-      ((List.range 5).map fun k ↦ σ (.n (5973 + k))) = (vtEvalFs σ).squeeze.2.cap ∧
-      σ (.n 5980) = σ (.n 2645) * gen ^ 153 ∧ σ (.n 5981) = σ (.n 2543) ∧
-      σ (.n 5982) = σ (.n 1904) ∧ σ (.n 5983) = σ (.n 5946) ∧ σ (.n 5984) = σ (.n 2645) ∧
-      LoadHolds rd (σ (.n 15)) 157 (multilinearEval [ofK ((σ (.n 6)).limb 0),
-        ofK ((σ (.n 7)).limb 0)] [σ (.n 5946)]) ∧
-      LoadHolds rd (σ (.n 15)) 158 (multilinearEval [ofK ((σ (.n 6)).limb 1),
-        ofK ((σ (.n 7)).limb 1)] [σ (.n 5946)]) := by
-  have z3 := h.atomAt 2626 (.const (.n 2592) (word 0 0)) (by decide +kernel)
-  have z4 := h.atomAt 2627 (.const (.n 2593) (word 0 0)) (by decide +kernel)
-  have z5 := h.atomAt 2628 (.const (.n 2594) (word 0 0)) (by decide +kernel)
-  have z6 := h.atomAt 2629 (.const (.n 2595) (word 0 0)) (by decide +kernel)
-  have k := h.atomAt 5523 (.keccak [.n 4686, .n 4687, .n 2592, .n 2592, .n 2592, .n 2593, .n 2594,
-    .n 2595, .n 4680, .n 4681, .n 4682, .n 4683, .n 4684] (lyOuts 5946) false false)
+    σ (.n (val% «verify_tables» "nxt[0]@42")) = (vtEvalFs σ).squeeze.1 ∧
+      ((List.range 5).map fun k ↦ σ (.n ((val% «verify_tables» "s91#0") + k))) = (vtEvalFs σ).squeeze.2.cap ∧
+      σ (.n (val% «verify_tables» "s91#0[5]")) = σ (.n (val% «verify_tables» "cursor@5")) * gen ^ 153 ∧ σ (.n (val% «verify_tables» "s91#0[6]")) = σ (.n (val% «verify_tables» "g_zc_n")) ∧
+      σ (.n (val% «verify_tables» "s91#0[7]")) = σ (.n (val% «verify_tables» "x@8")) ∧ σ (.n (val% «verify_tables» "s91#0[8]")) = σ (.n (val% «verify_tables» "nxt[0]@42")) ∧ σ (.n (val% «verify_tables» "s91#0[9]")) = σ (.n (val% «verify_tables» "cursor@5")) ∧
+      LoadHolds rd (σ (.n (val% «verify_tables» "claim_pool"))) 157 (multilinearEval [ofK ((σ (.n (val% «verify_tables» "pi_0"))).limb 0),
+        ofK ((σ (.n (val% «verify_tables» "pi_1"))).limb 0)] [σ (.n (val% «verify_tables» "nxt[0]@42"))]) ∧
+      LoadHolds rd (σ (.n (val% «verify_tables» "claim_pool"))) 158 (multilinearEval [ofK ((σ (.n (val% «verify_tables» "pi_0"))).limb 1),
+        ofK ((σ (.n (val% «verify_tables» "pi_1"))).limb 1)] [σ (.n (val% «verify_tables» "nxt[0]@42"))]) := by
+  have z3 := h.atomAt 2626 (.const (.n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]")) (word 0 0)) (by decide +kernel)
+  have z4 := h.atomAt 2627 (.const (.n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[2]")) (word 0 0)) (by decide +kernel)
+  have z5 := h.atomAt 2628 (.const (.n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[3]")) (word 0 0)) (by decide +kernel)
+  have z6 := h.atomAt 2629 (.const (.n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[4]")) (word 0 0)) (by decide +kernel)
+  have k := h.atomAt 5513 (.keccak [.n (val% «verify_tables» "rate[0]@42"), .n (val% «verify_tables» "rate[1]@42"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[2]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[3]"),
+    .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[4]"), .n (val% «verify_tables» "nxt[8]@41"), .n (val% «verify_tables» "nxt[9]@41"), .n (val% «verify_tables» "nxt[10]@41"), .n (val% «verify_tables» "nxt[11]@41"), .n (val% «verify_tables» "nxt[12]@41")] (lyOuts (val% «verify_tables» "nxt[0]@42")) false false)
     (by decide +kernel)
-  obtain ⟨_, s6⟩ := h.sliceAt 5524 (splitLimbsT (.n 6) 5959) (by decide +kernel)
-  obtain ⟨_, s7⟩ := h.sliceAt 5529 (splitLimbsT (.n 7) 5963) (by decide +kernel)
+  obtain ⟨_, s6⟩ := h.sliceAt 5514 (splitLimbsT (.n (val% «verify_tables» "pi_0")) 5950) (by decide +kernel)
+  obtain ⟨_, s7⟩ := h.sliceAt 5519 (splitLimbsT (.n (val% «verify_tables» "pi_1")) 5954) (by decide +kernel)
   rw [holds_splitLimbsT] at s6 s7
   obtain ⟨⟨l6, -, -, h6⟩, -⟩ := s6
   obtain ⟨⟨l7, -, -, h7⟩, -⟩ := s7
-  have a5534 := h.atomAt 5534 (.add (.n 5967) (.n 5959) (.n 5963)) (by decide +kernel)
-  have a5535 := h.atomAt 5535 (.mul (.n 5968) (.n 5946) (.n 5967)) (by decide +kernel)
-  have a5536 := h.atomAt 5536 (.add (.n 5969) (.n 5959) (.n 5968)) (by decide +kernel)
-  have a5537 := h.atomAt 5537 (.load (.n 5969) (.n 15) 157) (by decide +kernel)
-  have a5538 := h.atomAt 5538 (.add (.n 5970) (.n 5962) (.n 5966)) (by decide +kernel)
-  have a5539 := h.atomAt 5539 (.mul (.n 5971) (.n 5946) (.n 5970)) (by decide +kernel)
-  have a5540 := h.atomAt 5540 (.add (.n 5972) (.n 5962) (.n 5971)) (by decide +kernel)
-  have a5541 := h.atomAt 5541 (.load (.n 5972) (.n 15) 158) (by decide +kernel)
-  have r0 := h.atomAt 5542 (.copy (.n 5973) (.n 5954)) (by decide +kernel)
-  have r1 := h.atomAt 5543 (.copy (.n 5974) (.n 5955)) (by decide +kernel)
-  have r2 := h.atomAt 5544 (.copy (.n 5975) (.n 5956)) (by decide +kernel)
-  have r3 := h.atomAt 5545 (.copy (.n 5976) (.n 5957)) (by decide +kernel)
-  have r4 := h.atomAt 5546 (.copy (.n 5977) (.n 5958)) (by decide +kernel)
-  have c5547 := h.atomAt 5547 (.const (.n 5978) (word 10905190400 0)) (by decide +kernel)
-  have m5548 := h.atomAt 5548 (.mul (.n 5979) (.n 2645) (.n 5978)) (by decide +kernel)
-  have r5 := h.atomAt 5549 (.copy (.n 5980) (.n 5979)) (by decide +kernel)
-  have r6 := h.atomAt 5550 (.copy (.n 5981) (.n 2543)) (by decide +kernel)
-  have r7 := h.atomAt 5551 (.copy (.n 5982) (.n 1904)) (by decide +kernel)
-  have r8 := h.atomAt 5552 (.copy (.n 5983) (.n 5946)) (by decide +kernel)
-  have r9 := h.atomAt 5553 (.copy (.n 5984) (.n 2645)) (by decide +kernel)
+  have a5534 := h.atomAt 5524 (.add (.n (val% «verify_tables» "s87#0")) (.n (val% «verify_tables» "lo[0]@1")) (.n (val% «verify_tables» "lo[0]@2"))) (by decide +kernel)
+  have a5535 := h.atomAt 5525 (.mul (.n (val% «verify_tables» "s87#1")) (.n (val% «verify_tables» "nxt[0]@42")) (.n (val% «verify_tables» "s87#0"))) (by decide +kernel)
+  have a5536 := h.atomAt 5526 (.add (.n (val% «verify_tables» "s87#2")) (.n (val% «verify_tables» "lo[0]@1")) (.n (val% «verify_tables» "s87#1"))) (by decide +kernel)
+  have a5537 := h.atomAt 5527 (.load (.n (val% «verify_tables» "s87#2")) (.n (val% «verify_tables» "claim_pool")) 157) (by decide +kernel)
+  have a5538 := h.atomAt 5528 (.add (.n (val% «verify_tables» "s89#0")) (.n (val% «verify_tables» "hi@1")) (.n (val% «verify_tables» "hi@2"))) (by decide +kernel)
+  have a5539 := h.atomAt 5529 (.mul (.n (val% «verify_tables» "s89#1")) (.n (val% «verify_tables» "nxt[0]@42")) (.n (val% «verify_tables» "s89#0"))) (by decide +kernel)
+  have a5540 := h.atomAt 5530 (.add (.n (val% «verify_tables» "s89#2")) (.n (val% «verify_tables» "hi@1")) (.n (val% «verify_tables» "s89#1"))) (by decide +kernel)
+  have a5541 := h.atomAt 5531 (.load (.n (val% «verify_tables» "s89#2")) (.n (val% «verify_tables» "claim_pool")) 158) (by decide +kernel)
+  have r0 := h.atomAt 5532 (.copy (.n (val% «verify_tables» "s91#0")) (.n (val% «verify_tables» "nxt[8]@42"))) (by decide +kernel)
+  have r1 := h.atomAt 5533 (.copy (.n (val% «verify_tables» "s91#0[1]")) (.n (val% «verify_tables» "nxt[9]@42"))) (by decide +kernel)
+  have r2 := h.atomAt 5534 (.copy (.n (val% «verify_tables» "s91#0[2]")) (.n (val% «verify_tables» "nxt[10]@42"))) (by decide +kernel)
+  have r3 := h.atomAt 5535 (.copy (.n (val% «verify_tables» "s91#0[3]")) (.n (val% «verify_tables» "nxt[11]@42"))) (by decide +kernel)
+  have r4 := h.atomAt 5536 (.copy (.n (val% «verify_tables» "s91#0[4]")) (.n (val% «verify_tables» "nxt[12]@42"))) (by decide +kernel)
+  have c5547 := h.atomAt 5537 (.const (.n (val% «verify_tables» "s91#1")) (word 10905190400 0)) (by decide +kernel)
+  have m5548 := h.atomAt 5538 (.mul (.n (val% «verify_tables» "s91#2")) (.n (val% «verify_tables» "cursor@5")) (.n (val% «verify_tables» "s91#1"))) (by decide +kernel)
+  have r5 := h.atomAt 5539 (.copy (.n (val% «verify_tables» "s91#0[5]")) (.n (val% «verify_tables» "s91#2"))) (by decide +kernel)
+  have r6 := h.atomAt 5540 (.copy (.n (val% «verify_tables» "s91#0[6]")) (.n (val% «verify_tables» "g_zc_n"))) (by decide +kernel)
+  have r7 := h.atomAt 5541 (.copy (.n (val% «verify_tables» "s91#0[7]")) (.n (val% «verify_tables» "x@8"))) (by decide +kernel)
+  have r8 := h.atomAt 5542 (.copy (.n (val% «verify_tables» "s91#0[8]")) (.n (val% «verify_tables» "nxt[0]@42"))) (by decide +kernel)
+  have r9 := h.atomAt 5543 (.copy (.n (val% «verify_tables» "s91#0[9]")) (.n (val% «verify_tables» "cursor@5"))) (by decide +kernel)
   simp only [Atom.Holds, tb_word_zero] at z3 z4 z5 z6 a5534 a5535 a5536 a5537
   simp only [Atom.Holds] at a5538 a5539 a5540 a5541
   simp only [Atom.Holds] at r0 r1 r2 r3 r4 c5547 m5548 r5 r6 r7 r8 r9
   -- the squeeze
   obtain ⟨hP, hC⟩ := ly_keccak k
   have e152 := fsPackT_cells (vt_eval h (k := 152) (by norm_num)).2.1
-  have hin : ([.n 4686, .n 4687, .n 2592, .n 2592, .n 2592, .n 2593, .n 2594, .n 2595, .n 4680,
-      .n 4681, .n 4682, .n 4683, .n 4684] : List V).map σ =
+  have hin : ([.n (val% «verify_tables» "rate[0]@42"), .n (val% «verify_tables» "rate[1]@42"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[2]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[3]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[4]"), .n (val% «verify_tables» "nxt[8]@41"),
+      .n (val% «verify_tables» "nxt[9]@41"), .n (val% «verify_tables» "nxt[10]@41"), .n (val% «verify_tables» "nxt[11]@41"), .n (val% «verify_tables» "nxt[12]@41")] : List V).map σ =
       rateOf (vtEvalFs σ).pend ++ (vtEvalFs σ).cap := by
     rw [vt_evalFs_eq h, rateOf_eq_cells _ (by simp)]
     simp only [List.map_cons, List.map_nil, pendCells, List.flatMap_cons, List.flatMap_nil,
       List.length_cons, List.length_nil, List.cons_append, List.nil_append, List.append_nil,
       z3, z4, z5, z6]
-    have e1 : σ (.n 4686) = (Keccak.scalarCells (σ (.n (vtEvB 152))) dsObserve).1 :=
+    have e1 : σ (.n (val% «verify_tables» "rate[0]@42")) = (Keccak.scalarCells (σ (.n (vtEvB 152))) dsObserve).1 :=
       congrArg Prod.fst e152
-    have e2 : σ (.n 4687) = (Keccak.scalarCells (σ (.n (vtEvB 152))) dsObserve).2 :=
+    have e2 : σ (.n (val% «verify_tables» "rate[1]@42")) = (Keccak.scalarCells (σ (.n (vtEvB 152))) dsObserve).2 :=
       congrArg Prod.snd e152
     rw [e1, e2]
     rfl
   rw [hin] at hP hC
-  refine ⟨challengeT_value (s0 := .n 5946) (b := 5946) rfl (hP 0 (by omega)), ?_, ?_, r6, r7, r8, r9, ?_, ?_⟩
+  refine ⟨challengeT_value (s0 := .n (val% «verify_tables» "nxt[0]@42")) (b := 5937) rfl (hP 0 (by omega)), ?_, ?_, r6, r7, r8, r9, ?_, ?_⟩
   · show _ = capOf (permOf (rateOf (vtEvalFs σ).pend ++ (vtEvalFs σ).cap))
     rw [← hC]
     simp only [List.range_succ, List.range_zero, List.map_cons, List.map_nil, List.nil_append,
       List.cons_append, lyCap, r0, r1, r2, r3, r4]
   · rw [r5, m5548, c5547, vtW153]
-  · have e : multilinearEval [ofK ((σ (.n 6)).limb 0), ofK ((σ (.n 7)).limb 0)] [σ (.n 5946)] =
-        σ (.n 5969) := by
+  · have e : multilinearEval [ofK ((σ (.n (val% «verify_tables» "pi_0"))).limb 0), ofK ((σ (.n (val% «verify_tables» "pi_1"))).limb 0)] [σ (.n (val% «verify_tables» "nxt[0]@42"))] =
+        σ (.n (val% «verify_tables» "s87#2")) := by
       rw [a5536, a5535, a5534, ← l6, ← l7]
       simp only [multilinearEval, List.foldl, foldPairs, List.headD]
       ring
     rw [e]; exact a5537
-  · have e : multilinearEval [ofK ((σ (.n 6)).limb 1), ofK ((σ (.n 7)).limb 1)] [σ (.n 5946)] =
-        σ (.n 5972) := by
+  · have e : multilinearEval [ofK ((σ (.n (val% «verify_tables» "pi_0"))).limb 1), ofK ((σ (.n (val% «verify_tables» "pi_1"))).limb 1)] [σ (.n (val% «verify_tables» "nxt[0]@42"))] =
+        σ (.n (val% «verify_tables» "s89#2")) := by
       rw [a5540, a5539, a5538, ← h6, ← h7]
       simp only [multilinearEval, List.foldl, foldPairs, List.headD]
       ring

@@ -10,7 +10,8 @@
 #
 # The compiled checks and `lean` run under a virtual-memory cap of LEAN_VMEM_KB (default 40 GB);
 # `lake` itself cannot, as it reserves about 1 GB of address space per job: every build runs in
-# `lake-build.py`, which admits its modules by memory within a systemd scope.
+# `lake-build.py`, which admits its modules by memory within a systemd scope. macOS has neither the
+# cap nor the scope: `lake-build.py`'s budget is the only guard there.
 #
 # The checks after a build read it and write nothing, so they run at once (`bg`), each one's output
 # printed, in order, when all are done (`wait_bg`).
@@ -21,7 +22,7 @@ trap 'kill $(jobs -p) 2> /dev/null || true; rm -rf "$log"' EXIT
 
 step() { printf '\n==> [%dm%02ds] %s\n' $((SECONDS / 60)) $((SECONDS % 60)) "$*"; }
 fail() { echo "error: $*" >&2; exit 1; }
-capped() { (ulimit -v "${LEAN_VMEM_KB:-40000000}"; exec "$@"); }
+capped() { ([ "$(uname)" = Darwin ] || ulimit -v "${LEAN_VMEM_KB:-40000000}" || exit; exec "$@"); }
 cores=$(nproc 2>/dev/null || sysctl -n hw.ncpu)
 par=$((cores / 4 > 4 ? cores / 4 : 4))  # the differential tests' Lean processes, each
 
@@ -120,7 +121,8 @@ axioms_of() {
   done
 }
 
-# The statement: definitions and end statements only, importing Mathlib, VCVio, CompPoly and itself.
+# The statement: definitions and end statements only, importing Mathlib, VCVio, CompPoly and itself, and
+# `import all` only of its own generated data (`Statement.Data`).
 # Its generated guest data is heavy, so its modules are admitted by memory.
 lakefiles() {
   once lakefiles || return 0
@@ -134,9 +136,9 @@ statement() {
   no_escapes Statement
   lakefiles
   step "Statement: imports only Mathlib, VCVio, CompPoly and itself"
-  if grep -rnE '^(public )?(meta )?import ' --include='*.lean' --exclude-dir=.lake Statement \
-      | grep -vE ':[0-9]+:(public )?(meta )?import (Mathlib|VCVio|CompPoly|Statement)\.'; then
-    fail "Statement imports more than Mathlib, VCVio, CompPoly and itself"
+  if grep -rnE '^[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import([[:space:]]|$)' --include='*.lean' --exclude-dir=.lake Statement \
+      | grep -vE ':[0-9]+:[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import[[:space:]]+((Mathlib|VCVio|CompPoly|Statement)\.|all[[:space:]]+Statement\.Data\.)'; then
+    fail "Statement imports more than Mathlib, VCVio, CompPoly and itself, or \`import all\` beyond Statement.Data"
   fi
   cache_get Statement
   export_guest
@@ -186,7 +188,7 @@ lean_da() {
 }
 
 # Every lean_vm executable, in one build.
-EXES=(node-vectors guest-core guest-cert guest-memory scheme-vectors guest-diff leanvm-verify wire-diff leanvm-prove test-runs)
+EXES=(node-vectors guest-core guest-cert guest-memory scheme-vectors guest-diff leanvm-verify wire-diff leanvm-prove leanvm-execute guest-run test-runs)
 
 # The six projects' targets and lean_vm's executables in one build from lean_vm, whose workspace holds the other
 # five, so that their modules build beside lean_vm's instead of one project after another. The projects' own builds
@@ -252,7 +254,7 @@ leanvm() {
   bg "leanvm: the fold rounds' table is the prover's (whir-fold-table)" \
     cargo run --release --manifest-path lean_vm/scripts/whir-fold-table/Cargo.toml -- \
     lean_vm/LeanVM/Protocol/ToArkLib/Whir/AffineCombinerDeployedTable.lean --check
-  bg "leanvm: the honest hints are the Rust's, and the guest runs on them (guest-diff)" guest_diff
+  bg "leanvm: the honest hints are the Rust's, the guest runs on them, the statement's executor runs it as the Rust does, and the guest prover's proof is accepted (guest-diff, leanvm-execute, guest-run)" guest_diff
   # verification only; key generation and signing are run by hand (`scheme-vectors --xmss-sign`,
   # lean_sphincs' `lake exe signature-kat`)
   bg "leanvm: EthLib's vectors on the statement's verifiers, compiled (scheme-vectors)" \
@@ -266,9 +268,12 @@ leanvm() {
 guest_diff() {
   local gd
   gd=$(mktemp -d)
-  (cd lean_vm && LEANVM_GUEST_DIFF="$gd" cargo test --release \
+  (cd lean_vm && LEANVM_GUEST_DIFF="$gd/diff" LEANVM_GUEST_EXEC="$gd/exec" cargo test --release \
     --manifest-path scripts/guest-export/Cargo.toml --lib guest_diff -- --ignored)
-  in_lean_vm .lake/build/bin/guest-diff "$gd"/*.txt
+  in_lean_vm .lake/build/bin/guest-diff "$gd"/diff/*.txt
+  in_lean_vm .lake/build/bin/leanvm-execute "$gd"/exec/*/
+  in_lean_vm .lake/build/bin/guest-run --rust "$gd/exec" "$gd"/diff/*.txt
+  in_lean_vm .lake/build/bin/guest-run --rust "$gd/exec" --prove "$gd"/diff/leaf.txt
   rm -rf "$gd"
 }
 fuzz_verifier() {
@@ -283,6 +288,7 @@ prover_diff() {
   local pd
   pd=$(mktemp -d)
   lean_vm/scripts/export-prover-traces-rust.sh "$pd" > /dev/null
+  in_lean_vm .lake/build/bin/leanvm-execute "$pd"/*/
   (cd lean_vm && python3 -I scripts/prover-diff.py "$pd" --mutations 40 --jobs "$par" --identical \
     --expected tests/fixtures/verifier)
   rm -rf "$pd"

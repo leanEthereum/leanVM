@@ -21,8 +21,8 @@ frames `17`) at most `17` words per iteration and their runs' one phantom frame;
 (core `267`, `plainName 1`) at most `145`; the layers' eight-round loops `374` per iteration and
 remainder loops `77`, and their frames (`LayerCPlacedBW`). So `verify_keccak`'s callees are complete
 within `D.kidsB B2C.fs 17 374 77 201 145` (`kids_completeB_fs`), whose sum is at most
-`3 * ((τ - 4) * 17) + 51 + 547 + 12 * (2241 + (y + 171) + (374 + y / 8 * 374) + (77 + y % 8 * 77) + 60)`
-(`y = τ - 3`), at most `52647` words for `τ ≤ 28` (`kidsB_fs_le`).
+`3 * ((τ - 4) * 17) + 51 + 547 + 12 * (2242 + (y + 171) + (374 + y / 8 * 374) + (77 + y % 8 * 77) + 60)`
+(`y = τ - 3`), at most `52659` words for `τ ≤ 28` (`kidsB_fs_le`).
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -55,7 +55,7 @@ theorem plain0_totalLe_fs :
       "keccak_plain_rounds__L6_L0") (by decide +kernel)
   rwa [wSB_idx (j := idx% «keccak_plain_rounds__L6_L0») (f := "keccak_plain_rounds__L6_L0")
       (by decide +kernel),
-    show wSBJ 268 = 201 by decide +kernel] at h1
+    show wSBJ (idx% «keccak_plain_rounds__L6_L0») = 201 by decide +kernel] at h1
 
 /-- **`keccak_plain_rounds__L4_L1`'s words at `B2C.fs`**: `145`. -/
 theorem plain1_totalLe_fs :
@@ -64,36 +64,36 @@ theorem plain1_totalLe_fs :
       "keccak_plain_rounds__L4_L1") (by decide +kernel)
   rwa [wSB_idx (j := idx% «keccak_plain_rounds__L4_L1») (f := "keccak_plain_rounds__L4_L1")
       (by decide +kernel),
-    show wSBJ 270 = 145 by decide +kernel] at h1
+    show wSBJ (idx% «keccak_plain_rounds__L4_L1») = 145 by decide +kernel] at h1
 
 namespace VkData
 
 variable {D : VkData} {cert : String → V → ℕ}
 
 /-- **`verify_keccak`'s calls, complete where it places them, within their words at `B2C.fs`.** -/
-theorem kids_completeB_fs (h : D.Ok) {κ : ℕ} (hκ : 11 ≤ κ) (B curE chiE olE zvE slE tbE : ℕ) :
-    KidsGB LeanVM.Guest.B2C.fs cert κ (D.kids LeanVM.Guest.B2C.fs B curE chiE olE zvE slE tbE)
+theorem kids_completeB_fs (h : D.Ok) {κ : ℕ} (hκ : 11 ≤ κ) (B curE chiE olE zvE slE tbE stE : ℕ) :
+    KidsGB LeanVM.Guest.B2C.fs cert κ (D.kids LeanVM.Guest.B2C.fs B curE chiE olE zvE slE tbE stE)
       (D.kidsB LeanVM.Guest.B2C.fs 17 374 77 201 145) :=
-  kids_completeB h hκ B curE chiE olE zvE slE tbE copyLoop_totalLeOn_fs
+  kids_completeB h hκ B curE chiE olE zvE slE tbE stE copyLoop_totalLeOn_fs
     (fun _ hf ↦ packLoop_totalLeOn_fs hf) (fun _ hf ↦ remLoop_totalLeOn_fs hf)
     plain0_totalLe_fs plain1_totalLe_fs
 
 /-- **The callees' words at `B2C.fs`, in numbers**: the copy loops `(τ - 4) * 17 + 17` each, the
 openings' rounds `201 + 145 + 201`, each layer (`y = τ - 3`) at most
-`2241 + (y + 171) + (374 + y / 8 * 374) + (77 + y % 8 * 77) + 60`; at most `52647` for `τ ≤ 28`. -/
+`2242 + (y + 171) + (374 + y / 8 * 374) + (77 + y % 8 * 77) + 60`; at most `52659` for `τ ≤ 28`. -/
 theorem kidsB_fs_le (h : D.Ok) :
     (D.kidsB LeanVM.Guest.B2C.fs 17 374 77 201 145).sum ≤
-      3 * ((D.τ - 4) * 17) + 51 + 547 + 12 * (2241 + (D.τ - 3 + 171) + (374 + (D.τ - 3) / 8 * 374) +
+      3 * ((D.τ - 4) * 17) + 51 + 547 + 12 * (2242 + (D.τ - 3 + 171) + (374 + (D.τ - 3) / 8 * 374) +
         (77 + (D.τ - 3) % 8 * 77) + 60) ∧
-    (D.kidsB LeanVM.Guest.B2C.fs 17 374 77 201 145).sum ≤ 52647 := by
+    (D.kidsB LeanVM.Guest.B2C.fs 17 374 77 201 145).sum ≤ 52659 := by
   have hτ := h.2.1
   have hτ1 := h.1
   have hL : ((List.range 12).map (fun s ↦ layerWords LeanVM.Guest.B2C.fs (firstOf s)
       (D.layer s).y 374 77)).sum ≤
-      12 * (2241 + (D.τ - 3 + 171) + (374 + (D.τ - 3) / 8 * 374) + (77 + (D.τ - 3) % 8 * 77) + 60) := by
+      12 * (2242 + (D.τ - 3 + 171) + (374 + (D.τ - 3) / 8 * 374) + (77 + (D.τ - 3) % 8 * 77) + 60) := by
     have := List.sum_le_length_nsmul ((List.range 12).map (fun s ↦ layerWords
       LeanVM.Guest.B2C.fs (firstOf s) (D.layer s).y 374 77))
-      (2241 + (D.τ - 3 + 171) + (374 + (D.τ - 3) / 8 * 374) + (77 + (D.τ - 3) % 8 * 77) + 60)
+      (2242 + (D.τ - 3 + 171) + (374 + (D.τ - 3) / 8 * 374) + (77 + (D.τ - 3) % 8 * 77) + 60)
       (fun x hx ↦ ?_)
     · simpa using this
     obtain ⟨s, hs, rfl⟩ := List.mem_map.mp hx
@@ -112,7 +112,7 @@ theorem kidsB_fs_le (h : D.Ok) :
     decide +kernel
   rw [kidsB_sum, hF]
   refine ⟨by omega, ?_⟩
-  refine le_trans (by omega : _ ≤ 3 * ((D.τ - 4) * 17) + 51 + 547 + 12 * (2241 + (D.τ - 3 + 171) +
+  refine le_trans (by omega : _ ≤ 3 * ((D.τ - 4) * 17) + 51 + 547 + 12 * (2242 + (D.τ - 3 + 171) +
     (374 + (D.τ - 3) / 8 * 374) + (77 + (D.τ - 3) % 8 * 77) + 60)) ?_
   generalize hT : D.τ = t at hτ hτ1
   interval_cases t <;> norm_num

@@ -9,6 +9,8 @@ module
 public import LeanVM.Guest.B1.KeccakGkr.LayerCLift
 public import LeanVM.Guest.B1.Tables.VtC.Kids
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«keccak_layer__L»
 
 /-!
 # `keccak_layer`, complete and placed
@@ -46,7 +48,7 @@ noncomputable def layerW (D : LayerData) (first b : ℕ) (i : ℕ) : E :=
   else if i = topV (tW first) + 3 then ptr (b + D.y + 148) else 0
 
 theorem weightEnd_big {first : ℕ} (hf : first < 2) :
-    layOff first ≤ 20 ∧ 1100 < tW first ∧ tW first + 25 < topV (tW first) := by
+    layOff first ≤ 21 ∧ 1100 < tW first ∧ tW first + 25 < topV (tW first) := by
   interval_cases first <;> exact ⟨by decide, by decide +kernel, by decide +kernel⟩
 
 theorem layerW_vals {first : ℕ} (hf : first < 2) (D : LayerData) (b : ℕ) :
@@ -157,7 +159,7 @@ set_option maxRecDepth 20000 in
 (and `completeAt_flatOutFB`) asks of the body, on a memory holding the caller's words and the
 buffers. -/
 theorem layer_obl {first : ℕ} (hf : first < 2) {κ : ℕ} (hκ : 11 ≤ κ) (D : LayerData)
-    (CL : ClaimLay) (bcur bout tbE : ℕ) {p0 p1 iota : E}
+    (CL : ClaimLay) (bcur bout tbE : ℕ) {p0 p1 iota st : E}
     (hcl : D.cap.length = 5)
     (hw : first = 1 → (p0, p1) = Keccak.scalarCells D.w0 dsObserve)
     (hy1 : 1 ≤ D.y) (hy30 : D.y ≤ 30) (hpl : D.product.length = 47)
@@ -169,9 +171,9 @@ theorem layer_obl {first : ℕ} (hf : first < 2) {κ : ℕ} (hκ : 11 ≤ κ) (D
     (hout : OutsOk (layerKids D first CL bcur bout tbE b) outs) (rd : Reader) (hlow : LowDef κ rd)
     (hB : MemL rd (layerBufs D first (ptr bcur) b))
     (hLin : MemL rd (layerLin D first CL bcur bout tbE b)) :
-    ∃ σ : Val, [V.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10, .n 11, .n 12,
-        .n 13, .n 14].map σ = D.cap ++ [p0, p1, ptr bcur, gen ^ D.y, gen ^ (D.y / 8),
-          gen ^ (D.y % 8), ptr CL.bclaim, ptr bout, iota, ptr tbE] ∧
+    ∃ σ : Val, [V.n (valf% «keccak_layer» "fs0"), .n (valf% «keccak_layer» "fs1"), .n (valf% «keccak_layer» "fs2"), .n (valf% «keccak_layer» "fs3"), .n (valf% «keccak_layer» "fs4"), .n (valf% «keccak_layer» "p0"), .n (valf% «keccak_layer» "p1"), .n (valf% «keccak_layer» "cursor@1"), .n (valf% «keccak_layer» "y_g"), .n (valf% «keccak_layer» "step_g"), .n (valf% «keccak_layer» "rem_g"), .n (valf% «keccak_layer» "claim"), .n (valf% «keccak_layer» "out"),
+        .n (valf% «keccak_layer» "iota"), .n (valf% «keccak_layer» "tabs"), .n (valf% «keccak_layer» "stream")].map σ = D.cap ++ [p0, p1, ptr bcur, gen ^ D.y, gen ^ (D.y / 8),
+          gen ^ (D.y % 8), ptr CL.bclaim, ptr bout, iota, ptr tbE, st] ∧
       (∀ s ∈ layerPre first, DispOk σ s) ∧
       Stmt.HoldsList (coreProgram.Rel rd) rd σ (layerT first) False
         (fun r => r = D.rets first (ptr bcur)) ∧
@@ -210,7 +212,7 @@ theorem layer_obl {first : ℕ} (hf : first < 2) {κ : ℕ} (hκ : 11 ≤ κ) (D
     rw [w719, w27, w748, wfl]; exact mL (by simp [layerLin])
   have hbody' := layer_body_complete hf D (rd := rd) (w := layerW D first b) (p0 := p0)
     (p1 := p1) (cur := ptr bcur) (claim := ptr CL.bclaim) (out := ptr bout) (iota := iota)
-    (tb := ptr tbE) (cw := CL.cw) hcl hw hy1 hy30 hpl hpm hlm hproj hgrind hfin hcr hcw
+    (tb := ptr tbE) (st := st) (cw := CL.cw) hcl hw hy1 hy30 hpl hpm hlm hproj hgrind hfin hcr hcw
     (by omega) hxs
     (by rw [w719]; exact mB (by simp [layerBufs_eq]))
     (by rw [w720]; exact mB (by simp [layerBufs_eq]))
@@ -224,11 +226,11 @@ theorem layer_obl {first : ℕ} (hf : first < 2) {κ : ℕ} (hκ : 11 ≤ κ) (D
   obtain ⟨⟨e739, e532, e745, e1190, e1191, e718⟩, hH⟩ := hbody'
   -- the valuation's equations
   have hl : (D.cap ++ [p0, p1, ptr bcur, gen ^ D.y, gen ^ (D.y / 8), gen ^ (D.y % 8),
-      ptr CL.bclaim, ptr bout, iota, ptr tbE]).length = 15 := by simp [hcl]
+      ptr CL.bclaim, ptr bout, iota, ptr tbE, st]).length = 16 := by simp [hcl]
   have hG := layer_good (rd := rd) (w := layerW D first b) hf hl
-  have hpar := fun i (hi : i < 15) ↦ layer_param (rd := rd) (w := layerW D first b) hf hl hi
+  have hpar := fun i (hi : i < 16) ↦ layer_param (rd := rd) (w := layerW D first b) hf hl hi
   generalize layerσ rd (layerW D first b) (D.cap ++ [p0, p1, ptr bcur, gen ^ D.y,
-    gen ^ (D.y / 8), gen ^ (D.y % 8), ptr CL.bclaim, ptr bout, iota, ptr tbE]) first = σ
+    gen ^ (D.y / 8), gen ^ (D.y % 8), ptr CL.bclaim, ptr bout, iota, ptr tbE, st]) first = σ
     at hG hpar hH e739 e532 e745 e1190 e1191 e718 ⊢
   have hGpre : ∀ s ∈ layerPre first, GoodS rd (layerSt first) (layerW D first b) σ s :=
     fun s hs ↦ hG s (by rw [layerT_pre]; exact List.mem_append_left _ hs)
@@ -247,13 +249,13 @@ theorem layer_obl {first : ℕ} (hf : first < 2) {κ : ℕ} (hκ : 11 ≤ κ) (D
     fun s hs ↦ hG s (by simp [hs])
   obtain ⟨f0, f1, f2, f3, f4, hcapE⟩ := five_of_length' hcl
   rw [hcapE] at hpar
-  have a7 : σ (.n 7) = ptr bcur := hpar 7 (by norm_num)
-  have a8 : σ (.n 8) = gen ^ D.y := hpar 8 (by norm_num)
-  have a9 : σ (.n 9) = gen ^ (D.y / 8) := hpar 9 (by norm_num)
-  have a10 : σ (.n 10) = gen ^ (D.y % 8) := hpar 10 (by norm_num)
-  have a11 : σ (.n 11) = ptr CL.bclaim := hpar 11 (by norm_num)
-  have a12 : σ (.n 12) = ptr bout := hpar 12 (by norm_num)
-  have a14 : σ (.n 14) = ptr tbE := hpar 14 (by norm_num)
+  have a7 : σ (.n (valf% «keccak_layer» "cursor@1")) = ptr bcur := hpar 7 (by norm_num)
+  have a8 : σ (.n (valf% «keccak_layer» "y_g")) = gen ^ D.y := hpar 8 (by norm_num)
+  have a9 : σ (.n (valf% «keccak_layer» "step_g")) = gen ^ (D.y / 8) := hpar 9 (by norm_num)
+  have a10 : σ (.n (valf% «keccak_layer» "rem_g")) = gen ^ (D.y % 8) := hpar 10 (by norm_num)
+  have a11 : σ (.n (valf% «keccak_layer» "claim")) = ptr CL.bclaim := hpar 11 (by norm_num)
+  have a12 : σ (.n (valf% «keccak_layer» "out")) = ptr bout := hpar 12 (by norm_num)
+  have a14 : σ (.n (valf% «keccak_layer» "tabs")) = ptr tbE := hpar 14 (by norm_num)
   refine ⟨σ, ?_, layerPre_disp hf σ, ?_, ?_, ?_, ?_, ?_⟩
   pick_goal 2
   · -- the body, `layerT first` kept folded
@@ -353,7 +355,7 @@ theorem layer_obl {first : ℕ} (hf : first < 2) {κ : ℕ} (hκ : 11 ≤ κ) (D
 set_option maxRecDepth 20000 in
 /-- **`keccak_layer` is complete, placed**, for its two specializations. -/
 theorem layer_completeAtF {first : ℕ} (hf : first < 2) {κ : ℕ} (hκ : 11 ≤ κ) (D : LayerData)
-    (CL : ClaimLay) (bcur bout tbE : ℕ) {p0 p1 iota : E}
+    (CL : ClaimLay) (bcur bout tbE : ℕ) {p0 p1 iota st : E}
     (hcl : D.cap.length = 5)
     (hw : first = 1 → (p0, p1) = Keccak.scalarCells D.w0 dsObserve)
     (hy1 : 1 ≤ D.y) (hy30 : D.y ≤ 30) (hpl : D.product.length = 47)
@@ -365,7 +367,7 @@ theorem layer_completeAtF {first : ℕ} (hf : first < 2) {κ : ℕ} (hκ : 11 �
     CompleteAtF fs cert κ (layerName first)
       (fun fp ↦ layerLin D first CL bcur bout tbE (fp + fs (layerName first)))
       (D.cap ++ [p0, p1, ptr bcur, gen ^ D.y, gen ^ (D.y / 8), gen ^ (D.y % 8), ptr CL.bclaim,
-        ptr bout, iota, ptr tbE])
+        ptr bout, iota, ptr tbE, st])
       (fun fp rets Lout ↦ rets = D.rets first (ptr bcur) ∧
         Lout = layerBufs D first (ptr bcur) (fp + fs (layerName first))) := by
   obtain ⟨fn, hfind, hbody, hparams⟩ := layer_fn hf

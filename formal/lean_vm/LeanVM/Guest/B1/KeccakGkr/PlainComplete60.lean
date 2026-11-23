@@ -8,6 +8,8 @@
 module
 
 public import LeanVM.Guest.B1.KeccakGkr.PlainRoundComplete
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«keccak_plain_rounds__L6_L0»
 
 /-!
 # `keccak_plain_rounds__L6_L0`, completely
@@ -30,8 +32,8 @@ theorem plain60_chk : Fwd.chk 11 (fn% «keccak_plain_rounds__L6_L0»).body = som
   by decide +kernel
 
 theorem plain60_stores : storesOf 11 (fn% «keccak_plain_rounds__L6_L0»).body =
-    [.load (.n 27) (.n 9) 0, .load (.n 51) (.n 9) 1, .load (.n 75) (.n 9) 2,
-      .load (.n 99) (.n 9) 3, .load (.n 123) (.n 9) 4, .load (.n 147) (.n 9) 5] := by
+    [.load (.n (val% «keccak_plain_rounds__L6_L0» "nxt[0]@1")) (.n (val% «keccak_plain_rounds__L6_L0» "point")) 0, .load (.n (val% «keccak_plain_rounds__L6_L0» "nxt[0]@2")) (.n (val% «keccak_plain_rounds__L6_L0» "point")) 1, .load (.n (val% «keccak_plain_rounds__L6_L0» "nxt[0]@3")) (.n (val% «keccak_plain_rounds__L6_L0» "point")) 2,
+      .load (.n (val% «keccak_plain_rounds__L6_L0» "nxt[0]@4")) (.n (val% «keccak_plain_rounds__L6_L0» "point")) 3, .load (.n (val% «keccak_plain_rounds__L6_L0» "nxt[0]@5")) (.n (val% «keccak_plain_rounds__L6_L0» "point")) 4, .load (.n (val% «keccak_plain_rounds__L6_L0» "nxt[0]@6")) (.n (val% «keccak_plain_rounds__L6_L0» "point")) 5] := by
   decide +kernel
 
 theorem kk_six_of_length {α : Type} {l : List α} (h : l.length = 6) :
@@ -61,27 +63,27 @@ theorem plain60_complete (rd : Reader) (args rets : List E)
   rw [show l.length = 11 from rfl, plain60_stores] at g
   generalize Val.ofArgs (ev rd (fun _ ↦ 0) l (fn% «keccak_plain_rounds__L6_L0»).body) = σ at g pp
   rw [body60] at g
-  have p7 : σ (.n 7) = cur := pp 7 (by norm_num)
-  have p9 : σ (.n 9) = point := pp 9 (by norm_num)
-  have inT : ∀ s, (s ∈ [Stmt.atom (.copy (.n 11) (.n 0)), .atom (.copy (.n 12) (.n 1)),
-      .atom (.copy (.n 13) (.n 2)), .atom (.copy (.n 14) (.n 3)), .atom (.copy (.n 15) (.n 4))] ∨
-      s ∈ plainRoundT (.n 7) (.n 9) (.n 8) (plainIns0 16 [.n 23, .n 24, .n 25, .n 26] 11)
+  have p7 : σ (.n (val% «keccak_plain_rounds__L6_L0» "cursor")) = cur := pp 7 (by norm_num)
+  have p9 : σ (.n (val% «keccak_plain_rounds__L6_L0» "point")) = point := pp 9 (by norm_num)
+  have inT : ∀ s, (s ∈ [Stmt.atom (.copy (.n (val% «keccak_plain_rounds__L6_L0» "sp[0]")) (.n (val% «keccak_plain_rounds__L6_L0» "fs0"))), .atom (.copy (.n (val% «keccak_plain_rounds__L6_L0» "sp[1]")) (.n (val% «keccak_plain_rounds__L6_L0» "fs1"))),
+      .atom (.copy (.n (val% «keccak_plain_rounds__L6_L0» "sp[2]")) (.n (val% «keccak_plain_rounds__L6_L0» "fs2"))), .atom (.copy (.n (val% «keccak_plain_rounds__L6_L0» "sp[3]")) (.n (val% «keccak_plain_rounds__L6_L0» "fs3"))), .atom (.copy (.n (val% «keccak_plain_rounds__L6_L0» "sp[4]")) (.n (val% «keccak_plain_rounds__L6_L0» "fs4")))] ∨
+      s ∈ plainRoundT (.n (val% «keccak_plain_rounds__L6_L0» "cursor")) (.n (val% «keccak_plain_rounds__L6_L0» "point")) (.n (val% «keccak_plain_rounds__L6_L0» "value@1")) (plainIns0 16 [.n (val% «keccak_plain_rounds__L6_L0» "s1.u0.s1.t.s0.e.s2.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[1]"), .n (val% «keccak_plain_rounds__L6_L0» "s1.u0.s1.t.s0.e.s2.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[2]"), .n (val% «keccak_plain_rounds__L6_L0» "s1.u0.s1.t.s0.e.s2.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[3]"), .n (val% «keccak_plain_rounds__L6_L0» "s1.u0.s1.t.s0.e.s2.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[4]")] 11)
         plainMid60 0 16 27 ∨
-      s ∈ plainRoundT (.n 7) (.n 9) (.n 44) (plainIns0 45 [.n 23, .n 24, .n 25, .n 26] 35) [] 1 45 51 ∨
-      s ∈ plainRoundT (.n 7) (.n 9) (.n 68) (plainIns0 69 [.n 23, .n 24, .n 25, .n 26] 59) [] 2
+      s ∈ plainRoundT (.n (val% «keccak_plain_rounds__L6_L0» "cursor")) (.n (val% «keccak_plain_rounds__L6_L0» "point")) (.n (val% «keccak_plain_rounds__L6_L0» "value@2")) (plainIns0 45 [.n (val% «keccak_plain_rounds__L6_L0» "s1.u0.s1.t.s0.e.s2.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[1]"), .n (val% «keccak_plain_rounds__L6_L0» "s1.u0.s1.t.s0.e.s2.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[2]"), .n (val% «keccak_plain_rounds__L6_L0» "s1.u0.s1.t.s0.e.s2.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[3]"), .n (val% «keccak_plain_rounds__L6_L0» "s1.u0.s1.t.s0.e.s2.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[4]")] 35) [] 1 45 51 ∨
+      s ∈ plainRoundT (.n (val% «keccak_plain_rounds__L6_L0» "cursor")) (.n (val% «keccak_plain_rounds__L6_L0» "point")) (.n (val% «keccak_plain_rounds__L6_L0» "value@3")) (plainIns0 69 [.n (val% «keccak_plain_rounds__L6_L0» "s1.u0.s1.t.s0.e.s2.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[1]"), .n (val% «keccak_plain_rounds__L6_L0» "s1.u0.s1.t.s0.e.s2.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[2]"), .n (val% «keccak_plain_rounds__L6_L0» "s1.u0.s1.t.s0.e.s2.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[3]"), .n (val% «keccak_plain_rounds__L6_L0» "s1.u0.s1.t.s0.e.s2.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[4]")] 59) [] 2
         69 75 ∨
-      s ∈ plainRoundT (.n 7) (.n 9) (.n 92) (plainIns0 93 [.n 23, .n 24, .n 25, .n 26] 83) [] 3
+      s ∈ plainRoundT (.n (val% «keccak_plain_rounds__L6_L0» "cursor")) (.n (val% «keccak_plain_rounds__L6_L0» "point")) (.n (val% «keccak_plain_rounds__L6_L0» "value@4")) (plainIns0 93 [.n (val% «keccak_plain_rounds__L6_L0» "s1.u0.s1.t.s0.e.s2.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[1]"), .n (val% «keccak_plain_rounds__L6_L0» "s1.u0.s1.t.s0.e.s2.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[2]"), .n (val% «keccak_plain_rounds__L6_L0» "s1.u0.s1.t.s0.e.s2.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[3]"), .n (val% «keccak_plain_rounds__L6_L0» "s1.u0.s1.t.s0.e.s2.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[4]")] 83) [] 3
         93 99 ∨
-      s ∈ plainRoundT (.n 7) (.n 9) (.n 116) (plainIns0 117 [.n 23, .n 24, .n 25, .n 26] 107) [] 4
+      s ∈ plainRoundT (.n (val% «keccak_plain_rounds__L6_L0» "cursor")) (.n (val% «keccak_plain_rounds__L6_L0» "point")) (.n (val% «keccak_plain_rounds__L6_L0» "value@5")) (plainIns0 117 [.n (val% «keccak_plain_rounds__L6_L0» "s1.u0.s1.t.s0.e.s2.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[1]"), .n (val% «keccak_plain_rounds__L6_L0» "s1.u0.s1.t.s0.e.s2.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[2]"), .n (val% «keccak_plain_rounds__L6_L0» "s1.u0.s1.t.s0.e.s2.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[3]"), .n (val% «keccak_plain_rounds__L6_L0» "s1.u0.s1.t.s0.e.s2.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[4]")] 107) [] 4
         117 123 ∨
-      s ∈ plainRoundT (.n 7) (.n 9) (.n 140) (plainIns0 141 [.n 23, .n 24, .n 25, .n 26] 131) [] 5
+      s ∈ plainRoundT (.n (val% «keccak_plain_rounds__L6_L0» "cursor")) (.n (val% «keccak_plain_rounds__L6_L0» "point")) (.n (val% «keccak_plain_rounds__L6_L0» "value@6")) (plainIns0 141 [.n (val% «keccak_plain_rounds__L6_L0» "s1.u0.s1.t.s0.e.s2.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[1]"), .n (val% «keccak_plain_rounds__L6_L0» "s1.u0.s1.t.s0.e.s2.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[2]"), .n (val% «keccak_plain_rounds__L6_L0» "s1.u0.s1.t.s0.e.s2.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[3]"), .n (val% «keccak_plain_rounds__L6_L0» "s1.u0.s1.t.s0.e.s2.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[4]")] 131) [] 5
         141 147 ∨
-      s ∈ [Stmt.atom (.copy (.n 165) (.n 155)), .atom (.copy (.n 166) (.n 156)),
-        .atom (.copy (.n 167) (.n 157)), .atom (.copy (.n 168) (.n 158)),
-        .atom (.copy (.n 169) (.n 159)), .atom (.const (.n 170) (word 4096 0)),
-        .atom (.mul (.n 171) (.n 7) (.n 170)), .atom (.copy (.n 172) (.n 171)),
-        .atom (.copy (.n 173) (.n 164)),
-        .ret [.n 165, .n 166, .n 167, .n 168, .n 169, .n 172, .n 173]]) → s ∈ plain60T := by
+      s ∈ [Stmt.atom (.copy (.n (val% «keccak_plain_rounds__L6_L0» "s2#0")) (.n (val% «keccak_plain_rounds__L6_L0» "nxt[8]@6"))), .atom (.copy (.n (val% «keccak_plain_rounds__L6_L0» "s2#0[1]")) (.n (val% «keccak_plain_rounds__L6_L0» "nxt[9]@6"))),
+        .atom (.copy (.n (val% «keccak_plain_rounds__L6_L0» "s2#0[2]")) (.n (val% «keccak_plain_rounds__L6_L0» "nxt[10]@6"))), .atom (.copy (.n (val% «keccak_plain_rounds__L6_L0» "s2#0[3]")) (.n (val% «keccak_plain_rounds__L6_L0» "nxt[11]@6"))),
+        .atom (.copy (.n (val% «keccak_plain_rounds__L6_L0» "s2#0[4]")) (.n (val% «keccak_plain_rounds__L6_L0» "nxt[12]@6"))), .atom (.const (.n (val% «keccak_plain_rounds__L6_L0» "s2#1")) (word 4096 0)),
+        .atom (.mul (.n (val% «keccak_plain_rounds__L6_L0» "s2#2")) (.n (val% «keccak_plain_rounds__L6_L0» "cursor")) (.n (val% «keccak_plain_rounds__L6_L0» "s2#1"))), .atom (.copy (.n (val% «keccak_plain_rounds__L6_L0» "s2#0[5]")) (.n (val% «keccak_plain_rounds__L6_L0» "s2#2"))),
+        .atom (.copy (.n (val% «keccak_plain_rounds__L6_L0» "s2#0[6]")) (.n (val% «keccak_plain_rounds__L6_L0» "value@7"))),
+        .ret [.n (val% «keccak_plain_rounds__L6_L0» "s2#0"), .n (val% «keccak_plain_rounds__L6_L0» "s2#0[1]"), .n (val% «keccak_plain_rounds__L6_L0» "s2#0[2]"), .n (val% «keccak_plain_rounds__L6_L0» "s2#0[3]"), .n (val% «keccak_plain_rounds__L6_L0» "s2#0[4]"), .n (val% «keccak_plain_rounds__L6_L0» "s2#0[5]"), .n (val% «keccak_plain_rounds__L6_L0» "s2#0[6]")]]) → s ∈ plain60T := by
     intro s hs
     simp only [plain60T, List.mem_append]
     tauto
@@ -101,19 +103,19 @@ theorem plain60_complete (rd : Reader) (args rets : List E)
   obtain ⟨c165, c166, c167, c168, c169, c170, m171, c172, c173⟩ := gt
   simp only [Nat.reduceLT, and_self, ↓reduceIte] at m171
   -- the zero cells
-  have inMid : ∀ s ∈ plainMid60, s ∈ plainRoundT (.n 7) (.n 9) (.n 8)
-      (plainIns0 16 [.n 23, .n 24, .n 25, .n 26] 11) plainMid60 0 16 27 := fun s hs ↦ by
+  have inMid : ∀ s ∈ plainMid60, s ∈ plainRoundT (.n (val% «keccak_plain_rounds__L6_L0» "cursor")) (.n (val% «keccak_plain_rounds__L6_L0» "point")) (.n (val% «keccak_plain_rounds__L6_L0» "value@1"))
+      (plainIns0 16 [.n (val% «keccak_plain_rounds__L6_L0» "s1.u0.s1.t.s0.e.s2.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[1]"), .n (val% «keccak_plain_rounds__L6_L0» "s1.u0.s1.t.s0.e.s2.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[2]"), .n (val% «keccak_plain_rounds__L6_L0» "s1.u0.s1.t.s0.e.s2.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[3]"), .n (val% «keccak_plain_rounds__L6_L0» "s1.u0.s1.t.s0.e.s2.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[4]")] 11) plainMid60 0 16 27 := fun s hs ↦ by
     unfold plainRoundT
     exact List.mem_append_left _ (List.mem_append_left _ (List.mem_append_right _ hs))
-  have z23 : σ (.n 23) = word 0 0 :=
-    g0 (.atom (.const (.n 23) (word 0 0))) (inMid _ (by simp [plainMid60]))
-  have z24 : σ (.n 24) = word 0 0 :=
-    g0 (.atom (.const (.n 24) (word 0 0))) (inMid _ (by simp [plainMid60]))
-  have z25 : σ (.n 25) = word 0 0 :=
-    g0 (.atom (.const (.n 25) (word 0 0))) (inMid _ (by simp [plainMid60]))
-  have z26 : σ (.n 26) = word 0 0 :=
-    g0 (.atom (.const (.n 26) (word 0 0))) (inMid _ (by simp [plainMid60]))
-  have hz : [V.n 23, .n 24, .n 25, .n 26].map σ = [0, 0, 0, 0] := by
+  have z23 : σ (.n (val% «keccak_plain_rounds__L6_L0» "s1.u0.s1.t.s0.e.s2.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[1]")) = word 0 0 :=
+    g0 (.atom (.const (.n (val% «keccak_plain_rounds__L6_L0» "s1.u0.s1.t.s0.e.s2.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[1]")) (word 0 0))) (inMid _ (by simp [plainMid60]))
+  have z24 : σ (.n (val% «keccak_plain_rounds__L6_L0» "s1.u0.s1.t.s0.e.s2.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[2]")) = word 0 0 :=
+    g0 (.atom (.const (.n (val% «keccak_plain_rounds__L6_L0» "s1.u0.s1.t.s0.e.s2.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[2]")) (word 0 0))) (inMid _ (by simp [plainMid60]))
+  have z25 : σ (.n (val% «keccak_plain_rounds__L6_L0» "s1.u0.s1.t.s0.e.s2.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[3]")) = word 0 0 :=
+    g0 (.atom (.const (.n (val% «keccak_plain_rounds__L6_L0» "s1.u0.s1.t.s0.e.s2.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[3]")) (word 0 0))) (inMid _ (by simp [plainMid60]))
+  have z26 : σ (.n (val% «keccak_plain_rounds__L6_L0» "s1.u0.s1.t.s0.e.s2.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[4]")) = word 0 0 :=
+    g0 (.atom (.const (.n (val% «keccak_plain_rounds__L6_L0» "s1.u0.s1.t.s0.e.s2.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[4]")) (word 0 0))) (inMid _ (by simp [plainMid60]))
+  have hz : [V.n (val% «keccak_plain_rounds__L6_L0» "s1.u0.s1.t.s0.e.s2.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[1]"), .n (val% «keccak_plain_rounds__L6_L0» "s1.u0.s1.t.s0.e.s2.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[2]"), .n (val% «keccak_plain_rounds__L6_L0» "s1.u0.s1.t.s0.e.s2.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[3]"), .n (val% «keccak_plain_rounds__L6_L0» "s1.u0.s1.t.s0.e.s2.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[4]")].map σ = [0, 0, 0, 0] := by
     simp only [List.map_cons, List.map_nil, z23, z24, z25, z26, word_zero]
   have hmid0 : ∀ s ∈ plainMid60, ∃ d c, s = .atom (.const d c) := by
     intro s hs
@@ -121,7 +123,7 @@ theorem plain60_complete (rd : Reader) (args rets : List E)
     rcases hs with rfl | rfl | rfl | rfl | rfl <;> exact ⟨_, _, rfl⟩
   have hnil : ∀ s ∈ ([] : List Stmt), ∃ d c, s = .atom (.const d c) :=
     fun s hs ↦ absurd hs (by simp)
-  have pF : ∀ j < 5, σ (.n (11 + j)) = [f0, f1, f2, f3, f4].getD j 0 := by
+  have pF : ∀ j < 5, σ (.n ((val% «keccak_plain_rounds__L6_L0» "sp[0]") + j)) = [f0, f1, f2, f3, f4].getD j 0 := by
     intro j hj
     interval_cases j
     · rw [c11]; exact pp 0 (by norm_num)
@@ -130,19 +132,19 @@ theorem plain60_complete (rd : Reader) (args rets : List E)
     · rw [c14]; exact pp 3 (by norm_num)
     · rw [c15]; exact pp 4 (by norm_num)
   -- the rounds
-  have p8 : σ (.n 8) = value := pp 8 (by norm_num)
-  have l00 : LoadHolds rd (σ (.n 7)) (2 * 0) a0 := by rw [p7]; exact rd' 0 (by norm_num)
-  have l01 : LoadHolds rd (σ (.n 7)) (2 * 0 + 1) b0 := by rw [p7]; exact rd' 1 (by norm_num)
-  have l10 : LoadHolds rd (σ (.n 7)) (2 * 1) a1 := by rw [p7]; exact rd' 2 (by norm_num)
-  have l11 : LoadHolds rd (σ (.n 7)) (2 * 1 + 1) b1 := by rw [p7]; exact rd' 3 (by norm_num)
-  have l20 : LoadHolds rd (σ (.n 7)) (2 * 2) a2 := by rw [p7]; exact rd' 4 (by norm_num)
-  have l21 : LoadHolds rd (σ (.n 7)) (2 * 2 + 1) b2 := by rw [p7]; exact rd' 5 (by norm_num)
-  have l30 : LoadHolds rd (σ (.n 7)) (2 * 3) a3 := by rw [p7]; exact rd' 6 (by norm_num)
-  have l31 : LoadHolds rd (σ (.n 7)) (2 * 3 + 1) b3 := by rw [p7]; exact rd' 7 (by norm_num)
-  have l40 : LoadHolds rd (σ (.n 7)) (2 * 4) a4 := by rw [p7]; exact rd' 8 (by norm_num)
-  have l41 : LoadHolds rd (σ (.n 7)) (2 * 4 + 1) b4 := by rw [p7]; exact rd' 9 (by norm_num)
-  have l50 : LoadHolds rd (σ (.n 7)) (2 * 5) a5 := by rw [p7]; exact rd' 10 (by norm_num)
-  have l51 : LoadHolds rd (σ (.n 7)) (2 * 5 + 1) b5 := by rw [p7]; exact rd' 11 (by norm_num)
+  have p8 : σ (.n (val% «keccak_plain_rounds__L6_L0» "value@1")) = value := pp 8 (by norm_num)
+  have l00 : LoadHolds rd (σ (.n (val% «keccak_plain_rounds__L6_L0» "cursor"))) (2 * 0) a0 := by rw [p7]; exact rd' 0 (by norm_num)
+  have l01 : LoadHolds rd (σ (.n (val% «keccak_plain_rounds__L6_L0» "cursor"))) (2 * 0 + 1) b0 := by rw [p7]; exact rd' 1 (by norm_num)
+  have l10 : LoadHolds rd (σ (.n (val% «keccak_plain_rounds__L6_L0» "cursor"))) (2 * 1) a1 := by rw [p7]; exact rd' 2 (by norm_num)
+  have l11 : LoadHolds rd (σ (.n (val% «keccak_plain_rounds__L6_L0» "cursor"))) (2 * 1 + 1) b1 := by rw [p7]; exact rd' 3 (by norm_num)
+  have l20 : LoadHolds rd (σ (.n (val% «keccak_plain_rounds__L6_L0» "cursor"))) (2 * 2) a2 := by rw [p7]; exact rd' 4 (by norm_num)
+  have l21 : LoadHolds rd (σ (.n (val% «keccak_plain_rounds__L6_L0» "cursor"))) (2 * 2 + 1) b2 := by rw [p7]; exact rd' 5 (by norm_num)
+  have l30 : LoadHolds rd (σ (.n (val% «keccak_plain_rounds__L6_L0» "cursor"))) (2 * 3) a3 := by rw [p7]; exact rd' 6 (by norm_num)
+  have l31 : LoadHolds rd (σ (.n (val% «keccak_plain_rounds__L6_L0» "cursor"))) (2 * 3 + 1) b3 := by rw [p7]; exact rd' 7 (by norm_num)
+  have l40 : LoadHolds rd (σ (.n (val% «keccak_plain_rounds__L6_L0» "cursor"))) (2 * 4) a4 := by rw [p7]; exact rd' 8 (by norm_num)
+  have l41 : LoadHolds rd (σ (.n (val% «keccak_plain_rounds__L6_L0» "cursor"))) (2 * 4 + 1) b4 := by rw [p7]; exact rd' 9 (by norm_num)
+  have l50 : LoadHolds rd (σ (.n (val% «keccak_plain_rounds__L6_L0» "cursor"))) (2 * 5) a5 := by rw [p7]; exact rd' 10 (by norm_num)
+  have l51 : LoadHolds rd (σ (.n (val% «keccak_plain_rounds__L6_L0» "cursor"))) (2 * 5 + 1) b5 := by rw [p7]; exact rd' 11 (by norm_num)
   obtain ⟨e16, e19, r0, v0, f0r⟩ := plainRound_complete (C := coreProgram.Rel rd) g0 (by decide)
     (by decide) hmid0 (by omega) l00 l01
   obtain ⟨e45, e48, r1, v1, f1r⟩ := plainRound_complete (C := coreProgram.Rel rd) g1 (by decide)
@@ -160,35 +162,35 @@ theorem plain60_complete (rd : Reader) (args rets : List E)
     simp only [capV, List.map_cons, List.map_nil]
     rw [show (11 : ℕ) = 11 + 0 from rfl, pF 0 (by norm_num), pF 1 (by norm_num),
       pF 2 (by norm_num), pF 3 (by norm_num), pF 4 (by norm_num)]; rfl)
-  have q1 := plain_core_sq0 (cap := [σ (.n 35), σ (.n 36), σ (.n 37), σ (.n 38), σ (.n 39)]) r1 hz
+  have q1 := plain_core_sq0 (cap := [σ (.n (val% «keccak_plain_rounds__L6_L0» "nxt[8]@1")), σ (.n (val% «keccak_plain_rounds__L6_L0» "nxt[9]@1")), σ (.n (val% «keccak_plain_rounds__L6_L0» "nxt[10]@1")), σ (.n (val% «keccak_plain_rounds__L6_L0» "nxt[11]@1")), σ (.n (val% «keccak_plain_rounds__L6_L0» "nxt[12]@1"))]) r1 hz
     (by simp only [capV, List.map_cons, List.map_nil, Nat.reduceAdd])
-  have q2 := plain_core_sq0 (cap := [σ (.n 59), σ (.n 60), σ (.n 61), σ (.n 62), σ (.n 63)]) r2 hz
+  have q2 := plain_core_sq0 (cap := [σ (.n (val% «keccak_plain_rounds__L6_L0» "nxt[8]@2")), σ (.n (val% «keccak_plain_rounds__L6_L0» "nxt[9]@2")), σ (.n (val% «keccak_plain_rounds__L6_L0» "nxt[10]@2")), σ (.n (val% «keccak_plain_rounds__L6_L0» "nxt[11]@2")), σ (.n (val% «keccak_plain_rounds__L6_L0» "nxt[12]@2"))]) r2 hz
     (by simp only [capV, List.map_cons, List.map_nil, Nat.reduceAdd])
-  have q3 := plain_core_sq0 (cap := [σ (.n 83), σ (.n 84), σ (.n 85), σ (.n 86), σ (.n 87)])
+  have q3 := plain_core_sq0 (cap := [σ (.n (val% «keccak_plain_rounds__L6_L0» "nxt[8]@3")), σ (.n (val% «keccak_plain_rounds__L6_L0» "nxt[9]@3")), σ (.n (val% «keccak_plain_rounds__L6_L0» "nxt[10]@3")), σ (.n (val% «keccak_plain_rounds__L6_L0» "nxt[11]@3")), σ (.n (val% «keccak_plain_rounds__L6_L0» "nxt[12]@3"))])
     r3 hz (by simp only [capV, List.map_cons, List.map_nil, Nat.reduceAdd])
-  have q4 := plain_core_sq0 (cap := [σ (.n 107), σ (.n 108), σ (.n 109), σ (.n 110), σ (.n 111)])
+  have q4 := plain_core_sq0 (cap := [σ (.n (val% «keccak_plain_rounds__L6_L0» "nxt[8]@4")), σ (.n (val% «keccak_plain_rounds__L6_L0» "nxt[9]@4")), σ (.n (val% «keccak_plain_rounds__L6_L0» "nxt[10]@4")), σ (.n (val% «keccak_plain_rounds__L6_L0» "nxt[11]@4")), σ (.n (val% «keccak_plain_rounds__L6_L0» "nxt[12]@4"))])
     r4 hz (by simp only [capV, List.map_cons, List.map_nil, Nat.reduceAdd])
-  have q5 := plain_core_sq0 (cap := [σ (.n 131), σ (.n 132), σ (.n 133), σ (.n 134), σ (.n 135)])
+  have q5 := plain_core_sq0 (cap := [σ (.n (val% «keccak_plain_rounds__L6_L0» "nxt[8]@5")), σ (.n (val% «keccak_plain_rounds__L6_L0» "nxt[9]@5")), σ (.n (val% «keccak_plain_rounds__L6_L0» "nxt[10]@5")), σ (.n (val% «keccak_plain_rounds__L6_L0» "nxt[11]@5")), σ (.n (val% «keccak_plain_rounds__L6_L0» "nxt[12]@5"))])
     r5 hz (by simp only [capV, List.map_cons, List.map_nil, Nat.reduceAdd])
   simp only [Nat.reduceAdd] at q0 q1 q2 q3 q4 q5 v0 v1 v2 v3 v4 v5
   rw [p8] at v0
   have hrunEq : plainRun [(a0, b0), (a1, b1), (a2, b2), (a3, b3), (a4, b4), (a5, b5)] value
       ⟨[f0, f1, f2, f3, f4], []⟩ =
-      ([σ (.n 27), σ (.n 51), σ (.n 75), σ (.n 99), σ (.n 123), σ (.n 147)], σ (.n 164),
-        ⟨[σ (.n 155), σ (.n 156), σ (.n 157), σ (.n 158), σ (.n 159)], []⟩) := by
+      ([σ (.n (val% «keccak_plain_rounds__L6_L0» "nxt[0]@1")), σ (.n (val% «keccak_plain_rounds__L6_L0» "nxt[0]@2")), σ (.n (val% «keccak_plain_rounds__L6_L0» "nxt[0]@3")), σ (.n (val% «keccak_plain_rounds__L6_L0» "nxt[0]@4")), σ (.n (val% «keccak_plain_rounds__L6_L0» "nxt[0]@5")), σ (.n (val% «keccak_plain_rounds__L6_L0» "nxt[0]@6"))], σ (.n (val% «keccak_plain_rounds__L6_L0» "value@7")),
+        ⟨[σ (.n (val% «keccak_plain_rounds__L6_L0» "nxt[8]@6")), σ (.n (val% «keccak_plain_rounds__L6_L0» "nxt[9]@6")), σ (.n (val% «keccak_plain_rounds__L6_L0» "nxt[10]@6")), σ (.n (val% «keccak_plain_rounds__L6_L0» "nxt[11]@6")), σ (.n (val% «keccak_plain_rounds__L6_L0» "nxt[12]@6"))], []⟩) := by
     rw [← e16, ← e19, ← e45, ← e48, ← e69, ← e72, ← e93, ← e96, ← e117, ← e120, ← e141,
       ← e144, plainRun_step q0.1.symm q0.2.symm v0.symm, plainRun_step q1.1.symm q1.2.symm v1.symm,
       plainRun_step q2.1.symm q2.2.symm v2.symm, plainRun_step q3.1.symm q3.2.symm v3.symm,
       plainRun_step q4.1.symm q4.2.symm v4.symm, plainRun_step q5.1.symm q5.2.symm v5.symm]
     rfl
   rw [hrunEq] at hpt hret
-  have st : ∀ k (hk : k < 6), LoadHolds rd (σ (.n 9)) k ([σ (.n 27), σ (.n 51), σ (.n 75),
-      σ (.n 99), σ (.n 123), σ (.n 147)][k]'(by simpa using hk)) := fun k hk ↦ by
+  have st : ∀ k (hk : k < 6), LoadHolds rd (σ (.n (val% «keccak_plain_rounds__L6_L0» "point"))) k ([σ (.n (val% «keccak_plain_rounds__L6_L0» "nxt[0]@1")), σ (.n (val% «keccak_plain_rounds__L6_L0» "nxt[0]@2")), σ (.n (val% «keccak_plain_rounds__L6_L0» "nxt[0]@3")),
+      σ (.n (val% «keccak_plain_rounds__L6_L0» "nxt[0]@4")), σ (.n (val% «keccak_plain_rounds__L6_L0» "nxt[0]@5")), σ (.n (val% «keccak_plain_rounds__L6_L0» "nxt[0]@6"))][k]'(by simpa using hk)) := fun k hk ↦ by
     rw [p9]; exact hpt k (by simpa using hk)
   -- the relation
   refine (rel_iff_sem find_plain60 _ _).mpr ⟨σ, ?_, ?_⟩
-  · show [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5), σ (.n 6), σ (.n 7),
-      σ (.n 8), σ (.n 9), σ (.n 10)] = l
+  · show [σ (.n (val% «keccak_plain_rounds__L6_L0» "fs0")), σ (.n (val% «keccak_plain_rounds__L6_L0» "fs1")), σ (.n (val% «keccak_plain_rounds__L6_L0» "fs2")), σ (.n (val% «keccak_plain_rounds__L6_L0» "fs3")), σ (.n (val% «keccak_plain_rounds__L6_L0» "fs4")), σ (.n (val% «keccak_plain_rounds__L6_L0» "p0")), σ (.n (val% «keccak_plain_rounds__L6_L0» "p1")), σ (.n (val% «keccak_plain_rounds__L6_L0» "cursor")),
+      σ (.n (val% «keccak_plain_rounds__L6_L0» "value@1")), σ (.n (val% «keccak_plain_rounds__L6_L0» "point")), σ (.n (val% «keccak_plain_rounds__L6_L0» "tabs"))] = l
     rw [pp 0 (by norm_num), pp 1 (by norm_num), pp 2 (by norm_num), pp 3 (by norm_num),
       pp 4 (by norm_num), pp 5 (by norm_num), pp 6 (by norm_num), pp 7 (by norm_num),
       pp 8 (by norm_num), pp 9 (by norm_num), pp 10 (by norm_num)]

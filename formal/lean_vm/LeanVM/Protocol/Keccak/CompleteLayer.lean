@@ -95,8 +95,7 @@ theorem follows_pack (F : List E → E) (r : List E) (hF : EqFamily (fun (_ : Un
 noncomputable def hLayer (T : States) (P : ℕ) (claim : KeccakClaim) : Script KeccakClaim :=
   Script.sendList (gList (Gpoly T P claim.point claim.weights)) >>= fun _ ↦
   Script.ret () >>= fun _ ↦
-  Script.grindBits (grindingBits (productBits - 1)) >>= fun _ ↦
-  Script.sampleE >>= fun s ↦
+  Script.grindSample (grindingBits (productBits - 1)) >>= fun s ↦
   hPack (FP T P s claim.weights claim.point) claim.point [] >>= fun pk ↦
   hSumcheck 4 (FX T P s claim.weights pk) (List.replicate keccakLocalBits none) [] >>=
     fun ps ↦
@@ -128,14 +127,11 @@ theorem follows_layer (T : States) (step P : ℕ) (claim : KeccakClaim) (hshape 
     fun cs₂ _ _ h₂ ↦ ?_
   subst h₂
   rw [gList_length G]
-  refine Follows.bind_of (Follows.grindBits_grindP _ cs₂) fun cs₂' _ _ h₂' ↦ ?_
-  subst h₂'
-  refine Follows.bind_of (Follows.sampleE_sampleE _) fun cs₃ s s' h₃ ↦ ?_
-  obtain ⟨rfl, rfl⟩ := h₃
+  refine Follows.grindSample_grindP _ cs₂ fun s ↦ ?_
   -- the pack rounds
   have hpack := follows_pack (FP T P s claim.weights claim.point) claim.point
     (fun _ acc hacc ↦ FP_eqFamily P s claim.weights (fun _ : Unit ↦ T) claim.point hshape.2.1 ()
-      acc hacc) cs₃ claim.point [] (polyEval (gList G) s) rfl
+      acc hacc) cs₂ claim.point [] (polyEval (gList G) s) rfl
     (by rw [FP_nil, polyEval_gList (natDegree_Gpoly _ _ _ _)])
   refine Follows.bind_of hpack fun cs₄ pk res h₄ ↦ ?_
   obtain ⟨rfl, hpt, hlen, hval⟩ := h₄

@@ -10,6 +10,8 @@ module
 public import LeanVM.Guest.B1.Digest.ClaimListCLast
 public import LeanVM.Guest.B1.Digest.ClaimListCBig
 public import LeanVM.Guest.B1.Digest.CompleteSmall
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«claim_list_digest»
 
 /-!
 # `claim_list_digest`, completely
@@ -85,10 +87,10 @@ theorem frame_block {j : ℕ} {f : String} {m c0 st0 ep nb d : ℕ}
       show 8 * (u + d) = 8 * u + nb by omega] at hS1
     exact hS1
 
-/-- The big frames: `claim_list_digest_loop0`'s block at every big frame below `a = n / 136`. -/
+/-- The big frames: `claim_list_chain_loop0`'s block at every big frame below `a = n / 136`. -/
 theorem cl_bigBlocks {chain entries : E} {n : ℕ} {cells : List E} (hl : cells.length = 4 * n)
     (hr : ReadsAt rd entries cells) (hmem : ClaimChainMem rd chain entries n) :
-    ∀ q < n / 136, LoopBlock rd (coreProgram.getD idx% «claim_list_digest_loop0» default) (gen ^ q)
+    ∀ q < n / 136, LoopBlock rd (coreProgram.getD idx% «claim_list_chain_loop0» default) (gen ^ q)
         (gen ^ (n / 136))
       [chain, entries] := by
   intro q hq
@@ -106,11 +108,11 @@ theorem cl_bigBlocks {chain entries : E} {n : ℕ} {cells : List E} (hl : cells.
   rw [loadHolds_mul_gen_pow, show 13 * (q + 1) + (0 + c.val) = 13 * q + (13 + c.val) by ring] at this
   exact this
 
-/-- The groups: `claim_list_digest_loop1`'s block at every group below `b = n % 136 / 17`, from
+/-- The groups: `claim_list_chain_loop1`'s block at every group below `b = n % 136 / 17`, from
 `chain · g^(13a)` and `entries · g^(544a)`. -/
 theorem cl_grpBlocks {chain entries : E} {n : ℕ} {cells : List E} (hl : cells.length = 4 * n)
     (hr : ReadsAt rd entries cells) (hmem : ClaimChainMem rd chain entries n) :
-    ∀ q < n % 136 / 17, LoopBlock rd (coreProgram.getD idx% «claim_list_digest_loop1» default) (gen
+    ∀ q < n % 136 / 17, LoopBlock rd (coreProgram.getD idx% «claim_list_chain_loop1» default) (gen
         ^ q) (gen ^ (n % 136 / 17))
       [chain * gen ^ (13 * (n / 136)), entries * gen ^ (544 * (n / 136))] := by
   intro q hq
@@ -133,7 +135,7 @@ theorem cl_grpBlocks {chain entries : E} {n : ℕ} {cells : List E} (hl : cells.
     exact this
   · rw [gen_pow_pow, mul_assoc, ← pow_add]; congr 2; ring
 
-theorem cl_param (σ : Val) : (Fn.params fn% «claim_list_digest»).map σ = [σ (.n 0), σ (.n 1)] := rfl
+theorem cl_param (σ : Val) : (Fn.params fn% «claim_list_digest»).map σ = [σ (.n (val% «claim_list_digest» "entries_ptr")), σ (.n (val% «claim_list_digest» "n_g"))] := rfl
 
 end
 end LeanVM.Guest.B1.Digest

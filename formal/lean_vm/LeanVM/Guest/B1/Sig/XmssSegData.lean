@@ -45,6 +45,8 @@ import LeanVM.Guest.B1.Sig.XmssSegData32
 import LeanVM.Guest.B1.Sig.XmssSegData33
 import LeanVM.Guest.B1.Sig.XmssSegData34
 import LeanVM.Guest.B1.Common.Basic
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«main_loop2»
 
 namespace LeanVM.Guest.B1.Sig
 
@@ -53,47 +55,47 @@ open LeanVM.Guest LeanVM.Guest.Core
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem l2Pre_eq : (Fn.«main_loop2».core).body.take 9 = l2Pre :=
+theorem l2Pre_eq : (Fn.«main_loop2».core).body.take (pos% «main_loop2» "s3.i3:verify_lean_xmss.s0#0") = l2Pre :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem xSeg_drop_313 : ((Fn.«main_loop2».core).body.drop 9).drop 313 = (xSeg ++ l2Post).drop 313 :=
+theorem xSeg_drop_313 : ((Fn.«main_loop2».core).body.drop (pos% «main_loop2» "s3.i3:verify_lean_xmss.s0#0")).drop (span% «main_loop2» "pp" "s5#0") = (xSeg ++ l2Post).drop 313 :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem xSeg_slice_0 : (((Fn.«main_loop2».core).body.drop 9).drop 0).take 70 = ((xSeg ++
+theorem xSeg_slice_0 : (((Fn.«main_loop2».core).body.drop (pos% «main_loop2» "s3.i3:verify_lean_xmss.s0#0")).drop 0).take (span% «main_loop2» "pp" "value@1") = ((xSeg ++
     l2Post).drop
     0).take 70 :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem xSeg_slice_85 : (((Fn.«main_loop2».core).body.drop 9).drop 85).take 78 = ((xSeg ++
+theorem xSeg_slice_85 : (((Fn.«main_loop2».core).body.drop (pos% «main_loop2» "s3.i3:verify_lean_xmss.s0#0")).drop 85).take 78 = ((xSeg ++
     l2Post).drop
     85).take 78 :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem xSeg_slice_164 : (((Fn.«main_loop2».core).body.drop 9).drop 164).take 3 = ((xSeg ++
+theorem xSeg_slice_164 : (((Fn.«main_loop2».core).body.drop (pos% «main_loop2» "s3.i3:verify_lean_xmss.s0#0")).drop (span% «main_loop2» "pp" "s3.i3:verify_lean_xmss.s7.u0.s19.u1.s2#0")).take (span% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s19.u1.s2#0" "at@2049~0") = ((xSeg ++
     l2Post).drop 164).take 3 :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem xSeg_slice_168 : (((Fn.«main_loop2».core).body.drop 9).drop 168).take 45 = ((xSeg ++
+theorem xSeg_slice_168 : (((Fn.«main_loop2».core).body.drop (pos% «main_loop2» "s3.i3:verify_lean_xmss.s0#0")).drop (span% «main_loop2» "pp" "verify_lean_xmss.idx~0")).take (span% «main_loop2» "verify_lean_xmss.idx~0" "value@11137") = ((xSeg ++
     l2Post).drop 168).take 45 :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem xSeg_slice_228 : (((Fn.«main_loop2».core).body.drop 9).drop 228).take 78 = ((xSeg ++
+theorem xSeg_slice_228 : (((Fn.«main_loop2».core).body.drop (pos% «main_loop2» "s3.i3:verify_lean_xmss.s0#0")).drop 228).take 78 = ((xSeg ++
     l2Post).drop 228).take 78 :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem xSeg_slice_307 : (((Fn.«main_loop2».core).body.drop 9).drop 307).take 3 = ((xSeg ++
+theorem xSeg_slice_307 : (((Fn.«main_loop2».core).body.drop (pos% «main_loop2» "s3.i3:verify_lean_xmss.s0#0")).drop (span% «main_loop2» "pp" "s3.i3:verify_lean_xmss.s7.u1.s19.u1.s2#0")).take (span% «main_loop2» "s3.i3:verify_lean_xmss.s7.u1.s19.u1.s2#0" "sibling@6145") = ((xSeg ++
     l2Post).drop 307).take 3 :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem xSeg_slice_311 : (((Fn.«main_loop2».core).body.drop 9).drop 311).take 2 = ((xSeg ++
+theorem xSeg_slice_311 : (((Fn.«main_loop2».core).body.drop (pos% «main_loop2» "s3.i3:verify_lean_xmss.s0#0")).drop (span% «main_loop2» "pp" "s3.i3:verify_lean_xmss.s8#0")).take (span% «main_loop2» "s3.i3:verify_lean_xmss.s8#0" "s5#0") = ((xSeg ++
     l2Post).drop 311).take 2 :=
   stmtsEqb_sound (by decide +kernel)
 

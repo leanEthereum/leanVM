@@ -77,7 +77,7 @@ const _: () = assert!(PUBLIC_KEY_LEN == PUB_KEY_SIZE);
 const _: () = assert!(LOG_LIFETIME == UPSTREAM_LOG_LIFETIME);
 const _: () = assert!(LOG_LIFETIME == LeafIndex::BITS as usize);
 // The `SecretKey` docs promise this many cached bottom trees.
-const _: () = assert!(MAX_CACHED_BOTTOM_TREES == 8);
+const _: () = assert!(MAX_CACHED_BOTTOM_TREES == 4);
 const _: fn(UpstreamLeafIndex) -> LeafIndex = |index| index;
 const _: fn(UpstreamSecretKey) -> Seed = |seed| seed;
 
@@ -130,7 +130,7 @@ impl PublicKey {
 
 /// A leanXMSS secret key.
 ///
-/// - It keeps the top tree and the 8 bottom trees it used last.
+/// - It keeps the top tree and the 4 bottom trees it used last.
 /// - Signing in any other bottom tree first builds that tree.
 /// - The key holds no record of used leaf indices: the caller must keep one.
 ///

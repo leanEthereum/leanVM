@@ -64,7 +64,7 @@ theorem lq_cutsKnown {j n odd base d cd : ℕ} (ho : odd < 2) (hb : base < 2) (h
   simp only [beq_iff_eq, decide_eq_true_eq] at h1
   obtain ⟨⟨⟨ht1, hl0⟩, hlen⟩, h3⟩ := h1
   have hw := walkTag_lt (kind := 2 + base) (by omega) ho hc hd
-  have hgk : walkTag (2 + base) odd d cd < tagGkr := by unfold tagGkr; omega
+  have hgk : walkTag (2 + base) odd d cd < 2 ^ 21 := by omega
   rw [ht1, semRel_impL (by omega), ← semRel_lt (by omega), semRel_main ho hc hb hgk]
   intro hx
   rw [getD_map_lt (by omega)] at hx

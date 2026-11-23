@@ -8,6 +8,14 @@
 module
 
 public import LeanVM.Guest.B1.Fs.SqueezePoint
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«opening_message__L»
+import LeanVM.Guest.Data.ValNames.«opening_message__L12_L1»
+import LeanVM.Guest.Data.ValNames.«opening_message__L1_L1»
+import LeanVM.Guest.Data.ValNames.«opening_message__L20_L1»
+import LeanVM.Guest.Data.ValNames.«opening_message__L36_L1»
+import LeanVM.Guest.Data.ValNames.«opening_message__L6_L1»
+import LeanVM.Guest.Data.ValNames.«opening_message__L8_L1»
 
 /-!
 # `opening_message`'s body
@@ -47,8 +55,8 @@ def omCap : ℕ → ℕ
 
 /-- Word `p`'s atoms: read, packed, stored at `out[p]`. -/
 def omWordAs (p : ℕ) : List Atom :=
-  [.load (.n (omW p)) (.n 5) p, .copy (.n (omW p + 1)) (.n (omW p)),
-    .const (.n (omW p + 2)) (word 0 dsObserve), .load (.n (omW p)) (.n 6) p]
+  [.load (.n (omW p)) (.n (valf% «opening_message» "cursor")) p, .copy (.n (omW p + 1)) (.n (omW p)),
+    .const (.n (omW p + 2)) (word 0 dsObserve), .load (.n (omW p)) (.n (valf% «opening_message» "out")) p]
 
 /-- Group `g`'s rate cells. -/
 def omRate (g : ℕ) : List V :=
@@ -87,18 +95,18 @@ def omTail (n nonce : ℕ) : List Atom × ℕ × ℕ :=
           .n (omW (4 * K + 1) + 2), .n (e + 1), .n (e + 2), .n (e + 3), .n (e + 4)] ++
           run5 (omCap K)) (run13 (e + 5)) false false], e + 5, e + 18)
   else if n - 4 * K = 4 then
-    ([omKeccak K, .load (.n (e + 13)) (.n 5) n, .copy (.n (e + 14)) (.n (e + 13)),
+    ([omKeccak K, .load (.n (e + 13)) (.n (valf% «opening_message» "cursor")) n, .copy (.n (e + 14)) (.n (e + 13)),
       .const (.n (e + 15)) (word 0 dsPowNonce)] ++ padAs (e + 16) ++
       [.keccak ([.n (e + 14), .n (e + 15), .n (e + 17), .n (e + 17), .n (e + 17), .n (e + 18),
         .n (e + 19), .n (e + 20)] ++ run5 (e + 8)) (run13 (e + 21)) false false], e + 21, e + 34)
   else if n - 4 * K = 2 then
-    ([.load (.n e) (.n 5) n, .copy (.n (e + 1)) (.n e), .const (.n (e + 2)) (word 0 dsPowNonce),
+    ([.load (.n e) (.n (valf% «opening_message» "cursor")) n, .copy (.n (e + 1)) (.n e), .const (.n (e + 2)) (word 0 dsPowNonce),
       .const (.n (e + 3)) (word 0 0), .const (.n (e + 4)) (word 0 0)] ++
       [.keccak ([.n (omW (4 * K) + 1), .n (omW (4 * K) + 2), .n (omW (4 * K + 1) + 1),
         .n (omW (4 * K + 1) + 2), .n (e + 1), .n (e + 2), .n (e + 3), .n (e + 4)] ++ run5 (omCap K))
         (run13 (e + 5)) false false], e + 5, e + 18)
   else
-    ([.load (.n e) (.n 5) n, .copy (.n (e + 1)) (.n e), .const (.n (e + 2)) (word 0 dsPowNonce)] ++
+    ([.load (.n e) (.n (valf% «opening_message» "cursor")) n, .copy (.n (e + 1)) (.n e), .const (.n (e + 2)) (word 0 dsPowNonce)] ++
       padAs (e + 3) ++
       [.keccak ([.n (omW (4 * K) + 1), .n (omW (4 * K) + 2), .n (e + 1), .n (e + 2), .n (e + 4),
         .n (e + 5), .n (e + 6), .n (e + 7)] ++ run5 (omCap K)) (run13 (e + 8)) false false],
@@ -109,13 +117,13 @@ def omFinal (n nonce O f : ℕ) : List Atom :=
   [.copy (.n f) (.n O), .copy (.n (f + 1)) (.n (O + 1)), .copy (.n (f + 2)) (.n (O + 8)),
     .copy (.n (f + 3)) (.n (O + 9)), .copy (.n (f + 4)) (.n (O + 10)),
     .copy (.n (f + 5)) (.n (O + 11)), .copy (.n (f + 6)) (.n (O + 12)),
-    .const (.n (f + 7)) (word (2 ^ (n + nonce)) 0), .mul (.n (f + 8)) (.n 5) (.n (f + 7)),
+    .const (.n (f + 7)) (word (2 ^ (n + nonce)) 0), .mul (.n (f + 8)) (.n (valf% «opening_message» "cursor")) (.n (f + 7)),
     .copy (.n (f + 9)) (.n (f + 8))]
 
 /-- The atoms of `opening_message__L{n}_L{nonce}`. -/
 def omAtoms (n nonce : ℕ) : List Atom :=
-  [.copy (.n 7) (.n 0), .copy (.n 8) (.n 1), .copy (.n 9) (.n 2), .copy (.n 10) (.n 3),
-    .copy (.n 11) (.n 4)] ++ omWords n ++ (omTail n nonce).1 ++
+  [.copy (.n (valf% «opening_message» "sp[0]")) (.n (valf% «opening_message» "fs0")), .copy (.n (valf% «opening_message» "sp[1]")) (.n (valf% «opening_message» "fs1")), .copy (.n (valf% «opening_message» "sp[2]")) (.n (valf% «opening_message» "fs2")), .copy (.n (valf% «opening_message» "sp[3]")) (.n (valf% «opening_message» "fs3")),
+    .copy (.n (valf% «opening_message» "sp[4]")) (.n (valf% «opening_message» "fs4"))] ++ omWords n ++ (omTail n nonce).1 ++
     omFinal n nonce (omTail n nonce).2.1 (omTail n nonce).2.2
 
 /-- What it returns. -/
@@ -128,42 +136,42 @@ def omBody (n nonce : ℕ) : List Stmt := (omAtoms n nonce).map Stmt.atom ++ [.r
 
 set_option maxRecDepth 100000 in
 theorem om_found_1_1 : coreProgram.find? (omName (1, 1)) = some fn% «opening_message__L1_L1» ∧
-    (fn% «opening_message__L1_L1»).params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
+    (fn% «opening_message__L1_L1»).params = [.n (val% «opening_message__L1_L1» "fs0"), .n (val% «opening_message__L1_L1» "fs1"), .n (val% «opening_message__L1_L1» "fs2"), .n (val% «opening_message__L1_L1» "fs3"), .n (val% «opening_message__L1_L1» "fs4"), .n (val% «opening_message__L1_L1» "cursor"), .n (val% «opening_message__L1_L1» "out")] ∧
       (fn% «opening_message__L1_L1»).body = omBody 1 1 :=
   ⟨coreProgram_find?_at (j := idx% «opening_message__L1_L1») rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem om_found_6_1 : coreProgram.find? (omName (6, 1)) = some fn% «opening_message__L6_L1» ∧
-    (fn% «opening_message__L6_L1»).params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
+    (fn% «opening_message__L6_L1»).params = [.n (val% «opening_message__L6_L1» "fs0"), .n (val% «opening_message__L6_L1» "fs1"), .n (val% «opening_message__L6_L1» "fs2"), .n (val% «opening_message__L6_L1» "fs3"), .n (val% «opening_message__L6_L1» "fs4"), .n (val% «opening_message__L6_L1» "cursor"), .n (val% «opening_message__L6_L1» "out")] ∧
       (fn% «opening_message__L6_L1»).body = omBody 6 1 :=
   ⟨coreProgram_find?_at (j := idx% «opening_message__L6_L1») rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem om_found_8_1 : coreProgram.find? (omName (8, 1)) = some fn% «opening_message__L8_L1» ∧
-    (fn% «opening_message__L8_L1»).params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
+    (fn% «opening_message__L8_L1»).params = [.n (val% «opening_message__L8_L1» "fs0"), .n (val% «opening_message__L8_L1» "fs1"), .n (val% «opening_message__L8_L1» "fs2"), .n (val% «opening_message__L8_L1» "fs3"), .n (val% «opening_message__L8_L1» "fs4"), .n (val% «opening_message__L8_L1» "cursor"), .n (val% «opening_message__L8_L1» "out")] ∧
       (fn% «opening_message__L8_L1»).body = omBody 8 1 :=
   ⟨coreProgram_find?_at (j := idx% «opening_message__L8_L1») rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem om_found_12_1 : coreProgram.find? (omName (12, 1)) = some fn% «opening_message__L12_L1» ∧
-    (fn% «opening_message__L12_L1»).params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
+    (fn% «opening_message__L12_L1»).params = [.n (val% «opening_message__L12_L1» "fs0"), .n (val% «opening_message__L12_L1» "fs1"), .n (val% «opening_message__L12_L1» "fs2"), .n (val% «opening_message__L12_L1» "fs3"), .n (val% «opening_message__L12_L1» "fs4"), .n (val% «opening_message__L12_L1» "cursor"), .n (val% «opening_message__L12_L1» "out")] ∧
       (fn% «opening_message__L12_L1»).body = omBody 12 1 :=
   ⟨coreProgram_find?_at (j := idx% «opening_message__L12_L1») rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem om_found_20_1 : coreProgram.find? (omName (20, 1)) = some fn% «opening_message__L20_L1» ∧
-    (fn% «opening_message__L20_L1»).params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
+    (fn% «opening_message__L20_L1»).params = [.n (val% «opening_message__L20_L1» "fs0"), .n (val% «opening_message__L20_L1» "fs1"), .n (val% «opening_message__L20_L1» "fs2"), .n (val% «opening_message__L20_L1» "fs3"), .n (val% «opening_message__L20_L1» "fs4"), .n (val% «opening_message__L20_L1» "cursor"), .n (val% «opening_message__L20_L1» "out")] ∧
       (fn% «opening_message__L20_L1»).body = omBody 20 1 :=
   ⟨coreProgram_find?_at (j := idx% «opening_message__L20_L1») rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem om_found_36_1 : coreProgram.find? (omName (36, 1)) = some fn% «opening_message__L36_L1» ∧
-    (fn% «opening_message__L36_L1»).params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
+    (fn% «opening_message__L36_L1»).params = [.n (val% «opening_message__L36_L1» "fs0"), .n (val% «opening_message__L36_L1» "fs1"), .n (val% «opening_message__L36_L1» "fs2"), .n (val% «opening_message__L36_L1» "fs3"), .n (val% «opening_message__L36_L1» "fs4"), .n (val% «opening_message__L36_L1» "cursor"), .n (val% «opening_message__L36_L1» "out")] ∧
       (fn% «opening_message__L36_L1»).body = omBody 36 1 :=
   ⟨coreProgram_find?_at (j := idx% «opening_message__L36_L1») rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩

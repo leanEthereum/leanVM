@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.B1.Opening.QueriesCap
 public import LeanVM.Guest.B1.Opening.QueriesFlatC
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«walk_path__L»
 
 /-!
 # `walk_path`, soundly (lean_ethereum.py)
@@ -152,7 +154,7 @@ def WalkSound (P : Program) (walk : String) (pd cd : ℕ) : Prop :=
       rets = [] ∧ WalkOpens rd pd cd wins cap flags q leaf
 
 theorem wpBodyT_eq (s : Oq) :
-    wpBodyT s = (oqPathT s (.n 2) (wpPr s) 0 wpCh ++ oqCapT s (.n 2) (.n 3) (.n 4) 0 wpCh) ++
+    wpBodyT s = (oqPathT s (.n (valf% «walk_path» "wins")) (wpPr s) 0 wpCh ++ oqCapT s (.n (valf% «walk_path» "wins")) (.n (valf% «walk_path» "cap")) (.n (valf% «walk_path» "flags")) 0 wpCh) ++
       [.ret []] := by
   simp [wpBodyT]
 
@@ -162,7 +164,7 @@ body `wpBodyT s`, calls in any `C`): on the halves of `leaf`, its windows (when 
 hold siblings, and the cap leaf and the flag are written. -/
 theorem wp_frame_sound {s : Oq} (hpd : 1 ≤ s.pd) (hcd : 1 ≤ s.cd) {C : CallRel} {τ : Val}
     {n0 n1 wins cap flags : E} {rets : List E}
-    (hpar : [V.n 0, .n 1, .n 2, .n 3, .n 4].map τ = [n0, n1, wins, cap, flags])
+    (hpar : [V.n (valf% «walk_path» "n0@1"), .n (valf% «walk_path» "n1@1"), .n (valf% «walk_path» "wins"), .n (valf% «walk_path» "cap"), .n (valf% «walk_path» "flags")].map τ = [n0, n1, wins, cap, flags])
     (h : Stmt.HoldsList C rd τ (wpBodyT s) False (fun rs ↦ rs = rets))
     {leaf : Digest} {q : ℕ} (hleaf : (n0, n1) = digestHalves leaf) (hq : q < 2 ^ (s.pd + s.cd))
     (hwin : ∀ i v, LoadHolds rd wins i v → i < qwN (s.pd + s.cd) s.cd →
@@ -178,9 +180,9 @@ theorem wp_frame_sound {s : Oq} (hpd : 1 ≤ s.pd) (hcd : 1 ≤ s.cd) {C : CallR
     (flat_of_atoms (oqCapT_atoms _ _ _ _ _ _)))] at h
   obtain ⟨hA, hret⟩ := h
   simp only [Stmt.HoldsList, Stmt.Holds, List.map_nil] at hret
-  have hPa : BlockOk rd τ (oqPathT s (.n 2) (wpPr s) 0 wpCh) :=
+  have hPa : BlockOk rd τ (oqPathT s (.n (valf% «walk_path» "wins")) (wpPr s) 0 wpCh) :=
     BlockOk.mono hA fun x hx ↦ List.mem_append_left _ hx
-  have hC : ∀ a, Stmt.atom a ∈ oqCapT s (.n 2) (.n 3) (.n 4) 0 wpCh → a.Holds rd τ :=
+  have hC : ∀ a, Stmt.atom a ∈ oqCapT s (.n (valf% «walk_path» "wins")) (.n (valf% «walk_path» "cap")) (.n (valf% «walk_path» "flags")) 0 wpCh → a.Holds rd τ :=
     fun a ha ↦ BlockOk.atom hA (List.mem_append_right _ ha)
   obtain ⟨hpad, hz⟩ := oqPath_pad hpd hPa
   obtain ⟨sibs, hsl, hsib, hnd⟩ := oqPath_sound hPa hpad hz (q := q) (fun i hi ↦
@@ -199,7 +201,7 @@ theorem wp_frame_sound {s : Oq} (hpd : 1 ≤ s.pd) (hcd : 1 ≤ s.cd) {C : CallR
 /-- **`walk` is `walk_path__L{pd}_L{cd}`** in the program `P`: a function of five parameters whose body is the
 template. -/
 def WalkFn (P : Program) (walk : String) (pd cd : ℕ) : Prop :=
-  ∃ fn : Fn, P.find? walk = some fn ∧ fn.params = [.n 0, .n 1, .n 2, .n 3, .n 4] ∧
+  ∃ fn : Fn, P.find? walk = some fn ∧ fn.params = [.n (valf% «walk_path» "n0@1"), .n (valf% «walk_path» "n1@1"), .n (valf% «walk_path» "wins"), .n (valf% «walk_path» "cap"), .n (valf% «walk_path» "flags")] ∧
     fn.body = wpBodyT ⟨0, 0, pd, cd, 0, [], 0, 0⟩
 
 /-- **A `walk_path` specialization is a sound walk.** -/

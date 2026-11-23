@@ -189,6 +189,8 @@ Because the body runs in the *caller's* frame, a `Const` parameter whose `if`s f
 
 Bindings are **immutable**: `x = e` names a fresh cell. Re-binding a name is allowed (it's a new cell; the old value is unaffected), but there is no mutation. Compound assignment (`+=`, `-=`, `*=`, `//=`, `%=`) is sugar for a re-binding: `x += e` desugars to `x = x + e`.
 
+A name may not begin with `__`, nor a function's name contain it: those are the names the compiler generates (a loop's helper, counter and bound, a `Const` specialization).
+
 A name bound to an integer literal (`x = 2`) additionally acts as a **compile-time index constant**, usable in stack indexes and slice bounds (see below). Any other re-binding clears that role.
 
 Two families of binding are folded and carried **virtually**, costing no instruction until used as a value:
@@ -217,7 +219,11 @@ buf[i * GEN] = v      # the next cell along
 
 The index is a field element; cell `k` of the buffer lives at address `buf · g^k`. A read or store is one `DEREF`. A **runtime** index costs one extra `MUL` for the `buf·i` pointer, but a **compile-time g-power** offset (`buf[1]`, `buf[GEN ** k]`, or a cursor advanced by `× GEN ** m`) folds into the `DEREF`'s address immediate for free: no `MUL`, no `SET`, and the cursor arithmetic itself vanishes (so a `× GEN` walk over consecutive cells is zero instructions).
 
+An **integer** index is rejected, other than `1`: a literal, a name bound to one, `const(...)`, `len(...)`, or integer arithmetic of those (`buf[4]`, `buf[2 * 2]`). As a field element `4` is `g^2`, so it would name cell 2, while the slice `buf[4:5]` starts at cell 4. Write `buf[GEN ** k]` for cell `k`; an index built from `GEN` is a g-power however it is spelled (`buf[GEN * 2]` is cell 2), and a constant array's element, `buf[NAME[i]]`, is the field value it holds, so an array of g-powers indexes their cells. A global constant is substituted as its literal, so one defined as `GEN ** 2` is the integer `4` here.
+
 **Compile-time indices are bounds-checked.** When the whole index is a compile-time exponent and the pointer resolves to a declared `HeapBuf` (directly, or through shifted aliases like `row = buf * GEN ** k`), the compiler rejects `index >= size`, and the same for the spans of `hint_witness` and `keccak` slices. **Runtime** indices are not checked (their value is unknown at compile time): there the buffer remains a region convention, and a stray access surfaces at proving time as a write-once conflict or wild deref.
+
+**Where a buffer is reserved.** The executor reserves memory with a bump pointer, and the proof's memory model (`formal/lean_vm/LeanVM/Guest/Memory/Alloc.lean`) places each call's frame, then its `HeapBuf`s in the order it allocates them, then its callees' subtrees. So a `HeapBuf` that some run allocates after a call has its allocation hint moved to just before the function's first call (before the statement holding it, or the chain of `match`es, when the call is in a branch); no instruction changes, since the pointer is a fresh cell only the hint writes. One that no run allocates after a call stays where it is, such as one in a branch arm before the call, or in another arm of the call's branch. A buffer that moves must be allocated on every run that reaches it (not in an `if` or `match` arm, nor past a `return`), and its size must be a literal, a constant `GEN ** k`, or a cell written on every path to the call (an argument, a value a hint writes to the frame, or the result of an instruction there or in every arm of a branch there; a cell a `DEREF` only linked does not count): compute a size before the first call, or move the buffer and the code after it into a function of its own. Nor may a buffer that moves pass one that stays and that some run allocates before it, such as one before the call in its arm, or in another arm of the call's branch: the moved one would come first, so allocate the other before that statement too. Any other buffer is a compile error naming it.
 
 ### `StackBuf(n)`: frame-cell runs, indexed by compile-time integers
 
@@ -274,6 +280,8 @@ The compiler reserves consecutive frames for a loop that has no early return and
 
 The body is a function of its own, returning nothing, so a bare `return` inside it ends the **loop**, not the enclosing function: execution continues after the `for`. The counter advances from its value at the end of the body, so rebinding it moves the walk.
 
+Apart from the counter, no name carries a value to the next iteration, and none carries one out of the loop. A name the body binds at its own level (an `unroll` body and a folded `if` included) is the body's own, unbound until the binding runs, so reading the enclosing value of that name first is rejected: carry state through memory, a `HeapBuf`. A binding in a runtime `if` arm ends with the arm, as everywhere, and the rest of the body still reads the enclosing value, unless that value is a `StackBuf`: one whose name the body binds anywhere it can run is not captured, since capturing it copies its cells each iteration.
+
 ### `for i in unroll(a, b)`: compile-time unrolling
 
 ```python
@@ -308,7 +316,7 @@ Two write-once-flavored rules:
 - **bindings made inside a branch are local to it**: the compile-time scope reverts at the join. Branches communicate through memory: only one branch executes, so both may write the *same* cell (`r[1]` above), and the join reads it.
 - a cell nobody wrote (e.g. skipped-branch territory) stays unconstrained, the same rule as everywhere else in write-once memory.
 
-Local jumps must carry the frame pointer, which the ISA cannot read directly; each branching function materializes its own `fp` once (2 `DEREF`s through a 1-cell heap bounce; free in `main`, where `fp = g^0 = 1`).
+Local jumps must carry the frame pointer, which the ISA cannot read directly; each branching function materializes its own `fp` once (2 `DEREF`s through a hinted address of its own cell; free in `main`, where `fp = g^0 = 1`).
 
 ### `match`
 
@@ -482,7 +490,7 @@ assert log m < 8             # still unconstrained: pin it
 
 which is the one-line form of allocating a `StackBuf(1)`, filling a slice of it, and reading the cell back out, and costs exactly the same (nothing). Everything below about a stream's entries applies to it: each such binding pops one entry, whose length must be 1.
 
-Prover-supplied data (leanVM's `hint_witness`): a stream is a sequence of **entries**, one slice of values per `hint_witness` call, and the same symbol may be hinted many times. Each call pops the stream's next entry (whose length must match the destination run) and writes it into `dest` through the hint mechanism, at **zero cycles**. The values are completely unconstrained; the program must constrain them itself (asserts, range checks, hashes): an unconstrained hint consumed by anything security-relevant is a critical vulnerability. Runtime-start heap slices (`buf[i:i + k]`, `k` a literal) work too.
+Prover-supplied data (leanVM's `hint_witness`): a stream is a sequence of **entries**, one slice of values per `hint_witness` call, and the same symbol may be hinted many times. Each call pops the stream's next entry (whose length must match the destination run) and writes it into `dest` through the hint mechanism, at **zero cycles**. The values are completely unconstrained; the program must constrain them itself (asserts, range checks, hashes): an unconstrained hint consumed by anything security-relevant is a critical vulnerability. Runtime-start heap slices (`buf[i:i + k]`, `k` a literal) work too. A stream's name is a non-empty string with no whitespace.
 
 The prover takes the streams beside the program, as its `witness` argument of `(name, entries)` pairs (`entries: Vec<Vec<extension-field>>`); test programs declare them as annotations, one line per entry, and repeated lines with the same name are its successive entries:
 

@@ -64,6 +64,22 @@ theorem tbReadsAt_chunks {rd : Reader} {p : E} {S m : ℕ} (blk : ℕ → List E
     getD_flatMap_const (fun i ↦ padTo S (blk i)) (fun i ↦ padTo_length (hb i)) m i k hi hS] at this
   rwa [padTo, List.getD_append _ _ _ _ hk, List.getD_eq_getElem _ _ hk] at this
 
+/-- **A buffer of padded blocks holds zeros past each block, to its stride.** -/
+theorem tbReadsAt_chunks_pad {rd : Reader} {p : E} {S m : ℕ} (blk : ℕ → List E)
+    (hb : ∀ i, (blk i).length ≤ S) (h : TbReadsAt rd p ((List.range m).flatMap fun i ↦ padTo S (blk i)))
+    {i : ℕ} (hi : i < m) {e : ℕ} (he1 : (blk i).length ≤ e) (he2 : e < S) :
+    LoadHolds rd (p * gen ^ (S * i)) e 0 := by
+  rw [tb_loadHolds_mul_gen_pow]
+  have hlen : ((List.range m).flatMap fun i ↦ padTo S (blk i)).length = S * m := by
+    rw [List.length_flatMap]
+    simp [padTo_length (hb _), List.sum_replicate, Nat.mul_comm]
+  have hidx : S * i + e < S * m := by nlinarith
+  have := h (S * i + e) (by rw [hlen]; exact hidx)
+  rw [← List.getD_eq_getElem _ 0,
+    getD_flatMap_const (fun i ↦ padTo S (blk i)) (fun i ↦ padTo_length (hb i)) m i e hi he2] at this
+  have h0 : (List.replicate (S - (blk i).length) (0 : E)).getD (e - (blk i).length) 0 = 0 := by simp
+  rwa [padTo, List.getD_append_right _ _ _ _ he1, h0] at this
+
 /-! ## The shared selector tables -/
 
 /-- Table `t`'s run of coordinates above `τ_t`, their complements and shares. -/
@@ -144,6 +160,39 @@ theorem vt_runTables {rd : Reader} {pe pg : E} {point : List E} {τ : ℕ → �
   · have := tbReadsAt_chunks (shGBlk point τ) (shGBlk_length point τ) hg hi
     rw [shGBlk, hdiv, hmod] at this
     simp only [hj, ↓reduceIte] at this
+    rwa [show 16 * (9 * t + j) = 144 * t + 16 * j by ring, pow_add, ← mul_assoc] at this
+
+/-- **The shared tables' buffers give `RunPads`**: past each nibble's tables, zeros. -/
+theorem vt_runPads {rd : Reader} {pe pg : E} {point : List E} {τ : ℕ → ℕ}
+    (hμ : point.length < 33) (he : TbReadsAt rd pe (vtShEqW point τ))
+    (hg : TbReadsAt rd pg (vtShGW point τ)) {t : ℕ} (ht : t < 6) :
+    RunPads rd (pe * gen ^ (288 * t)) (pg * gen ^ (144 * t)) (point.length - τ t)
+      (point.drop (τ t)) := by
+  intro j hj
+  have hj9 : j < 9 := by omega
+  have hi : 9 * t + j < 54 := by omega
+  have hdiv : (9 * t + j) / 9 = t := by omega
+  have hmod : (9 * t + j) % 9 = j := by omega
+  have hw := nib_length_le (point.drop (τ t)) j
+  constructor
+  · intro e he1 he2
+    have hl : (shEqBlk point τ (9 * t + j)).length ≤ e := by
+      rw [shEqBlk, hdiv, hmod]
+      simp only [hj, ↓reduceIte]
+      rw [eqLevels_length rfl (by simp [nib, shZs, shZs1])]
+      exact he1
+    have := tbReadsAt_chunks_pad (shEqBlk point τ) (shEqBlk_length point τ) he hi hl (by omega)
+    rwa [show 32 * (9 * t + j) = 288 * t + 32 * j by ring, pow_add, ← mul_assoc] at this
+  · intro u hu1 hu2
+    have hsql : gSquaresList.length = 34 := by simp [gSquaresList]
+    have hgl : (nib (shGs point (τ t)) j).length = (nib (point.drop (τ t)) j).length := by
+      simp [nib, shGs, hsql]; omega
+    have hl : (shGBlk point τ (9 * t + j)).length ≤ u := by
+      rw [shGBlk, hdiv, hmod]
+      simp only [hj, ↓reduceIte]
+      rw [gTable_length rfl, hgl]
+      exact hu1
+    have := tbReadsAt_chunks_pad (shGBlk point τ) (shGBlk_length point τ) hg hi hl (by omega)
     rwa [show 16 * (9 * t + j) = 144 * t + 16 * j by ring, pow_add, ← mul_assoc] at this
 
 end

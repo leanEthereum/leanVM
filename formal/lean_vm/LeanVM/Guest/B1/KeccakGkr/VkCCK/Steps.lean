@@ -8,6 +8,8 @@ module
 
 public import LeanVM.Guest.B1.KeccakGkr.VkCB
 public import LeanVM.Guest.B1.KeccakGkr.VkChain
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_keccak»
 
 /-!
 # The steps' cores
@@ -31,24 +33,24 @@ variable {C : CallRel} {rd : Reader} {w : ℕ → E} {σ : Val}
 
 /-- Where step `s` starts. -/
 def stepB (s : ℕ) : ℕ :=
-  [442, 483, 518, 552, 595, 636, 679, 712, 753, 791, 834, 875].getD s 0
+  [443, 484, 519, 553, 596, 637, 680, 713, 754, 792, 835, 876].getD s 0
 
 /-- The capacity step `s` passes. -/
 def stepCap (s : ℕ) : List ℕ :=
-  if s = 0 then [147, 148, 149, 150, 151] else (List.range 5).map fun j ↦ stepB s - 6 + j
+  if s = 0 then [148, 149, 150, 151, 152] else (List.range 5).map fun j ↦ stepB s - 6 + j
 
 /-- The cursor step `s ≥ 1` passes. -/
 def stepCur (s : ℕ) : ℕ := if s = 0 then 0 else stepB s - 1
 
 /-- The value step `s ≥ 1` reads its claim's pointer from (`cb`: `claims·g^(22 (s - 1))`). -/
-def stepCb (s : ℕ) : ℕ := if s ≤ 1 then 155 else stepB (s - 1) - 7
+def stepCb (s : ℕ) : ℕ := if s ≤ 1 then 156 else stepB (s - 1) - 7
 
 /-- The value step `s ≥ 1` reads the next claim's pointer from (`pn`: `claims·g^(22 s)`). -/
 def stepPn (s : ℕ) : ℕ := if s = 0 then 0 else stepB s - 7
 
 /-- Step `s` but its call. -/
 def stepCore (s b : ℕ) : List Stmt :=
-  [.atom (.load (.n b) (.n 155) (22 * s + 2)), .atom (.mul (.n (b + 1)) (.n b) (.n 18))] ++
+  [.atom (.load (.n b) (.n (val% «verify_keccak» "claims")) (22 * s + 2)), .atom (.mul (.n (b + 1)) (.n b) (.n (val% «verify_keccak» "pack_g")))] ++
   eqfLevel0T (.n (b + 1)) 0 (b + 2) ++ flipsT s (b + 6) ++
   iotaSegT s (b + 6) (b + 6 + flipSz s * (iotaUsed s).length) (b + 4) (b + 5)
 
@@ -61,13 +63,13 @@ theorem stepT_split (s b : ℕ) (cap : List ℕ) (cur cb pn : ℕ) :
 
 /-- The pointers the flips load through, and their ranges. -/
 def flipPs (s b : ℕ) : List (V × ℕ × ℕ) :=
-  if s = 0 then [(.n 228, 30, 31)]
-  else (.n 155, 22 * s + 5, 22 * s + 6) :: (List.range (iotaUsed s).length).map fun j ↦
+  if s = 0 then [(.n (val% «verify_keccak» "lane_tree"), 30, 31)]
+  else (.n (val% «verify_keccak» "claims"), 22 * s + 5, 22 * s + 6) :: (List.range (iotaUsed s).length).map fun j ↦
     (.n (b + 6 + 2 * j), 0, 7)
 
 /-- What the kernel checks of step `s`'s core. -/
 def stepKer (s b : ℕ) : Prop :=
-  noneIn [.load (.n b) (.n 155) (22 * s + 2), .load (.n (b + 2)) (.n (b + 1)) 0] vkSt = true ∧
+  noneIn [.load (.n b) (.n (val% «verify_keccak» "claims")) (22 * s + 2), .load (.n (b + 2)) (.n (b + 1)) 0] vkSt = true ∧
   (flipsT s (b + 6)).all isAtom = true ∧
   (resid (atomsL (flipsT s (b + 6)))).all (ldR (flipPs s b)) = true ∧
   noneIn (resid (atomsL (flipsT s (b + 6)))) vkSt = true ∧

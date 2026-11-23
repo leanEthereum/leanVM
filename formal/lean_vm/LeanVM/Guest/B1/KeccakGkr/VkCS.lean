@@ -50,7 +50,7 @@ theorem lsOf_take (fs : String → ℕ) (ps : List ℕ) {n k : ℕ} (hk : k + 1 
   simp only [lsOf, List.getD_eq_getElem?_getD, List.getElem?_take, show k + 1 < n from hk,
     ↓reduceIte]
 
-variable {rd : Reader} {B curE chiE olE zvE slE tbE : ℕ} {fs : String → ℕ} {fps : List ℕ}
+variable {rd : Reader} {B curE chiE olE zvE slE tbE stE : ℕ} {fs : String → ℕ} {fps : List ℕ}
 
 theorem take_last {s : ℕ} (hl : s + 2 ≤ fps.length) :
     (fps.take (s + 2)).getLast?.getD 0 = fps.getD (s + 1) 0 := by
@@ -61,7 +61,7 @@ theorem take_last {s : ℕ} (hl : s + 2 ≤ fps.length) :
 /-- **Layer `s`'s words, in memory.** -/
 theorem layKid_lin_mem (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE (D.lsOf fs fps))
     {s : ℕ} (hs : s < 12) (hl : s + 2 ≤ fps.length) :
-    MemL rd ((D.layKid fs B curE tbE s).Lin (fps.take (s + 2))) := by
+    MemL rd ((D.layKid fs B curE tbE stE s).Lin (fps.take (s + 2))) := by
   have hdl : (fps.take (s + 2)).dropLast = fps.take (s + 1) := by
     rw [List.dropLast_eq_take, List.take_take, List.length_take]
     congr 1; omega
@@ -87,7 +87,7 @@ theorem layKid_lin_region (h : D.Ok) {s : ℕ} (hs : s < 12) (hl : s + 2 ≤ fps
     (hOwn : ∀ i, RegionL (bufL B D.sizes (D.own B (D.lsOf fs fps))) i → T i)
     (hPrev : ∀ k, k + 1 = s → ∀ i, RegionL (layerBufs (D.layer k) (firstOf k)
       (ptr (curE + D.lcur k)) (D.lsOf fs fps k)) i → T i) :
-    ∀ x, RegionL ((D.layKid fs B curE tbE s).Lin (fps.take (s + 2))) x → T x := by
+    ∀ x, RegionL ((D.layKid fs B curE tbE stE s).Lin (fps.take (s + 2))) x → T x := by
   have hdl : (fps.take (s + 2)).dropLast = fps.take (s + 1) := by
     rw [List.dropLast_eq_take, List.take_take, List.length_take]
     congr 1; omega
@@ -148,13 +148,13 @@ theorem layKid_lin_region (h : D.Ok) {s : ℕ} (hs : s < 12) (hl : s + 2 ≤ fps
             ((D.layer k).beta (firstOf k)).1) (eqKernel (((D.layer k).locPt (firstOf k)).take 6))))
           (by simp [layerBufs_eq]) le_rfl (by simp [flipsOf]) x hx'
 
-theorem kids_length : (D.kids fs B curE chiE olE zvE slE tbE).length = 18 := by simp [kids]
+theorem kids_length : (D.kids fs B curE chiE olE zvE slE tbE stE).length = 18 := by simp [kids]
 
 /-- **The callees' words, in memory.** -/
 theorem kids_lin_mem (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE (D.lsOf fs fps))
     (hfl : fps.length = 18) :
-    ∀ i (hi : i < (D.kids fs B curE chiE olE zvE slE tbE).length),
-      MemL rd ((D.kids fs B curE chiE olE zvE slE tbE)[i].Lin (fps.take (i + 1))) := by
+    ∀ i (hi : i < (D.kids fs B curE chiE olE zvE slE tbE stE).length),
+      MemL rd ((D.kids fs B curE chiE olE zvE slE tbE stE)[i].Lin (fps.take (i + 1))) := by
   intro i hi
   rw [kids_length] at hi
   obtain ⟨m58, -⟩ := own_mem (by have := h.1; omega) hm.own
@@ -206,8 +206,8 @@ theorem kids_lin_region (h : D.Ok) (hfl : fps.length = 18) {T : ℕ → ℕ → 
     (hOwn : ∀ j x, RegionL (bufL B D.sizes (D.own B (D.lsOf fs fps))) x → T j x)
     (hPrev : ∀ k < 12, ∀ j, k + 1 < j → ∀ x, RegionL (layerBufs (D.layer k) (firstOf k)
       (ptr (curE + D.lcur k)) (D.lsOf fs fps k)) x → T j x) :
-    ∀ i (hi : i < (D.kids fs B curE chiE olE zvE slE tbE).length), ∀ x,
-      RegionL ((D.kids fs B curE chiE olE zvE slE tbE)[i].Lin (fps.take (i + 1))) x → T i x := by
+    ∀ i (hi : i < (D.kids fs B curE chiE olE zvE slE tbE stE).length), ∀ x,
+      RegionL ((D.kids fs B curE chiE olE zvE slE tbE stE)[i].Lin (fps.take (i + 1))) x → T i x := by
   intro i hi
   rw [kids_length] at hi
   have hO := bufL_eq (D := D) (by have := h.1; omega) B (D.lsOf fs fps)

@@ -123,6 +123,13 @@ pub(super) fn parse_expr(s: &str) -> Result<Expr, String> {
         && s.ends_with(')')
     {
         let name = s[..open].trim().to_string();
+        // A `Const` specialization is `f__L1`, so a call spelled that way would run it or fail by lowering order.
+        if name.contains("__") {
+            return Err(format!(
+                "`{name}`: a function's name may not contain `__`, which is reserved for the names the \
+                 compiler generates"
+            ));
+        }
         // Before its arguments: a `lambda` arm is no expression, and failing on it would name the wrong problem.
         if name == "match" {
             return Err(
@@ -172,6 +179,7 @@ pub(super) fn parse_expr(s: &str) -> Result<Expr, String> {
         return Ok(Expr::Call(name, args));
     }
     if s.chars().all(|c| c.is_alphanumeric() || c == '_') && !s.is_empty() {
+        not_reserved(s)?;
         return Ok(Expr::Var(s.to_string()));
     }
     if s.is_empty() {
@@ -437,6 +445,17 @@ pub(super) fn is_ident(s: &str) -> bool {
     matches!(cs.next(), Some(c) if c.is_alphabetic() || c == '_') && s.chars().all(|c| c.is_alphanumeric() || c == '_')
 }
 
+/// The compiler's own names begin with `__` (a loop's `__nextN` and `__boundN`, a keyword argument's marker), so
+/// a program's name beginning with it could take one's place: a `__next0` read in a loop body was the counter.
+pub(super) fn not_reserved(name: &str) -> Result<(), String> {
+    if name.starts_with("__") {
+        return Err(format!(
+            "`{name}`: a name may not begin with `__`, which is reserved for the names the compiler generates"
+        ));
+    }
+    Ok(())
+}
+
 /// A binding or parameter name, validated. Anything else here is a mis-split
 /// (`x /`, `x !`) or a top-level constant substituted into a binding position:
 /// constants are replaced textually, so `V = 8` with `def scale(V)` arrives as a
@@ -445,6 +464,7 @@ pub(super) fn is_ident(s: &str) -> bool {
 pub(super) fn binding_name(raw: &str, what: &str) -> Result<String, String> {
     let n = raw.trim();
     if is_ident(n) {
+        not_reserved(n)?;
         return Ok(n.to_string());
     }
     Err(format!(

@@ -87,13 +87,13 @@ def cells (s : ℕ) : E × E := if s = 0 then Keccak.scalarCells D.committed dsO
 def lsOf (fs : String → ℕ) (ps : List ℕ) (k : ℕ) : ℕ := ps.getD (k + 1) 0 + fs (D.lname k)
 
 /-- **Layer `s`'s call.** -/
-def layKid (fs : String → ℕ) (B curE tbE : ℕ) (s : ℕ) : KidG where
+def layKid (fs : String → ℕ) (B curE tbE stE : ℕ) (s : ℕ) : KidG where
   f := D.lname s
   taken := true
   args := fun _ ↦ (D.layer s).cap ++ [(D.cells s).1, (D.cells s).2, ptr (curE + D.lcur s),
     gen ^ (D.layer s).y, gen ^ ((D.layer s).y / 8), gen ^ ((D.layer s).y % 8),
     ptr (B + D.o201 + 22 * s), ptr (B + D.o201 + 22 * (s + 1)), keccakIota D.τ s (D.layer s).c,
-    ptr tbE]
+    ptr tbE, ptr stE]
   Lin := fun ps ↦ layerLin (D.layer s) (firstOf s) (D.CL B (D.lsOf fs ps.dropLast) s) (curE + D.lcur s)
     (B + D.o201 + 22 * (s + 1)) tbE (ps.getLast?.getD 0 + fs (D.lname s))
   Out := fun ps rets Lout ↦ rets = (D.layer s).rets (firstOf s) (ptr (curE + D.lcur s)) ∧
@@ -101,10 +101,10 @@ def layKid (fs : String → ℕ) (B curE tbE : ℕ) (s : ℕ) : KidG where
       (ps.getLast?.getD 0 + fs (D.lname s))
 
 /-- **The calls.** -/
-def kids (fs : String → ℕ) (B curE chiE olE zvE slE tbE : ℕ) : List KidG :=
+def kids (fs : String → ℕ) (B curE chiE olE zvE slE tbE stE : ℕ) : List KidG :=
   [⟨name% «verify_keccak_loop0», true, fun _ ↦ [1, gen ^ (D.τ - 4), ptr B, ptr chiE * gen ^ 4],
       fun _ ↦ [(chiE, D.chis), (B, D.c0.point)], fun _ ↦ Returns []⟩] ++
-  (List.range 12).map (D.layKid fs B curE tbE) ++
+  (List.range 12).map (D.layKid fs B curE tbE stE) ++
   [⟨plainName 0, true, fun _ ↦ D.oArgs curE zvE tbE, fun _ ↦ D.lin curE chiE olE zvE slE tbE,
       fun _ ↦ Returns (D.oRets curE)⟩,
     ⟨name% «verify_keccak_loop1», true, fun _ ↦ [1, gen ^ (D.τ - 4), ptr zvE * gen ^ 4, ptr B],
@@ -270,8 +270,8 @@ theorem sMeaning (h : D.Ok) {rd : Reader} {curE chiE olE zvE slE tbE : ℕ}
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
 /-- **The calls, complete where `verify_keccak` places them.** -/
-theorem kids_complete (h : D.Ok) {κ : ℕ} (hκ : 11 ≤ κ) (B curE chiE olE zvE slE tbE : ℕ) :
-    ∀ k ∈ D.kids fs B curE chiE olE zvE slE tbE, k.taken = true → ∀ ps,
+theorem kids_complete (h : D.Ok) {κ : ℕ} (hκ : 11 ≤ κ) (B curE chiE olE zvE slE tbE stE : ℕ) :
+    ∀ k ∈ D.kids fs B curE chiE olE zvE slE tbE stE, k.taken = true → ∀ ps,
       CompleteAtF fs cert κ k.f (fun p ↦ k.Lin (ps ++ [p])) (k.args ps)
         (fun p ↦ k.Out (ps ++ [p])) := by
   have hτ1 := h.1
@@ -299,7 +299,7 @@ theorem kids_complete (h : D.Ok) {κ : ℕ} (hκ : 11 ≤ κ) (B curE chiE olE z
     have H := layer_completeAtF (fs := fs) (cert := cert) (first := firstOf s)
       (by unfold firstOf; split <;> omega) hκ (D.layer s)
       (D.CL B (D.lsOf fs ps) s) (curE + D.lcur s) (B + D.o201 + 22 * (s + 1)) tbE
-      (p0 := (D.cells s).1) (p1 := (D.cells s).2) hcl (fun hf1 ↦ by
+      (p0 := (D.cells s).1) (p1 := (D.cells s).2) (st := ptr stE) hcl (fun hf1 ↦ by
         obtain rfl : s = 0 := by unfold firstOf at hf1; split at hf1 <;> omega
         rfl) (by rw [hy]; omega) (by rw [hy]; omega) hpl hpm hlm hproj hgr hfin
       (D.CL_ok h B _ hs.le)

@@ -26,16 +26,18 @@ hash a query to the random oracle for Keccak-256 and every permutation one to th
 for Keccak-f[1600]. In the experiment of the knowledge-soundness theorem with this prover as the
 adversary, the verifier rejects with probability at most (`Rom.romComplete`)
 
-  `completenessError fuel = Q · (1 - 2^-27)^fuel`,
+  `completenessError fuel = Q · (1 - 2^-27 (1 - 2^-64))^fuel`,
 
 `Q = (1 + 1) + 54825 · (2^29 + 2·fuel + 2) + 13708` the queries of the prover and the verifier
 together (`completenessQueries`): the seed's hash and permutation, `leanVmCost = 54825`
 moves of the program each costing the prover at most `proverFactor costHeight fuel =
 2^29 + 2·fuel + 2` queries, and the verifier's `leanVmQueryBound = 13708`
 (`romComplete_leanVm`). Every proof of work the honest prover meets has at most `27` bits, the
-bus's at the widest (`busGrindLE_twentySeven`), WHIR's at most `17`. At `fuel = 2^35`, the error is
-below `2^-257` (`completenessError_two_pow_35_le`): `Q ≤ 2^52`, and a proof of work of at most `27`
-bits fails with probability `(1 - 2^-27)^(2^35) ≤ e^-256 < 2^-320`.
+bus's at the widest (`busGrindLE_twentySeven`), WHIR's at most `17`, and the Keccak GKR's before
+`s` also asks its challenge to lie outside `K` (`grindSample`), which a nonce's does with probability
+`1 - 2^-64`. At `fuel = 2^35`, the error is below `2^-257` (`completenessError_two_pow_35_le`):
+`Q ≤ 2^52`, and such a proof of work fails with probability
+`(1 - 2^-27 (1 - 2^-64))^(2^35) ≤ (1 - 2^-28)^(2^36) < 2^-320`.
 -/
 
 namespace LeanVM.Protocol.EndToEnd.Complete
@@ -69,7 +71,7 @@ def completenessQueries (fuel : ℕ) : ℕ :=
 /-- **The completeness error** at a fuel of `fuel` nonces per proof of work: every query may
 complete a proof of work of at most `27` bits whose nonces all failed. -/
 noncomputable def completenessError (fuel : ℕ) : ℝ≥0∞ :=
-  (completenessQueries fuel : ℝ≥0∞) * missProb 27 ^ fuel
+  (completenessQueries fuel : ℝ≥0∞) * missK 27 ^ fuel
 
 /-- **Every layout the verifier builds for the program's bytecode within the stack's cap has its
 bus grind at most `27` bits**: the push tree is no deeper than the stack (`busDepth_le_leanIsaμ`),
@@ -170,16 +172,22 @@ theorem romComplete_leanVm {prog : LeanIsaProgram} {input : PublicInput} {t : Ex
 
 /-- **The numbers**: at a fuel of `2^35` nonces per proof of work, the completeness error is
 below `2^-257`: at most `2^52` queries, each missing a proof of work of at most `27` bits with
-probability `(1 - 2^-27)^(2^35) ≤ 2^-320` (`missProb_pow_four_le`). -/
+probability `(1 - 2^-27 (1 - 2^-64))^(2^35) ≤ (1 - 2^-28)^(2^36) ≤ 2^-320` (`missK_le_sq`,
+`missProb_pow_four_le`). -/
 theorem completenessError_two_pow_35_le :
     LeanVM.completenessError (2 ^ 35) ≤ (2 : ℝ≥0∞)⁻¹ ^ 257 := by
   have hQ : LeanVM.completenessQueries (2 ^ 35) ≤ 2 ^ 52 := by
     norm_num [LeanVM.completenessQueries]
-  have hmiss : (1 - (2 : ℝ≥0∞)⁻¹ ^ 27) ^ (2 ^ 35) ≤ (2 : ℝ≥0∞)⁻¹ ^ (52 + 268) := by
-    have := missProb_pow_four_le 27 64
-    rwa [missProb, show 2 ^ 27 * 4 * 64 = 2 ^ 35 by norm_num] at this
+  have hmiss : (1 - (2 : ℝ≥0∞)⁻¹ ^ 27 * (1 - (2 : ℝ≥0∞)⁻¹ ^ 64)) ^ (2 ^ 35) ≤
+      (2 : ℝ≥0∞)⁻¹ ^ (52 + 268) := by
+    have h := missProb_pow_four_le 28 64
+    rw [show 2 ^ 28 * 4 * 64 = 2 * 2 ^ 35 by norm_num, pow_mul (missProb 28) 2 (2 ^ 35)] at h
+    calc (1 - (2 : ℝ≥0∞)⁻¹ ^ 27 * (1 - (2 : ℝ≥0∞)⁻¹ ^ 64)) ^ (2 ^ 35) = missK 27 ^ (2 ^ 35) := rfl
+      _ ≤ (missProb 28 ^ 2) ^ (2 ^ 35) := pow_le_pow_left₀ bot_le missK_le_sq _
+      _ ≤ _ := h.trans_eq (by norm_num)
   unfold LeanVM.completenessError
-  calc (LeanVM.completenessQueries (2 ^ 35) : ℝ≥0∞) * (1 - (2 : ℝ≥0∞)⁻¹ ^ 27) ^ 2 ^ 35
+  calc (LeanVM.completenessQueries (2 ^ 35) : ℝ≥0∞) *
+        (1 - (2 : ℝ≥0∞)⁻¹ ^ 27 * (1 - (2 : ℝ≥0∞)⁻¹ ^ 64)) ^ 2 ^ 35
       ≤ (2 : ℝ≥0∞) ^ 52 * (2 : ℝ≥0∞)⁻¹ ^ (52 + 268) := by
         gcongr
         exact_mod_cast hQ

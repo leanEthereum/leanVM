@@ -9,6 +9,8 @@ module
 public import LeanVM.Guest.B1.Digest.StatementChk
 public import LeanVM.Guest.B1.Digest.PairComplete
 public import LeanVM.Guest.B1.Digest.Steps
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«statement_digest»
 
 /-!
 # `statement_digest`, completely
@@ -52,8 +54,8 @@ theorem statement_digest_complete : statement_digest_complete_Spec := by
     rw [show args.length = 9 from rfl, sd_stores] at hgs
     have hg : ∀ a ∈ sdAtoms, Good rd [] (fun _ => 0) σ a := fun a ha =>
       hgs (.atom a) (List.mem_append_left _ (List.mem_map_of_mem ha))
-    have hpar : ∀ i < 9, σ (.n i) = args.getD i 0 := fun i hi => ev_params rd _ (l := args) sd_chk hi
-    have e8 : σ (.n 8) = dp := hpar 8 (by omega)
+    have hpar : ∀ i < (val% «statement_digest» "cells[0]"), σ (.n i) = args.getD i 0 := fun i hi => ev_params rd _ (l := args) sd_chk hi
+    have e8 : σ (.n (val% «statement_digest» "defer")) = dp := hpar 8 (by omega)
     -- every atom: the loads read the meaning's cells
     have hat : ∀ a ∈ sdAtoms, a.Holds rd σ := by
       refine atoms_holds hg fun a ha hn => Or.inl ?_
@@ -64,13 +66,13 @@ theorem statement_digest_complete : statement_digest_complete_Spec := by
       have g := hg _ ha
       have hl := hreads i (by rw [hlen]; exact hi')
       simp only [Good] at g
-      show LoadHolds rd (σ (.n 8)) i (σ (.n (17 + i)))
+      show LoadHolds rd (σ (.n (val% «statement_digest» "defer"))) i (σ (.n (17 + i)))
       rcases g with g | g
       · simp at g
       · rw [g, e8, rdAt_of_load hl]
         exact hl
     -- the relation, and its returns
-    have hrel : coreProgram.Rel rd "statement_digest" args [σ (.n 115), σ (.n 116)] := by
+    have hrel : coreProgram.Rel rd "statement_digest" args [σ (.n (val% «statement_digest» "s12#0")), σ (.n (val% «statement_digest» "s12#0[1]"))] := by
       refine (rel_iff_sem find_statement_digest _ _).mpr ⟨σ, ?_, ?_⟩
       · rw [sd_params]
         simp only [List.map_cons, List.map_nil]

@@ -8,6 +8,8 @@
 module
 
 public import LeanVM.Guest.B1.Fs.MessageSound
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«opening_message__L»
 
 /-!
 # `opening_message`: completeness
@@ -212,7 +214,7 @@ theorem stCap_length (cap xs : List E) (hc : cap.length = 5) : ∀ g, (stCap cap
 /-- **`opening_message` is complete.** -/
 theorem om_complete {name : String} {f : Fn} (n nonce : ℕ) (hcase : OmCase n nonce) (hn : 1 ≤ n)
     (h64 : n + nonce < 64) (hfind : coreProgram.find? name = some f)
-    (hparams : f.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6])
+    (hparams : f.params = [.n (valf% «opening_message» "fs0"), .n (valf% «opening_message» "fs1"), .n (valf% «opening_message» "fs2"), .n (valf% «opening_message» "fs3"), .n (valf% «opening_message» "fs4"), .n (valf% «opening_message» "cursor"), .n (valf% «opening_message» "out")])
     (hbody : f.body = omBody n nonce) (rd : Reader) (args rets : List E)
     (h : MeaningOpeningMessage n nonce rd args rets) : coreProgram.Rel rd name args rets := by
   obtain ⟨f0, f1, f2, f3, f4, cur, out, rfl⟩ : ∃ f0 f1 f2 f3 f4 cur out,
@@ -230,8 +232,8 @@ theorem om_complete {name : String} {f : Fn} (n nonce : ℕ) (hcase : OmCase n n
   have hx : ∀ p < n, LoadHolds rd cur p (xs.getD p 0) ∧ LoadHolds rd out p (xs.getD p 0) :=
     fun p hp ↦ by
       rw [List.getD_eq_getElem _ _ (by omega)]; exact ⟨hcur p (by omega), hout p (by omega)⟩
-  have e5 : σ (.n 5) = cur := by rw [ev, omV_head _ _ _ _ _ (by omega)]; rfl
-  have e6 : σ (.n 6) = out := by rw [ev, omV_head _ _ _ _ _ (by omega)]; rfl
+  have e5 : σ (.n (valf% «opening_message» "cursor")) = cur := by rw [ev, omV_head _ _ _ _ _ (by omega)]; rfl
+  have e6 : σ (.n (valf% «opening_message» "out")) = out := by rw [ev, omV_head _ _ _ _ _ (by omega)]; rfl
   have vW : ∀ p < n, ∀ u < 3,
       σ (.n (omW p + u)) = if u = 2 then word 0 dsObserve else xs.getD p 0 :=
     fun p hp u hu ↦ omV_word as xs nn n nonce hp hu
@@ -384,7 +386,7 @@ theorem om_complete {name : String} {f : Fn} (n nonce : ℕ) (hcase : OmCase n n
         List.mem_cons, List.not_mem_nil, or_false] at ha
       rcases ha with ((rfl | rfl | rfl | rfl) | (rfl | rfl | rfl | rfl | rfl)) | rfl
       · exact keccakG _ (by simp only [omK] at h4 ⊢; omega) (capK _ hKn) hB
-      · show LoadHolds rd (σ (.n 5)) n (σ (.n (omE n + 13)))
+      · show LoadHolds rd (σ (.n (valf% «opening_message» "cursor"))) n (σ (.n (omE n + 13)))
         rw [e5, vnn 13 (by omega) (by omega)]; exact hnn rfl
       · show σ (.n (omE n + 14)) = σ (.n (omE n + 13))
         rw [vnn 14 (by omega) (by omega), vnn 13 (by omega) (by omega)]
@@ -423,7 +425,7 @@ theorem om_complete {name : String} {f : Fn} (n nonce : ℕ) (hcase : OmCase n n
       simp only [omTail, h2, ↓reduceIte, show (1 : ℕ) ≠ 0 by decide, show (2 : ℕ) ≠ 4 by decide,
         List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at ha
       rcases ha with (rfl | rfl | rfl | rfl | rfl) | rfl
-      · show LoadHolds rd (σ (.n 5)) n (σ (.n (omE n)))
+      · show LoadHolds rd (σ (.n (valf% «opening_message» "cursor"))) n (σ (.n (omE n)))
         rw [e5, show omE n = omE n + 0 by ring, vnn 0 (by omega)]; exact hnn rfl
       · show σ (.n (omE n + 1)) = σ (.n (omE n))
         rw [vnn 1 (by omega), show omE n = omE n + 0 by ring, vnn 0 (by omega)]
@@ -464,7 +466,7 @@ theorem om_complete {name : String} {f : Fn} (n nonce : ℕ) (hcase : OmCase n n
         show (1 : ℕ) ≠ 2 by decide,
         padAs, List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at ha
       rcases ha with ((rfl | rfl | rfl) | (rfl | rfl | rfl | rfl | rfl)) | rfl
-      · show LoadHolds rd (σ (.n 5)) n (σ (.n (omE n)))
+      · show LoadHolds rd (σ (.n (valf% «opening_message» "cursor"))) n (σ (.n (omE n)))
         rw [e5, show omE n = omE n + 0 by ring, vnn 0 (by omega)]; exact hnn rfl
       · show σ (.n (omE n + 1)) = σ (.n (omE n))
         rw [vnn 1 (by omega), show omE n = omE n + 0 by ring, vnn 0 (by omega)]
@@ -531,7 +533,7 @@ theorem om_complete {name : String} {f : Fn} (n nonce : ℕ) (hcase : OmCase n n
       rfl
     · show σ (.n ((omTail n nonce).2.2 + 7)) = word (2 ^ (n + nonce)) 0
       rw [vF 7]; rfl
-    · show σ (.n ((omTail n nonce).2.2 + 8)) = σ (.n 5) * σ (.n ((omTail n nonce).2.2 + 7))
+    · show σ (.n ((omTail n nonce).2.2 + 8)) = σ (.n (valf% «opening_message» "cursor")) * σ (.n ((omTail n nonce).2.2 + 7))
       rw [vF 8, vF 7, e5]; rfl
     · show σ (.n ((omTail n nonce).2.2 + 9)) = σ (.n ((omTail n nonce).2.2 + 8))
       rw [vF 9, vF 8]; rfl
@@ -562,13 +564,13 @@ theorem om_complete {name : String} {f : Fn} (n nonce : ℕ) (hcase : OmCase n n
         have w0 : σ (.n (omW p)) = xs.getD p 0 := by
           rw [show omW p = omW p + 0 by ring, vW p hp 0 (by omega)]; rfl
         rcases hwa with rfl | rfl | rfl | rfl
-        · show LoadHolds rd (σ (.n 5)) p (σ (.n (omW p)))
+        · show LoadHolds rd (σ (.n (valf% «opening_message» "cursor"))) p (σ (.n (omW p)))
           rw [e5, w0]; exact (hx p hp).1
         · show σ (.n (omW p + 1)) = σ (.n (omW p))
           rw [vW p hp 1 (by omega), w0]; rfl
         · show σ (.n (omW p + 2)) = word 0 dsObserve
           rw [vW p hp 2 (by omega)]; rfl
-        · show LoadHolds rd (σ (.n 6)) p (σ (.n (omW p)))
+        · show LoadHolds rd (σ (.n (valf% «opening_message» "out"))) p (σ (.n (omW p)))
           rw [e6, w0]; exact (hx p hp).2
       · split_ifs at hk with hc
         · simp only [List.mem_singleton] at hk
@@ -591,7 +593,7 @@ theorem opening_message_holds : opening_message_Spec := by
   intro p hp rd args rets
   obtain ⟨hc, hn, h64⟩ := omCase_deployed p hp
   have go : ∀ {fn : Fn}, (coreProgram.find? (omName p) = some fn ∧
-      fn.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧ fn.body = omBody p.1 p.2) →
+      fn.params = [.n (valf% «opening_message» "fs0"), .n (valf% «opening_message» "fs1"), .n (valf% «opening_message» "fs2"), .n (valf% «opening_message» "fs3"), .n (valf% «opening_message» "fs4"), .n (valf% «opening_message» "cursor"), .n (valf% «opening_message» "out")] ∧ fn.body = omBody p.1 p.2) →
       (coreProgram.Rel rd (omName p) args rets ↔ MeaningOpeningMessage p.1 p.2 rd args rets) :=
     fun ⟨h1, h2, h3⟩ ↦ ⟨om_sound _ _ hc hn h64 h1 h2 h3 rd args rets,
       om_complete _ _ hc hn h64 h1 h2 h3 rd args rets⟩

@@ -23,29 +23,21 @@ pointers). So completeness proofs choose them, and this file says what they choo
 Two kinds of core values depend on where an instance lies, both on its own frame pointer `fp`
 and sizes only:
 
-* the pointer of the `j`-th `HeapBuf` hint (`alloc`, `allocDyn`) on the path is `g^(bufBase +
-  bufs[0] + … + bufs[j-1])`, `bufBase` right after the frame (after the tail call's region for a
-  loop helper);
+* the pointer of the `j`-th `HeapBuf` hint (`alloc`, `allocDyn`) on the path is `g^(c +
+  bufs[0] + … + bufs[j-1])`, `c` its cursor: right after its frame, or for a loop iteration after
+  the loop's frames and the earlier iterations' callees;
 * the pointer of `frameAddr p (r :: _)` is `g^(fp + cert f r)`, the frame cell holding `r` by the
   certificate `cert`.
 
 Frame pointers themselves are not core values (frame plumbing is not in the IR), so a callee's
 frame is free; the allocator puts the `i`-th at `kidPos …[i]`.
 
-`Tree.Placed P fs cert fp t` says this of every instance of `t` placed from `fp`, and
-`RelAt P fs cert rd fp n f args rets` is `Program.Rel` by a tree so placed, of `n` words. A
-completeness proof of an allocating function concludes `∀ fp, MemAt rd fp → ∃ n, RelAt … fp n f
-args rets ∧ n ≤ cost`, its callees' at their placements:
-
-* `relAt_of_walk`: a function that is not a loop helper, from its path: the parameters, the
-  `HeapBuf` pointers from `fp + fs f`, the `frameAddr`s, and its callees one after another from
-  the end of its `HeapBuf`s (`KidsFrom`), each call entered `RelAt` at its running offset and
-  each not entered a phantom of its callee's frame size;
-* `relAt_of_walk_loop`: a loop helper, its tail call (its last) at `fp + fs f` first, of `m`
-  words, then its `HeapBuf`s from `fp + fs f + m`, then its other callees;
-* `relAt_of_rel_pure`: a function whose whole call subtree allocates nothing and takes no
-  `frameAddr` (`Program.PureIn`, decidable on the program) is placed anywhere: `Program.Rel`
-  gives `∃ n, ∀ fp, RelAt … fp n`.
+`Tree.Placed P fs cert p t` says this of every instance of `t` placed from `p` (frame, cursor), and
+`RelAt P fs cert rd fp n f args rets` is `Program.Rel` by a tree so placed fresh at `fp` (its
+cursor after its block), of `n` words. `KidsFrom`: callees one after another from a word, each
+call entered `RelAt` at its running offset and each not entered a phantom of its callee's frame
+size. `placed_of_pure`: a subtree whose functions allocate nothing and take no `frameAddr`
+(`Program.PureIn`, decidable on the program) is placed anywhere.
 
 `insts_placedAt`: every instance of a placed tree is placed at its frame, so its `HeapBuf`
 pointers are its `bufBases` and its `frameAddr`s point into its frame (`Inst.nodeAt`).
@@ -78,34 +70,33 @@ def addrs (es : List Ev) : List (V × V) := es.filterMap Ev.addr?
 
 variable (P : Core.Program) (fs : String → ℕ) (cert : String → V → ℕ)
 
-/-- An instance of `f` at `fp` with valuation `σ`, `HeapBuf`s `bufs`, callee regions of sizes
-`ns` and path `es` is placed: its `HeapBuf` pointers are the allocator's bases, its `frameAddr`s
-the addresses of their runs in its frame. -/
-def NodeAt (fp : ℕ) (f : String) (σ : Val) (bufs ns : List ℕ) (es : List Ev) : Prop :=
-  (allocDsts es).map σ = (bases (bufBase fs P.loop fp f ns) bufs).map (fun b
-      => ofK (addressOfIndex b)) ∧
-    ∀ q ∈ addrs es, σ q.1 = ofK (addressOfIndex (fp + cert f q.2))
+/-- An instance of `f` at `p` with valuation `σ`, `HeapBuf`s `bufs` and path `es` is placed: its
+`HeapBuf` pointers are the allocator's bases from its cursor, its `frameAddr`s the addresses of
+their runs in its frame. -/
+def NodeAt (p : ℕ × ℕ) (f : String) (σ : Val) (bufs : List ℕ) (es : List Ev) : Prop :=
+  (allocDsts es).map σ = (bases p.2 bufs).map (fun b => ofK (addressOfIndex b)) ∧
+    ∀ q ∈ addrs es, σ q.1 = ofK (addressOfIndex (p.1 + cert f q.2))
 
 mutual
-/-- **A placed tree**: every instance of `t` placed from `fp` is `NodeAt` its frame. -/
-def Tree.Placed (fp : ℕ) : Tree → Prop
+/-- **A placed tree**: every instance of `t` placed from `p` is `NodeAt` its position. -/
+def Tree.Placed (p : ℕ × ℕ) : Tree → Prop
   | t@(.node f σ bufs kids) =>
-      NodeAt P fs cert fp f σ bufs (kids.map (Tree.total fs)) (t.events P) ∧
-        Tree.PlacedKids (kidPos fs P.loop fp f bufs (kids.map (Tree.total fs))) kids
+      NodeAt cert p f σ bufs (t.events P) ∧
+        Tree.PlacedKids (kidPos fs P.loop p f bufs (kids.map (Tree.sz fs P.loop))) kids
   | .phantom .. => True
 
 /-- The callees `ks` placed at `ps`. -/
-def Tree.PlacedKids : List ℕ → List Tree → Prop
+def Tree.PlacedKids : List (ℕ × ℕ) → List Tree → Prop
   | _, [] => True
   | [], _ :: _ => True
   | p :: ps, k :: ks => k.Placed p ∧ Tree.PlacedKids ps ks
 end
 
 /-- **`Program.Rel` placed at `fp`**: a valid tree of `f` on `args`, `rets`, its `HeapBuf`s those
-of its paths, placed from `fp`, of `n` words. -/
+of its paths, placed fresh at `fp`, of `n` words. -/
 def RelAt (rd : Reader) (fp n : ℕ) (f : String) (args rets : List E) : Prop :=
-  ∃ t : Tree, t.name = f ∧ t.Valid P rd args rets ∧ t.BufsOk P ∧ t.Placed P fs cert fp ∧
-    t.total fs = n
+  ∃ t : Tree, t.name = f ∧ t.Valid P rd args rets ∧ t.BufsOk P ∧
+    t.Placed P fs cert (fp, fp + t.block fs P.loop) ∧ t.total fs = n
 
 /-- **The callees of the frames `cs` sets up**, their regions one after another from `b`, `n`
 words in all: each call entered `RelAt` its region, each not entered a phantom of its callee's
@@ -124,23 +115,24 @@ theorem RelAt.rel {rd : Reader} {fp n : ℕ} {f : String} {args rets : List E}
   let ⟨t, hn, hv, _⟩ := h
   hn ▸ hv.rel t
 
-theorem placed_node {fp : ℕ} {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree} :
-    (Tree.node f σ bufs kids).Placed P fs cert fp ↔
-      NodeAt P fs cert fp f σ bufs (kids.map (Tree.total fs)) ((Tree.node f σ bufs kids).events P) ∧
-        Tree.PlacedKids P fs cert (kidPos fs P.loop fp f bufs (kids.map (Tree.total fs))) kids := by
+theorem placed_node {p : ℕ × ℕ} {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree} :
+    (Tree.node f σ bufs kids).Placed P fs cert p ↔
+      NodeAt cert p f σ bufs ((Tree.node f σ bufs kids).events P) ∧
+        Tree.PlacedKids P fs cert (kidPos fs P.loop p f bufs (kids.map (Tree.sz fs P.loop))) kids := by
   rw [Tree.Placed]
 
-theorem placed_phantom {fp : ℕ} {f : String} {σ : Val} : (Tree.phantom f σ).Placed P fs cert fp := by
+theorem placed_phantom {p : ℕ × ℕ} {f : String} {σ : Val} : (Tree.phantom f σ).Placed P fs cert p := by
   rw [Tree.Placed]; trivial
 
-theorem placedKids_cons {p : ℕ} {ps : List ℕ} {k : Tree} {ks : List Tree} :
+theorem placedKids_cons {p : ℕ × ℕ} {ps : List (ℕ × ℕ)} {k : Tree} {ks : List Tree} :
     Tree.PlacedKids P fs cert (p :: ps) (k :: ks) ↔ k.Placed P fs cert p ∧ Tree.PlacedKids P fs cert ps ks := by
   rw [Tree.PlacedKids]
 
-theorem placedKids_nil {ps : List ℕ} : Tree.PlacedKids P fs cert ps [] := by
+theorem placedKids_nil {ps : List (ℕ × ℕ)} : Tree.PlacedKids P fs cert ps [] := by
   cases ps <;> (rw [Tree.PlacedKids]; trivial)
 
-theorem placedKids_append : ∀ {ps : List ℕ} {ks : List Tree} {ps' : List ℕ} {ks' : List Tree},
+theorem placedKids_append : ∀ {ps : List (ℕ × ℕ)} {ks : List Tree} {ps' : List (ℕ × ℕ)}
+    {ks' : List Tree},
     ps.length = ks.length → Tree.PlacedKids P fs cert ps ks → Tree.PlacedKids P fs cert ps' ks' →
       Tree.PlacedKids P fs cert (ps ++ ps') (ks ++ ks')
   | [], [], _, _, _, _, h => h
@@ -176,8 +168,8 @@ theorem bufsOkKids_append : ∀ {ks ks' : List Tree}, Tree.BufsOkKids P ks → T
 /-- The callee of one frame: a placed tree of a call entered, a phantom of one not. -/
 theorem kid_of {c : Call} {b m : ℕ} (hc : c.taken = false → P.Takes c.f c.args.length = true)
     (h : if c.taken then RelAt P fs cert rd b m c.f (c.args.map σ) (c.rets.map σ) else m = fs c.f) :
-    ∃ k : Tree, Tree.KidsValid P rd σ [c] [k] ∧ k.BufsOk P ∧ k.Placed P fs cert b ∧
-      k.total fs = m := by
+    ∃ k : Tree, Tree.KidsValid P rd σ [c] [k] ∧ k.BufsOk P ∧
+      k.Placed P fs cert (b, b + k.block fs P.loop) ∧ k.total fs = m := by
   by_cases ht : c.taken = true
   · rw [ite_eq_left ht] at h
     obtain ⟨k, hn, hv, hb, hp, htot⟩ := h
@@ -203,12 +195,14 @@ theorem takes_of_calls (hP : P.Wf) {fn : Fn} (hfn : fn ∈ P) {es : List Ev} {vs
   | atom _ => simp [Ev.call?] at hce
   | inK _ => simp [Ev.call?] at hce
 
-theorem kidPos_not_loop {fp : ℕ} {f : String} {bufs ns : List ℕ} (hl : P.loop f = false ∨ ns = []) :
-    bufBase fs P.loop fp f ns = fp + fs f ∧
-      kidPos fs P.loop fp f bufs ns = bases (fp + fs f + bufs.sum) ns := by
+theorem kidPos_not_loop {fp : ℕ} {f : String} {bufs : List ℕ} {ns : List (ℕ × ℕ)}
+    (hl : P.loop f = false ∨ ns = []) :
+    nodeBlock fs P.loop f ns = fs f ∧
+      kidPos fs P.loop (fp, fp + fs f) f bufs ns = basesC (fp + fs f + bufs.sum) ns := by
+  refine ⟨?_, kidPos_not_loop' hl⟩
   rcases hl with hl | rfl
-  · simp [bufBase, kidPos, hl]
-  · simp [bufBase, kidPos, bases]
+  · simp [nodeBlock, hl]
+  · simp [nodeBlock, lastBlock]
 
 end Compose
 
@@ -357,8 +351,8 @@ variable {rd : Reader}
 mutual
 /-- A valid tree of a function of a pure set is placed anywhere. -/
 theorem placed_of_pure (hS : P.PureIn S) : ∀ (t : Tree) {args rets : List E},
-    t.Valid P rd args rets → t.BufsOk P → t.name ∈ S → ∀ fp, t.Placed P fs cert fp
-  | .node f σ bufs kids, _, _, ⟨fn, hf, _, es, vs, hw, _, _, hk⟩, hb, hn, fp => by
+    t.Valid P rd args rets → t.BufsOk P → t.name ∈ S → ∀ p, t.Placed P fs cert p
+  | .node f σ bufs kids, _, _, ⟨fn, hf, _, es, vs, hw, _, _, hk⟩, hb, hn, p => by
       have hpure : ∀ e ∈ es, e.pure S := by
         have := walk_pure (σ := σ) fn.body (hS f hn fn hf)
         rwa [hw] at this
@@ -400,23 +394,23 @@ variable {lp : String → Bool} {H : Inst → ℕ → E × E}
 
 mutual
 /-- **Every instance of a placed tree is placed at its frame.** -/
-theorem insts_placedAt : ∀ (t : Tree) (fp : ℕ) (hdr : E × E), t.Placed P fs cert fp →
-    ∀ I ∈ t.insts fs P.loop H fp hdr, I.t.Placed P fs cert I.fp
-  | .node f σ bufs kids, fp, hdr, hp, I, hI => by
+theorem insts_placedAt : ∀ (t : Tree) (p : ℕ × ℕ) (hdr : E × E), t.Placed P fs cert p →
+    ∀ I ∈ t.insts fs P.loop H p hdr, I.t.Placed P fs cert (I.fp, I.cur)
+  | .node f σ bufs kids, p, hdr, hp, I, hI => by
       rw [insts_node, List.mem_cons] at hI
       rcases hI with rfl | hI
       · exact hp
       · rw [placed_node] at hp
         exact instsKids_placedAt kids _ _ 0 hp.2 I hI
-  | .phantom .., fp, hdr, _, I, hI => by
+  | .phantom .., p, hdr, _, I, hI => by
       rw [insts_phantom, List.mem_singleton] at hI
       subst hI
       exact placed_phantom
 
 /-- `insts_placedAt` for the callees. -/
-theorem instsKids_placedAt : ∀ (ks : List Tree) (ps : List ℕ) (J : Inst) (j : ℕ),
+theorem instsKids_placedAt : ∀ (ks : List Tree) (ps : List (ℕ × ℕ)) (J : Inst) (j : ℕ),
     Tree.PlacedKids P fs cert ps ks → ∀ I ∈ Tree.instsKids fs P.loop H J j ps ks,
-      I.t.Placed P fs cert I.fp
+      I.t.Placed P fs cert (I.fp, I.cur)
   | [], _, _, _, _, I, hI => by rw [instsKids_nil] at hI; exact (List.not_mem_nil hI).elim
   | _ :: _, [], _, _, _, I, hI => by
       rw [instsKids_nil_left] at hI; exact (List.not_mem_nil hI).elim
@@ -429,24 +423,24 @@ theorem instsKids_placedAt : ∀ (ks : List Tree) (ps : List ℕ) (J : Inst) (j 
 end
 
 /-- **An instance's `HeapBuf` pointers are its `bufBases`, its `frameAddr`s in its frame.** -/
-theorem Inst.nodeAt {I : Inst} (hp : I.t.Placed P fs cert I.fp) (hI : I.Placed fs P.loop)
+theorem Inst.nodeAt {I : Inst} (hp : I.t.Placed P fs cert (I.fp, I.cur)) (hI : I.Placed fs P.loop)
     {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree} (ht : I.t = .node f σ bufs kids) :
     (allocDsts (I.t.events P)).map σ = I.bufBases.map (fun b => ofK (addressOfIndex b)) ∧
       ∀ q ∈ addrs (I.t.events P), σ q.1 = ofK (addressOfIndex (I.fp + cert f q.2)) := by
   rw [ht, placed_node] at hp
-  rw [hI.2, ht]
+  rw [hI.2.1, ht]
   exact hp.1
 
-theorem length_kidPos_kids {fp : ℕ} {f : String} {bufs : List ℕ} {kids : List Tree} :
-    (kidPos fs lp fp f bufs (kids.map (Tree.total fs))).length = kids.length := by
+theorem length_kidPos_kids {p : ℕ × ℕ} {f : String} {bufs : List ℕ} {kids : List Tree} :
+    (kidPos fs lp p f bufs (kids.map (Tree.sz fs lp))).length = kids.length := by
   rw [length_kidPos, List.length_map]
 
 mutual
 /-- **Every equation is an instance's**: an atom's on the path of a node instance. -/
-theorem eqns_insts : ∀ (t : Tree) (fp : ℕ) (hdr : E × E), ∀ q ∈ t.eqns P,
-    ∃ I ∈ t.insts fs lp H fp hdr, (∃ f σ bufs kids, I.t = .node f σ bufs kids) ∧
+theorem eqns_insts : ∀ (t : Tree) (p : ℕ × ℕ) (hdr : E × E), ∀ q ∈ t.eqns P,
+    ∃ I ∈ t.insts fs lp H p hdr, (∃ f σ bufs kids, I.t = .node f σ bufs kids) ∧
       ∃ a, Ev.atom a ∈ I.t.events P ∧ q ∈ atomEqns I.t.val a
-  | .node f σ bufs kids, fp, hdr, q, hq => by
+  | .node f σ bufs kids, p, hdr, q, hq => by
       rw [Tree.eqns, List.mem_append] at hq
       rw [insts_node]
       rcases hq with hq | hq
@@ -461,7 +455,8 @@ theorem eqns_insts : ∀ (t : Tree) (fp : ℕ) (hdr : E × E), ∀ q ∈ t.eqns 
   | .phantom .., _, _, q, hq => by rw [Tree.eqns] at hq; exact (List.not_mem_nil hq).elim
 
 /-- `eqns_insts` for the callees. -/
-theorem eqnsKids_insts : ∀ (ks : List Tree) (ps : List ℕ) (I : Inst) (j : ℕ), ps.length = ks.length →
+theorem eqnsKids_insts : ∀ (ks : List Tree) (ps : List (ℕ × ℕ)) (I : Inst) (j : ℕ),
+    ps.length = ks.length →
     ∀ q ∈ Tree.eqnsKids P ks, ∃ J ∈ Tree.instsKids fs lp H I j ps ks,
       (∃ f σ bufs kids, J.t = .node f σ bufs kids) ∧ ∃ a, Ev.atom a ∈ J.t.events P ∧ q ∈ atomEqns J.t.val a
   | [], _, _, _, _, q, hq => by rw [Tree.eqnsKids] at hq; exact (List.not_mem_nil hq).elim

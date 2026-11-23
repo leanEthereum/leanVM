@@ -13,6 +13,8 @@ public import LeanVM.Guest.B1.KeccakGkr.Lib
 public import LeanVM.Guest.Value.KeccakSponge
 public import LeanVM.Guest.Word
 public import LeanVM.Protocol.KeccakHash
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_sub»
 
 /-!
 # The front of `verify_sub`
@@ -83,7 +85,7 @@ theorem vsWinWord_eq : vsWinWord = gen ^ winTabAt := by
 
 /-- `tabs` into `d`: `g_squares · g^236`. -/
 theorem vsTabsT_holds {c d : ℕ} {X : Prop}
-    (h : Stmt.HoldsList C rd σ (vsTabsT c d) X kret) : σ (.n d) = σ (.n 4) * gen ^ winTabAt ∧ X := by
+    (h : Stmt.HoldsList C rd σ (vsTabsT c d) X kret) : σ (.n d) = σ (.n (val% «verify_sub» "g_squares")) * gen ^ winTabAt ∧ X := by
   simp only [vsTabsT, vsConst, vsMul, Stmt.HoldsList, Stmt.Holds, Atom.Holds] at h
   obtain ⟨hc, hm, hX⟩ := h
   exact ⟨by rw [hm, hc, vsWinWord_eq], hX⟩
@@ -92,12 +94,12 @@ theorem vsTabsT_holds {c d : ℕ} {X : Prop}
 
 /-- The seed's `KECCAK` atom. -/
 abbrev vsSeedAtom : Atom :=
-  .keccak [.n 2, .n 3, .n 0, .n 1, .n 8, .n 9, .n 10, .n 11, .n 8, .n 8, .n 9, .n 10, .n 11]
+  .keccak [.n (val% «verify_sub» "seed_0"), .n (val% «verify_sub» "seed_1"), .n (val% «verify_sub» "pi_0"), .n (val% «verify_sub» "pi_1"), .n (val% «verify_sub» "s3#0[1]"), .n (val% «verify_sub» "s3#0[2]"), .n (val% «verify_sub» "s3#0[3]"), .n (val% «verify_sub» "s3#0[4]"), .n (val% «verify_sub» "s3#0[1]"), .n (val% «verify_sub» "s3#0[1]"), .n (val% «verify_sub» "s3#0[2]"), .n (val% «verify_sub» "s3#0[3]"), .n (val% «verify_sub» "s3#0[4]")]
     (vsRun 12 13) false false
 
 /-- The head: the zero cells, the seed's atom. -/
 theorem vsHeadT_holds (h : Stmt.HoldsList C rd σ vsHeadT next kret) :
-    σ (.n 8) = 0 ∧ σ (.n 9) = 0 ∧ σ (.n 10) = 0 ∧ σ (.n 11) = 0 ∧ vsSeedAtom.Holds rd σ ∧ next := by
+    σ (.n (val% «verify_sub» "s3#0[1]")) = 0 ∧ σ (.n (val% «verify_sub» "s3#0[2]")) = 0 ∧ σ (.n (val% «verify_sub» "s3#0[3]")) = 0 ∧ σ (.n (val% «verify_sub» "s3#0[4]")) = 0 ∧ vsSeedAtom.Holds rd σ ∧ next := by
   simp only [vsHeadT, vsAlloc, vsConst, keccakA, Stmt.HoldsList, Stmt.Holds] at h
   obtain ⟨-, -, h10, h11, h12, h13, hk, -, -, -, hn⟩ := h
   simp only [Atom.Holds, word_zero] at h10 h11 h12 h13
@@ -105,19 +107,19 @@ theorem vsHeadT_holds (h : Stmt.HoldsList C rd σ vsHeadT next kret) :
 
 /-- **The seed**: the four cells are two digests' halves, and the capacity
 the atom writes is the seed state's. -/
-theorem vs_seed (hk : vsSeedAtom.Holds rd σ) (h10 : σ (.n 8) = 0) (h11 : σ (.n 9) = 0)
-    (h12 : σ (.n 10) = 0) (h13 : σ (.n 11) = 0) :
-    ∃ seed pi : Digest, (σ (.n 2), σ (.n 3)) = digestHalves seed ∧
-      (σ (.n 0), σ (.n 1)) = digestHalves pi ∧
-      [σ (.n 20), σ (.n 21), σ (.n 22), σ (.n 23), σ (.n 24)] =
+theorem vs_seed (hk : vsSeedAtom.Holds rd σ) (h10 : σ (.n (val% «verify_sub» "s3#0[1]")) = 0) (h11 : σ (.n (val% «verify_sub» "s3#0[2]")) = 0)
+    (h12 : σ (.n (val% «verify_sub» "s3#0[3]")) = 0) (h13 : σ (.n (val% «verify_sub» "s3#0[4]")) = 0) :
+    ∃ seed pi : Digest, (σ (.n (val% «verify_sub» "seed_0")), σ (.n (val% «verify_sub» "seed_1"))) = digestHalves seed ∧
+      (σ (.n (val% «verify_sub» "pi_0")), σ (.n (val% «verify_sub» "pi_1"))) = digestHalves pi ∧
+      [σ (.n (val% «verify_sub» "sp[8]")), σ (.n (val% «verify_sub» "sp[9]")), σ (.n (val% «verify_sub» "sp[10]")), σ (.n (val% «verify_sub» "sp[11]")), σ (.n (val% «verify_sub» "sp[12]"))] =
         capOf (keccakF1600 (seedInput seed pi)) := by
-  refine ⟨digestFromHalves (σ (.n 2), σ (.n 3)), digestFromHalves (σ (.n 0), σ (.n 1)),
+  refine ⟨digestFromHalves (σ (.n (val% «verify_sub» "seed_0")), σ (.n (val% «verify_sub» "seed_1"))), digestFromHalves (σ (.n (val% «verify_sub» "pi_0")), σ (.n (val% «verify_sub» "pi_1"))),
     (digestScalars_digestOfScalars _).symm, (digestScalars_digestOfScalars _).symm, ?_⟩
   obtain ⟨-, -, hK⟩ := (keccak_holds_13 (outs := vsRun 12 13) (by simp [vsRun])).mp hk
-  have hch := Keccak.keccak_chain (P := [σ (.n 2), σ (.n 3), σ (.n 0), σ (.n 1)])
+  have hch := Keccak.keccak_chain (P := [σ (.n (val% «verify_sub» "seed_0")), σ (.n (val% «verify_sub» "seed_1")), σ (.n (val% «verify_sub» "pi_0")), σ (.n (val% «verify_sub» "pi_1"))])
     (S0 := Keccak.zeroState) (B := 1)
-    (I := fun _ ↦ cells13 ([.n 2, .n 3, .n 0, .n 1, .n 8, .n 9, .n 10, .n 11, .n 8, .n 8,
-      .n 9, .n 10, .n 11].map σ))
+    (I := fun _ ↦ cells13 ([.n (val% «verify_sub» "seed_0"), .n (val% «verify_sub» "seed_1"), .n (val% «verify_sub» "pi_0"), .n (val% «verify_sub» "pi_1"), .n (val% «verify_sub» "s3#0[1]"), .n (val% «verify_sub» "s3#0[2]"), .n (val% «verify_sub» "s3#0[3]"), .n (val% «verify_sub» "s3#0[4]"), .n (val% «verify_sub» "s3#0[1]"), .n (val% «verify_sub» "s3#0[1]"),
+      .n (val% «verify_sub» "s3#0[2]"), .n (val% «verify_sub» "s3#0[3]"), .n (val% «verify_sub» "s3#0[4]")].map σ))
     (O := fun k ↦ if k = 0 then cellsOfState Keccak.zeroState false else cells13 ((vsRun 12 13).map σ))
     (by simp)
     (fun k hk c hc ↦ by
@@ -130,11 +132,11 @@ theorem vs_seed (hk : vsSeedAtom.Holds rd σ) (h10 : σ (.n 8) = 0) (h11 : σ (.
       obtain rfl : k = 0 := by omega
       exact hK)
   simp only [one_ne_zero, ↓reduceIte] at hch
-  rw [show [σ (.n 2), σ (.n 3), σ (.n 0), σ (.n 1)] =
-      [(digestHalves (digestFromHalves (σ (.n 2), σ (.n 3)))).1,
-        (digestHalves (digestFromHalves (σ (.n 2), σ (.n 3)))).2,
-        (digestHalves (digestFromHalves (σ (.n 0), σ (.n 1)))).1,
-        (digestHalves (digestFromHalves (σ (.n 0), σ (.n 1)))).2] by
+  rw [show [σ (.n (val% «verify_sub» "seed_0")), σ (.n (val% «verify_sub» "seed_1")), σ (.n (val% «verify_sub» "pi_0")), σ (.n (val% «verify_sub» "pi_1"))] =
+      [(digestHalves (digestFromHalves (σ (.n (val% «verify_sub» "seed_0")), σ (.n (val% «verify_sub» "seed_1"))))).1,
+        (digestHalves (digestFromHalves (σ (.n (val% «verify_sub» "seed_0")), σ (.n (val% «verify_sub» "seed_1"))))).2,
+        (digestHalves (digestFromHalves (σ (.n (val% «verify_sub» "pi_0")), σ (.n (val% «verify_sub» "pi_1"))))).1,
+        (digestHalves (digestFromHalves (σ (.n (val% «verify_sub» "pi_0")), σ (.n (val% «verify_sub» "pi_1"))))).2] by
       simp only [digestScalars_digestOfScalars],
     Keccak.absorbChunks_seed] at hch
   simp only [capOf]
@@ -148,16 +150,16 @@ def vsX (i : ℕ) : ℕ := [27, 30, 33, 36, 52, 55, 58, 61].getD i 0
 
 /-- The stream word at offset `off` read into `x`, packed (`fs_next`). -/
 def WordAt (rd : Reader) (σ : Val) (off x : ℕ) : Prop :=
-  LoadHolds rd (σ (.n 25)) off (σ (.n x)) ∧ FsPackOk σ (.n x) (x + 1) dsObserve
+  LoadHolds rd (σ (.n (val% «verify_sub» "stream"))) off (σ (.n x)) ∧ FsPackOk σ (.n x) (x + 1) dsObserve
 
 /-- The first four announced words' permutation. -/
 abbrev vsAtom39 : Atom :=
-  .keccak [.n 28, .n 29, .n 31, .n 32, .n 34, .n 35, .n 37, .n 38, .n 20, .n 21, .n 22, .n 23, .n 24]
+  .keccak [.n (val% «verify_sub» "rate[0]@1"), .n (val% «verify_sub» "rate[1]@1"), .n (val% «verify_sub» "rate[2]@1"), .n (val% «verify_sub» "rate[3]@1"), .n (val% «verify_sub» "rate[4]@1"), .n (val% «verify_sub» "rate[5]@1"), .n (val% «verify_sub» "rate[6]@1"), .n (val% «verify_sub» "rate[7]@1"), .n (val% «verify_sub» "sp[8]"), .n (val% «verify_sub» "sp[9]"), .n (val% «verify_sub» "sp[10]"), .n (val% «verify_sub» "sp[11]"), .n (val% «verify_sub» "sp[12]")]
     (vsRun 39 13) false false
 
 theorem vsReadsT_holds (h : Stmt.HoldsList C rd σ vsReadsT next kret) :
     (∀ i < 8, WordAt rd σ i (vsX i)) ∧
-      (∀ i < 6, LoadHolds rd (σ (.n 26)) i (σ (.n (vsX (i + 1))))) ∧ vsAtom39.Holds rd σ ∧ next := by
+      (∀ i < 6, LoadHolds rd (σ (.n (val% «verify_sub» "table_rows"))) i (σ (.n (vsX (i + 1))))) ∧ vsAtom39.Holds rd σ ∧ next := by
   rw [vsReadsT] at h
   simp only [holdsList_append] at h
   obtain ⟨w0, h⟩ := (holds_fsNextT _ _ _ _ _).1 h
@@ -195,7 +197,7 @@ theorem vsReadsT_holds (h : Stmt.HoldsList C rd σ vsReadsT next kret) :
 
 /-- The eight announced words' values. -/
 def vsWords (σ : Val) : List E :=
-  [σ (.n 27), σ (.n 30), σ (.n 33), σ (.n 36), σ (.n 52), σ (.n 55), σ (.n 58), σ (.n 61)]
+  [σ (.n (val% «verify_sub» "x@1")), σ (.n (val% «verify_sub» "x@2")), σ (.n (val% «verify_sub» "x@3")), σ (.n (val% «verify_sub» "x@4")), σ (.n (val% «verify_sub» "x@5")), σ (.n (val% «verify_sub» "x@6")), σ (.n (val% «verify_sub» "x@7")), σ (.n (val% «verify_sub» "x@8"))]
 
 /-- A word's two packed cells. -/
 theorem wordAt_cells {off x : ℕ} (h : WordAt rd σ off x) :
@@ -218,11 +220,11 @@ theorem absorb2_shape (cap : List E) (a4 a5 a6 a7 b0 b1 : E) :
 /-- **The announced words absorbed** from the seed's capacity: the first four permuted in by the
 atom, the last four waiting. -/
 theorem vs_absorb8 (hw : ∀ i < 8, WordAt rd σ i (vsX i)) (hk : vsAtom39.Holds rd σ) :
-    (⟨[σ (.n 20), σ (.n 21), σ (.n 22), σ (.n 23), σ (.n 24)], []⟩ : Fs).absorbAll (vsWords σ)
+    (⟨[σ (.n (val% «verify_sub» "sp[8]")), σ (.n (val% «verify_sub» "sp[9]")), σ (.n (val% «verify_sub» "sp[10]")), σ (.n (val% «verify_sub» "sp[11]")), σ (.n (val% «verify_sub» "sp[12]"))], []⟩ : Fs).absorbAll (vsWords σ)
         dsObserve =
-      ⟨[σ (.n 47), σ (.n 48), σ (.n 49), σ (.n 50), σ (.n 51)],
-        [(σ (.n 52), dsObserve), (σ (.n 55), dsObserve), (σ (.n 58), dsObserve),
-          (σ (.n 61), dsObserve)]⟩ := by
+      ⟨[σ (.n (val% «verify_sub» "nxt[8]@1")), σ (.n (val% «verify_sub» "nxt[9]@1")), σ (.n (val% «verify_sub» "nxt[10]@1")), σ (.n (val% «verify_sub» "nxt[11]@1")), σ (.n (val% «verify_sub» "nxt[12]@1"))],
+        [(σ (.n (val% «verify_sub» "x@5")), dsObserve), (σ (.n (val% «verify_sub» "x@6")), dsObserve), (σ (.n (val% «verify_sub» "x@7")), dsObserve),
+          (σ (.n (val% «verify_sub» "x@8")), dsObserve)]⟩ := by
   have hcap := keccak_cap hk
   rw [vsRun_drop8] at hcap
   have c0 := wordAt_cells (hw 0 (by omega))
@@ -230,12 +232,12 @@ theorem vs_absorb8 (hw : ∀ i < 8, WordAt rd σ i (vsX i)) (hk : vsAtom39.Holds
   have c2 := wordAt_cells (hw 2 (by omega))
   have c3 := wordAt_cells (hw 3 (by omega))
   simp only [vsX, List.getD_cons_zero, List.getD_cons_succ] at c0 c1 c2 c3
-  have e := absorb8_shape [σ (.n 20), σ (.n 21), σ (.n 22), σ (.n 23), σ (.n 24)] (σ (.n 27))
-    (σ (.n 30)) (σ (.n 33)) (σ (.n 36)) (σ (.n 52)) (σ (.n 55)) (σ (.n 58)) (σ (.n 61))
-  have hl : rateOf [(σ (.n 27), dsObserve), (σ (.n 30), dsObserve), (σ (.n 33), dsObserve),
-      (σ (.n 36), dsObserve)] ++ [σ (.n 20), σ (.n 21), σ (.n 22), σ (.n 23), σ (.n 24)] =
-      List.map σ [.n 28, .n 29, .n 31, .n 32, .n 34, .n 35, .n 37, .n 38, .n 20, .n 21, .n 22,
-        .n 23, .n 24] := by
+  have e := absorb8_shape [σ (.n (val% «verify_sub» "sp[8]")), σ (.n (val% «verify_sub» "sp[9]")), σ (.n (val% «verify_sub» "sp[10]")), σ (.n (val% «verify_sub» "sp[11]")), σ (.n (val% «verify_sub» "sp[12]"))] (σ (.n (val% «verify_sub» "x@1")))
+    (σ (.n (val% «verify_sub» "x@2"))) (σ (.n (val% «verify_sub» "x@3"))) (σ (.n (val% «verify_sub» "x@4"))) (σ (.n (val% «verify_sub» "x@5"))) (σ (.n (val% «verify_sub» "x@6"))) (σ (.n (val% «verify_sub» "x@7"))) (σ (.n (val% «verify_sub» "x@8")))
+  have hl : rateOf [(σ (.n (val% «verify_sub» "x@1")), dsObserve), (σ (.n (val% «verify_sub» "x@2")), dsObserve), (σ (.n (val% «verify_sub» "x@3")), dsObserve),
+      (σ (.n (val% «verify_sub» "x@4")), dsObserve)] ++ [σ (.n (val% «verify_sub» "sp[8]")), σ (.n (val% «verify_sub» "sp[9]")), σ (.n (val% «verify_sub» "sp[10]")), σ (.n (val% «verify_sub» "sp[11]")), σ (.n (val% «verify_sub» "sp[12]"))] =
+      List.map σ [.n (val% «verify_sub» "rate[0]@1"), .n (val% «verify_sub» "rate[1]@1"), .n (val% «verify_sub» "rate[2]@1"), .n (val% «verify_sub» "rate[3]@1"), .n (val% «verify_sub» "rate[4]@1"), .n (val% «verify_sub» "rate[5]@1"), .n (val% «verify_sub» "rate[6]@1"), .n (val% «verify_sub» "rate[7]@1"), .n (val% «verify_sub» "sp[8]"), .n (val% «verify_sub» "sp[9]"), .n (val% «verify_sub» "sp[10]"),
+        .n (val% «verify_sub» "sp[11]"), .n (val% «verify_sub» "sp[12]")] := by
     rw [rateOf_four, ← c0, ← c1, ← c2, ← c3]; rfl
   rw [vsWords, e, Fs.perm, hl, ← hcap]
 
@@ -243,8 +245,8 @@ theorem vs_absorb8 (hw : ∀ i < 8, WordAt rd σ i (vsX i)) (hk : vsAtom39.Holds
 
 /-- The last four announced words' permutation. -/
 abbrev vsAtom255 : Atom :=
-  .keccak [.n 53, .n 54, .n 56, .n 57, .n 59, .n 60, .n 62, .n 63, .n 47, .n 48, .n 49, .n 50,
-    .n 51] (vsRun 255 13) false false
+  .keccak [.n (val% «verify_sub» "rate[0]@2"), .n (val% «verify_sub» "rate[1]@2"), .n (val% «verify_sub» "rate[2]@2"), .n (val% «verify_sub» "rate[3]@2"), .n (val% «verify_sub» "rate[4]@2"), .n (val% «verify_sub» "rate[5]@2"), .n (val% «verify_sub» "rate[6]@2"), .n (val% «verify_sub» "rate[7]@2"), .n (val% «verify_sub» "nxt[8]@1"), .n (val% «verify_sub» "nxt[9]@1"), .n (val% «verify_sub» "nxt[10]@1"), .n (val% «verify_sub» "nxt[11]@1"),
+    .n (val% «verify_sub» "nxt[12]@1")] (vsRun 255 13) false false
 
 theorem vsRootsT_holds (h : Stmt.HoldsList C rd σ vsRootsT next kret) :
     vsAtom255.Holds rd σ ∧ WordAt rd σ 8 268 ∧ WordAt rd σ 9 271 ∧ next := by
@@ -257,12 +259,12 @@ theorem vsRootsT_holds (h : Stmt.HoldsList C rd σ vsRootsT next kret) :
 
 /-- **The root's words absorbed** after the announced ones: the last four permuted in. -/
 theorem vs_absorbRoot (hw : ∀ i < 8, WordAt rd σ i (vsX i)) (hk : vsAtom255.Holds rd σ) :
-    (((⟨[σ (.n 47), σ (.n 48), σ (.n 49), σ (.n 50), σ (.n 51)],
-        [(σ (.n 52), dsObserve), (σ (.n 55), dsObserve), (σ (.n 58), dsObserve),
-          (σ (.n 61), dsObserve)]⟩ : Fs).absorb (σ (.n 268)) dsObserve).absorb (σ (.n 271))
+    (((⟨[σ (.n (val% «verify_sub» "nxt[8]@1")), σ (.n (val% «verify_sub» "nxt[9]@1")), σ (.n (val% «verify_sub» "nxt[10]@1")), σ (.n (val% «verify_sub» "nxt[11]@1")), σ (.n (val% «verify_sub» "nxt[12]@1"))],
+        [(σ (.n (val% «verify_sub» "x@5")), dsObserve), (σ (.n (val% «verify_sub» "x@6")), dsObserve), (σ (.n (val% «verify_sub» "x@7")), dsObserve),
+          (σ (.n (val% «verify_sub» "x@8")), dsObserve)]⟩ : Fs).absorb (σ (.n (val% «verify_sub» "x@9"))) dsObserve).absorb (σ (.n (val% «verify_sub» "x@10")))
         dsObserve) =
-      ⟨[σ (.n 263), σ (.n 264), σ (.n 265), σ (.n 266), σ (.n 267)],
-        [(σ (.n 268), dsObserve), (σ (.n 271), dsObserve)]⟩ := by
+      ⟨[σ (.n (val% «verify_sub» "nxt[8]@2")), σ (.n (val% «verify_sub» "nxt[9]@2")), σ (.n (val% «verify_sub» "nxt[10]@2")), σ (.n (val% «verify_sub» "nxt[11]@2")), σ (.n (val% «verify_sub» "nxt[12]@2"))],
+        [(σ (.n (val% «verify_sub» "x@9")), dsObserve), (σ (.n (val% «verify_sub» "x@10")), dsObserve)]⟩ := by
   have hcap := keccak_cap hk
   rw [vsRun_drop8] at hcap
   have c4 := wordAt_cells (hw 4 (by omega))
@@ -270,20 +272,20 @@ theorem vs_absorbRoot (hw : ∀ i < 8, WordAt rd σ i (vsX i)) (hk : vsAtom255.H
   have c6 := wordAt_cells (hw 6 (by omega))
   have c7 := wordAt_cells (hw 7 (by omega))
   simp only [vsX, List.getD_cons_zero, List.getD_cons_succ] at c4 c5 c6 c7
-  have e := absorb2_shape [σ (.n 47), σ (.n 48), σ (.n 49), σ (.n 50), σ (.n 51)] (σ (.n 52))
-    (σ (.n 55)) (σ (.n 58)) (σ (.n 61)) (σ (.n 268)) (σ (.n 271))
-  have hl : rateOf [(σ (.n 52), dsObserve), (σ (.n 55), dsObserve), (σ (.n 58), dsObserve),
-      (σ (.n 61), dsObserve)] ++ [σ (.n 47), σ (.n 48), σ (.n 49), σ (.n 50), σ (.n 51)] =
-      List.map σ [.n 53, .n 54, .n 56, .n 57, .n 59, .n 60, .n 62, .n 63, .n 47, .n 48, .n 49,
-        .n 50, .n 51] := by
+  have e := absorb2_shape [σ (.n (val% «verify_sub» "nxt[8]@1")), σ (.n (val% «verify_sub» "nxt[9]@1")), σ (.n (val% «verify_sub» "nxt[10]@1")), σ (.n (val% «verify_sub» "nxt[11]@1")), σ (.n (val% «verify_sub» "nxt[12]@1"))] (σ (.n (val% «verify_sub» "x@5")))
+    (σ (.n (val% «verify_sub» "x@6"))) (σ (.n (val% «verify_sub» "x@7"))) (σ (.n (val% «verify_sub» "x@8"))) (σ (.n (val% «verify_sub» "x@9"))) (σ (.n (val% «verify_sub» "x@10")))
+  have hl : rateOf [(σ (.n (val% «verify_sub» "x@5")), dsObserve), (σ (.n (val% «verify_sub» "x@6")), dsObserve), (σ (.n (val% «verify_sub» "x@7")), dsObserve),
+      (σ (.n (val% «verify_sub» "x@8")), dsObserve)] ++ [σ (.n (val% «verify_sub» "nxt[8]@1")), σ (.n (val% «verify_sub» "nxt[9]@1")), σ (.n (val% «verify_sub» "nxt[10]@1")), σ (.n (val% «verify_sub» "nxt[11]@1")), σ (.n (val% «verify_sub» "nxt[12]@1"))] =
+      List.map σ [.n (val% «verify_sub» "rate[0]@2"), .n (val% «verify_sub» "rate[1]@2"), .n (val% «verify_sub» "rate[2]@2"), .n (val% «verify_sub» "rate[3]@2"), .n (val% «verify_sub» "rate[4]@2"), .n (val% «verify_sub» "rate[5]@2"), .n (val% «verify_sub» "rate[6]@2"), .n (val% «verify_sub» "rate[7]@2"), .n (val% «verify_sub» "nxt[8]@1"), .n (val% «verify_sub» "nxt[9]@1"), .n (val% «verify_sub» "nxt[10]@1"),
+        .n (val% «verify_sub» "nxt[11]@1"), .n (val% «verify_sub» "nxt[12]@1")] := by
     rw [rateOf_four, ← c4, ← c5, ← c6, ← c7]; rfl
   rw [e, Fs.perm, hl, ← hcap]
 
 /-! ## Squeezes -/
 
 /-- **A squeeze with nothing waiting** (`vsSqzT`), on the zero cells. -/
-theorem vsSqzT_holds {capb o : ℕ} (h10 : σ (.n 8) = 0) (h11 : σ (.n 9) = 0)
-    (h12 : σ (.n 10) = 0) (h13 : σ (.n 11) = 0)
+theorem vsSqzT_holds {capb o : ℕ} (h10 : σ (.n (val% «verify_sub» "s3#0[1]")) = 0) (h11 : σ (.n (val% «verify_sub» "s3#0[2]")) = 0)
+    (h12 : σ (.n (val% «verify_sub» "s3#0[3]")) = 0) (h13 : σ (.n (val% «verify_sub» "s3#0[4]")) = 0)
     (h : Stmt.HoldsList C rd σ (vsSqzT capb o) next kret) :
     (⟨(vsRun capb 5).map σ, []⟩ : Fs).squeeze =
         (σ (.n (o + 13)), ⟨[σ (.n (o + 8)), σ (.n (o + 9)), σ (.n (o + 10)), σ (.n (o + 11)),
@@ -302,8 +304,8 @@ theorem vsSqzT_holds {capb o : ℕ} (h10 : σ (.n 8) = 0) (h11 : σ (.n 9) = 0)
 
 /-- **A permutation with nothing waiting** (`vsPermT`), on the zero cells: its first output is
 the squeeze's challenge. -/
-theorem vsPermT_holds {capb o : ℕ} (h10 : σ (.n 8) = 0) (h11 : σ (.n 9) = 0)
-    (h12 : σ (.n 10) = 0) (h13 : σ (.n 11) = 0)
+theorem vsPermT_holds {capb o : ℕ} (h10 : σ (.n (val% «verify_sub» "s3#0[1]")) = 0) (h11 : σ (.n (val% «verify_sub» "s3#0[2]")) = 0)
+    (h12 : σ (.n (val% «verify_sub» "s3#0[3]")) = 0) (h13 : σ (.n (val% «verify_sub» "s3#0[4]")) = 0)
     (h : Stmt.HoldsList C rd σ [vsPermT capb o] next kret) :
     (⟨(vsRun capb 5).map σ, []⟩ : Fs).squeeze =
         (σ (.n o), ⟨[σ (.n (o + 8)), σ (.n (o + 9)), σ (.n (o + 10)), σ (.n (o + 11)),

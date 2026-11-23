@@ -8,6 +8,9 @@ module
 
 public import LeanVM.Guest.B1.KeccakGkr.PackComplete
 public import LeanVM.Guest.B1.KeccakGkr.RecIn
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«keccak_layer__L_loop0»
+import LeanVM.Guest.Data.ValNames.«keccak_layer__L_loop1»
 
 /-!
 # The pack rounds' loops, their loads placed
@@ -141,8 +144,8 @@ def Pack8Regions (R : ℕ → Prop) (rd : Reader) (rec pp pt x : E) : Prop :=
 
 /-- The eight-round loop's loads: the record, the coordinates, the stream words, the slots. -/
 def pack8LoadOk (q : V × ℕ) : Bool :=
-  (decide (q.1 = .n 6) && roundRecOffs.contains q.2) || (decide (q.1 = .n 10) && decide (q.2 < 8)) ||
-    (decide (q.1 = .n 20) && decide (q.2 < 16)) || (decide (q.1 = .n 14) && decide (q.2 < 8))
+  (decide (q.1 = .n (valf% «keccak_layer» «_loop0» "rd")) && roundRecOffs.contains q.2) || (decide (q.1 = .n (valf% «keccak_layer» «_loop0» "pp")) && decide (q.2 < 8)) ||
+    (decide (q.1 = .n (valf% «keccak_layer» «_loop0» "cur_i")) && decide (q.2 < 16)) || (decide (q.1 = .n (valf% «keccak_layer» «_loop0» "pt")) && decide (q.2 < 8))
 
 theorem pack8_loads : (pack8Pre.filterMap Stmt.loadS).all pack8LoadOk = true := by decide +kernel
 
@@ -179,8 +182,8 @@ def PackRemRegions (R : ℕ → Prop) (rd : Reader) (rec pp pt x : E) : Prop :=
 
 /-- The remainder loop's loads. -/
 def packRemLoadOk (q : V × ℕ) : Bool :=
-  (decide (q.1 = .n 6) && roundRecOffs.contains q.2) || (decide (q.1 = .n 7) && decide (q.2 = 0)) ||
-    (decide (q.1 = .n 14) && decide (q.2 < 2)) || (decide (q.1 = .n 39) && decide (q.2 = 0))
+  (decide (q.1 = .n (valf% «keccak_layer» «_loop1» "rd")) && roundRecOffs.contains q.2) || (decide (q.1 = .n (valf% «keccak_layer» «_loop1» "r_eq~0")) && decide (q.2 = 0)) ||
+    (decide (q.1 = .n (valf% «keccak_layer» «_loop1» "cur_i")) && decide (q.2 < 2)) || (decide (q.1 = .n (valf% «keccak_layer» «_loop1» "s8#0")) && decide (q.2 = 0))
 
 theorem packRem_loads : (packRemPre.filterMap Stmt.loadS).all packRemLoadOk = true := by
   decide +kernel

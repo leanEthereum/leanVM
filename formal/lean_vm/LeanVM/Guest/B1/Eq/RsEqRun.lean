@@ -9,6 +9,8 @@ module
 public import LeanVM.Guest.B1.Eq.RsLoop
 public import LeanVM.Guest.B1.Bits.GPower
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«rs_eq_run»
 
 /-!
 # `rs_eq_run` (lean_ethereum.py)
@@ -34,39 +36,39 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 /-- The expansion of `rs_eq_run`. -/
 def rsBody : List Stmt :=
-  [.atom (.hint (.bitsExp (.n 3) 6 (.stack [.n 4, .n 5, .n 6, .n 7, .n 8, .n 9]))),
-    .atom (.mul (.n 4) (.n 4) (.n 4)), .atom (.const (.n 10) (word 1 0)),
-    .atom (.const (.n 11) (word 3 0)), .atom (.mul (.n 12) (.n 4) (.n 11)),
-    .atom (.add (.n 13) (.n 10) (.n 12)), .atom (.mul (.n 5) (.n 5) (.n 5)),
-    .atom (.const (.n 14) (word 1 0)), .atom (.const (.n 15) (word 5 0)),
-    .atom (.mul (.n 16) (.n 5) (.n 15)), .atom (.add (.n 17) (.n 14) (.n 16)),
-    .atom (.mul (.n 18) (.n 13) (.n 17)), .atom (.mul (.n 6) (.n 6) (.n 6)),
-    .atom (.const (.n 19) (word 1 0)), .atom (.const (.n 20) (word 17 0)),
-    .atom (.mul (.n 21) (.n 6) (.n 20)), .atom (.add (.n 22) (.n 19) (.n 21)),
-    .atom (.mul (.n 23) (.n 18) (.n 22)), .atom (.mul (.n 7) (.n 7) (.n 7)),
-    .atom (.const (.n 24) (word 1 0)), .atom (.const (.n 25) (word 3 0)),
-    .atom (.mul (.n 26) (.n 7) (.n 25)), .atom (.add (.n 27) (.n 24) (.n 26)),
-    .atom (.mul (.n 8) (.n 8) (.n 8)), .atom (.const (.n 28) (word 1 0)),
-    .atom (.const (.n 29) (word 5 0)), .atom (.mul (.n 30) (.n 8) (.n 29)),
-    .atom (.add (.n 31) (.n 28) (.n 30)), .atom (.mul (.n 32) (.n 27) (.n 31)),
-    .atom (.mul (.n 9) (.n 9) (.n 9)), .atom (.const (.n 33) (word 1 0)),
-    .atom (.const (.n 34) (word 17 0)), .atom (.mul (.n 35) (.n 9) (.n 34)),
-    .atom (.add (.n 36) (.n 33) (.n 35)), .atom (.mul (.n 37) (.n 32) (.n 36)),
-    .atom (.mul (.n 38) (.n 37) (.n 37)), .atom (.mul (.n 39) (.n 38) (.n 38)),
-    .atom (.mul (.n 40) (.n 39) (.n 39)), .atom (.mul (.n 41) (.n 40) (.n 23)),
-    .atom (.assertEq (.n 41) (.n 3)), .atom (.const (.n 42) (word 1 0)),
-    .atom (.add (.n 43) (.n 42) (.n 37)), .atom (.const (.n 44) (word 1 0)),
-    .callIf (.n 43) name% «rs_eq_run_loop0» [.n 44, .n 37, .n 0, .n 1, .n 2],
-    .atom (.mul (.n 45) (.n 37) (.n 37)), .atom (.mul (.n 46) (.n 45) (.n 45)),
-    .atom (.mul (.n 47) (.n 46) (.n 46)), .atom (.mul (.n 48) (.n 37) (.n 37)),
-    .atom (.mul (.n 49) (.n 48) (.n 48)), .atom (.mul (.n 50) (.n 49) (.n 49)),
-    .atom (.mul (.n 51) (.n 50) (.n 50)), .atom (.mul (.n 52) (.n 51) (.n 51)),
-    .atom (.mul (.n 53) (.n 52) (.n 52)), .atom (.mul (.n 54) (.n 0) (.n 53)),
-    .atom (.mul (.n 55) (.n 1) (.n 47)), .atom (.mul (.n 56) (.n 2) (.n 47)),
-    .dispatch (.n 23) ["rs_eq_rows__L0", "rs_eq_rows__L1", "rs_eq_rows__L2", "rs_eq_rows__L3",
-      "rs_eq_rows__L4", "rs_eq_rows__L5", "rs_eq_rows__L6", "rs_eq_rows__L7"] [.n 54, .n 55, .n 56]
-      [.n 57],
-    .atom (.copy (.n 58) (.n 57)), .ret [.n 58]]
+  [.atom (.hint (.bitsExp (.n (val% «rs_eq_run» "count_g")) 6 (.stack [.n (val% «rs_eq_run» "bits[0]"), .n (val% «rs_eq_run» "bits[1]"), .n (val% «rs_eq_run» "bits[2]"), .n (val% «rs_eq_run» "bits[3]"), .n (val% «rs_eq_run» "bits[4]"), .n (val% «rs_eq_run» "bits[5]")]))),
+    .atom (.mul (.n (val% «rs_eq_run» "bits[0]")) (.n (val% «rs_eq_run» "bits[0]")) (.n (val% «rs_eq_run» "bits[0]"))), .atom (.const (.n (val% «rs_eq_run» "r_g@1~0")) (word 1 0)),
+    .atom (.const (.n (val% «rs_eq_run» "r_g@1~1")) (word 3 0)), .atom (.mul (.n (val% «rs_eq_run» "r_g@1~2")) (.n (val% «rs_eq_run» "bits[0]")) (.n (val% «rs_eq_run» "r_g@1~1"))),
+    .atom (.add (.n (val% «rs_eq_run» "r_g@1")) (.n (val% «rs_eq_run» "r_g@1~0")) (.n (val% «rs_eq_run» "r_g@1~2"))), .atom (.mul (.n (val% «rs_eq_run» "bits[1]")) (.n (val% «rs_eq_run» "bits[1]")) (.n (val% «rs_eq_run» "bits[1]"))),
+    .atom (.const (.n (val% «rs_eq_run» "r_g@2~0")) (word 1 0)), .atom (.const (.n (val% «rs_eq_run» "r_g@2~1")) (word 5 0)),
+    .atom (.mul (.n (val% «rs_eq_run» "r_g@2~2")) (.n (val% «rs_eq_run» "bits[1]")) (.n (val% «rs_eq_run» "r_g@2~1"))), .atom (.add (.n (val% «rs_eq_run» "r_g@2~3")) (.n (val% «rs_eq_run» "r_g@2~0")) (.n (val% «rs_eq_run» "r_g@2~2"))),
+    .atom (.mul (.n (val% «rs_eq_run» "r_g@2")) (.n (val% «rs_eq_run» "r_g@1")) (.n (val% «rs_eq_run» "r_g@2~3"))), .atom (.mul (.n (val% «rs_eq_run» "bits[2]")) (.n (val% «rs_eq_run» "bits[2]")) (.n (val% «rs_eq_run» "bits[2]"))),
+    .atom (.const (.n (val% «rs_eq_run» "r_g@3~0")) (word 1 0)), .atom (.const (.n (val% «rs_eq_run» "r_g@3~1")) (word 17 0)),
+    .atom (.mul (.n (val% «rs_eq_run» "r_g@3~2")) (.n (val% «rs_eq_run» "bits[2]")) (.n (val% «rs_eq_run» "r_g@3~1"))), .atom (.add (.n (val% «rs_eq_run» "r_g@3~3")) (.n (val% «rs_eq_run» "r_g@3~0")) (.n (val% «rs_eq_run» "r_g@3~2"))),
+    .atom (.mul (.n (val% «rs_eq_run» "r_g@3")) (.n (val% «rs_eq_run» "r_g@2")) (.n (val% «rs_eq_run» "r_g@3~3"))), .atom (.mul (.n (val% «rs_eq_run» "bits[3]")) (.n (val% «rs_eq_run» "bits[3]")) (.n (val% «rs_eq_run» "bits[3]"))),
+    .atom (.const (.n (val% «rs_eq_run» "q_g@1~0")) (word 1 0)), .atom (.const (.n (val% «rs_eq_run» "q_g@1~1")) (word 3 0)),
+    .atom (.mul (.n (val% «rs_eq_run» "q_g@1~2")) (.n (val% «rs_eq_run» "bits[3]")) (.n (val% «rs_eq_run» "q_g@1~1"))), .atom (.add (.n (val% «rs_eq_run» "q_g@1")) (.n (val% «rs_eq_run» "q_g@1~0")) (.n (val% «rs_eq_run» "q_g@1~2"))),
+    .atom (.mul (.n (val% «rs_eq_run» "bits[4]")) (.n (val% «rs_eq_run» "bits[4]")) (.n (val% «rs_eq_run» "bits[4]"))), .atom (.const (.n (val% «rs_eq_run» "q_g@2~0")) (word 1 0)),
+    .atom (.const (.n (val% «rs_eq_run» "q_g@2~1")) (word 5 0)), .atom (.mul (.n (val% «rs_eq_run» "q_g@2~2")) (.n (val% «rs_eq_run» "bits[4]")) (.n (val% «rs_eq_run» "q_g@2~1"))),
+    .atom (.add (.n (val% «rs_eq_run» "q_g@2~3")) (.n (val% «rs_eq_run» "q_g@2~0")) (.n (val% «rs_eq_run» "q_g@2~2"))), .atom (.mul (.n (val% «rs_eq_run» "q_g@2")) (.n (val% «rs_eq_run» "q_g@1")) (.n (val% «rs_eq_run» "q_g@2~3"))),
+    .atom (.mul (.n (val% «rs_eq_run» "bits[5]")) (.n (val% «rs_eq_run» "bits[5]")) (.n (val% «rs_eq_run» "bits[5]"))), .atom (.const (.n (val% «rs_eq_run» "q_g@3~0")) (word 1 0)),
+    .atom (.const (.n (val% «rs_eq_run» "q_g@3~1")) (word 17 0)), .atom (.mul (.n (val% «rs_eq_run» "q_g@3~2")) (.n (val% «rs_eq_run» "bits[5]")) (.n (val% «rs_eq_run» "q_g@3~1"))),
+    .atom (.add (.n (val% «rs_eq_run» "q_g@3~3")) (.n (val% «rs_eq_run» "q_g@3~0")) (.n (val% «rs_eq_run» "q_g@3~2"))), .atom (.mul (.n (val% «rs_eq_run» "q_g@3")) (.n (val% «rs_eq_run» "q_g@2")) (.n (val% «rs_eq_run» "q_g@3~3"))),
+    .atom (.mul (.n (val% «rs_eq_run» "s5#0")) (.n (val% «rs_eq_run» "q_g@3")) (.n (val% «rs_eq_run» "q_g@3"))), .atom (.mul (.n (val% «rs_eq_run» "s5#1")) (.n (val% «rs_eq_run» "s5#0")) (.n (val% «rs_eq_run» "s5#0"))),
+    .atom (.mul (.n (val% «rs_eq_run» "s5#2")) (.n (val% «rs_eq_run» "s5#1")) (.n (val% «rs_eq_run» "s5#1"))), .atom (.mul (.n (val% «rs_eq_run» "s5#3")) (.n (val% «rs_eq_run» "s5#2")) (.n (val% «rs_eq_run» "r_g@3"))),
+    .atom (.assertEq (.n (val% «rs_eq_run» "s5#3")) (.n (val% «rs_eq_run» "count_g"))), .atom (.const (.n (val% «rs_eq_run» "s6#0")) (word 1 0)),
+    .atom (.add (.n (val% «rs_eq_run» "s6#1")) (.n (val% «rs_eq_run» "s6#0")) (.n (val% «rs_eq_run» "q_g@3"))), .atom (.const (.n (val% «rs_eq_run» "s6#2")) (word 1 0)),
+    .callIf (.n (val% «rs_eq_run» "s6#1")) name% «rs_eq_run_loop0» [.n (val% «rs_eq_run» "s6#2"), .n (val% «rs_eq_run» "q_g@3"), .n (val% «rs_eq_run» "chain"), .n (val% «rs_eq_run» "z_vals"), .n (val% «rs_eq_run» "point1")],
+    .atom (.mul (.n (val% «rs_eq_run» "base~0")) (.n (val% «rs_eq_run» "q_g@3")) (.n (val% «rs_eq_run» "q_g@3"))), .atom (.mul (.n (val% «rs_eq_run» "base~1")) (.n (val% «rs_eq_run» "base~0")) (.n (val% «rs_eq_run» "base~0"))),
+    .atom (.mul (.n (val% «rs_eq_run» "base")) (.n (val% «rs_eq_run» "base~1")) (.n (val% «rs_eq_run» "base~1"))), .atom (.mul (.n (val% «rs_eq_run» "row~0")) (.n (val% «rs_eq_run» "q_g@3")) (.n (val% «rs_eq_run» "q_g@3"))),
+    .atom (.mul (.n (val% «rs_eq_run» "row~1")) (.n (val% «rs_eq_run» "row~0")) (.n (val% «rs_eq_run» "row~0"))), .atom (.mul (.n (val% «rs_eq_run» "row~2")) (.n (val% «rs_eq_run» "row~1")) (.n (val% «rs_eq_run» "row~1"))),
+    .atom (.mul (.n (val% «rs_eq_run» "row~3")) (.n (val% «rs_eq_run» "row~2")) (.n (val% «rs_eq_run» "row~2"))), .atom (.mul (.n (val% «rs_eq_run» "row~4")) (.n (val% «rs_eq_run» "row~3")) (.n (val% «rs_eq_run» "row~3"))),
+    .atom (.mul (.n (val% «rs_eq_run» "row~5")) (.n (val% «rs_eq_run» "row~4")) (.n (val% «rs_eq_run» "row~4"))), .atom (.mul (.n (val% «rs_eq_run» "row")) (.n (val% «rs_eq_run» "chain")) (.n (val% «rs_eq_run» "row~5"))),
+    .atom (.mul (.n (val% «rs_eq_run» "last~1")) (.n (val% «rs_eq_run» "z_vals")) (.n (val% «rs_eq_run» "base"))), .atom (.mul (.n (val% «rs_eq_run» "last~2")) (.n (val% «rs_eq_run» "point1")) (.n (val% «rs_eq_run» "base"))),
+    .dispatch (.n (val% «rs_eq_run» "r_g@3")) ["rs_eq_rows__L0", "rs_eq_rows__L1", "rs_eq_rows__L2", "rs_eq_rows__L3",
+      "rs_eq_rows__L4", "rs_eq_rows__L5", "rs_eq_rows__L6", "rs_eq_rows__L7"] [.n (val% «rs_eq_run» "row"), .n (val% «rs_eq_run» "last~1"), .n (val% «rs_eq_run» "last~2")]
+      [.n (val% «rs_eq_run» "last")],
+    .atom (.copy (.n (val% «rs_eq_run» "s10#0")) (.n (val% «rs_eq_run» "last"))), .ret [.n (val% «rs_eq_run» "s10#0")]]
 
 theorem rs_eq_run_body : Fn.body fn% «rs_eq_run» = rsBody := stmtsEqb_sound (by decide +kernel)
 
@@ -291,8 +293,8 @@ theorem chunk_of_meaning {rd : Reader} {chain z p ret : E} {n t : ℕ} (hn : 0 <
 theorem rs_eq_run_sound (rd : Reader) (args rets : List E)
     (h : coreProgram.Rel rd "rs_eq_run" args rets) : MeaningRsEqRun rd args rets := by
   obtain ⟨w3, w5, w17⟩ := rs_consts
-  rw [rel_iff_sem find_rs_eq_run, show Fn.params fn% «rs_eq_run» = [.n 0, .n 1, .n 2,
-      .n 3] from rfl,
+  rw [rel_iff_sem find_rs_eq_run, show Fn.params fn% «rs_eq_run» = [.n (val% «rs_eq_run» "chain"), .n (val% «rs_eq_run» "z_vals"), .n (val% «rs_eq_run» "point1"),
+      .n (val% «rs_eq_run» "count_g")] from rfl,
     rs_eq_run_body, rsBody] at h
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil, true_and] at h
   obtain ⟨σ, hp, b0, h10, h11, h12, h13, b1, h14, h15, h16, h17, h18, b2, h19, h20, h21, h22, h23,
@@ -300,16 +302,16 @@ theorem rs_eq_run_sound (rd : Reader) (args rets : List E)
     h40, h41, ha, h42, h43, h44, hK, hcall, h45, h46, h47, h48, h49, h50, h51, h52, h53, h54,
     h55, h56, ⟨j, hj, hx, hdisp⟩, h58, hret⟩ := h
   subst hp
-  have hbr : ∀ j < 3, σ (.n (4 + j)) * σ (.n (4 + j)) = σ (.n (4 + j)) := by
+  have hbr : ∀ j < 3, σ (.n ((val% «rs_eq_run» "bits[0]") + j)) * σ (.n ((val% «rs_eq_run» "bits[0]") + j)) = σ (.n ((val% «rs_eq_run» "bits[0]") + j)) := by
     intro j hj; interval_cases j
     exacts [b0.symm, b1.symm, b2.symm]
-  have hbq : ∀ j < 3, σ (.n (7 + j)) * σ (.n (7 + j)) = σ (.n (7 + j)) := by
+  have hbq : ∀ j < 3, σ (.n ((val% «rs_eq_run» "bits[3]") + j)) * σ (.n ((val% «rs_eq_run» "bits[3]") + j)) = σ (.n ((val% «rs_eq_run» "bits[3]") + j)) := by
     intro j hj; interval_cases j
     exacts [b3.symm, b4.symm, b5.symm]
-  have rg : σ (.n 23) = ∏ j ∈ Finset.range 3, (1 + σ (.n (4 + j)) * (gen ^ 2 ^ j + 1)) := by
+  have rg : σ (.n (val% «rs_eq_run» "r_g@3")) = ∏ j ∈ Finset.range 3, (1 + σ (.n (4 + j)) * (gen ^ 2 ^ j + 1)) := by
     simp only [Finset.prod_range_succ, Finset.prod_range_zero, one_mul]
     rw [h23, h18, h13, h17, h22, h12, h16, h21, h10, h14, h19, h11, h15, h20, w3, w5, w17, word_one]
-  have qg : σ (.n 37) = ∏ j ∈ Finset.range 3, (1 + σ (.n (7 + j)) * (gen ^ 2 ^ j + 1)) := by
+  have qg : σ (.n (val% «rs_eq_run» "q_g@3")) = ∏ j ∈ Finset.range 3, (1 + σ (.n (7 + j)) * (gen ^ 2 ^ j + 1)) := by
     simp only [Finset.prod_range_succ, Finset.prod_range_zero, one_mul]
     rw [h37, h32, h27, h31, h36, h26, h30, h35, h24, h28, h33, h25, h29, h34, w3, w5, w17, word_one]
   rw [prod_gen_pow_of_bool hbr] at rg
@@ -318,7 +320,7 @@ theorem rs_eq_run_sound (rd : Reader) (args rets : List E)
   set q := bitsVal (fun j ↦ decide (σ (.n (7 + j)) = 1)) 3 with hqdef
   have hr8 : r < 8 := bitsVal_lt _ 3
   have hq8 : q < 8 := bitsVal_lt _ 3
-  have hcg : σ (.n 3) = gen ^ (8 * q + r) := by
+  have hcg : σ (.n (val% «rs_eq_run» "count_g")) = gen ^ (8 * q + r) := by
     rw [← e_add_eq_zero_iff.mp ha, h41, h40, h39, h38, qg, rg, ← pow_add, ← pow_add, ← pow_add,
       ← pow_add]
     congr 1; ring
@@ -326,14 +328,14 @@ theorem rs_eq_run_sound (rd : Reader) (args rets : List E)
   rw [h43, h42, word_one] at hK hcall
   rw [h44, word_one] at hcall
   obtain ⟨m, hm, hm', hB⟩ := (guarded_loop_rel_iff
-    (fun d x ↦ loop5_sound rd (σ (.n 37)) (σ (.n 0)) (σ (.n 1)) (σ (.n 2)) d x)
+    (fun d x ↦ loop5_sound rd (σ (.n (val% «rs_eq_run» "q_g@3"))) (σ (.n (val% «rs_eq_run» "chain"))) (σ (.n (val% «rs_eq_run» "z_vals"))) (σ (.n (val% «rs_eq_run» "point1"))) d x)
     (fun x hb hk hn ↦ loop5_complete rd _ _ _ _ x hb hk hn)).mp ⟨hK, hcall⟩
   have hmq : m = q := by
     rw [qg] at hm'
     exact gen_pow_inj hm (by show q < 2 ^ 64 - 1; omega) hm'.symm
   subst hmq
   have hch : ∀ t < q, ∃ zt pt ct, zt.length = 8 ∧ pt.length = 8 ∧
-      ChunkOk rd (σ (.n 0)) (σ (.n 1)) (σ (.n 2)) t zt pt ct := fun t ht ↦ by
+      ChunkOk rd (σ (.n (val% «rs_eq_run» "chain"))) (σ (.n (val% «rs_eq_run» "z_vals"))) (σ (.n (val% «rs_eq_run» "point1"))) t zt pt ct := fun t ht ↦ by
     obtain ⟨ret, hr⟩ := hB t ht
     rw [← pow_mul, ← pow_mul, Nat.mul_comm t 64, Nat.mul_comm t 8] at hr
     obtain ⟨zt, pt, ct, a, b, c, -⟩ :=
@@ -347,14 +349,14 @@ theorem rs_eq_run_sound (rd : Reader) (args rets : List E)
       (by rw [gen_pow_eq_ofK, gen_pow_eq_ofK]; exact hx.symm)
   subst hj'
   rw [rsNames_get _ hj] at hdisp
-  have e53 : σ (.n 53) = gen ^ (64 * q) := by
+  have e53 : σ (.n (val% «rs_eq_run» "row~5")) = gen ^ (64 * q) := by
     rw [h53, h52, h51, h50, h49, h48, qg]; ring
-  have e47 : σ (.n 47) = gen ^ (8 * q) := by rw [h47, h46, h45, qg]; ring
+  have e47 : σ (.n (val% «rs_eq_run» "base")) = gen ^ (8 * q) := by rw [h47, h46, h45, qg]; ring
   rw [h54, h55, h56, e53, e47] at hdisp
   have hm8 := (rs_eq_rows_holds r (by omega) rd _ _).1 hdisp
   obtain ⟨Zl, Pl, Cl, hZl, hPl, hl, h57⟩ : ∃ Zl Pl Cl, Zl.length = r ∧ Pl.length = r ∧
-      (0 < r → ChunkOk rd (σ (.n 0)) (σ (.n 1)) (σ (.n 2)) q Zl Pl Cl) ∧
-      σ (.n 57) = σ (.n 0) * gen ^ (64 * ((8 * q + r + 7) / 8)) := by
+      (0 < r → ChunkOk rd (σ (.n (val% «rs_eq_run» "chain"))) (σ (.n (val% «rs_eq_run» "z_vals"))) (σ (.n (val% «rs_eq_run» "point1"))) q Zl Pl Cl) ∧
+      σ (.n (val% «rs_eq_run» "last")) = σ (.n (val% «rs_eq_run» "chain")) * gen ^ (64 * ((8 * q + r + 7) / 8)) := by
     rcases Nat.eq_zero_or_pos r with h0 | h0
     · rcases hm8 with ⟨-, hr⟩ | ⟨h, -⟩
       · simp only [List.cons.injEq, and_true] at hr
@@ -368,8 +370,8 @@ theorem rs_eq_run_sound (rd : Reader) (args rets : List E)
   let Z : ℕ → List E := fun t ↦ if t < q then Zc t else Zl
   let P : ℕ → List E := fun t ↦ if t < q then Pc t else Pl
   let C : ℕ → List E := fun t ↦ if t < q then Cc t else Cl
-  obtain ⟨lz, lp, lc, rz, rp, rc, rows⟩ := rows_of_chunks (rd := rd) (chain := σ (.n 0))
-    (z := σ (.n 1)) (p := σ (.n 2)) (q := q) (r := r) (by omega) Z P C
+  obtain ⟨lz, lp, lc, rz, rp, rc, rows⟩ := rows_of_chunks (rd := rd) (chain := σ (.n (val% «rs_eq_run» "chain")))
+    (z := σ (.n (val% «rs_eq_run» "z_vals"))) (p := σ (.n (val% «rs_eq_run» "point1"))) (q := q) (r := r) (by omega) Z P C
     (fun t ht ↦ by simp only [Z, ite_pos' ht]; exact hZc t ht)
     (fun t ht ↦ by simp only [P, ite_pos' ht]; exact hPc t ht)
     (by simp only [Z, ite_neg' (lt_irrefl q)]; exact hZl)
@@ -465,8 +467,8 @@ theorem rs_eq_run_complete (rd : Reader) (args rets : List E) (hm : MeaningRsEqR
   have e53 : t53 = gen ^ (64 * q) := by
     show t50 * t50 * (t50 * t50) * (t50 * t50 * (t50 * t50)) = _
     rw [e50]; ring
-  rw [rel_iff_sem find_rs_eq_run, show Fn.params fn% «rs_eq_run» = [.n 0, .n 1, .n 2,
-      .n 3] from rfl,
+  rw [rel_iff_sem find_rs_eq_run, show Fn.params fn% «rs_eq_run» = [.n (val% «rs_eq_run» "chain"), .n (val% «rs_eq_run» "z_vals"), .n (val% «rs_eq_run» "point1"),
+      .n (val% «rs_eq_run» "count_g")] from rfl,
     rs_eq_run_body, rsBody]
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil, true_and]
   refine ⟨Val.ofArgs w, rfl, (bitE_mul_self _).symm, rfl, rfl, rfl, rfl, (bitE_mul_self _).symm,

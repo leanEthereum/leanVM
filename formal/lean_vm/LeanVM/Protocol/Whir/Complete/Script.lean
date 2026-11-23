@@ -22,7 +22,8 @@ moves: it sends a scalar (`send`), receives a challenge (`sample`), passes a pro
 verifier reads them, carrying whatever state it needs in ordinary bindings.
 
 * `Script.walk` follows a local history through a script; `Script.msgAt` and `Script.wordAt` are
-  the scalar and the word the script sends where the walk ends.
+  the scalar and the word the script sends where the walk ends, `Script.outsideKAt` whether its
+  proof of work there asks for a challenge outside `K`.
 * `Strategy.ofScript H n` is the strategy that replays `H` along the events after the first `n`.
 * `Follows R H P cs`: the script `H` answers every move of the verifier program `P`, run with the
   commitments `cs` already in place: a `send` meets a `read` (and `P` continues with the scalar
@@ -75,7 +76,7 @@ theorem bind_ret (p : Script α) : p.bind ret = p := by
   | ret a => rfl
   | send x k ih => simp only [bind, ih]
   | sample k ih => simp only [bind, ih]
-  | grind k ih => simp only [bind, ih]
+  | grind o k ih => simp only [bind, ih]
   | commit w k ih => simp only [bind, ih]
   | query k ih => simp only [bind, ih]
 
@@ -85,7 +86,7 @@ theorem bind_ret (p : Script α) : p.bind ret = p := by
 def step : Script α → Ev → Option (Script α)
   | send _ k, Ev.read _ => some k
   | sample k, Ev.sample c => some (k c)
-  | grind k, Ev.grind _ => some k
+  | grind _ k, Ev.grind _ => some k
   | commit _ k, Ev.commit _ _ _ => some k
   | query k, Ev.query rows => some (k rows)
   | _, _ => none
@@ -117,6 +118,13 @@ def wordAt (H : Script α) (l : List Ev) : Word :=
   | some (commit w _) => w
   | _ => fun _ ↦ []
 
+/-- Whether the script's proof of work after a local history asks for a challenge outside `K`
+(`false` if it is not at a `grind`). -/
+def outsideKAt (H : Script α) (l : List Ev) : Bool :=
+  match H.walk l with
+  | some (grind o _) => o
+  | _ => false
+
 end
 
 end LeanVM.Prover.Script
@@ -131,6 +139,7 @@ open LeanVM.Parameters LeanVM.Protocol.Compile LeanVM.Prover
 def Strategy.ofScript {α : Type} (H : Script α) (n : ℕ) : Strategy where
   msg h := H.msgAt (h.drop n)
   word h := H.wordAt (h.drop n)
+  outsideK h := H.outsideKAt (h.drop n)
 
 /-! ## Simulation -/
 
@@ -155,7 +164,7 @@ def Follows {α β : Type} (R : Commits → α → β → Prop) :
   | .ret a, .ret b, cs => R cs a b
   | .send x k, .read k', cs => Follows R k (k' x) cs
   | .sample k, .sample k', cs => ∀ c, Follows R (k c) (k' c) cs
-  | .grind k, .grind _ k', cs => Follows R k k' cs
+  | .grind _ k, .grind _ k', cs => Follows R k k' cs
   | .commit W k, .commit ht w k', cs => WellShaped w W ∧ Follows R k k' (cs ++ [(ht, w, W)])
   | .query k, .query i ps k', cs =>
     ∃ rows, answerOf cs i ps = some rows ∧ Follows R (k rows) (k' rows) cs
@@ -174,7 +183,7 @@ theorem mono {R R' : Commits → α → β → Prop} (hR : ∀ cs a b, R cs a b 
   | ret a => intro P cs h; cases P <;> simp_all [Follows]
   | send x k ih => intro P cs h; cases P <;> simp_all [Follows]
   | sample k ih => intro P cs h; cases P <;> simp_all [Follows]
-  | grind k ih => intro P cs h; cases P <;> simp_all [Follows]
+  | grind o k ih => intro P cs h; cases P <;> simp_all [Follows]
   | commit W k ih => intro P cs h; cases P <;> simp_all [Follows]
   | query k ih =>
     intro P cs h
@@ -202,7 +211,7 @@ theorem bind {R' : Commits → α → β → Prop} {R : Commits → γ → δ �
     intro P cs h
     cases P <;> simp only [Follows] at h
     exact fun c ↦ ih c _ _ (h c)
-  | grind k ih =>
+  | grind o k ih =>
     intro P cs h
     cases P <;> simp only [Follows] at h
     exact ih _ _ h
@@ -272,6 +281,19 @@ theorem grindBits_grindP (bits : ℕ) (cs : Commits) :
   by_cases h : bits = 0 <;>
     simp [Follows, Script.grindBits, Script.grindS, VerifierProgram.grindProofOfWork, h]
 
+/-- Passing a proof of work for a challenge outside `K`, then receiving it, meets checking the
+proof of work, then sampling the challenge. -/
+theorem grindSample_grindP {R : Commits → γ → δ → Prop} {F : E → Script γ}
+    {G : E → VerifierProgram δ} (bits : ℕ) (cs : Commits) (hk : ∀ c, Follows R (F c) (G c) cs) :
+    Follows R (Script.grindSample bits >>= F)
+      (VerifierProgram.grindProofOfWork bits >>= fun _ ↦ VerifierProgram.sampleChallenge >>= G)
+      cs := by
+  by_cases h : bits = 0 <;>
+    simp only [Script.grindSample, VerifierProgram.grindProofOfWork, h, ↓reduceIte,
+      Script.bind_eq, VerifierProgram.bind_eq, Script.sampleE, VerifierProgram.sampleChallenge,
+      Script.bind, VerifierProgram.bind, Follows] <;>
+    exact fun c ↦ hk c
+
 /-- Committing a word of the announced width meets reading the commitment. -/
 theorem commitS_commitP {ht w : ℕ} {W : Word} (hW : WellShaped w W) (cs : Commits) :
     Follows (fun cs' _ _ ↦ cs' = cs ++ [(ht, w, W)]) (Script.commitS W) (VerifierProgram.readCommitment ht w) cs := by
@@ -337,7 +359,7 @@ theorem runFrom_of_follows {α β : Type} {R : Commits → α → β → Prop} (
       simp only [← List.append_assoc] at this
       simpa only [Strategy.runFrom, Strategy.ShapedFrom] using this
     | _ => simp [Follows] at hf
-  | grind k ih =>
+  | grind o k ih =>
     intro P e hw hf
     cases P with
     | grind b k' =>
