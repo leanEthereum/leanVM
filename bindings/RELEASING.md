@@ -7,7 +7,7 @@
 3. Merging it tags `bindings-vX.Y.Z`, and `bindings-release.yml` runs on the tag and publishes every package below.
 
 - Dispatching `bindings-release.yml` from a branch is a dry run at version 0.0.0: everything builds and is checked, nothing is published.
-- PyPI and npm skip versions already published, so a failed run can be re-dispatched on the same tag: `gh workflow run bindings-release.yml --ref bindings-vX.Y.Z`. Maven Central accepts a version only once.
+- PyPI, npm and NuGet skip versions already published, so a failed run can be re-dispatched on the same tag: `gh workflow run bindings-release.yml --ref bindings-vX.Y.Z`. Maven Central accepts a version only once.
 
 ## PyPI
 
@@ -75,6 +75,23 @@ The `io.github.crate-crypto` namespace must be verified on [central.sonatype.com
    | `SIGNING_PASSWORD` | the key's passphrase |
 
 Before the key expires: `gpg --quick-set-expire FINGERPRINT 2y`, upload the public key again, and update `SIGNING_KEY`.
+
+## NuGet
+
+`Ethereum.LeanPq`, by trusted publishing (`dotnet-publish` job). It bundles the four libraries `java-native` builds, as `runtimes/<rid>/native` (one universal library under `runtimes/osx`), and `dotnet-consumer` runs a consumer against the package on every platform before anything is published.
+
+Locally (from the repository root):
+
+- `dotnet pack bindings/dotnet/src/Ethereum.LeanPq` bundles only the host library. `-p:LeanPqNativeDir=DIR` bundles `DIR/<platform>/` instead, as `bindings/java/scripts/build-native.sh` stages it.
+- Local builds are `0.0.0-dev`; `-p:Version=X.Y.Z` overrides it.
+- `bindings/dotnet/scripts/consumer-smoke.sh [DOTNET_PACK_ARGS...]` packs into a throwaway feed and signs and verifies through the package from a fresh console project.
+
+### One-time setup
+
+Until it is done, `dotnet-publish` builds and checks the package, warns, and publishes nothing.
+
+1. On nuget.org, from the account (or organization) that will own `Ethereum.LeanPq`, add a trusted publishing policy (Account, Trusted Publishing): repository owner `leanEthereum`, repository `leanVM`, workflow `bindings-release.yml`, environment `nuget`.
+2. `gh secret set NUGET_USER -R leanEthereum/leanVM` with that account's nuget.org user name (not its e-mail).
 
 ## Go
 

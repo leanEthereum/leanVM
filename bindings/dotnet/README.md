@@ -1,0 +1,99 @@
+# lean-pq for .NET
+
+.NET bindings for the leanXMSS and leanSPHINCS post-quantum signatures, their aggregation into one proof, and the consensus VRF tree.
+
+## Install
+
+NuGet, `Ethereum.LeanPq`, .NET 10:
+
+<!-- x-release-please-start-version -->
+```sh
+dotnet add package Ethereum.LeanPq --version 0.16.0
+```
+<!-- x-release-please-end -->
+
+- The package bundles the native library for Linux x64 and arm64 (glibc 2.17+), macOS x64 and arm64, and Windows x64; x64 needs AVX2 and PCLMULQDQ.
+- The runtime loads it from the package's `runtimes/<rid>/native`, for a portable app and for one published for a RID. `LEAN_PQ_NATIVE_PATH=FILE` loads another build instead.
+
+## Sign and verify
+
+```csharp
+using Ethereum.LeanPq;
+
+using XmssSecretKey xmss = XmssSecretKey.FromSeed(seed32);
+using SphincsSecretKey sphincs = SphincsSecretKey.FromSeed(otherSeed32);
+
+byte[] xmssSignature = xmss.Sign(message32, 7); // at leaf index 7
+bool xmssValid = LeanPq.XmssVerify(xmss.GetPublicKey(), message32, xmssSignature);
+
+byte[] sphincsSignature = sphincs.Sign(message32);
+bool sphincsValid = LeanPq.SphincsVerify(sphincs.GetPublicKey(), message32, sphincsSignature);
+```
+
+- Public keys and messages are 32 bytes; signatures are 2404 (leanXMSS) or 7740 (leanSPHINCS) bytes. Byte inputs are `ReadOnlySpan<byte>`, so arrays, slices and stack buffers all work.
+- `XmssSecretKey`, `SphincsSecretKey`, `VrfKey`, `Sidecar` and `Aggregate` are `IDisposable`: use `using`. A call on a disposed one throws `ObjectDisposedException`.
+- leanXMSS is stateful: a key has `2^32` leaf indices, and must never sign two messages at the same one. Persist a high-water leaf index next to the key and advance it before publishing a signature. `Prepare(leafIndex)` builds a leaf's signing state ahead of time.
+- leanSPHINCS is stateless and deterministic; a key signs at most `2^30` messages.
+- `ToBytes()` is the key's 32-byte seed, which is secret; `FromBytes` restores the key.
+- `CacheToBytes()` returns the key's trees, which are not secret; `XmssSecretKey.FromCacheBytes(seed, publicKey, cache)` loads the key from them instead of rebuilding them, checking them against the public key.
+- Inputs of the wrong length throw `ArgumentException`; native validation and cryptographic errors throw `LeanPqException`.
+
+## VRF
+
+```csharp
+using Ethereum.LeanPq;
+
+using VrfKey key = VrfKey.FromSeed(seed32, 1000, 2000);
+byte[] root = key.GetRoot();
+bool valid = LeanPq.VrfVerify(root, 1500, key.GetProof(1500));
+```
+
+A key is a 32-byte seed and the slots `[start, end)`, with `end <= 2^31`: both fix the root, so keep both. Building it hashes every slot of the range once; a proof then costs about `3 sqrt(R)` hashes for `R` slots. A proof is 1024 bytes: the slot's secret, then its leaf's 31 siblings, which reveal no other secret. An empty range, a range past `2^31` and a slot outside the range throw `LeanPqException`.
+
+`CacheToBytes()` encodes the key's cache, its range and cached layer (about `32 sqrt(R)` bytes, no secret), and `VrfKey.FromCacheBytes(seed, root, cache)` rebuilds the key from its seed and that cache without hashing the range, failing if the cache does not lead to `root`.
+
+## Aggregate
+
+Aggregation runs in a leanVM sidecar, a separate process (Linux and macOS): see [the sidecar](../README.md#sidecar).
+
+```csharp
+using Ethereum.LeanPq;
+
+string socket = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".leanvm", "sidecar.sock");
+using Sidecar sidecar = Sidecar.Connect(socket); // or Sidecar.Start(binary, socket, threads)
+using XmssSecretKey xmss = XmssSecretKey.FromSeed(seed32);
+using SphincsSecretKey sphincs = SphincsSecretKey.FromSeed(otherSeed32);
+
+using Aggregate leaf = sidecar.Aggregate(
+    [],
+    [new SignedMessage(xmss.GetPublicKey(), message32, xmss.Sign(message32, 7))],
+    [new SignedMessage(sphincs.GetPublicKey(), message32, sphincs.Sign(message32))]);
+using Aggregate root = sidecar.Aggregate([leaf], [], []);
+using Aggregate received = sidecar.Verify(root.ToBytes(), root.GetXmssClaims(), root.GetSphincsClaims());
+IReadOnlyList<SignatureClaim> xmssClaims = received.GetXmssClaims();
+```
+
+- `Aggregate(children, xmss, sphincs)` verifies raw signatures before proving and takes at most 16 children, which stay owned by the caller. The result proves the union of their claims.
+- `ToBytes()` is the proof alone: send the claims alongside it, or let the receiver rebuild them.
+- `Verify(bytes, xmssClaims, sphincsClaims)` accepts exactly those claims, in any order (a repeat counts once), and throws `LeanPqException` otherwise; verifying also needs the sidecar. `GetXmssClaims()` and `GetSphincsClaims()` are sorted.
+- `Sidecar.Start(binary, socket)` launches a sidecar on a socket in a private directory, such as `~/.leanvm/run/sidecar.sock`, with one thread per core, as does `threads` 0. `GetProver()` is `"experimental"` or `"stable"`, which make the same proofs.
+- A `Sidecar` is safe to share between threads; its calls run one at a time. A sidecar serves at most 16 connections, so share one `Sidecar` per process.
+- `Dispose()` stops a sidecar `Start` launched at once, failing calls in progress, and frees the handle once they return; later calls throw `ObjectDisposedException`. A started `Sidecar` that is never disposed is stopped when it is finalized.
+
+## Build and test
+
+Needs the .NET 10 SDK and Rust. From the repository root:
+
+```sh
+dotnet test bindings/dotnet/Ethereum.LeanPq.slnx
+```
+
+The build compiles the native library itself (`cargo build --release -p lean-pq-native`) and copies it beside the assembly. The aggregation tests use the sidecar listening on `LEANVM_SIDECAR_SOCKET`, and start one from the executable at `LEANVM_SIDECAR_BIN`.
+
+- `dotnet pack` bundles only the host library. `-p:LeanPqNativeDir=DIR` bundles `DIR/<platform>/` instead, as [`bindings/java/scripts/build-native.sh`](../java/scripts/build-native.sh) stages it: `linux-x86_64`, `linux-aarch64`, `macos-universal` and `windows-x86_64`.
+- Local builds are `0.0.0-dev`; `-p:Version=X.Y.Z` overrides it.
+- `bindings/dotnet/scripts/consumer-smoke.sh [DOTNET_PACK_ARGS...]` packs into a throwaway feed and signs and verifies through the package from a fresh console project.
+
+## License
+
+MIT OR Apache-2.0

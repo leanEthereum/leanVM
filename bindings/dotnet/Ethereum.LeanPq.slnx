@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="src/Ethereum.LeanPq/Ethereum.LeanPq.csproj" />
+  <Project Path="tests/Ethereum.LeanPq.Tests/Ethereum.LeanPq.Tests.csproj" />
+</Solution>
