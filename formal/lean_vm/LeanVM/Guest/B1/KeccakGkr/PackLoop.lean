@@ -11,6 +11,9 @@ module
 public import LeanVM.Guest.B1.KeccakGkr.Plain
 public import LeanVM.Guest.B1.KeccakGkr.LayerSpec
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«keccak_layer__L_loop0»
+import LeanVM.Guest.Data.ValNames.«keccak_layer__L_loop1»
 
 /-!
 # The pack rounds' loops (`keccak_layer`)
@@ -221,42 +224,42 @@ def pkCl (q : ℕ) : ℕ := if q = 0 then 21 else pkC (q - 1) + 19
 /-- The zero cells (and a one) round `0` sets. -/
 def pkPre (q : ℕ) : List Stmt :=
   if q = 0 then
-    [.atom (.const (.n 29) (word 1 0)), .atom (.const (.n 30) (word 0 0)),
-      .atom (.const (.n 31) (word 0 0)), .atom (.const (.n 32) (word 0 0)),
-      .atom (.const (.n 33) (word 0 0))]
+    [.atom (.const (.n (valf% «keccak_layer» «_loop0» "s6.u0.s4.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0")) (word 1 0)), .atom (.const (.n (valf% «keccak_layer» «_loop0» "s6.u0.s4.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[1]")) (word 0 0)),
+      .atom (.const (.n (valf% «keccak_layer» «_loop0» "s6.u0.s4.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[2]")) (word 0 0)), .atom (.const (.n (valf% «keccak_layer» «_loop0» "s6.u0.s4.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[3]")) (word 0 0)),
+      .atom (.const (.n (valf% «keccak_layer» «_loop0» "s6.u0.s4.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[4]")) (word 0 0))]
   else []
 
 /-- The zero cells. -/
-def pkZs : List V := [.n 30, .n 31, .n 32, .n 33]
+def pkZs : List V := [.n (valf% «keccak_layer» «_loop0» "s6.u0.s4.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[1]"), .n (valf% «keccak_layer» «_loop0» "s6.u0.s4.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[2]"), .n (valf% «keccak_layer» «_loop0» "s6.u0.s4.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[3]"), .n (valf% «keccak_layer» «_loop0» "s6.u0.s4.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[4]")]
 
 /-- Round `q` of the eight-round loop. -/
 def pkRound (q : ℕ) : List Stmt :=
-  packRoundT (.n 10) (.n 20) (.n 14) q (pkB q) (pkC q) (pkPre q) pkZs (pkCap q) (.n (pkCl q))
+  packRoundT (.n (valf% «keccak_layer» «_loop0» "pp")) (.n (valf% «keccak_layer» «_loop0» "cur_i")) (.n (valf% «keccak_layer» «_loop0» "pt")) q (pkB q) (pkC q) (pkPre q) pkZs (pkCap q) (.n (pkCl q))
 
 /-- The loop body's head: `rd = rounds·x`, `pp = prev_point·x⁸`, `pt = point·x⁸`, the record read. -/
 def pk8Head : List Stmt :=
-  [.atom (.mul (.n 6) (.n 2) (.n 0)), .atom (.mul (.n 7) (.n 0) (.n 0)),
-    .atom (.mul (.n 8) (.n 7) (.n 7)), .atom (.mul (.n 9) (.n 8) (.n 8)),
-    .atom (.mul (.n 10) (.n 3) (.n 9)), .atom (.mul (.n 11) (.n 0) (.n 0)),
-    .atom (.mul (.n 12) (.n 11) (.n 11)), .atom (.mul (.n 13) (.n 12) (.n 12)),
-    .atom (.mul (.n 14) (.n 4) (.n 13)),
-    .atom (.load (.n 15) (.n 6) 0), .atom (.load (.n 16) (.n 6) 16), .atom (.load (.n 17) (.n 6) 32),
-    .atom (.load (.n 18) (.n 6) 48), .atom (.load (.n 19) (.n 6) 64), .atom (.load (.n 20) (.n 6) 80),
-    .atom (.load (.n 21) (.n 6) 96)]
+  [.atom (.mul (.n (valf% «keccak_layer» «_loop0» "rd")) (.n (valf% «keccak_layer» «_loop0» "rounds")) (.n (valf% «keccak_layer» «_loop0» "xs"))), .atom (.mul (.n (valf% «keccak_layer» «_loop0» "pp~0")) (.n (valf% «keccak_layer» «_loop0» "xs")) (.n (valf% «keccak_layer» «_loop0» "xs"))),
+    .atom (.mul (.n (valf% «keccak_layer» «_loop0» "pp~1")) (.n (valf% «keccak_layer» «_loop0» "pp~0")) (.n (valf% «keccak_layer» «_loop0» "pp~0"))), .atom (.mul (.n (valf% «keccak_layer» «_loop0» "pp~2")) (.n (valf% «keccak_layer» «_loop0» "pp~1")) (.n (valf% «keccak_layer» «_loop0» "pp~1"))),
+    .atom (.mul (.n (valf% «keccak_layer» «_loop0» "pp")) (.n (valf% «keccak_layer» «_loop0» "prev_point")) (.n (valf% «keccak_layer» «_loop0» "pp~2"))), .atom (.mul (.n (valf% «keccak_layer» «_loop0» "pt~0")) (.n (valf% «keccak_layer» «_loop0» "xs")) (.n (valf% «keccak_layer» «_loop0» "xs"))),
+    .atom (.mul (.n (valf% «keccak_layer» «_loop0» "pt~1")) (.n (valf% «keccak_layer» «_loop0» "pt~0")) (.n (valf% «keccak_layer» «_loop0» "pt~0"))), .atom (.mul (.n (valf% «keccak_layer» «_loop0» "pt~2")) (.n (valf% «keccak_layer» «_loop0» "pt~1")) (.n (valf% «keccak_layer» «_loop0» "pt~1"))),
+    .atom (.mul (.n (valf% «keccak_layer» «_loop0» "pt")) (.n (valf% «keccak_layer» «_loop0» "point")) (.n (valf% «keccak_layer» «_loop0» "pt~2"))),
+    .atom (.load (.n (valf% «keccak_layer» «_loop0» "sp[0]")) (.n (valf% «keccak_layer» «_loop0» "rd")) 0), .atom (.load (.n (valf% «keccak_layer» «_loop0» "sp[1]")) (.n (valf% «keccak_layer» «_loop0» "rd")) 16), .atom (.load (.n (valf% «keccak_layer» «_loop0» "sp[2]")) (.n (valf% «keccak_layer» «_loop0» "rd")) 32),
+    .atom (.load (.n (valf% «keccak_layer» «_loop0» "sp[3]")) (.n (valf% «keccak_layer» «_loop0» "rd")) 48), .atom (.load (.n (valf% «keccak_layer» «_loop0» "sp[4]")) (.n (valf% «keccak_layer» «_loop0» "rd")) 64), .atom (.load (.n (valf% «keccak_layer» «_loop0» "cur_i")) (.n (valf% «keccak_layer» «_loop0» "rd")) 80),
+    .atom (.load (.n (valf% «keccak_layer» «_loop0» "run@1")) (.n (valf% «keccak_layer» «_loop0» "rd")) 96)]
 
 /-- The eight rounds. -/
 def pk8Rounds : List Stmt := ((List.range 8).map pkRound).flatten
 
 /-- The next record written, the counter's step. -/
 def pk8Tail : List Stmt :=
-  [.atom (.load (.n 231) (.n 6) 1), .atom (.load (.n 232) (.n 6) 17),
-    .atom (.load (.n 233) (.n 6) 33), .atom (.load (.n 234) (.n 6) 49),
-    .atom (.load (.n 235) (.n 6) 65),
-    .atom (.const (.n 243) (word 65536 0)), .atom (.mul (.n 244) (.n 20) (.n 243)),
-    .atom (.load (.n 244) (.n 6) 81), .atom (.load (.n 242) (.n 6) 97),
-    .atom (.const (.n 245) (word 2 0)), .atom (.mul (.n 246) (.n 0) (.n 245)),
-    .atom (.add (.n 247) (.n 246) (.n 1)), .atom (.const (.n 248) (word 2 0)),
-    .atom (.mul (.n 249) (.n 0) (.n 248))]
+  [.atom (.load (.n (valf% «keccak_layer» «_loop0» "nxt[8]@8")) (.n (valf% «keccak_layer» «_loop0» "rd")) 1), .atom (.load (.n (valf% «keccak_layer» «_loop0» "nxt[9]@8")) (.n (valf% «keccak_layer» «_loop0» "rd")) 17),
+    .atom (.load (.n (valf% «keccak_layer» «_loop0» "nxt[10]@8")) (.n (valf% «keccak_layer» «_loop0» "rd")) 33), .atom (.load (.n (valf% «keccak_layer» «_loop0» "nxt[11]@8")) (.n (valf% «keccak_layer» «_loop0» "rd")) 49),
+    .atom (.load (.n (valf% «keccak_layer» «_loop0» "nxt[12]@8")) (.n (valf% «keccak_layer» «_loop0» "rd")) 65),
+    .atom (.const (.n (valf% «keccak_layer» «_loop0» "s9#0")) (word 65536 0)), .atom (.mul (.n (valf% «keccak_layer» «_loop0» "s9#1")) (.n (valf% «keccak_layer» «_loop0» "cur_i")) (.n (valf% «keccak_layer» «_loop0» "s9#0"))),
+    .atom (.load (.n (valf% «keccak_layer» «_loop0» "s9#1")) (.n (valf% «keccak_layer» «_loop0» "rd")) 81), .atom (.load (.n (valf% «keccak_layer» «_loop0» "run@9")) (.n (valf% «keccak_layer» «_loop0» "rd")) 97),
+    .atom (.const (.n (valf% «keccak_layer» «_loop0» "s12#0")) (word 2 0)), .atom (.mul (.n (valf% «keccak_layer» «_loop0» "s12#1")) (.n (valf% «keccak_layer» «_loop0» "xs")) (.n (valf% «keccak_layer» «_loop0» "s12#0"))),
+    .atom (.add (.n (valf% «keccak_layer» «_loop0» "s12#2")) (.n (valf% «keccak_layer» «_loop0» "s12#1")) (.n (valf% «keccak_layer» «_loop0» "bound"))), .atom (.const (.n (valf% «keccak_layer» «_loop0» "s12#3")) (word 2 0)),
+    .atom (.mul (.n (valf% «keccak_layer» «_loop0» "s12#4")) (.n (valf% «keccak_layer» «_loop0» "xs")) (.n (valf% «keccak_layer» «_loop0» "s12#3")))]
 
 /-- The loop body's atoms. -/
 def pack8Pre : List Stmt := pk8Head ++ pk8Rounds ++ pk8Tail
@@ -265,61 +268,61 @@ theorem pack8Pre_atoms : pack8Pre.all isAtom = true := by decide +kernel
 
 /-- The loop body, the self-call named `name`. -/
 def pack8T (name : String) : List Stmt :=
-  pack8Pre ++ [.callIf (.n 247) name [.n 249, .n 1, .n 2, .n 3, .n 4, .n 5], .ret []]
+  pack8Pre ++ [.callIf (.n (valf% «keccak_layer» «_loop0» "s12#2")) name [.n (valf% «keccak_layer» «_loop0» "s12#4"), .n (valf% «keccak_layer» «_loop0» "bound"), .n (valf% «keccak_layer» «_loop0» "rounds"), .n (valf% «keccak_layer» «_loop0» "prev_point"), .n (valf% «keccak_layer» «_loop0» "point"), .n (valf% «keccak_layer» «_loop0» "tabs")], .ret []]
 
 /-- The remainder loop's atoms: one round on the record `rounds·x`. -/
 def packRemPre : List Stmt :=
-  [.atom (.mul (.n 6) (.n 2) (.n 0)),
-    .atom (.mul (.n 7) (.n 3) (.n 0)),
-    .atom (.load (.n 8) (.n 7) 0),
-    .atom (.load (.n 9) (.n 6) 0),
-    .atom (.load (.n 10) (.n 6) 16),
-    .atom (.load (.n 11) (.n 6) 32),
-    .atom (.load (.n 12) (.n 6) 48),
-    .atom (.load (.n 13) (.n 6) 64),
-    .atom (.load (.n 14) (.n 6) 80),
-    .atom (.load (.n 15) (.n 14) 0),
-    .atom (.copy (.n 16) (.n 15)),
-    .atom (.const (.n 17) (word 0 1)),
-    .atom (.load (.n 18) (.n 14) 1),
-    .atom (.copy (.n 19) (.n 18)),
-    .atom (.const (.n 20) (word 0 1)),
-    .atom (.const (.n 21) (word 1 0)),
-    .atom (.const (.n 22) (word 0 0)),
-    .atom (.const (.n 23) (word 0 0)),
-    .atom (.const (.n 24) (word 0 0)),
-    .atom (.const (.n 25) (word 0 0)),
-    .atom (.keccak [.n 16, .n 17, .n 19, .n 20, .n 22, .n 23, .n 24, .n 25, .n 9, .n 10, .n 11, .n 12, .n 13] [.n 26, .n 27, .n 28, .n 29, .n 30, .n 31, .n 32, .n 33, .n 34, .n 35, .n 36, .n 37, .n 38] false false),
-    .atom (.mul (.n 39) (.n 5) (.n 0)),
-    .atom (.load (.n 26) (.n 39) 0),
-    .atom (.add (.n 40) (.n 8) (.n 26)),
-    .atom (.load (.n 34) (.n 6) 1),
-    .atom (.load (.n 35) (.n 6) 17),
-    .atom (.load (.n 36) (.n 6) 33),
-    .atom (.load (.n 37) (.n 6) 49),
-    .atom (.load (.n 38) (.n 6) 65),
-    .atom (.const (.n 41) (word 4 0)),
-    .atom (.mul (.n 42) (.n 14) (.n 41)),
-    .atom (.load (.n 42) (.n 6) 81),
-    .atom (.load (.n 43) (.n 6) 96),
-    .atom (.mul (.n 44) (.n 40) (.n 15)),
-    .atom (.add (.n 45) (.n 43) (.n 44)),
-    .atom (.mul (.n 46) (.n 26) (.n 26)),
-    .atom (.add (.n 47) (.n 8) (.n 46)),
-    .atom (.mul (.n 48) (.n 47) (.n 18)),
-    .atom (.add (.n 49) (.n 45) (.n 48)),
-    .atom (.load (.n 49) (.n 6) 97),
-    .atom (.const (.n 50) (word 2 0)),
-    .atom (.mul (.n 51) (.n 0) (.n 50)),
-    .atom (.add (.n 52) (.n 51) (.n 1)),
-    .atom (.const (.n 53) (word 2 0)),
-    .atom (.mul (.n 54) (.n 0) (.n 53))]
+  [.atom (.mul (.n (valf% «keccak_layer» «_loop1» "rd")) (.n (valf% «keccak_layer» «_loop1» "rem_rounds")) (.n (valf% «keccak_layer» «_loop1» "x1"))),
+    .atom (.mul (.n (valf% «keccak_layer» «_loop1» "r_eq~0")) (.n (valf% «keccak_layer» «_loop1» "rem_prev")) (.n (valf% «keccak_layer» «_loop1» "x1"))),
+    .atom (.load (.n (valf% «keccak_layer» «_loop1» "r_eq")) (.n (valf% «keccak_layer» «_loop1» "r_eq~0")) 0),
+    .atom (.load (.n (valf% «keccak_layer» «_loop1» "sp[0]")) (.n (valf% «keccak_layer» «_loop1» "rd")) 0),
+    .atom (.load (.n (valf% «keccak_layer» «_loop1» "sp[1]")) (.n (valf% «keccak_layer» «_loop1» "rd")) 16),
+    .atom (.load (.n (valf% «keccak_layer» «_loop1» "sp[2]")) (.n (valf% «keccak_layer» «_loop1» "rd")) 32),
+    .atom (.load (.n (valf% «keccak_layer» «_loop1» "sp[3]")) (.n (valf% «keccak_layer» «_loop1» "rd")) 48),
+    .atom (.load (.n (valf% «keccak_layer» «_loop1» "sp[4]")) (.n (valf% «keccak_layer» «_loop1» "rd")) 64),
+    .atom (.load (.n (valf% «keccak_layer» «_loop1» "cur_i")) (.n (valf% «keccak_layer» «_loop1» "rd")) 80),
+    .atom (.load (.n (valf% «keccak_layer» «_loop1» "x@1")) (.n (valf% «keccak_layer» «_loop1» "cur_i")) 0),
+    .atom (.copy (.n (valf% «keccak_layer» «_loop1» "rate[0]")) (.n (valf% «keccak_layer» «_loop1» "x@1"))),
+    .atom (.const (.n (valf% «keccak_layer» «_loop1» "rate[1]")) (word 0 1)),
+    .atom (.load (.n (valf% «keccak_layer» «_loop1» "x@2")) (.n (valf% «keccak_layer» «_loop1» "cur_i")) 1),
+    .atom (.copy (.n (valf% «keccak_layer» «_loop1» "rate[2]")) (.n (valf% «keccak_layer» «_loop1» "x@2"))),
+    .atom (.const (.n (valf% «keccak_layer» «_loop1» "rate[3]")) (word 0 1)),
+    .atom (.const (.n (valf% «keccak_layer» «_loop1» "s7.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0")) (word 1 0)),
+    .atom (.const (.n (valf% «keccak_layer» «_loop1» "s7.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[1]")) (word 0 0)),
+    .atom (.const (.n (valf% «keccak_layer» «_loop1» "s7.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[2]")) (word 0 0)),
+    .atom (.const (.n (valf% «keccak_layer» «_loop1» "s7.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[3]")) (word 0 0)),
+    .atom (.const (.n (valf% «keccak_layer» «_loop1» "s7.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[4]")) (word 0 0)),
+    .atom (.keccak [.n (valf% «keccak_layer» «_loop1» "rate[0]"), .n (valf% «keccak_layer» «_loop1» "rate[1]"), .n (valf% «keccak_layer» «_loop1» "rate[2]"), .n (valf% «keccak_layer» «_loop1» "rate[3]"), .n (valf% «keccak_layer» «_loop1» "s7.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[1]"), .n (valf% «keccak_layer» «_loop1» "s7.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[2]"), .n (valf% «keccak_layer» «_loop1» "s7.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[3]"), .n (valf% «keccak_layer» «_loop1» "s7.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[4]"), .n (valf% «keccak_layer» «_loop1» "sp[0]"), .n (valf% «keccak_layer» «_loop1» "sp[1]"), .n (valf% «keccak_layer» «_loop1» "sp[2]"), .n (valf% «keccak_layer» «_loop1» "sp[3]"), .n (valf% «keccak_layer» «_loop1» "sp[4]")] [.n (valf% «keccak_layer» «_loop1» "nxt[0]"), .n (valf% «keccak_layer» «_loop1» "nxt[1]"), .n (valf% «keccak_layer» «_loop1» "nxt[2]"), .n (valf% «keccak_layer» «_loop1» "nxt[3]"), .n (valf% «keccak_layer» «_loop1» "nxt[4]"), .n (valf% «keccak_layer» «_loop1» "nxt[5]"), .n (valf% «keccak_layer» «_loop1» "nxt[6]"), .n (valf% «keccak_layer» «_loop1» "nxt[7]"), .n (valf% «keccak_layer» «_loop1» "nxt[8]"), .n (valf% «keccak_layer» «_loop1» "nxt[9]"), .n (valf% «keccak_layer» «_loop1» "nxt[10]"), .n (valf% «keccak_layer» «_loop1» "nxt[11]"), .n (valf% «keccak_layer» «_loop1» "nxt[12]")] false false),
+    .atom (.mul (.n (valf% «keccak_layer» «_loop1» "s8#0")) (.n (valf% «keccak_layer» «_loop1» "rem_point")) (.n (valf% «keccak_layer» «_loop1» "x1"))),
+    .atom (.load (.n (valf% «keccak_layer» «_loop1» "nxt[0]")) (.n (valf% «keccak_layer» «_loop1» "s8#0")) 0),
+    .atom (.add (.n (valf% «keccak_layer» «_loop1» "gap")) (.n (valf% «keccak_layer» «_loop1» "r_eq")) (.n (valf% «keccak_layer» «_loop1» "nxt[0]"))),
+    .atom (.load (.n (valf% «keccak_layer» «_loop1» "nxt[8]")) (.n (valf% «keccak_layer» «_loop1» "rd")) 1),
+    .atom (.load (.n (valf% «keccak_layer» «_loop1» "nxt[9]")) (.n (valf% «keccak_layer» «_loop1» "rd")) 17),
+    .atom (.load (.n (valf% «keccak_layer» «_loop1» "nxt[10]")) (.n (valf% «keccak_layer» «_loop1» "rd")) 33),
+    .atom (.load (.n (valf% «keccak_layer» «_loop1» "nxt[11]")) (.n (valf% «keccak_layer» «_loop1» "rd")) 49),
+    .atom (.load (.n (valf% «keccak_layer» «_loop1» "nxt[12]")) (.n (valf% «keccak_layer» «_loop1» "rd")) 65),
+    .atom (.const (.n (valf% «keccak_layer» «_loop1» "s12#0")) (word 4 0)),
+    .atom (.mul (.n (valf% «keccak_layer» «_loop1» "s12#1")) (.n (valf% «keccak_layer» «_loop1» "cur_i")) (.n (valf% «keccak_layer» «_loop1» "s12#0"))),
+    .atom (.load (.n (valf% «keccak_layer» «_loop1» "s12#1")) (.n (valf% «keccak_layer» «_loop1» "rd")) 81),
+    .atom (.load (.n (valf% «keccak_layer» «_loop1» "s13#0")) (.n (valf% «keccak_layer» «_loop1» "rd")) 96),
+    .atom (.mul (.n (valf% «keccak_layer» «_loop1» "s13#1")) (.n (valf% «keccak_layer» «_loop1» "gap")) (.n (valf% «keccak_layer» «_loop1» "x@1"))),
+    .atom (.add (.n (valf% «keccak_layer» «_loop1» "s13#2")) (.n (valf% «keccak_layer» «_loop1» "s13#0")) (.n (valf% «keccak_layer» «_loop1» "s13#1"))),
+    .atom (.mul (.n (valf% «keccak_layer» «_loop1» "s13#3")) (.n (valf% «keccak_layer» «_loop1» "nxt[0]")) (.n (valf% «keccak_layer» «_loop1» "nxt[0]"))),
+    .atom (.add (.n (valf% «keccak_layer» «_loop1» "s13#4")) (.n (valf% «keccak_layer» «_loop1» "r_eq")) (.n (valf% «keccak_layer» «_loop1» "s13#3"))),
+    .atom (.mul (.n (valf% «keccak_layer» «_loop1» "s13#5")) (.n (valf% «keccak_layer» «_loop1» "s13#4")) (.n (valf% «keccak_layer» «_loop1» "x@2"))),
+    .atom (.add (.n (valf% «keccak_layer» «_loop1» "s13#6")) (.n (valf% «keccak_layer» «_loop1» "s13#2")) (.n (valf% «keccak_layer» «_loop1» "s13#5"))),
+    .atom (.load (.n (valf% «keccak_layer» «_loop1» "s13#6")) (.n (valf% «keccak_layer» «_loop1» "rd")) 97),
+    .atom (.const (.n (valf% «keccak_layer» «_loop1» "s15#0")) (word 2 0)),
+    .atom (.mul (.n (valf% «keccak_layer» «_loop1» "s15#1")) (.n (valf% «keccak_layer» «_loop1» "x1")) (.n (valf% «keccak_layer» «_loop1» "s15#0"))),
+    .atom (.add (.n (valf% «keccak_layer» «_loop1» "s15#2")) (.n (valf% «keccak_layer» «_loop1» "s15#1")) (.n (valf% «keccak_layer» «_loop1» "bound"))),
+    .atom (.const (.n (valf% «keccak_layer» «_loop1» "s15#3")) (word 2 0)),
+    .atom (.mul (.n (valf% «keccak_layer» «_loop1» "s15#4")) (.n (valf% «keccak_layer» «_loop1» "x1")) (.n (valf% «keccak_layer» «_loop1» "s15#3")))]
 
 theorem packRemPre_atoms : packRemPre.all isAtom = true := by decide +kernel
 
 /-- The remainder loop's body, the self-call named `name`. -/
 def packRemT (name : String) : List Stmt :=
-  packRemPre ++ [.callIf (.n 52) name [.n 54, .n 1, .n 2, .n 3, .n 4, .n 5], .ret []]
+  packRemPre ++ [.callIf (.n (valf% «keccak_layer» «_loop1» "s15#2")) name [.n (valf% «keccak_layer» «_loop1» "s15#4"), .n (valf% «keccak_layer» «_loop1» "bound"), .n (valf% «keccak_layer» «_loop1» "rem_rounds"), .n (valf% «keccak_layer» «_loop1» "rem_prev"), .n (valf% «keccak_layer» «_loop1» "tabs"), .n (valf% «keccak_layer» «_loop1» "rem_point")], .ret []]
 
 /-- The two helpers' names, by `keccak_layer` specialization: the eight-round loop. -/
 def packLoopName : ℕ → String
@@ -487,8 +490,8 @@ theorem pack8_step {name : String} {fn : Fn} (hf : coreProgram.find? name = some
       simpa [Atom.Holds, word_zero] using this
     simp [pkZs, z 30 (by simp), z 31 (by simp), z 32 (by simp), z 33 (by simp)]
   have F := fun q (hq : q < 8) ↦ packRound_facts (HR q hq) hz
-  have hx8 : σ (.n 9) = σ (.n 0) ^ 8 := gen_pow_eight_of _ _ _ _ e7 e8 e9
-  have hx12 : σ (.n 13) = σ (.n 0) ^ 8 := gen_pow_eight_of _ _ _ _ e11 e12 e13
+  have hx8 : σ (.n (valf% «keccak_layer» «_loop0» "pp~2")) = σ (.n (valf% «keccak_layer» «_loop0» "xs")) ^ 8 := gen_pow_eight_of _ _ _ _ e7 e8 e9
+  have hx12 : σ (.n (valf% «keccak_layer» «_loop0» "pt~2")) = σ (.n (valf% «keccak_layer» «_loop0» "xs")) ^ 8 := gen_pow_eight_of _ _ _ _ e11 e12 e13
   let R : ℕ → E := fun q ↦ σ (.n (pkB q))
   let G1 : ℕ → E := fun q ↦ σ (.n (pkB q + 1))
   let G2 : ℕ → E := fun q ↦ σ (.n (pkB q + 4))
@@ -499,7 +502,7 @@ theorem pack8_step {name : String} {fn : Fn} (hf : coreProgram.find? name = some
     have := (F q hq).2.2.2.2
     simp only [Nat.zero_add]
     simpa [R, G1, G2, CH, CL, CAP, pkCl, pkCap, pkRound] using this
-  refine ⟨⟨CAP 0, σ (.n 20), CL 0, (List.range' 0 8).map R,
+  refine ⟨⟨CAP 0, σ (.n (valf% «keccak_layer» «_loop0» "cur_i")), CL 0, (List.range' 0 8).map R,
     (List.range' 0 8).map fun q ↦ (G1 q, G2 q), (List.range' 0 8).map CH, CL 8, CAP 8,
     ?_, by simp, ?_, ?_, hch, ?_, ?_⟩, ?_⟩
   · rw [← e6]
@@ -509,7 +512,7 @@ theorem pack8_step {name : String} {fn : Fn} (hf : coreProgram.find? name = some
     have := (F k hk).1
     rw [e10, hx8] at this
     simpa [R] using this
-  · have := readsAt_pairs (rd := rd) (p := σ (.n 20)) ((List.range' 0 8).map fun q ↦ (G1 q, G2 q)) 0
+  · have := readsAt_pairs (rd := rd) (p := σ (.n (valf% «keccak_layer» «_loop0» "cur_i"))) ((List.range' 0 8).map fun q ↦ (G1 q, G2 q)) 0
       fun q hq ↦ by
         simp only [List.length_map, List.length_range'] at hq
         have h1 := (F q hq).2.1
@@ -534,8 +537,8 @@ theorem pack8_step {name : String} {fn : Fn} (hf : coreProgram.find? name = some
       simpa [krCap] using S285
     · simpa [CL, pkCl, pkC, krCap] using S282
   · intro hne
-    have e : σ (.n 247) = σ (.n 0) * gen + σ (.n 1) := by rw [e288, e287, e286, word_gen]
-    have e' : σ (.n 249) = σ (.n 0) * gen := by rw [e290, e289, word_gen]
+    have e : σ (.n (valf% «keccak_layer» «_loop0» "s12#2")) = σ (.n (valf% «keccak_layer» «_loop0» "xs")) * gen + σ (.n (valf% «keccak_layer» «_loop0» "bound")) := by rw [e288, e287, e286, word_gen]
+    have e' : σ (.n (valf% «keccak_layer» «_loop0» "s12#4")) = σ (.n (valf% «keccak_layer» «_loop0» "xs")) * gen := by rw [e290, e289, word_gen]
     have := hcall (by rw [e]; exact hne)
     simpa [e'] using this
 
@@ -563,15 +566,15 @@ theorem packRem_step {name : String} {fn : Fn} (hf : coreProgram.find? name = so
     e17, L18_14_1, e19, e20, e21, e22, e23, e24, e25, hk, e40, L39_40_0, e41,
     L34_6_1, L35_6_17, L36_6_33, L37_6_49, L38_6_65, e44, e45, L45_6_81, L46_6_96, e47, e48, e49,
     e50, e51, e52, L53_6_97, e56, e57, e58, e59, e60⟩ := H
-  have hz : [V.n 22, .n 23, .n 24, .n 25].map σ = [0, 0, 0, 0] := by
+  have hz : [V.n (valf% «keccak_layer» «_loop1» "s7.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[1]"), .n (valf% «keccak_layer» «_loop1» "s7.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[2]"), .n (valf% «keccak_layer» «_loop1» "s7.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[3]"), .n (valf% «keccak_layer» «_loop1» "s7.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[4]")].map σ = [0, 0, 0, 0] := by
     simp only [List.map_cons, List.map_nil, e22, e23, e24, e25, word_zero]
-  have q0 := sq2_atoms (rd := rd) (a := 15) (o := 26) (zs := [.n 22, .n 23, .n 24, .n 25])
-    (capV := [.n 9, .n 10, .n 11, .n 12, .n 13])
-    (cap := [σ (.n 9), σ (.n 10), σ (.n 11), σ (.n 12), σ (.n 13)])
+  have q0 := sq2_atoms (rd := rd) (a := 15) (o := 26) (zs := [.n (valf% «keccak_layer» «_loop1» "s7.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[1]"), .n (valf% «keccak_layer» «_loop1» "s7.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[2]"), .n (valf% «keccak_layer» «_loop1» "s7.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[3]"), .n (valf% «keccak_layer» «_loop1» "s7.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[4]")])
+    (capV := [.n (valf% «keccak_layer» «_loop1» "sp[0]"), .n (valf% «keccak_layer» «_loop1» "sp[1]"), .n (valf% «keccak_layer» «_loop1» "sp[2]"), .n (valf% «keccak_layer» «_loop1» "sp[3]"), .n (valf% «keccak_layer» «_loop1» "sp[4]")])
+    (cap := [σ (.n (valf% «keccak_layer» «_loop1» "sp[0]")), σ (.n (valf% «keccak_layer» «_loop1» "sp[1]")), σ (.n (valf% «keccak_layer» «_loop1» "sp[2]")), σ (.n (valf% «keccak_layer» «_loop1» "sp[3]")), σ (.n (valf% «keccak_layer» «_loop1» "sp[4]"))])
     ⟨e16, e17⟩ ⟨e19, e20⟩ hk hz rfl
   simp only [Nat.reduceAdd] at q0
-  refine ⟨⟨[σ (.n 9), σ (.n 10), σ (.n 11), σ (.n 12), σ (.n 13)], σ (.n 14), σ (.n 43),
-    σ (.n 8), σ (.n 15), σ (.n 18), ?_, ?_, ?_, ?_⟩, ?_⟩
+  refine ⟨⟨[σ (.n (valf% «keccak_layer» «_loop1» "sp[0]")), σ (.n (valf% «keccak_layer» «_loop1» "sp[1]")), σ (.n (valf% «keccak_layer» «_loop1» "sp[2]")), σ (.n (valf% «keccak_layer» «_loop1» "sp[3]")), σ (.n (valf% «keccak_layer» «_loop1» "sp[4]"))], σ (.n (valf% «keccak_layer» «_loop1» "cur_i")), σ (.n (valf% «keccak_layer» «_loop1» "s13#0")),
+    σ (.n (valf% «keccak_layer» «_loop1» "r_eq")), σ (.n (valf% «keccak_layer» «_loop1» "x@1")), σ (.n (valf% «keccak_layer» «_loop1» "x@2")), ?_, ?_, ?_, ?_⟩, ?_⟩
   · rw [← e6]
     exact ⟨capAt_five L9_6_0 L10_6_16 L11_6_32 L12_6_48 L13_6_64, L14_6_80, L46_6_96⟩
   · rw [← e7]; exact L8_7_0
@@ -580,9 +583,9 @@ theorem packRem_step {name : String} {fn : Fn} (hf : coreProgram.find? name = so
     interval_cases k
     · exact L15_14_0
     · exact L18_14_1
-  · have hsq : ((⟨[σ (.n 9), σ (.n 10), σ (.n 11), σ (.n 12), σ (.n 13)], []⟩ : Fs).absorbAll
-        [σ (.n 15), σ (.n 18)] dsObserve).squeeze =
-        (σ (.n 26), ⟨[σ (.n 34), σ (.n 35), σ (.n 36), σ (.n 37), σ (.n 38)], []⟩) := by
+  · have hsq : ((⟨[σ (.n (valf% «keccak_layer» «_loop1» "sp[0]")), σ (.n (valf% «keccak_layer» «_loop1» "sp[1]")), σ (.n (valf% «keccak_layer» «_loop1» "sp[2]")), σ (.n (valf% «keccak_layer» «_loop1» "sp[3]")), σ (.n (valf% «keccak_layer» «_loop1» "sp[4]"))], []⟩ : Fs).absorbAll
+        [σ (.n (valf% «keccak_layer» «_loop1» "x@1")), σ (.n (valf% «keccak_layer» «_loop1» "x@2"))] dsObserve).squeeze =
+        (σ (.n (valf% «keccak_layer» «_loop1» "nxt[0]")), ⟨[σ (.n (valf% «keccak_layer» «_loop1» "nxt[8]")), σ (.n (valf% «keccak_layer» «_loop1» "nxt[9]")), σ (.n (valf% «keccak_layer» «_loop1» "nxt[10]")), σ (.n (valf% «keccak_layer» «_loop1» "nxt[11]")), σ (.n (valf% «keccak_layer» «_loop1» "nxt[12]"))], []⟩) := by
       refine Prod.ext q0.1.symm ?_
       rw [q0.2]
       rfl
@@ -597,8 +600,8 @@ theorem packRem_step {name : String} {fn : Fn} (hf : coreProgram.find? name = so
     · simp only [e52, e51, e50, e49, e48, e47, e41] at L53_6_97
       exact L53_6_97
   · intro hne
-    have e : σ (.n 52) = σ (.n 0) * gen + σ (.n 1) := by rw [e58, e57, e56, word_gen]
-    have e' : σ (.n 54) = σ (.n 0) * gen := by rw [e60, e59, word_gen]
+    have e : σ (.n (valf% «keccak_layer» «_loop1» "s15#2")) = σ (.n (valf% «keccak_layer» «_loop1» "x1")) * gen + σ (.n (valf% «keccak_layer» «_loop1» "bound")) := by rw [e58, e57, e56, word_gen]
+    have e' : σ (.n (valf% «keccak_layer» «_loop1» "s15#4")) = σ (.n (valf% «keccak_layer» «_loop1» "x1")) * gen := by rw [e60, e59, word_gen]
     have := hcall (by rw [e]; exact hne)
     simpa [e'] using this
 

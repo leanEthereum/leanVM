@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.Data.Names
 public import LeanVM.Guest.Memory.LiftPure
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«main_loop2»
 
 /-!
 # The check's loads, on the data
@@ -27,12 +29,12 @@ open LeanVM.Guest.Core LeanVM.Guest.Memory
 
 /-- A load of the claim's pointer `.n 65` at an offset below 4; no other load. -/
 def segLoad : Atom → Bool
-  | .load _ p off => decide (p = .n 65) && decide (off < 4)
+  | .load _ p off => decide (p = .n (val% «main_loop2» "s3#2")) && decide (off < 4)
   | _ => true
 
 set_option maxRecDepth 100000 in
 /-- **The check's statements of `main_loop2` load only the claim**, by the kernel. -/
-theorem loop2Seg_leafOk : Stmt.leafOkList segLoad (((fn% «main_loop2»).body.drop 9).take 313) =
+theorem loop2Seg_leafOk : Stmt.leafOkList segLoad (((fn% «main_loop2»).body.drop (pos% «main_loop2» "pp")).take (span% «main_loop2» "pp" "s5#0")) =
     true := by
   decide +kernel
 

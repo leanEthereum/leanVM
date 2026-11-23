@@ -11,6 +11,8 @@ module
 public import LeanVM.Guest.B1.Sig.SpWotsT
 public import LeanVM.Guest.B1.Sig.WotsGroup
 public import LeanVM.Guest.Renumber
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«sp_wots»
 
 /-!
 # `sp_wots`'s layout
@@ -67,13 +69,13 @@ theorem spGroupT_end (first n : Nat) (fold : Bool) (prodIn encIn : V) (B : Nat) 
 
 /-- Group `p`'s running product's and encoding's cells and its base. -/
 def spState : Nat → V × V × Nat
-  | 0 => (.n 0, .n 0, 16)
+  | 0 => (.n (val% «sp_wots» "pp"), .n (val% «sp_wots» "pp"), 16)
   | p + 1 =>
       let st := spState p
       (.n (spProd (p == 0) 3 st.2.2), .n (spEnc (p == 0) 3 st.2.2),
         (spGroupT (3 * p) 3 (p == 0) st.1 st.2.1 st.2.2).2)
 
-theorem spState_zero : spState 0 = (.n 0, .n 0, 16) := by rw [spState]
+theorem spState_zero : spState 0 = (.n (val% «sp_wots» "pp"), .n (val% «sp_wots» "pp"), 16) := by rw [spState]
 
 theorem spState_succ (p : Nat) : spState (p + 1) =
     (.n (spProd (p == 0) 3 (spState p).2.2), .n (spEnc (p == 0) 3 (spState p).2.2),
@@ -149,7 +151,7 @@ first group's arm `4j`, one above the arm's base (the chain's hint)
 def spZero : List Nat :=
   [28, 140, 229, 306, 367, 456, 533, 598, 647, 724, 789, 842, 879, 940, 989, 1026]
 
-theorem spZero_eq : spZero = (List.range 16).map fun j => spArmB 0 3 true 16 (.n 0) (.n 0) (4 * j) + 1 := by
+theorem spZero_eq : spZero = (List.range 16).map fun j => spArmB 0 3 true 16 (.n (val% «sp_wots» "pp")) (.n (val% «sp_wots» "pp")) (4 * j) + 1 := by
   decide +kernel
 
 /-- The guest's number of the template's value `i`: two fewer for each step without an address
@@ -176,13 +178,13 @@ theorem renameList_length (r : V → V) : ∀ (a : List Stmt), (Stmt.renameList 
 
 /-- The codeword's checks after the last group and the leaf's `A1`. -/
 def spChecks : List Stmt :=
-  [.atom (.assertEq (.n (spEnc false 1 spGs.2.1)) (.n 3)), cst spC spTarget,
+  [.atom (.assertEq (.n (spEnc false 1 spGs.2.1)) (.n (val% «sp_wots» "encoding"))), cst spC spTarget,
     .atom (.assertEq (.n (spProd false 1 spGs.2.1)) (.n spC)), cst (spC + 1) spPkC,
-    addS (.n (spC + 2)) (.n 2) (.n (spC + 1))]
+    addS (.n (spC + 2)) (.n (val% «sp_wots» "a1")) (.n (spC + 1))]
 
 /-- The body before its checks: the copies, the powers and the codeword's groups. -/
 def spHeadT : List Stmt :=
-  [copyS (.n 4) (.n 1), copyS (.n 5) (.n 2)] ++
+  [copyS (.n (val% «sp_wots» "at[0]")) (.n (val% «sp_wots» "a0")), copyS (.n (val% «sp_wots» "at[1]")) (.n (val% «sp_wots» "a1"))] ++
     (List.range 10).map (fun s => cst (6 + s) (word (2 ^ s) 0)) ++ spGs.1 ++ spLast.1
 
 /-- The body from its checks, the leaf's message `L`: the checks, the message, the copy and the

@@ -16,7 +16,9 @@ public import Statement.LeanDa
 `S.failFrom P h g`: the probability that `P`, run from the history `h` against the strategy `S`,
 fails, every challenge uniform in `E` and independent of the others (`g`, a challenge already
 drawn and waiting, as a proof of work's permutation leaves one). The proof of work is free here:
-its challenge is drawn at the `grind` node and taken at the next `sample`.
+its challenge is drawn at the `grind` node, uniform among the challenges the strategy's proof of
+work takes there (`avgOn`: outside `K` where it asks it, `outsideK`), and taken at the next
+`sample`.
 
 Where the honest prover's transcript passes every check of a refining program (`traceOk`), its
 compiled verifier accepts the honest proof (`runProof_prove_trace`, both in
@@ -39,11 +41,21 @@ the `2^128` elements. -/
 /-- `|E|⁻¹`, the probability of one value of a uniform challenge. -/
 @[irreducible] noncomputable def epsE : ℝ≥0∞ := (Fintype.card E : ℝ≥0∞)⁻¹
 
+/-- The probability that a uniform challenge is usable (`nonceUsable`): `1`, or with `outsideK`
+that of lying outside `K`. -/
+noncomputable def usableProb (o : Bool) : ℝ≥0∞ :=
+  avgE fun c ↦ if LeanVM.Prover.nonceUsable o c then 1 else 0
+
+/-- **The average over the usable challenges** (`nonceUsable`), the challenge a proof of work with
+`outsideK = o` draws: over `E` without it, over the challenges outside `K` with it. -/
+@[irreducible] noncomputable def avgOn (o : Bool) (f : E → ℝ≥0∞) : ℝ≥0∞ :=
+  avgE (fun c ↦ if LeanVM.Prover.nonceUsable o c then f c else 0) / usableProb o
+
 namespace Strategy
 
 open Classical in
 /-- **The ideal failure probability** of a program from a history, every challenge uniform in `E`
-and independent, the challenge `g` waiting; the verifier's run fails where something is
+(a proof of work's among the challenges it takes) and independent, the challenge `g` waiting; the verifier's run fails where something is
 absorbed while a challenge waits. -/
 noncomputable def failFrom (S : Strategy) : VerifierProgram Bool → List Ev → Option E → ℝ≥0∞
   | .ret b, _, _ => if b = true then 0 else 1
@@ -54,7 +66,7 @@ noncomputable def failFrom (S : Strategy) : VerifierProgram Bool → List Ev →
     | some c => failFrom S (k c) (h ++ [Ev.sample c]) none
     | none => avgE fun c ↦ failFrom S (k c) (h ++ [Ev.sample c]) none
   | .grind b k, h, g => if g.isSome then 1 else
-      avgE fun c ↦ failFrom S k (h ++ [Ev.grind b]) (some c)
+      avgOn (S.outsideK h) fun c ↦ failFrom S k (h ++ [Ev.grind b]) (some c)
   | .commit ht w k, h, g => if g.isSome ∨ ¬ WellShaped w (S.word h) then 1 else
       failFrom S k (h ++ [Ev.commit ht w (S.word h)]) none
   | .query i ps k, h, g => match answer h i ps with

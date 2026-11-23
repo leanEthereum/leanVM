@@ -10,6 +10,10 @@ module
 public import LeanVM.Guest.B1.Whir.ResLoop
 public import LeanVM.Guest.B1.Whir.HelperTables
 public import LeanVM.Guest.B1.Whir.HelperT
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«level_residual__L»
+import LeanVM.Guest.Data.ValNames.«level_residual__L_loop0»
+import LeanVM.Guest.Data.ValNames.«level_residual__L_loop1»
 
 /-!
 # `level_residual`, soundly
@@ -110,9 +114,9 @@ theorem lrLoop1_step (cols nhs hbits : ℕ) {D : ℕ → E} {hsv : List E} (σ :
     simp only [allOk_append, allOk_cons, allOk_nil, and_true, stmtOk_atom, holds_mul, holds_load,
       osMul, osLd] at hA
     obtain ⟨⟨⟨hpw, m3, m4, m5, l6, l7⟩, hst⟩, s1, s2⟩ := hA
-    have hD' : ∀ s < cols, LoadHolds rd (σ (.n 4)) (0 + s) (D s) := by
+    have hD' : ∀ s < cols, LoadHolds rd (σ (.n (valf% «level_residual» «_loop0» "row_d"))) (0 + s) (D s) := by
       rw [h4]; intro s hs; rw [Nat.zero_add]; exact hR.rowD s hs
-    have hH' : ∀ c < nhs, LoadHolds rd (σ (.n 5)) (0 + c) (hsv.getD c 0) := by
+    have hH' : ∀ c < nhs, LoadHolds rd (σ (.n (valf% «level_residual» «_loop0» "hs"))) (0 + c) (hsv.getD c 0) := by
       rw [h5]; intro c hc; rw [Nat.zero_add]; exact hR.high c hc
     have hP : σ (.n (7 + batchLen)) = pos * gen ^ 0 * x ^ resBatch := by
       rw [m3, osBatchPow_val _ hpw, h0, h2, pow_zero, mul_one]
@@ -197,25 +201,25 @@ theorem lrLoop2_step (cols nhs hbits : ℕ) {D : ℕ → E} {hsv : List E} (σ :
     simp only [allOk_append, allOk_cons, allOk_nil, and_true, stmtOk_atom, holds_mul, holds_load,
       holds_add, osMul, osLd, osAdd] at hA
     obtain ⟨⟨⟨m0, m1, m2, l3⟩, hq⟩, la, a1, u1, sa, lb, a2, u2, sb⟩ := hA
-    have hD' : ∀ s < cols, LoadHolds rd (σ (.n 4)) (0 + s) (D s) := by
+    have hD' : ∀ s < cols, LoadHolds rd (σ (.n (valf% «level_residual» «_loop1» "row_d"))) (0 + s) (D s) := by
       rw [h4]; intro s hs; rw [Nat.zero_add]; exact hR.rowD s hs
-    have hH' : ∀ c < nhs, LoadHolds rd (σ (.n 5)) (0 + c) (hsv.getD c 0) := by
+    have hH' : ∀ c < nhs, LoadHolds rd (σ (.n (valf% «level_residual» «_loop1» "hs"))) (0 + c) (hsv.getD c 0) := by
       rw [h5]; intro c hc; rw [Nat.zero_add]; exact hR.high c hc
     obtain ⟨q1, q2⟩ := osResQuery_val hR.c1 hR.n1 hR.b3 hR.bn hD' hR.len hH' hq
-    have hT' : σ (.n 9) = tail * x := by rw [m2, h3, h0]
-    have hRx : σ (.n 8) = rest * x ^ 2 := by rw [m1, m0, h2, h0]; ring
+    have hT' : σ (.n (valf% «level_residual» «_loop1» "s1#0")) = tail * x := by rw [m2, h3, h0]
+    have hRx : σ (.n (valf% «level_residual» «_loop1» "rq")) = rest * x ^ 2 := by rw [m1, m0, h2, h0]; ring
     rw [hT'] at l3
     rw [hRx] at la lb sa sb
     refine ⟨(σ (.n (lr2Q cols nhs hbits).2.2.2), σ (.n ((lr2Q cols nhs hbits).2.2.2 + 3))),
-      σ (.n 10), l3, la, lb, ?_, ?_⟩
+      σ (.n (valf% «level_residual» «_loop1» "s1#1")), l3, la, lb, ?_, ?_⟩
     · simp only [resFold, List.foldl_cons, List.foldl_nil]
       have e : σ (.n ((lr2Q cols nhs hbits).2.2.2 + 2)) =
-          (σ (.n (lr2Q cols nhs hbits).2.2.2) + lrP cols D (σ (.n 10))) * mu := by
+          (σ (.n (lr2Q cols nhs hbits).2.2.2) + lrP cols D (σ (.n (valf% «level_residual» «_loop1» "s1#1")))) * mu := by
         rw [u1, a1, h6]; unfold lrP lr2Q; rw [q1]
       rw [← e]; exact sa
     · simp only [resFold, List.foldl_cons, List.foldl_nil]
       have e : σ (.n ((lr2Q cols nhs hbits).2.2.2 + 5)) =
-          (σ (.n ((lr2Q cols nhs hbits).2.2.2 + 3)) + lrH cols nhs hbits hsv (σ (.n 10))) * mu := by
+          (σ (.n ((lr2Q cols nhs hbits).2.2.2 + 3)) + lrH cols nhs hbits hsv (σ (.n (valf% «level_residual» «_loop1» "s1#1")))) * mu := by
         rw [u2, a2, h6]; unfold lrH lr2Q; rw [q2]
       rw [← e]; exact sb
   · simp only [List.range_succ, List.range_zero, List.map_cons, List.map_nil, List.nil_append,
@@ -316,37 +320,37 @@ theorem lr_sound {name l1 l2 : String} {q cols nhs hbits : ℕ}
   rw [hfind] at hf'
   cases hf'
   rw [hps] at hp
-  have ha : ∀ i < 4, σ (.n i) = args.getD i 0 := by
+  have ha : ∀ i < (valf% «level_residual» "chain~0"), σ (.n i) = args.getD i 0 := by
     intro i hi
     rw [← hp]
     simp [osParams, List.getD_eq_getElem?_getD, hi]
-  have hR : LrRead rd cols nhs hbits (σ (.n 1)) (σ (.n 2)) D hsv :=
+  have hR : LrRead rd cols nhs hbits (σ (.n (valf% «level_residual» "row_d"))) (σ (.n (valf% «level_residual» "hs"))) D hsv :=
     ⟨hcols, hnhs, hb3, hbn, by rw [ha 1 (by decide)]; exact hD, hlen,
       by rw [ha 2 (by decide)]; exact hH⟩
   set nb := q / resBatch with hnb
   have hnb0 : 0 < nb := Nat.div_pos hq8 (by decide)
   have hnbo : nb < ordG := lt_of_le_of_lt (Nat.div_le_self _ _) hqo
   have hnbu : nb < u128Bound := lt_of_lt_of_le hnbo (by unfold ordG u128Bound; norm_num)
-  have hPos' : ∀ i < resBatch * nb, LoadHolds rd (σ (.n 0)) (0 + i) (Pos i) := by
+  have hPos' : ∀ i < resBatch * nb, LoadHolds rd (σ (.n (valf% «level_residual» "positions"))) (0 + i) (Pos i) := by
     intro i hi; rw [Nat.zero_add, ha 0 (by decide)]
     exact hPos i (lt_of_lt_of_le hi (Nat.mul_div_le q resBatch))
   set Pf := lrP cols D
   set Hf := lrH cols nhs hbits hsv
-  have hmu : σ (.n 3) = args.getD 3 0 := ha 3 (by decide)
+  have hmu : σ (.n (valf% «level_residual» "lam_inv")) = args.getD 3 0 := ha 3 (by decide)
   -- the batches
   have batches : AllOk (P.Rel rd) rd σ (osHeap (2 * (nb + 1)) 4 ++
       [osCst 6 (word 0 0), osLd 6 5 0, osCst 7 (word 0 0), osLd 7 5 1] ++
       osLoopCall l1 0 nb [0, 5, 1, 2, 3] 8 ++
       [osLd 13 5 (2 * nb), osLd 14 5 (2 * nb + 1)]) →
-      σ (.n 13) = (resFold Pf Hf (σ (.n 3)) (0, 0) ((List.range (resBatch * nb)).map Pos)).1 ∧
-      σ (.n 14) = (resFold Pf Hf (σ (.n 3)) (0, 0) ((List.range (resBatch * nb)).map Pos)).2 := by
+      σ (.n 13) = (resFold Pf Hf (σ (.n (valf% «level_residual» "lam_inv"))) (0, 0) ((List.range (resBatch * nb)).map Pos)).1 ∧
+      σ (.n 14) = (resFold Pf Hf (σ (.n (valf% «level_residual» "lam_inv"))) (0, 0) ((List.range (resBatch * nb)).map Pos)).2 := by
     intro hA
     simp only [allOk_append, allOk_cons, allOk_nil, and_true, stmtOk_atom, holds_const, holds_load,
       osCst, osLd] at hA
     obtain ⟨⟨⟨-, c6, z0, c7, z1⟩, hlp⟩, r0, r1⟩ := hA
     rw [c6, word_zero] at z0
     rw [c7, word_zero] at z1
-    have hit := lrLoop1_sound hl1 hnb0 hnbo (σ (.n 0)) (σ (.n 5)) (σ (.n 1)) (σ (.n 2)) (σ (.n 3)) hR
+    have hit := lrLoop1_sound hl1 hnb0 hnbo (σ (.n (valf% «level_residual» "positions"))) (σ (.n (valf% «level_residual» "chain"))) (σ (.n (valf% «level_residual» "row_d"))) (σ (.n (valf% «level_residual» "hs"))) (σ (.n (valf% «level_residual» "lam_inv"))) hR
       (fun hne ↦ by simpa using osLoopCall0_val hnbu hlp hne)
     obtain ⟨e0, e1⟩ := resChain hPos' z0 z1 hit nb le_rfl
     exact ⟨loadHolds_unique r0 e0, loadHolds_unique r1 e1⟩
@@ -379,12 +383,12 @@ theorem lr_sound {name l1 l2 : String} {q cols nhs hbits : ℕ}
     have hq : resBatch * nb + r = q := by rw [hnb, hr]; exact Nat.div_add_mod q resBatch
     have h8u : resBatch * nb < u128Bound := lt_of_le_of_lt (Nat.mul_div_le q resBatch)
       (lt_of_lt_of_le hqo (by unfold ordG u128Bound; norm_num))
-    have htail : σ (.n 18) = σ (.n 0) * gen ^ (resBatch * nb) := by rw [m18, c17, gw_eq h8u]
+    have htail : σ (.n 18) = σ (.n (valf% «level_residual» "positions")) * gen ^ (resBatch * nb) := by rw [m18, c17, gw_eq h8u]
     have hPt : ∀ i < r, LoadHolds rd (σ (.n 18)) i (Pos (resBatch * nb + i)) := by
       intro i hi
       rw [htail, loadHolds_mul_gen_pow, ha 0 (by decide)]
       exact hPos _ (by omega)
-    have hit := lrLoop2_sound (hl2 h0) hr0 hro (σ (.n 16)) (σ (.n 18)) (σ (.n 1)) (σ (.n 2)) (σ (.n 3))
+    have hit := lrLoop2_sound (hl2 h0) hr0 hro (σ (.n 16)) (σ (.n 18)) (σ (.n (valf% «level_residual» "row_d"))) (σ (.n (valf% «level_residual» "hs"))) (σ (.n (valf% «level_residual» "lam_inv")))
       hR (fun hne ↦ by simpa using osLoopCall0_val hru hG hne)
     rw [e13] at s0
     rw [e14] at s1
@@ -392,8 +396,8 @@ theorem lr_sound {name l1 l2 : String} {q cols nhs hbits : ℕ}
     simp only [allOk_cons, allOk_nil, and_true, stmtOk_atom, holds_load, holds_copy, osLd,
       osCp] at hH
     obtain ⟨r24, r25, c26, c27⟩ := hH
-    have hfold : resFold Pf Hf (σ (.n 3)) (0, 0) ((List.range q).map Pos) =
-        resFold Pf Hf (σ (.n 3)) (resFold Pf Hf (σ (.n 3)) (0, 0) ((List.range (resBatch * nb)).map Pos))
+    have hfold : resFold Pf Hf (σ (.n (valf% «level_residual» "lam_inv"))) (0, 0) ((List.range q).map Pos) =
+        resFold Pf Hf (σ (.n (valf% «level_residual» "lam_inv"))) (resFold Pf Hf (σ (.n (valf% «level_residual» "lam_inv"))) (0, 0) ((List.range (resBatch * nb)).map Pos))
           ((List.range r).map fun i ↦ Pos (resBatch * nb + i)) := by
       rw [← resFold_append, ← hq, List.range_add, List.map_append, List.map_map]
       rfl

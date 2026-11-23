@@ -76,7 +76,7 @@ def oq_specs():
         ps = [int(x) for x in name[len('opening_queries__L'):].split('_L')]
         odd, base, folds, leaf, depth, cd, mu, vanish, nhs, hsb, final = ps
         b = bodies['core%d' % i]
-        loop = re.search(r'callIf \(\.n \d+\) "(__loop\d+)"', b).group(1)
+        loop = re.search(r'callIf \(\.n \d+\) "(__loop[^"]*)"', b).group(1)
         vs = []
         if final:
             lb = bodies['core%d' % fns[loop]]

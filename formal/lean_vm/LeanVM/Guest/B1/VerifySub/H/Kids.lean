@@ -173,7 +173,7 @@ def cL : ℕ := S.cE bs + 101
 
 /-- `verify_tables`' buffers, its GKR leaves at `leaves`. -/
 def vtB (sqE leaves : ℕ) : Tables.VtBases :=
-  ⟨S.cT bs, vb bs 5, vb bs 3, vb bs 2, sqE, vb bs 8, vb bs 0, vb bs 9, leaves, vb bs 10, 0⟩
+  ⟨S.cT bs, vb bs 5, vb bs 3, vb bs 2, sqE, vb bs 8, vb bs 0, vb bs 9, leaves, vb bs 10, vb bs 1, 0⟩
 
 /-- `verify_bus_gkr`'s result among the results before. -/
 def gkRes (pv : List (List E × Main.Layout)) : List E × Main.Layout := pv.getD 9 ([], [])
@@ -236,14 +236,15 @@ noncomputable def kids (sqE : ℕ) : List KidD :=
     fun _ ↦ ⟨busGrindNames.getD (S.d - 20) "", true,
       [cellsOfState S.busSt false 1, ptr sqE * gen ^ winTabAt], vsExpLin sqE, Returns [0]⟩,
     fun _ ↦ ⟨"verify_bus_gkr", true,
-      S.s3.cap ++ [ptr (cG bs), gen ^ S.d, ptr (vb bs 5), ptr sqE * gen ^ winTabAt],
+      S.s3.cap ++ [ptr (cG bs), gen ^ S.d, ptr (vb bs 5), ptr sqE * gen ^ winTabAt,
+        ptr (vb bs 1)],
       [(cG bs, S.xsG), (vb bs 5, S.rG.2.1)],
       Tables.VbgOut S.s4.cap (ptr (cG bs) * gen ^ S.xsG.length) S.rG.2.2⟩,
     fun pv ↦ ⟨"verify_tables", true, S.H.args (S.vtB bs sqE (S.leavesB pv)),
       S.H.linL (S.vtB bs sqE (S.leavesB pv)), Returns (S.H.retsH (S.vtB bs sqE (S.leavesB pv)))⟩,
     fun _ ↦ ⟨"verify_keccak", true,
       S.H.s3.squeeze.2.cap ++ [ptr (S.cK bs), gen ^ S.τ, ptr (vb bs 9), ptr (S.cL bs),
-        ptr (vb bs 11), ptr (vb bs 12), ptr (sqE + winTabAt)],
+        ptr (vb bs 11), ptr (vb bs 12), ptr (sqE + winTabAt), ptr (vb bs 1)],
       [(S.cK bs, S.xsK), (vb bs 9, S.H.chiW), (S.cL bs, S.outs), (vb bs 11, S.kOut.point),
         (vb bs 11 + qkeccakVarsCap, S.kc.2.1), (vb bs 12, S.kc.2.2),
         (sqE + winTabAt, winTabWords)],

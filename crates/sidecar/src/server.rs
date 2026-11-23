@@ -34,6 +34,11 @@ const MAX_CONNECTIONS: usize = 16;
 /// A request, its client's connection, and where its outcome goes.
 type Job = (Request, UnixStream, Sender<Outcome>);
 
+/// Writes a status line to stderr, ignoring I/O errors so a closed or full stderr never panics the server.
+fn log(args: std::fmt::Arguments<'_>) {
+    let _ = writeln!(io::stderr(), "{args}");
+}
+
 /// Starts prover `P` on `threads` threads (0: one per core), builds the aggregation program and warms up, then listens
 /// on `socket`, replacing a stale one a sidecar that stopped left, and serves until the process ends, proving on the
 /// calling thread. The socket appears once the sidecar is ready to prove. Returns only on an error before serving,
@@ -57,7 +62,7 @@ pub fn serve<P: Prover>(socket: &Path, threads: usize) -> io::Result<Infallible>
     thread::Builder::new()
         .name("accept".into())
         .spawn(move || accept(&listener, &jobs, hello.into()))?;
-    eprintln!("serving {} with the {} prover", socket.display(), P::NAME);
+    log(format_args!("serving {} with the {} prover", socket.display(), P::NAME));
     prove_forever::<P>(&queue)
 }
 
@@ -132,13 +137,13 @@ fn prove_forever<P: Prover>(queue: &Receiver<Job>) -> ! {
             request.log_inv_rate,
         );
         if hung_up(&client) {
-            eprintln!("{summary}: dropped, its client hung up");
+            log(format_args!("{summary}: dropped, its client hung up"));
             continue;
         }
         let outcome = aggregate::<P>(request);
         match &outcome {
-            Ok(_) => eprintln!("{summary}: proven"),
-            Err((rejection, message)) => eprintln!("{summary}: refused ({rejection:?}): {message}"),
+            Ok(_) => log(format_args!("{summary}: proven")),
+            Err((rejection, message)) => log(format_args!("{summary}: refused ({rejection:?}): {message}")),
         }
         // The connection may have closed meanwhile.
         let _ = reply.send(outcome);
@@ -208,7 +213,7 @@ fn accept(listener: &UnixListener, jobs: &Sender<Job>, hello: Arc<[u8]>) {
         match listener.accept() {
             Ok((stream, _)) => {
                 let Some(slot) = Slot::take(&open) else {
-                    eprintln!("a connection refused: {MAX_CONNECTIONS} open");
+                    log(format_args!("a connection refused: {MAX_CONNECTIONS} open"));
                     continue;
                 };
                 let (jobs, hello) = (jobs.clone(), hello.clone());
@@ -217,12 +222,12 @@ fn accept(listener: &UnixListener, jobs: &Sender<Job>, hello: Arc<[u8]>) {
                     connection(stream, &jobs, &hello);
                 });
                 if let Err(e) = spawned {
-                    eprintln!("a connection dropped: {e}");
+                    log(format_args!("a connection dropped: {e}"));
                 }
             }
             Err(e) => {
                 // Out of file descriptors, say: wait for some to close rather than spin.
-                eprintln!("accept: {e}");
+                log(format_args!("accept: {e}"));
                 thread::sleep(Duration::from_millis(100));
             }
         }
@@ -260,7 +265,7 @@ fn connection(mut stream: UnixStream, jobs: &Sender<Job>, hello: &[u8]) {
             // The body is left unread, so the stream is lost: say why, and close.
             Ok(Incoming::TooLarge(len)) => {
                 let message = format!("a request of {len} bytes, the sidecar takes at most {MAX_REQUEST}");
-                eprintln!("a request refused (Malformed): {message}");
+                log(format_args!("a request refused (Malformed): {message}"));
                 let _ = stream.write_all(&encode_response(&Err((Rejection::Malformed, message))));
                 return;
             }
@@ -282,7 +287,7 @@ fn connection(mut stream: UnixStream, jobs: &Sender<Job>, hello: &[u8]) {
                 encode_verdict(AggregateProof::from_bytes(&proof).is_some_and(|proof| proof.verify(&claims)))
             }
             Err((rejection, message)) => {
-                eprintln!("a request refused ({rejection:?}): {message}");
+                log(format_args!("a request refused ({rejection:?}): {message}"));
                 encode_response(&Err((rejection, message)))
             }
         };
@@ -390,6 +395,13 @@ fn decode_aggregate(
         .collect();
 
     let n = count(c, BLOB_BYTES).ok_or_else(|| malformed("blobs"))?;
+    // `BlobMatrix::build`'s bound, checked before allocating and queueing blobs that will be refused.
+    if n > lean_da::DA_MAX_ROWS {
+        return Err((
+            Rejection::InvalidInput,
+            format!("{n} blobs: expected 1 to {}", lean_da::DA_MAX_ROWS),
+        ));
+    }
     let blobs = (0..n)
         .map(|_| {
             let symbols = c.take(BLOB_BYTES).unwrap().as_chunks::<16>().0;
@@ -517,6 +529,12 @@ mod tests {
         assert!(decode_request(&huge).is_err());
         let many = vec![(AggregateClaims::default(), Vec::new()); aggregation::MAX_RECURSIONS + 1];
         let frame = encode_request(&many, &[], &[], &[], OutputClaims::All, 1);
+        assert!(matches!(
+            decode_request(&body(frame)),
+            Err((Rejection::InvalidInput, _))
+        ));
+        let many_blobs = vec![[0; lean_da::BLOB_SYMBOLS]; lean_da::DA_MAX_ROWS + 1];
+        let frame = encode_request(&[], &[], &[], &many_blobs, OutputClaims::All, 1);
         assert!(matches!(
             decode_request(&body(frame)),
             Err((Rejection::InvalidInput, _))

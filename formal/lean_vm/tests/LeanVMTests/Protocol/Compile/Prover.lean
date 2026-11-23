@@ -210,7 +210,7 @@ def badStrat : Strategy where
 #guard accepts 0 (prove keccak256 keccakF1600 (prog 0) strat seed 1)
 
 /-- The search fails exactly when no nonce below the fuel passes. -/
-example (sp : Sponge) : findNonce keccakF1600 3 sp 0 = none :=
-  (findNonce_eq_none_iff keccakF1600 3 sp 0).mpr fun _ h ↦ absurd h (by omega)
+example (o : Bool) (sp : Sponge) : findNonce keccakF1600 3 o sp 0 = none :=
+  (findNonce_eq_none_iff keccakF1600 3 o sp 0).mpr fun _ h ↦ absurd h (by omega)
 
 end LeanVMTests.Protocol.Compile.Prover

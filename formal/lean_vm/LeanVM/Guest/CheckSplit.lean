@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.CheckWinC
 public import LeanVM.Guest.CheckSound
+public import LeanVM.Guest.TrieFacts
 
 /-!
 # Windows split by arms
@@ -42,43 +43,6 @@ open LeanVM.Parameters LeanVM.Guest LeanVM.Guest.Exec LeanVM.Guest.B2C
 @[expose] public section
 
 /-! ## Exact tries -/
-
-theorem get_set_eq {α : Type} (a : α) :
-    ∀ (d : ℕ) (t : Exec.Trie α) (n m : ℕ), n + 1 < 2 ^ d →
-      (t.set a d n).get m = if m = n then some a else t.get m
-  | 0, _, n, _, h => by simp at h
-  | d + 1, t, n, m, h => by
-    have hp : 2 ^ (d + 1) = 2 * 2 ^ d := by rw [Nat.pow_succ]; ring
-    rw [Exec.Trie.set_succ, Exec.Trie.get_eq_node t m]
-    by_cases h0 : n = 0
-    · subst h0
-      simp only [↓reduceIte, Exec.Trie.get_node]
-      by_cases hm : m = 0 <;> simp [hm]
-    · by_cases h1 : n % 2 = 1
-      · simp only [h0, h1, ↓reduceIte, Exec.Trie.get_node]
-        by_cases hm : m = 0
-        · simp only [hm, ↓reduceIte]
-          simp only [Ne.symm h0, ↓reduceIte]
-        · by_cases hm1 : m % 2 = 1
-          · rw [get_set_eq a d _ _ _ (by omega)]
-            by_cases he : m = n
-            · subst he; simp [hm, hm1]
-            · have : m / 2 ≠ n / 2 := by omega
-              simp [hm, hm1, he, this]
-          · have : m ≠ n := by omega
-            simp [hm, hm1, this]
-      · simp only [h0, h1, ↓reduceIte, Exec.Trie.get_node]
-        by_cases hm : m = 0
-        · simp only [hm, ↓reduceIte]
-          simp only [Ne.symm h0, ↓reduceIte]
-        · by_cases hm1 : m % 2 = 1
-          · have : m ≠ n := by omega
-            simp [hm, hm1, this]
-          · rw [get_set_eq a d _ _ _ (by omega)]
-            by_cases he : m = n
-            · subst he; simp [hm, hm1]
-            · have : m / 2 - 1 ≠ n / 2 - 1 := by omega
-              simp [hm, hm1, he, this]
 
 theorem getF_setF_eq {α : Type} (a : α) {d : ℕ} (t : Exec.Trie α) {n : ℕ} (m : ℕ)
     (h : n + 1 < 2 ^ d) : getF (setF a d t n) m = if m = n then some a else getF t m := by

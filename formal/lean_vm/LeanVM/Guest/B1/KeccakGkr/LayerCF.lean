@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.B1.KeccakGkr.LayerCE
 public import LeanVM.Guest.B1.KeccakGkr.LayerCD
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«keccak_layer__L»
 
 /-!
 # The tail, completely
@@ -51,8 +53,8 @@ def tailP2 (o W : ℕ) : List Stmt :=
     .atom (.add (.n (W + 22)) (.n (o + 1101)) (.n (W + 21))),
     .atom (.mul (.n (W + 23)) (.n (W + 8)) (.n (W + 22))),
     .atom (.add (.n (W + 24)) (.n (o + 1098)) (.n (W + 23))),
-    .atom (.load (.n (W + 24)) (.n 12) 0), .atom (.load (.n (o + 718)) (.n 12) 2),
-    .atom (.load (.n (o + 745)) (.n 12) 4), .atom (.hint (.alloc (.n (W + 25)) 25))]
+    .atom (.load (.n (W + 24)) (.n (valf% «keccak_layer» "out")) 0), .atom (.load (.n (o + 718)) (.n (valf% «keccak_layer» "out")) 2),
+    .atom (.load (.n (o + 745)) (.n (valf% «keccak_layer» "out")) 4), .atom (.hint (.alloc (.n (W + 25)) 25))]
 
 /-- The local point's slice weights (its first five coordinates). -/
 def tailEqf (o W : ℕ) : List Stmt := eqfT (.n (o + 745)) 0 5 32 (sliceB W)
@@ -73,11 +75,11 @@ def tailP3 (o W : ℕ) : List Stmt :=
 /-- The tail before its flips. -/
 def tailA1 (o W wv : ℕ) : List Stmt :=
   tailP1 o W wv ++ tailP2 o W ++
-    lanesOutT (W + 8) (laneW o) (W + 25) (W + 26) ++ [.atom (.load (.n (W + 25)) (.n 12) 3)] ++
+    lanesOutT (W + 8) (laneW o) (W + 25) (W + 26) ++ [.atom (.load (.n (W + 25)) (.n (valf% «keccak_layer» "out")) 3)] ++
     tailEqf o W ++ tailTop o W
 
 /-- The tail after its flips, but its return. -/
-def tailA3 (o W : ℕ) : List Stmt := .atom (.load (.n (topV W + 3)) (.n 12) 5) :: tailP3 o W
+def tailA3 (o W : ℕ) : List Stmt := .atom (.load (.n (topV W + 3)) (.n (valf% «keccak_layer» "out")) 5) :: tailP3 o W
 
 /-- The tail but its return. -/
 def tailPre (o W wv : ℕ) : List Stmt := tailA1 o W wv ++ lflipsT W ++ tailA3 o W
@@ -91,9 +93,9 @@ theorem tailT_split (o W wv : ℕ) : tailT o W wv = tailPre o W wv ++
 /-- The residual atoms of the tail before the slices' weights. -/
 def tailR1 (o W : ℕ) : List Atom :=
   [.assertEq (.n (W + 5)) (.n (o + 1097)),
-    .load (.n (W + 24)) (.n 12) 0, .load (.n (o + 718)) (.n 12) 2, .load (.n (o + 745)) (.n 12) 4] ++
+    .load (.n (W + 24)) (.n (valf% «keccak_layer» "out")) 0, .load (.n (o + 718)) (.n (valf% «keccak_layer» "out")) 2, .load (.n (o + 745)) (.n (valf% «keccak_layer» "out")) 4] ++
   (List.range 25).map (fun i ↦ .load (.n (W + 29 + 4 * i)) (.n (W + 25)) i) ++
-  [.load (.n (W + 25)) (.n 12) 3]
+  [.load (.n (W + 25)) (.n (valf% «keccak_layer» "out")) 3]
 
 /-- Flip `i`'s first value. -/
 def flipB (W i : ℕ) : ℕ := topV W + 4 + 43 * i
@@ -123,7 +125,7 @@ theorem tail_kernel {first : ℕ} (hf : first < 2) :
       (resid (atomsL (layerFlipT (tW first) i))).all (ldIn [(.n (tW first + 25), 25)]) = true) ∧
     (tailA3 (layOff first) (tW first)).all isAtom = true ∧
     resid (atomsL (tailA3 (layOff first) (tW first))) =
-      [.load (.n (topV (tW first) + 3)) (.n 12) 5] ∧
+      [.load (.n (topV (tW first) + 3)) (.n (valf% «keccak_layer» "out")) 5] ∧
     tV first < tW first ∧ layOff first + 1104 < tW first ∧ tW first < topV (tW first) ∧
     (List.range 25).all (fun j ↦ decide (laneW (layOff first) j < tW first)) = true := by
   interval_cases first
@@ -155,13 +157,13 @@ theorem layer_tail_complete {first : ℕ} (hf : first < 2)
     σ (.n (tW first + 8)) = (tailSq (layOff first) σ).1 ∧
       (cap5 (tW first + 16)).map σ = (tailSq (layOff first) σ).2.cap ∧
       ∀ {next : Prop} {kret : List E → Prop},
-        LoadHolds rd (σ (.n 12)) 0 (σ (.n (layOff first + 1098)) + (tailSq (layOff first) σ).1 *
+        LoadHolds rd (σ (.n (valf% «keccak_layer» "out"))) 0 (σ (.n (layOff first + 1098)) + (tailSq (layOff first) σ).1 *
           (σ (.n (layOff first + 1101)) + (tailSq (layOff first) σ).1 * σ (.n (layOff first + 1104)))) →
-        LoadHolds rd (σ (.n 12)) 2 (σ (.n (layOff first + 718))) →
-        LoadHolds rd (σ (.n 12)) 4 (σ (.n (layOff first + 745))) →
-        LoadHolds rd (σ (.n 12)) 3 (σ (.n (tW first + 25))) →
+        LoadHolds rd (σ (.n (valf% «keccak_layer» "out"))) 2 (σ (.n (layOff first + 718))) →
+        LoadHolds rd (σ (.n (valf% «keccak_layer» "out"))) 4 (σ (.n (layOff first + 745))) →
+        LoadHolds rd (σ (.n (valf% «keccak_layer» "out"))) 3 (σ (.n (tW first + 25))) →
         ReadsAt rd (σ (.n (tW first + 25))) (lanesOut locPt (tailSq (layOff first) σ).1) →
-        LoadHolds rd (σ (.n 12)) 5 (σ (.n (topV (tW first) + 3))) →
+        LoadHolds rd (σ (.n (valf% «keccak_layer» "out"))) 5 (σ (.n (topV (tW first) + 3))) →
         ReadsAt rd (σ (.n (topV (tW first) + 3)))
           (flipsOf (laterWeights (lanesOut locPt (tailSq (layOff first) σ).1) (eqKernel (locPt.take 6)))) →
         kret ((cap5 (tW first + 16)).map σ ++ [σ (.n (layOff first + 743)) * gen ^ 36]) →

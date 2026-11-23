@@ -11,6 +11,8 @@ module
 public import LeanVM.Guest.B1.Da.OffsetsChk
 public import LeanVM.Guest.B1.Fwd.Canon
 public import LeanVM.Guest.B1.Tables.FlatAt
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«da_column_offsets»
 
 namespace LeanVM.Guest.B1.Da
 
@@ -28,20 +30,20 @@ def offAtoms : List Atom := offP.filterMap atomOfS
 
 /-- Its stores: the seven zeros, then each bit's steps. -/
 def offStores : List Atom :=
-  (List.range 7).map (fun j => .load (.n (2 + j)) (.n 1) j) ++
+  (List.range 7).map (fun j => .load (.n ((val% «da_column_offsets» "s1.u0.s0#0") + j)) (.n (val% «da_column_offsets» "offsets")) j) ++
     (List.range 7).flatMap fun b => (List.range 7).map fun j =>
       .load (.n (offB b + 1 + 3 * j + 2)) (.n (offB b)) j
 
 /-- A load of one of its three shapes: a zero into `offsets[j]`, `zs[j]` for a bit's step, a
 step into `steps[j]`. -/
 def isOffLoad (d p : V) (off : ℕ) : Bool :=
-  decide (off < 7) && ((decide (p = .n 1) && decide (d = .n (2 + off))) ||
-    (decide (p = .n 0) && (List.range 7).any fun b => decide (d = .n (offB b + 1 + 3 * off))) ||
+  decide (off < 7) && ((decide (p = .n (val% «da_column_offsets» "offsets")) && decide (d = .n (2 + off))) ||
+    (decide (p = .n (val% «da_column_offsets» "zs")) && (List.range 7).any fun b => decide (d = .n (offB b + 1 + 3 * off))) ||
     (List.range 7).any fun b => decide (p = .n (offB b)) && decide (d = .n (offB b + 1 + 3 * off + 2)))
 
 /-- Bit `b`'s loop call. -/
 def offCallS (b : ℕ) : Stmt :=
-  .callIf (.n (offB b + 24)) (offLoopName b) [.n (offB b + 25), .n (offB b + 26), .n 1, .n (offB b)]
+  .callIf (.n (offB b + 24)) (offLoopName b) [.n (offB b + 25), .n (offB b + 26), .n (val% «da_column_offsets» "offsets"), .n (offB b)]
 
 /-- A statement of `da_column_offsets`: an atom or a loop's call. -/
 def isOffStmt : Stmt → Bool
@@ -49,11 +51,11 @@ def isOffStmt : Stmt → Bool
   | s => (List.range 7).any fun b => stmtsEqb [s] [offCallS b]
 
 /-- Its `HeapBuf`s. -/
-def offAllocs : List (V × (ℕ ⊕ V)) := (.n 1, .inl 896) :: (List.range 7).map fun b => (.n (offB b), .inl 7)
+def offAllocs : List (V × (ℕ ⊕ V)) := (.n (val% «da_column_offsets» "offsets"), .inl 896) :: (List.range 7).map fun b => (.n (offB b), .inl 7)
 
 /-- Its calls. -/
 def offCalls : List (Option V × String × List V × List V) := (List.range 7).map fun b =>
-  (some (.n (offB b + 24)), offLoopName b, [.n (offB b + 25), .n (offB b + 26), .n 1, .n (offB b)], [])
+  (some (.n (offB b + 24)), offLoopName b, [.n (offB b + 25), .n (offB b + 26), .n (val% «da_column_offsets» "offsets"), .n (offB b)], [])
 
 /-- **`da_column_offsets`, evaluated.** -/
 def offCOk : Bool :=

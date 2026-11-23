@@ -11,6 +11,8 @@ public import LeanVM.Guest.B1.VerifySub.Front
 public import LeanVM.Guest.B1.Bits.Grind
 public import LeanVM.Guest.B1.Fs.SqueezePoint
 public import LeanVM.Guest.B1.Fs.MessageComplete
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_sub»
 
 /-!
 # The out-of-domain sample
@@ -56,28 +58,28 @@ theorem runsFromG_sampleN_succ (k : ℕ) (cap : List E) (c : E) :
 
 /-- The nonce's permutation after the root's two words. -/
 abbrev vsAtom288 : Atom :=
-  .keccak [.n 269, .n 270, .n 272, .n 273, .n 284, .n 285, .n 286, .n 287, .n 263, .n 264,
-    .n 265, .n 266, .n 267] (vsRun 288 13) false false
+  .keccak [.n (val% «verify_sub» "rate[0]@3"), .n (val% «verify_sub» "rate[1]@3"), .n (val% «verify_sub» "rate[2]@3"), .n (val% «verify_sub» "rate[3]@3"), .n (val% «verify_sub» "rate[4]@3"), .n (val% «verify_sub» "rate[5]@3"), .n (val% «verify_sub» "rate[6]@3"), .n (val% «verify_sub» "rate[7]@3"), .n (val% «verify_sub» "nxt[8]@2"), .n (val% «verify_sub» "nxt[9]@2"),
+    .n (val% «verify_sub» "nxt[10]@2"), .n (val% «verify_sub» "nxt[11]@2"), .n (val% «verify_sub» "nxt[12]@2")] (vsRun 288 13) false false
 
 theorem vs_oodPerm (w268 : WordAt rd σ 8 268) (w271 : WordAt rd σ 9 271)
-    (hn : FsPackOk σ (.n 283) 284 dsPowNonce) (h286 : σ (.n 286) = 0) (h287 : σ (.n 287) = 0)
+    (hn : FsPackOk σ (.n (val% «verify_sub» "s38.i0:fs_grind_squeeze.s0.e.s0.e.s0#0")) 284 dsPowNonce) (h286 : σ (.n (val% «verify_sub» "rate[6]@3")) = 0) (h287 : σ (.n (val% «verify_sub» "rate[7]@3")) = 0)
     (hk : vsAtom288.Holds rd σ) :
     cells13 ((vsRun 288 13).map σ) =
-      cellsOfState ((⟨[σ (.n 263), σ (.n 264), σ (.n 265), σ (.n 266), σ (.n 267)],
-        [(σ (.n 268), dsObserve), (σ (.n 271), dsObserve)]⟩ : Fs).nonceState (σ (.n 283))) false := by
+      cellsOfState ((⟨[σ (.n (val% «verify_sub» "nxt[8]@2")), σ (.n (val% «verify_sub» "nxt[9]@2")), σ (.n (val% «verify_sub» "nxt[10]@2")), σ (.n (val% «verify_sub» "nxt[11]@2")), σ (.n (val% «verify_sub» "nxt[12]@2"))],
+        [(σ (.n (val% «verify_sub» "x@9")), dsObserve), (σ (.n (val% «verify_sub» "x@10")), dsObserve)]⟩ : Fs).nonceState (σ (.n (val% «verify_sub» "s38.i0:fs_grind_squeeze.s0.e.s0.e.s0#0")))) false := by
   obtain ⟨-, -, hc⟩ := keccakA_perm hk
   have c0 := wordAt_cells w268
   have c1 := wordAt_cells w271
   have c2 := fsPackT_cells hn
-  have e : (⟨[σ (.n 263), σ (.n 264), σ (.n 265), σ (.n 266), σ (.n 267)],
-      [(σ (.n 268), dsObserve), (σ (.n 271), dsObserve)]⟩ : Fs).nonceState (σ (.n 283)) =
-      permOf (rateOf [(σ (.n 268), dsObserve), (σ (.n 271), dsObserve), (σ (.n 283), dsPowNonce)] ++
-        [σ (.n 263), σ (.n 264), σ (.n 265), σ (.n 266), σ (.n 267)]) := by
+  have e : (⟨[σ (.n (val% «verify_sub» "nxt[8]@2")), σ (.n (val% «verify_sub» "nxt[9]@2")), σ (.n (val% «verify_sub» "nxt[10]@2")), σ (.n (val% «verify_sub» "nxt[11]@2")), σ (.n (val% «verify_sub» "nxt[12]@2"))],
+      [(σ (.n (val% «verify_sub» "x@9")), dsObserve), (σ (.n (val% «verify_sub» "x@10")), dsObserve)]⟩ : Fs).nonceState (σ (.n (val% «verify_sub» "s38.i0:fs_grind_squeeze.s0.e.s0.e.s0#0"))) =
+      permOf (rateOf [(σ (.n (val% «verify_sub» "x@9")), dsObserve), (σ (.n (val% «verify_sub» "x@10")), dsObserve), (σ (.n (val% «verify_sub» "s38.i0:fs_grind_squeeze.s0.e.s0.e.s0#0")), dsPowNonce)] ++
+        [σ (.n (val% «verify_sub» "nxt[8]@2")), σ (.n (val% «verify_sub» "nxt[9]@2")), σ (.n (val% «verify_sub» "nxt[10]@2")), σ (.n (val% «verify_sub» "nxt[11]@2")), σ (.n (val% «verify_sub» "nxt[12]@2"))]) := by
     simp [Fs.nonceState, Fs.absorb, Fs.perm, rateScalars]
-  have hl : rateOf [(σ (.n 268), dsObserve), (σ (.n 271), dsObserve), (σ (.n 283), dsPowNonce)] ++
-      [σ (.n 263), σ (.n 264), σ (.n 265), σ (.n 266), σ (.n 267)] =
-      List.map σ [.n 269, .n 270, .n 272, .n 273, .n 284, .n 285, .n 286, .n 287, .n 263, .n 264,
-        .n 265, .n 266, .n 267] := by
+  have hl : rateOf [(σ (.n (val% «verify_sub» "x@9")), dsObserve), (σ (.n (val% «verify_sub» "x@10")), dsObserve), (σ (.n (val% «verify_sub» "s38.i0:fs_grind_squeeze.s0.e.s0.e.s0#0")), dsPowNonce)] ++
+      [σ (.n (val% «verify_sub» "nxt[8]@2")), σ (.n (val% «verify_sub» "nxt[9]@2")), σ (.n (val% «verify_sub» "nxt[10]@2")), σ (.n (val% «verify_sub» "nxt[11]@2")), σ (.n (val% «verify_sub» "nxt[12]@2"))] =
+      List.map σ [.n (val% «verify_sub» "rate[0]@3"), .n (val% «verify_sub» "rate[1]@3"), .n (val% «verify_sub» "rate[2]@3"), .n (val% «verify_sub» "rate[3]@3"), .n (val% «verify_sub» "rate[4]@3"), .n (val% «verify_sub» "rate[5]@3"), .n (val% «verify_sub» "rate[6]@3"), .n (val% «verify_sub» "rate[7]@3"), .n (val% «verify_sub» "nxt[8]@2"), .n (val% «verify_sub» "nxt[9]@2"),
+        .n (val% «verify_sub» "nxt[10]@2"), .n (val% «verify_sub» "nxt[11]@2"), .n (val% «verify_sub» "nxt[12]@2")] := by
     rw [rateOf_three, ← c0, ← c1, ← c2]
     simp only [List.map_cons, List.map_nil, h286, h287]
     rfl
@@ -87,12 +89,12 @@ theorem vs_oodPerm (w268 : WordAt rd σ 8 268) (w271 : WordAt rd σ 9 271)
 
 /-- The sponge with the root's two words waiting. -/
 abbrev vsRootFs (σ : Val) : Fs :=
-  ⟨[σ (.n 263), σ (.n 264), σ (.n 265), σ (.n 266), σ (.n 267)],
-    [(σ (.n 268), dsObserve), (σ (.n 271), dsObserve)]⟩
+  ⟨[σ (.n (val% «verify_sub» "nxt[8]@2")), σ (.n (val% «verify_sub» "nxt[9]@2")), σ (.n (val% «verify_sub» "nxt[10]@2")), σ (.n (val% «verify_sub» "nxt[11]@2")), σ (.n (val% «verify_sub» "nxt[12]@2"))],
+    [(σ (.n (val% «verify_sub» "x@9")), dsObserve), (σ (.n (val% «verify_sub» "x@10")), dsObserve)]⟩
 
 
 theorem vsRun304 : (vsRun 304 5).map σ =
-    [σ (.n 304), σ (.n 305), σ (.n 306), σ (.n 307), σ (.n 308)] := rfl
+    [σ (.n (val% «verify_sub» "fs0@1")), σ (.n (val% «verify_sub» "fs1@1")), σ (.n (val% «verify_sub» "fs2@1")), σ (.n (val% «verify_sub» "fs3@1")), σ (.n (val% «verify_sub» "fs4@1"))] := rfl
 
 theorem spfName_eq {m : ℕ} (h1 : 20 ≤ m) (h2 : m ≤ 30) (h : m - 20 < vsSqpNames.length) :
     vsSqpNames[m - 20] = spfName m := by
@@ -106,26 +108,26 @@ theorem word_g11 : word 2048 0 = gen ^ 11 := by
 
 /-- **The out-of-domain sample**. -/
 theorem vsOodT_holds {κ : ℕ} (hκ : κ ≤ 32) (hκw : winTabBits ≤ κ) (L : MemoryImage κ)
-    (hC : CallRel.Le C (coreProgram.Rel L.read)) (hwin : ExpWinTab L.read (σ (.n 4)))
-    {m : ℕ} (hm20 : 20 ≤ m) (hm30 : m ≤ 30) (h278 : σ (.n 278) = gen ^ (m - 20))
+    (hC : CallRel.Le C (coreProgram.Rel L.read)) (hwin : ExpWinTab L.read (σ (.n (val% «verify_sub» "g_squares"))))
+    {m : ℕ} (hm20 : 20 ≤ m) (hm30 : m ≤ 30) (h278 : σ (.n (val% «verify_sub» "size_sel")) = gen ^ (m - 20))
     (w268 : WordAt L.read σ 8 268) (w271 : WordAt L.read σ 9 271)
     (h : Stmt.HoldsList C L.read σ vsOodT next kret) :
     ∃ (z : List E) (v nn : E),
-      RunsTo (readOod m) ⟨[σ (.n 263), σ (.n 264), σ (.n 265), σ (.n 266), σ (.n 267)],
-          [(σ (.n 268), dsObserve), (σ (.n 271), dsObserve)]⟩
-        [σ (.n 283), v] (fun x ↦ eqEval z x, v)
-        ⟨[σ (.n 304), σ (.n 305), σ (.n 306), σ (.n 307), σ (.n 308)], [(v, dsObserve)]⟩ ∧
-      z.length = m ∧ ReadsAt L.read (σ (.n 303)) z ∧ ReadsAt L.read (σ (.n 309)) [v] ∧
-      LoadHolds L.read (σ (.n 25)) 10 (σ (.n 283)) ∧ σ (.n 311) = σ (.n 25) * gen ^ 11 ∧
-      LoadHolds L.read (σ (.n 311)) 0 v ∧ LoadHolds L.read (σ (.n 311)) 1 nn ∧
-      [σ (.n 312), σ (.n 313), σ (.n 314), σ (.n 315), σ (.n 316), σ (.n 317), σ (.n 318),
-          σ (.n 319)] =
-        [cellsOfState ((⟨[σ (.n 304), σ (.n 305), σ (.n 306), σ (.n 307), σ (.n 308)],
+      RunsTo (readOod m) ⟨[σ (.n (val% «verify_sub» "nxt[8]@2")), σ (.n (val% «verify_sub» "nxt[9]@2")), σ (.n (val% «verify_sub» "nxt[10]@2")), σ (.n (val% «verify_sub» "nxt[11]@2")), σ (.n (val% «verify_sub» "nxt[12]@2"))],
+          [(σ (.n (val% «verify_sub» "x@9")), dsObserve), (σ (.n (val% «verify_sub» "x@10")), dsObserve)]⟩
+        [σ (.n (val% «verify_sub» "s38.i0:fs_grind_squeeze.s0.e.s0.e.s0#0")), v] (fun x ↦ eqEval z x, v)
+        ⟨[σ (.n (val% «verify_sub» "fs0@1")), σ (.n (val% «verify_sub» "fs1@1")), σ (.n (val% «verify_sub» "fs2@1")), σ (.n (val% «verify_sub» "fs3@1")), σ (.n (val% «verify_sub» "fs4@1"))], [(v, dsObserve)]⟩ ∧
+      z.length = m ∧ ReadsAt L.read (σ (.n (val% «verify_sub» "ood_z"))) z ∧ ReadsAt L.read (σ (.n (val% «verify_sub» "ood_value"))) [v] ∧
+      LoadHolds L.read (σ (.n (val% «verify_sub» "stream"))) 10 (σ (.n (val% «verify_sub» "s38.i0:fs_grind_squeeze.s0.e.s0.e.s0#0"))) ∧ σ (.n (val% «verify_sub» "word0~9")) = σ (.n (val% «verify_sub» "stream")) * gen ^ 11 ∧
+      LoadHolds L.read (σ (.n (val% «verify_sub» "word0~9"))) 0 v ∧ LoadHolds L.read (σ (.n (val% «verify_sub» "word0~9"))) 1 nn ∧
+      [σ (.n (val% «verify_sub» "word0")), σ (.n (val% «verify_sub» "pow_word")), σ (.n (val% «verify_sub» "fs0@2")), σ (.n (val% «verify_sub» "fs1@2")), σ (.n (val% «verify_sub» "fs2@2")), σ (.n (val% «verify_sub» "fs3@2")), σ (.n (val% «verify_sub» "fs4@2")),
+          σ (.n (val% «verify_sub» "cursor@1"))] =
+        [cellsOfState ((⟨[σ (.n (val% «verify_sub» "fs0@1")), σ (.n (val% «verify_sub» "fs1@1")), σ (.n (val% «verify_sub» "fs2@1")), σ (.n (val% «verify_sub» "fs3@1")), σ (.n (val% «verify_sub» "fs4@1"))],
             [(v, dsObserve)]⟩ : Fs).nonceState nn) false 0,
-          cellsOfState ((⟨[σ (.n 304), σ (.n 305), σ (.n 306), σ (.n 307), σ (.n 308)],
+          cellsOfState ((⟨[σ (.n (val% «verify_sub» "fs0@1")), σ (.n (val% «verify_sub» "fs1@1")), σ (.n (val% «verify_sub» "fs2@1")), σ (.n (val% «verify_sub» "fs3@1")), σ (.n (val% «verify_sub» "fs4@1"))],
             [(v, dsObserve)]⟩ : Fs).nonceState nn) false 1] ++
-          capOf ((⟨[σ (.n 304), σ (.n 305), σ (.n 306), σ (.n 307), σ (.n 308)],
-            [(v, dsObserve)]⟩ : Fs).nonceState nn) ++ [σ (.n 311) * gen ^ 2] ∧ next := by
+          capOf ((⟨[σ (.n (val% «verify_sub» "fs0@1")), σ (.n (val% «verify_sub» "fs1@1")), σ (.n (val% «verify_sub» "fs2@1")), σ (.n (val% «verify_sub» "fs3@1")), σ (.n (val% «verify_sub» "fs4@1"))],
+            [(v, dsObserve)]⟩ : Fs).nonceState nn) ++ [σ (.n (val% «verify_sub» "word0~9")) * gen ^ 2] ∧ next := by
   rw [vsOodT] at h
   simp only [holdsList_append] at h
   obtain ⟨⟨l283, hn⟩, h⟩ := (holds_fsNonceT _ _ _ _ _).1 h
@@ -137,28 +139,28 @@ theorem vsOodT_holds {κ : ℕ} (hκ : κ ≤ 32) (hκw : winTabBits ≤ κ) (L 
   obtain ⟨hg, -, ⟨j, hj, hj278, hsp⟩, -, e311, m312, hom, hn'⟩ := h
   -- the nonce's permutation
   have hc := vs_oodPerm w268 w271 hn h286 h287 hk
-  obtain ⟨S, hS⟩ : ∃ S, (vsRootFs σ).nonceState (σ (.n 283)) = S := ⟨_, rfl⟩
+  obtain ⟨S, hS⟩ : ∃ S, (vsRootFs σ).nonceState (σ (.n (val% «verify_sub» "s38.i0:fs_grind_squeeze.s0.e.s0.e.s0#0"))) = S := ⟨_, rfl⟩
   rw [hS] at hc
-  have e288 : σ (.n 288) = cellsOfState S false 0 := congrFun hc 0
-  have e289 : σ (.n 289) = cellsOfState S false 1 := congrFun hc 1
-  have e296 : σ (.n 296) = cellsOfState S false 8 := congrFun hc 8
-  have e297 : σ (.n 297) = cellsOfState S false 9 := congrFun hc 9
-  have e298 : σ (.n 298) = cellsOfState S false 10 := congrFun hc 10
-  have e299 : σ (.n 299) = cellsOfState S false 11 := congrFun hc 11
-  have e300 : σ (.n 300) = cellsOfState S false 12 := congrFun hc 12
-  have hcapS : [σ (.n 296), σ (.n 297), σ (.n 298), σ (.n 299), σ (.n 300)] = capOf S := by
+  have e288 : σ (.n (val% «verify_sub» "nxt[0]@3")) = cellsOfState S false 0 := congrFun hc 0
+  have e289 : σ (.n (val% «verify_sub» "nxt[1]@3")) = cellsOfState S false 1 := congrFun hc 1
+  have e296 : σ (.n (val% «verify_sub» "nxt[8]@3")) = cellsOfState S false 8 := congrFun hc 8
+  have e297 : σ (.n (val% «verify_sub» "nxt[9]@3")) = cellsOfState S false 9 := congrFun hc 9
+  have e298 : σ (.n (val% «verify_sub» "nxt[10]@3")) = cellsOfState S false 10 := congrFun hc 10
+  have e299 : σ (.n (val% «verify_sub» "nxt[11]@3")) = cellsOfState S false 11 := congrFun hc 11
+  have e300 : σ (.n (val% «verify_sub» "nxt[12]@3")) = cellsOfState S false 12 := congrFun hc 12
+  have hcapS : [σ (.n (val% «verify_sub» "nxt[8]@3")), σ (.n (val% «verify_sub» "nxt[9]@3")), σ (.n (val% «verify_sub» "nxt[10]@3")), σ (.n (val% «verify_sub» "nxt[11]@3")), σ (.n (val% «verify_sub» "nxt[12]@3"))] = capOf S := by
     rw [capOf, e296, e297, e298, e299, e300]
   -- the grind
-  have hwt : WinTabs L.read (σ (.n 302)) := by rw [h302]; exact winTabs_of_expWinTab hwin
+  have hwt : WinTabs L.read (σ (.n (val% «verify_sub» "s38.i0:fs_grind_squeeze.s0.e.s0.e.s1#1"))) := by rw [h302]; exact winTabs_of_expWinTab hwin
   obtain ⟨-, hpow⟩ := (grind_check_holds 15 (by decide) hκ hκw L _ _ hwt []).1 (hC _ _ _ hg)
-  have hok : powOk 15 (Keccak.lane ((vsRootFs σ).nonceState (σ (.n 283))) 2) = true := by
-    refine ((grindOk_iff (s := vsRootFs σ) (bits := 15) (by decide) (σ (.n 283))).2 ?_).resolve_left
+  have hok : powOk 15 (Keccak.lane ((vsRootFs σ).nonceState (σ (.n (val% «verify_sub» "s38.i0:fs_grind_squeeze.s0.e.s0.e.s0#0")))) 2) = true := by
+    refine ((grindOk_iff (s := vsRootFs σ) (bits := 15) (by decide) (σ (.n (val% «verify_sub» "s38.i0:fs_grind_squeeze.s0.e.s0.e.s0#0")))).2 ?_).resolve_left
       (by decide)
     rw [hS, ← e289]
     exact hpow
-  have hG := runsToG_grind (bits := Whir.oodGrindingBits) (by decide) (vsRootFs σ) (σ (.n 283)) hok
+  have hG := runsToG_grind (bits := Whir.oodGrindingBits) (by decide) (vsRootFs σ) (σ (.n (val% «verify_sub» "s38.i0:fs_grind_squeeze.s0.e.s0.e.s0#0"))) hok
   rw [hS] at hG
-  have h303 : σ (.n 288) = challengeOf S := by rw [e288, Keccak.challengeOf_cells]
+  have h303 : σ (.n (val% «verify_sub» "nxt[0]@3")) = challengeOf S := by rw [e288, Keccak.challengeOf_cells]
   -- the point
   have hj7 : j < 11 := by simpa [vsSqpNames] using hj
   have hjm : j = m - 20 := by
@@ -173,7 +175,7 @@ theorem vsOodT_holds {κ : ℕ} (hκ : κ ≤ 32) (hκw : winTabBits ≤ κ) (L 
   rw [h303, hcapS] at hz
   rw [hcapS] at hret
   have hT : ((⟨capOf S, []⟩ : Fs).squeezeN k).2 =
-      ⟨[σ (.n 304), σ (.n 305), σ (.n 306), σ (.n 307), σ (.n 308)], []⟩ := by
+      ⟨[σ (.n (val% «verify_sub» "fs0@1")), σ (.n (val% «verify_sub» "fs1@1")), σ (.n (val% «verify_sub» "fs2@1")), σ (.n (val% «verify_sub» "fs3@1")), σ (.n (val% «verify_sub» "fs4@1"))], []⟩ := by
     have hp := vs_squeezeN_pend k ⟨capOf S, []⟩ rfl
     revert hp hret
     generalize ((⟨capOf S, []⟩ : Fs).squeezeN k).2 = T
@@ -188,7 +190,7 @@ theorem vsOodT_holds {κ : ℕ} (hκ : κ ≤ 32) (hκw : winTabBits ≤ κ) (L 
   obtain ⟨v, rfl⟩ : ∃ v, xs = [v] := by
     match xs, hxl with
     | [v], _ => exact ⟨v, rfl⟩
-  have e312 : σ (.n 311) = σ (.n 25) * gen ^ 11 := by rw [m312, e311, word_g11]
+  have e312 : σ (.n (val% «verify_sub» "word0~9")) = σ (.n (val% «verify_sub» "stream")) * gen ^ 11 := by rw [m312, e311, word_g11]
   refine ⟨challengeOf S :: ((⟨capOf S, []⟩ : Fs).squeezeN k).1, v, nn, ?_,
     by simp [vs_squeezeN_length], hz, hxo, l283, e312, hxc 0 (by simp), hnn rfl, ?_, hn'⟩
   · -- the run

@@ -8,6 +8,8 @@
 module
 
 public import LeanVM.Guest.B1.Digest.ChildListCLast
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«child_claim_list_last__L»
 
 /-!
 # The last child claims' honest valuation
@@ -81,11 +83,13 @@ theorem ccl_core {k : ℕ} (hk : k < 17) {sp entries region marks last : E} {sP 
           entries, region, marks, last] ∧
       (∀ a ∈ cclAtoms k, a.Holds rd σ) ∧
       vs.map σ = digestCells (keccak256 (pre ++ cellsBytes cells)) ∧
-      ∀ q ∈ (cclAtoms k).filterMap Memory.atomLoad?,
+      (∀ q ∈ (cclAtoms k).filterMap Memory.atomLoad?,
         (∃ o < 13, (σ q.1).limb 0 * addressOfIndex q.2 = addressOfIndex (sP + o)) ∨
         (∃ j < k, (σ q.1).limb 0 * addressOfIndex q.2 = addressOfIndex (rg + os j)) ∨
         (∃ j < k, ∃ c < 4,
-          (σ q.1).limb 0 * addressOfIndex q.2 = addressOfIndex (eP + 4 * os j + c)) := by
+          (σ q.1).limb 0 * addressOfIndex q.2 = addressOfIndex (eP + 4 * os j + c))) ∧
+      ∀ a ∈ cclAtoms k, Good rd (storesOf 5 (coreProgram.getD (idx% «child_claim_list_last__L0» + k) default).body)
+        (slotW 5 os) σ a := by
   have hok := ccl_all k hk
   have hcok := ccc_all hk
   set fn := coreProgram.getD (idx% «child_claim_list_last__L0» + k) default
@@ -115,15 +119,15 @@ theorem ccl_core {k : ℕ} (hk : k < 17) {sp entries region marks last : E} {sP 
       hgs (.atom a) (by rw [hbody]; exact List.mem_append_left _ (List.mem_map_of_mem ha))
     have par : ∀ i (hi : i < 5), σ (.n i) = args.getD i 0 := fun i hi => by
       rw [hσ]; exact ev_params rd _ (l := args) hchk (by simp [args]; omega)
-    have e0 : σ (.n 0) = sp := par 0 (by omega)
-    have e1 : σ (.n 1) = entries := par 1 (by omega)
-    have e2 : σ (.n 2) = region := par 2 (by omega)
-    have e3 : σ (.n 3) = marks := par 3 (by omega)
-    have e4 : σ (.n 4) = last := par 4 (by omega)
+    have e0 : σ (.n (valf% «child_claim_list_last» "state")) = sp := par 0 (by omega)
+    have e1 : σ (.n (valf% «child_claim_list_last» "entries_ptr")) = entries := par 1 (by omega)
+    have e2 : σ (.n (valf% «child_claim_list_last» "region")) = region := par 2 (by omega)
+    have e3 : σ (.n (valf% «child_claim_list_last» "marks")) = marks := par 3 (by omega)
+    have e4 : σ (.n (valf% «child_claim_list_last» "last_g")) = last := par 4 (by omega)
     have hrec' : RecMem rd (σ cclP.region) (gen ^ L) (σ cclP.entries) (σ cclP.marks) k os cells := by
-      show RecMem rd (σ (.n 2)) (gen ^ L) (σ (.n 1)) (σ (.n 3)) k os cells
+      show RecMem rd (σ (.n (valf% «child_claim_list_last» "region"))) (gen ^ L) (σ (.n (valf% «child_claim_list_last» "entries_ptr"))) (σ (.n (valf% «child_claim_list_last» "marks"))) k os cells
       rw [e2, e1, e3]; exact hrec
-    have hlast' : σ cclP.last * gen = gen ^ L := by show σ (.n 4) * gen = _; rw [e4]; exact hlast
+    have hlast' : σ cclP.last * gen = gen ^ L := by show σ (.n (valf% «child_claim_list_last» "last_g")) * gen = _; rw [e4]; exact hlast
     obtain ⟨hwit, -, vc, hside⟩ := recsW_holds hrecs hg hSt hrec' hlast' hL33 hdef
     have hpv : ∀ {p : V}, p.idx = 0 → σ p = sp := fun hp => by rw [hidx, hp, e0]
     have hnSl : ∀ {d p : V} {off : ℕ}, p.idx = 0 → off < 13 → Atom.load d p off ∉ S :=
@@ -152,7 +156,7 @@ theorem ccl_core {k : ℕ} (hk : k < 17) {sp entries region marks last : E} {sP 
       rw [this, List.take_of_length_le (by simp only [cclSpec]; omega)]
     rw [hv] at hd
     simp only [retOk, Bool.and_eq_true] at hret
-    refine ⟨[r0, r1], σ, hbody, ?_, hat, ?_, fun q hq => ?_⟩
+    refine ⟨[r0, r1], σ, hbody, ?_, hat, ?_, fun q hq => ?_, hg⟩
     · rw [hpar]
       simp only [List.map_cons, List.map_nil, e0, e1, e2, e3, e4]
     · rw [List.map_cons, List.map_cons, List.map_nil, copy_sound hret.1 hat, copy_sound hret.2 hat,
@@ -166,8 +170,8 @@ theorem ccl_core {k : ℕ} (hk : k < 17) {sp entries region marks last : E} {sP 
         · simp at h
         · have hFi : ∀ b ∈ (ccOwn atoms 0 i).filter pureB, b.Holds rd σ :=
             fun b hb => hat b (mem_ccOwn (List.mem_filter.mp hb).1)
-          rcases sideW_addr hFi (hwit i hi) (show σ (.n 2) = _ by rw [e2, hrg])
-              (show σ (.n 1) = _ by rw [e1, hen])
+          rcases sideW_addr hFi (hwit i hi) (show σ (.n (valf% «child_claim_list_last» "region")) = _ by rw [e2, hrg])
+              (show σ (.n (valf% «child_claim_list_last» "entries_ptr")) = _ by rw [e1, hen])
               ((recW_parts (hrecs i hi)).2.2.2 _ h rfl) with h' | ⟨c, hc4, h'⟩
           · exact Or.inr (Or.inl ⟨i, hi, h'⟩)
           · exact Or.inr (Or.inr ⟨i, hi, c, hc4, h'⟩)

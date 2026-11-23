@@ -185,7 +185,9 @@ abbrev BMoves {α : Type} (p : VerifierProgram α) : Prop :=
 
 theorem movesOK_roundsProg : ∀ (k : ℕ) (claim : E), BMoves (sumcheckRoundsProgram claim k)
   | 0, _ => trivial
-  | k + 1, _ => Moves.seq' Moves.readE fun _ _ ↦ Moves.seq' Moves.readE fun _ _ ↦
+  | k + 1, _ => by
+    rw [sumcheckRoundsProgram_succ]
+    exact Moves.seq' Moves.readE fun _ _ ↦ Moves.seq' Moves.readE fun _ _ ↦
       Moves.seq' Moves.sampleE fun _ _ ↦ Moves.seq' (movesOK_roundsProg k _) fun _ _ ↦ trivial
 
 theorem movesOK_require (q : Prop) (inst : Decidable q) : BMoves (@VerifierProgram.require q inst) :=
@@ -406,6 +408,7 @@ theorem costs_readChildren (nB : ℕ) :
 theorem costs_roundsProg : ∀ (k : ℕ) (claim : E), Costs 0 (sumcheckRoundsProgram claim k) (6 * k) fun _ ↦ True
   | 0, _ => trivial
   | k + 1, _ => by
+    rw [sumcheckRoundsProgram_succ]
     refine Costs.seq Costs.readE (fun _ _ ↦ ?_) (by omega)
     refine Costs.seq Costs.readE (fun _ _ ↦ ?_) (by omega)
     refine Costs.seq Costs.sampleE (fun _ _ ↦ ?_) (by omega)

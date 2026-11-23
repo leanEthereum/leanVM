@@ -2,6 +2,8 @@ module
 
 public import LeanVM.Cost.Bounds.Guest.Log
 public import LeanVM.Cost.Decoder.Hints
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«main»
 
 /-!
 # Bounds on the guest decoder's prices: the cell readers, the seed and the statement
@@ -195,9 +197,9 @@ theorem daDigestAt_cost (hP : Includes P Decoder.daDigestAtC.costDeps) (k : ℕ)
     (hk : 2 * k + 1 < 2 ^ 40) :
     machineCost P Decoder.daDigestAtC.costIdx [rdV, σV, encodeValue k] ≤ 2 * S + 2 * R + 5995 := by
   rw [Decoder.daDigestAtC.costEq P hP rd rdV hrd σ σV hσ]
-  have := hS (.n 364)
-  have := cellAt_cost P hrd hR (by includes) (σ (.n 364)) (2 * k) (by omega)
-  have := cellAt_cost P hrd hR (by includes) (σ (.n 364)) (2 * k + 1) hk
+  have := hS (.n (val% «main» "da_digests"))
+  have := cellAt_cost P hrd hR (by includes) (σ (.n (val% «main» "da_digests"))) (2 * k) (by omega)
+  have := cellAt_cost P hrd hR (by includes) (σ (.n (val% «main» "da_digests"))) (2 * k + 1) hk
   rw [digestOfCells_cost P (by includes)]
   limbs_one
   omega

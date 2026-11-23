@@ -31,6 +31,7 @@ final class Native {
     static final int SEED_LENGTH = 32;
     static final int XMSS_SIGNATURE_LENGTH = 2404;
     static final int SPHINCS_SIGNATURE_LENGTH = 7740;
+    static final int VRF_ROOT_LENGTH = 32;
 
     private static final int OK = 0;
     private static final int CHECKED_ERROR = 1;
@@ -54,6 +55,8 @@ final class Native {
     private static final MethodHandle XMSS_GENERATE = downcall("lpq_xmss_secret_key_generate", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
     private static final MethodHandle XMSS_FROM_BYTES = downcall("lpq_xmss_secret_key_from_bytes", BYTES_TO_HANDLE);
     private static final MethodHandle XMSS_TO_BYTES = downcall("lpq_xmss_secret_key_to_bytes", HANDLE_TO_BUFFER);
+    private static final MethodHandle XMSS_CACHE_TO_BYTES = downcall("lpq_xmss_secret_key_cache_to_bytes", HANDLE_TO_BUFFER);
+    private static final MethodHandle XMSS_FROM_CACHE_BYTES = downcall("lpq_xmss_secret_key_from_cache_bytes", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS));
     private static final MethodHandle XMSS_PUBLIC_KEY = downcall("lpq_xmss_secret_key_public_key", HANDLE_TO_BUFFER);
     private static final MethodHandle XMSS_PREPARE = downcall("lpq_xmss_secret_key_prepare", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.JAVA_INT));
     private static final MethodHandle XMSS_SIGN = downcall("lpq_xmss_secret_key_sign", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.ADDRESS, SIZE, ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
@@ -82,6 +85,14 @@ final class Native {
     private static final MethodHandle AGGREGATE_SPHINCS_CLAIMS = downcall("lpq_aggregate_sphincs_claims", HANDLE_TO_BUFFER);
     private static final MethodHandle AGGREGATE_DESTROY = downcall("lpq_aggregate_destroy", DESTROY);
 
+    private static final MethodHandle VRF_KEY_NEW = downcall("lpq_vrf_key_new", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, SIZE, ValueLayout.JAVA_INT, ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
+    private static final MethodHandle VRF_KEY_FROM_CACHE_BYTES = downcall("lpq_vrf_key_from_cache_bytes", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS));
+    private static final MethodHandle VRF_KEY_CACHE_TO_BYTES = downcall("lpq_vrf_key_cache_to_bytes", HANDLE_TO_BUFFER);
+    private static final MethodHandle VRF_KEY_ROOT = downcall("lpq_vrf_key_root", HANDLE_TO_BUFFER);
+    private static final MethodHandle VRF_KEY_PROOF = downcall("lpq_vrf_key_proof", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
+    private static final MethodHandle VRF_KEY_DESTROY = downcall("lpq_vrf_key_destroy", DESTROY);
+    private static final MethodHandle VRF_VERIFY = downcall("lpq_vrf_verify", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, SIZE, ValueLayout.JAVA_LONG, ValueLayout.ADDRESS, SIZE));
+
     private Native() {}
 
     /** Returns {@code bytes} after checking it is non-null and exactly {@code length} bytes long. */
@@ -105,6 +116,19 @@ final class Native {
 
     static byte[] xmssToBytes(MemorySegment key) {
         return buffer(XMSS_TO_BYTES, key);
+    }
+
+    static byte[] xmssCacheToBytes(MemorySegment key) {
+        return buffer(XMSS_CACHE_TO_BYTES, key);
+    }
+
+    static MemorySegment xmssFromCacheBytes(byte[] seed, byte[] publicKey, byte[] cache) {
+        try (Arena arena = Arena.ofConfined()) {
+            return handle(XMSS_FROM_CACHE_BYTES,
+                copy(arena, seed), (long) seed.length,
+                copy(arena, publicKey), (long) publicKey.length,
+                copy(arena, cache), (long) cache.length);
+        }
     }
 
     static byte[] xmssPublicKey(MemorySegment key) {
@@ -236,6 +260,46 @@ final class Native {
         invoke(AGGREGATE_DESTROY, pointer);
     }
 
+    static MemorySegment vrfKeyNew(byte[] seed, long start, long end) {
+        int first = u32(start, "start");
+        int last = u32(end, "end");
+        try (Arena arena = Arena.ofConfined()) {
+            return handle(VRF_KEY_NEW, copy(arena, seed), (long) seed.length, first, last);
+        }
+    }
+
+    static MemorySegment vrfKeyFromCacheBytes(byte[] seed, byte[] root, byte[] cache) {
+        try (Arena arena = Arena.ofConfined()) {
+            return handle(VRF_KEY_FROM_CACHE_BYTES, copy(arena, seed), (long) seed.length, copy(arena, root), (long) root.length, copy(arena, cache), (long) cache.length);
+        }
+    }
+
+    static byte[] vrfCacheToBytes(MemorySegment key) {
+        return buffer(VRF_KEY_CACHE_TO_BYTES, key);
+    }
+
+    static byte[] vrfRoot(MemorySegment key) {
+        return buffer(VRF_KEY_ROOT, key);
+    }
+
+    static byte[] vrfProof(MemorySegment key, long slot) {
+        return buffer(VRF_KEY_PROOF, key, u32(slot, "slot"));
+    }
+
+    static void destroyVrfKey(MemorySegment pointer) {
+        invoke(VRF_KEY_DESTROY, pointer);
+    }
+
+    /** The slot is passed as an unsigned 64-bit integer. */
+    static boolean vrfVerify(byte[] root, long slot, byte[] proof) {
+        try (Arena arena = Arena.ofConfined()) {
+            return verified(status(VRF_VERIFY,
+                copy(arena, root), (long) root.length,
+                slot,
+                copy(arena, proof), (long) proof.length));
+        }
+    }
+
     /**
      * Loads {@code -Dlean.pq.native.path} when set; otherwise extracts the library bundled in this jar
      * for the current platform and loads it: from a private temporary directory on Linux and macOS,
@@ -360,16 +424,19 @@ final class Native {
 
     private static boolean verify(MethodHandle function, byte[] publicKey, byte[] message, byte[] signature) {
         try (Arena arena = Arena.ofConfined()) {
-            int status = status(function,
+            return verified(status(function,
                 copy(arena, publicKey), (long) publicKey.length,
                 copy(arena, message), (long) message.length,
-                copy(arena, signature), (long) signature.length);
-            if (status == CHECKED_ERROR) {
-                return false;
-            }
-            check(status);
-            return true;
+                copy(arena, signature), (long) signature.length));
         }
+    }
+
+    private static boolean verified(int status) {
+        if (status == CHECKED_ERROR) {
+            return false;
+        }
+        check(status);
+        return true;
     }
 
     private static MemorySegment handle(MethodHandle function, Object... arguments) {

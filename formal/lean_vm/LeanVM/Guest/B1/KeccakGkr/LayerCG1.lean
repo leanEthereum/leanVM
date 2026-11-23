@@ -10,6 +10,8 @@ module
 public import LeanVM.Guest.B1.KeccakGkr.LayerCSpec
 public import LeanVM.Guest.B1.KeccakGkr.LayerCF
 public import LeanVM.Guest.B1.KeccakGkr.StoreFacts
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«keccak_layer__L»
 
 /-!
 # The sections and the stores
@@ -36,7 +38,7 @@ theorem layerT_sections (first : ℕ) : layerT first =
   simp only [layerT, secA1, secA2, hornerS, localS, eqfS, tW, tV, List.append_assoc]
 
 theorem layer_noStore {first : ℕ} (hf : first < 2) :
-    noStoreVia [.n 7, .n 11, .n (layOff first + 737), .n (layOff first + 743)] (layerSt first) =
+    noStoreVia [.n (valf% «keccak_layer» "cursor@1"), .n (valf% «keccak_layer» "claim"), .n (layOff first + 737), .n (layOff first + 743)] (layerSt first) =
       true := by
   interval_cases first <;> decide +kernel
 

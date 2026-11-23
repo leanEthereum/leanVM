@@ -531,8 +531,8 @@ fn da_guest_checks_codeword_membership() {
             vec![from_scalar(verifier::da::membership_challenge(&commitment))],
         );
         hints.push("da_n_blobs", vec![count(rows.len())]);
-        for j in 0..CELLS_PER_ROW {
-            for row in rows {
+        for row in rows {
+            for j in 0..CELLS_PER_ROW {
                 let cell = &row.as_chunks::<CELL_SYMBOLS>().0[j];
                 hints.push("da_symbols", cell.iter().map(|&w| F128::from(w)).collect());
             }

@@ -10,6 +10,8 @@ module
 
 public import LeanVM.Guest.Glob
 public import LeanVM.Guest.B1.Opening.QueriesT
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«opening_queries__L_loop0»
 
 /-!
 # The walks' certificates, checked
@@ -97,7 +99,7 @@ noncomputable def loop0Ok (j : ℕ) (s : Oq) : Bool :=
 noncomputable def loop1Ok (j odd : ℕ) (s : Oq) : Bool :=
   loopOk (certOf j) (walkTag 1 odd (s.pd + s.cd) s.cd) (s.pd + s.cd) s.cd
     [(15, 6), (oqE1 s + 1,
-      (oqQueryT s (.n 14) (.n 15) (.n 4) (.n 5) (.n 6) (.n 7) 16 true 0 "").length + 8)]
+      (oqQueryT s (.n 14) (.n 15) (.n (valf% «opening_queries» «_loop0» "cap")) (.n (valf% «opening_queries» «_loop0» "flags")) (.n (valf% «opening_queries» «_loop0» "coefs")) (.n (valf% «opening_queries» «_loop0» "hs")) 16 true 0 "").length + 8)]
     (oqG1 s + 4) (oqLoop1A s odd "").length
 
 /-- `walk_path__L{pd}_L{cd}`'s certificate (`wpBodyT ⟨_, _, pd, cd⟩`). -/

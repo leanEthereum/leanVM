@@ -2,6 +2,8 @@ module
 
 public import LeanVM.Cost.Decoder.Staged
 public import LeanVM.Guest.Fast.Main
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«main»
 
 /-!
 # The guest decoder's compiled chain: each callee's witness off its frame
@@ -39,7 +41,7 @@ open LeanVM.Guest.Fast in
 its frame and its three `sp_wots` frames, the readers' tables `R` given. -/
 noncomputable def sphincsAtFrame (R : ReaderTabs) (σ : Val) (Vn : NFrames) (p : E) :
     Sphincs.Signature :=
-  let s := Vn (fn_idx% verify_sig_lean_sphincs) [p, σ (.n 47)] []
+  let s := Vn (fn_idx% verify_sig_lean_sphincs) [p, σ (.n (val% «main» "byte_bits"))] []
   sphincsSigOfA R.sphincs s (Vn (fn_idx% sp_wots) (spWotsArgs s 0) (spWotsRets s 0))
     (Vn (fn_idx% sp_wots) (spWotsArgs s 1) (spWotsRets s 1)) (Vn (fn_idx% sp_wots) (spWotsArgs s 2) (spWotsRets s 2))
 

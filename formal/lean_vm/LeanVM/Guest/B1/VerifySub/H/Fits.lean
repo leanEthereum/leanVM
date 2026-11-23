@@ -16,7 +16,7 @@ public import LeanVM.Guest.B1.VerifySub.H.Vt
 /-!
 # The own buffers' sizes, the last callees' regions
 
-`ChildSegs.ownW_fits`: the own buffers' honest words fit `vsSizes d` (the stream within
+`ChildSegs.ownW_fits`: the own buffers' honest words fit `vsSizes` (the stream within
 `childStreamCap`). `subOf_sub`: a slice of a slice. `kid10_lin_sub`: `verify_tables` reads the
 caller's words, the own buffers and the GKR leaves `verify_bus_gkr` returned (`VbgOut`).
 `kid11_lin_sub`: `verify_keccak` reads the caller's words and the own buffers (the output lanes
@@ -65,7 +65,7 @@ theorem zvW_length (hbl : bytecode.length = 2 ^ 23) :
 /-- **The own buffers fit their sizes.** -/
 theorem ownW_fits (hbl : bytecode.length = 2 ^ 23)
     (hst : c.proof.stream.length ≤ Coverage.childStreamCap) :
-    List.Forall₂ (fun c s ↦ c.length ≤ s) S.ownW (vsSizes S.d) := by
+    List.Forall₂ (fun c s ↦ c.length ≤ s) S.ownW (vsSizes) := by
   obtain ⟨hok, -, -, -⟩ := S.H_run hbl
   obtain ⟨-, h22, -, -, -, -, -, hsl⟩ := S.keccak_facts hbl
   obtain ⟨-, -, -, -, hpl, -⟩ := S.gkr_inv hbl
@@ -73,7 +73,7 @@ theorem ownW_fits (hbl : bytecode.length = 2 ^ 23)
   have hzl := S.zvW_length hbl
   have hμ : S.μs ≤ 30 := S.hmu30
   simp only [ChildSegs.ownW, vsSizes, List.forall₂_cons, List.forall₂_nil_left_iff, and_true]
-  refine ⟨?_, ?_, by simp [S.hrowsL], ?_, ?_, hpl.le, by rw [S.oodZ_length]; exact hμ, by simp,
+  refine ⟨?_, ?_, by simp [S.hrowsL], ?_, ?_, by rw [hpl]; have := S.d_bounds hbl; omega, by rw [S.oodZ_length]; exact hμ, by simp,
     (S.wb_length hbl).le, ?_, S.slots_length.le, by rw [hzl]; simp only [qkeccakVarsCap]; omega,
     hsl.le, S.rchs_length.le, S.ctab_length.le⟩
   · simp [Tables.VtHonest.poolW, Tables.VtHonest.pcW, hok.hx4]
@@ -103,12 +103,12 @@ end ChildSegs
 theorem kid10_lin_sub {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Digest}
     {c : Child} (S : ChildSegs bytecode seed c) (b : ℕ) {sqE : ℕ} {Lin : Main.Layout}
     (hexp : ∀ q ∈ vsExpLin sqE, q ∈ Lin) (pv : List (List E × Main.Layout))
-    (h9 : Tables.VbgOut S.s4.cap (ptr (ChildSegs.cG (bases b (vsSizes S.d))) * gen ^ S.xsG.length)
+    (h9 : Tables.VbgOut S.s4.cap (ptr (ChildSegs.cG (bases b (vsSizes))) * gen ^ S.xsG.length)
       S.rG.2.2 (pv.getD 9 ([], [])).1 (pv.getD 9 ([], [])).2) :
-    ∀ q ∈ ((S.kids (bases b (vsSizes S.d)) sqE).getD 10 noKid pv).Lin,
-      SubOf Lin q ∨ SubOf (bufL b (vsSizes S.d) S.ownW) q ∨ q ∈ (pv.getD 9 ([], [])).2 := by
-  set bs := bases b (vsSizes S.d)
-  have own : ∀ i < 15, SubOf (bufL b (vsSizes S.d) S.ownW) (vb bs i, S.ownW.getD i []) :=
+    ∀ q ∈ ((S.kids (bases b (vsSizes)) sqE).getD 10 noKid pv).Lin,
+      SubOf Lin q ∨ SubOf (bufL b (vsSizes) S.ownW) q ∨ q ∈ (pv.getD 9 ([], [])).2 := by
+  set bs := bases b (vsSizes)
+  have own : ∀ i < 15, SubOf (bufL b (vsSizes) S.ownW) (vb bs i, S.ownW.getD i []) :=
     fun i hi ↦ S.sub_own b hi
   obtain ⟨-, hcur, -, -⟩ := S.H_run hbl
   obtain ⟨-, -, hc5, -⟩ := S.gkr_inv hbl
@@ -143,15 +143,15 @@ theorem kid10_lin_sub {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed
 theorem kid11_lin_sub {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Digest}
     {c : Child} (S : ChildSegs bytecode seed c) (b : ℕ) {sqE : ℕ} {Lin : Main.Layout}
     (hexp : ∀ q ∈ vsExpLin sqE, q ∈ Lin) (pv : List (List E × Main.Layout)) :
-    ∀ q ∈ ((S.kids (bases b (vsSizes S.d)) sqE).getD 11 noKid pv).Lin,
-      SubOf Lin q ∨ SubOf (bufL b (vsSizes S.d) S.ownW) q := by
-  set bs := bases b (vsSizes S.d)
-  have own : ∀ i < 15, SubOf (bufL b (vsSizes S.d) S.ownW) (vb bs i, S.ownW.getD i []) :=
+    ∀ q ∈ ((S.kids (bases b (vsSizes)) sqE).getD 11 noKid pv).Lin,
+      SubOf Lin q ∨ SubOf (bufL b (vsSizes) S.ownW) q := by
+  set bs := bases b (vsSizes)
+  have own : ∀ i < 15, SubOf (bufL b (vsSizes) S.ownW) (vb bs i, S.ownW.getD i []) :=
     fun i hi ↦ S.sub_own b hi
   obtain ⟨hlo, hlen⟩ := S.outs_stream hbl
   obtain ⟨-, h22, -, hol, -, hopl, -⟩ := S.keccak_facts hbl
   have hzl := S.zvW_length hbl
-  have hz : SubOf (bufL b (vsSizes S.d) S.ownW) (vb bs 11, zvW S.kOut.point S.kc.2.1) :=
+  have hz : SubOf (bufL b (vsSizes) S.ownW) (vb bs 11, zvW S.kOut.point S.kc.2.1) :=
     own 11 (by norm_num)
   have hpre : zvW S.kOut.point S.kc.2.1 = S.kOut.point ++
       (List.replicate (qkeccakVarsCap - S.kOut.point.length) 0 ++ S.kc.2.1) := by
@@ -164,12 +164,12 @@ theorem kid11_lin_sub {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed
   have hk : (zvW S.kOut.point S.kc.2.1).drop qkeccakVarsCap = S.kc.2.1 := by
     rw [zvW]
     exact List.drop_left' hl39
-  have hop : SubOf (bufL b (vsSizes S.d) S.ownW) (vb bs 11, S.kOut.point) := by
+  have hop : SubOf (bufL b (vsSizes) S.ownW) (vb bs 11, S.kOut.point) := by
     have := subOf_sub hz 0 S.kOut.point (by rw [hzl, hopl]; simp only [qkeccakVarsCap]; omega)
       (by rw [List.drop_zero, hpre, List.take_left])
     rwa [Nat.add_zero] at this
   have hkpl := (S.keccak_facts hbl).2.2.2.2.2.2.1
-  have hkp : SubOf (bufL b (vsSizes S.d) S.ownW) (vb bs 11 + qkeccakVarsCap, S.kc.2.1) :=
+  have hkp : SubOf (bufL b (vsSizes) S.ownW) (vb bs 11 + qkeccakVarsCap, S.kc.2.1) :=
     subOf_sub hz qkeccakVarsCap S.kc.2.1 (by rw [hzl]; omega) (by rw [hk, List.take_length])
   intro q hq
   simp only [ChildSegs.kids, List.getD_cons_succ, List.getD_cons_zero, List.mem_cons,
@@ -192,11 +192,11 @@ theorem kid11_lin_sub {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed
 theorem kid15_lin_sub {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Digest}
     {c : Child} (S : ChildSegs bytecode seed c) (b : ℕ) {sqE : ℕ} {Lin : Main.Layout}
     (hexp : ∀ q ∈ vsExpLin sqE, q ∈ Lin) (pv : List (List E × Main.Layout)) :
-    ∀ q ∈ ((S.kids (bases b (vsSizes S.d)) sqE).getD 15 noKid pv).Lin,
-      SubOf Lin q ∨ SubOf (bufL b (vsSizes S.d) S.ownW) q ∨ q ∈ (pv.getD 3 ([], [])).2 ∨
+    ∀ q ∈ ((S.kids (bases b (vsSizes)) sqE).getD 15 noKid pv).Lin,
+      SubOf Lin q ∨ SubOf (bufL b (vsSizes) S.ownW) q ∨ q ∈ (pv.getD 3 ([], [])).2 ∨
         q ∈ (pv.getD 14 ([], [])).2 := by
-  set bs := bases b (vsSizes S.d)
-  have own : ∀ i < 15, SubOf (bufL b (vsSizes S.d) S.ownW) (vb bs i, S.ownW.getD i []) :=
+  set bs := bases b (vsSizes)
+  have own : ∀ i < 15, SubOf (bufL b (vsSizes) S.ownW) (vb bs i, S.ownW.getD i []) :=
     fun i hi ↦ S.sub_own b hi
   intro q hq
   by_cases hok : S.termOk pv

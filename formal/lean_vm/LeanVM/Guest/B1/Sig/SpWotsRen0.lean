@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.SpWotsRen0
 
-  The guest's numbering of `sp_wots`'s template is undone by `spUn` on the values of statements 0 to 31, in runs of 8:
+  The guest's numbering of `sp_wots`'s template is undone by `spUn` on the values of the statements before `group@4`'s, in runs of 8:
   no value the template names is one its steps without an address constant leave unused.
 -/
 

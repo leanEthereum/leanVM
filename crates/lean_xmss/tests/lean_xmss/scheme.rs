@@ -36,6 +36,42 @@ fn full_key_signs_and_verifies() {
     assert!(!verify(&pk, &other_message, &first));
 }
 
+/// A key loaded from its cache signs as the original.
+#[test]
+fn cache_round_trip() {
+    let seed = [2; SECRET_KEY_LEN];
+    let (sk, pk) = key_gen(&seed);
+    let (first, other) = ((3 << LAYER_HEIGHT) + 77, (9 << LAYER_HEIGHT) + 65535);
+    sk.prepare(first);
+    sk.prepare(other);
+    let bytes = sk.cache_to_bytes();
+    let loaded = LeanXmssExpandedSecretKey::from_cache_bytes(&seed, &pk, &bytes).unwrap();
+    assert_eq!(loaded.public_key(), pk);
+    assert_eq!(loaded.cache_to_bytes(), bytes);
+    for leaf_index in [first, other] {
+        assert_eq!(
+            sign(&loaded, &test_message(), leaf_index),
+            sign(&sk, &test_message(), leaf_index)
+        );
+    }
+    assert!(LeanXmssExpandedSecretKey::from_cache_bytes(&seed, &pk, &bytes[1..]).is_none());
+
+    // Tampered bytes are refused: a top node, a bottom tree's index, a bottom node, its signature.
+    let top_len = 1 << 12;
+    let bottom_len = (bytes.len() - top_len) / 2;
+    for at in [0, top_len, top_len + bottom_len - 1, top_len + 4] {
+        let mut tampered = bytes.clone();
+        tampered[at] ^= 1;
+        assert!(
+            LeanXmssExpandedSecretKey::from_cache_bytes(&seed, &pk, &tampered).is_none(),
+            "byte {at}"
+        );
+    }
+    // So is another key's cache.
+    let (_, other_pk) = key_gen(&[9; 32]);
+    assert!(LeanXmssExpandedSecretKey::from_cache_bytes(&seed, &other_pk, &bytes).is_none());
+}
+
 /// Pins a full key's public key and one signature's bytes, so that a change to the
 /// seed derivation, the addresses, the hash inputs or the serialization cannot pass
 /// unnoticed. An implementation of `doc/lean_xmss` written from the text alone gives

@@ -9,6 +9,8 @@
 module
 
 public import LeanVM.Guest.B1.Tables.VtC.SBase
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_tables»
 
 /-!
 # The tables' heights
@@ -32,11 +34,11 @@ variable {rd : Reader} {w : ℕ → E} {σ : Val}
 
 /-- The dispatch on `g^τ` to `padding_weight__L{τ}`. -/
 theorem pad_dispatch {x r a b c τ n : ℕ} {zs : List E} (hτ : τ < 31) (hv : σ (.n x) = gen ^ τ)
-    (hrow : σ (.n r) = eOfNat n) (hz : TbReadsAt rd (σ (.n 8)) zs) (hzl : zs.length = τ)
+    (hrow : σ (.n r) = eOfNat n) (hz : TbReadsAt rd (σ (.n (val% «verify_tables» "zeta"))) zs) (hzl : zs.length = τ)
     (hn : n ≤ 2 ^ τ) (h6 : σ (.n a) = paddingWeight zs n) (h7 : σ (.n b) = PadLead τ n)
     (h8 : σ (.n c) = PadRest τ n) :
     VSH (coreProgram.Rel rd) rd σ
-      (.dispatch (.n x) vtPadNames [.n r, .n 8] [.n a, .n b, .n c]) := by
+      (.dispatch (.n x) vtPadNames [.n r, .n (val% «verify_tables» "zeta")] [.n a, .n b, .n c]) := by
   rw [vsh_dispatch]
   refine ⟨τ, by simp [vtPadNames]; exact hτ, by rw [hv, gen_pow_eq_ofK], ?_⟩
   simp only [vtPadNames, List.getElem_map, List.getElem_range, List.map_cons, List.map_nil]
@@ -45,10 +47,10 @@ theorem pad_dispatch {x r a b c τ n : ℕ} {zs : List E} (hτ : τ < 31) (hv : 
 /-- **Table `t < 5`'s height**: its `τ` at `kappa_base[2 + t]` (frame variable `30 + t`). -/
 theorem pad_ok {v t τ n : ℕ} {zs : List E} (hlow : LowDefB 14 rd)
     (hg : GoodL rd w σ (vtPadT v t))
-    (s4 : Atom.load (.n (v + 4)) (.n 11) t ∉ vtSL)
-    (hkb : σ (.n (27 + t)) = gen ^ τ)
-    (hrow : LoadHolds rd (σ (.n 11)) t (eOfNat n))
-    (hz : TbReadsAt rd (σ (.n 8)) zs) (hzl : zs.length = τ) (hτ : τ < 31) (hlog : log2Ceil n = τ)
+    (s4 : Atom.load (.n (v + 4)) (.n (val% «verify_tables» "table_rows")) t ∉ vtSL)
+    (hkb : σ (.n (28 + t)) = gen ^ τ)
+    (hrow : LoadHolds rd (σ (.n (val% «verify_tables» "table_rows"))) t (eOfNat n))
+    (hz : TbReadsAt rd (σ (.n (val% «verify_tables» "zeta"))) zs) (hzl : zs.length = τ) (hτ : τ < 31) (hlog : log2Ceil n = τ)
     (hw5 : w (v + 5) = paddingWeight zs n) (hw6 : w (v + 6) = PadLead τ n)
     (hw7 : w (v + 7) = PadRest τ n) :
     (∀ st ∈ vtPadT v t, VSH (coreProgram.Rel rd) rd σ st) ∧
@@ -86,10 +88,10 @@ theorem pad5_ok {v τ n : ℕ} {zs : List E} (hlow : LowDefB 14 rd) (hv : 33 ≤
       .atom (.add (.n (v + 18)) (.n (v + 7)) (.n (v + 17))),
       .atom (.hint (.inverse (.n (v + 18)) (.n (v + 19)))),
       .atom (.assertNe (.n (v + 18)) (.n (v + 19)) (.n (v + 20)))])
-    (s4 : Atom.load (.n (v + 4)) (.n 11) 5 ∉ vtSL)
-    (hkb : σ (.n 32) = gen ^ τ)
-    (hrow : LoadHolds rd (σ (.n 11)) 5 (eOfNat n))
-    (hz : TbReadsAt rd (σ (.n 8)) zs) (hzl : zs.length = τ) (hτ : τ < 31)
+    (s4 : Atom.load (.n (v + 4)) (.n (val% «verify_tables» "table_rows")) 5 ∉ vtSL)
+    (hkb : σ (.n (val% «verify_tables» "kb[7]")) = gen ^ τ)
+    (hrow : LoadHolds rd (σ (.n (val% «verify_tables» "table_rows"))) 5 (eOfNat n))
+    (hz : TbReadsAt rd (σ (.n (val% «verify_tables» "zeta"))) zs) (hzl : zs.length = τ) (hτ : τ < 31)
     (hlog : τ = max (log2Ceil n) 9)
     (hw5 : w (v + 5) = paddingWeight zs n) (hw6 : w (v + 6) = PadLead τ n)
     (hw7 : w (v + 7) = PadRest τ n) :
@@ -101,7 +103,7 @@ theorem pad5_ok {v τ n : ℕ} {zs : List E} (hlow : LowDefB 14 rd) (hv : 33 ≤
   simp only [GoodL, GoodS, fixNe, Good, and_true] at hgb
   obtain ⟨b16, -, b17, b18, b19, b20⟩ := hgb
   simp only [show v < v + 1 by omega, show v + 8 < v + 11 by omega,
-    show ¬ (v + 10 < 32 ∧ v + 9 < 32) from fun h => by omega,
+    show ¬ (v + 10 < 33 ∧ v + 9 < 33) from fun h => by omega,
     show v + 18 < v + 20 ∧ v + 19 < v + 20 from ⟨by omega, by omega⟩, ↓reduceIte] at g1 g10 g11 b20
   have hn : n ≤ 2 ^ τ := by
     have := log2Ceil_le_iff.mp (show log2Ceil n ≤ τ by omega)

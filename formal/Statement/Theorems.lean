@@ -71,12 +71,16 @@ structure Theorems
   candidates (`LeanVmGuest.lean`). With `leanVmKnowledgeSoundness` and `guestKnowledgeSoundness` it
   gives what an accepted proof establishes, `Statement.Corollaries`' `aggregateSound`. -/
   statementDigestBinds : LeanVM.Node.StatementDigestBinds
-  /-- The leanISA guest program is complete, in at most `2^30` committed words, on every node within
-  the deployed limits (`DeployedLimits`: at most `16` children holding `2^17` claims in all, `2048`
-  leanXMSS and `512` leanSPHINCS signatures, a blob matrix of `LeanDa.maxRows` rows), under the deployed seed,
-  wherever every child carries the honest prover's proof (`HonestChild`)
-  (`LeanVmGuestCompleteness.lean`). -/
-  guestCompleteOnHonestChildren : LeanVM.Guest.Completeness.GuestCompleteOnHonestChildren
+  /-- The leanISA guest program is complete on every node within the deployed limits
+  (`DeployedLimits`: at most `16` children holding `2^17` claims in all, `2048` leanXMSS and `512`
+  leanSPHINCS signatures, a blob matrix of `LeanDa.maxRows` rows), under the deployed seed, wherever
+  every child carries the honest prover's proof (`HonestChild`): the executor (`Prover/Execute.lean`)
+  runs the guest program to a valid execution, within `2^30` committed words, on the advice the
+  guest's witness generation makes from the statement and the witness (`LeanVM.Guest.guestExecution`,
+  `LeanVmGuestProver.lean`) (`LeanVmGuestCompleteness.lean`). With
+  `leanVmCompleteness` and `honestProofRarelyRefused`, the guest's prover (`LeanVM.Guest.guestProve`)
+  makes a proof the verifier accepts, `Statement.Corollaries`' `guestProverComplete`. -/
+  guestExecutionComplete : LeanVM.Guest.Completeness.GuestExecutionComplete
   /-- The same honest prover's proof of an execution of the guest program is rarely refused: it
   makes none, or the verifier refusing every zero challenge rejects it, with
   probability at most `2^-100` in the random-permutation model (`LeanVmGuestCompleteness.lean`). Read for the deployed

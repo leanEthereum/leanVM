@@ -90,7 +90,7 @@ theorem script_bind_assoc {α β γ : Type} (p : Script α) (f : α → Script �
   | ret a => rfl
   | send x k ih => simp only [Script.bind, ih]
   | sample k ih => simp only [Script.bind, ih]
-  | grind k ih => simp only [Script.bind, ih]
+  | grind o k ih => simp only [Script.bind, ih]
   | commit w k ih => simp only [Script.bind, ih]
   | query k ih => simp only [Script.bind, ih]
 

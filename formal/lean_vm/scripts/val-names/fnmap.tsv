@@ -1,0 +1,685 @@
+# The function of a file or a declaration, where the source names none, decided by reading it (rewrite.py --fn-map): `FILE F`, `FILE@decl F`, `tie T F`; `F` a function, a family `f__L`, `f__L_loop0`, or functions `f,g` one template serves; `align NAME F`: positions in the list `NAME` are `F`'s body's.
+LeanVM/Guest/B1/Sig/XmssSegT.lean main_loop2
+LeanVM/Guest/B1/Bits/SmallGPower.lean assert_small_g_power
+LeanVM/Guest/B1/Ring/WeightComplete.lean ring_switch_weight
+LeanVM/Guest/B1/Eq/RsRows.lean@rs_eq_rows_L0_body rs_eq_rows__L0
+LeanVM/Guest/B1/Eq/PlusOne.lean plus_one_run__L
+# B1/Gkr: the layer's templates GlT.glBody assembles before its renamed tail (checked by glIs_layers), the loop's (glIs_loops), verify_bus_gkr_loop0's body (l8Check), the layers' and last layers' bodies (GlCLayers)
+tie glPre gkr_layer__L
+tie glHeadRounds gkr_layer__L
+tie glHeadStore0 gkr_layer__L
+tie glHeadStoreP gkr_layer__L
+tie glHeadStore gkr_layer__L
+tie glLoopCall0 gkr_layer__L
+tie glLoopCallP gkr_layer__L
+tie glLoopCall gkr_layer__L
+tie glTailSetup0 gkr_layer__L
+tie glTailSetupP gkr_layer__L
+tie glTailSetup gkr_layer__L
+tie glTailRounds gkr_layer__L
+tie glPad gkr_layer__L
+tie glLoopPre gkr_layer__L_loop0
+tie glLoopRounds gkr_layer__L_loop0
+tie glLoopPost gkr_layer__L_loop0
+tie l8Body verify_bus_gkr_loop0
+tie glcLsBody gkr_layers__L
+tie glcLsLBody gkr_layers__L_loop0
+tie glcLastBody gkr_last_layers__L
+# VerifySub
+LeanVM/Guest/B1/VerifySub/Bus.lean verify_sub
+LeanVM/Guest/B1/VerifySub/C/Body.lean verify_sub
+LeanVM/Guest/B1/VerifySub/C/Vals.lean verify_sub
+LeanVM/Guest/B1/VerifySub/C/ValsB.lean verify_sub
+LeanVM/Guest/B1/VerifySub/CLoads.lean verify_sub
+LeanVM/Guest/B1/VerifySub/CMatch.lean verify_sub
+LeanVM/Guest/B1/VerifySub/ChildPopsHon.lean verify_sub
+LeanVM/Guest/B1/VerifySub/Ctab.lean verify_sub
+LeanVM/Guest/B1/VerifySub/Dispatch.lean verify_sub
+LeanVM/Guest/B1/VerifySub/Front.lean verify_sub
+LeanVM/Guest/B1/VerifySub/Known.lean verify_sub
+LeanVM/Guest/B1/VerifySub/Lam.lean verify_sub
+LeanVM/Guest/B1/VerifySub/Mid.lean verify_sub
+LeanVM/Guest/B1/VerifySub/Ood.lean verify_sub
+LeanVM/Guest/B1/VerifySub/Proof.lean verify_sub
+LeanVM/Guest/B1/VerifySub/SoundFront.lean verify_sub
+LeanVM/Guest/B1/VerifySub/Tail.lean verify_sub
+LeanVM/Guest/B1/VerifySub/NodePops.lean@cpPop certify_placement
+LeanVM/Guest/B1/VerifySub/NodePops.lean@vtPops verify_tables
+LeanVM/Guest/B1/VerifySub/NodePops.lean@vsPops verify_sub
+LeanVM/Guest/B1/VerifySub/NodePops.lean@vs_pops verify_sub
+LeanVM/Guest/B1/VerifySub/NodeShapes.lean@vsStreamA verify_sub
+LeanVM/Guest/B1/VerifySub/NodeShapes.lean@vsLogsA verify_sub
+LeanVM/Guest/B1/VerifySub/NodeShapes.lean@vsCpS verify_sub
+LeanVM/Guest/B1/VerifySub/NodeShapes.lean@vsOsS verify_sub
+LeanVM/Guest/B1/VerifySub/NodeShapes.lean@cpOrdA certify_placement
+LeanVM/Guest/B1/VerifySub/NodeShapes.lean@vtOrdA verify_tables
+LeanVM/Guest/B1/VerifySub/NodeShapes.lean@vtZcA verify_tables
+LeanVM/Guest/B1/VerifySub/ChildPops.lean@vsPops_honest verify_sub
+LeanVM/Guest/B1/VerifySub/ChildPops.lean@vs_child_pops verify_sub
+LeanVM/Guest/B1/VerifySub/ChildPops.lean@cpPop_honest certify_placement
+LeanVM/Guest/B1/VerifySub/ChildPops.lean@vtPops_honest verify_tables
+LeanVM/Guest/B1/VerifySub/CompleteBP.lean@cpσ_136 certify_placement
+LeanVM/Guest/B1/VerifySub/C/ValsB.lean@vs_maps verify_sub
+# Opening: the loop's parameters and guard, the main function's frame (every specialization names them alike)
+LeanVM/Guest/B1/Opening/QueriesMain.lean@oqLoopParams opening_queries__L_loop0
+LeanVM/Guest/B1/Opening/QueriesMain.lean@oqGuard_hc opening_queries__L_loop0
+LeanVM/Guest/B1/Opening/QueriesMain.lean@oqLoop1_hc opening_queries__L_loop0
+LeanVM/Guest/B1/Opening/QueriesMain.lean@oqLoop0_hc opening_queries__L_loop0
+LeanVM/Guest/B1/Opening/QueriesMain.lean@loop_params opening_queries__L_loop0
+LeanVM/Guest/B1/Opening/QueriesWalk.lean@oqGuard_next opening_queries__L_loop0
+LeanVM/Guest/B1/Opening/QueriesPlaced3.lean@OqIt1L opening_queries__L_loop0
+LeanVM/Guest/B1/Opening/QueriesPlaced3.lean@OqIt0L opening_queries__L_loop0
+LeanVM/Guest/B1/Opening/Witness.lean@oqIterOf opening_queries__L_loop0
+LeanVM/Guest/B1/Opening/Witness.lean@oqLoopArgs opening_queries__L
+LeanVM/Guest/B1/Opening/Witness.lean@oqsOf opening_queries__L
+LeanVM/Guest/B1/Opening/QueriesPlaced8.lean@OqMainL opening_queries__L
+LeanVM/Guest/B1/Opening/QueriesPlaced8.lean@oqAlloc opening_queries__L
+LeanVM/Guest/B1/Opening/QueriesPlaced9.lean@oqMainPost opening_queries__L
+LeanVM/Guest/B1/Opening/QueriesPlacedP3.lean@oqMainPost_walk opening_queries__L
+# Main
+LeanVM/Guest/B1/Main/AggAbsorb.lean aggregate_claims_loop0
+LeanVM/Guest/B1/Main/AggL25CChk.lean aggregate_claims_loop0
+LeanVM/Guest/B1/Main/AggAt.lean aggregate_claims
+LeanVM/Guest/B1/Main/AggAtT.lean aggregate_claims
+LeanVM/Guest/B1/Main/AggBody.lean aggregate_claims
+LeanVM/Guest/B1/Main/AggComplete.lean aggregate_claims
+LeanVM/Guest/B1/Main/AggMainCChk.lean aggregate_claims
+LeanVM/Guest/B1/Main/Aggregate.lean aggregate_claims
+LeanVM/Guest/B1/Main/BatchPops.lean aggregate_claims
+LeanVM/Guest/B1/Main/AggL26CChk.lean@l26Stores aggregate_claims_loop1
+LeanVM/Guest/B1/Main/AggL26CChk.lean@isL26Load aggregate_claims_loop1
+LeanVM/Guest/B1/Main/AggL26CChk.lean@l27Stores aggregate_claims_loop2
+LeanVM/Guest/B1/Main/AggL26CChk.lean@isL27Load aggregate_claims_loop2
+LeanVM/Guest/B1/Main/AggSqueeze.lean@l26Ok aggregate_claims_loop1
+LeanVM/Guest/B1/Main/AggSqueeze.lean@l27Ok aggregate_claims_loop2
+LeanVM/Guest/B1/Main/KidCChk.lean main_loop4
+LeanVM/Guest/B1/Main/KidBlockC.lean main_loop4
+LeanVM/Guest/B1/Main/MainGoalsHL5T.lean main_loop4
+LeanVM/Guest/B1/Main/L5Pops.lean main_loop4
+LeanVM/Guest/B1/Main/RawCChk.lean main_loop3
+LeanVM/Guest/B1/Main/RawAtSP.lean main_loop3
+LeanVM/Guest/B1/Main/RawAt.lean@rawS_relIn main_loop3
+LeanVM/Guest/B1/Main/RawAtP.lean@l2Pre_pops main_loop2
+LeanVM/Guest/B1/Main/Loops.lean@l3Ok main_loop2
+LeanVM/Guest/B1/Main/Loops.lean@l4Ok main_loop3
+LeanVM/Guest/B1/Main/Loops.lean@l5Ok main_loop4
+LeanVM/Guest/B1/Main/LoopsC.lean@rawX_of_out main_loop2
+LeanVM/Guest/B1/Main/MainCChk.lean main
+LeanVM/Guest/B1/Main/MainAt.lean main
+LeanVM/Guest/B1/Main/MainCore.lean main
+LeanVM/Guest/B1/Main/MainCoreThm.lean main
+LeanVM/Guest/B1/Main/MainPops.lean main
+LeanVM/Guest/B1/Main/HintsX.lean main
+LeanVM/Guest/B1/Main/Facts.lean main
+LeanVM/Guest/B1/Main/Decode.lean main
+LeanVM/Guest/B1/Main/Digests.lean main
+LeanVM/Guest/B1/Main/Holders.lean main
+LeanVM/Guest/B1/Main/Interface.lean main
+LeanVM/Guest/B1/Main/Kids.lean main
+LeanVM/Guest/B1/Main/Sound.lean main
+LeanVM/Guest/B1/Main/SoundV.lean main
+LeanVM/Guest/B1/Main/SoundVX.lean main
+LeanVM/Guest/B1/Main/World.lean main
+LeanVM/Guest/B1/Main/Final.lean main
+LeanVM/Guest/B1/Main/ExpTablesAt.lean exponent_tables
+# Da
+LeanVM/Guest/B1/Da/Blob.lean da_verify_blob_loop0
+LeanVM/Guest/B1/Da/BlobDefs.lean da_verify_blob_loop0
+LeanVM/Guest/B1/Da/CellLAt.lean da_verify_blob_loop0
+LeanVM/Guest/B1/Da/BlobLAt.lean da_verify_loop0
+LeanVM/Guest/B1/Da/Cell.lean da_verify_cell
+LeanVM/Guest/B1/Da/CellCChk.lean da_verify_cell
+LeanVM/Guest/B1/Da/CellComplete.lean da_verify_cell
+LeanVM/Guest/B1/Da/DvAt.lean da_verify
+LeanVM/Guest/B1/Da/Verify.lean da_verify
+LeanVM/Guest/B1/Da/DvShape.lean@dvCallsS da_verify
+LeanVM/Guest/B1/Da/DvShape.lean@dvQ da_verify
+LeanVM/Guest/B1/Da/DvShape.lean@padQ da_pad
+LeanVM/Guest/B1/Da/Expand.lean da_expand__L
+LeanVM/Guest/B1/Da/ExpAt.lean da_expand__L
+LeanVM/Guest/B1/Da/Factors.lean da_factors__L
+LeanVM/Guest/B1/Da/FacAt.lean da_factors__L
+LeanVM/Guest/B1/Da/FacCChk.lean da_factors__L
+LeanVM/Guest/B1/Da/LoopsCChk.lean@blobLPre da_verify_loop0
+LeanVM/Guest/B1/Da/LoopsCChk.lean@padLPre da_pad_loop0
+LeanVM/Guest/B1/Da/LoopsCChk.lean@cellLPre da_verify_blob_loop0
+LeanVM/Guest/B1/Da/LoopsCChk.lean@cellLBody da_verify_blob_loop0
+LeanVM/Guest/B1/Da/OffAt.lean da_column_offsets
+LeanVM/Guest/B1/Da/OffCChk.lean da_column_offsets
+LeanVM/Guest/B1/Da/Offsets.lean@offZeroA da_column_offsets
+LeanVM/Guest/B1/Da/Offsets.lean@offStepA da_column_offsets
+LeanVM/Guest/B1/Da/Offsets.lean@offBlockS da_column_offsets
+LeanVM/Guest/B1/Da/Offsets.lean@offP da_column_offsets
+LeanVM/Guest/B1/Da/Offsets.lean@offOk da_column_offsets
+LeanVM/Guest/B1/Da/Padding.lean da_padding
+LeanVM/Guest/B1/Da/PaddingAt.lean da_padding
+LeanVM/Guest/B1/Da/VecCChk.lean da_vector
+LeanVM/Guest/B1/Da/VerifyDefs.lean@bOk da_verify_loop0
+LeanVM/Guest/B1/Da/VerifyDefs.lean@padLOk da_pad_loop0
+LeanVM/Guest/B1/Da/VerifyDefs.lean@wsOff da_weights
+LeanVM/Guest/B1/Da/VerifyDefs.lean@wsLeaf da_weights
+LeanVM/Guest/B1/Da/Weights.lean da_weights
+LeanVM/Guest/B1/Da/WeightsAt.lean da_weights
+LeanVM/Guest/B1/Da/Offsets.lean@da_column_offsets_val da_column_offsets
+# Digest: each function's own declarations; the generic frame and loop walks (anyOk, grpOk, monoOk, loop steps) stay parametric; a proof over every `*_last__L{k}` by its family
+LeanVM/Guest/B1/Digest/ChildDigest.lean child_claim_list_digest
+LeanVM/Guest/B1/Digest/ChildList.lean@child_claim_list_any_sound child_claim_list_any
+LeanVM/Guest/B1/Digest/ChildListAt.lean child_claim_list_any
+LeanVM/Guest/B1/Digest/ChildListAt0.lean child_claim_list_any
+LeanVM/Guest/B1/Digest/ChildListCChk.lean@cccOk child_claim_list_last__L
+LeanVM/Guest/B1/Digest/ChildListDefs.lean@cclP child_claim_list_last__L
+LeanVM/Guest/B1/Digest/ChildListDefs.lean@cclOk child_claim_list_last__L
+LeanVM/Guest/B1/Digest/ChildMono.lean@child_claim_list_mono_sound child_claim_list_mono
+LeanVM/Guest/B1/Digest/ClaimList.lean@tail_sound claim_list_tail
+LeanVM/Guest/B1/Digest/ClaimList.lean@claim_list_digest_sound claim_list_digest
+LeanVM/Guest/B1/Digest/ClaimListAt.lean claim_list_digest
+LeanVM/Guest/B1/Digest/ClaimListCBig2.lean claim_list_chain_loop0
+LeanVM/Guest/B1/Digest/ClaimListCBig5.lean claim_list_chain_loop0
+LeanVM/Guest/B1/Digest/ClaimListCChk.lean@clSplitS claim_list_digest
+LeanVM/Guest/B1/Digest/ClaimListCChk.lean@clBigS claim_list_digest
+LeanVM/Guest/B1/Digest/ClaimListCChk.lean@clGrpS claim_list_digest
+LeanVM/Guest/B1/Digest/ClaimListCChk.lean@clDispS claim_list_digest
+LeanVM/Guest/B1/Digest/ClaimListCLast.lean@tail_rel_of claim_list_tail
+LeanVM/Guest/B1/Digest/ClaimListDefs.lean@clOk claim_list_last__L
+LeanVM/Guest/B1/Digest/ClaimListDefs.lean@bigWin claim_list_chain_loop0
+LeanVM/Guest/B1/Digest/ClaimListPops.lean@clLastWitOk claim_list_last__L
+LeanVM/Guest/B1/Digest/ClaimListPops.lean@tail_pops claim_list_tail
+LeanVM/Guest/B1/Digest/ClaimListPops.lean@cl_valid_pops claim_list_digest
+LeanVM/Guest/B1/Digest/ClaimListsAtM.lean child_claim_list_digest
+LeanVM/Guest/B1/Digest/ClaimListsAtT.lean child_claim_list_digest
+LeanVM/Guest/B1/Digest/MonoAt.lean child_claim_list_mono
+LeanVM/Guest/B1/Digest/MonoAt0.lean child_claim_list_mono
+LeanVM/Guest/B1/Digest/MonoCChk.lean@mlcSide child_claim_list_mono_last__L
+LeanVM/Guest/B1/Digest/MonoCChk.lean@mlcOk child_claim_list_mono_last__L
+LeanVM/Guest/B1/Digest/MonoCChk.lean@mcWin child_claim_list_mono_loop0
+LeanVM/Guest/B1/Digest/MonoCLasts.lean child_claim_list_mono_last__L
+LeanVM/Guest/B1/Digest/MonoDefs.lean@endOf child_claim_list_mono_last__L
+LeanVM/Guest/B1/Digest/MonoDefs.lean@mlOk child_claim_list_mono_last__L
+LeanVM/Guest/B1/Digest/MonoDefs.lean@monoWinOk child_claim_list_mono_loop0
+LeanVM/Guest/B1/Digest/Range.lean list_split
+LeanVM/Guest/B1/Digest/Statement.lean statement_digest
+LeanVM/Guest/B1/Digest/StatementChk.lean statement_digest
+LeanVM/Guest/B1/Digest/StatementComplete.lean statement_digest
+LeanVM/Guest/B1/Digest/ChildList.lean@childLast_sound child_claim_list_last__L
+LeanVM/Guest/B1/Digest/ChildListCore.lean@ccl_core child_claim_list_last__L
+LeanVM/Guest/B1/Digest/ChildMono.lean@monoLast_sound child_claim_list_mono_last__L
+LeanVM/Guest/B1/Digest/ClaimList.lean@claimLast_sound claim_list_last__L
+LeanVM/Guest/B1/Digest/ClaimListCLast.lean@claimLast_complete claim_list_last__L
+LeanVM/Guest/B1/Digest/MonoCLasts.lean@mlc_core child_claim_list_mono_last__L
+# Selectors: each specialization family by its file
+LeanVM/Guest/B1/Selectors/BlockSelector.lean block_selector__L
+LeanVM/Guest/B1/Selectors/BlockSelectorTab.lean block_selector_tab__L
+LeanVM/Guest/B1/Selectors/ColumnSelector.lean column_selector__L
+LeanVM/Guest/B1/Selectors/IndexMle.lean index_mle__L
+LeanVM/Guest/B1/Selectors/SelPartial.lean sel_partial_nibble__L
+LeanVM/Guest/B1/Selectors/SelPartialComplete.lean sel_partial_nibble__L
+LeanVM/Guest/B1/Selectors/SelectorTables.lean selector_tables
+LeanVM/Guest/B1/Selectors/SelectorTablesAt.lean selector_tables
+LeanVM/Guest/B1/Selectors/SelectorTablesComplete.lean selector_tables
+LeanVM/Guest/B1/Selectors/SharedTables.lean@lpPre shared_selector_tables_loop0
+LeanVM/Guest/B1/Selectors/SharedTables.lean@lpBody shared_selector_tables_loop0
+LeanVM/Guest/B1/Selectors/SharedTables.lean@lpCheck shared_selector_tables_loop0
+LeanVM/Guest/B1/Selectors/SharedTables.lean@lpFound shared_selector_tables_loop0
+LeanVM/Guest/B1/Selectors/SharedTables.lean@lp_step shared_selector_tables_loop0
+LeanVM/Guest/B1/Selectors/SharedTables.lean@ssPre shared_selector_tables
+LeanVM/Guest/B1/Selectors/SharedTables.lean@ssCheck shared_selector_tables
+LeanVM/Guest/B1/Selectors/SharedTables.lean@ssFound shared_selector_tables
+LeanVM/Guest/B1/Selectors/SharedTables.lean@shared_selector_tables_holds shared_selector_tables
+LeanVM/Guest/B1/Selectors/SharedTablesComplete.lean@lp_iter shared_selector_tables_loop0
+LeanVM/Guest/B1/Selectors/SharedTotal.lean shared_selector_tables
+LeanVM/Guest/B1/Selectors/SharedVals.lean shared_selector_tables
+LeanVM/Guest/B1/Selectors/SharedWeight.lean shared_selector_tables
+# Fs
+LeanVM/Guest/B1/Fs/MessageSound.lean opening_message__L
+LeanVM/Guest/B1/Fs/MessageT.lean opening_message__L
+# Bits
+LeanVM/Guest/B1/Bits/BusGrindPlacedE.lean bus_grind_check__L
+LeanVM/Guest/B1/Bits/Grind.lean grind_check__L
+LeanVM/Guest/B1/Bits/GrindPlaced.lean grind_check__L
+LeanVM/Guest/B1/Bits/Log2Placed.lean@asgHint assert_small_g_power
+LeanVM/Guest/B1/Bits/Log2Placed.lean@asgHint_exact assert_small_g_power
+LeanVM/Guest/B1/Bits/Log2Placed.lean@lcCall1 log2_ceil_in_the_exponent__L
+LeanVM/Guest/B1/Bits/Log2Placed.lean@lcCall2 log2_ceil_in_the_exponent__L
+LeanVM/Guest/B1/Bits/Log2Placed.lean@lcSites log2_ceil_in_the_exponent__L
+LeanVM/Guest/B1/Bits/QueryWindows.lean decode_query_windows__L
+LeanVM/Guest/B1/Bits/QueryWindowsAt.lean decode_query_windows__L
+LeanVM/Guest/B1/Bits/QueryWindowsComplete.lean decode_query_windows__L
+LeanVM/Guest/B1/Bits/QueryWindowsT.lean decode_query_windows__L
+# Eq
+LeanVM/Guest/B1/Eq/EqPrefix.lean eq_prefix_run__L
+LeanVM/Guest/B1/Eq/EqPrefixRev.lean eq_prefix_run_rev__L
+LeanVM/Guest/B1/Eq/FoldFinal.lean fold_final_msg__L
+LeanVM/Guest/B1/Eq/RsWords.lean rs_eq_run
+# Exact
+LeanVM/Guest/B1/Exact/ColumnSelector.lean column_selector__L
+LeanVM/Guest/B1/Exact/GPower.lean g_power_of_word
+LeanVM/Guest/B1/Exact/Padding.lean padding_weight__L
+LeanVM/Guest/B1/Exact/RsEqRun.lean rs_eq_run
+LeanVM/Guest/B1/Exact/SharedTables.lean shared_selector_tables
+LeanVM/Guest/B1/Exact/VkExact.lean verify_keccak
+LeanVM/Guest/B1/Exact/VtOwn.lean verify_tables
+# Place: the level functions' proofs over their families
+LeanVM/Guest/B1/Place/LpProof.lean level_positions__L
+LeanVM/Guest/B1/Place/LqProof.lean level_queries__L
+LeanVM/Guest/B1/Place/OsMeanB.lean@round_relIn opening_round
+LeanVM/Guest/B1/Place/OsQPlace.lean@sqEb decode_query_windows__L
+LeanVM/Guest/B1/Place/OsQPlace.lean@sqGroupRuns_mem decode_query_windows__L
+LeanVM/Guest/B1/Place/OsRound.lean opening_round
+LeanVM/Guest/B1/Place/LqExact.lean level_queries__L
+LeanVM/Guest/B1/Place/LqProofP.lean level_queries__L
+LeanVM/Guest/B1/Place/LrLoops.lean@lrLoop1_iter level_residual__L_loop0
+LeanVM/Guest/B1/Place/LrLoops.lean@lrLoop2_iter level_residual__L_loop1
+LeanVM/Guest/B1/Place/LrProof.lean level_residual__L
+# Placement
+LeanVM/Guest/B1/Placement/Certify.lean certify_placement
+LeanVM/Guest/B1/Placement/CertifyAt.lean certify_placement
+LeanVM/Guest/B1/Placement/CertifyComplete.lean certify_placement
+# Ring
+LeanVM/Guest/B1/Ring/Loop14Complete.lean ring_switch_target_loop0
+LeanVM/Guest/B1/Ring/TargetComplete.lean ring_switch_target
+# Sumcheck
+LeanVM/Guest/B1/Sumcheck/Batch.lean batch_sumcheck__L
+# Terminal
+LeanVM/Guest/B1/Terminal/Blocks.lean check_opening_terminal
+LeanVM/Guest/B1/Terminal/Body.lean check_opening_terminal
+LeanVM/Guest/B1/Terminal/Claims.lean check_opening_terminal
+LeanVM/Guest/B1/Terminal/ClaimsComplete.lean check_opening_terminal
+LeanVM/Guest/B1/Terminal/HoldsOf.lean check_opening_terminal
+LeanVM/Guest/B1/Terminal/Support.lean check_opening_terminal
+LeanVM/Guest/B1/Terminal/Template.lean check_opening_terminal
+LeanVM/Guest/B1/Terminal/TermEval.lean check_opening_terminal
+LeanVM/Guest/B1/Terminal/TermFacts.lean check_opening_terminal
+LeanVM/Guest/B1/Terminal/PiChain.lean check_opening_terminal_loop0
+LeanVM/Guest/B1/Terminal/EqPrefixIn.lean eq_prefix_run__L
+# Whir: the level functions' templates over their families
+LeanVM/Guest/B1/Whir/HelperT.lean@lpBody level_positions__L
+LeanVM/Guest/B1/Whir/HelperT.lean@lqBody level_queries__L
+LeanVM/Guest/B1/Whir/HelperT.lean@lrBody level_residual__L
+LeanVM/Guest/B1/Whir/LpSound.lean level_positions__L
+LeanVM/Guest/B1/Whir/LqSound.lean level_queries__L
+LeanVM/Guest/B1/Whir/LrSound.lean@lr_sound level_residual__L
+LeanVM/Guest/B1/Whir/LrSound.lean@lrBody_eq0 level_residual__L
+LeanVM/Guest/B1/Whir/LrSound.lean@lrBody_ne0 level_residual__L
+LeanVM/Guest/B1/Whir/LrSound.lean@lrLoop1_step level_residual__L_loop0
+LeanVM/Guest/B1/Whir/LrSound.lean@lrLoop2_step level_residual__L_loop1
+LeanVM/Guest/B1/Whir/Template.lean@sqLoopBody level_positions__L_loop0
+LeanVM/Guest/B1/Whir/SqLoop.lean@sqLoopA level_positions__L_loop0
+LeanVM/Guest/B1/Whir/SqLoop.lean@sqLoop_step level_positions__L_loop0
+LeanVM/Guest/B1/Whir/CSqLoop.lean level_positions__L_loop0
+LeanVM/Guest/B1/Whir/CHead.lean@osHead_complete open_stacked__L
+LeanVM/Guest/B1/Whir/Open.lean@osHead_roots open_stacked__L
+LeanVM/Guest/B1/Whir/Open.lean@open_generic open_stacked__L
+# Merkle
+LeanVM/Guest/B1/Merkle/CapPops.lean level_queries__L
+# B1/Tables: verify_tables' chunks (Vt/Base: core% «verify_tables» c0 ..), its body read by position and flattened (vtPre, vtAt, vtEvL), the generated slice templates checked against the chunks (Vt/*T, VtC/FData, FWin, ZBase, ZSetup, ZTail), the call statements of its body (VtC/ARelIn); its loop's, shared_selector_tables' and padding_weight's bodies
+tie vtChunk verify_tables
+tie vtPre verify_tables
+tie vtAt verify_tables
+tie vtEvL verify_tables
+tie vtAirRest verify_tables
+tie vtAirT verify_tables
+tie vtBoffT verify_tables
+tie vtEvRest verify_tables
+tie vtEvalT verify_tables
+tie vtFwSelT verify_tables
+tie vtIdxcT verify_tables
+tie vtPad5T verify_tables
+tie vtPadT verify_tables
+tie vtRank0T verify_tables
+tie vtRankT verify_tables
+tie vtSelT verify_tables
+tie zBlk verify_tables
+tie zRest verify_tables
+tie zTRest verify_tables
+tie zTail verify_tables
+tie epcCall verify_tables
+tie imCall verify_tables
+tie loopCall verify_tables
+tie otrCall verify_tables
+tie porCall verify_tables
+tie pwCall verify_tables
+tie shCall verify_tables
+tie l10Body verify_tables_loop0
+tie lpPreC shared_selector_tables_loop0
+tie ssDisp shared_selector_tables
+tie pwBody0 padding_weight__L0
+tie pwBody1 padding_weight__L1
+tie pwBody padding_weight__L
+# B1/Tables files about verify_tables' body and its valuations throughout (each header read), for the declarations that name no template
+LeanVM/Guest/B1/Tables/VtC/BBc.lean verify_tables
+LeanVM/Guest/B1/Tables/Vt/BcShare.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/BMain.lean verify_tables
+LeanVM/Guest/B1/Tables/Vt/ZcRun.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/FFinal.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/AGlue.lean verify_tables
+LeanVM/Guest/B1/Tables/Vt/Fresh.lean verify_tables
+LeanVM/Guest/B1/Tables/Vt/AsmTotals.lean verify_tables
+LeanVM/Guest/B1/Tables/Vt/ZcCert.lean verify_tables
+LeanVM/Guest/B1/Tables/Vt/Pi.lean verify_tables
+LeanVM/Guest/B1/Tables/Vt/VerifyTables.lean verify_tables
+LeanVM/Guest/B1/Tables/Vt/AsmFinal.lean verify_tables
+LeanVM/Guest/B1/Tables/Vt/Fw.lean verify_tables
+LeanVM/Guest/B1/Tables/Vt/AsmClaims.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/AMain.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/FComplete.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/ZSetup.lean verify_tables
+LeanVM/Guest/B1/Tables/Vt/AsmForms.lean verify_tables
+LeanVM/Guest/B1/Tables/Vt/Shared.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/ABound.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/ZTail.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/ARelIn.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/AWeight.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/BAll.lean verify_tables
+LeanVM/Guest/B1/Tables/Vt/Base.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/SAll.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/FWin.lean verify_tables
+LeanVM/Guest/B1/Tables/Vt/Sort.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/SShared.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/Calls.lean verify_tables
+LeanVM/Guest/B1/Tables/Vt/Pads.lean verify_tables
+LeanVM/Guest/B1/Tables/Vt/SelFw.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/SSortAll.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/BBase.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/SP2.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/SPads.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/SLoads.lean verify_tables
+LeanVM/Guest/B1/Tables/Vt/SelsAll.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/FData.lean verify_tables
+LeanVM/Guest/B1/Tables/Kids/Loop10.lean verify_tables_loop0
+LeanVM/Guest/B1/Tables/Kids/Shared.lean shared_selector_tables
+LeanVM/Guest/B1/Tables/Kids/BlockSelTab.lean block_selector_tab__L
+# B1/Sig: the xmss segment's pops (each declaration about main_loop2's segment)
+LeanVM/Guest/B1/Sig/XmssSegPops.lean main_loop2
+# files about one function's own numbering throughout (each header read), for the declarations that name no template; left out: canonically renumbered (Gkr Root, VbgOdd, GlTail, GlCTail, GlCLoop), mixed (GlCIn, GlCInLs, Holds, PackComplete*, PackLoop, CopyLoopIn), generic (Codeword*, Xmss{T,Layer,Core,Step}: verify_lean_xmss' own template)
+LeanVM/Guest/B1/Gkr/VbgLoads.lean verify_bus_gkr
+LeanVM/Guest/B1/Gkr/VbgAt.lean verify_bus_gkr
+LeanVM/Guest/B1/KeccakGkr/VkCJ.lean verify_keccak
+LeanVM/Guest/B1/KeccakGkr/VkCU.lean verify_keccak
+LeanVM/Guest/B1/KeccakGkr/VkChain.lean verify_keccak
+LeanVM/Guest/B1/KeccakGkr/VkCDK.lean verify_keccak
+LeanVM/Guest/B1/KeccakGkr/VkCR.lean verify_keccak
+LeanVM/Guest/B1/KeccakGkr/VkCB.lean verify_keccak
+LeanVM/Guest/B1/KeccakGkr/VkCT.lean verify_keccak
+LeanVM/Guest/B1/KeccakGkr/VkCC.lean verify_keccak
+LeanVM/Guest/B1/KeccakGkr/VkStep.lean verify_keccak
+LeanVM/Guest/B1/KeccakGkr/VkCQ.lean verify_keccak
+LeanVM/Guest/B1/KeccakGkr/VkCL.lean verify_keccak
+LeanVM/Guest/B1/KeccakGkr/VkCCK/Steps.lean verify_keccak
+LeanVM/Guest/B1/KeccakGkr/LayerT.lean keccak_layer__L
+LeanVM/Guest/B1/KeccakGkr/LayerSecA.lean keccak_layer__L
+LeanVM/Guest/B1/KeccakGkr/LayerCF.lean keccak_layer__L
+LeanVM/Guest/B1/KeccakGkr/LayerCLift1.lean keccak_layer__L
+LeanVM/Guest/B1/KeccakGkr/LayerCSpec.lean keccak_layer__L
+LeanVM/Guest/B1/KeccakGkr/LayerCA.lean keccak_layer__L
+LeanVM/Guest/B1/KeccakGkr/LayerCG1.lean keccak_layer__L
+LeanVM/Guest/B1/KeccakGkr/LayerCE.lean keccak_layer__L
+LeanVM/Guest/B1/KeccakGkr/PlainCompleteIn.lean keccak_plain_rounds__L
+LeanVM/Guest/B1/Sig/SphincsSoundDigest.lean verify_sig_lean_sphincs
+LeanVM/Guest/B1/Sig/SphincsFieldsComplete.lean verify_sig_lean_sphincs
+LeanVM/Guest/B1/Sig/SphincsDigestT.lean verify_sig_lean_sphincs
+LeanVM/Guest/B1/Sig/SphincsT.lean verify_sig_lean_sphincs
+LeanVM/Guest/B1/Sig/SphincsDigestComplete.lean verify_sig_lean_sphincs
+LeanVM/Guest/B1/Sig/SphincsBottomComplete.lean verify_sig_lean_sphincs
+LeanVM/Guest/B1/Sig/SphincsCompleteConv.lean verify_sig_lean_sphincs
+LeanVM/Guest/B1/Sig/SpWotsComplete.lean sp_wots
+LeanVM/Guest/B1/Sig/SpWotsSound.lean sp_wots
+LeanVM/Guest/B1/Sig/SpWotsT.lean sp_wots
+LeanVM/Guest/B1/Sig/SpWotsLayout.lean sp_wots
+LeanVM/Guest/B1/Sig/SpWotsArms.lean sp_wots
+LeanVM/Guest/B1/Sig/SpWotsStepComplete.lean sp_wots
+LeanVM/Guest/B1/Sig/XmssSegDigestC.lean main_loop2
+LeanVM/Guest/B1/Sig/XmssSegSound.lean main_loop2
+LeanVM/Guest/B1/Sig/XmssSegPathC.lean main_loop2
+LeanVM/Guest/B1/Sig/XmssSegStepC.lean main_loop2
+LeanVM/Guest/B1/Sig/XmssSegCwC.lean main_loop2
+LeanVM/Guest/B1/Sig/XmssSegArms.lean main_loop2
+LeanVM/Guest/CoreMode/Fn/column_selector/CsQ.lean check_opening_terminal
+LeanVM/Guest/CoreMode/Fn/child_claim_list_mono/MonoDefs.lean child_claim_list_mono
+LeanVM/Guest/CoreMode/Fn/child_claim_list_mono/MonoReplay.lean@loop0_facts child_claim_list_mono_loop0
+LeanVM/Guest/CoreMode/Fn/child_claim_list_mono/MonoReplay.lean@loop1_facts child_claim_list_mono_loop1
+LeanVM/Guest/CoreMode/Fn/certify_placement/ResCp.lean certify_placement
+LeanVM/Guest/CoreMode/Fn/column_selector/ResCs.lean column_selector__L
+LeanVM/Guest/CoreMode/Fn/verify_bus_gkr/ResGkrL.lean@GlLQ gkr_layer__L_loop0
+LeanVM/Guest/CoreMode/Fn/verify_bus_gkr/ResGkrL.lean@gll_next gkr_layer__L_loop0
+LeanVM/Guest/CoreMode/Fn/verify_bus_gkr/ResGkrS.lean@gll_atoms gkr_layer__L_loop0
+LeanVM/Guest/CoreMode/Fn/verify_bus_gkr/ResGkrQ.lean@GlQ gkr_layer__L
+LeanVM/Guest/CoreMode/Fn/verify_bus_gkr/ResGkrQ.lean@GlastQ gkr_last_layers__L
+LeanVM/Guest/CoreMode/Fn/verify_bus_gkr/ResGkrQ.lean@GlsLQ gkr_layers__L_loop0
+LeanVM/Guest/CoreMode/Fn/verify_bus_gkr/ResGkrQ.lean@GlsQ gkr_layers__L
+LeanVM/Guest/CoreMode/Fn/verify_bus_gkr/ResGkrQ.lean@VbgQ verify_bus_gkr
+LeanVM/Guest/CoreMode/Fn/verify_keccak/ResSt.lean@VkQ verify_keccak
+LeanVM/Guest/CoreMode/Fn/verify_keccak/ResSt.lean@front_carried verify_sub
+LeanVM/Guest/CoreMode/Fn/verify_sub/ResVs.lean@vs_cells verify_sub
+LeanVM/Guest/CoreMode/Fn/verify_tables/ResVt.lean@VtQ verify_tables
+LeanVM/Guest/CoreMode/Fn/verify_tables/ResVt.lean@vt_cur13 verify_tables
+LeanVM/Guest/CoreMode/Fn/verify_tables/ResVt.lean@vt_zc_front verify_tables
+LeanVM/Guest/CoreMode/Fn/verify_tables/ResVtG.lean verify_tables
+LeanVM/Guest/CoreMode/Fn/verify_tables/ResVtL.lean@VtLQ verify_tables_loop0
+LeanVM/Guest/CoreMode/Fn/verify_tables/ResVtL.lean@l10ArgsV verify_tables
+LeanVM/Guest/CoreMode/Fn/verify_tables/ResVtL.lean@vt_facts verify_tables
+LeanVM/Guest/CoreMode/Fn/verify_tables/EndExecCoreVt.lean@VtExps verify_tables
+LeanVM/Guest/CoreMode/Fn/verify_tables/EndExecCoreVt.lean@vt_exps verify_tables
+LeanVM/Guest/CoreMode/Fn/child_claim_list_mono/EndExecCoreMono.lean@ml_inst child_claim_list_mono_last__L
+LeanVM/Guest/CoreMode/Fn/child_claim_list_mono/EndExecCoreMono.lean@mlGlF child_claim_list_mono_last__L
+LeanVM/Guest/CoreMode/Fn/certify_placement/Data.lean certify_placement
+LeanVM/Guest/CoreMode/Fn/certify_placement/Fam.lean certify_placement
+LeanVM/Guest/CoreMode/Fn/certify_placement/Sound.lean certify_placement
+LeanVM/Guest/CoreMode/Fn/check_opening_terminal/Data.lean check_opening_terminal
+LeanVM/Guest/CoreMode/Fn/check_opening_terminal/Sound.lean check_opening_terminal
+LeanVM/Guest/CoreMode/Fn/child_claim_list_mono_last/Data.lean child_claim_list_mono_last__L
+LeanVM/Guest/CoreMode/Fn/child_claim_list_mono_last/Sound.lean child_claim_list_mono_last__L
+LeanVM/Guest/CoreMode/Fn/column_selector/Data.lean column_selector__L
+LeanVM/Guest/CoreMode/Fn/da_pad/Data.lean da_pad
+LeanVM/Guest/CoreMode/Fn/da_pad/Fam.lean da_pad
+LeanVM/Guest/CoreMode/Fn/da_pad/Sound.lean da_pad
+LeanVM/Guest/CoreMode/Fn/da_verify/Fam.lean da_verify
+LeanVM/Guest/CoreMode/Fn/da_verify/Sound.lean da_verify
+LeanVM/Guest/CoreMode/Fn/gkr_last_layers/Data.lean gkr_last_layers__L
+LeanVM/Guest/CoreMode/Fn/gkr_layer/Data.lean gkr_layer__L
+LeanVM/Guest/CoreMode/Fn/gkr_layer/Fam.lean gkr_layer__L
+LeanVM/Guest/CoreMode/Fn/gkr_layer/Sound.lean gkr_layer__L
+LeanVM/Guest/CoreMode/Fn/gkr_layers/Data.lean gkr_layers__L
+LeanVM/Guest/CoreMode/Fn/gkr_layers/Sound.lean gkr_layers__L
+LeanVM/Guest/CoreMode/Fn/keccak_layer/Data.lean keccak_layer__L
+LeanVM/Guest/CoreMode/Fn/keccak_layer/Fam.lean keccak_layer__L
+LeanVM/Guest/CoreMode/Fn/keccak_layer/Sound.lean keccak_layer__L
+LeanVM/Guest/CoreMode/Fn/log2_ceil_in_the_exponent/Data.lean log2_ceil_in_the_exponent__L
+LeanVM/Guest/CoreMode/Fn/log2_ceil_in_the_exponent/Sound.lean log2_ceil_in_the_exponent__L
+LeanVM/Guest/CoreMode/Fn/rs_eq_run/Fam.lean rs_eq_run
+LeanVM/Guest/CoreMode/Fn/rs_eq_run/Sound.lean rs_eq_run
+LeanVM/Guest/CoreMode/Fn/shared_selector_tables/Fam.lean shared_selector_tables
+LeanVM/Guest/CoreMode/Fn/shared_selector_tables/Sound.lean shared_selector_tables
+LeanVM/Guest/CoreMode/Fn/verify_bus_gkr/Data.lean verify_bus_gkr
+LeanVM/Guest/CoreMode/Fn/verify_keccak/Data.lean verify_keccak
+LeanVM/Guest/CoreMode/Fn/verify_keccak/Fam.lean verify_keccak
+LeanVM/Guest/CoreMode/Fn/verify_keccak/Sound.lean verify_keccak
+LeanVM/Guest/CoreMode/Fn/verify_sub/Fam.lean verify_sub
+LeanVM/Guest/CoreMode/Fn/verify_sub/Sound.lean verify_sub
+LeanVM/Guest/CoreMode/Fn/verify_tables/Data.lean verify_tables
+LeanVM/Guest/CoreMode/Fn/verify_tables/Fam.lean verify_tables
+LeanVM/Guest/CoreMode/Fn/verify_tables/Sound.lean verify_tables
+# lists whose positions are a body's
+align vtPre verify_tables
+align vbgBody verify_bus_gkr
+align vbgPre verify_bus_gkr
+align mPre main
+align monoFlat child_claim_list_mono
+align anyFlat child_claim_list_any
+align cellPre da_verify_cell
+align vecP da_vector
+align wsP da_weights
+align dvP da_verify
+align aggP aggregate_claims
+align spBody sp_wots
+align sBody verify_sig_lean_sphincs
+# B1/Gkr: the layer's tail in the canonical numbering (`glRho 0 0`, `gkr_layer__L0_L0`'s), and the templates and lemmas at `p = 0` named by it
+LeanVM/Guest/B1/Gkr/GlTail.lean gkr_layer__L0_L0
+LeanVM/Guest/B1/Gkr/GlCTail.lean gkr_layer__L0_L0
+LeanVM/Guest/B1/Gkr/GlT.lean@glLoopCall0 gkr_layer__L0_L0
+LeanVM/Guest/B1/Gkr/GlT.lean@glTailSetup0 gkr_layer__L0_L0
+LeanVM/Guest/B1/Gkr/GlT.lean@glKids gkr_layer__L0_L0
+LeanVM/Guest/B1/Gkr/GlT.lean@glCheck gkr_layer__L0_L0
+LeanVM/Guest/B1/Gkr/GlT.lean@glY gkr_layer__L0_L0
+LeanVM/Guest/B1/Gkr/GlT.lean@glNext gkr_layer__L0_L0
+LeanVM/Guest/B1/Gkr/GlCMid.lean@glc_lcall gkr_layer__L0_L0
+LeanVM/Guest/B1/Gkr/GlCMid.lean@glc_tsetup gkr_layer__L0_L0
+LeanVM/Guest/B1/Gkr/GlCLayer.lean@glKids_load gkr_layer__L0_L0
+LeanVM/Guest/B1/Gkr/GlCLayer.lean@glc_layer gkr_layer__L0_L0
+LeanVM/Guest/B1/Gkr/GlLayer.lean@gl_layer gkr_layer__L0_L0
+LeanVM/Guest/B1/Gkr/Holds.lean verify_bus_gkr
+# Read per declaration (review round m29): templates and valuations of one function, family or set of loops
+LeanVM/Guest/B1/Da/Levels.lean@dlOk da_levels__L
+LeanVM/Guest/B1/Da/LevelsSound.lean@dl_sound da_levels__L
+LeanVM/Guest/B1/Da/LevelsComplete.lean@dl_complete da_levels__L
+LeanVM/Guest/B1/Da/LevelsCDefs.lean@lvlCall da_levels__L
+LeanVM/Guest/B1/Da/LevelsCDefs.lean@dlCEntryOk da_levels__L
+LeanVM/Guest/B1/Da/LoopsCChk.lean@dv_loops_shape da_verify_blob_loop0
+LeanVM/Guest/B1/Whir/CHonComp.lean@body_of open_stacked__L
+LeanVM/Guest/B1/Tables/Padding.lean@PwStepOk padding_weight__L
+LeanVM/Guest/B1/Tables/Padding.lean@padding_weight_iff padding_weight__L
+LeanVM/Guest/B1/Tables/Padding.lean@pwCheck padding_weight__L
+LeanVM/Guest/B1/Tables/Padding.lean@pwFound padding_weight__L
+LeanVM/Guest/B1/Exact/Padding.lean@pw_pathExact padding_weight__L0
+LeanVM/Guest/B1/Place/SqAt.lean@sqDecArgs level_positions__L_loop0
+LeanVM/Guest/B1/Place/SqAt.lean@sqLoopPre_loadsEq level_positions__L_loop0
+LeanVM/Guest/B1/Place/SqAt.lean@sqLoopPre_loads level_positions__L_loop0
+LeanVM/Guest/B1/Place/SqAt.lean@SqIterC level_positions__L_loop0
+LeanVM/Guest/B1/Place/SqAt.lean@sqLoop_iter level_positions__L_loop0
+LeanVM/Guest/B1/Place/SqAtE.lean@sqLoop_iterE level_positions__L_loop0
+LeanVM/Guest/B1/Main/HintsX.lean@dupPre main_loop0,main_loop1
+LeanVM/Guest/B1/Main/HintsX.lean@dupStep main_loop0,main_loop1
+LeanVM/Guest/B1/Main/HintsX.lean@dupLoopStep main_loop0,main_loop1
+LeanVM/Guest/B1/Main/DupPops.lean@mfA main_loop0,main_loop1
+LeanVM/Guest/B1/Main/DupPops.lean@mfPre main_loop0,main_loop1
+LeanVM/Guest/B1/Main/DupPops.lean@mf_pops main_loop0,main_loop1
+LeanVM/Guest/B1/Da/Offsets.lean@offLoopA da_column_offsets_loop0,da_column_offsets_loop1,da_column_offsets_loop2,da_column_offsets_loop3,da_column_offsets_loop4,da_column_offsets_loop5,da_column_offsets_loop6
+LeanVM/Guest/B1/KeccakGkr/CopyLoop.lean@copyLoopT verify_keccak_loop0,verify_keccak_loop1,verify_keccak_loop2
+LeanVM/Guest/B1/KeccakGkr/CopyLoop.lean@copyLoop_step verify_keccak_loop0,verify_keccak_loop1,verify_keccak_loop2
+LeanVM/Guest/B1/KeccakGkr/CopyLoop.lean@copyLoop_sound verify_keccak_loop0,verify_keccak_loop1,verify_keccak_loop2
+LeanVM/Guest/B1/KeccakGkr/CopyLoopIn.lean@copyLoop_relIn_step verify_keccak_loop0,verify_keccak_loop1,verify_keccak_loop2
+LeanVM/Guest/B1/KeccakGkr/CopyLoopIn.lean@copyLoop_relIn verify_keccak_loop0,verify_keccak_loop1,verify_keccak_loop2
+LeanVM/Guest/B1/Gkr/GlCInLs.lean@glcLastPre gkr_last_layers__L
+LeanVM/Guest/B1/Gkr/GlCInLs.lean@glcLsPre gkr_layers__L
+LeanVM/Guest/B1/Gkr/GlCInLs.lean@glcLs_callSF gkr_layers__L
+LeanVM/Guest/B1/KeccakGkr/PackComplete.lean@pack8S keccak_layer__L_loop0
+LeanVM/Guest/B1/KeccakGkr/PackComplete.lean@pack8S_round keccak_layer__L_loop0
+LeanVM/Guest/B1/KeccakGkr/PackComplete.lean@remK keccak_layer__L_loop1
+LeanVM/Guest/B1/KeccakGkr/PackComplete.lean@packRemS keccak_layer__L_loop1
+LeanVM/Guest/B1/Gkr/GlCLoop.lean@glcPre gkr_layer__L_loop0
+LeanVM/Guest/B1/Gkr/GlCLoop.lean@glcPost gkr_layer__L_loop0
+LeanVM/Guest/B1/Gkr/GlCLoop.lean@glcBody gkr_layer__L_loop0
+LeanVM/Guest/B1/Gkr/GlCLoop.lean@glcPar6 gkr_layer__L_loop0
+LeanVM/Guest/B1/KeccakGkr/PackCompleteIn.lean@pack8LoadOk keccak_layer__L_loop0
+LeanVM/Guest/B1/KeccakGkr/PackCompleteIn.lean@packRemLoadOk keccak_layer__L_loop1
+LeanVM/Guest/B1/Gkr/GlCIn.lean@glLoopPostA gkr_layer__L_loop0
+LeanVM/Guest/B1/Gkr/GlCIn.lean@glLoopNext gkr_layer__L_loop0
+LeanVM/Guest/B1/Gkr/GlCIn.lean@glLA gkr_layer__L
+LeanVM/Guest/B1/Opening/QueriesWalk.lean@oqLoop1Pre opening_queries__L_loop0
+LeanVM/Guest/B1/Opening/QueriesWalk.lean@oqLoop1Pre_length opening_queries__L_loop0
+LeanVM/Guest/B1/Gkr/GlsWords.lean@glLRest gkr_layer__L
+LeanVM/Guest/B1/Gkr/GlsWords.lean@glChk gkr_layer__L
+LeanVM/Guest/B1/Gkr/GlsWords.lean@gl_totalLeOn gkr_layer__L
+LeanVM/Guest/B1/Gkr/GlsWords.lean@glLast_totalLeOn gkr_last_layers__L
+LeanVM/Guest/B1/Gkr/GlsWords.lean@glsl_total gkr_layers__L_loop0
+LeanVM/Guest/B1/Opening/QueriesComplete3.lean@oqWin_complete walk_path__L
+LeanVM/Guest/B1/Opening/QueriesComplete3.lean@oqPath_complete walk_path__L
+LeanVM/Guest/B1/Opening/QueriesComplete3.lean@oqCap_complete walk_path__L
+LeanVM/Guest/B1/Opening/QueriesComplete3.lean@walk_block walk_path__L
+LeanVM/Guest/B1/KeccakGkr/PackLoop.lean@pkZs keccak_layer__L_loop0
+LeanVM/Guest/B1/Opening/WalkPops.lean@win_fallPops walk_path__L
+LeanVM/Guest/B1/Opening/WalkPops.lean@wp_fallPops walk_path__L
+LeanVM/Guest/B1/Opening/QueriesPlaced4.lean@oqWLoad_in walk_path__L
+LeanVM/Guest/B1/Opening/QueriesPlaced4.lean@wp_relAtIn walk_path__L
+LeanVM/Guest/B1/Opening/QueriesPlaced1.lean@wp_atoms_ok walk_path__L
+LeanVM/Guest/B1/Opening/QueriesPlacedP.lean@wp_relAtInP walk_path__L
+LeanVM/Guest/B1/Gkr/GlCInZeta.lean@vbz_calls verify_bus_gkr_loop0
+LeanVM/Guest/B1/Gkr/VbgC.lean@vbR7 verify_bus_gkr
+LeanVM/Guest/Exact/SphincsPinned.lean@sBitsAtoms verify_sig_lean_sphincs
+LeanVM/Guest/Lift/XmssLeaf.lean@segLoad main_loop2
+LeanVM/Guest/Lift/Sig.lean@loads_seg main_loop2
+LeanVM/Guest/B1/Sig/SphincsTopComplete.lean@layer_stage_vals verify_sig_lean_sphincs
+LeanVM/Guest/B1/Sig/SphincsTopComplete.lean@layer_stage verify_sig_lean_sphincs
+LeanVM/Guest/B1/Sig/SphincsSoundHt.lean@sLayerPre_cells verify_sig_lean_sphincs
+LeanVM/Guest/B1/Sig/SphincsSoundHt.lean@sLayerPre_sound verify_sig_lean_sphincs
+LeanVM/Guest/B1/Sig/SphincsHtComplete.lean@sLayerBlk_complete_vals verify_sig_lean_sphincs
+LeanVM/Guest/B1/Sig/SphincsHtComplete.lean@sLayerBlk_complete verify_sig_lean_sphincs
+LeanVM/Guest/B1/Sig/SpWotsCheck.lean@spLeafCells_eq sp_wots
+LeanVM/Guest/B1/Sig/SphincsBytes.lean@sFromMarks_sound verify_sig_lean_sphincs
+LeanVM/Cost/Decoder/Raw.lean main
+LeanVM/Cost/Decoder/Kids.lean main
+LeanVM/Cost/Decoder/Staged.lean main
+LeanVM/Cost/Decoder/Readers.lean main
+LeanVM/Cost/Decoder/Top.lean main
+LeanVM/Cost/Decoder/Frames.lean main
+LeanVM/Cost/Bounds/Guest/Kids.lean main
+LeanVM/Cost/Bounds/Guest/Readers.lean main
+LeanVM/Guest/Fast/Main.lean main
+LeanVM/Guest/SoundFacts.lean main
+LeanVM/Cost/Bounds/Guest/Top.lean@nDirect_cost main
+LeanVM/Cost/Bounds/Guest/Top.lean@nKids_cost main
+LeanVM/Cost/Bounds/Guest/Top.lean@lxSlots_cost main
+LeanVM/Cost/Bounds/Guest/Top.lean@lsSlots_cost main
+LeanVM/Cost/Bounds/Guest/Top.lean@nRawX_cost main
+LeanVM/Cost/Bounds/Guest/Top.lean@nRawS_cost main
+LeanVM/Cost/Bounds/Guest/Top.lean@daWitness_cost main
+LeanVM/Cost/Bounds/Guest/Top.lean@CountsWithin main
+LeanVM/Cost/Bounds/Guest/Top.lean@decWitAt_cost main
+LeanVM/Cost/Bounds/Guest/Stmt.lean@decSeed_cost main
+LeanVM/Cost/Bounds/Guest/Stmt.lean@decStmt_cost main
+LeanVM/Cost/Bounds/Guest/Stmt.lean@aggRounds_cost aggregate_claims
+LeanVM/Cost/Bounds/Guest/Stmt.lean@aggHints_cost aggregate_claims
+LeanVM/Cost/Bounds/Guest/Valid.lean@ValidCounts main
+LeanVM/Cost/Bounds/Guest/Valid.lean@validCounts_of main
+LeanVM/Cost/Bounds/Guest/Valid.lean@cursor_le_stream verify_sub
+LeanVM/Cost/Bounds/Guest/DecTop.lean@sphincsAtFrameT_cost main
+LeanVM/Guest/Budget/MainCount.lean@mainCallW main
+LeanVM/Guest/Budget/MvCount.lean da_pad
+LeanVM/Guest/Fast/Whir.lean@oqIterN opening_queries__L_loop0
+LeanVM/Guest/Fast/Whir.lean@oqIterA opening_queries__L_loop0
+LeanVM/Guest/Fast/Whir.lean@oqsOfN opening_queries__L
+LeanVM/Guest/Fast/Whir.lean@oqsOfA opening_queries__L
+LeanVM/Guest/Fast/Whir.lean@vsPiOfS verify_sub
+LeanVM/Guest/Fast/Whir.lean@vsPiOfA verify_sub
+LeanVM/Cost/Bounds/Guest/Whir.lean@oqLoopArgs_cost opening_queries__L
+LeanVM/Cost/Bounds/Guest/Whir.lean@oqIterA_cost opening_queries__L_loop0
+LeanVM/Cost/Bounds/Guest/Whir.lean@oqsOfA_cost opening_queries__L
+LeanVM/Cost/Bounds/Guest/Whir.lean@vsPiOfS_cost verify_sub
+LeanVM/Cost/Bounds/Guest/Whir.lean@vsPiOfN_cost verify_sub
+LeanVM/Guest/Fast/Da.lean@dvBlobLVN da_verify
+LeanVM/Cost/Decoder/Da.lean@dvBlobLW da_verify
+LeanVM/Cost/Decoder/Da.lean@dvCellVW da_verify
+LeanVM/Cost/Decoder/Da.lean@dvWitND da_verify
+LeanVM/Cost/Bounds/Guest/Da.lean@dvBlobLW_cost da_verify
+LeanVM/Cost/Bounds/Guest/Da.lean@dvCellVW_cost da_verify
+LeanVM/Cost/Bounds/Guest/Da.lean@dvWitN_cost_of_le da_verify
+LeanVM/Guest/Fast/Sphincs.lean verify_sig_lean_sphincs
+LeanVM/Cost/Bounds/Guest/Signatures.lean verify_sig_lean_sphincs
+LeanVM/Guest/Sound.lean verify_sub
+LeanVM/Guest/CoreMode/Fn/check_opening_terminal/TermQ.lean verify_sub
+LeanVM/Guest/CoreMode/Fn/verify_keccak/ResSt.lean verify_sub
+LeanVM/Guest/CoreMode/Fn/verify_tables/ExpQv.lean verify_sub
+LeanVM/Guest/CoreMode/Fn/verify_bus_gkr/ResGkrQ.lean@vbgQ_step verify_sub
+LeanVM/Guest/CoreMode/Fn/verify_bus_gkr/ResGkrQ.lean@glsLQ_step gkr_layers__L_loop0
+LeanVM/Guest/CoreMode/Fn/verify_bus_gkr/ResGkrQ.lean@glastQ_step gkr_layers__L
+LeanVM/Guest/CoreMode/Fn/verify_bus_gkr/ResGkrS.lean@glLsLArgs gkr_layers__L_loop0
+LeanVM/Guest/CoreMode/Fn/verify_bus_gkr/ResGkrS.lean@glLastArgs gkr_last_layers__L
+LeanVM/Guest/CoreMode/Fn/verify_bus_gkr/ResGkrS.lean@glLoopArgs gkr_layer__L
+LeanVM/Guest/CoreMode/Fn/verify_bus_gkr/ResGkrS.lean@glLoopArgs_eq gkr_layer__L
+LeanVM/Guest/CoreMode/Fn/verify_bus_gkr/ResGkrS.lean@glLoopParams_eq gkr_layer__L_loop0
+LeanVM/Guest/CoreMode/Fn/verify_bus_gkr/ResGkrS.lean@gl_idx gkr_layer__L
+LeanVM/Guest/CoreMode/Fn/verify_bus_gkr/ResGkrS.lean@glParams_eq gkr_layer__L
+LeanVM/Guest/CoreMode/Fn/child_claim_list_mono/ResM.lean@monoSite_of child_claim_list_mono
+LeanVM/Guest/CoreMode/Fn/child_claim_list_mono/ResM.lean@nzVal_ml0 child_claim_list_mono_last__L0
+LeanVM/Guest/CoreMode/Fn/child_claim_list_mono/ResMR.lean child_claim_list_mono_last__L
+LeanVM/Guest/CoreMode/Fn/keccak_layer/ResStL.lean@LayQ keccak_layer__L
+LeanVM/Guest/CoreMode/Fn/keccak_layer/ResStL.lean@layer_found keccak_layer__L
+LeanVM/Guest/CoreMode/Fn/keccak_layer/ResStL.lean@stepCall verify_keccak
+LeanVM/Guest/CoreMode/Fn/keccak_layer/ResStP.lean@stArgs keccak_layer__L
+LeanVM/Guest/CoreMode/Fn/keccak_layer/ResStP.lean@layIdx_facts keccak_layer__L
+LeanVM/Guest/CoreMode/Fn/verify_tables/ResVtL.lean@l10_next verify_tables_loop0
+LeanVM/Guest/CoreMode/Fn/check_opening_terminal/ResE.lean check_opening_terminal
+LeanVM/Guest/CoreMode/Fam/TermDefs.lean column_selector__L
+LeanVM/Guest/WalkKnown.lean@loop_cutsKnown opening_queries__L_loop0
+LeanVM/Guest/WalkKnown.lean@wp_cutsKnown walk_path__L
+LeanVM/Guest/WalkOs.lean@os_tup open_stacked__L
+LeanVM/Guest/WalkOs.lean@os_cutsKnown open_stacked__L

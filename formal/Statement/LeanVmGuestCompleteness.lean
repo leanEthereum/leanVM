@@ -1,13 +1,14 @@
 module
 
 public import Statement.LeanVmGuest
+public import Statement.LeanVmGuestProver
 
 /-!
 # The leanISA guest program: completeness, and the batching's soundness
 
 The guest program's completeness on the nodes within the deployed limits (`DeployedLimits`) whose
-children carry honest proofs (`GuestCompleteOnHonestChildren`), the honest proof
-rarely refused (`HonestProofRarelyRefused`), and the recursion step, the batching of the
+children carry honest proofs, its execution made from the statement and the witness
+(`GuestExecutionComplete`), the honest proof rarely refused (`HonestProofRarelyRefused`), and the recursion step, the batching of the
 children's deferred claims, sound in the random-permutation model (`BatchingSound`). The
 soundness side, what a node proves, is `LeanVmGuest.lean`. `lean_ethereum.py` is
 `guests/lean_ethereum.py` and `aggregation/<module>.rs` is
@@ -43,8 +44,8 @@ structure DeployedLimits (statement : NodeStatement) (witness : NodeWitness) : P
       (witness.children.map (·.statement.claims.xmss)).flatten) ∧
     statement.claims.sphincs.Subperm (witness.sphincsSignatures.map (·.1) ++
       (witness.children.map (·.statement.claims.sphincs)).flatten)
-  /-- At most `MAX_RECURSIONS = 16` children (`lean_ethereum.py`). -/
-  atMostSixteenChildren : witness.children.length ≤ 16
+  /-- At most `MAX_RECURSIONS` children (`Batch.maxRecursions`, `lean_ethereum.py`). -/
+  atMostSixteenChildren : witness.children.length ≤ Batch.maxRecursions
   /-- At most `2^17` claims in the children's lists, in all. -/
   atMost2Pow17ChildClaims :
     (witness.children.map fun child ↦
@@ -132,21 +133,22 @@ def HonestChild (child : Child) : Prop :=
         some child.proof ∧
       verifierRefusingZero (m := Id) keccakF1600 guestProgram input child.proof = true
 
-/-- **Every node within the deployed limits whose children carry honest proofs has a valid execution
-of the guest program**: for every statement and witness with `NodeRelation` under the deployed seed,
-within the deployed limits (`DeployedLimits`), every child carrying an honest proof (`HonestChild`),
-there is a valid execution of the guest program on the statement's digest of
-committed size at most `2^30`, the sizes the honest prover proves and `HonestProofRarelyRefused`
-covers. Reading `HonestProofRarelyRefused` for the deployed Keccak,
-so that the honest proof is a `HonestChild`, is the heuristic that the deployed Keccak-f[1600]
-behaves as a random permutation, applied to this prover. Proved by
-`LeanVM.Guest.Completeness.guest_complete_on_honest_children`. -/
-def GuestCompleteOnHonestChildren : Prop :=
+/-- **The guest's execution, made from the statement and the witness, on every node within the
+deployed limits whose children carry honest proofs**: for every statement and witness with
+`NodeRelation` under the deployed seed, within the deployed limits (`DeployedLimits`), every child
+carrying an honest proof (`HonestChild`), the executor's run of the guest program on the advice made
+from the statement and the witness (`LeanVM.Guest.guestExecution`, `LeanVmGuestProver.lean`) returns
+a valid execution of the guest program on the statement's digest, of committed size at most `2^30`,
+the sizes the honest prover proves and `HonestProofRarelyRefused` covers. Reading
+`HonestProofRarelyRefused` for the deployed Keccak, so that the honest proof is a `HonestChild`, is
+the heuristic that the deployed Keccak-f[1600] behaves as a random permutation, applied to this
+prover. Proved by `LeanVM.Guest.EndExec.guestExecution_complete_holds`. -/
+def GuestExecutionComplete : Prop :=
   ∀ (statement : NodeStatement) (witness : NodeWitness),
     NodeRelation (bytecodeWords guestProgram) (deployedSeed guestProgram) statement witness →
     DeployedLimits statement witness →
     (∀ child ∈ witness.children, HonestChild child) →
-    ∃ execution : Execution guestProgram,
+    ∃ execution, guestExecution guestProgram statement witness = .ok execution ∧
       ValidExecution guestProgram
         (PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) statement)) execution ∧
       execution.committedSize ≤ 2 ^ 30
@@ -254,7 +256,8 @@ adversary's private coins are free. The factor `max(2M - 3, 8) · 2^-130` bounds
 a challenge: a sumcheck round's is bad at no more than `2` values, `2/|E| = 8 · 2^-130`; the
 batching's one challenge `λ` combines the children's `2n` claims, `n < M`, with its powers, a
 nonzero combination of degree at most `2M - 3` vanishes at no more than `2M - 3` values of `λ`, and
-a query reaches `λ` only by passing the proof of work of `batchLambdaGrindBits = 2` bits before it.
+a query reaches `λ` only by passing the proof of work of `batchLambdaGrindBits` bits before it, `2`
+at `maxRecursions = 16`.
 
 This is the batching run outside the circuit, with Keccak-f[1600] = `π`; it does not compose with
 the guest program's in-circuit statements, whose `KECCAK` instruction computes the deployed

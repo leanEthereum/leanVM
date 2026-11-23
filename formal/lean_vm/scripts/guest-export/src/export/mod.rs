@@ -11,6 +11,7 @@ use super::{
 use std::collections::BTreeMap;
 use verifier::E;
 
+pub mod advice;
 pub mod bytecode;
 #[cfg(test)]
 mod guest_diff;
@@ -41,6 +42,8 @@ pub const GUEST_SOURCE: &str = include_str!(concat!(env!("OUT_DIR"), "/aggregati
 pub fn all_files() -> Vec<File> {
     let mut files = bytecode::files(guest());
     files.extend(source::files());
+    files.push(advice::file());
+    files.extend(advice::data_files());
     files.push(manifest::file());
     files.push(node_vectors::file());
     files

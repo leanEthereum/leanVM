@@ -44,7 +44,7 @@ def Script.AllRet {α : Type} (P : α → Prop) : Script α → Prop
   | .ret a => P a
   | .send _ k => Script.AllRet P k
   | .sample k => ∀ c, Script.AllRet P (k c)
-  | .grind k => Script.AllRet P k
+  | .grind _ k => Script.AllRet P k
   | .commit _ k => Script.AllRet P k
   | .query k => ∀ rows, Script.AllRet P (k rows)
 
@@ -54,7 +54,7 @@ theorem Script.AllRet.bind {α β : Type} {P : α → Prop} {Q : β → Prop} {f
   | .ret a, h => hk a h
   | .send _ k, h => Script.AllRet.bind hk k h
   | .sample k, h => fun c ↦ Script.AllRet.bind hk (k c) (h c)
-  | .grind k, h => Script.AllRet.bind hk k h
+  | .grind _ k, h => Script.AllRet.bind hk k h
   | .commit _ k, h => Script.AllRet.bind hk k h
   | .query k, h => fun rows ↦ Script.AllRet.bind hk (k rows) (h rows)
 
@@ -76,7 +76,7 @@ theorem Corr.bind_allRet {α γ δ : Type} {P : α → Prop} {S : γ → δ → 
   | .ret a, h => hk a h
   | .send _ k, h => ⟨rfl, Corr.bind_allRet hk k h⟩
   | .sample k, h => fun c ↦ Corr.bind_allRet hk (k c) (h c)
-  | .grind k, h => Corr.bind_allRet hk k h
+  | .grind _ k, h => ⟨rfl, Corr.bind_allRet hk k h⟩
   | .commit _ k, h => ⟨rfl, Corr.bind_allRet hk k h⟩
   | .query k, h => fun rows ↦ Corr.bind_allRet hk (k rows) (h rows)
 

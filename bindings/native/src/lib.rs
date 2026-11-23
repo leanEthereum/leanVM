@@ -2,7 +2,7 @@
 //! handles and owned buffers, not a public API.
 #![allow(clippy::missing_safety_doc)] // Safety contract is documented in include/lean_pq_native.h.
 
-use lean_pq::{sphincs, xmss, Aggregate, Message, Sidecar, MESSAGE_LEN, PUBLIC_KEY_LEN};
+use lean_pq::{sphincs, vrf, xmss, Aggregate, Message, Sidecar, MESSAGE_LEN, PUBLIC_KEY_LEN};
 use std::cell::RefCell;
 use std::ffi::c_int;
 use std::panic::{catch_unwind, AssertUnwindSafe};
@@ -34,6 +34,8 @@ pub struct XmssSecretKeyHandle(xmss::SecretKey);
 pub struct SphincsSecretKeyHandle(sphincs::SecretKey);
 /// Opaque ownership handle. Bindings only ever pass its address back to this library.
 pub struct AggregateHandle(Aggregate);
+/// Opaque ownership handle. Bindings only ever pass its address back to this library.
+pub struct VrfKeyHandle(vrf::Key);
 /// Opaque ownership handle. Bindings only ever pass its address back to this library.
 pub struct SidecarHandle(Sidecar);
 
@@ -244,6 +246,36 @@ pub unsafe extern "C" fn lpq_xmss_secret_key_to_bytes(
     out: *mut LpqBuffer,
 ) -> c_int {
     ffi(|| put_buffer(out, handle(key, "secret-key")?.0.to_bytes().to_vec()))
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn lpq_xmss_secret_key_from_cache_bytes(
+    seed: *const u8,
+    seed_len: usize,
+    public_key: *const u8,
+    public_key_len: usize,
+    cache: *const u8,
+    cache_len: usize,
+    out: *mut *mut XmssSecretKeyHandle,
+) -> c_int {
+    ffi(|| {
+        let seed = bytes32(seed, seed_len, "seed")?;
+        let public_key =
+            xmss::PublicKey::from_bytes(bytes(public_key, public_key_len, "public key")?)
+                .map_err(|e| e.to_string())?;
+        let key =
+            xmss::SecretKey::from_cache_bytes(seed, &public_key, bytes(cache, cache_len, "cache")?)
+                .map_err(|e| e.to_string())?;
+        put_handle(out, XmssSecretKeyHandle(key), "secret-key")
+    })
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn lpq_xmss_secret_key_cache_to_bytes(
+    key: *mut XmssSecretKeyHandle,
+    out: *mut LpqBuffer,
+) -> c_int {
+    ffi(|| put_buffer(out, handle(key, "secret-key")?.0.cache_to_bytes()))
 }
 
 #[no_mangle]
@@ -564,4 +596,94 @@ pub unsafe extern "C" fn lpq_aggregate_sphincs_claims(
 #[no_mangle]
 pub unsafe extern "C" fn lpq_aggregate_destroy(aggregate: *mut AggregateHandle) {
     destroy(aggregate)
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn lpq_vrf_key_new(
+    seed: *const u8,
+    seed_len: usize,
+    start: u32,
+    end: u32,
+    out: *mut *mut VrfKeyHandle,
+) -> c_int {
+    ffi(|| {
+        let seed = bytes32(seed, seed_len, "seed")?;
+        let key = vrf::Key::new(seed, start..end).map_err(|e| e.to_string())?;
+        put_handle(out, VrfKeyHandle(key), "VRF key")
+    })
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn lpq_vrf_key_from_cache_bytes(
+    seed: *const u8,
+    seed_len: usize,
+    root: *const u8,
+    root_len: usize,
+    cache: *const u8,
+    cache_len: usize,
+    out: *mut *mut VrfKeyHandle,
+) -> c_int {
+    ffi(|| {
+        let seed = bytes32(seed, seed_len, "seed")?;
+        let root = bytes32(root, root_len, "root")?;
+        let key = vrf::Key::from_cache_bytes(seed, &root, bytes(cache, cache_len, "cache")?)
+            .map_err(|e| e.to_string())?;
+        put_handle(out, VrfKeyHandle(key), "VRF key")
+    })
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn lpq_vrf_key_cache_to_bytes(
+    key: *mut VrfKeyHandle,
+    out: *mut LpqBuffer,
+) -> c_int {
+    ffi(|| put_buffer(out, handle(key, "VRF key")?.0.cache_to_bytes()))
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn lpq_vrf_key_root(key: *mut VrfKeyHandle, out: *mut LpqBuffer) -> c_int {
+    ffi(|| put_buffer(out, handle(key, "VRF key")?.0.root().to_vec()))
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn lpq_vrf_key_proof(
+    key: *mut VrfKeyHandle,
+    slot: u32,
+    out: *mut LpqBuffer,
+) -> c_int {
+    ffi(|| {
+        let proof = handle(key, "VRF key")?
+            .0
+            .proof(slot)
+            .map_err(|e| e.to_string())?;
+        put_buffer(out, proof.as_flattened().to_vec())
+    })
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn lpq_vrf_key_destroy(key: *mut VrfKeyHandle) {
+    destroy(key)
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn lpq_vrf_verify(
+    root: *const u8,
+    root_len: usize,
+    slot: u64,
+    proof: *const u8,
+    proof_len: usize,
+) -> c_int {
+    ffi(|| {
+        let root = bytes32(root, root_len, "root")?;
+        let proof = bytes(proof, proof_len, "proof")?;
+        if proof.len() != vrf::PROOF_LEN {
+            return Err(format!(
+                "proof must be exactly {} bytes, got {proof_len}",
+                vrf::PROOF_LEN
+            ));
+        }
+        let (nodes, _) = proof.as_chunks::<32>();
+        let proof: vrf::Proof = nodes.try_into().expect("proof has 32 nodes");
+        vrf::verify(&root, slot, &proof).map_err(|e| e.to_string())
+    })
 }

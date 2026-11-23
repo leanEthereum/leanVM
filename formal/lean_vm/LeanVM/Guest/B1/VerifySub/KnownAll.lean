@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.B1.VerifySub.Known
 public import LeanVM.Guest.B1.Placement.Certify
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_sub»
 
 /-!
 # `verify_sub`'s cut obligations
@@ -41,20 +43,20 @@ theorem vsT_front73 : vsT = (vsHeadT ++ vsReadsT ++ vsSizesT) ++ (vsPushT ++ vsR
 
 /-- **`VsKnown`**: `kappa_base`'s entries below `kbBound`. -/
 theorem vsKnown_holds {κ : ℕ} (L : MemoryImage κ) (h16 : minLogMem ≤ κ) (h32 : κ ≤ maxLogMem)
-    (σ : Val) (hexp : B1.ExpTables L.read (σ (.n 4)))
+    (σ : Val) (hexp : B1.ExpTables L.read (σ (.n (val% «verify_sub» "g_squares"))))
     (h : Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((Fn.body fn% «verify_sub»).take 1511)
         True
       (fun _ ↦ True)) :
-    ∀ i < 8, ∃ e < kbBound i, LoadHolds L.read (σ (.n 83)) i (ofK (addressOfIndex e)) :=
+    ∀ i < 8, ∃ e < kbBound i, LoadHolds L.read (σ (.n (val% «verify_sub» "kappa_base"))) i (ofK (addressOfIndex e)) :=
   vsKnown_of L h16 h32 (Tables.certify_placement_holds (h32.trans (by decide)) L) σ hexp h
 
 /-- **`dims_g`'s first word** (the memory's log): the body's first `316` statements
 (up to the call of `verify_tables`) put `dims_g[g^0] = g^logMem`, `logMem ≤ 32`, below `g^34`. -/
 theorem vsDimsKnown0_holds {κ : ℕ} (L : MemoryImage κ) (_hmin : minLogMem ≤ κ) (h32 : κ ≤ maxLogMem)
     (σ : Val)
-    (h : Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((Fn.body fn% «verify_sub»).take 316) True
+    (h : Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((Fn.body fn% «verify_sub»).take (pos% «verify_sub» "fs0@4")) True
       (fun _ ↦ True)) :
-    ∃ e < 34, LoadHolds L.read (σ (.n 71)) 0 (ofK (addressOfIndex e)) := by
+    ∃ e < 34, LoadHolds L.read (σ (.n (val% «verify_sub» "dims_g"))) 0 (ofK (addressOfIndex e)) := by
   have hκ : κ ≤ 32 := h32.trans (by decide)
   have hle : CallRel.Le (coreProgram.Rel L.read) (coreProgram.Rel L.read) := fun _ _ _ h ↦ h
   rw [show Fn.body fn% «verify_sub» = vsT from vs_body, vsT_front73, List.take_append,

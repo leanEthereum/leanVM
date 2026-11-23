@@ -12,6 +12,7 @@ public import LeanVM.Guest.CoreFind
 public import LeanVM.Guest.Data.Names
 public import LeanVM.Guest.Renumber
 public import Statement.Data.Bytecode
+import all Statement.Data.Bytecode
 public import LeanVM.Guest.Code
 
 /-!

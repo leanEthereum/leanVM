@@ -9,6 +9,8 @@
 module
 
 public import LeanVM.Guest.B1.Sig.XmssSegT
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«main_loop2»
 
 /-!
 # The codeword's groups of four, sound
@@ -132,7 +134,7 @@ theorem armsM_getElem (W : WotsT) (slots : Nat → Nat → Nat) (first n : Nat) 
 
 /-- Group `p`'s running product and encoding cells and its virtual base, the groups from `vb0`. -/
 def sSt (W : WotsT) (vb0 : Nat) : Nat → V × V × Nat
-  | 0 => (.n 0, .n 0, vb0)
+  | 0 => (.n (val% «main_loop2» "xi"), .n (val% «main_loop2» "xi"), vb0)
   | p + 1 =>
       let st := sSt W vb0 p
       (prodT W (p == 0) (lxN p) st.2.2, encT W (p == 0) (lxN p) st.2.2,
@@ -231,7 +233,7 @@ theorem sCodewordT_sound {W : WotsT} (hW : StepAtoms W) {f : Nat → Nat → E �
       σ d0 = lit (∑ i ∈ Finset.range 58, lxDigit (sK σ dg) i * 4 ^ i) := by
   have hgs := sGroupsT_eq W dg (dg + 70) 15 0
   simp only [Nat.zero_add] at hgs
-  have hgs' : (sGroupsT W dg 15 0 (.n 0) (.n 0) (dg + 70)).2 = _ := hgs
+  have hgs' : (sGroupsT W dg 15 0 (.n (val% «main_loop2» "xi")) (.n (val% «main_loop2» "xi")) (dg + 70)).2 = _ := hgs
   simp only [sCodewordT, List.append_assoc] at h
   rw [hgs'] at h
   have h0 := holdsList_split_atoms (xs := [hintW "lx_digits" (runV dg 15)] ++ sDigitChecks dg ++
