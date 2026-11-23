@@ -9,8 +9,9 @@ public import Statement.LeanVmGuestProver
 The guest program's completeness on the nodes within the deployed limits (`DeployedLimits`) whose
 children the verifier accepts, unless a child's proof exhibits a Keccak-256 collision in its Merkle
 openings (`OpeningsCollide`), its execution made from the statement and the witness
-(`GuestExecutionComplete`), and the recursion step, the batching of the children's deferred claims, sound in the random-permutation model (`BatchingSound`). The
-soundness side, what a node proves, is `LeanVmGuest.lean`. `lean_ethereum.py` is
+(`GuestExecutionComplete`), and the recursion step, the batching of the children's deferred
+claims, sound in the random-permutation model (`BatchingSound`). The soundness side, what a node
+proves, is `LeanVmGuest.lean`. `lean_ethereum.py` is
 `guests/lean_ethereum.py` and `aggregation/<module>.rs` is
 `crates/aggregation/src/<module>.rs`.
 -/
@@ -106,7 +107,8 @@ deployed limits, or a collision in a child's openings**: for every statement and
 within the deployed limits (`DeployedLimits`), the executor's run of the guest program on the
 advice made from the statement and the witness (`LeanVM.Guest.guestExecution`,
 `LeanVmGuestProver.lean`) returns a valid execution of the guest program on the statement's digest,
-of committed size at most `2^30`, the sizes the honest prover proves, or some child's proof exhibits a Keccak-256 collision (`OpeningsCollide`). Proved by
+of committed size at most `2^30`, the sizes the honest prover proves, or some child's proof
+exhibits a Keccak-256 collision (`OpeningsCollide`). Proved by
 `LeanVM.Guest.EndExec.guestExecution_complete_holds`. -/
 def GuestExecutionComplete : Prop :=
   ∀ (statement : NodeStatement) (witness : NodeWitness),

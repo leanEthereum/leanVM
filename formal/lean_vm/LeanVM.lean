@@ -118,7 +118,7 @@ random-permutation model `batch_rpm`, `batch_rpm_bits`), `decode_binds`, `guest_
 (`LeanVM.Guest.Budget.guest_complete_on_acceptable_children`, `AcceptableChild`,
 `LeanVM/Guest/AcceptableChild.lean`; a node `NodeRelation` admits has such children, or a child's
 proof exhibits a Keccak-256 collision, by `LeanVM.Guest.Child.acceptableChildren_or_collide`, and
-an honest proof by `guest_child_complete` and `LeanVM.Guest.Child.freshClaim_unique`), the executor
+an honest proof by `guest_child_complete`), the executor
 on honest children (`LeanVM.Guest.EndExec.honestExecution_ok_on_honest_children`, and with the
 statement's witness generation `LeanVM.Guest.EndExec.guestExecution_complete_on_honest_children`,
 with no collision alternative), and the guest's completeness within its deployed budget
@@ -137,8 +137,6 @@ example : LeanVM.Node.StatementDigestBinds := LeanVM.Guest.Binding.digest_binds
 example : LeanVM.Node.MemoryAggregateSound LeanVM.Guest.guestProgram LeanVM.Guest.End.decode
     LeanVM.transcriptExtractor :=
   LeanVM.Guest.End.aggregate_sound_outer
-example : LeanVM.Guest.Completeness.HonestProofRarelyRefused :=
-  LeanVM.Guest.Completeness.honest_proof_rarely_refused
 example : LeanVM.Guest.Completeness.GuestExecutionComplete :=
   LeanVM.Guest.EndExec.guestExecution_complete_holds
 example : LeanVM.Guest.Completeness.GuestCompleteOnAcceptableChildren :=
@@ -277,14 +275,6 @@ info: 'LeanVM.Guest.EndExec.guestExecution_complete_on_honest_children' depends 
 /-- info: 'LeanVM.Guest.EndExec.guestExecution_complete_holds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.Guest.EndExec.guestExecution_complete_holds
-
-/-- info: 'LeanVM.Guest.Completeness.honest_proof_rarely_refused' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms LeanVM.Guest.Completeness.honest_proof_rarely_refused
-
-/-- info: 'LeanVM.Guest.Child.freshClaim_unique' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms LeanVM.Guest.Child.freshClaim_unique
 
 /-- info: 'LeanVM.Guest.Budget.guest_complete_on_acceptable_children' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in

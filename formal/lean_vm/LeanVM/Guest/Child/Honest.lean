@@ -3,14 +3,15 @@
 
   The honest prover of a child: the compiled honest prover of a witness whose sizes are the
   execution's own, so that its stack is the execution's committed size. Its proof with the
-  deployed Keccak, when the verifier accepts it, is the pure prover's proof of that witness.
+  deployed Keccak is the pure prover's proof of that witness.
 -/
 
 module
 
 public import LeanVM.Protocol.EndToEnd.Complete.Rom
 public import Statement.LeanVmGuest
-public import LeanVM.Guest.Child.Fresh
+public import LeanVM.Protocol.WithHashBridge
+public import LeanVM.Protocol.Verifier.Deferred
 public import LeanVM.Protocol.WithHash
 public import LeanVM.Guest.WithHash
 public import LeanVM.Guest.AcceptableChild
@@ -18,13 +19,12 @@ public import LeanVM.Guest.AcceptableChild
 /-!
 # The honest prover of a child
 
-`childComp` is `EndToEnd.Complete.honestComp` with its witness chosen among those whose stacked
-size is the execution's committed size (`ChildFor`; one exists within the verifier's cap,
-`exists_childFor`, as `exists_admissible_witness` builds it). `Rom.honestComp?` is
-`Rom.honestComp` with `none` where it makes no proof; a prover that is it at a child's witness or
-makes no proof (`ChildSpec`, as `childProver`) has, with Keccak-256 and Keccak-f[1600]
-(`honestProofWithDeployedKeccakWithHash`), the pure prover's proof (`atKeccak_of_eq`,
-`prove_of_some`).
+A child's witness is an honest witness whose stacked size is the execution's committed size
+(`ChildFor`; one exists within the verifier's cap, `exists_childFor`, as
+`exists_admissible_witness` builds it). `Rom.honestComp?` is `Rom.honestComp` with `none` where it
+makes no proof; a prover that is it at a child's witness or makes no proof (`ChildSpec`) has, with
+Keccak-256 and Keccak-f[1600] (`honestProofWithDeployedKeccakWithHash`), the pure prover's proof
+(`atKeccak_of_eq`, `prove_of_some`).
 -/
 
 namespace LeanVM.Guest.Child
@@ -88,27 +88,6 @@ theorem exists_childFor {prog : LeanIsaProgram} {input : PublicInput} {t : Execu
   · rw [hmem]
     exact hv.1.2.1
 
-open Classical in
-/-- **The honest prover of a child**: `honestComp` at a child's witness (`ChildFor`, chosen
-classically); the empty proof when there is none. -/
-noncomputable def childComp (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog)
-    (ρ fuel : ℕ) : OracleComp KeccakCalls Proof :=
-  if h : ∃ w s, ChildFor prog input t ρ w s then
-    Rom.honestComp (leanVmSeed (bytecodeWords prog) (publicInputDigest input))
-      (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input))
-      (leanVmProver prog h.choose_spec.choose ρ (stackOf prog h.choose_spec.choose h.choose)) fuel
-  else pure ⟨[], []⟩
-
-open Classical in
-/-- The honest prover of a child, as an `HonestProverWithHash`: `Rom.honestComp?` at a child's
-witness (`ChildFor`, chosen classically); `none` when there is none. -/
-noncomputable def childProver : HonestProverWithHash := fun prog input t ρ fuel ↦
-  if h : ∃ w s, ChildFor prog input t ρ w s then
-    Rom.honestComp? (leanVmSeed (bytecodeWords prog) (publicInputDigest input))
-      (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input))
-      (leanVmProver prog h.choose_spec.choose ρ (stackOf prog h.choose_spec.choose h.choose)) fuel
-  else pure none
-
 /-- `deployedKeccakCalls` is the total implementation at Keccak-256 and Keccak-f[1600]. -/
 theorem keccakImpl_eq : Budget.deployedKeccakCalls = totalImpl keccak256 keccakF1600 := by
   funext q
@@ -123,17 +102,6 @@ abbrev ChildSpec (A : HonestProverWithHash) (prog : LeanIsaProgram) (input : Pub
         input))
       (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input))
       (leanVmProver prog s ρ (stackOf prog s w)) fuel
-
-/-- **The child prover is the specification at a child's witness**, or no proof. -/
-theorem childSpec_childProver (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog)
-    (ρ fuel : ℕ) : ChildSpec childProver prog input t ρ fuel := by
-  by_cases h : ∃ w s, ChildFor prog input t ρ w s
-  · refine Or.inr ⟨_, _, h.choose_spec.choose_spec, ?_⟩
-    unfold childProver
-    simp only [h, ↓reduceDIte]
-  · refine Or.inl ?_
-    unfold childProver
-    simp only [h, ↓reduceDIte]
 
 /-- **A prover's proof with Keccak**, where it is the specification's honest prover of a
 strategy: the pure prover's proof. -/
@@ -151,18 +119,6 @@ theorem atKeccak_of_eq {A : HonestProverWithHash} {prog : LeanIsaProgram} {input
   simp only [keccakImpl_eq, Rom.honestComp?, simulateQ_bind,
     simulateQ_proveM, implH_totalImpl, implF_totalImpl, seedRun_leanVmSeed]
   rw [← proveM_id]
-  rfl
-
-/-- The statement's refusing verifier, at Keccak, is the run of `execWith` refusing zero
-challenges. -/
-theorem verifierRZ_eq (prog : LeanIsaProgram) (input : PublicInput) (π : Proof) :
-    Budget.verifierRefusingZeroWithHash (m := Id) keccak256 keccakF1600 prog input π =
-      Id.run (runProofWithHash (m := Id) keccak256 keccakF1600
-        ((execWith computedBytecodeValue verifyStackedOpening (bytecodeWords prog)
-          (publicInputDigest input)).bind fun _ ↦
-            VerifierProgram.ret true).refusingZeroChallenge
-        (seed (bytecodeWords prog) (publicInputDigest input)) π) := by
-  unfold Budget.verifierRefusingZeroWithHash
   rfl
 
 /-- **A proof with Keccak**, of a prover that is the specification at a child's witness or makes

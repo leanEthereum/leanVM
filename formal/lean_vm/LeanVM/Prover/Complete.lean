@@ -19,12 +19,11 @@ The completeness theorem (`LeanVM.completeness_holds`) is proved for a prover th
 witness classically (`honestComp`). Its proof needs of the prover only that, on the executions it
 speaks of, it is the specification's honest prover (`Rom.honestComp?` at leanVM's seed and
 program, with the strategy `leanVmProver prog s ρ (stackOf prog s w)`) at some witness `w` at
-sizes `s` that is honest (`HonestFor`). Here it is restated for any such prover `A`
-(`guestChildComplete_of_spec`, the guest's, is in `CompleteChild.lean`):
+sizes `s` that is honest (`HonestFor`). Here it is restated for any such prover `A`:
 
 * `completeness_of_spec`: if on every valid execution within the cap, at a valid rate, `A` is the
   specification at an honest witness, then the body of `LeanVM.Completeness` holds for `A`, with
-  the same bound `2^-256` (`completenessRpm_at`, `completenessRpm_le`);
+  the same bound `2^-256` (`completenessRpm_at`, `completenessRpm_le`).
 
 The prover may make no proof (`none`); the experiments count that a rejection. The verifier
 rejects the empty proof too, once it has its seed (`verifierWithHash_empty`), so in distribution an experiment is the one with the empty

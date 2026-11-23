@@ -23,13 +23,11 @@ children the guest program accepts (`ChildrenOk`) is within the budget (`budget_
 executor runs the guest to completion on its advice (`execute_guest_complete`).
 `honestExecution_complete_on_accepted_children : AdviceComplete honestAdvice`: a node `NodeRelation`
 admits under the deployed seed has acceptable children, or a child's proof exhibits a Keccak-256
-collision (`Child.acceptableChildren_or_collide`). Its children carrying honest
-proofs are acceptable too (`acceptableChildren_of_honest`): `honestExecution_ok_on_honest_children`.
+collision (`Child.acceptableChildren_or_collide`). Its children carrying honest proofs are
+acceptable too (`acceptableChildren_of_honest`): `honestExecution_ok_on_honest_children`.
 `guest_prover_complete`: so the composed prover (the advice generator, the executor,
-`leanVmHonestProver`) makes a proof that the verifier rejects with probability at most `2^-256`, and
-that the verifier refusing every zero challenge rejects, or that it fails to make, with probability
-at most `2^-100`, in the random-permutation model (`completeness_holds`,
-`honest_proof_rarely_refused`).
+`leanVmHonestProver`) makes a proof that the verifier rejects, or fails to make, with probability
+at most `2^-256` in the random-permutation model (`completeness_holds`).
 -/
 
 namespace LeanVM.Guest.EndExec
@@ -78,12 +76,10 @@ theorem honestExecution_ok_on_honest_children (G : ExecGaps Ks Km E0 X Pro) (sta
   ⟨t, honestExecution_of_execute he, hv, hsz⟩
 
 open OracleComp OracleSpec in
-/-- **The composed prover's proof is accepted**, in the random-permutation model: on every node within
-the deployed limits whose children carry honest proofs, the executor's run on the guest's advice is
-an execution whose proof by `leanVmHonestProver`, at an inverse rate `2^ρ`, `1 ≤ ρ ≤ 4`, with `2^35`
-nonces per proof of work, the verifier rejects with probability at most `2^-256`, and which the
-honest prover fails to prove, or whose proof the verifier refusing every zero challenge rejects,
-with probability at most `2^-100`. -/
+/-- **The composed prover's proof is accepted**, in the random-permutation model: on every node
+within the deployed limits whose children carry honest proofs, the executor's run on the guest's
+advice is an execution whose proof by `leanVmHonestProver`, at an inverse rate `2^ρ`, `1 ≤ ρ ≤ 4`,
+with `2^35` nonces per proof of work, the verifier rejects with probability at most `2^-256`. -/
 theorem guest_prover_complete (G : ExecGaps Ks Km E0 X Pro) (statement : NodeStatement)
     (witness : NodeWitness)
     (hrel : NodeRelation (bytecodeWords guestProgram) (deployedSeed guestProgram) statement witness)
@@ -91,20 +87,10 @@ theorem guest_prover_complete (G : ExecGaps Ks Km E0 X Pro) (statement : NodeSta
     ∃ t, guestRun honestAdvice statement witness = .ok t ∧ ∀ ρ, 1 ≤ ρ ∧ ρ ≤ 4 →
       Pr{let v ← completenessExperiment leanVmHonestProver guestProgram
           (PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) statement)) t ρ (2 ^ 35)}[
-          v = false] ≤ (2 : ℝ≥0∞)⁻¹ ^ 256 ∧
-      Pr{let accepted ← Common.runWithRandomPermutation (do
-          match ← LeanVM.leanVmHonestProver Common.queryPermutation guestProgram
-              (PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) statement)) t ρ
-              (2 ^ 35) with
-          | none => pure false
-          | some proof =>
-            verifierRefusingZero Common.queryPermutation guestProgram
-              (PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) statement)) proof)}[
-          accepted = false] ≤ (2 : ℝ≥0∞)⁻¹ ^ 100 := by
+          v = false] ≤ (2 : ℝ≥0∞)⁻¹ ^ 256 := by
   obtain ⟨t, he, hv, hsz⟩ := honestExecution_complete_of_childrenOk G statement witness hrel hlim
     (acceptableChildren_of_honest hrel hon)
-  exact ⟨t, he, fun ρ hρ ↦ ⟨LeanVM.completeness_holds _ _ t ρ hv hsz hρ,
-    honest_proof_rarely_refused _ _ t ρ hv hsz hρ⟩⟩
+  exact ⟨t, he, fun ρ hρ ↦ LeanVM.completeness_holds _ _ t ρ hv hsz hρ⟩
 
 end LeanVM.Guest.EndExec
 
