@@ -2469,6 +2469,7 @@ def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, d
         tau_g = kb[2 + t]
         shared_selector_tables(shared_eq[t], shared_g[t], zeta * tau_g, zeta1 * tau_g, g_squares * tau_g, shared_len[t])
     block_eq_hi = StackBuf(N_BLOCKS)         # every block's eq_hi, reused below
+    block_index_mle = HeapBuf(N_BLOCKS)      # per push block with an Index coord
     # A framework coordinate's value at zeta, and a table coordinate's at the table
     # sumcheck's point (a pull one's less its push twin's), by coordinate index.
     coord_vals = StackBuf(N_COORDS)
@@ -2550,10 +2551,12 @@ def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, d
                         coord_vals[ci] = COORD_CONST[ci] * rawv
                     if COORD_TYPE[ci] == COORD_KIND_INDEX:
                         if s == PULL_SIDE:
-                            # The push twin's, at the same place (placeholders.rs checks it).
-                            coord_vals[ci] = coord_vals[BLOCK_COORD_OFF[b - SIDE_BLOCK_START[PULL_SIDE]] + i]
+                            coord_vals[ci] = block_index_mle[GEN ** (b - SIDE_BLOCK_START[PULL_SIDE])]
                         else:
-                            coord_vals[ci] = match(log(kappa_g), range(0, SIZE_BITS), lambda n: index_mle(zeta, n))
+                            coord_val = match(log(kappa_g), range(0, SIZE_BITS), lambda n: index_mle(zeta, n))
+                            coord_vals[ci] = coord_val
+                            if s == PUSH_SIDE:
+                                block_index_mle[GEN ** b] = coord_val
                     if COORD_TYPE[ci] == COORD_KIND_PUBLIC:
                         # The public slots carry no value of their own here: their
                         # weighted sum IS bc_share, added once per block below
@@ -2662,6 +2665,7 @@ def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, d
                 push_padding = padding_sum
         acc += 1 + selector_sums[s]
         bus_table_total[s] = acc + gkr_leaves[GEN ** s]
+    claim_idx = N_BUS_CLAIMS  # the table and public-input claims follow the deduped bus claims
 
     # ---- ONE table sumcheck for all six tables ----
     # Mirrors crates/verifier's table_sumcheck. zc_xi ONCE, each table folding its own
@@ -2729,11 +2733,12 @@ def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, d
     zc_peq = HeapBuf(SIZE_BITS + 1)
     # chi[i]: the variable round n - 1 - i binds, written in the order chi is read
     eq_prefix_chain_rev(zc_peq, chi, zc_rk, zeta1, g_zc_n)
-    # Per table: every committed column's evaluation, its AIR constraint
+    # Per table: every committed column's evaluation (pooled), its AIR constraint
     # at its own reduced point chi[..tau_t], weighted into the batch's final claim.
     air_acc = 0
     # The column evaluations stay where the stream holds them, N_COL_EVALS
-    # consecutive words that fs_next bound.
+    # consecutive words that fs_next bound: the pool's slots from N_BUS_CLAIMS on are
+    # read there rather than copied.
     col_eval_words = cursor
     for t in unroll(0, N_TABLES):
         tau_g = kb[2 + t]
@@ -2745,6 +2750,7 @@ def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, d
                     rate = StackBuf(8)
             e, cursor = fs_next(rate, pos % 4, cursor)
             col_evals[pos - TABLE_COL_BASE[t]] = e
+            claim_idx += 1
         # The table's AIR constraint at the final point (col_evals is indexed by
         # local column index; the formulas mirror tables.rs Table::constraint). Every
         # value relation now rides the bus as a degree-2 coordinate, so only JUMP's
@@ -2826,9 +2832,10 @@ def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, d
     sp, rm = squeeze(sp, rate, (N_COL_EVALS + 3) % 4 + 1)
     lo_0, hi_0 = split_limbs(pi_0)
     lo_1, hi_1 = split_limbs(pi_1)
-    # In the pool right after the deduped bus claims.
-    claim_pool[GEN ** N_BUS_CLAIMS] = lo_0 + rm * (lo_0 + lo_1)
-    claim_pool[GEN ** (N_BUS_CLAIMS + 1)] = hi_0 + rm * (hi_0 + hi_1)
+    claim_pool[GEN ** claim_idx] = lo_0 + rm * (lo_0 + lo_1)
+    claim_idx += 1
+    claim_pool[GEN ** claim_idx] = hi_0 + rm * (hi_0 + hi_1)
+    claim_idx += 1
     return sp[8], sp[9], sp[10], sp[11], sp[12], cursor, g_zc_n, bc_value, rm, col_eval_words
 
 
@@ -3640,11 +3647,10 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_squares, defer_out):
     # sub-proof's entry of every witness stream and the body lowers once. The
     # exponent tables are shared read-only; the deferred claim goes to `defer_out`.
     #
-    # The pool holds the committed-coordinate claims' values in decompose order
+    # The pool holds every committed-coordinate claim's value in decompose order
     # (the points are the GKR zetas, resolvable from the baked block structure) and
-    # their certified low dimension, which the terminal pins its lengths against;
-    # the column evaluations' claims are read in the stream, so it has no slots for them.
-    claim_pool = HeapBuf(N_CLAIMS - N_COL_EVALS)
+    # its certified low dimension, which the terminal pins its lengths against.
+    claim_pool = HeapBuf(N_CLAIMS)
     tabs = g_squares * GEN ** WIN_TAB_AT
 
     # ---- seed (statement pre-bound: hinted sub pi + baked program digest) ----
@@ -3812,7 +3818,7 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_squares, defer_out):
                 if const((j - N_BUS_CLAIMS) // N_COL_EVALS == 0):
                     target += lam_pow * col_eval_words[GEN ** (j - N_BUS_CLAIMS)]
                 else:
-                    target += lam_pow * claim_pool[GEN ** (j - N_COL_EVALS)]
+                    target += lam_pow * claim_pool[GEN ** j]
             lam_pow *= lam_cl
     target += lam_pow * keccak_word
     # The OOD sample's claim closes the batch.
