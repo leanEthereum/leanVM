@@ -115,35 +115,52 @@ theorem locC_congr {a : Core.Atom} (h : ∀ w ∈ atomVals a, A w.idx) : locC L 
             · exact h.2.1
             · exact h.2.2 _ hv)])
 
-theorem fileB_congr (n : ℕ) : ∀ (ss : List Core.Stmt) (B : BookC),
-    (∀ v ∈ stmtsVals ss, A v.idx) → fileB L n ss B = fileB L' n ss B
+theorem nxtAtom_congr (n : ℕ) (ta : List ℕ) {a : Core.Atom} (h : ∀ w ∈ atomVals a, A w.idx) :
+    nxtAtom L n ta a = nxtAtom L' n ta a := by
+  have hc : ∀ w ∈ atomVals a, cellOkC L n ta w = cellOkC L' n ta w := fun w hw ↦ by
+    simp only [cellOkC, ccell_congr hA (h w hw)]
+  cases a with
+  | const d x => simp only [nxtAtom]; exact hc d (by simp [atomVals])
+  | add d x y =>
+    simp only [nxtAtom]
+    rw [hc d (by simp [atomVals]), hc x (by simp [atomVals]), hc y (by simp [atomVals])]
+  | mul d x y =>
+    simp only [nxtAtom]
+    rw [hc d (by simp [atomVals]), hc x (by simp [atomVals]), hc y (by simp [atomVals])]
+  | copy d x => simp only [nxtAtom]; rw [hc d (by simp [atomVals]), hc x (by simp [atomVals])]
+  | assertEq x y => simp only [nxtAtom]; rw [hc x (by simp [atomVals]), hc y (by simp [atomVals])]
+  | _ => rfl
+
+theorem fileB_congr (n : ℕ) (ta : List ℕ) : ∀ (ss : List Core.Stmt) (B : BookC),
+    (∀ v ∈ stmtsVals ss, A v.idx) → fileB L n ta ss B = fileB L' n ta ss B
   | [], _, _ => rfl
   | .atom a :: ss, B, h => by
     simp only [fileB, LAtom.seq_eq]
-    rw [locC_congr hA fun w hw ↦ h w (by
-      simp only [stmtsVals, stmtVals, List.mem_append]; exact Or.inl hw)]
+    have ha : ∀ w ∈ atomVals a, A w.idx := fun w hw ↦ h w (by
+      simp only [stmtsVals, stmtVals, List.mem_append]; exact Or.inl hw)
+    rw [locC_congr hA ha, nxtAtom_congr hA n ta ha]
     have hs : ∀ v ∈ stmtsVals ss, A v.idx := fun v hv ↦ h v (by
       simp only [stmtsVals, List.mem_append]; exact Or.inr hv)
-    cases inFrame n (cellsC (locC L' a))
-    · simp only [Bool.cond_false]; exact fileB_congr n ss _ hs
-    · simp only [Bool.cond_true, Exec.Trie.seq_eq]; exact fileB_congr n ss _ hs
+    cases inFrame n (cellsC (locC L' a)) || nxtAtom L' n ta a
+    · simp only [Bool.cond_false]; exact fileB_congr n ta ss _ hs
+    · simp only [Bool.cond_true, Exec.Trie.seq_eq]; exact fileB_congr n ta ss _ hs
   | .ite .. :: ss, B, h => by
-    simp only [fileB]; exact fileB_congr n ss B fun v hv ↦ h v (by
+    simp only [fileB]; exact fileB_congr n ta ss B fun v hv ↦ h v (by
       simp only [stmtsVals, List.mem_append]; exact Or.inr hv)
   | .match_ .. :: ss, B, h => by
-    simp only [fileB]; exact fileB_congr n ss B fun v hv ↦ h v (by
+    simp only [fileB]; exact fileB_congr n ta ss B fun v hv ↦ h v (by
       simp only [stmtsVals, List.mem_append]; exact Or.inr hv)
   | .call .. :: ss, B, h => by
-    simp only [fileB]; exact fileB_congr n ss B fun v hv ↦ h v (by
+    simp only [fileB]; exact fileB_congr n ta ss B fun v hv ↦ h v (by
       simp only [stmtsVals, List.mem_append]; exact Or.inr hv)
   | .callIf .. :: ss, B, h => by
-    simp only [fileB]; exact fileB_congr n ss B fun v hv ↦ h v (by
+    simp only [fileB]; exact fileB_congr n ta ss B fun v hv ↦ h v (by
       simp only [stmtsVals, List.mem_append]; exact Or.inr hv)
   | .dispatch .. :: ss, B, h => by
-    simp only [fileB]; exact fileB_congr n ss B fun v hv ↦ h v (by
+    simp only [fileB]; exact fileB_congr n ta ss B fun v hv ↦ h v (by
       simp only [stmtsVals, List.mem_append]; exact Or.inr hv)
   | .ret .. :: ss, B, h => by
-    simp only [fileB]; exact fileB_congr n ss B fun v hv ↦ h v (by
+    simp only [fileB]; exact fileB_congr n ta ss B fun v hv ↦ h v (by
       simp only [stmtsVals, List.mem_append]; exact Or.inr hv)
 
 end Congr
@@ -264,7 +281,7 @@ noncomputable def armStep (J : ℕ) (succ : List ℕ) (se : CW) (key : Option (L
     (a : List Core.Stmt) (t k : ℕ) : Option (Cnt × ℕ) :=
   match segAtC X t se with
   | some s => match armEnd J succ
-      (cw X a { s with book := fileB X.loc X.fs a se.book, tg := armTg X v k ++ s.tg }) with
+      (cw X a { s with book := fileB X.loc X.fs X.nx a se.book, tg := armTg X v k ++ s.tg }) with
     | some (c', u') => bif armChkK key k c' then some (c', u') else none
     | none => none
   | none => none
@@ -281,7 +298,7 @@ theorem cwArms_cons (J : ℕ) (succ : List ℕ) (se : CW) (key : Option (List Cn
   | some s =>
     simp only [Exec.Trie.seq_eq]
     cases hc : armEnd J succ
-      (cw X a { s with book := fileB X.loc X.fs a se.book, tg := armTg X v k ++ s.tg }) with
+      (cw X a { s with book := fileB X.loc X.fs X.nx a se.book, tg := armTg X v k ++ s.tg }) with
     | none => rfl
     | some r =>
       obtain ⟨c', u'⟩ := r
@@ -432,7 +449,7 @@ theorem armStep_congr (X : CX) {L : CLoc} {A : ℕ → Prop} (hA : ∀ n, A n �
     (hv : ∀ v ∈ stmtsVals a, A v.idx) :
     armStep X J succ se key v a t k = armStep { X with loc := L } J succ se key v a t k := by
   unfold armStep
-  rw [fileB_congr hA X.fs a se.book hv, armTg_congr X hA hy k]
+  rw [fileB_congr hA X.fs X.nx a se.book hv, armTg_congr X hA hy k]
   have hs : segAtC { X with loc := L } t se = segAtC X t se := rfl
   rw [hs]
   split
@@ -461,11 +478,11 @@ theorem armZero_congr (X : CX) (v : V) (a0 : List Core.Stmt) (ha0 : a0.all isAto
     (h0v : ∀ g ∈ gs, ∀ x ∈ stmtsVals a0, g.2.2.get? x.idx = X.loc.get? x.idx)
     (hy : ∀ g ∈ gs, ∀ ts y b, chainOf X v.idx = some (ts, y, b) → g.2.2.get? y = X.loc.get? y) :
     ∀ g ∈ gs, ∀ se s0 : CW, cw { X with loc := g.2.2 } a0 { s0 with
-      book := fileB g.2.2 X.fs a0 se.book, tg := armTg { X with loc := g.2.2 } v 0 ++ s0.tg } =
-      cw X a0 { s0 with book := fileB X.loc X.fs a0 se.book, tg := armTg X v 0 ++ s0.tg } := by
+      book := fileB g.2.2 X.fs X.nx a0 se.book, tg := armTg { X with loc := g.2.2 } v 0 ++ s0.tg } =
+      cw X a0 { s0 with book := fileB X.loc X.fs X.nx a0 se.book, tg := armTg X v 0 ++ s0.tg } := by
   intro g hg se s0
   rw [cw_atoms_loc X g.2.2 a0 _ ha0,
-    ← fileB_congr (A := fun n ↦ g.2.2.get? n = X.loc.get? n) (fun n hn ↦ hn.symm) X.fs a0 se.book
+    ← fileB_congr (A := fun n ↦ g.2.2.get? n = X.loc.get? n) (fun n hn ↦ hn.symm) X.fs X.nx a0 se.book
       (fun x hx ↦ h0v g hg x hx),
     ← armTg_congr X (A := fun n ↦ g.2.2.get? n = X.loc.get? n) (fun n hn ↦ hn.symm) (hy g hg)]
 
@@ -582,7 +599,7 @@ noncomputable def cwMatchS (X : CX) (lo hi : ℕ) (v : V) (arms : List (List Cor
           | .ok se =>
             match segAtC X t0 (armSt (armKeyD X.acs v.idx) se) with
             | some s0 =>
-              match armTgt (cw X a0 { s0 with book := fileB X.loc X.fs a0 se.book, tg := armTg X v 0 ++ s0.tg }) with
+              match armTgt (cw X a0 { s0 with book := fileB X.loc X.fs X.nx a0 se.book, tg := armTg X v 0 ++ s0.tg }) with
               | some (J, sc, c0, u0) =>
                 bif armChkK (armKeyD X.acs v.idx) 0 c0 then
                   match cwArmsS X J sc (armSt (armKeyD X.acs v.idx) se) (armKeyD X.acs v.idx) v lo hi as
@@ -605,7 +622,7 @@ theorem cwMatchS_dec {X : CX} {lo hi : ℕ} {v : V} {a0 : List Core.Stmt} {as : 
       matchOk X st v t ft t0 ts as.length o1 base = true ∧
       endAtC X { st with tg := (t, o1, base) :: st.tg } = .ok se ∧
       segAtC X t0 (armSt (armKeyD X.acs v.idx) se) = some s0 ∧
-      armTgt (cw X a0 { s0 with book := fileB X.loc X.fs a0 se.book, tg := armTg X v 0 ++ s0.tg }) =
+      armTgt (cw X a0 { s0 with book := fileB X.loc X.fs X.nx a0 se.book, tg := armTg X v 0 ++ s0.tg }) =
         some (J', sc', c0, u0) ∧ armChkK (armKeyD X.acs v.idx) 0 c0 = true ∧
       cwArmsS X J' sc' (armSt (armKeyD X.acs v.idx) se) (armKeyD X.acs v.idx) v lo hi as ts c0 u0 1 =
         some (c, u) ∧
@@ -647,7 +664,7 @@ theorem cw_of_parts {X : CX} {v : V} {a0 : List Core.Stmt} {as : List (List Core
     (hc : matchOk X st v t ft t0 ts as.length o1 base = true)
     (hse : endAtC X { st with tg := (t, o1, base) :: st.tg } = .ok se)
     (hs0 : segAtC X t0 (armSt (armKeyD X.acs v.idx) se) = some s0)
-    (ht : armTgt (cw X a0 { s0 with book := fileB X.loc X.fs a0 se.book, tg := armTg X v 0 ++ s0.tg }) =
+    (ht : armTgt (cw X a0 { s0 with book := fileB X.loc X.fs X.nx a0 se.book, tg := armTg X v 0 ++ s0.tg }) =
       some (J, sc, c0, u0))
     (hk0 : armChkK (armKeyD X.acs v.idx) 0 c0 = true)
     (ha : cwArms X J sc v (armSt (armKeyD X.acs v.idx) se) (armKeyD X.acs v.idx) as ts c0 u0 1 =
@@ -655,7 +672,7 @@ theorem cw_of_parts {X : CX} {v : V} {a0 : List Core.Stmt} {as : List (List Core
     cw X [.match_ v (a0 :: as)] st = armsEnd X se 20 J sc (armCnt (armKeyD X.acs v.idx) se c) u := by
   unfold matchOk at hc
   simp only [cw, hk, hs, hb, hc, Bool.cond_true, hse, hs0, Exec.Trie.seq_eq]
-  generalize cw X a0 { s0 with book := fileB X.loc X.fs a0 se.book, tg := armTg X v 0 ++ s0.tg } = r
+  generalize cw X a0 { s0 with book := fileB X.loc X.fs X.nx a0 se.book, tg := armTg X v 0 ++ s0.tg } = r
     at ht ⊢
   cases r with
   | join J' c' u' =>
@@ -712,7 +729,7 @@ theorem cw_of_groups (X : CX) (v : V) (a0 : List Core.Stmt) (as : List (List Cor
       matchOk X st v t ft t0 ts as.length o1 base = true ∧
       endAtC X { st with tg := (t, o1, base) :: st.tg } = .ok se ∧
       segAtC X t0 (armSt (armKeyD X.acs v.idx) se) = some s0 ∧
-      armTgt (cw X a0 { s0 with book := fileB X.loc X.fs a0 se.book, tg := armTg X v 0 ++ s0.tg }) =
+      armTgt (cw X a0 { s0 with book := fileB X.loc X.fs X.nx a0 se.book, tg := armTg X v 0 ++ s0.tg }) =
         some (J, sc, c0, u0) ∧ armChkK (armKeyD X.acs v.idx) 0 c0 = true ∧
       cwArmsS { X with loc := g.2.2 } J sc (armSt (armKeyD X.acs v.idx) se) (armKeyD X.acs v.idx) v
         g.1 g.2.1 as ts c0 u0 1 = some (c, u) ∧ Good B U (armCnt (armKeyD X.acs v.idx) se c, u) ∧
@@ -769,7 +786,7 @@ noncomputable def cwES (X : CX) (lo hi o : ℕ) (succ : List ℕ) (se : CW) (v :
     bif entOk X o se v ts as.length then
       match segAtC X t0 (armSt (armKeyD X.acs v.idx) se) with
       | some s0 =>
-        match armTgt (cw X a0 { s0 with book := fileB X.loc X.fs a0 se.book, tg := armTg X v 0 ++ s0.tg }) with
+        match armTgt (cw X a0 { s0 with book := fileB X.loc X.fs X.nx a0 se.book, tg := armTg X v 0 ++ s0.tg }) with
         | some (J, sc, c0, u0) =>
           bif armChkK (armKeyD X.acs v.idx) 0 c0 then
             match cwArmsS X J sc (armSt (armKeyD X.acs v.idx) se) (armKeyD X.acs v.idx) v lo hi as ts
@@ -787,7 +804,7 @@ theorem cwES_dec {X : CX} {lo hi o : ℕ} {succ : List ℕ} {se : CW} {v : V} {a
     (h : armEnd J sc (cwES X lo hi o succ se v (a0 :: as)) = some p) :
     ∃ t0 ts s0 J' sc' c0 u0 c u, succ = t0 :: ts ∧ entOk X o se v ts as.length = true ∧
       segAtC X t0 (armSt (armKeyD X.acs v.idx) se) = some s0 ∧
-      armTgt (cw X a0 { s0 with book := fileB X.loc X.fs a0 se.book, tg := armTg X v 0 ++ s0.tg }) =
+      armTgt (cw X a0 { s0 with book := fileB X.loc X.fs X.nx a0 se.book, tg := armTg X v 0 ++ s0.tg }) =
         some (J', sc', c0, u0) ∧ armChkK (armKeyD X.acs v.idx) 0 c0 = true ∧
       cwArmsS X J' sc' (armSt (armKeyD X.acs v.idx) se) (armKeyD X.acs v.idx) v lo hi as ts c0 u0 1 =
         some (c, u) ∧
@@ -818,7 +835,7 @@ theorem cwE_of_parts {X : CX} {o : ℕ} {se : CW} {v : V} {a0 : List Core.Stmt}
     {as : List (List Core.Stmt)} {t0 : ℕ} {ts : List ℕ} {s0 : CW} {J : ℕ} {sc : List ℕ} {c0 : Cnt}
     {u0 : ℕ} {c : Cnt} {u : ℕ} (hc : entOk X o se v ts as.length = true)
     (hs0 : segAtC X t0 (armSt (armKeyD X.acs v.idx) se) = some s0)
-    (ht : armTgt (cw X a0 { s0 with book := fileB X.loc X.fs a0 se.book, tg := armTg X v 0 ++ s0.tg }) =
+    (ht : armTgt (cw X a0 { s0 with book := fileB X.loc X.fs X.nx a0 se.book, tg := armTg X v 0 ++ s0.tg }) =
       some (J, sc, c0, u0))
     (hk : armChkK (armKeyD X.acs v.idx) 0 c0 = true)
     (ha : cwArms X J sc v (armSt (armKeyD X.acs v.idx) se) (armKeyD X.acs v.idx) as ts c0 u0 1 =
@@ -827,7 +844,7 @@ theorem cwE_of_parts {X : CX} {o : ℕ} {se : CW} {v : V} {a0 : List Core.Stmt}
       armsEnd X se 80 J sc (armCnt (armKeyD X.acs v.idx) se c) u := by
   unfold entOk at hc
   simp only [cwE, hc, Bool.cond_true, hs0, Exec.Trie.seq_eq]
-  generalize cw X a0 { s0 with book := fileB X.loc X.fs a0 se.book, tg := armTg X v 0 ++ s0.tg } = r
+  generalize cw X a0 { s0 with book := fileB X.loc X.fs X.nx a0 se.book, tg := armTg X v 0 ++ s0.tg } = r
     at ht ⊢
   cases r with
   | join J' c' u' =>
@@ -880,7 +897,7 @@ theorem cwE_of_groups (X : CX) (o : ℕ) (succ : List ℕ) (se : CW) (v : V) (a0
   -- each group's parts are the window's
   have hdec : ∀ g ∈ gs, ∃ t0 ts s0 c0 u0 c u, succ = t0 :: ts ∧ entOk X o se v ts as.length = true ∧
       segAtC X t0 (armSt (armKeyD X.acs v.idx) se) = some s0 ∧
-      armTgt (cw X a0 { s0 with book := fileB X.loc X.fs a0 se.book, tg := armTg X v 0 ++ s0.tg }) =
+      armTgt (cw X a0 { s0 with book := fileB X.loc X.fs X.nx a0 se.book, tg := armTg X v 0 ++ s0.tg }) =
         some (J, sc, c0, u0) ∧ armChkK (armKeyD X.acs v.idx) 0 c0 = true ∧
       cwArmsS { X with loc := g.2.2 } J sc (armSt (armKeyD X.acs v.idx) se) (armKeyD X.acs v.idx) v
         g.1 g.2.1 as ts c0 u0 1 = some (c, u) ∧ P (c, u) ∧
@@ -1086,7 +1103,7 @@ theorem cplWin_of_split {j i : ℕ} (gs : List (ℕ × ℕ × ℕ × ℕ × ℕ 
   rw [hR]
   simp only [listSeq_eq, Exec.Trie.seq_eq, CLoc.seq_eq, Cnt.seq_eq, natSeq_eq, hm, hs, hst,
     Nat.beq_refl, Bool.cond_true, List.drop_zero, hss]
-  have hfile : fileB (clocW (certOf j) i) (fsN j) [.match_ v (a0 :: as)] .nil = .nil := rfl
+  have hfile : fileB (clocW (certOf j) i) (fsN j) (nxOf j) [.match_ v (a0 :: as)] .nil = .nil := rfl
   rw [hfile]
   -- the groups' cells agree with the window's
   have hag : ∀ g ∈ gs, ∀ x, ((cg g).get? x).isSome = true → (cg g).get? x = (clocW (certOf j) i).get? x := by

@@ -18,9 +18,9 @@ import LeanVM.Guest.Data.ValNames.«selector_tables»
 # `selector_tables`, completely (TRIAGE G #69)
 
 The point and its complements are the runs `(ept, p)`, `(ept1, p1)` (`stLin`); the buffer's base
-is `ese` (`512` words). The honest valuation `stVal` is the body evaluated on `layRd` of the point
+is `ese` (`256` words). The honest valuation `stVal` is the body evaluated on `layRd` of the point
 (`Fwd.ev`, the allocation answered by the base). The buffer's words (`stOwn`): at offset
-`o = 64j + 16w + u`, `u` a multiple of `2^(3 - w)` (`stStored`), the value stored there
+`o = 32j + selEqOff w + u`, `u` a multiple of `2^(3 - w)` (`stStored`), the value stored there
 (`stD o`, level `w`'s entry `u / 2^(3 - w)` of nibble `j`); the words between the strided entries
 are never written, `0`.
 
@@ -46,19 +46,21 @@ noncomputable def stVal (ept ept1 ese : ℕ) (p p1 : List E) : Val :=
   B1.Val.ofArgs (ev (layRd (stLin ept ept1 p p1)) (stW ese)
     [ofK (addressOfIndex ept), ofK (addressOfIndex ept1)] stPre)
 
-/-- The level of the buffer's offset `o`. -/
-def stLvl (o : ℕ) : ℕ := o % 64 / 16
+/-- The level of the buffer's offset `o`: past `16` in its nibble's row, level `3`; before it,
+by its lowest set bit (an odd cell level `2`, `2 mod 4` level `1`, else level `0`). -/
+def stLvl (o : ℕ) : ℕ :=
+  if 16 ≤ o % 32 then 3 else if o % 2 = 1 then 2 else if o % 4 = 2 then 1 else 0
 
-/-- The value stored at the buffer's offset `o`: nibble `o / 64`, level `stLvl o`, entry
-`o % 16 / 2^(3 - stLvl o)`. -/
-def stD (o : ℕ) : ℕ := stV (o / 64) (stLvl o) (o % 16 / 2 ^ (3 - stLvl o))
+/-- The value stored at the buffer's offset `o`: nibble `o / 32`, level `stLvl o`, its entry. -/
+def stD (o : ℕ) : ℕ :=
+  stV (o / 32) (stLvl o) (if 16 ≤ o % 32 then o % 32 - 16 else o % 32 / 2 ^ (3 - stLvl o))
 
-/-- The buffer's offset `o` is written: its entry a multiple of its level's stride. -/
-def stStored (o : ℕ) : Bool := o % 16 % 2 ^ (3 - stLvl o) == 0
+/-- The buffer's offset `o` is written: level `3`'s row, or a cell at its level's offset. -/
+def stStored (o : ℕ) : Bool := 16 ≤ o % 32 || o % 2 == 1 || o % 4 == 2 || o % 8 == 4
 
 /-- The eq buffer's words: the stored values, `0` between them. -/
 def stEqWords (σ : Val) : List E :=
-  (List.range 512).map fun o => if stStored o then σ (.n (stD o)) else 0
+  (List.range 256).map fun o => if stStored o then σ (.n (stD o)) else 0
 
 /-- The buffer's run. -/
 noncomputable def stOwn (ept ept1 ese : ℕ) (p p1 : List E) : TLay :=
@@ -70,7 +72,7 @@ theorem st_chk : chk 2 stPre = some 292 := by decide +kernel
 def stKind : Stmt → Bool
   | .atom (.hint _) => true
   | .atom (.load (.n _) (.n 0) o) | .atom (.load (.n _) (.n 1) o) => decide (o < 32)
-  | .atom (.load (.n d) (.n 2) o) => decide (o < 512) && decide (d = stD o) && stStored o
+  | .atom (.load (.n d) (.n 2) o) => decide (o < 256) && decide (d = stD o) && stStored o
   | .atom a => pureB a
   | _ => false
 
@@ -83,14 +85,14 @@ def stStoreOk : Atom → Bool
 
 theorem st_stores : (storesOf 2 stPre).all stStoreOk = true := by decide +kernel
 
-theorem st_alloc_mem : Stmt.atom (.hint (.alloc (.n (val% «selector_tables» "sel_eq")) 512)) ∈ stPre := by
+theorem st_alloc_mem : Stmt.atom (.hint (.alloc (.n (val% «selector_tables» "sel_eq")) 256)) ∈ stPre := by
   unfold stPre; simp
 
 /-- The kinds of the body's statements. -/
 theorem stKind_cases {s : Stmt} (h : stKind s = true) :
     (∃ hn, s = .atom (.hint hn)) ∨
     (∃ d o, (s = .atom (.load (.n d) (.n (val% «selector_tables» "point")) o) ∨ s = .atom (.load (.n d) (.n (val% «selector_tables» "point1")) o)) ∧ o < 32) ∨
-    (∃ o, s = .atom (.load (.n (stD o)) (.n (val% «selector_tables» "sel_eq")) o) ∧ o < 512 ∧ stStored o = true) ∨
+    (∃ o, s = .atom (.load (.n (stD o)) (.n (val% «selector_tables» "sel_eq")) o) ∧ o < 256 ∧ stStored o = true) ∨
     (∃ a, s = .atom a ∧ pureB a = true) := by
   unfold stKind at h
   split at h

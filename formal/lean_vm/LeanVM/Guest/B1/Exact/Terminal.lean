@@ -90,7 +90,7 @@ theorem KidsDepB.toE {κ : ℕ} : ∀ {ks : List KidD} {Bs : List ℕ}, KidsDepB
 theorem kidsDepBPR_replicate {κ : ℕ} {b : ℕ} {P : Reader → Tree → Prop} : ∀ {ks : List KidD},
     (∀ k ∈ ks, ∀ pv, ((k pv).taken = true →
         CompleteAtDTBR fs cert κ (k pv).f (k pv).Lin (k pv).args (k pv).Out P b) ∧
-      ((k pv).taken = false → fs (k pv).f ≤ b)) →
+      ((k pv).taken = false → fs (tailKey (k pv).f) ≤ b)) →
     KidsDepBPR fs cert κ ks (List.replicate ks.length b) (List.replicate ks.length P)
   | [], _ => trivial
   | k :: _, h => ⟨h k List.mem_cons_self, kidsDepBPR_replicate fun k' hk' => h k' (List.mem_cons_of_mem _ hk')⟩
@@ -107,7 +107,7 @@ theorem namedP_zipWith : ∀ (ns : List String) (Bs : List ℕ) (Ps : List (Tree
 theorem selKids_E (κ : ℕ) (hκ : 6 ≤ κ) (D : TermData) (hxl : D.x.length ≤ 32) {Bcs : ℕ}
     (hKC : ∀ c < Tables.nCommittedCols, D.KC.getD c 0 < 31)
     (hOF : ∀ c < Tables.nCommittedCols, D.OF.getD c 0 < 2 ^ 32 ∧ 2 ^ D.KC.getD c 0 ∣ D.OF.getD c 0)
-    (hCsF : ∀ κ' < 31, fs (Tables.lName "column_selector" κ') ≤ Bcs) :
+    (hCsF : ∀ κ' < 31, fs (Tables.lName "column_selector" κ') ≤ Bcs) (htl : ∀ f, fs (tailKey f) ≤ fs f) :
     KidsDepBPR fs cert κ ((List.range Tables.nCommittedCols).map (selKid D))
       (List.replicate Tables.nCommittedCols Bcs) (List.replicate Tables.nCommittedCols everyE) := by
   have hpl : (p1Of D.x).length = 40 := p1Of_length (by simp only [termPointCap]; omega)
@@ -118,7 +118,7 @@ theorem selKids_E (κ : ℕ) (hκ : 6 ≤ κ) (D : TermData) (hxl : D.x.length �
     refine kidsDepBPR_replicate fun k hk pv => ?_
     obtain ⟨c, hc, rfl⟩ := List.mem_map.mp hk
     rw [List.mem_range] at hc
-    refine ⟨fun ht => ?_, fun _ => hCsF _ (hKC c hc)⟩
+    refine ⟨fun ht => ?_, fun _ => (htl _).trans (hCsF _ (hKC c hc))⟩
     have hst : Tables.stOut D.B.pt D.B.pt1 (pt32 D.x) (pt132 D.x) (stRes pv).1 (stRes pv).2 :=
       @of_decide_eq_true _ (Classical.propDecidable _) ht
     obtain ⟨ese, h1, h2⟩ := hst
@@ -154,8 +154,7 @@ theorem termKids_completeBE (κ : ℕ) (hκ : 6 ≤ κ) (Lin : Main.Layout) (D :
     (hL15 : TotalLeOn coreProgram fs name% «check_opening_terminal_loop0» LoopPre
       fun a => logG (a.getD 1 0) * K15 + fs name% «check_opening_terminal_loop0»)
     (hCsF : ∀ κ' < 31, fs (Tables.lName "column_selector" κ') ≤ Bcs)
-    (hrs : ∀ c ≤ 34, TotalLeOn coreProgram fs "rs_eq_run" (fun a => a.getD 3 0 = gen ^ c)
-      fun _ => Brs) :
+    (hrs : RsBound fs Brs) :
     KidsDepBPR fs cert κ (termKids Lin D b0) (termBs fs Beqc K15 Bcs Brs) termPsE := by
   have h := termKids_completeB (fs := fs) (cert := cert) κ hκ Lin D b0 hreg hzl hcl hxl hτ hol hrl hcf hgmu hgz hglm hgtau hm1 hm hKC hOF hrd
     hodl hgm hrdO hEqc hL15 hCsF hrs
@@ -163,7 +162,7 @@ theorem termKids_completeBE (κ : ℕ) (hκ : 6 ≤ κ) (Lin : Main.Layout) (D :
   obtain ⟨hAB, hC⟩ := KidsDepB.split (by simp) h
   obtain ⟨hA, -⟩ := KidsDepB.split (by simp) hAB
   unfold termKids termBs termPsE
-  refine KidsDepBPR.append (KidsDepBPR.append (KidsDepB.toE hA ?_) (selKids_E κ hκ D hxl hKC hOF hCsF))
+  refine KidsDepBPR.append (KidsDepBPR.append (KidsDepB.toE hA ?_) (selKids_E κ hκ D hxl hKC hOF hCsF hrs.1))
     (KidsDepB.toE hC ?_)
   · intro k hk pv _
     simp only [List.mem_cons, List.not_mem_nil, or_false] at hk
@@ -195,8 +194,7 @@ theorem check_opening_terminal_completeAtBWE (κ : ℕ) (hκ : 6 ≤ κ) (B : Te
     (hL15 : TotalLeOn coreProgram fs name% «check_opening_terminal_loop0» LoopPre
       fun a => logG (a.getD 1 0) * K15 + fs name% «check_opening_terminal_loop0»)
     (hCsF : ∀ κ' < 31, fs (Tables.lName "column_selector" κ') ≤ Bcs)
-    (hrs : ∀ c ≤ 34, TotalLeOn coreProgram fs "rs_eq_run" (fun a => a.getD 3 0 = gen ^ c)
-      fun _ => Brs)
+    (hrs : RsBound fs Brs)
     {ι : Type} (ω : ι → String → ℕ) (Weqc W15 Wst Wcs Wrsw : ι → ℕ)
     (hEqcW : ∀ i, WeightLe coreProgram (ω i) "eq_prefix_chain" fun _ => Weqc i)
     (hStW : ∀ i, WeightLe coreProgram (ω i) "selector_tables" fun _ => Wst i)
@@ -341,10 +339,10 @@ variable {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs bytecode
 /-- **The terminal on an honest child, entered, within `termBound` by a tree within its weights and exact.** -/
 theorem term_kidBWE (hbl : bytecode.length = 2 ^ 23) {κ : ℕ} (hκ : 6 ≤ κ) (W : VsWordsOs fs)
     (bs : List ℕ) (sqE : ℕ) (pv : List (List E × Main.Layout))
-    (ht : ((S.kids bs sqE).getD 15 noKid pv).taken = true) :
-    CompleteAtDTBR fs cert κ ((S.kids bs sqE).getD 15 noKid pv).f
-      ((S.kids bs sqE).getD 15 noKid pv).Lin ((S.kids bs sqE).getD 15 noKid pv).args
-      ((S.kids bs sqE).getD 15 noKid pv).Out
+    (ht : ((S.kids bs sqE).getD 13 noKid pv).taken = true) :
+    CompleteAtDTBR fs cert κ ((S.kids bs sqE).getD 13 noKid pv).f
+      ((S.kids bs sqE).getD 13 noKid pv).Lin ((S.kids bs sqE).getD 13 noKid pv).args
+      ((S.kids bs sqE).getD 13 noKid pv).Out
       (fun rd t ↦ (∀ op, Budget.WeighsLe coreProgram (W.ωv op) (termWB W.toVsWords op) t) ∧
         t.Every (ExactAt coreProgram rd))
       (termBound fs W.Beqc W.K15 W.Bcs W.Brs) :=

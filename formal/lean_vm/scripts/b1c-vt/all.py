@@ -35,7 +35,6 @@ JOBS = [
 ] + [(['mk.py', str(t)], [f'Vt/FormsT{t}'], None) for t in range(5)] + [
     (['-c', 'import mk; mk.gen_t5()'], ['Vt/FormsT5a', 'Vt/FormsT5b', 'Vt/FormsT5'], None),
     (['genair.py'], ['Vt/Air'], None),
-    (['gencshared.py'], ['VtC/SShT'], None),
     (['gencsort.py'], ['VtC/SGrpT'], None),
     (['gentwins.py'], [f'VtC/F{b}' for b in
                        ['Forms0', 'Forms1', 'Forms2', 'Forms3', 'Forms4', 'Forms5', 'Forms5a', 'Forms5b', 'Air']], None),

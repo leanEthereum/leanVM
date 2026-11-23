@@ -164,8 +164,8 @@ theorem cw_ite {c : V} {z n ss : List Core.Stmt} {st : CW}
     ∃ st' od of x t sn J c1 u1 c2 u2 sj, brAtC X st = .ok (st', X.loc.cell c, od, of, x) ∧
       x.kind = .next t ∧ inFrame X.fs [X.loc.cell c] = true ∧ cellK X st' od = true ∧
       cellK X st' of = true ∧ x.succ = [t] ∧ segAtC X t st' = some sn ∧
-      cw X z { st' with book := fileB X.loc X.fs z st'.book } = .join J c1 u1 ∧
-      cw X n { sn with book := fileB X.loc X.fs n st'.book } = .join J c2 u2 ∧
+      cw X z { st' with book := fileB X.loc X.fs X.nx z st'.book } = .join J c1 u1 ∧
+      cw X n { sn with book := fileB X.loc X.fs X.nx n st'.book } = .join J c2 u2 ∧
       segAtC X J st' = some sj ∧
       cw X (.ite c z n :: ss) st = cw X ss { sj with cnt := Cnt.max c1 c2, uq := Nat.lor u1 u2 } := by
   simp only [cw] at h ⊢
@@ -320,11 +320,11 @@ theorem cw_ret {vs : List V} {ss : List Core.Stmt} {st : CW}
 theorem cw_callIf (hG : X.G = glob.restrict X.callees) {c : V} {f : String} {args : List V} {ss : List Core.Stmt}
     {st : CW} (h : (cw X (.callIf c f args :: ss) st).ok = true) :
     ∃ x, peekBr st.its = some (X.loc.cell c, x) ∧
-      inFrame X.fs (X.loc.cell c :: args.map X.loc.cell) = true ∧
+      (inFrame X.fs [X.loc.cell c] = true ∧ ∀ v ∈ args, cellOkC X.loc X.fs X.nx v = true) ∧
     ((∃ e q r j st' oc' od of x' se t sr, x.kind = .call (.gp e) q r ∧ calleeC X e = some j ∧
         f = (X.G.sig j).name ∧ args.length = (X.G.sig j).nargs ∧ (X.G.sig j).nret = 0 ∧
         X.entry ≤ r ∧ x.succ = [r - X.entry] ∧ siteOk X args [] q r 0 = true ∧
-        bitK st.uq q = false ∧ inFrame X.fs [q] = true ∧ f ≠ X.name ∧
+        bitK st.uq q = false ∧ inFrame X.fs (q :: args.map X.loc.cell) = true ∧ f ≠ X.name ∧
         brAtC X { st with fr := (q, callFC X args ((X.G.sig j).env.map (·.1)) r) :: st.fr } =
           .ok (st', oc', od, of, x') ∧ cellK X st' od = true ∧ cellK X st' of = true ∧
         endAtC X st' = .ok se ∧ se.seg.exit.kind = .next t ∧ t = r - X.entry ∧
@@ -341,14 +341,14 @@ theorem cw_callIf (hG : X.G = glob.restrict X.callees) {c : V} {f : String} {arg
   simp only [cw] at h ⊢
   split at h
   · rename_i oc x hp
-    cases hc : (Nat.beq oc (X.loc.cell c) && inFrame X.fs (oc :: args.map X.loc.cell))
+    cases hc : (Nat.beq oc (X.loc.cell c) && inFrame X.fs [oc] && args.all (cellOkC X.loc X.fs X.nx))
     · rw [hc] at h; cases h
     rw [hc] at h
     simp only [Bool.cond_true] at h ⊢
     simp only [Bool.and_eq_true] at hc
-    obtain ⟨h1, h2⟩ := hc
+    obtain ⟨⟨h1, h2⟩, h3⟩ := hc
     obtain rfl := Nat.eq_of_beq_eq_true h1
-    refine ⟨x, hp, h2, ?_⟩
+    refine ⟨x, hp, ⟨h2, List.all_eq_true.mp h3⟩, ?_⟩
     split at h
     · rename_i e q r hk
       left
@@ -357,7 +357,8 @@ theorem cw_callIf (hG : X.G = glob.restrict X.callees) {c : V} {f : String} {arg
         obtain ⟨-, -, -, rfl, hjc⟩ := calleeS_spec hG hj
         cases hc : (f == (X.G.sig j).name && Nat.beq args.length (X.G.sig j).nargs &&
             Nat.beq (X.G.sig j).nret 0 && Nat.ble X.entry r && x.succ == [r - X.entry] &&
-            siteOk X args [] q r 0 && !bitK st.uq q && inFrame X.fs [q] && !(f == X.name))
+            siteOk X args [] q r 0 && !bitK st.uq q && inFrame X.fs (q :: args.map X.loc.cell) &&
+            !(f == X.name))
         · rw [hc] at h; cases h
         rw [hc] at h
         simp only [Bool.cond_true] at h ⊢
@@ -473,7 +474,7 @@ theorem cwArms_spec {J : ℕ} {succ : List ℕ} {v : V} {se : CW} {key : Option 
     {c' : Cnt} {u' : ℕ}, cwArms X J succ v se key as ts c u k = some (c', u') →
     as.length = ts.length ∧ (∀ op, c.get op ≤ c'.get op) ∧
     ∀ i (hk : i < as.length) (hk' : i < ts.length), ∃ s ck uk, segAtC X ts[i] se = some s ∧
-      armEnd J succ (cw X as[i] { s with book := (fileB X.loc X.fs as[i] se.book), tg := (armTg X v (k + i) ++ s.tg) })
+      armEnd J succ (cw X as[i] { s with book := (fileB X.loc X.fs X.nx as[i] se.book), tg := (armTg X v (k + i) ++ s.tg) })
         = some (ck, uk) ∧
       (∀ op, ck.get op ≤ c'.get op) ∧ armChkK key (k + i) ck = true
   | [], [], c, u, k, c', u', h => by
@@ -525,14 +526,14 @@ theorem cw_match {v : V} {a0 : List Core.Stmt} {as : List (List Core.Stmt)} {ss 
       endAtC X { st with tg := (t, X.loc.cell v, base) :: st.tg } = .ok se ∧
       segAtC X t0 (armSt (armKeyD X.acs v.idx) se) = some s0 ∧
       ((∃ J c0 u0 c u sj,
-        cw X a0 { s0 with book := fileB X.loc X.fs a0 se.book, tg := armTg X v 0 ++ s0.tg } = .join J c0 u0 ∧
+        cw X a0 { s0 with book := fileB X.loc X.fs X.nx a0 se.book, tg := armTg X v 0 ++ s0.tg } = .join J c0 u0 ∧
         armChkK (armKeyD X.acs v.idx) 0 c0 = true ∧
         cwArms X J [] v (armSt (armKeyD X.acs v.idx) se) (armKeyD X.acs v.idx) as ts c0 u0 1 = some (c, u) ∧
         segAtC X J se = some sj ∧
         cw X (.match_ v (a0 :: as) :: ss) st =
           cw X ss { sj with cnt := armCnt (armKeyD X.acs v.idx) se c, uq := u }) ∨
        (∃ o succ c0 u0 c u,
-        cw X a0 { s0 with book := fileB X.loc X.fs a0 se.book, tg := armTg X v 0 ++ s0.tg } = .chain o succ c0 u0 ∧
+        cw X a0 { s0 with book := fileB X.loc X.fs X.nx a0 se.book, tg := armTg X v 0 ++ s0.tg } = .chain o succ c0 u0 ∧
         armChkK (armKeyD X.acs v.idx) 0 c0 = true ∧ ss = [] ∧ succ ≠ [] ∧
         cwArms X o succ v (armSt (armKeyD X.acs v.idx) se) (armKeyD X.acs v.idx) as ts c0 u0 1 = some (c, u) ∧
         cw X (.match_ v (a0 :: as) :: ss) st = .chain o succ (armCnt (armKeyD X.acs v.idx) se c) u)) := by
@@ -607,13 +608,13 @@ theorem cwE_ok {o : ℕ} {succ : List ℕ} {se : CW} {ss : List Core.Stmt} (h : 
       inFrame X.fs [o] = true ∧ chainPre X se v (as.length + 1) = true ∧
       segAtC X t0 (armSt (armKeyD X.acs v.idx) se) = some s0 ∧
       ((∃ J c0 u0 c u sj,
-        cw X a0 { s0 with book := fileB X.loc X.fs a0 se.book, tg := armTg X v 0 ++ s0.tg } = .join J c0 u0 ∧
+        cw X a0 { s0 with book := fileB X.loc X.fs X.nx a0 se.book, tg := armTg X v 0 ++ s0.tg } = .join J c0 u0 ∧
         armChkK (armKeyD X.acs v.idx) 0 c0 = true ∧
         cwArms X J [] v (armSt (armKeyD X.acs v.idx) se) (armKeyD X.acs v.idx) as ts c0 u0 1 = some (c, u) ∧
         segAtC X J se = some sj ∧
         cwE X o succ se ss = cw X ss' { sj with cnt := armCnt (armKeyD X.acs v.idx) se c, uq := u }) ∨
        (∃ o' succ' c0 u0 c u,
-        cw X a0 { s0 with book := fileB X.loc X.fs a0 se.book, tg := armTg X v 0 ++ s0.tg } = .chain o' succ' c0 u0 ∧
+        cw X a0 { s0 with book := fileB X.loc X.fs X.nx a0 se.book, tg := armTg X v 0 ++ s0.tg } = .chain o' succ' c0 u0 ∧
         armChkK (armKeyD X.acs v.idx) 0 c0 = true ∧ ss' = [] ∧ succ' ≠ [] ∧
         cwArms X o' succ' v (armSt (armKeyD X.acs v.idx) se) (armKeyD X.acs v.idx) as ts c0 u0 1 = some (c, u) ∧
         cwE X o succ se ss = .chain o' succ' (armCnt (armKeyD X.acs v.idx) se c) u)) := by

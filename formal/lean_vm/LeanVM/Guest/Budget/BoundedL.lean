@@ -58,13 +58,13 @@ theorem completeAtLR_tail {k : ℕ} {f g : String} {Lin : Layout} {args : List E
     {Bd : ℕ → Prop} {last : Prop} [Decidable last]
     (h : ¬ last → CompleteAtLR fs cert k f Lin args (Returns []) T Bd) :
     ∃ Bt, ∀ fp c, fp + Bt ≤ c → ∃ (nt : ℕ) (Lt : Layout),
-      (last → Bt = fs g ∧ nt = 0) ∧ (¬ last → Bd (Bt + nt)) ∧ Within Lt c nt ∧ DisjL Lt ∧
+      (last → Bt = fs (tailKey g) ∧ nt = 0) ∧ (¬ last → Bd (Bt + nt)) ∧ Within Lt c nt ∧ DisjL Lt ∧
       ∀ rd, LowDef k rd → MemL rd (Lt ++ Lin) →
         if decide (¬ last) = true then
           RelAtInCT coreProgram fs cert rd (RegionL Lin) (RegionL []) fp c Bt nt f args [] (T rd)
-        else Bt = fs g ∧ nt = 0 := by
+        else Bt = fs (tailKey g) ∧ nt = 0 := by
   by_cases hl : last
-  · exact ⟨fs g, fun fp c _ => ⟨0, [], fun _ => ⟨rfl, rfl⟩, fun h' => absurd hl h',
+  · exact ⟨fs (tailKey g), fun fp c _ => ⟨0, [], fun _ => ⟨rfl, rfl⟩, fun h' => absurd hl h',
       fun q hq => by simp at hq, List.Pairwise.nil, fun _ _ _ => by simp [hl]⟩⟩
   · obtain ⟨B, hB⟩ := h hl
     refine ⟨B, fun fp c hc => ?_⟩

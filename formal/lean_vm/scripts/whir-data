@@ -23,21 +23,6 @@ RUN = 1100  # statements a kernel evaluation of the body compares
 WHIR = Path("LeanVM/Guest/B1/Whir")
 
 
-def res_batch():
-    """`RES_BATCH`, as the templates read it: `resBatch` in `Whir/Template.lean`, a literal or the
-    guest's constant (`guest_const%`) exported to `Guest/Data/Consts.lean`."""
-    t = (WHIR / "Template.lean").read_text()
-    m = re.search(r"^abbrev resBatch : ℕ := (\d+)$", t, re.M)
-    if m:
-        return int(m.group(1))
-    c = re.search(r"^abbrev resBatch : ℕ := guest_const% (\w+)$", t, re.M).group(1)
-    src = Path("LeanVM/Guest/Data/Consts.lean").read_text()
-    return int(re.search(rf"^def const_{c} : Nat := (\d+)$", src, re.M).group(1))
-
-
-RES_BATCH = res_batch()
-
-
 def core_indices():
     out = {}
     for t in coredata.legacy_texts("LeanVM/Guest/Data"):
@@ -227,27 +212,22 @@ def helpers(idx):
             thms.append((name, thm(name, 3, f"rqsBody {pre} {yr} {vo}")))
             rs.append((name, pre, yr, vo, inst(name)))
         elif name.startswith("level_positions__L"):
-            sq, d, cd = nums(name, "level_positions__L")
+            d, cd = nums(name, "level_positions__L")
             (loop,) = loops(name)
-            thms.append((name, thm(name, 9, f'lpBody {sq} {d} {cd} "{loop}"')))
+            thms.append((name, thm(name, 10, f'lpBody {d} {cd} "{loop}"')))
             thms.append((loop, thm(loop, 6, f'lpLoopBody {d} {cd} "{loop}"')))
-            lp.append((name, sq, loop, d, cd, inst(name), inst(loop)))
+            lp.append((name, loop, d, cd, inst(name), inst(loop)))
         elif name.startswith("level_queries__L"):
             ps = nums(name, "level_queries__L")
             thms.append((name, thm(name, 6, "lqBody " + " ".join(map(str, ps)))))
             lq.append((name, ps, inst(name)))
         elif name.startswith("level_residual__L"):
-            q, cols, nhs, hbits = nums(name, "level_residual__L")
-            ls = loops(name)
-            assert len(ls) == (2 if q % RES_BATCH != 0 else 1), (name, ls)
-            l1, l2 = ls[0], (ls[1] if q % RES_BATCH != 0 else "")
-            thms.append((name, thm(name, 4, f'lrBody {q} "{l1}" "{l2}"')))
+            cols, nhs, hbits = nums(name, "level_residual__L")
+            l1, l2 = loops(name)
+            thms.append((name, thm(name, 6, f'lrBody "{l1}" "{l2}"')))
             thms.append((l1, thm(l1, 7, f'lrLoop1Body {cols} {nhs} {hbits} "{l1}"')))
-            t2 = None
-            if l2:
-                thms.append((l2, thm(l2, 7, f'lrLoop2Body {cols} {nhs} {hbits} "{l2}"')))
-                t2 = inst(l2)
-            lr.append((name, q, cols, nhs, hbits, l1, l2, inst(name), inst(l1), t2))
+            thms.append((l2, thm(l2, 7, f'lrLoop2Body {cols} {nhs} {hbits} "{l2}"')))
+            lr.append((name, cols, nhs, hbits, l1, l2, inst(name), inst(l1), inst(l2)))
     byPack = {}
     for f, x in thms:
         byPack.setdefault(pack_num(f), []).append((f, x))
@@ -272,9 +252,9 @@ def helpers(idx):
             + "public import LeanVM.Guest.B1.Whir.DataSpec\n")
             + "".join(y for k in ks for _, (_, y) in byPack[k]) + FTR)
     s = lambda x: f'"{x}"'
-    lpT = ",\n".join(f"  ({s(n)}, {sq}, {s(l)}, {d}, {cd})" for n, sq, l, d, cd, *_ in lp)
+    lpT = ",\n".join(f"  ({s(n)}, {s(l)}, {d}, {cd})" for n, l, d, cd, *_ in lp)
     lqT = ",\n".join(f"  ({s(n)}, {', '.join(map(str, ps))})" for n, ps, _ in lq)
-    lrT = ",\n".join(f"  ({s(n)}, {q}, {c}, {h}, {b}, {s(l1)}, {s(l2)})" for n, q, c, h, b, l1, l2, *_ in lr)
+    lrT = ",\n".join(f"  ({s(n)}, {c}, {h}, {b}, {s(l1)}, {s(l2)})" for n, c, h, b, l1, l2, *_ in lr)
     lsTy = "String × ℕ × ℕ × ℕ × ℕ × String × String × String"
     lsT, lsOk = chunked("lrsTable", lsTy, [f"  ({s(n)}, {q}, {p}, {y}, {v}, {s(m)}, {s(l)}, {s(r)})"
                                           for n, q, p, y, v, m, l, r, *_ in lrs],
@@ -286,25 +266,24 @@ def helpers(idx):
                         [t for *_, t in rs], "FnIs e.1 (osParams 3) (rqsBody e.2.1 e.2.2.1 e.2.2.2)")
     lpOk = nest(f"⟨{a}, {b}⟩" for *_, a, b in lp)
     lqOk = nest(t for *_, t in lq)
-    lrOk = nest(f"⟨{a}, {b}, {'(fun _ ↦ ' + c + ')' if c else '(fun h ↦ (h (by decide)).elim)'}⟩"
-                for *_, a, b, c in lr)
+    lrOk = nest(f"⟨{a}, {b}, {c}⟩" for *_, a, b, c in lr)
     out["HelperTables"] = HDR.format(
         mod="HelperTables", doc="The specializations of `open_stacked`'s helpers, in tables.",
         imports="public import LeanVM.Guest.B1.Whir.DataSpecP\n") + f"""
 /-!
 # The helpers' tables
 
-`lpTable` (`level_positions`: name, squeezes, loop, depth, cap depth), `lqTable`
+`lpTable` (`level_positions`: name, loop, depth, cap depth), `lqTable`
 (`level_queries`: name, queries, base, folds, leaf cells, depth, cap depth, the final level's
 message log, lane length and index bits, and whether final), `lrTable` (`level_residual`: name,
-queries, columns, high part's length and index bits, its two loops), `lrsTable`
+columns, high part's length and index bits, its two loops), `lrsTable`
 (`level_residual_slow`: name, queries, prefix, tail rounds, vanishing offset, its
 `level_residual_sum`, that one's loop, their `residual_query_slow`), `rqsTable` (`residual_query_slow`: name, prefix, tail rounds, vanishing
 offset). `Whir/HelperAll.lean` proves every entry its template's instance.
 -/
 
 /-- The `lpTable` table. -/
-def lpTable : List (String × ℕ × String × ℕ × ℕ) := [
+def lpTable : List (String × String × ℕ × ℕ) := [
 {lpT}]
 
 /-- The `lqTable` table. -/
@@ -312,18 +291,18 @@ def lqTable : List (String × ℕ × ℕ × ℕ × ℕ × ℕ × ℕ × ℕ × �
 {lqT}]
 
 /-- The `lrTable` table. -/
-def lrTable : List (String × ℕ × ℕ × ℕ × ℕ × String × String) := [
+def lrTable : List (String × ℕ × ℕ × ℕ × String × String) := [
 {lrT}]
 
 {lsT}
 {rsT}
 
 /-- `level_positions`' loop, by the specialization's name. -/
-def lpLoopOf (name : String) : String := ((lpTable.find? (·.1 = name)).map (·.2.2.1)).getD ""
+def lpLoopOf (name : String) : String := ((lpTable.find? (·.1 = name)).map (·.2.1)).getD ""
 
 /-- `level_residual`'s loops, by the specialization's name. -/
 def lrLoopsOf (name : String) : String × String :=
-  ((lrTable.find? (·.1 = name)).map (·.2.2.2.2.2)).getD ("", "")
+  ((lrTable.find? (·.1 = name)).map (·.2.2.2.2)).getD ("", "")
 """ + FTR
     imports = ("public import LeanVM.Guest.B1.Whir.HelperTables\npublic import LeanVM.Guest.B1.Whir.DataSpec\n"
                + "".join(f"public import LeanVM.Guest.B1.Whir.HelperFind{c}\n" for c in finds))
@@ -339,8 +318,8 @@ def lrLoopsOf (name : String) : String × String :=
 -/
 
 set_option maxRecDepth 100000 in
-theorem lpTable_ok : ∀ e ∈ lpTable, FnIs e.1 (osParams 9) (lpBody e.2.1 e.2.2.2.1 e.2.2.2.2 e.2.2.1) ∧
-    FnIs e.2.2.1 (osParams 6) (lpLoopBody e.2.2.2.1 e.2.2.2.2 e.2.2.1) :={lpOk}
+theorem lpTable_ok : ∀ e ∈ lpTable, FnIs e.1 (osParams 10) (lpBody e.2.2.1 e.2.2.2 e.2.1) ∧
+    FnIs e.2.1 (osParams 6) (lpLoopBody e.2.2.1 e.2.2.2 e.2.1) :={lpOk}
 
 set_option maxRecDepth 100000 in
 theorem lqTable_ok : ∀ e ∈ lqTable, FnIs e.1 (osParams 6)
@@ -348,10 +327,9 @@ theorem lqTable_ok : ∀ e ∈ lqTable, FnIs e.1 (osParams 6)
       e.2.2.2.2.2.2.2.2.1 e.2.2.2.2.2.2.2.2.2.1 e.2.2.2.2.2.2.2.2.2.2) :={lqOk}
 
 set_option maxRecDepth 100000 in
-theorem lrTable_ok : ∀ e ∈ lrTable, FnIs e.1 (osParams 4) (lrBody e.2.1 e.2.2.2.2.2.1 e.2.2.2.2.2.2) ∧
-    FnIs e.2.2.2.2.2.1 (osParams 7) (lrLoop1Body e.2.2.1 e.2.2.2.1 e.2.2.2.2.1 e.2.2.2.2.2.1) ∧
-    (e.2.1 % resBatch ≠ 0 →
-      FnIs e.2.2.2.2.2.2 (osParams 7) (lrLoop2Body e.2.2.1 e.2.2.2.1 e.2.2.2.2.1 e.2.2.2.2.2.2)) :={lrOk}
+theorem lrTable_ok : ∀ e ∈ lrTable, FnIs e.1 (osParams 6) (lrBody e.2.2.2.2.1 e.2.2.2.2.2) ∧
+    FnIs e.2.2.2.2.1 (osParams 7) (lrLoop1Body e.2.1 e.2.2.1 e.2.2.2.1 e.2.2.2.2.1) ∧
+    FnIs e.2.2.2.2.2 (osParams 7) (lrLoop2Body e.2.1 e.2.2.1 e.2.2.2.1 e.2.2.2.2.2) :={lrOk}
 {lsOk}{rsOk}""" + FTR
     return out, len(thms), (len(lp), len(lq), len(lr), len(lrs), len(rs))
 

@@ -159,7 +159,7 @@ theorem valid_cursor {input : PublicInput} {t : Execution guestProgram}
     let fr := frameAtA (entryArrayT pcTableT (Fast.preTestAt discreteLogTables Fast.preTable Fast.genPows rd)
       (replayStatesOf (powTable t.logMemorySize) (powTable guestProgram.logSize) guestProgram
         (memoryVector t.memory)) rd) rd (fn_idx% verify_sub) (subArgsK rd σ c) []
-    cursorLength discreteLogTables (fr (.n 25)) (fr (.n 1885)) ≤ 8192 := by
+    cursorLength discreteLogTables (fr (.n (val% «verify_sub» "stream"))) (fr (.n (val% «verify_sub» "sumcheck_target~2"))) ≤ 8192 := by
   intro rd σ fr
   have hk : Node.ExplainsPublicInput guestProgram input (End.decode t.memory) := End.guest_knowledge input t hv
   rw [← decTop_eq] at hk

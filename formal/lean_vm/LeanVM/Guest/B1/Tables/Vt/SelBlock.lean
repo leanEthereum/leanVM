@@ -38,14 +38,11 @@ include hμ
 
 /-- **A table block's selector.** -/
 theorem vt_selblock {σ : Val} (h : VtH Lm.read σ) {w b t pos : ℕ} {prev : Option ℕ}
-    {es gs gw : ℕ}
-    (hcheck : tbStmtsEqb (vtSelT w b t prev es gs gw)
-      ((vtAt pos).take (vtSelT w b t prev es gs gw).length) = true) (ht : t < 6)
-    (hptr : 0 < t → σ (.n es) * vtW288 = σ (.n (val% «verify_tables» "shared_eq")) * gen ^ (288 * t) ∧
-      σ (.n gs) * word gw 0 = σ (.n (val% «verify_tables» "shared_g")) * gen ^ (144 * t))
+    (hcheck : tbStmtsEqb (vtSelT w b t prev)
+      ((vtAt pos).take (vtSelT w b t prev).length) = true)
     {point : List E} {d τ : ℕ} (hpl : point.length = d + τ) (hd34 : d + τ ≤ 34)
     (hdv : σ (.n (vtShLen t)) = gen ^ d)
-    (hrun : RunTables Lm.read (σ (.n (val% «verify_tables» "shared_eq")) * gen ^ (288 * t)) (σ (.n (val% «verify_tables» "shared_g")) * gen ^ (144 * t)) d
+    (hrun : RunTables Lm.read (σ (.n (vtEqV t))) (σ (.n (vtGV t))) d
       (point.drop τ) ((point.map (1 + ·)).drop τ) ((gSquaresList.drop τ).take d))
     {off : ℕ} (hoff : σ (.n (vtBoffV b)) = gen ^ off) (hob : off < 2 ^ 62) :
     σ (.n (vtSelE w t)) = Placement.eqAbove ⟨τ, off⟩ point ∧
@@ -53,30 +50,11 @@ theorem vt_selblock {σ : Val} (h : VtH Lm.read σ) {w b t pos : ℕ} {prev : Op
       σ (.n (vtSelSum w t prev)) = (match prev with | none => 0 | some p => σ (.n p)) +
         σ (.n (vtSelE w t)) := by
   obtain ⟨k, hs⟩ := h.sliceAt pos _ hcheck
-  -- the template's facts, uniformly in `t`
-  obtain ⟨eqt, gt, heqt, hgt, hd, hq, hrest⟩ : ∃ eqt gt : V,
-      σ eqt = σ (.n (val% «verify_tables» "shared_eq")) * gen ^ (288 * t) ∧ σ gt = σ (.n (val% «verify_tables» "shared_g")) * gen ^ (144 * t) ∧
-      (∃ (j : ℕ) (hj : j < vtBstNames.length), σ (.n (vtShLen t)) = ofK
-          (Parameters.addressOfIndex j) ∧
-        coreProgram.Rel Lm.read vtBstNames[j] [σ (.n w), σ eqt, σ gt]
-          [σ (.n (vtSelE w t)), σ (.n (vtSelE w t + 1))]) ∧
-      σ (.n (vtSelE w t + 1)) = σ (.n (vtBoffV b)) ∧
-      Stmt.HoldsList (coreProgram.Rel Lm.read) Lm.read σ (vtSelTail w t prev) True k := by
-    rcases Nat.eq_zero_or_pos t with rfl | ht0
-    · simp only [vtSelT, ↓reduceIte, List.nil_append, List.cons_append, List.append_nil,
-        Stmt.HoldsList, Stmt.Holds, List.map_cons, List.map_nil] at hs
-      obtain ⟨-, -, hdisp, qE, hr⟩ := hs
-      simp only [Atom.Holds] at qE
-      exact ⟨.n (val% «verify_tables» "shared_eq"), .n (val% «verify_tables» "shared_g"), by simp, by simp, hdisp, e_add_eq_zero_iff.mp qE, hr⟩
-    · have ht' : t ≠ 0 := by omega
-      simp only [vtSelT, ht', ↓reduceIte, List.cons_append, List.nil_append,
-        Stmt.HoldsList, Stmt.Holds] at hs
-      obtain ⟨-, -, c1, m2, c3, m4, hdisp, qE, hr⟩ := hs
-      simp only [Atom.Holds] at c1 m2 c3 m4 qE
-      obtain ⟨p1, p2⟩ := hptr ht0
-      refine ⟨.n (w + 2), .n (w + 4), ?_, ?_, hdisp, e_add_eq_zero_iff.mp qE, hr⟩
-      · rw [m2, c1, p1]
-      · rw [m4, c3, p2]
+  simp only [vtSelT, List.cons_append, List.nil_append, Stmt.HoldsList, Stmt.Holds, List.map_cons,
+    List.map_nil] at hs
+  obtain ⟨-, -, hd, qE, hrest⟩ := hs
+  simp only [Atom.Holds] at qE
+  have hq := e_add_eq_zero_iff.mp qE
   -- the arm
   obtain ⟨j, hj, hjv, hrel⟩ := hd
   have hj34 : j < 34 := by simpa [vtBstNames] using hj
@@ -86,7 +64,6 @@ theorem vt_selblock {σ : Val} (h : VtH Lm.read σ) {w b t pos : ℕ} {prev : Op
   have hb := block_selector_tab_holds _ hj34 _ hμ Lm _ _ hrel
   simp only [BlockSelTabOut] at hb
   obtain ⟨bs, hbl, -, hout⟩ := hb
-  rw [heqt, hgt] at hout
   obtain ⟨he, hg⟩ := hout _ _ _ (by simp; omega) (by simp; omega)
     (by simp [gSquaresList]; omega) hrun
   rw [vt_bitsPow_sq hbl (by omega)] at hg

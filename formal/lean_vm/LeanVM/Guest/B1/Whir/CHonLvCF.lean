@@ -28,7 +28,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 /-- **The final level's calls and memory**, honestly. -/
 theorem finC_of {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} {lane : ℕ} {w : WhirEnd}
     (hS : HonStatic h.c) (hNm : HonNames h.c) {σ : Val}
-    (hp : ∀ i < 11, σ (.n (12 + 2 * i)) = osPtrA h.c b i) (ht : σ (.n osTabs) = tabs) (batched : E)
+    (hp : ∀ i < 9, σ (.n (12 + 2 * i)) = osPtrA h.c b i) (ht : σ (.n osTabs) = tabs) (batched : E)
     (hF : LvAt.FinStep h.logN lane h.c.yrLevel h.Lf w)
     (hfold : h.Lf.level.fold = ((h.c.levels.getD h.c.yrLevel default)).folds)
     (hdep : ((h.c.levels.getD h.c.yrLevel default)).depth = h.Lf.dp h.logN)
@@ -46,7 +46,7 @@ theorem finC_of {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} {lane : ℕ} {
       FinC C rd σ h.c h.c.yrLevel ((h.c.levels.getD h.c.yrLevel default)) (h.capAt h.c.yrLevel) (h.claimAt h.c.yrLevel)
         (cur * gen ^ (xs.length - (h.xsAt h.c.yrLevel).length))
         (h.Lf.finWD (digestHalves (h.root h.c.yrLevel)).1 (digestHalves (h.root h.c.yrLevel)).2 batched
-          (osPtrA h.c b (11 + h.c.yrLevel))) := by
+          (osPtrA h.c b (12 + h.c.yrLevel))) := by
   intro C rd hH
   have hyr := hS.yr
   have hln : h.c.yrLevel < h.c.levels.length := by omega
@@ -60,7 +60,7 @@ theorem finC_of {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} {lane : ℕ} {
   have hca : h.capAt h.c.yrLevel = h.Lf.cap := by simp only [OsHD.capAt, le_refl, ↓reduceIte]
   rw [hxa, hca]
   have hE := finEqs hF hfold hdep hq hsq (digestHalves (h.root h.c.yrLevel)).1
-    (digestHalves (h.root h.c.yrLevel)).2 batched (osPtrA h.c b (11 + h.c.yrLevel)) (h.claimAt h.c.yrLevel)
+    (digestHalves (h.root h.c.yrLevel)).2 batched (osPtrA h.c b (12 + h.c.yrLevel)) (h.claimAt h.c.yrLevel)
   have hW := lvAt_words h.Lf h.logN hdep hq hsq
   have p2 : σ (.n osFmsg) = osPtrA h.c b 0 := hp 0 (by norm_num)
   have p3 : σ (.n osRoots) = osPtrA h.c b 1 := hp 1 (by norm_num)
@@ -99,14 +99,13 @@ theorem finC_of {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} {lane : ℕ} {
     rw [hS.head (j := 0) (by omega)]; rfl
   have h4 : (osSizesL h.c).getD 2 0 = h.c.nFolds := by rw [hS.head (j := 2) (by omega)]; rfl
   have h5 : (osSizesL h.c).getD 3 0 = 2 * h.c.nFolds := by rw [hS.head (j := 3) (by omega)]; rfl
-  refine ⟨?f_rounds, ?f_om, ?f_g17, ?f_lp, ?f_hs, ?f_q, ?f_roots⟩
+  refine ⟨?f_rounds, ?f_om, by rw [ht]; exact hwt, ?f_g17, ?f_lp, ?f_hs, ?f_q, ?f_roots⟩
   case f_rounds =>
     rw [p4, p5, ht]
-    change RoundsC C (osPtrA h.c b 2) (osPtrA h.c b 3) tabs _ _ _ _ _ h.Lf.rw
+    change RoundsH rd (osPtrA h.c b 2) (osPtrA h.c b 3) tabs _ _ _ _ _ h.Lf.rw
     rw [hLrw]
-    refine roundsC_of (cur0 := cur) (xs0 := xs)
-      (fun a r hmr hwa hx ↦ osH_named hH hNm.1 ⟨hmr, hwa⟩ hx) hwt ((h.c.levels.getD h.c.yrLevel default)).folds
-      ((h.c.levels.getD h.c.yrLevel default)).foldsOff h.Lf.cap (h.claimAt h.c.yrLevel) _ rw hcap5 hrwl r0 ?_ fun j hj ↦ ?_
+    refine roundsH_of hwt ((h.c.levels.getD h.c.yrLevel default)).folds
+      ((h.c.levels.getD h.c.yrLevel default)).foldsOff h.Lf.cap (h.claimAt h.c.yrLevel) _ rw hrwl r0 ?_
     · rw [← hfold]
       refine roundsMem_of _ _ h.Lf.s h.Lf.cap (h.claimAt h.c.yrLevel) rw hrok (fun j hj ↦ ?_) (fun j hj ↦ ?_)
       · rw [hfold] at hj ⊢
@@ -118,16 +117,11 @@ theorem finC_of {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} {lane : ℕ} {
         rw [h.allRounds_getD hS hL hrl hln hj] at a0 a1
         simp only [LvAt.rounds, rsRounds, hLrw, hfold] at a0 a1
         exact ⟨a0, a1⟩
-    · refine ⟨?_, ?_, ?_⟩
-      · rw [mul_gen_pow_add]
-        exact segF hsuf (by rw [hlen]; omega)
-      · exact h.fixedAt_own (hS.headLt (j := 2) (by omega)) (by unfold osIxQbpA; omega) (by rw [h4]; omega)
-      · exact h.fixedAt_own (hS.headLt (j := 3) (by omega)) (by unfold osIxQbpA; omega) (by rw [h5]; omega)
   case f_om =>
-    have hk := hNm.2.2.2.2.2.1
+    have hk := hNm.2.2.1
     have hc5 : (FinWD.cap1 ((h.c.levels.getD h.c.yrLevel default)) h.Lf.cap (h.claimAt h.c.yrLevel)
         (h.Lf.finWD (digestHalves (h.root h.c.yrLevel)).1 (digestHalves (h.root h.c.yrLevel)).2 batched
-          (osPtrA h.c b (11 + h.c.yrLevel)))).length = 5 :=
+          (osPtrA h.c b (12 + h.c.yrLevel)))).length = 5 :=
       roundsTr_length _ _ _ _ hcap5
     have hrd := h.reads hm (hS.headLt (j := 0) (by omega)) (by unfold osIxQbpA; omega)
       (by rw [h.ownW_fmsg, h2, OsHD.fmsgC, hLfw, hfl])
@@ -154,11 +148,9 @@ theorem finC_of {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} {lane : ℕ} {
         rw [(getD_five2 hc5 _ _).2]
         exact h.fixedAt_own0 (hS.headLt (j := 0) (by omega)) (by unfold osIxQbpA; omega) (by rw [h2])
   case f_g17 =>
-    rw [ht]
-    refine osH_named hH hNm.2.2.1 (grind_pre hwt ?_) (fun q hq ↦ by simp [OsKind.spec] at hq)
     rw [hE.S2, hqS]
     exact grind_lane (by decide) hfin.ok1
-  case f_lp => exact osH_special hH (hNm.2.2.2.2.2.2.2 h.c.yrLevel hln).1 _ _
+  case f_lp => exact osH_special hH (hNm.2.2.2.2 h.c.yrLevel hln).1 _ _
   case f_roots =>
     rw [p3]
     exact h.mid_roots hS hm hln
@@ -168,7 +160,7 @@ theorem finC_of {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} {lane : ℕ} {
     have := h.fin_hs hS hm hj
     simp only [LvAt.finWD]
     exact this
-  case f_q => exact osH_special hH (hNm.2.2.2.2.2.2.2 h.c.yrLevel hln).2 _ _
+  case f_q => exact osH_special hH (hNm.2.2.2.2 h.c.yrLevel hln).2 _ _
 
 /-! ## The closing rounds -/
 
@@ -199,7 +191,7 @@ theorem tailC_from {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} (hS : HonSt
     (hsuf : tailWords h.Lf.fw.pairs <:+ xs) (hpl : h.Lf.fw.pairs.length = h.c.yrLog)
     (hcap5 : (h.Lf.F3 h.logN).cap.length = 5) :
     ∀ C rd, OsHA C rd h.c b h.own cur tabs xs →
-      TailC C rd (osPtrA h.c b (12 + h.c.yrLevel)) tabs 0 h.Lf.fw.pairs
+      TailC C rd (osPtrA h.c b (13 + h.c.yrLevel)) tabs 0 h.Lf.fw.pairs
         (h.capAt h.c.levels.length) (h.claimAt h.c.levels.length)
         (cur * gen ^ (xs.length - (h.xsAt h.c.levels.length).length)) := by
   intro C rd hH
@@ -213,7 +205,7 @@ theorem tailC_from {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} (hS : HonSt
   have hrT := h.tail_reads hS hH.2.2.1 (by rw [hTl]; exact hS.ylog)
   refine tailC_of _ 0 _ _ _ (fun j hj ↦ ?_) (fun j hj ↦ ?_)
   · have hc5 := tailRun_cap_length (h.Lf.fw.pairs.take j) _ h.cl1F hcap5
-    refine osH_named hH hNm.2.1 (tail_pre hc5 ?_) ?_
+    refine osH_named hH hNm.1 (tail_pre hc5 ?_) ?_
     · have := segR hH.1 hsuf (k := 2 * j) (m := 2) (by rw [tailWords_length]; omega)
       rw [tailWords_seg _ _ hj] at this
       rw [mul_gen_pow_add]
@@ -235,7 +227,7 @@ theorem tailC_from {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} (hS : HonSt
 /-- **`tail_challenges`' unused entries are zero.** -/
 theorem tail_zero {h : OsHD} {b : ℕ} {rd : Reader} (hS : HonStatic h.c) (hm : OsMemA rd h.c b h.own)
     (hpl : h.Lf.fw.pairs.length = h.c.yrLog) :
-    ∀ i < yrLogCap - h.c.yrLog, LoadHolds rd (osPtrA h.c b (12 + h.c.yrLevel)) (h.c.yrLog + i) 0 := by
+    ∀ i < yrLogCap - h.c.yrLog, LoadHolds rd (osPtrA h.c b (13 + h.c.yrLevel)) (h.c.yrLog + i) 0 := by
   intro i hi
   have hTl : h.T.length = h.c.yrLog := by rw [OsHD.T, OsHD.tr, tailRun_length, hpl]
   have hsz := hS.fin (k := 0) (by omega)

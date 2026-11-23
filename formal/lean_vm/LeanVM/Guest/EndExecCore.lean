@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.EndExecEntry
 public import LeanVM.Guest.CoreMode.Fam.Kid
 public import LeanVM.Guest.CoreMode.WalkS
+public import LeanVM.Guest.CoreMode.SelNest
 public import LeanVM.Guest.Bridge.JumpCells
 public import LeanVM.Guest.Bridge.JumpCells.All
 public import LeanVM.Guest.Bridge.ProgAlKeys
@@ -41,142 +42,173 @@ section Walk
 
 variable {σ : Val}
 
-theorem sel_mono {P : Prop} {x : V} {seen seen' : List Atom} {es es' : List Ev}
-    (h : ∀ a, (a ∈ seen ∨ Ev.atom a ∈ es) → a ∈ seen' ∨ Ev.atom a ∈ es') :
-    (P ∨ ∃ a, (a ∈ seen ∨ Ev.atom a ∈ es) ∧ x ∈ Memory.atomUses a) →
-      P ∨ ∃ a, (a ∈ seen' ∨ Ev.atom a ∈ es') ∧ x ∈ Memory.atomUses a
-  | .inl p => .inl p
-  | .inr ⟨a, ha, hu⟩ => .inr ⟨a, h a ha, hu⟩
-
-/-- **`selGo`'s selectors**: on a path that returns, the selector `x` of each `match` and `dispatch` of the body
-is at its cell, and a dispatch's a parameter or a use of an atom seen before it or on the path. -/
-theorem selGo_sel {j : ℕ} {ps : List V} {σ : Val} : ∀ (seen : List Atom) (ss : List Stmt) {es : List Ev} {vs : List V},
-    CoreMode.selGo j ps seen ss = true → ss.all CoreMode.topOk = true → walk σ ss = .ret es vs →
-    ∀ s ∈ stmtsOf ss, ∀ x, ((∃ arms, s = .match_ x arms) ∨ ∃ fs args rets, s = .dispatch x fs args rets) →
-      CoreMode.cellB j x = true ∧ ((∃ fs args rets, s = .dispatch x fs args rets) ∧ x ∈ ps ∨
-        ∃ a, (a ∈ seen ∨ Ev.atom a ∈ es) ∧ x ∈ Memory.atomUses a)
-  | _, [], _, _, _, _, _, s, hm, _, _ => by simp [stmtsOf] at hm
-  | seen, .atom b :: ss, es, vs, h, ht, hw, s, hm, x, hs => by
+/-- **`selGo`'s top-level selectors**: on a path that returns, the selector `x` of each top-level `match` is at its
+cell and used by an atom seen before it or on the path. -/
+theorem selGo_selM {j : ℕ} {ps : List V} {B : List Stmt} {σ : Val} : ∀ (seen : List Atom) (ss : List Stmt) {es : List Ev} {vs : List V},
+    CoreMode.selGo j ps B seen ss = true → ss.all CoreMode.topOk = true → walk σ ss = .ret es vs →
+    ∀ x arms, Stmt.match_ x arms ∈ ss →
+      CoreMode.cellB j x = true ∧ ∃ a, (a ∈ seen ∨ Ev.atom a ∈ es) ∧ x ∈ Memory.atomUses a
+  | _, [], _, _, _, _, _, _, _, hm => absurd hm List.not_mem_nil
+  | seen, .atom b :: ss, es, vs, h, ht, hw, x, arms, hm => by
     simp only [CoreMode.selGo] at h
     simp only [List.all_cons, Bool.and_eq_true] at ht
     rw [walk_atom_cons] at hw
     obtain ⟨es', hw', rfl⟩ := pre_eq_ret hw
-    simp only [stmtsOf, stmtsSub, List.mem_cons, List.nil_append] at hm
-    rcases hm with rfl | hm
-    · rcases hs with ⟨_, h'⟩ | ⟨_, _, _, h'⟩ <;> cases h'
-    obtain ⟨hc, hr⟩ := selGo_sel (b :: seen) ss h ht.2 hw' s hm x hs
-    refine ⟨hc, sel_mono (fun a ha ↦ ?_) hr⟩
+    rcases List.mem_cons.mp hm with h' | hm
+    · cases h'
+    obtain ⟨hc, a, ha, hu⟩ := selGo_selM (b :: seen) ss h ht.2 hw' x arms hm
+    refine ⟨hc, a, ?_, hu⟩
     rcases ha with ha | ha
     · rcases List.mem_cons.mp ha with rfl | ha
       · exact Or.inr (by simp)
       · exact Or.inl ha
     · exact Or.inr (by simp [ha])
-  | seen, .match_ y arms' :: ss, es, vs, h, ht, hw, s, hm, x, hs => by
+  | seen, .match_ y arms' :: ss, es, vs, h, ht, hw, x, arms, hm => by
     simp only [CoreMode.selGo, Bool.and_eq_true, decide_eq_true_eq, List.any_eq_true] at h
-    obtain ⟨⟨⟨hc, ⟨a, ha, hu⟩⟩, hna⟩, h⟩ := h
+    obtain ⟨⟨⟨hc, ⟨a, ha, hu⟩⟩, -⟩, h⟩ := h
     simp only [List.all_cons, Bool.and_eq_true] at ht
-    simp only [stmtsOf, stmtsSub, List.mem_cons, List.mem_append] at hm
-    rcases hm with rfl | hm | hm
-    · rcases hs with ⟨_, h'⟩ | ⟨_, _, _, h'⟩ <;> cases h'
-      exact ⟨hc, Or.inr ⟨a, Or.inl ha, hu⟩⟩
-    · rcases hs with ⟨_, rfl⟩ | ⟨_, _, _, rfl⟩
-      · have := List.all_eq_true.mp hna _ hm
-        simp at this
-      · have h1' := ht.1
-        simp only [CoreMode.topOk, Bool.and_eq_true, Bool.not_eq_true', List.any_eq_false, stmtsSub] at h1'
-        exact absurd rfl (h1'.2 _ hm)
+    rcases List.mem_cons.mp hm with h' | hm
+    · cases h'
+      exact ⟨hc, a, Or.inl ha, hu⟩
     · rw [walk] at hw
       rcases seq_eq_ret hw with ⟨es1, es2, -, h2, rfl⟩ | h1
-      · obtain ⟨hc', hr⟩ := selGo_sel seen ss h ht.2 h2 s hm x hs
-        exact ⟨hc', sel_mono (fun a ha ↦ ha.imp id (List.mem_append_right _)) hr⟩
-      · exact absurd h1 (CoreMode.walk1_noRetP _ (by
-          have h1' := ht.1
-          simp only [CoreMode.topOk, Bool.and_eq_true] at h1'
-          exact h1'.1) _ _)
-  | seen, .ite c z n :: ss, es, vs, h, ht, hw, s, hm, x, hs => by
+      · obtain ⟨hc', a', ha', hu'⟩ := selGo_selM seen ss h ht.2 h2 x arms hm
+        exact ⟨hc', a', ha'.imp id (List.mem_append_right _), hu'⟩
+      · exact absurd h1 (CoreMode.walk1_noRetP _ (CoreMode.noRet_of_topOk ht.1) _ _)
+  | seen, .ite c z n :: ss, es, vs, h, ht, hw, x, arms, hm => by
     simp only [CoreMode.selGo, Bool.and_eq_true] at h
-    obtain ⟨⟨hz, hn⟩, h⟩ := h
+    obtain ⟨-, h⟩ := h
     simp only [List.all_cons, Bool.and_eq_true] at ht
-    simp only [stmtsOf, stmtsSub, List.mem_cons, List.mem_append] at hm
-    rcases hm with rfl | hm | hm
-    · rcases hs with ⟨_, h'⟩ | ⟨_, _, _, h'⟩ <;> cases h'
-    · rcases hs with ⟨_, rfl⟩ | ⟨_, _, _, rfl⟩
-      · rcases hm with hm | hm
-        · have := List.all_eq_true.mp hz _ hm
-          simp at this
-        · have := List.all_eq_true.mp hn _ hm
-          simp at this
-      · have h1' := ht.1
-        simp only [CoreMode.topOk, Bool.and_eq_true, Bool.not_eq_true', List.any_eq_false, stmtsSub,
-          List.mem_append] at h1'
-        exact absurd rfl (h1'.2 _ hm)
+    rcases List.mem_cons.mp hm with h' | hm
+    · cases h'
     · rw [walk] at hw
       rcases seq_eq_ret hw with ⟨es1, es2, -, h2, rfl⟩ | h1
-      · obtain ⟨hc', hr⟩ := selGo_sel seen ss h ht.2 h2 s hm x hs
-        exact ⟨hc', sel_mono (fun a ha ↦ ha.imp id (List.mem_append_right _)) hr⟩
-      · exact absurd h1 (CoreMode.walk1_noRetP _ (by
-          have h1' := ht.1
-          simp only [CoreMode.topOk, Bool.and_eq_true] at h1'
-          exact h1'.1) _ _)
-  | seen, .ret vs' :: ss, es, vs, h, ht, hw, s, hm, x, hs => by
+      · obtain ⟨hc', a', ha', hu'⟩ := selGo_selM seen ss h ht.2 h2 x arms hm
+        exact ⟨hc', a', ha'.imp id (List.mem_append_right _), hu'⟩
+      · exact absurd h1 (CoreMode.walk1_noRetP _ (CoreMode.noRet_of_topOk ht.1) _ _)
+  | seen, .ret vs' :: ss, es, vs, h, ht, hw, x, arms, hm => by
     simp only [CoreMode.selGo, Bool.and_eq_true] at h
-    simp only [stmtsOf, stmtsSub, List.mem_cons, List.nil_append] at hm
-    rcases hm with rfl | hm
-    · rcases hs with ⟨_, h'⟩ | ⟨_, _, _, h'⟩ <;> cases h'
-    rcases hs with ⟨_, rfl⟩ | ⟨_, _, _, rfl⟩
-    · have := List.all_eq_true.mp h.1 _ hm
-      simp at this
-    · have := List.all_eq_true.mp h.2 _ hm
-      simp at this
-  | seen, .call f args rets :: ss, es, vs, h, ht, hw, s, hm, x, hs => by
+    rcases List.mem_cons.mp hm with h' | hm
+    · cases h'
+    · exact (CoreMode.noMatch_mem h.1 (mem_stmtsOf hm)).elim
+  | seen, .call f args rets :: ss, es, vs, h, ht, hw, x, arms, hm => by
     simp only [CoreMode.selGo] at h
     simp only [List.all_cons, Bool.and_eq_true] at ht
     rw [walk_call_cons] at hw
     obtain ⟨es', hw', rfl⟩ := pre_eq_ret hw
-    simp only [stmtsOf, stmtsSub, List.mem_cons, List.nil_append] at hm
-    rcases hm with rfl | hm
-    · rcases hs with ⟨_, h'⟩ | ⟨_, _, _, h'⟩ <;> cases h'
-    obtain ⟨hc, hr⟩ := selGo_sel seen ss h ht.2 hw' s hm x hs
-    exact ⟨hc, sel_mono (fun a ha ↦ ha.imp id (fun h ↦ by simp [h])) hr⟩
-  | seen, .callIf c f args :: ss, es, vs, h, ht, hw, s, hm, x, hs => by
+    rcases List.mem_cons.mp hm with h' | hm
+    · cases h'
+    obtain ⟨hc, a, ha, hu⟩ := selGo_selM seen ss h ht.2 hw' x arms hm
+    exact ⟨hc, a, ha.imp id (fun h ↦ by simp [h]), hu⟩
+  | seen, .callIf c f args :: ss, es, vs, h, ht, hw, x, arms, hm => by
     simp only [CoreMode.selGo] at h
     simp only [List.all_cons, Bool.and_eq_true] at ht
     rw [walk_callIf_cons] at hw
     obtain ⟨es', hw', rfl⟩ := pre_eq_ret hw
-    simp only [stmtsOf, stmtsSub, List.mem_cons, List.nil_append] at hm
-    rcases hm with rfl | hm
-    · rcases hs with ⟨_, h'⟩ | ⟨_, _, _, h'⟩ <;> cases h'
-    obtain ⟨hc, hr⟩ := selGo_sel seen ss h ht.2 hw' s hm x hs
-    exact ⟨hc, sel_mono (fun a ha ↦ ha.imp id (fun h ↦ by simp [h])) hr⟩
-  | seen, .dispatch y fs' args' rets' :: ss, es, vs, h, ht, hw, s, hm, x, hs => by
-    simp only [CoreMode.selGo, Bool.and_eq_true, Bool.or_eq_true, List.contains_iff_mem, decide_eq_true_eq,
-      List.any_eq_true] at h
-    obtain ⟨⟨hc, hsel⟩, h⟩ := h
+    rcases List.mem_cons.mp hm with h' | hm
+    · cases h'
+    obtain ⟨hc, a, ha, hu⟩ := selGo_selM seen ss h ht.2 hw' x arms hm
+    exact ⟨hc, a, ha.imp id (fun h ↦ by simp [h]), hu⟩
+  | seen, .dispatch y fs' args' rets' :: ss, es, vs, h, ht, hw, x, arms, hm => by
+    simp only [CoreMode.selGo, Bool.and_eq_true] at h
     simp only [List.all_cons, Bool.and_eq_true] at ht
-    simp only [stmtsOf, stmtsSub, List.mem_cons, List.nil_append] at hm
-    rcases hm with rfl | hm
-    · rcases hs with ⟨_, h'⟩ | ⟨_, _, _, h'⟩ <;> cases h'
+    rcases List.mem_cons.mp hm with h' | hm
+    · cases h'
+    obtain ⟨f, -, es', rfl, hw'⟩ := CoreMode.walk_dispatch_ret hw
+    obtain ⟨hc, a, ha, hu⟩ := selGo_selM seen ss h.2 ht.2 hw' x arms hm
+    exact ⟨hc, a, ha.imp id (fun h ↦ by simp [h]), hu⟩
+
+/-- **`selGo`'s dispatches' selectors**: on a path that returns, the selector `x` of each `dispatch` of the body is
+at its cell, a parameter or used by an atom seen before it or on the path. -/
+theorem selGo_selD {j : ℕ} {ps : List V} {B : List Stmt} {σ : Val} : ∀ (seen : List Atom) (ss : List Stmt) {es : List Ev} {vs : List V},
+    CoreMode.selGo j ps B seen ss = true → ss.all CoreMode.topOk = true → walk σ ss = .ret es vs →
+    ∀ x fs args rets, Stmt.dispatch x fs args rets ∈ stmtsOf ss →
+      CoreMode.cellB j x = true ∧ (x ∈ ps ∨ ∃ a, (a ∈ seen ∨ Ev.atom a ∈ es) ∧ x ∈ Memory.atomUses a)
+  | _, [], _, _, _, _, _, _, _, _, _, hm => by simp [stmtsOf] at hm
+  | seen, s :: ss, es, vs, h, ht, hw, x, fs, args, rets, hm => by
+    simp only [List.all_cons, Bool.and_eq_true] at ht
+    rw [stmtsOf, List.mem_cons, List.mem_append] at hm
+    -- a nested dispatch: none (`topOk`)
+    have hsub : Stmt.dispatch x fs args rets ∉ stmtsSub s := fun hs ↦ by
+      have h1 := ht.1
+      cases s with
+      | ret _ | call _ _ _ | dispatch _ _ _ _ | atom _ | callIf _ _ _ => simp [stmtsSub] at hs
+      | _ =>
+        simp only [CoreMode.topOk, Bool.and_eq_true, Bool.not_eq_true', List.any_eq_false] at h1
+        exact absurd rfl (h1.2 _ hs)
+    rcases hm with hm | hm | hm
+    · -- the head
+      subst hm
+      simp only [CoreMode.selGo, Bool.and_eq_true, Bool.or_eq_true, List.contains_iff_mem, decide_eq_true_eq,
+        List.any_eq_true] at h
+      obtain ⟨⟨hc, hsel⟩, -⟩ := h
       rcases hsel with hp | ⟨a, ha, hu⟩
-      · exact ⟨hc, Or.inl ⟨⟨_, _, _, rfl⟩, hp⟩⟩
+      · exact ⟨hc, Or.inl hp⟩
       · exact ⟨hc, Or.inr ⟨a, Or.inl ha, hu⟩⟩
-    · obtain ⟨f, -, es', rfl, hw'⟩ := CoreMode.walk_dispatch_ret hw
-      obtain ⟨hc', hr⟩ := selGo_sel seen ss h ht.2 hw' s hm x hs
-      exact ⟨hc', sel_mono (fun a ha ↦ ha.imp id (fun h ↦ by simp [h])) hr⟩
+    · exact absurd hm hsub
+    · -- the tail
+      cases s with
+      | atom b =>
+        simp only [CoreMode.selGo] at h
+        rw [walk_atom_cons] at hw
+        obtain ⟨es', hw', rfl⟩ := pre_eq_ret hw
+        obtain ⟨hc, hr⟩ := selGo_selD (b :: seen) ss h ht.2 hw' x fs args rets hm
+        refine ⟨hc, hr.imp id fun ⟨a, ha, hu⟩ ↦ ⟨a, ?_, hu⟩⟩
+        rcases ha with ha | ha
+        · rcases List.mem_cons.mp ha with rfl | ha
+          · exact Or.inr (by simp)
+          · exact Or.inl ha
+        · exact Or.inr (by simp [ha])
+      | ret _ =>
+        simp only [CoreMode.selGo, Bool.and_eq_true] at h
+        have := List.all_eq_true.mp h.2 _ hm
+        simp at this
+      | match_ _ _ | ite _ _ _ =>
+        simp only [CoreMode.selGo, Bool.and_eq_true] at h
+        rw [walk] at hw
+        rcases seq_eq_ret hw with ⟨es1, es2, -, h2, rfl⟩ | h1
+        · obtain ⟨hc, hr⟩ := selGo_selD seen ss h.2 ht.2 h2 x fs args rets hm
+          exact ⟨hc, hr.imp id fun ⟨a, ha, hu⟩ ↦ ⟨a, ha.imp id (List.mem_append_right _), hu⟩⟩
+        · exact absurd h1 (CoreMode.walk1_noRetP _ (CoreMode.noRet_of_topOk ht.1) _ _)
+      | call f a r =>
+        simp only [CoreMode.selGo] at h
+        rw [walk_call_cons] at hw
+        obtain ⟨es', hw', rfl⟩ := pre_eq_ret hw
+        obtain ⟨hc, hr⟩ := selGo_selD seen ss h ht.2 hw' x fs args rets hm
+        exact ⟨hc, hr.imp id fun ⟨a, ha, hu⟩ ↦ ⟨a, ha.imp id (fun h ↦ by simp [h]), hu⟩⟩
+      | callIf c f a =>
+        simp only [CoreMode.selGo] at h
+        rw [walk_callIf_cons] at hw
+        obtain ⟨es', hw', rfl⟩ := pre_eq_ret hw
+        obtain ⟨hc, hr⟩ := selGo_selD seen ss h ht.2 hw' x fs args rets hm
+        exact ⟨hc, hr.imp id fun ⟨a, ha, hu⟩ ↦ ⟨a, ha.imp id (fun h ↦ by simp [h]), hu⟩⟩
+      | dispatch y fs' args' rets' =>
+        simp only [CoreMode.selGo, Bool.and_eq_true] at h
+        obtain ⟨f, -, es', rfl, hw'⟩ := CoreMode.walk_dispatch_ret hw
+        obtain ⟨hc, hr⟩ := selGo_selD seen ss h.2 ht.2 hw' x fs args rets hm
+        exact ⟨hc, hr.imp id fun ⟨a, ha, hu⟩ ↦ ⟨a, ha.imp id (fun h ↦ by simp [h]), hu⟩⟩
 
-theorem selGo_sound {j : ℕ} {ps : List V} {σ : Val} (seen : List Atom) (ss : List Stmt) {es : List Ev} {vs : List V}
-    (h : CoreMode.selGo j ps seen ss = true) (ht : ss.all CoreMode.topOk = true) (hw : walk σ ss = .ret es vs)
-    (x : V) (arms : List (List Stmt)) (hm : Stmt.match_ x arms ∈ stmtsOf ss) : CoreMode.cellB j x = true ∧
-      ∃ a, (a ∈ seen ∨ Ev.atom a ∈ es) ∧ x ∈ Memory.atomUses a := by
-  obtain ⟨hc, ⟨⟨_, _, _, h'⟩, -⟩ | hr⟩ := selGo_sel seen ss h ht hw _ hm x (Or.inl ⟨arms, rfl⟩)
-  · cases h'
-  · exact ⟨hc, hr⟩
-
-theorem selGoD_sound {j : ℕ} {ps : List V} {σ : Val} (seen : List Atom) (ss : List Stmt) {es : List Ev} {vs : List V}
-    (h : CoreMode.selGo j ps seen ss = true) (ht : ss.all CoreMode.topOk = true) (hw : walk σ ss = .ret es vs)
-    (x : V) (fs : List String) (args rets : List V) (hm : Stmt.dispatch x fs args rets ∈ stmtsOf ss) :
-    CoreMode.cellB j x = true ∧ (x ∈ ps ∨ ∃ a, (a ∈ seen ∨ Ev.atom a ∈ es) ∧ x ∈ Memory.atomUses a) := by
-  obtain ⟨hc, hr⟩ := selGo_sel seen ss h ht hw _ hm x (Or.inr ⟨fs, args, rets, rfl⟩)
-  exact ⟨hc, hr.imp (·.2) id⟩
+/-- **A reached `match`'s selector**: at a cursor of the body from which the path's events are its last ones, a
+`match`'s selector is at its cell and used by an atom on the path (`selGo_selM` at the top level, `sel_nested` in a
+top-level `ite`'s branch; `selGo` leaves none elsewhere). -/
+theorem selGo_reach {j : ℕ} {σ : Val} {body : List Stmt} {ps : List V}
+    (hsel : CoreMode.selGo j ps body [] body = true) (htop : body.all CoreMode.topOk = true)
+    {zs : Zip} {x : V} {arms : List (List Stmt)} {ss : List Stmt} {pre es : List Ev} {vs : List V}
+    (hz : ZOk body zs) (hc : zs.cur = .match_ x arms :: ss) (hw : walk σ body = .ret (pre ++ es) vs)
+    (hp : walk σ zs.pos = .ret es vs) :
+    CoreMode.cellB j x = true ∧ ∃ a, Ev.atom a ∈ pre ++ es ∧ x ∈ Memory.atomUses a := by
+  rcases CoreMode.zok_cases hz hc with hm | ⟨t, c, u, hu, Q, hsub, hB, hpos⟩ | ⟨u, hu, w, hw', hs⟩
+  · obtain ⟨hcl, a, ha, hua⟩ := selGo_selM [] body hsel htop hw x arms hm
+    exact ⟨hcl, a, ha.resolve_left List.not_mem_nil, hua⟩
+  · cases u with
+    | ite c0 z n => exact CoreMode.sel_nested hsel htop hw hB hsub rfl (hpos ▸ hp)
+    | match_ y as =>
+      refine (CoreMode.selGo_arms hsel y as hu x arms (subBlock_sub (s := .match_ y as) (c := c) ?_)).elim
+      rw [hsub]; simp
+    | atom _ | call _ _ _ | callIf _ _ _ | dispatch _ _ _ _ | ret _ =>
+      have : (Q ++ Stmt.match_ x arms :: ss).length = 0 := by rw [← hsub]; rfl
+      simp at this
+  · exact (CoreMode.selGo_deep hsel u hu w hw' x arms hs).elim
 
 end Walk
 
@@ -221,7 +253,8 @@ theorem jumpF_of {κ : ℕ} {L : MemoryImage κ} {j fp : ℕ} {σ : Val} {es : L
     (hlocs : (certOf j).locs.all (fun c ↦ Nat.blt c (2 ^ cellBits)) = true)
     (hF : FrameHolds L j fp σ es vs kfps hdr) (hwc : walk σ (coreOf j).body = .ret es vs)
     (hjt : Check.JTHolds glob L) (htab : End.JumpTables L)
-    (hsel : ∀ x arms, Stmt.match_ x arms ∈ stmtsOf (coreOf j).body →
+    (hsel : ∀ zs x arms ss pre es' vs', ZOk (coreOf j).body zs → zs.cur = .match_ x arms :: ss →
+      walk σ (coreOf j).body = .ret (pre ++ es') vs' → walk σ zs.pos = .ret es' vs' →
       CoreMode.Rd L fp ((ctxOf j).locAt x.idx) = some (σ x))
     (hdsel : ∀ x fs args rets, Stmt.dispatch x fs args rets ∈ stmtsOf (coreOf j).body →
       CoreMode.Rd L fp ((ctxOf j).locAt x.idx) = some (σ x)) :
@@ -231,7 +264,7 @@ theorem jumpF_of {κ : ℕ} {L : MemoryImage κ} {j fp : ℕ} {σ : Val} {es : L
   have hd := JumpCells.jcData_all j (by omega) (by have : nFns = fn_count% := rfl; omega)
   unfold jcData jcDataD at hd
   simp only [Bool.and_eq_true] at hd
-  obtain ⟨⟨⟨⟨⟨⟨⟨hstat, harms⟩, -⟩, -⟩, hextra⟩, hblock⟩, -⟩, -⟩ := hd
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨hstat, harms⟩, -⟩, -⟩, hextra⟩, hblock⟩, -⟩, -⟩, -⟩ := hd
   have hcont := Check.cont_of (End.winOk_of (by omega) hj2)
   have hstatB : ∀ {o : ℕ} {w : PC}, (o, w) ∈ (plumbOf j).stat →
       cellAt L fp o = some (w.word fp) ∧ (∀ a b, w = .k a b → a < 2 ^ 64 ∧ b < 2 ^ 64) := by
@@ -241,8 +274,7 @@ theorem jumpF_of {κ : ℕ} {L : MemoryImage κ} {j fp : ℕ} {σ : Val} {es : L
     refine ⟨hF.stat _ hm hb.1.1 hb.1.2, fun a b hw' ↦ ?_⟩
     subst hw'
     simpa only [Bool.and_eq_true, Nat.blt_eq] using hb.2
-  refine ⟨?zero, ?nz, ?self, ?pcw, ?cond, ?arm, fun _ _ _ x arms hm ↦ hsel x arms hm,
-    fun _ _ _ x fs args rets hm ↦ hdsel x fs args rets hm⟩
+  refine ⟨?zero, ?nz, ?self, ?pcw, ?cond, ?arm, hsel, fun _ _ _ x fs args rets hm ↦ hdsel x fs args rets hm⟩
   case zero =>
     intro o hz
     rw [hrd]
@@ -581,7 +613,7 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
     fun hneed es0 vs0 hw0 p r0 rs hl ↦ ?_, hparF,
     fun es0 vs0 hw0 v hv ↦ ?_, fun es0 vs0 hw0 k hk ↦ ?_, fun es0 vs0 hw0 i0 c q s0 hc htk hs0 ↦ ?_,
     fun es0 vs0 hw0 i0 c q s0 hc htk hs0 htg0 t hte ↦ ?_, ?_,
-    fun es0 vs0 hw0 e0 he0 ↦ ?_, fun es0 vs0 hw0 i0 c hc hi0 off oc od q S hoff hoc hod hq hfetch hso hS ↦ ?_,
+    fun es0 vs0 hw0 e0 he0 ↦ ?_, fun es0 vs0 hw0 i0 c hc hi0 off oc od q hoff hoc hod hq hfetch hnx ↦ ?_,
     fun hmX ↦ hroot ?_⟩
   · -- the events hold: the instance is a node of the valid tree
     rcases insts_good (P := coreProgram) (rd := rd) _ _ _ hH.valid e.I hI with ⟨args, rets, hv⟩ | ⟨f', σ', hph⟩
@@ -705,22 +737,27 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
       rw [hloc]
       simpa [CoreMode.Rd, addressOfIndex, pow_add] using this
     refine Bridge.jumpF_of hj1 (fun h ↦ hfpL.trans (hroot h)) hj0 (List.all_eq_true.mpr hlocs) hF (by rw [hc0, hfn]; exact hw)
-      (End.jtHolds_of hJT) hJT (fun x arms hm ↦ ?_) (fun x fs args rets hm ↦ ?_)
-    · have hnl : CoreMode.loopBC Cf.fn = false := by
+      (End.jtHolds_of hJT) hJT (fun zs x arms ss pre' es' vs' hz hcur hb' hp' ↦ ?_) (fun x fs args rets hm ↦ ?_)
+    · have hm : Stmt.match_ x arms ∈ Bridge.stmtsOf (coreOf j).body :=
+        Bridge.zok_stmts hz (by rw [Bridge.Zip.pos, hcur]; exact List.mem_append_left _ List.mem_cons_self)
+      have hnl : CoreMode.loopBC Cf.fn = false := by
         cases hl : CoreMode.loopBC Cf.fn
         · rfl
         · exact absurd (hc0 ▸ hm) (CoreMode.loopBC_noMatch hl)
       simp only [hnl, Bool.or_false] at hbody hselB
       simp only [CoreMode.bodyCore, Bool.and_eq_true] at hbody
-      obtain ⟨hc, hu⟩ := Bridge.selGo_sound [] _ (hc0 ▸ hselB) (hc0 ▸ hbody.2) hwb x arms hm
-      exact hselU x ⟨hc, Or.inr hu⟩
+      rw [hwb, Memory.Out.ret.injEq] at hb'
+      obtain ⟨hE, rfl⟩ := hb'
+      obtain ⟨hc, a, ha, hu⟩ := Bridge.selGo_reach (hc0 ▸ hselB) (hc0 ▸ hbody.2) hz hcur (hE ▸ hwb) hp'
+      exact hselU x ⟨hc, Or.inr ⟨a, Or.inr (hE ▸ ha), hu⟩⟩
     · have hnl : CoreMode.loopBC Cf.fn = false := by
         cases hl : CoreMode.loopBC Cf.fn
         · rfl
         · exact absurd (hc0 ▸ hm) (CoreMode.loopBC_noDsp hl)
       simp only [hnl, Bool.or_false] at hbody hselB
       simp only [CoreMode.bodyCore, Bool.and_eq_true] at hbody
-      exact hselU x (Bridge.selGoD_sound [] _ (hc0 ▸ hselB) (hc0 ▸ hbody.2) hwb x fs args rets hm)
+      obtain ⟨hc, hr⟩ := Bridge.selGo_selD [] _ (hc0 ▸ hselB) (hc0 ▸ hbody.2) hwb x fs args rets hm
+      exact hselU x ⟨hc, hr⟩
 
   · -- the events hold on the reference: the tree is valid on it
     rw [hfn, hw, Memory.Out.ret.injEq] at hw0
@@ -742,11 +779,12 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
     have hlenf : (fnOf j).code.length = (fnOf j).instructionCount :=
       CompiledFunction.length_code (CompiledFunction.wellChunked_of_mem hfm)
     have hX : Cf.X = Bridge.ctxOf j := hx0.symm
-    rw [hX] at hoff hfetch hso
+    rw [hX] at hoff hfetch hnx
     have hcode := Bridge.jump_of_fetch hfm (by rw [hlenf]; exact hoff) hoc hod hq hfetch
     simp only [Nat.blt_eq] at hj1
     rw [← hfpL]
-    exact Bridge.tailF_of (by omega) hj0 hF hc hi0 hcode hso hS
+    exact ⟨B2C.fsN j, by have := B2C.two_le_fsN j; omega, B2C.fsN_lt j,
+      Bridge.tailF_of (by omega) hj0 hF (by rw [hc0, hfn]; exact hw) hc hi0 hcode hnx⟩
   · -- `main`'s frame
     rw [← hx0] at hmX
     simpa [Bridge.ctxOf, Bridge.AlignCtx.ofData] using hmX

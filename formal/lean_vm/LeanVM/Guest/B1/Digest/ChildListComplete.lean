@@ -17,7 +17,7 @@ public import LeanVM.Guest.B1.Digest.LoopAtB
 
 `recMem_group`: the records of claims `s, …, s + k - 1` of honest records are honest, the marks
 `base · g^s`. `anyLoop_completeAt`: a frame loop of `m` claims a frame (`nb` blocks), run over
-`M` frames from the counter `1`, is `CompleteAtD` (`anyLoop_completeAtB`: within `M + 1` frames)
+`M` frames from the counter `1`, is `CompleteAtD` (`anyLoop_completeAtB`: within `M` frames and the tail)
 given, at every frame `q ≤ M`, the sponge state
 after whole blocks `pre0` and the first `4mq` cells at `chain · g^(13q)` (`any_core` at each
 counter `g^q`, `loopA_completeAt`). `any136_completeAt`, `any17_completeAt`:
@@ -123,7 +123,7 @@ theorem anyLoop_blocks {j : ℕ} {f : String} {m o0 p0 mk st0 nb : ℕ}
 
 /-- **A frame loop of child claims is complete, placed, within its frames**: `M` frames of `m`
 claims from the counter `1`, the chain buffer's states at `g^chP`, the records' marks and cells
-among the caller's words; `M + 1` frames of words. -/
+among the caller's words; `M` frames of words and the tail. -/
 theorem anyLoop_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) {j : ℕ} {f : String}
     {m o0 p0 mk st0 nb : ℕ} (hf : coreProgram.find? f = some (coreProgram.getD j default))
     (hok : anyOk (coreProgram.getD j default) f m o0 p0 mk st0 = true)
@@ -146,7 +146,7 @@ theorem anyLoop_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) 
     (hR2 : ∀ i < m * M, RegionL Lin (rg + o i))
     (hR3 : ∀ i < m * M, ∀ c < 4, RegionL Lin (eP + 4 * o i + c)) :
     CompleteAtDTB fs cert κ f Lin [1, gen ^ M, chain, entries, region, base, last] (Returns [])
-      (fun _ => True) ((M + 1) * fs f) := by
+      (fun _ => True) (M * fs f + fs (Memory.tailKey f)) := by
   have hshape : loopShapeF (coreProgram.getD j default) f = true := by
     simp only [anycHead, Bool.and_eq_true] at hhd; exact hhd.1.1.1.1
   have hAS : (loopPre (coreProgram.getD j default)).all isAtomS = true := by

@@ -21,7 +21,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
 (`EndExecCoreSplit`). -/
 def spRs : SplitC :=
   ⟨[(val% «rs_eq_run» "q_g@1", 1), (val% «rs_eq_run» "q_g@2~3", 1), (val% «rs_eq_run» "q_g@3~3", 1)],
-    [(val% «rs_eq_run» "r_g@1", 1), (val% «rs_eq_run» "r_g@2~3", 1), (val% «rs_eq_run» "r_g@3~3", 1)], val% «rs_eq_run» "r_g@3", 3, 8, 8⟩
+    [(val% «rs_eq_run» "r_g@1", 1), (val% «rs_eq_run» "r_g@2~3", 1), (val% «rs_eq_run» "r_g@3~3", 1)], val% «rs_eq_run» "r_g@3", val% «rs_eq_run» "count_g", 8, 8⟩
 
 end
 

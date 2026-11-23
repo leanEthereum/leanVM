@@ -26,7 +26,7 @@ sponge and roots; the final one reads a `FinW` with `FinOk` and returns its `wen
 accepting run of `whirOpen` is one, at the candidate's ladder; `whirOpen_honest`: at every
 candidate (`ladderOk_of`, Whir/CInvLadder).
 
-`NextW.osRec`: a non-final level's record (S1a-3's `OsRec`, Whir/Level); `NextW.glued_glued`: the
+`NextW.osRec`: a non-final level's record (`OsRec`, `Whir/Level`); `NextW.glued_glued`: the
 level glues `recGlued` of it.
 -/
 
@@ -176,7 +176,7 @@ theorem whirOpen_honest {μ r : ℕ} (h1 : 20 ≤ μ) (h2 : μ ≤ 30) (h3 : 1 �
         [(root, stackShape μ r)] xs os w :=
   whirOpen_inv (ladderOk_of h1 h2 h3 h4) hrun
 
-/-! ## S1a-3's records -/
+/-! ## The levels' records -/
 
 /-- **A non-final level's record** (`OsRec`): `λ`, the folds before its claims, its message log,
 its out-of-domain point, its positions, its high part. -/

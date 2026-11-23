@@ -178,6 +178,49 @@ theorem kid_shape {rd : Reader} {J : Inst} {c : Call} {σ : Val} (hn : J.t.name 
     rw [hf'] at hf; cases hf
     exact ⟨i + 1, hjc, by rw [hc, ht]; exact hpar, Or.inr ⟨σJ, ht⟩⟩
 
+/-- **A loop helper's last call is its tail call**, on the arguments `tailArgs`. -/
+theorem tailArgs_last {fn : Fn} {σ : Val} {es : List Ev} {vs : List V} (hw : walk σ fn.body = .ret es vs)
+    {k : ℕ} {v : V} (hk : (tailArgs fn)[k]? = some v) :
+    fn.loop = true ∧ ∃ i c, (calls es)[i]? = some c ∧ i + 1 = (calls es).length ∧ c.args[k]? = some v ∧
+      v ∈ es.flatMap Ev.uses := by
+  unfold tailArgs at hk
+  split at hk
+  case h_2 => simp at hk
+  rename_i cc g args rpre hrev
+  cases hb : (g == fn.name && Stmt.noRetList rpre.reverse)
+  · rw [hb] at hk; simp at hk
+  rw [hb, Bool.cond_true] at hk
+  simp only [Bool.and_eq_true] at hb
+  have hloop : fn.loop = true := by unfold Fn.loop; rw [hrev]; exact hb.1
+  have hbody : fn.body = rpre.reverse ++ [.callIf cc g args, .ret []] := by
+    rw [← List.reverse_reverse fn.body, hrev]; simp
+  rw [hbody, walk_append_sh] at hw
+  refine ⟨hloop, ?_⟩
+  have hw2 : walk σ [Stmt.callIf cc g args, Stmt.ret []] =
+      .ret [.inK cc, if σ cc = 0 then .skip g args else .call g args []] [] := by
+    rw [walk, walk1, Out.seq, walk, walk1, Out.seq]; rfl
+  rw [hw2] at hw
+  cases h1 : walk σ rpre.reverse with
+  | fall es1 =>
+    rw [h1] at hw
+    simp only [Out.seq, Out.pre] at hw
+    obtain ⟨rfl, -⟩ := Out.ret.inj hw
+    have hcalls : calls (es1 ++ [Ev.inK cc, if σ cc = 0 then Ev.skip g args else Ev.call g args []]) =
+        calls es1 ++ [⟨g, args, [], !decide (σ cc = 0)⟩] := by
+      rw [calls_append]
+      congr 1
+      by_cases h0 : σ cc = 0
+      · simp only [calls, h0, ↓reduceIte, decide_true, Bool.not_true]; rfl
+      · simp only [calls, h0, ↓reduceIte, decide_false, Bool.not_false]; rfl
+    refine ⟨(calls es1).length, ⟨g, args, [], !decide (σ cc = 0)⟩, ?_, ?_, hk, ?_⟩
+    · rw [hcalls, List.getElem?_append_right le_rfl, Nat.sub_self]; rfl
+    · rw [hcalls, List.length_append, List.length_singleton]
+    · have hm : v ∈ args := List.mem_of_getElem? hk
+      refine List.mem_flatMap.mpr ⟨if σ cc = 0 then .skip g args else .call g args [], by simp, ?_⟩
+      split_ifs <;> simp [Ev.uses, hm]
+  | ret es1 vs1 => exact absurd h1 (B2C.walk_noRet _ hb.2 es1 vs1)
+  | stuck => rw [h1] at hw; simp [Out.seq] at hw
+
 /-- **Every node instance's frame holds what the completeness check reads**, on any memory
 covering the honest writes, the check keeping each path's call sites apart. -/
 theorem frameHolds_cover (hsa : ∀ j σ es vs, 1 ≤ j → j < nFns → walk σ (coreOf j).body = .ret es vs →
@@ -196,30 +239,13 @@ theorem frameHolds_cover (hsa : ∀ j σ es vs, 1 ≤ j → j < nFns → walk σ
   rw [hw] at hw'
   obtain ⟨rfl, rfl⟩ : es = es' ∧ vs = vs' := by cases hw'; exact ⟨rfl, rfl⟩
   have hgp : ∀ a o, L.read (addressOfIndex a * addressOfIndex o) = L.read (addressOfIndex (a + o)) := fun a o ↦ by rw [addressOfIndex, addressOfIndex, addressOfIndex, pow_add]
-  refine ⟨?_, ?_, fun hj1 ↦ ?_, fun v hv h2 hn ↦ read_valL hH hL hS hC hchk hI ht hj hw he hv h2 hn,
-    fun e he' t ht' h2 hn ↦ ?_, fun p hp h2 hn ↦ read_statL hH hL hS hC hchk hI ht hj hw he hp h2 hn,
-    frame_addr h hI ht hj hw, fun a ha h2 hn ↦ read_armL hH hL hS hC hchk hI ht hj hw ha h2 hn,
-    fun ch hch k t hkt hσk ↦ ?_,
-    frame_len hI ht hk, fun i c kfp s hc hp hs ↦ read_siteL hH hL hS hC hchk hI ht hj hw (hsa _ σ es vs h1 h2 hw) i c kfp s hc hp hs,
-    fun i c kfp hc hp ↦ ?_, fun hl kfp hk' ↦ frame_tail hI ht hj hl hk'⟩
-  · rw [← hgp]; exact (hL.read_hdr hH hI).1
-  · rw [← hgp]; exact (hL.read_hdr hH hI).2
-  · refine honest_hdrK hT hI fun hm ↦ hj1 ?_
-    rw [ht] at hm
-    simp only [Tree.name] at hm
-    subst hm
-    rw [idxOf_main] at hj; exact (Option.some.inj hj).symm
-  · -- a temporary of the path is one of its function's
-    have hwi := walk_within (σ := σ) (coreOf (n + 1)).body
-    rw [hw] at hwi
-    have htl : t ∈ Stmt.tmpsList (coreOf (n + 1)).body :=
-      hwi.2.1.subset (List.mem_flatMap.mpr ⟨e, he', ht'⟩)
-    have htm : t ∈ coreProgram.temps f := by
-      unfold Program.temps; rw [hf, ← hc]; exact htl
-    exact read_tmpL hH hL hS hC hchk hI ht hj hw htm h2 hn
-  · obtain ⟨e, pc, he', hpc⟩ := hC.next σ es vs hw ch hch k t hkt hσk
-    exact ⟨e, pc, he', hpc, fun h2 hn ↦ read_chainL hH hL hS hC hchk hI ht hj hw hch hkt hσk h2 hn⟩
-  · obtain ⟨J, hJ, rfl, hJh, hJn, hJv⟩ := kid_inst hI ht hk hc hp
+  have hkid : ∀ (i : ℕ) (c : Call) (kfp : ℕ), (calls es)[i]? = some c → I.kidFps[i]? = some kfp →
+      L.read (addressOfIndex (kfp + 0)) = some (kidHdr (n + 1) I.fp I.hdr es i).1 ∧
+      L.read (addressOfIndex (kfp + 1)) = some (kidHdr (n + 1) I.fp I.hdr es i).2 ∧
+      (∀ k (hk : k < c.args.length), L.read (addressOfIndex (kfp + (2 + k))) = some (σ c.args[k])) ∧
+      (∀ o ∈ selfCells c.f, L.read (addressOfIndex (kfp + o)) = some (ofK (addressOfIndex kfp))) := by
+    intro i c kfp hc hp
+    obtain ⟨J, hJ, rfl, hJh, hJn, hJv⟩ := kid_inst hI ht hk hc hp
     obtain ⟨jc, hjc, hpar, hgood⟩ := kid_shape hJn hJv
     obtain ⟨m, rfl, hm0, hm00, -, -, -, -, hm1, hm2⟩ := fn_of_idx hjc
     have hSc := shareOk_of hm1 hm2
@@ -241,6 +267,44 @@ theorem frameHolds_cover (hsa : ∀ j σ es vs, 1 ≤ j → j < nFns → walk σ
     · have ho' : o ∈ (certOf (m + 1)).facts.env.map Prod.fst := by
         unfold selfCells at ho; rw [hjc] at ho; exact ho
       exact read_selfL hH hL hSc hCc hchkc hJ hjc hgood' ho'
+  refine ⟨?_, ?_, fun hj1 ↦ ?_, fun v hv h2 hn ↦ read_valL hH hL hS hC hchk hI ht hj hw he hv h2 hn,
+    fun e he' t ht' h2 hn ↦ ?_, fun p hp h2 hn ↦ read_statL hH hL hS hC hchk hI ht hj hw he hp h2 hn,
+    frame_addr h hI ht hj hw, fun a ha h2 hn ↦ read_armL hH hL hS hC hchk hI ht hj hw ha h2 hn,
+    fun ch hch k t hkt hσk ↦ ?_,
+    frame_len hI ht hk, fun i c kfp s hc hp hs ↦ read_siteL hH hL hS hC hchk hI ht hj hw (hsa _ σ es vs h1 h2 hw) i c kfp s hc hp hs,
+    hkid, fun hl kfp hk' ↦ frame_tail hI ht hj hl hk', fun k w v hkw hcw hv hcv ↦ ?_⟩
+  · rw [← hgp]; exact (hL.read_hdr hH hI).1
+  · rw [← hgp]; exact (hL.read_hdr hH hI).2
+  · refine honest_hdrK hT hI fun hm ↦ hj1 ?_
+    rw [ht] at hm
+    simp only [Tree.name] at hm
+    subst hm
+    rw [idxOf_main] at hj; exact (Option.some.inj hj).symm
+  · -- a temporary of the path is one of its function's
+    have hwi := walk_within (σ := σ) (coreOf (n + 1)).body
+    rw [hw] at hwi
+    have htl : t ∈ Stmt.tmpsList (coreOf (n + 1)).body :=
+      hwi.2.1.subset (List.mem_flatMap.mpr ⟨e, he', ht'⟩)
+    have htm : t ∈ coreProgram.temps f := by
+      unfold Program.temps; rw [hf, ← hc]; exact htl
+    exact read_tmpL hH hL hS hC hchk hI ht hj hw htm h2 hn
+  · obtain ⟨e, pc, he', hpc⟩ := hC.next σ es vs hw ch hch k t hkt hσk
+    exact ⟨e, pc, he', hpc, fun h2 hn ↦ read_chainL hH hL hS hC hchk hI ht hj hw hch hkt hσk h2 hn⟩
+  · -- a value at a tail call's argument's next-frame cell: that argument's word, by the sharing check
+    obtain ⟨hl, i, c, hc, hi, hca, hwu⟩ := tailArgs_last hw hkw
+    have hlen := frame_len hI ht hk
+    have hi' : i < I.kidFps.length := by rw [hlen]; exact (List.getElem?_eq_some_iff.mp hc).1
+    obtain ⟨kfp, hkfp⟩ : ∃ kfp, I.kidFps[i]? = some kfp := ⟨_, List.getElem?_eq_getElem hi'⟩
+    have hlast : I.kidFps.getLast? = some kfp := by
+      rw [List.getLast?_eq_getElem?, hlen, ← hi, Nat.add_sub_cancel]; exact hkfp
+    have hkt := frame_tail hI ht hj hl hlast
+    obtain ⟨hk2, rfl⟩ := List.getElem?_eq_some_iff.mp hca
+    obtain ⟨Ψ, hΨ, -⟩ := shareOk_path hS hchk hw he
+    have hvw : σ v = σ c.args[k] := by
+      rw [hΨ v hv (by omega), hΨ _ (List.mem_append_left _ (List.mem_append_right _ hwu)) (by omega), hcv, hcw]
+    have e : I.fp + (fsN (n + 1) + (2 + k)) = kfp + (2 + k) := by rw [hkt]; omega
+    rw [e, hvw]
+    exact (hkid i c kfp hc hkfp).2.2.1 k hk2
 
 /-- **Every node instance's frame holds what the completeness check reads**, on the honest
 memory. -/

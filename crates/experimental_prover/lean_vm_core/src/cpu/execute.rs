@@ -1026,6 +1026,7 @@ pub(super) fn walk<M: Machine>(
                                 size,
                                 end,
                                 start_inverse,
+                                tail,
                             } => {
                                 let span =
                                     in_k("loop bound", m.get(at(fp, end)?)).map_err(fail)? * F64(start_inverse.0);
@@ -1041,7 +1042,7 @@ pub(super) fn walk<M: Machine>(
                                         value: span,
                                     })
                                 })?;
-                                let cells = n.checked_add(1).and_then(|frames| size.checked_mul(frames));
+                                let cells = size.checked_mul(n).and_then(|frames| frames.checked_add(tail));
                                 (ptr, cells.ok_or_else(|| fail(Fault::OutOfMemory))?)
                             }
                             // A runtime size is carried in the exponent:

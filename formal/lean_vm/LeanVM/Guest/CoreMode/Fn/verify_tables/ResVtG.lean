@@ -27,7 +27,8 @@ distinct, and as many as the side's groups: every group is some rank's. `vt_grou
 the keys `KN` from the groups' rank keys (`vt_grps`, the exponent tables), `kappa_base` from the
 dims and the tables' heights (`vt_kb`, `vt_pads`); rank `1`'s keys, the divisors `133` and `430`,
 are nonzero. `vt_groups_at`: at every honest instance, from its body (`vt_holds`) and precondition
-(`vtPQ_all`). `nzVal_vt133`, `nzVal_vt430`: the divisors' `NzVal`.
+(`vtPQ_all`). `nzVal_vt133`, `nzVal_vt430`: the divisors' `NzVal`; `nzVal_vtKb`: the divisors `kb[2 + t]`'s,
+powers of `g`.
 -/
 
 namespace LeanVM.Guest.EndExec
@@ -260,6 +261,17 @@ theorem nzVal_vt133 : NzVal "verify_tables" (.n (val% «verify_tables» "key@2")
 /-- **Rank `1`'s count key is nonzero.** -/
 theorem nzVal_vt430 : NzVal "verify_tables" (.n (val% «verify_tables» "key@11")) := fun _ hr _ hI _ _ _ hIt ↦
   (vt_groups_at hr hI hIt).2.2.2.1
+
+/-- **`kappa_base`'s table words `kb[2 + t] = g^τ` are nonzero** (`vt_kb`, `vt_pads`). -/
+theorem nzVal_vtKb {t : ℕ} (ht : t < 6) : NzVal "verify_tables" (.n (val% «verify_tables» "kb[2]" + t)) := by
+  intro r hr J hJ σ bufs kids hJt
+  have hκ : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size
+  obtain ⟨hH, -⟩ := vt_inst hr hJ hJt
+  obtain ⟨τ, -, -, -, hτ, -⟩ := vt_pads (by omega) r.img σ hH t ht
+  have hk := (vt_kb hH).2 (t + 1) (by omega)
+  rw [show val% «verify_tables» "kb[1]" + (t + 1) = val% «verify_tables» "kb[2]" + t by omega] at hk
+  rw [loadHolds_unique hk hτ]
+  exact Value.gen_pow_ne_zero τ
 
 /-! ## The families at the honest frames -/
 

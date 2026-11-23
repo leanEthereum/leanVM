@@ -36,12 +36,12 @@ theorem jumpCells_of (hT : T.name = "main") (hH : HonestAt coreProgram B2C.fs B2
       (done, e :: st)) : JumpCells L alignA e pc := by
   obtain ⟨hIe, j, bufs, kids, vs, hj, ht, hcore, hw, hF⟩ := h.frames hT hH hL e List.mem_cons_self
   have hE := h.track.ents e List.mem_cons_self
-  obtain ⟨i0, rfl, -, -, -, -, hfs, -, h1, h2⟩ := fn_of_idx hj
+  obtain ⟨i0, rfl, -, -, -, -, -, -, h1, h2⟩ := fn_of_idx hj
   have hA : alignA e.I.t.name = fnAl (i0 + 1) := alignA_of hj
   have hd := hD _ h1 h2
   unfold jcData jcDataD at hd
   simp only [Bool.and_eq_true] at hd
-  obtain ⟨⟨⟨⟨⟨⟨⟨hstat, harms⟩, hsites⟩, huniq⟩, hextra⟩, hblock⟩, hloop⟩, hnext⟩ := hd
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨hstat, harms⟩, hsites⟩, huniq⟩, hextra⟩, hblock⟩, hloop⟩, -⟩, -⟩ := hd
   have hcont := Check.cont_of (End.winOk_of h1 h2)
   have hwc : walk e.σ (coreOf (i0 + 1)).body = .ret (e.pre ++ e.es) vs := by rw [hcore]; exact hw
   have hes : ∀ es' vs', walk e.σ e.fn.body = .ret es' vs' → es' = e.pre ++ e.es := fun es' vs' h' ↦ by
@@ -67,13 +67,9 @@ theorem jumpCells_of (hT : T.name = "main") (hH : HonestAt coreProgram B2C.fs B2
     simp only [Bool.and_eq_true] at hok
     exact hok.1.1.1.1
   have hfe : e.I.fp = 0 → e.I.Frame B2C.fs 0 := fun h0 ↦
-    ⟨by omega, by rw [hfs]; have := fsN_pos (i0 + 1); omega⟩
-  have hf0 : ∀ {I : Inst}, I.t = T → I.fp = 0 → I.Frame B2C.fs 0 := fun {I} hIt h0 ↦ by
-    obtain ⟨-, -, -, -, -, -, hfs1, -⟩ := fn_of_idx idxOf_main
-    refine ⟨by omega, ?_⟩
-    rw [hIt, hT, hfs1]
-    have := fsN_pos 1
-    omega
+    ⟨by omega, by have := two_le_fsz e.I.t; omega⟩
+  have hf0 : ∀ {I : Inst}, I.t = T → I.fp = 0 → I.Frame B2C.fs 0 := fun {I} _ h0 ↦
+    ⟨by omega, by have := two_le_fsz I.t; omega⟩
   refine ⟨?zero, ?nz, ?self, ?pcw, ?cond, ?arm, ?site, ?tail, ?hdr, ?main, ?bot⟩
   case zero =>
     intro o hz
@@ -245,52 +241,22 @@ theorem jumpCells_of (hT : T.name = "main") (hH : HonestAt coreProgram B2C.fs B2
     intro off oc od q hpc hcode hnx es' vs' hw' i c hc htk hi
     obtain rfl := hes es' vs' hw'
     rw [hA] at hnx hcode
-    unfold AlignCtx.nextAt at hnx
-    split at hnx
-    · rename_i S hso
-      have hm := statOf_ofData hso
-      have hS : S ≠ 0 := fun h0 ↦ by simp [h0] at hnx
-      have hls : (coreOf (i0 + 1)).loop = true ∧ S = fsN (i0 + 1) := by
-        rcases Bool.or_eq_true _ _ |>.mp hnext with hn | hn
-        · have := List.all_eq_true.mp hn _ hm
-          simp only [Bool.or_eq_true, beq_iff_eq, Bool.and_eq_true] at this
-          rcases this with h0 | h0
-          · exact absurd h0 hS
-          · exact h0
-        · have hmem : OffsetInstruction.jump oc od q ∈ (fnOf (i0 + 1)).code := List.mem_of_getElem? hcode
-          have := List.all_eq_true.mp (List.all_eq_true.mp hn _ hmem) _ hm
-          simp only [beq_self_eq_true, Bool.not_true, Bool.false_or, Bool.or_eq_true, beq_iff_eq,
-            Bool.and_eq_true] at this
-          rcases this with h0 | h0
-          · exact absurd h0 hS
-          · exact h0
-      have hn1 : (i0 + 1 == 1) = false := by
-        have := hloop
-        simp only [hls.1, Bool.not_true, Bool.false_or, Bool.and_eq_true, Bool.not_eq_true'] at this
-        exact this.1
-      have hi' : i < (calls (e.pre ++ e.es)).length := (List.getElem?_eq_some_iff.mp hc).1
-      obtain ⟨kfp, hkfp⟩ : ∃ kfp, e.I.kidFps[i]? = some kfp :=
-        ⟨_, List.getElem?_eq_getElem (by rw [hF.len]; exact hi')⟩
-      have hlast : e.I.kidFps.getLast? = some kfp := by
-        rw [List.getLast?_eq_getElem?, hF.len, ← hi, Nat.add_sub_cancel]; exact hkfp
-      have hkv := hF.tail hls.1 kfp hlast
-      obtain ⟨hk0, hk1, -, -⟩ := hF.kid i c kfp hc hkfp
-      have hkh : kidHdr (i0 + 1) e.I.fp e.I.hdr (e.pre ++ e.es) i = e.I.hdr := by
-        unfold kidHdr
-        rw [hc]
-        dsimp only
-        rw [ite_eq_left ⟨hls.1, hi⟩]
-      refine ⟨fun h0 ↦ ?_, kfp, hkfp, ?_, ?_, ?_⟩
-      · obtain ⟨I0, hI0, hI0t, hI0fp, -⟩ := root_inst (P := coreProgram) (fs := B2C.fs) (H := B2C.H) (hdr := hdr) (T := T)
-        have := insts_same hIe hI0 (hfe h0) (hf0 hI0t hI0fp)
-        have hn : e.I.t.name = "main" := by rw [this, hI0t, hT]
-        have := (idx_one_iff hj).mpr hn
-        simp [this] at hn1
-      · rw [(hstatB hm).1, hkv]
-        simp only [PC.word, hls.2]
-      · rw [cellAt, cellAt, hk0, hkh, hF.hdr0]
-      · rw [cellAt, cellAt, hk1, hkh, hF.hdr1]
-    · cases hnx
+    obtain ⟨hl, hn1, kfp, hkfp, -, hread⟩ := next_read h1 h2 (hD _ h1 h2) hF hwc hc hi hcode hnx
+    obtain ⟨hk0, hk1, -, -⟩ := hF.kid i c kfp hc hkfp
+    have hkh : kidHdr (i0 + 1) e.I.fp e.I.hdr (e.pre ++ e.es) i = e.I.hdr := by
+      unfold kidHdr
+      rw [hc]
+      dsimp only
+      rw [ite_eq_left ⟨hl, hi⟩]
+    refine ⟨fun h0 ↦ ?_, kfp, hkfp, ?_, ?_, ?_⟩
+    · obtain ⟨I0, hI0, hI0t, hI0fp, -⟩ := root_inst (P := coreProgram) (fs := B2C.fs) (H := B2C.H) (hdr := hdr) (T := T)
+      have := insts_same hIe hI0 (hfe h0) (hf0 hI0t hI0fp)
+      have hn : e.I.t.name = "main" := by rw [this, hI0t, hT]
+      have := (idx_one_iff hj).mpr hn
+      simp [this] at hn1
+    · rw [cellAt, hread]
+    · rw [cellAt, cellAt, hk0, hkh, hF.hdr0]
+    · rw [cellAt, cellAt, hk1, hkh, hF.hdr1]
   case hdr =>
     refine ⟨?_, ?_⟩
     · rw [cellAt, hF.hdr0]; rfl

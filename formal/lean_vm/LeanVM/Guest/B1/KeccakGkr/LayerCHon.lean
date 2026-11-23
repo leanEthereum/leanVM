@@ -80,8 +80,8 @@ def recField (cur : E) (f j : ℕ) : E :=
   else (D.run first (D.recK j)).1.1
 
 /-- The records' buffer. -/
-def recWords (cur : E) : List E := (List.range 112).map fun i ↦
-  if i % 16 ≤ D.y / 8 + D.y % 8 then D.recField first cur (i / 16) (i % 16) else 0
+def recWords (cur : E) : List E := (List.range 77).map fun i ↦
+  if i % 11 ≤ D.y / 8 + D.y % 8 then D.recField first cur (i / 11) (i % 11) else 0
 
 /-- The pack rounds. -/
 def pack : (E × List E) × Fs := layerPack D.c (D.s0 first) D.product D.nonce D.packMsgs

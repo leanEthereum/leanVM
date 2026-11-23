@@ -37,6 +37,7 @@ Hooks (functions; each answers for its own core names only, else `None`/`False`)
                    exponent facts of the function's family
   gl(k, np)        the caller's cells linked to a ghost family's or a frame loop's slots (`CoreMode.mlGl`, `cmGl`),
                    `{d: (slot, k)}`, `np` its parameters' count
+  split(k)         `(x, n)`: its heap certificate split at the top-level selector `x` of `n` arms (`HCert.arms`)
 Count hooks (`scripts/count`; a function's may name its callees, as its counts are made of theirs):
   count_arms(g)    the opening arms, by stack log (`gen.G.os_names`)
   count_static(n, kind, N, certs, OPS, opdef, hcf): `Count/Static.lean`'s text for its `STATIC` entry of another kind
@@ -158,6 +159,13 @@ def guest_const(name):
     """The guest's constant `name` (`guest_const%`)."""
     t = open(CONSTS, encoding='utf-8').read()
     return int(re.search(r'def const_%s : Nat := (\d+)' % name, t).group(1))
+
+
+def guest_arr(name):
+    """The guest's constant array `name` of numbers (`Data.arr_NAME`)."""
+    t = open(CONSTS, encoding='utf-8').read()
+    body = re.search(r'def arr_%s : List \(Nat × Nat\) :=\s*\[(.*?)\]' % name, t, re.S).group(1)
+    return [int(a) for a, _ in re.findall(r'\((\d+), (\d+)\)', body)]
 
 
 _NAMES = {}

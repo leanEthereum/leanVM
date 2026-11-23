@@ -42,7 +42,7 @@ def open_stacked_completeAtBP_Spec : Prop :=
   ∀ (μ r : ℕ), Whir.minOpenLog ≤ μ → μ ≤ 30 → 1 ≤ r → r ≤ 4 →
     ∀ (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) (Bnd : String → ℕ),
       Lift.RunsFit fs cert → RunsConsec cert → 11 ≤ κ → OsLeafBounds fs Bnd →
-      (∀ f, fs f < 2 ^ 32) →
+      (∀ f, fs f < 2 ^ 32) → (∀ f, fs (tailKey f) ≤ fs f) →
       ∀ (S : KeccakState) (root : Digest) (target cur tabs : E) (xs : List E)
         (os : List (List Opening)) (w : Whir.WhirEnd) (s' : Fs) (roots' : List (Digest × ℕ × ℕ)),
         Whir.RunsWith (Whir.whirOpen μ r target) ⟨capOf S, []⟩ xs os [(root, Whir.stackShape μ r)] w s' roots' →
@@ -62,14 +62,14 @@ theorem vs_hos_of (hP : open_stacked_completeAtBP_Spec) {bytecode : List K} {see
       c.freshClaim c.proof = true)
     {κ : ℕ} (hκ : 11 ≤ κ) (hrf : Lift.RunsFit fs cert) (hcons : RunsConsec cert) (W : VsWordsOs fs)
     (bs : List ℕ) (sqE : ℕ) (pv : List (List E × Main.Layout)) :
-    CompleteAtDTBR fs cert κ (Whir.openName S.μs) ((S.kids bs sqE).getD 14 noKid pv).Lin
-      ((S.kids bs sqE).getD 14 noKid pv).args ((S.kids bs sqE).getD 14 noKid pv).Out (vsPos bytecode seed c)
+    CompleteAtDTBR fs cert κ (Whir.openName S.μs) ((S.kids bs sqE).getD 12 noKid pv).Lin
+      ((S.kids bs sqE).getD 12 noKid pv).args ((S.kids bs sqE).getD 12 noKid pv).Out (vsPos bytecode seed c)
       (osBosAt fs W.Bnd S.μs) := by
   have h : CompleteAtDTBR fs cert κ (B1.Whir.openName S.μs) [(S.cW bs, S.xsW), (sqE, expTabAllWords)]
       (B1.Whir.rateSel S.rate :: capOf S.s7.perm ++ [S.target, (digestHalves S.root).1,
         (digestHalves S.root).2, ptr (S.cW bs), ptr sqE * gen ^ winTabAt]) (vsOsOut S.μs S.w)
       (OsPopsT S.μs S.rate S.target S.s7.perm S.root S.xsW c.proof.openings S.w) (osBosAt fs W.Bnd S.μs) :=
-    hP S.μs S.rate S.hmu20 S.hmu30 S.hr1 S.hr4 fs cert κ W.Bnd hrf hcons hκ W.hleaf W.hfs
+    hP S.μs S.rate S.hmu20 S.hmu30 S.hr1 S.hr4 fs cert κ W.Bnd hrf hcons hκ W.hleaf W.hfs W.htl
       S.s7.perm S.root S.target (ptr (S.cW bs))
       (ptr sqE * gen ^ winTabAt) S.xsW c.proof.openings S.w S.s' S.roots' S.runW
       S.capsW _ fun _ _ hL ↦ ⟨hL _ List.mem_cons_self, winTabs_vsExp fun q hq ↦ hL q (by

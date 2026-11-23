@@ -14,9 +14,10 @@ public import LeanVM.Guest.B1.Place.OsKids
 # Callees in sequence within bounds
 
 * `os_kids_blockB`: `os_kids_block` with the callees `CompleteAtB … (Bk c.f)`; the total is at most
-  the calls' `max (fs c.f) (Bk c.f)` (a skipped call costs its frame).
+  the calls' `max (fs (tailKey c.f)) (Bk c.f)` (a skipped call costs its tail frame);
+  `sum_max_tailKey_le`: within the calls' `max (fs c.f) (Bk c.f)` when tail frames are within frames.
 * `OsCompleteAtPB`: `OsCompleteAtP` within `B`; `os_kidsFromIn_onePB` places one.
-* `os_levels_kidsB`: `os_levels_kids` within the levels' calls' `max (fs c.f) (Bk c.f)`.
+* `os_levels_kidsB`: `os_levels_kids` within the levels' calls' `max (fs (tailKey c.f)) (Bk c.f)`.
 -/
 
 namespace LeanVM.Guest.B1
@@ -28,23 +29,9 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
-private theorem os_callsMatch_mapB (σ : Val) (Lk : Layout) : ∀ (cs : List Call) (outs : List (List E × Layout)),
-    OutsOk (osKidsOf σ Lk cs) outs → CallsMatch σ cs (osKidsOf σ Lk cs) outs
-  | [], [], _ => trivial
-  | _ :: cs, _ :: os, ⟨ho, hos⟩ => ⟨rfl, rfl, fun ht => ⟨rfl, (ho ht).1.symm⟩, os_callsMatch_mapB σ Lk cs os hos⟩
-  | [], _ :: _, h => h.elim
-  | _ :: _, [], h => h.elim
-
-private theorem os_regionL_appendB {L L' : Layout} {i : ℕ} (h : RegionL (L ++ L') i) :
-    RegionL L i ∨ RegionL L' i := by
-  obtain ⟨q, hq, h1, h2⟩ := h
-  rcases List.mem_append.mp hq with hq | hq
-  · exact Or.inl ⟨q, hq, h1, h2⟩
-  · exact Or.inr ⟨q, hq, h1, h2⟩
-
 /-- The callees' bound is at most the calls' larger of frame and bound. -/
 theorem os_kidsBound_le (σ : Val) (Lk : Layout) (Bk : String → ℕ) (cs : List Call) :
-    kidsBound fs (fun k => Bk k.f) (osKidsOf σ Lk cs) ≤ (cs.map fun c => max (fs c.f) (Bk c.f)).sum := by
+    kidsBound fs (fun k => Bk k.f) (osKidsOf σ Lk cs) ≤ (cs.map fun c => max (fs (tailKey c.f)) (Bk c.f)).sum := by
   induction cs with
   | nil => simp [kidsBound, osKidsOf]
   | cons c cs ih =>
@@ -54,12 +41,22 @@ theorem os_kidsBound_le (σ : Val) (Lk : Layout) (Bk : String → ℕ) (cs : Lis
     · exact le_max_right _ _
     · exact le_max_left _ _
 
+/-- A skipped call's tail frame is within its frame, so the calls' bound by tail frames is within
+theirs by frames. -/
+theorem sum_max_tailKey_le (htl : ∀ f, fs (tailKey f) ≤ fs f) (Bk : String → ℕ) (cs : List Call) :
+    (cs.map fun c => max (fs (tailKey c.f)) (Bk c.f)).sum ≤ (cs.map fun c => max (fs c.f) (Bk c.f)).sum := by
+  induction cs with
+  | nil => simp
+  | cons c cs ih =>
+    simp only [List.map_cons, List.sum_cons]
+    exact Nat.add_le_add (max_le_max (htl c.f) le_rfl) ih
+
 /-- **Calls complete on fixed words within their bounds**, placed from `b`. -/
 theorem os_kids_blockB (κ : ℕ) (Lk : Layout) (σ : Val) (cs : List Call) (Bk : String → ℕ)
     (hc : ∀ c ∈ cs, c.taken = true →
       CompleteAtB fs cert κ c.f Lk (c.args.map σ) (Returns (c.rets.map σ)) (Bk c.f))
     (b : ℕ) :
-    ∃ (N : ℕ) (L : Layout), Within L b N ∧ DisjL L ∧ N ≤ (cs.map fun c => max (fs c.f) (Bk c.f)).sum ∧
+    ∃ (N : ℕ) (L : Layout), Within L b N ∧ DisjL L ∧ N ≤ (cs.map fun c => max (fs (tailKey c.f)) (Bk c.f)).sum ∧
       ∀ (rd : Reader) (R Dacc : ℕ → Prop), LowDef κ rd →
       MemL rd L → MemL rd Lk → (∀ i, RegionL Lk i → R i ∨ Dacc i) →
       KidsFromIn coreProgram fs cert rd σ R Dacc cs b N (fun _ => False) := by
@@ -69,7 +66,7 @@ theorem os_kids_blockB (κ : ℕ) (Lk : Layout) (σ : Val) (cs : List Call) (Bk 
       obtain ⟨c, hc', rfl⟩ := List.mem_map.mp hk
       exact hc c hc' ht) b
   refine ⟨N, L, hW, hD, le_trans hN (os_kidsBound_le σ Lk Bk cs), fun rd R Dacc hlow hL hLk hR =>
-    kidsFromIn_dend _ _ _ _ (fun _ h => h.elim) (hK rd σ cs R Dacc (os_callsMatch_mapB σ Lk cs outs ho) hlow hL ?_ ?_)⟩
+    kidsFromIn_dend _ _ _ _ (fun _ h => h.elim) (hK rd σ cs R Dacc (os_callsMatch_map σ Lk cs outs ho) hlow hL ?_ ?_)⟩
   · intro q hq
     obtain ⟨k, hk, hq⟩ := List.mem_flatMap.mp hq
     obtain ⟨c, -, rfl⟩ := List.mem_map.mp hk
@@ -128,7 +125,7 @@ structure OsLvKOkB (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ
 theorem os_levels_kidsB (κ : ℕ) (σ : Val) (Lk : Layout) (W S : ℕ → ℕ → Layout) (Bk : String → ℕ) :
     ∀ (ks : List OsLvK) (l0 : ℕ), (∀ i (h : i < ks.length), OsLvKOkB fs cert κ σ Lk (W (l0 + i)) (S (l0 + i)) Bk ks[i]) →
       ∀ b, ∃ (N : ℕ) (L : Layout) (ps : List ℕ), ps.length = ks.length ∧ Within L b N ∧ DisjL L ∧
-        N ≤ ((ks.flatMap OsLvK.calls).map fun c => max (fs c.f) (Bk c.f)).sum ∧
+        N ≤ ((ks.flatMap OsLvK.calls).map fun c => max (fs (tailKey c.f)) (Bk c.f)).sum ∧
         ∀ (rd : Reader) (R Dacc : ℕ → Prop), LowDef κ rd → MemL rd L → MemL rd Lk →
           (∀ i (h : i < ps.length), MemL rd (W (l0 + i) ps[i])) → (∀ i, RegionL Lk i → R i) →
           (∀ l, l0 ≤ l → l < l0 + ks.length → ∀ p i, RegionL (W l p) i → R i) →
@@ -170,14 +167,14 @@ theorem os_levels_kidsB (κ : ℕ) (σ : Val) (Lk : Layout) (W S : ℕ → ℕ �
       intro D1 _
       rw [show k.sq :: (k.B ++ ks.flatMap OsLvK.calls) = [k.sq] ++ (k.B ++ ks.flatMap OsLvK.calls) from rfl]
       refine kidsFromIn_append _ _ _ _ _ _ _ _ (hKS rd R D1 hlow hLS (Main.memL_append.mpr ⟨hLk, hW0⟩) fun i hi => ?_) ?_
-      · rcases os_regionL_appendB hi with hi | hi
+      · rcases os_regionL_append hi with hi | hi
         · exact Or.inl (hR i hi)
         · exact Or.inl (hRW l0 le_rfl (by simp) _ i hi)
       intro D2 hD2
       refine kidsFromIn_append _ _ _ _ _ _ _ _ (hKB rd R D2 hlow hLB
         (Main.memL_append.mpr ⟨Main.memL_append.mpr ⟨hLk, hW0⟩, hS0⟩) fun i hi => ?_) ?_
-      · rcases os_regionL_appendB hi with hi | hi
-        · rcases os_regionL_appendB hi with hi | hi
+      · rcases os_regionL_append hi with hi | hi
+        · rcases os_regionL_append hi with hi | hi
           · exact Or.inl (hR i hi)
           · exact Or.inl (hRW l0 le_rfl (by simp) _ i hi)
         · exact Or.inr (hD2 i hi)

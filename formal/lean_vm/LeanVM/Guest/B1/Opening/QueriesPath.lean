@@ -17,11 +17,11 @@ public import LeanVM.Guest.B1.Opening.QueriesFlat
 `oqPair_hash`: one `keccak(a, b, out)` of two two-cell digests (the padding run as its tail and
 capacity, `0x80` as its cell `8`) is `HashesPair` (G3's `keccak_one`).
 
-`oqStep_sound`: one level of an arm hashes the running node with the hinted pair on the other
-side of its order bit (`sibOff`). `oqArm_sound`, `oqWin_sound`: window `i` dispatches on its word
+`oqStep_sound`: one level of an arm hashes the running node with the hinted sibling on the side
+its order bit names. `oqArm_sound`, `oqWin_sound`: window `i` dispatches on its word
 `g^v` to arm `v`, whose order bits are the position's `6i ..`; its levels climb on (`climbD`).
-`oqPath_sound`: with each window's word the position's, the hinted pairs off the walk's side are
-the cells of siblings `sibs` (`SibAt`) and the node reached is `climbD leaf q sibs` (`climb`).
+`oqPath_sound`: with each window's word the position's, the hinted cells are the siblings `sibs`
+(`SibAt`) and the node reached is `climbD leaf q sibs` (`climb`).
 -/
 
 namespace LeanVM.Guest.B1
@@ -36,7 +36,7 @@ variable {rd : Reader} {σ : Val}
 
 /-! ## One pair -/
 
-/-- **A pair hash** (`keccak(path[4l:4l+2], path[4l+2:4l+4], node)`): 64 bytes, the padding run
+/-- **A pair hash** (`keccak(a, b, node)` of two two-cell digests): 64 bytes, the padding run
 `1, 0, 0, 0, 0` as tail and capacity, `0x80 << 56` as cell `8`. -/
 theorem oqPair_hash {c0 c1 c2 c3 w : V} {pr : ℕ} {outs : List V}
     (hpad : σ (.n pr) = word 1 0) (hz : ∀ i < 4, σ (.n (pr + 1 + i)) = 0)
@@ -68,31 +68,26 @@ theorem oqPair_hash {c0 c1 c2 c3 w : V} {pr : ℕ} {outs : List V}
 
 /-! ## One level -/
 
-/-- The sibling's first cell at level `l` of the walk to `q`: the pair's left at bit `1`, its
-right at bit `0`. -/
-def sibOff (q l : ℕ) : ℕ := if q.testBit l then 0 else 2
-
-/-- The hinted pair off the walk's side at level `l` holds the digest `d`. -/
-def SibAt (σ : Val) (ch q l : ℕ) (d : Digest) : Prop :=
-  (σ (.n (ch + 4 * l + sibOff q l)), σ (.n (ch + 4 * l + sibOff q l + 1))) = digestHalves d
+/-- The hinted sibling at level `l` holds the digest `d`. -/
+def SibAt (σ : Val) (ch l : ℕ) (d : Digest) : Prop :=
+  (σ (.n (ch + 2 * l)), σ (.n (ch + 2 * l + 1))) = digestHalves d
 
 theorem oqStepT_mem_keccak (pr ch l K n0 n1 : ℕ) (bit : Bool) :
-    Stmt.atom (.keccak ((if bit then [.n (ch + 4 * l), .n (ch + 4 * l + 1), .n n0, .n n1]
-        else [.n n0, .n n1, .n (ch + 4 * l + 2), .n (ch + 4 * l + 3)]) ++
+    Stmt.atom (.keccak ((if bit then [.n (ch + 2 * l), .n (ch + 2 * l + 1), .n n0, .n n1]
+        else [.n n0, .n n1, .n (ch + 2 * l), .n (ch + 2 * l + 1)]) ++
       [.n pr, .n (pr + 1), .n (pr + 2), .n (pr + 3), .n K, .n (pr + 1), .n (pr + 2), .n (pr + 3),
         .n (pr + 4)]) [.n (K + 1), .n (K + 2)] false false) ∈
       oqStepT pr ch l K n0 n1 bit := by
   simp [oqStepT]
 
-/-- **One level of an arm**: the running node `node` at `n0, n1` hashed with the hinted pair on
-the other side of the order bit, the pair a digest's cells, the next node at `K + 1, K + 2`. -/
+/-- **One level of an arm**: the running node `node` at `n0, n1` hashed with the hinted sibling on
+the side the order bit names, the sibling a digest's cells, the next node at `K + 1, K + 2`. -/
 theorem oqStep_sound {pr ch l K n0 n1 : ℕ} {bit : Bool}
     (hA : ∀ a, Stmt.atom a ∈ oqStepT pr ch l K n0 n1 bit → a.Holds rd σ)
     (hpad : σ (.n pr) = word 1 0) (hz : ∀ i < 4, σ (.n (pr + 1 + i)) = 0) {node : Digest}
     (hnode : (σ (.n n0), σ (.n n1)) = digestHalves node) :
     ∃ sib : Digest,
-      (σ (.n (ch + 4 * l + (if bit then 0 else 2))),
-        σ (.n (ch + 4 * l + (if bit then 0 else 2) + 1))) = digestHalves sib ∧
+      (σ (.n (ch + 2 * l)), σ (.n (ch + 2 * l + 1))) = digestHalves sib ∧
       (σ (.n (K + 1)), σ (.n (K + 2))) =
         digestHalves (if bit then hashPair sib node else hashPair node sib) := by
   have a0 := hA _ (by simp [oqStepT] : Stmt.atom (.const (.n K) (word (2 ^ 63) 0)) ∈ _)
@@ -147,11 +142,11 @@ theorem oqArm_sound {s : Oq} {pr kL ch i a : ℕ}
     (hnode : (σ (.n (oqNd s kL ch i 0)), σ (.n (oqNd s kL ch i 1))) =
       digestHalves (climbD leaf q sibs0)) :
     ∃ sibs : List Digest, sibs.length = oqWw s i ∧
-      (∀ r < oqWw s i, SibAt σ ch q (6 * i + r) (sibs.getD r default)) ∧
+      (∀ r < oqWw s i, SibAt σ ch (6 * i + r) (sibs.getD r default)) ∧
       (σ (.n (oqWT s ch i)), σ (.n (oqWT s ch i + 1))) =
         digestHalves (climbD leaf q (sibs0 ++ sibs)) := by
   suffices h : ∀ m ≤ oqWw s i, ∃ sibs : List Digest, sibs.length = m ∧
-      (∀ r < m, SibAt σ ch q (6 * i + r) (sibs.getD r default)) ∧
+      (∀ r < m, SibAt σ ch (6 * i + r) (sibs.getD r default)) ∧
       (σ (.n (oqArmN s kL ch i a m 0)), σ (.n (oqArmN s kL ch i a m 1))) =
         digestHalves (climbD leaf q (sibs0 ++ sibs)) by
     obtain ⟨sibs, hl, hs, hn⟩ := h _ le_rfl
@@ -177,7 +172,7 @@ theorem oqArm_sound {s : Oq} {pr kL ch i a : ℕ}
       · obtain rfl : r = m := by omega
         have e : (sibs ++ [sib]).getD r default = sib := by
           simp [List.getD_eq_getElem?_getD, hl]
-        rw [e, SibAt, sibOff, ← hb, show ch + 4 * (6 * i + r) = ch + 4 * (6 * i + r) from rfl]
+        rw [e, SibAt]
         exact hsib
     · have e0 : oqArmN s kL ch i a (m + 1) 0 = oqArmK s ch i a + 3 * m + 1 := by
         simp [oqArmN]
@@ -201,7 +196,7 @@ theorem oqWin_sound {s : Oq} {bp : V} {pr kL ch i : ℕ}
     (hnode : (σ (.n (oqNd s kL ch i 0)), σ (.n (oqNd s kL ch i 1))) =
       digestHalves (climbD leaf q sibs0)) :
     ∃ sibs : List Digest, sibs.length = oqWw s i ∧
-      (∀ r < oqWw s i, SibAt σ ch q (6 * i + r) (sibs.getD r default)) ∧
+      (∀ r < oqWw s i, SibAt σ ch (6 * i + r) (sibs.getD r default)) ∧
       (σ (.n (oqWT s ch i)), σ (.n (oqWT s ch i + 1))) =
         digestHalves (climbD leaf q (sibs0 ++ sibs)) := by
   have hm := hA _ (by simp [oqWinT] : Stmt.match_ (.n (oqWk s ch i))
@@ -236,11 +231,11 @@ theorem oqPath_sound {s : Oq} {bp : V} {pr kL ch q : ℕ} {leaf : Digest}
       ∀ r < oqWw s i, v.testBit r = q.testBit (6 * i + r))
     (hleaf : (σ (.n (oqNd s kL ch 0 0)), σ (.n (oqNd s kL ch 0 1))) = digestHalves leaf) :
     ∃ sibs : List Digest, sibs.length = s.pd ∧
-      (∀ l < s.pd, SibAt σ ch q l (sibs.getD l default)) ∧
+      (∀ l < s.pd, SibAt σ ch l (sibs.getD l default)) ∧
       (σ (.n (oqNd s kL ch (oqNpw s) 0)), σ (.n (oqNd s kL ch (oqNpw s) 1))) =
         digestHalves (climbD leaf q sibs) := by
   suffices h : ∀ m ≤ oqNpw s, ∃ sibs : List Digest, sibs.length = min (6 * m) s.pd ∧
-      (∀ l < min (6 * m) s.pd, SibAt σ ch q l (sibs.getD l default)) ∧
+      (∀ l < min (6 * m) s.pd, SibAt σ ch l (sibs.getD l default)) ∧
       (σ (.n (oqNd s kL ch m 0)), σ (.n (oqNd s kL ch m 1))) =
         digestHalves (climbD leaf q sibs) by
     obtain ⟨sibs, hl, hs, hn⟩ := h _ le_rfl

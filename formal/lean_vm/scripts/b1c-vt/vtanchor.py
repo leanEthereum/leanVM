@@ -1,6 +1,6 @@
 # Library: the positions and values in verify_tables' body (vt_ir.txt from dump.py, or $VT_IR) that the generators past
 # its table sumcheck read, found from the body rather than fixed: the `eq_prefix_chain` call filling `zc_peq` (`EQP`,
-# its first argument `PEQ`), the last table sumcheck record's loads before it (its cursor `CUR`, offset 5, and claim
+# its first argument `PEQ`, its last `GZN`), the last table sumcheck record's loads before it (its cursor `CUR`, offset 5, and claim
 # `CLAIM`, offset 6), the forms' window from the call to the final claim's check (`WLO`, `WHI`).
 import os, re
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -23,6 +23,7 @@ def anchors():
     assert len(eqp) == 1, eqp
     eqp = eqp[0]
     peq = int(re.match(r'\.call "eq_prefix_chain(_rev)?" \[\.n (\d+),', ir[eqp]).group(2))
+    gzn = int(re.findall(r'\.n (\d+)', ir[eqp])[-1])
     # the record's loads at offsets 0 .. 6, the last ones before the call
     rec = {}
     for p in range(eqp - 1, eqp - 40, -1):
@@ -35,8 +36,8 @@ def anchors():
     cur, claim = rec[5][0], rec[6][0]
     whi = [p for p, s in ir.items() if p > eqp and re.match(r'\.atom \(\.assertEq \(\.n \d+\) \(\.n %d\)\)$' % claim, s)]
     assert len(whi) == 1, whi
-    return dict(EQP=eqp, PEQ=peq, CUR=cur, CLAIM=claim, WLO=eqp + 1, WHI=whi[0])
+    return dict(EQP=eqp, PEQ=peq, GZN=gzn, CUR=cur, CLAIM=claim, WLO=eqp + 1, WHI=whi[0])
 
 
 A = anchors()
-EQP, PEQ, CUR, CLAIM, WLO, WHI = A['EQP'], A['PEQ'], A['CUR'], A['CLAIM'], A['WLO'], A['WHI']
+EQP, PEQ, GZN, CUR, CLAIM, WLO, WHI = A['EQP'], A['PEQ'], A['GZN'], A['CUR'], A['CLAIM'], A['WLO'], A['WHI']

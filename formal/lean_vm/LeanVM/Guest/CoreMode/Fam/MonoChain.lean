@@ -43,7 +43,7 @@ theorem chainF (hfs : ∀ f, 1 ≤ fs f) : ∀ (n : ℕ) {f : String} {σ : Val}
   | 0, f, σ, bufs, kids, _, _, _, _, htot, _, _, _ => by
     have := le_total (fs := fs) (Memory.Tree.node f σ bufs kids)
     have := hfs f
-    simp only [Tree.name] at *
+    simp only [Tree.fsz] at *
     omega
   | n + 1, f, σ, bufs, kids, args, rets, fn, e, htot, hv, hf, hs => by
     unfold Tree.Valid at hv

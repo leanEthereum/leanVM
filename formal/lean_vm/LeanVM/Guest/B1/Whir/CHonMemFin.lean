@@ -14,11 +14,11 @@ public import LeanVM.Guest.B1.Whir.CHonMemLv
 On a memory holding the honest buffers at `b`:
 
 * `fch_all`: the fold challenges;
-* `recStored_of`: a non-final level's record (`RecStored`, S1a-3's) at a valuation holding the
+* `recStored_of`: a non-final level's record (`RecStored`) at a valuation holding the
   head's pointers, the record's lengths given;
 * `ood_rows`: its out-of-domain points in `ood_z`;
-* `tail_reads`, `pt_reads`, `pt1_reads`, `bd_reads`, `ls_reads`, `la_reads`, `ich_reads`,
-  `rc_reads`: the finish's buffers, their words fitting;
+* `fin_reads` (`tail_reads`, `pt_reads`, `pt1_reads`, `bd_reads`, `ls_reads`, `la_reads`,
+  `ich_reads`): the finish's buffers, their words fitting;
 * `qMem_at`: OsHonest's `qMem` at level `l`.
 -/
 
@@ -72,7 +72,7 @@ pointers. -/
 theorem recStored_of (hS : HonStatic h.c) (hm : OsMemA rd h.c b h.own) {σ : Val}
     (h9 : σ (.n osOodz) = osPtrA h.c b 7) (h10 : σ (.n osOodSc) = osPtrA h.c b 8)
     (h6 : σ (.n osBetas) = osPtrA h.c b 4) (h7 : σ (.n osMus) = osPtrA h.c b 5)
-    (h8 : σ (.n osHs) = osPtrA h.c b 6) (h11 : σ (.n osQpos) = osPtrA h.c b 9)
+    (h8 : σ (.n osHs) = osPtrA h.c b 6) (h11 : σ (.n osQpos) = osPtrA h.c b 10)
     {i : ℕ} (hi : i < h.c.yrLevel)
     (hF : ((h.L i).osRec h.logN).F = ((h.c.levels.getD i default)).foldsOff + ((h.c.levels.getD i default)).folds)
     (hmu : ((h.L i).osRec h.logN).mu = ((h.c.levels.getD i default)).logCols)
@@ -112,46 +112,46 @@ theorem fch_all (hS : HonStatic h.c) (hm : OsMemA rd h.c b h.own) (hG : h.G.leng
   rwa [List.getD_eq_getElem _ _ hj] at this
 
 theorem fin_reads (hS : HonStatic h.c) (hm : OsMemA rd h.c b h.own) {k : ℕ} (hk : k < 7)
-    (hl : (h.ownW (12 + h.c.yrLevel + k)).length ≤
+    (hl : (h.ownW (13 + h.c.yrLevel + k)).length ≤
       [yrLogCap, pointCap, pointCap, h.c.levels.length * ligColsCap, h.c.levels.length, h.c.levels.length,
         2 * h.c.levels.length].getD k 0) :
-    ReadsAt rd (osPtrA h.c b (12 + h.c.yrLevel + k)) (h.ownW (12 + h.c.yrLevel + k)) :=
+    ReadsAt rd (osPtrA h.c b (13 + h.c.yrLevel + k)) (h.ownW (13 + h.c.yrLevel + k)) :=
   h.reads hm (hS.finLt hk) (by unfold osIxQbpA; omega) (by rw [hS.fin hk]; exact hl)
 
 theorem tail_reads (hS : HonStatic h.c) (hm : OsMemA rd h.c b h.own) (hl : h.T.length ≤ yrLogCap) :
-    ReadsAt rd (osPtrA h.c b (12 + h.c.yrLevel)) h.T := by
+    ReadsAt rd (osPtrA h.c b (13 + h.c.yrLevel)) h.T := by
   have := h.fin_reads hS hm (k := 0) (by omega) (by rw [ownW_fin _ (by omega)]; exact hl)
   rwa [ownW_fin _ (by omega)] at this
 
 theorem pt_reads (hS : HonStatic h.c) (hm : OsMemA rd h.c b h.own)
     (hl : (finPtC h.c h.G h.T).length ≤ pointCap) :
-    ReadsAt rd (osPtrA h.c b (12 + h.c.yrLevel + 1)) (finPtC h.c h.G h.T) := by
+    ReadsAt rd (osPtrA h.c b (13 + h.c.yrLevel + 1)) (finPtC h.c h.G h.T) := by
   have := h.fin_reads hS hm (k := 1) (by omega) (by rw [ownW_fin _ (by omega)]; exact hl)
   rwa [ownW_fin _ (by omega)] at this
 
 theorem pt1_reads (hS : HonStatic h.c) (hm : OsMemA rd h.c b h.own)
     (hl : (finPt1C h.c h.G h.T).length ≤ pointCap) :
-    ReadsAt rd (osPtrA h.c b (12 + h.c.yrLevel + 2)) (finPt1C h.c h.G h.T) := by
+    ReadsAt rd (osPtrA h.c b (13 + h.c.yrLevel + 2)) (finPt1C h.c h.G h.T) := by
   have := h.fin_reads hS hm (k := 2) (by omega) (by rw [ownW_fin _ (by omega)]; exact hl)
   rwa [ownW_fin _ (by omega)] at this
 
 theorem bd_reads (hS : HonStatic h.c) (hm : OsMemA rd h.c b h.own) :
-    ReadsAt rd (osPtrA h.c b (12 + h.c.yrLevel + 3)) (finBdC h.c h.G h.T h.recs) := by
+    ReadsAt rd (osPtrA h.c b (13 + h.c.yrLevel + 3)) (finBdC h.c h.G h.T h.recs) := by
   have := h.fin_reads hS hm (k := 3) (by omega) (by rw [ownW_fin _ (by omega)]; simp [finBdC])
   rwa [ownW_fin _ (by omega)] at this
 
 theorem ls_reads (hS : HonStatic h.c) (hm : OsMemA rd h.c b h.own) :
-    ReadsAt rd (osPtrA h.c b (12 + h.c.yrLevel + 4)) (finLsC h.c h.G h.T h.recs) := by
+    ReadsAt rd (osPtrA h.c b (13 + h.c.yrLevel + 4)) (finLsC h.c h.G h.T h.recs) := by
   have := h.fin_reads hS hm (k := 4) (by omega) (by rw [ownW_fin _ (by omega)]; simp [finLsC])
   rwa [ownW_fin _ (by omega)] at this
 
 theorem la_reads (hS : HonStatic h.c) (hm : OsMemA rd h.c b h.own) :
-    ReadsAt rd (osPtrA h.c b (12 + h.c.yrLevel + 5)) (finLaC h.c h.G h.T h.recs) := by
+    ReadsAt rd (osPtrA h.c b (13 + h.c.yrLevel + 5)) (finLaC h.c h.G h.T h.recs) := by
   have := h.fin_reads hS hm (k := 5) (by omega) (by rw [ownW_fin _ (by omega)]; simp [finLaC])
   rwa [ownW_fin _ (by omega)] at this
 
 theorem ich_reads (hS : HonStatic h.c) (hm : OsMemA rd h.c b h.own) :
-    ReadsAt rd (osPtrA h.c b (12 + h.c.yrLevel + 6)) (finIchC h.c h.G h.T h.recs h.li h.tr.2.1) := by
+    ReadsAt rd (osPtrA h.c b (13 + h.c.yrLevel + 6)) (finIchC h.c h.G h.T h.recs h.li h.tr.2.1) := by
   have := h.fin_reads hS hm (k := 6) (by omega) (by rw [ownW_fin _ (by omega)]; simp [finIchC])
   rwa [ownW_fin _ (by omega)] at this
 

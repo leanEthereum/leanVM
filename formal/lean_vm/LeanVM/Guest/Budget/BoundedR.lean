@@ -84,8 +84,8 @@ theorem kidsFromInT_of_kidsDTBR (κ : ℕ) : ∀ (ks : List Kid) (Ts : Reader �
               · exact Or.inr hi
             · simpa [hct] using hR2
     · obtain ⟨N, L, outs, hNB, ho, hW, hD, hI, hK⟩ :=
-        kidsFromInT_of_kidsDTBR κ ks (fun rd => (Ts rd).tail) Bs.tail hok.2 (b + fs k.f)
-      refine ⟨fs k.f + N, L, ([], []) :: outs, ?_, ⟨fun h => absurd h ht, ho⟩,
+        kidsFromInT_of_kidsDTBR κ ks (fun rd => (Ts rd).tail) Bs.tail hok.2 (b + fs (tailKey k.f))
+      refine ⟨fs (tailKey k.f) + N, L, ([], []) :: outs, ?_, ⟨fun h => absurd h ht, ho⟩,
         hW.mono (by omega) (by omega), hD, ⟨fun h => absurd h ht, hI⟩, ?_⟩
       · simp only [kidsBoundL, ht, Bool.false_eq_true, ↓reduceIte]
         omega
@@ -93,7 +93,7 @@ theorem kidsFromInT_of_kidsDTBR (κ : ℕ) : ∀ (ks : List Kid) (Ts : Reader �
       match cs, hc with
       | c :: cs, ⟨hf, hct, _, hc⟩ =>
         simp only [Kid.lins, List.flatMap_cons] at hLin
-        refine ⟨fs k.f, N, fun _ => False, fun _ => False, rfl, fun _ h => h.elim, ?_, ?_⟩
+        refine ⟨fs (tailKey k.f), N, fun _ => False, fun _ => False, rfl, fun _ h => h.elim, ?_, ?_⟩
         · have ht' : k.taken = false := by simpa using ht
           rw [hct, ht']
           simp only [Bool.false_eq_true, ↓reduceIte]

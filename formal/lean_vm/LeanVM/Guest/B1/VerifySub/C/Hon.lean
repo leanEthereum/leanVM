@@ -18,7 +18,7 @@ public import LeanVM.Guest.B1.Terminal.KidsDep
 # The honest valuation
 
 `vsσ rd w args`: `vsEvL` evaluated (`Fwd.ev`) on the memory `rd` and the oracle `w` from the
-arguments `args` (`vs_chk'`: `1916` values). `verify_sub` has no `ite` and no `assertNe`, so each
+arguments `args` (`vs_chk'`: `2020` values). `verify_sub` has no `ite` and no `assertNe`, so each
 statement of `vsCPre` satisfies its equations (`GoodS`) with the stores `vsSL` (`vs_goodS`); the
 parameters are the arguments (`vsC_param`), an allocation's or a callee's value is the oracle's
 (`vs_w`). `vs_goodL`: the equations of a slice, by its position.
@@ -50,7 +50,7 @@ def vsSL : List Atom := storesOf 6 vsEvL
 
 /-- The pointers of `verify_sub`'s stores: `table_rows`, `dims_g`, `kappa_base`, `fp_w`, the ring
 map's challenges, `c_table`, the deferred claim's cells. -/
-def vsStorePtrs : List ℕ := [26, 71, 83, 334, 814, 815, 5]
+def vsStorePtrs : List ℕ := [26, 71, 83, 386, 918, 919, 5]
 
 theorem vsSL_ptrs : vsSL.all (ptrInB vsStorePtrs) = true := by decide +kernel
 
@@ -58,7 +58,7 @@ theorem vsSL_ptrs : vsSL.all (ptrInB vsStorePtrs) = true := by decide +kernel
 instance (priority := high) instDecidableNotMemVsSL (a : Atom) : Decidable (a ∉ vsSL) :=
   decidable_of_iff _ (notStoredB_iff vsSL_ptrs a)
 
-theorem vs_chk' : chk 6 vsEvL = some 1916 := by decide +kernel
+theorem vs_chk' : chk 6 vsEvL = some 2020 := by decide +kernel
 
 /-- **The honest valuation** of `verify_sub`. -/
 noncomputable def vsσ (rd : Reader) (w : ℕ → E) (args : List E) : Val :=
@@ -107,10 +107,10 @@ def vsDefW : Stmt → List V
 
 /-- The values the oracle defines, in order: the allocations and the callees' returns. -/
 def vsWVars : List ℕ :=
-  [6, 25, 26, 64, 71, 72, 83, 253, 254, 274, 275, 276, 303, 304, 305, 306, 307, 308, 309, 312,
-    313, 314, 315, 316, 317, 318, 319, 328, 334, 545, 546, 547, 548, 549, 550, 551, 552, 553, 556,
-    557, 558, 559, 560, 561, 562, 563, 564, 565, 567, 568, 573, 574, 575, 576, 577, 578, 579, 814,
-    815, 1328, 1888, 1889, 1890, 1891, 1892]
+  [6, 25, 26, 64, 71, 72, 83, 253, 254, 274, 275, 276, 355, 356, 357, 358, 359, 360, 361, 364,
+    365, 366, 367, 368, 369, 370, 371, 380, 386, 597, 598, 599, 600, 601, 602, 603, 604, 605, 608,
+    609, 610, 611, 612, 613, 614, 615, 616, 617, 619, 620, 625, 626, 627, 628, 629, 630, 631, 918,
+    919, 1432, 1992, 1993, 1994, 1995, 1996]
 
 theorem vs_defW : vsCPre.flatMap vsDefW = vsWVars.map V.n := by decide +kernel
 

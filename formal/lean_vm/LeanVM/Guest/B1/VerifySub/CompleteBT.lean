@@ -43,8 +43,7 @@ theorem vs_names {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs 
   .cons (fun _ ↦ rfl) (.cons (fun _ ↦ rfl) (.cons (fun _ ↦ rfl) (.cons (fun _ ↦ rfl)
     (.cons (fun _ ↦ rfl) (.cons (fun _ ↦ rfl) (.cons (fun _ ↦ rfl) (.cons (fun _ ↦ rfl)
       (.cons (fun _ ↦ rfl) (.cons (fun _ ↦ rfl) (.cons (fun _ ↦ rfl) (.cons (fun _ ↦ rfl)
-        (.cons (fun _ ↦ rfl) (.cons (fun _ ↦ rfl) (.cons (fun _ ↦ rfl) (.cons (fun _ ↦ rfl)
-          .nil)))))))))))))))
+        (.cons (fun _ ↦ rfl) (.cons (fun _ ↦ rfl) .nil)))))))))))))
 
 /-! ## Callees by name -/
 
@@ -107,16 +106,16 @@ variable {fs : String → ℕ} {cert : String → V → ℕ}
 /-- **`verify_sub`'s callees' predicates of the memory**: `certify_placement`'s `Pcp`, `verify_tables`' weights
 and `Pvt`, `open_stacked`'s `Pos`, the terminal's weights. -/
 noncomputable def vsPsR (W : VsWordsOs fs) (Pcp Pvt Pos : Reader → Tree → Prop) : List (Reader → Tree → Prop) :=
-  List.replicate 3 (fun _ _ ↦ True) ++ [Pcp] ++ List.replicate 6 (fun _ _ ↦ True) ++
+  List.replicate 3 (fun _ _ ↦ True) ++ [Pcp] ++ List.replicate 5 (fun _ _ ↦ True) ++
     [fun rd t ↦ (∀ op, Budget.WeighsLe coreProgram (W.ωv op) (vtWB W.toVsWords op) t) ∧ Pvt rd t] ++
-    List.replicate 3 (fun _ _ ↦ True) ++ [Pos] ++
+    List.replicate 2 (fun _ _ ↦ True) ++ [Pos] ++
     [fun _ t ↦ ∀ op, Budget.WeighsLe coreProgram (W.ωv op) (termWB W.toVsWords op) t]
 
 theorem vsPsR_imp (W : VsWordsOs fs) (Pcp Pvt Pos : Reader → Tree → Prop) (rd : Reader) :
     List.Forall₂ (fun P P' => ∀ t, P t → P' t) ((vsPsR W Pcp Pvt Pos).map (· rd)) (vsPs W) := by
   simp only [vsPsR, vsPs, List.replicate_succ, List.replicate_zero, List.cons_append, List.nil_append,
     List.map_cons, List.map_nil, List.forall₂_cons, List.Forall₂.nil, and_true]
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
     first | exact fun _ _ => trivial | exact fun _ h => h.1 | exact fun _ h => h
 
 /-- The certification's, the tables' and the opening's entries, by name. -/
@@ -156,11 +155,11 @@ theorem vsNames_kidQ (W : VsWordsOs fs) (Bvk μ r d : ℕ) (Pcp Pvt Pos : Reader
   refine ⟨fun t hn _ => vsKidQ_of hn (by decide), fun t hn _ => vsKidQ_of hn (by decide),
     fun t hn _ => vsKidQ_of hn (by decide), fun t hn hp => ⟨fun _ => hp, fun h => absurd (hn.symm.trans h)
       (by decide), fun h => absurd (hn ▸ h) (by decide)⟩, fun t hn _ => vsKidQ_of hn (by decide),
-    fun t hn _ => vsKidQ_of hn (by decide), fun t hn _ => vsKidQ_of hn (squeeze_not_mem _),
+    fun t hn _ => vsKidQ_of hn (squeeze_not_mem _),
     fun t hn _ => vsKidQ_of hn (by decide), fun t hn _ => vsKidQ_of hn (busGrind_not_mem _),
     fun t hn _ => vsKidQ_of hn (by decide), fun t hn hp => ⟨fun h => absurd (hn.symm.trans h) (by decide),
       fun _ => hp.2, fun h => absurd (hn ▸ h) (by decide)⟩, fun t hn _ => vsKidQ_of hn (by decide),
-    fun t hn _ => vsKidQ_of hn (by decide), fun t hn _ => vsKidQ_of hn (by decide), fun t hn hp => ⟨fun h =>
+    fun t hn _ => vsKidQ_of hn (by decide), fun t hn hp => ⟨fun h =>
       absurd (by rw [← hn, h]; exact List.mem_cons_self) (openName_ne μ), fun h =>
       absurd (by rw [← hn, h]; exact List.mem_cons_of_mem _ List.mem_cons_self) (openName_ne μ), fun _ => hp⟩,
     fun t hn _ => vsKidQ_of hn (by decide)⟩
@@ -172,7 +171,7 @@ theorem kidsDepBP_getD {κ : ℕ} : ∀ {ks : List KidD} {Bs : List ℕ} {Ps : L
       ((ks.getD j noKid pv).taken = true →
         CompleteAtDTB fs cert κ (ks.getD j noKid pv).f (ks.getD j noKid pv).Lin
           (ks.getD j noKid pv).args (ks.getD j noKid pv).Out (Ps.getD j fun _ ↦ True) (Bs.getD j 0)) ∧
-      ((ks.getD j noKid pv).taken = false → fs (ks.getD j noKid pv).f ≤ Bs.getD j 0)
+      ((ks.getD j noKid pv).taken = false → fs (tailKey (ks.getD j noKid pv).f) ≤ Bs.getD j 0)
   | [], _, _, _, _, hj, _ => absurd hj (by simp)
   | _ :: _, [], _, h, _, _, _ => h.elim
   | _ :: _, _ :: _, [], h, _, _, _ => h.elim
@@ -184,7 +183,7 @@ theorem kidsDepBPR_of {κ : ℕ} : ∀ (ks : List KidD) (Bs : List ℕ) (Ps : Li
     (∀ j < ks.length, ∀ pv, ((ks.getD j noKid pv).taken = true →
         CompleteAtDTBR fs cert κ (ks.getD j noKid pv).f (ks.getD j noKid pv).Lin
           (ks.getD j noKid pv).args (ks.getD j noKid pv).Out (Ps.getD j fun _ _ ↦ True) (Bs.getD j 0)) ∧
-      ((ks.getD j noKid pv).taken = false → fs (ks.getD j noKid pv).f ≤ Bs.getD j 0)) →
+      ((ks.getD j noKid pv).taken = false → fs (tailKey (ks.getD j noKid pv).f) ≤ Bs.getD j 0)) →
     KidsDepBPR fs cert κ ks Bs Ps
   | [], [], [], _, _, _ => trivial
   | [], _ :: _, _, h, _, _ => by simp at h
@@ -206,14 +205,14 @@ theorem vs_kidsDepBPR {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed
     (hvt : ∀ B, CompleteAtDTBR fs cert κ "verify_tables" (S.H.linL B) (S.H.args B) (Returns (S.H.retsH B))
       (fun rd t ↦ (∀ op, Budget.WeighsLe coreProgram (W.ωv op) (vtWB W.toVsWords op) t) ∧ Pvt rd t)
       (Tables.vtMax fs W.vt))
-    (hos : ∀ pv, CompleteAtDTBR fs cert κ (Whir.openName S.μs) ((S.kids bs sqE).getD 14 noKid pv).Lin
-      ((S.kids bs sqE).getD 14 noKid pv).args ((S.kids bs sqE).getD 14 noKid pv).Out Pos
+    (hos : ∀ pv, CompleteAtDTBR fs cert κ (Whir.openName S.μs) ((S.kids bs sqE).getD 12 noKid pv).Lin
+      ((S.kids bs sqE).getD 12 noKid pv).args ((S.kids bs sqE).getD 12 noKid pv).Out Pos
       (osBosAt fs W.Bnd S.μs)) :
     KidsDepBPR fs cert κ (S.kids bs sqE) (vsBsAt W Bvk S.μs S.rate) (vsPsR W Pcp Pvt Pos) := by
   have hO := vs_kidsDepBP hbl S hκ hrf hcons W hvk open_stacked_completeAtB bs sqE
   refine kidsDepBPR_of _ _ _ (by rw [ChildSegs.kids_length]; rfl) (by rw [ChildSegs.kids_length]; rfl)
     fun j hj pv ↦ ?_
-  have hj16 : j < 16 := by simpa [ChildSegs.kids_length] using hj
+  have hj14 : j < 14 := by simpa [ChildSegs.kids_length] using hj
   have hB := kidsDepBP_getD hO j hj pv
   interval_cases j
   · exact hB
@@ -225,12 +224,18 @@ theorem vs_kidsDepBPR {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed
   · exact hB
   · exact hB
   · exact hB
+  · refine ⟨fun _ ↦ ?_, hB.2⟩
+    have e : (vsBsAt W Bvk S.μs S.rate).getD 9 0 = Tables.vtMax fs W.vt := by
+      simp only [vsBsAt, vsBsWith, List.getD_cons_succ, List.getD_cons_zero]
+    rw [e]
+    exact hvt _
   · exact hB
-  · exact ⟨fun _ ↦ hvt _, hB.2⟩
   · exact hB
-  · exact hB
-  · exact hB
-  · exact ⟨fun _ ↦ hos pv, hB.2⟩
+  · refine ⟨fun _ ↦ ?_, hB.2⟩
+    have e : (vsBsAt W Bvk S.μs S.rate).getD 12 0 = osBosAt fs W.Bnd S.μs := by
+      simp only [vsBsAt, vsBsWith, List.getD_cons_succ, List.getD_cons_zero]
+    rw [e]
+    exact hos pv
   · exact hB
 
 /-! ## `verify_sub` -/
@@ -238,7 +243,7 @@ theorem vs_kidsDepBPR {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed
 /-- The honest valuation, its own buffers held. -/
 def vsQn {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs bytecode seed c) (sqE outE : ℕ)
     (rd : Reader) (σ : Val) : Prop :=
-  ∃ b outs, σ = vsσ rd (vsW (bases b (vsSizes)) outs) (vsArgs seed c sqE outE) ∧
+  ∃ b outs, σ = vsσ rd (vsW S.gw (bases b (vsSizes)) outs) (vsArgs seed c sqE outE) ∧
     Main.MemL rd (bufL b (vsSizes) S.ownW)
 
 /-- **`verify_sub` is complete on an honest child within its own bound, generic in what its `certify_placement`,
@@ -256,8 +261,8 @@ theorem verify_sub_completeBTG {bytecode : List K} (hbl : bytecode.length = 2 ^ 
     (hvt : ∀ B, CompleteAtDTBR fs cert κ "verify_tables" (S.H.linL B) (S.H.args B) (Returns (S.H.retsH B))
       (fun rd t ↦ (∀ op, Budget.WeighsLe coreProgram (W.ωv op) (vtWB W.toVsWords op) t) ∧ Pvt rd t)
       (Tables.vtMax fs W.vt))
-    (hos : ∀ bs pv, CompleteAtDTBR fs cert κ (Whir.openName S.μs) ((S.kids bs sqE).getD 14 noKid pv).Lin
-      ((S.kids bs sqE).getD 14 noKid pv).args ((S.kids bs sqE).getD 14 noKid pv).Out Pos
+    (hos : ∀ bs pv, CompleteAtDTBR fs cert κ (Whir.openName S.μs) ((S.kids bs sqE).getD 12 noKid pv).Lin
+      ((S.kids bs sqE).getD 12 noKid pv).args ((S.kids bs sqE).getD 12 noKid pv).Out Pos
       (osBosAt fs W.Bnd S.μs)) :
     CompleteAtDTBR fs cert κ "verify_sub" Lin (vsArgs seed c sqE outE) (Returns [])
       (fun rd t ↦ vsTsAny fs W Bvk S.μs S.rate t ∧ ∃ σ bufs ks, t = .node "verify_sub" σ bufs ks ∧

@@ -34,20 +34,20 @@ def lqCapE (capW flW : List E) : List Pop := [("merkle_caps", capW), ("merkle_ca
 /-- **`level_queries` at an entry of `lqTable`, placed at an optional words bound, with its pops.** -/
 def LqAtOP (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) (name : String)
     (q base folds leaf d cd mu nhs hbits fin : ℕ) (Bd : Option ℕ) : Prop :=
-  let s := lqOqS q base folds leaf d cd mu nhs hbits fin
+  let s := lqOqS base folds leaf d cd mu nhs hbits fin
   ∀ (Lin : Layout) (lam lamInv : E) (ecoefs ehs epos eqp : ℕ) (rounds : List FoldRound)
     (hsv : List E) (eb qs : ℕ → ℕ) (rows : ℕ → List K) (sibs : ℕ → List Digest)
     (capW flW : List E) (r0 r1 : E),
     rounds.length = s.folds → (s.final = 1 → hsv.length = s.nHs) →
-    OqStatic s rounds hsv qs rows sibs q →
-    LqCaps s q capW flW r0 r1 qs rows sibs →
-    LqReg (RegionL Lin) s q ecoefs ehs epos eqp eb →
-    (∀ rd, LowDef κ rd → MemL rd Lin → LqMem rd s q ecoefs ehs epos eqp rounds hsv eb qs) →
+    OqStatic s cd rounds hsv qs rows sibs q →
+    LqCaps s cd q capW flW r0 r1 qs rows sibs →
+    LqReg (RegionL Lin) s cd q ecoefs ehs epos eqp eb →
+    (∀ rd, LowDef κ rd → MemL rd Lin → LqMem rd s cd q ecoefs ehs epos eqp rounds hsv eb qs) →
     CompleteAtOP fs cert κ name Lin
       [lam, lamInv, ofK (addressOfIndex ecoefs), ofK (addressOfIndex ehs),
         ofK (addressOfIndex epos), ofK (addressOfIndex eqp)]
-      (Returns [r0, r1, lqSum s (lqOdd q base folds leaf d cd mu nhs hbits fin) (lqIters q base)
-        lamInv rounds qs rows, lam ^ q]) Bd
+      (Returns [r0, r1, lqSum s (Whir.lqOdd q base) (lqIters q base) lamInv rounds qs rows,
+        lam ^ q]) Bd
       (fun _ => lqCapE capW flW ++ oqPops s (oqW qs rows sibs) q)
 
 /-- **Within a bound, by a tree popping the entries.** -/

@@ -17,7 +17,7 @@ public import LeanVM.Guest.B1.Whir.CHonBodyRun
 `HonRun.roots`: level `l`'s commitment is the `l`-th root, at the level's depth and row width.
 `HonRun.opens`: its phase opens its positions against it. `HonRun.capv`: its cap cells and flags
 (`capCellH`, `capFlH`) at its positions' nodes are the climbed digests and `1`.
-`HonRun.fld_rowsMem`, `fld_posMem`, `fld_qMem`: OsHonest's memory fields.
+`HonRun.fld_caps`, `fld_qMem`, `fld_posW`: OsHonest's memory fields.
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -79,7 +79,7 @@ theorem roots : ∀ l < (osCfgR (μ - minOpenLog) (r - 1)).levels.length,
     obtain ⟨hlen, hRl⟩ := roots l (by omega)
     obtain ⟨rw, W, hd, -, -, -, -, -, -, -, hR'⟩ := hR.step (l := l) (by omega)
     have hB := hR.lvb (l := l) (by omega)
-    obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, hshape, -⟩ := hR.mid (l := l) (by omega)
+    obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, hshape, -⟩ := hR.mid (l := l) (by omega)
     have hrw : (Ls.getD l default).rw = rw := by unfold LvAt.rw; rw [hd]
     have hmu := hB.mu
     simp only [LvAt.mu, LvAt.s1, hrw] at hmu
@@ -150,35 +150,35 @@ theorem height_eq {l : ℕ} (hl : l < (osCfgR (μ - minOpenLog) (r - 1)).levels.
 
 /-- The shape's cap depth and path depth. -/
 theorem cdpd {l : ℕ} (hl : l < (osCfgR (μ - minOpenLog) (r - 1)).levels.length) :
-    (oqSA (osCfgR (μ - minOpenLog) (r - 1)) l).cd = (((osCfgR (μ - minOpenLog) (r - 1)).levels.getD l default)).capDepth ∧
+    (osLvA (osCfgR (μ - minOpenLog) (r - 1)) l).capDepth = (((osCfgR (μ - minOpenLog) (r - 1)).levels.getD l default)).capDepth ∧
       (oqSA (osCfgR (μ - minOpenLog) (r - 1)) l).pd =
         (((osCfgR (μ - minOpenLog) (r - 1)).levels.getD l default)).depth - (((osCfgR (μ - minOpenLog) (r - 1)).levels.getD l default)).capDepth ∧
       2 ≤ (((osCfgR (μ - minOpenLog) (r - 1)).levels.getD l default)).capDepth ∧
       (((osCfgR (μ - minOpenLog) (r - 1)).levels.getD l default)).capDepth ≤ (((osCfgR (μ - minOpenLog) (r - 1)).levels.getD l default)).depth ∧
       oqQA (osCfgR (μ - minOpenLog) (r - 1)) l = ((Ls.getD l default).qs μ).length := by
-  obtain ⟨-, -, -, -, hdepth, hcd, -, hcd2, -, hcdd, hcount⟩ := (hR.lvb hl).qsh
-  rw [hcd, hdepth] at hcdd
-  rw [hcd] at hcd2
-  refine ⟨by rw [oqSA, oq_cd, hcd], by rw [oqSA, oq_pd, hdepth, hcd], hcd2, hcdd, ?_⟩
-  simp only [oqQA, oqOddA, oqSA, oq_base, oqNA, lvBase, osLvA]
-  rw [hcount, LvAt.qs_length, (hR.lvb hl).q]
+  obtain ⟨-, hbase, -, hpd, -, hcd2, -, hcdd⟩ := (hR.lvb hl).qsh
+  refine ⟨rfl, by rw [oqSA, oq_pd, hpd], hcd2, hcdd, ?_⟩
+  simp only [oqQA]
+  rw [oqSA, oq_base, hbase, LvAt.qs_length, (hR.lvb hl).q]
+  simp only [oqCount, oqOddA, oqNA, lqOdd, lqIters, osLvA, lvBase]
+  split_ifs <;> omega
 
 /-- **Level `l`'s cap cells and flags at its positions' nodes.** -/
 theorem capv {l : ℕ} (hl : l < (osCfgR (μ - minOpenLog) (r - 1)).levels.length) :
     ∀ k < oqQA (osCfgR (μ - minOpenLog) (r - 1)) l,
-      (hdOf μ r Ls).cv l (2 * (2 ^ (oqSA (osCfgR (μ - minOpenLog) (r - 1)) l).cd +
+      (hdOf μ r Ls).cv l (2 * (2 ^ (osLvA (osCfgR (μ - minOpenLog) (r - 1)) l).capDepth +
           ((Ls.getD l default).qs μ).getD k 0 / 2 ^ (oqSA (osCfgR (μ - minOpenLog) (r - 1)) l).pd)) =
         (digestHalves (climbD (merkleLeafDigest (((Ls.getD l default).phase.map (·.leaf)).getD k []))
           (((Ls.getD l default).qs μ).getD k 0)
           (((Ls.getD l default).phase.map (fun o ↦ o.path.take ((((osCfgR (μ - minOpenLog) (r - 1)).levels.getD l default)).depth -
             (((osCfgR (μ - minOpenLog) (r - 1)).levels.getD l default)).capDepth))).getD k []))).1 ∧
-      (hdOf μ r Ls).cv l (2 * (2 ^ (oqSA (osCfgR (μ - minOpenLog) (r - 1)) l).cd +
+      (hdOf μ r Ls).cv l (2 * (2 ^ (osLvA (osCfgR (μ - minOpenLog) (r - 1)) l).capDepth +
           ((Ls.getD l default).qs μ).getD k 0 / 2 ^ (oqSA (osCfgR (μ - minOpenLog) (r - 1)) l).pd) + 1) =
         (digestHalves (climbD (merkleLeafDigest (((Ls.getD l default).phase.map (·.leaf)).getD k []))
           (((Ls.getD l default).qs μ).getD k 0)
           (((Ls.getD l default).phase.map (fun o ↦ o.path.take ((((osCfgR (μ - minOpenLog) (r - 1)).levels.getD l default)).depth -
             (((osCfgR (μ - minOpenLog) (r - 1)).levels.getD l default)).capDepth))).getD k []))).2 ∧
-      (hdOf μ r Ls).fv l (2 ^ ((oqSA (osCfgR (μ - minOpenLog) (r - 1)) l).cd - 1) +
+      (hdOf μ r Ls).fv l (2 ^ ((osLvA (osCfgR (μ - minOpenLog) (r - 1)) l).capDepth - 1) +
           ((Ls.getD l default).qs μ).getD k 0 / 2 ^ ((oqSA (osCfgR (μ - minOpenLog) (r - 1)) l).pd + 1)) = 1 := by
   intro k hk
   obtain ⟨hcdq, hpd, hcd2, hcdd, hQ⟩ := hR.cdpd hl
@@ -202,46 +202,46 @@ theorem capv {l : ℕ} (hl : l < (osCfgR (μ - minOpenLog) (r - 1)).levels.lengt
 
 /-- Level `l`'s hinted cap cells. -/
 noncomputable def capW (Ls : List LvAt) (μ r l : ℕ) : List E :=
-  (List.range (4 * 2 ^ (oqSA (osCfgR (μ - minOpenLog) (r - 1)) l).cd)).map ((hdOf μ r Ls).cv l)
+  (List.range (4 * 2 ^ (osLvA (osCfgR (μ - minOpenLog) (r - 1)) l).capDepth)).map ((hdOf μ r Ls).cv l)
 
 /-- Level `l`'s hinted cap flags. -/
 noncomputable def flW (Ls : List LvAt) (μ r l : ℕ) : List E :=
-  (List.range (2 ^ (oqSA (osCfgR (μ - minOpenLog) (r - 1)) l).cd)).map ((hdOf μ r Ls).fv l)
+  (List.range (2 ^ (osLvA (osCfgR (μ - minOpenLog) (r - 1)) l).capDepth)).map ((hdOf μ r Ls).fv l)
 
 /-- **OsHonestA's `caps`.** -/
 theorem fld_caps : ∀ l < (osCfgR (μ - minOpenLog) (r - 1)).levels.length,
-    (capW Ls μ r l).length = 4 * 2 ^ (oqSA (osCfgR (μ - minOpenLog) (r - 1)) l).cd ∧
-    (flW Ls μ r l).length = 2 ^ (oqSA (osCfgR (μ - minOpenLog) (r - 1)) l).cd ∧
+    (capW Ls μ r l).length = 4 * 2 ^ (osLvA (osCfgR (μ - minOpenLog) (r - 1)) l).capDepth ∧
+    (flW Ls μ r l).length = 2 ^ (osLvA (osCfgR (μ - minOpenLog) (r - 1)) l).capDepth ∧
     (∀ (rd : Reader) (CAP FL : E), ReadsAt rd CAP (capW Ls μ r l) → ReadsAt rd FL (flW Ls μ r l) →
-      MeaningVerifyMerkleCap (oqSA (osCfgR (μ - minOpenLog) (r - 1)) l).cd rd [CAP, FL]
+      MeaningVerifyMerkleCap (osLvA (osCfgR (μ - minOpenLog) (r - 1)) l).capDepth rd [CAP, FL]
         [(osRootA (hdOf μ r Ls).own l).1, (osRootA (hdOf μ r Ls).own l).2]) ∧
     ∀ k < oqQA (osCfgR (μ - minOpenLog) (r - 1)) l,
-      (capW Ls μ r l).getD (2 * (2 ^ (oqSA (osCfgR (μ - minOpenLog) (r - 1)) l).cd +
+      (capW Ls μ r l).getD (2 * (2 ^ (osLvA (osCfgR (μ - minOpenLog) (r - 1)) l).capDepth +
           ((Ls.getD l default).qs μ).getD k 0 / 2 ^ (oqSA (osCfgR (μ - minOpenLog) (r - 1)) l).pd)) 0 =
         (digestHalves (climbD (merkleLeafDigest (((Ls.getD l default).phase.map (·.leaf)).getD k []))
           (((Ls.getD l default).qs μ).getD k 0)
           (((Ls.getD l default).phase.map (fun o ↦ o.path.take
             (((osCfgR (μ - minOpenLog) (r - 1)).levels.getD l default).depth -
               ((osCfgR (μ - minOpenLog) (r - 1)).levels.getD l default).capDepth))).getD k []))).1 ∧
-      (capW Ls μ r l).getD (2 * (2 ^ (oqSA (osCfgR (μ - minOpenLog) (r - 1)) l).cd +
+      (capW Ls μ r l).getD (2 * (2 ^ (osLvA (osCfgR (μ - minOpenLog) (r - 1)) l).capDepth +
           ((Ls.getD l default).qs μ).getD k 0 / 2 ^ (oqSA (osCfgR (μ - minOpenLog) (r - 1)) l).pd) + 1) 0 =
         (digestHalves (climbD (merkleLeafDigest (((Ls.getD l default).phase.map (·.leaf)).getD k []))
           (((Ls.getD l default).qs μ).getD k 0)
           (((Ls.getD l default).phase.map (fun o ↦ o.path.take
             (((osCfgR (μ - minOpenLog) (r - 1)).levels.getD l default).depth -
               ((osCfgR (μ - minOpenLog) (r - 1)).levels.getD l default).capDepth))).getD k []))).2 ∧
-      (flW Ls μ r l).getD (2 ^ ((oqSA (osCfgR (μ - minOpenLog) (r - 1)) l).cd - 1) +
+      (flW Ls μ r l).getD (2 ^ ((osLvA (osCfgR (μ - minOpenLog) (r - 1)) l).capDepth - 1) +
           ((Ls.getD l default).qs μ).getD k 0 / 2 ^ ((oqSA (osCfgR (μ - minOpenLog) (r - 1)) l).pd + 1)) 0 = 1 := by
   intro l hl
   have hS : HonStatic (hdOf μ r Ls).c := honStatic_all _ _ hR.m11 hR.r4
   obtain ⟨hcdq, hpd, hcd2, hcdd, hQ⟩ := hR.cdpd hl
   have hrootA := (hdOf μ r Ls).rootA hS hl
-  have e4 : 2 ^ ((oqSA (osCfgR (μ - minOpenLog) (r - 1)) l).cd + 2) =
-      4 * 2 ^ (oqSA (osCfgR (μ - minOpenLog) (r - 1)) l).cd := by rw [pow_add]; ring
-  have hcapG : ∀ k < 4 * 2 ^ (oqSA (osCfgR (μ - minOpenLog) (r - 1)) l).cd,
+  have e4 : 2 ^ ((osLvA (osCfgR (μ - minOpenLog) (r - 1)) l).capDepth + 2) =
+      4 * 2 ^ (osLvA (osCfgR (μ - minOpenLog) (r - 1)) l).capDepth := by rw [pow_add]; ring
+  have hcapG : ∀ k < 4 * 2 ^ (osLvA (osCfgR (μ - minOpenLog) (r - 1)) l).capDepth,
       (capW Ls μ r l).getD k 0 = (hdOf μ r Ls).cv l k := fun k hk ↦ by
     unfold capW; rw [getD_mapRange _ hk]
-  have hflG : ∀ k < 2 ^ (oqSA (osCfgR (μ - minOpenLog) (r - 1)) l).cd,
+  have hflG : ∀ k < 2 ^ (osLvA (osCfgR (μ - minOpenLog) (r - 1)) l).capDepth,
       (flW Ls μ r l).getD k 0 = (hdOf μ r Ls).fv l k := fun k hk ↦ by
     unfold flW; rw [getD_mapRange _ hk]
   refine ⟨by simp [capW], by simp [flW], fun rd CAP FL hc hf ↦ ?_, fun k hk ↦ ?_⟩
@@ -269,8 +269,8 @@ theorem fld_caps : ∀ l < (osCfgR (μ - minOpenLog) (r - 1)).levels.length,
       rwa [hflG k hk, hfv] at this
   · have hk' : k < ((Ls.getD l default).qs μ).length := by omega
     have hqlt : ((Ls.getD l default).qs μ).getD k 0 <
-        2 ^ ((oqSA (osCfgR (μ - minOpenLog) (r - 1)) l).pd + (oqSA (osCfgR (μ - minOpenLog) (r - 1)) l).cd) := by
-      rw [show (oqSA (osCfgR (μ - minOpenLog) (r - 1)) l).pd + (oqSA (osCfgR (μ - minOpenLog) (r - 1)) l).cd =
+        2 ^ ((oqSA (osCfgR (μ - minOpenLog) (r - 1)) l).pd + (osLvA (osCfgR (μ - minOpenLog) (r - 1)) l).capDepth) := by
+      rw [show (oqSA (osCfgR (μ - minOpenLog) (r - 1)) l).pd + (osLvA (osCfgR (μ - minOpenLog) (r - 1)) l).capDepth =
         ((osCfgR (μ - minOpenLog) (r - 1)).levels.getD l default).depth by omega,
         List.getD_eq_getElem _ _ hk']
       exact hR.qs_lt hl _ (List.getElem_mem hk')
@@ -287,7 +287,7 @@ theorem fld_qMem : ∀ b rd, OsMemA rd (osCfgR (μ - minOpenLog) (r - 1)) b (hdO
       (if l = (osCfgR (μ - minOpenLog) (r - 1)).yrLevel then (hdOf μ r Ls).hsFC else [])) := by
   intro b rd hm l hl
   have hS : HonStatic (hdOf μ r Ls).c := honStatic_all _ _ hR.m11 hR.r4
-  obtain ⟨-, -, -, -, -, -, hfinal, -⟩ := (hR.lvb hl).qsh
+  obtain ⟨-, -, -, -, hfinal, -⟩ := (hR.lvb hl).qsh
   have hrl : ∀ i < (hdOf μ r Ls).c.levels.length,
       ((hdOf μ r Ls).L i).rounds.length = ((hdOf μ r Ls).c.levels.getD i default).folds := fun i hi ↦ by
     show (Ls.getD i default).rounds.length = _

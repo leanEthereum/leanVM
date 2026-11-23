@@ -114,7 +114,7 @@ theorem capHints {l : ℕ} (hl : l < (osCfgR (μ - minOpenLog) (r - 1)).levels.l
     rw [hR.height_eq hl, capCellH, ← hidx, ← List.map_prod_right_eq_zip]
     rfl
   have hfv : (hdOf μ r Ls).fv l = capFl ((osCfgR (μ - minOpenLog) (r - 1)).levels.getD l default).depth
-      (atIdx (Ls.getD l default).phase) (oqSA (osCfgR (μ - minOpenLog) (r - 1)) l).cd := by
+      (atIdx (Ls.getD l default).phase) (osLvA (osCfgR (μ - minOpenLog) (r - 1)) l).capDepth := by
     show capFlH (heightAt Ls l) _ _ _ = _
     rw [hR.height_eq hl, capFlH, ← hidx, ← List.map_prod_right_eq_zip, hcdq]
     rfl

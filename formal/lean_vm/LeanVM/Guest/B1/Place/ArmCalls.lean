@@ -16,8 +16,8 @@ public import LeanVM.Guest.B1.Whir.Flatness
 # `open_stacked`'s frames
 
 A level (`Whir.osLevel`) is its rounds, its message and its query grind (`lvPre`, no dispatch),
-its positions (one dispatch into `level_positions`, `posFrame`) and the rest (`lvPost`: on a
-non-final level `is_zero` of `λ`, `lvIzF`, then one dispatch into `level_queries`, `qFrame`).
+its positions (one dispatch into `level_positions`, `posCall`) and the rest (`lvPost`: on a
+non-final level `is_zero` of `λ`, `lvIzF`, then one dispatch into `level_queries`, `osQCallOf`).
 `osLvKOf σ c`: the levels' frames as `OsLvK`s; `osLvKOf_get`: level `l`'s, at the state
 `osLvSt c l`. After the levels, the closing rounds' (no dispatch), then the finish's:
 `fold_final_msg`, the basis rows' `is_zero`, and per non-final level the dispatch into
@@ -139,11 +139,35 @@ theorem osHsFinal_atoms (c : OsCfg) (lv : OsLv) (s : OsSt) : Atoms (osHsFinal c 
 
 theorem osGlue_atoms (lvl : ℕ) (s : OsSt) : Atoms (osGlue lvl s).1 := rfl
 
-theorem osRounds_plain (P : List (ℕ × ℕ × ℕ)) : ∀ i n s, Plain (osRounds P i n s).1
-  | _, 0, _ => rfl
-  | i, n + 1, _ => plain_append
-    (plain_append (plain_of_atoms (atoms_append (atoms_append (osCurS_atoms _) (osMatS_atoms _ _ _ _))
-      (osMatS_atoms _ _ _ _))) rfl) (osRounds_plain P (i + 1) n _)
+theorem atoms_of_isAtom : ∀ l : List Stmt, l.all Stmt.isAtom = true → Atoms l
+  | [], _ => rfl
+  | s :: l, h => by
+    simp only [List.all_cons, Bool.and_eq_true] at h
+    match s, h.1 with
+    | .atom _, _ => exact atoms_cons rfl (atoms_of_isAtom l h.2)
+
+theorem gcInlineT_atoms (b o : ℕ) (w tabs : V) : Atoms (gcInlineT b o w tabs) :=
+  atoms_of_isAtom _ (renameList_isAtom _ _ (gcPre_isAtom b))
+
+theorem osRoundCore_atoms (b p cb co claim i : ℕ) (cap : List ℕ) :
+    Atoms (osRoundCore b p cb co claim i cap) := by
+  unfold osRoundCore
+  refine atoms_append (atoms_append (atoms_append ?_ rfl) (gcInlineT_atoms _ _ _ _)) rfl
+  simp [Atoms, atomS, List.range_succ]
+
+theorem osRound_atoms (cp last : Bool) (i : ℕ) (s : OsSt) : Atoms (osRound cp last i s).1 := by
+  unfold osRound
+  dsimp only
+  refine atoms_append (atoms_append ?_ (osRoundCore_atoms _ _ _ _ _ _ _)) ?_ <;>
+    split_ifs <;> simp [Atoms, atomS]
+
+theorem osRounds_plain : ∀ cp i n s, Plain (osRounds cp i n s).1
+  | _, _, 0, _ => rfl
+  | _, i, n + 1, _ => plain_append (plain_of_atoms (osRound_atoms _ _ _ _)) (osRounds_plain false (i + 1) n _)
+
+theorem osRates_plain (c : OsCfg) (lvl : ℕ) (s : OsSt) : Plain (osRates c lvl s).1 := rfl
+
+theorem osQGrind_plain (s : OsSt) : Plain (osQGrind s).1 := plain_of_atoms (gcInlineT_atoms _ _ _ _)
 
 theorem osFinalMsg_plain (c : OsCfg) (lv : OsLv) (s : OsSt) : Plain (osFinalMsg c lv s).1 :=
   plain_append (plain_of_atoms (osCurS_atoms _)) rfl
@@ -153,9 +177,10 @@ theorem osCommit_plain (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : Plain (o
   have h2 : ∀ P b o (t : OsSt), Plain (osMatS P b o t).1 := fun P b o t ↦
     plain_of_atoms (osMatS_atoms P b o t)
   have h3 : ∀ pad k, Plain (osPad pad k).1 := fun pad k ↦ plain_of_atoms (osPad_atoms pad k)
+  have h4 : ∀ b o w t, Plain (gcInlineT b o w t) := fun b o w t ↦ plain_of_atoms (gcInlineT_atoms b o w t)
   unfold osCommit
   simp only [Plain, List.all_append, List.all_cons, List.all_nil, List.all_map, plainS,
-    plain_of_atoms (osHeap_atoms _ _), h1, h2, h3, Bool.and_true, Bool.true_and]
+    plain_of_atoms (osHeap_atoms _ _), h1, h2, h3, h4, Bool.and_true, Bool.true_and]
   simp [plainS, osKeccak]
 
 theorem osTailRounds_plain (tch : ℕ) : ∀ j n s, Plain (osTailRounds tch j n s).1
@@ -228,18 +253,20 @@ noncomputable def selName (σ : Val) (c : OsCfg) (lvl : ℕ) (f : OsLv → Strin
 
 /-- A level's state at its positions. -/
 def lvPosSt (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : OsSt :=
-  let f := osRounds c.plan lv.foldsOff lv.folds s
-  (if lvl = c.yrLevel then osFinalMsg c lv f.2 else osCommit c lvl lv f.2).2
+  let rt := osRates c lvl s
+  let f := osRounds true lv.foldsOff lv.folds rt.2
+  (osQGrind (if lvl = c.yrLevel then osFinalMsg c lv f.2 else osCommit c lvl lv f.2).2).2
 
-/-- A level before its positions: its rounds, its message, its query grind. -/
+/-- A level before its positions: its `level_rate` values, its rounds, its message, its query grind. -/
 def lvPre (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : List Stmt :=
-  let f := osRounds c.plan lv.foldsOff lv.folds s
+  let rt := osRates c lvl s
+  let f := osRounds true lv.foldsOff lv.folds rt.2
   let m := if lvl = c.yrLevel then osFinalMsg c lv f.2 else osCommit c lvl lv f.2
-  f.1 ++ m.1 ++ [.call ("grind_check__L" ++ natStr queryGrind) [.n m.2.pow0, .n osTabs] []]
+  rt.1 ++ f.1 ++ m.1 ++ (osQGrind m.2).1
 
 /-- A level after its positions. -/
 def lvPost (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : List Stmt :=
-  let sq := osPositions c lvl lv (lvPosSt c lvl lv s)
+  let sq := osPositions c lvl (lvPosSt c lvl lv s)
   let la := if lvl = c.yrLevel then (([] : List Stmt), sq.2) else osLam sq.2
   let h := if lvl = c.yrLevel then osHsFinal c lv la.2 else osHsMid lvl lv la.2
   let q := osQueries c lvl lv h.2
@@ -248,29 +275,24 @@ def lvPost (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : List Stmt :=
 
 theorem osLevel_split (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) :
     (osLevel c lvl lv s).1 =
-      lvPre c lvl lv s ++ ((osPositions c lvl lv (lvPosSt c lvl lv s)).1 ++ lvPost c lvl lv s) := by
+      lvPre c lvl lv s ++ ((osPositions c lvl (lvPosSt c lvl lv s)).1 ++ lvPost c lvl lv s) := by
   simp only [osLevel, lvPre, lvPost, lvPosSt, List.append_assoc]
 
 theorem lvPre_plain (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : Plain (lvPre c lvl lv s) := by
-  refine plain_append (plain_append (osRounds_plain _ _ _ _) ?_) rfl
+  refine plain_append (plain_append (plain_append (osRates_plain _ _ _) (osRounds_plain _ _ _ _)) ?_)
+    (osQGrind_plain _)
   split_ifs
   · exact osFinalMsg_plain _ _ _
   · exact osCommit_plain _ _ _ _
 
-/-- The arguments and returns of the positions' dispatch at the state `s`. -/
-def posCall (c : OsCfg) (lv : OsLv) (s : OsSt) : List V × List V :=
-  let qp := osMatS c.plan osQpos lv.posOff s
-  let wp := osMatS c.plan osQbp lv.posOff qp.2.2
-  ((s.word0 :: s.fs ++ [qp.2.1, wp.2.1, osTabs]).map V.n, osRun wp.2.2.k 5)
+/-- The arguments and returns of the positions' dispatch at the state `s`: the first word, the
+sponge, the positions and windows, the tables and the level's `g^squeezes`. -/
+def posCall (s : OsSt) : List V × List V :=
+  ((s.word0 :: s.fs ++ [s.lp, s.lw, osTabs, (s.rts.getLast?.getD []).getD 1 0]).map V.n, osRun s.k 5)
 
-theorem osPositions_callSF (σ : Val) (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) :
-    (osPositions c lvl lv s).1.filterMap (Stmt.callSF σ) =
-      [(none, selName σ c lvl osPositionsName, (posCall c lv s).1, (posCall c lv s).2)] := by
-  unfold osPositions
-  dsimp only
-  rw [List.filterMap_append, List.filterMap_append, callSF_atoms σ _ (osMatS_atoms _ _ _ _),
-    callSF_atoms σ _ (osMatS_atoms _ _ _ _)]
-  rfl
+theorem osPositions_callSF (σ : Val) (c : OsCfg) (lvl : ℕ) (s : OsSt) :
+    (osPositions c lvl s).1.filterMap (Stmt.callSF σ) =
+      [(none, selName σ c lvl osPositionsName, (posCall s).1, (posCall s).2)] := rfl
 
 theorem osQueries_callSF (σ : Val) (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) :
     (osQueries c lvl lv s).1.filterMap (Stmt.callSF σ) =
@@ -286,7 +308,7 @@ theorem osQueries_callSF (σ : Val) (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsS
 
 /-- A non-final level's `is_zero` of `λ`, after its positions. -/
 def lvIzF (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : List (Option V × String × List V × List V) :=
-  if lvl = c.yrLevel then [] else [lamIz (osPositions c lvl lv (lvPosSt c lvl lv s)).2]
+  if lvl = c.yrLevel then [] else [lamIz (osPositions c lvl (lvPosSt c lvl lv s)).2]
 
 theorem lvIzF_f {c : OsCfg} {lvl : ℕ} {lv : OsLv} {s : OsSt} {x : Option V × String × List V × List V}
     (h : x ∈ lvIzF c lvl lv s) : x.2.1 = "is_zero" := by
@@ -304,8 +326,8 @@ theorem lvPost_callSF (σ : Val) (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) 
   unfold lvPost
   dsimp only
   rw [List.filterMap_append, List.filterMap_append, List.filterMap_append]
-  have ha : ((if lvl = c.yrLevel then (([] : List Stmt), (osPositions c lvl lv (lvPosSt c lvl lv s)).2)
-      else osLam (osPositions c lvl lv (lvPosSt c lvl lv s)).2).1).filterMap (Stmt.callSF σ) =
+  have ha : ((if lvl = c.yrLevel then (([] : List Stmt), (osPositions c lvl (lvPosSt c lvl lv s)).2)
+      else osLam (osPositions c lvl (lvPosSt c lvl lv s)).2).1).filterMap (Stmt.callSF σ) =
       lvIzF c lvl lv s := by
     unfold lvIzF
     split_ifs
@@ -328,8 +350,8 @@ theorem lvPost_callSF (σ : Val) (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) 
 /-- A level's frames at the state `s`. -/
 noncomputable def lvK (σ : Val) (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : OsLvK :=
   ⟨((lvPre c lvl lv s).filterMap Main.Stmt.callS).map (Main.mkCall σ),
-    Main.mkCall σ (none, selName σ c lvl osPositionsName, (posCall c lv (lvPosSt c lvl lv s)).1,
-      (posCall c lv (lvPosSt c lvl lv s)).2),
+    Main.mkCall σ (none, selName σ c lvl osPositionsName, (posCall (lvPosSt c lvl lv s)).1,
+      (posCall (lvPosSt c lvl lv s)).2),
     (lvIzF c lvl lv s).map (Main.mkCall σ) ++ [Main.mkCall σ (none, selName σ c lvl (osQueriesName c lvl),
       (osQCallOf c lvl lv (osPreQ c lvl lv s)).1, (osQCallOf c lvl lv (osPreQ c lvl lv s)).2)]⟩
 
@@ -374,40 +396,41 @@ theorem osLvKOf_get (σ : Val) (c : OsCfg) : ∀ (lvl : ℕ) (lvs : List OsLv) (
 
 /-! ## The closing rounds and the finish -/
 
-/-- Non-final level `lvl`'s residual frames: the dispatch into `level_residual`, `is_zero` of its
+/-- Non-final level `lvl`'s residual frames: the call into `level_residual`, `is_zero` of its
 product, the dispatch into `level_residual_slow`. -/
-noncomputable def resFrames1 (σ : Val) (c : OsCfg) (tch bd lvl : ℕ) (lv : OsLv) (mats : List OsMat)
-    (k : ℕ) : List (Option V × String × List V × List V) :=
-  let qp := osMatP c.plan mats osQpos lv.posOff k
-  let m1 := osMatsAfter c.plan mats osQpos lv.posOff k
-  let bp := osMatP c.plan m1 bd (lvl * ligColsCap) qp.2.2
-  let m2 := osMatsAfter c.plan m1 bd (lvl * ligColsCap) qp.2.2
+noncomputable def resFrames1 (σ : Val) (c : OsCfg) (rts : List (List ℕ)) (tch bd lvl : ℕ) (lv : OsLv)
+    (mats : List OsMat) (k : ℕ) : List (Option V × String × List V × List V) :=
+  let rt := rts.getD lvl []
+  let bp := osMatP c.plan mats bd (lvl * ligColsCap) (k + 1)
+  let m2 := osMatsAfter c.plan mats bd (lvl * ligColsCap) (k + 1)
   let hp := osMatP c.plan m2 osHs (lvl * hsStride) bp.2.2
   let j := hp.2.2
-  [(none, selName σ c lvl osResidualName, [.n qp.2.1, .n bp.2.1, .n hp.2.1, .n j], osRun (j + 1) 2),
+  [(none, osResidualName lv, [.n k, .n bp.2.1, .n hp.2.1, .n j, .n (rt.getD 2 0), .n (rt.getD 3 0)],
+      osRun (j + 1) 2),
     (none, "is_zero", [.n (j + 3)], [.n (j + 4)]),
     (none, selName σ c lvl (osSlowName c), (osSlowCall1 c tch bd lvl lv mats k).1,
       (osSlowCall1 c tch bd lvl lv mats k).2)]
 
 /-- The residual frames from level `lvl`. -/
-noncomputable def resFrames (σ : Val) (c : OsCfg) (tch ich bd ls la : ℕ) :
+noncomputable def resFrames (σ : Val) (c : OsCfg) (rts : List (List ℕ)) (tch ich bd ls la : ℕ) :
     ℕ → List OsLv → List OsMat → ℕ → List (Option V × String × List V × List V)
   | _, [], _, _ => []
   | lvl, lv :: rest, mats, k =>
-    resFrames1 σ c tch bd lvl lv mats k ++ resFrames σ c tch ich bd ls la (lvl + 1) rest
-      (osResidual c tch ich bd ls la lvl lv mats k).2.1 (osResidual c tch ich bd ls la lvl lv mats k).2.2
+    resFrames1 σ c rts tch bd lvl lv mats k ++ resFrames σ c rts tch ich bd ls la (lvl + 1) rest
+      (osResidual c rts tch ich bd ls la lvl lv mats k).2.1 (osResidual c rts tch ich bd ls la lvl lv mats k).2.2
 
-theorem osResiduals_callSF (σ : Val) (c : OsCfg) (tch ich bd ls la : ℕ) :
+theorem osResiduals_callSF (σ : Val) (c : OsCfg) (rts : List (List ℕ)) (tch ich bd ls la : ℕ) :
     ∀ (lvl : ℕ) (lvs : List OsLv) (mats : List OsMat) (k : ℕ),
-    (osResiduals c tch ich bd ls la lvl lvs mats k).1.filterMap (Stmt.callSF σ) =
-      resFrames σ c tch ich bd ls la lvl lvs mats k
+    (osResiduals c rts tch ich bd ls la lvl lvs mats k).1.filterMap (Stmt.callSF σ) =
+      resFrames σ c rts tch ich bd ls la lvl lvs mats k
   | _, [], _, _ => rfl
   | lvl, lv :: rest, mats, k => by
-    have e : (osResiduals c tch ich bd ls la lvl (lv :: rest) mats k).1 =
-        (osResidual c tch ich bd ls la lvl lv mats k).1 ++ (osResiduals c tch ich bd ls la (lvl + 1) rest
-          (osResidual c tch ich bd ls la lvl lv mats k).2.1 (osResidual c tch ich bd ls la lvl lv mats k).2.2).1 :=
+    have e : (osResiduals c rts tch ich bd ls la lvl (lv :: rest) mats k).1 =
+        (osResidual c rts tch ich bd ls la lvl lv mats k).1 ++ (osResiduals c rts tch ich bd ls la (lvl + 1) rest
+          (osResidual c rts tch ich bd ls la lvl lv mats k).2.1
+          (osResidual c rts tch ich bd ls la lvl lv mats k).2.2).1 :=
       rfl
-    rw [e, List.filterMap_append, osResiduals_callSF σ c tch ich bd ls la (lvl + 1) rest]
+    rw [e, List.filterMap_append, osResiduals_callSF σ c rts tch ich bd ls la (lvl + 1) rest]
     have hm : ∀ P ms b o k, (osMatP P ms b o k).1.filterMap (Stmt.callSF σ) = [] :=
       fun P ms b o k ↦ callSF_atoms σ _ (osMatP_atoms P ms b o k)
     unfold osResidual
@@ -425,15 +448,16 @@ theorem osFinishA_callSF (σ : Val) (c : OsCfg) (st : OsSt) (tch : ℕ) :
          let bs := osBases c tch (pts.2 + 1) (pts.2 + 3) (pts.2 + 5) 0 (c.levels.take c.yrLevel)
            (pts.2 + 6)
          bs.1.filterMap (Stmt.callSF σ) ++
-           resFrames σ c tch (bs.2 + 1) (pts.2 + 1) (pts.2 + 3) (pts.2 + 5) 0 (c.levels.take c.yrLevel)
+           resFrames σ c st.rts tch (bs.2 + 1) (pts.2 + 1) (pts.2 + 3) (pts.2 + 5) 0 (c.levels.take c.yrLevel)
              st.mats (bs.2 + 3)) := by
   unfold osFinishA
   dsimp only
   simp only [List.filterMap_append, List.filterMap_cons, List.filterMap_nil, Stmt.callSF,
     Main.Stmt.callS, callSF_atoms σ _ (osPtBlks_atoms _ _ _ _ _ _ _),
     callSF_atoms σ _ (osHeap_atoms _ _),
-    callSF_atoms σ _ (osOodWeights_atoms _ _ _ _ _ _ _), osResiduals_callSF, List.nil_append,
+    callSF_atoms σ _ (osOodWeights_atoms _ _ _ _ _ _ _), List.nil_append,
     List.append_nil, List.cons_append, List.append_assoc]
+  rw [osResiduals_callSF]
 
 /-! ## The body's frames -/
 

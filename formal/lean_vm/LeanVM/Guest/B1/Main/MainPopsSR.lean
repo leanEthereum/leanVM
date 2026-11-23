@@ -146,7 +146,7 @@ theorem mainGoalL4R (hn : NodeRelation bytecode seed s w) (hl : GuestLimits s w)
   rw [← e]
   refine completeAtDTBR_of_relAtInP_on (fun fp' => ⟨_, fun rd hlow hL =>
     (rawS_loopP fs cert (verifySigP fs cert) (rawSD fs fp hn (hRawS s w)[0]) (by omega) hr hlow hL 0 hpos fp'
-      (fp' + ((hRawS s w).length - 0 + 1) * fs name% «main_loop3»)).relAtInP⟩) hT
+      (fp' + (((hRawS s w).length - 0) * fs name% «main_loop3» + fs (tailKey name% «main_loop3»)))).relAtInP⟩) hT
     (loopPre_pow hpos (by omega) _) ?_
   simp [logG_gen (show (hRawS s w).length < 2 ^ 64 - 1 by omega)]
   rfl

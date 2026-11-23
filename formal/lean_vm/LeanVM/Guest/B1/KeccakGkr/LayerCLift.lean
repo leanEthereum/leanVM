@@ -22,7 +22,7 @@ public import LeanVM.Guest.B1.Bits.GrindPlaced
   claim's record at `out` pointing into `layerBufs`, and the grind's window tables
   (`winTabWords`, at `tbE`).
 * `layer_kids`: on a memory holding both, the eight-round loop and the remainder loop hold,
-  loading from them; `layer_grind`: `grind_check__L3` holds of any word passing the grind.
+  loading from them.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -124,7 +124,7 @@ end ClaimLay
 /-! ## The layer's layout -/
 
 /-- The sizes of the layer's buffers. -/
-def layerSizes (D : LayerData) : List ℕ := [D.y, 112, 11, 25, 7]
+def layerSizes (D : LayerData) : List ℕ := [D.y, 77, 11, 25, 7]
 
 /-- The words of the layer's buffers. -/
 def layerOwn (D : LayerData) (first : ℕ) (cur : E) : List (List E) :=
@@ -138,8 +138,8 @@ def layerBufs (D : LayerData) (first : ℕ) (cur : E) (b : ℕ) : Main.Layout :=
 
 theorem layerBufs_eq (D : LayerData) (first : ℕ) (cur : E) (b : ℕ) :
     layerBufs D first cur b = [(b, D.chs first), (b + D.y, D.recWords first cur),
-      (b + D.y + 112, D.locPt first), (b + D.y + 123, lanesOut (D.locPt first) (D.beta first).1),
-      (b + D.y + 148, flipsOf (laterWeights (lanesOut (D.locPt first) (D.beta first).1)
+      (b + D.y + 77, D.locPt first), (b + D.y + 88, lanesOut (D.locPt first) (D.beta first).1),
+      (b + D.y + 113, flipsOf (laterWeights (lanesOut (D.locPt first) (D.beta first).1)
         (eqKernel ((D.locPt first).take 6))))] := by
   simp [layerBufs, bufL, layerSizes, layerOwn, bases]
 
@@ -147,11 +147,11 @@ theorem layerBufs_eq (D : LayerData) (first : ℕ) (cur : E) (b : ℕ) :
 `b`), the stream at `cur`, the claim's layout, the window tables at `tbE`. -/
 noncomputable def layerLin (D : LayerData) (first : ℕ) (CL : ClaimLay) (bcur bout tbE b : ℕ) :
     Main.Layout :=
-  [(bout, D.outW first (ptr b) (ptr (b + D.y + 123)) (ptr (b + D.y + 112)) (ptr (b + D.y + 148))),
+  [(bout, D.outW first (ptr b) (ptr (b + D.y + 88)) (ptr (b + D.y + 77)) (ptr (b + D.y + 113))),
     (bcur, D.xs)] ++ CL.L first D.c ++ [(tbE, winTabWords)]
 
 theorem recWords_length (D : LayerData) (first : ℕ) (cur : E) :
-    (D.recWords first cur).length = 112 := by simp [LayerData.recWords]
+    (D.recWords first cur).length = 77 := by simp [LayerData.recWords]
 
 /-- **The callees, honestly and loading from the layout**: on a memory holding the caller's words
 and the buffers, the eight-round loop and the remainder loop hold. -/
@@ -181,13 +181,13 @@ theorem layer_kids {first : ℕ} (hf : first < 2) (D : LayerData) (CL : ClaimLay
   have hcl := LayerData.chs_length (D := D) (first := first) hpm
   have hxl := LayerData.xs_length hpl hpm hlm
   -- record `j`'s cursor
-  have hcur : ∀ j < 16, j ≤ D.y / 8 + D.y % 8 → ∀ c', LoadHolds rd (ptr (b + D.y) * gen ^ j) 80 c' →
+  have hcur : ∀ j < 11, j ≤ D.y / 8 + D.y % 8 → ∀ c', LoadHolds rd (ptr (b + D.y) * gen ^ j) 55 c' →
       c' = ptr bcur * gen ^ (48 + 2 * D.recK j) := by
     intro j hj hjy c' hc'
     have := (LayerData.recWords_rec hrec hj hjy).2.1
     simp only [krCap] at this
     exact loadHolds_unique hc' this
-  have hrecR : ∀ j ≤ 14, ∀ k ∈ roundRecOffs, InR (RegionL L) (ptr (b + D.y) * gen ^ j) k := by
+  have hrecR : ∀ j ≤ 9, ∀ k ∈ roundRecOffs, InR (RegionL L) (ptr (b + D.y) * gen ^ j) k := by
     intro j hj k hk
     refine inR_entry mRec ?_
     simp only [roundRecOffs, List.mem_cons, List.not_mem_nil, or_false] at hk
@@ -222,24 +222,6 @@ theorem layer_kids {first : ℕ} (hf : first < 2) (D : LayerData) (CL : ClaimLay
         unfold LayerData.recK; split <;> omega
       rw [this]
       omega
-
-variable {fs : String → ℕ} {cert : String → V → ℕ}
-
-/-- **`grind_check__L3`, placed, on the window tables at `tbE`**, of any word passing the grind. -/
-theorem layer_grind_completeD {κ : ℕ} (hκ : 11 ≤ κ) {L : Main.Layout} {tbE : ℕ}
-    (hq : (tbE, winTabWords) ∈ L) {v : E} (hv : (v.limb 0).lane.toNat % 2 ^ 3 = 0) :
-    CompleteAtD fs cert κ (grindCheckName 3) L [v, ptr tbE] (Returns []) :=
-  grind_check_completeD (bits := 3) (by decide) hκ [v, ptr tbE] [] L
-    fun _ _ hm ↦ ⟨rfl, v, ptr tbE, rfl, winTabs_of_memL hm hq, hv⟩
-
-/-- **`grind_check__L3` holds** of any word passing the grind, on a memory holding the window
-tables at `tbE`. -/
-theorem layer_grind {κ : ℕ} (hκ : 11 ≤ κ) {L : Main.Layout} {tbE : ℕ}
-    (hq : (tbE, winTabWords) ∈ L) {rd : Reader} (hlow : LowDef κ rd) (hm : MemL rd L) {v : E}
-    (hv : (v.limb 0).lane.toNat % 2 ^ 3 = 0) :
-    coreProgram.Rel rd (grindCheckName 3) [v, ptr tbE] [] :=
-  (grind_relAtIn (fs := fun _ ↦ 0) (cert := fun _ _ ↦ 0) (bits := 3) (by decide) hκ
-    (fun _ _ hm' ↦ ⟨rfl, v, ptr tbE, rfl, winTabs_of_memL hm' hq, hv⟩) 0 hlow hm).relAt.rel
 
 end
 end LeanVM.Guest.B1.VerifySub

@@ -45,17 +45,42 @@ theorem getD_mapV {σ : Val} {l : List V} {i : ℕ} (h : i < l.length) :
     (l.map σ).getD i 0 = σ (l.getD i (.n 0)) := by
   rw [List.getD_eq_getElem _ _ (by simpa using h), List.getD_eq_getElem _ _ h, List.getElem_map]
 
+theorem word_gpowE {S : ℕ} (hS : S < ordG) : gpowE S = Protocol.Verifier.gen ^ S := by
+  rw [gpowE, gpowK_eq (lt_trans hS (by unfold u128Bound ordG; norm_num)), ← Value.gen_pow_eq_ofK]
+
+/-- An arm `sqArmOk` accepts sets the value to `g^S`, if its atoms hold. -/
+theorem sqArm_val {rd : Reader} {σ : Val} {arm : List Stmt} {sv : V} {S : ℕ} (hS : S < ordG)
+    (h : sqArmOk arm sv S = true) (hall : ∀ a, .atom a ∈ arm → a.Holds rd σ) :
+    σ sv = Protocol.Verifier.gen ^ S := by
+  obtain ⟨s1, hs1, h1⟩ := List.any_eq_true.mp h
+  match s1, h1 with
+  | .atom (.copy a c), h1 =>
+    simp only [Bool.and_eq_true] at h1
+    obtain ⟨ha, h2⟩ := h1
+    obtain ⟨s2, hs2, h2'⟩ := List.any_eq_true.mp h2
+    match s2, h2' with
+    | .atom (.const c' x), h2' =>
+      simp only [Bool.and_eq_true] at h2'
+      obtain ⟨hc, hx⟩ := h2'
+      obtain rfl := vEqb_iff.mp ha
+      obtain rfl := vEqb_iff.mp hc
+      have e1 := hall _ hs1
+      have e2 := hall _ hs2
+      simp only [Atom.Holds] at e1 e2
+      rw [e1, e2, eEqb_sound hx, word_gpowE hS]
+
 /-- **A tuple `osTupOk` accepts holds**: at arm `r`, the windows `level_positions`' arm `r`
-decodes on the dispatch's window pointers, in the tuple's cell. -/
+decodes on the dispatch's window pointers, in the tuple's cell, in the squeezes the level's match
+sets at arm `r`. -/
 theorem os_tup {κ : ℕ} {L : MemoryImage κ} (hκ : κ ≤ 32) {fp : K} {C : Cert} {body : List Stmt}
     {start : ℕ} (hall : ∀ s ∈ body.take start, StmtOkD (coreProgram.Rel L.read) L.read (valG L fp C) s)
-    (hwt : WinTabs L.read (valG L fp C (.n (valf% «open_stacked» "tabs")))) {w : ℕ × ℕ} {t : ℕ × List ℕ}
-    (hw' : osTupOk C body start w t = true) : SemRel glob t.1 L.read (t.2.map (wd L fp)) := by
-  obtain ⟨pP, wv⟩ := w
+    (hwt : WinTabs L.read (valG L fp C (.n (valf% «open_stacked» "tabs")))) {w : ℕ × ℕ × ℕ × List ℕ}
+    {t : ℕ × List ℕ} (hw' : osTupOk C body start w t = true) : SemRel glob t.1 L.read (t.2.map (wd L fp)) := by
+  obtain ⟨pP, wv, pM, Ss⟩ := w
   obtain ⟨tg, cells⟩ := t
   unfold osTupOk at hw'
   simp only [Bool.and_eq_true, beq_iff_eq, Nat.blt_eq, Nat.ble_eq, Bool.or_eq_true, and_assoc] at hw'
-  obtain ⟨ht1, hr4, hk2, ho2, hcd, hd, hn, hob, rfl, hpP, hdisp⟩ := hw'
+  obtain ⟨ht1, hr4, hk2, ho2, hcd, hd, hn, hob, rfl, hpP, hpM, hdisp⟩ := hw'
   generalize lqN (selBase tg) = n at ht1 hn hdisp
   generalize walkOdd (lqWalk (selBase tg)) = odd at ht1 ho2 hob hdisp
   generalize walkD (lqWalk (selBase tg)) = d at ht1 hd hdisp
@@ -63,6 +88,7 @@ theorem os_tup {κ : ℕ} {L : MemoryImage κ} (hκ : κ ≤ 32) {fp : K} {C : C
   have hk4 : walkKind (lqWalk (selBase tg)) < 4 := by unfold walkKind; omega
   generalize hbase : walkKind (lqWalk (selBase tg)) - 2 = base at ht1 hob hdisp
   generalize selArm tg = r at ht1 hr4 hdisp
+  generalize Ss.getD r 0 = S at hdisp
   have hb2 : base < 2 := by omega
   have hodd : odd = 1 → base = 1 := fun h1 ↦ by rcases hob with h | h <;> omega
   subst ht1
@@ -77,28 +103,41 @@ theorem os_tup {κ : ℕ} {L : MemoryImage κ} (hκ : κ ≤ 32) {fp : K} {C : C
   simp only [List.getD_cons_zero]
   rw [← valG_n L fp C 0] at hsel
   rw [← valG_n L fp C wv]
+  have hsr (j : ℕ) (hj : j < 32) (hx : valG L fp C (.n 0) = ofK (addressOfIndex j)) : j = r := by
+    rw [hx, ← Value.gen_pow_eq_ofK, ← Value.gen_pow_eq_ofK] at hsel
+    exact gen_pow_inj (by omega) (by omega) hsel
   split at hdisp
-  · next x names args rets heq =>
+  · next x names args rets y arms heq heqM =>
     simp only [Bool.and_eq_true, beq_iff_eq, Nat.ble_eq, List.any_eq_true, and_assoc] at hdisp
-    obtain ⟨rfl, hnl, hal, h8, h7, e, he, he1, he2, he3, hcov⟩ := hdisp
+    obtain ⟨rfl, rfl, hnl, hml, hal, h8, h7, hsq, e, he, he1, he2, he3, hcov⟩ := hdisp
     have hd0 := okAt hall hpP
     rw [heq] at hd0
     obtain ⟨e', he', hx, hrel⟩ := hd0
-    have hrr : e' = r := by
-      rw [hx, ← Value.gen_pow_eq_ofK, ← Value.gen_pow_eq_ofK] at hsel
-      exact gen_pow_inj (by omega) (by omega) hsel
-    subst hrr
-    have hname : names[e']'he' = e.1 := by rw [he1, List.getD_eq_getElem _ _ he']
+    have hm0 := okAt hall (lt_trans hpM hpP)
+    rw [heqM] at hm0
+    obtain ⟨i, hi, hxi, harm⟩ := hm0
+    have hS : S < ordG := by
+      simp only [lpCovers, Bool.and_eq_true, Nat.blt_eq] at hcov
+      exact hcov.1.2
+    have hre := hsr e' (by omega) hx
+    subst hre
+    have hri := hsr i (by omega) hxi
+    subst hri
+    rw [List.getD_eq_getElem _ _ hi] at hsq
+    have hSg : (args.map (valG L fp C)).getD 9 0 = Protocol.Verifier.gen ^ S := by
+      rw [getD_mapV (by omega)]
+      exact sqArm_val hS hsq harm
+    have hname : names[i]'he' = e.1 := by rw [he1, List.getD_eq_getElem _ _ he']
     rw [hname] at hrel
     have hwt' : WinTabs L.read ((args.map (valG L fp C)).getD 8 0) := by
       rw [getD_mapV (by omega), h8]; exact hwt
-    have := lp_walk hκ L he hodd (by rw [he2, he3]; exact hcov) hwt' hrel
+    have := lp_walk hκ L he hodd (by rw [he2, he3]; exact hcov) hwt' hSg hrel
     rw [getD_mapV (by omega), h7, he2, he3] at this
     exact this
   · simp at hdisp
 
 /-- **`open_stacked`'s cut obligations**, from its certificate's check against the core IR. -/
-theorem os_cutsKnown {j : ℕ} {W : List (ℕ × ℕ)} (hok : osOk j W = true) : CutsKnown j := by
+theorem os_cutsKnown {j : ℕ} {W : List (ℕ × ℕ × ℕ × List ℕ)} (hok : osOk j W = true) : CutsKnown j := by
   intro κ L _ h32 fp _ hsem i hi h0 hl
   simp only [osOk, Bool.and_eq_true, beq_iff_eq] at hok
   obtain ⟨hs, hcuts⟩ := hok

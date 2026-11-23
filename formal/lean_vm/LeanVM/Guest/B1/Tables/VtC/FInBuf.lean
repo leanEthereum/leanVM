@@ -32,10 +32,6 @@ open LeanVM.Protocol.Verifier (gen)
 def BufWin (σ : Val) (bufs : List (E × ℕ)) (p : V) (len : ℕ) : Prop :=
   ∃ q ∈ bufs, ∃ j : ℕ, σ p = q.1 * gen ^ j ∧ j + len ≤ q.2
 
-theorem BufWin.of_mem {σ : Val} {bufs : List (E × ℕ)} {p : V} {len : ℕ}
-    (h : (σ p, len) ∈ bufs) : BufWin σ bufs p len :=
-  ⟨_, h, 0, by simp, by simp⟩
-
 theorem BufWin.inBuf {σ : Val} {bufs : List (E × ℕ)} {p : V} {len : ℕ}
     (h : BufWin σ bufs p len) {off : ℕ} (ho : off < len) : InBuf σ bufs p off := by
   obtain ⟨q, hq, j, e, hj⟩ := h

@@ -137,7 +137,7 @@ theorem vs_valsI (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.
   have hτ9 := VerifySub.tau_ge F.hrowsL
   have hτ24 := VerifySub.tau_le_of_kappasBelow (VerifySub.tableHeights_length _ F.hrowsL) F.hKB
   -- `verify_keccak`
-  have hK := VerifySub.verify_keccak_holds (by omega) hκw r.img (grind_check_holds 3 (by decide)) _ _
+  have hK := VerifySub.verify_keccak_holds (by omega) hκw r.img _ _
     (Res.KidRel.rel F.hkc)
   obtain ⟨xsK, op, point, slices, word, s', -, hrunK, -, -, -, -, -, -, -, hretK⟩ :=
     hK (by rw [F.h589]; exact VerifySub.winTabs_of hwin) ((Tables.tableHeightsOf F.rowsN).getD 5 0) chis _ hτ9

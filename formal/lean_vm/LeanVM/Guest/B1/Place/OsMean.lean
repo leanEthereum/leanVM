@@ -8,14 +8,16 @@
 module
 
 public import LeanVM.Guest.Lift.OsCallees
-public import LeanVM.Guest.B1.Place.OsRound
+public import LeanVM.Guest.B1.Whir.Flat
+public import LeanVM.Guest.B1.Bits.GrindPlaced
+public import LeanVM.Guest.B1.Tables.FlatAt
 
 /-!
 # The callees' meanings, by name
 
 `osKindOf f`: the kind of callee `f` names, read from `osKindTable` (the named callees of
-`open_stacked__L{m}`: `opening_round`, `opening_tail_round`, `opening_message`,
-`squeeze_point_from`, `grind_check`, `verify_merkle_cap`, `fold_final_msg`, `is_zero`; each
+`open_stacked__L{m}`: `opening_tail_round`, `opening_message`,
+`squeeze_point_from`, `verify_merkle_cap`, `fold_final_msg`, `is_zero`; each
 with its meaning `OsKind.Pre` and its loads `OsKind.spec`). `decode_query_windows`, the
 `opening_queries` specializations and the loop helpers are the other callees, placed apart.
 `osKindTable_ok`: every entry names a deployed specialization of its kind (a kernel check), so
@@ -44,11 +46,9 @@ variable {fs : String → ℕ} {cert : String → V → ℕ} {κ : ℕ}
 
 /-- The kinds of `open_stacked`'s named callees. -/
 inductive OsKind where
-  | round
   | tail
   | msg (n nonce : ℕ)
   | spf (n : ℕ)
-  | grind (b : ℕ)
   | cap (d : ℕ)
   | ffm (n : ℕ)
   | iz
@@ -56,29 +56,25 @@ inductive OsKind where
 
 /-- A kind's meaning. -/
 def OsKind.Pre : OsKind → Reader → List E → List E → Prop
-  | .round => fun rd a r => Whir.MeaningOpeningRound rd a r ∧ WinTabs rd (a.getD 7 0)
   | .tail => MeaningOpeningTailRound
   | .msg n nonce => MeaningOpeningMessage n nonce
   | .spf n => MeaningSqueezePointFrom n
-  | .grind b => grindPre b
   | .cap d => MeaningVerifyMerkleCap d
   | .ffm n => MeaningFoldFinalMsg n
   | .iz => fun _ ↦ MeaningIsZero
 
 /-- A kind's loads. -/
 def OsKind.spec : OsKind → List (ℕ × ℕ)
-  | .round => roundSpec
   | .tail => tailSpec
   | .msg n nonce => msgSpec n nonce
   | .spf n => spfSpec n
-  | .grind _ => []
   | .cap d => merkleCapSpec d
   | .ffm n => foldFinalSpec n
   | .iz => []
 
 /-- The named callees and their kinds. -/
 def osKindTable : List (String × OsKind) :=
-  [("is_zero", .iz), ("opening_round", .round), ("opening_tail_round", .tail),
+  [("is_zero", .iz), ("opening_tail_round", .tail),
     ("opening_message__L6_L1", .msg 6 1), ("opening_message__L8_L1", .msg 8 1), ("opening_message__L12_L1", .msg 12 1),
     ("opening_message__L20_L1", .msg 20 1), ("opening_message__L36_L1", .msg 36 1),
     ("squeeze_point_from__L6", .spf 6), ("squeeze_point_from__L7", .spf 7),
@@ -90,8 +86,7 @@ def osKindTable : List (String × OsKind) :=
     ("squeeze_point_from__L18", .spf 18), ("squeeze_point_from__L19", .spf 19),
     ("squeeze_point_from__L20", .spf 20), ("squeeze_point_from__L21", .spf 21),
     ("squeeze_point_from__L22", .spf 22), ("squeeze_point_from__L23", .spf 23),
-    ("squeeze_point_from__L24", .spf 24),
-    ("grind_check__L17", .grind 17), ("grind_check__L15", .grind 15)] ++
+    ("squeeze_point_from__L24", .spf 24)] ++
   merkleCapNames.map (fun p ↦ (p.1, .cap p.2)) ++
   foldFinalMsgNames.map (fun p ↦ (p.1, .ffm p.2))
 
@@ -114,11 +109,9 @@ theorem os_mem_of_lookup {f : String} {K : OsKind} :
 
 /-- An entry names a deployed specialization of its kind. -/
 def osKindEntryOk : String × OsKind → Bool
-  | (f, .round) => f == "opening_round"
   | (f, .tail) => f == "opening_tail_round"
   | (f, .msg n nonce) => decide ((n, nonce) ∈ omDeployed) && f == omName (n, nonce)
   | (f, .spf n) => decide (n ∈ spfDeployed) && f == spfName n
-  | (f, .grind b) => decide (b ∈ grindBitsDeployed) && f == grindCheckName b
   | (f, .cap d) => decide ((f, d) ∈ merkleCapNames)
   | (f, .ffm n) => decide ((f, n) ∈ foldFinalMsgNames)
   | (f, .iz) => f == "is_zero"
@@ -132,15 +125,11 @@ theorem osKindEntry_ok {f : String} {K : OsKind} (hK : osKindOf f = some K) :
     osKindEntryOk (f, K) = true :=
   List.all_eq_true.mp osKindTable_ok _ (os_mem_of_lookup osKindTable hK)
 
-/-- **A named callee is complete placed on its meaning, its loads in the caller's words**,
-`opening_round` by its own placed form. -/
-theorem kindD (h : OsCalleesRegD fs cert κ) (hr : OsRoundRegD fs cert κ) {f : String} {K : OsKind}
+/-- **A named callee is complete placed on its meaning, its loads in the caller's words.** -/
+theorem kindD (h : OsCalleesRegD fs cert κ) {f : String} {K : OsKind}
     (hK : osKindOf f = some K) : CompleteRelRegD fs cert κ f K.Pre (RegPtrs K.spec) := by
   have he := osKindEntry_ok hK
   cases K with
-  | round =>
-    simp only [osKindEntryOk, beq_iff_eq] at he
-    subst he; exact hr
   | tail =>
     simp only [osKindEntryOk, beq_iff_eq] at he
     subst he; exact h.tail
@@ -152,10 +141,6 @@ theorem kindD (h : OsCalleesRegD fs cert κ) (hr : OsRoundRegD fs cert κ) {f : 
     simp only [osKindEntryOk, Bool.and_eq_true, decide_eq_true_eq, beq_iff_eq] at he
     obtain ⟨hm, rfl⟩ := he
     exact h.spf _ hm
-  | grind b =>
-    simp only [osKindEntryOk, Bool.and_eq_true, decide_eq_true_eq, beq_iff_eq] at he
-    obtain ⟨hm, rfl⟩ := he
-    exact h.grind _ hm
   | cap d =>
     simp only [osKindEntryOk, decide_eq_true_eq] at he
     exact h.merkleCap _ he
@@ -167,10 +152,10 @@ theorem kindD (h : OsCalleesRegD fs cert κ) (hr : OsRoundRegD fs cert κ) {f : 
     subst he; exact h.iz
 
 /-- **Every named callee is complete placed on its meaning, its loads in the caller's words**, on
-memories defined below `2^κ`, `11 ≤ κ`. -/
-theorem kindD_holds (hκ : 11 ≤ κ) {f : String} {K : OsKind} (hK : osKindOf f = some K) :
+memories defined below `2^κ`. -/
+theorem kindD_holds {f : String} {K : OsKind} (hK : osKindOf f = some K) :
     CompleteRelRegD fs cert κ f K.Pre (RegPtrs K.spec) :=
-  kindD (osCalleesRegD_holds hκ) (osRoundRegD_holds hκ) hK
+  kindD (osCalleesRegD_holds κ) hK
 
 /-! ## Fixed loads -/
 
@@ -274,7 +259,7 @@ def OsXOk (κ : ℕ) (M : Layout) (K : OsKind) (a : List E) : Prop := FixedReads
 
 /-- **A named call of a body proved at `osCR` on every memory holding `Lk`** is complete placed
 on `Lk`. -/
-theorem os_kid_named (hk : OsCalleesRegD fs cert κ) (hr : OsRoundRegD fs cert κ) {Lk : Layout}
+theorem os_kid_named (hk : OsCalleesRegD fs cert κ) {Lk : Layout}
     {σ : Val} {pre : List Stmt} {Sp : String → List E → List E → Prop}
     (hall : ∀ rd, LowDef κ rd → MemL rd Lk → AllOk (osCR rd Sp (OsXOk κ Lk)) rd σ pre)
     (hex : ∃ rd0, LowDef κ rd0 ∧ MemL rd0 Lk)
@@ -286,7 +271,7 @@ theorem os_kid_named (hk : OsCalleesRegD fs cert κ) (hr : OsRoundRegD fs cert �
     have h := os_calls_of_allOk (hall rd hl hm) c hc ht
     unfold osCR at h; rw [hK] at h; exact h
   obtain ⟨rd0, hl0, hm0⟩ := hex
-  exact kindD hk hr hK _ _ Lk (fixedReads_region (hpre rd0 hl0 hm0).2 ⟨rd0, hl0, hm0⟩)
+  exact kindD hk hK _ _ Lk (fixedReads_region (hpre rd0 hl0 hm0).2 ⟨rd0, hl0, hm0⟩)
     fun rd hl hm ↦ (hpre rd hl hm).1
 
 /-- **Another call of such a body** satisfies `Sp`, one memory holding `Lk` existing. -/

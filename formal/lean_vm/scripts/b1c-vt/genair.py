@@ -6,8 +6,11 @@ from genforms import *
 from mk import write
 # `verify_tables`' `air_acc += zc_cprod[g_zc_n / tau_g] * zc_peq[tau_g] * constraint_eval`, tau_g = kb[2 + t]
 # (the kappa_base frame variable 28 + t): `g_zc_n = x·τ`.
-from vtanchor import PEQ, CLAIM
-GZN, CPROD = 2544, 2621
+from vtanchor import PEQ, CLAIM, GZN
+# `zc_cprod`, the pointer the weight block's first product reads through
+CPROD = {parse_atom(RAW[q + 1])[1][1] for q in range(WLO, WHI) if RAW[q].startswith(f'.atom (.mul (.n {GZN}) ')}
+assert len(CPROD) == 1, CPROD
+CPROD = CPROD.pop()
 out=[]
 def at(p): return f'  have a{p} := h.atomAt {p} {RAW[p][len(".atom "):]} (by decide +kernel)'
 airs=[]

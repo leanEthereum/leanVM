@@ -87,8 +87,8 @@ theorem child_claim_list_any_completeAtTBP (fs : String → ℕ) (cert : String 
       ⟨cclNames[r]!, true, [chain * gen ^ (13 * (a + b)), gen ^ eP, gen ^ rg,
         base * gen ^ (136 * a + 17 * b), last], Lin ++ Own, Returns (digestCells D)⟩]
   have hokB : KidsDTBR fs cert κ ks (fun rd => gapTs rd (anyPss o a b r))
-      [(a + 1) * fs name% «child_claim_list_any_loop0», (b + 1) * fs
-          name% «child_claim_list_any_loop1», fs (cclNames.getD r "")] := by
+      [a * fs name% «child_claim_list_any_loop0» + fs (tailKey name% «child_claim_list_any_loop0»), b * fs
+          name% «child_claim_list_any_loop1» + fs (tailKey name% «child_claim_list_any_loop1»), fs (cclNames.getD r "")] := by
     refine ⟨fun ht => ?_, fun ht => ?_, fun _ => ?_, trivial⟩
     · simp only [decide_eq_true_eq] at ht
       refine anyLoop_completeAtBP (hwit := any136_wits) fs cert (j := idx% «child_claim_list_any_loop0»)
@@ -152,8 +152,8 @@ theorem child_claim_list_any_completeAtTBP (fs : String → ℕ) (cert : String 
       rwa [← cellsBytes_append, List.take_append_drop] at this
   obtain ⟨Nk, Lk, outs, hNk, hoo, hW, hD, -, hKids⟩ :=
     kidsFromInT_of_kidsDTBR (fs := fs) (cert := cert) κ ks (fun rd => gapTs rd (anyPss o a b r))
-      [(a + 1) * fs name% «child_claim_list_any_loop0», (b + 1) * fs
-          name% «child_claim_list_any_loop1», fs (cclNames.getD r "")] hokB
+      [a * fs name% «child_claim_list_any_loop0» + fs (tailKey name% «child_claim_list_any_loop0»), b * fs
+          name% «child_claim_list_any_loop1» + fs (tailKey name% «child_claim_list_any_loop1»), fs (cclNames.getD r "")] hokB
       (b0 + 13 * (a + b + 1))
   have hl0 : outs.length = 3 := hoo.length
   obtain ⟨o1, t1, rfl, hl1⟩ := exists_of_length_succ hl0

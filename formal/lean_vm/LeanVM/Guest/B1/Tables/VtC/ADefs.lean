@@ -21,7 +21,7 @@ public import LeanVM.Guest.B1.Bits.Tables
 `VtBases`: the caller's buffers' addresses (the cursor, `zeta`, `dims_g`, `table_rows`,
 `g_squares` (the exponent table), `fp_w`, `claim_pool`, `chi`, `gkr_leaves`, `bc_point`; `tabs` is `g_squares`' window section)
 and the first word of `verify_tables`' own buffers. `VtHonest.args`: the 20 arguments. `VtHonest.linL`: the caller's
-buffers' honest words. `vtAllocVars`: the 112 allocations' values, in order (`vt_allocs`, by the
+buffers' honest words. `vtAllocVars`: the 122 allocations' values, in order (`vt_allocs`, by the
 kernel); `VtHonest.sizes`, `VtHonest.ownW`: their sizes and honest words; `VtHonest.ownL`: them
 at the bump allocator's positions. `VtWOk`: what the oracle answers (the allocations' pointers,
 the witnesses, the callees' returns).
@@ -93,11 +93,12 @@ structure VtBases where
 
 /-- The allocations' values, in order. -/
 def vtAllocVars : List ℕ :=
-  [34, 35, 36, 37, 665, 700, 702, 703, 778] ++ (List.range 3).map (fun b ↦ vtFwW b + 6) ++
+  [34, 35, 36, 37] ++ ((List.range 6).flatMap fun t ↦ [vtShV t + 11, vtShV t + 15]) ++
+    [767, 802, 822] ++ (List.range 3).map (fun b ↦ vtFwW b + 6) ++
     (List.range 51).map (fun i ↦ (vtPushSel.getD i default).2.2.1) ++
-    (List.range 45).map (fun i ↦ (vtCountSel.getD i default).2.2.1) ++ [2620, 2621, 2625, 2641]
+    (List.range 45).map (fun i ↦ (vtCountSel.getD i default).2.2.1) ++ [2316, 2317, 2321, 2337]
 
-theorem vtAllocVars_length : vtAllocVars.length = 112 := by decide
+theorem vtAllocVars_length : vtAllocVars.length = 122 := by decide
 
 /-- **The allocations, by the kernel.** -/
 theorem vt_allocs : (vtPre.filterMap LeanVM.Guest.Memory.Stmt.allocSz).map (fun x ↦ x.1) =
@@ -153,15 +154,21 @@ noncomputable def linL : TLay :=
     (B.sq, expTableWordsW), (B.fpw, H.weights), (B.pool, H.poolW), (B.chi, H.chiW),
     (B.leaves, H.values), (B.bcp, H.slots)]
 
+/-- The shared tables' sizes, table by table: `8(n + 1)` and `4(n + 1)` words for a run of `n`. -/
+def shSizes : List ℕ := (List.range 6).flatMap fun t ↦ [8 * (H.μ - H.τ t + 1), 4 * (H.μ - H.τ t + 1)]
+
+/-- The shared tables' honest words, table by table. -/
+def shW : List (List E) := (List.range 6).flatMap fun t ↦ [vtShEqW H.point H.τ t, vtShGW H.point H.τ t]
+
 /-- The own buffers' sizes, in allocation order. -/
 def sizes : List ℕ :=
-  [24, 24, 24, 24, 34, H.μ, 1728, 864, 153, 34, 34, 34] ++ List.replicate 96 9 ++
+  [24, 24, 24, 24] ++ H.shSizes ++ [34, H.μ, 153, 34, 34, 34] ++ List.replicate 96 9 ++
     [245, 35, 34, 35]
 
 /-- **The own buffers' honest words**, in allocation order. -/
 noncomputable def ownW : List (List E) :=
-  [vtGKeyW H.lm H.τ, vtGSizeW H.lm H.τ, vtGBaseW H.lm H.τ, vtGOrdW H.lm H.τ, vtIdxcW,
-    H.point.map (1 + ·), vtShEqW H.point H.τ, vtShGW H.point H.τ, vtIdxBufW H.point H.lm] ++
+  [vtGKeyW H.lm H.τ, vtGSizeW H.lm H.τ, vtGBaseW H.lm H.τ, vtGOrdW H.lm H.τ] ++ H.shW ++
+    [vtIdxcW, H.point.map (1 + ·), vtIdxBufW H.point H.lm] ++
     (List.range 3).map (fun b ↦ offBits (H.offP.getD b 0)) ++
     (List.range 51).map (fun i ↦ offDigits (H.offP.getD (3 + i) 0)
       (H.τ (vtPushSel.getD i default).2.2.2.1)) ++
@@ -185,26 +192,26 @@ end VtHonest
 /-- **What the oracle answers**: the allocations' pointers, the witnesses, the callees'
 returns. -/
 structure VtWOk (H : VtHonest) (B : VtBases) (w : ℕ → E) : Prop where
-  alloc : ∀ j < 112, w (vtAllocVars.getD j 0) = ofK (addressOfIndex ((H.ownB B).getD j 0))
+  alloc : ∀ j < 122, w (vtAllocVars.getD j 0) = ofK (addressOfIndex ((H.ownB B).getD j 0))
   pads : ∀ t < 6, w (vtPadV t) = paddingWeight (H.point.take (H.τ t)) (vtRw H.rows t) ∧
     w (vtPadV t + 1) = PadLead (H.τ t) (vtRw H.rows t) ∧
     w (vtPadV t + 2) = PadRest (H.τ t) (vtRw H.rows t)
-  w700 : w 701 = 0
-  w2544 : w 2544 = gen ^ H.n
-  hwI : w 810 = indexMle (H.point.take H.lm) ∧ w 838 = indexMle (H.point.take 19)
+  w700 : w 803 = 0
+  w2544 : w 2240 = gen ^ H.n
+  hwI : w 854 = indexMle (H.point.take H.lm) ∧ w 882 = indexMle (H.point.take 19)
   hwF : ∀ b < 3, w (vtFwW b + 10) = blockSel (vtSizesP H.lm H.τ) H.μ b H.point ∧
     w (vtFwW b + 11) = gen ^ H.offP.getD b 0
   hwP : ∀ i < 51, w (vtSelE (vtPushSel.getD i default).2.2.1 (vtPushSel.getD i default).2.2.2.1) =
       blockSel (vtSizesP H.lm H.τ) H.μ (3 + i) H.point ∧
     w (vtSelE (vtPushSel.getD i default).2.2.1 (vtPushSel.getD i default).2.2.2.1 + 1) =
       gen ^ H.offP.getD (3 + i) 0
-  hw1 : (List.range 8).map (fun i ↦ w (1876 + i)) = (vtBcR1 (vtF0 (H.args B) H.xs4) H.bcW).1 ++
+  hw1 : (List.range 8).map (fun i ↦ w (1572 + i)) = (vtBcR1 (vtF0 (H.args B) H.xs4) H.bcW).1 ++
     [(H.args B).getD 5 0 * gen ^ 7 * gen ^ 2, (vtBcR1 (vtF0 (H.args B) H.xs4) H.bcW).2.1,
       (vtBcR1 (vtF0 (H.args B) H.xs4) H.bcW).2.2]
-  hw2 : (List.range 8).map (fun i ↦ w (1884 + i)) = (vtBcR2 (vtF0 (H.args B) H.xs4) H.bcW).1 ++
+  hw2 : (List.range 8).map (fun i ↦ w (1580 + i)) = (vtBcR2 (vtF0 (H.args B) H.xs4) H.bcW).1 ++
     [(H.args B).getD 5 0 * gen ^ 7 * gen ^ 2 * gen ^ 2, (vtBcR2 (vtF0 (H.args B) H.xs4) H.bcW).2.1,
       (vtBcR2 (vtF0 (H.args B) H.xs4) H.bcW).2.2]
-  hw3 : (List.range 8).map (fun i ↦ w (1892 + i)) = (vtBcR3 (vtF0 (H.args B) H.xs4) H.bcW).1 ++
+  hw3 : (List.range 8).map (fun i ↦ w (1588 + i)) = (vtBcR3 (vtF0 (H.args B) H.xs4) H.bcW).1 ++
     [(H.args B).getD 5 0 * gen ^ 7 * gen ^ 2 * gen ^ 2 * gen ^ 2,
       (vtBcR3 (vtF0 (H.args B) H.xs4) H.bcW).2.1, (vtBcR3 (vtF0 (H.args B) H.xs4) H.bcW).2.2]
   hwC : ∀ i < 45, w (vtSelE (vtCountSel.getD i default).2.2.1

@@ -8,8 +8,6 @@ from symev import IR, parse_atom, VT_LEAN
 GSTART = [0, 1, 2, 3, 8, 13, 16, 21, 26, 54, 55, 56, 57, 62, 67, 70, 75, 80, 108, 112, 116, 118, 122, 126, 153]
 BOFF0 = {0: 287, 1: 290, 2: 293, 3: 296, 4: 303, 5: 310, 6: 315, 7: 322, 8: 329,
          18: 524, 19: 530, 20: 536, 21: 540, 22: 546, 23: 552}
-W288, W144 = 299140177199104, 21299200
-SHLEN = [705, 714, 727, 740, 753, 766]
 
 def boffvar():
     m = {}
@@ -19,44 +17,43 @@ def boffvar():
 
 def nums(s): return [int(x) for x in re.findall(r'\.n (\d+)', s)]
 
+def shared():
+    """each table's `shared_len`, `shared_eq`, `shared_g`, from its `shared_selector_tables` call"""
+    calls = [nums(IR[p]) for p in sorted(IR) if IR[p].startswith('.call "shared_selector_tables"')]
+    assert len(calls) == 6
+    return [c[5] for c in calls], [c[0] for c in calls], [c[1] for c in calls]
+
 def main():
     bv = boffvar()
+    shlen, eqv, gv = shared()
     rows = []
-    for p in range(765, 1913):
-        s = IR.get(p, '')
+    for p in sorted(IR):
+        s = IR[p]
         m = re.match(r'\.atom \(\.hint \(\.digitsExp \(\.n (\d+)\) 34 9 4 0 \(some \(\.n (\d+)\)\) \(\.heap \(\.n (\d+)\) 0 9\)\)\)', s)
         if not m: continue
         off, kv, w = int(m.group(1)), int(m.group(2)), int(m.group(3))
         b = bv[off]; t = kv - 28
         assert IR[p - 1] == f'.atom (.hint (.alloc (.n {w}) 9))', (p, IR[p - 1])
         q = p + 1
-        es = gs = gw = 0
-        if t > 0:
-            a = [parse_atom(IR[q + i]) for i in range(4)]
-            assert a[0] == ('const', [w + 1, (W288, 0)]) and a[1][0] == 'mul' and a[1][1][0] == w + 2 and a[1][1][2] == w + 1
-            assert a[2][0] == 'const' and a[2][1][0] == w + 3 and a[3][1][0] == w + 4 and a[3][1][2] == w + 3
-            es = a[1][1][1]; gs = a[3][1][1]; gw = a[2][1][1][0]
-            q += 4
-        E = w + 1 if t == 0 else w + 5
-        d = IR[q]; assert d.startswith('.dispatch (.n %d)' % SHLEN[t]), (q, d)
-        assert nums(d)[-5:] == [w, 702 if t == 0 else w + 2, 703 if t == 0 else w + 4, E, E + 1], (q, nums(d))
-        assert parse_atom(IR[q + 1]) == ('assertEq', '(.n %d) (.n %d)' % (E + 1, off)), IR[q + 1]
+        d = IR[q]; assert d.startswith('.dispatch (.n %d)' % shlen[t]), (q, d)
+        assert nums(d)[-5:] == [w, eqv[t], gv[t], w + 1, w + 2], (q, nums(d))
+        assert parse_atom(IR[q + 1]) == ('assertEq', '(.n %d) (.n %d)' % (w + 2, off)), IR[q + 1]
         a = parse_atom(IR[q + 2])
         if a[0] == 'add':
-            assert a[1][0] == E + 2 and a[1][2] == E; prev = a[1][1]
-            assert parse_atom(IR[q + 3]) == ('copy', [E + 3, E])
+            assert a[1][0] == w + 3 and a[1][2] == w + 1; prev = a[1][1]
+            assert parse_atom(IR[q + 3]) == ('copy', [w + 4, w + 1])
         else:
-            assert a == ('copy', [E + 2, E]); prev = None
-        rows.append((b, p - 1, w, t, prev, es, gs, gw))
+            assert a == ('copy', [w + 3, w + 1]); prev = None
+        rows.append((b, p - 1, w, t, prev))
     push = [r for r in rows if r[0] < 54]; count = [r for r in rows if r[0] >= 108]
     assert [r[0] for r in push] == list(range(3, 54)) and [r[0] for r in count] == list(range(108, 153))
     return push, count
 
 def lit(rows):
     out = []
-    for (b, p, w, t, prev, es, gs, gw) in rows:
+    for (b, p, w, t, prev) in rows:
         pv = 'none' if prev is None else f'some {prev}'
-        out.append(f'({b}, {p}, {w}, {t}, {pv}, {es}, {gs}, {gw})')
+        out.append(f'({b}, {p}, {w}, {t}, {pv})')
     lines = []; cur = '  ['
     for i, x in enumerate(out):
         piece = x + (', ' if i + 1 < len(out) else ']')
@@ -81,11 +78,10 @@ public import LeanVM.Guest.B1.Tables.Vt.SelMath
 
 A table block `b` of table `t` (`vtSelT`): the hinted `g`-power digits of its certified offset
 `block_off[b]` (`vtBoffV b`) above `τ_t`, the `block_selector_tab` arm `μ - τ_t` (dispatched on
-`shared_len[t]`) on the digits and the table's shared tables (their pointers stepped from the
-previous table's, `es·g^288`, `gs·W`), the returned `g`-power asserted to be the offset, and the
-running `selector_sum`. `vtPushSel`, `vtCountSel` list the push side's blocks `3 .. 53` and the
-count side's `108 .. 152`: block, first statement, the digits' buffer, table, the previous running
-sum, and the pointers' sources.
+`shared_len[t]`) on the digits and the table's shared tables `shared_eq[t]`, `shared_g[t]`, the
+returned `g`-power asserted to be the offset, and the running `selector_sum`. `vtPushSel`,
+`vtCountSel` list the push side's blocks `3 .. 53` and the count side's `108 .. 152`: block, first
+statement, the digits' buffer, table and the previous running sum.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -98,8 +94,8 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier
 /-- `block_selector_tab`'s 34 arms. -/
 def vtBstNames : List String := (List.range 34).map (lName "block_selector_tab")
 
-/-- The eq weight's value of a block from `w`, table `t`. -/
-def vtSelE (w t : ℕ) : ℕ := if t = 0 then w + 1 else w + 5
+/-- The eq weight's value of a block from `w`, of any table. -/
+def vtSelE (w _t : ℕ) : ℕ := w + 1
 
 /-- A table block's running sum and copy. -/
 def vtSelTail (w t : ℕ) : Option ℕ → List Stmt
@@ -108,14 +104,11 @@ def vtSelTail (w t : ℕ) : Option ℕ → List Stmt
       .atom (.copy (.n (vtSelE w t + 3)) (.n (vtSelE w t)))]
 
 /-- A table block's statements. -/
-def vtSelT (w b t : ℕ) (prev : Option ℕ) (es gs gw : ℕ) : List Stmt :=
+def vtSelT (w b t : ℕ) (prev : Option ℕ) : List Stmt :=
   [.atom (.hint (.alloc (.n w) 9)),
-    .atom (.hint (.digitsExp (.n (vtBoffV b)) 34 9 4 0 (some (.n (28 + t))) (.heap (.n w) 0 9)))] ++
-  (if t = 0 then [] else
-    [.atom (.const (.n (w + 1)) vtW288), .atom (.mul (.n (w + 2)) (.n es) (.n (w + 1))),
-      .atom (.const (.n (w + 3)) (word gw 0)), .atom (.mul (.n (w + 4)) (.n gs) (.n (w + 3)))]) ++
-  [.dispatch (.n (vtShLen t)) vtBstNames [.n w, .n (if t = 0 then 702 else w + 2),
-      .n (if t = 0 then 703 else w + 4)] [.n (vtSelE w t), .n (vtSelE w t + 1)],
+    .atom (.hint (.digitsExp (.n (vtBoffV b)) 34 9 4 0 (some (.n (28 + t))) (.heap (.n w) 0 9))),
+    .dispatch (.n (vtShLen t)) vtBstNames [.n w, .n (vtEqV t), .n (vtGV t)]
+      [.n (vtSelE w t), .n (vtSelE w t + 1)],
     .atom (.assertEq (.n (vtSelE w t + 1)) (.n (vtBoffV b)))] ++ vtSelTail w t prev
 '''
 
@@ -123,10 +116,10 @@ if __name__ == '__main__':
     push, count = main()
     body = HDR
     for name, rows in (('vtPushSel', push), ('vtCountSel', count)):
-        body += f'\ndef {name} : List (ℕ × ℕ × ℕ × ℕ × Option ℕ × ℕ × ℕ × ℕ) :=\n{lit(rows)}\n'
+        body += f'\ndef {name} : List (ℕ × ℕ × ℕ × ℕ × Option ℕ) :=\n{lit(rows)}\n'
     for name in ('vtPushSel', 'vtCountSel'):
         r = f'({name}.getD i default)'
-        args = f'{r}.2.2.1 {r}.1 {r}.2.2.2.1 {r}.2.2.2.2.1 {r}.2.2.2.2.2.1 {r}.2.2.2.2.2.2.1 {r}.2.2.2.2.2.2.2'
+        args = f'{r}.2.2.1 {r}.1 {r}.2.2.2.1 {r}.2.2.2.2'
         body += f'''
 theorem {name}_check : ∀ i < {name}.length,
     tbStmtsEqb (vtSelT {args})
@@ -135,4 +128,4 @@ theorem {name}_check : ∀ i < {name}.length,
 '''
     body += '\nend\nend LeanVM.Guest.B1.Tables\n'
     open(os.path.join(VT_LEAN, 'SelBlocks.lean'), 'w').write(body)
-    print(len(push), len(count), sorted(set((r[3], r[5], r[6], r[7]) for r in push + count)))
+    print(len(push), len(count))

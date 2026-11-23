@@ -275,7 +275,7 @@ end
 /-- The buffers statements `0 ..< block_index_mle` load from: `dims_g`, `table_rows`, the exponent table, the
 group buffers, `idxc_tab`. -/
 def vtBufsSIdx : List (ℕ × ℕ) :=
-  [(10, 7), (11, 6), (12, 236), (34, 24), (35, 24), (36, 24), (37, 24), (665, 34)]
+  [(10, 7), (11, 6), (12, 236), (34, 24), (35, 24), (36, 24), (37, 24), (767, 34)]
 
 /-- The buffers the pointers' exponents come from: `dims_g` (`g^` at most `32`), the group order
 at the push and the pull side's slots (`g^` at most `23`). -/

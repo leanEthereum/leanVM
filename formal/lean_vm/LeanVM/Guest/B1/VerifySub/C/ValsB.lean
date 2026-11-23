@@ -40,7 +40,7 @@ def vsRchs (cap : List E) (n : E) : List E :=
   challengeOf (vsMapSt cap n) :: ((⟨capOf (vsMapSt cap n), []⟩ : Fs).squeezeN 15).1
 
 /-- `verify_keccak`'s returned capacity. -/
-def vsKCap (w : ℕ → E) : List E := [w 573, w 574, w 575, w 576, w 577]
+def vsKCap (w : ℕ → E) : List E := [w 625, w 626, w 627, w 628, w 629]
 
 variable {rd : Reader} {w : ℕ → E} {args : List E}
 
@@ -57,44 +57,50 @@ theorem vs_flatMap_noSide {f : ℕ → List Stmt} (hf : ∀ i, (f i).all vsNoSid
   | i :: l => by rw [List.flatMap_cons, List.all_append, hf i, vs_flatMap_noSide hf l]; rfl
 
 theorem vsMapsT_split : vsMapsT =
-    (List.range 5).map (fun i ↦ vsCopy (580 + i) (573 + i)) ++ fsNonceT (.n (val% «verify_sub» "cursor@4")) 0 (val% «verify_sub» "s63.i0:fs_grind_squeeze.s0.e.s0.e.s0#0") ++
+    (List.range 5).map (fun i ↦ vsCopy (632 + i) (625 + i)) ++ fsNonceT (.n (val% «verify_sub» "cursor@4")) 0 (val% «verify_sub» "s63.i0:fs_grind_squeeze.s0.e.s0.e.s0#0") ++
     [keccakA [.n (val% «verify_sub» "rate[0]@4"), .n (val% «verify_sub» "rate[1]@4"), .n (val% «verify_sub» "s3#0[1]"), .n (val% «verify_sub» "s3#0[1]"), .n (val% «verify_sub» "s3#0[1]"), .n (val% «verify_sub» "s3#0[2]"), .n (val% «verify_sub» "s3#0[3]"), .n (val% «verify_sub» "s3#0[4]"), .n (val% «verify_sub» "sp[0]@3"), .n (val% «verify_sub» "sp[1]@3"), .n (val% «verify_sub» "sp[2]@3"),
-      .n (val% «verify_sub» "sp[3]@3"), .n (val% «verify_sub» "sp[4]@3")] (vsRun 588 13)] ++ vsTabsT 601 602 ++
-    [grindCallT 13 (.n (val% «verify_sub» "nxt[1]@20")) (.n (val% «verify_sub» "s63.i0:fs_grind_squeeze.s0.e.s0.e.s1#1")), vsCopy 603 588] ++
+      .n (val% «verify_sub» "sp[3]@3"), .n (val% «verify_sub» "sp[4]@3")] (vsRun 640 13)] ++
+    gcInlineOT 13 653 winTabAt (.n (val% «verify_sub» "nxt[1]@20")) (.n (val% «verify_sub» "g_squares")) ++
+    [vsCopy 707 640] ++
     (List.range' 0 15).flatMap vsMapSqz ++
-    (vsAlloc 814 16 :: (List.range 16).map (fun i ↦ vsLd (vsCh i) 814 i)) := by
+    (vsAlloc 918 16 :: (List.range 16).map (fun i ↦ vsLd (vsCh i) 918 i)) := by
   rw [vsMapsT, ← List.range_eq_range']
   rfl
 
+/-- The ring map's grind, inlined, on the honest valuation: its statements' equations. -/
+theorem vsRingGrind_good (hl : args.length = 6) :
+    ∀ s ∈ gcInlineOT 13 653 winTabAt (.n (val% «verify_sub» "nxt[1]@20")) (.n (val% «verify_sub» "g_squares")),
+      GoodS rd vsSL w ς s := fun s hs ↦ by
+  have hG := vsMapsT_good (rd := rd) (w := w) hl
+  rw [vsMapsT_split] at hG
+  exact hG s (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
+    (List.mem_append_right _ hs))))
+
 /-- **The ring map's challenges**: the nonce `n` at `verify_keccak`'s cursor,
-the grind's permutation `vsMapSt`, its cell `1` for `grind_check`, `tabs`, the sixteen
-challenges `vsRchs` at `vsCh i`, and the capacity after them at `808 .. 812`. -/
-theorem vs_maps (hl : args.length = 6) {n : E} (hn : LoadHolds rd (w 578) 0 n) :
+the grind's permutation `vsMapSt`, its cell `1` for `grind_check` (the grind itself: `vsRingGrind_good`), the sixteen
+challenges `vsRchs` at `vsCh i`, and the capacity after them at `912 .. 916`. -/
+theorem vs_maps (hl : args.length = 6) {n : E} (hn : LoadHolds rd (w 630) 0 n) :
     ς (.n (val% «verify_sub» "s63.i0:fs_grind_squeeze.s0.e.s0.e.s0#0")) = n ∧ ς (.n (val% «verify_sub» "nxt[1]@20")) = cellsOfState (vsMapSt (vsKCap w) n) false 1 ∧
-      ς (.n (val% «verify_sub» "s63.i0:fs_grind_squeeze.s0.e.s0.e.s1#1")) = ς (.n (val% «verify_sub» "g_squares")) * gen ^ winTabAt ∧
       (∀ i < 16, ς (.n (vsCh i)) = (vsRchs (vsKCap w) n).getD i 0) ∧
       ((⟨capOf (vsMapSt (vsKCap w) n), []⟩ : Fs).squeezeN 15).2 =
         ⟨[ς (.n (val% «verify_sub» "nxt[8]@35")), ς (.n (val% «verify_sub» "nxt[9]@35")), ς (.n (val% «verify_sub» "nxt[10]@35")), ς (.n (val% «verify_sub» "nxt[11]@35")), ς (.n (val% «verify_sub» "nxt[12]@35"))], []⟩ := by
   have hG := vsMapsT_good (rd := rd) (w := w) hl
   rw [vsMapsT_split] at hG
   have hz := vs_zero (rd := rd) (w := w) hl
-  have mA : ∀ s ∈ (List.range 5).map (fun i ↦ vsCopy (580 + i) (573 + i)),
+  have mA : ∀ s ∈ (List.range 5).map (fun i ↦ vsCopy (632 + i) (625 + i)),
       GoodS rd vsSL w ς s := fun s hs ↦ hG s (List.mem_append_left _ (List.mem_append_left _
         (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
           (List.mem_append_left _ hs))))))
   have mN : ∀ s ∈ fsNonceT (.n (val% «verify_sub» "cursor@4")) 0 (val% «verify_sub» "s63.i0:fs_grind_squeeze.s0.e.s0.e.s0#0"), GoodS rd vsSL w ς s :=
     fun s hs ↦ hG s (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
       (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_right _ hs))))))
-  have mT : ∀ s ∈ vsTabsT 601 602, GoodS rd vsSL w ς s :=
-    fun s hs ↦ hG s (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
-      (List.mem_append_right _ hs))))
   have mQ : ∀ s ∈ (List.range' 0 15).flatMap vsMapSqz, GoodS rd vsSL w ς s :=
     fun s hs ↦ hG s (List.mem_append_left _ (List.mem_append_right _ hs))
   have hk : (Atom.keccak [.n (val% «verify_sub» "rate[0]@4"), .n (val% «verify_sub» "rate[1]@4"), .n (val% «verify_sub» "s3#0[1]"), .n (val% «verify_sub» "s3#0[1]"), .n (val% «verify_sub» "s3#0[1]"), .n (val% «verify_sub» "s3#0[2]"), .n (val% «verify_sub» "s3#0[3]"), .n (val% «verify_sub» "s3#0[4]"), .n (val% «verify_sub» "sp[0]@3"), .n (val% «verify_sub» "sp[1]@3"),
-      .n (val% «verify_sub» "sp[2]@3"), .n (val% «verify_sub» "sp[3]@3"), .n (val% «verify_sub» "sp[4]@3")] (vsRun 588 13) false false).Holds rd ς :=
+      .n (val% «verify_sub» "sp[2]@3"), .n (val% «verify_sub» "sp[3]@3"), .n (val% «verify_sub» "sp[4]@3")] (vsRun 640 13) false false).Holds rd ς :=
     vsg_atom (hG _ (by simp [keccakA])) rfl
   have c603 : ς (.n (val% «verify_sub» "ch[0]")) = ς (.n (val% «verify_sub» "nxt[0]@20")) := vsg_copy (hG _ (by simp [vsCopy]))
-  have cA : ∀ i < 5, ς (.n ((val% «verify_sub» "sp[0]@3") + i)) = w (573 + i) := fun i hi ↦ by
+  have cA : ∀ i < 5, ς (.n ((val% «verify_sub» "sp[0]@3") + i)) = w (625 + i) := fun i hi ↦ by
     rw [vsg_copy (mA _ (List.mem_map.2 ⟨i, List.mem_range.2 hi, rfl⟩)),
       vs_w hl (by interval_cases i <;> decide)]
   have c0 := cA 0 (by omega)
@@ -105,14 +111,13 @@ theorem vs_maps (hl : args.length = 6) {n : E} (hn : LoadHolds rd (w 578) 0 n) :
   simp only [Nat.reduceAdd] at c0 c1 c2 c3 c4
   have e585 : ς (.n (val% «verify_sub» "s63.i0:fs_grind_squeeze.s0.e.s0.e.s0#0")) = n :=
     vsg_read (mN _ List.mem_cons_self) (by decide +kernel) (by rw [vs_w hl (by decide)]; exact hn)
-  have pk : FsPackOk ς (.n (val% «verify_sub» "s63.i0:fs_grind_squeeze.s0.e.s0.e.s0#0")) 586 dsPowNonce := vsg_fsPack fun s hs ↦ mN s (List.mem_cons_of_mem _ hs)
-  have h619 := vsg_tabs (c := 601) (by decide) mT
+  have pk : FsPackOk ς (.n (val% «verify_sub» "s63.i0:fs_grind_squeeze.s0.e.s0.e.s0#0")) 638 dsPowNonce := vsg_fsPack fun s hs ↦ mN s (List.mem_cons_of_mem _ hs)
   have hsqH := vs_holdsList_good (C := fun _ _ _ ↦ True) (kret := fun _ ↦ True)
     (vs_flatMap_noSide vsMapSqz_noSide _) mQ (next := True) trivial
   obtain ⟨hsq, -⟩ := maps_chain hz.1 hz.2.1 hz.2.2.1 hz.2.2.2 15 0 hsqH
   -- the nonce's permutation
   set S := vsMapSt (vsKCap w) n with hS
-  have hcells : cells13 ((vsRun 588 13).map ς) = cellsOfState S false := by
+  have hcells : cells13 ((vsRun 640 13).map ς) = cellsOfState S false := by
     rw [hS, vsMapSt, Fs.nonceState,
       show (⟨vsKCap w, []⟩ : Fs).absorb n dsPowNonce = ⟨vsKCap w, [(n, dsPowNonce)]⟩ by
         simp [Fs.absorb, rateScalars]]
@@ -124,9 +129,11 @@ theorem vs_maps (hl : args.length = 6) {n : E} (hn : LoadHolds rd (w 578) 0 n) :
     simp only [pendCells, List.flatMap_cons, List.flatMap_nil, List.append_nil, ← hp,
       List.length_cons, List.length_nil]
     rfl
-  have hc : ∀ c : Fin 13, ς (.n (588 + c.val)) = cellsOfState S false c := fun c ↦ by
-    have := congrFun hcells c
-    simpa [cells13, vsRun, c.isLt] using this
+  have hc : ∀ c : Fin 13, ς (.n (640 + c.val)) = cellsOfState S false c := fun c ↦ by
+    rw [← congrFun hcells c]
+    simp only [cells13, vsRun, List.map_map]
+    rw [List.getD_eq_getElem _ _ (by simp only [List.length_map, List.length_range]; exact c.isLt),
+      List.getElem_map, List.getElem_range, Function.comp_apply]
   have hcap0 : capOf S = (vsRun (vsChCap 0) 5).map ς := by
     simp only [capOf, vsChCap, ↓reduceIte, vsRun5_map]
     rw [← hc 8, ← hc 9, ← hc 10, ← hc 11, ← hc 12]
@@ -136,22 +143,22 @@ theorem vs_maps (hl : args.length = 6) {n : E} (hn : LoadHolds rd (w 578) 0 n) :
     simp only [vsCh]
     rw [c603]
     rfl
-  refine ⟨e585, hc 1, h619, fun i hi ↦ ?_, ?_⟩
+  refine ⟨e585, hc 1, fun i hi ↦ ?_, ?_⟩
   · rw [vsRchs, ← hS, hcap0, hsq, hch0]
     rcases i with _ | i
     · simp only [List.getD_cons_zero]
     · rw [List.getD_cons_succ, List.getD_eq_getElem _ _ (by simp; omega), List.getElem_map,
         List.getElem_range']
       simp
-  · rw [hcap0, hsq, show vsChCap (0 + 15) = 808 from rfl, vsRun5_map]
+  · rw [hcap0, hsq, show vsChCap (0 + 15) = 912 from rfl, vsRun5_map]
 
 /-! ## `c_table` -/
 
-theorem vsSqT_noSide : ∀ b < 8, ∀ q < 7, (vsSqT b (816 + 64 * b) q).all vsNoSideB = true := by
+theorem vsSqT_noSide : ∀ b < 8, ∀ q < 7, (vsSqT b (920 + 64 * b) q).all vsNoSideB = true := by
   decide +kernel
 
 /-- Where `c_table[8 p + b]` is computed: block `b`'s first product, then term `p`'s. -/
-def vsCtabD (b p : ℕ) : ℕ := if p = 0 then 816 + 64 * b else 816 + 64 * b + 1 + 9 * (p - 1) + 8
+def vsCtabD (b p : ℕ) : ℕ := if p = 0 then 920 + 64 * b else 920 + 64 * b + 1 + 9 * (p - 1) + 8
 
 theorem vsCtabBlock_mem {b : ℕ} (hb : b < 8) {s : Stmt} (hs : s ∈ vsCtabBlock b) : s ∈ vsCtabT := by
   rw [vsCtabT]
@@ -163,7 +170,7 @@ theorem vs_ctabV (hl : args.length = 6) {b : ℕ} (hb : b < 8) :
     ∀ p < 8, ς (.n (vsCtabD b p)) = ς (.n (vsCh p)) * ς (.n (vsCh (8 + b))) ^ 2 ^ (8 * p) := by
   have hG : ∀ s ∈ vsCtabBlock b, GoodS rd vsSL w ς s :=
     fun s hs ↦ vsCtabT_good hl s (vsCtabBlock_mem hb hs)
-  set s0 := 816 + 64 * b with hs0
+  set s0 := 920 + 64 * b with hs0
   -- the squarings of term `q + 1` from the previous power
   have hsq : ∀ q < 7, ς (.n (if q = 0 then vsCh (8 + b) else s0 + 1 + 9 * q - 2)) =
       ς (.n (vsCh (8 + b))) ^ 2 ^ (8 * q) := by
@@ -303,9 +310,9 @@ theorem vs_pushP (hl : args.length = 6) {b : ℕ} (hb : b < 54) :
 /-- **The tail's values**: the stream's pointer past `verify_keccak`'s cursor,
 `tabs`. -/
 theorem vs_tailV (hl : args.length = 6) :
-    ς (.n (val% «verify_sub» "sumcheck_target~2")) = w 578 * gen ∧ ς (.n (val% «verify_sub» "sumcheck_target~4")) = ς (.n (val% «verify_sub» "g_squares")) * gen ^ winTabAt := by
+    ς (.n (val% «verify_sub» "sumcheck_target~2")) = w 630 * gen ∧ ς (.n (val% «verify_sub» "sumcheck_target~4")) = ς (.n (val% «verify_sub» "g_squares")) * gen ^ winTabAt := by
   have hG := vsTailP_good (rd := rd) (w := w) hl
-  have hP : ∀ s ∈ [vsConst 1884 (word 2 0), vsMul 1885 578 1884], GoodS rd vsSL w ς s :=
+  have hP : ∀ s ∈ [vsConst 1988 (word 2 0), vsMul 1989 630 1988], GoodS rd vsSL w ς s :=
     fun s hs ↦ hG s (by
       rw [vsTailP]
       exact List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
@@ -313,7 +320,7 @@ theorem vs_tailV (hl : args.length = 6) :
   have c27 : ς (.n (val% «verify_sub» "sumcheck_target~1")) = word 2 0 := vsg_const (hP _ (by simp [vsMul, vsConst]))
   have m28 : ς (.n (val% «verify_sub» "sumcheck_target~2")) = ς (.n (val% «verify_sub» "cursor@4")) * ς (.n (val% «verify_sub» "sumcheck_target~1")) :=
     vsg_mul (by norm_num) (by norm_num) (hP _ (by simp [vsMul, vsConst]))
-  have h30 := vsg_tabs (c := 1886) (d := 1887) (by decide) fun s hs ↦ hG s (by
+  have h30 := vsg_tabs (c := 1990) (d := 1991) (by decide) fun s hs ↦ hG s (by
     rw [vsTailP]
     exact List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
       (List.mem_append_left _ (List.mem_append_right _ hs)))))
@@ -351,11 +358,11 @@ theorem vs_holdsList_goodLd {S : List Atom} {σ : Val} {C : CallRel} {blk : List
 theorem vsLamT_ok : vsLamT.all (fun s ↦ vsNoSideB s || vsIsLdB s) = true := by decide +kernel
 
 theorem vsLamT_notS : ∀ i < 134,
-    Atom.load (.n (1342 + 4 * i)) (.n (vsClaimAt (vsKept i)).1) (vsClaimAt (vsKept i)).2 ∉ vsSL := by
+    Atom.load (.n (1446 + 4 * i)) (.n (vsClaimAt (vsKept i)).1) (vsClaimAt (vsKept i)).2 ∉ vsSL := by
   decide +kernel
 
 theorem vsLamT_loads {d p : V} {off : ℕ} (h : Stmt.atom (.load d p off) ∈ vsLamT) :
-    (∃ i < 134, d = .n (1342 + 4 * i) ∧ p = .n (vsClaimAt (vsKept i)).1 ∧
+    (∃ i < 134, d = .n (1446 + 4 * i) ∧ p = .n (vsClaimAt (vsKept i)).1 ∧
       off = (vsClaimAt (vsKept i)).2) ∨ (d = .n (val% «verify_sub» "target@136~1") ∧ p = .n (val% «verify_sub» "ood_value") ∧ off = 0) := by
   simp only [vsLamT, vsPermT, keccakA, vsLamStep, vsLd, vsMul, vsAdd, List.mem_append,
     List.mem_cons, List.mem_flatMap, List.mem_range, List.not_mem_nil, or_false,
@@ -370,18 +377,18 @@ lane's), the Keccak reduction's word and the out-of-domain value. -/
 theorem vs_lam (hl : args.length = 6) {claims : List ColumnClaim} (hcl : claims.length = 159)
     (hcol : claims.map (·.column) = Tables.claimColumns)
     (hpool : ReadsAt rd (w 6) ((claims.take 4).map (·.value)))
-    (hcew : ReadsAt rd (w 565) (((claims.drop 4).take 153).map (·.value)))
+    (hcew : ReadsAt rd (w 617) (((claims.drop 4).take 153).map (·.value)))
     (hpi : ReadsAt rd (w 6 * gen ^ 157) ((claims.drop 157).map (·.value)))
-    {v : E} (hv : ReadsAt rd (w 309) [v]) :
+    {v : E} (hv : ReadsAt rd (w 361) [v]) :
     (⟨[ς (.n (val% «verify_sub» "nxt[8]@35")), ς (.n (val% «verify_sub» "nxt[9]@35")), ς (.n (val% «verify_sub» "nxt[10]@35")), ς (.n (val% «verify_sub» "nxt[11]@35")), ς (.n (val% «verify_sub» "nxt[12]@35"))], []⟩ : Fs).squeeze =
         (ς (.n (val% «verify_sub» "nxt[0]@36")), ⟨[ς (.n (val% «verify_sub» "nxt[8]@36")), ς (.n (val% «verify_sub» "nxt[9]@36")), ς (.n (val% «verify_sub» "nxt[10]@36")), ς (.n (val% «verify_sub» "nxt[11]@36")), ς (.n (val% «verify_sub» "nxt[12]@36"))], []⟩) ∧
       ς (.n (val% «verify_sub» "target@136")) = dot (powers (ς (.n (val% «verify_sub» "nxt[0]@36"))) 137)
-        (w 1328 :: ((claims.filter (fun c ↦ c.column ∉ keccakOutputColumns)).map (·.value) ++
-          [w 579, v])) := by
+        (w 1432 :: ((claims.filter (fun c ↦ c.column ∉ keccakOutputColumns)).map (·.value) ++
+          [w 631, v])) := by
   have hz := vs_zero (rd := rd) (w := w) hl
   rw [← vs_w (rd := rd) (w := w) hl (a := 6) (by decide)] at hpool hpi
-  rw [← vs_w (rd := rd) (w := w) hl (a := 565) (by decide)] at hcew
-  rw [← vs_w (rd := rd) (w := w) hl (a := 309) (by decide)] at hv
+  rw [← vs_w (rd := rd) (w := w) hl (a := 617) (by decide)] at hcew
+  rw [← vs_w (rd := rd) (w := w) hl (a := 361) (by decide)] at hv
   have hcl' := claim_load hcl hpool hcew hpi
   have hH : Stmt.HoldsList (fun _ _ _ ↦ True) rd ς vsLamT True (fun _ ↦ True) :=
     vs_holdsList_goodLd vsLamT_ok (vsLamT_good hl) (fun d p off hm ↦ by
@@ -390,7 +397,7 @@ theorem vs_lam (hl : args.length = 6) {claims : List ColumnClaim} (hcl : claims.
       · exact ⟨by decide +kernel, _, hv 0 (by simp)⟩) trivial
   obtain ⟨hsq, ht, -⟩ := vsLamT_holds hz.1 hz.2.1 hz.2.2.1 hz.2.2.2 hcl hcol hpool hcew hpi hv hH
   refine ⟨hsq, ?_⟩
-  rw [ht, vs_w (rd := rd) (w := w) hl (a := 1328) (by decide), vs_w (rd := rd) (w := w) hl (a := 579) (by decide)]
+  rw [ht, vs_w (rd := rd) (w := w) hl (a := 1432) (by decide), vs_w (rd := rd) (w := w) hl (a := 631) (by decide)]
 
 end
 end LeanVM.Guest.B1.VerifySub

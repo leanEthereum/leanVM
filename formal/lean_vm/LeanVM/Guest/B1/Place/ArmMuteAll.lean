@@ -59,11 +59,11 @@ theorem lqNameB_of_kind {g : String} {K : OsKind} (h : osKindOf g = some K) : lq
     exact absurd this (by simp)
 
 /-- **`level_positions` is not `level_queries`.** -/
-theorem lqNameB_of_lp {g : String} {x : ℕ × String × ℕ × ℕ} (he : (g, x) ∈ lpTable) : lqNameB g = false := by
+theorem lqNameB_of_lp {g : String} {x : String × ℕ × ℕ} (he : (g, x) ∈ lpTable) : lqNameB g = false := by
   simpa using List.all_eq_true.mp lp_not_lq _ he
 
 /-- **`level_residual` is not `level_queries`.** -/
-theorem lqNameB_of_lr {g : String} {x : ℕ × ℕ × ℕ × ℕ × String × String} (he : (g, x) ∈ lrTable) :
+theorem lqNameB_of_lr {g : String} {x : ℕ × ℕ × ℕ × String × String} (he : (g, x) ∈ lrTable) :
     lqNameB g = false := by
   simpa using List.all_eq_true.mp lr_not_lq _ he
 

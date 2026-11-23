@@ -44,9 +44,8 @@ impl FnLower<'_> {
     /// branch, past a `return`, sized by a cell not written by then, or passing one that stays.
     pub(super) fn hoist_heap_bufs(&mut self) -> Result<(), String> {
         // Each reservation in code order: where it is, whether a callee's frame, its site.
-        let sites: Vec<(usize, usize, bool, Site)> = (self.code.iter().enumerate())
-            .flat_map(|(i, ins)| ins.hints.iter().enumerate().map(move |(j, h)| (i, j, h)))
-            .filter_map(|(i, j, h)| reservation(h).map(|(ptr, frame)| (i, j, frame, self.reservations[&ptr].clone())))
+        let sites: Vec<(usize, usize, bool, Site)> = (self.reservation_hints())
+            .map(|(i, j, ptr, frame)| (i, j, frame, self.reservations[&ptr].clone()))
             .collect();
         let frames: Vec<(usize, usize)> = sites.iter().filter(|s| s.2).map(|s| (s.0, s.1)).collect();
         let late: Vec<&(usize, usize, bool, Site)> = (sites.iter())
@@ -96,17 +95,10 @@ impl FnLower<'_> {
         let mut written = self.written_in(0..at.0, 0);
         written.extend(2..2 + self.arg_cells);
         written.extend(self.code[at.0].hints[..at.1].iter().flat_map(hint_writes));
-        let mut moved: Vec<(usize, usize)> = Vec::new();
+        let mut moved = Vec::new();
         for &&(i, j, _, ref site) in &late {
             let reached = self.code_path[i].is_empty() && !self.returns.iter().any(|&r| at.0 <= r && r < i);
-            // A runtime size must be written before `at`, or be a constant `g^k`.
-            let sized = match self.code[i].hints[j] {
-                Hint::AllocBufferDyn { ptr, size } if !written.contains(&size) => {
-                    (self.constant_exponent(size, i)).map(|k| Hint::AllocBuffer { ptr, size: k })
-                }
-                ref h => Some(h.clone()),
-            };
-            let Some(sized) = sized.filter(|_| reached) else {
+            let Some(sized) = self.sized_by(i, j, &written).filter(|_| reached) else {
                 return Err(format!(
                     "line {}: `HeapBuf` `{}` in `{}` follows the function's first call (line {}): it must be \
                      allocated on every path, its size computed before that call",
@@ -116,14 +108,65 @@ impl FnLower<'_> {
                     first.line
                 ));
             };
-            self.code[i].hints[j] = sized;
-            moved.push((i, j));
+            moved.push((i, j, sized));
         }
-        // Removed last first, so that the earlier positions stay valid.
-        let mut hints: Vec<Hint> = moved.iter().rev().map(|&(i, j)| self.code[i].hints.remove(j)).collect();
-        hints.reverse();
-        self.code[at.0].hints.splice(at.1..at.1, hints);
+        self.move_hints(moved, at);
         Ok(())
+    }
+
+    /// Move the `HeapBuf` reservations at depth 0 past the function's first branch to just before its jump,
+    /// keeping their order, where their size is known there and they pass no `HeapBuf` that stays: then every
+    /// jump before them is a forward jump in the frame, as the proof's bump pointer check asks. Best effort:
+    /// one that cannot move stays.
+    pub(super) fn hoist_past_first_branch(&mut self) {
+        let Some(k) = self.code_path.iter().position(|p| !p.is_empty()) else {
+            return;
+        };
+        let Some(b) = (0..k).rev().find(|&x| matches!(self.code[x].op, LOp::Jump { .. })) else {
+            return;
+        };
+        let mut written = self.written_in(0..b, 0);
+        written.extend(2..2 + self.arg_cells);
+        let mut moved = Vec::new();
+        for (i, j, ..) in self.reservation_hints().filter(|&(i, _, _, frame)| i > b && !frame) {
+            if !self.code_path[i].is_empty() || self.returns.iter().any(|&r| b <= r && r < i) {
+                break;
+            }
+            let Some(sized) = self.sized_by(i, j, &written) else {
+                break;
+            };
+            moved.push((i, j, sized));
+        }
+        self.move_hints(moved, (b, 0));
+    }
+
+    /// Every frame or `HeapBuf` reservation in code order: its instruction, its place among the hints, its pointer
+    /// cell, whether a callee's frame.
+    fn reservation_hints(&self) -> impl Iterator<Item = (usize, usize, Off, bool)> {
+        (self.code.iter().enumerate())
+            .flat_map(|(i, ins)| ins.hints.iter().enumerate().map(move |(j, h)| (i, j, h)))
+            .filter_map(|(i, j, h)| reservation(h).map(|(ptr, frame)| (i, j, ptr, frame)))
+    }
+
+    /// Hint `j` of instruction `i`, sized where the cells `written` are: a runtime size must be one of them, or
+    /// a constant `g^k`, which takes its place.
+    fn sized_by(&self, i: usize, j: usize, written: &HashSet<Off>) -> Option<Hint> {
+        match self.code[i].hints[j] {
+            Hint::AllocBufferDyn { ptr, size } if !written.contains(&size) => {
+                (self.constant_exponent(size, i)).map(|k| Hint::AllocBuffer { ptr, size: k })
+            }
+            ref h => Some(h.clone()),
+        }
+    }
+
+    /// Each hint `(i, j, h)` of `moved`, in code order and past `at`, replaced by `h` at `at`, in that order.
+    fn move_hints(&mut self, moved: Vec<(usize, usize, Hint)>, at: (usize, usize)) {
+        // Removed last first, so that the earlier positions stay valid.
+        for &(i, j, _) in moved.iter().rev() {
+            self.code[i].hints.remove(j);
+        }
+        let hints = moved.into_iter().map(|(_, _, h)| h);
+        self.code[at.0].hints.splice(at.1..at.1, hints);
     }
 
     /// Whether some run executes instruction `a`, then goes on to instruction `b`, from `a` on: they
@@ -231,8 +274,10 @@ fn hint_writes(h: &Hint) -> Vec<Off> {
 fn touched(op: &LOp) -> Vec<Off> {
     match *op {
         LOp::Set { o, .. } => vec![o],
-        LOp::Xor { a, b, c } | LOp::Mul { a, b, c } => vec![a, b, c],
-        LOp::MulNextFrame { a, b, .. } => vec![a, b],
+        LOp::Xor { a, b, c }
+        | LOp::Mul { a, b, c }
+        | LOp::Solve { x: a, b, c }
+        | LOp::Copy { src: a, one: b, dst: c } => vec![a, b, c],
         LOp::Deref { o1, .. } => vec![o1],
         LOp::Jump { .. } => Vec::new(),
         LOp::Slot { x, .. } => vec![x],

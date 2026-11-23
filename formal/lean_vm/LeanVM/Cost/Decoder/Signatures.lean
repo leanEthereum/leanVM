@@ -17,7 +17,7 @@ tables `SpTabs`), a child's proof off
 chain starts, the selectors and path bases, `open_stacked`'s stream words and calls) are arrays the decoder's top level builds once
 (`readerTabsC`, `Frames.lean`) and passes; consecutive cells are read by stepping the address
 (`wordsFrom`), each query's windows once, their exponents off the lanes (`winLogsFrom`), each
-query's position once (`oqQueryAt`), its siblings off its `walk_path` call's frame (`oqWalkArgs`),
+query's position once (`oqQueryAt`), its siblings off its hinted cells (`oqSibsOf`),
 the loop's frames at the next power of `g` (`oqItersFrom`). The compiled names stay the readers' (`xmssSigOfNC`, `sphincsSigOfNC`,
 `vsPiOfNC`, `oqsOfNC`, …). Their records are encoded by their constructors (`Oq`, `OsCall`, the
 tables).
@@ -111,8 +111,8 @@ theorem nvLevelsT_end (ws : ℕ → ℕ) : ∀ (c i : ℕ) (ins : List ℕ) (k :
 /-- A query's result (`oqRes`), `novel_eval`'s next free value counted alone. -/
 def oqResN (s : Oq) (b : ℕ) (emit : Bool) : ℕ :=
   if s.final = 1 then
-    nvEnd (s.hsBits - 1) (s.nHs / 2) (oqVal s (oqCh s b emit) + 2 + 3 * s.mu + 4 * (s.nHs / 2))
-  else oqVal s (oqCh s b emit)
+    nvEnd (s.hsBits - 1) (s.nHs / 2) (oqVal s (oqFo s b emit) + 2 + 3 * s.mu + 4 * (s.nHs / 2))
+  else oqVal s (oqFo s b emit)
 
 theorem oqRes_eq_oqResN (s : Oq) (b : ℕ) (emit : Bool) : oqRes s b emit = oqResN s b emit := by
   unfold oqRes oqResN oqNovel
@@ -124,56 +124,16 @@ cost_rewrite oqRes_eq_oqResN
 
 /-- The shapes of `openingQueriesLoops`, without their names (strings have no machine encoding). -/
 def oqShapeTab : List OqShape :=
-  [⟨1, 1, 6, 32, 15, 3, 0, 0, 0, 0, 0, []⟩, ⟨1, 1, 6, 32, 16, 4, 0, 0, 0, 0, 0, []⟩,
-    ⟨1, 1, 6, 32, 17, 5, 0, 0, 0, 0, 0, []⟩, ⟨1, 1, 6, 32, 18, 6, 0, 0, 0, 0, 0, []⟩,
-    ⟨0, 0, 4, 16, 14, 2, 0, 0, 0, 0, 0, []⟩, ⟨0, 0, 4, 16, 15, 3, 0, 0, 0, 0, 0, []⟩,
-    ⟨0, 0, 4, 16, 16, 4, 0, 0, 0, 0, 0, []⟩, ⟨0, 0, 4, 16, 17, 5, 0, 0, 0, 0, 0, []⟩,
-    ⟨0, 0, 4, 16, 13, 7, 0, 0, 0, 0, 0, []⟩, ⟨0, 0, 4, 16, 12, 6, 2, 3, 8, 3, 1, [1, 6]⟩,
-    ⟨0, 0, 4, 16, 13, 7, 2, 3, 8, 3, 1, [1, 6]⟩, ⟨0, 0, 4, 16, 14, 2, 2, 3, 8, 3, 1, [1, 6]⟩,
-    ⟨0, 0, 4, 16, 15, 3, 2, 3, 8, 3, 1, [1, 6]⟩, ⟨0, 1, 6, 32, 16, 4, 0, 0, 0, 0, 0, []⟩,
-    ⟨1, 1, 6, 32, 19, 7, 0, 0, 0, 0, 0, []⟩, ⟨0, 0, 4, 16, 18, 6, 0, 0, 0, 0, 0, []⟩,
-    ⟨0, 0, 4, 16, 13, 7, 3, 6, 12, 4, 1, [1, 6, 360]⟩,
-    ⟨0, 0, 4, 16, 14, 2, 3, 6, 12, 4, 1, [1, 6, 360]⟩,
-    ⟨0, 0, 4, 16, 15, 3, 3, 6, 12, 4, 1, [1, 6, 360]⟩,
-    ⟨0, 0, 4, 16, 16, 4, 3, 6, 12, 4, 1, [1, 6, 360]⟩, ⟨0, 1, 6, 32, 17, 5, 0, 0, 0, 0, 0, []⟩,
-    ⟨1, 1, 6, 32, 20, 2, 0, 0, 0, 0, 0, []⟩, ⟨0, 0, 4, 16, 19, 7, 0, 0, 0, 0, 0, []⟩,
-    ⟨0, 0, 4, 16, 14, 2, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩,
-    ⟨0, 0, 4, 16, 15, 3, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩,
-    ⟨0, 0, 4, 16, 16, 4, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩,
-    ⟨0, 0, 4, 16, 17, 5, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩,
-    ⟨0, 1, 6, 32, 18, 6, 0, 0, 0, 0, 0, []⟩, ⟨1, 1, 6, 32, 21, 3, 0, 0, 0, 0, 0, []⟩,
-    ⟨0, 0, 4, 16, 20, 2, 0, 0, 0, 0, 0, []⟩,
-    ⟨0, 0, 4, 16, 15, 3, 5, 15, 36, 6, 1, [1, 6, 360, 18245760, 78274681211224091]⟩,
-    ⟨0, 0, 4, 16, 16, 4, 5, 15, 36, 6, 1, [1, 6, 360, 18245760, 78274681211224091]⟩,
-    ⟨0, 0, 4, 16, 17, 5, 5, 15, 36, 6, 1, [1, 6, 360, 18245760, 78274681211224091]⟩,
-    ⟨0, 0, 4, 16, 18, 6, 5, 15, 36, 6, 1, [1, 6, 360, 18245760, 78274681211224091]⟩,
-    ⟨0, 1, 6, 32, 19, 7, 0, 0, 0, 0, 0, []⟩, ⟨1, 1, 6, 32, 22, 4, 0, 0, 0, 0, 0, []⟩,
-    ⟨0, 0, 4, 16, 21, 3, 0, 0, 0, 0, 0, []⟩, ⟨0, 0, 4, 16, 16, 4, 2, 3, 8, 3, 1, [1, 6]⟩,
-    ⟨0, 0, 4, 16, 17, 5, 2, 3, 8, 3, 1, [1, 6]⟩, ⟨0, 0, 4, 16, 18, 6, 2, 3, 8, 3, 1, [1, 6]⟩,
-    ⟨0, 1, 6, 32, 20, 8, 0, 0, 0, 0, 0, []⟩, ⟨1, 1, 6, 32, 23, 5, 0, 0, 0, 0, 0, []⟩,
-    ⟨0, 0, 4, 16, 22, 4, 0, 0, 0, 0, 0, []⟩, ⟨0, 0, 4, 16, 17, 5, 3, 6, 12, 4, 1, [1, 6, 360]⟩,
-    ⟨0, 0, 4, 16, 18, 6, 3, 6, 12, 4, 1, [1, 6, 360]⟩,
-    ⟨0, 0, 4, 16, 19, 7, 3, 6, 12, 4, 1, [1, 6, 360]⟩, ⟨0, 1, 6, 32, 21, 3, 0, 0, 0, 0, 0, []⟩,
-    ⟨1, 1, 6, 32, 24, 6, 0, 0, 0, 0, 0, []⟩, ⟨0, 0, 4, 16, 23, 5, 0, 0, 0, 0, 0, []⟩,
-    ⟨0, 0, 4, 16, 18, 6, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩,
-    ⟨0, 0, 4, 16, 19, 7, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩,
-    ⟨0, 0, 4, 16, 20, 2, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩,
-    ⟨0, 1, 6, 32, 22, 4, 0, 0, 0, 0, 0, []⟩, ⟨1, 1, 6, 32, 25, 7, 0, 0, 0, 0, 0, []⟩,
-    ⟨0, 0, 4, 16, 24, 6, 0, 0, 0, 0, 0, []⟩,
-    ⟨0, 0, 4, 16, 19, 7, 5, 15, 36, 6, 1, [1, 6, 360, 18245760, 78274681211224091]⟩,
-    ⟨0, 0, 4, 16, 20, 2, 5, 15, 36, 6, 1, [1, 6, 360, 18245760, 78274681211224091]⟩,
-    ⟨0, 0, 4, 16, 21, 3, 5, 15, 36, 6, 1, [1, 6, 360, 18245760, 78274681211224091]⟩,
-    ⟨0, 1, 6, 32, 23, 5, 0, 0, 0, 0, 0, []⟩, ⟨1, 1, 6, 32, 26, 2, 0, 0, 0, 0, 0, []⟩,
-    ⟨0, 0, 4, 16, 25, 7, 0, 0, 0, 0, 0, []⟩, ⟨0, 0, 4, 16, 19, 7, 2, 3, 8, 3, 1, [1, 6]⟩,
-    ⟨0, 0, 4, 16, 20, 2, 2, 3, 8, 3, 1, [1, 6]⟩, ⟨0, 0, 4, 16, 21, 3, 2, 3, 8, 3, 1, [1, 6]⟩,
-    ⟨0, 1, 6, 32, 24, 6, 0, 0, 0, 0, 0, []⟩, ⟨1, 1, 6, 32, 27, 3, 0, 0, 0, 0, 0, []⟩,
-    ⟨0, 0, 4, 16, 26, 2, 0, 0, 0, 0, 0, []⟩, ⟨0, 0, 4, 16, 20, 2, 3, 6, 12, 4, 1, [1, 6, 360]⟩,
-    ⟨0, 0, 4, 16, 21, 3, 3, 6, 12, 4, 1, [1, 6, 360]⟩,
-    ⟨0, 0, 4, 16, 22, 4, 3, 6, 12, 4, 1, [1, 6, 360]⟩, ⟨0, 1, 6, 32, 25, 7, 0, 0, 0, 0, 0, []⟩,
-    ⟨1, 1, 6, 32, 28, 4, 0, 0, 0, 0, 0, []⟩, ⟨0, 0, 4, 16, 27, 3, 0, 0, 0, 0, 0, []⟩,
-    ⟨0, 0, 4, 16, 21, 3, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩,
-    ⟨0, 0, 4, 16, 22, 4, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩,
-    ⟨0, 0, 4, 16, 23, 5, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩]
+  [⟨1, 6, 32, 12, 0, 0, 0, 0, 0, []⟩, ⟨0, 4, 16, 12, 0, 0, 0, 0, 0, []⟩,
+    ⟨0, 4, 16, 6, 0, 0, 0, 0, 0, []⟩, ⟨0, 4, 16, 6, 2, 3, 8, 3, 1, [1, 6]⟩,
+    ⟨0, 4, 16, 12, 2, 3, 8, 3, 1, [1, 6]⟩, ⟨0, 4, 16, 6, 3, 6, 12, 4, 1, [1, 6, 360]⟩,
+    ⟨0, 4, 16, 12, 3, 6, 12, 4, 1, [1, 6, 360]⟩, ⟨1, 6, 32, 18, 0, 0, 0, 0, 0, []⟩,
+    ⟨0, 4, 16, 12, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩, ⟨0, 4, 16, 18, 0, 0, 0, 0, 0, []⟩,
+    ⟨0, 4, 16, 12, 5, 15, 36, 6, 1, [1, 6, 360, 18245760, 78274681211224091]⟩,
+    ⟨0, 4, 16, 18, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩,
+    ⟨0, 4, 16, 18, 5, 15, 36, 6, 1, [1, 6, 360, 18245760, 78274681211224091]⟩,
+    ⟨1, 6, 32, 24, 0, 0, 0, 0, 0, []⟩, ⟨0, 4, 16, 18, 2, 3, 8, 3, 1, [1, 6]⟩,
+    ⟨0, 4, 16, 24, 0, 0, 0, 0, 0, []⟩, ⟨0, 4, 16, 18, 3, 6, 12, 4, 1, [1, 6, 360]⟩]
 
 theorem oqShapeTab_eq : openingQueriesLoops.map (·.2.2) = oqShapeTab := rfl
 
@@ -197,13 +157,17 @@ cost_compile oqChC := oqCh
 cost_compile oqRKC measure fun _ _ j ↦ j := oqRK
 cost_compile oqValC := oqVal
 cost_compile nvEndC measure fun c _ _ ↦ c := nvEnd
+cost_compile oqNpwC := oqNpw
+cost_compile oqWwC := oqWw
+cost_compile oqWkC measure fun _ _ i ↦ i := oqWk
+cost_compile oqCqC := oqCq
+cost_compile oqFoC := oqFo
 cost_compile oqResNC := oqResN
 cost_compile oqEndC := oqEnd
 cost_compile oqE1C := oqE1
 cost_compile oqBsC := oqBs
 cost_compile oqOutC := oqOut
-cost_compile wpChC := wpCh
-cost_compile oqWalkArgsC := oqWalkArgs
+cost_compile oqMKC := oqMK
 cost_compile oqLoopArgsC := oqLoopArgs
 cost_compile memReadC := memRead
 cost_compile capSibC := LeanVM.Guest.B1.Whir.capSib
@@ -226,7 +190,6 @@ cost_compile oqQueryAC := oqQueryA
 cost_compile oqIterAC := oqIterA
 cost_compile oqItersFromC measure fun _ _ _ _ _ _ _ n _ ↦ n := oqItersFrom
 cost_compile oqsOfNC := oqsOfA
-set_option maxRecDepth 100000 in
 cost_compile oqShapeTabC := oqShapeTab
 cost_compile oqShapeZeroC := LeanVM.Guest.B1.Whir.oqShapeZero
 cost_compile OqShapeOqC := OqShape.oq

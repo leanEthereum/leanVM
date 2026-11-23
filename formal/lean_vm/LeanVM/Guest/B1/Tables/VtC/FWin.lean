@@ -59,7 +59,7 @@ theorem vtF_evRead (hl : args.length = 21) {evs : List E}
   have heq := vtEval_check k hk
   have hs : Stmt.atom (.load (.n (vtEvB k)) (.n (val% «verify_tables» "cursor@5")) k) ∈ vtPre :=
     vt_mem_slice (vtPre_drop _ ▸ heq) (by simp [vtEvalT, fsNextT, vtEvB])
-  obtain ⟨hm, hr⟩ := vt_bufLoad (p := 2639) (b := 153) hl vtF_loadsBelow (by simp) hcur hevl
+  obtain ⟨hm, hr⟩ := vt_bufLoad (p := val% «verify_tables» "cursor@5") (b := 153) hl vtF_loadsBelow (by simp) hcur hevl
     (vtEvL_mem hs (fun _ _ _ h ↦ by cases h))
   exact ⟨hm, hr (not_mem_vtSL vtF_noStore.2.1 _ _)⟩
 
@@ -75,7 +75,7 @@ theorem vtAirT_rest : ∀ t < 6,
     tbStmtsEqb ((vtAirT t).filter fun s ↦ !autoB s) (vtAirRest t) = true := by
   decide +kernel
 
-theorem vtAirX_gt : ∀ t < 6, 2641 < vtAirX t ∧ vtTauV t < vtAirX t := by decide
+theorem vtAirX_gt : ∀ t < 6, 2337 < vtAirX t ∧ vtTauV t < vtAirX t := by decide
 
 /-- Table `t`'s weight block's equations: `x = g^n/g^τ`, the pointers `cprod·x`, `peq·g^τ`. -/
 theorem vtF_airGood (hl : args.length = 21) {t : ℕ} (ht : t < 6) :

@@ -171,10 +171,10 @@ theorem loads_in (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ :
   · exact mLay 11 (by norm_num) (b := ls 11) (ws := (D.layer 11).chs (firstOf 11))
       (by simp [layerBufs_eq]) (by rw [e4978, ptr_mul_gen]) (by omega)
       (by rw [hchs 11 (by norm_num)]; omega)
-  · exact mLay 11 (by norm_num) (b := ls 11 + (D.layer 11).y + 112)
+  · exact mLay 11 (by norm_num) (b := ls 11 + (D.layer 11).y + 77)
       (ws := (D.layer 11).locPt (firstOf 11)) (by simp [layerBufs_eq]) e5212 (by omega)
       (by rw [hlocL 11 (by norm_num)]; omega)
-  · exact mLay 11 (by norm_num) (b := ls 11 + (D.layer 11).y + 123)
+  · exact mLay 11 (by norm_num) (b := ls 11 + (D.layer 11).y + 88)
       (ws := lanesOut ((D.layer 11).locPt (firstOf 11)) ((D.layer 11).beta (firstOf 11)).1)
       (by simp [layerBufs_eq]) e6363 (by omega) (by rw [lanesOut_length]; omega)
   · -- a step's
@@ -193,10 +193,10 @@ theorem loads_in (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ :
       · simp only [show k + 1 ≠ 0 by omega, ↓reduceIte, List.mem_map, List.mem_range,
           Prod.mk.injEq] at hsg
         obtain ⟨j, hj, rfl, rfl, rfl⟩ := hsg
-        exact mLay k (by omega) (b := ls k + (D.layer k).y + 148)
+        exact mLay k (by omega) (b := ls k + (D.layer k).y + 113)
           (ws := flipsOf (laterWeights (lanesOut ((D.layer k).locPt (firstOf k))
             ((D.layer k).beta (firstOf k)).1) (eqKernel (((D.layer k).locPt (firstOf k)).take 6))))
-          (by simp [layerBufs_eq]) (a := ls k + (D.layer k).y + 148)
+          (by simp [layerBufs_eq]) (a := ls k + (D.layer k).y + 113)
           (by rw [hfl (by omega) j hj]; rfl) (by omega) (by simp [flipsOf]; omega)
 
 end VkData

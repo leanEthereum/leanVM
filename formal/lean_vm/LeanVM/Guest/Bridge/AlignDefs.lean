@@ -150,7 +150,7 @@ def digit (ch j : ℕ) : ℕ := Nat.mod (Nat.shiftRight ch (Nat.mul cellBits j))
 certificate's packed, `locOk` that each fits, and `extra`), entry, whether it is `main`, its fixed
 cells, call sites by callee frame cell, table jumps by target cell (selector and table base), the
 powers of `g` its constants name, the jump table, its callees by entry, the halting pc, its length,
-and the normalization's fuel. -/
+the normalization's fuel, and the cells past the frame holding the next frame's address. -/
 structure AlignCtx where
   loc : Trie ℕ
   locOk : Bool
@@ -166,6 +166,7 @@ structure AlignCtx where
   halt : ℕ
   len : ℕ
   fuel : ℕ
+  nxt : List ℕ
 
 /-- The table jumps by target cell: a `match`'s, and the chained `match`es' arms' ends'. -/
 def armsOf (p : B2C.Plumb) : List (ℕ × ℕ × ℕ) :=
@@ -179,7 +180,7 @@ noncomputable def AlignCtx.ofData (locs : List ℕ) (extra : List (ℕ × ℕ)) 
     (p : B2C.Plumb) (pows : PowTree) (jt : Trie ℕ) (ents : List (String × ℕ)) (halt len : ℕ) : AlignCtx :=
   ⟨buildT 32 (packGo locs 0 0), locs.all (fun c ↦ Nat.blt c (2 ^ cellBits)), extra, entry, main, trieOf p.stat,
     trieOf (p.sites.map fun s ↦ (s.q, s)), trieOf (armsOf p), pows, jt, trieOf (ents.map fun e ↦ (e.2, e.1)),
-    halt, len, 1048576⟩
+    halt, len, 1048576, p.nxt⟩
 
 namespace AlignCtx
 
@@ -190,7 +191,7 @@ def seq {β : Type} (k : AlignCtx → β) : β :=
   X.loc.seq fun loc ↦ X.stat.seq fun stat ↦ X.sites.seq fun sites ↦ X.arms.seq fun arms ↦
     X.ents.seq fun ents ↦ natSeq X.entry fun entry ↦ natSeq X.halt fun halt ↦ natSeq X.len fun len ↦
       natSeq X.fuel fun fuel ↦
-        k ⟨loc, X.locOk, X.extra, entry, X.main, stat, sites, arms, X.pows, X.jt, ents, halt, len, fuel⟩
+        k ⟨loc, X.locOk, X.extra, entry, X.main, stat, sites, arms, X.pows, X.jt, ents, halt, len, fuel, X.nxt⟩
 
 /-- The cell map. -/
 noncomputable def locAt (i : ℕ) : ℕ :=
@@ -222,10 +223,11 @@ noncomputable def pcAt (o : ℕ) : Option ℕ := match X.statOf o with
   | some (.k k0 0) => X.pows.find k0
   | _ => none
 
-/-- The next frame `fp·g^S`, `S ≠ 0`, cell `o` holds. -/
+/-- The next frame `fp·g^S`, `S ≠ 0`, cell `o` holds: a fixed cell, or one past the frame (`Plumb.nxt`). -/
 noncomputable def nextAt (o : ℕ) : Bool := match X.statOf o with
   | some (.fpg S) => !(Nat.beq S 0)
-  | _ => false
+  | some _ => false
+  | none => X.nxt.any (Nat.beq o)
 
 /-- The call site of callee frame cell `q`, by its values. -/
 noncomputable def siteAt (q : ℕ) (args rets : List V) : Option B2C.Site := match getF X.sites q with

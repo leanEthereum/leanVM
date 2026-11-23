@@ -67,11 +67,11 @@ theorem vt_weight_guest {rd : Reader} {σ : Val} {point pts : List E} {n : ℕ}
 theorem vt_xi_pow {rd : Reader} {σ : Val} (h : VtH rd σ) :
     σ (.n (val% «verify_tables» "zc_xi_pows[0]")) = 1 ∧ σ (.n (val% «verify_tables» "zc_xi_pows[1]")) = σ (.n (val% «verify_tables» "nxt[0]@3")) ∧ σ (.n (val% «verify_tables» "zc_xi_pows[2]")) = σ (.n (val% «verify_tables» "nxt[0]@3")) ^ 2 ∧
       σ (.n (val% «verify_tables» "zc_xi_pows[3]")) = σ (.n (val% «verify_tables» "nxt[0]@3")) ^ 3 ∧ σ (.n (val% «verify_tables» "zc_xi_pows[4]")) = σ (.n (val% «verify_tables» "nxt[0]@3")) ^ 4 := by
-  have a0 := h.atomAt 2631 (.const (.n (val% «verify_tables» "zc_xi_pows[0]")) (word 1 0)) (by decide +kernel)
-  have a1 := h.atomAt 2632 (.mul (.n (val% «verify_tables» "zc_xi_pows[1]")) (.n (val% «verify_tables» "zc_xi_pows[0]")) (.n (val% «verify_tables» "nxt[0]@3"))) (by decide +kernel)
-  have a2 := h.atomAt 2633 (.mul (.n (val% «verify_tables» "zc_xi_pows[2]")) (.n (val% «verify_tables» "zc_xi_pows[1]")) (.n (val% «verify_tables» "nxt[0]@3"))) (by decide +kernel)
-  have a3 := h.atomAt 2634 (.mul (.n (val% «verify_tables» "zc_xi_pows[3]")) (.n (val% «verify_tables» "zc_xi_pows[2]")) (.n (val% «verify_tables» "nxt[0]@3"))) (by decide +kernel)
-  have a4 := h.atomAt 2635 (.mul (.n (val% «verify_tables» "zc_xi_pows[4]")) (.n (val% «verify_tables» "zc_xi_pows[3]")) (.n (val% «verify_tables» "nxt[0]@3"))) (by decide +kernel)
+  have a0 := h.atomAt 2327 (.const (.n (val% «verify_tables» "zc_xi_pows[0]")) (word 1 0)) (by decide +kernel)
+  have a1 := h.atomAt 2328 (.mul (.n (val% «verify_tables» "zc_xi_pows[1]")) (.n (val% «verify_tables» "zc_xi_pows[0]")) (.n (val% «verify_tables» "nxt[0]@3"))) (by decide +kernel)
+  have a2 := h.atomAt 2329 (.mul (.n (val% «verify_tables» "zc_xi_pows[2]")) (.n (val% «verify_tables» "zc_xi_pows[1]")) (.n (val% «verify_tables» "nxt[0]@3"))) (by decide +kernel)
+  have a3 := h.atomAt 2330 (.mul (.n (val% «verify_tables» "zc_xi_pows[3]")) (.n (val% «verify_tables» "zc_xi_pows[2]")) (.n (val% «verify_tables» "nxt[0]@3"))) (by decide +kernel)
+  have a4 := h.atomAt 2331 (.mul (.n (val% «verify_tables» "zc_xi_pows[4]")) (.n (val% «verify_tables» "zc_xi_pows[3]")) (.n (val% «verify_tables» "nxt[0]@3"))) (by decide +kernel)
   simp only [Atom.Holds, tb_word_one] at a0 a1 a2 a3 a4
   refine ⟨a0, by rw [a1, a0, one_mul], by rw [a2, a1, a0]; ring, by rw [a3, a2, a1, a0]; ring,
     by rw [a4, a3, a2, a1, a0]; ring⟩
@@ -114,18 +114,18 @@ theorem vt_asm_final {σ : Val} (h : VtH Lm.read σ) (bc : List K) (hbc : bc.len
       (List.zip (vtRows (tableHeightsOf rows)
         (vtAcc2 (layoutOf bc lm rows) weights (σ (.n (val% «verify_tables» "beta"))) point
           [σ (.n (val% «verify_tables» "x@1")), σ (.n (val% «verify_tables» "x@2"))] (σ (.n (val% «verify_tables» "x@3"))) (σ (.n (val% «verify_tables» "x@4"))) (σ (.n (val% «verify_tables» "x@5")))
-          (σ (.n (val% «verify_tables» "s52.u0.s5#0"))) (σ (.n (val% «verify_tables» "s52.u1.s5#0"))) (σ (.n (val% «verify_tables» "s52.u2.s5#0")))).1 point pts) (vtEvsT σ)) 0 0 []).1 =
+          (σ (.n (val% «verify_tables» "s53.u0.s5#0"))) (σ (.n (val% «verify_tables» "s53.u1.s5#0"))) (σ (.n (val% «verify_tables» "s53.u2.s5#0")))).1 point pts) (vtEvsT σ)) 0 0 []).1 =
       σ (.n (val% «verify_tables» "claim")) := by
   have hz1 := vt_zeta1 h hz hmu (by omega)
   set F := (vtAcc2 (layoutOf bc lm rows) weights (σ (.n (val% «verify_tables» "beta"))) point
     [σ (.n (val% «verify_tables» "x@1")), σ (.n (val% «verify_tables» "x@2"))] (σ (.n (val% «verify_tables» "x@3"))) (σ (.n (val% «verify_tables» "x@4"))) (σ (.n (val% «verify_tables» "x@5")))
-    (σ (.n (val% «verify_tables» "s52.u0.s5#0"))) (σ (.n (val% «verify_tables» "s52.u1.s5#0"))) (σ (.n (val% «verify_tables» "s52.u2.s5#0")))).1 with hF
+    (σ (.n (val% «verify_tables» "s53.u0.s5#0"))) (σ (.n (val% «verify_tables» "s53.u1.s5#0"))) (σ (.n (val% «verify_tables» "s53.u2.s5#0")))).1 with hF
   have hFv : ∀ t < 6, (F.getD t []).map (·.evaluate ((vtEvT σ t).getD · 0)) =
       (vtFV.getD t []).map fun v ↦ σ (.n v) := fun t ht ↦
     vt_forms_val hμ Lm h bc hbc hz hmu hml hE hlm hr hτ hkb hwl hW ht
   have hF6 := (vt_forms3_shape bc lm hr weights (σ (.n (val% «verify_tables» "beta"))) point
     [σ (.n (val% «verify_tables» "x@1")), σ (.n (val% «verify_tables» "x@2"))] (σ (.n (val% «verify_tables» "x@3"))) (σ (.n (val% «verify_tables» "x@4"))) (σ (.n (val% «verify_tables» "x@5")))
-    (σ (.n (val% «verify_tables» "s52.u0.s5#0"))) (σ (.n (val% «verify_tables» "s52.u1.s5#0"))) (σ (.n (val% «verify_tables» "s52.u2.s5#0")))).1
+    (σ (.n (val% «verify_tables» "s53.u0.s5#0"))) (σ (.n (val% «verify_tables» "s53.u1.s5#0"))) (σ (.n (val% «verify_tables» "s53.u2.s5#0")))).1
   have hH6 : (tableHeightsOf rows).length = 6 := vt_tableHeightsOf_length hr
   set Wt := tableWeights (tableHeightsOf rows) point pts.reverse with hWt
   have hW6 : Wt.length = 6 := by rw [hWt, length_tableWeights, hH6]

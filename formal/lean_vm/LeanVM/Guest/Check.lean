@@ -481,7 +481,8 @@ theorem atomOkL_locate (F : Exec.Facts) (B : Book) (ψ : Trie Sym) (loc : Trie �
 /-- What a caller knows of a function: its name, entry, arity, the self frame pointer cells of
 its entry environment, the bounds on its frame cells before (`pre`) and after (`post`), a pair
 `(o, n)` saying `fp[o] = g^e` with `e < n`, the bounds on memory it assumes (`mem`), a triple
-`(o, c, n)` saying that the word at `fp[o]·g^c` is `g^e` with `e < n`, and
+`(o, c, n)` saying that the word at `fp[o]·g^c` is `g^e` with `e < n` (offsets `c < 2^32`; a walk
+keeps only those, `memSmall`, the larger encoding a cut's double read, `memTwice`), and
 the tuples of frame cells `(t, os)` whose words it assumes in the program's semantic relation
 tagged `t` (`sem`, `Glob.sem`; tag `tagNe`: the two words differ). -/
 structure Sig where
@@ -500,7 +501,8 @@ structure Sig where
 environment `env`, at core statement `start`, with the atoms `facts` filed under their cells and
 the bounds `bnd` the previous window hands on, and the bounds on memory through its cells
 `known`, `(o, c, n)` as in `Sig.mem`, the bounds on memory read through its cells `knownIf`, a
-triple `(o, c, n)` saying that a word read at `fp[o]·g^c` is `g^e` with `e < n`, and the tagged
+triple `(o, c, n)` saying that a word read at `fp[o]·g^c` is `g^e` with `e < n` (or, at
+`c = memTwice c1 c2`, a word read at `L[fp[o]·g^c1]·g^c2`), and the tagged
 tuples of cells `sems` in the semantic relation, that it does not check but takes from
 obligations on the statements before it. -/
 structure Cut where
@@ -610,8 +612,8 @@ def impPos (t : ℕ) : ℕ := (t / 2 ^ 32 - 1) % 8
 def impImm (t : ℕ) : ℕ := (t / 2 ^ 32 - 1) / 8
 
 /-- The context of one window's walk: its segments and their index, the bounds on memory words
-read through its cells `mem` (the function's `mem` and the window's `known` and `knownIf`, as in
-`Cut.knownIf`), its `known` and the cells `sems` in the semantic relation (as in `Cert`, `Cut`),
+read through its cells `mem` (the function's `mem` and the window's `known` read once, and its
+`knownIf`, as in `Cut.knownIf`), its `known` and the cells `sems` in the semantic relation (as in `Cert`, `Cut`),
 a window's end
 `win = (J, facts, bounds)`: the atoms and bounds a walk arriving at `J` hands to the next window,
 and the environment `wenv` the exits into `wJ = J` hold when no segment of the window starts
@@ -775,16 +777,29 @@ end Sel
 /-- The depth of the products `boundOk` follows in `selBound`. -/
 def selFuel : ℕ := 3
 
+/-- A memory bound `(o, c, n)` read once, at `fp[o]·g^c` (`c < 2^32`); the others are read twice
+(`memTwice`). -/
+def memSmall (m : ℕ × ℕ × ℕ) : Bool := Nat.blt m.2.1 (2 ^ 32)
+
+/-- The offset of a memory bound read twice, at `L[fp[o]·g^c1]·g^c2`, `c1 < 2^32`: the guest
+dispatches on windows it reaches through a pointer it reads in a branch (`opening_queries`' odd
+first query), which only a bound on the frame cell `o` the pointer is read through can name. -/
+def memTwice (c1 c2 : ℕ) : ℕ := 2 ^ 32 * (c2 + 1) + c1
+
 /-- A bound `e < n` on `fp[c]` from its own facts: a range check of it against a bound at most
-`n`, a read through a frame cell whose memory read is bounded at that offset (`mem`), a known
-bound, or
+`n`, a read through a frame cell whose memory read is bounded at that offset (`mem`), or through a
+frame cell read through another one whose reads twice are (`memTwice`), a known bound, or
 a selector bounded by booleanity (`selBound`). -/
 noncomputable def boundBase (mem : List (ℕ × ℕ × ℕ)) (B : Book) (bnd : List (ℕ × ℕ)) (c n : ℕ) :
     Bool :=
   (look B c).any (fun a ↦ match a with
     | .range x _ k => x == c && Nat.ble k n
     | .instr _ (.deref o1 o2 o3 .cell) =>
-        o3 == c && mem.any fun m ↦ m.1 == o1 && m.2.1 == o2 && Nat.ble m.2.2 n
+        o3 == c && (mem.any (fun m ↦ m.1 == o1 && m.2.1 == o2 && Nat.blt o2 (2 ^ 32) && Nat.ble m.2.2 n) ||
+          (look B o1).any fun b ↦ match b with
+            | .instr _ (.deref p0 c1 o1' .cell) => o1' == o1 && Nat.blt c1 (2 ^ 32) &&
+                mem.any fun m ↦ m.1 == p0 && m.2.1 == memTwice c1 o2 && Nat.ble m.2.2 n
+            | _ => false)
     | _ => false) ||
   bnd.any (fun p ↦ p.1 == c && Nat.ble p.2 n) ||
   (match selBound B selFuel c with
@@ -956,13 +971,24 @@ noncomputable def tableCallsOk (X : Fx) (base : ℕ) (ok : ℕ → String → Si
 /-- The returned words read back from the callee frame `fp[q]`. -/
 noncomputable def loadsOk (B : Book) (q o : ℕ) (rets : List ℕ) : Bool := storesOk B q o rets
 
-/-- A tail call's next frame `fp·g^S` holds `fp[c]` at cell `S + o`: one cell, or a copy. -/
-noncomputable def nextHolds (B : Book) (S o c : ℕ) : Bool := sameOk B (S + o) c
+/-- A store of `fp[c]` at offset `o` through a cell the environment `ψ` (the exit's) knows to hold
+`fp·g^S`. -/
+noncomputable def storedNext (B : Book) (ψ : Trie Sym) (S o c : ℕ) : Bool :=
+  (look B c).any fun a ↦ match a with
+    | .instr _ (.deref q o' c' .cell) => o' == o && c' == c && (match ψ.get q with
+      | some (.fpg e) => e == S
+      | _ => false)
+    | _ => false
+
+/-- A tail call's next frame `fp·g^S` holds `fp[c]` at cell `S + o`: one cell, a copy, or a store
+through the next frame's pointer. -/
+noncomputable def nextHolds (B : Book) (ψ : Trie Sym) (S o c : ℕ) : Bool :=
+  sameOk B (S + o) c || storedNext B ψ S o c
 
 /-- A tail call's arguments in the next frame. -/
-noncomputable def tailArgsOk (B : Book) (S : ℕ) : ℕ → List ℕ → Bool
+noncomputable def tailArgsOk (B : Book) (ψ : Trie Sym) (S : ℕ) : ℕ → List ℕ → Bool
   | _, [] => true
-  | o, c :: cs => nextHolds B S o c && tailArgsOk B S (o + 1) cs
+  | o, c :: cs => nextHolds B ψ S o c && tailArgsOk B ψ S (o + 1) cs
 
 /-- A tail call's self frame pointer cell `S + o` of the next frame holds `fp·g^S`: a copy of a
 cell the exit's environment knows so. -/
@@ -1050,17 +1076,17 @@ noncomputable def retOk (X : Fx) (vs : List Core.V) (st : CS) (P : List Core.Ato
 /-- A loop's closing tail call to `s` at the next frame `fp·g^S` from the branch position `st`
 with exit `x`, guarded by `fp[oc]`: the callee's name and arity, no returns, bounds after or on
 memory, its bounded arguments and semantic tuples (pairs `neAt oc` knows different), the
-arguments, the self frame
-pointer cells and the return registers copied into the next frame, every pending atom found,
-and the fall-through returning. -/
+arguments, the self frame pointer cells and the return registers in the next frame (computed
+there or stored through its pointer, `nextHolds`), every pending atom found, and the
+fall-through returning. -/
 noncomputable def tailOk (X : Fx) (st : CS) (x : Exec.Exit) (oc S : ℕ) (s : Sig) (f : String)
     (ca : List ℕ) (P : List Core.Atom) : Bool :=
   f == s.name && ca.length == s.nargs && s.nret == 0 && X.nret == 0 &&
     preOk X.F st.psi X.mem st.book st.bnd ca s.pre && s.mem.isEmpty && X.post.isEmpty &&
     semOk st.book (neAt st.book oc) none X.sems ca s.sem &&
-    tailArgsOk st.book S 2 ca &&
+    tailArgsOk st.book x.env S 2 ca &&
     s.env.all (fun p ↦ Sym.beq p.2 (.fpg 0) && tailEnvOk st.book x.env S p.1) &&
-    nextHolds st.book S 0 0 && nextHolds st.book S 1 1 && pendOk X st P && !X.main &&
+    nextHolds st.book x.env S 0 0 && nextHolds st.book x.env S 1 1 && pendOk X st P && !X.main &&
     (match endAt st with
       | some se => decide (se.seg.exit.kind = .ret)
       | none => false)
@@ -1304,7 +1330,8 @@ noncomputable def Cert.fxAt (G : Glob) (f : CompiledFunction) (cf : Core.Fn) (C 
     (i : ℕ) (segs : List Exec.Seg) (idx : Trie Exec.Seg) (loc : Trie ℕ) : Fx :=
   ⟨G.restrict C.callees, C.facts, f.entryPc, segs, idx, loc, cf.params.length, C.nret, main,
     C.callees, C.post,
-    C.mem ++ ((C.cutAt i).known ++ (C.cutAt i).knownIf), (C.cutAt i).known, (C.cutAt i).sems,
+    C.mem.filter memSmall ++ ((C.cutAt i).known.filter memSmall ++ (C.cutAt i).knownIf), (C.cutAt i).known,
+    (C.cutAt i).sems,
     bif Nat.blt i C.cuts.length then
       some ((C.cutAt (i + 1)).J, (C.cutAt (i + 1)).facts, (C.cutAt (i + 1)).bnd)
     else none,

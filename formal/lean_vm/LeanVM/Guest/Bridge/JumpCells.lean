@@ -24,7 +24,7 @@ public import LeanVM.Guest.Bridge.JumpCellsIdx
 
 `AShape A`: the alignment contexts of `A` are the data's (`AlignCtx.ofData` over function `j`'s certificate cells, `Plumb`, entry, whether it is `main`, the guest's powers and jump table), their hint-only cells only values without a certificate cell (below `2`), their code the compiled function's. `jcData j` (`JumpCellsIdx.lean`): `jcDataD` on function `j`'s data, which the kernel decides for every function (`Bridge/JumpCells/`). `ChainArm`: at a chained `match`'s table jump, the arm the previous selector took is one whose target cell the jump reads, what the alignment check cannot see (the chained `match` follows the previous one, its jump repeated at the end of each arm); only `main_loop2` has chains (`B2C.chained_only`).
 
-`jumpCells_of` (`JumpCellsOf.lean`, apart: it reads the program's alignment, `progAl`): on the honest tree and a memory covering its writes, under `ProgAl`, `AShape`, every function's `jcData` and `ChainArm`, the top frame of every state of the track against the run has its jump cells (`JumpCells`), each from what its frame holds (`FrameHolds`, `RefOk.frames`): the fixed cells' constants and frame words, a condition at its certificate cell (`walk_inK`, `locAt_ofData`), a table jump's target through the jump table (`tbl_armWord`), a call site's callee frame and header (the site the check names `siteOf`'s, no two sites of one argument list; a loop helper's last call no site's, `loop_last`), a loop's tail call to the frame right after its own (`FrameHolds.tail`), its header; `main` at frame `0` (no path calls `main`, `insts_main`) and only `main` (`Memory.insts_same`).
+`jumpCells_of` (`JumpCellsOf.lean`, apart: it reads the program's alignment, `progAl`): on the honest tree and a memory covering its writes, under `ProgAl`, `AShape`, every function's `jcData` and `ChainArm`, the top frame of every state of the track against the run has its jump cells (`JumpCells`), each from what its frame holds (`FrameHolds`, `RefOk.frames`): the fixed cells' constants and frame words, a condition at its certificate cell (`walk_inK`, `locAt_ofData`), a table jump's target through the jump table (`tbl_armWord`), a call site's callee frame and header (the site the check names `siteOf`'s, no two sites of one argument list; a loop helper's last call no site's, `loop_last`), a loop's tail call to the frame right after its own (`FrameHolds.tail`), which its next-frame cell holds, a fixed cell or one past the frame at a self frame pointer cell of the next frame (`next_read`), its header; `main` at frame `0` (no path calls `main`, `insts_main`) and only `main` (`Memory.insts_same`).
 -/
 
 namespace LeanVM.Guest.Bridge
@@ -89,6 +89,18 @@ theorem siteAt_ofData {q : ℕ} {args rets : List V} {s : Site}
     exact ⟨hs'', hq, hb.1, hb.2⟩
   · cases h
 
+theorem nextAt_ofData {o : ℕ}
+    (h : (AlignCtx.ofData locs extra entry main p pows jt ents halt len).nextAt o = true) :
+    (∃ S, (o, PC.fpg S) ∈ p.stat ∧ S ≠ 0) ∨ o ∈ p.nxt := by
+  unfold AlignCtx.nextAt at h
+  split at h
+  · rename_i S hso
+    exact Or.inl ⟨S, statOf_ofData hso, fun h0 ↦ by simp [h0] at h⟩
+  · cases h
+  · obtain ⟨x, hx, he⟩ := List.any_eq_true.mp h
+    obtain rfl := Nat.eq_of_beq_eq_true he
+    exact Or.inr hx
+
 end Ctx
 
 /-! ## Sites, kids and instances -/
@@ -121,6 +133,77 @@ theorem siteOf_eq {j : ℕ} {c : Call} {s : Site} (hu : sitesUniq (plumbOf j).si
   have hp := List.find?_some hs'
   simp only [Bool.and_eq_true, beq_iff_eq] at hp
   rw [hs', sitesUniq_eq hu (List.mem_of_find?_eq_some hs') hs (hp.1.trans ha.symm) (hp.2.trans hr.symm)]
+
+/-- **A next-frame cell of function `j`'s code**: `j` a loop helper other than `main`, the cell a fixed
+next frame `fp·g^(fsN j)` or past the frame at `fsN j` plus one of `j`'s self frame pointer cells. -/
+theorem nextAt_facts {j : ℕ} (hd : jcData j = true) {off oc od q : ℕ}
+    (hcode : (fnOf j).code[off]? = some (.jump oc od q)) (hnx : (ctxOf j).nextAt q = true) :
+    (coreOf j).loop = true ∧ (j == 1) = false ∧ loopChk (coreOf j) (plumbOf j) = true ∧
+      ((q, PC.fpg (fsN j)) ∈ (plumbOf j).stat ∨ ∃ p ∈ (certOf j).facts.env, q = fsN j + p.1) := by
+  unfold jcData jcDataD at hd
+  simp only [Bool.and_eq_true] at hd
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨-, -⟩, -⟩, -⟩, -⟩, -⟩, hloop⟩, hnext⟩, hnxt⟩ := hd
+  have hlc : (coreOf j).loop = true → (j == 1) = false ∧ loopChk (coreOf j) (plumbOf j) = true := fun hl ↦ by
+    simp only [hl, Bool.not_true, Bool.false_or, Bool.and_eq_true, Bool.not_eq_true'] at hloop
+    exact hloop
+  unfold ctxOf at hnx
+  rcases nextAt_ofData hnx with ⟨S, hm, hS⟩ | hm
+  · have hls : (coreOf j).loop = true ∧ S = fsN j := by
+      rcases Bool.or_eq_true _ _ |>.mp hnext with hn | hn
+      · have := List.all_eq_true.mp hn _ hm
+        simp only [Bool.or_eq_true, beq_iff_eq, Bool.and_eq_true] at this
+        rcases this with h0 | h0
+        · exact absurd h0 hS
+        · exact h0
+      · have hmem : OffsetInstruction.jump oc od q ∈ (fnOf j).code := List.mem_of_getElem? hcode
+        have := List.all_eq_true.mp (List.all_eq_true.mp hn _ hmem) _ hm
+        simp only [beq_self_eq_true, Bool.not_true, Bool.false_or, Bool.or_eq_true, beq_iff_eq,
+          Bool.and_eq_true] at this
+        rcases this with h0 | h0
+        · exact absurd h0 hS
+        · exact h0
+    exact ⟨hls.1, (hlc hls.1).1, (hlc hls.1).2, Or.inl (hls.2 ▸ hm)⟩
+  · have := List.all_eq_true.mp hnxt _ hm
+    unfold nxtChk at this
+    simp only [Bool.and_eq_true, Bool.not_eq_true', List.any_eq_true] at this
+    obtain ⟨⟨hl, -⟩, p, hp, he⟩ := this
+    exact ⟨hl, (hlc hl).1, (hlc hl).2, Or.inr ⟨p, hp, (Nat.eq_of_beq_eq_true he).symm⟩⟩
+
+/-- **A next-frame cell holds the tail callee's frame**, right after the frame, on a frame holding
+what its check reads whose path's last call is entered. -/
+theorem next_read {κ : ℕ} {L : MemoryImage κ} {j fp : ℕ} {σ : Val} {es : List Ev} {vs : List V} {kfps : List ℕ}
+    {hdr : E × E} (hj1 : 1 ≤ j) (hj2 : j < nFns) (hd : jcData j = true) (hF : FrameHolds L j fp σ es vs kfps hdr)
+    (hw : walk σ (coreOf j).body = .ret es vs) {i : ℕ} {c : Call} (hc : (calls es)[i]? = some c)
+    (hi : i + 1 = (calls es).length) {off oc od q : ℕ} (hcode : (fnOf j).code[off]? = some (.jump oc od q))
+    (hnx : (ctxOf j).nextAt q = true) :
+    (coreOf j).loop = true ∧ (j == 1) = false ∧ ∃ kfp, kfps[i]? = some kfp ∧ kfp = fp + fsN j ∧
+      L.read (addressOfIndex (fp + q)) = some (ofK (addressOfIndex kfp)) := by
+  obtain ⟨hl, hn1, hlc, hq⟩ := nextAt_facts hd hcode hnx
+  have hi' : i < (calls es).length := (List.getElem?_eq_some_iff.mp hc).1
+  obtain ⟨kfp, hkfp⟩ : ∃ kfp, kfps[i]? = some kfp :=
+    ⟨_, List.getElem?_eq_getElem (by rw [hF.len]; exact hi')⟩
+  have hlast : kfps.getLast? = some kfp := by
+    rw [List.getLast?_eq_getElem?, hF.len, ← hi, Nat.add_sub_cancel]; exact hkfp
+  have hkv := hF.tail hl kfp hlast
+  refine ⟨hl, hn1, kfp, hkfp, hkv, ?_⟩
+  rcases hq with hm | ⟨p, hp, rfl⟩
+  · have hd' := hd
+    unfold jcData jcDataD at hd'
+    simp only [Bool.and_eq_true] at hd'
+    obtain ⟨⟨⟨⟨⟨⟨⟨⟨hstat, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩ := hd'
+    have hb := ((Bool.and_eq_true _ _).mp (List.all_eq_true.mp hstat _ hm)).1
+    simp only [cellIn, Bool.and_eq_true, Nat.ble_eq, Nat.blt_eq] at hb
+    simp only [hF.stat _ hm hb.1 hb.2, hkv, PC.word]
+  · have hcf : c.f = (coreOf j).name := loop_last_f hlc hl hw hc hi
+    have hsc : p.1 ∈ selfCells c.f := by
+      rw [hcf]
+      unfold selfCells
+      rw [idxOf_coreOf hj1 hj2]
+      exact List.mem_map_of_mem hp
+    have := (hF.kid i c kfp hc hkfp).2.2.2 p.1 hsc
+    rw [hkv, Nat.add_assoc] at this
+    rw [hkv]
+    exact this
 
 theorem kidsValid_get {P : Core.Program} {rv : Reader} {σ : Val} : ∀ {cs : List Memory.Call} {ks : List Tree} {i : ℕ}
     {c : Memory.Call}, Tree.KidsValid P rv σ cs ks → cs[i]? = some c → ∃ k, ks[i]? = some k ∧ k.name = c.f ∧
@@ -198,12 +281,6 @@ theorem cellW_spec {C : Check.Cert} (hc : Check.Cont C C.cuts.length) {i x : ℕ
   obtain ⟨hm, hxe⟩ := List.getElem?_eq_some_iff.mp h
   have hloc := Check.cont_locs hc hw.1 hm
   rwa [Nat.add_sub_cancel' hw.2, hxe] at hloc
-
-theorem fsN_pos (j : ℕ) : 0 < fsN j := by
-  unfold fsN
-  cases Nat.beq j 1
-  · simp
-  · simp [mainFrame, Data.mainCells, Data.jtSlots]
 
 theorem numbered_eq {x : V} (h : numbered x = true) : x = V.n x.idx := by
   obtain ⟨path, tag, idx⟩ := x

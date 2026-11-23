@@ -19,8 +19,9 @@ def inputs(D, n, nzr):
         local = all(entry < pc < entry + ln for pcs_ in [pcs] for pc in pcs_)
         key = ('a' if local else 'c', pcs)
         if key not in ids:
+            # one numbering for both kinds: the walk reads a table's arms and its callees at the same key
             tab = arms if local else calls
-            ids[key] = len(tab)
+            ids[key] = len(ids)
             tab[ids[key]] = [pc - entry for pc in pcs] if local else list(pcs)
         idx[i] = ids[key]
     tgt = (idx, arms, calls)

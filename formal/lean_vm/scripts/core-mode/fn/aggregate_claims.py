@@ -26,7 +26,7 @@ theorem kcAgg_le (op : Opcode) : ∀ (rd : Reader) (t : Tree) (args rets : List 
     intro q hq
     simp only [List.mem_singleton] at hq
     subst hq
-    exact ⟨n, h0, h1, ha⟩
+    exact ⟨n, preLt_of_lt (by unfold gT; omega) h0, h1, ha⟩
   have hx : argExp args 0 = n := by rw [argExp, ha, logG_ofK h1]
   cases op
 '''
@@ -48,7 +48,7 @@ def deployed_value(W, name):
     """`agA0`: its frame, `109` words and its callees' words, without a child; `agA1`: its loops' phantoms per child
     (`SKt + fs`), as the base is charged without a child."""
     if name == 'agA0':
-        return W.fs(W.L('aggregate_claims')) + 109 + W.SB('grind_check__L2') + W.SB('batch_sumcheck__L23')
+        return W.fs(W.L('aggregate_claims')) + 109 + W.SB('batch_sumcheck__L23')
     if name == 'agA1':
         return 18 + sum(W.SK(n) for n in _lps())
     return None
@@ -58,7 +58,7 @@ def deployed_parts(W):
     """`DeployedC`'s `agA0_eq` and `agA1_eq`."""
     return [dict(mod='DeployedC', key=6, items=[
         W.thm('agA0_eq', 'agA0 B2C.fs wSB', W.v('agA0'), 'agA0', [], fs=[W.L('aggregate_claims')],
-              sb=['grind_check__L2', 'batch_sumcheck__L23']),
+              sb=['batch_sumcheck__L23']),
         W.thm('agA1_eq', 'agA1 B2C.fs wSK', W.v('agA1'), 'agA1 B1.Main.iterK', [], fs=_lps(), sk=_lps())])]
 
 # its own Lean files beside its B1 proofs' `B1/` modules and its `CoreMode/Fn/<f>/` (`fnreg.own_files`): what a change to

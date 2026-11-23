@@ -289,8 +289,8 @@ theorem dv_completeAtB_z (hrf : Lift.RunsFit fs cert) {SB SK : String → ℕ} (
         (fun i hi => blob_completeAtB fs cert hS.cell hS.dl7 hi (hsl i) (hdot i hi)
           (List.mem_append_left _ List.mem_cons_self)
           (fun k hk => List.mem_append_left _ (List.mem_cons_of_mem _
-            (List.mem_map.mpr ⟨k, List.mem_range.mpr hk, rfl⟩)))) hS.blob
-    · exact pad_completeAtB fs cert hS.pad hrL hL10
+            (List.mem_map.mpr ⟨k, List.mem_range.mpr hk, rfl⟩)))) hS.blob (hS.tk _)
+    · exact pad_completeAtB fs cert hS.pad hS.tk hrL hL10
     · have hdl : TotalLe coreProgram fs (daLevelsName L) (fun _ => SB (daLevelsName L)) := by
         have := hS.dl; rwa [dlTop, ← hLm] at this
       exact pureB_static daPure (List.mem_append_left _ (List.mem_append_right _

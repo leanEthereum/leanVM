@@ -37,6 +37,7 @@ mod ast;
 mod field;
 mod ir;
 mod lower;
+mod opt;
 mod parser;
 pub use ast::*;
 pub(crate) use ir::*;
@@ -47,7 +48,8 @@ pub use parser::{f128_literal, parse, parse_const, parse_with_constants, parse_w
 /// Compile an [`Ast`] to a provable [`CompiledProgram`]. Panics on a malformed program
 /// (unbound variable, missing `main`, address overflow).
 pub fn compile(ast: &Ast) -> CompiledProgram {
-    let (lowered, tables) = lower_all(ast);
+    let (mut lowered, mut tables) = lower_all(ast);
+    opt::optimize(&mut lowered, &mut tables);
     assemble(lowered, tables)
 }
 
@@ -124,6 +126,9 @@ fn assemble(mut lowered: Vec<Lowered>, tables: JumpTables) -> CompiledProgram {
                 name: "__jump_tables".into(),
                 code,
                 frame_size,
+                keep: frame_size,
+                rets: 0..0,
+                fixed: true,
             },
         );
     }
@@ -170,14 +175,20 @@ fn assemble(mut lowered: Vec<Lowered>, tables: JumpTables) -> CompiledProgram {
                     .drain(..)
                     .map(|h| match h {
                         Hint::NextFrameAddress => RHint::FrameAddress { offset: l.frame_size },
-                        Hint::AllocLoopFrames { ptr, callee, count } => {
+                        Hint::AllocLoopFrames {
+                            ptr,
+                            callee,
+                            count,
+                            tail,
+                        } => {
                             let size = frame_size[&callee];
                             match count {
                                 LoopCount::Constant(n) => RHint::Alloc {
                                     ptr,
-                                    size: u32::try_from(n)
+                                    size: u32::try_from(n - 1)
                                         .ok()
                                         .and_then(|n| size.checked_mul(n))
+                                        .and_then(|frames| frames.checked_add(tail))
                                         .expect("loop frames overflow"),
                                 },
                                 LoopCount::Bound { cell, start } => RHint::AllocFrames {
@@ -185,6 +196,7 @@ fn assemble(mut lowered: Vec<Lowered>, tables: JumpTables) -> CompiledProgram {
                                     size,
                                     end: cell,
                                     start_inverse: F64::G.pow(u128::from(start)).inv(),
+                                    tail,
                                 },
                             }
                         }
@@ -303,17 +315,14 @@ fn resolve(op: &LOp, entry: &HashMap<String, u32>, sentinel: u32, pc0: u32, fram
         }
     };
     match op {
-        LOp::MulNextFrame { a, b, c } => Op::Mul {
-            a: *a,
-            b: *b,
-            c: frame_size.checked_add(*c).expect("frame offset overflow"),
-        },
         LOp::Set { o, k: kv } => Op::Set {
             o: *o,
             k: resolve_kval(kv),
         },
         LOp::Xor { a, b, c } => Op::Xor { a: *a, b: *b, c: *c },
-        LOp::Mul { a, b, c } => Op::Mul { a: *a, b: *b, c: *c },
+        LOp::Mul { a, b, c } | LOp::Copy { src: a, one: b, dst: c } => Op::Mul { a: *a, b: *b, c: *c },
+        // The known operand first: a range check's `MUL K = x·y` is the shape its proof reads.
+        LOp::Solve { x, b, c } => Op::Mul { a: *b, b: *x, c: *c },
         LOp::Deref { o1, o2, o3, mode } => Op::Deref {
             o1: *o1,
             o2: *o2,

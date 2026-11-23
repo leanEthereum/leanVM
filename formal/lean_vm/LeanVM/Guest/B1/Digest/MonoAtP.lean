@@ -213,7 +213,7 @@ theorem monoLoop_completeAtBP (fs : String → ℕ) (cert : String → V → ℕ
     (hwit : (loopPre (coreProgram.getD j default)).filterMap Main.Stmt.popS =
       ((List.range m).map fun i => ("child_claim_gap", [V.n (13 + 10 * i)])).map fun x => some (x.1, .stack x.2)) :
     CompleteAtDTBR fs cert κ f Lin [1, gen ^ M, chain, mark] (Returns [])
-      (fun rd t => t.pops coreProgram rd = gapPops o s0 (m * M)) ((M + 1) * fs f) := by
+      (fun rd t => t.pops coreProgram rd = gapPops o s0 (m * M)) (M * fs f + fs (tailKey f)) := by
   have hshape : loopShapeF (coreProgram.getD j default) f = true := by
     simp only [mcOk, mcHead, Bool.and_eq_true] at hc; exact hc.1.1.1.1.1.1
   have hAS : (loopPre (coreProgram.getD j default)).all isAtomS = true := by

@@ -13,10 +13,10 @@ public import LeanVM.Guest.B1.Terminal.KidsDep
 # Dependent callees, placed, within a bound
 
 `KidsDepB fs cert κ ks Bs`: callee `j` (a function of the results before it, `KidD`) has the bound
-`Bs[j]`, on every result before it: entered, it is `CompleteAtB` within `Bs[j]`; skipped, its frame
-`fs` is at most `Bs[j]`. The callees then take at most `Bs.sum` words (`kidsFromIn_of_depB`), and a
-flat function with them at most `fs f + sizes.sum + Bs.sum` (`completeAt_flatDepB`,
-`completeAt_flatDepRB`: `completeAt_flatDep`, `completeAt_flatDepR` within that bound).
+`Bs[j]`, on every result before it: entered, it is `CompleteAtB` within `Bs[j]`; skipped, its tail frame
+`fs (tailKey f)` is at most `Bs[j]`. The callees then take at most `Bs.sum` words (`kidsFromIn_of_depB`), and a
+flat function with them at most `fs f + sizes.sum + Bs.sum` (`completeAt_flatDepRB`:
+`completeAt_flatDepR` within that bound).
 -/
 
 namespace LeanVM.Guest.B1
@@ -27,12 +27,12 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 @[expose] public section
 
 /-- **The dependent callees within their bounds**: callee `j`, on every result before it, entered
-within `Bs[j]` words (`CompleteAtB`), skipped with its frame at most `Bs[j]`; one bound per
+within `Bs[j]` words (`CompleteAtB`), skipped with its tail frame at most `Bs[j]`; one bound per
 callee. -/
 def KidsDepB (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) : List KidD → List ℕ → Prop
   | k :: ks, b :: Bs => (∀ pv, ((k pv).taken = true →
         CompleteAtB fs cert κ (k pv).f (k pv).Lin (k pv).args (k pv).Out b) ∧
-      ((k pv).taken = false → fs (k pv).f ≤ b)) ∧ KidsDepB fs cert κ ks Bs
+      ((k pv).taken = false → fs (tailKey (k pv).f) ≤ b)) ∧ KidsDepB fs cert κ ks Bs
   | [], [] => True
   | _, _ => False
 
@@ -49,7 +49,7 @@ theorem KidsDepB.append {κ : ℕ} : ∀ {ks ks' : List KidD} {Bs Bs' : List ℕ
 theorem kidsDepB_replicate {κ : ℕ} {b : ℕ} : ∀ {ks : List KidD},
     (∀ k ∈ ks, ∀ pv, ((k pv).taken = true →
         CompleteAtB fs cert κ (k pv).f (k pv).Lin (k pv).args (k pv).Out b) ∧
-      ((k pv).taken = false → fs (k pv).f ≤ b)) →
+      ((k pv).taken = false → fs (tailKey (k pv).f) ≤ b)) →
     KidsDepB fs cert κ ks (List.replicate ks.length b)
   | [], _ => trivial
   | k :: _, h => ⟨h k List.mem_cons_self, kidsDepB_replicate fun k' hk' => h k' (List.mem_cons_of_mem _ hk')⟩
@@ -124,15 +124,15 @@ theorem kidsFromIn_of_depB (κ : ℕ) : ∀ (ks : List KidD) (Bs : List ℕ) (pr
     · have ht' : (kf prev).taken = false := by simpa using ht
       have hfb := (hok prev).2 ht'
       obtain ⟨N, L, outs, hNb, hlen, ho, hW, hD, hI, hK⟩ :=
-        kidsFromIn_of_depB κ ks Bs (prev ++ [([], [])]) hoks (b + fs (kf prev).f)
-      refine ⟨fs (kf prev).f + N, L, ([], []) :: outs, by simp only [List.sum_cons]; omega,
+        kidsFromIn_of_depB κ ks Bs (prev ++ [([], [])]) hoks (b + fs (tailKey (kf prev).f))
+      refine ⟨fs (tailKey (kf prev).f) + N, L, ([], []) :: outs, by simp only [List.sum_cons]; omega,
         by simp [hlen], ⟨fun h => absurd h ht, ho⟩,
         hW.mono (by omega) (by omega), hD, ⟨fun h => absurd h ht, hI⟩, ?_⟩
       intro rd σ cs R Dacc hc hlow hL hLin hRg
       match cs, hc with
       | c :: cs, ⟨hf, hct, _, hc⟩ =>
         simp only [kidsAt, Kid.lins, List.flatMap_cons] at hLin
-        refine ⟨fs (kf prev).f, N, fun _ => False, fun _ => False, rfl, fun _ h => h.elim, ?_, ?_⟩
+        refine ⟨fs (tailKey (kf prev).f), N, fun _ => False, fun _ => False, rfl, fun _ h => h.elim, ?_, ?_⟩
         · rw [hct, ht']
           simp only [Bool.false_eq_true, ↓reduceIte]
           rw [hf]

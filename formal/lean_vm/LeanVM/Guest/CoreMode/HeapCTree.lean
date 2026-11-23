@@ -302,7 +302,10 @@ theorem kidsAll_mem {Q : String → Val → Prop} : ∀ {ks : List Tree} {k : Tr
 /-- The words at cells of a certificate that passes are checked (`dersOk`). -/
 theorem heapOkC_ders {f : Fn} {H : HCert} {sigOf : String → HSig} (h : heapOkC pows sigOf f H = true) :
     dersOk H.ders = true := by
-  unfold heapOkC at h
+  rcases heapOkC_cases h with ⟨-, h⟩ | ⟨h, -⟩
+  swap
+  · exact (splitOk_spec h).2.2.1
+  unfold heapOkC1 at h
   simp only [Bool.and_eq_true, Exec.Trie.seq_eq] at h
   obtain ⟨-, h⟩ := h
   split at h
@@ -329,9 +332,11 @@ theorem node_sound (hp : pows.Ok) (hC : CertsOk pows P cert) {f : String} {σ : 
       RetEqOk (cert f).sig (fn.params.map σ ++ vs.map σ) := by
   have hok := hC f fn hf
   have hng : noGhost fn = true := by
-    unfold heapOkC at hok
-    simp only [Bool.and_eq_true] at hok
-    exact hok.1.1.2
+    rcases heapOkC_cases hok with ⟨-, hok⟩ | ⟨hok, -⟩
+    · unfold heapOkC1 at hok
+      simp only [Bool.and_eq_true] at hok
+      exact hok.1.1.2
+    · exact (splitOk_spec hok).2.1
   have hag : ∀ v ∈ Stmt.usesList fn.body ++ Stmt.tmpsList fn.body ++ fn.params, instV rd (cert f) σ gw v = σ v :=
     fun v hv ↦ instV_eq (noGhost_idx hng hv)
   have hw' : walk (instV rd (cert f) σ gw) fn.body = .ret es vs := by

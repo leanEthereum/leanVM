@@ -16,7 +16,7 @@ public import LeanVM.Guest.B1.Main.KidsT
 `kids_weight_le`, `kids_total_le`: for the callees `ks` of the calls `cs` (`Tree.KidsValid`), the
 weight is at most the sum over the entered calls of a bound `W c` on their callees' valid trees at
 the call's arguments, and the words at most the sum of a bound `T c` over the entered calls and of
-the callee's frame over the others (a phantom allocates its frame).
+the callee's tail over the others (a phantom allocates its tail, `fs (tailKey f)`).
 -/
 
 namespace LeanVM.Guest.Budget
@@ -28,9 +28,10 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory
 /-- The bounds of the entered calls. -/
 def callsW (W : Call → ℕ) (cs : List Call) : ℕ := (cs.map fun c => if c.taken then W c else 0).sum
 
-/-- The words of the calls: a bound for an entered call, the callee's frame for the others. -/
+/-- The words of the calls: a bound for an entered call, the callee's tail (its phantom) for the
+others. -/
 def callsT (fs : String → ℕ) (T : Call → ℕ) (cs : List Call) : ℕ :=
-  (cs.map fun c => if c.taken then T c else fs c.f).sum
+  (cs.map fun c => if c.taken then T c else fs (tailKey c.f)).sum
 
 variable {P : Core.Program} {rd : Reader} {σ : Val}
 
@@ -202,7 +203,8 @@ theorem kids_total_leL (fs : String → ℕ) :
     ∀ (cs : List Call) (Ts : List (Tree → Prop)) (Ws : List ℕ) (ks : List Tree),
       Tree.KidsValid P rd σ cs ks → Tree.BufsOkKids P ks → KidsT cs Ts ks →
       cs.length ≤ Ts.length → cs.length ≤ Ws.length →
-      (∀ i (hi : i < cs.length) (hW : i < Ws.length), cs[i].taken = false → fs cs[i].f ≤ Ws[i]) →
+      (∀ i (hi : i < cs.length) (hW : i < Ws.length), cs[i].taken = false →
+        fs (tailKey cs[i].f) ≤ Ws[i]) →
       (∀ i (hi : i < cs.length) (hT : i < Ts.length) (hW : i < Ws.length), cs[i].taken = true →
         ∀ (t : Tree) (rets : List E), t.name = cs[i].f → t.Valid P rd (cs[i].args.map σ) rets →
           t.BufsOk P → Ts[i] t → t.total fs ≤ Ws[i]) →

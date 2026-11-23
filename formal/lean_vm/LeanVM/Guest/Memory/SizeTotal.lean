@@ -12,13 +12,13 @@ public import LeanVM.Guest.Memory.Size
 # Words from weights
 
 An instance of `f` allocates its frame `fs f`, its `HeapBuf`s and, for each `callIf` it does
-not take, a phantom of the callee's frame: what its path's events add to the frame is
+not take, a phantom of the callee's tail: what its path's events add to the frame is
 `Ev.words`. A weight `ω` that bounds `fs f` plus that, on every path of every function of a set
 `S` the paths' calls stay in (`LocLe`, `CallsIn`), bounds the words of a tree of a function of
 `S` (`total_le_weight`), so `TotalLe` follows from `WeightLe` (`totalLe_of_weightLe`).
 
 Both hypotheses follow from the syntax. `Stmt.blockWords` bounds the words of a block's paths
-by `c + Σ fs gs`, independently of `fs`: a `HeapBuf(n)` costs `n`, a `callIf` its callee's frame,
+by `c + Σ fs (tailKey gs)`, independently of `fs`: a `HeapBuf(n)` costs `n`, a `callIf` its callee's tail,
 a branch both sides; a dynamic `HeapBuf` has no bound (`none`). `Stmt.blockCallees` lists the functions a block can
 call (`locLe_of_words`, `callsIn_of_callees`). A function whose paths call only itself (a loop
 helper, or a leaf) weighs `ω f` per instance (`weight_self`), so its instances are counted by any
@@ -32,16 +32,16 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core
 @[expose] public section
 
 /-- The words an event adds to its instance's frame: a `HeapBuf`'s size, an untaken call's
-frame. -/
+tail. -/
 noncomputable def Ev.words (fs : String → ℕ) (σ : Val) (e : Ev) : ℕ :=
   (e.alloc? σ).getD 0 + match e.call? with
-    | some c => if c.taken then 0 else fs c.f
+    | some c => if c.taken then 0 else fs (tailKey c.f)
     | none => 0
 
-/-- The frames of the untaken calls. -/
+/-- The tails of the untaken calls. -/
 def skipWords (fs : String → ℕ) : List Call → ℕ
   | [] => 0
-  | c :: cs => (if c.taken then 0 else fs c.f) + skipWords fs cs
+  | c :: cs => (if c.taken then 0 else fs (tailKey c.f)) + skipWords fs cs
 
 theorem sum_words (fs : String → ℕ) (σ : Val) : ∀ es : List Ev,
     (es.map (Ev.words fs σ)).sum = (allocs σ es).sum + skipWords fs (calls es)
@@ -183,7 +183,7 @@ def Stmt.armsWords : List (List Stmt) → Option (ℕ × List String)
 end
 
 /-- The words `(c, gs)` stands for. -/
-def wordsVal (fs : String → ℕ) (w : ℕ × List String) : ℕ := w.1 + (w.2.map fs).sum
+def wordsVal (fs : String → ℕ) (w : ℕ × List String) : ℕ := w.1 + (w.2.map fun g => fs (tailKey g)).sum
 
 mutual
 /-- The functions a statement can call. -/

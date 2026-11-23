@@ -65,11 +65,27 @@ def count_parts(g, OPS):
 
 # ---- its deployed words and instructions (`scripts/count/deployed.py`, `B1.Main.mainWords`, `Budget.mainInstrs`)
 
+def tail_words(W, stable):
+    """`B2C.tailN` of `stable`: its header, parameters and self cell and its self frame pointer cells (its bundle's
+    `env`), within its frame."""
+    import glob, os, re
+    n = W.L(stable)
+    np_ = len(W.g.fns[W.g.by[n]]['params'])
+    for b in sorted(glob.glob(os.path.join(W.g.lv, 'LeanVM', 'Guest', 'Pack', '*', 'Bundle.lean'))):
+        parts = open(b, encoding='utf-8').read().split('\nnamespace LeanVM.Guest.Fn.')
+        for blk in parts[1:]:
+            if blk.split('\n', 1)[0].strip().strip('«»') == stable:
+                env = re.search(r'env := \[(.*?)\], fpOne', blk).group(1)
+                offs = [int(x) for x in re.findall(r'\((\d+), \(', env)]
+                return min(W.fs(n), max([np_ + 3] + [o + 1 for o in offs]))
+    raise SystemExit('main.py: no bundle of %s' % stable)
+
+
 def deployed_value(W, name):
-    """`main_loop4`'s parts (`B1.Main.l5A0`, `l5A1`, `l5A2`): its frame, and per child its frame, two claim lists'
-    constants and the statement's digest, and two claim lists' slopes."""
+    """`main_loop4`'s parts (`B1.Main.l5A0`, `l5A1`, `l5A2`): its untaken tail's words, and per child its frame, two
+    claim lists' constants and the statement's digest, and two claim lists' slopes."""
     if name == 'l5A0':
-        return W.fs(W.L('main_loop4'))
+        return tail_words(W, 'main_loop4')
     if name == 'l5A1':
         return W.fs(W.L('main_loop4')) + 2 * W.v('ccC') + W.SB('statement_digest')
     if name == 'l5A2':
@@ -86,7 +102,7 @@ def _deployed(W):
     # callee's frame and bound
     base = (fs('main') + 283 + fs('exponent_tables') + fnrules.lean_def_at('B1/Bits/Tables.lean', 'expTabN')
             + 2 * (v('clC') + fs('claim_list_digest')) + fs(lp[0]) + fs(lp[1]) + fs(lp[2]) + fs(lp[3])
-            + 2 * v('l5A0') + (v('agA0') + fs('aggregate_claims'))
+            + (v('l5A0') + fs(lp[4])) + (v('agA0') + fs('aggregate_claims'))
             + SB('statement_digest') + fs('statement_digest'))
     # its own loops at `B1.Main.iterK`, their runs' phantoms in the base
     words = [base, v('clS'), 5 + SKt(lp[0]) + SKt(lp[1]), SKt(lp[2]), SKt(lp[3]), v('dvC') + fs('da_verify'),
@@ -153,7 +169,8 @@ theorem deployedBudget_instrs (Bvf : ℕ → ℕ → ℕ) (op : Opcode) :
         dict(mod='DeployedC', key=2,
              head=(3, 'The claim lists\', the children\'s loop\'s and `aggregate_claims`\' words.',
                    'public import LeanVM.Guest.Count.DeployedA2\n'),
-             items=[W.thm('l5A0_eq', 'l5A0 B2C.fs', W.v('l5A0'), 'l5A0', [], fs=[l4])]),
+             items=[W.thm('l5A0_eq', 'l5A0 B2C.fs', W.v('l5A0'), 'l5A0',
+                          ['B2C.fs_tailKey (j := %d) (f := "%s") (by decide +kernel)' % (g.by[l4] + 1, l4)])]),
         dict(mod='DeployedC', key=4, items=[
             W.thm('l5A1_eq', 'l5A1 B2C.fs wSB', W.v('l5A1'), 'l5A1', ['ccC_eq'], fs=[l4], sb=['statement_digest'])]),
         dict(mod='DeployedC', key=5, items=[W.thm('l5A2_eq', 'l5A2 B2C.fs', W.v('l5A2'), 'l5A2 ccS', [],

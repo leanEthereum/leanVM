@@ -12,8 +12,6 @@ public import LeanVM.Guest.Memory.PopsNil
 public import LeanVM.Guest.B1.Whir.Commit
 public import LeanVM.Guest.B1.Whir.DataSpec
 public import LeanVM.Guest.B1.Whir.HelperAll
-import LeanVM.Guest.ValRef
-import LeanVM.Guest.Data.ValNames.«level_positions__L»
 
 /-!
 # `level_positions`, placed
@@ -34,6 +32,53 @@ open LeanVM.Guest.B1.Whir
 open LeanVM.Protocol.Verifier hiding Layout
 
 @[expose] public section
+
+/-! ## Square and multiply, honestly -/
+
+/-- The values of the square-and-multiply chain on `X` from `X^a`. -/
+def lqPowVals (X : E) : List Bool → ℕ → List E
+  | [], _ => []
+  | true :: ds, a => [X ^ (2 * a), X ^ (2 * a + 1)] ++ lqPowVals X ds (2 * a + 1)
+  | false :: ds, a => [X ^ (2 * a)] ++ lqPowVals X ds (2 * a)
+
+theorem lqPowVals_length (X : E) : ∀ (ds : List Bool) (a : ℕ),
+    (lqPowVals X ds a).length = ds.length + (ds.filter id).length
+  | [], _ => rfl
+  | true :: ds, a => by simp [lqPowVals, lqPowVals_length X ds]; omega
+  | false :: ds, a => by simp [lqPowVals, lqPowVals_length X ds]; omega
+
+/-- **The square-and-multiply chain, honestly.** -/
+theorem lq_powSteps_complete {C : CallRel} {rd : Reader} {σ : Val} (x : ℕ) :
+    ∀ (ds : List Bool) (acc k a : ℕ), σ (.n acc) = σ (.n x) ^ a →
+    (∀ j < (lqPowVals (σ (.n x)) ds a).length,
+      σ (.n (k + j)) = (lqPowVals (σ (.n x)) ds a).getD j 0) →
+    AllOk C rd σ (osPowSteps x ds acc k).1 ∧
+      σ (.n (osPowSteps x ds acc k).2) = σ (.n x) ^ digitsVal ds a
+  | [], _, _, _, ha, _ => ⟨allOk_nil, ha⟩
+  | true :: ds, acc, k, a, ha, hv => by
+    have v0 := hv 0 (by simp [lqPowVals])
+    have v1 := hv 1 (by simp [lqPowVals])
+    simp only [lqPowVals, List.cons_append, List.nil_append, List.getD_cons_zero,
+      List.getD_cons_succ, Nat.add_zero] at v0 v1
+    have := lq_powSteps_complete (C := C) (rd := rd) x ds (k + 1) (k + 2) (2 * a + 1) v1
+      (fun j hj ↦ by
+        have := hv (j + 2) (by simp [lqPowVals]; omega)
+        simp only [lqPowVals, List.cons_append, List.nil_append, List.getD_cons_succ] at this
+        rw [show k + 2 + j = k + (j + 2) by ring, this])
+    simp only [osPowSteps, ↓reduceIte, allOk_cons, Whir.StmtOk, osMul, Atom.Holds]
+    refine ⟨⟨by rw [v0, ha, ← pow_add]; ring_nf, by rw [v1, v0]; ring, this.1⟩, ?_⟩
+    rw [this.2]; rfl
+  | false :: ds, acc, k, a, ha, hv => by
+    have v0 := hv 0 (by simp [lqPowVals])
+    simp only [lqPowVals, List.cons_append, List.nil_append, List.getD_cons_zero,
+      Nat.add_zero] at v0
+    have := lq_powSteps_complete (C := C) (rd := rd) x ds k (k + 1) (2 * a) v0 (fun j hj ↦ by
+      have := hv (j + 1) (by simp [lqPowVals]; omega)
+      simp only [lqPowVals, List.cons_append, List.nil_append, List.getD_cons_succ] at this
+      rw [show k + 1 + j = k + (j + 1) by ring, this])
+    simp only [osPowSteps, Bool.false_eq_true, ↓reduceIte, allOk_cons, Whir.StmtOk, osMul, Atom.Holds]
+    refine ⟨⟨by rw [v0, ha, ← pow_add]; ring_nf, this.1⟩, ?_⟩
+    rw [this.2]; simp [digitsVal]
 
 /-! ## The squeeze run -/
 
@@ -92,42 +137,43 @@ theorem lpRow_squeeze {cap : List E} {j : ℕ} (hj : 1 ≤ j) :
 /-! ## The body -/
 
 /-- The body before its `ret`. -/
-def lpPreB (S d cd : ℕ) (loop : String) : List Stmt :=
-  osHeap ((S + 1) * 5) 9 ++
-    ((List.range 5).map fun i ↦ osLd (1 + i) 10 (5 + i)) ++
-    [.call (dqwName d cd) [.n (valf% «level_positions» "word0"), .n (valf% «level_positions» "positions"), .n (valf% «level_positions» "win_ptrs"), .n (valf% «level_positions» "tabs")] []] ++
-    osLoopCall loop 1 S [10, 6, 7, 8] 11 ++
-    [osCst 16 (gw (S * 5)), osMul 17 10 16] ++
-    ((List.range 5).map fun i ↦ osLd (18 + i) 17 i) ++
-    ((List.range 5).map fun i ↦ osCp (23 + i) (18 + i))
+def lpPreB (d cd : ℕ) (loop : String) : List Stmt :=
+  [osCst 10 (gw 1), osMul 11 9 10, osMul 12 11 11, osMul 13 12 12, osMul 14 13 11,
+    .atom (.hint (.allocDyn (.n 15) (.n 14)))] ++
+    ((List.range 5).map fun i ↦ osLd (1 + i) 15 (5 + i)) ++
+    [.call (dqwName d cd) [.n 0, .n 6, .n 7, .n 8] []] ++
+    osLoopCallR loop 1 9 [15, 6, 7, 8] 16 ++
+    [osMul 19 9 9, osMul 20 19 19, osMul 21 20 9, osMul 22 15 21] ++
+    ((List.range 5).map fun i ↦ osLd (23 + i) 22 i) ++
+    ((List.range 5).map fun i ↦ osCp (28 + i) (23 + i))
 
-theorem lpBody_pre (S d cd : ℕ) (loop : String) :
-    lpBody S d cd loop = lpPreB S d cd loop ++ [.ret ((List.range 5).map fun i ↦ .n ((valf% «level_positions» "s9#0") + i))] :=
+theorem lpBody_pre (d cd : ℕ) (loop : String) :
+    lpBody d cd loop = lpPreB d cd loop ++ [.ret ((List.range 5).map fun i ↦ .n (28 + i))] :=
   rfl
 
-theorem lpPreB_straight (S d cd : ℕ) (loop : String) :
-    (lpPreB S d cd loop).all Main.Stmt.straight = true := rfl
+theorem lpPreB_straight (d cd : ℕ) (loop : String) :
+    (lpPreB d cd loop).all Main.Stmt.straight = true := rfl
 
-theorem lpPreB_flat (S d cd : ℕ) (loop : String) : (lpPreB S d cd loop).all Stmt.flat = true := rfl
+theorem lpPreB_flat (d cd : ℕ) (loop : String) : (lpPreB d cd loop).all Stmt.flat = true := rfl
 
-theorem lpPreB_allocs (S d cd : ℕ) (loop : String) :
-    (lpPreB S d cd loop).filterMap Main.Stmt.allocSz = [(.n (valf% «level_positions» "sqz"), .inr (.n (valf% «level_positions» "sqz~0")))] := rfl
+theorem lpPreB_allocs (d cd : ℕ) (loop : String) :
+    (lpPreB d cd loop).filterMap Main.Stmt.allocSz = [(.n 15, .inr (.n 14))] := rfl
 
-theorem lpPreB_addrs (S d cd : ℕ) (loop : String) :
-    (lpPreB S d cd loop).filterMap Main.Stmt.addrS = [] := rfl
+theorem lpPreB_addrs (d cd : ℕ) (loop : String) :
+    (lpPreB d cd loop).filterMap Main.Stmt.addrS = [] := rfl
 
-theorem lpPreB_calls (S d cd : ℕ) (loop : String) :
-    (lpPreB S d cd loop).filterMap Main.Stmt.callS =
-      [(none, dqwName d cd, [.n (valf% «level_positions» "word0"), .n (valf% «level_positions» "positions"), .n (valf% «level_positions» "win_ptrs"), .n (valf% «level_positions» "tabs")], []),
-        (some (.n (valf% «level_positions» "s7#2")), loop, [.n (valf% «level_positions» "s7#3"), .n (valf% «level_positions» "s7#4"), .n (valf% «level_positions» "sqz"), .n (valf% «level_positions» "positions"), .n (valf% «level_positions» "win_ptrs"), .n (valf% «level_positions» "tabs")], [])] := rfl
+theorem lpPreB_calls (d cd : ℕ) (loop : String) :
+    (lpPreB d cd loop).filterMap Main.Stmt.callS =
+      [(none, dqwName d cd, [.n 0, .n 6, .n 7, .n 8], []),
+        (some (.n 17), loop, [.n 18, .n 9, .n 15, .n 6, .n 7, .n 8], [])] := rfl
 
-theorem lpPreB_hints (S d cd : ℕ) (loop : String) :
-    (lpPreB S d cd loop).filterMap hintS = [.allocDyn (.n (valf% «level_positions» "sqz")) (.n (valf% «level_positions» "sqz~0"))] := rfl
+theorem lpPreB_hints (d cd : ℕ) (loop : String) :
+    (lpPreB d cd loop).filterMap hintS = [.allocDyn (.n 15) (.n 14)] := rfl
 
-theorem lpPreB_loads (S d cd : ℕ) (loop : String) :
-    (lpPreB S d cd loop).filterMap Stmt.loadS =
-      ((List.range 5).map fun i ↦ ((.n (valf% «level_positions» "sqz") : V), 5 + i)) ++
-        ((List.range 5).map fun i ↦ ((.n (valf% «level_positions» "s8#1") : V), i)) := rfl
+theorem lpPreB_loads (d cd : ℕ) (loop : String) :
+    (lpPreB d cd loop).filterMap Stmt.loadS =
+      ((List.range 5).map fun i ↦ ((.n 15 : V), 5 + i)) ++
+        ((List.range 5).map fun i ↦ ((.n 22 : V), i)) := rfl
 
 theorem lp_limb0_mul_ofK (p : E) (c : K) : (p * ofK c).limb 0 = p.limb 0 * c := by
   conv_lhs => rw [eq_ofLimbs p]
@@ -150,8 +196,8 @@ theorem lpLoop_isLoop {d cd : ℕ} {loop : String} {fn : Fn} (hf : coreProgram.f
   simp [lpLoopBody, sqLoopBody, osLoopTail, List.reverse_append]
 
 /-- **`level_positions` ends with its returns**: it is no loop helper. -/
-theorem lp_notLoop {S d cd : ℕ} {name loop : String} {fn : Fn} (hf : coreProgram.find? name = some fn)
-    (hb : fn.body = lpBody S d cd loop) : coreProgram.loop name = false := by
+theorem lp_notLoop {d cd : ℕ} {name loop : String} {fn : Fn} (hf : coreProgram.find? name = some fn)
+    (hb : fn.body = lpBody d cd loop) : coreProgram.loop name = false := by
   rw [Program.loop_of_find? hf, Fn.loop, hb]
   simp [lpBody, List.reverse_append]
 
@@ -160,7 +206,7 @@ theorem lp_notLoop {S d cd : ℕ} {name loop : String} {fn : Fn} (hf : coreProgr
 /-- **`level_positions` at one specialization, placed at `fp`, exact**: by a tree popping nothing whose every node is
 exact on the memory. -/
 theorem lp_placedE (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) {name loop : String}
-    {S d cd : ℕ} (hlp : FnIs name (osParams 9) (lpBody S d cd loop))
+    {S d cd : ℕ} (hlp : FnIs name (osParams 10) (lpBody d cd loop))
     (hl : FnIs loop (osParams 6) (lpLoopBody d cd loop)) (hS : 0 < S) (hSo : S < ordG) (hSB : S ≤ 64)
     (hpw : digitsVal (osPowDigits (128 / d)) 1 = 128 / d)
     (hdec : QwDecodeAtDE fs cert κ d cd (dqwName d cd))
@@ -176,7 +222,7 @@ theorem lp_placedE (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ
       ∀ rd, LowDef κ rd → MemL rd (lpRuns fs cert name loop S d cd w0 cap fp ++ Lown ++ Lin) →
         RelAtInPE coreProgram fs cert rd (ExactAt coreProgram rd) (RegionL Lin)
           (RegionL (lpRuns fs cert name loop S d cd w0 cap fp)) fp (lpN fs name loop S d cd) name
-          (w0 :: cap ++ [ofK (addressOfIndex ep), ofK (addressOfIndex ew), tabs])
+          (w0 :: cap ++ [ofK (addressOfIndex ep), ofK (addressOfIndex ew), tabs, gen ^ S])
           ((⟨cap, []⟩ : Fs).squeezeN (S - 1)).2.cap [] := by
   obtain ⟨fnL, hfL, hpL, hbL⟩ := hl
   obtain ⟨fn, hf, hps, hb⟩ := hlp
@@ -254,41 +300,47 @@ theorem lp_placedE (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ
   have hrowS : lpRow cap S = last := by
     have hS0 : S ≠ 0 := by omega
     simp only [lpRow, hS0, ↓reduceIte, hlast]
-  set vals : List E := [w0, a0, a1, a2, a3, a4, qpos, qbp, tabs] ++
-    [gw ((S + 1) * 5), sqz, gw 1, gw S, gw 1 + gw S, gw 1, gw S, gw (S * 5), sqz * gw (S * 5)] ++
+  set vals : List E := [w0, a0, a1, a2, a3, a4, qpos, qbp, tabs, gen ^ S] ++
+    [gw 1, gen ^ S * gw 1, gen ^ S * gw 1 * (gen ^ S * gw 1),
+      gen ^ S * gw 1 * (gen ^ S * gw 1) * (gen ^ S * gw 1 * (gen ^ S * gw 1)),
+      gen ^ S * gw 1 * (gen ^ S * gw 1) * (gen ^ S * gw 1 * (gen ^ S * gw 1)) * (gen ^ S * gw 1),
+      sqz, gw 1, gw 1 + gen ^ S, gw 1,
+      gen ^ S * gen ^ S, gen ^ S * gen ^ S * (gen ^ S * gen ^ S),
+      gen ^ S * gen ^ S * (gen ^ S * gen ^ S) * gen ^ S,
+      sqz * (gen ^ S * gen ^ S * (gen ^ S * gen ^ S) * gen ^ S)] ++
     last ++ last with hvals
   set σ : Val := fun v ↦ if v.path = [] ∧ v.tag = 0 then vals.getD v.idx 0 else 0 with hσ
   have hv : ∀ i, σ (.n i) = vals.getD i 0 := fun i ↦ by simp [hσ]
   have hg1 : gw 1 = gen := by rw [Whir.gw_eq (by unfold u128Bound; norm_num), pow_one]
-  have hgS : gw S = gen ^ S := Whir.gw_eq (by omega)
-  have hgS5 : gw (S * 5) = gen ^ (S * 5) := Whir.gw_eq hsq5
+  have hG5 : gen ^ S * gen ^ S * (gen ^ S * gen ^ S) * gen ^ S = gen ^ (S * 5) := by ring
   -- the walk
-  have hst := lpPreB_straight S d cd loop
-  have hwalk : walk σ fn.body = .ret ((lpPreB S d cd loop).flatMap (Main.slEvs σ))
-      ((List.range 5).map fun i ↦ .n ((valf% «level_positions» "s9#0") + i)) := by
+  have hst := lpPreB_straight d cd loop
+  have hwalk : walk σ fn.body = .ret ((lpPreB d cd loop).flatMap (Main.slEvs σ))
+      ((List.range 5).map fun i ↦ .n (28 + i)) := by
     rw [hb, lpBody_pre]; exact Main.walk_straight σ _ _ hst
-  set es := (lpPreB S d cd loop).flatMap (Main.slEvs σ) with hes_def
+  set es := (lpPreB d cd loop).flatMap (Main.slEvs σ) with hes_def
   obtain ⟨i1, i2, i3, i4⟩ := Main.straight_parts σ _ hst
-  have h9 : σ (.n (valf% «level_positions» "sqz~0")) = gw ((S + 1) * 5) := by simp [hv, hvals]
-  have h10 : σ (.n (valf% «level_positions» "sqz")) = sqz := by simp [hv, hvals]
-  have h13 : σ (.n (valf% «level_positions» "s7#2")) = gen + gen ^ S := by simp [hv, hvals, hg1, hgS]
-  have h17 : σ (.n (valf% «level_positions» "s8#1")) = sqz * gen ^ (S * 5) := by simp [hv, hvals, hgS5]
+  have h14 : σ (.n 14) = gen ^ ((S + 1) * 5) := by
+    simp [hv, hvals, hg1]; ring
+  have h15 : σ (.n 15) = sqz := by simp [hv, hvals]
+  have h17 : σ (.n 17) = gen + gen ^ S := by simp [hv, hvals, hg1]
+  have h22 : σ (.n 22) = sqz * gen ^ (S * 5) := by simp [hv, hvals, hG5]
   have hal : allocs σ es = [(S + 1) * 5] := by
     rw [i2, lpPreB_allocs]
-    simp only [List.map_cons, List.map_nil, Sum.elim_inr, h9, lp_logG_gw hsq64]
-  have hcalls : calls es = [⟨dqwName d cd, [.n (valf% «level_positions» "word0"), .n (valf% «level_positions» "positions"), .n (valf% «level_positions» "win_ptrs"), .n (valf% «level_positions» "tabs")], [], true⟩,
-      ⟨loop, [.n (valf% «level_positions» "s7#3"), .n (valf% «level_positions» "s7#4"), .n (valf% «level_positions» "sqz"), .n (valf% «level_positions» "positions"), .n (valf% «level_positions» "win_ptrs"), .n (valf% «level_positions» "tabs")], [], decide (gen + gen ^ S ≠ 0)⟩] := by
+    simp only [List.map_cons, List.map_nil, Sum.elim_inr, h14, logG_gen_pow hsq64]
+  have hcalls : calls es = [⟨dqwName d cd, [.n 0, .n 6, .n 7, .n 8], [], true⟩,
+      ⟨loop, [.n 18, .n 9, .n 15, .n 6, .n 7, .n 8], [], decide (gen + gen ^ S ≠ 0)⟩] := by
     rw [i4, lpPreB_calls]
-    simp [Main.mkCall, h13]
+    simp [Main.mkCall, h17]
   have hown : ∀ k < (S + 1) * 5, ownData cert fp (fp + fs name) name (allocs σ es) es
       (sqzE + k) := fun k hk => by
     rw [hal]
     exact Or.inl ⟨((S + 1) * 5, fp + fs name), by simp [bases], by omega, by simp only; omega⟩
   -- the group's calls
-  obtain ⟨LownG, hWG, hDG, hKG⟩ := hgroup σ ⟨dqwName d cd, [.n (valf% «level_positions» "word0"), .n (valf% «level_positions» "positions"), .n (valf% «level_positions» "win_ptrs"), .n (valf% «level_positions» "tabs")], [], true⟩
-    ⟨loop, [.n (valf% «level_positions» "s7#3"), .n (valf% «level_positions» "s7#4"), .n (valf% «level_positions» "sqz"), .n (valf% «level_positions» "positions"), .n (valf% «level_positions» "win_ptrs"), .n (valf% «level_positions» "tabs")], [], decide (gen + gen ^ S ≠ 0)⟩ rfl rfl
+  obtain ⟨LownG, hWG, hDG, hKG⟩ := hgroup σ ⟨dqwName d cd, [.n 0, .n 6, .n 7, .n 8], [], true⟩
+    ⟨loop, [.n 18, .n 9, .n 15, .n 6, .n 7, .n 8], [], decide (gen + gen ^ S ≠ 0)⟩ rfl rfl
     (by simp [hv, hvals, hqpos, hqbp, lpLv, hw, sqSample, hdp]) rfl rfl rfl
-    (by simp [hv, hvals, hg1, hgS, hqpos, hqbp]) rfl b
+    (by simp [hv, hvals, hg1, hqpos, hqbp]) rfl b
   set runs := sqGroupRuns fs cert lv loop S b w with hruns
   have hrunsE : lpRuns fs cert name loop S d cd w0 cap fp = runs := rfl
   rw [hrunsE]
@@ -325,13 +377,12 @@ theorem lp_placedE (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ
     rw [hrowS, ← pow_mul] at this
     exact this
   have hholds : Stmt.HoldsList (fun _ _ _ ↦ True) rd σ fn.body False (fun r ↦ r = last) := by
-    rw [hb, lpBody_pre, holdsList_flat_ret _ (lpPreB_flat S d cd loop)]
+    rw [hb, lpBody_pre, holdsList_flat_ret _ (lpPreB_flat d cd loop)]
     refine ⟨?_, ?_⟩
-    · simp only [lpPreB, osHeap, osLoopCall, allOk_cons, allOk_nil, and_true, StmtOk,
+    · simp only [lpPreB, osLoopCallR, allOk_cons, allOk_nil, and_true, StmtOk,
         Atom.Holds, List.range_succ, List.range_zero, List.map_cons, List.map_nil, List.nil_append,
-        List.cons_append, implies_true, osLd, osCst, osMul, osCp, hv]
-      simp [hvals, hl5]
-      rw [hgS5, hg1, hgS]
+        List.cons_append, implies_true, osLd, osCst, osMul, osCp, osAdd, hv]
+      simp [hvals, hl5, hG5, hg1]
       rw [hl5] at hSrow
       exact ⟨h1row 0 (by omega), h1row 1 (by omega), h1row 2 (by omega), h1row 3 (by omega),
         h1row 4 (by omega), isInK_add (by rw [← pow_one gen]; exact gen_pow_isInK 1) (gen_pow_isInK S),
@@ -389,11 +440,11 @@ theorem lp_placedE (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ
     (Q := ExactAt coreProgram rd) (pss := [[], []]) (ps := [])
     (R := RegionL Lin) (D := RegionL runs) (Dk := RegionL runs)
     (N := fs (sqDecName lv) + sqTot fs lv loop (S - 1) 0) (fp := fp)
-    (args := w0 :: cap ++ [qpos, qbp, tabs]) (rets := last)
+    (args := w0 :: cap ++ [qpos, qbp, tabs, gen ^ S]) (rets := last)
     coreProgram_wf hf (Or.inl hnl)
     (by rw [hps]; simp [osParams, List.range_succ, hv, hvals, hcap]) hwalk
     (by simp [hv, hvals, hl5, List.range_succ]) hes
-    (by rw [hal, i1, lpPreB_allocs]; simp [bases, h10, hsqz, hsqzE])
+    (by rw [hal, i1, lpPreB_allocs]; simp [bases, h15, hsqz, hsqzE])
     (fun q hq => by rw [i3, lpPreB_addrs] at hq; simp at hq)
     (by
       have hb' : fp + fs name + (allocs σ es).sum = b := by
@@ -406,12 +457,12 @@ theorem lp_placedE (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ
         Function.comp] at hA
       rcases hA with ⟨i, hi, rfl⟩ | ⟨i, hi, rfl⟩
       · refine ⟨sqzE + (5 + i), ?_, Or.inl (hown _ (by omega))⟩
-        rw [h10, hsqz, Main.addr_ofK]
+        rw [h15, hsqz, Main.addr_ofK]
       · refine ⟨sqzE + S * 5 + i, ?_, Or.inl ?_⟩
-        · rw [h17, hsqz, lp_addr]
+        · rw [h22, hsqz, lp_addr]
         · rw [Nat.add_assoc]; exact hown _ (by omega))
     (fun i hi => Or.inr hi) (splice_nil_of _ _ hnw (by simp))
-    (exactAt_of_walk hf hwalk fun e he => evs_exact_of_hints (σ := σ) (pre := lpPreB S d cd loop)
+    (exactAt_of_walk hf hwalk fun e he => evs_exact_of_hints (σ := σ) (pre := lpPreB d cd loop)
       (fun x hx => by rw [lpPreB_hints] at hx; simp only [List.mem_singleton] at hx; subst hx; rfl) e he rd)
   rw [hal] at hrel
   simp only [List.sum_cons, List.sum_nil, Nat.add_zero] at hrel
@@ -419,7 +470,7 @@ theorem lp_placedE (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ
 
 /-- **`level_positions` at one specialization, placed at `fp`** (`lp_placedE`). -/
 theorem lp_placed (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) {name loop : String}
-    {S d cd : ℕ} (hlp : FnIs name (osParams 9) (lpBody S d cd loop))
+    {S d cd : ℕ} (hlp : FnIs name (osParams 10) (lpBody d cd loop))
     (hl : FnIs loop (osParams 6) (lpLoopBody d cd loop)) (hS : 0 < S) (hSo : S < ordG) (hSB : S ≤ 64)
     (hpw : digitsVal (osPowDigits (128 / d)) 1 = 128 / d)
     (hdec : QwDecodeAtDE fs cert κ d cd (dqwName d cd))
@@ -435,7 +486,7 @@ theorem lp_placed (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ)
       ∀ rd, LowDef κ rd → MemL rd (lpRuns fs cert name loop S d cd w0 cap fp ++ Lown ++ Lin) →
         RelAtIn coreProgram fs cert rd (RegionL Lin)
           (RegionL (lpRuns fs cert name loop S d cd w0 cap fp)) fp (lpN fs name loop S d cd) name
-          (w0 :: cap ++ [ofK (addressOfIndex ep), ofK (addressOfIndex ew), tabs])
+          (w0 :: cap ++ [ofK (addressOfIndex ep), ofK (addressOfIndex ew), tabs, gen ^ S])
           ((⟨cap, []⟩ : Fs).squeezeN (S - 1)).2.cap := by
   obtain ⟨Lown, hW, hD, hR⟩ := lp_placedE fs cert κ hlp hl hS hSo hSB hpw hdec hcl fp hreg hregt hmem
   exact ⟨Lown, hW, hD, fun rd hl hm => RelAtInT.relAtIn (hR rd hl hm)⟩
@@ -444,22 +495,22 @@ theorem lp_placed (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ)
 
 set_option maxRecDepth 100000 in
 /-- The constants of `lpTable`'s entries the proof uses. -/
-theorem lpTable_facts : ∀ e ∈ lpTable, 0 < e.2.1 ∧ e.2.1 < ordG ∧ e.2.1 ≤ 64 ∧
-    digitsVal (osPowDigits (128 / e.2.2.2.1)) 1 = 128 / e.2.2.2.1 ∧
-    (dqwName e.2.2.2.1 e.2.2.2.2, e.2.2.2.1, e.2.2.2.2) ∈ queryWindowsShapes := by
+theorem lpTable_facts : ∀ e ∈ lpTable,
+    digitsVal (osPowDigits (128 / e.2.2.1)) 1 = 128 / e.2.2.1 ∧
+    (dqwName e.2.2.1 e.2.2.2, e.2.2.1, e.2.2.2) ∈ queryWindowsShapes := by
   decide +kernel
 
 /-- **`level_positions` is complete placed at every specialization.** -/
 theorem level_positions_completeAt : level_positions_completeAt_Spec := by
-  intro fs cert κ hfit hcons hκ e he
+  intro fs cert κ hfit hcons hκ e he S hS hSB
   obtain ⟨hlp, hl⟩ := lpTable_ok e he
-  obtain ⟨hS, hSo, hSB, hpw, hmem⟩ := lpTable_facts e he
+  obtain ⟨hpw, hmem⟩ := lpTable_facts e he
   have hdec := qwDecodeAtDE_holds hfit hcons hκ _ hmem
   intro w0 cap ep ew tabs Lin hcl hreg hregt hmemL fp
-  obtain ⟨Lown, hW, hD, hR⟩ := lp_placed fs cert κ hlp hl hS hSo hSB hpw hdec hcl fp
+  obtain ⟨Lown, hW, hD, hR⟩ := lp_placed fs cert κ hlp hl hS
+    (by rw [show ordG = 2 ^ 64 - 1 from rfl]; omega) hSB hpw hdec hcl fp
     (fun k hk ↦ hreg fp k hk) (hregt fp) (fun rd hlow hm ↦ hmemL fp rd hlow hm)
-  exact ⟨lpN fs e.1 e.2.2.1 e.2.1 e.2.2.2.1 e.2.2.2.2, Lown, hW, hD, fun B hB ↦ absurd hB (by simp),
-    hR⟩
+  exact ⟨lpN fs e.1 e.2.1 S e.2.2.1 e.2.2.2, Lown, hW, hD, fun B hB ↦ absurd hB (by simp), hR⟩
 
 end
 end LeanVM.Guest.B1

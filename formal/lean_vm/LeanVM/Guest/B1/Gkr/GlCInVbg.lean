@@ -29,8 +29,9 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-/-- The layers' first records and their counts fit a field of the round records. -/
-theorem gkPos_fits : ∀ d < 33, ∀ j < (d - 1) / 2, gkPos (d % 2) (j + 1 - d % 2) + j / 4 ≤ 860 := by
+/-- The layers' records fit the round records. -/
+theorem gkPos_fits : ∀ d < 33, ∀ j < (d - 1) / 2,
+    gkPos (d % 2) (j + 1 - d % 2) + j / 4 + 1 ≤ gkRecCount d := by
   decide
 
 /-- **`gkr_layers__L{o}` loads from the buffers**: at `depth ≤ 32`, an accepting run of
@@ -39,11 +40,12 @@ region holding the cursor's words and the buffers. -/
 theorem vbg_layers_relIn {depth : ℕ} (hd : depth ≤ 32) {cap0 xs : List E}
     {r : E × List E × List E} {cap' : List E}
     (hrun : RunsTo (gkrPhase depth) ⟨cap0, []⟩ xs r ⟨cap', []⟩)
-    (hc : ∃ sp, (⟨cap0, []⟩ : Fs).Carries sp) {ec eL eR eP eO eB eM eV : ℕ} {rd : Reader}
+    (hc : ∃ sp, (⟨cap0, []⟩ : Fs).Carries sp) {ec eL eR eP eO eB eM eV eS : ℕ} {rd : Reader}
     {R : ℕ → Prop}
-    (hm : MemLay rd (vbgLay depth cap0 xs (ofK (addressOfIndex ec)) eL eR eP eO eB eM eV))
+    (hm : MemLay rd (vbgLay depth cap0 xs (ofK (addressOfIndex ec)) eL eR eP eO eB eM eV eS))
     (hRx : ∀ i < xs.length, R (ec + i)) (hRL : ∀ i < 10 * (depth + 2), R (eL + i))
-    (hRR : ∀ i < 6034, R (eR + i)) (hRr : ∀ i < 1640, R (eP + i)) {gmu tabs stream : E}
+    (hRR : ∀ i < 7 * gkRecCount depth, R (eR + i)) (hRr : ∀ i < (depth / 2 + 2) * 40, R (eP + i))
+    {gmu tabs stream : E}
     {rets : List E}
     (h : coreProgram.Rel rd (glcLsN (depth % 2)) [ofK (addressOfIndex eL),
       ofK (addressOfIndex eR), ofK (addressOfIndex eP), gen ^ ((depth - 1) / 8),
@@ -79,7 +81,7 @@ theorem vbg_layers_relIn {depth : ℕ} (hd : depth ≤ 32) {cap0 xs : List E}
     have hword : ∀ i < 10, LoadHolds rd (ofK (addressOfIndex eL)) (10 * (2 * k + sh) + i)
         ((gkSlotWords (gkSl cap0 xs sh k).1
           (ofK (addressOfIndex ec) * gen ^ (gkSl cap0 xs sh k).2.2) (gkSl cap0 xs sh k).2.1
-          (gen ^ gkPos sh k)).getD i 0) := fun i hi ↦
+          (gen ^ (7 * gkPos sh k))).getD i 0) := fun i hi ↦
       tb_reads_load hS (k := i) (by simp [gkSlotWords, inv.1, inv.2.1]; omega)
     have hpos := hword 9 (by omega)
     have hcur := hword 5 (by omega)
@@ -91,8 +93,8 @@ theorem vbg_layers_relIn {depth : ℕ} (hd : depth ≤ 32) {cap0 xs : List E}
       refine tb_drop_le hdr ?_ (by rw [hO]; omega)
       rw [gkStepD_xs_length hok, hpl k (by omega), hO]
       omega
-    have hpb : gkPos sh k + j / 4 ≤ 860 := gkPos_fits depth (by omega) j hj
-    refine ⟨gen ^ gkPos sh k, ofK (addressOfIndex ec) * gen ^ (gkSl cap0 xs sh k).2.2, ?_,
+    have hpb : gkPos sh k + j / 4 + 1 ≤ gkRecCount depth := gkPos_fits depth (by omega) j hj
+    refine ⟨gen ^ (7 * gkPos sh k), ofK (addressOfIndex ec) * gen ^ (gkSl cap0 xs sh k).2.2, ?_,
       by rw [hLk]; exact hpos, by rw [hLk]; exact hcur, ?_, ?_, ?_⟩
     · rw [hLk, tb_ofK_gpow_mul]
       exact ptrIn_ofK fun i hi ↦ by rw [Nat.add_assoc]; exact hRL _ (by omega)

@@ -25,13 +25,13 @@ public section
 `r_g@3 = r_g@1·r_g@2~3·r_g@3~3`. -/
 theorem splitW_rs : SplitW (fn% «rs_eq_run»)
     ⟨[(val% «rs_eq_run» "q_g@1", 1), (val% «rs_eq_run» "q_g@2~3", 1), (val% «rs_eq_run» "q_g@3~3", 1)],
-    [(val% «rs_eq_run» "r_g@1", 1), (val% «rs_eq_run» "r_g@2~3", 1), (val% «rs_eq_run» "r_g@3~3", 1)], val% «rs_eq_run» "r_g@3", 3, 8, 8⟩ := by
+    [(val% «rs_eq_run» "r_g@1", 1), (val% «rs_eq_run» "r_g@2~3", 1), (val% «rs_eq_run» "r_g@3~3", 1)], val% «rs_eq_run» "r_g@3", val% «rs_eq_run» "count_g", 8, 8⟩ := by
   intro rd σ es vs hw hev
   obtain ⟨w3, w5, w17⟩ := B1.rs_consts
   have h : Stmt.HoldsList (fun _ _ _ => True) rd σ (fn% «rs_eq_run»).body False (fun _ => True) :=
     holdsList_of_walk _ (by rw [hw]; exact ⟨fun e he => ⟨hev e he, fun _ _ _ _ => trivial⟩, trivial⟩)
   rw [B1.rs_eq_run_body, B1.rsBody] at h
-  simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, true_and] at h
+  simp only [B1.rsA, List.cons_append, List.nil_append, Stmt.HoldsList, Stmt.Holds, Atom.Holds, true_and] at h
   obtain ⟨b0, h10, h11, h12, h13, b1, h14, h15, h16, h17, h18, b2, h19, h20, h21, h22, h23,
     b3, h24, h25, h26, h27, b4, h28, h29, h30, h31, h32, b5, h33, h34, h35, h36, h37, h38, h39,
     h40, h41, ha, -⟩ := h

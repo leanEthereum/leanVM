@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.KeccakGkr.LayerCG
 public import LeanVM.Guest.B1.KeccakGkr.FlatF
+public import LeanVM.Guest.Exact.Free
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«keccak_layer__L»
 
@@ -16,10 +17,10 @@ import LeanVM.Guest.Data.ValNames.«keccak_layer__L»
 # A layer's placement facts
 
 `layerPre first odd`: the body but its return (`layerT_pre`); it is flat (`layerPre_flat`), places
-no run (`layerPre_addrs`), allocates the pack challenges (`y` words), the round records (`112`),
+no run (`layerPre_addrs`), allocates the pack challenges (`y` words), the round records (`77`),
 the local point (`11`), the next claim's lanes (`25`) and flips (`7`) (`layerPre_alloc`), calls
-the grind's `grind_check` and the two pack loops (`layerPre_calls`), and loads only through the
-pointers `layerGroups` below their bounds (`layerPre_loads`).
+the two pack loops (`layerPre_calls`), and loads only through the pointers `layerGroups` below
+their bounds and the inlined `grind_check`'s table pointers `grindPtrs` (`layerPre_loads`).
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -41,6 +42,18 @@ def layerVs (first : ℕ) : List V :=
   [.n (topV (tW first) + 305), .n (topV (tW first) + 306),
     .n (topV (tW first) + 307), .n (topV (tW first) + 308),
     .n (topV (tW first) + 309), .n (topV (tW first) + 312)]
+
+/-- The inlined `grind_check`'s statements are the body's. -/
+theorem gcInline_mem_layerT {first : ℕ} (hf : first < 2) :
+    ∀ s ∈ gcInlineT 3 (layOff first + 544) (.n (layOff first + 532)) (.n (valf% «keccak_layer» "tabs")),
+      s ∈ layerT first := by
+  intro s hs
+  have h' : s ∈ sqT first := by
+    interval_cases first
+    · simp only [sqT, show (0 : ℕ) ≠ 1 by decide, ↓reduceIte]; exact List.mem_append_right _ hs
+    · simp only [sqT, ↓reduceIte]; exact List.mem_append_right _ hs
+  unfold layerT
+  simp only [List.mem_append, h', true_or, or_true]
 
 theorem layerT_pre (first : ℕ) : layerT first = layerPre first ++ [.ret (layerVs first)] := by
   rw [layerT_sections, tailT_split]
@@ -65,34 +78,51 @@ def dispB : Stmt → Bool
 
 /-- The pointers the body loads through, each with a bound on the offsets. -/
 def layerGroups (first : ℕ) : List (V × ℕ) :=
-  [(.n (valf% «keccak_layer» "cursor@1"), 48), (.n (valf% «keccak_layer» "claim"), 22), (.n (valf% «keccak_layer» "out"), 22), (.n (layOff first + 719), 112),
-    (.n (layOff first + 737), 97), (.n (layOff first + 743), 36),
-    (.n (layOff first + 1176), 25), (.n (layOff first + 745), 11), (.n (tW first + 25), 25),
+  [(.n (valf% «keccak_layer» "cursor@1"), 48), (.n (valf% «keccak_layer» "claim"), 22), (.n (valf% «keccak_layer» "out"), 22), (.n (layOff first + 783), 77),
+    (.n (layOff first + 801), 67), (.n (layOff first + 807), 36),
+    (.n (layOff first + 1240), 25), (.n (layOff first + 809), 11), (.n (tW first + 25), 25),
     (.n (topV (tW first) + 3), 7)] ++
-    if first = 1 then [] else [(.n (layOff first + 1177), 11)]
+    if first = 1 then [] else [(.n (layOff first + 1241), 11)]
 
-/-- The calls of the body: the grind's `grind_check`, the eight-round loop and the remainder
-loop. -/
+/-- The pointers of the inlined `grind_check`'s table reads (`gcInline_ptrs_of_good`). -/
+def grindPtrs (first : ℕ) : List V :=
+  .n (layOff first + 544 + gcW 3 + 5) ::
+    (List.range (gcW 3)).map fun i ↦ .n (layOff first + 544 + gcW 3 + 9 * (i + 1) + 4)
+
+/-- The calls of the body: the eight-round loop and the remainder loop. -/
 def layerCalls (first : ℕ) : List (Option V × String × List V × List V) :=
-  [(none, grindCheckName 3, [.n (layOff first + 532), .n (valf% «keccak_layer» "tabs")], []),
-    (some (.n (layOff first + 723)), packLoopName first,
-      [.n (layOff first + 724), .n (valf% «keccak_layer» "step_g"), .n (layOff first + 719), .n (layOff first + 717),
-        .n (layOff first + 718), .n (valf% «keccak_layer» "tabs")], []),
-    (some (.n (layOff first + 735)), remLoopName first,
-      [.n (layOff first + 736), .n (valf% «keccak_layer» "rem_g"), .n (layOff first + 725), .n (layOff first + 729), .n (valf% «keccak_layer» "tabs"),
-        .n (layOff first + 733)], [])]
+  [ (some (.n (layOff first + 787)), packLoopName first,
+      [.n (layOff first + 788), .n (valf% «keccak_layer» "step_g"), .n (layOff first + 783), .n (layOff first + 781),
+        .n (layOff first + 782), .n (valf% «keccak_layer» "tabs")], []),
+    (some (.n (layOff first + 799)), remLoopName first,
+      [.n (layOff first + 800), .n (valf% «keccak_layer» "rem_g"), .n (layOff first + 789), .n (layOff first + 793), .n (valf% «keccak_layer» "tabs"),
+        .n (layOff first + 797)], [])]
+
+/-- The inlined `grind_check`'s computed hints, its windows: the body's only computed hints not
+pinned by their next atom. -/
+def layerSites (first : ℕ) : List Atom :=
+  (gcInlineT 3 (layOff first + 544) (.n (layOff first + 532)) (.n (valf% «keccak_layer» "tabs"))).filterMap
+    fun s ↦ match s with
+      | .atom a => if isComputed a then some a else none
+      | _ => none
+
+theorem layer_pinnedSites {first : ℕ} (hf : first < 2) :
+    Stmt.blockNextOk (fun a ↦ isComputed a && !decide (a ∈ layerSites first)) pinsInverse
+      (layerT first) = true := by
+  interval_cases first <;> decide +kernel
 
 theorem layerPre_kernel {first : ℕ} (hf : first < 2) :
     (layerPre first).all Stmt.flat = true ∧
     (layerPre first).filterMap Main.Stmt.addrS = [] ∧
     (layerPre first).filterMap Main.Stmt.allocSz =
-      [(.n (layOff first + 718), .inr (.n (valf% «keccak_layer» "y_g"))), (.n (layOff first + 719), .inl 112),
-        (.n (layOff first + 745), .inl 11), (.n (tW first + 25), .inl 25),
+      [(.n (layOff first + 782), .inr (.n (valf% «keccak_layer» "y_g"))), (.n (layOff first + 783), .inl 77),
+        (.n (layOff first + 809), .inl 11), (.n (tW first + 25), .inl 25),
         (.n (topV (tW first) + 3), .inl 7)] ∧
     (layerPre first).all (fun s ↦ !dispB s) = true ∧
     (layerPre first).filterMap Main.Stmt.callS = layerCalls first ∧
     ((layerPre first).filterMap Stmt.loadS).all
-      (fun q ↦ (layerGroups first).any fun g ↦ g.1 == q.1 && decide (q.2 < g.2)) = true := by
+      (fun q ↦ (layerGroups first).any (fun g ↦ g.1 == q.1 && decide (q.2 < g.2)) ||
+        decide (q.1 ∈ grindPtrs first ∧ q.2 = 0)) = true := by
   interval_cases first
   all_goals exact ⟨by decide +kernel, by decide +kernel, by decide +kernel, by decide +kernel,
     by decide +kernel, by decide +kernel⟩

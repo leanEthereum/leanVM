@@ -208,7 +208,7 @@ noncomputable def loopShapeRest (Cf : CFun) : Bool :=
 
 /-- **A long loop helper's passes, in windows**: the body's statements before the tail call (`LWins`,
 their `match`es' lengths `ml`), its tail (`tailL`), the code (`CWins`), the rest of the shape, the
-signatures' pointer runs. -/
+signatures' pointer runs, or no reader on the body (`rdFree`). -/
 structure LoopWins (K : Mode.Cert) (Cf : CFun) (ml : List (ℕ × ℕ)) (cs : List (ℕ × List (ℕ × ℕ))) (ccs : List ℕ) :
     Prop where
   hml : ml = (cs.map (·.2)).flatten
@@ -216,7 +216,7 @@ structure LoopWins (K : Mode.Cert) (Cf : CFun) (ml : List (ℕ × ℕ)) (cs : Li
   tail : tailL Cf = true
   code : CWins Cf K.E ml K.code K.code.length 0 ccs
   rest : loopShapeRest Cf = true
-  ptr : (Cf.H.sig.prePR.isEmpty && Cf.H.sig.postPR.isEmpty) = true
+  ptr : (Cf.H.sig.prePR.isEmpty && Cf.H.sig.postPR.isEmpty || (stmtsOf Cf.fn.body).all rdFree) = true
 
 theorem stmtsOf_all_of {p : Stmt → Bool} {l : List Stmt} (h : ∀ s ∈ stmtsOf l, p s = true) :
     (stmtsOf l).all p = true := List.all_eq_true.mpr h
@@ -283,6 +283,9 @@ theorem loopFields_of_wins {K : Mode.Cert} {Cf : CFun} {ml : List (ℕ × ℕ)} 
     simp only [List.mem_cons, List.not_mem_nil, or_false] at hs
     rcases hs with rfl | rfl <;> rfl
   · simp only [Bool.or_eq_true]
+    rcases Bool.or_eq_true_iff.mp hp with hp | hp
+    swap
+    · exact Or.inl hp
     right
     simp only [Bool.and_eq_true] at hp
     simp only [noPtrL, hp.1, hp.2, Bool.true_and]

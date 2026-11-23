@@ -112,7 +112,7 @@ theorem st_gl {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgr
     {p o : ℕ} (hp : p < 4) (ho : o < 2) {σ : Val} {bufs : List ℕ} {kids : List Tree}
     (ht : I.t = .node (B1.Tables.glLoopName p o) σ bufs kids) :
     ∃ a q, I.hdr.2 = ofK (addressOfIndex a) ∧ a + (2 + valf% «gkr_layer» "stream") < maxCells ∧
-      σ (.n (valf% «gkr_layer» "sp[1]@1")) = refMem r.img (a + (2 + valf% «gkr_layer» "stream")) * gen ^ q ∧ q + 32 ≤ 8192 := by
+      σ (.n (valf% «gkr_layer» «_loop0» "cur")) = refMem r.img (a + (2 + valf% «gkr_layer» "stream")) * gen ^ q ∧ q + 32 ≤ 8192 := by
   obtain ⟨a, k, m, q, hhd, ha10, -, -, hkm, -, hld, hroom⟩ := glLQ_all hr I hI p hp o ho σ bufs kids ht
   obtain ⟨args, rets, fn', hf', -, es0, vs, hw, -, hh, -⟩ := inst_valid' hr hI ht
   obtain ⟨fn, hf, -, hb⟩ := B1.Tables.glIs_sound (B1.Tables.glIs_loops p hp o ho)

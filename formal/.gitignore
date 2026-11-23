@@ -44,13 +44,9 @@ __pycache__/
 /lean_vm/LeanVM/Guest/WalkOqOk[0-9]*.lean
 /lean_vm/LeanVM/Guest/WalkOs[0-9]*.lean
 /lean_vm/LeanVM/Guest/WalkOsOk[0-9]*.lean
-/lean_vm/LeanVM/Guest/WalkWp.lean
-/lean_vm/LeanVM/Guest/WalkWpOk.lean
 /lean_vm/LeanVM/Guest/B1/Bits/QueryWindowsData.lean
 /lean_vm/LeanVM/Guest/B1/Opening/QueriesBody[0-9]*.lean
 /lean_vm/LeanVM/Guest/B1/Opening/QueriesPlacedE.lean
-/lean_vm/LeanVM/Guest/B1/Opening/WalkBody[0-9]*.lean
-/lean_vm/LeanVM/Guest/B1/Opening/WalkFns.lean
 /lean_vm/LeanVM/Guest/B1/Tables/Vt/Air.lean
 /lean_vm/LeanVM/Guest/B1/Tables/Vt/CountTotal.lean
 /lean_vm/LeanVM/Guest/B1/Tables/Vt/FormsDiff.lean
@@ -93,6 +89,7 @@ __pycache__/
 /lean_vm/LeanVM/Guest/Count/VsCount*.lean
 /lean_vm/LeanVM/Guest/Count/VsOs[0-9]*.lean
 /lean_vm/LeanVM/Guest/Count/VsOsAll.lean
+/lean_vm/LeanVM/Guest/Count/VsOsTab.lean
 /lean_vm/LeanVM/Guest/Count/Words.lean
 /lean_vm/LeanVM/Guest/Fast/WhirTables.lean
 /lean_vm/LeanVM/Guest/Memory/GuestCallees.lean

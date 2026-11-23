@@ -18,8 +18,8 @@ public import LeanVM.Guest.Memory.StaticCut
 # The families' shared checks
 
 `topAtoms ss`: the top-level atoms of a block before its first statement that may return; each is
-on every returning path of the block. `powOf w`: the exponent `e` of a word `w = g^e` the guest's
-table of powers names (`Data.powTree`). `rcBound as v`: a range check of `as` on value `v` against
+on every returning path of the block. `powOf w` (`CarryDefs.lean`): the exponent `e` of a word `w = g^e`
+the guest's table of powers names (`Data.powTree`). `rcBound as v`: a range check of `as` on value `v` against
 a constant of `as`, `g^(N - 1)`, bounds `v`'s exponent below `N`.
 
 `cellLt j w o N`: at function `j`'s frames, cell `o` holds `g^e`, `e < N`: a value of the cell is
@@ -40,10 +40,6 @@ noncomputable def topAtoms : List Stmt → List Atom
   | [] => []
   | .atom a :: ss => a :: topAtoms ss
   | s :: ss => if Memory.noRetR s then topAtoms ss else []
-
-/-- The exponent of a word of `K` the guest's powers name. -/
-noncomputable def powOf (w : E) : Option ℕ :=
-  if w.limb 1 = 0 then Data.powTree.find (w.limb 0).toBitVec.toNat else none
 
 /-- The constant word of value `k` among the atoms. -/
 def constOf (as : List Atom) (k : V) : Option E :=

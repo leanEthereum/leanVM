@@ -36,10 +36,6 @@ theorem rdMem_of {rd : Reader} {p : E} {off : ℕ} {v : E} (h : LoadHolds rd p o
   have e : rdMem rd p off = v := by unfold rdMem; rw [h.2]; rfl
   exact ⟨e, by rw [e]; exact h⟩
 
-theorem readsAt_getDr {rd : Reader} {p : E} {xs : List E} (h : ReadsAt rd p xs) {j : ℕ}
-    (hj : j < xs.length) : LoadHolds rd p j (xs.getD j 0) := by
-  rw [List.getD_eq_getElem _ _ hj]; exact h j hj
-
 theorem rcAt_succ (lv : OsLv) (D : ℕ → E) (hsv : List E) (Pos : ℕ → E) (mu : E) (j : ℕ) :
     rcAt lv D hsv Pos mu (j + 1) = resFold (resP lv D) (resH lv hsv) mu (rcAt lv D hsv Pos mu j)
       ((List.range resBatch).map fun i ↦ Pos (resBatch * j + i)) := by
@@ -182,7 +178,7 @@ theorem resLoop_iter {lvl : ℕ} {lv : OsLv} {hsv : List E} (hst : ResStatic lv 
   have hnb := hj
   have hrcl : ∀ e < 2 * (lv.queries / resBatch + 1),
       LoadHolds rd chain e ((rcC lv D hsv Pos mu).getD e 0) := fun e he ↦
-    readsAt_getDr hrc (by rw [rcC_length]; exact he)
+    readsAt_getD' hrc (by rw [rcC_length]; exact he)
   have hch : ∀ o < 4, ∃ v, LoadHolds rd (σ (.n (y + 2))) o v := fun o ho ↦
     ⟨_, by rw [hX5, loadHolds_mul_gen_pow]; exact hrcl (2 * j + o) (by omega)⟩
   have hQ : resBatch * j + resBatch ≤ lv.queries := by

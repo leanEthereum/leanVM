@@ -127,23 +127,11 @@ impl FnLower<'_> {
             let one = self.one();
             self.set(entry, KVal::Entry(callee.to_string()));
             for &(off, ao) in &arg_offs {
-                self.emit(LOp::MulNextFrame { a: ao, b: one, c: off });
+                self.copy_next_frame(ao, one, off);
             }
-            self.emit(LOp::MulNextFrame {
-                a: nfp,
-                b: one,
-                c: Abi::end(callee_arg_cells, 0),
-            });
-            self.emit(LOp::MulNextFrame {
-                a: 1,
-                b: one,
-                c: Abi::RET_FP,
-            });
-            self.emit(LOp::MulNextFrame {
-                a: 0,
-                b: one,
-                c: Abi::RET_PC,
-            });
+            self.copy_next_frame(nfp, one, Abi::end(callee_arg_cells, 0));
+            self.copy_next_frame(1, one, Abi::RET_FP);
+            self.copy_next_frame(0, one, Abi::RET_PC);
             self.emit(LOp::Jump { oc, od: entry, of: nfp });
             return;
         }
@@ -169,6 +157,7 @@ impl FnLower<'_> {
                 ptr: nfp,
                 callee,
                 count,
+                tail: Abi::end(callee_arg_cells, 0) + 1,
             });
         } else {
             let callee = callee.to_string();

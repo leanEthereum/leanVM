@@ -77,7 +77,8 @@ theorem blobL_stepAtTB {Bb Bt : ℕ} {Tb Tt : Tree → Prop} {r L i bw bT : ℕ}
       Tb Bb)
     (htail : i + 1 < r → CompleteAtL fs cert 16 name% «da_verify_loop0» Lin
       [gen ^ (i + 1), gen ^ r, gen ^ bw, gen ^ bT] (Returns []) Tt (· ≤ Bt))
-    (hBt : fs name% «da_verify_loop0» ≤ Bt) :
+    (hBt : fs name% «da_verify_loop0» ≤ Bt)
+    (htk : fs (tailKey name% «da_verify_loop0») ≤ fs name% «da_verify_loop0») :
     CompleteAtL fs cert 16 name% «da_verify_loop0» Lin [gen ^ i, gen ^ r, gen ^ bw, gen ^ bT] (Returns [])
       (blobLNH i r Tb Tt) (· ≤ fs name% «da_verify_loop0» + Bt + Bb) := by
   have hN : 2 ^ L ≤ 1024 := le_trans (Nat.pow_le_pow_right (by norm_num) hL) (by norm_num)
@@ -196,7 +197,8 @@ theorem blobL_completeAtTB {Bb Kb : ℕ} {Tb : ℕ → Tree → Prop} {r L bw bT
     {Lin : Layout} (hr1 : 1 ≤ r) (hrL : r ≤ 2 ^ L) (hL : L ≤ 10) (hTm : (bT, rootsCells r L syms) ∈ Lin)
     (hblob : ∀ i < r, CompleteAtDTB fs cert 16 "da_verify_blob" Lin [gen ^ bw]
       (Returns (digestCells (blobLeaf r syms i))) (Tb i) Bb)
-    (hK : fs name% «da_verify_loop0» + Bb ≤ Kb) :
+    (hK : fs name% «da_verify_loop0» + Bb ≤ Kb)
+    (htk : fs (tailKey name% «da_verify_loop0») ≤ fs name% «da_verify_loop0») :
     CompleteAtDTB fs cert 16 name% «da_verify_loop0» Lin [1, gen ^ r, gen ^ bw, gen ^ bT] (Returns [])
       (blobLFrom r Tb r 0) (r * Kb + fs name% «da_verify_loop0») := by
   have key : ∀ t i, i + 1 + t = r →
@@ -207,12 +209,12 @@ theorem blobL_completeAtTB {Bb Kb : ℕ} {Tb : ℕ → Tree → Prop} {r L bw bT
     | zero =>
       intro i hi
       have h := blobL_stepAtTB (Tt := blobLFrom r Tb 0 (i + 1)) (Bt := fs name% «da_verify_loop0») fs cert
-        (by omega) hrL hL hTm (hblob i (by omega)) (fun h => absurd h (by omega)) le_rfl
+        (by omega) hrL hL hTm (hblob i (by omega)) (fun h => absurd h (by omega)) le_rfl htk
       exact h.mono (fun x hx => by omega) fun _ h => h
     | succ t ih =>
       intro i hi
       have h := blobL_stepAtTB fs cert (by omega) hrL hL hTm (hblob i (by omega))
-        (fun _ => ih (i + 1) (by omega)) (by nlinarith)
+        (fun _ => ih (i + 1) (by omega)) (by nlinarith) htk
       exact h.mono (fun x hx => by nlinarith) fun _ h => h
   have := key (r - 1) 0 (by omega)
   rw [show r - 1 + 1 = r by omega, pow_zero] at this

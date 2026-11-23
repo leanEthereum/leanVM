@@ -421,7 +421,7 @@ def body_of(text):
 
 @functools.cache
 def bundles():
-    """Each compiled function's code, certificate cells and plumbing cells, by stable name."""
+    """Each compiled function's code, certificate cells, self frame pointer cells and plumbing cells, by stable name."""
     out = {}
     cells_texts = {}
     for p in glob.glob(ROOT + '/Pack/*/Cells*.lean'):
@@ -444,6 +444,8 @@ def bundles():
         locs = []
         for w in as_list(parse(cl), env):
             locs += as_list(w, env)
+        fe = re.search(r'^  facts := \{ env := \[([^\]]*)\]', cert, re.M)
+        selfs = [int(x) for x in re.findall(r'\((\d+), \(', fe.group(1))] if fe else []
         pl = re.search(r'noncomputable def plumb : B2C\.Plumb where\n(.*?)\n(?:/--|\Z)', blk, re.S)
         plumb = set()
         if pl:
@@ -458,7 +460,7 @@ def bundles():
             ar = re.search(r'^  arms := (.*)$', pt, re.M)
             if ar:
                 plumb |= set(int(m.group(2)) for m in re.finditer(r'\((\d+), (\d+), (\d+)\)', ar.group(1)))
-        out[key] = dict(key=key, pack=pack, entry=entry, count=cnt, code=code, locs=locs, plumb=plumb)
+        out[key] = dict(key=key, pack=pack, entry=entry, count=cnt, code=code, locs=locs, plumb=plumb, env=selfs)
     return out
 
 
@@ -510,7 +512,7 @@ def isa_hint(e):
     if h == 'allocArm':
         return (h, a[0], a[1], as_list(a[2], None))
     if h == 'allocFrames':
-        return (h, a[0], a[1], a[2], None)
+        return (h, a[0], a[1], a[2], None, a[4])
     return (h,) + tuple(a)
 
 

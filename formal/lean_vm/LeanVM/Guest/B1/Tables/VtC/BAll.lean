@@ -67,7 +67,7 @@ structure VtBIn where
 
 /-- The buffers the bus sides read and write: the cursor (the framework's and the share's
 fourteen words), `fp_w`, `claim_pool`, `block_index_mle`, `gkr_leaves`, `bc_point`. -/
-def vtBufsBIdx : List (ℕ × ℕ) := [(5, 14), (13, 16), (15, 4), (778, 153), (17, 3), (19, 4)]
+def vtBufsBIdx : List (ℕ × ℕ) := [(5, 14), (13, 16), (15, 4), (822, 153), (17, 3), (19, 4)]
 
 /-- The buffers, as pointers and lengths. -/
 def vtBufsB (σ : Val) : List (E × ℕ) := vtBufsBIdx.map fun q ↦ (σ (.n q.1), q.2)
@@ -102,14 +102,14 @@ structure VtBHyp (rd : Reader) (wo : ℕ → E) (args : List E) (D : VtBIn) : Pr
   eSh : ∀ t < 6, vtσ rd wo args (.n (vtShLen t)) = gen ^ (D.point.length - vtHt D.rows t)
   e664 : vtσ rd wo args (.n (val% «verify_tables» "idxc_tab")) = wo (val% «verify_tables» "idxc_tab")
   e699 : vtσ rd wo args (.n (val% «verify_tables» "zeta1")) = wo (val% «verify_tables» "zeta1")
-  e701 : vtσ rd wo args (.n (val% «verify_tables» "shared_eq")) = wo (val% «verify_tables» "shared_eq")
-  e702 : vtσ rd wo args (.n (val% «verify_tables» "shared_g")) = wo (val% «verify_tables» "shared_g")
+  eSp : ∀ t < 6, vtσ rd wo args (.n (vtEqV t)) = wo (vtShV t + 11) ∧
+    vtσ rd wo args (.n (vtGV t)) = wo (vtShV t + 15)
   hpw : ∀ t < 6, vtσ rd wo args (.n (vtPadV t)) =
     paddingWeight (D.point.take (vtHt D.rows t)) (vtRw D.rows t)
   /-- The own buffers' words. -/
   hidxc : TbReadsAt rd (wo (val% «verify_tables» "idxc_tab")) vtIdxcW
   hz1 : TbReadsAt rd (wo (val% «verify_tables» "zeta1")) (D.point.map (1 + ·))
-  hrun : ∀ t < 6, RunTables rd (wo (val% «verify_tables» "shared_eq") * gen ^ (288 * t)) (wo (val% «verify_tables» "shared_g") * gen ^ (144 * t))
+  hrun : ∀ t < 6, RunTables rd (wo (vtShV t + 11)) (wo (vtShV t + 15))
     (D.point.length - vtHt D.rows t) (D.point.drop (vtHt D.rows t))
     ((D.point.map (1 + ·)).drop (vtHt D.rows t))
     ((gSquaresList.drop (vtHt D.rows t)).take (D.point.length - vtHt D.rows t))
@@ -141,13 +141,13 @@ structure VtBHyp (rd : Reader) (wo : ℕ → E) (args : List E) (D : VtBIn) : Pr
       gen ^ (stackOffsets (vtSizesC (vtHt D.rows))).1.getD i 0
   hwI : wo (val% «verify_tables» "coord_val@1") = indexMle (D.point.take D.lm) ∧ wo (val% «verify_tables» "coord_val@2") = indexMle (D.point.take 19)
   /-- The tail rounds' returns: each round's capacity, cursor, claim and challenge. -/
-  hw1 : (List.range 8).map (fun i ↦ wo (1876 + i)) = (vtBcR1 (vtF0 args D.xs) D.w).1 ++
+  hw1 : (List.range 8).map (fun i ↦ wo (1572 + i)) = (vtBcR1 (vtF0 args D.xs) D.w).1 ++
     [args.getD 5 0 * gen ^ 7 * gen ^ 2, (vtBcR1 (vtF0 args D.xs) D.w).2.1,
       (vtBcR1 (vtF0 args D.xs) D.w).2.2]
-  hw2 : (List.range 8).map (fun i ↦ wo (1884 + i)) = (vtBcR2 (vtF0 args D.xs) D.w).1 ++
+  hw2 : (List.range 8).map (fun i ↦ wo (1580 + i)) = (vtBcR2 (vtF0 args D.xs) D.w).1 ++
     [args.getD 5 0 * gen ^ 7 * gen ^ 2 * gen ^ 2, (vtBcR2 (vtF0 args D.xs) D.w).2.1,
       (vtBcR2 (vtF0 args D.xs) D.w).2.2]
-  hw3 : (List.range 8).map (fun i ↦ wo (1892 + i)) = (vtBcR3 (vtF0 args D.xs) D.w).1 ++
+  hw3 : (List.range 8).map (fun i ↦ wo (1588 + i)) = (vtBcR3 (vtF0 args D.xs) D.w).1 ++
     [args.getD 5 0 * gen ^ 7 * gen ^ 2 * gen ^ 2 * gen ^ 2, (vtBcR3 (vtF0 args D.xs) D.w).2.1,
       (vtBcR3 (vtF0 args D.xs) D.w).2.2]
   /-- The slot sumcheck's last claim is accepted (`bytecodeShare`'s check). -/
@@ -156,14 +156,14 @@ structure VtBHyp (rd : Reader) (wo : ℕ → E) (args : List E) (D : VtBIn) : Pr
   /-- The bytecode's size. -/
   hbc : D.bc.length = 2 ^ 23
 
-theorem vtB_loads_check : ((vtPre.drop (pos% «verify_tables» "block_index_mle")).take (span% «verify_tables» "block_index_mle" "s56.u0.s1#1")).all (fun s ↦ match s with
+theorem vtB_loads_check : ((vtPre.drop (pos% «verify_tables» "block_index_mle")).take (span% «verify_tables» "block_index_mle" "s57.u0.s1#1")).all (fun s ↦ match s with
     | .atom (.load _ p off) => decide (p = .n (val% «verify_tables» "cursor@4")) ||
         vtBufsBIdx.any fun q ↦ decide (p = .n q.1) && decide (off < q.2)
     | _ => true) = true := by simp only [vtPre_drop]; decide +kernel
 
-theorem vtB_load1897 : ∀ d off, Stmt.atom (.load d (.n (val% «verify_tables» "cursor@4")) off) ∈ (vtPre.drop (pos% «verify_tables» "block_index_mle")).take (span% «verify_tables» "block_index_mle" "s56.u0.s1#1") →
+theorem vtB_load1897 : ∀ d off, Stmt.atom (.load d (.n (val% «verify_tables» "cursor@4")) off) ∈ (vtPre.drop (pos% «verify_tables» "block_index_mle")).take (span% «verify_tables» "block_index_mle" "s57.u0.s1#1") →
     off = 0 := by
-  have h : ((vtPre.drop (pos% «verify_tables» "block_index_mle")).take (span% «verify_tables» "block_index_mle" "s56.u0.s1#1")).all (fun s ↦ match s with
+  have h : ((vtPre.drop (pos% «verify_tables» "block_index_mle")).take (span% «verify_tables» "block_index_mle" "s57.u0.s1#1")).all (fun s ↦ match s with
       | .atom (.load _ p off) => !decide (p = .n (val% «verify_tables» "cursor@4")) || decide (off = 0)
       | _ => true) = true := by simp only [vtPre_drop]; decide +kernel
   intro d off hm
@@ -173,7 +173,7 @@ theorem vtB_load1897 : ∀ d off, Stmt.atom (.load d (.n (val% «verify_tables»
 /-- **Every load of the bus sides reads inside `vtBufsB`**, the value's read through the cursor
 after the tail rounds (`g^13` words on) included. -/
 theorem vtB_loadsInBuf (σ : Val) (h1897 : σ (.n (val% «verify_tables» "cursor@4")) = σ (.n (val% «verify_tables» "cursor@1")) * gen ^ 13) :
-    LoadsInBuf σ (vtBufsB σ) ((vtPre.drop (pos% «verify_tables» "block_index_mle")).take (span% «verify_tables» "block_index_mle" "s56.u0.s1#1")) := by
+    LoadsInBuf σ (vtBufsB σ) ((vtPre.drop (pos% «verify_tables» "block_index_mle")).take (span% «verify_tables» "block_index_mle" "s57.u0.s1#1")) := by
   intro d p off hm
   have := List.all_eq_true.mp vtB_loads_check _ hm
   simp only [Bool.or_eq_true, decide_eq_true_eq, List.any_eq_true, Bool.and_eq_true] at this

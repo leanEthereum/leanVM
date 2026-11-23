@@ -190,6 +190,7 @@ structure WH (L : MemoryImage κ) (j fp : ℕ) (X : CX) (segs : List Exec.Seg) (
   chains : X.chains = (plumbOf j).chains
   self : X.self = (certOf j).facts.env.map (·.1)
   entry : X.entry = (fnOf j).entryPc
+  nx : X.nx = nxOf j
   /-- A parameter, or a value of one of the body's atoms, is a value the path names. -/
   named : ∀ n, (Nat.blt n X.nargs || bitK X.nv n) = true → V.n n ∈ namedOf (coreOf j).params es vs
   frame : FrameHolds L j fp σ es vs kfps hdr
@@ -1037,9 +1038,9 @@ theorem walk_iteZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (c : V) (z
     · have hwz : walk σ z = .fall eb := by rw [← hweb, hwb]; simp only [h0, ↓reduceIte]
       have hpz := posZ_book H (hfall hjump (h0 ▸ hcell))
         (fileB_ok H.frame H.loc H.hev z st'.book (hbk' ▸ hp.ok.book) (hatoms z hwz))
-      have hpz' : PosZ H { st' with book := fileB X.loc X.fs z st'.book } W0
+      have hpz' : PosZ H { st' with book := fileB X.loc X.fs X.nx z st'.book } W0
           (calls (ebef ++ [Ev.inK c])).length xc := by
-        rw [hn1, H.fs]
+        rw [hn1, H.fs, H.nx]
         exact hpz
       obtain ⟨h1, -, -⟩ := ihz _ (ebef ++ [Ev.inK c]) ((walk σ ss).evs ++ eaft) _ W0 [] xc hwz
         (by rw [hes2, show (Out.fall eb).evs = eb from rfl]; simp) (by simp) (Or.inl hnr.1) hpz' (by rw [hz]; rfl)
@@ -1054,9 +1055,9 @@ theorem walk_iteZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (c : V) (z
         envAt_of_exit H hp.seg hx (by rw [hsu]; simp) henv
       obtain ⟨hps, hbkn, -, -, -, -, -, -⟩ := segAtC_pos H (xc := xc) hsn hok'.book hok'.fr hok'.tg hok'.nx
         henvT hcr hcle (by rw [brAtC_nm hb]; exact hp.nm)
-      have hpn : PosZ H { sn with book := fileB X.loc X.fs n st'.book } W0
+      have hpn : PosZ H { sn with book := fileB X.loc X.fs X.nx n st'.book } W0
           (calls (ebef ++ [Ev.inK c])).length xc := by
-        rw [hn1, H.fs]
+        rw [hn1, H.fs, H.nx]
         exact posZ_book H hps (fileB_ok H.frame H.loc H.hev n st'.book (hbk' ▸ hp.ok.book)
           (hatoms n hwn))
       obtain ⟨h1, -, -⟩ := ihn _ (ebef ++ [Ev.inK c]) ((walk σ ss).evs ++ eaft) _ W0 [] xc hwn
@@ -1153,7 +1154,7 @@ theorem walk_callIfZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (c : V)
     simp
   have hinK : Ev.inK c ∈ es := by rw [hes2]; simp
   have hcK : IsInK (σ c) := H.hev _ hinK
-  have hfr0 := inFrame_mem hin _ List.mem_cons_self
+  have hfr0 := inFrame_mem hin.1 _ List.mem_cons_self
   have hcell : rdc L fp (X.loc.cell c) = some (σ c) :=
     val_cell H.frame H.loc (uses_named hinK (by simp [Ev.uses])) hfr0.1 (H.fs ▸ hfr0.2)
   set n := (calls ebef).length with hn
@@ -1166,11 +1167,10 @@ theorem walk_callIfZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (c : V)
       calls_append_one (callIf_ev c f args), hn']
   have hargs : ∀ k (hk : k < args.length), rdc L fp (X.loc.cell args[k]) = some (σ args[k]) := by
     intro k hk
-    have hv : X.loc.cell args[k] ∈ X.loc.cell c :: args.map X.loc.cell :=
-      List.mem_cons_of_mem _ (List.mem_map.mpr ⟨_, List.getElem_mem hk, rfl⟩)
-    have hc := inFrame_mem hin _ hv
+    have hok' := hin.2 _ (List.getElem_mem hk)
+    rw [H.fs, H.nx] at hok'
     have hevm : ev ∈ es := by rw [hes2]; simp
-    refine val_cell H.frame H.loc (uses_named hevm ?_) hc.1 (H.fs ▸ hc.2)
+    refine cellOk_cell H.frame H.loc (uses_named hevm ?_) hok'
     rw [hev]
     split_ifs <;> simp [Ev.uses, List.getElem_mem]
   rcases hcase with ⟨e, q, r, j', st', oc', od, of, x', se, t, sr, hk, hj, hf, hna, hnr, hle, hsu,
@@ -1183,9 +1183,7 @@ theorem walk_callIfZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (c : V)
     obtain ⟨s0, hs0, hq0, hr0, -⟩ := siteOk_spec hsite
     have hnl := notLast H hci fun h ↦ hfne (h.trans H.name.symm)
     have hin' : inFrame X.fs (s0.q :: args.map X.loc.cell) = true := by
-      rw [hq0]
-      simp only [inFrame, Bool.and_eq_true] at hin hinq ⊢
-      exact ⟨hinq.1, hin.2⟩
+      rw [hq0]; exact hinq
     obtain ⟨kfp, hkfp, hq, hfcs, hret⟩ := call_frame H hci hj1 hj2 hfn hs0 hnl hin'
       (selfs := (X.G.sig j').env.map (·.1)) (fun o ho ↦ by rw [calleeC_sig H.G hj] at ho; exact ho)
     rw [hq0] at hq

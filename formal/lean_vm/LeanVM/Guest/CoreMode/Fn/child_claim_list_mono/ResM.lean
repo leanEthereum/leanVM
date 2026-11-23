@@ -250,7 +250,7 @@ theorem monoQ_step (hO : MonoOk) (hr : r.Ok) :
     dsimp only at hH
     rw [ite_eq_right (by rw [hloop]; simp), hs'] at hH
     -- the cells
-    have hfb := inst_fb hr hI (by rw [hIt]; rfl) hj
+    have hfb := inst_fb hr hI (by rw [hIt]) hj
     have hF0 := inst_frame hr hI hIt hj hw
     have hval' : ∀ u ∈ (coreOf fn_idx% «child_claim_list_mono»).params, 2 ≤ cellJ fn_idx% «child_claim_list_mono» u →
         cellJ fn_idx% «child_claim_list_mono» u < fsN fn_idx% «child_claim_list_mono» →

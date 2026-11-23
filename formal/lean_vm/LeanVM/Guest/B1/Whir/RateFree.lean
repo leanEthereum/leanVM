@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Whir.Template
 /-!
 # The body reads the rate-free columns
 
-A rate changes a level's `queries`, `depth`, `capDepth` and `squeezes`; the body reads them only
+A rate changes a level's `queries`, `depth`, `capDepth`, `squeezes` and `posOff`; the body reads them only
 through the dispatches' names, which take every rate's rows (`OsCfg.lvAt`), never the levels'.
 Each block at a configuration with any levels `L` (`OsCfg.withLevels`) and a level `lv` is the
 block at `c` and the level's rate-free columns `lv.rf`; so is the body (`osBody_rf`), and a size's
@@ -27,14 +27,14 @@ open LeanVM.Guest.Core LeanVM.Guest
 @[expose] public section
 
 /-- A level's rate-free columns, the rate's zeroed. -/
-def OsLv.rf (lv : OsLv) : OsLv := { lv with queries := 0, depth := 0, capDepth := 0, squeezes := 0 }
+def OsLv.rf (lv : OsLv) : OsLv :=
+  { lv with queries := 0, depth := 0, capDepth := 0, squeezes := 0, posOff := 0 }
 
 namespace OsLv
 variable (lv : OsLv)
 @[simp] theorem rf_folds : lv.rf.folds = lv.folds := rfl
 @[simp] theorem rf_foldsOff : lv.rf.foldsOff = lv.foldsOff := rfl
 @[simp] theorem rf_leafCells : lv.rf.leafCells = lv.leafCells := rfl
-@[simp] theorem rf_posOff : lv.rf.posOff = lv.posOff := rfl
 @[simp] theorem rf_logCols : lv.rf.logCols = lv.logCols := rfl
 @[simp] theorem rf_highBits : lv.rf.highBits = lv.highBits := rfl
 @[simp] theorem rf_prefixLen : lv.rf.prefixLen = lv.prefixLen := rfl
@@ -55,9 +55,12 @@ theorem osCommit_wl (lvl : ℕ) (lv : OsLv) (s : OsSt) :
     osCommit (c.withLevels L) lvl lv s = osCommit c lvl lv.rf s := by
   dsimp only [osCommit, OsCfg.withLevels, OsLv.rf_folds, OsLv.rf_logCols]
 
-theorem osPositions_wl (lvl : ℕ) (lv : OsLv) (s : OsSt) :
-    osPositions (c.withLevels L) lvl lv s = osPositions c lvl lv.rf s := by
-  dsimp only [osPositions, OsCfg.withLevels, OsLv.rf_posOff, OsCfg.lvAt]
+theorem osPositions_wl (lvl : ℕ) (s : OsSt) :
+    osPositions (c.withLevels L) lvl s = osPositions c lvl s := by
+  dsimp only [osPositions, OsCfg.withLevels, OsCfg.lvAt]
+
+theorem osRates_wl (lvl : ℕ) (s : OsSt) : osRates (c.withLevels L) lvl s = osRates c lvl s := by
+  dsimp only [osRates, OsCfg.withLevels, OsCfg.lvAt]
 
 theorem osHsFinal_wl (lv : OsLv) (s : OsSt) :
     osHsFinal (c.withLevels L) lv s = osHsFinal c lv.rf s := by
@@ -70,11 +73,11 @@ theorem osQueriesName_wl : osQueriesName { c with levels := L } = osQueriesName 
 
 theorem osQueries_wl (lvl : ℕ) (lv : OsLv) (s : OsSt) :
     osQueries (c.withLevels L) lvl lv s = osQueries c lvl lv.rf s := by
-  dsimp only [osQueries, OsCfg.withLevels, OsLv.rf_foldsOff, OsLv.rf_posOff, OsCfg.lvAt, osQueriesName_wl]
+  dsimp only [osQueries, OsCfg.withLevels, OsLv.rf_foldsOff, OsCfg.lvAt, osQueriesName_wl]
 
 theorem osLevel_wl (lvl : ℕ) (lv : OsLv) (s : OsSt) :
     osLevel (c.withLevels L) lvl lv s = osLevel c lvl lv.rf s := by
-  simp only [osLevel, osFinalMsg_wl, osCommit_wl, osPositions_wl, osHsFinal_wl, osQueries_wl,
+  simp only [osLevel, osRates_wl, osFinalMsg_wl, osCommit_wl, osPositions_wl, osHsFinal_wl, osQueries_wl,
     OsLv.rf_folds, OsLv.rf_foldsOff, ← osHsMid_rf]
 
 theorem osLevels_wl :
@@ -93,17 +96,17 @@ theorem osBases_wl (tch bd ls la : ℕ) :
       rfl
     simp only [List.map_cons, osBases, e, osBases_wl tch bd ls la lvl.succ L']
 
-theorem osResiduals_wl (tch ich bd ls la : ℕ) :
+theorem osResiduals_wl (rts : List (List ℕ)) (tch ich bd ls la : ℕ) :
     ∀ (lvl : ℕ) (L' : List OsLv) (mats : List OsMat) (k : ℕ),
-      osResiduals (c.withLevels L) tch ich bd ls la lvl L' mats k =
-        osResiduals c tch ich bd ls la lvl (L'.map OsLv.rf) mats k
+      osResiduals (c.withLevels L) rts tch ich bd ls la lvl L' mats k =
+        osResiduals c rts tch ich bd ls la lvl (L'.map OsLv.rf) mats k
   | _, [], _, _ => rfl
   | lvl, lv :: L', mats, k => by
-    have e : osResidual (c.withLevels L) tch ich bd ls la lvl lv mats k =
-        osResidual c tch ich bd ls la lvl lv.rf mats k := by
-      dsimp only [osResidual, OsCfg.withLevels, OsLv.rf_posOff, OsLv.rf_resFoldOff, OsCfg.lvAt]
+    have e : osResidual (c.withLevels L) rts tch ich bd ls la lvl lv mats k =
+        osResidual c rts tch ich bd ls la lvl lv.rf mats k := by
+      dsimp only [osResidual, OsCfg.withLevels, OsLv.rf_resFoldOff, OsCfg.lvAt]
       rfl
-    simp only [List.map_cons, osResiduals, e, osResiduals_wl tch ich bd ls la lvl.succ L']
+    simp only [List.map_cons, osResiduals, e, osResiduals_wl rts tch ich bd ls la lvl.succ L']
 
 theorem osOodWeights_wl (tch : ℕ) :
     ∀ (prevCols ol : ℕ) (L' : List OsLv) (acc : Option ℕ) (k : ℕ),

@@ -20,7 +20,8 @@ subtree at a position `p = (fp, c)`: its frame at word `fp`, its `HeapBuf`s and 
 subtrees from word `c`, one after another in call order. A subtree's **block** is the frames
 placed at its call: its own frame, and for a **loop helper** (`Program.loop`: its body ends with a
 `callIf` to itself and `ret []`) its tail call's block too, the next iteration's frame right after
-its own (`fp · g^S`), the last a phantom. A callee entered fresh at word `b` is at `(b, b +
+its own (`fp · g^S`), the last a phantom, whose frame is its function's tail (`fs (tailKey f)`
+words). A callee entered fresh at word `b` is at `(b, b +
 block)`: its block, then the rest of its subtree; a loop iteration's tail call is at `(fp + fs f,
 c')`, `c'` after the iteration's other callees. So a subtree of `total` words at `(b, b + block)`
 occupies `[b, b + total)`, a loop entered at `b` has its frames at `b + i · fs f` and the
@@ -29,8 +30,8 @@ depend only on its own position and sizes, never on its callees': a completeness
 them before it knows what its callees allocate.
 
 This is the Rust runner's order (`cpu/execute.rs`, `next_free` from the end of `main`'s frame): a
-callee frame when its call is set up, a loop's frames at once at its entry (`Hint::AllocLoopFrames`,
-the untaken call's a whole frame), a `HeapBuf` with its frame. Completeness needs only
+callee frame when its call is set up, a loop's frames at once at its entry (`RHint::AllocFrames`,
+the untaken call's only its `tail`), a `HeapBuf` with its frame. Completeness needs only
 disjointness, which this order gives by construction; soundness assumes nothing of where frames
 lie.
 
@@ -65,6 +66,16 @@ theorem _root_.LeanVM.Guest.Core.Program.loop_of_find? {P : Core.Program} {f : S
     (h : P.find? f = some fn) : P.loop f = fn.loop := by
   simp only [Program.loop, h]
 
+/-- The size key of `f`'s phantom (`fs (tailKey f)`): the words an untaken call of a loop helper
+reserves, its frame's header, parameters and self cell (`RHint::AllocFrames`' `tail`). Its first
+256 bytes are `#`, more than any function's name has (`B2C.coreProgram_names_short`). -/
+@[irreducible] def tailKey (f : String) : String := String.ofList (List.replicate 256 '#') ++ f
+
+/-- The words of a call instance's frame: its function's frame, or a phantom's tail. -/
+def Tree.fsz (fs : String → ℕ) : Tree → ℕ
+  | .node f _ _ _ => fs f
+  | .phantom f _ => fs (tailKey f)
+
 /-- A placed call instance. -/
 structure Inst where
   /-- The call instance. -/
@@ -86,7 +97,7 @@ mutual
 /-- The words a subtree allocates: frames and `HeapBuf`s. -/
 def Tree.total : Tree → ℕ
   | .node f _ bufs kids => fs f + Tree.totalKids kids + bufs.sum
-  | .phantom f _ => fs f
+  | .phantom f _ => fs (tailKey f)
 
 /-- The words a list of subtrees allocates. -/
 def Tree.totalKids : List Tree → ℕ
@@ -99,7 +110,7 @@ mutual
 helper, its tail call's block. -/
 def Tree.block : Tree → ℕ
   | .node f _ _ kids => fs f + if lp f then Tree.blockLast kids else 0
-  | .phantom f _ => fs f
+  | .phantom f _ => fs (tailKey f)
 
 /-- The block of the last of a list of subtrees. -/
 def Tree.blockLast : List Tree → ℕ
@@ -154,7 +165,7 @@ def Tree.instsKids (H : Inst → ℕ → E × E) (I : Inst) (i : ℕ) :
 end
 
 /-- Word `i` is in `I`'s frame. -/
-def Inst.Frame (I : Inst) (i : ℕ) : Prop := I.fp ≤ i ∧ i < I.fp + fs I.t.name
+def Inst.Frame (I : Inst) (i : ℕ) : Prop := I.fp ≤ i ∧ i < I.fp + I.t.fsz fs
 
 /-- Word `i` is in one of `I`'s `HeapBuf`s. -/
 def Inst.Buf (I : Inst) (i : ℕ) : Prop :=
@@ -253,9 +264,9 @@ theorem total_node (f : String) (σ : Val) (bufs : List ℕ) (kids : List Tree) 
     (Tree.node f σ bufs kids).total fs = fs f + Tree.totalKids fs kids + bufs.sum := by
   rw [Tree.total]
 
-theorem le_total (t : Tree) : fs t.name ≤ t.total fs := by
+theorem le_total (t : Tree) : t.fsz fs ≤ t.total fs := by
   cases t with
-  | node f σ bufs kids => rw [total_node]; simp only [Tree.name]; omega
+  | node f σ bufs kids => rw [total_node]; simp only [Tree.fsz]; omega
   | phantom f σ => rw [Tree.total]; rfl
 
 theorem map_sz_fst (ks : List Tree) : (ks.map (Tree.sz fs lp)).map Prod.fst = ks.map (Tree.total fs) := by
@@ -276,12 +287,12 @@ theorem block_node (f : String) (σ : Val) (bufs : List ℕ) (kids : List Tree) 
     (Tree.node f σ bufs kids).block fs lp = nodeBlock fs lp f (kids.map (Tree.sz fs lp)) := by
   rw [Tree.block, blockLast_eq]; rfl
 
-theorem block_phantom (f : String) (σ : Val) : (Tree.phantom f σ).block fs lp = fs f := by
+theorem block_phantom (f : String) (σ : Val) : (Tree.phantom f σ).block fs lp = fs (tailKey f) := by
   rw [Tree.block]
 
-theorem le_block (t : Tree) : fs t.name ≤ t.block fs lp := by
+theorem le_block (t : Tree) : t.fsz fs ≤ t.block fs lp := by
   cases t with
-  | node f σ bufs kids => rw [Tree.block]; simp only [Tree.name]; omega
+  | node f σ bufs kids => rw [Tree.block]; simp only [Tree.fsz]; omega
   | phantom f σ => rw [Tree.block]; rfl
 
 /-- A subtree's block is within its words. -/
@@ -474,7 +485,7 @@ theorem insts_within : ∀ (t : Tree) (p : ℕ × ℕ) (hdr : E × E), p.1 + t.b
       rw [hsz]
       rcases hI with rfl | hI
       · have hlb := lastBlock_le_sum _ (sz_le (fs := fs) (lp := lp) kids)
-        simp only [Inst.Owns, Inst.Frame, Inst.Buf, Tree.name, Tree.bufs] at hi
+        simp only [Inst.Owns, Inst.Frame, Inst.Buf, Tree.fsz, Tree.bufs] at hi
         unfold InReg nodeBlock
         unfold nodeBlock at hp
         rcases hi with ⟨h1, h2⟩ | ⟨q, hq, h1, h2⟩
@@ -520,7 +531,7 @@ theorem insts_pairwise : ∀ (t : Tree) (p : ℕ × ℕ) (hdr : E × E), p.1 + t
           (kidPos_pairwise (sz_le kids) hp))
       obtain ⟨q, hq, hiq⟩ := instsKids_within kids _ _ _ (fun q hq => (hreg q hq).1) J hJ i hJi
       obtain ⟨-, hnf, hnb⟩ := (hreg q hq).2 i hiq
-      simp only [Inst.Owns, Inst.Frame, Inst.Buf, Tree.name, Tree.bufs] at hI
+      simp only [Inst.Owns, Inst.Frame, Inst.Buf, Tree.fsz, Tree.bufs] at hI
       rcases hI with ⟨h1, h2⟩ | ⟨q', hq', h1', h2'⟩
       · exact hnf ⟨h1, h2⟩
       · have := bases_zip hq'; exact hnb ⟨by omega, by omega⟩
@@ -704,7 +715,7 @@ theorem total_le {F : ℕ} (hF : ∀ f, fs f ≤ F) : ∀ t : Tree, t.total fs �
       omega
   | .phantom f σ => by
       rw [Tree.total, Tree.count, Tree.bufWords]
-      have := hF f
+      have := hF (tailKey f)
       omega
 
 /-- `total_le` for the callees. -/
@@ -754,14 +765,14 @@ def frameWrites (C : Inst → List (ℕ × E)) (Is : List Inst) : List Write := 
 /-- What the cells of the frames must satisfy: the header fits the frame, every cell is past
 the header and in the frame, and two cells at one offset hold one word. -/
 structure CellsOk (fs : String → ℕ) (C : Inst → List (ℕ × E)) (Is : List Inst) : Prop where
-  two_le : ∀ I ∈ Is, 2 ≤ fs I.t.name
-  off : ∀ I ∈ Is, ∀ q ∈ C I, 2 ≤ q.1 ∧ q.1 < fs I.t.name
+  two_le : ∀ I ∈ Is, 2 ≤ I.t.fsz fs
+  off : ∀ I ∈ Is, ∀ q ∈ C I, 2 ≤ q.1 ∧ q.1 < I.t.fsz fs
   agree : ∀ I ∈ Is, ∀ q ∈ C I, ∀ q' ∈ C I, q.1 = q'.1 → q.2 = q'.2
 
 variable {C : Inst → List (ℕ × E)} {Is : List Inst}
 
 theorem CellsOk.cell_lt (h : CellsOk fs C Is) {I : Inst} (hI : I ∈ Is) {q : ℕ × E}
-    (hq : q ∈ I.cells C) : q.1 < fs I.t.name := by
+    (hq : q ∈ I.cells C) : q.1 < I.t.fsz fs := by
   have := h.two_le I hI
   simp only [Inst.cells, List.mem_cons] at hq
   rcases hq with rfl | rfl | hq
@@ -792,7 +803,7 @@ theorem mem_frameWrites {a : Write} (ha : a ∈ frameWrites C Is) :
 
 /-- **The frames are write-once consistent**: instances apart, below the order of `g`. -/
 theorem frameWrites_consistent (hp : Is.Pairwise (Inst.Apart fs)) (hok : CellsOk fs C Is)
-    (hb : ∀ I ∈ Is, I.fp + fs I.t.name ≤ 2 ^ 64 - 1) : Consistent (frameWrites C Is) := by
+    (hb : ∀ I ∈ Is, I.fp + I.t.fsz fs ≤ 2 ^ 64 - 1) : Consistent (frameWrites C Is) := by
   intro a ha b hb' hab
   obtain ⟨I, hI, q, hq, rfl⟩ := mem_frameWrites ha
   obtain ⟨J, hJ, q', hq', rfl⟩ := mem_frameWrites hb'

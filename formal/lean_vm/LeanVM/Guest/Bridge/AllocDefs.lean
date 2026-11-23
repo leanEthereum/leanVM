@@ -108,7 +108,7 @@ def allocShape : List Stmt → Bool
 
 /-- An allocation hint's pointer cell. -/
 def allocPtr : Prover.Exec.Hint → Option ℕ
-  | .alloc p _ | .allocDyn p _ | .allocArm p _ _ | .allocFrames p _ _ _ => some p
+  | .alloc p _ | .allocDyn p _ | .allocArm p _ _ | .allocFrames p _ _ _ _ => some p
   | _ => none
 
 /-- The function's hints with their offsets, by pc then in the list at a pc. -/

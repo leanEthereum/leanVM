@@ -19,9 +19,9 @@ import LeanVM.Guest.Data.ValNames.«verify_tables»
 
 `segOk j l a n`: the block of `n` statements from position `a` of `l`, a body of function `j`, cannot return and passes `noWitBlock j`. `stmtAt l a s`: statement `a` of `l` is `s`.
 
-* `verify_sub` (`vsShape_ok`): the stream's hint at `8`, the table logs' at `55`, `certify_placement` at `243`, `verify_tables` at `316`, the `open_stacked` dispatch at `1510`;
+* `verify_sub` (`vsShape_ok`): the stream's hint at `8`, the table logs' at `55`, `certify_placement` at `243`, `verify_tables` at `355`, the `open_stacked` dispatch at `1588`;
 * `certify_placement` (`cpShape_ok`): the group order's hint at `135`;
-* `verify_tables` (`vtShape_ok`): the block group order's hint at `17`, `zc_tau_max`'s at `2590`.
+* `verify_tables` (`vtShape_ok`): the block group order's hint at `17`, `zc_tau_max`'s at `2286`.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -58,12 +58,12 @@ def vsCpS : Stmt := .call "certify_placement" [.n (val% «verify_sub» "kappa_ba
 
 /-- `verify_sub`'s call of `verify_tables`. -/
 def vsVtS : Stmt :=
-  .call "verify_tables" ([545, 546, 547, 548, 549, 550, 0, 1, 254, 253, 71, 26, 4, 334, 530, 6, 552, 551, 555, 553, 25].map .n)
-    ((List.range 10).map fun k => .n (556 + k))
+  .call "verify_tables" ([597, 598, 599, 600, 601, 602, 0, 1, 254, 253, 71, 26, 4, 386, 582, 6, 604, 603, 607, 605, 25].map .n)
+    ((List.range 10).map fun k => .n (608 + k))
 
 /-- `verify_sub`'s dispatch to `open_stacked`. -/
 def vsOsS : Stmt :=
-  .dispatch (.n (val% «verify_sub» "size_sel")) vsOpen ([66, 1337, 1338, 1339, 1340, 1341, 1883, 268, 271, 1885, 1887].map .n)
+  .dispatch (.n (val% «verify_sub» "size_sel")) vsOpen ([66, 1441, 1442, 1443, 1444, 1445, 1987, 268, 271, 1989, 1991].map .n)
     ((List.range 5).map fun k => .n ((val% «verify_sub» "sumcheck_target") + k))
 
 /-- `verify_sub`'s shape. -/
@@ -71,8 +71,8 @@ noncomputable def vsShapeOk : Bool :=
   let l := (fn% «verify_sub»).body
   let j := idx% «verify_sub»
   segOk j l 0 8 && stmtAt l 8 (.atom vsStreamA) && segOk j l 9 46 && stmtAt l 55 (.atom vsLogsA) &&
-    segOk j l 56 187 && stmtAt l 243 vsCpS && segOk j l 244 72 && stmtAt l 316 vsVtS && segOk j l 317 1193 &&
-    stmtAt l 1510 vsOsS && noWitBlock j (l.drop 1511)
+    segOk j l 56 187 && stmtAt l 243 vsCpS && segOk j l 244 111 && stmtAt l 355 vsVtS && segOk j l 356 1232 &&
+    stmtAt l 1588 vsOsS && noWitBlock j (l.drop 1589)
 
 theorem vsShape_ok : vsShapeOk = true := by decide +kernel
 
@@ -97,8 +97,8 @@ def vtZcA : Atom := .hint (.witness "zc_tau_max" (.stack [.n (val% «verify_tabl
 noncomputable def vtShapeOk : Bool :=
   let l := (fn% «verify_tables»).body
   let j := idx% «verify_tables»
-  segOk j l 0 17 && stmtAt l 17 (.atom vtOrdA) && segOk j l 18 2572 && stmtAt l 2590 (.atom vtZcA) &&
-    noWitBlock j (l.drop 2591)
+  segOk j l 0 17 && stmtAt l 17 (.atom vtOrdA) && segOk j l 18 2268 && stmtAt l 2286 (.atom vtZcA) &&
+    noWitBlock j (l.drop 2287)
 
 theorem vtShape_ok : vtShapeOk = true := by decide +kernel
 

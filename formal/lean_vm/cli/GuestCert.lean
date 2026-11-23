@@ -316,6 +316,11 @@ abbrev Pos := ℕ × ℕ
 structure WSt where
   loc : Loc := {}
   pend : Std.HashMap ℕ (ℕ × ℕ) := {}
+  /-- A copy's destination not yet placed, by its source: it takes its source's cell (the compiler having removed
+  the copy) unless an atom places it at a copy fact's out of that cell (`allowed`). -/
+  copyOf : Std.HashMap ℕ ℕ := {}
+  /-- A constant's cell if no instruction places it: a `SET` of it on its path. -/
+  pref : Std.HashMap ℕ ℕ := {}
   used : Std.HashSet String := {}
   fa : Array (ℕ × List ℕ) := #[]
   nr : ℕ := 0
@@ -343,6 +348,8 @@ structure WCtx where
   /-- The cells the frame pointer is bounced through (`DEREF *(fp[h]) = fp`, `self_fp`): a
   core load never reads through one. -/
   bounces : Std.HashSet ℕ := {}
+  /-- The copy facts' destinations out of each cell, over the function. -/
+  outs : Std.HashMap ℕ (List ℕ) := {}
 
 abbrev WM := ReaderT WCtx (StateT WSt (Except String))
 
@@ -361,6 +368,38 @@ def consume (p : Pos) (facts : Array Exec.Atom) : WM (Option (Pos × Array Exec.
   | some (.fact a) => return some ((p.1, p.2 + 1), facts.push a)
   | _ => return none
 
+/-- The cells an open copy destination may take: its source's (or those its source may take), and the copy
+facts' out of them. `none` when `v` is placed or no copy's destination. -/
+def allowedIn (st : WSt) (outs : Std.HashMap ℕ (List ℕ)) : ℕ → ℕ → Option (List ℕ)
+  | 0, _ => none
+  | fuel + 1, v =>
+    if st.loc.contains v then none else
+    match st.copyOf.get? v with
+    | none => none
+    | some x =>
+      let base := match st.loc.get? x with
+        | some c => [c]
+        | none => (allowedIn st outs fuel x).getD []
+      some (base ++ base.flatMap fun c => outs.getD c [])
+
+/-- An open copy destination's default cell: its source's, or its source's default. -/
+def defaultIn (st : WSt) : ℕ → ℕ → Option ℕ
+  | 0, _ => none
+  | fuel + 1, v =>
+    match st.loc.get? v with
+    | some c => some c
+    | none => match st.copyOf.get? v with
+      | some x => defaultIn st fuel x
+      | none => none
+
+/-- The open copy destinations placed at their default cells (`defaultIn`), in order. -/
+def settleCopies (st : WSt) (loc0 : Loc) : Loc := Id.run do
+  let mut loc := loc0
+  for v in (st.copyOf.toList.map (·.1)).mergeSort do
+    unless loc.contains v do
+      if let some c := defaultIn { st with loc := loc } 64 v then loc := loc.insert v c
+  return loc
+
 /-- Bindings of values (by number) to cells, if consistent with what is known. -/
 def unify (pairs : List (ℕ × ℕ)) : WM (Option (List (ℕ × ℕ))) := do
   let st ← get
@@ -373,6 +412,8 @@ def unify (pairs : List (ℕ × ℕ)) : WM (Option (List (ℕ × ℕ))) := do
     | none =>
       if let some lim := st.pend.get? v then
         unless ((ctx.setCells.get? lim).getD []).contains c do return none
+      if let some cs := allowedIn st ctx.outs 64 v then
+        unless cs.contains c do return none
     b := b.insert v c
   return some (pairs.filterMap fun (v, _) => (b.get? v).map (v, ·)).eraseDups
 
@@ -481,8 +522,23 @@ def copyPred (d x : ℕ) (ft : Exec.Atom) : WM (Option (List (ℕ × ℕ))) := d
     unify [(d, b), (x, a)]
   | _ => return none
 
+/-- Place an open copy destination at its default cell. -/
+def settle (v : ℕ) : WM Unit :=
+  modify fun st => if st.loc.contains v then st else match defaultIn st 64 v with
+    | some c => { st with loc := st.loc.insert v c }
+    | none => st
+
 /-- Infer the cells of one atom's values. -/
 def atom (a : Core.Atom) (p : Pos) (facts : Array Exec.Atom) : WM (Pos × Array Exec.Atom) := do
+  match a with
+  | .copy d x =>
+    -- the destination left open, placed by its source unless an atom places it
+    let st ← get
+    if !st.loc.contains (vi d) && (st.loc.contains (vi x) || st.copyOf.contains (vi x)) then
+      modify fun st => { st with copyOf := st.copyOf.insert (vi d) (vi x) }
+      return (p, facts)
+  | .assertEq x y => do settle (vi x); settle (vi y)
+  | _ => pure ()
   let loc := (← get).loc
   match a with
   | .hint _ => return (p, facts)
@@ -490,7 +546,20 @@ def atom (a : Core.Atom) (p : Pos) (facts : Array Exec.Atom) : WM (Pos × Array 
     match loc.get? (vi d) with
     | some c => go p facts (setPred c (limbsOfE x))
     | none =>
-      modify fun st => { st with pend := st.pend.insert (vi d) (limbsOfE x) }
+      -- if no instruction places it, the `SET` of this constant last passed on the path, else the next one in
+      -- the segment: a cell the compiler set elsewhere (another arm's) need not be written here
+      let l := limbsOfE x
+      let isSet : Exec.Atom → Option ℕ := fun
+        | .instr _ (.set o k0 k1) => if (k0, k1) == l then some o else none
+        | _ => none
+      let passed := facts.toList.reverse.findSome? isSet
+      let s ← getSeg p.1
+      let ahead := (s.items.toList.drop p.2).takeWhile (fun | .branch .. => false | _ => true) |>.findSome? fun
+        | .ins a => isSet a
+        | _ => none
+      modify fun st => { st with pend := st.pend.insert (vi d) l, pref := match passed.orElse fun _ => ahead with
+        | some o => st.pref.insert (vi d) o
+        | none => st.pref }
       return (p, facts)
   | .add d a b => go p facts (xorPred (vi d) (vi a) (vi b))
   | .mul d a b => go p facts (mulPred (vi d) (vi a) (vi b))
@@ -498,13 +567,8 @@ def atom (a : Core.Atom) (p : Pos) (facts : Array Exec.Atom) : WM (Pos × Array 
     match loc.get? (vi d), loc.get? (vi x) with
     | some c, some c' => if c == c' then return (p, facts) else go p facts (copyPred (vi d) (vi x))
     | none, some cx =>
-      try
-        go p facts fun ft => match ft with
-          | .copy a b => if b == cx then unify [(vi d, a)] else return none
-          | _ => return none
-      catch _ =>
-        modify fun st => { st with loc := st.loc.insert (vi d) cx }
-        return (p, facts)
+      modify fun st => { st with loc := st.loc.insert (vi d) cx }
+      return (p, facts)
     | _, _ => go p facts (copyPred (vi d) (vi x))
   | .load d q off => go p facts (derefPred off (vi q) (vi d))
   | .touch t q => go p facts (derefPred 0 (vi q) (vi t))
@@ -716,12 +780,15 @@ def inferLocs (segs : Array GSeg) (f : CompiledFunction) (cf : Core.Fn) (main : 
   let bounces := f.code.foldl (fun m ins => match ins with
     | .deref o1 _ _ .fp => m.insert o1
     | _ => m) ({} : Std.HashSet ℕ)
-  let ctx : WCtx := ⟨segMap, setCells, f.entryPc, cf.params.length, main, bounces⟩
+  let outs := segs.foldl (fun m s => s.items.foldl (fun m it => match it with
+    | .fact (.copy a b) => m.insert b ((m.getD b []) ++ [a])
+    | _ => m) m) ({} : Std.HashMap ℕ (List ℕ))
+  let ctx : WCtx := ⟨segMap, setCells, f.entryPc, cf.params.length, main, bounces, outs⟩
   let loc0 : Loc := (cf.params.zipIdx.map fun (v, i) => (vi v, 2 + i)).foldl
     (fun m (v, c) => m.insert v c) {}
   let init : WSt := { loc := loc0 }
   let (_, st) ← ((block cf.body (0, 0) #[] true).run ctx).run init
-  let mut loc := st.loc
+  let mut loc := settleCopies st st.loc
   for (q, run) in st.fa do
     let _ := q
     match (run.zipIdx.find? fun (v, _) => loc.contains v) with
@@ -733,7 +800,9 @@ def inferLocs (segs : Array GSeg) (f : CompiledFunction) (cf : Core.Fn) (main : 
   for (v, l) in st.pend.toList do
     unless loc.contains v do
       let cs := (setCells.get? l).getD []
-      loc := loc.insert v (cs.foldl min (cs.headD 0))
+      loc := loc.insert v ((st.pref.get? v).getD (cs.foldl min (cs.headD 0)))
+  -- open copies of values placed only now
+  loc := settleCopies st loc
   let m := loc.fold (fun m v _ => max m (v + 1)) 0
   return ((List.range m).map fun v => loc.getD v 0, st.nr, st.marks, st.spine, st.uses, st.entered)
 
@@ -844,13 +913,12 @@ def knownOf (body : List Core.Stmt) (memOf : String → List (ℕ × ℕ × ℕ)
 `main` does: both are cut in the coarse windows. -/
 def vsName : String := "verify_sub"
 
-/-- `opening_queries__L{odd}_L{base}_L{folds}_L{leaf_cells}_L{depth}_L{cap_depth}_L{mu}_L{vanish}_L{n_hs}_L{hs_bits}_L{final}`'s
-`(odd, base, depth, cap_depth)` (`opening_queries`, `guests/lean_ethereum.py`). -/
-def oqParams (name : String) : Option (ℕ × ℕ × ℕ × ℕ) :=
+/-- `opening_queries__L{base}_L{folds}_L{leaf_cells}_L{path_depth}_L{mu}_L{vanish}_L{n_hs}_L{hs_bits}_L{final}`'s
+`(base, path_depth)` (`opening_queries`, `guests/lean_ethereum.py`). -/
+def oqParams (name : String) : Option (ℕ × ℕ) :=
   if name.startsWith "opening_queries__L" then
     match (((name.drop 18).toString).splitOn "_L").map String.toNat? with
-    | [some odd, some base, some _, some _, some d, some cd, some _, some _, some _, some _, some _] =>
-      some (odd, base, d, cd)
+    | [some base, some _, some _, some pd, some _, some _, some _, some _, some _] => some (base, pd)
     | _ => none
   else none
 
@@ -863,14 +931,6 @@ def lqParams (name : String) : Option (ℕ × ℕ × ℕ × ℕ) :=
     | _ => none
   else none
 
-/-- `walk_path__L{path_depth}_L{cap_depth}`'s `(path_depth, cap_depth)`. -/
-def wpParams (name : String) : Option (ℕ × ℕ) :=
-  if name.startsWith "walk_path__L" then
-    match (((name.drop 12).toString).splitOn "_L").map String.toNat? with
-    | [some pd, some cd] => some (pd, cd)
-    | _ => none
-  else none
-
 /-- The loops a function's body calls at its top level (`callIf`). -/
 def loopsOf (body : List Core.Stmt) : List String :=
   body.filterMap fun
@@ -879,25 +939,25 @@ def loopsOf (body : List Core.Stmt) : List String :=
 
 /-- The tagged tuples of frame cells each function assumes in the semantic relations
 (`Glob.sem`, `WalkTags.lean`): the exponent table (tag `0`) at `verify_sub`'s argument 4 and at
-`__loop4_main`'s argument 14, which passes it on; the windows of the windowed Merkle walk, at
-`opening_queries`' window pointers and iteration count (arguments 6 and 7, `OqMainWins`) and at
-its loop's `[t, x, N]` (arguments 3, 0, 1: `WinWalk`, `WinWalk2` at level 0), with `x ≠ N`
-(`Check.tagNe`); `level_queries`' window pointers (argument 5, `lqTag`), which it hands
-`opening_queries` with its iteration count; the window table `tabs` of `open_stacked` (argument
-10, `tagTabs`) and of `level_positions` (argument 8), whose decodes and grinds read it. -/
+`__loop4_main`'s argument 14, which passes it on; the windows of `opening_queries`' inline walk,
+keyed by its path depth `pd` (`oqTag`): deeper, on its window pointers and iteration count
+(arguments 6 and 7, `WinWalkP` from `1`), at level 0 on those and `odd_g` (argument 8,
+`OqStartP` for both `odd`'s, and `tagOdd` on `odd_g`), and at its loop's `[t, x, N]` (arguments 3,
+0, 1: `WinWalkP`, `WinWalk2P` at level 0), with `x ≠ N` (`Check.tagNe`); `level_queries`' window
+pointers (argument 5, `lqTag`), which it hands `opening_queries` with its iteration count and
+`odd_g`; the window table `tabs` of `open_stacked` (argument 10, `tagTabs`) and of
+`level_positions` (argument 8), whose decodes and grinds read it. -/
 def semTab (P : List Core.Fn) : Std.HashMap String (List (ℕ × List ℕ)) := Id.run do
   let mut m : Std.HashMap String (List (ℕ × List ℕ)) := {}
   m := m.insert "verify_sub" [(0, [6])]
   m := m.insert "__loop4_main" [(0, [16])]
   for cf in P do
-    if let some (odd, base, d, cd) := oqParams cf.name then
-      m := m.insert cf.name [(walkTag (2 + base) odd d cd, [8, 9])]
+    if let some (base, pd) := oqParams cf.name then
+      m := m.insert cf.name (if base == 1 then
+          [(oqTag 3 0 pd, [8, 9, 10]), (oqTag 3 1 pd, [8, 9, 10]), (tagOdd, [10])]
+        else [(oqTag 2 0 pd, [8, 9])])
       for g in loopsOf cf.body do
-        m := m.insert g [(walkTag (if base == 1 then 1 else 0) odd d cd, [5, 2, 3]), (Check.tagNe, [2, 3])]
-  -- `walk_path`'s windows: `WinsAt` on `wins` (argument 2, cell 4) at depth `path_depth + cap_depth`
-  -- (`lean_ethereum.py`); its callers take it as an obligation on the window pointer
-    if let some (pd, cd) := wpParams cf.name then
-      m := m.insert cf.name [(winsTag (pd + cd) cd, [4])]
+        m := m.insert g [(oqTag (if base == 1 then 1 else 0) 0 pd, [5, 2, 3]), (Check.tagNe, [2, 3])]
     -- `open_stacked`'s window table `tabs` (argument 10, cell 12), which its grinds read and its
     -- rate dispatch hands `level_positions` (argument 8, cell 10, its decodes'): `verify_sub` hands
     -- it on at its dispatch
@@ -992,30 +1052,56 @@ def callObligations (semMap : Std.HashMap String (List (ℕ × List ℕ))) (body
       match cs with
       | [] => tu := tu ++ [(t, vs)]
       | [(v, k)] => tu := tu ++ [(Check.impTag t k (consts.getD v 0), vs)]
+      | [(vn, 1), (vu, 2)] =>
+        -- a level-0 `opening_queries`' `OqStartP` for `odd` on `[t, N, odd_g]`, both constants
+        -- (`level_queries`): conditional on `N` for the `odd` that `odd_g` is, else on `odd_g`, where it
+        -- holds vacuously
+        unless 2 ≤ t && t < 2 ^ 21 && walkKind t == 3 do
+          throw s!"statement {i}: a call's tuple with two constants"
+        if consts.getD vu 0 == (if walkOdd t == 1 then 2 else 1) then
+          tu := tu ++ [(Check.impTag t 1 (consts.getD vn 0), vs)]
+        else tu := tu ++ [(Check.impTag t 2 (consts.getD vu 0), vs)]
       | _ => throw s!"statement {i}: a call's tuple with two constants"
       lo := vs.foldl (fun acc v => if consts.contains v then acc else max acc (defAfter body v)) lo
     out := out.push (i, lo, tu)
   return out.toList
 
-/-- The windows a walk function's top-level `match`es dispatch on, a load `L[w·g^i]` each: per
+/-- A statement and the statements of its nested blocks (an inlined walk's `match`es sit in a branch). -/
+partial def flatStmt : Core.Stmt → List Core.Stmt
+  | s@(.ite _ z n) => s :: (z.flatMap flatStmt ++ n.flatMap flatStmt)
+  | s@(.match_ _ arms) => s :: arms.flatMap (·.flatMap flatStmt)
+  | s => [s]
+
+/-- The windows a walk function's `match`es (nested ones included) dispatch on, a load `L[w·g^i]` each: per
 pointer `w`, `(statement of its first such match, statement after `w`'s definition, the triples
 (w, i, arms))`; a cut before the first match takes them as bounds on memory read
-(`Cut.knownIf`). -/
+(`Cut.knownIf`). A pointer only a nested statement defines, `w = L[w0·g^c]` (`opening_queries`'
+odd first query, under its branch on `odd_g`), is not defined where the cut is: its windows are
+bounds read twice through `w0`, `(w0, memTwice c i, arms)`. -/
 def winObligations (body : List Core.Stmt) :
     List (ℕ × ℕ × List (ℕ × ℕ × ℕ)) := Id.run do
-  let loads : Std.HashMap ℕ (ℕ × ℕ) := body.foldl (fun m s => match s with
+  let flat := body.flatMap flatStmt
+  let loads : Std.HashMap ℕ (ℕ × ℕ) := flat.foldl (fun m s => match s with
     | .atom (.load d w off) => if m.contains d.idx then m else m.insert d.idx (w.idx, off)
     | _ => m) {}
+  let defines (v : ℕ) : Core.Stmt → Bool
+    | .atom a => (Check.atomVals a).head? == some (Core.V.n v)
+    | _ => false
+  let nestedDef (v : ℕ) : Bool := !body.any (defines v) && flat.any (defines v)
   let mut out : Array (ℕ × ℕ × List (ℕ × ℕ × ℕ)) := #[]
   for (s, i) in body.zipIdx do
-    let sel : Option (Core.V × ℕ) := match s with
-      | .match_ v arms => some (v, arms.length)
-      | _ => none
-    if let some (v, n) := sel then
-      if let some (w, off) := loads.get? v.idx then
-        match out.findIdx? (fun o => o.2.2.any (·.1 == w)) with
-        | some k => out := out.modify k fun (a, b, l) => (a, b, l ++ [(w, off, n)])
-        | none => out := out.push (i, defAfter body w, [(w, off, n)])
+    for t in flatStmt s do
+      let sel : Option (Core.V × ℕ) := match t with
+        | .match_ v arms => some (v, arms.length)
+        | _ => none
+      if let some (v, n) := sel then
+        if let some (w, off) := loads.get? v.idx then
+          let (w, off) := match (if nestedDef w then loads.get? w else none) with
+            | some (w0, c) => (w0, Check.memTwice c off)
+            | none => (w, off)
+          match out.findIdx? (fun o => o.2.2.any (·.1 == w)) with
+          | some k => out := out.modify k fun (a, b, l) => (a, b, l ++ [(w, off, n)])
+          | none => out := out.push (i, defAfter body w, [(w, off, n)])
   return out.toList
 
 /-- The bounds of the functions whose table jumps are bounded outside them (the guest's design,
@@ -1229,8 +1315,23 @@ def planCuts (coarse : Bool) (F : GFacts) (f : CompiledFunction) (cf : Core.Fn) 
     | .atom (.const v x) => let (k0, k1) := limbsOfE x; (setAt.get? (cellOf v, k0, k1)).getD f.instructionCount
     | _ => 0)
   let constMax : Array ℕ := constAt.foldl (fun acc o => acc.push (max o (acc.back?.getD 0))) #[0]
-  let cands := marks.filterMap fun m => (cutAtMark segMap f.entryPc m).bind fun c =>
+  let cands0 := marks.filterMap fun m => (cutAtMark segMap f.entryPc m).bind fun c =>
     if constMax.getD m.1 0 < c.1 then some (m.1, c) else none
+  -- a top-level copy into another cell runs where the compiler put its `MUL d = x·1`, which can
+  -- follow later statements' code: a window ends after it
+  let code := f.code.toArray
+  let startOf : Std.HashMap ℕ ℕ := cands0.foldl (fun m (t, c) => m.insert t c.1) {}
+  let copyAt : Array ℕ := (cf.body.toArray.zipIdx.map fun
+    | (.atom (.copy d x), t) =>
+      let (cd, cx) := (cellOf d, cellOf x)
+      if cd == cx then 0 else
+        let lo := (startOf.get? t).getD 0
+        ((List.range (code.size - lo)).find? fun i => match code[lo + i]! with
+          | .mul a b c => c == cd && (a == cx || b == cx)
+          | _ => false).map (lo + · + 1) |>.getD 0
+    | _ => 0)
+  let copyMax : Array ℕ := copyAt.foldl (fun acc o => acc.push (max o (acc.back?.getD 0))) #[0]
+  let cands := cands0.filter fun (t, c) => copyMax.getD t 0 ≤ c.1
   let mut forced : List (ℕ × List (ℕ × ℕ × ℕ) × List (ℕ × ℕ × ℕ) × List (ℕ × List ℕ)) := []
   -- a forced cut avoids the start right after a call's returns (the window before would end
   -- before reading them back)
@@ -1604,6 +1705,29 @@ structure Ctx where
   bitsOf : ℕ → ℕ
   /-- The selectors of the `match`es whose arms are counted separately. -/
   keyed : Std.HashSet ℕ := {}
+  /-- A loop helper's tail call's arguments, by value (`B2C.tailArgs`). -/
+  ta : List ℕ := []
+
+/-- A loop helper's tail call's arguments (`B2C.tailArgs`): the `callIf` to itself before the closing
+`ret []`, no `ret` before it. -/
+def tailArgsOf (cf : Core.Fn) : List ℕ :=
+  match cf.body.reverse with
+  | .ret [] :: .callIf _ g args :: rpre =>
+    if g == cf.name && Core.Stmt.noRetList rpre.reverse then args.map (·.idx) else []
+  | _ => []
+
+/-- A value's cell in the frame, or the next frame's cell of the tail call's `k`-th argument
+(`B2C.cellOkC`). -/
+def cellOk (c : Ctx) (v : ℕ) : Bool :=
+  (2 ≤ c.cell v && c.cell v < c.fsz) || c.ta.zipIdx.any fun (w, k) =>
+    c.cell v == c.fsz + 2 + k && c.cell w == c.fsz + 2 + k
+
+/-- An atom the walk files (`B2C.fileB`): its cells in the frame, or a constant, sum, product, copy or
+`assert ==` of `cellOk` values. -/
+def filed (c : Ctx) (a : Core.Atom) : Bool :=
+  (Core.Atom.vals a).all (fun v => 2 ≤ c.cell v.idx && c.cell v.idx < c.fsz) || (match a with
+    | .const .. | .add .. | .mul .. | .copy .. | .assertEq .. => (Core.Atom.vals a).all (cellOk c ·.idx)
+    | _ => false)
 
 structure St where
   book : Std.HashMap ℕ (List Core.Atom) := {}
@@ -1758,10 +1882,11 @@ def stmtNames : Core.Stmt → List Core.V
   | .ite c _ _ => [c]
   | .match_ x _ => [x]
 
-def lookahead (cell : ℕ → ℕ) (st : St) (ss : List Core.Stmt) : St × List (ℕ × ℕ) :=
+def lookahead (c : Ctx) (st : St) (ss : List Core.Stmt) : St × List (ℕ × ℕ) :=
+  let cell := c.cell
   let r := run ss
   let st := r.foldl (fun st s => match s with
-    | .atom a => fileAtom cell (factOf cell st a) a
+    | .atom a => if filed c a then fileAtom cell (factOf cell st a) a else st
     | .ite c _ _ => { st with inK := st.inK.insert (cell c.idx) }
     | .callIf c _ _ => { st with inK := st.inK.insert (cell c.idx) }
     | _ => st) st
@@ -1781,8 +1906,14 @@ def isZero (c : Ctx) (st : St) (o : ℕ) : Bool := contentK c st o == some (0, 0
 
 def bookAt (st : St) (o : ℕ) : List Core.Atom := st.book.getD o []
 
+/-- Cell `o` past the frame is a self cell of the next frame (`Check.nextSelf`): it holds `fp·g^fsz`. -/
+def nextSelfE (c : Ctx) (st : St) (o : ℕ) : Bool :=
+  o ≥ c.fsz && (match st.next.find? (·.1 == o - c.fsz) with
+    | some (_, .fpg _) => true
+    | _ => false)
+
 def cellK (c : Ctx) (st : St) (o : ℕ) : Bool :=
-  o == 0 || o == 1 || st.inK.contains o || st.frames.contains o || st.targets.contains o ||
+  o == 0 || o == 1 || st.inK.contains o || st.frames.contains o || st.targets.contains o || nextSelfE c st o ||
   (match c.plumb.get? o with
     | some (.k l) => isK l
     | some (.fpg _) => true
@@ -1841,7 +1972,10 @@ def justify (c : Ctx) (st : St) (pc : ℕ) (ins : OffsetInstruction) : Bool :=
       | some (_, .fpg e) => (match c.plumb.get? a with
           | some (.fpg e') => e' == e
           | _ => false)
-      | _ => false))
+      | _ => false)) ||
+    (nextSelfE c st d && (match c.plumb.get? a, contentK c st b with
+      | some (.fpg e1), some (k0, 0) => e1 ≤ c.fsz && (if k0 == 1 then some 0 else c.pows.get? k0) == some (c.fsz - e1)
+      | _, _ => false))
   | .deref o1 o2 o3 .cell =>
     (bookAt st o3).any (fun x => match x with
       | .load d p off => cell d.idx == o3 && cell p.idx == o1 && off == o2
@@ -1856,7 +1990,11 @@ def justify (c : Ctx) (st : St) (pc : ℕ) (ins : OffsetInstruction) : Bool :=
         | _ => false)
       | none => false) ||
     (st.targets.get? o3 == some (o1, o2)) ||
-    (o2 == 0 && c.plumb.get? o1 == some (.fpg o3))
+    (o2 == 0 && c.plumb.get? o1 == some (.fpg o3)) ||
+    (nextSelfE c st o1 && (match st.next.find? (·.1 == o2) with
+      | some (_, .val cv) => sameW c st cv o3
+      | some (_, .hdr i) => o3 == i && i ≤ 1
+      | _ => false))
   | .deref o1 o2 _ .fp =>
     (match st.frames.get? o1 with
       | some fcs => fcs.any fun (o, fc) => o == o2 && fc == .fp
@@ -1979,7 +2117,7 @@ frames and table reads `fl` in flight: the first item their facts (and the fixed
 not justify, before any branch. -/
 def midStop (c : Ctx) (st : St) (fl : Std.HashMap ℕ (List (ℕ × FC)) × Std.HashMap ℕ (ℕ × ℕ))
     (ss : List Core.Stmt) (s : GSeg) (i : ℕ) : ℕ := Id.run do
-  let st := (lookahead c.cell { st with frames := fl.1, targets := fl.2 } ss).1
+  let st := (lookahead c { st with frames := fl.1, targets := fl.2 } ss).1
   let mut k := i
   repeat
     match s.items[k]? with
@@ -1993,7 +2131,7 @@ mutual
 partial def block (ss : List Core.Stmt) (p : Pos) (st : St) (top : Bool := false)
     (chainSel : Option ℕ := none) : M (Option (Pos × St)) := do
   let c ← read
-  let (st0, pend) := lookahead c.cell st ss
+  let (st0, pend) := lookahead c st ss
   for (v, cc) in pend do fail s!"share {v} at cell {cc}"
   let mut st := st0
   let mut p := p
@@ -2147,9 +2285,11 @@ partial def block (ss : List Core.Stmt) (p : Pos) (st : St) (top : Bool := false
         p := (rr, 0); st := { st2 with frames := st2.frames.insert q fcs' }; moved := !rets.isEmpty
       | .callIf cv _ args =>
         let (q, oc, od, of, x) ← peekBranch p
-        unless oc == c.cell cv.idx do fail s!"callIf cond cell {oc}"
+        unless oc == c.cell cv.idx && 2 ≤ oc && oc < c.fsz && args.all (cellOk c ·.idx) do
+          fail s!"callIf cond cell {oc}"
         match x.kind with
         | .call (.gp e) fq r =>
+          unless (fq :: args.map (c.cell ·.idx)).all fun o => 2 ≤ o && o < c.fsz do fail s!"callIf frame {fq}"
           let fcs := (args.zipIdx.map fun (a, k) => (2 + k, FC.val (c.cell a.idx))) ++
             (c.envOf e).map (·, FC.self) ++ [(1, FC.fp), (0, FC.pc r)]
           if st.frames.contains fq then fail s!"frame cell {fq} reused"
@@ -2555,7 +2695,9 @@ def plumbOfFn (T : Tables) (fns : Array CompiledFunction) (selfByEntry : Std.Has
       | none => true
   let (plumb, errs) := plumbOf f F vcells T.pows constCell
   unless errs.isEmpty do throw s!"{errs}"
-  -- cells past the frame are the next iteration's
+  -- cells past the frame are the next iteration's; those holding its frame pointer `fp·g^fsz` (its self
+  -- cells, where a loop helper computes it) are listed apart (`Plumb.nxt`)
+  let nxt := ((plumb.toList.filter fun (o, pc) => fsz ≤ o && pc == .fpg fsz).map (·.1)).mergeSort
   let plumb := plumb.filter fun o _ => o < fsz
   let segMap := segs.foldl (fun m s => m.insert s.start s) ({} : Std.HashMap ℕ GSeg)
   let cell (v : ℕ) : ℕ := locA.getD v 0
@@ -2563,7 +2705,7 @@ def plumbOfFn (T : Tables) (fns : Array CompiledFunction) (selfByEntry : Std.Has
     j == 1, fun e => selfByEntry.getD e [], fsz, fun r => expTable.getD r 0,
     if armedFns.contains f.name then (cf.body.filterMap fun
       | .match_ v _ => some v.idx
-      | _ => none).foldl (·.insert ·) {} else {}⟩
+      | _ => none).foldl (·.insert ·) {} else {}, Cpl.tailArgsOf cf⟩
   let st00 : Cpl.St := plumb.fold (fun st o pc => match pc with
     | .k l => if vcells.contains o then { st with know := st.know.insert o l, occ := st.occ.insert o } else st
     | _ => st) {}
@@ -2656,6 +2798,7 @@ noncomputable def plumb{j} : B2C.Plumb where
   sh := {listText (sh.map toString)}
 " ++ (if chains.isEmpty then "" else s!"  chains := {listText (chains.map chainText)}
 ") ++ (if nv == 0 then "" else s!"  nv := 0x{String.ofList (Nat.toDigits 16 nv)}
+") ++ (if nxt.isEmpty then "" else s!"  nxt := {listText (nxt.map toString)}
 ")
 
 end GuestCert
@@ -3572,7 +3715,7 @@ def partsOf (j : ℕ) (f : CompiledFunction) (F : GFacts) (cf : Core.Fn) (segs :
       ps := ps ++ [(sa - a) :: (if sa == a then 0 else J) :: cS ++ [uS] ++ (match ent.get? sa with
         | some (o, succ) => [0, 1, o] ++ succ
         | none => [])]
-      -- a costly part that is mostly a run of atoms walked inside one segment (from its start):
+      -- a costly part that is mostly a run of atoms walked inside one segment from the part's start:
       -- cut that run inside the segment, by statements
       let isAtom (x : ℕ) : Bool := match body[x]? with
         | some (.atom _) => true
@@ -3590,14 +3733,11 @@ def partsOf (j : ℕ) (f : CompiledFunction) (F : GFacts) (cf : Core.Fn) (segs :
         | none => some r) none
       let mut mids : Array (ℕ × ℕ) := #[]
       if let some (t0, len) := best then
-        let (sg, c1, u1) := if t0 == sa then (J, cS, uS) else match marks[t0]? with
-          | some (_, (sg, _), cnt, uq, _) => (sg, cnt, uq)
-          | none => (J, cS, uS)
-        if pc > partCost && 2 * len ≥ se - sa then
+        if pc > partCost && 2 * len ≥ se - sa && t0 == sa then
           -- the window's own segments, as the kernel's walk has them
           let (J0, env0, e0) := wins0.getD w (0, [], f.instructionCount)
           let segW := execG F f J0 e0 (env0.foldl (fun m (o, s) => m.insert o s) {})
-          if let some s0 := segW.find? (·.start == sg) then
+          if let some s0 := segW.find? (·.start == J) then
             let nm := (pc + partCost - 1) / partCost
             let mut prevS := sa
             let mut prevM := 0
@@ -3610,8 +3750,8 @@ def partsOf (j : ℕ) (f : CompiledFunction) (F : GFacts) (cf : Core.Fn) (segs :
               prevS := s
               prevM := m
             ps := ps ++ mids.toList.map fun (s, m) =>
-              let cnt := Cpl.countRest ⟨s0.start, s0.env, (s0.items.toList.take m).toArray, s0.exit⟩ 0 c1
-              (s - a) :: sg :: cnt ++ [u1, m]
+              let cnt := Cpl.countRest ⟨s0.start, s0.env, (s0.items.toList.take m).toArray, s0.exit⟩ 0 cS
+              (s - a) :: J :: cnt ++ [uS, m]
       partCosts := partCosts ++ (List.range (mids.size + 1)).map fun _ => pc / (mids.size + 1)
     wins := wins.push (if ps.length == 1 && c0 == zero && u0 == 0 && !ent.contains a then [] else ps)
     costs := costs.push partCosts

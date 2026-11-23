@@ -27,13 +27,13 @@ open LeanVM.Node LeanVM.Guest.Memory
 /-- **`open_stacked` is complete placed within its bound by a tree popping its levels' `level_queries`
 entries.** -/
 theorem open_stacked_completeAtBP : open_stacked_completeAtBP_Spec := by
-  intro μ r h1 h2 h3 h4 fs cert κ Bnd hrf hcons hκ hleaf hfs S root target cur tabs xs os w s' roots' hrun
+  intro μ r h1 h2 h3 h4 fs cert κ Bnd hrf hcons hκ hleaf hfs htl S root target cur tabs xs os w s' roots' hrun
     hcaps Lin hLin
   obtain ⟨cfg, Ls, hR, hst⟩ := Whir.honRunS_of h1 h2 h3 h4 hrun hcaps
   have hm : μ - Whir.minOpenLog < 11 := hR.m11
   obtain ⟨fn, hf, -, h⟩ := Arm.open_stacked_completeAtOT_of (Bd := some Bnd) level_residual_completeAt
     level_residual_slow_completeAt h2 h3 h4 hrf hcons hκ (fun _ hB ↦ by cases hB; exact hleaf)
-    (fun _ _ ↦ helperBounds fs cert κ hrf hcons hκ hfs) (fun _ _ ↦ hfs)
+    (fun _ _ ↦ helperBounds fs cert κ hrf hcons hκ hfs) (fun _ _ ↦ hfs) (fun _ _ ↦ htl)
     (hR.osHonest (cur := cur) (tabs := tabs)) hLin
   obtain ⟨fn', hf', hmu⟩ := Arm.armMute_all hm
   rw [← Whir.openName_eq hm, hf, Option.some.injEq] at hf'

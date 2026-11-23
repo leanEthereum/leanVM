@@ -177,10 +177,10 @@ signatures of each scheme, the coverage slots of the two regions), the frame loo
 tables apart: `16` children, each child's cursor at most `8192` words, the DA matrix of up to `1024`
 rows, the children's proofs, the tables built once (the discrete logarithm's, the generator's
 powers', the readers'). Affine in `M`. -/
-def guestDecoderWitnessPriceAt (M : ℕ) : ℕ := 2986079128 + 6414234 * M
+def guestDecoderWitnessPriceAt (M : ℕ) : ℕ := 2946849400 + 6414234 * M
 
 /-- How many frame lookups the witness pays for, its counts at most `M`. -/
-def guestDecoderFrameLookupCountAt (M : ℕ) : ℕ := 3611473 + 8 * M
+def guestDecoderFrameLookupCountAt (M : ℕ) : ℕ := 3525073 + 8 * M
 
 /-- The bound on the counts the decoder reads that a valid execution's asserts give
 (`valid_counts`). -/
