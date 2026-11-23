@@ -52,7 +52,7 @@ jobs:
       # No lakefile sets an option that skips the kernel (`debug.skipKernelTC`, any `debug.` option),
       # nor its own use of Lake's artifact cache, which would override the environment that turns it
       # off (`tools/firewall-canary.py`).
-      - name: Forbid kernel-skipping options in the lakefiles
+      - name: Forbid kernel-skipping and cache options in the lakefiles
         run: |
           ! grep -nE 'skipKernelTC|debug\.|ArtifactCache|restoreAllArtifacts' $(ls formal/lakefile.lean formal/*/lakefile.toml formal/*/lakefile.lean 2>/dev/null)
       # The statement imports Mathlib, VCVio, CompPoly and itself, nothing of the proofs, and `import all`
@@ -381,18 +381,17 @@ jobs:
       run:
         working-directory: formal/lean_vm
     steps: &lean-vm-steps
-      - uses: actions/checkout@v4
-      # The build, its cache and the archive it packs need more than the runner's free disk.
-      - name: Free disk
-        run: |
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
-          df -h /
-      # The Lake cache in the job's own directory, empty until a restore fills it.
+      # The job's start, for the build's deadline, and the Lake cache in the job's own directory.
       - &lake-cache-dir
         name: Lake cache directory
         run: |
-          echo "LAKE_CACHE_DIR=$RUNNER_TEMP/lake-cache" >> "$GITHUB_ENV"
           echo "JOB_START=$(date +%s)" >> "$GITHUB_ENV"
+          echo "LAKE_CACHE_DIR=$RUNNER_TEMP/lake-cache" >> "$GITHUB_ENV"
+      - uses: actions/checkout@v4
+      # The build, its cache and the archives need more than the runner's free disk.
+      - &free-disk
+        name: Free disk
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
       - &lean-setup
         uses: leanprover/lean-action@v1
         with:
@@ -424,7 +423,8 @@ jobs:
           rm -r "$RUNNER_TEMP/stage"
       # The tests' build exceeds the runner's memory at its peak, and so does a module that runs
       # beside a heavy one; the swap goes on the runner's scratch disk.
-      - name: Add swap
+      - &swap
+        name: Add swap
         run: |
           dir=/mnt; [ -d /mnt ] || dir=/
           sudo fallocate -l 16G "$dir/swapfile.lean"
@@ -464,15 +464,24 @@ jobs:
         id: build
         run: |
           deadline=$((JOB_START + 325 * 60))
-          code=0
-          timeout -k 60 $(( deadline > $(date +%s) ? deadline - $(date +%s) : 1 )) python3 -I ../lake-build.py . LeanVM LeanVMTests || code=$?
+          set +e -o pipefail
+          timeout -k 60 $(( deadline > $(date +%s) ? deadline - $(date +%s) : 1 )) \
+            python3 -I ../lake-build.py . LeanVM LeanVMTests 2>&1 | tee "$RUNNER_TEMP/build.log"
+          code=$?
           df -h /
-          if [ $code != 0 ] && [ "$(date +%s)" -ge $deadline ] && [ "$STAGE" != 3 ]; then
+          # Lake marks a failed module `✖`, and lake-build.py admits nothing after one.
+          if { [ $code = 124 ] || [ $code = 137 ]; } && [ "$(date +%s)" -ge $deadline ] && [ "$STAGE" != 3 ] \
+              && ! grep -qE '✖|an earlier module failed' "$RUNNER_TEMP/build.log"; then
             echo timedout=true >> "$GITHUB_OUTPUT"
             exit 0
           fi
           echo timedout=false >> "$GITHUB_OUTPUT"
           exit $code
+      # What Lake restored is what main built from these sources (`lake-cache.py check`): its input
+      # hash is 64 bits and not collision resistant.
+      - name: The restored modules' sources and outputs are those the cache was built from
+        if: steps.build.outputs.timedout == 'false'
+        run: python3 -I ../lake-cache.py check .
       # The end theorems' axioms asked from outside the build, as for the other projects.
       - name: Check the axiom footprint
         if: steps.build.outputs.timedout == 'false'
@@ -543,9 +552,7 @@ jobs:
     steps: *lean-vm-steps
 
   # The checks against the Rust, beside the proofs: the executables they run import few modules and
-  # the guest's exported data only, not what the rest of `regen-guest.sh` writes. A clean run, or a
-  # run without a cache, builds them cold. If checks are made required, list this job and the last
-  # `lean-vm-formalization` stage both.
+  # the guest's exported data only, not what the rest of `regen-guest.sh` writes.
   lean-vm-differentials:
     needs: lean-vm-changes
     if: needs.lean-vm-changes.outputs.changed == 'true'
@@ -555,10 +562,12 @@ jobs:
     env: *lean-vm-env
     defaults: *lean-vm-defaults
     steps:
-      - uses: actions/checkout@v4
       - *lake-cache-dir
+      - uses: actions/checkout@v4
+      - *free-disk
       - *lean-setup
       - *lake-cache-get
+      - *swap
       - uses: dtolnay/rust-toolchain@stable
       # The cargo projects the checks below build, each its own workspace and target: their
       # registry dependencies cached, as in rust.yml; only `main` saves.
@@ -576,6 +585,8 @@ jobs:
         run: cargo run --release --manifest-path scripts/guest-export/Cargo.toml -- .
       - name: Build the executables
         run: python3 -I ../lake-build.py . scheme-vectors guest-diff leanvm-verify wire-diff leanvm-execute guest-run leanvm-prove
+      - name: The restored modules' sources and outputs are those the cache was built from
+        run: python3 -I ../lake-cache.py check .
       # EthLib's test vectors of leanSPHINCS and leanXMSS, as leanVM vendors them, on the
       # statement's schemes compiled: verification only (key generation and signing are checked by
       # hand: `scheme-vectors --xmss-sign`, lean_sphincs' `lake exe signature-kat`).
@@ -633,10 +644,13 @@ jobs:
           python3 -I scripts/prover-diff.py "$RUNNER_TEMP/prover-cases" --mutations 40 --jobs 4 \
             --identical --expected tests/fixtures/verifier
 
-  # The one check to require: skipped jobs count as passed, so it passes only if lean_vm was not
-  # concerned, or the differentials passed and exactly one stage finished its build and its gates.
+  # The one check to require: skipped jobs count as passed, so it passes only if every other
+  # project's job passed (the statement's runs the lakefile check, the import fence and the cache's
+  # test), and lean_vm was not concerned, or the differentials passed and exactly one stage finished
+  # its build and its gates.
   lean-vm:
-    needs: [lean-vm-changes, lean-vm-formalization, lean-vm-formalization-2, lean-vm-formalization-3, lean-vm-differentials]
+    needs: [statement, common, lean-xmss-formalization, lean-sphincs-formalization, lean-da-formalization, lean-vm-changes,
+            lean-vm-formalization, lean-vm-formalization-2, lean-vm-formalization-3, lean-vm-differentials]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -646,12 +660,16 @@ jobs:
           python3 -I - <<'EOF'
           import json, os, sys
           needs = json.loads(os.environ["NEEDS"])
-          changes = needs["lean-vm-changes"]
-          if changes["result"] != "success":
-              sys.exit("lean-vm-changes did not succeed")
-          if changes["outputs"].get("changed") != "true":
+          for job in ("statement", "common", "lean-xmss-formalization", "lean-sphincs-formalization",
+                      "lean-da-formalization", "lean-vm-changes"):
+              if needs[job]["result"] != "success":
+                  sys.exit(f"{job} did not succeed")
+          changed = needs["lean-vm-changes"]["outputs"].get("changed")
+          if changed == "false":
               print("lean_vm is not concerned by this change")
               sys.exit(0)
+          if changed != "true":
+              sys.exit(f"lean-vm-changes said changed={changed!r}")
           if needs["lean-vm-differentials"]["result"] != "success":
               sys.exit("lean-vm-differentials did not succeed")
           gated = [j for j in ("lean-vm-formalization", "lean-vm-formalization-2", "lean-vm-formalization-3")
