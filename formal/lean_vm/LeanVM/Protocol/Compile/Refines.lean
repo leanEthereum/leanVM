@@ -61,14 +61,6 @@ theorem bind {P' P : VerifierProgram α} (h : Refines P' P) {f' f : α → Verif
   | commit _ ih => exact .commit ih
   | query _ ih => exact .query ih
 
-/-- A `require` before a refining program refines the program. -/
-theorem require_bind {c : Prop} [Decidable c] {k' k : VerifierProgram α} (h : Refines k' k) :
-    Refines ((VerifierProgram.require c).bind fun _ ↦ k') k := by
-  unfold VerifierProgram.require
-  split
-  · exact h
-  · exact .fail _
-
 end Refines
 
 section Run

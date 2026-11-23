@@ -70,8 +70,8 @@ theorem completeParts_b2c {b : Budget} (hm : MainComplete fs cert cnt b) :
   count := b2cCount
 
 /-- **The guest's completeness within a budget `b`, from `main`'s completeness within it** at the
-deployed frame sizes and certificate cells: `NodeRelation` within the limits, the caps agreeing, no zero
-challenge where the guest divides and the node within `b` give a valid execution of the guest on
+deployed frame sizes and certificate cells: `NodeRelation` within the limits, the caps agreeing
+and the node within `b` give a valid execution of the guest on
 the statement's digest of committed size at most `2^30`. -/
 theorem guest_complete_b2c {b : Budget} (hm : MainComplete fs cert cnt b) : GuestCompleteWithin b :=
   End.guest_complete_of_parts (completeParts_b2c hm)
