@@ -1677,7 +1677,11 @@ def open_stacked(m_idx: Const, rate_sel, fs0, fs1, fs2, fs3, fs4, target, commit
     ood_z = HeapBuf(GEN ** (n_levels * LIG_LOG_MSG_COLS_CAP))
     ood_scalars = HeapBuf(GEN ** n_levels)
     # A level's query positions, as many as its rate squeezes, start at LIG_POS_OFF.
-    pos_total = match(log(rate_sel), range(0, LIG_N_RATES), lambda r: positions_total(m_idx, r))
+    # Read from a table, not a `match`: no branch before a `HeapBuf`.
+    pos_totals = HeapBuf(LIG_N_RATES)
+    for r in unroll(0, LIG_N_RATES):
+        pos_totals[GEN ** r] = positions_total(m_idx, r)
+    pos_total = pos_totals[rate_sel]
     query_positions = HeapBuf(pos_total)
     query_win_ptrs = HeapBuf(pos_total)
 

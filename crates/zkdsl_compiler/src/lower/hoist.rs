@@ -126,6 +126,46 @@ impl FnLower<'_> {
         Ok(())
     }
 
+    /// Move the `HeapBuf` reservations at depth 0 past the function's first branch to just before its jump,
+    /// keeping their order, where their size is known there and they pass no `HeapBuf` that stays: then every
+    /// jump before them is a forward jump in the frame, as the proof's bump pointer check asks. Best effort:
+    /// one that cannot move stays.
+    pub(super) fn hoist_past_first_branch(&mut self) {
+        let Some(k) = self.code_path.iter().position(|p| !p.is_empty()) else {
+            return;
+        };
+        let Some(b) = (0..k).rev().find(|&x| matches!(self.code[x].op, LOp::Jump { .. })) else {
+            return;
+        };
+        let bufs: Vec<(usize, usize)> = (self.code.iter().enumerate())
+            .flat_map(|(i, ins)| ins.hints.iter().enumerate().map(move |(j, h)| (i, j, h)))
+            .filter(|&(i, _, h)| i > b && reservation(h).is_some_and(|(_, frame)| !frame))
+            .map(|(i, j, _)| (i, j))
+            .collect();
+        let mut written = self.written_in(0..b, 0);
+        written.extend(2..2 + self.arg_cells);
+        let mut moved: Vec<(usize, usize, Hint)> = Vec::new();
+        for &(i, j) in &bufs {
+            if !self.code_path[i].is_empty() || self.returns.iter().any(|&r| b <= r && r < i) {
+                break;
+            }
+            let sized = match self.code[i].hints[j] {
+                Hint::AllocBufferDyn { ptr, size } if !written.contains(&size) => {
+                    (self.constant_exponent(size, i)).map(|k| Hint::AllocBuffer { ptr, size: k })
+                }
+                ref h => Some(h.clone()),
+            };
+            let Some(sized) = sized else { break };
+            moved.push((i, j, sized));
+        }
+        // Removed last first, so that the earlier positions stay valid.
+        for &(i, j, _) in moved.iter().rev() {
+            self.code[i].hints.remove(j);
+        }
+        let hints: Vec<Hint> = moved.into_iter().map(|(_, _, h)| h).collect();
+        self.code[b].hints.splice(0..0, hints);
+    }
+
     /// Whether some run executes instruction `a`, then goes on to instruction `b`, from `a` on: they
     /// are in no two arms of one branch, and no `return` that every run through `a` takes lies
     /// between them.

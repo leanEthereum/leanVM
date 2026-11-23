@@ -1871,6 +1871,9 @@ pub(crate) fn lower_func(
             }
         }
         let hoisted = lowerer.hoist_heap_bufs();
+        if hoisted.is_ok() {
+            lowerer.hoist_past_first_branch();
+        }
         let (rebound, dbg_loops, code, frame_size) = (lowerer.rebound, lowerer.dbg_loops, lowerer.code, lowerer.next);
         let settled = own.len();
         for name in rebound {
