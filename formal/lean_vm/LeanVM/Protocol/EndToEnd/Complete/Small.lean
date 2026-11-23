@@ -8,7 +8,7 @@
 module
 
 import LeanVM.Protocol.EndToEnd.Completeness
-public import Statement.LeanVm
+public import Statement.LeanVmCompleteness
 import LeanVM.Facts.Verifier
 import Statement.Fast.Keccak
 import Statement.Fast.QuadExt

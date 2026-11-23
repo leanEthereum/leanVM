@@ -11,7 +11,7 @@ module
 
 import LeanVM.Protocol.Extraction.Extractor
 public import LeanVM.Protocol.RunWithHash
-public import Statement.LeanVm
+public import Statement.LeanVmCompleteness
 public import CompPoly.Univariate.Basic
 
 /-!

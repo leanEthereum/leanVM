@@ -199,27 +199,11 @@ structure NodeWitness where
   /-- The prover's part of the batching of the children's deferred claims. -/
   batchingHints : BatchingHints
 
-/-- The deferred claim has the shape of the bytecode `bytecode`: a point of `log₂` of its length
-(`bytecode_vars`, `crates/aggregation/src/deferred.rs`; `BYTECODE_VARS`, `lean_ethereum.py`). -/
-def DeferredBytecodeClaim.HasBytecodeShape (bytecode : List K) (claim : DeferredBytecodeClaim) : Prop :=
-  claim.bytecodePoint.length = Nat.log2 bytecode.length
-
 /-- What a leaf defers: the bytecode at the all-zero point (`DeferredBytecodeClaim::leaf`,
 `crates/aggregation/src/deferred.rs`; `main`'s leaf branch, `lean_ethereum.py`). The value is
 the outer verifier's to check. -/
 def DeferredBytecodeClaim.HasZeroPoint (bytecode : List K) (claim : DeferredBytecodeClaim) : Prop :=
   claim.bytecodePoint = List.replicate (Nat.log2 bytecode.length) 0
-
-/-- **The deferred claim is true** of the bytecode `bytecode`: it has the shape, and the value is
-the bytecode's multilinear extension at the point (`DeferredBytecodeClaim::recompute`,
-`crates/aggregation/src/deferred.rs`). The length being `2 ^ len` is part of it: `HasBytecodeShape`
-reads `Nat.log2` of the length, which a bytecode of other length shares, and the extension is of
-`2 ^ len` values. Stronger than `BytecodeClaim.Holds` (the value only). The deployed outer verifier
-checks it of the root's deferred claim (`AggregateProof::verify`,
-`crates/aggregation/src/proof.rs`). -/
-def DeferredBytecodeClaim.HoldsWithShape (bytecode : List K) (claim : DeferredBytecodeClaim) : Prop :=
-  claim.HasBytecodeShape bytecode ∧ 2 ^ claim.bytecodePoint.length = bytecode.length ∧
-    multilinearEval (bytecode.map ofK) claim.bytecodePoint = claim.bytecodeValue
 
 /-! ## What the guest program proves
 

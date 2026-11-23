@@ -63,12 +63,13 @@ project beside them are proved in the proof projects; their statements are not p
 \item \lean{LeanDa.lean}: LeanDA, its argument and games, and its three end statements.
 \item \lean{LeanIsa.lean}: leanISA, its runs, \lean{ValidExecution} and the bytecode encoding.
 \item \lean{LeanVmVerifier.lean}: the verifier, the readable reference of \lean{crates/verifier}.
-\item \lean{LeanVm.lean}: statements, the honest prover, \lean{KnowledgeSoundness} and \lean{Completeness}.
+\item \lean{LeanVm.lean}: statements, the experiment, the straight-line extractor and \lean{KnowledgeSoundness}.
+\item \lean{LeanVmCompleteness.lean}: the honest prover, the committed size and \lean{Completeness}.
 \item \lean{CostMachine.lean}: the cost machine, its prices and its generic encodings (it imports Mathlib only).
 \item \lean{LeanVmExtractor.lean}: the machine's encodings of leanVM's objects, and the extractor a program computes, its size bound and budget.
-\item \lean{LeanVmGuest.lean}, \lean{LeanVmGuestBatching.lean}: a node's statement, relation and digest, the guest program and its decoder, the batching program.
+\item \lean{LeanVmGuestBatching.lean}, \lean{LeanVmGuest.lean}: the deferred claim, the batching program and \lean{BatchingSound}; a node's statement, relation and digest, the guest program and its decoder.
 \item \lean{LeanVmGuestProver.lean}: the guest's witness generation and prover, from a node's statement and witness (below).
-\item \lean{LeanVmGuestCompleteness.lean}: the deployed limits, a collision in a child's openings, the guest's completeness, its execution made from the statement and the witness, and \lean{BatchingSound}.
+\item \lean{LeanVmGuestCompleteness.lean}: the deployed limits, a collision in a child's openings, the guest's completeness, its execution made from the statement and the witness.
 \item \lean{Corollaries.lean}, optional: \lean{AggregateSound}, and \lean{GuestProverComplete}, the guest's prover's proof accepted.
 \end{enumerate}
 \lean{LeanVmGuestProver.lean}, the guest's witness generation, is read as a specification of the Rust's (\texttt{aggregate}) on its normal form (\lean{GuestExecutionComplete}'s paragraph below says which): from a node's statement and witness, the witness streams the guest pops, each named for the Rust's stream; with the compiler's hints, the executor's advice (\lean{guestAdvice}); the executor's run on it (\lean{guestExecution}); and the honest prover on that run (\lean{guestProve}). It needs no review for soundness (an execution the executor returns is valid whatever its advice), and \lean{GuestExecutionComplete} says it is complete.
@@ -224,7 +225,7 @@ $2^{-256}$ each); and a fresh permutation answer that passes the final query's p
 ($2^{-127}$, once), which the extractor's replay of the fold challenges needs
 (\lean{LeanVM.soundnessRpmAS_le_statement}).
 
-\paragraph{Completeness} (\lean{LeanVM.Completeness}). The statement names its honest prover,
+\paragraph{Completeness} (\lean{LeanVM.Completeness}, \lean{Statement/LeanVmCompleteness.lean}). The statement names its honest prover,
 \lean{LeanVM.leanVmHonestProver}: the executable \lean{LeanVM.Prover.prove}
 (\lean{Statement/Prover/}), its Keccak-256 and Keccak-f[1600] calls answered here from $\pi$; with
 the deployed Keccak it is \texttt{lake exe leanvm-prove}. It runs the execution once to obtain the
@@ -437,8 +438,8 @@ The guest program aggregates: from signatures, DA matrices and child proofs, it 
 holding all their claims. This section defines what it proves and states what is proved about it.
 Every definition named here is in \lean{Statement/}: what a node proves in
 \lean{Statement/LeanVmGuest.lean} (with the statement and its digest), the batching program
-in \lean{Statement/LeanVmGuestBatching.lean}, the completeness statements and the batching's
-soundness in \lean{Statement/LeanVmGuestCompleteness.lean}, the decoder program's also in
+and its soundness on its own in \lean{Statement/LeanVmGuestBatching.lean}, the completeness
+statements in \lean{Statement/LeanVmGuestCompleteness.lean}, the decoder program's also in
 \lean{Statement/LeanVmGuest.lean}, the composed statements in \lean{Statement/Corollaries.lean}; names
 marked \lean{lean_vm} are the proofs'.
 
