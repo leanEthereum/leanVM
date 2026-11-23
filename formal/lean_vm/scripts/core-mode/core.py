@@ -225,18 +225,21 @@ def cfun_c(k, j, frame):
             checks(k, j, frame, f'.c heap_okC rfl {DK} rfl rfl', True))
 
 
+def _win_mod(sub, k, *arm):
+    """The module `CoreMode/<sub>/<k>[/<arm>]/Ok.lean` of a heap check in windows, if there is one."""
+    if os.path.exists(os.path.join(GUEST, 'CoreMode', sub, k, *arm, 'Ok.lean')):
+        return '.'.join(['LeanVM.Guest.CoreMode', sub, quote(k), *arm, 'Ok'])
+    return None
+
+
 def heap_win(k):
     """The module of `k`'s heap check in windows (`callc.windows`), if it has one."""
-    if os.path.exists(os.path.join(GUEST, 'CoreMode', 'GenW', k, 'Ok.lean')):
-        return 'LeanVM.Guest.CoreMode.GenW.%s.Ok' % quote(k)
-    return None
+    return _win_mod('GenW', k)
 
 
 def heap_winL(k):
     """The module of loop helper `k`'s heap check in windows (`loopcc.windows`), if it has one."""
-    if os.path.exists(os.path.join(GUEST, 'CoreMode', 'GenWL', k, 'Ok.lean')):
-        return 'LeanVM.Guest.CoreMode.GenWL.%s.Ok' % quote(k)
-    return None
+    return _win_mod('GenWL', k)
 
 
 def heap_proof(k):
@@ -256,9 +259,7 @@ def heap_proof(k):
 
 def heap_win_arm(k, r):
     """The module of arm `r`'s heap check in windows, of a split certificate (`callc.windows`), if it has one."""
-    if os.path.exists(os.path.join(GUEST, 'CoreMode', 'GenW', k, 'A%d' % r, 'Ok.lean')):
-        return 'LeanVM.Guest.CoreMode.GenW.%s.A%d.Ok' % (quote(k), r)
-    return None
+    return _win_mod('GenW', k, 'A%d' % r)
 
 
 def heap_win_arms(k):
@@ -426,11 +427,11 @@ def long_loop(k, j, hp, frame_mod, gl):
         rws.append(f'Fn.«{k}».rw{i}')
         a, b = sb[i], sb[i + 1]
         files[f'SW{i}'] = (hdr(f'SW{i}', f'Window {i} of `{k}`\'s selectors: statements {a} to {b - 1}.') + imp +
-                           ns(f'theorem Fn.«{k}».sw{i} : (CoreMode.noRetTop (CoreMode.slice cfun.fn.body {a} {b}) && '
+                           ns(f'theorem Fn.«{k}».selw{i} : (CoreMode.noRetTop (CoreMode.slice cfun.fn.body {a} {b}) && '
                               f'CoreMode.selGo Fn.«{k}».idx cfun.fn.params cfun.fn.body (CoreMode.seenF [] (cfun.fn.body.take {a})) '
                               f'(CoreMode.slice cfun.fn.body {a} {b})) = true := by\n  decide +kernel\n'))
         rimps.append(f'{base}.SW{i}')
-        sws.append(f'Fn.«{k}».sw{i}')
+        sws.append(f'Fn.«{k}».selw{i}')
     cws = []
     for i in range(len(cb) - 1):
         a, b = cb[i], cb[i + 1]
