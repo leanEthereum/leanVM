@@ -510,12 +510,12 @@ jobs:
         run: |
           while pkill -KILL -f 'lake-build.py|/bin/lake |/bin/lean |/bin/leanir ' ; do sleep 1; done
           python3 -I ../lake-cache.py pack . "$RUNNER_TEMP/lean-vm-lake-cache.tar.zst"
-          echo "digest=$(python3 -I ../lake-cache.py digest)" >> "$GITHUB_OUTPUT"
+          echo "name=$(python3 -I ../lake-cache.py artifact-name)" >> "$GITHUB_OUTPUT"
       - name: Publish the Lake cache
         if: steps.pack.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.build.outputs.timedout == 'true' && format('lean-vm-stage-{0}', env.STAGE) || format('lean-vm-lake-cache-{0}', steps.pack.outputs.digest) }}
+          name: ${{ steps.build.outputs.timedout == 'true' && format('lean-vm-stage-{0}', env.STAGE) || steps.pack.outputs.name }}
           path: ${{ runner.temp }}/lean-vm-lake-cache.tar.zst
           compression-level: 0
           retention-days: ${{ steps.build.outputs.timedout == 'true' && 1 || 14 }}
