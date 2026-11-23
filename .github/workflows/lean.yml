@@ -79,6 +79,12 @@ jobs:
           lint: false
           use-github-cache: false
           use-mathlib-cache: auto
+      # The Lake cache (`formal/lake-cache.py`) binds a module to its source files only: no module
+      # may read another file while it elaborates (`cli/`, `scripts/` and `LeanVM/Cli/` run, not elaborate).
+      - name: No module reads a file while it elaborates
+        run: |
+          ! grep -rnE 'include_str|include_bytes|IO\.FS|readFile|readBinFile' --include='*.lean' --exclude-dir=.lake \
+              --exclude-dir=cli --exclude-dir=scripts --exclude-dir=Cli formal
       # What the Lake cache packs, refuses and never installs (`lean-vm-build-1`), and a
       # round trip through Lake.
       - name: lake-cache.py on fixtures
@@ -354,15 +360,10 @@ jobs:
             echo changed=false >> "$GITHUB_OUTPUT"
           fi
 
-  # The proofs, in up to three chained jobs. Each restores the Lake cache of main's newest successful
-  # run (`lake-cache.py get`), unless the run is clean (the nightly schedule, a `v*` tag, a dispatch
-  # asking for one); a later job also restores what its predecessor packed (`lean-vm-stage-N`, an
-  # artifact of this run) when that one's build reached its deadline. `lake-build.py` lets Lake
-  # restore a module of formal/ only where SHA-256 shows its sources unchanged, and checks what it
-  # restored. The job whose build finishes runs the gates and, in a writer's run (a push to main, the
-  # nightly schedule), publishes the whole build as the cache; a pull request never publishes. The
-  # check to require is `lean-vm`. (The other projects' jobs above still trust Lake's own hash
-  # through `restore-keys`.)
+  # The proofs, in up to three chained jobs: a job whose build reaches its deadline packs it for the
+  # next (`lean-vm-stage-N`, an artifact of this run). The Lake cache, its trust and what it binds:
+  # `formal/lake-cache.py`. (The other projects' jobs above still trust Lake's own hash through
+  # `restore-keys`.) The check to require is `lean-vm`.
   lean-vm-build-1:
     needs: lean-vm-changes
     if: needs.lean-vm-changes.outputs.changed == 'true'
@@ -640,10 +641,7 @@ jobs:
           python3 -I scripts/prover-diff.py "$RUNNER_TEMP/prover-cases" --mutations 40 --jobs 4 \
             --identical --expected tests/fixtures/verifier
 
-  # The one check to require: skipped jobs count as passed, so it passes only if every other
-  # project's job passed (the statement's runs the lakefile check, the import fence and the cache's
-  # test), and lean_vm was not concerned, or the differentials passed and exactly one stage finished
-  # its build and its gates.
+  # The one check to require: skipped jobs count as passed in branch protection.
   lean-vm:
     needs: [statement, common, lean-xmss-formalization, lean-sphincs-formalization, lean-da-formalization, lean-vm-changes,
             lean-vm-build-1, lean-vm-build-2, lean-vm-build-3, lean-vm-differentials]

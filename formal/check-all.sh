@@ -219,7 +219,7 @@ together() {
 executables() {
   once executables || return 0
   step "lean_vm: the executables"
-  (cd lean_vm && lake build "${EXES[@]}")
+  (cd lean_vm && python3 -I ../lake-build.py . "${EXES[@]}")
 }
 
 lean_vm() {

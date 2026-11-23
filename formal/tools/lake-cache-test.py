@@ -5,6 +5,7 @@
 The cases that need two modules with one input hash plant an archive's entry under a second input hash, with its
 binding, as a collision of Lake's hash would; nothing here computes a collision.
 """
+import hashlib
 import io
 import json
 import os
@@ -57,6 +58,9 @@ def fixture(root: Path) -> None:
     write(cache / f"outputs/pkg/{DEP}.json", json.dumps({"data": {"o": [ART], "c": "0123456789abcdef.c"}}))
     write(cache / f"artifacts/{ART}", "olean")
     write(cache / "artifacts/0000000000000000.olean", "not in the build")
+    write(pkg / ".lake/build/lib/lean/A.olean", "olean")
+    (pkg / ".lake/build/ir").mkdir(parents=True)
+    shutil.copy(cache / "artifacts/0123456789abcdef.c", pkg / ".lake/build/ir/A.c")
 
     r = run("pack", pkg, archive, "--cache", cache)
     check(r.returncode == 0, f"pack failed: {r.stderr}")
@@ -90,6 +94,18 @@ def fixture(root: Path) -> None:
         check(r.returncode != 0 and "Traceback" not in r.stderr and not (root / "bad").exists(),
               f"an archive outside the layout was unpacked: {list(bad)}: {r.stderr}")
 
+    digest = run("digest").stdout.strip()
+    manifest = {"digest": digest, "local": ["pkg"], "modules": {}, "artifacts": {ART: hashlib.sha256(b"olean").hexdigest()}}
+    archive_of(archive, {"manifest.json": json.dumps(manifest).encode(), f"artifacts/{ART}": b"olean",
+                         f"outputs/pkg/{'2' * 16}.json": b"{}", f"outputs/dep/{'2' * 16}.json": b"{}"})
+    r = run("unpack", pkg, archive, "--cache", root / "unlisted")
+    check(r.returncode == 0 and (root / f"unlisted/held/pkg/{'2' * 16}.json").is_file()
+          and not (root / f"unlisted/outputs/pkg/{'2' * 16}.json").exists()
+          and (root / f"unlisted/outputs/dep/{'2' * 16}.json").is_file(), f"a local package's map was not held: {r.stderr}")
+    archive_of(archive, {"manifest.json": json.dumps(manifest).encode(), f"artifacts/{ART}": b"another olean"})
+    r = run("unpack", pkg, archive, "--cache", root / "forged")
+    check(r.returncode != 0 and not (root / "forged").exists(), "an output that is not the manifest's was unpacked")
+
     write(pkg / ".lake/build/lib/lean/B.trace", json.dumps(trace))
     r = run("check", pkg, "--cache", other)
     check(r.returncode != 0 and "share an input hash" in r.stderr, "two modules with one input hash passed the check")
@@ -116,21 +132,24 @@ else:
 def trust(root: Path) -> None:
     """`get` takes the one run that passes every test, though newer runs each fail one."""
     name = "lean-vm-lake-cache-" + run("digest").stdout.strip()
-    good = dict(head_branch="main", compare="ahead", artifact=name, expired=False)
-    cases = [dict(good, head_branch="feature"), dict(good, compare="diverged"), dict(good, compare="behind"),
+    good = dict(event="push", repo="leanEthereum/leanVM", head_branch="main", compare="ahead", artifact=name, expired=False)
+    cases = [dict(good, event="pull_request", repo="someone/leanVM"), dict(good, event="workflow_dispatch"),
+             dict(good, repo="someone/leanVM"), dict(good, head_branch="feature"), dict(good, compare="diverged"), dict(good, compare="behind"),
              dict(good, expired=True), dict(good, artifact=None), dict(good, artifact="lean-vm-lake-cache-0000000000000000"),
              good]
     fake = root / "gh"
     runs, artifacts, compare = [], {}, {}
     for i, c in enumerate(cases):
         rid, sha = str(100 + i), f"{i:040x}"
-        runs.append({"id": rid, "event": "push", "head_branch": c["head_branch"], "head_sha": sha,
+        runs.append({"id": rid, "event": c["event"], "head_repository": {"full_name": c["repo"]},
+                     "head_branch": c["head_branch"], "head_sha": sha,
                      "created_at": f"2026-01-01T00:00:{59 - i:02d}Z"})
         compare[sha] = c["compare"]
         if c["artifact"]:
             artifacts[rid] = [{"name": c["artifact"], "expired": c["expired"]}]
             (fake / rid).mkdir(parents=True)
-            archive_of(fake / rid / c["artifact"], {"manifest.json": b'{"modules": {}, "artifacts": {}}',
+            manifest = {"local": [], "modules": {}, "artifacts": {f"{i:016x}.olean": hashlib.sha256(b"x").hexdigest()}}
+            archive_of(fake / rid / c["artifact"], {"manifest.json": json.dumps(manifest).encode(),
                                                     f"artifacts/{i:016x}.olean": b"x"})
     for f, v in (("runs.json", runs), ("artifacts.json", artifacts), ("compare.json", compare)):
         write(fake / f, json.dumps(v))
@@ -192,10 +211,16 @@ def round_trip(root: Path) -> None:
     ws = workspace(root / "a", {"Toy/A.lean": "def a : Nat := 41\n", "Toy.lean": "import Toy.B\n",
                                 "Toy/B.lean": "import Toy.A\ntheorem b : a + 1 = 42 := by decide\n"})
     copy, other = restored_copy(root, ws)
+    (manifest,) = (other / "manifests").glob("*.json")
+    stale = json.loads(manifest.read_text())
+    stale["digest"] = "0" * 16
+    stale["modules"] = {ref: {"module": b["module"], "key": "0" * 64} for ref, b in stale["modules"].items()}
+    write(other / "manifests/stale.json", json.dumps(stale))  # an older tooling's: binds nothing here
     check(run("filter", copy, "--cache", other).returncode == 0, "filter failed")
     check("Built" not in built(copy, other), "Lake rebuilt what the cache held")
     r = run("check", copy, "--cache", other)
     check(r.returncode == 0, f"the check failed on an unchanged workspace: {r.stderr}")
+    (other / "manifests/stale.json").unlink()
 
     old = json.loads((copy / ".lake/build/lib/lean/Toy/B.trace").read_text())["depHash"]
     (copy / "Toy/A.lean").write_text("def a : Nat := 0\n")
@@ -211,6 +236,15 @@ def round_trip(root: Path) -> None:
     check(r.returncode != 0 and "Toy/B.trace" in r.stderr, "a module restored for a changed import passed the check")
     r = run("pack", copy, root / "c.tar.zst", "--cache", other)
     check(r.returncode != 0 and not (root / "c.tar.zst").exists(), "pack bound a module restored for a changed import")
+
+    first = next(a for a in (root / "cache" / "artifacts").glob("*.olean")
+                 if a.read_bytes() == (ws / ".lake/build/lib/lean/Toy/B.olean").read_bytes())
+    first.unlink()
+    first.write_bytes(b"first written under this name")  # the store keeps it; the build directory has Lake's
+    r = run("pack", ws, root / "first.tar.zst", "--cache", root / "cache")
+    check(r.returncode != 0 and "is not" in r.stderr, "pack took the store's file for the one Lake built")
+    first.unlink()
+    shutil.copy(ws / ".lake/build/lib/lean/Toy/B.olean", first)
 
     write(ws / "lakefile.toml", (ws / "lakefile.toml").read_text() + 'moreLeanArgs = ["-Ddebug.skipKernelTC=true"]\n')
     built(ws, root / "cache")

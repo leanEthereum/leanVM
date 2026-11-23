@@ -39,9 +39,8 @@ in Lake's traces and the build directory is separate, so a dev `.olean` never sa
 
 Outside CI, the run turns on Lake's local artifact cache (`LAKE_ARTIFACT_CACHE`, `LAKE_RESTORE_ARTIFACTS`, unless set):
 every module's build products are stored by their trace's hash, in the toolchain's directory or `LAKE_CACHE_DIR`, so
-other clones of the repository and a return to an earlier branch reuse them instead of rebuilding. Before the build
-`lake-cache.py filter` lets Lake restore an archive's local modules (`lake-cache.py get`) only where their sources
-match by SHA-256, and after it `lake-cache.py check` verifies what was restored.
+other clones of the repository and a return to an earlier branch reuse them instead of rebuilding. The run is wrapped
+in `lake-cache.py filter` and `lake-cache.py check` (see there).
 """
 
 from __future__ import annotations
@@ -622,7 +621,6 @@ def main() -> None:
     pkg = opts.dir.resolve()
     lake = ["lake", "-f", str(dev_config(pkg))] if opts.dev else ["lake"]
     cache = [sys.executable, "-I", str(Path(__file__).resolve().parent / "lake-cache.py")]
-    # Lake restores an archive's local modules only while SHA-256 shows their sources unchanged (`lake-cache.py`).
     if subprocess.run([*cache, "filter", str(pkg)], check=False).returncode:
         sys.exit("lake-build: the Lake cache's filter failed")
     if opts.dev:
@@ -673,11 +671,12 @@ def main() -> None:
         log(f"killed or stopped, and run again: {', '.join(scheduler.killed)}")
     if scheduler.failed or code:
         sys.exit(f"lake-build: failed: {', '.join(scheduler.failed) or f'lake build exited with {code}'}")
-    if subprocess.run([*cache, "check", str(pkg)], check=False).returncode:
-        sys.exit("lake-build: the Lake cache's check failed")
     if subprocess.run([*lake, "build", "--no-build", "-q", *opts.targets], cwd=pkg, check=False).returncode:
         sys.exit("lake-build: Lake finds the targets out of date after the run")
-    sys.exit(subprocess.run([*lake, "build", *opts.targets], cwd=pkg, check=False).returncode)
+    code = subprocess.run([*lake, "build", *opts.targets], cwd=pkg, check=False).returncode
+    if subprocess.run([*cache, "check", str(pkg)], check=False).returncode:
+        sys.exit("lake-build: the Lake cache's check failed")
+    sys.exit(code)
 
 
 if __name__ == "__main__":
