@@ -87,7 +87,7 @@ var received = try lpq.Aggregate.fromBytes(encoded, &.{.{
 defer received.deinit();
 ```
 
-- `Aggregate.create` verifies raw signatures first and takes at most `max_children` (16) children, which it neither consumes nor retains. Proofs run one at a time per process, each taking seconds and over a gigabyte of memory.
+- `Aggregate.create` verifies raw signatures first and takes at most `max_children` (16) children, which it neither consumes nor retains. Proofs run one at a time per process, each heavy in time and memory. Except on Windows, the process keeps its peak proving memory after a proof: jemalloc keeps its pages mapped.
 - `toBytes` is the proof alone: send the claims (`xmssClaims`, `sphincsClaims`) alongside it.
 - `Aggregate.fromBytes` takes the claims in any order (a repeat counts once) and fails with `error.NativeFailure` for malformed bytes or any other set, so every `Aggregate` is proven.
 - `setup(threads)` before the first aggregation chooses the prover's thread count (0: one per core) and starts it now; otherwise the first aggregation starts it on every core. It fails with `error.NativeFailure` if the prover already runs with another count.
@@ -114,7 +114,15 @@ cd bindings/zig && zig build test -Dnative-dir=.native
 
 Other platforms stage `aarch64-unknown-linux-gnu`, `universal2-apple-darwin` (on macOS, with both Apple Rust targets) or `x86_64-pc-windows-gnu`.
 
-To prove fast, stage on the proving machine with `RUSTFLAGS="-C target-cpu=native"`, for its own target (`aarch64-apple-darwin` on Apple silicon), and pass that directory as `-Dnative-dir`, or as an absolute `.@"native-dir"` to `b.dependency`.
+To prove fast, stage the release on the proving machine with `RUSTFLAGS="-C target-cpu=native"`, for its own target (`aarch64-apple-darwin` on Apple silicon). With the tools above, from your project's directory on Linux x86_64:
+
+<!-- x-release-please-start-version -->
+```sh
+git clone --depth 1 --branch bindings-v0.16.0 https://github.com/leanEthereum/leanVM.git ../leanVM && RUSTFLAGS="-C target-cpu=native" sh ../leanVM/bindings/native/scripts/stage-static.sh x86_64-unknown-linux-gnu ../leanVM/bindings/zig/.native
+```
+<!-- x-release-please-end -->
+
+Then pass that directory as `-Dnative-dir`, or as an absolute `.@"native-dir"` to `b.dependency`.
 
 ## License
 

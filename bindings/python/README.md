@@ -53,17 +53,19 @@ received = lpq.Aggregate.from_bytes(proof, root.xmss_claims, root.sphincs_claims
 - `aggregate(children=(), xmss=(), sphincs=())` verifies raw signatures before proving and takes at most 16 children. The result proves the union of their claims.
 - `to_bytes()` is the proof alone: send the claims alongside it, or let the receiver rebuild them.
 - `Aggregate.from_bytes(data, xmss_claims=(), sphincs_claims=())` accepts exactly those `(public_key, message)` claims, in any order (a repeated claim counts once), and raises `LeanPqError` otherwise. `xmss_claims` and `sphincs_claims` are sorted lists.
-- The first `aggregate` or `from_bytes` starts the prover, one thread per core, and builds the aggregation guest. `setup(threads=0)` before it chooses the thread count (0: one per core) and pays that cost earlier; it raises `LeanPqError` if the prover already runs with another count.
-- Proofs run one at a time per process; one takes seconds and over a gigabyte of memory.
-- A child forked after the prover started cannot aggregate: give `multiprocessing` the `spawn` or `forkserver` start method.
+- The first `aggregate` starts the prover, one thread per core, and builds the aggregation guest; `from_bytes` only builds the guest. `setup(threads=0)` before the first `aggregate` chooses the thread count (0: one per core) and pays that cost earlier; it raises `LeanPqError` if the prover already runs with another count.
+- Proofs run one at a time per process, each heavy in time and memory. Except on Windows, the process keeps its peak proving memory after a proof: jemalloc keeps its pages mapped.
+- A child forked while or after the prover started cannot aggregate: give `multiprocessing` the `spawn` or `forkserver` start method.
 
 ### Fast proving
 
-The published wheels target a generic CPU. To prove fast, build from source on the proving machine (needs Rust), from the repository root:
+The published wheels target a generic CPU. To prove fast, build the release on the proving machine (needs Rust), from your project's directory:
 
+<!-- x-release-please-start-version -->
 ```bash
-RUSTFLAGS="-C target-cpu=native" pip install ./bindings/python
+git clone --depth 1 --branch bindings-v0.16.0 https://github.com/leanEthereum/leanVM.git ../leanVM && RUSTFLAGS="-C target-cpu=native" pip install ../leanVM/bindings/python
 ```
+<!-- x-release-please-end -->
 
 ## VRF
 

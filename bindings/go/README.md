@@ -132,7 +132,7 @@ if err != nil {
 defer received.Close()
 ```
 
-- `AggregateSignatures` verifies raw signatures first and takes at most 16 children, which it neither consumes nor closes. Proofs run one at a time per process, each taking seconds and over a gigabyte of memory.
+- `AggregateSignatures` verifies raw signatures first and takes at most 16 children, which it neither consumes nor closes. Proofs run one at a time per process, each heavy in time and memory. Except on Windows, the process keeps its peak proving memory after a proof: jemalloc keeps its pages mapped.
 - `Bytes()` is the proof alone: send the claims (`XmssClaims()`, `SphincsClaims()`) alongside it.
 - `AggregateFromBytes` takes the claims in any order (a repeat counts once) and rejects malformed bytes or any other set, so every `Aggregate` is proven.
 - `Setup(threads)` before the first aggregation chooses the prover's thread count (0: one per core) and starts it now; otherwise the first aggregation starts it on every core. It fails if the prover already runs with another count.
@@ -152,7 +152,13 @@ cd bindings/go && go test ./...
 
 Other platforms stage `aarch64-unknown-linux-gnu` into `linux_arm64`, `universal2-apple-darwin` into `darwin_universal` (on macOS, with both Apple Rust targets), and `x86_64-pc-windows-gnu` into `windows_amd64`.
 
-To prove fast, stage on the proving machine with `RUSTFLAGS="-C target-cpu=native"`, for its own target (on Apple silicon, `aarch64-apple-darwin` into `darwin_universal`), and build your program against this checkout: `go mod edit -replace leanvm.org/go=/path/to/leanVM/bindings/go`.
+To prove fast, stage the release on the proving machine with `RUSTFLAGS="-C target-cpu=native"`, for its own target (on Apple silicon, `aarch64-apple-darwin` into `darwin_universal`). With the tools above, from your module's directory on Linux x86_64:
+
+<!-- x-release-please-start-version -->
+```sh
+git clone --depth 1 --branch bindings-v0.16.0 https://github.com/leanEthereum/leanVM.git ../leanVM && RUSTFLAGS="-C target-cpu=native" sh ../leanVM/bindings/native/scripts/stage-static.sh x86_64-unknown-linux-gnu ../leanVM/bindings/go/internal/native/linux_amd64 && go mod edit -replace leanvm.org/go=../leanVM/bindings/go
+```
+<!-- x-release-please-end -->
 
 ## License
 

@@ -10,6 +10,7 @@
 //! the proof against the claims it expects.
 
 use std::fmt;
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::OnceLock;
 
 use lean_vm::{
@@ -31,33 +32,67 @@ const LOG_INV_RATE: usize = 2;
 
 const _: () = assert!(MIN_LOG_INV_RATE <= LOG_INV_RATE && LOG_INV_RATE <= MAX_LOG_INV_RATE);
 
-/// The process that started the prover pool and built the guest, and the pool's thread count.
-///
-/// A child forked after the start inherits it but not the pool's threads.
-static SETUP: OnceLock<(u32, usize)> = OnceLock::new();
+/// The pool's thread count, once it runs.
+static POOL: OnceLock<usize> = OnceLock::new();
+
+/// The process that started the pool, and the one that started building the aggregation guest, each set before it
+/// starts: a child forked meanwhile or after inherits the pool's state but not its threads, nor a build in progress.
+static POOL_OWNER: AtomicU32 = AtomicU32::new(0);
+static GUEST_OWNER: AtomicU32 = AtomicU32::new(0);
+static GUEST_BUILT: AtomicBool = AtomicBool::new(false);
 
 /// Starts the prover pool with `threads` threads (0: one per core) and builds the aggregation
 /// guest, once per process.
 ///
 /// The first aggregation starts it with one thread per core, so calling it first only chooses the
-/// thread count and moves that cost earlier. A process forked after the start cannot aggregate.
+/// thread count and moves that cost earlier.
 ///
 /// # Errors
 ///
-/// Fails when the pool already runs with another thread count.
+/// - Fails when `threads` exceeds the machine's parallelism.
+/// - Fails when the pool already runs with another thread count.
+/// - Fails in a process forked while or after its parent started the pool.
 pub fn setup(threads: usize) -> Result<(), Error> {
-    let (_, running) = start(threads);
+    let max = std::thread::available_parallelism().map_or(1, usize::from);
+    if threads > max {
+        return Err(Error::TooManyThreads { threads, max });
+    }
+    let running = start(threads)?;
     if running != threads {
         return Err(Error::SetupThreads { running, threads });
     }
     Ok(())
 }
 
-fn start(threads: usize) -> (u32, usize) {
-    *SETUP.get_or_init(|| {
-        setup_lean_vm(threads);
-        (std::process::id(), threads)
+fn start(threads: usize) -> Result<usize, Error> {
+    claim(&POOL_OWNER)?;
+    // Starting the pool builds the guest.
+    with_guest(|| {
+        *POOL.get_or_init(|| {
+            setup_lean_vm(threads);
+            threads
+        })
     })
+}
+
+/// Runs `f`, which may build the aggregation guest, unless this process was forked while its parent built it.
+fn with_guest<T>(f: impl FnOnce() -> T) -> Result<T, Error> {
+    if !GUEST_BUILT.load(Ordering::Acquire) {
+        claim(&GUEST_OWNER)?;
+    }
+    let out = f();
+    GUEST_BUILT.store(true, Ordering::Release);
+    Ok(out)
+}
+
+/// Records this process as `owner`, or checks it already is.
+fn claim(owner: &AtomicU32) -> Result<(), Error> {
+    let pid = std::process::id();
+    match owner.compare_exchange(0, pid, Ordering::AcqRel, Ordering::Acquire) {
+        Ok(_) => Ok(()),
+        Err(other) if other == pid => Ok(()),
+        Err(_) => Err(Error::ForkedAfterSetup),
+    }
 }
 
 /// A verified recursive proof that each listed public key signed its message.
@@ -96,7 +131,7 @@ impl Aggregate {
             // These bindings neither make nor accept leanDA blob commitments.
             da_commitment: None,
         };
-        if !proof.verify(&claims) {
+        if !with_guest(|| proof.verify(&claims))? {
             return Err(Error::AggregateRejected);
         }
         Ok(Self { claims, proof })
@@ -208,9 +243,7 @@ pub fn aggregate(
         .map(|(public_key, message, signature)| (public_key.0, *message, signature.0.clone()))
         .collect();
 
-    if start(0).0 != std::process::id() {
-        return Err(Error::ForkedAfterSetup);
-    }
+    start(0)?;
     // No DA blobs, and keep every claim the inputs cover.
     prove(
         &children,

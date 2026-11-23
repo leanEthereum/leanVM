@@ -25,10 +25,15 @@ typedef struct lpq_aggregate lpq_aggregate;
 typedef struct lpq_vrf_key lpq_vrf_key;
 
 /* Returns 0 on success, 1 for a checked error, and 2 when Rust caught a panic. */
-/* Starts the prover pool with threads threads (0: one per core); fails if it already runs with another count. */
-int32_t lpq_setup(size_t threads);
 int32_t lpq_last_error(lpq_buffer *out);
 void lpq_buffer_free(uint8_t *data, size_t len);
+
+/*
+ * Starts the prover pool with `threads` threads (0: one per core, at most the machine's parallelism)
+ * and builds the aggregation guest, once per process; the first aggregation otherwise starts it on
+ * every core. Fails if the pool already runs with another count.
+ */
+int32_t lpq_setup(size_t threads);
 
 int32_t lpq_xmss_secret_key_generate(lpq_xmss_secret_key **out);
 int32_t lpq_xmss_secret_key_from_bytes(const uint8_t *data, size_t len, lpq_xmss_secret_key **out);

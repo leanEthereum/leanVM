@@ -99,7 +99,7 @@ let
 doAssert received.xmssClaims().expect("claims").len == 1
 ```
 
-- `LeanPqAggregate.init` verifies raw signatures first and takes at most `MaxAggregateChildren` (16) children, which it neither consumes nor closes. Proofs run one at a time per process, each taking seconds and over a gigabyte of memory.
+- `LeanPqAggregate.init` verifies raw signatures first and takes at most `MaxAggregateChildren` (16) children, which it neither consumes nor closes. Proofs run one at a time per process, each heavy in time and memory. Except on Windows, the process keeps its peak proving memory after a proof: jemalloc keeps its pages mapped.
 - `toBytes` is the proof alone: send the claims (`xmssClaims`, `sphincsClaims`) alongside it.
 - `LeanPqAggregate.fromBytes` takes the claims in any order (a repeat counts once) and fails for malformed bytes or any other set, so every `LeanPqAggregate` is proven.
 - `leanPqSetup(threads)` before the first aggregation chooses the prover's thread count (0: one per core) and starts it now; otherwise the first aggregation starts it on every core. It fails if the prover already runs with another count.
@@ -126,7 +126,15 @@ cd bindings/nim && nimble test
 
 Other platforms stage `aarch64-unknown-linux-gnu` into `native/aarch64-linux-gnu`, `universal2-apple-darwin` into `native/universal-macos` (on macOS), and `x86_64-pc-windows-gnu` into `native/x86_64-windows-gnu`.
 
-To prove fast, stage on the proving machine with `RUSTFLAGS="-C target-cpu=native"`, for its own target (`aarch64-apple-darwin` on Apple silicon), into any directory, and build your program with `-d:leanPqNativeDir=DIR`, an absolute path.
+To prove fast, stage the release on the proving machine with `RUSTFLAGS="-C target-cpu=native"`, for its own target (`aarch64-apple-darwin` on Apple silicon). With the tools above, from your project's directory on Linux x86_64:
+
+<!-- x-release-please-start-version -->
+```sh
+git clone --depth 1 --branch bindings-v0.16.0 https://github.com/leanEthereum/leanVM.git ../leanVM && RUSTFLAGS="-C target-cpu=native" sh ../leanVM/bindings/native/scripts/stage-static.sh x86_64-unknown-linux-gnu ../leanVM/bindings/nim/native/x86_64-linux-gnu
+```
+<!-- x-release-please-end -->
+
+Then build your program with `-d:leanPqNativeDir=DIR`, the absolute path of that directory.
 
 ## License
 

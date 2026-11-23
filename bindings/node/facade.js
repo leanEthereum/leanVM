@@ -14,16 +14,19 @@ SphincsSecretKey.fromBytes = native.sphincsSecretKeyFromBytes
 VrfKey.fromSeed = native.vrfKeyFromSeed
 VrfKey.fromCacheBytes = native.vrfKeyFromCacheBytes
 
-Aggregate.fromBytes = function fromBytes(data, { xmss = [], sphincs = [] } = {}) {
+// async: an invalid argument rejects the promise rather than throwing.
+const setup = async (threads) => native.setup(threads)
+Aggregate.fromBytes = async function fromBytes(data, claims) {
+  const { xmss = [], sphincs = [] } = claims ?? {}
   return native.aggregateFromBytes(data, xmss, sphincs)
 }
-
-function aggregate({ children = [], xmss = [], sphincs = [] } = {}) {
+async function aggregate(input) {
+  const { children = [], xmss = [], sphincs = [] } = input ?? {}
   return native.aggregate(children, xmss, sphincs)
 }
 
 module.exports = {
-  setup: native.setup,
+  setup,
   XmssSecretKey,
   xmssVerify: native.xmssVerify,
   SphincsSecretKey,

@@ -15,8 +15,3 @@ lean-pq = { workspace = true }
 
 [target.'cfg(unix)'.dependencies]
 allocator = { workspace = true }
-tikv-jemallocator = { workspace = true }
-
-# tikv-jemallocator is there for its feature.
-[package.metadata.cargo-machete]
-ignored = ["tikv-jemallocator"]

@@ -87,18 +87,20 @@ try (XmssSecretKey xmss = XmssSecretKey.fromSeed(seed32);
 - `LeanPq.aggregate(children, xmss, sphincs)` verifies raw signatures before proving and takes at most 16 children. The result proves the union of their claims.
 - `toBytes()` is the proof alone: send the claims alongside it, or let the receiver rebuild them.
 - `Aggregate.fromBytes(bytes, xmssClaims, sphincsClaims)` accepts exactly those claims, in any order (a repeated claim counts once), and throws `LeanPqException` otherwise. `xmssClaims()` and `sphincsClaims()` are sorted.
-- The first aggregation or `fromBytes` starts the prover, one thread per core, and builds the aggregation guest. `LeanPq.setup(threads)` before it chooses the thread count (0: one per core) and pays that cost earlier; it throws `LeanPqException` if the prover already runs with another count.
-- Proofs run one at a time per process; one takes seconds and over a gigabyte of memory.
+- The first aggregation starts the prover, one thread per core, and builds the aggregation guest; `fromBytes` only builds the guest. `LeanPq.setup(threads)` before the first aggregation chooses the thread count (0: one per core) and pays that cost earlier; it throws `LeanPqException` if the prover already runs with another count.
+- Proofs run one at a time per process, each heavy in time and memory. Except on Windows, the process keeps its peak proving memory after a proof: jemalloc keeps its pages mapped.
 
 ### Fast proving
 
-The jar's native library targets a generic CPU. To prove fast, build it on the proving machine, from the repository root:
+The jar's native library targets a generic CPU. To prove fast, build the release's on the proving machine (needs Rust), from your project's directory:
 
+<!-- x-release-please-start-version -->
 ```sh
-cd bindings && RUSTFLAGS="-C target-cpu=native" cargo build --release -p lean-pq-native
+git clone --depth 1 --branch bindings-v0.16.0 https://github.com/leanEthereum/leanVM.git ../leanVM && (cd ../leanVM/bindings && RUSTFLAGS="-C target-cpu=native" cargo build --release -p lean-pq-native)
 ```
+<!-- x-release-please-end -->
 
-Then load it with `-Dlean.pq.native.path=$PWD/target/release/liblean_pq_native.so` (`.dylib` on macOS, `lean_pq_native.dll` on Windows), or bundle it into a jar for this machine with `RUSTFLAGS="-C target-cpu=native" gradle -p bindings/java jar` (in `bindings/java/build/libs`).
+Then load it with `-Dlean.pq.native.path=$PWD/../leanVM/bindings/target/release/liblean_pq_native.so` (`.dylib` on macOS, `lean_pq_native.dll` on Windows), or bundle it into a jar for this machine with `RUSTFLAGS="-C target-cpu=native" gradle -p ../leanVM/bindings/java jar` (in `../leanVM/bindings/java/build/libs`).
 
 ## Build and test
 

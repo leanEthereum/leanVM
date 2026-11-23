@@ -3,7 +3,7 @@
 
 use std::sync::LazyLock;
 
-use lean_pq::{aggregate, sphincs, xmss, Aggregate, Error, Message, MAX_CHILDREN};
+use lean_pq::{aggregate, setup, sphincs, xmss, Aggregate, Error, Message, MAX_CHILDREN};
 use lean_vm::AggregateError;
 
 /// Two signers, shared by every test so each key is generated once.
@@ -189,4 +189,16 @@ fn rejects_tampered_and_truncated_bytes() {
         Error::MalformedAggregate.to_string(),
         "malformed aggregate: the bytes are not a leanVM aggregate proof"
     );
+}
+
+#[test]
+fn rejects_more_threads_than_the_machine_runs_without_starting_the_prover() {
+    // Checked before the pool starts, so the process can still set up.
+    assert!(matches!(
+        setup(usize::MAX),
+        Err(Error::TooManyThreads {
+            threads: usize::MAX,
+            ..
+        })
+    ));
 }

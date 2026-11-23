@@ -15,11 +15,8 @@ version = "0.16.0"
 
 [workspace.dependencies]
 lean_vm = { path = "../crates/lean_vm" }
-# jemalloc configured for proving, the global allocator of the native library, the Node.js addon and the Python
-# extension outside Windows.
-allocator = { path = "../crates/allocator" }
-# Global-dynamic TLS, so jemalloc runs in a library loaded with dlopen.
-tikv-jemallocator = { version = "0.7", features = ["disable_initial_exec_tls"] }
+# jemalloc configured for proving, the global allocator of the native library, the Node.js addon and the Python extension.
+allocator = { path = "../crates/allocator", features = ["library"] }
 lean_xmss = { path = "../crates/lean_xmss" }
 lean_sphincs = { path = "../crates/lean_sphincs" }
 lean_vrf = { path = "../crates/lean_vrf" }

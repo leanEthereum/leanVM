@@ -320,7 +320,6 @@ version = "0.16.0"
 dependencies = [
  "allocator",
  "lean-pq",
- "tikv-jemallocator",
 ]
 
 [[package]]
@@ -332,7 +331,6 @@ dependencies = [
  "napi",
  "napi-build",
  "napi-derive",
- "tikv-jemallocator",
 ]
 
 [[package]]
@@ -528,7 +526,6 @@ dependencies = [
  "allocator",
  "lean-pq",
  "pyo3",
- "tikv-jemallocator",
 ]
 
 [[package]]

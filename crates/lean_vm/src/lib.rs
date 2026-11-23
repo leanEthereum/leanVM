@@ -40,12 +40,12 @@ pub fn setup(threads: usize) {
 
 /// Aggregate leanXMSS and leanSPHINCS signatures, blobs and the claims of child proofs.
 ///
-/// - `children`: at most [`MAX_RECURSIONS`](crate::MAX_RECURSIONS), each with its claims.
+/// - `children`: at most [`MAX_RECURSIONS`], each with its claims.
 /// - `raw_lean_xmss`, `raw_lean_sphincs`: `(public_key, message, signature)`, in any order.
 /// - `blobs`: the encoded blobs, if any ([`lean_da::BlobMatrix::build`]).
 /// - `output`: which covered claims the proof attests.
-/// - `log_inv_rate`: the code rate's log, in [`MIN_LOG_INV_RATE`](crate::MIN_LOG_INV_RATE)..=
-///   [`MAX_LOG_INV_RATE`](crate::MAX_LOG_INV_RATE); higher gives a smaller proof but slower proving.
+/// - `log_inv_rate`: the code rate's log, in [`MIN_LOG_INV_RATE`]..=
+///   [`MAX_LOG_INV_RATE`]; higher gives a smaller proof but slower proving.
 ///
 /// # Errors
 ///

@@ -14,12 +14,10 @@ napi-derive = "3.6.3"
 
 [target.'cfg(unix)'.dependencies]
 allocator = { workspace = true }
-tikv-jemallocator = { workspace = true }
 
 [build-dependencies]
 napi-build = "2.2.4"
 
-# `cargo machete` misses the build script's use of napi-build, and tikv-jemallocator is there for
-# its feature.
+# `cargo machete` misses the build script's use of napi-build.
 [package.metadata.cargo-machete]
-ignored = ["napi-build", "tikv-jemallocator"]
+ignored = ["napi-build"]

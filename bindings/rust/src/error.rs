@@ -79,6 +79,16 @@ pub enum Error {
         threads: usize,
     },
 
+    /// More prover threads were asked for than the machine runs in parallel.
+    #[cfg(feature = "aggregation")]
+    #[error("{threads} prover threads asked for, but this machine runs at most {max} in parallel")]
+    TooManyThreads {
+        /// The thread count asked for.
+        threads: usize,
+        /// The machine's parallelism.
+        max: usize,
+    },
+
     /// A raw leanXMSS signature handed to aggregation does not verify.
     #[cfg(feature = "aggregation")]
     #[error("leanXMSS input {index} (leaf index {leaf_index}) does not verify")]
@@ -128,10 +138,10 @@ pub enum Error {
     #[error("the aggregate does not prove the given claims")]
     AggregateRejected,
 
-    /// The process was forked after it started the prover pool, so it has the pool but not its
-    /// threads, and a proof would never finish.
+    /// The process was forked while or after its parent started the prover pool or built the
+    /// aggregation guest: it inherits their state but not the threads running them.
     #[cfg(feature = "aggregation")]
-    #[error("cannot aggregate in a process forked after the prover started: aggregate in the parent, or start the child without forking (Python's `spawn` or `forkserver`)")]
+    #[error("this process was forked while or after its parent started the prover: prove in the parent, or in a process started without forking")]
     ForkedAfterSetup,
 }
 

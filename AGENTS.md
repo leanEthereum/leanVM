@@ -99,7 +99,7 @@ cargo leanvm-bench --prover stable fibonacci --n <steps>
 
 ## Allocator and thread pool
 
-- Libraries impose no allocator. The CLI, the benches and, outside Windows, the bindings' native libraries install `allocator::Jemalloc`.
+- Shared crates and `lean-pq` impose no allocator. The CLI, the benches and, outside Windows, the bindings' final libraries (`lean-pq-native`, the Node.js addon, the Python extension) install `allocator::Jemalloc`, the latter with its `library` feature.
 - Experimental skips a buffer's zero-fill with `primitives::uninit_vec` or `filled_vec`. Stable never reads uninitialized memory: it writes a large buffer's first pass with the pool (`parallel::filled`, `parallel::map_collect`).
 - Drop a large buffer where its last use ends.
 - No rayon. One pool per tree, one tree per process: never add a second pool.

@@ -66,8 +66,8 @@ const received = await lpq.Aggregate.fromBytes(proof, { xmss: root.xmssClaims, s
 - `aggregate({ children, xmss, sphincs })` verifies raw signatures before proving and takes at most 16 children. The result proves the union of their claims.
 - `toBytes()` is the proof alone: send the claims alongside it, or let the receiver rebuild them.
 - `Aggregate.fromBytes(data, { xmss, sphincs })` accepts exactly those `{ publicKey, message }` claims, in any order (a repeated claim counts once), and rejects otherwise; an omitted list means none. `xmssClaims` and `sphincsClaims` are sorted.
-- The first `aggregate` or `fromBytes` starts the prover, one thread per core, and builds the aggregation guest. `setup(threads)` before it chooses the thread count (0 or omitted: one per core) and pays that cost earlier; it rejects if the prover already runs with another count.
-- Proofs run one at a time per process; one takes seconds and over a gigabyte of memory.
+- The first `aggregate` starts the prover, one thread per core, and builds the aggregation guest; `fromBytes` only builds the guest. `setup(threads)` before the first `aggregate` chooses the thread count (0 or omitted: one per core) and pays that cost earlier; it rejects if the prover already runs with another count.
+- Proofs run one at a time per process, each heavy in time and memory. Except on Windows, the process keeps its peak proving memory after a proof: jemalloc keeps its pages mapped.
 
 ### Fast proving
 

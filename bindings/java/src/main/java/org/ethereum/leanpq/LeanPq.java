@@ -11,7 +11,7 @@ public final class LeanPq {
 
     /**
      * Starts the prover pool with {@code threads} threads (0: one per core) and builds the
-     * aggregation guest, once per process. Optional: aggregating and decoding start it with one
+     * aggregation guest, once per process. Optional: the first aggregation starts it with one
      * thread per core. Throws {@link LeanPqException} if the pool already runs with another count.
      */
     public static void setup(int threads) {

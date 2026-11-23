@@ -13,8 +13,8 @@ export interface SignedMessage {
 
 /**
  * Starts the prover with `threads` threads (0, the default: one per core) and builds the
- * aggregation guest, once per process. Optional: the first `aggregate` or `Aggregate.fromBytes`
- * starts it with one thread per core. Rejects when it already runs with another thread count.
+ * aggregation guest, once per process. Optional: the first `aggregate` starts it with one thread
+ * per core. Rejects when it already runs with another thread count.
  */
 export declare function setup(threads?: number): Promise<void>
 
