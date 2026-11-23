@@ -86,7 +86,7 @@ private def spLastShape (ss : List Stmt) : Bool :=
   | _ => false
 
 private theorem sp_shapes :
-    ((List.range 22).all fun p => spGroupShape p (spP p)) && spLastShape (spP 22) = true := by
+    (((List.range 22).all fun p => spGroupShape p (spP p)) && spLastShape (spP 22)) = true := by
   decide +kernel
 
 /-! ## The pops -/
@@ -147,20 +147,20 @@ private theorem sp_body_pops {d : Nat → Nat} {vals : Nat → E} {σ : Val}
   unfold spLastShape at h
   split at h
   · rename_i vs hl
-    have hc : cutAt spCuts Fn.«sp_wots».core.body = (List.range 23).map spP :=
+    have hcut : cutAt spCuts Fn.«sp_wots».core.body = (List.range 23).map spP :=
       List.ext_getElem (by simp [length_cutAt, spCuts]) fun i h1 _ => by
         rw [List.getElem_map, List.getElem_range, spP, List.getD_eq_getElem _ _ h1]
     have hb : Fn.«sp_wots».core.body =
         (((List.range 22).map spP).flatten ++ (spP 22).dropLast) ++ [.ret vs] := by
       rw [List.append_assoc, List.dropLast_append_getLast? _ hl,
-        ← flatten_cutAt spCuts Fn.«sp_wots».core.body, hc,
+        ← flatten_cutAt spCuts Fn.«sp_wots».core.body, hcut,
         show List.range 23 = List.range 22 ++ [22] from List.range_succ, List.map_append,
         List.flatten_append]
       simp
     obtain ⟨es, hw, hc, hp⟩ := retPops_of_fallPops (vs := vs)
       ((fallPops_range spP _ 22 fun p hp => spGroup_pops (rd := rd) hp (hx p hp) (hs p hp)).append
         (fallPops_stackHints σ (beq_iff_eq.mp h)))
-    exact ⟨es, vs, by rw [hb]; exact hw, hc, by simpa [spPopsT] using hp⟩
+    exact ⟨es, vs, (congrArg (walk σ) hb).trans hw, hc, by simpa [spPopsT] using hp⟩
   · cases h
 
 /-! ## Complete, popping -/
@@ -177,14 +177,15 @@ theorem sp_wots_complete_cells_pops {pp a0 a1 : E} {d : Nat → Nat} (hd : ∀ i
   have hpar' : [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3)] = [pp, a0, a1, eOfNat128 (spX d 64)] :=
     hpar.trans hp
   simp only [List.cons.injEq, and_true] at hpar'
-  refine ⟨σ, hpar'.1, hpar'.2.1, hpar'.2.2.1, hpar'.2.2.2, hr ▸ hb, sp_body_pops (fun p hp => ?_)
-    fun p hp r hr => ?_⟩
-  · exact (hpos _ (List.mem_flatMap.mpr ⟨p, List.mem_range.mpr hp, List.mem_cons_self ..⟩)).trans
-      (hg p hp)
-  · have hi : 3 * p + r < 64 := by unfold spN at hr; split at hr <;> omega
-    rw [hpos _ (List.mem_flatMap.mpr ⟨p, List.mem_range.mpr hp, List.mem_cons_of_mem _
-      (List.mem_flatMap.mpr ⟨_, List.mem_range.mpr (spK_lt d p), List.mem_map.mpr ⟨r,
-        List.mem_range.mpr hr, rfl⟩⟩)⟩), ← hst _ hi, show (3 * p + r) / 3 = p by omega]
+  refine ⟨σ, hpar'.1, hpar'.2.1, hpar'.2.2.1, hpar'.2.2.2, hr ▸ hb, sp_body_pops (fun q hq => ?_)
+    fun q hq t ht => ?_⟩
+  · exact (hpos _ (List.mem_flatMap.mpr ⟨q, List.mem_range.mpr hq, List.mem_cons_self ..⟩)).trans
+      (hg q hq)
+  · have h3 : t < 3 := by unfold spN at ht; split at ht <;> omega
+    rw [hpos _ (List.mem_flatMap.mpr ⟨q, List.mem_range.mpr hq, List.mem_cons_of_mem _
+      (List.mem_flatMap.mpr ⟨_, List.mem_range.mpr (spK_lt d q), List.mem_map.mpr ⟨t,
+        List.mem_range.mpr ht, rfl⟩⟩)⟩), ← hst _ (by unfold spN at ht; split at ht <;> omega),
+      show (3 * q + t) / 3 = q by omega]
 
 /-! ## Against the statement -/
 

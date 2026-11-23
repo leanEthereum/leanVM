@@ -367,7 +367,8 @@ theorem spWotsRef_sem (args rets : List E) :
     exact ⟨_, _, _, h1, rfl, h2⟩
   · rintro ⟨pp, a0, a1, d, starts, rfl, rfl, -, hsum, hw⟩
     choose! w hw using hw
-    obtain ⟨ρ, hp, hs, hr, -⟩ := spWotsRef_honest starts hsum hw
+    obtain ⟨ρ, hp, hs, hr, -⟩ :=
+      spWotsRef_honest (pp := pp) (a0 := a0) (a1 := a1) starts hsum hw
     exact ⟨ρ, hp, hs, hr⟩
 
 end
