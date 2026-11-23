@@ -8,6 +8,8 @@
 module
 
 public import LeanVM.Guest.B1.Main.World
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«main»
 
 /-!
 # The decoders, read off the coverage table
@@ -56,7 +58,7 @@ theorem countOf_eq (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ
 
 /-! ## The marks -/
 
-theorem markOf_eq (s : ℕ) : markOf rd σ s = markAt rd (σ (.n 45)) s := by
+theorem markOf_eq (s : ℕ) : markOf rd σ s = markAt rd (σ (.n (val% «main» "cover"))) s := by
   unfold markOf markAt; rw [cellAt_eq_memAt]
 
 /-! ## A list's slots in a region -/
@@ -163,10 +165,10 @@ section Kid
 variable {rx rs : ℕ → ℕ}
 
 /-- The writer of a slot of the table, its mark in child `c`'s segment: one of the child's. -/
-theorem kid_writer (hW : Writers rd (σ (.n 45)) (segsOf σ K) (LXS σ) (LSS σ) (slOf σ K rx rs)) {c s : ℕ}
+theorem kid_writer (hW : Writers rd (σ (.n (val% «main» "cover"))) (segsOf σ K) (LXS σ) (LSS σ) (slOf σ K rx rs)) {c s : ℕ}
     (hc : c < lg σ 6) (hs : s < LXS σ + LSS σ)
-    (h1 : (segsOf σ K).a c ≤ markAt rd (σ (.n 45)) s)
-    (h2 : markAt rd (σ (.n 45)) s < (segsOf σ K).a (c + 1)) :
+    (h1 : (segsOf σ K).a c ≤ markAt rd (σ (.n (val% «main» "cover"))) s)
+    (h2 : markAt rd (σ (.n (val% «main» "cover"))) s < (segsOf σ K).a (c + 1)) :
     (s < LXS σ → ∃ j < (K c).ex, (K c).ox j = s) ∧
       (LXS σ ≤ s → ∃ j < (K c).es, LXS σ + (K c).os j = s) := by
   obtain ⟨m, hm, rfl⟩ := hW.onto s hs
@@ -188,13 +190,13 @@ theorem kid_writer (hW : Writers rd (σ (.n 45)) (segsOf σ K) (LXS σ) (LSS σ)
 
 /-- **Child `c`'s statement, read off the coverage table**, is its records'. -/
 theorem kidStmt_eq (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c (K c))
-    (hW : Writers rd (σ (.n 45)) (segsOf σ K) (LXS σ) (LSS σ) (slOf σ K rx rs)) {c : ℕ}
+    (hW : Writers rd (σ (.n (val% «main» "cover"))) (segsOf σ K) (LXS σ) (LSS σ) (slOf σ K rx rs)) {c : ℕ}
     (hc : c < lg σ 6) :
     kidStmt rd σ c =
-      ⟨⟨(List.range (K c).ex).map fun j => xmssAt rd (σ (.n 31)) ((K c).ox j),
-        (List.range (K c).es).map fun j => sphincsAt rd (σ (.n 34)) ((K c).os j),
+      ⟨⟨(List.range (K c).ex).map fun j => xmssAt rd (σ (.n (val% «main» "lx_table"))) ((K c).ox j),
+        (List.range (K c).es).map fun j => sphincsAt rd (σ (.n (val% «main» "lean_sphincs_table"))) ((K c).os j),
         daDigestAt rd σ c⟩,
-       deferOfCells (readCells rd (σ (.n 395) * gen ^ (24 * c)) 24)⟩ := by
+       deferOfCells (readCells rd (σ (.n (val% «main» "child_carried")) * gen ^ (24 * c)) 24)⟩ := by
   have hT := MF.total.2
   have eX : LXS σ = lg σ 0 + lg σ 1 := rfl
   have eS : LSS σ = lg σ 3 + lg σ 4 := rfl
@@ -204,7 +206,7 @@ theorem kidStmt_eq (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ
     rw [← htot]; exact (segsOf σ K).a_mono (by omega)
   have hsucc : (segsOf σ K).a (c + 1) = (segsOf σ K).a c + ((K c).ex + (K c).es) := by
     rw [Segs.a_succ, segsOf_ex, segsOf_es]
-  have hmk : ∀ s, markOf rd σ s = markAt rd (σ (.n 45)) s := fun s => markOf_eq s
+  have hmk : ∀ s, markOf rd σ s = markAt rd (σ (.n (val% «main» "cover"))) s := fun s => markOf_eq s
   -- the leanXMSS list
   obtain ⟨hnx, hX⟩ := kidSlots_eq (rd := rd) (σ := σ) (lo := 0) (len := LXS σ)
     (a := (segsOf σ K).a c) (b := (segsOf σ K).a (c + 1)) (mono := (K c).mx) (K c).ox

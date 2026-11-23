@@ -1,6 +1,6 @@
 # Bindings
 
-leanXMSS and leanSPHINCS signatures and their aggregation, for Python, Node.js, Java, Go, Zig and Nim.
+leanXMSS and leanSPHINCS signatures, their aggregation, and the consensus VRF tree, for Python, Node.js, Java, Go, Zig and Nim.
 
 - Signing and verifying signatures run in your process, on every platform.
 - Aggregating, and verifying aggregates, run in the [sidecar](#sidecar), a separate process (Linux and macOS).
@@ -21,19 +21,19 @@ x86_64 needs AVX2 and PCLMULQDQ.
 
 <!-- x-release-please-start-version -->
 ```sh
-pip install py-lean-pq==0.13.1
-npm install @kevaundray/lean-pq@0.13.1
-go get leanvm.org/go@v0.13.1
-version=0.13.1
+pip install py-lean-pq==0.16.0
+npm install @kevaundray/lean-pq@0.16.0
+go get leanvm.org/go@v0.16.0
+version=0.16.0
 zig fetch --save=lean_pq "https://github.com/leanEthereum/leanVM/releases/download/bindings-v$version/lean-pq-zig-$version.tar.gz"
 ```
 
 ```kotlin
-implementation("io.github.crate-crypto:lean-pq:0.13.1") // Java, Gradle
+implementation("io.github.crate-crypto:lean-pq:0.16.0") // Java, Gradle
 ```
 
 ```nim
-requires "https://github.com/leanEthereum/leanVM?subdir=bindings/nim#bindings-v0.13.1" # Nim, .nimble
+requires "https://github.com/leanEthereum/leanVM?subdir=bindings/nim#bindings-v0.16.0" # Nim, .nimble
 ```
 <!-- x-release-please-end -->
 
@@ -49,7 +49,7 @@ lean_vm = { git = "https://github.com/leanEthereum/leanVM.git", features = ["exp
 
 <!-- x-release-please-start-version -->
 ```sh
-RUSTFLAGS="-C target-cpu=native" cargo install --locked --git https://github.com/leanEthereum/leanVM --tag bindings-v0.13.1 leanvm-sidecar --features experimental_prover
+RUSTFLAGS="-C target-cpu=native" cargo install --locked --git https://github.com/leanEthereum/leanVM --tag bindings-v0.16.0 leanvm-sidecar --features experimental_prover
 ```
 <!-- x-release-please-end -->
 

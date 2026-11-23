@@ -10,6 +10,8 @@ module
 
 public import LeanVM.Guest.B1.Sig.KSeqComplete
 public import LeanVM.Guest.B1.Sig.SphincsBytes
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_sig_lean_sphincs»
 
 /-!
 # `sp_from_bytes`, complete
@@ -72,8 +74,8 @@ theorem g255W_k : g255W = ofK (addressOfIndex (256 - 1)) := g255W_eq
 
 theorem sByte_nb {mark : V} {b : Nat} (hmk : NBv b mark) :
     NumBelow (b + 6) (Stmt.valsList (sByte mark b)) := by
-  rw [sByte, valsList_append, show [mulS (.n (b + 4)) (.n 1) mark, loadS (.n (b + 5)) (.n (b + 4)) 0] =
-    [mulS (.n (b + 4)) (.n 1) mark] ++ [loadS (.n (b + 5)) (.n (b + 4)) 0] from rfl, valsList_append]
+  rw [sByte, valsList_append, show [mulS (.n (b + 4)) (.n (val% «verify_sig_lean_sphincs» "byte_bits")) mark, loadS (.n (b + 5)) (.n (b + 4)) 0] =
+    [mulS (.n (b + 4)) (.n (val% «verify_sig_lean_sphincs» "byte_bits")) mark] ++ [loadS (.n (b + 5)) (.n (b + 4)) 0] from rfl, valsList_append]
   exact ((rangeS_nb mark g255W b hmk).mono (by omega)).append
     (((nb_mulS (d := b + 4) ⟨1, by omega, rfl⟩ (hmk.mono' (by omega))).mono (by omega)).append
       (nb_loadS 0 ⟨b + 4, by omega, rfl⟩))
@@ -83,19 +85,19 @@ def BytePtr (bb : E) (x : E) : Prop := ∃ v < 256, x = bb * ofK (addressOfIndex
 
 /-- **A byte completes**: its mark `g^v`, `v < 256`, range checked and read off the table. -/
 theorem sByte_complete (hm : MemOK rd 256) {bb : E} (hbb : ByteBits rd bb) {v : Nat}
-    (hv : v < 256) (σ : Val) (h1 : σ (.n 1) = bb) {mark : V} {b : Nat} (hb : 2 ≤ b) (hmk : NBv b mark)
+    (hv : v < 256) (σ : Val) (h1 : σ (.n (val% «verify_sig_lean_sphincs» "byte_bits")) = bb) {mark : V} {b : Nat} (hb : 2 ≤ b) (hmk : NBv b mark)
     (hmv : σ mark = ofK (addressOfIndex v)) :
     Completes C rd b (b + 6) (sByte mark b) σ
       (fun σ' => σ' (.n (b + 5)) = word v 0 ∧ BytePtr bb (σ' (.n (b + 4)))) := by
   rw [sByte, g255W_k]
   refine Completes.append (m := b + 4) (by omega) (by omega) (rangeS_nb mark _ b hmk)
     (rangeS_complete hm (le_refl 256) hv σ mark hmk hmv) (fun σ1 he1 _ => ?_)
-  have e1 : σ1 (.n 1) = bb := by rw [he1.apply (Or.inl (by omega))]; exact h1
+  have e1 : σ1 (.n (val% «verify_sig_lean_sphincs» "byte_bits")) = bb := by rw [he1.apply (Or.inl (by omega))]; exact h1
   have em : σ1 mark = ofK (addressOfIndex v) := by
     obtain ⟨j, hj, rfl⟩ := hmk
     rw [he1.apply (Or.inl hj)]
     exact hmv
-  show Completes C rd (b + 4) (b + 6) ([mulS (.n (b + 4)) (.n 1) mark] ++
+  show Completes C rd (b + 4) (b + 6) ([mulS (.n (b + 4)) (.n (val% «verify_sig_lean_sphincs» "byte_bits")) mark] ++
     [loadS (.n (b + 5)) (.n (b + 4)) 0]) σ1 _
   refine Completes.append (m := b + 5) (by omega) (by omega)
     (nb_mulS ⟨1, by omega, rfl⟩ (hmk.mono' (by omega)))
@@ -140,7 +142,7 @@ byte's pointer at `b + 4 + 9 k` the table's. -/
 theorem sFromBytesRest_complete (hm : MemOK rd 256) {bb : E} (hbb : ByteBits rd bb) :
     ∀ (ms : List V) (vs : List Nat) (b : Nat) (val : V) (N M : Nat) (σ : Val), 2 ≤ b →
       List.Forall₂ (fun m v => NBv b m ∧ σ m = ofK (addressOfIndex v) ∧ v < 256) ms vs →
-      NBv b val → σ (.n 1) = bb → σ val = eOfNat N → N < M → M * 256 ^ ms.length ≤ 2 ^ 64 →
+      NBv b val → σ (.n (val% «verify_sig_lean_sphincs» "byte_bits")) = bb → σ val = eOfNat N → N < M → M * 256 ^ ms.length ≤ 2 ^ 64 →
       Completes C rd b (b + 9 * ms.length) (sFromBytesRest ms b val).1 σ
         (fun σ' => σ' (sFromBytesRest ms b val).2.2 = eOfNat (bFold N vs) ∧
           ∀ k < ms.length, BytePtr bb (σ' (.n (b + 4 + 9 * k))))
@@ -190,7 +192,7 @@ theorem sFromBytesRest_complete (hm : MemOK rd 256) {bb : E} (hbb : ByteBits rd 
         rw [hp4, v5, hp3, vv, hp2, hv, word_eq_eOfNat v, word256_eq, mul_comm,
           eOfNat_two_pow_mul (by omega), add_comm, Value.eOfNat_add_of_lt (by omega)]
         norm_num
-      have h14 : σ4 (.n 1) = bb := by rw [tr 1 (by omega)]; exact h1
+      have h14 : σ4 (.n (val% «verify_sig_lean_sphincs» "byte_bits")) = bb := by rw [tr 1 (by omega)]; exact h1
       have hc := sFromBytesRest_complete hm hbb ms vs (b + 9) (.n (b + 8)) (256 * N + v) (M * 256) σ4
         (by omega) (List.Forall₂.imp (fun x y ⟨g1, g2, g3⟩ => ⟨g1.mono' (by omega), by
           obtain ⟨j, hj, rfl⟩ := g1; rw [tr j hj]; exact g2, g3⟩) hf') ⟨b + 8, by omega, rfl⟩ h14 v8
@@ -223,7 +225,7 @@ theorem sFromBytes_complete (hm : MemOK rd 256) {bb : E} (hbb : ByteBits rd bb) 
     (hv0 : v0 < 256) (top : V) (rest : List V) (vs : List Nat) (b : Nat) (σ : Val)
     (hb : 2 ≤ b) (ht : NBv b top) (htv : σ top = ofK (addressOfIndex v0))
     (hf : List.Forall₂ (fun m v => NBv b m ∧ σ m = ofK (addressOfIndex v) ∧ v < 256) rest vs)
-    (h1 : σ (.n 1) = bb) (hM : 256 * 256 ^ rest.length ≤ 2 ^ 64) :
+    (h1 : σ (.n (val% «verify_sig_lean_sphincs» "byte_bits")) = bb) (hM : 256 * 256 ^ rest.length ≤ 2 ^ 64) :
     Completes C rd b (b + 6 + 9 * rest.length) (sFromBytes top rest b).1 σ
       (fun σ' => σ' (sFromBytes top rest b).2.2 = eOfNat (bFold v0 vs) ∧
         ∀ k ≤ rest.length, BytePtr bb (σ' (.n (fbPtr b k)))) := by

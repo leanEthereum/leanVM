@@ -8,8 +8,8 @@ after `guest-core` (`regen-guest.sh`, step `vt`):
 
 The generators run in a scratch mirror of `Tables/` (the body dumped by `dump.py` there, nothing
 left in this directory), in dependency order; `--check` writes nothing and fails naming each stale
-module. A module written whole gets a "do not edit" line in its header; four modules are partly
-written (the data definitions of `Vt/FormsData`, `Vt/FormsPad`, `Vt/EvalsT` and `VtC/FData`).
+module. A module written whole gets a "do not edit" line in its header; three modules are partly
+written (the data definitions of `Vt/FormsData`, `Vt/FormsPad` and `Vt/EvalsT`).
 The generators read the body at fixed statement positions, so a change to `verify_tables` itself
 is a change to them.
 """
@@ -26,7 +26,7 @@ JOBS = [
     (['gendiff.py'], ['Vt/FormsDiff'], None),
     (['genbterms.py'], [], None),
     (['genevals.py'], [], None),
-    (['genfdata.py'], [], None),
+    (['genfdata.py'], ['VtC/FDataD'], None),
     (['gensel.py'], ['Vt/SelBlocks'], None),
     (['genshared.py'], ['Vt/SharedT'], None),
     (['gensort.py'], ['Vt/SortT'], None),
@@ -44,7 +44,7 @@ JOBS = [
     (['genbglue.py'], [], 'VtC/BGlueGen'),
     (['genstores.py'], [], 'VtC/Stores'),
 ]
-PARTLY = ['Vt/FormsData', 'Vt/FormsPad', 'Vt/EvalsT', 'VtC/FData']
+PARTLY = ['Vt/FormsData', 'Vt/FormsPad', 'Vt/EvalsT']
 
 
 def noted(text):

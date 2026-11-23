@@ -14,7 +14,7 @@ public import LeanVM.Guest.AcceptableChild
 public import LeanVM.Guest.B1.Main.Plan
 public import LeanVM.Guest.GuestConst
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
-import LeanVM.Guest.Data.Source
+import LeanVM.Guest.Data.Consts
 
 /-!
 # The nodes within the deployed limits
@@ -55,9 +55,9 @@ theorem shapes_sum_le {ps : List (ℕ × ℕ)} (f : ℕ → ℕ → ℕ) {M : �
   rwa [List.length_map, smul_eq_mul] at h
 
 /-- `verify_sub`'s instructions of each opcode at the largest opening arm. -/
-def childMax : Opcode → ℕ
-  | .xor => 98091 | .mulNative => 181054 | .setConstant => 49823 | .deref => 104791
-  | .jump => 35720 | .keccak => 10983
+noncomputable def childMax : Opcode → ℕ
+  | .xor => cmXor | .mulNative => cmMul | .setConstant => cmSet | .deref => cmDeref
+  | .jump => cmJump | .keccak => cmKeccak
 
 theorem childShape_le_childMax (op : Opcode) (μ r : ℕ) :
     (Count.deployedInstrs op).childShape μ r ≤ childMax op := by
@@ -119,10 +119,10 @@ theorem words_le (hlim : DeployedLimits s w) :
   obtain ⟨e1, e2, e3, e4, e5, e6, e7, e8, e9, e10⟩ := work_fields hlim
   obtain ⟨d1, d2, d3⟩ := da_le hlim
   have := declared_le hlim; have := coverageSlots_le hlim
-  have := hlim.atMostSixteenChildren; have := hlim.atMost2Pow17ChildClaims
+  have := hlim.children_le_sixteen; have := hlim.atMost2Pow17ChildClaims
   have := hlim.atMost2048Xmss; have := hlim.atMost512Sphincs
   have hb := shapes_sum_le (ps := (work s w).childShapes) deployedBvAt deployedBvAt_le
-  simp only [End.Linear.eval, Count.deployedWords]
+  simp only [End.Linear.eval, Count.deployedWords, deployedBvMax] at hb ⊢
   omega
 
 /-- **The deployed budget's instructions of each opcode at the caps**, a child charged at the
@@ -132,12 +132,13 @@ theorem instrs_le (hlim : DeployedLimits s w) (op : Opcode) :
   obtain ⟨e1, e2, e3, e4, e5, e6, e7, e8, e9, e10⟩ := work_fields hlim
   obtain ⟨d1, d2, d3⟩ := da_le hlim
   have := declared_le hlim; have := coverageSlots_le hlim
-  have := hlim.atMostSixteenChildren; have := hlim.atMost2Pow17ChildClaims
+  have := hlim.children_le_sixteen; have := hlim.atMost2Pow17ChildClaims
   have := hlim.atMost2048Xmss; have := hlim.atMost512Sphincs
   have hb := shapes_sum_le (ps := (work s w).childShapes) (Count.deployedInstrs op).childShape
     (childShape_le_childMax op)
   cases op <;>
-    simp only [End.Linear.eval, Count.deployedInstrs, childMax, instrLog] at hb ⊢ <;>
+    simp only [End.Linear.eval, Count.deployedInstrs, childMax, cmXor, cmMul, cmSet, cmDeref, cmJump, cmKeccak,
+      instrLog] at hb ⊢ <;>
     omega
 
 /-- **The deployed budget's size at the caps is at most `2^30`.** -/

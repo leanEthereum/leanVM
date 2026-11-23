@@ -13,6 +13,8 @@ public import LeanVM.Guest.B1.Da.Verify
 public import LeanVM.Guest.B1.Sig.SphincsSound
 public import LeanVM.Guest.B1.VerifySub.Interface
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«main»
 
 /-!
 # `main`, its witness decoded from the frame map, the leanXMSS reader a parameter
@@ -37,7 +39,7 @@ open LeanVM.Guest.B1.Digest LeanVM.Node
 noncomputable def decWitVX (sigOf : Val → LeanXmss.Signature) (σ : Val) (rd : Reader)
     (V : FrameMap) (piOf : Reader → Val → FrameMap → Proof) : NodeWitness :=
   decWit σ rd (fun args => sigOf (V name% «main_loop2» args []))
-    (fun p => Sig.sphincsSigOf (V "verify_sig_lean_sphincs" [p, σ (.n 47)] []) V)
+    (fun p => Sig.sphincsSigOf (V "verify_sig_lean_sphincs" [p, σ (.n (val% «main» "byte_bits"))] []) V)
     (fun args rets => Da.dvWit (V "da_verify" args rets) V)
     (fun args => piOf rd (V "verify_sub" args []) V)
     (fun args => aggHints rd (V "aggregate_claims" args []))
@@ -85,9 +87,9 @@ theorem main_sound_VX {bytecode : List K} {piOf : Reader → Val → FrameMap �
     exact ho hbb
   · intro rets h hcw
     obtain ⟨hp, hbd⟩ := body_ofV hV Da.find_da_verify h
-    have hp0 : V "da_verify" [σ (.n 47)] rets (.n 0) = σ (.n 47) := by
-      have e : (fn% «da_verify»).params.map (V "da_verify" [σ (.n 47)] rets) =
-          [V "da_verify" [σ (.n 47)] rets (.n 0)] := rfl
+    have hp0 : V "da_verify" [σ (.n (val% «main» "byte_bits"))] rets (.n 0) = σ (.n (val% «main» "byte_bits")) := by
+      have e : (fn% «da_verify»).params.map (V "da_verify" [σ (.n (val% «main» "byte_bits"))] rets) =
+          [V "da_verify" [σ (.n (val% «main» "byte_bits"))] rets (.n 0)] := rfl
       rw [e] at hp
       simpa using hp
     exact Da.da_verify_sound_w hV hle hm (by rw [hp0]; exact hcw) hbd

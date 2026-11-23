@@ -11,6 +11,8 @@ public import LeanVM.Guest.B1.Main.Loops
 public import LeanVM.Guest.Memory.LiftPure
 public import LeanVM.Guest.B1.Sig.Interface
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«main_loop3»
 
 /-!
 # `main_loop3`'s body
@@ -29,16 +31,16 @@ open LeanVM.Guest.B1.Digest
 
 /-- `main_loop3`'s statements before its `ret []`. -/
 def l4Pre : List Stmt :=
-  [.atom (.hint (.witness "sp_raw_index" (.stack [.n 7]))),
-    .atom (.const (.n 8) (word 9223372036854775821 0)), .atom (.mul (.n 9) (.n 2) (.n 8)),
-    .atom (.rangeCheck (.n 7) (.n 10) (.n 11) (.n 12) (.n 9)), .atom (.mul (.n 13) (.n 4) (.n 0)),
-    .atom (.mul (.n 14) (.n 3) (.n 7)), .atom (.load (.n 13) (.n 14) 0),
-    .atom (.mul (.n 15) (.n 7) (.n 7)), .atom (.mul (.n 16) (.n 15) (.n 15)),
-    .atom (.mul (.n 17) (.n 5) (.n 16)),
-    .call "verify_sig_lean_sphincs" [.n 17, .n 6] [], .atom (.const (.n 18) (word 2 0)),
-    .atom (.mul (.n 19) (.n 0) (.n 18)), .atom (.add (.n 20) (.n 19) (.n 1)),
-    .atom (.const (.n 21) (word 2 0)), .atom (.mul (.n 22) (.n 0) (.n 21)),
-    .callIf (.n 20) name% «main_loop3» [.n 22, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6]]
+  [.atom (.hint (.witness "sp_raw_index" (.stack [.n (val% «main_loop3» "off_hint")]))),
+    .atom (.const (.n (val% «main_loop3» "s1#0")) (word 9223372036854775821 0)), .atom (.mul (.n (val% «main_loop3» "s1#1")) (.n (val% «main_loop3» "lean_sphincs_slots_g")) (.n (val% «main_loop3» "s1#0"))),
+    .atom (.rangeCheck (.n (val% «main_loop3» "off_hint")) (.n (val% «main_loop3» "s1#2")) (.n (val% «main_loop3» "s1#3")) (.n (val% «main_loop3» "s1#4")) (.n (val% «main_loop3» "s1#1"))), .atom (.mul (.n (val% «main_loop3» "s2#0")) (.n (val% «main_loop3» "n_raw_x_g")) (.n (val% «main_loop3» "xj"))),
+    .atom (.mul (.n (val% «main_loop3» "s2#1")) (.n (val% «main_loop3» "sp_cover")) (.n (val% «main_loop3» "off_hint"))), .atom (.load (.n (val% «main_loop3» "s2#0")) (.n (val% «main_loop3» "s2#1")) 0),
+    .atom (.mul (.n (val% «main_loop3» "s3#0")) (.n (val% «main_loop3» "off_hint")) (.n (val% «main_loop3» "off_hint"))), .atom (.mul (.n (val% «main_loop3» "s3#1")) (.n (val% «main_loop3» "s3#0")) (.n (val% «main_loop3» "s3#0"))),
+    .atom (.mul (.n (val% «main_loop3» "s3#2")) (.n (val% «main_loop3» "lean_sphincs_table")) (.n (val% «main_loop3» "s3#1"))),
+    .call "verify_sig_lean_sphincs" [.n (val% «main_loop3» "s3#2"), .n (val% «main_loop3» "byte_bits")] [], .atom (.const (.n (val% «main_loop3» "s5#0")) (word 2 0)),
+    .atom (.mul (.n (val% «main_loop3» "s5#1")) (.n (val% «main_loop3» "xj")) (.n (val% «main_loop3» "s5#0"))), .atom (.add (.n (val% «main_loop3» "s5#2")) (.n (val% «main_loop3» "s5#1")) (.n (val% «main_loop3» "bound"))),
+    .atom (.const (.n (val% «main_loop3» "s5#3")) (word 2 0)), .atom (.mul (.n (val% «main_loop3» "s5#4")) (.n (val% «main_loop3» "xj")) (.n (val% «main_loop3» "s5#3"))),
+    .callIf (.n (val% «main_loop3» "s5#2")) name% «main_loop3» [.n (val% «main_loop3» "s5#4"), .n (val% «main_loop3» "bound"), .n (val% «main_loop3» "lean_sphincs_slots_g"), .n (val% «main_loop3» "sp_cover"), .n (val% «main_loop3» "n_raw_x_g"), .n (val% «main_loop3» "lean_sphincs_table"), .n (val% «main_loop3» "byte_bits")]]
 
 set_option maxRecDepth 100000 in
 theorem l4_body : Fn.body (coreProgram.getD idx% «main_loop3» default) = l4Pre ++ [.ret []] :=
@@ -46,7 +48,7 @@ theorem l4_body : Fn.body (coreProgram.getD idx% «main_loop3» default) = l4Pre
 
 set_option maxRecDepth 100000 in
 theorem l4_params : (coreProgram.getD idx% «main_loop3» default).params =
-    [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] := by
+    [.n (val% «main_loop3» "xj"), .n (val% «main_loop3» "bound"), .n (val% «main_loop3» "lean_sphincs_slots_g"), .n (val% «main_loop3» "sp_cover"), .n (val% «main_loop3» "n_raw_x_g"), .n (val% «main_loop3» "lean_sphincs_table"), .n (val% «main_loop3» "byte_bits")] := by
   decide +kernel
 
 set_option maxRecDepth 100000 in

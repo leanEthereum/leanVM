@@ -1,4 +1,5 @@
-//! The entry point that proves one node of an aggregation tree.
+//! The entry point that proves one node of an aggregation tree. The witness streams it pushes, and their order, are
+//! transcribed in Lean as `formal/Statement/LeanVmGuestProver.lean`'s `honestPushes`: a change here lands there too.
 
 use super::cells::count;
 use super::child::gen_verify;
@@ -252,9 +253,10 @@ pub fn aggregate<P: Prover>(
             vec![from_scalar(verifier::da::membership_challenge(&commitment))],
         );
         hints.push("da_n_blobs", vec![count(matrix.n_blobs())]);
-        // Padding rows are constants the guest bakes, so only the real rows' symbols ride the stream.
-        for j in 0..CELLS_PER_ROW {
-            for cell in matrix.column(j).expect("a column below CELLS_PER_ROW") {
+        // Padding rows are constants the guest bakes, so only the real rows' symbols ride the stream, blob by blob.
+        for i in 0..matrix.n_blobs() {
+            for j in 0..CELLS_PER_ROW {
+                let cell = matrix.cell(i, j).expect("a cell of a blob below n_blobs");
                 hints.push("da_symbols", cell.iter().map(|&w| F128::from(w)).collect());
             }
         }

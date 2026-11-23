@@ -8,6 +8,8 @@
 module
 
 public import LeanVM.Guest.B1.Sig.SpWotsArms
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«sp_wots»
 
 /-!
 # `sp_wots`'s template, checked
@@ -26,7 +28,7 @@ open LeanVM.Guest LeanVM.Guest.Core LeanVM.Parameters LeanVM.Guest.Value LeanVM.
 /-- The slot of chain `i`'s last step, in its group. -/
 def spTip (i : Nat) : V := .n (spSlot (i / 3 == 0) (spState (i / 3)).2.2 (i % 3) 2)
 
-theorem spLeafCells_eq : spLeafCells = .n 0 :: .n 1 :: .n (spC + 2) :: (List.range 64).map spTip := by
+theorem spLeafCells_eq : spLeafCells = .n (val% «sp_wots» "pp") :: .n (val% «sp_wots» "a0") :: .n (spC + 2) :: (List.range 64).map spTip := by
   decide +kernel
 
 /-- `g^128`, the target sum in the exponent. -/

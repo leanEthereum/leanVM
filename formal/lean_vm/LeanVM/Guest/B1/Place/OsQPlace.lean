@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.B1.Place.OsSqGroup
 public import LeanVM.Guest.B1.Opening.QueriesPlacedAll
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«decode_query_windows__L»
 
 /-!
 # A level's queries, placed
@@ -34,13 +36,13 @@ open LeanVM.Guest.B1.Whir
 /-- Query `k`'s windows in the level's group at `p`: decoder `k / per`'s run at position
 `k % per`. -/
 def sqEb (fs : String → ℕ) (cert : String → V → ℕ) (lv : OsLv) (L : String) (n p k : ℕ) : ℕ :=
-  sqDecPos fs lv L n p (k / sqPer lv) + cert (sqDecName lv) (.n 5) +
+  sqDecPos fs lv L n p (k / sqPer lv) + cert (sqDecName lv) (.n (valf% «decode_query_windows» "wins[0]")) +
     (k % sqPer lv) * qwN lv.depth lv.capDepth
 
 /-- Decoder `j`'s run is one of the group's. -/
 theorem sqGroupRuns_mem {fs : String → ℕ} {cert : String → V → ℕ} {lv : OsLv} {L : String}
     {n p : ℕ} {w : ℕ → E} {j : ℕ} (hj : j < n) :
-    (sqDecPos fs lv L n p j + cert (sqDecName lv) (.n 5),
+    (sqDecPos fs lv L n p j + cert (sqDecName lv) (.n (valf% «decode_query_windows» "wins[0]")),
       qwRunList lv.depth lv.capDepth (w j)) ∈ sqGroupRuns fs cert lv L n p w := by
   unfold sqGroupRuns
   rcases j with _ | j

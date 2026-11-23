@@ -134,8 +134,8 @@ theorem kidsB_sum (D : VkData) (fs : String → ℕ) (KC KP KR KO KI : ℕ) :
   omega
 
 /-- **Every call is entered: the callees' words are at most the bounds' sum.** -/
-theorem kids_boundB (B curE chiE olE zvE slE tbE KC KP KR KO KI : ℕ) :
-    kidsGBound fs (D.kids fs B curE chiE olE zvE slE tbE) (D.kidsB fs KC KP KR KO KI) ≤
+theorem kids_boundB (B curE chiE olE zvE slE tbE stE KC KP KR KO KI : ℕ) :
+    kidsGBound fs (D.kids fs B curE chiE olE zvE slE tbE stE) (D.kidsB fs KC KP KR KO KI) ≤
       (D.kidsB fs KC KP KR KO KI).sum := by
   refine kidsGBound_le_sum _ _ fun k hk ↦ ?_
   simp only [kids, List.mem_append, List.mem_cons, List.mem_map, List.mem_range,
@@ -146,7 +146,7 @@ theorem kids_boundB (B curE chiE olE zvE slE tbE KC KP KR KO KI : ℕ) :
 at most `KC` words per iteration, the layers' eight-round loops `KP` and remainder loops `KR` (each
 loop's run and its one phantom frame), the openings' rounds `KO` (`plainName 0`) and `KI`
 (`plainName 1`). -/
-theorem kids_completeB (h : D.Ok) {κ : ℕ} (hκ : 11 ≤ κ) (B curE chiE olE zvE slE tbE : ℕ)
+theorem kids_completeB (h : D.Ok) {κ : ℕ} (hκ : 11 ≤ κ) (B curE chiE olE zvE slE tbE stE : ℕ)
     {KC KP KR KO KI : ℕ}
     (hC : ∀ name ∈ [name% «verify_keccak_loop0», name% «verify_keccak_loop1»,
         name% «verify_keccak_loop2»],
@@ -157,7 +157,7 @@ theorem kids_completeB (h : D.Ok) {κ : ℕ} (hκ : 11 ≤ κ) (B curE chiE olE 
       fun a ↦ logG (a.getD 1 0) * KR + fs (remLoopName first))
     (hO : TotalLe coreProgram fs (plainName 0) fun _ ↦ KO)
     (hI : TotalLe coreProgram fs (plainName 1) fun _ ↦ KI) :
-    KidsGB fs cert κ (D.kids fs B curE chiE olE zvE slE tbE) (D.kidsB fs KC KP KR KO KI) := by
+    KidsGB fs cert κ (D.kids fs B curE chiE olE zvE slE tbE stE) (D.kidsB fs KC KP KR KO KI) := by
   have hτ1 := h.1
   have hτ2 := h.2.1
   have hchis := h.2.2.1
@@ -186,7 +186,7 @@ theorem kids_completeB (h : D.Ok) {κ : ℕ} (hκ : 11 ≤ κ) (B curE chiE olE 
     have H := layer_completeAtFB (fs := fs) (cert := cert) (first := firstOf s)
       hf2 hκ (D.layer s)
       (D.CL B (D.lsOf fs ps) s) (curE + D.lcur s) (B + D.o201 + 22 * (s + 1)) tbE
-      (p0 := (D.cells s).1) (p1 := (D.cells s).2) (hP _ hf2) (hR _ hf2) hcl (fun hf1 ↦ by
+      (p0 := (D.cells s).1) (p1 := (D.cells s).2) (st := ptr stE) (hP _ hf2) (hR _ hf2) hcl (fun hf1 ↦ by
         obtain rfl : s = 0 := by unfold firstOf at hf1; split at hf1 <;> omega
         rfl) (by rw [hy]; omega) (by rw [hy]; omega) hpl hpm hlm hproj hgr hfin
       (D.CL_ok h B _ (by omega))

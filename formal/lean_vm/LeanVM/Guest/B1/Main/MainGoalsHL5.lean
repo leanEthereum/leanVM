@@ -61,7 +61,8 @@ variable {s : NodeStatement} {w : NodeWitness}
 theorem kid_hMarkX_child {c j : ℕ} (hc : c < w.children.length)
     (hj : j < w.children[c].statement.claims.xmss.length) :
     hMarkX s w (base (w.xmssSignatures.map (·.1))
-      (w.children.map (·.statement.claims.xmss)) c + j) = hW s w c + j := by
+      (w.children.map (·.statement.claims.xmss)) c + j) =
+        hW s w c + (if hMonoX s w c then 0 else j) := by
   have e := kid_segOf_sum (w.children.map (·.statement.claims.xmss.length)) c j (by simpa using hc)
     (by simpa using hj)
   unfold hMarkX base
@@ -72,7 +73,8 @@ theorem kid_hMarkX_child {c j : ℕ} (hc : c < w.children.length)
 theorem kid_hMarkS_child {c j : ℕ} (hc : c < w.children.length)
     (hj : j < w.children[c].statement.claims.sphincs.length) :
     hMarkS s w (base (w.sphincsSignatures.map (·.1))
-      (w.children.map (·.statement.claims.sphincs)) c + j) = hW s w c + hEx w c + j := by
+      (w.children.map (·.statement.claims.sphincs)) c + j) =
+        hW s w c + hEx w c + (if hMonoS s w c then 0 else j) := by
   have e := kid_segOf_sum (w.children.map (·.statement.claims.sphincs.length)) c j (by simpa using hc)
     (by simpa using hj)
   unfold hMarkS base

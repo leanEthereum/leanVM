@@ -4,6 +4,7 @@
 //! verifier's field elements; [`g_pow`] is the g-power a bytecode operand or index holds. Each prover tree implements [`Prover`]. [`pretty_integer`] and [`pretty_f64`] format the
 //! counts the compiler, provers and benchmarks print.
 
+mod export_hints;
 mod pretty;
 mod program;
 mod prover;
@@ -181,20 +182,24 @@ pub enum BitsDest {
 pub enum RHint {
     /// Announce a pointer into a reserved run of frames.
     FrameAddress { offset: Off },
-    /// Reserve `log_g(m[end] * start_inverse)` consecutive frames of `size` cells,
-    /// then the `tail` cells the final, untaken call writes of one more.
+    /// Reserve `log_g(m[end] * start_inverse) + 1` consecutive frames of `size` cells, the last
+    /// the final, untaken call's.
     AllocFrames {
         ptr: Off,
         size: u32,
         end: Off,
         start_inverse: K,
-        tail: u32,
     },
     /// Allocate a fresh region of `size` cells and write `g^{base}` to the cell.
     Alloc { ptr: Off, size: u32 },
     /// `Alloc` with the cell count read at runtime as the g-power exponent of
     /// `m[fp+size]`.
     AllocDyn { ptr: Off, size: Off },
+    /// `Alloc` of `sizes[k]` cells, where `m[fp+sel] = g^k`: a dispatched call's frame, sized
+    /// by the arm it selects.
+    AllocArm { ptr: Off, sel: Off, sizes: Vec<u32> },
+    /// Write the address of frame cell `cell`, `g^{fp+cell}`, to `fp+ptr`.
+    CellAddress { ptr: Off, cell: Off },
     /// Pop stream `name`'s next entry (`len` values) into frame cells `fp+base+k`.
     WitnessStack { name: String, base: Off, len: u32 },
     /// Pop stream `name`'s next entry (`len` values) into heap cells `m[fp+ptr]·g^{lo+k}`.

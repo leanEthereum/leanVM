@@ -3,7 +3,8 @@
 #
 # Builds only the staticlib crate type: built alongside the cdylib and rlib, the archive is larger.
 # universal2-apple-darwin is built per architecture and combined with lipo, so it needs a macOS
-# host.
+# host. The staged archive holds no LLVM bitcode, which Go's cgo refuses (strip-archive.sh), so it
+# needs rustup's llvm-tools (`rustup component add llvm-tools`).
 set -eu
 
 if [ "$#" -ne 2 ]; then
@@ -36,3 +37,4 @@ else
     build_static "$rust_target"
     install -m 0644 "$target_dir/$rust_target/release/liblean_pq_native.a" "$archive_dir/liblean_pq_native.a"
 fi
+sh "$script_dir/strip-archive.sh" "$archive_dir/liblean_pq_native.a"

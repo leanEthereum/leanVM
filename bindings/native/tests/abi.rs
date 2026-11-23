@@ -73,6 +73,48 @@ fn native_abi_signs_verifies_and_aggregates() {
             let mut error = LpqBuffer::default();
             assert_eq!(lpq_last_error(&mut error), OK);
             assert!(!take(error).is_empty());
+
+            // The key loads from its seed and its tree cache, and signs the same.
+            let mut buffer = LpqBuffer::default();
+            assert_eq!(
+                lpq_xmss_secret_key_cache_to_bytes(xmss_key, &mut buffer),
+                OK
+            );
+            let cache = take(buffer);
+            let mut loaded = ptr::null_mut();
+            assert_eq!(
+                lpq_xmss_secret_key_from_cache_bytes(
+                    [7; 32].as_ptr(),
+                    32,
+                    xmss_pk.as_ptr(),
+                    xmss_pk.len(),
+                    cache.as_ptr(),
+                    cache.len(),
+                    &mut loaded
+                ),
+                OK
+            );
+            let mut buffer = LpqBuffer::default();
+            assert_eq!(
+                lpq_xmss_secret_key_sign(loaded, message.as_ptr(), 32, 5, &mut buffer),
+                OK
+            );
+            assert_eq!(take(buffer), xmss_sig);
+            lpq_xmss_secret_key_destroy(loaded);
+            let mut rejected = ptr::null_mut();
+            assert_eq!(
+                lpq_xmss_secret_key_from_cache_bytes(
+                    [7; 32].as_ptr(),
+                    32,
+                    xmss_pk.as_ptr(),
+                    xmss_pk.len(),
+                    cache.as_ptr(),
+                    cache.len() - 1,
+                    &mut rejected
+                ),
+                ERROR
+            );
+            assert!(rejected.is_null());
             lpq_xmss_secret_key_destroy(xmss_key);
 
             // leanSPHINCS
@@ -203,4 +245,70 @@ fn native_abi_signs_verifies_and_aggregates() {
         .expect("test thread starts")
         .join()
         .expect("test thread completes");
+}
+
+#[test]
+fn native_abi_reveals_and_verifies_vrf_proofs() {
+    unsafe {
+        let seed = [9u8; 32];
+        let mut key = ptr::null_mut();
+        assert_eq!(lpq_vrf_key_new(seed.as_ptr(), 32, 5, 5, &mut key), ERROR);
+        assert_eq!(lpq_vrf_key_new(seed.as_ptr(), 32, 100, 200, &mut key), OK);
+
+        let mut buffer = LpqBuffer::default();
+        assert_eq!(lpq_vrf_key_root(key, &mut buffer), OK);
+        let root = take(buffer);
+        let mut buffer = LpqBuffer::default();
+        assert_eq!(lpq_vrf_key_proof(key, 99, &mut buffer), ERROR);
+        assert_eq!(lpq_vrf_key_proof(key, 150, &mut buffer), OK);
+        let proof = take(buffer);
+        assert_eq!(proof.len(), lean_pq::vrf::PROOF_LEN);
+        let mut buffer = LpqBuffer::default();
+        assert_eq!(lpq_vrf_key_cache_to_bytes(key, &mut buffer), OK);
+        let cache = take(buffer);
+        lpq_vrf_key_destroy(key);
+
+        let mut key = ptr::null_mut();
+        assert_eq!(
+            lpq_vrf_key_from_cache_bytes(
+                seed.as_ptr(),
+                32,
+                [0; 32].as_ptr(),
+                32,
+                cache.as_ptr(),
+                cache.len(),
+                &mut key
+            ),
+            ERROR
+        );
+        assert_eq!(
+            lpq_vrf_key_from_cache_bytes(
+                seed.as_ptr(),
+                32,
+                root.as_ptr(),
+                32,
+                cache.as_ptr(),
+                cache.len(),
+                &mut key
+            ),
+            OK
+        );
+        let mut buffer = LpqBuffer::default();
+        assert_eq!(lpq_vrf_key_root(key, &mut buffer), OK);
+        assert_eq!(take(buffer), root);
+        lpq_vrf_key_destroy(key);
+
+        assert_eq!(
+            lpq_vrf_verify(root.as_ptr(), 32, 150, proof.as_ptr(), proof.len()),
+            OK
+        );
+        assert_eq!(
+            lpq_vrf_verify(root.as_ptr(), 32, 151, proof.as_ptr(), proof.len()),
+            ERROR
+        );
+        assert_eq!(
+            lpq_vrf_verify(root.as_ptr(), 32, 150, proof.as_ptr(), 32),
+            ERROR
+        );
+    }
 }

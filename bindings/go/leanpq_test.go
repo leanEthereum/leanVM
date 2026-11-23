@@ -1,6 +1,8 @@
 package leanpq
 
 import (
+	"bytes"
+	"encoding/hex"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -22,6 +24,9 @@ func TestEncodingLengths(t *testing.T) {
 	}
 	if xmssRecordLen != 2468 {
 		t.Fatalf("leanXMSS record length = %d, want 2468", xmssRecordLen)
+	}
+	if got := len(VrfProof{}); got != 1024 {
+		t.Fatalf("VRF proof length = %d, want 1024", got)
 	}
 }
 
@@ -53,6 +58,55 @@ func TestSignAndVerify(t *testing.T) {
 	}
 	if SphincsVerify(sphincsPublicKey, other, sphincsSignature) == nil {
 		t.Fatal("leanSPHINCS signature must not verify under another message")
+	}
+}
+
+func TestXmssKeyLoadsFromItsTreeCache(t *testing.T) {
+	message := bytes32(7)
+	seed := bytes32(8)
+
+	key := mustXmssKey(t, seed)
+	if err := key.Prepare(3); err != nil {
+		t.Fatal(err)
+	}
+	cache, err := key.CacheBytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	publicKey := mustXmssPublicKey(t, key)
+	loaded, err := XmssSecretKeyFromCacheBytes(seed, publicKey, cache)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer loaded.Close()
+	if mustXmssPublicKey(t, loaded) != publicKey {
+		t.Fatal("loaded leanXMSS key must keep its public key")
+	}
+	want, err := key.Sign(message, 3)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := loaded.Sign(message, 3)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != want {
+		t.Fatal("loaded leanXMSS key must sign as the original")
+	}
+	if err := XmssVerify(publicKey, message, got); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := XmssSecretKeyFromCacheBytes(seed, publicKey, cache[1:]); err == nil {
+		t.Fatal("a cache of another length must be rejected")
+	}
+	tampered := append([]byte(nil), cache...)
+	tampered[0] ^= 1
+	if _, err := XmssSecretKeyFromCacheBytes(seed, publicKey, tampered); err == nil {
+		t.Fatal("a tampered cache must be rejected")
+	}
+	otherKey := mustXmssPublicKey(t, mustXmssKey(t, bytes32(9)))
+	if _, err := XmssSecretKeyFromCacheBytes(seed, otherKey, cache); err == nil {
+		t.Fatal("a cache under another key's public key must be rejected")
 	}
 }
 
@@ -104,6 +158,104 @@ func TestSecretKeysRoundTripThroughBytes(t *testing.T) {
 	}
 	if err := SphincsVerify(sphincsPublicKey, message, sphincsSignature); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestVrf(t *testing.T) {
+	key, err := VrfKeyFromSeed(bytes32(9), 100, 200)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer key.Close()
+	root, err := key.Root()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Pinned across the bindings.
+	if got, want := hex.EncodeToString(root[:]), "c7e3eaa5a1af5e528e56beb589b4d1c579f5fb8939ddd7f6b1ce2141bc096b45"; got != want {
+		t.Fatalf("VRF root = %s, want %s", got, want)
+	}
+	proof, err := key.Proof(150)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := VrfVerify(root, 150, proof); err != nil {
+		t.Fatalf("VRF proof must verify: %v", err)
+	}
+	if VrfVerify(root, 151, proof) == nil {
+		t.Fatal("VRF proof must not verify at another slot")
+	}
+	for _, slot := range []uint32{100, 199} {
+		other, err := key.Proof(slot)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := VrfVerify(root, uint64(slot), other); err != nil {
+			t.Fatalf("VRF proof for slot %d must verify: %v", slot, err)
+		}
+	}
+
+	for _, slot := range []uint32{99, 200} {
+		if _, err := key.Proof(slot); err == nil {
+			t.Fatalf("slot %d outside the range must be rejected", slot)
+		}
+	}
+	for _, slots := range [][2]uint32{{100, 100}, {200, 100}, {0, 1<<31 + 1}} {
+		if wrong, err := VrfKeyFromSeed(bytes32(9), slots[0], slots[1]); err == nil {
+			wrong.Close()
+			t.Fatalf("VRF range %d..%d must be rejected", slots[0], slots[1])
+		}
+	}
+
+	key.Close()
+	if _, err := key.Proof(150); err == nil {
+		t.Fatal("a closed VRF key must be rejected")
+	}
+	if _, err := key.Root(); err == nil {
+		t.Fatal("a closed VRF key must be rejected")
+	}
+}
+
+func TestVrfKeyLoadsFromItsCache(t *testing.T) {
+	key, err := VrfKeyFromSeed(bytes32(9), 100, 200)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer key.Close()
+	cache, err := key.CacheBytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var root [32]byte
+	if _, err := hex.Decode(root[:], []byte("c7e3eaa5a1af5e528e56beb589b4d1c579f5fb8939ddd7f6b1ce2141bc096b45")); err != nil {
+		t.Fatal(err)
+	}
+	loaded, err := VrfKeyFromCacheBytes(bytes32(9), root, cache)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer loaded.Close()
+	again, err := loaded.CacheBytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(again, cache) {
+		t.Fatal("the VRF cache must round-trip")
+	}
+	proof, err := loaded.Proof(150)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := VrfVerify(root, 150, proof); err != nil {
+		t.Fatalf("a proof of the loaded VRF key must verify: %v", err)
+	}
+	if wrong, err := VrfKeyFromCacheBytes(bytes32(9), root, cache[:len(cache)-1]); err == nil {
+		wrong.Close()
+		t.Fatal("a truncated VRF cache must be rejected")
+	}
+	if wrong, err := VrfKeyFromCacheBytes(bytes32(9), [32]byte{}, cache); err == nil {
+		wrong.Close()
+		t.Fatal("a VRF cache must be rejected under another root")
 	}
 }
 

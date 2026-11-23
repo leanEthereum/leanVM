@@ -8,6 +8,10 @@ module
 
 public import LeanVM.Guest.B1.KeccakGkr.CopyLoop
 public import LeanVM.Guest.B1.KeccakGkr.RecIn
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_keccak_loop0»
+import LeanVM.Guest.Data.ValNames.«verify_keccak_loop1»
+import LeanVM.Guest.Data.ValNames.«verify_keccak_loop2»
 
 /-!
 # The copy loops, completely
@@ -47,7 +51,7 @@ noncomputable def copyStepσ (x N dst src v : E) : Val :=
 
 /-- **One iteration on its loads' region**, the next one (if any) given. -/
 theorem copyLoop_relIn_step {name : String} {fn : Fn} (hf : coreProgram.find? name = some fn)
-    (hb : fn.body = copyLoopT name) (hpar : fn.params = [.n 0, .n 1, .n 2, .n 3])
+    (hb : fn.body = copyLoopT name) (hpar : fn.params = [.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "xt"), .n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "bound"), .n 2, .n 3])
     {rd : Reader} {R : ℕ → Prop} {dst src : E} {m k : ℕ} (hk : k < m)
     (hcp : ∃ v, LoadHolds rd (src * gen ^ k) 0 v ∧ LoadHolds rd (dst * gen ^ k) 0 v)
     (hR : InR R (src * gen ^ k) 0 ∧ InR R (dst * gen ^ k) 0)
@@ -65,16 +69,16 @@ theorem copyLoop_relIn_step {name : String} {fn : Fn} (hf : coreProgram.find? na
       List.append_nil, slEvs, List.cons_append, List.nil_append, List.mem_cons,
       List.not_mem_nil, or_false] at he
     rcases he with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
-    · show σ (.n 4) = σ (.n 3) * σ (.n 0); rfl
-    · show LoadHolds rd (σ (.n 4)) 0 (σ (.n 5)); exact hs
-    · show σ (.n 6) = σ (.n 2) * σ (.n 0); rfl
-    · show LoadHolds rd (σ (.n 6)) 0 (σ (.n 5)); exact hd
+    · show σ (.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "s0#0")) = σ (.n 3) * σ (.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "xt")); rfl
+    · show LoadHolds rd (σ (.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "s0#0"))) 0 (σ (.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "s0#1"))); exact hs
+    · show σ (.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "s0#2")) = σ (.n 2) * σ (.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "xt")); rfl
+    · show LoadHolds rd (σ (.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "s0#2"))) 0 (σ (.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "s0#1"))); exact hd
     · rfl
-    · show σ (.n 8) = σ (.n 0) * σ (.n 7); rfl
-    · show σ (.n 9) = σ (.n 8) + σ (.n 1); rfl
+    · show σ (.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "s2#1")) = σ (.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "xt")) * σ (.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "s2#0")); rfl
+    · show σ (.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "s2#2")) = σ (.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "s2#1")) + σ (.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "bound")); rfl
     · rfl
-    · show σ (.n 11) = σ (.n 0) * σ (.n 10); rfl
-    · show IsInK (σ (.n 9))
+    · show σ (.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "s2#4")) = σ (.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "xt")) * σ (.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "s2#3")); rfl
+    · show IsInK (σ (.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "s2#2")))
       show IsInK (gen ^ k * word 2 0 + gen ^ m)
       rw [e2, ← pow_succ]
       exact isInK_add (gen_pow_isInK _) (gen_pow_isInK _)
@@ -100,7 +104,7 @@ theorem copyLoop_relIn_step {name : String} {fn : Fn} (hf : coreProgram.find? na
 
 /-- **A copy loop runs on its loads' region** from `x = 1`, with `N = g^m`. -/
 theorem copyLoop_relIn {name : String} {fn : Fn} (hf : coreProgram.find? name = some fn)
-    (hb : fn.body = copyLoopT name) (hpar : fn.params = [.n 0, .n 1, .n 2, .n 3])
+    (hb : fn.body = copyLoopT name) (hpar : fn.params = [.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "xt"), .n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "bound"), .n 2, .n 3])
     {rd : Reader} {R : ℕ → Prop} {dst src : E} {m : ℕ}
     (hcp : ∀ j < m, ∃ v, LoadHolds rd (src * gen ^ j) 0 v ∧ LoadHolds rd (dst * gen ^ j) 0 v)
     (hR : ∀ j < m, InR R (src * gen ^ j) 0 ∧ InR R (dst * gen ^ j) 0) :

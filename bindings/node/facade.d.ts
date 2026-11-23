@@ -20,8 +20,15 @@ export declare class XmssSecretKey {
   static generate(): Promise<XmssSecretKey>
   static fromSeed(seed: Buffer): Promise<XmssSecretKey>
   static fromBytes(data: Buffer): Promise<XmssSecretKey>
+  /**
+   * Loads a key from its 32-byte seed, its 32-byte public key and the bytes of `cacheToBytes()`,
+   * building no tree. The cache is checked against the public key; any other bytes reject.
+   */
+  static fromCacheBytes(seed: Buffer, publicKey: Buffer, cache: Buffer): Promise<XmssSecretKey>
   /** SECRET KEY MATERIAL: the 32-byte seed. */
   toBytes(): Buffer
+  /** The trees the key holds, without any secret. */
+  cacheToBytes(): Buffer
   get publicKey(): Buffer
   /** Builds the bottom tree `leafIndex` falls in ahead of signing there. */
   prepare(leafIndex: number): Promise<void>
@@ -47,6 +54,30 @@ export declare class SphincsSecretKey {
 
 /** Throws if `signature` is not a valid leanSPHINCS signature of `message` under `publicKey`. */
 export declare function sphincsVerify(publicKey: Buffer, message: Buffer, signature: Buffer): void
+
+/** A VRF key: a seed and its slots `[start, end)`, which fix the root, so keep both. */
+export declare class VrfKey {
+  private constructor()
+  /** Builds the key, hashing every slot. Rejects a bad seed, an empty range or one past `2^31`. */
+  static fromSeed(seed: Buffer, start: number, end: number): Promise<VrfKey>
+  /**
+   * Rebuilds a key from its seed and a cache from `cacheToBytes()`, without hashing the range.
+   * Rejects a malformed cache or one that does not lead to `root`.
+   */
+  static fromCacheBytes(seed: Buffer, root: Buffer, cache: Buffer): Promise<VrfKey>
+  /** The 32-byte root, which the validator registers. */
+  root(): Buffer
+  /** Encodes the key's cache: its range and cached layer, no secret. */
+  cacheToBytes(): Buffer
+  /** The 1024-byte proof of `slot`: its secret, then its leaf's 31 siblings. Throws outside the range. */
+  proof(slot: number): Buffer
+}
+
+/**
+ * Throws if `proof` does not open `slot` under `root`. `slot` is an integer up to
+ * `Number.MAX_SAFE_INTEGER`.
+ */
+export declare function vrfVerify(root: Buffer, slot: number, proof: Buffer): void
 
 /**
  * A recursive proof that each listed public key signed its message. Every instance has been

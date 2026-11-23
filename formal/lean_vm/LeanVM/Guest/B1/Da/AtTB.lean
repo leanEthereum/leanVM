@@ -2,8 +2,8 @@
   LeanVM.Guest.B1.Da.AtTB
 
   Helpers for `da_verify`'s bounded honest shapes (`CompleteAtDTB`, the words bounded before the
-  memory): the pure callees within their static bounds, `da_padding` within its frame, and the
-  static bounds `da_verify` rests on (`DvStaticB`).
+  memory): the pure callees within their static bounds and the static bounds `da_verify` rests on
+  (`DvStaticB`).
 
   `da_verify` checks Benedikt Wagner's LeanDA witnesses (`Da.MatrixWitness.Opens`), as ported here.
 -/
@@ -18,9 +18,8 @@ public import LeanVM.Guest.Memory.LoopPre
 public import LeanVM.Guest.B1.Da.Offsets
 public import LeanVM.Guest.B1.Main.IterK
 public import LeanVM.Guest.Data.NameStrings
-public import LeanVM.Guest.GuestConst
--- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
-import LeanVM.Guest.Data.Source
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«da_padding»
 
 /-!
 # Bounded helpers
@@ -30,7 +29,7 @@ import LeanVM.Guest.Data.Source
 run's phantom frame). `DvStaticB fs SB SK`: the static bounds `da_verify`'s completeness rests on,
 `SB g` the words of `g`, `SK g` a loop helper's words per iteration with its run's phantom frame,
 which a run charges once (`iterK fs SK g` per iteration and `fs g`). `padding_completeAtB`:
-`padding_completeAt` (same proof) within its frame.
+`da_padding` complete within its frame.
 -/
 
 namespace LeanVM.Guest.B1.Da
@@ -44,29 +43,34 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL iterK)
 
 @[expose] public section
 
-/-- **The static bounds `da_verify` rests on**: its loop helpers' runs, `iterK fs SK g` words per
-iteration and the run's phantom frame `fs g` once (`TotalLeOn … LoopPre`: the regions' bases, the
-blobs' trees, the padding, a column's cells, the column offsets' doublings), the DA levels' words
-(`TotalLe`), and the statically bounded callees `da_vector` and `da_expand__L6_L7` within their
-static words (`vecB`, a frame). -/
+/-- **A blob's cell loop's words** from its first cell: `128` iterations and its run's phantom frame. -/
+def cellB (fs SK : String → ℕ) : ℕ :=
+  128 * iterK fs SK name% «da_verify_blob_loop0» + fs name% «da_verify_blob_loop0»
+
+/-- **The static bounds `da_verify` rests on**: its pure loop helpers' runs, `iterK fs SK g` words
+per iteration and the run's phantom frame `fs g` once (`TotalLeOn … LoopPre`: the padding, the
+column offsets' doublings), a blob's cell loop and the DA levels' words (`TotalLe`: the tree over the
+blob roots and a blob's own tree), a blob loop's iteration within `iterK` (its frame, the blob's
+frame and region, its cell loop and tree), and the statically bounded callees `da_vector`,
+`da_expand__L6_L7` and `da_weights` within their static words. -/
 structure DvStaticB (fs : String → ℕ) (SB SK : String → ℕ) : Prop where
-  l17 : TotalLeOn coreProgram fs name% «da_verify_loop0» LoopPre
-    (fun a => logG (a.getD 1 0) * iterK fs SK name% «da_verify_loop0» + fs name% «da_verify_loop0»)
-  l19 : TotalLeOn coreProgram fs name% «da_verify_loop2» LoopPre
-    (fun a => logG (a.getD 1 0) * iterK fs SK name% «da_verify_loop2» + fs name% «da_verify_loop2»)
-  l20 : TotalLeOn coreProgram fs name% «da_verify_loop3» LoopPre
-    (fun a => logG (a.getD 1 0) * iterK fs SK name% «da_verify_loop3» + fs name% «da_verify_loop3»)
-  l21 : TotalLeOn coreProgram fs name% «da_verify_column_loop0» LoopPre
-    (fun a => logG (a.getD 1 0) * iterK fs SK name% «da_verify_column_loop0» + fs
-        name% «da_verify_column_loop0»)
+  pad : TotalLeOn coreProgram fs name% «da_pad_loop0» LoopPre
+    (fun a => logG (a.getD 1 0) * iterK fs SK name% «da_pad_loop0» + fs name% «da_pad_loop0»)
+  cell : TotalLeOn coreProgram fs name% «da_verify_blob_loop0» (fun a => a.getD 0 0 = 1)
+    (fun _ => cellB fs SK)
+  blob : fs name% «da_verify_loop0» + (fs "da_verify_blob" + 641 +
+    (cellB fs SK + SB "da_levels__L128_L7")) ≤
+      iterK fs SK name% «da_verify_loop0»
   off : ∀ b < 7, TotalLeOn coreProgram fs (offLoopName b) LoopPre
     (fun a => logG (a.getD 1 0) * iterK fs SK (offLoopName b) + fs (offLoopName b))
   dl : TotalLe coreProgram fs dlTop (fun _ => SB dlTop)
+  dl7 : TotalLe coreProgram fs "da_levels__L128_L7" (fun _ => SB "da_levels__L128_L7")
   vec : fs "da_vector" + 28 + (fs "da_factors__L13_L7_L0" + 128 + (fs "da_expand__L13_L7" +
     (fs "da_factors__L6_L7_L128" + 128 + (fs "da_column_offsets" + 945 +
       ((List.range 7).map fun b => 2 ^ b * iterK fs SK (offLoopName b) + fs (offLoopName b)).sum +
         0)))) ≤ SB "da_vector"
   exp : fs "da_expand__L6_L7" ≤ SB "da_expand__L6_L7"
+  ws : fs "da_weights" + 128 + 128 * fs "da_expand__L6_L7" ≤ SB "da_weights"
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
@@ -102,7 +106,7 @@ theorem padding_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) 
   obtain ⟨σ, hp, hh⟩ := (rel_iff_sem find_da_padding _ _).mp hrel
   rw [pad_split, holdsList_atoms_ret] at hh
   obtain ⟨hat, hr⟩ := hh
-  have hpar : (fn% «da_padding»).params = [.n 0] := rfl
+  have hpar : (fn% «da_padding»).params = [.n (val% «da_padding» "n_blob_g")] := rfl
   rw [hpar] at hp
   simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hp
   refine relAtIn_atoms find_da_padding pad_split pad_loop (by decide) (by rw [hpar]; simp [hp])

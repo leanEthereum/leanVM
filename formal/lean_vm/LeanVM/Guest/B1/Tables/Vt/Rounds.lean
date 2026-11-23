@@ -17,7 +17,7 @@ public import LeanVM.Guest.Data.NameStrings
 * `l10_loop`: `verify_tables_loop0` from `1` below `g^n` gives every iteration's facts, `j < n`;
 * `l10_chain`: from record `j` (capacity `cap`, cursor `cur`, claim `claim`), the remaining `k`
   rounds run `sumcheck claim 4 (replicate k none)` on the words at the cursor, to the last record,
-  their challenges stored in `chi` from its top.
+  their challenges stored in `rk` from `j`.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -28,12 +28,11 @@ open LeanVM.Protocol LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 @[expose] public section
 
 /-- **`verify_tables_loop0` from `1` below `g^n`.** -/
-theorem l10_loop {rd : Reader} {rounds tabs chi cprod : E} {n : ℕ} (hn0 : 0 < n) (hn : n < 2 ^ 62)
-    (h : coreProgram.Rel rd name% «verify_tables_loop0» [1, gen ^ n, rounds, tabs, chi, gen ^ n,
-        cprod] []) :
-    ∀ j < n, L10B rd rounds tabs chi (gen ^ n) cprod (gen ^ j) := by
+theorem l10_loop {rd : Reader} {rounds tabs rkb cprod : E} {n : ℕ} (hn0 : 0 < n) (hn : n < 2 ^ 62)
+    (h : coreProgram.Rel rd name% «verify_tables_loop0» [1, gen ^ n, rounds, tabs, rkb, cprod] []) :
+    ∀ j < n, L10B rd rounds tabs rkb cprod (gen ^ j) := by
   rw [← pow_zero gen] at h
-  obtain ⟨m, -, hN, hall⟩ := tb_loop_sound (B := L10B rd rounds tabs chi (gen ^ n) cprod)
+  obtain ⟨m, -, hN, hall⟩ := tb_loop_sound (B := L10B rd rounds tabs rkb cprod)
     (fun d x hx => l10_step d x hx) 0 h
   have hm : n ≤ m := by
     by_contra hc
@@ -48,8 +47,8 @@ theorem capAt_unique' {rd : Reader} {rec : E} {off stride : ℕ} {c1 c2 : List E
     tb_loadHolds_unique (h1.2 j hj1) (h2.2 j hj2)
 
 /-- **The rounds as a run.** -/
-theorem l10_chain {rd : Reader} {rounds tabs chi cprod : E} {n : ℕ} (hn : n < 2 ^ 30)
-    (hB : ∀ j < n, L10B rd rounds tabs chi (gen ^ n) cprod (gen ^ j)) :
+theorem l10_chain {rd : Reader} {rounds tabs rkb cprod : E} {n : ℕ} (hn : n < 2 ^ 30)
+    (hB : ∀ j < n, L10B rd rounds tabs rkb cprod (gen ^ j)) :
     ∀ k ≤ n, ∀ j, j + k = n → ∀ (cap : List E) (cur claim : E),
       CapAt rd (rounds * gen ^ (7 * j)) 0 1 cap →
       LoadHolds rd (rounds * gen ^ (7 * j)) 5 cur → LoadHolds rd (rounds * gen ^ (7 * j)) 6 claim →
@@ -59,7 +58,7 @@ theorem l10_chain {rd : Reader} {rounds tabs chi cprod : E} {n : ℕ} (hn : n < 
         CapAt rd (rounds * gen ^ (7 * n)) 0 1 capN ∧
         LoadHolds rd (rounds * gen ^ (7 * n)) 5 (cur * gen ^ (3 * k)) ∧
         LoadHolds rd (rounds * gen ^ (7 * n)) 6 claimN ∧
-        ∀ i < k, LoadHolds rd chi (n - 1 - (j + i)) (pts.getD i 0) := by
+        ∀ i < k, LoadHolds rd rkb (j + i) (pts.getD i 0) := by
   intro k
   induction k with
   | zero =>
@@ -70,7 +69,7 @@ theorem l10_chain {rd : Reader} {rounds tabs chi cprod : E} {n : ℕ} (hn : n < 
       by simpa using hcur, hcl, fun i hi => absurd hi (by omega)⟩
   | succ k ih =>
     intro hk j hj cap cur claim hc hcur hcl
-    obtain ⟨cur', claim', ncur, nclaim, rk, lcur, lcl, hrel, lnc, lncl, ⟨y, hy, lch⟩, -⟩ :=
+    obtain ⟨cur', claim', ncur, nclaim, rk, lcur, lcl, hrel, lnc, lncl, lch, -⟩ :=
       hB j (by omega)
     rw [← pow_mul, mul_comm j 7] at lcur lcl hrel lnc lncl
     obtain rfl := tb_loadHolds_unique lcur hcur
@@ -113,14 +112,7 @@ theorem l10_chain {rd : Reader} {rounds tabs chi cprod : E} {n : ℕ} (hn : n < 
       exact hcurN
     · rcases i with _ | i
       · simp only [List.getD_cons_zero, Nat.add_zero]
-        have hyv : y = gen ^ (n - 1 - j) := by
-          have h1 : gen ^ n * vtWInvGen * gen = gen ^ n := by
-            rw [mul_assoc, vtWInvGen_mul, mul_one]
-          rw [hy, mul_assoc, ← pow_succ, show j + 1 = j + 1 from rfl] at h1
-          have e : y * gen ^ (j + 1) = gen ^ (n - 1 - j) * gen ^ (j + 1) := by
-            rw [h1, ← pow_add, show n - 1 - j + (j + 1) = n by omega]
-          exact mul_right_cancel₀ (pow_ne_zero _ gen_ne_zero) e
-        rw [hyv, tb_loadHolds_mul_gen_pow, Nat.add_zero] at lch
+        rw [tb_loadHolds_mul_gen_pow, Nat.add_zero] at lch
         exact lch
       · simp only [List.getD_cons_succ]
         rw [show j + (i + 1) = j + 1 + i by ring]

@@ -34,13 +34,13 @@ open LeanVM.Node LeanVM.Guest.Memory
 /-- **The frames match the callees** on an honest child, with the own buffers at `b`. -/
 def VsCallsMatch {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs bytecode seed c)
     (sqE outE : ℕ) (Lin : Main.Layout) : Prop :=
-  ∀ (b : ℕ) (outs : List (List E × Main.Layout)), VsOuts S (bases b (vsSizes S.d)) sqE outs →
-    ∀ rd : Reader, Main.MemL rd (bufL b (vsSizes S.d) S.ownW) → Main.MemL rd Lin →
-      CallsMatch (vsσ rd (vsW (bases b (vsSizes S.d)) outs) (vsArgs seed c sqE outE))
-        ((vsCPre.filterMap (Stmt.callSF (vsσ rd (vsW (bases b (vsSizes S.d)) outs)
+  ∀ (b : ℕ) (outs : List (List E × Main.Layout)), VsOuts S (bases b (vsSizes)) sqE outs →
+    ∀ rd : Reader, Main.MemL rd (bufL b (vsSizes) S.ownW) → Main.MemL rd Lin →
+      CallsMatch (vsσ rd (vsW (bases b (vsSizes)) outs) (vsArgs seed c sqE outE))
+        ((vsCPre.filterMap (Stmt.callSF (vsσ rd (vsW (bases b (vsSizes)) outs)
           (vsArgs seed c sqE outE)))).map
-          (Main.mkCall (vsσ rd (vsW (bases b (vsSizes S.d)) outs) (vsArgs seed c sqE outE))))
-        (kidsAt (S.kids (bases b (vsSizes S.d)) sqE) [] outs) outs
+          (Main.mkCall (vsσ rd (vsW (bases b (vsSizes)) outs) (vsArgs seed c sqE outE))))
+        (kidsAt (S.kids (bases b (vsSizes)) sqE) [] outs) outs
 
 theorem vs_w253 {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Digest} {c : Child}
     (S : ChildSegs bytecode seed c) {bs : List ℕ} {sqE : ℕ} {outs : List (List E × Main.Layout)}
@@ -59,8 +59,8 @@ theorem vs_obligations {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {see
     {c : Child} (S : ChildSegs bytecode seed c) (fs : String → ℕ) {sqE outE : ℕ}
     {Lin : Main.Layout} {κ : ℕ} (hκ : 14 ≤ κ) (hexp : ∀ q ∈ vsExpLin sqE, q ∈ Lin)
     (hout : (outE, DeferredBytecodeClaim.cells c.freshClaim) ∈ Lin) (hcm : VsCallsMatch S sqE outE Lin) :
-    let K := fun fp ↦ S.kids (bases (fp + fs "verify_sub") (vsSizes S.d)) sqE
-    let own := fun fp ↦ bufL (fp + fs "verify_sub") (vsSizes S.d) S.ownW
+    let K := fun fp ↦ S.kids (bases (fp + fs "verify_sub") (vsSizes)) sqE
+    let own := fun fp ↦ bufL (fp + fs "verify_sub") (vsSizes) S.ownW
     let args := vsArgs seed c sqE outE
     (∀ fp outs, OutsOk (kidsAt (K fp) [] outs) outs →
       RegionsOk (fun i ↦ Main.RegionL Lin i ∨ Main.RegionL (own fp) i) (fun _ ↦ False)
@@ -72,12 +72,13 @@ theorem vs_obligations {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {see
       OutsOk (kidsAt (K fp) [] outs) outs → ∀ rd, LowDef κ rd → Main.MemL rd (own fp) →
       Main.MemL rd Lin →
       Main.MemL rd (outsL (kidsAt (K fp) [] outs) outs) →
-      ∃ σ : Val, (Fn.params fn% «verify_sub»).map σ = args ∧ (∀ s ∈ vsCPre, DispOk σ s) ∧
+      ∃ σ : Val, σ = vsσ rd (vsW (bases (fp + fs "verify_sub") (vsSizes)) outs) args ∧
+        (Fn.params fn% «verify_sub»).map σ = args ∧ (∀ s ∈ vsCPre, DispOk σ s) ∧
         Stmt.HoldsList (fun _ _ _ ↦ True) rd σ (Fn.body fn% «verify_sub») False (fun r ↦ r = []) ∧
         (vsCPre.filterMap Main.Stmt.allocSz).map (fun x ↦ x.2.elim id fun s ↦ logG (σ s)) =
-          vsSizes S.d ∧
+          vsSizes ∧
         ((vsCPre.filterMap Main.Stmt.allocSz).map Prod.fst).map σ =
-          (bases (fp + fs "verify_sub") (vsSizes S.d)).map (fun b ↦ ofK (addressOfIndex b)) ∧
+          (bases (fp + fs "verify_sub") (vsSizes)).map (fun b ↦ ofK (addressOfIndex b)) ∧
         CallsMatch σ ((vsCPre.filterMap (Stmt.callSF σ)).map (Main.mkCall σ))
           (kidsAt (K fp) [] outs) outs ∧
         ∀ q ∈ vsCPre.filterMap Stmt.loadS, ∃ i, (σ q.1).limb 0 * Parameters.addressOfIndex q.2 =
@@ -136,11 +137,11 @@ theorem vs_obligations {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {see
     intro fp outs hlen ho rd hlow hB hL hLo
     have hl16 : outs.length = 16 := by rw [hlen]; rfl
     set b := fp + fs "verify_sub" with hb
-    have O := vs_outs S (bases b (vsSizes S.d)) sqE outs hl16 ho
+    have O := vs_outs S (bases b (vsSizes)) sqE outs hl16 ho
     obtain ⟨D⟩ := vs_sig hbl S b sqE outE hexp hout O hκ hlow hB hL
     have hla : args.length = 6 := rfl
-    refine ⟨vsσ rd (vsW (bases b (vsSizes S.d)) outs) args, ?_, vs_dispOk D, ?_,
-      vs_alloc_sizes hla (by omega) (vs_w253 hbl S O),
+    refine ⟨vsσ rd (vsW (bases b (vsSizes)) outs) args, rfl, ?_, vs_dispOk D, ?_,
+      vs_alloc_sizes,
       vs_alloc_bases hla _ outs (by rw [bases_length]; rfl), hcm b outs O rd hB hL,
       fun q hq ↦ ?_⟩
     · rw [vs_params]

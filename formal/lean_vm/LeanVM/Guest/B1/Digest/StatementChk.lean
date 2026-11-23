@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.B1.Digest.Statement
 public import LeanVM.Guest.B1.Fwd.Canon
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«statement_digest»
 
 namespace LeanVM.Guest.B1.Digest
 
@@ -18,7 +20,7 @@ open LeanVM.Guest.B1.Fwd
 @[expose] public section
 
 /-- `statement_digest`'s body, as its template. -/
-def sdBody : List Stmt := sdAtoms.map Stmt.atom ++ [.ret [.n 115, .n 116]]
+def sdBody : List Stmt := sdAtoms.map Stmt.atom ++ [.ret [.n (val% «statement_digest» "s12#0"), .n (val% «statement_digest» "s12#0[1]")]]
 
 set_option maxRecDepth 100000 in
 theorem sd_chk : chk 9 sdBody = some 117 := by decide +kernel

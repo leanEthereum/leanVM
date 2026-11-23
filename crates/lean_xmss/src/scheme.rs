@@ -1,6 +1,7 @@
 //! Keys, signing and verification. The secret key holds the top tree and builds
 //! a bottom tree, with the top layer's signature of its root, the first time it
 //! signs in it or prepares it, keeping the [`MAX_CACHED_BOTTOM_TREES`] it used last.
+//! It stores one level of each tree and recomputes the rest per path.
 
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
@@ -45,6 +46,31 @@ impl LayerSignature {
     pub fn chain_values(&self) -> &[Digest; V] {
         &self.chain_values
     }
+
+    /// Its encoding, in order.
+    fn parts(&self) -> [&[u8]; 3] {
+        [
+            &self.randomizer,
+            self.chain_values.as_flattened(),
+            self.path.as_flattened(),
+        ]
+    }
+
+    /// Decodes from the front of `rest`.
+    fn read(rest: &mut &[u8]) -> Self {
+        Self {
+            randomizer: take(rest),
+            chain_values: std::array::from_fn(|_| take(rest)),
+            path: std::array::from_fn(|_| take(rest)),
+        }
+    }
+}
+
+/// Pops the first `L` bytes of `rest`.
+fn take<const L: usize>(rest: &mut &[u8]) -> [u8; L] {
+    let (first, tail) = rest.split_first_chunk().unwrap();
+    *rest = tail;
+    *first
 }
 
 /// A leanXMSS signature, at one leaf index.
@@ -68,29 +94,18 @@ impl LeanXmssSignature {
             at += bytes.len();
         };
         put(&self.leaf_index.to_le_bytes());
-        for layer in [&self.bottom, &self.top] {
-            put(&layer.randomizer);
-            put(layer.chain_values.as_flattened());
-            put(layer.path.as_flattened());
+        for part in [&self.bottom, &self.top].into_iter().flat_map(LayerSignature::parts) {
+            put(part);
         }
         debug_assert_eq!(at, SIG_SIZE);
         out
     }
 
     pub fn from_bytes(bytes: &[u8; SIG_SIZE]) -> Self {
-        let mut at = 0;
-        let mut take = |len: usize| {
-            at += len;
-            &bytes[at - len..at]
-        };
-        let leaf_index = LeafIndex::from_le_bytes(take(LEAF_INDEX_SIZE).try_into().unwrap());
-        let mut layer = || LayerSignature {
-            randomizer: take(RANDOMIZER_LEN).try_into().unwrap(),
-            chain_values: std::array::from_fn(|_| take(N).try_into().unwrap()),
-            path: std::array::from_fn(|_| take(N).try_into().unwrap()),
-        };
-        let (bottom, top) = (layer(), layer());
-        debug_assert_eq!(at, SIG_SIZE);
+        let mut rest = &bytes[..];
+        let leaf_index = LeafIndex::from_le_bytes(take(&mut rest));
+        let (bottom, top) = (LayerSignature::read(&mut rest), LayerSignature::read(&mut rest));
+        debug_assert!(rest.is_empty());
         Self {
             leaf_index,
             bottom,
@@ -102,14 +117,14 @@ impl LeanXmssSignature {
 /// A [`SecretKey`] with some cached values to make signing faster.
 pub struct LeanXmssExpandedSecretKey {
     key_seed: SecretKey,
-    public_param: PublicParam,
+    public_key: LeanXmssPublicKey,
     top: LayerTree,
     /// The bottom trees the key used last, least recently used first.
     bottoms: Mutex<VecDeque<Arc<BottomTree>>>,
 }
 
 /// How many recently used bottom trees a [`LeanXmssExpandedSecretKey`] caches.
-pub const MAX_CACHED_BOTTOM_TREES: usize = 8;
+pub const MAX_CACHED_BOTTOM_TREES: usize = 4;
 
 impl std::fmt::Debug for LeanXmssExpandedSecretKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -120,23 +135,22 @@ impl std::fmt::Debug for LeanXmssExpandedSecretKey {
 }
 
 struct BottomTree {
-    index: u32,
     tree: LayerTree,
     top_signature: LayerSignature,
 }
+
+/// A tree's nodes, in bytes.
+const CACHED_TREE_SIZE: usize = CACHED_NODES * N;
+/// A cached bottom tree, in bytes.
+const CACHED_BOTTOM_SIZE: usize = size_of::<u32>() + LAYER_SIG_SIZE + CACHED_TREE_SIZE;
+const _: () = assert!(CACHED_TREE_SIZE == 4096 && CACHED_BOTTOM_SIZE == 5300);
 
 /// computes the expanded secret key (for fast signing), and the public key, from a given secret key
 pub fn key_gen(key_seed: &SecretKey) -> (LeanXmssExpandedSecretKey, LeanXmssPublicKey) {
     let seed = scheme_seed(key_seed);
     let public_param = public_param(&seed);
-    let top = LayerTree::build(&public_param, &seed, 1, 0);
-    let sk = LeanXmssExpandedSecretKey {
-        key_seed: *key_seed,
-        public_param,
-        top,
-        bottoms: Mutex::new(VecDeque::with_capacity(MAX_CACHED_BOTTOM_TREES + 1)),
-    };
-    let pk = sk.public_key();
+    let sk = LeanXmssExpandedSecretKey::new(key_seed, LayerTree::build(&public_param, &seed, 1, 0));
+    let pk = sk.public_key;
     (sk, pk)
 }
 
@@ -149,26 +163,78 @@ pub fn key_gen(key_seed: &SecretKey) -> (LeanXmssExpandedSecretKey, LeanXmssPubl
 /// `2^-2954` (`doc/lean_xmss`): impossible in practice.
 pub fn sign(sk: &LeanXmssExpandedSecretKey, message: &Message, leaf_index: LeafIndex) -> LeanXmssSignature {
     let bottom = sk.bottom_tree(leaf_index);
-    let seed = scheme_seed(&sk.key_seed);
-    let (randomizer, chain_values) =
-        wots_sign(&sk.public_param, &seed, 0, leaf_index, message).expect("an admissible encoding");
+    let (pp, seed) = (&sk.public_key.public_param, scheme_seed(&sk.key_seed));
+    let (randomizer, chain_values) = wots_sign(pp, &seed, 0, leaf_index, message).expect("an admissible encoding");
     LeanXmssSignature {
         leaf_index,
         bottom: LayerSignature {
             randomizer,
             chain_values,
-            path: bottom.tree.path(leaf_index),
+            path: bottom.tree.path(pp, &seed, leaf_index),
         },
         top: bottom.top_signature.clone(),
     }
 }
 
 impl LeanXmssExpandedSecretKey {
-    pub fn public_key(&self) -> LeanXmssPublicKey {
-        LeanXmssPublicKey {
-            merkle_root: self.top.root(),
-            public_param: self.public_param,
+    fn new(key_seed: &SecretKey, top: LayerTree) -> Self {
+        let public_param = public_param(&scheme_seed(key_seed));
+        Self {
+            key_seed: *key_seed,
+            public_key: LeanXmssPublicKey {
+                merkle_root: top.root(&public_param),
+                public_param,
+            },
+            top,
+            bottoms: Mutex::new(VecDeque::with_capacity(MAX_CACHED_BOTTOM_TREES + 1)),
         }
+    }
+
+    /// The cached trees, which hold no secret.
+    pub fn cache_to_bytes(&self) -> Vec<u8> {
+        let mut out = self.top.nodes.as_flattened().to_vec();
+        for bottom in self.bottoms.lock().unwrap().iter() {
+            out.extend(bottom.tree.index.to_le_bytes());
+            out.extend(bottom.top_signature.parts().concat());
+            out.extend(bottom.tree.nodes.as_flattened());
+        }
+        out
+    }
+
+    /// Loads a key from its seed, its public key and the bytes of [`Self::cache_to_bytes`].
+    /// `None` if the length is wrong or the bytes do not match the key.
+    ///
+    /// Each tree's stored level is checked: the top tree's must hash to the public key's root, and
+    /// each bottom tree's to a root its top-layer signature signs under the public key. The levels
+    /// below are recomputed from the seed, so a loaded key signs as a built one.
+    pub fn from_cache_bytes(key_seed: &SecretKey, public_key: &LeanXmssPublicKey, bytes: &[u8]) -> Option<Self> {
+        let (top, bottoms) = bytes.split_at_checked(CACHED_TREE_SIZE)?;
+        let (bottoms, []) = bottoms.as_chunks::<CACHED_BOTTOM_SIZE>() else {
+            return None;
+        };
+        let sk = Self::new(key_seed, LayerTree::from_bytes(1, 0, top));
+        if sk.public_key != *public_key {
+            return None;
+        }
+        let pp = &public_key.public_param;
+        for bottom in bottoms {
+            let mut rest = &bottom[..];
+            let index = u32::from_le_bytes(take(&mut rest));
+            let top_signature = LayerSignature::read(&mut rest);
+            let tree = LayerTree::from_bytes(0, index, rest);
+            let signed = index >> LAYER_HEIGHT == 0
+                && layer_root(pp, 1, index, &tree.root(pp), &top_signature, |_| {})
+                    .is_some_and(|(_, root)| root == public_key.merkle_root);
+            if !signed {
+                return None;
+            }
+            sk.cache(Arc::new(BottomTree { tree, top_signature }));
+        }
+        Some(sk)
+    }
+
+    pub fn public_key(&self) -> LeanXmssPublicKey {
+        self.public_key
     }
 
     /// Makes the future signing at `leaf_index` faster (by precomputing and caching the bottom tree).
@@ -185,21 +251,24 @@ impl LeanXmssExpandedSecretKey {
         if let Some(bottom) = use_cached(&mut self.bottoms.lock().unwrap(), index) {
             return bottom;
         }
-        let (pp, seed) = (&self.public_param, &scheme_seed(&self.key_seed));
+        let (pp, seed) = (&self.public_key.public_param, &scheme_seed(&self.key_seed));
         let tree = LayerTree::build(pp, seed, 0, index);
-        let (randomizer, chain_values) = wots_sign(pp, seed, 1, index, &tree.root()).expect("an admissible encoding");
+        let (randomizer, chain_values) = wots_sign(pp, seed, 1, index, &tree.root(pp)).expect("an admissible encoding");
         let bottom = Arc::new(BottomTree {
-            index,
             top_signature: LayerSignature {
                 randomizer,
                 chain_values,
-                path: self.top.path(index),
+                path: self.top.path(pp, seed, index),
             },
             tree,
         });
+        self.cache(bottom)
+    }
+
+    /// Caches `bottom`, or returns the one another thread cached first.
+    fn cache(&self, bottom: Arc<BottomTree>) -> Arc<BottomTree> {
         let mut bottoms = self.bottoms.lock().unwrap();
-        // Another thread may have built it meanwhile.
-        if let Some(cached) = use_cached(&mut bottoms, index) {
+        if let Some(cached) = use_cached(&mut bottoms, bottom.tree.index) {
             return cached;
         }
         bottoms.push_back(Arc::clone(&bottom));
@@ -212,7 +281,7 @@ impl LeanXmssExpandedSecretKey {
 
 /// Bottom tree `index` if cached, moved to the most recently used end.
 fn use_cached(bottoms: &mut VecDeque<Arc<BottomTree>>, index: u32) -> Option<Arc<BottomTree>> {
-    let at = bottoms.iter().position(|b| b.index == index)?;
+    let at = bottoms.iter().position(|b| b.tree.index == index)?;
     let bottom = bottoms.remove(at)?;
     bottoms.push_back(Arc::clone(&bottom));
     Some(bottom)

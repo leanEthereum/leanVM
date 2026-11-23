@@ -11,6 +11,8 @@ public import LeanVM.Guest.B1.Whir.Squeezes
 public import LeanVM.Guest.B1.Whir.HelperTables
 public import LeanVM.Guest.B1.Whir.HelperT
 public import LeanVM.Guest.B1.Whir.RateCfg
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«level_positions__L»
 
 /-!
 # `level_positions`, soundly
@@ -41,16 +43,16 @@ def MeaningLevelPositions (S d cd : ℕ) (rd : Reader) (args rets : List E) : Pr
 theorem lpBody_split (S d cd : ℕ) (loop : String) :
     lpBody S d cd loop =
       (osHeap ((S + 1) * 5) 9 ++ ((List.range 5).map fun i ↦ osLd (1 + i) 10 (5 + i)) ++
-        [Stmt.call (dqwName d cd) [.n 0, .n 6, .n 7, .n 8] []] ++ osLoopCall loop 1 S [10, 6, 7, 8] 11 ++
+        [Stmt.call (dqwName d cd) [.n (valf% «level_positions» "word0"), .n (valf% «level_positions» "positions"), .n (valf% «level_positions» "win_ptrs"), .n (valf% «level_positions» "tabs")] []] ++ osLoopCall loop 1 S [10, 6, 7, 8] 11 ++
         [osCst 16 (gw (S * 5)), osMul 17 10 16] ++
         ((List.range 5).map fun i ↦ osLd (18 + i) 17 i) ++
         ((List.range 5).map fun i ↦ osCp (23 + i) (18 + i))) ++
-      [.ret ((List.range 5).map fun i ↦ .n (23 + i))] := by
+      [.ret ((List.range 5).map fun i ↦ .n ((valf% «level_positions» "s9#0") + i))] := by
   simp only [lpBody, List.append_assoc]
 
 theorem lpBodyA_flat (S d cd : ℕ) (loop : String) :
     (osHeap ((S + 1) * 5) 9 ++ ((List.range 5).map fun i ↦ osLd (1 + i) 10 (5 + i)) ++
-        [Stmt.call (dqwName d cd) [.n 0, .n 6, .n 7, .n 8] []] ++ osLoopCall loop 1 S [10, 6, 7, 8] 11 ++
+        [Stmt.call (dqwName d cd) [.n (valf% «level_positions» "word0"), .n (valf% «level_positions» "positions"), .n (valf% «level_positions» "win_ptrs"), .n (valf% «level_positions» "tabs")] []] ++ osLoopCall loop 1 S [10, 6, 7, 8] 11 ++
         [osCst 16 (gw (S * 5)), osMul 17 10 16] ++
         ((List.range 5).map fun i ↦ osLd (18 + i) 17 i) ++
         ((List.range 5).map fun i ↦ osCp (23 + i) (18 + i))).all Stmt.flat = true := by
@@ -75,7 +77,7 @@ theorem lp_sound {name loop : String} {S d cd : ℕ}
   rw [hb, lpBody_split, holdsList_flat_ret _ (lpBodyA_flat S d cd loop)] at hh
   obtain ⟨hok, hret⟩ := hh
   rw [hps] at hp
-  have ha : ∀ i < 9, σ (.n i) = args.getD i 0 := by
+  have ha : ∀ i < (valf% «level_positions» "sqz~0"), σ (.n i) = args.getD i 0 := by
     intro i hi
     rw [← hp]
     simp [osParams, List.getD_eq_getElem?_getD, hi]
@@ -87,12 +89,12 @@ theorem lp_sound {name loop : String} {S d cd : ℕ}
   obtain ⟨l0, l1, l2, l3, l4⟩ := hst
   obtain ⟨m0, m1, m2, m3, m4⟩ := hlast
   obtain ⟨c0, c1, c2, c3, c4⟩ := hcp
-  set cap := [σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5)] with hcapd
+  set cap := [σ (.n (valf% «level_positions» "fs0")), σ (.n (valf% «level_positions» "fs1")), σ (.n (valf% «level_positions» "fs2")), σ (.n (valf% «level_positions» "fs3")), σ (.n (valf% «level_positions» "fs4"))] with hcapd
   have hcapA : (args.drop 1).take 5 = cap := by
     rw [hcapd, ha 1 (by decide), ha 2 (by decide), ha 3 (by decide), ha 4 (by decide),
       ha 5 (by decide), ← hp]
     simp [osParams, List.range_succ]
-  have hwt' : WinTabs rd (σ (.n 8)) := by rw [ha 8 (by decide)]; exact hwt
+  have hwt' : WinTabs rd (σ (.n (valf% «level_positions» "tabs"))) := by rw [ha 8 (by decide)]; exact hwt
   -- the first word
   simp only [allOk_cons, allOk_nil, and_true, stmtOk_call, List.map_cons, List.map_nil] at hdc
   have hD0 := hdec _ _ (by simpa using hwt') hdc
@@ -102,12 +104,12 @@ theorem lp_sound {name loop : String} {S d cd : ℕ}
   obtain ⟨g1, gS, gsum, g3, g4, -, hcall⟩ := hlp
   have hg1 : gw 1 = gen ^ 1 := gw_eq (by decide)
   have hgS : gw S = gen ^ S := gw_eq (lt_trans (by omega) hS5)
-  have h0 : ∀ i < 5, LoadHolds rd (σ (.n 10)) (5 * 1 + i) (cap.getD i 0) := by
+  have h0 : ∀ i < 5, LoadHolds rd (σ (.n (valf% «level_positions» "sqz"))) (5 * 1 + i) (cap.getD i 0) := by
     intro i hi
     interval_cases i
     exacts [l0, l1, l2, l3, l4]
   have hit : ∀ j, 1 ≤ j → j < 1 + (S - 1) →
-      SqIter rd d cd 0 (σ (.n 10)) (σ (.n 6)) (σ (.n 7)) (σ (.n 8)) (gen ^ j) := by
+      SqIter rd d cd 0 (σ (.n (valf% «level_positions» "sqz"))) (σ (.n (valf% «level_positions» "positions"))) (σ (.n (valf% «level_positions» "win_ptrs"))) (σ (.n (valf% «level_positions» "tabs"))) (gen ^ j) := by
     intro j h1 h2
     obtain ⟨fl, hfl, hpl, hbl⟩ := hl
     exact sqLoop_sound hfl (lpLv d cd) hpl hbl hpw (by unfold u128Bound; positivity)
@@ -122,8 +124,8 @@ theorem lp_sound {name loop : String} {S d cd : ℕ}
   obtain ⟨e5, e6⟩ := e16
   have hS5' : gw (S * 5) = gen ^ (S * 5) := gw_eq hS5
   have hoff : 5 * (1 + (S - 1)) = S * 5 := by omega
-  have hrowE : ∀ i < 5, LoadHolds rd (σ (.n 10)) (5 * (1 + (S - 1)) + i)
-      ([σ (.n 18), σ (.n 19), σ (.n 20), σ (.n 21), σ (.n 22)].getD i 0) := by
+  have hrowE : ∀ i < 5, LoadHolds rd (σ (.n (valf% «level_positions» "sqz"))) (5 * (1 + (S - 1)) + i)
+      ([σ (.n (valf% «level_positions» "sp[0]")), σ (.n (valf% «level_positions» "sp[1]")), σ (.n (valf% «level_positions» "sp[2]")), σ (.n (valf% «level_positions» "sp[3]")), σ (.n (valf% «level_positions» "sp[4]"))].getD i 0) := by
     intro i hi
     rw [hoff, ← loadHolds_mul_gen_pow, ← hS5', ← e5, ← e6]
     interval_cases i

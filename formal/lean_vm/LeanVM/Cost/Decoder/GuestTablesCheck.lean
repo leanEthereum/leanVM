@@ -3,6 +3,7 @@ module
 public import LeanVM.Cost.Decoder.GuestTables
 public import LeanVM.Guest.Glob
 import all LeanVM.Guest.Glob
+import all Statement.Data.Bytecode
 meta import Lean.Elab.Tactic
 
 /-!
@@ -98,7 +99,7 @@ theorem guestLocsList_length : guestLocsList.length = nFns := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem guestLocs_eq {j : ℕ} (hj : j < nFns) : (guestLocs.getD j #[]).toList = (certOf j).locs := by
-  rw [← guestLocsList_eq j hj, guestLocs, guestLocsLit]
+  rw [← guestLocsList_eq j hj, guestLocs]
   have hl : j < guestLocsList.length := guestLocsList_length ▸ hj
   simp [Array.getD_eq_getD_getElem?, List.getD_eq_getElem?_getD, hl]
 

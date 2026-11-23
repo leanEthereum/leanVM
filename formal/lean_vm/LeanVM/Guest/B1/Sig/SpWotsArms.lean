@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.B1.Sig.SpWotsLayout
 public import LeanVM.Guest.B1.Sig.Merkle
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«sp_wots»
 
 /-!
 # `sp_wots`'s arms, sound
@@ -52,7 +54,7 @@ theorem lit_zero : lit 0 = 0 := by simp [lit, word_zero]
 /-- **`sp_wots`'s step, sound**, its run holding the padding: the output's first cell is the step's
 hash of cells. -/
 theorem spW_step_sound (hp : PadOK σ spPad) :
-    StepSound rd σ spW (spStepCell (σ (.n 0)) (σ (.n 4)) (σ (.n 5))) := by
+    StepSound rd σ spW (spStepCell (σ (.n (val% «sp_wots» "pp"))) (σ (.n (val% «sp_wots» "at[0]"))) (σ (.n (val% «sp_wots» "at[1]")))) := by
   intro i s v c o h
   simp only [spW, spWp] at h
   split at h
@@ -60,8 +62,8 @@ theorem spW_step_sound (hp : PadOK σ spPad) :
     have hk := k64_sound hp h
     rw [spStepCell, hz.1, hz.2, show spStepC 0 0 = 0 by rfl, lit_zero, add_zero, ← hk]
   · have h1 : σ (.n c) = lit (spStepC i s) := h.atom (a := .const (.n c) _) (by simp [cst])
-    have h2 : σ (.n (c + 1)) = σ (.n 5) + σ (.n c) :=
-      h.atom (a := .add (.n (c + 1)) (.n 5) (.n c)) (by simp [addS])
+    have h2 : σ (.n (c + 1)) = σ (.n (val% «sp_wots» "at[1]")) + σ (.n c) :=
+      h.atom (a := .add (.n (c + 1)) (.n (val% «sp_wots» "at[1]")) (.n c)) (by simp [addS])
     have hk := k64_sound hp (h.sub fun x hx => by simp only [List.mem_cons]; tauto)
     rw [spStepCell, ← h1, ← h2, ← hk]
 
@@ -77,7 +79,7 @@ outputs. -/
 structure SpArmOK (σ : Val) (first n : Nat) (fold : Bool) (B : Nat) (prodIn encIn : V) (k : Nat)
     (start : Nat → V) : Prop where
   tip : ∀ r < n, σ (.n (spSlot fold B r 2)) =
-    chainT (spStepCell (σ (.n 0)) (σ (.n 4)) (σ (.n 5))) (first + r) (3 - k / 4 ^ r % 4)
+    chainT (spStepCell (σ (.n (val% «sp_wots» "pp"))) (σ (.n (val% «sp_wots» "at[0]"))) (σ (.n (val% «sp_wots» "at[1]")))) (first + r) (3 - k / 4 ^ r % 4)
       (k / 4 ^ r % 4) (σ (start r))
   prod : σ (.n (spProd fold n B)) = (if fold then 1 else σ prodIn) * σ (.n (6 + digitSum k n))
   enc : σ (.n (spEnc fold n B)) = (if fold then 0 else σ encIn) + lit (spDigitsC first n k)

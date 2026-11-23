@@ -9,7 +9,8 @@ public import Statement.Prover.Script
 Fiat-Shamir sponge `sp`, over the permutation `F` (Keccak-256 the sponge over `F`), and returns the
 proof's scalars and Merkle openings: a script's scalar is absorbed at each `read` of `P`, a
 challenge squeezed at each `sample`; a `grind` takes the smallest nonce below `fuel` that passes
-(`grind`, `crates/fiat_shamir_prover/src/lib.rs`), the proof failing if none does, absorbs it and permutes
+(`grind`, `crates/fiat_shamir_prover/src/lib.rs`), and whose challenge lies outside `K` where the
+script asks it (`grind_sample`), the proof failing if none does, absorbs it and permutes
 (`absorbNonce`), the permutation's challenge kept for the next `sample`; a `commit`
 builds the matrix's Merkle tree once (`MerkleBuilder`, `crates/pcs/src/merkle.rs`) and sends
 its root;
@@ -82,19 +83,28 @@ def buildTreeM (height : ℕ) (word : Word) : m Tree := do
 /-- The nonce `n` as a scalar: limb `0` holds the 64-bit word `n` (`F128::new(n, 0)`). -/
 def nonceOf (n : ℕ) : E := E.ofLimbs (K.ofBits n) 0
 
-/-- The nonce search from `n`, trying `count` nonces: the first that passes, each absorbed with
-tag `4` into the sponge `sp` and permuted, the permutation's third lane checked (`pow_bits_ok`). -/
-def searchM (bits : ℕ) (sp : Sponge) : ℕ → ℕ → m (Option E)
+/-- A nonce's challenge `c` is usable: any challenge, or with `outsideK` one outside `K`, its second
+limb nonzero (`grind_sample`'s `usable` at the Keccak GKR's `s`, `s.to_limbs()[1] != 0`). -/
+def nonceUsable (outsideK : Bool) (c : E) : Bool := !outsideK || c.limb 1 != 0
+
+/-- The nonce search from `n`, trying `count` nonces: the first that passes and whose challenge is
+usable, each absorbed with tag `4` into the sponge `sp` and permuted, the permutation's third lane
+checked (`pow_bits_ok`) and its first two, the challenge, read. -/
+def searchM (bits : ℕ) (outsideK : Bool) (sp : Sponge) : ℕ → ℕ → m (Option E)
   | _, 0 => pure none
   | n, count + 1 => do
     let r ← absorbNonce F sp (nonceOf n)
-    if powOk bits r.1 then pure (some (nonceOf n)) else searchM bits sp (n + 1) count
+    if powOk bits r.1 && nonceUsable outsideK (challengeOf r.2.state) then pure (some (nonceOf n))
+    else searchM bits outsideK sp (n + 1) count
 
 /-- The proof-of-work search (`FiatShamirState::grind`, `crates/fiat_shamir_prover/src/lib.rs`):
 the smallest nonce below `fuel` that passes, if one does. The Rust's parallel search returns the
 smallest passing nonce too: the first matching batch of the first matching block, and its first
-match. -/
-def findNonceM (bits : ℕ) (sp : Sponge) (fuel : ℕ) : m (Option E) := searchM F bits sp 0 fuel
+match. With `outsideK`, the smallest that passes and whose challenge lies outside `K`, as
+`grind_sample` (`crates/fiat_shamir_prover/src/transcript.rs`) steps past the passing nonces whose
+challenge is not usable (`grind_from` from the nonce after each). -/
+def findNonceM (bits : ℕ) (outsideK : Bool) (sp : Sponge) (fuel : ℕ) : m (Option E) :=
+  searchM F bits outsideK sp 0 fuel
 
 end Monadic
 
@@ -119,9 +129,15 @@ def afterSample (c : E) : Option (Script β) → Option (Script β)
   | some (.sample k) => some (k c)
   | _ => none
 
+/-- Whether a script's proof of work asks for a challenge outside `K`, `false` if it does not
+grind. -/
+def outsideKOf : Option (Script β) → Bool
+  | some (.grind o _) => o
+  | _ => false
+
 /-- The script after a proof of work. -/
 def afterGrind : Option (Script β) → Option (Script β)
-  | some (.grind k) => some k
+  | some (.grind _ k) => some k
   | _ => none
 
 /-- The matrix a script commits, the empty rows if it does not commit one. -/
@@ -164,7 +180,7 @@ def runFrom (fuel : ℕ) {α β : Type} :
     let r ← squeeze F sp
     runFrom fuel (k r.1) (Script.afterSample r.1 S) r.2 cs
   | .grind bits k, S, sp, cs => do
-    match ← findNonceM F bits sp fuel with
+    match ← findNonceM F bits (Script.outsideKOf S) sp fuel with
     | none => pure none
     | some n => do
       let r ← absorbNonce F sp n

@@ -10,6 +10,9 @@
 module
 
 public import LeanVM.Guest.B1.Digest.ChildListDefs
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«child_claim_list_mono_last__L»
+import LeanVM.Guest.Data.ValNames.«child_claim_list_mono_loop0»
 
 /-!
 # `child_claim_list_mono`: the checks
@@ -165,7 +168,7 @@ def mlSpec (k : ℕ) (atoms : List Atom) : ChainSpec :=
 /-- The value `t` of the bound's `MUL`: `cov_end = t · region` (`.n 1`). -/
 def endOf (atoms : List Atom) (ce : V) : Option V :=
   atoms.findSome? fun a => match a with
-    | .mul d t r => if d = ce ∧ r = V.n 1 then some t else none
+    | .mul d t r => if d = ce ∧ r = V.n (valf% «child_claim_list_mono_last» "region") then some t else none
     | _ => none
 
 /-- **`child_claim_list_mono_last__L{k}`'s body** `[rec, region, mark, limit]`: the state at
@@ -173,19 +176,19 @@ def endOf (atoms : List Atom) (ce : V) : Option V :=
 from the hint at 2, the end pointer `cov · g^k` (or `rec[13]`), `t` with `cov_end = t · region`
 range-checked against `limit`, the digest returned. -/
 def mlOk (k : ℕ) (f : Fn) : Bool :=
-  decide (f.params = [V.n 0, V.n 1, V.n 2, V.n 3]) &&
+  decide (f.params = [V.n (valf% «child_claim_list_mono_last» "rec"), V.n (valf% «child_claim_list_mono_last» "region"), V.n (valf% «child_claim_list_mono_last» "mark"), V.n (valf% «child_claim_list_mono_last» "limit_g")]) &&
   match splitBody f.body with
   | some (atoms, [r0, r1]) =>
     (mlSpec k atoms).check atoms && retOk atoms (mlSpec k atoms) r0 r1 &&
-      stLoadsOk atoms (V.n 0) (mlSt k) 0 &&
-      (if k = 0 then atoms.any (isLoadAt (.n 27) (.n 0) 13) else
-        atoms.any (isLoadAt (.n 4) (.n 0) 13) && atoms.any (isLoadAt (.n 5) (.n 0) 14) &&
-        monoRecs atoms 2 6 4 5 (.n 2) k 0 k &&
+      stLoadsOk atoms (V.n (valf% «child_claim_list_mono_last» "rec")) (mlSt k) 0 &&
+      (if k = 0 then atoms.any (isLoadAt (.n 27) (.n (valf% «child_claim_list_mono_last» "rec")) 13) else
+        atoms.any (isLoadAt (.n 4) (.n (valf% «child_claim_list_mono_last» "rec")) 13) && atoms.any (isLoadAt (.n 5) (.n (valf% «child_claim_list_mono_last» "rec")) 14) &&
+        monoRecs atoms 2 6 4 5 (.n (valf% «child_claim_list_mono_last» "mark")) k 0 k &&
         (match mulOf atoms (.n (mlEnd k)) with
          | some (a, c) => decide (a = .n (mCov 6 4 k)) && atoms.any (isConstAt c (2 ^ k) 0)
          | none => false)) &&
       (match endOf atoms (.n (mlEnd k)) with
-       | some t => decide (rcOf atoms t = some (.n 3))
+       | some t => decide (rcOf atoms t = some (.n (valf% «child_claim_list_mono_last» "limit_g")))
        | none => false)
   | _ => false
 
@@ -204,7 +207,7 @@ on), claims
 `9i … 9i + 8`. -/
 noncomputable def monoWinOk (i : ℕ) : Bool :=
   mono136Spec.blocksFrom mono136Atoms (4 * i) 4 &&
-    monoRecs mono136Atoms 9 13 11 12 (.n 3) 136 (9 * i) 9
+    monoRecs mono136Atoms 9 13 11 12 (.n (val% «child_claim_list_mono_loop0» "base")) 136 (9 * i) 9
 
 end
 end LeanVM.Guest.B1.Digest

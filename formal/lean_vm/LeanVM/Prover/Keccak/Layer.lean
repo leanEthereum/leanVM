@@ -37,7 +37,7 @@ theorem corr_layer {P : ℕ} {col' col : ℕ → K} (hcol : ColAgree P col' col)
   unfold layerProve hLayer
   simp only [Script.bind_eq, Script.ret_bind]
   rw [gCoeffs_eq hcol hd hshape.2.1]
-  refine Corr.bind_same _ fun _ ↦ Corr.bind_same _ fun _ ↦ Corr.bind_same _ fun s ↦ ?_
+  refine Corr.bind_same _ fun _ ↦ Corr.bind_same _ fun s ↦ ?_
   rw [kappa_eq s]
   refine Corr.bind (fun a b hab ↦ ?_) _ _ (corr_pack (T := statesAt (P + 4) col (d + 1))
     (w := claim.weights) hshape.2.1 claim.point [] _ (packInv_start hcol hd s claim.point) rfl)

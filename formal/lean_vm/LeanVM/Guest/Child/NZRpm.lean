@@ -146,8 +146,8 @@ theorem rpmChild_le :
       _ = (2 : ℝ≥0∞)⁻¹ ^ 114 := Common.two_pow_mul_inv_pow 14 114
       _ ≤ (2 : ℝ≥0∞)⁻¹ ^ 102 := Common.inv_two_pow_le_of_le (by norm_num)
   -- the misses
-  have h2 : (leanVmCost : ℝ≥0∞) * missProb 27 ^ (2 ^ 35) ≤ (2 : ℝ≥0∞)⁻¹ ^ 102 := by
-    have hle : (leanVmCost : ℝ≥0∞) * missProb 27 ^ (2 ^ 35) ≤ LeanVM.completenessError (2 ^ 35) := by
+  have h2 : (leanVmCost : ℝ≥0∞) * missK 27 ^ (2 ^ 35) ≤ (2 : ℝ≥0∞)⁻¹ ^ 102 := by
+    have hle : (leanVmCost : ℝ≥0∞) * missK 27 ^ (2 ^ 35) ≤ LeanVM.completenessError (2 ^ 35) := by
       rw [completenessError_eq, EndToEnd.Complete.completenessError]
       gcongr
       rw [hQ, hc]

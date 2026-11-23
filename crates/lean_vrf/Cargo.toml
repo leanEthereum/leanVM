@@ -1,0 +1,11 @@
+[package]
+name = "lean_vrf"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+keccak256.workspace = true

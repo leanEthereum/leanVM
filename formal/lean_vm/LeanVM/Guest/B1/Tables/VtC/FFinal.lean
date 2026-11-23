@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Tables.VtC.FFinal
 
   `Vt/AsmForms.lean`'s forms' values and `Vt/AsmFinal.lean`'s final check on the window `VtF`:
-  `termsPure`'s terminal value over the six tables is the guest's `air_acc` (`σ 5945`).
+  `termsPure`'s terminal value over the six tables is the guest's `air_acc` (`σ 5931`).
 -/
 
 module
@@ -15,6 +15,8 @@ public import LeanVM.Guest.B1.Tables.VtC.FForms4
 public import LeanVM.Guest.B1.Tables.VtC.FForms5
 public import LeanVM.Guest.B1.Tables.VtC.FAir
 public import LeanVM.Guest.B1.Tables.Vt.AsmFinal
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_tables»
 
 /-!
 # The forms and the final check, on the window
@@ -22,7 +24,7 @@ public import LeanVM.Guest.B1.Tables.Vt.AsmFinal
 What the soundness proof read outside the window becomes hypotheses: the push and count blocks'
 selectors (`vt_sels`'s), the pull blocks' copies of the push ones (`VtPullSelsH`, `vtPullSels*`'s),
 the tables' `g^τ` (`kappa_base`'s frame variables `σ (27 + t)`), `zeta1` (`vt_zeta1`'s) and the
-batching challenge's powers (`vt_xi_pow`'s, statements `2631 ..< 2636`).
+batching challenge's powers (`vt_xi_pow`'s, statements `zc_xi_pows[0] ..< bus_target@1`).
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -36,12 +38,12 @@ open LeanVM.Protocol.EndToEnd.Complete (accFold_spec accumulateSide_fst blockSel
 
 /-- The pull blocks' selectors are their push twins' (`vtPullSels0 .. 5`). -/
 def VtPullSelsH (σ : Val) : Prop :=
-  ([σ (.n 1334), σ (.n 1336), σ (.n 1338), σ (.n 1340), σ (.n 1342)] = [σ (.n 857), σ (.n 862), σ (.n 867), σ (.n 872), σ (.n 877)]) ∧
-  ([σ (.n 1344), σ (.n 1346), σ (.n 1348), σ (.n 1350), σ (.n 1352)] = [σ (.n 886), σ (.n 895), σ (.n 904), σ (.n 913), σ (.n 922)]) ∧
-  ([σ (.n 1354), σ (.n 1356), σ (.n 1358)] = [σ (.n 931), σ (.n 940), σ (.n 949)]) ∧
-  ([σ (.n 1360), σ (.n 1362), σ (.n 1364), σ (.n 1366), σ (.n 1368)] = [σ (.n 958), σ (.n 967), σ (.n 976), σ (.n 985), σ (.n 994)]) ∧
-  ([σ (.n 1370), σ (.n 1372), σ (.n 1374), σ (.n 1376), σ (.n 1378)] = [σ (.n 1003), σ (.n 1012), σ (.n 1021), σ (.n 1030), σ (.n 1039)]) ∧
-  ([σ (.n 1380), σ (.n 1382), σ (.n 1384), σ (.n 1386), σ (.n 1388), σ (.n 1390), σ (.n 1392), σ (.n 1394), σ (.n 1396), σ (.n 1398), σ (.n 1400), σ (.n 1402), σ (.n 1404), σ (.n 1406), σ (.n 1408), σ (.n 1410), σ (.n 1412), σ (.n 1414), σ (.n 1416), σ (.n 1418), σ (.n 1420), σ (.n 1422), σ (.n 1424), σ (.n 1426), σ (.n 1428), σ (.n 1430), σ (.n 1432), σ (.n 1434)] = [σ (.n 1048), σ (.n 1057), σ (.n 1066), σ (.n 1075), σ (.n 1084), σ (.n 1093), σ (.n 1102), σ (.n 1111), σ (.n 1120), σ (.n 1129), σ (.n 1138), σ (.n 1147), σ (.n 1156), σ (.n 1165), σ (.n 1174), σ (.n 1183), σ (.n 1192), σ (.n 1201), σ (.n 1210), σ (.n 1219), σ (.n 1228), σ (.n 1237), σ (.n 1246), σ (.n 1255), σ (.n 1264), σ (.n 1273), σ (.n 1282), σ (.n 1291)])
+  ([σ (.n (val% «verify_tables» "block_eq_hi[57]")), σ (.n (val% «verify_tables» "block_eq_hi[58]")), σ (.n (val% «verify_tables» "block_eq_hi[59]")), σ (.n (val% «verify_tables» "block_eq_hi[60]")), σ (.n (val% «verify_tables» "block_eq_hi[61]"))] = [σ (.n (val% «verify_tables» "block_eq_hi[3]")), σ (.n (val% «verify_tables» "block_eq_hi[4]")), σ (.n (val% «verify_tables» "block_eq_hi[5]")), σ (.n (val% «verify_tables» "block_eq_hi[6]")), σ (.n (val% «verify_tables» "block_eq_hi[7]"))]) ∧
+  ([σ (.n (val% «verify_tables» "block_eq_hi[62]")), σ (.n (val% «verify_tables» "block_eq_hi[63]")), σ (.n (val% «verify_tables» "block_eq_hi[64]")), σ (.n (val% «verify_tables» "block_eq_hi[65]")), σ (.n (val% «verify_tables» "block_eq_hi[66]"))] = [σ (.n (val% «verify_tables» "block_eq_hi[8]")), σ (.n (val% «verify_tables» "block_eq_hi[9]")), σ (.n (val% «verify_tables» "block_eq_hi[10]")), σ (.n (val% «verify_tables» "block_eq_hi[11]")), σ (.n (val% «verify_tables» "block_eq_hi[12]"))]) ∧
+  ([σ (.n (val% «verify_tables» "block_eq_hi[67]")), σ (.n (val% «verify_tables» "block_eq_hi[68]")), σ (.n (val% «verify_tables» "block_eq_hi[69]"))] = [σ (.n (val% «verify_tables» "block_eq_hi[13]")), σ (.n (val% «verify_tables» "block_eq_hi[14]")), σ (.n (val% «verify_tables» "block_eq_hi[15]"))]) ∧
+  ([σ (.n (val% «verify_tables» "block_eq_hi[70]")), σ (.n (val% «verify_tables» "block_eq_hi[71]")), σ (.n (val% «verify_tables» "block_eq_hi[72]")), σ (.n (val% «verify_tables» "block_eq_hi[73]")), σ (.n (val% «verify_tables» "block_eq_hi[74]"))] = [σ (.n (val% «verify_tables» "block_eq_hi[16]")), σ (.n (val% «verify_tables» "block_eq_hi[17]")), σ (.n (val% «verify_tables» "block_eq_hi[18]")), σ (.n (val% «verify_tables» "block_eq_hi[19]")), σ (.n (val% «verify_tables» "block_eq_hi[20]"))]) ∧
+  ([σ (.n (val% «verify_tables» "block_eq_hi[75]")), σ (.n (val% «verify_tables» "block_eq_hi[76]")), σ (.n (val% «verify_tables» "block_eq_hi[77]")), σ (.n (val% «verify_tables» "block_eq_hi[78]")), σ (.n (val% «verify_tables» "block_eq_hi[79]"))] = [σ (.n (val% «verify_tables» "block_eq_hi[21]")), σ (.n (val% «verify_tables» "block_eq_hi[22]")), σ (.n (val% «verify_tables» "block_eq_hi[23]")), σ (.n (val% «verify_tables» "block_eq_hi[24]")), σ (.n (val% «verify_tables» "block_eq_hi[25]"))]) ∧
+  ([σ (.n (val% «verify_tables» "block_eq_hi[80]")), σ (.n (val% «verify_tables» "block_eq_hi[81]")), σ (.n (val% «verify_tables» "block_eq_hi[82]")), σ (.n (val% «verify_tables» "block_eq_hi[83]")), σ (.n (val% «verify_tables» "block_eq_hi[84]")), σ (.n (val% «verify_tables» "block_eq_hi[85]")), σ (.n (val% «verify_tables» "block_eq_hi[86]")), σ (.n (val% «verify_tables» "block_eq_hi[87]")), σ (.n (val% «verify_tables» "block_eq_hi[88]")), σ (.n (val% «verify_tables» "block_eq_hi[89]")), σ (.n (val% «verify_tables» "block_eq_hi[90]")), σ (.n (val% «verify_tables» "block_eq_hi[91]")), σ (.n (val% «verify_tables» "block_eq_hi[92]")), σ (.n (val% «verify_tables» "block_eq_hi[93]")), σ (.n (val% «verify_tables» "block_eq_hi[94]")), σ (.n (val% «verify_tables» "block_eq_hi[95]")), σ (.n (val% «verify_tables» "block_eq_hi[96]")), σ (.n (val% «verify_tables» "block_eq_hi[97]")), σ (.n (val% «verify_tables» "block_eq_hi[98]")), σ (.n (val% «verify_tables» "block_eq_hi[99]")), σ (.n (val% «verify_tables» "block_eq_hi[100]")), σ (.n (val% «verify_tables» "block_eq_hi[101]")), σ (.n (val% «verify_tables» "block_eq_hi[102]")), σ (.n (val% «verify_tables» "block_eq_hi[103]")), σ (.n (val% «verify_tables» "block_eq_hi[104]")), σ (.n (val% «verify_tables» "block_eq_hi[105]")), σ (.n (val% «verify_tables» "block_eq_hi[106]")), σ (.n (val% «verify_tables» "block_eq_hi[107]"))] = [σ (.n (val% «verify_tables» "block_eq_hi[26]")), σ (.n (val% «verify_tables» "block_eq_hi[27]")), σ (.n (val% «verify_tables» "block_eq_hi[28]")), σ (.n (val% «verify_tables» "block_eq_hi[29]")), σ (.n (val% «verify_tables» "block_eq_hi[30]")), σ (.n (val% «verify_tables» "block_eq_hi[31]")), σ (.n (val% «verify_tables» "block_eq_hi[32]")), σ (.n (val% «verify_tables» "block_eq_hi[33]")), σ (.n (val% «verify_tables» "block_eq_hi[34]")), σ (.n (val% «verify_tables» "block_eq_hi[35]")), σ (.n (val% «verify_tables» "block_eq_hi[36]")), σ (.n (val% «verify_tables» "block_eq_hi[37]")), σ (.n (val% «verify_tables» "block_eq_hi[38]")), σ (.n (val% «verify_tables» "block_eq_hi[39]")), σ (.n (val% «verify_tables» "block_eq_hi[40]")), σ (.n (val% «verify_tables» "block_eq_hi[41]")), σ (.n (val% «verify_tables» "block_eq_hi[42]")), σ (.n (val% «verify_tables» "block_eq_hi[43]")), σ (.n (val% «verify_tables» "block_eq_hi[44]")), σ (.n (val% «verify_tables» "block_eq_hi[45]")), σ (.n (val% «verify_tables» "block_eq_hi[46]")), σ (.n (val% «verify_tables» "block_eq_hi[47]")), σ (.n (val% «verify_tables» "block_eq_hi[48]")), σ (.n (val% «verify_tables» "block_eq_hi[49]")), σ (.n (val% «verify_tables» "block_eq_hi[50]")), σ (.n (val% «verify_tables» "block_eq_hi[51]")), σ (.n (val% «verify_tables» "block_eq_hi[52]")), σ (.n (val% «verify_tables» "block_eq_hi[53]"))])
 
 /-- **The forms' values.** -/
 theorem vt_forms_valF {rd : Reader} {σ : Val} (hF : VtF rd σ) (bc : List K)
@@ -51,20 +53,20 @@ theorem vt_forms_valF {rd : Reader} {σ : Val} (hF : VtF rd σ) (bc : List K)
     (hC : ∀ i < 45, σ (.n (vtCountPadData.getD i default).2.2.1) =
       blockSel (vtSizesC (vtHt rows)) point.length i point)
     (hpull : VtPullSelsH σ) {weights : List E} (hwl : weights.length = 16)
-    (hW : TbReadsAt rd (σ (.n 13)) weights) {t : ℕ} (ht : t < 6) :
-    ((vtAcc2 (layoutOf bc lm rows) weights (σ (.n 14)) point
-        [σ (.n 812), σ (.n 816)] (σ (.n 1302)) (σ (.n 1316)) (σ (.n 1840))
-        (σ (.n 2440)) (σ (.n 2486)) (σ (.n 2541))).1.getD t []).map
+    (hW : TbReadsAt rd (σ (.n (val% «verify_tables» "fp_w"))) weights) {t : ℕ} (ht : t < 6) :
+    ((vtAcc2 (layoutOf bc lm rows) weights (σ (.n (val% «verify_tables» "beta"))) point
+        [σ (.n (val% «verify_tables» "x@1")), σ (.n (val% «verify_tables» "x@2"))] (σ (.n (val% «verify_tables» "x@3"))) (σ (.n (val% «verify_tables» "x@4"))) (σ (.n (val% «verify_tables» "x@5")))
+        (σ (.n (val% «verify_tables» "s52.u0.s5#0"))) (σ (.n (val% «verify_tables» "s52.u1.s5#0"))) (σ (.n (val% «verify_tables» "s52.u2.s5#0")))).1.getD t []).map
         (·.evaluate ((vtEvT σ t).getD · 0)) =
       (vtFV.getD t []).map fun v ↦ σ (.n v) := by
   obtain ⟨q0, q1, q2, q3, q4, q5⟩ := hpull
-  have hw : ∀ i < 16, LoadHolds rd (σ (.n 13)) i (weights.getD i 0) :=
+  have hw : ∀ i < 16, LoadHolds rd (σ (.n (val% «verify_tables» "fp_w"))) i (weights.getD i 0) :=
     fun i hi ↦ by
       have := hW i (by omega)
       rwa [← List.getD_eq_getElem _ 0] at this
-  obtain ⟨e0, e1, e2⟩ := vt_forms hbc weights (σ (.n 14)) point
-    [σ (.n 812), σ (.n 816)] (σ (.n 1302)) (σ (.n 1316)) (σ (.n 1840))
-        (σ (.n 2440)) (σ (.n 2486)) (σ (.n 2541)) (fun c ↦ σ (.n c)) hP hC hr ⟨t, ht⟩ ((vtEvT σ t).getD · 0)
+  obtain ⟨e0, e1, e2⟩ := vt_forms hbc weights (σ (.n (val% «verify_tables» "beta"))) point
+    [σ (.n (val% «verify_tables» "x@1")), σ (.n (val% «verify_tables» "x@2"))] (σ (.n (val% «verify_tables» "x@3"))) (σ (.n (val% «verify_tables» "x@4"))) (σ (.n (val% «verify_tables» "x@5")))
+        (σ (.n (val% «verify_tables» "s52.u0.s5#0"))) (σ (.n (val% «verify_tables» "s52.u1.s5#0"))) (σ (.n (val% «verify_tables» "s52.u2.s5#0"))) (fun c ↦ σ (.n c)) hP hC hr ⟨t, ht⟩ ((vtEvT σ t).getD · 0)
   simp only at e0 e1 e2
   rw [vt_three _ ((vt_forms3_shape bc lm hr _ _ _ _ _ _ _ _ _ _).2 t ht) {}]
   simp only [List.map_cons, List.map_nil, e0, e1, e2]
@@ -94,44 +96,44 @@ theorem vt_forms_valF {rd : Reader} {σ : Val} (hF : VtF rd σ) (bc : List K)
 `air_acc`. -/
 theorem vt_asm_finalF {rd : Reader} {σ : Val} (hV : VtF rd σ) (bc : List K)
     (hbc : bc.length = 2 ^ 23) {point : List E} {lm : ℕ} {rows : List ℕ} (hr : rows.length = 6)
-    (hkbt : ∀ t < 6, σ (.n (27 + t)) = gen ^ vtHt rows t)
+    (hkbt : ∀ t < 6, σ (.n ((val% «verify_tables» "kb[2]") + t)) = gen ^ vtHt rows t)
     (hP : ∀ i < 51, σ (.n (vtPushPadData.getD i default).2.2.1) =
       blockSel (vtSizesP lm (vtHt rows)) point.length (3 + i) point)
     (hC : ∀ i < 45, σ (.n (vtCountPadData.getD i default).2.2.1) =
       blockSel (vtSizesC (vtHt rows)) point.length i point)
     (hpull : VtPullSelsH σ)
-    (hz1 : TbReadsAt rd (σ (.n 699)) (point.map (1 + ·)))
-    (hxi : σ (.n 2609) = 1 ∧ σ (.n 2610) = σ (.n 2596) ∧ σ (.n 2611) = σ (.n 2596) ^ 2 ∧
-      σ (.n 2612) = σ (.n 2596) ^ 3 ∧ σ (.n 2613) = σ (.n 2596) ^ 4)
+    (hz1 : TbReadsAt rd (σ (.n (val% «verify_tables» "zeta1"))) (point.map (1 + ·)))
+    (hxi : σ (.n (val% «verify_tables» "zc_xi_pows[0]")) = 1 ∧ σ (.n (val% «verify_tables» "zc_xi_pows[1]")) = σ (.n (val% «verify_tables» "nxt[0]@3")) ∧ σ (.n (val% «verify_tables» "zc_xi_pows[2]")) = σ (.n (val% «verify_tables» "nxt[0]@3")) ^ 2 ∧
+      σ (.n (val% «verify_tables» "zc_xi_pows[3]")) = σ (.n (val% «verify_tables» "nxt[0]@3")) ^ 3 ∧ σ (.n (val% «verify_tables» "zc_xi_pows[4]")) = σ (.n (val% «verify_tables» "nxt[0]@3")) ^ 4)
     {weights : List E} (hwl : weights.length = 16)
-    (hW : TbReadsAt rd (σ (.n 13)) weights) {n : ℕ}
-    (hgn : σ (.n 2543) = gen ^ n) (hhn : ∀ t < 6, vtHt rows t ≤ n) (hnp : n ≤ point.length)
+    (hW : TbReadsAt rd (σ (.n (val% «verify_tables» "fp_w"))) weights) {n : ℕ}
+    (hgn : σ (.n (val% «verify_tables» "g_zc_n")) = gen ^ n) (hhn : ∀ t < 6, vtHt rows t ≤ n) (hnp : n ≤ point.length)
     {pts : List E} (hpl : pts.length = n)
-    (hcp : ∀ j ≤ n, LoadHolds rd (σ (.n 2628)) j (pts.take j).prod)
-    (hpe : EqPrefix rd (σ (.n 2649)) 1 (σ (.n 16)) (σ (.n 699)) n)
-    (hchi : ∀ i < n, LoadHolds rd (σ (.n 16)) (n - 1 - i) (pts.getD i 0)) :
-    (termsPure ((powers (σ (.n 2596)) 5).take 2) ((powers (σ (.n 2596)) 5).drop 2) pts.reverse
+    (hcp : ∀ j ≤ n, LoadHolds rd (σ (.n (val% «verify_tables» "zc_cprod"))) j (pts.take j).prod)
+    (hpe : EqPrefix rd (σ (.n (val% «verify_tables» "zc_peq"))) 1 (σ (.n (val% «verify_tables» "chi"))) (σ (.n (val% «verify_tables» "zeta1"))) n)
+    (hchi : ∀ i < n, LoadHolds rd (σ (.n (val% «verify_tables» "chi"))) (n - 1 - i) (pts.getD i 0)) :
+    (termsPure ((powers (σ (.n (val% «verify_tables» "nxt[0]@3"))) 5).take 2) ((powers (σ (.n (val% «verify_tables» "nxt[0]@3"))) 5).drop 2) pts.reverse
       (List.zip (vtRows (tableHeightsOf rows)
-        (vtAcc2 (layoutOf bc lm rows) weights (σ (.n 14)) point
-          [σ (.n 812), σ (.n 816)] (σ (.n 1302)) (σ (.n 1316)) (σ (.n 1840))
-        (σ (.n 2440)) (σ (.n 2486)) (σ (.n 2541))).1 point pts) (vtEvsT σ)) 0 0 []).1 =
-      σ (.n 5945) := by
-  set F := (vtAcc2 (layoutOf bc lm rows) weights (σ (.n 14)) point
-    [σ (.n 812), σ (.n 816)] (σ (.n 1302)) (σ (.n 1316)) (σ (.n 1840))
-        (σ (.n 2440)) (σ (.n 2486)) (σ (.n 2541))).1 with hF
+        (vtAcc2 (layoutOf bc lm rows) weights (σ (.n (val% «verify_tables» "beta"))) point
+          [σ (.n (val% «verify_tables» "x@1")), σ (.n (val% «verify_tables» "x@2"))] (σ (.n (val% «verify_tables» "x@3"))) (σ (.n (val% «verify_tables» "x@4"))) (σ (.n (val% «verify_tables» "x@5")))
+        (σ (.n (val% «verify_tables» "s52.u0.s5#0"))) (σ (.n (val% «verify_tables» "s52.u1.s5#0"))) (σ (.n (val% «verify_tables» "s52.u2.s5#0")))).1 point pts) (vtEvsT σ)) 0 0 []).1 =
+      σ (.n (val% «verify_tables» "air_acc@6")) := by
+  set F := (vtAcc2 (layoutOf bc lm rows) weights (σ (.n (val% «verify_tables» "beta"))) point
+    [σ (.n (val% «verify_tables» "x@1")), σ (.n (val% «verify_tables» "x@2"))] (σ (.n (val% «verify_tables» "x@3"))) (σ (.n (val% «verify_tables» "x@4"))) (σ (.n (val% «verify_tables» "x@5")))
+        (σ (.n (val% «verify_tables» "s52.u0.s5#0"))) (σ (.n (val% «verify_tables» "s52.u1.s5#0"))) (σ (.n (val% «verify_tables» "s52.u2.s5#0")))).1 with hF
   have hFv : ∀ t < 6, (F.getD t []).map (·.evaluate ((vtEvT σ t).getD · 0)) =
       (vtFV.getD t []).map fun v ↦ σ (.n v) := fun t ht ↦
     vt_forms_valF hV bc hbc hr hP hC hpull hwl hW ht
-  have hF6 := (vt_forms3_shape bc lm hr weights (σ (.n 14)) point
-    [σ (.n 812), σ (.n 816)] (σ (.n 1302)) (σ (.n 1316)) (σ (.n 1840))
-        (σ (.n 2440)) (σ (.n 2486)) (σ (.n 2541))).1
+  have hF6 := (vt_forms3_shape bc lm hr weights (σ (.n (val% «verify_tables» "beta"))) point
+    [σ (.n (val% «verify_tables» "x@1")), σ (.n (val% «verify_tables» "x@2"))] (σ (.n (val% «verify_tables» "x@3"))) (σ (.n (val% «verify_tables» "x@4"))) (σ (.n (val% «verify_tables» "x@5")))
+        (σ (.n (val% «verify_tables» "s52.u0.s5#0"))) (σ (.n (val% «verify_tables» "s52.u1.s5#0"))) (σ (.n (val% «verify_tables» "s52.u2.s5#0")))).1
   have hH6 : (tableHeightsOf rows).length = 6 := vt_tableHeightsOf_length hr
   set Wt := tableWeights (tableHeightsOf rows) point pts.reverse with hWt
   have hW6 : Wt.length = 6 := by rw [hWt, length_tableWeights, hH6]
   -- the weights
-  have hwt : ∀ t < 6, ∀ {x cp pe : E}, σ (.n 2543) = x * σ (.n (27 + t)) →
-      LoadHolds rd (σ (.n 2628) * x) 0 cp →
-      LoadHolds rd (σ (.n 2649) * σ (.n (27 + t))) 0 pe → Wt.getD t 0 = cp * pe := by
+  have hwt : ∀ t < 6, ∀ {x cp pe : E}, σ (.n (val% «verify_tables» "g_zc_n")) = x * σ (.n ((val% «verify_tables» "kb[2]") + t)) →
+      LoadHolds rd (σ (.n (val% «verify_tables» "zc_cprod")) * x) 0 cp →
+      LoadHolds rd (σ (.n (val% «verify_tables» "zc_peq")) * σ (.n ((val% «verify_tables» "kb[2]") + t))) 0 pe → Wt.getD t 0 = cp * pe := by
     intro t ht x cp pe hx hcpL hpeL
     exact vt_weight_guest hpl hnp hcp hpe hchi hz1 hgn (by rw [hH6]; exact ht) (hhn t ht) hx
       (hkbt t ht) hcpL hpeL

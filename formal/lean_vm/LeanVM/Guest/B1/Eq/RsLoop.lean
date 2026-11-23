@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.B1.Eq.RsRows
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.B1.Common.Vc
 
 /-!
 # `rs_eq_run_loop0` (`rs_eq_run`'s `mul_range` loop, lean_ethereum.py at leanVM
@@ -120,24 +121,6 @@ theorem guarded_loop_rel_iff {P : Core.Program} {rd : Reader} {f : String} {ps :
 
 /-! ## `rs_eq_run_loop0` -/
 
-/-- The expansion of `rs_eq_run_loop0`. -/
-def l5Body : List Stmt :=
-  [.atom (.mul (.n 5) (.n 0) (.n 0)), .atom (.mul (.n 6) (.n 5) (.n 5)),
-    .atom (.mul (.n 7) (.n 6) (.n 6)), .atom (.mul (.n 8) (.n 0) (.n 0)),
-    .atom (.mul (.n 9) (.n 8) (.n 8)), .atom (.mul (.n 10) (.n 9) (.n 9)),
-    .atom (.mul (.n 11) (.n 10) (.n 10)), .atom (.mul (.n 12) (.n 11) (.n 11)),
-    .atom (.mul (.n 13) (.n 12) (.n 12)), .atom (.mul (.n 14) (.n 2) (.n 13)),
-    .atom (.mul (.n 15) (.n 3) (.n 7)), .atom (.mul (.n 16) (.n 4) (.n 7)),
-    .call "rs_eq_rows__L8" [.n 14, .n 15, .n 16] [.n 17],
-    .atom (.const (.n 18) (word 2 0)), .atom (.mul (.n 19) (.n 0) (.n 18)),
-    .atom (.add (.n 20) (.n 19) (.n 1)), .atom (.const (.n 21) (word 2 0)),
-    .atom (.mul (.n 22) (.n 0) (.n 21)), .callIf (.n 20) name% «rs_eq_run_loop0» [.n 22, .n 1,
-        .n 2, .n 3, .n 4],
-    .ret []]
-
-theorem rs_eq_run_loop0_body : Fn.body fn% «rs_eq_run_loop0» = l5Body :=
-  stmtsEqb_sound (by decide +kernel)
-
 theorem find_loop5 : coreProgram.find? name% «rs_eq_run_loop0» = some fn% «rs_eq_run_loop0» :=
   coreProgram_find?_at (j := idx% «rs_eq_run_loop0») rfl
 
@@ -145,34 +128,18 @@ theorem find_loop5 : coreProgram.find? name% «rs_eq_run_loop0» = some fn% «rs
 def L5Body (rd : Reader) (chain z p x : E) : Prop :=
   ∃ r, coreProgram.Rel rd "rs_eq_rows__L8" [chain * x ^ 64, z * x ^ 8, p * x ^ 8] [r]
 
-theorem pow8_eq (x : E) : (x * x) * (x * x) * ((x * x) * (x * x)) = x ^ 8 := by ring
-
-theorem pow64_eq (x : E) :
-    let a := x * x; let b := a * a; let c := b * b; let d := c * c; let e := d * d; e * e = x ^ 64 := by
-  simp only; ring
-
 /-- **`rs_eq_run_loop0`, one step**, at depth `d + 1`. -/
 theorem loop5_sound (rd : Reader) (N chain z p : E) (d : ℕ) (x : E)
     (h : coreProgram.relN rd (d + 1) name% «rs_eq_run_loop0» (x :: [N, chain, z, p]) []) :
     L5Body rd chain z p x ∧ IsInK (x * gen + N) ∧
       (x * gen + N ≠ 0 → coreProgram.relN rd d name% «rs_eq_run_loop0» (x * gen :: [N, chain, z,
           p]) []) := by
-  rw [relN_succ_iff find_loop5, show Fn.params fn% «rs_eq_run_loop0» = [.n 0, .n 1, .n 2, .n 3,
-      .n 4] from rfl,
-    rs_eq_run_loop0_body, l5Body] at h
-  simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil, word_gen] at h
-  obtain ⟨σ, hp, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, hc, h18, h19, h20, h21,
-    h22, hK, hcall, -⟩ := h
-  simp only [List.cons.injEq] at hp
-  obtain ⟨rfl, rfl, rfl, rfl, rfl, -⟩ := hp
-  have e7 : σ (.n 7) = σ (.n 0) ^ 8 := by rw [h7, h6, h5, pow8_eq]
-  have e13 : σ (.n 13) = σ (.n 0) ^ 64 := by
-    rw [h13, h12, h11, h10, h9, h8]; exact pow64_eq _
-  refine ⟨⟨σ (.n 17), ?_⟩, by rwa [h20, h19, h18] at hK, fun hne => ?_⟩
-  · rw [← e7, ← e13, ← h14, ← h15, ← h16]
-    exact relN_le_rel _ d _ _ _ hc
-  · have := hcall (by rwa [h20, h19, h18])
-    rwa [h22, h21] at this
+  revert h
+  rw [relN_succ_iff_fnSem find_loop5]
+  vc [word_gen, ← pow_two]
+  simp only [← pow_mul, Nat.reduceMul, and_true]
+  rintro ⟨r, hr, hK, hn⟩
+  exact ⟨⟨r, relN_le_rel _ d _ _ _ hr⟩, hK, hn⟩
 
 /-- **`rs_eq_run_loop0`, one step back**: the body and the next step give the loop at `x`. -/
 theorem loop5_complete (rd : Reader) (N chain z p : E) (x : E) (hB : L5Body rd chain z p x)
@@ -180,26 +147,11 @@ theorem loop5_complete (rd : Reader) (N chain z p : E) (x : E) (hB : L5Body rd c
     (hnext : x * gen + N ≠ 0 → coreProgram.Rel rd name% «rs_eq_run_loop0» (x * gen :: [N, chain, z,
         p]) []) :
     coreProgram.Rel rd name% «rs_eq_run_loop0» (x :: [N, chain, z, p]) [] := by
+  rw [rel_iff_fnSem find_loop5]
+  vc [word_gen, ← pow_two]
+  simp only [← pow_mul, Nat.reduceMul, and_true]
   obtain ⟨r, hr⟩ := hB
-  rw [rel_iff_sem find_loop5, show Fn.params fn% «rs_eq_run_loop0» = [.n 0, .n 1, .n 2, .n 3,
-      .n 4] from rfl,
-    rs_eq_run_loop0_body, l5Body]
-  simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil, word_gen]
-  let w : List E := [x, N, chain, z, p, x * x, (x * x) * (x * x), (x * x) * (x * x) * ((x * x) * (x * x)),
-    x * x, (x * x) * (x * x), ((x * x) * (x * x)) * ((x * x) * (x * x)),
-    (((x * x) * (x * x)) * ((x * x) * (x * x))) * (((x * x) * (x * x)) * ((x * x) * (x * x))),
-    x ^ 32, x ^ 64, chain * x ^ 64, z * x ^ 8, p * x ^ 8, r, gen, x * gen, x * gen + N, gen,
-    x * gen]
-  refine ⟨Val.ofArgs w, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, ?_, ?_, rfl, ?_, ?_, ?_, rfl, rfl,
-    rfl, rfl, rfl, ?_, ?_, trivial⟩
-  all_goals simp only [ofArgs_n, w, List.getD_cons_succ, List.getD_cons_zero]
-  · ring
-  · ring
-  · rw [pow8_eq]
-  · rw [pow8_eq]
-  · exact hr
-  · exact hK
-  · exact hnext
+  exact ⟨r, hr, hK, hnext⟩
 
 end
 end LeanVM.Guest.B1

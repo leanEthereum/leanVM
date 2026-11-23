@@ -8,6 +8,8 @@
 module
 
 public import LeanVM.Guest.B1.Opening.QueriesPlaced6
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«opening_queries__L»
 
 /-!
 # The function's honest valuation
@@ -54,9 +56,9 @@ theorem oqMain_at {s : Oq} (hs : s.RowShape) (hfin : s.FinOk) {odd : ℕ} (hodd 
     (h0 : odd ≠ 1 → LoadHolds rd ch 0 0) (rest : List E) {σ : Val}
     (hσ : ∀ i, σ (.n i) = oqMainF s odd [cap, flags, lamInv, coefs, hsp, positions, qptrs, nG] ch bp
       (oqQD s 13 true 0 cap flags rounds hsv w) rest i) :
-    [V.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7].map σ =
+    [V.n (valf% «opening_queries» "cap"), .n (valf% «opening_queries» "flags"), .n (valf% «opening_queries» "lam_inv"), .n (valf% «opening_queries» "coefs"), .n (valf% «opening_queries» "hs"), .n (valf% «opening_queries» "positions"), .n (valf% «opening_queries» "query_win_ptrs"), .n (valf% «opening_queries» "n_iters_g")].map σ =
         [cap, flags, lamInv, coefs, hsp, positions, qptrs, nG] ∧
-      σ (.n 9) = nG * gen ∧ σ (.n 10) = ch ∧
+      σ (.n (valf% «opening_queries» "chain~1")) = nG * gen ∧ σ (.n (valf% «opening_queries» "chain")) = ch ∧
       (∀ o, σ (.n (oqMK s odd + o)) = (oqMainTl nG rest).getD o 0) ∧
       (odd = 1 → σ (.n 12) = bp ∧ (oqQD s 13 true 0 cap flags rounds hsv w).Hv σ ∧
         (σ (.n (oqOut s (oqKL s 13 true) (s.B - 1) 0)), σ (.n (oqOut s (oqKL s 13 true) (s.B - 1) 1))) =
@@ -64,12 +66,12 @@ theorem oqMain_at {s : Oq} (hs : s.RowShape) (hfin : s.FinOk) {odd : ℕ} (hodd 
       BlockOkC anyCall rd σ (oqMainA s odd walk) := by
   set tl := oqMainTl nG rest with htl
   set args : List E := [cap, flags, lamInv, coefs, hsp, positions, qptrs, nG] with hargs
-  have eP : ∀ i < 8, σ (.n i) = args.getD i 0 := fun i hi => by
+  have eP : ∀ i < (valf% «opening_queries» "chain~0"), σ (.n i) = args.getD i 0 := fun i hi => by
     rw [hσ]; simp only [oqMainF, hi, ↓reduceIte]
-  have e8 : σ (.n 8) = word 2 0 := by rw [hσ]; simp [oqMainF]
-  have e9 : σ (.n 9) = nG * word 2 0 := by rw [hσ]; simp [oqMainF, hargs]
-  have e10 : σ (.n 10) = ch := by rw [hσ]; simp [oqMainF]
-  have hpar : [V.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7].map σ = args := by
+  have e8 : σ (.n (valf% «opening_queries» "chain~0")) = word 2 0 := by rw [hσ]; simp [oqMainF]
+  have e9 : σ (.n (valf% «opening_queries» "chain~1")) = nG * word 2 0 := by rw [hσ]; simp [oqMainF, hargs]
+  have e10 : σ (.n (valf% «opening_queries» "chain")) = ch := by rw [hσ]; simp [oqMainF]
+  have hpar : [V.n (valf% «opening_queries» "cap"), .n (valf% «opening_queries» "flags"), .n (valf% «opening_queries» "lam_inv"), .n (valf% «opening_queries» "coefs"), .n (valf% «opening_queries» "hs"), .n (valf% «opening_queries» "positions"), .n (valf% «opening_queries» "query_win_ptrs"), .n (valf% «opening_queries» "n_iters_g")].map σ = args := by
     simp only [List.map_cons, List.map_nil, eP 0 (by omega), eP 1 (by omega), eP 2 (by omega),
       eP 3 (by omega), eP 4 (by omega), eP 5 (by omega), eP 6 (by omega), eP 7 (by omega)]
     rfl
@@ -90,14 +92,14 @@ theorem oqMain_at {s : Oq} (hs : s.RowShape) (hfin : s.FinOk) {odd : ℕ} (hodd 
       List.not_mem_nil, or_false] at ha
     rcases ha with ((rfl | rfl | rfl) | (rfl | rfl)) | (rfl | rfl | rfl)
     · exact e8
-    · show σ (.n 9) = σ (.n 7) * σ (.n 8)
+    · show σ (.n (valf% «opening_queries» "chain~1")) = σ (.n (valf% «opening_queries» "n_iters_g")) * σ (.n (valf% «opening_queries» "chain~0"))
       rw [e9, e8, eP 7 (by omega)]; rfl
     · trivial
     · exact e11
-    · show LoadHolds rd (σ (.n 10)) 0 (σ (.n 11))
+    · show LoadHolds rd (σ (.n (valf% «opening_queries» "chain"))) 0 (σ (.n 11))
       rw [e10, e11, word_zero]; exact h0 (by decide)
     · exact t0
-    · show σ (.n (oqMK s 0 + 1)) = σ (.n (oqMK s 0)) + σ (.n 7)
+    · show σ (.n (oqMK s 0 + 1)) = σ (.n (oqMK s 0)) + σ (.n (valf% «opening_queries» "n_iters_g"))
       rw [t1, t0, eP 7 (by omega)]; rfl
     · exact t2
   · obtain ⟨hx, hb, hok, hc0⟩ := h1 rfl
@@ -128,8 +130,8 @@ theorem oqMain_at {s : Oq} (hs : s.RowShape) (hfin : s.FinOk) {odd : ℕ} (hodd 
     have e11 : σ (.n 11) = D.x := by rw [hσ]; simp [oqMainF]
     have e12 : σ (.n 12) = bp := by rw [hσ]; simp [oqMainF]
     have hp := D.pad_of_emit rfl eQ
-    obtain ⟨hA, hres, hl⟩ := D.query_complete (σ := σ) (x := .n 11) (bp := .n 12) (cap := .n 0)
-      (flags := .n 1) (coefs := .n 3) (hsp := .n 4) (walk := walk) (C := anyCall) hs hfin
+    obtain ⟨hA, hres, hl⟩ := D.query_complete (σ := σ) (x := .n 11) (bp := .n 12) (cap := .n (valf% «opening_queries» "cap"))
+      (flags := .n (valf% «opening_queries» "flags")) (coefs := .n (valf% «opening_queries» "coefs")) (hsp := .n (valf% «opening_queries» "hs")) (walk := walk) (C := anyCall) hs hfin
       (by rw [eP 3 (by omega), eP 4 (by omega), e12]; exact hok) eQ e11 hp.1 hp.2
       (eP 0 (by omega)) (eP 1 (by omega)) trivial
     replace hres : s.final ≠ 1 → σ (.n (oqRes s 13 true)) = oqResV s rounds w := fun hf ↦ by
@@ -143,31 +145,31 @@ theorem oqMain_at {s : Oq} (hs : s.RowShape) (hfin : s.FinOk) {odd : ℕ} (hodd 
     · simp only [List.mem_cons, List.not_mem_nil, or_false] at ha
       rcases ha with rfl | rfl | rfl
       · exact e8
-      · show σ (.n 9) = σ (.n 7) * σ (.n 8)
+      · show σ (.n (valf% «opening_queries» "chain~1")) = σ (.n (valf% «opening_queries» "n_iters_g")) * σ (.n (valf% «opening_queries» "chain~0"))
         rw [e9, e8, eP 7 (by omega)]; rfl
       · trivial
     · simp only [List.mem_cons, List.not_mem_nil, or_false] at ha
       rcases ha with rfl | rfl
-      · show LoadHolds rd (σ (.n 5)) 0 (σ (.n 11))
+      · show LoadHolds rd (σ (.n (valf% «opening_queries» "positions"))) 0 (σ (.n 11))
         rw [e11, eP 5 (by omega)]; exact hx
-      · show LoadHolds rd (σ (.n 6)) 0 (σ (.n 12))
+      · show LoadHolds rd (σ (.n (valf% «opening_queries» "query_win_ptrs"))) 0 (σ (.n 12))
         rw [e12, eP 6 (by omega)]; exact hb
     · exact hA a ha
     · simp only [List.mem_cons, List.not_mem_nil, or_false] at ha
       rcases ha with rfl | rfl
-      · show σ (.n (k - 1)) = σ (.n (oqRes s 13 true)) * σ (.n 2)
+      · show σ (.n (k - 1)) = σ (.n (oqRes s 13 true)) * σ (.n (valf% «opening_queries» "lam_inv"))
         by_cases hf : s.final = 1
         · have e : oqRes s 13 true = k - 1 := by
             rw [hk']; unfold oqMK oqEnd; simp [hf]
           rw [e, eD, eP 2 (by omega)]
           simp [oqResV, hf]
         · rw [eD, hres hf, eP 2 (by omega)]; rfl
-      · show LoadHolds rd (σ (.n 10)) 0 (σ (.n (k - 1)))
+      · show LoadHolds rd (σ (.n (valf% «opening_queries» "chain"))) 0 (σ (.n (k - 1)))
         rw [eD, e10]; exact hc0
     · simp only [List.mem_cons, List.not_mem_nil, or_false] at ha
       rcases ha with rfl | rfl | rfl
       · exact t0
-      · show σ (.n (k + 1)) = σ (.n k) + σ (.n 7)
+      · show σ (.n (k + 1)) = σ (.n k) + σ (.n (valf% «opening_queries» "n_iters_g"))
         rw [t1, t0, eP 7 (by omega)]; rfl
       · exact t2
 

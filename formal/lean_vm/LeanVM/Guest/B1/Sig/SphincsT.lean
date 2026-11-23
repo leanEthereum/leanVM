@@ -11,6 +11,8 @@ module
 
 public import LeanVM.Guest.B1.Sig.SphincsDigestT
 public import LeanVM.Guest.B1.Sig.SphincsForsT
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_sig_lean_sphincs»
 
 /-!
 # `verify_sig_lean_sphincs` as a template
@@ -49,16 +51,16 @@ def sForsBit (k : Nat) : V := sMdBit (10 * (k / 10) + 9 - k % 10)
 
 /-- `a0_b` (the bottom key's layer `0` and tree: `lvals[8] · 2^120 + tree_mid · 2^112 + lvals[24] ·
 2^104`), `key_b` (its leaf, `lvals[0] · 2^56`), and `fors_at = key_b + SP_FORS_TREE`. -/
-def sA0B : V := .n 1379
-def sKeyB : V := .n 1381
-def sForsA1 : V := .n 1383
+def sA0B : V := .n (val% «verify_sig_lean_sphincs» "a0_b")
+def sKeyB : V := .n (val% «verify_sig_lean_sphincs» "key_b")
+def sForsA1 : V := .n (val% «verify_sig_lean_sphincs» "fors_at")
 
 /-- `a0_b`, `key_b`, from `n1372`. -/
 def sForsAddrs : List Stmt :=
-  [cst 1372 (lit (2 ^ 120)), mulS (.n 1373) (sLVal 8) (.n 1372), cst 1374 (lit (2 ^ 112)),
-    mulS (.n 1375) sTreeMid (.n 1374), addS (.n 1376) (.n 1373) (.n 1375), cst 1377 (lit (2 ^ 104)),
-    mulS (.n 1378) (sLVal 24) (.n 1377), addS sA0B (.n 1376) (.n 1378),
-    cst 1380 (lit (2 ^ 56)), mulS sKeyB (sLVal 0) (.n 1380)]
+  [cst 1372 (lit (2 ^ 120)), mulS (.n (val% «verify_sig_lean_sphincs» "a0_b~1")) (sLVal 8) (.n (val% «verify_sig_lean_sphincs» "a0_b~0")), cst 1374 (lit (2 ^ 112)),
+    mulS (.n (val% «verify_sig_lean_sphincs» "a0_b~3")) sTreeMid (.n (val% «verify_sig_lean_sphincs» "a0_b~2")), addS (.n (val% «verify_sig_lean_sphincs» "a0_b~4")) (.n (val% «verify_sig_lean_sphincs» "a0_b~1")) (.n (val% «verify_sig_lean_sphincs» "a0_b~3")), cst 1377 (lit (2 ^ 104)),
+    mulS (.n (val% «verify_sig_lean_sphincs» "a0_b~6")) (sLVal 24) (.n (val% «verify_sig_lean_sphincs» "a0_b~5")), addS sA0B (.n (val% «verify_sig_lean_sphincs» "a0_b~4")) (.n (val% «verify_sig_lean_sphincs» "a0_b~6")),
+    cst 1380 (lit (2 ^ 56)), mulS sKeyB (sLVal 0) (.n (val% «verify_sig_lean_sphincs» "key_b~0"))]
 
 /-- FORS from `n1382`: the statements, the next base (`n5249`) and the FORS key's
 output run's base. -/
@@ -71,7 +73,7 @@ def sForsBase (c : Nat) : Nat := 1384 + ((List.range c).map forsTreeW).sum
 def sRootOf (c : Nat) : V := .n (sForsBase (c + 1) - 1)
 
 /-- The FORS public key, `fors_pk[0]`. -/
-def sForsPk : V := .n 5248
+def sForsPk : V := .n (val% «verify_sig_lean_sphincs» "fors_pk[0]")
 
 /-! ## The hypertree -/
 
@@ -89,8 +91,8 @@ def sAcOf (l : Nat) : Option E := if l = 2 then some (lit (2 ^ 25)) else none
 /-- Layer `l`'s `a0` (the top layer's: the cell its call of `sp_wots` reads), its key pair's `A1`
 (`sp_wots`'s `a1`), its counter, its encoding digest's first cell and its leaf (`sp_wots`'s
 return). -/
-def sA0Of (l : Nat) : V := if l = 0 then sA0B else if l = 1 then .n 5404 else .n 5609
-def sA1Of (l : Nat) : V := if l = 0 then sKeyB else if l = 1 then .n 5406 else .n 5560
+def sA0Of (l : Nat) : V := if l = 0 then sA0B else if l = 1 then .n (val% «verify_sig_lean_sphincs» "a0_m") else .n (val% «verify_sig_lean_sphincs» "leaf@3~1")
+def sA1Of (l : Nat) : V := if l = 0 then sKeyB else if l = 1 then .n (val% «verify_sig_lean_sphincs» "key_m") else .n (val% «verify_sig_lean_sphincs» "key_t")
 def sCtrOf (l : Nat) : V := .n (sLayerBase l + 36)
 def sEncOf (l : Nat) : V := .n (sLayerBase l + 46 + a0W (sAcOf l))
 def sLeafOf (l : Nat) : V := .n (sLayerBase l + 47 + 2 * a0W (sAcOf l))
@@ -113,18 +115,18 @@ def sLayerB : List Stmt × Nat × V := sLayerAt 0 sA0B sKeyB sForsPk
 /-- `a0_m = SP_LAYER_MUL + tree_mid · 2^120 + lvals[24] · 2^112`, `key_m = lvals[8] · 2^56`
 , from `n5398`. -/
 def sMidAddrs : List Stmt :=
-  [cst 5398 (lit (2 ^ 24)), cst 5399 (lit (2 ^ 120)), mulS (.n 5400) sTreeMid (.n 5399),
-    addS (.n 5401) (.n 5398) (.n 5400), cst 5402 (lit (2 ^ 112)),
-    mulS (.n 5403) (sLVal 24) (.n 5402), addS (sA0Of 1) (.n 5401) (.n 5403),
-    cst 5405 (lit (2 ^ 56)), mulS (sA1Of 1) (sLVal 8) (.n 5405)]
+  [cst 5398 (lit (2 ^ 24)), cst 5399 (lit (2 ^ 120)), mulS (.n (val% «verify_sig_lean_sphincs» "a0_m~2")) sTreeMid (.n (val% «verify_sig_lean_sphincs» "a0_m~1")),
+    addS (.n (val% «verify_sig_lean_sphincs» "a0_m~3")) (.n (val% «verify_sig_lean_sphincs» "a0_m~0")) (.n (val% «verify_sig_lean_sphincs» "a0_m~2")), cst 5402 (lit (2 ^ 112)),
+    mulS (.n (val% «verify_sig_lean_sphincs» "a0_m~5")) (sLVal 24) (.n (val% «verify_sig_lean_sphincs» "a0_m~4")), addS (sA0Of 1) (.n (val% «verify_sig_lean_sphincs» "a0_m~3")) (.n (val% «verify_sig_lean_sphincs» "a0_m~5")),
+    cst 5405 (lit (2 ^ 56)), mulS (sA1Of 1) (sLVal 8) (.n (val% «verify_sig_lean_sphincs» "key_m~0"))]
 
 /-- The middle layer, signing the bottom root. -/
 def sLayerM : List Stmt × Nat × V := sLayerAt 1 (sA0Of 1) (sA1Of 1) sLayerB.2.2
 
 /-- `key_t = tree_mid · 2^56 + lvals[24] · 2^48`, from `n5556` (`a0_t` is a constant, `sAcOf`). -/
 def sTopAddrs : List Stmt :=
-  [cst 5556 (lit (2 ^ 56)), mulS (.n 5557) sTreeMid (.n 5556), cst 5558 (lit (2 ^ 48)),
-    mulS (.n 5559) (sLVal 24) (.n 5558), addS (sA1Of 2) (.n 5557) (.n 5559)]
+  [cst 5556 (lit (2 ^ 56)), mulS (.n (val% «verify_sig_lean_sphincs» "key_t~1")) sTreeMid (.n (val% «verify_sig_lean_sphincs» "key_t~0")), cst 5558 (lit (2 ^ 48)),
+    mulS (.n (val% «verify_sig_lean_sphincs» "key_t~3")) (sLVal 24) (.n (val% «verify_sig_lean_sphincs» "key_t~2")), addS (sA1Of 2) (.n (val% «verify_sig_lean_sphincs» "key_t~1")) (.n (val% «verify_sig_lean_sphincs» "key_t~3"))]
 
 /-- The top layer, signing the middle root. -/
 def sLayerT : List Stmt × Nat × V := sLayerAt 2 (sA0Of 2) (sA1Of 2) sLayerM.2.2
