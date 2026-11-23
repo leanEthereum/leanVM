@@ -316,6 +316,9 @@ abbrev Pos := ℕ × ℕ
 structure WSt where
   loc : Loc := {}
   pend : Std.HashMap ℕ (ℕ × ℕ) := {}
+  /-- A copy's destination not yet placed: the cells it may take, those of the copy facts out of its source,
+  then its source's (the compiler having removed the copy); the first unless an atom places it. -/
+  cand : Std.HashMap ℕ (List ℕ) := {}
   used : Std.HashSet String := {}
   fa : Array (ℕ × List ℕ) := #[]
   nr : ℕ := 0
@@ -373,6 +376,8 @@ def unify (pairs : List (ℕ × ℕ)) : WM (Option (List (ℕ × ℕ))) := do
     | none =>
       if let some lim := st.pend.get? v then
         unless ((ctx.setCells.get? lim).getD []).contains c do return none
+      if let some cs := st.cand.get? v then
+        unless cs.contains c do return none
     b := b.insert v c
   return some (pairs.filterMap fun (v, _) => (b.get? v).map (v, ·)).eraseDups
 
@@ -481,8 +486,42 @@ def copyPred (d x : ℕ) (ft : Exec.Atom) : WM (Option (List (ℕ × ℕ))) := d
     unify [(d, b), (x, a)]
   | _ => return none
 
+/-- Whether an instruction other than a `MUL` reads or writes cell `c`. -/
+def touchesNonMul (c : ℕ) : OffsetInstruction → Bool
+  | .xor a b d => a == c || b == c || d == c
+  | .mul .. => false
+  | .set o _ _ => o == c
+  | .deref o1 _ o3 _ => o1 == c || o3 == c
+  | .jump oc od of => oc == c || od == c || of == c
+  | .keccak m0 m1 m2 m3 t b8 cap out _ _ _ =>
+    [m0, m1, m2, m3, b8].contains c || (t ≤ c && c < t + 4) || (cap ≤ c && c < cap + 4) || out == c
+
+/-- The cells of the copy facts out of cell `c`: those passed, and those ahead of `p` in its segment before any
+other instruction touches `c`. -/
+def copiesOut (p : Pos) (facts : Array Exec.Atom) (c : ℕ) : WM (List ℕ) := do
+  let mut out := facts.toList.filterMap fun | .copy a b => if b == c then some a else none | _ => none
+  let s ← getSeg p.1
+  for it in s.items.toList.drop p.2 do
+    match it with
+    | .fact (.copy a b) => if b == c then out := out ++ [a]
+    | .ins (.instr _ ins) => if touchesNonMul c ins then break
+    | .ins (.jump oc od of) => if oc == c || od == c || of == c then break
+    | .branch .. => break
+    | _ => pure ()
+  return out
+
+/-- Place a copy's destination at its first candidate, if no atom has. -/
+def settle (v : ℕ) : WM Unit :=
+  modify fun st => if st.loc.contains v then st else match st.cand.get? v with
+    | some (c :: _) => { st with loc := st.loc.insert v c }
+    | _ => st
+
 /-- Infer the cells of one atom's values. -/
 def atom (a : Core.Atom) (p : Pos) (facts : Array Exec.Atom) : WM (Pos × Array Exec.Atom) := do
+  match a with
+  | .copy _ x => settle (vi x)
+  | .assertEq x y => do settle (vi x); settle (vi y)
+  | _ => pure ()
   let loc := (← get).loc
   match a with
   | .hint _ => return (p, facts)
@@ -498,13 +537,9 @@ def atom (a : Core.Atom) (p : Pos) (facts : Array Exec.Atom) : WM (Pos × Array 
     match loc.get? (vi d), loc.get? (vi x) with
     | some c, some c' => if c == c' then return (p, facts) else go p facts (copyPred (vi d) (vi x))
     | none, some cx =>
-      try
-        go p facts fun ft => match ft with
-          | .copy a b => if b == cx then unify [(vi d, a)] else return none
-          | _ => return none
-      catch _ =>
-        modify fun st => { st with loc := st.loc.insert (vi d) cx }
-        return (p, facts)
+      let outs ← copiesOut p facts cx
+      modify fun st => { st with cand := st.cand.insert (vi d) (outs ++ [cx]) }
+      return (p, facts)
     | _, _ => go p facts (copyPred (vi d) (vi x))
   | .load d q off => go p facts (derefPred off (vi q) (vi d))
   | .touch t q => go p facts (derefPred 0 (vi q) (vi t))
@@ -722,6 +757,8 @@ def inferLocs (segs : Array GSeg) (f : CompiledFunction) (cf : Core.Fn) (main : 
   let init : WSt := { loc := loc0 }
   let (_, st) ← ((block cf.body (0, 0) #[] true).run ctx).run init
   let mut loc := st.loc
+  for (v, cs) in st.cand.toList do
+    unless loc.contains v do loc := loc.insert v (cs.headD 0)
   for (q, run) in st.fa do
     let _ := q
     match (run.zipIdx.find? fun (v, _) => loc.contains v) with

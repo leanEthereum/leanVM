@@ -160,9 +160,8 @@ noncomputable def postOk : Bool :=
     [.n (val% «main» "own_0"), .n (val% «main» "own_1")] &&
   A.any (isConstAt (.n (val% «main» "s66#0")) 1 0) && isLoad A (.n (val% «main» "s66#1")) (.n (val% «main» "s66#0")) 0 &&
   A.any (isAssertEqAt (.n (val% «main» "s66#1")) (.n (val% «main» "own_0"))) &&
-  A.any (isConstAt (.n (val% «main» "s67#0")) 1 0) && A.any (isConstAt (.n (val% «main» "s67#1")) 2 0) &&
-  isMul A (.n (val% «main» "s67#2")) (.n (val% «main» "s67#0")) (.n (val% «main» "s67#1")) && isLoad A (.n (val% «main» "s67#3")) (.n (val% «main» "s67#2")) 0 &&
-  A.any (isAssertEqAt (.n (val% «main» "s67#3")) (.n (val% «main» "own_1")))
+  A.any (isConstAt (.n (val% «main» "s67#0")) 2 0) && isLoad A (.n (val% «main» "s67#1")) (.n (val% «main» "s67#0")) 0 &&
+  A.any (isAssertEqAt (.n (val% «main» "s67#1")) (.n (val% «main» "own_1")))
 
 set_option maxRecDepth 100000 in
 theorem pre_ok : preOk = true := by decide +kernel

@@ -165,7 +165,7 @@ structure MVals (rd : Reader) (σ : Val) (m : MainIn) : Prop where
   r476 : σ (.n (val% «main» "own_0~2")) = (digestHalves m.dap).1
   r477 : σ (.n (val% «main» "own_0~3")) = (digestHalves m.dap).2
   v480 : σ (.n (val% «main» "s66#0")) = 1
-  v484 : σ (.n (val% «main» "s67#2")) = gen
+  v484 : σ (.n (val% «main» "s67#0")) = gen
   tags : lxTagsV.map σ = lxTagWords
 
 /-! ## Helpers -/

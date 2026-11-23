@@ -5014,7 +5014,7 @@ def main():
     own_0, own_1 = statement_digest(seed_0, seed_1, xd_0, xd_1, sd_0, sd_1, da[1], da[GEN], defer_stmt)
     pub_ptr = GEN ** 0
     assert pub_ptr[1] == own_0
-    assert pub_ptr[GEN] == own_1
+    assert GEN[1] == own_1
     return
 
 
