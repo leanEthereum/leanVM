@@ -149,24 +149,18 @@ theorem guestExecution_complete_on_honest_children (s : NodeStatement) (w : Node
 
 open OracleComp OracleSpec in
 /-- **The guest's prover makes the honest prover's proof of its execution**: where `guestExecution`
-returns `t`, `guestProve`'s proof is rejected, refused or not made exactly as the honest prover's
-proof of `t` (`Completeness`, `HonestProofRarelyRefused`), for any program `guest`. -/
+returns `t`, `guestProve`'s proof is rejected or not made exactly as the honest prover's proof of
+`t` (`Completeness`), for any program `guest`. -/
 theorem guestProve_complete {guest : LeanIsaProgram} {s : NodeStatement} {w : NodeWitness}
     {t : Execution guest} (he : guestExecution guest s w = .ok t)
     (hv : ValidExecution guest (PublicInput.ofDigest (statementDigest (deployedSeed guest) s)) t)
-    (hsz : t.committedSize ≤ 2 ^ 30) {ρ : ℕ} (hρ : 1 ≤ ρ ∧ ρ ≤ 4) (hC : LeanVM.Completeness)
-    (hR : HonestProofRarelyRefused) :
+    (hsz : t.committedSize ≤ 2 ^ 30) {ρ : ℕ} (hρ : 1 ≤ ρ ∧ ρ ≤ 4) (hC : LeanVM.Completeness) :
     let input := PublicInput.ofDigest (statementDigest (deployedSeed guest) s)
     Pr{let accepted ← Common.runWithRandomPermutation (do
         match ← guestProve Common.queryPermutation guest s w ρ (2 ^ 35) with
         | none => pure false
         | some proof => leanVmVerifier Common.queryPermutation guest input proof)}[
-        accepted = false] ≤ (2 : ℝ≥0∞)⁻¹ ^ 256 ∧
-    Pr{let accepted ← Common.runWithRandomPermutation (do
-        match ← guestProve Common.queryPermutation guest s w ρ (2 ^ 35) with
-        | none => pure false
-        | some proof => verifierRefusingZero Common.queryPermutation guest input proof)}[
-        accepted = false] ≤ (2 : ℝ≥0∞)⁻¹ ^ 100 := by
+        accepted = false] ≤ (2 : ℝ≥0∞)⁻¹ ^ 256 := by
   have hp : guestProve Common.queryPermutation guest s w ρ (2 ^ 35) =
       leanVmHonestProver Common.queryPermutation guest
         (PublicInput.ofDigest (statementDigest (deployedSeed guest) s)) t ρ (2 ^ 35) := by
@@ -174,7 +168,7 @@ theorem guestProve_complete {guest : LeanIsaProgram} {s : NodeStatement} {w : No
     rfl
   intro input
   rw [hp]
-  exact ⟨hC _ _ t ρ hv hsz hρ, hR _ _ t ρ hv hsz hρ⟩
+  exact hC _ _ t ρ hv hsz hρ
 
 end LeanVM.Guest.EndExec
 

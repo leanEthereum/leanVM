@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.Child.Refusing
 
-  The statement's verifier refusing a zero challenge (`verifierRefusingZero`,
-  `Statement/LeanVmGuestCompleteness.lean`) refines the leanVM verifier, and against a winning
+  The verifier refusing a zero challenge (`verifierRefusingZero`, `Guest/RefusingZero.lean`)
+  refines the leanVM verifier, and against a winning
   strategy it fails with probability at most `|E|⁻¹` per sample.
 -/
 
