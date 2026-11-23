@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Protocol.Extraction.AS.Lite
-public import LeanVM.Protocol.LeanVMRpmASC
+import LeanVM.Protocol.LeanVMRpmASC
 
 /-!
 # The knowledge extractor and its knowledge soundness

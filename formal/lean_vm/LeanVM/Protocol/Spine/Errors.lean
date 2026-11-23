@@ -6,7 +6,12 @@
 
 module
 
-public import LeanVM.Protocol.Spine.Instance
+import LeanVM.Protocol.Spine.Instance
+public import LeanVM.Parameters.Field
+public import ArkLib.OracleReduction.OracleInterface
+public import CompPoly.Multilinear.Basic
+public import CompPoly.Multivariate.Basic
+public import VCVio.OracleComp.Constructions.SampleableType
 
 /-!
 # Errors as fractions of `|E|`

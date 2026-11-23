@@ -7,7 +7,9 @@
 
 module
 
-public import LeanVM.Protocol.EndToEnd.Front.RingSwitch
+import LeanVM.Protocol.EndToEnd.Front.RingSwitch
+public import LeanVM.Protocol.EndToEnd.Claims
+public import ArkLib.Data.CodingTheory.ReedSolomon
 
 /-!
 # The ring claim's weight is multilinear

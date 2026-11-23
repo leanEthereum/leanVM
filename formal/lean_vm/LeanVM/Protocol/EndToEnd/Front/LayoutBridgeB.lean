@@ -11,6 +11,8 @@ module
 public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Protocol.EndToEnd.Front.LayoutInstance
 public import LeanVM.Protocol.EndToEnd.Front.PubPhase
+import LeanVM.Protocol.LeanIsa.Read
+import LeanVM.Protocol.EndToEnd.Front.LayoutArith
 
 /-!
 # Layout facts for the public input

@@ -8,11 +8,14 @@
 
 module
 
-public import LeanVM.Protocol.Whir.Sound.Code
+import LeanVM.Protocol.Whir.Sound.Code
 public import LeanVM.Protocol.Whir.ColumnWeight
 public import LeanVM.Protocol.EndToEnd.Claims
-public import LeanVM.Protocol.Verifier
-public import LeanVM.Protocol.Whir.SubspaceAt
+import LeanVM.Protocol.Verifier
+import LeanVM.Protocol.Whir.SubspaceAt
+public import LeanVM.Protocol.Whir.Sound.Sumcheck
+public import ArkLib.Data.CodingTheory.HiddenDerivative.Parameters.Johnson.FiniteBounds
+public import Mathlib.Tactic
 
 /-!
 # The verifier's weights

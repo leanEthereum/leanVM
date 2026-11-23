@@ -11,7 +11,8 @@ module
 public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Protocol.EndToEnd.Front.TableFidLeanIsaBus
 public import LeanVM.Protocol.EndToEnd.Front.BusTable
-public import LeanVM.Protocol.EndToEnd.Complete.TableMath
+import LeanVM.Protocol.EndToEnd.Complete.TableMath
+import LeanVM.Protocol.EndToEnd.Front.LayoutStack
 
 /-!
 # The table phase's identities at leanISA

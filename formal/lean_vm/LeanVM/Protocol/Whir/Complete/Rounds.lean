@@ -8,7 +8,12 @@
 module
 
 public import LeanVM.Protocol.Whir.Complete.MulX
-public import LeanVM.Prover.WhirTables
+import LeanVM.Prover.WhirTables
+public import CompPoly.Univariate.Basic
+public import VCVio.OracleComp.Constructions.SampleableType.Measure
+public import VCVio.OracleComp.QueryTracking.LoggingOracle.Core
+public import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
+public import VCVio.OracleComp.QueryTracking.WriterCost
 
 /-!
 # An honest fold round

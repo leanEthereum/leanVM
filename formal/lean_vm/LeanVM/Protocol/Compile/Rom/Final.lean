@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Protocol.Compile.Rom.Known
 public import LeanVM.Protocol.Compile.Rom.History
+public import LeanVM.Protocol.Compile.Rom.Potential
 
 /-!
 # The final inequality

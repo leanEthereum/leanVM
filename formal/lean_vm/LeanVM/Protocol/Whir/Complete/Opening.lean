@@ -8,10 +8,11 @@
 
 module
 
-public import LeanVM.Protocol.Verifier.WhirTarget
+import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Protocol.Whir.Complete.Script
 public import LeanVM.Protocol.Whir.Complete.Encoding
 public import Statement.Prover.Whir
+import LeanVM.Parameters.Whir
 
 /-!
 # Completeness of the WHIR opening

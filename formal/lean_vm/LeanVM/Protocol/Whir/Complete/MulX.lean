@@ -7,9 +7,13 @@
 
 module
 
-public import LeanVM.Protocol.Whir.SubspaceAt
-public import LeanVM.Prover.Ntt
+import LeanVM.Protocol.Whir.SubspaceAt
+import LeanVM.Prover.Ntt
 public import Statement.Prover.Whir
+public import LeanVM.Protocol.Whir.NovelBasis
+public import ArkLib.OracleReduction.OracleInterface
+public import CompPoly.Multilinear.Basic
+public import VCVio.OracleComp.Constructions.SampleableType
 
 /-!
 # Multiplication by `X` in the novel basis

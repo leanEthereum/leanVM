@@ -6,7 +6,13 @@
 
 module
 
-public import LeanVM.Protocol.Whir.Sound.Tuple
+import LeanVM.Protocol.Whir.Sound.Tuple
+public import LeanVM.Protocol.ToArkLib.Whir.JohnsonCount
+public import LeanVM.Protocol.Whir.NovelBasis
+public import ArkLib.Data.CodingTheory.HiddenDerivative.Parameters.Johnson.FiniteBounds
+public import ArkLib.OracleReduction.OracleInterface
+public import CompPoly.Multilinear.Basic
+public import VCVio.OracleComp.Constructions.SampleableType
 
 /-!
 # The code of a level

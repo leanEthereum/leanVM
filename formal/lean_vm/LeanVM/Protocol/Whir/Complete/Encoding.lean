@@ -9,10 +9,10 @@
 module
 
 public import LeanVM.Protocol.Whir.Complete.Tables
-public import LeanVM.Protocol.Whir.ColumnWeight
+import LeanVM.Protocol.Whir.ColumnWeight
 public import LeanVM.Protocol.EndToEnd.Candidates
-public import LeanVM.Protocol.Verifier
-public import LeanVM.Protocol.Whir.SubspaceAt
+import LeanVM.Protocol.Verifier
+import LeanVM.Protocol.Whir.SubspaceAt
 
 /-!
 # The honest words

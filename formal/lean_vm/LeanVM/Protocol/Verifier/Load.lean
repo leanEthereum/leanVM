@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Protocol.Verifier
 import LeanVM.Protocol.Compile.Rom.Encoding
+import LeanVM.Protocol.KeccakHash
 
 /-!
 # The proof files, round trips

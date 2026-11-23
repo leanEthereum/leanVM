@@ -8,8 +8,10 @@
 
 module
 
-public import LeanVM.Protocol.Keccak.Words
-public import LeanVM.Protocol.Keccak.Layer
+import LeanVM.Protocol.Keccak.Words
+import LeanVM.Protocol.Keccak.Layer
+public import LeanVM.Protocol.Keccak.Rounds
+public import LeanVM.Protocol.Keccak.LayerAlg
 
 /-!
 # Candidates

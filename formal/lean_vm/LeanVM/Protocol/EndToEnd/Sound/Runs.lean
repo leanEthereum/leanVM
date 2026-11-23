@@ -9,8 +9,13 @@
 module
 
 public import LeanVM.Protocol.Verifier.Claims
-public import LeanVM.Protocol.Compile.Rom.Sound
-public import LeanVM.Protocol.EndToEnd.Sound.Frame
+import LeanVM.Protocol.Compile.Rom.Sound
+import LeanVM.Protocol.EndToEnd.Sound.Frame
+public import LeanVM.Protocol.Compile.Rom.History
+public import CompPoly.Univariate.Basic
+public import VCVio.OracleComp.QueryTracking.LoggingOracle.Core
+public import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
+public import VCVio.OracleComp.QueryTracking.WriterCost
 
 /-!
 # Runs of the compiled verifier

@@ -8,10 +8,11 @@
 
 module
 
-public import LeanVM.Protocol.EndToEnd.Front.BusGkr
-public import LeanVM.Protocol.EndToEnd.Front.EqKernel
-public import LeanVM.Protocol.EndToEnd.Front.LayoutArith
+import LeanVM.Protocol.EndToEnd.Front.BusGkr
+import LeanVM.Protocol.EndToEnd.Front.EqKernel
+import LeanVM.Protocol.EndToEnd.Front.LayoutArith
 public import LeanVM.Protocol.ToArkLib.Sumcheck
+public import LeanVM.Protocol.EndToEnd.Front.BusSpec
 
 /-!
 # The bytecode share

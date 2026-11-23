@@ -8,8 +8,11 @@
 
 module
 
-public import LeanVM.Protocol.Whir.Sound.State
+import LeanVM.Protocol.Whir.Sound.State
 public import LeanVM.Protocol.Compile.SpecRules.Leaves
+public import ArkLib.Data.CodingTheory.HiddenDerivative.Parameters.Johnson.FiniteBounds
+public import ArkLib.Data.CodingTheory.ReedSolomon
+public import Mathlib.Tactic
 
 /-!
 # Moves under a commitment invariant

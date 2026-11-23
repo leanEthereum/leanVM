@@ -7,7 +7,10 @@
 
 module
 
-public import LeanVM.Protocol.Keccak.Layers
+import LeanVM.Protocol.Keccak.Layers
+public import LeanVM.Protocol.Keccak.Start
+public import LeanVM.Protocol.Keccak.SlotWeights
+import LeanVM.Protocol.Keccak.Words
 
 /-!
 # The committed outputs' opening

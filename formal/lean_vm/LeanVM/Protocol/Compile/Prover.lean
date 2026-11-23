@@ -10,17 +10,22 @@
 module
 
 public import Statement.LeanVmVerifier
-public import LeanVM.Facts.Verifier
-public import Statement.Fast.Keccak
-public import Statement.Fast.QuadExt
-public import Statement.Fast.FieldWords
+import LeanVM.Facts.Verifier
+import Statement.Fast.Keccak
+import Statement.Fast.QuadExt
+import Statement.Fast.FieldWords
 public import LeanVM.Protocol.Compile.Prog
 public import Statement.Prover.Run
 public import LeanVM.Protocol.KeccakHash
-public import LeanVM.Parameters.Field
+import LeanVM.Parameters.Field
 public import LeanVM.Protocol.ToArkLib.Merkle
-public import LeanVM.Protocol.WithHash
 public import LeanVM.Protocol.RunWithHash
+import LeanVM.Protocol.WithHash
+public import CompPoly.Univariate.Basic
+public import VCVio.OracleComp.Constructions.SampleableType.Measure
+public import VCVio.OracleComp.QueryTracking.LoggingOracle.Core
+public import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
+public import VCVio.OracleComp.QueryTracking.WriterCost
 
 /-!
 # The honest prover and the completeness of the compilation

@@ -10,7 +10,7 @@ module
 
 public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Protocol.EndToEnd.Front.LayoutInstance
-public import LeanVM.Protocol.Whir.Complete.Tables
+import LeanVM.Protocol.Whir.Complete.Tables
 
 /-!
 # True column claims

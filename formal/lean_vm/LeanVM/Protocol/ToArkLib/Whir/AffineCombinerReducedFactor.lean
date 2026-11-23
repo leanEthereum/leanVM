@@ -14,6 +14,7 @@ public import ArkLib.Data.Polynomial.FractionFieldResultant
 public import ArkLib.Data.Polynomial.ResultantDegree
 public import ArkLib.Data.Polynomial.ResultantSpecialization
 public import Mathlib.FieldTheory.Perfect
+public import LeanVM.Protocol.ToArkLib.Whir.AffineCombinerTrivariate
 
 /-!
 # The Frobenius reduction of a factor

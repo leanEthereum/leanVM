@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.B1.KeccakGkr.LayerSpec
 public import LeanVM.Protocol.Keccak.SlotWeights
+import LeanVM.Protocol.Keccak.Rounds
 
 /-!
 # `verify_keccak`'s specification on the carried sponge

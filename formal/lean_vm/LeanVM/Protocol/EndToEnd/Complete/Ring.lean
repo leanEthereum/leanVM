@@ -8,10 +8,11 @@
 
 module
 
-public import LeanVM.Protocol.EndToEnd.Front.RingMultilinear
+import LeanVM.Protocol.EndToEnd.Front.RingMultilinear
 public import LeanVM.Protocol.EndToEnd.Front.RingFidelity
-public import LeanVM.Protocol.RingVerifier
+import LeanVM.Protocol.RingVerifier
 public import LeanVM.Protocol.Whir.Complete.Script
+public import LeanVM.Protocol.Keccak.Candidate
 
 /-!
 # Completeness of ring switching

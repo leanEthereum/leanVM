@@ -1,8 +1,10 @@
 module
 
 public import LeanVM.Protocol.Extraction.Extractor
-public import Common.Lanes
-public import Common.Sponge
+import Common.Lanes
+import Common.Sponge
+public import Common.Defs
+public import VCVio.ProgramLogic.Relational.SimulateQ.UntilBad
 
 /-!
 # Unpadding in one pass

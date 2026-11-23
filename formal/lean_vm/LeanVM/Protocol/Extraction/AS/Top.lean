@@ -6,11 +6,12 @@
 
 module
 
-public import LeanVM.Protocol.Extraction.AS.Hash
+import LeanVM.Protocol.Extraction.AS.Hash
 public import LeanVM.Protocol.Extraction.Fast.Transcript
-public import LeanVM.Protocol.Extraction.Fast.RunVec
-public import LeanVM.Protocol.Extraction.Fast.AfterRoot
+import LeanVM.Protocol.Extraction.Fast.RunVec
+import LeanVM.Protocol.Extraction.Fast.AfterRoot
 public import LeanVM.Protocol.LeanVMRpmASC
+public import LeanVM.Protocol.Extraction.AS.Forward
 
 /-!
 # The extractor on the transcript's indices

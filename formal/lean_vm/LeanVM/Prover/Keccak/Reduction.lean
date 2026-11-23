@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Prover.Keccak.Layer
 public import LeanVM.Prover.Keccak.Open
+import LeanVM.Protocol.Keccak.Gkr
 
 /-!
 # The reduction

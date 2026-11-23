@@ -10,6 +10,8 @@ module
 public import LeanVM.Protocol.Whir.Complete.Rounds
 public import LeanVM.Protocol.Whir.Complete.Script
 public import LeanVM.Protocol.Whir.Complete.Encoding
+public import LeanVM.Prover.WhirTables
+import LeanVM.Protocol.Whir.SubspaceAt
 
 namespace LeanVM.Protocol.Whir.Complete
 

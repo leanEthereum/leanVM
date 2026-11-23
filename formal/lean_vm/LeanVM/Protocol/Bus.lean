@@ -9,7 +9,7 @@
 module
 
 public import LeanVM.Protocol.Fingerprint
-public import LeanVM.Protocol.Spine.Errors
+import LeanVM.Protocol.Spine.Errors
 public import LeanVM.Protocol.Stack
 public import LeanVM.Protocol.ToArkLib.GrandProduct
 public import LeanVM.Protocol.ToArkLib.Typed.SendChecked

@@ -8,9 +8,12 @@
 
 module
 
-public import LeanVM.Protocol.EndToEnd.Complete.BusSide
-public import LeanVM.Protocol.EndToEnd.Front.LayoutInstance
+import LeanVM.Protocol.EndToEnd.Complete.BusSide
+import LeanVM.Protocol.EndToEnd.Front.LayoutInstance
 public import LeanVM.Protocol.LeanIsa.Bus
+public import LeanVM.Protocol.EndToEnd.Complete.Claims
+public import LeanVM.Protocol.Whir.Complete.Tables
+public import LeanVM.Protocol.EndToEnd.Front.LayoutArith
 
 /-!
 # The framework blocks

@@ -17,6 +17,7 @@ public import LeanVM.Guest.ExperimentBridge
 public import LeanVM.Guest.WithHash
 public import LeanVM.Guest.AcceptableChild
 public import Common.ByteArray
+import LeanVM.Protocol.ErrorBounds
 
 @[expose] public section
 

@@ -8,8 +8,15 @@
 
 module
 
-public import LeanVM.Protocol.LeanVMSound
+import LeanVM.Protocol.LeanVMSound
 public import LeanVM.Protocol.EndToEnd.Complete.Statement
+public import ArkLib.Data.CodingTheory.HiddenDerivative.Parameters.Johnson.FiniteBounds
+public import ArkLib.Data.Polynomial.FrobeniusContraction
+public import ArkLib.Data.Polynomial.ResultantDegree
+public import ArkLib.Data.Polynomial.UniversalHenselNumerator
+public import ArkLib.ToMathlib.RingTheory.Nullstellensatz.AgreementIncidence
+public import Mathlib.Algebra.MvPolynomial.NoZeroDivisors
+public import Mathlib.Tactic
 
 /-!
 # leanVM, end to end

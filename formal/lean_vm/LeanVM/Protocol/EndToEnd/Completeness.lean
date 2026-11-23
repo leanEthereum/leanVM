@@ -6,8 +6,19 @@
 
 module
 
-public import LeanVM.Protocol.EndToEnd.Complete.Theorem
-public import LeanVM.Protocol.WithHash
+import LeanVM.Protocol.EndToEnd.Complete.Theorem
+import LeanVM.Protocol.WithHash
+public import ArkLib.Data.CodingTheory.ReedSolomon
+public import ArkLib.Interaction.Oracle.Security.KnowledgeComposition
+public import Clean.Air.FlatEnsemble
+public import CompPoly.Fields.Binary.BF64
+public import CompPoly.Multilinear.Basic
+public import CompPoly.Multivariate.Eval
+public import CompPoly.Univariate.Lagrange
+public import VCVio.OracleComp.Constructions.SampleableType
+public import VCVio.OracleComp.QueryTracking.LoggingOracle.Core
+public import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
+public import VCVio.OracleComp.QueryTracking.WriterCost
 
 /-!
 # End-to-end completeness

@@ -6,10 +6,12 @@
 
 module
 
-public import LeanVM.Protocol.Extraction.AS.Forward
-public import LeanVM.Protocol.Rpm.Paths
-public import LeanVM.Wire.ReadWrite
+import LeanVM.Protocol.Extraction.AS.Forward
+import LeanVM.Protocol.Rpm.Paths
+import LeanVM.Wire.ReadWrite
 public import LeanVM.Protocol.Extraction.Fast.Replay
+public import LeanVM.Protocol.Rpm.ExtractF
+import LeanVM.Protocol.KeccakHash
 
 /-!
 # Keccak-256 over the first forward answers

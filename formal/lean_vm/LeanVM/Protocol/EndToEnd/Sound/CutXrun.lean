@@ -11,7 +11,9 @@ public import LeanVM.Protocol.EndToEnd.Sound.CutRun
 public import LeanVM.Protocol.EndToEnd.Sound.Extractor
 public import LeanVM.Protocol.Compile.Rom.Replay
 public import LeanVM.Protocol.Verifier.Deferred
-public import LeanVM.Protocol.Verifier.Cost
+import LeanVM.Protocol.Verifier.Cost
+public import LeanVM.Protocol.Compile.Cost
+import LeanVM.Protocol.EndToEnd.Sound.Runs
 
 /-!
 # The cut verifier's run

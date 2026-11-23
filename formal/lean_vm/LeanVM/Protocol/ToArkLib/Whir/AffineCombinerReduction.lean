@@ -7,8 +7,11 @@
 
 module
 
-public import LeanVM.Protocol.ToArkLib.Whir.AffineCombinerFactorCount
+import LeanVM.Protocol.ToArkLib.Whir.AffineCombinerFactorCount
 public import LeanVM.Protocol.ToArkLib.Whir.AffineCombinerMca
+public import ArkLib.Data.Polynomial.UniversalHenselNumerator
+public import ArkLib.ToMathlib.RingTheory.Nullstellensatz.AgreementIncidence
+public import Mathlib.Algebra.MvPolynomial.PDeriv
 
 /-!
 # The non-persistent count from a factorization

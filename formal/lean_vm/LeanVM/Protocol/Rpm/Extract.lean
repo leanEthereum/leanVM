@@ -8,8 +8,9 @@
 module
 
 public import LeanVM.Protocol.Rpm.Game
-public import Common.Keccak
+import Common.Keccak
 public import LeanVM.Protocol.WithHash
+public import LeanVM.Protocol.Rpm.Paths
 
 @[expose] public section
 

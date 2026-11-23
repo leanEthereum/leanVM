@@ -15,6 +15,7 @@ public import LeanVM.Protocol.WithHash
 public import LeanVM.Guest.WithHashBridge
 public import LeanVM.Guest.WithHash
 public import LeanVM.Protocol.EndToEnd.Sound.Moves
+import LeanVM.Protocol.LeanIsa.Complete
 
 /-!
 # Honest children at Keccak

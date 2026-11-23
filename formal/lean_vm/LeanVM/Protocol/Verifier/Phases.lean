@@ -7,7 +7,11 @@
 
 module
 
-public import LeanVM.Protocol.Compile.Prog
+import LeanVM.Protocol.Compile.Prog
+public import Statement.LeanVmVerifier
+public import ArkLib.OracleReduction.OracleInterface
+public import CompPoly.Multilinear.Basic
+public import VCVio.OracleComp.Constructions.SampleableType
 
 /-!
 # The phases, in normal form

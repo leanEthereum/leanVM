@@ -9,8 +9,12 @@
 
 module
 
-public import LeanVM.Protocol.EndToEnd.Front.LayoutStack
+import LeanVM.Protocol.EndToEnd.Front.LayoutStack
 public import LeanVM.Protocol.ToCompPoly.AmbientStacking
+public import Statement.LeanVmVerifier
+import LeanVM.Protocol.EndToEnd.Front.LayoutArith
+public import ArkLib.OracleReduction.OracleInterface
+public import VCVio.OracleComp.Constructions.SampleableType
 
 /-!
 # Stacking a list of blocks

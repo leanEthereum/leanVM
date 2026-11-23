@@ -10,6 +10,8 @@ module
 
 public import LeanVM.Protocol.LeanVMRpm
 public import LeanVM.Protocol.WithHash
+public import LeanVM.Protocol.Rpm.RomRelabel
+import LeanVM.Protocol.Rpm.RpmRelabel
 
 @[expose] public section
 

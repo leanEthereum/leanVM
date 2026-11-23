@@ -9,6 +9,7 @@
 module
 
 public import LeanVM.Protocol.Keccak.Rmfe
+public import LeanVM.Protocol.Keccak.Multilinear
 
 /-!
 # A layer: the product polynomial

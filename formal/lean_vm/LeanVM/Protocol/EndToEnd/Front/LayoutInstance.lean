@@ -9,13 +9,16 @@
 module
 
 public import LeanVM.Protocol.Verifier.Claims
-public import LeanVM.Protocol.EndToEnd.Front.LayoutStack
-public import LeanVM.Protocol.LeanIsa.Read
-public import LeanVM.Protocol.Verifier
-public import LeanVM.Facts.Verifier
-public import Statement.Fast.Keccak
-public import Statement.Fast.QuadExt
-public import Statement.Fast.FieldWords
+import LeanVM.Protocol.EndToEnd.Front.LayoutStack
+import LeanVM.Protocol.LeanIsa.Read
+import LeanVM.Protocol.Verifier
+import LeanVM.Facts.Verifier
+import Statement.Fast.Keccak
+import Statement.Fast.QuadExt
+import Statement.Fast.FieldWords
+public import LeanVM.Protocol.LeanIsa
+public import LeanVM.Protocol.EndToEnd.Claims
+import LeanVM.Protocol.EndToEnd.Front.LayoutArith
 
 /-!
 # The verifier's layout is the instance's

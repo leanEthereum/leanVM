@@ -10,8 +10,10 @@ module
 
 public import LeanVM.Protocol.Whir.Sound.Sumcheck
 public import LeanVM.Protocol.Whir.NovelBasis
-public import LeanVM.Protocol.ToArkLib.Whir.Johnson
-public import LeanVM.Protocol.Field
+import LeanVM.Protocol.ToArkLib.Whir.Johnson
+import LeanVM.Protocol.Field
+public import LeanVM.Protocol.ToArkLib.Whir.JohnsonCount
+public import ArkLib.Data.CodingTheory.HiddenDerivative.Parameters.Johnson.FiniteBounds
 
 /-!
 # Polynomial tuples and their claims

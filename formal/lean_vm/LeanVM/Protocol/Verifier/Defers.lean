@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Protocol.Verifier.DeferredShape
+import LeanVM.Protocol.WithHashBridge
 
 /-!
 # The claim an accepted proof defers

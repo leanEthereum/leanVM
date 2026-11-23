@@ -8,10 +8,16 @@
 
 module
 
-public import LeanVM.Protocol.Whir.Sound.Descent
-public import LeanVM.Protocol.Whir.Sound.FoldRoundCwyz
+import LeanVM.Protocol.Whir.Sound.Descent
+import LeanVM.Protocol.Whir.Sound.FoldRoundCwyz
 public import LeanVM.Protocol.Whir.Params.Check
 public import LeanVM.Protocol.Compile.SpecRules.Grind
+public import LeanVM.Protocol.Whir.Sound.Spec
+public import ArkLib.Data.Polynomial.FrobeniusContraction
+public import ArkLib.Data.Polynomial.ResultantDegree
+public import ArkLib.Data.Polynomial.UniversalHenselNumerator
+public import ArkLib.ToMathlib.RingTheory.Nullstellensatz.AgreementIncidence
+public import Mathlib.Algebra.MvPolynomial.NoZeroDivisors
 
 /-!
 # The deployed WHIR parameters

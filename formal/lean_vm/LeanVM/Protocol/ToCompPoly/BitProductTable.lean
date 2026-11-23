@@ -7,7 +7,8 @@
 
 module
 
-public import LeanVM.Protocol.ToCompPoly.Multilinear
+import LeanVM.Protocol.ToCompPoly.Multilinear
+public import CompPoly.Multilinear.Basic
 
 /-!
 # Tables that factor over the index bits

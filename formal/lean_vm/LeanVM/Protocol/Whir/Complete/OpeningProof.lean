@@ -6,8 +6,9 @@
 
 module
 
-public import LeanVM.Protocol.Whir.Complete.Levels
-public import LeanVM.Protocol.Verifier.Phases
+import LeanVM.Protocol.Whir.Complete.Levels
+import LeanVM.Protocol.Verifier.Phases
+public import LeanVM.Protocol.Whir.Complete.Opening
 
 /-!
 # Completeness of the stacked opening

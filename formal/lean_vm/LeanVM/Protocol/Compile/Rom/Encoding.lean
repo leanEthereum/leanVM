@@ -9,13 +9,14 @@
 module
 
 public import Statement.LeanVmVerifier
-public import LeanVM.Facts.Verifier
-public import Statement.Fast.Keccak
-public import Statement.Fast.QuadExt
-public import Statement.Fast.FieldWords
+import LeanVM.Facts.Verifier
+import Statement.Fast.Keccak
+import Statement.Fast.QuadExt
+import Statement.Fast.FieldWords
 public import LeanVM.Protocol.Compile.Prog
-public import LeanVM.Protocol.KeccakHash
+import LeanVM.Protocol.KeccakHash
 public import LeanVM.Parameters.Field
+import LeanVM.Protocol.Field
 
 /-!
 # Encodings and uniformity for the random-oracle theorem

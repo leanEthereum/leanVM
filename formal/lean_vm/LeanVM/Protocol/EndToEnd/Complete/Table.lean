@@ -11,8 +11,9 @@ module
 public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Protocol.EndToEnd.Complete.TableMath
 public import LeanVM.Protocol.EndToEnd.Complete.Facts
-public import LeanVM.Protocol.EndToEnd.Complete.Flushes
-public import LeanVM.Protocol.Verifier
+import LeanVM.Protocol.EndToEnd.Complete.Flushes
+import LeanVM.Protocol.Verifier
+import LeanVM.Protocol.EndToEnd.Front.LayoutArith
 
 /-!
 # The table phase

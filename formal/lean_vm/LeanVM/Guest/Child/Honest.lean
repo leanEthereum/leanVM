@@ -13,6 +13,8 @@ public import Statement.LeanVmGuest
 public import LeanVM.Protocol.WithHashBridge
 public import LeanVM.Protocol.WithHash
 public import LeanVM.Guest.WithHash
+import LeanVM.Protocol.LeanIsa.Complete
+import LeanVM.Arithmetization.Completeness.Theorem
 
 /-!
 # The honest prover of a child
