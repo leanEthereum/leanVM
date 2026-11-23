@@ -404,6 +404,12 @@ theorem xor_sound (hX : CXOk L fp X) (hst : CWOk L fp X st) {pc a b d : ℕ}
 theorem fpg_word (e : ℕ) : PC.word fp (.fpg e) = ofK (addressOfIndex fp * addressOfIndex e) := by
   simp only [PC.word, gpow_addC]
 
+/-- A next frame's cell the walk found (`find?`) holds what the walk says. -/
+theorem nx_find (hst : CWOk L fp X st) {o q : ℕ} {fc : FC}
+    (hf : st.nx.find? (fun p ↦ Nat.beq p.1 o) = some (q, fc)) : q = o ∧ FCHolds L fp (fp + X.fs) q fc := by
+  have h := List.find?_some hf
+  exact ⟨Nat.eq_of_beq_eq_true h, hst.nx _ (List.mem_of_find?_eq_some hf)⟩
+
 /-- A cell `nextSelf` accepts holds the next frame's pointer. -/
 theorem nextSelf_sound (hst : CWOk L fp X st) {o : ℕ} (h : nextSelf X st o = true) :
     rdc L fp o = some (ofK (addressOfIndex (fp + X.fs))) := by
@@ -413,11 +419,7 @@ theorem nextSelf_sound (hst : CWOk L fp X st) {o : ℕ} (h : nextSelf X st o = t
   have hle := Nat.le_of_ble_eq_true hle
   split at h
   · rename_i q hf
-    have hfc := hst.nx _ (List.mem_of_find?_eq_some hf)
-    have ho : q = o - X.fs := by
-      have := List.find?_some hf
-      exact Nat.eq_of_beq_eq_true this
-    subst ho
+    obtain ⟨rfl, hfc⟩ := nx_find hst hf
     unfold FCHolds at hfc
     rw [← gpow_addC, show fp + X.fs + (o - X.fs) = fp + o by omega, gpow_addC] at hfc
     exact hfc
@@ -535,11 +537,7 @@ theorem justMul_sound (hX : CXOk L fp X) (hst : CWOk L fp X st) {pc a b d : ℕ}
     unfold nextMul at hn
     split at hn
     · rename_i o cv hf
-      have hfc := hst.nx _ (List.mem_of_find?_eq_some hf)
-      have ho : o = d - X.fs := by
-        have := List.find?_some hf
-        exact Nat.eq_of_beq_eq_true this
-      subst ho
+      obtain ⟨rfl, hfc⟩ := nx_find hst hf
       obtain ⟨v, hv, hn'⟩ := hfc
       rw [haddr] at hn'
       have ha : rdc L fp a = some v := by
@@ -551,11 +549,7 @@ theorem justMul_sound (hX : CXOk L fp X) (hst : CWOk L fp X st) {pc a b d : ℕ}
       unfold Guest.Holds
       exact ⟨v, 1, ha, hb, by rw [mul_one]; exact hn'⟩
     · rename_i o i hf
-      have hfc := hst.nx _ (List.mem_of_find?_eq_some hf)
-      have ho : o = d - X.fs := by
-        have := List.find?_some hf
-        exact Nat.eq_of_beq_eq_true this
-      subst ho
+      obtain ⟨rfl, hfc⟩ := nx_find hst hf
       obtain ⟨v, hv, hn'⟩ := hfc
       rw [haddr] at hn'
       simp only [Bool.and_eq_true] at hn
@@ -563,11 +557,7 @@ theorem justMul_sound (hX : CXOk L fp X) (hst : CWOk L fp X st) {pc a b d : ℕ}
       unfold Guest.Holds
       exact ⟨v, 1, hv, hb, by rw [mul_one]; exact hn'⟩
     · rename_i o hf
-      have hfc := hst.nx _ (List.mem_of_find?_eq_some hf)
-      have ho : o = d - X.fs := by
-        have := List.find?_some hf
-        exact Nat.eq_of_beq_eq_true this
-      subst ho
+      obtain ⟨rfl, hfc⟩ := nx_find hst hf
       have ha := statAt_sound hX (of_decide_eq_true hn)
       unfold FCHolds at hfc
       rw [haddr] at hfc
@@ -624,11 +614,7 @@ theorem nextStore_sound (hX : CXOk L fp X) (hst : CWOk L fp X st) {pc o1 o2 o3 :
   have hq := nextSelf_sound hst hn
   split at h
   · rename_i o cv hf
-    have hfc := hst.nx _ (List.mem_of_find?_eq_some hf)
-    have ho : o = o2 := by
-      have := List.find?_some hf
-      exact Nat.eq_of_beq_eq_true this
-    subst ho
+    obtain ⟨rfl, hfc⟩ := nx_find hst hf
     obtain ⟨v, hv, hc⟩ := hfc
     have h3 : rdc L fp o3 = some v := by
       simp only [Bool.or_eq_true] at h
@@ -638,11 +624,7 @@ theorem nextStore_sound (hX : CXOk L fp X) (hst : CWOk L fp X st) {pc o1 o2 o3 :
         rw [h2, ← h1, hv]
     exact deref_holds hq (isInK_ofK _) h3 (by rw [limb_ofK0]; exact hc)
   · rename_i o i hf
-    have hfc := hst.nx _ (List.mem_of_find?_eq_some hf)
-    have ho : o = o2 := by
-      have := List.find?_some hf
-      exact Nat.eq_of_beq_eq_true this
-    subst ho
+    obtain ⟨rfl, hfc⟩ := nx_find hst hf
     obtain ⟨v, hv, hc⟩ := hfc
     simp only [Bool.and_eq_true] at h
     obtain rfl := Nat.eq_of_beq_eq_true h.1

@@ -123,7 +123,6 @@ noncomputable def carryG (fn : Fn) : Bool :=
 /-- Values equal, their numbers compared first. -/
 def veq (a b : V) : Bool := a.idx == b.idx && decide (a = b)
 
-
 /-- An event puts `v` in `K`: an address it reads, a frame address, an `assertInK`, a constant of
 `K`, `v = v·v` (`v` is `0` or `1`). -/
 def pinIn (v : V) : Ev → Bool

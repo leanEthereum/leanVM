@@ -1442,7 +1442,18 @@ theorem MemIf.append {l₁ l₂ : List (ℕ × ℕ × ℕ)} (h₁ : MemIf L fp l
 theorem MemIf.once {mem : List (ℕ × ℕ × ℕ)} (h : MemIf L fp mem) {m : ℕ × ℕ × ℕ} (hm : m ∈ mem)
     (hs : m.2.1 < 2 ^ 32) {v : E} (hv : Core.LoadHolds L.read (wd L fp m.1) m.2.1 v) :
     ∃ e < m.2.2, v = ofK (addressOfIndex e) :=
-  h m hm _ v (by rw [ite_eq_left_of_eq_true _ _ (eq_true hs)]) (by rw [ite_eq_left_of_eq_true _ _ (eq_true hs)]; exact hv)
+  h m hm _ v (by rw [ite_eq_left hs]) (by rw [ite_eq_left hs]; exact hv)
+
+/-- The bounds read once (`memSmall`) of a list hold as `MemIf`, given each one's. -/
+theorem MemIf.of_small {mem : List (ℕ × ℕ × ℕ)} (h : ∀ m ∈ mem, m.2.1 < 2 ^ 32 → ∀ v,
+    Core.LoadHolds L.read (wd L fp m.1) m.2.1 v → ∃ e < m.2.2, v = ofK (addressOfIndex e)) :
+    MemIf L fp (mem.filter memSmall) := by
+  intro m hm q v hq hv
+  obtain ⟨hm, hs⟩ := List.mem_filter.mp hm
+  have hs : m.2.1 < 2 ^ 32 := by simpa [memSmall] using hs
+  rw [ite_eq_left hs] at hq hv
+  subst hq
+  exact h m hm hs v hv
 
 /-- A bound read twice (`memTwice c1 c2`): a word read at `q·g^c2`, `q` read at `fp[o]·g^c1`, is
 `g^e`, `e < n`. -/
@@ -1457,16 +1468,12 @@ theorem MemIf.twice {mem : List (ℕ × ℕ × ℕ)} (h : MemIf L fp mem) {o c1 
     unfold memTwice
     rw [Nat.add_comm, Nat.add_mul_div_left _ _ (by positivity), Nat.div_eq_of_lt hc]
     omega
-  exact h _ hm q v (by rw [ite_eq_right_of_eq_false _ _ (eq_false hb), e1]; exact hq)
-    (by rw [ite_eq_right_of_eq_false _ _ (eq_false hb), e2]; exact hv)
+  exact h _ hm q v (by rw [ite_eq_right hb, e1]; exact hq)
+    (by rw [ite_eq_right hb, e2]; exact hv)
 
 /-- The memory bounds of the semantic precondition read once (`memSmall`) hold as `MemIf`. -/
 theorem memIf_of_pre {mem : List (ℕ × ℕ × ℕ)} (h : MemPre L fp mem) : MemIf L fp (mem.filter memSmall) := by
-  intro m hm q v hq hv
-  obtain ⟨hm, hs⟩ := List.mem_filter.mp hm
-  have hs : m.2.1 < 2 ^ 32 := by simpa [memSmall] using hs
-  rw [ite_eq_left_of_eq_true _ _ (eq_true hs)] at hq hv
-  subst hq
+  refine MemIf.of_small fun m hm _ v hv ↦ ?_
   obtain ⟨p, hp, -, e, he, hr⟩ := h m hm
   rw [wd_of hp] at hv
   exact ⟨e, he, Option.some.inj (hv.2.symm.trans hr)⟩
@@ -1713,14 +1720,10 @@ def MemKnown (L : MemoryImage κ) (fp : K) (known : List (ℕ × ℕ × ℕ)) : 
   ∀ k ∈ known, ∃ e < k.2.2, Core.LoadHolds L.read (wd L fp k.1) k.2.1 (ofK (addressOfIndex e))
 
 theorem memIf_of_known {known : List (ℕ × ℕ × ℕ)} (h : MemKnown L fp known) :
-    MemIf L fp (known.filter memSmall) := by
-  intro m hm q v hq hv
-  obtain ⟨hm, hs⟩ := List.mem_filter.mp hm
-  have hs : m.2.1 < 2 ^ 32 := by simpa [memSmall] using hs
-  rw [ite_eq_left_of_eq_true _ _ (eq_true hs)] at hq hv
-  subst hq
-  obtain ⟨e, he, hl⟩ := h m hm
-  exact ⟨e, he, Option.some.inj (hv.2.symm.trans hl.2)⟩
+    MemIf L fp (known.filter memSmall) :=
+  MemIf.of_small fun m hm _ v hv ↦ by
+    obtain ⟨e, he, hl⟩ := h m hm
+    exact ⟨e, he, Option.some.inj (hv.2.symm.trans hl.2)⟩
 
 theorem memOk_sound (hB : BookHolds L fp B) {known : List (ℕ × ℕ × ℕ)} (hk : MemKnown L fp known)
     {args : List ℕ} {mem : List (ℕ × ℕ × ℕ)} (h : memOk known args mem = true) {q : ℕ}

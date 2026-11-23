@@ -71,33 +71,20 @@ def callees(name):
     return out
 
 
-ORD = 2 ** 64 - 1
-GT = 2 ** 64
-
-
 def asgs(m, f):
     """`Count.osAsgs m f`: the exponents arm `m` can pass callee `f` at the arguments its certificate reads, one
     assignment per rate and level whose row names `f` (`B1.osArgsOk`)."""
     row = lambda r, l: (r * N_SIZES + m) * MAX_LEVELS + l
     i = lambda l: m * MAX_LEVELS + l
-    out = []
     pos = lambda r, l: 'level_positions__L%d_L%d' % (lig('LIG_TREE_DEPTH', row(r, l)), lig('LIG_CAP_DEPTH', row(r, l)))
     res = lambda l: 'level_residual__L%d_L%d_L%d' % (lig('LIG_LOG_MSG_COLS', i(l)), lig('LIG_FOLDS', i(l)),
                                                     lig('LIG_HIGH_BITS', i(l)))
-    if f in [pos(r, l) for r in range(N_RATES) for l in range(lig('LIG_N_LEVELS', m))]:
-        for r in range(N_RATES):
-            for l in range(lig('LIG_N_LEVELS', m)):
-                if f == pos(r, l):
-                    out.append([(9, lig('LIG_SQUEEZES', row(r, l)))])
-        return out
-    if f in [res(l) for l in range(lig('LIG_YR_LEVEL', m))]:
-        for r in range(N_RATES):
-            for l in range(lig('LIG_YR_LEVEL', m)):
-                if f == res(l):
-                    q = lig('LIG_QUERIES', row(r, l))
-                    out.append([(4, q // RES_BATCH), (5, q % RES_BATCH)])
-        return out
-    return [[]]
+    out = [[(9, lig('LIG_SQUEEZES', row(r, l)))]
+           for r in range(N_RATES) for l in range(lig('LIG_N_LEVELS', m)) if f == pos(r, l)]
+    out = out or [[(4, q // RES_BATCH), (5, q % RES_BATCH)]
+                  for r in range(N_RATES) for l in range(lig('LIG_YR_LEVEL', m)) if f == res(l)
+                  for q in [lig('LIG_QUERIES', row(r, l))]]
+    return out or [[]]
 
 
 def stat_at(c, asg):
@@ -106,9 +93,7 @@ def stat_at(c, asg):
     _, pre, (b, cs), _ = c
     look = dict(asg)
     for k, a in pre:
-        if k not in look or look[k] >= ORD: return None
-        e = look[k]
-        if not (a - GT <= e if a >= GT else a < e): return None
+        if k not in look or look[k] >= gen.checker.ORD or not gen.checker.pre_lt(a, look[k]): return None
     if any(k not in look for k, _ in cs): return None
     return b + sum(a * look[k] for k, a in cs)
 

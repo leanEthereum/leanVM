@@ -845,9 +845,7 @@ def infer_one(k, S, allow=None, hcsig=None):
     sp = split_of(k)
     certs = []
     for r in (range(sp[1]) if sp else [None]):
-        if sp:
-            I.ARM[k] = (sp[0], r)
-        try:
+        with I.at_arm(k, (sp[0], r) if sp else None):
             G0 = own.clone()
             I.SIGS[k] = G0
             P = I.Pass(k, G0).run()
@@ -861,8 +859,6 @@ def infer_one(k, S, allow=None, hcsig=None):
             if pas.fails or Sv.miss:
                 raise No('unwitnessed: ' + ('arm %d: ' % r if sp else '') +
                          str((list(pas.fails) + [('miss',) + m for m in Sv.miss])[0])[:60])
-        finally:
-            I.ARM.pop(k, None)
         certs.append(H)
     H = split_merge(k, certs, sp[0]) if sp else certs[0]
     # the callees' ghost words, those `hpArgOk` names
@@ -907,15 +903,11 @@ def split_of(k):
 def arm_cert(H, r):
     """`HCert.arm`: arm `r`'s certificate of a split, its per-arm parts, the shared ones `H`'s."""
     A = H.arms[r]
-    out = EM_C().HCert(H.sig)
+    out = _em().C.HCert(H.sig)
     out.reads, out.calls, out.rets, out.divs, out.hvs, out.eqs, out.dups = \
         A.reads, A.calls, A.rets, A.divs, A.hvs, A.eqs, A.dups
     out.res, out.gargs, out.fas, out.ders = H.res, H.gargs, H.fas, H.ders
     return out
-
-
-def EM_C():
-    return _em().C
 
 
 def split_merge(k, certs, x):
@@ -967,11 +959,8 @@ def split_check(k, H, sigOf):
     if not getattr(H, 'arms', None):
         return EM.check(k, H, sigOf)
     for r in range(len(H.arms)):
-        I.ARM[k] = (H.sel, r)
-        try:
+        with I.at_arm(k, (H.sel, r)):
             e = EM.check(k, arm_cert(H, r), sigOf)
-        finally:
-            I.ARM.pop(k, None)
         if e is not None:
             return ('arm', r, e)
     return None
@@ -1264,8 +1253,7 @@ def windows(R, po, shared=frozenset()):
             # a split: each arm one kernel evaluation (`core.heap_proof`), or its windows (`GenW/<fn>/A<r>/`), its
             # namespace `Fn.«fn».Arm<r>` where `core` and `hcert` are the arm's (`Def.lean`)
             for r in range(len(H.arms)):
-                I.ARM[k] = (H.sel, r)
-                try:
+                with I.at_arm(k, (H.sel, r)):
                     Hr = arm_cert(H, r)
                     if heapwin.fn_cost(k, Hr, sigOf) <= heapwin.BUDGET:
                         continue
@@ -1279,8 +1267,6 @@ def windows(R, po, shared=frozenset()):
                                sigw='(fun f ↦ bif f == core.name then hcert.sig else (csigs.lookup f).getD {})')
                     for name, text in heapwin.one(k, Hr, sigOf, epo, gen):
                         files[os.path.join(GENW, k, 'A%d' % r, name + '.lean')] = text
-                finally:
-                    I.ARM.pop(k, None)
             continue
         if heapwin.fn_cost(k, H, sigOf) <= heapwin.BUDGET:
             continue
@@ -1296,7 +1282,6 @@ def windows(R, po, shared=frozenset()):
 def arm_def(k, r, sel, po, base, ns):
     """An arm's namespace for its windows: `core` the function at the arm (`CoreMode.selF`), `hcert` its certificate
     (`HCert.arm`)."""
-    import heap
     return (head(base + '.Def', f'Arm {r} of `{k}`\'s heap check: the function at the arm, its certificate.') +
             'public import LeanVM.Guest.CoreMode.Defs\npublic import LeanVM.Guest.CoreMode.HeapC\n'
             f'public import LeanVM.Guest.Pack.«{po[k][0]}».{po[k][1]}\n'

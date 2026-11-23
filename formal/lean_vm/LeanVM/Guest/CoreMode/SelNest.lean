@@ -348,6 +348,18 @@ theorem zok_cases {body : List Stmt} {zs : Zip} (hz : ZOk body zs) {s : Stmt} {s
 theorem isAtom_pos {b : Atom} {l : List Stmt} (h : Stmt.atom b ∈ stmtsOf l) : 0 < (stmtsOf l).countP (isAtom b) :=
   List.countP_pos_iff.mpr ⟨_, h, by simp [isAtom]⟩
 
+/-- An atom `selBr` saw before a branch's `match` is on the path through the branch. -/
+theorem seen_on_path {σ : Val} {P Q M : List Stmt} {X Y Z : List Ev} {c0 : V} {a : Atom}
+    (hP : walk σ P = .fall X) (hY : walk σ (Q ++ M) = .fall Y) (ha : a ∈ seenF (seenF [] P) Q) :
+    Ev.atom a ∈ X ++ ([Ev.inK c0] ++ Y ++ Z) := by
+  rw [Bridge.walk_append σ] at hY
+  obtain ⟨YQ, YM, hQ, -, rfl⟩ := seq_eq_fall hY
+  rcases mem_seenF ha with ha | ha
+  · rcases mem_seenF ha with ha | ha
+    · exact absurd ha List.not_mem_nil
+    · exact List.mem_append_left _ (walk_fall_atom hP ha)
+  · simp [walk_fall_atom hQ ha]
+
 /-- **A `match` the path reaches in a branch**: at the top level of branch `c` of the top-level `ite` of
 `B = P ++ ite c₀ z n :: R`, the path's events ending with the walk from the `match`, its selector is at its cell
 and used by an atom of the path. -/
@@ -441,13 +453,7 @@ theorem sel_nested {σ : Val} {j : ℕ} {ps : List V} {B P R z n Q S : List Stmt
       · have := isAtom_pos (walk_atomS (σ := σ) z (by rw [hY]; exact h)); omega
     rw [hbz, ite_eq_left hbz'] at hbr
     subst hbr
-    rw [Bridge.walk_append σ] at hY
-    obtain ⟨YQ, YM, hQ, -, rfl⟩ := seq_eq_fall hY
-    rcases mem_seenF ha with ha | ha
-    · rcases mem_seenF ha with ha | ha
-      · exact absurd ha List.not_mem_nil
-      · exact ⟨a, List.mem_append_left _ (walk_fall_atom hP ha), hu⟩
-    · exact ⟨a, by simp [walk_fall_atom hQ ha], hu⟩
+    exact ⟨a, seen_on_path hP hY ha, hu⟩
   · rw [ite_eq_right h0] at hY
     have hbz' : Nat.beq c 0 = false := by
       by_contra hc
@@ -457,13 +463,7 @@ theorem sel_nested {σ : Val} {j : ℕ} {ps : List V} {B P R z n Q S : List Stmt
       · have := isAtom_pos (walk_atomS (σ := σ) n (by rw [hY]; exact h)); omega
     rw [hbz, ite_eq_right (by simp [hbz'])] at hbr
     subst hbr
-    rw [Bridge.walk_append σ] at hY
-    obtain ⟨YQ, YM, hQ, -, rfl⟩ := seq_eq_fall hY
-    rcases mem_seenF ha with ha | ha
-    · rcases mem_seenF ha with ha | ha
-      · exact absurd ha List.not_mem_nil
-      · exact ⟨a, List.mem_append_left _ (walk_fall_atom hP ha), hu⟩
-    · exact ⟨a, by simp [walk_fall_atom hQ ha], hu⟩
+    exact ⟨a, seen_on_path hP hY ha, hu⟩
 
 end
 

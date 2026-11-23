@@ -332,8 +332,6 @@ theorem relAtIn_dmono {rd : Reader} {R D D' : ℕ → Prop} {fp n : ℕ} {f : St
   let ⟨t, hn, hv, hb, hp, ht, hl, hd⟩ := h
   ⟨t, hn, hv, hb, hp, ht, hl, fun i hi => hd i (hD i hi)⟩
 
-/-! ## Range checks on a memory defined below `2^k` -/
-
 /-! ## A function's own buffers -/
 
 /-- `HeapBuf`s of the given sizes from `b`, holding `cs`. -/

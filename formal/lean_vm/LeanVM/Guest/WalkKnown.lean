@@ -119,28 +119,11 @@ theorem walkSem_oq3 {odd : ℕ} (ho : odd < 2) (pd : ℕ) (rd : Reader) (ws : Li
 /-- **`odd_g`'s tag**: `1` or `g`. -/
 theorem semRel0_odd (rd : Reader) (ws : List E) :
     SemRel0 glob tagOdd rd ws ↔ ws.getD 0 0 = 1 ∨ ws.getD 0 0 = Protocol.Verifier.gen := by
-  exact (semRel0_walk (t := tagOdd) (by decide) (by decide) rd ws).trans Iff.rfl
+  exact semRel0_walk (t := tagOdd) (by decide) (by decide) rd ws
 
 theorem semRel_odd (rd : Reader) (ws : List E) :
     SemRel glob tagOdd rd ws ↔ ws.getD 0 0 = 1 ∨ ws.getD 0 0 = Protocol.Verifier.gen := by
   rw [semRel_lt (by decide), semRel0_odd]
-
-/-- A conditional tag on the immediate `1` at position `1`: the relation holds if the second word
-is `1`. -/
-theorem semRel_imp {t : ℕ} (ht : t < 2 ^ 32) (rd : Reader) (ws : List E) :
-    SemRel glob (impTag t 1 1) rd ws ↔ (ws.getD 1 0 = 1 → SemRel0 glob t rd ws) := by
-  have e1 : impPos (impTag t 1 1) = 1 := by
-    unfold impPos impTag
-    rw [Nat.add_mul_div_left _ _ (by positivity), Nat.div_eq_of_lt ht]
-  have e2 : impImm (impTag t 1 1) = 1 := by
-    unfold impImm impTag
-    rw [Nat.add_mul_div_left _ _ (by positivity), Nat.div_eq_of_lt ht]
-  have e3 : impBase (impTag t 1 1) = t := by
-    unfold impBase impTag
-    rw [Nat.add_mul_mod_self_left, Nat.mod_eq_of_lt ht]
-  have hone : OffsetInstruction.immediateWord 1 0 = 1 := (Exec.imm_of_ofBits rfl).trans Exec.ofK_one
-  unfold SemRel
-  rw [ite_eq_left_of_eq_true _ _ (eq_true (by unfold impTag; omega)), e1, e2, e3, hone]
 
 /-- **`level_queries`' tag**: `OqMainWins` of its walk on the tuple's one word, at `g^n`. -/
 theorem semRel_lq {n odd base d cd : ℕ} (ho : odd < 2) (hb : base < 2) (hc : cd < 64) (hd : d < 64)

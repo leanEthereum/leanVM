@@ -320,7 +320,7 @@ theorem walk_selRet {σ : Val} {C : CallRel} {rd : Reader} {x r n : ℕ} (hx : �
     have he := congrArg logG (hxi.symm.trans hx)
     rwa [logG_spec (by omega), logG_spec (by omega)] at he
   have ho := outAg_seq (walk_sel hu body (armLeL_of h)) (outAg_refl (walk σ [.ret vs]))
-  rw [← walk_appendS, ← walk_appendS] at ho
+  rw [← walk_append, ← walk_append] at ho
   have hw := walk_flat σ vs (selL x r body) (selL_flat h) hdo
   rcases ho with e | e
   · rw [← e, hw]

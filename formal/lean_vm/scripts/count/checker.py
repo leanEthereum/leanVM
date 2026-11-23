@@ -310,23 +310,14 @@ def const_end(fn):
             if e is not None: return e
     return None
 
-def call_args(ss, out):
-    for s in ss:
-        if s[0] == 'call': out.update(s[2])
-        elif s[0] == 'callIf': out.update(s[3])
-        elif s[0] == 'dispatch': out.update(s[3])
-        elif s[0] == 'ite': call_args(s[2], out); call_args(s[3], out)
-        elif s[0] == 'match':
-            for a in s[2]: call_args(a, out)
-    return out
+def call_args(ss):
+    """The values a block's calls pass, nested ones included."""
+    return {v for s in stmts_all(ss) if s[0] in ('call', 'callIf', 'dispatch') for v in s[2 if s[0] == 'call' else 3]}
 
-def consts(ss, out):
-    for s in ss:
-        if s[0] == 'atom' and s[1] == 'const': out.append(s[2])
-        elif s[0] == 'ite': consts(s[2], out); consts(s[3], out)
-        elif s[0] == 'match':
-            for a in s[2]: consts(a, out)
-    return out
+
+def consts(ss):
+    """The constant atoms `(d, w)` of a block, nested ones included, in order."""
+    return [s[2] for s in walk_atoms(ss) if s[1] == 'const']
 
 def const_args(fns):
     """`(callee, parameter, e)` for each call site passing a value its caller sets to the constant `g^e`, or copies from
@@ -349,6 +340,7 @@ def const_args(fns):
 
 
 def stmts_all(ss):
+    """The statements of a block, nested ones included, in order."""
     for s in ss:
         yield s
         if s[0] == 'ite':
@@ -359,32 +351,17 @@ def stmts_all(ss):
 
 def walk_atoms(ss):
     """The atoms of a block, nested ones included, in order."""
-    for s in ss:
-        if s[0] == 'atom': yield s
-        elif s[0] == 'ite':
-            yield from walk_atoms(s[2]); yield from walk_atoms(s[3])
-        elif s[0] == 'match':
-            for a in s[2]: yield from walk_atoms(a)
+    return (s for s in stmts_all(ss) if s[0] == 'atom')
 
 
-def callifs(ss, out):
+def callifs(ss):
     """The `callIf` statements of a block, nested ones included."""
-    for s in ss:
-        if s[0] == 'callIf': out.append(s)
-        elif s[0] == 'ite': callifs(s[2], out); callifs(s[3], out)
-        elif s[0] == 'match':
-            for a in s[2]: callifs(a, out)
-    return out
+    return [s for s in stmts_all(ss) if s[0] == 'callIf']
 
 
-def copies(ss, out):
+def copies(ss):
     """The copy atoms `(d, s)` of a block, nested ones included, in order."""
-    for s in ss:
-        if s[0] == 'atom' and s[1] == 'copy': out.append(s[2])
-        elif s[0] == 'ite': copies(s[2], out); copies(s[3], out)
-        elif s[0] == 'match':
-            for a in s[2]: copies(a, out)
-    return out
+    return [s[2] for s in walk_atoms(ss) if s[1] == 'copy']
 
 
 # --- a body at an arm of its first top-level selector (mirror of `Memory.SelArm`) ---
@@ -460,9 +437,9 @@ def gen(fns, omega, alpha=False, hand=None, only=None):
     zero = const_args(fns)
 
     def ks_of(fn):
-        used = call_args(fn['body'], set())
+        used = call_args(fn['body'])
         # the constants a used value copies (`atomB`'s copies)
-        for d, src in reversed(copies(fn['body'], [])):
+        for d, src in reversed(copies(fn['body'])):
             if d in used: used.add(src)
         track = []
         if alpha:
@@ -504,11 +481,11 @@ def gen(fns, omega, alpha=False, hand=None, only=None):
         # loops' guards `c = x + end` at a `callIf c f (start :: end :: ..)`, `x` a constant (`guardAtom`), and their
         # constants
         guards = []
-        cw = {v: w for (v, w) in consts(fn['body'], [])}
+        cw = {v: w for (v, w) in consts(fn['body'])}
         sums = {}
         for st in walk_atoms(fn['body']):
             if st[1] == 'add': sums.setdefault(st[2][0], st[2])
-        for st in callifs(fn['body'], []):
+        for st in callifs(fn['body']):
             sm = sums.get(st[1])
             if sm and len(st[3]) > 1 and sm[2] == st[3][1] and sm[1] in cw and word_exp(cw[sm[1]]) is not None and \
                     sm[2] in fn['params'] and (fn['name'], fn['params'].index(sm[2]), word_exp(cw[sm[1]])) in zero:
@@ -516,7 +493,7 @@ def gen(fns, omega, alpha=False, hand=None, only=None):
                 if st[1] not in guards: guards.append(st[1])
                 used.add(sm[1])
         ks = []
-        for (v, w) in consts(fn['body'], []):
+        for (v, w) in consts(fn['body']):
             e = word_exp(w)
             if v in used and e is not None and all(x != v for x, _ in ks): ks.append((v, e))
         return ks + [(v, TRACK) for v in track] + [(v, GUARDE) for v in guards]

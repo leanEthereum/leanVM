@@ -392,6 +392,14 @@ def defaultIn (st : WSt) : ℕ → ℕ → Option ℕ
       | some x => defaultIn st fuel x
       | none => none
 
+/-- The open copy destinations placed at their default cells (`defaultIn`), in order. -/
+def settleCopies (st : WSt) (loc0 : Loc) : Loc := Id.run do
+  let mut loc := loc0
+  for v in (st.copyOf.toList.map (·.1)).mergeSort do
+    unless loc.contains v do
+      if let some c := defaultIn { st with loc := loc } 64 v then loc := loc.insert v c
+  return loc
+
 /-- Bindings of values (by number) to cells, if consistent with what is known. -/
 def unify (pairs : List (ℕ × ℕ)) : WM (Option (List (ℕ × ℕ))) := do
   let st ← get
@@ -549,13 +557,10 @@ def atom (a : Core.Atom) (p : Pos) (facts : Array Exec.Atom) : WM (Pos × Array 
       let ahead := (s.items.toList.drop p.2).takeWhile (fun | .branch .. => false | _ => true) |>.findSome? fun
         | .ins a => isSet a
         | _ => none
-      match passed.orElse fun _ => ahead with
-      | some o =>
-        modify fun st => { st with pend := st.pend.insert (vi d) l, pref := st.pref.insert (vi d) o }
-        return (p, facts)
-      | none =>
-        modify fun st => { st with pend := st.pend.insert (vi d) l }
-        return (p, facts)
+      modify fun st => { st with pend := st.pend.insert (vi d) l, pref := match passed.orElse fun _ => ahead with
+        | some o => st.pref.insert (vi d) o
+        | none => st.pref }
+      return (p, facts)
   | .add d a b => go p facts (xorPred (vi d) (vi a) (vi b))
   | .mul d a b => go p facts (mulPred (vi d) (vi a) (vi b))
   | .copy d x =>
@@ -783,10 +788,7 @@ def inferLocs (segs : Array GSeg) (f : CompiledFunction) (cf : Core.Fn) (main : 
     (fun m (v, c) => m.insert v c) {}
   let init : WSt := { loc := loc0 }
   let (_, st) ← ((block cf.body (0, 0) #[] true).run ctx).run init
-  let mut loc := st.loc
-  for v in (st.copyOf.toList.map (·.1)).mergeSort do
-    unless loc.contains v do
-      if let some c := defaultIn { st with loc := loc } 64 v then loc := loc.insert v c
+  let mut loc := settleCopies st st.loc
   for (q, run) in st.fa do
     let _ := q
     match (run.zipIdx.find? fun (v, _) => loc.contains v) with
@@ -800,9 +802,7 @@ def inferLocs (segs : Array GSeg) (f : CompiledFunction) (cf : Core.Fn) (main : 
       let cs := (setCells.get? l).getD []
       loc := loc.insert v ((st.pref.get? v).getD (cs.foldl min (cs.headD 0)))
   -- open copies of values placed only now
-  for v in (st.copyOf.toList.map (·.1)).mergeSort do
-    unless loc.contains v do
-      if let some c := defaultIn { st with loc := loc } 64 v then loc := loc.insert v c
+  loc := settleCopies st loc
   let m := loc.fold (fun m v _ => max m (v + 1)) 0
   return ((List.range m).map fun v => loc.getD v 0, st.nr, st.marks, st.spine, st.uses, st.entered)
 
@@ -1080,19 +1080,17 @@ odd first query, under its branch on `odd_g`), is not defined where the cut is: 
 bounds read twice through `w0`, `(w0, memTwice c i, arms)`. -/
 def winObligations (body : List Core.Stmt) :
     List (ℕ × ℕ × List (ℕ × ℕ × ℕ)) := Id.run do
-  let flat := flatStmt
-  let loads : Std.HashMap ℕ (ℕ × ℕ) := (body.flatMap flat).foldl (fun m s => match s with
+  let flat := body.flatMap flatStmt
+  let loads : Std.HashMap ℕ (ℕ × ℕ) := flat.foldl (fun m s => match s with
     | .atom (.load d w off) => if m.contains d.idx then m else m.insert d.idx (w.idx, off)
     | _ => m) {}
-  let topDef (v : ℕ) : Bool := body.any fun
+  let defines (v : ℕ) : Core.Stmt → Bool
     | .atom a => (Check.atomVals a).head? == some (Core.V.n v)
     | _ => false
-  let nestedDef (v : ℕ) : Bool := !topDef v && (body.flatMap flat).any fun
-    | .atom a => (Check.atomVals a).head? == some (Core.V.n v)
-    | _ => false
+  let nestedDef (v : ℕ) : Bool := !body.any (defines v) && flat.any (defines v)
   let mut out : Array (ℕ × ℕ × List (ℕ × ℕ × ℕ)) := #[]
   for (s, i) in body.zipIdx do
-    for t in flat s do
+    for t in flatStmt s do
       let sel : Option (Core.V × ℕ) := match t with
         | .match_ v arms => some (v, arms.length)
         | _ => none
@@ -2134,7 +2132,7 @@ partial def block (ss : List Core.Stmt) (p : Pos) (st : St) (top : Bool := false
     (chainSel : Option ℕ := none) : M (Option (Pos × St)) := do
   let c ← read
   let (st0, pend) := lookahead c st ss
-  for (v, cc) in pend do fail s!"share {v} at cell {cc} (values there: {(List.range 4096).filter (c.cell · == cc)}; before: occ {st.occ.contains cc} unk {st.unk.contains cc} know {st.know.get? cc}; stmts {ss.length})"
+  for (v, cc) in pend do fail s!"share {v} at cell {cc}"
   let mut st := st0
   let mut p := p
   let mut ss := ss
@@ -3735,12 +3733,11 @@ def partsOf (j : ℕ) (f : CompiledFunction) (F : GFacts) (cf : Core.Fn) (segs :
         | none => some r) none
       let mut mids : Array (ℕ × ℕ) := #[]
       if let some (t0, len) := best then
-        let (sg, c1, u1) := (J, cS, uS)
         if pc > partCost && 2 * len ≥ se - sa && t0 == sa then
           -- the window's own segments, as the kernel's walk has them
           let (J0, env0, e0) := wins0.getD w (0, [], f.instructionCount)
           let segW := execG F f J0 e0 (env0.foldl (fun m (o, s) => m.insert o s) {})
-          if let some s0 := segW.find? (·.start == sg) then
+          if let some s0 := segW.find? (·.start == J) then
             let nm := (pc + partCost - 1) / partCost
             let mut prevS := sa
             let mut prevM := 0
@@ -3753,8 +3750,8 @@ def partsOf (j : ℕ) (f : CompiledFunction) (F : GFacts) (cf : Core.Fn) (segs :
               prevS := s
               prevM := m
             ps := ps ++ mids.toList.map fun (s, m) =>
-              let cnt := Cpl.countRest ⟨s0.start, s0.env, (s0.items.toList.take m).toArray, s0.exit⟩ 0 c1
-              (s - a) :: sg :: cnt ++ [u1, m]
+              let cnt := Cpl.countRest ⟨s0.start, s0.env, (s0.items.toList.take m).toArray, s0.exit⟩ 0 cS
+              (s - a) :: J :: cnt ++ [uS, m]
       partCosts := partCosts ++ (List.range (mids.size + 1)).map fun _ => pc / (mids.size + 1)
     wins := wins.push (if ps.length == 1 && c0 == zero && u0 == 0 && !ent.contains a then [] else ps)
     costs := costs.push partCosts
@@ -4424,10 +4421,8 @@ def main (args : List String) : IO UInt32 := do
       if only.isSome && only != some (i + 1) then continue
       let r1 := certOf false T fns index semMap (i + 1) cf
       match r1, (match r1 with | .ok r => Except.ok r | .error _ => certOf true T fns index semMap (i + 1) cf) with
-      | _, .ok (_, sizes, _, locs, _, (ws, _), _, entW) =>
-        if only.isSome then
-          IO.println s!"{i + 1} {cf.name}: {sizes.zip ws.toList}, entered {entW.map (·.1)}"
-          IO.println s!"locs {locs}"
+      | _, .ok (_, sizes, _, _, _, (ws, _), _, entW) =>
+        if only.isSome then IO.println s!"{i + 1} {cf.name}: {sizes.zip ws.toList}, entered {entW.map (·.1)}"
       | .error e1, .error e => IO.println s!"{i + 1} {cf.name}: {e1} / coarse: {e}"
       | .ok _, .error _ => pure ()
     return 0

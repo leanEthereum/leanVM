@@ -5,7 +5,7 @@ from fnrules import guest_const, guest_arr
 SEL_EQ_STRIDE, SEL_NIBBLES, SEL_EQ_OFF = guest_const('SEL_EQ_STRIDE'), guest_const('SEL_NIBBLES'), guest_arr('SEL_EQ_OFF')
 
 # `selector_tables(point, point1)` reads the point's coordinates and their complements, `4·SEL_NIBBLES` each, and
-# returns `sel_eq`: nibble `j`'s level-`w` table, `2^(w + 1)` entries `2^(3 - w)` apart from `32j + SEL_EQ_OFF[w]`
+# returns `sel_eq`: nibble `j`'s level-`w` table, `2^(w + 1)` entries `2^(3 - w)` apart from `SEL_EQ_STRIDE·j + SEL_EQ_OFF[w]`
 # (the runs `column_selector` reads).
 CONTRACTS = {'selector_tables': sig(
     range(4), None, [4],

@@ -282,12 +282,6 @@ theorem cellW_spec {C : Check.Cert} (hc : Check.Cont C C.cuts.length) {i x : ℕ
   have hloc := Check.cont_locs hc hw.1 hm
   rwa [Nat.add_sub_cancel' hw.2, hxe] at hloc
 
-theorem fsN_pos (j : ℕ) : 0 < fsN j := by
-  unfold fsN
-  cases Nat.beq j 1
-  · simp
-  · simp [mainFrame, Data.mainCells, Data.jtSlots]
-
 theorem numbered_eq {x : V} (h : numbered x = true) : x = V.n x.idx := by
   obtain ⟨path, tag, idx⟩ := x
   simp only [numbered, Bool.and_eq_true, List.isEmpty_iff, Nat.beq_eq] at h

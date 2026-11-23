@@ -30,7 +30,7 @@ stays uncovered (reported by class).
 usage (from formal/lean_vm): python3 -I scripts/core-mode/infer.py [--fn NAME] [--no-rules] [--json OUT]
   [--emit DIR [--check]]
 """
-import sys, os, collections, time
+import sys, os, collections, contextlib, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.setrecursionlimit(100000)
 import coreir
@@ -380,6 +380,17 @@ def sel_body(ss, x, r):
         else:
             out.append(s)
     return out
+
+
+@contextlib.contextmanager
+def at_arm(key, sel):
+    """Passes over `key` read its body at the arm `sel = (x, r)` (`ARM`), none if `sel` is `None`."""
+    if sel is not None:
+        ARM[key] = sel
+    try:
+        yield
+    finally:
+        ARM.pop(key, None)
 
 
 def arm_body(key):

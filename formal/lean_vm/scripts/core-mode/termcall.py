@@ -20,10 +20,9 @@ header = genfiles.header('core-mode/termcall.py')
 
 
 # the checks: file stem, the theorems' name, the check of one function, its imports
-FAMS = [('TermCallers', 'termCallers', 'callersG termCallers',
-         'LeanVM.Guest.CoreMode.Fam.LinkDefs\npublic import LeanVM.Guest.CoreMode.Fam.TermDefs'),
-        ('GlCallers', 'glCallers', 'callersM glCallers',
-         'LeanVM.Guest.CoreMode.Fam.LinkDefs\npublic import LeanVM.Guest.CoreMode.Fam.TermDefs'),
+_TERM = 'LeanVM.Guest.CoreMode.Fam.LinkDefs\npublic import LeanVM.Guest.CoreMode.Fam.TermDefs'
+FAMS = [('TermCallers', 'termCallers', 'callersG termCallers', _TERM),
+        ('GlCallers', 'glCallers', 'callersM glCallers', _TERM),
         ('ExpCarry', 'expCarry', 'CoreMode.carryExpB CoreMode.FnReg.expCarry',
          'LeanVM.Guest.CoreMode.Fam.LinkDefs\npublic import LeanVM.Guest.CoreMode.Fam.ExpCDefs\n'
          'public import LeanVM.Guest.CoreMode.Gen.FnData')]
@@ -73,7 +72,7 @@ def main(argv):
     import callcres
     miss = callcres.carry_misses(carry_list())
     assert not miss, 'termcall: call sites not carrying their callees\' exponent bounds (`carryExpB`): %s' % miss[:8]
-    files = render(); bad = []
+    files = render()
     bad = genfiles.sync(files, glob.glob(os.path.join(OUT, 'TermCallers*.lean')) +
                         glob.glob(os.path.join(OUT, 'GlCallers*.lean')) + glob.glob(os.path.join(OUT, 'ExpCarry*.lean')),
                         '--check' in argv)

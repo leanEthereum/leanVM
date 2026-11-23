@@ -173,9 +173,9 @@ def fam_cost(fns, cert, i):
     """A function's check's cost if certified: a little, and its body's (`family.walk_cost`); split at a selector
     (`checker.SPLIT`), each arm's too."""
     if fns[i]['name'] not in cert: return 0.05
-    sp = checker.SPLIT.get(fns[i]['name'])
-    return 0.1 + family.walk_cost(fns[i]['body']) + (sum(family.walk_cost(checker.sel_body(fns[i]['body'], sp[0], r))
-                                                         for r in range(sp[1])) if sp else 0)
+    sp = split_of(fns, i)
+    return 0.1 + family.walk_cost(fns[i]['body']) + (sum(family.walk_cost(arm_of(fns, i, r)) for r in range(sp[1]))
+                                                     if sp else 0)
 
 
 def split_of(fns, i):

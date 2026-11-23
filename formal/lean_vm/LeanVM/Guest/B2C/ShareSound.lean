@@ -1703,13 +1703,6 @@ theorem valOk_spec {loc : Loc} {tt : Exec.Trie ℕ} {tc fc n : ℕ} {nx : List �
   · obtain ⟨c, hc, hvc⟩ := List.any_eq_true.mp h3
     exact .inr (Nat.eq_of_beq_eq_true hvc ▸ hc)
 
-/-- A value checked with no tail call has its cell below `n`. -/
-theorem valOk_lt {loc : Loc} {tt : Exec.Trie ℕ} {tc fc n : ℕ} {v : V} (h : valOk loc tt tc fc n [] v = true) :
-    loc.cell v < n := by
-  rcases (valOk_spec h).2.2.1 with h | h
-  · exact h
-  · simp at h
-
 /-- A window's values, its cells the certificate's. -/
 theorem fitV_of {loc : Loc} {tt : Exec.Trie ℕ} {tc fc n : ℕ} {nx : List ℕ} {cg : V → ℕ} {vs : List V}
     (hA : ∀ v c, loc.get? v.idx = some c → cg v = c) (h : ∀ v ∈ vs, valOk loc tt tc fc n nx v = true) :

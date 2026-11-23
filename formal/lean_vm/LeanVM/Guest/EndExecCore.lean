@@ -74,10 +74,7 @@ theorem selGo_selM {j : ℕ} {ps : List V} {B : List Stmt} {σ : Val} : ∀ (see
       rcases seq_eq_ret hw with ⟨es1, es2, -, h2, rfl⟩ | h1
       · obtain ⟨hc', a', ha', hu'⟩ := selGo_selM seen ss h ht.2 h2 x arms hm
         exact ⟨hc', a', ha'.imp id (List.mem_append_right _), hu'⟩
-      · exact absurd h1 (CoreMode.walk1_noRetP _ (by
-          have h1' := ht.1
-          simp only [CoreMode.topOk, Bool.and_eq_true] at h1'
-          exact h1'.1) _ _)
+      · exact absurd h1 (CoreMode.walk1_noRetP _ (CoreMode.noRet_of_topOk ht.1) _ _)
   | seen, .ite c z n :: ss, es, vs, h, ht, hw, x, arms, hm => by
     simp only [CoreMode.selGo, Bool.and_eq_true] at h
     obtain ⟨-, h⟩ := h
@@ -88,10 +85,7 @@ theorem selGo_selM {j : ℕ} {ps : List V} {B : List Stmt} {σ : Val} : ∀ (see
       rcases seq_eq_ret hw with ⟨es1, es2, -, h2, rfl⟩ | h1
       · obtain ⟨hc', a', ha', hu'⟩ := selGo_selM seen ss h ht.2 h2 x arms hm
         exact ⟨hc', a', ha'.imp id (List.mem_append_right _), hu'⟩
-      · exact absurd h1 (CoreMode.walk1_noRetP _ (by
-          have h1' := ht.1
-          simp only [CoreMode.topOk, Bool.and_eq_true] at h1'
-          exact h1'.1) _ _)
+      · exact absurd h1 (CoreMode.walk1_noRetP _ (CoreMode.noRet_of_topOk ht.1) _ _)
   | seen, .ret vs' :: ss, es, vs, h, ht, hw, x, arms, hm => by
     simp only [CoreMode.selGo, Bool.and_eq_true] at h
     rcases List.mem_cons.mp hm with h' | hm
@@ -169,26 +163,13 @@ theorem selGo_selD {j : ℕ} {ps : List V} {B : List Stmt} {σ : Val} : ∀ (see
         simp only [CoreMode.selGo, Bool.and_eq_true] at h
         have := List.all_eq_true.mp h.2 _ hm
         simp at this
-      | match_ y arms' =>
+      | match_ _ _ | ite _ _ _ =>
         simp only [CoreMode.selGo, Bool.and_eq_true] at h
         rw [walk] at hw
         rcases seq_eq_ret hw with ⟨es1, es2, -, h2, rfl⟩ | h1
         · obtain ⟨hc, hr⟩ := selGo_selD seen ss h.2 ht.2 h2 x fs args rets hm
           exact ⟨hc, hr.imp id fun ⟨a, ha, hu⟩ ↦ ⟨a, ha.imp id (List.mem_append_right _), hu⟩⟩
-        · exact absurd h1 (CoreMode.walk1_noRetP _ (by
-            have h1' := ht.1
-            simp only [CoreMode.topOk, Bool.and_eq_true] at h1'
-            exact h1'.1) _ _)
-      | ite c z n =>
-        simp only [CoreMode.selGo, Bool.and_eq_true] at h
-        rw [walk] at hw
-        rcases seq_eq_ret hw with ⟨es1, es2, -, h2, rfl⟩ | h1
-        · obtain ⟨hc, hr⟩ := selGo_selD seen ss h.2 ht.2 h2 x fs args rets hm
-          exact ⟨hc, hr.imp id fun ⟨a, ha, hu⟩ ↦ ⟨a, ha.imp id (List.mem_append_right _), hu⟩⟩
-        · exact absurd h1 (CoreMode.walk1_noRetP _ (by
-            have h1' := ht.1
-            simp only [CoreMode.topOk, Bool.and_eq_true] at h1'
-            exact h1'.1) _ _)
+        · exact absurd h1 (CoreMode.walk1_noRetP _ (CoreMode.noRet_of_topOk ht.1) _ _)
       | call f a r =>
         simp only [CoreMode.selGo] at h
         rw [walk_call_cons] at hw
@@ -293,8 +274,7 @@ theorem jumpF_of {κ : ℕ} {L : MemoryImage κ} {j fp : ℕ} {σ : Val} {es : L
     refine ⟨hF.stat _ hm hb.1.1 hb.1.2, fun a b hw' ↦ ?_⟩
     subst hw'
     simpa only [Bool.and_eq_true, Nat.blt_eq] using hb.2
-  refine ⟨?zero, ?nz, ?self, ?pcw, ?cond, ?arm, fun zs x arms ss pre es' vs' hz hc hb hp ↦ hsel zs x arms ss pre es' vs' hz hc hb hp,
-    fun _ _ _ x fs args rets hm ↦ hdsel x fs args rets hm⟩
+  refine ⟨?zero, ?nz, ?self, ?pcw, ?cond, ?arm, hsel, fun _ _ _ x fs args rets hm ↦ hdsel x fs args rets hm⟩
   case zero =>
     intro o hz
     rw [hrd]

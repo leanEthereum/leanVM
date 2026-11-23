@@ -22,6 +22,8 @@ public import LeanVM.Guest.B1.Placement.Common
 * `nzOf_sound`: a value the check pins (`Res.nzOf`) is `NZ`, given its listed values, the events of
   its context holding on a memory whose addresses are nonzero and whose range checks bound exponents
   (`MemNz`), and its context's calls' listed words (`Res.nzUp`).
+* `tabNz_sound`, `armNzB_sound`, `selTabB_sound`: a table read at a range-checked index, and a body's own
+  values (`Res.ownNz`), are `NZ`.
 * `up_valid`: on a valid tree, each listed word of a node is `NZ` (`UpOk`), by its own body's check
   (`Res.upChk`) and its callees', by induction on the tree.
 * `carryNzQ_all`: at every honest instance, its carried parameters (`Res.carriedNz`) are `NZ`
@@ -132,12 +134,6 @@ theorem isInK_of_sq {x : E} (h : x = x * x) : IsInK x := by
   · rw [h0, show (0 : E) = ofK 0 from (map_zero (algebraMap K E)).symm]; exact B2C.isInK_ofK _
   · rw [sub_eq_zero.mp h1, show (1 : E) = ofK 1 from (map_one (algebraMap K E)).symm]; exact B2C.isInK_ofK _
 
-theorem isInK_add' {a b : E} (ha : IsInK a) (hb : IsInK b) : IsInK (a + b) := by
-  obtain ⟨x, rfl⟩ := (isInK_iff a).mp ha
-  obtain ⟨y, rfl⟩ := (isInK_iff b).mp hb
-  rw [← ofK_add]
-  exact B2C.isInK_ofK _
-
 theorem pinIn_sound {v : V} {e : Ev} (hh : e.Holds rd σ) (hp : pinIn v e = true) : IsInK (σ v) := by
   rcases e with a | _ | _ | _
   all_goals try (simp [pinIn] at hp; done)
@@ -184,7 +180,7 @@ theorem kIn1_sound {kv : List V} {sp : List Ev} (hkv : ∀ u ∈ kv, IsInK (σ u
       · rename_i d x y
         obtain ⟨⟨hd, hx⟩, hy⟩ := hm
         rw [← veq_eq hd, this]
-        exact isInK_add' (kIn0_sound hkv hh hx) (kIn0_sound hkv hh hy)
+        exact B1.isInK_add (kIn0_sound hkv hh hx) (kIn0_sound hkv hh hy)
       · rename_i d x y
         obtain ⟨⟨hd, hx⟩, hy⟩ := hm
         rw [← veq_eq hd, this]
@@ -194,17 +190,13 @@ theorem kIn1_sound {kv : List V} {sp : List Ev} (hkv : ∀ u ∈ kv, IsInK (σ u
 /-- **`kIn` puts its value in `K`.** -/
 theorem kIn_sound {kv : List V} {sp : List Ev} (hkv : ∀ u ∈ kv, IsInK (σ u)) (hh : ∀ e ∈ sp, e.Holds rd σ) :
     ∀ n v, kIn kv sp n v = true → IsInK (σ v)
-  | 0, v, h => by
-    simp only [kIn, Bool.or_eq_true, List.any_eq_true] at h
-    rcases h with ⟨u, hu, he⟩ | ⟨e, he, hp⟩
-    · rw [← veq_eq he]; exact hkv u hu
-    · exact pinIn_sound (hh e he) hp
+  | 0, v, h => kIn0_sound hkv hh h
   | n + 1, v, h => by
-    simp only [kIn, Bool.or_eq_true, List.any_eq_true] at h
-    rcases h with (⟨u, hu, he⟩ | ⟨e, he, hp⟩) | ⟨e, he, hm⟩
-    · rw [← veq_eq he]; exact hkv u hu
-    · exact pinIn_sound (hh e he) hp
-    · cases e with
+    rw [kIn, Bool.or_eq_true] at h
+    rcases h with h | h
+    · exact kIn0_sound hkv hh h
+    · obtain ⟨e, he, hm⟩ := List.any_eq_true.mp h
+      cases e with
       | atom a =>
         have := hh _ he
         cases a <;> simp only [Bool.false_eq_true, Bool.and_eq_true] at hm <;>
@@ -212,7 +204,7 @@ theorem kIn_sound {kv : List V} {sp : List Ev} (hkv : ∀ u ∈ kv, IsInK (σ u)
         · rename_i d x y
           obtain ⟨⟨hd, hx⟩, hy⟩ := hm
           rw [← veq_eq hd, this]
-          exact isInK_add' (kIn1_sound hkv hh hx) (kIn1_sound hkv hh hy)
+          exact B1.isInK_add (kIn1_sound hkv hh hx) (kIn1_sound hkv hh hy)
         · rename_i d x y
           obtain ⟨⟨hd, hx⟩, hy⟩ := hm
           rw [← veq_eq hd, this]

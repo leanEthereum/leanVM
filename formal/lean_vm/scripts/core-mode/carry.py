@@ -5,8 +5,7 @@ nonzero parameters, every dynamic allocation's size is nonzero in `K`, every lis
 program by ranges, and their conjunctions. The carried parameters of `carryG` are `Res.carried` (`CoreMode/Fam/CarryDefs.lean`);
 those of `carryNzG` (`Res.carriedNz`), its callee words (`Res.nzUp`) and the values each body pins itself (`Res.ownNz`)
 are derived here, by mirroring the check over the core IR (`Pack/*/Core*.lean`) to a fixed point, and written to
-`CarryNzList.lean`. `--check` writes nothing and
-fails when a file differs.
+`CarryNzList.lean`. `--check` writes nothing and fails when a file differs.
 Usage: python3 -I scripts/core-mode/carry.py [--check]"""
 import sys, os, glob, re
 
@@ -31,9 +30,7 @@ NZ_DEPTH, K_DEPTH = 12, 8
 def atom(a):
     """An atom of the shared parse (`data.core_atom`) as the check reads it."""
     k = a[0]
-    if k in ('const', 'mul', 'add', 'copy', 'touch', 'assertInK', 'assertEq'):
-        return a
-    if k in ('load', 'rangeCheck'):
+    if k in ('const', 'mul', 'add', 'copy', 'touch', 'assertInK', 'assertEq', 'load', 'rangeCheck'):
         return a
     if k == 'frameAddr':
         return a[:2]
@@ -221,11 +218,15 @@ class Check:
                         return True
         return False
 
-    def kv(self, f):
-        """`Res.kvNz`."""
+    def own(self, f):
+        """The values `f`'s body pins itself (`Res.ownNz`), computed once."""
         if f not in self._own:
             self._own[f] = self.arm_nz(self.F[f]['body']) + self.sel_tab(self.F[f]['body'])
-        return sorted(self.carried.get(f, ())) + ([0] if self.F[f]['loop'] else []) + self._own[f]
+        return self._own[f]
+
+    def kv(self, f):
+        """`Res.kvNz`."""
+        return sorted(self.carried.get(f, ())) + ([0] if self.F[f]['loop'] else []) + self.own(f)
 
     def arm_nz(self, body):
         """The values `Res.armNzB` takes: copies in a top-level `match`'s first arm, before any return, that every arm
@@ -355,7 +356,7 @@ def nz_lists(F):
     ups = set(up)
     C2 = Check(F, carried, lambda g, i: (g, i) in ups)
     bad = C2.fails() + [(g, 'up', i) for g, i in up if not C2.up_ok(g, i)]
-    own = sorted((f, v) for f in F for v in set(C2.arm_nz(F[f]['body']) + C2.sel_tab(F[f]['body'])))
+    own = sorted((f, v) for f in F for v in set(C2.own(f)))
     return carried, up, own, bad
 
 

@@ -1011,23 +1011,6 @@ theorem fax_faw {σ : Val} {H : HCert} {f : Fn} {es : List Ev} {vs : List V}
   · exact Or.inl ⟨V.n p.1, run, p.2, v, topAtoms_on_path hw _ hfr, hv, ⟨a, topAtoms_on_path hw _ ha, hva⟩, rfl⟩
   · exact Or.inr ⟨p.1, p.2, run, hp, topAtoms_on_path hw _ hfr, hne, hle, rfl⟩
 
-/-- **The heap check with calls and loops is sound, call by call**: on a path of a function passing `heapOkC`
-that returns, its events holding, given its entry facts and its residuals, every event's needs are written before
-it once the calls before it have their callees' returned words (`ReadsOkP`), and, every call having them, its
-guarantees are written at return. A loop helper's own signature is `sigOf`'s for its name. -/
-theorem out_seq_assocC : ∀ (o k l : Out), (o.seq k).seq l = o.seq (k.seq l)
-  | .fall es, .fall es', l => by cases l <;> simp [Out.seq, Out.pre, List.append_assoc]
-  | .fall es, .ret es' vs, l => by simp [Out.seq, Out.pre]
-  | .fall es, .stuck, l => by simp [Out.seq, Out.pre]
-  | .ret es vs, k, l => by simp [Out.seq]
-  | .stuck, k, l => by simp [Out.seq]
-
-theorem walk_appendC (σ : Val) : ∀ (l l' : List Stmt), walk σ (l ++ l') = (walk σ l).seq (walk σ l')
-  | [], l' => by
-      rw [List.nil_append, walk]
-      cases walk σ l' <;> simp [Out.seq, Out.pre]
-  | s :: l, l' => by rw [List.cons_append, walk, walk, walk_appendC σ l l', out_seq_assocC]
-
 theorem out_pre_seqC (es : List Ev) : ∀ (o k : Out), (o.pre es).seq k = (o.seq k).pre es
   | .fall es', k => by cases k <;> simp [Out.seq, Out.pre, List.append_assoc]
   | .ret es' vs, k => by simp [Out.seq, Out.pre]
@@ -1048,7 +1031,7 @@ theorem walk_dupB (σ : Val) (ds : List ℕ) : ∀ ss : List Stmt, walk σ (dupB
       cases dupC ds c with
       | false => simp only [Bool.cond_false, walk, walk_dupB σ ds ss]
       | true =>
-        simp only [Bool.cond_true, walk, walk1, walk_appendC, out_seq_nilC]
+        simp only [Bool.cond_true, walk, walk1, walk_append, out_seq_nilC]
         rw [out_pre_seqC]
         split_ifs <;> rfl
     | atom a => simp only [dupB, walk, walk_dupB σ ds ss]
@@ -1064,6 +1047,10 @@ theorem walk_bodyC (σ : Val) (ds : List ℕ) (ss : List Stmt) : walk σ (bodyC 
   · exact walk_dupB σ ds ss
   · rfl
 
+/-- **The heap check with calls and loops is sound, call by call**: on a path of a function passing `heapOkC`
+that returns, its events holding, given its entry facts and its residuals, every event's needs are written before
+it once the calls before it have their callees' returned words (`ReadsOkP`), and, every call having them, its
+guarantees are written at return. A loop helper's own signature is `sigOf`'s for its name. -/
 theorem heapOkC1_soundP {pows : PowTree} (hp : pows.Ok) {sigOf : String → HSig} {f : Fn} {H : HCert}
     (hok : heapOkC1 pows sigOf f H = true) (hself : sigOf f.name = H.sig) {σ : Val} {rd : Reader}
     {es : List Ev} {vs : List V} (hw : walk σ f.body = .ret es vs) (hh : ∀ e ∈ es, e.Holds rd σ)

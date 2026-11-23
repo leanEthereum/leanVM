@@ -92,13 +92,9 @@ def fam(k, r):
     if not _os(k):
         return False
     if r[0] == 'lt' and r[1][0] == 'val' and r[2][0] == 'num' and r[2][1] < 2 ** 62:
-        return callcres.val_exp(I_core(k), r[1][1], 0, r[2][1])
+        import infer
+        return callcres.val_exp(infer.CORE[k][1], r[1][1], 0, r[2][1])
     return sel_pts(k, r)
-
-
-def I_core(k):
-    import infer
-    return infer.CORE[k][1]
 
 
 # a read at a selector among the points it can be (`sel_pts`) wants the solver's `lastres` form
@@ -117,7 +113,6 @@ def fact(EM, base):
             return [self.use(('sel', x, 0, b[1]), ('lt', ('val', x), ('num', b[1])))]
         return None
     return f
-
 
 
 # ---- its heap certificate split at the rate selector (`CoreMode.heapOkC`, `HCert.arms`): each rate's arm checked with

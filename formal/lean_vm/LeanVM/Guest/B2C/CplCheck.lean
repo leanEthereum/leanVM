@@ -174,7 +174,7 @@ def inFrame (n : ℕ) : List ℕ → Bool
   | c :: cs => Nat.ble 2 c && Nat.blt c n && inFrame n cs
 
 /-- A loop helper's tail call's arguments: its body `pre ++ [callIf c f args, ret []]`, `f` the
-function itself and `pre` without `ret`; else none. -/
+function itself and `pre` without `ret`; else `[]`. -/
 def tailArgs (fn : Core.Fn) : List V :=
   match fn.body.reverse with
   | .ret [] :: .callIf _ g args :: rpre => bif g == fn.name && Stmt.noRetList rpre.reverse then args else []

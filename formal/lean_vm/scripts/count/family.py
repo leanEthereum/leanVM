@@ -148,12 +148,12 @@ class Cut:
     `j`'s check walks, `run(j, rho, ss)` the mirror's walk of the range `ss` from `rho`
     (`checker.run_range`) and `acc` a result's literal; for a check split at a selector, `of_split`, `split` and
     `arm`."""
-    def __init__(self, step, add, zero, assoc, cert, of_run, walk, run, acc, of_split=None, split=None, arm=None):
+    def __init__(self, step, add, zero, assoc, cert, of_run, walk, run, acc, of_split, split, arm):
         self.step = step; self.add = add; self.zero = zero; self.assoc = assoc; self.cert = cert
         self.of_run = of_run; self.walk = walk; self.run = run; self.acc = acc
         # a check split at a selector: its `*_of_split` lemma, `split(j)` the selector and arms or `None`, `arm(j, r)`
         # arm `r`'s walk
-        self.of_split = of_split; self.split = split or (lambda j: None); self.arm = arm
+        self.of_split = of_split; self.split = split; self.arm = arm
 
 
 def cut_walk(D, mod, pre, j, cut, RB, MB, ss, walk, tag):

@@ -119,18 +119,18 @@ theorem outAg_seq {a' a b' b : Out} (ha : OutAg a' a) (hb : OutAg b' b) : OutAg 
     | stuck => exact Or.inl rfl
   · exact Or.inr rfl
 
-theorem out_seq_assocS : ∀ (o k l : Out), (o.seq k).seq l = o.seq (k.seq l)
+theorem Out.seq_assoc : ∀ (o k l : Out), (o.seq k).seq l = o.seq (k.seq l)
   | .fall es, .fall es', l => by cases l <;> simp [Out.seq, Out.pre, List.append_assoc]
   | .fall es, .ret es' vs, l => by simp [Out.seq, Out.pre]
   | .fall es, .stuck, l => by simp [Out.seq, Out.pre]
   | .ret es vs, k, l => by simp [Out.seq]
   | .stuck, k, l => by simp [Out.seq]
 
-theorem walk_appendS (σ : Val) : ∀ (l l' : List Stmt), walk σ (l ++ l') = (walk σ l).seq (walk σ l')
+theorem walk_append {σ : Val} : ∀ (l l' : List Stmt), walk σ (l ++ l') = (walk σ l).seq (walk σ l')
   | [], l' => by
       rw [List.nil_append, walk]
       cases walk σ l' <;> simp [Out.seq, Out.pre]
-  | s :: l, l' => by rw [List.cons_append, walk, walk, walk_appendS σ l l', out_seq_assocS]
+  | s :: l, l' => by rw [List.cons_append, walk, walk, walk_append l l', Out.seq_assoc]
 
 theorem walk_singleC (σ : Val) (s : Stmt) : walk σ [s] = walk1 σ s := by
   rw [walk, walk]
@@ -262,7 +262,7 @@ theorem walk_sel {x r n : ℕ} (hu : ∀ i < n, σ (V.n x) = ofK (addressOfIndex
   | s :: ss, h => by
     have h' : (armLeS x n s && armLeL x n ss) = true := h
     simp only [Bool.and_eq_true] at h'
-    rw [show selL x r (s :: ss) = selS x r s ++ selL x r ss from rfl, walk_appendS, walk]
+    rw [show selL x r (s :: ss) = selS x r s ++ selL x r ss from rfl, walk_append, walk]
     exact outAg_seq (walk1_sel hu s h'.1) (walk_sel hu ss h'.2)
 
 /-- Arms at arm `r` (`walk1_sel`): their walks from any index, and each arm's. -/

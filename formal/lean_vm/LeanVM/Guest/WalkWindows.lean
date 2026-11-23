@@ -28,6 +28,7 @@ They are defined here so that the check context (`Glob`), and with it the kernel
 certificates and the decoder's table checks, do not import B1 (`B1/Bits/QueryWindowsT.lean`,
 `B1/Opening/WalkDefs.lean` re-export them; their facts are `B1/Opening/QueriesWalk.lean`'s).
 -/
+
 namespace LeanVM.Guest.B1
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Protocol LeanVM.Protocol.Verifier

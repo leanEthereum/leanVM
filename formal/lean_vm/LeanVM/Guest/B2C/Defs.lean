@@ -25,9 +25,10 @@ cell (`frameE`): its range checks' temporaries, its frame runs, its fixed cells 
 constants and frame-pointer products), every value its path names (`namedOf`: parameters, the
 events' values, the returned values), the callee frame pointer and dispatch target of each call
 on its path (`siteE`), the target of each table jump (`armWord`, the jump table's word at the
-selector; a chained `match`'s on the arm the path takes, `chainE`), and in `main` the jump table. A phantom's frame is its tail (`tailN`), its cells its parameters and its self
-frame pointer cells, which its caller writes. A callee's header (`H`) is the return pc of its call site
-and the caller's frame, or, for a loop's tail call, the caller's own header.
+selector; a chained `match`'s on the arm the path takes, `chainE`), and in `main` the jump table.
+A phantom's frame is its tail (`tailN`), its cells its parameters and its self frame pointer
+cells, which its caller writes. A callee's header (`H`) is the return pc of its call site and the
+caller's frame, or, for a loop's tail call, the caller's own header.
 
 `cnt T op` counts, per instance of `T` that runs, the most instructions of opcode `op` a path
 through its function's code runs (`pathMax`), plus the jump table's `SET`s.

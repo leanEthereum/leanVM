@@ -829,26 +829,8 @@ theorem KB_site {wl : String → Option ℕ} (hwl : WlOk wl ω) {ρ : Env} {ps :
     {g : String} {a r : List V} {t : Bool} {R : Acc} (h : siteB cert wl α ρ ps g a = some R)
     (hr : ArgsPre R.2 args) {es : List Ev} (hc : calls es = [⟨g, a, r, t⟩]) (ha : aw α σ es = 0)
     {Y : ℕ} (hY : t = false → (if α then ω g else 0) ≤ Y) :
-    KB P rd σ cert ω α es (R.1.eval args + Y) := by
-  intro kids hk ho hb
-  rw [hc] at hk
-  rw [ha]
-  match kids, hk with
-  | [k], ⟨hn, hkv, _⟩ =>
-      rw [Tree.costKids, Tree.costKids]
-      simp only at hn hkv
-      simp only [Tree.BufsOkKids] at ho
-      by_cases ht : t = true
-      · rw [ite_eq_left ht] at hkv
-        have := siteB_sound hwl hρ hp h hr hn (hb k List.mem_cons_self _ _ hkv ho.1)
-        omega
-      · rw [ite_eq_right ht] at hkv
-        obtain ⟨⟨f, σ', rfl⟩, -⟩ := hkv
-        simp only [Tree.name] at hn
-        subst hn
-        have := hY (by simpa using ht)
-        rw [Tree.cost]
-        omega
+    KB P rd σ cert ω α es (R.1.eval args + Y) :=
+  KB_siteS hc ha (fun _ _ hn hbk ↦ siteB_sound hwl hρ hp h hr hn hbk) hY
 
 variable {ks : List (V × ℕ)} {ps : List V} {self : String} {args : List E} {wl : String → Option ℕ}
 
@@ -1138,9 +1120,6 @@ theorem addAcc_assoc (a b c : Option Acc) :
     Option.addAcc (Option.addAcc a b) c = Option.addAcc a (Option.addAcc b c) := by
   cases a <;> cases b <;> cases c <;> simp [Option.addAcc, Acc.add, Aff.add, Nat.add_assoc]
 
-theorem addAcc_some_zero (x : Option Acc) : Option.addAcc (some Acc.zero) x = x := by
-  cases x <;> simp [Option.addAcc, Acc.zero_add]
-
 theorem blockR_cons (s : Stmt) (ss : List Stmt) (ρ : Env × BEnv) :
     blockR cert wl α ks ps self (s :: ss) ρ = match stmtR cert wl α ks ps self s ρ with
       | none => none
@@ -1211,91 +1190,6 @@ theorem armsR_eq : ∀ (arms : List (List Stmt)) (ρ : Env × BEnv),
 end
 
 end Rec
-
-/-! ## Blocks in ranges -/
-
-section Append
-
-variable {cert : String → Cert} {wl : String → Option ℕ} {α : Bool} {ps : List V} {self : String}
-
-/-- No top-level `ret`. -/
-def noTopRet (l : List Stmt) : Bool := l.all fun s => match s with
-  | .ret _ => false
-  | _ => true
-
-theorem blockB_nil (ρ : Env × BEnv) : blockB cert wl α [] ps self ρ [] = some Acc.zero := by rw [blockB]; rfl
-
-theorem atomB_nil_env {ρ ρ' : Env × BEnv} {a : Atom} {r : Acc} (h0 : ρ.1 = []) (h : atomB α [] ps ρ a = some (r, ρ')) :
-    ρ' = ρ := by
-  cases a with
-  | const v w => simp only [atomB, vlookup, Option.some.injEq, Prod.mk.injEq] at h; exact h.2.symm
-  | copy d s =>
-      simp only [atomB, h0, cls, vlookup] at h
-      split at h
-      · rename_i heq; split at heq <;> cases heq
-      · simp only [Option.some.injEq, Prod.mk.injEq] at h; exact h.2.symm
-  | mul d x y =>
-      simp [atomB, vlookup] at h
-      exact h.2.symm
-  | add d x y =>
-      simp only [atomB, guardAtom, vlookup, Option.some.injEq, Prod.mk.injEq] at h
-      exact h.2.symm
-  | hint hn =>
-      cases hn with
-      | allocDyn d sz =>
-          simp only [atomB] at h
-          split_ifs at h
-          · split at h
-            · simp only [Option.some.injEq, Prod.mk.injEq] at h; exact h.2.symm
-            · cases h
-          · simp only [Option.some.injEq, Prod.mk.injEq] at h; exact h.2.symm
-      | _ => simp only [atomB, Option.some.injEq, Prod.mk.injEq] at h; exact h.2.symm
-  | _ => simp only [atomB, Option.some.injEq, Prod.mk.injEq] at h; exact h.2.symm
-
-/-- **A block without constants is the sum of its ranges**, the first without `ret`. -/
-theorem blockB_append (ρ : Env × BEnv) (h0 : ρ.1 = []) : ∀ (l1 l2 : List Stmt), noTopRet l1 = true →
-    blockB cert wl α [] ps self ρ (l1 ++ l2) =
-      Option.addAcc (blockB cert wl α [] ps self ρ l1) (blockB cert wl α [] ps self ρ l2)
-  | [], l2, _ => by rw [List.nil_append, blockB_nil, addAcc_some_zero]
-  | s :: l1, l2, h => by
-      simp only [noTopRet, List.all_cons, Bool.and_eq_true] at h
-      have ih := blockB_append ρ h0 l1 l2 h.2
-      rw [List.cons_append]
-      cases s with
-      | atom a =>
-          simp only [blockB]
-          cases hq : atomB α [] ps ρ a with
-          | none => rfl
-          | some q =>
-              obtain ⟨r, ρ'⟩ := q
-              obtain rfl := atomB_nil_env h0 hq
-              simp only
-              rw [ih, addAcc_assoc]
-      | ite c z n => simp only [blockB]; rw [ih, addAcc_assoc]
-      | match_ x arms => simp only [blockB]; rw [ih, addAcc_assoc]
-      | call g a r => simp only [blockB]; rw [ih, addAcc_assoc]
-      | callIf c g a =>
-          simp only [blockB]
-          split_ifs
-          · rfl
-          · rw [ih, addAcc_assoc, addAcc_assoc]
-      | dispatch x gs a r => simp only [blockB]; rw [ih, addAcc_assoc]
-      | ret vs => simp at h
-
-/-- The ranges from `a` and from `a + n`, the first without `ret`. -/
-theorem blockB_drop (ρ : Env × BEnv) (h0 : ρ.1 = []) (l : List Stmt) (a n : ℕ)
-    (h : noTopRet ((l.drop a).take n) = true) :
-    blockB cert wl α [] ps self ρ (l.drop a) =
-      Option.addAcc (blockB cert wl α [] ps self ρ ((l.drop a).take n)) (blockB cert wl α [] ps self ρ (l.drop (a + n))) := by
-  rw [← blockB_append ρ h0 _ _ h, ← List.drop_drop, List.take_append_drop]
-
-theorem blockB_drop' (ρ : Env × BEnv) (h0 : ρ.1 = []) (l : List Stmt) (a n b : ℕ)
-    (h : noTopRet ((l.drop a).take n) = true)
-    (hb : a + n = b) : blockB cert wl α [] ps self ρ (l.drop a) =
-      Option.addAcc (blockB cert wl α [] ps self ρ ((l.drop a).take n)) (blockB cert wl α [] ps self ρ (l.drop b)) := by
-  subst hb; exact blockB_drop ρ h0 l a n h
-
-end Append
 
 /-! ## Lookups -/
 
@@ -1403,19 +1297,6 @@ end Look
 section Loop
 
 variable {σ : Val}
-
-theorem Out.seq_assoc : ∀ (o k l : Out), (o.seq k).seq l = o.seq (k.seq l)
-  | .fall es, .fall es', l => by cases l <;> simp [Out.seq, Out.pre, List.append_assoc]
-  | .fall es, .ret es' vs, l => by simp [Out.seq, Out.pre]
-  | .fall es, .stuck, l => by simp [Out.seq, Out.pre]
-  | .ret es vs, k, l => by simp [Out.seq]
-  | .stuck, k, l => by simp [Out.seq]
-
-theorem walk_append : ∀ (l l' : List Stmt), walk σ (l ++ l') = (walk σ l).seq (walk σ l')
-  | [], l' => by
-      rw [List.nil_append, walk]
-      cases walk σ l' <;> simp [Out.seq, Out.pre]
-  | s :: l, l' => by rw [List.cons_append, walk, walk, walk_append l l', Out.seq_assoc]
 
 theorem pick_noRet {x : V} {a r : List V} (gs : List String) (j : ℕ) :
     (∃ es, pick σ x a r j gs = .fall es) ∨ pick σ x a r j gs = .stuck := by
