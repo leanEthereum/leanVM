@@ -28,7 +28,7 @@ edge (`Common.runWithRandomPermutation`).
 reads the statement, the proof and the adversary's transcript, and nothing else (it neither queries
 `π` nor rewinds the adversary); `Statement.Theorems` states it for the extractor a cost-machine
 program of bounded size computes within its budget (`LeanVM.extractorComputedBy`,
-`CostMachine.lean`, which gives the bound and the budget). **Completeness** is stated for one honest
+`LeanVmExtractor.lean`, which gives the bound and the budget). **Completeness** is stated for one honest
 prover, `leanVmHonestProver`: `LeanVM.Prover.prove` (`Statement/Prover/Prove.lean`), an executable
 program (`statement.tex` says what a reviewer checks of it).
 
@@ -175,8 +175,8 @@ fresh hash answer of the verifier equal to a Merkle root the extractor reads (at
 per verifier query, `2^-256` each), a fresh permutation answer that passes the final query's proof
 of work (`2^-127`, once), and the transfer from two random oracles to one permutation. `Statement.Theorems`
 states it for the extractor a cost-machine program computes within its budget
-(`LeanVM.extractorComputedBy`, `CostMachine.lean`). The extractor must output some valid execution
-of the program on the input; nothing requires it to be the execution the proof commits to (its
+(`LeanVM.extractorComputedBy`, `LeanVmExtractor.lean`). The extractor must output some valid
+execution of the program on the input; nothing requires it to be the execution the proof commits to (its
 committed word). For a program with several valid executions on one input, the one extracted may
 differ, and `AggregateSound` (`Corollaries.lean`) then decodes that one. -/
 def KnowledgeSoundness (extractor : StraightLineExtractor) : Prop :=

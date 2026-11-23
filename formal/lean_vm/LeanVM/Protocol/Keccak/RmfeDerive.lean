@@ -8,6 +8,7 @@
 module
 
 public import Statement.LeanVmVerifier
+public import Statement.CostMachine
 
 /-!
 # The embedding, derived
@@ -27,7 +28,7 @@ remainder when `f ≠ 0`; `f = 0` is never passed). A factor's inverse is the fi
 
 namespace LeanVM.Protocol.Verifier
 
-open LeanVM.Parameters
+open LeanVM.Parameters LeanVM.Cost
 
 @[expose] public section
 

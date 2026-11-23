@@ -9,6 +9,7 @@ import all LeanVM.Protocol.EndToEnd.Sound.Avail
 import all LeanVM.Protocol.Extraction.Fast.AfterRoot
 import all Statement.LeanVmVerifier
 import all Statement.CostMachine
+import all Statement.LeanVmExtractor
 
 /-!
 # The agreement-set extractor the compiled program computes

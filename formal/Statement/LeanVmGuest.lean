@@ -6,7 +6,7 @@ public import Statement.LeanSphincs
 public import Statement.LeanDa
 public import Statement.Data.Bytecode
 public import Statement.Fast.Schemes
-public import Statement.CostMachine
+public import Statement.LeanVmExtractor
 
 /-!
 # The leanISA guest program: what a node proves

@@ -1722,9 +1722,8 @@ one on the states before it.
 
 * `RMFE_EMBED` and `RMFE_PROJECT` (`keccak.rs`) are copied as written (`rmfeEmbed`,
   `rmfeProject`); `lean_vm` derives them from seven irreducible moduli and checks the derivation
-  equal to them (`LeanVM/Protocol/Keccak/RmfeDerive.lean`). Binary polynomials are natural
-  numbers, bit `i` the coefficient of `x^i`; `carryless a b`, their product, is bounded by the fuel
-  `b` (each step halves `b`).
+  equal to them (`LeanVM/Protocol/Keccak/RmfeDerive.lean`). A binary polynomial is a natural
+  number, bit `i` the coefficient of `x^i`.
 * The weight array `g` of `linear_transpose` is an array here, set where the Rust sets it.
 -/
 
@@ -1736,18 +1735,6 @@ def embedBits : ℕ := 24
 /-- `PRODUCT_BITS = 2 · EMBED_BITS − 1`: the product of two embeddings has `47` coefficients
 (`keccak.rs`). -/
 def productBits : ℕ := 2 * embedBits - 1
-
-/-! ### Binary polynomials -/
-
-/-- The loop of `carryless`: while `b ≠ 0`, add `a` if `b`'s low bit is set, then shift. -/
-def carrylessAux : (fuel a b out : ℕ) → ℕ
-  | 0, _, _, out => out
-  | fuel + 1, a, b, out =>
-    if b = 0 then out
-    else carrylessAux fuel (a <<< 1) (b >>> 1) (if b % 2 = 1 then out ^^^ a else out)
-
-/-- `carryless a b`: the product of two binary polynomials. -/
-def carryless (a b : ℕ) : ℕ := carrylessAux b a b 0
 
 /-! ### The embedding (`RMFE_EMBED`, `RMFE_PROJECT`, `keccak.rs`) -/
 
@@ -2189,7 +2176,7 @@ end LeanVM.Protocol.Verifier
 The verifier's first step reads the announced sizes and nothing else (`readAnnouncedSizes`): its
 reads only absorb, so no hash or permutation is consulted for a value, and running it with every
 permutation answered by `default` gives the layout the proof announces. The extractor's budget
-(`Statement/CostMachine.lean`) grows with the stack size it announces. -/
+(`Statement/LeanVmExtractor.lean`) grows with the stack size it announces. -/
 
 namespace LeanVM.Protocol.Compile
 

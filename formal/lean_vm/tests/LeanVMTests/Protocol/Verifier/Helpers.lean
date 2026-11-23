@@ -777,7 +777,7 @@ def refConfigs : List (ℕ × ℕ × List ℕ × List ℕ × List ℕ) :=
      0x6690aec7cd21, 0x5d8f9a42bb1f, 0x73485763e690, 0x3750967c6ea1, 0x12cf8dd4259f, 0x1ba84b3e3750,
      0xad0c9f715a1, 0x64fb8ad0c9f, 0x456864fb8ad0, 0x400000000000]
 
-#guard (carrylessInputs.map fun (a, b) ↦ carryless a b) =
+#guard (carrylessInputs.map fun (a, b) ↦ LeanVM.Cost.carryless a b) =
     [0xbee80b8, 0x5d073452, 0x436b037e, 0x18ea27ac]
 
 #guard (divmodInputs.map fun (a, f) ↦ carrylessDivmod a f) =

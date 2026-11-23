@@ -64,7 +64,8 @@ project beside them are proved in the proof projects; their statements are not p
 \item \lean{LeanIsa.lean}: leanISA, its runs, \lean{ValidExecution} and the bytecode encoding.
 \item \lean{LeanVmVerifier.lean}: the verifier, the readable reference of \lean{crates/verifier}.
 \item \lean{LeanVm.lean}: statements, the honest prover, \lean{KnowledgeSoundness} and \lean{Completeness}.
-\item \lean{CostMachine.lean}: the cost machine, the extractor's encodings, size bound and budget.
+\item \lean{CostMachine.lean}: the cost machine, its prices and its generic encodings (it imports Mathlib only).
+\item \lean{LeanVmExtractor.lean}: the machine's encodings of leanVM's objects, and the extractor a program computes, its size bound and budget.
 \item \lean{LeanVmGuest.lean}, \lean{LeanVmGuestBatching.lean}: a node's statement, relation and digest, the guest program and its decoder, the batching program.
 \item \lean{LeanVmGuestProver.lean}: the guest's witness generation and prover, from a node's statement and witness (below).
 \item \lean{LeanVmGuestCompleteness.lean}: the deployed limits, a collision in a child's openings, the guest's completeness, its execution made from the statement and the witness, and \lean{BatchingSound}.
@@ -132,7 +133,7 @@ costs are included in the bounds below.
 \paragraph{Well-formed programs only.} A program (\lean{LeanIsaProgram}) is $2^{k} \le 2^{30}$ typed instructions (\lean{LeanIsaInstruction}), and the verifier reads it as the table of words \lean{bytecodeWords}, sixteen per instruction (\lean{instructionSlots}). Such a table is well formed by construction: slots $0$ to $2$ and every slot the instruction does not use are zero, slot $3$ is one of the six opcodes, the \texttt{DEREF} flags are $(0,0)$, $(1,0)$ or $(0,1)$, never $(1,1)$ (\lean{derefFlags}), the \texttt{KECCAK} layout flags are $0$ or $1$, and its output flags are $(0,0)$, $(1,0)$ or $(1,1)$, one, two or all thirteen cells (\lean{keccakOutputFlags}); operands and immediates are any words. \textbf{The statement assumes this form}: the adversary outputs a typed program, and the Lean verifier does not check it. The Rust verifier rejects any other table (\texttt{Bytecode::new}). For a well-formed program, knowledge soundness needs no further condition.
 
 \paragraph{The extractor.} Knowledge soundness is stated for the extractor a program of a cost
-machine computes (\lean{LeanVM.extractorComputedBy}~$P$, \lean{Statement/CostMachine.lean}): the
+machine computes (\lean{LeanVM.extractorComputedBy}~$P$, \lean{Statement/LeanVmExtractor.lean}, of the machine of \lean{Statement/CostMachine.lean}): the
 program $P$, of size at most $25380$ (\lean{leanVmKnowledgeExtractorSizeBound}: the compiled
 extractor's $25260$ and a slack of $120$, less than one leanXMSS signature's encoding), run on the encoded
 statement, transcript and proof within a budget (\lean{leanVmKnowledgeExtractorBudget}: the most its
