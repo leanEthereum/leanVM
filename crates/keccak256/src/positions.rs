@@ -47,7 +47,6 @@ pub fn linear<T: Copy + Default>(a: &[T], out: &mut [T], xor: impl Fn(T, T) -> T
 mod tests {
     use super::*;
     use crate::keccak_f;
-    use alloc::{vec, vec::Vec};
     use verifier::E;
     use verifier::keccak::{BITS, along, linear_transpose};
 

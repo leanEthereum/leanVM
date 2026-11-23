@@ -1,12 +1,13 @@
 //! Keys, signing and verification. The secret key holds the top tree and builds
 //! a bottom tree, with the top layer's signature of its root, the first time it
-//! signs in it or prepares it, keeping the most recently used trees under the default `std` feature.
+//! signs in it or prepares it, keeping the [`MAX_CACHED_BOTTOM_TREES`] it used last.
 //! It stores one level of each tree and recomputes the rest per path.
 
 #[cfg(feature = "std")]
-use alloc::{collections::VecDeque, sync::Arc, vec::Vec};
-#[cfg(feature = "std")]
-use std::sync::Mutex;
+use std::{
+    collections::VecDeque,
+    sync::{Arc, Mutex},
+};
 
 use crate::*;
 
@@ -146,12 +147,9 @@ struct BottomTree {
 }
 
 /// A tree's nodes, in bytes.
-#[cfg(feature = "std")]
 const CACHED_TREE_SIZE: usize = CACHED_NODES * N;
 /// A cached bottom tree, in bytes.
-#[cfg(feature = "std")]
 const CACHED_BOTTOM_SIZE: usize = size_of::<u32>() + LAYER_SIG_SIZE + CACHED_TREE_SIZE;
-#[cfg(feature = "std")]
 const _: () = assert!(CACHED_TREE_SIZE == 4096 && CACHED_BOTTOM_SIZE == 5300);
 
 /// computes the expanded secret key (for fast signing), and the public key, from a given secret key

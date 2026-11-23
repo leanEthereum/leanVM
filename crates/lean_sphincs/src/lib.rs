@@ -17,15 +17,15 @@
 //! `hash` module).
 //!
 //! The secret key is `SK.seed`, 32 bytes and the only secret: two hashes of it under
-//! the scheme's tag give `PK.seed` and a 32-byte `SK.prf` (at the start of `key_gen` and `sign`). Key
+//! the scheme's tag give `PK.seed` and a 32-byte `SK.prf` (at the start of [`key_gen`] and [`sign`]). Key
 //! generation builds the top tree, and signing builds it again for `PK.root`, then
 //! the FORS instance and the two trees below it.
+//!
+//! The default `std` feature provides [`key_gen`] and [`sign`]. Verification works without std.
 
-#![no_std]
+#![cfg_attr(not(any(feature = "std", test)), no_std)]
+#![cfg_attr(not(feature = "std"), allow(dead_code))]
 #![cfg_attr(not(test), warn(unused_crate_dependencies))]
-
-#[cfg(any(feature = "alloc", test))]
-extern crate alloc;
 
 mod fors;
 mod hash;
@@ -35,12 +35,11 @@ mod wots;
 use fors::*;
 use hash::*;
 use internals::*;
-#[cfg(feature = "alloc")]
 use scheme::*;
 use wots::*;
 
 pub use scheme::{LeanSphincsPublicKey, LeanSphincsSignature, verify};
-#[cfg(feature = "alloc")]
+#[cfg(feature = "std")]
 pub use scheme::{key_gen, sign};
 
 use keccak256::permutations;
@@ -63,7 +62,6 @@ pub const MESSAGE_LEN: usize = 32;
 pub type Message = [u8; MESSAGE_LEN];
 
 /// `C_max`: encoding counters tried per one-time signature.
-#[cfg(feature = "alloc")]
 pub(crate) const MAX_ENCODING_ATTEMPTS: u64 = 1 << 32;
 
 /// `PK.seed | PK.root`.

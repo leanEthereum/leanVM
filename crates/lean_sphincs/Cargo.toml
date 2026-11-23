@@ -5,8 +5,8 @@ edition.workspace = true
 publish = false
 
 [features]
-default = ["alloc"]
-alloc = []
+default = ["std"]
+std = []
 
 [lints]
 workspace = true
@@ -17,4 +17,4 @@ keccak256.workspace = true
 [[test]]
 name = "lean_sphincs"
 path = "tests/lean_sphincs/main.rs"
-required-features = ["alloc"]
+required-features = ["std"]

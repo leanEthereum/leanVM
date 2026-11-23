@@ -1,15 +1,10 @@
 //! One layer's Merkle tree over `2^16` leaves. Nodes are indexed on the layer, as
 //! their addresses are: a bottom tree's leaves by their leaf indices.
 
-#[cfg(feature = "std")]
-use alloc::{vec, vec::Vec};
-
 use crate::*;
 
 /// The level a [`LayerTree`] stores: `2^8` nodes.
-#[cfg(feature = "std")]
 pub(crate) const CACHED_LEVEL: usize = LAYER_HEIGHT - 8;
-#[cfg(feature = "std")]
 pub(crate) const CACHED_NODES: usize = 1 << (LAYER_HEIGHT - CACHED_LEVEL);
 
 /// The Merkle parent at `level` and index `j` of `layer`.

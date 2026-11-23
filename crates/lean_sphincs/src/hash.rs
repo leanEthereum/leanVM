@@ -6,9 +6,6 @@
 
 use keccak256::Hasher;
 
-#[cfg(test)]
-use alloc::vec::Vec;
-
 use crate::*;
 
 pub type PkSeed = [u8; N];

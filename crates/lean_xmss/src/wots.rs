@@ -6,7 +6,6 @@
 //! zero, so those have no chain, and the other `v` sum to `T`. The signer grinds the
 //! randomizer `R` until it is, one permutation a trial.
 
-#[cfg(feature = "std")]
 use keccak256::RATE;
 
 use crate::*;
@@ -19,7 +18,6 @@ pub fn layer_index(leaf_index: LeafIndex, layer: usize) -> u32 {
 
 /// The starts of the `v` chains of key `e` on `layer`. One hash of the seed gives
 /// two of them: chains `2t` and `2t + 1` are its two halves.
-#[cfg(feature = "std")]
 pub(crate) fn wots_secrets(pp: &PublicParam, seed: &SchemeSeed, layer: usize, e: u32) -> [Digest; V] {
     let mut secrets = [[0u8; N]; V];
     for (t, pair) in secrets.as_chunks_mut::<2>().0.iter_mut().enumerate() {
@@ -74,14 +72,12 @@ fn is_codeword(d: u128) -> bool {
 }
 
 /// Trials hashed at once.
-#[cfg(feature = "std")]
 const GRIND_BATCH: usize = 64;
 
 /// The least `c` below `MAX_RANDOMIZER_TRIALS` whose randomizer `base + c`, as the last
 /// 16 bytes of `input`, makes its digest a codeword: the least, which keeps one key to one
 /// codeword. Those bytes are zero in `input` and lie in its last block, so the blocks before
 /// are absorbed once and a trial costs one permutation.
-#[cfg(feature = "std")]
 fn least_trial(input: &[u8], base: u128) -> Option<u64> {
     let at = input.len() - RANDOMIZER_LEN;
     assert!(at.is_multiple_of(8) && at / RATE == input.len() / RATE);
@@ -146,7 +142,6 @@ pub fn wots_leaf(
 
 /// The leaf of key `e` on `layer`, from the seed: what key generation spends its
 /// hashes on.
-#[cfg(feature = "std")]
 pub(crate) fn wots_public_leaf(pp: &PublicParam, seed: &SchemeSeed, layer: usize, e: u32) -> Digest {
     let secrets = wots_secrets(pp, seed, layer, e);
     let ends = core::array::from_fn(|i| chain(pp, layer, e, i, 0, CHAIN_LEN - 1, secrets[i]));

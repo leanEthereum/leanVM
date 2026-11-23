@@ -6,9 +6,6 @@
 //! its path. The FORS public key is `T_k` over the trees' roots, which the bottom
 //! one-time key signs.
 
-#[cfg(feature = "alloc")]
-use alloc::vec::Vec;
-
 use crate::*;
 
 /// One FORS tree's opening: the picked leaf's secret, and its path from the
@@ -41,7 +38,6 @@ fn fors_node_adrs(idx: u64, c: usize, z: usize, j: usize) -> Adrs {
 }
 
 /// `fors_skGen`: the secret of leaf `s` of tree `c`.
-#[cfg(feature = "alloc")]
 fn fors_secret(sk: &ExpandedKey, idx: u64, c: usize, s: usize) -> Digest {
     let adrs = fors_adrs(idx, FORS_PRF).with_tree_index(((c << FORS_HEIGHT) + s) as u32);
     prf(&sk.pk_seed, &sk.sk_seed, &adrs)
@@ -64,7 +60,7 @@ fn fors_key(pk_seed: &PkSeed, idx: u64, roots: &[Digest; FORS_TREES]) -> Digest 
 
 /// `fors_sign` and the public key it opens, each tree being built once: the key
 /// of instance `idx`, and its opening at `leaves`.
-#[cfg(feature = "alloc")]
+#[cfg(feature = "std")]
 pub(crate) fn fors_open(sk: &ExpandedKey, idx: u64, leaves: &[usize; FORS_TREES]) -> (Digest, ForsOpening) {
     let pk_seed = &sk.pk_seed;
     let trees: Vec<_> = (0..FORS_TREES)

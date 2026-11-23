@@ -14,12 +14,7 @@
 //! rate: a message block is XORed into them before each permutation, and the digest is read off the first
 //! `OUT_LEN / 8` of them after the last one.
 
-#![no_std]
-
-#[cfg(test)]
-extern crate alloc;
-#[cfg(test)]
-use alloc::{vec, vec::Vec};
+#![cfg_attr(not(test), no_std)]
 
 /// Digest length in bytes. Keccak-256 throughout.
 pub const OUT_LEN: usize = 32;

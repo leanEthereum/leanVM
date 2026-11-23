@@ -11,14 +11,9 @@
 //!
 //! [leanXMSS specification]: https://github.com/leanEthereum/leanVM/releases/download/doc-latest/leanXMSS.pdf
 
-#![no_std]
+#![cfg_attr(not(any(feature = "std", test)), no_std)]
+#![cfg_attr(not(feature = "std"), allow(dead_code))]
 #![cfg_attr(not(test), warn(unused_crate_dependencies))]
-
-#[cfg(feature = "std")]
-extern crate alloc;
-
-#[cfg(feature = "std")]
-extern crate std;
 
 mod hash;
 mod scheme;
@@ -57,7 +52,6 @@ pub(crate) const ZERO_DIGITS: usize = 6;
 /// Chain steps one verification walks per layer.
 pub(crate) const CHAIN_HASHES: usize = V * (CHAIN_LEN - 1) - TARGET_SUM;
 /// Randomizers tried per layer signature.
-#[cfg(feature = "std")]
 pub(crate) const MAX_RANDOMIZER_TRIALS: u64 = 1 << 32;
 
 /// log2 of maximum number of signatures you can sign.
