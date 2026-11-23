@@ -25,18 +25,6 @@ theorem SampleableType.uniformSample_evalDistEq_of_inst {A : Type} (i₁ i₂ : 
     (@uniformSample A i₁) =ᵈ (@uniformSample A i₂) :=
   EvalDistEq.of_forall_prEvent_eq fun p => SampleableType.prEvent_uniformSample_inst_irrel i₁ i₂ p
 
-/-- Overwriting one cell of a uniform table with an independent uniform value leaves the table
-uniform, before any continuation. -/
-theorem evalDistEq_uniformSample_bind_update {D R α : Type} [Finite D] [DecidableEq D] [Finite R]
-    [Nonempty R] [SampleableType R] [SampleableType (D → R)] (t : D) (f : (D → R) → ProbComp α) :
-    ($ᵗ R >>= fun u => $ᵗ (D → R) >>= fun g => f (Function.update g t u)) =ᵈ
-      ($ᵗ (D → R) >>= f) := by
-  refine evalDistEq_iff_evalDist_eq.mpr ?_
-  let : MeasurableSpace R := ⊤
-  let : MeasurableSpace α := ⊤
-  exact evalDist_bind_bind_update ($ᵗ R) ($ᵗ (D → R)) SampleableType.evalDist_uniformSample
-    SampleableType.evalDist_uniformSample t f
-
 /-- Restricting a uniform table along an injection gives a uniform table. -/
 theorem evalDistEq_uniformSample_map_comp_injective {A B R : Type} [Finite A] [Finite B]
     [Finite R] [Nonempty R] [SampleableType (A → R)] [SampleableType (B → R)]

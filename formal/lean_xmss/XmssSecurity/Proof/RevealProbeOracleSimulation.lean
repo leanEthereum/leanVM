@@ -2,6 +2,7 @@ module
 
 public import XmssSecurity.Proof.AdaptiveRevealMonitor
 public import XmssSecurity.Proof.IndexedHiddenValue
+public import Common.RomTable
 
 @[expose] public section
 
@@ -411,7 +412,7 @@ theorem evalDist_uniformTable_eq_bind_update
           let base ← $ᵗ (Index → Digest)
           pure (Function.update base index value)) >>= continuation) := by
       simpa only [bind_assoc, pure_bind] using
-        (evalDistEq_uniformSample_bind_update index continuation).symm
+        (Common.RomTable.evalDistEq_uniformSample_bind_update index continuation).symm
     _ = _ := by simp [bind_assoc]
 
 

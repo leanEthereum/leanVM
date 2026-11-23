@@ -2,12 +2,15 @@ module
 
 public import VCVio.OracleComp.EvalDist.Sum
 public import XmssSecurity.Proof.RandomizedStatement
+public import Common.RomTable
 
 @[expose] public section
 
 open OracleComp OracleSpec
 
 namespace XmssSecurity.Seeded
+
+open Common.RomTable
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -42,14 +45,6 @@ theorem stopBefore_query_bind {α : Type} (bad : OracleWorld.Domain → Prop)
       (if bad input then pure none else do
         let answer ← liftM (OracleWorld.query input)
         stopBefore bad (next answer)) := rfl
-
-theorem run'_query_bind {α : Type} (input : OracleWorld.Domain)
-    (next : OracleWorld.Range input → OracleComp OracleWorld α)
-    (cache : QueryCache HashSpec) :
-    (simulateQ romImpl (liftM (OracleWorld.query input) >>= next)).run' cache =
-      ((romImpl input).run cache >>= fun result =>
-        (simulateQ romImpl (next result.1)).run' result.2) := by
-  simp only [simulateQ_bind, simulateQ_spec_query, StateT.run'_eq, StateT.run_bind, map_bind]
 
 theorem probEvent_stopBefore_le {α : Type} (bad : OracleWorld.Domain → Prop)
     [DecidablePred bad] (computation : OracleComp OracleWorld α)

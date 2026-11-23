@@ -24,17 +24,17 @@ attribute [local instance] Classical.propDecidable
 
 theorem OnlyW.counted {α : Type} (selected : OracleWorld.Domain → Prop) [DecidablePred selected]
     (oa : OracleComp OracleWorld α) (h : OnlyW oa) :
-    OnlyW (QueryCap.counted selected oa) := by
+    OnlyW (Common.QueryCount.counted selected oa) := by
   induction oa using OracleComp.inductionOn with
   | pure value => exact OnlyW.pure' _
   | query_bind input next ih =>
       rw [OnlyW, isQueryBoundP_query_bind_iff] at h
-      rw [QueryCap.counted_query_bind, OnlyW, isQueryBoundP_query_bind_iff]
+      rw [Common.QueryCount.counted_query_bind, OnlyW, isQueryBoundP_query_bind_iff]
       refine ⟨h.1, fun answer => ?_⟩
       have hnext : OnlyW (next answer) := by
         have := h.2 answer
         split at this <;> simpa [OnlyW] using this
-      have hbind : OnlyW (QueryCap.counted selected (next answer) >>= fun result =>
+      have hbind : OnlyW (Common.QueryCount.counted selected (next answer) >>= fun result =>
           (pure (result.1, (if selected input then 1 else 0) + result.2) :
             OracleComp OracleWorld (α × Nat))) :=
         OnlyW.bind (ih answer hnext) (fun _ => OnlyW.pure' _)
@@ -181,7 +181,7 @@ theorem fixedHashWorld_countHashQueries (f : QueryImpl HashSpec Id) {α : Type}
     (oa : OracleComp OracleWorld α) :
     simulateQ (Prefix.fixedHashWorld f) (countHashQueries oa) =
       (simulateQ (Prefix.fixedWorldCost f) oa).run := by
-  rw [countHashQueries, QueryCap.simulate_withCost]
+  rw [countHashQueries, Common.QueryCount.simulate_withCost]
   congr 2
   funext input
   cases input <;> simp only [Prefix.fixedWorldCost, QueryImpl.withAddCost_apply] <;> rfl

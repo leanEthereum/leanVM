@@ -32,9 +32,9 @@ theorem fixedWorldCost_lift_hash (f : QueryImpl HashSpec Id)
   apply WriterT.ext
   have hcount : (simulateQ (fixedWorldCost f)
       (liftM computation : OracleComp OracleWorld α)).run =
-      simulateQ (fixedHashWorld f) (QueryCap.counted SourceHash
+      simulateQ (fixedHashWorld f) (Common.QueryCount.counted SourceHash
         (liftM computation : OracleComp OracleWorld α)) := by
-    rw [QueryCap.simulate_withCost]
+    rw [Common.QueryCount.simulate_withCost]
     congr 2
     funext input
     cases input <;> simp only [fixedWorldCost, QueryImpl.withAddCost_apply] <;> rfl

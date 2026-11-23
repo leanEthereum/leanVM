@@ -2,6 +2,7 @@ module
 
 public import XmssSecurity.Proof.RandomizedStatement
 public import XmssSecurity.Proof.EvalDistEq
+public import Common.RomTable
 
 @[expose] public section
 
@@ -135,7 +136,7 @@ theorem evalDist_table_refresh {α : Type} (request : Request)
         let tape ← $ᵗ Tape
         let table ← $ᵗ (Request → Tape)
         next (Function.update table request tape)) := by
-  exact (evalDistEq_uniformSample_bind_update request next).symm
+  exact (Common.RomTable.evalDistEq_uniformSample_bind_update request next).symm
 
 /-- Independent tapes may be sampled when a request first appears. The state can include query costs. -/
 theorem FreshRequests.evalDist_tableRun {α : Type} {used : Set Request}

@@ -5,14 +5,22 @@ public import VCVio.OracleComp.QueryTracking.QueryBound
 
 @[expose] public section
 
-namespace XmssSecurity.QueryCounting
+/-!
+# Counting selected queries
+
+`counted selected oa` runs `oa` and also returns how many of its queries satisfy `selected`, as a
+program over the same oracles (`simulate_withCost`: simulating it is simulating `oa` with a cost of
+one per selected query). The schemes count their hash calls with it.
+-/
+
+namespace Common.QueryCount
 
 open _root_.OracleComp OracleSpec
-set_option backward.isDefEq.respectTransparency false
 
 variable {Index : Type} {spec : OracleSpec Index} {Result Next : Type}
   (selected : Index → Prop) [DecidablePred selected]
 
+/-- `computation` with the number of its queries that satisfy `selected`. -/
 noncomputable def counted (computation : OracleComp spec Result) : OracleComp spec (Result × Nat) :=
   OracleComp.construct (fun result => pure (result, 0))
     (fun input _ next => do
@@ -20,7 +28,8 @@ noncomputable def counted (computation : OracleComp spec Result) : OracleComp sp
       let result ← next answer
       pure (result.1, (if selected input then 1 else 0) + result.2)) computation
 
-theorem counted_pure (result : Result) : counted selected (pure result : OracleComp spec Result) = pure (result, 0) := rfl
+theorem counted_pure (result : Result) :
+    counted selected (pure result : OracleComp spec Result) = pure (result, 0) := rfl
 
 theorem counted_query_bind (input : spec.Domain) (next : spec.Range input → OracleComp spec Result) :
     counted selected (liftM (spec.query input) >>= next) = (do
@@ -28,10 +37,20 @@ theorem counted_query_bind (input : spec.Domain) (next : spec.Range input → Or
       let result ← counted selected (next answer)
       pure (result.1, (if selected input then 1 else 0) + result.2)) := rfl
 
+theorem counted_query (input : spec.Domain) :
+    counted selected (liftM (spec.query input)) =
+      (fun answer => (answer, if selected input then 1 else 0)) <$>
+        (liftM (spec.query input) : OracleComp spec _) := by
+  change (do
+    let answer ← liftM (spec.query input)
+    pure (answer, (if selected input then 1 else 0) + 0)) = _
+  simp only [Nat.add_zero, pure_bind, bind_pure_comp]
+
 theorem simulate_withCost {m : Type → Type} [Monad m] [LawfulMonad m]
-    (impl : QueryImpl spec m) (computation : OracleComp spec α) :
+    (impl : QueryImpl spec m) (computation : OracleComp spec Result) :
     simulateQ impl (counted selected computation) =
-      (simulateQ (impl.withAddCost (fun input => if selected input then 1 else (0 : Nat))) computation).run := by
+      (simulateQ (impl.withAddCost (fun input => if selected input then 1 else (0 : Nat)))
+        computation).run := by
   induction computation using OracleComp.inductionOn with
   | pure value => rfl
   | query_bind input next ih =>
@@ -58,4 +77,11 @@ theorem counted_bind (computation : OracleComp spec Result) (next : Result → O
   | query_bind input continuation ih =>
       simp only [bind_assoc, counted_query_bind, ih, pure_bind, Nat.add_assoc]
 
-end XmssSecurity.QueryCounting
+theorem counted_map (computation : OracleComp spec Result) (f : Result → Next) :
+    counted selected (f <$> computation) =
+      (fun result => (f result.1, result.2)) <$> counted selected computation := by
+  rw [show f <$> computation = computation >>= fun result => pure (f result) from
+    (bind_pure_comp f computation).symm, counted_bind]
+  simp only [counted_pure, Nat.add_zero, bind_pure_comp, map_pure]
+
+end Common.QueryCount

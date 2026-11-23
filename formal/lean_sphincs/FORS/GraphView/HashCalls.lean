@@ -171,7 +171,7 @@ open OracleComp OracleSpec
 namespace FORS.Security.Prefix
 
 variable [Params]
-open Concrete QueryCap
+open Concrete Common.QueryCount
 
 attribute [local irreducible] encodingAttemptLimit digestAttemptLimit Seeded.finishSign
   Seeded.signAttempt
@@ -277,7 +277,7 @@ namespace FORS.Security.Prefix
 variable [Params]
 open Concrete Completeness SeedModel
 open SeedCoupling
-open QueryCap
+open Common.QueryCount
 
 set_option backward.isDefEq.respectTransparency false
 attribute [local irreducible] digestAttemptLimit encodingAttemptLimit

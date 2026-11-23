@@ -15,7 +15,7 @@ open OracleComp OracleSpec
 
 namespace XmssSecurity.Bridge
 
-open Seeded DeterministicSigning
+open Seeded DeterministicSigning Common.RomTable
 
 set_option backward.isDefEq.respectTransparency false
 

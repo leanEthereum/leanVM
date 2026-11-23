@@ -8,6 +8,8 @@ open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity.Seeded
 
+open Common.RomTable
+
 set_option backward.isDefEq.respectTransparency false
 
 theorem exists_seed_not_hit {hit : HashInput → MasterSeed → Prop} (hhit : GuessBound hit)

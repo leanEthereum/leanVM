@@ -19,6 +19,8 @@ import Common.SphincsCost
 import Common.WithHashBridge
 import Common.ByteArray
 import Common.LoopWalk
+import Common.QueryCount
+import Common.RomTable
 
 /-! The random-permutation model and the indifferentiability of the sponge (Keccak-256) from a
 random oracle, with one oracle (`H`) or two (`H` and direct permutation calls `F`), the
