@@ -267,6 +267,59 @@ jobs:
           name: lean-da-axioms
           path: ${{ runner.temp }}/axioms.txt
 
+  # The quantum random-permutation model, on VCVio's quantum oracle programs, the statement's scheme
+  # definitions, common's model facts and cost combinators, and leanXMSS's codeword lemmas.
+  quantum-formalization:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Forbid proof escapes
+        run: |
+          python3 -I formal/tools/escape-scan.py formal/quantum
+      # As for sphincs: VCVio builds from source, so `main` saves the Lake build, without Mathlib's,
+      # which `lake exe cache get` fetches.
+      - name: Restore the Lake build
+        id: lake-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            formal/quantum/.lake
+            !formal/quantum/.lake/packages/mathlib/.lake
+            formal/Statement/.lake/build
+            formal/common/.lake/build
+            formal/lean_xmss/.lake/build
+          key: lake-quantum-${{ runner.os }}-${{ hashFiles('formal/quantum/lean-toolchain', 'formal/quantum/lake-manifest.json', 'formal/*/lakefile.*') }}-${{ hashFiles('formal/quantum/**/*.lean', 'formal/Statement/**/*.lean', 'formal/common/**/*.lean', 'formal/lean_xmss/**/*.lean') }}
+          restore-keys: lake-quantum-${{ runner.os }}-${{ hashFiles('formal/quantum/lean-toolchain', 'formal/quantum/lake-manifest.json', 'formal/*/lakefile.*') }}-
+      # Builds the default target, whose root module checks the main theorems' axioms with
+      # `#guard_msgs`.
+      - uses: leanprover/lean-action@v1
+        with:
+          lake-package-directory: formal/quantum
+          use-github-cache: false
+      # Lake replays a cached module's warnings, so a second build lists every one.
+      - name: Forbid deprecated API
+        working-directory: formal/quantum
+        run: |
+          lake build 2>&1 | tee "$RUNNER_TEMP/build.log"
+          ! grep -E '^warning: Quantum.*has been deprecated' "$RUNNER_TEMP/build.log"
+      - name: Check the axiom footprint
+        working-directory: formal/quantum
+        run: |
+          theorems="Quantum.qrpmEvalDistMap_eq_spongePerm Quantum.Sponge.qrpm_sponge_collision_le Quantum.Sponge.qrpm_sponge_preimage_le Quantum.Sponge.keccak256_qrpm_collision_le Quantum.Sponge.keccak256_qrpm_preimage_le Quantum.qrpmEvalDistMap_toQuantumAt_qrpmImpl Quantum.SufCma.winProb_classicalAdversary Quantum.Xmss.Assembly.leanXmss_qrpm_security Quantum.Xmss.Assembly.qrpmBound_le Quantum.Xmss.Assembly.qrpmBound_two_pow_30_le Quantum.Xmss.Assembly.qrpmBound_two_pow_50_le Quantum.Sphincs.Assembly.leanSphincs_qrpm_security Quantum.Sphincs.Assembly.sphincsQrpmBound_le Quantum.Sphincs.Assembly.sphincsQrpmBound_two_pow_30_le Quantum.Sphincs.Assembly.sphincsQrpmBound_two_pow_40_le Quantum.Qrom.SufCma.winProb_classicalAdversary Quantum.Qrom.Xmss.leanXmss_qrom_security Quantum.Qrom.Xmss.xmssQromBound_le Quantum.Qrom.Xmss.xmssQromBound_two_pow_30_le Quantum.Qrom.Xmss.xmssQromBound_two_pow_50_le Quantum.Qrom.Sphincs.leanSphincs_qrom_security Quantum.Qrom.Sphincs.sphincsQromBound_le Quantum.Qrom.Sphincs.sphincsQromBound_two_pow_30_le Quantum.Qrom.Sphincs.sphincsQromBound_two_pow_40_le Quantum.Qrom.Xmss.Multi.leanXmss_qrom_mu_security Quantum.Qrom.Xmss.Multi.xmssQromMuBound_le Quantum.StdModel.Xmss.xmss_suf_le_props_keccak Quantum.Qrom.Xmss.leanXmss_qrom_depth_security Quantum.Qrom.Xmss.xmssQromDepthBound_le Quantum.StdModel.Sphincs.sphincs_suf_le_props_keccak Quantum.Cost.Qrom.leanXmss_qrom_gateDepth_closed Quantum.Cost.Nist.leanXmss_qrom_cat1_lowDepth Quantum.Cost.Nist.leanXmss_qrom_cat1_inPlace Quantum.Qrom.Sphincs.Multi.leanSphincs_qrom_mu_security Quantum.Qrom.Sphincs.Multi.sphincsQromMuBound_le Quantum.Qrom.Sphincs.Multi.rhoMaxQ_le Quantum.Qrom.Sphincs.leanSphincs_qrom_depth_security Quantum.Qrom.Sphincs.sphincsQromDepthBound_le Quantum.Cost.Nist.leanSphincs_qrom_cat1_lowDepth Quantum.Cost.Nist.leanSphincs_qrom_cat1_inPlace Quantum.Xmss.Assembly.leanXmss_qrpm_depth_security Quantum.Xmss.Assembly.qrpmDepthBound_le Quantum.Cost.Nist.leanXmss_qrpm_cat1_inPlace Quantum.StdModel.Sphincs.sphincs_suf_le_propsIn_keccak Quantum.Sphincs.Assembly.leanSphincs_qrpm_depth_security Quantum.Sphincs.Assembly.sphincsQrpmDepthBound_le Quantum.Cost.Nist.leanSphincs_qrpm_cat1_inPlace Quantum.StdModel.Xmss.leanXmss_qrom_security_props_closed Quantum.StdModel.Sphincs.leanSphincs_qrom_security_props_closed"
+          { echo 'import Quantum'; for t in $theorems; do echo "#print axioms $t"; done; } > "$RUNNER_TEMP/axioms.lean"
+          lake env lean "$RUNNER_TEMP/axioms.lean" | tee "$RUNNER_TEMP/axioms.txt"
+          for t in $theorems; do
+            grep -qF "'$t' depends on axioms: [propext, Classical.choice, Quot.sound]" "$RUNNER_TEMP/axioms.txt"
+          done
+      - name: Save the Lake build
+        if: github.ref == 'refs/heads/main' && steps.lake-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            formal/quantum/.lake
+            !formal/quantum/.lake/packages/mathlib/.lake
+          key: ${{ steps.lake-cache.outputs.cache-primary-key }}
+
   # `lean_vm` models the verifier and the prover's proofs of this repository, and imports the statement (`Statement/`), what is left of the two signature
   # schemes' and LeanDA's Scheme modules, and `common`, so a change to any of them re-checks it. It also holds the checks
   # against the Rust it transcribes (the files derived from the guest, written from it, and the differentials), so a
