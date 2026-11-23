@@ -10,7 +10,7 @@ use verifier::{E, Proof};
 pub struct ExperimentalProver;
 
 macro_rules! tiers {
-    ($(#[$cfg:meta] $tier:ident => $detected:expr,)*) => {
+    ($(#[$cfg:meta] $tier:ident => $detected:expr, [$($feature:literal),*],)*) => {
         /// A copy of the prover: one compiled with a CPU tier's target features, or the build's own.
         #[derive(Clone, Copy, Debug, PartialEq, Eq)]
         #[allow(non_camel_case_types)]
@@ -24,11 +24,27 @@ macro_rules! tiers {
             /// The tiers this build holds, fastest first: those with a feature the build's own lacks.
             pub const ALL: &[Tier] = &[$(#[$cfg] Tier::$tier,)* Tier::base];
 
-            /// Whether this CPU runs the tier, and `scripts/tier-rustc` compiled it with its features.
+            /// Whether `scripts/tier-rustc` compiled the tier with its features, and this CPU has them.
             fn runs_here(self) -> bool {
                 match self {
                     $(#[$cfg] Tier::$tier => $tier::__TIER && $detected,)*
                     Tier::base => true,
+                }
+            }
+
+            /// Whether `scripts/tier-rustc` compiled the tier with its features.
+            fn compiled(self) -> bool {
+                match self {
+                    $(#[$cfg] Tier::$tier => $tier::__TIER,)*
+                    Tier::base => true,
+                }
+            }
+
+            /// The features the tier adds to the build's own.
+            fn features(self) -> &'static [&'static str] {
+                match self {
+                    $(#[$cfg] Tier::$tier => &[$($feature),*],)*
+                    Tier::base => &[],
                 }
             }
 
@@ -81,8 +97,36 @@ pub fn tier() -> Tier {
             .iter()
             .find(|tier| format!("{tier:?}") == name)
             .unwrap_or_else(|| panic!("LEANVM_TIER={name}: this build runs {:?} on this CPU", __tiers_here())),
-        _ => __tiers_here()[0],
+        _ => {
+            let fastest = __tiers_here()[0];
+            warn_unused_features(fastest);
+            fastest
+        }
     })
+}
+
+/// Warns on stderr when this CPU has features the prover selects code on that `tier`'s code does not use.
+fn warn_unused_features(tier: Tier) {
+    let unused: Vec<&str> = selected()
+        .into_iter()
+        .filter(|&(feature, on_cpu, in_build)| on_cpu && !in_build && !tier.features().contains(&feature))
+        .map(|(feature, ..)| feature)
+        .collect();
+    if unused.is_empty() {
+        return;
+    }
+    let why = if Tier::ALL.iter().any(|&tier| tier != Tier::base && tier.compiled()) {
+        "no CPU tier of this build fits this CPU: please report it at https://github.com/leanEthereum/leanVM/issues"
+    } else {
+        "this build has no CPU tiers: build it with RUSTC_WRAPPER set to leanVM's scripts/tier-rustc and the \
+         `cpu_tiers` feature, or with RUSTFLAGS=\"-C target-cpu=native\""
+    };
+    let rule = "=".repeat(100);
+    eprintln!(
+        "{rule}\nleanVM: this CPU is not fully supported, so proving runs slower than it could.\n\
+         It has {}, which the prover in this build does not use: {why}.\n{rule}",
+        unused.join(", ")
+    );
 }
 
 /// The tiers this CPU runs, fastest first.

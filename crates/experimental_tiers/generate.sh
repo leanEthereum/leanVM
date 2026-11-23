@@ -18,6 +18,11 @@ x86v4 x86_64 $x86v4
 armsha3 aarch64 +aes,+sha3
 armaes aarch64 +aes
 "
+# The features the copied sources select code on, per architecture; `avx` and `ssse3` come with `avx2`.
+selected="
+x86_64 avx2 pclmulqdq bmi2 vpclmulqdq gfni avx512f avx512bw avx512vbmi
+aarch64 aes sha3
+"
 # A copied crate, its sources under crates/, and its dependencies as `alias=crate`, or `crate`.
 crates="
 keccak256 keccak256
@@ -28,6 +33,21 @@ experimental_keccak_gkr experimental_prover/keccak_gkr parallel=experimental_par
 experimental_lean_vm_core experimental_prover/lean_vm_core isa parallel=experimental_parallel primitives=experimental_primitives fiat_shamir=fiat_shamir_prover pcs=experimental_pcs keccak_gkr=experimental_keccak_gkr verifier tracing
 "
 copied=$(echo "$crates" | cut -d' ' -f1)
+
+# Every feature a source gates on is selected, and every selected one is in a tier of its architecture.
+sources=$(echo "$crates" | awk 'NF { print "../" $2 "/src" }')
+for feature in $(grep -rhoE 'target_feature = "[a-z0-9_.]+"' $sources | sed 's/.*"\(.*\)"/\1/' | sort -u); do
+    case " avx ssse3 $(echo $selected) " in
+    *" $feature "*) ;;
+    *) echo "the sources gate on $feature: add it to a tier and to \$selected" >&2 && exit 1 ;;
+    esac
+done
+echo "$selected" | while read -r arch features; do
+    for feature in $features; do
+        echo "$tiers" | awk -v arch="$arch" '$2 == arch { print $3 }' | grep -q "+$feature\b" ||
+            { echo "no $arch tier enables $feature" >&2 && exit 1; }
+    done
+done
 # The copies sit outside the workspace, so they take its settings literally.
 workspace() { sed -n "s/^$1 = \"\(.*\)\"$/\1/p" ../../Cargo.toml | head -n 1; }
 
@@ -96,10 +116,24 @@ echo "$tiers" | while read -r tier arch features; do
     cfg="cfg(all(feature = \"cpu_tiers\", $lacks))"
     detect=is_x86_feature_detected
     [ "$arch" = x86_64 ] || detect=is_${arch}_feature_detected
-    printf '    #[%s]\n    %s => %s,\n' "$cfg" "$tier" \
-        "$(echo "$features" | sed "s/+\([a-z0-9_.]*\)/std::arch::$detect!(\"\1\")/g; s/,/ \&\& /g")" >> "$dispatch/src/tiers.rs"
+    printf '    #[%s]\n    %s => %s, [%s],\n' "$cfg" "$tier" \
+        "$(echo "$features" | sed "s/+\([a-z0-9_.]*\)/std::arch::$detect!(\"\1\")/g; s/,/ \&\& /g")" \
+        "$(echo "$features" | sed 's/+\([a-z0-9_.]*\)/"\1"/g; s/,/, /g')" >> "$dispatch/src/tiers.rs"
 done
 printf '}\n' >> "$dispatch/src/tiers.rs"
+# Per selected feature: its name, whether this CPU has it, and whether the build's own code uses it.
+echo "$selected" | while read -r arch features; do
+    [ -n "$arch" ] || continue
+    detect=is_x86_feature_detected
+    [ "$arch" = x86_64 ] || detect=is_${arch}_feature_detected
+    printf '\n#[cfg(target_arch = "%s")]\nfn selected() -> Vec<(&'"'"'static str, bool, bool)> {\n    vec![\n' "$arch"
+    for feature in $features; do
+        printf '        ("%s", std::arch::%s!("%s"), cfg!(target_feature = "%s")),\n' "$feature" "$detect" "$feature" "$feature"
+    done
+    printf '    ]\n}\n'
+done >> "$dispatch/src/tiers.rs"
+printf '\n#[cfg(not(any(%s)))]\nfn selected() -> Vec<(&'"'"'static str, bool, bool)> {\n    Vec::new()\n}\n' \
+    "$(echo "$selected" | awk 'NF { printf "%starget_arch = \"%s\"", (n++ ? ", " : ""), $1 }')" >> "$dispatch/src/tiers.rs"
 names=$(echo "$tiers" | awk 'NF { printf "%s\"%s\"", (n++ ? ", " : ""), $1 }')
 deps=$(echo "$tiers" | awk 'NF { printf "%s\"dep:%s\"", (n++ ? ", " : ""), $1 }')
 {
