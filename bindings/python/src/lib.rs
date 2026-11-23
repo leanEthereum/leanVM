@@ -1,4 +1,4 @@
-// jemalloc configured for proving; the host language's allocator is untouched.
+// jemalloc configured for proving.
 #[cfg(unix)]
 #[global_allocator]
 static ALLOCATOR: allocator::Jemalloc = allocator::Jemalloc;

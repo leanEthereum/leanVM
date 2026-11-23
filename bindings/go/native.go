@@ -85,8 +85,8 @@ type Aggregate struct {
 	handle *C.lpq_aggregate
 }
 
-// Setup starts the prover on threads threads (0: one per core); otherwise the first aggregation
-// starts it on every core. It fails if the prover already runs with another count.
+// Setup starts the prover on threads threads (0: one per core). It fails if the prover already
+// runs with another count.
 func Setup(threads int) error {
 	if threads < 0 {
 		return errors.New("leanpq: threads must not be negative")

@@ -51,7 +51,6 @@ A key is a 32-byte seed and the slots `[start, end)`, with `end <= 2^31`: both f
 ## Aggregate
 
 ```js
-await lpq.setup(0) // optional: the prover's thread count, 0 for one per core
 
 const leaf = await lpq.aggregate({
   xmss: [{ publicKey: xmssKey.publicKey, message, signature: xmssSig }],
@@ -70,7 +69,7 @@ const received = await lpq.Aggregate.fromBytes(proof, { xmss: root.xmssClaims, s
 
 ### Fast proving
 
-The npm prebuilds target a generic CPU. To prove fast, build the addon on the proving machine (needs Rust), from your project's directory:
+To prove fast, build the addon on the proving machine, from your project's directory:
 
 <!-- x-release-please-start-version -->
 ```sh

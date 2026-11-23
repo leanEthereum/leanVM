@@ -38,8 +38,6 @@ lpq.sphincs_verify(sphincs_key.public_key, message, sphincs_sig)
 ## Aggregate
 
 ```python
-lpq.setup(0)  # optional: the prover's thread count, 0 for one per core
-
 leaf = lpq.aggregate(
     xmss=[(xmss_key.public_key, message, xmss_sig)],
     sphincs=[(sphincs_key.public_key, message, sphincs_sig)],
@@ -58,7 +56,7 @@ received = lpq.Aggregate.from_bytes(proof, root.xmss_claims, root.sphincs_claims
 
 ### Fast proving
 
-The wheels target a generic CPU. To prove fast, install from source on the proving machine (needs Rust), from your project's directory:
+To prove fast, install from source on the proving machine, from your project's directory:
 
 <!-- x-release-please-start-version -->
 ```sh

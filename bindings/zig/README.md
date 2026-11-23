@@ -91,7 +91,7 @@ defer received.deinit();
 - `Aggregate.fromBytes` takes the claims in any order (a repeat counts once) and fails with `error.NativeFailure` for any other set, so every `Aggregate` is proven.
 - `setup(threads)` fails if the prover already runs with another thread count. See [Proving](https://github.com/leanEthereum/leanVM/tree/main/bindings#proving).
 - A process forked after the prover started cannot aggregate.
-- The prebuilt archives target a generic CPU: to prove fast, [build from source](#build-from-source) on the proving machine.
+- To prove fast, [build from source](#build-from-source) on the proving machine.
 
 ## VRF
 

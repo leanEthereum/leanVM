@@ -412,8 +412,8 @@ proc vrfVerify*(root: VrfRoot, slot: uint64, proof: VrfProof): bool =
 ##############################################################
 
 proc leanPqSetup*(threads: Natural): Result[void, string] =
-  ## Starts the prover on `threads` threads (0: one per core); otherwise the first aggregation
-  ## starts it on every core. Fails if the prover already runs with another count.
+  ## Starts the prover on `threads` threads (0: one per core). Fails if the prover already runs
+  ## with another count.
   check(lpqSetup(csize_t(threads)))
 
 proc init*(

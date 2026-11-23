@@ -29,8 +29,8 @@ int32_t lpq_last_error(lpq_buffer *out);
 void lpq_buffer_free(uint8_t *data, size_t len);
 
 /*
- * Starts the prover with threads threads (0: one per core); the first aggregation otherwise starts
- * it on every core. Fails above the machine's parallelism, or if it runs with another count.
+ * Starts the prover with threads threads (0: one per core). Fails above the machine's parallelism
+ * or if it runs with another count.
  */
 int32_t lpq_setup(size_t threads);
 

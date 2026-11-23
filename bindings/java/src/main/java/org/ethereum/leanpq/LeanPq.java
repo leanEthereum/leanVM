@@ -10,9 +10,8 @@ public final class LeanPq {
     private LeanPq() {}
 
     /**
-     * Starts the prover with {@code threads} threads (0: one per core); otherwise the first
-     * aggregation starts it on every core. Throws {@link LeanPqException} if it already runs with
-     * another count.
+     * Starts the prover with {@code threads} threads (0: one per core). Throws
+     * {@link LeanPqException} if it already runs with another count.
      */
     public static void setup(int threads) {
         if (threads < 0) {
@@ -50,8 +49,7 @@ public final class LeanPq {
 
     /**
      * Proves the union of the children's claims and the raw signatures' claims. Raw signatures are
-     * verified first; at most 16 children are accepted, and the input must not be empty. The
-     * children stay owned by the caller.
+     * verified first; at most 16 children are accepted, and the input must not be empty.
      */
     public static Aggregate aggregate(List<Aggregate> children, List<SignedMessage> xmss, List<SignedMessage> sphincs) {
         Objects.requireNonNull(children, "children");

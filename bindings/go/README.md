@@ -133,7 +133,7 @@ defer received.Close()
 - `Bytes()` is the proof alone: send the claims (`XmssClaims()`, `SphincsClaims()`) alongside it.
 - `AggregateFromBytes` takes the claims in any order (a repeat counts once) and rejects any other set, so every `Aggregate` is proven.
 - `Setup(threads)` fails if the prover already runs with another thread count. See [Proving](https://github.com/leanEthereum/leanVM/tree/main/bindings#proving).
-- The prebuilt archives target a generic CPU: to prove fast, [build from source](#build-from-source) on the proving machine.
+- To prove fast, [build from source](#build-from-source) on the proving machine.
 
 ## Build from source
 

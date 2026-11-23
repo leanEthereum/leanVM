@@ -71,7 +71,6 @@ A key is a 32-byte seed and the slots `[start, end)`, with `end <= 2^31`: both f
 import java.util.List;
 import org.ethereum.leanpq.*;
 
-LeanPq.setup(0); // optional: the prover's thread count, 0 for one per core
 try (XmssSecretKey xmss = XmssSecretKey.fromSeed(seed32);
      SphincsSecretKey sphincs = SphincsSecretKey.fromSeed(otherSeed32);
      Aggregate leaf = LeanPq.aggregate(
@@ -91,7 +90,7 @@ try (XmssSecretKey xmss = XmssSecretKey.fromSeed(seed32);
 
 ### Fast proving
 
-The jar's library targets a generic CPU. To prove fast, build it on the proving machine (needs Rust), from your project's directory:
+To prove fast, build the library on the proving machine, from your project's directory:
 
 <!-- x-release-please-start-version -->
 ```sh

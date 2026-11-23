@@ -34,7 +34,7 @@ static GUEST_OWNER: AtomicU32 = AtomicU32::new(0);
 const BUILT: u32 = u32::MAX;
 
 /// Starts the prover pool with `threads` threads (0: one per core) and builds the aggregation
-/// guest, once per process. Without it, the first aggregation starts them on every core.
+/// guest, once per process.
 ///
 /// # Errors
 ///
@@ -86,7 +86,7 @@ fn claim(owner: &AtomicU32) -> Result<(), Error> {
 /// ```
 ///
 /// - Raw signatures are verified first, so a bad one is named by its index.
-/// - Children are borrowed, and the proof re-verifies each one.
+/// - The proof re-verifies each child.
 /// - Proofs run one at a time per process.
 ///
 /// # Errors

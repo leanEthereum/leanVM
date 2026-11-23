@@ -70,8 +70,8 @@ comptime {
     std.debug.assert(@sizeOf(Claim) == 64);
 }
 
-/// Starts the prover on `threads` threads (0: one per core); otherwise the first aggregation starts
-/// it on every core. Fails if the prover already runs with another count.
+/// Starts the prover on `threads` threads (0: one per core). Fails if the prover already runs
+/// with another count.
 pub fn setup(threads: usize) Error!void {
     try checkStatus(c.lpq_setup(threads));
 }

@@ -12,8 +12,8 @@ export interface SignedMessage {
 }
 
 /**
- * Starts the prover with `threads` threads (0, the default: one per core); otherwise the first
- * `aggregate` starts it on every core. Rejects when it already runs with another count.
+ * Starts the prover with `threads` threads (0, the default: one per core). Rejects when it
+ * already runs with another count.
  */
 export declare function setup(threads?: number): Promise<void>
 
