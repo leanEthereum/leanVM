@@ -644,9 +644,9 @@ $(\mathit{pc}, \mathit{fp})$, and a repeated state would loop without halting
 ($2^\ell\cdot 2^\kappa$ states, $\ell = 19$, $\kappa \le 30$; argued, not a Lean theorem;
 \lean{lean_vm} proves fewer than $2^{128}$, \lean{steps_lt_replayFuel}).
 
-\paragraph{The decoder's size bound.} The bound (\lean{guestWitnessDecoderSizeBound}, $275183$)
-limits any program; it is the compiled decoder's size, $274753$ (proved at most that, and measured
-exactly; the guest's frame-cell table, packed four cells to a number, is $218948$ of it), and a slack of
+\paragraph{The decoder's size bound.} The bound (\lean{guestWitnessDecoderSizeBound}, $237007$)
+limits any program; it is the compiled decoder's size, $236577$ (proved at most that, and measured
+exactly; the guest's frame-cell table, packed four cells to a number, is $191360$ of it), and a slack of
 $430$: room for one leanXMSS signature's encoding ($309$) beside its code but not two, so no useful
 table of witnesses (hard-coded signatures that would mask a bug of $G$ on finitely many statements)
 fits there. It does not bound what a program written differently could hold: a program may compute
@@ -758,7 +758,7 @@ execution's asserts and its children's accepted proofs give ($16$ children, clai
 below the memory's size, a cursor of $8192$ words each), not at the run's.
 \item That the size bounds exclude a table of witnesses for every program: literals count toward
 size, and the bounds are tight only for programs written like the compiled ones (a decoder
-computing the guest's frame-cell table from its input would free room for about $690$ signatures'
+computing the guest's frame-cell table from its input would free room for about $600$ signatures'
 encodings).
 \item How $D$ computes the witness: the statement accepts any program that computes it from the
 execution within its budget, not only one that reads it off the memory.
