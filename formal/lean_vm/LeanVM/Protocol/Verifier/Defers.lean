@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Protocol.Verifier.DeferredShape
+public import Statement.LeanVm
 import LeanVM.Protocol.WithHashBridge
 
 /-!
