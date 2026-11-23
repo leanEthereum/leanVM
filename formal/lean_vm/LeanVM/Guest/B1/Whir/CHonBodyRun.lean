@@ -50,6 +50,7 @@ structure BodyFacts (h : OsHD) (args xs : List E) (lane : ℕ) (w : WhirEnd) : P
   x0 : (h.xsAt 0).length = xs.length
   r0 : (args.getD 7 0, args.getD 8 0) = digestHalves (h.root 0)
   rate : ∀ l < h.c.levels.length, LvRate (Val.ofArgs args) h.c l (h.c.levels.getD l default)
+  sel : ∃ ri < ligNRates, args.getD 0 0 = gen ^ ri ∧ h.c.posTotal.getD ri 0 = osPosTotal h.c
 
 namespace OsHD
 
@@ -62,6 +63,14 @@ noncomputable def D (l : ℕ) : OsLvData := ⟨h.word l 0, h.capL l, h.lamAt l, 
 theorem D_eq (l : ℕ) : (h.D l).w0 = h.word l 0 ∧ (h.D l).capL = h.capL l ∧
     (l ≠ h.c.yrLevel → (h.D l).lam = h.lamAt l ∧ (h.D l).lamInv = h.li l) ∧ (h.D l).batched = h.bat l := by
   simp only [OsHD.D, implies_true, and_self]
+
+/-- **`pos_totals`' words** in memory. -/
+theorem posTot_load (hHS : HonStatic h.c) {rd : Reader} {b : ℕ} (hm : OsMemA rd h.c b h.own) {r : ℕ}
+    (hr : r < ligNRates) : LoadHolds rd (osPtrA h.c b 9) r (gw (h.c.posTotal.getD r 0)) := by
+  have h9 := hHS.head (j := 9) (by omega)
+  simp only [headSizes, List.getD_cons_succ, List.getD_cons_zero] at h9
+  have a := h.load hm (hHS.headLt (j := 9) (by omega)) (by unfold osIxQbpA; omega) (e := r) (by rw [h9]; exact hr)
+  rwa [ownW_posTot, posTotC, getD_mapRange _ hr] at a
 
 /-- **A level's root** in `level_roots`. -/
 theorem rootA (hHS : HonStatic h.c) {l : ℕ} (hl : l < h.c.levels.length) :
@@ -79,28 +88,32 @@ end OsHD
 
 /-- **The body at the honest data**, from its facts. -/
 theorem body_gen {h : OsHD} {args xs : List E} {lane : ℕ} {w : WhirEnd} {cur tabs : E}
-    (F : BodyFacts h args xs lane w) (ha9 : args.getD 9 0 = cur) (ha10 : args.getD 10 0 = tabs) (b : ℕ) :
+    (F : BodyFacts h args xs lane w) (ha9 : args.getD 9 0 = cur) (ha10 : args.getD 10 0 = tabs) (b : ℕ)
+    (rd0 : Reader) (hl0 : LowDef 11 rd0) :
     ∃ (kEnd : ℕ) (f : ℕ → E), ∀ (C : CallRel) (rd : Reader), OsHA C rd h.c b h.own cur tabs xs →
+      LowAgree rd rd0 →
       BlkF C rd (Val.ofArgs args) 11 kEnd f (osBodyA h.c)
         (OsOutA h.c b tabs (h.tr.2.1 + h.T.prod * recsDeficit h.recs h.G)
           ((h.recs.flatMap recGlued).foldl (fun w g ↦ w + g.scalar * g.weightAt ((h.G ++ h.T).drop g.foldStart)) 0)
           (multilinearEval (h.Lf.fw.fold.take h.c.yrLen) h.T) h.own h.D) := by
   have hy := F.lv.yrE
-  obtain ⟨kEnd, f, hf⟩ := body_of (H := fun C rd ↦ OsHA C rd h.c b h.own cur tabs xs) (h := h) (b := b)
-    (args := args) (cur := cur) (tabs := tabs) (xs := xs) (own := h.own) (D := h.D) F.lv.bs F.a0 F.a6 ha9 ha10
-    F.x0 F.rate
+  obtain ⟨ri, hri, hsel, hpt⟩ := F.sel
+  obtain ⟨kEnd, f, hf⟩ := body_of (H := fun C rd ↦ OsHA C rd h.c b h.own cur tabs xs ∧ LowAgree rd rd0)
+    (h := h) (b := b) (args := args) (cur := cur) (tabs := tabs) (xs := xs) (own := h.own) (D := h.D) F.lv.bs
+    hsel hri hpt F.a0 F.a6 ha9 ha10 F.x0 F.rate
     (fun C rd hH ↦ by
-      obtain ⟨r0, r1⟩ := h.mid_roots F.lv.hs hH.2.2.1 (l := 0) (by omega)
+      obtain ⟨r0, r1⟩ := h.mid_roots F.lv.hs hH.1.2.2.1 (l := 0) (by omega)
       have e1 : args.getD 7 0 = (digestHalves (h.root 0)).1 := congrArg Prod.fst F.r0
       have e2 : args.getD 8 0 = (digestHalves (h.root 0)).2 := congrArg Prod.snd F.r0
       rw [e1, e2]
-      exact ⟨r0, r1⟩)
-    (fun st σ hq ↦ F.lv.levels st σ hq) (fun l _ ↦ h.D_eq l)
-    (fun l hl ↦ h.rootA F.lv.hs hl) F.pl (tailC_from F.lv.hs F.lv.nm F.tsuf F.pl F.f3)
-    (fun C rd hH ↦ tail_zero F.lv.hs hH.2.2.1 F.pl)
-    (fin_of F.lv.hs F.lv.nm F.finS F.lv.len F.rrun F.ylen F.fold F.ffm (fun l hl ↦ ⟨rfl, F.res l hl⟩)
-      F.slow)
-  exact ⟨kEnd, f, hf⟩
+      exact ⟨r0, r1, fun r hr ↦ h.posTot_load F.lv.hs hH.1.2.2.1 hr⟩)
+    (fun st σ hq ↦ F.lv.levels rd0 hl0 st σ hq) (fun l _ ↦ h.D_eq l)
+    (fun l hl ↦ h.rootA F.lv.hs hl) F.pl (fun C rd hH ↦ tailC_from F.lv.hs F.lv.nm F.tsuf F.pl F.f3 C rd hH.1)
+    (fun C rd hH ↦ tail_zero F.lv.hs hH.1.2.2.1 F.pl)
+    (fun σ hsf hok hrt hrv hp hqp ht htc hcl ↦ (fin_of F.lv.hs F.lv.nm F.finS F.lv.len F.rrun F.ylen F.fold
+      F.ffm (b := b) (cur := cur) (tabs := tabs) (xs := xs) (D := h.D) (fun l hl ↦ ⟨rfl, F.res l hl⟩) F.slow σ hsf hok hrt
+      hrv hp hqp ht htc hcl).weaken fun C rd hH ↦ hH.1)
+  exact ⟨kEnd, f, fun C rd hH hag ↦ hf C rd ⟨hH, hag⟩⟩
 
 end
 end LeanVM.Guest.B1.Whir

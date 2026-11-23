@@ -92,7 +92,7 @@ def stmt(e, defs):
         if at[0] == 'id': return ('atom', at[1][1:], None)
         k = at[1][1]
         if k == '.const': return ('atom', 'const', (val(at[2][0]), word(at[2][1])))
-        if k in ('.add', '.mul'): return ('atom', k[1:], tuple(val(x) for x in at[2]))
+        if k in ('.add', '.mul', '.copy'): return ('atom', k[1:], tuple(val(x) for x in at[2]))
         if k == '.hint':
             hh = at[2][0]
             kind = hh[1][1][1:] if hh[0] == 'app' else hh[1][1:]
@@ -152,6 +152,7 @@ def load(D, cache=None):
     if cache is None:
         return _load(D)
     h = hashlib.sha256()
+    h.update(b'copy operands')
     for t in _texts(D): h.update(t.encode('utf-8'))
     p = os.path.join(cache, 'core-%s.pickle' % h.hexdigest()[:16])
     if os.path.exists(p):

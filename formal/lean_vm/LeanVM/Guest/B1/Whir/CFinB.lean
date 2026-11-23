@@ -255,7 +255,7 @@ theorem coordSrc_lt {tch : ℕ} {lv : OsLv} {t k : ℕ} (hf : osFch < k) (ht : t
   unfold coordSrc; split_ifs <;> assumption
 
 theorem basisIn_agree {rd : Reader} {σ σ' : Val} {c : OsCfg} {tch L k : ℕ} {lv : OsLv} {β : E}
-    {X : ℕ → E} (hk : 33 ≤ k) (htch : tch < k) (ha : AgreeBelow k σ σ')
+    {X : ℕ → E} (hk : 43 ≤ k) (htch : tch < k) (ha : AgreeBelow k σ σ')
     (h : BasisIn rd σ c tch L lv β X) : BasisIn rd σ' c tch L lv β X := by
   obtain ⟨h1, h2⟩ := h
   refine ⟨by rwa [ha _ (by show 20 < k; omega)], fun t ht ↦ ⟨(h2 t ht).1, ?_⟩⟩
@@ -272,7 +272,7 @@ theorem basisOut_agree {rd : Reader} {σ σ' : Val} {c : OsCfg} {bd ls la L k : 
 what it stores (`BasisOut`). -/
 theorem osBasisLv_complete {c : OsCfg} {tch bd ls la lvl : ℕ} {lv : OsLv} {k : ℕ} {σ : Val}
     {β : E} {X : ℕ → E} (hiz : IsZeroC H) (hpos : 1 ≤ lv.prefixLen + c.yrLog)
-    (hbd : bd < k) (hls : ls < k) (hla : la < k) (htch : tch < k) (hk : 33 ≤ k)
+    (hbd : bd < k) (hls : ls < k) (hla : la < k) (htch : tch < k) (hk : 43 ≤ k)
     (hm : ∀ C rd, H C rd → BasisIn rd σ c tch lvl lv β X ∧ BasisOut rd σ c bd ls la lvl lv β X) :
     BlkA H σ k (osBasisLv c tch bd ls la lvl lv k).2 (osBasisLv c tch bd ls la lvl lv k).1
       (fun _ ↦ True) := by
@@ -381,7 +381,7 @@ theorem osBasisLv_complete {c : OsCfg} {tch bd ls la lvl : ℕ} {lv : OsLv} {k :
 (`BasisIn`) and what it stores (`BasisOut`). -/
 theorem osBases_complete {c : OsCfg} {tch bd ls la : ℕ} (β : ℕ → E) (X : ℕ → ℕ → E)
     (hiz : IsZeroC H) (hpos : ∀ lv : OsLv, 1 ≤ lv.prefixLen + c.yrLog) :
-    ∀ (levels : List OsLv) (lvl k : ℕ) (σ : Val), bd < k → ls < k → la < k → tch < k → 33 ≤ k →
+    ∀ (levels : List OsLv) (lvl k : ℕ) (σ : Val), bd < k → ls < k → la < k → tch < k → 43 ≤ k →
       (∀ i (hi : i < levels.length), ∀ C rd, H C rd →
         BasisIn rd σ c tch (lvl + i) levels[i] (β (lvl + i)) (X (lvl + i)) ∧
           BasisOut rd σ c bd ls la (lvl + i) levels[i] (β (lvl + i)) (X (lvl + i))) →

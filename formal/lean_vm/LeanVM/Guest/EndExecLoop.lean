@@ -52,7 +52,6 @@ theorem tailF_of {κ : ℕ} {L : MemoryImage κ} {j fp : ℕ} {σ : Val} {es : L
   rw [← hkv]
   refine ⟨?_, ?_, ?_, fun k hk ↦ ?_⟩
   · rw [hrd, cellAt, hread]
-    try simp [addressOfIndex]
   · rw [hrd, hrd, cellAt, cellAt, hk0, hkh, hF.hdr0]
   · rw [hrd, hrd, cellAt, cellAt, hk1, hkh, hF.hdr1]
   · rw [hrd, cellAt, ← hka k hk]

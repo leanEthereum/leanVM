@@ -49,7 +49,7 @@ theorem osLam_complete {st : OsSt} (σ : Val) (hsf : st.Sf) (hok : ∀ C rd, H C
   set S := lamS cap with hS
   set p := (osPad st.pad (k + 5)).2.1 with hp
   set j := (osPad st.pad (k + 5)).2.2 with hj
-  have k33 : 33 ≤ k := hsf.k
+  have k33 : 43 ≤ k := hsf.k
   have kj : k + 5 ≤ j := osPad_next _ _
   have hpj : p + 4 < j := by
     rcases osPad_ptr st.pad (k + 5) (fun q hq ↦ by have := hsf.padB q hq; omega) with h | h <;> omega

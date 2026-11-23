@@ -65,7 +65,7 @@ theorem finRes_eq (hHS : HonStatic h.c) (hF : FinStatic h.c h.G h.T h.recs)
       have : (l + 1) * ligColsCap ≤ h.c.levels.length * ligColsCap := Nat.mul_le_mul_right _ (by omega)
       rw [Nat.add_mul, Nat.one_mul] at this
       omega
-    rw [show osIxBdA h.c = 12 + h.c.yrLevel + 3 by unfold osIxBdA; omega,
+    rw [show osIxBdA h.c = 13 + h.c.yrLevel + 3 by unfold osIxBdA; omega,
       h.own_word (hHS.finLt (k := 3) (by omega)) (by rw [hsz]; exact hlt), h.ownW_fin (by omega)]
     exact eb.symm
   -- the high part
@@ -92,8 +92,8 @@ theorem finRes_eq (hHS : HonStatic h.c) (hF : FinStatic h.c h.G h.T h.recs)
     have hQ : k < (h.c.levels.getD l default).squeezes * sqPer (h.c.levels.getD l default) := lt_of_lt_of_le hk' hR.Q
     obtain ⟨-, htop⟩ := chain_disj hHS.pos
     have := htop l (by omega)
-    have h9 := hHS.head (j := 9) (by omega)
-    rw [h.own_word (hHS.headLt (j := 9) (by omega)) (by rw [h9]; show _ < h.c.levels.length * ligPosCap; omega),
+    have h9 := hHS.head (j := 10) (by omega)
+    rw [h.own_word (hHS.headLt (j := 10) (by omega)) (by rw [h9]; show _ < osPosTotal h.c; omega),
       ownW_qpos, h.qpos_seg hHS (by omega) hQ, hr, hR.qs k hk']
   -- the chains
   have eP : resP (finLv h.c l) (finD h.c h.G h.T h.recs l) =
@@ -121,7 +121,7 @@ theorem finZ_eq (hHS : HonStatic h.c) {l : ℕ}
   have hsz := hHS.fin (k := 5) (by omega)
   obtain ⟨-, ea⟩ := finLaC_get (G := h.G) (T := h.T) (recs := h.recs) hl (by omega)
   unfold osZA finZ
-  rw [show osIxLaA h.c = 12 + h.c.yrLevel + 5 by unfold osIxLaA; omega,
+  rw [show osIxLaA h.c = 13 + h.c.yrLevel + 5 by unfold osIxLaA; omega,
     h.own_word (hHS.finLt (k := 5) (by omega)) (by rw [hsz]; show l < h.c.levels.length; omega),
     h.ownW_fin (by omega)]
   exact congrArg zeroOf ea.symm
@@ -146,9 +146,9 @@ theorem finSlow_eq (hHS : HonStatic h.c) (hF : FinStatic h.c h.G h.T h.recs)
       lt_of_lt_of_le hk hR.Q
     obtain ⟨-, htop⟩ := chain_disj hHS.pos
     have := htop l (by omega)
-    have h9 := hHS.head (j := 9) (by omega)
+    have h9 := hHS.head (j := 10) (by omega)
     show eOfNat ((h.recs.getD l default).qs.getD k 0) = _
-    rw [h.own_word (hHS.headLt (j := 9) (by omega)) (by rw [h9]; show _ < h.c.levels.length * ligPosCap; omega),
+    rw [h.own_word (hHS.headLt (j := 10) (by omega)) (by rw [h9]; show _ < osPosTotal h.c; omega),
       ownW_qpos, h.qpos_seg hHS (by omega) hQ, hr, hR.qs k hk]
   · have hG := hF.Gl
     have hT := hF.Tl
@@ -169,7 +169,7 @@ theorem finSlow_eq (hHS : HonStatic h.c) (hF : FinStatic h.c h.G h.T h.recs)
       simp only [h1', ↓reduceIte]
       have h0 := hHS.fin (k := 0) (by omega)
       rw [List.getD_eq_getElem?_getD, List.getElem?_drop, List.getElem?_append_right (by omega),
-        show osIxTchA h.c = 12 + h.c.yrLevel + 0 by unfold osIxTchA; omega,
+        show osIxTchA h.c = 13 + h.c.yrLevel + 0 by unfold osIxTchA; omega,
         h.own_word (hHS.finLt (k := 0) (by omega))
           (by rw [h0, List.getD_cons_zero]; have := hHS.ylog; omega),
         h.ownW_fin (by omega), List.getD_eq_getElem?_getD]

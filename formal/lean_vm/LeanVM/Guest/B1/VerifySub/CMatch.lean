@@ -133,26 +133,6 @@ structure VsHonVals {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSe
   e252 : σ (.n (val% «verify_sub» "push_total@54")) = gen ^ S.pushT
   tabs : ∀ d ∈ [379, 596, 607, 624, 1991], σ (.n d) = ptr sqE * gen ^ winTabAt
 
-namespace ChildSegs
-
-variable {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs bytecode seed c)
-
-/-- The stream buffer's first words: the sizes, the root's two, the out-of-domain nonce. -/
-theorem stream_words (hbl : bytecode.length = 2 ^ 23) :
-    (vsStreamW c.proof.stream).take 8 = sizeWords S.logMem S.rowsN S.rate ∧
-      (vsStreamW c.proof.stream).getD 0 0 = eOfNat S.logMem ∧
-      (vsStreamW c.proof.stream).getD 7 0 = eOfNat S.rate ∧
-      (vsStreamW c.proof.stream).getD 8 0 = S.x0 ∧ (vsStreamW c.proof.stream).getD 9 0 = S.x1 ∧
-      (vsStreamW c.proof.stream).getD 10 0 = S.oodN := by
-  obtain ⟨a, b, c', d, e, f, hr⟩ : ∃ a b c d e f, S.rowsN = [a, b, c, d, e, f] := by
-    have := S.hrowsL
-    match h : S.rowsN, this with
-    | [a, b, c, d, e, f], _ => exact ⟨a, b, c, d, e, f, rfl⟩
-  rw [S.stream_eq hbl]
-  simp [sizeWords, hr]
-
-end ChildSegs
-
 theorem vs_sq_getD {k : ℕ} (hk : k < 34) : expTabAllWords.getD k 0 = gen ^ 2 ^ k := by
   have h := congrArg (fun l ↦ l.getD k 0) expTableWords_sq
   simp only [List.drop_zero] at h
@@ -473,7 +453,7 @@ theorem vs_callsMatch {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed
   · -- `opening_message__L1_L1`
     have hl6 : S.sZ.cap.length = 5 := vs_squeezeN_capLen _ _ (by simp [capOf])
     refine ⟨rfl, rfl, fun _ ↦ ⟨?_, vs_rets' hl _ bs outs (j := 6) (by norm_num) rfl (by rw [O.o6]; simp [capOf])⟩⟩
-    have h6 := vs_rets' (rd := rd) hl _ bs outs (j := 5) (rs := [356, 357, 358, 359, 360]) (by norm_num) rfl (by rw [O.o5, hl6]; simp)
+    have h6 := vs_rets' (rd := rd) hl S.gw bs outs (j := 5) (rs := [356, 357, 358, 359, 360]) (by norm_num) rfl (by rw [O.o5, hl6]; simp)
     rw [O.o5] at h6
     show (vsNs [356, 357, 358, 359, 360]).map σ ++ [σ (.n (val% «verify_sub» "word0~9")), σ (.n (val% «verify_sub» "ood_value"))] =
       S.sZ.cap ++ [ptr (vb bs 1) * gen ^ 11, ptr (vb bs 7)]
@@ -621,7 +601,7 @@ theorem vs_callsMatch {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed
       r14 0 (by norm_num), pa (i := 6) (a := 355) (by norm_num) rfl,
       pr (j := 4) (k := 0) (a := 276) (by norm_num) (by decide) rfl, O.o4]
     simp only [termArgs, ChildSegs.termB, ChildSegs.termBs, ChildSegs.cpRes, ChildSegs.osRes,
-      take_getD _ _ (show 3 < 15 by norm_num), take_getD _ _ (show 14 < 15 by norm_num), hL3, hL14,
+      take_getD _ _ (show 3 < 13 by norm_num), take_getD _ _ (show 12 < 13 by norm_num), hL3, hL14,
       Tables.cpOwn, Tables.VtHonest.retsH, Fs.squeeze, capOf, List.cons_append, List.nil_append,
       List.getD_cons_succ, List.getD_cons_zero]
     rfl

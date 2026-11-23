@@ -38,7 +38,7 @@ include hR
 /-- The final level is the one whose `opening_queries` is final. -/
 theorem final_iff {l : ℕ} (hl : l < (osCfgR (μ - minOpenLog) (r - 1)).levels.length) :
     (oqSA (osCfgR (μ - minOpenLog) (r - 1)) l).final = 1 ↔ l = (osCfgR (μ - minOpenLog) (r - 1)).yrLevel := by
-  obtain ⟨-, -, -, -, -, -, hfinal, -⟩ := (hR.lvb hl).qsh
+  obtain ⟨-, -, -, -, hfinal, -⟩ := (hR.lvb hl).qsh
   rw [oqSA, oq_final, hfinal]
   by_cases h : l = (osCfgR (μ - minOpenLog) (r - 1)).yrLevel <;> simp [h]
 

@@ -93,6 +93,7 @@ __pycache__/
 /lean_vm/LeanVM/Guest/Count/VsCount*.lean
 /lean_vm/LeanVM/Guest/Count/VsOs[0-9]*.lean
 /lean_vm/LeanVM/Guest/Count/VsOsAll.lean
+/lean_vm/LeanVM/Guest/Count/VsOsTab.lean
 /lean_vm/LeanVM/Guest/Count/Words.lean
 /lean_vm/LeanVM/Guest/Fast/WhirTables.lean
 /lean_vm/LeanVM/Guest/Memory/GuestCallees.lean

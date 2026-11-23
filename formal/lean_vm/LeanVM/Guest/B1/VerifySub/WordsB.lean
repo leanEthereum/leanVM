@@ -87,8 +87,7 @@ structure VsWords (fs : String → ℕ) : Type where
   hL15 : TotalLeOn coreProgram fs name% «check_opening_terminal_loop0» LoopPre
     fun a ↦ logG (a.getD 1 0) * K15 + fs name% «check_opening_terminal_loop0»
   hCsF : ∀ κ' < 31, fs (Tables.lName "column_selector" κ') ≤ Bcs
-  hrs : ∀ c ≤ 34, TotalLeOn coreProgram fs "rs_eq_run" (fun a ↦ a.getD 3 0 = gen ^ c)
-    fun _ ↦ Brs
+  hrs : RsBound fs Brs
   ωv : Opcode → String → ℕ
   vtW : Tables.VtWeights ωv
   Weqc : Opcode → ℕ

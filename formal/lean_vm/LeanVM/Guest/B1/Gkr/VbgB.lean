@@ -78,10 +78,10 @@ theorem verify_bus_gkr_completeAtTB {κ depth : ℕ} (hd2 : 2 ≤ depth) (hd : d
     (fun fp ↦ ⟨vbgEV fs depth fp, rfl, by
       rw [show fp + fs vbgFlat.name = fp + fs "verify_bus_gkr" from rfl, vbg_bufL, ← hvals]
       simp⟩)
-    (fun fp ↦ vbgW (ofK (addressOfIndex (vbgEL fs fp))) (ofK (addressOfIndex (vbgER fs depth fp)))
-      (ofK (addressOfIndex (vbgEP fs depth fp))) (ofK (addressOfIndex (vbgEO fs depth fp)))
-      (ofK (addressOfIndex (vbgEB fs depth fp))) (ofK (addressOfIndex (vbgEM fs depth fp)))
-      (ofK (addressOfIndex (vbgEV fs depth fp))))
+    (fun fp ↦ vbgW (ofK (addressOfIndex (vbgEL fs fp))) (ofK (addressOfIndex (vbgES fs depth fp)))
+      (ofK (addressOfIndex (vbgER fs depth fp))) (ofK (addressOfIndex (vbgEP fs depth fp)))
+      (ofK (addressOfIndex (vbgEO fs depth fp))) (ofK (addressOfIndex (vbgEB fs depth fp)))
+      (ofK (addressOfIndex (vbgEM fs depth fp))) (ofK (addressOfIndex (vbgEV fs depth fp))))
     (vbgBufs fs depth xs ec) hbufs (fun fp rd hlow hL ↦ (hfacts fp rd hlow hL).1)
     (fun _ ↦ True) [fun _ ↦ True, fun _ ↦ True] (fun _ _ _ _ ↦ trivial)
     (by show (vbgPre.filter callB).length ≤ 2; decide +kernel)
@@ -91,9 +91,10 @@ theorem verify_bus_gkr_completeAtTB {κ depth : ℕ} (hd2 : 2 ≤ depth) (hd : d
     (fun σ ↦ callsBound_le vbgPre σ _)).mono le_rfl (fun _ _ ↦ trivial)
   obtain ⟨-, hV, -⟩ := hfacts fp rd hlow hLm
   have hV' : VbgVals (vbgFlat.σ rd (vbgW (ofK (addressOfIndex (vbgEL fs fp)))
-      (ofK (addressOfIndex (vbgER fs depth fp))) (ofK (addressOfIndex (vbgEP fs depth fp)))
-      (ofK (addressOfIndex (vbgEO fs depth fp))) (ofK (addressOfIndex (vbgEB fs depth fp)))
-      (ofK (addressOfIndex (vbgEM fs depth fp))) (ofK (addressOfIndex (vbgEV fs depth fp))))
+      (ofK (addressOfIndex (vbgES fs depth fp))) (ofK (addressOfIndex (vbgER fs depth fp)))
+      (ofK (addressOfIndex (vbgEP fs depth fp))) (ofK (addressOfIndex (vbgEO fs depth fp)))
+      (ofK (addressOfIndex (vbgEB fs depth fp))) (ofK (addressOfIndex (vbgEM fs depth fp)))
+      (ofK (addressOfIndex (vbgEV fs depth fp))))
       (cap0 ++ [ofK (addressOfIndex ec), gen ^ depth, ofK (addressOfIndex ez), tabs, stream]))
       depth (vbgEL fs fp) (vbgER fs depth fp) (vbgEP fs depth fp) tabs stream := hV
   obtain ⟨v167, v400, v402, v169, v426, v6, v16, v17, v18, v8, v9, v425⟩ := hV'

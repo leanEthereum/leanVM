@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Guest.CoreMode.HeapCSig
 public import LeanVM.Guest.Bridge.JumpCellsDefs
+public import LeanVM.Guest.Memory.SelArm
 
 /-!
 # The heap check with calls and loops
@@ -1535,63 +1536,6 @@ noncomputable def heapOkC1 (pows : PowTree) (sigOf : String → HSig) (f : Fn) (
 
 /-! ## A certificate split at a selector -/
 
-/-- The value `v` is `V.n x`. -/
-def selIs (x : ℕ) (v : V) : Bool := match vnum v with
-  | some k => Nat.beq k x
-  | none => false
-
-/-- **A statement at arm `r` of the selector `V.n x`**, by the recursor: a `match` on it its arm `r`'s block, inline, a
-`dispatch` on it the call of its callee `r`, where there is one; nested blocks likewise. -/
-noncomputable def selS (x r : ℕ) : Stmt → List Stmt :=
-  Stmt.rec (motive_1 := fun _ ↦ List Stmt) (motive_2 := fun _ ↦ List Stmt) (motive_3 := fun _ ↦ List (List Stmt))
-    (fun a ↦ [.atom a]) (fun c _ _ rz rn ↦ [.ite c rz rn])
-    (fun y _ ra ↦ bif selIs x y && Nat.blt r ra.length then ra.getD r [] else [.match_ y ra])
-    (fun f args rets ↦ [.call f args rets]) (fun c f args ↦ [.callIf c f args])
-    (fun y fs args rets ↦ bif selIs x y && Nat.blt r fs.length then [.call (fs.getD r "") args rets]
-      else [.dispatch y fs args rets])
-    (fun vs ↦ [.ret vs]) [] (fun _ _ a b ↦ a ++ b) [] (fun _ _ a b ↦ a :: b)
-
-/-- A block at arm `r` (`selS`). -/
-noncomputable def selL (x r : ℕ) : List Stmt → List Stmt :=
-  Stmt.rec_1 (motive_1 := fun _ ↦ List Stmt) (motive_2 := fun _ ↦ List Stmt) (motive_3 := fun _ ↦ List (List Stmt))
-    (fun a ↦ [.atom a]) (fun c _ _ rz rn ↦ [.ite c rz rn])
-    (fun y _ ra ↦ bif selIs x y && Nat.blt r ra.length then ra.getD r [] else [.match_ y ra])
-    (fun f args rets ↦ [.call f args rets]) (fun c f args ↦ [.callIf c f args])
-    (fun y fs args rets ↦ bif selIs x y && Nat.blt r fs.length then [.call (fs.getD r "") args rets]
-      else [.dispatch y fs args rets])
-    (fun vs ↦ [.ret vs]) [] (fun _ _ a b ↦ a ++ b) [] (fun _ _ a b ↦ a :: b)
-
-/-- Arms at arm `r` (`selS`). -/
-noncomputable def selA (x r : ℕ) : List (List Stmt) → List (List Stmt) :=
-  Stmt.rec_2 (motive_1 := fun _ ↦ List Stmt) (motive_2 := fun _ ↦ List Stmt) (motive_3 := fun _ ↦ List (List Stmt))
-    (fun a ↦ [.atom a]) (fun c _ _ rz rn ↦ [.ite c rz rn])
-    (fun y _ ra ↦ bif selIs x y && Nat.blt r ra.length then ra.getD r [] else [.match_ y ra])
-    (fun f args rets ↦ [.call f args rets]) (fun c f args ↦ [.callIf c f args])
-    (fun y fs args rets ↦ bif selIs x y && Nat.blt r fs.length then [.call (fs.getD r "") args rets]
-      else [.dispatch y fs args rets])
-    (fun vs ↦ [.ret vs]) [] (fun _ _ a b ↦ a ++ b) [] (fun _ _ a b ↦ a :: b)
-
-/-- **Every `match` and `dispatch` on `V.n x` has at most `n` arms**, by the recursor. -/
-noncomputable def armLeS (x n : ℕ) : Stmt → Bool :=
-  Stmt.rec (motive_1 := fun _ ↦ Bool) (motive_2 := fun _ ↦ Bool) (motive_3 := fun _ ↦ Bool)
-    (fun _ ↦ true) (fun _ _ _ rz rn ↦ rz && rn) (fun y arms ra ↦ (!selIs x y || Nat.ble arms.length n) && ra)
-    (fun _ _ _ ↦ true) (fun _ _ _ ↦ true) (fun y fs _ _ ↦ !selIs x y || Nat.ble fs.length n) (fun _ ↦ true) true
-    (fun _ _ a b ↦ a && b) true (fun _ _ a b ↦ a && b)
-
-/-- A block's (`armLeS`). -/
-noncomputable def armLeL (x n : ℕ) : List Stmt → Bool :=
-  Stmt.rec_1 (motive_1 := fun _ ↦ Bool) (motive_2 := fun _ ↦ Bool) (motive_3 := fun _ ↦ Bool)
-    (fun _ ↦ true) (fun _ _ _ rz rn ↦ rz && rn) (fun y arms ra ↦ (!selIs x y || Nat.ble arms.length n) && ra)
-    (fun _ _ _ ↦ true) (fun _ _ _ ↦ true) (fun y fs _ _ ↦ !selIs x y || Nat.ble fs.length n) (fun _ ↦ true) true
-    (fun _ _ a b ↦ a && b) true (fun _ _ a b ↦ a && b)
-
-/-- Arms' (`armLeS`). -/
-noncomputable def armLeA (x n : ℕ) : List (List Stmt) → Bool :=
-  Stmt.rec_2 (motive_1 := fun _ ↦ Bool) (motive_2 := fun _ ↦ Bool) (motive_3 := fun _ ↦ Bool)
-    (fun _ ↦ true) (fun _ _ _ rz rn ↦ rz && rn) (fun y arms ra ↦ (!selIs x y || Nat.ble arms.length n) && ra)
-    (fun _ _ _ ↦ true) (fun _ _ _ ↦ true) (fun y fs _ _ ↦ !selIs x y || Nat.ble fs.length n) (fun _ ↦ true) true
-    (fun _ _ a b ↦ a && b) true (fun _ _ a b ↦ a && b)
-
 /-- **The function at arm `r`** of the selector `V.n x` (`selL`). -/
 noncomputable def selF (x r : ℕ) (f : Fn) : Fn := ⟨f.name, f.params, selL x r f.body⟩
 
@@ -1615,23 +1559,23 @@ noncomputable def splitOk (f : Fn) (H : HCert) : Bool :=
     Nat.blt H.arms.length capE && armLeL H.sel H.arms.length f.body && H.readT.seq fun R ↦ readsArms R f H 0 H.arms
 
 /-- Each arm's check (`heapOkC1` at the function at its arm), arms from `r`. -/
-noncomputable def armsOk (pows : PowTree) (sigOf : String → HSig) (f : Fn) (H : HCert) : ℕ → List HArm → Bool
+noncomputable def selArmsOk (pows : PowTree) (sigOf : String → HSig) (f : Fn) (H : HCert) : ℕ → List HArm → Bool
   | _, [] => true
-  | r, a :: as => heapOkC1 pows sigOf (selF H.sel r f) (H.arm a) && armsOk pows sigOf f H (r + 1) as
+  | r, a :: as => heapOkC1 pows sigOf (selF H.sel r f) (H.arm a) && selArmsOk pows sigOf f H (r + 1) as
 
 /-- **The heap check with calls and loops**: `heapOkC1`, or, the certificate split at a selector (`HCert.arms`), its
-shared checks (`splitOk`) and each arm's (`armsOk`). -/
+shared checks (`splitOk`) and each arm's (`selArmsOk`). -/
 noncomputable def heapOkC (pows : PowTree) (sigOf : String → HSig) (f : Fn) (H : HCert) : Bool :=
   match H.arms with
   | [] => heapOkC1 pows sigOf f H
-  | _ :: _ => splitOk f H && armsOk pows sigOf f H 0 H.arms
+  | _ :: _ => splitOk f H && selArmsOk pows sigOf f H 0 H.arms
 
 theorem heapOkC_of1 {pows : PowTree} {sigOf : String → HSig} {f : Fn} {H : HCert} (ha : H.arms = [])
     (h : heapOkC1 pows sigOf f H = true) : heapOkC pows sigOf f H = true := by
   unfold heapOkC; rw [ha]; exact h
 
 theorem heapOkC_split {pows : PowTree} {sigOf : String → HSig} {f : Fn} {H : HCert} (hs : splitOk f H = true)
-    (ha : armsOk pows sigOf f H 0 H.arms = true) : heapOkC pows sigOf f H = true := by
+    (ha : selArmsOk pows sigOf f H 0 H.arms = true) : heapOkC pows sigOf f H = true := by
   unfold heapOkC
   split
   · rename_i h; simp [splitOk, h] at hs
@@ -1639,7 +1583,7 @@ theorem heapOkC_split {pows : PowTree} {sigOf : String → HSig} {f : Fn} {H : H
 
 theorem heapOkC_cases {pows : PowTree} {sigOf : String → HSig} {f : Fn} {H : HCert}
     (h : heapOkC pows sigOf f H = true) :
-    (H.arms = [] ∧ heapOkC1 pows sigOf f H = true) ∨ (splitOk f H = true ∧ armsOk pows sigOf f H 0 H.arms = true) := by
+    (H.arms = [] ∧ heapOkC1 pows sigOf f H = true) ∨ (splitOk f H = true ∧ selArmsOk pows sigOf f H 0 H.arms = true) := by
   unfold heapOkC at h
   split at h
   · rename_i ha; exact Or.inl ⟨ha, h⟩
@@ -1654,13 +1598,13 @@ theorem splitOk_spec {f : Fn} {H : HCert} (h : splitOk f H = true) :
   obtain ⟨⟨⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩, h7⟩, h8⟩ := h
   exact ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩
 
-theorem armsOk_cons {pows : PowTree} {sigOf : String → HSig} {f : Fn} {H : HCert} {r : ℕ} {a : HArm}
+theorem selArmsOk_cons {pows : PowTree} {sigOf : String → HSig} {f : Fn} {H : HCert} {r : ℕ} {a : HArm}
     {as : List HArm} (h : heapOkC1 pows sigOf (selF H.sel r f) (H.arm a) = true)
-    (hs : armsOk pows sigOf f H (r + 1) as = true) : armsOk pows sigOf f H r (a :: as) = true := by
-  simp [armsOk, h, hs]
+    (hs : selArmsOk pows sigOf f H (r + 1) as = true) : selArmsOk pows sigOf f H r (a :: as) = true := by
+  simp [selArmsOk, h, hs]
 
-theorem armsOk_nil {pows : PowTree} {sigOf : String → HSig} {f : Fn} {H : HCert} {r : ℕ} :
-    armsOk pows sigOf f H r [] = true := rfl
+theorem selArmsOk_nil {pows : PowTree} {sigOf : String → HSig} {f : Fn} {H : HCert} {r : ℕ} :
+    selArmsOk pows sigOf f H r [] = true := rfl
 
 end
 

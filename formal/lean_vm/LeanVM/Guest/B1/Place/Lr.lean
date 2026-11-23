@@ -77,10 +77,10 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 
 @[expose] public section
 
-/-- `LrAtD` at an optional words bound. -/
+/-- `LrAtD` at an optional words bound, at query counts below `2^20`. -/
 def LrAtO (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) (name : String)
     (cols nhs hbits : ℕ) (Bd : Option ℕ) : Prop :=
-  ∀ (q : ℕ), resBatch ≤ q → q < ordG →
+  ∀ (q : ℕ), resBatch ≤ q → q ≤ 2 ^ 20 →
   ∀ (Lin : Layout) (P BD HS M : E) (D p : ℕ → E) (hsv : List E), hsv.length = nhs →
     RegPtrs [(0, q), (1, cols), (2, nhs)]
       [P, BD, HS, M, gen ^ (q / resBatch), gen ^ (q % resBatch)] (RegionL Lin) →

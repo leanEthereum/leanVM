@@ -48,8 +48,7 @@ theorem oq_folds (sh : OqShape) : sh.oq.folds = sh.folds := rfl
 theorem oq_final (sh : OqShape) : sh.oq.final = sh.final := rfl
 theorem oq_nHs (sh : OqShape) : sh.oq.nHs = sh.nHs := rfl
 theorem oq_base (sh : OqShape) : sh.oq.base = sh.base := rfl
-theorem oq_pd (sh : OqShape) : sh.oq.pd = sh.depth - sh.cd := rfl
-theorem oq_cd (sh : OqShape) : sh.oq.cd = sh.cd := rfl
+theorem oq_pd (sh : OqShape) : sh.oq.pd = sh.pd := rfl
 theorem oq_vs (sh : OqShape) : sh.oq.vs = sh.vs := rfl
 theorem oq_hsBits (sh : OqShape) : sh.oq.hsBits = sh.hsBits := rfl
 
@@ -94,7 +93,7 @@ theorem finPt :
     have := hB.mu
     simp only [LvAt.mu] at this
     rw [this]
-    obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, hlc, -⟩ := hR.fin
+    obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, hlc, -⟩ := hR.fin
     exact hlc
   · subst hw
     rw [← hrw] at *
@@ -106,11 +105,11 @@ theorem fld_own_pt :
     (hdOf μ r Ls).own.getD (osIxPtA (hdOf μ r Ls).c) [] = w.point ++ List.replicate (pointCap - μ) 0 := by
   have hS : HonStatic (osCfgR (μ - minOpenLog) (r - 1)) := honStatic_all _ _ hR.m11 hR.r4
   obtain ⟨hGl, hTl, hpt, hmu, hla, h40⟩ := hR.finPt
-  have e : osIxPtA (hdOf μ r Ls).c = 12 + (osCfgR (μ - minOpenLog) (r - 1)).yrLevel + 1 := by
-    show 13 + (osCfgR (μ - minOpenLog) (r - 1)).yrLevel = _; ring
+  have e : osIxPtA (hdOf μ r Ls).c = 13 + (osCfgR (μ - minOpenLog) (r - 1)).yrLevel + 1 := by
+    show 14 + (osCfgR (μ - minOpenLog) (r - 1)).yrLevel = _; ring
   have hsz := HonStatic.fin hS (k := 1) (by omega)
   have hown := OsHD.own_getD (hdOf μ r Ls) (HonStatic.finLt hS (k := 1) (by omega))
-  have hw : (hdOf μ r Ls).ownW (12 + (osCfgR (μ - minOpenLog) (r - 1)).yrLevel + 1) =
+  have hw : (hdOf μ r Ls).ownW (13 + (osCfgR (μ - minOpenLog) (r - 1)).yrLevel + 1) =
       finPtC (osCfgR (μ - minOpenLog) (r - 1)) (hdOf μ r Ls).G (hdOf μ r Ls).T :=
     OsHD.ownW_fin (hdOf μ r Ls) (k := 1) (by omega)
   have e1 : ([yrLogCap, pointCap, pointCap, (osCfgR (μ - minOpenLog) (r - 1)).levels.length * ligColsCap,
@@ -122,7 +121,7 @@ theorem fld_own_pt :
     simp only [List.length_append, List.length_replicate, List.length_drop, List.length_take, hGl, hTl]
     omega
   rw [e, hown, OsHD.ownAt, hw]
-  change fitTo ((osSizesL (osCfgR (μ - minOpenLog) (r - 1))).getD (12 + (osCfgR (μ - minOpenLog) (r - 1)).yrLevel + 1) 0)
+  change fitTo ((osSizesL (osCfgR (μ - minOpenLog) (r - 1))).getD (13 + (osCfgR (μ - minOpenLog) (r - 1)).yrLevel + 1) 0)
     (finPtC (osCfgR (μ - minOpenLog) (r - 1)) (hdOf μ r Ls).G (hdOf μ r Ls).T) = _
   rw [hsz, fitTo_eq hlen]
   unfold finPtC
@@ -134,11 +133,11 @@ theorem fld_own_pt1 :
       w.point.map (1 + ·) ++ List.replicate (pointCap - μ) 1 := by
   have hS : HonStatic (osCfgR (μ - minOpenLog) (r - 1)) := honStatic_all _ _ hR.m11 hR.r4
   obtain ⟨hGl, hTl, hpt, hmu, hla, h40⟩ := hR.finPt
-  have e : osIxPt1A (hdOf μ r Ls).c = 12 + (osCfgR (μ - minOpenLog) (r - 1)).yrLevel + 2 := by
-    show 14 + (osCfgR (μ - minOpenLog) (r - 1)).yrLevel = _; ring
+  have e : osIxPt1A (hdOf μ r Ls).c = 13 + (osCfgR (μ - minOpenLog) (r - 1)).yrLevel + 2 := by
+    show 15 + (osCfgR (μ - minOpenLog) (r - 1)).yrLevel = _; ring
   have hsz := HonStatic.fin hS (k := 2) (by omega)
   have hown := OsHD.own_getD (hdOf μ r Ls) (HonStatic.finLt hS (k := 2) (by omega))
-  have hw : (hdOf μ r Ls).ownW (12 + (osCfgR (μ - minOpenLog) (r - 1)).yrLevel + 2) =
+  have hw : (hdOf μ r Ls).ownW (13 + (osCfgR (μ - minOpenLog) (r - 1)).yrLevel + 2) =
       finPt1C (osCfgR (μ - minOpenLog) (r - 1)) (hdOf μ r Ls).G (hdOf μ r Ls).T :=
     OsHD.ownW_fin (hdOf μ r Ls) (k := 2) (by omega)
   have e1 : ([yrLogCap, pointCap, pointCap, (osCfgR (μ - minOpenLog) (r - 1)).levels.length * ligColsCap,
@@ -151,7 +150,7 @@ theorem fld_own_pt1 :
       List.length_take, hGl, hTl]
     omega
   rw [e, hown, OsHD.ownAt, hw]
-  change fitTo ((osSizesL (osCfgR (μ - minOpenLog) (r - 1))).getD (12 + (osCfgR (μ - minOpenLog) (r - 1)).yrLevel + 2) 0)
+  change fitTo ((osSizesL (osCfgR (μ - minOpenLog) (r - 1))).getD (13 + (osCfgR (μ - minOpenLog) (r - 1)).yrLevel + 2) 0)
     (finPt1C (osCfgR (μ - minOpenLog) (r - 1)) (hdOf μ r Ls).G (hdOf μ r Ls).T) = _
   rw [hsz, fitTo_eq hlen]
   unfold finPt1C
@@ -162,7 +161,7 @@ theorem fld_rounds_len : ∀ l < (osCfgR (μ - minOpenLog) (r - 1)).levels.lengt
     (Ls.getD l default).rounds.length = (oqSA (osCfgR (μ - minOpenLog) (r - 1)) l).folds := by
   intro l hl
   have hB := hR.lvb hl
-  obtain ⟨-, -, -, hfolds, -⟩ := hB.qsh
+  obtain ⟨-, -, hfolds, -⟩ := hB.qsh
   rw [oqSA, oq_folds, hfolds, LvAt.rounds, roundsSpec_rounds_length, hB.fold]
 
 /-- **The final lane** has the final level's coefficients' count. -/
@@ -172,12 +171,12 @@ theorem fld_hsv_len : ∀ l < (osCfgR (μ - minOpenLog) (r - 1)).levels.length,
         (oqSA (osCfgR (μ - minOpenLog) (r - 1)) l).nHs := by
   intro l hl hf
   have hB := hR.lvb hl
-  obtain ⟨-, -, -, -, -, -, hfinal, -⟩ := hB.qsh
+  obtain ⟨-, -, -, -, hfinal, -⟩ := hB.qsh
   rw [oqSA, oq_final, hfinal] at hf
   rw [oqSA, oq_nHs]
   by_cases he : l = (osCfgR (μ - minOpenLog) (r - 1)).yrLevel
   · subst he
-    obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, hnHs, -⟩ := hR.fin
+    obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, hnHs, -⟩ := hR.fin
     simp only [↓reduceIte]
     rw [hnHs, OsHD.hsFC, List.length_map, List.length_range]
     rfl
@@ -191,8 +190,13 @@ theorem fld_qs_eq : ∀ l < (osCfgR (μ - minOpenLog) (r - 1)).levels.length, �
         (k % sqPer (((osCfgR (μ - minOpenLog) (r - 1)).levels.getD l default))) := by
   intro l hl k hk
   have hB := hR.lvb hl
-  obtain ⟨-, -, -, -, -, -, -, -, -, -, hcount⟩ := hB.qsh
-  simp only [oqQA, oqOddA, oqSA, oq_base, oqNA, lvBase, osLvA] at hk
+  obtain ⟨-, hbase, -⟩ := hB.qsh
+  have hcount : oqCount (oqOddA (osCfgR (μ - minOpenLog) (r - 1)) l) (oqSA (osCfgR (μ - minOpenLog) (r - 1)) l).base
+      (oqNA (osCfgR (μ - minOpenLog) (r - 1)) l) = ((osCfgR (μ - minOpenLog) (r - 1)).levels.getD l default).queries := by
+    rw [oqSA, oq_base, hbase]
+    simp only [oqCount, oqOddA, oqNA, lqOdd, lqIters, osLvA, lvBase]
+    split_ifs <;> omega
+  simp only [oqQA] at hk
   rw [hcount] at hk
   exact (Ls.getD l default).qs_getD_eq μ hB.dep hB.q k hk
 

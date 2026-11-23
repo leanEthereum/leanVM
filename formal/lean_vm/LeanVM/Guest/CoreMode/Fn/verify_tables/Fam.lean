@@ -162,15 +162,18 @@ noncomputable def vtLt (as : List Atom) (arms : List (ℕ × ℕ)) (a b : CIdx) 
   | _, _ => false
 
 /-- `[B]·[J]·g^o` one of `cs`, the cells `[B]·g^(o + t)`, `t < |cs|`, by `e(J) < |cs|`. -/
+noncomputable def vtSubP1 (as : List Atom) (arms : List (ℕ × ℕ)) (o B J : ℕ) (cs : List CCell) : Bool :=
+  (List.range cs.length).all (fun t ↦ cs.contains ⟨[(B, 1)], o + t⟩) && vtLt as arms (.val J) (.num cs.length)
+
+/-- `vtSubP1` with either base the index. -/
 noncomputable def vtSubP (as : List Atom) (arms : List (ℕ × ℕ)) (c : CCell) (cs : List CCell) : Bool :=
   match c.bases with
-  | [(B, 1), (J, 1)] => (List.range cs.length).all (fun t ↦ cs.contains ⟨[(B, 1)], c.off + t⟩) &&
-      vtLt as arms (.val J) (.num cs.length)
+  | [(B, 1), (J, 1)] => vtSubP1 as arms c.off B J cs || vtSubP1 as arms c.off J B cs
   | _ => false
 
 /-- **`verify_tables`' exponent family** (`vtexp.holds`): `lt a b` (`F_b - F_a - 1 ≥ 0`), `subR q r` (stride `1`, `q`'s
 base `r`'s times a product `m`, `r`'s bounds hold `F_m + q.off - r.off` past `q`'s), `subP` (`[B]·[J]·g^o` one of
-`[B]·g^(o + t)`, `t < |cs|`, by `e(J) < |cs|`), under branch conditions (the arms used). -/
+`[B]·g^(o + t)`, `t < |cs|`, by `e(J) < |cs|`, either base the index), under branch conditions (the arms used). -/
 noncomputable def vtExpR (as : List Atom) (arms : List (ℕ × ℕ)) : CRes → Bool
   | .lt a b => vtLt as arms a b
   | .subP c cs => vtSubP as arms c cs

@@ -228,14 +228,14 @@ def holds(atoms, arms, r):
     if r[0] == 'lt':
         return lt(atoms, arms, r[1], r[2])
     if r[0] == 'subP':
-        # `[B]·[J]·g^o` one of `[B]·g^(o + t)`, `t < |cs|`, by `e(J) < |cs|`
+        # `[B]·[J]·g^o` one of `[B]·g^(o + t)`, `t < |cs|`, by `e(J) < |cs|` (`vtSubP`), either base the index
         c, cs = r[1], {(tuple(tuple(b) for b in x[0]), x[1]) for x in r[2]}
         bs = tuple(tuple(b) for b in c[0])
         if len(bs) != 2 or bs[0][1] != 1 or bs[1][1] != 1:
             return False
         n = len(r[2])
-        return all((((bs[0][0], 1),), c[1] + t) in cs for t in range(n)) and \
-            lt(atoms, arms, ('val', bs[1][0]), ('num', n))
+        return any(all((((B, 1),), c[1] + t) in cs for t in range(n)) and lt(atoms, arms, ('val', J), ('num', n))
+                   for B, J in ((bs[0][0], bs[1][0]), (bs[1][0], bs[0][0])))
     if r[0] == 'subR':
         q, R = r[1], r[2]
         if q[1] != 1 or R[1] != 1 or len(q[0][0]) < len(R[0][0]) or tuple(q[0][0][:len(R[0][0])]) != tuple(R[0][0]):

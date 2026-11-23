@@ -87,7 +87,7 @@ def resB (ich ls la lvl h hh sl a : ℕ) : List Stmt :=
 
 theorem resB_complete {ich ls la lvl h hh sl a : ℕ} {σ : Val} {i0 i1 s b af P Q SL : E}
     (hich : ich < a) (hls : ls < a) (hla : la < a) (hh1 : h < a) (hh2 : hh < a) (hsl : sl < a)
-    (ha36 : 33 ≤ a)
+    (ha36 : 43 ≤ a)
     (hv : ∀ C rd, H C rd → σ (.n h) = P ∧ σ (.n hh) = Q ∧ σ (.n sl) = SL)
     (hm : ∀ C rd, H C rd → LoadHolds rd (σ (.n ich)) (2 * lvl) i0 ∧
       LoadHolds rd (σ (.n ls)) lvl s ∧ LoadHolds rd (σ (.n ich)) (2 * lvl + 1) i1 ∧

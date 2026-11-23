@@ -124,7 +124,8 @@ theorem lq_node_pops {P : Core.Program} {name : String} {fn : Fn} (hf : P.find? 
       (q := capPops rd τ cd ++ kc ++ ko) (by simp [capPops])
     simpa only [List.append_assoc] using h'
   obtain ⟨es, -, he⟩ := Tree.pops_of_splice (bufs := bufs) hf (ys := [.ret [.n 19, .n 20, .n 21, .n k]])
-    (by rw [hb, lqBody]; simp [List.append_assoc]) hx (es := []) (vs := [.n 19, .n 20, .n 21, .n k])
+    (by rw [hb, lqBody]; simp [List.append_assoc]; exact ⟨rfl, rfl, rfl⟩) hx (es := [])
+    (vs := [.n 19, .n 20, .n 21, .n k])
     (by simp [walk, walk1, Out.seq]) rfl
   rw [he]; simp [evPops]
 

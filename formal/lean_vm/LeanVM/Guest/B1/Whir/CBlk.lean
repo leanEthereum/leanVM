@@ -160,7 +160,7 @@ structure OsSt.Sf (st : OsSt) : Prop where
   below : st.Below
   co : st.co < u128Bound
   padB : ∀ p, st.pad = some p → p + 4 < st.k
-  k : 33 ≤ st.k
+  k : 43 ≤ st.k
 
 /-- **The running state's invariants**: its static facts, the materializations holding, the zero
 run's cells zero. -/

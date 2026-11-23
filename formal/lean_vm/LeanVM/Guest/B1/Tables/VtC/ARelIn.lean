@@ -190,6 +190,10 @@ theorem getD_length_map : ∀ (l : List (List E)) (j : ℕ),
 theorem shSizes_length (H : VtHonest) : H.shSizes.length = 12 := by
   simp [VtHonest.shSizes]
 
+/-- A list index bound, by the lists' lengths. -/
+local macro "len_omega" : tactic => `(tactic| (simp (config := { failIfUnchanged := false }) only
+  [List.length_cons, List.length_nil, List.length_append, List.length_replicate, shSizes_length]; omega))
+
 theorem sizes_digits (H : VtHonest) {j : ℕ} (h1 : 22 ≤ j) (h2 : j < 118) : H.sizes.getD j 0 = 9 := by
   unfold VtHonest.sizes
   rw [List.getD_append _ _ _ _ (by simp [shSizes_length]; omega),
@@ -199,8 +203,8 @@ theorem sizes_digits (H : VtHonest) {j : ℕ} (h1 : 22 ≤ j) (h2 : j < 118) : H
 theorem sizes_bits (H : VtHonest) {b : ℕ} (hb : b < 3) : H.sizes.getD (19 + b) 0 = 34 := by
   unfold VtHonest.sizes
   simp only [List.append_assoc]
-  rw [List.getD_append_right _ _ _ _ (by simp), List.getD_append_right _ _ _ _ (by simp [shSizes_length]),
-    List.getD_append _ _ _ _ (by simp [shSizes_length]; omega)]
+  rw [List.getD_append_right _ _ _ _ (by len_omega), List.getD_append_right _ _ _ _ (by len_omega),
+    List.getD_append _ _ _ _ (by len_omega)]
   simp only [shSizes_length, List.length_cons, List.length_nil]
   interval_cases b <;> rfl
 
@@ -213,14 +217,15 @@ theorem sizes_Z (H : VtHonest) : H.sizes.getD 118 0 = 245 ∧ H.sizes.getD 119 0
 theorem sizes_sh (H : VtHonest) {t : ℕ} (ht : t < 6) :
     H.sizes.getD (4 + 2 * t) 0 = 8 * (H.μ - H.τ t + 1) ∧
       H.sizes.getD (5 + 2 * t) 0 = 4 * (H.μ - H.τ t + 1) := by
-  unfold VtHonest.sizes
-  simp only [List.append_assoc]
-  rw [List.getD_append_right _ _ _ _ (by simp), List.getD_append_right _ _ _ _ (by simp),
-    List.getD_append _ _ _ _ (by simp [shSizes_length]; omega),
-    List.getD_append _ _ _ _ (by simp [shSizes_length]; omega)]
-  simp only [List.length_cons, List.length_nil, show 4 + 2 * t - 4 = 2 * t by omega,
-    show 5 + 2 * t - 4 = 2 * t + 1 by omega, VtHonest.shSizes]
-  interval_cases t <;> simp
+  have e : ∀ k < 12, H.sizes.getD (4 + k) 0 = H.shSizes.getD k 0 := by
+    intro k hk
+    unfold VtHonest.sizes
+    simp only [List.append_assoc]
+    rw [List.getD_append_right _ _ _ _ (by len_omega), List.getD_append _ _ _ _ (by len_omega)]
+    simp
+  rw [show 5 + 2 * t = 4 + (2 * t + 1) by omega, e _ (by omega), e _ (by omega)]
+  simp only [VtHonest.shSizes]
+  interval_cases t <;> exact ⟨rfl, rfl⟩
 
 /-- **What `verify_tables`' placed calls need**: the shapes, the oracle, the memory, and what
 `vt_rel_completeF` gives of `kappa_base` and the shared lengths. -/
@@ -359,8 +364,10 @@ theorem vt_shptr {t : ℕ} (ht : t < 6) :
   obtain ⟨-, eE, eG⟩ := vtSh_vals t ht
   have hm : ∀ s ∈ vtShAT t, s ∈ vtPre := fun s hs ↦
     vt_mem_slice (n := vtShA t) (by rw [vtPre_drop]; exact vtShAT_check t ht) hs
-  have c1 : σv (.n (vtShV t + 12)) = σv (.n (vtShV t + 11)) := vt_goodS rfl (hm _ (by simp [vtShAT]))
-  have c2 : σv (.n (vtShV t + 16)) = σv (.n (vtShV t + 15)) := vt_goodS rfl (hm _ (by simp [vtShAT]))
+  have c1 : σv (.n (vtShV t + 12)) = σv (.n (vtShV t + 11)) :=
+    vt_goodS rfl (hm (.atom (.copy (.n (vtShV t + 12)) (.n (vtShV t + 11)))) (by simp [vtShAT]))
+  have c2 : σv (.n (vtShV t + 16)) = σv (.n (vtShV t + 15)) :=
+    vt_goodS rfl (hm (.atom (.copy (.n (vtShV t + 16)) (.n (vtShV t + 15)))) (by simp [vtShAT]))
   have a1 : vtShV t + 11 ∈ vtAllocVars := (vtAllocVars_Sh t ht).1 ▸ allocVars_mem (by omega)
   have a2 : vtShV t + 15 ∈ vtAllocVars := (vtAllocVars_Sh t ht).2 ▸ allocVars_mem (by omega)
   rw [eE, eG, c1, c2, vt_alloc' a1, vt_alloc' a2]
@@ -380,11 +387,11 @@ theorem vt_sh_up (I : VtIn H B w rd) {t : ℕ} (ht : t < 6)
       .atom (.mul (.n (vtShZ t + 2)) (.n (val% «verify_tables» "g_squares")) (.n (val% «verify_tables» "kb[2]" + t)))], s ∈ vtPre :=
     fun s hs ↦ vt_mem_slice (vt_sh_muls t ht) hs
   have ez := vt_mulF (H := H) (B := B) (w := w) (rd := rd)
-    (mem (.atom (.mul (.n (vtShZ t)) (.n (val% «verify_tables» "zeta")) (.n (val% «verify_tables» "kb[2]" + t)))) (by simp)) (by simp; omega) (by simp; omega)
+    (mem (.atom (.mul (.n (vtShZ t)) (.n (val% «verify_tables» "zeta")) (.n (val% «verify_tables» "kb[2]" + t)))) (by simp)) (by omega) (by omega)
   have ez1 := vt_mulF (H := H) (B := B) (w := w) (rd := rd)
-    (mem (.atom (.mul (.n (vtShZ t + 1)) (.n (val% «verify_tables» "zeta1")) (.n (val% «verify_tables» "kb[2]" + t)))) (by simp)) (by simp; omega) (by simp; omega)
+    (mem (.atom (.mul (.n (vtShZ t + 1)) (.n (val% «verify_tables» "zeta1")) (.n (val% «verify_tables» "kb[2]" + t)))) (by simp)) (by omega) (by omega)
   have egs := vt_mulF (H := H) (B := B) (w := w) (rd := rd)
-    (mem (.atom (.mul (.n (vtShZ t + 2)) (.n (val% «verify_tables» "g_squares")) (.n (val% «verify_tables» "kb[2]" + t)))) (by simp)) (by simp; omega) (by simp; omega)
+    (mem (.atom (.mul (.n (vtShZ t + 2)) (.n (val% «verify_tables» "g_squares")) (.n (val% «verify_tables» "kb[2]" + t)))) (by simp)) (by omega) (by omega)
   have kb := vt_kbt I ht
   obtain ⟨sE, sG⟩ := sizes_sh H ht
   simp only [shCall, vsh_call, List.map_cons, List.map_nil] at h ⊢
@@ -425,7 +432,7 @@ theorem vt_fw_up (I : VtIn H B w rd) {b : ℕ} (hb : b < 3)
     have h1 : H.lm ≤ H.μ := I.hs.hlmμ
     have h2 : 19 ≤ H.μ := I.hs.h19
     interval_cases b <;> simp <;> omega
-  have hwv : [val% «verify_tables» "kb[0]", val% «verify_tables» "kb[1]", val% «verify_tables» "kappa_g@2"].getD b 0 < vtFwW b ∧ 700 < vtFwW b := by
+  have hwv : [val% «verify_tables» "kb[0]", val% «verify_tables» "kb[1]", val% «verify_tables» "kappa_g@2"].getD b 0 < vtFwW b ∧ 810 < vtFwW b := by
     interval_cases b <;> simp [vtFwW]
   set κ := [0, H.lm, 19].getD b 0 with hκd
   set kv := [val% «verify_tables» "kb[0]", val% «verify_tables» "kb[1]", val% «verify_tables» "kappa_g@2"].getD b 0 with hkv
@@ -616,7 +623,7 @@ theorem vt_otr_cursor (I : VtIn H B w rd) {k : ℕ} (hk : k < 3) :
     have h1 := congrArg (fun l ↦ l.getD 5 0) I.hw.hw1
     simp only [List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_range,
       show (5 : ℕ) < 8 from by norm_num, Option.map_some, Option.getD_some] at h1
-    rw [e, show (V.n (val% «verify_tables» "cursor@2")).idx = 1876 + 5 from rfl, h1, List.getElem?_append_right
+    rw [e, show (V.n (val% «verify_tables» "cursor@2")).idx = 1572 + 5 from rfl, h1, List.getElem?_append_right
       (by simp [vtBcR1, bcRound, Fs.squeeze, capOf])]
     simp only [List.length_cons, List.length_nil, vtBcR1, bcRound, Fs.squeeze, capOf]
     show (H.args B).getD 5 0 * gen ^ 7 * gen ^ 2 = _
@@ -628,7 +635,7 @@ theorem vt_otr_cursor (I : VtIn H B w rd) {k : ℕ} (hk : k < 3) :
     have h1 := congrArg (fun l ↦ l.getD 5 0) I.hw.hw2
     simp only [List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_range,
       show (5 : ℕ) < 8 from by norm_num, Option.map_some, Option.getD_some] at h1
-    rw [e, show (V.n (val% «verify_tables» "cursor@3")).idx = 1884 + 5 from rfl, h1, List.getElem?_append_right
+    rw [e, show (V.n (val% «verify_tables» "cursor@3")).idx = 1580 + 5 from rfl, h1, List.getElem?_append_right
       (by simp [vtBcR2, bcRound, Fs.squeeze, capOf])]
     simp only [List.length_cons, List.length_nil, vtBcR2, bcRound, Fs.squeeze, capOf]
     show ofK (addressOfIndex B.cur) * gen ^ 7 * gen ^ 2 * gen ^ 2 = _

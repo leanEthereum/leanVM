@@ -13,6 +13,7 @@ public import LeanVM.Guest.B1.VerifySub.H.Own
 public import LeanVM.Guest.B1.VerifySub.H.Lin
 public import LeanVM.Guest.B1.VerifySub.H.KFacts
 public import LeanVM.Guest.B1.VerifySub.H.KidsB
+public import LeanVM.Guest.B1.VerifySub.H.Sig
 
 /-!
 # The honest valuation's data
@@ -64,6 +65,20 @@ namespace ChildSegs
 variable {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs bytecode seed c)
 
 theorem hs_length : S.hs.length = 6 := heights_length6 S.rowsN S.hrowsL
+
+/-- The stream buffer's first words: the sizes, the root's two, the out-of-domain nonce. -/
+theorem stream_words (hbl : bytecode.length = 2 ^ 23) :
+    (vsStreamW c.proof.stream).take 8 = sizeWords S.logMem S.rowsN S.rate ∧
+      (vsStreamW c.proof.stream).getD 0 0 = eOfNat S.logMem ∧
+      (vsStreamW c.proof.stream).getD 7 0 = eOfNat S.rate ∧
+      (vsStreamW c.proof.stream).getD 8 0 = S.x0 ∧ (vsStreamW c.proof.stream).getD 9 0 = S.x1 ∧
+      (vsStreamW c.proof.stream).getD 10 0 = S.oodN := by
+  obtain ⟨a, b, c', d, e, f, hr⟩ : ∃ a b c d e f, S.rowsN = [a, b, c, d, e, f] := by
+    have := S.hrowsL
+    match h : S.rowsN, this with
+    | [a, b, c, d, e, f], _ => exact ⟨a, b, c, d, e, f, rfl⟩
+  rw [S.stream_eq hbl]
+  simp [sizeWords, hr]
 
 /-- The stream buffer's words at offsets `1 .. 6`: the row counts. -/
 theorem stream_rows (hbl : bytecode.length = 2 ^ 23) {i : ℕ} (hi : i < 6) :
@@ -310,11 +325,15 @@ theorem vs_alloc_sizes {rd : Reader} {w : ℕ → E} {args : List E} :
   rw [vs_allocs]
   rfl
 
-theorem vs_allocVars_w : ∀ a ∈ vsAllocVars, a ∈ vsWVars := by decide
+theorem vs_allocVars_w : ∀ a ∈ vsAllocVars, a ∈ vsWVars := by
+  have h : vsAllocVars.all (fun a ↦ vsWVars.contains a) = true := by decide +kernel
+  intro a ha
+  simpa using List.all_eq_true.mp h a ha
 
 theorem vs_allocFst : (vsCPre.filterMap Main.Stmt.allocSz).map Prod.fst = vsAllocVars.map V.n := by
   rw [vs_allocs]; rfl
 
+set_option maxRecDepth 4000 in
 /-- **The allocations' bases**: the oracle's pointers. -/
 theorem vs_alloc_bases {rd : Reader} {args : List E} (hl : args.length = 6) (gw : E × E) (bs : List ℕ)
     (outs : List (List E × Main.Layout)) (hbs : bs.length = 15) :

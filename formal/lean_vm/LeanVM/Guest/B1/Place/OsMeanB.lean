@@ -11,17 +11,12 @@ public import LeanVM.Guest.B1.Place.OsMean
 public import LeanVM.Guest.B1.Place.SqAt
 public import LeanVM.Guest.Budget.LiftB
 public import LeanVM.Guest.Budget.Bounded
-import LeanVM.Guest.ValRef
-import LeanVM.Guest.Data.ValNames.«opening_round»
 
 /-!
 # The named callees within their bounds
 
 **`kindDB`**: a named callee whose valid trees total at most `B` words (`TotalLe`) is complete
-placed on its meaning and regions within `B`: the leaves by `completeRelRegDB_of_iff`, `grind_check` by `grind_check_completeB_of`, and
-`opening_round`, which calls `grind_check__L7`, as a pure function (`completeAtDTB_of_relIn`: it
-and `grind_check__L7` place nothing, `round_pureIn`) from its relation loading only the caller's
-words on every memory holding them (`round_relIn`, its grinds' by `grind_relIn`).
+placed on its meaning and regions within `B`, by `completeRelRegDB_of_iff`.
 -/
 
 namespace LeanVM.Guest.B1
@@ -35,181 +30,14 @@ open LeanVM.Guest.B1.Whir (AllOk StmtOk)
 
 variable {fs : String → ℕ} {cert : String → V → ℕ} {κ : ℕ}
 
-/-! ## `grind_check`, loading the caller's words -/
-
-/-- **`grind_check__L{bits}` loads only the caller's words**: on every memory defined below `2^κ`,
-`11 ≤ κ`, holding them, on which `grindPre` holds wherever they are held, its relation holds by a
-tree loading from them. -/
-theorem grind_relIn {bits : ℕ} (hb : bits ∈ grindBitsDeployed) (hκ : 11 ≤ κ)
-    {args rets : List E} {Lin : Layout}
-    (hpre : ∀ rd, LowDef κ rd → MemL rd Lin → grindPre bits rd args rets) {rd : Reader}
-    (hlow : LowDef κ rd) (hLin : MemL rd Lin) :
-    coreProgram.RelIn rd (RegionL Lin) (grindCheckName bits) args rets := by
-  obtain ⟨fn, hf, hpar, hbody⟩ := grind_check_found bits hb
-  obtain ⟨rfl, w, tabs, rfl, ht, hpow⟩ := hpre rd hlow hLin
-  have hrc : ∀ v ≤ 11, ∀ e < 2 ^ v, ∃ y t1 t2 : E, LoadHolds rd (gen ^ e) 0 t1 ∧
-      wBound v = gen ^ e * y ∧ LoadHolds rd y 0 t2 := by
-    intro v hv e he
-    obtain ⟨a, b, c⟩ := rc_complete_low hlow (K := 2 ^ v)
-      (Nat.pow_le_pow_right (by decide) (by omega)) he
-    refine ⟨_, _, _, by rw [gen_pow_eq_ofK]; exact a, ?_, c⟩
-    rw [wBound_eq hv, gen_pow_eq_ofK, gen_pow_eq_ofK]
-    exact b
-  obtain ⟨hh, hi, htl⟩ := gc_complete_of hrc (gc_shape bits hb) (gcW_pos bits hb) ht hpow
-  set σ : Val := fun v => gcVals rd bits w tabs v.idx with hσ
-  have hH : Stmt.HoldsList (fun _ _ _ => True) rd σ fn.body False (fun rs => rs = []) := by
-    rw [hbody, holds_gcBodyT]
-    exact ⟨hh, hi, htl, rfl⟩
-  have hsat := walk_sat (P := coreProgram) _
-    (coreProgram_wf _ (List.mem_of_find?_eq_some hf)) hH
-  have hw : walk σ fn.body = .ret ((gcPre bits).flatMap (Main.slEvs σ)) [] := by
-    rw [hbody, gcBodyT_split, Main.walk_straight σ _ _ (gcPre_straight bits)]
-  rw [hw] at hsat
-  obtain ⟨-, -, -, i4⟩ := Main.straight_parts σ _ (gcPre_straight bits)
-  have hc : (gcPre bits).filterMap Main.Stmt.callS = [] :=
-    List.filterMap_eq_nil_iff.mpr fun _ hs => (gcPre_mem hs).2.2.2.1
-  rw [hc] at i4
-  have htab : ∀ e < 2 ^ 11, ∃ i, (tabs * gen ^ e).limb 0 * addressOfIndex 0 = addressOfIndex i ∧
-      RegionL Lin i := fun e he =>
-    forced_load_region hlow hLin fun rd' hl' hL' => by
-      obtain ⟨-, w', tabs', he', ht', -⟩ := hpre rd' hl' hL'
-      simp only [List.cons.injEq, and_true] at he'
-      rw [he'.2]
-      exact winTab_load ht' he
-  refine relIn_of_walk (P := coreProgram) coreProgram_wf hf (by
-      rw [hpar]
-      show [gcVals rd bits w tabs 0, gcVals rd bits w tabs 1] = [w, tabs]
-      unfold gcVals
-      simp) hw rfl (fun e he => (hsat.1 e he).1) (fun A hA => ?_) (fun c hc' _ => ?_)
-  · rw [loadAddrs_straight σ _ (gcPre_straight bits)] at hA
-    obtain ⟨q, hq, rfl⟩ := List.mem_map.mp hA
-    obtain ⟨s, hs, hsq⟩ := List.mem_filterMap.mp hq
-    rcases (gcPre_mem hs).2.2.2.2 with h0 | h0 | ⟨i, hi', h0⟩
-    · rw [h0] at hsq; cases hsq
-    · rw [h0, Option.some.injEq] at hsq
-      subst hsq
-      have hV0 : gcV bits w 0 < 2 ^ 11 := by
-        obtain ⟨-, hT, hsum⟩ := gc_shape bits hb
-        refine lt_of_lt_of_le ?_ (Nat.pow_le_pow_right (by decide) hT)
-        unfold gcV
-        rw [Nat.div_lt_iff_lt_mul (by positivity), ← pow_add, Nat.sub_zero,
-          show gcTop bits + (bits + 11 * gcW bits) = 64 by omega]
-        exact kToNat_lt _
-      have e7 : σ (.n (gcW bits + 7)) = tabs * gen ^ gcV bits w 0 := by
-        show gcVals rd bits w tabs (gcW bits + 7) = _
-        unfold gcVals
-        rw [ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega),
-          ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega),
-          ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_left rfl]
-      obtain ⟨j, hj, hr⟩ := htab _ hV0
-      exact ⟨j, by rw [e7]; exact hj, hr⟩
-    · rw [h0, Option.some.injEq] at hsq
-      subst hsq
-      have e6 : σ (.n (gcW bits + 9 * (i + 1) + 6)) = tabs * gen ^ (gcV bits w (i + 1) % 2 ^ 11) :=
-        gv_iter (by omega) (by omega) (by omega)
-      obtain ⟨j, hj, hr⟩ := htab _ (Nat.mod_lt _ (by positivity))
-      exact ⟨j, by rw [e6]; exact hj, hr⟩
-  · rw [i4] at hc'; simp at hc'
-
-/-! ## `opening_round`, loading the caller's words -/
-
-theorem calls_ok {C : CallRel} {rd : Reader} {σ : Val} {es : List Ev}
-    (h : ∀ e ∈ es, e.Ok C rd σ) {c : Call} (hc : c ∈ calls es) (ht : c.taken = true) :
-    C c.f (c.args.map σ) (c.rets.map σ) := by
-  obtain ⟨e, he, hce⟩ := List.mem_filterMap.mp hc
-  match e, hce with
-  | .call f a r, hce =>
-    simp only [Ev.call?, Option.some.injEq] at hce
-    subst hce
-    exact (h _ he).2 f a r rfl
-  | .skip f a, hce =>
-    simp only [Ev.call?, Option.some.injEq] at hce
-    subst hce
-    simp at ht
-
-/-- **`opening_round` loads only the caller's words**, on every memory defined below `2^κ`,
-`11 ≤ κ`, holding them, on which its meaning and the window tables hold wherever they are held. -/
-theorem round_relIn (hκ : 11 ≤ κ) {args rets : List E} {Lin : Layout}
-    (hreg : RegPtrs roundSpec args (RegionL Lin))
-    (hpre : ∀ rd, LowDef κ rd → MemL rd Lin →
-      Whir.MeaningOpeningRound rd args rets ∧ WinTabs rd (args.getD 7 0)) {rd : Reader}
-    (hlow : LowDef κ rd) (hLin : MemL rd Lin) :
-    coreProgram.RelIn rd (RegionL Lin) "opening_round" args rets := by
-  have h9 : (7 : ℕ) ∈ grindBitsDeployed := by decide
-  have hname : grindCheckName 7 = "grind_check__L7" := rfl
-  obtain ⟨hm, -⟩ := hpre rd hlow hLin
-  obtain ⟨xs, -, -, -, hpar, hh⟩ := Whir.round_complete
-    (C := coreProgram.RelIn rd (RegionL Lin)) hm (fun w hw ↦ by
-      have := grind_relIn (args := [w, args.getD 7 0]) (rets := []) h9 hκ
-        (fun rd' hl' hL' ↦ ⟨rfl, w, args.getD 7 0, rfl, (hpre rd' hl' hL').2, hw⟩) hlow hLin
-      rwa [hname] at this)
-  set σ : Val := fun v ↦ Whir.rdVals args xs v.idx with hσ
-  have hst : roundPre.all Main.Stmt.straight = true := by decide
-  have hbody := Whir.opening_round_body.trans roundBody_eq
-  have hw := Main.walk_straight σ [.n (val% «opening_round» "s13#0"), .n (val% «opening_round» "s13#0[1]"), .n (val% «opening_round» "s13#0[2]"), .n (val% «opening_round» "s13#0[3]"), .n (val% «opening_round» "s13#0[4]"), .n (val% «opening_round» "s13#0[5]"), .n (val% «opening_round» "s13#0[6]")] roundPre hst
-  rw [← hbody] at hw
-  rw [← Whir.opening_round_body] at hh
-  have hsat := walk_sat (P := coreProgram) _
-    (coreProgram_wf _ (List.mem_of_find?_eq_some Whir.find_opening_round)) hh
-  rw [hw] at hsat
-  have hv : ∀ j < 10, Whir.rdVals args xs j = args.getD j 0 := fun j hj ↦ by
-    simp [Whir.rdVals, hj]
-  refine relIn_of_walk (P := coreProgram) coreProgram_wf Whir.find_opening_round hpar hw hsat.2
-    (fun e he ↦ (hsat.1 e he).1) (fun A hA ↦ ?_) (fun c hc ht ↦ calls_ok hsat.1 hc ht)
-  rw [loadAddrs_straight σ _ hst, roundPre_loadsS] at hA
-  have r5 := hreg (5, 5) (by simp [roundSpec])
-  have r8 := hreg (8, 1) (by simp [roundSpec])
-  have r9 := hreg (9, 2) (by simp [roundSpec])
-  simp only [List.map_cons, List.map_nil, List.mem_cons, List.not_mem_nil, or_false] at hA
-  have e5 : σ (.n (val% «opening_round» "cursor")) = args.getD 5 0 := hv 5 (by decide)
-  have e8 : σ (.n (val% «opening_round» "alphas")) = args.getD 8 0 := hv 8 (by decide)
-  have e9 : σ (.n (val% «opening_round» "coefs")) = args.getD 9 0 := hv 9 (by decide)
-  rcases hA with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
-    simp only [e5, e8, e9]
-  · obtain ⟨i, h, r⟩ := r5 0 (by decide); exact ⟨i, h, r⟩
-  · obtain ⟨i, h, r⟩ := r5 1 (by decide); exact ⟨i, h, r⟩
-  · obtain ⟨i, h, r⟩ := r5 2 (by decide); exact ⟨i, h, r⟩
-  · obtain ⟨i, h, r⟩ := r5 3 (by decide); exact ⟨i, h, r⟩
-  · obtain ⟨i, h, r⟩ := r5 4 (by decide); exact ⟨i, h, r⟩
-  · obtain ⟨i, h, r⟩ := r8 0 (by decide); exact ⟨i, h, r⟩
-  · obtain ⟨i, h, r⟩ := r9 0 (by decide); exact ⟨i, h, r⟩
-  · obtain ⟨i, h, r⟩ := r9 1 (by decide); exact ⟨i, h, r⟩
-
-theorem round_pure_body : Stmt.pureList ["opening_round", "grind_check__L7"] Whir.roundBody = true := by
-  decide +kernel
-
-theorem grind7_pure_body : Stmt.pureList ["opening_round", "grind_check__L7"] (gcBodyT 7) = true := by
-  decide +kernel
-
-/-- **`opening_round` and `grind_check__L7` place nothing.** -/
-theorem round_pureIn : coreProgram.PureIn ["opening_round", "grind_check__L7"] := by
-  intro g hg fn hf
-  simp only [List.mem_cons, List.not_mem_nil, or_false] at hg
-  rcases hg with rfl | rfl
-  · rw [Whir.find_opening_round] at hf
-    cases hf
-    rw [Whir.opening_round_body]
-    exact round_pure_body
-  · obtain ⟨fn', hf', -, hb'⟩ := grind_check_found 7 (by decide)
-    rw [show grindCheckName 7 = "grind_check__L7" from rfl, hf] at hf'
-    cases hf'
-    rw [hb']
-    exact grind7_pure_body
-
 /-! ## The named callees within their bounds -/
 
 /-- **A named callee is complete placed on its meaning and regions, within its bound.** -/
-theorem kindDB (hκ : 11 ≤ κ) {B : ℕ} {f : String} (hb : TotalLe coreProgram fs f (fun _ ↦ B))
+theorem kindDB {B : ℕ} {f : String} (hb : TotalLe coreProgram fs f (fun _ ↦ B))
     {K : OsKind} (hK : osKindOf f = some K) :
     CompleteRelRegDB fs cert κ f K.Pre (RegPtrs K.spec) (fun _ ↦ B) := by
   have he := osKindEntry_ok hK
   cases K with
-  | round =>
-    simp only [osKindEntryOk, beq_iff_eq] at he
-    subst he
-    intro args rets Lin hreg hpre
-    exact completeAtDTB_of_relIn round_pureIn (List.mem_cons_self ..) (TotalLe.at hb args)
-      fun rd hl hL ↦ round_relIn hκ hreg hpre hl hL
   | tail =>
     simp only [osKindEntryOk, beq_iff_eq] at he
     subst he
@@ -224,11 +52,6 @@ theorem kindDB (hκ : 11 ≤ κ) {B : ℕ} {f : String} (hb : TotalLe coreProgra
     obtain ⟨hm, rfl⟩ := he
     exact completeRelRegDB_of_iff (leafSpecOk_allP spf_leafSpec _ hm)
       (squeeze_point_from_holds _ hm) κ hb
-  | grind b =>
-    simp only [osKindEntryOk, Bool.and_eq_true, decide_eq_true_eq, beq_iff_eq] at he
-    obtain ⟨hm, rfl⟩ := he
-    intro args rets Lin _ hpre
-    exact (grind_check_completeB_of hm hκ hb args rets Lin hpre).toDTB
   | cap d =>
     simp only [osKindEntryOk, decide_eq_true_eq] at he
     exact completeRelRegDB_of_iff (leafSpecOk_all merkleCap_leafSpec _ he)

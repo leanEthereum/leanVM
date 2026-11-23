@@ -232,7 +232,7 @@ theorem osTail_complete {c : OsCfg} {st : OsSt} (σ : Val) (hsf : st.Sf)
       obtain ⟨a, b, d⟩ := hsf.below.mats x hx
       exact ⟨show x.out < k + 2 by omega, show x.src < k + 2 by omega, show x.base < k + 2 by omega⟩⟩,
     hsf.co, fun p hp ↦ by have := hsf.padB p hp; show p + 4 < k + 2; omega,
-    by have := hsf.k; show 33 ≤ k + 2; omega⟩
+    by have := hsf.k; show 43 ≤ k + 2; omega⟩
   have kj : k + 2 ≤ j := by
     have := osTailRounds_k (k + 1) c.yrLog 0 s0
     exact this
@@ -286,7 +286,7 @@ theorem osTail_complete {c : OsCfg} {st : OsSt} (σ : Val) (hsf : st.Sf)
       by have := hsfj.below.claim; show f.2.claim < j + m; omega,
       fun m' hm' ↦ by obtain ⟨a, b, d⟩ := hsfj.below.mats m' hm'; exact ⟨by omega, by omega, by omega⟩⟩,
       hsfj.co, fun p hp ↦ by have := hsfj.padB p hp; show p + 4 < j + m; omega,
-      by have := hsfj.k; show 33 ≤ j + m; omega⟩, hO.mats, hO.pad⟩, by omega, hag⟩,
+      by have := hsfj.k; show 43 ≤ j + m; omega⟩, hO.mats, hO.pad⟩, by omega, hag⟩,
     rfl, e0, e1, eF, ecl, ecur, epad⟩
 
 end

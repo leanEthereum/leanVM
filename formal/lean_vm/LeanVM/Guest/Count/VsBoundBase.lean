@@ -20,15 +20,15 @@ open LeanVM.Guest.Core LeanVM.Guest.B1.Whir
 
 /-- `open_stacked`'s words at the arm `m`, its name spelled by `natStr`. -/
 noncomputable def osC (m : ℕ) : ℕ :=
-  B1.osBos B2C.fs wSB ("open_stacked__L" ++ natStr m) (osCfg m)
+  B1.osBos B2C.fs wSBos ("open_stacked__L" ++ natStr m) (osCfg m)
 
 theorem osC_eq_fast (m : ℕ) : osC m = osCF m := by
   unfold osC osCF
-  rw [fsFast_eq, wSBFast_eq]
+  rw [fsFast_eq]
 
 /-- `osBosAt` at an arm is `osC`. -/
 theorem osBosAt_eq {μ : ℕ} (h1 : minOpenLog ≤ μ) (h2 : μ ≤ 30) :
-    B1.osBosAt B2C.fs wSB μ = osC (μ - minOpenLog) := by
+    B1.osBosAt B2C.fs wSBos μ = osC (μ - minOpenLog) := by
   have h : μ - minOpenLog < 11 := by simp only [minOpenLog] at h1 h2 ⊢; omega
   unfold B1.osBosAt osC openName openNames
   rw [List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_range h, Option.map_some,

@@ -119,10 +119,10 @@ theorem lvFin {i : ℕ} (hi : i < (osCfgR (μ - minOpenLog) (r - 1)).yrLevel) :
     rw [e2, e3, e4]
     exact hsScale_mid hm hn hc
   have e : finLv (osCfgR (μ - minOpenLog) (r - 1)) i = osLvR (μ - minOpenLog) (r - 1) i := osCfgR_getD hn
-  obtain ⟨-, -, -, h1, -, -, -, -, -, -, -, -, h2, -, -, -, -, -, -, -, h3, -, -, -, -, -, -, -, -, -, -,
+  obtain ⟨-, -, -, h1, -, -, -, hqu, -, -, -, -, h2, -, -, -, -, -, -, -, -, h3, -, -, -, -, -, -, -, -, -, -,
     -, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13⟩ := hR.mid hi
   rw [← e] at hv hs
-  exact ⟨h4, h5, h6, h7, h3, h1, h8, h9, h10, h11, h12, h2, h13, vanish_val hv, vanish_inv hv, hs⟩
+  exact ⟨h4, h5, h6, h7, h3, h1, h8, h9, h10, h11, h12, h2, hqu, h13, vanish_val hv, vanish_inv hv, hs⟩
 
 /-- **The finish's static facts.** -/
 theorem finStatic_run :

@@ -1298,7 +1298,8 @@ def arm_def(k, r, sel, po, base, ns):
     (`HCert.arm`)."""
     import heap
     return (head(base + '.Def', f'Arm {r} of `{k}`\'s heap check: the function at the arm, its certificate.') +
-            HEADER + f'public import LeanVM.Guest.CoreMode.HeapC\npublic import LeanVM.Guest.Pack.«{po[k][0]}».{po[k][1]}\n'
+            'public import LeanVM.Guest.CoreMode.Defs\npublic import LeanVM.Guest.CoreMode.HeapC\n'
+            f'public import LeanVM.Guest.Pack.«{po[k][0]}».{po[k][1]}\n'
             f'public import LeanVM.Guest.CoreMode.Gen.«{po[k][0]}».DataC\n\n'
             f'namespace {ns}\n\n@[expose] public section\n\n'
             f'/-- The function at arm {r} of its selector. -/\nnoncomputable def core : Core.Fn := '

@@ -153,7 +153,7 @@ theorem vs_obligations {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {see
     · rw [show Fn.body fn% «verify_sub» = vsCPre ++ [.ret []] from vs_body.trans vsT_splitPre,
         holdsList_append]
       exact vsCPre_complete D (by simp [Stmt.HoldsList, Stmt.Holds])
-    · obtain ⟨i, hi, h⟩ := vs_loads hbl S b sqE outE hexp hout O hB q hq
+    · obtain ⟨i, hi, h⟩ := vs_loads hbl S b sqE outE hexp hout O hB D q hq
       exact ⟨i, hi, h.imp_right Or.inl⟩
 
 end

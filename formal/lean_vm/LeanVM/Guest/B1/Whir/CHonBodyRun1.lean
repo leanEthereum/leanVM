@@ -49,7 +49,7 @@ theorem bodyFacts (cur tabs : E) :
     fun l hl ↦ lvsAt_suffix hR.run l (by rw [hR.len]; exact hl), hR.br_cap5, fun l hl ↦ hR.br_rootN hl,
     hR.br_G, hR.br_rl, fun l hl ↦ (hR.recRun_run l hl).z0, hR.br_lane⟩,
     hR.br_tsuf, hR.br_pl, br_f3, hR.finStatic_run, hR.recRun_run, hR.hylen, hR.hfold, hR.hffm,
-    hR.fld_resEq, hR.fld_slowEq, ?_, ?_, ?_, ?_, fun l _ ↦ ?_⟩
+    hR.fld_resEq, hR.fld_slowEq, ?_, ?_, ?_, ?_, fun l _ ↦ ?_, ?_⟩
   · rw [OsHD.capAt_of _ (Nat.zero_le _)]
     show _ = (Ls.getD 0 default).cap
     rw [hR.start.2.1]
@@ -66,11 +66,16 @@ theorem bodyFacts (cur tabs : E) :
     rw [hR.start.2.2.1]
     rfl
   · refine ⟨r - 1, hr4, rfl, osCfgR_lvAt_length _ _ l, osCfgR_lvAt_getD l hr4⟩
+  · refine ⟨r - 1, hr4, by show rateSel r = _; rw [rateSel, gen_pow_eq_ofK], ?_⟩
+    refine (honStatic_all _ _ hm hr4).posTot hr4 ?_
+    simp only [osCfgR, OsCfg.withLevels, osCfg]
+    rw [List.getD_eq_getElem _ _ (by simpa using hr4)]
+    simp only [List.getElem_map, List.getElem_range]
 
 /-- **The body on the run.** -/
-theorem body_run {cur tabs : E} (b : ℕ) :
+theorem body_run {cur tabs : E} (b : ℕ) (rd0 : Reader) (hl0 : LowDef 11 rd0) :
     ∃ (kEnd : ℕ) (f : ℕ → E), ∀ (C : CallRel) (rd : Reader),
-      OsHA C rd (osCfgR (μ - minOpenLog) (r - 1)) b (hdOf μ r Ls).own cur tabs xs →
+      OsHA C rd (osCfgR (μ - minOpenLog) (r - 1)) b (hdOf μ r Ls).own cur tabs xs → LowAgree rd rd0 →
       BlkF C rd (Val.ofArgs (rateSel r :: capOf S ++ [target, (digestHalves root).1, (digestHalves root).2,
           cur, tabs]))
         11 kEnd f (osBodyA (osCfgR (μ - minOpenLog) (r - 1)))
@@ -81,7 +86,7 @@ theorem body_run {cur tabs : E} (b : ℕ) :
           (multilinearEval ((hdOf μ r Ls).Lf.fw.fold.take (osCfgR (μ - minOpenLog) (r - 1)).yrLen)
             (hdOf μ r Ls).T)
           (hdOf μ r Ls).own (hdOf μ r Ls).D) :=
-  body_gen (hR.bodyFacts cur tabs) rfl rfl b
+  body_gen (hR.bodyFacts cur tabs) rfl rfl b rd0 hl0
 
 end HonRun
 

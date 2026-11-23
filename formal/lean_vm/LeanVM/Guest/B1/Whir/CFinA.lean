@@ -146,7 +146,8 @@ structure FinMem (C : CallRel) (rd : Reader) (σ : Val) (c : OsCfg) (tch : ℕ) 
   rate : ∀ i < c.yrLevel, LvRate σ c i (finLv c i)
   res : ∀ i < c.yrLevel, C (osResidualName (finLv c i))
     [σ (.n osQpos) * gen ^ (finLv c i).posOff, BD * gen ^ (i * ligColsCap),
-      σ (.n osHs) * gen ^ (i * hsStride), li i] [(finRes c G T recs li i).1, (finRes c G T recs li i).2]
+      σ (.n osHs) * gen ^ (i * hsStride), li i, gen ^ ((finLv c i).queries / resBatch),
+      gen ^ ((finLv c i).queries % resBatch)] [(finRes c G T recs li i).1, (finRes c G T recs li i).2]
   slow : ∀ i < c.yrLevel, C (osSlowName c (finLv c i))
     [σ (.n osQpos) * gen ^ (finLv c i).posOff, σ (.n osFch) * gen ^ (finLv c i).resFoldOff,
       σ (.n tch), (recs.getD i default).lam, finZ c G T recs i] [finSlow c G T recs i]
@@ -160,7 +161,7 @@ def finAllocs (c : OsCfg) (PT PT1 BD LS LA ICH : E) : List (E × ℕ) :=
 def finEnd (c : OsCfg) (st : OsSt) (tch : ℕ) : ℕ :=
   let pts := osPtBlks c (st.k + 1) (st.k + 1 + 1) tch 0 pointCap (st.k + 1 + 2)
   let bs := osBases c tch (pts.2 + 1) (pts.2 + 3) (pts.2 + 5) 0 (c.levels.take c.yrLevel) (pts.2 + 6)
-  let rs := osResiduals c tch (bs.2 + 1) (pts.2 + 1) (pts.2 + 3) (pts.2 + 5) 0 (c.levels.take c.yrLevel)
+  let rs := osResiduals c st.rts tch (bs.2 + 1) (pts.2 + 1) (pts.2 + 3) (pts.2 + 5) 0 (c.levels.take c.yrLevel)
     st.mats (bs.2 + 3)
   (osOodWeights c tch (c.levels.headD default).logCols 1 c.levels.tail none rs.2).2.2 + 6
 

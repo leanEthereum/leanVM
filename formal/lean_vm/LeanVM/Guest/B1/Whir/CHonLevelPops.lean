@@ -43,7 +43,7 @@ theorem sameStreams {l : ℕ} (hl : l < (osCfgR (μ - minOpenLog) (r - 1)).level
       (Hints.levelHints (decide (l = 0)) ((osCfgR (μ - minOpenLog) (r - 1)).levels.getD l default).depth
         ((Ls.getD l default).qs μ).length (Ls.getD l default).phase) := by
   obtain ⟨hcdq, hpdq, -, hcdd, hQ⟩ := hR.cdpd hl
-  obtain ⟨-, -, hbase, -⟩ := (hR.lvb hl).qsh
+  obtain ⟨-, hbase, -⟩ := (hR.lvb hl).qsh
   have hidx := hR.idx hl
   have hop := hR.phase_opens hl
   have hst := hR.fld_static l hl

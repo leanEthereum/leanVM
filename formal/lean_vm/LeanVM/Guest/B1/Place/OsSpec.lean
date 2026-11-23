@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Place.OsBos
 public import LeanVM.Guest.B1.Whir.CompleteIface
 public import LeanVM.Guest.B1.Bits.QueryWindowsAt
-public import LeanVM.Guest.Memory.Size
+public import LeanVM.Guest.Memory.SizeTotal
 
 /-!
 # `open_stacked`, placed: the statements
@@ -19,8 +19,8 @@ public import LeanVM.Guest.Memory.Size
 each coordinate one-padded, the glued weight and the residual's value.
 
 **The callees' bound** (`OsLeafBounds fs Bnd`): every callee of every arm (`osCalleeNames`) has
-its trees within `Bnd` of its name (each is statically bounded: the leaves, `level_positions`,
-`level_queries`, `level_residual`). `osBosAt fs Bnd μ`: the arm of `μ`'s bound (`osBos`).
+its trees within `Bnd` of its name on the arguments the arm passes it (`osArgsOk`: `level_positions`' squeezes and
+`level_residual`'s batches, the exponents they read). `osBosAt fs Bnd μ`: the arm of `μ`'s bound (`osBos`).
 `scripts/count/vsos.py` mirrors it.
 
 **The statements**: `open_stacked_completeAtD_Spec`, at every stack log `μ ∈ [20, 30]` and rate
@@ -55,9 +55,9 @@ def OsOut (μ : ℕ) (w : WhirEnd) : List E → Layout → Prop := fun rets Lout
 abbrev osArms : ℕ := openArms
 
 /-- **The callees' words bounds**: every callee `f` of every arm has its trees within `Bnd f`
-words. -/
+words, on the arguments the arm passes it (`osArgsOk`). -/
 def OsLeafBounds (fs : String → ℕ) (Bnd : String → ℕ) : Prop :=
-  ∀ m < osArms, ∀ f ∈ osCalleeNames (osCfg m), TotalLe coreProgram fs f (fun _ ↦ Bnd f)
+  ∀ m < osArms, ∀ f ∈ osCalleeNames (osCfg m), TotalLeOn coreProgram fs f (osArgsOk m f) (fun _ ↦ Bnd f)
 
 /-- `open_stacked`'s frame-size bound at the arm of the stack log `μ`. -/
 def osBosAt (fs Bnd : String → ℕ) (μ : ℕ) : ℕ :=

@@ -77,18 +77,19 @@ abbrev osIxMusA : ℕ := 5
 abbrev osIxHsA : ℕ := 6
 abbrev osIxOodzA : ℕ := 7
 abbrev osIxOodScA : ℕ := 8
-abbrev osIxQposA : ℕ := 9
-abbrev osIxQbpA : ℕ := 10
+abbrev osIxPosTabA : ℕ := 9
+abbrev osIxQposA : ℕ := 10
+abbrev osIxQbpA : ℕ := 11
 
 /-- A non-final level's message `sent`. -/
-def osIxSentA (l : ℕ) : ℕ := 11 + l
+def osIxSentA (l : ℕ) : ℕ := 12 + l
 
 /-- The final level's normalized lane, the tail's challenges, the point, `point1`, `basis_d`. -/
-def osIxLaneA (c : OsCfg) : ℕ := 11 + c.yrLevel
-def osIxTchA (c : OsCfg) : ℕ := 12 + c.yrLevel
-def osIxPtA (c : OsCfg) : ℕ := 13 + c.yrLevel
-def osIxPt1A (c : OsCfg) : ℕ := 14 + c.yrLevel
-def osIxBdA (c : OsCfg) : ℕ := 15 + c.yrLevel
+def osIxLaneA (c : OsCfg) : ℕ := 12 + c.yrLevel
+def osIxTchA (c : OsCfg) : ℕ := 13 + c.yrLevel
+def osIxPtA (c : OsCfg) : ℕ := 14 + c.yrLevel
+def osIxPt1A (c : OsCfg) : ℕ := 15 + c.yrLevel
+def osIxBdA (c : OsCfg) : ℕ := 16 + c.yrLevel
 
 /-- Buffer `j`'s pointer, the buffers from `b`. -/
 def osPtrA (c : OsCfg) (b j : ℕ) : E := ofK (addressOfIndex ((bases b (osSizesL c)).getD j 0))
@@ -205,7 +206,7 @@ def osLrRetA (c : OsCfg) (own : List (List E)) (l : ℕ) (mu : E) : E × E :=
     mu (0, 0) ((List.range lv.queries).map fun k ↦ (osOwnA own osIxQposA).getD (lv.posOff + k) 0)
 
 /-- `level_after`'s index. -/
-def osIxLaA (c : OsCfg) : ℕ := 17 + c.yrLevel
+def osIxLaA (c : OsCfg) : ℕ := 18 + c.yrLevel
 
 /-- A non-final level `l`'s zero flag, from its stored product of coordinates. -/
 def osZA (c : OsCfg) (own : List (List E)) (l : ℕ) : E := zeroOf ((osOwnA own (osIxLaA c)).getD l 0)
@@ -286,6 +287,18 @@ def OsOutA (c : OsCfg) (b : ℕ) (tabs tgt inn res : E) (own : List (List E)) (D
     (bases b (osSizesL c)).map (fun e ↦ ofK (addressOfIndex e)) ∧
   OsHelperVals c b tabs own D σ'
 
+/-- The call statements' condition, selector, arguments and returns. -/
+def Stmt.callVarsS : Stmt → Option (List V)
+  | .call _ a r => some (a ++ r)
+  | .callIf cv _ a => some (cv :: a)
+  | .dispatch x _ a r => some (x :: a ++ r)
+  | _ => none
+
+/-- Every load of the body reads a word the caller's memory facts fix. -/
+def OsLoadsIn (c : OsCfg) (b : ℕ) (own : List (List E)) (cur tabs : E) (xs : List E) (σ' : Val) : Prop :=
+  ∀ q ∈ (osBodyA c).filterMap Stmt.loadS, ∃ v : E, ∀ rd', ReadsAt rd' cur xs → WinTabs rd' tabs →
+    OsMemA rd' c b own → LoadHolds rd' (σ' q.1) q.2 v
+
 /-- **The body's completeness at honest values**, as the placed lift takes it. -/
 structure OsHonestA (c : OsCfg) (args : List E) (cur tabs : E) (xs : List E) (tgt inn res : E)
     (pt pt1 : List E) where
@@ -330,9 +343,10 @@ structure OsHonestA (c : OsCfg) (args : List E) (cur tabs : E) (xs : List E) (tg
   qMem : ∀ b rd, OsMemA rd c b own → ∀ l < c.levels.length,
     RoundsAt rd (osPtrA c b osIxCoefsA * gen ^ (2 * (osLvA c l).foldsOff)) (rounds l) ∧
     ((oqSA c l).final = 1 → WordsAt rd (osHsPtrA c b l) (hsv l))
-  body : ∀ b (rd0 : Reader), LowDef 11 rd0 → ∃ (kEnd : ℕ) (f : ℕ → E), ∀ (C : CallRel) (rd : Reader),
-    OsHA C rd c b own cur tabs xs → LowAgree rd rd0 →
-      BlkF C rd (Val.ofArgs args) 11 kEnd f (osBodyA c) (OsOutA c b tabs tgt inn res own D)
+  body : ∀ b, ∃ CV : List (List E), ∀ (rd0 : Reader), LowDef 11 rd0 → ∃ (kEnd : ℕ) (f : ℕ → E),
+    ∀ (C : CallRel) (rd : Reader), OsHA C rd c b own cur tabs xs → LowAgree rd rd0 →
+      BlkF C rd (Val.ofArgs args) 11 kEnd f (osBodyA c) (fun σ' ↦ OsOutA c b tabs tgt inn res own D σ' ∧
+        ((osBodyA c).filterMap Stmt.callVarsS).map (·.map σ') = CV ∧ OsLoadsIn c b own cur tabs xs σ')
 
 /-- **The honest data of every accepting run** at its arm and rate. -/
 def os_honest_Spec : Prop :=

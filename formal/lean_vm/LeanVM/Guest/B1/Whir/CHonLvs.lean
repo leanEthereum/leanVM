@@ -65,17 +65,18 @@ theorem lvMid_gen {h : OsHD} {xs : List E} {b : ℕ} {tabs cur : E} (hS : BodySt
     (hg : (h.Ls.getD l default).s.alphas.length = ((h.c.levels.getD l default)).foldsOff)
     (hrecF : ∀ q ∈ lvsRecs h.logN h.Ls l, q.F ≤ (h.Ls.getD l default).s.alphas.length)
     (hsuf : ∃ p, xs = p ++ (h.Ls.getD l default).xs)
-    {st : OsSt} {σ : Val} (hq : QAt h b tabs cur xs l st σ) (hiz : IsZeroC H)
+    {st : OsSt} {σ : Val} (hq : QAt h b tabs cur xs l st σ) (hiz : IsZeroC H) (rd0 : Reader)
+    (hl0 : LowDef 11 rd0)
     (hMC : ∀ C rd, H C rd → MidC C rd σ h.c l ((h.c.levels.getD l default)) (h.capAt l) (h.claimAt l)
       (cur * gen ^ (xs.length - (h.xsAt l).length))
       ((h.Ls.getD l default).midW (digestHalves (h.root l)).1 (digestHalves (h.root l)).2 (h.bat l)
-        (osPtrA h.c b (11 + l)))) :
+        (osPtrA h.c b (12 + l))) rd0) :
     BlkA H σ st.k (osLevel h.c l ((h.c.levels.getD l default)) st).2.k (osLevel h.c l ((h.c.levels.getD l default)) st).1 (fun σ' ↦
       st.k ≤ (osLevel h.c l ((h.c.levels.getD l default)) st).2.k ∧
       QAt h b tabs cur xs (l + 1) (osLevel h.c l ((h.c.levels.getD l default)) st).2 σ' ∧
       RAt h b tabs l (h.bat l) σ') := by
   obtain ⟨hnf, hfold, hcols, hcols1, hdepth, hqueries, hq0, hqu, hP1, hsq, hpwP, hpwQ, hpo, hsq1, hsqo,
-    hS5, hr3, hood, hh8, hshape, hfo', hqsh, -⟩ := hmo
+    hS5, hr3, hf5, hood, hh8, hshape, hfo', hqsh, -⟩ := hmo
   have hmu : (h.Ls.getD l default).mu h.logN = ((h.c.levels.getD l default)).logCols := by
     show h.logN - (h.Ls.getD l default).s1.alphas.length = _
     rw [LvAt.s1, roundsSpec_alphas_length, hg, hfold]; exact hcols
@@ -83,7 +84,7 @@ theorem lvMid_gen {h : OsHD} {xs : List E} {b : ℕ} {tabs cur : E} (hS : BodySt
     rw [hdepth]; show _ = (h.Ls.getD l default).mu h.logN + _; rw [hmu]
   have E := midEqs hN hfold hmu hdep hqueries hsq hcols1 (digestHalves (h.root l)).1
     (digestHalves (h.root l)).2 (h.bat l)
-    (osPtrA h.c b (11 + l))
+    (osPtrA h.c b (12 + l))
     (h.claimAt l)
   have hcapl : h.capAt l = (h.Ls.getD l default).cap := h.capAt_of
     (show l ≤ h.c.yrLevel by omega)
@@ -100,7 +101,7 @@ theorem lvMid_gen {h : OsHD} {xs : List E} {b : ℕ} {tabs cur : E} (hS : BodySt
   have hli : h.lamInv l = lamInvOf ((h.Ls.getD l default).lam h.logN) := by
     simp [OsHD.lamInv, OsHD.li, show l ≠ h.c.yrLevel by omega]
   -- the batch
-  obtain ⟨-, hodd, hbase, -, -, -, hfinal, -, -, -, hcount⟩ := hqsh
+  obtain ⟨-, hbase, -, -, hfinal, -⟩ := hqsh
   have hbat0 : h.bat l = oqChain (oqOddA h.c l)
       (oqSA h.c l).base (lamInvOf ((h.Ls.getD l default).lam h.logN))
       (fun k ↦ foldRow (lanesOf (oqSA h.c l).base
@@ -110,21 +111,19 @@ theorem lvMid_gen {h : OsHD} {xs : List E} {b : ℕ} {tabs cur : E} (hS : BodySt
     rw [OsHD.bat, hli]
     have : (oqSA h.c l).final = 0 := by simp only [oqSA, OqShape.oq, osLvA]; exact hfinal
     simp only [this, zero_ne_one, ↓reduceIte]
+  have e1 : (oqSA h.c l).base = if l = 0 then 1 else 0 := by
+    simp only [oqSA, OqShape.oq, osLvA]; exact hbase
   have hob : (oqSA h.c l).base = 1 ∨ oqOddA h.c l = 0 := by
-    have e1 : (oqSA h.c l).base = if l = 0 then 1 else 0 := by
-      simp only [oqSA, OqShape.oq, osLvA]; exact hbase
-    have e2 : oqOddA h.c l = ((h.c.levels.getD l default)).queries % 2 *
-      (if l = 0 then 1 else 0) := by simp only [oqOddA, osLvA]; exact hodd
     by_cases h0 : l = 0
     · left; rw [e1]; simp [h0]
-    · right; rw [e2]; simp [h0]
+    · right; simp [oqOddA, lqOdd, lvBase, h0]
   have hodd1 : oqOddA h.c l ≤ 1 := by
-    have e2 : oqOddA h.c l = ((h.c.levels.getD l default)).queries % 2 *
-      (if l = 0 then 1 else 0) := by simp only [oqOddA, osLvA]; exact hodd
-    rw [e2]; split_ifs <;> omega
+    simp only [oqOddA, lqOdd]; split_ifs <;> omega
   have hQ : oqCount (oqOddA h.c l) (oqSA h.c l).base
       (oqNA h.c l) = (h.Ls.getD l default).level.queries := by
-    rw [hqueries]; simp only [oqOddA, oqSA, OqShape.oq, oqNA, osLvA, lvBase]; exact hcount
+    rw [hqueries, e1]
+    simp only [oqCount, oqOddA, oqNA, lqOdd, lqIters, osLvA, lvBase]
+    split_ifs <;> omega
   have hbat : (h.Ls.getD l default).lam h.logN * (h.Ls.getD l default).lam h.logN *
       (((h.Ls.getD l default).lam h.logN) ^ (h.Ls.getD l default).level.queries * h.bat l) =
       (h.Ls.getD l default).lam h.logN * (h.Ls.getD l default).lam h.logN *
@@ -133,14 +132,17 @@ theorem lvMid_gen {h : OsHD} {xs : List E} {b : ℕ} {tabs cur : E} (hS : BodySt
           (K.ofBits (((h.Ls.getD l default).qs h.logN).getD k 0)) (h.Ls.getD l default).rounds := by
     rw [hbat0, LvAt.qs_next_length hN]
     refine hbat_of hodd1 hob hQ fun k _ ↦ ?_
-    have e1 : (oqSA h.c l).base = if l = 0 then 1 else 0 := by
-      simp only [oqSA, OqShape.oq, osLvA]; exact hbase
     rw [e1, lanesOf_base]
   have hC := midClaim hN hfold hmu hdep hqueries hsq hcols1 hrecF (digestHalves (h.root l)).1
     (digestHalves (h.root l)).2 (h.bat l)
-    (osPtrA h.c b (11 + l)) hbat
-  have := lvMid_step (H := H) (h := h) hS hl hq _ rfl hr3 hood hpo (by omega) hh8 hiz
-    hMC (by rw [hcapl, hcap1, ← E.cap']) (by rw [hcapl, hcl0, hcl1, lvsRecs_succ (by omega)]; exact hC.1)
+    (osPtrA h.c b (12 + l)) hbat
+  have hrwl : ((h.Ls.getD l default).midW (digestHalves (h.root l)).1 (digestHalves (h.root l)).2 (h.bat l)
+      (osPtrA h.c b (12 + l))).rw.length = 5 * (h.c.levels.getD l default).folds := by
+    obtain ⟨rw, W, hd, hrl, -⟩ := hN
+    show (h.Ls.getD l default).rw.length = _
+    unfold LvAt.rw; rw [hd, hrl, hfold]
+  have := lvMid_step (H := H) (h := h) hS hl hq _ rd0 hl0 hrwl rfl hf5 hood hpo (by omega) hqu
+    (by omega) hh8 hiz hMC (by rw [hcapl, hcap1, ← E.cap']) (by rw [hcapl, hcl0, hcl1, lvsRecs_succ (by omega)]; exact hC.1)
     (by
       rw [hx0, hx1]
       obtain ⟨rw, W, hd, hrl, -, hxs, -, hnext, -⟩ := hN
@@ -155,7 +157,7 @@ theorem lvMid_gen {h : OsHD} {xs : List E} {b : ℕ} {tabs cur : E} (hS : BodySt
     (by rw [hcapl, E.S2]; exact ((lvAt_words _ h.logN hdep hqueries hsq).1).symm)
     (by rw [hcapl, E.S2]; rfl) (by rw [hcapl, E.lam]; rfl) rfl rfl
   have eb : ((h.Ls.getD l default).midW (digestHalves (h.root l)).1 (digestHalves (h.root l)).2 (h.bat l)
-      (osPtrA h.c b (11 + l))).batched = h.bat l := by
+      (osPtrA h.c b (12 + l))).batched = h.bat l := by
     simp only [LvAt.midW]
   rw [eb] at this
   exact this

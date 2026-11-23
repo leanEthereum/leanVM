@@ -245,10 +245,10 @@ def heap_proof(k):
         return 'heap_okW'
     sp = callc.split_of(k)
     if sp:
-        arms = 'CoreMode.armsOk_nil'
+        arms = 'CoreMode.selArmsOk_nil'
         for r in reversed(range(sp[1])):
             prf = f'Fn.«{k}».Arm{r}.heap_okW' if heap_win_arm(k, r) else DK
-            arms = f'(CoreMode.armsOk_cons {prf}\n    {arms})'
+            arms = f'(CoreMode.selArmsOk_cons {prf}\n    {arms})'
         return f'CoreMode.heapOkC_split {DK}\n    {arms}'
     return DK
 

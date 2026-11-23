@@ -21,6 +21,7 @@ dispatch's arm, so a static bound of the body covers every rate.
 * `osSizesL c`: the sizes of the body's `HeapBuf`s, in allocation order.
 * `osCallees c`: each call statement's callees, in order: a call's one, a dispatch's every arm.
   `osCalleeNames c`: all of them.
+* `osArgsOk m f args`: what arm `m` passes its callee `f`, the exponents a runtime-sized callee reads.
 * `osCallB fs Bk names`: a call statement entered within `Bk f` words or skipped (its frame `fs f`)
   at its costliest callee; `osKidsB`, their total; `osBos fs Bk name c`: the frame `fs name`, the
   buffers, the calls.
@@ -66,6 +67,40 @@ def osCallees (c : OsCfg) : List (List String) := (osBody c).filterMap Stmt.call
 
 /-- Every callee of the body. -/
 def osCalleeNames (c : OsCfg) : List String := (osCallees c).flatten
+
+/-! ## The callees' arguments -/
+
+/-- The names of arm `m`'s `level_positions` specializations, at every rate and level. -/
+def osPosNames (m : ℕ) : List String :=
+  (List.range ligNRates).flatMap fun r ↦ (List.range (osNLevels m)).map fun l ↦ osPositionsName (osLvR m r l)
+
+/-- The names of arm `m`'s `level_residual` specializations, at every level before the final one. -/
+def osResNames (m : ℕ) : List String :=
+  (List.range (osCfg m).yrLevel).map fun l ↦ osResidualName (osLvR m 0 l)
+
+/-- **What arm `m` passes its callee `f`**: a `level_positions` specialization, the row of some rate `r`'s level
+`l`, gets `g^squeezes` at argument `9`; a `level_residual` one, of a level `l` before the final one, `g^(n / resBatch)`
+and `g^(n % resBatch)` at `4` and `5`, `n` the queries of rate `r`'s row; any other callee anything. -/
+def osArgsOk (m : ℕ) (f : String) (args : List E) : Prop :=
+  if f ∈ osPosNames m then
+    ∃ r < ligNRates, ∃ l < osNLevels m, f = osPositionsName (osLvR m r l) ∧
+      args.getD 9 0 = ofK (addressOfIndex (osLvR m r l).squeezes)
+  else if f ∈ osResNames m then
+    ∃ r < ligNRates, ∃ l < (osCfg m).yrLevel, f = osResidualName (osLvR m 0 l) ∧
+      args.getD 4 0 = ofK (addressOfIndex ((osLvR m r l).queries / resBatch)) ∧
+      args.getD 5 0 = ofK (addressOfIndex ((osLvR m r l).queries % resBatch))
+  else True
+
+/-- Rate `r`'s level `l` is `osCfgR m r`'s. -/
+theorem osLvR_eq_getD {m r l : ℕ} (h : l < osNLevels m) : osLvR m r l = (osCfgR m r).levels.getD l default := by
+  simp [osCfgR, osLevelsR, List.getD_eq_getElem?_getD, h]
+
+/-- `osCfgR m r` has `osNLevels m` levels. -/
+theorem osCfgR_levels_length (m r : ℕ) : (osCfgR m r).levels.length = osNLevels m := by
+  simp [osCfgR, osLevelsR]
+
+/-- `level_residual`'s name is the same at every rate. -/
+theorem osResidualName_rate (m r l : ℕ) : osResidualName (osLvR m r l) = osResidualName (osLvR m 0 l) := rfl
 
 /-! ## The bound -/
 

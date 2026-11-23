@@ -28,7 +28,7 @@ theorem fs_lt (f : String) : B2C.fs f < 2 ^ 32 :=
 /-- **`verify_sub`'s callees' words with `open_stacked`'s, at `B2C.fs`.** -/
 noncomputable def vsWordsOs : B1.VerifySub.VsWordsOs B2C.fs where
   toVsWords := vsWords
-  Bnd := wSB
+  Bnd := wSBos
   hleaf := osLeafBounds
   hfs := fs_lt
 

@@ -36,53 +36,6 @@ open LeanVM.Protocol.Verifier hiding Layout
 
 @[expose] public section
 
-/-! ## Square and multiply, honestly -/
-
-/-- The values of the square-and-multiply chain on `X` from `X^a`. -/
-def lqPowVals (X : E) : List Bool → ℕ → List E
-  | [], _ => []
-  | true :: ds, a => [X ^ (2 * a), X ^ (2 * a + 1)] ++ lqPowVals X ds (2 * a + 1)
-  | false :: ds, a => [X ^ (2 * a)] ++ lqPowVals X ds (2 * a)
-
-theorem lqPowVals_length (X : E) : ∀ (ds : List Bool) (a : ℕ),
-    (lqPowVals X ds a).length = ds.length + (ds.filter id).length
-  | [], _ => rfl
-  | true :: ds, a => by simp [lqPowVals, lqPowVals_length X ds]; omega
-  | false :: ds, a => by simp [lqPowVals, lqPowVals_length X ds]; omega
-
-/-- **The square-and-multiply chain, honestly.** -/
-theorem lq_powSteps_complete {C : CallRel} {rd : Reader} {σ : Val} (x : ℕ) :
-    ∀ (ds : List Bool) (acc k a : ℕ), σ (.n acc) = σ (.n x) ^ a →
-    (∀ j < (lqPowVals (σ (.n x)) ds a).length,
-      σ (.n (k + j)) = (lqPowVals (σ (.n x)) ds a).getD j 0) →
-    AllOk C rd σ (osPowSteps x ds acc k).1 ∧
-      σ (.n (osPowSteps x ds acc k).2) = σ (.n x) ^ digitsVal ds a
-  | [], _, _, _, ha, _ => ⟨allOk_nil, ha⟩
-  | true :: ds, acc, k, a, ha, hv => by
-    have v0 := hv 0 (by simp [lqPowVals])
-    have v1 := hv 1 (by simp [lqPowVals])
-    simp only [lqPowVals, List.cons_append, List.nil_append, List.getD_cons_zero,
-      List.getD_cons_succ, Nat.add_zero] at v0 v1
-    have := lq_powSteps_complete (C := C) (rd := rd) x ds (k + 1) (k + 2) (2 * a + 1) v1
-      (fun j hj ↦ by
-        have := hv (j + 2) (by simp [lqPowVals]; omega)
-        simp only [lqPowVals, List.cons_append, List.nil_append, List.getD_cons_succ] at this
-        rw [show k + 2 + j = k + (j + 2) by ring, this])
-    simp only [osPowSteps, ↓reduceIte, allOk_cons, Whir.StmtOk, osMul, Atom.Holds]
-    refine ⟨⟨by rw [v0, ha, ← pow_add]; ring_nf, by rw [v1, v0]; ring, this.1⟩, ?_⟩
-    rw [this.2]; rfl
-  | false :: ds, acc, k, a, ha, hv => by
-    have v0 := hv 0 (by simp [lqPowVals])
-    simp only [lqPowVals, List.cons_append, List.nil_append, List.getD_cons_zero,
-      Nat.add_zero] at v0
-    have := lq_powSteps_complete (C := C) (rd := rd) x ds k (k + 1) (2 * a) v0 (fun j hj ↦ by
-      have := hv (j + 1) (by simp [lqPowVals]; omega)
-      simp only [lqPowVals, List.cons_append, List.nil_append, List.getD_cons_succ] at this
-      rw [show k + 1 + j = k + (j + 1) by ring, this])
-    simp only [osPowSteps, Bool.false_eq_true, ↓reduceIte, allOk_cons, Whir.StmtOk, osMul, Atom.Holds]
-    refine ⟨⟨by rw [v0, ha, ← pow_add]; ring_nf, this.1⟩, ?_⟩
-    rw [this.2]; simp [digitsVal]
-
 /-! ## The body -/
 
 /-- The body before its `ret`. -/

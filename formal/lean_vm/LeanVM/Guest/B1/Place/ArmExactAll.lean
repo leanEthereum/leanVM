@@ -50,20 +50,26 @@ theorem armExact_all {μ : ℕ} (hm : μ - minOpenLog < 11) : ∃ j, armExactOk 
   · exact ⟨_, armExact9⟩
   · exact ⟨_, armExact10⟩
 
-/-- **A valid arm node of `FlatNodeT` is exact at every node** when its predicates cover its calls and each entered
-`armExactS` callee's predicate gives `Every` exact on its valid trees. -/
+/-- **A valid arm node of `FlatNodeT` is exact at every node** when its window hints are exact at the valuations
+`Q` admits, its predicates cover its calls and each entered `armExactS` callee's predicate gives `Every` exact on its
+valid trees. -/
 theorem flatNodeT_every {μ : ℕ} (hm : μ - minOpenLog < 11) {fn : Fn} {pre : List Stmt} {Q : Val → Prop}
     {Ts : Val → Reader → List (Memory.Tree → Prop)} {rd : Reader} {t : Memory.Tree} {args rets : List E}
     (hf : coreProgram.find? (openName μ) = some fn) (h : FlatNodeT (openName μ) fn pre Q Ts rd t)
     (hv : t.Valid coreProgram rd args rets)
+    (hW : ∀ σ es vs, Q σ → walk σ fn.body = .ret es vs → ∀ a, Ev.atom a ∈ es → isWinHint a = true →
+      a.Exact rd σ)
     (hlen : ∀ σ, (pre.filterMap (Stmt.callSF σ)).length ≤ (Ts σ rd).length)
     (hE : ∀ σ c T, (c, T) ∈ ((pre.filterMap (Stmt.callSF σ)).map (Main.mkCall σ)).zip (Ts σ rd) → c.taken = true →
       armExactS c.f = true → ∀ t : Memory.Tree, t.name = c.f → t.Valid coreProgram rd (c.args.map σ) (c.rets.map σ) →
       T t → t.Every (ExactAt coreProgram rd)) :
     t.Every (ExactAt coreProgram rd) := by
-  obtain ⟨σ, bufs, ks, es, vs, rfl, hw, hc, -, hK⟩ := h
+  obtain ⟨σ, bufs, ks, es, vs, rfl, hw, hc, hQ, hK⟩ := h
   obtain ⟨j, hj⟩ := armExact_all hm
-  refine armExact_every (Ts := Ts σ rd) hj hv fun fn' es' vs' hf' hw' => ?_
+  refine armExact_every (Ts := Ts σ rd) hj hv (fun fn' es' vs' hf' hw' => ?_) fun fn' es' vs' hf' hw' => ?_
+  · rw [hf, Option.some.injEq] at hf'
+    subst hf'
+    exact hW σ es' vs' hQ hw'
   rw [hf, Option.some.injEq] at hf'
   subst hf'
   rw [hw, Out.ret.injEq] at hw'

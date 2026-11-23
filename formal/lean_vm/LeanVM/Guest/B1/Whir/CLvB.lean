@@ -110,7 +110,7 @@ theorem osHsMid_complete {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : Val) (hsf : s
         word (hsScale lv.vanish lv.highBits j (vanishInv (lv.vanish + lv.logCols))) 0)) :
     BlkA H σ st.k (osHsMid lvl lv st).2.k (osHsMid lvl lv st).1
       (fun σ' ↦ OsStep σ σ' st (osHsMid lvl lv st).2) := by
-  have k36 : 33 ≤ st.k := hsf.k
+  have k36 : 43 ≤ st.k := hsf.k
   set K := (osHsCoefs st.sent osHs
     (fun c ↦ hsScale lv.vanish lv.highBits c (vanishInv (lv.vanish + lv.logCols))) 2 (lvl * hsStride)
     lv.folds 0 st.k).2 with hK
@@ -140,7 +140,7 @@ theorem osHsFinal_complete {c : OsCfg} {lv : OsLv} {st : OsSt} (σ : Val) (hsf :
     BlkA H σ st.k (osHsFinal c lv st).2.k (osHsFinal c lv st).1
       (fun σ' ↦ OsStep σ σ' st (osHsFinal c lv st).2 ∧ σ' (.n st.k) = gw (c.yrLen + lv.folds) ∧
         σ' (.n (osHsFinal c lv st).2.hs) = pH) := by
-  have k36 : 33 ≤ st.k := hsf.k
+  have k36 : 43 ≤ st.k := hsf.k
   set n := c.yrLen + lv.folds with hn
   set K := (osHsCoefs osFmsg (st.k + 1) (fun i ↦ hsScale lv.vanish (c.yrLog + 1) i 1) 0 0 n 0 (st.k + 2)).2 with hK
   have kk : st.k + 2 ≤ K := osHsCoefs_k _ _ _ _ _ _ _ _
@@ -176,15 +176,15 @@ def osQArgsV (σ : Val) (c : OsCfg) (lvl : ℕ) (lv : OsLv) (st : OsSt) : List E
   [if lvl = c.yrLevel then 0 else σ (.n st.lam), if lvl = c.yrLevel then 0 else σ (.n st.lamInv),
     σ (.n osCoefs) * gen ^ (2 * lv.foldsOff),
     if lvl = c.yrLevel then σ (.n st.hs) else σ (.n osHs) * gen ^ (lvl * hsStride),
-    σ (.n osQpos) * gen ^ lv.posOff, σ (.n osQbp) * gen ^ lv.posOff]
+    σ (.n st.lp), σ (.n st.lw)]
 
 /-- **The level's queries, honestly**: the dispatch into `level_queries` at its honest arguments
 (`osQArgsV`), returning the root's two cells, `batched` and `λ^n`, the root's cells stored into
 `level_roots`. -/
 theorem osQueries_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : Val) (hsf : st.Sf)
     (hok : ∀ C rd, H C rd → st.Ok σ) (r0 r1 batched lamPow : E)
-    (h3 : 2 * lv.foldsOff < u128Bound) (hpo : lv.posOff < u128Bound)
-    (hh8 : lvl * hsStride < u128Bound)
+    (h3 : 2 * lv.foldsOff < u128Bound) (hh8 : lvl * hsStride < u128Bound)
+    (hlp : st.lp < st.k) (hlw : st.lw < st.k)
     (hli : lvl ≠ c.yrLevel → st.lam < st.k ∧ st.lamInv < st.k) (hhs : lvl = c.yrLevel → st.hs < st.k)
     (hrate : ∀ C rd, H C rd → LvRate σ c lvl lv)
     (hq : ∀ C rd, H C rd → C (osQueriesName c lvl lv) (osQArgsV σ c lvl lv st) [r0, r1, batched, lamPow])
@@ -203,18 +203,14 @@ theorem osQueries_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ :
   set cf := osMatS c.plan osCoefs (2 * lv.foldsOff) li.2.2.2 with hcf
   set hp : List Stmt × ℕ × OsSt := if lvl = c.yrLevel then ([], st.hs, cf.2.2)
     else osMatS c.plan osHs (lvl * hsStride) cf.2.2 with hhpD
-  set qp := osMatS c.plan osQpos lv.posOff hp.2.2 with hqp
-  set wp := osMatS c.plan osQbp lv.posOff qp.2.2 with hwp
-  set g := wp.2.2.k with hg
-  have k33 : 33 ≤ k := hsf.k
+  set g := hp.2.2.k with hg
+  have k33 : 43 ≤ k := hsf.k
   have k3 : k ≤ li.2.2.2.k := by rw [hliD]; split_ifs <;> dsimp only <;> omega
   have k4 : li.2.2.2.k ≤ cf.2.2.k := osMatS_k _ _ _ _
   have k5 : cf.2.2.k ≤ hp.2.2.k := by
     rw [hhpD]; split_ifs
     · exact le_rfl
     · exact osMatS_k _ _ _ _
-  have k6 : hp.2.2.k ≤ qp.2.2.k := osMatS_k _ _ _ _
-  have k7 : qp.2.2.k ≤ g := osMatS_k _ _ _ _
   have pli : li.2.1 < li.2.2.2.k ∧ li.2.2.1 < li.2.2.2.k := by
     rw [hliD]; split_ifs with hf
     · simp only; omega
@@ -224,8 +220,6 @@ theorem osQueries_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ :
     rw [hhpD]; split_ifs with hf
     · have := hhs hf; simp only; omega
     · exact osMatS_ptr_lt _ _ _ _ (show 24 < cf.2.2.k by omega)
-  have pqp : qp.2.1 < qp.2.2.k := osMatS_ptr_lt _ _ _ _ (show 30 < hp.2.2.k by omega)
-  have pwp : wp.2.1 < g := osMatS_ptr_lt _ _ _ _ (show 32 < qp.2.2.k by omega)
   have mli : li.2.2.2.mats = st.mats := by rw [hliD]; split_ifs <;> rfl
   have mb3 : MatsBelow li.2.2.2.k li.2.2.2.mats := fun m hm ↦ by
     rw [mli] at hm; obtain ⟨a, b, d⟩ := hsf.below.mats m hm; exact ⟨by omega, by omega, by omega⟩
@@ -234,7 +228,6 @@ theorem osQueries_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ :
     rw [hhpD]; split_ifs
     · exact mb4
     · exact osMatS_below mb4 (show 24 < cf.2.2.k by omega)
-  have mb6 : MatsBelow qp.2.2.k qp.2.2.mats := osMatS_below mb5 (show 30 < hp.2.2.k by omega)
   -- `λ`, `1/λ`, or `0, 0` at the final level
   have b3 : BlkA H σ k li.2.2.2.k li.1 (fun σ' ↦
       σ' (.n li.2.1) = (if lvl = c.yrLevel then 0 else σ (.n st.lam)) ∧
@@ -278,42 +271,23 @@ theorem osQueries_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ :
           (s := cf.2.2) σ1 (show 24 < cf.2.2.k by omega) mb4 (fun C rd hH ↦ (ho1 C rd hH).2.2.1) hh8
         rw [ha1 osHs (by show 24 < k; omega)] at h
         exact h.mono fun σ' h' ↦ ⟨h'.1, h'.2.1⟩
-  -- the positions and windows
-  have b6 := BlkA.seq (H := H) (show k ≤ hp.2.2.k by omega) k6 b5 (B := qp.1)
-    (OutB := fun σ' ↦ σ' (.n qp.2.1) = σ (.n osQpos) * gen ^ lv.posOff ∧ MatsOk σ' qp.2.2.mats ∧
-      MatsBelow qp.2.2.k qp.2.2.mats) fun σ1 ha1 ho1 ↦ by
-      have h := osMatS_blkA (H := H) (P := c.plan) (base := osQpos) (off := lv.posOff) (s := hp.2.2) σ1
-        (show 30 < hp.2.2.k by omega) mb5 (fun C rd hH ↦ (ho1 C rd hH).2.2) hpo
-      rw [ha1 osQpos (by show 30 < k; omega)] at h
-      exact h
-  have b7 := BlkA.seq (H := H) (show k ≤ qp.2.2.k by omega) k7 b6 (B := wp.1)
-    (OutB := fun σ' ↦ σ' (.n wp.2.1) = σ (.n osQbp) * gen ^ lv.posOff ∧ MatsOk σ' wp.2.2.mats ∧
-      MatsBelow wp.2.2.k wp.2.2.mats) fun σ1 ha1 ho1 ↦ by
-      have h := osMatS_blkA (H := H) (P := c.plan) (base := osQbp) (off := lv.posOff) (s := qp.2.2) σ1
-        (show 32 < qp.2.2.k by omega) mb6 (fun C rd hH ↦ (ho1 C rd hH).2.2.1) hpo
-      rw [ha1 osQbp (by show 32 < k; omega)] at h
-      exact h
   -- the dispatch
   have hargsV : ∀ σ1 : Val, AgreeBelow k σ σ1 → (∀ C rd, H C rd →
-      ((((((σ1 (.n li.2.1) = (if lvl = c.yrLevel then 0 else σ (.n st.lam)) ∧
+      (((σ1 (.n li.2.1) = (if lvl = c.yrLevel then 0 else σ (.n st.lam)) ∧
         σ1 (.n li.2.2.1) = (if lvl = c.yrLevel then 0 else σ (.n st.lamInv))) ∧
         σ1 (.n cf.2.1) = σ (.n osCoefs) * gen ^ (2 * lv.foldsOff) ∧ MatsOk σ1 cf.2.2.mats ∧
           MatsBelow cf.2.2.k cf.2.2.mats) ∧
         σ1 (.n hp.2.1) = (if lvl = c.yrLevel then σ (.n st.hs) else σ (.n osHs) * gen ^ (lvl * hsStride)) ∧
-          MatsOk σ1 hp.2.2.mats) ∧
-        σ1 (.n qp.2.1) = σ (.n osQpos) * gen ^ lv.posOff ∧ MatsOk σ1 qp.2.2.mats ∧
-          MatsBelow qp.2.2.k qp.2.2.mats) ∧
-        σ1 (.n wp.2.1) = σ (.n osQbp) * gen ^ lv.posOff ∧ MatsOk σ1 wp.2.2.mats ∧
-          MatsBelow wp.2.2.k wp.2.2.mats))) → ∀ C rd, H C rd →
-      [li.2.1, li.2.2.1, cf.2.1, hp.2.1, qp.2.1, wp.2.1].map (fun i ↦ σ1 (.n i)) =
-        osQArgsV σ c lvl lv st := fun σ1 _ ho1 C rd hH ↦ by
-    obtain ⟨⟨⟨⟨⟨eli, eli2⟩, ecf, -⟩, ehp, -⟩, eqp, -⟩, ewp, -⟩ := ho1 C rd hH
-    simp only [List.map_cons, List.map_nil, eli, eli2, ecf, ehp, eqp, ewp]
+          MatsOk σ1 hp.2.2.mats)) → ∀ C rd, H C rd →
+      [li.2.1, li.2.2.1, cf.2.1, hp.2.1, st.lp, st.lw].map (fun i ↦ σ1 (.n i)) =
+        osQArgsV σ c lvl lv st := fun σ1 ha1 ho1 C rd hH ↦ by
+    obtain ⟨⟨⟨eli, eli2⟩, ecf, -⟩, ehp, -⟩ := ho1 C rd hH
+    simp only [List.map_cons, List.map_nil, eli, eli2, ecf, ehp, ha1 _ hlp, ha1 _ hlw]
     rfl
-  have b8 := BlkA.seq (H := H) (show k ≤ g by omega) (show g ≤ g + 4 by omega) b7
+  have b8 := BlkA.seq (H := H) (show k ≤ g by omega) (show g ≤ g + 4 by omega) b5
     (B := [.dispatch (.n osRate) ((c.lvAt lvl).map (osQueriesName c lvl))
-      ([li.2.1, li.2.2.1, cf.2.1, hp.2.1, qp.2.1, wp.2.1].map V.n) (osRun g 4)])
-    (OutB := fun σ' ↦ [li.2.1, li.2.2.1, cf.2.1, hp.2.1, qp.2.1, wp.2.1].map (fun i ↦ σ' (.n i)) =
+      ([li.2.1, li.2.2.1, cf.2.1, hp.2.1, st.lp, st.lw].map V.n) (osRun g 4)])
+    (OutB := fun σ' ↦ [li.2.1, li.2.2.1, cf.2.1, hp.2.1, st.lp, st.lw].map (fun i ↦ σ' (.n i)) =
         osQArgsV σ c lvl lv st ∧ ∀ j < 4, σ' (.n (g + j)) = [r0, r1, batched, lamPow].getD j 0)
     fun σ1 ha1 ho1 ↦ BlkA.monoH (Out := fun σ' ↦ ∀ j < 4, σ' (.n (g + j)) = [r0, r1, batched, lamPow].getD j 0)
       (rateDisp_blk (H := H) (σ := σ1) (c := c) (lvl := lvl) (lv := lv) (r := g) (n := 4)
@@ -331,7 +305,7 @@ theorem osQueries_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ :
         simp only [List.map_cons, List.map_nil]
         rw [ha _ (pli.1.trans_le (by omega)), ha _ (pli.2.trans_le (by omega)),
           ha _ (show cf.2.1 < g by omega), ha _ (show hp.2.1 < g by omega),
-          ha _ (show qp.2.1 < g by omega), ha _ pwp], hv⟩
+          ha _ (show st.lp < g by omega), ha _ (show st.lw < g by omega)], hv⟩
   -- the root into `level_roots`
   have b9 := BlkA.seq (H := H) (show k ≤ g + 4 by omega) (show g + 4 ≤ g + 4 from le_rfl) b8
     (B := [osLd g osRoots (2 * lvl), osLd (g + 1) osRoots (2 * lvl + 1)]) (OutB := fun _ ↦ True)
@@ -349,19 +323,20 @@ theorem osQueries_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ :
       (osQueries c lvl lv st).2.pad = st.pad := by
     unfold osQueries; dsimp only; split_ifs <;> exact ⟨rfl, rfl, rfl, rfl, rfl⟩
   have ek : (osQueries c lvl lv st).2.k = g + 4 := rfl
-  have em : (osQueries c lvl lv st).2.mats = wp.2.2.mats := rfl
+  have em : (osQueries c lvl lv st).2.mats = hp.2.2.mats := rfl
   have eb : (osQueries c lvl lv st).2.batched = g + 2 := rfl
   have elp : (osQueries c lvl lv st).2.lamPow = g + 3 := rfl
-  have el : (osQueries c lvl lv st).1 = li.1 ++ cf.1 ++ hp.1 ++ qp.1 ++ wp.1 ++
+  have el : (osQueries c lvl lv st).1 = li.1 ++ cf.1 ++ hp.1 ++
       [.dispatch (.n osRate) ((c.lvAt lvl).map (osQueriesName c lvl))
-        ([li.2.1, li.2.2.1, cf.2.1, hp.2.1, qp.2.1, wp.2.1].map V.n) (osRun g 4)] ++
+        ([li.2.1, li.2.2.1, cf.2.1, hp.2.1, st.lp, st.lw].map V.n) (osRun g 4)] ++
       [osLd g osRoots (2 * lvl), osLd (g + 1) osRoots (2 * lvl + 1)] := by
-    rw [List.append_assoc (li.1 ++ cf.1 ++ hp.1 ++ qp.1 ++ wp.1)]; rfl
-  have eq1 : (osQCallOf c lvl lv st).1 = [li.2.1, li.2.2.1, cf.2.1, hp.2.1, qp.2.1, wp.2.1].map V.n := rfl
+    rw [List.append_assoc (li.1 ++ cf.1 ++ hp.1)]; rfl
+  have eq1 : (osQCallOf c lvl lv st).1 = [li.2.1, li.2.2.1, cf.2.1, hp.2.1, st.lp, st.lw].map V.n := rfl
   have eq2 : (osQCallOf c lvl lv st).2 = osRun g 4 := rfl
   rw [ek, el, eq1, eq2, eb, elp]
-  refine BlkA.monoH b9.agree fun C rd hH σ' _ ⟨⟨⟨ho7, eargs, ev⟩, _⟩, hag⟩ ↦ ?_
-  obtain ⟨-, -, hm, hb⟩ := ho7
+  refine BlkA.monoH b9.agree fun C rd hH σ' _ ⟨⟨⟨ho5, eargs, ev⟩, _⟩, hag⟩ ↦ ?_
+  obtain ⟨-, -, hm⟩ := ho5
+  have hb := mb5
   have hok' := hok C rd hH
   obtain ⟨efs, ecb, eco, ecl, epad⟩ := hfld
   have ev' : ∀ j < 4, σ' (.n (g + j)) = [r0, r1, batched, lamPow].getD j 0 := ev
@@ -403,7 +378,7 @@ theorem osGlue_complete {lvl : ℕ} {st : OsSt} (σ : Val) (hsf : st.Sf)
   set cl := σ (.n st.claim) with hcl
   set B := σ (.n st.batched) with hB
   set LP := σ (.n st.lamPow) with hLP
-  have k33 : 33 ≤ st.k := hsf.k
+  have k33 : 43 ≤ st.k := hsf.k
   have hclk : st.claim < st.k := hsf.below.claim
   have b1 : BlkA H σ st.k (st.k + 6) (osGlue lvl st).1
       (fun σ' ↦ ∀ j < 6, σ' (.n (st.k + j)) = (glueVals cl L Y0 LP B).getD j 0) := by

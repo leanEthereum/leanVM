@@ -68,7 +68,8 @@ theorem busGrind_kidB {d : ℕ} (hd : d ∈ busGrindDeployed) {κ : ℕ} (hκ : 
     (sqE : ℕ) (hpow : (w.limb 0).lane.toNat % 2 ^ busGrindBits d = 0) :
     CompleteAtB fs cert κ (busGrindName d) (vsExpLin sqE) [w, ptr sqE * gen ^ winTabAt]
       (Returns [0]) (fs (busGrindName d) + fs (grindCheckName (busGrindBits d))) :=
-  bus_grind_check_completeB hd hκ _ _ _ fun _ _ hL ↦ ⟨rfl, w, _, rfl, winTabs_vsExp hL, hpow⟩
+  bus_grind_check_completeB hd hκ (fs (grindCheckName (busGrindBits d))) _ _ _ fun _ _ hL ↦
+    ⟨rfl, w, _, rfl, winTabs_vsExp hL, hpow⟩
 
 theorem le_busGrindMax {d : ℕ} (hd : d < 14) :
     fs (busGrindName d) + fs (grindCheckName (busGrindBits d)) ≤ busGrindMax fs := by

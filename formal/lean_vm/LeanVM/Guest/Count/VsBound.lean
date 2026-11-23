@@ -72,7 +72,7 @@ set_option maxRecDepth 100000 in
 theorem vsBoundAt_eq {μ r : ℕ} (h1 : 20 ≤ μ) (h2 : μ ≤ 30) :
     B1.VerifySub.vsBoundAt vsWordsOs B1.VerifySub.vkBound μ r = vsFixed + osC (μ - 20) := by
   rewrite [B1.VerifySub.vsBoundAt.eq_1, B1.VerifySub.vsBsAt.eq_1, B1.VerifySub.vsBsWith.eq_1,
-    show vsWordsOs.Bnd = wSB from rfl, osBosAt_eq h1 h2,
+    show vsWordsOs.Bnd = wSBos from rfl, osBosAt_eq h1 h2,
     show vsWordsOs.toVsWords = vsWords from rfl, vbgMax_eq, vtMax_eq, bg_eq,
     vkBound_eq, termBound_eq, show vsWords.Kst = wSB from rfl, ← vsFixed_eq]
   obtain ⟨h1, h2, h3, h4, h5, h6⟩ := vs_frames

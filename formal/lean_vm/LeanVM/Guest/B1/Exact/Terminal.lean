@@ -154,8 +154,7 @@ theorem termKids_completeBE (κ : ℕ) (hκ : 6 ≤ κ) (Lin : Main.Layout) (D :
     (hL15 : TotalLeOn coreProgram fs name% «check_opening_terminal_loop0» LoopPre
       fun a => logG (a.getD 1 0) * K15 + fs name% «check_opening_terminal_loop0»)
     (hCsF : ∀ κ' < 31, fs (Tables.lName "column_selector" κ') ≤ Bcs)
-    (hrs : ∀ c ≤ 34, TotalLeOn coreProgram fs "rs_eq_run" (fun a => a.getD 3 0 = gen ^ c)
-      fun _ => Brs) :
+    (hrs : RsBound fs Brs) :
     KidsDepBPR fs cert κ (termKids Lin D b0) (termBs fs Beqc K15 Bcs Brs) termPsE := by
   have h := termKids_completeB (fs := fs) (cert := cert) κ hκ Lin D b0 hreg hzl hcl hxl hτ hol hrl hcf hgmu hgz hglm hgtau hm1 hm hKC hOF hrd
     hodl hgm hrdO hEqc hL15 hCsF hrs
@@ -195,8 +194,7 @@ theorem check_opening_terminal_completeAtBWE (κ : ℕ) (hκ : 6 ≤ κ) (B : Te
     (hL15 : TotalLeOn coreProgram fs name% «check_opening_terminal_loop0» LoopPre
       fun a => logG (a.getD 1 0) * K15 + fs name% «check_opening_terminal_loop0»)
     (hCsF : ∀ κ' < 31, fs (Tables.lName "column_selector" κ') ≤ Bcs)
-    (hrs : ∀ c ≤ 34, TotalLeOn coreProgram fs "rs_eq_run" (fun a => a.getD 3 0 = gen ^ c)
-      fun _ => Brs)
+    (hrs : RsBound fs Brs)
     {ι : Type} (ω : ι → String → ℕ) (Weqc W15 Wst Wcs Wrsw : ι → ℕ)
     (hEqcW : ∀ i, WeightLe coreProgram (ω i) "eq_prefix_chain" fun _ => Weqc i)
     (hStW : ∀ i, WeightLe coreProgram (ω i) "selector_tables" fun _ => Wst i)

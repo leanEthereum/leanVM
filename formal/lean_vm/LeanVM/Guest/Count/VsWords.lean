@@ -52,7 +52,7 @@ noncomputable def vsWords : B1.VerifySub.VsWords B2C.fs where
   hEqc := B1.VerifySub.eqc_totalLe_fs
   hL15 := B1.VerifySub.l15_totalLeOn_fs
   hCsF := B1.VerifySub.cs_fs_le
-  hrs := B1.VerifySub.rs_totalLeOn_fs
+  hrs := B1.VerifySub.rs_bound_fs
   ωv := fun op => B2C.ωArm B2C.xmssArmC op
   vtW := vtWeights
   Weqc := termWeqc

@@ -34,17 +34,17 @@ theorem lvFin_gen {h : OsHD} {xs : List E} {b : ℕ} {tabs cur bt : E} {lane : �
     (hfo : FinOkF h.c h.logN h.c.yrLevel ((h.c.levels.getD h.c.yrLevel default)) (h.Ls.getD h.c.yrLevel default).level)
     (hg : (h.Ls.getD h.c.yrLevel default).s.alphas.length = ((h.c.levels.getD h.c.yrLevel default)).foldsOff)
     (hsuf : ∃ p, xs = p ++ (h.Ls.getD h.c.yrLevel default).xs)
-    {st : OsSt} {σ : Val} (hq : QAt h b tabs cur xs h.c.yrLevel st σ)
+    {st : OsSt} {σ : Val} (hq : QAt h b tabs cur xs h.c.yrLevel st σ) (rd0 : Reader) (hl0 : LowDef 11 rd0)
     (hFC : ∀ C rd, H C rd → FinC C rd σ h.c h.c.yrLevel ((h.c.levels.getD h.c.yrLevel default)) (h.capAt h.c.yrLevel)
       (h.claimAt h.c.yrLevel) (cur * gen ^ (xs.length - (h.xsAt h.c.yrLevel).length))
       ((h.Ls.getD h.c.yrLevel default).finWD (digestHalves (h.root h.c.yrLevel)).1
-        (digestHalves (h.root h.c.yrLevel)).2 bt (osPtrA h.c b (11 + h.c.yrLevel)))) :
+        (digestHalves (h.root h.c.yrLevel)).2 bt (osPtrA h.c b (12 + h.c.yrLevel))) rd0) :
     BlkA H σ st.k (osLevel h.c h.c.yrLevel ((h.c.levels.getD h.c.yrLevel default)) st).2.k
       (osLevel h.c h.c.yrLevel ((h.c.levels.getD h.c.yrLevel default)) st).1 (fun σ' ↦
       st.k ≤ (osLevel h.c h.c.yrLevel ((h.c.levels.getD h.c.yrLevel default)) st).2.k ∧
       QAt h b tabs cur xs (h.c.yrLevel + 1) (osLevel h.c h.c.yrLevel ((h.c.levels.getD h.c.yrLevel default)) st).2 σ' ∧
       RAt h b tabs h.c.yrLevel bt σ') := by
-  obtain ⟨-, hfold, hlog, hylen, hdepth, hqueries, -, hqu, -, hsq, -, hpo, -, -, hS5, hr3, hh8, -⟩ := hfo
+  obtain ⟨-, hfold, hlog, hylen, hdepth, hqueries, -, hqu, -, hsq, -, hpo, -, -, hS5, hr3, hf5, hh8, -⟩ := hfo
   set L := h.Ls.getD h.c.yrLevel default with hL
   have hmu : L.mu h.logN = h.c.yrLog := by
     show h.logN - L.s1.alphas.length = _
@@ -52,7 +52,7 @@ theorem lvFin_gen {h : OsHD} {xs : List E} {b : ℕ} {tabs cur bt : E} {lane : �
   have hdep : ((h.c.levels.getD h.c.yrLevel default)).depth = L.dp h.logN := by
     rw [hdepth]; show _ = L.mu h.logN + _; rw [hmu]
   have E := finEqs hF hfold hdep hqueries hsq (digestHalves (h.root h.c.yrLevel)).1
-    (digestHalves (h.root h.c.yrLevel)).2 bt (osPtrA h.c b (11 + h.c.yrLevel)) (h.claimAt h.c.yrLevel)
+    (digestHalves (h.root h.c.yrLevel)).2 bt (osPtrA h.c b (12 + h.c.yrLevel)) (h.claimAt h.c.yrLevel)
   have i0 : h.c.yrLevel ≤ h.c.yrLevel := le_rfl
   have i1 : ¬ h.c.yrLevel + 1 ≤ h.c.yrLevel := by omega
   have hcap0 : h.capAt h.c.yrLevel = L.cap := by unfold OsHD.capAt; simp only [i0, ↓reduceIte]; rfl
@@ -64,7 +64,14 @@ theorem lvFin_gen {h : OsHD} {xs : List E} {b : ℕ} {tabs cur bt : E} {lane : �
   have hx0 : h.xsAt h.c.yrLevel = L.xs := by unfold OsHD.xsAt; simp only [i0, ↓reduceIte]; rfl
   have hx1 : h.xsAt (h.c.yrLevel + 1) = tailWords L.fw.pairs := by
     unfold OsHD.xsAt; simp only [i1, ↓reduceIte]; rfl
-  refine lvFin_step (H := H) (h := h) hS hq _ rfl hr3 hpo (by omega) hh8 hFC ?_ ?_ ?_ ?_
+  have hrwl : ((h.Ls.getD h.c.yrLevel default).finWD (digestHalves (h.root h.c.yrLevel)).1
+      (digestHalves (h.root h.c.yrLevel)).2 bt (osPtrA h.c b (12 + h.c.yrLevel))).rw.length =
+      5 * (h.c.levels.getD h.c.yrLevel default).folds := by
+    obtain ⟨rw, W, hd, hrl, -⟩ := hF
+    show L.rw.length = _
+    unfold LvAt.rw; rw [hd, hrl, hfold]
+  refine lvFin_step (H := H) (h := h) hS hq _ rd0 hl0 hrwl rfl hf5 hpo (by omega) hqu (by omega) hh8 hFC
+    ?_ ?_ ?_ ?_
     (by rw [hcap0, E.S2]; rfl) rfl rfl
   · rw [hcap1, ← E.cap3, hcap0]
   · rw [hcl1, hcap0, hcl0]

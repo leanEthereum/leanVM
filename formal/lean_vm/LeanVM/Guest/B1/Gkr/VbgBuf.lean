@@ -22,13 +22,13 @@ import LeanVM.Guest.Data.ValNames.«verify_bus_gkr»
 range check's two reads (`vbgAux`), its callees `vbgKidS`
 (`gkr_layers__L{o}`, `verify_bus_gkr_loop0` and theirs, placing nothing).
 
-**The buffers.** `vbgLay` (`VbgComplete`) places the honest words as runs inside the seven
+**The buffers.** `vbgLay` (`VbgComplete`) places the honest words as runs inside the eight
 buffers; `vbgOwnW` lays out each buffer whole, the runs at their offsets and zeros between:
 `layers` (`10·(depth + 2)` words, a slot of `10` per level, the levels `≡ depth (mod 2)` from `1`
-up to `depth`), the round records (`7` fields of `862` words, layer `j`'s `j / 4 + 1` from
-position `gkPos`), the point rows (`41` rows of `40`), the tables `depth_odd`, `four_bounds`,
-`four_rem` (`33` each) and the last slot's values (`3`). `vbg_memLay` (`VbgMem`): a memory
-holding the whole buffers holds `vbgLay`.
+up to `depth`), `gkr_sizes` (`66`), the round records (`7·gkRecCount depth` words, records of `7`,
+layer `j`'s `j / 4 + 1` from record `gkPos`), the point rows (`depth / 2 + 2` rows of `40`), the
+tables `depth_odd`, `four_bounds`, `four_rem` (`33` each) and the last slot's values (`3`).
+`vbg_memLay` (`VbgMem`): a memory holding the whole buffers holds `vbgLay`.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -100,7 +100,7 @@ variable (depth : ℕ) (cap0 xs : List E) (cur : E)
 /-- Layer index `k`'s slot's words. -/
 noncomputable def vbgSlotW (k : ℕ) : List E :=
   gkSlotWords (gkSl cap0 xs (depth % 2) k).1 (cur * gen ^ (gkSl cap0 xs (depth % 2) k).2.2)
-    (gkSl cap0 xs (depth % 2) k).2.1 (gen ^ gkPos (depth % 2) k)
+    (gkSl cap0 xs (depth % 2) k).2.1 (gen ^ (7 * gkPos (depth % 2) k))
 
 /-- Level `l`'s ten words of `layers`. -/
 noncomputable def vbgLayBlock (l : ℕ) : List E :=
@@ -120,21 +120,20 @@ noncomputable def vbgRowBlock (t : ℕ) : List E :=
   else List.replicate 40 0
 
 /-- The point rows, whole. -/
-noncomputable def vbgRowsW : List E := (List.range 41).flatMap (vbgRowBlock depth cap0 xs)
+noncomputable def vbgRowsW : List E := (List.range (depth / 2 + 2)).flatMap (vbgRowBlock depth cap0 xs)
 
-/-- Radix-four layer `j`'s (layer index `j + 1 - sh`) records' field `f`. -/
-noncomputable def vbgRecRun (f j : ℕ) : List E :=
-  (List.range (j / 4 + 1)).map
-    (gkRecW cap0 xs (depth % 2) cur (j + 1 - depth % 2) f)
+/-- Radix-four layer `j`'s (layer index `j + 1 - sh`) records, seven words each. -/
+noncomputable def vbgRecRun (j : ℕ) : List E :=
+  (List.range (j / 4 + 1)).flatMap fun y ↦
+    (List.range 7).map fun f ↦ gkRecW cap0 xs (depth % 2) cur (j + 1 - depth % 2) f y
 
-/-- Field `f`'s `862` words of the round records. -/
-noncomputable def vbgRecBlock (f : ℕ) : List E :=
-  List.replicate 1 0 ++ (List.range ((depth - 1) / 2)).flatMap (vbgRecRun depth cap0 xs cur f) ++
-    List.replicate (862 - (1 +
-      ((List.range ((depth - 1) / 2)).flatMap (vbgRecRun depth cap0 xs cur f)).length)) 0
+/-- The layers' records, in layer order. -/
+noncomputable def vbgRecs : List E := (List.range ((depth - 1) / 2)).flatMap (vbgRecRun depth cap0 xs cur)
 
-/-- The round records, whole. -/
-noncomputable def vbgRoundsW : List E := (List.range 7).flatMap (vbgRecBlock depth cap0 xs cur)
+/-- The round records, whole: an unused record, the layers' records, zeros. -/
+noncomputable def vbgRoundsW : List E :=
+  List.replicate 7 0 ++ vbgRecs depth cap0 xs cur ++
+    List.replicate (7 * gkRecCount depth - (7 + (vbgRecs depth cap0 xs cur).length)) 0
 
 end
 
@@ -149,7 +148,7 @@ noncomputable def vbgValsW (depth : ℕ) (cap0 xs : List E) : List E :=
 
 /-- The buffers' words. -/
 noncomputable def vbgOwnW (depth : ℕ) (cap0 xs : List E) (cur : E) : List (List E) :=
-  [vbgLayersW depth cap0 xs cur, vbgRoundsW depth cap0 xs cur, vbgRowsW depth cap0 xs,
+  [vbgLayersW depth cap0 xs cur, vbgSizesW, vbgRoundsW depth cap0 xs cur, vbgRowsW depth cap0 xs,
     vbgOddW, vbgBndW, vbgRemW, vbgValsW depth cap0 xs]
 
 end

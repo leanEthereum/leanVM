@@ -63,9 +63,9 @@ include F
 theorem yrE : h.c.yrLevel + 1 = h.c.levels.length := F.hs.yr
 
 /-- **A level's step**, from its calls and memory by `midC_of` and `finC_of`. -/
-theorem lv {b : ℕ} {cur tabs : E} :
+theorem lv {b : ℕ} {cur tabs : E} (rd0 : Reader) (hl0 : LowDef 11 rd0) :
     ∀ l < h.c.levels.length, ∀ st σ, QAt h b tabs cur xs l st σ →
-      BlkA (fun C rd ↦ OsHA C rd h.c b h.own cur tabs xs) σ st.k
+      BlkA (fun C rd ↦ OsHA C rd h.c b h.own cur tabs xs ∧ LowAgree rd rd0) σ st.k
         (osLevel h.c l (h.c.levels.getD l default) st).2.k (osLevel h.c l (h.c.levels.getD l default) st).1
         (fun σ' ↦ st.k ≤ (osLevel h.c l (h.c.levels.getD l default) st).2.k ∧
           QAt h b tabs cur xs (l + 1) (osLevel h.c l (h.c.levels.getD l default) st).2 σ' ∧
@@ -80,9 +80,9 @@ theorem lv {b : ℕ} {cur tabs : E} :
       rw [hdepth]
       show _ = h.logN - h.Lf.s1.alphas.length + _
       rw [LvAt.s1, roundsSpec_alphas_length, F.gam _ hl, hfold, hlog]
-    exact lvFin_gen F.bs F.last F.fin (F.gam _ hl) (F.suf _ hl) hq fun C rd hH ↦
+    exact lvFin_gen F.bs F.last F.fin (F.gam _ hl) (F.suf _ hl) hq rd0 hl0 fun C rd hH ↦
       finC_of F.hs F.nm hq.ptr hq.tabs (h.bat h.c.yrLevel) F.last hfold hdep hqueries hsq (F.cap5 _ hl)
-        hsfx F.lane (F.G _ hl) F.len F.rl C rd hH
+        hsfx F.lane (F.G _ hl) F.len F.rl rd0 C rd hH.1 hH.2
   · have hl' : l < h.c.yrLevel := by omega
     obtain ⟨-, hfold, hcols, hcols1, hdepth, hqueries, -, -, -, hsq, -⟩ := F.mid l hl'
     have hmu : (h.L l).mu h.logN = (h.c.levels.getD l default).logCols := by
@@ -91,22 +91,22 @@ theorem lv {b : ℕ} {cur tabs : E} :
     have hdep : (h.c.levels.getD l default).depth = (h.L l).dp h.logN := by
       rw [hdepth]; show _ = (h.L l).mu h.logN + _; rw [hmu]
     exact lvMid_gen F.bs hl' hy (by rw [F.len]; omega) (F.step l hl') (F.mid l hl') (F.gam l hl)
-      (F.recF l hl) (F.suf l hl) hq osHA_iz fun C rd hH ↦
+      (F.recF l hl) (F.suf l hl) hq (fun C rd hH w ↦ osHA_iz C rd hH.1 w) rd0 hl0 fun C rd hH ↦
       midC_of F.hs F.nm hl' hq.ptr hq.tabs (h.bat l) (F.step l hl') hfold hmu hdep hqueries hsq hcols1
-        (F.cap5 l hl) hsfx (F.rootN l hl') (F.G l hl) F.len F.rl (F.z0 l hl') C rd hH
+        (F.cap5 l hl) hsfx (F.rootN l hl') (F.G l hl) F.len F.rl (F.z0 l hl') rd0 C rd hH.1 hH.2
 
 /-- **The levels in sequence**, every level's allocation and dispatches. -/
-theorem levels {b : ℕ} {cur tabs : E} (st : OsSt) (σ : Val) (hq : QAt h b tabs cur xs 0 st σ) :
-    BlkA (fun C rd ↦ OsHA C rd h.c b h.own cur tabs xs) σ st.k (osLevels h.c 0 h.c.levels st).2.k
+theorem levels {b : ℕ} {cur tabs : E} (rd0 : Reader) (hl0 : LowDef 11 rd0) (st : OsSt) (σ : Val) (hq : QAt h b tabs cur xs 0 st σ) :
+    BlkA (fun C rd ↦ OsHA C rd h.c b h.own cur tabs xs ∧ LowAgree rd rd0) σ st.k (osLevels h.c 0 h.c.levels st).2.k
       (osLevels h.c 0 h.c.levels st).1 (fun σ' ↦ st.k ≤ (osLevels h.c 0 h.c.levels st).2.k ∧
         QAt h b tabs cur xs h.c.levels.length (osLevels h.c 0 h.c.levels st).2 σ' ∧
         ∀ i < h.c.levels.length, RAt h b tabs i (h.bat i) σ') := by
-  have key := osLevels_complete (H := fun C rd ↦ OsHA C rd h.c b h.own cur tabs xs) h.c
+  have key := osLevels_complete (H := fun C rd ↦ OsHA C rd h.c b h.own cur tabs xs ∧ LowAgree rd rd0) h.c
     (fun l st σ ↦ QAt h b tabs cur xs l st σ) (fun l σ' ↦ RAt h b tabs l (h.bat l) σ')
     (fun _ _ _ _ hq ha ↦ hq.agree ha) h.c.levels 0 (fun i hi st σ hq ↦ by
       rw [Nat.zero_add] at hq ⊢
       rw [show h.c.levels[i] = h.c.levels.getD i default from (List.getD_eq_getElem _ _ hi).symm]
-      exact F.lv i hi st σ hq) st σ hq
+      exact F.lv rd0 hl0 i hi st σ hq) st σ hq
   refine key.mono fun σ' ⟨k1, k2, k3⟩ ↦ ⟨k1, by rwa [Nat.zero_add] at k2, fun i hi ↦ ?_⟩
   have := k3 i hi
   rwa [Nat.zero_add] at this
