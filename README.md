@@ -73,7 +73,7 @@ Python, Node.js, Java, Go, Zig and Nim bindings for leanXMSS, leanSPHINCS and th
 | Zig | `lean-pq-zig-X.Y.Z.tar.gz` attached to each [`bindings-vX.Y.Z` release](https://github.com/leanEthereum/leanVM/releases?q=bindings&expanded=true) |
 | Nim | [`bindings/nim`](bindings/nim/README.md) at tag `bindings-vX.Y.Z` |
 
-Install commands, supported platforms and the sidecar that aggregation needs are in [`bindings/README.md`](bindings/README.md). Rust code uses `lean_vm` directly.
+Install commands, supported platforms and building for fast proving are in [`bindings/README.md`](bindings/README.md). Rust code uses `lean_vm` directly.
 
 ## benchmarks
 

@@ -12,9 +12,15 @@ lean-pq = { workspace = true }
 napi = { version = "3.12.1", features = ["napi9"] }
 napi-derive = "3.6.3"
 
+[target.'cfg(unix)'.dependencies]
+allocator = { workspace = true }
+# Node loads the addon with dlopen after startup, where jemalloc's initial-exec TLS finds no room.
+tikv-jemallocator = { workspace = true }
+
 [build-dependencies]
 napi-build = "2.2.4"
 
-# `cargo machete` misses the build script's use of napi-build.
+# `cargo machete` misses the build script's use of napi-build, and tikv-jemallocator is there for
+# its feature.
 [package.metadata.cargo-machete]
-ignored = ["napi-build"]
+ignored = ["napi-build", "tikv-jemallocator"]

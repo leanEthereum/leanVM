@@ -3,6 +3,9 @@
 use std::fmt;
 
 use crate::vrf::Slot;
+#[cfg(feature = "aggregation")]
+use lean_vm::AggregateError;
+
 use crate::xmss::LeafIndex;
 
 /// Why a lean-pq operation failed.
@@ -66,7 +69,18 @@ pub enum Error {
         slot: u64,
     },
 
+    /// The prover pool already runs with another thread count.
+    #[cfg(feature = "aggregation")]
+    #[error("the prover already runs on {running} threads, not {threads} (0: one per core)")]
+    SetupThreads {
+        /// The running pool's thread count, 0 for one per core.
+        running: usize,
+        /// The thread count asked for.
+        threads: usize,
+    },
+
     /// A raw leanXMSS signature handed to aggregation does not verify.
+    #[cfg(feature = "aggregation")]
     #[error("leanXMSS input {index} (leaf index {leaf_index}) does not verify")]
     InvalidXmssInput {
         /// Position of the input in the leanXMSS list.
@@ -76,6 +90,7 @@ pub enum Error {
     },
 
     /// A raw leanSPHINCS signature handed to aggregation does not verify.
+    #[cfg(feature = "aggregation")]
     #[error("leanSPHINCS input {index} does not verify")]
     InvalidSphincsInput {
         /// Position of the input in the leanSPHINCS list.
@@ -83,6 +98,7 @@ pub enum Error {
     },
 
     /// One aggregation was given more children than one proof can recurse over.
+    #[cfg(feature = "aggregation")]
     #[error("aggregation takes at most {max} children, got {count}")]
     TooManyChildren {
         /// The number of children supplied.
@@ -91,34 +107,31 @@ pub enum Error {
         max: usize,
     },
 
-    /// The sidecar refused to aggregate, and says why.
+    /// The prover could not produce an aggregate.
     ///
     /// Empty input and too many signers for one proof both land here.
     #[error("aggregation failed: {reason}")]
+    #[cfg(feature = "aggregation")]
     Aggregation {
-        /// The sidecar's reason.
-        reason: String,
+        /// The prover's failure.
+        reason: AggregateError,
     },
 
-    /// An aggregate proof does not prove the claims it was checked against, or its bytes are not a
-    /// proof.
+    /// Bytes handed to [`Aggregate::from_bytes`](crate::Aggregate::from_bytes) are not an
+    /// encoded leanVM aggregate proof.
+    #[error("malformed aggregate: the bytes are not a leanVM aggregate proof")]
+    #[cfg(feature = "aggregation")]
+    MalformedAggregate,
+
+    /// An aggregate proof does not prove the claims it was checked against.
     #[error("the aggregate does not prove the given claims")]
+    #[cfg(feature = "aggregation")]
     AggregateRejected,
-
-    /// The sidecar cannot be reached, stopped, or is not a compatible leanVM sidecar.
-    #[error("leanVM sidecar: {reason}")]
-    Sidecar {
-        /// What went wrong.
-        reason: String,
-    },
-
-    /// The [`Sidecar`](crate::Sidecar) was closed.
-    #[error("the sidecar is closed")]
-    SidecarClosed,
-
-    /// This platform has no Unix sockets, so it cannot reach a sidecar.
-    #[error("the leanVM sidecar needs Unix sockets, which this platform lacks")]
-    SidecarUnsupported,
+    /// The process was forked after it started the prover pool, so it has the pool but not its
+    /// threads, and a proof would never finish.
+    #[error("cannot aggregate in a process forked after the prover started: aggregate in the parent, or start the child without forking (Python's `spawn` or `forkserver`)")]
+    #[cfg(feature = "aggregation")]
+    ForkedAfterSetup,
 }
 
 /// A fixed-length byte encoding this crate decodes.

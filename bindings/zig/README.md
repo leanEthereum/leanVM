@@ -51,19 +51,18 @@ pub fn main() !void {
 - leanXMSS keys are stateful: store your own leaf index next to `XmssSecretKey.toBytes()` and never sign two different messages at the same index.
 - leanSPHINCS keys are stateless and deterministic, and sign at most `2^30` messages.
 - `XmssSecretKey.cacheToBytes(allocator)` returns the key's trees, which are not secret; `XmssSecretKey.fromCacheBytes(seed, public_key, cache)` loads the key from them instead of rebuilding them, checking them against the public key.
-- Call `deinit` exactly once on every `XmssSecretKey`, `SphincsSecretKey`, `VrfKey`, `Sidecar` and `Aggregate`. Returned slices belong to the allocator you pass.
+- Call `deinit` exactly once on every `XmssSecretKey`, `SphincsSecretKey`, `VrfKey` and `Aggregate`. Returned slices belong to the allocator you pass.
 - A bad signature or VRF proof returns `error.InvalidSignature`; for other errors, `lastError` returns the message.
 
 ## Aggregate
 
-Aggregating and verifying an aggregate both run in a leanVM sidecar, on Linux and macOS: see [the sidecar](../README.md#sidecar). With the keys and signatures above:
+Aggregation proves in-process. With the keys and signatures above:
 
 ```zig
 const allocator = std.heap.page_allocator;
-var sidecar = try lpq.Sidecar.connect("/home/me/.leanvm/sidecar.sock");
-defer sidecar.deinit();
+try lpq.setup(0);
 
-var leaf = try sidecar.aggregate(&.{}, &.{.{
+var leaf = try lpq.Aggregate.create(&.{}, &.{.{
     .public_key = try xmss_key.publicKey(),
     .message = message,
     .signature = xmss_signature,
@@ -73,12 +72,13 @@ var leaf = try sidecar.aggregate(&.{}, &.{.{
     .signature = sphincs_signature,
 }});
 defer leaf.deinit();
-var root = try sidecar.aggregate(&.{&leaf}, &.{}, &.{});
+var root = try lpq.Aggregate.create(&.{&leaf}, &.{}, &.{});
 defer root.deinit();
 
+// The bytes are the proof alone: the receiver supplies the claims it expects.
 const encoded = try root.toBytes(allocator);
 defer allocator.free(encoded);
-var received = try sidecar.verify(encoded, &.{.{
+var received = try lpq.Aggregate.fromBytes(encoded, &.{.{
     .public_key = try xmss_key.publicKey(),
     .message = message,
 }}, &.{.{
@@ -88,12 +88,21 @@ var received = try sidecar.verify(encoded, &.{.{
 defer received.deinit();
 ```
 
-- `aggregate` verifies raw signatures first and takes at most `max_children` (16) children, which it neither consumes nor retains.
-- `toBytes` is the proof alone: send the claims (`xmssClaims`, `sphincsClaims`) alongside it.
-- `verify` takes the claims in any order (a repeat counts once) and fails with `error.NativeFailure` for any other set, so every `Aggregate` is proven.
-- `Sidecar.start("leanvm-sidecar", "/home/me/.leanvm/run/sidecar.sock", threads)` launches a sidecar instead (`threads` 0: one per core). The socket's directory must be private to you; `start` creates it so if missing. `prover(allocator)` returns `experimental` or `stable`.
-- A sidecar serves at most 16 connections: share one `Sidecar` per process. Calls on it run one at a time.
-- `close()` stops a sidecar `start` launched at once, failing a call in progress, even from another thread; `deinit` closes and frees the handle.
+- `Aggregate.create` verifies raw signatures first, takes at most `max_children` (16) children, which it neither consumes nor retains, and runs one proof at a time per process.
+- `toBytes` is the proof alone: send the claims (`xmssClaims`, `sphincsClaims`, strictly sorted) alongside it.
+- `Aggregate.fromBytes` takes the claims in any order (a repeat counts once) and fails with `error.NativeFailure` for malformed bytes or any other set, so every `Aggregate` is proven.
+- The first proof starts the prover pool, one thread per core, and builds the aggregation guest. Call `setup(threads)` first to choose the thread count (0: one per core) and pay that cost earlier; it fails with `error.NativeFailure` if the pool already runs with another count.
+- A process forked after the pool started cannot aggregate.
+
+### Fast proving
+
+Release packages are built for a portable CPU baseline. For fast proving, build the native archive on the proving machine for its CPU and link it with `-Dnative-dir`. From the repository root, on Linux x86_64:
+
+```sh
+RUSTFLAGS="-C target-cpu=native" sh bindings/native/scripts/stage-static.sh x86_64-unknown-linux-gnu bindings/zig/.native
+```
+
+On another platform, stage the host's own target (`aarch64-unknown-linux-gnu`, or `aarch64-apple-darwin` on Apple silicon), not `universal2-apple-darwin`.
 
 ## VRF
 
@@ -114,8 +123,6 @@ cd bindings/zig && zig build test -Dnative-dir=.native
 ```
 
 Other platforms stage `aarch64-unknown-linux-gnu`, `universal2-apple-darwin` (on macOS, with both Apple Rust targets) or `x86_64-pc-windows-gnu`.
-
-Aggregation tests connect to the sidecar at `LEANVM_SIDECAR_SOCKET` and start one from `LEANVM_SIDECAR_BIN`.
 
 ## License
 

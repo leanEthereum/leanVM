@@ -1,5 +1,4 @@
-//! The claims an aggregate proof attests, and their byte form: shared by the library, which proves and verifies
-//! them, and the sidecar's client, which builds neither.
+//! The claims an aggregate proof attests, and their byte form.
 
 use lean_sphincs::LeanSphincsPublicKey;
 use lean_xmss::LeanXmssPublicKey;
@@ -34,8 +33,9 @@ pub enum OutputClaims<'a> {
     Only(&'a AggregateClaims),
 }
 
-// The claims' byte form is specified in `bins/leanvm-sidecar/README.md` (Claims). Decoding is canonical: it rejects
-// any other flag and trailing bytes. Order is kept, sorted or not.
+// The claims' byte form, integers little-endian: the leanXMSS claims as a `u64` count then each pubkey (32 bytes) and
+// message (32 bytes), the leanSPHINCS claims likewise, then the DA commitment as `u8` 0, or 1 and the root (32 bytes).
+// Decoding is canonical: it rejects any other flag and trailing bytes. Order is kept, sorted or not.
 
 const _: () = assert!(lean_xmss::PUB_KEY_SIZE == 32 && lean_sphincs::PUB_KEY_SIZE == 32);
 const _: () = assert!(lean_xmss::MESSAGE_LEN == 32 && lean_sphincs::MESSAGE_LEN == 32);

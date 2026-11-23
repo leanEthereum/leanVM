@@ -17,10 +17,7 @@ aggregation.workspace = true
 lean_da.workspace = true
 stable_lean_vm_core = { path = "../stable_prover/lean_vm_core" }
 experimental_lean_vm_core = { path = "../experimental_prover/lean_vm_core", optional = true }
-sidecar = { workspace = true, optional = true }
 
 [features]
 # Prove with the experimental prover rather than the stable one.
 experimental_prover = ["dep:experimental_lean_vm_core"]
-# Prove and verify through the sidecar rather than in this process.
-sidecar = ["dep:sidecar"]

@@ -3,9 +3,14 @@ use pyo3::create_exception;
 use pyo3::exceptions::{PyException, PyValueError};
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedBytes;
-use pyo3::types::{PyBytes, PyTuple, PyType};
+use pyo3::types::{PyBytes, PyType};
 use pyo3::wrap_pyfunction;
-use std::path::PathBuf;
+
+// The prover's buffers want jemalloc as `allocator` configures it (kept pages, transparent huge pages); Python's own
+// allocator is untouched.
+#[cfg(unix)]
+#[global_allocator]
+static ALLOCATOR: allocator::Jemalloc = allocator::Jemalloc;
 
 create_exception!(py_lean_pq, LeanPqError, PyException);
 
@@ -245,6 +250,37 @@ fn claims<'py, const N: usize>(
 
 #[pymethods]
 impl PyAggregate {
+    #[classmethod]
+    #[pyo3(
+        signature = (data, xmss_claims = Vec::new(), sphincs_claims = Vec::new()),
+        text_signature = "(data, xmss_claims=(), sphincs_claims=())"
+    )]
+    fn from_bytes(
+        _cls: &Bound<'_, PyType>,
+        py: Python<'_>,
+        data: &[u8],
+        xmss_claims: Vec<Claim>,
+        sphincs_claims: Vec<Claim>,
+    ) -> PyResult<Self> {
+        let xmss_claims = xmss_claims
+            .iter()
+            .map(|(public_key, message)| {
+                Ok((xmss_public_key(public_key)?, self::message(message)?))
+            })
+            .collect::<PyResult<Vec<_>>>()?;
+        let sphincs_claims = sphincs_claims
+            .iter()
+            .map(|(public_key, message)| {
+                Ok((sphincs_public_key(public_key)?, self::message(message)?))
+            })
+            .collect::<PyResult<Vec<_>>>()?;
+        Ok(Self {
+            inner: py
+                .detach(|| lean_pq::Aggregate::from_bytes(data, &xmss_claims, &sphincs_claims))
+                .map_err(api_error)?,
+        })
+    }
+
     fn to_bytes<'py>(&self, py: Python<'py>) -> Bound<'py, PyBytes> {
         PyBytes::new(py, &self.inner.to_bytes())
     }
@@ -273,6 +309,12 @@ impl PyAggregate {
                 .map(|(key, message)| (key.to_bytes(), message)),
         )
     }
+}
+
+#[pyfunction]
+#[pyo3(signature = (threads = 0))]
+fn setup(py: Python<'_>, threads: usize) -> PyResult<()> {
+    py.detach(|| lean_pq::setup(threads)).map_err(api_error)
 }
 
 #[pyfunction]
@@ -313,135 +355,44 @@ fn vrf_verify(py: Python<'_>, root: &[u8], slot: u64, proof: &[u8]) -> PyResult<
         .map_err(api_error)
 }
 
-#[pyclass(name = "Sidecar", frozen, module = "py_lean_pq")]
-struct PySidecar {
-    inner: lean_pq::Sidecar,
-}
-
-impl PySidecar {
-    fn new(inner: lean_pq::Sidecar) -> Self {
-        Self { inner }
-    }
-
-    /// Runs `call` on the sidecar, without the GIL.
-    fn with<T: Send>(
-        &self,
-        py: Python<'_>,
-        call: impl FnOnce(&lean_pq::Sidecar) -> Result<T, lean_pq::Error> + Send,
-    ) -> PyResult<T> {
-        py.detach(|| call(&self.inner)).map_err(api_error)
-    }
-}
-
-#[pymethods]
-impl PySidecar {
-    #[classmethod]
-    fn connect(_cls: &Bound<'_, PyType>, py: Python<'_>, socket: PathBuf) -> PyResult<Self> {
-        py.detach(|| lean_pq::Sidecar::connect(socket))
-            .map(Self::new)
-            .map_err(api_error)
-    }
-
-    #[classmethod]
-    #[pyo3(signature = (binary, socket, threads = 0))]
-    fn start(
-        _cls: &Bound<'_, PyType>,
-        py: Python<'_>,
-        binary: PathBuf,
-        socket: PathBuf,
-        threads: usize,
-    ) -> PyResult<Self> {
-        py.detach(|| lean_pq::Sidecar::start(binary, socket, threads))
-            .map(Self::new)
-            .map_err(api_error)
-    }
-
-    #[pyo3(
-        signature = (children = Vec::new(), xmss = Vec::new(), sphincs = Vec::new()),
-        text_signature = "(self, children=(), xmss=(), sphincs=())"
-    )]
-    fn aggregate(
-        &self,
-        py: Python<'_>,
-        children: Vec<Bound<'_, PyAggregate>>,
-        xmss: Vec<SignedMessage>,
-        sphincs: Vec<SignedMessage>,
-    ) -> PyResult<PyAggregate> {
-        let children = children
-            .iter()
-            .map(|child| &child.get().inner)
-            .collect::<Vec<_>>();
-        let xmss = xmss
-            .iter()
-            .map(|(public_key, message, signature)| {
-                Ok((
-                    xmss_public_key(public_key)?,
-                    self::message(message)?,
-                    xmss_signature(signature)?,
-                ))
-            })
-            .collect::<PyResult<Vec<_>>>()?;
-        let sphincs = sphincs
-            .iter()
-            .map(|(public_key, message, signature)| {
-                Ok((
-                    sphincs_public_key(public_key)?,
-                    self::message(message)?,
-                    sphincs_signature(signature)?,
-                ))
-            })
-            .collect::<PyResult<Vec<_>>>()?;
-        self.with(py, |sidecar| sidecar.aggregate(&children, &xmss, &sphincs))
-            .map(|inner| PyAggregate { inner })
-    }
-
-    #[pyo3(
-        signature = (data, xmss_claims = Vec::new(), sphincs_claims = Vec::new()),
-        text_signature = "(self, data, xmss_claims=(), sphincs_claims=())"
-    )]
-    fn verify(
-        &self,
-        py: Python<'_>,
-        data: &[u8],
-        xmss_claims: Vec<Claim>,
-        sphincs_claims: Vec<Claim>,
-    ) -> PyResult<PyAggregate> {
-        let xmss_claims = xmss_claims
-            .iter()
-            .map(|(public_key, message)| {
-                Ok((xmss_public_key(public_key)?, self::message(message)?))
-            })
-            .collect::<PyResult<Vec<_>>>()?;
-        let sphincs_claims = sphincs_claims
-            .iter()
-            .map(|(public_key, message)| {
-                Ok((sphincs_public_key(public_key)?, self::message(message)?))
-            })
-            .collect::<PyResult<Vec<_>>>()?;
-        self.with(py, |sidecar| {
-            sidecar.verify(data, &xmss_claims, &sphincs_claims)
+#[pyfunction]
+#[pyo3(
+    signature = (children = Vec::new(), xmss = Vec::new(), sphincs = Vec::new()),
+    text_signature = "(children=(), xmss=(), sphincs=())"
+)]
+fn aggregate(
+    py: Python<'_>,
+    children: Vec<Bound<'_, PyAggregate>>,
+    xmss: Vec<SignedMessage>,
+    sphincs: Vec<SignedMessage>,
+) -> PyResult<PyAggregate> {
+    let children = children
+        .iter()
+        .map(|child| &child.get().inner)
+        .collect::<Vec<_>>();
+    let xmss = xmss
+        .iter()
+        .map(|(public_key, message, signature)| {
+            Ok((
+                xmss_public_key(public_key)?,
+                self::message(message)?,
+                xmss_signature(signature)?,
+            ))
         })
+        .collect::<PyResult<Vec<_>>>()?;
+    let sphincs = sphincs
+        .iter()
+        .map(|(public_key, message, signature)| {
+            Ok((
+                sphincs_public_key(public_key)?,
+                self::message(message)?,
+                sphincs_signature(signature)?,
+            ))
+        })
+        .collect::<PyResult<Vec<_>>>()?;
+    py.detach(|| lean_pq::aggregate(&children, &xmss, &sphincs))
         .map(|inner| PyAggregate { inner })
-    }
-
-    #[getter]
-    fn prover(&self) -> &str {
-        self.inner.prover()
-    }
-
-    /// Stops a sidecar `start` launched, failing a call in progress, and closes the connection.
-    fn close(&self, py: Python<'_>) {
-        py.detach(|| self.inner.close());
-    }
-
-    fn __enter__(slf: Py<Self>) -> Py<Self> {
-        slf
-    }
-
-    #[pyo3(signature = (*_args))]
-    fn __exit__(&self, py: Python<'_>, _args: &Bound<'_, PyTuple>) {
-        self.close(py);
-    }
+        .map_err(api_error)
 }
 
 #[pymodule]
@@ -452,9 +403,10 @@ fn py_lean_pq(py: Python<'_>, module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_class::<PySphincsSecretKey>()?;
     module.add_class::<PyVrfKey>()?;
     module.add_class::<PyAggregate>()?;
+    module.add_function(wrap_pyfunction!(setup, module)?)?;
     module.add_function(wrap_pyfunction!(xmss_verify, module)?)?;
     module.add_function(wrap_pyfunction!(sphincs_verify, module)?)?;
-    module.add_class::<PySidecar>()?;
     module.add_function(wrap_pyfunction!(vrf_verify, module)?)?;
+    module.add_function(wrap_pyfunction!(aggregate, module)?)?;
     Ok(())
 }

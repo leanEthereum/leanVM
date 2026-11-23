@@ -28,13 +28,11 @@ Everything else exists once, leaves first:
 | `lean_da` | Reed-Solomon blob encoding, commitments, membership vectors |
 | `claims` | `AggregateClaims`, `OutputClaims` and their byte form |
 | `aggregation` | recursive aggregation, generic over the prover |
-| `sidecar` | proving and verifying in another process: protocol, client, server |
 | `lean_vm` | the public API, the only crate a user imports |
 
 - `guests/lean_ethereum.py`: the guest, in zkDSL.
 - `bench/`: the benchmark CLI, `leanvm-bench`.
-- `bins/leanvm-sidecar`: serves `aggregate` and verification over a Unix socket. Its `README.md` specifies the protocol.
-- `bindings/`: language bindings of the schemes and the sidecar's client. A separate Cargo workspace: run cargo from `bindings/`, see `bindings/README.md`.
+- `bindings/`: language bindings of the schemes and of aggregation. A separate Cargo workspace: run cargo from `bindings/`, see `bindings/README.md`.
 - `doc/leanvm/`: the LaTeX spec. `cd doc/leanvm && latexmk -pdf main.tex` builds into the gitignored `.build/` (delete it if latexmk fails oddly). Sections `body/01` to `10`, annexes `a` (ring switching), `b` (PCS), `c` (Keccak GKR), `d` (NTT). Run `make-drafts.sh` after adding, renaming or renumbering a section.
 - `doc/lean_xmss/`, `doc/lean_sphincs/`: the schemes' specs.
 - `formal/`: Lean 4 proofs in the random-permutation model, vendored from [Verified-zkEVM/leanerVM](https://github.com/Verified-zkEVM/leanerVM). `formal/Statement/` holds what is proved, `formal/statement.tex` what it does not compose to, `formal/AGENTS.md` the build and the gate (`formal/check-all.sh`).
@@ -56,8 +54,7 @@ Rules:
 - **A new program in `crates/zkdsl_compiler/tests/programs/`**: its digest in `tests/suite/determinism.rs` (`GOLDEN`), the regenerated `formal/lean_vm/tests/LeanVMTests/Guest/Programs.lean` (`formal/lean_vm/scripts/regen-guest.sh`), the count in `tests/LeanVMTests/Guest/Data.lean`.
 - **The layout** (`placements_of`, the schema): both provers and all three verifiers (`crates/verifier`'s `layout.rs`). `col_kappas` stays derived from `col_kappa_sources`.
 - **A rename in the leanVM document**: both provers, `crates/verifier`, the Lean verifier and the guest.
-- **The sidecar's protocol** (`crates/sidecar`'s `wire.rs`, `server.rs`) or the claims' byte form (`AggregateClaims::to_bytes`): `bins/leanvm-sidecar/README.md`.
-- **The shared crates' public API, the sidecar's protocol or their dependencies**: `bindings/` (`bindings-ci.yml`), and `bindings/Cargo.lock` for dependencies.
+- **The shared crates' public API or their dependencies**: `bindings/` (`bindings-ci.yml`), and `bindings/Cargo.lock` for dependencies.
 - **EthLib's test vectors** (`tests/<crate>/ethlib/` in `lean_xmss` and `lean_sphincs`): both crates' `ethlib/sync.sh <ethlib-commit>`, same commit.
 
 ## Building and testing
@@ -81,7 +78,7 @@ cargo machete --with-metadata     # unused dependencies
 
 ```bash
 RUSTFLAGS="-C target-cpu=znver4" \
-  cargo check --release --workspace --exclude leanvm-bench --exclude leanvm-sidecar --exclude allocator --target x86_64-unknown-linux-gnu
+  cargo check --release --workspace --exclude leanvm-bench --exclude allocator --target x86_64-unknown-linux-gnu
 ```
 
 Use `RUSTFLAGS`, not `CARGO_TARGET_*_RUSTFLAGS`, which would merge with `target-cpu=native`. A `compile_error!` in the arm confirms it is reached.
@@ -102,7 +99,7 @@ cargo leanvm-bench --prover stable fibonacci --n <steps>
 
 ## Allocator and thread pool
 
-- Libraries impose no allocator. The CLI, the sidecar and the benches install `allocator::Jemalloc`.
+- Libraries impose no allocator. The CLI, the benches and the bindings' final libraries (`bindings/native`, the Node.js addon, the Python extension) install `allocator::Jemalloc`.
 - Experimental skips a buffer's zero-fill with `primitives::uninit_vec` or `filled_vec`. Stable never reads uninitialized memory: it writes a large buffer's first pass with the pool (`parallel::filled`, `parallel::map_collect`).
 - Drop a large buffer where its last use ends.
 - No rayon. One pool per tree, one tree per process: never add a second pool.

@@ -33,32 +33,37 @@ lpq.sphincs_verify(sphincs_key.public_key, message, sphincs_sig)
 - leanSPHINCS is stateless and deterministic; a key signs at most `2^30` messages.
 - `to_bytes()` is the key's 32-byte seed, which is secret; `from_bytes` restores the key.
 - `cache_to_bytes()` returns the key's trees, which are not secret; `XmssSecretKey.from_cache_bytes(seed, public_key, cache)` loads the key from them instead of rebuilding them, checking them against the public key.
-- Failures raise `LeanPqError`, inputs of the wrong length `ValueError`. Every call that signs, verifies or reaches the sidecar releases the GIL.
+- Failures raise `LeanPqError`, inputs of the wrong length `ValueError`. Every call that signs, verifies, proves or decodes an aggregate releases the GIL.
 
 ## Aggregate
 
-Aggregation runs in a leanVM sidecar, a separate process (Linux and macOS): see [the sidecar](https://github.com/leanEthereum/leanVM/tree/main/bindings#sidecar).
-
 ```python
-import os
+lpq.setup(0)  # optional: start the prover on one thread per core now
 
-with lpq.Sidecar.connect(os.path.expanduser("~/.leanvm/sidecar.sock")) as sidecar:
-    # or: lpq.Sidecar.start(binary, socket, threads=0), which launches one
-    leaf = sidecar.aggregate(
-        xmss=[(xmss_key.public_key, message, xmss_sig)],
-        sphincs=[(sphincs_key.public_key, message, sphincs_sig)],
-    )
-    root = sidecar.aggregate(children=[leaf])
-    proof = root.to_bytes()
+leaf = lpq.aggregate(
+    xmss=[(xmss_key.public_key, message, xmss_sig)],
+    sphincs=[(sphincs_key.public_key, message, sphincs_sig)],
+)
+root = lpq.aggregate(children=[leaf])
+proof = root.to_bytes()
 
-    received = sidecar.verify(proof, root.xmss_claims, root.sphincs_claims)
+received = lpq.Aggregate.from_bytes(proof, root.xmss_claims, root.sphincs_claims)
 ```
 
 - `aggregate(children=(), xmss=(), sphincs=())` verifies raw signatures before proving and takes at most 16 children. The result proves the union of their claims.
 - `to_bytes()` is the proof alone: send the claims alongside it, or let the receiver rebuild them.
-- `verify(data, xmss_claims, sphincs_claims)` accepts exactly those `(public_key, message)` claims, in any order, and raises `LeanPqError` otherwise. `xmss_claims` and `sphincs_claims` are sorted lists.
-- `Sidecar.start` uses one thread per core for `threads=0`. `close()`, or the `Sidecar` being garbage collected, stops the sidecar it launched, failing a call in progress. `sidecar.prover` is `experimental` or `stable`, which make the same proofs.
-- Share one `Sidecar` per process (a sidecar serves at most 16 connections); it is thread-safe, and its calls run one at a time. A forked child opens its own connection.
+- `Aggregate.from_bytes(data, xmss_claims=(), sphincs_claims=())` accepts exactly those `(public_key, message)` claims, in any order, and raises `LeanPqError` otherwise. `xmss_claims` and `sphincs_claims` are sorted lists.
+- `setup(threads=0)` starts the prover's thread pool (0: one thread per core) and builds the aggregation guest, once per process. Without it, the first `aggregate` does this with one thread per core. A later `setup` with another thread count raises `LeanPqError`.
+- Proofs run one at a time per process, each taking seconds and over a gigabyte of memory, which the process keeps for the next proof (on Linux and macOS, the extension allocates with jemalloc).
+- A child forked after the prover started cannot aggregate (`LeanPqError`): give `multiprocessing` the `spawn` or `forkserver` start method.
+
+### Fast proving
+
+Published wheels are portable: they target a baseline CPU of each platform. For the fastest proofs, build from source on the proving machine for its own CPU (needs Rust), from the repository root:
+
+```bash
+RUSTFLAGS="-C target-cpu=native" pip install ./bindings/python
+```
 
 ## VRF
 
@@ -82,8 +87,6 @@ Needs Rust and [uv](https://docs.astral.sh/uv/). From `bindings/python`:
 uv run --extra dev pytest tests/ -v
 uv run --extra dev python -m mypy.stubtest py_lean_pq --allowlist stubtest_allowlist.txt
 ```
-
-The aggregation tests use the sidecar listening on `LEANVM_SIDECAR_SOCKET`, and start one from the executable at `LEANVM_SIDECAR_BIN`.
 
 ## License
 

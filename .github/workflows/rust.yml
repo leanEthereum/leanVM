@@ -65,10 +65,8 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: Clippy
         run: cargo clippyall
-      - name: Clippy (the API and the sidecar on the experimental prover)
-        run: cargo clippy --release -p lean_vm -p leanvm-sidecar --all-targets --features experimental_prover -- -D warnings
-      - name: Clippy (the API in its sidecar mode)
-        run: cargo clippy --release -p lean_vm --all-targets --features sidecar -- -D warnings
+      - name: Clippy (the API on the experimental prover)
+        run: cargo clippy --release -p lean_vm --all-targets --features experimental_prover -- -D warnings
       # The schemes' verifiers in a program without std or an allocator, on a target without std.
       - name: Link the verifiers without std
         working-directory: ${{ runner.temp }}

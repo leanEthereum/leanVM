@@ -1,8 +1,12 @@
 #!/bin/sh
-# Add bindings/.cargo/config.toml to a py-lean-pq source distribution built by `maturin sdist`, as
-# .cargo/config.toml at its root: the portable x86_64 baseline with AVX2 and PCLMULQDQ, without
-# which a wheel built from the sdist has neither and signs slowly. At the sdist's root, it applies
-# to the build that pip runs there.
+# Add the two files outside its crates that a py-lean-pq source distribution built by
+# `maturin sdist` needs:
+#
+# - guests/lean_ethereum.py: maturin packages each path dependency's crate directory, but the
+#   `aggregation` crate also compiles in the guest from the repository root.
+# - .cargo/config.toml, a copy of bindings/.cargo/config.toml: the portable x86_64 baseline with
+#   AVX2 and PCLMULQDQ, without which a wheel built from the sdist has neither and proves slowly.
+#   At the sdist's root, it applies to the build that pip runs there.
 set -eu
 
 if [ "$#" -ne 1 ]; then
@@ -18,7 +22,10 @@ trap 'rm -rf "$work"' EXIT
 
 tar -xzf "$sdist" -C "$work"
 test -f "$work/$name/PKG-INFO"
+test -f "$work/$name/crates/aggregation/src/guest.rs"
+mkdir -p "$work/$name/guests"
+cp "$repo_dir/guests/lean_ethereum.py" "$work/$name/guests/"
 mkdir -p "$work/$name/.cargo"
 cp "$repo_dir/bindings/.cargo/config.toml" "$work/$name/.cargo/"
 tar -czf "$sdist" -C "$work" "$name"
-echo "added .cargo/config.toml to $sdist"
+echo "added guests/lean_ethereum.py and .cargo/config.toml to $sdist"

@@ -1,5 +1,8 @@
+#[cfg(unix)]
+#[global_allocator]
+static ALLOCATOR: allocator::Jemalloc = allocator::Jemalloc;
+
 use std::panic::{catch_unwind, AssertUnwindSafe};
-use std::path::PathBuf;
 use std::sync::Arc;
 use std::thread;
 
@@ -10,9 +13,9 @@ use napi_derive::napi;
 
 /// Runs `task` on a thread of its own and returns its promise.
 ///
-/// A sidecar call or start holds a thread for seconds, and building a VRF key over a range for up
-/// to minutes, while `AsyncTask`'s threads are libuv's pool, which Node's file, DNS and crypto work
-/// share.
+/// Proving and the one-time setup hold a thread for seconds, and building a VRF key over a range
+/// for up to minutes, while `AsyncTask`'s threads are libuv's pool, which Node's file, DNS and
+/// crypto work share.
 fn on_own_thread<T: Task + 'static>(env: &Env, mut task: T) -> Result<Object<'_>> {
     let (deferred, promise) = env.create_deferred()?;
     thread::spawn(
@@ -415,115 +418,16 @@ impl Task for VrfKeyTask {
     }
 }
 
-type Shared = Arc<lean_pq::Sidecar>;
-
-/// A connection to a leanVM sidecar, which proves and verifies aggregates.
-#[napi]
-pub struct Sidecar {
-    inner: Shared,
+pub struct SetupTask {
+    threads: usize,
 }
 
-#[napi]
-impl Sidecar {
-    /// Proves; the facade's `aggregate` wraps it.
-    #[napi(ts_return_type = "Promise<Aggregate>")]
-    pub fn prove<'env>(
-        &self,
-        env: &'env Env,
-        children: Vec<&Aggregate>,
-        xmss: Vec<SignedMessage>,
-        sphincs: Vec<SignedMessage>,
-    ) -> Result<Object<'env>> {
-        on_own_thread(
-            env,
-            AggregateTask {
-                sidecar: self.inner.clone(),
-                children: children.iter().map(|child| child.inner.clone()).collect(),
-                xmss: xmss.into_iter().map(RawSignedMessage::from).collect(),
-                sphincs: sphincs.into_iter().map(RawSignedMessage::from).collect(),
-            },
-        )
-    }
-
-    /// Verifies; the facade's `verify` wraps it.
-    #[napi(ts_return_type = "Promise<Aggregate>")]
-    pub fn check<'env>(
-        &self,
-        env: &'env Env,
-        data: Buffer,
-        xmss: Vec<Claim>,
-        sphincs: Vec<Claim>,
-    ) -> Result<Object<'env>> {
-        on_own_thread(
-            env,
-            VerifyTask {
-                sidecar: self.inner.clone(),
-                data: data.to_vec(),
-                xmss: xmss.into_iter().map(RawClaim::from).collect(),
-                sphincs: sphincs.into_iter().map(RawClaim::from).collect(),
-            },
-        )
-    }
-
-    /// The prover the sidecar runs: `experimental` or `stable`.
-    #[napi(getter)]
-    pub fn prover(&self) -> String {
-        self.inner.prover().to_owned()
-    }
-
-    /// Stops a sidecar `start` launched, failing a call in progress, and closes the connection.
-    #[napi(ts_return_type = "Promise<void>")]
-    pub fn close<'env>(&self, env: &'env Env) -> Result<Object<'env>> {
-        on_own_thread(
-            env,
-            CloseTask {
-                sidecar: self.inner.clone(),
-            },
-        )
-    }
-}
-
-pub enum SidecarSource {
-    Connect(PathBuf),
-    Start(PathBuf, PathBuf, usize),
-}
-
-pub struct SidecarTask {
-    source: SidecarSource,
-}
-
-impl Task for SidecarTask {
-    type Output = lean_pq::Sidecar;
-    type JsValue = Sidecar;
-
-    fn compute(&mut self) -> Result<Self::Output> {
-        match &self.source {
-            SidecarSource::Connect(socket) => lean_pq::Sidecar::connect(socket),
-            SidecarSource::Start(binary, socket, threads) => {
-                lean_pq::Sidecar::start(binary, socket, *threads)
-            }
-        }
-        .map_err(api_error)
-    }
-
-    fn resolve(&mut self, _: Env, output: Self::Output) -> Result<Self::JsValue> {
-        Ok(Sidecar {
-            inner: Arc::new(output),
-        })
-    }
-}
-
-pub struct CloseTask {
-    sidecar: Shared,
-}
-
-impl Task for CloseTask {
+impl Task for SetupTask {
     type Output = ();
     type JsValue = ();
 
     fn compute(&mut self) -> Result<Self::Output> {
-        self.sidecar.close();
-        Ok(())
+        lean_pq::setup(self.threads).map_err(api_error)
     }
 
     fn resolve(&mut self, _: Env, output: Self::Output) -> Result<Self::JsValue> {
@@ -531,14 +435,13 @@ impl Task for CloseTask {
     }
 }
 
-pub struct VerifyTask {
-    sidecar: Shared,
+pub struct AggregateFromBytesTask {
     data: Vec<u8>,
     xmss: Vec<RawClaim>,
     sphincs: Vec<RawClaim>,
 }
 
-impl Task for VerifyTask {
+impl Task for AggregateFromBytesTask {
     type Output = lean_pq::Aggregate;
     type JsValue = Aggregate;
 
@@ -563,9 +466,7 @@ impl Task for VerifyTask {
                 ))
             })
             .collect::<Result<Vec<_>>>()?;
-        self.sidecar
-            .verify(&self.data, &xmss, &sphincs)
-            .map_err(api_error)
+        lean_pq::Aggregate::from_bytes(&self.data, &xmss, &sphincs).map_err(api_error)
     }
 
     fn resolve(&mut self, _: Env, output: Self::Output) -> Result<Self::JsValue> {
@@ -576,7 +477,6 @@ impl Task for VerifyTask {
 }
 
 pub struct AggregateTask {
-    sidecar: Shared,
     children: Vec<Arc<lean_pq::Aggregate>>,
     xmss: Vec<RawSignedMessage>,
     sphincs: Vec<RawSignedMessage>,
@@ -610,9 +510,7 @@ impl Task for AggregateTask {
             })
             .collect::<Result<Vec<_>>>()?;
         let children = self.children.iter().map(Arc::as_ref).collect::<Vec<_>>();
-        self.sidecar
-            .aggregate(&children, &xmss, &sphincs)
-            .map_err(api_error)
+        lean_pq::aggregate(&children, &xmss, &sphincs).map_err(api_error)
     }
 
     fn resolve(&mut self, _: Env, output: Self::Output) -> Result<Self::JsValue> {
@@ -622,30 +520,10 @@ impl Task for AggregateTask {
     }
 }
 
-#[napi(ts_return_type = "Promise<Sidecar>")]
-pub fn sidecar_connect(env: &Env, socket: String) -> Result<Object<'_>> {
-    on_own_thread(
-        env,
-        SidecarTask {
-            source: SidecarSource::Connect(socket.into()),
-        },
-    )
-}
-
-#[napi(ts_return_type = "Promise<Sidecar>")]
-pub fn sidecar_start(
-    env: &Env,
-    binary: String,
-    socket: String,
-    threads: Option<f64>,
-) -> Result<Object<'_>> {
+#[napi(ts_return_type = "Promise<void>")]
+pub fn setup(env: &Env, threads: Option<f64>) -> Result<Object<'_>> {
     let threads = uint32(threads.unwrap_or(0.0), "threads")? as usize;
-    on_own_thread(
-        env,
-        SidecarTask {
-            source: SidecarSource::Start(binary.into(), socket.into(), threads),
-        },
-    )
+    on_own_thread(env, SetupTask { threads })
 }
 
 #[napi(ts_return_type = "Promise<XmssSecretKey>")]
@@ -763,4 +641,38 @@ pub fn vrf_verify(root: Buffer, slot: f64, proof: Buffer) -> Result<()> {
     let (nodes, _) = proof.as_chunks::<32>();
     let proof: vrf::Proof = nodes.try_into().expect("a proof is 32 nodes");
     vrf::verify(&root, slot, &proof).map_err(api_error)
+}
+
+#[napi(ts_return_type = "Promise<Aggregate>")]
+pub fn aggregate_from_bytes(
+    env: &Env,
+    data: Buffer,
+    xmss: Vec<Claim>,
+    sphincs: Vec<Claim>,
+) -> Result<Object<'_>> {
+    on_own_thread(
+        env,
+        AggregateFromBytesTask {
+            data: data.to_vec(),
+            xmss: xmss.into_iter().map(RawClaim::from).collect(),
+            sphincs: sphincs.into_iter().map(RawClaim::from).collect(),
+        },
+    )
+}
+
+#[napi(ts_return_type = "Promise<Aggregate>")]
+pub fn aggregate<'env>(
+    env: &'env Env,
+    children: Vec<&Aggregate>,
+    xmss: Vec<SignedMessage>,
+    sphincs: Vec<SignedMessage>,
+) -> Result<Object<'env>> {
+    on_own_thread(
+        env,
+        AggregateTask {
+            children: children.iter().map(|child| child.inner.clone()).collect(),
+            xmss: xmss.into_iter().map(RawSignedMessage::from).collect(),
+            sphincs: sphincs.into_iter().map(RawSignedMessage::from).collect(),
+        },
+    )
 }

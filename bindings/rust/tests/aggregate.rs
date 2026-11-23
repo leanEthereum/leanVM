@@ -1,24 +1,10 @@
-//! leanXMSS and leanSPHINCS aggregation through the safe facade, against the sidecar listening on
-//! `$LEANVM_SIDECAR_SOCKET`.
-#![cfg(unix)]
+//! leanXMSS and leanSPHINCS aggregation through the safe facade.
+#![cfg(feature = "aggregation")]
 
 use std::sync::LazyLock;
 
-use lean_pq::{sphincs, xmss, Aggregate, Error, Message, Sidecar, MAX_CHILDREN};
-
-static SIDECAR: LazyLock<Sidecar> = LazyLock::new(|| {
-    let socket = std::env::var_os("LEANVM_SIDECAR_SOCKET")
-        .expect("set LEANVM_SIDECAR_SOCKET to the socket of a running leanvm-sidecar");
-    Sidecar::connect(socket).unwrap()
-});
-
-fn aggregate(
-    children: &[&Aggregate],
-    xmss: &[(xmss::PublicKey, Message, xmss::Signature)],
-    sphincs: &[(sphincs::PublicKey, Message, sphincs::Signature)],
-) -> Result<Aggregate, Error> {
-    SIDECAR.aggregate(children, xmss, sphincs)
-}
+use lean_pq::{aggregate, sphincs, xmss, Aggregate, Error, Message, MAX_CHILDREN};
+use lean_vm::AggregateError;
 
 /// Two signers, shared by every test so each key is generated once.
 struct Signers {
@@ -38,7 +24,7 @@ static LEAF: LazyLock<Aggregate> =
 const FIRST: Message = [0x11; 32];
 const SECOND: Message = [0x22; 32];
 
-/// Claim lists as `Sidecar::verify` takes them.
+/// Claim lists as `Aggregate::from_bytes` takes them.
 type XmssClaims<'a> = &'a [(xmss::PublicKey, Message)];
 type SphincsClaims<'a> = &'a [(sphincs::PublicKey, Message)];
 
@@ -75,13 +61,12 @@ fn aggregates_both_schemes_recursively_and_round_trips() {
     // The bytes are the proof alone: the receiver supplies the claims, here in another order
     // and with a duplicate, and decoding verifies the proof against them.
     let bytes = root.to_bytes();
-    let received = SIDECAR
-        .verify(
-            &bytes,
-            &[(xmss_key, SECOND), (xmss_key, FIRST), (xmss_key, SECOND)],
-            &[(sphincs_key, SECOND)],
-        )
-        .unwrap();
+    let received = Aggregate::from_bytes(
+        &bytes,
+        &[(xmss_key, SECOND), (xmss_key, FIRST), (xmss_key, SECOND)],
+        &[(sphincs_key, SECOND)],
+    )
+    .unwrap();
 
     // Claims are the union, sorted, with (key, FIRST) once though proven twice.
     assert_eq!(root.xmss_claims(), [(xmss_key, FIRST), (xmss_key, SECOND)]);
@@ -100,7 +85,7 @@ fn rejects_claims_the_proof_does_not_prove() {
     // The same 32 bytes, read as a leanSPHINCS key.
     let as_sphincs = sphincs::PublicKey::from_bytes(&xmss_key.to_bytes()).unwrap();
     let bytes = LEAF.to_bytes();
-    SIDECAR.verify(&bytes, &[(xmss_key, FIRST)], &[]).unwrap();
+    Aggregate::from_bytes(&bytes, &[(xmss_key, FIRST)], &[]).unwrap();
 
     // Mutations of LEAF's claims { xmss: (key, FIRST) }: each is a different statement.
     //
@@ -116,9 +101,7 @@ fn rejects_claims_the_proof_does_not_prove() {
     ];
     for (xmss_claims, sphincs_claims) in mutations {
         assert_eq!(
-            SIDECAR
-                .verify(&bytes, xmss_claims, sphincs_claims)
-                .unwrap_err(),
+            Aggregate::from_bytes(&bytes, xmss_claims, sphincs_claims).unwrap_err(),
             Error::AggregateRejected
         );
     }
@@ -164,8 +147,13 @@ fn rejects_more_children_than_one_proof_recurses_over() {
 fn rejects_empty_input() {
     // Nothing to prove: no children, no raw signatures.
     let error = aggregate(&[], &[], &[]).unwrap_err();
-    assert!(matches!(error, Error::Aggregation { .. }), "{error:?}");
-    // Bindings match on this prefix; the reason after it is the sidecar's wording.
+    assert_eq!(
+        error,
+        Error::Aggregation {
+            reason: AggregateError::InvalidInput("nothing to publish"),
+        }
+    );
+    // Bindings match on this prefix; the reason after it is the underlying library's wording.
     assert!(error.to_string().starts_with("aggregation failed: "));
 }
 
@@ -185,92 +173,20 @@ fn rejects_tampered_and_truncated_bytes() {
     let mut moved = bytes.clone();
     moved[8] ^= 1;
 
-    // Each fails against the proof's own claims.
+    // Each fails, at decoding or at verification, against the proof's own claims.
     for mutated in [&tampered[..], truncated, &moved[..]] {
-        assert_eq!(
-            SIDECAR.verify(mutated, &claims, &[]).unwrap_err(),
-            Error::AggregateRejected
+        let error = Aggregate::from_bytes(mutated, &claims, &[]).unwrap_err();
+        assert!(
+            matches!(error, Error::MalformedAggregate | Error::AggregateRejected),
+            "{error:?}"
         );
     }
-}
-
-#[test]
-fn starts_and_stops_its_own_sidecar() {
-    let binary = std::env::var_os("LEANVM_SIDECAR_BIN")
-        .expect("set LEANVM_SIDECAR_BIN to a leanvm-sidecar executable");
-    // Short: a Unix socket path holds at most 104 bytes on macOS.
-    let directory = std::env::temp_dir().join(format!("lpq{}", std::process::id()));
-    let socket = directory.join("s.sock");
-
-    let started = Sidecar::start(&binary, &socket, 2).unwrap();
-    assert!(["experimental", "stable"].contains(&started.prover()));
-    let claims = [(SIGNERS.xmss.public_key(), FIRST)];
-    started.verify(&LEAF.to_bytes(), &claims, &[]).unwrap();
-
-    // A second start on the same socket would steal it: it fails while the first one runs.
-    let error = Sidecar::start(&binary, &socket, 0).unwrap_err();
-    assert!(error.to_string().contains("already listens"), "{error}");
-
-    // Dropping it stops the sidecar.
-    drop(started);
-    assert!(matches!(
-        Sidecar::connect(&socket).unwrap_err(),
-        Error::Sidecar { .. }
-    ));
-    std::fs::remove_dir_all(directory).unwrap();
-}
-
-#[test]
-fn close_stops_a_started_sidecar_and_fails_the_call_in_progress() {
-    let binary = std::env::var_os("LEANVM_SIDECAR_BIN")
-        .expect("set LEANVM_SIDECAR_BIN to a leanvm-sidecar executable");
-    let directory = std::env::temp_dir().join(format!("lpqc{}", std::process::id()));
-    let socket = directory.join("s.sock");
-    let started = Sidecar::start(&binary, &socket, 2).unwrap();
-
-    std::thread::scope(|scope| {
-        let proving = scope.spawn(|| started.aggregate(&[], &[xmss_input(SECOND, 9)], &[]));
-        // Let the proof start, then close: it stops the sidecar under the call.
-        std::thread::sleep(std::time::Duration::from_millis(500));
-        started.close();
-        assert!(proving.join().unwrap().is_err());
-    });
     assert_eq!(
-        started.verify(&LEAF.to_bytes(), &[], &[]).unwrap_err(),
-        Error::SidecarClosed
+        Aggregate::from_bytes(truncated, &claims, &[]).unwrap_err(),
+        Error::MalformedAggregate
     );
-    std::fs::remove_dir_all(directory).unwrap();
-}
-
-#[test]
-fn refuses_a_socket_directory_open_to_others() {
-    use std::os::unix::fs::PermissionsExt;
-    let directory = std::env::temp_dir().join(format!("lpqo{}", std::process::id()));
-    std::fs::create_dir_all(&directory).unwrap();
-    std::fs::set_permissions(&directory, std::fs::Permissions::from_mode(0o777)).unwrap();
-    let error = Sidecar::start("leanvm-sidecar", directory.join("s.sock"), 0).unwrap_err();
-    assert!(error.to_string().contains("open to other users"), "{error}");
-    std::fs::remove_dir_all(directory).unwrap();
-}
-
-#[test]
-fn refuses_empty_paths() {
-    assert!(Sidecar::connect("").is_err());
-    assert!(Sidecar::start("leanvm-sidecar", "", 0).is_err());
-}
-
-#[test]
-fn fails_to_start_a_missing_binary() {
-    let directory = std::env::temp_dir().join(format!("lpqm{}", std::process::id()));
-    let error =
-        Sidecar::start("/nonexistent/leanvm-sidecar", directory.join("s.sock"), 0).unwrap_err();
-    assert!(error.to_string().contains("cannot run"), "{error}");
-    std::fs::remove_dir_all(directory).unwrap();
-}
-
-#[test]
-fn fails_to_connect_where_no_sidecar_listens() {
-    let error = Sidecar::connect("/nonexistent/leanvm-sidecar.sock").unwrap_err();
-    assert!(matches!(error, Error::Sidecar { .. }), "{error:?}");
-    assert!(error.to_string().starts_with("leanVM sidecar: "));
+    assert_eq!(
+        Error::MalformedAggregate.to_string(),
+        "malformed aggregate: the bytes are not a leanVM aggregate proof"
+    );
 }

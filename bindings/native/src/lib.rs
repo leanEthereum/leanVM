@@ -2,11 +2,16 @@
 //! handles and owned buffers, not a public API.
 #![allow(clippy::missing_safety_doc)] // Safety contract is documented in include/lean_pq_native.h.
 
-use lean_pq::{sphincs, vrf, xmss, Aggregate, Message, Sidecar, MESSAGE_LEN, PUBLIC_KEY_LEN};
+// The prover's buffers want jemalloc as `allocator` configures it (kept pages, transparent huge pages); the host
+// language's own allocator is untouched.
+#[cfg(unix)]
+#[global_allocator]
+static ALLOCATOR: allocator::Jemalloc = allocator::Jemalloc;
+
+use lean_pq::{sphincs, vrf, xmss, Aggregate, Message, MESSAGE_LEN, PUBLIC_KEY_LEN};
 use std::cell::RefCell;
 use std::ffi::c_int;
 use std::panic::{catch_unwind, AssertUnwindSafe};
-use std::path::PathBuf;
 use std::ptr;
 
 pub const LPQ_OK: c_int = 0;
@@ -36,8 +41,6 @@ pub struct SphincsSecretKeyHandle(sphincs::SecretKey);
 pub struct AggregateHandle(Aggregate);
 /// Opaque ownership handle. Bindings only ever pass its address back to this library.
 pub struct VrfKeyHandle(vrf::Key);
-/// Opaque ownership handle. Bindings only ever pass its address back to this library.
-pub struct SidecarHandle(Sidecar);
 
 fn set_error(message: impl Into<String>) {
     LAST_ERROR.with(|error| *error.borrow_mut() = message.into());
@@ -134,71 +137,9 @@ fn claims<const N: usize>(claims: impl IntoIterator<Item = ([u8; N], Message)>) 
         .collect()
 }
 
-unsafe fn path_arg(data: *const u8, len: usize) -> Result<PathBuf, String> {
-    let path = bytes(data, len, "path")?;
-    #[cfg(unix)]
-    {
-        use std::os::unix::ffi::OsStrExt;
-        Ok(PathBuf::from(std::ffi::OsStr::from_bytes(path)))
-    }
-    #[cfg(not(unix))]
-    {
-        std::str::from_utf8(path)
-            .map(PathBuf::from)
-            .map_err(|_| "path must be UTF-8".to_owned())
-    }
-}
-
 #[no_mangle]
-pub unsafe extern "C" fn lpq_sidecar_connect(
-    path: *const u8,
-    len: usize,
-    out: *mut *mut SidecarHandle,
-) -> c_int {
-    ffi(|| {
-        let sidecar = Sidecar::connect(path_arg(path, len)?).map_err(|e| e.to_string())?;
-        put_handle(out, SidecarHandle(sidecar), "sidecar")
-    })
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn lpq_sidecar_start(
-    binary: *const u8,
-    binary_len: usize,
-    path: *const u8,
-    len: usize,
-    threads: usize,
-    out: *mut *mut SidecarHandle,
-) -> c_int {
-    ffi(|| {
-        let sidecar = Sidecar::start(path_arg(binary, binary_len)?, path_arg(path, len)?, threads)
-            .map_err(|e| e.to_string())?;
-        put_handle(out, SidecarHandle(sidecar), "sidecar")
-    })
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn lpq_sidecar_prover(
-    sidecar: *mut SidecarHandle,
-    out: *mut LpqBuffer,
-) -> c_int {
-    ffi(|| {
-        let prover = handle(sidecar, "sidecar")?.0.prover().as_bytes().to_vec();
-        put_buffer(out, prover)
-    })
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn lpq_sidecar_close(sidecar: *mut SidecarHandle) -> c_int {
-    ffi(|| {
-        handle(sidecar, "sidecar")?.0.close();
-        Ok(())
-    })
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn lpq_sidecar_destroy(sidecar: *mut SidecarHandle) {
-    destroy(sidecar)
+pub extern "C" fn lpq_setup(threads: usize) -> c_int {
+    ffi(|| lean_pq::setup(threads).map_err(|e| e.to_string()))
 }
 
 #[no_mangle]
@@ -448,8 +389,7 @@ pub unsafe extern "C" fn lpq_sphincs_verify(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn lpq_sidecar_aggregate(
-    sidecar: *mut SidecarHandle,
+pub unsafe extern "C" fn lpq_aggregate_create(
     children: *const *mut AggregateHandle,
     child_count: usize,
     xmss_records: *const u8,
@@ -459,7 +399,6 @@ pub unsafe extern "C" fn lpq_sidecar_aggregate(
     out: *mut *mut AggregateHandle,
 ) -> c_int {
     ffi(|| {
-        let sidecar = &handle(sidecar, "sidecar")?.0;
         let children = if child_count == 0 {
             Vec::new()
         } else {
@@ -503,16 +442,14 @@ pub unsafe extern "C" fn lpq_sidecar_aggregate(
         })
         .collect::<Result<Vec<_>, lean_pq::Error>>()
         .map_err(|e| e.to_string())?;
-        let aggregate = sidecar
-            .aggregate(&children, &xmss, &sphincs)
-            .map_err(|e| e.to_string())?;
+        let aggregate =
+            lean_pq::aggregate(&children, &xmss, &sphincs).map_err(|e| e.to_string())?;
         put_handle(out, AggregateHandle(aggregate), "aggregate")
     })
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn lpq_sidecar_verify(
-    sidecar: *mut SidecarHandle,
+pub unsafe extern "C" fn lpq_aggregate_from_bytes(
     data: *const u8,
     len: usize,
     xmss_claims: *const u8,
@@ -522,7 +459,6 @@ pub unsafe extern "C" fn lpq_sidecar_verify(
     out: *mut *mut AggregateHandle,
 ) -> c_int {
     ffi(|| {
-        let sidecar = &handle(sidecar, "sidecar")?.0;
         let xmss = records(xmss_claims, xmss_count, CLAIM_RECORD_LEN, "leanXMSS claims")?
             .map(|record| {
                 let (public_key, message, _) = split_record(record);
@@ -542,8 +478,7 @@ pub unsafe extern "C" fn lpq_sidecar_verify(
         })
         .collect::<Result<Vec<_>, lean_pq::Error>>()
         .map_err(|e| e.to_string())?;
-        let aggregate = sidecar
-            .verify(bytes(data, len, "aggregate")?, &xmss, &sphincs)
+        let aggregate = Aggregate::from_bytes(bytes(data, len, "aggregate")?, &xmss, &sphincs)
             .map_err(|e| e.to_string())?;
         put_handle(out, AggregateHandle(aggregate), "aggregate")
     })

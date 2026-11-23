@@ -10,7 +10,7 @@ go get leanvm.org/go@v0.16.0
 ```
 <!-- x-release-please-end -->
 
-Prebuilt for linux/amd64 and linux/arm64 (glibc), darwin/amd64 and darwin/arm64, and windows/amd64: signing and verifying need no Rust.
+Prebuilt for linux/amd64 and linux/arm64 (glibc), darwin/amd64 and darwin/arm64, and windows/amd64: no Rust needed.
 
 Needs Go 1.24+ with cgo (`CGO_ENABLED=1`) and a C compiler: gcc or clang on Linux, the Xcode command line tools on macOS, [MinGW-w64](https://www.mingw-w64.org/) gcc on Windows (not MSVC).
 
@@ -96,16 +96,13 @@ A key is a 32-byte seed and the slots `[start, end)`, with `end <= 2^31`: both f
 
 ## Aggregate
 
-Aggregation runs in a leanVM sidecar, on Linux and macOS: see [the sidecar](../README.md#sidecar). With the keys and signatures above:
+Aggregation proves in-process. With the keys and signatures above:
 
 ```go
-sidecar, err := leanpq.ConnectSidecar("/home/me/.leanvm/sidecar.sock")
-if err != nil {
+if err := leanpq.Setup(0); err != nil { // optional: 0 threads is one per core
     log.Fatal(err)
 }
-defer sidecar.Close()
-
-leaf, err := sidecar.Aggregate(
+leaf, err := leanpq.AggregateSignatures(
     nil,
     []leanpq.XmssSignedMessage{{PublicKey: xmssPublicKey, Message: message, Signature: xmssSignature}},
     []leanpq.SphincsSignedMessage{{PublicKey: sphincsPublicKey, Message: message, Signature: sphincsSignature}},
@@ -114,7 +111,7 @@ if err != nil {
     log.Fatal(err)
 }
 defer leaf.Close()
-root, err := sidecar.Aggregate([]*leanpq.Aggregate{leaf}, nil, nil)
+root, err := leanpq.AggregateSignatures([]*leanpq.Aggregate{leaf}, nil, nil)
 if err != nil {
     log.Fatal(err)
 }
@@ -124,7 +121,7 @@ encoded, err := root.Bytes()
 if err != nil {
     log.Fatal(err)
 }
-received, err := sidecar.Verify(
+received, err := leanpq.AggregateFromBytes(
     encoded,
     []leanpq.Claim{{PublicKey: xmssPublicKey, Message: message}},
     []leanpq.Claim{{PublicKey: sphincsPublicKey, Message: message}},
@@ -135,13 +132,21 @@ if err != nil {
 defer received.Close()
 ```
 
-- `Aggregate` verifies raw signatures first and takes at most 16 children, which it neither consumes nor closes.
+- `AggregateSignatures` verifies raw signatures first and takes at most 16 children, which it neither consumes nor closes.
 - `Bytes()` is the proof alone: send the claims (`XmssClaims()`, `SphincsClaims()`) alongside it.
-- `Verify` takes the claims in any order (a repeat counts once) and rejects any other set, so every `Aggregate` is proven.
-- Verifying an aggregate also needs the sidecar.
-- `StartSidecar(binaryPath, socketPath, threads)` launches a sidecar instead, on a socket in a private directory such as `~/.leanvm/run/sidecar.sock` (`threads` 0: one per core). `Prover()` returns `experimental` or `stable`; both make the same proofs.
-- A `Sidecar` is safe for concurrent use. A sidecar serves at most 16 connections, so share one `Sidecar` per process.
-- `Close` stops a sidecar `StartSidecar` launched at once, failing calls in progress, then closes the connection; later calls fail.
+- `AggregateFromBytes` verifies the proof against exactly the given claims, in any order (a repeat counts once), and rejects any other set, so every `Aggregate` is proven.
+- The first proof or decoding starts the prover pool, one thread per core, and builds the aggregation guest. Call `Setup(threads)` first to choose the thread count (0: one per core) and pay that cost earlier; it fails if the pool already runs with another count.
+- A proof takes seconds and over a gigabyte of memory.
+
+## Fast proving
+
+The prebuilt archives target a generic CPU of their platform, so they run anywhere but prove slower. For fast proving, rebuild the archive on the proving machine for its CPU, with the tools of [Build from source](#build-from-source). From the repository root, on Linux x86_64:
+
+```sh
+RUSTFLAGS="-C target-cpu=native" sh bindings/native/scripts/stage-static.sh x86_64-unknown-linux-gnu bindings/go/internal/native/linux_amd64
+```
+
+On Linux arm64, stage `aarch64-unknown-linux-gnu` into `linux_arm64`; on Apple silicon, `aarch64-apple-darwin` into `darwin_universal`. cgo links the archive in `internal/native/<platform>/`, so build your program against this checkout: `go mod edit -replace leanvm.org/go=/path/to/leanVM/bindings/go`.
 
 ## Build from source
 
@@ -156,8 +161,6 @@ cd bindings/go && go test ./...
 ```
 
 Other platforms stage `aarch64-unknown-linux-gnu` into `linux_arm64`, `universal2-apple-darwin` into `darwin_universal` (on macOS, with both Apple Rust targets), and `x86_64-pc-windows-gnu` into `windows_amd64`.
-
-Aggregation tests connect to the sidecar at `LEANVM_SIDECAR_SOCKET` and start one from `LEANVM_SIDECAR_BIN`.
 
 ## License
 

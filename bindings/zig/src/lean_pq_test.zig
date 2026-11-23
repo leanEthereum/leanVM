@@ -1,5 +1,4 @@
 const std = @import("std");
-const builtin = @import("builtin");
 const lpq = @import("lean_pq");
 
 const message: lpq.Message = [_]u8{0x42} ** 32;
@@ -114,31 +113,11 @@ test "VRF key loads from its cache" {
     try std.testing.expectError(error.NativeFailure, lpq.VrfKey.fromCacheBytes(seed, [_]u8{0} ** 32, cache));
 }
 
-fn requiredEnv(name: []const u8, meaning: []const u8) ![]const u8 {
-    return std.testing.environ.getPosix(name) orelse {
-        std.debug.print("set {s} to {s}\n", .{ name, meaning });
-        return error.MissingEnvironmentVariable;
-    };
-}
-
-fn expectLastError(expected: []const u8) !void {
-    const reason = try lpq.lastError(std.testing.allocator);
-    defer std.testing.allocator.free(reason);
-    try std.testing.expectEqualStrings(expected, reason);
-}
-
-fn expectKnownProver(sidecar: *const lpq.Sidecar) !void {
-    const prover = try sidecar.prover(std.testing.allocator);
-    defer std.testing.allocator.free(prover);
-    try std.testing.expect(std.mem.eql(u8, prover, "experimental") or std.mem.eql(u8, prover, "stable"));
-}
-
 test "aggregates recursively and round trips through bytes" {
-    if (builtin.os.tag == .windows) return error.SkipZigTest;
     const allocator = std.testing.allocator;
-    var sidecar = try lpq.Sidecar.connect(try requiredEnv("LEANVM_SIDECAR_SOCKET", "the socket of a running leanvm-sidecar"));
-    defer sidecar.deinit();
-    try expectKnownProver(&sidecar);
+    try lpq.setup(0);
+    try lpq.setup(0);
+    try std.testing.expectError(error.NativeFailure, lpq.setup(1));
 
     var xmss_key = try lpq.XmssSecretKey.fromSeed([_]u8{3} ** 32);
     defer xmss_key.deinit();
@@ -150,19 +129,19 @@ test "aggregates recursively and round trips through bytes" {
     const sphincs_public_key = try sphincs_key.publicKey();
     const extra_public_key = try extra_key.publicKey();
 
-    var xmss_leaf = try sidecar.aggregate(&.{}, &.{.{
+    var xmss_leaf = try lpq.Aggregate.create(&.{}, &.{.{
         .public_key = xmss_public_key,
         .message = message,
         .signature = try xmss_key.sign(message, 0),
     }}, &.{});
     defer xmss_leaf.deinit();
-    var sphincs_leaf = try sidecar.aggregate(&.{}, &.{}, &.{.{
+    var sphincs_leaf = try lpq.Aggregate.create(&.{}, &.{}, &.{.{
         .public_key = sphincs_public_key,
         .message = message,
         .signature = try sphincs_key.sign(message),
     }});
     defer sphincs_leaf.deinit();
-    var root = try sidecar.aggregate(&.{ &xmss_leaf, &sphincs_leaf }, &.{.{
+    var root = try lpq.Aggregate.create(&.{ &xmss_leaf, &sphincs_leaf }, &.{.{
         .public_key = extra_public_key,
         .message = other_message,
         .signature = try extra_key.sign(other_message, 0),
@@ -177,7 +156,7 @@ test "aggregates recursively and round trips through bytes" {
     const sphincs_claim: lpq.Claim = .{ .public_key = sphincs_public_key, .message = message };
 
     // The receiver lists the claims in any order; a repeated claim counts once.
-    var restored = try sidecar.verify(encoded, &.{ extra_claim, xmss_claim, extra_claim }, &.{sphincs_claim});
+    var restored = try lpq.Aggregate.fromBytes(encoded, &.{ extra_claim, xmss_claim, extra_claim }, &.{sphincs_claim});
     defer restored.deinit();
 
     var expected_xmss = [_]lpq.Claim{ xmss_claim, extra_claim };
@@ -190,8 +169,8 @@ test "aggregates recursively and round trips through bytes" {
     defer allocator.free(sphincs_claims);
     try std.testing.expectEqualSlices(lpq.Claim, &.{sphincs_claim}, sphincs_claims);
 
-    // The getters' claims are exactly what verifying needs.
-    var reread = try sidecar.verify(encoded, xmss_claims, sphincs_claims);
+    // The getters' claims are exactly what decoding needs.
+    var reread = try lpq.Aggregate.fromBytes(encoded, xmss_claims, sphincs_claims);
     defer reread.deinit();
     const reencoded = try reread.toBytes(allocator);
     defer allocator.free(reencoded);
@@ -199,59 +178,22 @@ test "aggregates recursively and round trips through bytes" {
 
     // The same proof does not prove any other claim set.
     const other_sphincs_claim: lpq.Claim = .{ .public_key = sphincs_public_key, .message = other_message };
-    try std.testing.expectError(error.NativeFailure, sidecar.verify(encoded, &.{xmss_claim}, &.{sphincs_claim}));
-    try std.testing.expectError(error.NativeFailure, sidecar.verify(encoded, &.{ xmss_claim, extra_claim }, &.{}));
-    try std.testing.expectError(error.NativeFailure, sidecar.verify(encoded, &.{ xmss_claim, extra_claim }, &.{other_sphincs_claim}));
-    try std.testing.expectError(error.NativeFailure, sidecar.verify(encoded, &.{ xmss_claim, extra_claim }, &.{ sphincs_claim, other_sphincs_claim }));
-    try std.testing.expectError(error.NativeFailure, sidecar.verify(encoded, &.{ xmss_claim, extra_claim, sphincs_claim }, &.{sphincs_claim}));
+    try std.testing.expectError(error.NativeFailure, lpq.Aggregate.fromBytes(encoded, &.{xmss_claim}, &.{sphincs_claim}));
+    try std.testing.expectError(error.NativeFailure, lpq.Aggregate.fromBytes(encoded, &.{ xmss_claim, extra_claim }, &.{}));
+    try std.testing.expectError(error.NativeFailure, lpq.Aggregate.fromBytes(encoded, &.{ xmss_claim, extra_claim }, &.{other_sphincs_claim}));
+    try std.testing.expectError(error.NativeFailure, lpq.Aggregate.fromBytes(encoded, &.{ xmss_claim, extra_claim }, &.{ sphincs_claim, other_sphincs_claim }));
+    try std.testing.expectError(error.NativeFailure, lpq.Aggregate.fromBytes(encoded, &.{ xmss_claim, extra_claim, sphincs_claim }, &.{sphincs_claim}));
 
     const tampered = try allocator.dupe(u8, encoded);
     defer allocator.free(tampered);
     tampered[tampered.len / 2] ^= 1;
-    try std.testing.expectError(error.NativeFailure, sidecar.verify(tampered, &.{ xmss_claim, extra_claim }, &.{sphincs_claim}));
-    try std.testing.expectError(error.NativeFailure, sidecar.verify(encoded[0 .. encoded.len - 1], &.{ xmss_claim, extra_claim }, &.{sphincs_claim}));
-    try std.testing.expectError(error.NativeFailure, sidecar.verify(&.{}, &.{ xmss_claim, extra_claim }, &.{sphincs_claim}));
-    try std.testing.expectError(error.NativeFailure, sidecar.aggregate(&.{}, &.{}, &.{}));
+    try std.testing.expectError(error.NativeFailure, lpq.Aggregate.fromBytes(tampered, &.{ xmss_claim, extra_claim }, &.{sphincs_claim}));
+    try std.testing.expectError(error.NativeFailure, lpq.Aggregate.fromBytes(encoded[0 .. encoded.len - 1], &.{ xmss_claim, extra_claim }, &.{sphincs_claim}));
+    try std.testing.expectError(error.NativeFailure, lpq.Aggregate.fromBytes(&.{}, &.{ xmss_claim, extra_claim }, &.{sphincs_claim}));
 }
 
-test "starts and stops its own sidecar" {
-    if (builtin.os.tag == .windows) return error.SkipZigTest;
-    const allocator = std.testing.allocator;
-    const binary = try requiredEnv("LEANVM_SIDECAR_BIN", "a leanvm-sidecar executable");
-    // Short, as macOS limits a socket path to 104 bytes, and missing, so `start` creates it private.
-    var id: [4]u8 = undefined;
-    std.testing.io.random(&id);
-    const directory = try std.fmt.allocPrint(allocator, "{s}/lpq-{x}", .{
-        std.testing.environ.getPosix("TMPDIR") orelse "/tmp",
-        std.mem.readInt(u32, &id, .little),
-    });
-    defer allocator.free(directory);
-    defer std.Io.Dir.cwd().deleteTree(std.testing.io, directory) catch {};
-    const socket = try std.fs.path.join(allocator, &.{ directory, "s.sock" });
-    defer allocator.free(socket);
-
-    var started = try lpq.Sidecar.start(binary, socket, 2);
-    defer started.deinit();
-    try expectKnownProver(&started);
-    // Bytes that are no proof: the sidecar answers that they prove nothing.
-    try std.testing.expectError(error.NativeFailure, started.verify(&.{0}, &.{}, &.{}));
-    try expectLastError("the aggregate does not prove the given claims");
-
-    // Closing it stops the sidecar.
-    try started.close();
-    try started.close();
-    try std.testing.expectError(error.NativeFailure, started.verify(&.{0}, &.{}, &.{}));
-    try expectLastError("the sidecar is closed");
-    try std.testing.expectError(error.NativeFailure, lpq.Sidecar.connect(socket));
-}
-
-test "the sidecar needs Unix sockets" {
-    if (builtin.os.tag != .windows) return error.SkipZigTest;
-    const unsupported = "the leanVM sidecar needs Unix sockets, which this platform lacks";
-    try std.testing.expectError(error.NativeFailure, lpq.Sidecar.connect("sidecar.sock"));
-    try expectLastError(unsupported);
-    try std.testing.expectError(error.NativeFailure, lpq.Sidecar.start("leanvm-sidecar.exe", "sidecar.sock", 0));
-    try expectLastError(unsupported);
+test "aggregating nothing fails" {
+    try std.testing.expectError(error.NativeFailure, lpq.Aggregate.create(&.{}, &.{}, &.{}));
 }
 
 fn claimLessThan(_: void, a: lpq.Claim, b: lpq.Claim) bool {

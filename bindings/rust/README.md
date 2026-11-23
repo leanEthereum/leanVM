@@ -1,6 +1,8 @@
 # lean-pq
 
-The Rust facade that the Python, Node.js, Java, Go, Zig and Nim bindings wrap: leanXMSS and leanSPHINCS signatures, their aggregation through a leanVM sidecar, and the consensus VRF tree. It is internal and unpublished; Rust code uses [`lean_vm`](../README.md#install) directly.
+The Rust facade that the Python, Node.js, Java, Go, Zig and Nim bindings wrap: leanXMSS and leanSPHINCS signatures, their aggregation, and the consensus VRF tree. It is internal and unpublished; Rust code uses [`lean_vm`](../README.md#install) directly.
+
+Build in release mode: debug builds prove far slower. Aggregation is the default `aggregation` feature, which pulls in the experimental prover (the stable prover's proofs, faster). To only sign and verify, add `default-features = false`: the crate then builds without `aggregate`, `setup`, `Aggregate` and `MAX_CHILDREN`.
 
 ## Sign and verify
 
@@ -41,44 +43,35 @@ A key is a 32-byte seed and the slots `[start, end)`, with `end <= 2^31`: both f
 
 ## Aggregate
 
-Aggregation runs in a leanVM sidecar, a separate process (Linux and macOS): see [the sidecar](../README.md#sidecar).
-
 ```rust,no_run
-use lean_pq::{sphincs, xmss, Sidecar};
+use lean_pq::{aggregate, sphincs, xmss, Aggregate};
 
-let sidecar = Sidecar::connect("/home/me/.leanvm/sidecar.sock")?;
-// or: Sidecar::start("leanvm-sidecar", "/home/me/.leanvm/run/sidecar.sock", 0)?, which launches one
 let message = [0x42; 32];
 let xmss_key = xmss::SecretKey::from_seed([0x01; 32]);
 let sphincs_key = sphincs::SecretKey::from_seed([0x02; 32]);
 
-let leaf = sidecar.aggregate(
+let leaf = aggregate(
     &[],
     &[(xmss_key.public_key(), message, xmss_key.sign(&message, 7))],
     &[(sphincs_key.public_key(), message, sphincs_key.sign(&message))],
 )?;
-let root = sidecar.aggregate(&[&leaf], &[], &[])?;
+let root = aggregate(&[&leaf], &[], &[])?;
 
-let received = sidecar.verify(&root.to_bytes(), &root.xmss_claims(), &root.sphincs_claims())?;
+// The bytes are the proof alone: the receiver supplies the claims it expects.
+let received = Aggregate::from_bytes(
+    &root.to_bytes(),
+    &[(xmss_key.public_key(), message)],
+    &[(sphincs_key.public_key(), message)],
+)?;
 assert_eq!(received.xmss_claims(), root.xmss_claims());
 # Ok::<(), lean_pq::Error>(())
 ```
 
-- `aggregate` verifies raw signatures before proving and takes at most `MAX_CHILDREN` (16) children. The result proves the union of their claims.
-- `to_bytes` is the proof alone: send the claims alongside it, or let the receiver rebuild them.
-- `verify` accepts exactly the claims passed, in any order, and fails otherwise.
-- `Sidecar::start` with `threads` 0 uses one thread per core; `close`, or dropping the `Sidecar`, stops a sidecar it launched, failing a call in progress. `prover()` is `experimental` or `stable`, which make the same proofs.
-- Calls run one at a time; a broken connection is reopened on the next call, and a forked child opens its own. Share one `Sidecar` per process: a sidecar serves at most 16 connections.
-
-## Build and test
-
-From `bindings/`:
-
-```sh
-cargo test --release -p lean-pq
-```
-
-The aggregation tests use the sidecar listening on `LEANVM_SIDECAR_SOCKET`, and start one from the executable at `LEANVM_SIDECAR_BIN`.
+- Aggregation verifies every raw signature before proving, and runs one proof at a time per process.
+- An encoded aggregate is the proof alone: send the claims alongside it, or let the receiver rebuild them, as Ethereum does from its validator bitfields.
+- `Aggregate::from_bytes` verifies the proof against exactly the claims you pass, in any order; any other set of claims fails. Every aggregate value is proven.
+- The first proof starts the prover pool, one thread per core, and builds the aggregation guest. Call `setup(threads)` first to choose the thread count (0: one per core) and pay that cost earlier; it fails if the pool already runs with another count.
+- Fast proving needs the library built for the proving machine's CPU: see [Fast proving](../README.md#fast-proving).
 
 ## License
 

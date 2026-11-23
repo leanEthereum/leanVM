@@ -99,7 +99,7 @@ jobs:
           command: sdist
           args: --out ../../dist
           working-directory: bindings/python
-      - name: Add the cargo config to the sdist
+      - name: Add the guest program and the cargo config to the sdist
         run: sh bindings/python/scripts/complete-sdist.sh dist/py_lean_pq-*.tar.gz
       - uses: actions/upload-artifact@v4
         with:
@@ -107,8 +107,7 @@ jobs:
           path: dist/*.tar.gz
 
   # Installs the Windows wheels into a fresh virtualenv straight from the build artifact (no index,
-  # no source builds) and signs and verifies through them before anything is published (aggregation
-  # needs a sidecar, which Windows lacks).
+  # no source builds) and signs, verifies and aggregates through them before anything is published.
   windows-wheel-test:
     name: windows-latest / py${{ matrix.python }} wheel
     needs: build
@@ -143,7 +142,7 @@ jobs:
           python -m venv "$venv"
           "$venv/Scripts/python" -m pip install --only-binary :all: --no-index --find-links dist py-lean-pq
           "$venv/Scripts/python" -m pip install --only-binary :all: pytest
-      - name: Sign and verify through the installed wheel
+      - name: Sign, verify and aggregate through the installed wheel
         working-directory: ${{ runner.temp }}
         run: |
           python="$(cygpath -u "$RUNNER_TEMP")/venv/Scripts/python"
@@ -647,12 +646,12 @@ jobs:
             if latest=$(npm view "$name" version 2>/dev/null); then
               echo "$name exists on npm (latest $latest)"
             else
-              echo "::warning::$name is not on npm yet; its first publish needs the NPM_TOKEN secret (bindings/RELEASING.md)"
+              echo "::warning::$name is not on npm yet; its first publish needs the NPM_TOKEN secret (bindings/node/README.md)"
             fi
           done
 
-  # Installs the packed root and platform package on each platform and signs and verifies through
-  # them. Alpine runs in a plain container: GitHub's JavaScript actions do not
+  # Installs the packed root and platform package on each platform and signs, verifies and
+  # aggregates through them. Alpine runs in a plain container: GitHub's JavaScript actions do not
   # run inside Alpine containers on arm64.
   node-test:
     name: Node.js test / ${{ matrix.platform.package }}
@@ -696,7 +695,7 @@ jobs:
           CONTAINER: ${{ matrix.platform.container }}
         run: |
           version=${RELEASE_TAG#bindings-v}
-          set -- bindings/node/scripts/install-check.sh "dist/kevaundray-lean-pq-$version.tgz" "dist/kevaundray-lean-pq-$PACKAGE-$version.tgz"
+          set -- bindings/node/scripts/install-check.sh "dist/kevaundray-lean-pq-$version.tgz" "dist/kevaundray-lean-pq-$PACKAGE-$version.tgz" --aggregate
           if [ -n "$CONTAINER" ]; then
             docker run --rm -v "$PWD:/w" -w /w "$CONTAINER" sh "$@"
           else
@@ -709,7 +708,7 @@ jobs:
   #   workflow:    bindings-release.yml
   #   environment: npm          (must match `environment.name` below)
   # npm can only attach a trusted publisher to a package that already exists, so the first publish
-  # of each package uses an NPM_TOKEN secret; see bindings/RELEASING.md. npm tries trusted
+  # of each package uses an NPM_TOKEN secret; see bindings/node/README.md. npm tries trusted
   # publishing first and falls back to the token. Already-published versions are skipped, so a
   # failed run can be re-dispatched on the same tag.
   node-publish:
@@ -817,7 +816,7 @@ jobs:
 
   # Assembles io.github.crate-crypto:lean-pq with all four libraries, runs the consumer against it
   # and publishes it to Maven Central through the Central Portal. The plugin signs every file and
-  # releases the deployment once the Portal validates it. See bindings/RELEASING.md for the secrets.
+  # releases the deployment once the Portal validates it. See bindings/java/README.md for the secrets.
   java-publish:
     name: Publish to Maven Central
     needs: java-native
@@ -860,7 +859,7 @@ jobs:
           missing=0
           for name in MAVEN_CENTRAL_USERNAME MAVEN_CENTRAL_PASSWORD SIGNING_KEY SIGNING_PASSWORD; do
             if [ -z "$(printenv "$name")" ]; then
-              echo "::error::repository secret $name is not set; see bindings/RELEASING.md"
+              echo "::error::repository secret $name is not set; see bindings/java/README.md"
               missing=1
             fi
           done

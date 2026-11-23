@@ -78,34 +78,44 @@ main()
 
 ## Aggregate
 
-Aggregating and verifying an aggregate both run in a leanVM sidecar, on Linux and macOS: see [the sidecar](../README.md#sidecar). With the keys and signatures above (and `import std/os`):
+Aggregation proves in-process. With the keys and signatures above:
 
 ```nim
+doAssert leanPqSetup(0).isOk()
 let
-  sidecar = LeanPqSidecar.connect(getHomeDir() / ".leanvm" / "sidecar.sock").expect("sidecar")
-  leaf = sidecar.aggregate(
+  leaf = LeanPqAggregate.init(
     xmss = [XmssSignedMessage(
       publicKey: xmssPublicKey, message: message, signature: xmssSignature)],
     sphincs = [SphincsSignedMessage(
       publicKey: sphincsPublicKey, message: message, signature: sphincsSignature)],
   ).expect("leaf")
-  root = sidecar.aggregate([leaf]).expect("root")
+  root = LeanPqAggregate.init([leaf]).expect("root")
+
+  # The bytes are the proof alone: the receiver supplies the claims it expects.
   encoded = root.toBytes().expect("bytes")
-  received = sidecar.verify(
+  received = LeanPqAggregate.fromBytes(
     encoded,
     [LeanPqClaim(publicKey: xmssPublicKey, message: message)],
     [LeanPqClaim(publicKey: sphincsPublicKey, message: message)],
   ).expect("verifies")
 doAssert received.xmssClaims().expect("claims").len == 1
-sidecar.close()
 ```
 
-- `aggregate` verifies raw signatures first and takes at most `MaxAggregateChildren` (16) children, which it neither consumes nor closes.
-- `toBytes` is the proof alone: send the claims (`xmssClaims`, `sphincsClaims`) alongside it.
-- `verify` takes the claims in any order (a repeat counts once) and fails for any other set, so every `LeanPqAggregate` is proven.
-- `LeanPqSidecar.start("leanvm-sidecar", getHomeDir() / ".leanvm" / "run" / "sidecar.sock", threads = 0)` launches a sidecar instead (`threads` 0: one per core). The socket's directory must be private to you; `start` creates it so if missing. `prover()` returns `experimental` or `stable`.
-- A sidecar serves at most 16 connections: share one `LeanPqSidecar` per process. Calls on it run one at a time. `close` disconnects and stops a sidecar `start` launched.
-- On Linux, ignore `SIGPIPE` (`signal(SIGPIPE, SIG_IGN)` from `std/posix`), so that a sidecar that dies fails the call instead of killing the program.
+- `LeanPqAggregate.init` verifies raw signatures first, takes at most `MaxAggregateChildren` (16) children, which it neither consumes nor closes, and runs one proof at a time per process.
+- `toBytes` is the proof alone: send the claims (`xmssClaims`, `sphincsClaims`, strictly sorted) alongside it.
+- `LeanPqAggregate.fromBytes` takes the claims in any order (a repeat counts once) and fails for malformed bytes or any other set, so every `LeanPqAggregate` is proven.
+- The first proof starts the prover pool, one thread per core, and builds the aggregation guest. Call `leanPqSetup(threads)` first to choose the thread count (0: one per core) and pay that cost earlier; it fails if the pool already runs with another count.
+- A process forked after the pool started cannot aggregate.
+
+### Fast proving
+
+Release archives are built for a portable CPU baseline. For fast proving, build the native archive on the proving machine for its CPU and link it with `-d:leanPqNativeDir=DIR`. From the repository root, on Linux x86_64:
+
+```sh
+RUSTFLAGS="-C target-cpu=native" sh bindings/native/scripts/stage-static.sh x86_64-unknown-linux-gnu "$PWD/bindings/nim/.native"
+```
+
+Then build with `-d:leanPqNativeDir="$PWD/bindings/nim/.native"` (an absolute path). On another platform, stage the host's own target (`aarch64-unknown-linux-gnu`, or `aarch64-apple-darwin` on Apple silicon), not `universal2-apple-darwin`.
 
 ## VRF
 
@@ -127,7 +137,7 @@ cd bindings/nim && nimble test
 
 Other platforms stage `aarch64-unknown-linux-gnu` into `native/aarch64-linux-gnu`, `universal2-apple-darwin` into `native/universal-macos` (on macOS), and `x86_64-pc-windows-gnu` into `native/x86_64-windows-gnu`.
 
-Aggregation tests connect to the sidecar at `LEANVM_SIDECAR_SOCKET` and start one from `LEANVM_SIDECAR_BIN`.
+The aggregation test proves recursively: expect seconds per proof and over a gigabyte of memory.
 
 ## License
 

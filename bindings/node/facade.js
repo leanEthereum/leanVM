@@ -1,6 +1,6 @@
 const native = require('./index.js')
 
-const { Aggregate, Sidecar, SphincsSecretKey, VrfKey, XmssSecretKey } = native
+const { Aggregate, SphincsSecretKey, VrfKey, XmssSecretKey } = native
 
 XmssSecretKey.generate = native.generateXmssSecretKey
 XmssSecretKey.fromSeed = native.xmssSecretKeyFromSeed
@@ -14,19 +14,21 @@ SphincsSecretKey.fromBytes = native.sphincsSecretKeyFromBytes
 VrfKey.fromSeed = native.vrfKeyFromSeed
 VrfKey.fromCacheBytes = native.vrfKeyFromCacheBytes
 
-// async: an invalid argument rejects the promise rather than throwing.
-Sidecar.connect = async (socket) => native.sidecarConnect(socket)
-Sidecar.start = async (binary, socket, threads) => native.sidecarStart(binary, socket, threads)
-Sidecar.prototype.aggregate = async function aggregate(input) {
-  const { children = [], xmss = [], sphincs = [] } = input ?? {}
-  return this.prove(children, xmss, sphincs)
+Aggregate.fromBytes = function fromBytes(data, { xmss = [], sphincs = [] } = {}) {
+  return native.aggregateFromBytes(data, xmss, sphincs)
 }
-Sidecar.prototype.verify = async function verify(data, claims) {
-  const { xmss = [], sphincs = [] } = claims ?? {}
-  return this.check(data, xmss, sphincs)
+
+// async: an invalid thread count rejects the promise rather than throwing.
+async function setup(threads = 0) {
+  return native.setup(threads)
+}
+
+function aggregate({ children = [], xmss = [], sphincs = [] } = {}) {
+  return native.aggregate(children, xmss, sphincs)
 }
 
 module.exports = {
+  setup,
   XmssSecretKey,
   xmssVerify: native.xmssVerify,
   SphincsSecretKey,
@@ -34,5 +36,5 @@ module.exports = {
   VrfKey,
   vrfVerify: native.vrfVerify,
   Aggregate,
-  Sidecar,
+  aggregate,
 }
