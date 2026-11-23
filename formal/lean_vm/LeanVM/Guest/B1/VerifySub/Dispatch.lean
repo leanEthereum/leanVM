@@ -8,6 +8,8 @@ module
 
 public import LeanVM.Guest.B1.VerifySub.Proof
 public import LeanVM.Guest.B1.Whir.InterfaceAt
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_sub»
 
 /-!
 # The call of `open_stacked`
@@ -33,16 +35,16 @@ theorem vs_dispatch (hos : Whir.open_stacked_sound_w_Spec Whir.open_stacked_osW)
     (hκ : κ ≤ 32) (hκw : winTabBits ≤ κ) (L : MemoryImage κ) {V : FrameMap}
     (hU : UnfoldsV L.read C V) (hC : CallRel.Le C (coreProgram.Rel L.read)) {m lir : ℕ}
     (hm20 : Whir.minOpenLog ≤ m) (hm30 : m ≤ 30) (hl1 : 1 ≤ lir) (hl4 : lir ≤ 4) {root : Digest}
-    (h66 : σ (.n 66) = Whir.rateSel lir)
-    (hroot : (σ (.n 268), σ (.n 271)) = digestHalves root) (hwin : WinTabs L.read (σ (.n 1887)))
+    (h66 : σ (.n (val% «verify_sub» "rate_sel")) = Whir.rateSel lir)
+    (hroot : (σ (.n (val% «verify_sub» "x@9")), σ (.n (val% «verify_sub» "x@10"))) = digestHalves root) (hwin : WinTabs L.read (σ (.n (val% «verify_sub» "sumcheck_target~4"))))
     (hc : C (Whir.openName m) (vsOsArgs σ) (vsOsRets σ)) :
     Whir.OpenOutW L.read m lir root
-      [σ (.n 1337), σ (.n 1338), σ (.n 1339), σ (.n 1340), σ (.n 1341)] (σ (.n 1883))
-      (σ (.n 1885)) (vsOsRets σ) (vsOsW L.read V (m - Whir.minOpenLog) lir (vsOsArgs σ) (vsOsRets σ)).1
+      [σ (.n (val% «verify_sub» "nxt[8]@36")), σ (.n (val% «verify_sub» "nxt[9]@36")), σ (.n (val% «verify_sub» "nxt[10]@36")), σ (.n (val% «verify_sub» "nxt[11]@36")), σ (.n (val% «verify_sub» "nxt[12]@36"))] (σ (.n (val% «verify_sub» "target@136")))
+      (σ (.n (val% «verify_sub» "sumcheck_target~2"))) (vsOsRets σ) (vsOsW L.read V (m - Whir.minOpenLog) lir (vsOsArgs σ) (vsOsRets σ)).1
       (vsOsW L.read V (m - Whir.minOpenLog) lir (vsOsArgs σ) (vsOsRets σ)).2 := by
   obtain ⟨fn, hfind, hpar, hbody⟩ := hU _ _ _ hc
-  refine hos hκ hκw L C V hU hC m lir hm20 hm30 hl1 hl4 root _ (σ (.n 1883)) (σ (.n 268))
-    (σ (.n 271)) (σ (.n 1885)) (σ (.n 1887)) _ fn _ rfl hroot hwin hfind ?_ hbody
+  refine hos hκ hκw L C V hU hC m lir hm20 hm30 hl1 hl4 root _ (σ (.n (val% «verify_sub» "target@136"))) (σ (.n (val% «verify_sub» "x@9")))
+    (σ (.n (val% «verify_sub» "x@10"))) (σ (.n (val% «verify_sub» "sumcheck_target~2"))) (σ (.n (val% «verify_sub» "sumcheck_target~4"))) _ fn _ rfl hroot hwin hfind ?_ hbody
   rw [show Whir.openNames.getD (m - Whir.minOpenLog) "" = Whir.openName m from rfl, hpar, vsOsArgs,
     h66]
   rfl

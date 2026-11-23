@@ -193,11 +193,12 @@ version = "0.1.0"
 
 [[package]]
 name = "lean-pq"
-version = "0.14.0"
+version = "0.16.0"
 dependencies = [
  "claims",
  "getrandom 0.3.4",
  "lean_sphincs",
+ "lean_vrf",
  "lean_xmss",
  "proptest",
  "sidecar",
@@ -206,14 +207,14 @@ dependencies = [
 
 [[package]]
 name = "lean-pq-native"
-version = "0.14.0"
+version = "0.16.0"
 dependencies = [
  "lean-pq",
 ]
 
 [[package]]
 name = "lean-pq-node"
-version = "0.14.0"
+version = "0.16.0"
 dependencies = [
  "lean-pq",
  "napi",
@@ -223,6 +224,13 @@ dependencies = [
 
 [[package]]
 name = "lean_sphincs"
+version = "0.1.0"
+dependencies = [
+ "keccak256",
+]
+
+[[package]]
+name = "lean_vrf"
 version = "0.1.0"
 dependencies = [
  "keccak256",
@@ -375,7 +383,7 @@ dependencies = [
 
 [[package]]
 name = "py-lean-pq"
-version = "0.14.0"
+version = "0.16.0"
 dependencies = [
  "lean-pq",
  "pyo3",

@@ -12,6 +12,9 @@ public import LeanVM.Guest.CoreNames
 public import LeanVM.Guest.JumpTable
 public import LeanVM.Guest.CertName
 public import LeanVM.Guest.VsAt
+import all Statement.Data.Bytecode
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«main»
 
 /-!
 # The checks' facts
@@ -88,14 +91,93 @@ theorem semRel_exp (rd : Reader) (ws : List E) :
 /-- **`open_stacked`'s window table's tag**: tag `tagTabs` of `glob` on one word is `B1.WinTabs`. -/
 theorem semRel_tabs (rd : Reader) (ws : List E) :
     SemRel glob tagTabs rd ws ↔ B1.WinTabs rd (ws.getD 0 0) := by
-  simp [SemRel, SemRel0, tagNe, glob, globSem, tagTabs, tagGkr]
+  simp [SemRel, SemRel0, tagNe, glob, globSem, tagTabs]
 
 /-- Every function's semantic tuples are on its argument cells `2 ..< 2 + nargs`, decided. -/
 noncomputable def sigSemArgsB : Bool :=
   (List.range nFns).all fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
     Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)
 
-theorem sigSemArgsB_eq : sigSemArgsB = true := by decide +kernel
+private theorem all_drop_step {α : Type} {p : α → Bool} {l : List α} {n k : ℕ}
+    (hc : ((l.drop (n * k)).take n).all p = true) (ht : (l.drop (n * (k + 1))).all p = true) :
+    (l.drop (n * k)).all p = true := by
+  rw [← List.take_append_drop n (l.drop (n * k)), List.all_append, hc, List.drop_drop, Bool.true_and]
+  rwa [Nat.mul_succ] at ht
+
+private theorem sigSem0 : (((List.range nFns).drop (100 * 0)).take 100).all (fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
+    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)) = true := by
+  decide +kernel
+
+private theorem sigSem1 : (((List.range nFns).drop (100 * 1)).take 100).all (fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
+    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)) = true := by
+  decide +kernel
+
+private theorem sigSem2 : (((List.range nFns).drop (100 * 2)).take 100).all (fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
+    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)) = true := by
+  decide +kernel
+
+private theorem sigSem3 : (((List.range nFns).drop (100 * 3)).take 100).all (fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
+    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)) = true := by
+  decide +kernel
+
+private theorem sigSem4 : (((List.range nFns).drop (100 * 4)).take 100).all (fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
+    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)) = true := by
+  decide +kernel
+
+private theorem sigSem5 : (((List.range nFns).drop (100 * 5)).take 100).all (fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
+    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)) = true := by
+  decide +kernel
+
+private theorem sigSem6 : (((List.range nFns).drop (100 * 6)).take 100).all (fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
+    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)) = true := by
+  decide +kernel
+
+private theorem sigSem7 : (((List.range nFns).drop (100 * 7)).take 100).all (fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
+    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)) = true := by
+  decide +kernel
+
+private theorem sigSem8 : (((List.range nFns).drop (100 * 8)).take 100).all (fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
+    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)) = true := by
+  decide +kernel
+
+private theorem sigSem9 : (((List.range nFns).drop (100 * 9)).take 100).all (fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
+    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)) = true := by
+  decide +kernel
+
+private theorem sigSem10 : (((List.range nFns).drop (100 * 10)).take 100).all (fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
+    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)) = true := by
+  decide +kernel
+
+private theorem sigSem11 : (((List.range nFns).drop (100 * 11)).take 100).all (fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
+    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)) = true := by
+  decide +kernel
+
+private theorem sigSem12 : (((List.range nFns).drop (100 * 12)).take 100).all (fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
+    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)) = true := by
+  decide +kernel
+
+private theorem sigSem13 : (((List.range nFns).drop (100 * 13)).take 100).all (fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
+    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)) = true := by
+  decide +kernel
+
+private theorem sigSem14 : (((List.range nFns).drop (100 * 14)).take 100).all (fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
+    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)) = true := by
+  decide +kernel
+
+private theorem sigSem15 : (((List.range nFns).drop (100 * 15)).take 100).all (fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
+    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)) = true := by
+  decide +kernel
+
+private theorem sigSem16 : ((List.range nFns).drop (100 * 16)).all (fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
+    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)) = true := by
+  decide +kernel
+
+/-- `sigSemArgsB`, a hundred functions at a time (the last check takes the rest). -/
+theorem sigSemArgsB_eq : sigSemArgsB = true :=
+  all_drop_step (k := 0) sigSem0 <| all_drop_step sigSem1 <| all_drop_step sigSem2 <| all_drop_step sigSem3 <|
+    all_drop_step sigSem4 <| all_drop_step sigSem5 <| all_drop_step sigSem6 <| all_drop_step sigSem7 <|
+    all_drop_step sigSem8 <| all_drop_step sigSem9 <| all_drop_step sigSem10 <| all_drop_step sigSem11 <|
+    all_drop_step sigSem12 <| all_drop_step sigSem13 <| all_drop_step sigSem14 <| all_drop_step sigSem15 sigSem16
 
 /-- **Every function's semantic tuples read only its argument words**: their cells are argument
 cells (and a tuple's relation, `SemRel glob t rd ws`, reads only the memory and the words). -/
@@ -170,28 +252,28 @@ theorem coreOf_verify_sub : coreOf (fn_idx% «verify_sub») = fn% «verify_sub»
 table's relation (tag `0`) on that call's return cell. -/
 theorem main_cut : (certOf 1).cuts.length = 1 ∧ ((certOf 1).cutAt 1).known = [] ∧
     ((certOf 1).cutAt 1).knownIf = [] ∧
-    ((certOf 1).cutAt 1).sems = [(0, [(certOf 1).locs.getD 28 0])] := by
+    ((certOf 1).cutAt 1).sems = [(0, [(certOf 1).locs.getD 46 0])] := by
   decide +kernel
 
-/-- `main`'s statement `16` is its call of `exponent_tables`, before its cut, after no `ret`. -/
-theorem main_exp : (coreOf 1).body[16]? = some (.call "exponent_tables" [] [.n 28]) := rfl
+/-- `main`'s statement `g_squares` is its call of `exponent_tables`, before its cut, after no `ret`. -/
+theorem main_exp : (coreOf 1).body[34]? = some (.call "exponent_tables" [] [.n (val% «main» "g_squares")]) := rfl
 
-theorem main_exp_lt : 16 < ((certOf 1).cutAt 1).start := by decide +kernel
+theorem main_exp_lt : 34 < ((certOf 1).cutAt 1).start := by decide +kernel
 
-theorem main_exp_noRet : Stmt.noRetList ((coreOf 1).body.take 16) = true := by decide +kernel
+theorem main_exp_noRet : Stmt.noRetList ((coreOf 1).body.take (pos% «main» "g_squares")) = true := by decide +kernel
 
 /-- The statements before `main`'s cut, at its call of `exponent_tables` (wherever the cut is). -/
 theorem main_call : (coreOf 1).body.take ((certOf 1).cutAt 1).start =
-    (coreOf 1).body.take 16 ++ .call "exponent_tables" [] [.n 28] ::
-      ((coreOf 1).body.take ((certOf 1).cutAt 1).start).drop 17 := by
+    (coreOf 1).body.take (pos% «main» "g_squares") ++ .call "exponent_tables" [] [.n (val% «main» "g_squares")] ::
+      ((coreOf 1).body.take ((certOf 1).cutAt 1).start).drop 35 := by
   have h1 := main_exp
   have h2 := main_exp_lt
   generalize (coreOf 1).body = l at h1 ⊢
   generalize ((certOf 1).cutAt 1).start = n at h2 ⊢
-  have h : (l.take n)[16]? = some (.call "exponent_tables" [] [.n 28]) := by
+  have h : (l.take n)[34]? = some (.call "exponent_tables" [] [.n (val% «main» "g_squares")]) := by
     rw [List.getElem?_take_of_lt h2, h1]
-  have hl : 16 < (l.take n).length := (List.getElem?_eq_some_iff.mp h).1
-  conv_lhs => rw [← List.take_append_drop 16 (l.take n)]
+  have hl : 34 < (l.take n).length := (List.getElem?_eq_some_iff.mp h).1
+  conv_lhs => rw [← List.take_append_drop 34 (l.take n)]
   rw [List.take_take, Nat.min_eq_left h2.le, List.drop_eq_getElem_cons hl]
   congr 2
   exact (List.getElem?_eq_some_iff.mp h).2
@@ -200,7 +282,7 @@ theorem main_facts : (certOf 1).facts.env = [] ∧ (certOf 1).pre = [] ∧ (cert
     (certOf 1).sem = [] ∧ (certOf 1).nret = 0 ∧ (coreOf 1).params = [] ∧ (coreOf 1).name = "main" := by
   decide +kernel
 
-theorem fnOf_1 : (fnOf 1).entryPc = mainEntry := rfl
+theorem fnOf_1 : (fnOf 1).entryPc = mainEntry := by rfl
 
 end
 end LeanVM.Guest.End

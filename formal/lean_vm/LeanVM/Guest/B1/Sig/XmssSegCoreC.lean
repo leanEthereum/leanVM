@@ -16,7 +16,7 @@ public import LeanVM.Guest.B1.Sig.XmssSegWinSpec
 
 * `LxWindowsC`: what the path windows' completeness establishes (`XmssSegPathC`): a layer's two
   windows complete from the leaf, the hinted siblings the given ones;
-* `sCore_complete`: the step addresses, the codeword, the leaf and the two windows complete;
+* `sCore_complete_digits`, `sCore_complete`: the step addresses, the codeword, the leaf and the two windows complete;
 * `xVals`, `xSibs`, `sPart_eq`: the layer signature as cells, read back off the valuation;
 * `digest_digits`, `layerRoot_decode`, `cellPairVal_cellOf128`: the scheme's side.
 -/
@@ -135,9 +135,8 @@ theorem sLeafPart_nb {layer b : Nat} (hidx : NBv (sA layer b) (sLxIdx layer b))
   exact ((xStepAddrs_seq hidx).numBelow.mono (by omega)).append ((hcw.mono (by omega)).append
     ((hseq.numBelow.mono b2).append (kMsg_numBelow (by simp [sLxPad]; omega) (sLeafCells_nb layer b))))
 
-/-- **A layer after its digest completes**, given the path windows' completeness: its codeword at
-the digest's digits `N`, its chains' starts `vals`, its siblings `sibs`: on any valuation agreeing below its end the starts and siblings read off are `vals` and `sibs`. -/
-theorem sCore_complete (hW : LxWindowsC) {layer b : Nat} (hl : layer < 2) (hA : 103 ≤ sA layer b)
+/-- **A layer after its digest completes**, given the path windows' completeness: its codeword at the digest's digits `N`, its chains' starts `vals`, its siblings `sibs`: on any valuation agreeing below its end the digit words are `N`'s groups and the starts and siblings read off are `vals` and `sibs`. -/
+theorem sCore_complete_digits (hW : LxWindowsC) {layer b : Nat} (hl : layer < 2) (hA : 103 ≤ sA layer b)
     (hm : MemOK rd 256) (σ : Val) (hpad : PadOK σ sLxPad) (hpow : ∀ s < 13, σ (sPower s) = gen ^ s)
     {L : Nat} (hL : L < 2 ^ 32) (hhis : ∀ v < 4, σ (sHis v) = eOfNat (L >>> (8 * v)))
     (hwin : ∀ w < 4, σ (sWin w) = ofK (addressOfIndex (lxWin L w)))
@@ -153,6 +152,7 @@ theorem sCore_complete (hW : LxWindowsC) {layer b : Nat} (hl : layer < 2) (hA : 
         ([cst (sCw layer b).2.1 (word (tw 2) 0), addS (.n ((sCw layer b).2.1 + 1)) (sLxIdx layer b)
           (.n (sCw layer b).2.1)] ++ ((sLeafK layer b).1 ++ ((sWin0 layer b).1 ++ (sWin1 layer b).1))))) σ
       (fun σ' => ∀ σ'', AgreeBelow (sWin1 layer b).2.1 σ' σ'' →
+        (∀ q < 15, σ'' (.n (sA layer b + 6 + q)) = ofK (addressOfIndex (lxK N q))) ∧
         (∀ i < 58, σ'' (sStart (sW layer b) σ'' (sA layer b + 6) (sA layer b + 6 + 70) i) = vals i) ∧
         ∀ l < 16, sSibAt σ'' layer b l = sibs l) := by
   have b1 := sCw_snd_ge layer b
@@ -183,16 +183,18 @@ theorem sCore_complete (hW : LxWindowsC) {layer b : Nat} (hl : layer < 2) (hA : 
     (fun s hs => by rw [show sPower s = V.n (75 + s) from rfl, t _ (by omega)]; exact hpow s hs) sibs
   refine (hc.keep (Q := fun σ => (∀ w < 4, σ (sWin w) = ofK (addressOfIndex (lxWin L w))) ∧
       ∀ σ'', AgreeBelow (sLeafK layer b).2.1 σ σ'' →
+      (∀ q < 15, σ'' (.n (sA layer b + 6 + q)) = ofK (addressOfIndex (lxK N q))) ∧
       ∀ i < 58, σ'' (sStart (sW layer b) σ'' (sA layer b + 6) (sA layer b + 6 + 70) i) = vals i)
     (Q' := fun σ => (∀ w < 4, σ (sWin w) = ofK (addressOfIndex (lxWin L w))) ∧
       ∀ σ'', AgreeBelow (sLeafK layer b).2.1 σ σ'' →
+      (∀ q < 15, σ'' (.n (sA layer b + 6 + q)) = ofK (addressOfIndex (lxK N q))) ∧
       ∀ i < 58, σ'' (sStart (sW layer b) σ'' (sA layer b + 6) (sA layer b + 6 + 70) i) = vals i)
-    ⟨fun w hw => by rw [show sWin w = V.n (71 + w) from rfl, t _ (by omega)]; exact hwin w hw,
-      fun σ'' hag => (hk4 σ'' hag).2⟩
+    ⟨fun w hw => by rw [show sWin w = V.n (71 + w) from rfl, t _ (by omega)]; exact hwin w hw, hk4⟩
     (fun σ' he' ⟨hq1, hq2⟩ => ⟨fun w hw => by
         rw [show sWin w = V.n (71 + w) from rfl, he'.apply (Or.inl (by omega))]; exact hq1 w hw,
       fun σ'' hag => hq2 σ'' (fun k hk => (he'.agree k hk).trans (hag k hk))⟩)).mono le_rfl le_rfl
-    (fun σ5 ⟨hs5, hw5, hq5⟩ σ'' hag => ⟨hq5 σ'' (hag.mono (by omega)), fun l hl => ?_⟩)
+    (fun σ5 ⟨hs5, hw5, hq5⟩ σ'' hag => ⟨(hq5 σ'' (hag.mono (by omega))).1, (hq5 σ'' (hag.mono (by omega))).2,
+      fun l hl => ?_⟩)
   have hkw : ∀ w < 4, sKw σ'' w = lxWin L w := fun w hw => by
     unfold sKw
     rw [show sWin w = V.n (71 + w) from rfl, hag.apply ⟨71 + w, by omega, rfl⟩]
@@ -205,6 +207,29 @@ theorem sCore_complete (hW : LxWindowsC) {layer b : Nat} (hl : layer < 2) (hA : 
   · rw [hkw _ (by omega)]
     have := h1 (l - 8) (by omega)
     rwa [show 8 + (l - 8) = l by omega] at this
+
+/-- **A layer after its digest completes**, given the path windows' completeness: its codeword at
+the digest's digits `N`, its chains' starts `vals`, its siblings `sibs`: on any valuation agreeing below its end the starts and siblings read off are `vals` and `sibs`. -/
+theorem sCore_complete (hW : LxWindowsC) {layer b : Nat} (hl : layer < 2) (hA : 103 ≤ sA layer b)
+    (hm : MemOK rd 256) (σ : Val) (hpad : PadOK σ sLxPad) (hpow : ∀ s < 13, σ (sPower s) = gen ^ s)
+    {L : Nat} (hL : L < 2 ^ 32) (hhis : ∀ v < 4, σ (sHis v) = eOfNat (L >>> (8 * v)))
+    (hwin : ∀ w < 4, σ (sWin w) = ofK (addressOfIndex (lxWin L w)))
+    (hidx : NBv (sA layer b) (sLxIdx layer b)) (hd0 : NBv (sA layer b) (sD0 layer b)) {N : Nat}
+    (hN : σ (sD0 layer b) = lit (∑ i ∈ Finset.range 58, N / 4 ^ i % 4 * 4 ^ i))
+    (hs : ∑ i ∈ Finset.range 58, N / 4 ^ i % 4 = 106) (vals : Nat → E) (sibs : Nat → E) :
+    NumBelow (sWin1 layer b).2.1 (Stmt.valsList (xStepAddrs (sLxIdx layer b) (sA layer b) ++ ((sCw layer b).1 ++
+      ([cst (sCw layer b).2.1 (word (tw 2) 0), addS (.n ((sCw layer b).2.1 + 1)) (sLxIdx layer b)
+        (.n (sCw layer b).2.1)] ++ ((sLeafK layer b).1 ++ ((sWin0 layer b).1 ++ (sWin1 layer b).1)))))) ∧
+    sA layer b + 83 ≤ (sWin1 layer b).2.1 ∧
+    Completes C rd (sA layer b) (sWin1 layer b).2.1
+      (xStepAddrs (sLxIdx layer b) (sA layer b) ++ ((sCw layer b).1 ++
+        ([cst (sCw layer b).2.1 (word (tw 2) 0), addS (.n ((sCw layer b).2.1 + 1)) (sLxIdx layer b)
+          (.n (sCw layer b).2.1)] ++ ((sLeafK layer b).1 ++ ((sWin0 layer b).1 ++ (sWin1 layer b).1))))) σ
+      (fun σ' => ∀ σ'', AgreeBelow (sWin1 layer b).2.1 σ' σ'' →
+        (∀ i < 58, σ'' (sStart (sW layer b) σ'' (sA layer b + 6) (sA layer b + 6 + 70) i) = vals i) ∧
+        ∀ l < 16, sSibAt σ'' layer b l = sibs l) :=
+  let ⟨h1, h2, h3⟩ := sCore_complete_digits (C := C) hW hl hA hm σ hpad hpow hL hhis hwin hidx hd0 hN hs vals sibs
+  ⟨h1, h2, h3.mono le_rfl le_rfl fun _ h σ'' hag => (h σ'' hag).2⟩
 
 end
 end LeanVM.Guest.B1.Sig

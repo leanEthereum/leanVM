@@ -78,6 +78,7 @@ theorem mainComplete_of_bounds (fs : String → ℕ) (cert : String → V → �
     omega
   · obtain ⟨t, ⟨hn, hv, hb, hp, ht, hli, -⟩, hT⟩ :=
       hR rd (hl.mono (Memory.twentyThree_le_logMem n)) hL (loadHolds_one h0) (loadHolds_gen h1)
+    rw [Nat.zero_add] at hp hli
     exact ⟨t, hn, hv, hb, hp, ht, hli, hcnt seed s w hrel hlim rd t hT hv hb⟩
 
 end

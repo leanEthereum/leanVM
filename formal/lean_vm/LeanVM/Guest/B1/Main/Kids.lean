@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.B1.Main.Cover
 public import LeanVM.Guest.B1.Digest.Statement
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«main»
 
 /-!
 # The children's records
@@ -55,31 +57,31 @@ structure KidRec where
 
 /-- **What child `c` establishes.** -/
 structure KidOk (C : CallRel) (rd : Reader) (σ : Val) (c : ℕ) (k : KidRec) : Prop where
-  base : LoadHolds rd (σ (.n 398)) c k.base
-  next : LoadHolds rd (σ (.n 398)) (c + 1) (k.base * (gen ^ k.ex * gen ^ k.es))
+  base : LoadHolds rd (σ (.n (val% «main» "written"))) c k.base
+  next : LoadHolds rd (σ (.n (val% «main» "written"))) (c + 1) (k.base * (gen ^ k.ex * gen ^ k.es))
   bounds : k.ex < 2 ^ 32 ∧ k.es < 2 ^ 32
   xlen : k.cellsx.length = 4 * k.ex
-  xrec : ∀ j < k.ex, SlotBelow (σ (.n 22)) (k.ox j) ∧
-    LoadHolds rd (σ (.n 45)) (k.ox j) (k.base * gen ^ (if k.mx then 0 else j)) ∧
-    ∀ i < 4, LoadHolds rd (σ (.n 31)) (4 * k.ox j + i) (k.cellsx.getD (4 * j + i) 0)
+  xrec : ∀ j < k.ex, SlotBelow (σ (.n (val% «main» "lx_slots_g"))) (k.ox j) ∧
+    LoadHolds rd (σ (.n (val% «main» "cover"))) (k.ox j) (k.base * gen ^ (if k.mx then 0 else j)) ∧
+    ∀ i < 4, LoadHolds rd (σ (.n (val% «main» "lx_table"))) (4 * k.ox j + i) (k.cellsx.getD (4 * j + i) 0)
   xmono : k.mx = true → ∀ i j, i < j → j < k.ex → k.ox i < k.ox j
   xdig : [k.cx0, k.cx1] = digestCells (keccak256 (cellsBytes k.cellsx))
   slen : k.cellss.length = 4 * k.es
-  srec : ∀ j < k.es, SlotBelow (σ (.n 23)) (k.os j) ∧
-    LoadHolds rd (σ (.n 46)) (k.os j) (k.base * gen ^ k.ex * gen ^ (if k.ms then 0 else j)) ∧
-    ∀ i < 4, LoadHolds rd (σ (.n 34)) (4 * k.os j + i) (k.cellss.getD (4 * j + i) 0)
+  srec : ∀ j < k.es, SlotBelow (σ (.n (val% «main» "lean_sphincs_slots_g"))) (k.os j) ∧
+    LoadHolds rd (σ (.n (val% «main» "sp_cover"))) (k.os j) (k.base * gen ^ k.ex * gen ^ (if k.ms then 0 else j)) ∧
+    ∀ i < 4, LoadHolds rd (σ (.n (val% «main» "lean_sphincs_table"))) (4 * k.os j + i) (k.cellss.getD (4 * j + i) 0)
   smono : k.ms = true → ∀ i j, i < j → j < k.es → k.os i < k.os j
   sdig : [k.cs0, k.cs1] = digestCells (keccak256 (cellsBytes k.cellss))
-  da0 : LoadHolds rd (σ (.n 364)) (2 * c) k.d0
-  da1 : LoadHolds rd (σ (.n 364)) (2 * c + 1) k.d1
+  da0 : LoadHolds rd (σ (.n (val% «main» "da_digests"))) (2 * c) k.d0
+  da1 : LoadHolds rd (σ (.n (val% «main» "da_digests"))) (2 * c + 1) k.d1
   deflen : k.defer.length = 24
-  defreads : ReadsAt rd (σ (.n 395) * gen ^ (24 * c)) k.defer
+  defreads : ReadsAt rd (σ (.n (val% «main» "child_carried")) * gen ^ (24 * c)) k.defer
   pdig : [k.p0, k.p1] = digestCells (keccak256
-    (stmtBytes [σ (.n 26), σ (.n 27), k.cx0, k.cx1, k.cs0, k.cs1, k.d0, k.d1] k.defer))
-  pi0 : LoadHolds rd (σ (.n 383)) (2 * c) k.p0
-  pi1 : LoadHolds rd (σ (.n 383)) (2 * c + 1) k.p1
+    (stmtBytes [σ (.n (val% «main» "fs_seed[0]")), σ (.n (val% «main» "fs_seed[1]")), k.cx0, k.cx1, k.cs0, k.cs1, k.d0, k.d1] k.defer))
+  pi0 : LoadHolds rd (σ (.n (val% «main» "child_pi"))) (2 * c) k.p0
+  pi1 : LoadHolds rd (σ (.n (val% «main» "child_pi"))) (2 * c + 1) k.p1
   sub : C "verify_sub"
-    [k.p0, k.p1, σ (.n 26), σ (.n 27), σ (.n 28), σ (.n 389) * gen ^ (24 * c)] []
+    [k.p0, k.p1, σ (.n (val% «main» "fs_seed[0]")), σ (.n (val% «main» "fs_seed[1]")), σ (.n (val% «main» "g_squares")), σ (.n (val% «main» "child_fresh")) * gen ^ (24 * c)] []
 
 theorem loadHolds_gen_pow_iff {rd : Reader} {p : E} {c k : ℕ} {w : E} :
     LoadHolds rd (p * gen ^ c) k w ↔ LoadHolds rd p (c + k) w :=

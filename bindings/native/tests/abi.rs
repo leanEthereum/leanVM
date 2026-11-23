@@ -246,3 +246,69 @@ fn native_abi_signs_verifies_and_aggregates() {
         .join()
         .expect("test thread completes");
 }
+
+#[test]
+fn native_abi_reveals_and_verifies_vrf_proofs() {
+    unsafe {
+        let seed = [9u8; 32];
+        let mut key = ptr::null_mut();
+        assert_eq!(lpq_vrf_key_new(seed.as_ptr(), 32, 5, 5, &mut key), ERROR);
+        assert_eq!(lpq_vrf_key_new(seed.as_ptr(), 32, 100, 200, &mut key), OK);
+
+        let mut buffer = LpqBuffer::default();
+        assert_eq!(lpq_vrf_key_root(key, &mut buffer), OK);
+        let root = take(buffer);
+        let mut buffer = LpqBuffer::default();
+        assert_eq!(lpq_vrf_key_proof(key, 99, &mut buffer), ERROR);
+        assert_eq!(lpq_vrf_key_proof(key, 150, &mut buffer), OK);
+        let proof = take(buffer);
+        assert_eq!(proof.len(), lean_pq::vrf::PROOF_LEN);
+        let mut buffer = LpqBuffer::default();
+        assert_eq!(lpq_vrf_key_cache_to_bytes(key, &mut buffer), OK);
+        let cache = take(buffer);
+        lpq_vrf_key_destroy(key);
+
+        let mut key = ptr::null_mut();
+        assert_eq!(
+            lpq_vrf_key_from_cache_bytes(
+                seed.as_ptr(),
+                32,
+                [0; 32].as_ptr(),
+                32,
+                cache.as_ptr(),
+                cache.len(),
+                &mut key
+            ),
+            ERROR
+        );
+        assert_eq!(
+            lpq_vrf_key_from_cache_bytes(
+                seed.as_ptr(),
+                32,
+                root.as_ptr(),
+                32,
+                cache.as_ptr(),
+                cache.len(),
+                &mut key
+            ),
+            OK
+        );
+        let mut buffer = LpqBuffer::default();
+        assert_eq!(lpq_vrf_key_root(key, &mut buffer), OK);
+        assert_eq!(take(buffer), root);
+        lpq_vrf_key_destroy(key);
+
+        assert_eq!(
+            lpq_vrf_verify(root.as_ptr(), 32, 150, proof.as_ptr(), proof.len()),
+            OK
+        );
+        assert_eq!(
+            lpq_vrf_verify(root.as_ptr(), 32, 151, proof.as_ptr(), proof.len()),
+            ERROR
+        );
+        assert_eq!(
+            lpq_vrf_verify(root.as_ptr(), 32, 150, proof.as_ptr(), 32),
+            ERROR
+        );
+    }
+}

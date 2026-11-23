@@ -52,10 +52,10 @@ theorem kid_lin_sub {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed :
     {c : Child} (S : ChildSegs bytecode seed c) (b : ℕ) {sqE : ℕ} {Lin : Main.Layout}
     (hexp : ∀ q ∈ vsExpLin sqE, q ∈ Lin) {j : ℕ} (hj : j < 16) (h10 : j ≠ 10) (h11 : j ≠ 11)
     (h15 : j ≠ 15) (pv : List (List E × Main.Layout)) :
-    ∀ q ∈ ((S.kids (bases b (vsSizes S.d)) sqE).getD j noKid pv).Lin,
-      SubOf Lin q ∨ SubOf (bufL b (vsSizes S.d) S.ownW) q := by
-  have own : ∀ i < 15, SubOf (bufL b (vsSizes S.d) S.ownW)
-      (vb (bases b (vsSizes S.d)) i, S.ownW.getD i []) := fun i hi ↦ S.sub_own b hi
+    ∀ q ∈ ((S.kids (bases b (vsSizes)) sqE).getD j noKid pv).Lin,
+      SubOf Lin q ∨ SubOf (bufL b (vsSizes) S.ownW) q := by
+  have own : ∀ i < 15, SubOf (bufL b (vsSizes) S.ownW)
+      (vb (bases b (vsSizes)) i, S.ownW.getD i []) := fun i hi ↦ S.sub_own b hi
   have hE : SubOf Lin (sqE, expTabAllWords) := subOf_self (hexp _ List.mem_cons_self)
   interval_cases j
   · intro q hq; simp [ChildSegs.kids] at hq

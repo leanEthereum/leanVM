@@ -7,6 +7,8 @@
 module
 
 public import LeanVM.Guest.B1.Main.AggL25CChk
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«aggregate_claims_loop0»
 
 /-!
 # A child's absorption, completely
@@ -65,26 +67,26 @@ theorem l25_block {x N absorb cfresh lfT ccarried lcT cpi : E} {st : Fs} (hst : 
   rw [show args.length = 8 from rfl, ← hσ, hS] at hgs
   have hg : ∀ a ∈ A, Good rd l25Stores (fun _ => 0) σ a := fun a ha =>
     hgs (.atom a) (loopPre_mem (atom_mem_of_atomsIn ha))
-  have hpar : fn.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7] := by
+  have hpar : fn.params = [.n (val% «aggregate_claims_loop0» "xc"), .n (val% «aggregate_claims_loop0» "bound"), .n (val% «aggregate_claims_loop0» "absorb"), .n (val% «aggregate_claims_loop0» "child_fresh"), .n (val% «aggregate_claims_loop0» "fresh_row"), .n (val% «aggregate_claims_loop0» "child_carried"), .n (val% «aggregate_claims_loop0» "carried_row"), .n (val% «aggregate_claims_loop0» "child_pi")] := by
     rw [params_of_shape hshape hlen]; rfl
   have par : ∀ i (hi : i < 8), σ (.n i) = args.getD i 0 := fun i hi => by
     rw [hσ]; exact ev_params rd _ (l := args) hchk (by simp [args]; omega)
-  have e0 : σ (.n 0) = x := par 0 (by omega)
+  have e0 : σ (.n (val% «aggregate_claims_loop0» "xc")) = x := par 0 (by omega)
   have hP : ∀ a ∈ A.filter pureB, a.Holds rd σ := pure_holds hg
-  have p13 : σ (.n 13) = absorb * x ^ 13 := by rw [monoIs_sound hm13 hP, par 2 (by omega), e0]; rfl
-  have p59 : σ (.n 59) = cpi * x ^ 2 := by rw [monoIs_sound hm59 hP, par 7 (by omega), e0]; rfl
-  have p63 : σ (.n 63) = cpi * x ^ 2 := by rw [monoIs_sound hm63 hP, par 7 (by omega), e0]; rfl
-  have p50 : σ (.n 50) = cfresh * x ^ 24 := by
+  have p13 : σ (.n (val% «aggregate_claims_loop0» "row")) = absorb * x ^ 13 := by rw [monoIs_sound hm13 hP, par 2 (by omega), e0]; rfl
+  have p59 : σ (.n (val% «aggregate_claims_loop0» "s9.u0.s1.t.s0#0")) = cpi * x ^ 2 := by rw [monoIs_sound hm59 hP, par 7 (by omega), e0]; rfl
+  have p63 : σ (.n (val% «aggregate_claims_loop0» "s9.u1.s1.t.s0#0")) = cpi * x ^ 2 := by rw [monoIs_sound hm63 hP, par 7 (by omega), e0]; rfl
+  have p50 : σ (.n (val% «aggregate_claims_loop0» "fresh")) = cfresh * x ^ 24 := by
     rw [monoIs_sound hm50 hP, par 3 (by omega), e0]; rfl
-  have p57 : σ (.n 57) = ccarried * x ^ 24 := by
+  have p57 : σ (.n (val% «aggregate_claims_loop0» "carried")) = ccarried * x ^ 24 := by
     rw [monoIs_sound hm57 hP, par 5 (by omega), e0]; rfl
-  have p51 : σ (.n 51) = lfT * x := by rw [isMul_sound hm51 hP, par 4 (by omega), e0]; rfl
-  have p58 : σ (.n 58) = lcT * x := by rw [isMul_sound hm58 hP, par 6 (by omega), e0]; rfl
+  have p51 : σ (.n (val% «aggregate_claims_loop0» "s6#0")) = lfT * x := by rw [isMul_sound hm51 hP, par 4 (by omega), e0]; rfl
+  have p58 : σ (.n (val% «aggregate_claims_loop0» "s8#0")) = lcT * x := by rw [isMul_sound hm58 hP, par 6 (by omega), e0]; rfl
   -- the atoms but the stores
   have hg' : ∀ a ∈ l25A, Good rd l25Stores (fun _ => 0) σ a := fun a ha =>
     hg a (mem_l25A.mp ha).1
   have hnS : ∀ a ∈ l25A, a ∉ l25Stores := fun a ha => (mem_l25A.mp ha).2
-  have hrowL : ∀ o < 13, LoadHolds rd (σ (.n 13)) o ((rowW st).getD o 0) := fun o ho => by
+  have hrowL : ∀ o < 13, LoadHolds rd (σ (.n (val% «aggregate_claims_loop0» "row"))) o ((rowW st).getD o 0) := fun o ho => by
     rw [p13, List.getD_eq_getElem _ _ (by rw [rowW_length hst]; exact ho)]
     exact hrow o (by rw [rowW_length hst]; exact ho)
   have hpw : ∀ p ∈ packsOf l25A, packIn l25A p.1 p.2 = true := List.all_eq_true.mp hpk
@@ -143,7 +145,7 @@ theorem l25_block {x N absorb cfresh lfT ccarried lcT cpi : E} {st : Fs} (hst : 
   rw [hw, hnb] at hch
   have hst' := stOk_absorbAll (l25Words rd cpi cfresh ccarried x) hst
   have hl' := rowW_length hst'
-  have hnext' : ∀ k < 13, LoadHolds rd (σ (.n 13)) (13 + k)
+  have hnext' : ∀ k < 13, LoadHolds rd (σ (.n (val% «aggregate_claims_loop0» "row"))) (13 + k)
       ((rowW (st.absorbAll (l25Words rd cpi cfresh ccarried x) dsObserve)).getD k 0) := by
     intro k hk
     rw [p13, ← loadHolds_mul_gen_pow, List.getD_eq_getElem _ _ (by rw [hl']; exact hk)]
@@ -154,11 +156,11 @@ theorem l25_block {x N absorb cfresh lfT ccarried lcT cpi : E} {st : Fs} (hst : 
     simp only [l25Stores, List.mem_append, List.mem_cons, List.mem_map, List.mem_range,
       List.mem_flatMap, List.not_mem_nil, or_false] at haS
     rcases haS with ((rfl | rfl) | ⟨i, hi, rfl⟩) | ⟨j, hj, rfl | rfl⟩
-    · show LoadHolds rd (σ (.n 51)) 0 (σ (.n 50))
+    · show LoadHolds rd (σ (.n (val% «aggregate_claims_loop0» "s6#0"))) 0 (σ (.n (val% «aggregate_claims_loop0» "fresh")))
       rw [p51, p50]; exact hlf
-    · show LoadHolds rd (σ (.n 58)) 0 (σ (.n 57))
+    · show LoadHolds rd (σ (.n (val% «aggregate_claims_loop0» "s8#0"))) 0 (σ (.n (val% «aggregate_claims_loop0» "carried")))
       rw [p58, p57]; exact hlc
-    · show LoadHolds rd (σ (.n 13)) (13 + i) (σ (.n (356 + i)))
+    · show LoadHolds rd (σ (.n (val% «aggregate_claims_loop0» "row"))) (13 + i) (σ (.n (356 + i)))
       have e : σ (.n (356 + i)) =
           (rowW (st.absorbAll (l25Words rd cpi cfresh ccarried x) dsObserve)).getD i 0 := by
         rw [rowW_getD_cap hst' hi, hch, ← hcst i hi]
@@ -176,14 +178,14 @@ theorem l25_block {x N absorb cfresh lfT ccarried lcT cpi : E} {st : Fs} (hst : 
       have hv := hr.trans hpc.symm
       simp only [Prod.ext_iff] at hv
       obtain ⟨r6, r8⟩ := hrst j hj
-    · show LoadHolds rd (σ (.n 13)) (18 + 2 * j) (σ (.n (l25Last j)))
+    · show LoadHolds rd (σ (.n (val% «aggregate_claims_loop0» "row"))) (18 + 2 * j) (σ (.n (l25Last j)))
       have e : σ (.n (l25Last j)) =
           (rowW (st.absorbAll (l25Words rd cpi cfresh ccarried x) dsObserve)).getD (5 + 2 * j) 0 := by
         rw [rowW_getD_rate hst' (by omega), hch, hv.1, ← r6]
         rfl
       rw [e, show 18 + 2 * j = 13 + (5 + 2 * j) by omega]
       exact hnext' _ (by omega)
-    · show LoadHolds rd (σ (.n 13)) (19 + 2 * j) (σ (.n (l25Last j + 1)))
+    · show LoadHolds rd (σ (.n (val% «aggregate_claims_loop0» "row"))) (19 + 2 * j) (σ (.n (l25Last j + 1)))
       have e : σ (.n (l25Last j + 1)) =
           (rowW (st.absorbAll (l25Words rd cpi cfresh ccarried x) dsObserve)).getD
             (5 + (2 * j + 1)) 0 := by

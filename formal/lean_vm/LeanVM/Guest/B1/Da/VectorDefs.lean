@@ -18,7 +18,7 @@ public import LeanVM.Guest.B1.Da.DualMath
 `da_expand__L13_L7`: `topLeaf z h`, the factors `j = 7 … 12` of the dual codeword at the cell
 `h`'s first point); the factors of the tree inside a cell (`cell_factors`,
 `da_factors__L6_L7_L128`); each column's shifts of them (`offsets`, `da_column_offsets`:
-`z_j Ŵ_j(128 h)`). `da_verify_column` expands each column's tree from its top leaf with them
+`z_j Ŵ_j(128 h)`). `da_weights` expands each column's tree from its top leaf with them
 (`da_expand__L6_L7`), whose leaves are the dual codeword's entries `128 h + e` (`VectorMath`).
 
 A product tree over the bits `top, top - 1, …` of depth `D`, in heap order: node `n = 2^d + y` at

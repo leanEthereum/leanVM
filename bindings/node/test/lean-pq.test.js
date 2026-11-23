@@ -163,3 +163,39 @@ test('starts and stops its own sidecar', { skip }, async () => {
 test('connecting where no sidecar listens fails', async () => {
   await assert.rejects(lpq.Sidecar.connect('/nonexistent/sidecar.sock'), unix ? /leanVM sidecar/ : /Unix sockets/)
 })
+
+test('opens VRF proofs under the root', async () => {
+  const key = await lpq.VrfKey.fromSeed(seed(9), 100, 200)
+  const root = key.root()
+  assert.equal(root.toString('hex'), 'c7e3eaa5a1af5e528e56beb589b4d1c579f5fb8939ddd7f6b1ce2141bc096b45')
+
+  const proof = key.proof(150)
+  assert.equal(proof.length, 1024)
+  lpq.vrfVerify(root, 150, proof)
+  assert.throws(() => lpq.vrfVerify(root, 151, proof), /VRF proof for slot 151/)
+  for (const slot of [100, 151, 199]) lpq.vrfVerify(root, slot, key.proof(slot))
+})
+
+test('loads a VRF key from its cache', async () => {
+  const cache = (await lpq.VrfKey.fromSeed(seed(9), 100, 200)).cacheToBytes()
+
+  const root = Buffer.from('c7e3eaa5a1af5e528e56beb589b4d1c579f5fb8939ddd7f6b1ce2141bc096b45', 'hex')
+  const loaded = await lpq.VrfKey.fromCacheBytes(seed(9), root, cache)
+  assert.deepEqual(loaded.cacheToBytes(), cache)
+  lpq.vrfVerify(root, 150, loaded.proof(150))
+
+  await assert.rejects(lpq.VrfKey.fromCacheBytes(seed(9), root, cache.subarray(0, -1)), /not this VRF key's cache/)
+  await assert.rejects(lpq.VrfKey.fromCacheBytes(seed(9), Buffer.alloc(32), cache), /not this VRF key's cache/)
+  await assert.rejects(lpq.VrfKey.fromCacheBytes(Buffer.alloc(31), root, cache), /seed must be 32 bytes/)
+})
+
+test('rejects VRF slots outside the range and bad encodings', async () => {
+  await assert.rejects(lpq.VrfKey.fromSeed(seed(9), 5, 5), /VRF range 5\.\.5/)
+  await assert.rejects(lpq.VrfKey.fromSeed(seed(9), 0, 2 ** 31 + 1), /ends past 2\^31/)
+  await assert.rejects(lpq.VrfKey.fromSeed(Buffer.alloc(31), 0, 1), /seed must be 32 bytes/)
+
+  const key = await lpq.VrfKey.fromSeed(seed(9), 100, 200)
+  assert.throws(() => key.proof(99), /VRF slot 99/)
+  assert.throws(() => key.proof(200), /VRF slot 200/)
+  assert.throws(() => lpq.vrfVerify(key.root(), 150, key.proof(150).subarray(1)), /proof must be 1024 bytes/)
+})

@@ -7,6 +7,8 @@
 module
 
 public import LeanVM.Guest.B1.VerifySub.CSig
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_sub»
 
 /-!
 # The loads' regions
@@ -39,26 +41,26 @@ theorem vs_ringCoefficients_length (f g : List E) (hf : f.length = 8) (hg : g.le
 theorem vs_loads {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Digest}
     {c : Child} (S : ChildSegs bytecode seed c) (b sqE outE : ℕ) {Lin : Main.Layout}
     (hexp : ∀ q ∈ vsExpLin sqE, q ∈ Lin) (hout : (outE, DeferredBytecodeClaim.cells c.freshClaim) ∈ Lin)
-    {outs : List (List E × Main.Layout)} (O : VsOuts S (bases b (vsSizes S.d)) sqE outs)
-    {rd : Reader} (hB : Main.MemL rd (bufL b (vsSizes S.d) S.ownW)) :
+    {outs : List (List E × Main.Layout)} (O : VsOuts S (bases b (vsSizes)) sqE outs)
+    {rd : Reader} (hB : Main.MemL rd (bufL b (vsSizes) S.ownW)) :
     ∀ q ∈ vsCPre.filterMap Stmt.loadS, ∃ i,
-      (vsσ rd (vsW (bases b (vsSizes S.d)) outs) (vsArgs seed c sqE outE) q.1).limb 0 *
+      (vsσ rd (vsW (bases b (vsSizes)) outs) (vsArgs seed c sqE outE) q.1).limb 0 *
           addressOfIndex q.2 = addressOfIndex i ∧
-        (Main.RegionL Lin i ∨ Main.RegionL (bufL b (vsSizes S.d) S.ownW) i) := by
-  set bs := bases b (vsSizes S.d) with hbs
+        (Main.RegionL Lin i ∨ Main.RegionL (bufL b (vsSizes) S.ownW) i) := by
+  set bs := bases b (vsSizes) with hbs
   set w := vsW bs outs with hw
   set σ := vsσ rd w (vsArgs seed c sqE outE) with hσ
   have hl : (vsArgs seed c sqE outE).length = 6 := rfl
   -- the regions
   have hown : ∀ i < 15, ∀ k < (S.ownW.getD i []).length,
-      Main.RegionL Lin (bs.getD i 0 + k) ∨ Main.RegionL (bufL b (vsSizes S.d) S.ownW) (bs.getD i 0 + k) :=
+      Main.RegionL Lin (bs.getD i 0 + k) ∨ Main.RegionL (bufL b (vsSizes) S.ownW) (bs.getD i 0 + k) :=
     fun i hi k hk ↦ Or.inr (subOf_region (S.sub_own b hi) (Nat.le_add_right _ _) (by
       show _ < vb bs i + _; simp only [vb]; omega))
   have hlin : ∀ x xs, (x, xs) ∈ Lin → ∀ k < xs.length,
-      Main.RegionL Lin (x + k) ∨ Main.RegionL (bufL b (vsSizes S.d) S.ownW) (x + k) :=
+      Main.RegionL Lin (x + k) ∨ Main.RegionL (bufL b (vsSizes) S.ownW) (x + k) :=
     fun x xs h k hk ↦ Or.inl ⟨(x, xs), h, by simp, by simp; omega⟩
   have hstr : ∀ k < (vsStreamW c.proof.stream).length,
-      Main.RegionL Lin (bs.getD 1 0 + k) ∨ Main.RegionL (bufL b (vsSizes S.d) S.ownW) (bs.getD 1 0 + k) :=
+      Main.RegionL Lin (bs.getD 1 0 + k) ∨ Main.RegionL (bufL b (vsSizes) S.ownW) (bs.getD 1 0 + k) :=
     hown 1 (by norm_num)
   have pa : ∀ {i a : ℕ}, i < 15 → vsAllocVars.getD i 0 = a → σ (.n a) = ptr (bs.getD i 0) :=
     fun hi ha ↦ by
@@ -79,19 +81,19 @@ theorem vs_loads {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Di
   have hSl0 := vs_streamW_length c.proof.stream
   have hSl0' : 8192 ≤ (vsStreamW c.proof.stream).length := hSl0
   -- the pointers
-  have h64 : σ (.n 64) = gen ^ S.rate := by
+  have h64 : σ (.n (val% «verify_sub» "rate_sel~0")) = gen ^ S.rate := by
     rw [pr (j := 0) (k := 0) (a := 64) (by norm_num) (by decide) rfl (by decide), O.o0]; rfl
-  have h72 : σ (.n 72) = gen ^ S.logMem := by
+  have h72 : σ (.n (val% «verify_sub» "g_log_mem")) = gen ^ S.logMem := by
     rw [pr (j := 1) (k := 0) (a := 72) (by norm_num) (by decide) rfl (by decide), O.o1]; rfl
-  have hp4 : σ (.n 4) = ptr sqE := vsC_param hl (by norm_num)
-  have hp5 : σ (.n 5) = ptr outE := vsC_param hl (by norm_num)
+  have hp4 : σ (.n (val% «verify_sub» "g_squares")) = ptr sqE := vsC_param hl (by norm_num)
+  have hp5 : σ (.n (val% «verify_sub» "defer_out")) = ptr outE := vsC_param hl (by norm_num)
   obtain ⟨-, -, -, -, -, -, -, -, h84, h85, h86⟩ :=
     vs_sizesV (rd := rd) (w := w) (args := vsArgs seed c sqE outE) hl S.hr1 S.hlm1
       (by rw [← h64, hσ, vs_w hl (by decide)]) (by rw [← h72, hσ, vs_w hl (by decide)])
   rw [← hσ] at h84 h85 h86
   have hdims : ReadsAt rd (w 71) (vsDimsW S.logMem S.hs) := by
     rw [hw, vsW_a (i := 3) (a := 71) (by norm_num) rfl]; exact (hB _ (vs_own_mem S b (i := 3) (by norm_num)))
-  have hkb : ∀ s < 8, σ (.n (84 + s)) = gen ^ ([0, S.logMem] ++ S.hs).getD s 0 := by
+  have hkb : ∀ s < 8, σ (.n ((val% «verify_sub» "kb[0]") + s)) = gen ^ ([0, S.logMem] ++ S.hs).getD s 0 := by
     intro s hs
     rw [← S.kb_pow hbl hs]
     rcases s with _ | _ | t
@@ -100,10 +102,10 @@ theorem vs_loads {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Di
     · rw [show 84 + (t + 2) = 86 + t by omega, h86 t (by omega),
         vs_rdAt_of_load (vs_rdg hdims (k := 1 + t) (by simp [vsDimsW, S.hs_length]; omega))]
       simp only [vsDimsW, List.getD_cons_succ, show 1 + t = t + 1 by omega]
-  have h595 : σ (.n 578) = ptr (S.cK bs + S.xsK.length) := by
+  have h595 : σ (.n (val% «verify_sub» "cursor@4")) = ptr (S.cK bs + S.xsK.length) := by
     rw [pr (j := 11) (k := 5) (a := 578) (by norm_num) (by decide) rfl (by decide), O.o11, vs_ptr_add]
     simp only [capOf, List.cons_append, List.nil_append, List.getD_cons_succ, List.getD_cons_zero]
-  have h582 : σ (.n 565) = ptr (S.cT bs + (13 + (3 * S.nT + 1))) := by
+  have h582 : σ (.n (val% «verify_sub» "col_eval_words")) = ptr (S.cT bs + (13 + (3 * S.nT + 1))) := by
     rw [pr (j := 10) (k := 9) (a := 565) (by norm_num) (by decide) rfl (by decide), O.o10, vs_ptr_add]
     simp only [Tables.VtHonest.retsH, Fs.squeeze, capOf, List.cons_append, List.nil_append,
       List.getD_cons_succ, List.getD_cons_zero]
@@ -120,7 +122,7 @@ theorem vs_loads {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Di
     simp only [ChildSegs.cK, ChildSegs.cT, ChildSegs.cG, vb]; omega
   have own : ∀ {i a : ℕ}, i < 15 → vsAllocVars.getD i 0 = a → ∀ k < (S.ownW.getD i []).length,
       ∃ j, (σ (.n a)).limb 0 * addressOfIndex k = addressOfIndex j ∧
-        (Main.RegionL Lin j ∨ Main.RegionL (bufL b (vsSizes S.d) S.ownW) j) :=
+        (Main.RegionL Lin j ∨ Main.RegionL (bufL b (vsSizes) S.ownW) j) :=
     fun hi ha k hk ↦ vs_regAt (pa hi ha) (hown _ hi k hk)
   -- the loads
   intro q hq

@@ -3,6 +3,7 @@ module
 public import LeanVM.Cost.Bounds.Decoder.EntryMaps
 public import LeanVM.Cost.Bounds.Decoder.PreTest
 public import LeanVM.Cost.Bounds.Decoder.GuestTablesBounds
+public import LeanVM.Cost.Decoder.LanesCheck
 
 /-!
 # Bound: the replayed frame map's parts, compiled
@@ -12,13 +13,14 @@ The prices of `Cost/Decoder/EntryTable.lean`'s parts the sorted entry array
 Parameters: `R` a memory read (the reader closure).
 
 * `listFoldl_amortized'`: a fold amortized, its final potential and invariant kept;
-* the guest's tables' maxima (`argCount_le`, `retCount_le`, `loc_lt`, from
+* the guest's tables' maxima (`argCount_le`, `retCount_le`, from
   `GuestTablesBounds.lean`);
 * `wordsWith_cost`, `callKey_cost`, **`entryKeyT_cost`**: a state's key, its `56 + 10` words read
   (`guestArgCounts`, `guestRetCounts`), at most `66R + 41200`, of at most `56` argument and `10`
   return codes (`entryKeyT_ok`);
-* `isFunctionIndex_cost` (`11`), **`frameWordAt_cost`**: a frame's word, the table of frame cells
-  and a read, at most `R + 1535`.
+* `locAt_cost` (`30`): a frame cell off the packed table, whatever the cell;
+* `isFunctionIndex_cost` (`11`), **`frameWordAt_cost`**: a frame's word, its cell and a read, at
+  most `R + 1535`.
 -/
 
 namespace LeanVM.Cost.Bounds
@@ -81,32 +83,21 @@ theorem argCount_le (j : ℕ) : guestArgCounts.getD j 0 ≤ 56 :=
 theorem retCount_le (j : ℕ) : guestRetCounts.getD j 0 ≤ 10 :=
   toArray_getD_le_of_all guestRetCountsList_le j
 
-theorem getD_getD_lt (A : Array (Array ℕ)) (B : ℕ) (hB : 0 < B)
-    (h : ∀ a ∈ A, ∀ x ∈ a, x < B) (j i : ℕ) : (A.getD j #[]).getD i 0 < B := by
-  by_cases h1 : j < A.size
-  · have e : A.getD j #[] = A[j] := by simp [Array.getD, h1]
-    rw [e]
-    by_cases h2 : i < A[j].size
-    · have e2 : A[j].getD i 0 = A[j][i] := by simp [Array.getD, h2]
-      rw [e2]
-      exact h _ (Array.getElem_mem h1) _ (Array.getElem_mem h2)
-    · have e2 : A[j].getD i 0 = 0 := by simp [Array.getD, h2]
-      rw [e2]
-      exact hB
-  · have e : A.getD j #[] = #[] := by simp [Array.getD, h1]
-    rw [e]
-    simpa using hB
-
-theorem loc_lt (j i : ℕ) : (guestLocs.getD j #[]).getD i 0 < 2 ^ 20 := by
-  refine getD_getD_lt _ _ (by norm_num) (fun a ha x hx ↦ ?_) j i
-  have h := guestLocsList_lt
-  rw [List.all_eq_true] at h
-  rw [show guestLocs = (guestLocsList.map List.toArray).toArray from rfl, List.mem_toArray,
-    List.mem_map] at ha
-  obtain ⟨l, hl, rfl⟩ := ha
-  have hl' := h l hl
-  rw [List.all_eq_true] at hl'
-  exact of_decide_eq_true (hl' x (by simpa using hx))
+/-- **A frame cell off the packed table** (`locAtC`): at most `30`, whatever the function and
+the cell (the slot and the packed number one limb each, `guestLanes_lt`; the cell an array's index,
+read at `1`). -/
+theorem locAt_cost (hP : Includes P locAtC.costDeps) (j i : ℕ) :
+    machineCost P locAtC.costIdx [encodeValue j, encodeValue i] ≤ 30 := by
+  rw [locAtC.costEq P hP, guestLocsTableC.costEq P (by includes)]
+  have hs := guestLanes_lt 0 j
+  generalize (guestLanes.getD 0 #[]).getD j 0 = s at hs ⊢
+  have hw := guestLanes_lt (s / 4) i
+  generalize (guestLanes.getD (s / 4) #[]).getD i 0 = w at hw ⊢
+  have h4 : s % 4 < 4 := Nat.mod_lt _ (by norm_num)
+  rw [limbs_of_lt hs, limbs_of_lt hw, limbs_of_lt (show 16 * (s % 4) < 2 ^ 64 by omega),
+    limbs_of_lt (show s % 4 < 2 ^ 64 by omega),
+    limbs_of_lt (show w >>> (16 * (s % 4)) < 2 ^ 64 from lt_of_le_of_lt (Nat.shiftRight_le _ _) hw)]
+  omega
 
 /-! ## A state's key -/
 
@@ -218,17 +209,17 @@ theorem isFunctionIndex_cost (hP : Includes P isFunctionIndexC.costDeps) (j : �
   split_ifs <;> omega
 
 include hrd hR in
-/-- A frame's word (`frameWordAtC`): the table of frame cells (`guestLocsTableC`, a literal), a
+/-- A frame's word (`frameWordAtC`): its cell off the packed table (`locAt_cost`, below `2^16`), a
 read, at most `R + 1535`. -/
 theorem frameWordAt_cost (hP : Includes P frameWordAtC.costDeps) (fp : K) (j : ℕ)
     (hj : j < 2 ^ 64) (v : V) :
     machineCost P frameWordAtC.costIdx [rdVal, encodeValue fp, encodeValue j, encodeValue v] ≤
       R + 1535 := by
   rw [frameWordAtC.costEq P hP rd rdVal hrd]
-  have h0 := guestLocsTableC.costEq P (by includes)
+  have h0 := locAt_cost P (by includes) (canonIndex j) v.idx
   have h1 := isFunctionIndex_cost P (by includes) j hj
-  have h2 := wordWith_cost P rd rdVal hrd R hR (W := 20) (by norm_num) (by norm_num) (by includes)
-    fp _ (loc_lt (canonIndex j) v.idx)
+  have h2 := wordWith_cost P rd rdVal hrd R hR (W := 16) (by norm_num) (by norm_num) (by includes)
+    fp _ (locAt_lt (canonIndex j) v.idx)
   unfold psAt at h2
   split_ifs <;> omega
 

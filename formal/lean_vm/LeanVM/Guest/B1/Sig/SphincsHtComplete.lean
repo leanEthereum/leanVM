@@ -8,6 +8,8 @@ module
 
 public import LeanVM.Guest.B1.Sig.SphincsCompleteBlocks
 public import LeanVM.Guest.B1.Sig.KMsgComplete
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_sig_lean_sphincs»
 
 /-!
 # A layer, complete
@@ -23,6 +25,8 @@ namespace LeanVM.Guest.B1.Sig
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Value
 open LeanVM.Protocol.Verifier (eOfNat)
+
+open LeanVM.Guest.Memory (FallPops SplicePops)
 
 @[expose] public section
 
@@ -81,19 +85,31 @@ theorem layerShape_two : LayerShape 2 :=
     by decide +kernel, by decide +kernel, fun h => absurd h (by simp [sAcOf]), ⟨5560, by decide, rfl⟩,
     ⟨(sLayerM.2.2).idx, by decide +kernel, by decide +kernel⟩, by decide, by decide, by decide⟩
 
+/-- Layer `l`'s `A0` cell is the one its call reads. -/
+theorem sA0Of_cell {l : Nat} (hl : l < 3) :
+    a0Cell (sA0Of l) (sAcOf l) (sLayerBase l + 47 + a0W (sAcOf l)) = sA0Of l := by
+  rcases (by omega : l = 0 ∨ l = 1 ∨ l = 2) with rfl | rfl | rfl <;> rfl
+
 theorem layerShape {l : Nat} (hl : l < 3) : LayerShape l := by
   rcases (by omega : l = 0 ∨ l = 1 ∨ l = 2) with rfl | rfl | rfl
   · exact layerShape_zero
   · exact layerShape_one
   · exact layerShape_two
 
+/-- A counter's entry: the bytes of `BE_32(N)`, most significant first, each in the exponent. -/
+def counterPop (N : Nat) : Pop :=
+  ("sp_counter", (List.range 4).map fun k => ofK (addressOfIndex (beWordAt 0 N / 256 ^ k % 256)))
+
+theorem sCtrBlock_quiet (l : Nat) : quiet (sCtrBlock l).1 = true := rfl
+
 /-- **Layer `l` completes**: its counter hinted as the marks of `BE_32(N)`, the call relation
 holding of `sp_wots` on the encoding of `N` and a leaf `lv`, the leaf `e` read off the digest's
 bits and shifts, any siblings: the layer's root is `pFold` of `pNodeE` from
-`lv`, and its bytes are the table's. -/
-theorem sLayerBlk_complete (hB : SphincsBlocksComplete) (hm : MemOK rd 256) {bb : E}
+`lv`, and its bytes are the table's; the call reads the encoding at `sLayerBase l + 46 + a0W (sAcOf l)`
+and returns `lv` at `sLayerBase l + 47 + 2 * a0W (sAcOf l)`, its `A0` the cell `sA0Of l`. -/
+theorem sLayerBlk_complete_vals (hB : SphincsBlocksComplete) (hm : MemOK rd 256) {bb : E}
     (hbb : ByteBits rd bb) {l : Nat} (hl : l < 3) {N : Nat} (hN : N < 2 ^ 32) {lv : E} {e : Nat}
-    {sib : Nat → E} (σ : Val) (h1 : σ (.n 1) = bb) (hp : PadOK σ sPad)
+    {sib : Nat → E} (σ : Val) (h1 : σ (.n (val% «verify_sig_lean_sphincs» "byte_bits")) = bb) (hp : PadOK σ sPad)
     (hcall : C "sp_wots" [σ sPP, a0Val σ (sA0Of l) (sAcOf l), σ (sA1Of l),
       encDigestCell (σ sPP) (a0Val σ (sA0Of l) (sAcOf l)) (σ (sA1Of l) + lit (7 * 2 ^ 24))
         (σ (sSignedOf l)) (eOfNat (beWordAt 0 N))] [lv])
@@ -102,7 +118,13 @@ theorem sLayerBlk_complete (hB : SphincsBlocksComplete) (hm : MemOK rd 256) {bb 
     (hval : ∀ z < sHeightOf l, σ (sLVal (sOffOf l + z)) = eOfNat (e >>> z)) :
     Completes C rd (sLayerBase l) (sLayerBlk l).2.1 (sLayerBlk l).1 σ (fun σ' =>
       σ' (sLayerBlk l).2.2 = pFold (pNodeE (σ sPP) (a0Val σ (sA0Of l) (sAcOf l)) e sib) (sHeightOf l) lv ∧
-        TablePtrs bb σ' (sLayerBlk l).1) := by
+        TablePtrs bb σ' (sLayerBlk l).1 ∧
+        (∀ k, SplicePops rd σ' (sLayerBlk l).1 [k] (counterPop N ::
+          (k ++ climbPops "siblings" (pNodeE (σ sPP) (a0Val σ (sA0Of l) (sAcOf l)) e sib) e.testBit sib
+            (sHeightOf l) 0 lv))) ∧
+        σ' (.n (sLayerBase l + 46 + a0W (sAcOf l))) = encDigestCell (σ sPP) (a0Val σ (sA0Of l) (sAcOf l))
+          (σ (sA1Of l) + lit (7 * 2 ^ 24)) (σ (sSignedOf l)) (eOfNat (beWordAt 0 N)) ∧
+        σ' (.n (sLayerBase l + 47 + 2 * a0W (sAcOf l))) = lv ∧ σ' (sA0Of l) = a0Val σ (sA0Of l) (sAcOf l)) := by
   have S := layerShape hl
   rw [sLayerBlk_split]
   dsimp only
@@ -142,14 +164,55 @@ theorem sLayerBlk_complete (hB : SphincsBlocksComplete) (hm : MemOK rd 256) {bb 
     (fun z hz => by
       obtain ⟨k, hk, ek⟩ := sLVal_below (sOffOf l + z)
       rw [ek, t2 k (by have := S.digest; omega), ← ek]; exact hval z hz)
-  obtain ⟨σ3, he3, hp3, hh3⟩ := hL
-  refine ⟨σ3, he3, ⟨hp3.trans (by rw [hpp', ha0]), ?_⟩, hh3⟩
-  refine TablePtrs.append (TablePtrs.nil_of rfl) (TablePtrs.append ?_ (TablePtrs.nil_of S.ht_ptrs))
-  intro q hq
-  obtain ⟨k, hk, rfl⟩ := List.mem_map.mp (S.ctr_ptrs q hq)
-  have hk4 := List.mem_range.mp hk
-  rw [he3.apply (Or.inl (by simp only [fbPtr]; split <;> omega))]
-  exact hptr k (by omega)
+  obtain ⟨σ3, he3, ⟨hp3, hsp3, he9, he10, ha3⟩, hh3⟩ := hL
+  refine ⟨σ3, he3, ⟨hp3.trans (by rw [hpp', ha0]), ?_, fun k => ?_,
+    by rw [show sLayerBase l + 46 + a0W (sAcOf l) = sLayerBase l + 37 + 9 + a0W (sAcOf l) by omega, he9, hpp',
+      ha0, ha1, hsg, hctr],
+    by rw [show sLayerBase l + 47 + 2 * a0W (sAcOf l) = sLayerBase l + 37 + 10 + 2 * a0W (sAcOf l) by omega,
+      he10],
+    (congrArg σ3 (sA0Of_cell hl)).symm.trans ((congrArg (fun x => σ3 (a0Cell (sA0Of l) (sAcOf l) x))
+      (by omega : sLayerBase l + 47 + a0W (sAcOf l) = sLayerBase l + 37 + 10 + a0W (sAcOf l))).trans
+        (ha3.trans ha0))⟩, hh3⟩
+  · refine TablePtrs.append (TablePtrs.nil_of rfl) (TablePtrs.append ?_ (TablePtrs.nil_of S.ht_ptrs))
+    intro q hq
+    obtain ⟨k, hk, rfl⟩ := List.mem_map.mp (S.ctr_ptrs q hq)
+    have hk4 := List.mem_range.mp hk
+    rw [he3.apply (Or.inl (by simp only [fbPtr]; split <;> omega))]
+    exact hptr k (by omega)
+  · have hc : (runV (sLayerBase l) 4).map σ3 =
+        (List.range 4).map fun k => ofK (addressOfIndex (beWordAt 0 N / 256 ^ k % 256)) := by
+      rw [runV, List.map_map]
+      refine List.map_congr_left fun j hj => ?_
+      have hj4 := List.mem_range.mp hj
+      simp only [Function.comp_apply]
+      rw [he3.apply (Or.inl (by omega)), he2.apply (Or.inl (by omega))]
+      exact hm1 j hj4
+    have h1 : FallPops rd σ3 [hintW "sp_counter" (runV (sLayerBase l) 4)] [counterPop N] := by
+      rw [counterPop, ← hc]; exact FallPops.atom _
+    have h := (SplicePops.of_fallPops h1).append ((SplicePops.of_fallPops
+      (fallPops_quiet (rd := rd) σ3 (sCtrBlock_quiet l))).append (hsp3 k))
+    rw [hpp', ha0] at h
+    simp only [List.nil_append, List.singleton_append] at h
+    exact h
+
+/-- **Layer `l` completes** (`sLayerBlk_complete_vals` without the call's values). -/
+theorem sLayerBlk_complete (hB : SphincsBlocksComplete) (hm : MemOK rd 256) {bb : E}
+    (hbb : ByteBits rd bb) {l : Nat} (hl : l < 3) {N : Nat} (hN : N < 2 ^ 32) {lv : E} {e : Nat}
+    {sib : Nat → E} (σ : Val) (h1 : σ (.n (val% «verify_sig_lean_sphincs» "byte_bits")) = bb) (hp : PadOK σ sPad)
+    (hcall : C "sp_wots" [σ sPP, a0Val σ (sA0Of l) (sAcOf l), σ (sA1Of l),
+      encDigestCell (σ sPP) (a0Val σ (sA0Of l) (sAcOf l)) (σ (sA1Of l) + lit (7 * 2 ^ 24))
+        (σ (sSignedOf l)) (eOfNat (beWordAt 0 N))] [lv])
+    (he : e < 2 ^ sHeightOf l)
+    (hbit : ∀ z < sHeightOf l, σ (sLeafBit (sOffOf l + z)) = if e.testBit z then 1 else 0)
+    (hval : ∀ z < sHeightOf l, σ (sLVal (sOffOf l + z)) = eOfNat (e >>> z)) :
+    Completes C rd (sLayerBase l) (sLayerBlk l).2.1 (sLayerBlk l).1 σ (fun σ' =>
+      σ' (sLayerBlk l).2.2 = pFold (pNodeE (σ sPP) (a0Val σ (sA0Of l) (sAcOf l)) e sib) (sHeightOf l) lv ∧
+        TablePtrs bb σ' (sLayerBlk l).1 ∧
+        ∀ k, SplicePops rd σ' (sLayerBlk l).1 [k] (counterPop N ::
+          (k ++ climbPops "siblings" (pNodeE (σ sPP) (a0Val σ (sA0Of l) (sAcOf l)) e sib) e.testBit sib
+            (sHeightOf l) 0 lv))) :=
+  (sLayerBlk_complete_vals (sib := sib) hB hm hbb hl hN σ h1 hp hcall he hbit hval).mono le_rfl le_rfl
+    fun _ h => ⟨h.1, h.2.1, h.2.2.1⟩
 
 end
 end LeanVM.Guest.B1.Sig

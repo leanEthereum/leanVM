@@ -10,6 +10,8 @@ public import LeanVM.Guest.CoreRef
 public import LeanVM.Guest.B1.Ring.Interface
 public import LeanVM.Guest.B1.KeccakGkr.Lib
 public import LeanVM.Guest.B1.Eq.RsEqRun
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«ring_switch_weight»
 
 /-!
 # `ring_switch_weight` (TRIAGE G #66)
@@ -114,7 +116,7 @@ theorem rwProd_eq_ringRow (k : ℕ) :
 
 /-- Row `0`'s entry `k`: `1` (`prod_chains[k] = 1`). -/
 def rswInit (k : ℕ) : List Stmt :=
-  [.atom (.const (.n (13 + k)) (word 1 0)), .atom (.load (.n (13 + k)) (.n 12) k)]
+  [.atom (.const (.n (13 + k)) (word 1 0)), .atom (.load (.n (13 + k)) (.n (val% «ring_switch_weight» "prod_chains")) k)]
 
 /-- The value of `c_table[k]`, of the last row's entry `k`, of their product. -/
 def rswC (k : ℕ) : ℕ := if k = 0 then 78 else 4 * k + 77
@@ -124,22 +126,22 @@ def rswM (k : ℕ) : ℕ := if k = 0 then 80 else 4 * k + 79
 /-- Term `k` of the sum: `c_table[k]·row[k]`, added to the running sum (`4k + 80`). -/
 def rswTerm (k : ℕ) : List Stmt :=
   if k = 0 then
-    [.atom (.load (.n 78) (.n 2) 0), .atom (.load (.n 79) (.n 77) 0),
-      .atom (.mul (.n 80) (.n 78) (.n 79))]
+    [.atom (.load (.n (val% «ring_switch_weight» "rs_weight@1~0")) (.n (val% «ring_switch_weight» "c_table")) 0), .atom (.load (.n (val% «ring_switch_weight» "rs_weight@1~1")) (.n (val% «ring_switch_weight» "prod_final")) 0),
+      .atom (.mul (.n (val% «ring_switch_weight» "rs_weight@1")) (.n (val% «ring_switch_weight» "rs_weight@1~0")) (.n (val% «ring_switch_weight» "rs_weight@1~1")))]
   else
-    [.atom (.load (.n (4 * k + 77)) (.n 2) k), .atom (.load (.n (4 * k + 78)) (.n 77) k),
+    [.atom (.load (.n (4 * k + 77)) (.n (val% «ring_switch_weight» "c_table")) k), .atom (.load (.n (4 * k + 78)) (.n (val% «ring_switch_weight» "prod_final")) k),
       .atom (.mul (.n (4 * k + 79)) (.n (4 * k + 77)) (.n (4 * k + 78))),
       .atom (.add (.n (4 * k + 80)) (.n (4 * k + 76)) (.n (4 * k + 79)))]
 
 /-- `ring_switch_weight`'s body. -/
 def rswT : List Stmt :=
-  [.atom (.const (.n 4) (word 2 0)), .atom (.mul (.n 5) (.n 3) (.n 4)),
-    .atom (.mul (.n 6) (.n 5) (.n 5)), .atom (.mul (.n 7) (.n 6) (.n 6)),
-    .atom (.mul (.n 8) (.n 7) (.n 7)), .atom (.mul (.n 9) (.n 8) (.n 8)),
-    .atom (.mul (.n 10) (.n 9) (.n 9)), .atom (.mul (.n 11) (.n 10) (.n 10)),
-    .atom (.hint (.allocDyn (.n 12) (.n 11)))] ++
-  ((List.range 64).map rswInit).flatten ++ [.call "rs_eq_run" [.n 12, .n 0, .n 1, .n 3] [.n 77]] ++
-  ((List.range 64).map rswTerm).flatten ++ [.atom (.copy (.n 333) (.n 332)), .ret [.n 333]]
+  [.atom (.const (.n (val% «ring_switch_weight» "prod_chains~0")) (word 2 0)), .atom (.mul (.n (val% «ring_switch_weight» "prod_chains~1")) (.n (val% «ring_switch_weight» "qkeccakv_g")) (.n (val% «ring_switch_weight» "prod_chains~0"))),
+    .atom (.mul (.n (val% «ring_switch_weight» "prod_chains~2")) (.n (val% «ring_switch_weight» "prod_chains~1")) (.n (val% «ring_switch_weight» "prod_chains~1"))), .atom (.mul (.n (val% «ring_switch_weight» "prod_chains~3")) (.n (val% «ring_switch_weight» "prod_chains~2")) (.n (val% «ring_switch_weight» "prod_chains~2"))),
+    .atom (.mul (.n (val% «ring_switch_weight» "prod_chains~4")) (.n (val% «ring_switch_weight» "prod_chains~3")) (.n (val% «ring_switch_weight» "prod_chains~3"))), .atom (.mul (.n (val% «ring_switch_weight» "prod_chains~5")) (.n (val% «ring_switch_weight» "prod_chains~4")) (.n (val% «ring_switch_weight» "prod_chains~4"))),
+    .atom (.mul (.n (val% «ring_switch_weight» "prod_chains~6")) (.n (val% «ring_switch_weight» "prod_chains~5")) (.n (val% «ring_switch_weight» "prod_chains~5"))), .atom (.mul (.n (val% «ring_switch_weight» "prod_chains~7")) (.n (val% «ring_switch_weight» "prod_chains~6")) (.n (val% «ring_switch_weight» "prod_chains~6"))),
+    .atom (.hint (.allocDyn (.n (val% «ring_switch_weight» "prod_chains")) (.n (val% «ring_switch_weight» "prod_chains~7"))))] ++
+  ((List.range 64).map rswInit).flatten ++ [.call "rs_eq_run" [.n (val% «ring_switch_weight» "prod_chains"), .n (val% «ring_switch_weight» "z_vals"), .n (val% «ring_switch_weight» "point1"), .n (val% «ring_switch_weight» "qkeccakv_g")] [.n (val% «ring_switch_weight» "prod_final")]] ++
+  ((List.range 64).map rswTerm).flatten ++ [.atom (.copy (.n (val% «ring_switch_weight» "s5#0")) (.n (val% «ring_switch_weight» "rs_weight@64"))), .ret [.n (val% «ring_switch_weight» "s5#0")]]
 
 theorem rsw_body : (fn% «ring_switch_weight»).body = rswT := stmtsEqb_sound (by decide +kernel)
 
@@ -154,7 +156,7 @@ theorem rswTerm_noRet (k : ℕ) : Stmt.noRetList (rswTerm k) = true := by
 /-- What term `k` asks of a valuation. -/
 theorem holds_rswTerm {k : ℕ} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ (rswTerm k) True kret) :
-    LoadHolds rd (σ (.n 2)) k (σ (.n (rswC k))) ∧ LoadHolds rd (σ (.n 77)) k (σ (.n (rswP k))) ∧
+    LoadHolds rd (σ (.n (val% «ring_switch_weight» "c_table"))) k (σ (.n (rswC k))) ∧ LoadHolds rd (σ (.n (val% «ring_switch_weight» "prod_final"))) k (σ (.n (rswP k))) ∧
       σ (.n (rswM k)) = σ (.n (rswC k)) * σ (.n (rswP k)) ∧
       (k ≠ 0 → σ (.n (4 * k + 80)) = σ (.n (4 * (k - 1) + 80)) + σ (.n (rswM k))) := by
   unfold rswTerm at h
@@ -189,7 +191,7 @@ theorem ring_switch_weight_holds : ring_switch_weight_Spec := by
   obtain ⟨hinit, hb⟩ := (holdsList_range_flatten 64 rswInit rswInit_noRet _ _).mp hb
   obtain ⟨hcall, hb⟩ := hb
   obtain ⟨hterm, e333, hret⟩ := (holdsList_range_flatten 64 rswTerm rswTerm_noRet _ _).mp hb
-  have hrow0 : ∀ k < 64, LoadHolds rd (σ (.n 12)) k 1 := by
+  have hrow0 : ∀ k < 64, LoadHolds rd (σ (.n (val% «ring_switch_weight» "prod_chains"))) k 1 := by
     intro k hk
     have := hinit k hk
     simp only [rswInit, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at this

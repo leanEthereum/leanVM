@@ -28,8 +28,8 @@ moves of the statement's runner `LeanVM.Prover.runFrom` (`LeanVM/Prover/Refine.l
   the trees committed so far are carried along; an opening reads the stored tree
   (`LeanVM.Prover.Tree.opening`) and queries nothing;
 * the proof-of-work search tries the nonces `0, 1, …, fuel - 1` in order, each absorbed into the
-  sponge with tag `4` and permuted, the permutation's third lane checked (`absorbNonce`,
-  `LeanVM.Prover.searchM`).
+  sponge with tag `4` and permuted, the permutation's third lane checked and, where the strategy
+  asks it (`outsideK`), its challenge (`absorbNonce`, `LeanVM.Prover.searchM`).
 
 * `simulateQ_proveM`: interpreting the queries of `proveM callKeccak256 callKeccakF1600` by any implementation is
   running `proveM` with that implementation as the hash and the permutation.
@@ -70,7 +70,7 @@ def proveFromM (S : Strategy) (fuel : ℕ) {α : Type} :
     let r ← squeeze F sp
     proveFromM S fuel (k r.1) r.2 (h ++ [Ev.sample r.1]) cs
   | .grind bits k, sp, h, cs => do
-    match ← findNonceM F bits sp fuel with
+    match ← findNonceM F bits (S.outsideK h) sp fuel with
     | none => pure none
     | some n => do
       let r ← absorbNonce F sp n
@@ -196,19 +196,19 @@ theorem opening_buildTreeM_id (height : ℕ) (word : Word) (q : ℕ) :
   simp only [toArray_getD, leafDigestsM_id]
   exact congrArg _ e
 
-theorem searchM_id (bits : ℕ) (sp : Sponge) :
-    ∀ (count n : ℕ), searchM (m := Id) F bits sp n count =
-      ((List.range' n count).find? fun j ↦ powOk bits (powStep F sp (nonceOf j)).1).map nonceOf
+theorem searchM_id (bits : ℕ) (o : Bool) (sp : Sponge) :
+    ∀ (count n : ℕ), searchM (m := Id) F bits o sp n count =
+      ((List.range' n count).find? fun j ↦ nonceOk F bits o sp (nonceOf j)).map nonceOf
   | 0, _ => rfl
   | count + 1, n => by
     rw [List.range'_succ, List.find?_cons]
-    show (if powOk bits (powStep F sp (nonceOf n)).1 then _ else _) = _
+    show (if nonceOk F bits o sp (nonceOf n) then _ else _) = _
     split <;> rename_i hp
     · simp only [hp, Option.map_some]; rfl
-    · simp only [hp]; exact searchM_id bits sp count (n + 1)
+    · simp only [hp]; exact searchM_id bits o sp count (n + 1)
 
-theorem findNonceM_id (bits : ℕ) (sp : Sponge) (fuel : ℕ) :
-    findNonceM (m := Id) F bits sp fuel = findNonce F bits sp fuel := by
+theorem findNonceM_id (bits : ℕ) (o : Bool) (sp : Sponge) (fuel : ℕ) :
+    findNonceM (m := Id) F bits o sp fuel = findNonce F bits o sp fuel := by
   unfold findNonceM findNonce
   rw [searchM_id, List.range_eq_range']
 
@@ -237,10 +237,10 @@ theorem proveFromM_id (S : Strategy) (fuel : ℕ) {α : Type} :
     rfl
   | .grind bits k, sp, h => by
     simp only [proveFromM, proveFrom]
-    show (match findNonceM (m := Id) F bits sp fuel with
+    show (match findNonceM (m := Id) F bits (S.outsideK h) sp fuel with
       | none => _ | some n => _) = _
     rw [findNonceM_id]
-    cases findNonce F bits sp fuel
+    cases findNonce F bits (S.outsideK h) sp fuel
     · rfl
     · show Option.map _ (proveFromM (m := Id) H F S fuel k _ _ _) =
         Option.map _ (proveFrom H F S fuel k _ _)
@@ -314,21 +314,22 @@ theorem simulateQ_buildTreeM (height : ℕ) (word : Word) :
   simp only [buildTreeWithHash, simulateQ_bind, simulateQ_leafDigestsM, simulateQ_levelsM,
     simulateQ_pure]
 
-theorem simulateQ_searchM (bits : ℕ) (sp : Sponge) :
-    ∀ (count n : ℕ), simulateQ impl (searchM callKeccakF1600 bits sp n count) =
-      searchM (implF impl) bits sp n count
+theorem simulateQ_searchM (bits : ℕ) (o : Bool) (sp : Sponge) :
+    ∀ (count n : ℕ), simulateQ impl (searchM callKeccakF1600 bits o sp n count) =
+      searchM (implF impl) bits o sp n count
   | 0, _ => by simp [searchM]
   | count + 1, n => by
     simp only [searchM, simulateQ_bind, simulateQ_absorbNonce]
     congr 1; funext r
     split
     · simp
-    · exact simulateQ_searchM bits sp count (n + 1)
+    · exact simulateQ_searchM bits o sp count (n + 1)
 
-theorem simulateQ_findNonceM (bits : ℕ) (sp : Sponge) (fuel : ℕ) :
-    simulateQ impl (findNonceM callKeccakF1600 bits sp fuel) = findNonceM (implF impl) bits sp fuel := by
+theorem simulateQ_findNonceM (bits : ℕ) (o : Bool) (sp : Sponge) (fuel : ℕ) :
+    simulateQ impl (findNonceM callKeccakF1600 bits o sp fuel) =
+      findNonceM (implF impl) bits o sp fuel := by
   unfold findNonceM
-  exact simulateQ_searchM impl bits sp _ _
+  exact simulateQ_searchM impl bits o sp _ _
 
 theorem simulateQ_proveFromM (S : Strategy) (fuel : ℕ) {α : Type} :
     ∀ (p : VerifierProgram α) (sp : Sponge) (h : List Ev) (cs : List Tree),
@@ -492,8 +493,8 @@ theorem isTotalQueryBound_absorbNonce_le {β : Type} (sp : Sponge) (n : E)
   exact isTotalQueryBound_absorb_le _ _ _ fun sp' ↦
     isTotalQueryBound_queryF_bind _ fun st ↦ hg _
 
-theorem isTotalQueryBound_searchM (bits : ℕ) (sp : Sponge) :
-    ∀ (count n : ℕ), IsTotalQueryBound (searchM callKeccakF1600 bits sp n count) (2 * count)
+theorem isTotalQueryBound_searchM (bits : ℕ) (o : Bool) (sp : Sponge) :
+    ∀ (count n : ℕ), IsTotalQueryBound (searchM callKeccakF1600 bits o sp n count) (2 * count)
   | 0, _ => trivial
   | count + 1, n => by
     simp only [searchM]
@@ -501,12 +502,12 @@ theorem isTotalQueryBound_searchM (bits : ℕ) (sp : Sponge) :
     refine isTotalQueryBound_absorbNonce_le _ _ fun r ↦ ?_
     split
     · trivial
-    · exact isTotalQueryBound_searchM bits sp count (n + 1)
+    · exact isTotalQueryBound_searchM bits o sp count (n + 1)
 
-theorem isTotalQueryBound_findNonceM (bits : ℕ) (sp : Sponge) (fuel : ℕ) :
-    IsTotalQueryBound (findNonceM callKeccakF1600 bits sp fuel) (2 * fuel) := by
+theorem isTotalQueryBound_findNonceM (bits : ℕ) (o : Bool) (sp : Sponge) (fuel : ℕ) :
+    IsTotalQueryBound (findNonceM callKeccakF1600 bits o sp fuel) (2 * fuel) := by
   unfold findNonceM
-  exact isTotalQueryBound_searchM bits sp fuel 0
+  exact isTotalQueryBound_searchM bits o sp fuel 0
 
 /-- The query cost of one quarter of a program's cost: a commitment builds a
 tree of height at most `height`, a proof of work searches `fuel` nonces at two queries each. -/
@@ -556,7 +557,7 @@ theorem isTotalQueryBound_proveFromM (S : Strategy) (fuel height : ℕ) {α : Ty
     nlinarith
   | .grind bits k, sp, h, cs, n, Q, hp => by
     simp only [proveFromM]
-    refine (isTotalQueryBound_bind (isTotalQueryBound_findNonceM bits sp fuel)
+    refine (isTotalQueryBound_bind (isTotalQueryBound_findNonceM bits (S.outsideK h) sp fuel)
       (n₂ := (n - 5) * proverFactor height fuel + 0 + 2) fun o ↦ ?_).mono ?_
     · split
       · trivial

@@ -12,6 +12,8 @@ public import LeanVM.Guest.B1.VerifySub.C.Side
 public import LeanVM.Guest.B1.VerifySub.Ood
 public import LeanVM.Guest.B1.VerifySub.Bus
 public import LeanVM.Guest.B1.VerifySub.Tail
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_sub»
 
 /-!
 # The front, honestly
@@ -109,9 +111,9 @@ theorem vsg_fsPack {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {x :
 /-- The tail but its `ret`. -/
 def vsTailP : List Stmt :=
   [vsConst 1884 (word 2 0), vsMul 1885 578 1884] ++ vsTabsT 1886 1887 ++
-  [.dispatch (.n 278) vsOpenNames
-      [.n 66, .n 1337, .n 1338, .n 1339, .n 1340, .n 1341, .n 1883, .n 268, .n 271, .n 1885,
-        .n 1887]
+  [.dispatch (.n (val% «verify_sub» "size_sel")) vsOpenNames
+      [.n (val% «verify_sub» "rate_sel"), .n (val% «verify_sub» "nxt[8]@36"), .n (val% «verify_sub» "nxt[9]@36"), .n (val% «verify_sub» "nxt[10]@36"), .n (val% «verify_sub» "nxt[11]@36"), .n (val% «verify_sub» "nxt[12]@36"), .n (val% «verify_sub» "target@136"), .n (val% «verify_sub» "x@9"), .n (val% «verify_sub» "x@10"), .n (val% «verify_sub» "sumcheck_target~2"),
+        .n (val% «verify_sub» "sumcheck_target~4")]
       (vsRun 1888 5),
     vsCall "check_opening_terminal" [4, 254, 552, 564, 253, 562, 72, 566, 83, 1329, 275, 567, 815,
       1889, 1890, 1891, 1892, 1888, 303, 276] []] ++
@@ -173,7 +175,7 @@ theorem vsTailP_good (hl : args.length = 6) : ∀ s ∈ vsTailP, GoodS rd vsSL w
 /-! ## The head: the zero cells and the seed -/
 
 theorem vs_zero (hl : args.length = 6) :
-    ς (.n 8) = 0 ∧ ς (.n 9) = 0 ∧ ς (.n 10) = 0 ∧ ς (.n 11) = 0 := by
+    ς (.n (val% «verify_sub» "s3#0[1]")) = 0 ∧ ς (.n (val% «verify_sub» "s3#0[2]")) = 0 ∧ ς (.n (val% «verify_sub» "s3#0[3]")) = 0 ∧ ς (.n (val% «verify_sub» "s3#0[4]")) = 0 := by
   have hG := vsHeadT_good (rd := rd) (w := w) hl
   have e : ∀ d ∈ [8, 9, 10, 11], ς (.n d) = 0 := by
     intro d hd
@@ -187,7 +189,7 @@ theorem vs_zero (hl : args.length = 6) :
 theorem vs_seedCap (hl : args.length = 6) {seed pi : Digest}
     (h0 : args.getD 0 0 = (digestHalves pi).1) (h1 : args.getD 1 0 = (digestHalves pi).2)
     (h2 : args.getD 2 0 = (digestHalves seed).1) (h3 : args.getD 3 0 = (digestHalves seed).2) :
-    [ς (.n 20), ς (.n 21), ς (.n 22), ς (.n 23), ς (.n 24)] =
+    [ς (.n (val% «verify_sub» "sp[8]")), ς (.n (val% «verify_sub» "sp[9]")), ς (.n (val% «verify_sub» "sp[10]")), ς (.n (val% «verify_sub» "sp[11]")), ς (.n (val% «verify_sub» "sp[12]"))] =
       capOf (keccakF1600 (seedInput seed pi)) := by
   have hG := vsHeadT_good (rd := rd) (w := w) hl
   obtain ⟨z8, z9, z10, z11⟩ := vs_zero (rd := rd) (w := w) hl
@@ -210,29 +212,29 @@ def vsWv (k : ℕ) : ℕ := [27, 30, 33, 36, 52, 55, 58, 61, 268, 271].getD k 0
 
 theorem vsWv_lt : ∀ k < 8, vsWv k = vsX k := by decide
 
-theorem fsNextT_sub_reads : ∀ k < 8, ∀ s ∈ fsNextT (.n 25) k (vsWv k), s ∈ vsReadsT := by
+theorem fsNextT_sub_reads : ∀ k < 8, ∀ s ∈ fsNextT (.n (val% «verify_sub» "stream")) k (vsWv k), s ∈ vsReadsT := by
   intro k hk s hs
   interval_cases k <;>
     simp only [vsWv, List.getD_cons_zero, List.getD_cons_succ] at hs <;>
     simp only [vsReadsT, List.mem_append, List.mem_cons, List.not_mem_nil, or_false] <;> tauto
 
-theorem fsNextT_sub_roots : ∀ k, 8 ≤ k → k < 10 → ∀ s ∈ fsNextT (.n 25) k (vsWv k), s ∈ vsRootsT := by
+theorem fsNextT_sub_roots : ∀ k, 8 ≤ k → k < 10 → ∀ s ∈ fsNextT (.n (val% «verify_sub» "stream")) k (vsWv k), s ∈ vsRootsT := by
   intro k hk1 hk2 s hs
   obtain rfl | rfl : k = 8 ∨ k = 9 := by omega
   · simp only [vsRootsT, List.mem_append]; exact Or.inl (Or.inr hs)
   · simp only [vsRootsT, List.mem_append]; exact Or.inr hs
 
-theorem vs_notS_word : ∀ k < 10, Atom.load (.n (vsWv k)) (.n 25) k ∉ vsSL := by decide +kernel
+theorem vs_notS_word : ∀ k < 10, Atom.load (.n (vsWv k)) (.n (val% «verify_sub» "stream")) k ∉ vsSL := by decide +kernel
 
 /-- **A stream word, read and packed** (`fs_next`), offsets `0 .. 9`. -/
 theorem vs_word (hl : args.length = 6) {k : ℕ} (hk : k < 10) {v : E}
     (hv : LoadHolds rd (w 25) k v) : ς (.n (vsWv k)) = v ∧ WordAt rd ς k (vsWv k) := by
-  have hg : ∀ s ∈ fsNextT (.n 25) k (vsWv k), GoodS rd vsSL w ς s := by
+  have hg : ∀ s ∈ fsNextT (.n (val% «verify_sub» "stream")) k (vsWv k), GoodS rd vsSL w ς s := by
     intro s hs
     by_cases h8 : k < 8
     · exact vsReadsT_good hl s (fsNextT_sub_reads k h8 s hs)
     · exact vsRootsT_good hl s (fsNextT_sub_roots k (by omega) hk s hs)
-  have hv' : LoadHolds rd (ς (.n 25)) k v := by rw [vs_w hl (by decide)]; exact hv
+  have hv' : LoadHolds rd (ς (.n (val% «verify_sub» "stream"))) k v := by rw [vs_w hl (by decide)]; exact hv
   have e := vsg_read (hg _ List.mem_cons_self) (vs_notS_word k hk) hv'
   refine ⟨e, by rw [e]; exact hv', vsg_fsPack fun s hs ↦ hg s (List.mem_cons_of_mem _ hs)⟩
 
@@ -245,7 +247,7 @@ noncomputable abbrev vsRootFsV (rd : Reader) (w : ℕ → E) (args : List E) : F
 words `0 .. 7` then `8`, `9` give the root's sponge. -/
 theorem vs_rootFs (hl : args.length = 6) {ws : List E} (hwl : 10 ≤ ws.length)
     (hws : ∀ k < 10, LoadHolds rd (w 25) k (ws.getD k 0)) :
-    (((⟨[ς (.n 20), ς (.n 21), ς (.n 22), ς (.n 23), ς (.n 24)], []⟩ : Fs).absorbAll (ws.take 8)
+    (((⟨[ς (.n (val% «verify_sub» "sp[8]")), ς (.n (val% «verify_sub» "sp[9]")), ς (.n (val% «verify_sub» "sp[10]")), ς (.n (val% «verify_sub» "sp[11]")), ς (.n (val% «verify_sub» "sp[12]"))], []⟩ : Fs).absorbAll (ws.take 8)
         dsObserve).absorb (ws.getD 8 0) dsObserve).absorb (ws.getD 9 0) dsObserve =
       vsRootFsV rd w args := by
   have W := fun k (hk : k < 10) ↦ vs_word (rd := rd) (w := w) hl hk (hws k hk)
@@ -272,15 +274,15 @@ noncomputable def vsOodSt (rd : Reader) (w : ℕ → E) (args : List E) (n : E) 
   (vsRootFsV rd w args).nonceState n
 
 theorem vs_ood_cells {σ : Val} {S : KeccakState} (hc : cells13 ((vsRun 288 13).map σ) = cellsOfState S false) :
-    σ (.n 288) = cellsOfState S false 0 ∧ σ (.n 289) = cellsOfState S false 1 ∧
-      [σ (.n 296), σ (.n 297), σ (.n 298), σ (.n 299), σ (.n 300)] = capOf S :=
+    σ (.n (val% «verify_sub» "nxt[0]@3")) = cellsOfState S false 0 ∧ σ (.n (val% «verify_sub» "nxt[1]@3")) = cellsOfState S false 1 ∧
+      [σ (.n (val% «verify_sub» "nxt[8]@3")), σ (.n (val% «verify_sub» "nxt[9]@3")), σ (.n (val% «verify_sub» "nxt[10]@3")), σ (.n (val% «verify_sub» "nxt[11]@3")), σ (.n (val% «verify_sub» "nxt[12]@3"))] = capOf S :=
   ⟨congrFun hc 0, congrFun hc 1, by
     rw [capOf, ← congrFun hc 8, ← congrFun hc 9, ← congrFun hc 10, ← congrFun hc 11,
       ← congrFun hc 12]; rfl⟩
 
 theorem vsg_tabs {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {c d : ℕ}
     (hb : (vsTabsT c d).all vsNoSideB = true) (hg : ∀ s ∈ vsTabsT c d, GoodS rd S w σ s) :
-    σ (.n d) = σ (.n 4) * gen ^ winTabAt :=
+    σ (.n d) = σ (.n (val% «verify_sub» "g_squares")) * gen ^ winTabAt :=
   (vsTabsT_holds (C := fun _ _ _ ↦ True) (kret := fun _ ↦ True)
     (vs_holdsList_good hb hg (next := True) trivial)).1
 
@@ -289,35 +291,35 @@ the root's words and permuted (`vsOodSt`), `grind_check`'s cell, the point's cap
 challenge, `tabs`, and the value's pointer `stream·g^11`. -/
 theorem vs_ood (hl : args.length = 6) {ws : List E}
     (hws : ∀ k < 11, LoadHolds rd (w 25) k (ws.getD k 0)) :
-    ς (.n 283) = ws.getD 10 0 ∧
-      ς (.n 289) = cellsOfState (vsOodSt rd w args (ws.getD 10 0)) false 1 ∧
-      [ς (.n 296), ς (.n 297), ς (.n 298), ς (.n 299), ς (.n 300)] =
+    ς (.n (val% «verify_sub» "s38.i0:fs_grind_squeeze.s0.e.s0.e.s0#0")) = ws.getD 10 0 ∧
+      ς (.n (val% «verify_sub» "nxt[1]@3")) = cellsOfState (vsOodSt rd w args (ws.getD 10 0)) false 1 ∧
+      [ς (.n (val% «verify_sub» "nxt[8]@3")), ς (.n (val% «verify_sub» "nxt[9]@3")), ς (.n (val% «verify_sub» "nxt[10]@3")), ς (.n (val% «verify_sub» "nxt[11]@3")), ς (.n (val% «verify_sub» "nxt[12]@3"))] =
         capOf (vsOodSt rd w args (ws.getD 10 0)) ∧
-      ς (.n 288) = challengeOf (vsOodSt rd w args (ws.getD 10 0)) ∧
-      ς (.n 302) = ς (.n 4) * gen ^ winTabAt ∧ ς (.n 311) = w 25 * gen ^ 11 := by
+      ς (.n (val% «verify_sub» "nxt[0]@3")) = challengeOf (vsOodSt rd w args (ws.getD 10 0)) ∧
+      ς (.n (val% «verify_sub» "s38.i0:fs_grind_squeeze.s0.e.s0.e.s1#1")) = ς (.n (val% «verify_sub» "g_squares")) * gen ^ winTabAt ∧ ς (.n (val% «verify_sub» "word0~9")) = w 25 * gen ^ 11 := by
   have hG := vsOodT_good (rd := rd) (w := w) hl
   have W8 := vs_word (rd := rd) (w := w) hl (k := 8) (by omega) (hws 8 (by omega))
   have W9 := vs_word (rd := rd) (w := w) hl (k := 9) (by omega) (hws 9 (by omega))
-  have hn : ∀ s ∈ fsNonceT (.n 25) 10 283, GoodS rd vsSL w ς s := fun s hs ↦ hG s (by
+  have hn : ∀ s ∈ fsNonceT (.n (val% «verify_sub» "stream")) 10 (val% «verify_sub» "s38.i0:fs_grind_squeeze.s0.e.s0.e.s0#0"), GoodS rd vsSL w ς s := fun s hs ↦ hG s (by
     rw [vsOodT]; exact List.mem_append_left _ (List.mem_append_left _
       (List.mem_append_left _ (List.mem_append_left _ hs))))
-  have e283 : ς (.n 283) = ws.getD 10 0 :=
+  have e283 : ς (.n (val% «verify_sub» "s38.i0:fs_grind_squeeze.s0.e.s0.e.s0#0")) = ws.getD 10 0 :=
     vsg_read (hn _ List.mem_cons_self) (by decide +kernel)
       (by rw [vs_w hl (by decide)]; exact hws 10 (by omega))
-  have hp : FsPackOk ς (.n 283) 284 dsPowNonce :=
+  have hp : FsPackOk ς (.n (val% «verify_sub» "s38.i0:fs_grind_squeeze.s0.e.s0.e.s0#0")) 284 dsPowNonce :=
     vsg_fsPack fun s hs ↦ hn s (List.mem_cons_of_mem _ hs)
-  have h286 : ς (.n 286) = 0 := by
+  have h286 : ς (.n (val% «verify_sub» "rate[6]@3")) = 0 := by
     rw [← word_zero]; exact vsg_const (hG _ (by simp [vsOodT, zero2T]))
-  have h287 : ς (.n 287) = 0 := by
+  have h287 : ς (.n (val% «verify_sub» "rate[7]@3")) = 0 := by
     rw [← word_zero]; exact vsg_const (hG _ (by simp [vsOodT, zero2T]))
   have hk : vsAtom288.Holds rd ς := vsg_atom (hG _ (by simp [vsOodT, keccakA])) rfl
   have hc := vs_oodPerm (by simpa [vsWv] using W8.2) (by simpa [vsWv] using W9.2) hp h286 h287 hk
   rw [e283] at hc
   obtain ⟨c0, c1, ccap⟩ := vs_ood_cells hc
-  have h302 : ς (.n 302) = ς (.n 4) * gen ^ winTabAt := vsg_tabs (c := 301) (by decide) fun s hs ↦ hG s (by
+  have h302 : ς (.n (val% «verify_sub» "s38.i0:fs_grind_squeeze.s0.e.s0.e.s1#1")) = ς (.n (val% «verify_sub» "g_squares")) * gen ^ winTabAt := vsg_tabs (c := 301) (by decide) fun s hs ↦ hG s (by
     rw [vsOodT]; exact List.mem_append_left _ (List.mem_append_right _ hs))
-  have h311 : ς (.n 310) = word 2048 0 := vsg_const (hG _ (by simp [vsOodT, vsConst]))
-  have h312 : ς (.n 311) = ς (.n 25) * ς (.n 310) :=
+  have h311 : ς (.n (val% «verify_sub» "word0~8")) = word 2048 0 := vsg_const (hG _ (by simp [vsOodT, vsConst]))
+  have h312 : ς (.n (val% «verify_sub» "word0~9")) = ς (.n (val% «verify_sub» "stream")) * ς (.n (val% «verify_sub» "word0~8")) :=
     vsg_mul (by norm_num) (by norm_num) (hG _ (by simp [vsOodT, vsMul]))
   refine ⟨e283, c1, ccap, ?_, h302, ?_⟩
   · rw [c0, Keccak.challengeOf_cells]; rfl
@@ -327,14 +329,14 @@ theorem vs_ood (hl : args.length = 6) {ws : List E}
 
 /-- **The bus grind's index**: `g^(d - 20)`, and `tabs`. -/
 theorem vs_busGrind (hl : args.length = 6) {d : ℕ} (hd : 20 ≤ d) (h253 : w 253 = gen ^ d) :
-    ς (.n 321) = gen ^ (d - 20) ∧ ς (.n 322) = gen ^ 13 ∧
-      ς (.n 327) = ς (.n 4) * gen ^ winTabAt := by
+    ς (.n (val% «verify_sub» "bus_grind")) = gen ^ (d - 20) ∧ ς (.n (val% «verify_sub» "s44#0")) = gen ^ 13 ∧
+      ς (.n (val% «verify_sub» "done~2")) = ς (.n (val% «verify_sub» "g_squares")) * gen ^ winTabAt := by
   have hG := vsBusGrindT_good (rd := rd) (w := w) hl
-  have h321 : ς (.n 320) = vsGinvBus := vsg_const (hG _ (by simp [vsBusGrindT, vsConst]))
-  have h322 : ς (.n 321) = ς (.n 253) * ς (.n 320) :=
+  have h321 : ς (.n (val% «verify_sub» "bus_grind~0")) = vsGinvBus := vsg_const (hG _ (by simp [vsBusGrindT, vsConst]))
+  have h322 : ς (.n (val% «verify_sub» "bus_grind")) = ς (.n (val% «verify_sub» "g_bus_mu")) * ς (.n (val% «verify_sub» "bus_grind~0")) :=
     vsg_mul (by norm_num) (by norm_num) (hG _ (by simp [vsBusGrindT, vsMul]))
-  have h323 : ς (.n 322) = word 8192 0 := vsg_const (hG _ (by simp [vsBusGrindT, vsConst]))
-  have h328 : ς (.n 327) = ς (.n 4) * gen ^ winTabAt := vsg_tabs (c := 326) (by decide) fun s hs ↦ hG s (by
+  have h323 : ς (.n (val% «verify_sub» "s44#0")) = word 8192 0 := vsg_const (hG _ (by simp [vsBusGrindT, vsConst]))
+  have h328 : ς (.n (val% «verify_sub» "done~2")) = ς (.n (val% «verify_sub» "g_squares")) * gen ^ winTabAt := vsg_tabs (c := 326) (by decide) fun s hs ↦ hG s (by
     rw [vsBusGrindT]; exact List.mem_append_left _ (List.mem_append_right _ hs))
   refine ⟨?_, by rw [h323, word_g13], h328⟩
   rw [h322, h321, vs_w hl (by decide), h253, show d = (d - 20) + 20 by omega, pow_add,
@@ -348,7 +350,7 @@ def vsFpwFs (w : ℕ → E) : Fs := ⟨[w 314, w 315, w 316, w 317, w 318], []�
 theorem vsPermT_noSide (capb o : ℕ) : [vsPermT capb o].all vsNoSideB = true := rfl
 
 theorem vsg_perm {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {capb o : ℕ}
-    (hz : σ (.n 8) = 0 ∧ σ (.n 9) = 0 ∧ σ (.n 10) = 0 ∧ σ (.n 11) = 0)
+    (hz : σ (.n (val% «verify_sub» "s3#0[1]")) = 0 ∧ σ (.n (val% «verify_sub» "s3#0[2]")) = 0 ∧ σ (.n (val% «verify_sub» "s3#0[3]")) = 0 ∧ σ (.n (val% «verify_sub» "s3#0[4]")) = 0)
     (hg : ∀ s ∈ [vsPermT capb o], GoodS rd S w σ s) :
     (⟨(vsRun capb 5).map σ, []⟩ : Fs).squeeze =
       (σ (.n o), ⟨[σ (.n (o + 8)), σ (.n (o + 9)), σ (.n (o + 10)), σ (.n (o + 11)),
@@ -372,7 +374,7 @@ theorem vs_fpw_loop (hl : args.length = 6) : ∀ n ≤ 15,
   | zero =>
     intro _
     refine ⟨?_, fun i hi ↦ absurd hi (by omega)⟩
-    have c : ∀ i < 5, ς (.n (329 + i)) = w (314 + i) := fun i hi ↦ by
+    have c : ∀ i < 5, ς (.n ((val% «verify_sub» "sp[0]@2") + i)) = w (314 + i) := fun i hi ↦ by
       rw [vsg_copy (hG _ (by
         rw [vsFpwT]
         exact List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
@@ -405,7 +407,7 @@ theorem vs_fpw_loop (hl : args.length = 6) : ∀ n ≤ 15,
 theorem vs_fpw (hl : args.length = 6) :
     (∀ i < 15, ς (.n (335 + 13 * i)) = ((vsFpwFs w).squeezeN 15).1.getD i 0) ∧
       ((vsFpwFs w).squeezeN 15).2.squeeze =
-        (ς (.n 530), ⟨[ς (.n 538), ς (.n 539), ς (.n 540), ς (.n 541), ς (.n 542)], []⟩) := by
+        (ς (.n (val% «verify_sub» "nxt[0]@19")), ⟨[ς (.n (val% «verify_sub» "nxt[8]@19")), ς (.n (val% «verify_sub» "nxt[9]@19")), ς (.n (val% «verify_sub» "nxt[10]@19")), ς (.n (val% «verify_sub» "nxt[11]@19")), ς (.n (val% «verify_sub» "nxt[12]@19"))], []⟩) := by
   have hG := vsFpwT_good (rd := rd) (w := w) hl
   have hz := vs_zero (rd := rd) (w := w) hl
   obtain ⟨h15, hi⟩ := vs_fpw_loop (rd := rd) (w := w) hl 15 le_rfl
@@ -422,14 +424,14 @@ theorem vs_fpw (hl : args.length = 6) :
 /-- **The three calls' arguments**: `tabs` thrice, `τ` read from `dims_g[6]`,
 the output lanes at `col_eval_words·g^101`. -/
 theorem vs_callsV (hl : args.length = 6) :
-    ς (.n 544) = ς (.n 4) * gen ^ winTabAt ∧ ς (.n 555) = ς (.n 4) * gen ^ winTabAt ∧
-      ς (.n 572) = ς (.n 4) * gen ^ winTabAt ∧ ς (.n 566) = rdAt rd (w 71) 6 ∧
-      ς (.n 570) = w 565 * gen ^ 101 := by
+    ς (.n (val% «verify_sub» "fs0@3~8")) = ς (.n (val% «verify_sub» "g_squares")) * gen ^ winTabAt ∧ ς (.n (val% «verify_sub» "fs0@4~11")) = ς (.n (val% «verify_sub» "g_squares")) * gen ^ winTabAt ∧
+      ς (.n (val% «verify_sub» "fs0@5~10")) = ς (.n (val% «verify_sub» "g_squares")) * gen ^ winTabAt ∧ ς (.n (val% «verify_sub» "tau_keccak_g")) = rdAt rd (w 71) 6 ∧
+      ς (.n (val% «verify_sub» "fs0@5~8")) = w 565 * gen ^ 101 := by
   have hG := vsCallsT_good (rd := rd) (w := w) hl
-  have h586 : ς (.n 569) = word 3710851743744 0 := vsg_const (hG _ (by simp [vsCallsT, vsConst]))
-  have h587 : ς (.n 570) = ς (.n 565) * ς (.n 569) :=
+  have h586 : ς (.n (val% «verify_sub» "fs0@5~7")) = word 3710851743744 0 := vsg_const (hG _ (by simp [vsCallsT, vsConst]))
+  have h587 : ς (.n (val% «verify_sub» "fs0@5~8")) = ς (.n (val% «verify_sub» "col_eval_words")) * ς (.n (val% «verify_sub» "fs0@5~7")) :=
     vsg_mul (by norm_num) (by norm_num) (hG _ (by simp [vsCallsT, vsMul]))
-  have h583 : ς (.n 566) = rdAt rd (ς (.n 71)) 6 :=
+  have h583 : ς (.n (val% «verify_sub» "tau_keccak_g")) = rdAt rd (ς (.n (val% «verify_sub» "dims_g"))) 6 :=
     vsg_rdAt (hG _ (by simp [vsCallsT, vsLd])) (by decide +kernel)
   refine ⟨vsg_tabs (c := 543) (by decide) fun s hs ↦ hG s (by
       rw [vsCallsT]; exact List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _

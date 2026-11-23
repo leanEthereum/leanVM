@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Digest.ChildListAny0
 
-  Windows 0–3 of `child_claim_list_any`'s big frame loop `child_claim_list_any_loop0`: blocks
-  0–15, records 0–35, each window a kernel check of its own.
+  Windows 0 to 3 of `child_claim_list_any`'s big frame loop `child_claim_list_any_loop0`: blocks
+  0 to 15, records 0 to 35, each window a kernel check of its own.
 -/
 
 module

@@ -10,6 +10,8 @@ module
 public import LeanVM.Guest.B1.Whir.CHonStep
 public import LeanVM.Guest.B1.Whir.CHonLvs
 public import LeanVM.Guest.B1.Whir.CTail
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«open_stacked__L»
 
 /-!
 # The body, composed
@@ -123,8 +125,8 @@ theorem body_of {h : OsHD} {b : ℕ} {args : List E} {cur tabs : E} {xs : List E
   -- the head
   have b0 := osHead_complete (H := H) c σ0 (osPtrA c b) fun C rd hH ↦ hroot C rd hH
   -- the levels
-  have bL := fun σ1 (ha : AgreeBelow 11 σ0 σ1) (ho : ∀ C rd, H C rd → (osHead c).2.Ok σ1 ∧
-      (∀ j < 22, σ1 (.n (11 + j)) = (headVals c (osPtrA c b)).getD j 0) ∧ AgreeBelow 11 σ0 σ1) ↦
+  have bL := fun σ1 (ha : AgreeBelow (valf% «open_stacked» "final_msg~0") σ0 σ1) (ho : ∀ C rd, H C rd → (osHead c).2.Ok σ1 ∧
+      (∀ j < 22, σ1 (.n ((valf% «open_stacked» "final_msg~0") + j)) = (headVals c (osPtrA c b)).getD j 0) ∧ AgreeBelow (valf% «open_stacked» "final_msg~0") σ0 σ1) ↦
     BlkA.of_ne (H := H) fun ⟨C0, rd0, hH0⟩ ↦ by
       obtain ⟨hok, hv, -⟩ := ho C0 rd0 hH0
       have hq : QAt h b tabs cur xs 0 (osHead c).2 σ1 := by
@@ -136,16 +138,16 @@ theorem body_of {h : OsHD} {b : ℕ} {args : List E} {cur tabs : E} {xs : List E
         · simp only [OsSt.fsv, osHead, List.map_cons, List.map_nil]
           rw [ha 1 (by omega), ha 2 (by omega), ha 3 (by omega), ha 4 (by omega), ha 5 (by omega)]
           exact ha0
-        · show σ1 (.n 6) = _
+        · show σ1 (.n (valf% «open_stacked» "target")) = _
           rw [ha 6 (by omega)]; exact ha6
-        · show σ1 (.n 9) * gen ^ 0 = _
+        · show σ1 (.n (valf% «open_stacked» "cursor@1")) * gen ^ 0 = _
           rw [ha 9 (by omega), hx0, Nat.sub_self, pow_zero, mul_one, mul_one]; exact ha9
       exact hlvs (osHead c).2 σ1 hq
   have b1 := BlkA.seqK b0 (fun _ _ ↦ by omega) bL (fun σ' ho ↦ ho.1)
   -- the closing rounds
-  have bT := fun σ2 (_ : AgreeBelow 11 σ0 σ2) (ho : ∀ C rd, H C rd →
-      ((osHead c).2.Ok σ2 ∧ (∀ j < 22, σ2 (.n (11 + j)) = (headVals c (osPtrA c b)).getD j 0) ∧
-        AgreeBelow 11 σ0 σ2) ∧ ((osHead c).2.k ≤ (osLevels c 0 c.levels (osHead c).2).2.k ∧
+  have bT := fun σ2 (_ : AgreeBelow (valf% «open_stacked» "final_msg~0") σ0 σ2) (ho : ∀ C rd, H C rd →
+      ((osHead c).2.Ok σ2 ∧ (∀ j < 22, σ2 (.n ((valf% «open_stacked» "final_msg~0") + j)) = (headVals c (osPtrA c b)).getD j 0) ∧
+        AgreeBelow (valf% «open_stacked» "final_msg~0") σ0 σ2) ∧ ((osHead c).2.k ≤ (osLevels c 0 c.levels (osHead c).2).2.k ∧
         QAt h b tabs cur xs c.levels.length (osLevels c 0 c.levels (osHead c).2).2 σ2 ∧
         ∀ i < c.levels.length, RAt h b tabs i (h.bat i) σ2)) ↦
     show BlkA H σ2 (osLevels c 0 c.levels (osHead c).2).2.k (osTail c (osLvsEnd c)).2.1.k

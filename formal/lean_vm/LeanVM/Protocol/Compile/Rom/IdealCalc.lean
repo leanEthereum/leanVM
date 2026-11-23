@@ -53,7 +53,7 @@ noncomputable def exp0 {α : Type} : VerifierProgram α → List Ev → Option E
     | some c => exp0 (k c) (h ++ [Ev.sample c]) none C
     | none => avgE fun c ↦ exp0 (k c) (h ++ [Ev.sample c]) none C
   | .grind b k, h, g, C => if g.isSome then 0 else
-      avgE fun c ↦ exp0 k (h ++ [Ev.grind b]) (some c) C
+      avgOn (S.outsideK h) fun c ↦ exp0 k (h ++ [Ev.grind b]) (some c) C
   | .commit ht w k, h, g, C => if g.isSome ∨ ¬ WellShaped w (S.word h) then 0 else
       exp0 k (h ++ [Ev.commit ht w (S.word h)]) none C
   | .query i ps k, h, g, C => match answer h i ps with
@@ -96,6 +96,102 @@ theorem avgE_ind_zero : avgE (fun c ↦ if c = 0 then 1 else 0) = epsE := by
   rw [Finset.sum_ite_eq' Finset.univ (0 : E)]
   simp only [Finset.mem_univ, ↓reduceIte, one_div]
 
+/-! ### The average over the usable challenges -/
+
+/-- Some challenge is usable: the probability is positive. -/
+theorem usableProb_ne_zero (o : Bool) : usableProb o ≠ 0 := by
+  have hc : LeanVM.Prover.nonceUsable o (E.ofLimbs 0 1) = true := by
+    cases o <;> simp [LeanVM.Prover.nonceUsable, limb_ofLimbs]
+  have hle : avgE (fun c ↦ if c = E.ofLimbs 0 1 then 1 else 0) ≤ usableProb o :=
+    avgE_mono fun c ↦ by
+      by_cases h : c = E.ofLimbs 0 1
+      · subst h
+        simp [hc]
+      · simp [h]
+  have hx : avgE (fun c ↦ if c = E.ofLimbs 0 1 then 1 else 0) = epsE := by
+    unfold avgE epsE
+    rw [Finset.sum_ite_eq' Finset.univ (E.ofLimbs 0 1)]
+    simp only [Finset.mem_univ, ↓reduceIte, one_div]
+  refine ne_of_gt (lt_of_lt_of_le ?_ hle)
+  rw [hx]
+  unfold epsE
+  exact ENNReal.inv_pos.2 (ENNReal.natCast_ne_top _)
+
+theorem usableProb_le_one (o : Bool) : usableProb o ≤ 1 := by
+  unfold usableProb
+  exact avgE_le_const fun c ↦ by split <;> simp
+
+theorem usableProb_ne_top (o : Bool) : usableProb o ≠ ⊤ :=
+  ne_top_of_le_ne_top ENNReal.one_ne_top (usableProb_le_one o)
+
+theorem usableProb_false : usableProb false = 1 := by
+  unfold usableProb
+  simp only [LeanVM.Prover.nonceUsable, Bool.not_false, Bool.true_or, ↓reduceIte]
+  exact avgE_const 1
+
+/-- Without `outsideK`, the average over the usable challenges is the average over `E`. -/
+theorem avgOn_false (f : E → ℝ≥0∞) : avgOn false f = avgE f := by
+  unfold avgOn
+  simp only [LeanVM.Prover.nonceUsable, Bool.not_false, Bool.true_or, ↓reduceIte,
+    usableProb_false, div_one]
+
+theorem avgOn_add (o : Bool) (f f' : E → ℝ≥0∞) :
+    avgOn o (fun c ↦ f c + f' c) = avgOn o f + avgOn o f' := by
+  unfold avgOn
+  rw [← ENNReal.add_div, ← avgE_add]
+  congr 2
+  funext c
+  split <;> simp
+
+theorem avgOn_mono (o : Bool) {f f' : E → ℝ≥0∞} (h : ∀ c, f c ≤ f' c) : avgOn o f ≤ avgOn o f' := by
+  unfold avgOn
+  refine ENNReal.div_le_div_right (avgE_mono fun c ↦ ?_) _
+  split
+  · exact h c
+  · exact le_rfl
+
+theorem avgOn_le_const (o : Bool) {f : E → ℝ≥0∞} {x : ℝ≥0∞} (h : ∀ c, f c ≤ x) :
+    avgOn o f ≤ x := by
+  unfold avgOn
+  calc avgE (fun c ↦ if LeanVM.Prover.nonceUsable o c then f c else 0) / usableProb o
+      ≤ avgE (fun c ↦ x * if LeanVM.Prover.nonceUsable o c then 1 else 0) / usableProb o := by
+        refine ENNReal.div_le_div_right (avgE_mono fun c ↦ ?_) _
+        split
+        · simpa using h c
+        · simp
+    _ = x * usableProb o / usableProb o := by rw [avgE_mul_const]; rfl
+    _ = x := ENNReal.mul_div_cancel_right (usableProb_ne_zero o) (usableProb_ne_top o)
+
+theorem avgOn_zero (o : Bool) : avgOn o (fun _ ↦ 0) = 0 := by
+  unfold avgOn
+  simp only [ite_self]
+  rw [avgE_const, ENNReal.zero_div]
+
+theorem avgOn_mul_const (o : Bool) (x : ℝ≥0∞) (f : E → ℝ≥0∞) :
+    avgOn o (fun c ↦ x * f c) = x * avgOn o f := by
+  unfold avgOn
+  rw [← mul_div_assoc, ← avgE_mul_const]
+  congr 2
+  funext c
+  split <;> simp
+
+/-- A usable challenge is `0` with probability at most `|E|⁻¹`: exactly that without
+`outsideK`, never with it (`0` lies in `K`). -/
+theorem avgOn_ind_zero_le (o : Bool) : avgOn o (fun c ↦ if c = 0 then 1 else 0) ≤ epsE := by
+  rcases o
+  · rw [avgOn_false, avgE_ind_zero]
+  · have h : avgOn true (fun c ↦ if c = 0 then 1 else 0) = avgOn true (fun _ ↦ 0) := by
+      unfold avgOn
+      congr 2
+      funext c
+      by_cases hc : c = 0
+      · subst hc
+        have : LeanVM.Prover.nonceUsable true 0 = false := by decide +kernel
+        simp [this]
+      · simp [hc]
+    rw [h, avgOn_zero]
+    exact bot_le
+
 /-- `exp0` is additive. -/
 theorem exp0_add {α : Type} (C C' : α → List Ev → Option E → ℝ≥0∞) :
     ∀ (A : VerifierProgram α) (h : List Ev) (g : Option E),
@@ -118,7 +214,7 @@ theorem exp0_add {α : Type} (C C' : α → List Ev → Option E → ℝ≥0∞)
     simp only [exp0]
     split
     · simp
-    · simp only [ih, avgE_add]
+    · simp only [ih, avgOn_add]
   | commit ht w k ih =>
     intro h g
     simp only [exp0]
@@ -153,7 +249,7 @@ theorem exp0_mono {α : Type} {C C' : α → List Ev → Option E → ℝ≥0∞
     simp only [exp0]
     split
     · exact le_rfl
-    · exact avgE_mono fun c ↦ ih _ _
+    · exact avgOn_mono _ fun c ↦ ih _ _
   | commit ht w k ih =>
     intro h g
     simp only [exp0]
@@ -191,7 +287,7 @@ theorem exp0_const_le {α : Type} (c : ℝ≥0∞) :
     simp only [exp0]
     split
     · exact bot_le
-    · exact avgE_le_const fun _ ↦ ih _ _
+    · exact avgOn_le_const _ fun _ ↦ ih _ _
   | commit ht w k ih =>
     intro h g
     simp only [exp0]
@@ -272,8 +368,8 @@ theorem failFrom_bind_le {α : Type} {f' f : α → VerifierProgram Bool}
     simp only [VerifierProgram.bind, failFrom, exp0]
     split
     · simp
-    · rw [← avgE_add]
-      exact avgE_mono fun c ↦ ih _ _
+    · rw [← avgOn_add]
+      exact avgOn_mono _ fun c ↦ ih _ _
   | commit ht w k ih =>
     intro h g
     simp only [VerifierProgram.bind, failFrom, exp0]
@@ -368,22 +464,26 @@ theorem failFrom_refusingZero_le {height : ℕ} :
       have hg' : g = none := by simpa using hg
       subst hg'
       simp only [reduceCtorEq, ↓reduceIte, add_zero]
-      calc avgE (fun c ↦ S.failFrom k.refusingZeroChallenge (h ++ [Ev.grind b]) (some c))
-          ≤ avgE (fun c ↦ (if c = 0 then 1 else 0) + (S.failFrom k (h ++ [Ev.grind b]) (some c) +
+      set o := S.outsideK h
+      calc avgOn o (fun c ↦ S.failFrom k.refusingZeroChallenge (h ++ [Ev.grind b]) (some c))
+          ≤ avgOn o (fun c ↦ (if c = 0 then 1 else 0) + (S.failFrom k (h ++ [Ev.grind b]) (some c) +
               (((n - 5) / 4 : ℕ) : ℝ≥0∞) * epsE)) := by
-            refine avgE_mono fun c ↦ ?_
+            refine avgOn_mono _ fun c ↦ ?_
             have := ih (n - 5) hc.2 (h ++ [Ev.grind b]) (some c)
             simp only [Option.some.injEq] at this
             calc _ ≤ _ := this
               _ = _ := by ring
-        _ = epsE + (avgE (fun c ↦ S.failFrom k (h ++ [Ev.grind b]) (some c)) +
+        _ ≤ epsE + (avgOn o (fun c ↦ S.failFrom k (h ++ [Ev.grind b]) (some c)) +
               (((n - 5) / 4 : ℕ) : ℝ≥0∞) * epsE) := by
-            rw [avgE_add, avgE_ind_zero, avgE_add, avgE_const]
+            rw [avgOn_add, avgOn_add]
+            gcongr
+            · exact avgOn_ind_zero_le o
+            · exact avgOn_le_const o fun _ ↦ le_rfl
         _ ≤ _ := by
             have hq : (n - 5) / 4 + 1 ≤ n / 4 := by omega
-            calc epsE + (avgE (fun c ↦ S.failFrom k (h ++ [Ev.grind b]) (some c)) +
+            calc epsE + (avgOn o (fun c ↦ S.failFrom k (h ++ [Ev.grind b]) (some c)) +
                   (((n - 5) / 4 : ℕ) : ℝ≥0∞) * epsE)
-                = avgE (fun c ↦ S.failFrom k (h ++ [Ev.grind b]) (some c)) +
+                = avgOn o (fun c ↦ S.failFrom k (h ++ [Ev.grind b]) (some c)) +
                     ((((n - 5) / 4 + 1 : ℕ) : ℝ≥0∞)) * epsE := by
                   rw [Nat.cast_add, Nat.cast_one, add_one_mul]; ring
               _ ≤ _ := by gcongr
@@ -441,7 +541,7 @@ theorem failFrom_eq_zero :
     have : ∀ c, S.failFrom (VerifierProgram.sample k') (h ++ [Ev.grind b]) (some c) = 0 :=
       fun c ↦ ih _ _ hacc (grindThenSample_after hP (l := [Ev.grind b])
         (by simp [VerifierProgram.after])) (Or.inr ⟨k', rfl⟩)
-    simp only [Option.isSome_none, Bool.false_eq_true, ↓reduceIte, this, avgE_const]
+    simp only [Option.isSome_none, Bool.false_eq_true, ↓reduceIte, this, avgOn_zero]
   | commit ht w k ih =>
     intro h g hacc hP hg
     obtain rfl : g = none := hg.resolve_right (by simp)
@@ -481,7 +581,7 @@ theorem exp0_const_mul {α : Type} (c : ℝ≥0∞) (C : α → List Ev → Opti
     simp only [exp0]
     split
     · simp
-    · simp only [ih, avgE_mul_const]
+    · simp only [ih, avgOn_mul_const]
   | commit ht w k ih =>
     intro h g
     simp only [exp0]

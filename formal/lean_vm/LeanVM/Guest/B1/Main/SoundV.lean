@@ -10,6 +10,8 @@ module
 public import LeanVM.Guest.B1.Main.SoundVX
 public import LeanVM.Guest.B1.Sig.XmssLoop2
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«main»
 
 /-!
 # `main`, its witness decoded from the frame map
@@ -40,7 +42,7 @@ open LeanVM.Guest.B1.Digest LeanVM.Node
 noncomputable def decWitV (σ : Val) (rd : Reader) (V : FrameMap)
     (piOf : Reader → Val → FrameMap → Proof) : NodeWitness :=
   decWit σ rd (fun args => Sig.xmssSigOf (V name% «main_loop2» args []))
-    (fun p => Sig.sphincsSigOf (V "verify_sig_lean_sphincs" [p, σ (.n 47)] []) V)
+    (fun p => Sig.sphincsSigOf (V "verify_sig_lean_sphincs" [p, σ (.n (val% «main» "byte_bits"))] []) V)
     (fun args rets => Da.dvWit (V "da_verify" args rets) V)
     (fun args => piOf rd (V "verify_sub" args []) V)
     (fun args => aggHints rd (V "aggregate_claims" args []))

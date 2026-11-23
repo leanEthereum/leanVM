@@ -10,6 +10,8 @@ module
 public import LeanVM.Guest.B1.Whir.Loops
 public import LeanVM.Guest.B1.Fs.Templates
 public import LeanVM.Guest.B1.Bits.QueryWindows
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«level_positions__L_loop0»
 
 /-!
 # The squeeze loop
@@ -54,7 +56,7 @@ def sqLoopA (lv : OsLv) : List Stmt :=
     ((List.range 5).map fun i ↦ osLd (28 + i) 9 (5 + i)) ++
     pw.1 ++ p1.1 ++ [osMul p1.2.2 p1.2.1 pw.2] ++ p2.1 ++ [osMul p2.2.2 p2.2.1 pw.2] ++
     [.call ("decode_query_windows__L" ++ natStr lv.depth ++ "_L" ++ natStr lv.capDepth)
-      [.n 20, .n p1.2.2, .n p2.2.2, .n 5] []]
+      [.n (valf% «level_positions» «_loop0» "nxt[0]"), .n p1.2.2, .n p2.2.2, .n (valf% «level_positions» «_loop0» "tabs")] []]
 
 /-- The value the loop's tail starts at. -/
 def sqLoopE (lv : OsLv) : ℕ :=
@@ -98,14 +100,14 @@ theorem sqLoop_step (lv : OsLv) (hpw : digitsVal (osPowDigits (128 / lv.depth)) 
     List.nil_append, List.cons_append, Nat.add_zero, and_assoc] at hA
   obtain ⟨m5, m6, m7, m8, l9, l10, l11, l12, l13, c14, c15, c16, c17, c18, hK, s27, s28, s29,
     s30, s31, hpw1, hp1, hmul1, hp2, hmul2, hdc⟩ := hA
-  have hrow : σ (.n 9) = sqz * x ^ 5 := by
+  have hrow : σ (.n (valf% «level_positions» «_loop0» "row")) = sqz * x ^ 5 := by
     rw [m8, m7, m6, m5, h0, h2]; ring
-  set cap := [σ (.n 10), σ (.n 11), σ (.n 12), σ (.n 13), σ (.n 14)]
+  set cap := [σ (.n (valf% «level_positions» «_loop0» "sp[0]")), σ (.n (valf% «level_positions» «_loop0» "sp[1]")), σ (.n (valf% «level_positions» «_loop0» "sp[2]")), σ (.n (valf% «level_positions» «_loop0» "sp[3]")), σ (.n (valf% «level_positions» «_loop0» "sp[4]"))]
   have hout := keccakA_fs (s := (⟨cap, []⟩ : Fs)) hK (by simp) (by
     simp [pendCells, c15, c16, c17, c18, word_zero, cap])
   have e : ∀ c : Fin 13, σ (.n (20 + c.val)) = cellsOfState (⟨cap, []⟩ : Fs).perm false c :=
     fun c ↦ by simpa [osRun] using outs_eq hout c (by simp [osRun])
-  have hw : σ (.n 20) = (⟨cap, []⟩ : Fs).squeeze.1 := by
+  have hw : σ (.n (valf% «level_positions» «_loop0» "nxt[0]")) = (⟨cap, []⟩ : Fs).squeeze.1 := by
     rw [Fs.squeeze, Keccak.challengeOf_cells]; exact e 0
   have hpwv := osPowSteps_val (C := P.Rel rd) (σ := σ) 0 (osPowDigits (128 / lv.depth)) 0 33
     1 (by rw [pow_one]) hpw1

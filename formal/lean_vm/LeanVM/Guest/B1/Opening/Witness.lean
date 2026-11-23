@@ -11,6 +11,9 @@ public import LeanVM.Guest.B1.Opening.QueriesRow
 public import LeanVM.Guest.B1.Main.FramesP
 public import LeanVM.Guest.AcceptableChild
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«opening_queries__L»
+import LeanVM.Guest.Data.ValNames.«opening_queries__L_loop0»
 
 /-!
 # `opening_queries`' witness, named
@@ -95,18 +98,18 @@ def oqQueryW (s : Oq) (rd : Reader) (bp cap flags : E) (b : ℕ) (emit : Bool) (
 /-- A loop iteration's queries, from its frame: two at level 0 (`base = 1`), one deeper. -/
 def oqIterOf (s : Oq) (rd : Reader) (σ : Val) (V : FrameMap) : List QW :=
   if s.base = 1 then
-    [oqQueryW s rd (σ (.n 15)) (σ (.n 4)) (σ (.n 5)) 16 true σ V,
-      oqQueryW s rd (σ (.n (oqE1 s + 1))) (σ (.n 4)) (σ (.n 5)) (oqE1 s + 2) false σ V]
-  else [oqQueryW s rd (σ (.n 13)) (σ (.n 4)) (σ (.n 5)) 14 true σ V]
+    [oqQueryW s rd (σ (.n 15)) (σ (.n (valf% «opening_queries» «_loop0» "cap"))) (σ (.n (valf% «opening_queries» «_loop0» "flags"))) 16 true σ V,
+      oqQueryW s rd (σ (.n (oqE1 s + 1))) (σ (.n (valf% «opening_queries» «_loop0» "cap"))) (σ (.n (valf% «opening_queries» «_loop0» "flags"))) (oqE1 s + 2) false σ V]
+  else [oqQueryW s rd (σ (.n 13)) (σ (.n (valf% «opening_queries» «_loop0» "cap"))) (σ (.n (valf% «opening_queries» «_loop0» "flags"))) 14 true σ V]
 
 /-- The loop's arguments after its counter (`oqMainT`'s call). -/
 def oqLoopArgs (σ : Val) : List E :=
-  [σ (.n 7), σ (.n 5), σ (.n 6), σ (.n 0), σ (.n 1), σ (.n 3), σ (.n 4), σ (.n 10), σ (.n 2)]
+  [σ (.n (valf% «opening_queries» "n_iters_g")), σ (.n (valf% «opening_queries» "positions")), σ (.n (valf% «opening_queries» "query_win_ptrs")), σ (.n (valf% «opening_queries» "cap")), σ (.n (valf% «opening_queries» "flags")), σ (.n (valf% «opening_queries» "coefs")), σ (.n (valf% «opening_queries» "hs")), σ (.n (valf% «opening_queries» "chain")), σ (.n (valf% «opening_queries» "lam_inv"))]
 
 /-- **The queries of `opening_queries`**, from its frame `σ` and its `N` iterations' frames. -/
 def oqsOf (s : Oq) (odd : ℕ) (loop : String) (N : ℕ) (rd : Reader) (σ : Val) (V : FrameMap) :
     List QW :=
-  (if odd = 1 then [oqQueryW s rd (σ (.n 12)) (σ (.n 0)) (σ (.n 1)) 13 true σ V] else []) ++
+  (if odd = 1 then [oqQueryW s rd (σ (.n 12)) (σ (.n (valf% «opening_queries» "cap"))) (σ (.n (valf% «opening_queries» "flags"))) 13 true σ V] else []) ++
     (List.range N).flatMap fun j ↦ oqIterOf s rd (V loop (gen ^ j :: oqLoopArgs σ) []) V
 
 /-! ## The specializations -/

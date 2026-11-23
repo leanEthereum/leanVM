@@ -9,6 +9,8 @@ module
 public import LeanVM.Guest.B1.KeccakGkr.VkFirst
 public import LeanVM.Guest.B1.KeccakGkr.KFormMath
 public import LeanVM.Guest.B1.KeccakGkr.LayerHolds
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_keccak»
 
 namespace LeanVM.Guest.B1.VerifySub
 
@@ -170,7 +172,7 @@ theorem iotaUsed_lt {s i : ℕ} (hi : i ∈ iotaUsed s) : i < 7 :=
   List.mem_range.1 (List.mem_filter.1 hi).1
 
 /-- **The first claim's flips**: lane `0`'s weight times `x^(2^i - 1)`. -/
-theorem flipsT_holds0 {b : ℕ} {L0 : E} (hL : ∀ v, LoadHolds rd (σ (.n 228)) 30 v → v = L0)
+theorem flipsT_holds0 {b : ℕ} {L0 : E} (hL : ∀ v, LoadHolds rd (σ (.n (val% «verify_keccak» "lane_tree"))) 30 v → v = L0)
     {next : Prop} {kret : List E → Prop} (h : Stmt.HoldsList C rd σ (flipsT 0 b) next kret) :
     (∀ i ∈ iotaUsed 0, σ (.n (flipOf 0 b i)) = L0 * gen ^ (2 ^ i - 1)) ∧ next := by
   rw [flipsT, holdsList_range_flatten _ _ (flipsT_noRet 0 b)] at h
@@ -191,7 +193,7 @@ theorem flipsT_holds0 {b : ℕ} {L0 : E} (hL : ∀ v, LoadHolds rd (σ (.n 228))
 /-- **A later claim's flips**: its weights at `2^i - 1`, read from its record's
 `KC_FLIPS` table. -/
 theorem flipsT_holdsL {s b : ℕ} (hs : s ≠ 0) {fl : E} {ws : List E}
-    (hfl : LoadHolds rd (σ (.n 155)) (22 * s + 5) fl) (hws : ReadsAt rd fl (flipsOf ws))
+    (hfl : LoadHolds rd (σ (.n (val% «verify_keccak» "claims"))) (22 * s + 5) fl) (hws : ReadsAt rd fl (flipsOf ws))
     {next : Prop} {kret : List E → Prop} (h : Stmt.HoldsList C rd σ (flipsT s b) next kret) :
     (∀ i ∈ iotaUsed s, σ (.n (flipOf s b i)) = ws.getD (2 ^ i - 1) 0) ∧ next := by
   rw [flipsT, holdsList_range_flatten _ _ (flipsT_noRet s b)] at h
@@ -212,16 +214,16 @@ theorem flipsT_holdsL {s b : ℕ} (hs : s ≠ 0) {fl : E} {ws : List E}
 
 /-! ## A later step -/
 
-theorem claimRec_loads {P : ℕ} {k : ℕ} {v : E} (h : LoadHolds rd (σ (.n 155) * gen ^ (22 * k)) P v) :
-    LoadHolds rd (σ (.n 155)) (22 * k + P) v := (loadHolds_mul_gen_pow rd _ _ _ _).1 h
+theorem claimRec_loads {P : ℕ} {k : ℕ} {v : E} (h : LoadHolds rd (σ (.n (val% «verify_keccak» "claims")) * gen ^ (22 * k)) P v) :
+    LoadHolds rd (σ (.n (val% «verify_keccak» "claims"))) (22 * k + P) v := (loadHolds_mul_gen_pow rd _ _ _ _).1 h
 
 /-- The step's segment weights (`eqtree_frame` of one coordinate): the claim's last
 coordinate `r` read through `pt·pack_g`, `1 + r` and `r` at `b + 4`, `b + 5`. -/
 theorem stepSeg_holds {b off : ℕ} {pp : E} {pt : List E} {τ : ℕ} (hτ : 4 ≤ τ)
-    (hptL : pt.length = τ - 3) (hpt : ReadsAt rd pp pt) (h17 : σ (.n 18) = gen ^ (τ - 4))
-    (hpp : LoadHolds rd (σ (.n 155)) off pp) {next : Prop} {kret : List E → Prop}
-    (h : Stmt.HoldsList C rd σ ([.atom (.load (.n b) (.n 155) off),
-      .atom (.mul (.n (b + 1)) (.n b) (.n 18))] ++ eqfLevel0T (.n (b + 1)) 0 (b + 2)) next kret) :
+    (hptL : pt.length = τ - 3) (hpt : ReadsAt rd pp pt) (h17 : σ (.n (val% «verify_keccak» "pack_g")) = gen ^ (τ - 4))
+    (hpp : LoadHolds rd (σ (.n (val% «verify_keccak» "claims"))) off pp) {next : Prop} {kret : List E → Prop}
+    (h : Stmt.HoldsList C rd σ ([.atom (.load (.n b) (.n (val% «verify_keccak» "claims")) off),
+      .atom (.mul (.n (b + 1)) (.n b) (.n (val% «verify_keccak» "pack_g")))] ++ eqfLevel0T (.n (b + 1)) 0 (b + 2)) next kret) :
     (σ (.n (b + 4)) = (eqKernel [pt.getD (τ - 4) 0]).getD 0 0 ∧
       σ (.n (b + 5)) = (eqKernel [pt.getD (τ - 4) 0]).getD 1 0) ∧ next := by
   rw [holdsList_append] at h
@@ -246,20 +248,20 @@ theorem stepSeg_holds {b off : ℕ} {pp : E} {pt : List E} {τ : ℕ} (hτ : 4 �
 `keccak_layer` on it, writing the next claim at `claims·g^(22 (s + 1))` (`pn·g^22`, the value
 `stepEnd s b - 7`). -/
 theorem stepT_holdsL {s b : ℕ} (hs1 : 1 ≤ s) (hs : s < 12) {c0 c1 c2 c3 c4 cur cb pn : ℕ}
-    {τ : ℕ} (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28) (h17 : σ (.n 18) = gen ^ (τ - 4))
-    (h33 : σ (.n 34) = gen ^ ((τ - 3) / krStep)) (h47 : σ (.n 48) = gen ^ ((τ - 3) % krStep))
-    (hcb : σ (.n cb) = σ (.n 155) * gen ^ (22 * (s - 1)))
-    (hpn : σ (.n pn) = σ (.n 155) * gen ^ (22 * s)) {c : KeccakClaim}
-    (hcr : ClaimRec rd ((0 : ℕ) = 1) (σ (.n 155) * gen ^ (22 * s)) c (τ - 3))
-    (hK : keccak_layer_Spec rd) (htabs : WinTabs rd (σ (.n 11)))
+    {τ : ℕ} (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28) (h17 : σ (.n (val% «verify_keccak» "pack_g")) = gen ^ (τ - 4))
+    (h33 : σ (.n (val% «verify_keccak» "step_g@2")) = gen ^ ((τ - 3) / krStep)) (h47 : σ (.n (val% «verify_keccak» "rem_g@3")) = gen ^ ((τ - 3) % krStep))
+    (hcb : σ (.n cb) = σ (.n (val% «verify_keccak» "claims")) * gen ^ (22 * (s - 1)))
+    (hpn : σ (.n pn) = σ (.n (val% «verify_keccak» "claims")) * gen ^ (22 * s)) {c : KeccakClaim}
+    (hcr : ClaimRec rd ((0 : ℕ) = 1) (σ (.n (val% «verify_keccak» "claims")) * gen ^ (22 * s)) c (τ - 3))
+    (hK : keccak_layer_Spec rd) (htabs : WinTabs rd (σ (.n (val% «verify_keccak» "tabs"))))
     {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList (coreProgram.Rel rd) rd σ (stepT s b [c0, c1, c2, c3, c4] cur cb pn)
       next kret) :
     ∃ (xs : List E) (c' : KeccakClaim) (cap' : List E), ReadsAt rd (σ (.n cur)) xs ∧
       RunsTo (verifyKeccakLayer τ s c) ⟨[σ (.n c0), σ (.n c1), σ (.n c2), σ (.n c3), σ (.n c4)], []⟩
         xs c' ⟨cap', []⟩ ∧
-      ClaimRec rd ((0 : ℕ) = 1) (σ (.n 155) * gen ^ (22 * (s + 1))) c' (τ - 3) ∧
-      σ (.n (stepEnd s b - 7)) = σ (.n 155) * gen ^ (22 * (s + 1)) ∧
+      ClaimRec rd ((0 : ℕ) = 1) (σ (.n (val% «verify_keccak» "claims")) * gen ^ (22 * (s + 1))) c' (τ - 3) ∧
+      σ (.n (stepEnd s b - 7)) = σ (.n (val% «verify_keccak» "claims")) * gen ^ (22 * (s + 1)) ∧
       ((List.range 6).map fun j ↦ σ (.n (stepEnd s b - 6 + j))) = cap' ++ [σ (.n cur) * gen ^ xs.length] ∧
       next := by
   have hs0 : s ≠ 0 := by omega
@@ -283,9 +285,9 @@ theorem stepT_holdsL {s b : ℕ} (hs1 : 1 ≤ s) (hs : s < 12) {c0 c1 c2 c3 c4 c
   obtain ⟨z0, z1, e2, e3, e4, e5, e6, e7, hc, hn⟩ := h
   have hyg : σ (.n (T + 3)) = gen ^ (τ - 3) := by
     rw [e3, h17, e2, word_gen, ← pow_succ]; congr 1; omega
-  have hcl : σ (.n (T + 5)) = σ (.n 155) * gen ^ (22 * s) := by
+  have hcl : σ (.n (T + 5)) = σ (.n (val% «verify_keccak» "claims")) * gen ^ (22 * s) := by
     rw [e5, e4, word_g22, hcb, mul_assoc, ← pow_add]; congr 2; omega
-  have hout : σ (.n (T + 7)) = σ (.n 155) * gen ^ (22 * (s + 1)) := by
+  have hout : σ (.n (T + 7)) = σ (.n (val% «verify_keccak» "claims")) * gen ^ (22 * (s + 1)) := by
     rw [e7, e6, word_g22, hpn, mul_assoc, ← pow_add, Nat.mul_succ]
   have hm := hK 0 (by norm_num) _ _ hc
   simp only [List.map_cons, List.map_nil, List.map_append, z0, z1, word_zero, hyg, h33, h47, hcl,
@@ -306,30 +308,30 @@ theorem stepT_holdsL {s b : ℕ} (hs1 : 1 ≤ s) (hs : s < 12) {c0 c1 c2 c3 c4 c
 
 /-- **Step `0`**: the first claim, its `ι` term, and `keccak_layer` with the
 committed outputs' value waiting in the sponge, writing the next claim at `claims·g^22`. -/
-theorem stepT_holds0 {τ : ℕ} (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28) (h17 : σ (.n 18) = gen ^ (τ - 4))
-    (h33 : σ (.n 34) = gen ^ ((τ - 3) / krStep)) (h47 : σ (.n 48) = gen ^ ((τ - 3) % krStep))
+theorem stepT_holds0 {τ : ℕ} (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28) (h17 : σ (.n (val% «verify_keccak» "pack_g")) = gen ^ (τ - 4))
+    (h33 : σ (.n (val% «verify_keccak» "step_g@2")) = gen ^ ((τ - 3) / krStep)) (h47 : σ (.n (val% «verify_keccak» "rem_g@3")) = gen ^ ((τ - 3) % krStep))
     {c : KeccakClaim} {L0 : E}
-    (hcr : ClaimRec rd ((1 : ℕ) = 1) (σ (.n 155)) c (τ - 3))
-    (hL0 : ∀ v, LoadHolds rd (σ (.n 228)) 30 v → v = L0)
+    (hcr : ClaimRec rd ((1 : ℕ) = 1) (σ (.n (val% «verify_keccak» "claims"))) c (τ - 3))
+    (hL0 : ∀ v, LoadHolds rd (σ (.n (val% «verify_keccak» "lane_tree"))) 30 v → v = L0)
     (hw0 : ∀ z < 64, c.weights.getD z 0 = L0 * gen ^ z)
-    (hpk : FsPackOk σ (.n 152) (152 + 1) dsObserve)
-    (hK : keccak_layer_Spec rd) (htabs : WinTabs rd (σ (.n 11)))
+    (hpk : FsPackOk σ (.n (val% «verify_keccak» "x@1")) (153 + 1) dsObserve)
+    (hK : keccak_layer_Spec rd) (htabs : WinTabs rd (σ (.n (val% «verify_keccak» "tabs"))))
     {next : Prop} {kret : List E → Prop}
-    (h : Stmt.HoldsList (coreProgram.Rel rd) rd σ (stepT 0 442 [147, 148, 149, 150, 151] 0 155 0)
+    (h : Stmt.HoldsList (coreProgram.Rel rd) rd σ (stepT 0 443 [148, 149, 150, 151, 152] 0 156 0)
       next kret) :
-    ∃ (xs : List E) (c' : KeccakClaim) (cap' : List E), ReadsAt rd (σ (.n 5) * gen) xs ∧
+    ∃ (xs : List E) (c' : KeccakClaim) (cap' : List E), ReadsAt rd (σ (.n (val% «verify_keccak» "cursor@1")) * gen) xs ∧
       RunsTo (verifyKeccakLayer τ 0 c)
-        ⟨[σ (.n 147), σ (.n 148), σ (.n 149), σ (.n 150), σ (.n 151)], [(σ (.n 152), dsObserve)]⟩
+        ⟨[σ (.n (val% «verify_keccak» "nxt[8]@6")), σ (.n (val% «verify_keccak» "nxt[9]@6")), σ (.n (val% «verify_keccak» "nxt[10]@6")), σ (.n (val% «verify_keccak» "nxt[11]@6")), σ (.n (val% «verify_keccak» "nxt[12]@6"))], [(σ (.n (val% «verify_keccak» "x@1")), dsObserve)]⟩
         xs c' ⟨cap', []⟩ ∧
-      ClaimRec rd ((0 : ℕ) = 1) (σ (.n 155) * gen ^ (22 * 1)) c' (τ - 3) ∧
-      σ (.n (stepEnd 0 442 - 7)) = σ (.n 155) * gen ^ (22 * 1) ∧
-      ((List.range 6).map fun j ↦ σ (.n (stepEnd 0 442 - 6 + j))) =
-        cap' ++ [σ (.n 5) * gen * gen ^ xs.length] ∧ next := by
+      ClaimRec rd ((0 : ℕ) = 1) (σ (.n (val% «verify_keccak» "claims")) * gen ^ (22 * 1)) c' (τ - 3) ∧
+      σ (.n (stepEnd 0 443 - 7)) = σ (.n (val% «verify_keccak» "claims")) * gen ^ (22 * 1) ∧
+      ((List.range 6).map fun j ↦ σ (.n (stepEnd 0 443 - 6 + j))) =
+        cap' ++ [σ (.n (val% «verify_keccak» "cursor@1")) * gen * gen ^ xs.length] ∧ next := by
   have hcr0 := hcr
   obtain ⟨-, hptL, -, -, -, ⟨pp, hpp, hpt⟩, -⟩ := hcr
   simp only [stepT] at h
   rw [holdsList_append, holdsList_append, holdsList_append] at h
-  obtain ⟨⟨hg0, hg1⟩, h⟩ := stepSeg_holds (b := 442) (off := 22 * 0 + 2) (by omega) hptL hpt h17
+  obtain ⟨⟨hg0, hg1⟩, h⟩ := stepSeg_holds (b := 443) (off := 22 * 0 + 2) (by omega) hptL hpt h17
     (by simpa using hpp) h
   obtain ⟨hfl, h⟩ := flipsT_holds0 hL0 h
   obtain ⟨hio, h⟩ := iotaSegT_holds (F := fun i ↦ c.weights.getD (2 ^ i - 1) 0) (by norm_num)
@@ -340,20 +342,20 @@ theorem stepT_holds0 {τ : ℕ} (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28) (h17 : σ (
         omega
       rw [hfl i hi, hw0 _ hz]) hg0 hg1 h
   rw [← keccakIota_eq (by norm_num) (by omega) hptL] at hio
-  set T := iotaSegEnd 0 (442 + 6 + flipSz 0 * (iotaUsed 0).length) with hT
+  set T := iotaSegEnd 0 (443 + 6 + flipSz 0 * (iotaUsed 0).length) with hT
   simp only [stepTailT, ↓reduceIte, Stmt.HoldsList, Stmt.Holds, Atom.Holds] at h
   obtain ⟨e0, e1, e2, e3, e4, e5, hc, hn⟩ := h
-  have hcur : σ (.n (T + 1)) = σ (.n 5) * gen := by rw [e1, e0, word_gen]
+  have hcur : σ (.n (T + 1)) = σ (.n (val% «verify_keccak» "cursor@1")) * gen := by rw [e1, e0, word_gen]
   have hyg : σ (.n (T + 3)) = gen ^ (τ - 3) := by
     rw [e3, h17, e2, word_gen, ← pow_succ]; congr 1; omega
-  have hout : σ (.n (T + 5)) = σ (.n 155) * gen ^ (22 * 1) := by rw [e5, e4, word_g22]
+  have hout : σ (.n (T + 5)) = σ (.n (val% «verify_keccak» "claims")) * gen ^ (22 * 1) := by rw [e5, e4, word_g22]
   have hm := hK 1 (by norm_num) _ _ hc
   simp only [List.map_cons, List.map_nil, List.map_append, hyg, h33, h47, hcur, hout, hio] at hm
   simp only [MeaningKeccakLayer] at hm
-  obtain ⟨xs, c', cap', hxs, hrun, hcr', hrets⟩ := hm htabs (τ - 3) 0 c (σ (.n 152))
+  obtain ⟨xs, c', cap', hxs, hrun, hcr', hrets⟩ := hm htabs (τ - 3) 0 c (σ (.n (val% «verify_keccak» "x@1")))
     (by omega) (by omega) rfl rfl rfl hcr0 (fun _ ↦ fsPackT_cells hpk) rfl
   rw [show τ - 3 + 3 = τ by omega] at hrun
-  have hE : stepEnd 0 442 = T + 12 := by simp only [stepEnd, ← hT, stepTailSz, ↓reduceIte]
+  have hE : stepEnd 0 443 = T + 12 := by simp only [stepEnd, ← hT, stepTailSz, ↓reduceIte]
   refine ⟨xs, c', cap', hxs, by simpa [plainStart] using hrun, hcr', ?_, ?_, hn⟩
   · rw [hE, show T + 12 - 7 = T + 5 by omega]; exact hout
   rw [← hrets, hE]

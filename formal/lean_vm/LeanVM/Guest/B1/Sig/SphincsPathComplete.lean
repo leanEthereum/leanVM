@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Guest.B1.Sig.SphincsSoundPath
 public import LeanVM.Guest.B1.Sig.MerkleComplete
+public import LeanVM.Guest.B1.Sig.SphincsClimbPops
 
 /-!
 # `sp_path`, complete
@@ -19,7 +20,8 @@ public import LeanVM.Guest.B1.Sig.MerkleComplete
 * `pairNode_complete`: a level, its children `mPair bt cur sib` hinted (under any name), its address
   any sequential block;
 * `sPath_complete`: a path, the siblings `sib` read back (`sPathSib`), the root `pFold` of
-  `pNodeE`.
+  `pNodeE`;
+* `sPath_complete_pops`: the path pops its levels' children (`climbPops`).
 -/
 
 namespace LeanVM.Guest.B1.Sig
@@ -27,6 +29,8 @@ namespace LeanVM.Guest.B1.Sig
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Value
 open LeanVM.Guest.Value.Keccak LeanVM.Protocol.KeccakHash
 open LeanVM.Protocol.Verifier (eOfNat)
+
+open LeanVM.Guest.Memory (FallPops)
 
 @[expose] public section
 
@@ -435,6 +439,45 @@ theorem sPath_complete_val {pad : Nat} {pp a0 : V} {ac : Option E} {bit val : Na
   refine nIter_congr_lt _ _ _ fun j _ hj => ?_
   unfold pNodeE
   rw [hs j (by omega) (by omega)]
+
+/-- **A whole path completes popping its levels' children**: the root `pFold` of `pNodeE` from `cur`, the siblings `sib`, and the path pops `climbPops` of the same nodes. -/
+theorem sPath_complete_pops {pad : Nat} {pp a0 : V} {ac : Option E} {bit val : Nat → V} {off e height : Nat}
+    (hh : height ≤ 16) (he : e < 2 ^ height) {sib : Nat → E} {cur : V} {x : Nat} (σ : Val) (hpx : pad + 5 ≤ x)
+    (hpp : NBv x pp) (ha0 : ac = none → NBv x a0)
+    (hbn : ∀ j < height, NBv x (bit (off + j))) (hvn : ∀ j < height, NBv x (val (off + j)))
+    (hcur : NBv x cur) (hp : PadOK σ pad)
+    (hbit : ∀ j < height, σ (bit (off + j)) = if e.testBit j then 1 else 0)
+    (hval : ∀ j < height, σ (val (off + j)) = eOfNat (e >>> j)) :
+    Completes C rd x (sPath pad pp a0 ac bit val off height 0 cur x).2.1
+      (sPath pad pp a0 ac bit val off height 0 cur x).1 σ
+      (fun σ' => AgreeBelow x σ σ' ∧
+        σ' (sPath pad pp a0 ac bit val off height 0 cur x).2.2 =
+          pFold (pNodeE (σ pp) (a0Val σ a0 ac) e sib) height (σ cur) ∧
+        FallPops rd σ' (sPath pad pp a0 ac bit val off height 0 cur x).1
+          (climbPops "siblings" (pNodeE (σ pp) (a0Val σ a0 ac) e sib) e.testBit sib height 0 (σ cur))) := by
+  have h := (sPath_complete (C := C) (rd := rd) (ac := ac) (sib := sib) hh he height 0 cur x σ (by omega) hpx
+    hpp ha0 hbn hvn hcur hp hbit hval).withAtoms (sPath_atoms ..)
+  refine h.mono le_rfl le_rfl (fun σ' ⟨⟨hag, hs⟩, hA⟩ => ?_)
+  have t : ∀ v, NBv x v → σ' v = σ v := fun v hv => hag.apply hv
+  have ta : a0Val σ' a0 ac = a0Val σ a0 ac := a0Val_agree ha0 t
+  have hp' := hp.congr hpx hag
+  have hb' : ∀ j < height, σ' (bit (off + j)) = if e.testBit j then 1 else 0 :=
+    fun j hj => by rw [t _ (hbn j hj)]; exact hbit j hj
+  have hv' : ∀ j < height, σ' (val (off + j)) = eOfNat (e >>> j) :=
+    fun j hj => by rw [t _ (hvn j hj)]; exact hval j hj
+  have hn : ∀ j, 0 ≤ j → j < 0 + height →
+      pNodeE (σ' pp) (a0Val σ' a0 ac) e (sPathSib σ' bit off ac height 0 x) j =
+          pNodeE (σ pp) (a0Val σ a0 ac) e sib j ∧
+        sPathSib σ' bit off ac height 0 x j = sib j := fun j h1 h2 => by
+    refine ⟨funext fun v => ?_, hs j h1 h2⟩
+    unfold pNodeE
+    rw [hs j h1 h2, t _ hpp, ta]
+  refine ⟨hag, ?_, ?_⟩
+  · rw [sPath_sound hp' hh he hb' hv' height 0 cur x (by omega) hA, t _ hcur, nIter_congr_lt _ _ _ fun j hj1 hj2 =>
+      (hn j hj1 hj2).1, nIter_zero]
+  · have hP := sPath_pops (rd := rd) (ac := ac) hp' hh he hb' hv' height 0 cur x (by omega) hA
+    rw [t _ hcur] at hP
+    exact FallPops.congr_pops hP (climbPops_congr _ _ height 0 _ hn)
 
 end
 end LeanVM.Guest.B1.Sig

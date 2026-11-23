@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.B1.KeccakGkr.Mask
 public import LeanVM.Protocol.Keccak.LayerSum
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«keccak_layer__L»
 
 /-!
 # The instance weights
@@ -100,38 +102,38 @@ def rmfeBlockT (o : ℕ) : List Stmt :=
     .atom (.mul (.n (o + 607)) (.n (o + 585)) (.n (o + 599))),
     .atom (.mul (.n (o + 608)) (.n (o + 586)) (.n (o + 594))),
     .atom (.mul (.n (o + 609)) (.n (o + 587)) (.n (o + 590))),
-    .atom (.load (.n (o + 602)) (.n 12) 6),
-    .atom (.load (.n (o + 593)) (.n 12) 7),
+    .atom (.load (.n (o + 602)) (.n (valf% «keccak_layer» "out")) 6),
+    .atom (.load (.n (o + 593)) (.n (valf% «keccak_layer» "out")) 7),
     .atom (.add (.n (o + 610)) (.n (o + 602)) (.n (o + 593))),
-    .atom (.load (.n (o + 609)) (.n 12) 8),
+    .atom (.load (.n (o + 609)) (.n (valf% «keccak_layer» "out")) 8),
     .atom (.add (.n (o + 611)) (.n (o + 610)) (.n (o + 609))),
-    .atom (.load (.n (o + 603)) (.n 12) 9),
+    .atom (.load (.n (o + 603)) (.n (valf% «keccak_layer» "out")) 9),
     .atom (.add (.n (o + 612)) (.n (o + 611)) (.n (o + 603))),
-    .atom (.load (.n (o + 605)) (.n 12) 10),
+    .atom (.load (.n (o + 605)) (.n (valf% «keccak_layer» "out")) 10),
     .atom (.add (.n (o + 613)) (.n (o + 612)) (.n (o + 605))),
-    .atom (.load (.n (o + 601)) (.n 12) 11),
+    .atom (.load (.n (o + 601)) (.n (valf% «keccak_layer» "out")) 11),
     .atom (.add (.n (o + 614)) (.n (o + 613)) (.n (o + 601))),
-    .atom (.load (.n (o + 597)) (.n 12) 12),
+    .atom (.load (.n (o + 597)) (.n (valf% «keccak_layer» "out")) 12),
     .atom (.add (.n (o + 615)) (.n (o + 614)) (.n (o + 597))),
-    .atom (.load (.n (o + 606)) (.n 12) 13),
+    .atom (.load (.n (o + 606)) (.n (valf% «keccak_layer» "out")) 13),
     .atom (.add (.n (o + 616)) (.n (o + 615)) (.n (o + 606))),
-    .atom (.load (.n (o + 598)) (.n 12) 14),
+    .atom (.load (.n (o + 598)) (.n (valf% «keccak_layer» "out")) 14),
     .atom (.add (.n (o + 617)) (.n (o + 616)) (.n (o + 598))),
-    .atom (.load (.n (o + 607)) (.n 12) 15),
+    .atom (.load (.n (o + 607)) (.n (valf% «keccak_layer» "out")) 15),
     .atom (.add (.n (o + 618)) (.n (o + 617)) (.n (o + 607))),
-    .atom (.load (.n (o + 595)) (.n 12) 16),
+    .atom (.load (.n (o + 595)) (.n (valf% «keccak_layer» "out")) 16),
     .atom (.add (.n (o + 619)) (.n (o + 618)) (.n (o + 595))),
-    .atom (.load (.n (o + 604)) (.n 12) 17),
+    .atom (.load (.n (o + 604)) (.n (valf% «keccak_layer» "out")) 17),
     .atom (.add (.n (o + 620)) (.n (o + 619)) (.n (o + 604))),
-    .atom (.load (.n (o + 591)) (.n 12) 18),
+    .atom (.load (.n (o + 591)) (.n (valf% «keccak_layer» "out")) 18),
     .atom (.add (.n (o + 621)) (.n (o + 620)) (.n (o + 591))),
-    .atom (.load (.n (o + 589)) (.n 12) 19),
+    .atom (.load (.n (o + 589)) (.n (valf% «keccak_layer» "out")) 19),
     .atom (.add (.n (o + 622)) (.n (o + 621)) (.n (o + 589))),
-    .atom (.load (.n (o + 608)) (.n 12) 20),
+    .atom (.load (.n (o + 608)) (.n (valf% «keccak_layer» "out")) 20),
     .atom (.add (.n (o + 623)) (.n (o + 622)) (.n (o + 608))),
-    .atom (.load (.n (o + 600)) (.n 12) 21),
+    .atom (.load (.n (o + 600)) (.n (valf% «keccak_layer» "out")) 21),
     .atom (.add (.n (o + 624)) (.n (o + 623)) (.n (o + 600))),
-    .atom (.load (.n (o + 624)) (.n 12) 1)]
+    .atom (.load (.n (o + 624)) (.n (valf% «keccak_layer» "out")) 1)]
 
 
 /-- The values stored at `out[6 + i]`. -/
@@ -142,7 +144,7 @@ def rmfeStores : List ℕ :=
 def embedXor : ℕ := embedLit.foldl (· ^^^ ·) 0
 
 /-- The offsets of `keccak_layer`'s two specializations past `s`: `0` (`__L0`), `20` (`__L1`). -/
-def LayOff (o : ℕ) : Prop := o = 0 ∨ o = 20
+def LayOff (o : ℕ) : Prop := o = 1 ∨ o = 21
 
 /-- The block's masks, checked. -/
 def rmfeCheck (o : ℕ) : Bool :=
@@ -157,11 +159,11 @@ theorem rmfeCheck_true {o : ℕ} (ho : LayOff o) : rmfeCheck o = true := by
 theorem rmfeBlock_atoms (o : ℕ) : (rmfeBlockT o).all isAtom = true := rfl
 
 theorem rmfeBlock_stores {o : ℕ} (ho : LayOff o) : ∀ i < 16, (rmfeBlockT o).any (fun s ↦ stmtEqb s
-    (.atom (.load (.n (o + rmfeStores.getD i 0)) (.n 12) (6 + i)))) = true := by
+    (.atom (.load (.n (o + rmfeStores.getD i 0)) (.n (valf% «keccak_layer» "out")) (6 + i)))) = true := by
   rcases ho with rfl | rfl <;> decide +kernel
 
 theorem rmfeBlock_kappa {o : ℕ} (ho : LayOff o) :
-    (rmfeBlockT o).any (fun s ↦ stmtEqb s (.atom (.load (.n (o + 624)) (.n 12) 1))) = true := by
+    (rmfeBlockT o).any (fun s ↦ stmtEqb s (.atom (.load (.n (o + 624)) (.n (valf% «keccak_layer» "out")) 1))) = true := by
   rcases ho with rfl | rfl <;> decide +kernel
 
 /-! ## The weights as masks -/
@@ -212,9 +214,9 @@ theorem sumE_keccakInstanceWeights (s : E) :
 claim's record holds `keccakInstanceWeights s` at `out[6 + i]` and their sum at `out[1]`. -/
 theorem rmfeBlock_holds {o : ℕ} (ho : LayOff o) {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ (rmfeBlockT o) next kret) :
-    (∀ i < 16, LoadHolds rd (σ (.n 12)) (6 + i)
+    (∀ i < 16, LoadHolds rd (σ (.n (valf% «keccak_layer» "out"))) (6 + i)
       ((keccakInstanceWeights (σ (.n (o + 531)))).getD i 0)) ∧
-    LoadHolds rd (σ (.n 12)) 1 (sumE (keccakInstanceWeights (σ (.n (o + 531))))) := by
+    LoadHolds rd (σ (.n (valf% «keccak_layer» "out"))) 1 (sumE (keccakInstanceWeights (σ (.n (o + 531))))) := by
   have hc := rmfeCheck_true ho
   unfold rmfeCheck at hc
   split at hc

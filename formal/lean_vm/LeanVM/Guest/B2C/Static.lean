@@ -60,7 +60,7 @@ theorem getF_byCell : ∀ (l : List (ℕ × ℕ)) (t : Exec.Trie ℕ) {c v : ℕ
   | p :: l, t, c, v, h => by
     rcases getF_byCell l _ h with ⟨q, hq, h1, h2⟩ | h
     · exact Or.inl ⟨q, List.mem_cons_of_mem _ hq, h1, h2⟩
-    · rcases getF_setF h with ⟨rfl, rfl⟩ | h
+    · rcases Check.getF_setF h with ⟨rfl, rfl⟩ | h
       · exact Or.inl ⟨p, List.mem_cons_self, rfl, rfl⟩
       · exact Or.inr h
 
