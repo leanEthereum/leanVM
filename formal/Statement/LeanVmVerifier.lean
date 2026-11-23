@@ -115,6 +115,12 @@ def minLogStack : ℕ := 16
 cap every size shares. -/
 def maxLogStack : ℕ := 30
 
+/-- The smallest rate exponent: `MIN_LOG_INV_RATE` (`whir.rs`). -/
+def minLogInvRate : ℕ := 1
+
+/-- The largest rate exponent: `MAX_LOG_INV_RATE` (`whir.rs`). -/
+def maxLogInvRate : ℕ := 4
+
 /-- One level of an opening: the number of fold rounds it makes (`ℓ_i`), the rate exponent of
 the code its commitment is in (`ν_i`), and the number of positions queried (`ω_i`), in the
 notation of Annex B. -/
@@ -167,10 +173,10 @@ def queryTable : List (List (List ℕ)) := [
    [55, 32, 23, 18, 15], [55, 32, 23, 18, 15], [55, 32, 23, 18, 15, 14], [55, 32, 23, 18, 16, 14],
    [55, 32, 23, 18, 16, 14]]]
 
-/-- The window the parameters are defined on: the stacking window and the rate range `1..4`
+/-- The window the parameters are defined on: the stacking window and the rate range
 (`whir_queries`, `whir.rs`; the rate also `lib.rs` and `whir_config.rs`). -/
 def Admissible (μ logInvRate : ℕ) : Prop :=
-  minLogStack ≤ μ ∧ μ ≤ maxLogStack ∧ 1 ≤ logInvRate ∧ logInvRate ≤ 4
+  minLogStack ≤ μ ∧ μ ≤ maxLogStack ∧ minLogInvRate ≤ logInvRate ∧ logInvRate ≤ maxLogInvRate
 
 instance {μ logInvRate : ℕ} : Decidable (Admissible μ logInvRate) :=
   inferInstanceAs (Decidable (_ ∧ _ ∧ _ ∧ _))
@@ -182,7 +188,7 @@ level (`QueryCountLadder`, `whir.rs`), so that no level is silently dropped. -/
 def ladder (μ logInvRate : ℕ) : Option (List Level) :=
   if Admissible μ logInvRate then
     let geometry := ladderShape μ logInvRate
-    let queries := (queryTable.getD (logInvRate - 1) []).getD (μ - minLogStack) []
+    let queries := (queryTable.getD (logInvRate - minLogInvRate) []).getD (μ - minLogStack) []
     if geometry.length = queries.length then
       some (List.zipWith (fun (g : ℕ × ℕ) q ↦ ⟨g.1, g.2, q⟩) geometry queries)
     else none

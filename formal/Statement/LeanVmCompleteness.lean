@@ -80,7 +80,8 @@ rejected with probability at most `2^-256`. Within that cap the widest grind is 
 miss a `27`-bit proof of work with probability at most `2^-320`. -/
 def Completeness : Prop :=
   ∀ (program : LeanIsaProgram) (input : PublicInput) (execution : Execution program) (ρ : ℕ),
-    ValidExecution program input execution → execution.committedSize ≤ 2 ^ 30 → 1 ≤ ρ ∧ ρ ≤ 4 →
+    ValidExecution program input execution → execution.committedSize ≤ 2 ^ 30 →
+    Whir.minLogInvRate ≤ ρ ∧ ρ ≤ Whir.maxLogInvRate →
     Pr{let v ← completenessExperiment leanVmHonestProver program input execution ρ (2 ^ 35)}[
         v = false] ≤
       (2 : ℝ≥0∞)⁻¹ ^ 256

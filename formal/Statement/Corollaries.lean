@@ -89,7 +89,7 @@ def GuestProverComplete : Prop :=
   ∀ (statement : NodeStatement) (witness : NodeWitness),
     NodeRelation (bytecodeWords guestProgram) (deployedSeed guestProgram) statement witness →
     DeployedLimits statement witness →
-    (∀ ρ : ℕ, 1 ≤ ρ ∧ ρ ≤ 4 →
+    (∀ ρ : ℕ, Whir.minLogInvRate ≤ ρ ∧ ρ ≤ Whir.maxLogInvRate →
       let input := PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) statement)
       Pr{let accepted ← Common.runWithRandomPermutation (do
           match ← guestProve Common.queryPermutation guestProgram statement witness ρ
