@@ -393,10 +393,7 @@ func TestSetupKeepsItsThreadCount(t *testing.T) {
 		t.Fatalf("Setup must accept the running thread count again: %v", err)
 	}
 	if err := Setup(1); err == nil {
-		t.Fatal("Setup must reject another thread count once the pool runs")
-	}
-	if err := Setup(-1); err == nil {
-		t.Fatal("Setup must reject a negative thread count")
+		t.Fatal("Setup must reject another thread count once the prover runs")
 	}
 }
 

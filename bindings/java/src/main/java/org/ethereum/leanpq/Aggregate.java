@@ -9,7 +9,7 @@ import java.util.Objects;
 /**
  * A verified proof that every listed public key signed its message, across leanXMSS and
  * leanSPHINCS. Its encoding is the proof alone: send the claims alongside it, or let the receiver
- * rebuild them, and decode it with {@link #fromBytes(byte[], List, List)}.
+ * rebuild them, and check it with {@link #fromBytes(byte[], List, List)}.
  */
 public final class Aggregate implements AutoCloseable {
     private final NativeHandle handle;
@@ -19,15 +19,14 @@ public final class Aggregate implements AutoCloseable {
     }
 
     /**
-     * Decodes a proof from {@link #toBytes()} and verifies that it proves exactly the given claims,
-     * in any order; a repeated claim counts once. Throws {@link LeanPqException} if the bytes are
-     * not a proof or the proof does not prove exactly these claims.
+     * Verifies that {@code bytes}, from {@link #toBytes()}, prove exactly the given claims, in any
+     * order; a repeated claim counts once. Throws {@link LeanPqException} if the bytes are not a
+     * proof of exactly these claims.
      */
     public static Aggregate fromBytes(byte[] bytes, List<SignatureClaim> xmssClaims, List<SignatureClaim> sphincsClaims) {
         Objects.requireNonNull(bytes, "bytes");
         byte[] xmssRecords = records(Objects.requireNonNull(xmssClaims, "xmssClaims"));
         byte[] sphincsRecords = records(Objects.requireNonNull(sphincsClaims, "sphincsClaims"));
-        // The counts come from the packed records, not from the lists, whose sizes may have changed.
         return new Aggregate(Native.aggregateFromBytes(
             bytes, xmssRecords, xmssRecords.length / Native.CLAIM_LENGTH, sphincsRecords, sphincsRecords.length / Native.CLAIM_LENGTH));
     }

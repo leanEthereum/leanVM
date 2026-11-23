@@ -29,9 +29,8 @@ int32_t lpq_last_error(lpq_buffer *out);
 void lpq_buffer_free(uint8_t *data, size_t len);
 
 /*
- * Starts the prover pool with `threads` threads (0: one per core, at most the machine's parallelism)
- * and builds the aggregation guest, once per process; the first aggregation otherwise starts it on
- * every core. Fails if the pool already runs with another count.
+ * Starts the prover with threads threads (0: one per core); the first aggregation otherwise starts
+ * it on every core. Fails above the machine's parallelism, or if it runs with another count.
  */
 int32_t lpq_setup(size_t threads);
 
@@ -69,9 +68,9 @@ int32_t lpq_sphincs_verify(const uint8_t *public_key, size_t public_key_len, con
  */
 int32_t lpq_aggregate_create(lpq_aggregate *const *children, size_t child_count, const uint8_t *xmss, size_t xmss_count, const uint8_t *sphincs, size_t sphincs_count, lpq_aggregate **out);
 /*
- * Decodes a proof and verifies that it proves exactly these claims, given as concatenated 64-byte
- * public key (32) | message (32) records in any order; a repeated claim counts once. A returned
- * handle is always a verified aggregate.
+ * Verifies that a proof proves exactly these claims, given as concatenated 64-byte public key (32)
+ * | message (32) records in any order; a repeated claim counts once. A returned handle is always a
+ * verified aggregate.
  */
 int32_t lpq_aggregate_from_bytes(const uint8_t *data, size_t len, const uint8_t *xmss_claims, size_t xmss_count, const uint8_t *sphincs_claims, size_t sphincs_count, lpq_aggregate **out);
 /* The proof alone, without its claims. */

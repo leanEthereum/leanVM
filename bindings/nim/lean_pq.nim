@@ -8,10 +8,10 @@
 ## Public keys and messages are 32 bytes; signatures are fixed-size byte arrays. Fallible calls
 ## return `Result[T, string]` and never raise; verification returns `bool`.
 ##
-## `XmssSecretKey`, `SphincsSecretKey`, `VrfKey` and `LeanPqAggregate` are references to native
-## handles. The garbage collector frees a handle once nothing refers to it; `close` frees it at
-## once, after which every call on that value returns an error. Do not `close` a value while
-## another thread uses it.
+## `XmssSecretKey`, `SphincsSecretKey`, `VrfKey` and `LeanPqAggregate` are
+## references to native handles. The garbage collector frees a handle once nothing refers to it;
+## `close` frees it at once, after which every call on that value returns an error. Do not `close`
+## a value while another thread uses it.
 
 {.push raises: [], gcsafe.}
 
@@ -197,16 +197,6 @@ func nativeHandle(aggregate: LeanPqAggregate): Result[ptr LpqAggregate, string] 
     err("aggregate is closed")
   else:
     ok(aggregate.handle)
-
-##############################################################
-# Setup
-##############################################################
-
-proc leanPqSetup*(threads: Natural): Result[void, string] =
-  ## Starts the prover pool with `threads` threads (0: one per core) and builds the aggregation
-  ## guest, once per process; otherwise the first aggregation does so on every core. Fails if the
-  ## pool already runs with another thread count.
-  check(lpqSetup(csize_t(threads)))
 
 ##############################################################
 # leanXMSS
@@ -421,6 +411,11 @@ proc vrfVerify*(root: VrfRoot, slot: uint64, proof: VrfProof): bool =
 # Aggregation
 ##############################################################
 
+proc leanPqSetup*(threads: Natural): Result[void, string] =
+  ## Starts the prover on `threads` threads (0: one per core); otherwise the first aggregation
+  ## starts it on every core. Fails if the prover already runs with another count.
+  check(lpqSetup(csize_t(threads)))
+
 proc init*(
     T: type LeanPqAggregate,
     children: openArray[LeanPqAggregate] = [],
@@ -428,8 +423,7 @@ proc init*(
     sphincs: openArray[SphincsSignedMessage] = [],
 ): Result[LeanPqAggregate, string] =
   ## Verifies the raw signatures, then proves the union of their claims and the children's. At
-  ## least one input is required. Children are neither consumed nor closed. One proof runs at a
-  ## time per process.
+  ## least one input is required. Children are neither consumed nor closed.
   if children.len > MaxAggregateChildren:
     return err("at most " & $MaxAggregateChildren & " child aggregates, got " & $children.len)
   var handles: array[MaxAggregateChildren, ptr LpqAggregate]
@@ -456,10 +450,9 @@ proc fromBytes*(
     xmssClaims: openArray[LeanPqClaim] = [],
     sphincsClaims: openArray[LeanPqClaim] = [],
 ): Result[LeanPqAggregate, string] =
-  ## Decodes a proof from `toBytes` and verifies that it proves exactly `xmssClaims` and
-  ## `sphincsClaims`, in any order, a repeated claim counting once. The encoding holds no claims:
-  ## send them alongside the proof or rebuild them on the receiving side. Every
-  ## `LeanPqAggregate` is proven.
+  ## Verifies that a proof from `toBytes` proves exactly `xmssClaims` and `sphincsClaims`, in any
+  ## order, a repeated claim counting once. The encoding holds no claims: send them alongside the
+  ## proof or rebuild them on the receiving side. Every `LeanPqAggregate` is proven.
   let
     xmssPtr = if xmssClaims.len == 0: nil else: cast[ptr byte](addr xmssClaims[0])
     sphincsPtr = if sphincsClaims.len == 0: nil else: cast[ptr byte](addr sphincsClaims[0])

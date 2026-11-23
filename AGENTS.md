@@ -32,7 +32,7 @@ Everything else exists once, leaves first:
 
 - `guests/lean_ethereum.py`: the guest, in zkDSL.
 - `bench/`: the benchmark CLI, `leanvm-bench`.
-- `bindings/`: language bindings of the schemes and of aggregation. A separate Cargo workspace: run cargo from `bindings/`, see `bindings/README.md`.
+- `bindings/`: language bindings of the schemes and aggregation. A separate Cargo workspace: run cargo from `bindings/`, see `bindings/README.md`.
 - `doc/leanvm/`: the LaTeX spec. `cd doc/leanvm && latexmk -pdf main.tex` builds into the gitignored `.build/` (delete it if latexmk fails oddly). Sections `body/01` to `10`, annexes `a` (ring switching), `b` (PCS), `c` (Keccak GKR), `d` (NTT). Run `make-drafts.sh` after adding, renaming or renumbering a section.
 - `doc/lean_xmss/`, `doc/lean_sphincs/`: the schemes' specs.
 - `formal/`: Lean 4 proofs in the random-permutation model, vendored from [Verified-zkEVM/leanerVM](https://github.com/Verified-zkEVM/leanerVM). `formal/Statement/` holds what is proved, `formal/statement.tex` what it does not compose to, `formal/AGENTS.md` the build and the gate (`formal/check-all.sh`).
@@ -99,7 +99,7 @@ cargo leanvm-bench --prover stable fibonacci --n <steps>
 
 ## Allocator and thread pool
 
-- Shared crates and `lean-pq` impose no allocator. The CLI, the benches and, outside Windows, the bindings' final libraries (`lean-pq-native`, the Node.js addon, the Python extension) install `allocator::Jemalloc`, the latter with its `library` feature.
+- Shared crates impose no allocator. The CLI, the benches and, outside Windows, the bindings' native libraries (with its `library` feature) install `allocator::Jemalloc`.
 - Experimental skips a buffer's zero-fill with `primitives::uninit_vec` or `filled_vec`. Stable never reads uninitialized memory: it writes a large buffer's first pass with the pool (`parallel::filled`, `parallel::map_collect`).
 - Drop a large buffer where its last use ends.
 - No rayon. One pool per tree, one tree per process: never add a second pool.

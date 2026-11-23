@@ -14,9 +14,8 @@ use napi_derive::napi;
 
 /// Runs `task` on a thread of its own and returns its promise.
 ///
-/// Proving and the one-time setup hold a thread for seconds, and building a VRF key over a range
-/// for up to minutes, while `AsyncTask`'s threads are libuv's pool, which Node's file, DNS and
-/// crypto work share.
+/// Proving holds a thread for seconds, and building a VRF key over a range for up to minutes, while
+/// `AsyncTask`'s threads are libuv's pool, which Node's file, DNS and crypto work share.
 fn on_own_thread<T: Task + 'static>(env: &Env, mut task: T) -> Result<Object<'_>> {
     let (deferred, promise) = env.create_deferred()?;
     thread::spawn(

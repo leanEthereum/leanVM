@@ -33,8 +33,6 @@ pub enum OutputClaims<'a> {
     Only(&'a AggregateClaims),
 }
 
-// The claims' byte form, integers little-endian: the leanXMSS claims as a `u64` count then each pubkey (32 bytes) and
-// message (32 bytes), the leanSPHINCS claims likewise, then the DA commitment as `u8` 0, or 1 and the root (32 bytes).
 // Decoding is canonical: it rejects any other flag and trailing bytes. Order is kept, sorted or not.
 
 const _: () = assert!(lean_xmss::PUB_KEY_SIZE == 32 && lean_sphincs::PUB_KEY_SIZE == 32);

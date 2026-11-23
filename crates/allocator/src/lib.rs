@@ -1,4 +1,4 @@
-//! The global allocator of the benchmark CLI, the proving benchmarks and the language bindings' native libraries.
+//! The global allocator of the benchmark CLI, the proving benchmarks and the bindings.
 //!
 //! A proof allocates gigabytes of short-lived buffers and frees them before it returns.
 //!

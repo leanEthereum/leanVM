@@ -153,8 +153,6 @@ suite "lean_pq":
     check:
       XmssSecretKey.fromBytes([1'u8, 2, 3]).isErr()
       SphincsSecretKey.fromBytes([]).isErr()
-      LeanPqAggregate.fromBytes([0'u8]).isErr()
-      LeanPqAggregate.init().isErr()
 
   test "closed values return errors and close twice":
     let
@@ -233,6 +231,8 @@ suite "lean_pq":
       LeanPqAggregate.fromBytes(tampered, expectedXmss, expectedSphincs).isErr()
       LeanPqAggregate.fromBytes(
         encoded.toOpenArray(0, encoded.len - 2), expectedXmss, expectedSphincs).isErr()
+      LeanPqAggregate.fromBytes([0'u8]).isErr()
+      LeanPqAggregate.init().isErr()
 
     restored.close()
     check:

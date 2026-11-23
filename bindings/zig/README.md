@@ -56,11 +56,10 @@ pub fn main() !void {
 
 ## Aggregate
 
-Aggregation proves in-process. With the keys and signatures above:
+With the keys and signatures above:
 
 ```zig
 const allocator = std.heap.page_allocator;
-try lpq.setup(0); // optional: the prover's thread count, 0 for one per core
 
 var leaf = try lpq.Aggregate.create(&.{}, &.{.{
     .public_key = try xmss_key.publicKey(),
@@ -87,10 +86,10 @@ var received = try lpq.Aggregate.fromBytes(encoded, &.{.{
 defer received.deinit();
 ```
 
-- `Aggregate.create` verifies raw signatures first and takes at most `max_children` (16) children, which it neither consumes nor retains. Proofs run one at a time per process, each heavy in time and memory. Except on Windows, the process keeps its peak proving memory after a proof: jemalloc keeps its pages mapped.
+- `Aggregate.create` verifies raw signatures first and takes at most `max_children` (16) children, which it neither consumes nor retains. Proofs run one at a time per process. Except on Windows, the process keeps its peak proving memory: jemalloc keeps its pages mapped.
 - `toBytes` is the proof alone: send the claims (`xmssClaims`, `sphincsClaims`) alongside it.
-- `Aggregate.fromBytes` takes the claims in any order (a repeat counts once) and fails with `error.NativeFailure` for malformed bytes or any other set, so every `Aggregate` is proven.
-- `setup(threads)` before the first aggregation chooses the prover's thread count (0: one per core) and starts it now; otherwise the first aggregation starts it on every core. It fails with `error.NativeFailure` if the prover already runs with another count.
+- `Aggregate.fromBytes` takes the claims in any order (a repeat counts once) and fails with `error.NativeFailure` for any other set, so every `Aggregate` is proven.
+- `setup(threads)` starts the prover on `threads` threads (0: one per core); otherwise the first aggregation starts it on every core. It fails if the prover already runs with another count.
 - A process forked after the prover started cannot aggregate.
 - The prebuilt archives target a generic CPU: to prove fast, [build from source](#build-from-source) on the proving machine.
 

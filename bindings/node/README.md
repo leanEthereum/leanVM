@@ -65,21 +65,18 @@ const received = await lpq.Aggregate.fromBytes(proof, { xmss: root.xmssClaims, s
 
 - `aggregate({ children, xmss, sphincs })` verifies raw signatures before proving and takes at most 16 children. The result proves the union of their claims.
 - `toBytes()` is the proof alone: send the claims alongside it, or let the receiver rebuild them.
-- `Aggregate.fromBytes(data, { xmss, sphincs })` accepts exactly those `{ publicKey, message }` claims, in any order (a repeated claim counts once), and rejects otherwise; an omitted list means none. `xmssClaims` and `sphincsClaims` are sorted.
-- The first `aggregate` starts the prover, one thread per core, and builds the aggregation guest; `fromBytes` only builds the guest. `setup(threads)` before the first `aggregate` chooses the thread count (0 or omitted: one per core) and pays that cost earlier; it rejects if the prover already runs with another count.
-- Proofs run one at a time per process, each heavy in time and memory. Except on Windows, the process keeps its peak proving memory after a proof: jemalloc keeps its pages mapped.
+- `Aggregate.fromBytes(data, { xmss, sphincs })` accepts exactly those `{ publicKey, message }` claims, in any order, and rejects otherwise; an omitted list means none. `xmssClaims` and `sphincsClaims` are sorted.
+- `setup` rejects if the prover already runs with another thread count. See [Proving](https://github.com/leanEthereum/leanVM/tree/main/bindings#proving).
 
 ### Fast proving
 
-The npm prebuilds target a generic CPU. To prove fast, build the addon on the proving machine and install that build (needs Rust), from your project's directory:
+The npm prebuilds target a generic CPU. To prove fast, build the addon on the proving machine (needs Rust), from your project's directory:
 
 <!-- x-release-please-start-version -->
 ```sh
 git clone --depth 1 --branch bindings-v0.16.0 https://github.com/leanEthereum/leanVM.git ../leanVM && (cd ../leanVM/bindings/node && npm ci && RUSTFLAGS="-C target-cpu=native" npm run build) && npm install ../leanVM/bindings/node
 ```
 <!-- x-release-please-end -->
-
-The addon built in `bindings/node` takes precedence over the prebuilt package.
 
 ## Build and test
 

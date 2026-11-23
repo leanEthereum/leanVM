@@ -10,42 +10,31 @@
 //! the proof against the claims it expects.
 
 use std::fmt;
-use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
+use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::OnceLock;
 
-use lean_vm::{
-    aggregate as prove, setup as setup_lean_vm, AggregateClaims, AggregateProof, OutputClaims,
-    MAX_LOG_INV_RATE, MAX_RECURSIONS, MIN_LOG_INV_RATE,
-};
+use lean_vm::{AggregateClaims, AggregateProof, OutputClaims, MAX_RECURSIONS};
 
 use crate::{sphincs, xmss, Error, Message};
 
 /// The most children one aggregation recurses over.
-pub const MAX_CHILDREN: usize = 16;
-
-// The limit above is the guest's.
-const _: () = assert!(MAX_CHILDREN == MAX_RECURSIONS);
+pub const MAX_CHILDREN: usize = MAX_RECURSIONS;
 
 /// Exponent of the proof's Reed-Solomon code rate, `rho = 2^-2 = 1/4`: a larger one gives a smaller
 /// proof but slower proving.
 const LOG_INV_RATE: usize = 2;
 
-const _: () = assert!(MIN_LOG_INV_RATE <= LOG_INV_RATE && LOG_INV_RATE <= MAX_LOG_INV_RATE);
-
 /// The pool's thread count, once it runs.
 static POOL: OnceLock<usize> = OnceLock::new();
 
-/// The process that started the pool, and the one that started building the aggregation guest, each set before it
-/// starts: a child forked meanwhile or after inherits the pool's state but not its threads, nor a build in progress.
+/// The process that started the pool, and the one building the guest (`BUILT` once built), each
+/// set before it starts: a child forked since inherits their state but not the threads running them.
 static POOL_OWNER: AtomicU32 = AtomicU32::new(0);
 static GUEST_OWNER: AtomicU32 = AtomicU32::new(0);
-static GUEST_BUILT: AtomicBool = AtomicBool::new(false);
+const BUILT: u32 = u32::MAX;
 
 /// Starts the prover pool with `threads` threads (0: one per core) and builds the aggregation
-/// guest, once per process.
-///
-/// The first aggregation starts it with one thread per core, so calling it first only chooses the
-/// thread count and moves that cost earlier.
+/// guest, once per process. Without it, the first aggregation starts them on every core.
 ///
 /// # Errors
 ///
@@ -69,30 +58,96 @@ fn start(threads: usize) -> Result<usize, Error> {
     // Starting the pool builds the guest.
     with_guest(|| {
         *POOL.get_or_init(|| {
-            setup_lean_vm(threads);
+            lean_vm::setup(threads);
             threads
         })
     })
 }
 
-/// Runs `f`, which may build the aggregation guest, unless this process was forked while its parent built it.
+/// Runs `f`, which may build the guest, unless another process is building it.
 fn with_guest<T>(f: impl FnOnce() -> T) -> Result<T, Error> {
-    if !GUEST_BUILT.load(Ordering::Acquire) {
-        claim(&GUEST_OWNER)?;
-    }
+    claim(&GUEST_OWNER)?;
     let out = f();
-    GUEST_BUILT.store(true, Ordering::Release);
+    GUEST_OWNER.store(BUILT, Ordering::Release);
     Ok(out)
 }
 
-/// Records this process as `owner`, or checks it already is.
 fn claim(owner: &AtomicU32) -> Result<(), Error> {
     let pid = std::process::id();
     match owner.compare_exchange(0, pid, Ordering::AcqRel, Ordering::Acquire) {
-        Ok(_) => Ok(()),
-        Err(other) if other == pid => Ok(()),
-        Err(_) => Err(Error::ForkedAfterSetup),
+        Err(other) if other != pid && other != BUILT => Err(Error::ForkedAfterSetup),
+        _ => Ok(()),
     }
+}
+
+/// Proves raw signatures and child aggregates together as one aggregate.
+///
+/// ```text
+///     claims(result) = claims(children) + claims(raw inputs)
+///                      sorted, one entry per (public key, message)
+/// ```
+///
+/// - Raw signatures are verified first, so a bad one is named by its index.
+/// - Children are borrowed, and the proof re-verifies each one.
+/// - Proofs run one at a time per process.
+///
+/// # Errors
+///
+/// - Fails when more than 16 children are given.
+/// - Fails when a raw signature does not verify, naming its list and index.
+/// - Fails when the prover rejects the input, for example when it is empty.
+/// - Fails in a process forked while or after its parent started the pool.
+pub fn aggregate(
+    children: &[&Aggregate],
+    xmss: &[(xmss::PublicKey, Message, xmss::Signature)],
+    sphincs: &[(sphincs::PublicKey, Message, sphincs::Signature)],
+) -> Result<Aggregate, Error> {
+    if children.len() > MAX_CHILDREN {
+        return Err(Error::TooManyChildren {
+            count: children.len(),
+            max: MAX_CHILDREN,
+        });
+    }
+    // An invalid signature would otherwise surface as a failed proof; checking first names it.
+    for (index, (public_key, message, signature)) in xmss.iter().enumerate() {
+        public_key
+            .verify(message, signature)
+            .map_err(|_| Error::InvalidXmssInput {
+                index,
+                leaf_index: signature.leaf_index(),
+            })?;
+    }
+    for (index, (public_key, message, signature)) in sphincs.iter().enumerate() {
+        public_key
+            .verify(message, signature)
+            .map_err(|_| Error::InvalidSphincsInput { index })?;
+    }
+    let children: Vec<_> = children
+        .iter()
+        .map(|child| (child.claims.clone(), child.proof.clone()))
+        .collect();
+    let xmss: Vec<_> = xmss
+        .iter()
+        .map(|(public_key, message, signature)| (public_key.0, *message, signature.0.clone()))
+        .collect();
+    let sphincs: Vec<_> = sphincs
+        .iter()
+        .map(|(public_key, message, signature)| (public_key.0, *message, signature.0.clone()))
+        .collect();
+    start(0)?;
+    // No DA blobs, and keep every claim the inputs cover.
+    let (claims, proof) = lean_vm::aggregate(
+        &children,
+        xmss,
+        sphincs,
+        None,
+        OutputClaims::All,
+        LOG_INV_RATE,
+    )
+    .map_err(|reason| Error::Aggregation {
+        reason: reason.to_string(),
+    })?;
+    Ok(Aggregate { claims, proof })
 }
 
 /// A verified recursive proof that each listed public key signed its message.
@@ -107,14 +162,13 @@ pub struct Aggregate {
 }
 
 impl Aggregate {
-    /// Decodes a proof and verifies that it proves exactly these claims.
+    /// Verifies that a proof proves exactly these claims, and returns it as an aggregate.
     ///
     /// The claims may come in any order, and a repeated claim counts once.
     ///
     /// # Errors
     ///
-    /// - Fails when the bytes are not an encoded aggregate proof.
-    /// - Fails when the proof does not prove exactly these claims.
+    /// - Fails when the bytes are not a proof of exactly these claims.
     pub fn from_bytes(
         bytes: &[u8],
         xmss_claims: &[(xmss::PublicKey, Message)],
@@ -181,78 +235,4 @@ fn sorted_claims<K: Ord>(claims: impl Iterator<Item = (K, Message)>) -> Vec<(K, 
     claims.sort_unstable();
     claims.dedup();
     claims
-}
-
-/// Proves raw signatures and child aggregates together as one aggregate.
-///
-/// ```text
-///     claims(result) = claims(children) + claims(raw inputs)
-///                      sorted, one entry per (public key, message)
-/// ```
-///
-/// - Raw signatures are verified first, so a bad one is named by its index.
-/// - Children are borrowed, and the guest re-verifies each one inside the new proof.
-/// - One proof runs at a time per process, and concurrent calls wait.
-///
-/// # Errors
-///
-/// - Fails when more than 16 children are given.
-/// - Fails when a raw signature does not verify, naming its list and index.
-/// - Fails when the prover rejects the input, for example when it is empty.
-/// - Fails in a process forked after the prover pool started, which has the pool but not its
-///   threads.
-pub fn aggregate(
-    children: &[&Aggregate],
-    xmss: &[(xmss::PublicKey, Message, xmss::Signature)],
-    sphincs: &[(sphincs::PublicKey, Message, sphincs::Signature)],
-) -> Result<Aggregate, Error> {
-    // Reject an oversized fan-in before cloning any proof.
-    if children.len() > MAX_CHILDREN {
-        return Err(Error::TooManyChildren {
-            count: children.len(),
-            max: MAX_CHILDREN,
-        });
-    }
-
-    // An invalid signature would otherwise surface as a failed proof; checking first names it.
-    for (index, (public_key, message, signature)) in xmss.iter().enumerate() {
-        public_key
-            .verify(message, signature)
-            .map_err(|_| Error::InvalidXmssInput {
-                index,
-                leaf_index: signature.leaf_index(),
-            })?;
-    }
-    for (index, (public_key, message, signature)) in sphincs.iter().enumerate() {
-        public_key
-            .verify(message, signature)
-            .map_err(|_| Error::InvalidSphincsInput { index })?;
-    }
-
-    // The prover takes owned inputs: copy the proofs and unwrap the signature types.
-    let children: Vec<(AggregateClaims, AggregateProof)> = children
-        .iter()
-        .map(|child| (child.claims.clone(), child.proof.clone()))
-        .collect();
-    let xmss = xmss
-        .iter()
-        .map(|(public_key, message, signature)| (public_key.0, *message, signature.0.clone()))
-        .collect();
-    let sphincs = sphincs
-        .iter()
-        .map(|(public_key, message, signature)| (public_key.0, *message, signature.0.clone()))
-        .collect();
-
-    start(0)?;
-    // No DA blobs, and keep every claim the inputs cover.
-    prove(
-        &children,
-        xmss,
-        sphincs,
-        None,
-        OutputClaims::All,
-        LOG_INV_RATE,
-    )
-    .map(|(claims, proof)| Aggregate { claims, proof })
-    .map_err(|reason| Error::Aggregation { reason })
 }

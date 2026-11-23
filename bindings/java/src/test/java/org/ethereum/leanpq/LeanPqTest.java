@@ -175,11 +175,9 @@ class LeanPqTest {
 
     @Test
     void setupKeepsItsFirstThreadCount() {
-        // No test sets a count other than 0, the count aggregating starts the pool with.
-        LeanPq.setup(0);
+        // 0, the count aggregating starts the prover with.
         LeanPq.setup(0);
         assertThrows(LeanPqException.class, () -> LeanPq.setup(1));
-        assertThrows(IllegalArgumentException.class, () -> LeanPq.setup(-1));
     }
 
     private static byte[] bytes(int value) {

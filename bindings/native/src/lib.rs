@@ -2,7 +2,6 @@
 //! handles and owned buffers, not a public API.
 #![allow(clippy::missing_safety_doc)] // Safety contract is documented in include/lean_pq_native.h.
 
-// jemalloc configured for proving; the host language's allocator is untouched.
 #[cfg(unix)]
 #[global_allocator]
 static ALLOCATOR: allocator::Jemalloc = allocator::Jemalloc;

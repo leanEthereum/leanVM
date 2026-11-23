@@ -166,7 +166,7 @@ test "aggregates recursively and round trips through bytes" {
     defer allocator.free(sphincs_claims);
     try std.testing.expectEqualSlices(lpq.Claim, &.{sphincs_claim}, sphincs_claims);
 
-    // The getters' claims are exactly what decoding needs.
+    // The getters' claims are exactly what verifying needs.
     var reread = try lpq.Aggregate.fromBytes(encoded, xmss_claims, sphincs_claims);
     defer reread.deinit();
     const reencoded = try reread.toBytes(allocator);
@@ -187,9 +187,6 @@ test "aggregates recursively and round trips through bytes" {
     try std.testing.expectError(error.NativeFailure, lpq.Aggregate.fromBytes(tampered, &.{ xmss_claim, extra_claim }, &.{sphincs_claim}));
     try std.testing.expectError(error.NativeFailure, lpq.Aggregate.fromBytes(encoded[0 .. encoded.len - 1], &.{ xmss_claim, extra_claim }, &.{sphincs_claim}));
     try std.testing.expectError(error.NativeFailure, lpq.Aggregate.fromBytes(&.{}, &.{ xmss_claim, extra_claim }, &.{sphincs_claim}));
-}
-
-test "aggregating nothing fails" {
     try std.testing.expectError(error.NativeFailure, lpq.Aggregate.create(&.{}, &.{}, &.{}));
 }
 

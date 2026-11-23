@@ -12,9 +12,8 @@ export interface SignedMessage {
 }
 
 /**
- * Starts the prover with `threads` threads (0, the default: one per core) and builds the
- * aggregation guest, once per process. Optional: the first `aggregate` starts it with one thread
- * per core. Rejects when it already runs with another thread count.
+ * Starts the prover with `threads` threads (0, the default: one per core); otherwise the first
+ * `aggregate` starts it on every core. Rejects when it already runs with another count.
  */
 export declare function setup(threads?: number): Promise<void>
 
@@ -94,9 +93,9 @@ export declare function vrfVerify(root: Buffer, slot: number, proof: Buffer): vo
 export declare class Aggregate {
   private constructor()
   /**
-   * Decodes a proof and verifies that it proves exactly the given claims, which may come in any
-   * order; a repeated claim counts once. An omitted list means no claims of that scheme. Rejects
-   * when the bytes are not an aggregate proof or the proof does not prove exactly these claims.
+   * Verifies that a proof proves exactly the given claims, which may come in any order; a repeated
+   * claim counts once. An omitted list means no claims of that scheme. Rejects when the bytes are
+   * not a proof of exactly these claims.
    */
   static fromBytes(data: Buffer, claims?: { xmss?: Array<Claim>; sphincs?: Array<Claim> }): Promise<Aggregate>
   /** The proof alone, without its claims. */

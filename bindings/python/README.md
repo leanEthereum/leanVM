@@ -33,7 +33,7 @@ lpq.sphincs_verify(sphincs_key.public_key, message, sphincs_sig)
 - leanSPHINCS is stateless and deterministic; a key signs at most `2^30` messages.
 - `to_bytes()` is the key's 32-byte seed, which is secret; `from_bytes` restores the key.
 - `cache_to_bytes()` returns the key's trees, which are not secret; `XmssSecretKey.from_cache_bytes(seed, public_key, cache)` loads the key from them instead of rebuilding them, checking them against the public key.
-- Failures raise `LeanPqError`, inputs of the wrong length `ValueError`. Every call that signs, verifies, proves or decodes an aggregate releases the GIL.
+- Failures raise `LeanPqError`, inputs of the wrong length `ValueError`. Every call that signs, verifies or aggregates releases the GIL.
 
 ## Aggregate
 
@@ -52,17 +52,16 @@ received = lpq.Aggregate.from_bytes(proof, root.xmss_claims, root.sphincs_claims
 
 - `aggregate(children=(), xmss=(), sphincs=())` verifies raw signatures before proving and takes at most 16 children. The result proves the union of their claims.
 - `to_bytes()` is the proof alone: send the claims alongside it, or let the receiver rebuild them.
-- `Aggregate.from_bytes(data, xmss_claims=(), sphincs_claims=())` accepts exactly those `(public_key, message)` claims, in any order (a repeated claim counts once), and raises `LeanPqError` otherwise. `xmss_claims` and `sphincs_claims` are sorted lists.
-- The first `aggregate` starts the prover, one thread per core, and builds the aggregation guest; `from_bytes` only builds the guest. `setup(threads=0)` before the first `aggregate` chooses the thread count (0: one per core) and pays that cost earlier; it raises `LeanPqError` if the prover already runs with another count.
-- Proofs run one at a time per process, each heavy in time and memory. Except on Windows, the process keeps its peak proving memory after a proof: jemalloc keeps its pages mapped.
-- A child forked while or after the prover started cannot aggregate: give `multiprocessing` the `spawn` or `forkserver` start method.
+- `Aggregate.from_bytes(data, xmss_claims=(), sphincs_claims=())` accepts exactly those `(public_key, message)` claims, in any order, and raises `LeanPqError` otherwise. `xmss_claims` and `sphincs_claims` are sorted lists.
+- `setup` raises `LeanPqError` if the prover already runs with another thread count. See [Proving](https://github.com/leanEthereum/leanVM/tree/main/bindings#proving).
+- A process forked after the prover started cannot aggregate: give `multiprocessing` the `spawn` or `forkserver` start method.
 
 ### Fast proving
 
-The published wheels target a generic CPU. To prove fast, build the release on the proving machine (needs Rust), from your project's directory:
+The wheels target a generic CPU. To prove fast, install from source on the proving machine (needs Rust), from your project's directory:
 
 <!-- x-release-please-start-version -->
-```bash
+```sh
 git clone --depth 1 --branch bindings-v0.16.0 https://github.com/leanEthereum/leanVM.git ../leanVM && RUSTFLAGS="-C target-cpu=native" pip install ../leanVM/bindings/python
 ```
 <!-- x-release-please-end -->

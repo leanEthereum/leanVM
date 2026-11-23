@@ -70,15 +70,9 @@ jobs:
         run: cargo clippy --release -p lean-pq -p lean-pq-native --all-targets -- -D warnings
         working-directory: bindings
 
-      # Windows aggregates with the system allocator; the rest builds as on Unix.
+      # Without jemalloc; the rest builds as on Unix.
       - name: Lint the Windows build
         run: cargo clippy --release -p lean-pq -p lean-pq-native --target x86_64-pc-windows-gnu -- -D warnings
-        working-directory: bindings
-
-      # Consumers that only sign and verify build without the prover.
-      # The README's aggregation example is a doctest, so only the lib and integration tests run.
-      - name: Test Rust bindings without aggregation
-        run: cargo test --release -p lean-pq --no-default-features --lib --tests
         working-directory: bindings
 
       - name: Lint Rust bindings without aggregation

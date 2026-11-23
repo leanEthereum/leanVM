@@ -70,9 +70,8 @@ comptime {
     std.debug.assert(@sizeOf(Claim) == 64);
 }
 
-/// Starts the prover pool with `threads` threads (0: one per core) and builds the aggregation
-/// guest, once per process; otherwise the first aggregation does so on every core. Fails with
-/// `error.NativeFailure` if the pool already runs with another thread count.
+/// Starts the prover on `threads` threads (0: one per core); otherwise the first aggregation starts
+/// it on every core. Fails if the prover already runs with another count.
 pub fn setup(threads: usize) Error!void {
     try checkStatus(c.lpq_setup(threads));
 }
@@ -265,8 +264,7 @@ pub const Aggregate = struct {
     handle: *c.lpq_aggregate,
 
     /// Verifies the raw signatures, then proves the union of their claims and the children's.
-    /// At least one input is required. Children are neither consumed nor retained. One proof runs
-    /// at a time per process.
+    /// At least one input is required. Children are neither consumed nor retained.
     pub fn create(
         children: []const *const Aggregate,
         xmss: []const XmssSignedMessage,
@@ -289,11 +287,14 @@ pub const Aggregate = struct {
         return .{ .handle = output orelse return error.InvalidNativeEncoding };
     }
 
-    /// Decodes a proof and verifies that it proves exactly `xmss_claims` and `sphincs_claims`.
-    /// The encoding is the proof alone: send the claims alongside it, or rebuild them on the
-    /// receiving side. Claims may come in any order; a repeated claim counts once. Fails with
+    /// Verifies that a proof from `Aggregate.toBytes` proves exactly `xmss_claims` and
+    /// `sphincs_claims`. Claims may come in any order; a repeated claim counts once. Fails with
     /// `error.NativeFailure` for malformed bytes or any other claim set.
-    pub fn fromBytes(data: []const u8, xmss_claims: []const Claim, sphincs_claims: []const Claim) Error!Aggregate {
+    pub fn fromBytes(
+        data: []const u8,
+        xmss_claims: []const Claim,
+        sphincs_claims: []const Claim,
+    ) Error!Aggregate {
         var output: ?*c.lpq_aggregate = null;
         try checkStatus(c.lpq_aggregate_from_bytes(
             bytesPtr(data),

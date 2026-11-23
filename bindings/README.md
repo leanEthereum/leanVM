@@ -35,21 +35,18 @@ requires "https://github.com/leanEthereum/leanVM?subdir=bindings/nim#bindings-v0
 ```
 <!-- x-release-please-end -->
 
-Rust: depend on `lean_vm` directly and build with `RUSTFLAGS="-C target-cpu=native"`:
+Rust: depend on `lean_vm` directly, build with `RUSTFLAGS="-C target-cpu=native"` and install jemalloc as [`crates/allocator`](../crates/allocator/src/lib.rs) does:
 
 ```toml
 lean_vm = { git = "https://github.com/leanEthereum/leanVM.git", features = ["experimental_prover"] }
 ```
 
-Install jemalloc as the global allocator, configured as [`crates/allocator`](../crates/allocator/src/lib.rs) does: proving is slower with the system allocator.
-
 ## Proving
 
-Every binding proves in the calling process. Prebuilt packages target a portable baseline CPU: to prove fast, build the binding from source on the proving machine with `RUSTFLAGS="-C target-cpu=native"`, as each language's README shows.
+Bindings prove in the calling process. Prebuilt packages target a baseline CPU: to prove fast, build from source with `RUSTFLAGS="-C target-cpu=native"`, as each language's README shows.
 
-- `setup(threads)` starts the prover with `threads` threads, 0 for one per core. Without it, the first aggregation starts it on every core.
-- Proofs run one at a time per process.
-- Except on Windows, the Rust side allocates with jemalloc, configured for proving, and the host language's allocator is untouched. Its freed pages stay mapped, so a process that aggregated keeps its peak memory.
+- `setup(threads)` starts the prover with `threads` threads (0: one per core); otherwise the first aggregation starts it on every core. Proofs run one at a time per process.
+- Except on Windows, Rust allocates with jemalloc and the host language's allocator is untouched. Freed pages stay mapped, so a process that aggregated keeps its peak memory.
 
 ## Build and test
 

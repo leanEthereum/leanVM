@@ -2,9 +2,6 @@
 
 use std::fmt;
 
-#[cfg(feature = "aggregation")]
-use lean_vm::AggregateError;
-
 use crate::vrf::Slot;
 use crate::xmss::LeafIndex;
 
@@ -69,18 +66,16 @@ pub enum Error {
         slot: u64,
     },
 
-    /// The prover pool already runs with another thread count.
-    #[cfg(feature = "aggregation")]
+    /// The prover already runs with another thread count.
     #[error("the prover already runs on {running} threads, not {threads} (0: one per core)")]
     SetupThreads {
-        /// The running pool's thread count, 0 for one per core.
+        /// The running thread count.
         running: usize,
         /// The thread count asked for.
         threads: usize,
     },
 
-    /// More prover threads were asked for than the machine runs in parallel.
-    #[cfg(feature = "aggregation")]
+    /// More threads were asked for than the machine runs in parallel.
     #[error("{threads} prover threads asked for, but this machine runs at most {max} in parallel")]
     TooManyThreads {
         /// The thread count asked for.
@@ -90,7 +85,6 @@ pub enum Error {
     },
 
     /// A raw leanXMSS signature handed to aggregation does not verify.
-    #[cfg(feature = "aggregation")]
     #[error("leanXMSS input {index} (leaf index {leaf_index}) does not verify")]
     InvalidXmssInput {
         /// Position of the input in the leanXMSS list.
@@ -100,7 +94,6 @@ pub enum Error {
     },
 
     /// A raw leanSPHINCS signature handed to aggregation does not verify.
-    #[cfg(feature = "aggregation")]
     #[error("leanSPHINCS input {index} does not verify")]
     InvalidSphincsInput {
         /// Position of the input in the leanSPHINCS list.
@@ -108,7 +101,6 @@ pub enum Error {
     },
 
     /// One aggregation was given more children than one proof can recurse over.
-    #[cfg(feature = "aggregation")]
     #[error("aggregation takes at most {max} children, got {count}")]
     TooManyChildren {
         /// The number of children supplied.
@@ -117,30 +109,24 @@ pub enum Error {
         max: usize,
     },
 
-    /// The prover could not produce an aggregate.
+    /// The prover refused to aggregate, and says why.
     ///
     /// Empty input and too many signers for one proof both land here.
-    #[cfg(feature = "aggregation")]
     #[error("aggregation failed: {reason}")]
     Aggregation {
-        /// The prover's failure.
-        reason: AggregateError,
+        /// The prover's reason.
+        reason: String,
     },
 
-    /// Bytes handed to [`Aggregate::from_bytes`](crate::Aggregate::from_bytes) are not an
-    /// encoded leanVM aggregate proof.
-    #[cfg(feature = "aggregation")]
+    /// The bytes are not an aggregate proof.
     #[error("malformed aggregate: the bytes are not a leanVM aggregate proof")]
     MalformedAggregate,
 
     /// An aggregate proof does not prove the claims it was checked against.
-    #[cfg(feature = "aggregation")]
     #[error("the aggregate does not prove the given claims")]
     AggregateRejected,
 
-    /// The process was forked while or after its parent started the prover pool or built the
-    /// aggregation guest: it inherits their state but not the threads running them.
-    #[cfg(feature = "aggregation")]
+    /// The process was forked while or after its parent started the prover.
     #[error("this process was forked while or after its parent started the prover: prove in the parent, or in a process started without forking")]
     ForkedAfterSetup,
 }

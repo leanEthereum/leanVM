@@ -41,7 +41,7 @@ A key is a 32-byte seed and the slots `[start, end)`, with `end <= 2^31`: both f
 
 ## Aggregate
 
-Aggregation is the default `aggregation` feature, on the experimental prover. Without it (`default-features = false`), the crate only signs, verifies and builds VRF trees.
+Aggregation is the default `aggregation` feature; without it the crate only signs, verifies and builds VRF trees.
 
 ```rust,no_run
 use lean_pq::{aggregate, sphincs, xmss, Aggregate};
@@ -65,8 +65,7 @@ assert_eq!(received.xmss_claims(), root.xmss_claims());
 - `aggregate` verifies raw signatures before proving and takes at most `MAX_CHILDREN` (16) children. The result proves the union of their claims.
 - `to_bytes` is the proof alone: send the claims alongside it, or let the receiver rebuild them.
 - `Aggregate::from_bytes` accepts exactly the claims passed, in any order, and fails otherwise.
-- `setup(threads)` starts the prover with `threads` threads (0: one per core), and fails if it already runs with another count; without it, the first `aggregate` starts it on every core. Proofs run one at a time per process, and a process forked after the start cannot aggregate.
-- [Proving](../README.md#proving) covers building for fast proving.
+- `setup(threads)`: see [Proving](../README.md#proving). A process forked after the prover started cannot aggregate.
 
 ## Build and test
 

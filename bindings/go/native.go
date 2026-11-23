@@ -85,9 +85,8 @@ type Aggregate struct {
 	handle *C.lpq_aggregate
 }
 
-// Setup starts the prover pool with threads threads (0: one per core) and builds the aggregation
-// guest, once per process; otherwise the first aggregation does so on every core. It fails when the
-// pool already runs with another thread count.
+// Setup starts the prover on threads threads (0: one per core); otherwise the first aggregation
+// starts it on every core. It fails if the prover already runs with another count.
 func Setup(threads int) error {
 	if threads < 0 {
 		return errors.New("leanpq: threads must not be negative")
@@ -412,7 +411,7 @@ func VrfVerify(root [32]byte, slot uint64, proof VrfProof) error {
 
 // AggregateSignatures proves the union of the children's claims and the raw signatures' claims.
 // Raw signatures are verified first; children are neither consumed nor closed. At least one input
-// is required, and at most 16 children. One proof runs at a time per process.
+// is required, and at most 16 children.
 func AggregateSignatures(children []*Aggregate, xmss []XmssSignedMessage, sphincs []SphincsSignedMessage) (*Aggregate, error) {
 	handles, release, err := acquireAggregates(children)
 	if err != nil {
@@ -445,9 +444,9 @@ func AggregateSignatures(children []*Aggregate, xmss []XmssSignedMessage, sphinc
 	return &Aggregate{handle: output}, nil
 }
 
-// AggregateFromBytes decodes a proof and verifies that it proves exactly the given claims, which
-// may be in any order; a repeated claim counts once. The encoding is the proof alone: send the
-// claims alongside it or have the receiver rebuild them. Any other claim set is rejected.
+// AggregateFromBytes checks that bytes, from Aggregate.Bytes, prove exactly the given claims, which
+// may be in any order; a repeated claim counts once. The encoding is the proof alone: send the claims
+// alongside it or have the receiver rebuild them. Any other claim set is rejected.
 func AggregateFromBytes(bytes []byte, xmssClaims, sphincsClaims []Claim) (*Aggregate, error) {
 	xmssRecords := claimRecords(xmssClaims)
 	sphincsRecords := claimRecords(sphincsClaims)

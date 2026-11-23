@@ -31,7 +31,7 @@ git -C vendor/leanVM checkout bindings-v0.16.0
 
 The package depends on [`results`](https://github.com/arnetheduck/nim-results); with nimbus-build-system, vendor it too.
 
-The first build downloads the prebuilt archive with curl, for Linux x86_64 and aarch64 (glibc), macOS (universal) and Windows x86_64 (MinGW-w64 gcc, not `--cc:vcc`), so no Rust is needed. For other targets or offline builds, pass `-d:leanPqNativeDir=DIR` holding your own `liblean_pq_native.a`.
+The first build downloads the prebuilt archive with curl, for Linux x86_64 and aarch64 (glibc), macOS (universal) and Windows x86_64 (MinGW-w64 gcc, not `--cc:vcc`), so signing and verifying need no Rust. For other targets or offline builds, pass `-d:leanPqNativeDir=DIR` holding your own `liblean_pq_native.a`.
 
 ## Example
 
@@ -78,10 +78,9 @@ main()
 
 ## Aggregate
 
-Aggregation proves in-process. With the keys and signatures above:
+With the keys and signatures above:
 
 ```nim
-doAssert leanPqSetup(0).isOk() # optional: the prover's thread count, 0 for one per core
 let
   leaf = LeanPqAggregate.init(
     xmss = [XmssSignedMessage(
@@ -99,10 +98,10 @@ let
 doAssert received.xmssClaims().expect("claims").len == 1
 ```
 
-- `LeanPqAggregate.init` verifies raw signatures first and takes at most `MaxAggregateChildren` (16) children, which it neither consumes nor closes. Proofs run one at a time per process, each heavy in time and memory. Except on Windows, the process keeps its peak proving memory after a proof: jemalloc keeps its pages mapped.
+- `LeanPqAggregate.init` verifies raw signatures first and takes at most `MaxAggregateChildren` (16) children, which it neither consumes nor closes. Proofs run one at a time per process. Except on Windows, the process keeps its peak proving memory: jemalloc keeps its pages mapped.
 - `toBytes` is the proof alone: send the claims (`xmssClaims`, `sphincsClaims`) alongside it.
-- `LeanPqAggregate.fromBytes` takes the claims in any order (a repeat counts once) and fails for malformed bytes or any other set, so every `LeanPqAggregate` is proven.
-- `leanPqSetup(threads)` before the first aggregation chooses the prover's thread count (0: one per core) and starts it now; otherwise the first aggregation starts it on every core. It fails if the prover already runs with another count.
+- `LeanPqAggregate.fromBytes` takes the claims in any order (a repeat counts once) and fails for any other set, so every `LeanPqAggregate` is proven.
+- `leanPqSetup(threads)` starts the prover on `threads` threads (0: one per core); otherwise the first aggregation starts it on every core. It fails if the prover already runs with another count.
 - A process forked after the prover started cannot aggregate.
 - The prebuilt archives target a generic CPU: to prove fast, [build from source](#build-from-source) on the proving machine.
 

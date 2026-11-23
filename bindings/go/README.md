@@ -10,7 +10,7 @@ go get leanvm.org/go@v0.16.0
 ```
 <!-- x-release-please-end -->
 
-Prebuilt for linux/amd64 and linux/arm64 (glibc), darwin/amd64 and darwin/arm64, and windows/amd64: no Rust needed.
+Prebuilt for linux/amd64 and linux/arm64 (glibc), darwin/amd64 and darwin/arm64, and windows/amd64: signing and verifying need no Rust.
 
 Needs Go 1.24+ with cgo (`CGO_ENABLED=1`) and a C compiler: gcc or clang on Linux, the Xcode command line tools on macOS, [MinGW-w64](https://www.mingw-w64.org/) gcc on Windows (not MSVC).
 
@@ -96,12 +96,9 @@ A key is a 32-byte seed and the slots `[start, end)`, with `end <= 2^31`: both f
 
 ## Aggregate
 
-Aggregation proves in-process. With the keys and signatures above:
+With the keys and signatures above:
 
 ```go
-if err := leanpq.Setup(0); err != nil { // optional: the prover's thread count, 0 for one per core
-    log.Fatal(err)
-}
 leaf, err := leanpq.AggregateSignatures(
     nil,
     []leanpq.XmssSignedMessage{{PublicKey: xmssPublicKey, Message: message, Signature: xmssSignature}},
@@ -132,10 +129,10 @@ if err != nil {
 defer received.Close()
 ```
 
-- `AggregateSignatures` verifies raw signatures first and takes at most 16 children, which it neither consumes nor closes. Proofs run one at a time per process, each heavy in time and memory. Except on Windows, the process keeps its peak proving memory after a proof: jemalloc keeps its pages mapped.
+- `AggregateSignatures` verifies raw signatures first and takes at most 16 children, which it neither consumes nor closes. Proofs run one at a time per process. Except on Windows, the process keeps its peak proving memory: jemalloc keeps its pages mapped.
 - `Bytes()` is the proof alone: send the claims (`XmssClaims()`, `SphincsClaims()`) alongside it.
-- `AggregateFromBytes` takes the claims in any order (a repeat counts once) and rejects malformed bytes or any other set, so every `Aggregate` is proven.
-- `Setup(threads)` before the first aggregation chooses the prover's thread count (0: one per core) and starts it now; otherwise the first aggregation starts it on every core. It fails if the prover already runs with another count.
+- `AggregateFromBytes` takes the claims in any order (a repeat counts once) and rejects any other set, so every `Aggregate` is proven.
+- `Setup(threads)` starts the prover on `threads` threads (0: one per core); otherwise the first aggregation starts it on every core. It fails if the prover already runs with another count.
 - The prebuilt archives target a generic CPU: to prove fast, [build from source](#build-from-source) on the proving machine.
 
 ## Build from source
