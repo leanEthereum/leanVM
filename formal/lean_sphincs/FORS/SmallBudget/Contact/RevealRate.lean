@@ -19,7 +19,7 @@ variable [Params]
 
 open FORS.Base
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForsPrice ForsSigner HiddenBridge
-open FORS.LoopWalk
+open FORS.LoopWalk Common.LoopWalk
 open FORS.Base.Domination
 
 set_option backward.isDefEq.respectTransparency false

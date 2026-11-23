@@ -8,7 +8,7 @@ public import Mathlib.Algebra.BigOperators.Ring.Finset
 @[expose] public section
 
 /-!
-# The value of the scan loop `R = R0 + i δ`
+# The value of a scan loop `R = R0 + i δ`
 
 A signer that derives one start `R0` per message and tries `R0, R0 + δ, ...` is, for one message and
 one state of the digest cache, a walk over positions: a position is `fresh` (digest not queried: it
@@ -29,12 +29,12 @@ Main results, for a successor `σ` that does not return to a position within the
 * `mass_le`: the starts that do not end at a cached hit weigh at least
   `card − (cached positions) − (cached hits) · (1 − p)/p`.
 
-Nothing here mentions hashing.
+Nothing here mentions hashing: leanXMSS (`δ = 1`) and leanSPHINCS use it alike.
 -/
 
 open ENNReal
 
-namespace FORS.LoopWalk
+namespace Common.LoopWalk
 
 /-- The status of a position for one message: digest not queried, queried and rejected, queried and
 landing. -/
@@ -770,4 +770,4 @@ theorem mass_le (hp : p ≤ 1) (st : α → St) (A : ℕ) (hA : ∀ x j, 0 < j �
 
 end Group
 
-end FORS.LoopWalk
+end Common.LoopWalk

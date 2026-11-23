@@ -1,6 +1,6 @@
 module
 
-public import XmssSecurity.Scan.LoopWalk
+public import Common.LoopWalk
 
 @[expose] public section
 
@@ -17,6 +17,8 @@ public import XmssSecurity.Scan.LoopWalk
 open ENNReal
 
 namespace XmssSecurity.LoopWalk
+
+open Common.LoopWalk
 
 variable {α : Type} {σ : Equiv.Perm α} {p : ℝ≥0∞} [DecidableEq α]
 

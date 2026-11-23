@@ -72,9 +72,9 @@ one an unfinished proof or a compiled decision procedure adds.
 #guard_msgs (whitespace := lax) in
 #print axioms FORS.Security.GraphView.scan_boundW
 
-/-- info: 'FORS.LoopWalk.creation_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Common.LoopWalk.creation_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms FORS.LoopWalk.creation_le
+#print axioms Common.LoopWalk.creation_le
 
 /-- info: 'FORS.Security.H0.lam_start' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in

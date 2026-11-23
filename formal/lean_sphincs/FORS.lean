@@ -52,7 +52,6 @@ public import FORS.ScanSigner.AfterSigning
 public import FORS.ScanSigner.FairShare
 public import FORS.ScanSigner.Group
 public import FORS.ScanSigner.LazySigner
-public import FORS.ScanSigner.LoopWalk
 public import FORS.ScanSigner.Scan
 public import FORS.ScanSigner.ScanReveals
 public import FORS.GraphView.Cache
