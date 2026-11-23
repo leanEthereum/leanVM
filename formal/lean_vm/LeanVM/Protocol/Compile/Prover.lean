@@ -19,8 +19,8 @@ public import Statement.Prover.Run
 public import LeanVM.Protocol.KeccakHash
 import LeanVM.Parameters.Field
 public import LeanVM.Protocol.ToArkLib.Merkle
+public import LeanVM.Protocol.RunWithHash
 import LeanVM.Protocol.WithHash
-public import LeanVM.Protocol.Compile.Refines
 public import CompPoly.Univariate.Basic
 public import VCVio.OracleComp.Constructions.SampleableType.Measure
 public import VCVio.OracleComp.QueryTracking.LoggingOracle.Core
@@ -70,11 +70,10 @@ function of `H` and `F`.
 The proof is a simulation: from a history `h` and sponge `sp`, if the prover's output from
 there is the stream `xs` and the openings `os`, then `run` from the state with sponge `sp`, stream
 `xs ++ restS`, openings `os ++ restO` and the roots of the trees committed in `h` returns `true`
-with exactly `restS` and `restO` left. It is proved once, for a program `P'` refining the one the
-prover follows (`Refines`), wherever the honest transcript passes every check of `P'`
-(`traceOk`: its proofs of work find their nonces, nothing waits where `P'` absorbs, every
-committed word is well shaped, every opening is of a committed word, and `P'` returns `true`):
-`run_proveFrom_trace`, and `runProof_prove_trace` for a whole proof. A winning strategy's
+with exactly `restS` and `restO` left, wherever the honest transcript passes every check of the
+program (`traceOk`: its proofs of work find their nonces, nothing waits where the program absorbs,
+every committed word is well shaped, every opening is of a committed word, and the program
+returns `true`): `run_proveFrom_trace`. A winning strategy's
 transcript passes the checks of the program itself (`traceOk_of_acceptsFrom`), which gives
 `run_proveFrom`. The Merkle step is the generic `MerkleTree.rootOfPath_path`, after `climb_mod`
 reduces the position to its low `height` bits.
@@ -515,20 +514,19 @@ def traceOk (S : Strategy) (fuel : ℕ) : VerifierProgram Bool → Sponge → Li
   | .query i ps k, sp, h => ∃ rows, answer h i ps = some rows ∧
       traceOk S fuel (k rows) sp (h ++ [Ev.query rows])
 
-/-- **The simulation, for a refining program.** If the honest prover's run along `p` from `h` at
-the sponge `sp` outputs `(xs, os)` and its transcript passes every check of `p'`, a refinement of
-`p`, the compiled verifier of `p'` from sponge `sp` with the roots of `h`'s trees accepts on any
-stream and openings that start with `xs` and `os`, leaving exactly what follows them. -/
-theorem run_proveFrom_trace (S : Strategy) (fuel : ℕ) {p' p : VerifierProgram Bool}
-    (hR : Refines p' p) :
+/-- **The simulation, along the transcript.** If the honest prover's run along `p` from `h` at
+the sponge `sp` outputs `(xs, os)` and its transcript passes every check of `p`, the compiled
+verifier of `p` from sponge `sp` with the roots of `h`'s trees accepts on any stream and openings
+that start with `xs` and `os`, leaving exactly what follows them. -/
+theorem run_proveFrom_trace (S : Strategy) (fuel : ℕ) (p : VerifierProgram Bool) :
     ∀ (h : List Ev) (sp : Sponge) (xs : List E) (os : List (List Opening)) (restS : List E)
       (restO : List (List Opening)),
-      traceOk H F S fuel p' sp h → (∀ c ∈ commits h, WellShaped c.2.1 c.2.2) →
+      traceOk H F S fuel p sp h → (∀ c ∈ commits h, WellShaped c.2.1 c.2.2) →
       proveFrom H F S fuel p sp h = some (xs, os) →
-      ∃ s', runWithHash (m := Id) H F p' ⟨sp, xs ++ restS, os ++ restO, rootsOf H (commits h)⟩ =
+      ∃ s', runWithHash (m := Id) H F p ⟨sp, xs ++ restS, os ++ restO, rootsOf H (commits h)⟩ =
           some (true, s') ∧ s'.stream = restS ∧ s'.openings = restO := by
-  induction hR with
-  | fail p =>
+  induction p with
+  | fail =>
     intro h sp xs os restS restO ht
     exact absurd ht id
   | ret b =>
@@ -537,7 +535,7 @@ theorem run_proveFrom_trace (S : Strategy) (fuel : ℕ) {p' p : VerifierProgram 
     simp only [proveFrom, Option.some.injEq, Prod.mk.injEq] at hp
     obtain ⟨rfl, rfl⟩ := hp
     exact ⟨_, by rw [ht]; rfl, rfl, rfl⟩
-  | @read k k' _ ih =>
+  | read k ih =>
     intro h sp xs os restS restO ht hws hp
     obtain ⟨hg0, ht⟩ := ht
     simp only [proveFrom] at hp
@@ -551,7 +549,7 @@ theorem run_proveFrom_trace (S : Strategy) (fuel : ℕ) {p' p : VerifierProgram 
     rw [← hrun]
     simp [runWithHash, commits_append, commits, hg0]
     rfl
-  | @sample k k' _ ih =>
+  | sample k ih =>
     intro h sp xs os restS restO ht hws hp
     simp only [proveFrom] at hp
     have hws' : ∀ c ∈ commits (h ++ [Ev.sample (squeezeI F sp).1]), WellShaped c.2.1 c.2.2 := by
@@ -561,7 +559,7 @@ theorem run_proveFrom_trace (S : Strategy) (fuel : ℕ) {p' p : VerifierProgram 
     rw [← hrun]
     simp [runWithHash, commits_append, commits]
     rfl
-  | @grind b k k' _ ih =>
+  | grind b k ih =>
     intro h sp xs os restS restO ht hws hp
     obtain ⟨hg0, n, hn, ht⟩ := ht
     simp only [proveFrom, hn] at hp
@@ -579,7 +577,7 @@ theorem run_proveFrom_trace (S : Strategy) (fuel : ℕ) {p' p : VerifierProgram 
     show (if powOk b (powStep F sp n).1 = true then _ else pure none) = _
     simp only [hpow, ↓reduceIte]
     rfl
-  | @commit ht w k k' _ ih =>
+  | commit ht w k ih =>
     intro h sp xs os restS restO htr hws hp
     obtain ⟨hg0, hw, htr⟩ := htr
     simp only [proveFrom] at hp
@@ -600,7 +598,7 @@ theorem run_proveFrom_trace (S : Strategy) (fuel : ℕ) {p' p : VerifierProgram 
     simp only [runWithHash, List.cons_append, hg0]
     rw [digestOfScalars_digestScalars, hroots]
     rfl
-  | @query i ps k k' _ ih =>
+  | query i ps k ih =>
     intro h sp xs os restS restO htr hws hp
     obtain ⟨rows, hans, htr⟩ := htr
     simp only [proveFrom] at hp
@@ -700,8 +698,8 @@ theorem traceOk_of_acceptsFrom (S : Strategy) (fuel : ℕ) :
 /-- **The simulation.** If the strategy wins from `h`, the words committed in `h` are well
 shaped, and the honest prover's output from `h` at sponge `sp` is `(xs, os)`, then the compiled
 verifier, from sponge `sp` with the roots of `h`'s trees, accepts on any stream and openings that
-start with `xs` and `os`, leaving exactly what follows them: `run_proveFrom_trace` at the program
-itself. -/
+start with `xs` and `os`, leaving exactly what follows them: `run_proveFrom_trace`, the transcript
+passing the program's checks (`traceOk_of_acceptsFrom`). -/
 theorem run_proveFrom (S : Strategy) (fuel : ℕ) (p : VerifierProgram Bool) (h : List Ev)
     (sp : Sponge) (xs : List E) (os : List (List Opening)) (restS : List E)
     (restO : List (List Opening)) (hacc : S.AcceptsFrom p h)
@@ -709,26 +707,8 @@ theorem run_proveFrom (S : Strategy) (fuel : ℕ) (p : VerifierProgram Bool) (h 
     (hg : sp.ground = none ∨ ∃ k, p = .sample k) (hp : proveFrom H F S fuel p sp h = some (xs, os)) :
     ∃ s', runWithHash (m := Id) H F p ⟨sp, xs ++ restS, os ++ restO, rootsOf H (commits h)⟩ =
         some (true, s') ∧ s'.stream = restS ∧ s'.openings = restO :=
-  run_proveFrom_trace H F S fuel (Refines.refl p) h sp xs os restS restO
+  run_proveFrom_trace H F S fuel p h sp xs os restS restO
     (traceOk_of_acceptsFrom H F S fuel p h sp xs os hacc hP hg hp) hws hp
-
-/-- **The compiled verifier of a refining program accepts the honest proof** wherever the honest
-transcript passes its checks. -/
-theorem runProof_prove_trace (S : Strategy) (fuel : ℕ) {P' P : VerifierProgram Bool}
-    (hR : Refines P' P) (seed : KeccakState) {π : Proof}
-    (ht : traceOk H F S fuel P' ⟨seed, [], none⟩ [])
-    (hπ : prove H F P S seed fuel = some π) :
-    runProofWithHash (m := Id) H F P' seed π = true := by
-  obtain ⟨t, htt, rfl⟩ := Option.map_eq_some_iff.mp hπ
-  obtain ⟨s', hrun, hs1, hs2⟩ :=
-    run_proveFrom_trace H F S fuel hR [] ⟨seed, [], none⟩ t.1 t.2 [] [] ht (by simp [commits]) htt
-  simp only [List.append_nil] at hrun
-  simp only [runProofWithHash, bind]
-  show (match runWithHash (m := Id) H F P' ⟨⟨seed, [], none⟩, t.1, t.2, rootsOf H (commits [])⟩ with
-    | some (true, s) => _ | _ => _) = true
-  rw [hrun]
-  simp [hs1, hs2]
-  rfl
 
 end Simulation
 

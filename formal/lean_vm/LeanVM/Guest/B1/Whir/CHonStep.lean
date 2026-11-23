@@ -112,7 +112,7 @@ theorem lvMid_step {h : OsHD} {b : ℕ} {tabs cur : E} {xs : List E} {l : ℕ} (
     (hr3 : 2 * ((h.c.levels.getD l default).foldsOff + (h.c.levels.getD l default).folds) < u128Bound)
     (hoff : (l + 1) * ligColsCap < u128Bound) (hpo : (h.c.levels.getD l default).posOff < u128Bound)
     (h3 : 2 * (h.c.levels.getD l default).foldsOff < u128Bound) (hh8 : l * hsStride < u128Bound)
-    (hlam : W.lam (h.c.levels.getD l default) (h.capAt l) (h.claimAt l) ≠ 0)
+    (hiz : IsZeroC H)
     (hC : ∀ C rd, H C rd → MidC C rd σ h.c l (h.c.levels.getD l default) (h.capAt l) (h.claimAt l)
       (cur * gen ^ (xs.length - (h.xsAt l).length)) W)
     (hcap' : capOf (W.SL (h.c.levels.getD l default) (h.capAt l) (h.claimAt l)) = h.capAt (l + 1))
@@ -142,7 +142,7 @@ theorem lvMid_step {h : OsHD} {b : ℕ} {tabs cur : E} {xs : List E} {l : ℕ} (
   have hcu := hq.cur
   have hfin : l ≠ c.yrLevel := by omega
   have hblk := osLevelMid_complete (H := H) (c := c) (lvl := l) (lv := lv) (st := st) σ hq.ok.sf
-    (fun _ _ _ ↦ hq.ok) hfin W hr3 hoff hpo h3 hh8 (by rw [hfs, hcl]; exact hlam)
+    (fun _ _ _ ↦ hq.ok) hfin W hr3 hoff hpo h3 hh8 hiz
     (fun _ _ _ ↦ hq.rate l (by show l < c.levels.length; omega))
     (fun C rd hH ↦ by rw [hfs, hcl, hcu]; exact hC C rd hH)
   refine hblk.mono fun σ' ⟨hstep, eF, ecur, ecl, e1, e2, pa, pr, qa, qr⟩ ↦ ?_

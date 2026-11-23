@@ -89,20 +89,21 @@ theorem osBases_wl (tch bd ls la : ℕ) :
       osBases (c.withLevels L) tch bd ls la lvl L' k = osBases c tch bd ls la lvl (L'.map OsLv.rf) k
   | _, [], _ => rfl
   | lvl, lv :: L', k => by
-    have e : osBasisCoords (c.withLevels L) tch lvl lv = osBasisCoords c tch lvl lv.rf := by
+    have e : osBasisLv (c.withLevels L) tch bd ls la lvl lv k = osBasisLv c tch bd ls la lvl lv.rf k := by
       rfl
     simp only [List.map_cons, osBases, e, osBases_wl tch bd ls la lvl.succ L']
 
-theorem osResiduals_wl (ich bd ls la : ℕ) :
+theorem osResiduals_wl (tch ich bd ls la : ℕ) :
     ∀ (lvl : ℕ) (L' : List OsLv) (mats : List OsMat) (k : ℕ),
-      osResiduals (c.withLevels L) ich bd ls la lvl L' mats k =
-        osResiduals c ich bd ls la lvl (L'.map OsLv.rf) mats k
+      osResiduals (c.withLevels L) tch ich bd ls la lvl L' mats k =
+        osResiduals c tch ich bd ls la lvl (L'.map OsLv.rf) mats k
   | _, [], _, _ => rfl
   | lvl, lv :: L', mats, k => by
-    have e : osResidual (c.withLevels L) ich bd ls la lvl lv mats k =
-        osResidual c ich bd ls la lvl lv.rf mats k := by
-      dsimp only [osResidual, OsCfg.withLevels, OsLv.rf_posOff, OsCfg.lvAt]
-    simp only [List.map_cons, osResiduals, e, osResiduals_wl ich bd ls la lvl.succ L']
+    have e : osResidual (c.withLevels L) tch ich bd ls la lvl lv mats k =
+        osResidual c tch ich bd ls la lvl lv.rf mats k := by
+      dsimp only [osResidual, OsCfg.withLevels, OsLv.rf_posOff, OsLv.rf_resFoldOff, OsCfg.lvAt]
+      rfl
+    simp only [List.map_cons, osResiduals, e, osResiduals_wl tch ich bd ls la lvl.succ L']
 
 theorem osOodWeights_wl (tch : ℕ) :
     ∀ (prevCols ol : ℕ) (L' : List OsLv) (acc : Option ℕ) (k : ℕ),

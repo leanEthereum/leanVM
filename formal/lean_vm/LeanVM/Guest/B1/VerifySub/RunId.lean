@@ -1,9 +1,8 @@
 /-
-  LeanVM.Guest.B1.VerifySub.NZRun
+  LeanVM.Guest.B1.VerifySub.RunId
 
   Deployed runs of the Spec's programs, for the completeness direction: a sequence's run splits,
-  a run refusing zero challenges is a run, a run's query steps split, and a deployed run that
-  reads all it is given is a `RunsWith`.
+  a run's query steps split, and a deployed run that reads all it is given is a `RunsWith`.
 -/
 
 module
@@ -17,7 +16,6 @@ public import LeanVM.Protocol.WithHashBridge
 # Deployed runs, for completeness
 
 * `runId_bind_some`: a run of `p.bind f` is a run of `p`, then of `f`.
-* `runId_of_rz`: a run of `p.refusingZeroChallenge` is a run of `p`.
 * `queryStepsOf_bind`: the query steps of `p.bind f` are `p`'s, then `f a`'s, past a run of `p`
   to `a`.
 * `runsWith_of_runId`: a run that reads all the words and openings it is given, from a carried
@@ -66,75 +64,6 @@ theorem runId_query_none (i : ℕ) (ps : List ℕ) (k : List (List K) → Verifi
     rfl
   · simp only [runId, Compile.runWithHash]
     rcases R[i]? with _ | ⟨root, height, width⟩ <;> rfl
-
-/-- **A run refusing zero challenges is a run.** -/
-theorem runId_of_rz : ∀ (p : VerifierProgram α) (st : VerifierProgramState)
-    (r : α × VerifierProgramState), runId p.refusingZeroChallenge st = some r → runId p st = some r
-  | .ret _, _, _, h => h
-  | .fail, _, _, h => h
-  | .read k, ⟨⟨S0, P0, g⟩, stream, os, R⟩, r, h => by
-    match stream, g, h with
-    | [], _, h => exact absurd h (by rintro ⟨⟩)
-    | _ :: _, some _, h => exact absurd h (by rintro ⟨⟩)
-    | x :: xs, none, h => exact runId_of_rz (k x) _ r h
-  | .sample k, st, r, h => by
-    have e1 : runId (VerifierProgram.sample k).refusingZeroChallenge st =
-        runId (if (Id.run (squeeze keccakF1600 st.sponge)).1 = 0 then VerifierProgram.fail
-          else (k (Id.run (squeeze keccakF1600 st.sponge)).1).refusingZeroChallenge)
-          { st with sponge := (Id.run (squeeze keccakF1600 st.sponge)).2 } := rfl
-    have e2 : runId (VerifierProgram.sample k) st =
-        runId (k (Id.run (squeeze keccakF1600 st.sponge)).1)
-          { st with sponge := (Id.run (squeeze keccakF1600 st.sponge)).2 } := rfl
-    rw [e1] at h
-    rw [e2]
-    split at h
-    · exact absurd h (by rintro ⟨⟩)
-    · exact runId_of_rz _ _ r h
-  | .grind bits k, ⟨⟨S0, P0, g⟩, stream, os, R⟩, r, h => by
-    match stream, g, h with
-    | [], _, h => exact absurd h (by rintro ⟨⟩)
-    | _ :: _, some _, h => exact absurd h (by rintro ⟨⟩)
-    | n :: xs, none, h =>
-      simp only [VerifierProgram.refusingZeroChallenge, runId, Compile.runWithHash] at h ⊢
-      generalize absorbNonce (m := Id) keccakF1600 ⟨S0, P0, none⟩ n = N at h ⊢
-      obtain ⟨pw, sp'⟩ := N
-      change (if powOk bits pw = true then _ else _) = _ at h
-      change (if powOk bits pw = true then _ else _) = _
-      split at h
-      · rename_i hp
-        simp only [hp, ↓reduceIte]
-        exact runId_of_rz k _ r h
-      · exact absurd h (by rintro ⟨⟩)
-  | .commit hh ww k, ⟨⟨S0, P0, g⟩, stream, os, R⟩, r, h => by
-    match stream, g, h with
-    | [], _, h => exact absurd h (by rintro ⟨⟩)
-    | [_], _, h => exact absurd h (by rintro ⟨⟩)
-    | _ :: _ :: _, some _, h => exact absurd h (by rintro ⟨⟩)
-    | x0 :: x1 :: xs, none, h => exact runId_of_rz k _ r h
-  | .query i ps k, ⟨sp, stream, os, R⟩, r, h => by
-    cases hR : R[i]? with
-    | none =>
-      rw [show (VerifierProgram.query i ps k).refusingZeroChallenge =
-        VerifierProgram.query i ps fun rows ↦ (k rows).refusingZeroChallenge from rfl,
-        runId_query_none _ _ _ _ (Or.inl hR)] at h
-      exact absurd h (by rintro ⟨⟩)
-    | some v =>
-      obtain ⟨root, height, width⟩ := v
-      cases os with
-      | nil =>
-        rw [show (VerifierProgram.query i ps k).refusingZeroChallenge =
-          VerifierProgram.query i ps fun rows ↦ (k rows).refusingZeroChallenge from rfl,
-          runId_query_none _ _ _ _ (Or.inr rfl)] at h
-        exact absurd h (by rintro ⟨⟩)
-      | cons phase rest =>
-        rw [show (VerifierProgram.query i ps k).refusingZeroChallenge =
-          VerifierProgram.query i ps fun rows ↦ (k rows).refusingZeroChallenge from rfl,
-          runId_query _ _ _ _ _ _ _ _ hR] at h
-        rw [runId_query _ _ _ _ _ _ _ _ hR]
-        split at h
-        · rename_i rows hrows
-          exact runId_of_rz (k rows) _ r h
-        · exact absurd h (by rintro ⟨⟩)
 
 /-- The query steps' openings are the deployed run's. -/
 theorem openPhase_keccak (root : Digest) (height width : ℕ) (ps : List ℕ) (phase : List Opening) :

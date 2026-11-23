@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Bits.MeaningP
 /-!
 # The arms' exactness check
 
-* `armExactS g`: `g` is `opening_round`, a deployed grind check or an entry of `lpTable`: the callees whose exactness
+* `armExactS g`: `g` is `opening_round`, `is_zero`, a deployed grind check or an entry of `lpTable`: the callees whose exactness
   the arm's composition carries;
 * `armExactOk name j`: function `j` is named `name`, its computed hints are pinned by the next atom, and each of its
   callees is `armExactS` or exact for free (`exactCallee j`), decided by the kernel per arm (`ArmExact0` to `ArmExact5`; `ArmExactB`, `ArmExactC` by its parts, `armExactOk_of`);
@@ -30,9 +30,10 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory Le
 
 @[expose] public section
 
-/-- `opening_round`, a deployed grind check, or an entry of `lpTable`. -/
+/-- `opening_round`, `is_zero`, a deployed grind check, or an entry of `lpTable`. -/
 def armExactS (g : String) : Bool :=
-  g == "opening_round" || grindBitsDeployed.any (fun b => grindCheckName b == g) || lpTable.any (·.1 == g)
+  g == "opening_round" || g == "is_zero" || grindBitsDeployed.any (fun b => grindCheckName b == g) ||
+    lpTable.any (·.1 == g)
 
 /-- **Function `j`, named `name`, has its computed hints pinned by the next atom and calls `armExactS` functions or
 functions exact for free.** -/

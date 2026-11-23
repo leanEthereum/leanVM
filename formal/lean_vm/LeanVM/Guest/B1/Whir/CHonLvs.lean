@@ -41,14 +41,6 @@ theorem OsHD.claimAt_of (h : OsHD) {l : ℕ} (hl : l ≤ h.c.yrLevel) : h.claimA
 theorem OsHD.xsAt_of (h : OsHD) {l : ℕ} (hl : l ≤ h.c.yrLevel) : h.xsAt l = (h.L l).xs := by
   simp [OsHD.xsAt, hl]
 
-theorem LvAt.lam_next {L L' : LvAt} {logN index : ℕ} (hN : LvAt.NextStep logN index L L') :
-    L.lam logN ≠ 0 := by
-  obtain ⟨rw, W, hd, -, -, -, -, hnext, -⟩ := hN
-  have hrw : L.rw = rw := by unfold LvAt.rw; rw [hd]
-  unfold LvAt.lam; rw [hd]
-  simp only [LvAt.F, LvAt.mu, LvAt.dp, LvAt.s1, hrw]
-  exact hnext.lam
-
 theorem LvAt.qs_next_length {L L' : LvAt} {logN index : ℕ} (hN : LvAt.NextStep logN index L L') :
     (L.qs logN).length = L.level.queries := by
   obtain ⟨rw, W, hd, -⟩ := hN
@@ -73,7 +65,7 @@ theorem lvMid_gen {h : OsHD} {xs : List E} {b : ℕ} {tabs cur : E} (hS : BodySt
     (hg : (h.Ls.getD l default).s.alphas.length = ((h.c.levels.getD l default)).foldsOff)
     (hrecF : ∀ q ∈ lvsRecs h.logN h.Ls l, q.F ≤ (h.Ls.getD l default).s.alphas.length)
     (hsuf : ∃ p, xs = p ++ (h.Ls.getD l default).xs)
-    {st : OsSt} {σ : Val} (hq : QAt h b tabs cur xs l st σ)
+    {st : OsSt} {σ : Val} (hq : QAt h b tabs cur xs l st σ) (hiz : IsZeroC H)
     (hMC : ∀ C rd, H C rd → MidC C rd σ h.c l ((h.c.levels.getD l default)) (h.capAt l) (h.claimAt l)
       (cur * gen ^ (xs.length - (h.xsAt l).length))
       ((h.Ls.getD l default).midW (digestHalves (h.root l)).1 (digestHalves (h.root l)).2 (h.bat l)
@@ -105,13 +97,12 @@ theorem lvMid_gen {h : OsHD} {xs : List E} {b : ℕ} {tabs cur : E} (hS : BodySt
     h.xsAt_of (show l ≤ h.c.yrLevel by omega)
   have hx1 : h.xsAt (l + 1) = (h.Ls.getD (l + 1) default).xs :=
     h.xsAt_of (show l + 1 ≤ h.c.yrLevel by omega)
-  have hlam : (h.Ls.getD l default).lam h.logN ≠ 0 := LvAt.lam_next hN
-  have hli : h.lamInv l = ((h.Ls.getD l default).lam h.logN)⁻¹ := by
+  have hli : h.lamInv l = lamInvOf ((h.Ls.getD l default).lam h.logN) := by
     simp [OsHD.lamInv, OsHD.li, show l ≠ h.c.yrLevel by omega]
   -- the batch
   obtain ⟨-, hodd, hbase, -, -, -, hfinal, -, -, -, hcount⟩ := hqsh
   have hbat0 : h.bat l = oqChain (oqOddA h.c l)
-      (oqSA h.c l).base ((h.Ls.getD l default).lam h.logN)⁻¹
+      (oqSA h.c l).base (lamInvOf ((h.Ls.getD l default).lam h.logN))
       (fun k ↦ foldRow (lanesOf (oqSA h.c l).base
         (((h.Ls.getD l default).phase.map (·.leaf)).getD k []))
         (K.ofBits (((h.Ls.getD l default).qs h.logN).getD k 0)) (h.Ls.getD l default).rounds)
@@ -134,20 +125,21 @@ theorem lvMid_gen {h : OsHD} {xs : List E} {b : ℕ} {tabs cur : E} (hS : BodySt
   have hQ : oqCount (oqOddA h.c l) (oqSA h.c l).base
       (oqNA h.c l) = (h.Ls.getD l default).level.queries := by
     rw [hqueries]; simp only [oqOddA, oqSA, OqShape.oq, oqNA, osLvA, lvBase]; exact hcount
-  have hbat : ((h.Ls.getD l default).lam h.logN) ^ (h.Ls.getD l default).level.queries * h.bat l =
+  have hbat : (h.Ls.getD l default).lam h.logN * (h.Ls.getD l default).lam h.logN *
+      (((h.Ls.getD l default).lam h.logN) ^ (h.Ls.getD l default).level.queries * h.bat l) =
+      (h.Ls.getD l default).lam h.logN * (h.Ls.getD l default).lam h.logN *
       ∑ k ∈ Finset.range ((h.Ls.getD l default).qs h.logN).length, ((h.Ls.getD l default).lam h.logN) ^ k *
         foldRow (specLanes l (((h.Ls.getD l default).phase.map (·.leaf)).getD k []))
           (K.ofBits (((h.Ls.getD l default).qs h.logN).getD k 0)) (h.Ls.getD l default).rounds := by
     rw [hbat0, LvAt.qs_next_length hN]
-    refine hbat_of hlam hodd1 hob hQ fun k _ ↦ ?_
+    refine hbat_of hodd1 hob hQ fun k _ ↦ ?_
     have e1 : (oqSA h.c l).base = if l = 0 then 1 else 0 := by
       simp only [oqSA, OqShape.oq, osLvA]; exact hbase
     rw [e1, lanesOf_base]
   have hC := midClaim hN hfold hmu hdep hqueries hsq hcols1 hrecF (digestHalves (h.root l)).1
     (digestHalves (h.root l)).2 (h.bat l)
     (osPtrA h.c b (11 + l)) hbat
-  have := lvMid_step (H := H) (h := h) hS hl hq _ rfl hr3 hood hpo (by omega) hh8
-    (by rw [hcapl, E.lam]; exact hlam)
+  have := lvMid_step (H := H) (h := h) hS hl hq _ rfl hr3 hood hpo (by omega) hh8 hiz
     hMC (by rw [hcapl, hcap1, ← E.cap']) (by rw [hcapl, hcl0, hcl1, lvsRecs_succ (by omega)]; exact hC.1)
     (by
       rw [hx0, hx1]

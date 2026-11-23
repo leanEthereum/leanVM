@@ -91,7 +91,7 @@ theorem lv {b : ℕ} {cur tabs : E} :
     have hdep : (h.c.levels.getD l default).depth = (h.L l).dp h.logN := by
       rw [hdepth]; show _ = (h.L l).mu h.logN + _; rw [hmu]
     exact lvMid_gen F.bs hl' hy (by rw [F.len]; omega) (F.step l hl') (F.mid l hl') (F.gam l hl)
-      (F.recF l hl) (F.suf l hl) hq fun C rd hH ↦
+      (F.recF l hl) (F.suf l hl) hq osHA_iz fun C rd hH ↦
       midC_of F.hs F.nm hl' hq.ptr hq.tabs (h.bat l) (F.step l hl') hfold hmu hdep hqueries hsq hcols1
         (F.cap5 l hl) hsfx (F.rootN l hl') (F.G l hl) F.len F.rl (F.z0 l hl') C rd hH
 

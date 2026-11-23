@@ -19,7 +19,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import coredata
 
 N = None  # the number of compiled functions: the entry list's length, the certificates'
-PART = 512  # rows per part of `guestLocsList`
+PART = 512  # entries per part of a long array literal
 OUT = "LeanVM/Cost/Decoder/GuestTables.lean"
 
 
@@ -75,8 +75,18 @@ def chunks(xs, n):
 
 
 def nat_array(name, doc, xs):
-    rows = ",\n    ".join(", ".join(str(x) for x in c) for c in chunks(xs, 10))
-    return (f"/-- {doc} -/\ndef {name}List : List ℕ := [\n    {rows}]\n\n"
+    def lit(ys):
+        return "[\n    " + ",\n    ".join(", ".join(str(x) for x in c) for c in chunks(ys, 10)) + "]"
+    parts = chunks(xs, PART)
+    if len(parts) <= 1:
+        head = f"/-- {doc} -/\ndef {name}List : List ℕ := {lit(xs)}\n\n"
+    else:
+        # a literal of more than `PART` numbers exceeds the elaborator's recursion depth
+        head = "".join(f"/-- Functions {i * PART} to {i * PART + len(p) - 1}'s part of `{name}List`. -/\n"
+                       f"def {name}List{i} : List ℕ := {lit(p)}\n\n" for i, p in enumerate(parts))
+        head += (f"/-- {doc} -/\ndef {name}List : List ℕ :=\n    " +
+                 " ++ ".join(f"{name}List{i}" for i in range(len(parts))) + "\n\n")
+    return (head +
             f"/-- {doc} An array (reducible: the compiler's literal rule reads its list). -/\n"
             f"abbrev {name} : Array ℕ := {name}List.toArray\n")
 

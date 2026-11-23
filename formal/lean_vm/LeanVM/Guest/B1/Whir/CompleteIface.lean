@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Whir.CompleteIface
 
-  The completeness interface of `open_stacked` (B1-b): the run it completes on, the two
-  hypotheses on that run (no zero challenge, openings that agree in the caps), and the statement.
+  The completeness interface of `open_stacked` (B1-b): the run it completes on, the hypothesis on
+  that run (openings that agree in the caps), and the statement.
 -/
 
 module
@@ -19,17 +19,12 @@ public import LeanVM.Guest.AcceptableChild
 (`RunsWith`) from the sponge `⟨capOf S, []⟩` (the state `S` of the caller's sponge, nothing
 waiting), the words `xs` and the openings `os`, the stack's root committed with its shape.
 
-**Two hypotheses on the run**, without which the statement is false, as `AcceptableChild` states
-them for the whole proof:
-
-* `NoZeroChallenge μ r target S xs os root`: the same run passes `whirOpen` refusing a zero
-  challenge (`VerifierProgram.refusingZeroChallenge`). The guest divides by the fold challenges,
-  the closing rounds' challenges and each non-final level's `λ` (G =
-  `lean_ethereum.py` at leanVM `010cfb18`).
-* `CapsAgree μ r target S xs os root`: at every query step of the run (`Limits.queryStepsOf`),
-  two openings giving one node of the tree a digest give it the same (`Limits.OpeningsAgree`).
-  The guest writes each level's Merkle cap once (write-once memory), so openings meeting in the
-  cap must agree there; the Spec checks each opening alone against the root.
+**The hypothesis on the run**, without which the statement is false, as `AcceptableChild` states
+it for the whole proof: `CapsAgree μ r target S xs os root`, at every query step of the run
+(`Limits.queryStepsOf`), two openings giving one node of the tree a digest give it the same
+(`Limits.OpeningsAgree`). The guest writes each level's Merkle cap once (write-once memory), so
+openings meeting in the cap must agree there; the Spec checks each opening alone against the
+root.
 
 **The statement** (`open_stacked_complete_SpecP P`, in the program `P`): for every base `b`, the function's own memory is
 one layout `L` of `(exponent, words)` runs within `[b, b + n)` (`LayoutWithin`), its two point
@@ -46,16 +41,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-/-! ## The run's hypotheses -/
-
-/-- **No zero challenge**: the run of `whirOpen μ r target` from the sponge `⟨capOf S, []⟩` on the
-words `xs` and the openings `os`, the root committed, passes `whirOpen` refusing a zero
-challenge. -/
-def NoZeroChallenge (μ r : ℕ) (target : E) (S : KeccakState) (xs : List E)
-    (os : List (List Opening)) (root : Digest) : Prop :=
-  ∃ (w : WhirEnd) (s' : Fs) (roots' : List (Digest × ℕ × ℕ)),
-    RunsWith (whirOpen μ r target).refusingZeroChallenge ⟨capOf S, []⟩ xs os
-      [(root, stackShape μ r)] w s' roots'
+/-! ## The run's hypothesis -/
 
 /-- **The openings agree in the caps**: at every query step of the run of `whirOpen μ r target`
 from the sponge state `S` (nothing waiting) on `xs` and `os`, the root committed, the step's
@@ -82,7 +68,7 @@ def LayoutWithin (L : OsLayout) (b n : ℕ) : Prop :=
 
 /-- **`open_stacked` is complete** at every stack log and rate: on an accepting run of `whirOpen μ r target`
 from the caller's sponge state `S` (nothing waiting), the words `xs` and the openings `os`, with
-no zero challenge and openings that agree in the caps, for every base `b` the function's own
+openings that agree in the caps, for every base `b` the function's own
 memory is a layout `L` within `[b, b + n)` holding its two point buffers (the run's point,
 zero-padded, and one plus each of its coordinates, one-padded); on every memory holding `L`, the
 words `xs` at the cursor and the window tables at `tabs`, the call returns the run's claim, the
@@ -92,7 +78,7 @@ def open_stacked_complete_SpecP (P : Program) : Prop :=
     ∀ (S : KeccakState) (root : Digest) (target cur tabs : E) (xs : List E)
       (os : List (List Opening)) (w : WhirEnd) (s' : Fs) (roots' : List (Digest × ℕ × ℕ)),
       RunsWith (whirOpen μ r target) ⟨capOf S, []⟩ xs os [(root, stackShape μ r)] w s' roots' →
-      NoZeroChallenge μ r target S xs os root → CapsAgree μ r target S xs os root →
+      CapsAgree μ r target S xs os root →
       ∀ b : ℕ, ∃ (n : ℕ) (L : OsLayout) (pt pt1 : ℕ), LayoutWithin L b n ∧
         (pt, w.point ++ List.replicate (pointCap - μ) 0) ∈ L ∧
         (pt1, w.point.map (1 + ·) ++ List.replicate (pointCap - μ) 1) ∈ L ∧

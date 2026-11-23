@@ -112,7 +112,12 @@ theorem body_of {h : OsHD} {b : ℕ} {args : List E} {cur tabs : E} {xs : List E
                 osPtrA h.c b (osIxBdA h.c) * gen ^ (l * ligColsCap),
                 osPtrA h.c b osIxHsA * gen ^ (l * hsStride), (D l).mu] ∧
             ((osLrCalls h.c).getD l ([], [])).2.map σ' =
-              [(osLrRetA h.c own l (D l).mu).1, (osLrRetA h.c own l (D l).mu).2])) :
+              [(osLrRetA h.c own l (D l).mu).1, (osLrRetA h.c own l (D l).mu).2] ∧
+            ((osSlowCalls h.c).getD l ([], [])).1.map σ' =
+              [osPtrA h.c b osIxQposA * gen ^ (osLvA h.c l).posOff,
+                osPtrA h.c b osIxFchA * gen ^ (osLvA h.c l).resFoldOff, osPtrA h.c b (osIxTchA h.c),
+                (D l).lam, osZA h.c own l] ∧
+            ((osSlowCalls h.c).getD l ([], [])).2.map σ' = [osSlowRetA h.c own l (D l).lam (osZA h.c own l)])) :
     ∃ kEnd, BlkA H (Val.ofArgs args) 11 kEnd (osBodyA h.c) (OsOutA h.c b tabs tgt inn res own D) := by
   set c := h.c with hc
   set n := c.levels.length with hn

@@ -217,7 +217,7 @@ theorem d_eq (hbl : bytecode.length = 2 ^ 23) : S.d = log2Ceil S.pushT := by
   rw [S.hlayout]
   exact pushDepth_eq hbl _ _ S.hrowsL
 
-/-- **The bus depth**: at least `20`, at most `29`: the push side's total is at most the
+/-- **The bus depth**: at least `20`, at most `31`: the push side's total is at most the
 stack's plus one. -/
 theorem d_bounds (hbl : bytecode.length = 2 ^ 23) : 20 ≤ S.d ∧ S.d ≤ 31 := by
   rw [S.d_eq hbl]

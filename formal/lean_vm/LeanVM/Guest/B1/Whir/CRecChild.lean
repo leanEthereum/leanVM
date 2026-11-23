@@ -149,13 +149,13 @@ theorem child_segments_steps {bytecode : List K} (hbl : bytecode.length = 2 ^ 23
     (c : Node.Child)
     (hmu : ∀ layout r, Verifier.announcedLayoutAndRate bytecode c.proof.stream = some (layout, r) →
       Coverage.minChildStackLog ≤ layout.stackLog)
-    (hrz : Limits.verifyDeferredRefusingZero bytecode seed (Node.statementDigest seed c.statement)
+    (hvd : verifyDeferred bytecode seed (Node.statementDigest seed c.statement)
       c.freshClaim c.proof = true)
     (hcaps : ∀ b ∈ Limits.queryStepsOf
       (deferringVerifierProgram c.freshClaim bytecode (Node.statementDigest seed c.statement))
       (Coverage.childVerifierStart seed c), Limits.OpeningsAgree b.1 b.2) :
     ∃ S : ChildSegs bytecode seed c, SegSteps S := by
-  obtain ⟨q, stq, t, hpre, hop, ht1, ht2⟩ := accept_rz hrz
+  obtain ⟨q, stq, t, hpre, hop, ht1, ht2⟩ := accept_deferred hvd
   have hpre0 := hpre
   unfold flatPre at hpre
   obtain ⟨ls, st1, hA, h⟩ := runId_bind_some hpre
@@ -205,25 +205,23 @@ theorem child_segments_steps {bytecode : List K} (hbl : bytecode.length = 2 ^ 23
   subst q
   subst stq
   simp only at hop
-  obtain ⟨hcl, w, hW, hWz, hacc⟩ := opening_rz hop
+  obtain ⟨hcl, w, hW, hacc⟩ := opening_run hop
   set s7 := Tables.fsOfT st8.sponge with hs7
   have hc8 : s7.Carries st8.sponge := carries_fsOfT hg8
   obtain ⟨hlam, -⟩ := carries_squeeze hc8
   have hsq : Id.run (squeeze keccakF1600 st8.sponge) = (s7.squeeze.1, ⟨s7.perm, [], none⟩) := by
     rw [Keccak.squeeze_id st8.sponge hg8, perm_eq hc8]
     rfl
-  rw [hsq] at hW hWz hacc
+  rw [hsq] at hW hacc
   have hcS : (⟨capOf s7.perm, []⟩ : Fs).Carries ⟨s7.perm, [], none⟩ := ⟨rfl, rfl, rfl⟩
   have hO : st8.openings = c.proof.openings := by
     rw [hO8, hO7, hO6, hO5, hO4, hO3, hoB, hO1]; rfl
   have hR : st8.roots = [(digestFromHalves (x0, x1), Whir.stackShape L.stackLog r)] := by
     rw [hR8, hR7, hR6, hR5, hR4, hR3, hrB, hR1]; rfl
   obtain ⟨sp8, stream8, os8, roots8⟩ := st8
-  simp only at hO hR hW hWz hxsR
+  simp only at hO hR hW hxsR
   subst hO hR
   have runW := runsWith_of_runId hcS hW ht1 ht2 (endsAny_whirOpen _ _ _ _ _ _ hW)
-  have nzW := runsWith_of_runId hcS hWz ht1 ht2
-    (endsAny_rz (endsAny_whirOpen _ _ _) _ _ _ hWz)
   -- the steps
   have hsteps : Limits.queryStepsOf
       (deferringVerifierProgram c.freshClaim bytecode (Node.statementDigest seed c.statement))
@@ -234,7 +232,7 @@ theorem child_segments_steps {bytecode : List K} (hbl : bytecode.length = 2 ^ 23
           Whir.stackShape L.stackLog r)]⟩ := by
     have e0 : Coverage.childVerifierStart seed c =
         deferStart seed (Node.statementDigest seed c.statement) c.proof := rfl
-    have hvs := runId_of_rz _ _ _ hop
+    have hvs := hop
     rw [e0, deferred_pre, queryStepsOf_bind _ _ _ _ _ hpre0,
       queryStepsOf_nil_of_nq _ ((noQuery_iff _).1 (noQuery_flatPre _ _ _)), List.nil_append]
     rw [queryStepsOf_bind _ _ _ _ _ hvs, queryStepsOf_nil_of_nq (VerifierProgram.ret true) trivial,
@@ -262,21 +260,20 @@ theorem child_segments_steps {bytecode : List K} (hbl : bytecode.length = 2 ^ 23
   refine ⟨⟨logMem, rowsN, r, L, hL, hlm1, h30, hrowsL, hrows30, hr1, hr4, hmu20, hst30,
     Tables.fsOfT st1.sponge, runS, x0, x1, _, rfl, xsO, ood, Tables.fsOfT st3.sponge,
     hc2 ▸ runO, hdepth, xsB, wb, _, runB, xsG, rG, _, runG, xsT, bus, claims, _, runT, xsK, kc, _,
-    runK, xsR, rs, s7, runR, hcl, stream8, w, _, _, runW, ⟨w, _, _, nzW⟩,
+    runK, xsR, rs, s7, runR, hcl, stream8, w, _, _, runW,
     capsW, hacc, ?_, hann⟩, hsteps⟩
   have h0 : c.proof.stream = (deferStart seed (Node.statementDigest seed c.statement)
     c.proof).stream := rfl
   rw [h0, hxs1, hsB, hxsO, hxsB, hxsG, hxsT, hxsK, hxsR]
   simp only [List.append_assoc, List.cons_append, List.nil_append, sizeWords]
 
-/-- A child the deferring verifier accepts, refusing zero challenges, has an accepting run. -/
+/-- A child the deferring verifier accepts has an accepting run. -/
 theorem deferring_run {bytecode : List K} {seed : Digest} {c : Node.Child}
-    (hrz : Limits.verifyDeferredRefusingZero bytecode seed (Node.statementDigest seed c.statement)
+    (hvd : verifyDeferred bytecode seed (Node.statementDigest seed c.statement)
       c.freshClaim c.proof = true) :
     ∃ st', runId (deferringVerifierProgram c.freshClaim bytecode (Node.statementDigest seed c.statement))
       (Coverage.childVerifierStart seed c) = some (true, st') := by
-  obtain ⟨q, stq, t, hpre, hop, -, -⟩ := accept_rz hrz
-  have hvs := runId_of_rz _ _ _ hop
+  obtain ⟨q, stq, t, hpre, hvs, -, -⟩ := accept_deferred hvd
   refine ⟨t, ?_⟩
   have e0 : Coverage.childVerifierStart seed c =
       deferStart seed (Node.statementDigest seed c.statement) c.proof := rfl
@@ -289,7 +286,7 @@ theorem deferring_run {bytecode : List K} {seed : Digest} {c : Node.Child}
 honest run of its segments' stacked opening whose steps are its levels'. -/
 theorem child_merkle_sameStreams {bytecode : List K} {seed : Digest} {c : Node.Child}
     (S : ChildSegs bytecode seed c) (hS : SegSteps S)
-    (hrz : Limits.verifyDeferredRefusingZero bytecode seed (Node.statementDigest seed c.statement)
+    (hvd : verifyDeferred bytecode seed (Node.statementDigest seed c.statement)
       c.freshClaim c.proof = true)
     {target : E} {w : Whir.WhirEnd} {cfg : List Whir.Level} {Ls : List Whir.LvAt}
     (hR : Whir.HonRun S.layout.stackLog S.rate target S.s7.perm S.root S.xsW c.proof.openings w cfg Ls)
@@ -300,7 +297,7 @@ theorem child_merkle_sameStreams {bytecode : List K} {seed : Digest} {c : Node.C
     SameStreams ((List.range (Whir.osCfgR (S.layout.stackLog - Whir.minOpenLog) (S.rate - 1)).levels.length).flatMap
         (Whir.lvPops Ls S.layout.stackLog S.rate))
       (Hints.merkleHints true (Hints.childQueries bytecode seed c) c.proof.openings) := by
-  obtain ⟨st', hrun⟩ := deferring_run hrz
+  obtain ⟨st', hrun⟩ := deferring_run hvd
   subst ht
   rw [Whir.childMerkleHints_eq hrun, hS, hst]
   exact hR.steps_sameStreams
