@@ -1,20 +1,42 @@
 /-
   LeanVM.Guest.B1.Da.CellSound
 
-  `da_verify_cell`'s core IR gives its meaning (TRIAGE G #92).
+  `da_verify_cell`'s core IR gives its meaning.
 -/
 
 module
 
-public import LeanVM.Guest.B1.Da.CellChk
-import LeanVM.Guest.ValRef
-import LeanVM.Guest.Data.ValNames.«da_verify_cell»
+public import LeanVM.Guest.B1.Da.Padding
+import LeanVM.Guest.B1.Da.CellLink
+
+/-!
+# `da_verify_cell`, sound
+
+A valuation `σ` of `da_verify_cell`'s body gives one of its reference function's names
+(`cellMap.rho σ`), the hinted values owning the symbols' names (`cell_linked`, `cell_owners`,
+through `Map.pieces_fwd_at`), and on the names the commands give the weights read and the returned
+words (`cellRef_sat`).
+-/
 
 namespace LeanVM.Guest.B1.Da
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Value.Keccak
-open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
-open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Main
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Ref
+open LeanVM.Protocol.KeccakHash LeanVM.Guest.B1.Digest
+
+/-- A checked map's forward direction, as `Map.pieces_fwd_at` in one piece. -/
+private theorem check_fwd_at {X : Type} [DecidableEq X] [Coded X] {m : Map X} {f : Fn}
+    {r : Func X} {pos : List (ℕ × X)} (h : m.check f r = true) (hpos : ownersAt m pos = true)
+    {C : CallRel} {rd : Reader} {σ : Val} {kret : List E → Prop}
+    (hb : Stmt.HoldsList C rd σ f.body False kret) :
+    f.params.map σ = r.params.map (m.rho σ) ∧ (∀ p ∈ pos, m.rho σ p.2 = σ (.n p.1)) ∧
+      Cmd.SatList rd (m.rho σ) r.body ∧ kret (r.rets.map (Tm.eval (m.rho σ))) := by
+  unfold Map.check at h
+  rw [Bool.and_eq_true] at h
+  split at h
+  · rw [Bool.and_eq_true] at h
+    exact Map.pieces_fwd_at (Kc := 0) (P := [f.body]) (Q := [r.body]) h.1 ‹_›
+      (Tm.eqbs_sound h.2.1) (by simp) (by simp) h.2.2 hpos hb
+  · exact absurd h.2 (by simp)
 
 @[expose] public section
 
@@ -31,50 +53,18 @@ theorem da_verify_cell_val {C : CallRel} {rd : Reader} {σ : Val} {args rets : L
       rets = digestCells (keccak256 ((cellSymsOf σ).flatMap E.toBytes)) ++
         [((List.range LeanDa.cellSymbols).map fun e ↦
           (memRun rd lv 128).getD e 0 * (cellSymsOf σ).getD e 0).sum] := by
-  have hok := cell_ok
-  unfold cellOk at hok
-  simp only [Bool.and_eq_true, decide_eq_true_eq] at hok
-  obtain ⟨hparams, hok⟩ := hok
-  split at hok
-  · rename_i A vs hsp
-    simp only [Bool.and_eq_true, decide_eq_true_eq] at hok
-    obtain ⟨⟨⟨⟨⟨rfl, -⟩, htm⟩, hchk⟩, hret⟩, hcp⟩ := hok
-    rw [splitBody_eq hsp, holdsList_atoms_ret] at hb
-    obtain ⟨hat, hrets⟩ := hb
-    rw [hparams] at hpar
-    subst hpar
-    have htmpl : ∀ a ∈ tmplA, a.Holds rd σ := fun a ha => by
-      rw [← atomsEqb_sound htm] at ha
-      exact hat a (List.mem_of_mem_drop (List.mem_of_mem_take ha))
-    have hC : ∀ a ∈ A.drop 384, a.Holds rd σ := fun a ha => hat a (List.mem_of_mem_drop ha)
-    have hd := straight_digest hchk rfl rfl hret hC
-    have hsum := acc_sum htmpl 127 (by norm_num)
-    rw [show accV 127 = 511 from rfl] at hsum
-    refine ⟨σ (.n (val% «da_verify_cell» "lvals")), rfl, by simp [LeanDa.cellSymbols, cellSymsOf], fun j hj => ?_,
-      by simp [LeanDa.cellSymbols], ?_⟩
-    · simp only [length_memRun] at hj
-      simp only [memRun, List.getElem_map, List.getElem_range]
-      exact (blk_sound hj htmpl).1
-    · have hr : [σ (.n (val% «da_verify_cell» "s6#0")), σ (.n (val% «da_verify_cell» "s6#0[1]")), σ (.n (val% «da_verify_cell» "s6#0[2]"))] = rets := hrets
-      rw [← hr, copy_sound hcp hC, hsum]
-      have hv : ((cellSpec (A.drop 384)).vals σ).take ((cellSpec (A.drop 384)).len / 16) =
-          cellSymsOf σ := by
-        simp only [cellSpec, ChainSpec.vals, List.map_map]
-        rw [List.take_of_length_le (by simp)]
-        rfl
-      rw [hv, cellsBytes_eq_eBytes] at hd
-      have hl : ∀ a b c : E, [a, b, c] = [a, b] ++ [c] := fun _ _ _ => rfl
-      rw [hl, ← hd]
-      refine congrArg (fun x => [σ (.n (val% «da_verify_cell» "s6#0")), σ (.n (val% «da_verify_cell» "s6#0[1]"))] ++ [x]) ?_
-      simp only [LeanDa.cellSymbols]
-      refine congrArg List.sum (List.map_congr_left fun j hj => ?_)
-      have hj' := List.mem_range.mp hj
-      have h1 : j < (memRun rd (σ (.n (val% «da_verify_cell» "lvals"))) 128).length := by rw [length_memRun]; exact hj'
-      have h2 : j < (cellSymsOf σ).length := by
-        rw [cellSymsOf, List.length_map, List.length_range]; exact hj'
-      rw [List.getD_eq_getElem _ _ h1, List.getD_eq_getElem _ _ h2]
-      simp only [memRun, cellSymsOf, List.getElem_map, List.getElem_range]
-  · exact absurd hok (by simp)
+  obtain ⟨ep, hpos, hsat, hret⟩ := check_fwd_at cell_linked cell_owners hb
+  obtain ⟨hr, hd⟩ := cellRef_sat hsat
+  have hlv : σ (.n 0) = cellMap.rho σ .lvals := List.head_eq_of_cons_eq ep
+  have hsyms : cellSymsOf σ = symsOf (cellMap.rho σ) :=
+    List.map_congr_left fun j hj => (hpos (j + 1, .sym j) (List.mem_map_of_mem hj)).symm
+  have hws : memRun rd (σ (.n 0)) 128 = wsOf (cellMap.rho σ) := by
+    rw [hlv, readsAt_memRun hr]
+    simp [wsOf]
+  refine ⟨σ (.n 0), hpar.symm, by simp [cellSymsOf, LeanDa.cellSymbols], hws ▸ hlv ▸ hr,
+    by simp [LeanDa.cellSymbols], ?_⟩
+  rw [hsyms, hws, ← hd]
+  exact hret.symm
 
 /-- **`da_verify_cell`'s core IR gives its meaning.** -/
 theorem da_verify_cell_holds : da_verify_cell_sound_Spec := by

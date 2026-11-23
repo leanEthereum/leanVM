@@ -121,8 +121,6 @@ LeanVM/Guest/B1/Da/Blob.lean da_verify_blob_loop0
 LeanVM/Guest/B1/Da/BlobDefs.lean da_verify_blob_loop0
 LeanVM/Guest/B1/Da/CellLAt.lean da_verify_blob_loop0
 LeanVM/Guest/B1/Da/BlobLAt.lean da_verify_loop0
-LeanVM/Guest/B1/Da/Cell.lean da_verify_cell
-LeanVM/Guest/B1/Da/CellCChk.lean da_verify_cell
 LeanVM/Guest/B1/Da/CellComplete.lean da_verify_cell
 LeanVM/Guest/B1/Da/DvAt.lean da_verify
 LeanVM/Guest/B1/Da/Verify.lean da_verify
