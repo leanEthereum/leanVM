@@ -303,7 +303,7 @@ theorem osTail_complete {c : OsCfg} {st : OsSt} (σ : Val) (hsf : st.Sf)
   have b2 := BlkA.seq (M := M) (H := H) (show k ≤ j by omega) (show j ≤ j + m by omega) b1
     (B := ((List.range m).map fun i ↦ [osCst (j + i) (word 0 0), osLd (j + i) (k + 1) (c.yrLog + i)]).flatten)
     (OutB := fun _ ↦ True) fun σ1 ha1 ho1 ↦ by
-    refine BlkA.ofHM (lstF j (tailZeros m)) fun C rd hH σ' ha hr ↦ ⟨?_, trivial⟩
+    refine BlkA.ofHM (lstF j (tailZeros m)) (fun C rd hH σ' ha hr ↦ ⟨?_, trivial⟩) (noWin_flatten_map fun _ ↦ rfl)
     obtain ⟨⟨-, e1⟩, -⟩ := ho1 C rd hH
     have ep : σ' (.n (k + 1)) = pT := by rw [ha _ (by omega), e1]
     rw [allOk_flatten]

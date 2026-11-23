@@ -9,13 +9,14 @@ module
 public import LeanVM.Guest.B1.Whir.CAtoms
 public import LeanVM.Guest.B1.Whir.CLow
 public import LeanVM.Guest.B1.Whir.RoundComplete
+public import LeanVM.Guest.B1.Bits.GrindWin
 
 /-!
 # The fold rounds at fixed values
 
 `gc_blk`: an inline `grind_check` whose word passes, on memories holding the window table and
 agreeing with `rd0` below `2^11` (`LowAgree`), at its honest values (`gcVals` on `rd0`); its loads
-read the window table on every memory holding it (`gc_loadsHold`).
+read the window table on every memory holding it (`gc_loadsHold`), its windows exact (`gcInline_exact_of_vals`).
 
 `RoundH rd fch coefs tabs cur i fs xs`: what a round reads of the memory (its five words at
 the cursor, `α` at `fch` slot `i`, `α, β` at `coefs` slots `2i, 2i + 1`, the window table);
@@ -116,7 +117,7 @@ theorem gc_blk {σ : Val} {b o wi ti : ℕ} (rd0 : Reader) (hl0 : LowDef 11 rd0)
     (hag0 : ∀ C rd, H C rd → LowAgree rd rd0) (htM : ∀ C rd, HM M H C rd → WinTabs rd (σ (.n ti))) :
     BlkA M H σ o (o + (gcLen b - 2)) (gcInlineT b o (.n wi) (.n ti)) (fun _ ↦ True) := by
   refine BlkA.mk (fun i ↦ gcVals rd0 b (σ (.n wi)) (σ (.n ti)) (i + 2 - o))
-    (fun C rd hH' σ' ha hr ↦ ⟨?_, trivial⟩) fun C rd hH' σ' ha hr rd' hm ↦ ?_
+    (fun C rd hH' σ' ha hr ↦ ⟨?_, trivial⟩) (fun C rd hH' σ' ha hr rd' hm ↦ ?_) fun σ' ha hr ↦ ?_
   · have ht := htM C rd (.inl hH')
     have hag := hag0 C rd hH'
     have ew : σ' (.n wi) = σ (.n wi) := ha _ hwo
@@ -136,6 +137,14 @@ theorem gc_blk {σ : Val} {b o wi ti : ℕ} (rd0 : Reader) (hl0 : LowDef 11 rd0)
         rw [hr _ (by omega) (by omega), ew, et]
         dsimp only
         rw [show o + k - 2 + 2 - o = k by omega]
+  · have ew : σ' (.n wi) = σ (.n wi) := ha _ hwo
+    have et : σ' (.n ti) = σ (.n ti) := ha _ hto
+    intro s hs
+    obtain ⟨a, rfl, hx⟩ := gcInline_exact_of_vals (rd0 := rd0) (σ := σ') hb (fun k hk2 hk ↦ by
+      rw [hr _ (by omega) (by omega), ew, et]
+      dsimp only
+      rw [show o + k - 2 + 2 - o = k by omega]) s hs
+    exact fun _ ↦ hx
 
 /-- A grind passing gives its word's low bits. -/
 theorem grindOk_low {s : Fs} {bits : ℕ} {n : E} (hb : bits ≠ 0) (h : s.GrindOk bits n) :

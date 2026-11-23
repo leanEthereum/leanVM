@@ -104,11 +104,12 @@ theorem body_run {cur tabs : E} (b : ℕ) : ∃ CV : List (List E), ∀ (rd0 : R
             (hdOf μ r Ls).T)
           (hdOf μ r Ls).own (hdOf μ r Ls).D σ' ∧
           ((osBodyA (osCfgR (μ - minOpenLog) (r - 1))).filterMap Stmt.callVarsS).map (·.map σ') = CV ∧
-          OsLoadsIn (osCfgR (μ - minOpenLog) (r - 1)) b (hdOf μ r Ls).own cur tabs xs σ') := by
+          OsLoadsIn (osCfgR (μ - minOpenLog) (r - 1)) b (hdOf μ r Ls).own cur tabs xs σ' ∧
+          WinEx (osBodyA (osCfgR (μ - minOpenLog) (r - 1))) σ') := by
   refine ⟨(hdOf μ r Ls).cvBody b tabs cur xs
     (rateSel r :: capOf S ++ [target, (digestHalves root).1, (digestHalves root).2, cur, tabs]), fun rd0 hl0 ↦ ?_⟩
   obtain ⟨kEnd, f, hf⟩ := body_gen (hR.bodyFacts cur tabs) rfl rfl b rd0 hl0
-  refine ⟨kEnd, f, fun C rd hH hag ↦ (hf C rd hH hag).mono fun σ' ⟨o, cv, ld⟩ ↦ ⟨o, ?_, osLoadsIn_of ld⟩⟩
+  refine ⟨kEnd, f, fun C rd hH hag ↦ (hf C rd hH hag).mono fun σ' ⟨o, cv, ld, wx⟩ ↦ ⟨o, ?_, osLoadsIn_of ld, wx⟩⟩
   rw [callVarsS_eq]
   exact cv
 

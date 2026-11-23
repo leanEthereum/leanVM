@@ -105,7 +105,7 @@ theorem osRates_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : V
   set q := σ (.n osQpos) * gw lv.posOff
   set b := σ (.n osQbp) * gw lv.posOff
   have hvl : (osRateVals lv).length = 4 := rfl
-  refine BlkA.ofHM (rateF k ri lv q b) fun C rd hH σ' ha hr ↦ ?_
+  refine BlkA.ofHM (rateF k ri lv q b) (fun C rd hH σ' ha hr ↦ ?_) (osRates_noWin _ _ _)
   have ek : (osRates c lvl st).2.k = m + 2 := rfl
   rw [ek] at hr
   have hodd : ∀ j < 4, σ' (.n (k + 2 * j + 1)) = gw ((osRateVals lv).getD j 0) := fun j hj ↦ by

@@ -18,7 +18,8 @@ public import LeanVM.Guest.B1.Place.ArmExactAll
 
 `open_stacked_completeAtBPE_Spec`: `open_stacked_completeAtBP_Spec` by trees also exact; `open_stacked_completeAtBPE`
 proves it (the arm's node of `Arm.open_stacked_completeAtOT_of`, exact at every node by `Arm.flatNodeT_every`, its
-callees' trees satisfying `armXT`: `Arm.armTs_xt`); `vs_hos_ofE`, `vs_hos_of`'s from it. `VsKidsExact`: `verify_keccak`
+callees' trees satisfying `armXT`: `Arm.armTs_xt`, its window hints the honest valuation's:
+`Arm.winHint_exact_of_winEx`); `vs_hos_ofE`, `vs_hos_of`'s from it. `VsKidsExact`: `verify_keccak`
 (`VkCompleteAtBKE`) and `open_stacked` by trees exact on the memory, and `verify_tables`' own computed hints exact at
 its honest valuation (`VtOwnExact`; its callees are `vt_callees_ok`, the terminal `ChildSegs.term_kidBWE`);
 `vs_kids_exact_of_vk`: from `verify_keccak`'s alone. `verify_sub_completeBTPE`, `verify_sub_completeBTSE`:
@@ -63,7 +64,7 @@ theorem open_stacked_completeAtBPE : open_stacked_completeAtBPE_Spec := by
     hcaps Lin hLin
   obtain ⟨cfg, Ls, hR, hst⟩ := Whir.honRunS_of h1 h2 h3 h4 hrun hcaps
   have hm : μ - Whir.minOpenLog < 11 := hR.m11
-  obtain ⟨fn, hf, -, h⟩ := Arm.open_stacked_completeAtOT_of (Bd := some Bnd) level_residual_completeAt
+  obtain ⟨fn, hf, hbody, h⟩ := Arm.open_stacked_completeAtOT_of (Bd := some Bnd) level_residual_completeAt
     level_residual_slow_completeAt h2 h3 h4 hrf hcons hκ (fun _ hB ↦ by cases hB; exact hleaf)
     (fun _ _ ↦ helperBounds fs cert κ hrf hcons hκ hfs) (fun _ _ ↦ hfs) (fun _ _ ↦ htl)
     (hR.osHonest (cur := cur) (tabs := tabs)) hLin
@@ -83,7 +84,8 @@ theorem open_stacked_completeAtBPE : open_stacked_completeAtBPE_Spec := by
       simp only [Arm.osLvPops, Whir.lvPops, e1, e2, e3, e4, e5]
     rw [Arm.arm_pops hm hR.r4 hf hmu ht.2.1 hT, hP]
     exact SameStreams.refl _
-  · refine Arm.flatNodeT_every hm hf hT ht.2.1 (fun σ ↦ ?_)
+  · refine Arm.flatNodeT_every hm hf hT ht.2.1 (fun σ _ _ hQ hw ↦ Arm.winHint_exact_of_winEx
+        (hbody.trans (Whir.osBody_eq _)) (Whir.osBodyA_flat _) hQ.2 hw rd) (fun σ ↦ ?_)
       fun σ c T hc _ hx t' hn' _ hT' ↦ Arm.armTs_xt _ σ rd T (List.of_mem_zip hc).2 t' hT' (by rw [hn']; exact hx)
     have e := congrArg List.length (Arm.osBodyA_calls σ (Whir.osCfgR (μ - Whir.minOpenLog) (r - 1)))
     rw [List.length_map] at e

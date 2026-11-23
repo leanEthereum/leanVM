@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Whir.CRounds
 public import LeanVM.Guest.B1.Whir.Lam
+public import LeanVM.Guest.B1.Whir.WinEx
 
 /-!
 # Blocks at fixed values
@@ -16,9 +17,10 @@ public import LeanVM.Guest.B1.Whir.Lam
 `BlkA M H σ k k' ss Out`: some values `f` on `[k, k')`, chosen before the call relation `C` and the
 memory `rd`, make the block `ss` and `Out` hold of every valuation agreeing with `σ` below `k` and
 holding `f` on `[k, k')`, for every `C`, `rd` with `H C rd`, and the block's loads hold on every
-memory satisfying `M` (`LoadsIn`), so that each reads a word `M` fixes. A block without range checks
-holds on `HM M H` (`H`, or a memory satisfying `M` with the trivial call relation) and so gives its
-loads (`BlkA.ofHM`). Blocks compose (`BlkA.seq`), the second built on the valuation the first
+memory satisfying `M` (`LoadsIn`), so that each reads a word `M` fixes, and its window hints are
+exact (`WinEx`): the inlined grind checks' (`gc_blk`). A block without range checks holds on `HM M H`
+(`H`, or a memory satisfying `M` with the trivial call relation) and so gives its loads, and has no
+window hints (`BlkA.ofHM`, `Stmt.noWin`, by `rfl` where the block's statements are listed). Blocks compose (`BlkA.seq`), the second built on the valuation the first
 leaves, knowing its outcome under `HM M H`.
 
 `lstF k vs`: the values `vs` listed from `k`; `lstF_at` reads them back. `OsSt.Ok σ st`: the
@@ -68,10 +70,10 @@ theorem loadsHold_of_allOk {C : CallRel} {rd : Reader} {σ : Val} {ss : List Stm
 
 /-- **A block at fixed values**: some values `f` on `[k, k')`, independent of the call relation and
 the memory, make `ss` and `Out` hold wherever `H` does, its loads holding on every memory
-satisfying `M`. -/
+satisfying `M`, its window hints exact. -/
 def BlkA (M : Reader → Prop) (H : CallRel → Reader → Prop) (σ : Val) (k k' : ℕ) (ss : List Stmt)
     (Out : Val → Prop) : Prop :=
-  ∃ f : ℕ → E, ∀ C rd, H C rd → BlkF C rd σ k k' f ss (fun σ' ↦ LoadsIn M ss σ' ∧ Out σ')
+  ∃ f : ℕ → E, ∀ C rd, H C rd → BlkF C rd σ k k' f ss (fun σ' ↦ (LoadsIn M ss σ' ∧ WinEx ss σ') ∧ Out σ')
 
 variable {M : Reader → Prop} {H : CallRel → Reader → Prop}
 
@@ -88,19 +90,22 @@ theorem HM.ex {C : CallRel} {rd : Reader} (h : HM M H C rd) : ∃ C0 rd0, H C0 r
 theorem HM.indep {Q : Prop} (h : ∀ C rd, H C rd → Q) : ∀ C rd, HM M H C rd → Q :=
   fun _ _ hh ↦ let ⟨C0, rd0, h0⟩ := hh.ex; h C0 rd0 h0
 
-/-- **A block without range checks**: holding on `HM M H`, its loads hold on `M`. -/
+/-- **A block without range checks**: holding on `HM M H`, its loads hold on `M`; without window hints. -/
 theorem BlkA.ofHM {σ : Val} {k k' : ℕ} {ss : List Stmt} {Out : Val → Prop} (f : ℕ → E)
-    (h : ∀ C rd, HM M H C rd → BlkF C rd σ k k' f ss Out) : BlkA M H σ k k' ss Out :=
+    (h : ∀ C rd, HM M H C rd → BlkF C rd σ k k' f ss Out) (hw : ss.all Stmt.noWin = true := by rfl) :
+    BlkA M H σ k k' ss Out :=
   ⟨f, fun C rd hH σ' ha hr ↦ ⟨(h C rd (.inl hH) σ' ha hr).1,
-    fun rd' hm ↦ loadsHold_of_allOk (h _ rd' (.inr ⟨hm, rfl, C, rd, hH⟩) σ' ha hr).1,
+    ⟨fun rd' hm ↦ loadsHold_of_allOk (h _ rd' (.inr ⟨hm, rfl, C, rd, hH⟩) σ' ha hr).1, winEx_of_noWin hw⟩,
     (h C rd (.inl hH) σ' ha hr).2⟩⟩
 
-/-- A block from its values, its loads given apart. -/
+/-- A block from its values, its loads and window hints given apart. -/
 theorem BlkA.mk {σ : Val} {k k' : ℕ} {ss : List Stmt} {Out : Val → Prop} (f : ℕ → E)
     (h : ∀ C rd, H C rd → BlkF C rd σ k k' f ss Out)
-    (hL : ∀ C rd, H C rd → ∀ σ', AgreeBelow k σ σ' → RangeVals σ' k k' f → LoadsIn M ss σ') :
+    (hL : ∀ C rd, H C rd → ∀ σ', AgreeBelow k σ σ' → RangeVals σ' k k' f → LoadsIn M ss σ')
+    (hW : ∀ σ', AgreeBelow k σ σ' → RangeVals σ' k k' f → WinEx ss σ') :
     BlkA M H σ k k' ss Out :=
-  ⟨f, fun C rd hH σ' ha hr ↦ ⟨(h C rd hH σ' ha hr).1, hL C rd hH σ' ha hr, (h C rd hH σ' ha hr).2⟩⟩
+  ⟨f, fun C rd hH σ' ha hr ↦ ⟨(h C rd hH σ' ha hr).1, ⟨hL C rd hH σ' ha hr, hW σ' ha hr⟩,
+    (h C rd hH σ' ha hr).2⟩⟩
 
 /-- **Two blocks in sequence**, the second from the valuation the first leaves, its outcome known
 under `H`. -/
@@ -123,7 +128,7 @@ theorem BlkA.seq {σ : Val} {k k1 k2 : ℕ} {A B : List Stmt} {OutA OutB : Val �
     · rw [hrA i (by omega) hi, hσ1, fill_in (by omega) hi]
   obtain ⟨okA, lA, oA⟩ := hfA C rd hH σ' ha hrA
   obtain ⟨okB, lB, oB⟩ := hfB C rd hH σ' hab hrB
-  exact ⟨allOk_append.mpr ⟨okA, okB⟩, loadsIn_append.mpr ⟨lA, lB⟩, oA, oB⟩
+  exact ⟨allOk_append.mpr ⟨okA, okB⟩, ⟨loadsIn_append.mpr ⟨lA.1, lB.1⟩, winEx_append.mpr ⟨lA.2, lB.2⟩⟩, oA, oB⟩
 
 theorem BlkA.mono {σ : Val} {k k' : ℕ} {ss : List Stmt} {Out Out' : Val → Prop}
     (h : BlkA M H σ k k' ss Out) (hO : ∀ σ', Out σ' → Out' σ') : BlkA M H σ k k' ss Out' := by
@@ -148,7 +153,7 @@ theorem BlkA.weaken {H' : CallRel → Reader → Prop} {σ : Val} {k k' : ℕ} {
 
 theorem BlkA.nil {σ : Val} {k : ℕ} {Out : Val → Prop} (hO : ∀ σ', AgreeBelow k σ σ' → Out σ') :
     BlkA M H σ k k [] Out :=
-  ⟨fun _ ↦ 0, fun _ _ _ ↦ BlkF.nil fun σ' ha ↦ ⟨fun _ _ _ hq ↦ absurd hq List.not_mem_nil, hO σ' ha⟩⟩
+  ⟨fun _ ↦ 0, fun _ _ _ ↦ BlkF.nil fun σ' ha ↦ ⟨⟨fun _ _ _ hq ↦ absurd hq List.not_mem_nil, winEx_nil⟩, hO σ' ha⟩⟩
 
 /-- A block whose statements are another's. -/
 theorem BlkA.congr {σ : Val} {k k' : ℕ} {ss ss' : List Stmt} {Out : Val → Prop}
@@ -169,6 +174,27 @@ theorem BlkA.agree {σ : Val} {k k' : ℕ} {ss : List Stmt} {Out : Val → Prop}
   exact ⟨f, fun C rd hH σ' ha hr ↦ ⟨(hf C rd hH σ' ha hr).1, (hf C rd hH σ' ha hr).2.1,
     (hf C rd hH σ' ha hr).2.2, ha⟩⟩
 
+/-! ## Without window hints -/
+
+theorem osMatP_noWin (plan : List (ℕ × ℕ × ℕ)) (mats : List OsMat) (base off k : ℕ) :
+    (osMatP plan mats base off k).1.all Stmt.noWin = true := by
+  unfold osMatP; split <;> rfl
+
+theorem osMat_noWin (base off k : ℕ) : (osMat base off k).1.all Stmt.noWin = true := by
+  unfold osMat; split <;> rfl
+
+theorem osPad_noWin (pad : Option ℕ) (k : ℕ) : (osPad pad k).1.all Stmt.noWin = true := by
+  unfold osPad; split <;> rfl
+
+theorem osHsCoef_noWin (src i sc dst o k : ℕ) : (osHsCoef src i sc dst o k).1.all Stmt.noWin = true := by
+  unfold osHsCoef; split <;> rfl
+
+theorem osRates_noWin (c : OsCfg) (lvl : ℕ) (s : OsSt) : (osRates c lvl s).1.all Stmt.noWin = true := by
+  unfold osRates
+  refine noWin_cons rfl (noWin_cons (noWin_match fun arm harm => ?_) rfl)
+  obtain ⟨⟨lv, r⟩, -, rfl⟩ := List.mem_map.mp harm
+  exact noWin_flatten_map fun ⟨_, _⟩ => rfl
+
 /-! ## Listed values -/
 
 /-- The values `vs` from `k`. -/
@@ -183,9 +209,10 @@ theorem lstF_at {σ' : Val} {k k' : ℕ} {vs : List E} (hr : RangeVals σ' k k' 
 theorem blk_lst {σ : Val} {k k' : ℕ} {ss : List Stmt} (vs : List E) {Out : Val → Prop}
     (hk : k + vs.length ≤ k')
     (h : ∀ C rd, HM M H C rd → ∀ σ', AgreeBelow k σ σ' →
-      (∀ j < vs.length, σ' (.n (k + j)) = vs.getD j 0) → AllOk C rd σ' ss ∧ Out σ') :
+      (∀ j < vs.length, σ' (.n (k + j)) = vs.getD j 0) → AllOk C rd σ' ss ∧ Out σ')
+    (hw : ss.all Stmt.noWin = true := by rfl) :
     BlkA M H σ k k' ss Out :=
-  BlkA.ofHM (lstF k vs) fun C rd hH σ' ha hr ↦ h C rd hH σ' ha (lstF_at hr hk)
+  BlkA.ofHM (lstF k vs) (fun C rd hH σ' ha hr ↦ h C rd hH σ' ha (lstF_at hr hk)) hw
 
 /-! ## A call -/
 

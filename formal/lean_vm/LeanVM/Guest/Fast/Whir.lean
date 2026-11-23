@@ -7,8 +7,6 @@ public import LeanVM.Guest.Fast.Common
 public import LeanVM.Guest.Fast.FunctionNames
 public import LeanVM.Guest.B1.VerifySub.Proof
 import LeanVM.Guest.ValRef
-import LeanVM.Guest.Data.ValNames.«opening_queries__L»
-import LeanVM.Guest.Data.ValNames.«opening_queries__L_loop0»
 import LeanVM.Guest.Data.ValNames.«verify_sub»
 
 /-!

@@ -73,7 +73,7 @@ theorem osMatS_blkA {P : List (ℕ × ℕ × ℕ)} {base off : ℕ} {s : OsSt} (
       (fun σ' ↦ σ' (.n (osMatS P base off s).2.1) = σ (.n base) * gen ^ off ∧
         MatsOk σ' (osMatS P base off s).2.2.mats ∧
         MatsBelow (osMatS P base off s).2.2.k (osMatS P base off s).2.2.mats) :=
-  BlkA.ofHM _ fun C rd hH ↦ osMatS_blk σ hbase hmb (hm C rd hH) hoff
+  BlkA.ofHM _ (fun C rd hH ↦ osMatS_blk σ hbase hmb (hm C rd hH) hoff) (osMatP_noWin _ _ _ _ _)
 
 /-- The materializations after a fixed buffer's pointer lie below the next free value. -/
 theorem osMatS_below {P : List (ℕ × ℕ × ℕ)} {base off : ℕ} {s : OsSt} (hmb : MatsBelow s.k s.mats)
@@ -87,9 +87,10 @@ theorem osMatS_below {P : List (ℕ × ℕ × ℕ)} {base off : ℕ} {s : OsSt} 
 
 /-- **Stores**: loads of fixed values, holding where memory holds them. -/
 theorem stores_blk {σ : Val} {k : ℕ} {ss : List Stmt}
-    (h : ∀ C rd, HM M H C rd → ∀ σ', AgreeBelow k σ σ' → AllOk C rd σ' ss) :
+    (h : ∀ C rd, HM M H C rd → ∀ σ', AgreeBelow k σ σ' → AllOk C rd σ' ss)
+    (hw : ss.all Stmt.noWin = true := by rfl) :
     BlkA M H σ k k ss (fun _ ↦ True) :=
-  BlkA.ofHM (fun _ ↦ 0) fun C rd hH σ' ha _ ↦ ⟨h C rd hH σ' ha, trivial⟩
+  BlkA.ofHM (fun _ ↦ 0) (fun C rd hH σ' ha _ ↦ ⟨h C rd hH σ' ha, trivial⟩) hw
 
 end
 end LeanVM.Guest.B1.Whir

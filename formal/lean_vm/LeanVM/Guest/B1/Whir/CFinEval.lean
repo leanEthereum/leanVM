@@ -125,6 +125,12 @@ theorem Ssa.le {w w' : ℕ} {ss : List Stmt} (h : Ssa w ss w') : w ≤ w' := by
   | nil => exact le_rfl
   | cons h1 _ ih => exact le_trans h1.le ih
 
+/-- A block in order has no window hints. -/
+theorem Ssa.noWin {w w' : ℕ} {ss : List Stmt} (h : Ssa w ss w') : ss.all Stmt.noWin = true := by
+  induction h with
+  | nil => rfl
+  | cons h1 _ ih => exact noWin_cons (by cases h1 <;> rfl) ih
+
 theorem SStep.wm {w w' : ℕ} {s : Stmt} (h : SStep w s w') : stepW w s = w' := by
   cases h <;> simp only [stepW] <;> split_ifs <;> omega
 
@@ -261,7 +267,7 @@ theorem ssa_blk {M : Reader → Prop} {H : CallRel → Reader → Prop} {σ : Va
       RangeVals σ' w w' (evalV (memOf H) Pt w (fun i ↦ σ (.n i)) ss) →
       SidesOk (memOf H) Pt C rd σ' w ss) :
     BlkA M H σ w w' ss Out := by
-  refine BlkA.ofHM (evalV (memOf H) Pt w (fun i ↦ σ (.n i)) ss) fun C rd hH σ' ha hr ↦ ?_
+  refine BlkA.ofHM (evalV (memOf H) Pt w (fun i ↦ σ (.n i)) ss) (fun C rd hH σ' ha hr ↦ ?_) h.noWin
   have hv : ∀ j < w', σ' (.n j) = evalV (memOf H) Pt w (fun i ↦ σ (.n i)) ss j := by
     intro j hj
     by_cases hjw : j < w

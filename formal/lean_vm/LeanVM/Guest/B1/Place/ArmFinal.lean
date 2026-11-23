@@ -105,7 +105,8 @@ theorem open_stacked_completeAtOT_of (hLR : level_residual_completeAt_Spec)
         (rateSel r :: capOf S ++ [target, (digestHalves root).1, (digestHalves root).2, cur, tabs])
         (OsOut μ w) (Bd.map fun Bk ↦ osBosAt fs Bk μ)
         (FlatNodeT (openName μ) fn (osBodyA (osCfgR (μ - minOpenLog) (r - 1)))
-          (fun σ ↦ σ (.n osRate) = ofK (addressOfIndex (r - 1))) (armTs (Bd := Bd) H)) := by
+          (fun σ ↦ σ (.n osRate) = ofK (addressOfIndex (r - 1)) ∧ WinEx (osBodyA (osCfgR (μ - minOpenLog) (r - 1))) σ)
+          (armTs (Bd := Bd) H)) := by
   revert H
   set m := μ - minOpenLog with hmd
   set ri := r - 1 with hrid

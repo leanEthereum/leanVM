@@ -61,7 +61,7 @@ theorem osLam_complete {st : OsSt} (σ : Val) (hsf : st.Sf) (hok : ∀ C rd, HM 
   -- the capacity copied
   have b1 : BlkA M H σ k (k + 5) (st.fs.zipIdx.map fun (f, i) ↦ osCp (k + i) f)
       (fun σ' ↦ ∀ i < 5, σ' (.n (k + i)) = cap.getD i 0) := by
-    refine BlkA.ofHM (lstF k cap) fun C rd hH σ' ha hr ↦ ?_
+    refine BlkA.ofHM (lstF k cap) (fun C rd hH σ' ha hr ↦ ?_) (noWin_map fun ⟨_, _⟩ ↦ rfl)
     have hcl : cap.length = 5 := by simp [hcap, OsSt.fsv, hsf.fs]
     have v : ∀ i < 5, σ' (.n (k + i)) = cap.getD i 0 := fun i hi ↦
       lstF_at hr (by omega) i (by omega)

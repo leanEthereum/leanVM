@@ -2,8 +2,6 @@ module
 
 public import LeanVM.Cost.Bounds.Guest.Signatures
 import LeanVM.Guest.ValRef
-import LeanVM.Guest.Data.ValNames.«opening_queries__L»
-import LeanVM.Guest.Data.ValNames.«opening_queries__L_loop0»
 import LeanVM.Guest.Data.ValNames.«verify_sub»
 
 /-!

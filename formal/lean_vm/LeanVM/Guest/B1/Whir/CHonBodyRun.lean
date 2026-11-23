@@ -107,7 +107,7 @@ theorem body_gen {h : OsHD} {args xs : List E} {lane : ℕ} {w : WhirEnd} {cur t
           ((h.recs.flatMap recGlued).foldl (fun w g ↦ w + g.scalar * g.weightAt ((h.G ++ h.T).drop g.foldStart)) 0)
           (multilinearEval (h.Lf.fw.fold.take h.c.yrLen) h.T) h.own h.D σ' ∧
           cvOf (osBodyA h.c) σ' = h.cvBody b tabs cur xs args ∧
-          LoadsIn (OsM h.c b h.own cur tabs xs) (osBodyA h.c) σ') := by
+          LoadsIn (OsM h.c b h.own cur tabs xs) (osBodyA h.c) σ' ∧ WinEx (osBodyA h.c) σ') := by
   have hy := F.lv.yrE
   obtain ⟨ri, hri, hsel, hpt⟩ := F.sel
   obtain ⟨kEnd, f, hf⟩ := body_of (H := fun C rd ↦ OsHA C rd h.c b h.own cur tabs xs ∧ LowAgree rd rd0)

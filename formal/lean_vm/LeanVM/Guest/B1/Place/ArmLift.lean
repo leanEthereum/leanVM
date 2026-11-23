@@ -19,8 +19,8 @@ words holding the cursor's words and the window table, is `CompleteAtOT` returni
 point buffers' pointers, the glued weight and the residual's value, the buffers `pt`, `pt1`, within
 `osBos` words at a bound: from the named callees' placed statements (`hnamed`, and within a bound by trees
 satisfying `armXT`, `hnamedT`) and the helpers' (`LpAtOE`, `LqAtOP`, `LrAtO`). Its tree is its node (`FlatNodeT`)
-at a valuation on the rate's selector, the callees' trees satisfying `armTs`: within each bound, every one `armXT`
-(`armTs_xt`) and level `l`'s `level_queries` popping `osLvPops`.
+at a valuation on the rate's selector with the body's window hints exact (`WinEx`), the callees' trees satisfying
+`armTs`: within each bound, every one `armXT` (`armTs_xt`) and level `l`'s `level_queries` popping `osLvPops`.
 
 The proof (`os_completeAt_placeR`, the body at the rate's arm, a valuation per memory): the buffers at `osSizesL`
 after the frame; on each memory holding the callees' words its own honest valuation from `OsHonestA.body`, all of
@@ -240,7 +240,8 @@ theorem arm_completeAtO {Bd : Option (String → ℕ)} {m ri : ℕ} (hm : m < 11
         rets = [tgt, ofK (addressOfIndex b), ofK (addressOfIndex b1), inn, res] ∧
           Lout = [(b, pt), (b1, pt1)])
       (Bd.map fun Bk ↦ osBos fs Bk name (osCfgR m ri))
-      (FlatNodeT name fn (osBodyA (osCfgR m ri)) (fun σ ↦ σ (.n osRate) = ofK (addressOfIndex ri))
+      (FlatNodeT name fn (osBodyA (osCfgR m ri))
+        (fun σ ↦ σ (.n osRate) = ofK (addressOfIndex ri) ∧ WinEx (osBodyA (osCfgR m ri)) σ)
         (armTs (Bd := Bd) H)) := by
   revert H
   set c := osCfgR m ri with hc
@@ -279,15 +280,16 @@ theorem arm_completeAtO {Bd : Option (String → ℕ)} {m ri : ℕ} (hm : m < 11
       σ (.n osRate) = ofK (addressOfIndex ri) ∧ fn.params.map σ = args ∧ (∀ s ∈ osBodyA c, DispOk σ s) ∧
       Whir.AllOk (osCR rd (fun _ _ _ ↦ True) (OsXOk κ Lk)) rd σ (osBodyA c) ∧
       OsOutA c b0 tabs tgt inn res H.own H.D σ ∧
-      ((osBodyA c).filterMap Stmt.callVarsS).map (·.map σ) = CV ∧ OsLoadsIn c b0 H.own cur tabs xs σ := by
+      ((osBodyA c).filterMap Stmt.callVarsS).map (·.map σ) = CV ∧ OsLoadsIn c b0 H.own cur tabs xs σ ∧
+      WinEx (osBodyA c) σ := by
     intro rd hlow hm
     obtain ⟨kEnd, f, hf⟩ := hbody rd (hlow.mono hκ)
     set σ := fill (Val.ofArgs args) 11 kEnd f with hσd
-    obtain ⟨hA, hO, hCV, hLd⟩ := hf _ rd (osHA_of_lk hl hLin hlow hm) (fun _ _ ↦ rfl) σ (agree_fill _ _ _ _)
+    obtain ⟨hA, hO, hCV, hLd, hWx⟩ := hf _ rd (osHA_of_lk hl hLin hlow hm) (fun _ _ ↦ rfl) σ (agree_fill _ _ _ _)
       (range_fill _ _ _ _)
     have hR : σ (.n osRate) = ofK (addressOfIndex ri) := by
       rw [hσd, fill_lt (by decide), ofArgs_n]; exact hsel0
-    refine ⟨σ, hR, ?_, fun s hs ↦ ?_, hA, hO, hCV, hLd⟩
+    refine ⟨σ, hR, ?_, fun s hs ↦ ?_, hA, hO, hCV, hLd, hWx⟩
     · rw [hp]
       refine List.ext_getElem (by simp [osParams, hargs]) fun j h1 h2 ↦ ?_
       have hj : j < 11 := by simpa [osParams] using h1
@@ -358,14 +360,14 @@ theorem arm_completeAtO {Bd : Option (String → ℕ)} {m ri : ℕ} (hm : m < 11
     unfold osBos
     omega
   obtain ⟨rd0, hl0, hm0⟩ := hex
-  obtain ⟨σ, hR, hparams, hdo, -, hO0, hCV0, -⟩ := hσ rd0 hl0 hm0
+  obtain ⟨σ, hR, hparams, hdo, -, hO0, hCV0, -, -⟩ := hσ rd0 hl0 hm0
   have hHV : OsHelperVals c b0 tabs H.own H.D σ := hO0.2.2.2
   have hag : ∀ σ', ((osBodyA c).filterMap Stmt.callVarsS).map (·.map σ') = CV → CallAg (osBodyA c) σ' σ :=
     fun σ' h ↦ callAg_of_eq (h.trans hCV0.symm)
   have hall : ∀ rd, LowDef κ rd → MemL rd Lk → ∃ σ',
       Whir.AllOk (osCR rd (fun _ _ _ ↦ True) (OsXOk κ Lk)) rd σ' (osBodyA c) ∧ CallAg (osBodyA c) σ' σ :=
     fun rd hlow hm ↦
-      let ⟨σ', _, _, _, hA, _, hCV, _⟩ := hσ rd hlow hm
+      let ⟨σ', _, _, _, hA, _, hCV, _, _⟩ := hσ rd hlow hm
       ⟨σ', hA, hag σ' hCV⟩
   have hsel : ∀ l (g : OsLv → String), selName σ c l g = g (osLvA c l) := selName_rate hri hR
   set ks := osLvKOf σ c 0 c.levels (osHead c).2 with hks
@@ -420,9 +422,9 @@ theorem arm_completeAtO {Bd : Option (String → ℕ)} {m ri : ℕ} (hm : m < 11
   · rw [within_append]
     exact ⟨hW1.mono le_rfl (by omega), hW2.mono (by omega) (by omega)⟩
   have hmk : MemL rd Lk := memL_osLkA hBm hLin'
-  obtain ⟨σ', hR', hparams', hdo', hA', hO', hCV', hLd'⟩ := hσ rd hlow hmk
+  obtain ⟨σ', hR', hparams', hdo', hA', hO', hCV', hLd', hWx'⟩ := hσ rd hlow hmk
   have hag' := hag σ' hCV'
-  refine ⟨σ', hR', hR', hparams', hdo', calls_congr hag', hbodyAt rd σ' hA' hO', hO'.2.1, hO'.2.2.1,
+  refine ⟨σ', hR', ⟨hR', hWx'⟩, hparams', hdo', calls_congr hag', hbodyAt rd σ' hA' hO', hO'.2.1, hO'.2.2.1,
     hloads ps rd σ' hlow hmk hLd', fun hL ↦ ?_⟩
   -- the callees, at the memory's valuation
   have hcs : ∀ c' ∈ ((osBodyA c).filterMap (Stmt.callSF σ)).map (Main.mkCall σ),

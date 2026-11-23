@@ -19,6 +19,7 @@ public import LeanVM.Guest.B1.Whir.Witness
 public import LeanVM.Guest.B1.Whir.CVal
 public import LeanVM.Guest.B1.Whir.Squeezes
 public import LeanVM.Guest.B1.Whir.SlowSpec
+public import LeanVM.Guest.B1.Whir.WinEx
 
 /-!
 # The body at honest values, as the lift takes it
@@ -49,7 +50,7 @@ configuration `c`:
   the cursor, the window table, the buffers, every named callee's meaning on loads fixed by those
   memories, `C` true on the helpers) and agreeing with `rd0` where the inline grinds' range checks
   read (`LowAgree`), returning `[tgt, PT, PT1, inn, res]`, allocating the buffers at their bases, the
-  helpers' dispatches at their honest values (`OsHelperVals`).
+  helpers' dispatches at their honest values (`OsHelperVals`), the inline grinds' windows exact (`WinEx`).
 
 `os_honest_Spec`: every accepting run of `whirOpen μ r target` from `⟨capOf S, []⟩` with openings
 agreeing in the caps has `OsHonestA` at the arm of `μ` and the rate `r`.
@@ -346,7 +347,8 @@ structure OsHonestA (c : OsCfg) (args : List E) (cur tabs : E) (xs : List E) (tg
   body : ∀ b, ∃ CV : List (List E), ∀ (rd0 : Reader), LowDef 11 rd0 → ∃ (kEnd : ℕ) (f : ℕ → E),
     ∀ (C : CallRel) (rd : Reader), OsHA C rd c b own cur tabs xs → LowAgree rd rd0 →
       BlkF C rd (Val.ofArgs args) 11 kEnd f (osBodyA c) (fun σ' ↦ OsOutA c b tabs tgt inn res own D σ' ∧
-        ((osBodyA c).filterMap Stmt.callVarsS).map (·.map σ') = CV ∧ OsLoadsIn c b own cur tabs xs σ')
+        ((osBodyA c).filterMap Stmt.callVarsS).map (·.map σ') = CV ∧ OsLoadsIn c b own cur tabs xs σ' ∧
+        WinEx (osBodyA c) σ')
 
 /-- **The honest data of every accepting run** at its arm and rate. -/
 def os_honest_Spec : Prop :=

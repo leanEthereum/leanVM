@@ -263,10 +263,10 @@ theorem arm_pops {m ri : ℕ} (hm : m < 11) (hri : ri < 4) {f : String} {fn : Fn
     {args : List E} {cur tabs : E} {xs : List E} {tgt inn res : E} {pt pt1 : List E}
     {H : OsHonestA (osCfgR m ri) args cur tabs xs tgt inn res pt pt1} {rd : Reader} {t : Tree} {a r : List E}
     (hv : t.Valid coreProgram rd a r)
-    (hT : FlatNodeT f fn (osBodyA (osCfgR m ri)) (fun σ ↦ σ (.n osRate) = ofK (addressOfIndex ri))
-      (armTs (Bd := some Bk) H) rd t) :
+    (hT : FlatNodeT f fn (osBodyA (osCfgR m ri))
+      (fun σ ↦ σ (.n osRate) = ofK (addressOfIndex ri) ∧ WinEx (osBodyA (osCfgR m ri)) σ) (armTs (Bd := some Bk) H) rd t) :
     t.pops coreProgram rd = (List.range (osCfgR m ri).levels.length).flatMap (osLvPops H) := by
-  obtain ⟨σ, bufs, kids, es, vs, rfl, hw, hces, hR, hK⟩ := hT
+  obtain ⟨σ, bufs, kids, es, vs, rfl, hw, hces, ⟨hR, -⟩, hK⟩ := hT
   obtain ⟨fn', hf', -, es', vs', hw', -, -, hkv⟩ := hv
   rw [hf, Option.some.injEq] at hf'
   subst hf'

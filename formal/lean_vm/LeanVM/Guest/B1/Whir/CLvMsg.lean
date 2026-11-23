@@ -51,7 +51,7 @@ structure OsStep (σ σ' : Val) (st st' : OsSt) : Prop where
 theorem osCurS_blkA {st : OsSt} (σ : Val) (hb : st.cb < st.k) (hco : st.co < u128Bound) :
     BlkA M H σ st.k (osCurS st).2.2.k (osCurS st).1
       (fun σ' ↦ σ' (.n (osCurS st).2.1) = σ (.n st.cb) * gen ^ st.co) :=
-  BlkA.ofHM _ fun _ _ _ ↦ osCurS_blk σ hb hco
+  BlkA.ofHM _ (fun _ _ _ ↦ osCurS_blk σ hb hco) (osMat_noWin _ _ _)
 
 /-- **The final level's message, honestly**: `opening_message` with a nonce, its
 returns `omRets` on the carried capacity, the lane `ms` and the nonce `nn`. -/
