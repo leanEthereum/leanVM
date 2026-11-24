@@ -1,7 +1,7 @@
 module
 
 public import XmssSecurity.Proof.ChainOraclePresampling
-public import XmssSecurity.Proof.EncodingOracleSimulation
+public import XmssSecurity.Proof.FreshHashQuery
 public import XmssSecurity.Proof.RandomOracle
 
 @[expose] public section

@@ -2,7 +2,7 @@ module
 
 public import XmssSecurity.Proof.CausalTreeCoupling
 public import XmssSecurity.Proof.CausalKeygenCoupling
-public import XmssSecurity.Proof.ChainTableUniformity
+public import XmssSecurity.Proof.ChainTableTrajectories
 
 @[expose] public section
 

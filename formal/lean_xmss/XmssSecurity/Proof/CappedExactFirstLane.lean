@@ -1,6 +1,6 @@
 module
 
-public import XmssSecurity.Proof.CappedJointExactLoss
+public import XmssSecurity.Proof.SecondLane
 
 @[expose] public section
 

@@ -1,6 +1,6 @@
 module
 
-public import XmssSecurity.Proof.CappedEncodingRejection
+public import XmssSecurity.Proof.ValidDigests
 public import XmssSecurity.Proof.StatementLemmas
 public import XmssSecurity.Scan.LoopWalk
 

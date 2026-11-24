@@ -1,6 +1,6 @@
 module
 
-public import XmssSecurity.Proof.CappedEncodingExpectedBound
+public import XmssSecurity.Proof.CappedEncodingSourceImpl
 
 @[expose] public section
 

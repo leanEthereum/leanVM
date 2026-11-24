@@ -2,7 +2,7 @@ module
 
 public import XmssSecurity.Scan.Step
 public import XmssSecurity.Proof.EncodingActionTrace
-public import XmssSecurity.Proof.EncodingOracleSimulation
+public import XmssSecurity.Proof.FreshHashQuery
 public import XmssSecurity.Proof.PrecomputedBoundedSignCache
 
 @[expose] public section
