@@ -2998,12 +2998,11 @@ def viewList (I : Array FnInfo) (j : ℕ) : String :=
 relations (`Check.Glob.ofSigs`). -/
 def viewText (I : Array FnInfo) (j : ℕ) : String := s!"(Glob.ofSigs {viewList I j} Data.jtTrie globSem)"
 
-/-- A copy of function `f`'s code, chunk by chunk as the statement's (`Data.functions`), each chunk's
-instructions built as terms without elaborating each (`code%`, `Guest/CodeLit.lean`); only the kernel
-reads it, so it is not compiled. -/
+/-- A copy of function `f`'s code, chunk by chunk as the statement's (`Data.functions`), built by
+`data%` (`Guest/DataLit.lean`); only the kernel reads it, so it is not compiled. -/
 def codeText (f : CompiledFunction) : String :=
   String.join (f.chunks.zipIdx.map fun (ch, k) =>
-    s!"/-- `{f.name}`: chunk {k}. -/\nnoncomputable def c{k} : List OffsetInstruction := code% [\n  " ++
+    s!"/-- `{f.name}`: chunk {k}. -/\nnoncomputable def c{k} : List OffsetInstruction := data% [\n  " ++
       ",\n  ".intercalate (ch.map instrText) ++ "]\n\n") ++
   s!"/-- `{f.name}`: pc {f.entryPc} to {f.entryPc + f.instructionCount - 1}. -/\n" ++
   "noncomputable def code : CompiledFunction :=\n" ++
@@ -3260,7 +3259,7 @@ def checkedFiles (I : Array FnInfo) (packs : List (String × List ℕ)) (obl : L
   let packFiles := packs.flatMap fun (dir, js) =>
     let bundle := packHeader dir "Bundle"
         s!"The code, certificates and completeness and sharing data of compiled functions {names js}." ++
-      "public import LeanVM.Guest.Check\npublic import LeanVM.Guest.B2C.Types\nmeta import LeanVM.Guest.CodeLit\n" ++
+      "public import LeanVM.Guest.Check\npublic import LeanVM.Guest.B2C.Types\nmeta import LeanVM.Guest.DataLit\n" ++
       String.join (js.flatMap fun j => I[j]!.cellMods.map fun m => s!"public import {m}\n") ++ "\n" ++
       String.join (js.map fun j =>
         let k := I[j]!.key

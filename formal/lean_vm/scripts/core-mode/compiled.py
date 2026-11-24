@@ -20,18 +20,9 @@ def load():
     ins_re=re.compile(r'\(\.(\w+) ([^()]*)\)')
     fns={}
     for name, (pack, blk) in BD.bundle_blocks().items():
-        chunks={}
-        for m in re.finditer(r'def (c\d+) : List OffsetInstruction := (?:code% )?\[(.*?)\]\n', blk, re.S):
-            body=m.group(2)
-            L=[]
-            for im in ins_re.finditer(body):
-                op=im.group(1); args=im.group(2).split()
-                L.append((op,args))
-            chunks[m.group(1)]=L
+        ds=BD.defs(blk)
         nm,entry,cnt,cl=BD.code_of(blk)
-        code=[]
-        for c in cl:
-            code+=chunks[c]
+        code=[(im.group(1),im.group(2).split()) for c in cl for im in ins_re.finditer(ds[c])]
         assert len(code)==cnt,(nm,len(code),cnt)
         fns[nm]=dict(name=nm,entry=entry,count=cnt,code=code,pack=pack,ns=name)
     for b in sorted(glob.glob(ROOT+'/Pack/*/Sig.lean')):
