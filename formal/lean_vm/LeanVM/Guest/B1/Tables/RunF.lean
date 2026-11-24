@@ -568,12 +568,6 @@ theorem RunsTo.toG {α : Type} {p : VerifierProgram α} {s s' : Fs} {xs : List E
 theorem RunsG.toRunsTo {α : Type} {p : VerifierProgram α} {s s' : Fs} {xs : List E} {a : α}
     (h : RunsG p s none xs a s' none) : RunsTo p s xs a s' := h
 
-theorem RunsToX.toRunsTo {α : Type} {p : VerifierProgram α} {s s' : Fs} {xs : List E} {a : α}
-    (h : RunsToX p s xs a s' none) : RunsTo p s xs a s' := h
-
-theorem RunsFromX.toRunsTo {α : Type} {p : VerifierProgram α} {s s' : Fs} {xs : List E} {a : α}
-    (h : RunsFromX p s none xs a s') : RunsTo p s xs a s' := h
-
 /-- The sponge after a run from a carried one is carried. -/
 theorem RunsTo.carries {α : Type} {p : VerifierProgram α} {s s' : Fs} {xs : List E} {a : α}
     (h : RunsTo p s xs a s') (hc : ∃ sp, s.Carries sp) : ∃ sp, s'.Carries sp := by

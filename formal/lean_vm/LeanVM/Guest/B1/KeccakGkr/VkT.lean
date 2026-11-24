@@ -282,9 +282,6 @@ def slotLanesT (slot segp b first count : ℕ) : List Stmt :=
 def slotLaneV (b count lane : ℕ) : ℕ :=
   if count = 1 then b + 134 + 2 * lane else b + 136 + 4 * lane
 
-/-- The value after `slotLanesT`. -/
-def slotLanesEnd (b count : ℕ) : ℕ := if count = 1 then b + 183 else b + 233
-
 /-- Read `z` of the slices from `b`. -/
 def slB (b z : ℕ) : ℕ := b + 3 * z + 13 * (z / 4)
 

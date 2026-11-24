@@ -33,29 +33,6 @@ def isMulAt (x y z : V) : Atom → Bool
   | .mul d a b => decide (d = x) && decide (a = y) && decide (b = z)
   | _ => false
 
-theorem mulAt_sound {rd : Reader} {σ : Val} {atoms : List Atom} {x y z : V}
-    (h : atoms.any (isMulAt x y z) = true) (hat : ∀ a ∈ atoms, a.Holds rd σ) :
-    σ x = σ y * σ z := by
-  obtain ⟨a, hp, ha⟩ := any_holds h hat
-  cases a <;> simp only [isMulAt, Bool.false_eq_true, Bool.and_eq_true, decide_eq_true_eq] at hp
-  obtain ⟨⟨rfl, rfl⟩, rfl⟩ := hp
-  exact ha
-
-/-- `x ≠ 0`, by an `assert_ne` through `inv`, `p`. -/
-def isNeAt (x : V) : Atom → Bool
-  | .assertNe d _ _ => decide (d = x)
-  | _ => false
-
-theorem ne_sound {rd : Reader} {σ : Val} {atoms : List Atom} {x : V}
-    (h : atoms.any (isNeAt x) = true) (hat : ∀ a ∈ atoms, a.Holds rd σ) : σ x ≠ 0 := by
-  obtain ⟨a, hp, ha⟩ := any_holds h hat
-  cases a <;> simp only [isNeAt, Bool.false_eq_true, decide_eq_true_eq] at hp
-  subst hp
-  intro h0
-  obtain ⟨h1, h2⟩ := ha
-  rw [h1, h0, zero_mul] at h2
-  exact zero_ne_one h2
-
 /-- The range check's bound `g^M`, a word of one limb below `g^64`. -/
 theorem word_gMax : word (2 ^ guest_const% DA_MAX_ROWS) 0 = gen ^ guest_const% DA_MAX_ROWS := word_two_pow (by decide)
 

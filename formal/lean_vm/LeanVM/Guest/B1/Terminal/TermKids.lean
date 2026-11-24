@@ -221,54 +221,6 @@ theorem low_rc {κ : ℕ} (hκ : 6 ≤ κ) {rd : Reader} (hl : LowDef κ rd) {n 
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
-/-- **A prefix chain, complete, placed**: on the runs `as` at `g^ba` and `bs` at `g^bb`, its
-chain `eqChain s as bs` at `g^b`. -/
-theorem eqc_kid_complete (κ : ℕ) (hκ : 6 ≤ κ) {b ba bb : ℕ} {s : E} {as bs : List E} {cg : E}
-    {L : Main.Layout} (hn : as.length ≤ 40) (hbs : bs.length = as.length) (hcg : cg = gen ^ as.length)
-    (hrd : ∀ rd, LowDef κ rd → MemL rd L → ReadsAt rd (ofK (addressOfIndex ba)) as ∧ ReadsAt rd (ofK (addressOfIndex bb)) bs)
-    (hR : ∀ i, (ba ≤ i ∧ i < ba + as.length) ∨ (bb ≤ i ∧ i < bb + as.length) → RegionL L i) :
-    CompleteAtD fs cert κ "eq_prefix_chain" ((b, eqChain s as bs) :: L)
-      [ofK (addressOfIndex b), s, ofK (addressOfIndex ba), ofK (addressOfIndex bb), cg]
-          (Returns []) := by
-  refine Lift.completeAtD_of_relIn eqc_pure List.mem_cons_self fun rd hl hm => ?_
-  have hm0 : ReadsAt rd (ofK (addressOfIndex b)) (eqChain s as bs) := hm _ List.mem_cons_self
-  have hmL : MemL rd L := fun q hq => hm q (List.mem_cons_of_mem _ hq)
-  obtain ⟨ha, hb⟩ := hrd rd hl hmL
-  subst hcg
-  refine eqc_relIn hn (fun i hi => ?_) ((eq_prefix_chain_holds rd _ _).mpr
-    ⟨rfl, low_rc hκ hl hn, as.length, by omega, rfl, as, bs, rfl, hbs, ha, hb, fun j hj => ?_⟩)
-  · rcases hi with hi | hi
-    · exact regionL_head hi.1 (by rw [eqChain_length]; omega)
-    · exact regionL_cons _ (hR i hi)
-  · have := hm0 j (by rw [eqChain_length]; omega)
-    simpa [eqChain] using this
-
-/-- **The public input's chain's loop, complete, placed**: from `g`, over the chain `piW` at `g^b`
-and the point's complements `ps` at `g^bp`. -/
-theorem l15_kid_complete (κ : ℕ) {b bp m : ℕ} {rm glm : E} {ps : List E} {L : Main.Layout}
-    (hm2 : 2 ≤ m) (hglm : glm = gen ^ m) (hps : m ≤ ps.length)
-    (hrd : ∀ rd, LowDef κ rd → MemL rd L → ReadsAt rd (ofK (addressOfIndex bp)) ps)
-    (hR : ∀ i, bp ≤ i ∧ i < bp + m → RegionL L i) :
-    CompleteAtD fs cert κ name% «check_opening_terminal_loop0» ((b, piW rm ps m) :: L)
-      [word 2 0, glm, ofK (addressOfIndex b), ofK (addressOfIndex bp)] (Returns []) := by
-  refine Lift.completeAtD_of_relIn l15_pure List.mem_cons_self fun rd hl hm => ?_
-  have hm0 : ReadsAt rd (ofK (addressOfIndex b)) (piW rm ps m) := hm _ List.mem_cons_self
-  have hmL : MemL rd L := fun q hq => hm q (List.mem_cons_of_mem _ hq)
-  have hstep : ∀ k, 1 ≤ k → k < m →
-      (piW rm ps m).getD (k + 1) 0 = (piW rm ps m).getD k 0 * (ps.take m).getD k 0 := by
-    intro k hk1 hkm
-    have e : (ps.take m).getD k 0 = ps.getD k 0 := by
-      simp [List.getD_eq_getElem?_getD, hkm]
-    rw [piW_getD (by omega), piW_getD (by omega), ite_neg' (by omega), ite_neg' (by omega),
-      prod_Ico_succ_top (by omega), e, mul_assoc]
-  have h := l15_relIn (piW_length rm ps m) (by simp; omega) hm0 (readsAt_take (hrd rd hl hmL) m) hstep
-    (R := RegionL ((b, piW rm ps m) :: L)) (fun i hi => by
-      rcases hi with hi | hi
-      · exact regionL_head hi.1 (by rw [piW_length]; omega)
-      · exact regionL_cons _ (hR i hi)) (m - 2) 1 (by omega) le_rfl
-  rw [← hglm, pow_one, ← word_gen] at h
-  exact h
-
 /-! ## The callees' words -/
 
 /-- The terminal's buffers' honest words. -/

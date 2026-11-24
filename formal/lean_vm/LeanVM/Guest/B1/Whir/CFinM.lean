@@ -14,9 +14,8 @@ public import LeanVM.Guest.B1.Whir.CFinRes
 
 `fin0_complete`: `fold_final_msg` and the two point buffers; `finHeaps_complete`: `basis_d`,
 `level_scale`, `level_after`; `finIch0_complete`: `inner_chain` started at `0` and the claim;
-`finRet_complete`: the returns' loads and copies. `osFinishA_complete`: the finish's blocks in
-sequence; `osFinishA_completeR` with its returns, `osFinishA_completeC` with its dispatches into
-`level_residual` too (`FinCallV`) and its calls' values (`finCV`).
+`finRet_complete`: the returns' loads and copies. `osFinishA_completeC`: the finish's blocks in
+sequence, with its returns and its dispatches into `level_residual` (`FinCallV`) and its calls' values (`finCV`).
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -164,14 +163,6 @@ theorem osPtBlks_allocs (σ : Val) (c : OsCfg) (pt pt1 tch : ℕ) :
   | n + 1, i, k => by
     simp only [osPtBlks, allocsAt_append, osPtBlks_allocs σ c pt pt1 tch n, List.append_nil]
     unfold osPtBlk; split <;> rfl
-
-theorem osBasisRow_allocs (σ : Val) (bd : ℕ) :
-    ∀ cs sc z nz k, AllocsAt σ (osBasisRow bd cs sc z nz k).1 = []
-  | [], _, _, _, _ => rfl
-  | (slot, src, inv) :: rest, sc, z, nz, k => by
-    simp only [osBasisRow, allocsAt_append, osBasisRow_allocs σ bd rest, List.append_nil]
-    unfold osBasisBlk; dsimp only
-    split_ifs <;> rfl
 
 theorem osBasisRow_allocsF (bd : ℕ) :
     ∀ cs sc z nz k, (osBasisRow bd cs sc z nz k).1.filterMap Memory.Stmt.allocSz = []
@@ -745,32 +736,6 @@ theorem osFinishA_completeC {c : OsCfg} {st : OsSt} {tch : ℕ} {σ : Val} {G T 
     simp only [List.map_cons, List.map_nil, y0, ha _ (show osFmsg < k0 by show 12 < k0; omega), ha _ htch]
     simp only [finCV, List.cons_append, List.nil_append]
     exact congrArg (fun x ↦ _ :: (x ++ _)) cvB
-
-/-- **The finish before its return, honestly, and what it returns.** -/
-theorem osFinishA_completeR {c : OsCfg} {st : OsSt} {tch : ℕ} {σ : Val} {G T : List E}
-    {recs : List OsRec} {li : ℕ → E} {Y PT PT1 BD LS LA ICH : E}
-    (hS : FinStatic c G T recs) (htch : tch < st.k) (hcl : st.claim < st.k) (hk : 43 ≤ st.k)
-    (hmb : MatsBelow st.k st.mats) (hmo : ∀ C rd, HM M H C rd → MatsOk σ st.mats) (hiz : IsZeroC (HM M H))
-    (hrt : ∀ i < c.yrLevel, RtVals σ st.rts st.k i (finLv c i))
-    (hm : ∀ C rd, HM M H C rd → FinMem C rd σ c tch G T recs li (σ (.n st.claim)) Y PT PT1 BD LS LA ICH) :
-    BlkA M H σ st.k (finEnd c st tch) (osFinishA c st tch).1
-      (fun σ' ↦ AllocsAt σ' (osFinishA c st tch).1 = finAllocs c PT PT1 BD LS LA ICH ∧
-        (osFinishA c st tch).2.map σ' = [σ (.n st.claim) + T.prod * recsDeficit recs G, PT, PT1,
-          (recs.flatMap recGlued).foldl (fun w g ↦ w + g.scalar * g.weightAt ((G ++ T).drop g.foldStart)) 0,
-          Y]) :=
-  (osFinishA_completeC hS htch hcl hk hmb hmo hiz hrt hm).mono fun _ h ↦ h.1
-
-/-- **The finish before its return, honestly**: its statements hold at values fixed before the
-memory and the callees, allocating its buffers at the given pointers. -/
-theorem osFinishA_complete {c : OsCfg} {st : OsSt} {tch : ℕ} {σ : Val} {G T : List E}
-    {recs : List OsRec} {li : ℕ → E} {Y PT PT1 BD LS LA ICH : E}
-    (hS : FinStatic c G T recs) (htch : tch < st.k) (hcl : st.claim < st.k) (hk : 43 ≤ st.k)
-    (hmb : MatsBelow st.k st.mats) (hmo : ∀ C rd, HM M H C rd → MatsOk σ st.mats) (hiz : IsZeroC (HM M H))
-    (hrt : ∀ i < c.yrLevel, RtVals σ st.rts st.k i (finLv c i))
-    (hm : ∀ C rd, HM M H C rd → FinMem C rd σ c tch G T recs li (σ (.n st.claim)) Y PT PT1 BD LS LA ICH) :
-    BlkA M H σ st.k (finEnd c st tch) (osFinishA c st tch).1
-      (fun σ' ↦ AllocsAt σ' (osFinishA c st tch).1 = finAllocs c PT PT1 BD LS LA ICH) :=
-  (osFinishA_completeC hS htch hcl hk hmb hmo hiz hrt hm).mono fun _ h ↦ h.1.1
 
 end
 end LeanVM.Guest.B1.Whir

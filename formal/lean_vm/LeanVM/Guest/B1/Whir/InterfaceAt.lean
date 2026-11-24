@@ -17,9 +17,6 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-/-- **`open_stacked` is sound** (`Interface.lean`), in the guest's `coreProgram`. -/
-abbrev open_stacked_sound_Spec : Prop := open_stacked_sound_SpecP coreProgram
-
 /-- **`open_stacked` is sound with its witness `osW`** (`InterfaceW.lean`), in the guest's
 `coreProgram`. -/
 abbrev open_stacked_sound_w_Spec

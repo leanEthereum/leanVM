@@ -16,7 +16,6 @@ public import LeanVM.Guest.B1.Fwd.Eval
 * `fsNext_complete`: `fs_next`'s word read from memory (not a store), so the word is the
   memory's, its packed cells the scalar's rate cells (`Keccak.scalarCells`), and the template
   holds.
-* `challenge_complete`: `challenge_from_state` holds (`ChallengeOk`).
 * `keccakA_complete`: a `KECCAK` atom holds.
 -/
 
@@ -59,15 +58,6 @@ theorem fsNext_complete {cur : V} {off b : ℕ} (hg : ∀ s ∈ fsNextT cur off 
   refine ⟨eb, ?_, fun {next kret} hn ↦ ?_⟩
   · rw [← eb]; exact fsPackT_cells hok
   · exact (holds_fsNextT cur off b next kret).2 ⟨⟨by rw [eb]; exact hv, hok⟩, hn⟩
-
-/-- **`challenge_from_state` on an evaluated valuation.** -/
-theorem challenge_complete {s0 : V} {b : ℕ}
-    (hg : ∀ s ∈ challengeT s0 b, GoodS rd S w σ s) :
-    ChallengeOk σ s0 b ∧ ∀ {next : Prop} {kret : List E → Prop},
-      next → Stmt.HoldsList C rd σ (challengeT s0 b) next kret := by
-  simp only [challengeT, List.forall_mem_cons, List.not_mem_nil, IsEmpty.forall_iff,
-    implies_true, and_true, GoodS, Good] at hg
-  exact ⟨hg, fun {next kret} hn ↦ (holds_challengeT s0 b next kret).2 ⟨hg, hn⟩⟩
 
 /-- **A `KECCAK` atom on an evaluated valuation** holds. -/
 theorem keccakA_complete {ins outs : List V} (hg : Good rd S w σ (.keccak ins outs false false)) :

@@ -1,8 +1,7 @@
 /-
   LeanVM.Guest.B1.Tables.VtC.AComplete
 
-  **`verify_tables` is complete, placed**: on the caller's honest buffers, from the
-  specification's accepting run.
+  `verify_tables`' buffers placed: the caller's buffers and its own from an offset.
 -/
 
 module
@@ -13,12 +12,8 @@ public import LeanVM.Guest.B1.Tables.VtC.Lift
 /-!
 # `verify_tables`, placed
 
-`VtBases.at B o`: the caller's buffers of `B`, the own buffers from `o`. `verify_tables` is complete
-by `vt_completeAt` on the caller's honest buffers `H.linL B`, the own buffers' honest words
-`H.ownW B` at the allocator's positions from `fp + fs "verify_tables"`, the oracle `vtW`, the
-returns `H.retsH B`; its run from `vt_rel_complete_vtW` and `vt_relIn_complete` on every memory
-defined below `2^κ`, `κ ≥ 14` (the rank keys' range check against `g^8397`), holding that
-layout.
+`VtBases.at B o`: the caller's buffers of `B`, the own buffers from `o`. `forall₂_length_le`: words
+fit buffers of their lengths.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -36,8 +31,6 @@ theorem forall₂_length_le : ∀ l : List (List E),
     List.Forall₂ (fun c s => c.length ≤ s) l (l.map List.length)
   | [] => .nil
   | _ :: l => .cons le_rfl (forall₂_length_le l)
-
-variable {fs : String → ℕ} {cert : String → V → ℕ}
 
 end
 end LeanVM.Guest.B1.Tables

@@ -1,8 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.FlatE
 
-  `completeAt_flatOutFB` and `completeAt_flatGB` by trees exact at every node, a function's paths exact and its
-  callees' trees exact.
+  Flat bodies within a bound by trees exact at every node, a function's paths exact and its callees' trees exact.
 -/
 
 module
@@ -20,11 +19,11 @@ public import LeanVM.Guest.B1.Tables.FlatAtT
 `exT rd t`: `t` exact at every node on `rd`. `CompleteAtFBT`: `CompleteAtFB` by a tree satisfying a predicate of the
 memory; `CompleteAtFB.toFBE`, `CompleteAtB.toDTBE`: a callee of `ExactOk` gains `exT`.
 
-`completeAt_flatOutFBE`, `completeAt_flatGBE`: `completeAt_flatOutFB`, `completeAt_flatGB` by trees of `exT`, given the
-honest valuation's path exact (the former) or the function's paths exact (`PathExactFn`, the latter) and its callees
-complete by trees of `exT` (`KidsGBT` for the latter,
-`kidsFromInT_of_kidsGBT` placing them). The node is `relAtInWT_of_walk`'s, exact by `exactAt_of_walk` and
-`everyKids_of_kidsT`.
+`completeAt_flatOutFBE`: a flat function whose caller's words and result depend on the frame pointer, within a
+bound (`CompleteAtFBT`); `completeAt_flatGBE`: `completeAt_flatGB`; both by trees of `exT`, given the honest
+valuation's path exact (the former) or the function's paths exact (`PathExactFn`, the latter) and its callees
+complete by trees of `exT` (`KidsGBT` for the latter, `kidsFromInT_of_kidsGBT` placing them). The node is
+`relAtInT_flat`'s, exact by `exactAt_of_walk` and `everyKids_of_kidsT`.
 -/
 
 namespace LeanVM.Guest.B1
@@ -106,8 +105,9 @@ theorem every_node_of_exact {rd : Reader} {f : String} {fn : Fn} {σ : Val} {es 
   exact Tree.every_node.mpr ⟨exactAt_of_walk hf hw hex,
     everyKids_of_kidsT hkv hl hK fun _ T hc _ t _ _ hTt => hT T (List.of_mem_zip hc).2 t hTt⟩
 
-/-- **`completeAt_flatOutFB` by trees of `exT`**: the honest valuation's path exact, its callees complete within their
-bounds by trees of `exT`. -/
+/-- **A flat function at the frame pointer, within `fs f + sizes.sum + NB` words, by trees of `exT`**: the honest
+valuation's path exact, its callees complete within their bounds `bd` (`kidsBound` at most `NB`) by trees of
+`exT`. -/
 theorem completeAt_flatOutFBE {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
     (hl : coreProgram.loop f = false) (κ : ℕ) (Lin : ℕ → Layout) (args : List E)
     (rets : ℕ → List E) (Out : ℕ → List E → Layout → Prop)
@@ -150,38 +150,16 @@ theorem completeAt_flatOutFBE {f : String} {fn : Fn} (hf : coreProgram.find? f =
   obtain ⟨hLm, hLin⟩ := Main.memL_append.mp hL
   obtain ⟨hB, hLk⟩ := Main.memL_append.mp hLm
   obtain ⟨σ, hp, hdo, hh, hsz, hbuf, hcm, hld, hex⟩ := hσ fp outs ho rd hlow hB hLin
-  have hw := walk_flat σ vs pre hst hdo
-  rw [← hb] at hw
-  obtain ⟨i1, i2, i3, i4, i5⟩ := flat_parts σ pre hst
-  have hsat := walk_sat (P := coreProgram) fn.body (coreProgram_wf fn (List.mem_of_find?_eq_some hf)) hh
-  rw [hw] at hsat
-  have hes : ∀ e ∈ pre.flatMap (flEvs σ), e.Holds rd σ := fun e he => (hsat.1 e he).1
-  have hr : vs.map σ = rets fp := hsat.2
-  have hal : allocs σ (pre.flatMap (flEvs σ)) = sizes := by rw [i2, hsz]
-  have hown' : ∀ i, RegionL (bufL (fp + fs f) sizes (own fp)) i →
-      ownData cert fp (fp + fs f) f (allocs σ (pre.flatMap (flEvs σ))) (pre.flatMap (flEvs σ)) i :=
-    fun i hi => Or.inl (by rw [hal]; exact bufL_region _ _ _ (hown fp) i hi)
-  have hk := hK rd σ (calls (pre.flatMap (flEvs σ))) (fun i => RegionL (Lin fp) i ∨
-      ownData cert fp (fp + fs f) f (allocs σ (pre.flatMap (flEvs σ))) (pre.flatMap (flEvs σ)) i)
-    (fun _ => False) (by rw [i4]; exact hcm) hlow hLk (memL_lins (hkm fp rd hB hLin))
-    (regionsOk_of fun k hk ht i hi => Or.inl ((hkr fp k hk ht i hi).imp_right (hown' i)))
-  have hb' : fp + fs f + sizes.sum = fp + fs f + (allocs σ (pre.flatMap (flEvs σ))).sum := by
-    rw [hal]
-  rw [hb'] at hk
-  have hlen : (calls (pre.flatMap (flEvs σ))).length ≤ ((kids fp).map fun _ => exT rd).length := by
-    rw [i4, callsMatch_length hcm, List.length_map]
-  obtain ⟨t, ⟨hn, hv, hbo, hpl, htot, hlo, hda⟩, ks, rfl, hkT⟩ := relAtInWT_of_walk (P := coreProgram) (fs := fs)
-    (cert := cert) (R := RegionL (Lin fp)) (D := RegionL (bufL (fp + fs f) sizes (own fp)))
-    (Dk := fun i => False ∨ outRegion (kids fp) outs i) (N := N) (fp := fp)
-    coreProgram_wf hf (Or.inl hl) hp hw hr hes (by rw [hal, i1]; exact hbuf) (by rw [i3, haddrs]; simp)
-    _ hk (fun A hA => by
-      rw [i5, flatMap_loadsEv σ pre hnl] at hA
-      obtain ⟨q, hq, rfl⟩ := List.mem_map.mp hA
-      obtain ⟨i, hi, h | h⟩ := hld q hq
-      · exact ⟨i, hi, Or.inr (Or.inl h)⟩
-      · exact ⟨i, hi, Or.inl (hown' i h)⟩) (fun i hi => Or.inl (hown' i hi))
-  refine ⟨_, ⟨hn, hv, hbo, hpl, by rw [htot, hal], hlo, hda⟩, every_node_of_exact hf hw hex hv hlen ?_ hkT⟩
-  intro T hT t hTt
+  have hw : walk σ fn.body = .ret (pre.flatMap (flEvs σ)) vs := hb ▸ walk_flat σ vs pre hst hdo
+  have hc : calls (pre.flatMap (flEvs σ)) = flatCalls pre σ := (flat_parts σ pre hst).2.2.2.1
+  obtain ⟨t, ht, ks, rfl, hkT⟩ := relAtInT_flat (R := RegionL (Lin fp)) hf hl hb hst haddrs (hown fp) hp hdo
+    hh hsz hbuf _ (hK rd σ _ _ _ hcm hlow hLk (memL_lins (hkm fp rd hB hLin))
+      (regionsOk_of fun k hk ht i hi => Or.inl (hkr fp k hk ht i hi)))
+    (fun q hq => (hld q (by rwa [flatMap_loadsEv σ pre hnl] at hq)).imp fun _ h =>
+      ⟨h.1, h.2.imp_right Or.inl⟩)
+    (fun i hi => Or.inl hi)
+  refine ⟨_, ht, every_node_of_exact (Ts := (kids fp).map fun _ => exT rd) hf hw hex ht.2.1
+    (by rw [hc, List.length_map]; exact (callsMatch_length hcm).le) (fun T hT t hTt => ?_) (hc ▸ hkT)⟩
   obtain ⟨_, -, rfl⟩ := List.mem_map.mp hT
   exact hTt
 
@@ -340,40 +318,21 @@ theorem completeAt_flatGBE {f : String} {fn : Fn} (hf : coreProgram.find? f = so
     fun q hq => hLk q (takenOuts_sub hI q hq)
   obtain ⟨hlins, hreg, σ, hp, hdo, hh, hsz, hbuf, hcm, hld⟩ :=
     hσ fp fps outs hlen hge ho rd hlow hB hLin hto
-  have hw := walk_flat σ vs pre hst hdo
-  rw [← hb] at hw
-  obtain ⟨i1, i2, i3, i4, i5⟩ := flat_parts σ pre hst
+  have hw : walk σ fn.body = .ret (pre.flatMap (flEvs σ)) vs := hb ▸ walk_flat σ vs pre hst hdo
+  have hc : calls (pre.flatMap (flEvs σ)) = flatCalls pre σ := (flat_parts σ pre hst).2.2.2.1
   have hsat := walk_sat (P := coreProgram) fn.body (coreProgram_wf fn (List.mem_of_find?_eq_some hf)) hh
   rw [hw] at hsat
-  have hes : ∀ e ∈ pre.flatMap (flEvs σ), e.Holds rd σ := fun e he => (hsat.1 e he).1
-  have hr : vs.map σ = rets := hsat.2
-  have hal : allocs σ (pre.flatMap (flEvs σ)) = sizes := by rw [i2, hsz]
-  have hown' : ∀ i, RegionL (bufL (fp + fs f) sizes (own fp fps)) i →
-      ownData cert fp (fp + fs f) f (allocs σ (pre.flatMap (flEvs σ))) (pre.flatMap (flEvs σ)) i :=
-    fun i hi => Or.inl (by rw [hal]; exact bufL_region _ _ _ (hown fp fps) i hi)
-  have hk := hK rd σ (calls (pre.flatMap (flEvs σ))) (fun i => RegionL Lin i ∨
-      ownData cert fp (fp + fs f) f (allocs σ (pre.flatMap (flEvs σ))) (pre.flatMap (flEvs σ)) i)
-    (fun _ => False) (by rw [i4]; exact hcm) hlow hLk hlins
-    (regionsOk_mono (fun i h => h.imp_right (hown' i)) hreg)
-  have hb' : fp + fs f + sizes.sum = fp + fs f + (allocs σ (pre.flatMap (flEvs σ))).sum := by
-    rw [hal]
-  rw [hb'] at hk
-  have hlen' : (calls (pre.flatMap (flEvs σ))).length ≤ ((kids fp).map fun _ => exT rd).length := by
-    rw [i4, callsMatch_length hcm, List.length_map, atAllG_length, hlen, Nat.min_self]
-  obtain ⟨t, ⟨hn, hv, hbo, hpl, htot, hlo, hda⟩, ks, rfl, hkT⟩ := relAtInWT_of_walk (P := coreProgram) (fs := fs)
-    (cert := cert) (R := RegionL Lin) (D := RegionL [])
-    (Dk := fun i => False ∨ outRegion (atAllG [] (kids fp) fps) outs i) (N := N) (fp := fp)
-    coreProgram_wf hf (Or.inl hl) hp hw hr hes (by rw [hal, i1]; exact hbuf)
-    (by rw [i3, haddrs]; simp) _ hk (fun A hA => by
-      rw [i5, flatMap_loadsEv σ pre hnl] at hA
-      obtain ⟨q, hq, rfl⟩ := List.mem_map.mp hA
-      obtain ⟨i, hi, h | h | h⟩ := hld q hq
-      · exact ⟨i, hi, Or.inr (Or.inl h)⟩
-      · exact ⟨i, hi, Or.inl (hown' i h)⟩
-      · exact ⟨i, hi, Or.inr (Or.inr (Or.inr h))⟩) (fun i hi => by obtain ⟨q, hq, _⟩ := hi; simp at hq)
-  refine ⟨_, ⟨hn, hv, hbo, hpl, by rw [htot, hal], hlo, hda⟩,
-    every_node_of_exact hf hw (hpx rd σ _ vs hw hes) hv hlen' ?_ hkT⟩
-  intro T hT t hTt
+  obtain ⟨t, ht, ks, rfl, hkT⟩ := relAtInT_flat (R := RegionL Lin) (D := RegionL []) hf hl hb hst haddrs
+    (hown fp fps) hp hdo hh hsz hbuf _ (hK rd σ _ _ _ hcm hlow hLk hlins hreg)
+    (fun q hq => (hld q (by rwa [flatMap_loadsEv σ pre hnl] at hq)).imp fun _ h =>
+      ⟨h.1, h.2.imp_right (Or.imp_right Or.inr)⟩)
+    (fun i hi => by obtain ⟨q, hq, _⟩ := hi; simp at hq)
+  refine ⟨_, ht, every_node_of_exact (Ts := (kids fp).map fun _ => exT rd) hf hw
+    (hpx rd σ _ vs hw fun e he => (hsat.1 e he).1) ht.2.1
+    (by
+      rw [hc, List.length_map]
+      exact (callsMatch_length hcm).trans_le (by rw [atAllG_length, hlen, Nat.min_self]))
+    (fun T hT t hTt => ?_) (hc ▸ hkT)⟩
   obtain ⟨_, -, rfl⟩ := List.mem_map.mp hT
   exact hTt
 

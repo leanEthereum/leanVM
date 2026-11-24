@@ -67,13 +67,6 @@ theorem RunsTo.runT_eq {α : Type} {p : VerifierProgram α} {s s' : Fs} {xs : Li
   obtain ⟨e1, e2⟩ := eq_fsOfT (g := none) hc'
   rw [← e1, ← e2]
 
-/-- `RunsTo.runT_eq` for a run reading nothing. -/
-theorem RunsTo.runT_eq0 {α : Type} {p : VerifierProgram α} {s s' : Fs} {a : α}
-    (h : RunsTo p s [] a s') (hc : ∃ sp, s.Carries sp) (rest : List E)
-    (os : List (List Opening)) (R : List (Digest × ℕ × ℕ)) :
-    runT p ⟨s, none, rest, os, R⟩ = some (a, ⟨s', none, rest, os, R⟩) :=
-  RunsTo.runT_eq h hc rest os R
-
 theorem runT_bind' {α β : Type} (p : VerifierProgram α) (f : α → VerifierProgram β) (st : TSt) :
     runT (p >>= f) st = (runT p st).bind (fun r ↦ runT (f r.1) r.2) := runT_bind p f st
 

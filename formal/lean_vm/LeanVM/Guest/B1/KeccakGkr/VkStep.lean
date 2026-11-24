@@ -38,21 +38,6 @@ theorem iotaIdx_sub : ∀ s < 12, ∀ m < 2, ∀ i ∈ iotaIdx s m, i ∈ iotaUs
 theorem word_g22 : word 4194304 0 = gen ^ 22 := by
   rw [show (4194304 : ℕ) = 2 ^ 22 from rfl]; exact word_two_pow (by decide)
 
-/-- The words of `g^(22 s)` (the claim records' offsets; `VerifySub` reads `vkGw 5`). -/
-def vkGw : ℕ → ℕ
-  | 1 => 4194304
-  | 2 => 17592186044416
-  | 3 => 108
-  | 4 => 452984832
-  | 5 => 1899956092796928
-  | 6 => 5200
-  | 7 => 21810380800
-  | 8 => 91479367430963200
-  | 9 => 486848
-  | 10 => 2041988513792
-  | 11 => 8564720591351840768
-  | _ => 0
-
 /-! ## Chains of additions -/
 
 theorem addChainT_holds {vs : List ℕ} (hne : vs ≠ []) {b : ℕ} {next : Prop}

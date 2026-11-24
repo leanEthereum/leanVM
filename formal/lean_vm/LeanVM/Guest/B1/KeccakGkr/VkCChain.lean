@@ -16,7 +16,7 @@ From `ChainOk`, layer `k`'s words have their lengths and its two checks hold (`c
 the claim and sponge after layer `k` are its `layerClaim` and `layerBeta` (`chainEnd_succ`). For a
 `VkData` with its run's facts: every claim's point has `τ - 3` coordinates (`chain_point`), the
 sponge before layer `k` is `(layer k).s0` (`chain_s0`), and layer `k` has the facts
-`layer_completeAtF` takes (`layer_facts`).
+`layer_completeAtFB` takes (`layer_facts`).
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -165,7 +165,7 @@ theorem layer_cap (h : D.Ok) {k : ℕ} (hk : k < 12) : (D.layer k).cap.length = 
     simp only [layer, he, layerBeta]
     simp [Fs.squeeze, capOf]
 
-/-- **Layer `k`'s facts**: what `layer_completeAtF` takes of its data. -/
+/-- **Layer `k`'s facts**: what `layer_completeAtFB` takes of its data. -/
 theorem layer_facts (h : D.Ok) {k : ℕ} (hk : k < 12) :
     (D.layer k).product.length = 47 ∧
       (((D.layer k).s0 (firstOf k)).absorbAll (D.layer k).product dsObserve).GrindOk sGrindBits

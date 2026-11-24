@@ -132,11 +132,6 @@ theorem gwChk_sound {b : List Stmt} {vr : List V} {cs : List (Option V × String
   simp only [List.cons.injEq, and_true] at this
   rwa [← this]
 
-theorem gw_kidsT_true : ∀ (cs : List Call) (ks : List Tree), KidsT cs (cs.map fun _ _ ↦ True) ks
-  | [], _ => trivial
-  | _ :: _, [] => trivial
-  | _ :: cs, _ :: ks => ⟨fun _ ↦ trivial, gw_kidsT_true cs ks⟩
-
 variable {fs : String → ℕ}
 
 /-- A call's bound: its callee's valid trees within `w` when entered, its tail frame within `w`
@@ -201,13 +196,6 @@ theorem gw_node {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn) {pre
   have := gw_kids_total _ Ws ks hk hb.2 hW
   rw [Tree.total, List.sum_nil]
   omega
-
-theorem gw_pow_add_eq_zero {a b : ℕ} (ha : a < 2 ^ 62) (hb : b < 2 ^ 62) :
-    gen ^ a + gen ^ b = 0 ↔ a = b := by
-  constructor
-  · intro h
-    exact gen_pow_inj (by omega) (by omega) (e_add_eq_zero_iff.mp h)
-  · rintro rfl; exact e_add_self _
 
 theorem gw_f2_map {α β : Type} {R : α → β → Prop} {F : ℕ → α} {G : ℕ → β} :
     ∀ (l : List ℕ), (∀ p ∈ l, R (F p) (G p)) → List.Forall₂ R (l.map F) (l.map G)

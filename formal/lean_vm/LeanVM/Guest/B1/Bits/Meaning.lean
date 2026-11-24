@@ -32,10 +32,6 @@ def g_power_of_word_Spec : Prop := g_power_of_word_SpecP coreProgram
 /-- `assert_small_g_power`'s core IR is its meaning. -/
 def assert_small_g_power_Spec : Prop := assert_small_g_power_SpecP coreProgram
 
-/-- `log2_ceil_in_the_exponent__L{fl}_L34`'s core IR is its meaning. -/
-def log2_ceil_in_the_exponent_Spec (name : String) (fl : ℕ) : Prop :=
-  log2_ceil_in_the_exponent_SpecP coreProgram name fl
-
 /-- The deployed `log2_ceil_in_the_exponent` specializations are their meanings. -/
 def log2_Spec : Prop := log2_SpecP coreProgram
 

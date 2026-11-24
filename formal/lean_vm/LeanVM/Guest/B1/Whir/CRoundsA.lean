@@ -558,14 +558,6 @@ theorem osRounds_pad : ∀ (cp : Bool) (n i : ℕ) (st : OsSt), (osRounds cp i n
   | _, 0, _, _ => rfl
   | cp, n + 1, i, st => (osRounds_pad false n (i + 1) _).trans (osRound_state cp (n == 0) i st).2.2.1
 
-theorem osRounds_cb : ∀ (cp : Bool) (n i : ℕ) (st : OsSt), (osRounds cp i n st).2.cb = st.cb
-  | _, 0, _, _ => rfl
-  | cp, n + 1, i, st => (osRounds_cb false n (i + 1) _).trans (osRound_state cp (n == 0) i st).1
-
-theorem osRounds_mats : ∀ (cp : Bool) (n i : ℕ) (st : OsSt), (osRounds cp i n st).2.mats = st.mats
-  | _, 0, _, _ => rfl
-  | cp, n + 1, i, st => (osRounds_mats false n (i + 1) _).trans (osRound_state cp (n == 0) i st).2.2.2.1
-
 /-- **The rounds' memory from what it holds for them**: their words at the cursor, the table,
 the challenges' slots with the grinds passing (`RoundsMem`). -/
 theorem roundsH_of {rd : Reader} {fch coefs tabs : E} (ht : WinTabs rd tabs) :

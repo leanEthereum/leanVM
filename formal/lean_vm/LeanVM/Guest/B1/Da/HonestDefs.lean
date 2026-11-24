@@ -13,12 +13,10 @@ public import LeanVM.Guest.B1.Da.AtBase
 /-!
 # The honest words of the dual codeword's builders
 
-* `WordAt L i v`: word `i` of the layout `L` is `v`; `loadHolds_of_wordAt`, `regionL_of_wordAt`:
-  on a memory holding `L`, a load at `g^b · g^k`, `b + k = i`, reads `v`, and `i` is in `L`'s
-  region.
+* `WordAt L i v`: word `i` of the layout `L` is `v`.
 * `zsCells z`: `zs` (`z^(2^j)` for `j < 13`, then `0`); `aboveCells`: `above_top` (zeros);
   `facCells Z top D`: a `da_factors` buffer (node `n`'s factor for `1 ≤ n < 2^D`);
-  `expLeaves root F Z S top D`: a `da_expand` tree's leaves; `offCells Z`: `da_column_offsets`'
+  `offCells Z`: `da_column_offsets`'
   buffer (`offsets[7h + j] = Z_j · Ŵ_j(128 h)`); `stepCells Z b`: its run `steps` of bit `b`.
 * `facOut`, `expOut`, `offOut`, `vecOut`: what these functions return: pointers to those words,
   held in the returned layout.
@@ -38,21 +36,6 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 def WordAt (L : Layout) (i : ℕ) (v : E) : Prop :=
   ∃ q ∈ L, q.1 ≤ i ∧ i < q.1 + q.2.length ∧ q.2.getD (i - q.1) 0 = v
 
-theorem regionL_of_wordAt {L : Layout} {i : ℕ} {v : E} (h : WordAt L i v) : RegionL L i :=
-  let ⟨q, hq, h1, h2, _⟩ := h
-  ⟨q, hq, h1, h2⟩
-
-theorem loadHolds_of_wordAt {rd : Reader} {L : Layout} (hm : MemL rd L) {b k : ℕ} {v : E}
-    (h : WordAt L (b + k) v) : LoadHolds rd (gen ^ b) k v := by
-  obtain ⟨⟨c, xs⟩, hq, h1, h2, hv⟩ := h
-  simp only at h1 h2 hv
-  have hr : LoadHolds rd (gen ^ c) (b + k - c) (xs.getD (b + k - c) 0) := by
-    rw [List.getD_eq_getElem _ _ (by omega)]
-    exact reads_of_memL hm hq (b + k - c) (by omega)
-  rw [hv, ← Nat.add_zero (b + k - c), ← loadHolds_mul_gen_pow, ← pow_add,
-    show c + (b + k - c) = b + k by omega, pow_add, loadHolds_mul_gen_pow, Nat.add_zero] at hr
-  exact hr
-
 /-! ## The honest words -/
 
 /-- `da_vector`'s `zs`: `z^(2^j)` for `j < 13`, then `0` (`14` words). -/
@@ -65,10 +48,6 @@ def aboveCells : List E := List.replicate 14 0
 for `1 ≤ n < 2^D`, `0` elsewhere (`128` words). -/
 def facCells (Z : ℕ → E) (top D : ℕ) : List E :=
   (List.range 128).map fun n => if 1 ≤ n ∧ n < 2 ^ D then factorAt Z top n else 0
-
-/-- A `da_expand` tree's leaves. -/
-def expLeaves (root : E) (F Z S : ℕ → E) (top D : ℕ) : List E :=
-  (List.range (2 ^ D)).map (expandLeaf root F Z S top D)
 
 /-- `da_column_offsets`' buffer: `offsets[7h + j] = Z_j · Ŵ_j(128 h)` (`896` words). -/
 def offCells (Z : ℕ → E) : List E :=

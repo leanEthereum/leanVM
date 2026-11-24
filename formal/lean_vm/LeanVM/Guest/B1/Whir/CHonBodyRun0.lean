@@ -13,10 +13,10 @@ public import LeanVM.Guest.B1.Whir.CHonFields0
 # The run's facts for the body
 
 On an accepting run's honest data (`HonRun`): each level's carried capacity has five cells, its
-roots one entry a level before it (`br_Rlen`), its root's height its row's depth (`br_ht`), the
+roots one entry a level before it (`br_Rlen`), the
 next root the message's cells (`br_rootN`), the final level's challenges extend each level's
-(`br_G`), its rounds counted by its row (`br_rl`), its positions below the depth (`br_ps`), some
-(`br_q0`), its openings agreeing (`br_ag`); the final lane's length, the closing rounds' words and
+(`br_G`), its rounds counted by its row (`br_rl`), some of its positions (`br_q0`); the final
+lane's length, the closing rounds' words and
 count, the capacity after the positions' squeezes.
 -/
 
@@ -95,23 +95,6 @@ theorem br_dep {l : ℕ} (hl : l < (osCfgR (μ - minOpenLog) (r - 1)).levels.len
     show _ = μ - (Ls.getD l default).s1.alphas.length + _
     rw [LvAt.s1, roundsSpec_alphas_length, hg, hfold, hcols]
 
-theorem br_ht : ∀ l < (osCfgR (μ - minOpenLog) (r - 1)).levels.length,
-    ((Ls.getD l default).R.getD l default).2.1 = (((osCfgR (μ - minOpenLog) (r - 1)).levels.getD l default)).depth
-  | 0, hl => by
-    rw [hR.start.2.2.1]
-    have hs := hR.cand.2.1
-    show (stackShape μ r).1 = _
-    rw [hs]
-    simp [List.headD_eq_head?_getD, List.head?_eq_getElem?, List.getD_eq_getElem?_getD]
-  | l + 1, hl => by
-    have hy := hR.yr
-    obtain ⟨rw, W, hd, he⟩ := hR.br_Rnext (l := l) (by omega)
-    obtain ⟨-, hfold, hcols, -⟩ := hR.mid (l := l) (by omega)
-    have hshape := (hR.mid (l := l) (by omega)).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1
-    rw [he]
-    show (levelShape (μ - (Ls.getD l default).s1.alphas.length) _ _).1 = _
-    rw [LvAt.s1, roundsSpec_alphas_length, hR.alphas l (by omega), hfold, hcols, hshape]
-
 theorem br_rl : ∀ i < (osCfgR (μ - minOpenLog) (r - 1)).levels.length,
     (Ls.getD i default).rounds.length = (((osCfgR (μ - minOpenLog) (r - 1)).levels.getD i default)).folds := by
   intro i hi
@@ -150,29 +133,10 @@ theorem br_G : ∀ l < (osCfgR (μ - minOpenLog) (r - 1)).levels.length, ∀ j <
   obtain ⟨t, ht⟩ := hp
   rw [← ht, List.getD_append _ _ _ _ (by omega)]
 
-theorem br_ps : ∀ l < (osCfgR (μ - minOpenLog) (r - 1)).levels.length, ∀ q ∈ (Ls.getD l default).qs μ,
-    q < 2 ^ (((osCfgR (μ - minOpenLog) (r - 1)).levels.getD l default)).depth := by
-  intro l hl q hq
-  rw [LvAt.qs_eq_sq, sqPositions, List.mem_map] at hq
-  obtain ⟨k, -, rfl⟩ := hq
-  rw [(hR.br_dep hl).1, qwPosOf]
-  exact Nat.mod_lt _ (by positivity)
-
 theorem br_q0 : ∀ l < (osCfgR (μ - minOpenLog) (r - 1)).levels.length, 0 < ((Ls.getD l default).qs μ).length := by
   intro l hl
   rw [LvAt.qs_length, (hR.br_dep hl).2.2.1]
   exact (hR.br_dep hl).2.2.2
-
-theorem br_ag : ∀ l < (osCfgR (μ - minOpenLog) (r - 1)).levels.length,
-    Guest.Limits.OpeningsAgree (((osCfgR (μ - minOpenLog) (r - 1)).levels.getD l default)).depth
-      (((Ls.getD l default).qs μ).zip (Ls.getD l default).phase) := by
-  intro l hl
-  have hRl := hR.br_Rlen l hl
-  have hget : (Ls.getD l default).R[l]? = some (((Ls.getD l default).R.getD l default).1,
-      ((Ls.getD l default).R.getD l default).2.1, ((Ls.getD l default).R.getD l default).2.2) := by
-    rw [List.getD_eq_getElem (Ls.getD l default).R default (by omega), List.getElem?_eq_getElem (by omega)]
-  have := hR.agree l (by rw [hR.len]; exact hl) _ _ _ hget
-  rwa [hR.br_ht l hl] at this
 
 /-! ## The final level -/
 

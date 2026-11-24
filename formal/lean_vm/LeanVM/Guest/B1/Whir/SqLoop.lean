@@ -171,17 +171,6 @@ theorem squeezeN_snoc : ∀ (n : ℕ) (s : Fs), s.squeezeN (n + 1) =
     rw [Fs.squeezeN, squeezeN_snoc n s.squeeze.2]
     rfl
 
-theorem squeezeN_getD : ∀ (n : ℕ) (s : Fs) (j : ℕ), j < n →
-    (s.squeezeN n).1.getD j 0 = (s.squeezeN j).2.squeeze.1
-  | 0, _, _, h => absurd h (Nat.not_lt_zero _)
-  | n + 1, s, j, h => by
-    rw [squeezeN_snoc]
-    rcases Nat.lt_or_ge j n with h' | h'
-    · rw [List.getD_append _ _ _ _ (by rw [squeezeN_length]; exact h'), squeezeN_getD n s j h']
-    · obtain rfl : j = n := by omega
-      rw [List.getD_append_right _ _ _ _ (by rw [squeezeN_length]), squeezeN_length, Nat.sub_self]
-      rfl
-
 theorem squeezeN_pend {s : Fs} (hs : s.pend = []) : ∀ n, (s.squeezeN n).2.pend = []
   | 0 => hs
   | n + 1 => by rw [squeezeN_snoc]; rfl

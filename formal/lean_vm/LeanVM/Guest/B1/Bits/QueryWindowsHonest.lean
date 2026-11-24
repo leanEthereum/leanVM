@@ -14,12 +14,11 @@ public import LeanVM.Guest.Word
 # `decode_query_windows`' honest values (`guests/lean_ethereum.py`)
 
 On a word `w`, the honest run hints each window as `g^n`, `n` the window's bits of the word
-(`WindowsExp`, Interp's `execHint`: `n = Σ_{j<width} 2^j·bit(start + j)`, `winHintVal`,
-`winHintVal_eq`: the word's integer shifted and cut). So:
+(`WindowsExp`, Interp's `execHint`: `n = Σ_{j<width} 2^j·bit(start + j)`, `winHintVal`:
+the word's integer shifted and cut). So:
 
-* position `j` is `qwPosOf d w j` (its `d` bits from `j·d`), its window `i` `qwVal d cd (qwPosOf d w j) i`
-  (`qwVal_hint`: the hint's value at the window's place), and the `wins` run holds `qwRunW`, the
-  positions' windows in order (`qwRunList`, `128 / d · qwN` words);
+* position `j` is `qwPosOf d w j` (its `d` bits from `j·d`), its window `i`
+  `qwVal d cd (qwPosOf d w j) i`, and the `wins` run holds `qwRunW`, the positions' windows in order (`qwRunList`, `128 / d · qwN` words);
 * rest window `r` is `qwRestOf d w r`, the bits `qwRestWin d r` of the word;
 * the digits on tiles of an integer sum back to it (`tS_digits`): a position's windows to the
   position (`qw_pos_tS`), the positions and rest windows to the word (`qw_recon`).
@@ -175,45 +174,6 @@ theorem wordBit_eq (x : E) {i : ℕ} (hi : i < 128) :
   rw [Nat.mul_zero, Nat.add_zero] at hn
   rw [Nat.shiftRight_eq_div_pow]
   exact congrArg (fun n : ℕ ↦ decide (n = 1)) hn
-
-/-- **The interpreter's window value is the word's integer, shifted and cut.** -/
-theorem winHintVal_eq (x : E) {start width : ℕ} (h : start + width ≤ 128) :
-    winHintVal x start width = (eToNat x >>> start) % 2 ^ width := by
-  unfold winHintVal
-  simp only [Nat.zero_mul, Nat.add_zero]
-  induction width with
-  | zero => simp [Nat.mod_one]
-  | succ n ih =>
-    rw [List.range_succ, List.foldl_append, ih (by omega)]
-    simp only [List.foldl_cons, List.foldl_nil]
-    rw [wordBit_eq x (by omega), Nat.pow_succ, Nat.mod_mul, Nat.shiftRight_eq_div_pow,
-      Nat.shiftRight_eq_div_pow, Nat.div_div_eq_div_mul, ← Nat.pow_add]
-    have hb := Nat.mod_lt (eToNat x / 2 ^ (start + n)) (show 0 < 2 by decide)
-    rcases (show eToNat x / 2 ^ (start + n) % 2 = 0 ∨ eToNat x / 2 ^ (start + n) % 2 = 1 by omega)
-      with e | e <;> simp [e]
-
-theorem qw_gpowE_eq {n : ℕ} (h : n < 2 ^ 64) : gpowE n = gen ^ n := by
-  rw [gpowE, gpowK_eq (by unfold u128Bound; omega), gen_pow_eq_ofK]
-
-/-- **The honest windows are the interpreter's hints**: window `i` of position `j` is `g^` the
-hint's value of the window's bits of the word, at the window's place `j·d + off`. -/
-theorem qwVal_hint {d cd : ℕ} (hs : QwShape d cd) (w : E) {j i : ℕ} (hj : j < 128 / d)
-    (hi : i < qwN d cd) :
-    gen ^ qwVal d cd (qwPosOf d w j) i =
-      gpowE (winHintVal w (j * d + (qwWin d cd i).1) (qwWin d cd i).2) := by
-  obtain ⟨hw1, hw7, -, hd⟩ := hs.2.2.2.2.2.1 i hi
-  have hjd : j * d + d ≤ 128 := by
-    have := Nat.div_mul_le_self 128 d
-    have : (j + 1) * d ≤ 128 / d * d := Nat.mul_le_mul_right _ hj
-    nlinarith
-  rw [winHintVal_eq w (by omega), qw_gpowE_eq (lt_of_lt_of_le (Nat.mod_lt _ (by positivity))
-    (Nat.pow_le_pow_right (by decide) (by omega)))]
-  congr 1
-  have hp : 2 ^ d = 2 ^ (qwWin d cd i).1 * 2 ^ (d - (qwWin d cd i).1) := by
-    rw [← Nat.pow_add]; congr 1; omega
-  rw [qwVal, qwPosOf, Nat.shiftRight_eq_div_pow, Nat.shiftRight_eq_div_pow,
-    Nat.shiftRight_eq_div_pow, hp, Nat.mod_mul_right_div_self, Nat.div_div_eq_div_mul, ← Nat.pow_add,
-    Nat.mod_mod_of_dvd _ (Nat.pow_dvd_pow 2 (by omega))]
 
 end
 end LeanVM.Guest.B1

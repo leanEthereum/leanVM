@@ -21,8 +21,7 @@ On a valuation satisfying `Fwd.Good` for every statement of a body's evaluation 
   evaluation) reads the memory's word;
 * `good_mul`: a product of older values;
 * `keccak_good`: a `KECCAK` holds, its outputs the permutation's;
-* `fsNextT_good`, `challengeT_good`: `fs_next` reading a word holds, its cells the word's;
-  `challenge_from_state` is the template's `ChallengeOk`;
+* `fsNextT_good`: `fs_next` reading a word holds, its cells the word's;
 * `holdsList_auto`: a block of pure atoms and hints holds;
 * `good_slice`, `good_ite`: a slice of a body, or an `ite`'s branches, are in its evaluation list.
 -/
@@ -119,14 +118,6 @@ theorem keccak_good {ins outs : List V} (hg : Good rd S w σ (.keccak ins outs f
     exact he c (by omega)
   exact ⟨keccakA_of hi ho hout, hout⟩
 
-/-! ## Blocks of pure atoms -/
-
-/-- A pure atom or a hint. -/
-def autoBG : Stmt → Bool
-  | .atom (.hint _) => true
-  | .atom a => pureB a
-  | _ => false
-
 /-! ## The Fiat-Shamir templates -/
 
 /-- **`fs_next` on its equations**: the word read, its two cells, and the template holding. -/
@@ -145,11 +136,6 @@ theorem fsNextT_good {C : CallRel} {kret : List E → Prop} {cur off b : ℕ}
   refine ⟨e0, ?_, (holds_fsNextT _ _ _ _ _).mpr ⟨⟨hl0, hok⟩, trivial⟩⟩
   rw [← e0]
   exact fsPackT_cells hok
-
-/-- **`challenge_from_state` on its equations.** -/
-theorem challengeT_good {s0 b : ℕ} (hg : ∀ s ∈ challengeT (.n s0) b, GoodS rd S w σ s) :
-    ChallengeOk σ (.n s0) b :=
-  hg (.atom (.copy (.n b) (.n s0))) (by simp [challengeT])
 
 end
 end LeanVM.Guest.B1.Tables

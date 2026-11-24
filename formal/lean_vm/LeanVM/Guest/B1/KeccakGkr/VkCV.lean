@@ -13,7 +13,7 @@ import LeanVM.Guest.Data.ValNames.«verify_keccak»
 /-!
 # `verify_keccak`, complete and placed
 
-`VkCompleteAtK fs cert κ`: for every accepting run of `verifyKeccak` from a carried capacity `f`
+`verify_keccak`'s completeness (`VkCompleteAtBK`, in `VkCW`): for every accepting run of `verifyKeccak` from a carried capacity `f`
 (the instance coordinates `chis`, the output lanes `outs`, the words read `xs`, the committed
 outputs' opening `op`, the inputs' point `point`, the slices, the sponge `s'` after them),
 `verify_keccak` is complete at every frame pointer: the caller's words are the stream, the
@@ -36,21 +36,6 @@ open LeanVM.Protocol.KeccakGkr Finset
 open LeanVM.Guest.B1.Main (MemL RegionL)
 
 @[expose] public section
-
-/-- **`verify_keccak`, placed** (fork c4's shape, with the carried capacity). -/
-def VkCompleteAtK (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) : Prop :=
-  ∀ (τ : ℕ) (f chis outs xs op point slices : List E) (word : E) (s' : Fs)
-    (curE chiE olE zvE slE tbE stE : ℕ), 9 ≤ τ → τ ≤ 28 → τ ≤ chis.length → outs.length = 25 →
-    f.length = 5 → (∃ sp, (⟨f, []⟩ : Fs).Carries sp) →
-    RunsTo (verifyKeccak τ (chis.take τ) outs) ⟨f, []⟩ xs ([⟨qkeccak, op, word⟩], point, slices) s' →
-    CompleteAtD fs cert κ "verify_keccak"
-      [(curE, xs), (chiE, chis), (olE, outs), (zvE, op), (zvE + qkeccakVarsCap, point),
-        (slE, slices), (tbE, winTabWords)]
-      (f ++ [ofK (Parameters.addressOfIndex curE), gen ^ τ, ofK (Parameters.addressOfIndex chiE),
-        ofK (Parameters.addressOfIndex olE), ofK (Parameters.addressOfIndex zvE),
-        ofK (Parameters.addressOfIndex slE), ofK (Parameters.addressOfIndex tbE),
-        ofK (Parameters.addressOfIndex stE)])
-      (Returns (capOf s'.perm ++ [ofK (Parameters.addressOfIndex curE) * gen ^ xs.length, word]))
 
 theorem vk_noLoadIte : vkPre.all noLoadIte = true := by decide +kernel
 
@@ -170,7 +155,6 @@ theorem vk_obl {D : VkData} (h : D.Ok) (curE chiE olE zvE slE tbE stE fp : ℕ) 
       (fun i hi ↦ Or.inl hi) (fun i hi ↦ Or.inr (Or.inl hi))
       (fun s hs i hi ↦ Or.inr (Or.inr (outRegion_ofI (s + 1) (by omega) (by omega)
         (by rw [atAllG_getElem]; simp [kids_lay hs, layKid]) (by rw [hlay s hs]; exact hi))))
-
 
 open VkData in
 

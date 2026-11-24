@@ -50,19 +50,5 @@ theorem holds_splitLimbsT (w : V) (b : ℕ) (next : Prop) (kret : List E → Pro
     · rw [hl]; exact ofK_isInK _
     · rw [h3]; exact ofK_isInK _
 
-/-- The honest values of `splitLimbsT` on a word `w`: its low limb, `w + w₀`, `y⁻¹`, its high
-limb. -/
-def splitLimbsVals (w : E) : ℕ → E
-  | 0 => ofK (w.limb 0)
-  | 1 => w + ofK (w.limb 0)
-  | 2 => word 2 1
-  | _ => ofK (w.limb 1)
-
-/-- `pack64x2(a, b)`'s atoms from the value `b0`: both limbs asserted in `K`, `Y_TOWER` at `b0`,
-`y·b` at `b0 + 1`, the cell `a + y·b` at `b0 + 2`. -/
-def pack64x2T (a b : V) (b0 : ℕ) : List Stmt :=
-  [.atom (.assertInK a b), .atom (.const (.n b0) (word 0 1)), .atom (.mul (.n (b0 + 1)) (.n b0) b),
-    .atom (.add (.n (b0 + 2)) a (.n (b0 + 1)))]
-
 end
 end LeanVM.Guest.B1

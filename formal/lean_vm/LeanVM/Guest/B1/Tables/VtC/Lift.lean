@@ -1,8 +1,7 @@
 /-
   LeanVM.Guest.B1.Tables.VtC.Lift
 
-  `verify_tables`, placed: from its honest valuation on every memory holding its layout, the
-  uniform placed form (`CompleteAtD`).
+  `verify_tables` as a flat function (`FlatFn`).
 -/
 
 module
@@ -16,8 +15,7 @@ public import LeanVM.Guest.B1.Tables.VtC.Hon
 # `verify_tables`, placed
 
 `vtFlat`: `verify_tables`' kernel facts as a flat function (`FlatFn`): its evaluation list
-`vtEvL`, its range checks' reads `vtAux`, its callees `vtKidS`. `vt_completeAt`: `flat_completeAt`
-for it.
+`vtEvL`, its range checks' reads `vtAux`, its callees `vtKidS`.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -101,30 +99,6 @@ noncomputable def vtFlat : FlatFn where
 abbrev vtL (Lin : Layout) (sizes : List ℕ) (own : ℕ → List (List E)) (fs : String → ℕ) (fp : ℕ) :
     Layout :=
   flatL "verify_tables" Lin sizes own fs fp
-
-variable {fs : String → ℕ} {cert : String → V → ℕ}
-
-/-- **`verify_tables` is complete, placed**, from its honest valuation on every memory holding its
-layout and its calls by relations loading from that layout. -/
-theorem vt_completeAt {κ : ℕ} (Lin : Layout) (args rets : List E) (hl : args.length = 21)
-    (sizes : List ℕ) (own : ℕ → List (List E))
-    (hown : ∀ fp, List.Forall₂ (fun c s => c.length ≤ s) (own fp) sizes)
-    (w : ℕ → ℕ → E) (bufs : ℕ → List (E × ℕ))
-    (hbufs : ∀ fp, ∀ q ∈ bufs fp, ∃ b, q.1 = ofK (addressOfIndex b) ∧
-      ∀ i < q.2, RegionL (vtL Lin sizes own fs fp) (b + i))
-    (hrun : ∀ fp rd, LowDef κ rd → MemL rd (vtL Lin sizes own fs fp) →
-      (∀ s ∈ vtPre, VSH (coreProgram.RelIn rd (RegionL (vtL Lin sizes own fs fp))) rd
-        (vtσ rd (w fp) args) s) ∧
-      LoadsInBuf (vtσ rd (w fp) args) (bufs fp) vtPre ∧
-      (vtPre.filterMap Main.Stmt.allocSz).map
-        (fun x => x.2.elim id fun s => logG (vtσ rd (w fp) args s)) = sizes ∧
-      ((vtPre.filterMap Main.Stmt.allocSz).map Prod.fst).map (vtσ rd (w fp) args) =
-        (bases (fp + fs "verify_tables") sizes).map (fun b => ofK (addressOfIndex b)) ∧
-      vtRets.map (vtσ rd (w fp) args) = rets) :
-    CompleteAtD fs cert κ "verify_tables" Lin args (Returns rets) :=
-  flat_completeAt vtFlat Lin args rets hl sizes own hown w bufs hbufs fun fp rd hlow hL ↦
-    let h := hrun fp rd hlow hL
-    ⟨h.1, fun d p off hm ↦ h.2.1 d p off (vtEvL_load_mem hm), h.2.2⟩
 
 end
 end LeanVM.Guest.B1.Tables

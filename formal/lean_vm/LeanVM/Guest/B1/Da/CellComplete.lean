@@ -18,7 +18,7 @@ import LeanVM.Guest.Data.ValNames.«da_verify_cell»
 
 The honest valuation is the body evaluated on the weights' pointer (`Fwd.ev`), the hinted
 symbols the honest ones. The template's loads read the weights, so the template holds, and every
-atom holds. The returns are computed as in `da_verify_cell_holds`.
+atom holds.
 -/
 
 namespace LeanVM.Guest.B1.Da
@@ -33,12 +33,6 @@ open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Main LeanVM.Guest.B1.Fwd
 def cellRets (syms ws : List E) : List E :=
   digestCells (keccak256 (syms.flatMap E.toBytes)) ++
     [((List.range LeanDa.cellSymbols).map fun e ↦ ws.getD e 0 * syms.getD e 0).sum]
-
-/-- `da_verify_cell`'s meaning, for given symbols and weights in memory, gives its core IR. -/
-def da_verify_cell_complete_Spec : Prop :=
-  ∀ (rd : Reader) (lv : E) (syms ws : List E), syms.length = LeanDa.cellSymbols →
-    ws.length = LeanDa.cellSymbols → ReadsAt rd lv ws →
-      coreProgram.Rel rd "da_verify_cell" [lv] (cellRets syms ws)
 
 /-- The oracle of the symbols' hint. -/
 def symOrc (syms : List E) (j : ℕ) : E := syms.getD (j - 1) 0
@@ -157,12 +151,6 @@ theorem da_verify_cell_params : (fn% «da_verify_cell»).params = [.n (val% «da
   unfold cellOk at hok
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hok
   exact hok.1
-
-/-- **`da_verify_cell` is complete.** -/
-theorem da_verify_cell_complete : da_verify_cell_complete_Spec := by
-  intro rd lv syms ws hsl hwl hreads
-  obtain ⟨σ, e0, -, h⟩ := da_verify_cell_complete_vals rd lv syms ws hsl hwl hreads
-  exact (rel_iff_sem find_da_verify_cell _ _).mpr ⟨σ, by rw [da_verify_cell_params]; simp [e0], h _⟩
 
 end
 end LeanVM.Guest.B1.Da

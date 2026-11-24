@@ -16,7 +16,7 @@ public import LeanVM.Guest.B1.Whir.CHonMemFin
 
 On `hR : HonRun μ r … cfg Ls`, `h := hdOf μ r Ls`: the point buffers are the run's point
 zero-padded and one plus it one-padded (`fld_own_pt`, `fld_own_pt1`), the squeezes' capacities
-have five cells and squeeze to the samples (`fld_cap_len`, `fld_cap_word`), each level's rounds
+squeeze to the samples, each level's rounds
 are its `opening_queries`' folds (`fld_rounds_len`), the final lane is its coefficients
 (`fld_hsv_len`), and the positions are the samples' windows (`fld_qs_eq`).
 -/
@@ -34,15 +34,6 @@ theorem tailRun_fst (p : List (E × E)) (cap : List E) (a b : E) :
   have := (tailRun_add p cap a (a + b)).2.1
   rw [show a + (a + b) = b by rw [← add_assoc, CharTwo.add_self_eq_zero, zero_add]] at this
   exact this.symm
-
-theorem fld_cap_len (Ls : List LvAt) (logN : ℕ) :
-    ∀ l j, ((Ls.getD l default).capSq logN j).length = 5 :=
-  fun _ _ ↦ capSq_length _ _ _
-
-theorem fld_cap_word (Ls : List LvAt) (logN : ℕ) :
-    ∀ l j, 1 ≤ j → (⟨(Ls.getD l default).capSq logN j, []⟩ : Fs).squeeze.1 =
-      (Ls.getD l default).word logN j :=
-  fun _ _ hj ↦ capSq_word _ _ hj
 
 theorem oq_folds (sh : OqShape) : sh.oq.folds = sh.folds := rfl
 theorem oq_final (sh : OqShape) : sh.oq.final = sh.final := rfl

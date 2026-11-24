@@ -97,7 +97,6 @@ theorem Blk.nil {σ : Val} {k : ℕ} {Out : Val → Prop} (hO : ∀ σ', AgreeBe
     Blk C rd σ k k [] Out :=
   ⟨fun _ ↦ 0, fun σ' ha _ ↦ ⟨allOk_nil, hO σ' ha⟩⟩
 
-
 /-! ## Blocks with their values named -/
 
 /-- **A block at the values `f`**: every valuation agreeing with `σ` below `k` and holding `f` on
@@ -155,30 +154,6 @@ theorem BlkF.congr {σ : Val} {k k' : ℕ} {f g : ℕ → E} {ss : List Stmt} {O
 def segLookup : List (ℕ × (ℕ → E)) → ℕ → E
   | [], _ => 0
   | (n, g) :: rest, j => if j < n then g j else segLookup rest (j - n)
-
-/-- The total length of segments. -/
-def segLen (segs : List (ℕ × (ℕ → E))) : ℕ := (segs.map (·.1)).sum
-
-theorem segLookup_get : ∀ (segs : List (ℕ × (ℕ → E))) (m : ℕ) (hm : m < segs.length) (i : ℕ)
-    (_ : i < segs[m].1), segLookup segs (segLen (segs.take m) + i) = segs[m].2 i
-  | (n, g) :: _, 0, _, i, hi => by simp [segLookup, segLen, show i < n from hi]
-  | (n, g) :: rest, m + 1, hm, i, hi => by
-    have := segLookup_get rest m (by simpa using hm) i (by simpa using hi)
-    simp only [List.take_succ_cons, segLen, List.map_cons, List.sum_cons, segLookup,
-      List.getElem_cons_succ] at this ⊢
-    simp only [show ¬ (n + (List.map (·.1) (List.take m rest)).sum + i < n) by omega, ↓reduceIte]
-    rw [show n + (List.map (·.1) (List.take m rest)).sum + i - n =
-      (List.map (·.1) (List.take m rest)).sum + i by omega]
-    exact this
-
-theorem segLen_take_add_le : ∀ (segs : List (ℕ × (ℕ → E))) (m : ℕ) (hm : m < segs.length),
-    segLen (segs.take m) + segs[m].1 ≤ segLen segs
-  | (n, g) :: rest, 0, _ => by simp [segLen]
-  | (n, g) :: rest, m + 1, hm => by
-    have := segLen_take_add_le rest m (by simpa using hm)
-    simp only [segLen, List.take_succ_cons, List.map_cons, List.sum_cons,
-      List.getElem_cons_succ] at this ⊢
-    omega
 
 /-- A block whose outcome holds of every later valuation agreeing below `k'`. -/
 def Stable (k' : ℕ) (Out : Val → Prop) : Prop := ∀ σ σ', Out σ → AgreeBelow k' σ σ' → Out σ'

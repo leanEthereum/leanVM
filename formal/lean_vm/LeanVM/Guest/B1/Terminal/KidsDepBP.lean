@@ -17,8 +17,7 @@ public import LeanVM.Guest.B1.Terminal.KidsDepBT
 `KidsDepBP fs cert κ ks Bs Ps`: `KidsDepB` with callee `j`, entered, `CompleteAtDTB` by trees of
 `Ps[j]`. `namedP fs names Bs Ps`: callee `j`'s tree a call of `names[j]` within `Bs[j]` words
 satisfying `Ps[j]`. `kidsFromInT_of_depBPR`, `completeAt_flatDepRBPR`: `kidsFromInT_of_depB`,
-`completeAt_flatDepRBT` with them, the predicates of the memory too. `KidsDepB.toBP`: callees within their bounds, by trees of
-`True` (`CompleteAtB.toDTB`).
+`completeAt_flatDepRBT` with them, the predicates of the memory too.
 
 The same with predicates of the memory (`CompleteAtDTBR`, `Budget/Bounded`; `KidsDepBPR`, `kidsFromInT_of_depBPR`), a tree's pops being read through it: `completeAt_flatDepRBPR` also gives the node's valuation a property `Qn` the obligations prove of it on each memory (the honest valuation, its own buffers held).
 -/
@@ -59,17 +58,6 @@ theorem KidsDepBPR.length {κ : ℕ} : ∀ {ks : List KidD} {Bs : List ℕ} {Ps 
   | [], _ :: _, _, h | [], [], _ :: _, h | _ :: _, [], _, h | _ :: _, _ :: _, [], h => by
     simp [KidsDepBPR] at h
 
-theorem KidsDepBP.toR {κ : ℕ} : ∀ {ks : List KidD} {Bs : List ℕ} {Ps : List (Tree → Prop)},
-    KidsDepBP fs cert κ ks Bs Ps → KidsDepBPR fs cert κ ks Bs (Ps.map fun P _ => P)
-  | [], [], [], _ => trivial
-  | _ :: _, _ :: _, _ :: _, ⟨h, hs⟩ => ⟨h, hs.toR⟩
-  | [], _ :: _, _, h | [], [], _ :: _, h | _ :: _, [], _, h | _ :: _, _ :: _, [], h => by
-    simp [KidsDepBP] at h
-
-theorem map_const_eval (Ps : List (Tree → Prop)) (rd : Reader) :
-    (Ps.map fun P (_ : Reader) => P).map (· rd) = Ps := by
-  simp [Function.comp_def]
-
 /-- **Callee `j` a call of `names[j]` within `Bs[j]` words satisfying `Ps[j]`.** -/
 def namedP (fs : String → ℕ) : List String → List ℕ → List (Tree → Prop) → List (Tree → Prop)
   | n :: ns, b :: Bs, P :: Ps => (fun t => Budget.NamedWithin fs n b t ∧ P t) :: namedP fs ns Bs Ps
@@ -91,13 +79,6 @@ theorem KidsDepBP.length {κ : ℕ} : ∀ {ks : List KidD} {Bs : List ℕ} {Ps :
   | _ :: _, _ :: _, _ :: _, ⟨_, hs⟩ => ⟨by simp [hs.length.1], by simp [hs.length.2]⟩
   | [], _ :: _, _, h | [], [], _ :: _, h | _ :: _, [], _, h | _ :: _, _ :: _, [], h => by
     simp [KidsDepBP] at h
-
-/-- **Callees within their bounds, by trees of `True`.** -/
-theorem KidsDepB.toBP {κ : ℕ} : ∀ {ks : List KidD} {Bs : List ℕ}, KidsDepB fs cert κ ks Bs →
-    KidsDepBP fs cert κ ks Bs (List.replicate ks.length fun _ => True)
-  | [], [], _ => trivial
-  | _ :: _, _ :: _, ⟨h, hs⟩ => ⟨fun pv => ⟨fun ht => ((h pv).1 ht).toDTB, (h pv).2⟩, hs.toBP⟩
-  | [], _ :: _, h | _ :: _, [], h => by simp [KidsDepB] at h
 
 /-- A run within `B` words by a tree of `P`, by a call of `f`. -/
 theorem relAtInT_named {rd : Reader} {R D : ℕ → Prop} {fp n : ℕ} {f : String} {args rets : List E}
@@ -241,48 +222,18 @@ theorem completeAt_flatDepRBPR {f : String} {fn : Fn} (hf : coreProgram.find? f 
   obtain ⟨hB, hLk⟩ := Main.memL_append.mp hLm
   have hLo := memL_outsL hI hLk
   obtain ⟨σ, hQ, hp, hdo, hh, hsz, hbuf, hcm, hld⟩ := hσ fp outs hlen ho rd hlow hB hLin hLo
-  have hw := walk_flat σ vs pre hst hdo
-  rw [← hb] at hw
-  obtain ⟨i1, i2, i3, i4, i5⟩ := flat_parts σ pre hst
-  have hsat := walk_sat (P := coreProgram) fn.body (coreProgram_wf fn (List.mem_of_find?_eq_some hf)) hh
-  rw [hw] at hsat
-  have hes : ∀ e ∈ pre.flatMap (flEvs σ), e.Holds rd σ := fun e he => (hsat.1 e he).1
-  have hr : vs.map σ = rets := hsat.2
-  have hal : allocs σ (pre.flatMap (flEvs σ)) = sizes := by rw [i2, hsz]
-  have hown' : ∀ i, RegionL (bufL (fp + fs f) sizes (own fp)) i →
-      ownData cert fp (fp + fs f) f (allocs σ (pre.flatMap (flEvs σ))) (pre.flatMap (flEvs σ)) i :=
-    fun i hi => Or.inl (by rw [hal]; exact bufL_region _ _ _ (hown fp) i hi)
-  have hk := hK rd σ (calls (pre.flatMap (flEvs σ))) (fun i => RegionL Lin i ∨
-      ownData cert fp (fp + fs f) f (allocs σ (pre.flatMap (flEvs σ))) (pre.flatMap (flEvs σ)) i)
-    (fun _ => False) (by rw [i4]; exact hcm) hlow hLk (hkm fp outs ho rd hlow hB hLin hLo)
-    ((hkr fp outs ho).mono_R fun i hi => hi.imp_right (hown' i))
-  have hb' : fp + fs f + sizes.sum = fp + fs f + (allocs σ (pre.flatMap (flEvs σ))).sum := by
-    rw [hal]
-  rw [hb'] at hk
-  -- the number of calls
-  have hcl : (calls (pre.flatMap (flEvs σ))).length ≤
-      (namedP fs names Bs (Ps.map (· rd))).length := by
-    rw [i4, kdbt_callsMatch_length hcm, kidsAt_length _ _ _ hlen,
-      namedP_length (hn fp).length_eq (hkc fp).length.1 (by rw [List.length_map]; exact (hkc fp).length.2)]
-  obtain ⟨t, ⟨htn, htv, htb, htp, htt, htl, htd⟩, ks, rfl, hkT⟩ :=
-    relAtInWT_of_walk (P := coreProgram) (fs := fs) (cert := cert) (R := RegionL Lin)
-    (D := RegionL []) (Dk := fun i => False ∨ outRegion (kidsAt (kids fp) [] outs) outs i) (N := N)
-    (fp := fp) coreProgram_wf hf (Or.inl hl) hp hw hr hes (by rw [hal, i1]; exact hbuf)
-    (by rw [i3, haddrs]; simp) _ hk (fun A hA => by
-      rw [i5] at hA
-      obtain ⟨q, hq, rfl⟩ := List.mem_map.mp hA
-      obtain ⟨i, hi, h | h | h⟩ := hld q (filterMap_of_loadsEv hni hq)
-      · exact ⟨i, hi, Or.inr (Or.inl h)⟩
-      · exact ⟨i, hi, Or.inl (hown' i h)⟩
-      · exact ⟨i, hi, Or.inr (Or.inr (Or.inr h))⟩)
+  obtain ⟨t, ht, ks, rfl, hkT⟩ := relAtInT_flat (R := RegionL Lin) (D := RegionL []) hf hl hb hst haddrs
+    (hown fp) hp hdo hh hsz hbuf _
+    (hK rd σ _ _ _ hcm hlow hLk (hkm fp outs ho rd hlow hB hLin hLo) (hkr fp outs ho))
+    (fun q hq => (hld q (filterMap_of_loadsEv hni hq)).imp fun _ h =>
+      ⟨h.1, h.2.imp_right (Or.imp_right Or.inr)⟩)
     (fun i hi => by obtain ⟨q, hq, _⟩ := hi; simp at hq)
-  refine ⟨_, ⟨htn, htv, htb, htp, by rw [htt, hal], htl, htd⟩, ⟨σ, _, ks, rfl,
-    fun fn' es' vs' hf' hw' ↦ ?_⟩, σ, _, ks, rfl, hQ⟩
-  rw [hf] at hf'
-  cases hf'
-  rw [hw] at hw'
-  cases hw'
-  exact ⟨hcl, hkT⟩
+  refine ⟨_, ht, ⟨σ, _, ks, rfl, fun fn' es' vs' hf' hw' ↦ ?_⟩, σ, _, ks, rfl, hQ⟩
+  rw [calls_of_walk_flat hf hb hst hdo fn' es' vs' hf' hw']
+  refine ⟨?_, hkT⟩
+  refine (callsMatch_length hcm).trans_le ?_
+  rw [kidsAt_length _ _ _ hlen,
+    namedP_length (hn fp).length_eq (hkc fp).length.1 (by rw [List.length_map]; exact (hkc fp).length.2)]
 
 end
 end LeanVM.Guest.B1

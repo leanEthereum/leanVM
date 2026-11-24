@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Sig.PopsKit
 /-!
 # `walk_path`'s pops
 
-* `noWit`, `fallPops_noWit`, `splicePops_noWit`: a block of atoms none a witness hint pops nothing; `SplicePops.callIf`: a conditional call pops its callee's entries;
+* `noWit`, `fallPops_noWit`: a block of atoms none a witness hint pops nothing; `SplicePops.callIf`: a conditional call pops its callee's entries;
 * `oqWalkT_fallPops`: the walk, its windows' words arms of their matches, pops its hinted
   siblings' cells, one `merkle_children` entry;
 * `WD.wpPops w`: the sibling cells `w.pc` of an honest walk, one `merkle_children` entry;
@@ -87,9 +87,6 @@ theorem SplicePops.callIf (c : V) (f : String) (args : List V) (k : List Pop) :
   · split <;> rfl
   · split <;> simp [splice]
 
-theorem splicePops_noWit {ss : List Stmt} (h : noWit ss = true) : SplicePops rd σ ss [] [] :=
-  SplicePops.of_fallPops (fallPops_noWit σ h)
-
 /-! ## The walk -/
 
 theorem oqStepT_noWit (pr ch l K n0 n1 : ℕ) (bit : Bool) : noWit (oqStepT pr ch l K n0 n1 bit) = true := rfl
@@ -145,16 +142,6 @@ variable (w : WD)
 def wpPops : List Pop := [("merkle_children", (List.range (2 * w.pd)).map w.pc)]
 
 variable {w} {ch kN pr : ℕ} {bp cap flags : V}
-
-/-- **An honest walk inline pops its siblings' cells.** -/
-theorem At.walk_fallPops (hv : w.At σ ch kN pr bp cap flags) :
-    FallPops rd σ (oqWalkT w.s bp cap flags pr kN ch) w.wpPops := by
-  refine fallPops_eq (oqWalkT_fallPops fun i hi => ⟨w.wv i, (qwVal_path hi w.q).1, ?_⟩) ?_
-  · rw [show oqWk w.s ch i = oqWk w.s ch i + 0 from rfl, hv.win hi (by unfold winSz; omega), winV,
-      ite_eq_left rfl, gen_pow_ofK]
-  · simp only [wpPops]
-    congr 2
-    exact List.map_congr_left fun j hj => hv.sib (List.mem_range.mp hj)
 
 end WD
 

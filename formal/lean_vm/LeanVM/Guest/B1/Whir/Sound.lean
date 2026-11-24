@@ -26,8 +26,7 @@ public import LeanVM.Guest.B1.Eq.FoldFinal
 /-!
 # `open_stacked`, soundly (TRIAGE G #42)
 
-`open_stacked_sound_w : open_stacked_sound_w_Spec open_stacked_osW` and
-`open_stacked_sound : open_stacked_sound_Spec`: for every stack log `20 ≤ μ ≤ 30` and rate
+`open_stacked_sound_w : open_stacked_sound_w_Spec open_stacked_osW`: for every stack log `20 ≤ μ ≤ 30` and rate
 `1 ≤ r ≤ 4`, a call of `open_stacked__L{μ - 20}` on the rate's selector establishes `OpenOut`
 (at the witness's words and openings): the words it reads and the openings run the Spec's
 `whirOpen μ r target` (the stacked WHIR opening up to its terminal check, `verifyWhir_split`), and
@@ -122,15 +121,6 @@ theorem open_stacked_sound_w : open_stacked_sound_w_Spec open_stacked_osW := by
   have hLOk := levelsOk_of (logN := μ) hcal hsem hle hrate 0 _ cfg List.drop_zero hlv
   exact open_generic hU hle hdc hmu hshape hoff0 hlane hLOk hFS hrate hps hbody (by rfl) hroot hwt
     hp hh
-
-/-- **`open_stacked` is sound** at every size and rate. -/
-theorem open_stacked_sound : open_stacked_sound_Spec := by
-  intro κ hκ hwb L μ r h1 h2 h3 h4 root fs target root0 root1 cur tabs rets hfs hroot hwt hrel
-  obtain ⟨fn, hf, σ, hp, hb⟩ := (rel_iff coreProgram _ _ _).mp hrel
-  have h := open_stacked_sound_w hκ hwb L (coreProgram.Rel L.read) (relV L.read)
-    (unfoldsV_rel L.read) (fun _ _ _ h ↦ h) μ r h1 h2 h3 h4 root fs target root0 root1 cur tabs rets
-    fn σ hfs hroot hwt hf hp hb
-  exact OpenOutW.openOut h
 
 end
 end LeanVM.Guest.B1.Whir

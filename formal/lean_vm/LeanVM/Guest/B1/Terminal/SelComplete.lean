@@ -227,15 +227,5 @@ theorem cs_completeAtB (k : ℕ) (hk : 4 ≤ k) {κ : ℕ} (hκ : κ < 31) {o : 
       k hk hκ ho hd hl hl1 fp
   ⟨n, Lown, rets, Lout, ho', hw, hd', hn, fun rd hl' hm => (hr rd hl' hm).relAtIn⟩
 
-/-- **`column_selector__L{κ}` is complete, placed** (`cs_completeAtDTB`). -/
-theorem cs_completeAt (k : ℕ) (hk : 4 ≤ k) {κ : ℕ} (hκ : κ < 31) {o : ℕ} (ho : o < 2 ^ 32)
-    (hd : 2 ^ κ ∣ o) {ept ept1 ese bg : ℕ} {p p1 : List E} (hl : p.length = 32)
-    (hl1 : p1.length = 32) :
-    CompleteAtD fs cert k (Tables.lName "column_selector" κ) (csLin ept ept1 ese bg p p1)
-      [gen ^ o, ofK (addressOfIndex ese), ofK (addressOfIndex bg)]
-      (Returns [Tables.bitsEq ((List.range (32 - κ)).map fun i ↦ o.testBit (κ + i)) (p.drop κ)
-        (p1.drop κ)]) :=
-  (cs_completeAtB (ept := ept) (ept1 := ept1) k hk hκ ho hd hl hl1).toCompleteAtD
-
 end
 end LeanVM.Guest.B1.VerifySub
