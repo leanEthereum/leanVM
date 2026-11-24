@@ -14,18 +14,13 @@ import LeanVM.Protocol.EndToEnd.Front.LayoutStack
 # The bus depth and the table sumcheck's sizes of the leanISA instance
 
 The bus and table phases' specification (`Front.busTableSpec`) is stated over an abstract
-instance and a verifier layout, and asks four size facts of them. For the leanISA instance
-`leanIsaInstance prog s` at the verifier's layout `verifierLayout prog s`, at every size:
+instance and a verifier layout, and asks size facts of them. For the leanISA instance
+`leanIsaInstance prog s`, at every size:
 
-* `busLayout_depth_leanIsa`: the push side's depth the verifier computes (`busLayout`, the
-  framework blocks `[0, log_mem, log_bytecode]` and the tables' push flushes) is the instance's
-  `μBus`. The verifier's blocks are the instance's push boundary blocks (the state, memory and
-  bytecode seeds, of log-heights `0`, `log_mem` and the program's) and push flushes (the verifier
-  tables' push flushes are Clean's, `refFlush_eval`, so each table pushes as often), so the stacked
-  total is `pushLeaves`; `log2_ceil` is `Nat.clog 2` (`log2Ceil_eq_clog`).
-* `μBus_leanIsa_ne_zero`: the depth is positive, the memory seed alone having two leaves.
-* `d_leanIsa_le`: the degree bound is `2`.
-* `B_leanIsa`: the sumcheck tables have two constraints, `JUMP`'s; hence `B_leanIsa_le`.
+* `pushLeaves_leanIsa`: the push side's leaves are the three seeds' (state, memory and bytecode,
+  of log-heights `0`, `log_mem` and the program's) and each opcode table's push flushes, which are
+  Clean's (`length_pySide_push`, through `refFlush_eval`).
+* `B_leanIsa`: the sumcheck tables have two constraints, `JUMP`'s.
 
 No hypothesis on the sizes is needed: the facts hold of the instance as built.
 -/
@@ -68,23 +63,7 @@ theorem pushLeaves_leanIsa (prog : LeanIsaProgram) (s : Sizes) :
     simp only [h0, h1, h2, List.filter_nil, List.length_nil, zero_mul, zero_add]
     rfl
 
-/-- The push side's stacked total at the verifier's layout is the instance's push leaves. -/
-theorem blockTotal_push_eq_pushLeaves (prog : LeanIsaProgram) (s : Sizes) :
-    blockTotal (sideSizes (fwLogs prog s) (pushBlocks s)) =
-      (leanIsaInstance prog s).pushLeaves := by
-  rw [pushLeaves_leanIsa, blockTotal_sideSizes, pushBlocks, sum_flatten_ofFn, fwLogs]
-  simp only [List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, pow_zero, List.map_map,
-    Function.comp_def, List.map_const', List.sum_replicate, smul_eq_mul, length_pySide_push]
-  omega
-
-/-! ## The four facts -/
-
-/-- The push side's depth at the verifier's layout is the instance's bus depth. -/
-theorem busLayout_depth_leanIsa (prog : LeanIsaProgram) (s : Sizes) :
-    (busLayout [0, (verifierLayout prog s).logMemory, (verifierLayout prog s).logBytecode]
-      (verifierLayout prog s).push).depth = (leanIsaInstance prog s).μBus := by
-  rw [busLayout_depth_verifier, busDepth, log2Ceil_eq_clog, blockTotal_push_eq_pushLeaves]
-  rfl
+/-! ## The constraint count -/
 
 /-- The instance's constraint counts: `JUMP` (table `7`) has two, the others none. -/
 theorem length_constraints : ∀ j : Fin 9,
@@ -104,12 +83,6 @@ theorem B_leanIsa (prog : LeanIsaProgram) (s : Sizes) :
   rw [show (leanIsaInstance prog s).B = I.B from rfl, hsub, hfil,
     Finset.sum_congr rfl fun j _ ↦ length_constraints j, Finset.sum_ite_eq']
   simp
-
-/-- The instance's constraint count is at most `2 ^ 20`. -/
-theorem B_leanIsa_le (prog : LeanIsaProgram) (s : Sizes) :
-    (leanIsaInstance prog s).B ≤ 2 ^ 20 := by
-  rw [B_leanIsa]
-  norm_num
 
 end
 end LeanVM.Protocol.EndToEnd.Sound

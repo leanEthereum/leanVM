@@ -7,7 +7,6 @@
 
 module
 
-import LeanVM.Protocol.Keccak.Gkr
 public import LeanVM.Protocol.Keccak.Layer
 
 /-!

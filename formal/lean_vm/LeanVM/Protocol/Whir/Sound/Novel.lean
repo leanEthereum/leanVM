@@ -11,6 +11,7 @@ module
 
 public import LeanVM.Protocol.Whir.Sound.Escape
 public import LeanVM.Protocol.Whir.SubspaceAt
+import LeanVM.Parameters.Field
 
 /-!
 # The novel basis in the verifier

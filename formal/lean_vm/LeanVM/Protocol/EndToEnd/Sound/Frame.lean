@@ -10,8 +10,6 @@
 module
 
 public import LeanVM.Protocol.Compile.SpecRules.Leaves
-import LeanVM.Protocol.Compile.Prover
-import LeanVM.Protocol.Verifier
 public import CompPoly.Univariate.Basic
 public import VCVio.OracleComp.Constructions.SampleableType.Measure
 public import VCVio.OracleComp.QueryTracking.LoggingOracle.Core

@@ -26,9 +26,8 @@ not part of the statement:
 * `haltingRun`: the run of a memory image for the least number of steps after which it is in the
   final state (`Nat.find`); `haltingRunC` is the extractor's capped search with fresh indices,
   equal to it when the cap is large enough (`Halting.haltingRunC_eq_haltingRun`);
-* `gLogC`, `stepC`, `runC`, `candidateExecution`: the address lookup, step, run and a stack's
-  execution with indices built per call (`addressIndex?`, `step`, `run` for `κ < 64`);
-* `laneCoeffs`: lane `u` of a stack, the coefficients `encode q u` evaluates.
+* `stepC`, `runC`, `candidateExecution`: the step, run and a stack's execution with indices
+  built per call (`step`, `run` for `κ < 64`).
 
 These were the statement's own definitions before the extractor became computable
 (`committedWord`, `haltingRun`: `Statement/Extractor.lean` at `8e8e4d2f`, verbatim), or the
@@ -119,10 +118,6 @@ noncomputable def haltingRun (prog : LeanIsaProgram) {κ : ℕ} (image : MemoryI
     some ⟨κ, image, Nat.find h⟩
   else none
 
-/-- **The index of an address**, computably: `gLogIn` in a fresh `powIndex κ`. It is `addressIndex?` when
-`κ < 64`. -/
-def gLogC (κ : ℕ) (a : K) : Option (Fin (2 ^ κ)) := gLogIn (powIndex κ) κ a
-
 /-- One step, computably: `stepIn` with fresh indices. It is `step` when `κ < 64`. -/
 def stepC (prog : LeanIsaProgram) {κ : ℕ} (L : MemoryImage κ) (r : Registers K) : Option
     (Registers K) :=
@@ -145,11 +140,6 @@ def candidateExecution (prog : LeanIsaProgram) (input : PublicInput) (layout : L
   candidateExecutionIn (powIndex layout.logMemory) (powIndex prog.logSize) prog input layout q
 
 /-! ## Lanes and the decoder's parameters -/
-
-/-- Lane `u` of a stack of `2^μ` words: its `2^κ` cells `j + 2^κ·u`, `κ = μ − 6`, the novel-basis
-coefficients that `encode q u` evaluates. -/
-def laneCoeffs {μ : ℕ} (q : Vector K (2 ^ μ)) (u : ℕ) : Array K :=
-  Array.ofFn fun j : Fin (2 ^ (μ - initialFold)) ↦ q.getD (j.val + 2 ^ (μ - initialFold) * u) 0
 
 end
 end LeanVM.Extraction

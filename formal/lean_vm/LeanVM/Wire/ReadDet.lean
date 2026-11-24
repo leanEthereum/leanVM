@@ -23,8 +23,8 @@ phase count and each phase.
 
 The reader is deterministic: bytes `readPhase` accepts are `encodePhase` of the phase read, then
 the rest (`eq_encodePhase_of_readPhase`), and bytes `readProof` accepts are `encodePruned` of what
-it reads (`toBytes_of_readProof`). A phase `readPhase` accepts satisfies `PhaseRead`
-(`phaseRead_of_readPhase`): the bounds, the positions, the leaves' shape and minimal row width, and
+it reads (`readProof_eq`). A phase `readPhase` accepts satisfies `PhaseRead`
+(`readPhase_eq`): the bounds, the positions, the leaves' shape and minimal row width, and
 the carried siblings' keys level by level. The basic readers' converse forms are
 `LeanVM.Wire.ReadWrite`'s.
 
@@ -64,7 +64,7 @@ def encodePruned (x : List E × List PrunedPhase) : Bytes :=
 
 /-! ## What `readPhase` guarantees -/
 
-/-- **Everything `readPhase` guarantees about the phase it reads** (`phaseRead_of_readPhase`): at
+/-- **Everything `readPhase` guarantees about the phase it reads** (`readPhase_eq`): at
 most `wireMaxQueries` queries, each below `2 ^ 32`; height at most `wireMaxHeight`, leaf width at
 most `wireMaxLeafWords`; the positions the queries' distinct ones ascending, at least one, all
 below `2 ^ height`; one leaf per position, each of the leaf width; the row width minimal (some
@@ -198,36 +198,6 @@ theorem stream_flatMap_toBytes (count : ℕ) (words : List K) (hlength : words.l
         List.getD_cons_succ, Nat.mul_zero, Nat.zero_add, E.toBytes, List.append_assoc]
       rfl
 
-/-- What `PhaseRead`'s row width gives: the zero prefix of the leaves is the leaf width less the
-row width, every leaf being that row width's words after the prefix. -/
-theorem PhaseRead.exists_zeroPrefix {ph : PrunedPhase} (hp : PhaseRead ph) :
-    ∃ rowWords ≤ ph.leafWords, zeroPrefix ph.leaves = ph.leafWords - rowWords ∧
-      ∀ leaf ∈ ph.leaves, ∃ row, row.length = rowWords ∧ leaf = paddedLeaf row ph.leafWords := by
-  obtain ⟨rowWords, hle, hrows, hmin⟩ := hp.rowWidth
-  refine ⟨rowWords, hle, ?_, hrows⟩
-  have hleaves : ph.leaves = (ph.leaves.map (·.drop (ph.leafWords - rowWords))).map
-      (paddedLeaf · ph.leafWords) := by
-    rw [List.map_map]
-    conv_lhs => rw [← List.map_id ph.leaves]
-    refine List.map_congr_left fun leaf hleaf ↦ ?_
-    obtain ⟨row, hrl, rfl⟩ := hrows leaf hleaf
-    simp only [id, Function.comp_apply]
-    rw [← hrl, drop_paddedLeaf]
-  have hne : ph.leaves ≠ [] := by
-    intro hnil
-    exact hp.positions_ne_nil (List.eq_nil_of_length_eq_zero (hp.leaves_length ▸ hnil ▸ rfl))
-  rw [hleaves]
-  refine zeroPrefix_map_paddedLeaf _ _ _ (by simpa using hne) ?_ ?_
-  · simp only [List.mem_map, forall_exists_index, and_imp, forall_apply_eq_imp_iff₂]
-    intro leaf hleaf
-    obtain ⟨row, hrl, rfl⟩ := hrows leaf hleaf
-    rw [← hrl, drop_paddedLeaf]
-  · rw [← hleaves]
-    rintro ⟨hpos, hall⟩
-    rcases hmin with hzero | ⟨leaf, hleaf, hnz⟩
-    · omega
-    · exact hnz (hall leaf hleaf)
-
 /-! ## The reader's determinism -/
 
 theorem carriedSiblings_eq (positions : List ℕ) : ∀ level remaining bytes carried rest,
@@ -313,11 +283,6 @@ theorem eq_encodePhase_of_readPhase {bytes : Bytes} {ph : PrunedPhase} {rest : B
     (h : readPhase bytes = some (ph, rest)) : bytes = encodePhase ph ++ rest :=
   (readPhase_eq h).1
 
-/-- **What `readPhase` guarantees** about the phase it reads. -/
-theorem phaseRead_of_readPhase {bytes : Bytes} {ph : PrunedPhase} {rest : Bytes}
-    (h : readPhase bytes = some (ph, rest)) : PhaseRead ph :=
-  (readPhase_eq h).2
-
 theorem readPhases_eq : ∀ count bytes phases rest, readPhases count bytes = some (phases, rest) →
     phases.length = count ∧ (∀ ph ∈ phases, PhaseRead ph) ∧
       bytes = phases.flatMap encodePhase ++ rest
@@ -357,11 +322,6 @@ theorem readProof_eq {bytes : Bytes} {x : List E × List PrunedPhase}
   refine ⟨?_, by simpa using hlengthLt, hcountLe, hall⟩
   simp only [encodePruned, List.length_map, List.length_range, List.append_nil, List.append_assoc,
     stream_flatMap_toBytes length words hwordsLength]
-
-/-- **`readProof` is deterministic**: the bytes it accepts are `encodePruned` of what it reads. -/
-theorem toBytes_of_readProof {bytes : Bytes} {x : List E × List PrunedPhase}
-    (h : readProof bytes = some x) : encodePruned x = bytes :=
-  (readProof_eq h).1
 
 
 end LeanVM.Wire

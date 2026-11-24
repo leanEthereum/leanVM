@@ -24,7 +24,7 @@ registers with `Registers.final prog` at every step. Here the same search for a 
   `layoutLite layout` by `rfl`;
 * `candidateExecutionFastVec` (per stack) and `candidateRunner` (the tables built once, then a
   closure over the stacks), both equal to `candidateExecutionFast`
-  (`candidateExecutionFastVec_eq`, `candidateRunner_eq`).
+  (`candidateExecutionFastVec_apply`, `candidateRunner_eq`).
 
 `extractFast` (`Fast/Extract.lean`) and `extractWith` (`Fast/Lookup.lean`) bind
 `let execution := candidateExecutionFast prog input layout` and pass it to `findSome?` over the
@@ -49,10 +49,6 @@ theorem vector_get_ofFn {α : Type _} {n : ℕ} (f : Fin n → α) (i : Fin n) :
 
 theorem layoutLite_logMemory (layout : Verifier.Layout) :
     (layoutLite layout).logMemory = layout.logMemory :=
-  rfl
-
-theorem layoutLite_stackLog (layout : Verifier.Layout) :
-    (layoutLite layout).stackLog = layout.stackLog :=
   rfl
 
 /-- `Layout.placement` on the lighter layout. -/
@@ -226,14 +222,6 @@ theorem candidateExecutionFastVec_apply (prog : LeanIsaProgram) (input : PublicI
     exact (candidateExecutionIn_eq_none (powIndex layout.logMemory) (powIndex prog.logSize) prog
       input layout hl q).symm
 
-/-- **The fast search on the memory vector is `candidateExecutionFast`.** -/
-theorem candidateExecutionFastVec_eq (prog : LeanIsaProgram) (input : PublicInput)
-    (layout : Verifier.Layout) :
-    candidateExecutionFastVec prog input (layoutLite layout) =
-      candidateExecutionFast prog input layout := by
-  funext q
-  exact candidateExecutionFastVec_apply prog input layout q
-
 /-- **The search over the stacks**: the address tables, the final registers and the step cap
 built once, then a closure over the stacks. `extractFast` should bind
 `let execution := candidateRunner prog input layout` for `findSome?` (`candidateRunner_eq`). -/
@@ -279,15 +267,6 @@ layout (`none` above `2^63` words, where no stack has an execution). -/
   match tabs with
   | some (memT, codeT, fin, cap) => candidateExecutionVec memT codeT prog input layout fin cap q
   | none => none
-
-/-- **The runner, its tables built once**: the closure `runWithTables (runnerTables prog layout)`
-is `candidateRunner`. -/
-theorem runWithTables_runnerTables (prog : LeanIsaProgram) (input : PublicInput) (layout :
-    LayoutLite) :
-    runWithTables (runnerTables prog layout) prog input layout = candidateRunner prog input layout := by
-  funext q
-  unfold runWithTables runnerTables candidateRunner
-  split_ifs <;> rfl
 
 end
 

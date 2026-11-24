@@ -16,11 +16,10 @@ import Mathlib.Algebra.Order.BigOperators.Group.Finset
 # Readers and writers of the wire encoding
 
 Each reader of `Proof.fromBytes` reads back its writer's bytes and the rest untouched
-(`readU32_u32Bytes`, `readWords_toBytes`, `readDigest_digestBytes`, `readRows_toBytes`, …), and,
+(`readU32_u32Bytes`, `readWords_toBytes`, `readRows_toBytes`, …), and,
 conversely, what a reader accepts is its writer's bytes of what it returns
 (`readU32_eq_some_iff`, `readWords_eq_some_iff`, …: the one encoding of each field). The stream
-travels as its elements' limbs, regrouped in twos as `readProof` does (`streamOfWords`,
-`readStream_toBytes`).
+travels as its elements' limbs, regrouped in twos as `readProof` does (`streamOfWords`).
 
 The base facts are about one 64-bit lane: `littleEndianLane` of a word's bytes is the word
 (`littleEndianLane_wordBytes_append`), and the bytes of the lane of eight bytes are those bytes
@@ -361,11 +360,6 @@ theorem readDigest_eq_some_iff {input rest : List UInt8} {d : Digest} :
       rw [← h]
       rfl
 
-/-- `readDigest` reads back a digest. -/
-theorem readDigest_digestBytes (d : Digest) (rest : List UInt8) :
-    readDigest (digestBytes d ++ rest) = some (d, rest) :=
-  readDigest_eq_some_iff.mpr rfl
-
 theorem readDigests_eq_readList : readDigests = readList readDigest := by
   funext count input
   induction count generalizing input with
@@ -421,15 +415,6 @@ def streamOfWords (length : ℕ) (words : List K) : List E :=
 def streamWords (stream : List E) : List K :=
   stream.flatMap fun x ↦ [x.limb 0, x.limb 1]
 
-theorem flatMap_toBytes_streamWords (stream : List E) :
-    (streamWords stream).flatMap K.toBytes = stream.flatMap E.toBytes := by
-  induction stream with
-  | nil => rfl
-  | cons x stream ih =>
-    simp only [streamWords, List.flatMap_cons] at ih ⊢
-    rw [List.flatMap_append, ih]
-    simp [E.toBytes]
-
 @[simp] theorem length_streamWords (stream : List E) :
     (streamWords stream).length = 2 * stream.length := by
   induction stream with
@@ -474,22 +459,6 @@ theorem streamWords_streamOfWords :
 @[simp] theorem length_streamOfWords (length : ℕ) (words : List K) :
     (streamOfWords length words).length = length := by
   simp [streamOfWords]
-
-/-- **The stream reads back:** `readProof` reads its elements' words and regroups them into the
-stream. -/
-theorem readStream_toBytes (stream : List E) (rest : List UInt8) :
-    readWords (2 * stream.length) (stream.flatMap E.toBytes ++ rest) =
-        some (streamWords stream, rest) ∧
-      streamOfWords stream.length (streamWords stream) = stream := by
-  refine ⟨readWords_eq_some_iff.mpr ⟨by simp, by rw [flatMap_toBytes_streamWords]⟩,
-    streamOfWords_streamWords stream⟩
-
-/-- **What the stream's read accepts:** the bytes of the stream it regroups, then the rest. -/
-theorem eq_of_readWords_stream {length : ℕ} {input rest : List UInt8} {words : List K}
-    (h : readWords (2 * length) input = some (words, rest)) :
-    input = (streamOfWords length words).flatMap E.toBytes ++ rest := by
-  obtain ⟨hlen, rfl⟩ := readWords_eq_some_iff.mp h
-  rw [← flatMap_toBytes_streamWords, streamWords_streamOfWords length hlen]
 
 end
 

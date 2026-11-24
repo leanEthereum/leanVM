@@ -138,26 +138,5 @@ theorem rootOfPath_path {k : ℕ} (leaves : Vector L (2 ^ k)) (i : Fin (2 ^ k)) 
 
 /-! ## Two accepted openings that disagree exhibit a collision -/
 
-/-- Two distinct pairs with the same digest. -/
-def PairCollision : Prop := ∃ a b a' b', (a, b) ≠ (a', b') ∧ hashPair a b = hashPair a' b'
-
-/-- Two distinct leaves with the same digest. -/
-def LeafCollision : Prop := ∃ a b, a ≠ b ∧ hashLeaf a = hashLeaf b
-
-theorem pairCollision_of_climb_eq :
-    ∀ (p p' : List D) (d d' : D) (i : ℕ), p.length = p'.length → d ≠ d' →
-      climb hashPair d i p = climb hashPair d' i p' → PairCollision hashPair
-  | [], [], _, _, _, _, hne, h => absurd h hne
-  | [], _ :: _, _, _, _, hl, _, _ => by simp at hl
-  | _ :: _, [], _, _, _, hl, _, _ => by simp at hl
-  | s :: p, s' :: p', d, d', i, hl, hne, h => by
-    simp only [climb] at h
-    by_cases hnode : (if i % 2 = 0 then hashPair d s else hashPair s d) =
-        if i % 2 = 0 then hashPair d' s' else hashPair s' d'
-    · split at hnode
-      · exact ⟨d, s, d', s', fun e ↦ hne (Prod.mk.inj e).1, hnode⟩
-      · exact ⟨s, d, s', d', fun e ↦ hne (Prod.mk.inj e).2, hnode⟩
-    · exact pairCollision_of_climb_eq p p' _ _ (i / 2) (by simpa using hl) hnode h
-
 end
 end LeanVM.Protocol.MerkleTree

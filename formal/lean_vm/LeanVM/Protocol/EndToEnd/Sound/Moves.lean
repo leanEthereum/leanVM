@@ -778,11 +778,6 @@ theorem moves_computedBytecodeValue_le {g : ℕ → Prop} (w : List K) (p : List
     Moves g False (fun _ ↦ True) (fun _ ↦ False) (computedBytecodeValue w p v) :=
   (Moves.require _).mono (fun _ h ↦ h) id (fun _ _ ↦ trivial) (fun _ h ↦ h)
 
-theorem moves_claimedBytecodeValue_le {g : ℕ → Prop} (claim : BytecodeClaim) (w : List K)
-    (p : List E) (v : E) :
-    Moves g False (fun _ ↦ True) (fun _ ↦ False) (claimedBytecodeValue claim w p v) :=
-  (Moves.require _).mono (fun _ h ↦ h) id (fun _ _ ↦ trivial) (fun _ h ↦ h)
-
 /-- **The leanVM verifier program's moves**, every grind at most `B` bits where every layout the
 sizes can build has its bus grind at most `B` bits. -/
 theorem moves_leanVmProgram_le (hB : grindCap ≤ B) (bytecode : List K) (publicInput : Digest)
@@ -862,10 +857,6 @@ theorem moves_computedBytecodeValue (w : List K) (p : List E) (v : E) :
     Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (computedBytecodeValue w p v) :=
   moves_computedBytecodeValue_le w p v
 
-theorem moves_claimedBytecodeValue (claim : BytecodeClaim) (w : List K) (p : List E) (v : E) :
-    Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (claimedBytecodeValue claim w p v) :=
-  moves_claimedBytecodeValue_le claim w p v
-
 end Phases
 
 /-- **The leanVM verifier program's moves.** -/
@@ -873,13 +864,6 @@ theorem moves_leanVmProgram (bytecode : List K) (publicInput : Digest) :
     Moves G64 True (fun _ ↦ True) (fun _ ↦ False) (leanVmVerifierProgram bytecode publicInput) :=
   Moves.seq' (moves_verifyExecution moves_computedBytecodeValue bytecode publicInput) fun _ _ ↦
     Moves.pure trivial
-
-/-- **The deferring verifier program's moves.** -/
-theorem moves_deferringProgram (claim : BytecodeClaim) (bytecode : List K) (publicInput : Digest) :
-    Moves G64 True (fun _ ↦ True) (fun _ ↦ False)
-      (deferringVerifierProgram claim bytecode publicInput) :=
-  Moves.seq' (moves_verifyExecution (moves_claimedBytecodeValue claim) bytecode publicInput)
-    fun _ _ ↦ Moves.pure trivial
 
 /-- **A challenge follows every proof of work of the leanVM verifier.** -/
 theorem grindThenSample_leanVmProgram (bytecode : List K) (publicInput : Digest) :

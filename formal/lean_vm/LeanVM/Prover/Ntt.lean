@@ -9,6 +9,7 @@ module
 
 public import Statement.Prover.Ntt
 public import LeanVM.Protocol.Whir.Complete.Encoding
+import LeanVM.Parameters.Field
 
 /-!
 # The additive NTT is the encoder
@@ -162,7 +163,7 @@ theorem normVanishingAt_ofBits_lt {m j : ℕ} (hj : j < 2 ^ m) :
 /-- `Ŵ_m` ignores the bits below `s ≤ m`. -/
 theorem normVanishingAt_add_two_pow_mul {s m j : ℕ} (hsm : s ≤ m) (hj : j < 2 ^ s) (c : ℕ) :
     normVanishingAt m (K.ofBits (j + 2 ^ s * c)) = normVanishingAt m (K.ofBits (2 ^ s * c)) := by
-  rw [add_two_pow_mul_eq_xor hj, ofBits_xor, normVanishingAt_add,
+  rw [add_two_pow_mul_eq_xor hj, K.ofBits_xor, normVanishingAt_add,
     normVanishingAt_ofBits_lt (lt_of_lt_of_le hj (Nat.pow_le_pow_right (by norm_num) hsm)),
     zero_add]
 
@@ -170,7 +171,7 @@ theorem normVanishingAt_add_two_pow_mul {s m j : ℕ} (hsm : s ≤ m) (hj : j < 
 theorem normVanishingAt_block {i r : ℕ} (hi : i < 64) (hr : r < 2 ^ (i + 1)) (b : ℕ) :
     normVanishingAt i (K.ofBits (r + 2 ^ (i + 1) * b)) =
       normVanishingAt i (K.ofBits (2 ^ (i + 1) * b)) + if r < 2 ^ i then 0 else 1 := by
-  rw [add_two_pow_mul_eq_xor hr, ofBits_xor, normVanishingAt_add, add_comm]
+  rw [add_two_pow_mul_eq_xor hr, K.ofBits_xor, normVanishingAt_add, add_comm]
   suffices h : normVanishingAt i (K.ofBits r) = if r < 2 ^ i then 0 else 1 by rw [h]
   by_cases hri : r < 2 ^ i
   · simp only [hri, ↓reduceIte]

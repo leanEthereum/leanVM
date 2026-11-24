@@ -29,7 +29,7 @@ blocks, no forms, no bytecode copy), and is `buildLayout` followed by `layoutLit
 (`afterRootLite_eq`).
 
 The run's algebra: `runPure_bind` (a sequence runs as its first program, then the continuation),
-`runPure_require_bind`, `runPure_liftOption_bind`, `runPure_readScalars_bind`, `runPure_pure`.
+`runPure_readScalars_bind`.
 -/
 
 namespace LeanVM.Extraction.Fast
@@ -94,23 +94,8 @@ theorem runPure_bind_of_some {α β : Type} {p : VerifierProgram α} {f : α →
   rw [h] at this
   exact this
 
-theorem runPure_pure {α : Type} (a : α) (s : VerifierProgramState) :
-    runPure (pure a : VerifierProgram α) s = some (a, s) := rfl
-
-theorem runPure_require_bind {β : Type} (c : Prop) [Decidable c] (f : Unit → VerifierProgram β)
-    (s : VerifierProgramState) :
-    runPure (VerifierProgram.require c >>= f) s = if c then runPure (f ()) s else none := by
-  by_cases hc : c
-  · simp only [VerifierProgram.require, hc, ↓reduceIte]; rfl
-  · simp only [VerifierProgram.require, hc, ↓reduceIte]; rfl
-
 theorem runPure_liftOption {α : Type} (o : Option α) (s : VerifierProgramState) :
     runPure (liftOption o) s = o.map fun a ↦ (a, s) := by
-  cases o <;> rfl
-
-theorem runPure_liftOption_bind {α β : Type} (o : Option α) (f : α → VerifierProgram β) (s :
-    VerifierProgramState) :
-    runPure (liftOption o >>= f) s = o.bind fun a ↦ runPure (f a) s := by
   cases o <;> rfl
 
 /-! ## The sponge and the reads -/
@@ -240,10 +225,6 @@ theorem afterRootDirect_eq (bytecode : List K) (π : Proof) :
       runPure (commitStack layout.stackLog R >>= fun _ ↦ pure (layout, R)) s1
     rw [runPure_bind, runPure_commitStack]
     cases commitStackPure layout.stackLog R s1 <;> rfl
-
-theorem afterRootDirect_eq_afterRoot : afterRootDirect = afterRoot := by
-  funext bytecode π
-  exact afterRootDirect_eq bytecode π
 
 /-! ## The announced shape -/
 

@@ -6,7 +6,6 @@
 
 module
 
-import LeanVM.Protocol.Spine.Instance
 public import LeanVM.Parameters.Field
 public import ArkLib.OracleReduction.OracleInterface
 public import CompPoly.Multilinear.Basic

@@ -16,7 +16,7 @@ public import LeanVM.Protocol.Whir.Complete.Opening
 
 Each array computation of `Statement/Prover/Whir.lean` is the list computation of the
 specification (`LeanVM.Protocol.Whir.Complete`): the round coefficients (`roundC0A_eq`,
-`roundC2A_eq`), the incremental fold (`toList_foldPairsA_foldAll`; a fold, the multilinear
+`roundC2A_eq`), the incremental fold (`toList_foldPairsA`; a fold, the multilinear
 extension and the equality table are `LeanVM.Prover.Mle`'s), the out-of-domain claim's table
 (`eqKernel_eq_tableOf`), gluing (`toList_glueTablesA`), the query table by tensor products
 (`toList_queryTableA`) and the stack table (`toList_stackTableA`).
@@ -78,12 +78,6 @@ theorem roundC2A_eq (W g : Array E) : roundC2A W g = roundC2 W.toList g.toList :
   simp only [toList_getD_E]
 
 /-! ## Folds -/
-
-/-- The incremental fold is the specification's fold from the stack table. -/
-theorem toList_foldPairsA_foldAll {f₀ : List E} {folds : List E} {g : Array E}
-    (hg : g.toList = foldAll f₀ folds) (c : E) :
-    (foldPairsA c g).toList = foldAll f₀ (folds ++ [c]) := by
-  rw [toList_foldPairsA, hg, foldAll_concat]
 
 /-! ## The equality kernel -/
 

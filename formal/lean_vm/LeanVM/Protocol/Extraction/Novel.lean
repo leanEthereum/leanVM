@@ -2,6 +2,7 @@ module
 
 public import LeanVM.Protocol.Extraction.Defs
 public import CompPoly.Fields.Binary.AdditiveNTT.Coset
+import LeanVM.Parameters.Field
 
 /-!
 # The inverse novel-basis transform is correct (proofs)
@@ -25,7 +26,7 @@ Algorithm 2. Its correctness is CompPoly's `AdditiveNTT.Coset`
 
 namespace LeanVM.Extraction.NovelProofs
 
-open LeanVM.Parameters LeanVM.Extraction LeanVM.Extraction.Words AdditiveNTT.Coset
+open LeanVM.Parameters LeanVM.Extraction AdditiveNTT.Coset
 
 public section
 
@@ -36,14 +37,14 @@ def wordBasis (i : ℕ) : K := K.ofBits (2 ^ i)
 
 /-- The points of its span are the words. -/
 theorem point_wordBasis (v : ℕ) : point wordBasis v = K.ofBits v :=
-  (ofBits_eq_sum Nat.lt_two_pow_self).symm
+  (K.ofBits_eq_sum Nat.lt_two_pow_self).symm
 
 /-- No basis word below `64` is in the span of the earlier ones. -/
 theorem independent_wordBasis : Independent wordBasis 64 := by
   intro i hi m hm h
   rw [point_wordBasis, wordBasis] at h
   have h2 : 2 ^ i < 2 ^ 64 := Nat.pow_lt_pow_right (by norm_num) hi
-  exact absurd (ofBits_injOn (show m < 2 ^ 64 by omega) h2 h) (by omega)
+  exact absurd (K.ofBits_injOn (show m < 2 ^ 64 by omega) h2 h) (by omega)
 
 /-- Its subspace polynomials are the extractor's, in characteristic two. -/
 theorem vanishing_wordBasis (i : ℕ) (x : K) : vanishing wordBasis i x = subspacePoly i x := by

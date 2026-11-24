@@ -73,13 +73,6 @@ def RingPre (_ : List Ev) : Prop := ∀ q ∈ S, ¬ (G q ∧ z q = sv)
 /-- **Ring switching's postcondition**: no candidate meets `G` and the returned ring claim. -/
 def RingPost (r : E × (List E → E)) (_ : List Ev) : Prop := ∀ q ∈ S, ¬ (G q ∧ RC r q)
 
-/-- `|E|⁻¹^n · Σ_f 1 = 1`. -/
-private theorem avg_one (n : ℕ) :
-    (Fintype.card E : ℝ≥0∞)⁻¹ ^ n * ∑ _f : Fin n → E, (1 : ℝ≥0∞) = 1 := by
-  rw [Finset.sum_const, Finset.card_univ, nsmul_eq_mul, mul_one, Fintype.card_fun,
-    Fintype.card_fin, Nat.cast_pow, ← mul_pow, ENNReal.inv_mul_cancel (by simp)
-      (ENNReal.natCast_ne_top _), one_pow]
-
 open Classical in
 /-- **The group's escape**: from `RingPre`, the sixteen challenges reach `RingPost`'s failure with
 probability at most `L₀ · 2/|E|`, a union over the candidates of `Ring.ringBad_ratio_le`. -/

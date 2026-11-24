@@ -23,7 +23,7 @@ coordinates, at most `1 / (2 η √r)` codewords agree with a word on `(√r + �
 * `johnson_count` (`LeanVM.Protocol.ToArkLib.Whir.JohnsonCount`): the double count behind the
   bound, for a set system. If `L` sets of size `a` in an `n`-set meet pairwise in at most `r`
   points, then `(|L| a)² ≤ n (|L| a + |L| (|L| - 1) r)`; Cauchy-Schwarz on the incidence counts.
-* `card_mul_johnson_le`: the real form,
+* `card_mul_johnson_le_of_nonempty`: the real form,
   `|L| (2 η √r + η²) ≤ 1 - r` when the sets have at least `(√r + η) n` elements and meet in at
   most `r n`; `card_le_johnson` its corollary `|L| ≤ 1 / (2 η √r)` for `r > 0`.
 * `card_iList_mul_le_johnson`, `card_iList_le_johnson`: the bound for the list `iList C A O` of
@@ -33,7 +33,7 @@ coordinates, at most `1 / (2 η √r)` codewords agree with a word on `(√r + �
   (dimension `D + 1`) and the slightly reduced rate `ρ₋ = D / n` of ArkLib's Johnson
   parametrization; `card_iList_johnsonAgreement_le` states it at ArkLib's threshold
   `⌈johnsonAgreement n D η * n⌉₊`, the radius `1 - √ρ₋ - η` of
-  `mcaError_affineLine_johnson_le` (`iListRad_one_sub_johnsonAgreement`).
+  `mcaError_affineLine_johnson_le`.
 
 The hypotheses are weaker than the Annex's: no upper bound `η < 1 - √r` is needed (beyond it the
 list is empty or the bound still holds), and the alphabet and code are arbitrary in the
@@ -106,18 +106,6 @@ theorem card_mul_johnson_le_of_nonempty (L : Finset β) (T : β → Finset ι) {
     nlinarith
   have hn2 : (0 : ℝ) < n ^ 2 := by positivity
   nlinarith
-
-/-- **Johnson bound, real form.** If each of the sets in `L` has at least `(√r + η) n` points and
-two distinct ones meet in at most `r n` points, with `0 ≤ r ≤ 1`, then
-`|L| (2 η √r + η²) ≤ 1 - r`. -/
-theorem card_mul_johnson_le (L : Finset β) (T : β → Finset ι) {r η : ℝ}
-    (hn : 0 < Fintype.card ι) (hr0 : 0 ≤ r) (hr1 : r ≤ 1) (hη : 0 ≤ η)
-    (ha : ∀ b ∈ L, (√r + η) * Fintype.card ι ≤ (T b).card)
-    (hr : ∀ b ∈ L, ∀ b' ∈ L, b ≠ b' → ((T b ∩ T b').card : ℝ) ≤ r * Fintype.card ι) :
-    (L.card : ℝ) * (2 * η * √r + η ^ 2) ≤ 1 - r := by
-  rcases L.eq_empty_or_nonempty with rfl | hL
-  · simp; linarith
-  · exact card_mul_johnson_le_of_nonempty L T hn hr0 hη hL ha hr
 
 /-- **Johnson bound** (Annex B, `thm:johnson-general`, set-system form): with `r > 0` and
 `η > 0`, at most `1 / (2 η √r)` sets of at least `(√r + η) n` points meet pairwise in at most

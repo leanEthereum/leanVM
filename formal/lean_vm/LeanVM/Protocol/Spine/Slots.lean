@@ -25,8 +25,7 @@ same challenges:
 * the table sumcheck (`tableSlot`): `ξ` at `(B + 2)/|E|`, the `τ_max` rounds of
   degree `3` at `3/|E|` each, the final values at no error;
 * the public input (`pubSlot`, `pubErrors`): the challenge `r` at `1/|E|`, then the values of
-  the lines marked `sent`;
-* ring switching (`ringErrors`): its six challenges at `2^{2^{5−p}−1}/|E|`.
+  the lines marked `sent`.
 
 The Keccak reduction and the stacked opening are specified directly on the verifier program
 (`LeanVM.Protocol.Keccak`, `LeanVM.Protocol.Whir`), not as typed components.
@@ -84,11 +83,6 @@ noncomputable abbrev pubErrors : Errors pubSlot.tree pubSlot.roles :=
   (overE 1, fun _ _ ↦ PUnit.unit)
 
 /-! ## Ring switching -/
-
-/-- The ring-switching challenges' errors: `2^{2^{5−p}−1}` over `|E|` on the `p`-th, that is
-`2^31, 2^15, 2^7, 8, 2, 1`. -/
-noncomputable abbrev ringErrors : Errors (drawsSlot E 6).tree (drawsSlot E 6).roles :=
-  drawsErrorsOf E (fun p ↦ overE (2 ^ (2 ^ (5 - p) - 1))) 6
 
 /-! ## Each slot's errors along a path -/
 

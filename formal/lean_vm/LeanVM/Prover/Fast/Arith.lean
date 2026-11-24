@@ -40,8 +40,6 @@ def powE (x : E) (n : ℕ) : E := x ^ n
 /-- A machine word as a `K` word. -/
 @[inline] def kOf (u : UInt64) : K := BF64.ofBitVec u.toBitVec
 
-theorem kOf_wOf (a : K) : kOf (wOf a) = a := rfl
-
 theorem kOf_xor (a b : UInt64) : kOf (a ^^^ b) = kOf a + kOf b := by
   apply BF64.ext
   simp [kOf, UInt64.toBitVec_xor]

@@ -212,15 +212,6 @@ theorem PhaseRead.phaseSiblingBytes_unprunePhase {ph : PrunedPhase} (hr : PhaseR
   phaseSiblingBytes_unprunePhase_of h ph hr.positions_eq hr.positions_ne_nil hr.leaves_length
     hr.carried_keys
 
-/-- **One encoding of a phase**: a phase `readPhase` accepted (`PhaseRead`), unpruned with any
-hash `h`, is written back by `Prover.phaseToBytes` as the bytes it was read from
-(`encodePhase`): its header and rows (`PhaseRead.phaseHeaderAndRows_unprunePhase`) and its carried
-siblings (`PhaseRead.phaseSiblingBytes_unprunePhase`). -/
-theorem PhaseRead.phaseToBytes_unprunePhase_eq {ph : PrunedPhase} (hr : PhaseRead ph)
-    (h : Bytes → Digest) :
-    Prover.phaseToBytes (unprunePhaseWithHash (m := Id) h ph) = encodePhase ph :=
-  hr.phaseToBytes_unprunePhase h (hr.phaseSiblingBytes_unprunePhase h)
-
 end
 
 end LeanVM.Wire

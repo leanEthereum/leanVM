@@ -1,30 +1,19 @@
 /-
   LeanVM.Facts.NodeWith
 
-  The node's hashing functions with any hash `H : Bytes → m Digest` and permutation
-  `F : KState → m KState` in any monad (`…With`), as the verifier is (`verifier H F`): moved here
-  from `Statement/LeanVmGuest.lean`, names kept (no end statement names them), and at `m = Id`,
-  Keccak-256 and Keccak-f[1600] the deployed ones: the `*_id` lemmas. The digests and leanXMSS use
-  only `H` (the statement's leanSPHINCS is written over the permutation alone); the batching's
-  transcript only `F`, from a parameter state `s0` (deployed: `batchSeed`).
+  The batching's transcript with any permutation `F : KState → m KState` in any monad (`…With`),
+  from a parameter state `s0` (deployed: `batchSeed`), and at `m = Id` and Keccak-f[1600] the
+  deployed one: the `*_id` lemmas.
 -/
 
 module
 
-public import Statement.LeanVmGuest
 public import LeanVM.Guest.Batch.Def
-public import LeanXmss.Scheme
-public import Statement.LeanSphincs
 public import Statement.Fast.Schemes
-public import LeanDa.Scheme
 public import Statement.Fast.Keccak
 public import Statement.Fast.QuadExt
 public import Statement.Fast.FieldWords
-public import LeanVM.Facts.Verifier
-public import LeanVM.Facts.DaWith
-public import Common.WithHash
 public import LeanVM.Guest.WithHashBridge
-public import LeanVM.Guest.WithHash
 
 namespace LeanVM.Node
 
@@ -35,34 +24,7 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 section With
 
-variable {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KeccakState → m KeccakState)
-
-/-! ### The signature schemes -/
-
-/-- leanXMSS verification with the hash `H`. -/
-def xmssVerifyWith (pk : HashSig.PublicKey) (message : HashSig.Message)
-    (σ : LeanXmss.Signature) : m Bool :=
-  letI : HasQuery LeanXmss.HashSpec m := ⟨fun x ↦ digestBits <$> H x⟩
-  LeanXmss.Verification.verifyWithHash pk message σ
-
-/-! ### The statement's digest -/
-
-/-- `claimListDigest` with the hash `H`. -/
-def xmssListDigestWith (claims : List LeanXmssClaim) : m Digest :=
-  H (claimListPreimage xmssPublicKeyBytes claims)
-
-/-- `claimListDigest` with the hash `H`. -/
-def sphincsListDigestWith (claims : List LeanSphincsClaim) : m Digest :=
-  H (claimListPreimage Sphincs.PublicKey.toBytes claims)
-
-/-- **`statementDigest` with the hash `H`.** -/
-def statementDigestWith (seed : Digest) (s : NodeStatement) : m Digest := do
-  let xd ← xmssListDigestWith H s.claims.xmss
-  let sd ← sphincsListDigestWith H s.claims.sphincs
-  H (digestBytes seed ++ digestBytes xd ++ digestBytes sd ++ digestBytes s.claims.daDigest ++
-    s.deferredClaim.cells.flatMap E.toBytes)
-
-/-! ### The batching -/
+variable {m : Type → Type} [Monad m] (F : KeccakState → m KeccakState)
 
 /-- A Fiat-Shamir chain with the permutation `F`. -/
 abbrev ChainWith : Type → Type := StateT Sponge m
@@ -93,10 +55,6 @@ def batchRoundsWith : E → List (E × E) → ChainWith (m := m) (List E × E)
     let (rs, final) ← batchRoundsWith (Guest.Batch.sumcheckRoundPolynomial claim (g1, gInf) r) rest
     return (r :: rs, final)
 
-/-- `batchSeed` with the hash `H` and the permutation `F`. -/
-def batchSeedWith : m KeccakState := do
-  F (seedInput (← H batchingLabel) (Vector.replicate 4 0))
-
 /-- **`batch` with the permutation `F`, from the sponge state `s0`** (deployed: `batchSeed`). -/
 def batchWith (s0 : KeccakState) (children : List ChildClaims) (h : BatchingHints) :
     m (Option DeferredBytecodeClaim) :=
@@ -124,10 +82,6 @@ theorem observeWith_id (x : E) : observeWith (m := Id) keccakF1600 x = observe x
 
 /-- Squeezing with Keccak-f is `sample`. -/
 theorem sampleWith_id : sampleWith (m := Id) keccakF1600 = sample := rfl
-
-/-- A proof of work with Keccak-f is `grind`. -/
-theorem grindWith_id (bits : ℕ) (nonce : E) :
-    grindWith (m := Id) keccakF1600 bits nonce = grind bits nonce := rfl
 
 /-- The batching's rounds with Keccak-f are `batchRounds`. -/
 theorem batchRoundsWith_id : ∀ (claim : E) (rounds : List (E × E)),

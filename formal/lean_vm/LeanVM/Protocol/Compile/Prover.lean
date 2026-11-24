@@ -20,7 +20,6 @@ public import LeanVM.Protocol.KeccakHash
 import LeanVM.Parameters.Field
 public import LeanVM.Protocol.ToArkLib.Merkle
 public import LeanVM.Protocol.RunWithHash
-import LeanVM.Protocol.WithHash
 public import CompPoly.Univariate.Basic
 public import VCVio.OracleComp.Constructions.SampleableType.Measure
 public import VCVio.OracleComp.QueryTracking.LoggingOracle.Core

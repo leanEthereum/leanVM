@@ -188,5 +188,96 @@ theorem mul_limbs (a0 a1 b0 b1 : K) :
   -- The product is `p₀ + p₁·y + p₂·y²`; `y² = x·y + 1` folds `p₂` into both lanes.
   linear_combination (ofK a1 * ofK b1) * y_sq
 
+/-! ## Words of `K`
+
+`K.ofBits` is injective below `2^64`, turns `xor` into `+`, and the word with bits `v` is
+`Σ_c v_c · x^c`. -/
+
+/-- `K.ofBits 0 = 0`. -/
+theorem K.ofBits_zero : K.ofBits 0 = 0 := rfl
+
+/-- A word below `2^64` is read back exactly. -/
+theorem K.toNat_ofBits {n : ℕ} (hn : n < 2 ^ 64) : (K.ofBits n).toBitVec.toNat = n := by
+  simpa [K.ofBits] using hn
+
+/-- Every element is the word of its bits. -/
+theorem K.ofBits_toNat (a : K) : K.ofBits a.toBitVec.toNat = a := by
+  apply BF64.ext
+  simp [K.ofBits]
+
+/-- Words below `2^64` are distinct field elements. -/
+theorem K.ofBits_injOn : Set.InjOn K.ofBits {n | n < 2 ^ 64} := by
+  intro a ha b hb h
+  rw [← K.toNat_ofBits ha, ← K.toNat_ofBits hb, h]
+
+/-- A word below `2^64` is zero only when it is `0`. -/
+theorem K.ofBits_eq_zero_iff {n : ℕ} (hn : n < 2 ^ 64) : K.ofBits n = 0 ↔ n = 0 :=
+  ⟨fun h ↦ K.ofBits_injOn (show n < 2 ^ 64 from hn) (show 0 < 2 ^ 64 by norm_num) h,
+    fun h ↦ h ▸ K.ofBits_zero⟩
+
+/-- Below `2^i`, adding `2^i` sets a bit that is clear: it is the exclusive or. -/
+theorem two_pow_add_eq_xor {i v : ℕ} (hv : v < 2 ^ i) : 2 ^ i + v = 2 ^ i ^^^ v := by
+  have h := Nat.two_pow_add_eq_or_of_lt hv 1
+  rw [mul_one] at h
+  rw [h]
+  apply Nat.eq_of_testBit_eq
+  intro j
+  rw [Nat.testBit_or, Nat.testBit_xor, Nat.testBit_two_pow]
+  by_cases hj : i = j
+  · subst hj
+    simp [Nat.testBit_lt_two_pow hv]
+  · simp [hj]
+
+/-- Sum in `K` is bitwise exclusive or of words. -/
+theorem K.ofBits_xor (a b : ℕ) : K.ofBits (a ^^^ b) = K.ofBits a + K.ofBits b := by
+  simp only [K.ofBits, BitVec.ofNat_xor]
+  rfl
+
+/-- `x_{2^i + v} = x^i + x_v` for `v < 2^i`. -/
+theorem K.ofBits_two_pow_add {i v : ℕ} (hv : v < 2 ^ i) :
+    K.ofBits (2 ^ i + v) = K.ofBits (2 ^ i) + K.ofBits v := by
+  rw [two_pow_add_eq_xor hv, K.ofBits_xor]
+
+/-- The word with bits `v` is `Σ_c v_c · x^c`. -/
+theorem K.ofBits_eq_sum {i v : ℕ} (hv : v < 2 ^ i) :
+    K.ofBits v = ∑ c ∈ Finset.range i, if v.testBit c then K.ofBits (2 ^ c) else 0 := by
+  induction i generalizing v with
+  | zero =>
+    obtain rfl : v = 0 := by simpa using hv
+    simp [K.ofBits_zero]
+  | succ i ih =>
+    rw [Finset.sum_range_succ]
+    by_cases hb : v.testBit i
+    · have hlt : v - 2 ^ i < 2 ^ i := by
+        have := Nat.ge_two_pow_of_testBit hb
+        rw [pow_succ] at hv
+        omega
+      have hv' : v = 2 ^ i + (v - 2 ^ i) := by
+        have := Nat.ge_two_pow_of_testBit hb
+        omega
+      have hbits : ∀ c < i, v.testBit c = (v - 2 ^ i).testBit c := by
+        intro c hc
+        conv_lhs => rw [hv']
+        exact Nat.testBit_two_pow_add_gt hc _
+      have hb' : (2 ^ i + (v - 2 ^ i)).testBit i = true := by rw [← hv']; exact hb
+      rw [hv', K.ofBits_two_pow_add hlt, ih hlt, hb']
+      simp only [ite_true]
+      rw [add_comm]
+      congr 1
+      refine Finset.sum_congr rfl fun c hc ↦ ?_
+      rw [← hv', hbits c (Finset.mem_range.mp hc)]
+    · have hlt : v < 2 ^ i := by
+        by_contra h
+        have h1 : 2 ^ i ≤ v := not_lt.mp h
+        have : v.testBit i = true := by
+          have hv2 : v - 2 ^ i < 2 ^ i := by rw [pow_succ] at hv; omega
+          have := Nat.testBit_two_pow_add_eq (v - 2 ^ i) i
+          rw [Nat.add_sub_cancel' h1, Nat.testBit_lt_two_pow hv2] at this
+          simpa using this
+        exact hb this
+      simp only [Bool.not_eq_true] at hb
+      rw [ih hlt, hb]
+      simp
+
 end
 end LeanVM.Parameters

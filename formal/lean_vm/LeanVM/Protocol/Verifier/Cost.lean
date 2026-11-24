@@ -56,8 +56,7 @@ right after a proof of work, which permutes nothing, is charged a permutation.
 ## Deployed behaviour
 
 The bound is a statement on the program `leanVmVerifierProgram` as transcribed in
-`Statement.LeanVmVerifier`,; it covers every proof, accepted or
-not, and the deferring program `deferringVerifierProgram` alike (`costLE_deferringProgram`).
+`Statement.LeanVmVerifier`; it covers every proof, accepted or not.
 -/
 
 namespace LeanVM.Protocol.Verifier
@@ -982,11 +981,6 @@ theorem costs_computedBytecodeValue (w : List K) (p : List E) (v : E) :
     VerifierProgram.Costs costHeight (computedBytecodeValue w p v) 0 fun _ ↦ True :=
   (VerifierProgram.Costs.require (n := 0) _).mono le_rfl fun _ _ ↦ trivial
 
-/-- The deferring check of the fixed polynomial's value costs nothing. -/
-theorem costs_claimedBytecodeValue (claim : BytecodeClaim) (w : List K) (p : List E) (v : E) :
-    VerifierProgram.Costs costHeight (claimedBytecodeValue claim w p v) 0 fun _ ↦ True :=
-  (VerifierProgram.Costs.require (n := 0) _).mono le_rfl fun _ _ ↦ trivial
-
 /-- **The cost of the leanVM verifier program**: every run of `leanVmVerifierProgram` costs at most
 `leanVmCost` quarters, every commitment having height at most `costHeight`, for every bytecode
 and public input. -/
@@ -995,14 +989,6 @@ theorem costLE_leanVmProgram (bytecode : List K) (publicInput : Digest) :
   rw [leanVmProgram_eq]
   exact VerifierProgram.Costs.seq
     (costs_verifyExecution _ costs_computedBytecodeValue bytecode publicInput) (fun _ _ ↦
-      trivial) le_rfl
-
-/-- **The cost of the deferring verifier program**, as the deployed one's. -/
-theorem costLE_deferringProgram (claim : BytecodeClaim) (bytecode : List K) (publicInput : Digest) :
-    (deferringVerifierProgram claim bytecode publicInput).CostLE costHeight leanVmCost := by
-  rw [deferredProgram_eq]
-  exact VerifierProgram.Costs.seq
-    (costs_verifyExecution _ (costs_claimedBytecodeValue claim) bytecode publicInput) (fun _ _ ↦
       trivial) le_rfl
 
 /-! ## The seed and the query bound -/

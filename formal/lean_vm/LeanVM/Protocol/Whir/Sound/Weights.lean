@@ -35,8 +35,7 @@ This module proves what the round-by-round analysis needs of each:
   multiaffine (`isMultiaffine_inducedWeight`), and its inner product with a message is the batched
   codeword entries, `Σ_q w_q Enc(G)[x_q]` (`sum_inducedWeight_mul`);
 * the opening weight read at the rotated point, `w(p[ℓ₀:] ++ p[:ℓ₀])`, is multiaffine when `w` is
-  the multilinear extension of its cube values (`IsMultilinearFn`,
-  `isMultiaffine_of_isMultilinearFn`, `isMultiaffine_rotL`);
+  the multilinear extension of its cube values (`IsMultilinearFn`, `isMultiaffine_rotL`);
 * `dot(row, eq_kernel(folds))`, the lane fold of an opened row (`enforcedSum`), is the row folded
   by `foldsN` (`dot_eqKernel`).
 
@@ -165,20 +164,6 @@ theorem isMultiaffine_rotL {n j : ℕ} {w : List E → E} (hw : IsMultiaffine n 
   intro l hl k hk X
   simp only [rotL_set j l (hl ▸ hj) (hl ▸ hk)]
   exact hw _ (by rw [length_rotL, hl]) _ (by split_ifs <;> omega) X
-
-/-- A multilinear extension of its cube values is multiaffine. -/
-theorem isMultiaffine_of_isMultilinearFn {μ : ℕ} {w : List E → E} (hw : IsMultilinearFn μ w) :
-    IsMultiaffine μ w := by
-  have hb : ∀ x, (boolPoint μ x).length = μ := fun x ↦ by simp [boolPoint]
-  have hsum : IsMultiaffine μ fun l ↦ ∑ x : Fin (2 ^ μ), w (boolPoint μ x) *
-      eqEval (boolPoint μ x) l :=
-    IsMultiaffine.sum _ _ fun x _ ↦ by
-      have := (isMultiaffine_eqEval (boolPoint μ x)).const_mul (w (boolPoint μ x))
-      rwa [hb] at this
-  intro l hl k hk X
-  have hlen : ∀ Y, (l.set k Y).length = μ := fun Y ↦ by simp [hl]
-  rw [hw _ (hlen X), hw _ (hlen 0), hw _ (hlen 1)]
-  exact hsum l hl k hk X
 
 /-! ## The induced weight -/
 
