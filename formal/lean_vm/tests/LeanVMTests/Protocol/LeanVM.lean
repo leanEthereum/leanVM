@@ -20,6 +20,20 @@ example {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
 
 example : completenessError (2 ^ 35) ≤ (2 : ENNReal)⁻¹ ^ 257 := completenessError_le
 
+/-- The queries the proof establishes, `13710 + 54825 (2^29 + 2f + 2)`, before the budget. -/
+example (fuel : ℕ) :
+    Protocol.EndToEnd.Complete.completenessQueries fuel =
+      13710 + 54825 * (2 ^ 29 + 2 * fuel + 2) := by
+  have hc : Protocol.Verifier.leanVmCost = 54825 := by decide
+  rw [Protocol.EndToEnd.Complete.completenessQueries, hc, Protocol.Verifier.leanVmQueryBound_eq,
+    Protocol.Compile.proverFactor, Protocol.Verifier.costHeight]
+  ring
+
+/-- They fit the budget `completenessError` is stated at. -/
+example (fuel : ℕ) :
+    Protocol.EndToEnd.Complete.completenessQueries fuel ≤ completenessQueries fuel :=
+  Protocol.EndToEnd.Complete.completenessQueries_le fuel
+
 /-- info: 'LeanVM.completenessRom' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms completenessRom
 

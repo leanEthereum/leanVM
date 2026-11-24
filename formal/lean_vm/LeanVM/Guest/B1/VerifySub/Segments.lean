@@ -336,7 +336,7 @@ structure ChildSegs (bytecode : List K) (seed : Digest) (c : Node.Child) : Type 
   xsG : List E
   rG : E × List E × List E
   s4 : Fs
-  runG : RunsTo (Tables.gkrPhase (busDepth layout)) s3 xsG rG s4
+  runG : RunsTo (gkrPhase (busDepth layout)) s3 xsG rG s4
   /-- The bus's rest, the tables, the public input. -/
   xsT : List E
   bus : BusResult

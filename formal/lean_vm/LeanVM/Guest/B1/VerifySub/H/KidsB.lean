@@ -119,7 +119,7 @@ theorem vbg_kidB (hbl : bytecode.length = 2 ^ 23) {κ : ℕ} (hκ : 6 ≤ κ) (W
       (Tables.vbgMax fs W.vbg) := by
   have hd := S.d_bounds hbl
   obtain ⟨h3, h4, -⟩ := S.gkr_inv hbl
-  have hrun : RunsTo (Tables.gkrPhase S.d) ⟨S.s3.cap, []⟩ S.xsG S.rG ⟨S.s4.cap, []⟩ := by
+  have hrun : RunsTo (gkrPhase S.d) ⟨S.s3.cap, []⟩ S.xsG S.rG ⟨S.s4.cap, []⟩ := by
     rw [← h3, ← h4]; exact S.runG
   have hc : ∃ sp, (⟨S.s3.cap, []⟩ : Fs).Carries sp := by rw [← h3]; exact S.c3
   exact Tables.verify_bus_gkr_completeAtW (by omega) (by omega) hκ hrun hc

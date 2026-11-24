@@ -51,9 +51,9 @@ noncomputable def extractorAS (D : NearDecoder) : Extractor := fun prog input an
 a fresh hit of the final proof of work (`2^-127`, once), and a fresh hash answer of the verifier
 that is a root the replay reads (`rootCap · 2^-256` per call). -/
 noncomputable def soundnessErrorAS (Q : ℕ) : ℝ≥0∞ :=
-  ((Q + verifierQueries : ℕ) : ℝ≥0∞) *
-      ((2 : ℝ≥0∞)⁻¹ ^ 125 + ((5 * (Q + verifierQueries) : ℕ) : ℝ≥0∞) / 2 ^ 256) +
-    (2 : ℝ≥0∞)⁻¹ ^ 127 + (verifierQueries : ℝ≥0∞) * (Sound.rootCap * (2 ^ 256 : ℝ≥0∞)⁻¹)
+  ((Q + leanVmQueryBound : ℕ) : ℝ≥0∞) *
+      ((2 : ℝ≥0∞)⁻¹ ^ 125 + ((5 * (Q + leanVmQueryBound) : ℕ) : ℝ≥0∞) / 2 ^ 256) +
+    (2 : ℝ≥0∞)⁻¹ ^ 127 + (leanVmQueryBound : ℝ≥0∞) * (Sound.rootCap * (2 ^ 256 : ℝ≥0∞)⁻¹)
 
 /-- **Knowledge soundness in the random-oracle model, for the agreement-set extractor.** For an
 adversary making at most `Q` queries, which chooses the program, the public input and the proof,
@@ -123,10 +123,9 @@ theorem knowledgeSoundnessRomAS (D : NearDecoder) {A : Adversary} {Q : ℕ}
             (Extraction.ExtractProofs.finite_of_keysCover (Sound.keysCover_lookH w.1.2)))
       exact hno ⟨t, ht, htv⟩
     · exact hn2' ⟨j, hkj, hj, t, u, hej, hhit⟩
-  · rw [leanVmQueryBound_eq, failBound]
+  · rw [failBound]
     rfl
-  · rw [leanVmQueryBound_eq]
-    rfl
+  · rfl
 
 /-! ## The numbers -/
 
@@ -136,34 +135,33 @@ theorem rootCap_le : Sound.rootCap ≤ 2 ^ 16 := by decide
 queries, with the transfer to the random-permutation model, at most
 `(Q + 2^14) · 2^-125 + 5 (Q + 2^14)² · 2^-256`. The new terms, the fresh hit
 `2^-127` and the fresh roots `V · rootCap · 2^-256`, are each at most `2^-125`, as are the
-transfer's, and `Q + V + 3 ≤ Q + 2^14`. -/
+transfer's, and `Q + V + 3 ≤ Q + 2^14` (`leanVmQueryBound_add_three_le`). -/
 theorem soundnessRpmAS_le_statement {Q : ℕ} (hQ : Q ≤ 2 ^ 128) :
     soundnessErrorAS Q + rpmError (Q + verifierPermCalls) ≤
       (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 125 +
         5 * (Q + 2 ^ 14 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 := by
-  have hA3 : ((Q + verifierQueries : ℕ) : ℝ≥0∞) + 3 ≤ (Q + 2 ^ 14 : ℝ≥0∞) := by
-    have h : Q + verifierQueries + 3 ≤ Q + 2 ^ 14 := by
-      rw [Nat.add_assoc]
-      exact Nat.add_le_add_left (by rw [verifierQueries_eq]; norm_num) Q
+  have hV := leanVmQueryBound_add_three_le
+  rw [verifierQueries] at hV
+  have hA3 : ((Q + leanVmQueryBound : ℕ) : ℝ≥0∞) + 3 ≤ (Q + 2 ^ 14 : ℝ≥0∞) := by
+    have h : Q + leanVmQueryBound + 3 ≤ Q + 2 ^ 14 := by omega
     exact_mod_cast h
   have hHit : (2 : ℝ≥0∞)⁻¹ ^ 127 ≤ (2 : ℝ≥0∞)⁻¹ ^ 125 := Common.inv_two_pow_le_of_le (by norm_num)
-  have hRoots : (verifierQueries : ℝ≥0∞) * (Sound.rootCap * (2 ^ 256 : ℝ≥0∞)⁻¹) ≤
+  have hRoots : (leanVmQueryBound : ℝ≥0∞) * (Sound.rootCap * (2 ^ 256 : ℝ≥0∞)⁻¹) ≤
       (2 : ℝ≥0∞)⁻¹ ^ 125 := by
-    have hn : verifierQueries * Sound.rootCap ≤ 2 ^ 131 := by
-      have := rootCap_le
-      rw [verifierQueries_eq]
-      calc 13708 * Sound.rootCap ≤ 13708 * 2 ^ 16 := Nat.mul_le_mul_left _ this
+    have hn : leanVmQueryBound * Sound.rootCap ≤ 2 ^ 131 :=
+      calc leanVmQueryBound * Sound.rootCap ≤ 2 ^ 14 * 2 ^ 16 :=
+            Nat.mul_le_mul (by omega) rootCap_le
         _ ≤ 2 ^ 131 := by norm_num
-    calc (verifierQueries : ℝ≥0∞) * (Sound.rootCap * (2 ^ 256 : ℝ≥0∞)⁻¹)
-        = ((verifierQueries * Sound.rootCap : ℕ) : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 256 := by
+    calc (leanVmQueryBound : ℝ≥0∞) * (Sound.rootCap * (2 ^ 256 : ℝ≥0∞)⁻¹)
+        = ((leanVmQueryBound * Sound.rootCap : ℕ) : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 256 := by
           rw [Nat.cast_mul, mul_assoc, ENNReal.inv_pow]
       _ ≤ (2 : ℝ≥0∞) ^ 131 * (2 : ℝ≥0∞)⁻¹ ^ (131 + 125) := by
           gcongr
           exact_mod_cast hn
       _ = (2 : ℝ≥0∞)⁻¹ ^ 125 := Common.two_pow_mul_inv_pow 131 125
   have hq : Q + verifierPermCalls ≤ 2 ^ 129 :=
-    calc Q + verifierPermCalls ≤ 2 ^ 128 + verifierPermCalls := Nat.add_le_add_right hQ _
-      _ ≤ 2 ^ 129 := by rw [verifierPermCalls_eq]; norm_num
+    calc Q + verifierPermCalls ≤ 2 ^ 128 + 2 ^ 14 * 2 ^ 30 := Nat.add_le_add_right hQ _
+      _ ≤ 2 ^ 129 := by norm_num
   have hR : rpmError (Q + verifierPermCalls) ≤ (2 : ℝ≥0∞)⁻¹ ^ 125 :=
     calc rpmError (Q + verifierPermCalls)
         ≤ ((Q + verifierPermCalls : ℕ) : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 379 :=
@@ -173,28 +171,28 @@ theorem soundnessRpmAS_le_statement {Q : ℕ} (hQ : Q ≤ 2 ^ 128) :
           exact_mod_cast hq
       _ = (2 : ℝ≥0∞)⁻¹ ^ 250 := Common.two_pow_mul_inv_pow 129 250
       _ ≤ (2 : ℝ≥0∞)⁻¹ ^ 125 := Common.inv_two_pow_le_of_le (by norm_num)
-  have h5 : ((5 * (Q + verifierQueries) : ℕ) : ℝ≥0∞) / 2 ^ 256 =
-      5 * ((Q + verifierQueries : ℕ) : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 256 := by
+  have h5 : ((5 * (Q + leanVmQueryBound) : ℕ) : ℝ≥0∞) / 2 ^ 256 =
+      5 * ((Q + leanVmQueryBound : ℕ) : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 256 := by
     rw [Nat.cast_mul, div_eq_mul_inv, ENNReal.inv_pow, Nat.cast_ofNat]
   unfold soundnessErrorAS
   rw [h5]
-  calc ((Q + verifierQueries : ℕ) : ℝ≥0∞) * ((2 : ℝ≥0∞)⁻¹ ^ 125 +
-          5 * ((Q + verifierQueries : ℕ) : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 256) +
-        (2 : ℝ≥0∞)⁻¹ ^ 127 + (verifierQueries : ℝ≥0∞) * (Sound.rootCap * (2 ^ 256 : ℝ≥0∞)⁻¹) +
+  calc ((Q + leanVmQueryBound : ℕ) : ℝ≥0∞) * ((2 : ℝ≥0∞)⁻¹ ^ 125 +
+          5 * ((Q + leanVmQueryBound : ℕ) : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 256) +
+        (2 : ℝ≥0∞)⁻¹ ^ 127 + (leanVmQueryBound : ℝ≥0∞) * (Sound.rootCap * (2 ^ 256 : ℝ≥0∞)⁻¹) +
         rpmError (Q + verifierPermCalls)
-      = ((Q + verifierQueries : ℕ) : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 125 +
-          5 * ((Q + verifierQueries : ℕ) : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 +
-          ((2 : ℝ≥0∞)⁻¹ ^ 127 + (verifierQueries : ℝ≥0∞) * (Sound.rootCap * (2 ^ 256 : ℝ≥0∞)⁻¹) +
+      = ((Q + leanVmQueryBound : ℕ) : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 125 +
+          5 * ((Q + leanVmQueryBound : ℕ) : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 +
+          ((2 : ℝ≥0∞)⁻¹ ^ 127 + (leanVmQueryBound : ℝ≥0∞) * (Sound.rootCap * (2 ^ 256 : ℝ≥0∞)⁻¹) +
             rpmError (Q + verifierPermCalls)) := by ring
-    _ ≤ ((Q + verifierQueries : ℕ) : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 125 +
-          5 * ((Q + verifierQueries : ℕ) : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 +
+    _ ≤ ((Q + leanVmQueryBound : ℕ) : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 125 +
+          5 * ((Q + leanVmQueryBound : ℕ) : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 +
           ((2 : ℝ≥0∞)⁻¹ ^ 125 + (2 : ℝ≥0∞)⁻¹ ^ 125 + (2 : ℝ≥0∞)⁻¹ ^ 125) :=
         add_le_add le_rfl (add_le_add (add_le_add hHit hRoots) hR)
-    _ = (((Q + verifierQueries : ℕ) : ℝ≥0∞) + 3) * (2 : ℝ≥0∞)⁻¹ ^ 125 +
-          5 * ((Q + verifierQueries : ℕ) : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 := by ring
+    _ = (((Q + leanVmQueryBound : ℕ) : ℝ≥0∞) + 3) * (2 : ℝ≥0∞)⁻¹ ^ 125 +
+          5 * ((Q + leanVmQueryBound : ℕ) : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 := by ring
     _ ≤ (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 125 +
           5 * (Q + 2 ^ 14 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 := by
-        have hA : ((Q + verifierQueries : ℕ) : ℝ≥0∞) ≤ (Q + 2 ^ 14 : ℝ≥0∞) := le_self_add.trans hA3
+        have hA : ((Q + leanVmQueryBound : ℕ) : ℝ≥0∞) ≤ (Q + 2 ^ 14 : ℝ≥0∞) := le_self_add.trans hA3
         gcongr
 
 end

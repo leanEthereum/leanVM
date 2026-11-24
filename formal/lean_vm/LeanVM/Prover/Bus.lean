@@ -234,7 +234,7 @@ theorem corr_bytecodeShareA (w z : List E) (hw : w.length = 16) (hz : z.length =
   have hsl := toList_bytecodeSlotsA prog z hz
   have hdot : dot w (bytecodeSlotsA (bytecodeWords prog).toArray prog.logSize z).toList =
       bcShare prog w z := by
-    rw [hsl, LeanVM.Protocol.KeccakGkr.dot_eq _ _ (by rw [hw, length_slotList]), hw, bcShare]
+    rw [hsl, LeanVM.Protocol.Verifier.dot_eq_sum _ _ (by rw [hw, length_slotList]), hw, bcShare]
     exact Finset.sum_congr rfl fun k hk ↦ by
       rw [getD_slotList prog z (Finset.mem_range.mp hk)]
   unfold bytecodeShareA hShare

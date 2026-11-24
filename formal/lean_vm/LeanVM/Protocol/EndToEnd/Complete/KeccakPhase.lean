@@ -60,7 +60,7 @@ theorem castColumn_symm {a b : ℕ} (h : a = b) (q : Column b) :
 
 /-! ## What the program returns, in a simulation -/
 
-open LeanVM.Protocol.EndToEnd.Sound (RetOK RetOK.ret RetOK.bind_true) in
+open LeanVM.Protocol.EndToEnd.Sound (RetOK) in
 /-- **A simulation returns what the program returns**: a property of every return of the
 program holds of the simulation's results. -/
 theorem follows_retOK {α β : Type} {R : Commits → α → β → Prop} {Q : β → Prop} :
@@ -106,40 +106,26 @@ theorem follows_retOK {α β : Type} {R : Commits → α → β → Prop} {Q : �
         (by simpa [VerifierProgram.after] using hl)⟩
     | _ => simp only [Follows] at h
 
-open LeanVM.Protocol.EndToEnd.Sound (RetOK RetOK.ret RetOK.bind_true) in
+open LeanVM.Protocol.EndToEnd.Sound (RetOK RetOK.of_allRet) in
 /-- The bus phase claims the framework's columns only. -/
 theorem retOK_busColumns (layout : Verifier.Layout) :
     RetOK (fun bus : BusResult ↦ ∀ c ∈ bus.claims, c.column < 6)
-      (verifyBusBalance computedBytecodeValue layout) := by
-  rw [verifyBusBalance_eq]
-  refine RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦
-    RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦
-      RetOK.bind_true fun memory ↦ RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦
-        RetOK.bind_true fun r ↦ ?_
-  obtain ⟨share, bp, value⟩ := r
-  refine RetOK.bind_true fun _ ↦ RetOK.ret ?_
-  intro c hc
-  simp only [busOut, List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at hc
-  rcases hc with hc | rfl | rfl
-  · obtain ⟨i, hi, rfl⟩ := List.mem_iff_getElem.mp hc
-    simp only [List.getElem_zipWith, List.length_zipWith] at hi ⊢
-    have : i < 2 := by simp at hi; omega
-    interval_cases i <;> simp [memory0, memory1]
-  · show memoryFinalCounters < 6; decide
-  · show bytecodeFinalCounters < 6; decide
+      (verifyBusBalance computedBytecodeValue layout) :=
+  (RetOK.of_allRet (Claims.allRet_verifyBusBalance _ layout)).mono fun _ h c hc ↦ by
+    have := h.2.1 c hc
+    simp only [Claims.framework, memory0, memory1, memoryFinalCounters, bytecodeFinalCounters,
+      List.mem_cons, List.not_mem_nil, or_false] at this
+    omega
 
-open LeanVM.Protocol.EndToEnd.Sound (RetOK RetOK.ret RetOK.bind_true) in
+open LeanVM.Protocol.EndToEnd.Sound (RetOK RetOK.of_allRet) in
 /-- The public-input phase claims the memory columns only. -/
 theorem retOK_publicColumns (layout : Verifier.Layout) (publicInput : Digest) :
     RetOK (fun claims : List Verifier.ColumnClaim ↦ ∀ c ∈ claims, c.column < 6)
-      (publicInputPhase layout publicInput) := by
-  unfold publicInputPhase
-  refine RetOK.bind_true fun _ ↦ RetOK.ret ?_
-  intro c hc
-  obtain ⟨i, hi, rfl⟩ := List.mem_iff_getElem.mp hc
-  simp only [List.getElem_zipWith, List.length_zipWith] at hi ⊢
-  have : i < 2 := by simp at hi; omega
-  interval_cases i <;> simp [memory0, memory1]
+      (publicInputPhase layout publicInput) :=
+  (RetOK.of_allRet (Claims.allRet_publicInputPhase layout publicInput)).mono fun _ h c hc ↦ by
+    have := h.1 c hc
+    simp only [memory0, memory1, List.mem_cons, List.not_mem_nil, or_false] at this
+    omega
 
 variable (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s))
 

@@ -21,7 +21,6 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest LeanVM.Gu
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 open LeanVM.Guest.B1.Tables (TSt runT TCar fsOfT eq_fsOfT runT_of_runId runId_of_runT tcar_none
   runT_bind)
-open LeanVM.Guest.B1.VerifySub (NoCommitA NoCommit noCommit_iff)
 
 @[expose] public section
 
@@ -267,7 +266,7 @@ theorem lvSteps_of_run (logN lane : ℕ) :
     obtain ⟨hrl, hrok, hxs, hos, hfin, -⟩ := hD
     generalize hT : qstT (whirLevelsOpen logN lane index [level] s) ⟨⟨cap, []⟩, none, xs, os, R⟩ = T
     rw [whirLevelsOpen] at h hT
-    obtain ⟨p, st1, h1, h2, hq⟩ := rqe_bind_nc (Child.noCommit_foldRounds _ _) h hT
+    obtain ⟨p, st1, h1, h2, hq⟩ := rqe_bind_nc (noCommit_foldRounds _ _) h hT
     rw [hxs] at h1
     obtain ⟨rfl, rfl⟩ := rounds_plain hc hrl hrok h1
     set mu := logN - (rsSt level s cap rw).alphas.length with hmu
@@ -275,7 +274,7 @@ theorem lvSteps_of_run (logN lane : ℕ) :
     obtain ⟨fold, xs1, hfl, hs1, h, hq⟩ := rqe_readScalars (2 ^ mu + level.fold) _ _ rfl h2 hq
     obtain ⟨nn, xs2, hs2, -, h, hq⟩ := rqe_grindPoW (by decide) h hq
     obtain ⟨qs', st2, hq1, h, hq⟩ := rqe_bind_nc
-      ((noCommit_iff _).2 ((noCommit_iff _).1 (Child.noCommit_sampleQueriesAux _ _ _))) h hq
+      (noCommit_sampleQueriesAux _ _ _) h hq
     simp only at hs1 hs2
     have hw : W.fold ++ ([W.nn] ++ tailWords W.pairs) = fold ++ nn :: xs2 := by
       rw [← List.append_assoc]; exact hs1.trans (by rw [hs2])
@@ -298,10 +297,10 @@ theorem lvSteps_of_run (logN lane : ℕ) :
     obtain ⟨rfl, rfl⟩ := hos'
     rw [hT', qstT_nil_of_nc _ ?nc _]
     case nc =>
-      refine (noCommit_iff _).1 (VerifySub.NoCommit.bind (VerifySub.noCommit_require _) fun _ ↦
-        VerifySub.NoCommit.bind (VerifySub.noCommit_sumcheck _ _ _) fun x ↦ ?_)
+      refine (noCommit_iff _).1 (NoCommit.bind (noCommit_require _) fun _ ↦
+        NoCommit.bind (noCommit_sumcheck _ _ _) fun x ↦ ?_)
       obtain ⟨_, _⟩ := x
-      exact VerifySub.noCommit_ret _
+      exact noCommit_ret _
     show _ = [((R.getD index default).2.1, _)]
     rw [getD_of_getElem? hR']
     rfl
@@ -313,7 +312,7 @@ theorem lvSteps_of_run (logN lane : ℕ) :
     generalize hT : qstT (whirLevelsOpen logN lane index (level :: next :: rest) s)
       ⟨⟨cap, []⟩, none, xs, os, R⟩ = T
     rw [whirLevelsOpen] at h hT
-    obtain ⟨p, st1, h1, h2, hq⟩ := rqe_bind_nc (Child.noCommit_foldRounds _ _) h hT
+    obtain ⟨p, st1, h1, h2, hq⟩ := rqe_bind_nc (noCommit_foldRounds _ _) h hT
     rw [hxs, List.append_assoc] at h1
     obtain ⟨rfl, rfl⟩ := rounds_plain hc hrl hrok h1
     set mu := logN - (rsSt level s cap rw).alphas.length with hmu
@@ -328,7 +327,7 @@ theorem lvSteps_of_run (logN lane : ℕ) :
     obtain ⟨y0, xs4, hs4, -, h, hq⟩ := rqe_readE h hq
     obtain ⟨nn, xs5, hs5, -, h, hq⟩ := rqe_grindPoW (by decide) h hq
     obtain ⟨qs', st2, hq1, h, hq⟩ := rqe_bind_nc
-      ((noCommit_iff _).2 ((noCommit_iff _).1 (Child.noCommit_sampleQueriesAux _ _ _))) h hq
+      (noCommit_sampleQueriesAux _ _ _) h hq
     simp only at hs1 hs2 hs3 hs4 hs5
     have hw := hs1
     rw [hs2, hs3, hs4, hs5] at hw

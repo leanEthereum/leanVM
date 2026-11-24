@@ -273,8 +273,8 @@ theorem endsClear_gkrLayers : ∀ (n : ℕ) (s : GkrState), EndsClear (gkrLayers
     · simp only [VerifierProgram.bind_eq]
       exact ((endsAny_gkrStep 1 _ _).bind fun _ ↦ endsClear_gkrLayers n _).clear
 
-theorem endsClear_gkrPhase (depth : ℕ) : EndsClear (Tables.gkrPhase depth) := by
-  unfold Tables.gkrPhase verifyGkrGrandProducts
+theorem endsClear_gkrPhase (depth : ℕ) : EndsClear (gkrPhase depth) := by
+  unfold gkrPhase verifyGkrGrandProducts
   simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq, VerifierProgram.bind_assoc]
   refine (endsAny_readE.bind fun _ ↦ ?_).clear
   refine (endsAny_readE.bind fun _ ↦ ?_).clear

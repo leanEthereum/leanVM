@@ -9,6 +9,7 @@
 module
 
 public import LeanVM.Protocol.Spine.Instance
+public import LeanVM.Protocol.Verifier.EqKernel
 
 /-!
 # The Keccak predicate along a point
@@ -43,11 +44,7 @@ open LeanVM.Parameters LeanVM.Semantics
 
 namespace KeccakZero
 
-/-- The equality weight of the bits of `w` against the point `acc`: bit `i` of `w` weighs
-`acc[i]` when set and `1 - acc[i]` when not. -/
-def eqAt : List E → ℕ → E
-  | [], _ => 1
-  | a :: acc, w => (if w % 2 = 1 then a else 1 - a) * eqAt acc (w / 2)
+open LeanVM.Protocol.Verifier (eqAt eqAt_two_mul sum_range_two_mul)
 
 /-- The table `δ` on `n` bits with its high `|acc|` coordinates bound to `acc`, at the index `v`
 of the low coordinates. -/
@@ -59,18 +56,9 @@ the remaining cube. -/
 def ZeroOnHi (δ : ℕ → E) (acc : List E) (n : ℕ) : Prop :=
   ∀ v < 2 ^ (n - acc.length), foldHi δ n acc v = 0
 
-/-- A sum over `2 N` indices, by pairs. -/
-theorem sum_range_two_mul (f : ℕ → E) (N : ℕ) :
-    ∑ w ∈ Finset.range (2 * N), f w = ∑ w ∈ Finset.range N, (f (2 * w) + f (2 * w + 1)) := by
-  induction N with
-  | zero => simp
-  | succ N ih =>
-    rw [show 2 * (N + 1) = 2 * N + 1 + 1 by ring, Finset.sum_range_succ, Finset.sum_range_succ,
-      ih, Finset.sum_range_succ, add_assoc]
-
 /-- Nothing bound: the table itself. -/
 theorem foldHi_nil (δ : ℕ → E) (n v : ℕ) : foldHi δ n [] v = δ v := by
-  simp [foldHi, eqAt]
+  simp [foldHi]
 
 /-- Binding one more coordinate, the next lower one. -/
 theorem foldHi_cons (δ : ℕ → E) {n : ℕ} (c : E) {acc : List E} (h : acc.length < n) (v : ℕ) :
@@ -84,10 +72,8 @@ theorem foldHi_cons (δ : ℕ → E) {n : ℕ} (c : E) {acc : List E} (h : acc.l
     Finset.mul_sum, ← Finset.sum_add_distrib]
   refine Finset.sum_congr rfl fun w _ ↦ ?_
   have e0 : eqAt (c :: acc) (2 * w) = (1 - c) * eqAt acc w := by
-    simp [eqAt, Nat.mul_mod_right, Nat.mul_div_cancel_left w (by norm_num : 0 < 2)]
-  have e1 : eqAt (c :: acc) (2 * w + 1) = c * eqAt acc w := by
-    simp only [eqAt]
-    rw [ite_eq_left (by omega), show (2 * w + 1) / 2 = w by omega]
+    rw [(eqAt_two_mul c acc w).1, CharTwo.sub_eq_add]
+  have e1 := (eqAt_two_mul c acc w).2
   have i0 : v + 2 ^ m * (2 * w) = v + 2 ^ (m + 1) * w := by
     rw [pow_succ]; ring
   have i1 : v + 2 ^ m * (2 * w + 1) = v + 2 ^ m + 2 ^ (m + 1) * w := by

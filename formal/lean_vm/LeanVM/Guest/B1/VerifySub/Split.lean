@@ -34,23 +34,6 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-/-- The push side's bus depth of a layout. -/
-abbrev busDepth (layout : Layout) : ℕ :=
-  (busLayout [0, layout.logMemory, layout.logBytecode] layout.push).depth
-
-/-- `verifyBusBalance` as the depth's check, the grind, the weights and `β`, `gkrPhase` and
-`busRest`. -/
-theorem verifyBusBalance_split (ev : List K → List E → E → VerifierProgram Unit) (layout : Layout) :
-    verifyBusBalance ev layout =
-      (VerifierProgram.require (busDepth layout < 64)).bind fun _ ↦
-      (VerifierProgram.grindProofOfWork (busGrindingBits (busDepth layout))).bind fun _ ↦
-      (VerifierProgram.sampleChallenges (2 ^ busBits)).bind fun weights ↦
-      VerifierProgram.sampleChallenge.bind fun beta ↦
-      (Tables.gkrPhase (busDepth layout)).bind fun r ↦
-        Tables.busRest ev layout weights beta r.2.1 r.2.2 := by
-  simp only [verifyBusBalance, Tables.gkrPhase, Tables.busRest, VerifierProgram.bind_eq,
-    VerifierProgram.pure_eq, VerifierProgram.bind_assoc, VerifierProgram.ret_bind]
-
 /-- The output lanes' claims. -/
 def lanesOf (claims : List ColumnClaim) : List ColumnClaim :=
   claims.filter fun c ↦ c.column ∈ keccakOutputColumns
@@ -61,12 +44,6 @@ def stackClaims (layout : Layout) (claims : List ColumnClaim) (target : E)
     (weight : List E → E) (ood : StackClaim) : List StackClaim :=
   ringSwitchClaim layout target weight :: claims.map (·.stackClaim layout) ++ [ood]
 
-/-- The bus's grind, its slot weights and `β`. -/
-def busChallenges (depth : ℕ) : VerifierProgram (List E × E) :=
-  (VerifierProgram.grindProofOfWork (busGrindingBits depth)).bind fun _ ↦
-  (VerifierProgram.sampleChallenges (2 ^ busBits)).bind fun weights ↦
-  VerifierProgram.sampleChallenge.bind fun beta ↦ VerifierProgram.ret (weights, beta)
-
 /-- **The deferring verifier's program, regrouped.** -/
 def deferredFlat (c : BytecodeClaim) (bytecode : List K) (pi : Digest) : VerifierProgram Bool :=
   (readAnnouncedSizes bytecode).bind fun ls ↦
@@ -74,7 +51,7 @@ def deferredFlat (c : BytecodeClaim) (bytecode : List K) (pi : Digest) : Verifie
   (readOod ls.1.stackLog).bind fun ood ↦
   (VerifierProgram.require (busDepth ls.1 < 64)).bind fun _ ↦
   (busChallenges (busDepth ls.1)).bind fun wb ↦
-  (Tables.gkrPhase (busDepth ls.1)).bind fun r ↦
+  (gkrPhase (busDepth ls.1)).bind fun r ↦
   (Tables.tablesSeg (claimedBytecodeValue c) ls.1 pi wb.1 wb.2 r.2.1 r.2.2).bind fun bc ↦
   (keccakPhaseClaims ls.1 bc.2).bind fun kc ↦
   (ringSwitch kc.2.1 kc.2.2).bind fun rs ↦

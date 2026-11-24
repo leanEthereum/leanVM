@@ -44,9 +44,10 @@ bytes, every commitment of the leanVM verifier program having width at most `192
 So every query costs at most `⌊(2^37 + 9) / 136⌋ + 1 ≤ 2^30` calls, and a computation of `N`
 queries at most `N · 2^30` (`isWeightBound_of_isTotalQueryBound`):
 
-* `isWeightBound_verifier`: the verifier, `13708` queries, at most `verifierPermCalls`;
-* `isWeightBound_honest`: the honest prover then the verifier, `completenessQueries fuel =
-  13710 + 54825 · (2^27 + 2·fuel + 2)` queries, at most `completenessPermCalls fuel`.
+* `isWeightBound_verifier`: the verifier, `leanVmQueryBound ≤ verifierQueries` queries, at most
+  `verifierPermCalls`;
+* `isWeightBound_romHonest`: the honest prover then the verifier, at most
+  `completenessQueries fuel` queries, so at most `completenessPermCalls fuel`.
 -/
 
 namespace LeanVM.Rpm
@@ -476,8 +477,10 @@ theorem isWeightBound_verifier (prog : LeanIsaProgram) (input : PublicInput) (pr
     Common.QueryCostAtMost (verifierWithHash callKeccak256 callKeccakF1600 prog input proof) hashBlocks
       verifierPermCalls := by
   have hN := isTotalQueryBound_leanVm (bytecodeWords prog) (publicInputDigest input) proof
-  rw [leanVmQueryBound_eq, ← verifier_eq] at hN
-  exact isWeightBound_of_isTotalQueryBound hashBlocks (2 ^ 30) hN
+  rw [← verifier_eq] at hN
+  have hV := leanVmQueryBound_add_three_le
+  exact isWeightBound_of_isTotalQueryBound hashBlocks (2 ^ 30)
+    (show IsTotalQueryBound _ verifierQueries from hN.mono (by omega))
     ((allQ_verifier prog input proof).mono fun _ h ↦ hashBlocks_le_of_short h)
 
 end Verifier
@@ -715,34 +718,13 @@ theorem shaped_of {prog : LeanIsaProgram} {input : PublicInput} {t : Execution p
 
 -- As for `shaped_of`.
 
-/-- The honest prover's queries: the seed's four, and `leanVmCost = 54825` quarters at the
-prover's factor. -/
-theorem isTotalQueryBound_honestComp' (prog : LeanIsaProgram) (input : PublicInput) (t :
-    Execution prog)
-    (ρ fuel : ℕ) :
-    IsTotalQueryBound (Complete.honestComp prog input t ρ fuel)
-      (2 + 54825 * (2 ^ 29 + 2 * fuel + 2)) := by
-  by_cases hex : ∃ w s, Complete.HonestFor prog input t ρ w s
-  · unfold Complete.honestComp
-    simp only [hex, ↓reduceDIte]
-    have h := Rom.isTotalQueryBound_honestComp
-      (costLE_leanVmProgram (bytecodeWords prog) (publicInputDigest input)) (Complete.leanVmProver
-        prog hex.choose_spec.choose ρ (LeanIsa.stackOf prog hex.choose_spec.choose hex.choose))
-      fuel (σ := leanVmSeed (bytecodeWords prog) (publicInputDigest input))
-    have hc : leanVmCost = 54825 := by decide
-    rw [hc] at h
-    exact h
-  · unfold Complete.honestComp
-    simp only [hex, ↓reduceDIte]
-    trivial
-
 end Prover
 
-/-- **A prover of at most `2 + 54825 · (2^27 + 2·fuel + 2)` short queries and the verifier make
-at most `completenessPermCalls fuel` permutation calls.** -/
+/-- **A prover of at most `2 + leanVmCost · (2^29 + 2·fuel + 2)` short queries and the verifier
+make at most `completenessPermCalls fuel` permutation calls.** -/
 theorem isWeightBound_proverVerifier {X : OracleComp KeccakCalls Proof} (prog : LeanIsaProgram)
     (input : PublicInput) {fuel : ℕ}
-    (hX : IsTotalQueryBound X (2 + 54825 * (2 ^ 29 + 2 * fuel + 2)))
+    (hX : IsTotalQueryBound X (2 + leanVmCost * (2 ^ 29 + 2 * fuel + 2)))
     (hXq : AllQueriesSatisfy X Short) :
     Common.QueryCostAtMost (X >>= fun proof ↦ verifierWithHash callKeccak256 callKeccakF1600 prog input proof) hashBlocks
       (completenessPermCalls fuel) := by
@@ -750,28 +732,23 @@ theorem isWeightBound_proverVerifier {X : OracleComp KeccakCalls Proof} (prog : 
       (completenessQueries fuel) := by
     have h := isTotalQueryBound_bind hX fun proof ↦ by
         have := isTotalQueryBound_leanVm (bytecodeWords prog) (publicInputDigest input) proof
-        rw [leanVmQueryBound_eq, ← verifier_eq] at this
+        rw [← verifier_eq] at this
         exact this
-    refine h.mono ?_
-    unfold completenessQueries
-    omega
+    exact h.mono (Complete.completenessQueries_le fuel)
   exact isWeightBound_of_isTotalQueryBound hashBlocks (2 ^ 30) hN
     ((allQueriesSatisfy_bind hXq fun proof ↦
       allQ_verifier prog input proof).mono fun _ h ↦ hashBlocks_le_of_short h)
 
 /-- The specification's honest prover of any strategy makes at most
-`2 + 54825 · (2^27 + 2·fuel + 2)` queries. -/
+`2 + leanVmCost · (2^29 + 2·fuel + 2)` queries. -/
 theorem isTotalQueryBound_romHonestComp (prog : LeanIsaProgram) (input : PublicInput) (S : Strategy)
     (fuel : ℕ) :
     IsTotalQueryBound (Rom.honestComp (leanVmSeed (bytecodeWords prog) (publicInputDigest input))
       (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) S fuel)
-      (2 + 54825 * (2 ^ 29 + 2 * fuel + 2)) := by
-  have h := Rom.isTotalQueryBound_honestComp
+      (2 + leanVmCost * (2 ^ 29 + 2 * fuel + 2)) :=
+  Rom.isTotalQueryBound_honestComp
     (costLE_leanVmProgram (bytecodeWords prog) (publicInputDigest input)) S fuel
     (σ := leanVmSeed (bytecodeWords prog) (publicInputDigest input))
-  have hc : leanVmCost = 54825 := by decide
-  rw [hc] at h
-  exact h
 
 -- As for `shaped_of`.
 set_option maxHeartbeats 1000000 in

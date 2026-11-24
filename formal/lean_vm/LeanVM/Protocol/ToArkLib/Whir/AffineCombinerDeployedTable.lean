@@ -2,7 +2,7 @@
   LeanVM.Protocol.ToArkLib.Whir.AffineCombinerDeployedTable
 
   The interpolation parameters the Rust picks for every fold round of every admissible WHIR
-  ladder, and their kernel-checked certificate.
+  ladder, and the check of each level.
 -/
 
 module
@@ -17,9 +17,10 @@ then the level, lists `(κ, R, k, Aend, rounds)`: the level's message variables,
 fold rounds and final threshold, and the witness `(m, D, B)` of each round `j = 1..k`. It was
 exported from `WhirSecurityConfig::derive_config_with_log_inv_rate(log_n + LOG_PACKING, R)`
 (`crates/pcs/src/whir_config.rs`, `affine_mca::find_witness`). The table is
-untrusted data; `foldTable_ok` checks every round with `foldRoundOK` at the fold budget
-`2^10 = 2^(128 - (125 - 7))` (`budget(FOLD_GRINDING_BITS, SECURITY_BITS)`) by kernel evaluation,
-and `levelOK_round` reads one round's check off a level's.
+untrusted data: `levelOK` checks a level's rounds with `foldRoundOK` at the fold budget
+`2^10 = 2^(128 - (125 - 7))` (`budget(FOLD_GRINDING_BITS, SECURITY_BITS)`), which
+`Whir.Params.shapeOK_all` evaluates on every level of every admissible shape, and `levelOK_round`
+reads one round's check off a level's.
 -/
 
 namespace LeanVM.Protocol.Whir.AffineCombiner
@@ -488,11 +489,6 @@ def levelOK (budget : ℕ) (lv : ℕ × ℕ × ℕ × ℕ × List (ℕ × ℕ ×
   lv.2.2.2.2.length == lv.2.2.1 &&
     lv.2.2.2.2.zipIdx.all fun wi ↦
       foldRoundOK lv.1 lv.2.1 lv.2.2.1 lv.2.2.2.1 (wi.2 + 1) wi.1.1 wi.1.2.1 wi.1.2.2 budget
-
-/-- **Every deployed fold round passes**, by kernel evaluation. -/
-theorem foldTable_ok :
-    foldTable.all (fun r ↦ r.all fun sh ↦ sh.all (levelOK foldBudget)) = true := by
-  decide +kernel
 
 /-- One round's check, from its level's. -/
 theorem levelOK_round {budget κ R k Aend : ℕ} {rounds : List (ℕ × ℕ × ℕ)}

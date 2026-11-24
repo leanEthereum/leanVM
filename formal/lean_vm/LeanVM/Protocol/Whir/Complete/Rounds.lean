@@ -217,7 +217,7 @@ theorem claim_fold (f w : Array E) {m cols k : ℕ} (hf : f.size = cols * 2 ^ (m
     rw [hXH]; have := mem_range.mp hi
     calc i < 2 ^ k * 2 ^ m := this
       _ ≤ (cols + 1) * 2 ^ m := Nat.mul_le_mul_right _ (by omega)
-  rw [hclaim, hw2, sum_range_two_mul, hwsz]
+  rw [hclaim, hw2, Verifier.sum_range_two_mul, hwsz]
   have key : ∀ i ∈ range n, (foldPairsA α w).getD i 0 *
       (foldLanesA f (2 ^ (m + 1)) H XH α β).getD i 0 =
       w.getD (2 * i) 0 * f.getD (2 * i + 1) 0 +

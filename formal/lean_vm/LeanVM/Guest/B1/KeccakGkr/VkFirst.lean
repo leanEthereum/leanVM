@@ -152,7 +152,7 @@ theorem vkFirstT_holds {τ : ℕ} (hτ1 : 9 ≤ τ) {chis outs rl : List E} {r0 
     rw [loadHolds_unique l485 this]
     simp only [vkFirst, keccakSegments_eq, show 2 - 1 = 1 from rfl]
     symm
-    rw [dot_eq _ _ (by simp [eqKernel_length, hrl, houts])]
+    rw [dot_eq_sum _ _ (by simp [eqKernel_length, hrl, houts])]
     simp only [List.length_take, eqKernel_length, hrl, show min 25 (2 ^ 5) = 25 from rfl]
     refine congrArg (σ (.n (val% «verify_keccak» "x@1")) + (eqKernel [r0]).getD 1 0 * ·)
       (Finset.sum_congr rfl fun k hk ↦ ?_)

@@ -47,7 +47,7 @@ theorem deferred_accepts {bytecode : List K} {seed pi : Digest} {c : BytecodeCla
     {xsB : List E} {wb : List E × E} {s3 : Fs}
     (h3 : RunsTo (busChallenges (busDepth L)) s2 xsB wb s3)
     {xsG : List E} {r : E × List E × List E} {s4 : Fs}
-    (h4 : RunsTo (Tables.gkrPhase (busDepth L)) s3 xsG r s4)
+    (h4 : RunsTo (gkrPhase (busDepth L)) s3 xsG r s4)
     {xsT : List E} {bc : BusResult × List ColumnClaim} {s5 : Fs}
     (h5 : RunsTo (Tables.tablesSeg (claimedBytecodeValue c) L pi wb.1 wb.2 r.2.1 r.2.2) s4 xsT bc s5)
     {xsK : List E} {kc : List ColumnClaim × List E × List E} {s6 : Fs}

@@ -80,7 +80,7 @@ theorem first_true (col : ℕ → K) {inst segment lanesPt output : List E}
   rw [ClaimTrue, firstClaim_sum (P + 4) P rfl col hi hl]
   have hdot : dot ((eqKernel lanesPt).take 25) output =
       ∑ l ∈ range 25, eqAt lanesPt l * output.getD l 0 := by
-    rw [dot_eq _ _ (by simp [eqKernel_length, hl, ho])]
+    rw [dot_eq_sum _ _ (by simp [eqKernel_length, hl, ho])]
     simp only [List.length_take, eqKernel_length, hl]
     refine Finset.sum_congr rfl fun l hl' ↦ ?_
     have hl'' := Finset.mem_range.1 hl'
@@ -173,7 +173,7 @@ theorem follows_input (col : ℕ → K) (claim : KeccakClaim) (hshape : ClaimSha
   have hcheck : multilinearEval claim.mu y.1 *
       dot x.2.1 (slicesOf P col (y.1 ++ claim.point.take P) a.1) = x.2.2 := by
     rw [hxv, Fs, cubeSum_full _ hx6, hxw, multilinearEval_mu hshape.1 hy,
-      dot_eq _ _ (by rw [fold_in_length P claim hx6, slicesOf_length]),
+      dot_eq_sum _ _ (by rw [fold_in_length P claim hx6, slicesOf_length]),
       fold_in_length P claim hx6]
     refine congrArg (HMul.hMul _) (Finset.sum_congr rfl fun z hz ↦ ?_)
     have hz' := Finset.mem_range.1 hz

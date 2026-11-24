@@ -145,7 +145,8 @@ theorem flat2_lambdaPowers (lam : E) : ∀ n, flat2 (lambdaPowers lam n) =
 theorem dot_powers_eq {G : List E} {n : ℕ} (hG : G.length = 2 * n) (lam : E) :
     dot (flat2 (lambdaPowers lam n)) G =
       LeanVM.Protocol.powerBatch (fun j : Fin (2 * n) ↦ G.getD j 0) lam := by
-  rw [flat2_lambdaPowers, Whir.Complete.dot_eq_sum _ _ (by simp [hG]), LeanVM.Protocol.powerBatch,
+  rw [flat2_lambdaPowers, LeanVM.Protocol.Verifier.dot_eq_sum _ _ (by simp [hG]),
+    LeanVM.Protocol.powerBatch,
     Fin.sum_univ_eq_sum_range (fun j ↦ G.getD j 0 * lam ^ j), List.length_map, List.length_range]
   refine Finset.sum_congr rfl fun j hj ↦ ?_
   rw [List.getD_eq_getElem _ _ (by simpa using hj), List.getElem_map, List.getElem_range,

@@ -200,32 +200,6 @@ theorem foldRounds_returns : ∀ {n : ℕ} {s : WhirState} {p : WhirState × Lis
     rw [foldRounds_returns h2, foldRound_returns h1]
     omega
 
-theorem noCommit_foldRound (s : WhirState) : NoCommit (foldRound s) := by
-  unfold foldRound
-  nc
-
-theorem noCommit_foldRounds : ∀ (n : ℕ) (s : WhirState), NoCommit (foldRounds n s)
-  | 0, _ => noCommit_ret _
-  | n + 1, s => by
-    unfold foldRounds
-    simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
-    refine NoCommit.bind (noCommit_foldRound s) fun p ↦ ?_
-    obtain ⟨s', r⟩ := p
-    refine NoCommit.bind (noCommit_foldRounds n s') fun q ↦ ?_
-    obtain ⟨s'', rs⟩ := q
-    exact noCommit_ret _
-
-theorem noCommit_sampleQueriesAux (depth : ℕ) : ∀ (fuel remaining : ℕ),
-    NoCommit (sampleQueriesAux depth fuel remaining)
-  | 0, _ => noCommit_ret _
-  | fuel + 1, remaining => by
-    unfold sampleQueriesAux
-    simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
-    split
-    · exact noCommit_ret _
-    · exact NoCommit.bind noCommit_sampleE fun _ ↦ NoCommit.bind
-        (noCommit_sampleQueriesAux depth fuel _) fun _ ↦ noCommit_ret _
-
 theorem sampleQueriesAux_returns (depth : ℕ) : ∀ (fuel remaining : ℕ) {qs : List ℕ},
     VerifierProgram.Returns (sampleQueriesAux depth fuel remaining) qs → ∀ q ∈ qs, q < 2 ^ depth
   | 0, _, qs, h => by
@@ -315,23 +289,6 @@ theorem inRange_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E)
 
 /-! ## The verifier program -/
 
-theorem noCommit_busRest_computed (L : Layout) (weights : List E) (beta : E) (point tv : List E) :
-    NoCommit (LeanVM.Guest.B1.Tables.busRest computedBytecodeValue L weights beta point tv) := by
-  unfold LeanVM.Guest.B1.Tables.busRest
-  simp only [computedBytecodeValue, VerifierProgram.bind_eq, VerifierProgram.pure_eq]
-  refine NoCommit.bind (noCommit_readN _) fun _ ↦ ?_
-  refine NoCommit.bind noCommit_readE fun _ ↦ ?_
-  refine NoCommit.bind noCommit_readE fun _ ↦ ?_
-  refine NoCommit.bind (noCommit_bytecodeShare _ _) fun _ ↦ ?_
-  nc
-
-theorem noCommit_verifyBusBalance_computed (layout : Layout) :
-    NoCommit (verifyBusBalance computedBytecodeValue layout) := by
-  rw [verifyBusBalance_split]
-  exact NoCommit.bind (noCommit_require _) fun _ ↦ NoCommit.bind (noCommit_grind _) fun _ ↦
-    NoCommit.bind (noCommit_sampleN _) fun _ ↦ NoCommit.bind noCommit_sampleE fun _ ↦
-    NoCommit.bind (noCommit_gkrPhase _) fun _ ↦ noCommit_busRest_computed _ _ _ _ _
-
 /-- The stack's commitment: the height of the ladder's first level. -/
 theorem inRange_commitStack (μ r : ℕ) (hs : List ℕ) :
     InRange (commitStack μ r) hs fun _ hs' ↦ ∃ level rest,
@@ -398,7 +355,8 @@ theorem inRange_leanVmProgram (bytecode : List K) (publicInput : Digest) :
     InRange (leanVmVerifierProgram bytecode publicInput) [] fun _ _ ↦ True := by
   rw [leanVmProgram_eq]
   exact InRange.bind (Q := fun _ _ ↦ True)
-    (inRange_verifyExecutionClaims noCommit_verifyBusBalance_computed _ _) fun _ _ _ ↦ trivial
+    (inRange_verifyExecutionClaims (noCommit_verifyBusBalance noCommit_computedBytecodeValue) _ _)
+    fun _ _ _ ↦ trivial
 
 end
 end LeanVM.Guest.Child
