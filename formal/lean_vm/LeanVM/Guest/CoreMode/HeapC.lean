@@ -1482,24 +1482,24 @@ def topAtoms : List Stmt → List Atom
 /-- The value numbers the atoms define (`atomDst`), as a trie. -/
 noncomputable def dstKeys (as : List Atom) : Trie Unit := keysT ((as.flatMap atomDst).filterMap vnum) .nil
 
-/-- Cell `i` of a `frameAddr (V.n kp) run` among the atoms, `run[i]` among the values `D` (by number), or past a
-nonempty run. -/
-noncomputable def faAt (D : Trie Unit) (kp i : ℕ) : Atom → Bool
-  | .frameAddr p run => (match vnum p with
-      | some k => Nat.beq k kp
-      | none => false) && ((match run[i]? with
-      | some v => match vnum v with
-        | some k => (getF D k).isSome
-        | none => false
-      | none => false) || (!run.isEmpty && Nat.ble run.length i))
-  | _ => false
+/-- A `frameAddr (V.n k) run` atom's `k` and run. -/
+def frOf : Atom → Option (ℕ × List V)
+  | .frameAddr p run => (vnum p).map fun k ↦ (k, run)
+  | _ => none
+
+/-- Cell `i` of a frame run: `run[i]` among the values `D` (by number), or past a nonempty run. -/
+noncomputable def faCell (D : Trie Unit) (i : ℕ) (run : List V) : Bool :=
+  (match run[i]? with
+    | some v => match vnum v with
+      | some k => (getF D k).isSome
+      | none => false
+    | none => false) || (!run.isEmpty && Nat.ble run.length i)
 
 /-- **The frame run cells a certificate guarantees at return** (`HCert.fas`): each `(kp, i)` cell `i` of a
-`frameAddr (V.n kp) run` among the atoms `as`, `run[i]` defined by one of them (`D`, `dstKeys as`), or past a nonempty
-run. -/
-noncomputable def faOk (as : List Atom) (D : Trie Unit) : List (ℕ × ℕ) → Bool
-  | [] => true
-  | (kp, i) :: l => as.any (faAt D kp i) && faOk as D l
+`frameAddr (V.n kp) run` among the atoms `as` (`frOf`, the runs listed once), `run[i]` defined by one of them (`D`,
+`dstKeys as`), or past a nonempty run. -/
+noncomputable def faOk (as : List Atom) (D : Trie Unit) (l : List (ℕ × ℕ)) : Bool :=
+  Exec.listSeq (as.filterMap frOf) fun fr ↦ l.all fun q ↦ fr.any fun r ↦ Nat.beq r.1 q.1 && faCell D q.2 r.2
 
 /-- `c`'s value number listed. -/
 def dupC (ds : List ℕ) (c : V) : Bool := match vnum c with

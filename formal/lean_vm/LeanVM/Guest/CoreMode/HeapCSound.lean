@@ -943,47 +943,47 @@ theorem getF_keysT : ∀ (l : List ℕ) (t : Trie Unit) {k : ℕ}, (getF (keysT 
 
 /-- **The frame run cells a certificate guarantees at return**: each a cell of a `frameAddr` among the atoms,
 its value defined by one of them, or past a nonempty run. -/
-theorem faOk_spec {as : List Atom} : ∀ {fas : List (ℕ × ℕ)}, faOk as (dstKeys as) fas = true →
+theorem faOk_spec {as : List Atom} {fas : List (ℕ × ℕ)} (h : faOk as (dstKeys as) fas = true) :
     ∀ p ∈ fas, (∃ run v, Atom.frameAddr (V.n p.1) run ∈ as ∧ run[p.2]? = some v ∧ ∃ a ∈ as, v ∈ atomDst a) ∨
-      ∃ run, Atom.frameAddr (V.n p.1) run ∈ as ∧ run ≠ [] ∧ run.length ≤ p.2
-  | [], _, p, hp => by simp at hp
-  | (kp, i) :: l, h, p, hp => by
-    simp only [faOk, Bool.and_eq_true, List.any_eq_true] at h
-    rcases List.mem_cons.mp hp with rfl | hp
-    · obtain ⟨a, ha, hfa⟩ := h.1
-      cases a with
-      | frameAddr q run =>
-        simp only [faAt, Bool.and_eq_true, Bool.or_eq_true] at hfa
-        obtain ⟨hq, hv⟩ := hfa
-        cases hqn : vnum q with
-        | none => rw [hqn] at hq; cases hq
-        | some k =>
-          rw [hqn] at hq
-          have hk : k = kp := Nat.eq_of_beq_eq_true hq
-          subst hk
-          rw [vnum_eq hqn] at ha
-          rcases hv with hv | hv
-          · left
-            cases hri : run[i]? with
-            | none => rw [hri] at hv; cases hv
-            | some v =>
-              simp only [hri] at hv
-              cases hvn : vnum v with
-              | none => simp only [hvn] at hv; cases hv
-              | some k' =>
-                simp only [hvn] at hv
-                rcases getF_keysT _ _ hv with hm | hm
-                · obtain ⟨v', hv', hv'n⟩ := List.mem_filterMap.mp hm
-                  obtain ⟨a', ha', hva'⟩ := List.mem_flatMap.mp hv'
-                  refine ⟨run, v, ha, hri, a', ha', ?_⟩
-                  rw [vnum_eq hvn, ← vnum_eq hv'n]
-                  exact hva'
-                · simp [getF_nil] at hm
-          · right
-            simp only [Bool.not_eq_true', List.isEmpty_eq_false_iff, Nat.ble_eq] at hv
-            exact ⟨run, ha, hv.1, hv.2⟩
-      | _ => simp [faAt] at hfa
-    · exact faOk_spec h.2 p hp
+      ∃ run, Atom.frameAddr (V.n p.1) run ∈ as ∧ run ≠ [] ∧ run.length ≤ p.2 := by
+  intro p hp
+  rw [faOk, Exec.listSeq_eq, List.all_eq_true] at h
+  obtain ⟨⟨k, run⟩, hr, hfa⟩ := List.any_eq_true.mp (h p hp)
+  obtain ⟨a, ha, hfr⟩ := List.mem_filterMap.mp hr
+  simp only [Bool.and_eq_true, faCell, Bool.or_eq_true] at hfa
+  obtain ⟨hk, hv⟩ := hfa
+  have hk : k = p.1 := Nat.eq_of_beq_eq_true hk
+  subst hk
+  have ha : Atom.frameAddr (V.n p.1) run ∈ as := by
+    cases a with
+    | frameAddr q run' =>
+      cases hqn : vnum q with
+      | none => simp [frOf, hqn] at hfr
+      | some k' =>
+        simp only [frOf, hqn, Option.map_some, Option.some.injEq, Prod.mk.injEq] at hfr
+        obtain ⟨rfl, rfl⟩ := hfr
+        rwa [vnum_eq hqn] at ha
+    | _ => simp [frOf] at hfr
+  rcases hv with hv | hv
+  · left
+    cases hri : run[p.2]? with
+    | none => rw [hri] at hv; cases hv
+    | some v =>
+      simp only [hri] at hv
+      cases hvn : vnum v with
+      | none => simp only [hvn] at hv; cases hv
+      | some k' =>
+        simp only [hvn] at hv
+        rcases getF_keysT _ _ hv with hm | hm
+        · obtain ⟨v', hv', hv'n⟩ := List.mem_filterMap.mp hm
+          obtain ⟨a', ha', hva'⟩ := List.mem_flatMap.mp hv'
+          refine ⟨run, v, ha, hri, a', ha', ?_⟩
+          rw [vnum_eq hvn, ← vnum_eq hv'n]
+          exact hva'
+        · simp [getF_nil] at hm
+  · right
+    simp only [Bool.not_eq_true', List.isEmpty_eq_false_iff, Nat.ble_eq] at hv
+    exact ⟨run, ha, hv.1, hv.2⟩
 
 /-- No frame run cell guaranteed (`HCert.fas` empty), none among them. -/
 theorem noFAX {H : HCert} (hn : H.fas = []) {σ : Val} {x : K} : ¬ FAX H σ x := by

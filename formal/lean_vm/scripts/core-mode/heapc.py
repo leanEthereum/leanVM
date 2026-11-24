@@ -1680,7 +1680,7 @@ def atomDst(a):
 
 
 def fa_past_ok(body, kp, i):
-    """`CoreMode.faAt`'s second case: a top-level `frameAddr kp run`, the run nonempty and `i` past it."""
+    """`CoreMode.faCell`'s second case: a top-level `frameAddr kp run`, the run nonempty and `i` past it."""
     for s in body:
         if not noret(s):
             break
