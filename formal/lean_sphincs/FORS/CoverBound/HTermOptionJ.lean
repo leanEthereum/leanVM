@@ -36,8 +36,6 @@ def sqUpN (P s x : ℕ) : ℕ :=
   Nat.rec (motive := fun _ => ℕ → ℕ) (fun x => x)
     (fun _ ih x => ih (Nat.div (Nat.add (Nat.mul x x) (Nat.sub (Nat.pow 2 P) 1)) (Nat.pow 2 P))) s x
 
-theorem sqUpN_zero (P x : ℕ) : sqUpN P 0 x = x := rfl
-
 theorem sqUpN_succ (P s x : ℕ) : sqUpN P (s + 1) x = sqUpN P s ((x * x + (2 ^ P - 1)) / 2 ^ P) := rfl
 
 /-- The numerator over `2^P` of an upper bound of `e^(un / ud)`: `(1 - u / 2^s)^(-2^s)`, rounded up. -/
@@ -130,10 +128,6 @@ theorem exp_le_expQN (u : ℚ) (s P : ℕ) (hu : 0 ≤ u) (hus : u < 2 ^ s) :
   rw [h2]
   push_cast
   rfl
-
-theorem one_le_expUpN_div (un ud s P : ℕ) (hd : 0 < ud) (hus : un < 2 ^ s * ud) :
-    (1 : ℝ) ≤ (expUpN un ud s P : ℝ) / 2 ^ P :=
-  le_trans (Real.one_le_exp (by positivity)) (exp_le_expUpN un ud s P hd hus)
 
 /-- `expUpN` reads `un / ud` only. -/
 theorem expUpN_congr {un ud un' ud' : ℕ} (s P : ℕ) (hd : 0 < ud) (hd' : 0 < ud') (h : un * ud' = un' * ud) :

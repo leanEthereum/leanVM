@@ -78,21 +78,10 @@ theorem fieldInput_injective {fields fields' : TweakFields}
   obtain ⟨hparameter, hfields⟩ := List.append_inj hprefix (by simp)
   exact ⟨fieldBytes_injective hfields, bytesLE_injective hparameter, hpayload⟩
 
-theorem tweakableInput_injective {parameter parameter' : PublicParameter}
-    {domain domain' : HashDomain} {payload payload' : HashInput}
-    (h : tweakableHashInput parameter domain payload =
-      tweakableHashInput parameter' domain' payload') :
-    hashDomainFields domain = hashDomainFields domain' ∧
-      parameter = parameter' ∧ payload = payload' :=
-  fieldInput_injective h
-
 /-! ### The seed hash
 
 Its input is 40 bytes, every other input at least 64: `P || A` then a 32-byte seed, or a payload that
 is never 8 bytes (the scheme's payloads are at least 32). -/
-
-theorem seedHashInput_length (keySeed : MasterSeed) : (seedHashInput keySeed).length = 40 := by
-  simp [seedHashInput, seedTag, bytesLE_length]
 
 theorem seedHashInput_injective : Function.Injective seedHashInput :=
   fun _ _ h => bytesLE_injective (List.append_cancel_left h)
@@ -152,24 +141,5 @@ theorem code_lt {d : HashDomain} (hd : d.InRange) :
       exact ⟨by simp [HashDomain.code], by simp [HashDomain.code], layerHi_lt lay (by omega), hd.2⟩
   | message lay key =>
       exact ⟨by simp [HashDomain.code], by simp [HashDomain.code], layerHi_lt lay (by norm_num), key_lt key⟩
-
-/-- An address in range determines its domain. -/
-theorem hashDomainFields_injective {d d' : HashDomain} (hd : d.InRange) (hd' : d'.InRange)
-    (h : hashDomainFields d = hashDomainFields d') : d = d' := by
-  rw [hashDomainFields_eq_code, hashDomainFields_eq_code] at h
-  obtain ⟨t, s, hh, l⟩ := code_lt hd
-  obtain ⟨t', s', hh', l'⟩ := code_lt hd'
-  obtain ⟨ht, hs, hhi, hl⟩ := tweakFields_inj t t' s s' hh hh' l l' h
-  cases d <;> cases d' <;>
-    simp only [HashDomain.code, HashDomain.InRange, layerHeight] at ht hs hhi hl hd hd' <;>
-    (try omega)
-  · obtain ⟨hlay, -⟩ := layerHi_inj (by norm_num) (by norm_num) hhi
-    subst hlay; congr 1 <;> apply Fin.ext <;> omega
-  · obtain ⟨hlay, -⟩ := layerHi_inj (by norm_num) (by norm_num) hhi
-    subst hlay; congr 1; apply Fin.ext; omega
-  · obtain ⟨hlay, hlev⟩ := layerHi_inj (by omega) (by omega) hhi
-    subst hlay; congr 1
-  · obtain ⟨hlay, -⟩ := layerHi_inj (by norm_num) (by norm_num) hhi
-    subst hlay; congr 1; apply Fin.ext; omega
 
 end LeanXmss

@@ -143,19 +143,6 @@ theorem hashCalls_messageDigestCall (f : QueryImpl HashSpec Id) (parameter : Pub
     hashCalls f (messageDigestCall parameter root message randomness call : OracleComp HashSpec HashOutput) = 1 := by
   simp [hashCalls, messageDigestCall, oracleHash]
 
-theorem hashCalls_messageDigest (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
-    (root : Digest) (message : Message) (randomness : Randomness) :
-    hashCalls f (messageDigest parameter root message randomness : OracleComp HashSpec MessageDigest) =
-      digestCalls := by
-  simp only [messageDigest, hashCalls_bind, hashCalls_sequenceFin, hashCalls_messageDigestCall, hashCalls_pure,
-    Finset.sum_const, Finset.card_univ, Fintype.card_fin, smul_eq_mul, mul_one, Nat.add_zero]
-
-theorem hashCalls_signAttempt (f : QueryImpl HashSpec Id) (sk : Seeded.SecretKey)
-    (message : Message) (randomness : Randomness) :
-    hashCalls f (Seeded.signAttempt sk message randomness : OracleComp HashSpec (Option Index)) = 1 := by
-  rw [Seeded.signAttempt, hashCalls_bind, hashCalls_messageDigestCall]
-  split <;> rfl
-
 end FORS.Security.Prefix
 
 end
