@@ -40,12 +40,3 @@ internal sealed class AggregateHandle() : SafeHandleZeroOrMinusOneIsInvalid(owns
         return true;
     }
 }
-
-internal sealed class SidecarHandle() : SafeHandleZeroOrMinusOneIsInvalid(ownsHandle: true)
-{
-    protected override bool ReleaseHandle()
-    {
-        Native.SidecarDestroy(handle);
-        return true;
-    }
-}

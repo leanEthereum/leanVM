@@ -31,7 +31,7 @@ bool sphincsValid = LeanPq.SphincsVerify(sphincs.GetPublicKey(), message32, sphi
 ```
 
 - Public keys and messages are 32 bytes; signatures are 2404 (leanXMSS) or 7740 (leanSPHINCS) bytes. Byte inputs are `ReadOnlySpan<byte>`, so arrays, slices and stack buffers all work.
-- `XmssSecretKey`, `SphincsSecretKey`, `VrfKey`, `Sidecar` and `Aggregate` are `IDisposable`: use `using`. A call on a disposed one throws `ObjectDisposedException`.
+- `XmssSecretKey`, `SphincsSecretKey`, `VrfKey` and `Aggregate` are `IDisposable`: use `using`. A call on a disposed one throws `ObjectDisposedException`.
 - leanXMSS is stateful: a key has `2^32` leaf indices, and must never sign two messages at the same one. Persist a high-water leaf index next to the key and advance it before publishing a signature. `Prepare(leafIndex)` builds a leaf's signing state ahead of time.
 - leanSPHINCS is stateless and deterministic; a key signs at most `2^30` messages.
 - `ToBytes()` is the key's 32-byte seed, which is secret; `FromBytes` restores the key.
@@ -54,31 +54,26 @@ A key is a 32-byte seed and the slots `[start, end)`, with `end <= 2^31`: both f
 
 ## Aggregate
 
-Aggregation runs in a leanVM sidecar, a separate process (Linux and macOS): see [the sidecar](../README.md#sidecar).
-
 ```csharp
 using Ethereum.LeanPq;
 
-string socket = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".leanvm", "sidecar.sock");
-using Sidecar sidecar = Sidecar.Connect(socket); // or Sidecar.Start(binary, socket, threads)
 using XmssSecretKey xmss = XmssSecretKey.FromSeed(seed32);
 using SphincsSecretKey sphincs = SphincsSecretKey.FromSeed(otherSeed32);
 
-using Aggregate leaf = sidecar.Aggregate(
+using Aggregate leaf = LeanPq.Aggregate(
     [],
     [new SignedMessage(xmss.GetPublicKey(), message32, xmss.Sign(message32, 7))],
     [new SignedMessage(sphincs.GetPublicKey(), message32, sphincs.Sign(message32))]);
-using Aggregate root = sidecar.Aggregate([leaf], [], []);
-using Aggregate received = sidecar.Verify(root.ToBytes(), root.GetXmssClaims(), root.GetSphincsClaims());
+using Aggregate root = LeanPq.Aggregate([leaf], [], []);
+using Aggregate received = Aggregate.FromBytes(root.ToBytes(), root.GetXmssClaims(), root.GetSphincsClaims());
 IReadOnlyList<SignatureClaim> xmssClaims = received.GetXmssClaims();
 ```
 
-- `Aggregate(children, xmss, sphincs)` verifies raw signatures before proving and takes at most 16 children, which stay owned by the caller. The result proves the union of their claims.
+- `LeanPq.Aggregate(children, xmss, sphincs)` verifies raw signatures before proving and takes at most 16 children, which stay owned by the caller. The result proves the union of their claims.
+- `LeanPq.AggregateOnly(children, xmss, sphincs, xmssClaims, sphincsClaims)` proves exactly the given claims, in any order; each must be one the inputs cover.
 - `ToBytes()` is the proof alone: send the claims alongside it, or let the receiver rebuild them.
-- `Verify(bytes, xmssClaims, sphincsClaims)` accepts exactly those claims, in any order (a repeat counts once), and throws `LeanPqException` otherwise; verifying also needs the sidecar. `GetXmssClaims()` and `GetSphincsClaims()` are sorted.
-- `Sidecar.Start(binary, socket)` launches a sidecar on a socket in a private directory, such as `~/.leanvm/run/sidecar.sock`, with one thread per core, as does `threads` 0. `GetProver()` is `"experimental"` or `"stable"`, which make the same proofs.
-- A `Sidecar` is safe to share between threads; its calls run one at a time. A sidecar serves at most 16 connections, so share one `Sidecar` per process.
-- `Dispose()` stops a sidecar `Start` launched at once, failing calls in progress, and frees the handle once they return; later calls throw `ObjectDisposedException`. A started `Sidecar` that is never disposed is stopped when it is finalized.
+- `Aggregate.FromBytes(bytes, xmssClaims, sphincsClaims)` accepts exactly those claims, in any order (a repeat counts once), and throws `LeanPqException` otherwise. `GetXmssClaims()` and `GetSphincsClaims()` are sorted.
+- `LeanPq.Setup` throws `LeanPqException` if the prover already runs with another thread count. See [Proving](https://github.com/leanEthereum/leanVM/tree/main/bindings#proving).
 
 ## Build and test
 
@@ -88,7 +83,7 @@ Needs the .NET 10 SDK and Rust. From the repository root:
 dotnet test bindings/dotnet/Ethereum.LeanPq.slnx
 ```
 
-The build compiles the native library itself (`cargo build --release -p lean-pq-native`) and copies it beside the assembly. The aggregation tests use the sidecar listening on `LEANVM_SIDECAR_SOCKET`, and start one from the executable at `LEANVM_SIDECAR_BIN`.
+The build compiles the native library itself (`cargo build --release -p lean-pq-native`) and copies it beside the assembly.
 
 - `dotnet pack` bundles only the host library. `-p:LeanPqNativeDir=DIR` bundles `DIR/<platform>/` instead, as [`bindings/java/scripts/build-native.sh`](../java/scripts/build-native.sh) stages it: `linux-x86_64`, `linux-aarch64`, `macos-universal` and `windows-x86_64`.
 - Local builds are `0.0.0-dev`; `-p:Version=X.Y.Z` overrides it.

@@ -196,21 +196,11 @@ jobs:
 
   dotnet:
     name: .NET 10
-    needs: sidecar
-    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - if: runner.os != 'Windows'
-        uses: actions/download-artifact@v4
-        with:
-          name: sidecar-${{ runner.os }}
-          path: ${{ runner.temp }}/sidecar-bin
-
-      - name: Start a sidecar for the aggregation tests
-        if: runner.os != 'Windows'
-        run: sh bindings/scripts/start-sidecar.sh "$RUNNER_TEMP/sidecar-bin/leanvm-sidecar" "$RUNNER_TEMP/sc" >> "$GITHUB_ENV"
+      - name: Use the CPU tiers' rustc wrapper
+        run: echo "RUSTC_WRAPPER=$GITHUB_WORKSPACE/scripts/tier-rustc" >> "$GITHUB_ENV"
 
       - uses: actions/setup-dotnet@v4
         with:

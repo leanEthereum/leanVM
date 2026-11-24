@@ -1,9 +1,9 @@
 #!/bin/sh
 # Prove the published package works as a dependency: pack Ethereum.LeanPq into a throwaway feed,
-# restore it from there alone into a fresh console project, and run that project without
-# LEAN_PQ_NATIVE_PATH, so the native library is the one bundled in the package: once as a portable
-# app (resolved from runtimes/<rid>/native through its deps.json) and once published for the host
-# RID. Arguments go to `dotnet pack`, e.g. -p:Version=1.2.3 -p:LeanPqNativeDir=DIR.
+# restore it from there alone into a fresh console project, and run that project, which signs,
+# verifies and aggregates, without LEAN_PQ_NATIVE_PATH, so the native library is the one bundled in
+# the package: once as a portable app (resolved from runtimes/<rid>/native through its deps.json)
+# and once published for the host RID. Arguments go to `dotnet pack`, e.g. -p:Version=1.2.3 -p:LeanPqNativeDir=DIR.
 # On Windows it runs under Git Bash.
 set -eu
 
@@ -69,25 +69,24 @@ Check(Environment.GetEnvironmentVariable("LEAN_PQ_NATIVE_PATH") is null, "LEAN_P
 byte[] message = Filled(0x42);
 byte[] other = Filled(0x43);
 using (XmssSecretKey xmss = XmssSecretKey.FromSeed(Filled(1)))
-{
-    byte[] signature = xmss.Sign(message, 0);
-    Check(LeanPq.XmssVerify(xmss.GetPublicKey(), message, signature), "leanXMSS signature must verify");
-    Check(!LeanPq.XmssVerify(xmss.GetPublicKey(), other, signature), "leanXMSS signature must not verify another message");
-}
 using (SphincsSecretKey sphincs = SphincsSecretKey.FromSeed(Filled(2)))
 {
-    byte[] signature = sphincs.Sign(message);
-    Check(LeanPq.SphincsVerify(sphincs.GetPublicKey(), message, signature), "leanSPHINCS signature must verify");
-    Check(!LeanPq.SphincsVerify(sphincs.GetPublicKey(), other, signature), "leanSPHINCS signature must not verify another message");
-}
-// No sidecar listens here (and Windows has none): connecting must fail cleanly.
-try
-{
-    Sidecar.Connect("missing-leanvm-sidecar.sock").Dispose();
-    throw new InvalidOperationException("connecting where no sidecar listens must fail");
-}
-catch (LeanPqException)
-{
+    byte[] xmssSignature = xmss.Sign(message, 0);
+    Check(LeanPq.XmssVerify(xmss.GetPublicKey(), message, xmssSignature), "leanXMSS signature must verify");
+    Check(!LeanPq.XmssVerify(xmss.GetPublicKey(), other, xmssSignature), "leanXMSS signature must not verify another message");
+    byte[] sphincsSignature = sphincs.Sign(message);
+    Check(LeanPq.SphincsVerify(sphincs.GetPublicKey(), message, sphincsSignature), "leanSPHINCS signature must verify");
+    Check(!LeanPq.SphincsVerify(sphincs.GetPublicKey(), other, sphincsSignature), "leanSPHINCS signature must not verify another message");
+
+    SignatureClaim[] xmssClaims = [new(xmss.GetPublicKey(), message)];
+    SignatureClaim[] sphincsClaims = [new(sphincs.GetPublicKey(), message)];
+    using Aggregate aggregate = LeanPq.Aggregate(
+        [],
+        [new SignedMessage(xmss.GetPublicKey(), message, xmssSignature)],
+        [new SignedMessage(sphincs.GetPublicKey(), message, sphincsSignature)]);
+    using Aggregate received = Aggregate.FromBytes(aggregate.ToBytes(), xmssClaims, sphincsClaims);
+    Check(received.GetXmssClaims().SequenceEqual(xmssClaims), "aggregate must attest the leanXMSS claim");
+    Check(received.GetSphincsClaims().SequenceEqual(sphincsClaims), "aggregate must attest the leanSPHINCS claim");
 }
 
 Console.WriteLine($"Ethereum.LeanPq loaded from {typeof(LeanPq).Assembly.Location}");
@@ -97,7 +96,7 @@ if (File.Exists("/proc/self/maps"))
         ?? throw new InvalidOperationException("liblean_pq_native is not mapped");
     Console.WriteLine($"native library mapped from {mapped[mapped.IndexOf('/')..]}");
 }
-Console.WriteLine("signed and verified with leanXMSS and leanSPHINCS");
+Console.WriteLine("signed and verified with leanXMSS and leanSPHINCS, aggregated both");
 
 static byte[] Filled(byte value)
 {

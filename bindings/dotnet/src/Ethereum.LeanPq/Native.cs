@@ -48,6 +48,9 @@ internal static unsafe partial class Native
     [LibraryImport(Library, EntryPoint = "lpq_buffer_free")]
     private static partial void BufferFree(byte* data, nuint length);
 
+    [LibraryImport(Library, EntryPoint = "lpq_setup")]
+    internal static partial int Setup(nuint threads);
+
     [LibraryImport(Library, EntryPoint = "lpq_xmss_secret_key_generate")]
     internal static partial int XmssGenerate(out XmssKeyHandle output);
 
@@ -103,28 +106,18 @@ internal static unsafe partial class Native
     [LibraryImport(Library, EntryPoint = "lpq_sphincs_verify")]
     private static partial int SphincsVerify(byte* publicKey, nuint publicKeyLength, byte* message, nuint messageLength, byte* signature, nuint signatureLength);
 
-    [LibraryImport(Library, EntryPoint = "lpq_sidecar_connect")]
-    internal static partial int SidecarConnect(byte* path, nuint length, out SidecarHandle output);
+    [LibraryImport(Library, EntryPoint = "lpq_aggregate_create")]
+    internal static partial int AggregateCreate(
+        nint* children, nuint childCount, byte* xmss, nuint xmssCount, byte* sphincs, nuint sphincsCount, out AggregateHandle output);
 
-    [LibraryImport(Library, EntryPoint = "lpq_sidecar_start")]
-    internal static partial int SidecarStart(byte* binary, nuint binaryLength, byte* path, nuint length, nuint threads, out SidecarHandle output);
+    [LibraryImport(Library, EntryPoint = "lpq_aggregate_create_only")]
+    internal static partial int AggregateCreateOnly(
+        nint* children, nuint childCount, byte* xmss, nuint xmssCount, byte* sphincs, nuint sphincsCount,
+        byte* xmssClaims, nuint xmssClaimCount, byte* sphincsClaims, nuint sphincsClaimCount, out AggregateHandle output);
 
-    [LibraryImport(Library, EntryPoint = "lpq_sidecar_prover")]
-    internal static partial int SidecarProver(SidecarHandle sidecar, out Buffer output);
-
-    [LibraryImport(Library, EntryPoint = "lpq_sidecar_close")]
-    internal static partial int SidecarClose(SidecarHandle sidecar);
-
-    [LibraryImport(Library, EntryPoint = "lpq_sidecar_destroy")]
-    internal static partial void SidecarDestroy(nint sidecar);
-
-    [LibraryImport(Library, EntryPoint = "lpq_sidecar_aggregate")]
-    internal static partial int SidecarAggregate(
-        SidecarHandle sidecar, nint* children, nuint childCount, byte* xmss, nuint xmssCount, byte* sphincs, nuint sphincsCount, out AggregateHandle output);
-
-    [LibraryImport(Library, EntryPoint = "lpq_sidecar_verify")]
-    internal static partial int SidecarVerify(
-        SidecarHandle sidecar, byte* data, nuint length, byte* xmssClaims, nuint xmssCount, byte* sphincsClaims, nuint sphincsCount, out AggregateHandle output);
+    [LibraryImport(Library, EntryPoint = "lpq_aggregate_from_bytes")]
+    internal static partial int AggregateFromBytes(
+        byte* data, nuint length, byte* xmssClaims, nuint xmssCount, byte* sphincsClaims, nuint sphincsCount, out AggregateHandle output);
 
     [LibraryImport(Library, EntryPoint = "lpq_aggregate_to_bytes")]
     internal static partial int AggregateToBytes(AggregateHandle aggregate, out Buffer output);
@@ -241,9 +234,6 @@ internal static unsafe partial class Native
         }
         return handle;
     }
-
-    /// <summary>Encodes a path as UTF-8, which is how the native side reads it.</summary>
-    internal static byte[] PathBytes(string path) => Encoding.UTF8.GetBytes(path);
 
     internal static void RequireLength(ReadOnlySpan<byte> bytes, int length, string name)
     {

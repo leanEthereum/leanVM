@@ -4,20 +4,7 @@ namespace Ethereum.LeanPq.Tests;
 
 public class LeanPqTests
 {
-    private static readonly string[] Provers = ["experimental", "stable"];
     private static readonly byte[] VrfRoot = Convert.FromHexString("c7e3eaa5a1af5e528e56beb589b4d1c579f5fb8939ddd7f6b1ce2141bc096b45");
-
-    private readonly List<string> _directories = [];
-
-    [TearDown]
-    public void RemoveDirectories()
-    {
-        foreach (string directory in _directories)
-        {
-            Directory.Delete(directory, recursive: true);
-        }
-        _directories.Clear();
-    }
 
     [Test]
     public void SignsVerifiesAndRejectsAnotherMessage()
@@ -144,8 +131,7 @@ public class LeanPqTests
     [Test]
     public void NativeErrorsStayOnTheirThread()
     {
-        string missing = Path.Combine(ShortDirectory(), "s.sock");
-        string connectError = Assert.Throws<LeanPqException>(() => Sidecar.Connect(missing).Dispose())!.Message;
+        string rangeError = Assert.Throws<LeanPqException>(() => VrfKey.FromSeed(Bytes(9), 100, 100).Dispose())!.Message;
         int workers = 4 * System.Environment.ProcessorCount;
         string?[] failures = new string?[workers];
 
@@ -155,7 +141,7 @@ public class LeanPqTests
             {
                 failures[worker] = ErrorMessage(() => XmssSecretKey.FromBytes([1]).Dispose()) switch
                 {
-                    "leanXMSS secret key must be 32 bytes, got 1" => ErrorMessage(() => Sidecar.Connect(missing).Dispose()) == connectError ? null : "connect",
+                    "leanXMSS secret key must be 32 bytes, got 1" => ErrorMessage(() => VrfKey.FromSeed(Bytes(9), 100, 100).Dispose()) == rangeError ? null : "range",
                     string other => other,
                     null => "no error",
                 };
@@ -166,11 +152,8 @@ public class LeanPqTests
     }
 
     [Test]
-    [Platform(Exclude = "Win")]
     public void AggregatesBothSchemesRecursively()
     {
-        Sidecar sidecar = Shared.Sidecar;
-        Assert.That(Provers, Does.Contain(sidecar.GetProver()));
         byte[] first = Bytes(0x11);
         byte[] second = Bytes(0x22);
         using XmssSecretKey xmss = XmssSecretKey.FromSeed(Bytes(5));
@@ -178,10 +161,10 @@ public class LeanPqTests
         byte[] xmssKey = xmss.GetPublicKey();
         byte[] sphincsKey = sphincs.GetPublicKey();
 
-        using Aggregate left = sidecar.Aggregate([], [new SignedMessage(xmssKey, first, xmss.Sign(first, 0))], []);
-        using Aggregate right = sidecar.Aggregate([], [], [new SignedMessage(sphincsKey, second, sphincs.Sign(second))]);
-        using Aggregate root = sidecar.Aggregate([left, right], [new SignedMessage(xmssKey, second, xmss.Sign(second, 1))], []);
-        using Aggregate received = sidecar.Verify(root.ToBytes(), root.GetXmssClaims(), root.GetSphincsClaims());
+        using Aggregate left = LeanPq.Aggregate([], [new SignedMessage(xmssKey, first, xmss.Sign(first, 0))], []);
+        using Aggregate right = LeanPq.Aggregate([], [], [new SignedMessage(sphincsKey, second, sphincs.Sign(second))]);
+        using Aggregate root = LeanPq.Aggregate([left, right], [new SignedMessage(xmssKey, second, xmss.Sign(second, 1))], []);
+        using Aggregate received = Aggregate.FromBytes(root.ToBytes(), root.GetXmssClaims(), root.GetSphincsClaims());
 
         IReadOnlyList<SignatureClaim> xmssClaims = received.GetXmssClaims();
         Assert.That(xmssClaims, Is.EquivalentTo(new[] { new SignatureClaim(xmssKey, first), new SignatureClaim(xmssKey, second) }));
@@ -191,87 +174,44 @@ public class LeanPqTests
         Assert.That(received.ToBytes(), Is.EqualTo(proof));
 
         // The receiver may list the claims in any order, and a repeated claim counts once.
-        using (Aggregate rebuilt = sidecar.Verify(proof, [xmssClaims[1], xmssClaims[0], xmssClaims[1]], sphincsClaims))
+        using (Aggregate rebuilt = Aggregate.FromBytes(proof, [xmssClaims[1], xmssClaims[0], xmssClaims[1]], sphincsClaims))
         {
             Assert.That(rebuilt.GetXmssClaims(), Is.EqualTo(xmssClaims));
             Assert.That(rebuilt.GetSphincsClaims(), Is.EqualTo(sphincsClaims));
         }
 
-        Assert.Throws<LeanPqException>(() => sidecar.Verify(proof, [xmssClaims[0]], sphincsClaims));
-        Assert.Throws<LeanPqException>(() => sidecar.Verify(proof, xmssClaims, []));
-        Assert.Throws<LeanPqException>(() => sidecar.Verify(proof, [new SignatureClaim(xmssKey, first), new SignatureClaim(xmssKey, Bytes(0x33))], sphincsClaims));
-        Assert.Throws<LeanPqException>(() => sidecar.Verify(proof, sphincsClaims, xmssClaims));
+        Assert.Throws<LeanPqException>(() => Aggregate.FromBytes(proof, [xmssClaims[0]], sphincsClaims));
+        Assert.Throws<LeanPqException>(() => Aggregate.FromBytes(proof, xmssClaims, []));
+        Assert.Throws<LeanPqException>(() => Aggregate.FromBytes(proof, [new SignatureClaim(xmssKey, first), new SignatureClaim(xmssKey, Bytes(0x33))], sphincsClaims));
+        Assert.Throws<LeanPqException>(() => Aggregate.FromBytes(proof, sphincsClaims, xmssClaims));
+
+        // Re-aggregating the root can keep only some of its claims, each one it covers.
+        using (Aggregate only = LeanPq.AggregateOnly([root], [], [], [xmssClaims[0]], []))
+        {
+            Assert.That(only.GetXmssClaims(), Is.EqualTo(new[] { xmssClaims[0] }));
+            Assert.That(only.GetSphincsClaims(), Is.Empty);
+        }
+        LeanPqException uncovered = Assert.Throws<LeanPqException>(() => LeanPq.AggregateOnly([root], [], [], [new SignatureClaim(xmssKey, Bytes(0x33))], []))!;
+        Assert.That(uncovered.Message, Does.Contain("not covered by the inputs"));
 
         byte[] tampered = (byte[])proof.Clone();
         tampered[^1] ^= 1;
-        Assert.Throws<LeanPqException>(() => sidecar.Verify(tampered, xmssClaims, sphincsClaims));
-        Assert.Throws<LeanPqException>(() => sidecar.Verify(proof.AsSpan(..^1), xmssClaims, sphincsClaims));
-        Assert.Throws<LeanPqException>(() => sidecar.Verify([], xmssClaims, sphincsClaims));
+        Assert.Throws<LeanPqException>(() => Aggregate.FromBytes(tampered, xmssClaims, sphincsClaims));
+        Assert.Throws<LeanPqException>(() => Aggregate.FromBytes(proof.AsSpan(..^1), xmssClaims, sphincsClaims));
+        Assert.Throws<LeanPqException>(() => Aggregate.FromBytes([], xmssClaims, sphincsClaims));
     }
 
     [Test]
-    [Platform(Exclude = "Win")]
     public void RejectsAnEmptyAggregation() =>
-        Assert.Throws<LeanPqException>(() => Shared.Sidecar.Aggregate([], [], []));
+        Assert.Throws<LeanPqException>(() => LeanPq.Aggregate([], [], []));
 
     [Test]
-    [Platform(Exclude = "Win")]
-    public void StartsAndStopsItsOwnSidecar()
+    public void SetupKeepsItsFirstThreadCount()
     {
-        string socket = Path.Combine(ShortDirectory(), "s.sock");
-        byte[] proof = Shared.Leaf.ToBytes();
-        IReadOnlyList<SignatureClaim> claims = Shared.Leaf.GetXmssClaims();
-        string binary = RequireEnvironment("LEANVM_SIDECAR_BIN");
-
-        Sidecar started = Sidecar.Start(binary, socket, 2);
-        using (started)
-        {
-            Assert.That(Provers, Does.Contain(started.GetProver()));
-            using (Aggregate verified = started.Verify(proof, claims, []))
-            {
-                Assert.That(verified.GetXmssClaims(), Is.EqualTo(claims));
-            }
-            Assert.That(Assert.Throws<LeanPqException>(() => Sidecar.Start(binary, socket))!.Message, Does.Contain("already listens"));
-        }
-        Assert.Throws<ObjectDisposedException>(() => started.Verify(proof, claims, []));
-        // Disposing it stopped the sidecar.
-        Assert.Throws<LeanPqException>(() => Sidecar.Connect(socket));
-    }
-
-    [Test]
-    [Platform(Include = "Win")]
-    public void CannotConnectWithoutUnixSockets() =>
-        Assert.Throws<LeanPqException>(() => Sidecar.Connect("sidecar.sock"));
-
-    /// <summary>The sidecar at <c>LEANVM_SIDECAR_SOCKET</c>, and one aggregate it proved, made on first use.</summary>
-    private static class Shared
-    {
-        public static readonly Sidecar Sidecar = Sidecar.Connect(RequireEnvironment("LEANVM_SIDECAR_SOCKET"));
-        public static readonly Aggregate Leaf = ProveLeaf();
-
-        private static Aggregate ProveLeaf()
-        {
-            byte[] message = Bytes(0x44);
-            using XmssSecretKey xmss = XmssSecretKey.FromSeed(Bytes(7));
-            return Sidecar.Aggregate([], [new SignedMessage(xmss.GetPublicKey(), message, xmss.Sign(message, 0))], []);
-        }
-    }
-
-    /// <summary>A new private directory directly under the temporary directory: macOS limits socket paths to 104 bytes.</summary>
-    private string ShortDirectory()
-    {
-        string root = OperatingSystem.IsWindows() ? Path.GetTempPath() : "/tmp";
-        string directory = Path.Combine(root, "lpq-" + Path.GetRandomFileName());
-        if (OperatingSystem.IsWindows())
-        {
-            Directory.CreateDirectory(directory);
-        }
-        else
-        {
-            Directory.CreateDirectory(directory, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
-        }
-        _directories.Add(directory);
-        return directory;
+        // 0, the count aggregating starts the prover with.
+        LeanPq.Setup(0);
+        Assert.Throws<LeanPqException>(() => LeanPq.Setup(1));
+        Assert.Throws<ArgumentOutOfRangeException>(() => LeanPq.Setup(-1));
     }
 
     private static string? ErrorMessage(Action action)
@@ -285,12 +225,6 @@ public class LeanPqTests
         {
             return error.Message;
         }
-    }
-
-    private static string RequireEnvironment(string name)
-    {
-        string? value = Environment.GetEnvironmentVariable(name);
-        return string.IsNullOrEmpty(value) ? throw new InvalidOperationException($"set {name} to run the aggregation tests") : value;
     }
 
     private static byte[] Bytes(byte value)
