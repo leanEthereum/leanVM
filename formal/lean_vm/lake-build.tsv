@@ -248,8 +248,6 @@ LeanVM.Guest.CoreMode.GenW.check_opening_terminal.W14	20.0	20.0	5100	3900
 LeanVM.Guest.CoreMode.GenW.check_opening_terminal.W15	20.0	20.0	5900	4600
 LeanVM.Guest.CoreMode.GenW.check_opening_terminal.W3	20.0	20.0	4700	3400
 LeanVM.Guest.CoreMode.GenW.check_opening_terminal.W6	20.0	20.0	4900	3700
-LeanVM.Guest.CoreMode.GenW.da_expand__L13_L7.Ok	20.0	20.0	5400	4100
-LeanVM.Guest.CoreMode.GenW.da_expand__L6_L7.Ok	20.0	20.0	5400	4100
 LeanVM.Guest.CoreMode.GenW.exponent_tables.Ok	10.0	10.0	4600	3300
 LeanVM.Guest.CoreMode.GenW.verify_tables.W72	20.0	20.0	4600	3300
 LeanVM.Guest.CoreMode.Pack.P43.FrameD0W0	20.0	20.0	5100	3600
