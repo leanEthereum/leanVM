@@ -155,7 +155,7 @@ structure Def where
 
 def Def.text (d : Def) : String :=
   let t := match d.term with
-    | l :: ls => s!"noncomputable def {d.name} : {d.ty} := {l}" :: ls
+    | l :: ls => s!"noncomputable def {d.name} : {d.ty} := data% {l}" :: ls
     | [] => []
   s!"/-- {d.doc} -/\n" ++ "\n".intercalate t ++ "\n"
 
@@ -310,7 +310,7 @@ def fnFileName (n i : Nat) : String := if i + 1 = n then "Core" else s!"Core{i +
 /-- File `i` of the `n` files of the function of stable name `key`. -/
 def File.text (key : String) (n i : Nat) (f : File) : String :=
   header s!"Pack.{key}.{fnFileName n i}" s!"The core IR of `{key}`." ++
-  "public import LeanVM.Guest.Renumber\n" ++
+  "public import LeanVM.Guest.Renumber\nmeta import LeanVM.Guest.DataLit\n" ++
   String.join (f.imports.map fun k => s!"public import LeanVM.Guest.Pack.{key}.{fnFileName n k}\n") ++ s!"
 namespace LeanVM.Guest.Fn.«{key}»
 
@@ -507,7 +507,7 @@ def ownSize : Nat := 300000
 /-- A pack's file: its functions, in the order of their stable names, each in its namespace. -/
 def packText (i : Nat) (fs : List (String × String)) : String :=
   header s!"Pack.P{i}.Core" s!"The core IR of the functions of pack {i}." ++
-  "public import LeanVM.Guest.Renumber\n\n" ++
+  "public import LeanVM.Guest.Renumber\nmeta import LeanVM.Guest.DataLit\n\n" ++
   "set_option maxRecDepth 20000\nset_option linter.all false\n" ++
   String.join (fs.map fun (key, body) => s!"
 namespace LeanVM.Guest.Fn.«{key}»
