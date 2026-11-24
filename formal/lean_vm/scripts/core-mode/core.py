@@ -56,6 +56,13 @@ def pair_mod(g, n):
 SPLIT = 5000
 # a heap certificate of more residual lists than `RES_SPLIT` has each list's families checked apart
 RES_SPLIT = 8
+# a heap certificate with one list of more residuals than `RES_B` has its families checked `RES_B` residuals at a time
+# (`CoreMode.sliceAll`): the kernel's memory grows over one evaluation, by up to about 1 GB a residual
+RES_B = 2
+# a body of more statements than `HON_SPLIT` has its pointers' cells (`honB`'s `ptrCellB`) checked in at most `HON_N` slices of
+# at least `HON_B` statements: in one evaluation it is the heaviest declaration of its module, and each slice walks the
+# body's statements again
+HON_B, HON_N = 500, 10
 # a body of more statements than `HON_SPLIT` has its honest valuation's parts checked apart (`honB_of`): in one
 # evaluation its route check is the heaviest declaration of its module
 HON_SPLIT = 2000
@@ -118,21 +125,48 @@ def faret(k):
 _DATAC = {}
 
 
-def res_chunks(k, po):
-    """The residual lists of `k`'s heap certificate (`hcert.res`'s `res0 ++ res1 ++ ...` in its pack's `DataC`), or
-    none."""
+def datac_of(k, po):
+    """The text of `k`'s namespace in its pack's `DataC`, or ''."""
     f = os.path.join(GEN, po[k][0], 'DataC.lean')
     if f not in _DATAC:
         _DATAC[f] = open(f, encoding='utf-8').read() if os.path.exists(f) else ''
     s = _DATAC[f]
     i = s.find('namespace LeanVM.Guest.Fn.«%s»\n' % k)
     if i < 0:
-        return []
+        return ''
     j = s.find('\nend LeanVM.Guest.Fn.«%s»' % k, i)
-    m = re.search(r'\n  res := \(([^)]*)\)\n', s[i:j if j > 0 else len(s)])
+    return s[i:j if j > 0 else len(s)]
+
+
+def res_chunks(k, po):
+    """The residual lists of `k`'s heap certificate (`hcert.res`'s `res0 ++ res1 ++ ...` in its pack's `DataC`), or
+    none."""
+    m = re.search(r'\n  res := \(([^)]*)\)\n', datac_of(k, po))
     if not m:
         return []
     return [x.strip() for x in m.group(1).split('++')]
+
+
+def res_count(k, po):
+    """The number of residuals of `k`'s heap certificate when they are one list literal (`hcert.res := [...]`), else
+    0."""
+    s = datac_of(k, po)
+    i = s.find('\n  res := [')
+    if i < 0:
+        return 0
+    depth, commas, empty = 0, 0, True
+    for ch in s[i + len('\n  res := '):]:
+        if depth == 1 and ch == ',':
+            commas += 1
+        if ch in ')]⟩':
+            depth -= 1
+            if depth == 0:
+                break
+        elif depth >= 1 and not ch.isspace():
+            empty = False
+        if ch in '([⟨':
+            depth += 1
+    return 0 if empty else commas + 1
 
 
 DK = '(by decide +kernel)'
@@ -531,8 +565,10 @@ def big(k, po):
 
 
 def weight(d):
-    """A check's estimated cost: `20` for one of a `big` function's, else `1`."""
-    return 20 if re.search(r'Fn\.«([^»]+)»', d).group(1) in BIG else 1
+    """A check's estimated cost: `20` for one of a `big` function's (`RES_B` for a slice of its residuals), else `1`."""
+    if re.search(r'Fn\.«([^»]+)»', d).group(1) not in BIG:
+        return 1
+    return RES_B if d.startswith('theorem res') and 'CoreMode.sliceAll' in d else 20
 
 
 def decls_of(text):
@@ -554,6 +590,19 @@ def core_leaf(d):
 def route_leaf(d):
     """A check of `Route` that cites none of the pack's others (`res<i>_…`, `hon<i>_…`)."""
     return d.count('\n') == 1 and not re.search(r'\b(?:res|hon)\d+_\w', d.split(' : ', 1)[1])
+
+
+def slices(name, part, stmt, p, l, n, b, unfold=None):
+    """Theorem `name : stmt`, `stmt` being `l.all p = true` (after unfolding `unfold`) for a list `l` of `n` entries,
+    from its slices of `b` entries (`part<c>`, `CoreMode.sliceAll`), each its own kernel evaluation."""
+    cuts = list(range(0, n, b)) + [n]
+    out = ''.join(f'theorem {part}{c} : CoreMode.sliceAll {p} {l} {cuts[c]} {cuts[c + 1]} = true := by decide +kernel\n'
+                  for c in range(len(cuts) - 1))
+    prf = 'CoreMode.all_drop_of_le (by decide +kernel)'
+    for c in reversed(range(len(cuts) - 1)):
+        prf = f'CoreMode.all_drop_of_slice (by decide) {part}{c}\n    ({prf})'
+    pre = f'\n  rw [{unfold}]' if unfold else ''
+    return out + f'theorem {name} : {stmt} = true := by{pre}\n  exact CoreMode.all_of_drop_zero\n    ({prf})\n'
 
 
 def windows_of(ds):
@@ -686,7 +735,7 @@ def main(check=False):
             f'noncomputable def coreFns : List CoreMode.CFun :=\n  [%s]\n\nend\n\nend LeanVM.Guest.ModePack.«{p}»\n'
             % ', '.join('LeanVM.Guest.Fn.«%s».cfun' % k for k in ks))
         rimps = {'LeanVM.Guest.CoreMode.Route', mod}
-        glues = set()
+        glues, rsplit = set(), set()
         oks, hons, decls = [], [], []
         for i, k in enumerate(ks):
             j = R[k]['j']
@@ -707,6 +756,14 @@ def main(check=False):
                             f'  simp only [List.all_append, {", ".join(f"res{i}_{c}" for c in rch)}, Bool.and_self]\n')
                 rw.append(f'res{i}_ok')
                 hb = f'(by rw [{", ".join(rw)}]; decide +kernel)'
+            elif res_count(k, po) > RES_B:
+                fk = f'Fn.«{k}»'
+                fam = f'(CoreMode.resFamG {fk}.cfun.fn {fk}.cfun.xc {fk}.cfun.H.sig.gw)'
+                hons.append(slices(f'res{i}_ok', f'res{i}_s', f'CoreMode.resOk {fk}.cfun', fam, f'{fk}.cfun.H.res',
+                                   res_count(k, po), RES_B, 'CoreMode.resOk'))
+                rsplit.add('LeanVM.Guest.CoreMode.ResSplit')
+                rw.append(f'res{i}_ok')
+                hb = f'(by rw [{", ".join(rw)}]; decide +kernel)'
             if k in LONG:
                 rimps |= set(LONG[k][1])
                 hons.append(LONG[k][2])
@@ -721,7 +778,13 @@ def main(check=False):
                          ('sel', f'(CoreMode.selGo {x} {fn}.params {fn}.body [] {fn}.body || CoreMode.loopBC {fn})', 'its `match`es\' selectors'),
                          ('rest', f'CoreMode.honRest {x} {fn}', 'the rest of its frame')]
                 for nm, st, doc in parts:
-                    hons.append(f'theorem hon{i}_{nm} : {st} = true := by decide +kernel\n')
+                    if nm != 'ptr':
+                        hons.append(f'theorem hon{i}_{nm} : {st} = true := by decide +kernel\n')
+                        continue
+                    # its pointers' cells `HON_B` statements at a time
+                    hons.append(slices(f'hon{i}_ptr', f'hon{i}_ptr', st, f'(CoreMode.ptrCellB {x})', f'(Bridge.stmtsOf {fn}.body)',
+                                       nstmts(heap.CORE[k][1]), max(HON_B, -(-nstmts(heap.CORE[k][1]) // HON_N))))
+                    rsplit.add('LeanVM.Guest.CoreMode.ResSplit')
                 hb = (f'(by rw [CoreMode.honB_of hon{i}_body hon{i}_ptr hon{i}_ret hon{i}_sel hon{i}_rest{"".join(", " + x for x in rw)}]; '
                       f'decide +kernel)')
             # each its own declaration, its own heartbeats
@@ -741,13 +804,13 @@ def main(check=False):
             for w, ds in enumerate(rwins):
                 files[os.path.join(GEN, p, f'RouteW{w}.lean')] = (
                     HEADER(mod=f'{base}.RouteW{w}', what='Window %d of the core route\'s data of `%s`\'s pack.' % (w, ks[0])) +
-                    pub({f'{base}.Defs', 'LeanVM.Guest.CoreMode.Route'} | glues) + data + '\n' + ns + ''.join(ds) +
+                    pub({f'{base}.Defs', 'LeanVM.Guest.CoreMode.Route'} | glues | rsplit) + data + '\n' + ns + ''.join(ds) +
                     f'\nend\n\nend LeanVM.Guest.ModePack.«{p}»\n')
             rimps |= {f'{base}.RouteW{w}' for w in range(len(rwins))}
             checks_ = ''.join(rest)
         files[os.path.join(GEN, p, 'Route.lean')] = (
             HEADER(mod=f'{base}.Route', what='The core route\'s data of `%s` and %d more, the deployed guest\'s.' % (ks[0], len(ks) - 1)) +
-            pub(rimps | glues) + data + '\n' + ns + checks_ +
+            pub(rimps | glues | rsplit) + data + '\n' + ns + checks_ +
             f'\n/-- The pack\'s core data, each the deployed guest\'s. -/\n'
             f'theorem coreFns_ok : ∀ Cf ∈ coreFns, CoreMode.CfOk Cf :=\n  {chain}\n\nend\n\nend LeanVM.Guest.ModePack.«{p}»\n')
     files[os.path.join(GEN, 'HcTab.lean')] = hctab_file(packs)
