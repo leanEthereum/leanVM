@@ -93,7 +93,7 @@ theorem powTable_cost (hP : Includes P powTable.costDeps) (κ : ℕ) (hκ : κ �
     (fun e ↦ e.1 < 2 ^ 64)
     (fun a b ha hb ↦ by
       simp only [appCost_fn, List.nil_append, List.length_nil]
-      rw [powTable.lam0.costEq P (by includes), limbs_of_lt ha, limbs_of_lt hb]
+      rw [powTable.lam0.costEq P, limbs_of_lt ha, limbs_of_lt hb]
       omega)
     (powPairs (2 ^ κ) 0 1) (by rw [length_powPairs]; exact hN)
     (fun e he ↦ (mem_powPairs _ _ _ e he).1)
@@ -153,7 +153,7 @@ theorem listSum_cost (hP : Includes P Auto.List.sum.Nat.costDeps) (l : List ℕ)
     rw [Auto.List.foldr.costEq_cons P hF _ _ hf, foldr_add_eq]
     simp only [List.sum_cons] at hs
     simp only [appCost_fn, List.nil_append, List.length_nil]
-    rw [Auto.List.sum.Nat.lam0.costEq P (by includes), limbs_of_lt (by omega : x < 2 ^ 64),
+    rw [Auto.List.sum.Nat.lam0.costEq P, limbs_of_lt (by omega : x < 2 ^ 64),
       limbs_of_lt (by omega : l.sum < 2 ^ 64), limbs_of_lt (by omega : x + l.sum < 2 ^ 64)]
     have := ih (by omega)
     simp only [List.length_cons, max_self]
@@ -174,7 +174,7 @@ theorem stepCapLite_cost (hP : Includes P stepCapLite.costDeps) (layout : Layout
     layout.tableLogHeights (fun x hx ↦ by
       simp only [appCost_fn, List.nil_append, List.length_nil]
       have := hh x hx
-      rw [stepCapLite.lam0.costEq P (by includes), limbs_shift (by omega),
+      rw [stepCapLite.lam0.costEq P, limbs_shift (by omega),
         limbs_of_lt (by omega : x < 2 ^ 64)]
       omega)
   have h2 := listSum_cost P (by includes) (layout.tableLogHeights.map (2 ^ ·)) (by nlinarith)
@@ -300,7 +300,7 @@ theorem memoryVec_cost (hP : Includes P memoryVec.costDeps) (layout : LayoutLite
       have hi := i.isLt
       have hs := fun c ↦ (by have := hidx c; omega : (layout.placement c).index + (i : ℕ) < 2 ^ 64)
       have hix := fun c ↦ (hidx c).trans (by norm_num : 2 ^ 63 < 2 ^ 64)
-      rw [memoryVec.lam0.costEq P (by includes), limbs_of_lt (lt_trans i.isLt hN),
+      rw [memoryVec.lam0.costEq P, limbs_of_lt (lt_trans i.isLt hN),
         limbs_of_lt (hix _), limbs_of_lt (hix _), limbs_of_lt (hs _), limbs_of_lt (hs _)]
       simp only [max_self]
       omega) 0 (Nat.zero_le _)
@@ -372,7 +372,7 @@ theorem candidateExecutionVec_cost (hP : Includes P candidateExecutionVec.costDe
     (fun n ↦ RunsApp.of_spec (candidateExecutionVec.lam0.costSpec P (by includes) prog layout _ n)) 11
     (haltLoopVec memT codeT prog (memoryVec layout q) fin cap 0 Registers.initial) (fun n _ ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [candidateExecutionVec.lam0.costEq P (by includes)])
+      rw [candidateExecutionVec.lam0.costEq P])
   split_ifs <;> omega
 
 /-- **One stack, from the runner's tables** (`runWithTablesC`): at most

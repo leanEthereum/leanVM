@@ -88,7 +88,7 @@ the cell (the slot and the packed number one limb each, `guestLanes_lt`; the cel
 read at `1`). -/
 theorem locAt_cost (hP : Includes P locAtC.costDeps) (j i : ℕ) :
     machineCost P locAtC.costIdx [encodeValue j, encodeValue i] ≤ 30 := by
-  rw [locAtC.costEq P hP, guestLocsTableC.costEq P (by includes)]
+  rw [locAtC.costEq P hP, guestLocsTableC.costEq P]
   have hs := guestLanes_lt 0 j
   generalize (guestLanes.getD 0 #[]).getD j 0 = s at hs ⊢
   have hw := guestLanes_lt (s / 4) i
@@ -113,7 +113,7 @@ theorem callKey_cost (hP : Includes P callKeyC.costDeps) (j : ℕ) (args rets : 
   rw [callKeyC.costEq P hP]
   have hlam : ∀ x : E, appCost P (.closure callKeyC.lam0.costIdx []) [encodeValue x] ≤ 14 := by
     intro x
-    rw [appCost_fn, List.nil_append, callKeyC.lam0.costEq P (by includes), List.length_nil]
+    rw [appCost_fn, List.nil_append, callKeyC.lam0.costEq P, List.length_nil]
     have := wordCode_cost P (by includes) x
     omega
   have h1 := map_cost P (by includes) _ (.closure callKeyC.lam0.costIdx [])

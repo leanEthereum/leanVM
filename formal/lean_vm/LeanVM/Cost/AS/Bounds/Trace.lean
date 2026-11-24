@@ -157,7 +157,7 @@ theorem descendTraceGo_cost
       (polyPrice folded.length + 13) (fun x ↦ by
         rw [appCost_fn]
         simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-        rw [descendTraceCC.lam0.costEq P (by includes)]
+        rw [descendTraceCC.lam0.costEq P]
         have := polyOfAtH_cost P (by includes) folded x folded.length le_rfl hs.2 (by omega)
         omega) 0 (Nat.zero_le _)
     rw [Nat.sub_zero] at c4
@@ -195,7 +195,7 @@ theorem descendTraceGo_cost
       simp only
       rw [appCost_fn]
       simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [descendTraceCC.lam1.costEq P (by includes)]
+      rw [descendTraceCC.lam1.costEq P]
       obtain ⟨l1, l2, l3, l4, l5, l6, l7, l8, l9⟩ := lvC_limbs μ R i
       obtain ⟨m1, m2, m3, m4, m5, m6, m7, m8, m9⟩ := lvC_limbs μ R (i + 1)
       have c1 := lvC_cost P (by includes) μ R i (by omega) (by omega) (by omega)

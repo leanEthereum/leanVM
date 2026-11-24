@@ -345,7 +345,7 @@ theorem getPc_cost (hP : Includes P getPcC.costDeps) (D : ℕ)
   have hlam : ∀ l ∈ m.levels, appCost P (.closure getPcC.lam0.costIdx [encodeValue k])
       [encodeValue l] ≤ 9 + (39 + 9 * wl D) * (D + 2) := by
     intro l hl
-    rw [appCost_fn, List.singleton_append, getPcC.lam0.costEq P (by includes),
+    rw [appCost_fn, List.singleton_append, getPcC.lam0.costEq P,
       List.length_singleton]
     have := searchInPc_cost P (by includes) l.entries (fun e he ↦ hQ l hl e he) k hk (2 ^ D)
       (wl D) (fun x hx ↦ limbs_le_wl' hx) (hsz l hl) 0 l.entries.size (Nat.zero_le _) (hsz l hl)

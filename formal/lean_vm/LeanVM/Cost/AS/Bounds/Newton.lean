@@ -48,15 +48,15 @@ theorem nodalK_cost (hP : Includes P nodalKC.costDeps) (xs : List K) (z : K) :
   have hm := map_cost P (by includes) (fun x ↦ z - x) (.closure nodalKC.lam0.costIdx [encodeValue z])
     (fun x ↦ RunsApp.of_spec (nodalKC.lam0.costSpec P (by includes) z x)) 4 xs
     (fun x _ ↦ by
-      rw [appCost_fn, List.cons_append, List.nil_append, nodalKC.lam0.costEq P (by includes)]
+      rw [appCost_fn, List.cons_append, List.nil_append, nodalKC.lam0.costEq P]
       simp)
   have hp : machineCost P Auto.List.prod.K.costIdx [encodeValue (xs.map fun x ↦ z - x)] ≤
       40 * xs.length + 7 := by
-    rw [Auto.List.prod.K.costEq P (by includes)]
+    rw [Auto.List.prod.K.costEq P]
     have := foldr_cost P (by includes) (· * ·) (.closure Auto.List.prod.K.lam0.costIdx [])
       (fun a b ↦ RunsApp.of_spec (Auto.List.prod.K.lam0.costSpec P (by includes) a b)) 29 1
       (xs.map fun x ↦ z - x) (fun a _ b ↦ by
-        rw [appCost_fn, List.nil_append, Auto.List.prod.K.lam0.costEq P (by includes)]
+        rw [appCost_fn, List.nil_append, Auto.List.prod.K.lam0.costEq P]
         simp)
     simp only [List.length_map] at this
     omega
@@ -84,7 +84,7 @@ theorem nFormK_cost (hP : Includes P nFormKC.costDeps) (pts : List (K × E)) :
     (fun st b l hJ ↦ by
       refine ⟨⟨by simp [nStepK, hJ.1], by simp [nStepK]; simp at hJ; omega⟩, ?_⟩
       rw [appCost_fn, List.length_nil, Nat.add_zero, List.nil_append,
-        nFormKC.lam0.costEq P (by includes)]
+        nFormKC.lam0.costEq P]
       have := nStepK_cost P (by includes) st b hJ.1
       have h := hJ.2
       simp only [List.length_cons] at h
@@ -124,7 +124,7 @@ theorem dropLoc_cost (hP : Includes P dropLocC.costDeps) (d : ℕ) (f : List K �
     (fun p ↦ RunsApp.of_spec (dropLocC.lam0.costSpec P (by includes) _ _ _ p)) 192 pts 0
     (by omega) (fun p _ ↦ by
       rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.nil_append,
-        dropLocC.lam0.costEq P (by includes)]
+        dropLocC.lam0.costEq P]
       simp only [List.length_cons, List.length_nil]
       split_ifs <;> omega)
   simp only [max_self]

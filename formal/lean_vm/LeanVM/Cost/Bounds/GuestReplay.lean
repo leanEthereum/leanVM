@@ -88,8 +88,8 @@ theorem replayStatesOf_cost (hP : Includes P replayStatesOfC.costDeps) (prog :
       (runnerStepPrice κ prog.logSize + 46) *
           (replayStatesOf (powTable κ) (powTable prog.logSize) prog mem).length + 2456 := by
   have hls : prog.logSize ≤ 30 := prog.logSize_le
-  rw [replayStatesOfC.costEq P hP, Auto.LeanVM.Semantics.LeanIsaProgram.pcFinal.costEq P (by includes),
-    replayFuelC.costEq P (by includes)]
+  rw [replayStatesOfC.costEq P hP, Auto.LeanVM.Semantics.LeanIsaProgram.pcFinal.costEq P,
+    replayFuelC.costEq P]
   have h1 := statesVec_cost P (by includes) (powTable κ) (powTable prog.logSize) prog mem
     (Registers.final prog) (runnerStepPrice κ prog.logSize) (fun r ↦ by
       have := stepVec_cost P (by includes) (powTable κ) (powTable prog.logSize)

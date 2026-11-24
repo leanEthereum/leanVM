@@ -53,9 +53,9 @@ theorem xmssTabs_cost (hP : Includes P Decoder.xmssTabsC.costDeps) :
   have := Nat.mul_le_mul_left (256 + 15) h4
   have := Nat.mul_le_mul_left (256 + 15) h5
   have := Nat.mul_le_mul_left (256 + 15) h6
-  rw [Decoder.xmssTabsC.costEq P hP, Decoder.gLanesC.costEq P (by includes),
-    Decoder.lxFoldC.costEq P (by includes), Decoder.lxRestC.costEq P (by includes),
-    Decoder.lxTailC.costEq P (by includes)]
+  rw [Decoder.xmssTabsC.costEq P hP, Decoder.gLanesC.costEq P,
+    Decoder.lxFoldC.costEq P, Decoder.lxRestC.costEq P,
+    Decoder.lxTailC.costEq P]
   omega
 
 /-! ## The cells -/
@@ -100,7 +100,7 @@ theorem lxChainCell_cost (hP : Includes P Decoder.lxChainCellC.costDeps) (T : Xm
     | none => simp
     | some x => exact hk x (List.mem_of_getElem? h)
   have ho := lxGroupTab_lt hT (i / 4) (i % 4) (ks.getD (i / 4) 0)
-  rw [Decoder.offAtAC.costEq P (by includes)]
+  rw [Decoder.offAtAC.costEq P]
   have := Nat.mul_le_mul_left 15 hks
   limbs_one
   omega

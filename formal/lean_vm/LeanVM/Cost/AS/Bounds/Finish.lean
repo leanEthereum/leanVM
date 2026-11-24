@@ -180,7 +180,7 @@ theorem finishL_cost (hP : Includes P finishLC.costDeps) (prog : Semantics.LeanI
     · simp only
       rw [appCost_fn]
       simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [finishLC.lam0.costEq P (by includes)]
+      rw [finishLC.lam0.costEq P]
       dsimp only
       have hT1 := descendTraceC_fst _ _ _ tr 0 hs hT
       rw [hl, limbs_of_lt (by omega : T.1 < 2 ^ 64), limbs_of_lt (by norm_num : (6 : ℕ) < 2 ^ 64)]

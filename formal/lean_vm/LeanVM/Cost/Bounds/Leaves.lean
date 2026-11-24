@@ -66,7 +66,7 @@ theorem bytesWordC_cost (hP : Includes P Auto.LeanVM.Extraction.bytesWord.costDe
       have : 256 ^ tl.length ≤ 256 ^ 7 := Nat.pow_le_pow_right (by norm_num) hlen
       have hx := x.toNat_lt
       rw [appCost_fn, List.nil_append,
-        Auto.LeanVM.Extraction.bytesWord.lam0.costEq P (by includes),
+        Auto.LeanVM.Extraction.bytesWord.lam0.costEq P,
         limbs_of_lt (by omega), limbs_of_lt (by omega), limbs_of_lt (by omega),
         limbs_of_lt (by omega : x.toNat < 2 ^ 64), List.length_nil]
       omega)
@@ -115,7 +115,7 @@ theorem leafOfWithC_cost (hP : Includes P Auto.LeanVM.Extraction.Fast.leafOfWith
       (LeanVM.Extraction.bytesLanes w val)
       (fun a _ ↦ by
         rw [appCost_fn, List.nil_append,
-          Auto.LeanVM.Extraction.Fast.leafOfWith.lam0.costEq P (by includes), List.length_nil])
+          Auto.LeanVM.Extraction.Fast.leafOfWith.lam0.costEq P, List.length_nil])
     rw [bytesLanes_length] at this
     dsimp only
     omega
@@ -132,7 +132,7 @@ theorem bytesDigestC_cost (hP : Includes P Auto.LeanVM.Extraction.bytesDigest.co
       (Auto.LeanVM.Extraction.bytesDigest.lam0.costSpec P (by includes) b i)) 1837
     (fun i ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [Auto.LeanVM.Extraction.bytesDigest.lam0.costEq P (by includes)]
+      rw [Auto.LeanVM.Extraction.bytesDigest.lam0.costEq P]
       have := bytesLanesC_cost P (by includes) 4 b (by norm_num)
       have := getD_cost P (by includes) (LeanVM.Extraction.bytesLanes 4 b) i 0 (by omega)
       rw [bytesLanes_length] at this
@@ -223,7 +223,7 @@ theorem preimageLookup_cost (hP : Includes P leavesInC.lam0.costDeps)
       D * (20 + (162 + 9 * W) * (D + 2)) + 42 := by
   simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
   rw [leavesInC.lam0.costEq P hP,
-    Auto.LeanVM.Extraction.Fast.preimageIn.costEq P (by includes)]
+    Auto.LeanVM.Extraction.Fast.preimageIn.costEq P]
   obtain ⟨hg, hw⟩ := transcriptIndex_bounds qs L
   obtain ⟨hlev, hsz⟩ := smGood_levels_le hg (D := D)
     (lt_of_le_of_lt hw (Nat.lt_of_lt_of_le (Nat.lt_succ_self _) hN))
@@ -248,13 +248,13 @@ theorem entryC_cost (hP : Includes P Auto.LeanVM.Arithmetization.busEntry.costDe
   cases i with
   | deref o1 o2 o3 mode =>
     dsimp only
-    rw [Auto.LeanVM.Arithmetization.derefFlags.costEq P (by includes)]
+    rw [Auto.LeanVM.Arithmetization.derefFlags.costEq P]
     cases mode <;> dsimp only <;> omega
   | keccak om otail ob8 ocap oout inOdd outOdd outCells =>
     dsimp only
-    rw [Auto.Fin.ofNat.«4».costEq P (by includes), Auto.Fin.ofNat.«4».costEq P (by includes),
-      Auto.Fin.ofNat.«4».costEq P (by includes), Auto.Fin.ofNat.«4».costEq P (by includes)]
-    simp only [Auto.LeanVM.Arithmetization.layoutFlagWord.costEq P (by includes),
+    rw [Auto.Fin.ofNat.«4».costEq P, Auto.Fin.ofNat.«4».costEq P,
+      Auto.Fin.ofNat.«4».costEq P, Auto.Fin.ofNat.«4».costEq P]
+    simp only [Auto.LeanVM.Arithmetization.layoutFlagWord.costEq P,
       limbs_of_lt (by norm_num : (0 : ℕ) < 2 ^ 64), limbs_of_lt (by norm_num : (1 : ℕ) < 2 ^ 64),
       limbs_of_lt (by norm_num : (2 : ℕ) < 2 ^ 64), limbs_of_lt (by norm_num : (3 : ℕ) < 2 ^ 64)]
     cases outCells <;> simp only [ite_self] <;> omega
@@ -272,15 +272,15 @@ theorem bytecodeWordsC_cost (hP : Includes P bytecodeWordsC.costDeps) (prog :
       346 * 2 ^ prog.logSize + 21 := by
     intro s
     simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-    rw [bytecodeWordsC.lam0.costEq P (by includes), Nat.one_shiftLeft, limbs_of_lt h2,
+    rw [bytecodeWordsC.lam0.costEq P, Nat.one_shiftLeft, limbs_of_lt h2,
       limbs_of_lt (lt_of_le_of_lt hls (by norm_num) : prog.logSize < 2 ^ 64)]
     have hf := finRangeFrom_cost P (by includes) (2 ^ prog.logSize) h2 0 (Nat.zero_le _)
     have hm := map_cost P (by includes) _ (.closure bytecodeWordsC.lam0.lam0.costIdx [encodeValue prog, encodeValue s])
       (fun i ↦ RunsApp.of_spec (bytecodeWordsC.lam0.lam0.costSpec P (by includes) prog s i)) 320
       (List.finRange (2 ^ prog.logSize)) (fun i _ ↦ by
         simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-        rw [bytecodeWordsC.lam0.lam0.costEq P (by includes),
-          Auto.LeanVM.Arithmetization.instructionSlots.costEq P (by includes)]
+        rw [bytecodeWordsC.lam0.lam0.costEq P,
+          Auto.LeanVM.Arithmetization.instructionSlots.costEq P]
         have := entryC_cost P (by includes) (prog.instructions i)
         omega)
     rw [List.length_finRange] at hm

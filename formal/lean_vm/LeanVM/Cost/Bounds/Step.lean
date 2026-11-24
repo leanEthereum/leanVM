@@ -88,7 +88,7 @@ theorem roundParity_cost (hP : Includes P keccakRoundShared.costDeps) (a : Kecca
     (fun x ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
       have := x.isLt
-      rw [keccakRoundShared.lam0.costEq P (by includes), limbs_of_lt (by omega : (x : ℕ) < 2 ^ 64),
+      rw [keccakRoundShared.lam0.costEq P, limbs_of_lt (by omega : (x : ℕ) < 2 ^ 64),
         limbs_of_lt (by omega : (x : ℕ) + 5 < 2 ^ 64), limbs_of_lt (by omega : (x : ℕ) + 10 < 2 ^ 64),
         limbs_of_lt (by omega : (x : ℕ) + 15 < 2 ^ 64), limbs_of_lt (by omega : (x : ℕ) + 20 < 2 ^ 64)]
       simp only [max_self]; omega) 0 (by omega)
@@ -104,7 +104,7 @@ theorem roundTheta_cost (hP : Includes P keccakRoundShared.costDeps) (a : Keccak
     (fun x ↦ RunsApp.of_spec (keccakRoundShared.lam1.costSpec P (by includes) a c x)) 54
     (fun x ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [keccakRoundShared.lam1.costEq P (by includes)]
+      rw [keccakRoundShared.lam1.costEq P]
       have := rot_cost P (by includes) (c.toArray.getD ((↑x + 1) % 5) 0) 1 (by norm_num)
       have := x.isLt
       cost_simp
@@ -122,9 +122,9 @@ theorem roundRhoPi_cost (hP : Includes P keccakRoundShared.costDeps) (t : Keccak
     (fun acc i hi ↦ by
       have hi := List.mem_range.1 hi
       simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [keccakRoundShared.lam2.costEq P (by includes), keccakPi_cost P (by includes) i hi,
+      rw [keccakRoundShared.lam2.costEq P, keccakPi_cost P (by includes) i hi,
         setIfInBounds_cost P (by includes),
-        Auto.LeanVM.Parameters.keccakRho.costEq P (by includes)]
+        Auto.LeanVM.Parameters.keccakRho.costEq P]
       have := getD_cost_idx P (by includes) keccakRho i 0 (by omega)
       have := rot_cost P (by includes) (Keccak.lane t i) (keccakRho.getD i 0)
         (by have := keccakRho_getD_le i; omega)
@@ -141,7 +141,7 @@ theorem roundChi_cost (hP : Includes P keccakRoundShared.costDeps) (b t : Keccak
     (fun x ↦ RunsApp.of_spec (keccakRoundShared.lam3.costSpec P (by includes) b t c x)) 39
     (fun x ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [keccakRoundShared.lam3.costEq P (by includes)]
+      rw [keccakRoundShared.lam3.costEq P]
       have := x.isLt
       cost_simp
       omega) 0 (by omega)
@@ -274,20 +274,20 @@ theorem readCells_cost (hP : Includes P readCells.costDeps) (fp : K) (offset : F
     (fun x ↦ RunsApp.of_spec (readFirstCells.lam1.costSpec P (by includes) x)) 7
     (fun x ↦ by
       simp only [appCost_fn, List.nil_append, List.length_nil]
-      rw [readFirstCells.lam1.costEq P (by includes)]; omega) 0 (by omega)
+      rw [readFirstCells.lam1.costEq P]; omega) 0 (by omega)
   have h2 := finRangeFrom_cost P (by includes) 13 (by norm_num) 0 (by omega)
   -- one cell: the inner function rebuilt
   have hin : ∀ (c : Fin 13) (v : E) (rest : Fin 13 → E),
       appCost P (.closure readFirstCells.lam0.lam0.lam0.costIdx [encodeValue c, encodeValue v]) [encodeValue rest] ≤ 384 := by
     intro c v rest
     simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-    rw [readFirstCells.lam0.lam0.lam0.costEq P (by includes), ofFnFrom_length]
+    rw [readFirstCells.lam0.lam0.lam0.costEq P, ofFnFrom_length]
     have := ofFnFrom_cost P (by includes) (by norm_num) _
       (.closure readFirstCells.lam0.lam0.lam0.lam0.costIdx [encodeValue c, encodeValue v, encodeValue rest])
       (fun x ↦ RunsApp.of_spec (readFirstCells.lam0.lam0.lam0.lam0.costSpec P (by includes) c v rest x))
       11 (fun x ↦ by
         simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-        rw [readFirstCells.lam0.lam0.lam0.lam0.costEq P (by includes),
+        rw [readFirstCells.lam0.lam0.lam0.lam0.costEq P,
           limbs_of_lt (by have := x.isLt; omega), limbs_of_lt (by have := c.isLt; omega)]
         split_ifs <;> omega) 0 (by omega)
     omega
@@ -295,7 +295,7 @@ theorem readCells_cost (hP : Includes P readCells.costDeps) (fp : K) (offset : F
       appCost P (.closure readFirstCells.lam0.lam0.costIdx [encodeValue c, encodeValue acc]) [encodeValue v] ≤ 399 := by
     intro c acc v
     simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-    rw [readFirstCells.lam0.lam0.costEq P (by includes)]
+    rw [readFirstCells.lam0.lam0.costEq P]
     have := bind_cost P (by includes) _ (.closure readFirstCells.lam0.lam0.lam0.costIdx [encodeValue c, encodeValue v])
       (fun x ↦ RunsApp.of_spec (readFirstCells.lam0.lam0.lam0.costSpec P (by includes) c v x)) 384
       (hin c v) acc
@@ -330,20 +330,20 @@ theorem readFirstCells_cost (hP : Includes P readFirstCells.costDeps) (fp : K) (
     (fun x ↦ RunsApp.of_spec (readFirstCells.lam1.costSpec P (by includes) x)) 7
     (fun x ↦ by
       simp only [appCost_fn, List.nil_append, List.length_nil]
-      rw [readFirstCells.lam1.costEq P (by includes)]; omega) 0 (by omega)
+      rw [readFirstCells.lam1.costEq P]; omega) 0 (by omega)
   have h2 := finRangeFrom_cost P (by includes) 13 (by norm_num) 0 (by omega)
   -- one cell: the inner function rebuilt
   have hin : ∀ (c : Fin 13) (v : E) (rest : Fin 13 → E),
       appCost P (.closure readFirstCells.lam0.lam0.lam0.costIdx [encodeValue c, encodeValue v]) [encodeValue rest] ≤ 384 := by
     intro c v rest
     simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-    rw [readFirstCells.lam0.lam0.lam0.costEq P (by includes), ofFnFrom_length]
+    rw [readFirstCells.lam0.lam0.lam0.costEq P, ofFnFrom_length]
     have := ofFnFrom_cost P (by includes) (by norm_num) _
       (.closure readFirstCells.lam0.lam0.lam0.lam0.costIdx [encodeValue c, encodeValue v, encodeValue rest])
       (fun x ↦ RunsApp.of_spec (readFirstCells.lam0.lam0.lam0.lam0.costSpec P (by includes) c v rest x))
       11 (fun x ↦ by
         simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-        rw [readFirstCells.lam0.lam0.lam0.lam0.costEq P (by includes),
+        rw [readFirstCells.lam0.lam0.lam0.lam0.costEq P,
           limbs_of_lt (by have := x.isLt; omega), limbs_of_lt (by have := c.isLt; omega)]
         split_ifs <;> omega) 0 (by omega)
     omega
@@ -351,7 +351,7 @@ theorem readFirstCells_cost (hP : Includes P readFirstCells.costDeps) (fp : K) (
       appCost P (.closure readFirstCells.lam0.lam0.costIdx [encodeValue c, encodeValue acc]) [encodeValue v] ≤ 399 := by
     intro c acc v
     simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-    rw [readFirstCells.lam0.lam0.costEq P (by includes)]
+    rw [readFirstCells.lam0.lam0.costEq P]
     have := bind_cost P (by includes) _ (.closure readFirstCells.lam0.lam0.lam0.costIdx [encodeValue c, encodeValue v])
       (fun x ↦ RunsApp.of_spec (readFirstCells.lam0.lam0.lam0.costSpec P (by includes) c v x)) 384
       (hin c v) acc
@@ -461,7 +461,7 @@ theorem guardNext_cost (hP : Includes P executeWithShared.costDeps) (r : Registe
     (fun u ↦ RunsApp.of_spec (executeWithShared.lam0.lam0.lam0.lam0.costSpec P (by includes) r u))
     40 (fun u ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [executeWithShared.lam0.lam0.lam0.lam0.costEq P (by includes)]) _
+      rw [executeWithShared.lam0.lam0.lam0.lam0.costEq P]) _
 
 include hread hR in
 /-- `XOR`: three reads, at most `3R + 283`. -/
@@ -474,7 +474,7 @@ theorem executeXor_cost (hP : Includes P executeWithShared.costDeps) (r : Regist
       [encodeValue r, encodeValue vA, encodeValue vB]) [encodeValue vC] ≤ 128 := by
     intro vA vB vC
     simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-    rw [executeWithShared.lam0.lam0.lam0.costEq P (by includes)]
+    rw [executeWithShared.lam0.lam0.lam0.costEq P]
     cost_facts [guardNext_cost P hP r]
     split_ifs <;> omega
   have h2 : ∀ vA vB : E, appCost P (.closure executeWithShared.lam0.lam0.costIdx
@@ -514,7 +514,7 @@ theorem executeMul_cost (hP : Includes P executeWithShared.costDeps) (r : Regist
       [encodeValue r, encodeValue vA, encodeValue vB]) [encodeValue vC] ≤ 962 := by
     intro vA vB vC
     simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-    rw [executeWithShared.lam1.lam0.lam0.costEq P (by includes)]
+    rw [executeWithShared.lam1.lam0.lam0.costEq P]
     cost_facts [guardNext_cost P hP r]
     split_ifs <;> omega
   have h2 : ∀ vA vB : E, appCost P (.closure executeWithShared.lam1.lam0.costIdx
@@ -553,7 +553,7 @@ theorem executeSet_cost (hP : Includes P executeWithShared.costDeps) (r : Regist
   have h1 : ∀ v : E, appCost P (.closure executeWithShared.lam2.costIdx [encodeValue k, encodeValue r]) [encodeValue v] ≤ 73 := by
     intro v
     simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-    rw [executeWithShared.lam2.costEq P (by includes)]
+    rw [executeWithShared.lam2.costEq P]
     cost_facts [guardNext_cost P hP r]
     split_ifs <;> omega
   have := bind_cost P (by includes) _ _ (fun v ↦ RunsApp.of_spec
@@ -581,7 +581,7 @@ theorem executeDeref_cost (hP : Includes P executeWithShared.costDeps) (r : Regi
       [encodeValue mode, encodeValue r, encodeValue v3]) [encodeValue v2] ≤ 662 := by
     intro p v3 v2
     simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-    rw [executeWithShared.lam3.lam0.lam0.lam0.costEq P (by includes)]
+    rw [executeWithShared.lam3.lam0.lam0.lam0.costEq P]
     cost_facts [guardNext_cost P hP r]
     have := derefSource_cost P (by includes) mode r v3
     split_ifs <;> omega
@@ -631,13 +631,13 @@ theorem executeJump_cost (hP : Includes P executeWithShared.costDeps) (r : Regis
       [encodeValue r, encodeValue c, encodeValue d, encodeValue f]) [encodeValue u] ≤ 79 := by
     intro c d f u
     simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-    rw [executeWithShared.lam4.lam0.lam0.lam0.costEq P (by includes)]
+    rw [executeWithShared.lam4.lam0.lam0.lam0.costEq P]
     split_ifs <;> omega
   have h3 : ∀ (c d f : E), appCost P (.closure executeWithShared.lam4.lam0.lam0.costIdx
       [encodeValue r, encodeValue c, encodeValue d]) [encodeValue f] ≤ 131 := by
     intro c d f
     simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-    rw [executeWithShared.lam4.lam0.lam0.costEq P (by includes)]
+    rw [executeWithShared.lam4.lam0.lam0.costEq P]
     have := bind_cost P (by includes) _ _ (fun u ↦ RunsApp.of_spec
       (executeWithShared.lam4.lam0.lam0.lam0.costSpec P (by includes) r c d f u)) 79
       (h4 c d f) (guard (IsInK c ∧ IsInK d ∧ IsInK f))
@@ -685,13 +685,13 @@ theorem keccakCheck_cost (hP : Includes P executeWithShared.costDeps) (inOdd out
     machineCost P executeWithShared.lam5.lam0.costIdx
       [encodeValue inOdd, encodeValue outOdd, encodeValue outCells, encodeValue r, encodeValue input,
         encodeValue output] ≤ 342500 := by
-  rw [executeWithShared.lam5.lam0.costEq P (by includes)]
+  rw [executeWithShared.lam5.lam0.costEq P]
   have hst := stateOfCells_cost P (by includes) input
     (.closure executeWithShared.lam5.lam0.lam1.costIdx [encodeValue input])
     (fun a ↦ RunsApp.of_spec (executeWithShared.lam5.lam0.lam1.costSpec P (by includes) input a)) 5
     (fun a ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [executeWithShared.lam5.lam0.lam1.costEq P (by includes)]) inOdd
+      rw [executeWithShared.lam5.lam0.lam1.costEq P]) inOdd
   have hrc := Auto.LeanVM.Parameters.keccakRC.costEq P (by includes)
   have hkf := keccakF_cost P (by includes) (by includes) (stateOfCells input inOdd)
   have hid := ofFnFrom_cost P (by includes) (by norm_num) _
@@ -699,7 +699,7 @@ theorem keccakCheck_cost (hP : Includes P executeWithShared.costDeps) (inOdd out
     (fun a ↦ RunsApp.of_spec (executeWithShared.lam5.lam0.lam3.costSpec P (by includes) a)) 1
     (fun a ↦ by
       simp only [appCost_fn, List.nil_append, List.length_nil]
-      rw [executeWithShared.lam5.lam0.lam3.costEq P (by includes)]) 0 (by omega)
+      rw [executeWithShared.lam5.lam0.lam3.costEq P]) 0 (by omega)
   have hlen : (Array.ofFn (id : Fin 13 → Fin 13)).toList.length = 13 := by simp
   have ha2 := all_cost P (by includes) _
     (.closure executeWithShared.lam5.lam0.lam2.costIdx
@@ -709,7 +709,7 @@ theorem keccakCheck_cost (hP : Includes P executeWithShared.costDeps) (inOdd out
       outCells output _ a)) 310 (Array.ofFn (id : Fin 13 → Fin 13)).toList
     (fun a _ ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [executeWithShared.lam5.lam0.lam2.costEq P (by includes),
+      rw [executeWithShared.lam5.lam0.lam2.costEq P,
         cellCount_cost P (by includes), limbs_of_lt (by have := cellCount_le outCells; omega),
         limbs_of_lt (by have := a.isLt; omega)]
       have := cellsOfState_cost P (by includes) (keccakF1600 (stateOfCells input inOdd)) outOdd a
@@ -735,7 +735,7 @@ theorem keccakOutput_cost (hP : Includes P executeWithShared.costDeps) (oout : K
     (fun c ↦ RunsApp.of_spec (executeWithShared.lam5.lam1.costSpec P (by includes) oout c)) 331
     (fun c ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [executeWithShared.lam5.lam1.costEq P (by includes)]
+      rw [executeWithShared.lam5.lam1.costEq P]
       have := powSq_cost_le' P (by includes) LeanVM.Parameters.g c (by have := c.isLt; omega)
       omega) outCells.cellCount (cellCount_le outCells)
   have h2 := bind_cost P (by includes) _
@@ -755,12 +755,12 @@ theorem keccakInOffset_cost (hP : Includes P executeWithShared.costDeps) (om : F
     (otail ob8 ocap : K) (c : Fin 13) :
     machineCost P executeWithShared.lam6.costIdx [encodeValue om, encodeValue otail, encodeValue ob8, encodeValue ocap, encodeValue c] ≤
       206 := by
-  rw [executeWithShared.lam6.costEq P (by includes),
+  rw [executeWithShared.lam6.costEq P,
     keccakInputCellOffset.costEq P (by includes) om _
       (fun a ↦ RunsApp.of_spec (executeWithShared.lam6.lam0.costSpec P (by includes) om a))]
   have hc := c.isLt
   simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil,
-    executeWithShared.lam6.lam0.costEq P (by includes)]
+    executeWithShared.lam6.lam0.costEq P]
   rw [limbs_of_lt (by omega : (c : ℕ) < 2 ^ 64)]
   split_ifs
   · omega
@@ -852,8 +852,8 @@ theorem memRead_cost (hP : Includes P stepVec.lam0.lam0.costDeps) (memT : Array 
     (fun i ↦ RunsApp.of_spec (stepVec.lam0.lam0.lam0.costSpec P (by includes) mem i)) 12
     (gLogTable memT κ a) (fun i _ ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [stepVec.lam0.lam0.lam0.costEq P (by includes), limbs_shift hκ,
-        limbs_of_lt (by omega : κ < 2 ^ 64), Auto.Vector.get.costEq P (by includes)]
+      rw [stepVec.lam0.lam0.lam0.costEq P, limbs_shift hκ,
+        limbs_of_lt (by omega : κ < 2 ^ 64), Auto.Vector.get.costEq P]
       omega)
   omega
 
@@ -872,13 +872,13 @@ theorem stepVec_cost (hP : Includes P stepVec.costDeps) (memT codeT : Array (ℕ
     (fun i ↦ RunsApp.of_spec (stepVec.lam1.costSpec P (by includes) prog i)) 6
     (gLogTable codeT prog.logSize r.pc) (fun i _ ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [stepVec.lam1.costEq P (by includes)])
+      rw [stepVec.lam1.costEq P])
   have h3 := bind_cost P (by includes) _ (.closure stepVec.lam0.costIdx [encodeValue memT, encodeValue κ, encodeValue mem, encodeValue r])
     (fun i ↦ RunsApp.of_spec (stepVec.lam0.costSpec P (by includes) memT mem r i))
     (26 * (114 + 36 * Nat.log2 memT.size) + 362914)
     (fun i ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [stepVec.lam0.costEq P (by includes)]
+      rw [stepVec.lam0.costEq P]
       have := executeWith_cost P _ (.closure stepVec.lam0.lam0.costIdx [encodeValue memT, encodeValue κ, encodeValue mem])
         (fun a ↦ RunsApp.of_spec (stepVec.lam0.lam0.costSpec P (by includes) memT mem a))
         (114 + 36 * Nat.log2 memT.size)

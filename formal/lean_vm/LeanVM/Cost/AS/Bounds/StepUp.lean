@@ -53,7 +53,7 @@ theorem vanRow_cost (hP : Includes P Auto.LeanVM.Prover.vanRow.costDeps) :
         (by includes) i)) 5
       (fun i ↦ by
         rw [appCost_fn, List.nil_append,
-          Auto.LeanVM.Prover.vanRow.lam0.costEq P (by includes),
+          Auto.LeanVM.Prover.vanRow.lam0.costEq P,
           limbs_shift i.isLt, limbs_two_pow i.isLt, limbs_of_lt (by omega : (i : ℕ) < 2 ^ 64)]
         rfl) 0 (Nat.zero_le _)
     omega
@@ -68,7 +68,7 @@ theorem vanRow_cost (hP : Includes P Auto.LeanVM.Prover.vanRow.costDeps) :
       (fun v _ ↦ by
         rw [appCost_fn]
         simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-        rw [Auto.LeanVM.Prover.vanRow.lam1.costEq P (by includes)])
+        rw [Auto.LeanVM.Prover.vanRow.lam1.costEq P])
     simp only [List.length_map, Array.length_toList, Prover.Enc.size_vanRow] at hm ⊢
     omega
 
@@ -85,7 +85,7 @@ theorem hatRow_cost (hP : Includes P Auto.LeanVM.Prover.hatRow.costDeps) (c : �
     (fun v _ ↦ by
       rw [appCost_fn]
       simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [Auto.LeanVM.Prover.hatRow.lam0.costEq P (by includes)])
+      rw [Auto.LeanVM.Prover.hatRow.lam0.costEq P])
   simp only [List.length_map, Array.length_toList, Prover.Enc.size_vanRow] at hm ⊢
   omega
 
@@ -97,7 +97,7 @@ theorem hatTable_cost (hP : Includes P Auto.LeanVM.Prover.hatTable.costDeps) :
     (fun c ↦ RunsApp.of_spec (Auto.LeanVM.Prover.hatTable.lam0.costSpec P (by includes) c))
     323600
     (fun c ↦ by
-      rw [appCost_fn, List.nil_append, Auto.LeanVM.Prover.hatTable.lam0.costEq P (by includes)]
+      rw [appCost_fn, List.nil_append, Auto.LeanVM.Prover.hatTable.lam0.costEq P]
       have := hatRow_cost P (by includes) c c.isLt
       simp only [List.length_nil]
       omega) 0 (Nat.zero_le _)
@@ -121,7 +121,7 @@ theorem hatAt_cost (hP : Includes P Auto.LeanVM.Prover.hatAt.costDeps) (c n : �
     (fun acc _ m hm ↦ ⟨trivial, by
       rw [appCost_fn]
       simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [Auto.LeanVM.Prover.hatAt.lam0.costEq P (by includes)]
+      rw [Auto.LeanVM.Prover.hatAt.lam0.costEq P]
       have := testBit_cost P (by includes) n m hn (by have := List.mem_range.1 hm; omega)
       split_ifs <;> omega⟩)
   simp only [List.length_range] at h3
@@ -140,7 +140,7 @@ theorem novelAtH_cost (hP : Includes P novelAtHC.costDeps) (c x : ℕ) (hc : c <
     (fun v hv ↦ by
       rw [appCost_fn]
       simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [novelAtHC.lam0.costEq P (by includes)]
+      rw [novelAtHC.lam0.costEq P]
       have h1 := testBit_cost P (by includes) c v hc hv
       have h2 := hatAt_cost P (by includes) v x hx
       split_ifs <;> omega) 64 (by norm_num)
@@ -163,7 +163,7 @@ theorem polyOfAtH_cost (hP : Includes P polyOfAtHC.costDeps) (cs : List E) (x L 
       have hc' := List.mem_range.1 hc
       rw [appCost_fn]
       simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [polyOfAtHC.lam0.costEq P (by includes)]
+      rw [polyOfAtHC.lam0.costEq P]
       have g := getD_cost P (by includes) cs c 0 (by omega)
       have n := novelAtH_cost P (by includes) c x (by omega) hx
       omega)
@@ -171,9 +171,9 @@ theorem polyOfAtH_cost (hP : Includes P polyOfAtHC.costDeps) (cs : List E) (x L 
     (fun a b ↦ RunsApp.of_spec (Auto.List.sum.E.lam0.costSpec P (by includes) a b)) 13 0
     ((List.range cs.length).map fun c ↦ cs.getD c 0 * ofK (novelAtH c x))
     (fun a _ b ↦ by
-      rw [appCost_fn, List.nil_append, Auto.List.sum.E.lam0.costEq P (by includes)]
+      rw [appCost_fn, List.nil_append, Auto.List.sum.E.lam0.costEq P]
       rfl)
-  rw [Auto.List.sum.E.costEq P (by includes)]
+  rw [Auto.List.sum.E.costEq P]
   simp only [List.length_map, List.length_range] at h3 h4
   have h5 : (15 * L + 64 * hatPrice + 3999 + 13) * cs.length ≤ (15 * L + 64 * hatPrice + 4012) * L :=
     Nat.mul_le_mul_left _ hL
@@ -195,7 +195,7 @@ theorem novelInvE_cost (hP : Includes P Auto.LeanVM.Protocol.Whir.Sound.novelInv
       (by includes) x)) 2 y.toList
     (fun x _ ↦ by
       rw [appCost_fn, List.nil_append,
-        Auto.LeanVM.Protocol.Whir.Sound.novelInvE.lam0.costEq P (by includes)]
+        Auto.LeanVM.Protocol.Whir.Sound.novelInvE.lam0.costEq P]
       rfl)
   have hm1 := map_cost P (by includes) _
     (.closure Auto.LeanVM.Protocol.Whir.Sound.novelInvE.lam1.costIdx [])
@@ -203,7 +203,7 @@ theorem novelInvE_cost (hP : Includes P Auto.LeanVM.Protocol.Whir.Sound.novelInv
       (by includes) x)) 2 y.toList
     (fun x _ ↦ by
       rw [appCost_fn, List.nil_append,
-        Auto.LeanVM.Protocol.Whir.Sound.novelInvE.lam1.costEq P (by includes)]
+        Auto.LeanVM.Protocol.Whir.Sound.novelInvE.lam1.costEq P]
       rfl)
   have hr := rangeLoop_cost P (by includes) κ [] (by omega)
   have hi0 := novelInv_cost P (by includes) κ hκ (limbArr 0 y)
@@ -218,7 +218,7 @@ theorem novelInvE_cost (hP : Includes P Auto.LeanVM.Protocol.Whir.Sound.novelInv
     (fun j ↦ by
       rw [appCost_fn]
       simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [Auto.LeanVM.Protocol.Whir.Sound.novelInvE.lam2.costEq P (by includes)]) 0
+      rw [Auto.LeanVM.Protocol.Whir.Sound.novelInvE.lam2.costEq P]) 0
     (Nat.zero_le _)
   simp only [List.length_map, Array.length_toList, Nat.sub_zero, max_self] at hm0 hm1 hof ⊢
   have e : κ * (348 * 2 ^ κ + 5872) = 2 * (κ * (174 * 2 ^ κ + 2906)) + 60 * κ := by ring
@@ -250,7 +250,7 @@ theorem msgA_cost (hP : Includes P msgAC.costDeps) (κ κ' m : ℕ) (VA' : AV) (
     (fun u ↦ by
       rw [appCost_fn]
       simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [msgAC.lam0.costEq P (by includes), ofFnFrom_length, limbs_shift (by omega : κ' < 64),
+      rw [msgAC.lam0.costEq P, ofFnFrom_length, limbs_shift (by omega : κ' < 64),
         limbs_of_lt (by omega : κ' < 2 ^ 64)]
       have a := ofFnFrom_cost P (by includes) hκ'2 _
         (.closure msgAC.lam0.lam0.costIdx [encodeValue κ', encodeValue m, encodeValue VA', encodeValue u])
@@ -258,7 +258,7 @@ theorem msgA_cost (hP : Includes P msgAC.costDeps) (κ κ' m : ℕ) (VA' : AV) (
         (fun v ↦ by
           rw [appCost_fn]
           simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-          rw [msgAC.lam0.lam0.costEq P (by includes)]) 0 (Nat.zero_le _)
+          rw [msgAC.lam0.lam0.costEq P]) 0 (Nat.zero_le _)
       have b := novelInvE_cost P (by includes) κ' hκ'
         (Array.ofFn fun v : Fin (2 ^ κ') ↦ (VA'.getD v #[]).getD u 0)
       rw [Array.size_ofFn] at b
@@ -272,7 +272,7 @@ theorem msgA_cost (hP : Includes P msgAC.costDeps) (κ κ' m : ℕ) (VA' : AV) (
     (fun j ↦ by
       rw [appCost_fn]
       simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [msgAC.lam1.costEq P (by includes), limbs_shift (by omega : m < 64),
+      rw [msgAC.lam1.costEq P, limbs_shift (by omega : m < 64),
         limbs_of_lt (by omega : m < 2 ^ 64), limbs_two_pow (by omega : m < 64),
         limbs_of_lt (by have := j.isLt; omega : (j : ℕ) < 2 ^ 64)]
       simp) 0 (Nat.zero_le _)
@@ -304,7 +304,7 @@ theorem nttStageAt_cost (hP : Includes P Auto.LeanVM.Prover.nttStage.nttStageAt.
     (fun q ↦ by
       rw [appCost_fn]
       simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [Auto.LeanVM.Prover.nttStage.nttStageAt.lam0.costEq P (by includes)]
+      rw [Auto.LeanVM.Prover.nttStage.nttStageAt.lam0.costEq P]
       have hq := q.isLt
       have d1 : (q : ℕ) / pi * pi ≤ q := Nat.div_mul_le_self _ _
       have d2 : (q : ℕ) / pi * pi1 = 2 * ((q : ℕ) / pi * pi) := by rw [hpi1]; ring
@@ -326,7 +326,7 @@ theorem nttStageAt_cost (hP : Includes P Auto.LeanVM.Prover.nttStage.nttStageAt.
     (fun p ↦ by
       rw [appCost_fn]
       simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [Auto.LeanVM.Prover.nttStage.nttStageAt.lam1.costEq P (by includes)]
+      rw [Auto.LeanVM.Prover.nttStage.nttStageAt.lam1.costEq P]
       have hp := p.isLt
       have hpi1' : 0 < pi1 := by omega
       have d1 : (p : ℕ) / pi1 * pi1 ≤ p := Nat.div_mul_le_self _ _
@@ -392,7 +392,7 @@ theorem ntt_cost (hP : Includes P Auto.LeanVM.Prover.ntt.costDeps) (tws : Array 
     (fun p ↦ by
       rw [appCost_fn]
       simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [Auto.LeanVM.Prover.ntt.lam0.costEq P (by includes), limbs_shift (by omega : κ < 64),
+      rw [Auto.LeanVM.Prover.ntt.lam0.costEq P, limbs_shift (by omega : κ < 64),
         limbs_of_lt (by omega : κ < 2 ^ 64), limbs_two_pow (by omega : κ < 64),
         limbs_of_lt (by have := p.isLt; omega : (p : ℕ) < 2 ^ 64)]
       simp) 0 (Nat.zero_le _)
@@ -420,7 +420,7 @@ theorem stageTwiddles_cost (hP : Includes P Auto.LeanVM.Prover.stageTwiddles.cos
     (fun b ↦ by
       rw [appCost_fn]
       simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [Auto.LeanVM.Prover.stageTwiddles.lam0.costEq P (by includes)]
+      rw [Auto.LeanVM.Prover.stageTwiddles.lam0.costEq P]
       have hb : (b : ℕ) * 2 ^ (i + 1) < 2 ^ N := by
         rw [← hsp]; exact Nat.mul_lt_mul_of_pos_right b.isLt (by positivity)
       have := hatAt_cost P (by includes) i ((b : ℕ) * 2 ^ (i + 1)) (by omega)
@@ -462,17 +462,17 @@ theorem upAtA_cost (hP : Includes P upAtAC.costDeps) (κ κ' m R : ℕ) (VA' : A
     (fun i ↦ by
       rw [appCost_fn]
       simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [upAtAC.lam0.costEq P (by includes), limbs_of_lt (by omega : κ + R < 2 ^ 64),
+      rw [upAtAC.lam0.costEq P, limbs_of_lt (by omega : κ + R < 2 ^ 64),
         limbs_of_lt (by omega : κ < 2 ^ 64), limbs_of_lt (by omega : R < 2 ^ 64)]
       have := stageTwiddles_cost P (by includes) (κ + R) i (by have := i.isLt; omega) hN
       simp only [max_self]
       omega) 0 (Nat.zero_le _)
   have hm0 := map_cost P (by includes) _ (.closure upAtAC.lam1.costIdx [])
     (fun e ↦ RunsApp.of_spec (upAtAC.lam1.costSpec P (by includes) e)) 2 (msgA κ κ' m VA').toList
-    (fun e _ ↦ by rw [appCost_fn, List.nil_append, upAtAC.lam1.costEq P (by includes)]; rfl)
+    (fun e _ ↦ by rw [appCost_fn, List.nil_append, upAtAC.lam1.costEq P]; rfl)
   have hm1 := map_cost P (by includes) _ (.closure upAtAC.lam2.costIdx [])
     (fun e ↦ RunsApp.of_spec (upAtAC.lam2.costSpec P (by includes) e)) 2 (msgA κ κ' m VA').toList
-    (fun e _ ↦ by rw [appCost_fn, List.nil_append, upAtAC.lam2.costEq P (by includes)]; rfl)
+    (fun e _ ↦ by rw [appCost_fn, List.nil_append, upAtAC.lam2.costEq P]; rfl)
   have hn0 := ntt_cost P (by includes) (nttTwiddles (κ + R) κ) κ R
     ((msgA κ κ' m VA').map fun e ↦ e.limb 0) hN
   have hn1 := ntt_cost P (by includes) (nttTwiddles (κ + R) κ) κ R
@@ -487,7 +487,7 @@ theorem upAtA_cost (hP : Includes P upAtAC.costDeps) (κ κ' m R : ℕ) (VA' : A
     (fun x ↦ by
       rw [appCost_fn]
       simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [upAtAC.lam3.costEq P (by includes)]
+      rw [upAtAC.lam3.costEq P]
       have hx : (x : ℕ) < 2 ^ 64 := by have := x.isLt; omega
       have := hatAt_cost P (by includes) κ x hx
       have := polyOfAtH_cost P (by includes) high x L hL hL' hx
@@ -524,7 +524,7 @@ theorem stackA_cost (hP : Includes P stackAC.costDeps) (μ : ℕ) (VA : AV) (hμ
     (fun u ↦ by
       rw [appCost_fn]
       simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [stackAC.lam0.costEq P (by includes), ofFnFrom_length, limbs_shift (by omega : κ < 64),
+      rw [stackAC.lam0.costEq P, ofFnFrom_length, limbs_shift (by omega : κ < 64),
         limbs_of_lt (by omega : κ < 2 ^ 64)]
       simp only [List.length_map, Array.length_toList, Array.size_ofFn, max_self]
       have a := ofFnFrom_cost P (by includes) (n := 2 ^ κ) (by omega) _
@@ -533,11 +533,11 @@ theorem stackA_cost (hP : Includes P stackAC.costDeps) (μ : ℕ) (VA : AV) (hμ
         (fun v ↦ by
           rw [appCost_fn]
           simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-          rw [stackAC.lam0.lam1.costEq P (by includes)]) 0 (Nat.zero_le _)
+          rw [stackAC.lam0.lam1.costEq P]) 0 (Nat.zero_le _)
       have b := map_cost P (by includes) _ (.closure stackAC.lam0.lam0.costIdx [])
         (fun x ↦ RunsApp.of_spec (stackAC.lam0.lam0.costSpec P (by includes) x)) 2
         (Array.ofFn fun v : Fin (2 ^ κ) ↦ (VA.getD v #[]).getD u 0).toList
-        (fun x _ ↦ by rw [appCost_fn, List.nil_append, stackAC.lam0.lam0.costEq P (by includes)]; rfl)
+        (fun x _ ↦ by rw [appCost_fn, List.nil_append, stackAC.lam0.lam0.costEq P]; rfl)
       have c := rangeLoop_cost P (by includes) κ [] (by omega)
       have d := novelInv_cost P (by includes) κ (by omega)
         (limbArr 0 (Array.ofFn fun v : Fin (2 ^ κ) ↦ (VA.getD v #[]).getD u 0))
@@ -551,7 +551,7 @@ theorem stackA_cost (hP : Includes P stackAC.costDeps) (μ : ℕ) (VA : AV) (hμ
     (fun i ↦ by
       rw [appCost_fn]
       simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [stackAC.lam1.costEq P (by includes), limbs_shift (by omega : κ < 64),
+      rw [stackAC.lam1.costEq P, limbs_shift (by omega : κ < 64),
         limbs_of_lt (by omega : κ < 2 ^ 64), limbs_two_pow (by omega : κ < 64),
         limbs_of_lt (by have := i.isLt; omega : (i : ℕ) < 2 ^ 64)]
       simp) 0 (Nat.zero_le _)
@@ -603,7 +603,7 @@ theorem lanesOf_cost (hP : Includes P Auto.LeanVM.Protocol.Whir.Sound.lanesOf.co
         (by includes) a)) 5 row.reverse
       (fun a _ ↦ by
         rw [appCost_fn, List.nil_append,
-          Auto.LeanVM.Protocol.Whir.Sound.lanesOf.lam0.costEq P (by includes)]
+          Auto.LeanVM.Protocol.Whir.Sound.lanesOf.lam0.costEq P]
         rfl)
     rw [List.length_reverse] at h2
     omega
@@ -645,7 +645,7 @@ theorem laneRows_cost (hP : Includes P laneRowsC.costDeps) (n i : ℕ) (lv : Arr
     (fun v ↦ by
       rw [appCost_fn]
       simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [laneRowsC.lam0.costEq P (by includes)]
+      rw [laneRowsC.lam0.costEq P]
       have := laneRow_cost P (by includes) i lv h w v W hlv hw hW hh (by have := v.isLt; omega) hi
       omega) 0 (Nat.zero_le _)
   simp only [Nat.sub_zero] at this
@@ -732,66 +732,66 @@ theorem lvC_small (μ R i : ℕ) : (lvC μ R i).1 + (lvC μ R i).2.1 ≤ 34 := b
 theorem foldTable_cost (hP : Includes P Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable.costDeps) :
     machineCost P Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable.costIdx [] = 19709 := by
   rw [Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable.costEq P hP,
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_1_16.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_1_17.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_1_18.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_1_19.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_1_20.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_1_21.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_1_22.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_1_23.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_1_24.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_1_25.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_1_26.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_1_27.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_1_28.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_1_29.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_1_30.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_2_16.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_2_17.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_2_18.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_2_19.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_2_20.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_2_21.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_2_22.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_2_23.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_2_24.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_2_25.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_2_26.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_2_27.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_2_28.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_2_29.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_2_30.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_3_16.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_3_17.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_3_18.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_3_19.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_3_20.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_3_21.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_3_22.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_3_23.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_3_24.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_3_25.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_3_26.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_3_27.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_3_28.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_3_29.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_3_30.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_4_16.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_4_17.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_4_18.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_4_19.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_4_20.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_4_21.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_4_22.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_4_23.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_4_24.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_4_25.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_4_26.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_4_27.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_4_28.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_4_29.costEq P (by includes),
-    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_4_30.costEq P (by includes)]
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_1_16.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_1_17.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_1_18.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_1_19.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_1_20.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_1_21.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_1_22.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_1_23.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_1_24.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_1_25.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_1_26.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_1_27.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_1_28.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_1_29.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_1_30.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_2_16.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_2_17.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_2_18.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_2_19.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_2_20.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_2_21.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_2_22.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_2_23.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_2_24.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_2_25.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_2_26.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_2_27.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_2_28.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_2_29.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_2_30.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_3_16.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_3_17.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_3_18.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_3_19.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_3_20.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_3_21.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_3_22.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_3_23.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_3_24.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_3_25.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_3_26.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_3_27.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_3_28.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_3_29.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_3_30.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_4_16.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_4_17.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_4_18.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_4_19.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_4_20.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_4_21.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_4_22.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_4_23.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_4_24.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_4_25.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_4_26.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_4_27.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_4_28.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_4_29.costEq P,
+    Auto.LeanVM.Protocol.Whir.AffineCombiner.foldTable_4_30.costEq P]
 
 theorem levelsOf_cost (hP : Includes P Auto.LeanVM.Protocol.Whir.Params.levelsOf.costDeps) (μ R : ℕ)
     (hμ : μ < 2 ^ 60) (hR : R < 2 ^ 60) :
@@ -810,7 +810,7 @@ theorem lvC_cost (hP : Includes P Auto.LeanVM.Protocol.Whir.Sound.lvC.costDeps) 
     machineCost P Auto.LeanVM.Protocol.Whir.Sound.lvC.costIdx [encodeValue μ, encodeValue R,
       encodeValue i] ≤ 15 * (μ + R + i) + 20000 := by
   rw [Auto.LeanVM.Protocol.Whir.Sound.lvC.costEq P hP,
-    Auto.LeanVM.Protocol.Whir.Params.junkLv.costEq P (by includes)]
+    Auto.LeanVM.Protocol.Whir.Params.junkLv.costEq P]
   have h1 := levelsOf_cost P (by includes) μ R hμ hR
   have h2 := getD_cost_idx P (by includes) (Protocol.Whir.Params.levelsOf μ R) i Protocol.Whir.Params.junkLv (by omega)
   have hs := levels_small μ R i

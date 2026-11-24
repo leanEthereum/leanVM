@@ -98,8 +98,8 @@ theorem whirTabs_ok : WhirTabsOK whirTabs := by
 /-- **`open_stacked`'s tables, built** (`whirTabsC`): at most `15454`. -/
 theorem whirTabs_cost (hP : Includes P Decoder.whirTabsC.costDeps) :
     machineCost P Decoder.whirTabsC.costIdx [] ≤ 15454 := by
-  rw [Decoder.whirTabsC.costEq P hP, Decoder.gLanesC.costEq P (by includes),
-    Decoder.osWordsTabC.costEq P (by includes), Decoder.osCallsTabC.costEq P (by includes),
+  rw [Decoder.whirTabsC.costEq P hP, Decoder.gLanesC.costEq P,
+    Decoder.osWordsTabC.costEq P, Decoder.osCallsTabC.costEq P,
     osWordsTab_ok.1, callOK_osCallsTab.1]
 
 /-- A call's shape's price: the table of shapes built, its entry looked up. -/
@@ -111,8 +111,8 @@ theorem oqShapeTab_length : Decoder.oqShapeTab.length = 17 := rfl
 theorem osCallShape_cost (hP : Includes P Decoder.OsCallShapeC.costDeps) (c : OsCall)
     (hc : c.sh < 2 ^ 64) :
     machineCost P Decoder.OsCallShapeC.costIdx [encodeValue c] ≤ shapePrice := by
-  rw [Decoder.OsCallShapeC.costEq P hP, Decoder.oqShapeTabC.costEq P (by includes),
-    Decoder.oqShapeZeroC.costEq P (by includes)]
+  rw [Decoder.OsCallShapeC.costEq P hP, Decoder.oqShapeTabC.costEq P,
+    Decoder.oqShapeZeroC.costEq P]
   have := getD_cost P (by includes) Decoder.oqShapeTab c.sh LeanVM.Guest.B1.Whir.oqShapeZero hc
   rw [oqShapeTab_length] at this
   unfold shapePrice
@@ -272,7 +272,7 @@ theorem oqVal_cost (hP : Includes P Decoder.oqValC.costDeps) (F : ℕ) (hF : F <
   have := oqRK_cost P hs (by includes) F hF (s.folds - 1) (by have := hs.2.1; omega)
   have := oqRK_le hs F (s.folds - 1)
   have := hs.2.1
-  rw [Decoder.oqValC.costEq P hP, Auto.LeanVM.Guest.B1.oqAcc.costEq P (by includes)]
+  rw [Decoder.oqValC.costEq P hP, Auto.LeanVM.Guest.B1.oqAcc.costEq P]
   unfold oqRO
   limbs_one; omega
 
@@ -601,7 +601,7 @@ theorem winPosAt_cost (hP : Includes P Decoder.winPosAtC.costDeps) (logs : List 
     (fun l ↦ RunsApp.of_spec (Decoder.winPosAtC.lam0.costSpec P (by includes) logs d cd l))
     410 d 32 hd (by norm_num) (fun l hl ↦ by
       rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.nil_append,
-        Decoder.winPosAtC.lam0.costEq P (by includes), List.length_cons, List.length_cons,
+        Decoder.winPosAtC.lam0.costEq P, List.length_cons, List.length_cons,
         List.length_cons, List.length_nil]
       have := winBit_cost P (by includes) logs hlogs hv d cd l hd hcd (by omega)
       omega)
@@ -641,7 +641,7 @@ theorem digestOfCells640_cost (hP : Includes P Decoder.digestOfCellsWC.costDeps)
     machineCost P Decoder.digestOfCellsWC.costIdx [encodeValue a, encodeValue b] ≤
       58 := by
   rw [Decoder.digestOfCellsWC.costEq P hP,
-    Extractor.digestOfScalarsC.costEq P (by includes)]
+    Extractor.digestOfScalarsC.costEq P]
   omega
 
 omit hrd hR in

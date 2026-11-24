@@ -241,7 +241,7 @@ theorem getPre_cost (hP : Includes P getPreC.costDeps)
   have hlam : ∀ l ∈ m.levels, appCost P (.closure getPreC.lam0.costIdx [encodeValue k]) [encodeValue l] ≤
       9 + (162 + 9 * W) * (Nat.log2 H + 2) := by
     intro l hl
-    rw [appCost_fn, List.length_singleton, List.singleton_append, getPreC.lam0.costEq P (by includes)]
+    rw [appCost_fn, List.length_singleton, List.singleton_append, getPreC.lam0.costEq P]
     have := searchPre_cost P (by includes) l.entries k H W hW (hm l hl)
       (fun e he ↦ (hQ l hl e he).2) hk.2 0 l.entries.size (by omega) (hm l hl)
     rw [hk.1] at this
@@ -303,7 +303,7 @@ theorem preimageStep_amortized (hP : Includes P preimageIndexC.lam0.costDeps) (D
   refine ⟨?_, ?_⟩
   · obtain ⟨h1, h2⟩ := smGood_insert hg (hitKey p) ((m.getD (hitKey p) .none).merge (.one p.1))
     exact ⟨h1, keysIn_insert hQ hk _, by omega⟩
-  · rw [preimageIndexC.lam0.costEq P hP, insertPreC.costEq P (by includes)]
+  · rw [preimageIndexC.lam0.costEq P hP, insertPreC.costEq P]
     have hkey := hitKey_cost P (by includes) p (by omega)
     have hget := getPre_cost P (by includes) m (2 ^ D) W hW (fun l hl ↦ (hsz l hl).1.trans (hsz l hl).2)
       hQ (hitKey p) hk
@@ -360,7 +360,7 @@ theorem compareBytes_cost (hP : Includes P searchIn.«Bytes, Digest».costDeps) 
   have := compareLex_cost P (by includes) _ (.closure searchBytesC.lam0.costIdx [])
     (fun a b ↦ RunsApp.of_spec (searchBytesC.lam0.costSpec P (by includes) a b)) 9
     (fun a b ↦ by
-      rw [appCost_fn, List.nil_append, List.length_nil, Nat.add_zero, searchBytesC.lam0.costEq P (by includes)]
+      rw [appCost_fn, List.nil_append, List.length_nil, Nat.add_zero, searchBytesC.lam0.costEq P]
       split_ifs <;> omega) a b
   omega
 
@@ -449,7 +449,7 @@ theorem getBytes_cost (hP : Includes P getBytesC.costDeps)
   have hlam : ∀ l ∈ m.levels, appCost P (.closure getBytesC.lam0.costIdx [encodeValue k]) [encodeValue l] ≤
       9 + (40 + 26 * k.length + 9 * W) * (Nat.log2 H + 2) := by
     intro l hl
-    rw [appCost_fn, List.length_singleton, List.singleton_append, getBytesC.lam0.costEq P (by includes)]
+    rw [appCost_fn, List.length_singleton, List.singleton_append, getBytesC.lam0.costEq P]
     have := searchBytes_cost P (by includes) l.entries k H W hW (hm l hl)
       0 l.entries.size (by omega) (hm l hl)
     have := log2_mono (show l.entries.size - 0 ≤ H by have := hm l hl; omega)
@@ -487,7 +487,7 @@ theorem firstAnswersStep_amortized (hP : Includes P firstAnswersC.lam0.costDeps)
       have := Nat.mul_le_mul_right (D + 2)
         (show 40 + 26 * p.1.length + 9 * W ≤ 40 + 26 * L + 9 * W by omega)
       omega)
-  rw [firstAnswersC.lam0.costEq P hP, insertIfNewC.costEq P (by includes)]
+  rw [firstAnswersC.lam0.costEq P hP, insertIfNewC.costEq P]
   unfold firstAnswersStepPrice
   by_cases hc : m.contains p.1 = true
   · simp only [insertIfNew, hc, ↓reduceIte]
@@ -497,7 +497,7 @@ theorem firstAnswersStep_amortized (hP : Includes P firstAnswersC.lam0.costDeps)
   · simp only [insertIfNew, hc, Bool.false_eq_true, ↓reduceIte]
     obtain ⟨h1, h2⟩ := smGood_insert hg p.1 p.2
     refine ⟨⟨h1, keysIn_insert hQ hp p.2, by omega⟩, ?_⟩
-    rw [insertBytesC.costEq P (by includes)]
+    rw [insertBytesC.costEq P]
     have hcarry := carryBytes_amortized P (by includes) L D W hW m hg hQ hN
       ⟨1, #[(p.1, p.2)], by simp [Ascending]⟩ rfl rfl (fun e he ↦ by simp at he; rw [he]; exact hp)
     have hins : (m.insert p.1 p.2).levels = carry ⟨1, #[(p.1, p.2)], by simp [Ascending]⟩ m.levels :=
@@ -631,7 +631,7 @@ theorem getU_cost (hP : Includes P SortedMap.get?.«List UInt64, Unit».costDeps
   have hlam : ∀ l ∈ m.levels, appCost P (.closure SortedMap.get?.«List UInt64, Unit».lam0.costIdx [encodeValue k]) [encodeValue l] ≤
       9 + (40 + 26 * k.length + 9 * W) * (Nat.log2 H + 2) := by
     intro l hl
-    rw [appCost_fn, List.length_singleton, List.singleton_append, SortedMap.get?.«List UInt64, Unit».lam0.costEq P (by includes)]
+    rw [appCost_fn, List.length_singleton, List.singleton_append, SortedMap.get?.«List UInt64, Unit».lam0.costEq P]
     have := searchWordsU_cost P (by includes) l.entries k H W hW (hm l hl)
       0 l.entries.size (by omega) (hm l hl)
     have := log2_mono (show l.entries.size - 0 ≤ H by have := hm l hl; omega)
@@ -727,7 +727,7 @@ theorem getC_cost (hP : Includes P SortedMap.get?.«List UInt64, KeccakState × 
   have hlam : ∀ l ∈ m.levels, appCost P (.closure SortedMap.get?.«List UInt64, KeccakState × Option Bytes».lam0.costIdx [encodeValue k]) [encodeValue l] ≤
       9 + (40 + 26 * k.length + 9 * W) * (Nat.log2 H + 2) := by
     intro l hl
-    rw [appCost_fn, List.length_singleton, List.singleton_append, SortedMap.get?.«List UInt64, KeccakState × Option Bytes».lam0.costEq P (by includes)]
+    rw [appCost_fn, List.length_singleton, List.singleton_append, SortedMap.get?.«List UInt64, KeccakState × Option Bytes».lam0.costEq P]
     have := searchWordsC_cost P (by includes) l.entries k H W hW (hm l hl)
       0 l.entries.size (by omega) (hm l hl)
     have := log2_mono (show l.entries.size - 0 ≤ H by have := hm l hl; omega)

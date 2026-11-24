@@ -112,9 +112,9 @@ meta def includesAuto (g : MVarId) : MetaM Bool := g.withContext do
       catch _ => pure ()
   return false
 
-/-- `includes`: close `Includes P l'` from a hypothesis `Includes P l` whose bodies hold `l'`'s
-(a callee's `costDeps` from its caller's). -/
-elab "includes" : tactic => do
+/-- `includes` (`LeanVM.Cost.Compiler.includesTac`, also the compiled functions' premises'
+`autoParam`). -/
+@[tactic LeanVM.Cost.Compiler.includesTac] meta def evalIncludes : Tactic := fun _ ↦ do
   let g ← getMainGoal
   unless ← includesAuto g do throwError "includes: no hypothesis holds these bodies"
   replaceMainGoal []
@@ -312,7 +312,7 @@ section Library
 variable (P : MachineProgram) {α β γ : Type} [MachineEncoding α] [MachineEncoding β] [MachineEncoding γ]
 
 /-- **`List.zipWith`** (`listZipWith`): `19` per pair and the closure's price, `7` at the end. -/
-theorem listZipWith_le (hP : Includes P listZipWith.costDeps) (f : α → β → γ) (fVal : MachineValue)
+theorem listZipWith_le (hP : Includes P listZipWith.costDeps := by includes) (f : α → β → γ) (fVal : MachineValue)
     (hf : ∀ a b, RunsApp P fVal [encodeValue a, encodeValue b] (encodeValue (f a b))) (B : ℕ) :
     ∀ (xs : List α) (ys : List β), (∀ a ∈ xs, ∀ b ∈ ys, appCost P fVal [encodeValue a, encodeValue b] ≤ B) →
       machineCost P listZipWith.costIdx [fVal, encodeValue xs, encodeValue ys] ≤
@@ -334,7 +334,7 @@ theorem listZipWith_le (hP : Includes P listZipWith.costDeps) (f : α → β →
 
 /-- **`List.foldl`** (`listFoldl`): `11` per element and the closure's price, `3` at the end; the
 closure's price bounded on the accumulators an invariant `I` holds. -/
-theorem listFoldl_le (hP : Includes P listFoldl.costDeps) (f : α → β → α) (fVal : MachineValue)
+theorem listFoldl_le (hP : Includes P listFoldl.costDeps := by includes) (f : α → β → α) (fVal : MachineValue)
     (hf : ∀ a b, RunsApp P fVal [encodeValue a, encodeValue b] (encodeValue (f a b))) (B : ℕ) (I : α → Prop) :
     ∀ (l : List β) (init : α), I init →
       (∀ acc, I acc → ∀ b ∈ l, I (f acc b) ∧ appCost P fVal [encodeValue acc, encodeValue b] ≤ B) →
@@ -372,7 +372,7 @@ theorem listMap_le (i : ℕ) {α : Type} [MachineEncoding α] (fVal : MachineVal
 
 /-- **`List.foldl`, an invariant indexed by the elements left** (an accumulator growing along
 the fold): `I k acc` with `k` elements left. -/
-theorem listFoldl_le_idx (hP : Includes P listFoldl.costDeps) (f : α → β → α) (fVal : MachineValue)
+theorem listFoldl_le_idx (hP : Includes P listFoldl.costDeps := by includes) (f : α → β → α) (fVal : MachineValue)
     (hf : ∀ a b, RunsApp P fVal [encodeValue a, encodeValue b] (encodeValue (f a b))) (B : ℕ) (I : ℕ → α → Prop)
     (L : List β)
     (hI : ∀ k acc, I (k + 1) acc → ∀ b ∈ L, I k (f acc b) ∧ appCost P fVal [encodeValue acc, encodeValue b] ≤ B) :

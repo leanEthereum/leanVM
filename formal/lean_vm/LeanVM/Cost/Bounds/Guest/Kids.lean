@@ -51,7 +51,7 @@ theorem markPair_cost (D : DiscreteLogTables) (hP : Includes P markPairC.costDep
     (hG : GLogBound P D G) (cover : E) (lo s : ℕ) (h : lo + s < 2 ^ 40) :
     machineCost P markPairC.costIdx [encodeValue D, rdV, encodeValue cover, encodeValue lo,
       encodeValue s] ≤ G + R + 2984 := by
-  rw [markPairC.costEq P hP D rd rdV hrd, markPairOfC.costEq P (by includes)]
+  rw [markPairC.costEq P hP D rd rdV hrd, markPairOfC.costEq P]
   have := cellAt_cost P hrd hR (by includes) cover (lo + s) h
   have := hG (cellAt rd cover (lo + s))
   limbs_one

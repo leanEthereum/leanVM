@@ -62,7 +62,7 @@ theorem subspacePoly_cost (hP : Includes P Auto.LeanVM.Extraction.subspacePoly.c
       (by includes) x a)) 6
     (fun a ha ↦ by
       rw [appCost_fn, List.singleton_append,
-        Auto.LeanVM.Extraction.subspacePoly.lam0.costEq P (by includes), limbs_of_lt ha]
+        Auto.LeanVM.Extraction.subspacePoly.lam0.costEq P, limbs_of_lt ha]
       rfl)
     (2 ^ j) (Nat.pow_lt_pow_right (by norm_num) hj)
   omega
@@ -103,7 +103,7 @@ theorem novelTwiddles_cost (hP : Includes P Auto.LeanVM.Extraction.novelTwiddles
         have h4 : (a : ℕ) * 2 ^ (i + 1) < 2 ^ (m - (i + 1)) * 2 ^ (i + 1) :=
           Nat.mul_lt_mul_of_pos_right a.isLt (by positivity)
         omega
-      rw [Auto.LeanVM.Extraction.novelTwiddles.lam0.costEq P (by includes), limbs_of_lt hw2,
+      rw [Auto.LeanVM.Extraction.novelTwiddles.lam0.costEq P, limbs_of_lt hw2,
         limbs_of_lt (by omega : i < 2 ^ 64), limbs_shift (by omega : i + 1 < 64),
         limbs_of_lt (by omega : i + 1 < 2 ^ 64), limbs_two_pow (by omega : i + 1 < 64),
         limbs_of_lt (by have := a.isLt; omega : (a : ℕ) < 2 ^ 64)]
@@ -144,7 +144,7 @@ theorem novelInvStage_cost (hP : Includes P Auto.LeanVM.Extraction.novelInvStage
         have : 2 ^ m ≤ 2 ^ 62 := Nat.pow_le_pow_right (by norm_num) hm
         have : 2 ^ i ≤ 2 ^ 62 := Nat.pow_le_pow_right (by norm_num) (by omega)
         omega
-      rw [Auto.LeanVM.Extraction.novelInvStage.lam0.costEq P (by includes), limbs_of_lt hpi,
+      rw [Auto.LeanVM.Extraction.novelInvStage.lam0.costEq P, limbs_of_lt hpi,
         limbs_of_lt (by omega : i < 2 ^ 64), limbs_shift (by omega : i + 1 < 64),
         limbs_of_lt (by omega : i + 1 < 2 ^ 64), limbs_two_pow (by omega : i + 1 < 64),
         limbs_of_lt ha, limbs_shift (by omega : i < 64), limbs_two_pow (by omega : i < 64)]
@@ -165,7 +165,7 @@ theorem novelInv_cost (hP : Includes P novelInvC.costDeps) (κ : ℕ) (hκ : κ 
     (174 * 2 ^ κ + 2895) (fun _ ↦ True) (List.range κ) y trivial
     (fun acc _ i hi ↦ ⟨trivial, by
       simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [novelInvC.lam0.costEq P (by includes)]
+      rw [novelInvC.lam0.costEq P]
       have := novelInvStage_cost P (by includes) κ i (List.mem_range.1 hi) hκ acc
       omega⟩)
   rw [List.length_range] at this

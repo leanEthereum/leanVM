@@ -95,13 +95,13 @@ theorem padBlock_cost (hP : Includes P Auto.LeanVM.Protocol.KeccakHash.padBlock.
       (by includes) a)) 17
     (fun a ↦ by
       rw [appCost_fn, List.nil_append,
-        Auto.LeanVM.Protocol.KeccakHash.padBlock.lam1.costEq P (by includes), List.length_nil]
+        Auto.LeanVM.Protocol.KeccakHash.padBlock.lam1.costEq P, List.length_nil]
       have := hmh _ (.closure Auto.LeanVM.Protocol.KeccakHash.padBlock.lam1.lam0.costIdx [])
         (fun a ↦ RunsApp.of_spec (Auto.LeanVM.Protocol.KeccakHash.padBlock.lam1.lam0.costSpec P
           (by includes) a))
         (fun a ↦ by
           rw [appCost_fn, List.nil_append,
-            Auto.LeanVM.Protocol.KeccakHash.padBlock.lam1.lam0.costEq P (by includes),
+            Auto.LeanVM.Protocol.KeccakHash.padBlock.lam1.lam0.costEq P,
             List.length_nil]) a
       omega) rest.length (rest ++ List.replicate (rate - rest.length) 0) (by omega)
   have h2 := modifyTailIdx340_cost P (by includes) _
@@ -110,13 +110,13 @@ theorem padBlock_cost (hP : Includes P Auto.LeanVM.Protocol.KeccakHash.padBlock.
       (by includes) a)) 17
     (fun a ↦ by
       rw [appCost_fn, List.nil_append,
-        Auto.LeanVM.Protocol.KeccakHash.padBlock.lam0.costEq P (by includes), List.length_nil]
+        Auto.LeanVM.Protocol.KeccakHash.padBlock.lam0.costEq P, List.length_nil]
       have := hmh _ (.closure Auto.LeanVM.Protocol.KeccakHash.padBlock.lam0.lam0.costIdx [])
         (fun a ↦ RunsApp.of_spec (Auto.LeanVM.Protocol.KeccakHash.padBlock.lam0.lam0.costSpec P
           (by includes) a))
         (fun a ↦ by
           rw [appCost_fn, List.nil_append,
-            Auto.LeanVM.Protocol.KeccakHash.padBlock.lam0.lam0.costEq P (by includes),
+            Auto.LeanVM.Protocol.KeccakHash.padBlock.lam0.lam0.costEq P,
             List.length_nil]) a
       omega) (rate - 1)
     ((rest ++ List.replicate (rate - rest.length) 0).modify rest.length fun x ↦ x ^^^ padFirst)
@@ -216,7 +216,7 @@ theorem wordBytes_cost (hP : Includes P Auto.LeanVM.Protocol.KeccakHash.wordByte
     (fun a ↦ RunsApp.of_spec (Auto.LeanVM.Protocol.KeccakHash.wordBytes.lam0.costSpec P
       (by includes) w a)) 12 (List.range 8) (fun k hk ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [Auto.LeanVM.Protocol.KeccakHash.wordBytes.lam0.costEq P (by includes),
+      rw [Auto.LeanVM.Protocol.KeccakHash.wordBytes.lam0.costEq P,
         limbs_of_lt (by have := List.mem_range.1 hk; omega : k < 2 ^ 64),
         limbs_of_lt (by have := List.mem_range.1 hk; omega : 8 * k < 2 ^ 64)]
       rfl)
@@ -232,7 +232,7 @@ theorem blockBytes_cost (hP : Includes P Auto.LeanVM.Extraction.Fast.blockBytes.
     (fun a ↦ RunsApp.of_spec (Auto.LeanVM.Extraction.Fast.blockBytes.lam0.costSpec P (by includes) s x a)) 347
     (List.range 17) (fun k _ ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [Auto.LeanVM.Extraction.Fast.blockBytes.lam0.costEq P (by includes)]
+      rw [Auto.LeanVM.Extraction.Fast.blockBytes.lam0.costEq P]
       have := wordBytes_cost P (by includes) (Semantics.Keccak.lane s k ^^^ Semantics.Keccak.lane x k)
       omega)
   have h3 := flatten_map_cost P (by includes) 8
@@ -351,7 +351,7 @@ theorem replayStep_amortized (hP : Includes P replayStepC.costDeps) (B D W : ℕ
           (26 * 25 + 37) * potential D (m.insert k ()).levels ≤
         (26 * 25 + 37) * potential D m.levels + (26 * 25 + 37) * D + (32 + 2 * W) * D + 52 + 2 * W := by
     intro m hm hk hN hl k hkl
-    rw [Auto.LeanVM.Extraction.Fast.SortedMap.insert.«List UInt64, Unit».costEq P (by includes)]
+    rw [Auto.LeanVM.Extraction.Fast.SortedMap.insert.«List UInt64, Unit».costEq P]
     have hc1 := Nat.mul_le_mul_left (32 + 2 * W) (show m.levels.length + 1 ≤ D + 1 by omega)
     have hc2 : (32 + 2 * W) * (D + 1) = (32 + 2 * W) * D + 32 + 2 * W := by ring
     have := carryU_amortized P (by includes) 25 D W hW m hm hk hN
@@ -365,7 +365,7 @@ theorem replayStep_amortized (hP : Includes P replayStepC.costDeps) (B D W : ℕ
           [encodeValue τ.caps, encodeValue k, encodeValue v] + (26 * 8 + 37) * potential D (τ.caps.insert k v).levels ≤
         (26 * 8 + 37) * potential D τ.caps.levels + (26 * 8 + 37) * D + (32 + 2 * W) * D + 52 + 2 * W := by
     intro k hkl v
-    rw [Auto.LeanVM.Extraction.Fast.SortedMap.insert.«List UInt64, KeccakState × Option Bytes».costEq P (by includes)]
+    rw [Auto.LeanVM.Extraction.Fast.SortedMap.insert.«List UInt64, KeccakState × Option Bytes».costEq P]
     have hc1 := Nat.mul_le_mul_left (32 + 2 * W) (show τ.caps.levels.length + 1 ≤ D + 1 by omega)
     have hc2 : (32 + 2 * W) * (D + 1) = (32 + 2 * W) * D + 32 + 2 * W := by ring
     have := carryC_amortized P (by includes) 8 D W hW τ.caps g3 k3 (by omega)
@@ -445,7 +445,7 @@ theorem replayStep_amortized (hP : Includes P replayStepC.costDeps) (B D W : ℕ
                 (fun bs ↦ cut B (bs ++ blockBytes s x)) (.closure replayStepC.lam0.costIdx [encodeValue s, encodeValue x, encodeValue B])
                 (fun bs ↦ RunsApp.of_spec (replayStepC.lam0.costSpec P (by includes) s x B bs))]
               simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-              rw [replayStepC.lam0.costEq P (by includes)]
+              rw [replayStepC.lam0.costEq P]
               have := blockBytes_cost P (by includes) s x
               have := append_cost P (by includes) bs (blockBytes s x)
               have := cut_cost P (by includes) B (by omega) (bs ++ blockBytes s x)
@@ -485,10 +485,10 @@ theorem keccakUnpaddedFast_length {bs m : List UInt8} (h : keccakUnpaddedFast bs
 theorem replayInit_cost (hP : Includes P Auto.LeanVM.Extraction.Fast.ReplayFast.init.costDeps) :
     machineCost P Auto.LeanVM.Extraction.Fast.ReplayFast.init.costIdx [] ≤ 423 := by
   rw [Auto.LeanVM.Extraction.Fast.ReplayFast.init.costEq P hP,
-    Auto.LeanVM.Extraction.Fast.SortedMap.insert.«List UInt64, KeccakState × Option Bytes».costEq P (by includes)]
+    Auto.LeanVM.Extraction.Fast.SortedMap.insert.«List UInt64, KeccakState × Option Bytes».costEq P]
   have h1 := drop_cost P (by includes) 17 (Vector.replicate 25 (0 : UInt64)).toList (by norm_num)
   simp only [SortedMap.empty, Vector.size_toArray]
-  rw [Auto.LeanVM.Extraction.Fast.carry.«List UInt64, KeccakState × Option Bytes».costEq_nil P (by includes)]
+  rw [Auto.LeanVM.Extraction.Fast.carry.«List UInt64, KeccakState × Option Bytes».costEq_nil P]
   omega
 
 theorem replayInv_init (B D N : ℕ) (hN : N + 1 ≤ 2 ^ D) : ReplayInv B D ReplayFast.init N := by
@@ -542,7 +542,7 @@ theorem keccakEvaluations_cost (hP : Includes P keccakEvaluationsC.costDeps) (D 
       have h := replayStep_amortized P (by includes) (L + 136) D W hW (by omega) τ r hτ q
       refine ⟨h.1, ?_⟩
       simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [keccakEvaluationsC.lam1.costEq P (by includes), hrate]
+      rw [keccakEvaluationsC.lam1.costEq P, hrate]
       omega)
   rw [replayPot_init] at hfold
   have hinv := replayInv_foldl P (by includes) (L + 136) D W hW (by omega) T ReplayFast.init
@@ -553,7 +553,7 @@ theorem keccakEvaluations_cost (hP : Includes P keccakEvaluationsC.costDeps) (D 
     (120 * (L + 136) + 9347) _ (fun p hp ↦ by
       have hp' : PathOk (L + 136) p := hinv.2.2.2.2.2.2.2.1 p (by rw [← hrate]; exact hp)
       simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [keccakEvaluationsC.lam0.costEq P (by includes)]
+      rw [keccakEvaluationsC.lam0.costEq P]
       obtain ⟨st, obs⟩ := p
       cases obs with
       | none =>
@@ -567,7 +567,7 @@ theorem keccakEvaluations_cost (hP : Includes P keccakEvaluationsC.costDeps) (D 
           (.closure keccakEvaluationsC.lam0.lam0.costIdx [encodeValue L, encodeValue (st, some bs)])
           (fun bs ↦ RunsApp.of_spec (keccakEvaluationsC.lam0.lam0.costSpec P (by includes) L _ bs))]
         simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-        rw [keccakEvaluationsC.lam0.lam0.costEq P (by includes)]
+        rw [keccakEvaluationsC.lam0.lam0.costEq P]
         have hku := keccakUnpadded_cost P (by includes) bs (by omega)
         have hmb : ∀ m, keccakUnpaddedFast bs = some m → m.length ≤ bs.length :=
           fun m h ↦ keccakUnpaddedFast_length h
@@ -586,7 +586,7 @@ theorem keccakEvaluations_cost (hP : Includes P keccakEvaluationsC.costDeps) (D 
             (fun m ↦ RunsApp.of_spec (keccakEvaluationsC.lam0.lam0.lam0.costSpec P (by includes)
               L _ m))]
           simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-          rw [keccakEvaluationsC.lam0.lam0.lam0.costEq P (by includes),
+          rw [keccakEvaluationsC.lam0.lam0.lam0.costEq P,
             limbs_of_lt (by omega : m.length < 2 ^ 64), limbs_of_lt (by omega : L < 2 ^ 64)]
           have := length_cost P (by includes) m (by omega)
           simp only [max_self]
@@ -650,7 +650,7 @@ theorem transcriptIndex_cost (hP : Includes P transcriptIndexC.costDeps) (D L W 
   have hFA := firstAnswers_cost P (by includes) L D W hW Ev (by omega) hmem
   have hmap := map_cost P (by includes) _ (.closure transcriptIndexC.lam1.costIdx [])
     (fun a ↦ RunsApp.of_spec (transcriptIndexC.lam1.costSpec P (by includes) a)) 2 Ev
-    (fun a _ ↦ by rw [appCost_fn, List.nil_append, transcriptIndexC.lam1.costEq P (by includes),
+    (fun a _ ↦ by rw [appCost_fn, List.nil_append, transcriptIndexC.lam1.costEq P,
       List.length_nil])
   -- the first answers' map
   have hinv : BytesInv L D (firstAnswers Ev) 1 := bytesInv_firstAnswers P (by includes) L D W hW 1 Ev
@@ -683,7 +683,7 @@ theorem transcriptIndex_cost (hP : Includes P transcriptIndexC.costDeps) (D L W 
         rw [answerPairsC.lam0.costEq P (by includes) (firstAnswers Ev).get? _
           (fun a ↦ RunsApp.of_spec (transcriptIndexC.lam0.costSpec P (by includes) _ _ a)),
           appCost_fn, List.cons_append, List.cons_append, List.nil_append,
-          transcriptIndexC.lam0.costEq P (by includes)]
+          transcriptIndexC.lam0.costEq P]
         simp only [List.length_cons, List.length_nil]
         have := hget e.1 (hmem e he)
         generalize (firstAnswers Ev).get? e.1 = o
@@ -697,7 +697,7 @@ theorem transcriptIndex_cost (hP : Includes P transcriptIndexC.costDeps) (D L W 
           rw [Auto.Option.map.costEq_some P (by includes) _
             (.closure answerPairsC.lam0.lam0.costIdx [encodeValue e.1])
             (fun a ↦ RunsApp.of_spec (answerPairsC.lam0.lam0.costSpec P (by includes) e.1 a)),
-            appCost_fn, List.cons_append, List.nil_append, answerPairsC.lam0.lam0.costEq P (by includes)]
+            appCost_fn, List.cons_append, List.nil_append, answerPairsC.lam0.lam0.costEq P]
           simp only [List.length_cons, List.length_nil]
           omega)
     rw [List.length_map] at this

@@ -74,7 +74,7 @@ theorem keyLeLam_cost (hP : Includes P entryArrayTC.lam0.costDeps) (a b : CallKe
     appCost P (.closure entryArrayTC.lam0.costIdx []) [encodeValue a, encodeValue b] ≤
       64 * 66 + 57 := by
   rw [appCost_fn, List.nil_append, List.length_nil, Nat.add_zero, entryArrayTC.lam0.costEq P hP,
-    keyLeC.costEq P (by includes)]
+    keyLeC.costEq P]
   have := keyCmp_cost P (by includes) a.1 b.1 ha.1 hb.1
   have hk := keyCmpPrice_le hb
   generalize keyCmp a.1 b.1 = o
