@@ -1,7 +1,8 @@
 /-
   LeanVM.Guest.B1.Place.ArmOkB
 
-  `armExactOk` and `armMuteOk` of `open_stacked`'s arms 6 to 10, by the kernel.
+  `armExactOk` and `armMuteOk` of `open_stacked`'s arms 6 to 10, by the kernel, an arm's two in one evaluation
+  of its body and callees.
 -/
 
 module
@@ -15,34 +16,29 @@ open LeanVM.Guest.Core LeanVM.Guest.B1.Whir
 
 @[expose] public section
 
-theorem armExact6 : armExactOk ("open_stacked__L" ++ natStr 6) idx% «open_stacked__L6» = true := by
+theorem armOk6 :
+    armExactOk ("open_stacked__L" ++ natStr 6) idx% «open_stacked__L6» = true ∧
+      armMuteOk ("open_stacked__L" ++ natStr 6) idx% «open_stacked__L6» = true := by
   decide +kernel
 
-theorem armMute6 : armMuteOk ("open_stacked__L" ++ natStr 6) idx% «open_stacked__L6» = true := by
+theorem armOk7 :
+    armExactOk ("open_stacked__L" ++ natStr 7) idx% «open_stacked__L7» = true ∧
+      armMuteOk ("open_stacked__L" ++ natStr 7) idx% «open_stacked__L7» = true := by
   decide +kernel
 
-theorem armExact7 : armExactOk ("open_stacked__L" ++ natStr 7) idx% «open_stacked__L7» = true := by
+theorem armOk8 :
+    armExactOk ("open_stacked__L" ++ natStr 8) idx% «open_stacked__L8» = true ∧
+      armMuteOk ("open_stacked__L" ++ natStr 8) idx% «open_stacked__L8» = true := by
   decide +kernel
 
-theorem armMute7 : armMuteOk ("open_stacked__L" ++ natStr 7) idx% «open_stacked__L7» = true := by
+theorem armOk9 :
+    armExactOk ("open_stacked__L" ++ natStr 9) idx% «open_stacked__L9» = true ∧
+      armMuteOk ("open_stacked__L" ++ natStr 9) idx% «open_stacked__L9» = true := by
   decide +kernel
 
-theorem armExact8 : armExactOk ("open_stacked__L" ++ natStr 8) idx% «open_stacked__L8» = true := by
-  decide +kernel
-
-theorem armMute8 : armMuteOk ("open_stacked__L" ++ natStr 8) idx% «open_stacked__L8» = true := by
-  decide +kernel
-
-theorem armExact9 : armExactOk ("open_stacked__L" ++ natStr 9) idx% «open_stacked__L9» = true := by
-  decide +kernel
-
-theorem armMute9 : armMuteOk ("open_stacked__L" ++ natStr 9) idx% «open_stacked__L9» = true := by
-  decide +kernel
-
-theorem armExact10 : armExactOk ("open_stacked__L" ++ natStr 10) idx% «open_stacked__L10» = true := by
-  decide +kernel
-
-theorem armMute10 : armMuteOk ("open_stacked__L" ++ natStr 10) idx% «open_stacked__L10» = true := by
+theorem armOk10 :
+    armExactOk ("open_stacked__L" ++ natStr 10) idx% «open_stacked__L10» = true ∧
+      armMuteOk ("open_stacked__L" ++ natStr 10) idx% «open_stacked__L10» = true := by
   decide +kernel
 
 end

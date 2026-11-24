@@ -37,17 +37,17 @@ theorem nwRootsOk : NwRootsOk := nwRootsOk_of armFreeM0 armFreeM1 armFreeM2 armF
 theorem armMute_all {m : ℕ} (hm : m < 11) :
     ∃ fn, coreProgram.find? ("open_stacked__L" ++ natStr m) = some fn ∧ Stmt.muteList armS fn.body = true := by
   interval_cases m
-  · exact armMute_find nwRootsOk armMute0
-  · exact armMute_find nwRootsOk armMute1
-  · exact armMute_find nwRootsOk armMute2
-  · exact armMute_find nwRootsOk armMute3
-  · exact armMute_find nwRootsOk armMute4
-  · exact armMute_find nwRootsOk armMute5
-  · exact armMute_find nwRootsOk armMute6
-  · exact armMute_find nwRootsOk armMute7
-  · exact armMute_find nwRootsOk armMute8
-  · exact armMute_find nwRootsOk armMute9
-  · exact armMute_find nwRootsOk armMute10
+  · exact armMute_find nwRootsOk armOk0.2
+  · exact armMute_find nwRootsOk armOk1.2
+  · exact armMute_find nwRootsOk armOk2.2
+  · exact armMute_find nwRootsOk armOk3.2
+  · exact armMute_find nwRootsOk armOk4.2
+  · exact armMute_find nwRootsOk armOk5.2
+  · exact armMute_find nwRootsOk armOk6.2
+  · exact armMute_find nwRootsOk armOk7.2
+  · exact armMute_find nwRootsOk armOk8.2
+  · exact armMute_find nwRootsOk armOk9.2
+  · exact armMute_find nwRootsOk armOk10.2
 
 theorem lq_not_named : lqTable.all (fun e ↦ (osKindOf e.1).isNone) = true := by decide +kernel
 

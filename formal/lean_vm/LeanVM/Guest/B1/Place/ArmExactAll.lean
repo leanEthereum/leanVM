@@ -45,17 +45,17 @@ theorem armExact_all {μ : ℕ} (hm : μ - minOpenLog < 11) : ∃ j, armExactOk 
   rw [openName_eq hm]
   generalize μ - minOpenLog = m at hm
   interval_cases m
-  · exact ⟨_, armExact0⟩
-  · exact ⟨_, armExact1⟩
-  · exact ⟨_, armExact2⟩
-  · exact ⟨_, armExact3⟩
-  · exact ⟨_, armExact4⟩
-  · exact ⟨_, armExact5⟩
-  · exact ⟨_, armExact6⟩
-  · exact ⟨_, armExact7⟩
-  · exact ⟨_, armExact8⟩
-  · exact ⟨_, armExact9⟩
-  · exact ⟨_, armExact10⟩
+  · exact ⟨_, armOk0.1⟩
+  · exact ⟨_, armOk1.1⟩
+  · exact ⟨_, armOk2.1⟩
+  · exact ⟨_, armOk3.1⟩
+  · exact ⟨_, armOk4.1⟩
+  · exact ⟨_, armOk5.1⟩
+  · exact ⟨_, armOk6.1⟩
+  · exact ⟨_, armOk7.1⟩
+  · exact ⟨_, armOk8.1⟩
+  · exact ⟨_, armOk9.1⟩
+  · exact ⟨_, armOk10.1⟩
 
 /-- **A valid arm node of `FlatNodeT` is exact at every node** when its window hints are exact at the valuations
 `Q` admits, its predicates cover its calls and each entered `armExactS` callee's predicate gives `Every` exact on its
