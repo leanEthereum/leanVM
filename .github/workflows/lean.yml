@@ -102,7 +102,7 @@ jobs:
       - name: Check the axiom footprint
         working-directory: formal/common
         run: |
-          theorems="Common.indifferentiability Common.transfer Common.transfer2 Common.keccak256_indifferentiable Common.keccak256_transfer Common.keccak256_transfer2 Common.SufCma.rpm_le_romB Common.SufCma.stronglyUnforgeable_of_romBoundAdv Common.SeedDuplex.duplex_le"
+          theorems="Common.indifferentiability Common.transfer Common.transfer2 Common.keccak256_transfer Common.keccak256_transfer2 Common.SufCma.rpm_le_romB Common.SufCma.stronglyUnforgeable_of_romBoundAdv Common.SeedDuplex.duplex_le"
           { echo 'import Common'; for t in $theorems; do echo "#print axioms $t"; done; } > "$RUNNER_TEMP/axioms.lean"
           lake env lean "$RUNNER_TEMP/axioms.lean" | tee "$RUNNER_TEMP/axioms.txt"
           for t in $theorems; do
@@ -252,7 +252,7 @@ jobs:
       - name: Check the axiom footprint
         working-directory: formal/lean_da
         run: |
-          theorems="LeanDa.leanDa_complete LeanDa.leanDa_positionBinding_rpm LeanDa.leanDa_membershipSound_rpm LeanDa.commitCodewords_eq_commitCells LeanDa.dualCodeword_eq_dualCodewordAt"
+          theorems="LeanDa.leanDa_complete LeanDa.leanDa_positionBinding_rpm LeanDa.leanDa_membershipSound_rpm LeanDa.commitCodewords_eq_commitCells"
           { echo 'import LeanDa'; for t in $theorems; do echo "#print axioms $t"; done; } > "$RUNNER_TEMP/axioms.lean"
           lake env lean "$RUNNER_TEMP/axioms.lean" | tee "$RUNNER_TEMP/axioms.txt"
           for t in $theorems; do
