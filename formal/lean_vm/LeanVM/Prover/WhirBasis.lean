@@ -107,11 +107,6 @@ theorem eqEval_selector {μ v y : ℕ} (hv : v ≤ μ) (hy : y < 2 ^ μ) (index 
   · simp [h]
   · simp [h, Ne.symm h]
 
-/-- Entry `j` of the equality kernel is `eq(point, j)`. -/
-theorem eqKernel_getD_eqAt (point : List E) {j : ℕ} (hj : j < 2 ^ point.length) :
-    (eqKernel point).getD j 0 = eqAt point j := by
-  rw [eqKernel_getD, ite_eq_left hj]
-
 /-- The block condition and the offset in the block. -/
 theorem block_ite {μ v y : ℕ} (index : ℕ) (a : ℕ → E) :
     (if y / 2 ^ v = index / 2 ^ v % 2 ^ (μ - v) then a (y % 2 ^ v) else 0) =
@@ -144,7 +139,8 @@ theorem onStack_boolPoint {layout : Layout} {c : ColumnClaim} {μ y : ℕ}
   simp only [ColumnClaim.stackClaim, Placement.stackPoint_eq_drop, ← hpl, hμ,
     Front.selectorPoint_eq_boolPoint, Front.drop_boolPoint]
   rw [boolPoint_split hv y, eqEval_append _ _ _ _ (by rw [hlen, length_boolPoint]),
-    eqEval_selector hv hy, eqKernel_getD_eqAt _ (by rw [hlen]; exact Nat.mod_lt _ (by positivity)),
+    eqEval_selector hv hy, eqKernel_getD, ite_eq_left (show y % 2 ^ pl.variableCount <
+      2 ^ c.point.length by rw [hlen]; exact Nat.mod_lt _ (by positivity)),
     ← eqEval_boolPoint_eqAt, hlen]
   split <;> simp
 
@@ -192,7 +188,8 @@ theorem ringWeight_boolPoint {point f g : List E} {v : ℕ} (hlen : point.length
     (hf : f.length = 8) (hg : g.length = 8) {j : ℕ} (hj : j < 2 ^ v) :
     ringWeight point (boolPoint v j) (ringCoefficients f g) =
       ringPhi f g ((eqKernel point).getD j 0) := by
-  rw [Front.ringWeight_eq_sum, ringPhi_eq_sum hf hg, eqKernel_getD_eqAt _ (by rw [hlen]; exact hj)]
+  rw [Front.ringWeight_eq_sum, ringPhi_eq_sum hf hg, eqKernel_getD,
+    ite_eq_left (show j < 2 ^ point.length by rw [hlen]; exact hj)]
   refine sum_congr rfl fun k _ ↦ ?_
   rw [Front.eqAt_frob, ← eqEval_boolPoint_eqAt, List.length_map, hlen]
 
