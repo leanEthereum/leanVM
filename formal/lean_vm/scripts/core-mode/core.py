@@ -187,6 +187,104 @@ def cheap_res(k, r):
     return (N is not None and N <= n) or any(y == x and a <= n for y, a in callc.top_sels(body))
 
 
+def parse_res(t):
+    """A residual's Lean text (`emitc.lres`) as the mirrors' tuple."""
+    toks = re.findall(r'\.\w+|\d+|[()\[\]⟨⟩,]', t)
+    pos = [0]
+
+    def peek():
+        return toks[pos[0]]
+
+    def take(x=None):
+        tok = toks[pos[0]]
+        assert x is None or tok == x, (t, tok, x)
+        pos[0] += 1
+        return tok
+
+    def seq(item, close):
+        out = []
+        while peek() != close:
+            out.append(item())
+            if peek() == ',':
+                take(',')
+        take(close)
+        return out
+
+    def num():
+        return int(take())
+
+    def cell():
+        take('⟨'); take('[')
+        bs = seq(lambda: (take('('), num(), take(','), num(), take(')'))[1::2], ']')
+        take(',')
+        off = num()
+        take('⟩')
+        return tuple(tuple(b) for b in bs), off
+
+    def idx():
+        take('(')
+        kind = take()[1:]
+        v = cell() if kind == 'mono' else num()
+        take(')')
+        return kind, v
+
+    def run():
+        take('⟨')
+        c = cell(); take(',')
+        s = num(); take(',')
+        lo = idx(); take(',')
+        hi = idx()
+        take('⟩')
+        return c, s, lo, hi
+
+    def cond():
+        kind = take()[1:]
+        args = []
+        while peek().isdigit():
+            args.append(num())
+        return (kind, *args)
+
+    def res():
+        kind = take()[1:]
+        if kind == 'under':
+            take('[')
+            cs = seq(cond, ']')
+            take('(')
+            r = res()
+            take(')')
+            return 'under', cs, r
+        if kind == 'lt':
+            return 'lt', idx(), idx()
+        if kind == 'sub':
+            return 'sub', cell(), run()
+        if kind == 'subP':
+            c = cell()
+            take('[')
+            return 'subP', c, seq(cell, ']')
+        return 'subR', run(), run()
+    r = res()
+    assert pos[0] == len(toks), t
+    return r
+
+
+def res_hint(k, t):
+    """The disjunct of `resFamG` the mirrors find to hold of the residual text `t` (`CoreMode.resFamHint`): `3` `rcPts`,
+    `4` `rcTab`, `5` the function's own family; `0`, `resFamG`'s order, for one `cheapT` or `resFam` takes (its first
+    disjunct) or none the mirrors see."""
+    import callcres
+    import fnrules
+    if cheap_res(k, t):
+        return 0
+    r = parse_res(t)
+    if not all(v < callcres.I.GB for v in callcres.vals(r)) or callcres.res_fam(k, r, {'preR': [], 'preP': []}):
+        return 0
+    if callcres.rc_pts(k, r):
+        return 3
+    if callcres.rc_tab(k, r):
+        return 4
+    return 5 if fnrules.some('fam', k, r) else 0
+
+
 def res_cuts(k, items):
     """The slices' ends: each of weight at most `RES_B`, a cheap residual `1 / RES_CHEAP` (`cheap_res`), any other `1`."""
     cuts, acc = [], 0
@@ -644,12 +742,21 @@ def route_leaf(d):
     return d.count('\n') == 1 and not re.search(r'\b(?:res|hon)\d+_\w', d.split(' : ', 1)[1])
 
 
-def slices(name, part, stmt, p, l, n, b, unfold=None, cuts=None, wrap=None):
+def slices(name, part, stmt, p, l, n, b, unfold=None, cuts=None, wrap=None, hints=None):
     """Theorem `name : stmt`, `stmt` being `l.all p = true` (after unfolding `unfold`; `wrap` of it if given, `p` then
     the predicate `wrap` reads) for a list `l` of `n` entries, from its slices of `b` entries, or ending at `cuts`
-    (`part<c>`, `CoreMode.sliceAll`), each its own kernel evaluation."""
+    (`part<c>`, `CoreMode.sliceAll`), each its own kernel evaluation. With `hints = (q, sound, hs)`, a slice with a
+    nonzero hint in `hs` (one an entry) is checked by `q` at its hints (`CoreMode.sliceAll_of_H`)."""
     cuts = [0] + (cuts or (list(range(b, n, b)) + [n]))
-    out = ''.join(f'theorem {part}{c} : CoreMode.sliceAll {p} {l} {cuts[c]} {cuts[c + 1]} = true := by decide +kernel\n'
+
+    def proof(c):
+        hs = hints and hints[2][cuts[c]:cuts[c + 1]]
+        if not hs or not any(hs):
+            return 'by decide +kernel'
+        while not hs[-1]:
+            hs = hs[:-1]
+        return f'CoreMode.sliceAll_of_H {hints[1]} (q := {hints[0]}) (hs := [{", ".join(map(str, hs))}]) (by decide +kernel)'
+    out = ''.join(f'theorem {part}{c} : CoreMode.sliceAll {p} {l} {cuts[c]} {cuts[c + 1]} = true := {proof(c)}\n'
                   for c in range(len(cuts) - 1))
     prf = 'CoreMode.all_drop_of_le (by decide +kernel)'
     for c in reversed(range(len(cuts) - 1)):
@@ -817,10 +924,12 @@ def main(check=False):
                 fk = f'Fn.«{k}»'
                 items = res_items(k, po)
                 assert len(items) == res_count(k, po), k
-                fam = (f'(CoreMode.resFamT (CoreMode.rcT {fk}.cfun.fn.body) (CoreMode.constT {fk}.cfun.fn.body) '
-                       f'{fk}.cfun.fn {fk}.cfun.xc {fk}.cfun.H.sig.gw)')
+                tries = f'(CoreMode.rcT {fk}.cfun.fn.body) (CoreMode.constT {fk}.cfun.fn.body)'
+                args = f'{fk}.cfun.fn {fk}.cfun.xc {fk}.cfun.H.sig.gw'
+                fam = f'(CoreMode.resFamT {tries} {args})'
+                hints = (f'(CoreMode.resFamTH {tries} {args})', 'CoreMode.resFamTH_sound', [res_hint(k, t) for t in items])
                 hons.append(slices(f'res{i}_ok', f'res{i}_s', f'CoreMode.resOk {fk}.cfun', fam, f'{fk}.cfun.H.res',
-                                   len(items), RES_B, 'CoreMode.resOk', res_cuts(k, items), 'CoreMode.all_of_T'))
+                                   len(items), RES_B, 'CoreMode.resOk', res_cuts(k, items), 'CoreMode.all_of_T', hints))
                 rsplit |= {'LeanVM.Guest.CoreMode.ResSplit', 'LeanVM.Guest.CoreMode.ResTab'}
                 rw.append(f'res{i}_ok')
                 hb = f'(by rw [{", ".join(rw)}]; decide +kernel)'

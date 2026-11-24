@@ -225,20 +225,23 @@ theorem rcBndT_spec {body : List Stmt} {x N : ℕ} (h : rcBndT (rcT body) (const
           exact rcBound_first (firstGo_nil hx hR) (by rw [hc, Option.bind_some, hp])
             (by rw [← Nat.ble_eq]; exact hb)
 
-/-- **A residual of a family, a range check's bound looked up first** (`R`, `C`: `rcT`, `constT`): `e(x) < n` with `x`
-range checked below `N ≤ n` or a top-level selector of at most `n` arms (`resFam`'s first case), else `resFamG`. -/
+/-- `e(x) < n` with `x` range checked below `N ≤ n` (looked up in `R`, `C`: `rcT`, `constT`) or a top-level selector
+of at most `n` arms (`resFam`'s first case). -/
+noncomputable def cheapT (R : Trie V) (C : Trie E) (fn : Fn) : CRes → Bool
+  | .lt (.val x) (.num n) => Nat.blt n capE && Nat.blt x GB &&
+      ((match rcBndT R C x with
+        | some N => Nat.ble N n
+        | none => false) || (Res.topSels fn.body).any fun p ↦ decide (p.1 = V.n x) && decide (p.2 ≤ n))
+  | _ => false
+
+/-- **A residual of a family, a range check's bound looked up first** (`cheapT`), else `resFamG`. -/
 noncomputable def resFamT (R : Trie V) (C : Trie E) (fn : Fn) (xc : List ℕ) (gw : List (CCell × ℕ)) (r : CRes) :
     Bool :=
-  (match r with
-    | .lt (.val x) (.num n) => Nat.blt n capE && Nat.blt x GB &&
-        ((match rcBndT R C x with
-          | some N => Nat.ble N n
-          | none => false) || (Res.topSels fn.body).any fun p ↦ decide (p.1 = V.n x) && decide (p.2 ≤ n))
-    | _ => false) || resFamG fn xc gw r
+  cheapT R C fn r || resFamG fn xc gw r
 
 theorem resFamG_of_T {fn : Fn} {xc : List ℕ} {gw : List (CCell × ℕ)} {r : CRes}
     (h : resFamT (rcT fn.body) (constT fn.body) fn xc gw r = true) : resFamG fn xc gw r = true := by
-  unfold resFamT at h
+  unfold resFamT cheapT at h
   rcases Bool.or_eq_true_iff.1 h with h | h
   · cases r with
     | lt a b =>
@@ -264,6 +267,36 @@ theorem resFamG_of_T {fn : Fn} {xc : List ℕ} {gw : List (CCell × ℕ)} {r : C
 theorem all_of_T {fn : Fn} {xc : List ℕ} {gw : List (CCell × ℕ)} {l : List CRes}
     (h : l.all (resFamT (rcT fn.body) (constT fn.body) fn xc gw) = true) : l.all (resFamG fn xc gw) = true :=
   List.all_eq_true.2 fun r hr ↦ resFamG_of_T (List.all_eq_true.1 h r hr)
+
+/-- **The disjunct of `resFamG` a hint names**, ghost-free: `1` `resFam`, `2` `resQ`, `3` `rcPts`, `4` `rcTab`, `5`
+`ownFam`; none for any other hint. A generator's hint skips the disjuncts before the one that holds. -/
+noncomputable def resFamHint (fn : Fn) (xc : List ℕ) : ℕ → CRes → Bool
+  | 1, r => resFam fn xc r && r.vals.all (Nat.blt · GB)
+  | 2, r => resQ fn r && r.vals.all (Nat.blt · GB)
+  | 3, r => rcPts fn r && r.vals.all (Nat.blt · GB)
+  | 4, r => rcTab fn r && r.vals.all (Nat.blt · GB)
+  | 5, r => ownFam fn r && r.vals.all (Nat.blt · GB)
+  | _, _ => false
+
+/-- `resFamT`, the disjunct its hint `h` names tried before `resFamG`. -/
+noncomputable def resFamTH (R : Trie V) (C : Trie E) (fn : Fn) (xc : List ℕ) (gw : List (CCell × ℕ)) (h : ℕ)
+    (r : CRes) : Bool :=
+  cheapT R C fn r || resFamHint fn xc h r || resFamG fn xc gw r
+
+theorem resFamG_of_hint {fn : Fn} {xc : List ℕ} {gw : List (CCell × ℕ)} {h : ℕ} {r : CRes}
+    (hr : resFamHint fn xc h r = true) : resFamG fn xc gw r = true := by
+  unfold resFamHint at hr
+  split at hr <;> simp_all [resFamG]
+
+theorem resFamTH_sound {R : Trie V} {C : Trie E} {fn : Fn} {xc : List ℕ} {gw : List (CCell × ℕ)} :
+    ∀ h r, resFamTH R C fn xc gw h r = true → resFamT R C fn xc gw r = true := by
+  intro h r hr
+  simp only [resFamTH, Bool.or_eq_true] at hr
+  simp only [resFamT, Bool.or_eq_true]
+  rcases hr with (hr | hr) | hr
+  · exact Or.inl hr
+  · exact Or.inr (resFamG_of_hint hr)
+  · exact Or.inr hr
 
 /-! ## The values' cells -/
 

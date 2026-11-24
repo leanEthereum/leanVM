@@ -27,6 +27,32 @@ theorem all_drop_of_le {α : Type} {p : α → Bool} {l : List α} {n : Nat} (h 
 theorem all_of_drop_zero {α : Type} {p : α → Bool} {l : List α} (h : (l.drop 0).all p = true) : l.all p = true :=
   by rwa [List.drop_zero] at h
 
+/-! ## Hints -/
+
+/-- Each entry of `l` passes `q` at its hint, the entries of `hs` in order (`0` past them). -/
+def allH {α : Type} (q : Nat → α → Bool) : List Nat → List α → Bool
+  | _, [] => true
+  | [], a :: l => q 0 a && allH q [] l
+  | h :: hs, a :: l => q h a && allH q hs l
+
+theorem all_of_allH {α : Type} {p : α → Bool} {q : Nat → α → Bool} (hq : ∀ h a, q h a = true → p a = true) :
+    ∀ (hs : List Nat) (l : List α), allH q hs l = true → l.all p = true
+  | _, [], _ => rfl
+  | [], a :: l, h => by
+    simp only [allH, Bool.and_eq_true] at h
+    simp [hq 0 a h.1, all_of_allH hq [] l h.2]
+  | x :: hs, a :: l, h => by
+    simp only [allH, Bool.and_eq_true] at h
+    simp [hq x a h.1, all_of_allH hq hs l h.2]
+
+/-- `sliceAll` with hints: `l`'s entries from `a` to `b` each pass `q` at its hint from `hs`. -/
+def sliceAllH {α : Type} (q : Nat → α → Bool) (hs : List Nat) (l : List α) (a b : Nat) : Bool :=
+  allH q hs ((l.drop a).take (b - a))
+
+theorem sliceAll_of_H {α : Type} {p : α → Bool} {q : Nat → α → Bool} (hq : ∀ h a, q h a = true → p a = true)
+    {hs : List Nat} {l : List α} {a b : Nat} (h : sliceAllH q hs l a b = true) : sliceAll p l a b = true :=
+  all_of_allH hq hs _ h
+
 end
 
 end LeanVM.Guest.CoreMode
