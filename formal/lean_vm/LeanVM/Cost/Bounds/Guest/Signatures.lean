@@ -60,13 +60,6 @@ theorem spPos_lits_ok : RowsOK 10 spForsKids ∧ RowsOK 10 spForsBits ∧ RowsOK
     spPathKids.length ≤ 3 ∧ spPathBits.length ≤ 3 := by
   decide +kernel
 
-theorem getD_lt_of {l : List ℕ} {B : ℕ} (h : ∀ x ∈ l, x < B) (hB : 0 < B) (k : ℕ) :
-    l.getD k 0 < B := by
-  rw [List.getD_eq_getElem?_getD]
-  cases hk : l[k]? with
-  | none => simpa using hB
-  | some x => exact h x (List.mem_of_getElem? hk)
-
 theorem getD_row {tab : List (List ℕ)} {M : ℕ} (h : RowsOK M tab) (r : ℕ) :
     (tab.getD r []).length ≤ M ∧ ∀ x ∈ tab.getD r [], x < 2 ^ 20 := by
   rw [List.getD_eq_getElem?_getD]
@@ -76,7 +69,7 @@ theorem getD_row {tab : List (List ℕ)} {M : ℕ} (h : RowsOK M tab) (r : ℕ) 
 
 theorem offAt_lt {tab : List (List ℕ)} {M : ℕ} (h : RowsOK M tab) (r k : ℕ) :
     offAt tab r k < 2 ^ 20 :=
-  getD_lt_of (getD_row h r).2 (by norm_num) k
+  Decoder.getD_lt_of_all (by norm_num) (getD_row h r).2 k
 
 /-! ## The tables as arrays -/
 
@@ -86,7 +79,7 @@ theorem offAtA_tabA_lt {tab : List (List ℕ)} {M : ℕ} (h : RowsOK M tab) (r k
 
 theorem getD_toArray_lt {l : List ℕ} {M : ℕ} (h : ListOK M l) (k : ℕ) :
     l.toArray.getD k 0 < 2 ^ 20 := by
-  rw [getD_toArray]; exact getD_lt_of h.2 (by norm_num) k
+  rw [getD_toArray]; exact Decoder.getD_lt_of_all (by norm_num) h.2 k
 
 /-- `sp_wots`' tables as arrays, their entries small (`spTabs_ok`). -/
 structure SpTabsOK (T : SpTabs) : Prop where

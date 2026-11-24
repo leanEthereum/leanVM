@@ -522,25 +522,18 @@ theorem coverTable_cost (hP : Includes P coverTableC.costDeps) (ps : List (ℕ �
   unfold coverTablePrice
   omega
 
-theorem getD_lt_of_mem {l : List ℕ} {B : ℕ} (h : ∀ x ∈ l, x < B) (hB : 0 < B) (i : ℕ) :
-    l.toArray.getD i 0 < B := by
-  rw [Array.getD_eq_getD_getElem?, List.getElem?_toArray]
-  cases hi : l[i]? with
-  | none => simpa using hB
-  | some x => exact h x (List.mem_of_getElem? hi)
-
 /-- **The coverage table of pairs below `2^34`**, at most `2^34` of them, is good. -/
 theorem coverTable_good (ps : List (ℕ × ℕ)) (hn : ps.length ≤ 2 ^ 34)
     (hp : ∀ p ∈ ps, p.1 < 2 ^ 34 ∧ p.2 < 2 ^ 34) : TableGood (coverTable ps) := by
   have hmem := (coverKeys_spec ps).2
   have hK := length_coverKeys_le ps
   refine ⟨by simp [coverTable], by simp [coverTable]; omega, ?_, ?_⟩
-  · exact getD_lt_of_mem (fun x hx ↦ by
+  · exact fun i ↦ (getD_toArray _ _ _).trans_lt (getD_lt_of_all (by norm_num) (fun x hx ↦ by
       obtain ⟨k, hk, rfl⟩ := List.mem_map.1 hx
-      exact (hp k ((hmem k).1 hk)).1) (by norm_num)
-  · exact getD_lt_of_mem (fun x hx ↦ by
+      exact (hp k ((hmem k).1 hk)).1) i)
+  · exact fun i ↦ (getD_toArray _ _ _).trans_lt (getD_lt_of_all (by norm_num) (fun x hx ↦ by
       obtain ⟨k, hk, rfl⟩ := List.mem_map.1 hx
-      exact (hp k ((hmem k).1 hk)).2) (by norm_num)
+      exact (hp k ((hmem k).1 hk)).2) i)
 
 end Cover
 
