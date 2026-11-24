@@ -105,15 +105,6 @@ theorem countHashQueries_forget {α : Type} (computation : OracleComp OracleWorl
     Prod.fst <$> countHashQueries computation = computation :=
   Common.QueryCount.counted_forget _ computation
 
-theorem countHashQueries_run_forget {α : Type} (computation : OracleComp OracleWorld α)
-    (cache : QueryCache HashSpec) :
-    (fun result => (result.1.1, result.2)) <$>
-      (simulateQ romImpl (countHashQueries computation)).run cache =
-        (simulateQ romImpl computation).run cache := by
-  have h := congrArg (fun c : OracleComp OracleWorld α => (simulateQ romImpl c).run cache)
-    (countHashQueries_forget computation)
-  simpa only [simulateQ_map, StateT.run_map] using h
-
 theorem HashQueryBound.mono {α : Type} {computation : OracleComp OracleWorld α}
     {cache : QueryCache HashSpec} {q r : Nat} (hbound : HashQueryBound computation cache q)
     (hle : q ≤ r) : HashQueryBound computation cache r :=
