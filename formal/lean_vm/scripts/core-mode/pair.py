@@ -314,9 +314,9 @@ def nums(l):
 
 def offs_defs(k, f):
     return (f'/-- `{k}`: the offsets of its reads\' `DEREF`s, the oracle. -/\n'
-            f'noncomputable def pairO : Exec.Trie Unit :=\n  CoreMode.offsT {nums(f["O"])}\n\n'
+            f'noncomputable def pairO : Exec.Trie Unit :=\n  CoreMode.offsT (data% {nums(f["O"])})\n\n'
             f'/-- `{k}`: the offsets of its stores\' `DEREF`s. -/\n'
-            f'noncomputable def pairS : Exec.Trie Unit :=\n  CoreMode.offsT {nums(f["S"])}\n')
+            f'noncomputable def pairS : Exec.Trie Unit :=\n  CoreMode.offsT (data% {nums(f["S"])})\n')
 
 
 def args(k, f, ctx='alignCtx'):
@@ -343,14 +343,15 @@ def data_mod(pack, f):
 
 def render_pack(pack, fs):
     mod = f'LeanVM.Guest.CoreMode.Gen.«{pack}».Pair'
-    defs = ''.join(f'noncomputable def Fn.«{f["key"]}».pairO : Exec.Trie Unit := CoreMode.offsT {nums(f["O"])}\n'
-                   f'noncomputable def Fn.«{f["key"]}».pairS : Exec.Trie Unit := CoreMode.offsT {nums(f["S"])}\n' for f in fs)
+    defs = ''.join(f'noncomputable def Fn.«{f["key"]}».pairO : Exec.Trie Unit := CoreMode.offsT (data% {nums(f["O"])})\n'
+                   f'noncomputable def Fn.«{f["key"]}».pairS : Exec.Trie Unit := CoreMode.offsT (data% {nums(f["S"])})\n' for f in fs)
     thms = ''.join(f'theorem Fn.«{f["key"]}».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code '
                    f'advice = true := by decide +kernel\n' for f in fs)
     return {os.path.join(GEN, pack, 'Pair.lean'): ''.join([
         HEADER(mod=mod, what=f"The kernel's pairing checks of `{fs[0]['key']}` and {len(fs) - 1} more: each "
                       "function's `pairO`, the offsets of its reads' `DEREF`s (the oracle), and `pairS`, of its stores', "
                       "its `load`s paired with its `DEREF`s in order."),
+        'public meta import LeanVM.Guest.DataLit\n',
         imports(['LeanVM.Guest.CoreMode.PairDefs', f'LeanVM.Guest.CoreMode.GlueA.«{pack}»'] + [data_mod(pack, f) for f in fs]
                 + [f'LeanVM.Guest.Bridge.Align.«{f["bpack"]}»' for f in fs]),
         'set_option Elab.async false\nset_option linter.style.nameCheck false\n\nnamespace LeanVM.Guest\n\n'
@@ -383,6 +384,60 @@ def cut_of(clens, i):
     return f'({p}, {i})'
 
 
+LIT_TRIES = [('Loc', 'loc', 'ℕ'), ('Stat', 'stat', 'B2C.PC'), ('Sites', 'sites', 'B2C.Site'), ('Arms', 'arms', '(ℕ × ℕ)'),
+             ('Ents', 'ents', 'String')]
+
+
+def alit_mod(base, k, wctx):
+    """`k`'s alignment context with its tries stated once (`kernel_lit`, `CoreMode/PairLit.lean`): the alignment's and
+    the core route's windows (`AW*`, `core.py`'s `CW*`) read it."""
+    lits = ''.join(f'kernel_lit lit{n} : Exec.Trie {t} := {wctx}.{fld}\n' for n, fld, t in LIT_TRIES)
+    return (HEADER(mod=f'{base}.ALit', what=f"`{k}`'s alignment context with its tries stated once.")
+            + 'public meta import LeanVM.Guest.KernelLit\n'
+            + imports([f'LeanVM.Guest.Bridge.AlignCtx.«{k}».Ctx', 'LeanVM.Guest.CoreMode.PairLit'])
+            + 'set_option Elab.async false\n\n'
+            + ns(k, f'''@[expose] public section
+
+{lits}
+/-- `{k}`: its alignment context, the tries stated. -/
+noncomputable def alignL : Bridge.AlignCtx := {wctx}.withTries {' '.join('lit' + n for n, _, _ in LIT_TRIES)}
+
+end
+
+public section
+
+theorem alignL_eq : {wctx} = alignL :=
+  Bridge.AlignCtx.eq_withTries {' '.join(f'lit{n}_eq' for n, _, _ in LIT_TRIES)}
+
+end
+'''))
+
+
+def lit_mod(base, k, wctx):
+    """`k`'s pairing context with its tries stated once: the pairing's windows (`W*`) read it."""
+    return (HEADER(mod=f'{base}.Lit', what=f"`{k}`'s pairing context with its tries stated once.")
+            + 'public meta import LeanVM.Guest.KernelLit\n'
+            + imports([f'{base}.Ctx', f'{base}.ALit']) + 'set_option Elab.async false\n\n'
+            + ns(k, f'''@[expose] public section
+
+kernel_lit litReads : Exec.Trie (List (ℕ × ℕ × CoreMode.Wit)) := hcert.readT
+kernel_lit litO : Exec.Trie Unit := pairO
+kernel_lit litS : Exec.Trie Unit := pairS
+
+/-- `{k}`: its pairing context, the tries stated. -/
+noncomputable def pairL : CoreMode.PairCtx := ⟨alignL, litReads, litO, litS⟩
+
+end
+
+public section
+
+theorem pairL_eq : CoreMode.PairCtx.ofH {wctx} hcert pairO pairS = pairL :=
+  CoreMode.PairCtx.ofH_eq alignL_eq litReads_eq litO_eq litS_eq
+
+end
+'''))
+
+
 def render_win(pack, f):
     k = f['key']
     # the windows over slices of the code's chunks (`CoreMode/PairSlice.lean`): none walks the code before it
@@ -393,10 +448,11 @@ def render_win(pack, f):
     files = {}
     packed = packed_ctx(k)
     wctx = 'alignCtxP' if packed else 'alignCtx'
-    defs = ''.join(f"/-- `{k}`: the pairing's state at offset {K[0]}. -/\ndef pairK{n} : Bridge.KSt :=\n  {kst(k, f, K)}\n\n"
+    defs = ''.join(f"/-- `{k}`: the pairing's state at offset {K[0]}. -/\nnoncomputable def pairK{n} : Bridge.KSt :=\n  data% {kst(k, f, K)}\n\n"
                    for n, K in enumerate(ks))
     files[os.path.join(GEN, pack, k, 'Ctx.lean')] = (
         HEADER(mod=f'{base}.Ctx', what=f"`{k}`'s pairing oracle and the pass's states at its windows' ends.")
+        + 'public meta import LeanVM.Guest.DataLit\n'
         + imports(['LeanVM.Guest.CoreMode.PairSlice', f'LeanVM.Guest.CoreMode.GlueA.«{pack}»', data_mod(pack, f),
                    f'LeanVM.Guest.Bridge.AlignCtx.«{k}».Ctx'])
         + ns(k, f'''@[expose] public section
@@ -404,14 +460,18 @@ def render_win(pack, f):
 {offs_defs(k, f)}
 {defs}end
 '''))
+    # the contexts' tries stated once (`CoreMode/PairLit.lean`): the windows rewrite to them and build none
+    files[os.path.join(GEN, pack, k, 'ALit.lean')] = alit_mod(base, k, wctx)
+    files[os.path.join(GEN, pack, k, 'Lit.lean')] = lit_mod(base, k, wctx)
     for n in range(len(ks) - 1):
         files[os.path.join(GEN, pack, k, f'W{n}.lean')] = (
             HEADER(mod=f'{base}.W{n}', what=f"`{k}`'s pairing pass from offset {ks[n][0]} to {ks[n + 1][0]}.")
-            + imports([f'{base}.Ctx']) + 'set_option Elab.async false\n\n' + ns(k, f'''public section
+            + imports([f'{base}.Lit']) + 'set_option Elab.async false\n\n' + ns(k, f'''public section
 
 /-- `{k}`: the pairing from offset {ks[n][0]} to {ks[n + 1][0]}. -/
 theorem pairWin{n} : CoreMode.winOkHS {argsS(k, wctx)} {cut_of(clens, ks[n][0])} {cut_of(clens, ks[n + 1][0])} pairK{n}
     pairK{n + 1} = true := by
+  rw [CoreMode.winOkHS, pairL_eq]
   decide +kernel
 
 end
@@ -444,13 +504,17 @@ end
     # them (`CoreMode.alignKOf`), the first the pass's start
     al = lambda n: 'pairK0' if n == 0 else f'(CoreMode.alignKOf {wctx} Fn.«{k}».core.body pairK{n})'
     aargs = f'{wctx} Fn.«{k}».core.body Fn.«{k}».code.code Fn.«{k}».advice'
+    sargs = f'{wctx} Fn.«{k}».core.body Fn.«{k}».code.chunks Fn.«{k}».advice'
     for n in range(len(ks) - 1):
         files[os.path.join(GEN, pack, k, f'AW{n}.lean')] = (
             HEADER(mod=f'{base}.AW{n}', what=f"`{k}`'s alignment pass from offset {ks[n][0]} to {ks[n + 1][0]}.")
-            + imports([f'{base}.Ctx', 'LeanVM.Guest.CoreMode.AlignK']) + 'set_option Elab.async false\n\n' + ns(k, f'''public section
+            + imports([f'{base}.Ctx', f'{base}.ALit', 'LeanVM.Guest.CoreMode.AlignK', 'LeanVM.Guest.CoreMode.AlignSlice'])
+            + 'set_option Elab.async false\n\n' + ns(k, f'''public section
 
 /-- `{k}`: the alignment pass from offset {ks[n][0]} to {ks[n + 1][0]}. -/
-theorem alignWin{n} : Bridge.winOk {aargs} {al(n)} {al(n + 1)} = true := by
+theorem alignWin{n} : CoreMode.winOkAS {sargs} {cut_of(clens, ks[n][0])} {cut_of(clens, ks[n + 1][0])} {al(n)}
+    {al(n + 1)} = true := by
+  rw [alignL_eq]
   decide +kernel
 
 end
@@ -461,17 +525,18 @@ end
     files[os.path.join(GUEST, 'CoreMode', 'AlignOk', f'{k}.lean')] = (
         HEADER(mod=f'LeanVM.Guest.CoreMode.AlignOk.«{k}»', what=f"`{k}` aligns with its body (the hint bridge's "
                       "check), by windows from its pairing's states.")
-        + imports(['LeanVM.Guest.Bridge.AlignRun', 'LeanVM.Guest.CoreMode.AlignK', f'LeanVM.Guest.Bridge.AlignCtx.«{k}».Ok']
+        + imports(['LeanVM.Guest.CoreMode.AlignSlice', 'LeanVM.Guest.CoreMode.AlignK', f'LeanVM.Guest.Bridge.AlignCtx.«{k}».Ok']
                   + [f'{base}.AW{n}' for n in range(len(ks) - 1)])
         + ns(k, f'''public section
 
 /-- `{k}`: the alignment pass's last state is at the end. -/
-theorem alignEndOk : Bridge.chainEnd Fn.«{k}».code.code {al(len(ks) - 1)} = true := by
+theorem alignEndOk : CoreMode.chainEndS Fn.«{k}».code.chunks ({len(clens)}, 0) {al(len(ks) - 1)} = true := by
   decide +kernel
 
 /-- `{k}` aligns with its body{" (its context " + wctx + ")" if packed else ""}. -/
 theorem alignOk{"P" if packed else ""} : Bridge.alignOk {aargs} = true :=
-  Bridge.alignOk_of_chain alignPreOk (ks := [{', '.join(al(n) for n in range(1, len(ks)))}])
+  CoreMode.alignOk_of_chainAS alignPreOk
+    (ks := [{', '.join(f'({cut_of(clens, ks[n][0])}, {al(n)})' for n in range(1, len(ks)))}])
     {achain}
 {f'''
 /-- `{k}` aligns with its body. -/
