@@ -178,7 +178,7 @@ theorem one_le_knowledgeSoundnessBound {Q : ℕ} (hQ : 2 ^ 128 < Q) :
   refine le_add_right ?_
   have h : (2 : ℝ≥0∞) ^ 125 ≤ Q + 2 ^ 14 :=
     le_add_right (by exact_mod_cast (Nat.pow_le_pow_right two_pos (by norm_num)).trans hQ.le)
-  rw [ENNReal.inv_pow]
+  rw [← ENNReal.inv_pow]
   calc (1 : ℝ≥0∞) = 2 ^ 125 * (2 ^ 125)⁻¹ := (ENNReal.mul_inv_cancel (by simp) (by simp)).symm
     _ ≤ _ := by gcongr
 

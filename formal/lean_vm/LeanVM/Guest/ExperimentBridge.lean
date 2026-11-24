@@ -101,7 +101,7 @@ theorem one_le_batchingBound {QA QV M : ℕ} (hQA : 2 ^ 128 < QA) :
         _ ≤ (QA + QV + 1) * 8 := Nat.mul_le_mul_right _ (by omega)
         _ ≤ _ := Nat.mul_le_mul_left _ (le_max_right _ _)
     exact_mod_cast this
-  rw [ENNReal.inv_pow]
+  rw [← ENNReal.inv_pow]
   calc (1 : ℝ≥0∞) = 2 ^ 130 * (2 ^ 130)⁻¹ := (ENNReal.mul_inv_cancel (by simp) (by simp)).symm
     _ ≤ _ := by gcongr
 
