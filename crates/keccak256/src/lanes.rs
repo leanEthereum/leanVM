@@ -10,6 +10,9 @@ use crate::{END_BIT, OUT_LEN, PAD_FIRST, RATE, RATE_LANES, RC, STATE_LANES, hash
 use core::ops::Range;
 
 /// One state lane across [`Lane::WIDTH`] states. The permutation is written once over this trait.
+///
+/// A vector backend's methods run its feature's instructions from safe code: only call code generic over one after
+/// `cpu_has!` has found that feature, as `dispatch!` does.
 pub(crate) trait Lane: Copy {
     const WIDTH: usize;
 
@@ -187,6 +190,10 @@ fn chi_row<S: Lane>(out: &mut [S; STATE_LANES], c: &mut [S; 5], y: usize, [b0, b
     }
 }
 
+// The x86 rounds go in pairs, one into each state.
+#[cfg(target_arch = "x86_64")]
+const _: () = assert!(RC.len().is_multiple_of(2));
+
 /// The 24 rounds of θ, ρ, π, χ and ι, on x86. Straight-line, so every rotation is an immediate and every lane a
 /// register.
 ///
@@ -194,10 +201,6 @@ fn chi_row<S: Lane>(out: &mut [S; STATE_LANES], c: &mut [S; 5], y: usize, [b0, b
 /// from where π takes them, then χ, then the row is stored and folded into the next round's column parities. A row
 /// at a time keeps about sixteen values live, which fits AVX2's sixteen registers, where forming all twenty-five lanes
 /// before χ spills.
-// The rounds go in pairs, one into each state.
-#[cfg(target_arch = "x86_64")]
-const _: () = assert!(RC.len().is_multiple_of(2));
-
 #[cfg(target_arch = "x86_64")]
 #[inline(always)]
 pub(crate) fn permute<S: Lane>(a: &mut [S; STATE_LANES]) {
@@ -325,7 +328,8 @@ macro_rules! cpu_has {
 /// `$with::<S>(args)` on the widest backend `S` the CPU runs, inlined into a function compiled with its feature. Only
 /// where the architecture's vector registers are in the baseline: a soft-float target (`x86_64-unknown-none`,
 /// `aarch64-unknown-none-softfloat`) cannot enable a vector feature on a function, so it hashes one state at a time,
-/// as big-endian AArch64 does, whose NEON loads would read the input's bytes as big-endian words.
+/// as big-endian AArch64 does, whose NEON loads would read the input's bytes as big-endian words. It returns from the
+/// calling function, so it is that function's last expression.
 macro_rules! dispatch {
     ($with:ident($($arg:ident: $ty:ty),* $(,)?) $(-> $ret:ty)?) => {
         dispatch!(@arch $with, ($($arg: $ty),*), ($($arg),*), ($($ret)?))
@@ -853,6 +857,19 @@ mod tests {
         digest_halves_with::<S>(&template, 3, &values, &mut got);
         digest_halves_with::<u64>(&template, 3, &values, &mut want);
         assert_eq!(got, want, "{name} digest_halves_from");
+    }
+
+    /// The entry points pick the widest backend the CPU runs, not a narrower one.
+    #[test]
+    fn the_widest_backend_runs() {
+        let widest = cfg_select! {
+            all(target_arch = "x86_64", target_feature = "sse2") => {
+                if cpu_has!("avx512f") { 8 } else if cpu_has!("avx2") { 4 } else { 1 }
+            }
+            all(target_arch = "aarch64", target_endian = "little", target_feature = "neon") => 2,
+            _ => 1,
+        };
+        assert_eq!(lanes(), widest);
     }
 
     /// Every backend this CPU runs, each of which the entry points may pick.
