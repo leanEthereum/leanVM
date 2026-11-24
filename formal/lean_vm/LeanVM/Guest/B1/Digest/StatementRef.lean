@@ -58,15 +58,16 @@ def sdRef : Func SdName where
   rets := [.v (.out 0), .v (.out 1)]
 
 /-- The hashed cells, on the names. -/
-theorem sdMsg_eval (ρ : SdName → E) : sdMsg.map (Tm.eval ρ) =
+private theorem sdMsg_eval (ρ : SdName → E) : sdMsg.map (Tm.eval ρ) =
     [ρ (.arg 0), ρ (.arg 1), ρ (.arg 2), ρ (.arg 3), ρ (.arg 4), ρ (.arg 5), ρ (.arg 6),
       ρ (.arg 7)] ++ (List.range deferStmtCells).map (ρ <| .cell ·) := by
   simp [sdMsg, List.range_succ, Tm.eval]
 
-theorem sdMsg_length : sdMsg.length = 32 := by simp [sdMsg, deferStmtCells]
+private theorem sdMsg_length : sdMsg.length = 32 := by simp [sdMsg, deferStmtCells]
 
 /-- The statement's bytes are its cells'. -/
-theorem stmtBytes_eq (hdr defer : List E) : stmtBytes hdr defer = cellsBytes (hdr ++ defer) := by
+private theorem stmtBytes_eq (hdr defer : List E) :
+    stmtBytes hdr defer = cellsBytes (hdr ++ defer) := by
   rw [stmtBytes, cellsBytes_append]
   rfl
 
@@ -85,13 +86,10 @@ theorem sdRef_sem (rd : Reader) (args rets : List E) :
   · rintro ⟨ρ, rfl, hb, rfl⟩
     rw [sdRef, Cmd.satList_append, Cmd.satList_unroll, satList_sponge _ _ sdMsg_length _ (.inr rfl)]
       at hb
-    have hd : [ρ (.out 0), ρ (.out 1)] =
-        digestCells (keccak256 (cellsBytes (sdMsg.map (Tm.eval ρ)))) := hb.2.2
-    rw [sdMsg_eval] at hd
     refine ⟨(List.range deferStmtCells).map (ρ <| .cell ·), by simp, fun k hk => ?_, ?_⟩
     · simpa [Cmd.SatList, Cmd.Sat, Tm.eval] using hb.1 k (Nat.zero_le _) (by simpa using hk)
-    · rw [stmtBytes_eq]
-      exact hd
+    · rw [stmtBytes_eq, ← sdMsg_eval]
+      exact hb.2.2
   · intro hm
     obtain ⟨s0, s1, x0, x1, y0, y1, a0, a1, dp, rfl⟩ :
         ∃ s0 s1 x0 x1 y0 y1 a0 a1 dp, args = [s0, s1, x0, x1, y0, y1, a0, a1, dp] := by

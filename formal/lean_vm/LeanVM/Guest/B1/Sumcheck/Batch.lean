@@ -10,7 +10,7 @@ public import LeanVM.Guest.B1.Sumcheck.Meaning
 public import LeanVM.Guest.B1.Common.Run
 public import LeanVM.Guest.B1.Common.Find
 import LeanVM.Guest.B1.Common.Vc
-import LeanVM.Guest.Ref.KernelRfl
+import LeanVM.Guest.KernelRfl
 
 /-!
 # `batch_sumcheck`
@@ -22,7 +22,8 @@ stores it at `point[j]` and folds the degree-two round; it returns the last capa
 
 `vc` computes its condition: round by round, the two words read, the challenge stored, the
 permutation's cells in place of its outputs. `BsRounds` is that condition for `n` rounds from
-round `k`, and `bsRounds_iff` its meaning (`bsRun`), by induction on `n`.
+round `k`, which the kernel compares with the computed one (`kernel_rfl`), and `bsRounds_iff` its
+meaning (`bsRun`), by induction on `n`.
 -/
 
 namespace LeanVM.Guest.B1
@@ -32,21 +33,22 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-/-- A run read one word at a time. -/
-private theorem readsAt_cons {rd : Reader} {p x : E} {xs : List E} :
-    ReadsAt rd p (x :: xs) ↔ LoadHolds rd p 0 x ∧ ReadsAt rd (p * gen) xs := by
-  have e (k : ℕ) (w : E) : LoadHolds rd (p * gen) k w ↔ LoadHolds rd p (k + 1) w := by
-    rw [← pow_one gen, loadHolds_mul_gen_pow, Nat.add_comm]
-  refine ⟨fun h => ⟨h 0 (by simp), fun k hk => (e k _).mpr (h (k + 1) (by simpa using hk))⟩,
-    fun ⟨h0, h⟩ k hk => ?_⟩
-  cases k with
-  | zero => exact h0
-  | succ k => exact (e k _).mp (h k (by simpa using hk))
+/-- A run from `p·g^j`, read one word at a time. -/
+private theorem readsAt_cons {rd : Reader} {p x : E} {j : ℕ} {xs : List E} :
+    ReadsAt rd (p * gen ^ j) (x :: xs) ↔
+      LoadHolds rd p j x ∧ ReadsAt rd (p * gen ^ (j + 1)) xs := by
+  simp only [ReadsAt, List.length_cons, Nat.forall_lt_succ_left', List.getElem_cons_zero,
+    List.getElem_cons_succ, loadHolds_mul_gen_pow, Nat.add_zero, Nat.add_assoc, Nat.add_comm 1]
+
+private theorem exists_length_succ {α : Type} {n : ℕ} {P : List α → Prop} :
+    (∃ l : List α, l.length = n + 1 ∧ P l) ↔ ∃ x l, l.length = n ∧ P (x :: l) :=
+  ⟨fun ⟨_ :: l, hl, h⟩ => ⟨_, l, by simpa using hl, h⟩,
+    fun ⟨x, l, hl, h⟩ => ⟨x :: l, by simpa using hl, h⟩⟩
 
 /-- `n` rounds of `batch_sumcheck` from round `k` on the claim `claim` and the capacity `cap`,
 returning `rets`: each round's words read at `msgs`, its permutation's challenge stored at
 `point`, the round folded at it. -/
-def BsRounds (rd : Reader) (msgs point : E) (rets : List E) : ℕ → ℕ → E → List E → Prop
+private def BsRounds (rd : Reader) (msgs point : E) (rets : List E) : ℕ → ℕ → E → List E → Prop
   | _, 0, claim, cap => cap ++ [claim] = rets
   | k, n + 1, claim, cap =>
     ∃ a, LoadHolds rd msgs (2 * k) a ∧ ∃ b, LoadHolds rd msgs (2 * k + 1) b ∧
@@ -66,39 +68,24 @@ private theorem bs_squeeze (cap : List E) (a b : E) :
   rw [h, Fs.squeeze, perm_eq_cells _ (by simp), Keccak.challengeOf_cells]
   rfl
 
-private theorem exists_length_succ {α : Type} {n : ℕ} {P : List α → Prop} :
-    (∃ l : List α, l.length = n + 1 ∧ P l) ↔ ∃ x l, l.length = n ∧ P (x :: l) :=
-  ⟨fun ⟨l, hl, h⟩ => match l, hl, h with | x :: l, hl, h => ⟨x, l, by simpa using hl, h⟩,
-    fun ⟨x, l, hl, h⟩ => ⟨x :: l, by simpa using hl, h⟩⟩
-
 /-- **`BsRounds` is `bsRun`**: `n` rounds from round `k`, their words read from `msgs[2k]`, their
 challenges stored from `point[k]`. -/
-theorem bsRounds_iff (rd : Reader) (msgs point : E) (rets : List E) :
+private theorem bsRounds_iff (rd : Reader) (msgs point : E) (rets : List E) :
     ∀ (n k : ℕ) (claim : E) (cap : List E),
       BsRounds rd msgs point rets k n claim cap ↔
         ∃ rounds : List (E × E), rounds.length = n ∧
           ReadsAt rd (msgs * gen ^ (2 * k)) (rounds.flatMap fun g ↦ [g.1, g.2]) ∧
           let res := bsRun rounds claim ⟨cap, []⟩
           ReadsAt rd (point * gen ^ k) res.1.1 ∧ rets = res.2.cap ++ [res.1.2]
-  | 0, k, claim, cap => by
-    refine ⟨fun h => ⟨[], rfl, readsAt_nil _ _, readsAt_nil _ _, h.symm⟩, ?_⟩
-    rintro ⟨l, hl, -, -, h⟩
-    obtain rfl := List.length_eq_zero_iff.mp hl
-    exact h.symm
+  | 0, _, _, _ => ⟨fun h => ⟨[], rfl, readsAt_nil _ _, readsAt_nil _ _, h.symm⟩,
+      fun ⟨[], _, _, _, h⟩ => h.symm⟩
   | n + 1, k, claim, cap => by
-    have e (p : E) (j : ℕ) (w : E) : LoadHolds rd (p * gen ^ j) 0 w ↔ LoadHolds rd p j w := by
-      rw [loadHolds_mul_gen_pow, Nat.add_zero]
-    have g1 : msgs * gen ^ (2 * k) * gen = msgs * gen ^ (2 * k + 1) := by ring
-    have g2 : msgs * gen ^ (2 * k + 1) * gen = msgs * gen ^ (2 * (k + 1)) := by ring
-    have g3 : point * gen ^ k * gen = point * gen ^ (k + 1) := by ring
-    rw [exists_length_succ]
-    simp only [BsRounds, bsRounds_iff rd msgs point rets n, bsRun, bs_squeeze, Prod.exists,
-      List.flatMap_cons, List.cons_append, List.nil_append, readsAt_cons, e, g1, g2, g3]
-    constructor
-    · rintro ⟨a, ha, b, hb, hp, l, hl, hm, hr, hret⟩
-      exact ⟨a, b, l, hl, ⟨ha, hb, hm⟩, ⟨hp, hr⟩, hret⟩
-    · rintro ⟨a, b, l, hl, ⟨ha, hb, hm⟩, ⟨hp, hr⟩, hret⟩
-      exact ⟨a, ha, b, hb, hp, l, hl, hm, hr, hret⟩
+    have h2 : 2 * k + 1 + 1 = 2 * (k + 1) := by omega
+    simp only [BsRounds, bsRounds_iff rd msgs point rets n, exists_length_succ, bsRun, bs_squeeze,
+      Prod.exists, List.flatMap_cons, List.cons_append, List.nil_append, readsAt_cons, h2]
+    exact ⟨fun ⟨a, ha, b, hb, hp, l, hl, hm, hr, hret⟩ =>
+        ⟨a, b, l, hl, ⟨ha, hb, hm⟩, ⟨hp, hr⟩, hret⟩,
+      fun ⟨a, b, l, hl, ⟨ha, hb, hm⟩, ⟨hp, hr⟩, hret⟩ => ⟨a, ha, b, hb, hp, l, hl, hm, hr, hret⟩⟩
 
 /-- The meaning as the rounds' condition. -/
 private theorem meaningBatchSumcheck_iff (n : ℕ) (rd : Reader)
@@ -115,14 +102,12 @@ theorem batch_sumcheck_holds : batch_sumcheck_Spec := by
   by_cases h : ∃ f0 f1 f2 f3 f4 msgs running point tabs,
       args = [f0, f1, f2, f3, f4, msgs, running, point, tabs]
   · obtain ⟨f0, f1, f2, f3, f4, msgs, running, point, tabs, rfl⟩ := h
-    refine Iff.trans ?_
-      (meaningBatchSumcheck_iff 23 rd f0 f1 f2 f3 f4 msgs running point tabs rets).symm
+    rw [meaningBatchSumcheck_iff]
     vc [keccakF_cells, word_zero]
     kernel_rfl
   · refine iff_of_false (fun ⟨σ, hp, _⟩ => h ⟨_, _, _, _, _, _, _, _, _, hp.symm⟩) fun hm => h ?_
     match args, hm with
-    | [f0, f1, f2, f3, f4, msgs, running, point, tabs], _ =>
-      exact ⟨f0, f1, f2, f3, f4, msgs, running, point, tabs, rfl⟩
+    | [_, _, _, _, _, _, _, _, _], _ => exact ⟨_, _, _, _, _, _, _, _, _, rfl⟩
 
 end
 end LeanVM.Guest.B1
