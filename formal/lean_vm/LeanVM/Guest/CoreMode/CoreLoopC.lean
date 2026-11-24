@@ -1490,7 +1490,7 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
         | halt _ hfpo _ _ => exact absurd hfpo (by simp [hsh.fp1])
         | tail e _ hpc' => rw [hpc', hok.fentry, ← hok.xentry] at hpco; omega
         | call G t _ _ hG _ _ _ =>
-          have h := List.all_eq_true.mp hsh.sigsOut o (List.mem_range.mpr (by rw [hlen]; exact hol))
+          have h := sigsOut_get hsh.sigsOut (by rw [hlen]; exact hol)
           simp only [Bool.or_eq_true, Nat.beq_eq] at h
           rcases h with h | h
           · omega
