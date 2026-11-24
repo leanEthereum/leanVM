@@ -1,6 +1,6 @@
 # Bindings
 
-leanXMSS and leanSPHINCS signatures, their aggregation, and the consensus VRF tree, for Python, Node.js, Java, Go, Zig and Nim.
+leanXMSS and leanSPHINCS signatures, their aggregation, and the consensus VRF tree, for Python, Node.js, Java, .NET, Go, Zig and Nim.
 
 An aggregate's bytes are the proof only: send its claims (public key, message) alongside.
 
@@ -11,6 +11,7 @@ An aggregate's bytes are the proof only: send its claims (public key, message) a
 | [Python](python/README.md) 3.11+ | `py-lean-pq` (PyPI) | Linux x86_64/aarch64 (glibc, musl), macOS arm64, Windows x86_64 |
 | [Node.js](node/README.md) 18.17+ | `@kevaundray/lean-pq` (npm) | Linux x64/arm64 (glibc, musl), macOS x64/arm64, Windows x64 |
 | [Java](java/README.md) 25 | `io.github.crate-crypto:lean-pq` (Maven Central) | Linux x86_64/aarch64, macOS x86_64/arm64, Windows x86_64 |
+| [.NET](dotnet/README.md) 10 | `Ethereum.LeanPq` (NuGet) | Linux x64/arm64 (glibc), macOS x64/arm64, Windows x64 |
 | [Go](go/README.md) 1.24+ | `leanvm.org/go` | Linux amd64/arm64, macOS amd64/arm64, Windows amd64 |
 | [Zig](zig/README.md) 0.16+ | tarball on each GitHub release | Linux x86_64/aarch64, macOS x86_64/aarch64, Windows x86_64 |
 | [Nim](nim/README.md) 2.2.12+ | `bindings/nim` at tag `bindings-vX.Y.Z` | Linux x86_64/aarch64, macOS x86_64/arm64, Windows x86_64 |
@@ -21,6 +22,7 @@ x86_64 needs AVX2 and PCLMULQDQ.
 ```sh
 pip install py-lean-pq==0.16.0
 npm install @kevaundray/lean-pq@0.16.0
+dotnet add package Ethereum.LeanPq --version 0.16.0
 go get leanvm.org/go@v0.16.0
 version=0.16.0
 zig fetch --save=lean_pq "https://github.com/leanEthereum/leanVM/releases/download/bindings-v$version/lean-pq-zig-$version.tar.gz"
@@ -43,7 +45,7 @@ lean_vm = { git = "https://github.com/leanEthereum/leanVM.git", features = ["exp
 
 ## Proving
 
-- Prebuilt packages hold the prover once per CPU tier and run the fastest one the CPU supports, except Python and Java on Windows. A source build gets the tiers with `RUSTC_WRAPPER` set to the checkout's `scripts/tier-rustc` (not on Windows), or matches them with `RUSTFLAGS="-C target-cpu=native"` on the proving machine.
+- Prebuilt packages hold the prover once per CPU tier and run the fastest one the CPU supports, except Python, Java and .NET on Windows. A source build gets the tiers with `RUSTC_WRAPPER` set to the checkout's `scripts/tier-rustc` (not on Windows), or matches them with `RUSTFLAGS="-C target-cpu=native"` on the proving machine.
 - `setup(threads)`, before the first aggregation, starts the prover with `threads` threads (0: one per core); it fails above the machine's parallelism. Proofs run one at a time per process.
 - When the build leaves a faster tier unused on this CPU, the first aggregation prints a warning on stderr, which `LEANVM_TIER` set to the tier it names silences.
 - Except on Windows, the Rust code allocates with jemalloc, which keeps freed pages: a process that aggregated keeps its peak memory.
@@ -57,6 +59,7 @@ Needs Rust.
 | [Python](python/README.md) | `cd bindings/python && uv run --extra dev pytest tests/` |
 | [Node.js](node/README.md) | `cd bindings/node && npm ci && npm run build && npm test` |
 | [Java](java/README.md) | `gradle -p bindings/java test` |
+| [.NET](dotnet/README.md) | `dotnet test bindings/dotnet/Ethereum.LeanPq.slnx` |
 | [Go](go/README.md), [Zig](zig/README.md), [Nim](nim/README.md) | stage the static library first (see each README) |
 | [`lean-pq`](rust/README.md), the Rust core all of them wrap | `cd bindings && cargo test --release -p lean-pq` |
 

@@ -32,6 +32,10 @@
         },
         {
           "type": "generic",
+          "path": "dotnet/README.md"
+        },
+        {
+          "type": "generic",
           "path": "go/README.md"
         },
         {

@@ -954,3 +954,99 @@ jobs:
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
         run: gradle -p bindings/java publishToMavenCentral -Pversion="${RELEASE_TAG#bindings-v}" -PleanPqNativeDir="$PWD/native"
+
+  # Ethereum.LeanPq with the four libraries java-native built and checked, as runtimes/<rid>/native
+  # (the universal macOS library under runtimes/osx).
+  dotnet-package:
+    name: .NET package
+    needs: java-native
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: native
+          pattern: java-native-*
+          merge-multiple: true
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - name: Pack Ethereum.LeanPq
+        run: |
+          version=${RELEASE_TAG#bindings-v}
+          dotnet pack bindings/dotnet/src/Ethereum.LeanPq/Ethereum.LeanPq.csproj -c Release -o dist -p:Version="$version" -p:LeanPqNativeDir="$PWD/native"
+          unzip -Z1 "dist/Ethereum.LeanPq.$version.nupkg" | tee nupkg-contents.txt
+          for library in linux-x64/native/liblean_pq_native.so linux-arm64/native/liblean_pq_native.so osx/native/liblean_pq_native.dylib win-x64/native/lean_pq_native.dll; do
+            grep -qx "runtimes/$library" nupkg-contents.txt
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dotnet-package
+          path: dist/
+          if-no-files-found: error
+
+  # A fresh consumer of the package dotnet-package built, the one dotnet-publish pushes, on each platform it bundles.
+  dotnet-consumer:
+    name: .NET consumer / ${{ matrix.runner }}
+    needs: dotnet-package
+    runs-on: ${{ matrix.runner }}
+    defaults:
+      run:
+        # Git Bash on Windows.
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-latest, ubuntu-24.04-arm, macos-15, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: dotnet-package
+          path: dist
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - name: Run a consumer against the package
+        run: sh bindings/dotnet/scripts/consumer-smoke.sh --feed "$GITHUB_WORKSPACE/dist"
+
+  # NuGet trusted publishing (OIDC): NuGet/login exchanges the run's token for a short-lived API key.
+  # The policy on nuget.org names:
+  #   repository:  leanEthereum/leanVM
+  #   workflow:    bindings-release.yml
+  #   environment: nuget          (must match `environment.name` below)
+  # Until NUGET_USER is set (see bindings/RELEASING.md) the job warns and publishes nothing. Pushing
+  # skips a version already published, so a failed run can be re-dispatched on the same tag.
+  dotnet-publish:
+    name: Publish to NuGet
+    needs: [dotnet-package, dotnet-consumer]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/bindings-v')
+    environment:
+      name: nuget
+      url: https://www.nuget.org/packages/Ethereum.LeanPq
+    permissions:
+      id-token: write
+    env:
+      NUGET_USER: ${{ secrets.NUGET_USER }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dotnet-package
+          path: dist
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - name: Check the NuGet setup
+        if: env.NUGET_USER == ''
+        run: echo "::warning::NUGET_USER is not set, so Ethereum.LeanPq is not published; see bindings/RELEASING.md"
+      - uses: NuGet/login@v1
+        id: nuget-login
+        if: env.NUGET_USER != ''
+        with:
+          user: ${{ env.NUGET_USER }}
+      - name: Publish Ethereum.LeanPq
+        if: env.NUGET_USER != ''
+        env:
+          NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
+        run: dotnet nuget push dist/*.nupkg --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate

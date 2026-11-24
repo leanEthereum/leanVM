@@ -1,4 +1,4 @@
-//! The internal C ABI of the Java, Go, Zig and Nim bindings over the `lean_pq` facade: opaque
+//! The internal C ABI of the Java, .NET, Go, Zig and Nim bindings over the `lean_pq` facade: opaque
 //! handles and owned buffers, not a public API.
 #![allow(clippy::missing_safety_doc)] // Safety contract is documented in include/lean_pq_native.h.
 
