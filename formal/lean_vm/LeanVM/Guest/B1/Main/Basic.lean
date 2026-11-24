@@ -18,9 +18,7 @@ public import LeanVM.Facts.ClaimBytes
   (`Sig.xmssClaimOf`, `Sig.sphincsClaimOf`) are the cells' bytes, limbs `0` and `1` each;
 * `digestBytes_ofCells`, `digestOfCells_scalars`: a digest held in two
   canonical cells;
-* `xmssListDigest_cells`, `sphincsListDigest_cells`, `daListDigest_cells`: a list of claims read
-  off `4n` canonical cells hashes as the cells do;
-* `cellAt_eq_memAt`, `slotCells_of_readsAt`: `main`'s memory reads are the digest family's.
+* `cellAt_eq_memAt`, `readCells_eq_memRun`: `main`'s memory reads are the digest family's.
 -/
 
 namespace LeanVM.Guest.B1.Main

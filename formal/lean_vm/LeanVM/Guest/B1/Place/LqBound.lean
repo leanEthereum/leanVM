@@ -13,11 +13,10 @@ public import LeanVM.Guest.B1.Place.LpBound
 # `level_queries` within a words bound
 
 `lqN`: `level_queries`' words, its frame, its cap and flags, `verify_merkle_cap`'s frame and
-`opening_queries`' `oqBound`. `LqAtE`: `LqAtD` by a tree of exactly `lqN` words. `lq_bound`: frames
+`opening_queries`' `oqBound`. `LqAtE`: `level_queries` placed at an entry of `lqTable` by a tree of exactly `lqN` words. `lq_bound`: frames
 below `2^32`, placed after a fresh copy of an instance's words (the rounds, the high part, the
 positions, the window pointers and the windows), `level_queries` holds on a fresh memory, so a
-words bound of its trees is at least `lqN`. `lqAtO_of_E`: `LqAtE` gives `LqAtO` at every words
-bound of its trees.
+words bound of its trees is at least `lqN`.
 -/
 
 namespace LeanVM.Guest.B1
@@ -37,7 +36,7 @@ def lqN (fs : String → ℕ) (name : String) (q base folds leaf d cd mu nhs hbi
     oqBound fs (lqOqN base folds leaf d cd mu nhs hbits fin)
       (oqLoopOf (lqOqN base folds leaf d cd mu nhs hbits fin)) (lqIters q base)
 
-/-- **`LqAtD` by a tree of exactly `lqN` words.** -/
+/-- **`level_queries` placed at an entry of `lqTable`, by a tree of exactly `lqN` words.** -/
 def LqAtE (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) (name : String)
     (q base folds leaf d cd mu nhs hbits fin : ℕ) : Prop :=
   let s := lqOqS base folds leaf d cd mu nhs hbits fin
@@ -211,18 +210,6 @@ theorem lq_bound {fs : String → ℕ} {cert : String → V → ℕ} {κ : ℕ} 
   have hlt := lqN_lt (fs := fs) (name := name) hfs hS
   obtain ⟨rd, hlow, hmm⟩ := fresh_pair κ hD hW hLD hLW (by omega)
   exact relAtIn_le (hR rd hlow hmm) hT
-
-/-- **`LqAtE` gives `LqAtO` within every words bound of its trees**, frames below `2^32`. -/
-theorem lqAtO_of_E {fs : String → ℕ} {cert : String → V → ℕ} {κ : ℕ} {name : String}
-    {q base folds leaf d cd mu nhs hbits fin : ℕ}
-    (hE : LqAtE fs cert κ name q base folds leaf d cd mu nhs hbits fin)
-    (hfs : ∀ f, fs f < 2 ^ 32) (hS : LqSmall q base folds leaf d cd mu nhs hbits fin) {B : ℕ}
-    (hT : TotalLe coreProgram fs name (fun _ ↦ B)) :
-    Arm.LqAtO fs cert κ name q base folds leaf d cd mu nhs hbits fin (some B) := by
-  intro Lin lam lamInv ecoefs ehs epos eqp rounds hsv eb qs rows sibs capW flW r0 r1 hrl hhs hst
-    hcaps hreg hmem
-  exact ((hE Lin lam lamInv ecoefs ehs epos eqp rounds hsv eb qs rows sibs capW flW r0 r1 hrl hhs
-    hst hcaps hreg hmem).toB (lq_bound hE hfs hS hrl hhs hst hcaps hT)).toO
 
 end
 end LeanVM.Guest.B1

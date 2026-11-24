@@ -1,59 +1,23 @@
 /-
   LeanVM.Guest.Budget.Closed
 
-  **The guest is complete within the deployed budget**: each child's `verify_sub` within
-  `vsBoundAt Count.vsWordsOs vkBound` words at its announced stack log and rate
-  (`vsCompleteHyp_fs`, `verifySubGoalsTB_of`).
+  **The guest is complete within the deployed budget**, from `main`'s completeness with every node exact
+  (`mainCompletePE_deployed`, `mainExactHyp`), its pops and exactness forgotten.
 -/
 
 module
 
-public import LeanVM.Guest.Budget.DeployedBudget
-public import LeanVM.Guest.Count.VsWordsOs
-public import LeanVM.Guest.B1.Main.VerifySubGoals
-public import LeanVM.Guest.B1.VerifySub.CompleteHyp
-public import LeanVM.Guest.B2C.RunsConsec
+public import LeanVM.Guest.Budget.MainExact
+public import LeanVM.Guest.Budget.Fits
 
 namespace LeanVM.Guest.Budget
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Guest.Completeness
 open LeanVM.Node
-open LeanVM.Guest.End (GuestCompleteWithin bytecode bytecode_length)
-open LeanVM.Guest.B1.Main (VerifySubGoalsTB childBv)
-open LeanVM.Guest.B1.VerifySub (vsBoundAt vsTsAny vkBound)
+open LeanVM.Guest.End (GuestCompleteWithin bytecode)
+open LeanVM.Guest.B1.VerifySub (vsBoundAt vkBound)
 
 @[expose] public section
-
-/-- **Child `c`'s `verify_sub` tree at the deployed instance**: its stack log among
-`open_stacked`'s arms, `20` to `30`, its callees calls of their names within their bounds at the
-child's announced stack log and rate (`vsTsAny`). -/
-def deployedVsT (w : NodeWitness) (c : ℕ) (t : Tree) : Prop :=
-  ∀ hc : c < w.children.length,
-    (childShape bytecode w.children[c]).1 - B1.Whir.minOpenLog < B1.Whir.openArms ∧
-      (20 ≤ (childShape bytecode w.children[c]).1 ∧ (childShape bytecode w.children[c]).1 ≤ 30 ∧
-        vsTsAny B2C.fs Count.vsWordsOs vkBound (childShape bytecode w.children[c]).1
-          (childShape bytecode w.children[c]).2 t)
-
-/-- **`verify_sub`'s completeness at the deployed instance**, in `VerifySubGoals`' form
-(`vsCompleteHyp_fs`), its tree also at a stack log in `[20, 30]` (`VsCompleteHyp.shape`). -/
-theorem vsCompleteHyp_deployed :
-    B1.Main.VsCompleteHyp bytecode B2C.fs B2C.cert 16
-      (fun μ r t => 20 ≤ μ ∧ μ ≤ 30 ∧ vsTsAny B2C.fs Count.vsWordsOs vkBound μ r t)
-      (vsBoundAt Count.vsWordsOs vkBound) :=
-  let h := B1.VerifySub.vsCompleteHyp_fs bytecode_length B2C.runsFit B2C.runsConsec Count.vsWordsOs
-  { complete := fun seed c sqE outE Lin hok hexp hout =>
-      (h.complete seed c sqE outE Lin hok hexp hout).mono le_rfl
-        fun _ ht => ⟨(h.shape seed c hok).1, (h.shape seed c hok).2.1, ht⟩
-    shape := h.shape }
-
-/-- **Each child's `verify_sub` call at the deployed instance**, within `vsBoundAt
-Count.vsWordsOs vkBound` at its announced stack log and rate, by a tree of `deployedVsT`. -/
-theorem verifySubGoals_deployed {seed : LeanVM.Protocol.Digest}
-    {s : NodeStatement} {w : NodeWitness}
-    (hr : NodeRelation bytecode seed s w) (hok : ChildrenOk bytecode seed w) :
-    VerifySubGoalsTB B2C.fs B2C.cert 0 seed s w (deployedVsT w)
-      (childBv (vsBoundAt Count.vsWordsOs vkBound) w) :=
-  B1.Main.verifySubGoalsTB_of bytecode_length vsCompleteHyp_deployed hr hok
 
 /-- **The aggregation guest is complete within the deployed budget**: for
 every seed, statement and witness with `NodeRelation`, within the deployed limits, the caps
@@ -64,11 +28,24 @@ at its announced stack log and rate, and `vsCnt op` instructions of each opcode 
 (`vs_weight_le_deployed`). -/
 theorem guest_complete :
     GuestCompleteWithin (deployedBudget (vsBoundAt Count.vsWordsOs vkBound)) :=
-  guest_complete_deployed (Pvs := deployedVsT)
-    (fun _ _ _ hr _ hok => verifySubGoals_deployed hr hok)
-    fun op _ _ hc _ _ _ _ hP hv hb => by
-      obtain ⟨-, h20, h30, d, hd, hF⟩ := hP hc
-      exact vs_weight_le_deployed op h20 h30 hd hF hv hb
+  B2C.guest_complete_b2c (mainCompletePE_deployed mainExactHyp).toP.toMain
+
+/-- **The aggregation guest is complete within the deployed budget**, `verify_sub`'s words for a
+child of announced stack log `μ` and rate `r` `deployedBvAt μ r`: the budget's words
+`Count.deployedWords deployedBvAt`, its instructions `Count.deployedInstrs op`. -/
+theorem guest_complete_numeric : GuestCompleteWithin (deployedBudget deployedBvAt) :=
+  guestComplete_mono guest_complete fun _ _ w _ _ hok => deployedBudget_size_mono _
+    fun p hp => by
+      obtain ⟨ch, hch, rfl⟩ :=
+        List.mem_map.mp (show p ∈ w.children.map (childShape bytecode) from hp)
+      obtain ⟨h1, h2, h3, h4⟩ := B1.Main.childShape_bounds End.bytecode_length hok hch
+      exact (vsBoundAt_eq_deployedBvAt h1 h2 h3 h4).le
+
+/-- **Every node within the deployed limits has a valid execution of the guest**
+(`GuestCompleteOnAcceptableChildren`). -/
+theorem guest_complete_on_acceptable_children : GuestCompleteOnAcceptableChildren :=
+  fun seed s w hrel hlim hok ↦
+    guest_complete_numeric seed s w hrel (GuestLimits.of_limits hlim) hok (size_le hlim)
 
 end
 end LeanVM.Guest.Budget

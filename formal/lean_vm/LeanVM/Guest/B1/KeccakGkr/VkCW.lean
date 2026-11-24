@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.VkCW
 
-  `verify_keccak` complete, placed, within a bound (`verify_keccak_completeAtB_fs`).
+  `verify_keccak` complete, placed, within a bound.
 -/
 
 module
@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.KeccakGkr.VkKidsBW
 # `verify_keccak` within its words
 
 `VkCompleteAtBK fs cert κ Bvk`: `verify_keccak`'s completeness (`VkCV`) by trees of at most `Bvk` words.
-`verify_keccak_completeAtB_fs`: it holds at the deployed frame sizes `B2C.fs` with
+At the deployed frame sizes `B2C.fs` the bound is
 `vkBound = B2C.fs "verify_keccak" + 440 + 52659`: the frame, the seven buffers (`τ + 412`
 words, `τ ≤ 28`) and the callees (`kidsB_fs_le`), by `completeAt_flatGB` on the same
 obligations as the unbounded form (`vk_obl`).
@@ -56,31 +56,6 @@ variable {cert : String → V → ℕ}
 
 open VkData in
 set_option maxRecDepth 20000 in
-/-- **`verify_keccak` is complete, placed, within `vkBound` words at `B2C.fs`.** -/
-theorem verify_keccak_completeAtB_fs {κ : ℕ} (hκ : 11 ≤ κ) :
-    VkCompleteAtBK LeanVM.Guest.B2C.fs cert κ vkBound := by
-  intro τ f chis outs xs op point slices word s' curE chiE olE zvE slE tbE stE hτ1 hτ2 hchis houts
-    hf hc hrun
-  obtain ⟨D, rfl, rfl, rfl, rfl, rfl, rfl, h, rfl, rfl, rfl, rfl⟩ :=
-    vkData_of_run hτ1 hτ2 hchis houts hf hc hrun
-  refine CompleteAtB.mono (completeAt_flatGB (fs := LeanVM.Guest.B2C.fs) (cert := cert) find_vk
-    vk_loop κ (D.lin curE chiE olE zvE slE tbE) (D.args curE chiE olE zvE slE tbE stE)
-    (capOf D.sF.perm ++ [ptr curE * gen ^ D.xs.length, D.word]) (vk_body.trans vkT_pre)
-    vkPre_kernel.1 vkPre_kernel.2.1 vk_noLoadIte D.sizes
-    (fun fp fps ↦ D.own (fp + LeanVM.Guest.B2C.fs "verify_keccak") (D.lsOf LeanVM.Guest.B2C.fs fps))
-    (fun fp fps ↦ own_fit h _ _)
-    (fun fp ↦ D.kids LeanVM.Guest.B2C.fs (fp + LeanVM.Guest.B2C.fs "verify_keccak") curE chiE olE
-      zvE slE tbE stE)
-    (D.kidsB LeanVM.Guest.B2C.fs 17 374 77 201 145) 52659
-    (fun fp ↦ kids_completeB_fs h hκ _ curE chiE olE zvE slE tbE stE)
-    (fun fp ↦ (kids_boundB _ curE chiE olE zvE slE tbE stE 17 374 77 201 145).trans (kidsB_fs_le h).2)
-    (fun fp fps outs hlen _ hout rd _ hB hLin hto ↦
-      vk_obl h curE chiE olE zvE slE tbE stE fp fps outs hlen hout rd hB hLin hto)) le_rfl ?_
-  show _ ≤ LeanVM.Guest.B2C.fs "verify_keccak" + 440 + 52659
-  rw [sizes_sum h]
-  have := h.2.1
-  generalize LeanVM.Guest.B2C.fs "verify_keccak" = a
-  omega
 
 end
 end LeanVM.Guest.B1.VerifySub

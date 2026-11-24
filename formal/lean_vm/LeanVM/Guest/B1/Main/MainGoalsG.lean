@@ -25,8 +25,7 @@ honest words `hLmain`:
   slot `(slotsOf p)[i]` of its region (`plan_raw`), whose coverage word is `g` to its mark
   (`hMarkX_raw`, `hMarkS_raw`) and whose table entry is its claim, the regions below `2^23`
   (`regions_lt`);
-* `checked_da`: the checked DA claim's witness opens it, `da_verify`'s returns its cells (its
-  completeness is `MainGoalsDvTB.mainGoalDvTB`).
+* `checked_da`: the checked DA claim's witness opens it, `da_verify`'s returns its cells.
 -/
 
 namespace LeanVM.Guest.B1.Main

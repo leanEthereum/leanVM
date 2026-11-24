@@ -256,7 +256,6 @@ LeanVM/Guest/B1/Place/LpProof.lean level_positions__L
 LeanVM/Guest/B1/Place/LqProof.lean level_queries__L
 LeanVM/Guest/B1/Place/OsQPlace.lean@sqEb decode_query_windows__L
 LeanVM/Guest/B1/Place/OsQPlace.lean@sqGroupRuns_mem decode_query_windows__L
-LeanVM/Guest/B1/Place/LqExact.lean level_queries__L
 LeanVM/Guest/B1/Place/LqProofP.lean level_queries__L
 LeanVM/Guest/B1/Place/LrLoops.lean@lrLoop1_iter level_residual__L_loop0
 LeanVM/Guest/B1/Place/LrLoops.lean@lrLoop2_iter level_residual__L_loop1
@@ -532,7 +531,6 @@ LeanVM/Guest/B1/Place/SqAt.lean@sqDecArgs level_positions__L_loop0
 LeanVM/Guest/B1/Place/SqAt.lean@sqLoopPre_loadsEq level_positions__L_loop0
 LeanVM/Guest/B1/Place/SqAt.lean@sqLoopPre_loads level_positions__L_loop0
 LeanVM/Guest/B1/Place/SqAt.lean@SqIterC level_positions__L_loop0
-LeanVM/Guest/B1/Place/SqAt.lean@sqLoop_iter level_positions__L_loop0
 LeanVM/Guest/B1/Place/SqAtE.lean@sqLoop_iterE level_positions__L_loop0
 LeanVM/Guest/B1/Main/HintsX.lean@dupPre main_loop0,main_loop1
 LeanVM/Guest/B1/Main/HintsX.lean@dupStep main_loop0,main_loop1

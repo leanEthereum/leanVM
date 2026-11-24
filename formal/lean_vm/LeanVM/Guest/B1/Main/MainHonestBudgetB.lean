@@ -1,10 +1,8 @@
 /-
   LeanVM.Guest.B1.Main.MainHonestBudgetB
 
-  **`main`'s completeness on a node's honest run within its words** (G7's budget): `main` at `fp`
-  within `Bmain`, an explicit function of the statement, the witness, the static bounds and
-  `verify_sub`'s bound, before any memory; its non-static callees' trees of honest shape and within
-  their bounds.
+  `main`'s words on a node's honest run (G7's budget), `Bmain`: an explicit function of the statement, the witness,
+  the static bounds and `verify_sub`'s bound.
 -/
 
 module
@@ -13,7 +11,9 @@ public import LeanVM.Guest.B1.Main.MainHonestB
 public import LeanVM.Guest.B1.Main.MainHonestBudget
 public import LeanVM.Guest.B1.Main.MainGoalsClTB
 public import LeanVM.Guest.B1.Main.MainGoalsHClTBP
-public import LeanVM.Guest.B1.Main.MainGoalsDvTB
+public import LeanVM.Guest.B1.Main.MainGoalsDvT
+public import LeanVM.Guest.B1.Main.MainCoverLemmas
+public import LeanVM.Guest.B1.Da.DvBound
 public import LeanVM.Guest.B1.Main.MainGoalsHAgTB
 public import LeanVM.Guest.B1.Main.L5R
 public import LeanVM.Guest.AcceptableChild
@@ -26,9 +26,8 @@ public import LeanVM.Guest.Data.NameStrings
 (G7-cnt's certificates): `SB g` bounds every valid tree of a static callee `g`
 (`TotalLe`), a static loop helper `g`'s run `iterK fs SK g` words per iteration and its phantom
 frame `fs g` once (`TotalLeOn … LoopPre`).
-`mainBsH`: the non-static callees' bounds (`clB`, `hDvB`, `aggB`, `l5B` with `ccBM`), `Bmain`:
-`main`'s, `mainBH` at those. `main_honest_budgetB`: `main` within `Bmain`, its callees' trees
-`mainPredsH`, each non-static one within its bound (`MainPreds.withTotal`).
+`hDvB`: `da_verify`'s bound at the directly held DA claim's witness. `mainBsH`: the non-static callees' bounds
+(`clB`, `hDvB`, `aggB`, `l5B` with `ccBM`), `Bmain`: `main`'s, `mainBH` at those.
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -62,6 +61,10 @@ structure MainStatics (fs : String → ℕ) (SB SK : String → ℕ) : Prop wher
         name% «aggregate_claims_loop2»)
   bs : TotalLe coreProgram fs "batch_sumcheck__L23" (fun _ => SB "batch_sumcheck__L23")
 
+/-- **`da_verify`'s words bound on the checked DA claim's witness.** -/
+def hDvB (fs : String → ℕ) (SB SK : String → ℕ) (w : NodeWitness) : ℕ :=
+  (w.daMatrix.map fun p => Da.dvB fs SB SK p.2.rows.length (Da.wLog p.2)).getD 0
+
 /-- **The bounds of `main`'s non-static callees** on the honest run: its claim lists' digests
 (`clB`), `da_verify` (`hDvB`), `aggregate_claims` (`aggB`), the children's loop (`l5B`, each
 child's claim lists' digests within `ccBM`, child `c`'s `verify_sub` within `Bv c`). -/
@@ -77,51 +80,6 @@ other callee's bound (`mBs`, `kidsBoundL` over `mKids`). -/
 def Bmain (fs : String → ℕ) (SB SK : String → ℕ) (Bv : ℕ → ℕ) (fp : ℕ) (seed : Digest) (s : NodeStatement)
     (w : NodeWitness) : ℕ :=
   mainBH fs SB SK (hData seed s w) (hm fs fp seed s w) (hLmain fs fp seed s w) (mainBsH fs SB SK Bv s w)
-
-variable {fs : String → ℕ} {cert : String → V → ℕ} {fp : ℕ} {seed : Digest} {s : NodeStatement}
-  {w : NodeWitness} {bytecode : List K}
-
-/-- **`main`'s non-static callees on the honest run within their bounds, by trees of honest
-shape**. -/
-theorem mainGoalsTB_honest {SB SK : String → ℕ} {Pvs : ℕ → Tree → Prop} {Bv : ℕ → ℕ}
-    (hbl : bytecode.length = 2 ^ 23) (hr : NodeRelation bytecode seed s w) (hl : GuestLimits s w)
-    (hrf : Lift.RunsFit fs cert) (hS : MainStatics fs SB SK)
-    (hV : VerifySubGoalsTB fs cert fp seed s w Pvs Bv) :
-    MainGoalsTB fs cert fp seed s w (mainPredsH s w (hDvNH w) Pvs) (mainBsH fs SB SK Bv s w) :=
-  ⟨mainGoalClXTB fs cert fp seed s w hl hS.ls hS.l15 hS.l16 hS.cl,
-    mainGoalClSTB fs cert fp seed s w hl hS.ls hS.l15 hS.l16 hS.cl,
-    mainGoalDvTB fs cert fp hr hrf hS.dv,
-    mainGoalAgTB fs fp cert SB SK hS.l25 hS.l26 hS.l27 hS.bs hbl hr hl,
-    mainGoalL5TB fs cert SB hS.main.st hbl hr hl hV (childListGoalsTB_honest cert hl hS.ls)⟩
-
-/-- **`main`'s completeness on the honest run within its words**: for `NodeRelation` within `Limits`
-and a bytecode of `2^23` words, from the signature schemes' completeness (B1-e), the frame runs'
-certificate facts, the static bounds (`MainStatics`), and child `c`'s `verify_sub` within `Bv c` by a
-tree satisfying `Pvs c` (B1-d): a size `n ≤ Bmain` and a layout `L` within `[fp, fp + n)`, above
-`main`'s frame, pairwise disjoint, containing `main`'s honest words; on every memory holding `L`
-and the statement's digest at words `0`, `1`, `main` holds at `fp` by its node at its honest
-values, its walk's calls and buffers, its callees' trees satisfying `mainPredsH` and, the
-non-static ones, within their bounds. -/
-theorem main_honest_budgetB {SB SK : String → ℕ} {Pvs : ℕ → Tree → Prop} {Bv : ℕ → ℕ}
-    (hbl : bytecode.length = 2 ^ 23) (hr : NodeRelation bytecode seed s w) (hl : GuestLimits s w)
-    (hxc : Sig.verify_lean_xmss_complete_Spec)
-    (hsc : Sig.SphincsCompleteSpecs) (hrf : Lift.RunsFit fs cert)
-    (hS : MainStatics fs SB SK)
-    (hV : VerifySubGoalsTB fs cert fp seed s w Pvs Bv) :
-    ∃ (n : ℕ) (L : B1.Main.Layout), n ≤ Bmain fs SB SK Bv fp seed s w ∧
-      Within L fp n ∧ (∀ q ∈ L, fp + fs "main" ≤ q.1) ∧ DisjL L ∧
-      (∀ q ∈ hLmain fs fp seed s w, q ∈ L) ∧
-      ∀ rd, LowDef 23 rd → B1.Main.MemL rd L →
-        LoadHolds rd 1 0 (digestHalves (statementDigest seed s)).1 →
-        LoadHolds rd gen 0 (digestHalves (statementDigest seed s)).2 →
-        RelAtInT coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp n "main" [] []
-          (fun t => ∃ σ bufs ks, t = .node "main" σ bufs ks ∧ MVals rd σ (hm fs fp seed s w) ∧
-            KidsT (mCalls σ (hm fs fp seed s w))
-              ((fun _ => True) :: mTs (hm fs fp seed s w)
-                ((mainPredsH s w (hDvNH w) Pvs).withTotal fs (mainBsH fs SB SK Bv s w))) ks ∧
-            calls (mEvs σ) = mCalls σ (hm fs fp seed s w) ∧ bufs = mSizes (hData seed s w)) :=
-  main_honest_relAtInTB hbl hr hl (mainStaticGoalsB_of hbl hr hl hxc hsc hS.main)
-    (mainGoalsTB_honest hbl hr hl hrf hS hV).withTotal
 
 end
 end LeanVM.Guest.B1.Main

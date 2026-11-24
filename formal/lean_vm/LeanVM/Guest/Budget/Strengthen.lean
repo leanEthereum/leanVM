@@ -30,15 +30,5 @@ theorem CompleteAtDT.and_valid_on {k : ℕ} {f : String} {Lin : Layout} {args : 
     let ⟨t, ⟨hn, hv, hb, hrest⟩, hT⟩ := hr rd hl hm
     ⟨t, ⟨hn, hv, hb, hrest⟩, hT, hQ rd hl (Main.memL_append.mp hm).2 t rets hn hv hb⟩⟩
 
-/-- `CompleteAtD` by a tree with a property of every valid tree on the memories it runs on. -/
-theorem CompleteAtD.toT_on {k : ℕ} {f : String} {Lin : Layout} {args : List E}
-    {Out : List E → Layout → Prop} {Q : Tree → Prop} (h : CompleteAtD fs cert k f Lin args Out)
-    (hQ : ∀ (rd : Reader), LowDef k rd → MemL rd Lin → ∀ (t : Tree) (rets : List E), t.name = f →
-      t.Valid coreProgram rd args rets → t.BufsOk coreProgram → Q t) :
-    CompleteAtDT fs cert k f Lin args Out Q := fun fp =>
-  let ⟨n, Lown, rets, Lout, ho, hw, hd, hr⟩ := (h.toT.and_valid_on hQ) fp
-  ⟨n, Lown, rets, Lout, ho, hw, hd, fun rd hl hm =>
-    let ⟨t, ht, hT⟩ := hr rd hl hm
-    ⟨t, ht, hT.2⟩⟩
 end
 end LeanVM.Guest.B1

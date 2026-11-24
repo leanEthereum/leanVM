@@ -27,7 +27,7 @@ callees' (`Da.dvWit`), a child proof by `piOf` off `verify_sub`'s (B1-d), the ba
 under any call relation `C` that unfolds at `V` and lies below `coreProgram.Rel`, a run of
 `main`'s body gives the statement of the public input's digest, held by `decWitV σ rd V piOf`.
 `main_sound_V_of_sub`: it holds given `SubSoundW bytecode piOf`, `verify_sub`'s statement with its
-proof named by `piOf` (the form B1-d's `verify_sub_sound_w_Spec` takes): `SoundVX`'s
+proof named by `piOf` (the form B1-d's `verify_sub_sound_w` takes): `SoundVX`'s
 `main_sound_VX` at the leanXMSS segment's proof (`Sig.verify_lean_xmss_sound_holds`).
 -/
 

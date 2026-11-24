@@ -10,7 +10,8 @@
 module
 
 public import LeanVM.Guest.B1.Main.MainPopsSR
-public import LeanVM.Guest.B1.Main.MainGoalsDvTB
+public import LeanVM.Guest.B1.Main.MainGoalsDvT
+public import LeanVM.Guest.B1.Main.MainCoverLemmas
 public import LeanVM.Guest.B1.Main.MainGoalsHAgTB
 public import LeanVM.Guest.B1.Da.DvAtP
 
@@ -18,8 +19,10 @@ public import LeanVM.Guest.B1.Da.DvAtP
 # `da_verify` and `aggregate_claims`, route R
 
 * `CompleteAtDTBR.with_total`: the tree's words within the bound, in the predicate;
-* `mainGoalDvTBP`: `mainGoalDvTB` by trees whose valid instances pop `daPopsH w` (`Da.da_verify_completeAtTBP`);
-* `mainGoalAgTBR`: `mainGoalAgTB` by trees popping the batching's hints (`mainGoalAgTBRE`);
+* `mainGoalDvTBP`: `da_verify` on the honest run within `hDvB`, by trees of its honest shape whose valid instances pop
+  `daPopsH w` (`Da.da_verify_completeAtTBP`);
+* `mainGoalAgTBR`: `aggregate_claims` on the honest run within its bound, by trees popping the batching's hints
+  (`mainGoalAgTBRE`);
 * `mainGoalsRR_dv`, `mainGoalsRR_ag`: `MainGoalsRR`'s fields for them, `q` popping those entries;
 * `mainGoalsRR_agE`: the same with every node exact (`mainGoalAgTBRE`).
 -/

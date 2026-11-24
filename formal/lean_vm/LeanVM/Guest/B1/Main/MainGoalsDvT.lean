@@ -17,7 +17,7 @@ public import LeanVM.Guest.AcceptableChild
 # `da_verify` on an honest run, its honest shape
 
 `hDvNH w`: `da_verify`'s honest shape on the directly held DA claim's witness (no constraint
-without one). `MainGoalsDvTB.mainGoalDvTB`: `da_verify` complete by such a tree within a bound.
+without one).
 -/
 
 namespace LeanVM.Guest.B1.Main

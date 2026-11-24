@@ -18,7 +18,7 @@ public import LeanVM.Guest.Batch.Node
 
 `hOwn_lengths`: the honest buffers' lengths are `mSizes`, for a statement of the bytecode's
 shape (`Nat.log2 bytecode.length = 23`) and children whose fresh claims are at points of `23`
-coordinates; `hOwn_fit` the `Forall₂` `main_relAtIn` takes. `hData_bounds`: `MainBounds` under
+coordinates; `hOwn_fit` the `Forall₂` `main_relAtInT_core` takes. `hData_bounds`: `MainBounds` under
 `Limits`. `hW_total`: the running count after the last child is the coverage table's size.
 -/
 

@@ -17,7 +17,8 @@ import LeanVM.Guest.Data.ValNames.«level_positions__L_loop0»
 # The squeeze loop, placed and exact
 
 The loop helper's body has no hint (`sqLoopPre_hints`), so its paths pop nothing and are exact (`evs_noHint`); its
-decoders are exact by `QwDecodeAtDE`. `sqLoop_iterE`, `sqLoop_relAtInE`: `sqLoop_iter`, `sqLoop_relAtIn` by such trees.
+decoders are exact by `QwDecodeAtDE`. `sqLoop_iterE`: one iteration from its decoder's and
+its tail's placed relations; `sqLoop_relAtInE`: the loop, by such trees.
 -/
 
 namespace LeanVM.Guest.B1

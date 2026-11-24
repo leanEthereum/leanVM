@@ -116,8 +116,7 @@ def ChildWordsAt (rd : Reader) (cpi cfresh ccarried : E) (c : ℕ) (cc : ChildCl
 
 /-! ## What `main` asks of its callees with a witness -/
 
-/-- **What a `verify_sub` call establishes for the proof `π`** (B1-d's `verify_sub`;
-`VerifySub.MeaningVerifySub`): its first four cells hold a public input and a seed, its sixth
+/-- **What a `verify_sub` call establishes for the proof `π`** (B1-d's `verify_sub`): its first four cells hold a public input and a seed, its sixth
 argument the child proof's claim on the bytecode (`23` coordinates, then the value), and the
 deferring verifier accepts `π` for the public input under the seed. -/
 def VerifySubOut (bytecode : List K) (rd : Reader) (args : List E) (π : Proof) : Prop :=

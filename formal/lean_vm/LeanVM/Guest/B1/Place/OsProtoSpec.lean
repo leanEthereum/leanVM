@@ -51,9 +51,6 @@ configuration `c`:
   memories, `C` true on the helpers) and agreeing with `rd0` where the inline grinds' range checks
   read (`LowAgree`), returning `[tgt, PT, PT1, inn, res]`, allocating the buffers at their bases, the
   helpers' dispatches at their honest values (`OsHelperVals`), the inline grinds' windows exact (`WinEx`).
-
-`os_honest_Spec`: every accepting run of `whirOpen μ r target` from `⟨capOf S, []⟩` with openings
-agreeing in the caps has `OsHonestA` at the arm of `μ` and the rate `r`.
 -/
 
 namespace LeanVM.Guest.B1
@@ -349,18 +346,6 @@ structure OsHonestA (c : OsCfg) (args : List E) (cur tabs : E) (xs : List E) (tg
       BlkF C rd (Val.ofArgs args) 11 kEnd f (osBodyA c) (fun σ' ↦ OsOutA c b tabs tgt inn res own D σ' ∧
         ((osBodyA c).filterMap Stmt.callVarsS).map (·.map σ') = CV ∧ OsLoadsIn c b own cur tabs xs σ' ∧
         WinEx (osBodyA c) σ')
-
-/-- **The honest data of every accepting run** at its arm and rate. -/
-def os_honest_Spec : Prop :=
-  ∀ (μ r : ℕ), minOpenLog ≤ μ → μ ≤ 30 → 1 ≤ r → r ≤ 4 →
-    ∀ (S : KeccakState) (root : Digest) (target cur tabs : E) (xs : List E)
-      (os : List (List Opening)) (w : WhirEnd) (s' : Fs) (roots' : List (Digest × ℕ × ℕ)),
-      RunsWith (whirOpen μ r target) ⟨capOf S, []⟩ xs os [(root, stackShape μ r)] w s' roots' →
-      CapsAgree μ r target S xs os root →
-      Nonempty (OsHonestA (osCfgR (μ - minOpenLog) (r - 1))
-        (rateSel r :: capOf S ++ [target, (digestHalves root).1, (digestHalves root).2, cur, tabs])
-        cur tabs xs w.target w.inner w.residual (w.point ++ List.replicate (pointCap - μ) 0)
-        (w.point.map (1 + ·) ++ List.replicate (pointCap - μ) 1))
 
 end
 end LeanVM.Guest.B1

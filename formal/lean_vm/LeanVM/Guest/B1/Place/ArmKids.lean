@@ -22,8 +22,7 @@ public import LeanVM.Guest.B1.Place.Ls
 /-!
 # The callees, placed
 
-* `LpAtO`, `LqAtO`, `LrAtO`: the helpers' placed statements (`LpAtD`, `LqAtD`, `LrAtD`) at an
-  optional words bound; `lpAtO_of_D`, `lqAtO_of_D`, `lrAtO_of_D` at none.
+* `LrAtO`: `level_residual`'s placed statement (`LrAtD`) at an optional words bound; `lrAtO_of_D` at none.
 * `winW … l p`: level `l`'s slice of `query_win_ptrs`, its `level_positions` at `p` (the window
   pointers into its decoders' runs, `winPtrsA`); `runsS … l p`: those runs.
 * `osLvPops H l`: level `l`'s `level_queries` entries at the honest witness; `arm_lq_ok`: its
@@ -52,16 +51,6 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 variable {fs : String → ℕ} {cert : String → V → ℕ} {κ : ℕ}
 
 /-! ## The helpers' statements at an optional bound -/
-
-theorem lpAtO_of_D {name loop : String} {S d cd : ℕ} (h : LpAtD fs cert κ name loop S d cd) :
-    LpAtO fs cert κ name loop S d cd none := h
-
-theorem lqAtO_of_D {name : String} {q base folds leaf d cd mu nhs hbits fin : ℕ}
-    (h : LqAtD fs cert κ name q base folds leaf d cd mu nhs hbits fin) :
-    LqAtO fs cert κ name q base folds leaf d cd mu nhs hbits fin none :=
-  fun Lin lam lamInv ecoefs ehs epos eqp rounds hsv eb qs rows sibs capW flW r0 r1 h1 h2 h3 h4 h5 h6 ↦
-    (h Lin lam lamInv ecoefs ehs epos eqp rounds hsv eb qs rows sibs capW flW r0 r1 h1 h2 h3 h4 h5
-      h6).toO
 
 theorem lrAtO_of_D {name : String} {cols nhs hbits : ℕ} (h : LrAtD fs cert κ name cols nhs hbits) :
     LrAtO fs cert κ name cols nhs hbits none :=

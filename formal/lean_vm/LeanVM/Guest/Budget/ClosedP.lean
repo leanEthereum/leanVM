@@ -2,14 +2,18 @@
   LeanVM.Guest.Budget.ClosedP
 
   `main` within the deployed budget with its tree's pops (`MainCompleteP`), every family's pops instantiated:
-  each child's `verify_sub` popping its hints (`verify_sub_completeBTS`), its claim lists'
-  digests their slots' pushes.
+  each child's claim lists' digests popping their slots' pushes.
 -/
 
 module
 
-public import LeanVM.Guest.Budget.Closed
-public import LeanVM.Guest.B1.Whir.CRecHosP
+public import LeanVM.Guest.Budget.DeployedBudget
+public import LeanVM.Guest.Count.VsWordsOs
+public import LeanVM.Guest.B1.Main.VerifySubGoals
+public import LeanVM.Guest.B2C.RunsConsec
+public import LeanVM.Guest.B1.Whir.CRecHos
+public import LeanVM.Guest.B1.Place.ArmPops
+public import LeanVM.Guest.B1.Place.OsFinal
 public import LeanVM.Guest.B1.Main.L5RPops
 public import LeanVM.Guest.B1.Main.MainPopsSR
 public import LeanVM.Guest.B1.Main.MainGoalsClR
@@ -18,13 +22,33 @@ public import LeanVM.Guest.B1.Main.MainGoalsHClTBP
 /-!
 # `main` within the deployed budget, with its pops
 
-* `completeAtDTBR_lin_mono`: `completeAtDTB_lin_mono` by a predicate of the memory;
-* `vs_completeR`: `verify_sub` on a child `VsChildOk` holds of, at its announced stack log and rate, by a tree popping
-  its hints, stream by stream (`child_segments_steps`, `verify_sub_completeBTS`);
-* `verifySubGoalsTBR_deployed`: so for each child at the deployed instance (`VerifySubGoalsTBR`, `pvH`);
+* `deployedVsT`: child `c`'s `verify_sub` tree at the deployed instance, its stack log among `open_stacked`'s arms;
+* `completeAtDTBR_lin_mono`: a callee's bounded completeness reading fewer words holds reading more;
+* `pvH`: `verify_sub`'s honest entries for a child, its hints;
 * `mainPopsD`: `main`'s callees' honest entries; `ChildListPopsHyp`, `childListPopsHyp`: each child's claim lists'
   digests popping their slots' pushes.
 -/
+
+namespace LeanVM.Guest.Budget
+
+open LeanVM.Guest LeanVM.Guest.Memory LeanVM.Node
+open LeanVM.Guest.End (bytecode)
+open LeanVM.Guest.B1.VerifySub (vsTsAny vkBound)
+
+@[expose] public section
+
+/-- **Child `c`'s `verify_sub` tree at the deployed instance**: its stack log among
+`open_stacked`'s arms, `20` to `30`, its callees calls of their names within their bounds at the
+child's announced stack log and rate (`vsTsAny`). -/
+def deployedVsT (w : NodeWitness) (c : ℕ) (t : Tree) : Prop :=
+  ∀ hc : c < w.children.length,
+    (childShape bytecode w.children[c]).1 - B1.Whir.minOpenLog < B1.Whir.openArms ∧
+      (20 ≤ (childShape bytecode w.children[c]).1 ∧ (childShape bytecode w.children[c]).1 ≤ 30 ∧
+        vsTsAny B2C.fs Count.vsWordsOs vkBound (childShape bytecode w.children[c]).1
+          (childShape bytecode w.children[c]).2 t)
+
+end
+end LeanVM.Guest.Budget
 
 namespace LeanVM.Guest.B1.Main
 
@@ -38,7 +62,7 @@ open LeanVM.Guest.Budget (deployedVsT)
 
 @[expose] public section
 
-/-- **`completeAtDTB_lin_mono` by a predicate of the memory.** -/
+/-- A callee's bounded completeness reading fewer words holds reading more. -/
 theorem completeAtDTBR_lin_mono {fs : String → ℕ} {cert : String → V → ℕ} {κ : ℕ} {f : String}
     {Lin Lin' : Layout} {args : List E} {Out : List E → Layout → Prop} {T : Reader → Tree → Prop} {B : ℕ}
     (hm : ∀ rd, MemL rd Lin' → MemL rd Lin) (hr : ∀ i, RegionL Lin i → RegionL Lin' i)
@@ -50,87 +74,9 @@ theorem completeAtDTBR_lin_mono {fs : String → ℕ} {cert : String → V → �
     rw [memL_append] at hM ⊢; exact ⟨hM.1, hm rd hM.2⟩)
   exact ⟨t, ⟨hn', hv, hb, hp, ht, loadsIn_mono t _ hr hlo, hdd⟩, hT⟩
 
-/-- **`verify_sub` on a child `VsChildOk` holds of**, at its announced stack log (in `[20, 30]`) and rate, by a tree
-popping the child's hints, stream by stream. -/
-theorem vs_completeR {bc : List K} (hbl : bc.length = 2 ^ 23) {fs : String → ℕ} {cert : String → V → ℕ}
-    (hrf : Lift.RunsFit fs cert) (hcons : RunsConsec cert) (W : VsWordsOs fs)
-    {Bvk κ : ℕ} (hκ : 16 ≤ κ) (hvk : VkCompleteAtBK fs cert κ Bvk) (seed : Digest) (c : Child)
-    (sqE outE : ℕ) (Lin : Layout) (hok : VsChildOk bc seed c) (hexp : ∀ q ∈ vsExpLin sqE, q ∈ Lin)
-    (hout : (outE, DeferredBytecodeClaim.cells c.freshClaim) ∈ Lin) :
-    CompleteAtDTBR fs cert κ "verify_sub" Lin (vsArgs seed c sqE outE) (Returns [])
-      (fun rd t ↦ (20 ≤ (childShape bc c).1 ∧ (childShape bc c).1 ≤ 30 ∧
-        vsTsAny fs W Bvk (childShape bc c).1 (childShape bc c).2 t) ∧
-        SameStreams (t.pops coreProgram rd) (Hints.childHints bc seed c))
-      (vsBoundAt W Bvk (childShape bc c).1 (childShape bc c).2) := by
-  obtain ⟨S, hS⟩ := B1.VerifySub.child_segments_steps hbl seed c hok.1 hok.2.2.1 hok.2.2.2
-  rw [childShape_of S.hann]
-  exact (B1.VerifySub.verify_sub_completeBTS hbl hrf hcons W hκ hvk S hS hok.2.2.1 sqE outE Lin hok.2.1 hexp
-    hout).mono le_rfl fun _ _ h ↦ ⟨⟨S.hmu20, S.hmu30, h.1⟩, h.2⟩
-
 /-- `verify_sub`'s honest entries for child `c`: its hints. -/
 def pvH (bc : List K) (seed : Digest) (w : NodeWitness) (c : ℕ) : List Pop :=
   (w.children[c]?.map fun ch => Hints.childHints bc seed ch).getD []
-
-/-- **Each child's `verify_sub` call at the deployed instance**, within `vsBoundAt LeanVM.Guest.Count.vsWordsOs vkBound` at its
-announced stack log and rate, by a tree of `deployedVsT` popping its hints. -/
-theorem verifySubGoalsTBR_deployed {seed : Digest} {s : NodeStatement} {w : NodeWitness}
-    (hr : NodeRelation bytecode seed s w) (hok : ChildrenOk bytecode seed w) :
-    VerifySubGoalsTBR LeanVM.Guest.B2C.fs LeanVM.Guest.B2C.cert 0 seed s w
-      (fun rd c t ↦ deployedVsT w c t ∧ SameStreams (t.pops coreProgram rd) (pvH bytecode seed w c))
-      (childBv (vsBoundAt LeanVM.Guest.Count.vsWordsOs vkBound) w) := by
-  intro c hc
-  have hmem := List.getElem_mem hc
-  set e := etB LeanVM.Guest.B2C.fs (mK0 (hData seed s w) LeanVM.Guest.B2C.fs 0) with he
-  set outE := hP LeanVM.Guest.B2C.fs 0 seed s w 6 + 24 * c with hout
-  have h := vs_completeR bytecode_length LeanVM.Guest.B2C.runsFit LeanVM.Guest.B2C.runsConsec LeanVM.Guest.Count.vsWordsOs le_rfl
-    (B1.VerifySub.verify_keccak_completeAtB_fs (by omega)) seed w.children[c] e outE
-    (vsExpLin e ++ [(outE, DeferredBytecodeClaim.cells w.children[c].freshClaim)])
-    ⟨(hok _ hmem).stackLogAtLeastMinimum, (hok _ hmem).streamWithinCap,
-      (hok _ hmem).verifies, (hok _ hmem).capsAgree⟩
-    (fun q hq => List.mem_append_left _ hq) (List.mem_append_right _ (List.mem_singleton_self _))
-  have hB : vsBoundAt LeanVM.Guest.Count.vsWordsOs vkBound (childShape bytecode w.children[c]).1
-      (childShape bytecode w.children[c]).2 = childBv (vsBoundAt LeanVM.Guest.Count.vsWordsOs vkBound) w c := by
-    rw [childBv, List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_eq_getElem hc, Option.map_some,
-      Option.getD_some]
-  rw [hB] at h
-  replace h := h.mono (T' := fun rd t ↦ deployedVsT w c t ∧ SameStreams (t.pops coreProgram rd)
-      (pvH bytecode seed w c)) le_rfl fun rd t ht ↦ ⟨fun _ ↦ ⟨by
-        have := ht.1.1; have := ht.1.2.1; unfold B1.Whir.minOpenLog B1.Whir.openArms; omega, ht.1⟩, by
-      rw [pvH, List.getElem?_eq_getElem hc, Option.map_some, Option.getD_some]; exact ht.2⟩
-  have hbc := bytecode_length
-  have hlen : ∀ a ∈ w.children, (DeferredBytecodeClaim.cells a.freshClaim).length = 24 := fun a ha => by
-    simp [DeferredBytecodeClaim.cells, (kid_shapes hbc hr a ha).1, bytecodeVars]
-  have e1 : (hm LeanVM.Guest.B2C.fs 0 seed s w).et = ofK (addressOfIndex e) := gen_pow_eq_ofK _
-  have e3 : (hm LeanVM.Guest.B2C.fs 0 seed s w).a400 * gen ^ (24 * c) = ofK (addressOfIndex outE) := by
-    rw [hout, ← gen_pow_eq_ofK, pow_add]; rfl
-  show CompleteAtDTBR _ _ _ _ _ [_, _, _, _, (hm LeanVM.Guest.B2C.fs 0 seed s w).et, (hm LeanVM.Guest.B2C.fs 0 seed s w).a400 * gen ^ (24 * c)]
-    _ _ _
-  rw [e1, e3]
-  refine completeAtDTBR_lin_mono (fun rd hM q hq => ?_) (fun i hi => ?_) (h.lowMono (by norm_num))
-  · rcases List.mem_append.mp hq with hq | hq
-    · rw [etL_eq] at hq
-      exact hM q (List.mem_append_right _ hq)
-    · rw [List.mem_singleton] at hq
-      subst hq
-      have r7 := reads_hLmain LeanVM.Guest.B2C.fs 0 seed s w hM (i := 6) (by omega)
-      simp only [hOwn, List.getD_cons_succ, List.getD_cons_zero] at r7
-      have := B1.Main.readsAt_flatMap_of w.children hlen r7 c hc
-      rw [← gen_pow_eq_ofK, pow_add]
-      exact this
-  · obtain ⟨q, hq, h1, h2⟩ := hi
-    rcases List.mem_append.mp hq with hq | hq
-    · rw [etL_eq] at hq
-      exact ⟨q, List.mem_append_right _ hq, h1, h2⟩
-    · rw [List.mem_singleton] at hq
-      subst hq
-      simp only [hlen _ hmem] at h2
-      have hk : 24 * c + (i - outE) < ((hOwn seed s w).getD 6 []).length := by
-        simp only [hOwn, List.getD_cons_succ, List.getD_cons_zero]
-        rw [length_flatMap_const _ _ 24 hlen]
-        have : c + 1 ≤ w.children.length := hc
-        omega
-      have := region_buf LeanVM.Guest.B2C.fs 0 seed s w (i := 6) (by omega) hk
-      rwa [show hP LeanVM.Guest.B2C.fs 0 seed s w 6 + (24 * c + (i - outE)) = i by omega] at this
 
 end
 end LeanVM.Guest.B1.Main
@@ -140,8 +86,7 @@ namespace LeanVM.Guest.Budget
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
 open LeanVM.Node LeanVM.Protocol LeanVM.Protocol.KeccakHash
 open LeanVM.Guest.End (bytecode bytecode_length)
-open LeanVM.Guest.B1.Main (VerifySubGoalsTBR ChildListGoalsTBR hKid hMonoX hMonoS xPlan sPlan MainPops pvH
-  verifySubGoalsTBR_deployed)
+open LeanVM.Guest.B1.Main (VerifySubGoalsTBR ChildListGoalsTBR hKid hMonoX hMonoS xPlan sPlan MainPops pvH)
 open LeanVM.Guest.B1.VerifySub (vsBoundAt vkBound)
 
 @[expose] public section

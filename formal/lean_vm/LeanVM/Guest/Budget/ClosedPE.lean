@@ -38,7 +38,7 @@ open LeanVM.Node LeanVM.Protocol LeanVM.Protocol.KeccakHash
 open LeanVM.Protocol.Verifier (gen)
 open LeanVM.Guest.End (bytecode bytecode_length)
 open LeanVM.Guest.B1.Main (VerifySubGoalsTBR ChildListGoalsTBR hKid hMonoX hMonoS xPlan sPlan MainPops pvH
-  verifySubGoalsTBR_deployed)
+  verifySubGoalsTBR_deployedE)
 open LeanVM.Guest.B1.VerifySub (vsBoundAt vkBound)
 
 @[expose] public section
@@ -109,7 +109,7 @@ theorem mainExactHyp_of_l5 (h : MainExactHypL5) : MainExactHyp := fun seed s w h
     l4 := B1.Main.mainGoalsRE_l4 hr hl Count.mainStatics.main fun _ => rfl
     l5 := h seed s w hr hl hok }
 
-/-- **Each child's `verify_sub` call at the deployed instance, every node exact**: `verifySubGoalsTBR_deployed`'s trees
+/-- **Each child's `verify_sub` call at the deployed instance, every node exact**: `verifySubGoalsTBR_deployedE`'s trees
 also exact on the memory. -/
 def VsExactHyp : Prop :=
   ∀ seed s w, NodeRelation bytecode seed s w → ChildrenOk bytecode seed w →

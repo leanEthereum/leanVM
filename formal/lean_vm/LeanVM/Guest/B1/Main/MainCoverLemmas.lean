@@ -19,17 +19,14 @@ public import LeanVM.Guest.AcceptableChild
 # Reading `main`'s honest words
 
 * `idxOf_slot`: the slots are taken once each, so the taker of slot `(slotsOf p)[k]` is `k`;
-* `hMarkX_raw` … `hMarkS_child`: the marks of the raw claims and of child `c`'s
-  claim `j` (`hW c + j`, after the child's leanXMSS claims for leanSPHINCS);
+* `hMarkX_raw`, `hMarkS_raw`: the marks of the raw claims;
 * `hCover_x`, `hCover_s`: the coverage table's word at each region's slot `t` (the leanSPHINCS
   region after the leanXMSS one); `hCover_takerX`, `hCover_takerS`: at the slot of taker `k`, `g`
   to `k`'s mark;
 * `claimCells_eq`: a claim's four cells are `cellOf128` of its key's root and parameter and its
   message's halves;
-* on `hLmain` (`hPos i`: `main`'s buffer `i`'s first word): `coverX_load` … (any taker),
-  `coverX_child` … (child `c`'s claim `j`: its slot's word `g` to its mark, the table's entry
-  there its claim), `tableX_claim`, `tableS_claim` (any slot), `bytes_hold`, and
-  the words' regions.
+* on `hLmain` (`hPos i`: `main`'s buffer `i`'s first word): `coverX_load`, `coverS_load` (any taker),
+  `tableX_claim`, `tableS_claim` (any slot), `bytes_hold`, and the words' regions.
 -/
 
 namespace LeanVM.Guest.B1.Main

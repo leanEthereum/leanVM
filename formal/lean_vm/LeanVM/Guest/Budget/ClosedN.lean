@@ -1,14 +1,14 @@
 /-
   LeanVM.Guest.Budget.ClosedN
 
-  The guest's completeness within the deployed budget with every number explicit: `verify_sub`'s
-  words per child at its announced stack log, at the guest's 11 opening arms (`deployedBvAt`: the
-  kernel's `Count.vsFixed` and the generated table `Count.osCs`, `Count.vsBoundAt_eq`).
+  The deployed budget with every number explicit: `verify_sub`'s words per child at its announced stack log, at the
+  guest's 11 opening arms (`deployedBvAt`: the kernel's `Count.vsFixed` and the generated table `Count.osCs`,
+  `Count.vsBoundAt_eq`), and completeness within a larger budget (`guestComplete_mono`).
 -/
 
 module
 
-public import LeanVM.Guest.Budget.Closed
+public import LeanVM.Guest.Budget.DeployedBudget
 public import LeanVM.Guest.Count.VsBound
 public import LeanVM.Guest.AcceptableChild
 public import LeanVM.Guest.KernelLit
@@ -54,17 +54,6 @@ theorem vsBoundAt_eq_deployedBvAt {μ r : ℕ} (h1 : 20 ≤ μ) (h2 : μ ≤ 30)
   rw [Count.vsBoundAt_eq h1 h2, Count.osC_getD (by omega)]
   unfold deployedBvAt
   rw [ite_eq_left ⟨h1, h2, h3, h4⟩]
-
-/-- **The aggregation guest is complete within the deployed budget**, `verify_sub`'s words for a
-child of announced stack log `μ` and rate `r` `deployedBvAt μ r`: the budget's words
-`Count.deployedWords deployedBvAt`, its instructions `Count.deployedInstrs op`. -/
-theorem guest_complete_numeric : GuestCompleteWithin (deployedBudget deployedBvAt) :=
-  guestComplete_mono guest_complete fun seed s w _ _ hok => deployedBudget_size_mono _
-    fun p hp => by
-      obtain ⟨ch, hch, rfl⟩ :=
-        List.mem_map.mp (show p ∈ w.children.map (childShape bytecode) from hp)
-      obtain ⟨h1, h2, h3, h4⟩ := B1.Main.childShape_bounds vsCompleteHyp_deployed hok hch
-      exact (vsBoundAt_eq_deployedBvAt h1 h2 h3 h4).le
 
 /-- The largest child's words. -/
 kernel_lit deployedBvMax : ℕ := Count.vsFixed + B1.lmax Count.osCs

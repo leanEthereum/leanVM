@@ -25,9 +25,7 @@ public import LeanVM.Guest.B1.Place.Ls
 complete placed at an optional words bound (`osBosAt`) by its node, from `arm_completeAtO`, the body's honest data `H`,
 the named callees (`kindD_holds`, or `kindDB` and `kindDBE` within `OsLeafBounds`), and the helpers
 (`level_positions_completeAtE`, `level_queries_completeAtOP`, `level_residual`'s statement, or `HelperBounds`;
-`level_residual_slow`'s statement);
-`open_stacked_completeAtO_of` with `H` from `os_honest_Spec`. `open_stacked_completeAtD_of`,
-`open_stacked_completeAtB_of`: the two statements of `Place/OsSpec`.
+`level_residual_slow`'s statement).
 -/
 
 namespace LeanVM.Guest.B1.Arm
@@ -228,49 +226,6 @@ theorem open_stacked_completeAtOT_of (hLR : level_residual_completeAt_Spec)
   refine ⟨n, Lown, rets, Lout, ho, hw, hd, fun B hB ↦ ?_, hr⟩
   obtain ⟨Bk, hBk, rfl⟩ := Option.mem_map.mp hB
   exact le_trans (hn _ (Option.mem_map.mpr ⟨Bk, hBk, rfl⟩)) (osBos_le_osBosAt fs Bk μ (by unfold ligNRates; omega))
-
-/-- **`open_stacked` is complete placed at an optional words bound.** -/
-theorem open_stacked_completeAtO_of (hH : os_honest_Spec) (hLR : level_residual_completeAt_Spec)
-    (hLS : level_residual_slow_completeAt_Spec)
-    {μ r : ℕ} (hμ1 : minOpenLog ≤ μ) (hμ2 : μ ≤ 30) (hr1 : 1 ≤ r) (hr4 : r ≤ 4)
-    (hrf : Lift.RunsFit fs cert) (hcons : RunsConsec cert) (hκ : 11 ≤ κ)
-    {Bd : Option (String → ℕ)} (hleaf : ∀ Bk ∈ Bd, OsLeafBounds fs Bk)
-    (hHB : ∀ Bk ∈ Bd, HelperBounds fs cert κ) (hfs : ∀ Bk ∈ Bd, ∀ f, fs f < 2 ^ 32)
-    (htl : ∀ Bk ∈ Bd, ∀ f, fs (tailKey f) ≤ fs f)
-    {S : KeccakState} {root : Digest} {target cur tabs : E} {xs : List E}
-    {os : List (List Opening)} {w : WhirEnd} {s' : Fs} {roots' : List (Digest × ℕ × ℕ)}
-    (hrun : RunsWith (whirOpen μ r target) ⟨capOf S, []⟩ xs os [(root, stackShape μ r)] w s' roots')
-    (hcaps : CapsAgree μ r target S xs os root)
-    {Lin : Layout} (hLin : ∀ rd, LowDef κ rd → MemL rd Lin → ReadsAt rd cur xs ∧ WinTabs rd tabs) :
-    CompleteAtO fs cert κ (openName μ) Lin
-      (rateSel r :: capOf S ++ [target, (digestHalves root).1, (digestHalves root).2, cur, tabs])
-      (OsOut μ w) (Bd.map fun Bk ↦ osBosAt fs Bk μ) := by
-  obtain ⟨H⟩ := hH μ r hμ1 hμ2 hr1 hr4 S root target cur tabs xs os w s' roots' hrun hcaps
-  obtain ⟨_, -, -, h⟩ := open_stacked_completeAtOT_of hLR hLS hμ2 hr1 hr4 hrf hcons hκ hleaf hHB hfs htl H hLin
-  exact h.toO
-
-/-- **`open_stacked` is complete placed at every stack log and rate**, given the body's honest
-data and `level_residual`'s and `level_residual_slow`'s placed statements. -/
-theorem open_stacked_completeAtD_of (hH : os_honest_Spec) (hLR : level_residual_completeAt_Spec)
-    (hLS : level_residual_slow_completeAt_Spec) : open_stacked_completeAtD_Spec := by
-  intro μ r hμ1 hμ2 hr1 hr4 fs cert κ hrf hcons hκ S root target cur tabs xs os w s' roots' hrun
-    hcaps Lin hLin
-  exact (open_stacked_completeAtO_of (Bd := none) hH hLR hLS hμ1 hμ2 hr1 hr4 hrf hcons hκ
-    (fun _ h ↦ absurd h (by simp)) (fun _ h ↦ absurd h (by simp)) (fun _ h ↦ absurd h (by simp))
-    (fun _ h ↦ absurd h (by simp)) hrun hcaps hLin).toD
-
-/-- **`open_stacked` is complete placed within `osBosAt` words**, given also the helpers within
-the bounds of their trees. -/
-theorem open_stacked_completeAtB_of (hH : os_honest_Spec) (hLR : level_residual_completeAt_Spec)
-    (hLS : level_residual_slow_completeAt_Spec)
-    (hHB : ∀ fs cert κ, Lift.RunsFit fs cert → RunsConsec cert → 11 ≤ κ → (∀ f, fs f < 2 ^ 32) →
-      HelperBounds fs cert κ) :
-    open_stacked_completeAtB_Spec := by
-  intro μ r hμ1 hμ2 hr1 hr4 fs cert κ Bnd hrf hcons hκ hleaf hfs htl S root target cur tabs xs os w s'
-    roots' hrun hcaps Lin hLin
-  exact (open_stacked_completeAtO_of (Bd := some Bnd) hH hLR hLS hμ1 hμ2 hr1 hr4 hrf hcons hκ
-    (fun _ h ↦ by cases h; exact hleaf) (fun _ _ ↦ hHB fs cert κ hrf hcons hκ hfs) (fun _ _ ↦ hfs)
-    (fun _ _ ↦ htl) hrun hcaps hLin).toB
 
 end
 end LeanVM.Guest.B1.Arm

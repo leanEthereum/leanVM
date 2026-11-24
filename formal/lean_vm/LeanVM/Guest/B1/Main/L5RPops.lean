@@ -22,8 +22,8 @@ import LeanVM.Guest.Data.ValNames.«main_loop4»
 * `L5From.mono`: the callees' predicates weakened;
 * `l5PopsH`: the children loop's honest entries, each child's `l5Seg` at its claim lists' `px c`, `ps c` and
   `verify_sub`'s `pv c`;
-* `mainGoalsRR_l5`: `MainGoalsRR.l5`, `q` popping `l5PopsH`; `mainSegs_kids`: `MainSegs.kids` for it, the claim lists
-  popping the child's slots' pushes and `verify_sub` its hints.
+* `mainSegs_kids`: `MainSegs.kids` for `q` popping `l5PopsH`, the claim lists popping the child's slots' pushes and
+  `verify_sub` its hints.
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -182,53 +182,6 @@ def l5PopsH (px ps pv : ℕ → List Pop) (s : NodeStatement) (w : NodeWitness) 
 
 variable {fs : String → ℕ} {cert : String → V → ℕ} {fp : ℕ} {seed : Digest} {s : NodeStatement}
   {w : NodeWitness} {bytecode : List K}
-
-/-- **`MainGoalsRR.l5`**: each child's claim lists by trees of honest shape popping `px c`, `ps c`, its `verify_sub`
-call by a tree of `Pvs c` popping `pv c` stream by stream, `q` popping `l5PopsH`. -/
-theorem mainGoalsRR_l5 (hbl : bytecode.length = 2 ^ 23) (hn : NodeRelation bytecode seed s w) (hl : GuestLimits s w)
-    {SB SK : String → ℕ} {Bv : ℕ → ℕ} {Pvs : ℕ → Tree → Prop} {q : MainPops} (hS : MainStatics fs SB SK)
-    {px ps pv : ℕ → List Pop}
-    (hV : VerifySubGoalsTBR fs cert fp seed s w
-      (fun rd c t => Pvs c t ∧ SameStreams (t.pops coreProgram rd) (pv c)) Bv)
-    (hX : ChildListGoalsTBR fs cert fp seed s w
-      (fun rd c t => ccHonest (hKid s w c).ex (hMonoX s w c) t ∧ t.pops coreProgram rd = px c)
-      (fun rd c t => ccHonest (hKid s w c).es (hMonoS s w c) t ∧ t.pops coreProgram rd = ps c)
-      (fun c => B1.Digest.ccBM fs SB (hMonoX s w c) (hKid s w c).ex)
-      (fun c => B1.Digest.ccBM fs SB (hMonoS s w c) (hKid s w c).es))
-    (hq : ∀ rd, q.p5 rd = l5PopsH px ps pv s w) : (hm fs fp seed s w).nc ≠ 0 →
-    CompleteAtDTBR fs cert 23 name% «main_loop4» (hLmain fs fp seed s w)
-      [1, gen ^ (hm fs fp seed s w).nc, (hm fs fp seed s w).a409, (hm fs fp seed s w).a77,
-        (hm fs fp seed s w).a117, gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd),
-        (hm fs fp seed s w).a80,
-        (hm fs fp seed s w).a117 * gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd),
-        gen ^ ((hm fs fp seed s w).nls + (hm fs fp seed s w).nsd),
-        (hm fs fp seed s w).a406, (hm fs fp seed s w).aDa,
-        (digestHalves (hm fs fp seed s w).seed).1, (digestHalves (hm fs fp seed s w).seed).2,
-        (hm fs fp seed s w).a394, (hm fs fp seed s w).et, (hm fs fp seed s w).a400] (Returns [])
-      (mainPredsHP fs SB SK Bv Pvs s w q).P5 (mainBsH fs SB SK Bv s w).B5 := by
-  intro h0
-  have hnc16 := hl.children_le_sixteen
-  have hk := fun c (hc : c < w.children.length) => kidOk cert hbl hn hl hV.goals
-    (((hX c hc).1.toDTB (T' := fun _ => True) fun _ _ _ => trivial).toDT.toD)
-    (((hX c hc).2.toDTB (T' := fun _ => True) fun _ _ _ => trivial).toDT.toD) hc
-  refine (mainGoalL5TBR fs cert SB hS.main.st hbl hn hl hV hX h0).with_total.monoM le_rfl
-    fun rd _ hM t rets hv ⟨hT, htot⟩ => ⟨⟨L5From.mono (fun _ _ h => h.1) (fun _ _ h => h.1) (fun _ _ h => h.1)
-      _ _ t hT, htot⟩, ?_⟩
-  rw [hq rd, l5PopsH]
-  have hv' : t.Valid coreProgram rd (gen ^ 0 :: [gen ^ (hm fs fp seed s w).nc, (hm fs fp seed s w).a409,
-      (hm fs fp seed s w).a77, (hm fs fp seed s w).a117, gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd),
-      (hm fs fp seed s w).a80,
-      (hm fs fp seed s w).a117 * gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd),
-      gen ^ ((hm fs fp seed s w).nls + (hm fs fp seed s w).nsd),
-      (hm fs fp seed s w).a406, (hm fs fp seed s w).aDa,
-      (digestHalves (hm fs fp seed s w).seed).1, (digestHalves (hm fs fp seed s w).seed).2,
-      (hm fs fp seed s w).a394, (hm fs fp seed s w).et, (hm fs fp seed s w).a400]) rets := by
-    rw [pow_zero]; exact hv
-  exact l5From_popsS (Cr := hP fs fp seed s w 7) (D := hP fs fp seed s w 4) (nk := w.children.length)
-    (defer := fun c => (hKid s w c).defer) (da := fun c => (hKid s w c).da)
-    (fun _ _ h => h.2) (fun _ _ h => h.2) (fun _ _ h => h.2) (by omega) rfl rfl rfl
-    (fun c hc => ⟨(hk c hc).defer_len, ((hk c hc).mem rd hM).2.2.2.2.2.2, ((hk c hc).mem rd hM).2.2.1,
-      ((hk c hc).mem rd hM).2.2.2.1⟩) _ 0 t rets (by omega) hv' hT
 
 /-- **`MainSegs.kids`**, `q` popping `l5PopsH` at the child's slots' pushes and its hints. -/
 theorem mainSegs_kids (hl : GuestLimits s w) {q : MainPops}

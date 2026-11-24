@@ -20,7 +20,7 @@ import all Statement.Data.AdviceHints
 /-!
 # The executor on the guest
 
-The chain: a node within the budget has a reference run (`ref_exists`, `EndExecRef.lean`); the
+The chain: a node within the budget has a reference run (`ref_exists`, `CoreMode/Fam/Ref.lean`); the
 executor run on the guest's advice (`honestAdvice`) follows it (`execute_complete_guest`, the
 invariant `guestInv` and its rule `inv_rule_of_specs`, each function's frame interface `FnSpec`, the
 core route's), so it returns a valid execution committing no
@@ -229,7 +229,7 @@ structure ExecGaps (Ks : List Mode.Cert) (Km : Mode.Cert) (E0 : Mode.Env) (X Pro
   mainExact : Budget.MainExactHyp
   /-- Each allocation hint's needs once its inputs are written, after the pc's hints before it: a
   reservation at the bump pointer, below `maxCells`, of the size the tree allocates there (the
-  allocation track: `AllocInv` in `X`, the compiler's reservation order). -/
+  allocation track: `YAlloc` in `X`, the compiler's reservation order). -/
   hintAlloc : ∀ r, r.Ok → ∀ C, Ctx.of guestProgram r.adv = .ok C → ∀ s, OnRun X r s → ∀ pre h post,
     (C.hints[s.pc]?).getD [] = pre ++ h :: post → ∀ s1, pre.foldlM (runHint C) s = .ok s1 →
     Moves (refMem r.img) s s1 → isAllocHint h = true → HintIn s1 h → HintOk C (refMem r.img) s1 h
@@ -337,7 +337,7 @@ theorem budget_of_limits {seed : Digest} {s : NodeStatement} {w : NodeWitness}
   (Budget.deployedBudget_size_mono (work s w) fun (p : ℕ × ℕ) hp ↦ by
     obtain ⟨ch, hch, rfl⟩ :=
       List.mem_map.mp (show p ∈ w.children.map (childShape bytecode) from hp)
-    obtain ⟨h1, h2, h3, h4⟩ := B1.Main.childShape_bounds Budget.vsCompleteHyp_deployed hok hch
+    obtain ⟨h1, h2, h3, h4⟩ := B1.Main.childShape_bounds End.bytecode_length hok hch
     exact (Budget.vsBoundAt_eq_deployedBvAt h1 h2 h3 h4).le).trans (Budget.size_le hlim)
 
 /-- **The guest's completeness in the random-permutation model, with the executor's execution**:

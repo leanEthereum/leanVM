@@ -388,18 +388,5 @@ theorem mainGoalL5TBR (SB : String → ℕ)
   rw [pow_zero, Nat.sub_zero] at h
   exact h
 
-/-- **`main`'s honest children loop is complete within `l5B`, its trees exposed** (`L5Hinted w Pvs`):
-`mainGoalL5TBR` with predicates independent of the memory. -/
-theorem mainGoalL5TB (SB : String → ℕ)
-    (hSD : TotalLe coreProgram fs "statement_digest" (fun _ => SB "statement_digest"))
-    {Bv Bxs Bss : ℕ → ℕ} {fp : ℕ} {seed : Digest} {s : NodeStatement} {w : NodeWitness}
-    {bytecode : List K} {Pxs Pss Pvs : ℕ → Tree → Prop} (hbl : bytecode.length = 2 ^ bytecodeVars)
-    (hrel : NodeRelation bytecode seed s w) (hl : GuestLimits s w)
-    (hV : VerifySubGoalsTB fs cert fp seed s w Pvs Bv)
-    (hX : ChildListGoalsTB fs cert fp seed s w Pxs Pss Bxs Bss) :
-    MainGoalL5TB fs cert fp seed s w (L5Hinted w Pxs Pss Pvs) (l5B fs SB Bxs Bss Bv w) :=
-  mainGoalL5TBR fs cert SB hSD (Pxs := fun _ => Pxs) (Pss := fun _ => Pss) (Pvs := fun _ => Pvs) hbl hrel hl
-    hV hX
-
 end
 end LeanVM.Guest.B1.Main

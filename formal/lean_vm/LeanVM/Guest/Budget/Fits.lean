@@ -2,7 +2,7 @@
   LeanVM.Guest.Budget.Fits
 
   The deployed limits' caps keep the deployed budget's size within `2^30` and the coverage table
-  below `2^23`, so the guest is complete on every node within them.
+  below `2^23`.
 -/
 
 module
@@ -26,8 +26,7 @@ raw signatures and the blob matrix's rows; the coverage table is `coverageSlots`
 (`B1.Main.planSlots_eq`), and the declared claims are at most it (`declared_le`, the
 sub-multisets). At the caps, the words are at most `2^26` and each opcode's instructions at most
 `2^instrLog op` (`words_le`, `instrs_le`), so the size is at most `2^30` (`size_le`) and the coverage
-table below `2^23` (`GuestLimits.of_limits`): `guest_complete_numeric` gives a valid execution within
-`2^30` (`guest_complete_on_acceptable_children`).
+table below `2^23` (`GuestLimits.of_limits`), what `guest_complete_on_acceptable_children` needs.
 -/
 
 namespace LeanVM.Guest.Budget
@@ -155,12 +154,6 @@ theorem _root_.LeanVM.Guest.GuestLimits.of_limits (hlim : DeployedLimits s w) : 
   ⟨hlim, by have := coverageSlots_le hlim; omega⟩
 
 end
-
-/-- **Every node within the deployed limits has a valid execution of the guest**
-(`GuestCompleteOnAcceptableChildren`). -/
-theorem guest_complete_on_acceptable_children : GuestCompleteOnAcceptableChildren :=
-  fun seed s w hrel hlim hok ↦
-    guest_complete_numeric seed s w hrel (GuestLimits.of_limits hlim) hok (size_le hlim)
 
 end
 end LeanVM.Guest.Budget

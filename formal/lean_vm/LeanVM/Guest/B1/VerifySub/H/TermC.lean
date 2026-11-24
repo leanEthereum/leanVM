@@ -23,8 +23,7 @@ public import LeanVM.Guest.B1.Terminal.TermWeight
 `ChildSegs.termPre`: on a memory holding `certify_placement`'s buffers, `open_stacked`'s points
 and the terminal's words (`termLin`), `TermPre` holds of the honest child.
 `ChildSegs.term_via`: the terminal callee, entered (`termOk`), is a call on those words and
-arguments, its precondition and regions holding. `ChildSegs.term_kidB`,
-`ChildSegs.term_kidBW`: it is complete within `termBound` (by a tree within its weights).
+arguments, its precondition and regions holding.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -261,36 +260,6 @@ theorem bus_point_le34 (hbl : bytecode.length = 2 ^ 23) : S.bus.point.length ≤
   rw [hbus]; show S.rG.2.1.length ≤ 34; omega
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
-
-/-- **The terminal on an honest child, entered, within `termBound`.** -/
-theorem term_kidB (hbl : bytecode.length = 2 ^ 23) {κ : ℕ} (hκ : 6 ≤ κ) (W : VsWordsOs fs)
-    (bs : List ℕ) (sqE : ℕ) (pv : List (List E × Main.Layout))
-    (ht : ((S.kids bs sqE).getD 13 noKid pv).taken = true) :
-    CompleteAtB fs cert κ ((S.kids bs sqE).getD 13 noKid pv).f
-      ((S.kids bs sqE).getD 13 noKid pv).Lin ((S.kids bs sqE).getD 13 noKid pv).args
-      ((S.kids bs sqE).getD 13 noKid pv).Out (termBound fs W.Beqc W.K15 W.Bcs W.Brs) :=
-  S.term_via hbl bs sqE pv ht (fun f L a O ↦ CompleteAtB fs cert κ f L a O
-    (termBound fs W.Beqc W.K15 W.Bcs W.Brs)) fun Lin B hpre hreg ↦
-    check_opening_terminal_completeAtB κ hκ B Lin (nc := S.nT) (by have := S.nT_le hbl; omega) rfl
-      (fun rd _ hm ↦ hpre rd hm) hreg (S.bus_point_le34 hbl) (S.fin hbl) W.hEqc W.hL15 W.hCsF
-      W.hrs
-
-/-- **The terminal on an honest child, entered, within `termBound` by a tree within its
-weights.** -/
-theorem term_kidBW (hbl : bytecode.length = 2 ^ 23) {κ : ℕ} (hκ : 6 ≤ κ) (W : VsWordsOs fs)
-    (bs : List ℕ) (sqE : ℕ) (pv : List (List E × Main.Layout))
-    (ht : ((S.kids bs sqE).getD 13 noKid pv).taken = true) :
-    CompleteAtDTB fs cert κ ((S.kids bs sqE).getD 13 noKid pv).f
-      ((S.kids bs sqE).getD 13 noKid pv).Lin ((S.kids bs sqE).getD 13 noKid pv).args
-      ((S.kids bs sqE).getD 13 noKid pv).Out
-      (fun t ↦ ∀ op, Budget.WeighsLe coreProgram (W.ωv op) (termWB W.toVsWords op) t)
-      (termBound fs W.Beqc W.K15 W.Bcs W.Brs) :=
-  S.term_via hbl bs sqE pv ht (fun f L a O ↦ CompleteAtDTB fs cert κ f L a O
-    (fun t ↦ ∀ op, Budget.WeighsLe coreProgram (W.ωv op) (termWB W.toVsWords op) t)
-    (termBound fs W.Beqc W.K15 W.Bcs W.Brs)) fun Lin B hpre hreg ↦
-    check_opening_terminal_completeAtBW κ hκ B Lin (nc := S.nT) (by have := S.nT_le hbl; omega) rfl
-      (fun rd _ hm ↦ hpre rd hm) hreg (S.bus_point_le34 hbl) (S.fin hbl) W.hEqc W.hL15 W.hCsF
-      W.hrs W.ωv W.Weqc W.W15 W.Wst W.Wcs W.Wrsw W.hEqcW W.hStW W.hCsW W.h15W W.hrswW
 
 end ChildSegs
 
