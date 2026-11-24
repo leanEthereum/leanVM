@@ -3054,6 +3054,14 @@ def winFixed : ℕ := 100
 /-- The windows (parts, groups of arms) a module of checks holds at most. -/
 def perFile : ℕ := 8
 
+/-- The checks a pack's module of completeness or sharing checks (`Pack/*/Cplw*`, `Shared*`) holds at most.
+Most are of small functions and take a fraction of a second, while each module costs the kernel several seconds to
+import, so these modules hold many more than `perFile`, up to `packCost` times the cost bound. -/
+def packPerFile : ℕ := 64
+
+/-- How many times the cost bound of a module of checks (`maxShared`, `CplK.modCost`) a pack's module holds. -/
+def packCost : ℕ := 4
+
 /-- The groups of arms of a split window (`splitOf`) a module checks. -/
 def groupsPerFile : ℕ := perFile
 
@@ -4050,11 +4058,12 @@ def files (I : Array FnInfo) (packs : List (String × List ℕ)) (special : ℕ 
     let items := js.flatMap fun j => match fpOf.get? j with
       | none => []
       | some fp => fp.costs.zipIdx.flatMap fun (cs, i) => cs.zipIdx.map fun (c, k) =>
-        (j, i, k, if CplK.heavyCost ≤ c || CplK.heavyFns.contains fp.name || bigSet j i then CplK.modCost else c)
+        (j, i, k, if CplK.heavyCost ≤ c || CplK.heavyFns.contains fp.name || bigSet j i then packCost * CplK.modCost
+          else c)
     let mut groups : Array (Array (ℕ × ℕ × ℕ)) := #[#[]]
     let mut size := 0
     for (j, i, k, c) in items do
-      if (size + c > CplK.modCost || (groups.back!).size ≥ perFile) && size > 0 then
+      if (size + c > packCost * CplK.modCost || (groups.back!).size ≥ packPerFile) && size > 0 then
         groups := groups.push #[]
         size := 0
       groups := groups.modify (groups.size - 1) (·.push (j, i, k))
@@ -4097,7 +4106,7 @@ def files (I : Array FnInfo) (packs : List (String × List ℕ)) (special : ℕ 
     let mut sgroups : Array (Array (ℕ × Option ℕ)) := #[#[]]
     size := 0
     for (j, w, l) in sitems do
-      if (size + l > maxShared || (sgroups.back!).size ≥ perFile) && size > 0 then
+      if (size + l > packCost * maxShared || (sgroups.back!).size ≥ packPerFile) && size > 0 then
         sgroups := sgroups.push #[]
         size := 0
       sgroups := sgroups.modify (sgroups.size - 1) (·.push (j, w))
