@@ -109,14 +109,6 @@ private theorem ofNat_eq_of_lt {w left right : Nat}
 private theorem hashDomainTag_lt (domain : HashDomain) : hashDomainTag domain < 2 ^ 5 := by
   cases domain <;> norm_num [hashDomainTag]
 
-private theorem leafIndex_lt_32 (leafIndex : LeafIndex) : leafIndex.val < 2 ^ 32 := by
-  change leafIndex.val < lifetime
-  exact leafIndex.isLt
-
-private theorem merkleNode_lt_32 (node : MerkleNode) : node.val < 2 ^ 32 := by
-  change node.val < lifetime
-  exact node.isLt
-
 theorem hashDomainFields_eq (domain : HashDomain) :
     hashDomainFields domain = tweakFields (hashDomainTag domain) (hashDomainNats domain).1
       (hashDomainNats domain).2.1 (hashDomainNats domain).2.2 := by
