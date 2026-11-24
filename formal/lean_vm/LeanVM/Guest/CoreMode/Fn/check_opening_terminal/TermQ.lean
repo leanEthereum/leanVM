@@ -57,7 +57,8 @@ theorem termFront_of_vs {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {C : C
   have hHL := VerifySub.tableHeights_length F.rowsN F.hrowsL
   have hctx := F.hctx
   obtain ⟨chis, hbpR, hgmu, -⟩ := hctx
-  have hbusL : F.bus.point.length = busDepth (Tables.layoutOf bytecode F.logMem F.rowsN) :=
+  have hbusL : F.bus.point.length =
+      LeanVM.Protocol.Verifier.busDepth (Tables.layoutOf bytecode F.logMem F.rowsN) :=
     Value.gen_pow_inj (by have := VerifySub.mem_size_le hκ L hbpR; omega) (by have := F.hdep34; omega)
       (hgmu.symm.trans F.h253)
   have hst := F.hst30
