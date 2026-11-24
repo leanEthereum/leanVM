@@ -47,8 +47,8 @@ theorem ofFnFrom_cost (hP : Includes P Auto.LeanVM.Cost.Rewrite.ofFnFrom.costDep
   intro i hi
   induction hk : n - i generalizing i with
   | zero =>
-    rw [Auto.LeanVM.Cost.Rewrite.ofFnFrom.costEq P hP f fVal hf i,
-      limbs_of_lt (by omega : i < 2 ^ 64), limbs_of_lt hn]
+    rw [Auto.LeanVM.Cost.Rewrite.ofFnFrom.costEq P hP f fVal hf i]
+    limbs
     simp only [show ¬i < n by omega, ↓reduceDIte]
     omega
   | succ k ih =>
@@ -56,7 +56,7 @@ theorem ofFnFrom_cost (hP : Includes P Auto.LeanVM.Cost.Rewrite.ofFnFrom.costDep
     simp only [show i < n by omega, ↓reduceDIte]
     have h1 := ih (i + 1) (by omega) (by omega)
     have h2 := hB ⟨i, by omega⟩
-    rw [limbs_of_lt (by omega : i < 2 ^ 64), limbs_of_lt hn, limbs_of_lt (by omega : i + 1 < 2 ^ 64)]
+    limbs
     simp only [max_self]
     nlinarith
 
@@ -69,7 +69,8 @@ theorem rangeLoop_cost (hP : Includes P Auto.List.range.loop.costDeps) :
   | zero => intro l _; rw [Auto.List.range.loop.costEq_zero P hP]
   | succ n ih =>
     intro l hn
-    rw [Auto.List.range.loop.costEq_succ P hP, limbs_of_lt hn]
+    rw [Auto.List.range.loop.costEq_succ P hP]
+    limbs
     have := ih (n :: l) (by omega)
     omega
 
@@ -97,8 +98,8 @@ theorem length_cost (hP : Includes P Auto.List.length.costDeps) {α : Type} [Mac
   | cons x l ih =>
     intro hl
     simp only [List.length_cons] at hl
-    rw [Auto.List.length.costEq_cons P hP, limbs_of_lt (by omega : l.length < 2 ^ 64),
-      limbs_of_lt (by omega : l.length + 1 < 2 ^ 64)]
+    rw [Auto.List.length.costEq_cons P hP]
+    limbs
     have := ih (by omega)
     simp only [List.length_cons]
     omega
@@ -275,7 +276,8 @@ theorem getInternal_cost (hP : Includes P Auto.List.get?Internal.costDeps) {α :
   | nil => intro k _; rw [Auto.List.get?Internal.costEq_nil P hP]; omega
   | cons x l ih =>
     intro k hk
-    rw [Auto.List.get?Internal.costEq_cons P hP, limbs_of_lt hk]
+    rw [Auto.List.get?Internal.costEq_cons P hP]
+    limbs
     cases k with
     | zero => simp only [List.length_cons, Nat.rec_zero]; omega
     | succ k =>
@@ -292,7 +294,8 @@ theorem getInternal_cost_idx (hP : Includes P Auto.List.«get?Internal».costDep
   | nil => intro k _; rw [Auto.List.«get?Internal».costEq_nil P hP]; omega
   | cons x l ih =>
     intro k hk
-    rw [Auto.List.«get?Internal».costEq_cons P hP, limbs_of_lt hk]
+    rw [Auto.List.«get?Internal».costEq_cons P hP]
+    limbs
     cases k with
     | zero => simp only [Nat.rec_zero]; omega
     | succ k =>
@@ -327,7 +330,8 @@ theorem take_cost (hP : Includes P Auto.List.take.costDeps) {α : Type} [Machine
   | zero => intro xs _; rw [Auto.List.take.costEq P hP]; simp [limbs_of_lt]
   | succ k ih =>
     intro xs hk
-    rw [Auto.List.take.costEq P hP, limbs_of_lt hk]
+    rw [Auto.List.take.costEq P hP]
+    limbs
     cases xs with
     | nil => dsimp only; omega
     | cons x xs => have := ih xs (by omega); dsimp only; omega
@@ -339,7 +343,8 @@ theorem take_cost_length (hP : Includes P Auto.List.take.costDeps) :
   | 0, l, _ => by rw [Auto.List.take.costEq_zero P hP]; omega
   | n + 1, [], h => by rw [Auto.List.take.costEq_succ P hP, limbs_of_lt h]; simp
   | n + 1, x :: l, h => by
-    rw [Auto.List.take.costEq_succ P hP, limbs_of_lt h]
+    rw [Auto.List.take.costEq_succ P hP]
+    limbs
     have := take_cost_length hP n l (by omega)
     simp only [List.length_cons]
     omega
@@ -353,7 +358,8 @@ theorem drop_cost (hP : Includes P Auto.List.drop.costDeps) {α : Type} [Machine
   | zero => intro xs _; rw [Auto.List.drop.costEq P hP]; simp [limbs_of_lt]
   | succ k ih =>
     intro xs hk
-    rw [Auto.List.drop.costEq P hP, limbs_of_lt hk]
+    rw [Auto.List.drop.costEq P hP]
+    limbs
     cases xs with
     | nil => dsimp only; omega
     | cons x xs => have := ih xs (by omega); dsimp only; omega
@@ -365,7 +371,8 @@ theorem drop_cost_length (hP : Includes P Auto.List.drop.costDeps) :
   | 0, l, _ => by rw [Auto.List.drop.costEq_zero P hP]; omega
   | n + 1, [], h => by rw [Auto.List.drop.costEq_succ P hP, limbs_of_lt h]; simp
   | n + 1, x :: l, h => by
-    rw [Auto.List.drop.costEq_succ P hP, limbs_of_lt h]
+    rw [Auto.List.drop.costEq_succ P hP]
+    limbs
     have := drop_cost_length hP n l (by omega)
     simp only [List.length_cons]
     omega
@@ -379,7 +386,8 @@ theorem replicate_cost (hP : Includes P Auto.List.replicate.costDeps) {α : Type
   | zero => intro _; rw [Auto.List.replicate.costEq_zero P hP]
   | succ n ih =>
     intro hn
-    rw [Auto.List.replicate.costEq_succ P hP, limbs_of_lt hn]
+    rw [Auto.List.replicate.costEq_succ P hP]
+    limbs
     have := ih (by omega)
     omega
 
@@ -402,7 +410,8 @@ theorem log2Rec_cost (hP : Includes P Auto.LeanVM.Cost.Rewrite.log2Rec.costDeps)
   · simpa using this
   · intro x hx h0
     simp only [id] at h0
-    rw [Auto.LeanVM.Cost.Rewrite.log2Rec.costEq P hP, limbs_of_lt (by omega : x < 2 ^ 64)]
+    rw [Auto.LeanVM.Cost.Rewrite.log2Rec.costEq P hP]
+    limbs
     split_ifs <;> omega
   · intro x hx hpos
     simp only [id] at hpos
@@ -418,12 +427,11 @@ theorem log2Rec_cost (hP : Includes P Auto.LeanVM.Cost.Rewrite.log2Rec.costDeps)
         have := (Nat.log2_lt (n := x) (k := 128) (by omega)).2 hx
         have := log2_mono (Nat.div_le_self x 2)
         omega
-      rw [limbs_of_lt (by omega : Rewrite.log2Rec (x / 2) < 2 ^ 64),
-        limbs_of_lt (by omega : Rewrite.log2Rec (x / 2) + 1 < 2 ^ 64)]
+      limbs
       omega
     · left
       simp only [h2, ↓reduceIte]
-      rw [limbs_of_lt (by omega : x < 2 ^ 64)]
+      limbs
 
 /-- `Nat.log2` by halving (`log2Rec`), word-sized: at most `12·log₂ n + 7`. -/
 theorem log2Rec_cost_word (hP : Includes P Auto.LeanVM.Cost.Rewrite.log2Rec.costDeps) :
@@ -433,15 +441,15 @@ theorem log2Rec_cost_word (hP : Includes P Auto.LeanVM.Cost.Rewrite.log2Rec.cost
   induction n using Nat.strong_induction_on with
   | _ n ih =>
   intro hn
-  rw [Auto.LeanVM.Cost.Rewrite.log2Rec.costEq P hP, limbs_of_lt hn]
+  rw [Auto.LeanVM.Cost.Rewrite.log2Rec.costEq P hP]
+  limbs
   by_cases h2 : 2 ≤ n
   · simp only [h2, ↓reduceIte]
     have := ih (n / 2) (by omega) (by omega)
     have hl := log2_half h2
     have hr : Rewrite.log2Rec (n / 2) < 2 ^ 63 := by
       rw [← Rewrite.natLog2]; have := Nat.log2_le_self (n / 2); omega
-    rw [limbs_of_lt (by omega : Rewrite.log2Rec (n / 2) < 2 ^ 64),
-      limbs_of_lt (by omega : Rewrite.log2Rec (n / 2) + 1 < 2 ^ 64)]
+    limbs
     omega
   · simp only [h2, ↓reduceIte]; omega
 
@@ -602,8 +610,7 @@ theorem mergeSortList_cost_nlogn
     simp only [List.length_cons] at hn hw ⊢
     have hw' : t.length + 2 + 1 < 2 ^ 64 := by omega
     set h1 := (t.length + 2 + 1) / 2 with hh1
-    rw [limbs_of_lt (by omega : t.length < 2 ^ 64), limbs_of_lt (by omega : t.length + 2 < 2 ^ 64),
-      limbs_of_lt hw']
+    limbs
     have hlen := length_cost P (by includes) t (by omega)
     have htake := take_cost_length P (by includes) h1 (x :: y :: t) (by omega)
     have hdrop := drop_cost_length P (by includes) h1 (x :: y :: t) (by omega)

@@ -72,7 +72,7 @@ theorem bytesWordC_cost (hP : Includes P Auto.LeanVM.Extraction.bytesWord.costDe
       omega)
   have hv := foldr_bytes_lt' (b.take 8)
   have h8 : 256 ^ (b.take 8).length ≤ 256 ^ 8 := Nat.pow_le_pow_right (by norm_num) hl
-  rw [limbs_of_lt (lt_of_lt_of_le hv (h8.trans (by norm_num)))]
+  limbs
   nlinarith
 
 /-- **The first `n` words of bytes** (`bytesLanes`): at most `439·n + 5`. -/
@@ -84,7 +84,8 @@ theorem bytesLanesC_cost (hP : Includes P Auto.LeanVM.Extraction.bytesLanes.cost
   | zero => intro b _; rw [Auto.LeanVM.Extraction.bytesLanes.costEq P hP]; simp [limbs_of_lt]
   | succ k ih =>
     intro b hk
-    rw [Auto.LeanVM.Extraction.bytesLanes.costEq P hP, limbs_of_lt hk]
+    rw [Auto.LeanVM.Extraction.bytesLanes.costEq P hP]
+    limbs
     have := ih (b.drop 8) (by omega)
     have := bytesWordC_cost P (by includes) b
     have := drop_cost P (by includes) 8 b (by norm_num)
@@ -272,8 +273,8 @@ theorem bytecodeWordsC_cost (hP : Includes P bytecodeWordsC.costDeps) (prog :
       346 * 2 ^ prog.logSize + 21 := by
     intro s
     simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-    rw [bytecodeWordsC.lam0.costEq P, Nat.one_shiftLeft, limbs_of_lt h2,
-      limbs_of_lt (lt_of_le_of_lt hls (by norm_num) : prog.logSize < 2 ^ 64)]
+    rw [bytecodeWordsC.lam0.costEq P, Nat.one_shiftLeft]
+    limbs
     have hf := finRangeFrom_cost P (by includes) (2 ^ prog.logSize) h2 0 (Nat.zero_le _)
     have hm := map_cost P (by includes) _ (.closure bytecodeWordsC.lam0.lam0.costIdx [encodeValue prog, encodeValue s])
       (fun i ↦ RunsApp.of_spec (bytecodeWordsC.lam0.lam0.costSpec P (by includes) prog s i)) 320

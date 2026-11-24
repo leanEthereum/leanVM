@@ -20,7 +20,7 @@ all. The prices are bounded by a potential (Bentley–Saxe, Tarjan's banker's me
   weight: an insertion (`w = 1`) pays `b·D + a·(levels + 1)` amortized;
 * the naturals a map compares and adds (positions, weights) up to `2^(D+1)` for `N < 2^D`
   insertions: their `limbCount` at most `limbsBelowTwoPow (D + 1) = (D + 1)/64 + 1` (`limbs_le_wl`), the tactic
-  `limbs_bound hW` adding a bound for every `limbCount t` of the goal;
+  `limbs [hW]` adding a bound for every `limbCount t` of the goal;
 * **`listFoldl_amortized`**: a fold whose step pays at most `A` amortized (its price plus the
   potential after, at most the potential before plus `A`) pays `(A + 11)·n + 3` from a start of
   potential `0`.
@@ -50,50 +50,6 @@ theorem limbs_le_wl {t E : ℕ} (h : t ≤ 2 ^ E) : limbCount t ≤ limbsBelowTw
 /-- The bound `limbsBelowTwoPow (D + 1)` for the naturals up to twice `2^D`. -/
 theorem limbs_le_wl_two {D : ℕ} : ∀ x, x ≤ 2 * 2 ^ D → limbCount x ≤ limbsBelowTwoPow (D + 1) :=
   fun _ h ↦ limbs_le_wl (by rw [pow_succ]; omega)
-
-section Meta
-
-open Lean Meta Elab Tactic
-
-/-- The arguments of the `limbCount` in `e` (no loose bound variables). -/
-meta partial def limbsArgs (e : Expr) (acc : Array Expr := #[]) : Array Expr :=
-  let acc := if e.isAppOfArity ``limbCount 1 && !e.hasLooseBVars && !acc.contains e.appArg! then
-    acc.push e.appArg! else acc
-  match e with
-  | .app f a => limbsArgs a (limbsArgs f acc)
-  | .lam _ t b _ | .forallE _ t b _ => limbsArgs b (limbsArgs t acc)
-  | .letE _ t v b _ => limbsArgs b (limbsArgs v (limbsArgs t acc))
-  | .mdata _ b | .proj _ _ b => limbsArgs b acc
-  | _ => acc
-
-/-- A proof of `ty` by `omega`, if it finds one. -/
-meta def omegaProof? (ty : Expr) : TacticM (Option Expr) := do
-  let m ← mkFreshExprMVar ty
-  try
-    let gs ← Tactic.run m.mvarId! (evalTactic (← `(tactic| omega)))
-    if gs.isEmpty then return some (← instantiateMVars m) else return none
-  catch _ => return none
-
-/-- `limbs_bound hW` (`hW : ∀ x, x ≤ B → limbCount x ≤ W`): for every `limbCount t` of the goal, the
-hypothesis `limbCount t = 1` if `omega` shows `t` word-sized, else `limbCount t ≤ W` if it shows
-`t ≤ B`. -/
-elab "limbs_bound " h:term : tactic => withMainContext do
-  let hW ← elabTerm h none
-  let tgt ← instantiateMVars (← getMainTarget)
-  let mut g ← getMainGoal
-  for t in limbsArgs tgt do
-    let ts ← Term.exprToSyntax t
-    let ty64 ← elabTerm (← `($ts < 2 ^ 64)) (some (mkSort Level.zero))
-    if let some pf ← omegaProof? ty64 then
-      (_, g) ← g.note `hlimbs (← mkAppM ``limbs_of_lt #[pf])
-    else
-      let hty ← whnf (← inferType (mkApp hW t))
-      if hty.isForall then
-        if let some pf ← omegaProof? hty.bindingDomain! then
-          (_, g) ← g.note `hlimbs (mkApp2 hW t pf)
-  replaceMainGoal [g]
-
-end Meta
 
 section Amortized
 
@@ -321,13 +277,13 @@ theorem searchIn_cost_of (i j c : ℕ) (t : Array (κ × β)) (k : κ) (H W C : 
     dsimp only at *
     rw [hEq, searchRec]
     simp only [show ¬lo < hi by omega, ↓reduceIte]
-    limbs_bound hW
+    limbs [hW]
     omega
   · rintro ⟨lo, hi⟩ ⟨hlo, hhi⟩ hpos
     dsimp only at *
     rw [hEq, searchRec]
     simp only [show lo < hi by omega, ↓reduceIte]
-    limbs_bound hW
+    limbs [hW]
     generalize hv : t[(lo + hi) / 2]? = ov
     cases ov with
     | none =>

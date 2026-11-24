@@ -35,8 +35,8 @@ theorem candidateRunner_cost
         45 * 2 ^ layout.logMemory + 1800 := by
   have hls : prog.logSize ≤ 30 := prog.logSize_le
   have hcap := stepCapLite_le layout hm hb hh hl
-  rw [Auto.LeanVM.Extraction.Fast.candidateRunner.costEq P hP,
-    limbs_of_lt (by omega : layout.logMemory < 2 ^ 64)]
+  rw [Auto.LeanVM.Extraction.Fast.candidateRunner.costEq P hP]
+  limbs
   have h1 := powTable_cost P (by includes) layout.logMemory (by omega)
   have h2 := powTable_cost P (by includes) prog.logSize (by omega)
   have h3 := pcFinal_cost P (by includes) prog

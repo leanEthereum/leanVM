@@ -53,8 +53,8 @@ theorem listFoldl_le_sum {α β : Type} [MachineEncoding α] [MachineEncoding β
 /-- `rot` (`rot`): `28` at most on a word-sized rotation. -/
 theorem rot_cost (hP : Includes P Auto.LeanVM.Semantics.Keccak.rot.costDeps) (x : UInt64) (n : ℕ)
     (hn : n < 2 ^ 64) : machineCost P Auto.LeanVM.Semantics.Keccak.rot.costIdx [encodeValue x, encodeValue n] ≤ 28 := by
-  rw [Auto.LeanVM.Semantics.Keccak.rot.costEq P hP, limbs_of_lt hn,
-    limbs_of_lt (by omega : 64 - n < 2 ^ 64)]
+  rw [Auto.LeanVM.Semantics.Keccak.rot.costEq P hP]
+  limbs
   split_ifs <;> omega
 
 theorem keccakRho_getD_le (i : ℕ) : keccakRho.getD i 0 ≤ 62 := by
@@ -88,9 +88,8 @@ theorem roundParity_cost (hP : Includes P keccakRoundShared.costDeps) (a : Kecca
     (fun x ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
       have := x.isLt
-      rw [keccakRoundShared.lam0.costEq P, limbs_of_lt (by omega : (x : ℕ) < 2 ^ 64),
-        limbs_of_lt (by omega : (x : ℕ) + 5 < 2 ^ 64), limbs_of_lt (by omega : (x : ℕ) + 10 < 2 ^ 64),
-        limbs_of_lt (by omega : (x : ℕ) + 15 < 2 ^ 64), limbs_of_lt (by omega : (x : ℕ) + 20 < 2 ^ 64)]
+      rw [keccakRoundShared.lam0.costEq P]
+      limbs
       simp only [max_self]; omega) 0 (by omega)
   simpa using this
 
@@ -186,16 +185,13 @@ theorem findLane_cost (hP : Includes P Auto.LeanVM.Extraction.Fast.findLane.cost
     (fun x ↦ machineCost P Auto.LeanVM.Extraction.Fast.findLane.costIdx
       [encodeValue t, encodeValue key, encodeValue x.1, encodeValue x.2]) 36 28
     (fun x hx h0 ↦ by
-      rw [Auto.LeanVM.Extraction.Fast.findLane.costEq P hP, limbs_of_lt (by omega : x.1 < 2 ^ 64),
-        limbs_of_lt (by omega : x.2 < 2 ^ 64)]
+      rw [Auto.LeanVM.Extraction.Fast.findLane.costEq P hP]
+      limbs
       simp only [show ¬ x.1 < x.2 by omega, ↓reduceDIte]
       omega)
     (fun x hx hpos ↦ by
-      rw [Auto.LeanVM.Extraction.Fast.findLane.costEq P hP, limbs_of_lt (by omega : x.1 < 2 ^ 64),
-        limbs_of_lt (by omega : x.2 < 2 ^ 64), limbs_of_lt (by omega : x.1 + x.2 < 2 ^ 64),
-        limbs_of_lt (ht.getD_fst _), limbs_of_lt hkey,
-        limbs_of_lt (by omega : (x.1 + x.2) / 2 < 2 ^ 64),
-        limbs_of_lt (by omega : (x.1 + x.2) / 2 + 1 < 2 ^ 64)]
+      rw [Auto.LeanVM.Extraction.Fast.findLane.costEq P hP]
+      limbs
       simp only [show x.1 < x.2 by omega, ↓reduceDIte, max_self]
       split_ifs with h1 h2
       · left; omega
@@ -240,16 +236,16 @@ theorem finRangeFrom_cost (hP : Includes P Auto.LeanVM.Cost.Rewrite.finRangeFrom
   intro i hi
   induction hk : n - i generalizing i with
   | zero =>
-    rw [Auto.LeanVM.Cost.Rewrite.finRangeFrom.costEq P hP, limbs_of_lt (by omega : i < 2 ^ 64),
-      limbs_of_lt hn]
+    rw [Auto.LeanVM.Cost.Rewrite.finRangeFrom.costEq P hP]
+    limbs
     simp only [show ¬i < n by omega, ↓reduceDIte]
     omega
   | succ k ih =>
-    rw [Auto.LeanVM.Cost.Rewrite.finRangeFrom.costEq P hP, limbs_of_lt (by omega : i < 2 ^ 64),
-      limbs_of_lt hn]
+    rw [Auto.LeanVM.Cost.Rewrite.finRangeFrom.costEq P hP]
+    limbs
     simp only [show i < n by omega, ↓reduceDIte]
     have := ih (i + 1) (by omega) (by omega)
-    rw [limbs_of_lt (by omega : i + 1 < 2 ^ 64)]
+    limbs
     omega
 
 end Generic
@@ -287,8 +283,8 @@ theorem readCells_cost (hP : Includes P readCells.costDeps) (fp : K) (offset : F
       (fun x ↦ RunsApp.of_spec (readFirstCells.lam0.lam0.lam0.lam0.costSpec P (by includes) c v rest x))
       11 (fun x ↦ by
         simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-        rw [readFirstCells.lam0.lam0.lam0.lam0.costEq P,
-          limbs_of_lt (by have := x.isLt; omega), limbs_of_lt (by have := c.isLt; omega)]
+        rw [readFirstCells.lam0.lam0.lam0.lam0.costEq P]
+        limbs
         split_ifs <;> omega) 0 (by omega)
     omega
   have hmid : ∀ (c : Fin 13) (acc : Option (Fin 13 → E)) (v : E),
@@ -343,8 +339,8 @@ theorem readFirstCells_cost (hP : Includes P readFirstCells.costDeps) (fp : K) (
       (fun x ↦ RunsApp.of_spec (readFirstCells.lam0.lam0.lam0.lam0.costSpec P (by includes) c v rest x))
       11 (fun x ↦ by
         simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-        rw [readFirstCells.lam0.lam0.lam0.lam0.costEq P,
-          limbs_of_lt (by have := x.isLt; omega), limbs_of_lt (by have := c.isLt; omega)]
+        rw [readFirstCells.lam0.lam0.lam0.lam0.costEq P]
+        limbs
         split_ifs <;> omega) 0 (by omega)
     omega
   have hmid : ∀ (c : Fin 13) (acc : Option (Fin 13 → E)) (v : E),
@@ -362,8 +358,8 @@ theorem readFirstCells_cost (hP : Includes P readFirstCells.costDeps) (fp : K) (
       offset offsetVal hoff count x y)) (O + R + 460) (some fun _ ↦ 0) (List.finRange 13)
     (fun c _ acc ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [readFirstCells.lam0.costEq P (by includes) read readVal hread fp offset offsetVal hoff,
-        limbs_of_lt (by have := c.isLt; omega), limbs_of_lt (by omega : count < 2 ^ 64)]
+      rw [readFirstCells.lam0.costEq P (by includes) read readVal hread fp offset offsetVal hoff]
+      limbs
       have := bind_cost P (by includes) _ (.closure readFirstCells.lam0.lam0.costIdx [encodeValue c, encodeValue acc])
         (fun x ↦ RunsApp.of_spec (readFirstCells.lam0.lam0.costSpec P (by includes) c acc x)) 399
         (hmid c acc) (read (fp * offset c))
@@ -384,8 +380,8 @@ open Auto.LeanVM.Semantics
 /-- The lanes of cell `c < 13` (`cellLanes`): at most `31`. -/
 theorem cellLanes_cost (hP : Includes P cellLanes.costDeps) (odd : Bool) (c : ℕ) (hc : c < 13) :
     machineCost P cellLanes.costIdx [encodeValue odd, encodeValue c] ≤ 31 := by
-  rw [cellLanes.costEq P hP, limbs_of_lt (by omega : c < 2 ^ 64),
-    limbs_of_lt (by omega : 2 * c < 2 ^ 64), limbs_of_lt (by omega : 2 * c + 1 < 2 ^ 64)]
+  rw [cellLanes.costEq P hP]
+  limbs
   simp only [max_self]
   split_ifs <;> omega
 
@@ -710,8 +706,8 @@ theorem keccakCheck_cost (hP : Includes P executeWithShared.costDeps) (inOdd out
     (fun a _ ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
       rw [executeWithShared.lam5.lam0.lam2.costEq P,
-        cellCount_cost P (by includes), limbs_of_lt (by have := cellCount_le outCells; omega),
-        limbs_of_lt (by have := a.isLt; omega)]
+        cellCount_cost P (by includes)]
+      limbs
       have := cellsOfState_cost P (by includes) (keccakF1600 (stateOfCells input inOdd)) outOdd a
       split_ifs <;> omega)
   rw [hlen] at ha2
@@ -761,7 +757,7 @@ theorem keccakInOffset_cost (hP : Includes P executeWithShared.costDeps) (om : F
   have hc := c.isLt
   simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil,
     executeWithShared.lam6.lam0.costEq P]
-  rw [limbs_of_lt (by omega : (c : ℕ) < 2 ^ 64)]
+  limbs
   split_ifs
   · omega
   · have := powSq_cost_le P (by includes) LeanVM.Parameters.g (c - 4) (by omega)
@@ -838,7 +834,7 @@ theorem gLogTable_cost (hP : Includes P gLogTable.costDeps) (t : Array (ℕ × �
   | some v =>
     have hv := (ht.2 _ (findLane_sound t _ _ 0 t.size rfl le_rfl hf)).2
     dsimp only
-    rw [limbs_of_lt hv]
+    limbs
     split_ifs <;> simp only [max_self] <;> omega
 
 /-- **A memory read** (the closure `stepVec.lam0.lam0`): at most `111 + 36·log₂|memT|`. -/

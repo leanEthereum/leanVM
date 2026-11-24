@@ -119,8 +119,7 @@ theorem capOf_cost (hP : Includes P Auto.LeanVM.Extraction.AS.capOf.costDeps) :
     have ih := capOf_cost hP xs fun y hy ↦ h y (List.mem_cons_of_mem _ hy)
     have hx := h x List.mem_cons_self
     have hc := capOf_le (2 ^ 57) xs fun y hy ↦ (h y (List.mem_cons_of_mem _ hy)).le
-    rw [limbs_of_lt (by omega : 8 * x.2.2 < 2 ^ 64), limbs_of_lt (by omega : x.2.2 < 2 ^ 64),
-      limbs_of_lt (by omega : capOf xs < 2 ^ 64)]
+    limbs
     simp only [List.length_cons, max_self]
     split_ifs <;> omega
 
@@ -178,12 +177,11 @@ theorem finishL_cost (hP : Includes P finishLC.costDeps) (prog : Semantics.LeanI
       unfold finishPrice transcriptIndexPrice
       omega
     · simp only
-      rw [appCost_fn]
-      simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [finishLC.lam0.costEq P]
+      cost_app [finishLC.lam0.costEq P]
       dsimp only
       have hT1 := descendTraceC_fst _ _ _ tr 0 hs hT
-      rw [hl, limbs_of_lt (by omega : T.1 < 2 ^ 64), limbs_of_lt (by norm_num : (6 : ℕ) < 2 ^ 64)]
+      rw [hl]
+      limbs
       have c4 := stackA_cost P (by includes) lay.stackLog T.2 (by omega) (by omega)
       have c5 := candidateRunner_cost P (by includes) prog input lay hF.logMemory_le hF.logBytecode_le
         hF.heights_le hF.heights_length hF.index_lt_word (stackA lay.stackLog T.2)

@@ -68,7 +68,8 @@ theorem modifyTailIdx340_cost (hP : Includes P Auto.List.modifyTailIdx.go.costDe
     omega
   | succ n ih =>
     intro l hn
-    rw [Auto.List.modifyTailIdx.go.costEq P hP f fVal hf, limbs_of_lt hn]
+    rw [Auto.List.modifyTailIdx.go.costEq P hP f fVal hf]
+    limbs
     cases l with
     | nil => dsimp only; omega
     | cons x l => have := ih l (by omega); dsimp only; omega
@@ -121,8 +122,7 @@ theorem padBlock_cost (hP : Includes P Auto.LeanVM.Protocol.KeccakHash.padBlock.
       omega) (rate - 1)
     ((rest ++ List.replicate (rate - rest.length) 0).modify rest.length fun x ↦ x ^^^ padFirst)
     (by rw [rate_eq]; omega)
-  rw [limbs_of_lt (by rw [rate_eq]; omega : rate < 2 ^ 64),
-    limbs_of_lt (by omega : rest.length < 2 ^ 64)]
+  limbs
   simp only [rate_eq, max_self] at *
   omega
 
@@ -144,9 +144,7 @@ theorem keccakPadded_cost (hP : Includes P Auto.LeanVM.keccakPadded.costDeps)
     (padBlock (m.drop (rate * (m.length / rate))))
   have htl : (m.take (rate * (m.length / rate))).length ≤ m.length := by
     rw [List.length_take]; omega
-  rw [limbs_of_lt (by omega : m.length < 2 ^ 64), limbs_of_lt (by rw [rate_eq]; omega : rate < 2 ^ 64),
-    limbs_of_lt (by have := Nat.div_le_self m.length rate; omega : m.length / rate < 2 ^ 64),
-    limbs_of_lt (by omega : rate * (m.length / rate) < 2 ^ 64)]
+  limbs
   omega
 
 theorem stripPad_length_le (bs : List UInt8) : (Common.stripPad bs).length ≤ bs.length := by
@@ -216,9 +214,8 @@ theorem wordBytes_cost (hP : Includes P Auto.LeanVM.Protocol.KeccakHash.wordByte
     (fun a ↦ RunsApp.of_spec (Auto.LeanVM.Protocol.KeccakHash.wordBytes.lam0.costSpec P
       (by includes) w a)) 12 (List.range 8) (fun k hk ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [Auto.LeanVM.Protocol.KeccakHash.wordBytes.lam0.costEq P,
-        limbs_of_lt (by have := List.mem_range.1 hk; omega : k < 2 ^ 64),
-        limbs_of_lt (by have := List.mem_range.1 hk; omega : 8 * k < 2 ^ 64)]
+      rw [Auto.LeanVM.Protocol.KeccakHash.wordBytes.lam0.costEq P]
+      limbs
       rfl)
   simp only [List.length_range] at h2
   omega
@@ -247,7 +244,8 @@ theorem blockBytes_length (s x : Semantics.KeccakState) : (blockBytes s x).lengt
 /-- The cut (`cut`): at most `8·|bs| + 13`. -/
 theorem cut_cost (hP : Includes P Auto.LeanVM.Extraction.Fast.cut.costDeps) (B : ℕ) (hB : B < 2 ^ 64) (bs : List UInt8)
     (hb : bs.length < 2 ^ 64) : machineCost P Auto.LeanVM.Extraction.Fast.cut.costIdx [encodeValue B, encodeValue bs] ≤ 8 * bs.length + 13 := by
-  rw [Auto.LeanVM.Extraction.Fast.cut.costEq P hP, limbs_of_lt hb, limbs_of_lt hB]
+  rw [Auto.LeanVM.Extraction.Fast.cut.costEq P hP]
+  limbs
   have := length_cost P (by includes) bs hb
   simp only [max_self]
   split_ifs <;> omega
@@ -586,8 +584,8 @@ theorem keccakEvaluations_cost (hP : Includes P keccakEvaluationsC.costDeps) (D 
             (fun m ↦ RunsApp.of_spec (keccakEvaluationsC.lam0.lam0.lam0.costSpec P (by includes)
               L _ m))]
           simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-          rw [keccakEvaluationsC.lam0.lam0.lam0.costEq P,
-            limbs_of_lt (by omega : m.length < 2 ^ 64), limbs_of_lt (by omega : L < 2 ^ 64)]
+          rw [keccakEvaluationsC.lam0.lam0.lam0.costEq P]
+          limbs
           have := length_cost P (by includes) m (by omega)
           simp only [max_self]
           split_ifs <;> omega)

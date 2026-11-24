@@ -75,8 +75,8 @@ theorem powPairs_cost (hP : Includes P powPairs.costDeps) :
       machineCost P powPairs.costIdx [encodeValue n, encodeValue i, encodeValue x] ≤ 52 * n + 5
   | 0, i, x, _ => by rw [powPairs.costEq_zero P hP]
   | n + 1, i, x, h => by
-    rw [powPairs.costEq_succ P hP, limbs_of_lt (by omega : n + 1 < 2 ^ 64),
-      limbs_of_lt (by omega : i < 2 ^ 64), limbs_of_lt (by omega : i + 1 < 2 ^ 64)]
+    rw [powPairs.costEq_succ P hP]
+    limbs
     have := powPairs_cost hP n (i + 1) (x * LeanVM.Parameters.g) (by omega)
     omega
 
@@ -93,7 +93,8 @@ theorem powTable_cost (hP : Includes P powTable.costDeps) (κ : ℕ) (hκ : κ �
     (fun e ↦ e.1 < 2 ^ 64)
     (fun a b ha hb ↦ by
       simp only [appCost_fn, List.nil_append, List.length_nil]
-      rw [powTable.lam0.costEq P, limbs_of_lt ha, limbs_of_lt hb]
+      rw [powTable.lam0.costEq P]
+      limbs
       omega)
     (powPairs (2 ^ κ) 0 1) (by rw [length_powPairs]; exact hN)
     (fun e he ↦ (mem_powPairs _ _ _ e he).1)
@@ -153,8 +154,8 @@ theorem listSum_cost (hP : Includes P Auto.List.sum.Nat.costDeps) (l : List ℕ)
     rw [Auto.List.foldr.costEq_cons P hF _ _ hf, foldr_add_eq]
     simp only [List.sum_cons] at hs
     simp only [appCost_fn, List.nil_append, List.length_nil]
-    rw [Auto.List.sum.Nat.lam0.costEq P, limbs_of_lt (by omega : x < 2 ^ 64),
-      limbs_of_lt (by omega : l.sum < 2 ^ 64), limbs_of_lt (by omega : x + l.sum < 2 ^ 64)]
+    rw [Auto.List.sum.Nat.lam0.costEq P]
+    limbs
     have := ih (by omega)
     simp only [List.length_cons, max_self]
     omega
@@ -174,8 +175,8 @@ theorem stepCapLite_cost (hP : Includes P stepCapLite.costDeps) (layout : Layout
     layout.tableLogHeights (fun x hx ↦ by
       simp only [appCost_fn, List.nil_append, List.length_nil]
       have := hh x hx
-      rw [stepCapLite.lam0.costEq P, limbs_shift (by omega),
-        limbs_of_lt (by omega : x < 2 ^ 64)]
+      rw [stepCapLite.lam0.costEq P, limbs_shift (by omega)]
+      limbs
       omega)
   have h2 := listSum_cost P (by includes) (layout.tableLogHeights.map (2 ^ ·)) (by nlinarith)
   rw [List.length_map] at h2
@@ -210,7 +211,8 @@ theorem runnerTables_cost (hP : Includes P runnerTablesC.costDeps) (prog : Seman
       (74 * layout.logMemory + 121) * 2 ^ layout.logMemory +
         (74 * prog.logSize + 121) * 2 ^ prog.logSize + 73 * prog.logSize + 357 := by
   have hls : prog.logSize ≤ 30 := prog.logSize_le
-  rw [runnerTablesC.costEq P hP, limbs_of_lt (by omega : layout.logMemory < 2 ^ 64)]
+  rw [runnerTablesC.costEq P hP]
+  limbs
   have h1 := powTable_cost P (by includes) layout.logMemory (by omega)
   have h2 := powTable_cost P (by includes) prog.logSize (by omega)
   have h3 := pcFinal_cost P (by includes) prog
@@ -243,8 +245,7 @@ theorem memoryImageLite_cost (hP : Includes P memoryImageLite.costDeps) (layout 
     lt_of_lt_of_le a.isLt (Nat.pow_le_pow_right (by norm_num) hm)
   have hix := fun c ↦ (hidx c).trans (by norm_num : 2 ^ 63 < 2 ^ 64)
   have hs := fun c ↦ (by have := hidx c; omega : (layout.placement c).index + (a : ℕ) < 2 ^ 64)
-  rw [limbs_of_lt (by omega : (a : ℕ) < 2 ^ 64), limbs_of_lt (hix _), limbs_of_lt (hix _),
-    limbs_of_lt (hs _), limbs_of_lt (hs _)]
+  limbs
   simp only [max_self]
   generalize layout.placements.getD LeanVM.Protocol.Verifier.memory0 none = o0
   generalize layout.placements.getD LeanVM.Protocol.Verifier.memory1 none = o1
@@ -268,9 +269,8 @@ theorem boundaryOfStack_cost (hP : Includes P boundaryOfStack.costDeps) (input :
     machineCost P boundaryOfStack.costIdx [encodeValue input, encodeValue layout, encodeValue μ, encodeValue q] ≤ 1429 := by
   rw [boundaryOfStack.costEq P hP]
   obtain ⟨hw0, hw1⟩ := word01_cost P (by includes) (by includes) input
-  rw [hw0, hw1, limbs_of_lt (by omega : layout.logMemory < 2 ^ 64),
-    limbs_of_lt (show minLogMem < 2 ^ 64 by unfold minLogMem; norm_num),
-    limbs_of_lt (show maxLogMem < 2 ^ 64 by unfold maxLogMem; norm_num)]
+  rw [hw0, hw1]
+  limbs
   have hall := memoryImageLite_cost P (by includes) layout hm hidx q
   have h0 := hall ⟨0, Nat.two_pow_pos _⟩
   by_cases hc : minLogMem ≤ layout.logMemory ∧ layout.logMemory ≤ maxLogMem
@@ -300,11 +300,12 @@ theorem memoryVec_cost (hP : Includes P memoryVec.costDeps) (layout : LayoutLite
       have hi := i.isLt
       have hs := fun c ↦ (by have := hidx c; omega : (layout.placement c).index + (i : ℕ) < 2 ^ 64)
       have hix := fun c ↦ (hidx c).trans (by norm_num : 2 ^ 63 < 2 ^ 64)
-      rw [memoryVec.lam0.costEq P, limbs_of_lt (lt_trans i.isLt hN),
-        limbs_of_lt (hix _), limbs_of_lt (hix _), limbs_of_lt (hs _), limbs_of_lt (hs _)]
+      rw [memoryVec.lam0.costEq P]
+      limbs
       simp only [max_self]
       omega) 0 (Nat.zero_le _)
-  rw [limbs_shift (by omega), limbs_of_lt (by omega : layout.logMemory < 2 ^ 64)]
+  rw [limbs_shift (by omega)]
+  limbs
   simp only [Nat.sub_zero] at hof
   generalize layout.placements.getD LeanVM.Protocol.Verifier.memory0 none = o0
   generalize layout.placements.getD LeanVM.Protocol.Verifier.memory1 none = o1
@@ -338,15 +339,15 @@ theorem haltLoopVec_cost (hP : Includes P haltLoopVec.costDeps)
     split_ifs <;> omega
   | succ n ih =>
     intro a r hna
-    rw [Auto.LeanVM.Extraction.Fast.haltLoopVec.costEq_succ P hP,
-      limbs_of_lt (by omega : n + 1 < 2 ^ 64)]
+    rw [Auto.LeanVM.Extraction.Fast.haltLoopVec.costEq_succ P hP]
+    limbs
     have hs := hS r
     generalize hst : stepVec memT codeT prog mem r = o
     cases o with
     | none => split_ifs <;> (try dsimp only) <;> nlinarith
     | some r' =>
       have := ih (a + 1) r' (by omega)
-      rw [limbs_of_lt (by omega : a < 2 ^ 64), limbs_of_lt (by omega : a + 1 < 2 ^ 64)]
+      limbs
       simp only [max_self]
       split_ifs <;> nlinarith
 

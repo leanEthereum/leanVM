@@ -155,9 +155,7 @@ theorem descendTraceGo_cost
         encodeValue R, encodeValue i])
       (fun x ↦ RunsApp.of_spec (descendTraceCC.lam0.costSpec P (by includes) folded μ R i x))
       (polyPrice folded.length + 13) (fun x ↦ by
-        rw [appCost_fn]
-        simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-        rw [descendTraceCC.lam0.costEq P]
+        cost_app [descendTraceCC.lam0.costEq P]
         have := polyOfAtH_cost P (by includes) folded x folded.length le_rfl hs.2 (by omega)
         omega) 0 (Nat.zero_le _)
     rw [Nat.sub_zero] at c4
@@ -175,7 +173,7 @@ theorem descendTraceGo_cost
   | .mid rounds high rest, i, hi, hs => by
     rw [Auto.LeanVM.Protocol.Whir.Sound.descendTraceC.costEq P hP]
     simp only [traceCostB]
-    rw [limbs_of_lt (by omega : i + 1 < 2 ^ 64), limbs_of_lt (by omega : i < 2 ^ 64)]
+    limbs
     simp only [traceDepth] at hi
     have ih := descendTraceGo_cost hP μ R OAs W hμ hR hW hW' rest (i + 1) (by omega) hs.2.2
     rw [Auto.Option.bind.costEq P (by includes) _
@@ -193,9 +191,7 @@ theorem descendTraceGo_cost
       omega
     · have hT1 := descendTraceC_fst μ R OAs rest (i + 1) hs.2.2 hT
       simp only
-      rw [appCost_fn]
-      simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [descendTraceCC.lam1.costEq P]
+      cost_app [descendTraceCC.lam1.costEq P]
       obtain ⟨l1, l2, l3, l4, l5, l6, l7, l8, l9⟩ := lvC_limbs μ R i
       obtain ⟨m1, m2, m3, m4, m5, m6, m7, m8, m9⟩ := lvC_limbs μ R (i + 1)
       have c1 := lvC_cost P (by includes) μ R i (by omega) (by omega) (by omega)

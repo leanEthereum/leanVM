@@ -43,7 +43,8 @@ theorem prodRange_cost (hP : Includes P Auto.LeanVM.Cost.Rewrite.prodRange.K.cos
   | zero => intro _; rw [Auto.LeanVM.Cost.Rewrite.prodRange.K.costEq_zero P hP f fVal hf]; omega
   | succ n ih =>
     intro hn
-    rw [Auto.LeanVM.Cost.Rewrite.prodRange.K.costEq_succ P hP f fVal hf, limbs_of_lt hn]
+    rw [Auto.LeanVM.Cost.Rewrite.prodRange.K.costEq_succ P hP f fVal hf]
+    limbs
     have := ih (by omega)
     have := hB n (by omega)
     nlinarith
@@ -54,15 +55,16 @@ theorem subspacePoly_cost (hP : Includes P Auto.LeanVM.Extraction.subspacePoly.c
     (j : ℕ) (hj : j < 64) (x : K) :
     machineCost P Auto.LeanVM.Extraction.subspacePoly.costIdx [encodeValue j, encodeValue x] ≤
       47 * 2 ^ j + 12 := by
-  rw [Auto.LeanVM.Extraction.subspacePoly.costEq P hP, limbs_shift hj,
-    limbs_of_lt (by omega : j < 2 ^ 64)]
+  rw [Auto.LeanVM.Extraction.subspacePoly.costEq P hP, limbs_shift hj]
+  limbs
   have := prodRange_cost P (by includes) _
     (.closure Auto.LeanVM.Extraction.subspacePoly.lam0.costIdx [encodeValue x])
     (fun a ↦ RunsApp.of_spec (Auto.LeanVM.Extraction.subspacePoly.lam0.costSpec P
       (by includes) x a)) 6
     (fun a ha ↦ by
       rw [appCost_fn, List.singleton_append,
-        Auto.LeanVM.Extraction.subspacePoly.lam0.costEq P, limbs_of_lt ha]
+        Auto.LeanVM.Extraction.subspacePoly.lam0.costEq P]
+      limbs
       rfl)
     (2 ^ j) (Nat.pow_lt_pow_right (by norm_num) hj)
   omega
@@ -70,9 +72,8 @@ theorem subspacePoly_cost (hP : Includes P Auto.LeanVM.Extraction.subspacePoly.c
 /-- `Nat.testBit` (`testBit`): `9` on words. -/
 theorem testBit_cost (hP : Includes P Auto.Nat.testBit.costDeps) (a b : ℕ) (ha : a < 2 ^ 64)
     (hb : b < 2 ^ 64) : machineCost P Auto.Nat.testBit.costIdx [encodeValue a, encodeValue b] ≤ 9 := by
-  rw [Auto.Nat.testBit.costEq P hP, limbs_of_lt ha, limbs_of_lt hb,
-    limbs_of_lt (lt_of_le_of_lt (Nat.shiftRight_le a b) ha),
-    limbs_of_lt (lt_of_le_of_lt (Nat.and_le_left (n := 1) (m := a >>> b)) (by norm_num))]
+  rw [Auto.Nat.testBit.costEq P hP]
+  limbs
   omega
 
 /-! ## The novel-basis transforms -/
@@ -150,7 +151,8 @@ theorem novelInvStage_cost (hP : Includes P Auto.LeanVM.Extraction.novelInvStage
         limbs_of_lt ha, limbs_shift (by omega : i < 64), limbs_two_pow (by omega : i < 64)]
       have := testBit_cost P (by includes) a i ha (by omega)
       split_ifs <;> simp only [max_self] <;> omega) 0 (Nat.zero_le _)
-  rw [ofFnFrom_length, limbs_shift (by omega : m < 64), limbs_of_lt (by omega : m < 2 ^ 64)]
+  rw [ofFnFrom_length, limbs_shift (by omega : m < 64)]
+  limbs
   simp only [Nat.sub_zero] at hof
   omega
 

@@ -66,7 +66,7 @@ theorem lowerBound_cost_lt (hP : Includes P lowerBoundC.costDeps)
     rw [lowerBoundC.costEq P hP]
     have : ¬ lo < hi := by simp at hk; omega
     simp only [this, ↓reduceIte]
-    limbs_one
+    limbs
     omega
   | succ k ih =>
     intro lo hi hlh hhi hk
@@ -76,9 +76,9 @@ theorem lowerBound_cost_lt (hP : Includes P lowerBoundC.costDeps)
     split
     · have h1 := ih ((lo + hi) / 2 + 1) hi (by omega) hhi (by omega)
       have h2 := ih lo ((lo + hi) / 2) (by omega) (by omega) (by omega)
-      limbs_one
+      limbs
       split <;> omega
-    · limbs_one
+    · limbs
       omega
 
 /-- The binary search's price over a whole array of at most `2^34` entries. -/
@@ -102,7 +102,7 @@ theorem slotIn_cost (hP : Includes P slotInC.costDeps) (tm ts : Array ℕ)
   have h1 := lowerBound_cost P (by includes) tm ht hs e he
   have h2 := ht (lowerBound tm e 0 tm.size)
   unfold lowerBoundPrice at h1
-  limbs_one
+  limbs
   split <;> omega
 
 /-- **The slots whose marks lie in `[a, b)`** (`countInC`): two searches, at most `1843`. -/
@@ -116,7 +116,7 @@ theorem countIn_cost (hP : Includes P countInC.costDeps) (tm : Array ℕ)
   have := lowerBound_le_size tm a
   have := lowerBound_le_size tm b
   unfold lowerBoundPrice at *
-  limbs_one
+  limbs
   omega
 
 theorem countIn_le (tm : Array ℕ) (a b : ℕ) : countIn tm a b ≤ tm.size := by
@@ -187,7 +187,7 @@ theorem slotsIn_cost (hP : Includes P slotsInC.costDeps) (ht : TableGood t) (a :
         List.length_cons, List.length_nil]
       have := lowerBound_cost P (by includes) t.1 (lt64_of_good ht) ht.2.1 a (by omega)
       have := lowerBound_le_size t.1 a
-      limbs_one
+      limbs
       omega)
   rw [List.length_range] at h2
   unfold lowerBoundPrice at h2
@@ -220,13 +220,13 @@ theorem kidSlotsIn_cost (hP : Includes P kidSlotsInC.costDeps) (ht : TableGood t
         kidSlotsInC.lam0.costEq P, List.length_cons, List.length_cons,
         List.length_cons, List.length_nil]
       have := slotIn_cost P (by includes) t.1 t.2 (lt64_of_good ht) ht.2.1 (a + j) (by omega)
-      limbs_one
+      limbs
       omega)
   rw [List.length_range] at h3
   have := Nat.mul_le_mul_left (933 + 9 + 13) (hc.trans hN)
   have := Nat.mul_le_mul_left 15 (hc.trans hN)
   unfold kidSlotsInPrice
-  limbs_one
+  limbs
   split <;> omega
 
 end Slots
@@ -268,7 +268,7 @@ theorem mergeNewerCover_cost (hP : Includes P mergeNewerCoverC.costDeps) :
         ha (fun e he ↦ hb e (by simp [he]))
       simp only [List.length_cons] at hn h1 h3
       unfold CoverKey at hx hy
-      rw [limbs_of_lt hx.1, limbs_of_lt hy.1, limbs_of_lt hx.2, limbs_of_lt hy.2]
+      limbs
       generalize compareOn (fun x ↦ x.1) x.1 y.1 = o1
       generalize compare x.1 y.1 = o2
       cases o1 <;> cases o2 <;> dsimp only <;> split_ifs <;> omega
@@ -280,7 +280,8 @@ theorem levelMergeCover_cost (hP : Includes P levelMergeCoverC.costDeps)
     (hw : l.weight < 2 ^ 64) (hw' : l'.weight < 2 ^ 64) :
     machineCost P levelMergeCoverC.costIdx [encodeValue l, encodeValue l'] ≤
       20 + 60 * (l.entries.size + l'.entries.size) := by
-  rw [levelMergeCoverC.costEq P hP, limbs_of_lt hw, limbs_of_lt hw']
+  rw [levelMergeCoverC.costEq P hP]
+  limbs
   have hm := mergeNewerCover_cost P (by includes) _ l.entries.toList l'.entries.toList rfl
     (fun e he ↦ hQ l (by simp) e (by simpa using he))
     (fun e he ↦ hQ l' (by simp) e (by simpa using he))
@@ -305,14 +306,14 @@ theorem carryCover_amortized (hP : Includes P carryCoverC.costDeps) (D : ℕ) (h
     D ?_ ?_ ?_ m hm hQ hN l hw hs hk
   · intro l _; rw [carryCoverC.costEq_nil P hP]; omega
   · intro l l' ls h1 h2 hne
-    rw [carryCoverC.costEq_cons P hP, limbs_of_lt (by omega : l.weight < 2 ^ 64),
-      limbs_of_lt (by omega : l'.weight < 2 ^ 64)]
+    rw [carryCoverC.costEq_cons P hP]
+    limbs
     simp only [hne, ↓reduceIte]
     omega
   · intro l l' ls h1 heq hQ2
     have := levelMergeCover_cost P (by includes) l l' hQ2 (by omega) (by omega)
-    rw [carryCoverC.costEq_cons P hP, limbs_of_lt (by omega : l.weight < 2 ^ 64),
-      limbs_of_lt (by omega : l'.weight < 2 ^ 64)]
+    rw [carryCoverC.costEq_cons P hP]
+    limbs
     simp only [heq, ↓reduceIte]
     omega
 

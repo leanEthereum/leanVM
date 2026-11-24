@@ -66,11 +66,12 @@ theorem cellNat_cost (hP : Includes P Decoder.cellNatC.costDeps) (x : E) :
   have h0 := kToNat_lt (x.limb 0)
   have h1 := kToNat_lt (x.limb 1)
   have : (1 : ℕ) <<< 64 = 2 ^ 64 := by norm_num
-  rw [this, limbs_of_lt h1]
+  rw [this]
+  limbs
   have l1 := limbs_le_of_lt (x := 2 ^ 64) (k := 2) (by norm_num) (by norm_num)
   have l2 := limbs_le_of_lt (x := 2 ^ 64 * LeanVM.Protocol.Verifier.kToNat (x.limb 1)) (k := 2)
     (by norm_num) (by rw [show 64 * 2 = 64 + 64 by rfl, pow_add]; exact Nat.mul_lt_mul_of_pos_left h1 (by norm_num))
-  rw [limbs_of_lt h0]
+  limbs
   have l3 := limbs_le_two (x := LeanVM.Protocol.Verifier.kToNat (x.limb 0) +
     2 ^ 64 * LeanVM.Protocol.Verifier.kToNat (x.limb 1)) (by omega)
   omega
@@ -201,7 +202,7 @@ theorem daDigestAt_cost (hP : Includes P Decoder.daDigestAtC.costDeps) (k : ℕ)
   have := cellAt_cost P hrd hR (by includes) (σ (.n (val% «main» "da_digests"))) (2 * k) (by omega)
   have := cellAt_cost P hrd hR (by includes) (σ (.n (val% «main» "da_digests"))) (2 * k + 1) hk
   rw [digestOfCells_cost P (by includes)]
-  limbs_one
+  limbs
   omega
 
 end Val

@@ -68,7 +68,7 @@ theorem xmssRaw_cost (hP : Includes P xmssRawC.costDeps) (p53 : E) (args : List 
     (by norm_num) (by omega)
   have h3 := xmssRawAt_cost P hrd hR hwX hWX (by includes) p53 args hargs
     (Parameters.g ^ (4 * slotIn t.1 t.2 j)) j hj
-  limbs_one
+  limbs
   omega
 
 /-- The raw leanXMSS signatures' price, at most `X` of them. -/
@@ -133,7 +133,7 @@ theorem sphincsRaw_cost (hP : Includes P sphincsRawC.costDeps) (p56 : E) (t : Ar
     (by norm_num) (by norm_num) (by omega)
   have h3 := sphincsRawAt_cost P hrd hR hwS hWS (by includes) p56
     (Parameters.g ^ (4 * slotIn t.1 t.2 (nrx + j)))
-  limbs_one
+  limbs
   omega
 
 /-- The raw leanSPHINCS signatures' price, at most `X` of them. -/

@@ -88,7 +88,8 @@ theorem xmssRun_cost (hP : Includes P Decoder.xmssRunC.costDeps) (step : K) :
         encodeValue n] ≤ (4 * R + 12367) * n + 5
   | 0, x, _ => by rw [Decoder.xmssRunC.costEq_zero P hP rd rdV hrd]; omega
   | n + 1, x, h => by
-    rw [Decoder.xmssRunC.costEq_succ P hP rd rdV hrd, limbs_of_lt h]
+    rw [Decoder.xmssRunC.costEq_succ P hP rd rdV hrd]
+    limbs
     have := xmssRun_cost hP step n (x * step) (by omega)
     have := xmssAtK_cost P hrd hR (by includes) x
     nlinarith
@@ -100,7 +101,8 @@ theorem sphincsRun_cost (hP : Includes P Decoder.sphincsRunC.costDeps) (step : K
         encodeValue n] ≤ (4 * R + 12367) * n + 5
   | 0, x, _ => by rw [Decoder.sphincsRunC.costEq_zero P hP rd rdV hrd]; omega
   | n + 1, x, h => by
-    rw [Decoder.sphincsRunC.costEq_succ P hP rd rdV hrd, limbs_of_lt h]
+    rw [Decoder.sphincsRunC.costEq_succ P hP rd rdV hrd]
+    limbs
     have := sphincsRun_cost hP step n (x * step) (by omega)
     have := sphincsAtK_cost P hrd hR (by includes) x
     nlinarith
@@ -113,7 +115,7 @@ theorem daDigestAtP_cost (hP : Includes P Decoder.daDigestAtPC.costDeps) (p : E)
   rw [Decoder.daDigestAtPC.costEq P hP rd rdV hrd, digestOfCells_cost P (by includes)]
   have := cellAt_cost P hrd hR (by includes) p (2 * k) (by omega)
   have := cellAt_cost P hrd hR (by includes) p (2 * k + 1) hk
-  limbs_one
+  limbs
   omega
 
 /-- The statement's price at `n0`, `n3` declared claims. -/
@@ -204,7 +206,7 @@ theorem aggRounds_cost (hP : Includes P Decoder.aggRoundsC.costDeps) :
       have := memAt_cost P hrd hR (by includes) (σ (.n (val% «aggregate_claims» "bc_msgs"))) (1 + 2 * k) (by omega)
       have := memAt_cost P hrd hR (by includes) (σ (.n (val% «aggregate_claims» "bc_msgs"))) (2 + 2 * k) (by omega)
       have := hS (.n (val% «aggregate_claims» "bc_msgs"))
-      limbs_one
+      limbs
       omega)
   omega
 

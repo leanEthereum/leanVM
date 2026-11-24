@@ -94,9 +94,7 @@ theorem locAt_cost (hP : Includes P locAtC.costDeps) (j i : ℕ) :
   have hw := guestLanes_lt (s / 4) i
   generalize (guestLanes.getD (s / 4) #[]).getD i 0 = w at hw ⊢
   have h4 : s % 4 < 4 := Nat.mod_lt _ (by norm_num)
-  rw [limbs_of_lt hs, limbs_of_lt hw, limbs_of_lt (show 16 * (s % 4) < 2 ^ 64 by omega),
-    limbs_of_lt (show s % 4 < 2 ^ 64 by omega),
-    limbs_of_lt (show w >>> (16 * (s % 4)) < 2 ^ 64 from lt_of_le_of_lt (Nat.shiftRight_le _ _) hw)]
+  limbs
   omega
 
 /-! ## A state's key -/
@@ -162,8 +160,8 @@ theorem wordsWith_cost (hP : Includes P wordsWithC.costDeps) {W : ℕ} (hW : 0 <
     (psAt W + R + 52) (List.range n) (fun i hi ↦ by
       have hi' := List.mem_range.mp hi
       simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [wordsWithC.lam0.costEq P (by includes) rd rdVal hrd, limbs_of_lt (by omega : o < 2 ^ 64),
-        limbs_of_lt (by omega : i < 2 ^ 64), limbs_of_lt (by omega : o + i < 2 ^ 64)]
+      rw [wordsWithC.lam0.costEq P (by includes) rd rdVal hrd]
+      limbs
       have := wordWith_cost P rd rdVal hrd R hR hW hW64 (by includes) fp (o + i) (by omega)
       simp only [max_self]
       omega)
@@ -177,8 +175,8 @@ theorem entryKeyT_cost (hP : Includes P entryKeyTC.costDeps) (s : Registers K) (
     machineCost P entryKeyTC.costIdx [rdVal, encodeValue s, encodeValue j] ≤ 66 * R + 41200 := by
   have ha := argCount_le j
   have hr := retCount_le j
-  rw [entryKeyTC.costEq P hP rd rdVal hrd, limbs_of_lt (by omega : guestArgCounts.getD j 0 < 2 ^ 64),
-    limbs_of_lt (by omega : 2 + guestArgCounts.getD j 0 < 2 ^ 64)]
+  rw [entryKeyTC.costEq P hP rd rdVal hrd]
+  limbs
   have h1 := wordsWith_cost P rd rdVal hrd R hR (by includes) (W := 7) (by norm_num) (by norm_num)
     s.fp 2 (guestArgCounts.getD j 0) (show 2 + guestArgCounts.getD j 0 ≤ 2 ^ 7 by omega)
   have h2 := wordsWith_cost P rd rdVal hrd R hR (by includes) (W := 7) (by norm_num) (by norm_num)
@@ -205,7 +203,8 @@ theorem entryKeyT_ok (s : Registers K) {j : ℕ} (hj : j < 2 ^ 64) :
 /-- Whether `j` is a function's index (`isFunctionIndexC`), `j` word-sized: at most `11`. -/
 theorem isFunctionIndex_cost (hP : Includes P isFunctionIndexC.costDeps) (j : ℕ) (hj : j < 2 ^ 64) :
     machineCost P isFunctionIndexC.costIdx [encodeValue j] ≤ 11 := by
-  rw [isFunctionIndexC.costEq P hP, limbs_of_lt hj]
+  rw [isFunctionIndexC.costEq P hP]
+  limbs
   split_ifs <;> omega
 
 include hrd hR in

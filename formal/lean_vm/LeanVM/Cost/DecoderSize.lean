@@ -62,7 +62,7 @@ theorem rowSize_of_lt (r : List ℕ) (h : ∀ x ∈ r, x < 2 ^ 64) : rowSize r =
   | cons x r ih =>
     rw [List.map_cons, List.sum_cons, ih (fun y hy ↦ h y (by simp [hy])), List.length_cons]
     show limbCount x + _ = _
-    rw [limbs_of_lt (h x (by simp))]
+    limbs
     omega
 
 /-- At most four rows of cells below `2^16`, packed: the longest row's length and one. -/

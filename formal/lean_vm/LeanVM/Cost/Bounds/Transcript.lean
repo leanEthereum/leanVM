@@ -35,7 +35,8 @@ theorem leafAt_cost (hP : Includes P leafAtC.costDeps) (leaves : Array (List K))
   rw [leafAtC.costEq P hP]
   have h2 : 2 ^ h < 2 ^ 64 := Nat.pow_lt_pow_right (by norm_num) hh
   have hr := replicate_cost P (by includes) (0 : K) w hw
-  rw [Nat.one_shiftLeft, limbs_of_lt h2, limbs_of_lt (by omega : h < 2 ^ 64), limbs_of_lt hv]
+  rw [Nat.one_shiftLeft]
+  limbs
   omega
 
 /-! ## Generic list functions -/
@@ -114,7 +115,7 @@ theorem searchPre_cost (hP : Includes P searchIn.«List UInt64 × Nat, Hits».co
     dsimp only at *
     rw [searchIn.«List UInt64 × Nat, Hits».costEq P hP]
     simp only [show ¬lo < hi by omega, ↓reduceIte]
-    limbs_bound hW
+    limbs [hW]
     omega
   · rintro ⟨lo, hi⟩ ⟨hlo, hhi⟩ hpos
     dsimp only at *
@@ -125,12 +126,12 @@ theorem searchPre_cost (hP : Includes P searchIn.«List UInt64 × Nat, Hits».co
     | none =>
       left
       dsimp only
-      limbs_bound hW
+      limbs [hW]
       split_ifs <;> omega
     | some v =>
       have hv1 : v.1.2 < 2 ^ 64 := ht v (Array.mem_of_getElem? hv)
       dsimp only
-      limbs_bound hW
+      limbs [hW]
       have hc := hcmp v.1.1 k.1
       generalize compareOn (fun x ↦ x.1) v.1 k = o1
       generalize compare v.1 k = o2
@@ -179,7 +180,7 @@ theorem mergeNewerPre_cost (hP : Includes P mergeNewer.«List UInt64 × Nat, Hit
       have h3 := ih (a.length + 1 + b.length) (by simp at hn; omega) (x :: a) b (by simp)
         ha (fun e he ↦ hb e (by simp [he]))
       simp only [List.length_cons] at hn h1 h3
-      rw [limbs_of_lt hx.2, limbs_of_lt hy.2]
+      limbs
       generalize compareOn (fun x ↦ x.1) x.1 y.1 = o1
       generalize compare x.1 y.1 = o2
       cases o1 <;> cases o2 <;> dsimp only <;> (try split_ifs) <;> omega

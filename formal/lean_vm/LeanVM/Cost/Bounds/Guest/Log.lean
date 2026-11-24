@@ -118,7 +118,8 @@ theorem giantSteps_cost (hP : Includes P Decoder.giantStepsC.costDeps) (T : Arra
         encodeValue t, encodeValue k, encodeValue y] ≤ (t + 1) * (findLanePrice T.size + 52)
   | 0, k, y, _ => by rw [Decoder.giantStepsC.costEq_zero P hP]; omega
   | t + 1, k, y, h => by
-    rw [Decoder.giantStepsC.costEq_succ P hP, limbs_of_lt (by omega : t + 1 < 2 ^ 64)]
+    rw [Decoder.giantStepsC.costEq_succ P hP]
+    limbs
     have hf := findLane_cost P (by includes) T hT y.lane.toNat (UInt64.toNat_lt _) 0 T.size
       (by omega) le_rfl
     simp only [Nat.sub_zero] at hf
@@ -165,7 +166,7 @@ theorem phResidue_cost (hP : Includes P Decoder.phResidueC.costDeps) (q p s t : 
       cases o with
       | none => simp
       | some v => exact limbs_le_two (hv v rfl)
-    rw [limbs_of_lt hp]
+    limbs
     generalize bsgs T c s t (x ^ q) = o at hl
     cases o <;> dsimp only at hl ⊢ <;> omega
 
@@ -328,7 +329,8 @@ theorem gLogAt_cost (hP : Includes P Decoder.gLogAtC.costDeps) (o : Option ℕ)
   | none => dsimp only; omega
   | some v =>
     dsimp only
-    rw [limbs_shift (by norm_num), limbs_two_pow (by norm_num), limbs_of_lt (ho v rfl)]
+    rw [limbs_shift (by norm_num), limbs_two_pow (by norm_num)]
+    limbs
     split_ifs <;> omega
 
 theorem discreteLogWith_lt (x : K) (v : ℕ) (h : discreteLogWith discreteLogTables x = some v) :

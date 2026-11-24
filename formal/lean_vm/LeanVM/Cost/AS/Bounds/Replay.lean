@@ -306,10 +306,8 @@ theorem littleEndianLane_cost (hP : Includes P littleEndianLane.costDeps) (bytes
       refine ⟨trivial, ?_⟩
       have hk8 := List.mem_range.1 hk
       rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
-        littleEndianLane.lam0.costEq P,
-        limbs_of_lt (by omega : 8 * i < 2 ^ 64), limbs_of_lt (by omega : i < 2 ^ 64),
-        limbs_of_lt (by omega : 8 * i + k < 2 ^ 64), limbs_of_lt (by omega : k < 2 ^ 64),
-        limbs_of_lt (by omega : 8 * k < 2 ^ 64)]
+        littleEndianLane.lam0.costEq P]
+      limbs
       have := getD_cost_idx P (by includes) bytes (8 * i + k) 0 (by omega)
       simp only [List.length_cons, List.length_nil, max_self]
       omega)
@@ -333,8 +331,8 @@ theorem absorbBlockWith_cost (hP : Includes P absorbBlockWith.Option.costDeps)
     (fun j ↦ RunsApp.of_spec (absorbBlockWith.Option.lam0.costSpec P (by includes) s block j)) 16792
     (fun j ↦ by
       rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
-        absorbBlockWith.Option.lam0.costEq P,
-        limbs_of_lt (by omega : (j : ℕ) < 2 ^ 64)]
+        absorbBlockWith.Option.lam0.costEq P]
+      limbs
       simp only [List.length_cons, List.length_nil]
       split_ifs with hj
       · have := littleEndianLane_cost P (by includes) block j hj
@@ -361,7 +359,8 @@ theorem absorbWith_cost (hP : Includes P absorbWith.Option.costDeps)
   induction k with
   | zero =>
     intro s data _ hd
-    rw [absorbWith.Option.costEq P hP π πVal hπ, limbs_of_lt (by norm_num : (0 : ℕ) < 2 ^ 64)]
+    rw [absorbWith.Option.costEq P hP π πVal hπ]
+    limbs
     have h1 := padBlock_cost P (by includes) data (by omega)
     have h2 := absorbBlockWith_cost P (by includes) π πVal hπ B hB s (padBlock data)
     simp only [Nat.rec_zero]
@@ -370,7 +369,7 @@ theorem absorbWith_cost (hP : Includes P absorbWith.Option.costDeps)
     intro s data hk hd
     rw [absorbWith.Option.costEq P hP π πVal hπ]
     dsimp only
-    rw [limbs_of_lt (by omega : k + 1 < 2 ^ 64)]
+    limbs
     have h1 := take_cost P (by includes) rate data (by rw [rate_eq]; norm_num)
     have h2 := absorbBlockWith_cost P (by includes) π πVal hπ B hB s (data.take rate)
     have h3 := bind_cost P (by includes) _ (.closure absorbWith.Option.lam0.costIdx [encodeValue k, πVal, encodeValue data])
@@ -412,9 +411,8 @@ theorem keccakIdx_cost (hP : Includes P Auto.LeanVM.Protocol.KeccakHash.keccak25
       [.closure hashMC.lam0.costIdx [encodeValue M], encodeValue m] ≤
       (m.length / 136 + 1) * (fwdLookupPrice D W + 430004) + 8 * m.length + 85 := by
   rw [Auto.LeanVM.Protocol.KeccakHash.keccak256With.Option.costEq P hP
-    (fwdF M) _ (fun x ↦ RunsApp.of_spec (hashMC.lam0.costSpec P hL M x)),
-    limbs_of_lt (by omega : m.length < 2 ^ 64),
-    limbs_of_lt (by rw [LeanVM.Cost.Bounds.rate_eq]; norm_num : LeanVM.Protocol.KeccakHash.rate < 2 ^ 64)]
+    (fwdF M) _ (fun x ↦ RunsApp.of_spec (hashMC.lam0.costSpec P hL M x))]
+  limbs
   have hl := length_cost P (by includes) m (by omega)
   have ha := absorbWith_cost P (by includes) (fwdF M) _
     (fun x ↦ RunsApp.of_spec (hashMC.lam0.costSpec P hL M x)) _
@@ -499,8 +497,8 @@ theorem extractSeed_cost (hP : Includes P extractLC.costDeps) (D W : ℕ)
           (fun j ↦ RunsApp.of_spec (Auto.LeanVM.Protocol.Compile.seedInput.lam0.costSpec P
             (by includes) iv pd j)) 16 (fun j ↦ by
               rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
-                Auto.LeanVM.Protocol.Compile.seedInput.lam0.costEq P,
-                limbs_of_lt (by omega : (j : ℕ) < 2 ^ 64)]
+                Auto.LeanVM.Protocol.Compile.seedInput.lam0.costEq P]
+              limbs
               simp only [List.length_cons, List.length_nil]
               split_ifs <;> omega) 0 (Nat.zero_le _)
         have := hashLam_cost P (by includes) D W hW (fwdIndex qs) hg hN
@@ -520,8 +518,7 @@ theorem publicInputDigest_cost (hP : Includes P Auto.LeanVM.publicInputDigest.co
   rw [Auto.LeanVM.publicInputDigest.costEq P hP, Auto.Fin.ofNat.«4».costEq P,
     Auto.Fin.ofNat.«4».costEq P, Auto.Fin.ofNat.«4».costEq P,
     Auto.Fin.ofNat.«4».costEq P]
-  rw [limbs_of_lt (by norm_num : (0 : ℕ) < 2 ^ 64), limbs_of_lt (by norm_num : (1 : ℕ) < 2 ^ 64),
-    limbs_of_lt (by norm_num : (2 : ℕ) < 2 ^ 64), limbs_of_lt (by norm_num : (3 : ℕ) < 2 ^ 64)]
+  limbs
   omega
 
 /-! ## The sponge -/
@@ -608,7 +605,7 @@ theorem pendingLanes_cost (hP : Includes P pendingLanes.costDeps) (sp : Sponge) 
       obtain ⟨e, t⟩ := a
       have := h.2 _ ha
       dsimp only at this ⊢
-      rw [limbs_of_lt this]
+      limbs
       simp)
   refine le_trans (Nat.add_le_add_right (Nat.add_le_add h1 (flatten_cost P (by includes) 4 _ ?_)) _) ?_
   · intro l hl
@@ -627,8 +624,8 @@ theorem duplexInput_cost (hP : Includes P duplexInput.costDeps) (sp : Sponge) (h
     (.closure duplexInput.lam0.costIdx [encodeValue sp])
     (fun j ↦ RunsApp.of_spec (duplexInput.lam0.costSpec P (by includes) sp j)) 635
     (fun j ↦ by
-      rw [appCost_fn, List.singleton_append, duplexInput.lam0.costEq P,
-        limbs_of_lt (by omega : (j : ℕ) < 2 ^ 64)]
+      rw [appCost_fn, List.singleton_append, duplexInput.lam0.costEq P]
+      limbs
       simp only [List.length_singleton]
       split_ifs with hj
       · have := pendingLanes_cost P (by includes) sp h
@@ -664,8 +661,8 @@ theorem absorb_cost (hP : Includes P absorb.Option.costDeps) (sp : Sponge) (x : 
     (h : SpOk sp) :
     machineCost P absorb.Option.costIdx [πVal, encodeValue sp, encodeValue x, encodeValue tag] ≤
       B + 16500 := by
-  rw [absorb.Option.costEq P hP π πVal hπ, limbs_of_lt (by have := h.1; omega : sp.pending.length < 2 ^ 64),
-    limbs_of_lt (by unfold rateScalars; norm_num : rateScalars < 2 ^ 64)]
+  rw [absorb.Option.costEq P hP π πVal hπ]
+  limbs
   have h1 := length_cost P (by includes) sp.pending (by have := h.1; omega)
   have h0 := h.1
   have hr : rateScalars = 4 := rfl
@@ -789,9 +786,7 @@ theorem skelReplay_cost (hP : Includes P skelReplayP.costDeps) (R : ℕ) :
             (LeanVM.Protocol.Compile.absorb F s.sponge x dsObserve)
             (tail.length * (2 * B + 34000 + 11 * R) + 9 + 60)
             (fun sp hsp ↦ by
-              rw [appCost_fn]
-              simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-              rw [skelReplayP.lam1.costEq P (by includes) x xs tail F FVal hF]
+              cost_app [skelReplayP.lam1.costEq P (by includes) x xs tail F FVal hF]
               have h3 := ih { sponge := sp, stream := xs, openings := s.openings, roots := s.roots }
                 (by dsimp only; omega) (absorb_ok hs (by unfold dsObserve; norm_num) hsp)
               have h4 := optionMap_cost P (by includes) _
@@ -813,9 +808,7 @@ theorem skelReplay_cost (hP : Includes P skelReplayP.costDeps) (R : ℕ) :
         (LeanVM.Protocol.Compile.squeeze F s.sponge)
         (tail.length * (2 * B + 34000 + 11 * R) + 9 + 60)
         (fun c hc ↦ by
-          rw [appCost_fn]
-          simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-          rw [skelReplayP.lam3.costEq P (by includes) tail F FVal hF]
+          cost_app [skelReplayP.lam3.costEq P (by includes) tail F FVal hF]
           have h3 := ih { sponge := c.2, stream := s.stream, openings := s.openings, roots := s.roots }
             (by dsimp only; omega) (squeeze_ok hs hc)
           have h4 := optionMap_cost P (by includes) _
@@ -843,9 +836,7 @@ theorem skelReplay_cost (hP : Includes P skelReplayP.costDeps) (R : ℕ) :
             (LeanVM.Protocol.Compile.absorbNonce F s.sponge x)
             (tail.length * (2 * B + 34000 + 11 * R) + 9 + 60)
             (fun c hc ↦ by
-              rw [appCost_fn]
-              simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-              rw [skelReplayP.lam5.costEq P (by includes) xs tail F FVal hF]
+              cost_app [skelReplayP.lam5.costEq P (by includes) xs tail F FVal hF]
               have h3 := ih { sponge := c.2, stream := xs, openings := s.openings, roots := s.roots }
                 (by dsimp only; omega) (absorbNonce_ok hc)
               have h4 := hmap { sponge := c.2, stream := xs, openings := s.openings, roots := s.roots }
@@ -869,9 +860,7 @@ theorem skelReplay_cost (hP : Includes P skelReplayP.costDeps) (R : ℕ) :
             (LeanVM.Protocol.Compile.absorb F s.sponge x0 dsObserve)
             (tail.length * (2 * B + 34000 + 11 * R) + 9 + B + 16700 + 11 * s.roots.length)
             (fun sp0 hsp0 ↦ by
-              rw [appCost_fn]
-              simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-              rw [skelReplayP.lam7.costEq P (by includes) x1 xs x0 height width tail F FVal hF]
+              cost_app [skelReplayP.lam7.costEq P (by includes) x1 xs x0 height width tail F FVal hF]
               have hok0 := absorb_ok hs (by unfold dsObserve; norm_num) hsp0
               have h3 := absorb_cost P F FVal hF B hB (by includes) sp0 x1 dsObserve hok0
               have h4 := bind_le P (by includes) _ (.closure skelReplayP.lam6.costIdx
@@ -882,9 +871,7 @@ theorem skelReplay_cost (hP : Includes P skelReplayP.costDeps) (R : ℕ) :
                 (LeanVM.Protocol.Compile.absorb F sp0 x1 dsObserve)
                 (tail.length * (2 * B + 34000 + 11 * R) + 9 + 130 + 11 * s.roots.length)
                 (fun sp1 hsp1 ↦ by
-                  rw [appCost_fn]
-                  simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-                  rw [skelReplayP.lam6.costEq P (by includes) x1 xs x0 height width tail F FVal hF]
+                  cost_app [skelReplayP.lam6.costEq P (by includes) x1 xs x0 height width tail F FVal hF]
                   have h5 := digestOfScalars_cost P (by includes) (x0, x1)
                   have h6 := append_cost P (by includes) s.roots
                     [(LeanVM.Protocol.KeccakHash.digestFromHalves (x0, x1), height, width)]
@@ -1068,7 +1055,8 @@ theorem grindingBits_cost (hP : Includes P Auto.LeanVM.Protocol.Compile.grinding
   rw [Auto.LeanVM.Protocol.Compile.grindingBits.costEq P hP]
   have hl1 : limbCount n ≤ 3 := limbs_le_wl (E := 128) (by omega)
   have hs : securityBits = 125 := rfl
-  rw [hs, limbs_of_lt (by norm_num : (125 : ℕ) < 2 ^ 64), limbs_of_lt (by norm_num : 128 - 125 < 2 ^ 64)]
+  rw [hs]
+  limbs
   have hlog : Nat.log2 (n - 1) < 128 := by
     rcases Nat.eq_zero_or_pos (n - 1) with h0 | h0
     · rw [h0]; simp
@@ -1095,7 +1083,8 @@ theorem grindingBits_le (n : ℕ) (hn : n < 2 ^ 128) : grindingBits n ≤ 128 :=
 /-- A grind's skeleton (`skGrind`): at most `11`. -/
 theorem skGrind_cost (hP : Includes P skGrind.costDeps) (bits : ℕ) (hb : bits < 2 ^ 64 := by omega) :
     machineCost P skGrind.costIdx [encodeValue bits] ≤ 11 := by
-  rw [skGrind.costEq P hP, limbs_of_lt hb]
+  rw [skGrind.costEq P hP]
+  limbs
   split_ifs <;> omega
 
 theorem length_skGrind (bits : ℕ) :
@@ -1225,7 +1214,7 @@ theorem skFoldRounds_cost (hP : Includes P skFoldRounds.costDeps) :
     have := skFoldRound_cost P (by includes)
     have := append_cost P (by includes) skFoldRound (skFoldRounds n)
     rw [length_skFoldRound] at this
-    rw [limbs_of_lt (by omega : n + 1 < 2 ^ 64)]
+    limbs
     omega
 
 theorem length_skBytecodeShare : skBytecodeShare.length ≤ 30 := by decide
@@ -1286,8 +1275,8 @@ theorem foldlMax_cost (h1 : Includes P listFoldl.costDeps) (h2 : Includes P Auto
     (fun a b ↦ RunsApp.of_spec (Auto.LeanVM.Extraction.AS.skTablePhaseL.lam0.costSpec P h2 a b)) 7
     (fun acc ↦ acc < 2 ^ 63) hs 0 (by norm_num)
     (fun acc hacc b hb ↦ ⟨by have := h b hb; omega, by
-      rw [appCost_fn, List.nil_append, Auto.LeanVM.Extraction.AS.skTablePhaseL.lam0.costEq P h2,
-        limbs_of_lt (by omega : acc < 2 ^ 64), limbs_of_lt (by have := h b hb; omega : b < 2 ^ 64)]
+      rw [appCost_fn, List.nil_append, Auto.LeanVM.Extraction.AS.skTablePhaseL.lam0.costEq P h2]
+      limbs
       simp⟩)
   omega
 
@@ -1309,8 +1298,7 @@ theorem kLen_cost (hP : Includes P kLen.costDeps) (hs : List ℕ) (hl : hs.lengt
   have f := foldlMax_cost P (by includes) (by includes) hs (fun x hx ↦ by have := h x hx; omega)
   have h1 := getD_le_of hs opKeccak 30 h
   have h2 := foldl_max_le 30 hs 0 (by omega) h
-  rw [limbs_of_lt (by omega : hs.getD opKeccak 0 < 2 ^ 64),
-    limbs_of_lt (by omega : hs.foldl max 0 < 2 ^ 64)]
+  limbs
   split_ifs <;> omega
 
 /-- The constant `tableWidthsL` (`tableWidthsL`). -/
@@ -1533,15 +1521,14 @@ theorem skGkrLayers_cost (hP : Includes P skGkrLayers.costDeps) :
   | k + 2, L, h => by
     rw [skGkrLayers.costEq P hP]
     dsimp only
-    rw [limbs_of_lt (by omega : k + 2 < 2 ^ 64), limbs_of_lt (by omega : k + 1 < 2 ^ 64),
-      limbs_of_lt (by omega : k < 2 ^ 64), limbs_of_lt (by omega : k % 2 < 2 ^ 64)]
+    limbs
     split_ifs with hk
     · have h1 := skGkrStep_cost P (by includes) 1 false L
       have h2 := skGkrLayers_cost hP (k + 1) (1 + L) (by omega)
       have h3 := append_cost P (by includes) (skGkrStep 1 false L) (skGkrLayers (k + 1) (1 + L))
       have h4 := length_skGkrStep 1 false L (by omega)
       rw [show 1 + L + (k + 1) = L + (k + 2) by omega] at h2
-      rw [limbs_of_lt (by omega : 1 + L < 2 ^ 64), limbs_of_lt (by omega : L < 2 ^ 64)]
+      limbs
       have : (k + 2) * (3200 * (L + (k + 2)) + 7500) =
           (k + 1) * (3200 * (L + (k + 2)) + 7500) + (3200 * (L + (k + 2)) + 7500) := by ring
       simp only [max_self]
@@ -1552,7 +1539,7 @@ theorem skGkrLayers_cost (hP : Includes P skGkrLayers.costDeps) :
         (skGkrLayers k (2 + L))
       have h4 := length_skGkrStep 2 (decide (k = 0)) L (by omega)
       rw [show 2 + L + k = L + (k + 2) by omega] at h2
-      rw [limbs_of_lt (by omega : 2 + L < 2 ^ 64), limbs_of_lt (by omega : L < 2 ^ 64)]
+      limbs
       have : (k + 2) * (3200 * (L + (k + 2)) + 7500) =
           k * (3200 * (L + (k + 2)) + 7500) + 2 * (3200 * (L + (k + 2)) + 7500) := by ring
       simp only [max_self]
@@ -1630,10 +1617,7 @@ theorem skKeccak_cost (hP : Includes P skKeccak.costDeps) (L : ℕ) (hL : L ≤ 
       rw [appCost_fn, List.singleton_append, skKeccak.lam0.costEq P]
       have := skLayer_cost P (by includes) (L - 4 + keccakSegmentBits)
       have := bitLength_cost' P (by includes) (keccakSegments - 1)
-      rw [limbs_of_lt (by omega : L < 2 ^ 64), limbs_of_lt (by omega : keccakDepth < 2 ^ 64),
-        limbs_of_lt (by omega : keccakSegments < 2 ^ 64),
-        limbs_of_lt (by omega : L - 4 + keccakSegmentBits < 2 ^ 64),
-        limbs_of_lt (by omega : L - 4 < 2 ^ 64), limbs_of_lt (by omega : keccakSegmentBits < 2 ^ 64)]
+      limbs
       simp only [List.length_singleton, max_self]
       omega)
   have hfl := flatten_cost P (by includes) (6 * L + 146)
@@ -1674,11 +1658,7 @@ theorem sqSamples_cost (hP : Includes P sqSamples.costDeps) (depth : ℕ) (hd : 
     have := sqSamples_le depth fuel (rem - min (128 / depth) rem)
     have : 128 / depth ≤ 128 := Nat.div_le_self _ _
     have : min (128 / depth) rem ≤ 128 := (min_le_left _ _).trans this
-    rw [limbs_of_lt (by omega : fuel + 1 < 2 ^ 64), limbs_of_lt hr, limbs_of_lt hd,
-      limbs_of_lt (by omega : 128 / depth < 2 ^ 64),
-      limbs_of_lt (by omega : min (128 / depth) rem < 2 ^ 64),
-      limbs_of_lt (by omega : 1 + sqSamples depth fuel (rem - min (128 / depth) rem) < 2 ^ 64),
-      limbs_of_lt (by omega : sqSamples depth fuel (rem - min (128 / depth) rem) < 2 ^ 64)]
+    limbs
     split_ifs <;> omega
 
 /-- A level's commitment shape (`levelShape`): at most `11`. -/
@@ -1955,9 +1935,7 @@ theorem mapMLoop_cost (hP : Includes P Auto.List.mapM.loop.Option.costDeps) {α 
     have h2 := bind_cost P (by includes) _ (.closure Auto.List.mapM.loop.Option.lam0.costIdx [encodeValue xs, fVal, encodeValue acc])
       (fun b ↦ RunsApp.of_spec (Auto.List.mapM.loop.Option.lam0.costSpec P (by includes) xs f fVal hf
         acc b)) ((B + 43) * xs.length + 11 * acc.length + 32) (fun b ↦ by
-          rw [appCost_fn]
-          simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-          rw [Auto.List.mapM.loop.Option.lam0.costEq P (by includes) xs f fVal hf]
+          cost_app [Auto.List.mapM.loop.Option.lam0.costEq P (by includes) xs f fVal hf]
           have := mapMLoop_cost hP f fVal hf B hB xs (b :: acc)
           simp only [List.length_cons] at this
           omega) (f x)
@@ -2019,7 +1997,7 @@ theorem decRoundP_cost (hP : Includes P decRoundP.costDeps) (h : List EvP) :
   have := drop_cost P (by includes) (4 + (skGrind Whir.foldGrindingBits).length) h (by omega)
   have := listCases_le (List.drop (4 + (skGrind Whir.foldGrindingBits).length) h) 1 5
   rw [hg] at *
-  rw [limbs_of_lt (by norm_num : 4 + 1 < 2 ^ 64), limbs_of_lt (by norm_num : 1 < 2 ^ 64)]
+  limbs
   omega
 
 /-- The fold rounds' challenges (`decRoundsP`): at most `(500·n + 1100)·n + 7`. -/
@@ -2035,9 +2013,7 @@ theorem decRoundsP_cost (hP : Includes P decRoundsP.costDeps) :
     have h3 := bind_cost P (by includes) _ (.closure decRoundsP.lam1.costIdx [encodeValue k, encodeValue h])
       (fun r ↦ RunsApp.of_spec (decRoundsP.lam1.costSpec P (by includes) k h r))
       ((500 * k + 1100) * k + 7 + 500 * k + 450) (fun r ↦ by
-        rw [appCost_fn]
-        simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-        rw [decRoundsP.lam1.costEq P]
+        cost_app [decRoundsP.lam1.costEq P]
         have := skFoldRounds_cost P (by includes) k (by omega)
         have := skFoldRound_cost P (by includes)
         have := decRoundsP_cost hP k (List.take (skFoldRounds k).length (List.drop skFoldRound.length h))
@@ -2114,9 +2090,7 @@ theorem decLevelsP_cost (hP : Includes P decLevelsP.costDeps) (logN : ℕ) (hN :
         [encodeValue l, encodeValue logN, encodeValue A, encodeValue h])
       (fun rs ↦ RunsApp.of_spec (decLevelsP.lam0.costSpec P (by includes) l logN A h rs))
       (461 * l.fold + 64 * (2 ^ (logN - (A + l.fold)) + l.fold) + 80) (fun rs ↦ by
-        rw [appCost_fn]
-        simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-        rw [decLevelsP.lam0.costEq P]
+        cost_app [decLevelsP.lam0.costEq P]
         simp only [Nat.one_shiftLeft]
         have := mapMReads_cost P (by includes) (by includes) (List.take (2 ^ (logN - (A + l.fold)) +
           l.fold) (List.drop (skFoldRounds l.fold).length h))
@@ -2154,9 +2128,7 @@ theorem decLevelsP_cost (hP : Includes P decLevelsP.costDeps) (logN : ℕ) (hN :
       (461 * l.fold + (150 * (l.fold + logN + l.queries) + 1000) + 45 * (skMidTail logN (A + l.fold) l n).length +
         skLevelsPrice logN (A + l.fold) (n :: rest) + 30 * (skLevels logN (A + l.fold) (n :: rest)).length +
         decLevelsPrice logN (A + l.fold) (n :: rest) + 64 * l.fold + 250) (fun rs ↦ by
-        rw [appCost_fn]
-        simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-        rw [decLevelsP.lam3.costEq P]
+        cost_app [decLevelsP.lam3.costEq P]
         have d1 := skMidTail_cost P (by includes) logN (A + l.fold) l n (by omega) (by omega)
           ⟨hl1, hl2, hl3⟩ hn'
         have d2 := decHighP_cost P (by includes) l.fold (List.take (skMidTail logN (A + l.fold) l n).length
@@ -2168,9 +2140,7 @@ theorem decLevelsP_cost (hP : Includes P decLevelsP.costDeps) (logN : ℕ) (hN :
             (skMidTail logN (A + l.fold) l n).length (List.drop (skFoldRounds l.fold).length h) hi))
           (skLevelsPrice logN (A + l.fold) (n :: rest) + 27 * (skLevels logN (A + l.fold) (n :: rest)).length + 15 * (skMidTail logN (A + l.fold) l n).length +
             decLevelsPrice logN (A + l.fold) (n :: rest) + 90) (fun hi ↦ by
-            rw [appCost_fn]
-            simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-            rw [decLevelsP.lam2.costEq P]
+            cost_app [decLevelsP.lam2.costEq P]
             have e1 := skLevels_cost P (by includes) logN hN (n :: rest) (A + l.fold)
               (fun x hx ↦ hl x (List.mem_cons_of_mem _ hx)) (by simp only [List.length_cons]; omega)
             have e2 := decLevelsP_cost hP logN hN (n :: rest) (A + l.fold)
@@ -2216,9 +2186,7 @@ theorem decWhirCutP_cost (hP : Includes P decWhirCutP.costDeps) (μ ρ : ℕ) (h
       [encodeValue μ, encodeValue h])
     (fun c ↦ RunsApp.of_spec (decWhirCutP.lam0.costSpec P (by includes) μ h c))
     (Whir.ladder μ ρ) 400007 (fun lv hlv ↦ by
-      rw [appCost_fn]
-      simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [decWhirCutP.lam0.costEq P]
+      cost_app [decWhirCutP.lam0.costEq P]
       obtain ⟨h1, h2, h3, -⟩ := ladder_facts hlv
       have hb := ladder_some_bounds hlv
       have := decLevelsP_cost P (by includes) μ (by omega) lv 0 h h1 (by omega) (by omega)
@@ -2279,9 +2247,8 @@ theorem sizesOfL_cost (hP : Includes P Auto.LeanVM.Extraction.AS.sizesOfL.costDe
         (List.take 6 (List.drop 1 ann)))) 28 (fun L hL ↦ by
       have := buildLayoutLite_stackLog hL
       rw [appCost_fn, List.singleton_append,
-        Auto.LeanVM.Extraction.AS.sizesOfL.lam2.costEq P,
-        limbs_of_lt (by omega : L.stackLog < 2 ^ 64),
-        limbs_of_lt (by simp [Whir.minLogStack]), limbs_of_lt (by simp [Whir.maxLogStack])]
+        Auto.LeanVM.Extraction.AS.sizesOfL.lam2.costEq P]
+      limbs
       simp only [List.length_singleton]
       split_ifs <;> omega)
   have hk := kToNat_lt ((ann.getLastD 0).limb 0)

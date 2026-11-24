@@ -54,7 +54,8 @@ theorem vanRow_cost (hP : Includes P Auto.LeanVM.Prover.vanRow.costDeps) :
       (fun i ↦ by
         rw [appCost_fn, List.nil_append,
           Auto.LeanVM.Prover.vanRow.lam0.costEq P,
-          limbs_shift i.isLt, limbs_two_pow i.isLt, limbs_of_lt (by omega : (i : ℕ) < 2 ^ 64)]
+          limbs_shift i.isLt, limbs_two_pow i.isLt]
+        limbs
         rfl) 0 (Nat.zero_le _)
     omega
   | c + 1, hc => by
@@ -66,9 +67,7 @@ theorem vanRow_cost (hP : Includes P Auto.LeanVM.Prover.vanRow.costDeps) :
       (fun v ↦ RunsApp.of_spec (Auto.LeanVM.Prover.vanRow.lam1.costSpec P (by includes) _ _ v))
       61 (vanRow c).toList
       (fun v _ ↦ by
-        rw [appCost_fn]
-        simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-        rw [Auto.LeanVM.Prover.vanRow.lam1.costEq P])
+        cost_app [Auto.LeanVM.Prover.vanRow.lam1.costEq P])
     simp only [List.length_map, Array.length_toList, Prover.Enc.size_vanRow] at hm ⊢
     omega
 
@@ -83,9 +82,7 @@ theorem hatRow_cost (hP : Includes P Auto.LeanVM.Prover.hatRow.costDeps) (c : �
     (fun v ↦ RunsApp.of_spec (Auto.LeanVM.Prover.hatRow.lam0.costSpec P (by includes) _ _ v))
     31 (vanRow c).toList
     (fun v _ ↦ by
-      rw [appCost_fn]
-      simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [Auto.LeanVM.Prover.hatRow.lam0.costEq P])
+      cost_app [Auto.LeanVM.Prover.hatRow.lam0.costEq P])
   simp only [List.length_map, Array.length_toList, Prover.Enc.size_vanRow] at hm ⊢
   omega
 
@@ -119,9 +116,7 @@ theorem hatAt_cost (hP : Includes P Auto.LeanVM.Prover.hatAt.costDeps) (c n : �
     (fun acc m ↦ RunsApp.of_spec (Auto.LeanVM.Prover.hatAt.lam0.costSpec P (by includes) n _ acc m))
     21 (fun _ ↦ True) (List.range 64) 0 trivial
     (fun acc _ m hm ↦ ⟨trivial, by
-      rw [appCost_fn]
-      simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [Auto.LeanVM.Prover.hatAt.lam0.costEq P]
+      cost_app [Auto.LeanVM.Prover.hatAt.lam0.costEq P]
       have := testBit_cost P (by includes) n m hn (by have := List.mem_range.1 hm; omega)
       split_ifs <;> omega⟩)
   simp only [List.length_range] at h3
@@ -138,9 +133,7 @@ theorem novelAtH_cost (hP : Includes P novelAtHC.costDeps) (c x : ℕ) (hc : c <
   have := prodRange_cost P (by includes) _ (.closure novelAtHC.lam0.costIdx [encodeValue c, encodeValue x])
     (fun v ↦ RunsApp.of_spec (novelAtHC.lam0.costSpec P (by includes) c x v)) (hatPrice + 18)
     (fun v hv ↦ by
-      rw [appCost_fn]
-      simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [novelAtHC.lam0.costEq P]
+      cost_app [novelAtHC.lam0.costEq P]
       have h1 := testBit_cost P (by includes) c v hc hv
       have h2 := hatAt_cost P (by includes) v x hx
       split_ifs <;> omega) 64 (by norm_num)
@@ -161,9 +154,7 @@ theorem polyOfAtH_cost (hP : Includes P polyOfAtHC.costDeps) (cs : List E) (x L 
     (15 * L + 64 * hatPrice + 3999) (List.range cs.length)
     (fun c hc ↦ by
       have hc' := List.mem_range.1 hc
-      rw [appCost_fn]
-      simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [polyOfAtHC.lam0.costEq P]
+      cost_app [polyOfAtHC.lam0.costEq P]
       have g := getD_cost P (by includes) cs c 0 (by omega)
       have n := novelAtH_cost P (by includes) c x (by omega) hx
       omega)
@@ -188,7 +179,8 @@ theorem novelInvE_cost (hP : Includes P Auto.LeanVM.Protocol.Whir.Sound.novelInv
     machineCost P Auto.LeanVM.Protocol.Whir.Sound.novelInvE.costIdx [encodeValue κ, encodeValue y] ≤
       38 * y.size + κ * (348 * 2 ^ κ + 5872) + 31 * 2 ^ κ + 100 := by
   rw [Auto.LeanVM.Protocol.Whir.Sound.novelInvE.costEq P hP, ofFnFrom_length,
-    limbs_shift (by omega : κ < 64), limbs_of_lt (by omega : κ < 2 ^ 64)]
+    limbs_shift (by omega : κ < 64)]
+  limbs
   have hm0 := map_cost P (by includes) _
     (.closure Auto.LeanVM.Protocol.Whir.Sound.novelInvE.lam0.costIdx [])
     (fun x ↦ RunsApp.of_spec (Auto.LeanVM.Protocol.Whir.Sound.novelInvE.lam0.costSpec P
@@ -216,9 +208,7 @@ theorem novelInvE_cost (hP : Includes P Auto.LeanVM.Protocol.Whir.Sound.novelInv
     (fun j ↦ RunsApp.of_spec (Auto.LeanVM.Protocol.Whir.Sound.novelInvE.lam2.costSpec P
       (by includes) κ _ _ j)) 14
     (fun j ↦ by
-      rw [appCost_fn]
-      simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [Auto.LeanVM.Protocol.Whir.Sound.novelInvE.lam2.costEq P]) 0
+      cost_app [Auto.LeanVM.Protocol.Whir.Sound.novelInvE.lam2.costEq P]) 0
     (Nat.zero_le _)
   simp only [List.length_map, Array.length_toList, Nat.sub_zero, max_self] at hm0 hm1 hof ⊢
   have e : κ * (348 * 2 ^ κ + 5872) = 2 * (κ * (174 * 2 ^ κ + 2906)) + 60 * κ := by ring
@@ -248,17 +238,13 @@ theorem msgA_cost (hP : Includes P msgAC.costDeps) (κ κ' m : ℕ) (VA' : AV) (
     (fun u ↦ RunsApp.of_spec (msgAC.lam0.costSpec P (by includes) κ' m VA' u))
     (κ' * (348 * 2 ^ κ' + 5872) + 102 * 2 ^ κ' + 125)
     (fun u ↦ by
-      rw [appCost_fn]
-      simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [msgAC.lam0.costEq P, ofFnFrom_length, limbs_shift (by omega : κ' < 64),
+      cost_app [msgAC.lam0.costEq P, ofFnFrom_length, limbs_shift (by omega : κ' < 64),
         limbs_of_lt (by omega : κ' < 2 ^ 64)]
       have a := ofFnFrom_cost P (by includes) hκ'2 _
         (.closure msgAC.lam0.lam0.costIdx [encodeValue κ', encodeValue m, encodeValue VA', encodeValue u])
         (fun v ↦ RunsApp.of_spec (msgAC.lam0.lam0.costSpec P (by includes) κ' m VA' u v)) 16
         (fun v ↦ by
-          rw [appCost_fn]
-          simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-          rw [msgAC.lam0.lam0.costEq P]) 0 (Nat.zero_le _)
+          cost_app [msgAC.lam0.lam0.costEq P]) 0 (Nat.zero_le _)
       have b := novelInvE_cost P (by includes) κ' hκ'
         (Array.ofFn fun v : Fin (2 ^ κ') ↦ (VA'.getD v #[]).getD u 0)
       rw [Array.size_ofFn] at b
@@ -270,9 +256,7 @@ theorem msgA_cost (hP : Includes P msgAC.costDeps) (κ κ' m : ℕ) (VA' : AV) (
         (VA'.getD v #[]).getD u 0))])
     (fun j ↦ RunsApp.of_spec (msgAC.lam1.costSpec P (by includes) κ m _ j)) 23
     (fun j ↦ by
-      rw [appCost_fn]
-      simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [msgAC.lam1.costEq P, limbs_shift (by omega : m < 64),
+      cost_app [msgAC.lam1.costEq P, limbs_shift (by omega : m < 64),
         limbs_of_lt (by omega : m < 2 ^ 64), limbs_two_pow (by omega : m < 64),
         limbs_of_lt (by have := j.isLt; omega : (j : ℕ) < 2 ^ 64)]
       simp) 0 (Nat.zero_le _)
@@ -302,20 +286,13 @@ theorem nttStageAt_cost (hP : Includes P Auto.LeanVM.Prover.nttStage.nttStageAt.
     (fun q ↦ RunsApp.of_spec (Auto.LeanVM.Prover.nttStage.nttStageAt.lam0.costSpec P
       (by includes) N pi pi1 tw a q)) 52
     (fun q ↦ by
-      rw [appCost_fn]
-      simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [Auto.LeanVM.Prover.nttStage.nttStageAt.lam0.costEq P]
+      cost_app [Auto.LeanVM.Prover.nttStage.nttStageAt.lam0.costEq P]
       have hq := q.isLt
       have d1 : (q : ℕ) / pi * pi ≤ q := Nat.div_mul_le_self _ _
       have d2 : (q : ℕ) / pi * pi1 = 2 * ((q : ℕ) / pi * pi) := by rw [hpi1]; ring
       have d3 : (q : ℕ) % pi < pi := Nat.mod_lt _ hpi
       have d4 : (q : ℕ) / pi ≤ q := Nat.div_le_self _ _
-      rw [limbs_of_lt (by omega : (q : ℕ) < 2 ^ 64), limbs_of_lt (by omega : pi < 2 ^ 64),
-        limbs_of_lt (by omega : (q : ℕ) / pi * pi1 < 2 ^ 64),
-        limbs_of_lt (by omega : (q : ℕ) / pi < 2 ^ 64), limbs_of_lt (by omega : pi1 < 2 ^ 64),
-        limbs_of_lt (by omega : (q : ℕ) / pi * pi1 + pi < 2 ^ 64),
-        limbs_of_lt (by omega : (q : ℕ) / pi * pi1 + pi + (q : ℕ) % pi < 2 ^ 64),
-        limbs_of_lt (by omega : (q : ℕ) % pi < 2 ^ 64)]
+      limbs
       simp) 0 (Nat.zero_le _)
   have h2 := ofFnFrom_cost P (by includes) (n := 2 ^ N) (by omega) _
     (.closure Auto.LeanVM.Prover.nttStage.nttStageAt.lam1.costIdx [encodeValue N, encodeValue pi,
@@ -324,9 +301,7 @@ theorem nttStageAt_cost (hP : Includes P Auto.LeanVM.Prover.nttStage.nttStageAt.
     (fun p ↦ RunsApp.of_spec (Auto.LeanVM.Prover.nttStage.nttStageAt.lam1.costSpec P
       (by includes) N pi pi1 a _ p)) 49
     (fun p ↦ by
-      rw [appCost_fn]
-      simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [Auto.LeanVM.Prover.nttStage.nttStageAt.lam1.costEq P]
+      cost_app [Auto.LeanVM.Prover.nttStage.nttStageAt.lam1.costEq P]
       have hp := p.isLt
       have hpi1' : 0 < pi1 := by omega
       have d1 : (p : ℕ) / pi1 * pi1 ≤ p := Nat.div_mul_le_self _ _
@@ -334,15 +309,7 @@ theorem nttStageAt_cost (hP : Includes P Auto.LeanVM.Prover.nttStage.nttStageAt.
       have d3 : (p : ℕ) % pi1 < pi1 := Nat.mod_lt _ hpi1'
       have d4 : (p : ℕ) % pi1 % pi < pi := Nat.mod_lt _ hpi
       have d5 : (p : ℕ) / pi1 ≤ p := Nat.div_le_self _ _
-      rw [limbs_of_lt (by omega : (p : ℕ) < 2 ^ 64), limbs_of_lt (by omega : pi1 < 2 ^ 64),
-        limbs_of_lt (by omega : (p : ℕ) % pi1 < 2 ^ 64), limbs_of_lt (by omega : pi < 2 ^ 64),
-        limbs_of_lt (by omega : (p : ℕ) / pi1 * pi1 < 2 ^ 64),
-        limbs_of_lt (by omega : (p : ℕ) / pi1 < 2 ^ 64),
-        limbs_of_lt (by omega : (p : ℕ) / pi1 * pi1 + (p : ℕ) % pi1 % pi < 2 ^ 64),
-        limbs_of_lt (by omega : (p : ℕ) % pi1 % pi < 2 ^ 64),
-        limbs_of_lt (by omega : (p : ℕ) / pi1 * pi < 2 ^ 64),
-        limbs_of_lt (by omega : (p : ℕ) / pi1 * pi + (p : ℕ) % pi1 % pi < 2 ^ 64),
-        limbs_of_lt (by omega : (p : ℕ) / pi1 * pi1 + (p : ℕ) % pi1 % pi + pi < 2 ^ 64)]
+      limbs
       split_ifs <;> simp) 0 (Nat.zero_le _)
   simp only [Nat.sub_zero, max_self] at h1 h2 ⊢
   omega
@@ -367,9 +334,8 @@ theorem nttGo_cost (hP : Includes P Auto.LeanVM.Prover.ntt.go.costDeps) (tws : A
         encodeValue a, encodeValue arr] ≤ a * (110 * 2 ^ (κ + R) + 100) + 5
   | 0, _, arr => by rw [Auto.LeanVM.Prover.ntt.go.costEq_zero P hP]; omega
   | n + 1, hn, arr => by
-    rw [Auto.LeanVM.Prover.ntt.go.costEq_succ P hP, limbs_of_lt (by omega : n + 1 < 2 ^ 64),
-      limbs_of_lt (by omega : κ + R < 2 ^ 64), limbs_of_lt (by omega : κ < 2 ^ 64),
-      limbs_of_lt (by omega : R < 2 ^ 64)]
+    rw [Auto.LeanVM.Prover.ntt.go.costEq_succ P hP]
+    limbs
     have h1 := nttStage_cost P (by includes) (κ + R) n (tws.getD n #[]) arr (by omega) hN
     have h2 := nttGo_cost hP tws κ R hN n (by omega) (nttStage (κ + R) n (tws.getD n #[]) arr)
     have e : (n + 1) * (110 * 2 ^ (κ + R) + 100) = n * (110 * 2 ^ (κ + R) + 100) +
@@ -390,9 +356,7 @@ theorem ntt_cost (hP : Includes P Auto.LeanVM.Prover.ntt.costDeps) (tws : Array 
     (.closure Auto.LeanVM.Prover.ntt.lam0.costIdx [encodeValue κ, encodeValue R, encodeValue msg])
     (fun p ↦ RunsApp.of_spec (Auto.LeanVM.Prover.ntt.lam0.costSpec P (by includes) κ R msg p)) 11
     (fun p ↦ by
-      rw [appCost_fn]
-      simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [Auto.LeanVM.Prover.ntt.lam0.costEq P, limbs_shift (by omega : κ < 64),
+      cost_app [Auto.LeanVM.Prover.ntt.lam0.costEq P, limbs_shift (by omega : κ < 64),
         limbs_of_lt (by omega : κ < 2 ^ 64), limbs_two_pow (by omega : κ < 64),
         limbs_of_lt (by have := p.isLt; omega : (p : ℕ) < 2 ^ 64)]
       simp) 0 (Nat.zero_le _)
@@ -418,9 +382,7 @@ theorem stageTwiddles_cost (hP : Includes P Auto.LeanVM.Prover.stageTwiddles.cos
     (fun b ↦ RunsApp.of_spec (Auto.LeanVM.Prover.stageTwiddles.lam0.costSpec P (by includes) N i b))
     (hatPrice + 11)
     (fun b ↦ by
-      rw [appCost_fn]
-      simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [Auto.LeanVM.Prover.stageTwiddles.lam0.costEq P]
+      cost_app [Auto.LeanVM.Prover.stageTwiddles.lam0.costEq P]
       have hb : (b : ℕ) * 2 ^ (i + 1) < 2 ^ N := by
         rw [← hsp]; exact Nat.mul_lt_mul_of_pos_right b.isLt (by positivity)
       have := hatAt_cost P (by includes) i ((b : ℕ) * 2 ^ (i + 1)) (by omega)
@@ -460,9 +422,7 @@ theorem upAtA_cost (hP : Includes P upAtAC.costDeps) (κ κ' m R : ℕ) (VA' : A
     (fun i ↦ RunsApp.of_spec (upAtAC.lam0.costSpec P (by includes) κ R i))
     ((hatPrice + 28) * 2 ^ (κ + R) + 27)
     (fun i ↦ by
-      rw [appCost_fn]
-      simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [upAtAC.lam0.costEq P, limbs_of_lt (by omega : κ + R < 2 ^ 64),
+      cost_app [upAtAC.lam0.costEq P, limbs_of_lt (by omega : κ + R < 2 ^ 64),
         limbs_of_lt (by omega : κ < 2 ^ 64), limbs_of_lt (by omega : R < 2 ^ 64)]
       have := stageTwiddles_cost P (by includes) (κ + R) i (by have := i.isLt; omega) hN
       simp only [max_self]
@@ -485,9 +445,7 @@ theorem upAtA_cost (hP : Includes P upAtAC.costDeps) (κ κ' m R : ℕ) (VA' : A
     (fun x ↦ RunsApp.of_spec (upAtAC.lam3.costSpec P (by includes) κ R high _ _ _ _ x))
     (hatPrice + polyPrice L + 218)
     (fun x ↦ by
-      rw [appCost_fn]
-      simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [upAtAC.lam3.costEq P]
+      cost_app [upAtAC.lam3.costEq P]
       have hx : (x : ℕ) < 2 ^ 64 := by have := x.isLt; omega
       have := hatAt_cost P (by includes) κ x hx
       have := polyOfAtH_cost P (by includes) high x L hL hL' hx
@@ -522,18 +480,14 @@ theorem stackA_cost (hP : Includes P stackAC.costDeps) (μ : ℕ) (VA : AV) (hμ
     (fun u ↦ RunsApp.of_spec (stackAC.lam0.costSpec P (by includes) VA κ u))
     (κ * (174 * 2 ^ κ + 2906) + 51 * 2 ^ κ + 15 * κ + 50)
     (fun u ↦ by
-      rw [appCost_fn]
-      simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [stackAC.lam0.costEq P, ofFnFrom_length, limbs_shift (by omega : κ < 64),
+      cost_app [stackAC.lam0.costEq P, ofFnFrom_length, limbs_shift (by omega : κ < 64),
         limbs_of_lt (by omega : κ < 2 ^ 64)]
       simp only [List.length_map, Array.length_toList, Array.size_ofFn, max_self]
       have a := ofFnFrom_cost P (by includes) (n := 2 ^ κ) (by omega) _
         (.closure stackAC.lam0.lam1.costIdx [encodeValue VA, encodeValue κ, encodeValue u])
         (fun v ↦ RunsApp.of_spec (stackAC.lam0.lam1.costSpec P (by includes) VA κ u v)) 15
         (fun v ↦ by
-          rw [appCost_fn]
-          simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-          rw [stackAC.lam0.lam1.costEq P]) 0 (Nat.zero_le _)
+          cost_app [stackAC.lam0.lam1.costEq P]) 0 (Nat.zero_le _)
       have b := map_cost P (by includes) _ (.closure stackAC.lam0.lam0.costIdx [])
         (fun x ↦ RunsApp.of_spec (stackAC.lam0.lam0.costSpec P (by includes) x)) 2
         (Array.ofFn fun v : Fin (2 ^ κ) ↦ (VA.getD v #[]).getD u 0).toList
@@ -549,9 +503,7 @@ theorem stackA_cost (hP : Includes P stackAC.costDeps) (μ : ℕ) (VA : AV) (hμ
         (limbArr 0 (Array.ofFn fun v : Fin (2 ^ κ) ↦ (VA.getD v #[]).getD u 0))), encodeValue κ])
     (fun i ↦ RunsApp.of_spec (stackAC.lam1.costSpec P (by includes) (κ + 6) _ κ i)) 19
     (fun i ↦ by
-      rw [appCost_fn]
-      simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [stackAC.lam1.costEq P, limbs_shift (by omega : κ < 64),
+      cost_app [stackAC.lam1.costEq P, limbs_shift (by omega : κ < 64),
         limbs_of_lt (by omega : κ < 2 ^ 64), limbs_two_pow (by omega : κ < 64),
         limbs_of_lt (by have := i.isLt; omega : (i : ℕ) < 2 ^ 64)]
       simp) 0 (Nat.zero_le _)
@@ -594,7 +546,8 @@ theorem lanesOf_cost (hP : Includes P Auto.LeanVM.Protocol.Whir.Sound.lanesOf.co
     (row : List K) (hi : i < 2 ^ 64) :
     machineCost P Auto.LeanVM.Protocol.Whir.Sound.lanesOf.costIdx [encodeValue i, encodeValue row] ≤
       29 * row.length + 15 := by
-  rw [Auto.LeanVM.Protocol.Whir.Sound.lanesOf.costEq P hP, limbs_of_lt hi]
+  rw [Auto.LeanVM.Protocol.Whir.Sound.lanesOf.costEq P hP]
+  limbs
   split_ifs
   · have h1 := reverseAux_cost P (by includes) row []
     have h2 := map_cost P (by includes) _
@@ -643,9 +596,7 @@ theorem laneRows_cost (hP : Includes P laneRowsC.costDeps) (n i : ℕ) (lv : Arr
       encodeValue w])
     (fun v ↦ RunsApp.of_spec (laneRowsC.lam0.costSpec P (by includes) n i lv h w v)) (45 * W + 51)
     (fun v ↦ by
-      rw [appCost_fn]
-      simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [laneRowsC.lam0.costEq P]
+      cost_app [laneRowsC.lam0.costEq P]
       have := laneRow_cost P (by includes) i lv h w v W hlv hw hW hh (by have := v.isLt; omega) hi
       omega) 0 (Nat.zero_le _)
   simp only [Nat.sub_zero] at this
@@ -797,8 +748,8 @@ theorem levelsOf_cost (hP : Includes P Auto.LeanVM.Protocol.Whir.Params.levelsOf
     (hμ : μ < 2 ^ 60) (hR : R < 2 ^ 60) :
     machineCost P Auto.LeanVM.Protocol.Whir.Params.levelsOf.costIdx [encodeValue μ, encodeValue R] ≤
       15 * (μ + R) + 19760 := by
-  rw [Auto.LeanVM.Protocol.Whir.Params.levelsOf.costEq P hP, foldTable_cost P (by includes),
-    limbs_of_lt (by omega : R < 2 ^ 64), limbs_of_lt (by omega : μ < 2 ^ 64)]
+  rw [Auto.LeanVM.Protocol.Whir.Params.levelsOf.costEq P hP, foldTable_cost P (by includes)]
+  limbs
   have h1 := getD_cost_idx P (by includes) Protocol.Whir.AffineCombiner.foldTable (R - 1) [] (by omega)
   have h2 := getD_cost_idx P (by includes) (Protocol.Whir.AffineCombiner.foldTable.getD (R - 1) []) (μ - 16) []
     (by omega)
@@ -815,8 +766,7 @@ theorem lvC_cost (hP : Includes P Auto.LeanVM.Protocol.Whir.Sound.lvC.costDeps) 
   have h2 := getD_cost_idx P (by includes) (Protocol.Whir.Params.levelsOf μ R) i Protocol.Whir.Params.junkLv (by omega)
   have hs := levels_small μ R i
   generalize (Protocol.Whir.Params.levelsOf μ R).getD i Protocol.Whir.Params.junkLv = lv at hs ⊢
-  rw [limbs_of_lt (by omega : lv.1 + lv.2.1 < 2 ^ 64), limbs_of_lt (by omega : lv.1 < 2 ^ 64),
-    limbs_of_lt (by omega : lv.2.1 < 2 ^ 64)]
+  limbs
   split_ifs <;> simp only [max_self] <;> omega
 
 /-! ## The roots' words -/
@@ -877,7 +827,7 @@ theorem wordsGoWorker_cost (hP : Includes P Auto.LeanVM.Extraction.AS.wordsGo.co
     have c1 := wordArrOf_cost P (by includes) μ R qs L a x D Wl hL hW hN h2 h3 hμ hR (by omega)
     have c2 := wordsGoWorker_cost hP μ R qs L D Wl hL hW hN hμ hR xs (a + 1)
       (fun y hy ↦ hx y (List.mem_cons_of_mem _ hy)) (by omega)
-    rw [limbs_of_lt (by omega : a + 1 < 2 ^ 64), limbs_of_lt (by omega : a < 2 ^ 64)]
+    limbs
     simp only [wordsPrice, max_self]
     omega
 

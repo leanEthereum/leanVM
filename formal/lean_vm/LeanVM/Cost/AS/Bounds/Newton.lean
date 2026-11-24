@@ -98,7 +98,8 @@ theorem eraseIdx_cost (hP : Includes P Auto.List.eraseIdx.costDeps) {α : Type}
   | [], i, _ => by rw [Auto.List.eraseIdx.costEq P hP]; simp
   | x :: l, 0, _ => by rw [Auto.List.eraseIdx.costEq P hP]; simp [limbCount]
   | x :: l, i + 1, hi => by
-    rw [Auto.List.eraseIdx.costEq P hP, limbs_of_lt hi]
+    rw [Auto.List.eraseIdx.costEq P hP]
+    limbs
     have := eraseIdx_cost hP l i (by omega)
     simp only [List.length_cons]
     omega
@@ -113,8 +114,8 @@ theorem dropLoc_cost (hP : Includes P dropLocC.costDeps) (d : ℕ) (f : List K �
     (pts : List (K × E)) (hd : d + 3 < 2 ^ 63) (hl : pts.length < 2 ^ 63) :
     machineCost P dropLocC.costIdx [encodeValue d, encodeValue f, encodeValue pts] ≤
       225 * pts.length + 45 * d + 250 := by
-  rw [dropLocC.costEq P hP, limbs_of_lt (by omega : d + 2 < 2 ^ 64),
-    limbs_of_lt (by omega : d + 1 < 2 ^ 64), limbs_of_lt (by omega : d < 2 ^ 64)]
+  rw [dropLocC.costEq P hP]
+  limbs
   have g1 := getD_cost_idx P (by includes) f.2 (d + 2) 0 (by omega)
   have g2 := getD_cost_idx P (by includes) f.2 (d + 1) 0 (by omega)
   have g3 := getD_cost_idx P (by includes) pts (d + 2) (0, 0) (by omega)
@@ -141,10 +142,10 @@ theorem decode1K_cost (hP : Includes P decode1KC.costDeps) (d : ℕ) (pts : List
     (hl : pts.length = d + 3) (hd : d + 3 < 2 ^ 63) :
     machineCost P decode1KC.costIdx [encodeValue d, encodeValue pts] ≤
       600 * (d + 3) ^ 2 + 8000 * (d + 3) + 10000 := by
-  rw [decode1KC.costEq P hP, limbs_of_lt (by omega : d + 2 < 2 ^ 64),
-    limbs_of_lt (by omega : d + 1 < 2 ^ 64), limbs_of_lt (by omega : d < 2 ^ 64)]
+  rw [decode1KC.costEq P hP]
+  limbs
   have hq := length_dropLoc d (nFormK pts) pts
-  rw [limbs_of_lt (by omega : (dropLoc d (nFormK pts) pts).length < 2 ^ 64)]
+  limbs
   have n1 := nFormK_cost P (by includes) pts
   have n2 := nFormK_cost P (by includes) (dropLoc d (nFormK pts) pts)
   have dl := dropLoc_cost P (by includes) d (nFormK pts) pts hd (by omega)
