@@ -36,6 +36,8 @@ def sqUpN (P s x : ℕ) : ℕ :=
   Nat.rec (motive := fun _ => ℕ → ℕ) (fun x => x)
     (fun _ ih x => ih (Nat.div (Nat.add (Nat.mul x x) (Nat.sub (Nat.pow 2 P) 1)) (Nat.pow 2 P))) s x
 
+theorem sqUpN_zero (P x : ℕ) : sqUpN P 0 x = x := rfl
+
 theorem sqUpN_succ (P s x : ℕ) : sqUpN P (s + 1) x = sqUpN P s ((x * x + (2 ^ P - 1)) / 2 ^ P) := rfl
 
 /-- The numerator over `2^P` of an upper bound of `e^(un / ud)`: `(1 - u / 2^s)^(-2^s)`, rounded up. -/

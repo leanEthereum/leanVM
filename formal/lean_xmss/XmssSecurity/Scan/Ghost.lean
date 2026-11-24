@@ -134,13 +134,4 @@ theorem simulateQ_source_query_bind (input : (OracleWorld + SigningSpec).Domain)
 noncomputable def overBudget (Q : ℕ) (input : (OracleWorld + SigningSpec).Domain) (s : State) : ℝ≥0∞ :=
   if IsAdvHash input ∧ Q ≤ s.2 then ⊤ else 0
 
-theorem expectedSimulatedQueryCount_liftM_query (parameter : PublicParameter)
-    (input : OracleWorld.Domain) (cache : QueryCache HashSpec) :
-    expectedSimulatedQueryCount romImpl (CappedEncodingMonitor.IsEncodingHashQuery parameter)
-        (liftM (OracleWorld.query input) : OracleComp OracleWorld _) cache =
-      if CappedEncodingMonitor.IsEncodingHashQuery parameter input then 1 else 0 := by
-  rw [← bind_pure (liftM (OracleWorld.query input) : OracleComp OracleWorld _),
-    expectedSimulatedQueryCount_query_bind_tsum]
-  simp
-
 end XmssSecurity.Ghost

@@ -68,16 +68,6 @@ theorem fieldBytes_injective {t1 t2 : TweakFields} (h : addressBytes t1 = addres
   obtain ⟨hstep, htag⟩ := bitVec_append_inj (bytesLE_injective htag)
   simp only [bytesLE_injective hlo, bytesLE_injective hhi, hstep, htag]
 
-/-- `P || A || payload` determines the parameter, the address and the payload. -/
-theorem fieldInput_injective {fields fields' : TweakFields}
-    {parameter parameter' : PublicParameter} {payload payload' : HashInput}
-    (h : littleEndianBytes 16 parameter ++ addressBytes fields ++ payload =
-      littleEndianBytes 16 parameter' ++ addressBytes fields' ++ payload') :
-    fields = fields' ∧ parameter = parameter' ∧ payload = payload' := by
-  obtain ⟨hprefix, hpayload⟩ := List.append_inj h (by simp [addressBytes, bytesLE_length])
-  obtain ⟨hparameter, hfields⟩ := List.append_inj hprefix (by simp)
-  exact ⟨fieldBytes_injective hfields, bytesLE_injective hparameter, hpayload⟩
-
 /-! ### The seed hash
 
 Its input is 40 bytes, every other input at least 64: `P || A` then a 32-byte seed, or a payload that
@@ -88,24 +78,8 @@ theorem seedHashInput_injective : Function.Injective seedHashInput :=
 
 /-! ### Address fields -/
 
-theorem tweakFields_inj {tag tag' step step' hi hi' lo lo' : Nat}
-    (htag : tag < 2 ^ 5) (htag' : tag' < 2 ^ 5) (hstep : step < 2 ^ 3) (hstep' : step' < 2 ^ 3)
-    (hhi : hi < 2 ^ 24) (hhi' : hi' < 2 ^ 24) (hlo : lo < 2 ^ 32) (hlo' : lo' < 2 ^ 32)
-    (h : tweakFields tag step hi lo = tweakFields tag' step' hi' lo') :
-    tag = tag' ∧ step = step' ∧ hi = hi' ∧ lo = lo' := by
-  simp only [tweakFields, TweakFields.mk.injEq] at h
-  exact ⟨ofNat_inj_of_lt htag htag' h.1, ofNat_inj_of_lt hstep hstep' h.2.1,
-    ofNat_inj_of_lt hhi hhi' h.2.2.1, ofNat_inj_of_lt hlo hlo' h.2.2.2⟩
-
 theorem key_lt (key : KeyIndex) : key.val < 2 ^ 32 := by
   have := key.isLt; simp only [lifetime, layerCount, layerHeight] at this; omega
-
-/-- `hi` determines the layer and the field below bit 23. -/
-theorem layerHi_inj {lay lay' : Layer} {a a' : Nat} (ha : a < 2 ^ 23) (ha' : a' < 2 ^ 23)
-    (h : layerHi lay a = layerHi lay' a') : lay = lay' ∧ a = a' := by
-  have := lay.isLt; have := lay'.isLt
-  simp only [layerHi, layerCount] at *
-  refine ⟨Fin.ext ?_, ?_⟩ <;> omega
 
 theorem layerHi_lt (lay : Layer) {a : Nat} (ha : a < 2 ^ 23) : layerHi lay a < 2 ^ 24 := by
   have := lay.isLt; simp only [layerHi, layerCount] at *; omega
@@ -122,24 +96,5 @@ def HashDomain.code : HashDomain → Nat × Nat × Nat × Nat
   | .leaf lay key => (2, 0, layerHi lay 0, key)
   | .node lay level nodeIdx => (3, 0, layerHi lay level, nodeIdx)
   | .message lay key => (12, 0, layerHi lay 0, key)
-
-theorem hashDomainFields_eq_code (d : HashDomain) :
-    hashDomainFields d = tweakFields d.code.1 d.code.2.1 d.code.2.2.1 d.code.2.2.2 := by
-  cases d <;> rfl
-
-theorem code_lt {d : HashDomain} (hd : d.InRange) :
-    d.code.1 < 2 ^ 5 ∧ d.code.2.1 < 2 ^ 3 ∧ d.code.2.2.1 < 2 ^ 24 ∧ d.code.2.2.2 < 2 ^ 32 := by
-  cases d with
-  | chain lay key step =>
-      have := step.isLt; have := key_lt key
-      simp only [HashDomain.code, chainLength, winternitzBits] at *
-      exact ⟨by norm_num, by omega, layerHi_lt lay (by norm_num), this⟩
-  | leaf lay key =>
-      exact ⟨by simp [HashDomain.code], by simp [HashDomain.code], layerHi_lt lay (by norm_num), key_lt key⟩
-  | node lay level nodeIdx =>
-      simp only [HashDomain.InRange, layerHeight] at hd
-      exact ⟨by simp [HashDomain.code], by simp [HashDomain.code], layerHi_lt lay (by omega), hd.2⟩
-  | message lay key =>
-      exact ⟨by simp [HashDomain.code], by simp [HashDomain.code], layerHi_lt lay (by norm_num), key_lt key⟩
 
 end LeanXmss
