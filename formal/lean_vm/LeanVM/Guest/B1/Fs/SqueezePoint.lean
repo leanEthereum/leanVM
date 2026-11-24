@@ -411,11 +411,9 @@ def squeeze_point_from_Spec : Prop := squeeze_point_from_SpecP coreProgram
 /-- **`squeeze_point_from`'s core IR is its meaning**, at every deployed `n`. -/
 theorem squeeze_point_from_holds : squeeze_point_from_Spec := by
   intro n hn rd args rets
-  simp only [spfDeployed, List.mem_map, List.mem_range] at hn
-  obtain ⟨i, hi, rfl⟩ := hn
-  obtain ⟨_, hf, hp, hb⟩ := coreRunB_shape spf_found hi
-  exact ⟨spf_sound (i + 5) (by omega) hf hp hb rd args rets,
-    spf_complete (i + 5) (by omega) hf hp hb rd args rets⟩
+  obtain ⟨i, hi, rfl⟩ := List.mem_map.mp hn
+  obtain ⟨_, hf, hp, hb⟩ := coreRunB_shape spf_found (List.mem_range.mp hi)
+  exact ⟨spf_sound _ (by omega) hf hp hb rd args rets, spf_complete _ (by omega) hf hp hb rd args rets⟩
 
 end
 end LeanVM.Guest.B1

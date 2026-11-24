@@ -12,10 +12,9 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«plus_one_run__L»
 
 /-!
-# `plus_one_run` (TRIAGE #27)
+# `plus_one_run`
 
-`plus_one_run__L{n}` (core function `116 + n`) writes `out[k] = 1 + src[k]`, `k < n` (`poBlk k`),
-and returns `0`.
+`plus_one_run__L{n}` writes `out[k] = 1 + src[k]`, `k < n` (`poBlk k`), and returns `0`.
 -/
 
 namespace LeanVM.Guest.B1

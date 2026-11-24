@@ -42,6 +42,7 @@ private theorem spStates_step : ∀ p < 21,
       spStates.getD (p + 1) default := by
   decide +kernel
 
+/-- **Group `p`'s state is the recorded one.** -/
 theorem spState_eq : ∀ p < 22, spState p = spStates.getD p default
   | 0, _ => rfl
   | p + 1, hp => by rw [spState, spState_eq p (by omega)]; exact spStates_step p (by omega)

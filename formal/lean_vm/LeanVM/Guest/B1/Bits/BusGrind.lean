@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Bits.Grind
 public import LeanVM.Guest.B1.Bits.Meaning
-public import LeanVM.Guest.B1.Common.Family
+import LeanVM.Guest.B1.Common.Family
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«bus_grind_check__L»
 

@@ -14,12 +14,12 @@ import LeanVM.Guest.Data.ValNames.«eq_prefix_run__L»
 import LeanVM.Guest.B1.Common.Vc
 
 /-!
-# `eq_prefix_run`, `eq_prefix_chain` (TRIAGE #25, #26)
+# `eq_prefix_run`, `eq_prefix_chain`
 
-`eq_prefix_run__L{n}` (core function `39 + n`) stores the seed at `chain[0]`, then per coordinate
-`k < n` (`epBlk k`) reads `a[k]`, `b1[k]`, multiplies the running product by their sum and stores
-it at `chain[k + 1]`; it returns `0`. `eq_prefix_chain` range-checks `count_g = g^n` below
-`g^41` and dispatches to `eq_prefix_run__L{n}`.
+`eq_prefix_run__L{n}` stores the seed at `chain[0]`, then per coordinate `k < n` (`epBlk k`) reads
+`a[k]`, `b1[k]`, multiplies the running product by their sum and stores it at `chain[k + 1]`; it
+returns `0`. `eq_prefix_chain` range-checks `count_g = g^n` below `g^41` and dispatches to
+`eq_prefix_run__L{n}`.
 -/
 
 namespace LeanVM.Guest.B1

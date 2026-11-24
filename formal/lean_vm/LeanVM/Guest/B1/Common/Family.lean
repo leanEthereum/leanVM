@@ -10,7 +10,6 @@ module
 public import LeanVM.Guest.B1.Common.Basic
 public import LeanVM.Guest.B1.Common.Find
 public import LeanVM.Guest.CoreRef
-public meta import Lean.Elab.Term
 
 /-!
 # Families of core functions
@@ -36,6 +35,7 @@ noncomputable def coreRunB (js : List ℕ) (name : ℕ → String) (ok : ℕ →
   (List.range js.length).all fun i ↦
     (coreProgram[js.getD i 0]?).any fun f ↦ f.name == name i && ok i f
 
+/-- **Each function a passing `coreRunB` checks is found by its name.** -/
 theorem coreRunB_find {js : List ℕ} {name : ℕ → String} {ok : ℕ → Fn → Bool}
     (h : coreRunB js name ok = true) {i : ℕ} (hi : i < js.length) :
     ∃ f, coreProgram.find? (name i) = some f ∧ ok i f = true := by
@@ -48,17 +48,13 @@ theorem coreRunB_find {js : List ℕ} {name : ℕ → String} {ok : ℕ → Fn �
 def shapeB (ps : List V) (body : ℕ → List Stmt) (i : ℕ) (f : Fn) : Bool :=
   f.params == ps && stmtsEqb f.body (body i)
 
-theorem shapeB_sound {ps : List V} {body : ℕ → List Stmt} {i : ℕ} {f : Fn}
-    (h : shapeB ps body i f = true) : f.params = ps ∧ f.body = body i := by
-  simp only [shapeB, Bool.and_eq_true, beq_iff_eq] at h
-  exact ⟨h.1, stmtsEqb_sound h.2⟩
-
 /-- **Specialization `i` is found by its name, with parameters `ps` and body `body i`.** -/
 theorem coreRunB_shape {js : List ℕ} {name : ℕ → String} {ps : List V} {body : ℕ → List Stmt}
     (h : coreRunB js name (shapeB ps body) = true) {i : ℕ} (hi : i < js.length) :
     ∃ f, coreProgram.find? (name i) = some f ∧ f.params = ps ∧ f.body = body i := by
   obtain ⟨f, hf, hok⟩ := coreRunB_find h hi
-  exact ⟨f, hf, shapeB_sound hok⟩
+  simp only [shapeB, Bool.and_eq_true, beq_iff_eq] at hok
+  exact ⟨f, hf, hok.1, stmtsEqb_sound hok.2⟩
 
 end
 
@@ -71,10 +67,8 @@ open Lean Elab Term Meta
 /-- `idxs% «f__L» lo hi`: the list of `idx% «f__L{k}»`, `lo ≤ k < hi`, the positions in
 `coreProgram` of a family's specializations by their stable names. -/
 elab:max "idxs% " s:ident lo:num hi:num : term => do
-  let js ← (List.range' lo.getNat (hi.getNat - lo.getNat)).mapM fun k ↦ do
-    let n := `LeanVM.Guest.Data.I ++ .mkSimple s!"{s.getId.toString (escape := false)}{k}"
-    let some (.defnInfo d) := (← getEnv).find? n | throwErrorAt s "no stable name {n}"
-    return d.value
+  let js ← (List.range' lo.getNat (hi.getNat - lo.getNat)).mapM fun k ↦
+    CoreRef.valueOf `I (mkIdentFrom s (s.getId.appendAfter (toString k)))
   mkListLit (mkConst ``Nat) js
 
 /-- `core_find «f₁» … «fₙ»`: for each stable name `f`, the theorem `find_f` (`f` with `__` read
