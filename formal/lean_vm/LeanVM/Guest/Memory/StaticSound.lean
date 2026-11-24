@@ -1368,7 +1368,7 @@ theorem defAtom_mul {d x y z : V} : ∀ {l : List Stmt}, defAtom d l = some (.mu
   | .atom b :: l, h => by
       simp only [defAtom] at h
       split_ifs at h with hb
-      · cases h; simpa using hb
+      · cases h; simpa [vBeq_iff] using hb
       · exact defAtom_mul h
   | .ite .. :: l, h => defAtom_mul (by simpa [defAtom] using h)
   | .match_ .. :: l, h => defAtom_mul (by simpa [defAtom] using h)
@@ -1382,7 +1382,7 @@ theorem defAtom_add {d x y z : V} : ∀ {l : List Stmt}, defAtom d l = some (.ad
   | .atom b :: l, h => by
       simp only [defAtom] at h
       split_ifs at h with hb
-      · cases h; simpa using hb
+      · cases h; simpa [vBeq_iff] using hb
       · exact defAtom_add h
   | .ite .. :: l, h => defAtom_add (by simpa [defAtom] using h)
   | .match_ .. :: l, h => defAtom_add (by simpa [defAtom] using h)
@@ -1396,7 +1396,7 @@ theorem defAtom_const {d x : V} {w : E} : ∀ {l : List Stmt}, defAtom d l = som
   | .atom b :: l, h => by
       simp only [defAtom] at h
       split_ifs at h with hb
-      · cases h; simpa using hb
+      · cases h; simpa [vBeq_iff] using hb
       · exact defAtom_const h
   | .ite .. :: l, h => defAtom_const (by simpa [defAtom] using h)
   | .match_ .. :: l, h => defAtom_const (by simpa [defAtom] using h)
