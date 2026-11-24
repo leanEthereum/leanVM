@@ -208,7 +208,7 @@ theorem evalDist_presample_fresh {α : Type} (computation : OracleComp World α)
       cases input with
       | inl input =>
           have hrun (cache : QueryCache (D →ₒ R)) :
-              (simulateQ rom (liftM (World.query (.inl input)) >>= next)).run' cache =
+              (simulateQ rom (liftM ((unifSpec + (D →ₒ R)).query (.inl input)) >>= next)).run' cache =
                 ((liftM (unifSpec.query input) : ProbComp _) >>= fun answer =>
                   (simulateQ rom (next answer)).run' cache) := by
             rw [run'_query_bind]
@@ -228,7 +228,7 @@ theorem evalDist_presample_fresh {α : Type} (computation : OracleComp World α)
             rw [hrun]
       | inr input =>
           have hrun (cache : QueryCache (D →ₒ R)) :
-              (simulateQ rom (liftM (World.query (.inr input)) >>= next)).run' cache =
+              (simulateQ rom (liftM ((unifSpec + (D →ₒ R)).query (.inr input)) >>= next)).run' cache =
                 ((randomOracle (spec := D →ₒ R) input).run cache >>= fun result =>
                   (simulateQ rom (next result.1)).run' result.2) := run'_query_bind _ _ _ _
           by_cases heq : input = target
