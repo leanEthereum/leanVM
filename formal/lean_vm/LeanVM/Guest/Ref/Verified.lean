@@ -20,7 +20,7 @@ reference function only through its `Meaning`: `Verified.rel_iff_of_check` is wh
 
 namespace LeanVM.Guest.Ref
 
-open LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.B1
 
 @[expose] public section
 

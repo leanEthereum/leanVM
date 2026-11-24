@@ -172,7 +172,9 @@ theorem readsAt_append {rd : Reader} {p : E} {xs ys : List E} :
       rwa [show xs.length + (k - xs.length) = k by omega] at this
 
 theorem readsAt_singleton {rd : Reader} {p w : E} : ReadsAt rd p [w] ↔ LoadHolds rd p 0 w :=
-  ⟨fun h => h 0 (by simp), fun h k hk => by obtain rfl : k = 0 := by simpa using hk; exact h⟩
+  ⟨fun h => h 0 (by simp), fun h k hk => by
+    obtain rfl : k = 0 := by simpa using hk
+    exact h⟩
 
 theorem readsAt_cons {rd : Reader} {p w : E} {ws : List E} :
     ReadsAt rd p (w :: ws) ↔ LoadHolds rd p 0 w ∧ ReadsAt rd (p * gen) ws := by

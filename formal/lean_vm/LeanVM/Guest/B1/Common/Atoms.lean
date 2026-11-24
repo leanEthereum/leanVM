@@ -73,8 +73,13 @@ theorem holdsList_mapAtoms {kret : List E → Prop} (n : ℕ) (f : ℕ → Atom)
       ∀ e < n, (f e).Holds rd σ := by
   rw [holdsList_atoms (fun s hs => by obtain ⟨e, -, rfl⟩ := List.mem_map.mp hs; exact ⟨_, rfl⟩),
     and_true]
-  simp only [List.mem_map, List.mem_range, Stmt.atom.injEq]
-  exact ⟨fun h e he => h _ ⟨e, he, rfl⟩, fun h a ⟨e, he, hae⟩ => hae ▸ h e he⟩
+  constructor
+  · intro h e he
+    exact h _ (List.mem_map.mpr ⟨e, List.mem_range.mpr he, rfl⟩)
+  · intro h a ha
+    obtain ⟨e, he, he'⟩ := List.mem_map.mp ha
+    cases he'
+    exact h e (List.mem_range.mp he)
 
 end
 end LeanVM.Guest.B1

@@ -23,15 +23,15 @@ loop guard `1 + g^a` (`one_add_gen_pow_ne_zero_iff`). Injectivity below the orde
 
 namespace LeanVM.Guest.Value
 
-open LeanVM.Parameters
+open LeanVM.Parameters LeanVM.Protocol.Verifier
 
 @[expose] public section
 
 /-! ## Addresses -/
 
 theorem addressOfIndex_mul_addressOfIndex (a b : ℕ) :
-    addressOfIndex a * addressOfIndex b = addressOfIndex (a + b) :=
-  (pow_add _ _ _).symm
+    addressOfIndex a * addressOfIndex b = addressOfIndex (a + b) := by
+  simp [addressOfIndex, pow_add]
 
 theorem limb0_ofK_addressOfIndex (a : ℕ) :
     (ofK (addressOfIndex a)).limb 0 = addressOfIndex a := by

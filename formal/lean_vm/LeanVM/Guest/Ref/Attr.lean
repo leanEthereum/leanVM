@@ -7,6 +7,7 @@
 module
 
 public import Lean.Meta.Tactic.Simp.RegisterCommand
+public meta import Lean.Meta.Tactic.Simp.Attr
 
 /-!
 # `ref_norm`

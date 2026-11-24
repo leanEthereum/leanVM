@@ -34,8 +34,5 @@ theorem foldl_max_ge : ∀ (l : List ℕ) (a : ℕ), a ≤ l.foldl max a ∧ ∀
     · exact le_trans (le_max_right a x) h1
     · exact h2 x hx
 
-theorem headD_eq_getD {α : Type*} (l : List α) (d : α) : l.headD d = l.getD 0 d := by
-  cases l <;> rfl
-
 end
 end List
