@@ -22,8 +22,6 @@ variable [Params]
 
 open HiddenCost HiddenBridge HiddenOutside HiddenReveal
 
-set_option backward.isDefEq.respectTransparency false
-
 variable {D R A ι : Type} [Fintype ι] [SampleableType R] {H : Type} [HonestInputs H D]
 variable (tg : Targeting D R ι) (initial : Cache D R) (model : HiddenRows.Model D R A ι)
 
@@ -68,8 +66,6 @@ open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForsPrice F
 open HiddenBridge PotentialA
 
 set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
-set_option linter.constructorNameAsVariable false
 attribute [local instance] Classical.propDecidable
 
 open Completeness SeedModel _root_.FORS.Security.Graph Assembly Reduce Internalize in
@@ -219,7 +215,6 @@ section SampleFH
 
 open Completeness SeedModel _root_.FORS.Security.Graph Assembly Reduce Internalize
 
-set_option maxRecDepth 100000 in
 /-- **One sample of the small-budget route, the signer honest.** The interpreted honest game with
 the above-word values exposed: a correct guess or the refined bad event is paid by the linear
 potential, the one-coin cover potential and the contact bound. -/

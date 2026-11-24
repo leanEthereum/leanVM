@@ -21,8 +21,6 @@ open FORS.Base
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForsPrice ForsSigner
   FORS.Base.Domination FORS.LoopWalk
 
-set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
 attribute [local instance] Classical.propDecidable
 
 /-- A monotone and finite base function. -/
@@ -392,6 +390,32 @@ theorem lam_newPair (parameter : PublicParameter) (Lmax ℓ k : ℕ) :
         rw [pow_succ]
         ring
     _ = _ := by rw [hstep, pow_succ]; ring
+
+/-- **The cap term keeps its mean** over the blocks of a new pair. -/
+theorem pairE_lam_addPair (parameter : PublicParameter) (Lmax k : ℕ) (L : QueryLog SigningSpec)
+    (P : List Pair) (p : Pair) :
+    pairE (fun u => lam Lmax (livePairs L (addPair parameter P p u)).length k) ≤
+      lam Lmax (livePairs L P).length (k + 1) := by
+  by_cases hlive : MsgLive L p.1
+  · have hl : ∀ u : DigestCall → HashOutput, lam Lmax (livePairs L (addPair parameter P p u)).length k =
+        if Landed parameter (blockIndex (u firstCall)) then lam Lmax ((livePairs L P).length + 1) k
+        else lam Lmax (livePairs L P).length k := by
+      intro u
+      unfold addPair livePairs
+      split_ifs with hl
+      · rw [List.filter_cons, ite_eq_left (by simpa using hlive), List.length_cons]
+      · rfl
+    simp only [hl]
+    exact le_of_eq (lam_newPair parameter Lmax _ k)
+  · have hl : ∀ u : DigestCall → HashOutput,
+        lam Lmax (livePairs L (addPair parameter P p u)).length k = lam Lmax (livePairs L P).length k := by
+      intro u
+      unfold addPair livePairs
+      split_ifs with hl
+      · rw [List.filter_cons, ite_eq_right (by simpa using hlive)]
+      · rfl
+    simp only [hl, pairE_const]
+    exact lam_mono le_rfl (Nat.le_succ k)
 
 /-- The cached landed pairs of an unsigned message are live items. -/
 theorem landedCount_le {s : State} {P : List Pair} (hP : PInv parameter data s P) (L : QueryLog SigningSpec)
@@ -925,6 +949,23 @@ theorem msgLive_append {L : QueryLog SigningSpec} {r : Option Signature} {m' : M
     · rw [List.mem_singleton] at he
       subst he
       exact fun h' => hq h'.symm
+
+/-- A signing request adds no live pair: its new pairs are of the signed message. -/
+theorem livePairs_sign_length_le {L : QueryLog SigningSpec} {r : Option Signature} {P : List Pair}
+    {s' : State} :
+    (livePairs (L ++ [⟨m, r⟩]) (newPairs parameter data m s s' ++ P)).length ≤ (livePairs L P).length := by
+  unfold livePairs
+  rw [List.filter_append]
+  have hnew : (newPairs parameter data m s s').filter
+      (fun q => decide (MsgLive (L ++ [⟨m, r⟩]) q.1)) = [] := by
+    refine List.filter_eq_nil_iff.2 fun q hq => ?_
+    obtain ⟨hqm, _, _⟩ := (mem_newPairs parameter data m s).1 hq
+    simp only [decide_eq_true_eq, msgLive_append, not_and, not_not]
+    exact fun _ => hqm
+  rw [hnew, List.nil_append]
+  refine List.Sublist.length_le (List.monotone_filter_right _ fun q hq => ?_)
+  simp only [decide_eq_true_eq, msgLive_append] at hq ⊢
+  exact hq.1
 
 /-- After signing, the live messages are the other live messages. -/
 theorem live_after (L : QueryLog SigningSpec) (r : Option Signature) (Ms : List Message) :

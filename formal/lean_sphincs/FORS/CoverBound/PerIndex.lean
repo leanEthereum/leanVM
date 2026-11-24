@@ -21,8 +21,6 @@ variable [Params]
 
 open Concrete ForsPrice FORS.Base.Domination H0Avg
 
-set_option linter.unusedSectionVars false
-
 /-! ### A quadratic bound of the exponential -/
 
 theorem exp_quad (z z1 : ℝ) (hz : 0 ≤ z) (hzz : z ≤ z1) (hz1 : 0 < z1) :
@@ -125,7 +123,6 @@ theorem price_decomp (d : Multiset View) :
   refine Finset.sum_congr rfl fun l _ => ?_
   ring
 
-
 /-! ### The per-tree moments as mark averages -/
 
 theorem freshAvg_ofReal {α : Type} [Fintype α] [Nonempty α] (g : α → ℝ) (hg : ∀ a, 0 ≤ g a) :
@@ -192,7 +189,6 @@ theorem avgN_yM_sq (n : ℕ) : avgN (fun Ms => yM Ms ^ 2) n 0 = ENNReal.ofReal (
   rw [avgN_prod_coords (fun _ Xs => φF Xs ^ 2) n 0]
   simp only [Multiset.map_zero, avgN_φF_sq]
   rw [Finset.prod_const, Finset.card_univ, card_ftree]
-
 
 /-! ### The pointwise split of the excess -/
 

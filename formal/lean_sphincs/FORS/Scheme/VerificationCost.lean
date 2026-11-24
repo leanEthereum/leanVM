@@ -377,21 +377,4 @@ theorem verification_compressions (f : QueryImpl HashSpec Id) (pk : PublicKey)
     ring
   next => simp at haccept
 
-/-- Malformed signatures cannot make verification exceed its accepted-signature cost. -/
-theorem verification_compressions_le (f : QueryImpl HashSpec Id) (pk : PublicKey)
-    (message : Message) (signature : Signature) :
-    verifyCompressions H f pk message signature ≤ verifyCost H := by
-  rw [verify_compressions_split]
-  set digest := evalWithAnswerFn f (messageDigest pk.parameter pk.root message
-    signature.randomness : OracleComp HashSpec MessageDigest)
-  set key := evalWithAnswerFn f (forsPublicKey pk.parameter (digestIndex digest)
-    (evalWithAnswerFn f (forsRecover pk.parameter (digestIndex digest) (digestLeaves digest)
-      signature.fors : OracleComp HashSpec ForsKey)) : OracleComp HashSpec Digest)
-  have hwalk := compressions_verifyLayers H f pk.parameter (digestIndex digest) signature numLayers 0
-    (rootPayload key) (Nat.zero_add _) numLayers_pos (rootPayload_length _)
-  have := hwalk.1
-  rw [sum_layerCost] at this
-  rw [verifyCost]
-  omega
-
 end FORS.Cost

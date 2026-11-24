@@ -17,8 +17,6 @@ namespace FORS.Base.H0
 
 open Domination
 
-set_option linter.unusedSectionVars false
-
 variable {ι : Type} [DecidableEq ι] [Fintype ι]
 
 /-! ### The pointwise split majorant -/

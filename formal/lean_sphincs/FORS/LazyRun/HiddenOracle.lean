@@ -18,7 +18,6 @@ variable [Params]
 open Completeness SeedModel Graph Assembly Reduce HiddenGraph Eager
 
 set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
 attribute [local instance] Classical.propDecidable
 
 /-- WOTS chain steps and FORS leaves are the hidden rows; every other position is structural. -/

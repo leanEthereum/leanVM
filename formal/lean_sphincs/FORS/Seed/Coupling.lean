@@ -134,8 +134,6 @@ namespace FORS.Security.SeedCoupling
 
 variable [Params]
 
-set_option backward.isDefEq.respectTransparency false
-
 variable (J R : Type) [Fintype J]
 
 noncomputable def finTableEquiv : (Fin (Fintype.card J) → R) ≃ (J → R) where
@@ -194,8 +192,6 @@ namespace FORS.Security.SeedCoupling
 
 variable [Params]
 open SeedModel Completeness
-
-set_option backward.isDefEq.respectTransparency false
 
 noncomputable local instance : SampleableType SecretOutputs := secretOutputsSampleableType
 

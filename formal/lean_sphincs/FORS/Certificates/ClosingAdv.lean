@@ -23,7 +23,6 @@ open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForsPrice F
   FORS.Base.Domination
 open HiddenBridge PotentialA
 
-set_option maxRecDepth 100000 in
 /-- **127 bits at the adversary's own count**, from the certificates and a verifier making
 at most `V` hash calls on every path. -/
 theorem det_bitsF (hb0 : 0 < keptHeight topLayer) (H b k a K N : ℕ) (hH : totalHeight = H)
@@ -105,7 +104,7 @@ theorem det_bitsF (hb0 : 0 < keptHeight topLayer) (H b k a K N : ℕ) (hH : tota
       (by omega) (by rw [← hkg]; omega) with ⟨cover, -, qs, hcv, hqs, hqt⟩ | ⟨cover, -, qs, hcv, hqs, hqt⟩
     · have hcovb := H0.h0W_bound_of_cover H b k a K N qs cover hcv hH hb hk ha hK hN (q - keygenCost) hqs hqt
       have hfairq := H0.fair_of_cover H b k a K N qs cover hcv hH hb (q - keygenCost) hqt
-      have h := forgeAdvantage_le_largeWH hb0 hN70' adversary qA V hqA hV q hqdef hq127 hfairq (by
+      have h := forgeAdvantage_le_largeWH hb0 adversary qA V hqA hV q hqdef hq127 hfairq (by
         rw [e1] at hcovb
         exact hcovb)
       refine le_trans h (le_of_eq ?_)

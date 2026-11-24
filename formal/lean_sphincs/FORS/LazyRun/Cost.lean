@@ -17,8 +17,6 @@ open OracleComp OracleSpec
 namespace FORS.Security.HiddenCost
 
 variable [Params]
-set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
 attribute [local instance] Classical.propDecidable
 
 /-- The raw input an honest read stands for. -/

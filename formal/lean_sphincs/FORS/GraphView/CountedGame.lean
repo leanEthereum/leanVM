@@ -18,7 +18,6 @@ namespace FORS.Security.GraphView
 
 variable [Params]
 open Concrete Completeness Prefix HiddenGraph
-set_option backward.isDefEq.respectTransparency false
 attribute [local irreducible] firstEncoding ReferenceChoice.search encodingAttemptLimit
   Seeded.finishSign digestAttemptLimit sequenceFin
 
@@ -108,7 +107,6 @@ namespace FORS.Security.GraphView
 
 variable [Params]
 open Concrete Completeness Prefix HiddenGraph SeedCoupling
-set_option backward.isDefEq.respectTransparency false
 attribute [local irreducible] signCostSource Seeded.keygenFromSeed
 
 def ordinaryCostSource : QueryImpl OracleWorld (OracleComp CostSpec)

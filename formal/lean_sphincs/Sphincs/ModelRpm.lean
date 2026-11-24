@@ -12,9 +12,9 @@ public import Sphincs.Queries
 @[expose] public section
 
 /-!
-# Upstream's model and the crate's signer in the generic SUF-CMA game
+# FORS's model and the crate's signer in the generic SUF-CMA game
 
-Upstream's model of the scheme (`FORS.Seeded.keygen`, `FORS.Seeded.sign`: a landing call, sibling
+FORS's model of the scheme (`FORS.Seeded.keygen`, `FORS.Seeded.sign`: a landing call, sibling
 subtrees, the verifier's recomputation of each layer's root) is the generic SUF-CMA game of `common`
 (`modelScheme`, `experiment_eq`). The statement's key generation and signer are the crate's
 (`sign`: the key expanded, the top tree rebuilt, every tree built level by level), not the
@@ -34,7 +34,7 @@ attribute [local instance] params
 /- A weight bound of a concrete game must not be unfolded: it recurses through the whole game. -/
 attribute [local irreducible] QueryCostAtMost
 
-/-- Upstream's model in the generic SUF-CMA game: the seed, key generation, the deterministic
+/-- FORS's model in the generic SUF-CMA game: the seed, key generation, the deterministic
 signer, the verifier, and the winning condition (`FORS.SigningTranscript`). -/
 noncomputable def modelScheme :
     SchemeWithHash FORS.MasterSeed FORS.PublicKey FORS.Seeded.SecretKey FORS.Message

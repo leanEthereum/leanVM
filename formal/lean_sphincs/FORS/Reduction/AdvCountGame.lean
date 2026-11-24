@@ -22,7 +22,6 @@ variable [Params]
 open Concrete Completeness Prefix HiddenGraph SeedCoupling GraphView Internalize Det Short
 
 set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
 
 /-! ### Two writers in either order -/
 

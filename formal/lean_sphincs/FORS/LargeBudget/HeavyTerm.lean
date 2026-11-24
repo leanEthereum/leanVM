@@ -127,8 +127,6 @@ open FORS.Base
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForsPrice ForsSigner
   FORS.Base.Domination FORS.LoopWalk
 
-set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
 attribute [local instance] Classical.propDecidable
 
 /-! ### The total count and the heavy message -/

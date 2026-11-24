@@ -114,9 +114,15 @@ instance positionFintype : Fintype Position where
     (Finset.univ.image fun x : Index × FTree × FLeaf => Position.fleaf x.1 x.2.1 x.2.2) ∪
     (Finset.univ.image fun x : Index × FTree × FLevel × FLeaf => Position.fnode x.1 x.2.1 x.2.2.1 x.2.2.2) ∪
     (Finset.univ.image Position.froots)
-  complete := by
-    intro p
-    cases p <;> simp
+  complete p := by
+    simp only [Finset.mem_union, Finset.mem_image, Finset.mem_univ, true_and]
+    cases p
+    · exact .inl (.inl (.inl (.inl (.inl ⟨(_, _, _, _, _), rfl⟩))))
+    · exact .inl (.inl (.inl (.inl (.inr ⟨(_, _, _), rfl⟩))))
+    · exact .inl (.inl (.inl (.inr ⟨(_, _, _, _), rfl⟩)))
+    · exact .inl (.inl (.inr ⟨(_, _, _), rfl⟩))
+    · exact .inl (.inr ⟨(_, _, _, _), rfl⟩)
+    · exact .inr ⟨_, rfl⟩
 
 namespace Position
 

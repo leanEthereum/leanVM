@@ -18,8 +18,6 @@ variable [Params]
 
 open Concrete ForsPrice FORS.Base.H0 FORS.Base.Domination H0Avg ForsPotential
 
-set_option linter.unusedSectionVars false
-
 /-- The near bound at `n` from the moment table: the free tree contributes a factor one. -/
 def nBound (H k a n : ℕ) : ℚ := k * κQ H * (P1tab a).getD n 0 ^ (k - 1)
 
@@ -52,7 +50,6 @@ theorem SepGood.one : SepGood (fun _ : ℕ => (1 : ℝ≥0∞)) where
   growth := ⟨1, fun n => by
     simp only [ENNReal.coe_one, one_mul]
     exact one_le_pow₀ (by norm_num)⟩
-
 
 /-- **The near value is dominated by the table.** -/
 theorem avgN_near_le {H b k a : ℕ} (hH : totalHeight = H) (hb : subtreeHeight = b)

@@ -18,9 +18,6 @@ variable [Params]
 
 open Concrete ForsPrice ForsPotential
 
-set_option linter.unusedSectionVars false
-set_option exponentiation.threshold 512
-
 /-- The inverse of the landing probability. -/
 def scanM : ℕ := 2 ^ (totalHeight - subtreeHeight)
 

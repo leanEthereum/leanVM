@@ -1,7 +1,7 @@
 module
 
 public import FORS.SmallBudget.Contact.Bound
-public import FORS.Classification.RefinedOutcome
+public import FORS.Classification.WinRefined
 public import FORS.CoverPotential.Game
 public import FORS.Reduction.NoRepeat
 public import FORS.CoverPotential.OneCoin
@@ -26,9 +26,6 @@ open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForsPrice F
   FORS.Base.Domination
 open HiddenBridge PotentialA
 
-set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
-set_option linter.constructorNameAsVariable false
 attribute [local instance] Classical.propDecidable
 
 open Completeness SeedModel _root_.FORS.Security.Graph Assembly Reduce Internalize in

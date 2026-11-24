@@ -5,7 +5,8 @@ public import FORS.Reduction.NoRepeat
 public import FORS.CoverPotential.OneCoin
 public import FORS.CoverPotential.GameH
 public import FORS.LargeBudget.HonestCoupling
-public import FORS.SmallBudget.Contact.HonestBase
+public import FORS.CoverPotential.Presample
+public import FORS.LazyRun.HonestRead
 
 @[expose] public section
 
@@ -29,9 +30,6 @@ open FORS.Base
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForsPrice ForsSigner
   FORS.Base.Domination
 
-set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
-set_option linter.unusedSectionVars false
 attribute [local instance] Classical.propDecidable
 
 /-! ### The count invariant of the live messages -/
@@ -52,6 +50,22 @@ theorem countInv_card (s : State) (budget : ℕ) :
     CountInv parameter data (Fintype.card Randomness + budget) s budget := fun m => by
   have h : cachedCount parameter data m s ≤ Fintype.card Randomness :=
     (Finset.card_filter_le _ _).trans (Finset.card_univ.le)
+  omega
+
+/-- A signing run on `m` keeps the count invariant of the other live messages. -/
+theorem countInvL_sign {A : Type} (tg : Targeting HashInput HashOutput Coordinate)
+    (initial : HiddenOutside.Cache HashInput HashOutput) (model : HiddenRows.Model HashInput HashOutput A Coordinate)
+    {L : QueryLog SigningSpec} {s : State} {budget B : ℕ} {m : Message} (r : Option Signature)
+    (hC : CountInvL parameter data Qtot L s budget) (o : Run HashInput Coordinate (Option Signature) × State)
+    (ho : o ∈ support (interp tg initial model (signCostSource parameter data m) B s)) :
+    CountInvL parameter data Qtot (L ++ [⟨m, r⟩]) o.2 budget := by
+  intro m' hm'
+  have hne : m' ≠ m := fun he => hm' ⟨m, r⟩ (List.mem_append_right _ (List.mem_singleton_self _)) he.symm
+  have hkeep : cachedCount parameter data m' o.2 = cachedCount parameter data m' s := by
+    unfold cachedCount
+    refine congrArg Finset.card (Finset.filter_congr fun ρ _ => ?_)
+    exact Iff.of_eq (congrArg (· ≠ none) (other_message_keptS tg initial model B s o ho (m', ρ) hne firstCall))
+  have := hC m' fun e he => hm' e (List.mem_append_left _ he)
   omega
 
 end CountL
@@ -97,7 +111,7 @@ theorem interp_presample_fresh_leF (x : HashInput) (hk : tg.kind x = .none) {α 
     ∑' out, Pr{let z ← interp tg initial model computation budget state}[z = out] * F out ≤
       (Fintype.card HashOutput : ℝ≥0∞)⁻¹ * ∑ v, ∑' out, Pr{let z ← (interp tg initial model
         computation budget (state.store x v))}[z = out] * F out := by
-  refine le_trans (interp_presample_leH tg initial model x hk computation budget state F fun out s hs => ?_) ?_
+  refine le_trans (interp_presample_le tg initial model x hk computation budget state F fun out s hs => ?_) ?_
   · cases hc : out.2.cache x with
     | some w =>
         rw [presample_cached x out.2 w hc, support_pure, Set.mem_singleton_iff] at hs
@@ -108,7 +122,6 @@ theorem interp_presample_fresh_leF (x : HashInput) (hk : tg.kind x = .none) {α 
         exact hF out v hc
   · rw [presample_fresh x state hx, OracleComp.tsum_prEvent_map_mul, tsum_uniform_eq]
 
-set_option maxRecDepth 100000 in
 /-- `interp_presampleAll_le` with honest reads. -/
 theorem interp_presampleAll_leF {α : Type} (computation : OracleComp CostSpecH α) (budget : ℕ)
     (F : Run HashInput Coordinate α × State → ℝ≥0∞) :
@@ -155,7 +168,6 @@ theorem interp_presampleAll_leF {α : Type} (computation : OracleComp CostSpecH 
             rw [← Fintype.sum_prod_type']
             exact Fintype.sum_equiv (Fin.consEquiv fun _ => HashOutput) _ _ fun _ => rfl
 
-set_option maxRecDepth 100000 in
 /-- `interp_presample_new` with honest reads. -/
 theorem interp_presample_newF {α : Type} {n : ℕ} (x : Fin n → HashInput) (hx : Function.Injective x)
     (hk : ∀ i, tg.kind (x i) = .none) (c : Fin n) (next : HashOutput → OracleComp CostSpecH α)
@@ -229,7 +241,7 @@ theorem finalValue_ordinary (R : List Coordinate) (x : HashInput)
       ∑' r, Pr{let y ← ordinaryStep model x s.known s}[y = r] *
         ∑' out, Pr{let x ← interp tg initial model (next r.1) (budget - 1) r.2}[x = out] *
           finalValue parameter data tg initial R out := by
-  rw [interp_ordinaryHB, ite_eq_left hb, OracleComp.tsum_prEvent_bind_mul]
+  rw [interp_ordinary, ite_eq_left hb, OracleComp.tsum_prEvent_bind_mul]
   simp only [OracleComp.tsum_prEvent_map_mul]
   rfl
 
@@ -240,7 +252,7 @@ theorem flagged_ordinary (x : HashInput) (next : HashOutput → OracleComp CostS
         ∑' r, Pr{let y ← ordinaryStep model x s.known s}[y = r] *
           expectedFlagged tg initial model (next r.1) (budget - 1) r.2 := by
   unfold expectedFlagged
-  rw [interp_ordinaryHB, ite_eq_left hb, OracleComp.tsum_prEvent_bind_mul]
+  rw [interp_ordinary, ite_eq_left hb, OracleComp.tsum_prEvent_bind_mul]
   simp only [OracleComp.tsum_prEvent_map_mul, flaggedCount_append, flaggedCount_touch, Nat.cast_add, mul_add,
     tsum_add, ENNReal.tsum_mul_right, OracleComp.tsum_prEvent_eq_one, one_mul]
 
@@ -285,7 +297,7 @@ theorem goodOH_draw (L : QueryLog SigningSpec) (draw : ℕ)
       (liftM (CostSpecH.query (.inl (.inl draw))) >>= next) := by
   intro budget s P Ms d R hprep hP hM hD hC
   unfold expectedFlagged
-  rw [interp_drawH, OracleComp.tsum_prEvent_bind_mul, OracleComp.tsum_prEvent_bind_mul]
+  rw [interp_draw, OracleComp.tsum_prEvent_bind_mul, OracleComp.tsum_prEvent_bind_mul]
   calc _ ≤ ∑' v, Pr{let x ← (liftM (unifSpec.query draw) : ProbComp (Fin (draw + 1)))}[x = v] *
         (potO parameter data w b0 Fail tg initial Lmax s P Ms L d budget +
           b0 * expectedFlagged tg initial model (next v) budget s) :=
@@ -316,11 +328,6 @@ theorem new_pair_boundO {Cmax : ℕ} (hfair : FairS w Cmax Lmax) (hQ : Qtot ≤ 
   set n := signatureLimit - L.length with hn
   set ℓ := (livePairs L P).length with hℓ
   have hfresh : ∀ call, s.cache (pblk parameter data p call) = none := hP.first p hp0
-  have hpairE : ∀ F : (DigestCall → HashOutput) → ℝ≥0∞,
-      pairE F = ((Fintype.card HashOutput : ℝ≥0∞) ^ digestCalls)⁻¹ * ∑ u, F u := by
-    intro F
-    unfold pairE
-    rw [tsum_uniform_eq, Fintype.card_fun, Fintype.card_fin, Nat.cast_pow]
   -- the final value only grows when a block of the pair is presampled
   have hFmono : ∀ (out : Run HashInput Coordinate HiddenBridge.Outcome × State) (i : DigestCall)
       (v : HashOutput), out.2.cache (pblk parameter data p i) = none →
@@ -344,14 +351,14 @@ theorem new_pair_boundO {Cmax : ℕ} (hfair : FairS w Cmax Lmax) (hQ : Qtot ≤ 
           (s.store (pblk parameter data p c) v))}[z = out] * finalValue parameter data tg initial R out ≤
       pairE (fun u => ∑' out, Pr{let z ← (interp tg initial model (next (u c)) (budget - 1)
         (withPair parameter data s p u))}[z = out] * finalValue parameter data tg initial R out) := by
-    rw [hpairE]
+    rw [pairE_eq_sum]
     exact interp_presample_newF tg initial model (pblk parameter data p)
       (pblk_call_injective parameter data p) hkind c next (budget - 1) s hfresh _ hFmono
   have hcount : pairE (fun u => expectedFlagged tg initial model (next (u c)) (budget - 1)
         (withPair parameter data s p u)) =
       ∑' v, Pr{let z ← ($ᵗ HashOutput : ProbComp HashOutput)}[z = v] *
         expectedFlagged tg initial model (next v) (budget - 1) (s.store (pblk parameter data p c) v) := by
-    rw [hpairE]
+    rw [pairE_eq_sum]
     unfold expectedFlagged
     exact (interp_presample_new_eq tg initial model (pblk parameter data p)
       (pblk_call_injective parameter data p) hkind c next (budget - 1) s hfresh
@@ -385,32 +392,8 @@ theorem new_pair_boundO {Cmax : ℕ} (hfair : FairS w Cmax Lmax) (hQ : Qtot ≤ 
   -- the cap term keeps its mean
   have hlam : pairE (fun u => lam Lmax (livePairs L (addPair parameter P p u)).length (budget - 1)) ≤
       lam Lmax ℓ budget := by
-    by_cases hlive : MsgLive L p.1
-    · have hl : ∀ u : DigestCall → HashOutput,
-          lam Lmax (livePairs L (addPair parameter P p u)).length (budget - 1) =
-          if Landed parameter (blockIndex (u firstCall)) then lam Lmax (ℓ + 1) (budget - 1)
-          else lam Lmax ℓ (budget - 1) := by
-        intro u
-        unfold addPair livePairs
-        split_ifs with hl
-        · rw [List.filter_cons, ite_eq_left (by simpa using hlive), List.length_cons]
-          rfl
-        · rfl
-      simp only [hl]
-      have := lam_newPair parameter Lmax ℓ (budget - 1)
-      rw [Nat.sub_add_cancel hb] at this
-      exact le_of_eq this
-    · have hl : ∀ u : DigestCall → HashOutput,
-          lam Lmax (livePairs L (addPair parameter P p u)).length (budget - 1) =
-            lam Lmax ℓ (budget - 1) := by
-        intro u
-        unfold addPair livePairs
-        split_ifs with hl
-        · rw [List.filter_cons, ite_eq_right (by simpa using hlive)]
-          rfl
-        · rfl
-      simp only [hl, pairE_const]
-      exact lam_mono le_rfl (Nat.sub_le _ _)
+    have h := pairE_lam_addPair parameter Lmax (budget - 1) L P p
+    rwa [Nat.sub_add_cancel hb] at h
   refine le_trans (le_trans hpre (pairE_mono hone)) ?_
   rw [pairE_add, pairE_const_mul, hcount, mul_add, ← add_assoc]
   refine add_le_add ?_ le_rfl
@@ -447,7 +430,7 @@ theorem goodOH_ordinary (hparse : ∀ p call, model.parse (pblk parameter data p
   intro budget s P Ms d R hprep hP hM hD hC
   by_cases hb : 1 ≤ budget
   swap
-  · rw [interp_ordinaryHB, ite_eq_right hb, OracleComp.tsum_prEvent_pure_mul, finalValue_abort]
+  · rw [interp_ordinary, ite_eq_right hb, OracleComp.tsum_prEvent_pure_mul, finalValue_abort]
     exact bot_le
   rw [finalValue_ordinary tg initial model parameter data R x next budget hb s,
     flagged_ordinary tg initial model x next budget hb s]
@@ -498,54 +481,16 @@ theorem goodOH_ordinary (hparse : ∀ p call, model.parse (pblk parameter data p
 /-- **Leaf.** A FORS cover with no decided hit is paid by the potential. -/
 theorem goodOH_pure (hw : w ≤ 1) (L : QueryLog SigningSpec) (forgery : Forgery) (verified : Bool) :
     GoodOH parameter data w b0 Fail Qtot Lmax tg initial model L (pure (forgery, L, verified)) := by
-  intro budget s P Ms d R hprep hP hM hD hC
+  intro budget s P Ms d R hprep hP hM hD _
+  have h := goodO_pure parameter data w b0 Fail (Fintype.card Randomness + budget) Lmax tg initial model hw L
+    forgery verified budget s P Ms d R hprep hP hM hD (countInv_card parameter data s budget)
+  have hflag : expectedFlagged tg initial model (pure (forgery, L, verified) : OracleComp CostSpec _) budget s = 0 := by
+    unfold expectedFlagged
+    rw [interp_pure, OracleComp.tsum_prEvent_pure_mul]
+    simp [flaggedCount]
+  rw [hflag, mul_zero, add_zero, interp_pure, OracleComp.tsum_prEvent_pure_mul] at h
   rw [interp_pure, OracleComp.tsum_prEvent_pure_mul]
-  refine le_trans ?_ le_self_add
-  unfold finalValue
-  simp only [Option.elim, List.append_nil]
-  split_ifs with hcov
-  swap
-  · exact bot_le
-  obtain ⟨⟨hvalid, digest, hdig, -, hunsigned, hcovered⟩, hreal⟩ := hcov
-  set q : Pair := (forgery.message, forgery.signature.randomness) with hq
-  unfold HiddenBridge.cachedDigest at hdig
-  cases h0 : pcache parameter data q.1 s q.2 with
-  | none =>
-      have h0' : (Completeness.allSome (α := fun _ => HashOutput) fun call : DigestCall =>
-          s.cache (messageDigestInput parameter data.root forgery.message forgery.signature.randomness
-            call)) = none := h0
-      rw [h0'] at hdig; cases hdig
-  | some a =>
-      have h0' : (Completeness.allSome (α := fun _ => HashOutput) fun call : DigestCall =>
-          s.cache (messageDigestInput parameter data.root forgery.message forgery.signature.randomness
-            call)) = some a := h0
-      rw [h0'] at hdig
-      have hdig' : truncateMessageDigest a = digest := by
-        simpa using hdig
-      subst hdig'
-      have hlanded : LandedIn parameter data s q :=
-        ⟨a firstCall, first_of_pcache parameter data h0, landed_full parameter _⟩
-      have hqP := (hP.mem q).2 hlanded
-      have hv : pview parameter data s q = Lifetime.localDigestView (truncateMessageDigest a) := by
-        simp only [pview, h0, Option.elim, viewOf]
-      unfold potO
-      rw [ite_eq_right (by
-        rintro (h | h)
-        · exact hreal h
-        · exact absurd hvalid (by simp [SigningTranscript.Valid]; omega))]
-      refine le_trans ?_ le_self_add
-      unfold coreO
-      refine le_trans ?_ (le_trans (List.le_sum_of_mem (List.mem_map_of_mem hqP)) (le_self_add.trans le_self_add))
-      unfold candO
-      rw [ite_eq_left (show Unsigned L q from hunsigned)]
-      split_ifs
-      · exact le_rfl
-      · unfold candValueO
-        calc (1 : ℝ≥0∞) ≤ witnessFn (pview parameter data s q) d := by
-              unfold witnessFn
-              rw [hv]
-              exact witness_pos_of_covered hD _ hcovered
-          _ ≤ _ := base_le_termO hw (witness_props _) s Ms L _ d _ _
+  exact h.trans le_self_add
 
 /-- Hash computations lifted onto the raw summand are sequences of ordinary queries. -/
 theorem goodOH_liftRaw (hparse : ∀ p call, model.parse (pblk parameter data p call) = none)
@@ -612,47 +557,17 @@ theorem goodOH_signH (hparse : ∀ p call, model.parse (pblk parameter data p ca
           hparse (hfail m) B s P Ms d R hprep hP hM hD (countInv_card parameter data s B) o1' ho1' r hres'
         rw [h2] at hprep' hP' hM'
         rw [h121, hdisc] at hD'
-        have hC' : CountInvL parameter data Qtot (L ++ [⟨m, r⟩]) o1.2 budget := by
-          intro m' hm'
-          have hne : m' ≠ m := fun he => hm' ⟨m, r⟩ (List.mem_append_right _ (List.mem_singleton_self _)) he.symm
-          have hlive : MsgLive L m' := fun e he => hm' e (List.mem_append_left _ he)
-          have hkeep : cachedCount parameter data m' o1.2 = cachedCount parameter data m' s := by
-            unfold cachedCount
-            refine congrArg Finset.card (Finset.filter_congr fun ρ _ => ?_)
-            have hk := other_message_keptS tg initial model B s o1' ho1' (m', ρ) hne firstCall
-            rw [h2] at hk
-            exact Iff.of_eq (congrArg (· ≠ none) hk)
-          have := hC m' hlive
-          omega
+        have hC' : CountInvL parameter data Qtot (L ++ [⟨m, r⟩]) o1.2 budget :=
+          h2 ▸ countInvL_sign parameter data Qtot tg initial model r hC o1' ho1'
         have hIH := h r budget o1.2 _ _ _ _ hprep' hP' hM' hD' hC'
         have hpot := sign_pointO2 tg initial model parameter data w b0 Fail (Fintype.card Randomness + B) m hparse
           (hfail m) hw B budget s P Ms L d R hprep hP hM hD (countInv_card parameter data s B) o1' ho1' r hres'
           (le_refl budget)
         rw [h2, hdisc, canonO_congr h11 h2] at hpot
         have hlam : lam Lmax (livePairs (L ++ [⟨m, r⟩]) (newPairs parameter data m s o1.2 ++ P)).length
-            budget ≤ lam Lmax ℓ budget := by
-          refine lam_mono ?_ le_rfl
-          unfold livePairs
-          rw [List.filter_append]
-          have hnew : (newPairs parameter data m s o1.2).filter
-              (fun q => decide (MsgLive (L ++ [⟨m, r⟩]) q.1)) = [] := by
-            refine List.filter_eq_nil_iff.2 fun q hq => ?_
-            obtain ⟨hqm, _, _⟩ := (mem_newPairs parameter data m s).1 hq
-            simp only [decide_eq_true_eq, msgLive_append, not_and, not_not]
-            exact fun _ => hqm
-          rw [hnew, List.nil_append]
-          refine (List.Sublist.length_le ?_)
-          refine List.monotone_filter_right _ fun q hq => ?_
-          simp only [decide_eq_true_eq, msgLive_append] at hq ⊢
-          exact hq.1
-        have heq : ∀ o2 : Run HashInput Coordinate HiddenBridge.Outcome × State,
-            finalValue parameter data tg initial R
-              ((o2.1.1, o1.1.2.1 ++ o2.1.2.1, o1.1.2.2.1 ++ o2.1.2.2.1, o1.1.2.2.2 ++ o2.1.2.2.2), o2.2) =
-            finalValue parameter data tg initial (R ++ o1.1.2.1) o2 := by
-          intro o2
-          unfold finalValue
-          simp only [List.append_assoc]
-        simp only [heq]
+            budget ≤ lam Lmax ℓ budget :=
+          lam_mono livePairs_sign_length_le le_rfl
+        simp only [finalValue_append]
         refine le_trans hIH (add_le_add ?_ ?_)
         · unfold potO
           exact add_le_add hpot hlam

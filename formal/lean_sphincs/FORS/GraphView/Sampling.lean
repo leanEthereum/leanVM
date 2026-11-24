@@ -15,7 +15,6 @@ namespace FORS.Security.Graph
 variable [Params]
 open Concrete Completeness
 
-set_option backward.isDefEq.respectTransparency false
 attribute [local irreducible] canonicalGraphInput canonicalGraphSlots
 
 noncomputable opaque graphLabelsSampleable : SampleableType CanonicalGraphLabels :=

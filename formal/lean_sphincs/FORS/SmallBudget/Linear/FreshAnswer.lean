@@ -16,12 +16,7 @@ variable [Params]
 
 open Concrete HiddenGraph HiddenDebt HiddenBridge EncodingCode
 
-set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
-set_option linter.constructorNameAsVariable false
-set_option linter.unusedSectionVars false
 attribute [local instance] Classical.propDecidable
-
 
 namespace Ctx
 
@@ -45,7 +40,6 @@ theorem sum_single (F F' : FIn → ℝ≥0∞) (f : FIn) (h : ∀ g, g ≠ f →
     ∑ g, F' g = ∑ g, F g + F' f := by
   rw [← Finset.add_sum_erase _ F' (Finset.mem_univ f), ← Finset.add_sum_erase _ F (Finset.mem_univ f), h0,
     zero_add, add_comm, Finset.sum_congr rfl fun g hg => h g (Finset.ne_of_mem_erase hg)]
-
 
 /-- A double sum over FORS leaf queries that changes on the row and the column of one query only. -/
 theorem sum_double_le (G G' : FIn → FIn → ℝ≥0∞) (f : FIn) (h : ∀ g h, g ≠ f → h ≠ f → G' g h = G g h) :
@@ -311,6 +305,7 @@ theorem markAll_card (l : OtsKey) : ((K.markAll l).card : ℝ≥0∞) ≤ 4032 :
   have : (K.markAll l).card ≤ 4032 := h1.trans h2
   exact_mod_cast this
 
+set_option maxRecDepth 2000 in
 theorem markSet_subset (l : OtsKey) (i : ChainIndex) {t : Digest} (h : t ∈ K.markSet l i) : t ∈ K.markAll l := by
   obtain ⟨word, hw, hd⟩ := mem_decodingDigests.1 h
   exact mem_decodingDigests.2 ⟨word, mem_allUnitNeighbors.2 ⟨i, mem_unitNeighbors.1 hw⟩, hd⟩

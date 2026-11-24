@@ -1,7 +1,8 @@
 module
 
 public import FORS.SmallBudget.Contact.PaidPotential
-public import FORS.SmallBudget.Contact.HonestBase
+public import FORS.CoverPotential.Presample
+public import FORS.LazyRun.HonestRead
 public import FORS.CoverPotential.GameH
 
 @[expose] public section
@@ -23,9 +24,6 @@ open FORS.Base
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForsPrice ForsSigner HiddenBridge
 open PotentialA
 
-set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
-set_option linter.unusedSectionVars false
 attribute [local instance] Classical.propDecidable
 
 section ThenH
@@ -196,7 +194,7 @@ theorem goodXFH_draw (L : QueryLog SigningSpec) (draw : ℕ)
     GoodXF K data Qtot model IsF pay Φ G L (liftM (CostSpecH.query (.inl (.inl draw))) >>= next) := by
   intro budget s P Ms d R hB
   unfold expCount
-  rw [interp_drawHB, OracleComp.tsum_prEvent_bind_mul, OracleComp.tsum_prEvent_bind_mul]
+  rw [interp_draw, OracleComp.tsum_prEvent_bind_mul, OracleComp.tsum_prEvent_bind_mul]
   calc _ ≤ ∑' v, Pr{let x ← (liftM (unifSpec.query draw) : ProbComp (Fin (draw + 1)))}[x = v] *
         (Φ s P Ms L d R budget + pay * expCount K model IsF (next v) budget s) :=
         tsum_le_tsum fun v => mul_le_mul_right (h v budget s P Ms d R hB) _
@@ -216,13 +214,13 @@ theorem goodXFH_ordinary (hMp : model.parse = HiddenGraph.parse K.p (candidateAc
   intro budget s P Ms d R hB
   by_cases hb : 1 ≤ budget
   swap
-  · rw [interp_ordinaryHB, ite_eq_right hb, OracleComp.tsum_prEvent_pure_mul]
+  · rw [interp_ordinary, ite_eq_right hb, OracleComp.tsum_prEvent_pure_mul]
     simp only [hG0, zero_le]
   have hexp : expCount K model IsF (liftM (CostSpecH.query (.inl (.inr (.inl x)))) >>= next) budget s =
       ∑' r, Pr{let y ← ordinaryStep model x s.known s}[y = r] *
         ((if IsF x then 1 else 0) + expCount K model IsF (next r.1) (budget - 1) r.2) := by
     unfold expCount
-    rw [interp_ordinaryHB, ite_eq_left hb, OracleComp.tsum_prEvent_bind_mul]
+    rw [interp_ordinary, ite_eq_left hb, OracleComp.tsum_prEvent_bind_mul]
     refine tsum_congr fun r => ?_
     rw [OracleComp.tsum_prEvent_map_mul]
     congr 1
@@ -241,25 +239,17 @@ theorem goodXFH_ordinary (hMp : model.parse = HiddenGraph.parse K.p (candidateAc
     have hfresh : ∀ call, s.cache (pblk K.p data p call) = none := hB.pinv.first p hp0
     have hkind : ∀ call, K.tg.kind (pblk K.p data p call) = .none := fun call =>
       hmsg _ (msgInput_digestInput K.p data.root p.1 p.2 call)
-    have hcard : (Fintype.card (DigestCall → HashOutput) : ℝ≥0∞) =
-        (Fintype.card HashOutput : ℝ≥0∞) ^ digestCalls := by
-      rw [Fintype.card_fun, Fintype.card_fin, Nat.cast_pow]
-    have hpairE : ∀ F : (DigestCall → HashOutput) → ℝ≥0∞,
-        pairE F = ((Fintype.card HashOutput : ℝ≥0∞) ^ digestCalls)⁻¹ * ∑ u, F u := by
-      intro F
-      unfold pairE
-      rw [tsum_uniform_eq, hcard]
     -- the expected number of queries of the class is unchanged by the presampling
     have hcount : pairE (fun u => expCount K model IsF (next (u c)) (budget - 1)
           (withPair K.p data s p u)) =
         ∑' v, Pr{let z ← ($ᵗ HashOutput : ProbComp HashOutput)}[z = v] *
           expCount K model IsF (next v) (budget - 1) (s.store (pblk K.p data p c) v) := by
-      rw [hpairE]
+      rw [pairE_eq_sum]
       unfold expCount
       exact (interp_presample_new_eq K.tg K.initial model (pblk K.p data p)
         (pblk_call_injective K.p data p) hkind c next (budget - 1) s hfresh
         fun run => (fleafCount IsF run.2.2.1 : ℝ≥0∞)).symm
-    rw [hexp, interp_ordinaryHB, ite_eq_left hb, OracleComp.tsum_prEvent_bind_mul]
+    rw [hexp, interp_ordinary, ite_eq_left hb, OracleComp.tsum_prEvent_bind_mul]
     simp only [OracleComp.tsum_prEvent_map_mul]
     simp only [ite_eq_right (hFp p c), zero_add]
     rw [ordinaryStep, hparse p c]
@@ -270,8 +260,8 @@ theorem goodXFH_ordinary (hMp : model.parse = HiddenGraph.parse K.p (candidateAc
             (s.store (pblk K.p data p c) v))}[z = out] * G out.1.1 (R ++ out.1.2.1) out.2
         ≤ pairE (fun u => ∑' out, Pr{let z ← (interp K.tg K.initial model (next (u c)) (budget - 1)
             (withPair K.p data s p u))}[z = out] * G out.1.1 (R ++ out.1.2.1) out.2) := by
-          rw [hpairE]
-          exact interp_presample_newH K.tg K.initial model (pblk K.p data p)
+          rw [pairE_eq_sum]
+          exact interp_presample_new K.tg K.initial model (pblk K.p data p)
             (pblk_call_injective K.p data p) hkind c next (budget - 1) s hfresh
             (fun out => G out.1.1 (R ++ out.1.2.1) out.2) fun out y v hy => hGstore _ _ _ _ _ hy
       _ ≤ pairE (fun u => Φ (withPair K.p data s p u) (addPair K.p P p u) (addMsg Ms p.1) L d R (budget - 1) +
@@ -284,7 +274,7 @@ theorem goodXFH_ordinary (hMp : model.parse = HiddenGraph.parse K.p (candidateAc
       _ ≤ _ := by
           rw [hcount]
           exact add_le_add hnewp' le_rfl
-  · rw [hexp, interp_ordinaryHB, ite_eq_left hb, OracleComp.tsum_prEvent_bind_mul]
+  · rw [hexp, interp_ordinary, ite_eq_left hb, OracleComp.tsum_prEvent_bind_mul]
     simp only [OracleComp.tsum_prEvent_map_mul]
     calc _ ≤ ∑' r, Pr{let z ← ordinaryStep model x s.known s}[z = r] *
           (Φ r.2 P Ms L d R (budget - 1) + pay * expCount K model IsF (next r.1) (budget - 1) r.2) := by

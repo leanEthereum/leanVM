@@ -19,8 +19,6 @@ variable [Params]
 open FORS.Base
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView ForsSigner HiddenBridge
 
-set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
 attribute [local instance] Classical.propDecidable
 
 /-! ### One ordinary step -/

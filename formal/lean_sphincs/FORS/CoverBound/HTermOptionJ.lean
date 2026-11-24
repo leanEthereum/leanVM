@@ -26,8 +26,6 @@ variable [Params]
 
 open Concrete ForsPrice FORS.Base.H0 FORS.Base.Domination H0Avg
 
-set_option linter.unusedSectionVars false
-
 /-! ### The exponential in integers -/
 
 /-- Iterated squaring of a numerator over `2^P`, rounded up. A plain `Nat.rec` over the `Nat`
@@ -130,10 +128,6 @@ theorem exp_le_expQN (u : ℚ) (s P : ℕ) (hu : 0 ≤ u) (hus : u < 2 ^ s) :
   rw [h2]
   push_cast
   rfl
-
-theorem one_le_expUpN_div (un ud s P : ℕ) (hd : 0 < ud) (hus : un < 2 ^ s * ud) :
-    (1 : ℝ) ≤ (expUpN un ud s P : ℝ) / 2 ^ P :=
-  le_trans (Real.one_le_exp (by positivity)) (exp_le_expUpN un ud s P hd hus)
 
 /-- `expUpN` reads `un / ud` only. -/
 theorem expUpN_congr {un ud un' ud' : ℕ} (s P : ℕ) (hd : 0 < ud) (hd' : 0 < ud') (h : un * ud' = un' * ud) :

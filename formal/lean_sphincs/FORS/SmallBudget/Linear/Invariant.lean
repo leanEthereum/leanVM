@@ -16,9 +16,6 @@ variable [Params]
 
 open Concrete HiddenGraph HiddenDebt HiddenBridge EncodingCode
 
-set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
-set_option linter.unusedSectionVars false
 attribute [local instance] Classical.propDecidable
 
 /-- The numeric conditions on the plain rate `ρ`, for `x = total / 2^128`. -/
@@ -97,7 +94,6 @@ theorem one_le_ofReal {ρ : ℝ} (h : 1 ≤ ρ) : (1 : ℝ≥0∞) ≤ ENNReal.o
 theorem ofReal_le_two {ρ : ℝ} (h : ρ ≤ 2) : ENNReal.ofReal ρ ≤ 2 := by
   rw [show (2 : ℝ≥0∞) = ENNReal.ofReal 2 by simp]
   exact ENNReal.ofReal_le_ofReal h
-
 
 namespace Ctx
 
