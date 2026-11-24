@@ -96,6 +96,47 @@ variable (parameter : PublicParameter) (data : PublicData) (wbar : ℝ≥0∞) (
   {A : Type} (tg : Targeting HashInput HashOutput Coordinate)
   (initial : HiddenOutside.Cache HashInput HashOutput) (model : HiddenRows.Model HashInput HashOutput A Coordinate)
 
+/-- The weighted saturation and a weighted potential bound a hit or a FORS cover: with the
+saturation's payments `budget 0 total + b0 * W` below the mean weight and the mean weighted final
+value below `pot + b0 * W`, a hit or a cover has probability at most `(1 - budget 0 total) + pot`. -/
+theorem hit_or_cover_le_of_saturation (total : ℕ) (b0 W pot : ℝ≥0∞)
+    (prog : OracleComp CostSpecH HiddenBridge.Outcome) (start : State)
+    (hsat : budget 0 total + b0 * W ≤
+      ∑' out, Pr{let x ← interp tg initial model prog total start}[x = out] * weight tg initial out.2)
+    (hgood : ∑' out, Pr{let x ← interp tg initial model prog total start}[x = out] *
+      (weight tg initial out.2 * finalValue parameter data tg initial [] out) ≤ pot + b0 * W) :
+    Pr{let r ← (interp tg initial model prog total start >>= fun result =>
+          (fun table => (table, result)) <$> completion result.2.known)}[Hit tg initial r.1 r.2.2 ∨ CoverOf parameter data r.2] ≤
+      (1 - budget 0 total) + pot := by
+  set E := ∑' out, Pr{let x ← interp tg initial model prog total start}[x = out] *
+    weight tg initial out.2 with hEdef
+  have hE : E ≤ 1 :=
+    le_trans (tsum_le_tsum fun out => mul_le_of_le_one_right' (weight_le_one tg initial out.2))
+      (OracleComp.tsum_prEvent_le_one _)
+  have hcompl : ∑' out, Pr{let x ← interp tg initial model prog total start}[x = out] *
+      (1 - weight tg initial out.2) = 1 - E := by
+    have hsum : ∑' out, Pr{let x ← interp tg initial model prog total start}[x = out] *
+        (1 - weight tg initial out.2) + E = 1 := by
+      rw [hEdef, ← tsum_add]
+      calc _ = ∑' out, Pr{let x ← interp tg initial model prog total start}[x = out] :=
+            tsum_congr fun out => by
+              rw [← mul_add, tsub_add_cancel_of_le (weight_le_one tg initial out.2), mul_one]
+        _ = 1 := OracleComp.tsum_prEvent_eq_one _
+    exact ENNReal.eq_sub_of_add_eq (ne_top_of_le_ne_top ENNReal.one_ne_top hE) hsum
+  have hW1 : b0 * W ≤ 1 - budget 0 total :=
+    ENNReal.le_sub_of_add_le_left ENNReal.ofReal_ne_top (le_trans hsat hE)
+  rw [OracleComp.prEvent_bind_eq_tsum]
+  calc _ ≤ ∑' out, Pr{let x ← interp tg initial model prog total start}[x = out] *
+        ((1 - weight tg initial out.2) + weight tg initial out.2 * finalValue parameter data tg initial [] out) :=
+        tsum_le_tsum fun out => mul_le_mul_right (hit_or_cover_le parameter data tg initial out) _
+    _ = (1 - E) + ∑' out, Pr{let x ← interp tg initial model prog total start}[x = out] *
+          (weight tg initial out.2 * finalValue parameter data tg initial [] out) := by
+        rw [← hcompl, ← tsum_add]
+        exact tsum_congr fun out => mul_add _ _ _
+    _ ≤ (1 - (budget 0 total + b0 * W)) + (pot + b0 * W) := add_le_add (tsub_le_tsub_left hsat _) hgood
+    _ = (1 - budget 0 total) + pot := by
+        rw [tsub_add_eq_tsub_tsub, add_comm pot (b0 * W), ← add_assoc, tsub_add_cancel_of_le hW1]
+
 /-- **The rest of the game with the weighted baseline**, the signer honest. For an adversary that never repeats a
 message, a decided hit or a FORS cover has probability at most the weighted saturation budget plus
 the one-coin FORS potential at the baseline `baselineW total`. -/
@@ -118,13 +159,8 @@ theorem rest_boundW (hcompat : Compatible tg model) (htrunc : UniformTruncation 
         lam Lmax 0 total := by
   set start := DebtState.start initial known (D := HashInput) (R := HashOutput) (ι := Coordinate) with hstart
   set b0 := baselineW total with hb0def
-  have hb0 : b0 ≠ ⊤ := baselineW_ne_top total
-  have htotal1 : (total : ℝ) + 1 < spaceReal := by
-    have : (0 : ℝ) ≤ total := Nat.cast_nonneg _
-    linarith
-  have htotal2 : (total : ℝ) ≤ spaceReal := by
-    have : (0 : ℝ) ≤ total := Nat.cast_nonneg _
-    linarith
+  have htotal1 : (total : ℝ) + 1 < spaceReal := by linarith [(Nat.cast_nonneg total : (0 : ℝ) ≤ total)]
+  have htotal2 : (total : ℝ) ≤ spaceReal := by linarith [(Nat.cast_nonneg total : (0 : ℝ) ≤ total)]
   -- the weighted FORS potential
   have hgood := goodWH_advProgH parameter data wbar b0 Fail total Lmax tg initial model hparse hkind hdigest hfail hfair
     (Nat.le_add_right _ _) M [] hnr total start [] [] 0 [] (start_prepared initial known)
@@ -140,42 +176,10 @@ theorem rest_boundW (hcompat : Compatible tg model) (htrunc : UniformTruncation 
     saturationW_start tg initial model hcompat htrunc total htotal1 b0
       (baselineW_payment total htotal2) (advProgH parameter data M [])
       (honestOkFrom_advProgH parameter data tg initial model hgoodS M []) known
-  set W := wflag tg initial model (advProgH parameter data M []) total start with hW
-  set E := ∑' out, Pr{let x ← interp tg initial model (advProgH parameter data M []) total start}[x = out] *
-    weight tg initial out.2 with hEdef
-  have hE : E ≤ 1 :=
-    le_trans (tsum_le_tsum fun out => mul_le_of_le_one_right' (weight_le_one tg initial out.2))
-      (OracleComp.tsum_prEvent_le_one _)
-  have hcompl : ∑' out, Pr{let x ← interp tg initial model (advProgH parameter data M []) total start}[x = out] *
-      (1 - weight tg initial out.2) = 1 - E := by
-    have hsum : ∑' out, Pr{let x ← interp tg initial model (advProgH parameter data M []) total start}[x = out] *
-        (1 - weight tg initial out.2) + E = 1 := by
-      rw [hEdef, ← tsum_add]
-      calc _ = ∑' out, Pr{let x ← interp tg initial model (advProgH parameter data M []) total start}[x = out] :=
-            tsum_congr fun out => by
-              rw [← mul_add, tsub_add_cancel_of_le (weight_le_one tg initial out.2), mul_one]
-        _ = 1 := OracleComp.tsum_prEvent_eq_one _
-    exact ENNReal.eq_sub_of_add_eq (ne_top_of_le_ne_top ENNReal.one_ne_top hE) hsum
-  have hle : budget 0 total + b0 * W ≤ 1 := le_trans hsat hE
-  have hW1 : b0 * W ≤ 1 - budget 0 total := ENNReal.le_sub_of_add_le_left ENNReal.ofReal_ne_top hle
-  rw [OracleComp.prEvent_bind_eq_tsum]
-  calc _ ≤ ∑' out, Pr{let x ← interp tg initial model (advProgH parameter data M []) total start}[x = out] *
-        ((1 - weight tg initial out.2) + weight tg initial out.2 * finalValue parameter data tg initial [] out) :=
-        tsum_le_tsum fun out => mul_le_mul_right (hit_or_cover_le parameter data tg initial out) _
-    _ = (1 - E) + ∑' out, Pr{let x ← interp tg initial model (advProgH parameter data M []) total start}[x = out] *
-          (weight tg initial out.2 * finalValue parameter data tg initial [] out) := by
-        rw [← hcompl, ← tsum_add]
-        exact tsum_congr fun out => mul_add _ _ _
-    _ ≤ (1 - (budget 0 total + b0 * W)) + (potO parameter data wbar b0 Fail tg initial Lmax start [] [] [] 0 total + b0 * W) :=
-        add_le_add (tsub_le_tsub_left hsat _) hgood
-    _ = (1 - budget 0 total) + potO parameter data wbar b0 Fail tg initial Lmax start [] [] [] 0 total := by
-        rw [tsub_add_eq_tsub_tsub, add_comm (potO parameter data wbar b0 Fail tg initial Lmax start [] [] [] 0 total) (b0 * W),
-          ← add_assoc, tsub_add_cancel_of_le hW1]
-    _ ≤ _ := by
-        refine le_trans (add_le_add le_rfl (potO_start_le parameter data wbar b0 Fail tg initial Lmax start total))
-          (le_of_eq ?_)
-        rw [hValueO_start]
-        ring
+  refine le_trans (hit_or_cover_le_of_saturation parameter data tg initial model total b0 _ _ _ start hsat hgood) ?_
+  refine le_trans (add_le_add le_rfl (potO_start_le parameter data wbar b0 Fail tg initial Lmax start total)) (le_of_eq ?_)
+  rw [hValueO_start]
+  ring
 
 end RestW
 

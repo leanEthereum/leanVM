@@ -50,13 +50,8 @@ theorem rest_boundH (hcompat : Compatible tg model) (htrunc : UniformTruncation 
         lam Lmax 0 total := by
   set start := DebtState.start initial known (D := HashInput) (R := HashOutput) (ι := Coordinate) with hstart
   set b0 := baselineW total with hb0def
-  have hb0 : b0 ≠ ⊤ := baselineW_ne_top total
-  have htotal1 : (total : ℝ) + 1 < spaceReal := by
-    have : (0 : ℝ) ≤ total := Nat.cast_nonneg _
-    linarith
-  have htotal2 : (total : ℝ) ≤ spaceReal := by
-    have : (0 : ℝ) ≤ total := Nat.cast_nonneg _
-    linarith
+  have htotal1 : (total : ℝ) + 1 < spaceReal := by linarith [(Nat.cast_nonneg total : (0 : ℝ) ≤ total)]
+  have htotal2 : (total : ℝ) ≤ spaceReal := by linarith [(Nat.cast_nonneg total : (0 : ℝ) ≤ total)]
   -- the weighted FORS potential
   have hgood := goodHWH_advProgH parameter data total wbar b0 Fail Lmax tg initial model hparse hkind hdigest hfail hfair
     le_rfl M [] hnr total start [] [] 0 [] (start_prepared initial known)
@@ -72,44 +67,10 @@ theorem rest_boundH (hcompat : Compatible tg model) (htrunc : UniformTruncation 
     saturationW_start tg initial model hcompat htrunc total htotal1 b0
       (baselineW_payment total htotal2) (advProgH parameter data M [])
       (honestOkFrom_advProgH parameter data tg initial model hgoodS M []) known
-  set W := wflag tg initial model (advProgH parameter data M []) total start with hW
-  set E := ∑' out, Pr{let x ← interp tg initial model (advProgH parameter data M []) total start}[x = out] *
-    weight tg initial out.2 with hEdef
-  have hE : E ≤ 1 :=
-    le_trans (tsum_le_tsum fun out => mul_le_of_le_one_right' (weight_le_one tg initial out.2))
-      (OracleComp.tsum_prEvent_le_one _)
-  have hcompl : ∑' out, Pr{let x ← interp tg initial model (advProgH parameter data M []) total start}[x = out] *
-      (1 - weight tg initial out.2) = 1 - E := by
-    have hsum : ∑' out, Pr{let x ← interp tg initial model (advProgH parameter data M []) total start}[x = out] *
-        (1 - weight tg initial out.2) + E = 1 := by
-      rw [hEdef, ← tsum_add]
-      calc _ = ∑' out, Pr{let x ← interp tg initial model (advProgH parameter data M []) total start}[x = out] :=
-            tsum_congr fun out => by
-              rw [← mul_add, tsub_add_cancel_of_le (weight_le_one tg initial out.2), mul_one]
-        _ = 1 := OracleComp.tsum_prEvent_eq_one _
-    exact ENNReal.eq_sub_of_add_eq (ne_top_of_le_ne_top ENNReal.one_ne_top hE) hsum
-  have hle : budget 0 total + b0 * W ≤ 1 := le_trans hsat hE
-  have hW1 : b0 * W ≤ 1 - budget 0 total := ENNReal.le_sub_of_add_le_left ENNReal.ofReal_ne_top hle
-  rw [OracleComp.prEvent_bind_eq_tsum]
-  calc _ ≤ ∑' out, Pr{let x ← interp tg initial model (advProgH parameter data M []) total start}[x = out] *
-        ((1 - weight tg initial out.2) + weight tg initial out.2 * finalValue parameter data tg initial [] out) :=
-        tsum_le_tsum fun out => mul_le_mul_right (hit_or_cover_le parameter data tg initial out) _
-    _ = (1 - E) + ∑' out, Pr{let x ← interp tg initial model (advProgH parameter data M []) total start}[x = out] *
-          (weight tg initial out.2 * finalValue parameter data tg initial [] out) := by
-        rw [← hcompl, ← tsum_add]
-        exact tsum_congr fun out => mul_add _ _ _
-    _ ≤ (1 - (budget 0 total + b0 * W)) +
-          (potH parameter data total wbar b0 Fail tg initial Lmax start [] [] [] 0 total + b0 * W) :=
-        add_le_add (tsub_le_tsub_left hsat _) hgood
-    _ = (1 - budget 0 total) + potH parameter data total wbar b0 Fail tg initial Lmax start [] [] [] 0 total := by
-        rw [tsub_add_eq_tsub_tsub,
-          add_comm (potH parameter data total wbar b0 Fail tg initial Lmax start [] [] [] 0 total) (b0 * W),
-          ← add_assoc, tsub_add_cancel_of_le hW1]
-    _ ≤ _ := by
-        refine le_trans (add_le_add le_rfl (potH_start_le parameter data total wbar b0 Fail tg initial Lmax start total))
-          (le_of_eq ?_)
-        rw [hValueH_start]
-        ring
+  refine le_trans (hit_or_cover_le_of_saturation parameter data tg initial model total b0 _ _ _ start hsat hgood) ?_
+  refine le_trans (add_le_add le_rfl (potH_start_le parameter data total wbar b0 Fail tg initial Lmax start total)) (le_of_eq ?_)
+  rw [hValueH_start]
+  ring
 
 end RestH
 
