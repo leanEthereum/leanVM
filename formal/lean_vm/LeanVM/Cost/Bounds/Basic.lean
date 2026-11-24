@@ -16,7 +16,8 @@ values it inspects. A closed-form bound on `g`'s price is proved by:
 
 1. **strong induction on the measure** of the compilation (the same as the spec's), or none for a
    function that is not recursive;
-2. `rw [g.costEq P …]` (its premise `Includes P g.costDeps` an `autoParam` closed by `includes`):
+2. `rw [g.costEq P …]` (its premise `Includes P g.costDeps` an `autoParam` closed by `includes`
+   when nothing follows `P`; arguments after `P` follow the premise, `g.costEq P hP x`):
    the price as its recurrence (`g.costEq_nil`, `g.costEq_cons`, `g.costEq_zero`, `g.costEq_succ`,
    … at a constructor of the parameter the body cases on: the case already reduced); the prices
    are stated with `g.costIdx`;
