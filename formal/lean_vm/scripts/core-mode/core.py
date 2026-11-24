@@ -56,13 +56,11 @@ def pair_mod(g, n):
 SPLIT = 5000
 # a heap certificate of more residual lists than `RES_SPLIT` has each list's families checked apart
 RES_SPLIT = 8
-# a heap certificate with one list of more residuals than `RES_B` has its families checked `RES_B` residuals at a time
-# (`CoreMode.sliceAll`): the kernel's memory grows over one evaluation, by up to about 1 GB a residual
-RES_B = 2
-# a body of more statements than `HON_SPLIT` has its pointers' cells (`honB`'s `ptrCellB`) checked in at most `HON_N` slices of
-# at least `HON_B` statements: in one evaluation it is the heaviest declaration of its module, and each slice walks the
-# body's statements again
-HON_B, HON_N = 500, 10
+# a heap certificate with one list of more residuals than `RES_B` has its families checked in slices (`CoreMode.sliceAll`)
+# of weight at most `RES_B`: the kernel's memory grows over one evaluation, by up to about 1 GB for a residual of weight
+# `1`; a residual a range check or a top-level selector bounds (`cheap_res`) is two lookups in tries the slice builds once
+# (`CoreMode.resFamT`), of weight `1 / RES_CHEAP`
+RES_B, RES_CHEAP = 2, 32
 # a body of more statements than `HON_SPLIT` has its honest valuation's parts checked apart (`honB_of`): in one
 # evaluation its route check is the heaviest declaration of its module
 HON_SPLIT = 2000
@@ -108,10 +106,11 @@ def fa_chunks(k):
 
 
 def faret(k):
-    """`CoreOk.faret`'s parts (`fa_chunks`), if any, and its proof."""
+    """`CoreOk.faret`'s parts (`fa_chunks`), if any, and its proof: one kernel evaluation of `faRetOkF`, the check in one
+    pass, else the chunks'."""
     m = fa_chunks(k)
     if m is None:
-        return '', DK
+        return '', f'CoreMode.faRetOk_of_F {DK}'
     code = 'code.chunks.flatten'
     out = ''.join(thm(k, f'faret{c}', f'CoreMode.faRetC cfun {code} {FA_B} {c} = true') for c in range(m))
     out += thm(k, 'faret_runs', f'CoreMode.runsLe ({FA_B} * {m}) (Bridge.stmtsOf cfun.fn.body) = true')
@@ -145,6 +144,59 @@ def res_chunks(k, po):
     if not m:
         return []
     return [x.strip() for x in m.group(1).split('++')]
+
+
+def res_items(k, po):
+    """The residuals of `k`'s heap certificate when they are one list literal (`hcert.res := [...]`), as texts, else
+    none."""
+    s = datac_of(k, po)
+    i = s.find('\n  res := [')
+    if i < 0:
+        return []
+    out, depth, cur = [], 0, ''
+    for ch in s[i + len('\n  res := '):]:
+        if ch in ')]⟩':
+            depth -= 1
+            if depth == 0:
+                break
+        if depth == 1 and ch == ',':
+            out.append(' '.join(cur.split()))
+            cur = ''
+            continue
+        if depth >= 1:
+            cur += ch
+        if ch in '([⟨':
+            depth += 1
+    if cur.strip():
+        out.append(' '.join(cur.split()))
+    return out
+
+
+def cheap_res(k, r):
+    """A residual `e(x) < n` that `CoreMode.resFamT` decides by lookups: `x` range checked below `N ≤ n` (`Res.rcBound`)
+    or a top-level selector of at most `n` arms (`Res.topSels`)."""
+    m = re.fullmatch(r'\.lt \(\.val (\d+)\) \(\.num (\d+)\)', r)
+    if not m:
+        return False
+    import callcres
+    x, n = int(m.group(1)), int(m.group(2))
+    body = heap.CORE[k][1]
+    if not (n < 2 ** 62 and x + 1 < 2 ** 20):
+        return False
+    N = callcres.rc_bound(callcres.top_atoms(body), x)
+    return (N is not None and N <= n) or any(y == x and a <= n for y, a in callc.top_sels(body))
+
+
+def res_cuts(k, items):
+    """The slices' ends: each of weight at most `RES_B`, a cheap residual `1 / RES_CHEAP` (`cheap_res`), any other `1`."""
+    cuts, acc = [], 0
+    for j, r in enumerate(items):
+        w = 1 if cheap_res(k, r) else RES_CHEAP
+        if acc and acc + w > RES_B * RES_CHEAP:
+            cuts.append(j)
+            acc = 0
+        acc += w
+    return cuts + [len(items)]
 
 
 def res_count(k, po):
@@ -592,17 +644,21 @@ def route_leaf(d):
     return d.count('\n') == 1 and not re.search(r'\b(?:res|hon)\d+_\w', d.split(' : ', 1)[1])
 
 
-def slices(name, part, stmt, p, l, n, b, unfold=None):
-    """Theorem `name : stmt`, `stmt` being `l.all p = true` (after unfolding `unfold`) for a list `l` of `n` entries,
-    from its slices of `b` entries (`part<c>`, `CoreMode.sliceAll`), each its own kernel evaluation."""
-    cuts = list(range(0, n, b)) + [n]
+def slices(name, part, stmt, p, l, n, b, unfold=None, cuts=None, wrap=None):
+    """Theorem `name : stmt`, `stmt` being `l.all p = true` (after unfolding `unfold`; `wrap` of it if given, `p` then
+    the predicate `wrap` reads) for a list `l` of `n` entries, from its slices of `b` entries, or ending at `cuts`
+    (`part<c>`, `CoreMode.sliceAll`), each its own kernel evaluation."""
+    cuts = [0] + (cuts or (list(range(b, n, b)) + [n]))
     out = ''.join(f'theorem {part}{c} : CoreMode.sliceAll {p} {l} {cuts[c]} {cuts[c + 1]} = true := by decide +kernel\n'
                   for c in range(len(cuts) - 1))
     prf = 'CoreMode.all_drop_of_le (by decide +kernel)'
     for c in reversed(range(len(cuts) - 1)):
         prf = f'CoreMode.all_drop_of_slice (by decide) {part}{c}\n    ({prf})'
     pre = f'\n  rw [{unfold}]' if unfold else ''
-    return out + f'theorem {name} : {stmt} = true := by{pre}\n  exact CoreMode.all_of_drop_zero\n    ({prf})\n'
+    prf = f'CoreMode.all_of_drop_zero\n    ({prf})'
+    if wrap:
+        prf = f'{wrap} ({prf})'
+    return out + f'theorem {name} : {stmt} = true := by{pre}\n  exact {prf}\n'
 
 
 def windows_of(ds):
@@ -678,7 +734,7 @@ def main(check=False):
             imps.add(quote(frames[k])); imps.add('LeanVM.Guest.CoreMode.GlueC.«%s»' % po[k][0])
             imps.add(quote(pair_mod(po[k][0], k)))
             imps.add('LeanVM.Guest.CoreMode.Pows.«%s»' % po[k][0])
-            if R[k].get('kind') != 'lc' and fa_chunks(k) is not None:
+            if R[k].get('kind') != 'lc':
                 imps.add('LeanVM.Guest.CoreMode.FaRetSplit')
             if os.path.exists(os.path.join(GEN, po[k][0], 'Ok.lean')):
                 imps.add('LeanVM.Guest.CoreMode.Gen.«%s».Ok' % po[k][0])
@@ -750,7 +806,8 @@ def main(check=False):
                 fk = f'Fn.«{k}»'
                 fam = f'(CoreMode.resFamG {fk}.cfun.fn {fk}.cfun.xc {fk}.cfun.H.sig.gw)'
                 for c in rch:
-                    hons.append(f'theorem res{i}_{c} : {fk}.{c}.all {fam} = true := by decide +kernel\n')
+                    hons.append(f'theorem res{i}_{c} : {fk}.{c}.all {fam} = true := CoreMode.all_of_T (by decide +kernel)\n')
+                rsplit.add('LeanVM.Guest.CoreMode.ResTab')
                 hons.append(f'theorem res{i}_ok : CoreMode.resOk {fk}.cfun = true := by\n'
                             f'  rw [CoreMode.resOk, show {fk}.cfun.H.res = ({" ++ ".join(fk + "." + c for c in rch)}) from rfl]\n'
                             f'  simp only [List.all_append, {", ".join(f"res{i}_{c}" for c in rch)}, Bool.and_self]\n')
@@ -758,10 +815,13 @@ def main(check=False):
                 hb = f'(by rw [{", ".join(rw)}]; decide +kernel)'
             elif res_count(k, po) > RES_B:
                 fk = f'Fn.«{k}»'
-                fam = f'(CoreMode.resFamG {fk}.cfun.fn {fk}.cfun.xc {fk}.cfun.H.sig.gw)'
+                items = res_items(k, po)
+                assert len(items) == res_count(k, po), k
+                fam = (f'(CoreMode.resFamT (CoreMode.rcT {fk}.cfun.fn.body) (CoreMode.constT {fk}.cfun.fn.body) '
+                       f'{fk}.cfun.fn {fk}.cfun.xc {fk}.cfun.H.sig.gw)')
                 hons.append(slices(f'res{i}_ok', f'res{i}_s', f'CoreMode.resOk {fk}.cfun', fam, f'{fk}.cfun.H.res',
-                                   res_count(k, po), RES_B, 'CoreMode.resOk'))
-                rsplit.add('LeanVM.Guest.CoreMode.ResSplit')
+                                   len(items), RES_B, 'CoreMode.resOk', res_cuts(k, items), 'CoreMode.all_of_T'))
+                rsplit |= {'LeanVM.Guest.CoreMode.ResSplit', 'LeanVM.Guest.CoreMode.ResTab'}
                 rw.append(f'res{i}_ok')
                 hb = f'(by rw [{", ".join(rw)}]; decide +kernel)'
             if k in LONG:
@@ -778,13 +838,10 @@ def main(check=False):
                          ('sel', f'(CoreMode.selGo {x} {fn}.params {fn}.body [] {fn}.body || CoreMode.loopBC {fn})', 'its `match`es\' selectors'),
                          ('rest', f'CoreMode.honRest {x} {fn}', 'the rest of its frame')]
                 for nm, st, doc in parts:
-                    if nm != 'ptr':
-                        hons.append(f'theorem hon{i}_{nm} : {st} = true := by decide +kernel\n')
-                        continue
-                    # its pointers' cells `HON_B` statements at a time
-                    hons.append(slices(f'hon{i}_ptr', f'hon{i}_ptr', st, f'(CoreMode.ptrCellB {x})', f'(Bridge.stmtsOf {fn}.body)',
-                                       nstmts(heap.CORE[k][1]), max(HON_B, -(-nstmts(heap.CORE[k][1]) // HON_N))))
-                    rsplit.add('LeanVM.Guest.CoreMode.ResSplit')
+                    # its pointers' cells looked up in a trie of its values' cells (`CoreMode.locT`)
+                    prf = 'CoreMode.all_ptrCellB_of_T (by decide +kernel)' if nm == 'ptr' else 'by decide +kernel'
+                    hons.append(f'theorem hon{i}_{nm} : {st} = true := {prf}\n')
+                rsplit.add('LeanVM.Guest.CoreMode.ResTab')
                 hb = (f'(by rw [CoreMode.honB_of hon{i}_body hon{i}_ptr hon{i}_ret hon{i}_sel hon{i}_rest{"".join(", " + x for x in rw)}]; '
                       f'decide +kernel)')
             # each its own declaration, its own heartbeats
