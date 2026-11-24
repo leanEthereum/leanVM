@@ -17,7 +17,7 @@ Annex B (`doc/leanvm/body/b-polynomial-commitment-scheme.tex`), `lem:fold-list`,
 `fig:protocol`, step 1: a round of a level with running claim `(Φ, σ)` on a word of `m + 1` lane
 variables reads `u₀, w, c₀, c₁`, draws `(α, β)` (after a grind), and continues with the claim
 `(Φ(α, ·), u₀ + α (u₀ + σ) + α² w + β c₀ + α β (c₀ + c₁))`
-(`foldClaim`) on the affine fold `foldQ dom α β Q` (`foldRound`, `Statement/LeanVmVerifier.lean`):
+(`foldClaim`) on the affine fold `foldQ dom α β Q` (`foldRound`, `Statement/Verifier/Whir.lean`):
 the weight is folded at the combiner's own `α`.
 Every round of a level is analysed at the level's one degree `d`.
 

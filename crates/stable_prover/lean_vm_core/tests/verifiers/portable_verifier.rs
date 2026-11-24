@@ -1,6 +1,6 @@
 //! Pins the portable `verifier` crate against `cpu::prove` on the shared fixture: it accepts the honest proof at every
 //! rate, replays it to the summary `cpu::verify` leaves, and rejects tampered scalars at the expected check. The Lean
-//! transcription (`formal/Statement/LeanVmVerifier.lean`) is pinned against this crate by `formal/`'s differential tests.
+//! transcription (`formal/Statement/Verifier/`) is pinned against this crate by `formal/`'s differential tests.
 
 use crate::fixture::fixture;
 use fiat_shamir::grinding_bits;

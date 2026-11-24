@@ -24,7 +24,7 @@ public import VCVio.OracleComp.QueryTracking.WriterCost
 # End-to-end completeness
 
 The deployed verifier is `Verifier.verify` (`Verifier.lean`), the compiled reading at Keccak-256 and
-Keccak-f[1600] of `leanVmVerifierProgram` (`Statement/LeanVmVerifier.lean`), a transcription of
+Keccak-f[1600] of `leanVmVerifierProgram` (`Statement/Verifier/Lib.lean`), a transcription of
 the Rust verifier `crates/verifier` at leanVM `40f877dc`. The statements here are those of
 `EndToEnd.Complete`, which carry no hypothesis.
 

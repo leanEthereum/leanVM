@@ -12,7 +12,7 @@ import LeanVM.Protocol.Verifier
 import LeanVM.Protocol.ToArkLib.Whir.Counting
 import LeanVM.Protocol.Field
 public import LeanVM.Parameters.Field
-public import Statement.LeanVmVerifier
+public import Statement.Verifier.Lib
 public import ArkLib.OracleReduction.OracleInterface
 public import CompPoly.Multilinear.Basic
 public import VCVio.OracleComp.Constructions.SampleableType

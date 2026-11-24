@@ -10,7 +10,7 @@ module
 
 public import LeanVM.Protocol.ToArkLib.Whir.AffineCombinerDeployedTable
 import LeanVM.Parameters.Whir
-public import Statement.LeanVmVerifier
+public import Statement.Verifier.Lib
 
 /-!
 # The deployed parameters' check

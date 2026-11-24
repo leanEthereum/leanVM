@@ -7,12 +7,12 @@
 module
 
 import LeanVM.Parameters.Whir
-public import Statement.LeanVmVerifier
+public import Statement.Verifier.Lib
 
 /-!
 # The WHIR opening's program
 
-`Statement/LeanVmVerifier.lean` transcribes `verify_whir` (`crates/verifier/src/whir.rs`)
+`Statement/Verifier/Whir.lean` transcribes `verify_whir` (`crates/verifier/src/whir.rs`)
 with its running claim threaded through every fold round (`WhirState.claim`), the form the proofs
 reason on directly; the threaded copy of the opening this module held for the protocol before
 `f128` is gone. What is left:

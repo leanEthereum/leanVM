@@ -40,7 +40,7 @@ most `2^30`, the most the verifier admits, the honest prover
 * Keccak-256 and Keccak-f[1600] are independent random oracles here, the step of the proof before
   the random-permutation model of the statements.
 * A proof is the Rust verifier's `Proof`: the scalar stream and one full Merkle path per query,
-  with its position, grouped in phases (`Statement/LeanVmVerifier.lean`). Its wire encoding, which
+  with its position, grouped in phases (`Statement/Verifier/Transcript.lean`). Its wire encoding, which
   prunes the paths, is the statement's `Proof.fromBytes` / `Proof.toBytes`, proved to invert each
   other in `LeanVM/Wire/`.
 * That `verifier` is the Rust verifier is test evidence: it accepts the Rust prover's proofs,

@@ -3,6 +3,14 @@ module
 public import LeanVM.Cost.Bounds.ListLib
 public import LeanVM.Cost.Extractor.Replay
 import all Statement.LeanVmVerifier
+import all Statement.Verifier.Transcript
+import all Statement.Verifier.Multilinear
+import all Statement.Verifier.Layout
+import all Statement.Verifier.Bus
+import all Statement.Verifier.Whir
+import all Statement.Verifier.Keccak
+import all Statement.Verifier.RingSwitch
+import all Statement.Verifier.Lib
 import all Statement.Field
 import all LeanVM.Protocol.Extraction.Fast.AfterRoot
 

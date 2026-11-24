@@ -25,7 +25,7 @@ import LeanVM.Protocol.Extraction.Extractor
 # The specification of the leanVM verifier
 
 `veSpec` is a specification of `verifyExecutionClaims ev bytecode publicInput`
-(`LeanVM.Protocol.Verifier.Claims`, the claim-list form of `Statement/LeanVmVerifier.lean`'s
+(`LeanVM.Protocol.Verifier.Claims`, the claim-list form of `Statement/Verifier/Lib.lean`'s
 `verifyExecution`, equal to it by `verifyExecution_claims`) from no doom, rejecting where it returns
 in doom, every group of challenges at most `εmsg = 2^-125` after the grind before it. It composes:
 

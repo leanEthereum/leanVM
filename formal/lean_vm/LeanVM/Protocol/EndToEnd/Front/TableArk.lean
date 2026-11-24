@@ -32,7 +32,7 @@ the rounds' family. This module reads them as doom transitions:
 
 namespace LeanVM.Protocol.EndToEnd.Front
 
-open LeanVM.Parameters LeanVM.Protocol LeanVM.Protocol.Compile LeanVM.Protocol.TableSumcheck
+open LeanVM.Parameters LeanVM.Protocol LeanVM.Protocol.TableSumcheck
 open CompPoly CMlPolynomialEval OracleComp OracleSpec
 open scoped NNReal ENNReal
 
