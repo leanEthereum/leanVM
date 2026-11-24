@@ -205,13 +205,13 @@ at all (\lean{run}, \texttt{Transcript::grind\_check}).
 (\lean{knowledgeSoundnessExperiment}), an adversary $\mathcal{A}$ with oracle access to $\pi$ and
 $\pi^{-1}$ outputs a (well-formed) program $\mathit{prog}$, a public input $x$ and a proof, and the verifier
 checks it with Keccak-256 the sponge over $\pi$ and Keccak-f the permutation $\pi$. For every
-adversary making at most $Q \le 2^{128}$ queries to $\pi$ and $\pi^{-1}$ on every path,
+adversary making at most $Q$ queries to $\pi$ and $\pi^{-1}$ on every path,
 \[
 \boxed{\ \Pr\left[\begin{array}{l}\text{the verifier accepts } (\mathit{prog},x,\text{proof}) \text{ and the}\\
 \text{extractor outputs no valid execution of } \mathit{prog} \text{ on } x\end{array}\right]
 \le (Q+2^{14})\cdot 2^{-125} + 5\,(Q+2^{14})^2\cdot 2^{-256}\ }
 \]
-(\lean{LeanVM.knowledgeSoundness_holds}). Each call may complete a verifier message, whose
+(\lean{LeanVM.knowledgeSoundness_holds}). The bound exceeds $1$ for $Q > 2^{128}$, so no cap on $Q$ is stated. Each call may complete a verifier message, whose
 round-by-round error after its proof of work is at most $2^{-125}$. The constant $2^{14}$ absorbs
 the verifier's $13708$ Keccak-256 evaluations and duplex permutations (as calls of $\pi$ up to
 $13708\cdot 2^{30}$, the IV hashing a bytecode of up to $2^{30}$ instructions) and three further terms
@@ -620,10 +620,10 @@ $M$ children of the bytecode's shape, one of whose claims (fresh or carried) is 
 (\lean{SomeChildClaimFalse}), is at most
 \[
 \boxed{\ (Q_A + Q_V + 1)\cdot \max(2M-3,\,8)\cdot 2^{-130} + 5\,(Q_A+Q_V)^2\cdot 2^{-256}\ }
-\quad\text{for } Q_A \le 2^{128},\ Q_V \le 2^{96},
+\quad\text{for } Q_V \le 2^{96},
 \]
 where $Q_V$ (\lean{batchingQueryBound}) is the batching's own query bound for $M$ children (about
-$2^{68}$ for $G$'s bytecode at $M = 2^{64}-1$; \lean{batch_sound_holds}, \lean{lean_vm}). The factor $\max(2M-3, 8)\cdot 2^{-130}$ bounds each query's chance at a challenge. A sumcheck round's challenge is bad at at most $2$ values, $2/|E| = 8\cdot 2^{-130}$. The single challenge $\lambda$ weighs the gaps (claimed minus true value) of the $2n$ claims of $n < M$ children by its powers: they form a polynomial in $\lambda$ of degree at most $2n-1 \le 2M-3$, nonzero when a claim is false, which vanishes at at most $2M-3$ values; and a query reaches $\lambda$ only by passing the proof of work of $2$ bits before it (\lean{batchLambdaGrindBits}), with probability $2^{-2}$. For $G$'s $16$ children, $M = 17$: $31\cdot 2^{-130} \approx 2^{-125.05}$ per query.
+$2^{68}$ for $G$'s bytecode at $M = 2^{64}-1$; \lean{batch_sound_holds}, \lean{lean_vm}). The bound exceeds $1$ for $Q_A > 2^{128}$, so $Q_A$ is not capped. The factor $\max(2M-3, 8)\cdot 2^{-130}$ bounds each query's chance at a challenge. A sumcheck round's challenge is bad at at most $2$ values, $2/|E| = 8\cdot 2^{-130}$. The single challenge $\lambda$ weighs the gaps (claimed minus true value) of the $2n$ claims of $n < M$ children by its powers: they form a polynomial in $\lambda$ of degree at most $2n-1 \le 2M-3$, nonzero when a claim is false, which vanishes at at most $2M-3$ values; and a query reaches $\lambda$ only by passing the proof of work of $2$ bits before it (\lean{batchLambdaGrindBits}), with probability $2^{-2}$. For $G$'s $16$ children, $M = 17$: $31\cdot 2^{-130} \approx 2^{-125.05}$ per query.
 
 \subsection{What the soundness theorems do not give}\label{sec:notgive}
 

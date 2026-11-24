@@ -204,14 +204,14 @@ a bound `M ≤ 2^64 - 1` on the children's count: an adversary of `QA` queries t
 outputs a proof; the probability that the batching's verifier over `π` (Keccak-256 the sponge over
 `π`) accepts it while its stream begins with fewer than `M` children of the bytecode's shapes one
 of whose claims is false is at most `(QA + QV + 1) · max(2M - 3, 8) · 2^-130 + 5 (QA + QV)² · 2^-256`,
-for `QA ≤ 2^128` and the program's query bound `QV = batchingQueryBound bytecode M ≤ 2^96`; the
-adversary's private coins are free. This is the batching run outside the circuit, with
-Keccak-f[1600] = `π`; it does not compose with the in-circuit statements (`statement.tex`). -/
+for the program's query bound `QV = batchingQueryBound bytecode M ≤ 2^96`; the adversary's private
+coins are free. This is the batching run outside the circuit, with Keccak-f[1600] = `π`; it does
+not compose with the in-circuit statements (`statement.tex`). -/
 def BatchingSound : Prop :=
   ∀ (M : ℕ) (bytecode : List K), bytecode.length = 2 ^ Nat.log2 bytecode.length →
     M ≤ 2 ^ 64 - 1 →
     ∀ (adversary : OracleComp Common.RandomPermutationOracles (Unit × Proof)) (QA : ℕ),
-    Common.QueryCostAtMost adversary Common.permutationCallCost QA → QA ≤ 2 ^ 128 →
+    Common.QueryCostAtMost adversary Common.permutationCallCost QA →
     batchingQueryBound bytecode M ≤ 2 ^ 96 →
     Pr{let outcome ← Common.runWithRandomPermutation (do
          let output ← adversary
