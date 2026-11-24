@@ -103,10 +103,6 @@ private abbrev padStep (w : List E) (β : E) (p : List E) (pr : E) (x : E × Bus
   pr + x.1 * paddingWeight (p.take x.2.logRows) x.2.rows *
     ((blockForm x.2 w β).evaluate (((tables.getD x.2.owner default).padding).getD · 0) + 1)
 
-private theorem foldl_formStep (side : ℕ) (w : List E) (β : E) (l : List (E × BusBlock))
-    (forms : List (List Form)) : l.foldl (formStep side w β) forms = accFold side w β l forms :=
-  rfl
-
 private theorem foldl_padStep (w : List E) (β : E) (p : List E) (l : List (E × BusBlock)) :
     l.foldl (padStep w β p) 0 = padSum w β p l := by
   rw [foldl_add_map, zero_add, padSum]

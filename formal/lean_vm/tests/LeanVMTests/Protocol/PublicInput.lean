@@ -1,5 +1,5 @@
 import LeanVM.Protocol.PublicInput
-import LeanVM.Protocol.Spine.Toy
+import LeanVMTests.Protocol.Toy
 
 /-!
 # Public-input phase tests
@@ -43,7 +43,7 @@ them.
 
 namespace LeanVMTests.Protocol.PublicInput
 
-open LeanVM.Parameters LeanVM.Protocol LeanVM.Protocol.PublicInput LeanVM.Protocol.Toy
+open LeanVM.Parameters LeanVM.Protocol LeanVM.Protocol.PublicInput LeanVMTests.Protocol.Toy
   CompPoly OracleComp
 
 /-- A column claim is decided by evaluating the column's extension. Spelled with

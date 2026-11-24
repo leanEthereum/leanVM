@@ -27,8 +27,7 @@ that the two words are equal (`LeanVM.Prover.Enc.stackWordFast_eq`).
 
 * `stackWord μ R q`: the stack's level-0 word (`verify_execution` step 2, `commitStack`): the
   lanes are the stack's `64` blocks (`blockOf`, `LeanVM.Protocol.EndToEnd.Candidates`), the
-  leaf stores their `K`-valued codeword entries in reverse lane order. `stackWord_agrees`: it is
-  the encoding of the stack in the sense of `Agrees`, on every column.
+  leaf stores their `K`-valued codeword entries in reverse lane order.
 * `levelWord κ k R g`: a deeper level's word, each `E` entry written as its two limbs, the layout
   `ext_row` regroups (`crates/verifier/src/whir.rs`).
 * `stackTable μ q`: the stack as a table in the WHIR variable order: the six lane variables
@@ -149,17 +148,6 @@ theorem wellShaped_stackWord (μ R : ℕ) (q : Column μ) :
     WellShaped (2 ^ laneBits) (stackWord μ R q) := by
   intro p
   simp [stackWord]
-
-/-- The stack's word is its encoding: it agrees with the encoding of `q` on every column. -/
-theorem stackWord_agrees (μ R : ℕ) (q : Column μ) :
-    Agrees μ R (stackWord μ R q) q Finset.univ := by
-  have h0 : ofK (0 : K) = 0 := map_zero (algebraMap K E)
-  refine ⟨fun _ ↦ 0, fun _ ↦ by rw [Polynomial.degree_zero]; exact WithBot.bot_lt_coe _,
-    fun v _ u ↦ ?_⟩
-  simp only [laneOf, laneValue, stackWord, List.reverse_reverse, v.isLt, ite_true,
-    Polynomial.eval_zero, mul_zero, h0, add_zero]
-  rw [List.getD_eq_getElem _ _ (by simp), List.getElem_map, List.getElem_range, ofK_encKAt]
-  rfl
 
 /-- The stack in the WHIR variable order: entry `i` is the cell at the index rotated by the six
 lane bits, `⌊i / 64⌋ + 2^(μ−6)·(i mod 64)`. -/

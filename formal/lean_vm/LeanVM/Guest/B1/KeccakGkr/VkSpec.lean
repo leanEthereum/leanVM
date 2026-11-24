@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.B1.KeccakGkr.LayerSpec
 public import LeanVM.Protocol.Keccak.SlotWeights
+import LeanVM.Protocol.Compile.SpecRules.Grind
 import LeanVM.Protocol.Keccak.Rounds
 
 /-!
@@ -44,7 +45,7 @@ theorem runsTo_sumcheck3 :
         (runsTo_ret _ _)
       have h3 := h0.bind (f := fun constant ↦ VerifierProgram.readScalars 1 >>= fun tail ↦
         (pure (constant :: (v + sumE tail) :: tail) : VerifierProgram (List E))) h2
-      simpa (disch := omega) [sumcheckRoundPoly, Fs.absorbAll, grindingBits_le_eight,
+      simpa (disch := omega) [sumcheckRoundPoly, Fs.absorbAll, grindingBits_eq_zero_of_le,
         VerifierProgram.grindProofOfWork] using h3
     set q := ((s.absorb c0 dsObserve).absorb c2 dsObserve).squeeze with hq
     have hs := runsTo_sampleE ((s.absorb c0 dsObserve).absorb c2 dsObserve)

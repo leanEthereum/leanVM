@@ -22,9 +22,9 @@ registers with `Registers.final prog` at every step. Here the same search for a 
 * all on the lighter layout (`LayoutLite`, `Fast/AfterRoot.lean`: the fields the extractor reads),
   with `LayoutLite.placement`, `memoryImageLite`, `stepCapLite`, each the statement's at
   `layoutLite layout` by `rfl`;
-* `candidateExecutionFastVec` (per stack) and `candidateRunner` (the tables built once, then a
-  closure over the stacks), both equal to `candidateExecutionFast`
-  (`candidateExecutionFastVec_eq`, `candidateRunner_eq`).
+* `candidateRunner`: the tables built once, then a closure over the stacks, equal to
+  `candidateExecutionFast` (`candidateRunner_eq`); `runWithTables (runnerTables prog layout)` is
+  the same closure with the tables passed explicitly.
 
 `extractFast` (`Fast/Extract.lean`) and `extractWith` (`Fast/Lookup.lean`) bind
 `let execution := candidateExecutionFast prog input layout` and pass it to `findSome?` over the
@@ -43,16 +43,8 @@ public section
 
 /-! ## The memory vector -/
 
-theorem vector_get_ofFn {α : Type _} {n : ℕ} (f : Fin n → α) (i : Fin n) :
-    (Vector.ofFn f).get i = f i := by
-  exact Vector.getElem_ofFn i.isLt
-
 theorem layoutLite_logMemory (layout : Verifier.Layout) :
     (layoutLite layout).logMemory = layout.logMemory :=
-  rfl
-
-theorem layoutLite_stackLog (layout : Verifier.Layout) :
-    (layoutLite layout).stackLog = layout.stackLog :=
   rfl
 
 /-- `Layout.placement` on the lighter layout. -/
@@ -88,7 +80,7 @@ of `MEMORY_0`, `MEMORY_1` computed once. -/
 
 theorem memoryVec_get (layout : LayoutLite) {μ : ℕ} (q : Vector K (2 ^ μ))
     (i : Fin (2 ^ layout.logMemory)) : (memoryVec layout q).get i = memoryImageLite layout q i := by
-  exact vector_get_ofFn (memoryImageLite layout q) i
+  exact Vector.getElem_ofFn (f := memoryImageLite layout q) i.isLt
 
 theorem memoryVec_get_eq (layout : LayoutLite) {μ : ℕ} (q : Vector K (2 ^ μ)) :
     (memoryVec layout q).get = memoryImageLite layout q :=
@@ -198,42 +190,6 @@ theorem candidateExecutionVec_eq (memT codeT : Array (ℕ × ℕ)) (prog : LeanI
   simp only [haltLoopVec_eq, memoryVec_get_eq, memoryImageLite_layoutLite]
   rfl
 
-/-- **A stack's execution on the memory vector**: the address tables, the final registers and the
-step cap computed once per stack; `none` above `2^63` words, where no stack has an execution
-(`candidateExecutionIn_eq_none`). -/
-@[expose] def candidateExecutionFastVec (prog : LeanIsaProgram) (input : PublicInput)
-    (layout : LayoutLite) (q : Vector K (2 ^ layout.stackLog)) : Option (Execution prog) :=
-  if layout.logMemory < 64 then
-    let memT := powTable layout.logMemory
-    let codeT := powTable prog.logSize
-    let fin := Registers.final prog
-    let cap := stepCapLite layout
-    candidateExecutionVec memT codeT prog input layout fin cap q
-  else none
-
-theorem candidateExecutionFastVec_apply (prog : LeanIsaProgram) (input : PublicInput)
-    (layout : Verifier.Layout) (q : Vector K (2 ^ layout.stackLog)) :
-    candidateExecutionFastVec prog input (layoutLite layout) q =
-      candidateExecutionFast prog input layout q := by
-  rw [candidateExecutionFast_eq]
-  unfold candidateExecutionFastVec
-  by_cases h : layout.logMemory < 64
-  · simp only [layoutLite_logMemory, stepCapLite_layoutLite, h, ↓reduceIte]
-    exact (candidateExecutionVec_eq (powTable layout.logMemory) (powTable prog.logSize) prog input
-      layout q).trans (candidateExecutionTable_eq h q)
-  · simp only [layoutLite_logMemory, h, ↓reduceIte]
-    have hl : maxLogMem < layout.logMemory := by unfold maxLogMem; omega
-    exact (candidateExecutionIn_eq_none (powIndex layout.logMemory) (powIndex prog.logSize) prog
-      input layout hl q).symm
-
-/-- **The fast search on the memory vector is `candidateExecutionFast`.** -/
-theorem candidateExecutionFastVec_eq (prog : LeanIsaProgram) (input : PublicInput)
-    (layout : Verifier.Layout) :
-    candidateExecutionFastVec prog input (layoutLite layout) =
-      candidateExecutionFast prog input layout := by
-  funext q
-  exact candidateExecutionFastVec_apply prog input layout q
-
 /-- **The search over the stacks**: the address tables, the final registers and the step cap
 built once, then a closure over the stacks. `extractFast` should bind
 `let execution := candidateRunner prog input layout` for `findSome?` (`candidateRunner_eq`). -/
@@ -263,7 +219,6 @@ theorem candidateRunner_eq (prog : LeanIsaProgram) (input : PublicInput) (layout
     exact (candidateExecutionIn_eq_none (powIndex layout.logMemory) (powIndex prog.logSize) prog
       input layout hl q).symm
 
-
 /-- The runner's tables: the address tables, the final registers and the step cap, built once per
 layout (`none` above `2^63` words, where no stack has an execution). -/
 @[expose] def runnerTables (prog : LeanIsaProgram) (layout : LayoutLite) :
@@ -279,15 +234,6 @@ layout (`none` above `2^63` words, where no stack has an execution). -/
   match tabs with
   | some (memT, codeT, fin, cap) => candidateExecutionVec memT codeT prog input layout fin cap q
   | none => none
-
-/-- **The runner, its tables built once**: the closure `runWithTables (runnerTables prog layout)`
-is `candidateRunner`. -/
-theorem runWithTables_runnerTables (prog : LeanIsaProgram) (input : PublicInput) (layout :
-    LayoutLite) :
-    runWithTables (runnerTables prog layout) prog input layout = candidateRunner prog input layout := by
-  funext q
-  unfold runWithTables runnerTables candidateRunner
-  split_ifs <;> rfl
 
 end
 

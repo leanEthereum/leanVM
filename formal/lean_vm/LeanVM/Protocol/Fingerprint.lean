@@ -32,8 +32,8 @@ Over the seventeen formal variables `A_0, …, A_15, X` the product is the polyn
   included: the `A_ι` are distinct variables, so distinct tuples give distinct, monic, degree-one
   factors in `X`, and unique factorization recovers `P`.
 * Theorem 5.1 (`card_sideProduct_collision_le`): for `P ≠ Q` of at most `N` tuples each, at most
-  `N·|E|^16` of the `|E|^17` challenges give equal products, an `N / |E|` fraction
-  (`sideProduct_collision_ratio_le`): each factor `β − π_α(t)` has total degree one in `(α, β)`.
+  `N·|E|^16` of the `|E|^17` challenges give equal products, an `N / |E|` fraction: each factor
+  `β − π_α(t)` has total degree one in `(α, β)`.
   The multisets are fixed before the challenge is drawn.
 * Proposition `prop:pad` (`card_paddedSideProduct_collision_le`): a padding row of a flush block
   holding the tuple `t` while the public padding row `p` flushes `t(p)` has the leaf
@@ -42,7 +42,7 @@ Over the seventeen formal variables `A_0, …, A_15, X` the product is the polyn
   differ from the public one by the tuples `D` has the product `Π_P(α, β) · Π_{d ∈ D}(1 − π_α(d))`
   (`padProduct`); two such sides with `P ≠ Q` and at most `N` leaves each collide at no more than
   the same `N·|E|^16` challenges, whatever the padding. Honest padding rows, `D` all zero, give
-  the factor `1` (`padProduct_zero`).
+  the factor `1`.
 
 The count tree is not fingerprinted: it weighs its count cells alone, at `β = 0`
 (`bus.rs`, `N_TREES`), and its root `R_c ≠ 0` forces every executed count to be nonzero whatever
@@ -54,7 +54,6 @@ Counts are `Nat.card`s, so no enumeration of `E` is assumed. Written from the sp
 namespace LeanVM.Protocol
 
 open LeanVM.Parameters
-open scoped ENNReal
 
 @[expose] public section
 
@@ -123,18 +122,6 @@ theorem padProduct_eq_eval₂ (α : Fin 16 → E) (β : E) (D : Multiset (Vector
   exact congrArg Multiset.prod (Multiset.map_congr rfl fun d _ ↦ by
     rw [fingerprint_eq_eval₂, eval₂_fingerprintPoly])
 
-/-- With honest padding rows every padding leaf is `1`. -/
-theorem padProduct_zero (α : Fin 16 → E) {D : Multiset (Vector K 16)}
-    (hD : ∀ d ∈ D, ∀ i : Fin 16, d[i] = 0) : padProduct α D = 1 := by
-  refine Multiset.prod_eq_one fun e he ↦ ?_
-  obtain ⟨d, hd, rfl⟩ := Multiset.mem_map.mp he
-  have : fingerprint α d = 0 := by
-    simp only [fingerprint, Fin.getElem_fin]
-    refine Finset.sum_eq_zero fun i _ ↦ ?_
-    rw [show d[i.val] = 0 from hD d hd i]
-    exact mul_eq_zero_of_right _ (map_zero (algebraMap K E))
-  rw [this, sub_zero]
-
 /-- **Lemma 5.2**: the product polynomial determines the multiset of tuples. -/
 theorem sideProduct_poly_eq_iff (P Q : Multiset (Vector K 16)) :
     grandProductPoly P = grandProductPoly Q ↔ P = Q :=
@@ -183,26 +170,6 @@ theorem card_sideProduct_collision_le {P Q : Multiset (Vector K 16)} (hne : P �
   have h := card_paddedSideProduct_collision_le (D := 0) (D' := 0) hne
     (by simpa using hP) (by simpa using hQ)
   simpa [padProduct] using h
-
-/-- **Theorem 5.1**: two different multisets of at most `N` tuples each have equal products at
-an `N / |E|` fraction of the challenges `(α, β)` at most. -/
-theorem sideProduct_collision_ratio_le {P Q : Multiset (Vector K 16)} (hne : P ≠ Q) {N : ℕ}
-    (hP : P.card ≤ N) (hQ : Q.card ≤ N) :
-    (Nat.card {ab : (Fin 16 → E) × E // sideProduct ab.1 ab.2 P = sideProduct ab.1 ab.2 Q} :
-        ℝ≥0∞) / (Nat.card ((Fin 16 → E) × E) : ℝ≥0∞) ≤ N / (Nat.card E : ℝ≥0∞) := by
-  have hc : Nat.card ((Fin 16 → E) × E) = Nat.card E * Nat.card E ^ 16 := by
-    simp only [Nat.card_prod, Nat.card_fun, Nat.card_fin]
-    ring
-  have hpos : Nat.card E ≠ 0 := Nat.card_pos.ne'
-  have hE' : (Nat.card E : ℝ≥0∞) ^ 16 ≠ 0 := pow_ne_zero _ (Nat.cast_ne_zero.mpr hpos)
-  have hT : (Nat.card E : ℝ≥0∞) ^ 16 ≠ ⊤ := ENNReal.pow_ne_top (ENNReal.natCast_ne_top _)
-  rw [hc, Nat.cast_mul, Nat.cast_pow]
-  calc _ ≤ ((N * Nat.card E ^ 16 : ℕ) : ℝ≥0∞) /
-        ((Nat.card E : ℝ≥0∞) * (Nat.card E : ℝ≥0∞) ^ 16) := by
-        gcongr
-        exact_mod_cast card_sideProduct_collision_le hne hP hQ
-    _ = N / (Nat.card E : ℝ≥0∞) := by
-        rw [Nat.cast_mul, Nat.cast_pow, ENNReal.mul_div_mul_right _ _ hE' hT]
 
 end
 end LeanVM.Protocol

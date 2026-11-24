@@ -1,4 +1,4 @@
-import LeanVM.Protocol.Spine.Toy
+import LeanVMTests.Protocol.Toy
 import LeanVM.Protocol.PublicInput
 import LeanVM.Protocol.ToArkLib.Refinement
 import LeanVM.Protocol.ToArkLib.Typed.PassThrough
@@ -20,7 +20,7 @@ procedures and the kernel computes degrees.
 
 namespace LeanVMTests.Protocol.Spine
 
-open LeanVM.Parameters LeanVM.Protocol LeanVM.Protocol.Toy CompPoly CPoly OracleComp
+open LeanVM.Parameters LeanVM.Protocol LeanVMTests.Protocol.Toy CompPoly CPoly OracleComp
   Interaction Interaction.Oracle Interaction.Oracle.Security Typed
 open scoped NNReal
 

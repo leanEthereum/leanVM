@@ -130,10 +130,6 @@ theorem commits_append_query (h : List Ev) (rows : List (List K)) :
   | nil => rfl
   | cons e h ih => cases e <;> simp [commits, ih]
 
-theorem answer_append_sample (h : List Ev) (c : E) (i : ℕ) (ps : List ℕ) :
-    answer (h ++ [Ev.sample c]) i ps = answer h i ps := by
-  simp [answer, commits_append_sample]
-
 /-- **A function of the commitments is constant along a group.** -/
 theorem retExp_commits (G : α → List (ℕ × ℕ × Word) → ENNReal) :
     ∀ (q : VerifierProgram α) (h₀ l : List Ev),

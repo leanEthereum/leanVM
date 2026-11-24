@@ -1,5 +1,5 @@
 /-
-  LeanVM.Protocol.Spine.Toy
+  LeanVMTests.Protocol.Toy
 
   The toy instance: one table of width three and height two on a stack of height eight, with one
   constraint, one push, one boundary pull, one count column and one public line. Every phase is
@@ -27,7 +27,7 @@ the degree bound is 2.
 (`tests/LeanVMTests/Protocol/Spine.lean`).
 -/
 
-namespace LeanVM.Protocol.Toy
+namespace LeanVMTests.Protocol.Toy
 
 open LeanVM.Parameters LeanVM.Protocol CompPoly CPoly CMlPolynomialEval
 
@@ -126,4 +126,4 @@ abbrev toy : M3Instance where
 def honest : Column 3 := ⟨#v[1, 1, 1, 1, 1, 0, 0, 0]⟩
 
 end
-end LeanVM.Protocol.Toy
+end LeanVMTests.Protocol.Toy

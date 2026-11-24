@@ -2,6 +2,7 @@ module
 
 public import LeanVM.Protocol.Extraction.Defs
 public import CompPoly.Fields.Binary.AdditiveNTT.Coset
+import LeanVM.Protocol.Whir.Subspace
 
 /-!
 # The inverse novel-basis transform is correct (proofs)
@@ -25,7 +26,8 @@ Algorithm 2. Its correctness is CompPoly's `AdditiveNTT.Coset`
 
 namespace LeanVM.Extraction.NovelProofs
 
-open LeanVM.Parameters LeanVM.Extraction LeanVM.Extraction.Words AdditiveNTT.Coset
+open LeanVM.Parameters LeanVM.Extraction AdditiveNTT.Coset
+open LeanVM.Protocol.Whir (ofBits_eq_sum ofBits_injOn)
 
 public section
 

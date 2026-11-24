@@ -55,11 +55,6 @@ example : cw ∉ iList (ReedSolomon.code dom3 2) 3 word := by
   rw [mem_iList, isClose_iff_le_card_agreeSet]
   exact fun h ↦ absurd h.2 (by decide)
 
-/-- The relative-radius list at `γ = 1/3` asks for `2` agreements out of `3`. -/
-example : radiusThreshold 3 (1 / 3) = 2 := by
-  rw [radiusThreshold, show (1 - (1 / 3 : ℝ)) * (3 : ℕ) = 2 by norm_num]
-  exact Nat.ceil_natCast 2
-
 /-- Uniqueness of lines on two points, and its interleaved form. -/
 example (U V : Fin 2 → Fin 3 → ZMod 5) (hU : IsInterleavedCodeword (ReedSolomon.code dom3 2) U)
     (hV : IsInterleavedCodeword (ReedSolomon.code dom3 2) V)

@@ -20,9 +20,10 @@ public import VCVio.OracleComp.Constructions.SampleableType
 
 Every verifier message's round-by-round error, after the grind before it, is at most
 `εmsg = 2^-securityBits` (`SECURITY_BITS`, `crates/verifier/src/transcript.rs`): a message
-whose error is `N / |E|` grinds `grindingBits N` bits, and `grindingBits_discount` is the bound
-`2^-grindingBits N · N / |E| ≤ 2^-125` a phase's specification discharges at the boundary after
-that grind (`Spec.grindP`'s side condition, the follower's lead `N / |E|`).
+whose error is `N / |E|` grinds `grindingBits N` bits, enough that
+`2^-grindingBits N · N / |E| ≤ 2^-125` (`le_two_pow_grindingBits`), the bound a phase's
+specification discharges at the boundary after that grind (`Spec.grindP`'s side condition, the
+follower's lead `N / |E|`).
 
 `q.StartsSample R`: `q` starts with a challenge, or returns at once a value satisfying `R`, what
 the follower of a program that may end on a grind must do (`EndToEnd.Sound.Moves`).
@@ -51,26 +52,14 @@ theorem le_two_pow_grindingBits (N : ℕ) : N ≤ 2 ^ (grindingBits N + (128 - s
     calc N ≤ 2 ^ ((N - 1).log2 + 1) := by omega
       _ ≤ _ := Nat.pow_le_pow_right (by norm_num) (by simp only [securityBits]; omega)
 
-/-- **The grind's discount**: `2^-grindingBits N · N / |E| ≤ 2^-125`. -/
-theorem grindingBits_discount (N : ℕ) :
-    (2 : ENNReal)⁻¹ ^ grindingBits N * ((N : ENNReal) / Fintype.card E) ≤ εmsg := by
-  have hN : (N : ENNReal) ≤ 2 ^ (grindingBits N + 3) := by
-    have := le_two_pow_grindingBits N
-    simp only [securityBits] at this
-    exact_mod_cast this
-  rw [Protocol.card_E, εmsg, securityBits, Nat.cast_pow, Nat.cast_ofNat]
-  have h2 : (2 : ENNReal)⁻¹ ^ grindingBits N * 2 ^ grindingBits N = 1 := by
-    rw [← mul_pow, ENNReal.inv_mul_cancel (by norm_num) (by norm_num), one_pow]
-  calc (2 : ENNReal)⁻¹ ^ grindingBits N * ((N : ENNReal) / 2 ^ 128)
-      ≤ (2 : ENNReal)⁻¹ ^ grindingBits N * (2 ^ (grindingBits N + 3) / 2 ^ 128) := by gcongr
-    _ = (2 : ENNReal)⁻¹ ^ grindingBits N * 2 ^ grindingBits N * (2 ^ 3 / 2 ^ 128) := by
-        rw [pow_add, mul_div_assoc, mul_assoc]
-    _ = 2 ^ 3 / 2 ^ 128 := by rw [h2, one_mul]
-    _ = (2 : ENNReal)⁻¹ ^ 125 := by
-        rw [show (2 : ENNReal) ^ 128 = 2 ^ 3 * 2 ^ 125 by rw [← pow_add],
-          ENNReal.div_eq_inv_mul, ENNReal.mul_inv (by simp) (by simp),
-          mul_comm ((2 : ENNReal) ^ 3)⁻¹, mul_assoc, ENNReal.inv_mul_cancel (by simp) (by simp),
-          mul_one, ENNReal.inv_pow]
+/-- A message whose error is at most `8 / |E|` grinds no bits. -/
+theorem grindingBits_eq_zero_of_le {n : ℕ} (hn : n ≤ 8) : grindingBits n = 0 := by
+  unfold grindingBits
+  split_ifs with h
+  · rfl
+  · have : Nat.log2 (n - 1) < 3 := (Nat.log2_lt (by omega)).2 (by omega)
+    simp only [securityBits]
+    omega
 
 /-! ## A follower that starts with a challenge -/
 

@@ -1,5 +1,5 @@
 import LeanVM.Protocol.Bus
-import LeanVM.Protocol.Spine.Toy
+import LeanVMTests.Protocol.Toy
 import LeanVMTests.Protocol.GrandProduct
 import CompPoly.Multivariate.Eval
 import CompPoly.Multivariate.MvPolyEquiv.Eval

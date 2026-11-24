@@ -77,12 +77,6 @@ theorem roundsErrors_le (d : ℕ) {e e' : ℝ≥0} (h : e ≤ e') : (m : ℕ) �
       (Errors.Le.append (sayTree _) (sayRoles _) (Errors.Le.refl _ _ _) ⟨h, fun _ ↦ trivial⟩)
       (roundsErrors_le d h m)
 
-/-- The error `f p` on the `p`-th challenge. -/
-def drawsErrorsOf (f : ℕ → ℝ≥0) : (k : ℕ) → Errors (drawsSlot C k).tree (drawsSlot C k).roles
-  | 0 => doneErrors
-  | k + 1 => Errors.append (drawsSlot C k).tree (drawsSlot C k).roles (drawsErrorsOf f k)
-      (drawErrors C (f k))
-
 /-! ## The grand-product argument -/
 
 /-- One layer of the grand-product argument over `nside` trees, radix `2 ^ ρ`, at depth `m`: the

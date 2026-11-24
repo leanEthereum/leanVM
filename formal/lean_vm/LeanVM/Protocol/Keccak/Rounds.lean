@@ -13,6 +13,7 @@ public import LeanVM.Protocol.EndToEnd.Front.FlockMech
 public import LeanVM.Protocol.Verifier.KeccakPack
 public import LeanVM.Protocol.EndToEnd.Complete.Sumcheck
 import LeanVM.Protocol.Keccak.Linear
+import LeanVM.Protocol.Compile.SpecRules.Grind
 
 /-!
 # Sumcheck rounds as specifications
@@ -139,15 +140,6 @@ noncomputable def doomGrind (hst : Stable C) (A : β → Prop) (Q : Prop) (b : �
 /-- A bound on the follower's lead bounds it discounted. -/
 theorem discount_le (b : ℕ) (hT : T ≤ εmax) : (2 : ℝ≥0∞)⁻¹ ^ b * T ≤ εmax :=
   le_trans (mul_le_of_le_one_left zero_le (pow_le_one₀ zero_le (by norm_num))) hT
-
-/-- A grind for a numerator at most `8` is of zero bits. -/
-theorem grindingBits_le_eight {n : ℕ} (hn : n ≤ 8) : grindingBits n = 0 := by
-  unfold grindingBits
-  split_ifs with h
-  · rfl
-  · have : Nat.log2 (n - 1) < 3 := (Nat.log2_lt (by omega)).2 (by omega)
-    simp only [securityBits]
-    omega
 
 /-- The grind before a layer's evaluation point, for the product's degree `46`, is of three
 bits. -/

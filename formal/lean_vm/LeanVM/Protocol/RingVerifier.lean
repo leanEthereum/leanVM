@@ -22,8 +22,7 @@ the last eight, and returns the target and the weight. Its helpers transcribe th
 * `verifier_frobenius8`, `verifier_ringPsi`, `verifier_polyEval`, `verifier_gen`: the helpers are
   `RingMap`'s;
 * `verifier_ringTarget`, `verifier_ringCoefficients`: so are the target and the coefficients;
-* `verifier_ringWeight`: the weight at points of `μ` coordinates is
-  `Σ_k c_k eq(r^(2^k), r')` (`idxSum`), the extension `ringWeight_mle` computes;
+* `ringWeight_fold`: the weight is `Σ_k c_k eq(r^(2^k), r')` (`idxSum`);
 * `ringSwitch_eq`: the program is the grind, the sixteen challenges, and `RingMap`'s target and
   coefficients at their halves;
 * `card_ringBad_le`, `ringBad_ratio_le`: slice claims `s ≠ z` meet the honest value
@@ -75,15 +74,6 @@ theorem eqEval_eq_prod (l r : List E) :
     Verifier.eqEval l r = (List.zipWith (fun x z ↦ 1 + x + z) l r).prod := by
   rw [Verifier.eqEval, List.prod_eq_foldl]
 
-/-- `eq_eval` at two points of `μ` coordinates is `eqP`. -/
-theorem eqEval_ofFn {μ : ℕ} (a b : Fin μ → E) :
-    Verifier.eqEval (List.ofFn a) (List.ofFn b) = eqP a b := by
-  rw [eqEval_eq_prod, eqP, ← List.prod_ofFn]
-  congr 1
-  apply List.ext_getElem (by simp)
-  intro i h1 h2
-  simp
-
 /-- The weight's inner fold is `eq_eval` times its start. -/
 theorem foldl_zip_eqEval (c : E) : ∀ (r y : List E),
     (List.zip r y).foldl (fun product (p : E × E) ↦ product * (1 + p.1 + p.2)) c =
@@ -115,16 +105,6 @@ theorem ringWeight_fold (y : List E) :
       rw [← sq, ← pow_mul, pow_succ 2 k, mul_comm]
     simp only [List.map_map, e, List.map_id, e']
     ring
-
-/-- **The statement's weight** at points of `μ` coordinates is `Σ_k c_k eq(r^(2^k), r')`. -/
-theorem verifier_ringWeight {μ : ℕ} (r r' : Fin μ → E) (cs : List E) :
-    Verifier.ringWeight (List.ofFn r) (List.ofFn r') cs =
-      idxSum cs fun k ↦ eqP (frobPt r k) r' := by
-  rw [Verifier.ringWeight, ringWeight_fold, zero_add]
-  congr 1
-  funext k
-  rw [List.map_ofFn, ← eqEval_ofFn]
-  rfl
 
 /-! ## The program -/
 

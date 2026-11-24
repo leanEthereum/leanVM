@@ -23,9 +23,8 @@ logs can tell a query that predicts a value referenced earlier from one made in 
 The bounds of `LeanVM.Protocol.ToVCVio.Rom.Potential` apply to `loggedRO`
 (`loggedRO_isLazySampler`). For `Φ` on logs whose expectation rises by at most `δ` at every
 fresh query to either oracle (`LogFreshStepBound Φ δ`, `logFreshStepBound_iff`), a computation
-with at most `Q` queries run from `ℓ₀` has expected final potential at most `Φ ℓ₀ + Q · δ`
-(`lintegral_run_loggedRO_le_of_freshStepBound`), and an event forcing `1 ≤ Φ` of the final log
-has probability at most `Φ ℓ₀ + Q · δ` (`prEvent_run_loggedRO_le_of_freshStepBound`). The
+with at most `Q` queries run from `ℓ₀` makes an event forcing `1 ≤ Φ` of the final log happen
+with probability at most `Φ ℓ₀ + Q · δ` (`prEvent_run_loggedRO_le_of_freshStepBound`). The
 length-capped form (`prEvent_run_loggedRO_le_of_freshStepBelow`) needs the step bound only at
 logs shorter than a cap `N ≥ |ℓ₀| + Q`.
 
@@ -346,17 +345,6 @@ omit [DecidableEq D₁] [DecidableEq D₂] [SampleableType R₁] [SampleableType
 theorem length_logRecord (ℓ : List (LogEntry D₁ R₁ D₂ R₂)) (t : D₁ ⊕ D₂)
     (u : (Spec₂ D₁ R₁ D₂ R₂).Range t) : (logRecord ℓ t u).length = ℓ.length + 1 := by
   rcases t with x | s <;> simp [logRecord]
-
-/-- **The potential bound for `loggedRO`.** -/
-theorem lintegral_run_loggedRO_le_of_freshStepBound {α : Type}
-    [MeasurableSpace (α × List (LogEntry D₁ R₁ D₂ R₂))]
-    [DiscreteMeasurableSpace (α × List (LogEntry D₁ R₁ D₂ R₂))]
-    {Φ : List (LogEntry D₁ R₁ D₂ R₂) → ℝ≥0∞} {δ : ℝ≥0∞} (hΦ : LogFreshStepBound Φ δ)
-    (oa : OracleComp (Spec₂ D₁ R₁ D₂ R₂) α) (Q : ℕ) (hQ : IsTotalQueryBound oa Q)
-    (ℓ₀ : List (LogEntry D₁ R₁ D₂ R₂)) (g : α × List (LogEntry D₁ R₁ D₂ R₂) → ℝ≥0∞)
-    (hg : ∀ z ∈ support ((simulateQ loggedRO oa).run ℓ₀), g z ≤ Φ z.2) :
-    ∫⁻ z, g z ∂𝒟[(simulateQ loggedRO oa).run ℓ₀] ≤ Φ ℓ₀ + Q * δ :=
-  lintegral_run_le_of_freshStepBound loggedRO_isLazySampler hΦ oa Q hQ ℓ₀ g hg
 
 /-- **Markov at one for `loggedRO`.** -/
 theorem prEvent_run_loggedRO_le_of_freshStepBound {α : Type}

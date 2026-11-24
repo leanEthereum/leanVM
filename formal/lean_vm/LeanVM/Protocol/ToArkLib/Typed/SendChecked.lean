@@ -50,9 +50,6 @@ abbrev sayErrors (M : Type) : Errors (sayTree M) (sayRoles M) := fun _ ↦ PUnit
 abbrev saySlot (M : Type) : Slot :=
   ⟨sayTree M, sayRoles M, ⟨PUnit.unit, fun _ ↦ ⟨⟩⟩, fun _ ↦ PUnit.unit⟩
 
-/-- The execution path of one message. -/
-abbrev sayPath {M : Type} (m : M) : (sayTree M).ExecutionPath := ⟨m, PUnit.unit⟩
-
 variable {ι : Type} (O : ι → Type) {StmtIn StmtOut W : Type} (M : Type)
   (honest : (StmtIn × ∀ i, O i) × W → M) (check : StmtIn → M → Bool)
   (out : StmtIn → M → StmtOut)
