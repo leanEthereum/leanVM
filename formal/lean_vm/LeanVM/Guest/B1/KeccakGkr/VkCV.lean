@@ -23,7 +23,7 @@ capacity after the slices' full queue is permuted, the cursor past `xs` and the 
 
 `verify_keccak_completeAt`: it holds. The run is read back as a `VkData` (`vkData_of_run`); the
 body is flat (`completeAt_flatG`): its buffers' words (`VkData.own`), its eighteen callees
-(`VkData.kids`, complete by `kids_complete`), its honest valuation on the layout (`body_holds`),
+(`VkData.kids`, complete by `kids_completeB`), its honest valuation on the layout (`body_holds`),
 its frames (`calls_match`) and loads (`loads_in`).
 -/
 

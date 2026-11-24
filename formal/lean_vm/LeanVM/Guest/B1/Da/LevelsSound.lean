@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Da.LevelsSound
 
-  `da_levels`' specializations compute their meanings (TRIAGE G #92).
+  `da_levels`' specializations compute their meanings.
 -/
 
 module

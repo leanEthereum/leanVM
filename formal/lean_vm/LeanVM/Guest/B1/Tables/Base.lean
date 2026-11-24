@@ -21,7 +21,7 @@ These are local to `B1/{Gkr, Tables, Selectors, Placement}` (prefixed `Tb`, `tb`
 shared `B1/Common` has them.
 
 * `TbReadsAt rd p xs`: the words `xs` lie in memory from the pointer `p`, word `k` at `p·g^k`.
-* Runs of the Spec's programs on the carried sponge are B1-a's `RunsTo` (`B1/Common/Sponge`),
+* Runs of the Spec's programs on the carried sponge are `RunsTo` (`B1/Common/Sponge`),
   copied as `RunsTo` in `B1/Gkr/Fs`: from any sponge the guest carries as five capacity cells
   and waiting scalars, a program reads exactly the stream words given and returns its value,
   leaving a sponge the guest carries as the cells after.

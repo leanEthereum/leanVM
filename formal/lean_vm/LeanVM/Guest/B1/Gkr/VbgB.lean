@@ -46,7 +46,7 @@ theorem vbg_flatCalls (σ : Val) : flatCalls vbgPre σ =
 
 variable {cert : String → V → ℕ}
 
-/-- **`verify_bus_gkr` is complete, placed, within `vbgBound` words** (TRIAGE G #43), given the
+/-- **`verify_bus_gkr` is complete, placed, within `vbgBound` words**, given the
 words of the radix-four layers' trees (`gkr_layers__L{o}` at `n_four = g^n`, `n ≤ 3`,
 `rem_g = g^r`, `r < 4`: `KL`) and of `verify_bus_gkr_loop0`'s runs (linear in their ends'
 exponents, `K8`, and their phantom frame once), on every reader. -/

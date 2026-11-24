@@ -27,9 +27,8 @@ log `m` and `KECCAK`'s `τ`.
 
 The honest buffers: `eqChain s as bs`, the prefix products `eq_prefix_chain` writes from the seed
 `s`; `piW`, the public input's chain. `termKids`: the 101 callees in order, each column selector reading the selector
-tables' result (`selKid`); `termKids_complete`: each is complete, placed (`eqc_kid_complete`,
-`l15_kid_complete`, B1-c's `selector_tables_completeAt`, `cs_completeAt`, `rsw_completeAt`), the
-last the out-of-domain claim's chain, seeded with the next power of `λ`.
+tables' result (`selKid`); the last the out-of-domain claim's chain, seeded with the next power of `λ`; each is complete,
+placed, within its bound (`termKids_completeB`, `Terminal/TermCompleteB`).
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -269,85 +268,6 @@ theorem l15_kid_complete (κ : ℕ) {b bp m : ℕ} {rm glm : E} {ps : List E} {L
       · exact regionL_cons _ (hR i hi)) (m - 2) 1 (by omega) le_rfl
   rw [← hglm, pow_one, ← word_gen] at h
   exact h
-
-set_option maxHeartbeats 1000000 in
-/-- **The terminal's callees are complete, placed**, on the honest data. -/
-theorem termKids_complete (κ : ℕ) (hκ : 6 ≤ κ) (Lin : Main.Layout) (D : TermData) (b0 : ℕ)
-    (hreg : ∀ i, TermRegion D.B D.zs.length D.chis.length D.τ D.ood.length i → RegionL Lin i)
-    (hzl : D.zs.length ≤ 34) (hcl : D.chis.length ≤ 34) (hxl : D.x.length ≤ 32)
-    (hτ : D.τ + 6 ≤ 34) (hol : D.outPt.length = D.τ + 6) (hrl : D.ringPoint.length = D.τ + 6)
-    (hcf : D.coeffs.length = 64) (hgmu : D.gmu = gen ^ D.zs.length)
-    (hgz : D.gzcn = gen ^ D.chis.length) (hglm : D.glm = gen ^ D.m) (hgtau : D.gtau = gen ^ D.τ)
-    (hm1 : 1 ≤ D.m) (hm : D.m ≤ 32) (hKC : ∀ c < Tables.nCommittedCols, D.KC.getD c 0 < 31)
-    (hOF : ∀ c < Tables.nCommittedCols, D.OF.getD c 0 < 2 ^ 32 ∧ 2 ^ D.KC.getD c 0 ∣ D.OF.getD c 0)
-    (hrd : ∀ rd, LowDef κ rd → MemL rd Lin → ReadsAt rd (ofK (addressOfIndex D.B.zeta)) D.zs ∧
-      ReadsAt rd (ofK (addressOfIndex D.B.chi)) D.chis ∧ ReadsAt rd (ofK (addressOfIndex D.B.zv))
-          D.outPt ∧
-      ReadsAt rd (ofK (addressOfIndex D.B.pt1)) (p1Of D.x))
-    (hodl : D.ood.length ≤ 30) (hgm : D.gm = gen ^ D.ood.length)
-    (hrdO : ∀ rd, LowDef κ rd → MemL rd Lin → ReadsAt rd (ofK (addressOfIndex D.B.oz)) D.ood) :
-    ∀ k ∈ termKids Lin D b0, ∀ pv, (k pv).taken = true →
-      CompleteAtD fs cert κ (k pv).f (k pv).Lin (k pv).args (k pv).Out := by
-  have hpl : (p1Of D.x).length = 40 := p1Of_length (by simp only [termPointCap]; omega)
-  have hpt : (padPoint D.x).length = 40 := padPoint_length (by simp only [termPointCap]; omega)
-  have hw64 : word 64 0 = gen ^ 6 := word_two_pow (a := 6) (by decide)
-  intro k hk pv ht
-  simp only [termKids, List.mem_append, List.mem_cons, List.mem_map, List.mem_range,
-    List.not_mem_nil, or_false] at hk
-  rcases hk with ((rfl | rfl | rfl | rfl) | ⟨c, hc, rfl⟩) | rfl | rfl | rfl
-  · exact eqc_kid_complete κ hκ (by omega) (by simp; omega) hgmu
-      (fun rd hl hm => ⟨(hrd rd hl hm).1, readsAt_take (hrd rd hl hm).2.2.2 _⟩)
-      (fun i hi => hreg i (by
-        rcases hi with hi | hi
-        · exact Or.inl hi
-        · simp only [TermRegion]; omega))
-  · exact eqc_kid_complete κ hκ (by omega) (by simp; omega) hgz
-      (fun rd hl hm => ⟨(hrd rd hl hm).2.1, readsAt_take (hrd rd hl hm).2.2.2 _⟩)
-      (fun i hi => hreg i (by simp only [TermRegion]; omega))
-  · have hne : word 2 0 + D.glm ≠ 0 := by simpa using ht
-    have hm2 : 2 ≤ D.m := by
-      by_contra h
-      apply hne
-      rw [hglm, show D.m = 1 by omega, word_gen, pow_one]
-      exact e_add_self _
-    exact l15_kid_complete κ hm2 hglm (by omega) (fun rd hl hm => (hrd rd hl hm).2.2.2)
-      (fun i hi => hreg i (by simp only [TermRegion]; omega))
-  · exact Tables.selector_tables_completeAt fs cert κ _ _ _ _ (by simp [pt32]; omega)
-      (by simp [pt132]; omega)
-  · have hst : Tables.stOut D.B.pt D.B.pt1 (pt32 D.x) (pt132 D.x) (stRes pv).1 (stRes pv).2 :=
-      @of_decide_eq_true _ (Classical.propDecidable _) ht
-    obtain ⟨ese, h1, h2⟩ := hst
-    have hL : (selKid D c pv).Lin =
-        csLin D.B.pt D.B.pt1 ese (D.B.gsq + 34) (pt32 D.x) (pt132 D.x) := by
-      show @ite _ _ (Classical.propDecidable _) _ _ = _
-      rw [@ite_pos' _ _ (Classical.propDecidable _) _ _ ⟨ese, h1, h2⟩, h2]; rfl
-    have ha : (selKid D c pv).args = [gen ^ D.OF.getD c 0, ofK (addressOfIndex ese), ofK
-        (addressOfIndex (D.B.gsq + 34))] := by
-      show [_, (stRes pv).1.getD 0 0, _] = _
-      rw [h1]; rfl
-    rw [hL, ha]
-    exact cs_completeAt κ (by omega) (hKC c hc) (hOF c hc).1 (hOF c hc).2 (by simp [pt32]; omega)
-      (by simp [pt132]; omega)
-  · have e : D.gtau * word 64 0 = gen ^ D.outPt.length := by rw [hgtau, hw64, ← pow_add, hol]
-    show CompleteAtD fs cert κ "eq_prefix_chain" _
-      [ofK (addressOfIndex (b0 + 105)), word 1 0, ofK (addressOfIndex D.B.zv), ofK (addressOfIndex D.B.pt1), D.gtau * word 64 0]
-      (Returns [])
-    exact eqc_kid_complete κ hκ (by omega) (by simp; omega) e
-      (fun rd hl hm => ⟨(hrd rd hl hm).2.2.1, readsAt_take (hrd rd hl hm).2.2.2 _⟩)
-      (fun i hi => hreg i (by simp only [TermRegion]; omega))
-  · have e1 : ofK (addressOfIndex D.B.zv) * word 549755813888 0 = ofK (addressOfIndex (D.B.zv +
-      39)) := by
-      rw [show (549755813888 : ℕ) = 2 ^ 39 by norm_num, word_two_pow (by decide), ofK_gpow_mul_gen]
-    have e2 : D.gtau * word 64 0 = gen ^ (D.τ + 6) := by rw [hgtau, hw64, ← pow_add]
-    show CompleteAtD fs cert κ "ring_switch_weight" _
-      [ofK (addressOfIndex D.B.zv) * word 549755813888 0, ofK (addressOfIndex D.B.pt1), ofK
-          (addressOfIndex D.B.ct),
-        D.gtau * word 64 0] _
-    rw [e1, e2]
-    exact rsw_completeAt κ (by omega) hrl (by simp; omega) hcf
-  · exact eqc_kid_complete κ hκ (by omega) (by simp; omega) hgm
-      (fun rd hl hm => ⟨hrdO rd hl hm, readsAt_take (hrd rd hl hm).2.2.2 _⟩)
-      (fun i hi => hreg i (by simp only [TermRegion]; omega))
 
 /-! ## The callees' words -/
 

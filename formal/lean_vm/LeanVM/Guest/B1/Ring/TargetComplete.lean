@@ -16,10 +16,10 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«ring_switch_target»
 
 /-!
-# `ring_switch_target`, placed (TRIAGE G #64, #65)
+# `ring_switch_target`, placed
 
 On the caller's words, the 64 slices `s` at `g^bs` and the sixteen challenges `chs` at `g^bm`,
-`ring_switch_target` is complete at every frame pointer `fp` (`rst_completeAt`): its chain
+`ring_switch_target` is complete at every frame pointer `fp` (`rst_completeAtB`, `Ring/CompleteB`): its chain
 (`HeapBuf` of 72 words) at `fp + fs "ring_switch_target"` holds the honest rows
 `chainWords s (chs.drop 8)`, its `ring_switch_target_loop0` (pure) is complete by `l13_relIn` lifted
 by `Lift.completeAtD_of_relIn`, and it returns `ringTarget s f g`. The body's valuation is its
@@ -297,7 +297,7 @@ theorem rst_sigma {rd : Reader} {bs bm b : ℕ} {s chs : List E} (hs : s.length 
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
-/-- `rst_completeAt`'s valuation, as `completeAt_flatD` asks it. -/
+/-- `ring_switch_target`'s honest valuation, as `completeAt_flatD` asks it. -/
 theorem rst_hσ {bs bm : ℕ} {s chs : List E} (hs : s.length = 64) (hc : chs.length = 16) (fp : ℕ)
     (rd : Reader) (hB : MemL rd (bufL (fp + fs "ring_switch_target") [72]
       [chainWords s (chs.drop 8)])) (hLin : MemL rd [(bs, s), (bm, chs)]) (o : List E × Main.Layout)
@@ -365,51 +365,6 @@ theorem rst_hσ {bs bm : ℕ} {s chs : List E} (hs : s.length = 64) (hc : chs.le
             by simp only [hcw]; omega⟩⟩
       | _ => simp [Stmt.loadS] at hsq
     | _ => simp [Stmt.loadS] at hsq
-
-/-- **`ring_switch_target` is complete, placed**: on the slices and the challenges, at every frame
-pointer, its chain at the bump allocator's position, returning `ringTarget`. -/
-theorem rst_completeAt (κ : ℕ) {bs bm : ℕ} {s chs : List E} (hs : s.length = 64)
-    (hc : chs.length = 16) :
-    CompleteAtD fs cert κ "ring_switch_target" [(bs, s), (bm, chs)]
-      [ofK (Parameters.addressOfIndex bs), ofK (Parameters.addressOfIndex bm)]
-      (Returns [ringTarget s (chs.take ringMapWidth) (chs.drop ringMapWidth)]) := by
-  refine completeAt_flatD (fs := fs) (cert := cert) find_rst rst_not_loop κ _ _ _ rst_body' rst_flat
-    rst_addrs [72] (fun _ ↦ [chainWords s (chs.drop 8)]) (fun _ ↦ by simp [chainWords_length])
-    (fun fp ↦ [⟨name% «ring_switch_target_loop0», true, [1, ofK (Parameters.addressOfIndex bm),
-      ofK (Parameters.addressOfIndex bs), ofK (Parameters.addressOfIndex (fp + fs "ring_switch_target"))],
-      l13Lin bs bm (fp + fs "ring_switch_target") s chs, Returns []⟩])
-    ?_ ?_ ?_ ?_
-  · intro fp k hk _
-    rw [List.mem_singleton] at hk
-    subst hk
-    exact Lift.completeAtD_of_relIn l13_pure (List.mem_singleton_self _)
-      fun rd _ hL ↦ l13_relIn_lin hs hc hL
-  · intro fp k hk _ i hi
-    rw [List.mem_singleton] at hk
-    subst hk
-    obtain ⟨q, hq, hi⟩ := hi
-    simp only [l13Lin, List.mem_cons, List.not_mem_nil, or_false] at hq
-    rcases hq with rfl | rfl | rfl
-    · exact Or.inl ⟨_, by simp, hi⟩
-    · exact Or.inl ⟨_, by simp, hi⟩
-    · exact Or.inr ⟨_, by simp [bufL, bases], hi⟩
-  · intro fp rd hB hLin k hk
-    rw [List.mem_singleton] at hk
-    subst hk
-    intro q hq
-    simp only [l13Lin, List.mem_cons, List.not_mem_nil, or_false] at hq
-    rcases hq with rfl | rfl | rfl
-    · exact hLin (bs, s) (by simp)
-    · exact hLin (bm, chs) (by simp)
-    · exact hB (fp + fs "ring_switch_target", chainWords s (chs.drop 8)) (by simp [bufL, bases])
-  · intro fp outs ho rd _ hB hLin
-    rcases outs with _ | ⟨o, _ | ⟨o', os⟩⟩
-    · exact absurd ho (by simp [OutsOk])
-    swap
-    · exact absurd ho.2 (by simp [OutsOk])
-    obtain ⟨ho', -⟩ := ho
-    obtain ⟨ho1, -⟩ := ho' rfl
-    exact rst_hσ hs hc fp rd hB hLin o ho1
 
 end
 end LeanVM.Guest.B1.VerifySub

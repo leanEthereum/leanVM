@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Da.Padding
 
-  `da_padding`'s core IR gives its meaning (TRIAGE G #91).
+  `da_padding`'s core IR gives its meaning.
 -/
 
 module

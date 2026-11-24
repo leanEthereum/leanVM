@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Placement.InterfaceP
 public import LeanVM.Guest.B1.KeccakGkr.InterfaceP
 
 /-!
-# `check_opening_terminal` (TRIAGE G #70): the interface
+# `check_opening_terminal`: the interface
 
 `check_opening_terminal(g_squares, zeta, chi, rm, g_bus_mu, g_zc_n, g_log_mem, tau_keccak_g,
 kappa_base, lam_cl, col_offsets, z_vals, c_table, point, point1, inner_total, yr_at_tail,
@@ -130,7 +130,7 @@ def MeaningTerminal (rd : Reader) (args rets : List E) : Prop :=
           stackWeight layout (openedClaims claims [out]) ringPoint coeffs oodPoint lam x) *
         args.getD 16 0 = args.getD 17 0
 
-/-- **`check_opening_terminal` is sound** (TRIAGE #70). -/
+/-- **`check_opening_terminal` is sound**. -/
 def check_opening_terminal_SpecP (P : Program) (rd : Reader) : Prop :=
   ∀ args rets, P.Rel rd "check_opening_terminal" args rets → MeaningTerminal rd args rets
 

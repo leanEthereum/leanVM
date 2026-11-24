@@ -16,7 +16,7 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«ring_switch_weight»
 
 /-!
-# `ring_switch_weight`, placed (TRIAGE G #66)
+# `ring_switch_weight`, placed
 
 On the caller's words, `n < 64` coordinates `zs` at `g^bz`, `ps` (the point's `1 + r'`) at `g^bp`,
 the 64 coefficients `cs` at `g^bc`, `ring_switch_weight` is complete at every frame pointer

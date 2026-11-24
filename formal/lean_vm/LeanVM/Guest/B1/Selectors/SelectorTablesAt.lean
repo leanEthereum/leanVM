@@ -13,7 +13,7 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«selector_tables»
 
 /-!
-# `selector_tables`, placed (TRIAGE G #69)
+# `selector_tables`, placed
 
 At frame pointer `fp` the buffer lies at `ese = fp + fs "selector_tables"` (`256` words); the
 function returns its pointer, and its returned layout is `stOwn` there (`stOut`).

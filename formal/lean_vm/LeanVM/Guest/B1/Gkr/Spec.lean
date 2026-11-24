@@ -15,7 +15,7 @@ import LeanVM.Guest.B1.Common.Run
 /-!
 # The GKR walk on the carried sponge
 
-* `gkrRun` (B1-a's, `B1/Sumcheck/Meaning`): equality-mode rounds of four coefficients each, the
+* `gkrRun` (`B1/Sumcheck/Meaning`): equality-mode rounds of four coefficients each, the
   derived `c0 = claim + e·Σ c`, a squeeze per round; `gkr_sumcheck_run`: it is `sumcheck _ 5`
   over the eq factors, as a run.
 * `gkrStep_run`: one step of `step ≤ 2` levels (`gkrStep`), from its combiner, rounds, children

@@ -14,11 +14,11 @@ public import LeanVM.Guest.B1.Tables.FlatAtT
 /-!
 # Dependent callees, returned buffers
 
-`completeAt_flatDepRBP` (`Terminal/KidsDepBP`) returns no buffer. `da_vector` returns its own
+`completeAt_flatDepRBPR` (`Terminal/KidsDepBP`) returns no buffer. `da_vector` returns its own
 `zs` and the buffers of three of its callees (the top leaves in `da_expand`'s frame, the cell
 factors, the column offsets), which `da_verify`'s column loop reads.
 
-* `kidsFromInT_of_depBPo`: `kidsFromInT_of_depBP` with the callees' layout a permutation of the
+* `kidsFromInT_of_depBPo`: the callees of `KidsDepBP` placed (as `kidsFromInT_of_depBPR`), their layout a permutation of the
   buffers they return (`outsL`) and the rest.
 * `completeAt_flatDepOut`: a flat function whose dependent callees are within their bounds by
   trees of their predicates (`KidsDepBP`) is complete within `fs f + sizes.sum + Bs.sum`, by a
@@ -58,7 +58,7 @@ theorem outRegion_of_outsL : ∀ {ks : List Kid} {outs : List (List E × Layout)
   | [], _, _, ⟨q, hq, _⟩ => by simp [outsL] at hq
   | _ :: _, [], _, ⟨q, hq, _⟩ => by simp [outsL] at hq
 
-/-- **`kidsFromInT_of_depBP`, the callees' layout a permutation of their returned buffers and
+/-- **`KidsDepBP`'s callees placed, their layout a permutation of their returned buffers and
 the rest.** -/
 theorem kidsFromInT_of_depBPo (κ : ℕ) : ∀ (ks : List KidD) (names : List String) (Bs : List ℕ)
     (Ps : List (Tree → Prop))

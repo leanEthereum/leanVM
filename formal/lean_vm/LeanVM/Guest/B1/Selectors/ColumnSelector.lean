@@ -15,7 +15,7 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«column_selector__L»
 
 /-!
-# `column_selector` (TRIAGE G #68)
+# `column_selector`
 
 `column_selector(offset, sel_eq, sel_g, κ)` hints the `g`-power digits `g^u_k` of
 `offset`'s exponent's nibbles `κ / 4 .. 7` (`hint_decompose_digits_exponent`) and, for each

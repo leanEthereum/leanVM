@@ -13,7 +13,7 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_tables»
 
 /-!
-# `verify_tables`' body (TRIAGE G #52)
+# `verify_tables`' body
 
 `verify_tables` is one function of 5241 statements, stored as 14 chunks
 (`core% «verify_tables» c0 .. c13`, the last ending in its `ret`). Its soundness reads each fact it

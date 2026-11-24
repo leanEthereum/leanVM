@@ -17,7 +17,7 @@ import LeanVM.Guest.Data.ValNames.«ring_switch_target»
 import LeanVM.Guest.Data.ValNames.«ring_switch_target_loop0»
 
 /-!
-# `ring_switch_target` (TRIAGE G #64, #65)
+# `ring_switch_target`
 
 `ring_switch_target(slices, map_challenges)` (`fn% «ring_switch_target»`) zeroes the eight Horner
 chains' first row of `rs_chain` and runs `ring_switch_target_loop0` (`fn%

@@ -13,7 +13,7 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«selector_tables»
 
 /-!
-# `selector_tables` (TRIAGE G #69)
+# `selector_tables`
 
 `selector_tables(point, point1)` allocates `sel_eq` (`8·32` words) and for each
 nibble `j < 8` computes the eq levels over its top coordinates `4j + 3, 4j + 2, …` (level `w` from

@@ -1,8 +1,7 @@
 /-
   LeanVM.Guest.B1.Da.PaddingComplete
 
-  `da_padding`, completely: a row count `1 ≤ r ≤ LeanDa.maxRows` gives the core IR relation
-  (TRIAGE G #91).
+  `da_padding`, completely: a row count `1 ≤ r ≤ LeanDa.maxRows` gives the core IR relation.
 -/
 
 module

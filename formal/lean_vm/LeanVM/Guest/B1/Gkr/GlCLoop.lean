@@ -22,7 +22,7 @@ import LeanVM.Guest.B1.Tables.Basic
 
 The eight loops (one per layer function) have one body but for the recursive call's name
 (`glcBody`, checked against all eight by `glc_check`): the record `head·y^7`, the rows `qrow·y^8`
-and `nqrow·y^8`, then `gkPre true 8` (B1-a's rounds) renamed by `glcSh`, its challenge stores
+and `nqrow·y^8`, then `gkPre true 8` (the sumcheck's rounds) renamed by `glcSh`, its challenge stores
 `pt[42 + q]` redirected to `npt[q]` (`glcMap`; `npt = pt·g^42`), then the guard and the next
 call's argument.
 
@@ -181,7 +181,7 @@ theorem glc_val_sh {x N head qrow nqrow tabs : E} {σgk : Val} (hσv : ∀ v, σ
     have i5 : ¬ v.idx < 5 := by omega
     simp only [glcSh, glcVal, e0, e1, e2, e5, i1, i2, i3, i4, i5, ↓reduceIte, Nat.add_sub_cancel]
 
-/-- Eight rounds between records `1` apart, as B1-a's `GkrRoundsOut` on the record's cursor. -/
+/-- Eight rounds between records `1` apart, as `GkrRoundsOut` on the record's cursor. -/
 theorem glc_out_of_tb {rd : Reader} {rec pt : E} (h : TbGkrRoundsOut 8 1 rd rec pt) :
     ∃ cur, GkrRoundsOut 8 rd rec pt cur ∧ LoadHolds rd rec 5 cur := by
   obtain ⟨cap, cur, claim, cs, es, h1, hc, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12⟩ := h

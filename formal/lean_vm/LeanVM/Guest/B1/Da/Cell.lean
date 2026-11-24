@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Da.Cell
 
-  `da_verify_cell`'s core IR gives its meaning (TRIAGE G #92).
+  `da_verify_cell`'s core IR gives its meaning.
 -/
 
 module

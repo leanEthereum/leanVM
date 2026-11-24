@@ -15,7 +15,7 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«shared_selector_tables_loop0»
 
 /-!
-# `shared_selector_tables` is complete (TRIAGE G #48)
+# `shared_selector_tables` is complete
 
 * `shared_selector_tables_loop0`: the valuation `lpVal` gives each value of an iteration at `x =
   g^j` its role: the powers of `x` and the pointers; the eq levels' entries of nibble `j` (`spLvV`)

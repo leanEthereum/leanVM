@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Da.LevelsComplete
 
   `da_levels`, completely: a tree's levels in memory give each specialization's relation, its
-  returns the root's cells (TRIAGE G #92).
+  returns the root's cells.
 -/
 
 module

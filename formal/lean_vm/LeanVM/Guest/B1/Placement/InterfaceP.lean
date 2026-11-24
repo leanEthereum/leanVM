@@ -13,7 +13,7 @@ import LeanVM.Guest.GuestConst
 import LeanVM.Guest.Data.Consts
 
 /-!
-# `certify_placement` (TRIAGE G #67): the interface
+# `certify_placement`: the interface
 
 `certify_placement(kappa_base, g_squares)` groups the committed columns into the
 runs sharing one `kappa_base` source (`COL_GROUP_START`, here `colGroupStart`; a column's `g^κ`

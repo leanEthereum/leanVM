@@ -15,7 +15,7 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«selector_tables»
 
 /-!
-# `selector_tables`, completely (TRIAGE G #69)
+# `selector_tables`, completely
 
 The point and its complements are the runs `(ept, p)`, `(ept1, p1)` (`stLin`); the buffer's base
 is `ese` (`256` words). The honest valuation `stVal` is the body evaluated on `layRd` of the point

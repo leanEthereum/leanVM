@@ -16,7 +16,7 @@ import LeanVM.Guest.Data.ValNames.«padding_weight__L0»
 import LeanVM.Guest.Data.ValNames.«padding_weight__L1»
 
 /-!
-# `padding_weight` (TRIAGE G #51)
+# `padding_weight`
 
 `padding_weight(rows, zeta, tau)` (the same source as the BLAKE2s-era guest's) hints
 the `τ + 1` bits of the word `W = rows + (2^τ - 1)`, pins them Boolean, reconstructs `W` from them
@@ -317,7 +317,7 @@ theorem lead_rest_iff {τ n : ℕ} (hτ : τ < 64) (hn : n ≤ 2 ^ τ) :
 
 /-! ## The meaning -/
 
-/-- **`padding_weight(rows, zeta, τ)`** (TRIAGE #38): `rows` is a row count
+/-- **`padding_weight(rows, zeta, τ)`**: `rows` is a row count
 `n ≤ 2^τ`, the `τ` words `zs` lie at `zeta`, and the function returns `paddingWeight zs n`
  with `lead` and `rest` (`lead_rest_iff`). -/
 def MeaningPaddingWeight (τ : ℕ) (rd : Reader) : List E → List E → Prop
