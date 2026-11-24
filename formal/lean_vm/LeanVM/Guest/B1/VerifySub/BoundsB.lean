@@ -52,10 +52,9 @@ def busGrindMax (fs : String → ℕ) : ℕ :=
 structure VsWordsOs (fs : String → ℕ) extends VsWords fs where
   Bnd : String → ℕ
   hleaf : OsLeafBounds fs Bnd
-  /-- Every frame below `2^32`, so `open_stacked`'s helpers' fresh instances fit
-  (`open_stacked_completeAtB_Spec`). -/
+  /-- Every frame below `2^32`, so `open_stacked`'s helpers' fresh instances fit (`helperBounds`). -/
   hfs : ∀ f, fs f < 2 ^ 32
-  /-- A skipped call's tail frame within its frame (`open_stacked_completeAtB_Spec`). -/
+  /-- A skipped call's tail frame within its frame. -/
   htl : ∀ f, fs (Memory.tailKey f) ≤ fs f
 
 /-- `verify_sub`'s own buffers: `8713` words. -/

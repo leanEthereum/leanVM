@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Merkle.LevelPopsP
 /-!
 # The honest run's levels pop the generator's hints
 
-`HonRun.sameStreams`: `lq_sameStreams` at the honest witness of `os_honest_proved` (`capW`, `flW`, the positions, rows and siblings of `osHonest_run`): level `l`'s entries are `Hints.levelHints (l = 0)` of its depth, its query count and its phase.
+`HonRun.sameStreams`: `lq_sameStreams` at the honest witness (`capW`, `flW`, the positions, rows and siblings of `osHonest`): level `l`'s entries are `Hints.levelHints (l = 0)` of its depth, its query count and its phase.
 -/
 
 namespace LeanVM.Guest.B1.Whir
