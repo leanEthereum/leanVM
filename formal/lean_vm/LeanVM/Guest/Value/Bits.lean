@@ -15,7 +15,7 @@ public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 /-!
 # Bits, counts and logs
 
-A count `n` is the g-power `gen ^ n` (`Statement/LeanVmVerifier.lean`'s `gpow`), an
+A count `n` is the g-power `gen ^ n` (`Statement/Verifier/Multilinear.lean`'s `gpow`), an
 integer word its bit pattern `eOfNat n`. The guest moves between the two with hinted bits
 (`hint_decompose_bits`, `hint_decompose_bits_exponent`, `zkDSL.md` §Hints), which it pins by
 booleanity (`b * b == b`, or the write-once `bits[i] = b * b`) and a reconstruction:
@@ -31,8 +31,8 @@ booleanity (`b * b == b`, or the write-once `bits[i] = b * b`) and a reconstruct
 * `rangeCheck_sound`: the ISA's range check in the exponent (`zkDSL.md` §Range checks) means
   `x = g^e` with `e < k` (`LogLt`), and `gen_pow_div_eq` reads a range-checked quotient
   `log(a / b) < k` as `a = b + c`;
-* `log2Ceil_certified` and `verify_log2_ceil_sound`: `verify_log2_ceil`'s two bounds
-  pin its hinted log to `max floor (log2Ceil W)` (`Statement/LeanVmVerifier.lean`, `log2Ceil`).
+* `log2Ceil_certified` and `verify_log2_ceil_sound`: `verify_log2_ceil`'s two bounds pin its hinted
+  log to `max floor (log2Ceil W)` (`Statement/Verifier/Multilinear.lean`, `log2Ceil`).
 -/
 
 namespace LeanVM.Guest.Value

@@ -1,4 +1,4 @@
-import Statement.LeanVmVerifier
+import Statement.Verifier.Lib
 
 /-!
 # The sponge's permutation input, compiled once per permutation

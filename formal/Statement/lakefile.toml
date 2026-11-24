@@ -39,8 +39,9 @@ name = "Statement"
 srcDir = ".."
 globs = ["Statement.Keccak", "Statement.RandomPermutation", "Statement.SufCma", "Statement.HashSignatures", "Statement.LeanXmss", "Statement.LeanSphincs",
   "Statement.Field", "Statement.LeanDa", "Statement.LeanIsa", "Statement.LeanVmVerifier",
-  "Statement.LeanVm", "Statement.LeanVmGuestBatching", "Statement.LeanVmGuest",
+  "Statement.LeanVm", "Statement.LeanVmCompleteness", "Statement.LeanVmGuestBatching", "Statement.LeanVmGuest",
   "Statement.LeanVmGuestProver", "Statement.LeanVmGuestCompleteness", "Statement.CostMachine",
+  "Statement.LeanVmExtractor",
   "Statement.Theorems",
   "Statement.Corollaries",
-  "Statement.Data.+", "Statement.Fast.+", "Statement.Prover.+"]
+  "Statement.Verifier.+", "Statement.Data.+", "Statement.Fast.+", "Statement.Prover.+"]

@@ -34,14 +34,14 @@ open LeanVM.Protocol.KeccakHash (keccak256With littleEndianLane)
 
 /-! ## The challenge's sponge as the proofs read it
 
-`lean_da`'s proofs read the membership challenge's duplex (`verifier/src/transcript.rs`)
-in this form, LeanDA's own transcription: the tags in `K`, the root's words as
-symbols of its bytes. The challenge needs only the sponge's seeding and its grind: the root is its
-public input, no scalar is observed, and each nonce is absorbed into a copy of the seeded sponge
-and permuted (`nonceInput`), the answer's lane `2` its proof of work and lanes `0, 1` the
-challenge it draws. The statement draws the challenge with the leanVM verifier's sponge
-(`Field.lean`'s `Sponge`, `seedInput`, `absorbNonce`, `squeeze`); `membershipChallengeM_eq_withHash`
-(`LeanDa.WithHashBridge`) proves the two the same. -/
+`lean_da`'s proofs read the membership challenge's duplex (`verifier/src/transcript.rs`) in this
+form, LeanDA's own transcription: the tags in `K`, the root's words as symbols of its bytes. The
+challenge needs only the sponge's seeding and its grind: the root is its public input, no scalar is
+observed, and each nonce is absorbed into a copy of the seeded sponge and permuted (`nonceInput`),
+the answer's lane `2` its proof of work and lanes `0, 1` the challenge it draws. The statement draws
+the challenge with the leanVM verifier's sponge (`Statement/Verifier/Sponge.lean`'s `Sponge`,
+`seedInput`, `absorbNonce`, `squeeze`); `membershipChallengeM_eq_withHash` (`LeanDa.WithHashBridge`)
+proves the two the same. -/
 
 /-- Lanes of the rate. -/
 def rateLanes : ℕ := 16

@@ -1,6 +1,6 @@
 module
 
-public import Statement.CostMachine
+public import Statement.LeanVmExtractor
 public import Statement.Fast.FieldWords
 
 /-!

@@ -21,7 +21,6 @@ expression, so the code and the price of the whole are what the rule's conclusio
 namespace LeanVM.Cost
 
 open LeanVM.Parameters
-open LeanVM.Protocol.Verifier (carryless)
 
 @[expose] public section
 

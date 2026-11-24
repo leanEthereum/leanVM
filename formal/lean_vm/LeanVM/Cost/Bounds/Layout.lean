@@ -2,7 +2,7 @@ module
 
 public import LeanVM.Cost.Bounds.Replay
 public import LeanVM.Cost.Bounds.Runner
-import all Statement.LeanVmVerifier
+import Statement.Verifier.Lib
 import all LeanVM.Protocol.Extraction.Fast.AfterRoot
 
 /-!

@@ -1,6 +1,7 @@
 module
 
 public import Statement.Field
+public import Statement.Verifier.Sponge
 public import Statement.RandomPermutation
 public import CompPoly.Fields.Binary.BF64
 public import CompPoly.Fields.Binary.AdditiveNTT.NovelPolynomialBasis
@@ -137,7 +138,7 @@ specified in `doc/leanvm/body/10-ethereum.tex`
   `da_verify`). The challenge is drawn
   from the root by leanVM's transcript (`membership_challenge`, `verifier/src/da.rs`): its
   sponge over Keccak-f[1600] seeded with the label's hash as its IV and the root as its public
-  input (`verifier/src/transcript.rs`, `Field.lean`'s `Sponge`), then a `10`-bit grind
+  input (`verifier/src/transcript.rs`, `Verifier/Sponge.lean`'s `Sponge`), then a `10`-bit grind
   whose nonce is the smallest valid one, not sent, and the ground challenge it draws
   (`absorbNonce`, `transcript.rs`); the end statements draw it by this duplex over the
   permutation (`membershipChallengeWith`). A root none of whose `2^64` nonces is valid has no
@@ -156,16 +157,16 @@ permutation. A digest is 32 bytes, `DigestBytes` (`fiat_shamir_prover::merkle::H
 /-! ### Shapes (`lib.rs`) -/
 
 /-- Payload symbols per row, as a logarithm (`LOG_BLOB_SYMBOLS`). -/
-def logK : ℕ := 13
+abbrev logK : ℕ := 13
 
 /-- Codeword symbols per row, as a logarithm: rate one half (`LOG_CODEWORD_SYMBOLS`). -/
-def logM : ℕ := 14
+abbrev logM : ℕ := 14
 
 /-- Symbols per cell (`CELL_SYMBOLS`). -/
-def cellSymbols : ℕ := 128
+abbrev cellSymbols : ℕ := 128
 
 /-- Cells per codeword (`CELLS_PER_ROW`). -/
-def cellsPerRow : ℕ := 128
+abbrev cellsPerRow : ℕ := 128
 
 /-- The log of the most rows the crate commits to (`DA_MAX_ROWS.ilog2()`). -/
 def logMaxRows : ℕ := 5
@@ -175,49 +176,57 @@ def maxRows : ℕ := 2 ^ logMaxRows
 
 /-- A row's payload: symbols of `E` (`Symbol`, a 128-bit word whose low and high halves are the
 limbs `c0`, `c1` of `c0 + c1·y`). -/
-abbrev Payload := Fin (2 ^ 13) → E
+abbrev Payload := Fin (2 ^ logK) → E
 
 /-- A codeword, in domain order. -/
-abbrev Row := Fin (2 ^ 14) → E
+abbrev Row := Fin (2 ^ logM) → E
 
 /-- A sampling cell. -/
-abbrev Cell := Fin 128 → E
+abbrev Cell := Fin cellSymbols → E
 
 /-! ### The code (`encode.rs`) -/
 
 /-- The polynomial of `E[X]` of degree below `2^13` taking the payload's values on the points
 `0 … 2^13 - 1` (`inverse_transform`, on each limb). -/
 noncomputable def interpolate (p : Payload) : E[X] :=
-  Lagrange.interpolate Finset.univ (fun a : Fin (2 ^ 13) ↦ ι (point a)) p
+  Lagrange.interpolate Finset.univ (fun a : Fin (2 ^ logK) ↦ ι (point a)) p
 
 /-- **The systematic encoding of a payload** (`encode_rows`): its polynomial's values on all
 `2^14` points (`encode_interleaved_in_place`, on each limb). -/
 noncomputable def encodeRow (p : Payload) : Row := fun b ↦ (interpolate p).eval (ι (point b))
 
 /-- Cell `j` of a codeword: its symbols `128 j … 128 j + 127`. -/
-def rowCell (row : Row) (j : Fin 128) : Cell := fun s ↦ row ⟨128 * j + s, by omega⟩
+def rowCell (row : Row) (j : Fin cellsPerRow) : Cell := fun s ↦
+  row ⟨cellSymbols * j + s, by
+    have := j.isLt; have := s.isLt; simp only [cellSymbols, cellsPerRow, logM] at *; omega⟩
 
 /-- The position of cell `j` of row `i`. -/
-def cellPosition {r : ℕ} (i : Fin r) (j : Fin 128) : Fin (r * 128) := ⟨128 * i + j, by omega⟩
+def cellPosition {r : ℕ} (i : Fin r) (j : Fin cellsPerRow) : Fin (r * cellsPerRow) :=
+  ⟨cellsPerRow * i + j, by have := i.isLt; have := j.isLt; simp only [cellsPerRow] at *; omega⟩
 
 /-- The row of a position. -/
-def positionRow {r : ℕ} (p : Fin (r * 128)) : Fin r := ⟨p / 128, by omega⟩
+def positionRow {r : ℕ} (p : Fin (r * cellsPerRow)) : Fin r :=
+  ⟨p / cellsPerRow, by have := p.isLt; simp only [cellsPerRow] at *; omega⟩
 
 /-- The cell of a position within its row. -/
-def positionCell {r : ℕ} (p : Fin (r * 128)) : Fin 128 := ⟨p % 128, by omega⟩
+def positionCell {r : ℕ} (p : Fin (r * cellsPerRow)) : Fin cellsPerRow :=
+  ⟨p % cellsPerRow, Nat.mod_lt _ (by decide)⟩
 
 /-- The cells of a matrix of encoded payloads. -/
-noncomputable def encodeMatrix {r : ℕ} (message : Fin r → Payload) : Fin (r * 128) → Cell :=
+noncomputable def encodeMatrix {r : ℕ} (message : Fin r → Payload) :
+    Fin (r * cellsPerRow) → Cell :=
   fun p ↦ rowCell (encodeRow (message (positionRow p))) (positionCell p)
 
 /-- Row `i` of a matrix given by its cells. -/
-def matrixRow {r : ℕ} (cells : Fin (r * 128) → Cell) (i : Fin r) : Row :=
-  fun b ↦ cells (cellPosition i ⟨b / 128, by omega⟩) ⟨b % 128, by omega⟩
+def matrixRow {r : ℕ} (cells : Fin (r * cellsPerRow) → Cell) (i : Fin r) : Row := fun b ↦
+  cells (cellPosition i ⟨b / cellSymbols, by
+      have := b.isLt; simp only [cellSymbols, cellsPerRow, logM] at *; omega⟩)
+    ⟨b % cellSymbols, Nat.mod_lt _ (by decide)⟩
 
 /-- The cells of the matrix whose rows are `rows`, codewords as lists of symbols: cell `j` of row
 `i` at position `128 i + j`. -/
-def cellsOfRows (rows : List (List E)) : Fin (rows.length * 128) → Cell :=
-  fun p s ↦ (rows.getD (p / 128) []).getD (128 * (p % 128) + s) 0
+def cellsOfRows (rows : List (List E)) : Fin (rows.length * cellsPerRow) → Cell :=
+  fun p s ↦ (rows.getD (p / cellsPerRow) []).getD (cellSymbols * (p % cellsPerRow) + s) 0
 
 /-- **LeanDA's hash** over a permutation `π` of the Keccak state in any monad: Keccak-256 over `π`
 (`keccak256With`), its digest's 32 bytes (`Digest.toBytes`). The crate's is Keccak-256 over
@@ -243,8 +252,8 @@ def pairBytes (a b : DigestBytes) : List UInt8 := a.toList ++ b.toList
 def countBytes (r : ℕ) : DigestBytes := Vector.ofFn fun i : Fin 32 ↦ UInt8.ofNat (r / 256 ^ (i : ℕ))
 
 /-- Cell `j` of row `i` of the matrix padded to `maxRows` rows: zero below the `r` rows. -/
-def paddedCell {r : ℕ} (cells : Fin (r * 128) → Cell) (i j : ℕ) : Cell :=
-  if h : i < r ∧ j < 128 then cells (cellPosition ⟨i, h.1⟩ ⟨j, h.2⟩) else 0
+def paddedCell {r : ℕ} (cells : Fin (r * cellsPerRow) → Cell) (i j : ℕ) : Cell :=
+  if h : i < r ∧ j < cellsPerRow then cells (cellPosition ⟨i, h.1⟩ ⟨j, h.2⟩) else 0
 
 /-- The other node of the pair of node `index`. -/
 def sibling (index : ℕ) : ℕ := if index % 2 = 0 then index + 1 else index - 1
@@ -289,23 +298,24 @@ def merklePathWith : ℕ → (ℕ → m DigestBytes) → ℕ → m (List DigestB
 
 /-- The leaves of padded row `i`'s tree: its `128` cell digests, `e_{i,j} = H(W_{i,j})`
 (`blob_merkle_nodes`). -/
-def cellLeavesWith {r : ℕ} (cells : Fin (r * 128) → Cell) (i j : ℕ) : m DigestBytes :=
+def cellLeavesWith {r : ℕ} (cells : Fin (r * cellsPerRow) → Cell) (i j : ℕ) : m DigestBytes :=
   keccakDigestBytes π (cellBytes (paddedCell cells i j))
 
-/-- **The blob root of padded row `i`**: the Merkle root of its cell digests (`blob_merkle_nodes`; a
-padding row's is `root_of_padding_blob`). -/
-def blobRootWith {r : ℕ} (cells : Fin (r * 128) → Cell) (i : ℕ) : m DigestBytes :=
+/-- **The blob root of padded row `i`**: the Merkle root of its cell digests, a tree of depth `7`,
+`2 ^ 7 = cellsPerRow` (`blob_merkle_nodes`; a padding row's is `root_of_padding_blob`). -/
+def blobRootWith {r : ℕ} (cells : Fin (r * cellsPerRow) → Cell) (i : ℕ) : m DigestBytes :=
   merkleRootWith π 7 (cellLeavesWith π cells i)
 
 /-- **The commitment to a matrix** (`BlobMatrix::commitment`): the Merkle root of the padded rows'
 blob roots, hashed with the row count (`mix_in_count`). -/
-def commitCellsWith {r : ℕ} (cells : Fin (r * 128) → Cell) : m DigestBytes := do
+def commitCellsWith {r : ℕ} (cells : Fin (r * cellsPerRow) → Cell) : m DigestBytes := do
   let tree ← merkleRootWith π logMaxRows (blobRootWith π cells)
   keccakDigestBytes π (pairBytes tree (countBytes r))
 
 /-- The honest opening of a position (`BlobMatrix::merkle_path_for_cell`): the cell's path in its blob's tree, then
 its blob root's in the tree over the blob roots. -/
-def openCellWith {r : ℕ} (cells : Fin (r * 128) → Cell) (p : Fin (r * 128)) : m CellOpening := do
+def openCellWith {r : ℕ} (cells : Fin (r * cellsPerRow) → Cell) (p : Fin (r * cellsPerRow)) :
+    m CellOpening := do
   let low ← merklePathWith π 7 (cellLeavesWith π cells (positionRow p)) (positionCell p)
   let high ← merklePathWith π logMaxRows (blobRootWith π cells) (positionRow p)
   pure ⟨low ++ high⟩
@@ -317,22 +327,24 @@ def climbWith : ℕ → DigestBytes → List DigestBytes → m DigestBytes
     let d ← keccakDigestBytes π (if index % 2 = 0 then pairBytes node s else pairBytes s node)
     climbWith (index / 2) d rest
 
-/-- **Verification of a cell opening** (`verify_cell`): a path of `7 + logMaxRows` siblings, then
-the row count's word, climbs from the cell's digest, at index `128 i + j` (the position: `j` in its
-blob's tree, then `i` in the tree over the blob roots), to the commitment. For `r ≤ maxRows` rows the
-last step is at index `0`, the crate's `mix_in_count`. The crate also refuses `r > maxRows` rows. -/
-def verifyCellWith (r : ℕ) (commitment : DigestBytes) (position : Fin (r * 128)) (cell : Cell)
-    (opening : CellOpening) : m Bool := do
+/-- **Verification of a cell opening** (`verify_cell`): a path of `7 + logMaxRows` siblings
+(`MERKLE_PATH_LEN`, `commit.rs`: a blob's tree, `2 ^ 7 = cellsPerRow`, then the tree over the rows),
+then the row count's word, climbs from the cell's digest, at index `128 i + j` (the position: `j` in
+its blob's tree, then `i` in the tree over the blob roots), to the commitment. For `r ≤ maxRows`
+rows the last step is at index `0`, the crate's `mix_in_count`. The crate also refuses `r > maxRows`
+rows. -/
+def verifyCellWith (r : ℕ) (commitment : DigestBytes) (position : Fin (r * cellsPerRow))
+    (cell : Cell) (opening : CellOpening) : m Bool := do
   let d ← keccakDigestBytes π (cellBytes cell)
   let root ← climbWith π position d (opening.path ++ [countBytes r])
   pure (decide (opening.path.length = 7 + logMaxRows) && decide (root = commitment))
 
 /-! ### The membership challenge (`verifier/src/da.rs`)
 
-Drawn from the root by the duplex sponge of the leanVM verifier (`Field.lean`: `Sponge`,
-`seedInput`, `absorbNonce`, `squeeze`), over the permutation `π`
-(`verifier/src/transcript.rs`), after a grind whose nonce is not sent: the smallest valid
-one, which anyone deriving the challenge finds. -/
+Drawn from the root by the duplex sponge of the leanVM verifier (`Verifier/Sponge.lean`: `Sponge`,
+`seedInput`, `absorbNonce`, `squeeze`), over the permutation `π` (`verifier/src/transcript.rs`),
+after a grind whose nonce is not sent: the smallest valid one, which anyone deriving the challenge
+finds. -/
 
 /-- `MEMBERSHIP_GRINDING_BITS` (`verifier/src/da.rs`): `grinding_bits(2^13 - 1)`, the bits
 that bring the membership test's error `(2^13 - 1) / 2^128` to `2^-125`,
@@ -377,38 +389,39 @@ def membershipChallengeWith (root : DigestBytes) : m (Option E) := do
 end Monadic
 
 /-- **The commitment to a matrix** over a permutation `π` (`commitCellsWith` over `Id`). -/
-def commitCells (π : KeccakState → KeccakState) {r : ℕ} (cells : Fin (r * 128) → Cell) :
+def commitCells (π : KeccakState → KeccakState) {r : ℕ} (cells : Fin (r * cellsPerRow) → Cell) :
     DigestBytes :=
   Id.run (commitCellsWith (fun x ↦ pure (π x)) cells)
 
 /-- The honest opening of a position over a permutation `π` (`openCellWith` over `Id`). -/
-def openCell (π : KeccakState → KeccakState) {r : ℕ} (cells : Fin (r * 128) → Cell)
-    (p : Fin (r * 128)) : CellOpening :=
+def openCell (π : KeccakState → KeccakState) {r : ℕ} (cells : Fin (r * cellsPerRow) → Cell)
+    (p : Fin (r * cellsPerRow)) : CellOpening :=
   Id.run (openCellWith (fun x ↦ pure (π x)) cells p)
 
 /-! ### Membership (`verifier/src/da.rs`, the guest program's `da_vector`) -/
 
 /-- The normalized subspace polynomial `Ŵ_j`, vanishing on the span of `e_0 … e_(j-1)` and one
 at `e_j` (CompPoly's `normalizedW`; `vhat` in `aggregation`'s `placeholders.rs` tabulates it, the NTT's twiddles). -/
-noncomputable def normalizedSubspacePolynomial (j : Fin 13) : K[X] :=
-  AdditiveNTT.normalizedW (ZMod 2) basis (Fin.castLE (by omega) j)
+noncomputable def normalizedSubspacePolynomial (j : Fin logK) : K[X] :=
+  AdditiveNTT.normalizedW (ZMod 2) basis (Fin.castLE (by decide) j)
 
 /-- **The dual codeword of the challenge `z`** (the guest program's
 `da_vector`): `L(x) = ∏_j (1 + z^(2^j) Ŵ_j(x))` on the domain. -/
-noncomputable def dualCodewordAt (z : E) (b : Fin (2 ^ 14)) : E :=
-  ∏ j : Fin 13, (1 + z ^ 2 ^ (j : ℕ) * ι ((normalizedSubspacePolynomial j).eval (point b)))
+noncomputable def dualCodewordAt (z : E) (b : Fin (2 ^ logM)) : E :=
+  ∏ j : Fin logK, (1 + z ^ 2 ^ (j : ℕ) * ι ((normalizedSubspacePolynomial j).eval (point b)))
 
 /-- The inner product of the dual codeword with a row: `Σ_x L(x) row(x)` (the guest program's `da_verify`). -/
-noncomputable def innerProduct (L : Fin (2 ^ 14) → E) (row : Row) : E := ∑ b, L b * row b
+noncomputable def innerProduct (L : Fin (2 ^ logM) → E) (row : Row) : E := ∑ b, L b * row b
 
 /-- **The membership check**: every row is orthogonal to the dual codeword of `z`. -/
-noncomputable def membershipCheck {r : ℕ} (z : E) (cells : Fin (r * 128) → Cell) : Bool :=
+noncomputable def membershipCheck {r : ℕ} (z : E) (cells : Fin (r * cellsPerRow) → Cell) : Bool :=
   decide (∀ i : Fin r, innerProduct (dualCodewordAt z) (matrixRow cells i) = 0)
 
 /-- **The membership check of a root's challenge**: the check on the challenge, or, for a root
 with no valid nonce (where the deployed verifier never returns), the check on every challenge,
 which only codewords pass. -/
-noncomputable def membershipCheckOpt {r : ℕ} (z : Option E) (cells : Fin (r * 128) → Cell) : Bool :=
+noncomputable def membershipCheckOpt {r : ℕ} (z : Option E) (cells : Fin (r * cellsPerRow) → Cell) :
+    Bool :=
   match z with
   | some z => membershipCheck z cells
   | none => @decide (∀ z : E, membershipCheck z cells = true) (Classical.propDecidable _)
@@ -416,14 +429,15 @@ noncomputable def membershipCheckOpt {r : ℕ} (z : Option E) (cells : Fin (r * 
 /-! ## LeanDA's code and the argument's relation -/
 
 /-- **LeanDA's erasure code**: `r` payloads, encoded row by row and cut into cells. -/
-noncomputable def leanDaErasureCode (r : ℕ) : ErasureCode Payload Cell r (r * 128) := ⟨encodeMatrix⟩
+noncomputable def leanDaErasureCode (r : ℕ) : ErasureCode Payload Cell r (r * cellsPerRow) :=
+  ⟨encodeMatrix⟩
 
 /-- **The relation the argument proves**, over a permutation `π` in any monad: the cells commit to
 the root and pass the membership test on the root's challenge, drawn by the deployed duplex
 (`membershipChallengeWith`), the hash Keccak-256 over `π`. In the games `π` is `π`
 (`queryPermutation`). -/
 noncomputable def relationWith {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState) {r : ℕ}
-    (root : DigestBytes) (cells : Fin (r * 128) → Cell) : m Bool := do
+    (root : DigestBytes) (cells : Fin (r * cellsPerRow) → Cell) : m Bool := do
   let z ← membershipChallengeWith π root
   let d ← commitCellsWith π cells
   pure (decide (d = root) && membershipCheckOpt z cells)
@@ -467,12 +481,12 @@ def OracleArgument.PerfectlyComplete {Stmt Wit Crs Proof : Type}
 
 /-- **LeanDA's relation for a permutation `π`**: `relationWith` over `π`. -/
 noncomputable def relationForPermutation (r : ℕ) (π : Equiv.Perm KeccakState) (root : DigestBytes)
-    (cells : Fin (r * 128) → Cell) : Bool :=
+    (cells : Fin (r * cellsPerRow) → Cell) : Bool :=
   Id.run (relationWith (fun x ↦ pure (π x)) root cells)
 
 /-- An argument for LeanDA's relation: the statement a root, the witness the cells. -/
 abbrev LeanDaArgument (r : ℕ) (Crs Proof : Type) :=
-  OracleArgument DigestBytes (Fin (r * 128) → Cell) Crs Proof
+  OracleArgument DigestBytes (Fin (r * cellsPerRow) → Cell) Crs Proof
 
 /-! ## The games in the random-permutation model
 
@@ -484,14 +498,14 @@ prover and verifier, and LeanDA's verifier. A game is run against the lazily sam
 once, and each opening's path. -/
 
 variable (r : ℕ) {Crs Proof : Type} (argument : LeanDaArgument r Crs Proof)
-  (extractor : StraightLineExtractor DigestBytes (Fin (r * 128) → Cell) Crs Proof)
+  (extractor : StraightLineExtractor DigestBytes (Fin (r * cellsPerRow) → Cell) Crs Proof)
 
 /-- A position-binding adversary: from the commitment key, a commitment, a position, and two cells
 with their openings. -/
 abbrev PositionBindingAdversary (Crs Proof : Type) :=
   Unit × Crs →
     OracleComp RandomPermutationOracles
-      ((DigestBytes × Proof) × Fin (r * 128) × Cell × CellOpening × Cell × CellOpening)
+      ((DigestBytes × Proof) × Fin (r * cellsPerRow) × Cell × CellOpening × Cell × CellOpening)
 
 /-- **The position-binding game**: the argument's setup, the adversary, then the verifications:
 the argument's of the root's proof and the two openings'; it wins when all verify, at two
@@ -510,7 +524,7 @@ positions. -/
 abbrev CodeBindingAdversary (Crs Proof : Type) :=
   Unit × Crs →
     OracleComp RandomPermutationOracles
-      ((DigestBytes × Proof) × List (Fin (r * 128) × Cell × CellOpening))
+      ((DigestBytes × Proof) × List (Fin (r * cellsPerRow) × Cell × CellOpening))
 
 /-- **The code-binding game**: the argument's setup, the adversary, then the verifications; it wins
 when the root's proof and every opening verify and no codeword agrees with the opened cells. -/
@@ -547,7 +561,8 @@ message `message`, the commitment to its encoding's cells with Keccak-256 over `
 honest proof for the root and its verification, both with the oracles answered by `π`; and the
 verification of the encoding's cell at `position` with its honest opening. -/
 noncomputable def completenessExperiment (π : Equiv.Perm KeccakState)
-    (argument : LeanDaArgument r Crs Proof) (message : Fin r → Payload) (position : Fin (r * 128)) :
+    (argument : LeanDaArgument r Crs Proof) (message : Fin r → Payload)
+    (position : Fin (r * cellsPerRow)) :
     ProbComp Bool := do
   let crs ← argument.setup
   let cells := (leanDaErasureCode r).encode message
@@ -570,7 +585,7 @@ Wagner's completeness proof, transferred. Proved by `LeanDa.leanDa_perfectlyComp
 abbrev LeanDaPerfectlyComplete : Prop :=
   ∀ (r : ℕ) (π : Equiv.Perm KeccakState) {Crs Proof : Type} (argument : LeanDaArgument r Crs Proof),
     r ≤ maxRows → argument.PerfectlyComplete (relationForPermutation r) →
-      ∀ (message : Fin r → Payload) (position : Fin (r * 128)),
+      ∀ (message : Fin r → Payload) (position : Fin (r * cellsPerRow)),
         Pr{let b ← completenessExperiment r π argument message position}[b = true] = 1
 
 /-- **LeanDA is position binding in the random-permutation model.** For every argument `argument`
@@ -623,7 +638,8 @@ The theorem covers arguments whose relation is evaluated over `π`. Proved by
 `LeanDa.leanDa_codeBinding_rpm_bound`. -/
 abbrev LeanDaCodeBinding : Prop :=
   ∀ (r : ℕ) {Crs Proof : Type} (argument : LeanDaArgument r Crs Proof)
-    (extractor : StraightLineExtractor DigestBytes (Fin (r * 128) → Cell) Crs Proof) (c k : ℕ),
+    (extractor : StraightLineExtractor DigestBytes (Fin (r * cellsPerRow) → Cell) Crs Proof)
+    (c k : ℕ),
     (∀ (adversary : KnowledgeSoundnessAdversary Crs Proof) (q : ℕ),
       QueryCostAtMost (knowledgeSoundnessGame r argument extractor adversary) permutationCallCost
         q →

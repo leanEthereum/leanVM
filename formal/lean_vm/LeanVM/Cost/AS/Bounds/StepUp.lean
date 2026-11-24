@@ -5,7 +5,7 @@ import all LeanVM.Protocol.Whir.Sound.DescentT
 import all LeanVM.Protocol.Whir.Sound.LowMsgC
 import all LeanVM.Protocol.Whir.Sound.StackA
 import all Statement.Prover.Ntt
-import all Statement.LeanVmVerifier
+import Statement.Verifier.Lib
 import all LeanVM.Protocol.Whir.Sound.State
 import all LeanVM.Protocol.Whir.Sound.DescentC
 import all LeanVM.Protocol.Whir.Params.Check

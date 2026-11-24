@@ -8,7 +8,7 @@
 
 module
 
-public import Statement.LeanVmVerifier
+public import Statement.Verifier.Lib
 
 /-!
 # The verifier with a hash of its own

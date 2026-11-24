@@ -1,6 +1,6 @@
 module
 
-public import Statement.LeanVmVerifier
+public import Statement.Verifier.Lib
 
 /-!
 # Tables as arrays

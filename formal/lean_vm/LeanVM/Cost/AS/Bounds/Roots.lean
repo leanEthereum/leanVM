@@ -8,7 +8,7 @@ import all LeanVM.Protocol.EndToEnd.Sound.SkelFront
 import all LeanVM.Protocol.EndToEnd.Sound.SkelBus
 import all LeanVM.Protocol.EndToEnd.Sound.SkelLeaves
 import all LeanVM.Protocol.EndToEnd.Sound.Avail
-import all Statement.LeanVmVerifier
+import Statement.Verifier.Lib
 
 /-!
 # The replay's roots

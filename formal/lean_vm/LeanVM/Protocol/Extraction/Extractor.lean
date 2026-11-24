@@ -41,7 +41,7 @@ deterministic.
 
 **Where it was.** These pieces were the trusted statement's (`Statement/Extractor.lean`,
 `Statement/LeanVm.lean`) until the end statement took the extractor as a cost-machine program
-within a size bound and a budget (`LeanVM.extractorComputedBy`, `Statement/CostMachine.lean`):
+within a size bound and a budget (`LeanVM.extractorComputedBy`, `Statement/LeanVmExtractor.lean`):
 moved here verbatim, but for the address indices and the public boundary (`powIndex`, `gLogIn`,
 `boundaryOK`, `Statement/Prover/Witness.lean`), which the statement keeps for the honest prover.
 

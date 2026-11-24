@@ -24,19 +24,20 @@ import LeanVM.Protocol.ErrorBounds
 /-!
 # The batching in the random-permutation model
 
-`batch_rom` bounds the batching with Keccak-256 and Keccak-f[1600] independent random oracles.
-Here both are built from one random permutation `π`, which the adversary queries forward and
-inverse (`Rpm.runAdversaryThen`; `Rpm.detRun` for a deterministic adversary): `batch_rpm` bounds the probability that the batching program
-(`boundedBatchingProgram M bytecode`, from its seeding `batchSeedOf`) accepts a proof that begins with fewer than
-`M` children of the bytecode's shapes one of whose claims is false (`SomeChildClaimFalse`) by
-`batch_rom`'s bound at the adversary's `QA` queries, plus `rpmError (QA + QV · 2^32)`, `QV` the
-program's query bound, each query at most `2^32` permutation calls. `batch_rpm_bits`: for
-`QA + QV ≤ 2^64`, at most `(QA + QV) · max(2M - 3, 8) · 2^-128`. `batch_bound_le`: for `QA ≤ 2^128`
-and `QV ≤ 2^96`, at most `(QA + QV + 1) · max(2M - 3, 8) · 2^-130 + 5 (QA + QV)² · 2^-256`, the
-per-query `max(2M - 3, 8) · 2^-130` being `batchε M`: a round's `2/|E|`, or `λ`'s `(2M - 3)/|E|`
-through its proof of work of `2` bits (`RomSpec.lean`); `batch_sound_holds` is it as
-the end statement `BatchingSound` of `Statement/LeanVmGuestCompleteness.lean` states it: the verifier written out
-(`runBatching`, the seeding `F(H(label) ‖ 0)` then the program).
+`batch_rom` bounds the batching with Keccak-256 and Keccak-f[1600] independent random oracles. Here
+both are built from one random permutation `π`, which the adversary queries forward and inverse
+(`Rpm.runAdversaryThen`; `Rpm.detRun` for a deterministic adversary): `batch_rpm` bounds the
+probability that the batching program (`boundedBatchingProgram M bytecode`, from its seeding
+`batchSeedOf`) accepts a proof that begins with fewer than `M` children of the bytecode's shapes one
+of whose claims is false (`SomeChildClaimFalse`) by `batch_rom`'s bound at the adversary's `QA`
+queries, plus `rpmError (QA + QV · 2^32)`, `QV` the program's query bound, each query at most `2^32`
+permutation calls. `batch_rpm_bits`: for `QA + QV ≤ 2^64`, at most `(QA + QV) · max(2M - 3, 8) ·
+2^-128`. `batch_bound_le`: for `QA ≤ 2^128` and `QV ≤ 2^96`, at most `(QA + QV + 1) · max(2M - 3, 8)
+· 2^-130 + 5 (QA + QV)² · 2^-256`, the per-query `max(2M - 3, 8) · 2^-130` being `batchε M`: a
+round's `2/|E|`, or `λ`'s `(2M - 3)/|E|` through its proof of work of `2` bits (`RomSpec.lean`);
+`batch_sound_holds` is it as the end statement `BatchingSound` of
+`Statement/LeanVmGuestBatching.lean` states it: the verifier written out (`runBatching`, the seeding
+`F(H(label) ‖ 0)` then the program).
 
 The proof is `Rpm.detRun_le_rom` with `batch_rom` (and, for an adversary with coins, first
 `Rpm.rpmRun_le_det`, `Coins.lean`): the program follows the duplex discipline (its
@@ -260,7 +261,7 @@ theorem verifierFam_eq_batchRun (M : ℕ) (bytecode : List K) :
   simp only [verifierComp, Rom.verify, Seed.run, batchSeedOf, Seed.hsRun, runBatchingWithHash,
     bind_assoc, pure_bind, List.nil_append, List.getD_cons_zero]
 
-/-- **`BatchingSound`** (`Statement/LeanVmGuestCompleteness.lean`): the adversary's coins do not
+/-- **`BatchingSound`** (`Statement/LeanVmGuestBatching.lean`): the adversary's coins do not
 help (`rpmRun_le_det`), then `batch_rpm` and `batch_bound_le`. -/
 theorem batchingSoundWithHash_holds : BatchingSoundWithHash := by
   intro M bytecode hb hM B QA hB hQA hQV
@@ -269,8 +270,8 @@ theorem batchingSoundWithHash_holds : BatchingSoundWithHash := by
     (fun z ↦ z.2 = true ∧ SomeChildClaimFalse bytecode M z.1.2)
   exact hle.trans ((batch_rpm hb hM A QA hA).trans (batch_bound_le hQA hQV))
 
-/-- **`BatchingSound`** (`Statement/LeanVmGuestCompleteness.lean`): the game over `π` is the experiment with
-the two calls (`batchingSound_of_withHash`). -/
+/-- **`BatchingSound`** (`Statement/LeanVmGuestBatching.lean`): the game over `π` is the experiment
+with the two calls (`batchingSound_of_withHash`). -/
 theorem batch_sound_holds : BatchingSound :=
   batchingSound_of_withHash batchingSoundWithHash_holds
 

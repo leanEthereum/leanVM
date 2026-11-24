@@ -105,7 +105,7 @@ theorem readers_val {m : ℕ}
         ih (by omega) _ (proj_lt n (by omega)).2]
 
 theorem readerMasks_proj : ∀ k < 47, ∀ j < 16,
-    ((readerMasks 111).getD (projOut.getD k 0) 0).testBit j = (projectLit.getD j 0).testBit k := by
+    ((readerMasks 111).getD (projOut.getD k 0) 0).testBit j = (rmfeProject.getD j 0).testBit k := by
   decide +kernel
 
 theorem projOut_lt : ∀ k < 47, projOut.getD k 0 < 127 := by decide +kernel
@@ -182,7 +182,7 @@ theorem proj_eq {muB : ℕ} {tab : List PPos} (hl : tab.length = 47) {c : Keccak
       if mask.testBit b then some m else none) =
       ∑ i ∈ range c.mu.length, if (rmfeProject.getD i 0).testBit b = true then c.mu.getD i 0
         else 0 := hz
-  rw [hz', hmu, projIdx, sum_filter_range, rmfeProject_eq,
+  rw [hz', hmu, projIdx, sum_filter_range,
     List.getD_eq_getElem (tab.map _) _ (by simp [hl, hb']), List.getElem_map,
     List.getD_eq_getElem tab _ (by omega)]
   refine congrArg (· * _) (Finset.sum_congr rfl fun i hi ↦ ?_)

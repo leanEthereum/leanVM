@@ -21,14 +21,14 @@ import LeanVM.Guest.Data.Consts
 /-!
 # `verify_tables` (TRIAGE G #51, #52): the interface
 
-`verify_tables(fs0, …, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, table_rows, g_squares,
-fp_w, beta, claim_pool, chi, gkr_leaves, tabs, bc_point, stream)` (`G` the guest
-`guests/lean_ethereum.py` and `V` `Statement/LeanVmVerifier.lean`) settles the bus against the six tables: it certifies each side's blocks'
-offsets by a hinted order of its block groups (`busLayout`), certifies every table's log-height to
-be `max (log2Ceil rows) floor` (by `padding_weight`), reads the framework's four column claims,
-reduces the bytecode's share of its leaf by the slot sumcheck to one value of the stacked bytecode
-(`bytecodeShare`), decomposes the three GKR leaf values (`accumulateSide`), runs the one
-table sumcheck after its `ξ` grind (`tablePhase`) and binds the public input
+`verify_tables(fs0, …, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, table_rows, g_squares, fp_w,
+beta, claim_pool, chi, gkr_leaves, tabs, bc_point, stream)` (`G` the guest `guests/lean_ethereum.py`
+and `V` `Statement/Verifier/`) settles the bus against the six tables: it certifies each side's
+blocks' offsets by a hinted order of its block groups (`busLayout`), certifies every table's
+log-height to be `max (log2Ceil rows) floor` (by `padding_weight`), reads the framework's four
+column claims, reduces the bytecode's share of its leaf by the slot sumcheck to one value of the
+stacked bytecode (`bytecodeShare`), decomposes the three GKR leaf values (`accumulateSide`), runs
+the one table sumcheck after its `ξ` grind (`tablePhase`) and binds the public input
 (`publicInputPhase`). The bus's four claim values and the public input's two are pooled
 (`claim_pool`, slots `0 .. 3` and `157 .. 158`); the tables' `153` column evaluations stay where the
 stream holds them, and the function returns their address (`col_eval_words`).

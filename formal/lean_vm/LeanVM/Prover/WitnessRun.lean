@@ -12,7 +12,7 @@ public import Statement.Prover.Columns
 public import LeanVM.Arithmetization.Completeness.Theorem
 public import LeanVM.Protocol.Extraction.Run
 public import LeanVM.Protocol.EndToEnd.Front.LayoutStack
-public import Statement.LeanVm
+public import Statement.LeanVmCompleteness
 
 /-!
 # The run of a trace

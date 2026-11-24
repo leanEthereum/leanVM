@@ -2,7 +2,7 @@ module
 
 public import LeanVM.Cost.Bounds.ListLib
 public import LeanVM.Cost.Extractor.Replay
-import all Statement.LeanVmVerifier
+import Statement.Verifier.Lib
 import all Statement.Field
 import all LeanVM.Protocol.Extraction.Fast.AfterRoot
 

@@ -1,7 +1,7 @@
 module
 
 public import LeanVM.Prover.ExecuteComplete
-public import Statement.LeanVm
+public import Statement.LeanVmCompleteness
 
 /-!
 # The executor's execution commits no more than the reference

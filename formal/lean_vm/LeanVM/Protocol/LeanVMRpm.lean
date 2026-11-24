@@ -1,9 +1,9 @@
 /-
   LeanVM.Protocol.LeanVMRpm
 
-  The random-permutation model's transfer from the two-oracle random-oracle model, and the proof
-  of `LeanVM.Completeness` (`Statement/LeanVm.lean`); knowledge soundness is assembled from it in
-  `LeanVM/Protocol/LeanVMRpmAS.lean`.
+  The random-permutation model's transfer from the two-oracle random-oracle model, and the proof of
+  `LeanVM.Completeness` (`Statement/LeanVmCompleteness.lean`); knowledge soundness is assembled from
+  it in `LeanVM/Protocol/LeanVMRpmAS.lean`.
 -/
 
 module

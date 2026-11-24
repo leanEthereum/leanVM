@@ -8,7 +8,7 @@
 
 module
 
-public import Statement.LeanVm
+public import Statement.LeanVmCompleteness
 public import LeanVM.Protocol.Errors
 import LeanVM.Facts.Verifier
 import LeanVM.Protocol.Extraction.Defs

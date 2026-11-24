@@ -334,7 +334,7 @@ def ov (σ : Val) : Option ℕ → E
   | some q => σ (.n q)
 
 /-- The projection's reader of bit `b`: the indices of the masks with bit `b`. -/
-def projIdx (b : ℕ) : List ℕ := (List.range 16).filter fun i ↦ (projectLit.getD i 0).testBit b
+def projIdx (b : ℕ) : List ℕ := (List.range 16).filter fun i ↦ (rmfeProject.getD i 0).testBit b
 
 /-- The running sum's checks from position `k`: each reader is `R`'s (the indices of its
 values above `muB`), the first sum is the first product. -/

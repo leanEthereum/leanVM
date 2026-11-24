@@ -66,10 +66,9 @@ theorem bitE_eq_zero {b : Bool} (h : bitE b = 0) : b = false := by
   · exact absurd h one_ne_zero
 
 theorem rmfeEmbed_lt (i : ℕ) : rmfeEmbed.getD i 0 < 2 ^ 24 := by
-  rw [rmfeEmbed_eq]
   by_cases hi : i < 16
   · revert i; decide
-  · rw [List.getD_eq_default _ _ (by simp [embedLit]; omega)]; norm_num
+  · rw [List.getD_eq_default _ _ (by simp [rmfeEmbed]; omega)]; norm_num
 
 theorem embedMask_lt (m : ℕ) : embedMask m < 2 ^ 24 := by
   refine Nat.lt_pow_two_of_testBit _ fun c hc ↦ bitE_eq_zero ?_

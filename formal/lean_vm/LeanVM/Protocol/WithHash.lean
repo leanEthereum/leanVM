@@ -3,7 +3,8 @@
 
   The verifier, the honest prover and the random-permutation experiments with Keccak-256 a call of
   its own, beside the permutation: the form the proofs reason in. The statement's are over the
-  permutation alone (`Statement/LeanVmVerifier.lean`, `Statement/LeanVm.lean`), Keccak-256 the
+  permutation alone (`Statement/Verifier/Lib.lean`, `Statement/LeanVm.lean`,
+  `Statement/LeanVmCompleteness.lean`), Keccak-256 the
   sponge over it; `LeanVM.Protocol.WithHashBridge` proves them these with the sponge for the hash.
 -/
 
@@ -11,7 +12,7 @@ module
 
 import LeanVM.Protocol.Extraction.Extractor
 public import LeanVM.Protocol.RunWithHash
-public import Statement.LeanVm
+public import Statement.LeanVmCompleteness
 public import CompPoly.Univariate.Basic
 
 /-!

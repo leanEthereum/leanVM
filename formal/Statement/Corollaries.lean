@@ -44,7 +44,7 @@ execution is extracted, or the decoder program `guestWitnessDecoder`, run on it 
 (`LeanVmGuest.lean`), outputs the encoding of no decoding that explains `statement`
 (`ExplainsStatement`). It composes `KnowledgeSoundness`, `GuestKnowledgeSoundness` and
 `StatementDigestBinds`; its probability is at most the bound of `KnowledgeSoundness`,
-`(Q + 2^14) · 2^-125 + 5 (Q + 2^14)² · 2^-256`, for `Q ≤ 2^128` queries to `π`, `π⁻¹`.
+`(Q + 2^14) · 2^-125 + 5 (Q + 2^14)² · 2^-256`, for `Q` queries to `π`, `π⁻¹`.
 
 Keccak-256 and Keccak-f[1600] outside the executed program are built from `π`, so the verifier
 seeds its transcript with the IV over `π`; the statement's digest, its seed (`deployedSeed`, the IV
@@ -55,7 +55,7 @@ children's fresh claims is sound only outside the circuit (`LeanVmGuest.lean`). 
 def AggregateSound (guest : LeanIsaProgram) (guestWitnessDecoder : LeanVM.Cost.MachineProgram)
     (extractor : StraightLineExtractor) : Prop :=
   ∀ (adversary : RandomPermutationAdversary) (Q : ℕ),
-    Common.QueryCostAtMost adversary Common.permutationCallCost Q → Q ≤ 2 ^ 128 →
+    Common.QueryCostAtMost adversary Common.permutationCallCost Q →
     Pr{let outcome ← knowledgeSoundnessExperiment adversary}[∃ statement : NodeStatement,
       outcome.accepted ∧ outcome.program = guest ∧
       publicInputDigest outcome.input = statementDigest (deployedSeed guest) statement ∧
@@ -89,7 +89,7 @@ def GuestProverComplete : Prop :=
   ∀ (statement : NodeStatement) (witness : NodeWitness),
     NodeRelation (bytecodeWords guestProgram) (deployedSeed guestProgram) statement witness →
     DeployedLimits statement witness →
-    (∀ ρ : ℕ, 1 ≤ ρ ∧ ρ ≤ 4 →
+    (∀ ρ : ℕ, Whir.minLogInvRate ≤ ρ ∧ ρ ≤ Whir.maxLogInvRate →
       let input := PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) statement)
       Pr{let accepted ← Common.runWithRandomPermutation (do
           match ← guestProve Common.queryPermutation guestProgram statement witness ρ

@@ -1,13 +1,13 @@
 /-
   LeanVM.Protocol.Verifier
 
-  The leanVM verifier (`Statement.LeanVmVerifier`) on its files: decoding the bytecode, the public
+  The leanVM verifier (`Statement.Verifier.Lib`) on its files: decoding the bytecode, the public
   input and the scalar stream.
 -/
 
 module
 
-public import Statement.LeanVmVerifier
+public import Statement.Verifier.Lib
 import LeanVM.Facts.Verifier
 import Statement.Fast.Keccak
 import Statement.Fast.QuadExt
@@ -16,7 +16,7 @@ import Statement.Fast.FieldWords
 /-!
 # The verifier on its files
 
-The verifier is `Statement.LeanVmVerifier`. This module adds the decoders `lake exe leanvm-verify`
+The verifier is `Statement.Verifier.Lib`'s. This module adds the decoders `lake exe leanvm-verify`
 and `lake exe leanvm-prove` need to run it on the files the Rust prover's proofs are written to
 (`scripts/export-verifier-fixtures-rust.sh`).
 -/

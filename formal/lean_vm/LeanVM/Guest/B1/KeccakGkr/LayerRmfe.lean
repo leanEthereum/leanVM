@@ -141,7 +141,7 @@ def rmfeStores : List ℕ :=
   [666, 657, 673, 667, 669, 665, 661, 670, 662, 671, 659, 668, 655, 653, 672, 664]
 
 /-- The sum of the embeddings, as a mask. -/
-def embedXor : ℕ := embedLit.foldl (· ^^^ ·) 0
+def embedXor : ℕ := rmfeEmbed.foldl (· ^^^ ·) 0
 
 /-- The offsets of `keccak_layer`'s two specializations past `s`: `0` (`__L0`), `20` (`__L1`). -/
 def LayOff (o : ℕ) : Prop := o = 1 ∨ o = 21
@@ -150,7 +150,7 @@ def LayOff (o : ℕ) : Prop := o = 1 ∨ o = 21
 def rmfeCheck (o : ℕ) : Bool :=
   match maskRun (.n (o + 531)) [(.n (o + 531), 2)] (rmfeBlockT o) with
   | some st => (List.range 16).all (fun i ↦ st.lookup (.n (o + rmfeStores.getD i 0)) ==
-      some (embedLit.getD i 0)) && st.lookup (.n (o + 688)) == some embedXor
+      some (rmfeEmbed.getD i 0)) && st.lookup (.n (o + 688)) == some embedXor
   | none => false
 
 theorem rmfeCheck_true {o : ℕ} (ho : LayOff o) : rmfeCheck o = true := by
@@ -181,21 +181,20 @@ theorem pe_of_lt (m : ℕ) (hm : m < 2 ^ 24) (x : E) :
   rw [Nat.testBit_eq_false_of_lt (lt_of_lt_of_le hm (Nat.pow_le_pow_right (by norm_num) h24))]
   simp
 
-theorem embedLit_lt : ∀ e ∈ embedLit, e < 2 ^ 24 := by decide +kernel
+theorem lt_of_mem_rmfeEmbed : ∀ e ∈ rmfeEmbed, e < 2 ^ 24 := by decide +kernel
 
 /-- The instance weights at `s` are the embeddings' masks at `s`. -/
 theorem keccakInstanceWeights_pe (s : E) :
-    keccakInstanceWeights s = embedLit.map (fun e ↦ pe e s) := by
+    keccakInstanceWeights s = rmfeEmbed.map (fun e ↦ pe e s) := by
   simp only [keccakInstanceWeights]
-  rw [rmfeEmbed_eq]
   refine List.map_congr_left fun e he ↦ ?_
-  rw [sumE_filterMap_range, show embedBits = 24 from rfl, pe_of_lt e (embedLit_lt e he)]
+  rw [sumE_filterMap_range, show embedBits = 24 from rfl, pe_of_lt e (lt_of_mem_rmfeEmbed e he)]
   refine Finset.sum_congr rfl fun b hb ↦ ?_
   rw [powers_getD s (Finset.mem_range.1 hb)]
 
 theorem keccakInstanceWeights_getD_pe (s : E) {i : ℕ} (hi : i < 16) :
-    (keccakInstanceWeights s).getD i 0 = pe (embedLit.getD i 0) s := by
-  have hl : i < embedLit.length := hi
+    (keccakInstanceWeights s).getD i 0 = pe (rmfeEmbed.getD i 0) s := by
+  have hl : i < rmfeEmbed.length := hi
   rw [keccakInstanceWeights_pe, List.getD_eq_getElem _ _ (by simpa using hl),
     List.getD_eq_getElem _ _ hl, List.getElem_map]
 

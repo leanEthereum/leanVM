@@ -7,7 +7,7 @@ public import LeanVM.Protocol.KnowledgeSoundness
 # The extractor program
 
 `compiledKnowledgeExtractor`, the cost-machine program `LeanVM.theorems_hold` names as the end
-statement's extractor (`LeanVM.extractorComputedBy`, `Statement/CostMachine.lean`): the compiled
+statement's extractor (`LeanVM.extractorComputedBy`, `Statement/LeanVmExtractor.lean`): the compiled
 agreement-set extractor behind its entry (`Cost/AS/Program.lean`).
 
 * `extractorProgram_size_le`: its size is within `leanVmKnowledgeExtractorSizeBound`
