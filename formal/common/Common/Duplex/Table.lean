@@ -9,7 +9,7 @@ public import Common.Duplex.Lazy
 
 With the challenges sampled in advance as a table `g` (`eagerImpl`, `run'_romImpl_evalDistEq_eager`),
 the simulator and the random oracle `H` fold into one stateful implementation over `ProbComp`
-(`tabImpl`), whose steps are described here (`tabImpl_F_support`, …).
+(`tabImpl`), whose steps are described here (`tab_coin`, `tab_H`, `tab_F`).
 -/
 
 set_option linter.unusedSectionVars false

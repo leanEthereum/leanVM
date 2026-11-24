@@ -179,7 +179,7 @@ def listCellDigestWithHash (row : List E) (j : ℕ) : DigestBytes :=
 def listBlobRootWithHash (row : List E) : DigestBytes :=
   treeRootWithHash H ((List.range cellsPerRow).map (listCellDigestWithHash H row))
 
-/-- The digest of the zero cell (`padding_merkle_nodes`'s leaves). -/
+/-- The digest of the zero cell (`root_of_padding_blob`'s leaves). -/
 def paddingCellWithHash : DigestBytes := H ((List.replicate cellSymbols 0).flatMap E.toBytes)
 
 /-- The blob root of the zero codeword, which pads the tree over the blob roots
@@ -243,11 +243,11 @@ def merkleRootMWithHash : ℕ → (ℕ → m DigestBytes) → m DigestBytes
   | 0, f => f 0
   | d + 1, f => merkleRootMWithHash d (upMWithHash H f)
 
-/-- The leaves of padded row `i`'s tree over an oracle (`cellLeaves`). -/
+/-- The leaves of padded row `i`'s tree over an oracle (`cellLeavesWithHash`). -/
 def cellLeavesMWithHash {r : ℕ} (c : Fin (r * 128) → Cell) (i j : ℕ) : m DigestBytes :=
   H (cellBytes (paddedCell c i j))
 
-/-- The blob root of padded row `i` over an oracle (`blobRoot`). -/
+/-- The blob root of padded row `i` over an oracle (`blobRootWithHash`). -/
 def blobRootMWithHash {r : ℕ} (c : Fin (r * 128) → Cell) (i : ℕ) : m DigestBytes :=
   merkleRootMWithHash H 7 (cellLeavesMWithHash H c i)
 

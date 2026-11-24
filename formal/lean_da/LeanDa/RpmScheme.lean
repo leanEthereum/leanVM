@@ -40,7 +40,7 @@ namespace LeanDa
 
 /-! ## Lanes and bytes -/
 
-/-- A lane's bytes are the crate's (`kBytes`, `as_bytes`). -/
+/-- A lane's bytes are the crate's (`K.toBytes`, `as_bytes`). -/
 theorem laneBytes_toList (a : K) : (laneBytes a).toList = LeanVM.Parameters.K.toBytes a := by
   apply List.ext_getElem
   · simp [toBytes_eq_shift]

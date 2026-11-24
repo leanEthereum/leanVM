@@ -554,7 +554,7 @@ theorem keccak256With_rpm (data : List UInt8) :
 
 end Sponge
 
-/-- Keccak-256 over `keccakF` is the deployed Keccak-256. -/
+/-- Keccak-256 over `keccakF1600` is the deployed Keccak-256. -/
 theorem keccak256With_keccakF (data : List UInt8) :
     keccak256With (m := Id) keccakF1600 data = keccak256 data := rfl
 
