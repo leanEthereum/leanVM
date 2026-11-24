@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.17.0](https://github.com/leanEthereum/leanVM/compare/bindings-v0.16.0...bindings-v0.17.0) (2026-11-24)
+
+
+### ⚠ BREAKING CHANGES
+
+* the bindings' Sidecar API is replaced by in-process aggregate/from_bytes and setup(threads); the leanvm-sidecar binary and lean_vm's `sidecar` feature are removed.
+
+### Features
+
+* bindings prove in-process with jemalloc and runtime CPU tiers; remove the sidecar ([#848](https://github.com/leanEthereum/leanVM/issues/848)) ([be190e9](https://github.com/leanEthereum/leanVM/commit/be190e90a2797dd2a0778ff483554e6446536c49))
+* **bindings:** .NET bindings, packaged for NuGet as Ethereum.LeanPq ([#854](https://github.com/leanEthereum/leanVM/issues/854)) ([6337032](https://github.com/leanEthereum/leanVM/commit/63370326843afc1246e00f9a70b7527cff205b01))
+
 ## [0.16.0](https://github.com/leanEthereum/leanVM/compare/bindings-v0.15.0...bindings-v0.16.0) (2026-11-20)
 
 
