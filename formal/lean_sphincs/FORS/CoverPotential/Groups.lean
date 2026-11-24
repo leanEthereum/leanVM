@@ -490,18 +490,12 @@ theorem upper_pointX {X : Multiset View → ℝ≥0∞} (hX : Monotone' X) {s : 
 
 variable (parameter data m)
 
-/-- **One signing call, one term.** Averaged over the uniform start and the scan, the upper value of
-a monotone function of the disclosures is at most the group of the message applied to that function
-after one fresh slot. -/
-theorem sign_term (hparse : ∀ ρ call, model.parse (GraphView.pblk parameter data m ρ call) = none)
-    (hkind : ∀ ρ call, tg.kind (GraphView.pblk parameter data m ρ call) = .none)
-    {X : Multiset View → ℝ≥0∞} (hX : Monotone' X) (s : State) (hinv : PairInv parameter data m s)
-    (d : Multiset View) (excl : Pair → Prop) (budget : ℕ) :
-    ∑' out, Pr{let x ← (interp tg initial model
-          ((liftM ($ᵗ Randomness : ProbComp Randomness) : OracleComp CostSpec Randomness) >>= fun start =>
-            signCostSourceLoop parameter data m (data.step m) digestAttemptLimit start) budget s)}[x = out] *
-        (X d + (freshNewWeight parameter data m s (fun v => X (d + {v}) - X d) out +
-          outWeight parameter data m s 0 (fun ρ v => if excl (m, ρ) then 0 else X (d + {v}) - X d) out)) ≤
+/-- The base value and the averaged walks of a message are below its group after one fresh slot. -/
+theorem walk_avg_le_grpM {X : Multiset View → ℝ≥0∞} (hX : Monotone' X) (s : State) (d : Multiset View)
+    (excl : Pair → Prop) :
+    X d + (Fintype.card Randomness : ℝ≥0∞)⁻¹ * ∑ start, walk (nextRand (data.steps m)) landing (stOf parameter data m s)
+        (poolValue parameter data m s (fun ρ v => if excl (m, ρ) then 0 else X (d + {v}) - X d))
+        (freshAvg Finset.univ (fun v => X (d + {v}) - X d)) 0 digestAttemptLimit start ≤
       grpM parameter data s excl m (fun e => freshAvg Finset.univ fun v => X (e + {v})) d := by
   set gf : View → ℝ≥0∞ := fun v => X (d + {v}) - X d with hgf
   set gp : Randomness → View → ℝ≥0∞ := fun ρ v => if excl (m, ρ) then 0 else X (d + {v}) - X d with hgp
@@ -512,31 +506,6 @@ theorem sign_term (hparse : ∀ ρ call, model.parse (GraphView.pblk parameter d
     intro e
     calc X e = freshAvg Finset.univ (fun _ : View => X e) := (freshAvg_const _ Finset.univ_nonempty _).symm
       _ ≤ _ := freshAvg_mono _ fun v _ => hX _ _ (Multiset.le_add_right _ _)
-  -- the scan part
-  have hscan : ∑' out, Pr{let x ← (interp tg initial model
-        ((liftM ($ᵗ Randomness : ProbComp Randomness) : OracleComp CostSpec Randomness) >>= fun start =>
-          signCostSourceLoop parameter data m (data.step m) digestAttemptLimit start) budget s)}[x = out] *
-        (freshNewWeight parameter data m s gf out + outWeight parameter data m s 0 gp out) ≤
-      c * ∑ start, walk (nextRand (data.steps m)) landing (stOf parameter data m s) (poolValue parameter data m s gp)
-        (freshAvg Finset.univ gf) 0 digestAttemptLimit start := by
-    rw [interp_liftProb_bind, OracleComp.tsum_prEvent_bind_mul]
-    have hpr : ∀ ρ, Pr{let x ← ($ᵗ Randomness : ProbComp Randomness)}[x = ρ] = c := by
-      intro ρ
-      rw [SampleableType.prEvent_uniformSample_eq_singleton]
-    simp only [hpr]
-    rw [ENNReal.tsum_mul_left, tsum_fintype]
-    refine mul_le_mul' le_rfl (Finset.sum_le_sum fun start _ => ?_)
-    exact scan_bound_comb tg initial model parameter data m hparse hkind s hinv gf gp digestAttemptLimit
-      (by unfold digestAttemptLimit; norm_num) budget start
-  have hsum : ∑' out, Pr{let x ← (interp tg initial model
-        ((liftM ($ᵗ Randomness : ProbComp Randomness) : OracleComp CostSpec Randomness) >>= fun start =>
-          signCostSourceLoop parameter data m (data.step m) digestAttemptLimit start) budget s)}[x = out] *
-        (X d + (freshNewWeight parameter data m s gf out + outWeight parameter data m s 0 gp out)) ≤
-      X d + c * ∑ start, walk (nextRand (data.steps m)) landing (stOf parameter data m s) (poolValue parameter data m s gp)
-        (freshAvg Finset.univ gf) 0 digestAttemptLimit start := by
-    rw [tsum_congr fun out => mul_add _ _ _, tsum_add, ENNReal.tsum_mul_right]
-    exact add_le_add (mul_le_of_le_one_left' (OracleComp.tsum_prEvent_le_one _)) hscan
-  refine le_trans hsum ?_
   -- the base value joins every walk
   have hbase : X d = c * ∑ start : Randomness, walk (nextRand (data.steps m)) landing (stOf parameter data m s) (fun _ => X d)
       (X d) (X d) digestAttemptLimit start := by
@@ -552,14 +521,12 @@ theorem sign_term (hparse : ∀ ρ call, model.parse (GraphView.pblk parameter d
     unfold poolValue extOf
     cases h0 : pcache parameter data m s ρ with
     | none =>
-        simp only [Option.elim]
-        rw [add_zero]
+        simp only [Option.elim, add_zero]
         exact hX _ _ (Multiset.le_add_right _ _)
     | some u =>
         simp only [Option.elim]
         split_ifs with hl hx
-        · simp only [hgp, ite_eq_left hx, add_zero]
-          exact le_rfl
+        · simp only [hgp, ite_eq_left hx, add_zero, le_refl]
         · have hv : pview parameter data s (m, ρ) = viewOf u := pview_of_pcache (q := (m, ρ)) h0
           simp only [hgp, ite_eq_right hx, hv]
           rw [add_tsub_cancel_of_le (hX _ _ (Multiset.le_add_right _ _))]
@@ -585,6 +552,48 @@ theorem sign_term (hparse : ∀ ρ call, model.parse (GraphView.pblk parameter d
             hX _ _ (add_le_add (Multiset.le_add_right _ _) le_rfl)
   · rw [add_zero]
     exact hUX d
+
+/-- **One signing call, one term.** Averaged over the uniform start and the scan, the upper value of
+a monotone function of the disclosures is at most the group of the message applied to that function
+after one fresh slot. -/
+theorem sign_term (hparse : ∀ ρ call, model.parse (GraphView.pblk parameter data m ρ call) = none)
+    (hkind : ∀ ρ call, tg.kind (GraphView.pblk parameter data m ρ call) = .none)
+    {X : Multiset View → ℝ≥0∞} (hX : Monotone' X) (s : State) (hinv : PairInv parameter data m s)
+    (d : Multiset View) (excl : Pair → Prop) (budget : ℕ) :
+    ∑' out, Pr{let x ← (interp tg initial model
+          ((liftM ($ᵗ Randomness : ProbComp Randomness) : OracleComp CostSpec Randomness) >>= fun start =>
+            signCostSourceLoop parameter data m (data.step m) digestAttemptLimit start) budget s)}[x = out] *
+        (X d + (freshNewWeight parameter data m s (fun v => X (d + {v}) - X d) out +
+          outWeight parameter data m s 0 (fun ρ v => if excl (m, ρ) then 0 else X (d + {v}) - X d) out)) ≤
+      grpM parameter data s excl m (fun e => freshAvg Finset.univ fun v => X (e + {v})) d := by
+  set gf : View → ℝ≥0∞ := fun v => X (d + {v}) - X d with hgf
+  set gp : Randomness → View → ℝ≥0∞ := fun ρ v => if excl (m, ρ) then 0 else X (d + {v}) - X d with hgp
+  set c := (Fintype.card Randomness : ℝ≥0∞)⁻¹ with hc
+  -- the scan part
+  have hscan : ∑' out, Pr{let x ← (interp tg initial model
+        ((liftM ($ᵗ Randomness : ProbComp Randomness) : OracleComp CostSpec Randomness) >>= fun start =>
+          signCostSourceLoop parameter data m (data.step m) digestAttemptLimit start) budget s)}[x = out] *
+        (freshNewWeight parameter data m s gf out + outWeight parameter data m s 0 gp out) ≤
+      c * ∑ start, walk (nextRand (data.steps m)) landing (stOf parameter data m s) (poolValue parameter data m s gp)
+        (freshAvg Finset.univ gf) 0 digestAttemptLimit start := by
+    rw [interp_liftProb_bind, OracleComp.tsum_prEvent_bind_mul]
+    have hpr : ∀ ρ, Pr{let x ← ($ᵗ Randomness : ProbComp Randomness)}[x = ρ] = c := by
+      intro ρ
+      rw [SampleableType.prEvent_uniformSample_eq_singleton]
+    simp only [hpr]
+    rw [ENNReal.tsum_mul_left, tsum_fintype]
+    refine mul_le_mul' le_rfl (Finset.sum_le_sum fun start _ => ?_)
+    exact scan_bound_comb tg initial model parameter data m hparse hkind s hinv gf gp digestAttemptLimit
+      (by unfold digestAttemptLimit; norm_num) budget start
+  have hsum : ∑' out, Pr{let x ← (interp tg initial model
+        ((liftM ($ᵗ Randomness : ProbComp Randomness) : OracleComp CostSpec Randomness) >>= fun start =>
+          signCostSourceLoop parameter data m (data.step m) digestAttemptLimit start) budget s)}[x = out] *
+        (X d + (freshNewWeight parameter data m s gf out + outWeight parameter data m s 0 gp out)) ≤
+      X d + c * ∑ start, walk (nextRand (data.steps m)) landing (stOf parameter data m s) (poolValue parameter data m s gp)
+        (freshAvg Finset.univ gf) 0 digestAttemptLimit start := by
+    rw [tsum_congr fun out => mul_add _ _ _, tsum_add, ENNReal.tsum_mul_right]
+    exact add_le_add (mul_le_of_le_one_left' (OracleComp.tsum_prEvent_le_one _)) hscan
+  exact hsum.trans (walk_avg_le_grpM parameter data m hX s d excl)
 
 end SignScan
 
