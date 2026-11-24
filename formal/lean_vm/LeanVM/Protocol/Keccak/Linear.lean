@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Protocol.Keccak.Bits
 import LeanVM.Parameters.Field
+public import LeanVM.Protocol.Verifier.EqKernel
 public import Mathlib.Algebra.CharP.Two
 import Mathlib.Data.List.GetD
 public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
@@ -78,16 +79,6 @@ theorem bitE_Lb (f : ℕ → Bool) (j : ℕ) : bitE (Lb f j) = Llin (fun p ↦ b
   simp only [Lb, thetaB, bitE_xor, bitE_colB, Llin, thetaL]
 
 /-! ## Reindexing sums -/
-
-theorem sum_range_mul (a b : ℕ) (F : ℕ → E) :
-    ∑ p ∈ range (a * b), F p = ∑ i ∈ range a, ∑ k ∈ range b, F (b * i + k) := by
-  induction a with
-  | zero => simp
-  | succ a ih =>
-    rw [Nat.succ_mul, Finset.sum_range_add, ih, Finset.sum_range_succ]
-    congr 1
-    refine Finset.sum_congr rfl fun k _ ↦ ?_
-    rw [Nat.mul_comm a b]
 
 /-- The positions by column, slice and row. -/
 theorem sum_regroup (F : ℕ → E) :

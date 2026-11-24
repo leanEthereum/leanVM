@@ -10,6 +10,7 @@ module
 
 import LeanVM.Protocol.Verifier
 public import LeanVM.Protocol.EndToEnd.Claims
+public import LeanVM.Protocol.Verifier.EqKernel
 
 /-!
 # Tables on the cube
@@ -52,16 +53,6 @@ theorem one_add_one_E : (1 : E) + 1 = 0 := by
 
 /-! ## Folds as sums -/
 
-theorem foldl_add_eq (l : List E) (a : E) : l.foldl (· + ·) a = a + l.sum := by
-  induction l generalizing a with
-  | nil => simp
-  | cons x l ih => rw [List.foldl_cons, ih, List.sum_cons, add_assoc]
-
-theorem foldl_mul_eq (l : List E) (a : E) : l.foldl (· * ·) a = a * l.prod := by
-  induction l generalizing a with
-  | nil => simp
-  | cons x l ih => rw [List.foldl_cons, ih, List.prod_cons, mul_assoc]
-
 @[simp] theorem dot_nil_left (u : List E) : dot [] u = 0 := by simp [dot]
 
 @[simp] theorem dot_nil_right (t : List E) : dot t [] = 0 := by simp [dot]
@@ -71,15 +62,6 @@ theorem dot_cons (a x : E) (t u : List E) : dot (a :: t) (x :: u) = a * x + dot 
 
 theorem sumE_eq (l : List E) : sumE l = l.sum := by
   rw [sumE, foldl_add_eq, zero_add]
-
-/-- `dot` of two lists of equal length as a sum over the indices. -/
-theorem dot_eq_sum : ∀ (t u : List E), t.length = u.length →
-    dot t u = ∑ i ∈ range t.length, t.getD i 0 * u.getD i 0
-  | [], _, _ => by simp
-  | _ :: _, [], h => by simp at h
-  | a :: t, x :: u, h => by
-    rw [dot_cons, dot_eq_sum t u (by simpa using h), List.length_cons, sum_range_succ']
-    simp [add_comm]
 
 @[simp] theorem eqEval_nil_left (b : List E) : eqEval [] b = 1 := by simp [eqEval]
 
@@ -130,6 +112,18 @@ theorem boolPoint_two_mul_add_one (m j : ℕ) :
 
 @[simp] theorem boolPoint_zero (x : ℕ) : boolPoint 0 x = [] := rfl
 
+/-- `eq_eval` against a cube point on as many coordinates is the equality weight `eqAt`. -/
+theorem eqEval_boolPoint_eqAt : ∀ (p : List E) (y : ℕ), eqEval p (boolPoint p.length y) = eqAt p y
+  | [], _ => by simp [eqEval, boolPoint]
+  | r :: p, y => by
+    rw [List.length_cons, boolPoint_succ, eqEval_cons, eqEval_boolPoint_eqAt p, eqAt_cons]
+    congr 1
+    rw [Nat.testBit_zero]
+    rcases Nat.mod_two_eq_zero_or_one y with hy | hy
+    · simp [hy]
+    · simp only [hy, decide_true, ↓reduceIte]
+      linear_combination CharTwo.add_self_eq_zero (1 : E)
+
 /-- A cube point of `n + k` coordinates whose index is `y + 2^n·z` is `y`'s point, then `z`'s. -/
 theorem boolPoint_add (n k y z : ℕ) (hy : y < 2 ^ n) :
     boolPoint (n + k) (y + 2 ^ n * z) = boolPoint n y ++ boolPoint k z := by
@@ -145,14 +139,6 @@ theorem boolPoint_add (n k y z : ℕ) (hy : y < 2 ^ n) :
     simp
 
 /-! ## Sums over the cube -/
-
-theorem sum_range_two_mul (f : ℕ → E) (n : ℕ) :
-    ∑ i ∈ range (2 * n), f i = ∑ j ∈ range n, (f (2 * j) + f (2 * j + 1)) := by
-  induction n with
-  | zero => simp
-  | succ n ih =>
-    rw [show 2 * (n + 1) = 2 * n + 1 + 1 by ring, sum_range_succ, sum_range_succ, ih,
-      sum_range_succ, add_assoc]
 
 /-- `y + N·z < N·M` for `y < N` and `z < M`. -/
 theorem add_mul_lt {y z N M : ℕ} (hy : y < N) (hz : z < M) : y + N * z < N * M := by
@@ -251,12 +237,6 @@ theorem multilinearEval_eq_sum (m : ℕ) (t p : List E) (ht : t.length = 2 ^ m)
 
 /-! ## The equality kernel -/
 
-/-- One step of `eqKernel`. -/
-private theorem eqKernel_step (out : List E) (r : E) (p : List E) :
-    p.foldl (fun out r ↦ out.map (· * (1 + r)) ++ out.map (· * r))
-      (out.map (· * (1 + r)) ++ out.map (· * r)) =
-    (r :: p).foldl (fun out r ↦ out.map (· * (1 + r)) ++ out.map (· * r)) out := rfl
-
 private theorem eqKernel_general : ∀ (p out : List E),
     (p.foldl (fun out r ↦ out.map (· * (1 + r)) ++ out.map (· * r)) out).length =
       out.length * 2 ^ p.length ∧
@@ -289,25 +269,11 @@ private theorem eqKernel_general : ∀ (p out : List E),
       simp only [Option.map_some, Option.getD_some]
       rw [one_add_one_E, zero_add]; ring
 
-/-- The equality kernel has `2^|p|` entries. -/
-theorem length_eqKernel (p : List E) : (eqKernel p).length = 2 ^ p.length := by
-  have := (eqKernel_general p [1]).1
-  simp only [List.length_singleton, one_mul] at this
-  exact this
-
 /-- Entry `j` of the equality kernel is `eq(j, p)`. -/
 theorem getD_eqKernel (p : List E) (j : ℕ) (hj : j < 2 ^ p.length) :
     (eqKernel p).getD j 0 = eqEval (boolPoint p.length j) p := by
   have := (eqKernel_general p [1]).2 0 j (by simp) hj
   simpa [eqKernel] using this
-
-/-- Pairing a table of `2^|p|` entries with the equality kernel at `p` is its multilinear
-extension at `p`. -/
-theorem dot_eqKernel (t p : List E) (ht : t.length = 2 ^ p.length) :
-    dot t (eqKernel p) =
-      ∑ j ∈ range (2 ^ p.length), t.getD j 0 * eqEval (boolPoint p.length j) p := by
-  rw [dot_eq_sum _ _ (by rw [ht, length_eqKernel]), ht]
-  exact sum_congr rfl fun j hj ↦ by rw [getD_eqKernel p j (mem_range.mp hj)]
 
 /-! ## The round polynomial -/
 

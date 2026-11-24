@@ -68,7 +68,7 @@ theorem vk_in_check {τ : ℕ} (hτ : 4 ≤ τ) {c : KeccakClaim} (hpt : c.point
     (fun o ho ↦ slotWeights_row_length _ _ _ _ (by norm_num)
       (by rwa [slotWeights_length _ _ _ _ (by norm_num)] at ho))
   have h6 : (loc.take 6).length = 6 := by simp [hlocL]
-  rw [dot_eq _ _ (by rw [hWl, hsl]), hWl]
+  rw [dot_eq_sum _ _ (by rw [hWl, hsl]), hWl]
   rw [Finset.sum_congr rfl fun z hz ↦ by
     rw [openWeights_getD τ c (Or.inr ⟨rfl, rfl⟩) slotI hs (Finset.mem_range.1 hz)]]
   rw [Finset.sum_congr rfl fun z _ ↦ Finset.sum_mul (range 25) _ _, Finset.sum_comm]

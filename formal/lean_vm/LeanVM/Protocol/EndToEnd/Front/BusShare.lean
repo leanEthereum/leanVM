@@ -281,7 +281,7 @@ theorem dot_eq_sum_left : ∀ (l r : List E),
 the weights read as zero past the sixteenth. -/
 theorem dot_eqKernel_eq_evalMle {weights slot : List E} (hs : slot.length = 4) :
     dot (eqKernel slot) weights = evalMle (vecOf (2 ^ 4) weights) (vecOf 4 slot) := by
-  rw [dot_eq_sum_left, Whir.Complete.length_eqKernel, hs, evalMle_eq_sum,
+  rw [dot_eq_sum_left, eqKernel_length, hs, evalMle_eq_sum,
     ← Fin.sum_univ_eq_sum_range]
   refine Finset.sum_congr rfl fun i _ ↦ ?_
   rw [mul_comm]
@@ -289,7 +289,7 @@ theorem dot_eqKernel_eq_evalMle {weights slot : List E} (hs : slot.length = 4) :
   · simp [vecOf]
   · rw [show (vecOf 4 slot : Vector E 4) = Vector.ofFn fun j : Fin 4 ↦ slot.getD j 0 from rfl,
       lagrangeBasis_ofFn_getD hs, List.getD_eq_getElem _ _ (by
-        rw [Whir.Complete.length_eqKernel, hs]; exact i.isLt)]
+        rw [eqKernel_length, hs]; exact i.isLt)]
 
 /-- The bytecode's values at the sixteen slots of the tuple at `low`. -/
 def slotValues (words : List K) (low : List E) : CMlPolynomialEval E 4 :=

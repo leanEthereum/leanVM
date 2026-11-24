@@ -39,7 +39,7 @@ open LeanVM.Prover (Script)
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 open LeanVM.Protocol.LeanIsa LeanVM.Protocol.Whir.Complete LeanVM.Protocol.EndToEnd.Front Finset
-open LeanVM.Protocol.KeccakGkr (multilinearEval_eq eqKernel_length)
+open LeanVM.Protocol.KeccakGkr (multilinearEval_eq)
 
 @[expose] public section
 
@@ -109,7 +109,7 @@ theorem shareClaim_split (w z acc : List E) (hw : w.length = 16) (hacc : acc.len
     ← sum_add_distrib, shareClaim]
   rw [show 2 ^ (4 - acc.length) = 2 * 2 ^ (4 - (acc.length + 1)) by
     rw [← pow_succ', show 4 - (acc.length + 1) + 1 = 4 - acc.length by omega],
-    KeccakGkr.sum_range_two_mul]
+    Verifier.sum_range_two_mul]
   refine sum_congr rfl fun i _ ↦ ?_
   have h2 : (1 : E) + 1 = 0 := by rw [one_add_one_eq_two]; exact CharTwo.two_eq_zero
   simp only [add_zero, mul_one, mul_zero, h2]
@@ -125,7 +125,7 @@ theorem shareClaim_full (w z r : List E) (hr : r.length = 4) :
 /-- The weights' extension is the verifier's `dot(eq_kernel(r), w)`. -/
 theorem multilinearEval_eq_dot (w r : List E) (hw : w.length = 16) (hr : r.length = 4) :
     multilinearEval w r = dot (eqKernel r) w := by
-  have h := KeccakGkr.dot_eqKernel r w (by rw [hw, hr]; norm_num)
+  have h := Verifier.dot_eqKernel r w (by rw [hw, hr]; norm_num)
   rw [show (eqKernel r).take w.length = eqKernel r by
     rw [List.take_of_length_le (by rw [eqKernel_length, hw, hr]; norm_num)]] at h
   rw [h, multilinearEval_eq r w (by rw [hw, hr]; norm_num), hr, hw]

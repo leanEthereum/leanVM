@@ -110,7 +110,7 @@ theorem eqEval_selector {μ v y : ℕ} (hv : v ≤ μ) (hy : y < 2 ^ μ) (index 
 /-- Entry `j` of the equality kernel is `eq(point, j)`. -/
 theorem eqKernel_getD_eqAt (point : List E) {j : ℕ} (hj : j < 2 ^ point.length) :
     (eqKernel point).getD j 0 = eqAt point j := by
-  rw [getD_eqKernel point j hj, eqEval_comm, Front.eqEval_boolPoint_eqAt]
+  rw [getD_eqKernel point j hj, eqEval_comm, eqEval_boolPoint_eqAt]
 
 /-- The block condition and the offset in the block. -/
 theorem block_ite {μ v y : ℕ} (index : ℕ) (a : ℕ → E) :
@@ -145,7 +145,7 @@ theorem onStack_boolPoint {layout : Layout} {c : ColumnClaim} {μ y : ℕ}
     Front.selectorPoint_eq_boolPoint, Front.drop_boolPoint]
   rw [boolPoint_split hv y, eqEval_append _ _ _ _ (by rw [hlen, length_boolPoint]),
     eqEval_selector hv hy, eqKernel_getD_eqAt _ (by rw [hlen]; exact Nat.mod_lt _ (by positivity)),
-    ← Front.eqEval_boolPoint_eqAt, hlen]
+    ← eqEval_boolPoint_eqAt, hlen]
   split <;> simp
 
 /-- `v ↦ v·v` repeated `n` times is `v^(2^n)`. -/
@@ -194,7 +194,7 @@ theorem ringWeight_boolPoint {point f g : List E} {v : ℕ} (hlen : point.length
       ringPhi f g ((eqKernel point).getD j 0) := by
   rw [Front.ringWeight_eq_sum, ringPhi_eq_sum hf hg, eqKernel_getD_eqAt _ (by rw [hlen]; exact hj)]
   refine sum_congr rfl fun k _ ↦ ?_
-  rw [Front.eqAt_frob, ← Front.eqEval_boolPoint_eqAt, List.length_map, hlen]
+  rw [Front.eqAt_frob, ← eqEval_boolPoint_eqAt, List.length_map, hlen]
 
 /-- **The ring claim's weight on the cube**: `Φ(eq(point, ·))` on the block of `q_keccak`. -/
 theorem ringSwitchClaim_boolPoint {layout : Layout} {target : E} {point f g : List E} {μ y : ℕ}

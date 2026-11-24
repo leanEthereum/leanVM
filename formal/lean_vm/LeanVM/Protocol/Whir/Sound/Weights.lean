@@ -12,6 +12,7 @@ import LeanVM.Protocol.Whir.Sound.Code
 public import LeanVM.Protocol.Whir.ColumnWeight
 public import LeanVM.Protocol.EndToEnd.Claims
 import LeanVM.Protocol.Verifier
+public import LeanVM.Protocol.Verifier.EqKernel
 import LeanVM.Protocol.Whir.SubspaceAt
 public import LeanVM.Protocol.Whir.Sound.Sumcheck
 public import ArkLib.Data.CodingTheory.HiddenDerivative.Parameters.Johnson.FiniteBounds
@@ -30,19 +31,10 @@ This module proves what the round-by-round analysis needs of each:
   inner product with a message is the message's multilinear extension at `z`
   (`sum_eqEval_mul_eq_evalMle`);
 * the verifier's `inducedWeight` (`induced_weight`) is the column-weight sum of Annex D
-  `lem:colweight` (`inducedWeight_eq_sum`, through `LeanVM.Protocol.Whir.inducedWeight_eq`; the
-  verifier's own `subspaceRoots` is the Annex's roots, `subspaceRoots_eq_closed`), hence
-  multiaffine (`isMultiaffine_inducedWeight`), and its inner product with a message is the batched
-  codeword entries, `Σ_q w_q Enc(G)[x_q]` (`sum_inducedWeight_mul`);
-* the opening weight read at the rotated point, `w(p[ℓ₀:] ++ p[:ℓ₀])`, is multiaffine when `w` is
-  the multilinear extension of its cube values (`IsMultilinearFn`,
-  `isMultiaffine_of_isMultilinearFn`, `isMultiaffine_rotL`);
-* `dot(row, eq_kernel(folds))`, the lane fold of an opened row (`enforcedSum`), is the row folded
-  by `foldsN` (`dot_eqKernel`).
-
-`joinMsg` regroups a message split into lanes and message bits into one message on the full
-cube, `sum_joinMsg` relating the two inner products: the level interface, where the next
-oracle's lanes are the first variables of the current level's message.
+  `lem:colweight` (`inducedWeight_eq_sum`), hence multiaffine (`isMultiaffine_inducedWeight`), and
+  its inner product with a message is the batched codeword entries, `Σ_q w_q Enc(G)[x_q]`
+  (`sum_inducedWeight_mul`);
+* rotating the point keeps a weight multiaffine (`isMultiaffine_rotL`).
 -/
 
 namespace LeanVM.Protocol.Whir.Sound
@@ -83,18 +75,6 @@ theorem isMultiaffine_prod (n : ℕ) (f : ℕ → E → E) (hf : ∀ i, IsAffine
   simp only [key]
   rw [hf k X]
   ring
-
-/-- `foldl (*)` from `a` is `a` times the product. -/
-theorem foldl_mul_eq (l : List E) (a : E) : l.foldl (· * ·) a = a * l.prod := by
-  induction l generalizing a with
-  | nil => simp
-  | cons b l ih => rw [List.foldl_cons, ih, List.prod_cons, mul_assoc]
-
-/-- `foldl (+)` from `a` is `a` plus the sum. -/
-theorem foldl_add_eq (l : List E) (a : E) : l.foldl (· + ·) a = a + l.sum := by
-  induction l generalizing a with
-  | nil => simp
-  | cons b l ih => rw [List.foldl_cons, ih, List.sum_cons, add_assoc]
 
 /-! ## The out-of-domain weight -/
 
@@ -165,20 +145,6 @@ theorem isMultiaffine_rotL {n j : ℕ} {w : List E → E} (hw : IsMultiaffine n 
   intro l hl k hk X
   simp only [rotL_set j l (hl ▸ hj) (hl ▸ hk)]
   exact hw _ (by rw [length_rotL, hl]) _ (by split_ifs <;> omega) X
-
-/-- A multilinear extension of its cube values is multiaffine. -/
-theorem isMultiaffine_of_isMultilinearFn {μ : ℕ} {w : List E → E} (hw : IsMultilinearFn μ w) :
-    IsMultiaffine μ w := by
-  have hb : ∀ x, (boolPoint μ x).length = μ := fun x ↦ by simp [boolPoint]
-  have hsum : IsMultiaffine μ fun l ↦ ∑ x : Fin (2 ^ μ), w (boolPoint μ x) *
-      eqEval (boolPoint μ x) l :=
-    IsMultiaffine.sum _ _ fun x _ ↦ by
-      have := (isMultiaffine_eqEval (boolPoint μ x)).const_mul (w (boolPoint μ x))
-      rwa [hb] at this
-  intro l hl k hk X
-  have hlen : ∀ Y, (l.set k Y).length = μ := fun Y ↦ by simp [hl]
-  rw [hw _ (hlen X), hw _ (hlen 0), hw _ (hlen 1)]
-  exact hsum l hl k hk X
 
 /-! ## The induced weight -/
 

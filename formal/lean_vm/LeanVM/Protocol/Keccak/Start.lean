@@ -209,7 +209,7 @@ theorem zeroOn_of_first (P : ℕ) (hP : h = P + 4) (col : ℕ → K) {inst segme
   rw [ClaimTrue, firstClaim_sum h P hP col hi hl] at htrue
   have hdot : dot ((eqKernel lanesPt).take 25) output =
       ∑ l ∈ range 25, eqAt lanesPt l * output.getD l 0 := by
-    rw [dot_eq _ _ (by simp [eqKernel_length, hl, ho])]
+    rw [dot_eq_sum _ _ (by simp [eqKernel_length, hl, ho])]
     simp only [List.length_take, eqKernel_length, hl]
     refine Finset.sum_congr rfl fun l hl' ↦ ?_
     have hl'' := Finset.mem_range.1 hl'

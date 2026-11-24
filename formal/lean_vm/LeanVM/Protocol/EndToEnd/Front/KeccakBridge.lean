@@ -194,42 +194,14 @@ theorem retOK_verifyKeccak_point (logSteps : ℕ) (inst output : List E)
 
 /-! ## Equality weights -/
 
-/-- The cube point of `x` on `n + 1` coordinates: bit `0`, then the cube point of `x / 2`. -/
-theorem boolPoint_succ (n x : ℕ) :
-    boolPoint (n + 1) x = (if x.testBit 0 then 1 else 0) :: boolPoint n (x / 2) := by
-  simp only [boolPoint, List.range_succ_eq_map, List.map_cons, List.map_map]
-  congr 1
-  refine List.map_congr_left fun i _ ↦ ?_
-  simp [Nat.testBit_succ]
-
-/-- `eq_eval` at the cube point of `x` is the Keccak reduction's equality weight of `x`. -/
-theorem eqAt_eq_eqEval : ∀ (pt : List E) (x : ℕ),
-    KeccakGkr.eqAt pt x = eqEval pt (boolPoint pt.length x)
-  | [], x => by simp [eqEval]
-  | r :: rs, x => by
-    rw [KeccakGkr.eqAt_cons, eqAt_eq_eqEval rs (x / 2), List.length_cons, boolPoint_succ,
-      eqEval_eq_list_prod, eqEval_eq_list_prod, List.zipWith_cons_cons, List.prod_cons,
-      Nat.testBit_zero]
-    congr 1
-    by_cases h : x % 2 = 1
-    · simp only [h, ↓reduceIte, decide_true]
-      rw [add_comm 1 r, add_assoc, CharTwo.add_self_eq_zero, add_zero]
-    · simp [h]
-
-/-- The table sumcheck's zero test weighs as the Keccak reduction (characteristic two). -/
-theorem keccakZero_eqAt : ∀ (pt : List E) (x : ℕ), KeccakZero.eqAt pt x = KeccakGkr.eqAt pt x
-  | [], _ => rfl
-  | r :: rs, x => by
-    rw [KeccakZero.eqAt, KeccakGkr.eqAt_cons, keccakZero_eqAt rs, CharTwo.sub_eq_add]
-
 /-- **A column's extension** is the sum of its cells weighted by the equality weights of the
 point. -/
 theorem eval₂Mle_eq_sum_eqAt {n : ℕ} (v : Vector K (2 ^ n)) (z : Vector E n) :
     eval₂Mle v (algebraMap K E) z =
-      ∑ x ∈ range (2 ^ n), KeccakGkr.eqAt z.toList x * ofK (v.getD x 0) := by
+      ∑ x ∈ range (2 ^ n), eqAt z.toList x * ofK (v.getD x 0) := by
   rw [← sum_eqEval_mul z ⟨v⟩, Finset.sum_range]
   refine Finset.sum_congr rfl fun x _ ↦ ?_
-  rw [eqAt_eq_eqEval, Vector.length_toList]
+  rw [← Whir.Complete.eqEval_boolPoint_eqAt, Vector.length_toList]
 
 /-! ## `q_keccak` on a candidate -/
 
@@ -306,14 +278,14 @@ theorem laneHolds_iff (q : Column (verifierLayout prog s).stackLog) (l : Fin 25)
   have h := wireHolds_iff prog s (outCol l) z v q
   rw [refCol_outCol] at h
   refine (show WireHolds prog s ⟨106 + l.val, inst, v⟩ q ↔ _ from h).trans ?_
-  have hs : ∀ x ∈ range (2 ^ s.τ 5), KeccakGkr.eqAt inst x *
+  have hs : ∀ x ∈ range (2 ^ s.τ 5), eqAt inst x *
       ofK (((leanIsaInstance prog s).column (toI prog s q) (outCol l)).values.getD x 0) =
-      KeccakGkr.eqAt inst x * ofK (KeccakGkr.laneWord (KeccakGkr.roundsFrom 12 12
+      eqAt inst x * ofK (KeccakGkr.laneWord (KeccakGkr.roundsFrom 12 12
         (KeccakGkr.inState (s.τ 5) (qkOf (verifierLayout prog s) q) 1 x)) l) :=
     fun x hx ↦ by rw [outCol_getD prog s q l (Finset.mem_range.1 hx)]
   have hsum := (eval₂Mle_eq_sum_eqAt
     (((leanIsaInstance prog s).column (toI prog s q) (outCol l)).values) z).trans
-    ((congrArg (fun p ↦ ∑ x ∈ range (2 ^ s.τ 5), KeccakGkr.eqAt p x *
+    ((congrArg (fun p ↦ ∑ x ∈ range (2 ^ s.τ 5), eqAt p x *
       ofK (((leanIsaInstance prog s).column (toI prog s q) (outCol l)).values.getD x 0)) hz).trans
       (Finset.sum_congr rfl hs))
   constructor
@@ -359,14 +331,14 @@ theorem auxAt_iff_midAgree (q : Column (verifierLayout prog s).stackLog) (pt : L
     unfold KeccakGkr.stepMle
     rw [← sub_eq_zero, ← Finset.sum_sub_distrib]
     refine Eq.trans (Finset.sum_congr rfl fun w hw ↦ ?_) hz
-    rw [keccakZero_eqAt, delta_eq prog s q ⟨l, hl⟩ (Finset.mem_range.1 hw), mul_sub]
+    rw [delta_eq prog s q ⟨l, hl⟩ (Finset.mem_range.1 hw), mul_sub]
   · intro h l
     refine (KeccakZero.zeroOnHi_full _ hlen).mpr ?_
     have hz := h l.val l.isLt
     unfold KeccakGkr.stepMle at hz
     rw [← sub_eq_zero, ← Finset.sum_sub_distrib] at hz
     refine Eq.trans (Finset.sum_congr rfl fun w hw ↦ ?_) hz
-    rw [keccakZero_eqAt, delta_eq prog s q l (Finset.mem_range.1 hw), mul_sub]
+    rw [delta_eq prog s q l (Finset.mem_range.1 hw), mul_sub]
 
 /-- Cell `n` of `QKECCAK` of a candidate's reading is `q_keccak`'s word `n`. -/
 theorem keccakCol_getD (q : Column (verifierLayout prog s).stackLog) {n : ℕ}
@@ -395,7 +367,7 @@ theorem qkHolds_iff (q : Column (verifierLayout prog s).stackLog) (c : Verifier.
     (hc : c.column = qkeccak) (hl : c.point.length = s.τ 5 + 6) :
     StackClaim.Holds (verifierLayout prog s).stackLog (c.stackClaim (verifierLayout prog s)) q ↔
       c.value = ∑ n ∈ range (2 ^ (s.τ 5 + 6)),
-        KeccakGkr.eqAt c.point n * ofK (qkOf (verifierLayout prog s) q n) := by
+        eqAt c.point n * ofK (qkOf (verifierLayout prog s) q n) := by
   obtain ⟨col, pt, v⟩ := c
   simp only at hc hl ⊢
   subst hc
@@ -405,9 +377,9 @@ theorem qkHolds_iff (q : Column (verifierLayout prog s).stackLog) (c : Verifier.
   rw [refCol_keccakCol, wireHolds_of_not_mem prog s hnm] at h
   refine (show StackClaim.Holds _ ((⟨qkeccak, pt, v⟩ : Verifier.ColumnClaim).stackClaim _) q ↔ _
     from h).trans ?_
-  have hs : ∀ n ∈ range (2 ^ (s.τ 5 + 6)), KeccakGkr.eqAt pt n *
+  have hs : ∀ n ∈ range (2 ^ (s.τ 5 + 6)), eqAt pt n *
       ofK (((leanIsaInstance prog s).column (toI prog s q) keccakCol).values.getD n 0) =
-      KeccakGkr.eqAt pt n * ofK (qkOf (verifierLayout prog s) q n) :=
+      eqAt pt n * ofK (qkOf (verifierLayout prog s) q n) :=
     fun n hn ↦ by rw [keccakCol_getD prog s q (Finset.mem_range.1 hn)]
   have hsum := (eval₂Mle_eq_sum_eqAt
     (((leanIsaInstance prog s).column (toI prog s q) keccakCol).values) z).trans

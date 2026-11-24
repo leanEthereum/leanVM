@@ -51,7 +51,7 @@ theorem final_in (P : ℕ) (col : ℕ → K) (claim : KeccakClaim) (hshape : Cla
   have ha : (low ++ claim.point.take P).length = P + 4 := by
     simp [hlow, hshape.2.1]; omega
   rw [← hc, Fs, cubeSum_full _ hslot, multilinearEval_mu hshape.1 hlow,
-    dot_eq _ _ (by rw [fold_in_length P claim hslot, hs.2.1]), fold_in_length P claim hslot]
+    dot_eq_sum _ _ (by rw [fold_in_length P claim hslot, hs.2.1]), fold_in_length P claim hslot]
   refine congrArg (HMul.hMul _) (Finset.sum_congr rfl fun z hz ↦ ?_)
   have hz' := Finset.mem_range.1 hz
   rw [fold_in P claim hslot hz', hs.2.2 z hz', ← slices_eq P col ha hslot z]

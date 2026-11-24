@@ -1339,7 +1339,7 @@ theorem accumulateSide_snd_eq (forms : List (List Form)) (side : ℕ) (fw : List
   have h1 : dot (Complete.sideSels fw blocks p 0 fw.length) (fps.map (β + ·)) =
       ∑ i ∈ range fw.length, Complete.blockSel (Complete.sideSizes fw blocks) p.length i p *
         (fps.map (β + ·)).getD i 0 := by
-    rw [Whir.Complete.dot_eq_sum _ _ (by simp [Complete.sideSels, hfps])]
+    rw [Verifier.dot_eq_sum _ _ (by simp [Complete.sideSels, hfps])]
     simp only [Complete.sideSels, List.length_map, List.length_range]
     refine Finset.sum_congr rfl fun i hi ↦ ?_
     rw [Complete.getD_map_range _ _ _ (Finset.mem_range.mp hi), zero_add]
