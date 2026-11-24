@@ -62,6 +62,16 @@ fn visit(op: &mut LOp, f: &mut dyn FnMut(&mut Off, Role)) {
             f(x, Role::Use);
             f(dst, Role::Dest);
         }
+        LOp::DeferEnter { x, t, r, one, .. } => {
+            f(x, Role::Use);
+            f(one, Role::Use);
+            f(t, Role::Dest);
+            f(r, Role::Dest);
+        }
+        LOp::DeferWrite { r, one, .. } => {
+            f(r, Role::Use);
+            f(one, Role::Use);
+        }
         LOp::Keccak {
             m,
             tail,
@@ -396,7 +406,7 @@ fn block_starts(code: &[LInstr], at_targets: &[u32]) -> Vec<usize> {
     for (i, ins) in code.iter().enumerate() {
         match &ins.op {
             LOp::Set { k: KVal::Local(t), .. } => starts.push(*t as usize),
-            LOp::Jump { .. } => starts.push(i + 1),
+            LOp::Jump { .. } | LOp::DeferEnter { .. } => starts.push(i + 1),
             _ => {}
         }
     }

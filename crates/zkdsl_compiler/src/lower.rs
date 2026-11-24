@@ -247,6 +247,9 @@ struct FnLower<'a> {
     dbg_loops: Vec<String>,
     /// An `addr()` names a frame cell by its offset, so the frame keeps its layout.
     addr_taken: bool,
+    /// `main`'s runtime-bounded loops, each with the resume cell and the `1` cell of its
+    /// [`LOp::DeferEnter`] and its line: their [`LOp::DeferWrite`]s follow `main`'s halt.
+    deferred: Vec<(String, Off, Off, u32)>,
     /// Generated loops that can reserve their complete run of frames.
     loop_bounds: &'a mut HashMap<String, (u64, Option<u64>)>,
     queue: &'a mut Vec<Func>,
@@ -1669,13 +1672,31 @@ impl FnLower<'_> {
             ForBound::Runtime(_) => {
                 // The entry test and the first call's argument both read the bound,
                 // so one with a call or an allocation in it is bound once first.
-                let entry_bound = if calls_or_allocates(&entry_bound) {
+                // In `main` the deferred writes' entry test reads it too.
+                let bind = calls_or_allocates(&entry_bound) || (self.is_main && !matches!(entry_bound, Expr::Var(_)));
+                let entry_bound = if bind {
                     let name = format!("{loop_name}__entry");
                     self.stmt(&Stmt::new(self.cur_line, StmtKind::Let(name.clone(), entry_bound)));
                     Expr::Var(name)
                 } else {
                     entry_bound
                 };
+                if self.is_main {
+                    // The loop's entry test, which the call below computes again from the same cells.
+                    let (la, lb) = (self.expr(&Expr::GPow(lo as u128)), self.expr(&entry_bound));
+                    let x = self.pure(PureOp::Xor, la, lb);
+                    let one = self.one();
+                    let (t, r) = (self.fresh(), self.fresh());
+                    assert!(self.pending.is_empty(), "a hint pending at a loop's entry");
+                    self.emit(LOp::DeferEnter {
+                        lp: loop_name.clone(),
+                        x,
+                        t,
+                        r,
+                        one,
+                    });
+                    self.deferred.push((loop_name.clone(), r, one, self.cur_line));
+                }
                 let stmt = Stmt::new(
                     self.cur_line,
                     StmtKind::CallIfNe(
@@ -1810,6 +1831,7 @@ pub(crate) fn lower_func(
             rebound: Vec::new(),
             dbg_loops: Vec::new(),
             addr_taken: false,
+            deferred: Vec::new(),
             code: Vec::new(),
             cur_line: 0,
             heap_sizes: HashMap::new(),
@@ -1857,6 +1879,10 @@ pub(crate) fn lower_func(
         }
         if lowerer.is_main {
             lowerer.halt(); // main terminates in the final state (sentinel pc, main's frame), not by falling off
+            for (lp, r, one, line) in std::mem::take(&mut lowerer.deferred) {
+                lowerer.cur_line = line;
+                lowerer.emit(LOp::DeferWrite { lp, r, one });
+            }
         } else if !matches!(f.body.last().map(|s| &s.kind), Some(StmtKind::Return(_))) {
             // A function must never fall off its end into whatever code the
             // layout placed next: append the implicit bare return.
