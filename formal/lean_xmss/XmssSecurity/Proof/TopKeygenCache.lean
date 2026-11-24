@@ -159,10 +159,10 @@ theorem Concrete.precomputedKeygen_cache_has_topChainInput
   obtain ⟨beforeCache, afterCache, value, hwalk, hafter⟩ :=
     Concrete.CacheReplay.honestKeygen_runsBelow_topChainWalk hrun key chain (step.val + 1)
       (by have := step.isLt; omega)
-  obtain ⟨output, hcached⟩ := Concrete.CacheReplay.topChainWalk_query_cached_in_largerCache
-    keyResult.1.2.parameter key chain 0 (step.val + 1) (keyResult.1.2.topChainStart key chain)
-    step.val (by omega) (by have := step.isLt; omega) beforeCache afterCache keyResult.2 value
-    hwalk hafter
+  obtain ⟨output, hcached⟩ := Concrete.CacheReplay.keyChainWalk_query_cached_in_largerCache
+    keyResult.1.2.parameter (.inr key) chain 0 (step.val + 1)
+    (keyResult.1.2.topChainStart key chain) step.val (by omega) (by have := step.isLt; omega)
+    beforeCache afterCache keyResult.2 value (by rwa [Concrete.keyChainWalk_inr]) hafter
   have hstep : (⟨0 + step.val, by have := step.isLt; omega⟩ : ChainStep) = step :=
     Fin.ext (Nat.zero_add _)
   rw [hstep] at hcached
