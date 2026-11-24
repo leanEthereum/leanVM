@@ -279,7 +279,7 @@ fn touched(op: &LOp) -> Vec<Off> {
         | LOp::Solve { x: a, b, c }
         | LOp::Copy { src: a, one: b, dst: c } => vec![a, b, c],
         LOp::Deref { o1, .. } => vec![o1],
-        LOp::Jump { .. } | LOp::DeferEnter { .. } | LOp::DeferWrite { .. } => Vec::new(),
+        LOp::Jump { .. } | LOp::LoopTables { .. } => Vec::new(),
         LOp::Slot { x, .. } => vec![x],
         LOp::Keccak { .. } => Vec::new(),
     }

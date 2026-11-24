@@ -587,9 +587,20 @@ impl Parser<'_> {
                 }
                 return Ok(StmtKind::Unroll { var, lo, hi, body });
             }
-            let parts = call_args(iter, "mul_range").ok_or("`for` needs `mul_range(start, stop)` or `unroll(a, b)`")?;
+            let mut parts =
+                call_args(iter, "mul_range").ok_or("`for` needs `mul_range(start, stop)` or `unroll(a, b)`")?;
+            let own_tables = parts.len() == 3;
+            if own_tables && parts[2].split_whitespace().collect::<String>() != "own_tables=True" {
+                return Err(format!(
+                    "mul_range's third argument can only be `own_tables=True`, not `{}`",
+                    parts[2]
+                ));
+            }
+            if own_tables {
+                parts.pop();
+            }
             if parts.len() != 2 {
-                return Err("mul_range needs `start, stop`".into());
+                return Err("mul_range needs `start, stop`, then optionally `own_tables=True`".into());
             }
             let lo = parse_gpow_bound(parts[0])?;
             // The stop bound: a compile-time power of GEN, or any expression,
@@ -626,11 +637,15 @@ impl Parser<'_> {
             };
             self.i += 1;
             let body = self.block(indent)?;
+            if own_tables && matches!(hi, ForBound::Const(_)) {
+                return Err("`own_tables=True` needs a runtime stop: with a constant one, whether the loop runs is known when compiling".into());
+            }
             return Ok(StmtKind::For {
                 var: binding_name(var, "loop counter")?,
                 lo,
                 hi,
                 body,
+                own_tables,
             });
         }
         if let Some(rest) = line.strip_prefix("if ") {

@@ -247,9 +247,6 @@ struct FnLower<'a> {
     dbg_loops: Vec<String>,
     /// An `addr()` names a frame cell by its offset, so the frame keeps its layout.
     addr_taken: bool,
-    /// `main`'s runtime-bounded loops, each with the resume cell and the `1` cell of its
-    /// [`LOp::DeferEnter`] and its line: their [`LOp::DeferWrite`]s follow `main`'s halt.
-    deferred: Vec<(String, Off, Off, u32)>,
     /// Generated loops that can reserve their complete run of frames.
     loop_bounds: &'a mut HashMap<String, (u64, Option<u64>)>,
     queue: &'a mut Vec<Func>,
@@ -1426,7 +1423,14 @@ impl FnLower<'_> {
                 let x = self.pure(PureOp::Xor, la, lb);
                 self.lower_call(callee, args, Some(x), &[], tail);
             }
-            StmtKind::For { var, lo, hi, body } => self.lower_for(var, *lo, hi, body),
+            StmtKind::For {
+                var,
+                lo,
+                hi,
+                body,
+                own_tables,
+            } => self.lower_for(var, *lo, hi, body, *own_tables),
+            StmtKind::LoopTables(lp) => self.emit(LOp::LoopTables { lp: lp.clone() }),
             // Compile-time unrolling: emit the body per integer, the counter
             // substituted as its literal. Every copy executes (this is
             // straight-line code, not a branch), so bindings simply rebind (a
@@ -1510,7 +1514,7 @@ impl FnLower<'_> {
     /// Free variables of the body that are bound in the enclosing scope are
     /// captured by value as extra helper parameters (e.g. a `HeapBuf` pointer
     /// threaded through the loop).
-    fn lower_for(&mut self, var: &str, lo: u64, hi: &ForBound, body: &[Stmt]) {
+    fn lower_for(&mut self, var: &str, lo: u64, hi: &ForBound, body: &[Stmt], own_tables: bool) {
         let id = self.loop_ctr;
         self.loop_ctr += 1;
         let loop_name = format!("__loop{id}_{}", self.fn_name);
@@ -1672,8 +1676,8 @@ impl FnLower<'_> {
             ForBound::Runtime(_) => {
                 // The entry test and the first call's argument both read the bound,
                 // so one with a call or an allocation in it is bound once first.
-                // In `main` the deferred writes' entry test reads it too.
-                let bind = calls_or_allocates(&entry_bound) || (self.is_main && !matches!(entry_bound, Expr::Var(_)));
+                // An `own_tables` loop's branch reads it a third time.
+                let bind = calls_or_allocates(&entry_bound) || (own_tables && !matches!(entry_bound, Expr::Var(_)));
                 let entry_bound = if bind {
                     let name = format!("{loop_name}__entry");
                     self.stmt(&Stmt::new(self.cur_line, StmtKind::Let(name.clone(), entry_bound)));
@@ -1681,32 +1685,33 @@ impl FnLower<'_> {
                 } else {
                     entry_bound
                 };
-                if self.is_main {
-                    // The loop's entry test, which the call below computes again from the same cells.
-                    let (la, lb) = (self.expr(&Expr::GPow(lo as u128)), self.expr(&entry_bound));
-                    let x = self.pure(PureOp::Xor, la, lb);
-                    let one = self.one();
-                    let (t, r) = (self.fresh(), self.fresh());
-                    assert!(self.pending.is_empty(), "a hint pending at a loop's entry");
-                    self.emit(LOp::DeferEnter {
-                        lp: loop_name.clone(),
-                        x,
-                        t,
-                        r,
-                        one,
-                    });
-                    self.deferred.push((loop_name.clone(), r, one, self.cur_line));
-                }
-                let stmt = Stmt::new(
+                let call = Stmt::new(
                     self.cur_line,
                     StmtKind::CallIfNe(
                         Expr::GPow(lo as u128),
                         entry_bound.clone(),
-                        loop_name,
-                        cap_args(Expr::GPow(lo as u128), entry_bound),
+                        loop_name.clone(),
+                        cap_args(Expr::GPow(lo as u128), entry_bound.clone()),
                     ),
                 );
-                self.stmt(&stmt);
+                if !own_tables {
+                    self.stmt(&call);
+                } else if !self.is_main {
+                    self.fail(
+                        "`own_tables=True` writes jump tables in `main`'s frame, so only a loop in `main` can take it",
+                    );
+                } else {
+                    // `if g^lo != stop:` the tables, then the call, on its own test of the same cells.
+                    let tables = Stmt::new(self.cur_line, StmtKind::LoopTables(loop_name));
+                    self.lower_if(
+                        false,
+                        &Expr::GPow(lo as u128),
+                        &entry_bound,
+                        &[tables, call],
+                        &[],
+                        false,
+                    );
+                }
             }
         }
     }
@@ -1831,7 +1836,6 @@ pub(crate) fn lower_func(
             rebound: Vec::new(),
             dbg_loops: Vec::new(),
             addr_taken: false,
-            deferred: Vec::new(),
             code: Vec::new(),
             cur_line: 0,
             heap_sizes: HashMap::new(),
@@ -1879,10 +1883,6 @@ pub(crate) fn lower_func(
         }
         if lowerer.is_main {
             lowerer.halt(); // main terminates in the final state (sentinel pc, main's frame), not by falling off
-            for (lp, r, one, line) in std::mem::take(&mut lowerer.deferred) {
-                lowerer.cur_line = line;
-                lowerer.emit(LOp::DeferWrite { lp, r, one });
-            }
         } else if !matches!(f.body.last().map(|s| &s.kind), Some(StmtKind::Return(_))) {
             // A function must never fall off its end into whatever code the
             // layout placed next: append the implicit bare return.

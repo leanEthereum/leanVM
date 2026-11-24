@@ -108,14 +108,13 @@ fn lower_all(ast: &Ast) -> (Vec<Lowered>, JumpTables) {
 /// Lay out the lowered functions and the jump tables, and resolve them to a [`CompiledProgram`].
 fn assemble(mut lowered: Vec<Lowered>, mut tables: JumpTables) -> CompiledProgram {
     // The tables sit past `main`'s own cells. At pc 0, in `main`'s frame (`fp = g^0`),
-    // one `SET` per slot not deferred writes them, then falls through into `main`.
+    // one `SET` per slot but an `own_tables` loop's writes them, then falls through into `main`.
     let tables_base = lowered[0].frame_size;
-    let at_start = defer_tables(&mut lowered, &mut tables, tables_base);
+    let at_start = loop_tables(&mut lowered, &mut tables, tables_base);
     if !tables.slots.is_empty() {
         lowered[0].frame_size += tables.slots.len() as u32;
-        let code: Vec<LInstr> = (tables.slots.iter().zip(tables_base..).zip(&at_start))
-            .filter(|(_, start)| **start)
-            .map(|((k, o), _)| LInstr {
+        let code: Vec<LInstr> = (tables.slots[..at_start].iter().zip(tables_base..))
+            .map(|(k, o)| LInstr {
                 op: LOp::Set { o, k: k.clone() },
                 line: 0,
                 hints: Vec::new(),
@@ -237,40 +236,19 @@ fn assemble(mut lowered: Vec<Lowered>, mut tables: JumpTables) -> CompiledProgra
     }
 }
 
-/// The jump-table slots that only code reached through one of `main`'s runtime-bounded loops
-/// reads move from pc 0 into that loop's [`LOp::DeferWrite`], and `main`'s placeholders expand
-/// (or go, for a loop no slot moved to). Which slots stay at pc 0.
-fn defer_tables(lowered: &mut [Lowered], tables: &mut JumpTables, tables_base: u32) -> Vec<bool> {
-    let moved = deferred_slots(lowered, tables);
-    let mut at_start = vec![true; tables.slots.len()];
-    for &s in moved.values().flatten() {
-        at_start[s] = false;
-    }
-    expand_deferred(&mut lowered[0], tables, tables_base, &moved);
-    at_start
-}
-
-/// The slots each of `main`'s runtime-bounded loops can write on its entry test, by loop.
-///
-/// A function runs only once control enters it: through the `SET` of its entry in a function
-/// that calls it, or through a jump-table slot naming it, which a function reading that table
-/// jumps to. Loop `lp` qualifies when only `main`, at its one call, and `lp` itself name it;
-/// the functions only `lp` reaches are then the least set holding `lp` and every function all
-/// of whose other callers it holds, and a table only they read is read only after `main` passed the
-/// loop's entry test. `DeferEnter` runs the writes on that same test, just before the call.
-fn deferred_slots(lowered: &[Lowered], tables: &JumpTables) -> HashMap<String, Vec<usize>> {
+/// Moves each `own_tables` loop's jump tables to the end, a run per loop, and expands `main`'s
+/// [`LOp::LoopTables`] into the `SET`s of its loop's run. The number of slots left to pc 0.
+fn loop_tables(lowered: &mut [Lowered], tables: &mut JumpTables, tables_base: u32) -> usize {
     let n_slots = tables.slots.len();
-    let mut moved = HashMap::new();
     let loops: Vec<String> = (lowered[0].code.iter())
         .filter_map(|ins| match &ins.op {
-            LOp::DeferEnter { lp, .. } => Some(lp.clone()),
+            LOp::LoopTables { lp } => Some(lp.clone()),
             _ => None,
         })
         .collect();
     if loops.is_empty() {
-        return moved;
+        return n_slots;
     }
-    let index: HashMap<&str, usize> = lowered.iter().enumerate().map(|(i, l)| (l.name.as_str(), i)).collect();
     // Each table starts at the slot a `Slot` names and runs to the next one.
     let mut starts: Vec<usize> = (lowered.iter().flat_map(|l| &l.code))
         .filter_map(|ins| match ins.op {
@@ -280,6 +258,55 @@ fn deferred_slots(lowered: &[Lowered], tables: &JumpTables) -> HashMap<String, V
         .collect();
     starts.sort_unstable();
     starts.dedup();
+    let mut owner = vec![None; starts.len()];
+    for (lp, tabs) in loops.iter().zip(loop_only_tables(lowered, tables, &starts, &loops)) {
+        for t in tabs {
+            // Two loops' sets are disjoint: a function in both has every caller in both, back to `main`.
+            assert!(owner[t].replace(lp.as_str()).is_none(), "a table only two loops read");
+        }
+    }
+    // The new order: the tables no loop owns, then each loop's, every group in slot order.
+    let span = |t: usize| starts[t]..starts.get(t + 1).copied().unwrap_or(n_slots);
+    let mut order: Vec<usize> = (0..starts.first().copied().unwrap_or(n_slots)).collect();
+    order.extend((0..starts.len()).filter(|&t| owner[t].is_none()).flat_map(span));
+    let at_start = order.len();
+    let mut runs = HashMap::new();
+    for lp in &loops {
+        let from = order.len();
+        order.extend(
+            (0..starts.len())
+                .filter(|&t| owner[t] == Some(lp.as_str()))
+                .flat_map(span),
+        );
+        runs.insert(lp.clone(), from..order.len());
+    }
+    let mut new_pos = vec![0; n_slots];
+    for (new, &old) in order.iter().enumerate() {
+        new_pos[old] = new as u32;
+    }
+    tables.slots = order.iter().map(|&s| tables.slots[s].clone()).collect();
+    for first in tables.shared.values_mut() {
+        *first = new_pos[*first] as usize;
+    }
+    for ins in lowered.iter_mut().flat_map(|l| &mut l.code) {
+        if let LOp::Slot { first, .. } = &mut ins.op {
+            *first = new_pos[*first as usize];
+        }
+    }
+    expand_loop_tables(&mut lowered[0], tables, tables_base, &runs);
+    at_start
+}
+
+/// The tables only code reached through each of `loops` reads, by loop.
+///
+/// A function runs only once control enters it: through the `SET` of its entry in a function
+/// that calls it, or through a jump-table slot naming it, which a function reading that table
+/// jumps to. Only `main`, at its one call, and the loop itself name an `own_tables` loop, and that
+/// call follows the loop's [`LOp::LoopTables`] in the branch that enters it. The functions only the
+/// loop reaches are then the least set holding it and every function all of whose other callers it
+/// holds, and a table only they read is read only after `main` wrote it.
+fn loop_only_tables(lowered: &[Lowered], tables: &JumpTables, starts: &[usize], loops: &[String]) -> Vec<Vec<usize>> {
+    let index: HashMap<&str, usize> = lowered.iter().enumerate().map(|(i, l)| (l.name.as_str(), i)).collect();
     let table_of = |slot: usize| starts.partition_point(|&f| f <= slot).checked_sub(1);
     let mut readers = vec![std::collections::BTreeSet::new(); starts.len()];
     let mut callers = vec![std::collections::BTreeSet::new(); lowered.len()];
@@ -303,74 +330,64 @@ fn deferred_slots(lowered: &[Lowered], tables: &JumpTables) -> HashMap<String, V
         }
     }
     for (slot, k) in tables.slots.iter().enumerate() {
-        if let (Some(c), Some(t)) = (named(k), table_of(slot)) {
-            callers[c].extend(readers[t].iter().copied());
-        } else if let Some(c) = named(k) {
+        match (named(k), table_of(slot)) {
+            (Some(c), Some(t)) => callers[c].extend(readers[t].iter().copied()),
             // A slot no table holds: count it as named from everywhere.
-            callers[c].extend(0..lowered.len());
+            (Some(c), None) => callers[c].extend(0..lowered.len()),
+            _ => {}
         }
     }
     let main = &lowered[0].code;
-    for lp in &loops {
-        let l = index[lp.as_str()];
-        // `main` names `lp` once, in the call whose `JUMP` tests the `DeferEnter`'s condition, and only `lp`'s own
-        // tables do.
-        let entry_sets: Vec<(usize, Off)> = (main.iter().enumerate())
-            .filter_map(|(i, ins)| match &ins.op {
-                LOp::Set { o, k: KVal::Entry(c) } if c == lp => Some((i, *o)),
+    (loops.iter())
+        .map(|lp| {
+            let l = index[lp.as_str()];
+            let at = (main.iter())
+                .position(|ins| matches!(&ins.op, LOp::LoopTables { lp: p } if p == lp))
+                .unwrap();
+            let entry: Vec<Off> = (main.iter())
+                .filter_map(|ins| match &ins.op {
+                    LOp::Set { o, k: KVal::Entry(c) } if c == lp => Some(*o),
+                    _ => None,
+                })
+                .collect();
+            let call = (main.iter().enumerate()).find_map(|(i, ins)| match ins.op {
+                LOp::Jump { od, .. } if entry == [od] => Some(i),
                 _ => None,
-            })
-            .collect();
-        let enter = main
-            .iter()
-            .position(|ins| matches!(&ins.op, LOp::DeferEnter { lp: p, .. } if p == lp));
-        let guarded = match (enter, entry_sets.as_slice()) {
-            (Some(e), &[(i, cell)]) => {
-                let LOp::DeferEnter { x, .. } = main[e].op else {
-                    unreachable!()
-                };
-                e < i
-                    && (main[i..].iter()).find_map(|ins| match ins.op {
-                        LOp::Jump { oc, od, .. } if od == cell => Some(oc == x),
-                        _ => None,
-                    }) == Some(true)
-            }
-            _ => false,
-        };
-        let in_table = (tables.slots.iter().enumerate())
-            .any(|(s, k)| named(k) == Some(l) && table_of(s).is_none_or(|t| readers[t].iter().any(|&r| r != l)));
-        if !guarded || in_table || callers[l].iter().any(|&c| c != 0 && c != l) {
-            continue;
-        }
-        let mut only = std::collections::BTreeSet::from([l]);
-        loop {
-            let before = only.len();
-            for f in 1..lowered.len() {
-                // A function's own references (a `match` table's arms, a loop's next iteration) need it entered first.
-                let mut from = callers[f].iter().filter(|&&c| c != f).peekable();
-                if from.peek().is_some() && from.all(|c| only.contains(c)) {
-                    only.insert(f);
+            });
+            assert!(
+                call.is_some_and(|i| i > at) && callers[l].iter().all(|&c| c == 0 || c == l),
+                "`{lp}` is entered other than by the call after its tables"
+            );
+            let mut only = std::collections::BTreeSet::from([l]);
+            loop {
+                let before = only.len();
+                for f in 1..lowered.len() {
+                    // A function's own references (a `match` table's arms, a loop's next iteration) need it entered first.
+                    let mut from = callers[f].iter().filter(|&&c| c != f).peekable();
+                    if from.peek().is_some() && from.all(|c| only.contains(c)) {
+                        only.insert(f);
+                    }
+                }
+                if only.len() == before {
+                    break;
                 }
             }
-            if only.len() == before {
-                break;
-            }
-        }
-        let slots: Vec<usize> = (0..n_slots)
-            .filter(|&s| table_of(s).is_some_and(|t| !readers[t].is_empty() && readers[t].is_subset(&only)))
-            .collect();
-        if !slots.is_empty() {
-            moved.insert(lp.clone(), slots);
-        }
-    }
-    moved
+            (0..starts.len())
+                .filter(|&t| !readers[t].is_empty() && readers[t].is_subset(&only))
+                .collect()
+        })
+        .collect()
 }
 
-/// `main`'s placeholders expanded, its other jump targets moved with them.
-fn expand_deferred(main: &mut Lowered, tables: &mut JumpTables, tables_base: u32, moved: &HashMap<String, Vec<usize>>) {
+/// `main` with each [`LOp::LoopTables`] expanded to its loop's run of `SET`s, its jump targets moved with them.
+fn expand_loop_tables(
+    main: &mut Lowered,
+    tables: &mut JumpTables,
+    tables_base: u32,
+    runs: &HashMap<String, std::ops::Range<usize>>,
+) {
     let len = |op: &LOp| match op {
-        LOp::DeferEnter { lp, .. } => moved.get(lp).map_or(0, |_| 3),
-        LOp::DeferWrite { lp, .. } => moved.get(lp).map_or(0, |s| s.len() + 1),
+        LOp::LoopTables { lp } => runs[lp].len(),
         _ => 1,
     };
     let mut new_index = Vec::with_capacity(main.code.len() + 1);
@@ -380,47 +397,18 @@ fn expand_deferred(main: &mut Lowered, tables: &mut JumpTables, tables_base: u32
         at += len(&ins.op) as u32;
     }
     new_index.push(at);
-    let write_at: HashMap<&str, u32> = (main.code.iter().enumerate())
-        .filter_map(|(i, ins)| match &ins.op {
-            LOp::DeferWrite { lp, .. } => Some((lp.as_str(), new_index[i])),
-            _ => None,
-        })
-        .collect();
     let mut code = Vec::with_capacity(at as usize);
     let mut carried: Vec<Hint> = Vec::new();
-    for (i, ins) in main.code.iter().enumerate() {
+    for ins in &main.code {
         let LInstr { op, line, hints } = ins.clone();
         carried.extend(hints);
         let ops = match op {
-            LOp::DeferEnter { lp, x, t, r, one } if moved.contains_key(&lp) => vec![
-                LOp::Set {
-                    o: t,
-                    k: KVal::Local(write_at[lp.as_str()]),
-                },
-                LOp::Set {
-                    o: r,
-                    k: KVal::Local(new_index[i] + 3),
-                },
-                LOp::Jump { oc: x, od: t, of: one },
-            ],
-            LOp::DeferWrite { lp, r, one } => {
-                let slots = moved.get(&lp).map_or(&[][..], Vec::as_slice);
-                let mut ops: Vec<LOp> = (slots.iter())
-                    .map(|&s| LOp::Set {
-                        o: tables_base + s as u32,
-                        k: tables.slots[s].clone(),
-                    })
-                    .collect();
-                if !slots.is_empty() {
-                    ops.push(LOp::Jump {
-                        oc: one,
-                        od: r,
-                        of: one,
-                    });
-                }
-                ops
-            }
-            LOp::DeferEnter { .. } => vec![],
+            LOp::LoopTables { lp } => (runs[&lp].clone())
+                .map(|s| LOp::Set {
+                    o: tables_base + s as u32,
+                    k: tables.slots[s].clone(),
+                })
+                .collect(),
             LOp::Set { o, k: KVal::Local(t) } => vec![LOp::Set {
                 o,
                 k: KVal::Local(new_index[t as usize]),
@@ -435,7 +423,10 @@ fn expand_deferred(main: &mut Lowered, tables: &mut JumpTables, tables_base: u32
             });
         }
     }
-    assert!(carried.is_empty(), "a hint on `main`'s last placeholder");
+    assert!(
+        carried.is_empty(),
+        "a hint on `main`'s last instruction, an empty loop's tables"
+    );
     main.code = code;
     for k in &mut tables.slots {
         if let KVal::At(n, i) = k
@@ -551,7 +542,7 @@ fn resolve(op: &LOp, entry: &HashMap<String, u32>, sentinel: u32, pc0: u32, fram
             od: *od,
             of: *of,
         },
-        LOp::DeferEnter { .. } | LOp::DeferWrite { .. } => unreachable!("expanded by `defer_tables`"),
+        LOp::LoopTables { .. } => unreachable!("expanded by `loop_tables`"),
         LOp::Keccak {
             m,
             tail,

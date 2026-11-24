@@ -85,9 +85,17 @@ fn subst_kind(s: &StmtKind, subs: &[(&str, &Expr)]) -> StmtKind {
         StmtKind::Store(a, i, v) => StmtKind::Store(e(a), e(i), e(v)),
         StmtKind::Return(xs) => StmtKind::Return(es(xs)),
         StmtKind::CallIfNe(a, b, f, args) => StmtKind::CallIfNe(e(a), e(b), f.clone(), es(args)),
-        StmtKind::For { var, lo, hi, body: b } => StmtKind::For {
+        StmtKind::LoopTables(lp) => StmtKind::LoopTables(lp.clone()),
+        StmtKind::For {
+            var,
+            lo,
+            hi,
+            body: b,
+            own_tables,
+        } => StmtKind::For {
             var: var.clone(),
             lo: *lo,
+            own_tables: *own_tables,
             hi: match hi {
                 ForBound::Const(k) => ForBound::Const(*k),
                 ForBound::Runtime(x) => ForBound::Runtime(e(x)),

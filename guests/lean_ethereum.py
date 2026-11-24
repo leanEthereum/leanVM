@@ -4941,7 +4941,9 @@ def main():
     for i in unroll(1, LX_V):
         if const(LX_TAG_SLOT[i] != 0):
             lx_tags[LX_TAG_SLOT[i] - 1] = i
-    for xi in mul_range(1, n_raw_x_g):
+    # Both signature loops write the jump tables only they read on entering (`own_tables`),
+    # so a node that verifies no raw signature does not write them.
+    for xi in mul_range(1, n_raw_x_g, own_tables=True):
         idx = hint_witness("raw_index")
         # The runtime bound is small by `assert_gpow(n_total_g)` above (its log below
         # the memory size). Without it this degenerates to what DEREF alone gives and an
@@ -4950,7 +4952,7 @@ def main():
         assert log(idx) < log(lx_slots_g)
         cover[idx] = xi
         verify_lean_xmss(lx_table * (idx ** 4), lx_tags)
-    for xj in mul_range(1, n_raw_s_g):
+    for xj in mul_range(1, n_raw_s_g, own_tables=True):
         off_hint = hint_witness("sp_raw_index")
         assert log(off_hint) < log(lean_sphincs_slots_g)
         sp_cover[off_hint] = n_raw_x_g * xj

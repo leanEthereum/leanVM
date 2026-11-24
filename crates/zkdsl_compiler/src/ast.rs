@@ -171,11 +171,16 @@ pub enum StmtKind {
     /// itself executed. There is no step knob, the bounds being field elements
     /// (`mul_range(1, GEN ** 10)` runs ten times). A runtime `stop` must be known
     /// reachable: range-check its log, or the walk never terminates.
+    ///
+    /// `mul_range(start, stop, own_tables=True)`, in `main` with a runtime `stop`: the jump
+    /// tables only code reached through the loop reads are written in the branch that enters
+    /// it rather than at pc 0, so a run that skips the loop does not pay for them.
     For {
         var: String,
         lo: u64,
         hi: ForBound,
         body: Vec<Stmt>,
+        own_tables: bool,
     },
     /// `for i in unroll(a, b)`: the body emitted `b − a` times with `i`
     /// substituted by each literal, so `i` is usable wherever a literal is. No
@@ -193,6 +198,8 @@ pub enum StmtKind {
     /// Internal, from loop lowering: `if lhs != rhs: callee(args)` in tail
     /// position, dispatched by `JUMP`'s nonzero test.
     CallIfNe(Expr, Expr, String, Vec<Expr>),
+    /// Internal, from loop lowering: the writes of an `own_tables` loop's jump tables.
+    LoopTables(String),
 }
 
 /// A `mul_range` stop bound: a compile-time `GEN ** k`, or a runtime g-power
@@ -435,6 +442,7 @@ pub(crate) fn free_vars_stmt<'a>(s: &'a Stmt, live: bool, refs: &mut Vec<&'a str
             bound.insert(name.as_str());
         }
         StmtKind::Print { value, .. } => free_vars_expr(value, refs),
+        StmtKind::LoopTables(_) => {}
         StmtKind::If {
             eq,
             lhs,
