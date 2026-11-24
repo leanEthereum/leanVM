@@ -436,7 +436,8 @@ structure CdA where
   prs : List (PRun × List ℕ)
 
 /-- **A dispatch's arms' guarantees under its selector** `mx`: if the selector's word is `g^j`, arm `j` ran, and
-`arms[j]` holds (one entry per dispatch, so a later dispatch on `mx` looks up its arm `j` by index). -/
+`arms[j]` holds (one entry per dispatch, an equal earlier one dropped, so a later dispatch on `mx` looks up its arm `j`
+by index). -/
 structure CdE where
   mx : CCell
   arms : List CdA
