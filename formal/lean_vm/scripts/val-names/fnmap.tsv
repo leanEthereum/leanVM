@@ -270,7 +270,6 @@ LeanVM/Guest/B1/Placement/CertifyComplete.lean certify_placement
 LeanVM/Guest/B1/Ring/Loop14Complete.lean ring_switch_target_loop0
 LeanVM/Guest/B1/Ring/TargetComplete.lean ring_switch_target
 # Sumcheck
-LeanVM/Guest/B1/Sumcheck/Batch.lean batch_sumcheck__L
 # Terminal
 LeanVM/Guest/B1/Terminal/Blocks.lean check_opening_terminal
 LeanVM/Guest/B1/Terminal/Body.lean check_opening_terminal

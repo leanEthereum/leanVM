@@ -1,29 +1,28 @@
 /-
   LeanVM.Guest.B1.Sumcheck.Batch
 
-  B1 for `batch_sumcheck`: the claim-batching sumcheck, one generic argument over the rounds.
+  B1 for `batch_sumcheck`: the claim-batching sumcheck, its rounds by induction.
 -/
 
 module
 
 public import LeanVM.Guest.B1.Sumcheck.Meaning
-public import LeanVM.Guest.B1.Fs.Templates
 public import LeanVM.Guest.B1.Common.Run
 public import LeanVM.Guest.B1.Common.Find
-import LeanVM.Guest.ValRef
-import LeanVM.Guest.Data.ValNames.«batch_sumcheck__L»
-import LeanVM.Guest.Data.ValNames.«batch_sumcheck__L23»
+import LeanVM.Guest.B1.Common.Vc
+import LeanVM.Guest.Ref.KernelRfl
 
 /-!
-# `batch_sumcheck` (TRIAGE #32)
+# `batch_sumcheck`
 
-Its body at `n` rounds (`bsBody n`): the capacity copied into `9 .. 13`; round `0` (`bsRound0`):
-`g(1)`, `g(∞)` read at `msgs[0]`, `msgs[1]` and packed (`fsNextT` from `14`, `17`), the pad run
-`20 .. 24` (`padRunT`), the permutation into `25 .. 37` (`fs_grind_squeeze` at zero bits), its
-challenge (its cell `25`) stored at `point[0]`, the fold (`38 .. 44`); round `j + 1` (`bsRound j`):
-the same from `45 + 26 j`, its permutation into `51 + 26 j`, reading the zero run `21 .. 24`; the
-final capacity and claim copied and returned. Round `j`'s permutation writes from `25 + 26 j`.
-The window table `.n 8` is not read.
+`batch_sumcheck(fs0..fs4, msgs, running, point, tabs, 23)` (`guests/lean_ethereum.py`) copies the
+carried capacity, then per round `j` reads `g(1)`, `g(∞)` at `msgs[2j]`, `msgs[2j + 1]`, absorbs
+them, squeezes the challenge (`fs_grind_squeeze` at zero bits: one permutation, its cell `0`),
+stores it at `point[j]` and folds the degree-two round; it returns the last capacity and claim.
+
+`vc` computes its condition: round by round, the two words read, the challenge stored, the
+permutation's cells in place of its outputs. `BsRounds` is that condition for `n` rounds from
+round `k`, and `bsRounds_iff` its meaning (`bsRun`), by induction on `n`.
 -/
 
 namespace LeanVM.Guest.B1
@@ -33,706 +32,97 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-variable {C : CallRel} {rd : Reader} {σ : Val}
+/-- A run read one word at a time. -/
+private theorem readsAt_cons {rd : Reader} {p x : E} {xs : List E} :
+    ReadsAt rd p (x :: xs) ↔ LoadHolds rd p 0 x ∧ ReadsAt rd (p * gen) xs := by
+  have e (k : ℕ) (w : E) : LoadHolds rd (p * gen) k w ↔ LoadHolds rd p (k + 1) w := by
+    rw [← pow_one gen, loadHolds_mul_gen_pow, Nat.add_comm]
+  refine ⟨fun h => ⟨h 0 (by simp), fun k hk => (e k _).mpr (h (k + 1) (by simpa using hk))⟩,
+    fun ⟨h0, h⟩ k hk => ?_⟩
+  cases k with
+  | zero => exact h0
+  | succ k => exact (e k _).mp (h k (by simpa using hk))
 
-/-- Thirteen consecutive values. -/
-def bsRun13 (b : ℕ) : List V := (List.range 13).map fun i ↦ .n (b + i)
+/-- `n` rounds of `batch_sumcheck` from round `k` on the claim `claim` and the capacity `cap`,
+returning `rets`: each round's words read at `msgs`, its permutation's challenge stored at
+`point`, the round folded at it. -/
+def BsRounds (rd : Reader) (msgs point : E) (rets : List E) : ℕ → ℕ → E → List E → Prop
+  | _, 0, claim, cap => cap ++ [claim] = rets
+  | k, n + 1, claim, cap =>
+    ∃ a, LoadHolds rd msgs (2 * k) a ∧ ∃ b, LoadHolds rd msgs (2 * k + 1) b ∧
+      let F := cellsOfState (permOf ([a, word 0 1, b, word 0 1, 0, 0, 0, 0] ++ cap)) false
+      LoadHolds rd point k (F 0) ∧
+        BsRounds rd msgs point rets (k + 1) n ((b * F 0 + (claim + a + a + b)) * F 0 + (claim + a))
+          [F 8, F 9, F 10, F 11, F 12]
 
-/-- The fold of round `r` whose permutation writes from `o` (its challenge the cell `o`), its
-claim `c`, its words at `b`, `b + 3`. -/
-def bsFold (o c b : ℕ) (r : ℕ) : List Stmt :=
-  [.atom (.load (.n o) (.n (val% «batch_sumcheck__L23» "point")) r),
-    .atom (.add (.n (o + 13)) (.n c) (.n b)), .atom (.add (.n (o + 14)) (.n (o + 13)) (.n b)),
-    .atom (.add (.n (o + 15)) (.n (o + 14)) (.n (b + 3))),
-    .atom (.mul (.n (o + 16)) (.n (b + 3)) (.n o)),
-    .atom (.add (.n (o + 17)) (.n (o + 16)) (.n (o + 15))),
-    .atom (.mul (.n (o + 18)) (.n (o + 17)) (.n o)),
-    .atom (.add (.n (o + 19)) (.n (o + 18)) (.n (o + 13)))]
-
-/-- Round `0`. -/
-def bsRound0 : List Stmt :=
-  fsNextT (.n (val% «batch_sumcheck__L23» "msgs")) 0 (val% «batch_sumcheck__L23» "x@1") ++ fsNextT (.n (val% «batch_sumcheck__L23» "msgs")) 1 (val% «batch_sumcheck__L23» "x@2") ++ padRunT 20 ++
-  [keccakA [.n (val% «batch_sumcheck__L23» "rate[0]@1"), .n (val% «batch_sumcheck__L23» "rate[1]@1"), .n (val% «batch_sumcheck__L23» "rate[2]@1"), .n (val% «batch_sumcheck__L23» "rate[3]@1"), .n (val% «batch_sumcheck__L23» "s1.u0.s3.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[1]"), .n (val% «batch_sumcheck__L23» "s1.u0.s3.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[2]"), .n (val% «batch_sumcheck__L23» "s1.u0.s3.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[3]"), .n (val% «batch_sumcheck__L23» "s1.u0.s3.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[4]"), .n (val% «batch_sumcheck__L23» "sp[0]"), .n (val% «batch_sumcheck__L23» "sp[1]"), .n (val% «batch_sumcheck__L23» "sp[2]"), .n (val% «batch_sumcheck__L23» "sp[3]"), .n (val% «batch_sumcheck__L23» "sp[4]")]
-      (bsRun13 25)] ++
-  bsFold 25 6 14 0
-
-/-- Round `j + 1`. -/
-def bsRound (j : ℕ) : List Stmt :=
-  fsNextT (.n (val% «batch_sumcheck__L23» "msgs")) (2 * j + 2) (45 + 26 * j) ++ fsNextT (.n (val% «batch_sumcheck__L23» "msgs")) (2 * j + 3) (48 + 26 * j) ++
-  [keccakA [.n (46 + 26 * j), .n (47 + 26 * j), .n (49 + 26 * j), .n (50 + 26 * j), .n (val% «batch_sumcheck__L23» "s1.u0.s3.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[1]"), .n (val% «batch_sumcheck__L23» "s1.u0.s3.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[2]"),
-      .n (val% «batch_sumcheck__L23» "s1.u0.s3.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[3]"), .n (val% «batch_sumcheck__L23» "s1.u0.s3.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[4]"), .n (33 + 26 * j), .n (34 + 26 * j), .n (35 + 26 * j), .n (36 + 26 * j),
-      .n (37 + 26 * j)] (bsRun13 (51 + 26 * j))] ++
-  bsFold (51 + 26 * j) (44 + 26 * j) (45 + 26 * j) (j + 1)
-
-/-- The expansion of `batch_sumcheck` at `n ≥ 1` rounds. -/
-def bsBody (n : ℕ) : List Stmt :=
-  [.atom (.copy (.n (val% «batch_sumcheck__L23» "sp[0]")) (.n (val% «batch_sumcheck__L23» "fs0"))), .atom (.copy (.n (val% «batch_sumcheck__L23» "sp[1]")) (.n (val% «batch_sumcheck__L23» "fs1"))), .atom (.copy (.n (val% «batch_sumcheck__L23» "sp[2]")) (.n (val% «batch_sumcheck__L23» "fs2"))),
-    .atom (.copy (.n (val% «batch_sumcheck__L23» "sp[3]")) (.n (val% «batch_sumcheck__L23» "fs3"))), .atom (.copy (.n (val% «batch_sumcheck__L23» "sp[4]")) (.n (val% «batch_sumcheck__L23» "fs4")))] ++
-  bsRound0 ++ ((List.range (n - 1)).map bsRound).flatten ++
-  [.atom (.copy (.n (19 + 26 * n)) (.n (25 + 26 * (n - 1) + 8))),
-    .atom (.copy (.n (20 + 26 * n)) (.n (25 + 26 * (n - 1) + 9))),
-    .atom (.copy (.n (21 + 26 * n)) (.n (25 + 26 * (n - 1) + 10))),
-    .atom (.copy (.n (22 + 26 * n)) (.n (25 + 26 * (n - 1) + 11))),
-    .atom (.copy (.n (23 + 26 * n)) (.n (25 + 26 * (n - 1) + 12))),
-    .atom (.copy (.n (24 + 26 * n)) (.n (25 + 26 * (n - 1) + 19))),
-    .ret [.n (19 + 26 * n), .n (20 + 26 * n), .n (21 + 26 * n), .n (22 + 26 * n), .n (23 + 26 * n),
-      .n (24 + 26 * n)]]
-
-/-! ## The rounds as a sequence -/
-
-/-- The claim and the sponge after the first `j` rounds of `bsRun` on the words `g`. -/
-def bsSt (g : ℕ → E × E) (claim : E) (s : Fs) : ℕ → E × Fs
-  | 0 => (claim, s)
-  | j + 1 =>
-    let st := bsSt g claim s j
-    let r := ((st.2.absorb (g j).1 dsObserve).absorb (g j).2 dsObserve).squeeze
-    let g0 := st.1 + (g j).1
-    (((g j).2 * r.1 + (g0 + (g j).1 + (g j).2)) * r.1 + g0, r.2)
-
-/-- Round `j`'s permutation. -/
-def bsP (g : ℕ → E × E) (claim : E) (s : Fs) (j : ℕ) : KeccakState :=
-  (((bsSt g claim s j).2.absorb (g j).1 dsObserve).absorb (g j).2 dsObserve).perm
-
-theorem bsSt_succ_shift (g : ℕ → E × E) (claim : E) (s : Fs) :
-    ∀ j, bsSt g claim s (j + 1) =
-      bsSt (fun i ↦ g (i + 1)) (bsSt g claim s 1).1 (bsSt g claim s 1).2 j
-  | 0 => rfl
-  | j + 1 => by
-    rw [bsSt, bsSt_succ_shift g claim s j]
-    rfl
-
-theorem range_succ_map {α : Type} (f : ℕ → α) (n : ℕ) :
-    (List.range (n + 1)).map f = f 0 :: (List.range n).map fun i ↦ f (i + 1) := by
-  simp [List.range_succ_eq_map, List.map_map, Function.comp_def]
-
-/-- Round `j`'s challenge. -/
-def bsChal (g : ℕ → E × E) (claim : E) (s : Fs) (j : ℕ) : E :=
-  (((bsSt g claim s j).2.absorb (g j).1 dsObserve).absorb (g j).2 dsObserve).squeeze.1
-
-theorem bsChal_shift (g : ℕ → E × E) (claim : E) (s : Fs) (j : ℕ) :
-    bsChal g claim s (j + 1) =
-      bsChal (fun i ↦ g (i + 1)) (bsSt g claim s 1).1 (bsSt g claim s 1).2 j := by
-  rw [bsChal, bsChal, bsSt_succ_shift g claim s j]
-
-theorem bsRun_cons1 (g : ℕ → E × E) (L : List (E × E)) (claim : E) (s : Fs) :
-    (bsRun (g 0 :: L) claim s).1.1 =
-      bsChal g claim s 0 :: (bsRun L (bsSt g claim s 1).1 (bsSt g claim s 1).2).1.1 := rfl
-
-theorem bsRun_cons2 (g : ℕ → E × E) (L : List (E × E)) (claim : E) (s : Fs) :
-    (bsRun (g 0 :: L) claim s).1.2 = (bsRun L (bsSt g claim s 1).1 (bsSt g claim s 1).2).1.2 := rfl
-
-theorem bsRun_cons3 (g : ℕ → E × E) (L : List (E × E)) (claim : E) (s : Fs) :
-    (bsRun (g 0 :: L) claim s).2 = (bsRun L (bsSt g claim s 1).1 (bsSt g claim s 1).2).2 := rfl
-
-theorem bsRun_range1 : ∀ (n : ℕ) (g : ℕ → E × E) (claim : E) (s : Fs),
-    (bsRun ((List.range n).map g) claim s).1.1 = (List.range n).map (bsChal g claim s)
-  | 0, _, _, _ => rfl
-  | n + 1, g, claim, s => by
-    rw [range_succ_map, bsRun_cons1, bsRun_range1 n, range_succ_map]
-    exact congrArg (List.cons (bsChal g claim s 0))
-      (List.map_congr_left fun i _ ↦ (bsChal_shift g claim s i).symm)
-
-theorem bsRun_range2 : ∀ (n : ℕ) (g : ℕ → E × E) (claim : E) (s : Fs),
-    (bsRun ((List.range n).map g) claim s).1.2 = (bsSt g claim s n).1
-  | 0, _, _, _ => rfl
-  | n + 1, g, claim, s => by
-    rw [range_succ_map, bsRun_cons2, bsRun_range2 n, bsSt_succ_shift g claim s n]
-
-theorem bsRun_range3 : ∀ (n : ℕ) (g : ℕ → E × E) (claim : E) (s : Fs),
-    (bsRun ((List.range n).map g) claim s).2 = (bsSt g claim s n).2
-  | 0, _, _, _ => rfl
-  | n + 1, g, claim, s => by
-    rw [range_succ_map, bsRun_cons3, bsRun_range3 n, bsSt_succ_shift g claim s n]
-
-theorem absorb2 (cap : List E) (a b : E) :
-    ((⟨cap, []⟩ : Fs).absorb a dsObserve).absorb b dsObserve = ⟨cap, [(a, dsObserve), (b, dsObserve)]⟩ := by
-  simp [Fs.absorb, rateScalars]
-
-theorem bsSt_empty (g : ℕ → E × E) (claim : E) (cap : List E) :
-    ∀ j, (bsSt g claim ⟨cap, []⟩ j).2 = ⟨(bsSt g claim ⟨cap, []⟩ j).2.cap, []⟩
-  | 0 => rfl
-  | _ + 1 => rfl
-
-theorem bsSt_cap_succ (g : ℕ → E × E) (claim : E) (cap : List E) (j : ℕ) :
-    (bsSt g claim ⟨cap, []⟩ (j + 1)).2.cap = capOf (bsP g claim ⟨cap, []⟩ j) := rfl
-
-/-- Round `j`'s permutation, its cells written out. -/
-theorem bsP_eq (g : ℕ → E × E) (claim : E) (cap : List E) (j : ℕ) :
-    bsP g claim ⟨cap, []⟩ j = permOf (pendCells [((g j).1, dsObserve), ((g j).2, dsObserve)] ++
-      [0, 0, 0, 0] ++ (bsSt g claim ⟨cap, []⟩ j).2.cap) := by
-  rw [bsP, bsSt_empty, absorb2, perm_eq_cells _ (by simp)]
+/-- A round's sponge: its two words absorbed on the capacity, its permutation squeezed. -/
+private theorem bs_squeeze (cap : List E) (a b : E) :
+    (((⟨cap, []⟩ : Fs).absorb a dsObserve).absorb b dsObserve).squeeze =
+      let F := cellsOfState (permOf ([a, word 0 1, b, word 0 1, 0, 0, 0, 0] ++ cap)) false
+      (F 0, ⟨[F 8, F 9, F 10, F 11, F 12], []⟩) := by
+  have h : ((⟨cap, []⟩ : Fs).absorb a dsObserve).absorb b dsObserve =
+      ⟨cap, [(a, dsObserve), (b, dsObserve)]⟩ := by
+    simp [Fs.absorb, rateScalars]
+  rw [h, Fs.squeeze, perm_eq_cells _ (by simp), Keccak.challengeOf_cells]
   rfl
 
-/-! ## Soundness -/
+private theorem exists_length_succ {α : Type} {n : ℕ} {P : List α → Prop} :
+    (∃ l : List α, l.length = n + 1 ∧ P l) ↔ ∃ x l, l.length = n ∧ P (x :: l) :=
+  ⟨fun ⟨l, hl, h⟩ => match l, hl, h with | x :: l, hl, h => ⟨x, l, by simpa using hl, h⟩,
+    fun ⟨x, l, hl, h⟩ => ⟨x :: l, by simpa using hl, h⟩⟩
 
-/-- What a round's fold asks. -/
-def BsFoldOk (rd : Reader) (σ : Val) (o c b r : ℕ) : Prop :=
-  LoadHolds rd (σ (.n (valf% «batch_sumcheck» "point"))) r (σ (.n o)) ∧ σ (.n (o + 13)) = σ (.n c) + σ (.n b) ∧
-    σ (.n (o + 14)) = σ (.n (o + 13)) + σ (.n b) ∧
-    σ (.n (o + 15)) = σ (.n (o + 14)) + σ (.n (b + 3)) ∧
-    σ (.n (o + 16)) = σ (.n (b + 3)) * σ (.n o) ∧
-    σ (.n (o + 17)) = σ (.n (o + 16)) + σ (.n (o + 15)) ∧
-    σ (.n (o + 18)) = σ (.n (o + 17)) * σ (.n o) ∧
-    σ (.n (o + 19)) = σ (.n (o + 18)) + σ (.n (o + 13))
+/-- **`BsRounds` is `bsRun`**: `n` rounds from round `k`, their words read from `msgs[2k]`, their
+challenges stored from `point[k]`. -/
+theorem bsRounds_iff (rd : Reader) (msgs point : E) (rets : List E) :
+    ∀ (n k : ℕ) (claim : E) (cap : List E),
+      BsRounds rd msgs point rets k n claim cap ↔
+        ∃ rounds : List (E × E), rounds.length = n ∧
+          ReadsAt rd (msgs * gen ^ (2 * k)) (rounds.flatMap fun g ↦ [g.1, g.2]) ∧
+          let res := bsRun rounds claim ⟨cap, []⟩
+          ReadsAt rd (point * gen ^ k) res.1.1 ∧ rets = res.2.cap ++ [res.1.2]
+  | 0, k, claim, cap => by
+    refine ⟨fun h => ⟨[], rfl, readsAt_nil _ _, readsAt_nil _ _, h.symm⟩, ?_⟩
+    rintro ⟨l, hl, -, -, h⟩
+    obtain rfl := List.length_eq_zero_iff.mp hl
+    exact h.symm
+  | n + 1, k, claim, cap => by
+    have e (p : E) (j : ℕ) (w : E) : LoadHolds rd (p * gen ^ j) 0 w ↔ LoadHolds rd p j w := by
+      rw [loadHolds_mul_gen_pow, Nat.add_zero]
+    have g1 : msgs * gen ^ (2 * k) * gen = msgs * gen ^ (2 * k + 1) := by ring
+    have g2 : msgs * gen ^ (2 * k + 1) * gen = msgs * gen ^ (2 * (k + 1)) := by ring
+    have g3 : point * gen ^ k * gen = point * gen ^ (k + 1) := by ring
+    rw [exists_length_succ]
+    simp only [BsRounds, bsRounds_iff rd msgs point rets n, bsRun, bs_squeeze, Prod.exists,
+      List.flatMap_cons, List.cons_append, List.nil_append, readsAt_cons, e, g1, g2, g3]
+    constructor
+    · rintro ⟨a, ha, b, hb, hp, l, hl, hm, hr, hret⟩
+      exact ⟨a, b, l, hl, ⟨ha, hb, hm⟩, ⟨hp, hr⟩, hret⟩
+    · rintro ⟨a, b, l, hl, ⟨ha, hb, hm⟩, ⟨hp, hr⟩, hret⟩
+      exact ⟨a, ha, b, hb, hp, l, hl, hm, hr, hret⟩
 
-theorem holds_bsFold (o c b r : ℕ) (next : Prop) (kret : List E → Prop) :
-    Stmt.HoldsList C rd σ (bsFold o c b r) next kret ↔ BsFoldOk rd σ o c b r ∧ next := by
-  simp only [bsFold, BsFoldOk, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_assoc]
+/-- The meaning as the rounds' condition. -/
+private theorem meaningBatchSumcheck_iff (n : ℕ) (rd : Reader)
+    (f0 f1 f2 f3 f4 msgs running point tabs : E) (rets : List E) :
+    MeaningBatchSumcheck n rd [f0, f1, f2, f3, f4, msgs, running, point, tabs] rets ↔
+      BsRounds rd msgs point rets 0 n running [f0, f1, f2, f3, f4] := by
+  rw [bsRounds_iff, Nat.mul_zero, pow_zero, mul_one, mul_one]
+  rfl
 
-/-- The fold's value. -/
-theorem bsFold_value {o c b r : ℕ} (h : BsFoldOk rd σ o c b r) :
-    σ (.n (o + 19)) = (σ (.n (b + 3)) * σ (.n o) + (σ (.n c) + σ (.n b) + σ (.n b) +
-      σ (.n (b + 3)))) * σ (.n o) + (σ (.n c) + σ (.n b)) := by
-  obtain ⟨-, h13, h14, h15, h16, h17, h18, h19⟩ := h
-  rw [h19, h18, h17, h16, h15, h14, h13]
-
-/-- What round `j + 1` asks. -/
-theorem holds_bsRound (j : ℕ) (kret : List E → Prop) :
-    Stmt.HoldsList C rd σ (bsRound j) True kret ↔
-      (LoadHolds rd (σ (.n (val% «batch_sumcheck__L23» "msgs"))) (2 * j + 2) (σ (.n (45 + 26 * j))) ∧
-        FsPackOk σ (.n (45 + 26 * j)) (45 + 26 * j + 1) dsObserve) ∧
-      (LoadHolds rd (σ (.n (val% «batch_sumcheck__L23» "msgs"))) (2 * j + 3) (σ (.n (48 + 26 * j))) ∧
-        FsPackOk σ (.n (48 + 26 * j)) (48 + 26 * j + 1) dsObserve) ∧
-      (Atom.keccak [.n (46 + 26 * j), .n (47 + 26 * j), .n (49 + 26 * j), .n (50 + 26 * j), .n (val% «batch_sumcheck__L23» "s1.u0.s3.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[1]"),
-        .n (val% «batch_sumcheck__L23» "s1.u0.s3.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[2]"), .n (val% «batch_sumcheck__L23» "s1.u0.s3.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[3]"), .n (val% «batch_sumcheck__L23» "s1.u0.s3.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[4]"), .n (33 + 26 * j), .n (34 + 26 * j), .n (35 + 26 * j),
-        .n (36 + 26 * j), .n (37 + 26 * j)] (bsRun13 (51 + 26 * j)) false false).Holds rd σ ∧
-      BsFoldOk rd σ (51 + 26 * j) (44 + 26 * j) (45 + 26 * j) (j + 1) := by
-  simp only [bsRound, keccakA, holdsList_append, holds_fsNextT, holds_bsFold,
-    Stmt.HoldsList, Stmt.Holds, and_true]
-
-theorem cells13_bsRun13 (σ : Val) (b : ℕ) (c : Fin 13) :
-    cells13 ((bsRun13 b).map σ) c = σ (.n (b + c.val)) := by
-  simp [cells13, bsRun13, List.getD_eq_getElem?_getD]
-
-theorem keccak_bsRun13 {ins : List V} {b : ℕ}
-    (h : (Atom.keccak ins (bsRun13 b) false false).Holds rd σ) :
-    ∀ c : Fin 13, σ (.n (b + c.val)) = cellsOfState (permOf (ins.map σ)) false c := by
-  obtain ⟨-, -, hout⟩ := keccakA_perm h
-  intro c
-  have := outs_eq hout c (by simp [bsRun13])
-  simpa [bsRun13] using this
-
-theorem flatMap_pairs (g : ℕ → E × E) :
-    ∀ n, ((List.range n).map g).flatMap (fun p ↦ [p.1, p.2]) =
-      (List.range (2 * n)).map fun k ↦ if k % 2 = 0 then (g (k / 2)).1 else (g (k / 2)).2
-  | 0 => rfl
-  | n + 1 => by
-    rw [List.range_succ, List.map_append, List.flatMap_append, flatMap_pairs g n,
-      show 2 * (n + 1) = 2 * n + 1 + 1 by ring, List.range_succ, List.range_succ]
-    simp only [List.map_cons, List.map_nil, List.flatMap_cons, List.flatMap_nil,
-      List.append_nil, List.map_append, List.append_assoc, List.cons_append, List.nil_append]
-    congr 2
-    · simp only [show 2 * n % 2 = 0 by omega, show 2 * n / 2 = n by omega, ↓reduceIte]
-    · simp only [show (2 * n + 1) % 2 = 1 by omega, show (2 * n + 1) / 2 = n by omega,
-        one_ne_zero, ↓reduceIte]
-
-/-- The nine parameters. -/
-abbrev bsParams : List V := [.n (valf% «batch_sumcheck» "fs0"), .n (valf% «batch_sumcheck» "fs1"), .n (valf% «batch_sumcheck» "fs2"), .n (valf% «batch_sumcheck» "fs3"), .n (valf% «batch_sumcheck» "fs4"), .n (valf% «batch_sumcheck» "msgs"), .n (valf% «batch_sumcheck» "running@1"), .n (valf% «batch_sumcheck» "point"), .n (valf% «batch_sumcheck» "tabs")]
-
-/-- Where round `j`'s words sit. -/
-def bsG : ℕ → ℕ
-  | 0 => 14
-  | j + 1 => 45 + 26 * j
-
-/-- Where the claim round `j` starts from sits. -/
-def bsC : ℕ → ℕ
-  | 0 => 6
-  | j + 1 => 44 + 26 * j
-
-/-- The rate cells of a round's two words. -/
-theorem bs_pend (a b : E) :
-    pendCells [(a, dsObserve), (b, dsObserve)] = [a, word 0 dsObserve, b, word 0 dsObserve] := rfl
-
-theorem bs_sound {name : String} {f : Fn} (n : ℕ) (hn : 1 ≤ n)
-    (hfind : coreProgram.find? name = some f) (hparams : f.params = bsParams)
-    (hbody : f.body = bsBody n) (rd : Reader) (args rets : List E)
-    (h : coreProgram.Rel rd name args rets) : MeaningBatchSumcheck n rd args rets := by
-  rw [rel_iff_sem hfind, hbody, hparams, bsBody, bsRound0] at h
-  simp only [holdsList_append, holdsList_range_flatten (n - 1) bsRound (fun _ => rfl),
-    holds_bsRound, holds_fsNextT, holds_padRunT, holds_bsFold, keccakA,
-    Stmt.HoldsList, Stmt.Holds, List.map_cons, List.map_nil] at h
-  obtain ⟨σ, hp, h9, h10, h11, h12, h13, ⟨l0, p0⟩, ⟨l1, p1⟩, ⟨-, z21, z22, z23, z24⟩, hK0,
-    hf0, hrounds, c0, c1, c2, c3, c4, c5, hret⟩ := h
-  subst hp
-  have idx : ∀ a b, a = b → σ (.n a) = σ (.n b) := fun a b h ↦ by rw [h]
-  have h9 : σ (.n (val% «batch_sumcheck__L23» "sp[0]")) = σ (.n (val% «batch_sumcheck__L23» "fs0")) := h9
-  have h10 : σ (.n (val% «batch_sumcheck__L23» "sp[1]")) = σ (.n (val% «batch_sumcheck__L23» "fs1")) := h10
-  have h11 : σ (.n (val% «batch_sumcheck__L23» "sp[2]")) = σ (.n (val% «batch_sumcheck__L23» "fs2")) := h11
-  have h12 : σ (.n (val% «batch_sumcheck__L23» "sp[3]")) = σ (.n (val% «batch_sumcheck__L23» "fs3")) := h12
-  have h13 : σ (.n (val% «batch_sumcheck__L23» "sp[4]")) = σ (.n (val% «batch_sumcheck__L23» "fs4")) := h13
-  have z21 : σ (.n (val% «batch_sumcheck__L23» "s1.u0.s3.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[1]")) = 0 := z21
-  have z22 : σ (.n (val% «batch_sumcheck__L23» "s1.u0.s3.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[2]")) = 0 := z22
-  have z23 : σ (.n (val% «batch_sumcheck__L23» "s1.u0.s3.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[3]")) = 0 := z23
-  have z24 : σ (.n (val% «batch_sumcheck__L23» "s1.u0.s3.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[4]")) = 0 := z24
-  set g : ℕ → E × E := fun j ↦ (σ (.n (bsG j)), σ (.n (bsG j + 3))) with hg
-  set cap0 := [σ (.n (val% «batch_sumcheck__L23» "fs0")), σ (.n (val% «batch_sumcheck__L23» "fs1")), σ (.n (val% «batch_sumcheck__L23» "fs2")), σ (.n (val% «batch_sumcheck__L23» "fs3")), σ (.n (val% «batch_sumcheck__L23» "fs4"))] with hcap0
-  set St := bsSt g (σ (.n (val% «batch_sumcheck__L23» "running@1"))) ⟨cap0, []⟩ with hSt
-  set P := bsP g (σ (.n (val% «batch_sumcheck__L23» "running@1"))) ⟨cap0, []⟩ with hP
-  -- round j's facts
-  have hR : ∀ j, j < n → (∀ c : Fin 13, σ (.n (25 + 26 * j + c.val)) = cellsOfState (P j) false c) →
-      σ (.n (25 + 26 * j)) = challengeOf (P j) ∧
-        BsFoldOk rd σ (25 + 26 * j) (bsC j) (bsG j) j := by
-    intro j hj hB
-    have b0 : σ (.n (25 + 26 * j)) = cellsOfState (P j) false 0 := hB 0
-    refine ⟨by rw [b0, Keccak.challengeOf_cells], ?_⟩
-    cases j with
-    | zero => exact hf0
-    | succ i =>
-      obtain ⟨-, -, -, hf⟩ := hrounds i (by omega)
-      rw [show 25 + 26 * (i + 1) = 51 + 26 * i by ring]
-      exact hf
-  have hAB : ∀ j, j < n → σ (.n (bsC j)) = (St j).1 ∧
-      ∀ c : Fin 13, σ (.n (25 + 26 * j + c.val)) = cellsOfState (P j) false c := by
-    intro j
-    induction j with
-    | zero =>
-      intro hj
-      refine ⟨rfl, fun c ↦ ?_⟩
-      have hout := keccak_bsRun13 hK0
-      rw [show 25 + 26 * 0 + c.val = 25 + c.val by ring, hout c]
-      refine congrArg (fun S ↦ cellsOfState S false c) ?_
-      have e15 : σ (.n (val% «batch_sumcheck__L23» "rate[0]@1")) = σ (.n (val% «batch_sumcheck__L23» "x@1")) := p0.1
-      have e16 : σ (.n (val% «batch_sumcheck__L23» "rate[1]@1")) = word 0 dsObserve := p0.2
-      have e18 : σ (.n (val% «batch_sumcheck__L23» "rate[2]@1")) = σ (.n (val% «batch_sumcheck__L23» "x@2")) := p1.1
-      have e19 : σ (.n (val% «batch_sumcheck__L23» "rate[3]@1")) = word 0 dsObserve := p1.2
-      rw [hP, bsP_eq, bs_pend]
-      simp only [List.map_cons, List.map_nil, hg, bsG, e15, e16, e18, e19, z21, z22, z23, z24,
-        h9, h10, h11, h12, h13]
-      rfl
-    | succ j ih =>
-      intro hj
-      obtain ⟨hA, hB⟩ := ih (by omega)
-      obtain ⟨hr, hf⟩ := hR j (by omega) hB
-      refine ⟨?_, fun c ↦ ?_⟩
-      · rw [idx (bsC (j + 1)) (25 + 26 * j + 19) (by simp only [bsC]; ring), bsFold_value hf, hr,
-          hA]
-        rfl
-      · obtain ⟨⟨-, q0⟩, ⟨-, q1⟩, hK, -⟩ := hrounds j (by omega)
-        have hout := keccak_bsRun13 hK
-        rw [idx _ (51 + 26 * j + c.val) (by ring), hout c]
-        refine congrArg (fun S ↦ cellsOfState S false c) ?_
-        have ea : σ (.n (46 + 26 * j)) = σ (.n (45 + 26 * j)) :=
-          (idx _ (45 + 26 * j + 1) (by ring)).trans q0.1
-        have ea' : σ (.n (47 + 26 * j)) = word 0 dsObserve :=
-          (idx _ (45 + 26 * j + 1 + 1) (by ring)).trans q0.2
-        have eb : σ (.n (49 + 26 * j)) = σ (.n (48 + 26 * j)) :=
-          (idx _ (48 + 26 * j + 1) (by ring)).trans q1.1
-        have eb' : σ (.n (50 + 26 * j)) = word 0 dsObserve :=
-          (idx _ (48 + 26 * j + 1 + 1) (by ring)).trans q1.2
-        have i8 : σ (.n (33 + 26 * j)) = cellsOfState (P j) false 8 :=
-          (idx _ (25 + 26 * j + (8 : Fin 13).val) (by simp; ring)).trans (hB 8)
-        have i9 : σ (.n (34 + 26 * j)) = cellsOfState (P j) false 9 :=
-          (idx _ (25 + 26 * j + (9 : Fin 13).val) (by simp; ring)).trans (hB 9)
-        have i10 : σ (.n (35 + 26 * j)) = cellsOfState (P j) false 10 :=
-          (idx _ (25 + 26 * j + (10 : Fin 13).val) (by simp; ring)).trans (hB 10)
-        have i11 : σ (.n (36 + 26 * j)) = cellsOfState (P j) false 11 :=
-          (idx _ (25 + 26 * j + (11 : Fin 13).val) (by simp; ring)).trans (hB 11)
-        have i12 : σ (.n (37 + 26 * j)) = cellsOfState (P j) false 12 :=
-          (idx _ (25 + 26 * j + (12 : Fin 13).val) (by simp; ring)).trans (hB 12)
-        have gb : g (j + 1) = (σ (.n (45 + 26 * j)), σ (.n (48 + 26 * j))) := by
-          simp only [hg, bsG]
-          rw [idx (45 + 26 * j + 3) (48 + 26 * j) (by ring)]
-        rw [hP, bsP_eq, bsSt_cap_succ, ← hP, gb, bs_pend]
-        simp only [List.map_cons, List.map_nil, ea, ea', eb, eb', z21, z22, z23, z24, i8, i9, i10,
-          i11, i12]
-        rfl
-  obtain ⟨m, rfl⟩ : ∃ m, n = m + 1 := ⟨n - 1, by omega⟩
-  obtain ⟨hAm, hBm⟩ := hAB m (by omega)
-  obtain ⟨hrm, hfm⟩ := hR m (by omega) hBm
-  have hAn : σ (.n (bsC (m + 1))) = (St (m + 1)).1 := by
-    rw [idx (bsC (m + 1)) (25 + 26 * m + 19) (by simp only [bsC]; ring), bsFold_value hfm, hrm,
-      hAm]
-    rfl
-  refine ⟨(List.range (m + 1)).map g, by simp, ?_, ?_⟩
-  · rw [flatMap_pairs]
-    intro k hk
-    simp only [List.length_map, List.length_range] at hk
-    simp only [List.getElem_map, List.getElem_range]
-    obtain ⟨j, e, he, rfl⟩ : ∃ j e : ℕ, e < 2 ∧ k = 2 * j + e := ⟨k / 2, k % 2, by omega, by omega⟩
-    have hj : j < m + 1 := by omega
-    interval_cases e
-    · simp only [show (2 * j + 0) % 2 = 0 by omega, show (2 * j + 0) / 2 = j by omega, ↓reduceIte]
-      cases j with
-      | zero => exact l0
-      | succ i =>
-        obtain ⟨⟨l, -⟩, -, -⟩ := hrounds i (by omega)
-        simpa [hg, bsG, show 2 * (i + 1) + 0 = 2 * i + 2 by ring] using l
-    · simp only [show (2 * j + 1) % 2 = 1 by omega, show (2 * j + 1) / 2 = j by omega,
-        one_ne_zero, ↓reduceIte]
-      cases j with
-      | zero => exact l1
-      | succ i =>
-        obtain ⟨-, ⟨l, -⟩, -, -⟩ := hrounds i (by omega)
-        rw [show 2 * (i + 1) + 1 = 2 * i + 3 by ring]
-        simp only [hg, bsG]
-        rw [idx (45 + 26 * i + 3) (48 + 26 * i) (by ring)]
-        exact l
-  · simp only
-    refine ⟨?_, ?_⟩
-    · rw [bsRun_range1]
-      intro k hk
-      simp only [List.length_map, List.length_range] at hk
-      simp only [List.getElem_map, List.getElem_range]
-      obtain ⟨-, hB⟩ := hAB k hk
-      obtain ⟨hr, hf⟩ := hR k hk hB
-      have := hf.1
-      rw [hr] at this
-      exact this
-    · rw [bsRun_range2, bsRun_range3, ← hAn, bsSt_cap_succ, ← hP, ← hret]
-      have c0' : σ (.n (19 + 26 * (m + 1))) = cellsOfState (P m) false 8 := by
-        rw [show σ (.n (19 + 26 * (m + 1))) = σ (.n (25 + 26 * (m + 1 - 1) + 8)) from c0]
-        exact (idx _ (25 + 26 * m + (8 : Fin 13).val) (by simp)).trans (hBm 8)
-      have c1' : σ (.n (20 + 26 * (m + 1))) = cellsOfState (P m) false 9 := by
-        rw [show σ (.n (20 + 26 * (m + 1))) = σ (.n (25 + 26 * (m + 1 - 1) + 9)) from c1]
-        exact (idx _ (25 + 26 * m + (9 : Fin 13).val) (by simp)).trans (hBm 9)
-      have c2' : σ (.n (21 + 26 * (m + 1))) = cellsOfState (P m) false 10 := by
-        rw [show σ (.n (21 + 26 * (m + 1))) = σ (.n (25 + 26 * (m + 1 - 1) + 10)) from c2]
-        exact (idx _ (25 + 26 * m + (10 : Fin 13).val) (by simp)).trans (hBm 10)
-      have c3' : σ (.n (22 + 26 * (m + 1))) = cellsOfState (P m) false 11 := by
-        rw [show σ (.n (22 + 26 * (m + 1))) = σ (.n (25 + 26 * (m + 1 - 1) + 11)) from c3]
-        exact (idx _ (25 + 26 * m + (11 : Fin 13).val) (by simp)).trans (hBm 11)
-      have c4' : σ (.n (23 + 26 * (m + 1))) = cellsOfState (P m) false 12 := by
-        rw [show σ (.n (23 + 26 * (m + 1))) = σ (.n (25 + 26 * (m + 1 - 1) + 12)) from c4]
-        exact (idx _ (25 + 26 * m + (12 : Fin 13).val) (by simp)).trans (hBm 12)
-      have c5' : σ (.n (24 + 26 * (m + 1))) = σ (.n (bsC (m + 1))) := by
-        rw [show σ (.n (24 + 26 * (m + 1))) = σ (.n (25 + 26 * (m + 1 - 1) + 19)) from c5]
-        exact idx _ _ (by simp only [bsC]; omega)
-      rw [c0', c1', c2', c3', c4', c5']
-      rfl
-
-/-! ## Completeness -/
-
-/-- A cell index, reduced. -/
-def bsFin (x : ℕ) : Fin 13 := ⟨x % 13, Nat.mod_lt _ (by decide)⟩
-
-theorem bsFin_eq {x : ℕ} {c : Fin 13} (h : x % 13 = c.val) : bsFin x = c := Fin.ext h
-
-/-- A fold's seven values from the claim, the words and the challenge. -/
-def bsFoldVals (c g1 gInf r : E) : List E :=
-  [c + g1, c + g1 + g1, c + g1 + g1 + gInf, gInf * r, gInf * r + (c + g1 + g1 + gInf),
-    (gInf * r + (c + g1 + g1 + gInf)) * r, (gInf * r + (c + g1 + g1 + gInf)) * r + (c + g1)]
-
-/-- A round's six word values: `g(1)`, its copy and tag cell, `g(∞)`, its copy and tag cell. -/
-def bsWordVals (w : E × E) : List E := [w.1, w.1, word 0 dsObserve, w.2, w.2, word 0 dsObserve]
-
-/-- Round `j + 1`'s values, by offset from `45 + 26 j`. -/
-def bsRoundVal (g : ℕ → E × E) (cl : ℕ → E) (P : ℕ → KeccakState) (j i : ℕ) : E :=
-  if i < 6 then (bsWordVals (g (j + 1))).getD i 0
-  else if i < 19 then cellsOfState (P (j + 1)) false (bsFin (i - 6))
-  else (bsFoldVals (cl (j + 1)) (g (j + 1)).1 (g (j + 1)).2 (challengeOf (P (j + 1)))).getD
-    (i - 19) 0
-
-/-- The honest values of `batch_sumcheck` at `n` rounds, by index, on the rounds' words `g`, the
-claims `cl` and the permutations `P`. -/
-def bsVals (as : List E) (g : ℕ → E × E) (cl : ℕ → E) (P : ℕ → KeccakState) (n k : ℕ) : E :=
-  if k < 9 then as.getD k 0
-  else if k < 14 then as.getD (k - 9) 0
-  else if k < 20 then (bsWordVals (g 0)).getD (k - 14) 0
-  else if k = 20 then word 1 0
-  else if k < 25 then 0
-  else if k < 38 then cellsOfState (P 0) false (bsFin (k - 25))
-  else if k < 45 then (bsFoldVals (cl 0) (g 0).1 (g 0).2 (challengeOf (P 0))).getD (k - 38) 0
-  else if (k - 45) / 26 + 1 < n then bsRoundVal g cl P ((k - 45) / 26) ((k - 45) % 26)
-  else if (k - 45) % 26 < 5 then cellsOfState (P (n - 1)) false (bsFin (8 + (k - 45) % 26))
-  else cl n
-
-/-- Decide the next `if` of an unfolded index function by `omega`. -/
-macro "bs_if" : tactic => `(tactic| first
-  | (rw [ite_eq_right_of_eq_false]; rotate_left; exact eq_false (by omega))
-  | (rw [ite_eq_left_of_eq_true]; rotate_left; exact eq_true (by omega)))
-
-section
-variable (as : List E) (g : ℕ → E × E) (cl : ℕ → E) (P : ℕ → KeccakState)
-
-theorem bsVals_round {n j i : ℕ} (hj : j + 1 < n) (hi : i < 26) :
-    bsVals as g cl P n (45 + 26 * j + i) = bsRoundVal g cl P j i := by
-  rw [bsVals, show (45 + 26 * j + i - 45) / 26 = j by omega,
-    show (45 + 26 * j + i - 45) % 26 = i by omega]
-  repeat bs_if
-
-theorem bsVals_suffix {n i : ℕ} (hn : 1 ≤ n) (hi : i < 6) :
-    bsVals as g cl P n (19 + 26 * n + i) =
-      if i < 5 then cellsOfState (P (n - 1)) false (bsFin (8 + i)) else cl n := by
-  rw [bsVals, show (19 + 26 * n + i - 45) / 26 = n - 1 by omega,
-    show (19 + 26 * n + i - 45) % 26 = i by omega]
-  repeat bs_if
-
-theorem bsVals_wordsAt {n j u : ℕ} (hj : j < n) (hu : u < 6) :
-    bsVals as g cl P n (bsG j + u) = (bsWordVals (g j)).getD u 0 := by
-  cases j with
-  | zero =>
-    simp only [bsG]
-    rw [bsVals]
-    repeat bs_if
-    congr 1; omega
-  | succ i =>
-    rw [show bsG (i + 1) + u = 45 + 26 * i + u by simp only [bsG],
-      bsVals_round as g cl P hj (by omega), bsRoundVal]
-    repeat bs_if
-
-theorem bsVals_cellsAt {n j : ℕ} (hj : j < n) (c : Fin 13) :
-    bsVals as g cl P n (25 + 26 * j + c.val) = cellsOfState (P j) false c := by
-  have hc := c.isLt
-  cases j with
-  | zero =>
-    rw [bsVals]
-    repeat bs_if
-    congr 1; apply bsFin_eq; omega
-  | succ i =>
-    rw [show 25 + 26 * (i + 1) + c.val = 45 + 26 * i + (6 + c.val) by ring,
-      bsVals_round as g cl P hj (by omega), bsRoundVal]
-    repeat bs_if
-    congr 1; apply bsFin_eq; omega
-
-theorem bsVals_foldAt {n j u : ℕ} (hj : j < n) (hu : u < 7) :
-    bsVals as g cl P n (25 + 26 * j + 13 + u) =
-      (bsFoldVals (cl j) (g j).1 (g j).2 (challengeOf (P j))).getD u 0 := by
-  cases j with
-  | zero =>
-    rw [bsVals]
-    repeat bs_if
-    congr 1; omega
-  | succ i =>
-    rw [show 25 + 26 * (i + 1) + 13 + u = 45 + 26 * i + (19 + u) by ring,
-      bsVals_round as g cl P hj (by omega), bsRoundVal]
-    repeat bs_if
-    congr 1; omega
-
-end
-
-theorem bs_complete {name : String} {f : Fn} (n : ℕ) (hn : 1 ≤ n)
-    (hfind : coreProgram.find? name = some f) (hparams : f.params = bsParams)
-    (hbody : f.body = bsBody n) (rd : Reader) (args rets : List E)
-    (h : MeaningBatchSumcheck n rd args rets) : coreProgram.Rel rd name args rets := by
-  obtain ⟨f0, f1, f2, f3, f4, msgs, running, point, tabs, rfl⟩ :
-      ∃ f0 f1 f2 f3 f4 msgs running point tabs,
-        args = [f0, f1, f2, f3, f4, msgs, running, point, tabs] := by
-    match args, h with
-    | [f0, f1, f2, f3, f4, msgs, running, point, tabs], _ =>
-      exact ⟨f0, f1, f2, f3, f4, msgs, running, point, tabs, rfl⟩
-  obtain ⟨rounds, hlen, hmsgs, hres⟩ := h
-  let g : ℕ → E × E := fun j ↦ rounds.getD j (0, 0)
-  have hrounds : rounds = (List.range n).map g := by
-    apply List.ext_getElem (by simp [hlen])
-    intro i h1 h2
-    simp [g, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem h1]
-  rw [hrounds, flatMap_pairs] at hmsgs
-  have hm : ∀ j, j < n → LoadHolds rd msgs (2 * j) (g j).1 ∧
-      LoadHolds rd msgs (2 * j + 1) (g j).2 := by
-    intro j hj
-    have a := hmsgs (2 * j) (by simp; omega)
-    have b := hmsgs (2 * j + 1) (by simp; omega)
-    simp only [List.getElem_map, List.getElem_range, show 2 * j % 2 = 0 by omega,
-      show 2 * j / 2 = j by omega, ↓reduceIte] at a
-    simp only [List.getElem_map, List.getElem_range, show (2 * j + 1) % 2 = 1 by omega,
-      show (2 * j + 1) / 2 = j by omega, one_ne_zero, ↓reduceIte] at b
-    exact ⟨a, b⟩
-  let cap := [f0, f1, f2, f3, f4]
-  let St := bsSt g running ⟨cap, []⟩
-  let P := bsP g running ⟨cap, []⟩
-  let cl : ℕ → E := fun j ↦ (St j).1
-  simp only [hrounds, bsRun_range1, bsRun_range2, bsRun_range3] at hres
-  obtain ⟨hpt, hret⟩ := hres
-  have hpt : ∀ j, j < n → LoadHolds rd point j (challengeOf (P j)) := by
-    intro j hj
-    have := hpt j (by simp; omega)
-    simp only [List.getElem_map, List.getElem_range] at this
-    exact this
-  let as := [f0, f1, f2, f3, f4, msgs, running, point, tabs]
-  let σ : Val := fun v ↦ bsVals as g cl P n v.idx
-  have ev : ∀ k, σ (.n k) = bsVals as g cl P n k := fun _ ↦ rfl
-  have idx : ∀ a b, a = b → σ (.n a) = σ (.n b) := fun a b h ↦ by rw [h]
-  have e5 : σ (.n (val% «batch_sumcheck__L23» "msgs")) = msgs := by simp [ev, bsVals, as]
-  have e7 : σ (.n (val% «batch_sumcheck__L23» "point")) = point := by simp [ev, bsVals, as]
-  have vw : ∀ j u, j < n → u < 6 → σ (.n (bsG j + u)) = (bsWordVals (g j)).getD u 0 :=
-    fun j u hj hu ↦ bsVals_wordsAt as g cl P hj hu
-  have vc : ∀ j, j < n → ∀ c : Fin 13, σ (.n (25 + 26 * j + c.val)) = cellsOfState (P j) false c :=
-    fun j hj c ↦ bsVals_cellsAt as g cl P hj c
-  have vf : ∀ j u, j < n → u < 7 → σ (.n (25 + 26 * j + 13 + u)) =
-      (bsFoldVals (cl j) (g j).1 (g j).2 (challengeOf (P j))).getD u 0 :=
-    fun j u hj hu ↦ bsVals_foldAt as g cl P hj hu
-  -- what one round asks, on its words at `bsG j`
-  have roundOk : ∀ j, j < n →
-      (LoadHolds rd (σ (.n (val% «batch_sumcheck__L23» "msgs"))) (2 * j) (σ (.n (bsG j))) ∧
-        FsPackOk σ (.n (bsG j)) (bsG j + 1) dsObserve) ∧
-      (LoadHolds rd (σ (.n (val% «batch_sumcheck__L23» "msgs"))) (2 * j + 1) (σ (.n (bsG j + 3))) ∧
-        FsPackOk σ (.n (bsG j + 3)) (bsG j + 3 + 1) dsObserve) ∧
-      BsFoldOk rd σ (25 + 26 * j) (bsC j) (bsG j) j := by
-    intro j hj
-    have w0 : σ (.n (bsG j)) = (g j).1 := by
-      have := vw j 0 hj (by omega); simpa [bsWordVals] using this
-    have w1 : σ (.n (bsG j + 1)) = (g j).1 := by
-      have := vw j 1 hj (by omega); simpa [bsWordVals] using this
-    have w2 : σ (.n (bsG j + 1 + 1)) = word 0 dsObserve := by
-      have := vw j 2 hj (by omega); simpa [bsWordVals] using this
-    have w3 : σ (.n (bsG j + 3)) = (g j).2 := by
-      have := vw j 3 hj (by omega); simpa [bsWordVals] using this
-    have w4 : σ (.n (bsG j + 3 + 1)) = (g j).2 := by
-      have := vw j 4 hj (by omega); simpa [bsWordVals] using this
-    have w5 : σ (.n (bsG j + 3 + 1 + 1)) = word 0 dsObserve := by
-      have := vw j 5 hj (by omega); simpa [bsWordVals] using this
-    have c0 : σ (.n (25 + 26 * j)) = cellsOfState (P j) false 0 := vc j hj 0
-    have hr : σ (.n (25 + 26 * j)) = challengeOf (P j) := by rw [c0, Keccak.challengeOf_cells]
-    have hcl : σ (.n (bsC j)) = cl j := by
-      cases j with
-      | zero => simp [bsC, ev, bsVals, as, cl, St, bsSt]
-      | succ i =>
-        rw [show bsC (i + 1) = 25 + 26 * i + 13 + 6 by simp only [bsC]; ring,
-          vf i 6 (by omega) (by omega)]
-        rfl
-    refine ⟨⟨by rw [e5, w0]; exact (hm j hj).1, by rw [w1, w0], w2⟩,
-      ⟨by rw [e5, w3]; exact (hm j hj).2, by rw [w4, w3], w5⟩, ?_⟩
-    have f : ∀ u, u < 7 → σ (.n (25 + 26 * j + 13 + u)) = _ := fun u hu ↦ vf j u hj hu
-    have f0 := f 0 (by omega)
-    have f1 := f 1 (by omega)
-    have f2 := f 2 (by omega)
-    have f3 := f 3 (by omega)
-    have f4 := f 4 (by omega)
-    have f5 := f 5 (by omega)
-    have f6 := f 6 (by omega)
-    simp only [bsFoldVals, List.getD_cons_succ, List.getD_cons_zero,
-      Nat.add_zero] at f0 f1 f2 f3 f4 f5 f6
-    refine ⟨by rw [e7, hr]; exact hpt j hj, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-    · rw [f0, hcl, w0]
-    · rw [show 25 + 26 * j + 14 = 25 + 26 * j + 13 + 1 by ring, f1, f0, w0]
-    · rw [show 25 + 26 * j + 15 = 25 + 26 * j + 13 + 2 by ring, f2,
-        show 25 + 26 * j + 14 = 25 + 26 * j + 13 + 1 by ring, f1, w3]
-    · rw [show 25 + 26 * j + 16 = 25 + 26 * j + 13 + 3 by ring, f3, w3, hr]
-    · rw [show 25 + 26 * j + 17 = 25 + 26 * j + 13 + 4 by ring, f4,
-        show 25 + 26 * j + 16 = 25 + 26 * j + 13 + 3 by ring, f3,
-        show 25 + 26 * j + 15 = 25 + 26 * j + 13 + 2 by ring, f2]
-    · rw [show 25 + 26 * j + 18 = 25 + 26 * j + 13 + 5 by ring, f5,
-        show 25 + 26 * j + 17 = 25 + 26 * j + 13 + 4 by ring, f4, hr]
-    · rw [show 25 + 26 * j + 19 = 25 + 26 * j + 13 + 6 by ring, f6,
-        show 25 + 26 * j + 18 = 25 + 26 * j + 13 + 5 by ring, f5, f0]
-  have keccakOk : ∀ j, j < n → ∀ ins : List V, ins.map σ =
-      [(g j).1, word 0 dsObserve, (g j).2, word 0 dsObserve, 0, 0, 0, 0] ++ (St j).2.cap →
-      (Atom.keccak ins (bsRun13 (25 + 26 * j)) false false).Holds rd σ := by
-    intro j hj ins hins
-    have hlen : ins.length = 13 := by
-      have := congrArg List.length hins
-      simp only [List.length_map, List.length_append] at this
-      rw [this]
-      cases j with
-      | zero => rfl
-      | succ i => rfl
-    refine keccak13_mk (rd := rd) hlen rfl fun c ↦ ?_
-    rw [cells13_bsRun13, vc j hj c]
-    refine congrArg (fun S ↦ cellsOfState S false c) ?_
-    show _ = permOf _
-    rw [hins]
-    show bsP g running ⟨cap, []⟩ j = _
-    rw [bsP_eq, bs_pend]
-    rfl
-  rw [rel_iff_sem hfind, hbody, hparams, bsBody, bsRound0]
-  simp only [holdsList_append, holdsList_range_flatten (n - 1) bsRound (fun _ => rfl),
-    holds_bsRound, holds_fsNextT, holds_padRunT, holds_bsFold, keccakA,
-    Stmt.HoldsList, Stmt.Holds, List.map_cons, List.map_nil]
-  obtain ⟨m, rfl⟩ : ∃ m, n = m + 1 := ⟨n - 1, by omega⟩
-  obtain ⟨⟨l0, p0⟩, ⟨l1, p1⟩, fo0⟩ := roundOk 0 hn
-  have hsuf : ∀ i, i < 6 → σ (.n (19 + 26 * (m + 1) + i)) =
-      if i < 5 then cellsOfState (P m) false (bsFin (8 + i)) else cl (m + 1) :=
-    fun i hi ↦ bsVals_suffix as g cl P (by omega) hi
-  have sc : ∀ i (hi : i < 5), σ (.n (19 + 26 * (m + 1) + i)) =
-      cellsOfState (P m) false ⟨8 + i, by omega⟩ := by
-    intro i hi
-    rw [hsuf i (by omega)]
-    simp only [hi, ↓reduceIte]
-    congr 1; apply bsFin_eq; simp; omega
-  have scl : σ (.n (19 + 26 * (m + 1) + 5)) = cl (m + 1) := by
-    rw [hsuf 5 (by omega)]; rfl
-  have fl : σ (.n (25 + 26 * m + 13 + 6)) = cl (m + 1) := by
-    rw [vf m 6 (by omega) (by omega)]; rfl
-  refine ⟨σ, by simp [ev, bsVals, as], ?_, ?_, ?_, ?_, ?_, ⟨l0, p0⟩, ⟨l1, p1⟩,
-    ⟨?_, ?_, ?_, ?_, ?_⟩, keccakOk 0 hn _ ?_, fo0, fun j hj ↦ ?_,
-    ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-  all_goals try (show σ _ = _; simp [ev, bsVals, as]; done)
-  · simp [ev, bsVals, as, St, bsSt, cap, bsWordVals, g]
-  · obtain ⟨⟨la, pa⟩, ⟨lb, pb⟩, foj⟩ := roundOk (j + 1) (by omega)
-    simp only [bsG] at la pa lb pb foj
-    have e1 : 25 + 26 * (j + 1) = 51 + 26 * j := by ring
-    rw [e1] at foj
-    refine ⟨⟨by simpa [show 2 * (j + 1) = 2 * j + 2 by ring] using la, pa⟩,
-      ⟨by simpa [show 2 * (j + 1) + 1 = 2 * j + 3 by ring,
-          show 45 + 26 * j + 3 = 48 + 26 * j by ring] using lb,
-        by simpa [show 45 + 26 * j + 3 = 48 + 26 * j by ring] using pb⟩, ?_, ?_⟩
-    · rw [show 51 + 26 * j = 25 + 26 * (j + 1) by ring]
-      apply keccakOk (j + 1) (by omega)
-      have w : ∀ u, u < 6 → σ (.n (45 + 26 * j + u)) = (bsWordVals (g (j + 1))).getD u 0 :=
-        fun u hu ↦ vw (j + 1) u (by omega) hu
-      have a1 : σ (.n (46 + 26 * j)) = (g (j + 1)).1 := by
-        rw [idx _ (45 + 26 * j + 1) (by ring), w 1 (by omega)]; rfl
-      have a2 : σ (.n (47 + 26 * j)) = word 0 dsObserve := by
-        rw [idx _ (45 + 26 * j + 2) (by ring), w 2 (by omega)]; rfl
-      have b1 : σ (.n (49 + 26 * j)) = (g (j + 1)).2 := by
-        rw [idx _ (45 + 26 * j + 4) (by ring), w 4 (by omega)]; rfl
-      have b2 : σ (.n (50 + 26 * j)) = word 0 dsObserve := by
-        rw [idx _ (45 + 26 * j + 5) (by ring), w 5 (by omega)]; rfl
-      have z : ∀ k, 21 ≤ k → k < 25 → σ (.n k) = 0 := by
-        intro k h1 h2; interval_cases k <;> simp [ev, bsVals]
-      have q8 : σ (.n (33 + 26 * j)) = cellsOfState (P j) false 8 :=
-        (idx _ (25 + 26 * j + (8 : Fin 13).val) (by simp; ring)).trans (vc j (by omega) 8)
-      have q9 : σ (.n (34 + 26 * j)) = cellsOfState (P j) false 9 :=
-        (idx _ (25 + 26 * j + (9 : Fin 13).val) (by simp; ring)).trans (vc j (by omega) 9)
-      have q10 : σ (.n (35 + 26 * j)) = cellsOfState (P j) false 10 :=
-        (idx _ (25 + 26 * j + (10 : Fin 13).val) (by simp; ring)).trans (vc j (by omega) 10)
-      have q11 : σ (.n (36 + 26 * j)) = cellsOfState (P j) false 11 :=
-        (idx _ (25 + 26 * j + (11 : Fin 13).val) (by simp; ring)).trans (vc j (by omega) 11)
-      have q12 : σ (.n (37 + 26 * j)) = cellsOfState (P j) false 12 :=
-        (idx _ (25 + 26 * j + (12 : Fin 13).val) (by simp; ring)).trans (vc j (by omega) 12)
-      simp only [List.map_cons, List.map_nil, a1, a2, b1, b2, z 21 (by omega) (by omega),
-        z 22 (by omega) (by omega), z 23 (by omega) (by omega), z 24 (by omega) (by omega), q8, q9,
-        q10, q11, q12]
-      rfl
-    · simpa [bsC] using foj
-  · show σ (.n (19 + 26 * (m + 1))) = σ (.n (25 + 26 * (m + 1 - 1) + 8))
-    rw [idx (19 + 26 * (m + 1)) (19 + 26 * (m + 1) + 0) (by ring), sc 0 (by omega),
-      idx (25 + 26 * (m + 1 - 1) + 8) (25 + 26 * m + (8 : Fin 13).val) (by simp), vc m (by omega)]
-    rfl
-  · show σ (.n (20 + 26 * (m + 1))) = σ (.n (25 + 26 * (m + 1 - 1) + 9))
-    rw [idx (20 + 26 * (m + 1)) (19 + 26 * (m + 1) + 1) (by ring), sc 1 (by omega),
-      idx (25 + 26 * (m + 1 - 1) + 9) (25 + 26 * m + (9 : Fin 13).val) (by simp), vc m (by omega)]
-    rfl
-  · show σ (.n (21 + 26 * (m + 1))) = σ (.n (25 + 26 * (m + 1 - 1) + 10))
-    rw [idx (21 + 26 * (m + 1)) (19 + 26 * (m + 1) + 2) (by ring), sc 2 (by omega),
-      idx (25 + 26 * (m + 1 - 1) + 10) (25 + 26 * m + (10 : Fin 13).val) (by simp),
-      vc m (by omega)]
-    rfl
-  · show σ (.n (22 + 26 * (m + 1))) = σ (.n (25 + 26 * (m + 1 - 1) + 11))
-    rw [idx (22 + 26 * (m + 1)) (19 + 26 * (m + 1) + 3) (by ring), sc 3 (by omega),
-      idx (25 + 26 * (m + 1 - 1) + 11) (25 + 26 * m + (11 : Fin 13).val) (by simp),
-      vc m (by omega)]
-    rfl
-  · show σ (.n (23 + 26 * (m + 1))) = σ (.n (25 + 26 * (m + 1 - 1) + 12))
-    rw [idx (23 + 26 * (m + 1)) (19 + 26 * (m + 1) + 4) (by ring), sc 4 (by omega),
-      idx (25 + 26 * (m + 1 - 1) + 12) (25 + 26 * m + (12 : Fin 13).val) (by simp),
-      vc m (by omega)]
-    rfl
-  · show σ (.n (24 + 26 * (m + 1))) = σ (.n (25 + 26 * (m + 1 - 1) + 19))
-    rw [idx (24 + 26 * (m + 1)) (19 + 26 * (m + 1) + 5) (by ring), scl,
-      idx (25 + 26 * (m + 1 - 1) + 19) (25 + 26 * m + 13 + 6) (by simp), fl]
-  · rw [hret]
-    rw [idx (20 + 26 * (m + 1)) (19 + 26 * (m + 1) + 1) (by ring),
-      idx (21 + 26 * (m + 1)) (19 + 26 * (m + 1) + 2) (by ring),
-      idx (22 + 26 * (m + 1)) (19 + 26 * (m + 1) + 3) (by ring),
-      idx (23 + 26 * (m + 1)) (19 + 26 * (m + 1) + 4) (by ring),
-      idx (24 + 26 * (m + 1)) (19 + 26 * (m + 1) + 5) (by ring),
-      show σ (.n (19 + 26 * (m + 1))) = _ from sc 0 (by omega), sc 1 (by omega), sc 2 (by omega),
-      sc 3 (by omega), sc 4 (by omega), scl]
-    rfl
-
-set_option maxRecDepth 100000 in
-theorem bs23_body : Fn.body fn% «batch_sumcheck__L23» = bsBody 23 :=
-  stmtsEqb_sound (by decide +kernel)
-
-set_option maxRecDepth 100000 in
 /-- **`batch_sumcheck`'s core IR is its meaning.** -/
 theorem batch_sumcheck_holds : batch_sumcheck_Spec := by
   intro rd args rets
-  have hfind : coreProgram.find? "batch_sumcheck__L23" = some fn% «batch_sumcheck__L23» :=
-    coreProgram_find?_at (j := idx% «batch_sumcheck__L23») rfl
-  exact ⟨bs_sound 23 (by decide) hfind rfl bs23_body rd args rets,
-    bs_complete 23 (by decide) hfind rfl bs23_body rd args rets⟩
+  rw [rel_iff_fnSem (coreProgram_find?_at (j := idx% «batch_sumcheck__L23») rfl)]
+  by_cases h : ∃ f0 f1 f2 f3 f4 msgs running point tabs,
+      args = [f0, f1, f2, f3, f4, msgs, running, point, tabs]
+  · obtain ⟨f0, f1, f2, f3, f4, msgs, running, point, tabs, rfl⟩ := h
+    refine Iff.trans ?_
+      (meaningBatchSumcheck_iff 23 rd f0 f1 f2 f3 f4 msgs running point tabs rets).symm
+    vc [keccakF_cells, word_zero]
+    kernel_rfl
+  · refine iff_of_false (fun ⟨σ, hp, _⟩ => h ⟨_, _, _, _, _, _, _, _, _, hp.symm⟩) fun hm => h ?_
+    match args, hm with
+    | [f0, f1, f2, f3, f4, msgs, running, point, tabs], _ =>
+      exact ⟨f0, f1, f2, f3, f4, msgs, running, point, tabs, rfl⟩
 
 end
 end LeanVM.Guest.B1
