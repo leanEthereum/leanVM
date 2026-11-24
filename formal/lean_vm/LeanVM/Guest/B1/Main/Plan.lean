@@ -23,7 +23,7 @@ duplicate slot. With `made := R ++ Cs.flatten` and `slots` the slots in taking o
 * `plan_cover`: if every claim is made at least as often as it is declared, every slot of the
   table is taken (`plan_perm`: the slots are a permutation of the table's indices, whose number
   is the number of claims made);
-* `plan_children`: the per-child segments of the slots;
+* `plan_child`, `plan_children_lengths`: the per-child segments of the slots;
 * the two regions of a node under `DeployedLimits` (`xPlan_*`, `sPlan_*`), `planSlots` as the
   two tables' sizes (`coverage_eq`), the number of claims made (`coverage_made`), so
   `coverageSlots` (`planSlots_eq`), and the raw signatures within their regions (`xRaw_le`,

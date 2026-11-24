@@ -20,7 +20,7 @@ public import LeanVM.Guest.AcceptableChild
 
 `vsExpLin sqE`: the words a caller of `verify_sub` holds at `g^sqE`, the exponent table and its
 window section (`expTabAllWords`). `verify_sub`'s completeness is bounded, by its callees' trees
-(`VerifySub/CompleteBT`'s `verify_sub_completeBTG`): no statement at every frame size remains.
+(`Whir/CRecHosPE`'s `verify_sub_completeBTSE`): no statement at every frame size remains.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub

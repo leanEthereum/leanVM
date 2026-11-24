@@ -17,7 +17,7 @@ public import LeanVM.Guest.Budget.LiftB
 (fun _ ↦ sizes) Ts` when the honest valuation satisfies `Q rd` on every memory `rd` holding the layout,
 `Ts` covers the body's calls, and the predicate `Ts[i]` holds of every valid tree of call `i`'s
 callee at its honest arguments, on every memory defined below `2^κ` holding the layout
-(`CompleteAtD.toT_on` on the callee's `Lift.completeAtD_of_relIn`). `flat_completeAtOutTB`: the function's buffers returned.
+(the callee's `Lift.completeAtD_of_relIn`). `flat_completeAtOutTB`: the function's buffers returned.
 -/
 
 namespace LeanVM.Guest.B1.Tables

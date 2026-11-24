@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.VerifySub.CompleteBTE
 # `verify_keccak`, exact
 
 `kids_completeBE_fs`: `kids_completeB_fs` by trees exact at every node: the layers by `layer_completeAtFBE`, the copy
-loops and the plain rounds exact for free. `verify_keccak_completeAtBE_fs`: `verify_keccak_completeAtB_fs` by such a
+loops and the plain rounds exact for free. `verify_keccak_completeAtBE_fs`: `verify_keccak` within `vkBound` by such a
 tree (`completeAt_flatGBE`, `verify_keccak`'s paths exact by `vk_pathExact`), so `VkCompleteAtBKE` holds at
 `B2C.fs` and `vkBound`.
 -/

@@ -22,7 +22,6 @@ T B` is `CompleteAtDT … T` with `n ≤ B` (mumbai's `CompleteAtB`, with a tree
   entered call's bound, each other call's tail.
 * `completeAtDTB_of_relIn`: a pure function loading the caller's words, every valid tree of it at
   `args` of at most `B` words (`TotalLe`, from the static certificates), is complete within `B`.
-* `completeAtDTB_leaf`: a leaf with its `HeapBuf`s, within its frame and buffers.
 -/
 
 namespace LeanVM.Guest.B1
@@ -169,17 +168,7 @@ def kidsBoundL (fs : String → ℕ) : List Kid → List ℕ → ℕ
   | k :: ks, Bs => (if k.taken then Bs.headD 0 else fs (tailKey k.f)) + kidsBoundL fs ks Bs.tail
   | [], _ => 0
 
-theorem KidsDTB.lowMono {κ κ' : ℕ} (hk : κ ≤ κ') : ∀ {ks : List Kid} {Ts : List (Tree → Prop)}
-    {Bs : List ℕ}, KidsDTB fs cert κ ks Ts Bs → KidsDTB fs cert κ' ks Ts Bs
-  | [], _, _, _ => trivial
-  | _ :: _, _, _, ⟨h, hs⟩ => ⟨fun ht => (h ht).lowMono hk, hs.lowMono hk⟩
-
-theorem KidsDTB.toDT {κ : ℕ} : ∀ {ks : List Kid} {Ts : List (Tree → Prop)} {Bs : List ℕ},
-    KidsDTB fs cert κ ks Ts Bs → KidsDT fs cert κ ks Ts
-  | [], _, _, _ => trivial
-  | _ :: _, _, _, ⟨h, hs⟩ => ⟨fun ht => (h ht).toDT, hs.toDT⟩
-/-- **The callees at their running offsets, within their bounds**: `kidsFromInT_of_kidsDT` with
-the total at most `kidsBoundL`. -/
+/-- **The callees at their running offsets, within their bounds**, the total at most `kidsBoundL`. -/
 theorem kidsFromInT_of_kidsDTB (κ : ℕ) : ∀ (ks : List Kid) (Ts : List (Tree → Prop)) (Bs : List ℕ),
     KidsDTB fs cert κ ks Ts Bs → ∀ b : ℕ,
     ∃ (N : ℕ) (L : Layout) (outs : List (List E × Layout)), N ≤ kidsBoundL fs ks Bs ∧

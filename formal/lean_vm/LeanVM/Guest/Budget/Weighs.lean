@@ -51,7 +51,5 @@ theorem weighsLe_of_on {ω : String → ℕ} {f : String} {Pre : List E → Prop
     (hp : Pre args) : WeighsLe P ω B t := fun rd' args' rets' hv' hb' =>
   h rd' t args' rets' hn (valid_args_eq hv hv' ▸ hp) hv' hb'
 
-theorem WeighsLe.mono {ω : String → ℕ} {B B' : ℕ} {t : Tree} (h : WeighsLe P ω B t) (hB : B ≤ B') :
-    WeighsLe P ω B' t := fun rd args rets hv hb => (h rd args rets hv hb).trans hB
 end
 end LeanVM.Guest.Budget

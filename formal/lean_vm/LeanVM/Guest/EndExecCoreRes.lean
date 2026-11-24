@@ -26,7 +26,7 @@ its arms (`topSels_sound`).
 `exp_lt` (`exp`): a parameter `g^e`, `e < 2^62` (`ExpW`), the quotient of two addresses the path
 dereferences, has `e < 2^28`.
 
-`splitFam_inst` (`split`, `EndExecCoreSplit`): a split `g`-power's residuals from its bits on the instance's path.
+`EndExecCoreSplit`'s `splitRes_sound`: a split `g`-power's residuals from its bits on the instance's path.
 
 `resFam_inst`: at an honest instance (a `node` of the honest tree), in a frame holding its parameters
 whose entry runs' exponent cells are powers, every residual of a family holds at its valuation; `resOk_inst`: every residual of a heap certificate whose residuals are of families
