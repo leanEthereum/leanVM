@@ -18,11 +18,11 @@ public import LeanVM.Guest.B1.Opening.CapPlacedE
 /-!
 # `level_queries`, placed with its pops
 
-`LqProof`'s proof with `kidsFromInP_of_kidsD` and `relAtInP_of_walk`: `verify_merkle_cap` pops nothing (`mc_node_pops`, at its body `mcBody`: `mc_body_of_kind`), `opening_queries` its queries' entries (`opening_queries_completeAtDP`), and the body the cap's and the flags' heap words (`lq_splice`, `words_heap_of_reads`).
+`LqProof`'s proof with `kidsFromInP_of_kidsEP` and `relAtInP_of_walk`: `verify_merkle_cap` pops nothing (`mc_node_pops`, at its body `mcBody`: `mc_body_of_kind`), `opening_queries` its queries' entries (`opening_queries_completeAtDP`), and the body the cap's and the flags' heap words (`lq_splice`, `words_heap_of_reads`).
 
-* `LqAtDP`: `LqAtD` popping `lqCapE` then `oqPops` of its `q` queries;
+* `LqAtDP`: `level_queries` at an entry of `lqTable`, placed, popping `lqCapE` then `oqPops` of its `q` queries;
 * `LqAtEP`: `LqAtDP` by a tree of exactly `lqN` words (`toDP`, `toE`);
-* `lq_placedEP`, `level_queries_completeAtEP`, `level_queries_completeAtP`: every entry of `lqTable`.
+* `lq_placedEP`, `level_queries_completeAtEP`: every entry of `lqTable`.
 -/
 
 namespace LeanVM.Guest.B1
@@ -35,7 +35,8 @@ open LeanVM.Protocol.Verifier hiding Layout
 
 @[expose] public section
 
-/-- **`level_queries` at an entry of `lqTable`, placed, with its pops**: `LqAtD`, its tree popping the honest cap
+/-- **`level_queries` at an entry of `lqTable`, placed, with its pops**: on every memory holding the honest cap and
+flags and the caller's words, it returns the root, the queries' `oqChain` and `λ^q`, its tree popping the honest cap
 and flags (`lqCapE`), then its `q` queries' rows and walks' children (`oqPops`). -/
 def LqAtDP (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) (name : String)
     (q base folds leaf d cd mu nhs hbits fin : ℕ) : Prop :=
@@ -473,13 +474,6 @@ theorem level_queries_completeAtEP (fs : String → ℕ) (cert : String → V �
   intro e he
   obtain ⟨hoq, hQ, hN, hodd, hcd1, hcd8, hK, hpw⟩ := lqTable_facts e he
   exact lq_placedEP fs cert (lqTable_ok e he) (oq_mem_of_entry hoq) hQ hN hodd hcd1 hcd8 hK hpw
-
-/-- **`level_queries` is complete placed with its pops at every specialization.** -/
-theorem level_queries_completeAtP (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) :
-    ∀ e ∈ lqTable,
-      LqAtDP fs cert κ e.1 e.2.1 e.2.2.1 e.2.2.2.1 e.2.2.2.2.1 e.2.2.2.2.2.1 e.2.2.2.2.2.2.1
-        e.2.2.2.2.2.2.2.1 e.2.2.2.2.2.2.2.2.1 e.2.2.2.2.2.2.2.2.2.1 e.2.2.2.2.2.2.2.2.2.2 :=
-  fun e he ↦ (level_queries_completeAtEP fs cert κ e he).toDP
 
 end
 end LeanVM.Guest.B1

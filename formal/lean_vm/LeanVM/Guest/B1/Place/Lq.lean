@@ -24,13 +24,13 @@ its own, checks the cap up to the root `(r0, r1)` by `verify_merkle_cap__L{cd}`,
 flags, `1/λ`, the round coefficients, the high part, the positions and the window pointers, and
 returns the root, the queries' sum and `λ^q`.
 
-**The statement** (`LqAtD`): the honest cap `capW` and flags `flW` (the hints), checked to
+**The statement** (`LqAtDP`, `LqProofP.lean`, with the pops): the honest cap `capW` and flags `flW` (the hints), checked to
 `(r0, r1)` by `verify_merkle_cap` on every memory holding them, each query `k < q`'s leaf climbed
 to the cap's cells and its parent flagged (`LqCaps`); the caller's words `Lin` holding the rounds
 at `coefs`, the final level's high part at `hs`, query `k`'s position at `positions`, its window
 pointer `g^(eb k)` at `win_ptrs` and its windows there (`LqReg`, `LqMem`); then the helper on
 `[λ, 1/λ, g^ecoefs, g^ehs, g^epos, g^eqp]` returns `[r0, r1, chain, λ^q]`, `chain` the queries'
-`oqChain` (`0` at the final level). `level_queries_completeAt_Spec`: every entry of `lqTable`.
+`oqChain` (`0` at the final level).
 -/
 
 namespace LeanVM.Guest.B1
@@ -90,34 +90,6 @@ def lqSum (s : Oq) (odd N : ℕ) (lamInv : E) (rounds : List FoldRound) (qs : �
   if s.final = 1 then 0 else
     oqChain odd s.base lamInv (fun k ↦ foldRow (lanesOf s.base (rows k)) (K.ofBits (qs k)) rounds) N
 
-/-- **`level_queries` at an entry of `lqTable`, placed**: on the honest cap and flags (`LqCaps`)
-and the caller's words (`LqReg`, `LqMem`), complete, returning the root, the queries' sum and
-`λ^q`. -/
-def LqAtD (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) (name : String)
-    (q base folds leaf d cd mu nhs hbits fin : ℕ) : Prop :=
-  let s := lqOqS base folds leaf d cd mu nhs hbits fin
-  ∀ (Lin : Layout) (lam lamInv : E) (ecoefs ehs epos eqp : ℕ) (rounds : List FoldRound)
-    (hsv : List E) (eb qs : ℕ → ℕ) (rows : ℕ → List K) (sibs : ℕ → List Digest)
-    (capW flW : List E) (r0 r1 : E),
-    rounds.length = s.folds → (s.final = 1 → hsv.length = s.nHs) →
-    OqStatic s cd rounds hsv qs rows sibs q →
-    LqCaps s cd q capW flW r0 r1 qs rows sibs →
-    LqReg (RegionL Lin) s cd q ecoefs ehs epos eqp eb →
-    (∀ rd, LowDef κ rd → MemL rd Lin → LqMem rd s cd q ecoefs ehs epos eqp rounds hsv eb qs) →
-    CompleteAtD fs cert κ name Lin
-      [lam, lamInv, ofK (addressOfIndex ecoefs), ofK (addressOfIndex ehs),
-        ofK (addressOfIndex epos), ofK (addressOfIndex eqp)]
-      (Returns [r0, r1, lqSum s (Whir.lqOdd q base) (lqIters q base) lamInv rounds qs rows, lam ^ q])
-
-/-- **`level_queries` is complete placed at every specialization**: for frame runs fitting their
-frames, their cells consecutive, on memories defined below `2^κ`, `11 ≤ κ`, each entry of
-`lqTable` is `LqAtD`. -/
-def level_queries_completeAt_Spec : Prop :=
-  ∀ (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ), Lift.RunsFit fs cert → RunsConsec cert →
-    11 ≤ κ → ∀ e ∈ lqTable,
-      LqAtD fs cert κ e.1 e.2.1 e.2.2.1 e.2.2.2.1 e.2.2.2.2.1 e.2.2.2.2.2.1 e.2.2.2.2.2.2.1
-        e.2.2.2.2.2.2.2.1 e.2.2.2.2.2.2.2.2.1 e.2.2.2.2.2.2.2.2.2.1 e.2.2.2.2.2.2.2.2.2.2
-
 end
 end LeanVM.Guest.B1
 
@@ -130,24 +102,6 @@ open LeanVM.Protocol.Verifier hiding Layout
 open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 
 @[expose] public section
-
-/-- `LqAtD` at an optional words bound. -/
-def LqAtO (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) (name : String)
-    (q base folds leaf d cd mu nhs hbits fin : ℕ) (Bd : Option ℕ) : Prop :=
-  let s := lqOqS base folds leaf d cd mu nhs hbits fin
-  ∀ (Lin : Layout) (lam lamInv : E) (ecoefs ehs epos eqp : ℕ) (rounds : List FoldRound)
-    (hsv : List E) (eb qs : ℕ → ℕ) (rows : ℕ → List K) (sibs : ℕ → List Digest)
-    (capW flW : List E) (r0 r1 : E),
-    rounds.length = s.folds → (s.final = 1 → hsv.length = s.nHs) →
-    OqStatic s cd rounds hsv qs rows sibs q →
-    LqCaps s cd q capW flW r0 r1 qs rows sibs →
-    LqReg (RegionL Lin) s cd q ecoefs ehs epos eqp eb →
-    (∀ rd, LowDef κ rd → MemL rd Lin → LqMem rd s cd q ecoefs ehs epos eqp rounds hsv eb qs) →
-    CompleteAtO fs cert κ name Lin
-      [lam, lamInv, ofK (addressOfIndex ecoefs), ofK (addressOfIndex ehs),
-        ofK (addressOfIndex epos), ofK (addressOfIndex eqp)]
-      (Returns [r0, r1, lqSum s (Whir.lqOdd q base) (lqIters q base) lamInv rounds qs rows,
-        lam ^ q]) Bd
 
 end
 end LeanVM.Guest.B1.Arm

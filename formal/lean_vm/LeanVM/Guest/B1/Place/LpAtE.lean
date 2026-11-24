@@ -65,7 +65,7 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 
 @[expose] public section
 
-/-- `LpAtD` at an optional words bound. -/
+/-- `level_positions` placed (`LpAtDE`'s statement without the exactness) at an optional words bound. -/
 def LpAtO (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) (name loop : String) (S d cd : ℕ)
     (Bd : Option ℕ) : Prop :=
   ∀ (w0 : E) (cap : List E) (ep ew : ℕ) (tabs : E) (Lin : ℕ → Layout), cap.length = 5 →

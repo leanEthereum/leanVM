@@ -17,14 +17,12 @@ public import LeanVM.Guest.Memory.Size
 `level_queries` and `level_residual` (`Whir/HelperT.lean`). Each one's placed completeness
 (`Place/Lp.lean`, `Lq.lean`, `Lr.lean`) takes an optional words bound `Bd`: with `none` it is
 `CompleteAtD`, with `some B`, a bound of every valid tree of the helper (`TotalLe`, what
-`OsLeafBounds` gives the arm), it is `CompleteAtB … B`. One statement gives both the arm's
-`open_stacked_completeAtD` and its `open_stacked_completeAtB`.
+`OsLeafBounds` gives the arm), it is `CompleteAtB … B`.
 
 * `CompleteAtO … Bd`: `CompleteAtD` or `CompleteAtB`, by `Bd` (`toD`, `toB` and back, `toO`).
 * `CompleteAtPO … Lin rets Lout Bd`: the same with the words read (`Lin fp`) and the buffers
   handed back (`Lout fp`) depending on the frame pointer `fp`. `level_positions` takes this form:
   the caller's window pointers point into its decoders' frames.
-* `BoundsAt fs f Bd`: `Bd` bounds every valid tree of `f`.
 * `CompleteAtE … n`: complete by a tree of exactly `n` words (`toD`, `toB`).
 -/
 
@@ -34,10 +32,6 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value Lea
 open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 
 @[expose] public section
-
-/-- `Bd`, when given, bounds every valid tree of `f` (`TotalLe`). -/
-def BoundsAt (fs : String → ℕ) (f : String) (Bd : Option ℕ) : Prop :=
-  ∀ B ∈ Bd, TotalLe coreProgram fs f (fun _ ↦ B)
 
 /-- **`f` is complete at every frame pointer, on disjoint layouts, by a tree within `Bd` when
 given**: `CompleteAtD` at `none`, `CompleteAtB … B` at `some B`. -/

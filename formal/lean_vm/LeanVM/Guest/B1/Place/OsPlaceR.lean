@@ -21,7 +21,8 @@ frames when the selector's word is `g^r` (`selL_calls`), allocates, places and l
 top level (`selL_allocSz`, `selL_addrS`, `selL_loads`), and walks as the body where that returns
 (`walk_selRet`).
 
-`os_completeAt_placeR`: `os_completeAt_placeJFOT` for such a body, its valuation chosen per memory:
+`os_completeAt_placeR`: such a body complete placed at an optional words bound (`CompleteAtOT`), its node with the
+callees' trees satisfying their predicates (`FlatNodeT`), its valuation chosen per memory:
 the buffers, the returns and the callees' layout fixed, on every memory a valuation with the
 selector at `g^r` satisfying the body, setting up the fixed frames `cs`, allocating the buffers,
 its loads in the caller's words or the buffers, its callees `KidsFromInT`.
@@ -327,7 +328,7 @@ theorem walk_selRet {σ : Val} {C : CallRel} {rd : Reader} {x r n : ℕ} (hx : �
   · rw [e] at hsat
     exact hsat.elim
 
-/-- **`os_completeAt_placeJFOT` at an arm of a selector, its valuation chosen per memory**: the buffers,
+/-- **An arm of a selector complete placed, its valuation chosen per memory**: the buffers,
 the returns, the callees' layout and frames `cs` fixed; on every memory holding the buffers and the
 caller's words, a valuation with the selector at `g^r` satisfying the body, setting up `cs`,
 allocating the buffers, its loads in the caller's words or the buffers, its callees `KidsFromInT`. -/
