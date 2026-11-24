@@ -277,8 +277,6 @@ noncomputable def pairAt (P : PairCtx) (body : List Stmt) (code : List OffsetIns
     (d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)) (off : ℕ) : Option (List Stmt) :=
   ((pairRun P body code d).bind fun l ↦ l.lookup off).map Zip.pos
 
-/-! ## Windows -/
-
 end
 
 end LeanVM.Guest.CoreMode

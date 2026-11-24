@@ -136,11 +136,9 @@ to the message the path sends. -/
 def commitVerdict (s : S) (path : (commitSlot M σ).tree.ExecutionPath) : Option U :=
   Q.verdict path.1 (D.verdict s (restPath path).toBranchPath)
 
-/-! ## Completeness -/
+/-! ## Knowledge soundness -/
 
 variable {D Q} {relIn : S → M → Prop} {relOut : Set ((U × ∀ i, OneOracle M i) × Unit)}
-
-/-! ## Knowledge soundness -/
 
 /-- The family of the protocol's output claims, over the message as the oracle. -/
 abbrev commitFamily (M U : Type) : ClaimFamily.{0, 0} (∀ i, OneOracle M i) :=

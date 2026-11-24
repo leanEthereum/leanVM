@@ -46,9 +46,6 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHa
 
 @[expose] public section
 
-/-! ## The bytes each digest hashes (`Statement/LeanVmGuest.lean`) -/
-
-
 /-! ## Fixed-width encodings are injective -/
 
 /-- A concatenation of encodings of one positive width is injective. -/

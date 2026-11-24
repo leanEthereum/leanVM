@@ -19,16 +19,6 @@ import LeanVM.Guest.Data.ValNames.«keccak_layer__L_loop1»
 cursor's product.
 -/
 
-namespace LeanVM.Guest.Res
-
-open LeanVM.Guest LeanVM.Guest.Core
-
-@[expose] public section
-
-end
-
-end LeanVM.Guest.Res
-
 namespace LeanVM.Guest.EndExec
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Mode LeanVM.Guest.Core LeanVM.Guest.Memory

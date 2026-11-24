@@ -134,8 +134,8 @@ theorem nodeWitnessOf_cost (hP : Includes P Decoder.nodeWitnessOfC.costDeps) (c 
 
 /-- **The counts the witness reads off `main`'s valuation `σ` bounded** (`K`, `N`, `X` at most
 `2^34`): at most `K` children, each region at most `N` slots, at most `X` declared claims and
-`X` raw signatures of each scheme. Every `σ` meets it at `2^34` (`gLogD_lt`); a valid run at `16`, `65535`, `65535`
-(`Bounds/Guest/Valid.lean`). -/
+`X` raw signatures of each scheme. Every `σ` meets it at `2^34` (`gLogD_lt`); a valid run at `16`,
+`2^κ`, `2^κ` (`valid_counts`, `Bounds/Guest/Valid.lean`). -/
 structure CountsWithin (D : DiscreteLogTables) (σ : Val) (K N X : ℕ) : Prop where
   kidsBound : K ≤ 2 ^ 34
   slotsBound : N ≤ 2 ^ 34

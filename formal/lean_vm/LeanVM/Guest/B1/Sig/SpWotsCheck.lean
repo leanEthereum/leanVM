@@ -33,7 +33,7 @@ theorem spLeafCells_eq : spLeafCells = .n (val% «sp_wots» "pp") :: .n (val% «
 
 /-- `g^128`, the target sum in the exponent. -/
 theorem spTarget_eq : spTarget = gen ^ 128 := by
-  rw [Value.gen_pow_eq_ofK, spTarget, word, Value.ofBits_zero]
+  rw [Value.gen_pow_eq_ofK, spTarget, word, K.ofBits_zero]
   rw [← ofK_eq_ofLimbs]
   exact congrArg ofK (by decide +kernel)
 

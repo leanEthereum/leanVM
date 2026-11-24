@@ -185,7 +185,7 @@ theorem qwRest_atoms (d : ℕ) : ∀ i n k recon, (qwRest d i n k recon).1.all i
 theorem cbWord_zero' : cbWord 0 = 1 := by rw [cbWord]; exact word_one
 
 theorem cbWord_eq' (i : ℕ) : cbWord i = coordBasis i := by
-  simp only [cbWord, word, ofBits_mod]; rfl
+  simp only [cbWord, word, K.ofBits_mod]; rfl
 
 theorem qwScale_val {rd : Reader} {σ : Val} {x : V} {c k : ℕ} (h : qwAH rd σ (qwScale x c k).1) :
     σ (qwScale x c k).2.2 = σ x * cbWord c := by

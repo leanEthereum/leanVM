@@ -74,7 +74,5 @@ theorem experiment_eq (A : Adversary) :
   rw [← map_run_simulateQ_loggedRO, bind_map_left]
   simp [map_eq_bind_pure_comp]
 
-/-! ## Knowledge soundness -/
-
 end
 end LeanVM

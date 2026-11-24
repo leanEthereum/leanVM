@@ -83,7 +83,5 @@ variable {α : Type} {size : ℕ} {decode : Bytes → α} {enc : α → Bytes}
 
 end ReadMany
 
-/-! ### The files -/
-
 end
 end LeanVM.Protocol.Verifier

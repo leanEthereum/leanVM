@@ -77,8 +77,6 @@ theorem roundC2A_eq (W g : Array E) : roundC2A W g = roundC2 W.toList g.toList :
   rw [roundC2A, sumRange_eq, roundC2_eq_sum, Array.length_toList, Array.length_toList]
   simp only [toList_getD_E]
 
-/-! ## Folds -/
-
 /-! ## The equality kernel -/
 
 theorem getD_eqTable_eqKernel (z : List E) (j : ℕ) :

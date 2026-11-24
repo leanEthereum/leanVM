@@ -27,17 +27,6 @@ exponent `16^(κ/4)` times the digits' number (`csDig`), so the lowest digit `g^
 multiple of `2^(4 - w)` (`B1.Tables.cs_dvd`), `w` its width (`csW_sub`).
 -/
 
-namespace LeanVM.Guest.Res
-
-open LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.B1
-open LeanVM.Guest.B2C (cellJ)
-
-@[expose] public section
-
-end
-
-end LeanVM.Guest.Res
-
 namespace LeanVM.Guest.EndExec
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Mode LeanVM.Guest.Core LeanVM.Guest.Memory

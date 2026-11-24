@@ -194,8 +194,6 @@ theorem enc_bool (b : Bool) : encodeValue b = MachineValue.ofBool b := rfl
 
 end MachineEncoding
 
-/-! ## Rules -/
-
 /-! ## Dependent functions of `Fin 3`
 
 The leanSPHINCS signature's layers are a function of the layer whose values' types depend on it

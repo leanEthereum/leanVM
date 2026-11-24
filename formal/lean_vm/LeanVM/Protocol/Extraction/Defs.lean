@@ -135,7 +135,5 @@ def candidateExecution (prog : LeanIsaProgram) (input : PublicInput) (layout : L
     (q : Vector K (2 ^ μ)) : Option (Execution prog) :=
   candidateExecutionIn (powIndex layout.logMemory) (powIndex prog.logSize) prog input layout q
 
-/-! ## Lanes and the decoder's parameters -/
-
 end
 end LeanVM.Extraction

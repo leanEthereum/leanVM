@@ -22,8 +22,6 @@ def RetHolds (s : St) (G : Sig) : Prop :=
     (∀ p ∈ G.retV, ∃ u, s.mem.get (s.fp + p.1) = some u ∧ MonoVal s p.2 u) ∧
     (∀ p ∈ G.postT, LTF s p.1 p.2) ∧ ∀ q ∈ G.postC, CndHolds s ⟨q.1, q.2.1, [], [], [], q.2.2, []⟩
 
-/-! ## A cell the walk knows written has a word -/
-
 /-! ## Entry -/
 
 theorem entry_w {l : List ℕ} : ∀ {t : Exec.Trie Unit} {o : ℕ},
@@ -37,8 +35,6 @@ theorem entry_w {l : List ℕ} : ∀ {t : Exec.Trie Unit} {o : ℕ},
     · rcases Exec.Trie.get_set h with ⟨rfl, -⟩ | h
       · exact Or.inl (List.mem_cons_self ..)
       · exact Or.inr h
-
-/-! ## Calls and returns -/
 
 end
 

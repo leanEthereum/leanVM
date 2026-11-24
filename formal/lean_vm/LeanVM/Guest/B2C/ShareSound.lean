@@ -418,13 +418,11 @@ theorem nameAll_inv {kc : ℕ → Option (ℕ × ℕ)} : ∀ (vs : List V) {st :
     exact ⟨Ψ2, by simpa using hI2, hs1.trans hs2⟩
 
 
-theorem ofBits_one : K.ofBits 1 = 1 := by decide
-
 theorem tw_limbs (x : E) : tw (limbNat x 0, limbNat x 1) = x :=
   (eq_imm_of_limbs rfl rfl).symm
 
 theorem tw_one : tw (1, 0) = 1 := by
-  rw [tw, imm_of_ofBits ofBits_one, ofK_one]
+  rw [tw, imm_of_ofBits K.ofBits_one, ofK_one]
 
 /-- The values of an atom are named by their numbers. -/
 def VnA (a : Core.Atom) : Prop := ∀ u ∈ Memory.atomUses a, u = V.n u.idx

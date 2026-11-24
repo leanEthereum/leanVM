@@ -20,7 +20,7 @@ valuation and `W` of the child proofs' reader `wV`; every count, mark and slot b
   reads), a child's statement off its lists' slots (`kidStmtAt_cost`), its segment
   (`kidStmtSeg_cost`: the slots off the tables, `kidSlotsIn_cost`, `Search.lean`), **`kidStmt_cost`** (`kidStmtPrice G R S N`), `subArgs_cost`,
   **`decKid_cost`** (`decKidPrice G R S W N`), the regions' tables of at most `N ≤ 2^34` marks
-  (`regionTable_size_le`: a region's slots; `2^34` on any memory, `65535` on a valid run), so
+  (`regionTable_size_le`: a region's slots; `2^34` on any memory, `2^κ` on a valid run), so
   at most `N` claims of each scheme a child. The children's list is `Raw.lean`'s
   `kidsT_cost`.
 -/
@@ -34,8 +34,6 @@ open LeanVM.Guest.Core LeanVM.Guest.B1 LeanVM.Guest.B1.Main
 public section
 
 variable (P : MachineProgram) {G : ℕ}
-
-/-! ## Facts of the tables -/
 
 /-! ## The tables -/
 

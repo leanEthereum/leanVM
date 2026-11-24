@@ -133,7 +133,5 @@ theorem eq_mergeSort_of_adjacent {n : ℕ} (size : ℕ → ℕ) {ord : List ℕ}
   simp only [stackLe, Bool.or_eq_true, decide_eq_true_eq, Bool.and_eq_true] at hab hba
   omega
 
-/-! ## Coverage as `List.Forall₂` -/
-
 end
 end LeanVM.Guest.Value

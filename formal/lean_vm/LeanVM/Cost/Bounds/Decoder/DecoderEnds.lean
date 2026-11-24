@@ -92,8 +92,6 @@ theorem decoderOutput_cost (hP : Includes P decoderOutputC.costDeps) (D : Discre
   rw [decoderOutputC.costEq P hP D σ σVal hσ rd rdVal hrd, decodedOf_cost P (by includes)]
   omega
 
-/-! ## The entry -/
-
 end
 
 end LeanVM.Cost.Bounds

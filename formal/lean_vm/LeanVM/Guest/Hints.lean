@@ -160,8 +160,6 @@ def digitGroups (digits : List ℕ) : List (String × Entry) :=
 def ordered (right : Bool) (node sibling : BitVec 128) : Entry :=
   if right then [cell128 sibling, cell128 node] else [cell128 node, cell128 sibling]
 
-/-! ## Coverage (`Region::plan`, `take_slot`) -/
-
 /-! ## A leanXMSS signature (`lean_xmss_hints`) -/
 
 /-- One layer's hints: the sibling of every node on the path, the randomizer, the codeword's

@@ -148,8 +148,6 @@ theorem squeeze_atom {ins outs : List V} {b : ℕ} {s : Fs}
     simp only [Fs.squeeze, Fs.perm]
     interval_cases i <;> rfl
 
-/-! ## Words -/
-
 /-! ## Records and runs -/
 
 /-- Five capacity cells `krCap` words apart. -/
@@ -204,12 +202,10 @@ theorem noRetList_flatten_map (f : ℕ → List Stmt) (h : ∀ i, Stmt.noRetList
   | i :: l => by
     rw [List.map_cons, List.flatten_cons, noRetList_append, h i, noRetList_flatten_map f h l]; rfl
 
-/-! ## Facts by position
+/-! ## Blocks of atoms, by kernel evaluation
 
 A body's statements without `ret`, `pre`, hold one by one: the statement at position `k`, found
 by kernel evaluation (`stmtEqb`), holds. -/
-
-/-! ## Blocks of atoms, by kernel evaluation -/
 
 /-- An atom statement. -/
 def isAtom : Stmt → Bool

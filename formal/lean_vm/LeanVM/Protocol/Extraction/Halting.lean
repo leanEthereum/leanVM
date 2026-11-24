@@ -153,15 +153,7 @@ theorem rows_le_stepCap (s : Sizes) (q : Column (leanIsaμ prog s)) (hκ : s.log
 
 end Rows
 
-/-! ## 2. The cap is structural -/
-
-section Structural
-
-variable (prog : LeanIsaProgram) (s : Sizes)
-
-end Structural
-
-/-! ## 3. On the extracted stack -/
+/-! ## 2. On the extracted stack -/
 
 section Extracted
 
