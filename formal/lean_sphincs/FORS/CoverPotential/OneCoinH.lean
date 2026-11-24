@@ -52,6 +52,22 @@ theorem countInv_card (s : State) (budget : ℕ) :
     (Finset.card_filter_le _ _).trans (Finset.card_univ.le)
   omega
 
+/-- A signing run on `m` keeps the count invariant of the other live messages. -/
+theorem countInvL_sign {A : Type} (tg : Targeting HashInput HashOutput Coordinate)
+    (initial : HiddenOutside.Cache HashInput HashOutput) (model : HiddenRows.Model HashInput HashOutput A Coordinate)
+    {L : QueryLog SigningSpec} {s : State} {budget B : ℕ} {m : Message} (r : Option Signature)
+    (hC : CountInvL parameter data Qtot L s budget) (o : Run HashInput Coordinate (Option Signature) × State)
+    (ho : o ∈ support (interp tg initial model (signCostSource parameter data m) B s)) :
+    CountInvL parameter data Qtot (L ++ [⟨m, r⟩]) o.2 budget := by
+  intro m' hm'
+  have hne : m' ≠ m := fun he => hm' ⟨m, r⟩ (List.mem_append_right _ (List.mem_singleton_self _)) he.symm
+  have hkeep : cachedCount parameter data m' o.2 = cachedCount parameter data m' s := by
+    unfold cachedCount
+    refine congrArg Finset.card (Finset.filter_congr fun ρ _ => ?_)
+    exact Iff.of_eq (congrArg (· ≠ none) (other_message_keptS tg initial model B s o ho (m', ρ) hne firstCall))
+  have := hC m' fun e he => hm' e (List.mem_append_left _ he)
+  omega
+
 end CountL
 
 /-! ### Signing outcomes with the same result and state -/
@@ -541,18 +557,8 @@ theorem goodOH_signH (hparse : ∀ p call, model.parse (pblk parameter data p ca
           hparse (hfail m) B s P Ms d R hprep hP hM hD (countInv_card parameter data s B) o1' ho1' r hres'
         rw [h2] at hprep' hP' hM'
         rw [h121, hdisc] at hD'
-        have hC' : CountInvL parameter data Qtot (L ++ [⟨m, r⟩]) o1.2 budget := by
-          intro m' hm'
-          have hne : m' ≠ m := fun he => hm' ⟨m, r⟩ (List.mem_append_right _ (List.mem_singleton_self _)) he.symm
-          have hlive : MsgLive L m' := fun e he => hm' e (List.mem_append_left _ he)
-          have hkeep : cachedCount parameter data m' o1.2 = cachedCount parameter data m' s := by
-            unfold cachedCount
-            refine congrArg Finset.card (Finset.filter_congr fun ρ _ => ?_)
-            have hk := other_message_keptS tg initial model B s o1' ho1' (m', ρ) hne firstCall
-            rw [h2] at hk
-            exact Iff.of_eq (congrArg (· ≠ none) hk)
-          have := hC m' hlive
-          omega
+        have hC' : CountInvL parameter data Qtot (L ++ [⟨m, r⟩]) o1.2 budget :=
+          h2 ▸ countInvL_sign parameter data Qtot tg initial model r hC o1' ho1'
         have hIH := h r budget o1.2 _ _ _ _ hprep' hP' hM' hD' hC'
         have hpot := sign_pointO2 tg initial model parameter data w b0 Fail (Fintype.card Randomness + B) m hparse
           (hfail m) hw B budget s P Ms L d R hprep hP hM hD (countInv_card parameter data s B) o1' ho1' r hres'
@@ -561,14 +567,7 @@ theorem goodOH_signH (hparse : ∀ p call, model.parse (pblk parameter data p ca
         have hlam : lam Lmax (livePairs (L ++ [⟨m, r⟩]) (newPairs parameter data m s o1.2 ++ P)).length
             budget ≤ lam Lmax ℓ budget :=
           lam_mono livePairs_sign_length_le le_rfl
-        have heq : ∀ o2 : Run HashInput Coordinate HiddenBridge.Outcome × State,
-            finalValue parameter data tg initial R
-              ((o2.1.1, o1.1.2.1 ++ o2.1.2.1, o1.1.2.2.1 ++ o2.1.2.2.1, o1.1.2.2.2 ++ o2.1.2.2.2), o2.2) =
-            finalValue parameter data tg initial (R ++ o1.1.2.1) o2 := by
-          intro o2
-          unfold finalValue
-          simp only [List.append_assoc]
-        simp only [heq]
+        simp only [finalValue_append]
         refine le_trans hIH (add_le_add ?_ ?_)
         · unfold potO
           exact add_le_add hpot hlam

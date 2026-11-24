@@ -1151,14 +1151,7 @@ theorem goodHWH_signH (hparse : ∀ p call, model.parse (pblk parameter data p c
         have hlam : lam Lmax (livePairs (L ++ [⟨m, r⟩]) (newPairs parameter data m s o1.2 ++ P)).length
             budget ≤ lam Lmax ℓ budget :=
           lam_mono livePairs_sign_length_le le_rfl
-        have heq : ∀ o2 : Run HashInput Coordinate HiddenBridge.Outcome × State,
-            finalValue parameter data tg initial R
-              ((o2.1.1, o1.1.2.1 ++ o2.1.2.1, o1.1.2.2.1 ++ o2.1.2.2.1, o1.1.2.2.2 ++ o2.1.2.2.2), o2.2) =
-            finalValue parameter data tg initial (R ++ o1.1.2.1) o2 := by
-          intro o2
-          unfold finalValue
-          simp only [List.append_assoc]
-        simp only [heq]
+        simp only [finalValue_append]
         refine le_trans hIH (add_le_add (mul_le_mul' le_rfl ?_) ?_)
         · unfold potH
           exact add_le_add hpot hlam

@@ -411,6 +411,15 @@ noncomputable def finalValue (R : List Coordinate) (out : Run HashInput Coordina
     if HiddenBridge.ForsCover parameter data.root outcome (R ++ out.1.2.1) out.2.cache ∧ ¬Realized tg initial out.2
     then 1 else 0
 
+/-- Reveals before a continuation join the reveals the final value reads. -/
+theorem finalValue_append {β : Type} (R : List Coordinate) (o1 : Run HashInput Coordinate β × State)
+    (o2 : Run HashInput Coordinate HiddenBridge.Outcome × State) :
+    finalValue parameter data tg initial R
+        ((o2.1.1, o1.1.2.1 ++ o2.1.2.1, o1.1.2.2.1 ++ o2.1.2.2.1, o1.1.2.2.2 ++ o2.1.2.2.2), o2.2) =
+      finalValue parameter data tg initial (R ++ o1.1.2.1) o2 := by
+  unfold finalValue
+  simp only [List.append_assoc]
+
 /-- Cached digest entries of every message, plus the remaining budget, stay bounded. -/
 def CountInv (s : State) (budget : ℕ) : Prop :=
   ∀ m : Message, cachedCount parameter data m s + budget ≤ Qtot
