@@ -18,7 +18,7 @@ buffers in `Lin`, the cap and the flags offset to the cap's leaves: `OqStatic`, 
 `OqLinMem`), the specialization `name` (loop helper `loop`) is `CompleteAtD`, returning the chain
 of the queries' folds (or `0` at the final level); `OqCompleteDB`: `CompleteAtB`, by a tree of at
 most `oqBound fs name loop N` words (its frame, its chain buffer, its `N` iterations' frames and
-its last call's tail frame).
+its last call's tail frame). `oqCompleteDB1`, `oqCompleteDB0`: from a specialization's bodies.
 -/
 
 namespace LeanVM.Guest.B1
@@ -81,6 +81,35 @@ theorem loop0_true {s : Oq} {loop : String} {fl : Fn}
     coreProgram.loop loop = true := by
   rw [Program.loop_of_find? hfl, Fn.loop, hbl, find_name hfl]
   simp [oqLoop0T, oqNextT]
+
+/-- **A level-0 specialization is `CompleteAtB`.** -/
+theorem oqCompleteDB1 (fs : String → ℕ) (cert : String → V → ℕ)
+    {s : Oq} (hs : s.RowShape) (hfin : s.FinOk) (hb1 : s.base = 1) {name loop : String} {fm fl : Fn}
+    (hfm : coreProgram.find? name = some fm) (hpm : fm.params = oqMainParams)
+    (hbm : fm.body = oqMainT s loop)
+    (hfl : coreProgram.find? loop = some fl) (hpl : fl.params = oqLoopParams)
+    (hbl : fl.body = oqLoop1T s loop) : OqCompleteDB fs cert name loop s := by
+  intro _ κ Lin N cd odd ecap eflags ecoefs ehs epos eqp lamInv rounds hsv eb qs rows sibs hcd hodd hN
+    hrl hhl hst hreg hmem
+  have hQ : oqCount odd s.base N = odd + 2 * N := by simp [oqCount, hb1]
+  rw [hQ] at hst hreg hmem
+  exact oqMain1_completeAtB fs cert κ hs hfin hb1 hcd (by omega) hfm hpm hbm hfl hpl hbl
+    (loop1_true hfl hbl) hN hrl hhl hst hreg hmem
+
+/-- **A deeper specialization is `CompleteAtB`.** -/
+theorem oqCompleteDB0 (fs : String → ℕ) (cert : String → V → ℕ)
+    {s : Oq} (hs : s.RowShape) (hfin : s.FinOk) (hb0 : s.base = 0) {name loop : String} {fm fl : Fn}
+    (hfm : coreProgram.find? name = some fm) (hpm : fm.params = oqMainParams)
+    (hbm : fm.body = oqMainT s loop)
+    (hfl : coreProgram.find? loop = some fl) (hpl : fl.params = oqLoopParams)
+    (hbl : fl.body = oqLoop0T s loop) : OqCompleteDB fs cert name loop s := by
+  intro _ κ Lin N cd odd ecap eflags ecoefs ehs epos eqp lamInv rounds hsv eb qs rows sibs hcd hodd hN
+    hrl hhl hst hreg hmem
+  obtain rfl : odd = 0 := by omega
+  have hQ : oqCount 0 s.base N = N := by simp [oqCount, hb0]
+  rw [hQ] at hst hreg hmem
+  exact oqMain0_completeAtB fs cert κ hs hfin hb0 hcd hfm hpm hbm hfl hpl hbl
+    (loop0_true hfl hbl) hN hrl hhl hst hreg hmem
 
 end
 end LeanVM.Guest.B1
