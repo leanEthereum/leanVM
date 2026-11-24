@@ -21,7 +21,7 @@ def load():
     fns={}
     for name, (pack, blk) in BD.bundle_blocks().items():
         chunks={}
-        for m in re.finditer(r'def (c\d+) : List OffsetInstruction := \[(.*?)\]\n', blk, re.S):
+        for m in re.finditer(r'def (c\d+) : List OffsetInstruction := (?:code% )?\[(.*?)\]\n', blk, re.S):
             body=m.group(2)
             L=[]
             for im in ins_re.finditer(body):

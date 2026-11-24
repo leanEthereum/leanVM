@@ -321,7 +321,8 @@ def defs(text):
         end = ms[i + 1].start() if i + 1 < len(ms) else len(text)
         body = text[m.end():end]
         body = re.split(r'\n/--|\nend\b|\nnamespace |\n@\[|\nopen ', body)[0]
-        out[m.group(1)] = body
+        # a code chunk's list is written `code% [...]` (`Guest/CodeLit.lean`): the same list
+        out[m.group(1)] = re.sub(r'^\s*code% ', ' ', body)
     return out
 
 
