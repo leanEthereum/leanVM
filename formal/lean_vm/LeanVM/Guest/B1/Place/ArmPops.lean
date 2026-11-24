@@ -204,7 +204,7 @@ theorem arm_popsBy {m ri : ℕ} (hm : m < 11) (hri : ri < 4) {σ : Val}
       armRest σ (osCfgR m ri))
     (hS : ∀ c' ∈ cs, armS c'.f = true) :
     PopsBy rd cs (armTsP Bk H σ rd) (armPss H σ) := by
-  obtain ⟨-, hB, hffm, -, hyr⟩ := armBody_ok hm hri
+  obtain ⟨-, hB, hffm, -, hyr⟩ := armBody_ok ri hm
   have hLv := armLv_ok hm hri
   subst hcs
   have hnw : ∀ c' ∈ (osLvKOf σ (osCfgR m ri) 0 (osCfgR m ri).levels (osHead (osCfgR m ri)).2).flatMap
