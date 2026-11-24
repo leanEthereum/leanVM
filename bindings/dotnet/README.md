@@ -13,7 +13,7 @@ dotnet add package Ethereum.LeanPq --version 0.16.0
 <!-- x-release-please-end -->
 
 - The package bundles the native library for Linux x64 and arm64 (glibc 2.17+), macOS x64 and arm64, and Windows x64; x64 needs AVX2 and PCLMULQDQ.
-- The runtime loads it from the package's `runtimes/<rid>/native`, for a portable app and for one published for a RID. `LEAN_PQ_NATIVE_PATH=FILE` loads another build instead.
+- `LEAN_PQ_NATIVE_PATH=FILE` loads another build instead of the bundled one.
 
 ## Sign and verify
 
@@ -36,7 +36,7 @@ bool sphincsValid = LeanPq.SphincsVerify(sphincs.GetPublicKey(), message32, sphi
 - leanSPHINCS is stateless and deterministic; a key signs at most `2^30` messages.
 - `ToBytes()` is the key's 32-byte seed, which is secret; `FromBytes` restores the key.
 - `CacheToBytes()` returns the key's trees, which are not secret; `XmssSecretKey.FromCacheBytes(seed, publicKey, cache)` loads the key from them instead of rebuilding them, checking them against the public key.
-- Inputs of the wrong length throw `ArgumentException`; native validation and cryptographic errors throw `LeanPqException`.
+- A public key, message, seed or root that is not 32 bytes throws `ArgumentException`; other invalid input, including malformed keys, caches and signatures, throws `LeanPqException` or fails verification.
 
 ## VRF
 
@@ -83,11 +83,7 @@ Needs the .NET 10 SDK and Rust. From the repository root:
 dotnet test bindings/dotnet/Ethereum.LeanPq.slnx
 ```
 
-The build compiles the native library itself (`cargo build --release -p lean-pq-native`) and copies it beside the assembly.
-
-- `dotnet pack` bundles only the host library. `-p:LeanPqNativeDir=DIR` bundles `DIR/<platform>/` instead, as [`bindings/java/scripts/build-native.sh`](../java/scripts/build-native.sh) stages it: `linux-x86_64`, `linux-aarch64`, `macos-universal` and `windows-x86_64`.
-- Local builds are `0.0.0-dev`; `-p:Version=X.Y.Z` overrides it.
-- `bindings/dotnet/scripts/consumer-smoke.sh [DOTNET_PACK_ARGS...]` packs into a throwaway feed and signs and verifies through the package from a fresh console project.
+The build compiles the native library itself. Packing the release package is in [RELEASING.md](../RELEASING.md#nuget).
 
 ## License
 

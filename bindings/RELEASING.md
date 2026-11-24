@@ -84,7 +84,7 @@ Locally (from the repository root):
 
 - `dotnet pack bindings/dotnet/src/Ethereum.LeanPq` bundles only the host library. `-p:LeanPqNativeDir=DIR` bundles `DIR/<platform>/` instead, as `bindings/java/scripts/build-native.sh` stages it.
 - Local builds are `0.0.0-dev`; `-p:Version=X.Y.Z` overrides it.
-- `bindings/dotnet/scripts/consumer-smoke.sh [DOTNET_PACK_ARGS...]` packs into a throwaway feed and signs and verifies through the package from a fresh console project.
+- `bindings/dotnet/scripts/consumer-smoke.sh [DOTNET_PACK_ARGS...]` packs into a throwaway feed and signs, verifies and aggregates through the package from a fresh console project; `--feed DIR` runs it against the package already in `DIR`.
 
 ### One-time setup
 

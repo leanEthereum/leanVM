@@ -47,7 +47,15 @@ public static unsafe class LeanPq
     {
         Native.RequireLength(publicKey, PublicKeyLength, nameof(publicKey));
         Native.RequireLength(message, MessageLength, nameof(message));
-        return Native.XmssVerify(publicKey, message, signature);
+        fixed (byte* publicKeyPointer = publicKey)
+        fixed (byte* messagePointer = message)
+        fixed (byte* signaturePointer = signature)
+        {
+            return Native.Verified(Native.XmssVerify(
+                publicKeyPointer, (nuint)publicKey.Length,
+                messagePointer, (nuint)message.Length,
+                signaturePointer, (nuint)signature.Length));
+        }
     }
 
     /// <summary>Returns whether the 7740-byte leanSPHINCS signature is valid for the public key and message.</summary>
@@ -56,7 +64,15 @@ public static unsafe class LeanPq
     {
         Native.RequireLength(publicKey, PublicKeyLength, nameof(publicKey));
         Native.RequireLength(message, MessageLength, nameof(message));
-        return Native.SphincsVerify(publicKey, message, signature);
+        fixed (byte* publicKeyPointer = publicKey)
+        fixed (byte* messagePointer = message)
+        fixed (byte* signaturePointer = signature)
+        {
+            return Native.Verified(Native.SphincsVerify(
+                publicKeyPointer, (nuint)publicKey.Length,
+                messagePointer, (nuint)message.Length,
+                signaturePointer, (nuint)signature.Length));
+        }
     }
 
     /// <summary>
@@ -66,7 +82,11 @@ public static unsafe class LeanPq
     public static bool VrfVerify(ReadOnlySpan<byte> root, ulong slot, ReadOnlySpan<byte> proof)
     {
         Native.RequireLength(root, VrfRootLength, nameof(root));
-        return Native.VrfVerify(root, slot, proof);
+        fixed (byte* rootPointer = root)
+        fixed (byte* proofPointer = proof)
+        {
+            return Native.Verified(Native.VrfVerify(rootPointer, (nuint)root.Length, slot, proofPointer, (nuint)proof.Length));
+        }
     }
 
     /// <summary>
@@ -102,12 +122,13 @@ public static unsafe class LeanPq
         byte[] xmssRecords = SignedRecords(xmss, XmssSignatureLength, "leanXMSS");
         byte[] sphincsRecords = SignedRecords(sphincs, SphincsSignatureLength, "leanSPHINCS");
         // The native side rejects more than 16 children; checking first bounds the stackalloc.
-        if (children.Count > MaxChildren)
+        int childCount = children.Count;
+        if (childCount > MaxChildren)
         {
-            throw new LeanPqException($"an aggregate takes at most {MaxChildren} children, got {children.Count}");
+            throw new LeanPqException($"an aggregate takes at most {MaxChildren} children, got {childCount}");
         }
 
-        AggregateHandle[] handles = new AggregateHandle[children.Count];
+        AggregateHandle[] handles = new AggregateHandle[childCount];
         Span<nint> pointers = stackalloc nint[handles.Length];
         int borrowed = 0;
         try

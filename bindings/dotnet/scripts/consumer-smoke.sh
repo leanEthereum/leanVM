@@ -3,7 +3,8 @@
 # restore it from there alone into a fresh console project, and run that project, which signs,
 # verifies and aggregates, without LEAN_PQ_NATIVE_PATH, so the native library is the one bundled in
 # the package: once as a portable app (resolved from runtimes/<rid>/native through its deps.json)
-# and once published for the host RID. Arguments go to `dotnet pack`, e.g. -p:Version=1.2.3 -p:LeanPqNativeDir=DIR.
+# and once published for the host RID. Arguments go to `dotnet pack`, e.g. -p:Version=1.2.3
+# -p:LeanPqNativeDir=DIR, or are `--feed DIR` to run against the one package already in DIR.
 # On Windows it runs under Git Bash.
 set -eu
 
@@ -21,11 +22,16 @@ export DOTNET_CLI_TELEMETRY_OPTOUT=1
 export DOTNET_NOLOGO=1
 unset LEAN_PQ_NATIVE_PATH
 
-dotnet pack "$script_dir/../src/Ethereum.LeanPq/Ethereum.LeanPq.csproj" -c Release -o "$feed" "$@"
+if [ "${1:-}" = --feed ]; then
+    feed=$2
+    if command -v cygpath >/dev/null 2>&1; then feed=$(cygpath -m "$feed"); fi
+else
+    dotnet pack "$script_dir/../src/Ethereum.LeanPq/Ethereum.LeanPq.csproj" -c Release -o "$feed" "$@"
+fi
 package=$(ls "$feed" | grep '^Ethereum\.LeanPq\..*\.nupkg$')
 version=${package#Ethereum.LeanPq.}
 version=${version%.nupkg}
-echo "packed Ethereum.LeanPq $version; bundled natives:"
+echo "Ethereum.LeanPq $version; bundled natives:"
 unzip -Z1 "$feed/$package" | grep -E '^runtimes/[^/]+/native/(lib)?lean_pq_native\.'
 
 mkdir -p "$consumer"

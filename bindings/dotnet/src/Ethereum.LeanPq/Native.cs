@@ -9,7 +9,7 @@ namespace Ethereum.LeanPq;
 internal static unsafe partial class Native
 {
     internal const int ClaimLength = LeanPq.PublicKeyLength + LeanPq.MessageLength;
-    internal const string NativePathVariable = "LEAN_PQ_NATIVE_PATH";
+    private const string NativePathVariable = "LEAN_PQ_NATIVE_PATH";
 
     private const string Library = "lean_pq_native";
     private const int Ok = 0;
@@ -80,7 +80,7 @@ internal static unsafe partial class Native
     internal static partial void XmssDestroy(nint key);
 
     [LibraryImport(Library, EntryPoint = "lpq_xmss_verify")]
-    private static partial int XmssVerify(byte* publicKey, nuint publicKeyLength, byte* message, nuint messageLength, byte* signature, nuint signatureLength);
+    internal static partial int XmssVerify(byte* publicKey, nuint publicKeyLength, byte* message, nuint messageLength, byte* signature, nuint signatureLength);
 
     [LibraryImport(Library, EntryPoint = "lpq_sphincs_secret_key_generate")]
     internal static partial int SphincsGenerate(out SphincsKeyHandle output);
@@ -104,7 +104,7 @@ internal static unsafe partial class Native
     internal static partial void SphincsDestroy(nint key);
 
     [LibraryImport(Library, EntryPoint = "lpq_sphincs_verify")]
-    private static partial int SphincsVerify(byte* publicKey, nuint publicKeyLength, byte* message, nuint messageLength, byte* signature, nuint signatureLength);
+    internal static partial int SphincsVerify(byte* publicKey, nuint publicKeyLength, byte* message, nuint messageLength, byte* signature, nuint signatureLength);
 
     [LibraryImport(Library, EntryPoint = "lpq_aggregate_create")]
     internal static partial int AggregateCreate(
@@ -151,42 +151,7 @@ internal static unsafe partial class Native
     internal static partial void VrfKeyDestroy(nint key);
 
     [LibraryImport(Library, EntryPoint = "lpq_vrf_verify")]
-    private static partial int VrfVerify(byte* root, nuint rootLength, ulong slot, byte* proof, nuint proofLength);
-
-    internal static bool XmssVerify(ReadOnlySpan<byte> publicKey, ReadOnlySpan<byte> message, ReadOnlySpan<byte> signature)
-    {
-        fixed (byte* publicKeyPointer = publicKey)
-        fixed (byte* messagePointer = message)
-        fixed (byte* signaturePointer = signature)
-        {
-            return Verified(XmssVerify(
-                publicKeyPointer, (nuint)publicKey.Length,
-                messagePointer, (nuint)message.Length,
-                signaturePointer, (nuint)signature.Length));
-        }
-    }
-
-    internal static bool SphincsVerify(ReadOnlySpan<byte> publicKey, ReadOnlySpan<byte> message, ReadOnlySpan<byte> signature)
-    {
-        fixed (byte* publicKeyPointer = publicKey)
-        fixed (byte* messagePointer = message)
-        fixed (byte* signaturePointer = signature)
-        {
-            return Verified(SphincsVerify(
-                publicKeyPointer, (nuint)publicKey.Length,
-                messagePointer, (nuint)message.Length,
-                signaturePointer, (nuint)signature.Length));
-        }
-    }
-
-    internal static bool VrfVerify(ReadOnlySpan<byte> root, ulong slot, ReadOnlySpan<byte> proof)
-    {
-        fixed (byte* rootPointer = root)
-        fixed (byte* proofPointer = proof)
-        {
-            return Verified(VrfVerify(rootPointer, (nuint)root.Length, slot, proofPointer, (nuint)proof.Length));
-        }
-    }
+    internal static partial int VrfVerify(byte* root, nuint rootLength, ulong slot, byte* proof, nuint proofLength);
 
     /// <summary>Throws <see cref="LeanPqException"/> with the native error unless <paramref name="status"/> is success.</summary>
     /// <remarks>
@@ -243,7 +208,8 @@ internal static unsafe partial class Native
         }
     }
 
-    private static bool Verified(int status)
+    /// <summary>A verify call's verdict: false for a checked error; a caught panic throws.</summary>
+    internal static bool Verified(int status)
     {
         if (status == CheckedError)
         {

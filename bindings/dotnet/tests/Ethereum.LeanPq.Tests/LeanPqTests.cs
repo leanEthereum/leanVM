@@ -132,7 +132,7 @@ public class LeanPqTests
     public void NativeErrorsStayOnTheirThread()
     {
         string rangeError = Assert.Throws<LeanPqException>(() => VrfKey.FromSeed(Bytes(9), 100, 100).Dispose())!.Message;
-        int workers = 4 * System.Environment.ProcessorCount;
+        int workers = 4 * Environment.ProcessorCount;
         string?[] failures = new string?[workers];
 
         Parallel.For(0, workers, new ParallelOptions { MaxDegreeOfParallelism = workers }, worker =>
@@ -208,7 +208,7 @@ public class LeanPqTests
     [Test]
     public void SetupKeepsItsFirstThreadCount()
     {
-        // 0, the count aggregating starts the prover with.
+        // 0 also passes after an earlier test's aggregation started the prover, with 0 threads.
         LeanPq.Setup(0);
         Assert.Throws<LeanPqException>(() => LeanPq.Setup(1));
         Assert.Throws<ArgumentOutOfRangeException>(() => LeanPq.Setup(-1));

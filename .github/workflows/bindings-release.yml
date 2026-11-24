@@ -985,10 +985,10 @@ jobs:
           path: dist/
           if-no-files-found: error
 
-  # A fresh consumer of a package bundling all four libraries, on each platform it bundles.
+  # A fresh consumer of the package dotnet-package built, the one dotnet-publish pushes, on each platform it bundles.
   dotnet-consumer:
     name: .NET consumer / ${{ matrix.runner }}
-    needs: java-native
+    needs: dotnet-package
     runs-on: ${{ matrix.runner }}
     defaults:
       run:
@@ -1002,14 +1002,13 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
-          path: native
-          pattern: java-native-*
-          merge-multiple: true
+          name: dotnet-package
+          path: dist
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "10.0.x"
       - name: Run a consumer against the package
-        run: sh bindings/dotnet/scripts/consumer-smoke.sh -p:Version="${RELEASE_TAG#bindings-v}" -p:LeanPqNativeDir="$GITHUB_WORKSPACE/native"
+        run: sh bindings/dotnet/scripts/consumer-smoke.sh --feed "$GITHUB_WORKSPACE/dist"
 
   # NuGet trusted publishing (OIDC): NuGet/login exchanges the run's token for a short-lived API key.
   # The policy on nuget.org names:
