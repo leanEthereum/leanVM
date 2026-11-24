@@ -63,8 +63,3 @@ standard axioms. -/
 /-- info: 'LeanDa.commitCodewords_eq_commitCells' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms LeanDa.commitCodewords_eq_commitCells
-
-/-- info: 'LeanDa.dualCodeword_eq_dualCodewordAt' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms LeanDa.dualCodeword_eq_dualCodewordAt
-

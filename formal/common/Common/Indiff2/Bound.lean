@@ -115,11 +115,6 @@ theorem prEvent_fStep_le (x : SpState Dg E C) (s : FState Msg Dg E C) (L : List 
   · rw [prEvent_eq_zero_of_forall_mem_support _ _ fun z _ h ↦ absurd (hg z h).1 (by simp [hc])]
     exact zero_le
 
-theorem b0_bookUpd_same {b b' : Book (SpState Dg E C)} (hF : b'.dF = b.dF) (hI : b'.dI = b.dI)
-    (hb : ¬ B0 iv b) : ¬ B0 iv b' := by
-  simp only [B0, capsOf, hF, hI] at hb ⊢
-  exact hb
-
 /-- **A step creates a capacity collision with probability at most its cost times `N / |C|`.** -/
 theorem prEvent_b0_step (NF : (Dg × E) → Prop) [DecidablePred NF] (N : ℕ)
     (t : (dSpec2 Msg Dg (SpState Dg E C)).Domain) (s : FState Msg Dg E C × Book (SpState Dg E C))

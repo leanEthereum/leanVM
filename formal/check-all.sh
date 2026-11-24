@@ -153,7 +153,7 @@ common() {
   cache_get common
   build common 'Common'
   axioms common Common Common.indifferentiability Common.transfer Common.transfer2 \
-    Common.keccak256_indifferentiable Common.keccak256_transfer Common.keccak256_transfer2 \
+    Common.keccak256_transfer Common.keccak256_transfer2 \
     Common.SufCma.rpm_le_romB Common.SufCma.stronglyUnforgeable_of_romBoundAdv \
     Common.SeedDuplex.duplex_le
 }
@@ -181,8 +181,7 @@ lean_da() {
   cache_get lean_da
   build lean_da '(LeanDa|PqDas)'
   axioms lean_da LeanDa LeanDa.leanDa_complete LeanDa.leanDa_positionBinding_rpm \
-    LeanDa.leanDa_membershipSound_rpm LeanDa.commitCodewords_eq_commitCells \
-    LeanDa.dualCodeword_eq_dualCodewordAt
+    LeanDa.leanDa_membershipSound_rpm LeanDa.commitCodewords_eq_commitCells
 }
 
 # Every lean_vm executable, in one build.

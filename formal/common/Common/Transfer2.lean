@@ -19,10 +19,9 @@ honest parties and by the adversary. In the random-permutation model (RPM) `H` i
   the duplex discipline (`Duplex`), the RPM game (`realGame2`) and the ROM game against the ROM
   adversary `advS2 A` (`A` with its permutation queries answered by the simulator `simulator2`,
   which queries `H` and `F`) give every event probabilities within `indiffBound2`.
-* `pathsOf_ideal2`: as in the one-oracle model, the hash queries the simulator makes for the
-  adversary are `pathsOf` of the adversary's permutation transcript, so an extractor reading the
-  ROM adversary's `H` queries runs in the RPM on the adversary's own hash queries and `pathsOf`
-  of its permutation transcript (whose pairs are correct sponge hashes, `pathsOf_sound`).
+* `pathsOf_ideal2`: the hash queries the simulator makes for the adversary are `pathsOf` of the
+  adversary's permutation transcript, so an extractor reading the ROM adversary's `H` queries runs
+  in the RPM on the adversary's own hash queries and `pathsOf` of its permutation transcript.
 
 The duplex discipline: every direct call `F x` absorbs a non-final block (`NF`, a block that no
 padding ends with) into the initial state of the sponge or into the answer of an earlier direct
@@ -280,13 +279,6 @@ noncomputable def advImplLog2 : QueryImpl (dSpec Msg Dg (SpState Dg E C))
     (StateT (SimState Dg E C × List (PermutationQuery (SpState Dg E C) × SpState Dg E C))
       (OracleComp (unifSpec + hfSpec Msg Dg (SpState Dg E C)))) :=
   logImpl (simulator2 P) (advImpl2 P)
-
-/-- Forgetting the transcript gives the two-oracle ROM adversary. -/
-theorem advImplLog2_proj {α : Type} (A : OracleComp (dSpec Msg Dg (SpState Dg E C)) α)
-    (s : SimState Dg E C × List (PermutationQuery (SpState Dg E C) × SpState Dg E C)) :
-    Prod.map id Prod.fst <$> (simulateQ (advImplLog2 P) A).run s =
-      (simulateQ (advImpl2 P) A).run s.1 :=
-  logImpl_proj (simulator2 P) (advImpl2 P) (fun _ ↦ rfl) A s
 
 /-- **The simulator's state is the replay of the transcript**, in the two-oracle model. -/
 theorem simulator2_state_eq_replay {α : Type} (A : OracleComp (dSpec Msg Dg (SpState Dg E C)) α)

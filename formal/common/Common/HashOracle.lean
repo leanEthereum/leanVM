@@ -12,8 +12,7 @@ The statement's model has coins, `π` and `π⁻¹` and nothing else (`RandomPer
 with Keccak-256 over `π` (`keccak256OverPermutation`). The proofs of `common`, `lean_xmss`, `lean_sphincs` and
 `lean_da` reason with Keccak-256 as one more oracle, answered by the sponge over the same lazily
 sampled permutation (`KSpecH`, `kImplH`, `runKH`), a hash of `n` bytes costing its `⌊n / 136⌋ + 1`
-permutation calls (`permCallsH`), and with the SUF-CMA game over it (`SufCma.rpmGameH`,
-`RpmSecureH`). `Common.PiOnly` proves that the statement's games are these games with each hash
+permutation calls (`permCallsH`), and with the SUF-CMA game over it (`SufCma.rpmGameH`). `Common.PiOnly` proves that the statement's games are these games with each hash
 call expanded into its permutation calls, with one distribution and one cost.
 -/
 
@@ -76,12 +75,6 @@ noncomputable def rpmGameH (S : SchemeWithHash Seed PK SK Req Resp F)
 noncomputable def rpmExperimentH (S : SchemeWithHash Seed PK SK Req Resp F)
     (main : PK → OracleComp (KSpecH + (Req →ₒ Resp)) F) : ProbComp Bool :=
   runKH (rpmGameH S main)
-
-/-- `bits` bits of SUF-CMA security against adversaries that also query Keccak-256. -/
-def RpmSecureH (S : SchemeWithHash Seed PK SK Req Resp F) (bits : ℕ) : Prop :=
-  ∀ Q, 1 ≤ Q → ∀ main : PK → OracleComp (KSpecH + (Req →ₒ Resp)) F,
-    QueryCostAtMost (rpmGameH S main) permCallsH Q →
-      Pr{let b ← rpmExperimentH S main}[b = true] ≤ ((Q : ℝ≥0∞) + 1) * (2 : ℝ≥0∞)⁻¹ ^ bits
 
 end SufCma
 

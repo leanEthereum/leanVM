@@ -28,10 +28,6 @@ open LeanXmss
 /-- The permutation calls of a tweakable hash. -/
 def thCost : ℕ := 8
 
-theorem littleEndianBytes_length (n : ℕ) (v : BitVec (8 * n)) :
-    (littleEndianBytes n v).length = n := by
-  simp [littleEndianBytes]
-
 theorem thInput_length (parameter : PublicParameter) (fields : TweakFields) (payload : HashInput) :
     (thInput parameter fields payload).length = 32 + payload.length := by
   simp [thInput, hasherInput, addressBytes, littleEndianBytes]

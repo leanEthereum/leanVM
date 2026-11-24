@@ -49,25 +49,6 @@ open scoped ENNReal
 
 namespace Common.SufCma
 
-/-! ## Digests as bit vectors -/
-
-/-- Bits `8 i … 8 i + 7` of a digest's bit vector are its byte `i`. -/
-theorem digestBitVec_symm_getElem (b : BitVec 256) (i : Fin 32) :
-    (digestBytesEquivBitVec.symm b)[i] = UInt8.ofBitVec (b.extractLsb' (8 * i) 8) := by
-  apply UInt8.toNat_inj.mp
-  simp only [digestBytesEquivBitVec, Equiv.symm_trans_apply, uInt8EquivFin, arrayVectorEquivFin]
-  simp
-  change ((finFunctionFinEquiv (m := 256) (n := 32)).symm b.toFin i : ℕ) = _
-  rw [finFunctionFinEquiv_symm_apply_val, Nat.shiftRight_eq_div_pow, pow_mul]
-  rfl
-
-/-- Bits `8 i … 8 i + 7` of a digest's bit vector are its byte `i`. -/
-theorem digestBitVec_extract (d : DigestBytes) (i : Fin 32) :
-    (digestBytesEquivBitVec d).extractLsb' (8 * i) 8 = d[i].toBitVec := by
-  have h := digestBitVec_symm_getElem (digestBytesEquivBitVec d) i
-  rw [Equiv.symm_apply_apply] at h
-  rw [h]
-
 /-! ## Two simulations commute -/
 
 section Commute
