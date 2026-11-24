@@ -376,11 +376,50 @@ theorem large_seedFree_boundW (hb : 0 < keptHeight topLayer) (adversary : Advers
   exact tsum_bound_le _ _ A C _ fun prepared hprepared =>
     hsample parameterOutput fixed highs remaining prepared hprepared
 
+/-- The negligible terms of a large-budget route fit in a `2^-200` slack: the failing searches, the
+`3 q / 2^256` of the reduction and a cap term below `2^-201`. -/
+theorem large_slack_le (q' : ℕ) (cap : ℝ≥0∞) (hcap : cap ≤ (2 : ℝ≥0∞)⁻¹ ^ 201) :
+    ((q' : ℝ≥0∞) + signatureLimit) * expectedFail + 3 * (((q' + keygenCost : ℕ) : ℝ≥0∞) / 2 ^ 256) + cap ≤
+      ((q' + keygenCost + signatureLimit : ℕ) : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 200 := by
+  have h256 : 3 * (((q' + keygenCost : ℕ) : ℝ≥0∞) / 2 ^ 256) ≤
+      (((q' + keygenCost : ℕ) : ℝ≥0∞)) * (2 : ℝ≥0∞)⁻¹ ^ 201 := by
+    rw [div_two_pow, mul_left_comm]
+    refine mul_le_mul' le_rfl ?_
+    rw [show (256 : ℕ) = 55 + 201 by norm_num, pow_add, ← mul_assoc]
+    calc 3 * (2 : ℝ≥0∞)⁻¹ ^ 55 * (2 : ℝ≥0∞)⁻¹ ^ 201 ≤ 1 * (2 : ℝ≥0∞)⁻¹ ^ 201 := by
+          refine mul_le_mul' ?_ le_rfl
+          rw [show (55 : ℕ) = 2 + 53 by norm_num, pow_add, ← mul_assoc]
+          calc 3 * (2 : ℝ≥0∞)⁻¹ ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 53 ≤ 1 * 1 := by
+                refine mul_le_mul' ?_ (pow_le_one₀ (by norm_num) (by norm_num))
+                rw [← ENNReal.inv_pow, ← div_eq_mul_inv, ENNReal.div_le_iff (by norm_num) (by norm_num), one_mul]
+                norm_num
+            _ = 1 := one_mul 1
+      _ = _ := one_mul _
+  have hnat : ((q' : ℝ≥0∞) + signatureLimit) + ((q' + keygenCost : ℕ) : ℝ≥0∞) + 1 ≤
+      2 * ((q' + keygenCost + signatureLimit : ℕ) : ℝ≥0∞) := by
+    have hK1 : 1 ≤ keygenCost := by
+      have := Nat.two_pow_pos (keptHeight topLayer)
+      unfold keygenCost Prefix.keygenHashCost
+      omega
+    have h : (q' + signatureLimit) + (q' + keygenCost) + 1 ≤ 2 * (q' + keygenCost + signatureLimit) := by omega
+    have h' : (((q' + signatureLimit) + (q' + keygenCost) + 1 : ℕ) : ℝ≥0∞) ≤
+        ((2 * (q' + keygenCost + signatureLimit) : ℕ) : ℝ≥0∞) := by exact_mod_cast h
+    push_cast at h' ⊢
+    exact h'
+  calc _ ≤ ((q' : ℝ≥0∞) + signatureLimit) * (2 : ℝ≥0∞)⁻¹ ^ 201 +
+        (((q' + keygenCost : ℕ) : ℝ≥0∞)) * (2 : ℝ≥0∞)⁻¹ ^ 201 + 1 * (2 : ℝ≥0∞)⁻¹ ^ 201 :=
+        add_le_add (add_le_add (mul_le_mul' le_rfl expectedFail_le) h256) (by rw [one_mul]; exact hcap)
+    _ = (((q' : ℝ≥0∞) + signatureLimit) + ((q' + keygenCost : ℕ) : ℝ≥0∞) + 1) * (2 : ℝ≥0∞)⁻¹ ^ 201 := by
+        ring
+    _ ≤ (2 * ((q' + keygenCost + signatureLimit : ℕ) : ℝ≥0∞)) * (2 : ℝ≥0∞)⁻¹ ^ 201 :=
+        mul_le_mul' hnat le_rfl
+    _ = _ := by rw [mul_comm (2 : ℝ≥0∞), mul_assoc, two_mul_inv_pow_succ]
+
 /-- **Large budgets, weighted baseline, honest-reading game.** For an adversary making at most `qA`
 hash queries and a verifier making at most `V`, at the budget `q = keygenHashCost + qA + V`: if the
 large-budget inequality `hH0` with the weighted baseline holds at `q`,
 the forging advantage is at most `q / 2^127`. -/
-theorem forgeAdvantage_le_largeWH (hb : 0 < keptHeight topLayer) (hN : signatureLimit ≤ 2 ^ 70) (adversary : Adversary)
+theorem forgeAdvantage_le_largeWH (hb : 0 < keptHeight topLayer) (adversary : Adversary)
     (qA V : ℕ) (hqA : ∀ pk, (adversary.main pk).IsQueryBoundP AdvCount.AdvHash qA)
     (hV : ∀ pk message signature,
       (Concrete.verify pk message signature : OracleComp HashSpec Bool).IsQueryBoundP (fun _ => True) V)
@@ -405,12 +444,7 @@ theorem forgeAdvantage_le_largeWH (hb : 0 < keptHeight topLayer) (hN : signature
   have hF := AdvCount.forgeAdvantage_le_seedFree adversary qA V hqA hV _ (by rw [← hqdef]; exact hmain)
   rw [← hqdef] at hF
   refine le_trans hF (le_trans (add_le_add le_rfl (mul_le_mul_left (by norm_num : (2 : ℝ≥0∞) ≤ 3) _)) ?_)
-  have hE := expectedFail_le
   -- the negligible terms fit in the slack
-  have hK1 : 1 ≤ keygenCost := by
-    have := Nat.two_pow_pos (keptHeight topLayer)
-    unfold keygenCost Prefix.keygenHashCost
-    omega
   have hlam : lam (H0.LmaxOf q') 0 q' ≤ (2 : ℝ≥0∞)⁻¹ ^ 201 := by
     refine le_trans (H0.lam_start q') ?_
     have h2 : (2 : ℝ≥0∞)⁻¹ ^ 201 = ENNReal.ofReal ((1 / 2 : ℝ) ^ 201) := by
@@ -423,34 +457,8 @@ theorem forgeAdvantage_le_largeWH (hb : 0 < keptHeight topLayer) (hN : signature
       _ ≤ (1 / 2 : ℝ) ^ 201 := pow_le_pow_of_le_one (by norm_num) (by norm_num) (by norm_num)
   have hslack : ((q' : ℝ≥0∞) + signatureLimit) * expectedFail + 3 * ((q : ℝ≥0∞) / 2 ^ 256) +
       lam (H0.LmaxOf q') 0 q' ≤ ((q' + keygenCost + signatureLimit : ℕ) : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 200 := by
-    have h256 : 3 * ((q : ℝ≥0∞) / 2 ^ 256) ≤ (((q' + keygenCost : ℕ) : ℝ≥0∞)) * (2 : ℝ≥0∞)⁻¹ ^ 201 := by
-      rw [div_two_pow, hsum, mul_left_comm]
-      refine mul_le_mul' le_rfl ?_
-      rw [show (256 : ℕ) = 55 + 201 by norm_num, pow_add, ← mul_assoc]
-      calc 3 * (2 : ℝ≥0∞)⁻¹ ^ 55 * (2 : ℝ≥0∞)⁻¹ ^ 201 ≤ 1 * (2 : ℝ≥0∞)⁻¹ ^ 201 := by
-            refine mul_le_mul' ?_ le_rfl
-            rw [show (55 : ℕ) = 2 + 53 by norm_num, pow_add, ← mul_assoc]
-            calc 3 * (2 : ℝ≥0∞)⁻¹ ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 53 ≤ 1 * 1 := by
-                  refine mul_le_mul' ?_ (pow_le_one₀ (by norm_num) (by norm_num))
-                  rw [← ENNReal.inv_pow, ← div_eq_mul_inv, ENNReal.div_le_iff (by norm_num) (by norm_num), one_mul]
-                  norm_num
-              _ = 1 := one_mul 1
-        _ = _ := one_mul _
-    have hnat : ((q' : ℝ≥0∞) + signatureLimit) + ((q' + keygenCost : ℕ) : ℝ≥0∞) + 1 ≤
-        2 * ((q' + keygenCost + signatureLimit : ℕ) : ℝ≥0∞) := by
-      have h : (q' + signatureLimit) + (q' + keygenCost) + 1 ≤ 2 * (q' + keygenCost + signatureLimit) := by omega
-      have h' : (((q' + signatureLimit) + (q' + keygenCost) + 1 : ℕ) : ℝ≥0∞) ≤
-          ((2 * (q' + keygenCost + signatureLimit) : ℕ) : ℝ≥0∞) := by exact_mod_cast h
-      push_cast at h' ⊢
-      exact h'
-    calc _ ≤ ((q' : ℝ≥0∞) + signatureLimit) * (2 : ℝ≥0∞)⁻¹ ^ 201 +
-          (((q' + keygenCost : ℕ) : ℝ≥0∞)) * (2 : ℝ≥0∞)⁻¹ ^ 201 + 1 * (2 : ℝ≥0∞)⁻¹ ^ 201 :=
-          add_le_add (add_le_add (mul_le_mul' le_rfl hE) h256) (by rw [one_mul]; exact hlam)
-      _ = (((q' : ℝ≥0∞) + signatureLimit) + ((q' + keygenCost : ℕ) : ℝ≥0∞) + 1) * (2 : ℝ≥0∞)⁻¹ ^ 201 := by
-          ring
-      _ ≤ (2 * ((q' + keygenCost + signatureLimit : ℕ) : ℝ≥0∞)) * (2 : ℝ≥0∞)⁻¹ ^ 201 :=
-          mul_le_mul' hnat le_rfl
-      _ = _ := by rw [mul_comm (2 : ℝ≥0∞), mul_assoc, two_mul_inv_pow_succ]
+    rw [← hsum]
+    exact large_slack_le q' _ hlam
   calc _ ≤ (((1 - budget 0 q') + (q' : ℝ≥0∞) * startExcessO (H0.wbarOf q') (baselineW q') q' +
             lam (H0.LmaxOf q') 0 q') +
           ((q' : ℕ) + signatureLimit) * expectedFail) + 3 * ((q : ℝ≥0∞) / 2 ^ 256) := le_rfl
