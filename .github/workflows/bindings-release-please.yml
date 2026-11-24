@@ -17,11 +17,11 @@ jobs:
       tag_name: ${{ steps.rp.outputs.tag_name }}
       pr_branch: ${{ steps.rp.outputs.pr && fromJSON(steps.rp.outputs.pr).headBranchName || '' }}
     steps:
-      # Maintains one "release PR" for the bindings from the conventional commits touching what
-      # they ship: the repository but .github/, bench/, doc/ and formal/ (the package's
-      # exclude-paths). It sets the workspace version in bindings/Cargo.toml, the versions in the
-      # README install instructions, and bindings/CHANGELOG.md. Merging it creates the
-      # bindings-vX.Y.Z tag that every binding is released from.
+      # Maintains one "release PR" for the bindings from the conventional commits, but those
+      # touching only .github/, bench/, doc/ or formal/ (the package's exclude-paths). It sets
+      # the workspace version in bindings/Cargo.toml, the versions in the README install
+      # instructions, and bindings/CHANGELOG.md. Merging it creates the bindings-vX.Y.Z tag that
+      # every binding is released from.
       - id: rp
         uses: googleapis/release-please-action@v4
         with:
