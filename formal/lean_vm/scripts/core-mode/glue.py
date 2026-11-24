@@ -72,7 +72,7 @@ def main(check=False):
         a = [header(f'LeanVM.Guest.CoreMode.GlueA.«{pack}»', 'The advice of the pack\'s functions, by stable key.'),
              'public import Statement.Data.AdviceHints\n\nset_option linter.all false\nset_option linter.style.nameCheck false\n']
         c = [header(f'LeanVM.Guest.CoreMode.GlueC.«{pack}»', 'The code of the pack\'s functions, the program\'s.'),
-             f'public import LeanVM.Guest.SoundFacts\npublic import LeanVM.Guest.CoreMode.GlueA.«{pack}»\n',
+             f'public import LeanVM.Guest.B2C.CplRun\npublic import LeanVM.Guest.CoreMode.GlueA.«{pack}»\n',
              ''.join(f'public import {m}\n' for m in sorted({link[adv[name[k]]] for k in ks if adv[name[k]] in link} |
                                                              {m for k in ks if tied(adv[name[k]])
                                                               for m in (tab[adv[name[k]]][0], plumb[adv[name[k]]][1])})),
@@ -88,7 +88,7 @@ def main(check=False):
             if k in jt0:
                 a.append(f'abbrev Fn.«{k}».jt0 : ℕ := {jt0[k]}\n')
             if j in link:
-                c.append(f'theorem Fn.«{k}».code_mem : code ∈ Data.functions := Checked.code{j} ▸ End.fnOf_mem (by decide)\n')
+                c.append(f'theorem Fn.«{k}».code_mem : code ∈ Data.functions := Checked.code{j} ▸ B2C.fnOf_memC (by decide)\n')
             if tied(j):
                 c.append(f'theorem Fn.«{k}».tie : fnOf idx = code ∧ coreOf idx = core ∧ certOf idx = cert.withPows Data.powTree ∧ '
                          f'B2C.plumbOf idx = plumb ∧ (Bridge.extraOf idx, Bridge.entsOf idx, Bridge.adviceOf idx) = '

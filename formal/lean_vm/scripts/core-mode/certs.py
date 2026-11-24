@@ -52,7 +52,7 @@ def wrap(xs, ind=2, width=100):
 def load():
     """Each pack's routed functions in its `coreFns` order; each one's callees and residuals, and its code's glue module."""
     packs = {}
-    for f in sorted(glob.glob(os.path.join(OUT, '*', 'Core.lean'))):
+    for f in sorted(glob.glob(os.path.join(OUT, '*', 'Fns.lean')) or glob.glob(os.path.join(OUT, '*', 'Core.lean'))):
         m = re.search(r'def coreFns : List CoreMode.CFun :=\n(.*?)\n\n', open(f, encoding='utf-8').read(), re.S)
         if m:
             ks = re.findall(r'Fn\.«([^»]+)»\.cfun', m.group(1))
@@ -96,7 +96,8 @@ def render():
         ks = packs[p]
         mod = 'LeanVM.Guest.CoreMode.Gen.«%s».Cert' % p
         t = [header(mod, 'The core route\'s certificates of the pack\'s functions and their facts.')]
-        t.append(imports({'LeanVM.Guest.CoreMode.Gen.«%s».Route' % p, 'LeanVM.Guest.CoreMode.Gen.HcTab',
+        t.append(imports({'LeanVM.Guest.CoreMode.Gen.«%s».Route' % p, 'LeanVM.Guest.CoreMode.Gen.«%s».Core' % p,
+                          'LeanVM.Guest.CoreMode.Gen.HcTab',
                           'LeanVM.Guest.CoreMode.Nzs', 'LeanVM.Guest.CoreMode.CertLit'} | {'LeanVM.Guest.CoreMode.GlueC.«%s»' % glue[k] for k in ks}))
         t.append('meta import LeanVM.Guest.KernelLit\n\nset_option Elab.async false\nset_option linter.style.nameCheck false\n\n'
                  '/-! Each function\'s certificate (`modeCert`: its `envC`, `funC` and code), its callees\' signatures\n'
