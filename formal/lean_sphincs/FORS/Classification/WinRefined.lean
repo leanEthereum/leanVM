@@ -776,4 +776,13 @@ theorem expose_known_support (parameter : PublicParameter) (fixed : HiddenGraph.
   exposeR_known_support _ _ _ _ k (fun _ hc => mem_aboveList.mp hc) (fun _ _ h => h)
     (fun _ _ h => Or.inl h) hk
 
+/-- The refined bad event of a finished run with a valid transcript, as the bounds on FORS contacts
+require. -/
+def badAV (parameterOutput : HashOutput) (fixed : HiddenGraph.Table) (highs : CoordinateHighs)
+    (remaining : RemainingOutputs) (results : OtsKey → Option (Counter × Encoding)) (table : Coordinate → Digest)
+    (v : ((Option HiddenBridge.Outcome × List Coordinate) × List (HiddenCost.Entry HashInput)) × QueryCache HashSpec) :
+    Prop :=
+  badA parameterOutput fixed highs remaining results table v ∧
+    ∃ outcome, v.1.1.1 = some outcome ∧ SigningTranscript.Valid outcome.2.1
+
 end FORS.Security.HiddenBridge

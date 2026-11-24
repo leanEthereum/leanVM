@@ -10,7 +10,7 @@ public import FORS.GraphView.Cost
 
 On every answer function `f`, the crate's key generation and signer (`Crate.keygen`,
 `Crate.sign`, `Crate.lean`) give the public key and the signatures of FORS's
-(`Seeded.keygen`, `Seeded.sign`, upstream's), the signer with the key FORS's key generation gives
+(`Seeded.keygen`, `Seeded.sign`), the signer with the key FORS's key generation gives
 on `f` (`eval_keygen`, `eval_sign`). The crate builds each tree once, level by level, where
 FORS's signer computes the siblings of a path and folds the path again; the crate also rebuilds the
 top tree at each signature.

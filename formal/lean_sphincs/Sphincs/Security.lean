@@ -15,7 +15,7 @@ makes at most `q` calls of `π` and `π⁻¹` and at most `1,182,000,000` signin
 probability at most `(q + 2^19) · 2^-127`; the signer's hashing, its WOTS+C counter search
 included, key generation and the forgery's verification are not charged to `q`. The route: the
 random-oracle theorem at the adversary's own count, `FORS.Lifetimes.h26_layered_adversary`
-(`(q + 265072) / 2^127` for upstream's model `FORS.Scheme` at the deployed configuration, leanVM
+(`(q + 265072) / 2^127` for FORS's model `FORS.Scheme` at the deployed configuration, leanVM
 main `40f877dc`: key generation's `264193` hash calls and the verification's `879` are the
 constant), moved to the crate's key generation and signer in the model's hash monad (`FORS.Crate`,
 by `Common.SufCma.StaticSwap.romBoundAdv`), to the random-permutation model by

@@ -8,7 +8,7 @@ public import Common.WithHash
 @[expose] public section
 
 /-!
-# The statement's leanSPHINCS and upstream's model: the maps and the verifier
+# The statement's leanSPHINCS and FORS's model: the maps and the verifier
 
 The proof of this project (`FORS`, leanVM's `formal/lean_sphincs` at `40f877dc`) is about
 `FORS.Scheme`, a model of leanSPHINCS generic in its shape (`FORS.Params`), the hash a random oracle

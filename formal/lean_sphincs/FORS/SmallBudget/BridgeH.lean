@@ -2,7 +2,7 @@ module
 
 public import FORS.SmallBudget.ClosingH
 public import FORS.LargeBudget.RouteStartH
-public import FORS.Classification.RefinedOutcome
+public import FORS.Classification.WinRefined
 
 @[expose] public section
 

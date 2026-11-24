@@ -11,7 +11,7 @@ public import Sphincs.Transport
 
 The statement's leanSPHINCS in the random-permutation model
 (`Sphincs.RandomPermutationModel.sufCmaScheme`) is the crate's copy in the model's hash monad
-(`Sphincs.Model.crateScheme`: `FORS.Crate.keygen`, `FORS.Crate.sign`, upstream's verifier), each
+(`Sphincs.Model.crateScheme`: `FORS.Crate.keygen`, `FORS.Crate.sign`, FORS's verifier), each
 hash query answered by Keccak-256 over `π`, through the maps of the keys, the signatures and the
 forgeries: key generation (`simulateQ_crateKeygen`), the signer (`simulateQ_crateSign`), both in
 `Sphincs/CrateSim.lean`, and the verifier (`simulateQ_verify`) correspond, and so do the winning

@@ -1,7 +1,7 @@
 module
 
 public import FORS.SmallBudget.Contact.Bound
-public import FORS.Classification.RefinedOutcome
+public import FORS.Classification.WinRefined
 public import FORS.CoverPotential.Game
 public import FORS.Reduction.NoRepeat
 public import FORS.CoverPotential.OneCoin

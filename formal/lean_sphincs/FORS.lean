@@ -107,7 +107,6 @@ public import FORS.Classification.Hidden
 public import FORS.Classification.RecoveredFors
 public import FORS.Classification.Reference
 public import FORS.Classification.RefinedEvents
-public import FORS.Classification.RefinedOutcome
 public import FORS.Classification.Signature
 public import FORS.Classification.SignedReveals
 public import FORS.Classification.Targeting
