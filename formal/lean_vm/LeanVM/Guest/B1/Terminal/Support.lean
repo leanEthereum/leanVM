@@ -34,10 +34,6 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier Finset
 
 variable {rd : Reader}
 
-theorem readsAt_getD {p : E} {xs : List E} (h : ReadsAt rd p xs) {k : ℕ} (hk : k < xs.length) :
-    LoadHolds rd p k (xs.getD k 0) := by
-  rw [List.getD_eq_getElem _ _ hk]; exact h k hk
-
 theorem x1_getD {x : List E} (hx : x.length ≤ termPointCap) {i : ℕ} (hi : i < termPointCap) :
     ((padPoint x).map (1 + ·)).getD i 0 = 1 + x.getD i 0 := by
   rw [getD_map_one (by rw [padPoint_length hx]; exact hi), padPoint_getD]

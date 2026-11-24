@@ -156,20 +156,17 @@ theorem readsAt_gen_pow_mul {rd : Reader} {p : E} {a : ℕ} {xs : List E} :
 theorem readsAt_append {rd : Reader} {p : E} {xs ys : List E} :
     ReadsAt rd p (xs ++ ys) ↔ ReadsAt rd p xs ∧ ReadsAt rd (p * gen ^ xs.length) ys := by
   rw [readsAt_gen_pow_mul]
-  constructor
-  · intro h
-    refine ⟨fun k hk => ?_, fun k hk => ?_⟩
-    · have := h k (by simp; omega)
-      rwa [List.getElem_append_left hk] at this
-    · have := h (xs.length + k) (by simp; omega)
-      rw [List.getElem_append_right (by omega)] at this
-      simpa using this
-  · rintro ⟨hx, hy⟩ k hk
-    by_cases h : k < xs.length
-    · rw [List.getElem_append_left h]; exact hx k h
-    · rw [List.getElem_append_right (by omega)]
-      have := hy (k - xs.length) (by simp at hk; omega)
-      rwa [show xs.length + (k - xs.length) = k by omega] at this
+  refine ⟨fun h => ⟨fun k hk => ?_, fun k hk => ?_⟩, fun ⟨hx, hy⟩ k hk => ?_⟩
+  · have := h k (by simp; omega)
+    rwa [List.getElem_append_left hk] at this
+  · have := h (xs.length + k) (by simp; omega)
+    rw [List.getElem_append_right (by omega)] at this
+    simpa using this
+  · rw [List.getElem_append]
+    split_ifs with h
+    · exact hx k h
+    · have := hy (k - xs.length) (by simp at hk; omega)
+      rwa [Nat.add_sub_cancel' (by omega)] at this
 
 theorem readsAt_singleton {rd : Reader} {p w : E} : ReadsAt rd p [w] ↔ LoadHolds rd p 0 w :=
   ⟨fun h => h 0 (by simp), fun h k hk => by
@@ -193,6 +190,10 @@ theorem readsAt_drop {rd : Reader} {p : E} {xs : List E} (h : ReadsAt rd p xs) (
 theorem readsAt_unique {rd : Reader} {p : E} {l1 l2 : List E} (h1 : ReadsAt rd p l1)
     (h2 : ReadsAt rd p l2) (hl : l1.length = l2.length) : l1 = l2 :=
   List.ext_getElem hl fun k hk1 hk2 => loadHolds_unique (h1 k hk1) (h2 k hk2)
+
+theorem readsAt_getD {rd : Reader} {p : E} {xs : List E} (h : ReadsAt rd p xs) {k : ℕ}
+    (hk : k < xs.length) : LoadHolds rd p k (xs.getD k 0) := by
+  rw [List.getD_eq_getElem _ _ hk]; exact h k hk
 
 /-- Blocks without a return, one per index below `n`, hold exactly when each does. -/
 theorem holdsList_range_flatten {C : CallRel} {rd : Reader} {σ : Val} (n : ℕ)
@@ -251,13 +252,11 @@ theorem WinTabs.lt {rd : Reader} {tabs : E} (h : WinTabs rd tabs) {n : ℕ} (hn 
 
 /-! ## Building valuations -/
 
-/-- Core's `ite_eq_left`. -/
-theorem ite_pos' {α : Type} {c : Prop} [Decidable c] {a b : α} (h : c) : (if c then a else b) = a := by
-  simp [h]
+/-- `if c then a else b = a` where `c` holds: core's `ite_eq_left`. -/
+alias ite_pos' := ite_eq_left
 
-/-- Core's `ite_eq_right`. -/
-theorem ite_neg' {α : Type} {c : Prop} [Decidable c] {a b : α} (h : ¬c) : (if c then a else b) = b := by
-  simp [h]
+/-- `if c then a else b = b` where `c` fails: core's `ite_eq_right`. -/
+alias ite_neg' := ite_eq_right
 
 /-- Rewrite the first `if c then a else b` of the goal to `b` or `a`, where `omega` proves `¬c`
 or `c`. -/
@@ -580,9 +579,8 @@ theorem holds_callIf {pre : List Stmt} (hnr : Stmt.noRetList pre = true)
     (h : Stmt.HoldsList C rd σ pre True kret) (n : ℕ) (c : V) (f : String) (args : List V)
     (heq : stmtsEqb [.callIf c f args] ((pre.drop n).take 1) = true) :
     IsInK (σ c) ∧ (σ c ≠ 0 → C f (args.map σ) []) := by
-  have := holds_slice hnr h n [.callIf c f args] heq
-  simp only [Stmt.HoldsList, Stmt.Holds, and_true] at this
-  exact this
+  simpa only [Stmt.HoldsList, Stmt.Holds, and_true] using
+    holds_slice hnr h n [.callIf c f args] heq
 
 /-- One fused `match` of calls of a body without `ret` holds. -/
 theorem holds_dispatch {pre : List Stmt} (hnr : Stmt.noRetList pre = true)
@@ -591,9 +589,8 @@ theorem holds_dispatch {pre : List Stmt} (hnr : Stmt.noRetList pre = true)
     (heq : stmtsEqb [.dispatch x fs args rets] ((pre.drop n).take 1) = true) :
     ∃ (j : ℕ) (h : j < fs.length), σ x = ofK (Parameters.addressOfIndex j) ∧
       C fs[j] (args.map σ) (rets.map σ) := by
-  have := holds_slice hnr h n [.dispatch x fs args rets] heq
-  simp only [Stmt.HoldsList, Stmt.Holds, and_true] at this
-  exact this
+  simpa only [Stmt.HoldsList, Stmt.Holds, and_true] using
+    holds_slice hnr h n [.dispatch x fs args rets] heq
 
 end Slices
 

@@ -226,7 +226,7 @@ theorem osCommit_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt}
       rw [loadHolds_mul_gen_pow, hxl]; simpa [Nat.add_assoc] using this
   refine ⟨x0, x1, high, n1, y0, nn, ?_⟩
   dsimp only
-  refine ⟨hxl', readsAt_append hrd h2, hsent, hx0 ▸ lr0, hx1 ▸ lr1, gok, ?_, ⟨rfl, rfl⟩, ?_, ?_, ?_,
+  refine ⟨hxl', readsAt_append.mpr ⟨hrd, h2⟩, hsent, hx0 ▸ lr0, hx1 ▸ lr1, gok, ?_, ⟨rfl, rfl⟩, ?_, ?_, ?_,
     ?_, rfl, hm0, rfl, ?_⟩
   · rw [hPt]; exact rP1
   · simpa using o 0
@@ -289,7 +289,7 @@ theorem osFinalMsg_sound {c : OsCfg} {lv : OsLv} {st : OsSt}
   rw [ecu] at hrd ecur hnn
   have hF : st.F σ = ⟨[σ (.n f0), σ (.n f1), σ (.n f2), σ (.n f3), σ (.n f4)], []⟩ := by
     simp [OsSt.F, hf]
-  refine ⟨xs, nn, hxl, readsAt_append hrd ?_, hfmsg, ?_, ?_, ?_, ?_, rfl, hm, rfl, rfl⟩
+  refine ⟨xs, nn, hxl, readsAt_append.mpr ⟨hrd, ?_⟩, hfmsg, ?_, ?_, ?_, ?_, rfl, hm, rfl, rfl⟩
   · intro k hk
     simp only [List.length_cons, List.length_nil] at hk
     interval_cases k

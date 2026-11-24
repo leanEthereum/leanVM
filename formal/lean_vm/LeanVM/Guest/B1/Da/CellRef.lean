@@ -153,7 +153,8 @@ theorem cellRef_sem (rd : Reader) (args rets : List E) :
     exact ⟨ρ, hp, hs, hrets⟩
 
 /-- `da_verify_cell`, verified. -/
-def cellVerified : Verified Unit CellName := ⟨fun _ ↦ cellRef, fun _ ↦ MeaningDaVerifyCell, fun _ ↦ cellRef_sem⟩
+def cellVerified : Verified Unit CellName :=
+  ⟨fun _ ↦ cellRef, fun _ ↦ MeaningDaVerifyCell, fun _ ↦ cellRef_sem⟩
 
 end
 end LeanVM.Guest.B1.Da

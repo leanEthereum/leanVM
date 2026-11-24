@@ -226,7 +226,7 @@ theorem verify_tables_holds (bc : List K) (hbc : bc.length = 2 ^ 23) :
     obtain ⟨t, ht, rfl⟩ := List.mem_map.mp hx
     exact hτ31 t (List.mem_range.mp ht)
   case xsRead =>
-    refine vt_readsAt_append (vt_readsAt_append hfr ?_) (vt_readsAt_append ?_ ?_)
+    refine readsAt_append.mpr ⟨readsAt_append.mpr ⟨hfr, ?_⟩, readsAt_append.mpr ⟨?_, ?_⟩⟩
     · rw [show (vtFreshWords σ).length = 7 from rfl]; exact hys
     · rw [show (vtFreshWords σ ++ (ys ++ [σ (.n (val% «verify_tables» "x@8"))])).length = 14 by simp [hysl, vtFreshWords],
         show (14 : ℕ) = 13 + 1 from rfl, pow_add, ← mul_assoc,

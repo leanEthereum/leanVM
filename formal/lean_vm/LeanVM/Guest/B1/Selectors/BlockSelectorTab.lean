@@ -298,7 +298,7 @@ theorem block_selector_tab_sound {n : ℕ} (hn : n < 34) {μ : ℕ} (hμ : μ �
         rw [eqLevels_length hlen hlen1]
         have := two_le_two_pow hw1
         rw [pow_succ]; omega
-      have h1 := tbReadsAt_getD ((hRT k (by simpa [hNdef, btN] using hk)).1) hl
+      have h1 := readsAt_getD ((hRT k (by simpa [hNdef, btN] using hk)).1) hl
       rw [loadHolds_mul_gen_pow, eqLevels_getD (hlen.trans hlen1.symm) hw1 (by omega) hUlt] at h1
       have h2 := hxe k hk
       have := two_le_two_pow hw1
@@ -322,7 +322,7 @@ theorem block_selector_tab_sound {n : ℕ} (hn : n < 34) {μ : ℕ} (hμ : μ �
       have hUlt := hU k hk
       have hl : U k hk < (gTable (nib gs k)).length := by
         rw [gTable_length hlen]; exact hUlt
-      have h1 := tbReadsAt_getD ((hRT k (by simpa [hNdef, btN] using hk)).2) hl
+      have h1 := readsAt_getD ((hRT k (by simpa [hNdef, btN] using hk)).2) hl
       rw [loadHolds_mul_gen_pow, gTable_getD hlen hUlt] at h1
       have h2 := hxg k hk
       rw [show U k hk + 16 * k = 16 * k + U k hk by omega] at h2

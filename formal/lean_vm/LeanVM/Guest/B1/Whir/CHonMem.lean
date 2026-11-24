@@ -37,7 +37,7 @@ theorem load (hm : OsMemA rd h.c b h.own) {j e : ℕ} (hj : j < (osSizesL h.c).l
     LoadHolds rd (osPtrA h.c b j) e ((h.ownW j).getD e 0) := by
   have hr : ReadsAt rd (osPtrA h.c b j) (h.own.getD j []) := hm j hj hne
   rw [h.own_getD hj] at hr
-  have := readsAt_getD' hr (by simp only [ownAt, fitTo_length]; exact he)
+  have := readsAt_getD hr (by simp only [ownAt, fitTo_length]; exact he)
   rwa [ownAt, fitTo_getD he] at this
 
 /-- **Buffer `j`'s words**, when they fit its size. -/

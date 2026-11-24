@@ -641,7 +641,7 @@ theorem vbg_body_of {depth : ℕ} (hd1 : 1 ≤ depth) (hd : depth ≤ 32) {cap0 
     rw [holds_ite_noRet _ _ _ (by decide +kernel) (by decide +kernel)]
     refine ⟨⟨?_, fun h0 => ?_, fun hne => ?_⟩, trivial⟩
     · rw [a142, e133, c141, word_one]
-      exact isInK_add (gen_pow_isInK _) tb_isInK_one
+      exact isInK_add (gen_pow_isInK _) isInK_one
     · have hsh0 : sh = 0 := by
         by_contra h
         rw [a142, e133, c141, word_one, show sh = 1 by omega] at h0
@@ -849,7 +849,7 @@ theorem vbg_body_of {depth : ℕ} (hd1 : 1 ≤ depth) (hd : depth ≤ 32) {cap0 
       m384, m385, m386, c387, a388, c389, ⟨?_, fun hne => ?_⟩,
       trivial, l391, ?_, l392, ?_, l393, ?_, fun k hk => (rC k hk).2, q399, q400⟩
     · rw [a388, c387, word_one, e6]
-      exact isInK_add tb_isInK_one (gen_pow_isInK _)
+      exact one_add_gen_pow_isInK _
     · show coreProgram.Rel rd name% «verify_bus_gkr_loop0» (List.map σ [.n (val% «verify_bus_gkr» "s36#2"), .n (val% «verify_bus_gkr» "g_bus_mu"), .n (val% «verify_bus_gkr» "zeta"),
         .n (val% «verify_bus_gkr» "final_point_row")]) []
       simp only [List.map_cons, List.map_nil]

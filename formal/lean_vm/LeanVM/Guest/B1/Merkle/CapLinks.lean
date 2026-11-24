@@ -43,7 +43,8 @@ theorem verify_merkle_cap_of_linked (P : Program)
     (hfind : ∀ s ∈ capSpecs, P.find? s.1 = some s.2.1) : verify_merkle_cap_SpecP P := by
   intro p hp rd args rets
   obtain ⟨s, hs, rfl⟩ := List.mem_map.mp (show p ∈ capSpecs.map fun s ↦ (s.1, s.2.2) from hp)
-  exact capVerified.rel_iff_of_check (hfind s hs) (List.all_eq_true.mp capSpecs_linked s hs) args rets
+  exact capVerified.rel_iff_of_check (hfind s hs) (List.all_eq_true.mp capSpecs_linked s hs)
+    args rets
 
 end
 end LeanVM.Guest.B1

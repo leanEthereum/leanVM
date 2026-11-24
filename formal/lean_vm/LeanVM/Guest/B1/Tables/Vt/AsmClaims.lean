@@ -178,15 +178,6 @@ theorem vt_claimLowDim_tab (lm : ℕ) (τ : ℕ → ℕ) {k : ℕ} (hk : k < 153
 theorem vt_tabOf_lt (k : ℕ) : vtTabOf k < 6 := by
   unfold vtTabOf; split_ifs <;> omega
 
-theorem vt_readsAt_append' {rd : Reader} {p : E} {a b : List E} (ha : ReadsAt rd p a)
-    (hb : ∀ k (hk : k < b.length), LoadHolds rd p (a.length + k) b[k]) : ReadsAt rd p (a ++ b) := by
-  intro k hk
-  rcases Nat.lt_or_ge k a.length with h1 | h1
-  · rw [List.getElem_append_left h1]; exact ha k h1
-  · rw [List.getElem_append_right h1]
-    have := hb (k - a.length) (by simp at hk; omega)
-    rwa [Nat.add_sub_cancel' h1] at this
-
 section
 variable {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ)
 include hμ

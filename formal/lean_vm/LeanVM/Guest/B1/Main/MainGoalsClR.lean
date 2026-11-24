@@ -40,7 +40,7 @@ theorem claimPops_of_reads {α : Type} {f : α → List E} {L : List α} (hf : �
   refine congrArg (Prod.mk "claims") (List.ext_getElem (by rw [hf _ (List.getElem_mem hk)]; simp) fun c hc _ => ?_)
   have hc4 : c < 4 := by simpa using hc
   have hlen : (L.flatMap f).length = 4 * L.length := kid_length_flatMap_const L hf
-  have hl := loadHolds_getD hr (k := 4 * k + c) (by omega)
+  have hl := readsAt_getD hr (k := 4 * k + c) (by omega)
   rw [getD_flatMap_uniform L hf k hk c hc4, List.getD_eq_getElem _ _ (by rw [hf _ (List.getElem_mem hk)]; exact hc4)]
     at hl
   obtain ⟨-, hl⟩ := hl

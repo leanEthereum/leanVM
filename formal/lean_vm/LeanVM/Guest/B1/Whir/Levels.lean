@@ -126,7 +126,7 @@ theorem osLevels_sound {V : FrameMap} (hU : UnfoldsV rd C V)
     refine ⟨xs1 ++ xs2, r :: recs', gs1 ++ gs2, fold, T, R', ?_, ?_, ?_, by simp [hrl], ?_,
       hin.recF, by simp [hgl1, hgl2, lvsFolds], hfch, hfm, ?_, hTr, hTl, hmT, e1 :: es, ?_, ?_, ?_⟩
     · simp only [List.length_append, hxl1, hxl2, lvsWords]; ring
-    · exact readsAt_append hrd1 (by rw [← hcur1]; exact hrd2)
+    · exact readsAt_append.mpr ⟨hrd1, by rw [← hcur1]; exact hrd2⟩
     · rw [whirLevelsOpen_next]
       have h := RunsWith.bind' hrun1 hrun2
       simp only [VerifierProgram.bind_assoc] at h

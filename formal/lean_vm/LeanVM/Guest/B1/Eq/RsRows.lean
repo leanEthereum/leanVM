@@ -341,11 +341,6 @@ theorem readsAt_range {rd : Reader} {p : E} {n : ℕ} {f : ℕ → E}
   simp only [List.length_map, List.length_range] at hi
   simpa using h i hi
 
-theorem readsAt_getD {rd : Reader} {p : E} {xs : List E} (h : ReadsAt rd p xs) {i : ℕ}
-    (hi : i < xs.length) : LoadHolds rd p i (xs.getD i 0) := by
-  rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hi, Option.getD_some]
-  exact h i hi
-
 theorem ringRow_take_length (c : E) (zs ps : List E) (k : ℕ) (n : ℕ) (hz : zs.length = n)
     (hp : ps.length = n) : ringRow c (zs.take n) (ps.take n) k = ringRow c zs ps k := by
   rw [← hz, List.take_length, show zs.length = ps.length by omega, List.take_length]

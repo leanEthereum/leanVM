@@ -16,7 +16,7 @@ public import LeanVM.Guest.Value.FieldBits
 A pointer is a power of `g` (`gen ^ a`, in `K` as `addressOfIndex a`), and the guest moves along
 memory by multiplying pointers. This is the one home of the facts the proofs share about them:
 products of addresses and of powers, the address a load through a pointer reads
-(`limb0_ofK_mul_gen_pow_mul`), `K`-membership (`isInK_add`, `isInK_mul`, `gen_pow_isInK`), and the
+(`limb0_ofK_mul_gen_pow_mul`), `K`-membership (`isInK_add`, `isInK_mul`, `gen_pow_isInK`, …), and the
 loop guard `1 + g^a` (`one_add_gen_pow_ne_zero_iff`). Injectivity below the order of `g` is
 `gen_pow_inj` (`LeanVM.Guest.Value.Bits`).
 -/
@@ -69,8 +69,12 @@ theorem isInK_mul {a b : E} (ha : IsInK a) (hb : IsInK b) : IsInK (a * b) := by
 theorem gen_pow_isInK (j : ℕ) : IsInK (gen ^ j) := by
   rw [gen_pow_eq_ofK]; exact ofK_isInK _
 
+theorem isInK_zero : IsInK (0 : E) := by simpa using ofK_isInK 0
+
+theorem isInK_one : IsInK (1 : E) := by simpa using gen_pow_isInK 0
+
 theorem one_add_gen_pow_isInK (k : ℕ) : IsInK (1 + gen ^ k) :=
-  isInK_add (by simpa using gen_pow_isInK 0) (gen_pow_isInK k)
+  isInK_add isInK_one (gen_pow_isInK k)
 
 /-! ## Powers below the order of `g` -/
 

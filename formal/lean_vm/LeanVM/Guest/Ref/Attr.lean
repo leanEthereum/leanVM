@@ -12,10 +12,10 @@ public meta import Lean.Meta.Tactic.Simp.Attr
 /-!
 # `ref_norm`
 
-`simp only [ref_norm, …]` unfolds `Cmd.SatList` of a reference function's body (`LeanVM.Guest.Ref.Lang`)
-block by block, `unroll` included, into the meanings of its commands, the terms evaluated. The set is
-filled in `LeanVM.Guest.Ref.Lang`; it is declared here because a simp attribute takes effect only in
-the modules that import its declaration.
+`simp only [ref_norm, …]` unfolds `Cmd.SatList` of a reference function's body
+(`LeanVM.Guest.Ref.Lang`) block by block, `unroll` included, into the meanings of its commands, the
+terms evaluated. The set is filled in `LeanVM.Guest.Ref.Lang`; it is declared here because a simp
+attribute takes effect only in the modules that import its declaration.
 -/
 
 @[expose] public section

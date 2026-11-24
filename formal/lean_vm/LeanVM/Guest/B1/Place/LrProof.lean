@@ -91,9 +91,6 @@ theorem lr_one_lt (n : ℕ) : 1 < 2 * (n + 1) := by omega
 
 theorem lr_zero_lt (n : ℕ) : 0 < 2 * (n + 1) := by omega
 
-theorem isInK_one_add_gen_pow (n : ℕ) : IsInK (1 + gen ^ n) :=
-  isInK_add (by rw [← pow_zero gen]; exact gen_pow_isInK 0) (gen_pow_isInK n)
-
 /-- **A loop's call as a callee**: entered when its guard is not zero. -/
 theorem kidsFromIn_loopCall {fs : String → ℕ} {cert : String → V → ℕ} {rd : Reader} {σ : Val}
     {R Dacc Rk : ℕ → Prop} {b m n' : ℕ} {f : String} {args : List V} {cv : V} {cs : List Call}
@@ -227,7 +224,7 @@ theorem lr_relAtIn {name loop1 loop2 : String} {q : ℕ}
       simp [hl0, hl1]
     · simp only [osLoopCallR, osCst, osAdd, allOk_cons, allOk_nil, and_true, StmtOk, Atom.Holds]
       simp only [hvA 4 (by omega), hvA 13 (by omega), hvA 14 (by omega), hvA 15 (by omega), hA]
-      simp [hg0, isInK_one_add_gen_pow]
+      simp [hg0, one_add_gen_pow_isInK]
     · simp only [osMul, allOk_cons, allOk_nil, and_true, StmtOk, Atom.Holds]
       simp only [hvA 4 (by omega), hvA 10 (by omega), hvA 16 (by omega), hvA 17 (by omega), hA]
       simp
@@ -235,7 +232,7 @@ theorem lr_relAtIn {name loop1 loop2 : String} {q : ℕ}
       rw [t0, a0, hpow.2]
     · simp only [osLoopCallR, osCst, osAdd, allOk_cons, allOk_nil, and_true, StmtOk, Atom.Holds]
       rw [hvT 1 (by omega), t2, t3, a5]
-      simp [hT, hg0, isInK_one_add_gen_pow]
+      simp [hT, hg0, one_add_gen_pow_isInK]
     · simp only [osMul, osLd, allOk_cons, allOk_nil, and_true, StmtOk, Atom.Holds]
       rw [hvT 4 (by omega), t5, t6, t7, a5, a17]
       simp only [hT]

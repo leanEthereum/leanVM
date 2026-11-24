@@ -570,7 +570,7 @@ theorem vt_loop_up (I : VtIn H B w rd) (h : VSH (coreProgram.Rel rd) rd σv loop
     intro k hk c hcl
     have r := zcRoundsW_reads (cap0_length H) hR k hk.le
     have hl5 := cap0_length H
-    have l5 := tb_load_of r (k := 5) (by simp [zcRecW_len hl5])
+    have l5 := readsAt_getD r (k := 5) (by simp [zcRecW_len hl5])
     rw [zcRecW, List.getD_append_right _ _ _ _ (by simp [zcRec_len hl5]), zcRec_len hl5] at l5
     have e : c = ofK (addressOfIndex B.cur) * gen ^ (14 + 3 * k) := by
       rw [Option.some.inj (hcl.2.symm.trans l5.2)]

@@ -106,10 +106,6 @@ theorem kid_hCover_s {t : ℕ} (ht : t < s.claims.sphincs.length + (sPlan s w).d
   rw [List.getElem?_range (by simpa using ht)]
   rfl
 
-theorem loadHolds_getD {rd : Reader} {p : E} {xs : List E} (h : ReadsAt rd p xs) {k : ℕ}
-    (hk : k < xs.length) : LoadHolds rd p k (xs.getD k 0) := by
-  rw [List.getD_eq_getElem _ _ hk]; exact h k hk
-
 theorem kid_length_flatMap_const {α : Type} {f : α → List E} {k : ℕ} :
     ∀ (l : List α), (∀ a ∈ l, (f a).length = k) → (l.flatMap f).length = k * l.length
   | [], _ => by simp
@@ -236,9 +232,9 @@ theorem kidOk (cert : String → V → ℕ) {bytecode : List K}
       rw [List.getElem_append_left (by simpa using hc), List.getElem_map]
     rw [e4] at p4
     refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-    · have := loadHolds_getD r8 (k := c) (by simp; omega)
+    · have := readsAt_getD r8 (k := c) (by simp; omega)
       rwa [getD_range_map _ (by omega)] at this
-    · have := loadHolds_getD r8 (k := c + 1) (by simp; omega)
+    · have := readsAt_getD r8 (k := c + 1) (by simp; omega)
       rw [getD_range_map _ (by omega), hW1, pow_add, pow_add] at this
       exact this
     · have := p4 0 (by simp [B1.Digest.digestCells])

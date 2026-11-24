@@ -22,17 +22,15 @@ namespace List
 
 theorem getD_map_range {α : Type*} (f : ℕ → α) {n c : ℕ} (h : c < n) (d : α) :
     ((List.range n).map f).getD c d = f c := by
-  simp [List.getD_eq_getElem?_getD, h]
+  simp [h]
 
 /-- A running maximum bounds its start and every element. -/
-theorem foldl_max_ge : ∀ (l : List ℕ) (a : ℕ), a ≤ l.foldl max a ∧ ∀ x ∈ l, x ≤ l.foldl max a
-  | [], _ => ⟨le_rfl, fun _ h => by simp at h⟩
+theorem foldl_max_ge {α : Type*} [LinearOrder α] :
+    ∀ (l : List α) (a : α), a ≤ l.foldl max a ∧ ∀ x ∈ l, x ≤ l.foldl max a
+  | [], _ => by simp
   | y :: l, a => by
     obtain ⟨h1, h2⟩ := foldl_max_ge l (max a y)
-    refine ⟨le_trans (le_max_left a y) h1, fun x hx => ?_⟩
-    rcases List.mem_cons.mp hx with rfl | hx
-    · exact le_trans (le_max_right a x) h1
-    · exact h2 x hx
+    exact ⟨(le_max_left a y).trans h1, forall_mem_cons.mpr ⟨(le_max_right a y).trans h1, h2⟩⟩
 
 end
 end List

@@ -127,7 +127,7 @@ theorem pad5_ok {v τ n : ℕ} {zs : List E} (hlow : LowDefB 14 rd) (hv : 33 ≤
     implies_true, and_true, vsh_atom, vsh_ite]
   refine ⟨g0, hrc, l2, pad_dispatch hτ hkb e4 hz hzl hn e5 e6 e7, g8, g9,
     mulDiv_holds g10 (by rw [e9]; exact gen_pow_ne_zero _), hrc10, g14, g15,
-    by rw [g15, hkb, g14, w512]; exact isInK_add (isInK_gpow' _) (isInK_gpow' _), trivial,
+    by rw [g15, hkb, g14, w512]; exact isInK_add (gen_pow_isInK _) (gen_pow_isInK _), trivial,
     fun h0 => ?_⟩
   -- not at the floor: τ = log2Ceil n
   have h9 : τ ≠ 9 := fun h => h0 (by rw [g15, hkb, g14, w512, h, e_add_self])

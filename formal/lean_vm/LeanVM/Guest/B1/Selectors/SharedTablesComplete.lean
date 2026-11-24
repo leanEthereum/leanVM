@@ -127,10 +127,6 @@ local macro "sv" : tactic => `(tactic| simp (config := { decide := true }) only 
   List.getD_eq_getElem?_getD, List.getElem?_cons_zero, List.getElem?_cons_succ, Option.getD_some,
   Nat.reduceSub, Nat.reduceAdd])
 
-theorem lp_isInK_add_pow (a b : ℕ) : IsInK (gen ^ a + gen ^ b) := by
-  rw [gen_pow_eq_ofK, gen_pow_eq_ofK, ← ofK_add]
-  exact (isInK_iff _).mpr ⟨_, rfl⟩
-
 /-- The nibble's eq levels' entry `e` is level `t`'s entry `i`. -/
 theorem lp_eqEntry {e : ℕ} (he : e < 30) : ∃ t i, t < 4 ∧ i < 2 ^ (t + 1) ∧
     e = 2 ^ (t + 1) - 2 + i ∧ nbEqV 15 e = nbLv 15 t i := by
@@ -167,11 +163,11 @@ theorem lp_iter {rd : Reader} {eqt z z1 gt gsq : E} {q j : ℕ} (hj : j < q)
   have rz1 : ReadsAt rd (z1 * gen ^ (4 * j)) (nib zs1 j) := tbReadsAt_nib hz1 j
   have rg : ReadsAt rd (gsq * gen ^ (4 * j)) (nib gs j) := tbReadsAt_nib hg j
   have lz : ∀ t < 4, LoadHolds rd (z * gen ^ (4 * j)) t ((nib zs j).getD t 0) := fun t ht ↦
-    tbReadsAt_getD rz (by omega)
+    readsAt_getD rz (by omega)
   have lz1 : ∀ t < 4, LoadHolds rd (z1 * gen ^ (4 * j)) t ((nib zs1 j).getD t 0) := fun t ht ↦
-    tbReadsAt_getD rz1 (by omega)
+    readsAt_getD rz1 (by omega)
   have lg : ∀ t < 4, LoadHolds rd (gsq * gen ^ (4 * j)) t ((nib gs j).getD t 0) := fun t ht ↦
-    tbReadsAt_getD rg (by omega)
+    readsAt_getD rg (by omega)
   have f2 : F 2 = eqt := by simp [hF, lpVal]
   have f12 : F 12 = eqt * gen ^ (32 * j) := by
     rw [hF]; sv
@@ -260,7 +256,7 @@ theorem lp_iter {rd : Reader} {eqt z z1 gt gsq : E} {q j : ℕ} (hj : j < q)
         have hv : (eqLevels (nib zs j) (nib zs1 j)).getD e 0 = spLvV (nib zs j) (nib zs1 j) t i := by
           rw [hei, eqLevels_getD (hzz.trans hzz1.symm) (by omega) (by omega) hi, spLvV]
         rw [← hv]
-        exact tbReadsAt_getD htab.1 (by rw [eqLevels_length hzz hzz1]; simpa using he)
+        exact readsAt_getD htab.1 (by rw [eqLevels_length hzz hzz1]; simpa using he)
     · -- the eq levels' padding
       simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
       have p51 : F 51 = 0 := by rw [hF]; sv
@@ -317,7 +313,7 @@ theorem lp_iter {rd : Reader} {eqt z z1 gt gsq : E} {q j : ℕ} (hj : j < q)
         have hv : (gTable (nib gs j)).getD u 0 = spGV 4 (nib gs j) u := by
           rw [gTable_getD hgl hu16, spGV]
         rw [← hv]
-        exact tbReadsAt_getD htab.2 (by rw [gTable_length hgl]; exact hu16)
+        exact readsAt_getD htab.2 (by rw [gTable_length hgl]; exact hu16)
     · -- the next `x`
       simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
       refine ⟨?_, ?_, ?_, ?_, ?_⟩ <;> simp [hF, lpVal]
@@ -326,7 +322,7 @@ theorem lp_iter {rd : Reader} {eqt z z1 gt gsq : E} {q j : ℕ} (hj : j < q)
     have e74 : F 76 = gen ^ (j + 1) + gen ^ q := by
       simp [hF, lpVal, word_gen, pow_succ]
     have e76 : F 78 = gen ^ (j + 1) := by simp [hF, lpVal, word_gen, pow_succ]
-    refine ⟨by rw [e74]; exact lp_isInK_add_pow _ _, fun hne ↦ ?_, trivial⟩
+    refine ⟨by rw [e74]; exact isInK_add (gen_pow_isInK _) (gen_pow_isInK _), fun hne ↦ ?_, trivial⟩
     have hjq : j + 1 < q := by
       rcases Nat.lt_or_ge (j + 1) q with h | h
       · exact h
@@ -431,7 +427,7 @@ theorem shared_selector_tables_complete_holds : shared_selector_tables_complete_
   · -- the assertion `q_g^4·r_g = len_g`
     rw [← pow_add, show 4 * q + n % 4 = n by omega]
     exact e_add_self _
-  · rw [word_one, ← pow_zero gen]; exact lp_isInK_add_pow 0 _
+  · rw [word_one]; exact one_add_gen_pow_isInK _
   · -- the loop over the full nibbles
     have hq0 : 0 < q := by
       rcases Nat.eq_zero_or_pos q with h0 | h0

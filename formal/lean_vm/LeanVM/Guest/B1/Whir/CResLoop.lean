@@ -178,7 +178,7 @@ theorem resLoop_iter {lvl : ℕ} {lv : OsLv} {hsv : List E} (hst : ResStatic lv 
   have hnb := hj
   have hrcl : ∀ e < 2 * (lv.queries / resBatch + 1),
       LoadHolds rd chain e ((rcC lv D hsv Pos mu).getD e 0) := fun e he ↦
-    readsAt_getD' hrc (by rw [rcC_length]; exact he)
+    readsAt_getD hrc (by rw [rcC_length]; exact he)
   have hch : ∀ o < 4, ∃ v, LoadHolds rd (σ (.n (y + 2))) o v := fun o ho ↦
     ⟨_, by rw [hX5, loadHolds_mul_gen_pow]; exact hrcl (2 * j + o) (by omega)⟩
   have hQ : resBatch * j + resBatch ≤ lv.queries := by

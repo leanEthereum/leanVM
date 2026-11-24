@@ -98,10 +98,6 @@ theorem two_le_two_pow {w : ℕ} (hw : 1 ≤ w) : 2 ≤ 2 ^ w :=
   calc 2 = 2 ^ 1 := by norm_num
     _ ≤ 2 ^ w := Nat.pow_le_pow_right (by norm_num) hw
 
-theorem tbReadsAt_getD {rd : Reader} {p : E} {xs : List E} (h : ReadsAt rd p xs) {k : ℕ}
-    (hk : k < xs.length) : LoadHolds rd p k (xs.getD k 0) := by
-  rw [List.getD_eq_getElem _ _ hk]; exact h k hk
-
 /-! ## Digits -/
 
 /-- The base-16 number of digits `u 0, …, u (N - 1)`, low first. -/

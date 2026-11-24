@@ -51,8 +51,6 @@ theorem forall_flatten_range {P : Stmt → Prop} {n : ℕ} {g : ℕ → List Stm
   obtain ⟨i, hi, rfl⟩ := List.mem_map.mp hl
   exact h i (List.mem_range.mp hi) s hs
 
-theorem tb_isInK_one : IsInK (1 : E) := by simpa using gen_pow_isInK 0
-
 theorem tb_squeezeN_two (s : Fs) : s.squeezeN 2 =
     ([challengeOf s.perm, challengeOf (permOf (rateOf [] ++ capOf s.perm))],
       ⟨capOf (permOf (rateOf [] ++ capOf s.perm)), []⟩) := rfl

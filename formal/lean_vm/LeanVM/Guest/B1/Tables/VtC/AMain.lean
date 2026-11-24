@@ -190,10 +190,6 @@ theorem tbReads_unpad {rd : Reader} {p : E} {l pad : List E} {m : ℕ} (h : Read
     (hl : l.length ≤ m) : ReadsAt rd p l := by
   rw [List.take_of_length_le hl] at h; exact (readsAt_append.mp h).1
 
-theorem tb_load_of {rd : Reader} {p : E} {l : List E} (h : ReadsAt rd p l) {k : ℕ}
-    (hk : k < l.length) : LoadHolds rd p k (l.getD k 0) := by
-  rw [List.getD_eq_getElem _ _ hk]; exact h k hk
-
 theorem vtAllocVars_F : ∀ b < 3, vtAllocVars.getD (19 + b) 0 = vtFwW b + 6 := by decide
 theorem vtAllocVars_P : ∀ i < 51, vtAllocVars.getD (22 + i) 0 = (vtPushSel.getD i default).2.2.1 := by
   decide
@@ -511,7 +507,7 @@ theorem vt_rel_completeF {H : VtHonest} (h : H.Ok) (hs : VtShape H) (B : VtBases
   have hrows : ∀ t < 6, LoadHolds rd ((vtσ rd w (H.args B)) (.n (val% «verify_tables» "table_rows"))) t (eOfNat (vtRw H.rows t)) := by
     intro t ht
     rw [p 11 (by norm_num)]
-    have := tb_load_of mRows (k := t) (by simp [hr]; omega)
+    have := readsAt_getD mRows (k := t) (by simp [hr]; omega)
     rwa [List.getD_eq_getElem _ _ (by simp [hr]; omega), List.getElem_map,
       ← List.getD_eq_getElem _ 0 (by omega)] at this
   have hrun : ∀ t < 6, RunTables rd (w (vtShV t + 11)) (w (vtShV t + 15))
@@ -550,7 +546,7 @@ theorem vt_rel_completeF {H : VtHonest} (h : H.Ok) (hs : VtShape H) (B : VtBases
   obtain ⟨⟨mXB, mXR⟩, mEv⟩ := hcurs
   have hpool4 : ∀ i < 4, LoadHolds rd ((H.args B).getD 15 0) i (H.xs4.getD i 0) := by
     intro i hi
-    have := tb_load_of mPool (k := i) (by simp [VtHonest.poolW, VtHonest.pcW, hx4]; omega)
+    have := readsAt_getD mPool (k := i) (by simp [VtHonest.poolW, VtHonest.pcW, hx4]; omega)
     rwa [VtHonest.poolW, List.append_assoc, List.getD_append _ _ _ _ (by omega)] at this
   have HB : VtBHyp rd w (H.args B) ⟨H.point, H.lm, H.rows, H.weights, H.xs4, H.bcW, H.values, H.bc⟩ :=
     { hl := hl, hlow := hlow, hml := hμ33, hlmμ := hlmμ, h19 := h19, hr := hr, hτμ := hτμ,
@@ -682,7 +678,7 @@ theorem vt_rel_completeF {H : VtHonest} (h : H.Ok) (hs : VtShape H) (B : VtBases
     (by
       intro j hj
       rw [z2630]
-      have := tb_load_of oCp (k := j) (by simp [zcCprodW]; omega)
+      have := readsAt_getD oCp (k := j) (by simp [zcCprodW]; omega)
       rw [zcCprodW, List.getD_eq_getElem _ _ (by simp; omega)] at this
       simpa [VtHonest.pts, ← List.map_take, List.take_range, min_eq_left hj] using this)
     (by
@@ -690,13 +686,13 @@ theorem vt_rel_completeF {H : VtHonest} (h : H.Ok) (hs : VtShape H) (B : VtBases
         by simp; omega, by rw [p 16 (by norm_num)]; exact mChi,
         readsAt_take z1 _, fun j hj ↦ ?_⟩
       rw [z2651]
-      have := tb_load_of oPe (k := j) (by simp; omega)
+      have := readsAt_getD oPe (k := j) (by simp; omega)
       simpa [List.getD_eq_getElem?_getD, Nat.lt_succ_of_le hj] using this)
     (by
       intro i hi
       rw [p 16 (by norm_num)]
       show LoadHolds rd (ofK (addressOfIndex B.chi)) _ _
-      have := tb_load_of mChi (k := H.n - 1 - i) (by simp [VtHonest.chiW, zcChis, zcRkW]; omega)
+      have := readsAt_getD mChi (k := H.n - 1 - i) (by simp [VtHonest.chiW, zcChis, zcRkW]; omega)
       simpa [VtHonest.chiW, zcChis, zcRkW, VtHonest.pts, List.getD_eq_getElem?_getD, List.getElem?_reverse,
         hi, show H.n - 1 - (H.n - 1 - i) = i by omega, show H.n - 1 - i < H.n by omega] using this)
     hev153 hevC
@@ -717,7 +713,7 @@ theorem vt_rel_completeF {H : VtHonest} (h : H.Ok) (hs : VtShape H) (B : VtBases
   rw [hS3] at eR eC
   have hpc : ∀ i < 2, LoadHolds rd (ofK (addressOfIndex B.pool)) (157 + i) (H.pcW.getD i 0) := by
     intro i hi
-    have := tb_load_of mPool (k := 157 + i)
+    have := readsAt_getD mPool (k := 157 + i)
       (by simp [VtHonest.poolW, VtHonest.pcW, hx4]; omega)
     rw [VtHonest.poolW, List.getD_append_right _ _ _ _ (by simp [hx4])] at this
     simp only [List.length_append, hx4, List.length_replicate] at this

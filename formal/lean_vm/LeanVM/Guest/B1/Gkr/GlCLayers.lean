@@ -197,8 +197,6 @@ theorem glcLast_complete {rd : Reader} {o r n : ℕ} (ho : o < 2) (hr : r < 4)
       have h9 : ¬ 9 + 2 * (r - 1) < 9 := by omega
       exact ⟨by simp [σ, h9, word_zero], by simp [σ, h9]⟩
 
-theorem glc_isInK_one : IsInK (1 : E) := by simpa using gen_pow_isInK 0
-
 /-- **An iteration of `gkr_layers__L{o}`'s loop** at `g^m`: its four layers and the next
 iteration give it. -/
 theorem glsl_iter {rd : Reader} {o m : ℕ} (ho : o < 2) {N layers rounds pts start gmu tabs stream : E}
@@ -291,7 +289,7 @@ theorem gls_complete {rd : Reader} {o n r : ℕ} (ho : o < 2) (hr : r < 4) (hnb 
       by simp [σ], by simp [σ, hXd], ⟨r, by simp; omega, ?_, ?_⟩, by simp [σ, word_zero],
       by simp [σ]⟩
     · simp only [σ]; norm_num
-      exact isInK_add glc_isInK_one (gen_pow_isInK _)
+      exact one_add_gen_pow_isInK _
     · have hn0 : 0 < n := by
         rcases Nat.eq_zero_or_pos n with h0 | h0
         · exfalso; apply hne; simp only [σ]; norm_num; rw [h0, pow_zero, e_add_self]

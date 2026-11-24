@@ -180,7 +180,7 @@ theorem btk_xeLoad {rd : Reader} {eqt gt : E} {n : ℕ} {zs zs1 gs : List E} (bs
   have h2 := two_le_two_pow hw1
   have hl : 2 ^ btW n k - 2 + btkU n bs k < (eqLevels (nib zs k) (nib zs1 k)).length := by
     rw [eqLevels_length hlen hlen1, pow_succ]; omega
-  have h1 := tbReadsAt_getD ((hrt k (by simpa [btN] using hk)).1) hl
+  have h1 := readsAt_getD ((hrt k (by simpa [btN] using hk)).1) hl
   rw [loadHolds_mul_gen_pow] at h1
   rw [loadHolds_mul_gen_pow,
     show btkU n bs k + (32 * k + 2 ^ btW n k - 2) = 32 * k + (2 ^ btW n k - 2 + btkU n bs k) by
@@ -194,7 +194,7 @@ theorem btk_xgLoad {rd : Reader} {eqt gt : E} {n : ℕ} {zs zs1 gs : List E} (bs
   have hlen := nib_length hgl hk
   have hl : btkU n bs k < (gTable (nib gs k)).length := by
     rw [gTable_length hlen]; exact btkU_lt n bs k
-  have h1 := tbReadsAt_getD ((hrt k (by simpa [btN] using hk)).2) hl
+  have h1 := readsAt_getD ((hrt k (by simpa [btN] using hk)).2) hl
   rw [loadHolds_mul_gen_pow] at h1
   rw [loadHolds_mul_gen_pow, add_comm]
   exact h1
@@ -264,7 +264,7 @@ theorem block_selector_tab_complete_holds : block_selector_tab_complete_Spec := 
         calc 2 ^ btW n k ≤ 2 ^ 4 := Nat.pow_le_pow_right (by norm_num) hw4
           _ = 16 := by norm_num
       have hdig : LoadHolds rd sb k (gen ^ btkU n bs k) := by
-        have h := tbReadsAt_getD hbr (k := k) (by simpa [nibDigits, hbl, btN] using hk)
+        have h := readsAt_getD hbr (k := k) (by simpa [nibDigits, hbl, btN] using hk)
         rwa [btk_digit hbl hk] at h
       have hrc : LoadHolds rd (gen ^ btkU n bs k) 0 (cskRd rd (btkU n bs k)) ∧
           word (2 ^ (2 ^ btW n k - 1)) 0 =

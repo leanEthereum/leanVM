@@ -101,7 +101,7 @@ theorem osTailRounds_sound (hT : ∀ a r, C "opening_tail_round" a r → Meaning
     refine ⟨(c0, c2) :: pairs, by simp [hpl], ?_, ?_, ?_, ?_, ?_, ?_, hfs', hco'⟩
     · have e : tailWords ((c0, c2) :: pairs) = [c0, c2] ++ tailWords pairs := rfl
       rw [e]
-      exact readsAt_append hrd0 (by rw [show [c0, c2].length = 2 from rfl, ← hcur0]; exact hrd)
+      exact readsAt_append.mpr ⟨hrd0, by rw [show [c0, c2].length = 2 from rfl, ← hcur0]; exact hrd⟩
     · rw [hF]; rfl
     · rw [hcl]; rfl
     · intro i hi
@@ -448,7 +448,7 @@ theorem osLevelLast_sound {V : FrameMap} (hU : UnfoldsV rd C V)
   refine ⟨xs0 ++ (fold ++ [nn] ++ tailWords pairs), gs, fold, T, ?_, ?_, hgl, hfl, ?_, ?_, hM.fmsg,
     ?_, ?_, ?_, _, hrts', rtOk_of hrv⟩
   · simp [lvWords, hfin, hx0, hfl, tailWords_length, hpl]; ring
-  · refine readsAt_append hrd0 (readsAt_append ?_ ?_)
+  · refine readsAt_append.mpr ⟨hrd0, readsAt_append.mpr ⟨?_, ?_⟩⟩
     · rw [hx0, ← hcur0]; exact hM.reads
     · rw [hx0, ← hcur0, show (fold ++ [nn]).length = c.yrLen + lv.folds + 1 by simp [hfl],
         ← hM.cur, show m.2.cur σ = gr.2.cur σ from rfl, ← hSq.cur, ← hqcur]

@@ -36,8 +36,8 @@ structure Verified (Const X : Type) where
 
 /-- **A compiled function a map links to a verified reference function means what the reference
 function means**, in every program that finds it. -/
-theorem Verified.rel_iff_of_check {Const X : Type} [DecidableEq X] [Coded X] (V : Verified Const X) {c : Const}
-    {P : Program} {rd : Reader} {name : String} {f : Fn} {m : Map X}
+theorem Verified.rel_iff_of_check {Const X : Type} [DecidableEq X] [Coded X]
+    (V : Verified Const X) {c : Const} {P : Program} {rd : Reader} {name : String} {f : Fn} {m : Map X}
     (hf : P.find? name = some f) (h : m.check f (V.ref c) = true) (args rets : List E) :
     P.Rel rd name args rets ↔ V.Meaning c rd args rets := by
   rw [rel_iff_sem hf]
