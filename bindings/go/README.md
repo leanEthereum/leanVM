@@ -6,7 +6,7 @@ Go bindings for leanXMSS and leanSPHINCS signatures, their recursive aggregation
 
 <!-- x-release-please-start-version -->
 ```sh
-go get leanvm.org/go@v0.17.0
+go get leanvm.org/go@v0.18.0
 ```
 <!-- x-release-please-end -->
 

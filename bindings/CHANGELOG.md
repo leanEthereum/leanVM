@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.18.0](https://github.com/leanEthereum/leanVM/compare/bindings-v0.17.0...bindings-v0.18.0) (2026-11-24)
+
+
+### Features
+
+* setup picks the experimental prover's CPU tier ([c0fc37f](https://github.com/leanEthereum/leanVM/commit/c0fc37f24d53bf347e2642d5f6ceba687e70ecf3))
+
+
+### Performance Improvements
+
+* faster XMSS key generation and signing ([#859](https://github.com/leanEthereum/leanVM/issues/859)) ([fef5de5](https://github.com/leanEthereum/leanVM/commit/fef5de5088e6abbe17db7f2f9be663e85d4e4c8c))
+
 ## [0.17.0](https://github.com/leanEthereum/leanVM/compare/bindings-v0.16.0...bindings-v0.17.0) (2026-11-24)
 
 

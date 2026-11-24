@@ -11,7 +11,7 @@ resolver = "2"
 
 [workspace.package]
 # The release version of every binding; release-please updates it.
-version = "0.17.0"
+version = "0.18.0"
 
 [workspace.dependencies]
 lean_vm = { path = "../crates/lean_vm" }
