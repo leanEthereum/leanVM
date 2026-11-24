@@ -42,21 +42,20 @@ theorem interp_weight_constW {s : State} {α : Type} (computation : OracleComp C
         exact tsum_congr fun out => by ring
     _ ≤ _ := mul_le_mul_left (interp_weight_leW tg initial model computation budget s) _
 
-/-- **One signing call, one term, weighted** (the weighted `sign_term`). Averaged over the uniform
-start and the scan, the weighted upper value of a monotone function of the disclosures is at most the
-initial weight times the group of the message applied to that function after one fresh slot. -/
-theorem upper_expectW (hparse : ∀ ρ call, model.parse (GraphView.pblk parameter data m ρ call) = none)
+/-- The weighted upper value of a signing call is at most the initial weight times the base value
+plus the averaged walks of the message. -/
+theorem upper_scanW (hparse : ∀ ρ call, model.parse (GraphView.pblk parameter data m ρ call) = none)
     (hkind : ∀ ρ call, tg.kind (GraphView.pblk parameter data m ρ call) = .none)
-    {X : Multiset View → ℝ≥0∞} (hX : Monotone' X) (s : State)
-    (hinv : PairInv parameter data m s) (d : Multiset View)
+    (X : Multiset View → ℝ≥0∞) (s : State) (hinv : PairInv parameter data m s) (d : Multiset View)
     (excl : Pair → Prop) (budget : ℕ) :
     ∑' out, Pr{let x ← interp tg initial model (signCostSource parameter data m) budget s}[x = out] *
         (weight tg initial out.2 *
           (X d + (freshNewWeight parameter data m s (fun v => X (d + {v}) - X d) out +
             outWeight parameter data m s 0 (fun ρ v => if excl (m, ρ) then 0 else X (d + {v}) - X d) out))) ≤
       weight tg initial s *
-        grpM parameter data s excl m (fun e => freshAvg Finset.univ fun v => X (e + {v})) d := by
-  refine le_trans ?_ (mul_le_mul' le_rfl (walk_avg_le_grpM parameter data m hX s d excl))
+        (X d + (Fintype.card Randomness : ℝ≥0∞)⁻¹ * ∑ start, walk (nextRand (data.steps m)) landing (stOf parameter data m s)
+          (poolValue parameter data m s (fun ρ v => if excl (m, ρ) then 0 else X (d + {v}) - X d))
+          (freshAvg Finset.univ (fun v => X (d + {v}) - X d)) 0 digestAttemptLimit start) := by
   set gf : View → ℝ≥0∞ := fun v => X (d + {v}) - X d with hgf
   set gp : Randomness → View → ℝ≥0∞ := fun ρ v => if excl (m, ρ) then 0 else X (d + {v}) - X d with hgp
   set c := (Fintype.card Randomness : ℝ≥0∞)⁻¹ with hc
@@ -75,7 +74,7 @@ theorem upper_expectW (hparse : ∀ ρ call, model.parse (GraphView.pblk paramet
     refine le_trans (mul_le_mul' le_rfl (Finset.sum_le_sum fun start _ =>
       loop_bound_combSW tg initial model parameter data m hparse hkind s gf gp digestAttemptLimit
         (by unfold digestAttemptLimit; norm_num) budget s start (fun _ => Or.inl rfl) hinv
-          (fun _ _ _ => rfl)))
+        (fun _ _ _ => rfl)))
       (le_of_eq ?_)
     rw [← Finset.mul_sum, mul_left_comm]
   rw [mul_add]
@@ -83,6 +82,23 @@ theorem upper_expectW (hparse : ∀ ρ call, model.parse (GraphView.pblk paramet
     (interp_weight_constW tg initial model (s := s) (signCostSource parameter data m) budget (X d)) hscan)
   rw [← tsum_add]
   exact tsum_congr fun out => by ring
+
+/-- **One signing call, one term, weighted** (the weighted `sign_term`). Averaged over the uniform
+start and the scan, the weighted upper value of a monotone function of the disclosures is at most the
+initial weight times the group of the message applied to that function after one fresh slot. -/
+theorem upper_expectW (hparse : ∀ ρ call, model.parse (GraphView.pblk parameter data m ρ call) = none)
+    (hkind : ∀ ρ call, tg.kind (GraphView.pblk parameter data m ρ call) = .none)
+    {X : Multiset View → ℝ≥0∞} (hX : Monotone' X) (s : State)
+    (hinv : PairInv parameter data m s) (d : Multiset View)
+    (excl : Pair → Prop) (budget : ℕ) :
+    ∑' out, Pr{let x ← interp tg initial model (signCostSource parameter data m) budget s}[x = out] *
+        (weight tg initial out.2 *
+          (X d + (freshNewWeight parameter data m s (fun v => X (d + {v}) - X d) out +
+            outWeight parameter data m s 0 (fun ρ v => if excl (m, ρ) then 0 else X (d + {v}) - X d) out))) ≤
+      weight tg initial s *
+        grpM parameter data s excl m (fun e => freshAvg Finset.univ fun v => X (e + {v})) d :=
+  le_trans (upper_scanW tg initial model parameter data m hparse hkind X s hinv d excl budget)
+    (mul_le_mul' le_rfl (walk_avg_le_grpM parameter data m hX s d excl))
 
 /-- The fresh pair completed by a signing call weighs at most its fresh average, weighted. -/
 theorem fresh_expectW (hparse : ∀ ρ call, model.parse (GraphView.pblk parameter data m ρ call) = none)
