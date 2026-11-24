@@ -107,8 +107,8 @@ So the bound is `O(steps·log steps)` below `2^61` steps (`O(steps·log² steps)
 through the positions' limbs), plus `O(2^κ·(κ + log steps) + ℓ·2^ℓ)`. At the guest's `ℓ = 19` and
 `steps = 2^κ` it is `2^43.02` at `κ = 20`, `2^47.01` at `κ = 24`, `2^51.02` at `κ = 28` and
 `2^53.03` at `κ = 30`; at `20 ≤ κ ≤ 30` the terms proportional to `2^κ` dominate below about
-`2^(κ + 2)` steps, the per-step price beyond. A valid execution of the guest program has at most `2^ℓ·2^κ ≤ 2^49` steps:
-the memory is fixed and every instruction reads a cell at `fp·o` for an offset `o` fixed by `pc`,
+`2^(κ + 2)` steps, the per-step price beyond. A valid execution of the guest program has at most
+`2^ℓ·2^κ ≤ 2^49` steps: the memory is fixed and every instruction reads a cell at `fp·o` for an offset `o` fixed by `pc`,
 so at each `pc` at most `2^κ` values of `fp` let a step succeed; the run is determined by
 `(pc, fp)`, and a repeated state would loop without halting (argued, not a Lean theorem; `lean_vm`
 proves fewer than `2^128`, `steps_lt_replayFuel`). The per-step price and the frame lookup's are
