@@ -1,13 +1,42 @@
 module
 
 public import XmssSecurity.Proof.PrecomputedBoundedSign
-public import XmssSecurity.Proof.PrecomputedSignQueryBound
 
 @[expose] public section
+
+/-!
+# The encoding inputs the precomputed signer caches
+
+Which bottom encoding inputs a run of `Concrete.precomputedCappedSign` adds to the cache. It adds
+none at another leaf index
+(`Concrete.precomputedCappedSign_preserves_other_leafIndex_encodingInput`). A failed attempt
+caches a digest that does not decode, so it never adds an input whose digest decodes in a later
+cache; hence a successful run adds no such input other than its signed one
+(`Concrete.precomputedCappedSign_preserves_later_valid_other_encodingInput`). The signed input
+itself is cached and decodes (`Concrete.precomputedCappedSign_success_encodingInput_cached`,
+`Concrete.precomputedCappedSign_success_decode`).
+-/
 
 open OracleComp OracleSpec
 
 namespace XmssSecurity
+
+theorem Concrete.precomputedSignAttempt_queryBound_zero_at_other_encodingInput
+    (secretKey : SecretKey) (leafIndex targetLeafIndex : LeafIndex)
+    (message : Message) (randomness : Randomness) (targetInput : Message × Randomness)
+    (hne : Concrete.CacheView.encodingInput secretKey.parameter leafIndex
+        (message, randomness) ≠
+      Concrete.CacheView.encodingInput secretKey.parameter targetLeafIndex targetInput) :
+    (Concrete.precomputedSignAttempt secretKey leafIndex message randomness :
+      OracleComp HashSpec (Option Signature)).IsQueryBoundP
+        (· = Concrete.CacheView.encodingInput secretKey.parameter targetLeafIndex targetInput) 0 := by
+  rw [Concrete.precomputedSignAttempt]
+  refine OracleComp.isQueryBoundP_bind (m := 0)
+    (Concrete.encodingHash_queryBound_zero_at_other_input secretKey.parameter leafIndex
+      message randomness
+      (Concrete.CacheView.encodingInput secretKey.parameter targetLeafIndex targetInput) hne) ?_
+  intro digest _
+  split <;> simp
 
 theorem Concrete.precomputedSignAttempt_none_attemptedInput_ne_of_later_decode
     (secretKey : SecretKey) (leafIndex targetLeafIndex : LeafIndex)

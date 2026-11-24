@@ -1,14 +1,22 @@
 module
 
-public import XmssSecurity.Proof.EncodingOracleSimulation
+public import XmssSecurity.Proof.EncodingLemmas
 
 @[expose] public section
+
+/-!
+# Valid digests exist
+
+`TargetSum.ValidDigest` holds the digests that decode to an encoding (`TargetSum.decodeDigest`), the
+only ones the capped signer installs, and `TargetSum.validDigests` collects them. They are not empty
+(`TargetSum.validDigests_card_pos`): `TargetSum.digestView` is onto and
+`TargetSum.exampleValidEncoding` meets the target sum. `CappedEncodingMonitor` charges each pending
+digest one over their number.
+-/
 
 open OracleComp ENNReal
 
 namespace XmssSecurity
-
-set_option maxRecDepth 100000
 
 namespace TargetSum
 

@@ -3,8 +3,6 @@ module
 public import XmssSecurity.Proof.Deterministic.RequestSampling
 public import XmssSecurity.Proof.Deterministic.ReferenceSource
 public import XmssSecurity.Proof.Deterministic.MemoGame
-public import XmssSecurity.Proof.Deterministic.World
-public import XmssSecurity.Proof.ConsistentQueryBound
 
 @[expose] public section
 
@@ -21,8 +19,6 @@ open OracleComp OracleSpec
 namespace XmssSecurity.Seeded
 
 open DeterministicSigning
-
-set_option backward.isDefEq.respectTransparency false
 
 theorem worldHandler_randomOracle : worldHandler randomOracle = romImpl := rfl
 

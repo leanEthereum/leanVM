@@ -1,17 +1,29 @@
 module
 
-public import XmssSecurity.Proof.CappedGlobalKeygen
-public import XmssSecurity.Proof.CappedGlobalTreeCacheCorrespondence
-public import XmssSecurity.Proof.CappedChain.ChainTracedGame
-public import XmssSecurity.Proof.PrecomputedKeygenCache
-public import XmssSecurity.Proof.CappedGlobalChainOrigin
-public import XmssSecurity.Proof.CappedChain.ChainRevealFiltering
 public import XmssSecurity.Proof.CappedChain.SignatureChainValue
 public import XmssSecurity.Proof.RevealProbeOracleSimulation
-public import XmssSecurity.Proof.CappedChain.CausalSigningKeygenCoupling
-public import XmssSecurity.Proof.StatementLemmas
+public import XmssSecurity.Proof.CappedChain.ChainInputTrace
+public import XmssSecurity.Proof.CappedChain.TreeCacheStable
+public import XmssSecurity.Proof.CappedGlobalKeygen
+public import XmssSecurity.Proof.PrecomputedKeygenCache
 
 @[expose] public section
+
+/-!
+# The causal hash state and the signer's reveals
+
+The causal simulation reads every chain value of key generation (`GlobalChainValueIndex`) as a
+hidden value of `RevealProbeOracleSimulation`. Its state, `GlobalCausalHashState`, holds the random
+oracle's cache, key generation's cache, the values revealed so far and the chain probes the hash
+queries made (`globalCausalRecordedState`). `revealGlobalSignature` reveals the chain values a
+returned signature sends at both layers and writes them into the signature
+(`globalSignatureRevealResult_allChains_chainValue`). `keygenViews_signWithEncoding_eq_globalReveal`
+shows that a signature replayed from one key generation is the other's with the revealed table
+values written in, under the relations defined here (`ProgrammedGlobalChainKeygenStableRelation`,
+`ProgrammedGlobalChainKeygenFullCacheStableRelation`). Key generation with presampled trajectories
+(`trajectoryProgrammedGlobalChainKeygen`) equals both the actual and the coupled key generation in
+distribution.
+-/
 
 open OracleComp OracleSpec
 open OracleComp.ProgramLogic.Relational
@@ -789,8 +801,8 @@ theorem trajectoryProgrammedGlobalChainKeygen_support_treeCacheStable
     (view : ProgrammedGlobalChainKeygenView)
     (hview : view ∈ support trajectoryProgrammedGlobalChainKeygen) :
     TreeCacheStable view.secretKey.parameter view.secretKey.chainStart
-      view.cache := by
-  exact keygen_support_treeCacheStable view.keyResult
+      view.cache :=
+  keygen_support_treeCacheStable view.keyResult
     (trajectoryProgrammedGlobalChainKeygen_support_keyResult view hview)
 
 theorem trajectoryProgrammedGlobalChainKeygen_support_topCacheStable

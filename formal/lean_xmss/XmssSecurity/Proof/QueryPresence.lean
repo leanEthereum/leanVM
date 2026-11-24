@@ -1,9 +1,20 @@
 module
 
 public import XmssSecurity.Proof.HonestKeygenRun
-public import XmssSecurity.Proof.StatementLemmas
+public import XmssSecurity.Proof.KeygenCache
 
 @[expose] public section
+
+/-!
+# Leaf queries cached by key generation and verification
+
+A lazy random-oracle run of a leaf, a bottom tree or the root tree caches the leaf input of every
+leaf it covers, and its replayed WOTS public keys stay the same in every larger cache. So key
+generation caches the honest leaf input at every leaf index (`Concrete.keygen_cache_has_leafInput`)
+and no other leaf input there (`Concrete.keygen_cache_leafInput_eq_none_of_ne`). After a successful
+verification, every larger cache replays its message digest to an encoding and holds the leaf input
+recovered from it (`verify_true_leaf_query_cached_in_largerCache`).
+-/
 
 open OracleComp OracleSpec
 
@@ -324,7 +335,6 @@ end XmssSecurity
 
 namespace XmssSecurity.Concrete.CacheReplay
 
-set_option linter.constructorNameAsVariable false in
 /-- A supported successful verification caches its exact recovered leaf input in every later cache. -/
 theorem verify_true_leaf_query_cached_in_largerCache
     (publicKey : PublicKey) (leafIndex : LeafIndex) (message : Message) (signature : Signature)
@@ -364,12 +374,12 @@ theorem verify_true_leaf_query_cached_in_largerCache
       have hleafResultLe : endpointsCache ≤ leafCache :=
         randomOracle_cache_le (Concrete.leafHash publicKey.parameter leafIndex endpoints :
           OracleComp HashSpec Digest) endpointsCache (leaf, leafCache) hleaf
-      have hendpointsLe : endpointsCache ≤ largerCache := by
-        exact hleafResultLe.trans (hrestLe.trans hle)
+      have hendpointsLe : endpointsCache ≤ largerCache :=
+        hleafResultLe.trans (hrestLe.trans hle)
       obtain ⟨output, hleafCached, _⟩ := tweakableHash_query_cached publicKey.parameter
         (.leaf leafIndex) (Concrete.leafPayload endpoints) endpointsCache leafCache leaf hleaf
-      have hleafLe : leafCache ≤ largerCache := by
-        exact hrestLe.trans hle
+      have hleafLe : leafCache ≤ largerCache :=
+        hrestLe.trans hle
       have hendpointsEval := eval_answerFn_largerCache_eq_of_mem_support
         (Concrete.recoverEndpoints publicKey.parameter leafIndex encoding signature :
           OracleComp HashSpec (ChainIndex → Digest)) digestCache endpointsCache largerCache

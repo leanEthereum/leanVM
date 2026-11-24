@@ -6,6 +6,15 @@ public import VCVio.OracleComp.EvalDist.Sum
 
 @[expose] public section
 
+/-!
+# The expected query count of a simulated computation
+
+`expectedSimulatedQueryCount` is the expected number of queries satisfying a predicate that a
+computation makes when its oracle is a stateful probabilistic implementation. It adds over a bind
+(`expectedSimulatedQueryCount_bind`), ignores a map (`expectedSimulatedQueryCount_map`) and adds
+over disjoint predicates (`expectedSimulatedQueryCount_or_of_disjoint`).
+-/
+
 open OracleSpec OracleComp ENNReal
 
 namespace XmssSecurity

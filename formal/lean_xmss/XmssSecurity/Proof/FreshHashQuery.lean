@@ -1,9 +1,19 @@
 module
 
-public import XmssSecurity.Proof.EncodingActionTrace
 public import VCVio.OracleComp.Constructions.SampleableType
+public import XmssSecurity.Scheme
 
 @[expose] public section
+
+/-!
+# Uniform answers to fresh hash queries
+
+A fresh query to the lazy random oracle samples `uniformHashOutput` and caches it
+(`randomOracle_run_none_eq_uniformHashOutput`). `EncodingSampleKind` tags such a sample as an
+adversary's query, a signing attempt or a side sample, which the first-lane experiment answers with
+an encoding query, an encoding signing attempt or a plain uniform sample
+(`globalFirstLaneFreshEncodingQuery`).
+-/
 
 open OracleComp OracleSpec
 

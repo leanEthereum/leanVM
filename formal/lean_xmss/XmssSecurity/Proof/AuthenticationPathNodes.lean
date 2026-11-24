@@ -5,6 +5,14 @@ public import XmssSecurity.Proof.TreeQueryBound
 
 @[expose] public section
 
+/-!
+# Authentication path nodes lie inside the tree
+
+The ancestor of a leaf index `levels` levels up (`Concrete.CacheReplay.pathNode`) is a valid subtree
+at that height, its leaves all below `lifetime` (`treeSubtreeValid_pathNode`), and so is every node
+of the leaf's authentication path at its level (`authenticationPathNode_subtreeValid`).
+-/
+
 namespace XmssSecurity
 
 theorem treeSubtreeValid_pathNode

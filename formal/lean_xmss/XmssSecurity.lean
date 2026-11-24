@@ -1,5 +1,3 @@
-import LeanXmss.Statement
-import XmssSecurity.Proof.OwnBridge
 import XmssSecurity.Rpm
 import Common.WithHash
 

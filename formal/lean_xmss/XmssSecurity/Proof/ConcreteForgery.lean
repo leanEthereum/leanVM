@@ -1,6 +1,5 @@
 module
 
-public import XmssSecurity.Proof.IdealStatement
 public import XmssSecurity.Proof.StatementLemmas
 public import XmssSecurity.Proof.ForgeryCases
 
@@ -96,8 +95,8 @@ theorem sameLeafIndex_forgery_has_badEvent
     ∃ event, SameLeafIndexBadEventOccurs cache parameter leafIndex
       signedMessage forgedMessage signedEncoding forgedEncoding
       signedSignature forgedSignature
-      (TargetSum.decodeDigest_eq_some_iff.mp hsignedEncoding).2 event := by
-  exact XmssSecurity.sameLeafIndex_forgery_has_badEvent
+      (TargetSum.decodeDigest_eq_some_iff.mp hsignedEncoding).2 event :=
+  XmssSecurity.sameLeafIndex_forgery_has_badEvent
     (CacheView.encodingHash cache parameter leafIndex)
     (fun chain => CacheView.chainStep cache parameter leafIndex chain)
     (CacheView.leafHash cache parameter leafIndex)
@@ -139,8 +138,8 @@ theorem freshLeafIndex_forgery_has_badEvent
           (fun chain => Wots.publicChain
             (CacheView.chainStep cache parameter leafIndex chain) (secret chain)))) :
     ∃ event, FreshLeafIndexBadEventOccurs cache parameter leafIndex forgedEncoding
-      forgedSignature secret honestPath hforgedValid event := by
-  exact XmssSecurity.freshLeafIndex_forgery_has_badEvent
+      forgedSignature secret honestPath hforgedValid event :=
+  XmssSecurity.freshLeafIndex_forgery_has_badEvent
     (fun chain => CacheView.chainStep cache parameter leafIndex chain)
     (CacheView.leafHash cache parameter leafIndex)
     (CacheView.nodeHash cache parameter leafIndex)

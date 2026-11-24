@@ -1,10 +1,22 @@
 module
 
 public import XmssSecurity.Proof.Merkle
-public import XmssSecurity.Proof.SecurityBudget
+public import XmssSecurity.Proof.BadEvent
 public import XmssSecurity.Proof.WotsExtraction
 
 @[expose] public section
+
+/-!
+# The bottom layer's forgery cases, over arbitrary hash functions
+
+A forgery whose bottom path reaches the same root as an honest one, with the hash functions given as
+plain functions. At a signed leaf index, a strong forgery gives an encoding collision, a backward
+chain witness, a suffix collision, a leaf collision or a Merkle path collision
+(`classify_sameLeafIndex_forgery`); at a leaf index never signed, a fresh chain value, a suffix
+collision, a leaf collision with the honest WOTS public key or a Merkle path collision
+(`classify_freshLeafIndex_forgery`). `sameLeafIndex_forgery_has_badEvent` and
+`freshLeafIndex_forgery_has_badEvent` name the case as one indexed `BadEvent`.
+-/
 
 namespace XmssSecurity
 

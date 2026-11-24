@@ -1,15 +1,29 @@
 module
 
 public import XmssSecurity.Proof.CappedEncodingGameTrace
-public import VCVio.OracleComp.SimSemantics.StateT.PreservesInv
+public import XmssSecurity.Proof.CappedEncodingMonitor
+public import XmssSecurity.Proof.WinningEventReduction
 
 @[expose] public section
+
+/-!
+# Fresh encoding collisions hit the capped encoding monitor
+
+Step by step, the encoding trace of `cappedDetailedGameWithEncodingTrace` records the game's fresh
+encoding entries (`cappedEncodingTracedMappedAdversaryImpl_validEncodingCollisionInvariants`,
+`cappedEncodingTracedMappedAdversaryImpl_postSigningInvariants`), and its signed leaf indices are
+distinct in a run with a winning encoding event
+(`cappedDetailedGameWithEncodingTrace_validSignLeafIndices_nodup_of_winning`). So a fresh signing
+collision (a signature landing on an older valid digest,
+`cappedDetailedGameWithEncodingTrace_freshSigningCollision_monitorHit`) and a decoding forged
+encoding input still fresh at its signature and colliding with it later
+(`cappedDetailedGameWithEncodingTrace_postSigningFreshForgedCollision_monitorHit`) each make the
+capped encoding monitor hit on the trace; `LossDecomposition` uses both.
+-/
 
 open OracleComp OracleSpec
 
 namespace XmssSecurity
-
-set_option maxRecDepth 100000
 
 def ValidFreshSigningCollisionsRepresented
     (secretKey : SecretKey) (signingTrace : SigningCacheTrace)
@@ -385,8 +399,8 @@ theorem cappedEncodingTracedMappedAdversaryImpl_query_validFreshSigningCollision
       rw [signingCacheTraceUpdate] at htraceEq
       rw [htraceEq]
       intro hnodup entry hentry hcollision
-      have hnodupInitial : initialState.1.2.leafIndices.Nodup := by
-        exact (List.nodup_append.mp (by simpa using hnodup)).1
+      have hnodupInitial : initialState.1.2.leafIndices.Nodup :=
+        (List.nodup_append.mp (by simpa using hnodup)).1
       rw [List.mem_append] at hentry
       rcases hentry with hentry | hentry
       · rw [hsuffix]
@@ -445,7 +459,6 @@ theorem cappedEncodingTracedMappedAdversaryImpl_query_validFreshSigningCollision
               simp [encodingActionTraceUpdate, encodingObservation?, hfresh, hsigned]]
             rw [hqueryActions]
             simp [List.append_assoc]
-
 
 theorem cappedEncodingTracedMappedAdversaryImpl_query_postSigningQueriesRepresented
     (publicKey : PublicKey) (secretKey : SecretKey)
@@ -585,8 +598,8 @@ theorem cappedEncodingTracedMappedAdversaryImpl_signLeafIndices_sublist
       ((simulateQ (cappedEncodingTracedMappedAdversaryImpl publicKey secretKey)
         computation).run initialState)) :
     List.Sublist (EncodingMonitor.observedSignLeafIndices result.2.2)
-      result.2.1.2.leafIndices := by
-  exact OracleComp.simulateQ_run_preservesInv
+      result.2.1.2.leafIndices :=
+  OracleComp.simulateQ_run_preservesInv
     (cappedEncodingTracedMappedAdversaryImpl publicKey secretKey)
     (fun state => List.Sublist (EncodingMonitor.observedSignLeafIndices state.2)
       state.1.2.leafIndices)
@@ -614,8 +627,8 @@ theorem cappedEncodingTracedMappedAdversaryImpl_validEncodingCollisionInvariants
         computation).run initialState)) :
     UnsignedEncodingEntriesRepresented secretKey.parameter baseCache result.2.1.1
         result.2.1.2 result.2.2 ∧
-      ValidFreshSigningCollisionsRepresented secretKey result.2.1.2 result.2.2 := by
-  exact OracleComp.simulateQ_run_preservesInv
+      ValidFreshSigningCollisionsRepresented secretKey result.2.1.2 result.2.2 :=
+  OracleComp.simulateQ_run_preservesInv
     (cappedEncodingTracedMappedAdversaryImpl publicKey secretKey)
     (fun state =>
       UnsignedEncodingEntriesRepresented secretKey.parameter baseCache
@@ -633,7 +646,6 @@ theorem cappedEncodingTracedMappedAdversaryImpl_validEncodingCollisionInvariants
             hstate.1 hstate.2 hquery)
     computation initialState ⟨hunsigned, hcollisions⟩ result hmem
 
-
 theorem cappedEncodingTracedMappedAdversaryImpl_postSigningInvariants
     (publicKey : PublicKey) (secretKey : SecretKey)
     (computation : OracleComp (OracleWorld + SigningSpec) α)
@@ -649,8 +661,8 @@ theorem cappedEncodingTracedMappedAdversaryImpl_postSigningInvariants
         computation).run initialState)) :
     FreshSigningActionsRepresented secretKey result.2.1.2 result.2.2 ∧
       PostSigningQueriesRepresented secretKey result.2.1.2 result.2.1.1
-        result.2.2 := by
-  exact OracleComp.simulateQ_run_preservesInv
+        result.2.2 :=
+  OracleComp.simulateQ_run_preservesInv
     (cappedEncodingTracedMappedAdversaryImpl publicKey secretKey)
     (fun state =>
       FreshSigningActionsRepresented secretKey state.1.2 state.2 ∧
@@ -663,7 +675,6 @@ theorem cappedEncodingTracedMappedAdversaryImpl_postSigningInvariants
       · exact cappedEncodingTracedMappedAdversaryImpl_query_postSigningQueriesRepresented
           publicKey secretKey input state queryResult hstate.1 hstate.2 hquery)
     computation initialState ⟨hsignActions, hpostSigning⟩ result hmem
-
 
 theorem cappedDetailedGameAfterKeygenWithEncodingTrace_signLeafIndices_sublist
     (adversary : Adversary)
@@ -745,7 +756,6 @@ theorem cappedDetailedGameAfterKeygenWithEncodingTrace_validFreshSigningCollisio
             [EncodingMonitor.ObservedAction.query forgery.leafIndex output]
   · simpa [appendVerificationEncodingObservation, forgedInput, hfresh] using hrepresented
 
-
 theorem cappedDetailedGameWithEncodingTrace_signLeafIndices_sublist
     (adversary : Adversary)
     (result : GameOutcome ×
@@ -788,7 +798,6 @@ theorem cappedDetailedGameWithEncodingTrace_validFreshSigningCollisionsRepresent
       keyCache (result.1, result.2.1) hprojection).1
   rw [hsecretKey]
   exact hrepresented
-
 
 theorem cappedDetailedGameWithEncodingTrace_signingLeafIndices_nodup_of_winning
     (adversary : Adversary)
@@ -1032,6 +1041,5 @@ theorem cappedDetailedGameWithEncodingTrace_postSigningFreshForgedCollision_moni
         entry.request.leafIndex signedOutput forgedOutput before middle [] hsignedValid
         hforgedValid hdigest
         (by simpa [hactions] using hactionNodup)
-
 
 end XmssSecurity

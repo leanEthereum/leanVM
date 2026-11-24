@@ -2,6 +2,8 @@ module
 
 public import XmssSecurity.Scan.Potential
 public import XmssSecurity.Proof.AdaptiveFreshTarget
+public import XmssSecurity.Proof.HashInputLemmas
+public import XmssSecurity.Scan.Reach
 
 @[expose] public section
 

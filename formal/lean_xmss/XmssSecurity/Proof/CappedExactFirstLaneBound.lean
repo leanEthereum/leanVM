@@ -3,17 +3,32 @@ module
 public import XmssSecurity.Proof.CappedExactFirstLaneTransportReduction
 public import XmssSecurity.Proof.BoundedFirstLaneCoupling
 public import XmssSecurity.Proof.CappedGlobalTopGuessOrigin
-public import VCVio.OracleComp.SimSemantics.StateT.StateProjection
+public import XmssSecurity.Proof.CappedExactFirstLaneSourceCoupling
+public import XmssSecurity.Proof.ConsistentQueryBound
 
 @[expose] public section
 
+/-!
+# The exact first lane's pieces: the coupling and the eager bound
+
+The source program (`sourceGlobalExactTracedProgram`) couples step by step with the first-lane
+program run eagerly from a coupled table (`globalFirstLaneExactCoupledProgram`): each adversary
+query keeps `SourceFirstLaneExactGoodStateRelation` and charges its `directHashActionCost` in
+hazards, or produces a combined hit (`relTriple_sourceExact_firstLane_action`), and the final
+verification couples the same way within its hash query bound
+(`relTriple_sourceExact_firstLane_verifier_boundedHit`). A winning exact first-lane event on a
+related pair, with the forgery's `forgeryProbeCount` probes appended, is then a combined hit on the
+trace cut at the fuel (`sourceWinningExactFirstLane_implies_coupled_enforcedHit`). The coupled
+program's public projection is distributed as the eager experiment
+(`coupled_enforcedHit_probability_eq_public_eager`), whose capped hit has probability at most
+`fuel / 2^digestBits` (`public_eager_enforcedHit_probability_le`). `OwnFirstLane` assembles these at
+the adversary's own budget.
+-/
+
 open OracleComp OracleSpec ENNReal
-set_option backward.isDefEq.respectTransparency false
 open OracleComp.ProgramLogic.Relational
 
 namespace XmssSecurity.CappedChain
-
-set_option maxRecDepth 1000000
 
 theorem verifierHashQueryCost_eq_if (input : OracleWorld.Domain) :
     verifierHashQueryCost input =
@@ -759,8 +774,6 @@ theorem SourceFirstLaneExactGoodStateRelation.appendVerification
       firstLaneAppendVerificationState] using happendSub
   · simpa [firstLaneAppendVerificationState] using hvalidFinal
 
-set_option maxRecDepth 1000000
-
 abbrev GlobalFirstLaneExactCoupledProgramResult :=
   (((ProgrammedGlobalChainKeygenView ×
       (GlobalChainValueIndex → Digest)) ×
@@ -879,8 +892,8 @@ theorem evalDist_globalFirstLaneExactCoupledProjection_eq_eagerExperiment
       (do
         let base ← independentGlobalChainValueTable
         let parameter ← Concrete.samplePublicParameter
-        globalFirstLaneExactCoupledContinuation adversary parameter base) := by
-          exact OracleComp.EvalDistEq.bind_bind_swap
+        globalFirstLaneExactCoupledContinuation adversary parameter base) :=
+          OracleComp.EvalDistEq.bind_bind_swap
             Concrete.samplePublicParameter independentGlobalChainValueTable _
     _ =ᵈ (do
         let base ← independentGlobalChainValueTable
@@ -899,9 +912,6 @@ theorem evalDist_globalFirstLaneExactCoupledProjection_eq_eagerExperiment
       unfold independentGlobalChainValueTable
         RevealProbeOracleSimulation.eagerTableSample
       rfl
-
-set_option maxRecDepth 2000000
-set_option linter.constructorNameAsVariable false
 
 def liftGlobalChainTrace
     (trace : RevealProbeOracleSimulation.ActionTrace GlobalChainValueIndex) :
@@ -1180,8 +1190,8 @@ theorem sourceFirstLaneExactGood_to_globalHighRelation
       · exact hkeyView
       · exact hbase
     · exact hedgeHigh
-  have hstate : highResult.2.2 = witness := by
-    exact (globalStateOfFirstLane_eq highResult.2.2 right.2.1.2 right.2.2
+  have hstate : highResult.2.2 = witness :=
+    (globalStateOfFirstLane_eq highResult.2.2 right.2.1.2 right.2.2
       hstateProjection.symm hchain.symm).symm
   refine ⟨highResult, hhighSupport, ?_, hprojection, ?_, ?_⟩
   · refine ⟨?_, ?_⟩
@@ -1503,8 +1513,8 @@ theorem evalDist_globalFirstLaneExactCoupledPublicProjection_eq_eager
             rfl
     _ =ᵈ (appendGlobalFirstLaneExactPublicTrace <$>
         FirstLaneOracleSimulation.eagerExperiment
-          (globalFirstLaneExactTracedProgram adversary)) := by
-      exact (evalDist_globalFirstLaneExactCoupledProjection_eq_eagerExperiment
+          (globalFirstLaneExactTracedProgram adversary)) :=
+      (evalDist_globalFirstLaneExactCoupledProjection_eq_eagerExperiment
         adversary).map appendGlobalFirstLaneExactPublicTrace
 
     _ = _ := by
@@ -1549,8 +1559,8 @@ theorem public_eager_enforcedHit_probability_le
           (some EncodingMonitor.State.empty)
           AdaptiveRevealMonitor.State.empty fuel
           (FirstLaneOracleSimulation.enforceHazardBound fuel
-            (globalFirstLaneExactTracedPublicProgram adversary)))}[hit = true] := by
-      exact FirstLaneOracleSimulation.combinedHit_probability_eq_structuralExperiment
+            (globalFirstLaneExactTracedPublicProgram adversary)))}[hit = true] :=
+      FirstLaneOracleSimulation.combinedHit_probability_eq_structuralExperiment
         fuel (FirstLaneOracleSimulation.enforceHazardBound fuel
           (globalFirstLaneExactTracedPublicProgram adversary))
           (FirstLaneOracleSimulation.enforceHazardBound_isHazardQueryBoundP

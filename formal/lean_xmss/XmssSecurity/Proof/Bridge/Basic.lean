@@ -1,6 +1,7 @@
 module
 
-public import XmssSecurity.Proof.Deterministic.Preparation
+public import XmssSecurity.Proof.Deterministic.Replay
+public import XmssSecurity.Proof.Seeded.Erasure
 
 @[expose] public section
 
@@ -15,8 +16,6 @@ that queries only inputs of a given set (`OnlyQueries`).
 open OracleComp OracleSpec
 
 namespace DeterministicSigning
-
-set_option backward.isDefEq.respectTransparency false
 
 variable {D R : Type}
 
@@ -139,8 +138,6 @@ namespace XmssSecurity.Seeded
 
 open DeterministicSigning
 
-set_option backward.isDefEq.respectTransparency false
-
 variable {D R : Type}
 
 /-- An erasure of known queries resolves wherever its result resolves. -/
@@ -161,23 +158,11 @@ theorem Erases.resolves {α : Type} {known cache : QueryCache (D →ₒ R)}
       exact .query input answer (hle hknown) left v (ih htail)
   | trans _ _ first second => exact first (second hr)
 
-theorem Erases.sequenceFin {α : Type} {known : QueryCache (D →ₒ R)} {n : Nat}
-    {left right : Fin n → OracleComp (D →ₒ R) α} (h : ∀ i, Erases known (left i) (right i)) :
-    Erases known (Concrete.sequenceFin left) (Concrete.sequenceFin right) := by
-  induction n with
-  | zero => exact .pure _
-  | succ n ih =>
-      simp only [Concrete.sequenceFin]
-      exact (h 0).bind _ _ fun head =>
-        (ih fun i => h i.succ).bind _ _ fun tail => .pure _
-
 end XmssSecurity.Seeded
 
 namespace XmssSecurity.Bridge
 
 open DeterministicSigning
-
-set_option backward.isDefEq.respectTransparency false
 
 /-! ## Exact query counts -/
 
@@ -199,12 +184,6 @@ theorem QueryCount.bind {α β : Type} {c : OracleComp spec α} {n m : Nat}
   | query x next n _ ih =>
       rw [bind_assoc, show n + 1 + m = n + m + 1 by omega]
       exact .query x _ _ ih
-
-theorem QueryCount.map {α β : Type} {c : OracleComp spec α} {n : Nat} (hc : QueryCount c n)
-    (g : α → β) : QueryCount (g <$> c) n := by
-  rw [map_eq_bind_pure_comp]
-  have h := hc.bind (f := Pure.pure ∘ g) fun a => QueryCount.pure (g a)
-  rwa [Nat.add_zero] at h
 
 theorem QueryCount.sequenceFin {α : Type} {k n : Nat} {c : Fin k → OracleComp spec α}
     (h : ∀ i, QueryCount (c i) n) : QueryCount (Concrete.sequenceFin c) (k * n) := by

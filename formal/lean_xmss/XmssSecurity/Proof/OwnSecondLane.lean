@@ -1,8 +1,10 @@
 module
 
-public import XmssSecurity.Proof.CachedSelectionBound
-public import XmssSecurity.Proof.CappedJointExactLoss
+public import XmssSecurity.Proof.SecondLane
 public import XmssSecurity.Proof.OwnTotal
+public import XmssSecurity.Proof.CachedSelectionBound
+public import XmssSecurity.Proof.CappedUnifiedExpectedDigest
+public import XmssSecurity.Scan.PerKey
 
 @[expose] public section
 
@@ -19,8 +21,6 @@ adversary's own count below `2^127`: the ghost count of its queries never passes
 open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity
-
-set_option backward.isDefEq.respectTransparency false
 
 section Expected
 

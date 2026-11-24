@@ -1,10 +1,22 @@
 module
 
-public import XmssSecurity.Proof.EncodingTargetMap
 public import XmssSecurity.Proof.SigningCacheTrace
+public import XmssSecurity.Proof.HashInputLemmas
 public import XmssSecurity.Proof.WinningEventReduction
 
 @[expose] public section
+
+/-!
+# A winning encoding event in the signing trace
+
+A winning encoding event is a returned signature and a distinct forged encoding input at its leaf
+index with the same cached digest (`winning_encoding_event_has_signed_collision`). Located in the
+signing trace, its colliding input was cached before that signature or was fresh when the signer
+installed it (`winning_encoding_event_trace_temporal_decomposition`), so the event is a cached
+selection with a colliding input, a fresh selection landing on an older digest, or a fresh selection
+hit by a later digest (`winning_encoding_event_trace_monitor_decomposition`, which
+`LossDecomposition` uses).
+-/
 
 open OracleComp OracleSpec ENNReal
 

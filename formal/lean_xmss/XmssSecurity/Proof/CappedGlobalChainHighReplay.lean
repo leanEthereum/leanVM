@@ -2,15 +2,28 @@ module
 
 public import XmssSecurity.Proof.CappedGlobalChainHighLocalCoupling
 public import XmssSecurity.Proof.ObservedTraceMonitor
+public import XmssSecurity.Proof.CappedChain.KeygenUnaddressedCache
 
 @[expose] public section
+
+/-!
+# Coupling the whole query stream with the monitored causal simulation
+
+Every adversary hash query couples with the causal one until the monitor hits
+(`relTriple_programmed_globalFilteredAttackerHashQuery_until_hit`, from its leaf, chain and ordinary
+cases), while key generation's Merkle entries stay in the causal cache
+(`GlobalMerkleKeygenCacheRetained`). `GlobalMonitoredCausalState` carries the causal state with its
+action trace, which is bad when the trace's monitor hits, and `monitorGlobalCausalTrace` runs a step
+on it. `relTriple_programmed_monitoredGlobalAttackerHashQuery_until_hit` and
+`relTriple_programmed_monitoredGlobalSigningQuery` couple the real hash and signing queries with the
+monitored causal ones: equal answers and related states, or a bad state. The `*_replays` theorems
+show each causal step's trace replays its reveals (`ReplaysCausalReveals`).
+-/
 
 open OracleComp OracleSpec
 open OracleComp.ProgramLogic.Relational
 
 namespace XmssSecurity.CappedChain
-
-set_option maxRecDepth 1000000
 
 theorem globalFilteredCausalAttackerHashPlan_eq_leafProbeThenFresh
     (secretKey : SecretKey) (state : GlobalCausalHashState)
@@ -70,9 +83,6 @@ theorem globalFilteredCausalAttackerHashPlan_eq_leafFresh_of_mismatch
   rw [globalFilteredCausalLeafHashPlan, globalLeafInputData?_leafInput]
   simp only
   rw [hhidden, ite_eq_right hmatch]
-
-
-set_option maxRecDepth 1000000
 
 theorem globalLeaf_not_match_endpoint_miss
     (table : GlobalChainValueIndex → Digest)
@@ -217,9 +227,6 @@ theorem relTriple_programmed_globalFilteredLeafHashQuery_until_hit
             intro _leftResult _rightResult hresult
             exact Or.inl hresult
 
-
-set_option maxRecDepth 10000000
-
 theorem Concrete.keygen_cache_none_at_global_chainAddress_of_probe_none
     (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
     (hmem : keyResult ∈ support
@@ -332,9 +339,6 @@ theorem relTriple_programmed_globalFilteredOrdinaryHashQuery
     rightState hstate input hbaseNone
   exact globalFilteredCausalAttackerHashPlan_eq_ordinaryFresh
     right.1.1.secretKey rightState input hcache hchain hleaf
-
-
-set_option maxRecDepth 1000000
 
 def GlobalMerkleKeygenCacheRetained
     (secretKey : SecretKey) (state : GlobalCausalHashState) : Prop :=
@@ -465,9 +469,6 @@ theorem relTriple_programmed_globalFilteredAttackerHashQuery_until_hit
                     hbaseNone)
               intro _leftResult _rightResult hresult
               exact Or.inl hresult
-
-
-set_option maxRecDepth 10000000
 
 theorem GlobalMerkleKeygenCacheRetained.recordedState
     {secretKey : SecretKey} {state : GlobalCausalHashState}
@@ -611,7 +612,6 @@ theorem simulate_eagerTrace_globalCausalAttackerHashQueryFromHigh_merkleRetained
               (Rom.hashOutputEquivDigestPair.symm (high index, table index))
                 hcache
 
-
 def GlobalCausalSigningStateExtends
     (initial final : GlobalCausalHashState) : Prop :=
   initial.cache ≤ final.cache ∧ final.keygenCache = initial.keygenCache
@@ -730,9 +730,6 @@ theorem simulate_eagerTrace_globalFilteredCausalSigningQuery_merkleRetained
   intro input hmerkle output hkeygen
   rw [hextends.2] at hkeygen
   exact hextends.1 (hretained input hmerkle output hkeygen)
-
-
-set_option maxRecDepth 1000000
 
 structure GlobalMonitoredCausalState where
   causal : GlobalCausalHashState
@@ -928,7 +925,6 @@ theorem relTriple_monitorGlobalCausalTrace_of_filtered_until_hit
             right.2 monitor rightResult.2).2 hhit))
   simpa only [id_map] using hmapped
 
-
 theorem globalCausalAttackerHashQueryFromHigh_cached_replays
     (table high : GlobalChainValueIndex → Digest)
     (secretKey : SecretKey) (input : HashInput)
@@ -1109,7 +1105,6 @@ theorem relTriple_programmed_monitoredGlobalAttackerHashQuery_until_hit
     exact simulate_eagerTrace_globalCausalAttackerHashQueryFromHigh_merkleRetained
       right.1.2 (globalChainValueHighTableOfEdges right.2)
         right.1.1.secretKey input rightState.causal hretained result hresult
-
 
 theorem GlobalCausalHashState.recordReveal_transition
     (state : GlobalCausalHashState) (index : GlobalChainValueIndex)

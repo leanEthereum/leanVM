@@ -1,13 +1,19 @@
 module
 
-public import XmssSecurity.Proof.KeygenCache
-public import XmssSecurity.Proof.CausalAuthenticationPathIndependence
-public import XmssSecurity.Proof.ChainOraclePresampling
-public import XmssSecurity.Proof.MerkleQueryPresence
-public import XmssSecurity.Proof.CausalKeygenCoupling
-public import XmssSecurity.Proof.StatementLemmas
+public import XmssSecurity.Proof.ChainKey
 
 @[expose] public section
+
+/-!
+# Vocabulary for coupling key-generation caches
+
+Definitions the coupling of two key generations over different chain tables reads.
+`MerkleHashInput` marks the inputs whose key-generation entries agree when the tree values do
+(Merkle nodes of both layers and the top message digests, `HashDomain.Retained`), and no such input
+is a leaf input (`merkleHashInput_ne_keyLeafInput`). `LeafCacheOutputsCorrespond`,
+`LeafReplayOutputsCorrespond` and `ReplayEndpointsMatch` relate two caches' leaf entries, and
+`keygenKeyLeafTargetInput` maps a leaf input to the honest leaf input at its address.
+-/
 
 open OracleComp OracleSpec
 

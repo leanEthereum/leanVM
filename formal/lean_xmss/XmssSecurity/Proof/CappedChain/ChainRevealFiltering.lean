@@ -1,9 +1,19 @@
 module
 
-public import XmssSecurity.Proof.CappedChain.ChainHiddenTable
 public import XmssSecurity.Proof.CappedChain.ChainInputTrace
+public import XmssSecurity.Proof.ChainHiddenTable
 
 @[expose] public section
+
+/-!
+# The returned chain coordinates as a list
+
+`returnedChainValueIndexList` lists the chain coordinates the returned signatures send at a chain of
+either layer, with every later digit on the same chain key (`chainSuffixValueIndices`,
+`topSuffixValueIndices`); its members are exactly the `ReturnedChainValueIndex` coordinates
+(`mem_returnedChainValueIndexList_iff`). A signing action with a signature in an attacker's trace is
+returned in its signing log (`AttackerActionTrace.sign_mem_toSigningLog`).
+-/
 
 namespace XmssSecurity.CappedChain
 
@@ -44,7 +54,6 @@ noncomputable def returnedChainValueIndexList
             chainSuffixValueIndices (.inl entry.1.leafIndex) (encoding chain)) ++
           topSuffixValueIndices secretKey entry.1.leafIndex chain).dedup
 
-set_option maxRecDepth 100000 in
 @[simp]
 theorem mem_returnedChainValueIndexList_iff
     (cache : QueryCache HashSpec) (secretKey : SecretKey)

@@ -2,8 +2,6 @@ module
 
 public import Mathlib.GroupTheory.Perm.Basic
 public import Mathlib.Basic.ENNReal.BigOperators
-public import Mathlib.Data.Fintype.BigOperators
-public import Mathlib.Algebra.BigOperators.Ring.Finset
 
 @[expose] public section
 
@@ -18,16 +16,10 @@ hit `x`, `fr` at a fresh position that lands and `ex` when the attempts are exha
 
 Main results, for a successor `σ` that does not return to a position within the attempt limit:
 
-* `probe_eq`: one digest query at a fresh position `y`. Averaged over its two outcomes (hit with
-  payoff `c`, miss), the walk from any other start changes by `p · reach · (c − fr)`, where `reach`
-  is the probability that the start reaches `y`.
-* `sum_reach_le`: the fresh starts reach a given position with total weight at most `(1 − p)/p`.
-* `creation_le`: with the group value `gv` (fresh payoff `base` for a fresh start, `favg` for a
-  cached one: the pending mass of dangling queries), a query raises the value by at most
-  `(2 − p) · (favg − base)` in the mean. This is the creation rate of the scan loop: `2 − p` times
-  the rate of independent attempts, and it is attained.
-* `mass_le`: the starts that do not end at a cached hit weigh at least
-  `card − (cached positions) − (cached hits) · (1 − p)/p`.
+* `sum_reach_le`: the fresh starts reach a given position with total weight at most `(1 − p)/p`,
+  where `reach` is the probability that a start reaches it.
+* `sum_fresh_hit_le`: the fresh starts end at a cached hit with total weight at most `(1 − p)/p` per
+  hit.
 
 Nothing here mentions hashing.
 -/
@@ -72,37 +64,6 @@ theorem walk_succ_fresh {st : α → St} (item : α → ℝ≥0∞) (fr ex : ℝ
     walk σ p st item fr ex (A + 1) r = p * fr + (1 - p) * walk σ p st item fr ex A (σ r) := by
   rw [walk, h]
 
-/-- The walk is additive in its payoffs. -/
-theorem walk_add (st : α → St) (item item' : α → ℝ≥0∞) (fr fr' ex ex' : ℝ≥0∞) :
-    ∀ (A : ℕ) (r : α), walk σ p st (fun x => item x + item' x) (fr + fr') (ex + ex') A r =
-      walk σ p st item fr ex A r + walk σ p st item' fr' ex' A r
-  | 0, _ => rfl
-  | A + 1, r => by
-      cases h : st r with
-      | hit => rw [walk_succ_hit _ _ _ _ h, walk_succ_hit _ _ _ _ h, walk_succ_hit _ _ _ _ h]
-      | miss =>
-          rw [walk_succ_miss _ _ _ _ h, walk_succ_miss _ _ _ _ h, walk_succ_miss _ _ _ _ h]
-          exact walk_add st item item' fr fr' ex ex' A (σ r)
-      | fresh =>
-          rw [walk_succ_fresh _ _ _ _ h, walk_succ_fresh _ _ _ _ h, walk_succ_fresh _ _ _ _ h,
-            walk_add st item item' fr fr' ex ex' A (σ r)]
-          ring
-
-/-- The walk is homogeneous in its payoffs. -/
-theorem walk_const_mul (st : α → St) (item : α → ℝ≥0∞) (fr ex c : ℝ≥0∞) :
-    ∀ (A : ℕ) (r : α), walk σ p st (fun x => c * item x) (c * fr) (c * ex) A r =
-      c * walk σ p st item fr ex A r
-  | 0, _ => rfl
-  | A + 1, r => by
-      cases h : st r with
-      | hit => rw [walk_succ_hit _ _ _ _ h, walk_succ_hit _ _ _ _ h]
-      | miss =>
-          rw [walk_succ_miss _ _ _ _ h, walk_succ_miss _ _ _ _ h]
-          exact walk_const_mul st item fr ex c A (σ r)
-      | fresh =>
-          rw [walk_succ_fresh _ _ _ _ h, walk_succ_fresh _ _ _ _ h, walk_const_mul st item fr ex c A (σ r)]
-          ring
-
 /-- The walk is monotone in its payoffs. -/
 theorem walk_mono (st : α → St) {item item' : α → ℝ≥0∞} {fr fr' ex ex' : ℝ≥0∞} (hi : ∀ x, item x ≤ item' x)
     (hf : fr ≤ fr') (he : ex ≤ ex') :
@@ -138,33 +99,6 @@ theorem walk_const (hp : p ≤ 1) (st : α → St) (c : ℝ≥0∞) :
 theorem walk_le (hp : p ≤ 1) (st : α → St) {item : α → ℝ≥0∞} {fr ex B : ℝ≥0∞} (hi : ∀ x, item x ≤ B)
     (hf : fr ≤ B) (he : ex ≤ B) (A : ℕ) (r : α) : walk σ p st item fr ex A r ≤ B :=
   (walk_mono st hi hf he A r).trans (le_of_eq (walk_const hp st B A r))
-
-/-- The walk is affine in the fresh payoff. -/
-theorem walk_fr_add (st : α → St) (item : α → ℝ≥0∞) (fr δ ex : ℝ≥0∞) (A : ℕ) (r : α) :
-    walk σ p st item (fr + δ) ex A r =
-      walk σ p st item fr ex A r + δ * walk σ p st (fun _ => 0) 1 0 A r := by
-  have h := walk_add (σ := σ) (p := p) st item (fun _ => δ * 0) fr (δ * 1) ex (δ * 0) A r
-  rw [walk_const_mul] at h
-  simpa only [mul_zero, add_zero, mul_one] using h
-
-/-- A position that the walk does not visit does not matter. -/
-theorem walk_update_of_not_visit [DecidableEq α] (st : α → St) (item : α → ℝ≥0∞) (fr ex : ℝ≥0∞) (y : α)
-    (s : St) (c : ℝ≥0∞) :
-    ∀ (A : ℕ) (r : α), (∀ i, i < A → (σ ^ i) r ≠ y) →
-      walk σ p (Function.update st y s) (Function.update item y c) fr ex A r = walk σ p st item fr ex A r
-  | 0, _, _ => rfl
-  | A + 1, r, h => by
-      have hr : r ≠ y := by simpa using h 0 (Nat.succ_pos A)
-      have hnext : ∀ i, i < A → (σ ^ i) (σ r) ≠ y := fun i hi => by
-        have := h (i + 1) (Nat.succ_lt_succ hi)
-        rwa [pow_succ, Equiv.Perm.mul_apply] at this
-      have hst : Function.update st y s r = st r := Function.update_of_ne hr _ _
-      have hit : Function.update item y c r = item r := Function.update_of_ne hr _ _
-      have ih := walk_update_of_not_visit st item fr ex y s c A (σ r) hnext
-      cases h' : st r with
-      | hit => rw [walk_succ_hit _ _ _ _ (hst.trans h'), walk_succ_hit _ _ _ _ h', hit]
-      | miss => rw [walk_succ_miss _ _ _ _ (hst.trans h'), walk_succ_miss _ _ _ _ h', ih]
-      | fresh => rw [walk_succ_fresh _ _ _ _ (hst.trans h'), walk_succ_fresh _ _ _ _ h', ih]
 
 /-! ### Reaching a position -/
 
@@ -212,60 +146,6 @@ theorem reach_le_one (st : α → St) (y : α) : ∀ (A : ℕ) (r : α), reach �
 
 theorem reach_ne_top (st : α → St) (y : α) (A : ℕ) (r : α) : reach σ p st y A r ≠ ⊤ :=
   ne_top_of_le_ne_top one_ne_top (reach_le_one st y A r)
-
-/-- **One query, one start.** A fresh position `y` is queried: it becomes a hit with payoff `c` with
-probability `p` and a miss otherwise. In the mean the walk from any start gains `p · reach · c` and
-loses `p · reach · fr`. -/
-theorem probe_eq (hp : p ≤ 1) (st : α → St) (item : α → ℝ≥0∞) (fr ex c : ℝ≥0∞) (y : α)
-    (hy : st y = .fresh) :
-    ∀ (A : ℕ), (∀ j, 0 < j → j < A → (σ ^ j) y ≠ y) → ∀ r : α,
-      p * walk σ p (Function.update st y .hit) (Function.update item y c) fr ex A r +
-          (1 - p) * walk σ p (Function.update st y .miss) item fr ex A r +
-          p * reach σ p st y A r * fr =
-        walk σ p st item fr ex A r + p * reach σ p st y A r * c
-  | 0, _, r => by
-      simp only [walk_zero, reach, mul_zero, zero_mul, add_zero]
-      rw [← add_mul, add_tsub_cancel_of_le hp, one_mul]
-  | A + 1, hA, r => by
-      have hA' : ∀ j, 0 < j → j < A → (σ ^ j) y ≠ y := fun j h0 hj => hA j h0 (Nat.lt_succ_of_lt hj)
-      by_cases hr : r = y
-      · subst hr
-        have hmiss : walk σ p (Function.update st r .miss) item fr ex A (σ r) = walk σ p st item fr ex A (σ r) := by
-          have h := walk_update_of_not_visit (σ := σ) (p := p) st item fr ex r .miss (item r) A (σ r)
-            (fun i hi => by
-              have := hA (i + 1) (Nat.succ_pos i) (Nat.succ_lt_succ hi)
-              rwa [pow_succ, Equiv.Perm.mul_apply] at this)
-          rwa [Function.update_eq_self] at h
-        rw [walk_succ_hit _ _ _ _ (Function.update_self ..), walk_succ_miss _ _ _ _ (Function.update_self ..),
-          walk_succ_fresh _ _ _ _ hy, reach_self, Function.update_self, hmiss]
-        ring
-      · have hsth : Function.update st y St.hit r = st r := Function.update_of_ne hr _ _
-        have hstm : Function.update st y St.miss r = st r := Function.update_of_ne hr _ _
-        have hitem : Function.update item y c r = item r := Function.update_of_ne hr _ _
-        have ih := probe_eq hp st item fr ex c y hy A hA' (σ r)
-        cases h : st r with
-        | hit =>
-            rw [walk_succ_hit _ _ _ _ (hsth.trans h), walk_succ_hit _ _ _ _ (hstm.trans h),
-              walk_succ_hit _ _ _ _ h, reach_succ_hit A hr h, hitem]
-            simp only [mul_zero, zero_mul, add_zero]
-            rw [← add_mul, add_tsub_cancel_of_le hp, one_mul]
-        | miss =>
-            rw [walk_succ_miss _ _ _ _ (hsth.trans h), walk_succ_miss _ _ _ _ (hstm.trans h),
-              walk_succ_miss _ _ _ _ h, reach_succ_miss A hr h]
-            exact ih
-        | fresh =>
-            rw [walk_succ_fresh _ _ _ _ (hsth.trans h), walk_succ_fresh _ _ _ _ (hstm.trans h),
-              walk_succ_fresh _ _ _ _ h, reach_succ_fresh A hr h]
-            set W1 := walk σ p (Function.update st y St.hit) (Function.update item y c) fr ex A (σ r)
-            set W2 := walk σ p (Function.update st y St.miss) item fr ex A (σ r)
-            set W := walk σ p st item fr ex A (σ r)
-            set ρ := reach σ p st y A (σ r)
-            have hsplit : p * (p * fr) + (1 - p) * (p * fr) = p * fr := by
-              rw [← add_mul, add_tsub_cancel_of_le hp, one_mul]
-            calc p * (p * fr + (1 - p) * W1) + (1 - p) * (p * fr + (1 - p) * W2) + p * ((1 - p) * ρ) * fr
-                = (p * (p * fr) + (1 - p) * (p * fr)) + (1 - p) * (p * W1 + (1 - p) * W2 + p * ρ * fr) := by ring
-              _ = p * fr + (1 - p) * (W + p * ρ * c) := by rw [hsplit, ih]
-              _ = _ := by ring
 
 /-! ### The fresh starts that reach a position -/
 
@@ -429,87 +309,6 @@ section Group
 
 variable [DecidableEq α] [Fintype α]
 
-variable (σ p) in
-/-- **The group value** of one message, up to the factor `1 / card`: the sum over the starts of the
-walk payoffs, where a fresh position that lands pays `base` to a fresh start (the view of that
-signature is fresh: nothing beyond the slot) and `favg` to a cached start (pending mass of a
-dangling query). Exhausted attempts pay `base`. -/
-noncomputable def gv (st : α → St) (item : α → ℝ≥0∞) (base favg : ℝ≥0∞) (A : ℕ) : ℝ≥0∞ :=
-  ∑ r, walk σ p st item (if st r = .fresh then base else favg) base A r
-
-omit [Fintype α] in
-/-- One query, one start: the mean payoff after a query at the fresh position `y` (hit with payoff
-`favg = base + δ`, or miss). -/
-theorem start_le (hp : p ≤ 1) (st : α → St) (item : α → ℝ≥0∞) (base δ : ℝ≥0∞) (hbase : base ≠ ⊤)
-    (hδ : δ ≠ ⊤) (y : α) (hy : st y = .fresh) (A : ℕ) (hA : ∀ j, 0 < j → j < A → (σ ^ j) y ≠ y) (r : α) :
-    p * walk σ p (Function.update st y .hit) (Function.update item y (base + δ))
-          (if Function.update st y St.hit r = .fresh then base else base + δ) base A r +
-        (1 - p) * walk σ p (Function.update st y .miss) item
-          (if Function.update st y St.miss r = .fresh then base else base + δ) base A r ≤
-      walk σ p st item (if st r = .fresh then base else base + δ) base A r +
-        (if r ≠ y ∧ st r = .fresh then p * reach σ p st y A r * δ else 0) + (if r = y then δ else 0) := by
-  by_cases hr : r = y
-  · subst hr
-    rw [Function.update_self, Function.update_self, ite_eq_right (by simp), ite_eq_right (by simp), ite_eq_left hy,
-      ite_eq_right (by simp), ite_eq_left rfl, add_zero]
-    rcases A with _ | A
-    · simp only [walk_zero]
-      rw [← add_mul, add_tsub_cancel_of_le hp, one_mul]
-      exact le_self_add
-    · have hmiss : walk σ p (Function.update st r .miss) item (base + δ) base A (σ r) =
-          walk σ p st item (base + δ) base A (σ r) := by
-        have h := walk_update_of_not_visit (σ := σ) (p := p) st item (base + δ) base r .miss (item r) A (σ r)
-          (fun i hi => by
-            have := hA (i + 1) (Nat.succ_pos i) (Nat.succ_lt_succ hi)
-            rwa [pow_succ, Equiv.Perm.mul_apply] at this)
-        rwa [Function.update_eq_self] at h
-      rw [walk_succ_hit _ _ _ _ (Function.update_self ..), walk_succ_miss _ _ _ _ (Function.update_self ..),
-        walk_succ_fresh _ _ _ _ hy, Function.update_self, hmiss, walk_fr_add]
-      set X := walk σ p st item base base A (σ r)
-      set F := walk σ p st (fun _ => 0) 1 0 A (σ r)
-      have hF : F ≤ 1 := walk_le hp st (fun _ => zero_le_one) le_rfl zero_le_one A (σ r)
-      calc p * (base + δ) + (1 - p) * (X + δ * F)
-          ≤ p * (base + δ) + (1 - p) * (X + δ * 1) := by gcongr
-        _ = p * base + (1 - p) * X + (p + (1 - p)) * δ := by ring
-        _ = p * base + (1 - p) * X + δ := by rw [add_tsub_cancel_of_le hp, one_mul]
-  · have hsth : Function.update st y St.hit r = st r := Function.update_of_ne hr _ _
-    have hstm : Function.update st y St.miss r = st r := Function.update_of_ne hr _ _
-    rw [hsth, hstm, ite_eq_right hr, add_zero]
-    have hρ : p * reach σ p st y A r ≠ ⊤ :=
-      ENNReal.mul_ne_top (ne_top_of_le_ne_top one_ne_top hp) (reach_ne_top st y A r)
-    by_cases hfr : st r = .fresh
-    · rw [ite_eq_left hfr, ite_eq_left ⟨hr, hfr⟩]
-      have h := probe_eq hp st item base base (base + δ) y hy A hA r
-      have h2 : p * walk σ p (Function.update st y .hit) (Function.update item y (base + δ)) base base A r +
-          (1 - p) * walk σ p (Function.update st y .miss) item base base A r + p * reach σ p st y A r * base =
-          (walk σ p st item base base A r + p * reach σ p st y A r * δ) + p * reach σ p st y A r * base := by
-        rw [h]; ring
-      exact le_of_eq ((ENNReal.add_left_inj (ENNReal.mul_ne_top hρ hbase)).1 h2)
-    · rw [ite_eq_right hfr, ite_eq_right (fun h => hfr h.2), add_zero]
-      have h := probe_eq hp st item (base + δ) base (base + δ) y hy A hA r
-      exact le_of_eq ((ENNReal.add_left_inj (ENNReal.mul_ne_top hρ (ENNReal.add_ne_top.2 ⟨hbase, hδ⟩))).1 h)
-
-/-- **The creation rate of the scan loop.** A query at a fresh position raises the group value by at
-most `(2 − p) δ` in the mean, `δ = favg − base` the gain of a fresh uniform view. -/
-theorem creation_le (hp : p ≤ 1) (st : α → St) (item : α → ℝ≥0∞) (base δ : ℝ≥0∞) (hbase : base ≠ ⊤)
-    (hδ : δ ≠ ⊤) (y : α) (hy : st y = .fresh) (A : ℕ) (hA : ∀ j, 0 < j → j < A → (σ ^ j) y ≠ y) :
-    p * gv σ p (Function.update st y .hit) (Function.update item y (base + δ)) base (base + δ) A +
-        (1 - p) * gv σ p (Function.update st y .miss) item base (base + δ) A ≤
-      gv σ p st item base (base + δ) A + (1 - p) * δ + δ := by
-  unfold gv
-  rw [Finset.mul_sum, Finset.mul_sum, ← Finset.sum_add_distrib]
-  refine le_trans (Finset.sum_le_sum fun r _ => start_le hp st item base δ hbase hδ y hy A hA r) ?_
-  rw [Finset.sum_add_distrib, Finset.sum_add_distrib, Finset.sum_ite_eq' Finset.univ y (fun _ => δ),
-    ite_eq_left (Finset.mem_univ y)]
-  gcongr
-  have h := sum_reach_le hp st y A hA
-  calc ∑ r, (if r ≠ y ∧ st r = .fresh then p * reach σ p st y A r * δ else 0)
-      = (p * ∑ r, (if r ≠ y ∧ st r = .fresh then reach σ p st y A r else 0)) * δ := by
-        rw [Finset.mul_sum, Finset.sum_mul]
-        refine Finset.sum_congr rfl fun r _ => ?_
-        split_ifs <;> simp
-    _ ≤ (1 - p) * δ := mul_le_mul' h le_rfl
-
 /-! ### The mass that stays on the identity -/
 
 /-- A walk that ends at a cached hit reached one. -/
@@ -565,50 +364,6 @@ theorem sum_fresh_hit_le (hp : p ≤ 1) (st : α → St) (A : ℕ) (hA : ∀ x j
         · exact le_rfl
     _ = _ := by
         rw [Finset.sum_ite, Finset.sum_const_zero, add_zero, Finset.sum_const, nsmul_eq_mul]
-
-/-- **The mass on the identity.** The starts whose walk leaves the disclosures unchanged (a fresh
-start that ends at a fresh position, or exhausted attempts) weigh at least the number of positions
-minus the cached ones and `(1 − p)/p` per cached hit. -/
-theorem mass_le (hp : p ≤ 1) (st : α → St) (A : ℕ) (hA : ∀ x j, 0 < j → j < A → (σ ^ j) x ≠ x) :
-    p * (Fintype.card α : ℝ≥0∞) ≤
-      p * gv σ p st (fun _ => 0) 1 0 A + p * (Finset.univ.filter fun r => st r ≠ .fresh).card +
-        (Finset.univ.filter fun x => st x = .hit).card * (1 - p) := by
-  have hone : ∀ r, (1 : ℝ≥0∞) = walk σ p st (fun _ => 0) (if st r = .fresh then 1 else 0) 1 A r +
-      walk σ p st (fun _ => 1) (if st r = .fresh then 0 else 1) 0 A r := by
-    intro r
-    rw [← walk_add]
-    have h := walk_const (σ := σ) hp st (1 : ℝ≥0∞) A r
-    convert h.symm using 2
-    · simp
-    · split_ifs <;> simp
-    · simp
-  have hoth : ∀ r, walk σ p st (fun _ => 1) (if st r = .fresh then 0 else 1) 0 A r ≤
-      (if st r = .fresh then walk σ p st (fun _ => 1) 0 0 A r else 0) + (if st r ≠ .fresh then 1 else 0) := by
-    intro r
-    by_cases hr : st r = .fresh
-    · simp [hr]
-    · rw [ite_eq_right hr, ite_eq_right hr, zero_add, ite_eq_left hr]
-      exact walk_le hp st (fun _ => le_rfl) le_rfl zero_le_one A r
-  have hcard : (Fintype.card α : ℝ≥0∞) ≤ gv σ p st (fun _ => 0) 1 0 A +
-      (∑ r, (if st r = .fresh then walk σ p st (fun _ => 1) 0 0 A r else 0) +
-        (Finset.univ.filter fun r => st r ≠ .fresh).card) := by
-    calc (Fintype.card α : ℝ≥0∞) = ∑ _r : α, (1 : ℝ≥0∞) := by simp
-      _ = ∑ r, (walk σ p st (fun _ => 0) (if st r = .fresh then 1 else 0) 1 A r +
-            walk σ p st (fun _ => 1) (if st r = .fresh then 0 else 1) 0 A r) :=
-          Finset.sum_congr rfl fun r _ => hone r
-      _ ≤ ∑ r, (walk σ p st (fun _ => 0) (if st r = .fresh then 1 else 0) 1 A r +
-            ((if st r = .fresh then walk σ p st (fun _ => 1) 0 0 A r else 0) + (if st r ≠ .fresh then 1 else 0))) :=
-          Finset.sum_le_sum fun r _ => add_le_add le_rfl (hoth r)
-      _ = _ := by
-          rw [Finset.sum_add_distrib, Finset.sum_add_distrib]
-          congr 2
-          rw [Finset.sum_ite, Finset.sum_const_zero, add_zero, Finset.sum_const, nsmul_eq_mul, mul_one]
-  calc p * (Fintype.card α : ℝ≥0∞) ≤ p * (gv σ p st (fun _ => 0) 1 0 A +
-        (∑ r, (if st r = .fresh then walk σ p st (fun _ => 1) 0 0 A r else 0) +
-          (Finset.univ.filter fun r => st r ≠ .fresh).card)) := mul_le_mul' le_rfl hcard
-    _ = p * gv σ p st (fun _ => 0) 1 0 A + p * (Finset.univ.filter fun r => st r ≠ .fresh).card +
-          p * ∑ r, (if st r = .fresh then walk σ p st (fun _ => 1) 0 0 A r else 0) := by ring
-    _ ≤ _ := add_le_add le_rfl (sum_fresh_hit_le hp st A hA)
 
 end Group
 

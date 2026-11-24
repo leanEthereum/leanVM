@@ -2,10 +2,23 @@ module
 
 public import VCVio.ProgramLogic.Relational.FromUnary
 public import XmssSecurity.Proof.CappedGlobalChainHighSetup
-public import XmssSecurity.Proof.CappedChain.KeygenUnaddressedCache
 public import XmssSecurity.Proof.RunObservedAppend
 
 @[expose] public section
+
+/-!
+# The causal simulation's answer to one hash query
+
+`globalFilteredCausalAttackerHashPlan` sorts an adversary hash query
+(`GlobalFilteredCausalHashPlan`): cached; a chain step from a revealed value, answered by revealing
+the next one (`reveal`); a chain step or a leaf input over a hidden value, which probes that value
+first (`probeThenFresh`); a leaf input over revealed endpoints, redirected to key generation's
+answer (`redirect`); or fresh. `globalCausalAttackerHashQueryFromHigh` answers by that plan, the
+high halves read from a table. The `relTriple_programmed_globalFilteredHashQuery_*` theorems couple
+each case with the real random oracle, the probing ones until the monitor hits
+(`relTriple_programmed_globalFilteredChainHashQuery_until_hit` for chain inputs), and
+`programmedGlobal_leaf_cache_pair_of_reveals_match` gives the redirect's answer on both sides.
+-/
 
 open OracleComp OracleSpec
 open OracleComp.ProgramLogic.Relational
@@ -148,9 +161,6 @@ noncomputable def globalFilteredCausalLeafHashPlan
             | none => .fresh
           else .fresh
 
-
-set_option maxRecDepth 1000000
-
 noncomputable def globalFilteredCausalUncachedAttackerHashPlan
     (secretKey : SecretKey) (input : HashInput)
     (state : GlobalCausalHashState) :
@@ -223,8 +233,8 @@ theorem globalChainInputProbe?_globalChainTableEdgeInput
     globalChainInputProbe? parameter
         (globalChainTableEdgeInput parameter table edge) =
       some ((edge.1, edge.2.1, chainStepDigit edge.2.2),
-        table (edge.1, edge.2.1, chainStepDigit edge.2.2)) := by
-  exact globalChainInputProbe?_keyChainInput parameter edge.2.1 edge.1 edge.2.2
+        table (edge.1, edge.2.1, chainStepDigit edge.2.2)) :=
+  globalChainInputProbe?_keyChainInput parameter edge.2.1 edge.1 edge.2.2
     (table (edge.1, edge.2.1, chainStepDigit edge.2.2))
 
 theorem globalFilteredCausalAttackerHashPlan_eq_reveal_globalEdge
@@ -310,7 +320,6 @@ theorem globalCausalAttackerHashQueryFromHigh_run
            globalCausalRevealHashQueryFromHigh high secretKey input state
              index) := rfl
 
-
 theorem globalCausalRevealHashQueryFromHigh_isProbeQueryBoundP
     (high : GlobalChainValueIndex → Digest)
     (secretKey : SecretKey) (input : HashInput)
@@ -348,9 +357,6 @@ theorem globalCausalAttackerHashQueryFromHigh_isProbeQueryBoundP
       intro _ _
       exact globalCausalHashQuery_run_isProbeQueryBoundP input
         (globalCausalRecordedState secretKey input state)
-
-
-set_option maxRecDepth 1000000
 
 theorem relTriple_programmed_globalFilteredHashQuery_cached
     (left : ProgrammedGlobalChainKeygenView)
@@ -483,9 +489,6 @@ theorem relTriple_programmed_globalFilteredHashQuery_redirect
     WriterT.run_pure]
   exact relTriple_pure_pure ⟨rfl, hnext⟩
 
-
-set_option maxRecDepth 1000000
-
 theorem relTriple_programmed_globalFilteredHashQuery_revealEdge
     (left : ProgrammedGlobalChainKeygenView)
     (right : (ProgrammedGlobalChainKeygenView ×
@@ -582,9 +585,6 @@ theorem relTriple_programmed_globalFilteredHashQuery_revealEdge
       left.secretKey.parameter left.table edge
   · exact hleft
   · rfl
-
-
-set_option maxRecDepth 1000000
 
 def GlobalFilteredHashUntilHitRelation
     (left : ProgrammedGlobalChainKeygenView)
@@ -939,7 +939,6 @@ theorem relTriple_programmed_globalFilteredChainHashQuery_until_hit
             intro _leftResult _rightResult hresult
             exact Or.inl hresult
 
-
 theorem globalLeafInput_not_signingComparable
     (parameter : PublicParameter) (leafIndex : ChainKey)
     (endpoints : ChainIndex → Digest) :
@@ -959,8 +958,8 @@ theorem programmedGlobal_left_endpoint_eq_table
     (leafIndex : ChainKey) (chain : ChainIndex) :
     Concrete.CacheReplay.keyOneTimePublicKey left.cache
         left.secretKey.parameter left.secretKey.keyChainStart leafIndex chain =
-      right.1.2 (chain, leafIndex, chainEndpointDigit) := by
-  exact programmedGlobal_left_chainValue_eq_table left right hrel hleftSupport
+      right.1.2 (chain, leafIndex, chainEndpointDigit) :=
+  programmedGlobal_left_chainValue_eq_table left right hrel hleftSupport
     (chain, leafIndex, chainEndpointDigit)
 
 theorem programmedGlobal_left_leaf_cache_none_of_endpoint_miss

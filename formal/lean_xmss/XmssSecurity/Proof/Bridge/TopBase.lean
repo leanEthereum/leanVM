@@ -1,11 +1,10 @@
 module
 
 public import VCVio.OracleComp.SimSemantics.StateT.Measure
-public import XmssSecurity.Proof.EvalDistEq
 public import XmssSecurity.Proof.Bridge.Naturality
 public import XmssSecurity.Proof.Bridge.Program
-public import XmssSecurity.Proof.Deterministic.FreshRequests
 public import XmssSecurity.Proof.RandomOracle
+public import XmssSecurity.Proof.Deterministic.FreshRequests
 
 @[expose] public section
 
@@ -289,13 +288,13 @@ theorem evalDist_topBase (parameter : PublicParameter) (secret : LeafIndex → C
   calc _ =ᵈ ((sampleTopRnd >>= fun table =>
           (tableRun romImpl signTable table (keygenTable parameter secret topSecret)).run ∅) >>= k) := by
         rw [bind_assoc]
-    _ =ᵈ ((freshRun romImpl signTable (keygenTable parameter secret topSecret)).run ∅ >>= k) := by
-        exact h1.bind_left _
-    _ =ᵈ ((freshRun romImpl signKey (keygenKey parameter secret topSecret)).run ∅ >>= k) := by
-        exact (evalDist_freshRun_table_key _ _ _ _).bind_left _
+    _ =ᵈ ((freshRun romImpl signTable (keygenTable parameter secret topSecret)).run ∅ >>= k) :=
+        h1.bind_left _
+    _ =ᵈ ((freshRun romImpl signKey (keygenKey parameter secret topSecret)).run ∅ >>= k) :=
+        (evalDist_freshRun_table_key _ _ _ _).bind_left _
     _ =ᵈ ((Concrete.sampleTopBase >>= fun table =>
-          (tableRun romImpl signKey table (keygenKey parameter secret topSecret)).run ∅) >>= k) := by
-        exact h2.symm.bind_left _
+          (tableRun romImpl signKey table (keygenKey parameter secret topSecret)).run ∅) >>= k) :=
+        h2.symm.bind_left _
     _ = _ := by rw [bind_assoc]
 
 end XmssSecurity.Bridge

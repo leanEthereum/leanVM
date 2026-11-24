@@ -1,14 +1,10 @@
 module
 
-public import XmssSecurity.Proof.QueryPresence
-public import XmssSecurity.Proof.StatementLemmas
-public import XmssSecurity.Proof.ChainTableUniformity
-public import XmssSecurity.Proof.AdaptiveFreshTarget
 public import XmssSecurity.Proof.RandomOraclePresampling
-public import XmssSecurity.Proof.HiddenValue
 public import XmssSecurity.Proof.UniformFiniteTable
-public import XmssSecurity.Proof.HonestKeygenRun
 public import XmssSecurity.Proof.TopKeygenFacts
+public import XmssSecurity.Proof.ChainHiddenTable
+public import XmssSecurity.Proof.ChainTrajectory
 
 @[expose] public section
 
@@ -20,8 +16,6 @@ chain trajectory and then runs key generation from the warmed cache.
 -/
 
 open OracleComp OracleSpec ENNReal
-open OracleComp.ProgramLogic
-open OracleComp.ProgramLogic.Relational
 
 namespace XmssSecurity.Concrete.CacheReplay
 
@@ -381,7 +375,6 @@ theorem keygenChainValueTable_seedsMatch
   intro key
   simp [keygenChainValueTable]
 
-set_option maxRecDepth 10000 in
 theorem Concrete.keygenChainValueTable_edgesMatch
     (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
     (hkeygen : keyResult ∈ support
@@ -555,8 +548,8 @@ theorem evalDist_run_eq_chainTrajectory_then {α : Type} (parameter : PublicPara
             (simulateQ randomOracle
               (Concrete.chainTrajectory parameter key chain 0 steps
                 (start key chain))).run initialCache) >>= fun chainResult =>
-          (simulateQ randomOracle computation).run chainResult.2) := by
-      exact (evalDist_chainTrajectory_run_cache_eq_keyChainWalk_run_cache parameter key chain 0
+          (simulateQ randomOracle computation).run chainResult.2) :=
+      (evalDist_chainTrajectory_run_cache_eq_keyChainWalk_run_cache parameter key chain 0
         steps (start key chain) initialCache).symm.bind_left _
     _ = _ := by
       simp [map_eq_bind_pure_comp, bind_assoc]
@@ -593,8 +586,6 @@ theorem Concrete.fixedSeedChainTrajectoriesFromCache_cons
           parameter start chain steps first.2 keys
         return (first.1 :: rest.1, rest.2)) := rfl
 
-set_option maxRecDepth 100000 in
-set_option linter.constructorNameAsVariable false in
 theorem Concrete.fixedSeedChainTrajectoriesFromCache_support_info
     (parameter : PublicParameter) (start : ChainKey → ChainIndex → Digest)
     (chain : ChainIndex) (steps : Nat) :
@@ -640,8 +631,6 @@ theorem Concrete.fixedSeedChainTrajectoriesFromCache_support_info
                 (start key chain)) cache first.2 rest.2 first.1 hfirst hfirstCacheLe
           · exact hpairs
 
-set_option maxRecDepth 100000 in
-set_option linter.constructorNameAsVariable false in
 theorem Concrete.fixedSeedChainTrajectoriesFromCache_replay_in_largerCache
     (parameter : PublicParameter) (start : ChainKey → ChainIndex → Digest)
     (chain : ChainIndex) (steps : Nat) :

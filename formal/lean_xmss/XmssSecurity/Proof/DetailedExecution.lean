@@ -1,9 +1,18 @@
 module
 
 public import XmssSecurity.Proof.Execution
-public import XmssSecurity.Proof.ConsistentQueryBound
 
 @[expose] public section
+
+/-!
+# The security game with its full outcome
+
+`detailedGameCore` runs the security game keeping the keys, the forgery, the signing log and the
+verification bit (`GameOutcome`), and `GameOutcome.won` maps it to the game's result
+(`gameCore_eq_map_detailedGameCore`). Run from the empty cache with its final cache kept
+(`detailedGameWithCache`), it gives the forging advantage
+(`forgeAdvantage_eq_detailedGameWithCache`).
+-/
 
 open OracleComp OracleSpec ENNReal
 

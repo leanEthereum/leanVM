@@ -1,11 +1,24 @@
 module
 
-public import XmssSecurity.Proof.IdealStatement
 public import XmssSecurity.Proof.EvalDistEq
 public import VCVio.OracleComp.QueryTracking.RandomOracle.DeferredSampling
 public import VCVio.OracleComp.QueryTracking.Unpredictability
+public import XmssSecurity.Scheme
 
 @[expose] public section
+
+/-!
+# A 256-bit oracle answer as two digest halves
+
+A random-oracle answer is 256 bits, and the scheme keeps its low 128-bit half (`truncateHash`).
+`hashOutputEquivDigestPair` splits an answer into an independent high half and that digest: a
+uniform answer gives two independent uniform halves
+(`evalDist_split_uniformHashOutput_eq_independent`) and a uniform digest
+(`evalDist_truncate_uniformHashOutput`). Choosing the digest first and then a uniform high half
+(`sampledHashOutputWithDigest`) is distributed as a uniform answer with its truncation
+(`evalDist_sampledHashOutputWithDigest_eq_uniform`), which lets a proof program a digest in place
+of an oracle answer. Exactly `2^128` answers truncate to a given digest (`card_matchingOutputs`).
+-/
 
 open OracleComp OracleSpec ENNReal
 
@@ -21,9 +34,6 @@ def splitHashOutput (output : HashOutput) : BitVec (digestBits + digestBits) :=
 end XmssSecurity
 
 namespace XmssSecurity.Rom
-
-noncomputable local instance : UniformAnswerMeasure HashSpec :=
-  UniformAnswerMeasure.ofFiniteNonempty _
 
 theorem card_hashOutput : Fintype.card HashOutput = 2 ^ hashOutputBits := by
   simp
@@ -49,8 +59,8 @@ def digestFiberEquiv (target : Digest) :
       joinDigest (highDigest output.val) target =
           joinDigest (highDigest output.val) (truncateHash output.val) := by
         rw [output.property]
-      _ = (splitHashOutput output.val).cast hashOutputBits_eq.symm := by
-        exact congrArg (BitVec.cast hashOutputBits_eq.symm)
+      _ = (splitHashOutput output.val).cast hashOutputBits_eq.symm :=
+        congrArg (BitVec.cast hashOutputBits_eq.symm)
           (BitVec.extractLsb'_append_extractLsb' (x := splitHashOutput output.val))
       _ = output.val := by simp [splitHashOutput]
 
@@ -61,8 +71,8 @@ def hashOutputEquivDigestPair : HashOutput ≃ Digest × Digest where
   left_inv output := by
     calc
       joinDigest (highDigest output) (truncateHash output) =
-          (splitHashOutput output).cast hashOutputBits_eq.symm := by
-        exact congrArg (BitVec.cast hashOutputBits_eq.symm)
+          (splitHashOutput output).cast hashOutputBits_eq.symm :=
+        congrArg (BitVec.cast hashOutputBits_eq.symm)
           (BitVec.extractLsb'_append_extractLsb' (x := splitHashOutput output))
       _ = output := by simp [splitHashOutput]
   right_inv halves := by

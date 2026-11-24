@@ -1,16 +1,22 @@
 module
 
-public import XmssSecurity.Proof.ConcreteQueryBound
 public import XmssSecurity.Proof.ChainKey
+public import XmssSecurity.Proof.CacheReplayEval
 
 @[expose] public section
+
+/-!
+# Chain trajectories
+
+`Concrete.chainTrajectory` walks a chain from a position and returns every value it passes. Replayed
+from a cache, its entries are the chain's walk (`Concrete.chainTrajectory_getElem`), and it makes
+no query at an address its steps avoid (`Concrete.chainTrajectory_queryBound_zero_of_avoids`).
+`ChainOraclePresampling` presamples key generation's chains with it.
+-/
 
 open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity
-
-noncomputable local instance chainTrajectorySampleableDigest : SampleableType Digest :=
-  SampleableType.ofFintype Digest
 
 @[simp]
 theorem Vector.back_push {n : Nat} (values : Vector α n) (value : α) :
@@ -131,6 +137,5 @@ theorem Concrete.chainTrajectory_queryBound_zero_of_avoids
             (p := AtHashAddress parameter targetDomain) (values.push next) 0)
       · exact OracleComp.isQueryBoundP_pure
           (p := AtHashAddress parameter targetDomain) (values.push 0) 0
-
 
 end XmssSecurity

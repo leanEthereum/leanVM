@@ -4,6 +4,16 @@ public import XmssSecurity.Proof.ChainOraclePresampling
 
 @[expose] public section
 
+/-!
+# Chain walks answered from a matching table
+
+When a chain table's first values are the keys' chain starts (`ChainTableSeedsMatch`) and the cache
+answers each of its edges with the table's next value (`ChainTableEdgesMatch`), a chain walk of a
+key of either layer returns the table's value without sampling or changing the cache
+(`simulate_keyChainWalk_run_eq_pure_of_table_matches`), and so does a leaf index's walk
+(`simulate_chainWalk_run_eq_pure_of_table_matches`).
+-/
+
 open OracleComp OracleSpec
 
 namespace XmssSecurity

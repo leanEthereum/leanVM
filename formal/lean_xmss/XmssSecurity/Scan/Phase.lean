@@ -3,6 +3,8 @@ module
 public import XmssSecurity.Scan.Ledger
 public import XmssSecurity.Scan.MomentLift
 public import XmssSecurity.Scan.Card
+public import XmssSecurity.Scan.Ghost
+public import XmssSecurity.Scan.SignStep
 
 @[expose] public section
 

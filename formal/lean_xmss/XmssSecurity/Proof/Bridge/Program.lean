@@ -1,6 +1,8 @@
 module
 
 public import XmssSecurity.Proof.Bridge.Derivation
+public import XmssSecurity.Proof.Bridge.Basic
+public import XmssSecurity.Proof.Seeded.FiniteTable
 
 @[expose] public section
 
@@ -16,8 +18,6 @@ open OracleComp OracleSpec
 namespace XmssSecurity.Bridge
 
 open Seeded DeterministicSigning
-
-set_option backward.isDefEq.respectTransparency false
 
 noncomputable opaque bottomSampleable : SampleableType (BottomPos → HashOutput) :=
   SampleableType.ofFintype (BottomPos → HashOutput)

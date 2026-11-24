@@ -1,16 +1,29 @@
 module
 
 public import XmssSecurity.Proof.CappedGlobalChainHighCoverage
-public import XmssSecurity.Proof.StateLens
 
 @[expose] public section
+
+/-!
+# The monitored causal game as one oracle computation
+
+`globalHighDirectBaseMappedAdversaryImpl` and `globalHighDirectVerifierImpl` run the causal
+simulation as a computation in `RevealProbeOracleSimulation.World`, its reveals and probes being
+oracle queries, from the key generation `globalHighDirectKeygen` samples. The projections
+(`map_globalHighMonitored_adversary_full_query`,
+`map_simulate_globalHighMonitored_verifier_full_projection`) show that the monitored game of
+`CappedGlobalChainHighCoverage` projects onto that computation run
+against `eagerTraceImpl` on the base table, with the trace it logs; so its public trace is the
+direct one followed by the forgery's probes
+(`globalHighMonitoredPublicProjection_eq_append_direct`), `forgeryProbeCount` of them
+(`observedProbeCount_globalHighDirectForgeryPrimaryProbeTrace`). `CappedGlobalFirstLaneExperiment`
+builds on it.
+-/
 
 open OracleComp OracleSpec
 open OracleComp.ProgramLogic.Relational
 
 namespace XmssSecurity.CappedChain
-
-set_option maxRecDepth 1000000
 
 noncomputable def globalHighDirectUniformImpl :
     QueryImpl unifSpec
@@ -363,8 +376,6 @@ def globalHighMonitoredDirectProjection
     (((result.1.1.1, result.1.2),
       (result.2.1, result.2.2.1.causal)), result.2.2.1.trace))
 
-set_option maxRecDepth 1000000
-
 def globalHighDirectErasedResult
     (result : GlobalHighDirectResult) :
     ((((PublicKey × SecretKey) × QueryCache HashSpec) ×
@@ -428,8 +439,8 @@ theorem globalHighDirectForgeryPrimaryProbeTrace_all_probes
     (result : GlobalHighDirectResult) (action :
       RevealProbeOracleSimulation.ObservedAction GlobalChainValueIndex)
     (haction : action ∈ globalHighDirectForgeryPrimaryProbeTrace result) :
-    ∃ index target, action = .probe index target := by
-  exact globalForgeryPrimaryProbeTrace_all_probes _ action haction
+    ∃ index target, action = .probe index target :=
+  globalForgeryPrimaryProbeTrace_all_probes _ action haction
 
 theorem globalHighDirectForgeryPrimaryProbeTrace_agrees
     (table : GlobalChainValueIndex → Digest)

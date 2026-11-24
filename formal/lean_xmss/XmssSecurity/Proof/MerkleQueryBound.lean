@@ -1,9 +1,18 @@
 module
 
 public import XmssSecurity.Proof.TreeQueryBound
-public import XmssSecurity.Proof.StatementLemmas
 
 @[expose] public section
+
+/-!
+# Key generation queries each bottom Merkle address at most once
+
+A bottom tree queries a Merkle address once if the address lies inside it (`MerkleAddressInSubtree`)
+and never otherwise (`Concrete.treeNode_queryBound_merkleAddress`). The bottom trees are disjoint
+and the top layer queries no bottom address, so honest key generation queries each bottom Merkle
+address at most once (`Concrete.rootTree_queryBound_merkleAddress`), and its final cache holds at
+most one input at each (`Concrete.CacheReplay.rootTree_cache_unique_merkleAddress`).
+-/
 
 namespace XmssSecurity
 
@@ -190,8 +199,8 @@ theorem Concrete.CacheReplay.rootTree_cache_unique_merkleAddress
     (hrightP : AtHashAddress parameter (.merkle targetLevel targetNode) right)
     (hleft : cache left = some leftOutput)
     (hright : cache right = some rightOutput) :
-    left = right := by
-  exact Concrete.CacheReplay.cache_unique_of_query_bound_one
+    left = right :=
+  Concrete.CacheReplay.cache_unique_of_query_bound_one
     (Concrete.honestKeygen parameter secret topSecret (fun key _ => pure (topBase key)) :
       OracleComp HashSpec _)
     (AtHashAddress parameter (.merkle targetLevel targetNode)) ∅ cache root

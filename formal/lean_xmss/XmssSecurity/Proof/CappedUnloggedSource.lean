@@ -1,8 +1,19 @@
 module
 
-public import XmssSecurity.Proof.CappedSigningCacheTrace
+public import XmssSecurity.Proof.SigningCacheTrace
 
 @[expose] public section
+
+/-!
+# The unlogged source game after key generation
+
+`cappedSourceUnloggedMappedAdversaryImpl` forwards the adversary's oracle queries and answers its
+signing requests with the scheme's signer, without a log; with the signing log appended it is
+`forwardOracles + signingOracle` (`cappedSourceUnloggedMappedAdversaryImpl_withTraceAppend_eq`). So
+`cappedSourceUnloggedDetailedGameAfterKeygen`, the adversary followed by verification, is the
+detailed game after key generation projected to the forgery and the verdict
+(`cappedDetailedGameAfterKeygen_unloggedProjection`).
+-/
 
 open OracleComp OracleSpec
 
@@ -59,8 +70,8 @@ theorem cappedDetailedGameAfterKeygen_unloggedProjection
     let verified ← Concrete.scheme.verify publicKey forgery.leafIndex forgery.message
       forgery.signature
     pure (forgery, verified)
-  have hprojection : Prod.fst <$> loggedAdversary = unloggedAdversary := by
-    exact QueryImpl.fst_map_run_withTraceAppend
+  have hprojection : Prod.fst <$> loggedAdversary = unloggedAdversary :=
+    QueryImpl.fst_map_run_withTraceAppend
       (cappedSourceUnloggedMappedAdversaryImpl publicKey secretKey)
       signingLogFragment (adversary.main publicKey)
   rw [detailedGameAfterKeygen, ←

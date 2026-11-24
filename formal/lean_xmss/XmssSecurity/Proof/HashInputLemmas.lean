@@ -1,11 +1,19 @@
 module
 
-public import XmssSecurity.Proof.IdealStatement
 public import XmssSecurity.Proof.StatementLemmas
 public import XmssSecurity.Proof.EncodingLemmas
-public import Mathlib.Tactic.NormNum
 
 @[expose] public section
+
+/-!
+# Hash inputs determine their domain and payload
+
+The byte layout of a tweakable hash input is injective: equal inputs under one parameter have the
+same domain (`domain_eq_of_tweakableHashInput_eq`, through the address fields `hashDomainFields` and
+the domain suffix) and the same payload (`payload_eq_of_tweakableHashInput_eq`), and the encoding,
+leaf and node payloads are injective. The `CacheView` input builders inherit this:
+`encodingInput_eq_iff` separates encoding inputs by leaf index, message and randomness.
+-/
 
 open OracleSpec
 
@@ -110,14 +118,6 @@ private theorem ofNat_eq_of_lt {w left right : Nat}
 
 private theorem hashDomainTag_lt (domain : HashDomain) : hashDomainTag domain < 2 ^ 5 := by
   cases domain <;> norm_num [hashDomainTag]
-
-private theorem leafIndex_lt_32 (leafIndex : LeafIndex) : leafIndex.val < 2 ^ 32 := by
-  change leafIndex.val < lifetime
-  exact leafIndex.isLt
-
-private theorem merkleNode_lt_32 (node : MerkleNode) : node.val < 2 ^ 32 := by
-  change node.val < lifetime
-  exact node.isLt
 
 theorem hashDomainFields_eq (domain : HashDomain) :
     hashDomainFields domain = tweakFields (hashDomainTag domain) (hashDomainNats domain).1

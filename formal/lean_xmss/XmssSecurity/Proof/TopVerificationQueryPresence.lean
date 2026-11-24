@@ -17,7 +17,6 @@ open OracleComp OracleSpec
 
 namespace XmssSecurity.Concrete.CacheReplay
 
-set_option linter.constructorNameAsVariable false
 attribute [local irreducible] Concrete.topAuthenticationRoot
 
 /-- A successful verification runs the top check on the bottom root, as the cache computes it. -/

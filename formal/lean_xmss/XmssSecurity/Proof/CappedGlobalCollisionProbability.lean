@@ -1,11 +1,23 @@
 module
 
 public import XmssSecurity.Proof.GlobalBadEvent
-public import XmssSecurity.Proof.CappedSuffixEventProbability
-public import XmssSecurity.Proof.CappedMerkleEventProbability
+public import XmssSecurity.Proof.CappedSuffixOrientation
+public import XmssSecurity.Proof.CappedMerkleOrientation
 public import XmssSecurity.Proof.ExpectedAdaptiveFreshTarget
 
 @[expose] public section
+
+/-!
+# Fresh collisions after key generation, bounded by moved queries
+
+An event of the detailed game that, after every supported key generation, is an adaptive fresh
+digest collision against a target map has probability at most the expected number of queries after
+key generation whose input the map moves, over `2^digestBits`
+(`outcomePredicate_probability_le_expectedMovedQueries_of_afterKeygen_freshCollision`). The global
+suffix-collision and Merkle bad events are such collisions
+(`globalSuffixCollision_event_afterKeygen_orientation`,
+`globalMerkle_event_afterKeygen_orientation`); `CappedUnifiedStructuralCollision` combines them.
+-/
 
 open OracleComp OracleSpec ENNReal
 
@@ -54,7 +66,7 @@ theorem globalSuffixCollision_event_afterKeygen_orientation
     (hevent : GlobalOutcomeBadEventOccurs execution.2 execution.1
       .suffixCollision) :
     Rom.AdaptiveFreshDigestCollisionWith keyResult.2 execution.2
-      (CappedSuffix.keygenChainTargetInput keyResult.1.2 keyResult.2) := by
+      (keygenChainTargetInput keyResult.1.2 keyResult.2) := by
   obtain ⟨slot, hslot⟩ := hevent
   exact CappedSuffix.suffixCollision_event_afterKeygen_orientation adversary
     keyResult hkeygen execution hafter slot hslot

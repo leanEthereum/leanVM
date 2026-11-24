@@ -15,8 +15,6 @@ open OracleComp OracleSpec
 
 namespace XmssSecurity.Bridge
 
-set_option backward.isDefEq.respectTransparency false
-
 theorem nat_sequenceFin {ι : Type} {s₁ : OracleSpec ι} {m₂ : Type → Type} [Monad m₂] [LawfulMonad m₂]
     (impl : QueryImpl s₁ m₂) {α : Type} {n : Nat} (c : Fin n → OracleComp s₁ α) :
     simulateQ impl (Concrete.sequenceFin c) = Concrete.sequenceFin fun i => simulateQ impl (c i) := by

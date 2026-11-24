@@ -1,10 +1,28 @@
 module
 
-public import XmssSecurity.Proof.CappedChain.EncodingQueryBound
-public import XmssSecurity.Proof.ChainInputTrace
-public import VCVio.OracleComp.QueryTracking.QueryBound
+public import XmssSecurity.Proof.SigningCacheTrace
 
 @[expose] public section
+
+/-!
+# The attacker's action trace
+
+An `AttackerAction` is an adversary hash query or a signing request with its answer, and an
+`AttackerActionTrace` lists them in order. It projects to its hash inputs
+(`AttackerActionTrace.hashInputs`) and to the signing log (`AttackerActionTrace.toSigningLog`);
+`attackerActionFragment` records one oracle query (a uniform query records nothing), with
+`signingLogFragment` as its signing part (`attackerActionFragment_toSigningLog`).
+-/
+
+namespace XmssSecurity
+
+inductive AttackerAction where
+  | hash (input : HashInput)
+  | sign (request : SignRequest) (signature : Option Signature)
+
+abbrev AttackerActionTrace := List AttackerAction
+
+end XmssSecurity
 
 open OracleComp OracleSpec
 

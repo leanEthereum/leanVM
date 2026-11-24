@@ -1,15 +1,40 @@
 module
 
 public import XmssSecurity.Proof.ChainHiddenTable
-public import XmssSecurity.Proof.ChainTrajectoryComposition
 public import Init.Data.Vector.OfFn
 
 @[expose] public section
+
+/-!
+# Chain value tables as lists of trajectories
+
+`allChainKeys` lists the chain keys of both layers in a fixed order, and a `FullChainTrajectory`
+holds the `chainLength` values of one chain. `listOfChainValueTable` turns a table of chain values
+into one trajectory per key and `chainValueTableOfList` reads a table back from such a list, which
+`listOfChainValueTable` recovers when it has one trajectory per key
+(`listOfChainValueTable_chainValueTableOfList`).
+-/
 
 open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity
 
+abbrev FullChainTrajectory := Vector Digest (chainLength - 1 + 1)
+
+/-- Every one-time key of both layers, in a fixed order. -/
+noncomputable def allChainKeys : List ChainKey :=
+  Finset.univ.toList
+
+theorem allChainKeys_nodup : allChainKeys.Nodup :=
+  Finset.nodup_toList Finset.univ
+
+theorem mem_allChainKeys (key : ChainKey) : key ∈ allChainKeys := by
+  simp [allChainKeys]
+
+theorem allChainKeys_length : allChainKeys.length = Fintype.card ChainKey := by
+  simp [allChainKeys]
+
+attribute [irreducible] allChainKeys
 
 theorem fullChainTrajectory_length_eq : chainLength - 1 + 1 = chainLength := by
   decide
@@ -31,8 +56,8 @@ noncomputable def chainKeyPosition (key : ChainKey) : Fin allChainKeys.length :=
 
 @[simp]
 theorem allChainKeys_get_chainKeyPosition (key : ChainKey) :
-    allChainKeys.get (chainKeyPosition key) = key := by
-  exact List.idxOf_get (List.idxOf_lt_length_iff.mpr (mem_allChainKeys key))
+    allChainKeys.get (chainKeyPosition key) = key :=
+  List.idxOf_get (List.idxOf_lt_length_iff.mpr (mem_allChainKeys key))
 
 noncomputable def listOfChainValueTable
     (table : ChainValueIndex → Digest) : List FullChainTrajectory :=
@@ -66,8 +91,8 @@ theorem listOfChainValueTable_chainValueTableOfList
       have hindex : index < allChainKeys.length := by
         rw [allChainKeys_length, ← hlength]
         exact hright
-      have hposition : (chainKeyPosition allChainKeys[index]).val = index := by
-        exact List.get_idxOf allChainKeys_nodup ⟨index, hindex⟩
+      have hposition : (chainKeyPosition allChainKeys[index]).val = index :=
+        List.get_idxOf allChainKeys_nodup ⟨index, hindex⟩
       have hvalue :
           values[(chainKeyPosition allChainKeys[index]).val] = values[index] := by
         rw [← Option.some_inj, ← List.getElem?_eq_getElem,

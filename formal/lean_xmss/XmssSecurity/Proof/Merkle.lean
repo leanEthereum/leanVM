@@ -1,8 +1,17 @@
 module
 
-public import XmssSecurity.Proof.IdealStatement
+public import XmssSecurity.Scheme
 
 @[expose] public section
+
+/-!
+# Equal Merkle roots: same path or a node collision
+
+`Merkle.ascend` climbs a tree with an arbitrary node hash. Two climbs reaching the same root start
+from the same leaf along the same path or collide at one level (`samePath_or_hasNodeCollision`);
+`sameXmssPath_or_hasCollision` states it over the `treeHeight` levels of an XMSS path, for
+`ForgeryCases`.
+-/
 
 namespace XmssSecurity.Merkle
 

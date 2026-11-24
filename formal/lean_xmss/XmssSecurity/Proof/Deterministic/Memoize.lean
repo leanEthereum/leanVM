@@ -4,11 +4,17 @@ public import XmssSecurity.Proof.Deterministic.FreshRequests
 
 @[expose] public section
 
+/-!
+# Memoizing repeated requests
+
+`memoize` forwards a request's first occurrence and replays its answer on every repetition, base
+queries untouched. It commutes with `map` (`memoize_map`) and with a base continuation
+(`memoize_baseLift_bind`), and its requests are fresh beyond its cache (`freshRequests_memoize`).
+-/
+
 open OracleComp OracleSpec
 
 namespace DeterministicSigning
-
-set_option backward.isDefEq.respectTransparency false
 
 variable {ι : Type} {base : OracleSpec ι} {Request Answer : Type} [DecidableEq Request]
 

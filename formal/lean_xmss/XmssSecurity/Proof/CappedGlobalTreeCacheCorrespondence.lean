@@ -1,9 +1,6 @@
 module
 
 public import XmssSecurity.Proof.CappedGlobalKeygen
-public import XmssSecurity.Proof.CappedChain.CausalSigningKeygenCoupling
-public import XmssSecurity.Proof.TreeCacheVocabulary
-public import XmssSecurity.Proof.StatementLemmas
 
 @[expose] public section
 
@@ -58,6 +55,15 @@ theorem KeygenRunRelation.rightReplayEndpoints
       rightCache :=
   fun key => (hrightWarm.keyOneTimePublicKey_eq hrel.2.1 key).symm
 
+/-- Over free inputs: at two concrete inputs the kernel would compare their `Range`s by evaluating
+them. -/
+theorem digestAt_eq_of_hashCacheLookup_eq {leftCache rightCache : QueryCache HashSpec}
+    {left right : HashInput} (h : hashCacheLookup leftCache left = hashCacheLookup rightCache right) :
+    Concrete.CacheView.digestAt leftCache left = Concrete.CacheView.digestAt rightCache right := by
+  unfold hashCacheLookup at h
+  unfold Concrete.CacheView.digestAt
+  split <;> split <;> simp_all
+
 theorem KeygenRunRelation.keyLeafHash_eq
     (hleftWarm : ChainsWarm parameter leftStart leftWarm)
     (hrightWarm : ChainsWarm parameter rightStart rightWarm)
@@ -66,13 +72,10 @@ theorem KeygenRunRelation.keyLeafHash_eq
     Concrete.CacheView.digestAt leftCache (Concrete.CacheView.keyLeafInput parameter key
         (keyOneTimePublicKey leftCache parameter leftStart key)) =
       Concrete.CacheView.digestAt rightCache (Concrete.CacheView.keyLeafInput parameter key
-        (keyOneTimePublicKey rightCache parameter rightStart key)) := by
-  have hlookup := GlobalTreeCacheCorrespondence.replayLeaves parameter leftStart rightStart
-    leftCache rightCache _ _ hrel.2.2 (KeygenRunRelation.leftReplayEndpoints hleftWarm hrel)
-    (KeygenRunRelation.rightReplayEndpoints hrightWarm hrel) key
-  unfold hashCacheLookup at hlookup
-  unfold Concrete.CacheView.digestAt
-  split <;> split <;> simp_all
+        (keyOneTimePublicKey rightCache parameter rightStart key)) :=
+  digestAt_eq_of_hashCacheLookup_eq (GlobalTreeCacheCorrespondence.replayLeaves parameter leftStart
+    rightStart leftCache rightCache _ _ hrel.2.2 (KeygenRunRelation.leftReplayEndpoints hleftWarm hrel)
+    (KeygenRunRelation.rightReplayEndpoints hrightWarm hrel) key)
 
 theorem KeygenRunRelation.treeNode_eq
     (hleftWarm : ChainsWarm parameter leftStart leftWarm)

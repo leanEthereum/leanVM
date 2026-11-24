@@ -5,11 +5,19 @@ public import XmssSecurity.Proof.Seeded.SeedGuessing
 
 @[expose] public section
 
+/-!
+# Guessing a uniform seed adaptively
+
+A computation with at most `q` hash queries from `cache` hits an input naming a uniform seed with
+probability at most `q / 2^256` (`probOutput_stopBefore_seed_le`): its hashes from `cache` do not
+depend on the seed. So running it from seed-dependent caches that agree with `cache` outside the
+seed's inputs changes an event's probability by at most `q / 2^256`
+(`probEvent_random_cache_change_le`), which the bridge uses to drop entries naming a seed.
+-/
+
 open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity.Seeded
-
-set_option backward.isDefEq.respectTransparency false
 
 open scoped Classical in
 theorem probOutput_stopBefore_seed_le {hit : HashInput → MasterSeed → Prop} (hhit : GuessBound hit)

@@ -1,8 +1,7 @@
 module
 
 public import XmssSecurity.Proof.Bridge.Signer
-public import XmssSecurity.Proof.Deterministic.TranscriptReduction
-public import Common.WithHash
+public import LeanXmss.Statement
 
 @[expose] public section
 

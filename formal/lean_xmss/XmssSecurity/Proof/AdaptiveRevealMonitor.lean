@@ -1,8 +1,18 @@
 module
 
-public import XmssSecurity.Proof.AdaptiveLeafIndexCollision
+public import XmssSecurity.Scheme
 
 @[expose] public section
+
+/-!
+# The reveal monitor's state
+
+`AdaptiveRevealMonitor.State` holds the digests probed at each index (`pending`) and the value
+revealed there (`revealed`). Adding a pending digest raises `State.pendingCount` by at most one
+(`State.pendingCount_addPending_le`), and installing a reveal removes the index's pending digests
+from it (`State.pendingCount_install_add`); `RevealProbeOracleSimulation` runs its monitor on this
+state.
+-/
 
 open OracleComp ENNReal
 open scoped BigOperators

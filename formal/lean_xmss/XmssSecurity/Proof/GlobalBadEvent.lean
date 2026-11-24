@@ -1,8 +1,16 @@
 module
 
-public import XmssSecurity.Proof.CappedSigningLogReplay
+public import XmssSecurity.Proof.OutcomeClassification
 
 @[expose] public section
+
+/-!
+# Bad events without their coordinate
+
+`GlobalBadEvent` forgets the chain, slot or level of a bottom `BadEvent` and adds one `top` case for
+every top bad event. A consistent winning outcome has a global bad event
+(`winning_outcome_has_globalBadEvent`, from `winning_outcome_has_badEvent`).
+-/
 
 open OracleComp OracleSpec ENNReal
 
@@ -17,12 +25,6 @@ inductive GlobalBadEvent where
   | leaf
   | merkle
   | top
-deriving DecidableEq
-
-instance : Fintype GlobalBadEvent where
-  elems := ⟨([.encoding, .chain, .suffixCollision, .leaf, .merkle, .top] : List GlobalBadEvent),
-    by decide⟩
-  complete event := by cases event <;> decide
 
 def GlobalOutcomeBadEventOccurs
     (cache : QueryCache HashSpec) (outcome : GameOutcome) :

@@ -5,6 +5,14 @@ public import XmssSecurity.Proof.HashInputLemmas
 
 @[expose] public section
 
+/-!
+# Encoding digests read back from a later cache
+
+After a lazy random-oracle run of `Concrete.encodingHash` returns a digest, every cache extending
+the run's final cache reads the same digest at that input
+(`Concrete.CacheReplay.encodingHash_eq_of_run_support_of_cache_le`).
+-/
+
 open OracleComp OracleSpec
 
 namespace XmssSecurity

@@ -1,15 +1,27 @@
 module
 
-public import XmssSecurity.Proof.ExpectedAdaptiveFreshTarget
-public import XmssSecurity.Proof.CappedLeafEventProbability
+public import XmssSecurity.Proof.CappedLeafOrientation
 public import XmssSecurity.Proof.VerificationChainQuery
+public import XmssSecurity.Proof.ChainTargetInput
 
 @[expose] public section
+
+/-!
+# A suffix-collision bad event is a fresh collision with key generation's chain step
+
+After a supported key generation, a bottom suffix-collision bad event of a game at any slot
+(`OutcomeBadEventOccurs` at `.suffixCollision slot`) is an adaptive fresh digest collision between
+key generation's cache and the final cache against `keygenChainTargetInput`, the honest chain step
+input at the same address (`suffixCollision_event_afterKeygen_orientation`, in the sense of
+`Rom.AdaptiveFreshDigestCollisionWith`). At a signed or an unsigned leaf index alike, the forged
+chain step, which verification caches (`detailed_execution_verified_chain_query_cached_as`),
+collides with the honest chain's step at the same address, which key generation cached with no other
+input there (`chainCollision_afterKeygen_orientation`).
+-/
 
 open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity.CappedSuffix
-
 
 theorem detailed_execution_verified_chain_query_cached_as
     (adversary : Adversary)
@@ -74,50 +86,12 @@ theorem detailed_execution_verified_chain_query_cached_as
     forgery.leafIndex forgery.message forgery.signature encoding chain offset hoffset
     adversaryCache finalCache finalCache hverify hdecodePublic le_rfl
 
-
 theorem Wots.walk_signChain_eq_honest (step : Nat → Digest → Digest)
     (digit : Digit) (offset : Nat) (secret : Digest) :
     Wots.walk step digit.val offset (Wots.signChain step digit secret) =
       Wots.walk step 0 (digit.val + offset) secret := by
   simpa only [Wots.signChain, zero_add] using
     (Wots.walk_add step 0 digit.val offset secret).symm
-
-noncomputable def keygenChainTargetInput (secretKey : SecretKey)
-    (cache : QueryCache HashSpec) (input : HashInput) : HashInput :=
-  if h : ∃ address : LeafIndex × ChainIndex × ChainStep, ∃ value,
-      input = Concrete.CacheView.chainInput secretKey.parameter address.1
-        address.2.1 address.2.2 value then
-    let address := h.choose
-    Concrete.CacheView.chainInput secretKey.parameter address.1 address.2.1 address.2.2
-      (Wots.walk
-        (Concrete.CacheView.chainStep cache secretKey.parameter address.1 address.2.1)
-        0 address.2.2.val (secretKey.chainStart address.1 address.2.1))
-  else input
-
-@[simp]
-theorem keygenChainTargetInput_chainInput (secretKey : SecretKey)
-    (cache : QueryCache HashSpec) (leafIndex : LeafIndex) (chain : ChainIndex)
-    (step : ChainStep) (value : Digest) :
-    keygenChainTargetInput secretKey cache
-      (Concrete.CacheView.chainInput secretKey.parameter leafIndex chain step value) =
-      Concrete.CacheView.chainInput secretKey.parameter leafIndex chain step
-        (Wots.walk (Concrete.CacheView.chainStep cache secretKey.parameter leafIndex chain)
-          0 step.val (secretKey.chainStart leafIndex chain)) := by
-  unfold keygenChainTargetInput
-  split
-  · rename_i h
-    obtain ⟨chosenValue, hinput⟩ := h.choose_spec
-    have hdomain := domain_eq_of_tweakableHashInput_eq secretKey.parameter
-      (hinput.trans rfl)
-    simp only [HashDomain.chain.injEq] at hdomain
-    rcases hdomain with ⟨hleafIndex, hchain, hstep⟩
-    dsimp only
-    rw [← hleafIndex, ← hchain, ← hstep]
-  · rename_i h
-    exfalso
-    exact h ⟨(leafIndex, chain, step), value, rfl⟩
-
-attribute [irreducible] keygenChainTargetInput
 
 theorem adaptiveFreshDigestCollisionWith_of_chainCollision
     (secretKey : SecretKey) (initialCache finalCache : QueryCache HashSpec)

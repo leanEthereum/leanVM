@@ -6,11 +6,19 @@ public import XmssSecurity.Proof.ConsistentQueryBound
 
 @[expose] public section
 
+/-!
+# Running a preparation first
+
+Under the consistent oracle `romImpl`, sampling an uncached input's answer before a computation
+leaves the distribution of its output unchanged (`evalDist_presample_fresh`, and
+`evalDist_presample_query` for any input), and so does running any preparation first and continuing
+from its cache (`evalDist_presample_computation`). Hence a hash budget from a cache still holds from
+the cache after a preparation (`hashQueryBound_after_preparation`).
+-/
+
 open OracleComp OracleSpec
 
 namespace XmssSecurity.Seeded
-
-set_option backward.isDefEq.respectTransparency false
 
 theorem cacheQuery_comm (cache : QueryCache HashSpec) (left right : HashInput)
     (h : left ≠ right) (a b : HashOutput) :
