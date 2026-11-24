@@ -97,7 +97,6 @@ theorem weightLe_mono {ω : String → ℕ} {f : String} {B B' : ℕ}
     (h : WeightLe coreProgram ω f fun _ => B) (hB : B ≤ B') : WeightLe coreProgram ω f fun _ => B' :=
   fun rd t args rets hn hv hb => (h rd t args rets hn hv hb).trans hB
 
-set_option maxHeartbeats 800000 in
 theorem sp_weightLe (op : Opcode) : ∀ j < 4, WeightLe coreProgram (B2C.ωArm B2C.xmssArmC op)
     (B1.Tables.lName "sel_partial_nibble" j) (fun _ => kSpW op) := by
   intro j hj
