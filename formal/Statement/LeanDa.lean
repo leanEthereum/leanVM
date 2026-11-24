@@ -157,16 +157,16 @@ permutation. A digest is 32 bytes, `DigestBytes` (`fiat_shamir_prover::merkle::H
 /-! ### Shapes (`lib.rs`) -/
 
 /-- Payload symbols per row, as a logarithm (`LOG_BLOB_SYMBOLS`). -/
-def logK : ℕ := 13
+abbrev logK : ℕ := 13
 
 /-- Codeword symbols per row, as a logarithm: rate one half (`LOG_CODEWORD_SYMBOLS`). -/
-def logM : ℕ := 14
+abbrev logM : ℕ := 14
 
 /-- Symbols per cell (`CELL_SYMBOLS`). -/
-def cellSymbols : ℕ := 128
+abbrev cellSymbols : ℕ := 128
 
 /-- Cells per codeword (`CELLS_PER_ROW`). -/
-def cellsPerRow : ℕ := 128
+abbrev cellsPerRow : ℕ := 128
 
 /-- The log of the most rows the crate commits to (`DA_MAX_ROWS.ilog2()`). -/
 def logMaxRows : ℕ := 5

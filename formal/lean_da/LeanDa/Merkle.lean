@@ -137,7 +137,7 @@ theorem cellLeaves_position {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin (r *
   simp only [paddedCell, h1, h2, and_self, ↓reduceDIte]
   congr 2
   apply Fin.ext
-  simp only [cellPosition, positionRow, positionCell]
+  simp only [cellPosition, positionRow, positionCell, cellsPerRow]
   omega
 
 /-- **An honest opening verifies.** -/

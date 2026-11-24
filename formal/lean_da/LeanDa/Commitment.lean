@@ -73,7 +73,6 @@ theorem listCellDigest_eq {row : List E} (hrow : row.length = 2 ^ logM) {j : ℕ
 
 theorem paddingCell_eq : paddingCellWithHash H = cellDigestWithHash H 0 := by
   rw [paddingCellWithHash, cellDigestWithHash, cellBytes, show (0 : Cell) = fun _ ↦ 0 from rfl, List.ofFn_const]
-  rfl
 
 theorem paddedCell_cellsOfRows (rows : List (List E)) {i j : ℕ} (hi : i < rows.length)
     (hj : j < 128) :

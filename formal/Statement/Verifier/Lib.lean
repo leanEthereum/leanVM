@@ -38,8 +38,7 @@ def readAnnouncedSizes (bytecode : List K) : VerifierProgram (Layout × ℕ) := 
   let logMemory := kToNat ((announced.headD 0).limb 0)
   let tableRows := ((announced.drop 1).take tables.length).map fun value ↦ kToNat (value.limb 0)
   let logInverseRate := kToNat ((announced.getLastD 0).limb 0)
-  VerifierProgram.require
-    (Whir.minLogInvRate ≤ logInverseRate ∧ logInverseRate ≤ Whir.maxLogInvRate)
+  VerifierProgram.require (1 ≤ logInverseRate ∧ logInverseRate ≤ 4)
   let layout ← liftOption (buildLayout bytecode logMemory tableRows)
   VerifierProgram.require (Whir.minLogStack ≤ layout.stackLog ∧ layout.stackLog ≤ Whir.maxLogStack)
   return (layout, logInverseRate)

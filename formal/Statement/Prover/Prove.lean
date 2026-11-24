@@ -70,7 +70,7 @@ def prove {m : Type → Type} [Monad m] (F : KeccakState → m KeccakState) (pro
   match witness? prog input t with
   | none => pure none
   | some W =>
-    if Whir.minLogInvRate ≤ ρ ∧ ρ ≤ Whir.maxLogInvRate then do
+    if 1 ≤ ρ ∧ ρ ≤ 4 then do
       let seed ← spongeSeedWith F (bytecodeWords prog) (publicInputDigest input)
       runScript F (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input))
         (honestScript W ρ (publicInputDigest input)) seed fuel

@@ -11,8 +11,8 @@ equivalent to the new one (a strengthening proved by the proofs' lemmas), or imp
 * **Query caps.** `KnowledgeSoundness` and `AggregateSound` held for `Q ≤ 2^128` queries and
   `BatchingSound` for `QA ≤ 2^128`; past those counts their bounds exceed `1`
   (`one_le_knowledgeSoundnessBound`, `one_le_batchingBound`), so dropping the caps changes nothing.
-* **Named constants.** The rate range `1..4` is `Whir.minLogInvRate .. Whir.maxLogInvRate`, and
-  LeanDA's shapes are `logK`, `logM`, `cellSymbols` and `cellsPerRow`: each old form is the new
+* **Named constants.** The end statements' rate range `1..4` is `Whir.minLogInvRate ..
+  Whir.maxLogInvRate`, and LeanDA's shapes are `logK`, `logM`, `cellSymbols` and `cellsPerRow`: each old form is the new
   one by `rfl`.
 -/
 
@@ -91,22 +91,6 @@ theorem batchingSound_iff_capped : BatchingSoundCapped ↔ BatchingSound :=
 
 /-! ## Named constants -/
 
-theorem admissible_iff_literal (μ ρ : ℕ) :
-    Whir.Admissible μ ρ ↔
-      Whir.minLogStack ≤ μ ∧ μ ≤ Whir.maxLogStack ∧ 1 ≤ ρ ∧ ρ ≤ 4 :=
-  Iff.rfl
-
-theorem ladder_eq_literal (μ ρ : ℕ) :
-    Whir.ladder μ ρ =
-      if Whir.Admissible μ ρ then
-        let geometry := Whir.ladderShape μ ρ
-        let queries := (Whir.queryTable.getD (ρ - 1) []).getD (μ - Whir.minLogStack) []
-        if geometry.length = queries.length then
-          some (List.zipWith (fun (g : ℕ × ℕ) q ↦ ⟨g.1, g.2, q⟩) geometry queries)
-        else none
-      else none :=
-  rfl
-
 /-- `Completeness` with the rate range as literals. -/
 def CompletenessLiteral : Prop :=
   ∀ (program : LeanIsaProgram) (input : PublicInput) (execution : Execution program) (ρ : ℕ),
@@ -139,7 +123,7 @@ theorem leanDa_positions_eq_literal {r : ℕ} (i : Fin r) (j : Fin 128) (p : Fin
 open LeanDa in
 theorem leanDa_rows_eq_literal (row : Row) (j : Fin 128) (s : Fin 128) (rows : List (List E))
     (p : Fin (rows.length * 128)) :
-    rowCell row j s = row ⟨128 * j + s, by omega⟩ ∧
+    rowCell row j s = row ⟨128 * j + s, by show 128 * (j : ℕ) + s < 2 ^ 14; omega⟩ ∧
       cellsOfRows rows p s = (rows.getD (p / 128) []).getD (128 * (p % 128) + s) 0 :=
   ⟨rfl, rfl⟩
 
