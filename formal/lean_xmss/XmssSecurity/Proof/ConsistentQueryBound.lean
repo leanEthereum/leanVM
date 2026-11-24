@@ -119,15 +119,6 @@ theorem HashQueryBound.mono {α : Type} {computation : OracleComp OracleWorld α
     (hle : q ≤ r) : HashQueryBound computation cache r :=
   fun result hr => (hbound result hr).trans hle
 
-theorem hashQueryBound_bind_run {α β : Type} (first : OracleComp OracleWorld α)
-    (next : α → OracleComp OracleWorld β) (cache : QueryCache HashSpec) (q : Nat)
-    (hbound : HashQueryBound (first >>= next) cache q) (result : α × QueryCache HashSpec)
-    (hr : result ∈ support ((simulateQ romImpl first).run cache)) :
-    ∃ cost, cost ≤ q ∧ HashQueryBound (next result.1) result.2 (q - cost) := by
-  rw [← countHashQueries_run_forget first cache, support_map] at hr
-  obtain ⟨record, hrecord, rfl⟩ := hr
-  exact ⟨record.1.2, hashQueryBound_bind first next cache q hbound record hrecord⟩
-
 theorem hashQueryBound_query_bind {α : Type} (input : OracleWorld.Domain)
     (next : OracleWorld.Range input → OracleComp OracleWorld α) (cache : QueryCache HashSpec) (q : Nat)
     (hbound : HashQueryBound (liftM (OracleWorld.query input) >>= next) cache q)

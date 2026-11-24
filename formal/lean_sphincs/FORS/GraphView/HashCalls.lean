@@ -138,11 +138,6 @@ def seqCost : {n : Nat} → (Fin n → Bool) → (Fin n → Nat) → Nat
       cost (Fin.last _) +
         if ok (Fin.last _) then seqCost (fun i => ok i.castSucc) (fun i => cost i.castSucc) else 0
 
-theorem hashCalls_messageDigestCall (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
-    (root : Digest) (message : Message) (randomness : Randomness) (call : DigestCall) :
-    hashCalls f (messageDigestCall parameter root message randomness call : OracleComp HashSpec HashOutput) = 1 := by
-  simp [hashCalls, messageDigestCall, oracleHash]
-
 end FORS.Security.Prefix
 
 end

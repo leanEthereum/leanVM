@@ -52,16 +52,6 @@ attribute [local irreducible] firstEncoding ReferenceChoice.search encodingAttem
 def treeOpenCost : Nat :=
   1 + ∑ level : Fin forsHeight, (3 * 2 ^ level.val - 1)
 
-theorem hashCalls_treeOpen_exact (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
-    (index : Index) (κ : FTree) (leaf : FLeaf) (seed : MasterSeed) :
-    hashCalls f (Seeded.treeOpen parameter index κ leaf seed : OracleComp HashSpec TreeOpening) =
-      treeOpenCost := by
-  rw [Seeded.treeOpen, hashCalls_bind, Seeded.forsSecret, hashCalls_deriveKey, hashCalls_bind,
-    hashCalls_sequenceFin, hashCalls_pure, Nat.add_zero, treeOpenCost]
-  congr 1
-  exact Finset.sum_congr rfl fun level _ =>
-    hashCalls_forsNode f parameter index κ seed _ _ level.isLt.le
-
 /-- The published values of a WOTS+C signature cost `64 + 128 = 192` calls: the 64 seed derivations
 of the chain starts and the 128 chain steps of a codeword. -/
 theorem hashCalls_published_values (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
@@ -135,17 +125,6 @@ theorem hashCalls_treeFold (f : QueryImpl HashSpec Id) (parameter : PublicParame
       dsimp only
       split <;> simp only [hashCalls_tweakableHash]
 
-theorem hashCalls_forsFold (f : QueryImpl HashSpec Id) (parameter : PublicParameter) (index : Index)
-    (κ : FTree) (leaf : FLeaf) (path : Fin forsHeight → Digest) :
-    ∀ levels value, levels ≤ forsHeight → hashCalls f (forsFold parameter index κ leaf path levels value :
-      OracleComp HashSpec Digest) = levels
-  | 0, _, _ => hashCalls_pure f _
-  | levels + 1, value, hlevels => by
-      rw [forsFold, hashCalls_bind,
-        hashCalls_forsFold f parameter index κ leaf path levels value (by omega)]
-      simp only [dite_eq_left (show levels < forsHeight by omega)]
-      split <;> simp only [hashCalls_tweakableHash]
-
 /-- The cost of recovering the FORS public key from an opening: each tree's leaf and its `a` path
 nodes, then `T_k`. -/
 def forsRecoverCost : Nat := forsTrees * (1 + forsHeight) + 1
@@ -173,37 +152,6 @@ theorem hashCalls_otsLeaf_of_encode (f : QueryImpl HashSpec Id) (parameter : Pub
 /-- The cost of recovering a layer's root below the top layer, which the layer above signs: the
 one-time leaf and the fold up the layer's tree. The top layer's root is never recomputed. -/
 def recoverCost (lay : Layer) : Nat := if lay.val = 0 then 0 else 66 + layerHeight lay
-
-/-- Recovering a layer's root at a counter that encodes costs the one-time leaf and the fold. -/
-theorem hashCalls_layerRecover_of_encode (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
-    (index : Index) (lay : Layer) (message : HashInput) (part : LayerSignature lay) (word : Encoding)
-    (hencode : evalWithAnswerFn f (encode parameter lay (treeIndexAt index lay) (leafIndexAt index lay)
-      message part.counter : OracleComp HashSpec (Option Encoding)) = some word) :
-    hashCalls f (layerRecover parameter index lay message part : OracleComp HashSpec (Option Digest)) =
-      66 + layerHeight lay := by
-  rw [layerRecover, hashCalls_bind, hashCalls_otsLeaf_of_encode f _ _ _ _ _ _ _ word hencode]
-  cases hvalue : evalWithAnswerFn f (otsLeaf parameter lay (treeIndexAt index lay)
-      (leafIndexAt index lay) message part.counter part.chainValues : OracleComp HashSpec (Option Digest)) with
-  | none => simp only [otsLeaf, evalWithAnswerFn_bind, hencode, evalWithAnswerFn_pure, reduceCtorEq] at hvalue
-  | some value => simp only [hashCalls_bind, hashCalls_treeFold, hashCalls_pure, Nat.add_zero]
-
-/-- Signing a message costs the counter search, and on success the chain values and the path. -/
-theorem hashCalls_signLayerWith (f : QueryImpl HashSpec Id) (sk : Seeded.SecretKey) (index : Index)
-    (lay : Layer) (message : HashInput) :
-    hashCalls f (Seeded.signLayerWith sk index lay message :
-      OracleComp HashSpec (Option (LayerSignature lay))) =
-      hashCalls f (ReferenceChoice.search sk.parameter lay (treeIndexAt index lay)
-        (leafIndexAt index lay) message encodingAttemptLimit 0) +
-      if (firstEncoding f sk.parameter lay (treeIndexAt index lay) (leafIndexAt index lay)
-        message encodingAttemptLimit 0).isSome then 192 + treePathCost lay else 0 := by
-  simp only [Seeded.signLayerWith, Seeded.otsSign, hashCalls_bind, hashCalls_otsSignFrom_search,
-    otsSignFrom_eq_firstEncoding]
-  cases firstEncoding f sk.parameter lay (treeIndexAt index lay) (leafIndexAt index lay)
-      message encodingAttemptLimit 0 <;>
-    simp only [Option.map_none, Option.map_some, Option.isSome_none, Option.isSome_some,
-      Bool.false_eq_true, ↓reduceIte, hashCalls_pure, hashCalls_bind, hashCalls_treePath_exact,
-      Nat.add_zero]
-  omega
 
 end FORS.Security.GraphView
 
