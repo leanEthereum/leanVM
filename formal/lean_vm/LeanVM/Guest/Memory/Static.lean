@@ -476,6 +476,16 @@ def Stmt.noRetArms : List (List Stmt) → Bool
   | a :: as => Stmt.noRetListS a && Stmt.noRetArms as
 end
 
+/-- Equality of values, their indices compared first: the derived `DecidableEq V` compares their paths
+first, which the kernel walks slowly. -/
+def vBeq (a b : V) : Bool := Nat.beq a.idx b.idx && Nat.beq a.tag b.tag && decide (a.path = b.path)
+
+theorem vBeq_iff {a b : V} : vBeq a b = true ↔ a = b := by
+  obtain ⟨p, t, i⟩ := a
+  obtain ⟨p', t', i'⟩ := b
+  simp only [vBeq, Bool.and_eq_true, Nat.beq_eq, decide_eq_true_eq, V.mk.injEq]
+  tauto
+
 /-- The top-level atom of a block defining `d`. -/
 def defAtom (d : V) : List Stmt → Option Atom
   | [] => none
@@ -485,7 +495,7 @@ def defAtom (d : V) : List Stmt → Option Atom
         | .add x _ _ => some x
         | .mul x _ _ => some x
         | _ => none
-      if dst? = some d then some a else defAtom d ss
+      if dst?.any (vBeq · d) then some a else defAtom d ss
   | _ :: ss => defAtom d ss
 
 /-- `d = p · g` by a top-level `mul` with a constant `g`. -/

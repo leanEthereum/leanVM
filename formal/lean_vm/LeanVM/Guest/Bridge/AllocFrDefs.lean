@@ -121,13 +121,13 @@ noncomputable def callsSpA (p : List Atom → List V → Stmt → Bool) (as : Li
 /-- `v` set to `g^e` by an atom of `sp`. -/
 def spConst (sp : List Atom) (v : V) (e : ℕ) : Bool :=
   sp.any fun
-    | .const x w => x == v && constOk w e
+    | .const x w => vBeq x v && constOk w e
     | _ => false
 
 /-- The constant an atom of `sp` sets `v` to. -/
 def spWord (sp : List Atom) (v : V) : Option E :=
   sp.findSome? fun
-    | .const x w => if x == v then some w else none
+    | .const x w => if vBeq x v then some w else none
     | _ => none
 
 /-- `g⁻¹`. -/
@@ -135,17 +135,17 @@ def gInv : K := K.ofBits 0x800000000000000d
 
 /-- `p` and `q` the same value, or products of the same two values by atoms of `sp`. -/
 def spEqPtr (sp : List Atom) (p q : V) : Bool :=
-  p == q || sp.any fun
-    | .mul p' u w => p' == p && sp.any fun
-      | .mul q' u' w' => q' == q && u == u' && w == w'
+  vBeq p q || sp.any fun
+    | .mul p' u w => vBeq p' p && sp.any fun
+      | .mul q' u' w' => vBeq q' q && vBeq u u' && vBeq w w'
       | _ => false
     | _ => false
 
 /-- `x` and `y` one word on `sp`: the same value, or loads at one offset through equal pointers (`spEqPtr`). -/
 def spEq (sp : List Atom) (x y : V) : Bool :=
-  x == y || sp.any fun
-    | .load x' p o => x' == x && sp.any fun
-      | .load y' q o' => y' == y && o == o' && spEqPtr sp p q
+  vBeq x y || sp.any fun
+    | .load x' p o => vBeq x' x && sp.any fun
+      | .load y' q o' => vBeq y' y && o == o' && spEqPtr sp p q
       | _ => false
     | _ => false
 
@@ -153,7 +153,7 @@ def spEq (sp : List Atom) (x y : V) : Bool :=
 distinct constants. -/
 def guardOk (sp : List Atom) (b a1 : V) (e : ℕ) : Bool :=
   sp.any fun
-    | .add d x y => d == b && ((spConst sp x e && spEq sp y a1) || (spConst sp y e && spEq sp x a1) ||
+    | .add d x y => vBeq d b && ((spConst sp x e && spEq sp y a1) || (spConst sp y e && spEq sp x a1) ||
         match spWord sp x, spWord sp y with
         | some w1, some w2 => w1 != w2
         | _, _ => false)

@@ -94,7 +94,7 @@ LeanVM.Guest.CoreMode.Gen.P29.CoreW2	40.0	40.0	4900	3200
 LeanVM.Guest.CoreMode.Gen.P29.CoreW3	40.0	40.0	5000	3300
 LeanVM.Guest.CoreMode.Gen.P29.CoreW4	30.0	30.0	4700	3100
 LeanVM.Guest.CoreMode.Gen.P29.CoreW5	30.0	30.0	4800	3100
-LeanVM.Guest.CoreMode.Gen.P43.Core	100.0	100.0	6500	4700
+LeanVM.Guest.CoreMode.Gen.P43.Core	80.0	80.0	4000	2200
 LeanVM.Guest.CoreMode.Gen.P54.Core	60.0	60.0	6700	5000
 LeanVM.Guest.CoreMode.Gen.TermCallers0	10.0	10.0	5200	3700
 LeanVM.Guest.CoreMode.Gen.TermCallers4	10.0	10.0	4600	3100
