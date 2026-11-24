@@ -72,17 +72,14 @@ def busRest (ev : List K → List E → E → VerifierProgram Unit) (layout : La
     (treeValues.getD 2 0)
   return ⟨claims, bytecodePoint, point, forms3, [total0, total1, total2]⟩
 
-/-- `verifyBusBalance` as the depth's check, the grind, the weights and `β`, `gkrPhase` and
-`busRest`. -/
+/-- `verifyBusBalance` as the depth's check, `busChallenges`, `gkrPhase` and `busRest`. -/
 theorem verifyBusBalance_split (ev : List K → List E → E → VerifierProgram Unit) (layout : Layout) :
     verifyBusBalance ev layout =
       (VerifierProgram.require (busDepth layout < 64)).bind fun _ ↦
-      (VerifierProgram.grindProofOfWork (busGrindingBits (busDepth layout))).bind fun _ ↦
-      (VerifierProgram.sampleChallenges (2 ^ busBits)).bind fun weights ↦
-      VerifierProgram.sampleChallenge.bind fun beta ↦
+      (busChallenges (busDepth layout)).bind fun wb ↦
       (gkrPhase (busDepth layout)).bind fun r ↦
-        busRest ev layout weights beta r.2.1 r.2.2 := by
-  simp only [verifyBusBalance, gkrPhase, busRest, VerifierProgram.bind_eq,
+        busRest ev layout wb.1 wb.2 r.2.1 r.2.2 := by
+  simp only [verifyBusBalance, busChallenges, gkrPhase, busRest, VerifierProgram.bind_eq,
     VerifierProgram.pure_eq, VerifierProgram.bind_assoc, VerifierProgram.ret_bind]
 
 end

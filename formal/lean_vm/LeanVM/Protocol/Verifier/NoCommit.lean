@@ -206,9 +206,8 @@ theorem noCommit_verifyBusBalance {ev : List K → List E → E → VerifierProg
     (hev : ∀ w p v, NoCommit (ev w p v)) (layout : Layout) :
     NoCommit (verifyBusBalance ev layout) := by
   rw [verifyBusBalance_split]
-  exact NoCommit.bind (noCommit_require _) fun _ ↦ NoCommit.bind (noCommit_grind _) fun _ ↦
-    NoCommit.bind (noCommit_sampleN _) fun _ ↦ NoCommit.bind noCommit_sampleE fun _ ↦
-    NoCommit.bind (noCommit_gkrPhase _) fun _ ↦ noCommit_busRest hev _ _ _ _ _
+  exact NoCommit.bind (noCommit_require _) fun _ ↦ NoCommit.bind (noCommit_busChallenges _)
+    fun _ ↦ NoCommit.bind (noCommit_gkrPhase _) fun _ ↦ noCommit_busRest hev _ _ _ _ _
 
 theorem noCommit_computedBytecodeValue (w : List K) (p : List E) (v : E) :
     NoCommit (computedBytecodeValue w p v) := noCommit_require _
