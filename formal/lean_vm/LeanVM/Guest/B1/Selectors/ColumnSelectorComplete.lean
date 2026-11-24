@@ -302,22 +302,5 @@ theorem csk_ret {κ : ℕ} (hκ : κ < 31) {rd : Reader} {o : ℕ} {se sg : E} {
 
 /-! ## The relation -/
 
-theorem csk_rel {κ : ℕ} (hκ : κ < 31) {rd : Reader} {o : ℕ} {se sg : E} {p p1 : List E}
-    (ho : o < 2 ^ 32) (hd : 2 ^ κ ∣ o) (hlow : ∀ i < 16, (rd (addressOfIndex i)).isSome)
-    (hE : EqTabsAt rd se p p1) (hG : GTabsAt rd sg) :
-    coreProgram.Rel rd (lName "column_selector" κ) [gen ^ o, se, sg]
-      [cskVal κ o se sg p p1 rd (csRet κ)] := by
-  obtain ⟨fn, hf, hfp, hb⟩ := csFound hκ
-  refine (tb_rel_pre hf hb (csPre_noRet κ) [gen ^ o, se, sg] _).mpr ⟨fun x ↦ cskVal κ o se sg p p1 rd x.idx,
-    ?_, csk_holdsPre hκ ho hd hlow hE hG, rfl⟩
-  rw [hfp]
-  simp [cskVal]
-
-/-- **`column_selector` is complete** at its specializations. -/
-theorem column_selector_complete_holds : column_selector_complete_Spec := by
-  intro κ hκ rd o se sg p p1 ho hd hp hp1 hlow hE hG
-  rw [← csk_ret hκ ho hd hp hp1]
-  exact csk_rel hκ ho hd hlow hE hG
-
 end
 end LeanVM.Guest.B1.Tables

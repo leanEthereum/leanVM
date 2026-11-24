@@ -148,24 +148,6 @@ def ResIter (rd : Reader) (P H : E → E) (po : ℕ) (qpos chain mu x : E) : Pro
     LoadHolds rd (chain * x ^ 2) 2 (resFold P H mu a ps).1 ∧
     LoadHolds rd (chain * x ^ 2) 3 (resFold P H mu a ps).2
 
-/-- The residual loop's body before its tail. -/
-def resLoopA (lvl : ℕ) (lv : OsLv) : List Stmt :=
-  let pp := osMat 2 lv.posOff 7
-  let x := pp.2.2
-  let y := x + batchLen
-  let st := osResSteps y 3 (lvl * ligColsCap) 4 (lvl * hsStride) lv.vanish lv.logCols lv.folds
-    lv.highBits 6 (List.range resBatch) (y + 3) (y + 4) (y + 5)
-  pp.1 ++ (osBatchPow x).1 ++ [osMul y pp.2.1 (osBatchPow x).2, osMul (y + 1) 5 0,
-    osMul (y + 2) (y + 1) 0, osLd (y + 3) (y + 2) 0, osLd (y + 4) (y + 2) 1] ++ st.1 ++
-    [osLd st.2.1 (y + 2) 2, osLd st.2.2.1 (y + 2) 3]
-
-/-- The tail's first value. -/
-def resLoopR (lvl : ℕ) (lv : OsLv) : ℕ :=
-  (osResSteps ((osMat 2 lv.posOff 7).2.2 + batchLen) 3 (lvl * ligColsCap) 4 (lvl * hsStride)
-    lv.vanish lv.logCols lv.folds lv.highBits 6 (List.range resBatch)
-    ((osMat 2 lv.posOff 7).2.2 + batchLen + 3) ((osMat 2 lv.posOff 7).2.2 + batchLen + 4)
-    ((osMat 2 lv.posOff 7).2.2 + batchLen + 5)).2.2.2
-
 /-- `osBatchPow`'s digits spell `resBatch`. -/
 theorem batch_digits : digitsVal (osPowDigits resBatch) 1 = resBatch := by decide +kernel
 
@@ -174,12 +156,6 @@ theorem osBatchPow_val {C : CallRel} {σ : Val} (k : ℕ) (h : AllOk C rd σ (os
     σ (.n (osBatchPow k).2) = σ (.n 0) ^ resBatch := by
   rw [← batch_digits]
   exact osPowSteps_val 0 (osPowDigits resBatch) 0 k 1 (pow_one _).symm h
-
-theorem resLoopBody_split (lvl : ℕ) (lv : OsLv) (name : String) :
-    resLoopBody lvl lv name = (resLoopA lvl lv ++ osLoopTailA (resLoopR lvl lv)) ++
-      [.callIf (.n (resLoopR lvl lv + 2)) name
-        (.n (resLoopR lvl lv + 4) :: (List.range (7 - 1)).map fun i ↦ .n (i + 1)), .ret []] := by
-  simp only [resLoopBody, resLoopA, resLoopR, osLoopTail_split, List.append_assoc]
 
 theorem forall₂_range_to {P : ℕ → E → Prop} : ∀ (n : ℕ) (ps : List E),
     List.Forall₂ P (List.range n) ps → ps.length = n ∧ ∀ i < n, P i (ps.getD i 0) := by

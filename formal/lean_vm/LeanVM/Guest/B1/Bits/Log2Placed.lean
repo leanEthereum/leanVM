@@ -24,14 +24,13 @@ import LeanVM.Guest.Value.FieldBits
 * `assert_small_g_power` is a leaf: on `g^e`, `e < 2^36`, and the exponent
   table (`log2Lin sqE`, the `236` words of `exponent_tables`) it returns, within its frame. Its
   range checks read the memory below `2^4` (`asg_rc_low`), its shares the table (`asg_shares`).
-* `lce_completeAtB`: `log2_ceil_in_the_exponent` at the floor `fl` hints the `34` bits of `N` into
+* `log2_ceil_in_the_exponent` at the floor `fl` hints the `34` bits of `N` into
   a run of its frame (read by no instruction), range checks `L` and `L - fl` below `34` (the memory
   below `2^6`), reads `g^(2^L)` (and above the floor `g^(2^(L-1))`) from the table and calls
   `assert_small_g_power` once (`L = fl`) or twice: on `g^N` and the table it returns `g^L`,
   `L = max fl (log2Ceil N)`, within `fs f + 2 · fs "assert_small_g_power"` words. Its walk
   (`lc_walk`) takes the check above the floor as the valuation says.
-* `asg_completeAtBE`, `lce_completeAtBE`: the same by trees exact on the memory (`Tree.Every (ExactAt …)`), of which
-  `lce_completeAtB` is a corollary. `assert_small_g_power`'s digits (`asgHint`) are its honest
+* `asg_completeAtBE`, `lce_completeAtBE`: the same by trees exact on the memory (`Tree.Every (ExactAt …)`). `assert_small_g_power`'s digits (`asgHint`) are its honest
   valuation's (`asg_holds_ofD`); `log2_ceil_in_the_exponent`'s bits (`lcSites`) are its frame's words (`lcBits`, `N`'s
   bits) and its `⌈log₂⌉` theirs (`bitsNat_bits`, `clog2_eq_log2Ceil`); every other computed hint of
   either body is pinned locally (none is: `asg_sites`, `lc_sites`).
@@ -571,17 +570,6 @@ theorem lce_completeAtBE (fl : ℕ) (hfl : fl < 34) {name : String} {fn : Fn}
   rw [hal] at h
   obtain ⟨t, ht, -, hE⟩ := h
   exact ⟨t, by simpa using ht, hE⟩
-
-/-- **`log2_ceil_in_the_exponent` at the floor `fl`, placed** (`lce_completeAtBE` without exactness). -/
-theorem lce_completeAtB (fl : ℕ) (hfl : fl < 34) {name : String} {fn : Fn}
-    (hf : coreProgram.find? name = some fn) (hp : fn.params = [.n (valf% «log2_ceil_in_the_exponent» "g_N"), .n (valf% «log2_ceil_in_the_exponent» "g_squares")])
-    (hb : fn.body = lcBody fl) (hl : coreProgram.loop name = false) (κ : ℕ) (hκ6 : 6 ≤ κ)
-    (N sqE : ℕ) (hN : N < 2 ^ 34) (hL : max fl (log2Ceil N) < 34) :
-    CompleteAtB fs cert κ name (log2Lin sqE) [gen ^ N, ofK (Parameters.addressOfIndex sqE)]
-      (Returns [gen ^ max fl (log2Ceil N)])
-      (fs name + 2 * fs "assert_small_g_power") :=
-  ((lce_completeAtBE (fs := fs) (cert := cert) fl hfl hf hp hb hl κ hκ6 N sqE hN hL).toDTB (T' := fun _ => True)
-    fun _ _ _ => trivial).toCompleteAtB
 
 end
 end LeanVM.Guest.B1

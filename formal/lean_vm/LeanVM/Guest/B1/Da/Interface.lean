@@ -73,11 +73,6 @@ def MeaningDaVerify (rd : Reader) : List E → List E → Prop
       w.Opens root z ∧ rets = digestCells root ++ [z]
   | _, _ => False
 
-/-- `da_verify`'s core IR gives its meaning, on a memory image. -/
-def da_verify_sound_Spec : Prop :=
-  ∀ (rd : Reader), MemOk rd → ∀ (args rets : List E),
-    coreProgram.Rel rd "da_verify" args rets → MeaningDaVerify rd args rets
-
 /-! ## `da_padding` -/
 
 /-- **`da_padding(n_blob_g)`**: `n_blob = g^r` for `1 ≤ r ≤ LeanDa.maxRows`, and the function
@@ -92,16 +87,6 @@ def da_padding_sound_Spec : Prop :=
     coreProgram.Rel rd "da_padding" args rets → MeaningDaPadding rd args rets
 
 /-! ## `da_verify_cell` -/
-
-/-- **`da_verify_cell(lvals)`**: some `128` symbols of `E` (the hint), their digest's two cells
-(LeanDA's cell digest, sixteen bytes a symbol) and their dot product with the `128` weights at
-`lvals`. -/
-def MeaningDaVerifyCell (rd : Reader) : List E → List E → Prop
-  | [lv], rets => ∃ (syms ws : List E), syms.length = LeanDa.cellSymbols ∧
-      ReadsAt rd lv ws ∧ ws.length = LeanDa.cellSymbols ∧
-      rets = digestCells (keccak256 (syms.flatMap E.toBytes)) ++
-        [((List.range LeanDa.cellSymbols).map fun e ↦ ws.getD e 0 * syms.getD e 0).sum]
-  | _, _ => False
 
 /-! ## `da_levels` -/
 

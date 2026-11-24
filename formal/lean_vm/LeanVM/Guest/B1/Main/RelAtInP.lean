@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Sig.PopsKit
 
 `RelAtInP … ps`, `RelAtInCP … ps`: `RelAtIn`, `RelAtInC` by a tree popping `ps` on the reader in scope (`RelAtInT` with that predicate). `KidsFromInP … cs pss …`: `KidsFromIn`, one entry list per call, an entered callee's tree popping it, a skipped one's `[]` (a phantom pops nothing).
 
-`relAtInP_of_walk`, `relAtInP_of_walk_loop`: `relAtIn_of_walk`, `relAtIn_of_walk_loop` with the callees' pops `pss` (and the tail call's `pt`), and the path's own entries with theirs spliced in, `splice rd σ es pss = ps`; `splice_of_body` gives that equation from a block's `SplicePops` and a return setting up no call.
+`relAtInP_of_walk`, `relAtInP_of_walk_loop`: `relAtIn_of_walk` and its loop iteration with the callees' pops `pss` (and the tail call's `pt`), and the path's own entries with theirs spliced in, `splice rd σ es pss = ps`; `splice_of_body` gives that equation from a block's `SplicePops` and a return setting up no call.
 -/
 
 namespace LeanVM.Guest.Memory
@@ -141,7 +141,7 @@ theorem relAtInP_of_walk (hP : P.Wf) {R D Dk : ℕ → Prop} {fp N : ℕ} {f : S
   rw [hw] at hw'; cases hw'
   rw [Tree.pops_node hf hw, popsKids_of_kidsT hkv hT ho, hps]
 
-/-- **Composition with regions and pops, a loop iteration**: `relAtIn_of_walk_loop`, the other callees popping `pss`,
+/-- **Composition with regions and pops, a loop iteration**: the other callees popping `pss`,
 the tail call `pt` (`[]` when not taken), the path's entries with theirs spliced in `ps`. -/
 theorem relAtInP_of_walk_loop (hP : P.Wf) {R D Dk Rt Dt : ℕ → Prop} {fp c Bt m N : ℕ} {f : String}
     {args rets : List E} {fn : Fn} {es : List Ev} {vs : List V} {cs : List Call} {ct : Call}

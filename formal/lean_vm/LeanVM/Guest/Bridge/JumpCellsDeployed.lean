@@ -8,7 +8,9 @@ module
 
 public import LeanVM.Guest.Bridge.JumpCellsOf
 public import LeanVM.Guest.Bridge.JumpCells.All
-public import LeanVM.Guest.Bridge.RefHonest
+public import LeanVM.Guest.Bridge.StepRule
+public import LeanVM.Guest.Bridge.TrackHonest
+public import LeanVM.Prover.ExecuteComplete
 
 /-!
 # The jump cells on the deployed guest

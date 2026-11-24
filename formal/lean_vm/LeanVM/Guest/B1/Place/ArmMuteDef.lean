@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Place.ArmRoots
 # The arms' mute check
 
 * `lqNameB g`: `g` names an entry of `lqTable`;
-* `armS g`: `g` is such a name or passes `noWitness`;
+* `armS g`: `g` is such a name or passes `noWitJ`;
 * `armMuteOk name j`: function `j` is an arm named `name`, has no witness hint in its body, and its callees have
   indices, decided by the kernel per arm (`ArmOkA`, `ArmOkB`);
 * `nwLoc`: `noWitJ`'s own step (`noWitJ_succ`); `NwRootsOk`: every root (`armRoots`) names an entry of `lqTable` or
@@ -31,7 +31,7 @@ open LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest.B1.Whir
 /-- `g` names an entry of `lqTable`. -/
 def lqNameB (g : String) : Bool := lqTable.any (·.1 == g)
 
-/-- A name of `lqTable`, or a function passing `noWitness`. -/
+/-- A name of `lqTable`, or a function passing `noWitJ`. -/
 noncomputable def armS (g : String) : Bool := lqNameB g || noWitS g
 
 /-- **Function `j`, named `name`, is an arm, pops nothing itself, and its callees have indices** (each

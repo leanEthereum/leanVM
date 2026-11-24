@@ -12,7 +12,7 @@ public import LeanVM.Guest.Check
 /-!
 # The alignment check
 
-A **cursor** `(up, k)` names a body position: index `k` of the innermost block, `up` the enclosing statements' indices with the sub-block taken (an `ite`'s `0` zero side, `1` other side; a `match`'s arm), innermost first. `blockAt body up` is the innermost block, `posOf body up k` the statements left from there: the rest of the block, then the rest of each enclosing block past its statement.
+A **cursor** `(up, k)` names a body position: index `k` of the innermost block, `up` the enclosing statements' indices with the sub-block taken (an `ite`'s `0` zero side, `1` other side; a `match`'s arm), innermost first. `blockAt body up` is the innermost block.
 
 The pass carries a cursor with its statements, a **zipper** (`Zip`): each enclosing level's index, sub-block and statements after it, and the innermost block's statements from `k`, so a step reads the head and never walks from the body's root. `Zip.pos` is the position. `normZ` pops finished blocks and skips the atoms that pop nothing (neither witness nor computed hints), so two arrivals at one offset agree when their cursors (`Zip.keyEq`) are equal.
 
@@ -43,11 +43,6 @@ def subBlock : Stmt → ℕ → List Stmt
 def blockAt (body : List Stmt) : List (ℕ × ℕ) → List Stmt
   | [] => body
   | (k, c) :: up => subBlock ((blockAt body up).getD k default) c
-
-/-- **The statements left at a cursor**: the rest of its block, then of each enclosing one. -/
-def posOf (body : List Stmt) : List (ℕ × ℕ) → ℕ → List Stmt
-  | [], k => body.drop k
-  | (k', c) :: up, k => (blockAt body ((k', c) :: up)).drop k ++ posOf body up (k' + 1)
 
 /-- An atom the frame's flow carries: a witness or computed hint. -/
 def flowAtom : Atom → Bool

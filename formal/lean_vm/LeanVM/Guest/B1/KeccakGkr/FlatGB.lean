@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.FlatGB
 
-  `completeAt_flatG` within a bound (`CompleteAtB`): the function's frame, its buffers and its
+  A flat function with callees depending on their frame pointers, complete within a bound (`CompleteAtB`): the function's frame, its buffers and its
   callees' bounds.
 -/
 
@@ -16,11 +16,10 @@ public import LeanVM.Guest.Budget.Bounded
 * `KidsGB fs cert κ ks Bs`: each entered call of `ks` is complete within its bound in `Bs` (in
   order), at every prefix of frame pointers (`CompleteAtFB`).
 * `kidsGBound fs ks Bs`: the callees' words, an entered call's bound, a skipped call's frame.
-* `kidsFromIn_of_kidsGB`: `kidsFromIn_of_kidsG` with the total at most `kidsGBound`.
-* `completeAt_flatGB`: `completeAt_flatG` within `fs f + sizes.sum + NB`, the callees' words at most
+* `kidsFromIn_of_kidsGB`: the callees composed along the caller's calls, the total at most `kidsGBound`.
+* `completeAt_flatGB`: the flat function complete within `fs f + sizes.sum + NB`, the callees' words at most
   `NB` at every frame pointer.
 
-The proofs are `kidsFromIn_of_kidsG`'s and `completeAt_flatG`'s with the bounds carried along.
 -/
 
 namespace LeanVM.Guest.B1
@@ -44,7 +43,7 @@ def kidsGBound (fs : String → ℕ) : List KidG → List ℕ → ℕ
   | k :: ks, Bs => (if k.taken then Bs.headD 0 else fs (tailKey k.f)) + kidsGBound fs ks Bs.tail
   | [], _ => 0
 
-/-- **`kidsFromIn_of_kidsG` within the callees' bounds** (`Bs`, an entered call's; a skipped call's
+/-- **The callees composed within their bounds** (`Bs`, an entered call's; a skipped call's
 frame): the total `N` at most `kidsGBound fs ks Bs`. -/
 theorem kidsFromIn_of_kidsGB (κ : ℕ) : ∀ (pre : List ℕ) (ks : List KidG) (Bs : List ℕ),
     KidsGB fs cert κ ks Bs →
@@ -124,7 +123,7 @@ theorem kidsFromIn_of_kidsGB (κ : ℕ) : ∀ (pre : List ℕ) (ks : List KidG) 
             simp only [hct, ht, Bool.false_eq_true, false_and, or_false] at this ⊢
             exact this
 
-/-- **`completeAt_flatG` within `fs f + sizes.sum + NB` words**: the callees within `Bs`, their
+/-- **A flat function complete within `fs f + sizes.sum + NB` words**: the callees within `Bs`, their
 words (`kidsGBound`) at most `NB` at every frame pointer. -/
 theorem completeAt_flatGB {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
     (hl : coreProgram.loop f = false) (κ : ℕ) (Lin : Layout) (args rets : List E)

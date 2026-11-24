@@ -84,6 +84,7 @@ variable {c : OsCfg} (hS : HonStatic c)
 include hS
 
 theorem n2 : 2 ≤ c.levels.length := hS.1
+
 theorem yr : c.yrLevel + 1 = c.levels.length := hS.2.1
 theorem ylog : c.yrLog ≤ yrLogCap := hS.2.2.1
 

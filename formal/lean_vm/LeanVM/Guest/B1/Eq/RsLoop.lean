@@ -83,7 +83,7 @@ theorem loop_rel_iff {P : Core.Program} {rd : Reader} {f : String} {ps : List E}
       exact ih (k + 1) (by omega) (by rw [hN]; congr 1; omega)
         (fun j h1 h2 => hfirst j (by omega) (by omega)) (fun j h1 h2 => hall j (by omega) (by omega))
 
-/-- **A guarded `mul_range` loop whose body calls** (`guarded_loop_iff`'s form). -/
+/-- **A guarded `mul_range` loop whose body calls.** -/
 theorem guarded_loop_rel_iff {P : Core.Program} {rd : Reader} {f : String} {ps : List E} {N : E}
     {B : E → Prop}
     (hsound : ∀ d x, P.relN rd (d + 1) f (x :: ps) [] →

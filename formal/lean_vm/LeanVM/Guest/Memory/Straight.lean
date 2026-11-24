@@ -18,7 +18,7 @@ A body with no branch, `match` or dispatch walks every statement in turn
 (`walk_straight`), so the `HeapBuf` hints, `frameAddr`s and frames of its path are those of its
 statements (`straight_parts`), each a `filterMap` over the statements that the kernel evaluates on
 a concrete body; only a conditional call's `taken` and a dynamic size's exponent depend on the
-valuation. Likewise its loads (`loadAddrs_straight`) and runs (`runs_straight`); a body of atoms
+valuation. Likewise its loads (`loadAddrs_straight`); a body of atoms
 (`walk_atoms`, `allocs_atoms`, ...), and a fused dispatch between straight runs, which walks the
 callee its selector picks (`walk_dispatch`, `pick_eq`).
 -/
@@ -241,28 +241,6 @@ theorem loadAddrs_straight (σ : Val) : ∀ pre : List Stmt, pre.all Stmt.straig
     | .call f args rets, _ => rfl
     | .callIf c f args, _ => by_cases hc : σ c = 0 <;>
       simp [slEvs, hc, Ev.loadAddr?, stmtLoad?, List.filterMap_cons, List.filterMap_nil]
-
-/-- A statement's `frameAddr` run: its first value and its length. -/
-def stmtRun? : Stmt → Option (V × ℕ)
-  | .atom (.frameAddr _ (r :: rs)) => some (r, rs.length + 1)
-  | _ => none
-
-theorem runs_straight (σ : Val) : ∀ pre : List Stmt, pre.all Stmt.straight = true →
-    runs (pre.flatMap (slEvs σ)) = pre.filterMap stmtRun?
-  | [], _ => rfl
-  | s :: pre, h => by
-    simp only [List.all_cons, Bool.and_eq_true] at h
-    have ih := runs_straight σ pre h.2
-    simp only [runs, List.flatMap_cons, List.filterMap_append] at ih ⊢
-    rw [ih]
-    match s, h.1 with
-    | .atom a, _ =>
-      cases a with
-      | frameAddr p run => cases run <;> rfl
-      | _ => rfl
-    | .call f args rets, _ => rfl
-    | .callIf c f args, _ => by_cases hc : σ c = 0 <;>
-      simp [slEvs, hc, Ev.run?, stmtRun?, List.filterMap_cons, List.filterMap_nil]
 
 /-! ## A fused dispatch between straight runs -/
 

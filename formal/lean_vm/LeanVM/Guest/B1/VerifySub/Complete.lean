@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.VerifySub.Complete
 
   `verify_sub`'s lift obligations on an honest child: its callees' words, and its honest
-  valuation (`completeAt_flatDepR`'s `hkr`, `hkm`, `hσ`).
+  valuation (`completeAt_flatDepRBPR`'s `hkr`, `hkm`, `hσ`).
 -/
 
 module
@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.VerifySub.H.Regions
 /-!
 # `verify_sub`'s obligations
 
-On an honest child (`S : ChildSegs`), `verify_sub`'s body is flat (`completeAt_flatDepR`): its own
+On an honest child (`S : ChildSegs`), `verify_sub`'s body is flat (`completeAt_flatDepRBPR`): its own
 buffers hold `S.ownW`, its callees are `S.kids` on the bump allocator's bases. `vs_obligations`:
 the callees read the caller's words, the own buffers and the results before them (`kid_lin_sub`
 and its cases `10`, `11`, `15`), those words are in memory, and the honest valuation

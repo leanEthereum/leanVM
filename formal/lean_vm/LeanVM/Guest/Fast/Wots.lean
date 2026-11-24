@@ -8,12 +8,12 @@ public import LeanVM.Guest.B1.Sig.CodewordComplete
 /-!
 # A codeword's chain starts, as numbers
 
-`cwStart W G b σ i` (`B1/Sig/Codeword.lean`), the cell holding chain `i`'s hinted start, is read
+The cell holding chain `i`'s hinted start is read
 off the template generators (`armBase`, `armT`, a `WotsT` of functions). It is arithmetic in the
 step's size `W.size`, the group's selector cell and the digit value its dispatch takes:
 
 * `walkBaseN` (`Fast/Numbers.lean`): the walks' bases, in numbers (`walkBase_eq`);
-* `cwCell`: the start's cell off the groups' selector cells, three small tables (`WotsTabs`: one for
+* `cwCell`: the start's cell off the groups' selector cells, three small tables (one for
   the first group, one for the others, one for the last chain) and the exponent search `logGT`;
   `cwCellA`, its form over arrays (`cwCellA_eq`).
 -/

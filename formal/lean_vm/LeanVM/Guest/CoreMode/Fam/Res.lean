@@ -23,7 +23,7 @@ instruction at `i`, an `XOR` or a `MUL`, holding on the reference at its frame (
 path's rest from the frame's position.
 
 `ResTop Ks A`: each residual at such a frame holds of the reference there. `res_of_top`: `ResTop`
-gives `ExecGaps.res` for `X = XOf Y`, as `termRef_of` gives `term`: `trackAt_X` puts a state of the
+gives `ExecGaps.res` for `X = XOf Y`: `trackAt_X` puts a state of the
 tracks at a track state of its own pc and frame, whose top frame `RefOk.frames` makes an honest
 instance; the functions lying one after another (`consecutive_entry`), it is `K`'s function; and the
 reference's step gives the instruction (`ref_xor`, `ref_mul`).
@@ -140,16 +140,16 @@ end
 
 /-! ## Termination facts at entered instances -/
 
-/-- **The termination facts of the entered honest instances**: `TermInst` but at `node`s only. A
+/-- **The termination facts of the entered honest instances**, at `node`s only. A
 loop's final, untaken tail call is a `phantom` instance whose frame holds its arguments, the counter
-at its bound, so `TermInst` itself fails there. -/
+at its bound, so the facts fail at every instance. -/
 def TermNode (Ks : List Mode.Cert) : Prop :=
   ∀ r : Ref, r.Ok → ∀ K ∈ Ks, ∀ I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T,
     (∃ f σ bufs kids, I.t = .node f σ bufs kids) → entryOf I.t.name = K.F.entry → ∀ p ∈ K.F.sig.term,
       RIn (refMem r.img) I.fp (.lt p.1 p.2) → RRes (refMem r.img) I.fp (.lt p.1 p.2)
 
-/-- **A frame of the tracks at a function's entry is an entered instance of it** (`entryInst_X`, the
-instance a `node`). -/
+/-- **A frame of the tracks at a function's entry is an entered instance of it** (the instance a
+`node`). -/
 theorem entryNode_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {Y : Ref → St → Prop}
     {A : String → FnAl} (certs : ModeCerts Ks Km E0) (hKs : ∀ K ∈ Ks, K.F.entry ≠ 0)
     (hP : ProgAl guestProgram coreProgram A) (hmain : entOf A "main" = End.mainEntry) (hJ : JumpCellsAt A)
@@ -187,7 +187,7 @@ theorem termRef_of_node {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {
 /-! ## The assembly -/
 
 /-- **`ExecGaps` with the residuals at the honest frames and the termination facts at the entered
-instances**: `ExecGaps.ofX` with `ResTop` for `res` and `TermNode` for `TermInst`. -/
+instances**: `ResTop` for `res` and `TermNode` for the termination facts. -/
 theorem ExecGaps.ofR {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A : String → FnAl}
     {Y : Ref → St → Prop}
     (certs : ModeCerts Ks Km E0) (main : MainOk Km E0) (mainExact : Budget.MainExactHyp)

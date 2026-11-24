@@ -15,7 +15,7 @@ public import Statement.LeanDa
 
 Ported from the BLAKE2s-era `B1/Tables/Common` (branch `mumbai`), prefixed `tb`:
 
-* `tb_rc_sound'`, `tbRcAux`: `assert log(x) < K` on a memory image of `2^μ`
+* `tb_rc_sound'`: `assert log(x) < K` on a memory image of `2^μ`
   words, `μ ≤ 32` (`rangeCheck_iff`), with a choice of the gadget's auxiliary words for an honest
   valuation.
 * `tb_gen_pow_eq_mul`: products of small g-powers are g-powers of the sums.
@@ -54,15 +54,6 @@ theorem tb_rc_sound' {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) {K : ℕ
   have hij := gpow_injOn (by have := i.isLt; have := j.isLt; simp only [Set.mem_Iio]; omega)
     (by simp only [Set.mem_Iio]; omega) (ofK_injective h2).symm
   exact ⟨i, by omega, by rw [ex, gen_pow_eq_ofK]⟩
-
-/-- The auxiliary words of a passing range check, chosen. -/
-noncomputable def tbRcAux {μ : ℕ} (Lm : MemoryImage μ) (x : E) (K : ℕ) : E × E × E :=
-  open Classical in
-  if h : ∃ y t1 t2 : E, LoadHolds Lm.read x 0 t1 ∧ ofK (Parameters.addressOfIndex (K - 1)) = x * y ∧
-      LoadHolds Lm.read y 0 t2 then
-    (Classical.choose h, Classical.choose (Classical.choose_spec h),
-      Classical.choose (Classical.choose_spec (Classical.choose_spec h)))
-  else (0, 0, 0)
 
 /-- A run of mapped words, entry by entry. -/
 theorem tbReadsAt_map_iff {rd : Reader} {p : E} {l : List ℕ} {f : ℕ → E} :

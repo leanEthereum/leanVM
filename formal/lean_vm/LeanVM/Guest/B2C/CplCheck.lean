@@ -952,7 +952,7 @@ end Walk
 /-! ## A function, by windows and parts
 
 Window `i` of function `j` is walked over the segments of the soundness certificate's window
-(`execWin` from `(cutAt i).J` to `endAt i`), its statements (`stmtsAt i`) in parts, each walked
+(`execWinS` from `(cutAt i).J` to `endAt i`), its statements (`stmtsAt i`) in parts, each walked
 by its own kernel evaluation (`Data.cplParts`): part `k` starts at statement `s` of the window at
 the start of the segment at offset `J` (the window's start for the first part), from the facts of
 its statements, no frame in flight, and the counts and set-up site cells its start hands on; it

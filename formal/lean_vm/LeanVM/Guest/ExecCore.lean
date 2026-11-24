@@ -754,16 +754,7 @@ def Facts.entryEnv (F : Facts) : Trie Sym := envOf F.env
 def exec (F : Facts) (f : CompiledFunction) : Result :=
   pass F f.entryPc f.instructionCount f.code 0 (some (Cur.init 0 F.entryEnv)) [] [] 0
 
-/-- **A window** of `f`'s code, offsets `a` to `b`, starting a segment at `a` with environment
-`env`: the executor on a large function in pieces, each evaluated by the kernel on its own. The
-segment live at `b` ends there with `b` its successor, to start the next window with. -/
-def execWin (F : Facts) (f : CompiledFunction) (a : ℕ) (env : List (ℕ × Sym))
-    (b : ℕ) :
-    Result :=
-  pass F f.entryPc f.instructionCount ((f.code.drop a).take (b - a)) a (some (Cur.init a (envOf
-      env))) [] [] 0
-
-/-- **A window entered at several offsets**: `execWin` with pending edges into `seeds`, each in
+/-- **A window entered at several offsets**, with pending edges into `seeds`, each in
 the environment `env` (an entered window's arms past the first). -/
 def execWinS (F : Facts) (f : CompiledFunction) (a : ℕ) (env : List (ℕ × Sym))
     (seeds : List ℕ) (b : ℕ) : Result :=
@@ -803,7 +794,6 @@ the exit's environment holds. -/
 def Result.linked (R : Result) : Bool :=
   match R with
   | ⟨segs, _⟩ => listSeq segs fun segs ↦ (index segs).seq fun idx ↦ linkedWith idx segs
-
 
 /-! ## Tries: lemmas -/
 

@@ -96,13 +96,5 @@ theorem padL_block {x N roots nb : E}
 
 /-! ## A blob's cell loop -/
 
-/-- **Cell `k`'s block's words**: the cell's check on `weights[k]`, the running sum's step at
-`base·g^k` (words `512`, `513`), the digest at the leaf `base·g^(2k)`. -/
-def CellBlk (rd : Reader) (w base : E) (k : ℕ) : Prop :=
-  ∃ lv d0 d1 s prev : E, coreProgram.Rel rd "da_verify_cell" [lv] [d0, d1, s] ∧
-    LoadHolds rd (w * gen ^ k) 0 lv ∧ LoadHolds rd (base * gen ^ k) 512 prev ∧
-    LoadHolds rd (base * gen ^ k) 513 (prev + s) ∧
-    LoadHolds rd (base * (gen ^ k * gen ^ k)) 0 d0 ∧ LoadHolds rd (base * (gen ^ k * gen ^ k)) 1 d1
-
 end
 end LeanVM.Guest.B1.Da

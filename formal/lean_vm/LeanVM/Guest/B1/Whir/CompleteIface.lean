@@ -46,8 +46,5 @@ def CapsAgree (μ r : ℕ) (target : E) (S : KeccakState) (xs : List E)
 
 /-! ## Memory layouts -/
 
-/-- A layout of words: runs `(e, ws)`, word `j` at the address `g^(e + j)`. -/
-abbrev OsLayout : Type := List (ℕ × List E)
-
 end
 end LeanVM.Guest.B1.Whir

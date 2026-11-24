@@ -48,9 +48,7 @@ a `StackBuf` read through `frameAddr` or a range check landing there, reads what
 holds).
 
 **Conclusions.** The image is consistent (`Honest.consistent`); every frame's header, cells
-and certificate values read back at `fp · g^o` (`Honest.read_hdr`, `read_C`), and
-every equation (`Honest.read_eqn`); the evaluation and every instance in it are valid on the
-image (`Honest.valid_image`, `Honest.inst_good`); a callee is the instance at its caller's
+and certificate values read back at `fp · g^o` (`Honest.read_hdr`, `read_C`); a callee is the instance at its caller's
 callee frame (`honest_kid`), a loop helper's tail call at `fp + fs f` (`honest_kidFps_getLast?`); the
 public input is in words `0`, `1` and `minLogMem ≤ κ ≤ maxLogMem` (`Honest.publicBoundary`).
 `Execution.committedSize ≤ 2^30` is the end theorem's: `logMem_le_iff` bounds `2^κ` by the words
@@ -226,21 +224,6 @@ theorem Honest.read_C (h : Honest P fs H C hdr T rd args rets) {I : Inst}
     (hI : I ∈ honestInsts P fs H hdr T) {o : ℕ} {w : E} (hq : (o, w) ∈ C I) :
     (honest P fs H C hdr T).read (addressOfIndex I.fp * addressOfIndex o) = some w :=
   h.read_cell hI (q := (o, w)) (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ hq))
-
-/-- Every memory equation reads back. -/
-theorem Honest.read_eqn (h : Honest P fs H C hdr T rd args rets) {q : Write}
-    (hq : q ∈ T.eqns P) : (honest P fs H C hdr T).read q.1 = some q.2 :=
-  image_read h.lt_64 h.consistent (List.mem_append_right _ hq) (h.addr q hq)
-
-/-- **The evaluation is valid on the honest memory.** -/
-theorem Honest.valid_image (h : Honest P fs H C hdr T rd args rets) :
-    T.Valid P (honest P fs H C hdr T).read args rets :=
-  h.valid.transfer T fun _ hq => h.read_eqn hq
-
-/-- **Every instance is valid on the honest memory**, or a phantom. -/
-theorem Honest.inst_good (h : Honest P fs H C hdr T rd args rets) {I : Inst}
-    (hI : I ∈ honestInsts P fs H hdr T) : I.Good P (honest P fs H C hdr T).read :=
-  insts_good T _ hdr h.valid_image I hI
 
 /-- `main`'s instance: the root, at frame `g^0`, with the header `hdr`. -/
 theorem root_inst : ∃ I ∈ honestInsts P fs H hdr T, I.t = T ∧ I.fp = 0 ∧ I.hdr = hdr := by

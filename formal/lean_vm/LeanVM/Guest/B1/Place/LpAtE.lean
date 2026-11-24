@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Main.RelAtInE
 # `level_positions`' exact statement
 
 `CompleteAtPOE`: `CompleteAtPO` by a tree popping nothing whose every node is exact on the memory; `LpAtOE`: the
-helper's placed statement so; `Arm.LpAtO`: the helper's placed statement at an optional words bound.
+helper's placed statement so, at an optional words bound.
 -/
 
 namespace LeanVM.Guest.B1
@@ -39,7 +39,8 @@ theorem CompleteAtPOE.toPO {fs : String → ℕ} {cert : String → V → ℕ} {
   let ⟨n, Lown, hW, hD, hB, hr⟩ := h fp
   ⟨n, Lown, hW, hD, hB, fun rd hl hm => RelAtInT.relAtIn (hr rd hl hm)⟩
 
-/-- **`LpAtO` by a tree popping nothing whose every node is exact on the memory.** -/
+/-- **`level_positions` placed at an optional words bound, by a tree popping nothing whose every node is exact on
+the memory.** -/
 def LpAtOE (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) (name loop : String) (S d cd : ℕ)
     (Bd : Option ℕ) : Prop :=
   ∀ (w0 : E) (cap : List E) (ep ew : ℕ) (tabs : E) (Lin : ℕ → Layout), cap.length = 5 →
@@ -64,20 +65,6 @@ open LeanVM.Protocol.Verifier hiding Layout
 open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 
 @[expose] public section
-
-/-- `level_positions` placed (`LpAtDE`'s statement without the exactness) at an optional words bound. -/
-def LpAtO (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) (name loop : String) (S d cd : ℕ)
-    (Bd : Option ℕ) : Prop :=
-  ∀ (w0 : E) (cap : List E) (ep ew : ℕ) (tabs : E) (Lin : ℕ → Layout), cap.length = 5 →
-    (∀ fp, ∀ k < S * (128 / d), RegionL (Lin fp) (ep + k) ∧ RegionL (Lin fp) (ew + k)) →
-    (∀ fp, ∀ t < 128, ∃ i, tabs.limb 0 * addressOfIndex t = addressOfIndex i ∧
-      RegionL (Lin fp) i) →
-    (∀ fp rd, LowDef κ rd → MemL rd (Lin fp) →
-      LpMem cert S d cd (lpDecPos fs name loop S d cd fp) w0 cap (ofK (addressOfIndex ep))
-        (ofK (addressOfIndex ew)) tabs rd) →
-    CompleteAtPO fs cert κ name Lin
-      (w0 :: cap ++ [ofK (addressOfIndex ep), ofK (addressOfIndex ew), tabs, gen ^ S])
-      ((⟨cap, []⟩ : Fs).squeezeN (S - 1)).2.cap (lpRuns fs cert name loop S d cd w0 cap) Bd
 
 end
 end LeanVM.Guest.B1.Arm

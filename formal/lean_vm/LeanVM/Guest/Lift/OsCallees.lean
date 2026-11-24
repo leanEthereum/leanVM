@@ -25,7 +25,7 @@ The form `CompleteRelRegD` and its lift `completeRelRegD_of_iff` are in `Lift/Re
 `verify_merkle_cap__L{D}`, `fold_final_msg__L{n}`, `is_zero`, with their meanings (B1's `*_holds`) and the
 loads a kernel check of each body bounds (`*Spec`). The grinds and the fold rounds are inline in
 `open_stacked`'s body. `decode_query_windows`, which writes its own frame run, has its own form
-(`QwDecodeAtD`, `B1/Bits/QueryWindowsAt.lean`).
+(`QwDecodeAtDE`, `B1/Bits/QueryWindowsAt.lean`).
 -/
 
 namespace LeanVM.Guest.B1

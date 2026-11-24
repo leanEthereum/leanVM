@@ -297,7 +297,7 @@ theorem rst_sigma {rd : Reader} {bs bm b : ℕ} {s chs : List E} (hs : s.length 
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
-/-- `ring_switch_target`'s honest valuation, as `completeAt_flatD` asks it. -/
+/-- `ring_switch_target`'s honest valuation, as `completeAt_flatDTB` asks it. -/
 theorem rst_hσ {bs bm : ℕ} {s chs : List E} (hs : s.length = 64) (hc : chs.length = 16) (fp : ℕ)
     (rd : Reader) (hB : MemL rd (bufL (fp + fs "ring_switch_target") [72]
       [chainWords s (chs.drop 8)])) (hLin : MemL rd [(bs, s), (bm, chs)]) (o : List E × Main.Layout)

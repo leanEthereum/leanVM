@@ -52,8 +52,5 @@ abbrev selector_tables_Spec : Prop := selector_tables_SpecP coreProgram
 /-- `column_selector_SpecP` at the guest's `coreProgram`. -/
 abbrev column_selector_Spec : Prop := column_selector_SpecP coreProgram
 
-/-- `column_selector_complete_SpecP` at the guest's `coreProgram`. -/
-abbrev column_selector_complete_Spec : Prop := column_selector_complete_SpecP coreProgram
-
 end
 end LeanVM.Guest.B1.Tables

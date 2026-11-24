@@ -19,7 +19,7 @@ import LeanVM.Guest.LitRef
 `termKids_completeBE`: `termKids_completeB` by trees exact on the memory (`termPsE`): the column selectors by
 `cs_completeAtDTBRE`, the prefix chains, `check_opening_terminal_loop0`, `selector_tables` and `ring_switch_weight`
 (`rsw_exactOk`) exact on every valid tree (`KidsDepB.toE`). `check_opening_terminal_completeAtBWE`:
-`check_opening_terminal_completeAtBW` by a tree also exact (`completeAt_flatDepRBPR`, the terminal's own body without a
+`check_opening_terminal` complete within its bound by a tree within its weights and also exact (`completeAt_flatDepRBPR`, the terminal's own body without a
 computed hint); `ChildSegs.term_kidBWE`: so on an honest child.
 -/
 

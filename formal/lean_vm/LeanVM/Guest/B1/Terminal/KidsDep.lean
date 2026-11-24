@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Terminal.KidsDep
 
-  Callees whose words depend on the earlier callees' results, placed: `kidsFromIn_of_kidsD` and
-  `completeAt_flatD` for a list of callees each a function of the results before it.
+  Callees whose words depend on the earlier callees' results, placed: `kidsFromIn_of_kidsD` for a list of
+  callees each a function of the results before it.
 -/
 
 module
@@ -17,9 +17,8 @@ words fixed beforehand. When a callee reads what an earlier callee returns (`col
 the tables `selector_tables` returns, the terminal the buffers `certify_placement` returns), its
 arguments and words depend on the earlier results. `KidD`: a callee as a function of the results
 before it; `kidsAt ks prev outs`: the callees on the results `outs`.
-`kidsFromIn_of_dep`: the placement of `kidsFromIn_of_kidsD` for such callees.
-`completeAt_flatDepR`: `completeAt_flatD` for them, returning no buffer, each callee reading the
-caller's words, its buffers, and the buffers the earlier callees return (`RegionsOk`).
+`kidsAt`, `outsL` and their lemmas place them, each callee reading the caller's words, its buffers, and the
+buffers the earlier callees return (`RegionsOk`).
 -/
 
 namespace LeanVM.Guest.B1
@@ -57,76 +56,6 @@ theorem memL_outsL {rd : Reader} : ∀ {ks : List Kid} {outs : List (List E × L
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
-/-- **Dependent callees at their running offsets**: `kidsFromIn_of_kidsD`, each callee on the
-results before it. -/
-theorem kidsFromIn_of_dep (κ : ℕ) : ∀ (ks : List KidD) (prev : List (List E × Layout)),
-    (∀ k ∈ ks, ∀ pv, (k pv).taken = true →
-      CompleteAtD fs cert κ (k pv).f (k pv).Lin (k pv).args (k pv).Out) → ∀ b : ℕ,
-    ∃ (N : ℕ) (L : Layout) (outs : List (List E × Layout)), outs.length = ks.length ∧
-      OutsOk (kidsAt ks prev outs) outs ∧ Within L b N ∧ DisjL L ∧
-      OutsIn (kidsAt ks prev outs) outs L ∧
-      ∀ (rd : Reader) (σ : Val) (cs : List Call) (R Dacc : ℕ → Prop),
-        CallsMatch σ cs (kidsAt ks prev outs) outs → LowDef κ rd → MemL rd L →
-        MemL rd (Kid.lins (kidsAt ks prev outs)) → RegionsOk R Dacc (kidsAt ks prev outs) outs →
-        KidsFromIn coreProgram fs cert rd σ R Dacc cs b N
-          (fun i => Dacc i ∨ outRegion (kidsAt ks prev outs) outs i)
-  | [], _, _, b => ⟨0, [], [], rfl, trivial, fun _ h => by simp at h, disj_nil, trivial,
-      fun rd σ cs R Dacc hc _ _ _ _ => by
-      match cs, hc with
-      | [], _ => exact ⟨rfl, fun i hi => hi.elim id fun h => h.elim⟩⟩
-  | kf :: ks, prev, hok, b => by
-    by_cases ht : (kf prev).taken = true
-    · obtain ⟨n, Lown, rets, Lout, hout, hw, hd, hrel⟩ := hok kf (by simp) prev ht b
-      obtain ⟨N, L, outs, hlen, ho, hW, hD, hI, hK⟩ := kidsFromIn_of_dep κ ks (prev ++ [(rets, Lout)])
-        (fun k' hk' => hok k' (by simp [hk'])) (b + n)
-      refine ⟨n + N, Lout ++ Lown ++ L, (rets, Lout) :: outs, by simp [hlen],
-        ⟨fun _ => hout, ho⟩, ?_, disj_append hd hD hw hW le_rfl,
-        ⟨fun _ q hq => by simp [hq], hI.mono fun q hq => by simp [hq]⟩, ?_⟩
-      · rw [within_append]
-        exact ⟨hw.mono le_rfl (by omega), hW.mono (by omega) (by omega)⟩
-      · intro rd σ cs R Dacc hc hlow hL hLin hRg
-        match cs, hc with
-        | c :: cs, ⟨hf, hct, hcar, hc⟩ =>
-          obtain ⟨hL1, hL2⟩ := Main.memL_append.mp hL
-          simp only [kidsAt, Kid.lins, List.flatMap_cons] at hLin
-          obtain ⟨hLk, hLs⟩ := Main.memL_append.mp hLin
-          obtain ⟨hR1, hR2⟩ := hRg
-          obtain ⟨ha, hr⟩ := hcar ht
-          refine ⟨n, N, RegionL (kf prev).Lin, RegionL Lout, rfl, hR1 ht, ?_, ?_⟩
-          · rw [hct]
-            simp only [ht, ↓reduceIte]
-            rw [hf, ha, hr]
-            exact hrel rd hlow (Main.memL_append.mpr ⟨hL1, hLk⟩)
-          · refine kidsFromIn_dend cs _ _ _ ?_ (hK rd σ cs R _ hc hlow hL2 hLs ?_)
-            · intro i hi
-              rcases hi with hi | ⟨_, hi⟩ | hi
-              · exact Or.inl (Or.inl hi)
-              · exact Or.inl (Or.inr ⟨by rw [hct]; exact ht, hi⟩)
-              · exact Or.inr hi
-            · simpa [hct] using hR2
-    · obtain ⟨N, L, outs, hlen, ho, hW, hD, hI, hK⟩ := kidsFromIn_of_dep κ ks (prev ++ [([], [])])
-        (fun k' hk' => hok k' (by simp [hk'])) (b + fs (tailKey (kf prev).f))
-      refine ⟨fs (tailKey (kf prev).f) + N, L, ([], []) :: outs, by simp [hlen], ⟨fun h => absurd h ht, ho⟩,
-        hW.mono (by omega) (by omega), hD, ⟨fun h => absurd h ht, hI⟩, ?_⟩
-      intro rd σ cs R Dacc hc hlow hL hLin hRg
-      match cs, hc with
-      | c :: cs, ⟨hf, hct, _, hc⟩ =>
-        simp only [kidsAt, Kid.lins, List.flatMap_cons] at hLin
-        refine ⟨fs (tailKey (kf prev).f), N, fun _ => False, fun _ => False, rfl, fun _ h => h.elim, ?_, ?_⟩
-        · have ht' : (kf prev).taken = false := by simpa using ht
-          rw [hct, ht']
-          simp only [Bool.false_eq_true, ↓reduceIte]
-          rw [hf]
-        · refine kidsFromIn_dend cs _ _ _ ?_ (hK rd σ cs R _ hc hlow hL (Main.memL_append.mp hLin).2 ?_)
-          · intro i hi
-            rcases hi with hi | ⟨h, _⟩ | hi
-            · exact Or.inl (Or.inl hi)
-            · exact absurd h ht
-            · exact Or.inr hi
-          · have := hRg.2
-            simp only [hct, ht, Bool.false_eq_true, false_and, or_false] at this ⊢
-            exact this
-
 /-- A statement other than an `ite`. -/
 def notIteB : Stmt → Bool
   | .ite _ _ _ => false
@@ -147,58 +76,6 @@ theorem filterMap_of_loadsEv {σ : Val} : ∀ {pre : List Stmt}, pre.all notIteB
         simp [h]
     · have := filterMap_of_loadsEv hni.2 h
       cases hs : Stmt.loadS s <;> simp [hs, this]
-
-/-- **`completeAt_flatD` for dependent callees, returning no buffer**: the buffers are the function's
-own words. -/
-theorem completeAt_flatDepR {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
-    (hl : coreProgram.loop f = false) (κ : ℕ) (Lin : Layout) (args rets : List E)
-    {pre : List Stmt} {vs : List V} (hb : fn.body = pre ++ [.ret vs])
-    (hst : pre.all Stmt.flat = true) (haddrs : pre.filterMap Main.Stmt.addrS = [])
-    (hni : pre.all notIteB = true)
-    (sizes : List ℕ) (own : ℕ → List (List E))
-    (hown : ∀ fp, List.Forall₂ (fun c s => c.length ≤ s) (own fp) sizes) (kids : ℕ → List KidD)
-    (hkc : ∀ fp, ∀ k ∈ kids fp, ∀ pv, (k pv).taken = true →
-      CompleteAtD fs cert κ (k pv).f (k pv).Lin (k pv).args (k pv).Out)
-    (hkr : ∀ fp outs, OutsOk (kidsAt (kids fp) [] outs) outs →
-      RegionsOk (fun i => RegionL Lin i ∨ RegionL (bufL (fp + fs f) sizes (own fp)) i) (fun _ => False)
-        (kidsAt (kids fp) [] outs) outs)
-    (hkm : ∀ fp outs, OutsOk (kidsAt (kids fp) [] outs) outs → ∀ rd, LowDef κ rd →
-      MemL rd (bufL (fp + fs f) sizes (own fp)) → MemL rd Lin →
-      MemL rd (outsL (kidsAt (kids fp) [] outs) outs) → MemL rd (Kid.lins (kidsAt (kids fp) [] outs)))
-    (hσ : ∀ fp (outs : List (List E × Layout)), outs.length = (kids fp).length →
-      OutsOk (kidsAt (kids fp) [] outs) outs → ∀ rd,
-      LowDef κ rd → MemL rd (bufL (fp + fs f) sizes (own fp)) → MemL rd Lin →
-      MemL rd (outsL (kidsAt (kids fp) [] outs) outs) →
-      ∃ σ : Val, fn.params.map σ = args ∧ (∀ s ∈ pre, DispOk σ s) ∧
-        Stmt.HoldsList (fun _ _ _ => True) rd σ fn.body False (fun r => r = rets) ∧
-        (pre.filterMap Main.Stmt.allocSz).map (fun x => x.2.elim id fun s => logG (σ s)) = sizes ∧
-        ((pre.filterMap Main.Stmt.allocSz).map Prod.fst).map σ =
-          (bases (fp + fs f) sizes).map (fun b => ofK (addressOfIndex b)) ∧
-        CallsMatch σ ((pre.filterMap (Stmt.callSF σ)).map (Main.mkCall σ))
-          (kidsAt (kids fp) [] outs) outs ∧
-        ∀ q ∈ pre.filterMap Stmt.loadS, ∃ i, (σ q.1).limb 0 * addressOfIndex q.2 =
-            addressOfIndex i ∧
-          (RegionL Lin i ∨ RegionL (bufL (fp + fs f) sizes (own fp)) i ∨
-            outRegion (kidsAt (kids fp) [] outs) outs i)) :
-    CompleteAtD fs cert κ f Lin args (Returns rets) := by
-  intro fp
-  obtain ⟨N, L, outs, hlen, ho, hW, hD, hI, hK⟩ := kidsFromIn_of_dep (fs := fs) (cert := cert) κ
-    (kids fp) [] (hkc fp) (fp + fs f + sizes.sum)
-  refine ⟨fs f + sizes.sum + N, bufL (fp + fs f) sizes (own fp) ++ L, rets, [], ⟨rfl, rfl⟩, ?_,
-    by simpa using disj_append (bufL_disj _ _ _ (hown fp)) hD (bufL_within _ _ _ (hown fp)) hW le_rfl,
-    fun rd hlow hL => ?_⟩
-  · simp only [List.nil_append, within_append]
-    exact ⟨(bufL_within _ _ _ (hown fp)).mono (by omega) (by omega), hW.mono (by omega) (by omega)⟩
-  simp only [List.nil_append] at hL
-  obtain ⟨hLm, hLin⟩ := Main.memL_append.mp hL
-  obtain ⟨hB, hLk⟩ := Main.memL_append.mp hLm
-  have hLo := memL_outsL hI hLk
-  obtain ⟨σ, hp, hdo, hh, hsz, hbuf, hcm, hld⟩ := hσ fp outs hlen ho rd hlow hB hLin hLo
-  exact relAtIn_flat (D := RegionL []) hf hl hb hst haddrs (hown fp) hp hdo hh hsz hbuf
-    (hK rd σ _ _ _ hcm hlow hLk (hkm fp outs ho rd hlow hB hLin hLo) (hkr fp outs ho))
-    (fun q hq => (hld q (filterMap_of_loadsEv hni hq)).imp fun _ h =>
-      ⟨h.1, h.2.imp_right (Or.imp_right Or.inr)⟩)
-    (fun i hi => by obtain ⟨q, hq, _⟩ := hi; simp at hq)
 
 /-! ## The callees by position -/
 

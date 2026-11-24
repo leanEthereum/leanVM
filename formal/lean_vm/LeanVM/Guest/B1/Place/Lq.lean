@@ -24,7 +24,7 @@ its own, checks the cap up to the root `(r0, r1)` by `verify_merkle_cap__L{cd}`,
 flags, `1/λ`, the round coefficients, the high part, the positions and the window pointers, and
 returns the root, the queries' sum and `λ^q`.
 
-**The statement** (`LqAtDP`, `LqProofP.lean`, with the pops): the honest cap `capW` and flags `flW` (the hints), checked to
+**The statement** (`LqAtEP`, `LqProofP.lean`, with the pops): the honest cap `capW` and flags `flW` (the hints), checked to
 `(r0, r1)` by `verify_merkle_cap` on every memory holding them, each query `k < q`'s leaf climbed
 to the cap's cells and its parent flagged (`LqCaps`); the caller's words `Lin` holding the rounds
 at `coefs`, the final level's high part at `hs`, query `k`'s position at `positions`, its window

@@ -73,17 +73,6 @@ theorem RelAtInCPE.relAtInPE {R D : ℕ → Prop} {fp B n : ℕ} {f : String} {a
     RelAtInPE P fs cert rd Q R D fp (B + n) f args rets ps :=
   RelAtInCT.relAtInT h
 
-theorem KidsFromInPE.toP {R : ℕ → Prop} : ∀ {cs : List Call} {pss : List (List Pop)} {Dacc : ℕ → Prop} {b n : ℕ}
-    {Dend : ℕ → Prop}, KidsFromInPE P fs cert rd σ Q R Dacc cs pss b n Dend →
-    KidsFromInP P fs cert rd σ R Dacc cs pss b n Dend
-  | [], [], _, _, _, _, h => h
-  | c :: cs, p :: pss, _, _, _, _, ⟨m, n', Rk, Dk, hn, hR, hc, hk⟩ => by
-      refine ⟨m, n', Rk, Dk, hn, hR, ?_, hk.toP⟩
-      by_cases ht : c.taken = true
-      · rw [ite_eq_left ht] at hc ⊢; exact hc.toP
-      · rw [ite_eq_right ht] at hc ⊢; exact hc
-  | [], _ :: _, _, _, _, _, h | _ :: _, [], _, _, _, _, h => h.elim
-
 /-- `KidsFromInPE` is `KidsFromInT` by the trees popping the entries and satisfying `Every Q`, a skipped call's
 entries `[]`. -/
 theorem KidsFromInPE.toT {R : ℕ → Prop} : ∀ {cs : List Call} {pss : List (List Pop)} {Dacc : ℕ → Prop} {b n : ℕ}

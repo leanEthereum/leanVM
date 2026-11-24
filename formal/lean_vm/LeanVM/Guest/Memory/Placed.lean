@@ -34,7 +34,7 @@ frame is free; the allocator puts the `i`-th at `kidPos …[i]`.
 
 `Tree.Placed P fs cert p t` says this of every instance of `t` placed from `p` (frame, cursor), and
 `RelAt P fs cert rd fp n f args rets` is `Program.Rel` by a tree so placed fresh at `fp` (its
-cursor after its block), of `n` words. `KidsFrom`: callees one after another from a word, each
+cursor after its block), of `n` words. Callees go one after another from a word, each
 call entered `RelAt` at its running offset and each not entered a phantom of its callee's frame
 size. `placed_of_pure`: a subtree whose functions allocate nothing and take no `frameAddr`
 (`Program.PureIn`, decidable on the program) is placed anywhere.
@@ -97,15 +97,6 @@ of its paths, placed fresh at `fp`, of `n` words. -/
 def RelAt (rd : Reader) (fp n : ℕ) (f : String) (args rets : List E) : Prop :=
   ∃ t : Tree, t.name = f ∧ t.Valid P rd args rets ∧ t.BufsOk P ∧
     t.Placed P fs cert (fp, fp + t.block fs P.loop) ∧ t.total fs = n
-
-/-- **The callees of the frames `cs` sets up**, their regions one after another from `b`, `n`
-words in all: each call entered `RelAt` its region, each not entered a phantom of its callee's
-tail (`tailKey`). -/
-def KidsFrom (rd : Reader) (σ : Val) : List Call → ℕ → ℕ → Prop
-  | [], _, n => n = 0
-  | c :: cs, b, n => ∃ m n', n = m + n' ∧
-      (if c.taken then RelAt P fs cert rd b m c.f (c.args.map σ) (c.rets.map σ) else m = fs (tailKey c.f)) ∧
-      KidsFrom rd σ cs (b + m) n'
 
 variable {P fs cert}
 
