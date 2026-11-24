@@ -517,7 +517,9 @@ syntax (name := includesTac) "includes" : tactic
 def includesAutoParam : Syntax := mkNode ``includesTac #[mkAtom "includes"]
 
 /-- `ty` with its premise `Includes P deps` (its second binder) an `autoParam` closed by
-`includes`, so that a use names the program alone: `f.costEq P`. -/
+`includes`, so that a use with nothing after the program needs no proof of it: `rw [f.costEq P]`.
+An explicit argument after `P` takes the premise's place, so such a use passes the premise too:
+`f.costSpec P (by includes) x`. -/
 def autoIncludes (ty : Expr) : Expr :=
   match ty with
   | .forallE n d (.forallE n2 d2 b bi2) bi =>
@@ -624,36 +626,39 @@ def branchEqs (name : Name) (binders encXs : Array Expr) (lhs rhs pf : Expr) : M
       addDecl <| .thmDecl
         { name := name.str s!"costEq_{cname}", levelParams := [], type := ty, value := val }
 
-/-- A static argument as it is written: constants by their last component, applications spaced,
-products with `×`, literals as numbers. -/
-partial def staticString (e : Expr) : MetaM String := do
+/-- A static argument as it is written: constants by their last component (`full`: their full
+names), applications spaced, products with `×`, literals as numbers, anything else printed with
+full names and Lean's default options. -/
+partial def staticString (full : Bool) (e : Expr) : MetaM String := do
   let e ← instantiateMVars e
   if let some n ← natLit? e then return toString n
   let paren (a : Expr) : MetaM String := do
-    let s ← staticString a
+    let s ← staticString full a
     return if a.getAppNumArgs > 0 && (← natLit? a).isNone then s!"({s})" else s
   if e.isAppOfArity ``Prod 2 then
     let a := e.appFn!.appArg!
-    let sa ← staticString a
-    return s!"{if a.isAppOfArity ``Prod 2 then s!"({sa})" else sa} × {← staticString e.appArg!}"
+    let sa ← staticString full a
+    return s!"{if a.isAppOfArity ``Prod 2 then s!"({sa})" else sa} × {← staticString full e.appArg!}"
   match e.getAppFn with
   | .const c _ =>
     let args ← e.getAppArgs.filterM fun a ↦ do
       return !(← isProp (← inferType a)) && (← isClass? (← inferType a)).isNone
-    return " ".intercalate (c.lastComponentAsString :: (← args.mapM paren).toList)
-  | _ => return toString (← ppExpr e)
+    let head := if full then c.toString else c.lastComponentAsString
+    return " ".intercalate (head :: (← args.mapM paren).toList)
+  | _ => return toString (← withOptions (fun _ ↦ ({} : Options).setBool `pp.fullNames true) (ppExpr e))
 
 /-- The stable name of the function `f` compiled at the static arguments `static`:
 `LeanVM.Cost.Auto.f`, followed by the types and values among `static` (not its instances and
-proofs), as written, when there are any (`…SortedMap.insert.«Bytes, Digest»`). -/
-def autoName (f : Name) (info : ConstantInfo) (static : Array Expr) : MetaM Name := do
+proofs), as written, when there are any (`…SortedMap.insert.«Bytes, Digest»`); constants by their
+full names if `full`. -/
+def autoName (f : Name) (info : ConstantInfo) (static : Array Expr) (full : Bool) : MetaM Name := do
   let bis ← forallTelescopeReducing info.type fun xs _ ↦ xs.mapM fun x ↦ x.fvarId!.getBinderInfo
   let mut keys : Array String := #[]
   for h : j in [0:static.size] do
     let a := static[j]
     if (bis[j]?.map (·.isInstImplicit)).getD false then continue
     if ← isProp (← inferType a) then continue
-    keys := keys.push (← staticString a)
+    keys := keys.push (← staticString full a)
   let base := `LeanVM.Cost.Auto ++ f
   return if keys.isEmpty then base else base.str (", ".intercalate keys.toList)
 
@@ -1185,7 +1190,8 @@ partial def isRecursive (f : Name) : MetaM Bool := do
 /-- Compile the recursive `f` of the call `e`: at its types and instances fixed up to its last
 instance argument (its types otherwise parameters), with the first measure among the sizes of
 its encoded parameters (a natural number itself) that its recursive calls decrease; named
-`autoName f static`, the same in every chain that compiles it. -/
+`autoName f static`, the same in every chain that compiles it, with the constants' full names if
+another function has that name already (the same last component in two namespaces). -/
 partial def compileOnDemand (ctx : Ctx) (f : Name) (e : Expr) : MetaM (Option CompiledFn) := do
   let recursive ← isRecursive f
   unless recursive || (← shouldOutline f e) do return none
@@ -1237,7 +1243,9 @@ partial def compileOnDemand (ctx : Ctx) (f : Name) (e : Expr) : MetaM (Option Co
         mkLambdaFVars xs (← Core.betaReduce (mkAppN mReg (static ++ xs)))
       pure (#[m] ++ measures)
     | none => pure measures
-  let name ← autoName f info static
+  let mut name ← autoName f info static false
+  if (← getEnv).contains (name.str "costIdx") then
+    name ← autoName f info static true
   if (← getEnv).contains (name.str "costIdx") then
     throwError "compile {f}: {name} is compiled already at other static arguments; compile this \
       call with `cost_compile` under a name of its own"
