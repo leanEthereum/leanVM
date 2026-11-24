@@ -3,9 +3,10 @@ use super::deferred::{DeferredBytecodeClaim, bytecode_sums, bytecode_value, byte
 use super::error::AggregateError;
 use super::guest::{GUEST_SOURCE, compile_guest, unified_guest};
 use super::hints::{FORGE, Forgery, Hints};
+use super::node::push_list;
 use super::placeholders::placeholder_map;
 use super::proof::{AggregateProof, decode, encode};
-use super::statement::{CLAIM_GROUP, claim_list_digest, list_split};
+use super::statement::CLAIM_GROUP;
 use super::*;
 use fiat_shamir_prover::merkle::hash_to_scalars;
 use isa::Program;
@@ -156,7 +157,7 @@ fn guest_addresses_are_the_native_ones() {
     }
 }
 
-/// A leaf of both schemes, each list in its own region, with no blobs and so no root. One leanSPHINCS pubkey signs
+/// A leaf of both schemes, with no blobs and so no root. One leanSPHINCS pubkey signs
 /// two messages, the repeat the statement allows: two claims, ordered by the pair, each needing its own signature.
 /// Generated here rather than cached, the cache holding one message per pubkey.
 #[test]
@@ -317,8 +318,7 @@ fn guest_column_selectors_match_native_eq() {
 /// The right leaf holds more claims than one loop frame of its list hashes
 /// ([`CLAIM_GROUP`]), so both that leaf and the parent rebuilding it run the
 /// list's group loop and then a partial last group, while the left leaf's list is
-/// a partial group alone. The leaves share three signers, so the parent rebuilds the
-/// right list on the walk that allows repeated slots (`child_claim_list_any`).
+/// a partial group alone. The leaves share three signers, so the parent sets three duplicates aside.
 #[test]
 fn aggregate_two_to_one() {
     let big = 2 * CLAIM_GROUP + 3;
@@ -326,10 +326,7 @@ fn aggregate_two_to_one() {
     let left = prove(&[], &signers[..SMALL_LEAF_SIZE], &[]);
     let right = prove(&[], &signers[SMALL_LEAF_SIZE - 3..], &[]);
     let cover = super::coverage::plan_coverage(&[], &[], &[left.clone(), right.clone()], None).unwrap();
-    assert!(
-        !cover.lean_xmss.children[1].is_sorted_by(|a, b| a < b),
-        "the right list takes the repeated-slot walk"
-    );
+    assert_eq!(cover.lean_xmss.dups.len(), 3, "the shared claims are duplicates");
     // A child whose claims are out of order, or whose proof the replay cannot walk, is refused before proving.
     let node_of = |left: Node| aggregate(&[left, right.clone()], vec![], vec![], None, OutputClaims::All).err();
     let mut unsorted = left.clone();
@@ -570,7 +567,7 @@ fn da_root(rows: &[Codeword]) -> Hash {
     hash_pair(&root(blob_roots), &count)
 }
 
-/// Claims left undeclared take duplicate slots. The first narrowing drops every
+/// Claims left undeclared become duplicates. The first narrowing drops every
 /// claim on one message, the second all but one claim.
 #[test]
 fn a_node_may_publish_less_than_it_covers() {
@@ -630,7 +627,7 @@ fn a_node_may_publish_less_than_it_covers() {
     );
 }
 
-/// A raw signature whose claim goes undeclared covers a duplicate slot.
+/// A raw signature whose claim goes undeclared covers a duplicate.
 #[test]
 fn raw_signatures_may_go_undeclared() {
     let b = get_signers_for::<StableProver>(1, MESSAGE_B);
@@ -647,8 +644,8 @@ fn raw_signatures_may_go_undeclared() {
 
 /// Two messages in one tree. Signer `i` holds the same pubkey under both, at
 /// different leaf indices, so its claims on B are distinct from those on A; the
-/// left leaf holds one message, the right both, and the node needs a duplicate
-/// slot for the claim both leaves cover.
+/// left leaf holds one message, the right both, and the node sets a duplicate
+/// aside for the claim both leaves cover.
 #[test]
 fn aggregate_two_messages() {
     let at_a = get_signers::<StableProver>(4);
@@ -678,52 +675,82 @@ fn aggregate_two_messages() {
     assert_eq!(node.0.lean_xmss, expected);
 }
 
-/// A child list walked by gaps (`child_claim_list_mono`) moves strictly forward. A
-/// child may declare a claim twice, and a gap of `g^-1` would walk the copy back onto
-/// the slot it just covered, with the same coverage mark, so write-once memory alone
-/// would not see it: only the gap's `assert_gpow` does.
+/// A node matches the claims it takes in against those it puts out at a challenge its lists fix: one whose hints
+/// give another challenge, another nonce or a grind too short for its counts, put out a duplicate nothing gives, read
+/// a child's claim other than the one that child declared, or call the node plain, fails the guest's run. Two leaves
+/// share a claim, so the node has a duplicate.
 #[test]
-fn a_child_walk_cannot_step_back() {
+fn forged_claim_lists_are_rejected() {
+    let signers = get_signers::<StableProver>(3);
+    let children = [prove(&[], &signers[..2], &[]), prove(&[], &signers[1..], &[])];
+    // The "claims" stream: the three declared claims, the duplicate, then each child's two.
+    let forgeries: [Forgery; 6] = [
+        Box::new(|hints: &mut Hints| hints.entry_mut("claims_challenge", 0)[1] += F128::ONE),
+        Box::new(|hints: &mut Hints| hints.entry_mut("claims_nonce", 0)[0] += F128::ONE),
+        Box::new(|hints: &mut Hints| hints.entry_mut("claims_grind", 0)[0] = count(0)),
+        Box::new(|hints: &mut Hints| hints.entry_mut("claims", 3)[2] += F128::ONE),
+        Box::new(|hints: &mut Hints| hints.entry_mut("claims", 4)[0] += F128::ONE),
+        Box::new(|hints: &mut Hints| hints.entry_mut("plain", 0)[0] = count(1)),
+    ];
+    for forgery in forgeries {
+        assert_forgery_rejected(forgery, &children, vec![], vec![], &[]);
+    }
+}
+
+/// Two lists have equal products exactly when they hold the same claims, each as many times, in any order: what
+/// the node's check of the claims it takes in against those it puts out rests on (`claims_product`).
+#[test]
+fn list_products_agree_on_equal_multisets_only() {
     let guest = guest_snippet(
-        r#"    n_c = hint_witness("n")
-    table = HeapBuf(GEN ** 8)
-    hint_witness(table[0:8], "claims")
-    cover = HeapBuf(GEN ** 2)
-    d0, d1 = child_claim_list_digest(table, cover, GEN ** 3, GEN ** 2, n_c)
-    public = GEN ** 0
-    assert public[1] == d0
-    assert public[GEN] == d1
+        r#"    counts = StackBuf(2)
+    hint_witness(counts, "n")
+    chal = StackBuf(2)
+    hint_witness(chal, "chal")
+    d0, d1, put_out = claim_list_digest(counts[0], 0, chal[0], chal[1], 1, SIGN_NONE, 1)
+    e0, e1, taken_in = claim_list_digest(counts[1], 0, chal[0], chal[1], 1, SIGN_NONE, 1)
+    assert put_out == taken_in
     return
 "#,
         20,
     );
     let claim = |i: u64| [1, 2, 3, 4].map(|k| F128::new(i * 7919 + k, k));
-    let table: Vec<F128> = [claim(0), claim(1)].concat();
-    let walk = |child: &[[F128; 4]], gaps: &[F128]| {
+    let matches = |put_out: &[[F128; 4]], taken_in: &[[F128; 4]]| {
         let mut hints = Hints::default();
-        hints.push("n", vec![count(child.len())]);
-        hints.push("claims", table.clone());
-        hints.push("signers_split", list_split(child.len()));
-        hints.push("child_mono", vec![count(1)]);
-        for &gap in gaps {
-            hints.push("child_claim_gap", vec![gap]);
-        }
-        execute(&guest, &hints.0, claim_list_digest(child.iter().copied()))
+        hints.push("n", vec![count(put_out.len()), count(taken_in.len())]);
+        hints.push("chal", vec![F128::new(0x9e37_79b9, 7), F128::new(0x85eb_ca6b, 3)]);
+        push_list(&mut hints, put_out);
+        push_list(&mut hints, taken_in);
+        execute(&guest, &hints.0, [F128::ZERO; 2]).is_ok()
     };
-    assert!(walk(&[claim(0), claim(1)], &[count(0), count(0)]).is_ok());
-    let back = count(1).inv();
+    // More claims than one frame holds, so the product crosses frames.
+    let many: Vec<[F128; 4]> = (0..200).map(claim).collect();
+    let reversed: Vec<[F128; 4]> = many.iter().rev().copied().collect();
+    assert!(matches(&many, &reversed), "the order does not matter");
+    assert!(matches(
+        &[claim(0), claim(0), claim(1)],
+        &[claim(0), claim(1), claim(0)]
+    ));
     assert!(
-        walk(&[claim(0), claim(0)], &[count(0), back]).is_err(),
-        "a walk revisited a slot"
+        !matches(&[claim(0), claim(1)], &[claim(0), claim(2)]),
+        "a claim nothing gives"
+    );
+    assert!(
+        !matches(&[claim(0), claim(0), claim(1)], &[claim(0), claim(1), claim(1)]),
+        "a claim counted twice"
+    );
+    assert!(!matches(&[claim(0), claim(1)], &[claim(0)]), "a claim left over");
+    let mut swapped = [claim(0), claim(1)];
+    (swapped[0][3], swapped[1][3]) = (swapped[1][3], swapped[0][3]);
+    assert!(
+        !matches(&[claim(0), claim(1)], &swapped),
+        "cells moved between two claims"
     );
 }
 
-/// Three levels, both schemes. Each node has a child of one scheme only, so it rebuilds a list empty on one side,
-/// which is the only way the guest's claim-absorbing loops run over an empty range and reach their bound `log(x) <
-/// log(g^0)` (unsatisfiable, so nothing may be written there). Leaves overlap in claims of each scheme, within a node
-/// and across the two nodes, so the left node needs a duplicate slot and the root one in each region, each child's two
-/// lists landing in their own; the root adds a raw signature of each scheme, leanXMSS on a second message, alongside its
-/// children. The root's proof goes over the wire.
+/// Three levels, both schemes. Each node has a child of one scheme only, so it rebuilds a list empty on one side.
+/// Leaves overlap in claims of each scheme, within a node and across the two nodes, so the left node sets a duplicate
+/// aside and the root one of each scheme; the root adds a raw signature of each scheme, leanXMSS on a second message,
+/// alongside its children. The root's proof goes over the wire.
 #[test]
 fn aggregate_three_levels() {
     let xmss = get_signers::<StableProver>(17);

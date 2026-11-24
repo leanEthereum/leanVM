@@ -17,8 +17,8 @@ const CLAIM_BIG: usize = CLAIM_GROUP * BIG_GROUPS;
 /// How the guest splits a list of `n` claims: the whole frames of [`CLAIM_BIG`], then
 /// the whole groups of [`CLAIM_GROUP`], then the claims after them. Its own product
 /// identity and range checks pin all three, so this only has to agree with them
-/// (`list_split` in the guest). A list is never empty here: both claim lists are
-/// guarded at the call, since the guest hashes an empty one without a split at all.
+/// (`list_split` in the guest). A list is never empty here: the guest hashes an empty
+/// one without a split at all, so no split is pushed for it.
 pub(super) fn list_split(n: usize) -> Vec<F128> {
     assert!(n > 0, "an empty list has no split");
     let rest = n % CLAIM_BIG;
@@ -63,7 +63,7 @@ pub(super) fn lean_sphincs_claim_cells((pk, message): &LeanSphincsClaim) -> [F12
 pub(super) const STATEMENT_HEADER: usize = 8;
 
 /// A plain hash over cells: what the guest gets from `keccak_cells` over the same cells.
-fn cell_hash(cells: impl IntoIterator<Item = F128>) -> [F128; 2] {
+pub(super) fn cell_hash(cells: impl IntoIterator<Item = F128>) -> [F128; 2] {
     hash_to_scalars(&keccak256::hash(&cell_bytes(cells)))
 }
 

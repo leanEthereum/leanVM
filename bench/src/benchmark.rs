@@ -160,6 +160,7 @@ pub fn run_recursion<P: Prover>(
     lean_sphincs_per_leaf: usize,
     blobs_per_leaf: usize,
     leaf_log_inv_rate: usize,
+    wrap_log_inv_rate: Option<usize>,
     log_inv_rate: usize,
     enable_tracing: bool,
     plan: Plan,
@@ -177,6 +178,7 @@ pub fn run_recursion<P: Prover>(
         lean_sphincs_per_leaf,
         blobs_per_leaf,
         log_inv_rate: leaf_log_inv_rate,
+        wrap_log_inv_rate,
     };
     if std::env::var_os(PROVE_LEAVES).is_some() {
         return shape.prove_missing::<P>(n);
@@ -208,11 +210,19 @@ pub fn run_recursion<P: Prover>(
     if blobs_per_leaf > 0 {
         inputs.push(format!("{blobs_per_leaf} blobs"));
     }
-    if leaf_log_inv_rate != log_inv_rate {
+    let rate = |log: usize| format!("1/{}", 1usize << log);
+    if let Some(wrap) = wrap_log_inv_rate {
         inputs.push(format!(
-            "leaf rate = 1/{}, recursion rate = 1/{}",
-            2usize.pow(leaf_log_inv_rate as u32),
-            2usize.pow(log_inv_rate as u32)
+            "leaf rate = {}, each wrapped at rate {}, recursion rate = {}",
+            rate(leaf_log_inv_rate),
+            rate(wrap),
+            rate(log_inv_rate)
+        ));
+    } else if leaf_log_inv_rate != log_inv_rate {
+        inputs.push(format!(
+            "leaf rate = {}, recursion rate = {}",
+            rate(leaf_log_inv_rate),
+            rate(log_inv_rate)
         ));
     }
     report(
@@ -233,13 +243,16 @@ pub fn run_recursion<P: Prover>(
     );
 }
 
-/// What the leaves of a recursion step share: each one's signature and blob counts, and its rate.
+/// What the leaves of a recursion step share: each one's signature and blob counts, its rate, and the rate of the
+/// one-child node it is wrapped in, if it is.
 #[derive(Clone, Copy, Hash)]
 struct LeafShape {
     per_leaf: usize,
     lean_sphincs_per_leaf: usize,
     blobs_per_leaf: usize,
     log_inv_rate: usize,
+    /// The rate of the one-child node each leaf is wrapped in, if it is.
+    wrap_log_inv_rate: Option<usize>,
 }
 
 /// Set by [`LeafShape::leaves`] on the process it starts, which proves the leaves the cache lacks.
@@ -288,7 +301,7 @@ impl LeafShape {
         let lean_sphincs = lean_sphincs_signers::<P>(0, n * self.lean_sphincs_per_leaf);
         for (done, &k) in missing.iter().enumerate() {
             println!("  proving leaf {}/{}", done + 1, missing.len());
-            let (claims, proof, _) = aggregate::<P>(
+            let (mut claims, mut proof, _) = aggregate::<P>(
                 &[],
                 lean_xmss[k * self.per_leaf..][..self.per_leaf].to_vec(),
                 lean_sphincs[k * self.lean_sphincs_per_leaf..][..self.lean_sphincs_per_leaf].to_vec(),
@@ -297,6 +310,10 @@ impl LeafShape {
                 self.log_inv_rate,
             )
             .expect("leaf aggregates");
+            if let Some(wrap) = self.wrap_log_inv_rate {
+                (claims, proof, _) = aggregate::<P>(&[(claims, proof)], vec![], vec![], None, OutputClaims::All, wrap)
+                    .expect("the wrapper aggregates");
+            }
             let claims = claims.to_bytes();
             let bytes = [&(claims.len() as u64).to_le_bytes()[..], &claims, &proof.to_bytes()].concat();
             // Written beside its place, then moved there: a reader never finds half a leaf.
