@@ -8,8 +8,7 @@
 //! - [`positions`], the permutation one bit position at a time, as `keccak_gkr` proves it.
 //!
 //! The batched forms permute [`lanes()`] states at once in vector registers (AVX-512, AVX2 or NEON, the only
-//! architecture-specific code here) and are byte-identical to the one-input forms. With the `std` feature they take the
-//! widest the CPU runs, whatever the build's target features.
+//! architecture-specific code here) and are byte-identical to the one-input forms.
 //!
 //! The state is 25 little-endian 64-bit lanes, lane `x + 5y` holding `A[x, y]`. The first `RATE / 8` lanes are the
 //! rate: a message block is XORed into them before each permutation, and the digest is read off the first

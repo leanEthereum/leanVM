@@ -9,7 +9,12 @@ pub(crate) const CACHED_NODES: usize = 1 << (LAYER_HEIGHT - CACHED_LEVEL);
 
 /// The Merkle parent at `level` and index `j` of `layer`.
 pub fn node(pp: &PublicParam, layer: usize, level: usize, j: u32, children: &[Digest; 2]) -> Digest {
-    th_digests(pp, &tweak(TWEAK_NODE, layer_hi(layer, level as u32), j), children)
+    th_digests(pp, &node_tweak(layer, level, j), children)
+}
+
+/// The address of node `j` at `level` of `layer`.
+fn node_tweak(layer: usize, level: usize, j: u32) -> Tweak {
+    tweak(TWEAK_NODE, layer_hi(layer, level as u32), j)
 }
 
 /// Levels `from..=to` over `base`, level `from` from leaf `first` on.
@@ -18,9 +23,9 @@ fn levels(pp: &PublicParam, layer: usize, first: u32, from: usize, to: usize, ba
     let mut levels = vec![base];
     for level in from + 1..=to {
         // As `node` computes them, one batch per level.
-        let up = levels.last().unwrap().as_chunks::<2>().0.iter().zip(first >> level..);
-        let up = up.map(|([l, r], j)| (tweak(TWEAK_NODE, layer_hi(layer, level as u32), j), concat(l, r)));
-        levels.push(th_many(pp, up).iter().map(|h| keccak256::truncate(*h)).collect());
+        let below = levels.last().unwrap().as_chunks::<2>().0.iter().enumerate();
+        let up = below.map(|(k, &children)| (node_tweak(layer, level, (first >> level) + k as u32), children));
+        levels.push(th_digests_many(pp, up));
     }
     levels
 }
@@ -29,7 +34,7 @@ fn levels(pp: &PublicParam, layer: usize, first: u32, from: usize, to: usize, ba
 #[cfg(feature = "std")]
 fn subtree(pp: &PublicParam, seed: &SchemeSeed, layer: usize, j: u32) -> Vec<Vec<Digest>> {
     let first = j << CACHED_LEVEL;
-    let leaves = wots_public_leaves(pp, seed, layer, first..=first | ((1 << CACHED_LEVEL) - 1));
+    let leaves = wots_public_leaves(pp, seed, layer, first, 1 << CACHED_LEVEL);
     levels(pp, layer, first, 0, CACHED_LEVEL, leaves)
 }
 

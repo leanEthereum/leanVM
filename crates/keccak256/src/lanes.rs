@@ -99,11 +99,13 @@ fn scatter<S: Lane>(lane: S) -> [u64; MAX_WIDTH] {
 /// The column parities of `a`.
 #[inline(always)]
 fn parities<S: Lane>(a: &[S; STATE_LANES]) -> [S; 5] {
-    let mut c = [a[0]; 5];
-    for (x, c) in c.iter_mut().enumerate() {
-        *c = S::xor5(a[x], a[x + 5], a[x + 10], a[x + 15], a[x + 20]);
-    }
-    c
+    [
+        S::xor5(a[0], a[5], a[10], a[15], a[20]),
+        S::xor5(a[1], a[6], a[11], a[16], a[21]),
+        S::xor5(a[2], a[7], a[12], a[17], a[22]),
+        S::xor5(a[3], a[8], a[13], a[18], a[23]),
+        S::xor5(a[4], a[9], a[14], a[19], a[24]),
+    ]
 }
 
 /// θ's effect on each column, from the column parities `c`.
@@ -122,7 +124,50 @@ fn t<S: Lane>(a: &[S; STATE_LANES], d: &[S; 5], i: usize) -> S {
     a[i].xor(d[i % 5])
 }
 
-/// Output row `y` from the lanes π sends there, each rotated by its ρ: χ, ι on row 0, stored into `out` and folded
+/// Output row `y`'s lanes before χ: the lanes π sends there, after θ, each rotated by its ρ. `y` is a constant at every
+/// call, so the match folds away.
+#[inline(always)]
+fn pi_row<S: Lane>(a: &[S; STATE_LANES], d: &[S; 5], y: usize) -> [S; 5] {
+    match y {
+        0 => [
+            t(a, d, 0),
+            t(a, d, 6).rotl::<44>(),
+            t(a, d, 12).rotl::<43>(),
+            t(a, d, 18).rotl::<21>(),
+            t(a, d, 24).rotl::<14>(),
+        ],
+        1 => [
+            t(a, d, 3).rotl::<28>(),
+            t(a, d, 9).rotl::<20>(),
+            t(a, d, 10).rotl::<3>(),
+            t(a, d, 16).rotl::<45>(),
+            t(a, d, 22).rotl::<61>(),
+        ],
+        2 => [
+            t(a, d, 1).rotl::<1>(),
+            t(a, d, 7).rotl::<6>(),
+            t(a, d, 13).rotl::<25>(),
+            t(a, d, 19).rotl::<8>(),
+            t(a, d, 20).rotl::<18>(),
+        ],
+        3 => [
+            t(a, d, 4).rotl::<27>(),
+            t(a, d, 5).rotl::<36>(),
+            t(a, d, 11).rotl::<10>(),
+            t(a, d, 17).rotl::<15>(),
+            t(a, d, 23).rotl::<56>(),
+        ],
+        _ => [
+            t(a, d, 2).rotl::<62>(),
+            t(a, d, 8).rotl::<55>(),
+            t(a, d, 14).rotl::<39>(),
+            t(a, d, 15).rotl::<41>(),
+            t(a, d, 21).rotl::<2>(),
+        ],
+    }
+}
+
+/// Output row `y` from its lanes before χ (`pi_row`), each rotated by its ρ: χ, ι on row 0, stored into `out` and folded
 /// into the column parities `c`.
 #[inline(always)]
 fn chi_row<S: Lane>(out: &mut [S; STATE_LANES], c: &mut [S; 5], y: usize, [b0, b1, b2, b3, b4]: [S; 5], rc: u64) {
@@ -185,78 +230,18 @@ pub(crate) fn permute_first_row<S: Lane>(a: &mut [S; STATE_LANES]) {
 #[inline(always)]
 fn round<S: Lane, const ROWS: usize>(a: &[S; STATE_LANES], out: &mut [S; STATE_LANES], c: &mut [S; 5], rc: u64) {
     let d = theta(c);
-    chi_row(
-        out,
-        c,
-        0,
-        [
-            t(a, &d, 0),
-            t(a, &d, 6).rotl::<44>(),
-            t(a, &d, 12).rotl::<43>(),
-            t(a, &d, 18).rotl::<21>(),
-            t(a, &d, 24).rotl::<14>(),
-        ],
-        rc,
-    );
+    chi_row(out, c, 0, pi_row(a, &d, 0), rc);
     if ROWS > 1 {
-        chi_row(
-            out,
-            c,
-            1,
-            [
-                t(a, &d, 3).rotl::<28>(),
-                t(a, &d, 9).rotl::<20>(),
-                t(a, &d, 10).rotl::<3>(),
-                t(a, &d, 16).rotl::<45>(),
-                t(a, &d, 22).rotl::<61>(),
-            ],
-            rc,
-        );
+        chi_row(out, c, 1, pi_row(a, &d, 1), rc);
     }
     if ROWS > 2 {
-        chi_row(
-            out,
-            c,
-            2,
-            [
-                t(a, &d, 1).rotl::<1>(),
-                t(a, &d, 7).rotl::<6>(),
-                t(a, &d, 13).rotl::<25>(),
-                t(a, &d, 19).rotl::<8>(),
-                t(a, &d, 20).rotl::<18>(),
-            ],
-            rc,
-        );
+        chi_row(out, c, 2, pi_row(a, &d, 2), rc);
     }
     if ROWS > 3 {
-        chi_row(
-            out,
-            c,
-            3,
-            [
-                t(a, &d, 4).rotl::<27>(),
-                t(a, &d, 5).rotl::<36>(),
-                t(a, &d, 11).rotl::<10>(),
-                t(a, &d, 17).rotl::<15>(),
-                t(a, &d, 23).rotl::<56>(),
-            ],
-            rc,
-        );
+        chi_row(out, c, 3, pi_row(a, &d, 3), rc);
     }
     if ROWS > 4 {
-        chi_row(
-            out,
-            c,
-            4,
-            [
-                t(a, &d, 2).rotl::<62>(),
-                t(a, &d, 8).rotl::<55>(),
-                t(a, &d, 14).rotl::<39>(),
-                t(a, &d, 15).rotl::<41>(),
-                t(a, &d, 21).rotl::<2>(),
-            ],
-            rc,
-        );
+        chi_row(out, c, 4, pi_row(a, &d, 4), rc);
     }
 }
 
@@ -272,14 +257,12 @@ pub(crate) fn permute<S: Lane>(a: &mut [S; STATE_LANES]) {
     let mut c = parities(a);
     for &rc in &RC {
         let d = theta(&c);
-        // Row `y` holds the lanes π sends there, each rotated by its ρ.
-        #[rustfmt::skip]
-        let rows: [[S; 5]; 5] = [
-            [t(a, &d, 0), t(a, &d, 6).rotl::<44>(), t(a, &d, 12).rotl::<43>(), t(a, &d, 18).rotl::<21>(), t(a, &d, 24).rotl::<14>()],
-            [t(a, &d, 3).rotl::<28>(), t(a, &d, 9).rotl::<20>(), t(a, &d, 10).rotl::<3>(), t(a, &d, 16).rotl::<45>(), t(a, &d, 22).rotl::<61>()],
-            [t(a, &d, 1).rotl::<1>(), t(a, &d, 7).rotl::<6>(), t(a, &d, 13).rotl::<25>(), t(a, &d, 19).rotl::<8>(), t(a, &d, 20).rotl::<18>()],
-            [t(a, &d, 4).rotl::<27>(), t(a, &d, 5).rotl::<36>(), t(a, &d, 11).rotl::<10>(), t(a, &d, 17).rotl::<15>(), t(a, &d, 23).rotl::<56>()],
-            [t(a, &d, 2).rotl::<62>(), t(a, &d, 8).rotl::<55>(), t(a, &d, 14).rotl::<39>(), t(a, &d, 15).rotl::<41>(), t(a, &d, 21).rotl::<2>()],
+        let rows = [
+            pi_row(a, &d, 0),
+            pi_row(a, &d, 1),
+            pi_row(a, &d, 2),
+            pi_row(a, &d, 3),
+            pi_row(a, &d, 4),
         ];
         for (y, &row) in rows.iter().enumerate() {
             chi_row(a, &mut c, y, row, rc);
@@ -332,8 +315,8 @@ impl Lane for u64 {
 macro_rules! cpu_has {
     ($f:tt) => {
         cfg_select! {
-            all(any(feature = "std", test), target_arch = "x86_64") => std::arch::is_x86_feature_detected!($f),
-            all(any(feature = "std", test), target_arch = "aarch64") => std::arch::is_aarch64_feature_detected!($f),
+            all(feature = "std", target_arch = "x86_64") => std::arch::is_x86_feature_detected!($f),
+            all(feature = "std", target_arch = "aarch64") => std::arch::is_aarch64_feature_detected!($f),
             _ => cfg!(target_feature = $f),
         }
     };
@@ -345,41 +328,34 @@ macro_rules! cpu_has {
 /// as big-endian AArch64 does, whose NEON loads would read the input's bytes as big-endian words.
 macro_rules! dispatch {
     ($with:ident($($arg:ident: $ty:ty),* $(,)?) $(-> $ret:ty)?) => {
+        dispatch!(@arch $with, ($($arg: $ty),*), ($($arg),*), ($($ret)?))
+    };
+    (@arch $with:ident, $params:tt, $args:tt, $ret:tt) => {
         cfg_select! {
-            all(target_arch = "x86_64", target_feature = "sse2") => {{
-                #[target_feature(enable = "avx512f")]
-                fn avx512($($arg: $ty),*) $(-> $ret)? {
-                    $with::<x86::Avx512>($($arg),*)
-                }
-                #[target_feature(enable = "avx2")]
-                fn avx2($($arg: $ty),*) $(-> $ret)? {
-                    $with::<x86::Avx2>($($arg),*)
-                }
-                if cpu_has!("avx512f") {
-                    // SAFETY: the CPU runs avx512f.
-                    unsafe { avx512($($arg),*) }
-                } else if cpu_has!("avx2") {
-                    // SAFETY: the CPU runs avx2.
-                    unsafe { avx2($($arg),*) }
-                } else {
-                    $with::<u64>($($arg),*)
-                }
-            }}
-            all(target_arch = "aarch64", target_endian = "little", target_feature = "neon") => {{
-                #[target_feature(enable = "sha3")]
-                fn sha3($($arg: $ty),*) $(-> $ret)? {
-                    $with::<arm::Neon<true>>($($arg),*)
-                }
-                if cpu_has!("sha3") {
-                    // SAFETY: the CPU runs sha3.
-                    unsafe { sha3($($arg),*) }
-                } else {
-                    $with::<arm::Neon<false>>($($arg),*)
-                }
-            }}
-            _ => $with::<u64>($($arg),*),
+            all(target_arch = "x86_64", target_feature = "sse2") => {
+                dispatch!(@first $with, $params, $args, $ret; "avx512f" => x86::Avx512, "avx2" => x86::Avx2; u64)
+            }
+            all(target_arch = "aarch64", target_endian = "little", target_feature = "neon") => {
+                dispatch!(@first $with, $params, $args, $ret; "sha3" => arm::Neon<true>; arm::Neon<false>)
+            }
+            _ => $with::<u64> $args,
         }
     };
+    (@first $with:ident, $params:tt, $args:tt, $ret:tt; $($f:tt => $S:ty),*; $fallback:ty) => {{
+        $(
+            if cpu_has!($f) {
+                // `$ret` is the return type in parentheses, `()` for none.
+                #[allow(unused_parens, clippy::unused_unit)]
+                #[target_feature(enable = $f)]
+                fn with $params -> $ret {
+                    $with::<$S> $args
+                }
+                // SAFETY: the CPU runs the feature `with` is compiled with.
+                return unsafe { with $args };
+            }
+        )*
+        $with::<$fallback> $args
+    }};
 }
 
 /// How many states the batched entry points permute at once on this CPU. They take any count, and permute the
@@ -404,7 +380,7 @@ fn keccak_f_many_with<S: Lane>(states: &mut [[u64; STATE_LANES]]) {
     let mut groups = states.chunks_exact_mut(S::WIDTH);
     for group in &mut groups {
         // Register `i` holds lane `i` of every state.
-        let mut st = splat_all::<S>(&[0; STATE_LANES]);
+        let mut st = [S::splat(0); STATE_LANES];
         for (i, lane) in st.iter_mut().enumerate() {
             *lane = gather(|l| group[l][i]);
         }
@@ -840,7 +816,8 @@ mod tests {
     use super::*;
 
     /// Every batched entry point on backend `S` against one state at a time: whole groups and a remainder.
-    fn matches_the_scalar_backend<S: Lane>(name: &str) {
+    fn matches_the_scalar_backend<S: Lane>() {
+        let name = core::any::type_name::<S>();
         let w = MAX_WIDTH as u64;
         let template: [u64; STATE_LANES] = core::array::from_fn(|i| (i as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15));
 
@@ -861,7 +838,7 @@ mod tests {
         }
 
         for len in [0usize, 8, 64, 135, 136, 137, 408] {
-            let n = 2 * MAX_WIDTH + 1;
+            let n = 2 * w as usize + 1;
             let data: Vec<u8> = (0..n * len).map(|i| (i * 31 + len) as u8).collect();
             let (mut got, mut want) = (vec![0; n * OUT_LEN], vec![0; n * OUT_LEN]);
             hash_many_with::<S>(&data, len, &template, &mut got);
@@ -869,7 +846,7 @@ mod tests {
             assert_eq!(got, want, "{name} hash_many {len}");
         }
 
-        let values: Vec<u128> = (1..4 * MAX_WIDTH as u128 + 4)
+        let values: Vec<u128> = (1..4 * w as u128 + 4)
             .map(|i| i * 0x9E37_79B9_7F4A_7C15_F39C_C060)
             .collect();
         let (mut got, mut want) = (vec![0; values.len()], vec![0; values.len()]);
@@ -884,17 +861,17 @@ mod tests {
         #[cfg(all(target_arch = "x86_64", target_feature = "sse2"))]
         {
             if cpu_has!("avx2") {
-                matches_the_scalar_backend::<x86::Avx2>("avx2");
+                matches_the_scalar_backend::<x86::Avx2>();
             }
             if cpu_has!("avx512f") {
-                matches_the_scalar_backend::<x86::Avx512>("avx512f");
+                matches_the_scalar_backend::<x86::Avx512>();
             }
         }
         #[cfg(all(target_arch = "aarch64", target_endian = "little", target_feature = "neon"))]
         {
-            matches_the_scalar_backend::<arm::Neon<false>>("neon");
+            matches_the_scalar_backend::<arm::Neon<false>>();
             if cpu_has!("sha3") {
-                matches_the_scalar_backend::<arm::Neon<true>>("sha3");
+                matches_the_scalar_backend::<arm::Neon<true>>();
             }
         }
     }

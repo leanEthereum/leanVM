@@ -47,7 +47,7 @@ jobs:
         run: cargo test --release -p lean_vm --features experimental_prover --test api
       # Built for the x86-64 baseline, as a default build is: the batched Keccak picks AVX2 or AVX-512 at run time.
       - name: Test (Keccak on the x86-64 baseline)
-        run: cargo test --release -p keccak256
+        run: cargo test --release -p keccak256 --features std
         env:
           RUSTFLAGS: -C target-cpu=x86-64
 

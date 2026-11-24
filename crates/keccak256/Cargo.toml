@@ -5,7 +5,7 @@ edition.workspace = true
 publish = false
 
 [features]
-# The batched entry points take the widest backend the CPU runs, not only the target's.
+# Pick the batched hashes' backend from the CPU, not only the target.
 std = []
 
 [lints]

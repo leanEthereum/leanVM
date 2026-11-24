@@ -1,7 +1,7 @@
 #!/bin/sh
 # Fails unless each library, archive or wheel holds the CPU tiers' code (scripts/tier-rustc): GFNI instructions on
-# x86_64, the AES extension's PMULL on aarch64, which the portable baselines lack (not SHA3's EOR3: keccak256's
-# batched hashes hold it in any build with `std`, for CPUs that have it). objdump must read the file's architecture.
+# x86_64, the AES extension's PMULL on aarch64, which the portable baselines lack (not EOR3, which keccak256 holds in
+# every build with `std`). objdump must read the file's architecture.
 set -eu
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
