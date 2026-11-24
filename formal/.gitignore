@@ -115,6 +115,7 @@ __pycache__/
 /lean_vm/LeanVM/Guest/Bridge/Align/
 /lean_vm/LeanVM/Guest/Bridge/AlignCtx/
 /lean_vm/LeanVM/Guest/Bridge/AllocChk/
+/lean_vm/LeanVM/Guest/Bridge/Chk/
 /lean_vm/LeanVM/Guest/Bridge/JumpCells/
 /lean_vm/LeanVM/Guest/Bridge/PairChk/
 /lean_vm/LeanVM/Guest/Bridge/ProgAl/

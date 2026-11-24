@@ -337,8 +337,9 @@ ns, imports = AL.ns, AL.imports
 
 
 def data_mod(pack, f):
-    """The module of the function's heap certificate: the check without calls', or the check with calls'."""
-    return f'LeanVM.Guest.CoreMode.Gen.«{pack}».' + {'c': 'DataC', 'lc': 'DataLC'}.get(f.get('kind'), 'Data')
+    """The module of the function's heap certificate: the check without calls' (with its check), or the check with
+    calls'."""
+    return f'LeanVM.Guest.CoreMode.Gen.«{pack}».' + {'c': 'DataC', 'lc': 'DataLC'}.get(f.get('kind'), 'Ok')
 
 
 def render_pack(pack, fs):

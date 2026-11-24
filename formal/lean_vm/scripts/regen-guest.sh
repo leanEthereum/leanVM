@@ -187,14 +187,8 @@ part_bridge_align() {
 }
 
 part_bridge_checks() {
-  step "bridge: the jump cells checked (scripts/bridge-cert/jumpcells.py)"
-  python3 -I scripts/bridge-cert/jumpcells.py ${check[@]+"${check[@]}"}
-  step "bridge: the computed hints paired (scripts/bridge-cert/pair.py)"
-  python3 -I scripts/bridge-cert/pair.py ${check[@]+"${check[@]}"}
-  step "bridge: the witness cells checked (scripts/bridge-cert/wit.py)"
-  python3 -I scripts/bridge-cert/wit.py ${check[@]+"${check[@]}"}
-  step "bridge: the allocation hints checked (scripts/bridge-cert/alloc.py)"
-  python3 -I scripts/bridge-cert/alloc.py ${check[@]+"${check[@]}"}
+  step "bridge: the jump cells, computed, witness and allocation hints checked (scripts/bridge-cert/checks.py)"
+  python3 -I scripts/bridge-cert/checks.py ${check[@]+"${check[@]}"}
 }
 
 part_memory() {

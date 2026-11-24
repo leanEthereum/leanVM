@@ -622,10 +622,8 @@ def emit(k, H, sts, cs, po, splits, gen):
            'cxRS, cxDV, cxHV, hcert.gargs, sigW, hcert.sig, core.params, [], cxEQ, hcert.fas, hcert.ders⟩\n')
     cx += (f'\ntheorem hcx : cxOf Fn.«{k}».pows sigW core hcert = cxL :=\n  cxOf_lit hcxR hcxP hcxC hcxT hcxRS hcxDV '
            'hcxHV hcxEQ\n')
-    cx += f'\nend\nend {ns}.{sub}\n'
-    mods.append(('Cx', repack(cx)))
-    # the states, in modules of at most `SPART` characters (`S<j>`, each importing the last), each sharing the
-    # previous state's tries (`Lits`); `smod[i]` the module of `st<i>`
+    # the states, in modules of at most `SPART` characters (the first in `Cx`, then `S<j>`, each importing the last),
+    # each sharing the previous state's tries (`Lits`); `smod[i]` the module of `st<i>`
     lits = Lits()
     lits.count(sts[cs[nw]])
     groups, cur, smod = [], [], {}
@@ -637,10 +635,14 @@ def emit(k, H, sts, cs, po, splits, gen):
             cur = []
         cur.append((i, t))
     groups.append(cur)
-    for g, grp in enumerate(groups):
+    cx += '\n' + ''.join(t for _, t in groups[0]) + f'\nend\nend {ns}.{sub}\n'
+    mods.append(('Cx', repack(cx)))
+    for i, _ in groups[0]:
+        smod[i] = 'Cx'
+    for g, grp in enumerate(groups[1:], 1):
         si = HEADER(f'{base}.S{g}', what=f'The states {grp[0][0]} to {grp[-1][0]} of `{k}`\'s '
                            f'windowed heap check.')
-        si += f'public import {base}.{"S" + str(g - 1) if g else "Cx"}\n\nset_option maxRecDepth 100000\n'
+        si += f'public import {base}.{"S" + str(g - 1) if g > 1 else "Cx"}\n\nset_option maxRecDepth 100000\n'
         si += 'set_option linter.all false\n\n' + opn + '\n' + ''.join(t for _, t in grp)
         si += f'\nend\nend {ns}.{sub}\n'
         mods.append((f'S{g}', repack(si)))
@@ -685,7 +687,7 @@ def emit(k, H, sts, cs, po, splits, gen):
     ok = HEADER(f'{base}.Ok', what=f'`{k}`\'s heap check, from its {n} windows.')
     ok += ''.join(f'public import {base}.W{i}\n' for i in range(n))
     if not loop:
-        ok += f'public import LeanVM.Guest.CoreMode.HeapCWinF\n' + ('' if n else f'public import {base}.S0\n')
+        ok += f'public import LeanVM.Guest.CoreMode.HeapCWinF\n' + ('' if n else f'public import {base}.Cx\n')
     ok += f'\nset_option Elab.async false\n\nnamespace {ns}.{sub}\n\nopen LeanVM.Guest.CoreMode\n\n@[expose] public section\n\n'
     if loop:
         lei = E.lidx(H.sig.term[0][1])
