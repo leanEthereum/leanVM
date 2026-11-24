@@ -249,9 +249,6 @@ theorem evalDist_rtable_split {β : Type} (F : RTable → ProbComp β) :
 
 /-! ### One sample -/
 
-noncomputable local instance detLabelsSampleable' : SampleableType CanonicalGraphLabels :=
-  graphLabelsSampleable
-
 theorem preparedCache_randomizer (material : Material) (seed : MasterSeed) (answers : CanonicalGraphLabels)
     (prf : HashOutput) (parameter : PublicParameter) (message : Message) :
     preparedCache material seed answers (randomizerHashInput prf parameter message) = none := by

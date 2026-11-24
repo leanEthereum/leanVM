@@ -206,10 +206,6 @@ def firstCall : DigestCall := ⟨0, digestCalls_pos⟩
 leaf of tree `κ` at bit `h + a κ`. -/
 abbrev MessageDigest := BitVec messageDigestBits
 
-/-- The outputs of the digest calls as one number, call 0 in the low 256 bits. -/
-def digestValue (outputs : DigestCall → HashOutput) : Nat :=
-  ∑ call : DigestCall, (outputs call).toNat * 2 ^ (hashOutputBits * call.val)
-
 /-- The FORS key of an instance: the roots of its `k` trees, which `T_k` compresses into the FORS
 public key (`Concrete.forsPublicKey`). -/
 abbrev ForsKey := FTree → Digest

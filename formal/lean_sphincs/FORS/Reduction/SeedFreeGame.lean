@@ -43,9 +43,6 @@ theorem programGraphCache_congr_base (parameter : PublicParameter)
         rw [QueryCache.cacheQuery_of_ne _ _ heq, QueryCache.cacheQuery_of_ne _ _ heq]
         exact h
 
-noncomputable local instance reduceLabelsSampleable : SampleableType CanonicalGraphLabels :=
-  graphLabelsSampleable
-
 /-- The canonical graph cache without any seed-addressed entry. -/
 noncomputable def graphCache (material : Material) (answers : CanonicalGraphLabels) :
     QueryCache HashSpec :=

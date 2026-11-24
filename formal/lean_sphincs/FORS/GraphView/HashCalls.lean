@@ -8,9 +8,8 @@ public import FORS.Seed.Coupling
 section
 
 /-! Exact hash-call counts (`hashCalls`) of the honest seeded computations on a fixed answer
-function: wrappers, chains, one-time keys, tree and FORS nodes, encodings, message digests and
-signing attempts. Every chain start and every FORS secret is one `PRF`: a one-time key costs
-`64 + 64 · 3 = 256` calls, and a FORS leaf `1 + 1 = 2` (its secret and its hash). -/
+function: wrappers, chains, one-time keys and tree nodes. Every chain start is one `PRF`: a one-time
+key costs `64 + 64 · 3 = 256` calls. -/
 
 open OracleComp OracleSpec
 
@@ -108,53 +107,6 @@ theorem hashCalls_treeNode (f : QueryImpl HashSpec Id) (parameter : PublicParame
       have hpos : 0 < 2 ^ level := Nat.two_pow_pos level
       rw [pow_succ]
       omega
-
-/-- A FORS node at level `level ≤ a` costs `3 · 2^level - 1` calls: per leaf a secret and a hash. -/
-theorem hashCalls_forsNode (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
-    (index : Index) (κ : FTree) (seed : MasterSeed) (level node : Nat) (hlevel : level ≤ forsHeight) :
-    hashCalls f (Seeded.forsNode parameter index κ seed level node : OracleComp HashSpec Digest) =
-      3 * 2 ^ level - 1 := by
-  induction level generalizing node with
-  | zero =>
-      rw [Seeded.forsNode, hashCalls_bind, Seeded.forsSecret, hashCalls_deriveKey, forsLeafHash,
-        hashCalls_tweakableHash]
-      rfl
-  | succ level ih =>
-      rw [Seeded.forsNode, hashCalls_bind, hashCalls_bind, dite_eq_left (by omega), hashCalls_tweakableHash,
-        ih _ (by omega), ih _ (by omega)]
-      have hp : 0 < 2 ^ level := Nat.two_pow_pos level
-      rw [pow_succ]
-      omega
-
-theorem hashCalls_encode (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
-    (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (message : HashInput) (counter : Counter) :
-    hashCalls f (encode parameter lay tree leaf message counter : OracleComp HashSpec (Option Encoding)) = 1 := by
-  simp only [encode, hashCalls_bind, hashCalls_tweakableHash, hashCalls_pure, Nat.add_zero]
-
-/-- The cost of running the computations from the last index down, stopping after the first failure. -/
-def seqCost : {n : Nat} → (Fin n → Bool) → (Fin n → Nat) → Nat
-  | 0, _, _ => 0
-  | _ + 1, ok, cost =>
-      cost (Fin.last _) +
-        if ok (Fin.last _) then seqCost (fun i => ok i.castSucc) (fun i => cost i.castSucc) else 0
-
-theorem hashCalls_messageDigestCall (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
-    (root : Digest) (message : Message) (randomness : Randomness) (call : DigestCall) :
-    hashCalls f (messageDigestCall parameter root message randomness call : OracleComp HashSpec HashOutput) = 1 := by
-  simp [hashCalls, messageDigestCall, oracleHash]
-
-theorem hashCalls_messageDigest (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
-    (root : Digest) (message : Message) (randomness : Randomness) :
-    hashCalls f (messageDigest parameter root message randomness : OracleComp HashSpec MessageDigest) =
-      digestCalls := by
-  simp only [messageDigest, hashCalls_bind, hashCalls_sequenceFin, hashCalls_messageDigestCall, hashCalls_pure,
-    Finset.sum_const, Finset.card_univ, Fintype.card_fin, smul_eq_mul, mul_one, Nat.add_zero]
-
-theorem hashCalls_signAttempt (f : QueryImpl HashSpec Id) (sk : Seeded.SecretKey)
-    (message : Message) (randomness : Randomness) :
-    hashCalls f (Seeded.signAttempt sk message randomness : OracleComp HashSpec (Option Index)) = 1 := by
-  rw [Seeded.signAttempt, hashCalls_bind, hashCalls_messageDigestCall]
-  split <;> rfl
 
 end FORS.Security.Prefix
 

@@ -1,4 +1,4 @@
-import Sphincs.Axioms
+import Sphincs.Security
 
 /-! # The end theorem of leanSPHINCS
 
@@ -11,8 +11,8 @@ through the random-oracle model at the adversary's own count (upstream's
 leanVM main `40f877dc`), then the crate's key generation and signer in the model's hash monad
 (`FORS.Crate`, by `Common.SufCma.StaticSwap`), the statement's scheme through the maps of
 `Sphincs/Model.lean` (`Sphincs/AdvRpm.lean`).
-`Sphincs/Axioms.lean` and `FORS/Axioms.lean` pin the axiom footprints; the build fails if the
-end theorem's grows beyond Lean's three. -/
+The axioms below pin the end theorem's footprint to Lean's three; `FORS/Axioms.lean` checks every
+declaration of the model. -/
 
 example : Sphincs.LeanSphincsStronglyUnforgeable := Sphincs.leanSphincsStronglyUnforgeable
 
