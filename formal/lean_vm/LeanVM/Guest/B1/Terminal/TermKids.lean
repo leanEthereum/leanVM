@@ -320,7 +320,7 @@ theorem termKids_complete (κ : ℕ) (hκ : 6 ≤ κ) (Lin : Main.Layout) (D : T
     have hL : (selKid D c pv).Lin =
         csLin D.B.pt D.B.pt1 ese (D.B.gsq + 34) (pt32 D.x) (pt132 D.x) := by
       show @ite _ _ (Classical.propDecidable _) _ _ = _
-      rw [@ite_eq_left _ _ (Classical.propDecidable _) _ _ ⟨ese, h1, h2⟩, h2]; rfl
+      rw [ite_eq_left (h := (Classical.propDecidable _)) ⟨ese, h1, h2⟩, h2]; rfl
     have ha : (selKid D c pv).args = [gen ^ D.OF.getD c 0, ofK (addressOfIndex ese), ofK
         (addressOfIndex (D.B.gsq + 34))] := by
       show [_, (stRes pv).1.getD 0 0, _] = _
@@ -401,7 +401,7 @@ theorem selKid_lin {D : TermData} {c : ℕ} {outs : List (List E × Main.Layout)
         [(D.B.gsq + 34, gTabW)] := by
   obtain ⟨-, e, hst⟩ := selKid_taken ht
   show @ite _ _ (Classical.propDecidable _) _ _ = _
-  rw [e, @ite_eq_left _ _ (Classical.propDecidable _) _ _ hst]
+  rw [e, ite_eq_left (h := (Classical.propDecidable _)) hst]
 
 theorem regionL_append {L L' : Main.Layout} {i : ℕ} (h : RegionL (L ++ L') i) :
     RegionL L i ∨ RegionL L' i := by
@@ -528,7 +528,7 @@ theorem termKids_mem (Lin : Main.Layout) (D : TermData) (b0 : ℕ) {rd : Reader}
     · have hn : ¬ Tables.stOut D.B.pt D.B.pt1 (pt32 D.x) (pt132 D.x) (stRes (outs.take j)).1
           (stRes (outs.take j)).2 := fun h => ht (@decide_eq_true _ (Classical.propDecidable _) h)
       show MemL rd (@ite _ _ (Classical.propDecidable _) _ _)
-      rw [@ite_eq_right _ _ (Classical.propDecidable _) _ _ hn]
+      rw [ite_eq_right (h := (Classical.propDecidable _)) hn]
       intro q hq; simp at hq
   · exact cons _ (by simp [termBufs])
   · exact hrs

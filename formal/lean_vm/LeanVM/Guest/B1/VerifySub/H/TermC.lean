@@ -191,7 +191,7 @@ theorem term_via (hbl : bytecode.length = 2 ^ 23) (bs : List ℕ) (sqE : ℕ)
   have hLin : ((S.kids bs sqE).getD 13 noKid pv).Lin =
       (ChildSegs.cpRes pv).2 ++ (ChildSegs.osRes pv).2 ++ S.termLin bs sqE := by
     show @ite _ _ (Classical.propDecidable _) _ _ = _
-    rw [@ite_eq_left _ _ (Classical.propDecidable _) _ _ hok]
+    rw [ite_eq_left (h := (Classical.propDecidable _)) hok]
   obtain ⟨⟨e10, e11, e136, e137, e293, -, hL3⟩, ⟨pb, pb1, -, hL14⟩⟩ := hok
   have hargs : ((S.kids bs sqE).getD 13 noKid pv).args =
       S.termArgsH (termBases bs sqE e293 pb pb1) := by

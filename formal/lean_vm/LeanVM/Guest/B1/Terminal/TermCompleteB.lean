@@ -197,7 +197,7 @@ theorem termKids_completeB (κ : ℕ) (hκ : 6 ≤ κ) (Lin : Main.Layout) (D : 
       have hL : (selKid D c pv).Lin =
           csLin D.B.pt D.B.pt1 ese (D.B.gsq + 34) (pt32 D.x) (pt132 D.x) := by
         show @ite _ _ (Classical.propDecidable _) _ _ = _
-        rw [@ite_eq_left _ _ (Classical.propDecidable _) _ _ ⟨ese, h1, h2⟩, h2]; rfl
+        rw [ite_eq_left (h := (Classical.propDecidable _)) ⟨ese, h1, h2⟩, h2]; rfl
       have ha : (selKid D c pv).args = [gen ^ D.OF.getD c 0, ofK (addressOfIndex ese), ofK
           (addressOfIndex (D.B.gsq + 34))] := by
         show [_, (stRes pv).1.getD 0 0, _] = _
