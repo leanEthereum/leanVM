@@ -158,10 +158,10 @@ def siteBV (cert : String → CertV) (ρ : Env) (ps : List V) (g : String) (args
 
 /-- The constants after an atom, not counting words (`atomB false`). -/
 def envAtom (ks : List (V × ℕ)) (ρ : Env × BEnv) : Atom → Env × BEnv
-  | .const v w => match vlookup v ks with
+  | .const v w => match lookupV v ks with
       | some e => if constOk w e then ((v, e) :: ρ.1, ρ.2) else ρ
       | none => ρ
-  | .copy d s => match vlookup s ρ.1 with
+  | .copy d s => match lookupV s ρ.1 with
       | some e => ((d, e) :: ρ.1, ρ.2)
       | none => ρ
   | .add d x y => guardAtom ks ρ d x y

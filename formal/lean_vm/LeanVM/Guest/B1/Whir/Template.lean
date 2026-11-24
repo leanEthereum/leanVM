@@ -12,6 +12,7 @@ module
 public import LeanVM.Guest.B1.Whir.Config
 public import LeanVM.Guest.B1.Whir.Split
 public import LeanVM.Guest.Word
+public import LeanVM.Guest.Pow
 public import LeanVM.Guest.Renumber
 public import LeanVM.Guest.GuestConst
 public import LeanVM.Guest.B1.Bits.GrindT
@@ -45,8 +46,9 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest LeanVM.Pr
 
 /-! ## Small blocks -/
 
-/-- `g^e` as a word. -/
-def gw (e : ℕ) : E := E.ofLimbs (gpowK e) 0
+/-- `g^e` as a word: below `2^20` by `Pow.gpowN`, products on words in `ℕ` the kernel evaluates natively
+(`gw_eq`). -/
+def gw (e : ℕ) : E := E.ofLimbs (bif Nat.blt e (2 ^ 20) then K.ofBits (Pow.gpowN e) else gpowK e) 0
 
 /-- A constant. -/
 abbrev osCst (k : ℕ) (c : E) : Stmt := .atom (.const (.n k) c)

@@ -69,9 +69,11 @@ theorem calleeIdx_root {j k : ℕ} {g : String} (hj : j ∈ armIdxs) (h : callee
     by_contra hc
     rw [List.getElem?_eq_none (Nat.le_of_not_lt hc)] at hs
     exact absurd hs (by simp)
-  unfold calleeIdx at h
-  exact ⟨mem_armRoots hj (List.mem_of_find?_eq_some h) hn,
-    of_decide_eq_true (List.find?_some (p := fun k ↦ decide (Data.nameT.find k = some g)) h)⟩
+  unfold calleeIdx calleeIdxE at h
+  have hname := RangeOk.all Data.nameT_ok hn
+  simp only [decide_eq_true_eq] at hname
+  rw [List.getElem?_eq_getElem hn, Option.map_some, Option.some.injEq] at hs
+  exact ⟨mem_armRoots hj (List.mem_of_find?_eq_some h) hn, hname.trans (congrArg some hs)⟩
 
 /-- Group `i` of the roots: seventy from `70 * i`, or with `last` every one from there. -/
 def armGrp (i : ℕ) (last : Bool := false) : List ℕ :=

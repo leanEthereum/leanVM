@@ -152,7 +152,11 @@ theorem stmtOk_call (f : String) (args rets : List V) :
 
 /-- The template's g-power words. -/
 theorem gw_eq {e : ℕ} (h : e < u128Bound) : gw e = gen ^ e := by
-  rw [gw, gpowK_eq h, gen_pow_eq_ofK, ofK_eq_ofLimbs]
+  have hk : (bif Nat.blt e (2 ^ 20) then K.ofBits (Pow.gpowN e) else gpowK e) = gpowK e := by
+    cases hb : Nat.blt e (2 ^ 20)
+    · rfl
+    · rw [Bool.cond_true, Pow.ofBits_gpowN, Pow.gpowW_eq (Nat.blt_eq.mp hb), gpowK_eq h]
+  rw [gw, hk, gpowK_eq h, gen_pow_eq_ofK, ofK_eq_ofLimbs]
 
 /-- A materialized pointer is the base times `gen ^ off`. -/
 theorem osMat_val {base off k : ℕ} (h : off < u128Bound)
