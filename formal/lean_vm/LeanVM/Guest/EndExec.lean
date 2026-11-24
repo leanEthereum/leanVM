@@ -332,13 +332,13 @@ theorem execute_guest_complete (G : ExecGaps Ks Km E0 X Pro) :
 
 /-- **A node within the deployed limits is within the budget**, its children acceptable. -/
 theorem budget_of_limits {seed : Digest} {s : NodeStatement} {w : NodeWitness}
-    (hlim : DeployedLimits s w) (hok : ChildrenOk bytecode seed w) :
+    (hlim : DeployedLimits s w) (held : SignatureClaimsHeld s w) (hok : ChildrenOk bytecode seed w) :
     (Budget.deployedBudget (vsBoundAt Count.vsWordsOs vkBound)).size (work s w) ≤ 2 ^ 30 :=
   (Budget.deployedBudget_size_mono (work s w) fun (p : ℕ × ℕ) hp ↦ by
     obtain ⟨ch, hch, rfl⟩ :=
       List.mem_map.mp (show p ∈ w.children.map (childShape bytecode) from hp)
     obtain ⟨h1, h2, h3, h4⟩ := B1.Main.childShape_bounds End.bytecode_length hok hch
-    exact (Budget.vsBoundAt_eq_deployedBvAt h1 h2 h3 h4).le).trans (Budget.size_le hlim)
+    exact (Budget.vsBoundAt_eq_deployedBvAt h1 h2 h3 h4).le).trans (Budget.size_le hlim held)
 
 /-- **The guest's completeness in the random-permutation model, with the executor's execution**:
 the execution the executor returns on the guest's advice, proved by the honest prover at an inverse

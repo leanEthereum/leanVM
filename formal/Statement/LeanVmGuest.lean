@@ -215,16 +215,18 @@ def NodeRelation (bytecode : List K) (seed : Digest) (statement : NodeStatement)
     ChildrenProven bytecode seed witness ∧ DeferredClaimBatched bytecode seed statement witness
 
 /-- **Every signature claim is held**: every raw signature verifies its claim (at any leaf
-index), and every leanXMSS claim is a raw signature's claim or in some child's statement's list;
-likewise for leanSPHINCS. Holders need not differ: one raw signature or one child may hold several
-equal claims. -/
+index), and the declared leanXMSS claims are a sub-multiset (`List.Subperm`) of the raw signatures'
+claims and the entries of the children's statements' lists: a claim declared `n` times is held `n`
+times, each raw signature or child's entry holding one (`main`, `child_claims`,
+`child_claims_mono`, `lean_ethereum.py`: each declared claim has a coverage slot of its own, written
+once, and each holder writes one slot); likewise for leanSPHINCS. -/
 def SignatureClaimsHeld (statement : NodeStatement) (witness : NodeWitness) : Prop :=
   (∀ raw ∈ witness.xmssSignatures, LeanXmss.verifyWithKeccak raw.1.1 raw.1.2 raw.2 = true) ∧
   (∀ raw ∈ witness.sphincsSignatures, Sphincs.verifyWithKeccak raw.1.1 raw.1.2 raw.2 = true) ∧
-  (∀ claim ∈ statement.claims.xmss, claim ∈ witness.xmssSignatures.map (·.1) ∨
-    ∃ child ∈ witness.children, claim ∈ child.statement.claims.xmss) ∧
-  (∀ claim ∈ statement.claims.sphincs, claim ∈ witness.sphincsSignatures.map (·.1) ∨
-    ∃ child ∈ witness.children, claim ∈ child.statement.claims.sphincs)
+  statement.claims.xmss.Subperm (witness.xmssSignatures.map (·.1) ++
+    (witness.children.map (·.statement.claims.xmss)).flatten) ∧
+  statement.claims.sphincs.Subperm (witness.sphincsSignatures.map (·.1) ++
+    (witness.children.map (·.statement.claims.sphincs)).flatten)
 
 /-- **The DA digest is held**: it is the digest of the DA claim that the matrix checked here
 opens; without such a matrix, zero or some child's DA digest (`da_pick`,

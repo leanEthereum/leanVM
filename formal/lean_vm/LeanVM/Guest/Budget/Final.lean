@@ -44,12 +44,12 @@ def mainBudget (fs : String → ℕ) (SB SK : String → ℕ) (Bvf : ℕ → ℕ
     (jt : Opcode → ℕ) : Budget :=
   ⟨B1.Main.mainWords fs SB SK Bvf, fun op => mainInstrs (H op) (c5 op) (s5 op) (v5 op) (jt op)⟩
 
-/-- The declared claims of each scheme are held by the raw signatures and the children's claims
-(`GuestLimits`), so are fewer than the coverage slots, below `2^23`. -/
+/-- The declared claims of each scheme are a sub-multiset of the raw signatures' and the
+children's claims (`SignatureClaimsHeld`), so are fewer than the coverage slots, below `2^23`. -/
 theorem claims_lt {s : NodeStatement} {w : NodeWitness} (hl : GuestLimits s w) :
     s.claims.xmss.length < 2 ^ 23 ∧ s.claims.sphincs.length < 2 ^ 23 := by
-  have hx := hl.claimsHeldWithMultiplicity.1.length_le
-  have hs := hl.claimsHeldWithMultiplicity.2.length_le
+  have hx := hl.signatureClaimsHeld.2.2.1.length_le
+  have hs := hl.signatureClaimsHeld.2.2.2.length_le
   have hc := hl.coverageSlotsBelow2Pow23
   have hx' := List.sum_le_sum (l := w.children)
     (f := fun ch ↦ ch.statement.claims.xmss.length)

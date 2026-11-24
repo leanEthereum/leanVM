@@ -121,7 +121,7 @@ theorem mainGoalL3B (hn : NodeRelation bytecode seed s w) (hl : GuestLimits s w)
   intro h0
   have hpos : 0 < (hRawX s w).length := Nat.pos_of_ne_zero h0
   have hb := regions_lt hl
-  have hnl : (hRawX s w).length ≤ rX s w := xRaw_le hl.toDeployedLimits
+  have hnl : (hRawX s w).length ≤ rX s w := xRaw_le hl.signatureClaimsHeld
   have hX : s.claims.xmss.length ≤ rX s w := Nat.le_add_right _ _
   have h := rawX_completeAtB fs cert hc (rawXD fs fp hn (hRawX s w)[0]) (by omega) (by omega) hT 0 hpos
   rw [pow_zero] at h
@@ -136,7 +136,7 @@ theorem mainGoalL4B (hn : NodeRelation bytecode seed s w) (hl : GuestLimits s w)
   intro h0
   have hpos : 0 < (hRawS s w).length := Nat.pos_of_ne_zero h0
   have hb := regions_lt hl
-  have hnl : (hRawS s w).length ≤ rY s w := sRaw_le hl.toDeployedLimits
+  have hnl : (hRawS s w).length ≤ rY s w := sRaw_le hl.signatureClaimsHeld
   have hY : s.claims.sphincs.length ≤ rY s w := Nat.le_add_right _ _
   have h := rawS_completeAtB fs cert hc (rawSD fs fp hn (hRawS s w)[0]) (by omega) (by omega) hT 0 hpos
   rw [pow_zero, pow_add (a := gen) (hPos seed s w fs fp 2)] at h

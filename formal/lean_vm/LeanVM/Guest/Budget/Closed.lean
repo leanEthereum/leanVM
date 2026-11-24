@@ -45,7 +45,7 @@ theorem guest_complete_numeric : GuestCompleteWithin (deployedBudget deployedBvA
 (`GuestCompleteOnAcceptableChildren`). -/
 theorem guest_complete_on_acceptable_children : GuestCompleteOnAcceptableChildren :=
   fun seed s w hrel hlim hok ↦
-    guest_complete_numeric seed s w hrel (GuestLimits.of_limits hlim) hok (size_le hlim)
+    guest_complete_numeric seed s w hrel (GuestLimits.of_limits hlim hrel.1) hok (size_le hlim hrel.1)
 
 end
 end LeanVM.Guest.Budget

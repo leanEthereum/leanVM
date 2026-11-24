@@ -27,24 +27,12 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node
 
 /-! ## The deployed limits -/
 
-/-- **The deployed limits**, where `NodeRelation` admits witnesses the guest program cannot run, and
-the node's fixed capacities, within which its run fits `2^30` committed words. Implied by these
-and `NodeRelation`, and so not limits of their own: a child's stack log at
-most `30` and rate in `[1, 4]` (`readAnnouncedSizes`), at most one blob matrix checked directly
-(`NodeWitness.daMatrix`), the bus depth at most `32`, the tables' heights at most `30`, and the
-declared claims at most the claims held. -/
+/-- **The deployed limits**: the node's fixed capacities, within which its run fits `2^30`
+committed words. Implied by these and `NodeRelation`, and so not limits of their own: a child's
+stack log at most `30` and rate in `[1, 4]` (`readAnnouncedSizes`), at most one blob matrix checked
+directly (`NodeWitness.daMatrix`), the bus depth at most `32`, the tables' heights at most `30`, and
+the declared claims at most the claims held (`SignatureClaimsHeld`). -/
 structure DeployedLimits (statement : NodeStatement) (witness : NodeWitness) : Prop where
-  /-- A claim declared `n` times is held `n` times (`List.Subperm`: a sub-multiset), by raw
-  signatures or by entries of the children's lists, each used once: each coverage slot is written
-  once and the declared claims have one slot each (`main` in `lean_ethereum.py`; a child's list
-  by hinted indices, `child_claims`, or by strictly increasing hinted gaps, every claim of the
-  list writing one mark, `child_claims_mono`; the count of written slots, `main`), where
-  `NodeRelation` lets two equal claims share one holder. -/
-  claimsHeldWithMultiplicity :
-    statement.claims.xmss.Subperm (witness.xmssSignatures.map (·.1) ++
-      (witness.children.map (·.statement.claims.xmss)).flatten) ∧
-    statement.claims.sphincs.Subperm (witness.sphincsSignatures.map (·.1) ++
-      (witness.children.map (·.statement.claims.sphincs)).flatten)
   /-- At most `MAX_RECURSIONS` children (`Batch.maxRecursions`, `lean_ethereum.py`). -/
   atMostSixteenChildren : witness.children.length ≤ Batch.maxRecursions
   /-- At most `2^17` claims in the children's lists, in all. -/
