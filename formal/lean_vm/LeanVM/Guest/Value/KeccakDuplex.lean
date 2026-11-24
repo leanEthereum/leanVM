@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.Value.KeccakLayout
+public import Statement.Verifier.Transcript
 import LeanVM.Guest.Value.Tower
 import LeanVM.Guest.Value.KeccakEval
 

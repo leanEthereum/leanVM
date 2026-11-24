@@ -1,7 +1,6 @@
 module
 
-public import Statement.Verifier.Layout
-public import Statement.Verifier.Transcript
+public import Statement.Verifier.Bus
 
 /-!
 # The WHIR opening (`whir.rs`, `lib.rs`)
