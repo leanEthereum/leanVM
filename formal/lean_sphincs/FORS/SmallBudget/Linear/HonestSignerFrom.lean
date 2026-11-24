@@ -1,7 +1,6 @@
 module
 
 public import FORS.SmallBudget.Linear.HonestFrom
-public import FORS.GraphView.HonestSigner
 public import FORS.GraphView.PreparedSearch
 
 @[expose] public section

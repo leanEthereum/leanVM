@@ -8,6 +8,7 @@ public import VCVio.EvalDist.ProbabilityBounds
 public import VCVio.ProgramLogic.Relational.SimulateQ.UntilBad
 public import Common.Defs
 public import Common.Game2
+public import Common.QueryCost
 
 @[expose] public section
 
@@ -28,9 +29,6 @@ Three generic tools for comparing and bounding runs `(simulateQ impl oa).run s` 
 * **bad-event budget** (`prEvent_run_bad_le`, `prEvent_run_bad_le₂`): if every step from a good
   state of small size reaches a bad state with probability at most its weight times `δ`, a
   computation with total weight at most `Q` ends in a bad state with probability at most `Q · δ`.
-
-Query weights are VCVio's generalized query bounds `IsQueryBound oa Q canQuery cost` with the
-budget `ℕ`, a query `t` allowed when `w t ≤ b` and costing `w t` (`QueryCostAtMost`).
 -/
 
 open OracleComp OracleSpec MeasureTheory
@@ -38,55 +36,7 @@ open scoped ENNReal
 
 namespace Common
 
-universe u
-
 variable {ι : Type} {spec : OracleSpec.{0, 0} ι} {σ α : Type}
-
-theorem isWeightBound_query_bind_iff (w : ι → ℕ) (t : ι) (k : spec t → OracleComp spec α)
-    (Q : ℕ) : QueryCostAtMost (liftM (spec.query t) >>= k) w Q ↔
-      w t ≤ Q ∧ ∀ u, QueryCostAtMost (k u) w (Q - w t) :=
-  isQueryBound_query_bind_iff t k Q _ _
-
-/-- A larger budget is still a bound. -/
-theorem QueryCostAtMost.mono {oa : OracleComp spec α} {w : ι → ℕ} {Q Q' : ℕ}
-    (h : QueryCostAtMost oa w Q) (hQ : Q ≤ Q') : QueryCostAtMost oa w Q' := by
-  induction oa using OracleComp.inductionOn generalizing Q Q' with
-  | pure a => trivial
-  | query_bind t k ih =>
-    rw [isWeightBound_query_bind_iff] at h ⊢
-    exact ⟨h.1.trans hQ, fun u ↦ ih u (h.2 u) (by omega)⟩
-
-/-- Nothing weighs nothing. -/
-theorem QueryCostAtMost.zero_weight (oa : OracleComp spec α) :
-    QueryCostAtMost oa (fun _ ↦ 0) 0 := by
-  induction oa using OracleComp.inductionOn with
-  | pure a => trivial
-  | query_bind t k ih =>
-    rw [isWeightBound_query_bind_iff]
-    exact ⟨le_rfl, fun u ↦ ih u⟩
-
-/-- **Two weights' bounds add.** -/
-theorem QueryCostAtMost.add_weight {oa : OracleComp spec α} {w₁ w₂ : ι → ℕ} {a b : ℕ}
-    (h₁ : QueryCostAtMost oa w₁ a) (h₂ : QueryCostAtMost oa w₂ b) :
-    QueryCostAtMost oa (fun t ↦ w₁ t + w₂ t) (a + b) := by
-  induction oa using OracleComp.inductionOn generalizing a b with
-  | pure x => trivial
-  | query_bind t k ih =>
-    rw [isWeightBound_query_bind_iff] at h₁ h₂ ⊢
-    exact ⟨by omega, fun u ↦ (ih u (h₁.2 u) (h₂.2 u)).mono (by omega)⟩
-
-/-- Weight bounds add along a bind. -/
-theorem QueryCostAtMost.bind {β : Type} {oa : OracleComp spec α} {ob : α → OracleComp spec β}
-    {w : ι → ℕ} {a b : ℕ} (ha : QueryCostAtMost oa w a) (hb : ∀ x, QueryCostAtMost (ob x) w b) :
-    QueryCostAtMost (oa >>= ob) w (a + b) :=
-  isQueryBound_bind (· + ·)
-    (fun t b₁' b₂' b h ↦ ⟨le_add_left h, le_add_right h⟩)
-    (fun t b₁' b₂' b h ↦ ⟨by omega, by omega⟩) ha hb
-
-/-- A single query is bounded by its weight. -/
-theorem isWeightBound_query (w : ι → ℕ) (t : ι) :
-    QueryCostAtMost (liftM (spec.query t) : OracleComp spec (spec.Range t)) w (w t) :=
-  (isQueryBound_query_iff t _ _ _).mpr le_rfl
 
 section UntilBad
 

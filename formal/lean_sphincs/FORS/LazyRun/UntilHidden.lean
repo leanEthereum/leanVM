@@ -1,7 +1,7 @@
 module
 
-public import FORS.Reduction.SeedFreeGame
 public import FORS.LazyRun.Outside
+public import FORS.Reduction.SeedFreeGame
 
 @[expose] public section
 

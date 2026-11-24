@@ -9,7 +9,7 @@ public import Common.Duplex.Chal
 
 A fresh answer of the simulator is uniform, or a fixed challenge with a uniform rest; its
 capacity hits one of the at most `2 · #log + 2` capacities seen with probability at most that many
-times `εc`, the largest probability of a capacity (`step_bad_le`). Over a run with at most `N`
+times `εc`, the largest probability of a capacity (`pr_fresh_cap_le`). Over a run with at most `N`
 calls of `F`, a collision occurs with probability at most `N · (2N · εc)` (`prob_bad_le`).
 -/
 

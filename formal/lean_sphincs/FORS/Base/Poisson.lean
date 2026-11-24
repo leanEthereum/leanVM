@@ -1,6 +1,5 @@
 module
 
-public import FORS.Base.Virtual
 public import FORS.Base.VirtualOnce
 public import Mathlib.Data.Nat.Choose.Cast
 public import Mathlib.Probability.Distributions.Poisson.Basic

@@ -1,7 +1,6 @@
 module
 
 public import FORS.GraphView.Cost
-public import FORS.GraphView.HashCalls
 import all PolyFun.PFunctor.Handler.Instrumentation
 
 @[expose] public section

@@ -2,7 +2,6 @@ module
 
 public import FORS.Reduction.CostProgram
 public import FORS.GraphView.HonestGame
-public import FORS.Reduction.PreparedSample
 import all PolyFun.PFunctor.Handler.Instrumentation
 
 @[expose] public section

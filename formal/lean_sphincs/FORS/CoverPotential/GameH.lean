@@ -1,6 +1,5 @@
 module
 
-public import FORS.CoverPotential.Game
 public import FORS.GraphView.HonestGame
 
 @[expose] public section

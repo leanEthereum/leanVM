@@ -1,8 +1,6 @@
 module
 
 public import FORS.Classification.Win
-public import FORS.ScanSigner.FairShare
-public import FORS.LazyRun.InterpreterFacts
 
 @[expose] public section
 

@@ -1,6 +1,5 @@
 module
 
-public import Sphincs.CrateSim
 public import Sphincs.ModelRpm
 public import Sphincs.Transport
 

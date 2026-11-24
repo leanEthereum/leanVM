@@ -1,9 +1,10 @@
 module
 
 public import FORS.CoverBound.SecondMoment
-public import FORS.CoverPotential.Price
 public import FORS.CoverPotential.Basic
 public import FORS.Base.Split
+public import FORS.CoverBound.FirstMoment
+public import FORS.CoverBound.IndexFactor
 
 @[expose] public section
 

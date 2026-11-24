@@ -1,6 +1,6 @@
 module
 
-public import FORS.SmallBudget.Contact.PaidPotential
+public import FORS.SmallBudget.Contact.RunFacts
 
 @[expose] public section
 

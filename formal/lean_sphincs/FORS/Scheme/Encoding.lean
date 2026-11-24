@@ -1,8 +1,8 @@
 module
 
 public import FORS.Scheme.Code
-public import FORS.Scheme.Counter
 public import FORS.Scheme.Uniform
+public import FORS.Scheme.Counter
 
 @[expose] public section
 

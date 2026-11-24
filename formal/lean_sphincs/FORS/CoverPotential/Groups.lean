@@ -2,6 +2,7 @@ module
 
 public import FORS.ScanSigner.Scan
 public import FORS.CoverPotential.Basic
+public import FORS.ScanSigner.Group
 
 @[expose] public section
 

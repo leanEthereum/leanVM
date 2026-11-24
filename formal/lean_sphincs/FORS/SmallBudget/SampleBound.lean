@@ -3,6 +3,9 @@ module
 public import FORS.SmallBudget.SampleEvents
 public import FORS.SmallBudget.Contact.SigningH
 public import FORS.SmallBudget.Linear.HonestSignerFrom
+public import FORS.SmallBudget.Contact.PotentialH
+public import FORS.CoverBound.NearOption
+public import FORS.Reduction.Memo
 
 @[expose] public section
 

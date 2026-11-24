@@ -1,6 +1,8 @@
 module
 
 public import FORS.SmallBudget.Linear.Step
+public import FORS.Classification.Targeting
+public import FORS.SmallBudget.Linear.Payments
 
 @[expose] public section
 

@@ -15,11 +15,9 @@ sampled random oracle), a hash query whose answer is not used can be moved anywh
 for random oracles: the random function is fixed from the start, and *when* a point is first
 queried does not matter.
 
-Consequences used by the indifferentiability proof:
-
-* discarded queries can be postponed to the end of a run, where their answers are fresh
-  (`run_queries_bind_evalDistEq`);
-* a query at a point that is already cached changes nothing (`run_bind_query_of_cached`).
+Consequences used by the indifferentiability proof: any two steps of the random oracle model
+commute (`romStep_romStep_comm`), a query commutes with any computation that does not use its
+answer (`run_query_bind_comm`), and so do two independent computations (`run_bind_bind_comm`).
 -/
 
 open OracleComp OracleSpec MeasureTheory

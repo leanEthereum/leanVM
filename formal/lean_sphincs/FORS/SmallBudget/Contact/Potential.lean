@@ -1,6 +1,9 @@
 module
 
 public import FORS.SmallBudget.Contact.Weights
+public import FORS.SmallBudget.Contact.PaidPotential
+public import FORS.SmallBudget.Contact.RevealRate
+public import FORS.SmallBudget.Contact.NearWitness
 
 @[expose] public section
 

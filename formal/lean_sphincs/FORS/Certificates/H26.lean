@@ -1,6 +1,7 @@
 module
 
 public import FORS.Certificates.Build
+public import FORS.Certificates.Closing
 
 @[expose] public section
 

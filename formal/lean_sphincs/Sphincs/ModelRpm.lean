@@ -1,13 +1,8 @@
 module
 
-public import FORS.Statement
 public import FORS.CrateStatic
-public import Common.Signature
-public import Common.PiOnly
-public import Common.Linear
 public import Common.StaticSwap
 public import Sphincs.Model
-public import Sphincs.Queries
 
 @[expose] public section
 

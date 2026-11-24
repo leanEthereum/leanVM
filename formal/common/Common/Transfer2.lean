@@ -9,7 +9,7 @@ public import Common.Defs
 # Transfer in the two-oracle model: a hash `H` and direct permutation calls `F`
 
 A protocol such as leanVM calls the permutation `π` in two ways: through the sponge hash (`H`),
-and directly, in a Fiat–Shamir duplex (`F`). Its random-oracle-model (ROM) proofs use two
+and directly, in a Fiat-Shamir duplex (`F`). Its random-oracle-model (ROM) proofs use two
 independent oracles: a random oracle `H` and a random function `F` on states, both queried by the
 honest parties and by the adversary. In the random-permutation model (RPM) `H` is the sponge over
 `π`, `F` is `π`, and the adversary queries `π` and `π⁻¹`.

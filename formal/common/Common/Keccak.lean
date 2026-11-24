@@ -14,7 +14,7 @@ calls, and the sponge's, one per 136-byte block of every padded message it hashe
 Keccak-256 over a random permutation from a random oracle with the simulator with advantage at
 most `q² / 2^509`, and the same bound moves ROM games to the RPM (`keccak256_transfer`).
 
-With direct permutation calls in a duplex (leanVM's Fiat–Shamir transcript), the non-final
+With direct permutation calls in a duplex (leanVM's Fiat-Shamir transcript), the non-final
 blocks are those whose last byte (byte 135, the top byte of lane 16) has its top bit clear
 (`keccakNF`): the padding's last byte is `0x80` or `0x81` (`not_keccakNF_of_pad`), while a
 duplexing that overwrites lanes `0..16` and keeps lanes `16..25` absorbs a block whose lane 16

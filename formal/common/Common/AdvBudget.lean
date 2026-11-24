@@ -23,7 +23,7 @@ adversary itself and at most `maxRequests` signing requests, success at most
 * `stronglyUnforgeable_of_romBoundAdv`: the statement's adversary, read with the Keccak-256 oracle
   (`embedS`), on bytes (`relabelS`) and with its permutation queries answered by the
   indifferentiability simulator (`romAdv`), is a ROM adversary with the same own calls and the
-  same requests (`romAdv_advHashCalls`, `romAdv_requestCalls`); the sponge's indifferentiability
+  same requests (`romAdvOf_advHashCalls`, `romAdvOf_requestCalls`); the sponge's indifferentiability
   costs `Q² / 2^509` for the game's total `Q` of permutation calls, which worst-case bounds on key
   generation, the signer and the verifier (`forgeryGame_cost`) keep below `2^129`, so that term is
   less than one unit `2^-bits`.

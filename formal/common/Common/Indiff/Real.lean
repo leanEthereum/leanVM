@@ -11,7 +11,7 @@ The combined game answering with its full view (`combReal`) is, once the visible
 random oracles' cache are forgotten, the real world over a lazily sampled random function
 (`funImpl`): a fresh node of the full view takes either a fresh uniform draw or the value of a
 path whose oracle points have never been queried (`UInv`), which is a fresh uniform state too
-(`combRealGame_evalDistEq_funGame`).
+(`combReal_run_evalDistEq`).
 -/
 
 set_option linter.unusedSectionVars false

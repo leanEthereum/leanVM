@@ -1,6 +1,6 @@
 module
 
-public import FORS.LazyRun.PreparedRun
+public import FORS.Classification.Win
 
 @[expose] public section
 

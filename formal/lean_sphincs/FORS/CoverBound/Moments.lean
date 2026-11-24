@@ -1,6 +1,5 @@
 module
 
-public import FORS.CoverBound.IndexFactor
 public import FORS.Scheme
 
 @[expose] public section

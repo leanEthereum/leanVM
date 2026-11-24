@@ -4,6 +4,8 @@ public import Sphincs.Bridge
 public import FORS.Reduction.AdvCountGame
 public import Common.AdvBudget
 public import Common.SphincsCost
+public import Sphincs.Queries
+public import Sphincs.CrateSim
 
 @[expose] public section
 

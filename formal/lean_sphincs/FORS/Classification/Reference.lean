@@ -1,7 +1,6 @@
 module
 
 public import FORS.GraphView.Secrets
-public import FORS.Classification.Signature
 
 @[expose] public section
 

@@ -2,7 +2,7 @@ module
 
 public import FORS.Reduction.AdvProgBridgeH
 public import FORS.Reduction.SeedEliminationAdv
-public import FORS.LazyRun.Expose
+public import FORS.LazyRun.PreparedRun
 
 @[expose] public section
 

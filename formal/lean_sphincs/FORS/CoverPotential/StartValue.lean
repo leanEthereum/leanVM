@@ -1,9 +1,5 @@
 module
 
-public import FORS.LazyRun.PreparedRun
-public import FORS.Reduction.Memo
-public import FORS.CoverPotential.Game
-public import FORS.Reduction.NoRepeat
 public import FORS.CoverPotential.OneCoin
 
 @[expose] public section

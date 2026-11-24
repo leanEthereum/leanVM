@@ -2,8 +2,8 @@ module
 
 public import FORS.ScanSigner.AfterSigning
 public import FORS.CoverPotential.Presample
-public import FORS.Base.VirtualMono
 public import FORS.Classification.Win
+public import FORS.Base.VirtualMono
 
 @[expose] public section
 

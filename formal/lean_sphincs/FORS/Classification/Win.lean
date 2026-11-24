@@ -1,6 +1,7 @@
 module
 
 public import FORS.Classification.Accepted
+public import FORS.LazyRun.FixedRun
 
 @[expose] public section
 

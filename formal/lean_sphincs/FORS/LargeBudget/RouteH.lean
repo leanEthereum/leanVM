@@ -4,6 +4,8 @@ public import FORS.LargeBudget.Route
 public import FORS.LargeBudget.RouteStartH
 public import FORS.LargeBudget.WeightedPotentialH
 public import FORS.SmallBudget.Linear.HonestSignerFrom
+public import FORS.CoverPotential.StartValue
+public import FORS.CoverPotential.FairCoin
 
 @[expose] public section
 

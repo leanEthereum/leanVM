@@ -1,12 +1,9 @@
 module
 
-public import FORS.CoverPotential.Game
 public import FORS.Reduction.NoRepeat
 public import FORS.CoverPotential.OneCoin
 public import FORS.CoverPotential.GameH
 public import FORS.LargeBudget.HonestCoupling
-public import FORS.CoverPotential.Presample
-public import FORS.LazyRun.HonestRead
 
 @[expose] public section
 

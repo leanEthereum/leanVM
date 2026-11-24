@@ -1,6 +1,6 @@
 module
 
-public import FORS.SmallBudget.Contact.Signing
+public import FORS.SmallBudget.Contact.PaidPotential
 
 @[expose] public section
 

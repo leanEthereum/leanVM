@@ -1,8 +1,8 @@
 module
 
-public import FORS.LazyRun.ExposedUniform
 public import FORS.SmallBudget.Linear.ForsSteps
 public import FORS.ScanSigner.Scan
+public import FORS.LazyRun.PreparedRun
 
 @[expose] public section
 

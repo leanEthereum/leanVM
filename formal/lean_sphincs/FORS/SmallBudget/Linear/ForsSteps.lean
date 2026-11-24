@@ -1,7 +1,6 @@
 module
 
-public import FORS.SmallBudget.Linear.Payoff
-public import FORS.SmallBudget.Linear.Payments
+public import FORS.SmallBudget.Linear.Run
 
 @[expose] public section
 

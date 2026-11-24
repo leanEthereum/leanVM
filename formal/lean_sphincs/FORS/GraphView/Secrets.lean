@@ -54,7 +54,6 @@ open OracleComp OracleSpec
 namespace FORS.Security.Prefix
 
 variable [Params]
-open UniformTableSplit
 
 attribute [local instance] Classical.propDecidable
 

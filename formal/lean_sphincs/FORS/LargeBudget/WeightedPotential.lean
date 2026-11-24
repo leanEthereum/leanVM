@@ -1,8 +1,6 @@
 module
 
 public import FORS.LargeBudget.WeightedScan
-public import FORS.CoverPotential.Game
-public import FORS.Reduction.NoRepeat
 public import FORS.CoverPotential.OneCoin
 
 @[expose] public section

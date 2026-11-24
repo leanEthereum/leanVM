@@ -1,9 +1,9 @@
 module
 
-public import FORS.Classification.Win
 public import FORS.CoverPotential.GameH
 public import FORS.LargeBudget.HonestCoupling
 public import FORS.Reduction.UntilSeedH
+public import FORS.CoverPotential.Game
 
 @[expose] public section
 

@@ -10,10 +10,10 @@ public import Common.Indiff.Perm
 In the visible game without path queries, followed by the end phase (`visRun P iv false`),
 both collisions are unlikely:
 
-* a **visible collision** needs a fresh simulator draw — a uniform state, or the value of a fresh
-  rooted path, whose capacity is a fresh uniform draw from the path oracle — to land on one of
+* a **visible collision** needs a fresh simulator draw (a uniform state, or the value of a fresh
+  rooted path, whose capacity is a fresh uniform draw from the path oracle) to land on one of
   the at most `2q + 1` visible capacities: at most `(2q + 1) / |C|` per permutation query
-  (`prEvent_vis_bad_le`);
+  (`prEvent_visF_bad_le`);
 * a **hidden collision** needs one of the hidden paths' values, all drawn fresh in the end phase,
   to land on a visible capacity or on another hidden value's capacity (`prEvent_coll_endPhase`).
 

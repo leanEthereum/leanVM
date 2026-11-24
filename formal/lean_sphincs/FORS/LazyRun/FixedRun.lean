@@ -1,6 +1,6 @@
 module
 
-public import FORS.LazyRun.PreparedEncodings
+public import FORS.LazyRun.RunSupport
 
 @[expose] public section
 
