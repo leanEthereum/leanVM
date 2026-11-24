@@ -43,6 +43,9 @@ a `keccak` whose output lands on it are assertions about one word.
 * A hint is a name: it emits no command, and the commands that read it constrain it.
 
 `LeanVM.Guest.Ref.Link` ties a compiled specialization to its reference function.
+`simp only [ref_norm]` unfolds a block of commands (`Cmd.SatList`), `unroll` and compile-time
+`if`s included, into the meanings of its commands. `LeanVM.Guest.Ref.Verified` bundles a reference
+function with its meaning.
 -/
 
 namespace LeanVM.Guest.Ref
