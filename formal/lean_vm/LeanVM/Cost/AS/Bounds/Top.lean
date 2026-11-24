@@ -218,7 +218,6 @@ theorem extractL_cost (P : MachineProgram) (hP : Includes P extractLC.costDeps) 
     (fun a ↦ RunsApp.of_spec (extractLC.lam0.lam0.lam0.lam0.lam0.costSpec P (by includes) prog input qs
       (lay, ρ) r₂ a)) h5]
   cost_app [extractLC.lam0.lam0.lam0.lam0.lam0.costEq P]
-  dsimp only
   unfold headPrice
   omega
 
