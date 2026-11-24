@@ -8,7 +8,12 @@ A function with every kind of statement and of atom, and the condition `vc` give
 to reducible unfolding: a read of a defined value its word, a value an equation defines (a
 constant, a copy, a product, the product a range check names, the inverse an assertion pins, a
 `KECCAK`'s two written cells) substituted, a branch that falls through to the rest of its block
-and a `match` split.
+and a `match` split; and the same condition, `Expr.equal` to it, computed in chunks of one
+statement, cut in the branches and the arms. Cut at every statement, a let-bound argument, tail of
+the body or type, and a rule whose proof needs a let-variable's value, give the expected condition;
+and cuts that would tell apart two terms of one word (so `vc` computes without generalizing) give
+the same condition as no cuts. Under `keccak_cells_all_fn`, chained thirteen-cell `KECCAK`s keep
+their written cells as words, each `KECCAK` one equation.
 -/
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
@@ -51,6 +56,89 @@ example (C : CallRel) (rd : Reader) (p a : E) (rets : List E) :
                 (x5 ≠ 0 → x2 = ofK (addressOfIndex 0) ∧ [x5 * x6] = rets ∨
                   x2 = ofK (addressOfIndex 1) ∧ [x5 * x6 + a, x15] = rets) := by
   vc
+  with_reducible exact Iff.rfl
+
+open Lean Meta Elab Tactic in
+/-- Closes `P ↔ P'`, `P'` `Expr.equal` to `P` but for `rets'` in place of `rets`. -/
+elab "same_cond" : tactic => withMainContext do
+  let some (l, r) := (← getMainTarget).iff? | throwError "not an iff"
+  unless l.equal (r.replaceFVar (← getFVarFromUserName `rets') (← getFVarFromUserName `rets)) do
+    throwError "the chunked condition differs"
+  evalTactic (← `(tactic| (subst_vars; exact Iff.rfl)))
+
+example (C : CallRel) (rd : Reader) (p a : E) (rets rets' : List E) (h : rets = rets') :
+    Fn.Sem C rd ⟨"t", [.n 0, .n 1], body⟩ [p, a] rets ↔
+      Fn.Sem C rd ⟨"t", [.n 0, .n 1], body⟩ [p, a] rets' := by
+  set_option vc.chunkSize 1 in vc
+  vc
+  same_cond
+
+noncomputable def chain : List Stmt := [.atom (.mul (.n 2) (.n 0) (.n 1)),
+  .atom (.add (.n 3) (.n 2) (.n 1)), .atom (.add (.n 4) (.n 3) (.n 1)), .ret [.n 4]]
+
+example (C : CallRel) (rd : Reader) (p a : E) (rets : List E) :
+    let q := p * a
+    Fn.Sem C rd ⟨"t", [.n 0, .n 1], chain⟩ [q, a] rets ↔ [q * a + a + a] = rets := by
+  intro q
+  set_option vc.chunkSize 1 in vc
+  with_reducible exact Iff.rfl
+
+example (C : CallRel) (rd : Reader) (p a : E) (rets : List E) :
+    let tl : List Stmt := [.atom (.add (.n 4) (.n 3) (.n 1)), .ret [.n 4]]
+    Fn.Sem C rd ⟨"t", [.n 0, .n 1], .atom (.mul (.n 2) (.n 0) (.n 1)) ::
+      .atom (.add (.n 3) (.n 2) (.n 1)) :: tl⟩ [p, a] rets ↔ [p * a + a + a] = rets := by
+  intro tl
+  set_option vc.chunkSize 1 in vc
+  with_reducible exact Iff.rfl
+
+example (C : CallRel) (rd : Reader) (a : E) (rets : List E) :
+    let T := E
+    ∀ x : T, Fn.Sem C rd ⟨"t", [.n 0, .n 1], chain⟩ [x, a] rets ↔ [x * a + a + a] = rets := by
+  intro T x
+  set_option vc.chunkSize 1 in vc
+  with_reducible exact Iff.rfl
+
+example (C : CallRel) (rd : Reader) (p : E) (rets : List E) :
+    let z : E := 0
+    Fn.Sem C rd ⟨"t", [.n 0, .n 1], [.atom (.mul (.n 2) (.n 0) (.n 1)),
+      .atom (.mul (.n 3) (.n 0) (.n 1)), .ret [.n 3]]⟩ [p, z] rets ↔ [0] = rets := by
+  intro z
+  set_option vc.chunkSize 1 in vc [show p * z = 0 from mul_zero p]
+  with_reducible exact Iff.rfl
+
+noncomputable def twice : List Stmt := [.atom (.mul (.n 2) (.n 0) (.n 1)),
+  .atom (.mul (.n 3) (.n 0) (.n 1)), .atom (.add (.n 4) (.n 2) (.n 3)), .ret [.n 4]]
+
+/-- trace: [vc] cuts tell apart two terms of one word: computing without generalizing -/
+#guard_msgs in
+example (C : CallRel) (rd : Reader) (p a : E) (rets rets' : List E) (h : rets = rets') :
+    Fn.Sem C rd ⟨"t", [.n 0, .n 1], twice⟩ [p, a] rets ↔
+      Fn.Sem C rd ⟨"t", [.n 0, .n 1], twice⟩ [p, a] rets' := by
+  set_option trace.vc true in set_option vc.chunkSize 1 in vc
+  vc
+  same_cond
+
+noncomputable def sponge : List Stmt := [
+  .atom (.keccak [.n 0, .n 0, .n 0, .n 0, .n 0, .n 0, .n 0, .n 0, .n 0, .n 0, .n 0, .n 0, .n 0]
+    [.n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10, .n 11, .n 12, .n 13] false true),
+  .atom (.add (.n 14) (.n 1) (.n 0)),
+  .atom (.keccak [.n 14, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10, .n 11, .n 12, .n 13]
+    [.n 15, .n 16, .n 17, .n 18, .n 19, .n 20, .n 21, .n 22, .n 23, .n 24, .n 25, .n 26, .n 27]
+    true false),
+  .ret [.n 15]]
+
+example (C : CallRel) (rd : Reader) (p : E) (rets : List E) :
+    Fn.Sem C rd ⟨"t", [.n 0], sponge⟩ [p] rets ↔
+      ∃ x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13,
+        cells13 [x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13] =
+          cellsOfState (keccakF1600 (stateOfCells (cells13 [p, p, p, p, p, p, p, p, p, p, p, p, p])
+            false)) true ∧
+        ∃ x15 x16 x17 x18 x19 x20 x21 x22 x23 x24 x25 x26 x27,
+          cells13 [x15, x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27] =
+            cellsOfState (keccakF1600 (stateOfCells
+              (cells13 [x1 + p, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13]) true)) false ∧
+          [x15] = rets := by
+  vc [-keccak_cells_all, keccak_cells_all_fn]
   with_reducible exact Iff.rfl
 
 end LeanVMTests.Guest.Vc
