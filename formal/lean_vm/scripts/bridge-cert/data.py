@@ -18,6 +18,21 @@ def _halt():
 HALT = _halt()
 
 
+IMPORT = re.compile(r'^(?:public )?(?:meta )?import ', re.M)
+
+
+def quiet(files):
+    """`files` (path to text) with the linters off after each module's imports, unless it turns them off itself: they
+    find nothing in a generated module, and each runs in the interpreter on every declaration."""
+    def one(text):
+        ms = list(IMPORT.finditer(text))
+        if 'set_option linter.all false' in text or not ms:
+            return text
+        end = text.index('\n', ms[-1].start()) + 1
+        return text[:end] + '\nset_option linter.all false\n' + text[end:]
+    return {p: one(t) for p, t in files.items()}
+
+
 def advice_text():
     """The text of the advice's modules, `AdviceHints` and its chunks, one after another."""
     names = sorted(n for n in os.listdir(STATEMENT_DATA) if n.startswith('AdviceHints') and n.endswith('.lean'))

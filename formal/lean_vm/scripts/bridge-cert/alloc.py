@@ -668,7 +668,7 @@ end
 end LeanVM.Guest.Bridge.AllocChk
 ''')
     existing = set(glob.glob(os.path.join(OUT, '*.lean')))
-    stale = genfiles.sync(files, existing, check)
+    stale = genfiles.sync(data.quiet(files), existing, check)
     print(f'bridge-cert: the allocation hints of {len(passed)} functions over {len(groups)} link modules')
     genfiles.fail_if_stale(stale, check, data.LEAN_VM)
 

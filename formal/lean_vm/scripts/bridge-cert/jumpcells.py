@@ -121,7 +121,7 @@ end
 end LeanVM.Guest.Bridge.JumpCells
 ''')
     existing = set(glob.glob(os.path.join(OUT, '*.lean')))
-    stale = genfiles.sync(files, existing, check)
+    stale = genfiles.sync(data.quiet(files), existing, check)
     print(f'bridge-cert: the jump cells of {len(lk)} functions over {len(groups)} data modules')
     genfiles.fail_if_stale(stale, check, data.LEAN_VM)
 
