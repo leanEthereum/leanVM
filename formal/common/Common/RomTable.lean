@@ -257,7 +257,7 @@ theorem evalDist_presample_fresh {α : Type} (computation : OracleComp World α)
                   rw [hrun, QueryImpl.withCaching_run_none _ (by
                     rw [QueryCache.cacheQuery_of_ne _ _ heq, hinput]), bind_map_left]
                   refine EvalDistEq.bind_right _ fun answer => ?_
-                  rw [QueryCache.cacheQuery_comm heq]
+                  rw [QueryCache.cacheQuery_comm cache heq]
 
 /-- A query run first, its cache kept, leaves the distribution of a computation unchanged. -/
 theorem evalDist_presample_query {α : Type} (computation : OracleComp World α)
