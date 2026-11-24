@@ -37,11 +37,11 @@ at `qk q n`); `C h` is the set of candidates a history binds (`Stable`, at most 
 position rounds at `L₀·3/|E|` (`h3`), `β` at `L₀·2/|E|` after a grind of zero bits; the openings'
 `6 + 4 + 6` rounds at `L₀·2/|E|`. At `L₀ = 1` each is within `2^-125`.
 
-`gkrSpec` states it with `Pre := Doomed C (outClaimsTrueMid ∧ midAgree ∧ R)`. A statement in
-terms of `keccakF` of the inputs needs `RegionValid` (the committed middle state is twelve
-rounds of the input at every step), which cannot be dropped from the carried predicate: `inst` is drawn before this phase, and a middle
-state wrong at some step but agreeing with twelve rounds of the input at `inst` passes every
-check here (the phase drawing `inst` charges that, `zeroOn_escape`).
+`gkrSpec` states it with `Pre := Doomed C (outClaimsTrueMid ∧ midAgree ∧ R)`. A statement in terms
+of `keccakF` of the inputs needs `RegionValid` (the committed middle state is twelve rounds of the
+input at every step), which cannot be dropped from the carried predicate: `inst` is drawn before
+this phase, and a middle state wrong at some step but agreeing with twelve rounds of the input at
+`inst` passes every check here (the phase drawing `inst` charges that, `zeroOn_escape`).
 -/
 
 namespace LeanVM.Protocol.KeccakGkr

@@ -87,11 +87,20 @@ theorem answer_append (hc : commits h₀ = []) (h : List Ev) (i : ℕ) (ps : Lis
     answer (h₀ ++ h) i ps = answer h i ps := by
   simp [answer, Compile.commits_append, hc]
 
+/-- A history one event past a split one splits at the same place. -/
+private theorem split_concat {h₀ h h' : List Ev} {a b : Ev} (he : h ++ [a] = h₀ ++ h'.concat b) :
+    h = h₀ ++ h' ∧ a = b := by
+  rw [List.concat_eq_append, ← List.append_assoc] at he
+  obtain ⟨h1, h2⟩ := List.append_inj' he rfl
+  exact ⟨h1, List.singleton_inj.mp h2⟩
+
 /-- A reachable history past a prefix without commitments is a reachable history of the node
 at the prefix. -/
 theorem reachable_drop (ha : P.after h₀ = some p) (hc : commits h₀ = []) :
     ∀ {h : List Ev}, P.Reachable h → ∀ h', h = h₀ ++ h' → p.Reachable h' := by
   intro h hr
+  have hk' : ∀ {h''} {q : VerifierProgram Bool}, P.after (h₀ ++ h'') = some q → p.after h'' = some q :=
+    fun h ↦ by rwa [VerifierProgram.after_append, ha, Option.bind_some] at h
   induction hr with
   | nil =>
     intro h' he
@@ -101,53 +110,38 @@ theorem reachable_drop (ha : P.after h₀ = some p) (hc : commits h₀ = []) :
     intro h' he
     rcases List.eq_nil_or_concat h' with rfl | ⟨h'', e, rfl⟩
     · exact VerifierProgram.Reachable.nil
-    · rw [List.concat_eq_append, ← List.append_assoc] at he
-      rw [List.concat_eq_append]
-      obtain ⟨rfl, he2⟩ := List.append_inj' he rfl
-      obtain rfl := List.singleton_inj.mp he2
-      refine VerifierProgram.Reachable.read (k := k) x (ih h'' rfl) ?_
-      rwa [VerifierProgram.after_append, ha, Option.bind_some] at hk
+    obtain ⟨rfl, rfl⟩ := split_concat he
+    rw [List.concat_eq_append]
+    exact VerifierProgram.Reachable.read (k := k) x (ih h'' rfl) (hk' hk)
   | @sample h k c hr hk ih =>
     intro h' he
     rcases List.eq_nil_or_concat h' with rfl | ⟨h'', e, rfl⟩
     · exact VerifierProgram.Reachable.nil
-    · rw [List.concat_eq_append, ← List.append_assoc] at he
-      rw [List.concat_eq_append]
-      obtain ⟨rfl, he2⟩ := List.append_inj' he rfl
-      obtain rfl := List.singleton_inj.mp he2
-      refine VerifierProgram.Reachable.sample (k := k) c (ih h'' rfl) ?_
-      rwa [VerifierProgram.after_append, ha, Option.bind_some] at hk
+    obtain ⟨rfl, rfl⟩ := split_concat he
+    rw [List.concat_eq_append]
+    exact VerifierProgram.Reachable.sample (k := k) c (ih h'' rfl) (hk' hk)
   | @grind h b k hr hk ih =>
     intro h' he
     rcases List.eq_nil_or_concat h' with rfl | ⟨h'', e, rfl⟩
     · exact VerifierProgram.Reachable.nil
-    · rw [List.concat_eq_append, ← List.append_assoc] at he
-      rw [List.concat_eq_append]
-      obtain ⟨rfl, he2⟩ := List.append_inj' he rfl
-      obtain rfl := List.singleton_inj.mp he2
-      refine VerifierProgram.Reachable.grind (k := k) (ih h'' rfl) ?_
-      rwa [VerifierProgram.after_append, ha, Option.bind_some] at hk
+    obtain ⟨rfl, rfl⟩ := split_concat he
+    rw [List.concat_eq_append]
+    exact VerifierProgram.Reachable.grind (k := k) (ih h'' rfl) (hk' hk)
   | @commit h ht w k word hr hk hw ih =>
     intro h' he
     rcases List.eq_nil_or_concat h' with rfl | ⟨h'', e, rfl⟩
     · exact VerifierProgram.Reachable.nil
-    · rw [List.concat_eq_append, ← List.append_assoc] at he
-      rw [List.concat_eq_append]
-      obtain ⟨rfl, he2⟩ := List.append_inj' he rfl
-      obtain rfl := List.singleton_inj.mp he2
-      refine VerifierProgram.Reachable.commit (k := k) word (ih h'' rfl) ?_ hw
-      rwa [VerifierProgram.after_append, ha, Option.bind_some] at hk
+    obtain ⟨rfl, rfl⟩ := split_concat he
+    rw [List.concat_eq_append]
+    exact VerifierProgram.Reachable.commit (k := k) word (ih h'' rfl) (hk' hk) hw
   | @query h i ps k rows hr hk hans ih =>
     intro h' he
     rcases List.eq_nil_or_concat h' with rfl | ⟨h'', e, rfl⟩
     · exact VerifierProgram.Reachable.nil
-    · rw [List.concat_eq_append, ← List.append_assoc] at he
-      rw [List.concat_eq_append]
-      obtain ⟨rfl, he2⟩ := List.append_inj' he rfl
-      obtain rfl := List.singleton_inj.mp he2
-      refine VerifierProgram.Reachable.query (i := i) (ps := ps) (k := k) (ih h'' rfl) ?_ ?_
-      · rwa [VerifierProgram.after_append, ha, Option.bind_some] at hk
-      · rwa [answer_append hc] at hans
+    obtain ⟨rfl, rfl⟩ := split_concat he
+    rw [List.concat_eq_append]
+    exact VerifierProgram.Reachable.query (i := i) (ps := ps) (k := k) (ih h'' rfl) (hk' hk)
+      (by rwa [answer_append hc] at hans)
 
 theorem after_drop (ha : P.after h₀ = some p) (h' : List Ev) :
     P.after (h₀ ++ h') = p.after h' := by

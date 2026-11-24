@@ -8,7 +8,6 @@
 
 module
 
-import LeanVM.Protocol.EndToEnd.Front.BusSpec
 public import LeanVM.Protocol.TableSumcheck
 public import LeanVM.Protocol.EndToEnd.Front.BusDoom
 public import ArkLib.Data.CodingTheory.ReedSolomon

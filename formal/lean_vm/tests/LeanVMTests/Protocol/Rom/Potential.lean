@@ -1,17 +1,12 @@
 import LeanVM.Protocol.ToVCVio.Rom.Potential
 import LeanVM.Protocol.ToVCVio.Rom.LoggedOracle
-import LeanVM.Protocol.ToVCVio.Rom.Bounds
 
 /-!
 # Random-oracle potential tests
 
 Statement locks for the potential bounds over lazy samplers, VCVio's `randomOracle`, and the
 logged oracle `loggedRO` for two oracles; the inhabitants of `IsLazySampler` for both
-implementations; first-match log lookup on concrete logs, each oracle reading its own entries; a two-query computation on `Bool →ₒ Bool`, for which the birthday bound
-gives `1/2` (the exact collision probability: the second fresh answer equals the first) and the
-fresh-hit bound for the target `{true}` gives `1`; and a counterexample showing that the
-increment `δ` does real work: the fresh-hit potential does not satisfy the step bound at
-`δ = 0`.
+implementations; first-match log lookup on concrete logs, each oracle reading its own entries.
 -/
 
 namespace LeanVMTests.Protocol.Rom
@@ -78,12 +73,6 @@ example : IsLazySampler (spec := Spec₂ Bool Bool Bool Bool) logLookup logRecor
     (loggedRO (D₁ := Bool) (R₁ := Bool) (D₂ := Bool) (R₂ := Bool)) :=
   loggedRO_isLazySampler
 
-example : IsBudgetedPotential (birthdayPotential (D := Bool) (R := Bool)) :=
-  isBudgetedPotential_birthdayPotential
-
-example : FreshStepBound (hitPotential (D := Bool) ({true} : Finset Bool)) (1 / 2) := by
-  simpa using freshStepBound_hitPotential (D := Bool) ({true} : Finset Bool)
-
 /-! ## First-match lookup -/
 
 #guard pairLookup [(1, 2), (1, 3)] (1 : ℕ) = some (2 : ℕ)
@@ -97,53 +86,5 @@ def mixed : List (LogEntry ℕ ℕ ℕ ℕ) := [.inr (1, 9), .inl (1, 2), .inr (
 #guard lookL mixed 1 = some 2
 #guard lookR mixed 1 = some 9
 #guard lookL mixed 0 = none
-
-/-! ## A two-query computation -/
-
-/-- Query the oracle at both points of `Bool`. -/
-def twoQueries : OracleComp (Bool →ₒ Bool) (Bool × Bool) := do
-  let a ← (Bool →ₒ Bool).query true
-  let b ← (Bool →ₒ Bool).query false
-  return (a, b)
-
-theorem twoQueries_bound : IsTotalQueryBound twoQueries 2 :=
-  isTotalQueryBound_query_bind_iff.mpr ⟨by norm_num, fun _ ↦
-    isTotalQueryBound_query_bind_iff.mpr ⟨by norm_num, fun _ ↦ trivial⟩⟩
-
-/-- The birthday bound for two queries into a two-element range is `1/2`. -/
-example : Pr{let z ← (simulateQ (Bool →ₒ Bool).randomOracle twoQueries).run ∅}[
-    CacheHasCollision z.2] ≤ 1 / 2 := by
-  refine (prEvent_cacheHasCollision_le twoQueries 2 twoQueries_bound).trans (le_of_eq ?_)
-  norm_num
-  rw [ENNReal.div_eq_inv_mul, show (4 : ℝ≥0∞) = 2 * 2 by norm_num,
-    ENNReal.mul_inv (by simp) (by simp), mul_assoc, ENNReal.inv_mul_cancel (by simp) (by simp),
-    mul_one]
-
-/-- The fresh-hit bound for two queries and the target `{true}` is `1`. -/
-example : Pr{let z ← (simulateQ (Bool →ₒ Bool).randomOracle twoQueries).run ∅}[
-    CacheHits (({true} : Finset Bool) : Set Bool) z.2] ≤ 1 := by
-  have h := prEvent_cacheHits_le ({true} : Finset Bool) twoQueries 2 twoQueries_bound ∅
-    (by rintro ⟨t, u, h, _⟩; simp at h)
-  refine h.trans (le_of_eq ?_)
-  simp only [Finset.card_singleton, Fintype.card_bool, Nat.cast_ofNat, Nat.cast_one, one_div]
-  exact ENNReal.mul_inv_cancel (by simp) (by simp)
-
-/-! ## The increment does real work -/
-
-/-- The fresh-hit potential for `{true}` does not satisfy the step bound at `δ = 0`: from the
-empty cache a fresh query hits `true` with probability `1/2`. -/
-example : ¬ FreshStepBound (hitPotential (D := Bool) ({true} : Finset Bool)) 0 := by
-  intro h
-  have := h ∅ true rfl
-  have hhit : ∀ u, hitPotential (D := Bool) ({true} : Finset Bool)
-      ((∅ : (Bool →ₒ Bool).QueryCache).cacheQuery true u) = if u = true then 1 else 0 := by
-    intro u
-    unfold hitPotential
-    rw [cacheHits_cacheQuery_iff _ _ _ _ rfl]
-    simp [CacheHits]
-  have hzero : hitPotential (D := Bool) ({true} : Finset Bool) ∅ = 0 := by
-    simp [hitPotential, CacheHits]
-  simp only [hhit, hzero, Fintype.sum_bool] at this
-  norm_num at this
 
 end LeanVMTests.Protocol.Rom

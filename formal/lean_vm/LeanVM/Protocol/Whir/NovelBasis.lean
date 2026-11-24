@@ -173,7 +173,7 @@ def domain (κ R : ℕ) (h : κ + R ≤ 64) : Fin (2 ^ (κ + R)) ↪ E where
   inj' := by
     intro a b hab
     have hle : 2 ^ (κ + R) ≤ 2 ^ 64 := Nat.pow_le_pow_right (by norm_num) h
-    exact Fin.ext (ofBits_injOn (show (a : ℕ) < 2 ^ 64 from lt_of_lt_of_le a.isLt hle)
+    exact Fin.ext (K.ofBits_injOn (show (a : ℕ) < 2 ^ 64 from lt_of_lt_of_le a.isLt hle)
       (show (b : ℕ) < 2 ^ 64 from lt_of_lt_of_le b.isLt hle) (ofK_injective hab))
 
 /-- `Enc_{κ,R}(g) = (Σ_u g(u)·X_⟨u⟩(x_v))_{v < 2^(κ+R)}`. -/

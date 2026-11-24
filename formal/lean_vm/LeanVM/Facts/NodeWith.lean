@@ -8,20 +8,12 @@
 
 module
 
-public import Statement.LeanVmGuest
 public import LeanVM.Guest.Batch.Def
-public import LeanXmss.Scheme
-public import Statement.LeanSphincs
 public import Statement.Fast.Schemes
-public import LeanDa.Scheme
 public import Statement.Fast.Keccak
 public import Statement.Fast.QuadExt
 public import Statement.Fast.FieldWords
-public import LeanVM.Facts.Verifier
-public import LeanVM.Facts.DaWith
-public import Common.WithHash
 public import LeanVM.Guest.WithHashBridge
-public import LeanVM.Guest.WithHash
 
 namespace LeanVM.Node
 

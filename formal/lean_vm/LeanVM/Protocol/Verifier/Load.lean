@@ -13,9 +13,9 @@ import LeanVM.Protocol.KeccakHash
 /-!
 # The proof files, round trips
 
-The serializer of scalars (`eBytes`), and the round trips of the
-decoders of `LeanVM.Protocol.Verifier`, both ways: decoding a serialized value gives it back, and a
-byte string that decodes is the serialization of what it decodes to.
+The serializer of scalars (`eBytes`), and the round trips of the decoders of
+`LeanVM.Protocol.Verifier`, both ways: decoding a serialized value gives it back, and a byte string
+that decodes is the serialization of what it decodes to.
 -/
 
 namespace LeanVM.Protocol.Verifier

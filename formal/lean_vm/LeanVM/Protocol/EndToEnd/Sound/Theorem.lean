@@ -13,7 +13,6 @@ public import LeanVM.Protocol.EndToEnd.Sound.Front
 import LeanVM.Protocol.EndToEnd.Sound.Runs
 public import LeanVM.Protocol.EndToEnd.Front.LayoutSizes
 import LeanVM.Protocol.Whir.Complete.Opening
-import LeanVM.Protocol.EndToEnd.Execution
 public import LeanVM.Protocol.Verifier.Cost
 public import LeanVM.Protocol.WithHash
 

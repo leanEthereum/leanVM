@@ -8,7 +8,6 @@
 
 module
 
-import LeanVM.Protocol.LeanVMSound
 public import Statement.LeanVm
 import Common.Prob
 public import LeanVM.Protocol.WithHash

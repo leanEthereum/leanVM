@@ -7,7 +7,6 @@
 
 module
 
-import LeanVM.Protocol.Verifier.WhirTarget
 import LeanVM.Protocol.Verifier.Claims
 import LeanVM.Protocol.LeanVM
 import Statement.LeanVm

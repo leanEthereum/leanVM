@@ -13,7 +13,6 @@ import LeanVM.Protocol.ErrorBounds
 import Common.Linear
 public import LeanVM.Protocol.Rpm.Cost
 public import LeanVM.Protocol.Rpm.Duplex
-import LeanVM.Protocol.Rpm.Extract
 import LeanVM.Protocol.Rpm.RomRelabel
 import LeanVM.Protocol.Rpm.RpmRelabel
 public import LeanVM.Protocol.WithHash
