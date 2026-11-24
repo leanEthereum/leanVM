@@ -136,7 +136,7 @@ theorem termBs_sum (fs : String → ℕ) (Beqc K15 Bcs Brs : ℕ) :
   omega
 
 set_option maxHeartbeats 1000000 in
-/-- **The terminal's callees are complete, placed, within `termBs`** (`termKids_complete`). -/
+/-- **The terminal's callees are complete, placed, within `termBs`.** -/
 theorem termKids_completeB (κ : ℕ) (hκ : 6 ≤ κ) (Lin : Main.Layout) (D : TermData) (b0 : ℕ)
     (hreg : ∀ i, TermRegion D.B D.zs.length D.chis.length D.τ D.ood.length i → RegionL Lin i)
     (hzl : D.zs.length ≤ 34) (hcl : D.chis.length ≤ 34) (hxl : D.x.length ≤ 32)

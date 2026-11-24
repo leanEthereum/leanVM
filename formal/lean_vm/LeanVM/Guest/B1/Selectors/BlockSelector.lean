@@ -14,7 +14,7 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«block_selector__L»
 
 /-!
-# `block_selector` (TRIAGE G #50)
+# `block_selector`
 
 `block_selector(sel_bits, zeta1_hi, idxc_hi, n)` reads bit `k < n` at `sel_bits`,
 pins it by the write-once store of its square (`b = b²`, so `b ∈ {0, 1}`), and multiplies

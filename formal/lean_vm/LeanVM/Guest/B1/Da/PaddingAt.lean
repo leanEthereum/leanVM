@@ -19,7 +19,7 @@ import LeanVM.Guest.Data.ValNames.«da_padding»
 # `da_padding`, placed
 
 `da_padding` is atoms and a return, with no load; its range check reads the memory below `2^16`
-(`LowDef 16`), which is no load. `padding_completeAt`: it is `CompleteAtD` with its return.
+(`LowDef 16`), which is no load.
 -/
 
 namespace LeanVM.Guest.B1.Da
@@ -44,28 +44,6 @@ theorem pad_split : Fn.body fn% «da_padding» = padAs.map Stmt.atom ++ [.ret [.
 
 theorem pad_loop : coreProgram.loop "da_padding" = false := by
   rw [Program.loop_of_find? find_da_padding]; decide +kernel
-
-/-- **`da_padding` is complete, placed**: it reads no memory. -/
-theorem padding_completeAt (fs : String → ℕ) (cert : String → V → ℕ) {r : ℕ} (hr1 : 1 ≤ r)
-    (hr : r ≤ LeanDa.maxRows) :
-    CompleteAtD fs cert 16 "da_padding" [] [gen ^ r] (Returns [gen ^ (LeanDa.maxRows - r)]) := by
-  intro fp
-  refine ⟨fs "da_padding", [], _, [], ⟨rfl, rfl⟩, fun q hq => by simp at hq, disj_nil,
-    fun rd hlow _ => ?_⟩
-  have hrel := da_padding_complete rd hlow r hr1 hr
-  obtain ⟨σ, hp, hh⟩ := (rel_iff_sem find_da_padding _ _).mp hrel
-  rw [pad_split, holdsList_atoms_ret] at hh
-  obtain ⟨hat, hr⟩ := hh
-  have hpar : (fn% «da_padding»).params = [.n (val% «da_padding» "n_blob_g")] := rfl
-  rw [hpar] at hp
-  simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hp
-  refine relAtIn_atoms find_da_padding pad_split pad_loop (by decide) (by rw [hpar]; simp [hp])
-    hat hr (fun q hq => by
-      rw [show padAs.filterMap atomAddr? = [] by decide] at hq; exact absurd hq List.not_mem_nil)
-    (fun q hq => by
-      rw [show padAs.filterMap atomLoad? = [] by decide] at hq; exact absurd hq List.not_mem_nil)
-    (fun i hi => ?_)
-  · obtain ⟨q, hq, -⟩ := hi; simp at hq
 
 end
 end LeanVM.Guest.B1.Da

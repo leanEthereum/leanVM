@@ -16,8 +16,8 @@ public import LeanVM.Guest.B1.Terminal.KidsDepBT
 
 `KidsDepBP fs cert κ ks Bs Ps`: `KidsDepB` with callee `j`, entered, `CompleteAtDTB` by trees of
 `Ps[j]`. `namedP fs names Bs Ps`: callee `j`'s tree a call of `names[j]` within `Bs[j]` words
-satisfying `Ps[j]`. `kidsFromInT_of_depBP`, `completeAt_flatDepRBP`: `kidsFromInT_of_depB`,
-`completeAt_flatDepRBT` with them. `KidsDepB.toBP`: callees within their bounds, by trees of
+satisfying `Ps[j]`. `kidsFromInT_of_depBPR`, `completeAt_flatDepRBPR`: `kidsFromInT_of_depB`,
+`completeAt_flatDepRBT` with them, the predicates of the memory too. `KidsDepB.toBP`: callees within their bounds, by trees of
 `True` (`CompleteAtB.toDTB`).
 
 The same with predicates of the memory (`CompleteAtDTBR`, `Budget/Bounded`; `KidsDepBPR`, `kidsFromInT_of_depBPR`), a tree's pops being read through it: `completeAt_flatDepRBPR` also gives the node's valuation a property `Qn` the obligations prove of it on each memory (the honest valuation, its own buffers held).
@@ -190,24 +190,6 @@ theorem kidsFromInT_of_depBPR (κ : ℕ) : ∀ (ks : List KidD) (names : List St
             simp only [hct, ht, Bool.false_eq_true, false_and, or_false] at this ⊢
             exact this
 
-theorem kidsFromInT_of_depBP (κ : ℕ) (ks : List KidD) (names : List String) (Bs : List ℕ)
-    (Ps : List (Tree → Prop))
-    (prev : List (List E × Layout)) (hn : List.Forall₂ (fun k n ↦ ∀ pv, (k pv).f = n) ks names)
-    (hk : KidsDepBP fs cert κ ks Bs Ps) (b : ℕ) :
-    ∃ (N : ℕ) (L : Layout) (outs : List (List E × Layout)), N ≤ Bs.sum ∧
-      outs.length = ks.length ∧
-      OutsOk (kidsAt ks prev outs) outs ∧ Within L b N ∧ DisjL L ∧
-      OutsIn (kidsAt ks prev outs) outs L ∧
-      ∀ (rd : Reader) (σ : Val) (cs : List Call) (R Dacc : ℕ → Prop),
-        CallsMatch σ cs (kidsAt ks prev outs) outs → LowDef κ rd → MemL rd L →
-        MemL rd (Kid.lins (kidsAt ks prev outs)) → RegionsOk R Dacc (kidsAt ks prev outs) outs →
-        KidsFromInT coreProgram fs cert rd σ R Dacc cs (namedP fs names Bs Ps)
-          b N (fun i => Dacc i ∨ outRegion (kidsAt ks prev outs) outs i) := by
-  obtain ⟨N, L, outs, h1, h2, h3, h4, h5, h6, hK⟩ := kidsFromInT_of_depBPR κ ks names Bs _ prev hn hk.toR b
-  refine ⟨N, L, outs, h1, h2, h3, h4, h5, h6, fun rd σ cs R Dacc hc hl hL hLin hR => ?_⟩
-  have := hK rd σ cs R Dacc hc hl hL hLin hR
-  rwa [map_const_eval] at this
-
 /-- **`completeAt_flatDepRBT` with the callees' own predicates of the memory**: within
 `fs f + sizes.sum + Bs.sum`, by a node of `f` whose `j`-th entered callee is a call of `names[j]` within `Bs[j]`
 words satisfying `Ps[j]` on the memory, its valuation satisfying `Qn` there. -/
@@ -301,52 +283,6 @@ theorem completeAt_flatDepRBPR {f : String} {fn : Fn} (hf : coreProgram.find? f 
   rw [hw] at hw'
   cases hw'
   exact ⟨hcl, hkT⟩
-
-
-/-- **`completeAt_flatDepRBT` with the callees' own predicates**: within `fs f + sizes.sum + Bs.sum`, by
-a node of `f` whose `j`-th entered callee is a call of `names[j]` within `Bs[j]` words satisfying
-`Ps[j]`. -/
-theorem completeAt_flatDepRBP {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
-    (hl : coreProgram.loop f = false) (κ : ℕ) (Lin : Layout) (args rets : List E)
-    {pre : List Stmt} {vs : List V} (hb : fn.body = pre ++ [.ret vs])
-    (hst : pre.all Stmt.flat = true) (haddrs : pre.filterMap Main.Stmt.addrS = [])
-    (hni : pre.all notIteB = true)
-    (sizes : List ℕ) (own : ℕ → List (List E))
-    (hown : ∀ fp, List.Forall₂ (fun c s => c.length ≤ s) (own fp) sizes) (kids : ℕ → List KidD)
-    (names : List String) (Bs : List ℕ) (Ps : List (Tree → Prop))
-    (hn : ∀ fp, List.Forall₂ (fun k n ↦ ∀ pv, (k pv).f = n) (kids fp) names)
-    (hkc : ∀ fp, KidsDepBP fs cert κ (kids fp) Bs Ps)
-    (hkr : ∀ fp outs, OutsOk (kidsAt (kids fp) [] outs) outs →
-      RegionsOk (fun i => RegionL Lin i ∨ RegionL (bufL (fp + fs f) sizes (own fp)) i) (fun _ => False)
-        (kidsAt (kids fp) [] outs) outs)
-    (hkm : ∀ fp outs, OutsOk (kidsAt (kids fp) [] outs) outs → ∀ rd, LowDef κ rd →
-      MemL rd (bufL (fp + fs f) sizes (own fp)) → MemL rd Lin →
-      MemL rd (outsL (kidsAt (kids fp) [] outs) outs) → MemL rd (Kid.lins (kidsAt (kids fp) [] outs)))
-    (hσ : ∀ fp (outs : List (List E × Layout)), outs.length = (kids fp).length →
-      OutsOk (kidsAt (kids fp) [] outs) outs → ∀ rd,
-      LowDef κ rd → MemL rd (bufL (fp + fs f) sizes (own fp)) → MemL rd Lin →
-      MemL rd (outsL (kidsAt (kids fp) [] outs) outs) →
-      ∃ σ : Val, fn.params.map σ = args ∧ (∀ s ∈ pre, DispOk σ s) ∧
-        Stmt.HoldsList (fun _ _ _ => True) rd σ fn.body False (fun r => r = rets) ∧
-        (pre.filterMap Main.Stmt.allocSz).map (fun x => x.2.elim id fun s => logG (σ s)) = sizes ∧
-        ((pre.filterMap Main.Stmt.allocSz).map Prod.fst).map σ =
-          (bases (fp + fs f) sizes).map (fun b => ofK (addressOfIndex b)) ∧
-        CallsMatch σ ((pre.filterMap (Stmt.callSF σ)).map (Main.mkCall σ))
-          (kidsAt (kids fp) [] outs) outs ∧
-        ∀ q ∈ pre.filterMap Stmt.loadS, ∃ i, (σ q.1).limb 0 * addressOfIndex q.2 =
-            addressOfIndex i ∧
-          (RegionL Lin i ∨ RegionL (bufL (fp + fs f) sizes (own fp)) i ∨
-            outRegion (kidsAt (kids fp) [] outs) outs i)) :
-    CompleteAtDTB fs cert κ f Lin args (Returns rets)
-      (Budget.FlatShape coreProgram f (namedP fs names Bs Ps))
-      (fs f + sizes.sum + Bs.sum) :=
-  (completeAt_flatDepRBPR hf hl κ Lin args rets hb hst haddrs hni sizes own hown kids names Bs
-    (Ps.map fun P _ => P) (fun _ _ => True) hn (fun fp => (hkc fp).toR) hkr hkm
-    fun fp outs hlen ho rd hlow hB hLin hLo =>
-      let ⟨σ, h⟩ := hσ fp outs hlen ho rd hlow hB hLin hLo
-      ⟨σ, trivial, h⟩).toDTB fun rd t ht => by
-    rw [map_const_eval] at ht
-    exact ht.1
 
 end
 end LeanVM.Guest.B1

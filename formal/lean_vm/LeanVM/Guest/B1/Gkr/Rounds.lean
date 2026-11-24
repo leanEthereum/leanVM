@@ -15,8 +15,8 @@ import LeanVM.Guest.B1.Tables.Basic
 # Rounds between records
 
 A round record (`ROUND_FS = 0`, `ROUND_CURSOR = 5`, `ROUND_CLAIM = 6`, `ROUND_SLOTS = 7` words)
-carries a sponge's capacity, a stream cursor and a claim. `TbGkrRoundsOut n s rd rec pt` (B1-a's
-`GkrRoundsOut`, its cursor in the record): from the record at `rec`, `n` rounds read `4n` words at
+carries a sponge's capacity, a stream cursor and a claim. `TbGkrRoundsOut n s rd rec pt`
+(`GkrRoundsOut`, its cursor in the record): from the record at `rec`, `n` rounds read `4n` words at
 its cursor, their eq factors at `pt[0 .. n]`, store their challenges at `pt[42 ..]`, and the
 record `s` records on, at `rec·g^(7s)`, carries the sponge, the cursor and the claim after them
 (`gkrRun`). An iteration of a radix-four layer's loop moves one record (`s = 1`).
@@ -33,11 +33,11 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 @[expose] public section
 
 /-- A record's five capacity cells, its fields `stride` words apart from offset `off`
-(B1-a's `CapAt`). -/
+(`CapAt`). -/
 def TbCapAt (rd : Reader) (rec : E) (off stride : ℕ) (cap : List E) : Prop :=
   cap.length = 5 ∧ ∀ j (hj : j < cap.length), LoadHolds rd rec (off + j * stride) cap[j]
 
-/-- **`n` GKR rounds between records `s` apart** (B1-a's `GkrRoundsOut` at `s = 1`, its cursor in
+/-- **`n` GKR rounds between records `s` apart** (`GkrRoundsOut` at `s = 1`, its cursor in
 the record). -/
 def TbGkrRoundsOut (n s : ℕ) (rd : Reader) (rec pt : E) : Prop :=
   ∃ (cap : List E) (cur claim : E) (cs : List (List E)) (es : List E),

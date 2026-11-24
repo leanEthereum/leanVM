@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Selectors.SelectorTables
 
 /-!
-# `sel_eq_nibble`, `sel_g_nibble` (TRIAGE G #45, #46)
+# `sel_eq_nibble`, `sel_g_nibble`
 
 Both are `@inline`: their atoms sit in their callers (`sel_partial_nibble`,
 `shared_selector_tables`'s loop), numbered from a first value.

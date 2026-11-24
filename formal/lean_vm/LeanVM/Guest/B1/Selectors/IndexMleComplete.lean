@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Selectors.Glue
 
 /-!
-# `index_mle` is complete (TRIAGE G #44)
+# `index_mle` is complete
 
 For words `zs` at `zeta`, the valuation `imVal` gives every value of `index_mle__L{n}`'s body
 what the body computes: block `t`'s one, word, factor, product, sum and running product

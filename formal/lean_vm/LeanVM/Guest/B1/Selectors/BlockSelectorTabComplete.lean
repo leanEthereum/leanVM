@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Selectors.BlockSelectorTab
 public import LeanVM.Guest.B1.Selectors.ColumnSelectorComplete
 
 /-!
-# `block_selector_tab` is complete (TRIAGE G #49)
+# `block_selector_tab` is complete
 
 The valuation `btkVal` gives every value of `block_selector_tab__L{n}`'s body its role
 (`btkRole`): in nibble `k`, the digit `g^u` (`u = btkU`, the nibble's bits), the range check's

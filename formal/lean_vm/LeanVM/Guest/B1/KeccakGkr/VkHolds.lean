@@ -199,7 +199,7 @@ theorem verify_keccak_holds_of (rd : Reader) (hK : keccak_layer_Spec rd) :
       and_true, true_and]
     ring
 
-/-- **`verify_keccak`** (TRIAGE #53): its core IR computes its meaning on a memory
+/-- **`verify_keccak`**: its core IR computes its meaning on a memory
 image. -/
 theorem verify_keccak_holds {κ : ℕ} (hκ : κ ≤ 32) (hκ' : winTabBits ≤ κ) (L : MemoryImage κ) :
     verify_keccak_Spec L.read :=

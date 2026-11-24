@@ -31,7 +31,7 @@ inside listed buffers of that layout (`LoadsInBuf`), its allocations the allocat
 `rets`. The callees are placed from their relations (`Lift.completeAtD_of_relIn`); their
 arguments and returns are the same on every such memory, the evaluations agreeing off the range
 checks' reads (`FlatFn.agree`, `ev_agree`), so they are fixed from one such memory
-(`FlatFn.fixCalls`). `flat_completeAtOut`: the same, the function's buffers returned.
+(`FlatFn.fixCalls`).
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -518,42 +518,6 @@ theorem flat_completeAt (F : FlatFn) {κ : ℕ} (Lin : Layout) (args rets : List
   obtain ⟨σS, hS⟩ := F.fixCalls hl (flatL F.name Lin sizes own fs) w bufs hbufs
     fun fp rd hlow hL ↦ ⟨(hrun fp rd hlow hL).1, (hrun fp rd hlow hL).2.1⟩
   refine completeAt_flatD F.hf F.hloop κ Lin args rets F.hb F.hflat F.haddrs sizes own hown
-    (fun fp ↦ (flatCalls F.pre (σS fp)).map (kidOf (σS fp) (flatL F.name Lin sizes own fs fp)))
-    (F.kidsD fun fp rd hlow hL ↦ (hS fp rd hlow hL).2.2) (fun _ _ hk _ _ ↦ kidOf_region hk)
-    (fun _ _ hB hLin _ hk ↦ kidOf_memL hk hLin hB) fun fp outs ho rd hlow hB hLin ↦ ?_
-  have hL : MemL rd (flatL F.name Lin sizes own fs fp) := Main.memL_append.mpr ⟨hLin, hB⟩
-  obtain ⟨hv, hld, hsz, hbs, hrt⟩ := hrun fp rd hlow hL
-  obtain ⟨hcs, hag, -⟩ := hS fp rd hlow hL
-  obtain ⟨hp, hdo, hh⟩ := F.holds hl hv hrt
-  refine ⟨_, hp, hdo, hh, hsz, hbs, ?_, F.loads_in (hbufs fp) hld⟩
-  change CallsMatch _ (flatCalls F.pre _) _ _
-  rw [hcs]
-  exact callsMatch_kids _ outs hag ho
-
-set_option maxRecDepth 20000 in
-/-- **`flat_completeAt` returning its buffers**: the returns `rets fp` at the frame pointer `fp`,
-the function's buffers its returned layout, of which `Res` holds. -/
-theorem flat_completeAtOut (F : FlatFn) {κ : ℕ} (Lin : Layout) (args : List E) (rets : ℕ → List E)
-    (Res : List E → Layout → Prop) (hl : args.length = F.k)
-    (sizes : List ℕ) (own : ℕ → List (List E))
-    (hown : ∀ fp, List.Forall₂ (fun c s => c.length ≤ s) (own fp) sizes)
-    (hout : ∀ fp, Res (rets fp) (bufL (fp + fs F.name) sizes (own fp)))
-    (w : ℕ → ℕ → E) (bufs : ℕ → List (E × ℕ))
-    (hbufs : ∀ fp, ∀ q ∈ bufs fp, ∃ b, q.1 = ofK (addressOfIndex b) ∧
-      ∀ i < q.2, RegionL (flatL F.name Lin sizes own fs fp) (b + i))
-    (hrun : ∀ fp rd, LowDef κ rd → MemL rd (flatL F.name Lin sizes own fs fp) →
-      (∀ s ∈ F.pre, VSH (coreProgram.RelIn rd (RegionL (flatL F.name Lin sizes own fs fp))) rd
-        (F.σ rd (w fp) args) s) ∧
-      LoadsInBuf (F.σ rd (w fp) args) (bufs fp) F.evL ∧
-      (F.pre.filterMap Main.Stmt.allocSz).map
-        (fun x => x.2.elim id fun s => logG (F.σ rd (w fp) args s)) = sizes ∧
-      ((F.pre.filterMap Main.Stmt.allocSz).map Prod.fst).map (F.σ rd (w fp) args) =
-        (bases (fp + fs F.name) sizes).map (fun b => ofK (addressOfIndex b)) ∧
-      F.rets.map (F.σ rd (w fp) args) = rets fp) :
-    CompleteAtD fs cert κ F.name Lin args Res := by
-  obtain ⟨σS, hS⟩ := F.fixCalls hl (flatL F.name Lin sizes own fs) w bufs hbufs
-    fun fp rd hlow hL ↦ ⟨(hrun fp rd hlow hL).1, (hrun fp rd hlow hL).2.1⟩
-  refine completeAt_flatOutD F.hf F.hloop κ Lin args rets Res F.hb F.hflat F.haddrs sizes own hown hout
     (fun fp ↦ (flatCalls F.pre (σS fp)).map (kidOf (σS fp) (flatL F.name Lin sizes own fs fp)))
     (F.kidsD fun fp rd hlow hL ↦ (hS fp rd hlow hL).2.2) (fun _ _ hk _ _ ↦ kidOf_region hk)
     (fun _ _ hB hLin _ hk ↦ kidOf_memL hk hLin hB) fun fp outs ho rd hlow hB hLin ↦ ?_

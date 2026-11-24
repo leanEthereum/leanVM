@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Tables.Vt.VerifyTables
 
-  **`verify_tables` is sound** (TRIAGE G #52): under what `verify_sub` establishes, the relation
+  **`verify_tables` is sound**: under what `verify_sub` establishes, the relation
   gives `TablesOut`.
 -/
 
@@ -39,7 +39,7 @@ section
 variable {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ)
 include hμ
 
-/-- **`verify_tables` is sound** (TRIAGE #52), for a bytecode of `2^23` words. -/
+/-- **`verify_tables` is sound**, for a bytecode of `2^23` words. -/
 theorem verify_tables_holds (bc : List K) (hbc : bc.length = 2 ^ 23) :
     verify_tables_Spec bc Lm.read := by
   intro pi lm weights point values args rets hpre hrel

@@ -138,7 +138,6 @@ theorem completeAtDTB_of_relIn_on {S : List String} (hS : coreProgram.PureIn S) 
       exact Option.isSome_iff_exists.mpr ⟨v, hv⟩
     · exact hl i hi
 
-
 /-- **The entered callees of fixed calls are complete, placed, by trees satisfying `Ts` within
 the bounds `Bs`**, when every valid tree of call `i`'s callee at its honest arguments, on every
 memory holding the layout, satisfies `Ts[i]` and is within `Bs[i]`. -/
@@ -242,49 +241,10 @@ theorem flat_completeAtTBR (F : FlatFn) {κ : ℕ} (Lin : Layout) (args rets : L
   rw [hcs]
   exact callsMatch_kids _ outs hag ho
 
-/-- **A flat function is complete, placed, by a tree of honest shape, within its frame, its
-buffers and its callees' bounds.** -/
-theorem flat_completeAtTB (F : FlatFn) {κ : ℕ} (Lin : Layout) (args rets : List E)
-    (hl : args.length = F.k)
-    (sizes : List ℕ) (own : ℕ → List (List E))
-    (hown : ∀ fp, List.Forall₂ (fun c s => c.length ≤ s) (own fp) sizes)
-    (w : ℕ → ℕ → E) (bufs : ℕ → List (E × ℕ))
-    (hbufs : ∀ fp, ∀ q ∈ bufs fp, ∃ b, q.1 = ofK (addressOfIndex b) ∧
-      ∀ i < q.2, RegionL (flatL F.name Lin sizes own fs fp) (b + i))
-    (hrun : ∀ fp rd, LowDef κ rd → MemL rd (flatL F.name Lin sizes own fs fp) →
-      (∀ s ∈ F.pre, VSH (coreProgram.RelIn rd (RegionL (flatL F.name Lin sizes own fs fp))) rd
-        (F.σ rd (w fp) args) s) ∧
-      LoadsInBuf (F.σ rd (w fp) args) (bufs fp) F.evL ∧
-      (F.pre.filterMap Main.Stmt.allocSz).map
-        (fun x => x.2.elim id fun s => logG (F.σ rd (w fp) args s)) = sizes ∧
-      ((F.pre.filterMap Main.Stmt.allocSz).map Prod.fst).map (F.σ rd (w fp) args) =
-        (bases (fp + fs F.name) sizes).map (fun b => ofK (addressOfIndex b)) ∧
-      F.rets.map (F.σ rd (w fp) args) = rets)
-    (Q : Val → Prop) (Ts : List (Tree → Prop))
-    (hQ : ∀ fp rd, LowDef κ rd → MemL rd (flatL F.name Lin sizes own fs fp) →
-      Q (F.σ rd (w fp) args))
-    (hTl : (F.pre.filter callB).length ≤ Ts.length)
-    (hT : ∀ fp rd, LowDef κ rd → MemL rd (flatL F.name Lin sizes own fs fp) → ∀ i (c : Call),
-      (flatCalls F.pre (F.σ rd (w fp) args))[i]? = some c → c.taken = true →
-      ∀ (t : Tree) (r : List E), t.name = c.f →
-        t.Valid coreProgram rd (c.args.map (F.σ rd (w fp) args)) r → t.BufsOk coreProgram →
-        (Ts.getD i fun _ ↦ True) t)
-    (Bs : List ℕ) (KB : ℕ)
-    (hB : ∀ fp rd, LowDef κ rd → MemL rd (flatL F.name Lin sizes own fs fp) → ∀ i (c : Call),
-      (flatCalls F.pre (F.σ rd (w fp) args))[i]? = some c → c.taken = true →
-      ∀ rd', LowDef κ rd' → MemL rd' (flatL F.name Lin sizes own fs fp) → ∀ (t : Tree) (r : List E), t.name = c.f →
-        t.Valid coreProgram rd' (c.args.map (F.σ rd (w fp) args)) r → t.BufsOk coreProgram →
-        t.total fs ≤ Bs.getD i 0)
-    (hKB : ∀ σ, callsBound fs (flatCalls F.pre σ) Bs ≤ KB) :
-    CompleteAtDTB fs cert κ F.name Lin args (Returns rets)
-      (Budget.NodeHonest coreProgram F.name Q (flatCalls F.pre) (fun _ ↦ sizes) Ts)
-      (fs F.name + sizes.sum + KB) :=
-  (flat_completeAtTBR F Lin args rets hl sizes own hown w bufs hbufs hrun (fun _ ↦ Q) Ts hQ hTl hT Bs KB hB
-    hKB).toDTB fun _ _ h ↦ h
-
 set_option maxRecDepth 20000 in
-/-- **`flat_completeAtTB` returning its buffers**: the returns `rets fp` at the frame pointer
-`fp`, the function's buffers its returned layout, of which `Res` holds. -/
+/-- **`flat_completeAtTBR` returning its buffers**, `Q` a property of the valuation only: the
+returns `rets fp` at the frame pointer `fp`, the function's buffers its returned layout, of which
+`Res` holds. -/
 theorem flat_completeAtOutTB (F : FlatFn) {κ : ℕ} (Lin : Layout) (args : List E) (rets : ℕ → List E)
     (Res : List E → Layout → Prop) (hl : args.length = F.k)
     (sizes : List ℕ) (own : ℕ → List (List E))

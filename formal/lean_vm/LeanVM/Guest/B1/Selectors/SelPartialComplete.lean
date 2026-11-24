@@ -13,7 +13,7 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«sel_partial_nibble__L»
 
 /-!
-# `sel_partial_nibble` is complete (TRIAGE G #45-47)
+# `sel_partial_nibble` is complete
 
 The valuation `spVal` gives each value of `sel_partial_nibble__L{w}`'s body its role: the
 parameters; the eq levels' entries (`spLvV t i = Π_{s ≤ t} (bit s of i ? z_s : z1_s)`) and the

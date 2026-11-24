@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.Lib
 
-  The vocabulary of B1-d's proofs: functions found by index, a `KECCAK` atom in the even layouts
+  The vocabulary of the Keccak GKR proofs: functions found by index, a `KECCAK` atom in the even layouts
   as a squeeze of the carried sponge, the rate cells of waiting scalars, and `fs_next`'s cells.
 -/
 
@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Fs.Templates
 public import LeanVM.Guest.B1.Common.Atoms
 
 /-!
-# B1-d: shared lemmas
+# The Keccak GKR proofs' shared lemmas
 
 * `keccak_outs`: a `KECCAK` atom in the even layouts writes the cells of the permutation of the
   cells it reads (`permOf`), output `k` its cell `k`;

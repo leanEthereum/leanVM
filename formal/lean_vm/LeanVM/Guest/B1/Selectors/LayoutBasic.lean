@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Selectors.LayoutBasic
 
-  Layouts of words for B1-c's completeness: runs `(e, ws)` (word `j` at `g^(e + j)`), the memory
+  Layouts of words for the completeness proofs: runs `(e, ws)` (word `j` at `g^(e + j)`), the memory
   holding them, and a reader that holds them, to evaluate a body on before the memory is known.
 -/
 

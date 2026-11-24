@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Da.CellComplete
 
   `da_verify_cell`, completely: `128` symbols (the hint) and the weights in memory give its core
-  IR relation, its returns the cell's digest and the dot product (TRIAGE G #92).
+  IR relation, its returns the cell's digest and the dot product.
 -/
 
 module

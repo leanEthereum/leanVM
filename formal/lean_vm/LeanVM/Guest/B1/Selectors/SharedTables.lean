@@ -17,7 +17,7 @@ import LeanVM.Guest.Data.ValNames.«shared_selector_tables»
 import LeanVM.Guest.Data.ValNames.«shared_selector_tables_loop0»
 
 /-!
-# `shared_selector_tables` (TRIAGE G #48)
+# `shared_selector_tables`
 
 `shared_selector_tables(eq_tab, g_tab, zeta_hi, zeta1_hi, gsq_hi, len_g)` hints the
 six bits of `len_g`'s exponent, pins them Boolean, rebuilds `r_g = g^r` from the low two and

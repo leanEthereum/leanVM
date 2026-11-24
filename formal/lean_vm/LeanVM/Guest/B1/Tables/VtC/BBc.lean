@@ -20,8 +20,7 @@ The honest share from the sponge `F0` after the four framework words and the ten
 stream holds after them (`S`, the first round's `c0`, `c2`, the three tail rounds' two words each,
 the value): `vtBcF` absorbs the first three, `vtBcR0` is the first challenge, `vtBcCl1` the first
 round's claim at it, `vtBcR1 .. vtBcR3` the tail rounds (`bcRound`: the capacity after, the claim,
-the challenge), `vtBcPoint` the four challenges. `vtBc_run`: when the last claim is the slot
-weights' fold at the point times the value, `bytecodeShare` runs on `w` from `F0`.
+the challenge), `vtBcPoint` the four challenges.
 
 `vtB_fresh`: on a memory holding the four framework words and `w` at the cursor, the honest
 valuation reads them, and its first challenge and the capacity after it are `F0`'s.
@@ -80,50 +79,6 @@ theorem vt_list10 (w : List E) (hw : w.length = 10) :
       w.getD 7 0, w.getD 8 0, w.getD 9 0] := by
   match w, hw with
   | [_, _, _, _, _, _, _, _, _, _], _ => rfl
-
-/-- **The bytecode share runs** on `w` from `F0` when its last claim is accepted. -/
-theorem vtBc_run (F0 : Fs) (w : List E) (hwl : w.length = 10) (weights low : List E)
-    (hacc : (vtBcR3 F0 w).2.1 = dot (eqKernel (vtBcPoint F0 w)) weights * w.getD 9 0) :
-    RunsTo (bytecodeShare weights low) F0 w (w.getD 0 0, low ++ vtBcPoint F0 w, w.getD 9 0)
-      ((⟨(vtBcR3 F0 w).1, []⟩ : Fs).absorb (w.getD 9 0) dsObserve) := by
-  have sq : ∀ s : Fs, s.squeeze.2 = ⟨s.squeeze.2.cap, []⟩ := fun s ↦ rfl
-  have hR4 := runsTo_sumcheck_nil (⟨(vtBcR3 F0 w).1, []⟩ : Fs) (vtBcR3 F0 w).2.1 3
-  have hR3 := vt_tail_cons (vtBcR2 F0 w).1 (w.getD 7 0) (w.getD 8 0) (vtBcR2 F0 w).2.1
-    (rest := []) (ys := []) (pt := []) (fin := (vtBcR3 F0 w).2.1)
-    (s2 := ⟨(vtBcR3 F0 w).1, []⟩) (by rw [sq]; exact hR4)
-  have hR2 := vt_tail_cons (vtBcR1 F0 w).1 (w.getD 5 0) (w.getD 6 0) (vtBcR1 F0 w).2.1
-    (by rw [sq]; exact hR3)
-  have hR1 := vt_tail_cons (vtBcF F0 w).squeeze.2.cap (w.getD 3 0) (w.getD 4 0) (vtBcCl1 F0 w)
-    (by rw [sq]; exact hR2)
-  have hF : ((F0.absorb (w.getD 0 0) dsObserve).absorb (w.getD 1 0) dsObserve).absorbAll
-      [w.getD 2 0] dsObserve = vtBcF F0 w := by
-    rw [vtBcF, vt_list10 w hwl]
-    simp [Fs.absorbAll]
-  have hR0 := runsTo_sumcheck_cons
-    (runsTo_roundPolyNone (F0.absorb (w.getD 0 0) dsObserve) (w.getD 0 0) (w.getD 1 0)
-      [w.getD 2 0] 3 rfl (by decide))
-    (by rw [hF, sq, ← tail_eval]; exact hR1)
-  rw [hF] at hR0
-  have hR0' : RunsTo (sumcheck (w.getD 0 0) 3 (List.replicate busBits none))
-      (F0.absorb (w.getD 0 0) dsObserve)
-      ([w.getD 1 0, w.getD 2 0] ++ ([w.getD 3 0, w.getD 4 0] ++ ([w.getD 5 0, w.getD 6 0] ++
-        ([w.getD 7 0, w.getD 8 0] ++ []))))
-      (vtBcPoint F0 w, (vtBcR3 F0 w).2.1) ⟨(vtBcR3 F0 w).1, []⟩ := by
-    refine RunsTo.of_eq hR0 rfl rfl ?_ rfl
-    simp only [vtBcPoint, vtBcR0, vtBcR1, vtBcR2, vtBcR3, bcRound]
-  have hS := runsTo_readE F0 (w.getD 0 0)
-  have hv := runsTo_readE (⟨(vtBcR3 F0 w).1, []⟩ : Fs) (w.getD 9 0)
-  have hq := tb_runsTo_require hacc ((⟨(vtBcR3 F0 w).1, []⟩ : Fs).absorb (w.getD 9 0) dsObserve)
-  have hw : w = [w.getD 0 0] ++ (([w.getD 1 0, w.getD 2 0] ++ ([w.getD 3 0, w.getD 4 0] ++
-      ([w.getD 5 0, w.getD 6 0] ++ ([w.getD 7 0, w.getD 8 0] ++ [])))) ++ ([w.getD 9 0] ++ ([] ++ []))) := by
-    simpa using vt_list10 w hwl
-  refine RunsTo.of_eq ?_ rfl hw.symm rfl rfl
-  unfold bytecodeShare
-  refine hS.bind ?_
-  refine hR0'.bind ?_
-  refine hv.bind ?_
-  refine hq.bind ?_
-  exact runsTo_ret _ _
 
 section
 variable {rd : Reader} {wo : ℕ → E} {args : List E}

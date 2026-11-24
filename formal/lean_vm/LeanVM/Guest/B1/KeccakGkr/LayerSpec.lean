@@ -19,7 +19,7 @@ The specification's layer (`verifyKeccakLayer`) reads the product polynomial, ch
 projection, grinds `grindingBits (productBits - 1) = 3` bits (`sGrindBits`) and samples `s`, runs
 the pack rounds (`keccakPackRounds`) and the eleven rounds over the bit position (`sumcheck _ 4`),
 reads `t`, checks the final claim and samples `β`; every other grind is of `0` bits. On the
-sponge the guest carries (`Fs`, `RunsTo`, B1-a's `Common/Run`):
+sponge the guest carries (`Fs`, `RunsTo`, `Common/Run`):
 
 * `packRunF`: `keccakPackRounds` as a function of the round messages `(g₁, g₂)`;
 * `localRunF`: `sumcheck _ 4 (replicate n none)` as a function of the messages `(c₀, c₂, c₃)`;

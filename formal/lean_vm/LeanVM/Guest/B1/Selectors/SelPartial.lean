@@ -13,7 +13,7 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«sel_partial_nibble__L»
 
 /-!
-# `sel_partial_nibble` (TRIAGE G #45-47)
+# `sel_partial_nibble`
 
 `sel_partial_nibble(eq_out, g_out, z, z1, gs, w)` runs, for `w > 0`, the inline
 `sel_eq_nibble` (the eq levels over `z[0 .. w]`, level `t` from level `t - 1`, entry

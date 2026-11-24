@@ -15,7 +15,7 @@ public import LeanVM.Guest.Data.NameStrings
 /-!
 # `verify_keccak`'s callees within their bounds
 
-`kids_completeB` is `kids_complete` with each call within its bound in `D.kidsB` (in order):
+`kids_completeB`: each call of `D.kids` is complete within its bound in `D.kidsB` (in order):
 
 * the copy loops `verify_keccak_loop0`, `verify_keccak_loop1`, `verify_keccak_loop2` (`τ - 4` words
   each): `(τ - 4) * KC` and the loop's frame, from their runs' words (`TotalLeOn … LoopPre`, at most
