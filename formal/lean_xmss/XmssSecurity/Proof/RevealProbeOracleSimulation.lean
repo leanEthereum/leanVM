@@ -12,7 +12,7 @@ namespace QueryImpl
 
 variable {ι : Type*} {spec : OracleSpec ι} {α : Type}
 
-@[simp] theorem run_simulateQ_withTraceAppend_const_empty
+@[simp] theorem run_simulateQ_withTraceAppend_const_empty {ι α : Type}
     {spec : OracleSpec ι} {m : Type → Type*} [Monad m] [LawfulMonad m] {Log : Type}
     [EmptyCollection Log] [Append Log] [LawfulAppend Log]
     (impl : QueryImpl spec m) (computation : OracleComp spec α) :

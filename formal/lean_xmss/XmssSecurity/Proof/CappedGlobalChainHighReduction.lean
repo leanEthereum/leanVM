@@ -192,7 +192,7 @@ theorem map_simulate_globalMonitoredTraced_projection_of_query
       intro head
       simp [tail, Functor.map_map, List.append_assoc]
 
-theorem map_actionTracedStateImpl_globalMonitor_erased_step
+theorem map_actionTracedStateImpl_globalMonitor_erased_step {ι : Type}
     {spec : OracleSpec ι}
     (impl : QueryImpl spec (StateT GlobalMonitoredCausalState ProbComp))
     (fragment : (input : spec.Domain) → spec.Range input →
