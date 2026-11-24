@@ -1,9 +1,16 @@
 module
 
-public import XmssSecurity.Proof.HiddenValue
+public import XmssSecurity.Scheme
 public import XmssSecurity.Proof.EvalDistEq
 
 @[expose] public section
+
+namespace XmssSecurity.HiddenValue
+
+theorem card_digest : Fintype.card Digest = 2 ^ digestBits := by
+  simp
+
+end XmssSecurity.HiddenValue
 
 open OracleComp ENNReal
 
@@ -53,6 +60,5 @@ theorem uniform_table_coordinate_probability (index : Index) (target : Digest) :
       hmarginal.prEvent_eq (· = target)
     _ = ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹ := by
       rw [SampleableType.prEvent_uniformSample_eq_singleton, HiddenValue.card_digest]
-
 
 end XmssSecurity.IndexedHiddenValue

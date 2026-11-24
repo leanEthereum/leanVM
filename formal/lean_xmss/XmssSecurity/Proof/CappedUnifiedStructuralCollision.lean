@@ -1,7 +1,7 @@
 module
 
 public import XmssSecurity.Proof.CappedGlobalCollisionProbability
-public import XmssSecurity.Proof.GlobalWinningChainValueRevealed
+public import XmssSecurity.Proof.CappedChain.ChainEventDecomposition
 public import XmssSecurity.Proof.TopStructural
 
 @[expose] public section
@@ -23,6 +23,10 @@ open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity
 
+def GlobalWinningChainValueRevealed
+    (cache : QueryCache HashSpec) (outcome : GameOutcome) : Prop :=
+  ∃ chain, WinningOutcomeBadEventOccurs cache outcome (.chain chain) ∧
+    CappedChain.OutcomeChainValueRevealed cache outcome chain
 
 noncomputable def keygenStructuralTargetInput
     (secretKey : SecretKey) (cache : QueryCache HashSpec)

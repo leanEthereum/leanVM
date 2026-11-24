@@ -1,6 +1,5 @@
 module
 
-public import XmssSecurity.Proof.HashOutputHigh
 public import XmssSecurity.Proof.CausalTreeCoupling
 public import XmssSecurity.Proof.CausalKeygenCoupling
 public import XmssSecurity.Proof.ChainTableUniformity
@@ -22,6 +21,13 @@ independent uniform pair (`evalDist_globalChainKeygenRandomnessView_eq_independe
 generations over different tables that `CappedGlobalTreeCacheCorrespondence` and
 `CappedGlobalCausalSetup` use.
 -/
+
+namespace XmssSecurity
+
+def hashOutputHigh (output : HashOutput) : Digest :=
+  (Rom.hashOutputEquivDigestPair output).1
+
+end XmssSecurity
 
 open OracleComp OracleSpec ENNReal
 open OracleComp.ProgramLogic.Relational

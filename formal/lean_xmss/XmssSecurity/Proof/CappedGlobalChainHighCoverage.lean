@@ -7,7 +7,6 @@ public import XmssSecurity.Proof.CappedChain.ReturnedChainValueCoverage
 public import XmssSecurity.Proof.EncodingHashCacheReplay
 public import XmssSecurity.Proof.CappedChain.ChainHiddenTable
 public import XmssSecurity.Proof.CappedChain.ChainTracedGame
-public import XmssSecurity.Proof.CappedGlobalChainOrigin
 
 @[expose] public section
 
@@ -30,6 +29,12 @@ open OracleComp OracleSpec
 open OracleComp.ProgramLogic.Relational
 
 namespace XmssSecurity.CappedChain
+
+noncomputable def GlobalWinningOutcomeChainValueHasKeygenOrigin
+    (keygenCache finalCache : QueryCache HashSpec) (secretKey : SecretKey)
+    (outcome : GameOutcome) : Prop :=
+  ∃ chain, WinningOutcomeChainValueHasKeygenOrigin keygenCache finalCache
+    secretKey outcome chain
 
 theorem relTriple_programmed_monitoredGlobalUniformQuery
     (left : ProgrammedGlobalChainKeygenView)

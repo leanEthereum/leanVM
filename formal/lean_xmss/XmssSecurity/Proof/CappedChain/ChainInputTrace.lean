@@ -1,9 +1,18 @@
 module
 
-public import XmssSecurity.Proof.ChainInputTrace
 public import XmssSecurity.Proof.SigningCacheTrace
 
 @[expose] public section
+
+namespace XmssSecurity
+
+inductive AttackerAction where
+  | hash (input : HashInput)
+  | sign (request : SignRequest) (signature : Option Signature)
+
+abbrev AttackerActionTrace := List AttackerAction
+
+end XmssSecurity
 
 open OracleComp OracleSpec
 

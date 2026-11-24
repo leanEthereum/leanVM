@@ -5,7 +5,6 @@ public import XmssSecurity.Proof.CappedEncodingRejection
 public import XmssSecurity.Scan.LoopWalk
 public import XmssSecurity.Proof.EncodingOracleSimulation
 public import XmssSecurity.Proof.RandomOracle
-public import XmssSecurity.Proof.SigningRandomnessUniformity
 
 @[expose] public section
 
@@ -18,6 +17,13 @@ For one message and one cache, the scan `base, base + 1, ...` of
 probability `landing`, and the cache grows only at positions the walk has left and, within
 `2^128` attempts, never revisits.
 -/
+
+namespace XmssSecurity
+
+theorem card_randomness : Fintype.card Randomness = 2 ^ randomnessBits := by
+  simp
+
+end XmssSecurity
 
 open OracleComp OracleSpec ENNReal
 
