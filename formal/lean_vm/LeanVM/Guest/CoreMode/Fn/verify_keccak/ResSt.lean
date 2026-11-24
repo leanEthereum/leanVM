@@ -80,8 +80,8 @@ theorem carries_absorbAll (xs : List E) (t : ℕ) : ∀ {s : Fs} {sp : Sponge}, 
 
 /-- The bus's GKR walk and its count root's check: the walk's reads. -/
 theorem reads_gkrPhase (d : ℕ) :
-    Child.Reads (Tables.gkrPhase d) (2 + Child.gkrReads d 0) fun _ ↦ True := by
-  unfold Tables.gkrPhase
+    Child.Reads (gkrPhase d) (2 + Child.gkrReads d 0) fun _ ↦ True := by
+  unfold gkrPhase
   exact Child.Reads.seq (Child.reads_verifyGkrGrandProducts d)
     (fun _ _ ↦ Child.Reads.seq (Child.Reads.require (n := 0) _) (fun _ _ ↦ trivial) (Nat.zero_le _)) le_rfl
 
@@ -89,8 +89,8 @@ theorem reads_gkrPhase (d : ℕ) :
 theorem reads_busRest (ev : List K → List E → E → VerifierProgram Unit)
     (hev : ∀ w p v, Child.Reads (ev w p v) 0 fun _ ↦ True) (layout : Layout) (weights : List E)
     (beta : E) (point treeValues : List E) :
-    Child.Reads (Tables.busRest ev layout weights beta point treeValues) busRestReads fun _ ↦ True := by
-  unfold Tables.busRest
+    Child.Reads (busRest ev layout weights beta point treeValues) busRestReads fun _ ↦ True := by
+  unfold busRest
   refine Child.Reads.seq (Child.Reads.readN 2) (fun _ _ ↦ Child.Reads.seq Child.Reads.readE (fun _ _ ↦
     Child.Reads.seq Child.Reads.readE (fun _ _ ↦
       Child.Reads.seq (Child.reads_bytecodeShare _ _) (fun r _ ↦ ?_) ?_) ?_) ?_) ?_

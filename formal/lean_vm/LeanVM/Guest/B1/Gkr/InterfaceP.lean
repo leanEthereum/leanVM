@@ -1,13 +1,14 @@
 /-
   LeanVM.Guest.B1.Gkr.InterfaceP
 
-  B1 of `verify_bus_gkr`: the specification's program it runs (`gkrPhase`) and the statement of
-  its soundness (`verify_bus_gkr_Spec`).
+  B1 of `verify_bus_gkr`: the statement of its soundness (`verify_bus_gkr_Spec`), on the
+  specification's program it runs (`LeanVM.Protocol.Verifier.gkrPhase`).
 -/
 
 module
 
 public import LeanVM.Guest.B1.Tables.Base
+public import LeanVM.Protocol.Verifier.Phases.Bus
 public import LeanVM.Guest.B1.Common.Sponge
 import LeanVM.Guest.B1.Gkr.Fs
 
@@ -35,12 +36,6 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 @[expose] public section
-
-/-- The GKR walk and the count root's check: what `verify_bus_gkr` runs. -/
-def gkrPhase (depth : ℕ) : VerifierProgram (E × List E × List E) := do
-  let r ← verifyGkrGrandProducts depth
-  VerifierProgram.require (r.1 ≠ 0)
-  return r
 
 /-- **`verify_bus_gkr`'s outcome** on its arguments `[fs0, …, fs4, cursor, g_bus_mu, zeta, tabs, stream]`:
 `g_bus_mu = g^depth` with `depth < 33`; from the carried capacity, the words `xs` at the cursor

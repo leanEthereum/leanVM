@@ -148,10 +148,10 @@ theorem vs_valsI (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.
   obtain ⟨e595, -⟩ := hK2
   obtain ⟨hlK, -⟩ := runsTo_reads (Child.reads_verifyKeccak _ _ _ (by simp only [List.length_take]; omega)) hrunK hsp''
   -- the bus depth
-  have hbusL : F.bus.point.length = VerifySub.busDepth (Tables.layoutOf (bc) F.logMem F.rowsN) := by
+  have hbusL : F.bus.point.length = busDepth (Tables.layoutOf (bc) F.logMem F.rowsN) := by
     have := hgmu.symm.trans F.h253
     exact Value.gen_pow_inj (by have := VerifySub.mem_size_le (by omega) r.img hbpR; omega) (by have := F.hdep34; omega) this
-  have hgk := Child.gkrReads_le (VerifySub.busDepth (Tables.layoutOf (bc) F.logMem F.rowsN))
+  have hgk := Child.gkrReads_le (busDepth (Tables.layoutOf (bc) F.logMem F.rowsN))
     (by have := F.hdep34; omega)
   have hroom : 13 + (2 + Child.gkrReadsBound) + (busRestReads + Child.tableReads) + Child.keccakReads 27 + 207
       ≤ 8192 := by decide

@@ -1,14 +1,15 @@
 /-
   LeanVM.Guest.B1.Tables.InterfaceP
 
-  B1 of `verify_tables` and `padding_weight`: the specification's programs `verify_tables` runs
-  (`busRest`, `tablesSeg`), the layout of the announced sizes (`layoutOf`), what it hands
+  B1 of `verify_tables` and `padding_weight`: the specification's program `verify_tables` runs
+  (`tablesSeg`, after `busRest`), the layout of the announced sizes (`layoutOf`), what it hands
   `check_opening_terminal` (`TCtx`), and the statements of their relations.
 -/
 
 module
 
 public import LeanVM.Protocol.Verifier.Claims
+public import LeanVM.Protocol.Verifier.Phases.Bus
 public import LeanVM.Guest.ExpTables
 import LeanVM.Guest.B1.Gkr.Fs
 public import LeanVM.Guest.B1.Placement.InterfaceP
@@ -96,37 +97,6 @@ def layoutOf (bytecode : List K) (logMemory : ℕ) (tableRows : List ℕ) : Layo
   ⟨logMemory, logBytecode, bytecode, push, pull, count, placements, stackLog, tableLogHeights⟩
 
 /-! ## The programs -/
-
-/-- `verifyBusBalance` after the GKR walk and its count root's check, from its slot
-weights, `β`, point and values: the framework's claims, the bytecode's share and its sumcheck, the
-check `ev` of the stacked bytecode at the sumcheck's point, and the leaf decomposition. -/
-def busRest (ev : List K → List E → E → VerifierProgram Unit) (layout : Layout)
-    (weights : List E) (beta : E) (point treeValues : List E) : VerifierProgram BusResult := do
-  let frameworkLogRows := [0, layout.logMemory, layout.logBytecode]
-  let pushLayout := busLayout frameworkLogRows layout.push
-  let pullLayout := busLayout frameworkLogRows layout.pull
-  let countLayout := busLayout [] layout.count
-  let memoryLow := point.take layout.logMemory
-  let bytecodeLow := point.take layout.logBytecode
-  let memory ← VerifierProgram.readScalars 2
-  let memoryFinal ← VerifierProgram.readScalar
-  let bytecodeFinal ← VerifierProgram.readScalar
-  let claims : List ColumnClaim :=
-    (List.zipWith (fun column value ↦ ⟨column, memoryLow, value⟩) [memory0, memory1] memory) ++
-    [⟨memoryFinalCounters, memoryLow, memoryFinal⟩, ⟨bytecodeFinalCounters, bytecodeLow,
-      bytecodeFinal⟩]
-  let (share, bytecodePoint, value) ← bytecodeShare weights bytecodeLow
-  ev layout.bytecode bytecodePoint value
-  let fp := fingerprints weights memory memoryLow bytecodeLow share
-  let pcFinal := gpow (2 ^ layout.logBytecode - 1)
-  let forms0 : List (List Form) := tables.map fun _ ↦ [{}, {}, {}]
-  let (forms1, total0) := accumulateSide forms0 0 layout.push pushLayout (fp (gpow 0) 1 1)
-    weights beta point (treeValues.getD 0 0)
-  let (forms2, total1) := accumulateSide forms1 1 layout.pull pullLayout
-    (fp pcFinal memoryFinal bytecodeFinal) weights beta point (treeValues.getD 1 0)
-  let (forms3, total2) := accumulateSide forms2 2 layout.count countLayout [] [1] 0 point
-    (treeValues.getD 2 0)
-  return ⟨claims, bytecodePoint, point, forms3, [total0, total1, total2]⟩
 
 /-- What `verify_tables` runs: the bus after GKR, the table phase and the public input's binding
 ; the bus result and every column claim, the public input's last. -/

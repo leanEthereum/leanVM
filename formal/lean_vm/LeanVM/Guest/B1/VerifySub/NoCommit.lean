@@ -111,26 +111,6 @@ theorem tcar_fsOfT (sp : Sponge) : Tables.TCar (Tables.fsOfT sp) sp.ground sp :=
 
 /-! ## The phases -/
 
-theorem noCommit_busChallenges (d : ℕ) : NoCommit (busChallenges d) := by
-  unfold busChallenges
-  no_commit
-
-theorem noCommit_gkrPhase (depth : ℕ) : NoCommit (Tables.gkrPhase depth) := by
-  unfold Tables.gkrPhase
-  simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
-  exact NoCommit.bind (noCommit_verifyGkr _) fun _ ↦ NoCommit.bind (noCommit_require _) fun _ ↦
-    noCommit_ret _
-
-theorem noCommit_busRest {ev : List K → List E → E → VerifierProgram Unit}
-    (hev : ∀ w p v, NoCommit (ev w p v)) (L : Layout) (weights : List E) (beta : E)
-    (point tv : List E) : NoCommit (Tables.busRest ev L weights beta point tv) := by
-  unfold Tables.busRest
-  simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
-  refine NoCommit.bind (noCommit_readN _) fun _ ↦ NoCommit.bind noCommit_readE fun _ ↦ ?_
-  refine NoCommit.bind noCommit_readE fun _ ↦ NoCommit.bind (noCommit_bytecodeShare _ _) fun _ ↦ ?_
-  refine NoCommit.bind (hev _ _ _) fun _ ↦ ?_
-  no_commit
-
 theorem noCommit_tablesSeg (c : BytecodeClaim) (L : Layout) (pi : Digest) (weights : List E)
     (beta : E) (point tv : List E) :
     NoCommit (Tables.tablesSeg (claimedBytecodeValue c) L pi weights beta point tv) := by

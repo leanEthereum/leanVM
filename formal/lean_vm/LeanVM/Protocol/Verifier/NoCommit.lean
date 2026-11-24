@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Protocol.Verifier.KeccakPack
+public import LeanVM.Protocol.Verifier.Phases.Bus
 
 /-!
 # Phases without commitments or openings
@@ -179,20 +180,34 @@ theorem noCommit_bytecodeShare (weights bytecodeLow : List E) :
   unfold bytecodeShare
   no_commit
 
+theorem noCommit_busChallenges (d : ℕ) : NoCommit (busChallenges d) := by
+  unfold busChallenges
+  no_commit
+
+theorem noCommit_gkrPhase (depth : ℕ) : NoCommit (gkrPhase depth) := by
+  unfold gkrPhase
+  simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
+  exact NoCommit.bind (noCommit_verifyGkr _) fun _ ↦ NoCommit.bind (noCommit_require _) fun _ ↦
+    noCommit_ret _
+
+theorem noCommit_busRest {ev : List K → List E → E → VerifierProgram Unit}
+    (hev : ∀ w p v, NoCommit (ev w p v)) (L : Layout) (weights : List E) (beta : E)
+    (point tv : List E) : NoCommit (busRest ev L weights beta point tv) := by
+  unfold busRest
+  simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
+  refine NoCommit.bind (noCommit_readN _) fun _ ↦ NoCommit.bind noCommit_readE fun _ ↦ ?_
+  refine NoCommit.bind noCommit_readE fun _ ↦ NoCommit.bind (noCommit_bytecodeShare _ _) fun _ ↦ ?_
+  refine NoCommit.bind (hev _ _ _) fun _ ↦ ?_
+  no_commit
+
 /-- **The bus**, for a check of the fixed polynomial's value that commits and opens nothing. -/
 theorem noCommit_verifyBusBalance {ev : List K → List E → E → VerifierProgram Unit}
     (hev : ∀ w p v, NoCommit (ev w p v)) (layout : Layout) :
     NoCommit (verifyBusBalance ev layout) := by
-  unfold verifyBusBalance
-  simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
-  refine NoCommit.bind (noCommit_require _) fun _ ↦ NoCommit.bind (noCommit_grind _) fun _ ↦ ?_
-  refine NoCommit.bind (noCommit_sampleN _) fun _ ↦ NoCommit.bind noCommit_sampleE fun _ ↦ ?_
-  refine NoCommit.bind (noCommit_verifyGkr _) fun _ ↦ ?_
-  refine NoCommit.bind (noCommit_require _) fun _ ↦ NoCommit.bind (noCommit_readN _) fun _ ↦ ?_
-  refine NoCommit.bind noCommit_readE fun _ ↦ NoCommit.bind noCommit_readE fun _ ↦ ?_
-  refine NoCommit.bind (noCommit_bytecodeShare _ _) fun _ ↦ ?_
-  refine NoCommit.bind (hev _ _ _) fun _ ↦ ?_
-  no_commit
+  rw [verifyBusBalance_split]
+  exact NoCommit.bind (noCommit_require _) fun _ ↦ NoCommit.bind (noCommit_grind _) fun _ ↦
+    NoCommit.bind (noCommit_sampleN _) fun _ ↦ NoCommit.bind noCommit_sampleE fun _ ↦
+    NoCommit.bind (noCommit_gkrPhase _) fun _ ↦ noCommit_busRest hev _ _ _ _ _
 
 theorem noCommit_computedBytecodeValue (w : List K) (p : List E) (v : E) :
     NoCommit (computedBytecodeValue w p v) := noCommit_require _

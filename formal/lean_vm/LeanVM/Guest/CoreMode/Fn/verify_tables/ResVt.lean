@@ -192,7 +192,7 @@ theorem vtQ_step (hr : r.Ok) :
   have hctx := F.hctx
   obtain ⟨chis, hbpR, hgmu, -, hgz, hle, -⟩ := hctx
   have hbusL : F.bus.point.length =
-      VerifySub.busDepth (Tables.layoutOf (List.replicate (2 ^ 23) 0) F.logMem F.rowsN) :=
+      busDepth (Tables.layoutOf (List.replicate (2 ^ 23) 0) F.logMem F.rowsN) :=
     Value.gen_pow_inj (by have := VerifySub.mem_size_le (by omega) r.img hbpR; omega)
       (by have := F.hdep34; omega) (hgmu.symm.trans F.h253)
   have hroom := vk_room F.hdep34 hlG hlT (τ := 0) (by omega)

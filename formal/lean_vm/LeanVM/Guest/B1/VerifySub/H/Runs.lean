@@ -394,7 +394,7 @@ theorem gkr_inv (hbl : bytecode.length = 2 ^ 23) : S.s3 = ⟨S.s3.cap, []⟩ ∧
   have h3 : S.s3 = ⟨S.s3.cap, []⟩ := fs_eta (S.s3_pend hbl)
   have hc3 : S.s3.cap.length = 5 := by
     rw [(S.bus_inv hbl).2.2.2]; simp [Fs.squeeze, capOf]
-  have hrun : RunsTo (Tables.gkrPhase S.d) ⟨S.s3.cap, []⟩ S.xsG S.rG S.s4 := by
+  have hrun : RunsTo (gkrPhase S.d) ⟨S.s3.cap, []⟩ S.xsG S.rG S.s4 := by
     rw [← h3]; exact S.runG
   have hc : ∃ sp, (⟨S.s3.cap, []⟩ : Fs).Carries sp := by rw [← h3]; exact S.c3
   obtain ⟨-, -, -, -, -, hsF, hr, hpl⟩ := Tables.gk_walk hrun hc
