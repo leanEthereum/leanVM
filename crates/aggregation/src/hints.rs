@@ -164,8 +164,8 @@ pub(super) fn lean_xmss_hints(
 /// node on the key's path.
 ///
 /// The guest derives the index and every FORS leaf from the digest itself, so
-/// nothing here carries them. The signer's message is not hinted either: it rides
-/// its slot in the coverage table.
+/// nothing here carries them. The signer's message is not hinted either: it is the
+/// claim's, which the guest checks the signature against.
 pub(super) fn lean_sphincs_hints(
     pk: &LeanSphincsPublicKey,
     sig: &LeanSphincsSignature,

@@ -1,109 +1,59 @@
-//! The coverage table: which slot each raw signature and child claim writes.
+//! What a node declares and what it sets aside: each scheme's declared claims and its duplicates.
 
 use super::error::AggregateError;
 use super::proof::AggregateProof;
 use super::{AggregateClaims, LeanSphincsClaim, LeanXmssClaim};
 use std::collections::BTreeSet;
 
-/// The coverage slot each write in the guest's coverage walk targets, in walk
-/// order: the raw signatures first, then each child's claim lists.
-///
-/// The table is one contiguous region per scheme, each its declared claims followed
-/// by its own duplicate slots:
-///
-/// | slots | holds |
-/// | --- | --- |
-/// | `[0, n_lean_xmss)` | the declared leanXMSS claims |
-/// | `[n_lean_xmss, X)` | leanXMSS duplicate slots |
-/// | `[X, X + n_lean_sphincs)` | the declared leanSPHINCS claims |
-/// | `[X + n_lean_sphincs, n_total)` | leanSPHINCS duplicate slots |
-///
-/// A claim the declared set holds takes its slot there, one it does not takes a
-/// fresh duplicate slot in the same region, so the walk hits every one of the
-/// `n_total` slots exactly once. That bijection, enforced in-circuit by write-once
-/// memory plus the final count, is what makes every declared claim covered by a real
-/// signature or a verified child.
-///
-/// Keeping each region contiguous is what binds the scheme: the guest addresses
-/// every writer as an offset into one region, bounded by that region's size, one
-/// range check per write, so no signature can reach a claim of the other scheme.
+/// The claims a node puts out, scheme by scheme: as a multiset, exactly the claims it takes in, its raw signatures'
+/// and its children's. The guest checks that equality with a product over each side (`claims_product`), which is
+/// what makes every declared claim covered by a real signature or a verified child.
 pub(super) struct Coverage {
-    pub(super) lean_xmss: Region<LeanXmssClaim>,
-    pub(super) lean_sphincs: Region<LeanSphincsClaim>,
+    pub(super) lean_xmss: Covered<LeanXmssClaim>,
+    pub(super) lean_sphincs: Covered<LeanSphincsClaim>,
 }
 
-/// One scheme's region of the coverage table.
-pub(super) struct Region<K> {
+/// One scheme's claims put out.
+pub(super) struct Covered<K> {
     /// The declared claims, strictly sorted.
-    pub(super) signers: Vec<K>,
+    pub(super) declared: Vec<K>,
+    /// The claims taken in beyond one of each declared claim.
     pub(super) dups: Vec<K>,
-    /// The slot of each raw signature, in the order given.
-    pub(super) raw: Vec<usize>,
-    /// Per child, the slot of each of its claims.
-    pub(super) children: Vec<Vec<usize>>,
 }
 
-impl<K: Ord + Clone> Region<K> {
-    /// Declares the union of the raw claims and the children's, or exactly
-    /// `declare`, which they must cover.
+impl<K: Ord + Clone> Covered<K> {
+    /// Declares the union of the raw claims and the children's, or exactly `declare`, which they must cover.
     fn plan<'a>(
-        raw: &[K],
-        children: impl Iterator<Item = &'a [K]> + Clone,
+        raw: &'a [K],
+        children: impl Iterator<Item = &'a [K]>,
         declare: Option<&[K]>,
     ) -> Result<Self, AggregateError>
     where
         K: 'a,
     {
-        let mut signers = raw.to_vec();
-        for child in children.clone() {
-            signers.extend_from_slice(child);
-        }
-        signers.sort();
-        signers.dedup();
+        let taken_in: Vec<&K> = raw.iter().chain(children.flatten()).collect();
+        let mut declared: Vec<K> = taken_in.iter().map(|&claim| claim.clone()).collect();
+        declared.sort();
+        declared.dedup();
         if let Some(declare) = declare {
             let mut wanted: BTreeSet<&K> = declare.iter().collect();
-            signers.retain(|claim| wanted.remove(claim));
+            declared.retain(|claim| wanted.remove(claim));
             if !wanted.is_empty() {
                 return Err(AggregateError::InvalidInput(
                     "a requested claim is not covered by the inputs",
                 ));
             }
         }
-        let mut claimed = vec![false; signers.len()];
+        // A claim is declared once: its other occurrences, and the claims not declared, are duplicates.
+        let mut claimed = vec![false; declared.len()];
         let mut dups = Vec::new();
-        let raw = raw
-            .iter()
-            .map(|claim| take_slot(&signers, &mut claimed, &mut dups, claim))
-            .collect();
-        let children = children
-            .map(|child| {
-                child
-                    .iter()
-                    .map(|claim| take_slot(&signers, &mut claimed, &mut dups, claim))
-                    .collect()
-            })
-            .collect();
-        Ok(Self {
-            signers,
-            dups,
-            raw,
-            children,
-        })
-    }
-}
-
-/// A claim takes its declared slot once; subsequent or omitted occurrences take
-/// fresh slots outside the hashed prefix.
-fn take_slot<K: Ord + Clone>(claims: &[K], claimed: &mut [bool], duplicates: &mut Vec<K>, claim: &K) -> usize {
-    match claims.binary_search(claim) {
-        Ok(pos) if !claimed[pos] => {
-            claimed[pos] = true;
-            pos
+        for claim in taken_in {
+            match declared.binary_search(claim) {
+                Ok(pos) if !claimed[pos] => claimed[pos] = true,
+                _ => dups.push(claim.clone()),
+            }
         }
-        _ => {
-            duplicates.push(claim.clone());
-            claims.len() + duplicates.len() - 1
-        }
+        Ok(Self { declared, dups })
     }
 }
 
@@ -114,12 +64,12 @@ pub(super) fn plan_coverage(
     declare: Option<&AggregateClaims>,
 ) -> Result<Coverage, AggregateError> {
     Ok(Coverage {
-        lean_xmss: Region::plan(
+        lean_xmss: Covered::plan(
             raw_lean_xmss,
             children.iter().map(|(claims, _)| claims.lean_xmss.as_slice()),
             declare.map(|claims| claims.lean_xmss.as_slice()),
         )?,
-        lean_sphincs: Region::plan(
+        lean_sphincs: Covered::plan(
             raw_lean_sphincs,
             children.iter().map(|(claims, _)| claims.lean_sphincs.as_slice()),
             declare.map(|claims| claims.lean_sphincs.as_slice()),

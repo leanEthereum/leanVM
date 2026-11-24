@@ -56,6 +56,10 @@
 \newcommand{\koutv}[1]{\mathsf{out}^{*}_{#1}} % the claimed value on it the reduction starts from [OutputClaim::lanes]
 \newcommand{\kmid}[1]{\mathsf{mid}_{#1}}   % segment 0's output lane #1, as a word (the VM's middle state)
 
+% ---------- claim coverage (section 10) ----------
+\newcommand{\cgam}{\gamma}                   % the claims' fingerprint challenge [gam]
+\newcommand{\cshift}{\varsigma}              % the claims' product challenge [bet]
+
 % ---------- VM ----------
 \newcommand{\loc}[1]{\mem[\fp\cdot #1]}
 \newcommand{\dmode}{\mathsf{mode}}   % a DEREF store mode

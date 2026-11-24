@@ -26,8 +26,8 @@
 </table>
 <table align="center">
   <tr>
-    <td><a href="#recursion">2-to-1 recursion</a></td>
-    <td align="right"><b>140 ms</b></td>
+    <td><a href="#recursion">16-to-1 recursion</a></td>
+    <td align="right"><b>540 ms</b></td>
   </tr>
   <tr>
     <td><a href="#proving-keccak">proving KECCAK</a></td>
@@ -134,16 +134,16 @@ aggregation, 32 blobs
 ### recursion
 
 ```bash
-cargo leanvm-bench --prover experimental recursion --n 2 --xmss-per-leaf 1400 --leaf-log-inv-rate 2 --log-inv-rate 1 --repeat 3
+cargo leanvm-bench --prover experimental recursion --n 16 --xmss-per-leaf 1400 --leaf-log-inv-rate 1 --wrap-log-inv-rate 2 --log-inv-rate 1 --repeat 3
 ```
 
 ```
-recursion 2→1, over leaves of 1,400 leanXMSS signatures, leaf rate = 1/4, recursion rate = 1/2
-  cycles (VM steps)           : 431,087 = 2^18.718
-    details                   : MUL 2^17.185 (34.6%)  XOR 2^16.726 (25.1%)  DEREF 2^16.641 (23.7%)  SET 2^15.409 (10.1%)  JUMP 2^13.797 (3.3%)  KECCAK 2^13.747 (3.2%)  MEMORY 2^19.394  BYTECODE 2^18.812  TOTAL_COMMITTED 2^23.611
-  proof size                  : 270.5 KiB
-  proving time                : 0.146 s ± 3.9%      peak memory 0.917 GiB
-  verifying                   : 6.921 ms
+recursion 16→1, over leaves of 1,400 leanXMSS signatures, leaf rate = 1/2, each wrapped at rate 1/4, recursion rate = 1/2
+  cycles (VM steps)           : 2,911,835 = 2^21.473
+    details                   : MUL 2^19.974 (35.4%)  XOR 2^19.946 (34.7%)  DEREF 2^18.897 (16.8%)  SET 2^17.477 (6.3%)  KECCAK 2^16.639 (3.5%)  JUMP 2^16.607 (3.4%)  MEMORY 2^21.915  BYTECODE 2^18.671  TOTAL_COMMITTED 2^25.919
+  proof size                  : 314.0 KiB
+  proving time                : 0.536 s ± 3.5%      peak memory 3.26 GiB
+  verifying                   : 11.112 ms
 ```
 
 ### Proving KECCAK

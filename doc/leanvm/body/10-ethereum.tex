@@ -31,11 +31,9 @@ Each list digest is the hash of that scheme's claim list, $64$ bytes per $(\text
 
 \subsubsection{Checking coverage}
 
-Every published claim needs support from a direct check or a recursively verified child. The guest builds a table with one region for leanXMSS and one for SPHINCS+. Each region starts with the claims the parent publishes, followed by extra slots for duplicates and omitted claims.
+Every published claim needs support from a direct check or a recursively verified child. The guest compares two multisets of claims, scheme by scheme. What the node puts out: the claims it publishes, followed by duplicates, the claims it takes in beyond one of each published claim (a claim two children prove, a claim the parent omits). What the node takes in: the claims of its own signatures, each signature checked against its claim, and its children's claims, each child's list hashed into the statement its proof is verified against. Duplicates are verified like any claim; only the published lists enter the parent's list digests.
 
-Each occurrence of a supporting claim needs its own slot. If two children prove the same published claim, one occurrence uses its published slot and the other uses an extra slot. Every occurrence of a claim the parent omits uses an extra slot. These claims are still verified; only the published prefixes enter the parent's list digests.
-
-The prover supplies the extra claims and assigns each supporting occurrence to a slot. The guest checks that they match, confines the assignment to the correct region, and writes a distinct counter value there. Write-once memory prevents slot reuse. Requiring as many writes as slots ensures that every slot is covered, including every published claim.
+Each list multiplies a running product by one factor per claim, $\cshift+c_0+\cgam c_1+\cgam^2c_2+\cgam^3c_3$ over the claim's four cells for leanXMSS and the same plus $\cgam^4$ for SPHINCS+, and the guest checks that the two products are equal. Each factor is monic of degree one in $\cshift$ and distinct claims give distinct factors, so the products agree as polynomials in $(\cgam,\cshift)$ exactly when the multisets do; their total degree is at most $4N$, $N$ the larger number of claims. The challenge is drawn from the hash of every list's digest, each child's through its statement, so every list is fixed first, after a grind of $k$ bits where both sides hold fewer than $2^{k+1}$ claims (\S\ref{sec:grinding}): the error $4N/|\E|$ is then at most $2^{-125}$. A node that publishes exactly the claims of its own signatures checks each signature against the published list itself and needs no products.
 
 \subsubsection{Deferred evaluation claims}\label{sec:deferred-claims}
 

@@ -29,6 +29,7 @@ fn run<P: isa::Prover>(cli: Cli) {
             sphincs_per_leaf,
             blobs_per_leaf,
             leaf_log_inv_rate,
+            wrap_log_inv_rate,
         } => {
             benchmark::run_recursion::<P>(
                 n,
@@ -36,6 +37,7 @@ fn run<P: isa::Prover>(cli: Cli) {
                 sphincs_per_leaf,
                 blobs_per_leaf,
                 leaf_log_inv_rate.unwrap_or(cli.log_inv_rate),
+                wrap_log_inv_rate,
                 cli.log_inv_rate,
                 cli.tracing,
                 plan,
@@ -138,6 +140,13 @@ enum Command {
             value_parser = clap::builder::RangedU64ValueParser::<usize>::new().range(1..=4)
         )]
         leaf_log_inv_rate: Option<usize>,
+        /// Wrap each leaf in a one-child node at this WHIR inverse-rate logarithm (1 through 4), the node then
+        /// aggregating the wrappers
+        #[arg(
+            long,
+            value_parser = clap::builder::RangedU64ValueParser::<usize>::new().range(1..=4)
+        )]
+        wrap_log_inv_rate: Option<usize>,
     },
     /// Prove and verify Fibonacci in the exponent (demo).
     Fibonacci {

@@ -3,7 +3,7 @@
 use super::MAX_RECURSIONS;
 use super::cells::pack_16_bytes;
 use super::child::{
-    MU_CAP, QUERY_WINDOW_BITS, QUERY_WINDOWS_CAP, STREAM_CAP, block_groups, col_groups, merkle_cap_depth, whir_levels,
+    MU_CAP, QUERY_WINDOW_BITS, QUERY_WINDOWS_CAP, block_groups, col_groups, merkle_cap_depth, whir_levels,
 };
 use super::claim_pool::{ClaimSite, claim_pool, coord_difference, coord_kind, coord_scale, push_coord_terms};
 use super::deferred::{BATCH_LAM_GRIND_BITS, RECURSION_AGG_LABEL};
@@ -222,14 +222,12 @@ fn constants(ph: &mut Placeholders) {
     use lean_xmss::internals as lx;
     use verifier::N_BUS_TREES;
     use verifier::keccak::{EMBED_BITS, PACK, PRODUCT_BITS};
-    let nonces = |bits: u32| usize::from(bits > 0);
     // The F128 tower F64[Y]/(Y^2 + xY + 1): Y_TOWER embeds Y for AIR lane reassembly; Y_INV = Y + x splits a word
     // into its two K limbs.
     let y_tower = F128::new(0, 1);
     let shape = KECCAK_MIN_SHAPE;
     let constants: &[(&str, &dyn Literal)] = &[
         // Buffer caps and memory bounds.
-        ("STREAM_CAP", &STREAM_CAP),
         ("QW", &QUERY_WINDOW_BITS),
         ("QUERY_WINDOWS_CAP", &QUERY_WINDOWS_CAP),
         ("MU_CAP", &MU_CAP),
@@ -272,9 +270,6 @@ fn constants(ph: &mut Placeholders) {
         ("OOD_GRIND_BITS", &OOD_GRINDING_BITS),
         ("QUERY_GRIND_BITS", &QUERY_GRINDING_BITS),
         ("BATCH_GRIND_BITS", &BATCH_GRINDING_BITS),
-        // The batching hints: the challenge's nonce, if it grinds, then per round (g1, g_inf) and its nonce, if any.
-        ("BC_LAM_WORDS", &nonces(BATCH_LAM_GRIND_BITS)),
-        ("BC_ROUND_WORDS", &(2 + nonces(grinding_bits(2)))),
         // The Keccak reduction (`keccak_gkr`).
         ("KECCAK_DEPTH", &shape.depth()),
         ("KECCAK_SEGMENTS", &shape.segments()),
@@ -298,7 +293,7 @@ fn constants(ph: &mut Placeholders) {
         ("LOG_CELL_SYMBOLS", &LOG_CELL_SYMBOLS),
         ("DA_MAX_ROWS", &DA_MAX_ROWS),
         ("DA_LOG_MAX_ROWS", &DA_MAX_ROWS.ilog2()),
-        // Both signature schemes (WOTS+C's chain length is both's) and the coverage caps.
+        // Both signature schemes (WOTS+C's chain length is both's) and the claim lists' frames.
         ("W", &lx::W),
         ("DIGIT_GROUP", &DIGIT_GROUP),
         ("LX_V", &lx::V),

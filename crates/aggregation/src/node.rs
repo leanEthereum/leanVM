@@ -11,8 +11,12 @@ use super::guest::{fs_seed, unified_guest};
 use super::hints::FORGE;
 use super::hints::{Hints, lean_sphincs_hints, lean_xmss_hints};
 use super::proof::{AggregateProof, is_sorted};
-use super::statement::{lean_sphincs_claim_cells, lean_xmss_claim_cells, list_split, statement_digest};
-use super::{AggregateClaims, MAX_LOG_INV_RATE, MAX_RECURSIONS, MIN_LOG_INV_RATE, OutputClaims};
+use super::statement::{
+    cell_hash, claim_list_digest, lean_sphincs_claim_cells, lean_xmss_claim_cells, list_split, statement_digest,
+};
+use super::{
+    AggregateClaims, LeanSphincsClaim, LeanXmssClaim, MAX_LOG_INV_RATE, MAX_RECURSIONS, MIN_LOG_INV_RATE, OutputClaims,
+};
 use fiat_shamir_prover::merkle::hash_to_scalars;
 use isa::{Prover, Stats};
 use lean_da::CELLS_PER_ROW;
@@ -90,7 +94,7 @@ pub fn aggregate<P: Prover>(
     let raw_lean_xmss_claims = sorted_claims(&mut raw_lean_xmss);
     let raw_lean_sphincs_claims = sorted_claims(&mut raw_lean_sphincs);
     let cover = plan_coverage(&raw_lean_xmss_claims, &raw_lean_sphincs_claims, children, declare)?;
-    if cover.lean_xmss.signers.is_empty() && cover.lean_sphincs.signers.is_empty() && da_root.is_none() {
+    if cover.lean_xmss.declared.is_empty() && cover.lean_sphincs.declared.is_empty() && da_root.is_none() {
         return Err(AggregateError::InvalidInput("nothing to publish"));
     }
 
@@ -125,10 +129,10 @@ pub fn aggregate<P: Prover>(
     hints.push(
         "meta",
         vec![
-            count(cover.lean_xmss.signers.len()),
+            count(cover.lean_xmss.declared.len()),
             count(cover.lean_xmss.dups.len()),
             count(raw_lean_xmss.len()),
-            count(cover.lean_sphincs.signers.len()),
+            count(cover.lean_sphincs.declared.len()),
             count(cover.lean_sphincs.dups.len()),
             count(raw_lean_sphincs.len()),
             count(children.len()),
@@ -136,51 +140,55 @@ pub fn aggregate<P: Prover>(
         ],
     );
     hints.push("fs_seed", fs_seed().to_vec());
-    // Both lists in the guest's order, leanXMSS first: each one's split, its declared claims, then its duplicates.
-    let lean_xmss_cells: Vec<[F128; 4]> = cover.lean_xmss.signers.iter().map(lean_xmss_claim_cells).collect();
-    let lean_sphincs_cells: Vec<[F128; 4]> = cover
-        .lean_sphincs
-        .signers
-        .iter()
-        .map(lean_sphincs_claim_cells)
-        .collect();
-    for cells in [&lean_xmss_cells, &lean_sphincs_cells] {
-        if !cells.is_empty() {
-            hints.push("signers_split", list_split(cells.len()));
-        }
-        for claim in cells {
-            hints.push("claims", claim.to_vec());
-        }
-    }
-    let dups = cover.lean_xmss.dups.iter().map(lean_xmss_claim_cells);
-    for claim in dups.chain(cover.lean_sphincs.dups.iter().map(lean_sphincs_claim_cells)) {
-        hints.push("dup_claims", claim.to_vec());
-    }
-    // Each slot is hinted as an offset into its scheme's region, which is how one range check keeps a scheme's
-    // writers off the other's claims.
-    let raw = [
-        (
-            "raw_index",
-            &cover.lean_xmss.raw,
-            P::map_collect(raw_lean_xmss.len(), |i| {
-                let (pk, message, sig) = &raw_lean_xmss[i];
-                lean_xmss_hints(pk, sig, message)
-            }),
-        ),
-        (
-            "sp_raw_index",
-            &cover.lean_sphincs.raw,
-            P::map_collect(raw_lean_sphincs.len(), |i| {
-                let (pk, message, sig) = &raw_lean_sphincs[i];
-                lean_sphincs_hints(pk, sig, message)
-            }),
-        ),
+    // The node's own lists, each a pair, leanXMSS then leanSPHINCS: what it declares, its duplicates, its raw
+    // signatures' claims.
+    let declared = [
+        cells_x(&cover.lean_xmss.declared),
+        cells_s(&cover.lean_sphincs.declared),
     ];
-    for (name, offsets, signatures) in raw {
-        for (&offset, signature) in offsets.iter().zip(signatures) {
-            hints.push(name, vec![count(offset)]);
-            hints.extend(signature?);
-        }
+    let dups = [cells_x(&cover.lean_xmss.dups), cells_s(&cover.lean_sphincs.dups)];
+    let raw = [cells_x(&raw_lean_xmss_claims), cells_s(&raw_lean_sphincs_claims)];
+    // A plain node declares exactly what it signs: the guest checks each signature where its declared list holds the
+    // claim, reads no other list of its own, and matches nothing.
+    let plain = dups.iter().all(Vec::is_empty) && raw == declared;
+    hints.push("plain", vec![count(usize::from(plain))]);
+    let lists: Vec<&Vec<[F128; 4]>> = if plain {
+        declared.iter().collect()
+    } else {
+        declared.iter().chain(&dups).chain(&raw).collect()
+    };
+    for cells in &lists {
+        push_list(&mut hints, cells);
+    }
+    // The products' challenge: a hash of every list's digest (none for a plain node, from zero), each child's through
+    // its public input, then of a nonce, after a grind of k bits, the claims on either side fewer than 2^(k+1), then
+    // hashed again. The claims put out, declared and duplicates, are as many as those taken in.
+    let digests = lists.iter().flat_map(|cells| claim_list_digest(cells.iter().copied()));
+    let start = if plain { [F128::ZERO; 2] } else { cell_hash(digests) };
+    let running = public_inputs
+        .iter()
+        .fold(start, |running, pi| cell_hash([running[0], running[1], pi[0], pi[1]]));
+    let claims_count: usize = declared.iter().chain(&dups).map(Vec::len).sum();
+    let bits = claims_count.checked_ilog2().unwrap_or(0);
+    let (nonce, pow_word) = (0u64..)
+        .map(|nonce| (nonce, cell_hash([running[0], running[1], F128::new(nonce, 0)])))
+        .find(|(_, word)| (u128::from(word[1]) as u64).trailing_zeros() >= bits)
+        .expect("a nonce exists");
+    hints.push("claims_challenge", cell_hash(pow_word).to_vec());
+    hints.push("claims_nonce", vec![F128::new(nonce, 0)]);
+    hints.push("claims_grind", vec![count(bits as usize)]);
+    let signatures = [
+        P::map_collect(raw_lean_xmss.len(), |i| {
+            let (pk, message, sig) = &raw_lean_xmss[i];
+            lean_xmss_hints(pk, sig, message)
+        }),
+        P::map_collect(raw_lean_sphincs.len(), |i| {
+            let (pk, message, sig) = &raw_lean_sphincs[i];
+            lean_sphincs_hints(pk, sig, message)
+        }),
+    ];
+    for signature in signatures.into_iter().flatten() {
+        hints.extend(signature?);
     }
 
     // Each child's fresh claim, the one its verification raises.
@@ -197,26 +205,8 @@ pub fn aggregate<P: Prover>(
             "child_meta",
             vec![count(claims.lean_xmss.len()), count(claims.lean_sphincs.len())],
         );
-        for offsets in [&cover.lean_xmss.children[i], &cover.lean_sphincs.children[i]] {
-            if offsets.is_empty() {
-                continue;
-            }
-            hints.push("signers_split", list_split(offsets.len()));
-            // Strictly increasing slots go as gaps (`child_claim_list_mono`).
-            if offsets.is_sorted_by(|a, b| a < b) {
-                hints.push("child_mono", vec![count(1)]);
-                let mut next = 0;
-                for &offset in offsets {
-                    hints.push("child_claim_gap", vec![count(offset - next)]);
-                    next = offset + 1;
-                }
-            } else {
-                hints.push("child_mono", vec![count(0)]);
-                for &offset in offsets {
-                    hints.push("child_claim_index", vec![count(offset)]);
-                }
-            }
-        }
+        push_list(&mut hints, &cells_x(&claims.lean_xmss));
+        push_list(&mut hints, &cells_s(&claims.lean_sphincs));
         hints.push("child_defer", carried[i].cells());
         let child_da = verifier::da::digest(claims.da_commitment);
         hints.push("child_da", hash_to_scalars(&child_da).to_vec());
@@ -264,8 +254,8 @@ pub fn aggregate<P: Prover>(
     hints.push("da_pick", vec![count(da_pick)]);
 
     let claims = AggregateClaims {
-        lean_xmss: cover.lean_xmss.signers,
-        lean_sphincs: cover.lean_sphincs.signers,
+        lean_xmss: cover.lean_xmss.declared,
+        lean_sphincs: cover.lean_sphincs.declared,
         da_commitment: da_root,
     };
     #[cfg(test)]
@@ -282,6 +272,25 @@ pub fn aggregate<P: Prover>(
         proof,
     };
     Ok((claims, proof, stats))
+}
+
+/// A list of claims as the four cells each, of either scheme.
+fn cells_x(claims: &[LeanXmssClaim]) -> Vec<[F128; 4]> {
+    claims.iter().map(lean_xmss_claim_cells).collect()
+}
+
+fn cells_s(claims: &[LeanSphincsClaim]) -> Vec<[F128; 4]> {
+    claims.iter().map(lean_sphincs_claim_cells).collect()
+}
+
+/// One list of claims as the guest reads it: its split, unless it is empty, then its claims.
+pub(super) fn push_list(hints: &mut Hints, cells: &[[F128; 4]]) {
+    if !cells.is_empty() {
+        hints.push("signers_split", list_split(cells.len()));
+    }
+    for claim in cells {
+        hints.push("claims", claim.to_vec());
+    }
 }
 
 /// Sort raw signatures on their claims and drop repeats: on the whole (pubkey, message) pair, so a signer may appear

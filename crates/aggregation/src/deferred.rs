@@ -282,7 +282,10 @@ pub(super) fn aggregate_deferred_claims<P: Prover>(
     );
 
     drop(_span);
-    let hints = vec![("bc_sumcheck_msgs", messages), ("bc_star_hint", vec![value])];
+    // The batching challenge's nonce, if it grinds, then each round's words, on the stream after the children's.
+    let hints: SubHints = (messages.iter().map(|&word| ("stream", vec![word])))
+        .chain([("bc_star_hint", vec![value])])
+        .collect();
     let reduced = DeferredBytecodeClaim {
         bytecode_point: challenges,
         bytecode_value: value,

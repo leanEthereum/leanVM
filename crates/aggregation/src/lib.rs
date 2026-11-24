@@ -8,19 +8,14 @@
 //! by default publishes the sorted deduplicated union of their signer sets. A claim
 //! of either scheme is a `(pubkey, message)` pair; a leanXMSS signature carries its own
 //! leaf index, which the statement does not record. Coverage is what carries the
-//! security claim: a write-once slot per declared claim, written once by each raw
-//! signature and each child claim, plus a final count, so every declared claim is
-//! backed by a real signature or a verified child.
-//!
-//! Those slots are one contiguous region per scheme, so the one range check a write
-//! already needs also keeps a signature off the other scheme's declared claims: that
-//! is what makes the published split mean which scheme verified which claim, at
-//! every level of the tree.
-//!
-//! A duplicate slot sits outside the prefix the digest hashes, so a claim in one is
-//! covered and not published. `aggregate`'s `OutputClaims::Only` rests on that. A slot holds
-//! four cells, the pubkey and its message, so the guest reads each signature's message
-//! out of the slot it verifies.
+//! security claim: the claims a node puts out (the declared ones, then the duplicates it
+//! does not publish) are, as a multiset and scheme by scheme, the claims it takes in (its
+//! signatures', each checked against its claim's cells, and its verified children's). The
+//! guest checks that with one product per side, a factor per claim at a challenge every
+//! list fixes first, so every declared claim is backed by a real signature or a verified
+//! child. A leanSPHINCS claim's factor differs from every leanXMSS one's, which is what
+//! makes the published split mean which scheme verified which claim, at every level of
+//! the tree. `aggregate`'s `OutputClaims::Only` rests on the duplicates.
 //!
 //! The bytecode is compiled to a fixed point on its own size
 //! ([`unified_guest`]): the recursion placeholders depend on the inner bytecode

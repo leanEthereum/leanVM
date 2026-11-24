@@ -85,27 +85,29 @@ pub(super) fn gen_verify(
     let sides = [layout.push, layout.pull, layout.count];
     // The guest's buffers have fixed capacities, so its constants do not depend on a child's shape. A child that
     // verifies fits them.
-    let fits = sides.iter().all(|blocks| leaf::layout(blocks).mu <= MU_CAP) && proof.stream.len() <= STREAM_CAP;
+    let fits = sides.iter().all(|blocks| leaf::layout(blocks).mu <= MU_CAP);
     if !fits {
         return Err(AggregateError::InvalidChild);
     }
     let column_offsets: Vec<usize> = layout.placements.iter().map(|p| p.offset).collect();
     let mu = layout.shape.mu;
-    let mut stream: Vec<F128> = proof.stream.iter().copied().map(from_scalar).collect();
-    stream.resize(STREAM_CAP, F128::ZERO);
 
     // The guest replays the proof off the same stream the native verifier reads: every transmitted scalar is already
     // there in protocol order.
     let rounds = *taus.iter().max().unwrap();
-    let mut hints: SubHints = vec![
-        ("stream", stream),
+    let mut hints: SubHints = proof
+        .stream
+        .iter()
+        .map(|&word| ("stream", vec![from_scalar(word)]))
+        .collect();
+    hints.extend([
         // The table sumcheck's round count, which the guest certifies is the largest of the taus.
         ("zc_tau_max", vec![count(rounds)]),
         // Every table's log height, which the guest certifies against its row count.
         ("table_logs", taus.iter().map(|&t| count(t)).collect()),
         ("col_group_order", col_group_order(kbc, &column_offsets)),
         ("block_group_order", block_group_order(kbc, &sides)),
-    ];
+    ]);
     let (config, _, depth) = whir_levels(mu, summary.log_inv_rate).ok_or(AggregateError::InvalidChild)?;
     hints.extend(merkle_hints(config.queries, &depth, proof));
     Ok(hints)
@@ -209,4 +211,3 @@ fn merkle_hints(queries: &[usize], depth: &[usize], proof: &verifier::Proof) -> 
 /// `gen_verify` admits against: one definition, so a hinted shape can never
 /// outgrow the buffer the guest was compiled with.
 pub(super) const MU_CAP: usize = 40;
-pub(super) const STREAM_CAP: usize = 8192;
