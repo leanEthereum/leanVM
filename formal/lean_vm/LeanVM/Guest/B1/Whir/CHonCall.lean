@@ -19,8 +19,7 @@ Under `OsHA C rd c b own cur tabs xs`, a named callee holds in `C` on its meanin
 are fixed (`OsFixedA`): `FixedAt p m`, the `m` words at `p` the same on every memory holding the
 caller's words, from the cursor's words (`fixedAt_cur`) or a buffer's (`fixedAt_buf`).
 
-Per kind, its meaning at the guest's honest arguments and returns: `om_pre` (`opening_message`),
-`spf_pre`, `tail_pre`, `ffm_pre`.
+Per kind, its meaning at the guest's honest arguments and returns: `spf_pre`, `tail_pre`, `ffm_pre`.
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -94,13 +93,6 @@ theorem five_of {cap : List E} (h : cap.length = 5) :
     ∃ f0 f1 f2 f3 f4, cap = [f0, f1, f2, f3, f4] := by
   match cap, h with
   | [f0, f1, f2, f3, f4], _ => exact ⟨f0, f1, f2, f3, f4, rfl⟩
-
-/-- `opening_message` without a nonce. -/
-theorem om_pre {cap ms : List E} {p out : E} {n : ℕ} (hc : cap.length = 5) (hl : ms.length = n)
-    (hr : ReadsAt rd p ms) (ho : ReadsAt rd out ms) :
-    MeaningOpeningMessage n 0 rd (cap ++ [p, out]) (omRets cap ms none p n) := by
-  obtain ⟨f0, f1, f2, f3, f4, rfl⟩ := five_of hc
-  exact ⟨ms, hl, hr, ho, 0, fun h ↦ absurd h (by decide), by simp [omRets]⟩
 
 /-- `opening_message` with a nonce. -/
 theorem omN_pre {cap ms : List E} {p out nn : E} {n : ℕ} (hc : cap.length = 5) (hl : ms.length = n)

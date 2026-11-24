@@ -17,7 +17,7 @@ A residual step (`osResStep`) reads a position `p` and runs `h ← (h + P(p))·�
 `hh ← (hh + H(p))·μ`, `P` the level's `residual_query` product and `H` its high part's share:
 `osResSteps_val`, the chains `resFold` over the positions read. At `x = g^j` the loop's iteration
 reads the positions `bj .. bj + b - 1` at `qpos·g^po·x^b` (`b = resBatch`), `h, hh = chain[2j],
-chain[2j + 1]`, and stores `chain[2j + 2], chain[2j + 3]` (`ResIter`; `resLoop_sound`). `resChain`:
+chain[2j + 1]`, and stores `chain[2j + 2], chain[2j + 3]` (`ResIter`). `resChain`:
 from `chain[0] = chain[1] = 0`, `chain[2j], chain[2j + 1]` are the chains over the first
 `bj` positions. `chain_mul_pow`: `λ^n` times a chain from `0` is `Σ_k λ^k d_k`.
 -/
@@ -270,22 +270,6 @@ theorem resLoop_step (lvl : ℕ) (lv : OsLv) (hpo : lv.posOff < u128Bound) {D : 
       rw [← this]; exact s2
   · simp only [List.range_succ, List.range_zero, List.map_cons, List.map_nil, List.nil_append,
       List.cons_append, Nat.zero_add, t4, h0, h1, h2, h3, h4, h5, h6]
-
-/-- **The residual loop, soundly**: entered from `1` with the bound `g^n`, `0 < n < ord g`, the
-iteration's meaning holds at every `g^j`, `j < n`. -/
-theorem resLoop_sound {name : String} {fn : Fn} (hf : P.find? name = some fn)
-    (lvl : ℕ) (lv : OsLv) (hps : fn.params = osParams 7)
-    (hb : fn.body = resLoopBody lvl lv name) (hpo : lv.posOff < u128Bound) {D : ℕ → E}
-    {hsv : List E} {n : ℕ} (hn0 : 0 < n) (hn : n < ordG) (qpos bd hs chain mu : E)
-    (hR : ResRead rd lvl lv bd hs D hsv)
-    (hg : 1 + gen ^ n ≠ 0 → P.Rel rd name [1, gen ^ n, qpos, bd, hs, chain, mu] []) :
-    ∀ j < n, ResIter rd (resP lv D) (resH lv hsv) lv.posOff qpos chain mu (gen ^ j) := by
-  rw [resLoopBody_split] at hb
-  refine loop_guarded (rest := [qpos, bd, hs, chain, mu]) hn0 hn rfl
-    (loop_sound_flat hf (resLoopA_flat lvl lv) hb ?_) hg
-  intro σ x hp hA
-  rw [hps] at hp
-  exact resLoop_step lvl lv hpo σ x (gen ^ n) qpos bd hs chain mu hp hR hA
 
 /-- **The chains**: from `chain[0] = chain[1] = 0`, after `j ≤ n` iterations `chain[2j]`,
 `chain[2j + 1]` are the chains over the first `resBatch·j` positions `Pos` in memory. -/

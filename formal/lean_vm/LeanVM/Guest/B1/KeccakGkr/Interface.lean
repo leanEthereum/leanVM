@@ -19,9 +19,6 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 /-- `keccak_plain_rounds_SpecP` at the guest's `coreProgram`. -/
 abbrev keccak_plain_rounds_Spec : Prop := keccak_plain_rounds_SpecP coreProgram
 
-/-- `keccak_plain_rounds_complete_SpecP` at the guest's `coreProgram`. -/
-abbrev keccak_plain_rounds_complete_Spec : Prop := keccak_plain_rounds_complete_SpecP coreProgram
-
 /-- `keccak_layer_SpecP` at the guest's `coreProgram`. -/
 abbrev keccak_layer_Spec (rd : Reader) : Prop := keccak_layer_SpecP coreProgram rd
 

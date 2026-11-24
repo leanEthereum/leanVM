@@ -74,8 +74,6 @@ theorem fixNe_of_noNe {s : Stmt} (h : noNeB s = true) : fixNe s = s := by
   | atom a => cases a <;> first | rfl | simp [noNeB] at h
   | _ => rfl
 
-theorem rtArms_noNe : (rtFour ++ rtTwo).all noNeB = true := by decide +kernel
-
 theorem tb_mem_of_slice {pre : List Stmt} {n : ℕ} {blk : List Stmt}
     (h : tbStmtsEqb blk ((pre.drop n).take blk.length) = true) : ∀ s ∈ blk, s ∈ pre := by
   intro s hs

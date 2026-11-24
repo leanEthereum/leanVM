@@ -8,7 +8,8 @@
 module
 
 public import LeanVM.Guest.B1.KeccakGkr.LayerCG
-public import LeanVM.Guest.B1.KeccakGkr.FlatF
+public import LeanVM.Guest.B1.Tables.FlatAt
+public import LeanVM.Guest.Memory.UniformF
 public import LeanVM.Guest.Exact.Free
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«keccak_layer__L»

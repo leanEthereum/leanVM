@@ -158,11 +158,6 @@ theorem fsNextT_facts {cu : V} {off b : ℕ} (H : ∀ a, Stmt.atom a ∈ fsNextT
   ((holds_fsNextT (C := fun _ _ _ ↦ True) cu off b True (fun _ ↦ False)).1
     ((holdsList_atoms (fsNextT_atoms cu off b) True _).2 ⟨H, trivial⟩)).1
 
-theorem challengeT_facts {s0 : V} {b : ℕ}
-    (H : ∀ a, Stmt.atom a ∈ challengeT s0 b → a.Holds rd σ) : ChallengeOk σ s0 b :=
-  ((holds_challengeT (C := fun _ _ _ ↦ True) s0 b True (fun _ ↦ False)).1
-    ((holdsList_atoms (challengeT_atoms s0 b) True _).2 ⟨H, trivial⟩)).1
-
 /-- **A round's facts**: the coordinate and the two words read, and `eqRound` of them on the
 capacity: the challenge (stored at `pt[q]`), the normalized claim and the capacity after. -/
 theorem packRound_facts {pp cu pt : V} {q b c : ℕ} {pre : List Stmt} {zs cap : List V} {cl : V}

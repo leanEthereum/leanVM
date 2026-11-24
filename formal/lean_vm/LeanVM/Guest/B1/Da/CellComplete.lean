@@ -18,7 +18,7 @@ import LeanVM.Guest.Data.ValNames.«da_verify_cell»
 
 The honest valuation is the body evaluated on the weights' pointer (`Fwd.ev`), the hinted
 symbols the honest ones. The template's loads read the weights, so the template holds, and every
-atom holds. The returns are computed as in `da_verify_cell_holds`.
+atom holds.
 -/
 
 namespace LeanVM.Guest.B1.Da
@@ -157,12 +157,6 @@ theorem da_verify_cell_params : (fn% «da_verify_cell»).params = [.n (val% «da
   unfold cellOk at hok
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hok
   exact hok.1
-
-/-- **`da_verify_cell` is complete.** -/
-theorem da_verify_cell_complete : da_verify_cell_complete_Spec := by
-  intro rd lv syms ws hsl hwl hreads
-  obtain ⟨σ, e0, -, h⟩ := da_verify_cell_complete_vals rd lv syms ws hsl hwl hreads
-  exact (rel_iff_sem find_da_verify_cell _ _).mpr ⟨σ, by rw [da_verify_cell_params]; simp [e0], h _⟩
 
 end
 end LeanVM.Guest.B1.Da

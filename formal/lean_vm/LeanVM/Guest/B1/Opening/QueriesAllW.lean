@@ -16,10 +16,6 @@ open LeanVM.Protocol.Verifier
 
 @[expose] public section
 
-/-- `Witness.lean`'s statement at the guest's `coreProgram`. -/
-abbrev opening_queries_sound_w_Spec (name loop : String) (sh : OqShape) : Prop :=
-  opening_queries_sound_w_SpecP coreProgram name loop sh
-
 /-- `Witness.lean`'s statement at the guest's `coreProgram`, every specialization. -/
 abbrev opening_queries_all_sound_w_Spec : Prop := opening_queries_all_sound_w_SpecP coreProgram
 

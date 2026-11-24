@@ -23,7 +23,7 @@ the checker, its range checks' reads (`aux`) used by nothing else (`deadS`), its
 `kids` placing nothing (`Program.PureIn`) with short dispatch lists. `F.σ rd w args`: the honest
 valuation, `Fwd.ev` on the memory `rd` and the oracle `w` from `args`.
 
-`flat_completeAt`: `F` is `CompleteAtD` on the caller's words `Lin` when, at every frame pointer,
+`F` is complete on the caller's words `Lin` (`flat_completeAtTBR`, `FlatLiftT`) when, at every frame pointer,
 its own buffers' words `own fp` (the allocator's sizes `sizes` from `fp + fs F.name`) and an oracle
 `w fp` make the honest valuation satisfy every statement (`VSH`, calls by relations loading from
 the layout `flatL`) on every memory defined below `2^κ` holding `Lin` and the buffers, its loads
@@ -473,62 +473,6 @@ theorem FlatFn.fixCalls (F : FlatFn) {κ : ℕ} {args : List E} (hl : args.lengt
     rwa [hmap rd hlow hL _ hs rfl a (fun v hv ↦ by simp [Stmt.vals, hv]),
       hmap rd hlow hL _ hs rfl r (fun v hv ↦ by simp [Stmt.vals, hv])] at h
   | _ => simp [Stmt.callSF, Main.Stmt.callS] at hst
-
-variable {fs : String → ℕ} {cert : String → V → ℕ}
-
-/-- **The entered callees of fixed calls are complete, placed.** -/
-theorem FlatFn.kidsD (F : FlatFn) {κ : ℕ} {L : ℕ → Layout} {σS : ℕ → Val}
-    (hS : ∀ fp rd, LowDef κ rd → MemL rd (L fp) →
-      ∀ c ∈ flatCalls F.pre (σS fp), c.taken = true → c.f ∈ F.kids ∧
-        ∀ rd', LowDef κ rd' → MemL rd' (L fp) →
-          coreProgram.RelIn rd' (RegionL (L fp)) c.f (c.args.map (σS fp)) (c.rets.map (σS fp))) :
-    ∀ fp, ∀ k ∈ (flatCalls F.pre (σS fp)).map (kidOf (σS fp) (L fp)), k.taken = true →
-      CompleteAtD fs cert κ k.f k.Lin k.args k.Out := by
-  intro fp k hk ht
-  obtain ⟨c, hc, rfl⟩ := List.mem_map.mp hk
-  by_cases hex : ∃ rd, LowDef κ rd ∧ MemL rd (L fp)
-  · obtain ⟨rd, hlow, hL⟩ := hex
-    obtain ⟨hmem, hrel⟩ := hS fp rd hlow hL c hc ht
-    show CompleteAtD fs cert κ c.f (L fp) (c.args.map (σS fp)) (Returns (c.rets.map (σS fp)))
-    exact Lift.completeAtD_of_relIn F.hpure hmem hrel
-  · intro fp'
-    exact ⟨0, [], c.rets.map (σS fp), [], ⟨rfl, rfl⟩, by simp [Within], disj_nil,
-      fun rd hlow hL ↦ absurd ⟨rd, hlow, by simpa [kidOf] using hL⟩ hex⟩
-
-set_option maxRecDepth 20000 in
-/-- **A flat function is complete, placed**, from its honest valuation on every memory holding its
-layout, its calls by relations loading from that layout, and the callees placed from those. -/
-theorem flat_completeAt (F : FlatFn) {κ : ℕ} (Lin : Layout) (args rets : List E)
-    (hl : args.length = F.k)
-    (sizes : List ℕ) (own : ℕ → List (List E))
-    (hown : ∀ fp, List.Forall₂ (fun c s => c.length ≤ s) (own fp) sizes)
-    (w : ℕ → ℕ → E) (bufs : ℕ → List (E × ℕ))
-    (hbufs : ∀ fp, ∀ q ∈ bufs fp, ∃ b, q.1 = ofK (addressOfIndex b) ∧
-      ∀ i < q.2, RegionL (flatL F.name Lin sizes own fs fp) (b + i))
-    (hrun : ∀ fp rd, LowDef κ rd → MemL rd (flatL F.name Lin sizes own fs fp) →
-      (∀ s ∈ F.pre, VSH (coreProgram.RelIn rd (RegionL (flatL F.name Lin sizes own fs fp))) rd
-        (F.σ rd (w fp) args) s) ∧
-      LoadsInBuf (F.σ rd (w fp) args) (bufs fp) F.evL ∧
-      (F.pre.filterMap Main.Stmt.allocSz).map
-        (fun x => x.2.elim id fun s => logG (F.σ rd (w fp) args s)) = sizes ∧
-      ((F.pre.filterMap Main.Stmt.allocSz).map Prod.fst).map (F.σ rd (w fp) args) =
-        (bases (fp + fs F.name) sizes).map (fun b => ofK (addressOfIndex b)) ∧
-      F.rets.map (F.σ rd (w fp) args) = rets) :
-    CompleteAtD fs cert κ F.name Lin args (Returns rets) := by
-  obtain ⟨σS, hS⟩ := F.fixCalls hl (flatL F.name Lin sizes own fs) w bufs hbufs
-    fun fp rd hlow hL ↦ ⟨(hrun fp rd hlow hL).1, (hrun fp rd hlow hL).2.1⟩
-  refine completeAt_flatD F.hf F.hloop κ Lin args rets F.hb F.hflat F.haddrs sizes own hown
-    (fun fp ↦ (flatCalls F.pre (σS fp)).map (kidOf (σS fp) (flatL F.name Lin sizes own fs fp)))
-    (F.kidsD fun fp rd hlow hL ↦ (hS fp rd hlow hL).2.2) (fun _ _ hk _ _ ↦ kidOf_region hk)
-    (fun _ _ hB hLin _ hk ↦ kidOf_memL hk hLin hB) fun fp outs ho rd hlow hB hLin ↦ ?_
-  have hL : MemL rd (flatL F.name Lin sizes own fs fp) := Main.memL_append.mpr ⟨hLin, hB⟩
-  obtain ⟨hv, hld, hsz, hbs, hrt⟩ := hrun fp rd hlow hL
-  obtain ⟨hcs, hag, -⟩ := hS fp rd hlow hL
-  obtain ⟨hp, hdo, hh⟩ := F.holds hl hv hrt
-  refine ⟨_, hp, hdo, hh, hsz, hbs, ?_, F.loads_in (hbufs fp) hld⟩
-  change CallsMatch _ (flatCalls F.pre _) _ _
-  rw [hcs]
-  exact callsMatch_kids _ outs hag ho
 
 end
 end LeanVM.Guest.B1.Tables

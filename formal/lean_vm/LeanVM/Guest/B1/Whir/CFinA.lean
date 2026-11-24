@@ -22,7 +22,7 @@ non-final levels' records (`OsRec`): the point zero-padded and one plus it one-p
 (`finPtC`, `finPt1C`), each level's basis row (`finBdC`), scale (`finLsC`), product of
 coordinates (`finLaC`) and the inner chain (`finIchC`).
 
-`osFinishA_complete`: on memory holding the levels' records (`RecStored`), `μ` in `level_lam_invs`,
+The finish's blocks in sequence (`osFinishA_completeC`): on memory holding the levels' records (`RecStored`), `μ` in `level_lam_invs`,
 `G` and `T`, and those buffers at the pointers `PT`, `PT1`, `BD`, `LS`, `LA`, `ICH`, with
 `fold_final_msg` returning `Y`, each `level_residual` returning its level's chains and each
 `level_residual_slow` its level's slow sum (`finSlow`), the
@@ -164,7 +164,6 @@ def finEnd (c : OsCfg) (st : OsSt) (tch : ℕ) : ℕ :=
   let rs := osResiduals c st.rts tch (bs.2 + 1) (pts.2 + 1) (pts.2 + 3) (pts.2 + 5) 0 (c.levels.take c.yrLevel)
     st.mats (bs.2 + 3)
   (osOodWeights c tch (c.levels.headD default).logCols 1 c.levels.tail none rs.2).2.2 + 6
-
 
 /-! ## The honest words, read back -/
 

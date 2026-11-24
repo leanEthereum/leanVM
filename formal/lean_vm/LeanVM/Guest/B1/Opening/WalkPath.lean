@@ -19,10 +19,8 @@ a time (`walk_window`, the arm's order bits the window's), the cap leaf `cap·q�
 node reached and the parent's flag `flags·q` set, the cap and flags offset by the caller past the
 levels above the cap's leaves.
 
-`WalkOpens`: what the walk gives at the position `q` from the node `leaf`: the windows read, and
-for some siblings the cap leaf's cells the node `climbD leaf q sibs`, the parent's flag `1`.
 `oqWalk_sound`: the walk's statements holding, the leaf's halves its node, its windows (when read)
-the position's, give `WalkOpens` with its hinted cells the siblings (`oqPath_sound`,
+the position's, give the cap leaf's cells the node its hinted siblings climb to (`oqPath_sound`,
 `oqCap_sound`).
 -/
 
@@ -125,16 +123,6 @@ theorem oqWalk_winLoads {s : Oq} {cd : ℕ} {bp cap flags : V} {pr kL ch n : ℕ
   exact ⟨_, hC _ (by simp [oqCapT] : Stmt.atom (.load (.n (oqCq s ch + 1)) bp (oqNpw s + 1)) ∈ _)⟩
 
 /-! ## The walk -/
-
-/-- **What a walk gives** at the position `q` from the node `leaf`: its windows read, and for
-some `pd` siblings the parent's flag set and the cap leaf's cells holding the node reached, at
-the cap and flags the caller offset past the levels above the leaves. -/
-def WalkOpens (rd : Reader) (pd cd : ℕ) (wins cap flags : E) (q : ℕ) (leaf : Digest) : Prop :=
-  (∀ i < qwN (pd + cd) cd, LoadHolds rd wins i (gen ^ qwVal (pd + cd) cd q i)) ∧
-    ∃ sibs : List Digest, sibs.length = pd ∧
-      LoadHolds rd flags (q / 2 ^ (pd + 1)) 1 ∧
-      LoadHolds rd cap (2 * (q / 2 ^ pd)) (digestHalves (climbD leaf q sibs)).1 ∧
-      LoadHolds rd cap (2 * (q / 2 ^ pd) + 1) (digestHalves (climbD leaf q sibs)).2
 
 /-- **The walk, inline** (its statements holding at `σ`): from the leaf's halves at `kN, kN + 1`,
 its windows (when read) those of `q < 2^(pd + cd)`, the zero run at `pr`, it reads the windows,

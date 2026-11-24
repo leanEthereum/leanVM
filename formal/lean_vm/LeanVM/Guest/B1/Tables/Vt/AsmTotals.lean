@@ -28,15 +28,6 @@ open LeanVM.Protocol.EndToEnd.Complete (blockSel)
 
 @[expose] public section
 
-theorem vt_length_eqKernel_foldl : ∀ (pt out : List E),
-    (pt.foldl (fun out r ↦ out.map (· * (1 + r)) ++ out.map (· * r)) out).length =
-      out.length * 2 ^ pt.length
-  | [], out => by simp
-  | r :: pt, out => by
-    rw [List.foldl_cons, vt_length_eqKernel_foldl pt, List.length_append, List.length_map,
-      List.length_map, List.length_cons, pow_succ]
-    ring
-
 theorem vt_take3 (W : List E) (h : 3 ≤ W.length) :
     W.take 3 = [W.getD 0 0, W.getD 1 0, W.getD 2 0] := by
   match W, h with

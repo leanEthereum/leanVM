@@ -8,14 +8,15 @@
 module
 
 public import LeanVM.Guest.B1.KeccakGkr.LayerCPlaced
-public import LeanVM.Guest.B1.KeccakGkr.FlatFB
+public import LeanVM.Guest.B1.Tables.FlatAt
+public import LeanVM.Guest.Memory.UniformF
+public import LeanVM.Guest.Budget.Bounded
 public import LeanVM.Guest.Memory.LoopPre
 
 /-!
 # `keccak_layer`, complete and placed within a bound
 
-`layer_completeAtFB` (`LayerCPlacedBE`) is `layer_completeAtF` with the size of the layer's run
-bounded before the memory, by
+`layer_completeAtFB` (`LayerCPlacedBE`) bounds the size of the layer's run before the memory, by
 
   `layerWords fs first y KP KR = fs (layerName first) + (y + 120)
     + (fs (packLoopName first) + ⌊y/8⌋ * KP) + (fs (remLoopName first) + (y % 8) * KR)`:
@@ -28,8 +29,8 @@ which is when `y < 8`); the remainder loop's likewise (`y % 8` iterations of at 
 its frame, its frame alone when `8 ∣ y`).
 
 The hypotheses on the callees are fs-generic: each loop's run's words, per iteration and its one
-phantom frame (`TotalLeOn … LoopPre`, the form of `Count.wSKt_totalLeOn`). The proof is `layer_completeAtF`'s
-with `completeAt_flatOutFB`, the pure callees placed within their bounds by
+phantom frame (`TotalLeOn … LoopPre`, the form of `Count.wSKt_totalLeOn`). The proof is
+`completeAt_flatOutFBE`'s, the pure callees placed within their bounds by
 `completeAtDTB_of_relIn`, the honest valuation `layer_obl`.
 -/
 

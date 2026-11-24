@@ -22,8 +22,6 @@ public import LeanVM.Guest.Data.NameStrings
 The blocks (`LoopBlock`) of `da_verify_loop0` (blob `x`'s check, its root at `roots·x²`) and
 `da_pad_loop0` (a padding blob's root), each from the memory words it reads and writes;
 `loopPre_of_body` reads a block off a body checked as a block and its closing tail call.
-`cellL_rel`: a blob's cell loop `da_verify_blob_loop0`, bounded by the constant `g^128`, runs from
-every counter to its end when each cell's block holds (`CellBlk`).
 -/
 
 namespace LeanVM.Guest.B1.Da
@@ -71,23 +69,6 @@ theorem find_padL : coreProgram.find? name% «da_pad_loop0» = some (coreProgram
   find_of_idx dv_loops_idx.2
 
 /-! ## The blocks -/
-
-set_option maxRecDepth 20000 in
-/-- **Blob `x`** (`da_verify_loop0`): its check on the weights, its root at `roots·x²`. -/
-theorem blobL_block {x N w roots b0 b1 : E} (hc : coreProgram.Rel rd "da_verify_blob" [w] [b0, b1])
-    (h0 : LoadHolds rd (roots * (x * x)) 0 b0) (h1 : LoadHolds rd (roots * (x * x)) 1 b1) :
-    LoopBlock rd (coreProgram.getD idx% «da_verify_loop0» default) x N [w, roots] := by
-  obtain ⟨⟨hs, hl⟩, -, -⟩ := dv_loops_shape
-  refine ⟨Val.ofArgs [x, N, w, roots, b0, b1, x * x, roots * (x * x), word 2 0, x * word 2 0,
-    x * word 2 0 + N, word 2 0, x * word 2 0], by rw [params_of_shape hs hl]; rfl, ?_⟩
-  rw [loopPre_of_body dv_loops_body.1 (by decide)]
-  intro st hst
-  simp only [blobLPre, stepAtC, List.cons_append, List.nil_append, List.mem_cons,
-    List.not_mem_nil, or_false] at hst
-  rcases hst with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
-  all_goals simp (config := {failIfUnchanged := false}) only [Stmt.Holds, Atom.Holds, ofArgs_n,
-    List.getD_cons_succ, List.getD_cons_zero, List.map_cons, List.map_nil, and_true]
-  exacts [hc, h0, h1]
 
 set_option maxRecDepth 20000 in
 /-- **A padding blob's root** (`da_pad_loop0`) at `roots·n_blob²·x²`. -/
@@ -150,17 +131,6 @@ theorem cellL_step {w base : E} {k : ℕ} (hk : k < 128) (hb : CellBlk rd w base
     exact hn (by
       by_contra hc'
       exact hne (by rw [show k + 1 = 128 by omega]; exact e_add_eq_zero_iff.mpr rfl))
-
-/-- **A blob's cell loop runs** from every counter `k < 128` to its end, each cell's block holding. -/
-theorem cellL_rel {w base : E} (hb : ∀ k < 128, CellBlk rd w base k) :
-    ∀ k < 128, coreProgram.Rel rd name% «da_verify_blob_loop0» [gen ^ k, w, base] [] := by
-  have key : ∀ t k, k + 1 + t = 128 →
-      coreProgram.Rel rd name% «da_verify_blob_loop0» [gen ^ k, w, base] [] := by
-    intro t
-    induction t with
-    | zero => exact fun k hk => cellL_step (by omega) (hb k (by omega)) fun h => absurd h (by omega)
-    | succ t ih => exact fun k hk => cellL_step (by omega) (hb k (by omega)) fun _ => ih (k + 1) (by omega)
-  exact fun k hk => key (128 - k - 1) k (by omega)
 
 end
 end LeanVM.Guest.B1.Da

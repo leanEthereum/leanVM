@@ -16,7 +16,7 @@ An iteration's body is flat: its atoms and its path's `match`es of quiet arms (`
 holding statement by statement (`BlockOk`) walks (`walk_flatM`) with every event holding.
 `oqLoop1A_ok`, `oqLoop0A_ok`: its atoms by kind, its loads through the challenges, the final
 coefficients, the positions, the window pointers and windows, the flags, the cap leaves and the
-chain; no `frameAddr`, no `HeapBuf`. `oqQueryT_callS`: a query calls nothing.
+chain; no `frameAddr`, no `HeapBuf`, no call.
 -/
 
 namespace LeanVM.Guest.B1
@@ -176,13 +176,6 @@ theorem oqLoop0A_ok (s : Oq) : AtomsOk (AtomKind (OqIt0L s) fun _ _ ↦ False) (
       exact atomsOk_cons trivial (atomsOk_cons (Or.inr (Or.inr (Or.inr (Or.inl ⟨h, rfl, rfl⟩))))
         (atomsOk_cons trivial (atomsOk_cons trivial (atomsOk_cons trivial
         (atomsOk_cons (Or.inr (Or.inr (Or.inr (Or.inr ⟨h, rfl, rfl⟩)))) atomsOk_nil)))))
-
-/-! ## The calls -/
-
-/-- A query calls nothing (its walk is inline). -/
-theorem oqQueryT_callS (s : Oq) (x bp cap flags coefs hs : V) (b : ℕ) (emit : Bool) (pr : ℕ) :
-    (oqQueryT s x bp cap flags coefs hs b emit pr).filterMap Stmt.callS = [] :=
-  callS_flat (oqQueryT_flat _ _ _ _ _ _ _ _ _ _)
 
 end
 end LeanVM.Guest.B1

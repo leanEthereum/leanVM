@@ -17,9 +17,7 @@ import LeanVM.Guest.Value.FieldBits
 `opening_queries`' blocks are atoms, `match`es of atom arms (a query, `walk_path` inline) and calls (its
 loops). `FlatC ss`: every statement is an atom, a `match` of atom arms or
 a call. `holdsList_flatC`: such a block holds exactly when every statement does (`StmtOkC C`: a call
-holds in the call relation `C`), then `next`. `blockOkC_relN`: a block holding under the program's
-relation holds at a finite depth. `loop_iffC`, `guarded_loop_iffC`: `loop_iff`, `guarded_loop_iff`
-for a loop whose body's meaning reads the call relation (monotone, reached at a finite depth).
+holds in the call relation `C`), then `next`. `loop_iffC`: `loop_iff` for a loop whose body's meaning reads the call relation (monotone, reached at a finite depth).
 -/
 
 namespace LeanVM.Guest.B1
@@ -121,24 +119,6 @@ theorem stmtOkC_mono {C C' : CallRel} (hC : CallRel.Le C C') :
 theorem BlockOkC.monoC {C C' : CallRel} (hC : CallRel.Le C C') {ss : List Stmt}
     (h : BlockOkC C rd σ ss) : BlockOkC C' rd σ ss := fun s hs ↦ stmtOkC_mono hC s (h s hs)
 
-/-- **A block holding under the program's relation holds at a finite depth.** -/
-theorem blockOkC_relN (P : Core.Program) : ∀ {ss : List Stmt},
-    BlockOkC (P.Rel rd) rd σ ss → ∃ D, BlockOkC (P.relN rd D) rd σ ss
-  | [], _ => ⟨0, fun _ h ↦ absurd h (by simp)⟩
-  | s :: ss, h => by
-    obtain ⟨D, hD⟩ := blockOkC_relN P (ss := ss) (h.mono fun t ht ↦ List.mem_cons_of_mem _ ht)
-    have hs := h s (by simp)
-    have key : ∃ d, StmtOkC (P.relN rd d) rd σ s := by
-      match s, hs with
-      | .atom _, h => exact ⟨0, h⟩
-      | .match_ _ _, h => exact ⟨0, h⟩
-      | .call _ _ _, ⟨d, hd⟩ => exact ⟨d, hd⟩
-    obtain ⟨d, hd⟩ := key
-    refine ⟨max D d, fun t ht ↦ ?_⟩
-    rcases List.mem_cons.mp ht with rfl | ht
-    · exact stmtOkC_mono (relN_mono P (le_max_right D d)) _ hd
-    · exact stmtOkC_mono (relN_mono P (le_max_left D d)) _ (hD t ht)
-
 /-- The meaning of a flat loop body with calls at the arguments `args`. -/
 def FlatBodyC (C : CallRel) (rd : Reader) (params : List V) (A : List Stmt) (args : List E) : Prop :=
   ∃ σ : Val, params.map σ = args ∧ BlockOkC C rd σ A
@@ -200,43 +180,6 @@ theorem loop_iffC {P : Core.Program} {f : String} {ps : List E} {N : E}
         hK k, fun _ => ?_⟩⟩
       rw [gen_pow_mul_gen]
       exact relN_mono P (le_max_right D d') _ _ _ hd'
-
-/-- **A guarded `mul_range` loop whose body calls** (`guarded_loop_iff` for `loop_iffC`). -/
-theorem guarded_loop_iffC {P : Core.Program} {f : String} {ps : List E} {N : E}
-    {B : CallRel → E → Prop}
-    (hmono : ∀ {C C' : CallRel} {x : E}, CallRel.Le C C' → B C x → B C' x)
-    (hfin : ∀ {x : E}, B (P.Rel rd) x → ∃ D, B (P.relN rd D) x)
-    (hstep : ∀ d x, P.relN rd (d + 1) f (x :: ps) [] ↔
-      B (P.relN rd d) x ∧ IsInK (x * gen + N) ∧ (x * gen + N ≠ 0 → P.relN rd d f (x * gen :: ps) [])) :
-    (IsInK (1 + N) ∧ (1 + N ≠ 0 → P.Rel rd f (1 :: ps) [])) ↔
-      ∃ m < ordG, N = gen ^ m ∧ ∀ j < m, B (P.Rel rd) (gen ^ j) := by
-  have hl := loop_iffC (B := B) (fun h hb ↦ hmono h hb) (fun hb ↦ hfin hb) hstep 0
-  rw [pow_zero] at hl
-  constructor
-  · rintro ⟨hK, hrun⟩
-    by_cases h1 : 1 + N = 0
-    · refine ⟨0, by decide, ?_, fun j hj => absurd hj (Nat.not_lt_zero j)⟩
-      rw [pow_zero]; exact (e_add_eq_zero_iff.mp h1).symm
-    · obtain ⟨m, hm, hN, hfirst, hall⟩ := hl.mp (hrun h1)
-      refine ⟨m, ?_, hN, fun j hj => hall j (Nat.zero_le j) hj⟩
-      by_contra hge
-      rcases Nat.lt_or_ge ordG m with hgt | hle
-      · have : gen ^ (m - ordG) = N := by
-          obtain ⟨t, rfl⟩ : ∃ t, m = ordG + t := ⟨m - ordG, by omega⟩
-          rw [hN, pow_add, gen_pow_ordG, one_mul, Nat.add_sub_cancel_left]
-        exact hfirst (m - ordG) (Nat.sub_pos_of_lt hgt) (Nat.sub_lt (by omega) ordG_pos) this
-      · have hm' : m = ordG := by omega
-        rw [hm', gen_pow_ordG] at hN
-        exact h1 (by rw [hN]; exact e_add_self 1)
-  · rintro ⟨m, hm, hN, hall⟩
-    refine ⟨?_, fun h1 => ?_⟩
-    · rw [hN]
-      exact isInK_add (by rw [← pow_zero gen]; exact gen_pow_isInK 0) (gen_pow_isInK m)
-    have hm0 : 0 < m := by
-      rcases Nat.eq_zero_or_pos m with h | h
-      · exact absurd (show 1 + N = 0 by rw [hN, h, pow_zero]; exact e_add_self 1) h1
-      · exact h
-    exact hl.mpr ⟨m, hm0, hN, first_hit_of_lt hm hN, fun j _ hj => hall j hj⟩
 
 end
 end LeanVM.Guest.B1

@@ -17,8 +17,7 @@ public import LeanVM.Guest.B1.Whir.DataSpec
 `resLoop_iter`: at `x = g^j`, `j < N`, the loop body's statements before its recursive call hold
 at the values they define (`evalV` with the memory `rdMem rd`): the batch's positions read at
 `qpos·g^po·x^8`, the chains `chain[2j], chain[2j + 1]` advanced over them into
-`chain[2j + 2], chain[2j + 3]` (`rcC`). `resLoop_complete`: the loop holds of `1, g^N` and its
-arguments, entered behind its guard (`loop_complete`).
+`chain[2j + 2], chain[2j + 3]` (`rcC`).
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -263,29 +262,6 @@ theorem resLoop_iter {lvl : ℕ} {lv : OsLv} {hsv : List E} (hst : ResStatic lv 
     rw [hσ0 1 (by omega), hσ0 2 (by omega), hσ0 3 (by omega), hσ0 4 (by omega), hσ0 5 (by omega),
       hσ0 6 (by omega)]
     rfl
-
-/-- **The residual loop of a non-final level holds at its honest arguments**: entered at `1` with
-the bound `g^(Q/resBatch)`, on memory holding the positions at `qpos·g^posOff`, the basis row at
-`bd`,
-the high part at `hs` and the chains' buffer (`rcC`) at `chain`. -/
-theorem resLoop_complete {name : String} {lvl : ℕ} {lv : OsLv} {hsv : List E}
-    (hfn : FnIs name (osParams 7) (resLoopBody lvl lv name))
-    (hst : ResStatic lv hsv) (hpo : lv.posOff < u128Bound) (hn0 : 0 < lv.queries / resBatch)
-    {rd : Reader} {qpos bd hs chain mu : E} {D Pos : ℕ → E}
-    (hpos : ∀ k < lv.queries, LoadHolds rd qpos (lv.posOff + k) (Pos k))
-    (hD : ∀ t < lv.logCols, LoadHolds rd bd (lvl * ligColsCap + t) (D t))
-    (hhs : ∀ c < lv.folds, LoadHolds rd hs (lvl * hsStride + c) (hsv.getD c 0))
-    (hrc : ReadsAt rd chain (rcC lv D hsv Pos mu)) :
-    1 + gen ^ (lv.queries / resBatch) ≠ 0 →
-      coreProgram.Rel rd name [1, gen ^ (lv.queries / resBatch), qpos, bd, hs, chain, mu] [] := by
-  obtain ⟨fn, hf, hps, hb⟩ := hfn
-  rw [resLoopBody_split] at hb
-  have h := loop_complete (rd := rd) hf (resLoopA_flat lvl lv) hb (N := gen ^ (lv.queries / resBatch))
-    (rest := [qpos, bd, hs, chain, mu]) hn0 rfl fun j hj ↦ by
-      obtain ⟨σ, h1, h2, h3, h4⟩ := resLoop_iter (N := gen ^ (lv.queries / resBatch)) hst hpo hj hpos hD
-        hhs hrc
-      exact ⟨σ, by rw [hps]; exact h1, h2, h3, h4⟩
-  exact h.2
 
 end
 end LeanVM.Guest.B1.Whir

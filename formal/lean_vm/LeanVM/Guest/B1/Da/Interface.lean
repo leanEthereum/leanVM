@@ -45,9 +45,6 @@ open LeanVM.Guest.B1.Digest
 
 /-! ## Shared vocabulary -/
 
-/-- The table of `g^(2^j)` at `q`, `j < 34` (`exponent_tables`' second table, `g_squares`). -/
-def SquaresAt (rd : Reader) (q : E) : Prop := ∀ j < 34, LoadHolds rd q j (gen ^ 2 ^ j)
-
 /-- The two cells of a tree node from its children's: their digest. -/
 def nodeCells (l r : E × E) : E × E := digestHalves (keccak256 (cellsBytes [l.1, l.2, r.1, r.2]))
 
@@ -127,9 +124,6 @@ instance (k : ℕ) : Decidable (DlDepth k) := inferInstanceAs (Decidable (_ ∨ 
 
 /-- **The Statement's row cap is the guest's**: `LeanDa.maxRows` is `DA_MAX_ROWS`. -/
 theorem maxRows_eq : LeanDa.maxRows = guest_const% DA_MAX_ROWS := by decide
-
-/-- Its log is `DA_LOG_MAX_ROWS`. -/
-theorem logMaxRows_eq : LeanDa.logMaxRows = guest_const% DA_LOG_MAX_ROWS := rfl
 
 /-- **`da_levels(tree, 2^k, k)`**: the `2^k` leaves at `tree` (two cells each), and the function
 returns the root's cells (`cellRoot`). -/

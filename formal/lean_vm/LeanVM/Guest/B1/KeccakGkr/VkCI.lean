@@ -191,16 +191,6 @@ theorem loop_complete {name : String} {fn : Fn} (hf : coreProgram.find? name = s
   · rw [mul_assoc, ← pow_add]; exact inR_entry hs (by omega)
   · rw [mul_assoc, ← pow_add]; exact inR_entry hd (by omega)
 
-/-- **The openings' rounds, complete.** -/
-theorem plain_complete {k0 : ℕ} (hk : k0 < 2) (κ : ℕ) {L : Main.Layout} {args rets : List E}
-    (hpc : PlainCellsOk k0 args)
-    (hm : ∀ rd, MemL rd L → MeaningPlainRounds (plainCount k0) k0 rd args rets)
-    (hcur : ∀ k < 2 * plainCount k0, InR (RegionL L) (args.getD 7 0) k)
-    (hpt : ∀ k < plainCount k0, InR (RegionL L) (args.getD 9 0) k) :
-    CompleteAtD fs cert κ (plainName k0) L args (Returns rets) :=
-  completeAtD_of_relIn vkKidS_pure (by interval_cases k0 <;> simp [vkKidS, plainName])
-    fun rd _ hmem ↦ keccak_plain_rounds_relIn hk hpc (hm rd hmem) hcur hpt
-
 namespace VkData
 
 variable {D : VkData}

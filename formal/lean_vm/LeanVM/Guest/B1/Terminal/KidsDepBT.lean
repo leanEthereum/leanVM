@@ -11,6 +11,7 @@ module
 public import LeanVM.Guest.B1.Terminal.KidsDepB
 public import LeanVM.Guest.Budget.FlatShape
 public import LeanVM.Guest.Budget.Bounded
+public import LeanVM.Guest.B1.Tables.FlatAtT
 
 /-!
 # Dependent callees within their bounds, by name
@@ -36,16 +37,6 @@ theorem relAtIn_named {rd : Reader} {R D : ℕ → Prop} {fp n : ℕ} {f : Strin
     RelAtInT coreProgram fs cert rd R D fp n f args rets (Budget.NamedWithin fs f B) :=
   let ⟨t, ht⟩ := h
   ⟨t, ht, ht.1, by rw [ht.2.2.2.2.1]; exact hB⟩
-
-/-- Matching frames are as many as the callees. -/
-theorem kdbt_callsMatch_length {σ : Val} : ∀ {cs : List Call} {ks : List Kid}
-    {outs : List (List E × Layout)}, CallsMatch σ cs ks outs → cs.length = ks.length
-  | [], [], [], _ => rfl
-  | _ :: _, _ :: _, _ :: _, h => by rw [List.length_cons, List.length_cons, kdbt_callsMatch_length h.2.2.2]
-  | [], [], _ :: _, h => h.elim
-  | [], _ :: _, _, h => h.elim
-  | _ :: _, [], _, h => h.elim
-  | _ :: _, _ :: _, [], h => h.elim
 
 theorem kidsAt_length : ∀ (ks : List KidD) (prev outs : List (List E × Layout)),
     outs.length = ks.length → (kidsAt ks prev outs).length = ks.length
@@ -184,48 +175,18 @@ theorem completeAt_flatDepRBT {f : String} {fn : Fn} (hf : coreProgram.find? f =
   obtain ⟨hB, hLk⟩ := Main.memL_append.mp hLm
   have hLo := memL_outsL hI hLk
   obtain ⟨σ, hp, hdo, hh, hsz, hbuf, hcm, hld⟩ := hσ fp outs hlen ho rd hlow hB hLin hLo
-  have hw := walk_flat σ vs pre hst hdo
-  rw [← hb] at hw
-  obtain ⟨i1, i2, i3, i4, i5⟩ := flat_parts σ pre hst
-  have hsat := walk_sat (P := coreProgram) fn.body (coreProgram_wf fn (List.mem_of_find?_eq_some hf)) hh
-  rw [hw] at hsat
-  have hes : ∀ e ∈ pre.flatMap (flEvs σ), e.Holds rd σ := fun e he => (hsat.1 e he).1
-  have hr : vs.map σ = rets := hsat.2
-  have hal : allocs σ (pre.flatMap (flEvs σ)) = sizes := by rw [i2, hsz]
-  have hown' : ∀ i, RegionL (bufL (fp + fs f) sizes (own fp)) i →
-      ownData cert fp (fp + fs f) f (allocs σ (pre.flatMap (flEvs σ))) (pre.flatMap (flEvs σ)) i :=
-    fun i hi => Or.inl (by rw [hal]; exact bufL_region _ _ _ (hown fp) i hi)
-  have hk := hK rd σ (calls (pre.flatMap (flEvs σ))) (fun i => RegionL Lin i ∨
-      ownData cert fp (fp + fs f) f (allocs σ (pre.flatMap (flEvs σ))) (pre.flatMap (flEvs σ)) i)
-    (fun _ => False) (by rw [i4]; exact hcm) hlow hLk (hkm fp outs ho rd hlow hB hLin hLo)
-    ((hkr fp outs ho).mono_R fun i hi => hi.imp_right (hown' i))
-  have hb' : fp + fs f + sizes.sum = fp + fs f + (allocs σ (pre.flatMap (flEvs σ))).sum := by
-    rw [hal]
-  rw [hb'] at hk
-  -- the number of calls
-  have hcl : (calls (pre.flatMap (flEvs σ))).length ≤
-      (List.zipWith (Budget.NamedWithin fs) names Bs).length := by
-    rw [i4, kdbt_callsMatch_length hcm, kidsAt_length _ _ _ hlen, List.length_zipWith,
-      ← (hn fp).length_eq, (hkc fp).length, Nat.min_self]
-  obtain ⟨t, ⟨htn, htv, htb, htp, htt, htl, htd⟩, ks, rfl, hkT⟩ :=
-    relAtInWT_of_walk (P := coreProgram) (fs := fs) (cert := cert) (R := RegionL Lin)
-    (D := RegionL []) (Dk := fun i => False ∨ outRegion (kidsAt (kids fp) [] outs) outs i) (N := N)
-    (fp := fp) coreProgram_wf hf (Or.inl hl) hp hw hr hes (by rw [hal, i1]; exact hbuf)
-    (by rw [i3, haddrs]; simp) _ hk (fun A hA => by
-      rw [i5] at hA
-      obtain ⟨q, hq, rfl⟩ := List.mem_map.mp hA
-      obtain ⟨i, hi, h | h | h⟩ := hld q (filterMap_of_loadsEv hni hq)
-      · exact ⟨i, hi, Or.inr (Or.inl h)⟩
-      · exact ⟨i, hi, Or.inl (hown' i h)⟩
-      · exact ⟨i, hi, Or.inr (Or.inr (Or.inr h))⟩)
+  obtain ⟨t, ht, ks, rfl, hkT⟩ := relAtInT_flat (R := RegionL Lin) (D := RegionL []) hf hl hb hst haddrs
+    (hown fp) hp hdo hh hsz hbuf _
+    (hK rd σ _ _ _ hcm hlow hLk (hkm fp outs ho rd hlow hB hLin hLo) (hkr fp outs ho))
+    (fun q hq => (hld q (filterMap_of_loadsEv hni hq)).imp fun _ h =>
+      ⟨h.1, h.2.imp_right (Or.imp_right Or.inr)⟩)
     (fun i hi => by obtain ⟨q, hq, _⟩ := hi; simp at hq)
-  refine ⟨_, ⟨htn, htv, htb, htp, by rw [htt, hal], htl, htd⟩, σ, _, ks, rfl,
-    fun fn' es' vs' hf' hw' ↦ ?_⟩
-  rw [hf] at hf'
-  cases hf'
-  rw [hw] at hw'
-  cases hw'
-  exact ⟨hcl, hkT⟩
+  refine ⟨_, ht, σ, _, ks, rfl, fun fn' es' vs' hf' hw' ↦ ?_⟩
+  rw [calls_of_walk_flat hf hb hst hdo fn' es' vs' hf' hw']
+  refine ⟨?_, hkT⟩
+  refine (callsMatch_length hcm).trans_le ?_
+  rw [kidsAt_length _ _ _ hlen, List.length_zipWith, ← (hn fp).length_eq,
+    (hkc fp).length, Nat.min_self]
 
 end
 end LeanVM.Guest.B1

@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.KeccakGkr.VkKidsBW
 /-!
 # `verify_keccak` within its words
 
-`VkCompleteAtBK fs cert κ Bvk`: `VkCompleteAtK` by trees of at most `Bvk` words.
+`VkCompleteAtBK fs cert κ Bvk`: `verify_keccak`'s completeness (`VkCV`) by trees of at most `Bvk` words.
 `verify_keccak_completeAtB_fs`: it holds at the deployed frame sizes `B2C.fs` with
 `vkBound = B2C.fs "verify_keccak" + 440 + 52659`: the frame, the seven buffers (`τ + 412`
 words, `τ ≤ 28`) and the callees (`kidsB_fs_le`), by `completeAt_flatGB` on the same
@@ -28,7 +28,7 @@ open LeanVM.Protocol.KeccakGkr
 
 @[expose] public section
 
-/-- **`verify_keccak`, placed, within `Bvk` words** (`VkCompleteAtK` bounded). -/
+/-- **`verify_keccak`, placed, within `Bvk` words.** -/
 def VkCompleteAtBK (fs : String → ℕ) (cert : String → V → ℕ) (κ Bvk : ℕ) : Prop :=
   ∀ (τ : ℕ) (f chis outs xs op point slices : List E) (word : E) (s' : Fs)
     (curE chiE olE zvE slE tbE stE : ℕ), 9 ≤ τ → τ ≤ 28 → τ ≤ chis.length → outs.length = 25 →

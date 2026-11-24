@@ -17,8 +17,7 @@ On a word `w`, the honest run hints each window as `g^n`, `n` the window's bits 
 (`WindowsExp`, Interp's `execHint`: `n = Σ_{j<width} 2^j·bit(start + j)`, `winHintVal`,
 `winHintVal_eq`: the word's integer shifted and cut). So:
 
-* position `j` is `qwPosOf d w j` (its `d` bits from `j·d`), its window `i` `qwVal d cd (qwPosOf d w j) i`
-  (`qwVal_hint`: the hint's value at the window's place), and the `wins` run holds `qwRunW`, the
+* position `j` is `qwPosOf d w j` (its `d` bits from `j·d`), its window `i` `qwVal d cd (qwPosOf d w j) i`, and the `wins` run holds `qwRunW`, the
   positions' windows in order (`qwRunList`, `128 / d · qwN` words);
 * rest window `r` is `qwRestOf d w r`, the bits `qwRestWin d r` of the word;
 * the digits on tiles of an integer sum back to it (`tS_digits`): a position's windows to the
@@ -194,26 +193,6 @@ theorem winHintVal_eq (x : E) {start width : ℕ} (h : start + width ≤ 128) :
 
 theorem qw_gpowE_eq {n : ℕ} (h : n < 2 ^ 64) : gpowE n = gen ^ n := by
   rw [gpowE, gpowK_eq (by unfold u128Bound; omega), gen_pow_eq_ofK]
-
-/-- **The honest windows are the interpreter's hints**: window `i` of position `j` is `g^` the
-hint's value of the window's bits of the word, at the window's place `j·d + off`. -/
-theorem qwVal_hint {d cd : ℕ} (hs : QwShape d cd) (w : E) {j i : ℕ} (hj : j < 128 / d)
-    (hi : i < qwN d cd) :
-    gen ^ qwVal d cd (qwPosOf d w j) i =
-      gpowE (winHintVal w (j * d + (qwWin d cd i).1) (qwWin d cd i).2) := by
-  obtain ⟨hw1, hw7, -, hd⟩ := hs.2.2.2.2.2.1 i hi
-  have hjd : j * d + d ≤ 128 := by
-    have := Nat.div_mul_le_self 128 d
-    have : (j + 1) * d ≤ 128 / d * d := Nat.mul_le_mul_right _ hj
-    nlinarith
-  rw [winHintVal_eq w (by omega), qw_gpowE_eq (lt_of_lt_of_le (Nat.mod_lt _ (by positivity))
-    (Nat.pow_le_pow_right (by decide) (by omega)))]
-  congr 1
-  have hp : 2 ^ d = 2 ^ (qwWin d cd i).1 * 2 ^ (d - (qwWin d cd i).1) := by
-    rw [← Nat.pow_add]; congr 1; omega
-  rw [qwVal, qwPosOf, Nat.shiftRight_eq_div_pow, Nat.shiftRight_eq_div_pow,
-    Nat.shiftRight_eq_div_pow, hp, Nat.mod_mul_right_div_self, Nat.div_div_eq_div_mul, ← Nat.pow_add,
-    Nat.mod_mod_of_dvd _ (Nat.pow_dvd_pow 2 (by omega))]
 
 end
 end LeanVM.Guest.B1

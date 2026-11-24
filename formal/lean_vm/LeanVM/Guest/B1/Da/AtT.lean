@@ -15,9 +15,7 @@ public import LeanVM.Guest.B1.Da.AtBase
 /-!
 # Helpers for honest shapes
 
-`kidsFromInT_nil_of`: `KidsFromIn` is `KidsFromInT` with no predicates. `kidsT_true`: trivial
-predicates hold of any callees. `relAtInT_nodeHonest_true`: a composition by a node with callees
-under no predicate has the honest shape with trivial predicates. `relAtInT_dmono`,
+`kidsT_true`: trivial predicates hold of any callees. `relAtInT_dmono`,
 `completeAtDT_lin_mono`: as `relAtIn_dmono`, `completeAtD_lin_mono`.
 -/
 
@@ -32,37 +30,12 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL memL_append)
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
-theorem kidsFromInT_nil_of {rd : Reader} {σ : Val} {R : ℕ → Prop} :
-    ∀ (cs : List Call) (Dacc : ℕ → Prop) (b n : ℕ) (Dend : ℕ → Prop),
-      KidsFromIn coreProgram fs cert rd σ R Dacc cs b n Dend →
-      KidsFromInT coreProgram fs cert rd σ R Dacc cs [] b n Dend
-  | [], _, _, _, _, h => h
-  | c :: cs, _, _, _, _, ⟨m, n', Rk, Dk, hn, hR, hc, hk⟩ => ⟨m, n', Rk, Dk, hn, hR, by
-      cases ht : c.taken
-      · simp only [ht, Bool.false_eq_true, ↓reduceIte] at hc ⊢
-        exact hc
-      · simp only [ht, ↓reduceIte] at hc ⊢
-        exact hc.relAtInT, kidsFromInT_nil_of cs _ _ _ _ hk⟩
-
 theorem kidsT_true : ∀ (cs : List Call) (ks : List Tree) (n : ℕ),
     KidsT cs (List.replicate n fun _ => True) ks
   | [], _, _ => trivial
   | _ :: _, _, 0 => trivial
   | _ :: _, [], _ + 1 => trivial
   | _ :: cs, _ :: ks, n + 1 => ⟨fun _ => trivial, kidsT_true cs ks n⟩
-
-/-- **A composition's node, its callees under no predicate, has its honest shape.** -/
-theorem relAtInT_nodeHonest_true {rd : Reader} {σ : Val} {R D : ℕ → Prop} {fp n : ℕ} {f : String}
-    {args rets : List E} {fn : Fn} {es : List Ev} {vs : List V} {Q : Val → Prop}
-    {cs : Val → List Call} {bs : Val → List ℕ} {Ts0 : List (Tree → Prop)} {k : ℕ}
-    (h : RelAtInT coreProgram fs cert rd R D fp n f args rets
-      (fun t => ∃ ks, t = .node f σ (allocs σ es) ks ∧ KidsT (calls es) Ts0 ks))
-    (hf : coreProgram.find? f = some fn) (hw : walk σ fn.body = .ret es vs) (hQ : Q σ)
-    (hcs : calls es = cs σ) (hbs : allocs σ es = bs σ) (hk : (cs σ).length ≤ k) :
-    RelAtInT coreProgram fs cert rd R D fp n f args rets
-      (NodeHonest coreProgram f Q cs bs (List.replicate k fun _ => True)) :=
-  relAtInT_nodeHonest (h.mono fun _ ⟨ks, he, _⟩ => ⟨ks, he, kidsT_true _ _ _⟩) hf hw hQ hcs hbs
-    (by simpa using hk)
 
 theorem relAtInT_dmono {rd : Reader} {R D D' : ℕ → Prop} {fp n : ℕ} {f : String}
     {args rets : List E} {T : Tree → Prop}

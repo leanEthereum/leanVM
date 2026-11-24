@@ -7,7 +7,9 @@
 module
 
 public import LeanVM.Guest.B1.Bits.BusGrindPlaced
-public import LeanVM.Guest.B1.Tables.FlatAtTE
+public import LeanVM.Guest.B1.Tables.FlatAtT
+public import LeanVM.Guest.Budget.BoundedR
+public import LeanVM.Guest.Exact.Kids
 
 /-!
 # `bus_grind_check`, placed and exact

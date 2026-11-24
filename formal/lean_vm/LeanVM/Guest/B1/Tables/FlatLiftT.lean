@@ -13,11 +13,11 @@ public import LeanVM.Guest.Budget.LiftB
 /-!
 # Flat functions, placed, by a tree of honest shape
 
-`flat_completeAtT`: `flat_completeAt` by a tree `NodeHonest F.name Q (flatCalls F.pre)
-(fun _ ↦ sizes) Ts` when the honest valuation satisfies `Q` on every memory holding the layout,
+`flat_completeAtTBR`: `F` complete (`FlatLift`) by a tree `NodeHonest F.name (Q rd) (flatCalls F.pre)
+(fun _ ↦ sizes) Ts` when the honest valuation satisfies `Q rd` on every memory `rd` holding the layout,
 `Ts` covers the body's calls, and the predicate `Ts[i]` holds of every valid tree of call `i`'s
 callee at its honest arguments, on every memory defined below `2^κ` holding the layout
-(`CompleteAtD.toT_on` on the callee's `Lift.completeAtD_of_relIn`). `flat_completeAtTBR`: `Q` a property of the memory too (`CompleteAtDTBR`). `flat_completeAtOutTB`: the function's buffers returned.
+(`CompleteAtD.toT_on` on the callee's `Lift.completeAtD_of_relIn`). `flat_completeAtOutTB`: the function's buffers returned.
 -/
 
 namespace LeanVM.Guest.B1.Tables

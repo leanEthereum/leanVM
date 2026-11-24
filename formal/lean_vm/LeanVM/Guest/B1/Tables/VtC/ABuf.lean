@@ -25,23 +25,6 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier
 
 @[expose] public section
 
-/-- A flattening of blocks of `S` words holds block `i`'s word `k` at `S·i + k`. -/
-theorem getD_flatMap_const {S : ℕ} (f : ℕ → List E) (hf : ∀ i, (f i).length = S) :
-    ∀ (m i k : ℕ), i < m → k < S →
-      ((List.range m).flatMap f).getD (S * i + k) 0 = (f i).getD k 0
-  | 0, _, _, hi, _ => absurd hi (by omega)
-  | m + 1, i, k, hi, hk => by
-    rw [List.range_succ, List.flatMap_append]
-    have hlen : ((List.range m).flatMap f).length = S * m := by
-      rw [List.length_flatMap]
-      simp [hf, List.sum_replicate, Nat.mul_comm]
-    rcases Nat.lt_or_ge i m with h | h
-    · rw [List.getD_append _ _ _ _ (by rw [hlen]; nlinarith)]
-      exact getD_flatMap_const f hf m i k h hk
-    · obtain rfl : i = m := by omega
-      rw [List.getD_append_right _ _ _ _ (by rw [hlen]; omega), hlen]
-      simp
-
 /-! ## The shared selector tables -/
 
 /-- Table `t`'s `shared_eq` words: nibble `j`'s eq levels at `32 j`, zeros past them, `8(n + 1)` words for

@@ -129,51 +129,10 @@ def seqB : Stmt → Bool
   | .atom _ | .call .. | .callIf .. | .dispatch .. => true
   | _ => false
 
-theorem noLoadIte_of_seqB {s : Stmt} (h : seqB s = true) : noLoadIte s = true := by
-  cases s <;> simp_all [seqB, noLoadIte]
-
-/-- **A statement of a sequence of such statements holds** when the sequence does. -/
-theorem holds_of_mem_seq {C : CallRel} {rd : Reader} {σ : Val} {kret : List E → Prop} :
-    ∀ (ss : List Stmt) {next : Prop}, ss.all seqB = true → Stmt.HoldsList C rd σ ss next kret →
-      ∀ s ∈ ss, Fwd.SHolds C rd σ s
-  | [], _, _, _, _, hs => absurd hs (by simp)
-  | s :: ss, next, hok, h, t, ht => by
-    simp only [List.all_cons, Bool.and_eq_true] at hok
-    have hrest : Stmt.HoldsList C rd σ ss next kret := by
-      cases s with
-      | atom _ => exact h.2
-      | call _ _ _ => exact h.2
-      | callIf _ _ _ => exact h.2.2
-      | dispatch _ _ _ _ => exact h.2
-      | _ => simp [seqB] at hok
-    rcases List.mem_cons.mp ht with he | he
-    · subst he
-      cases t with
-      | atom _ => exact h.1
-      | call _ _ _ => exact h.1
-      | callIf _ _ _ => exact ⟨h.1, h.2.1⟩
-      | dispatch _ _ _ _ => exact h.1
-      | _ => simp [seqB] at hok
-    · exact holds_of_mem_seq ss hok.2 hrest t he
-
-/-- A statement read at a position of a block is in it. -/
-theorem mem_of_slice {ss : List Stmt} {s : Stmt} {i : ℕ}
-    (h : tbStmtsEqb [s] ((ss.drop i).take 1) = true) : s ∈ ss := by
-  have e := tbStmtsEqb_sound h
-  have : s ∈ (ss.drop i).take 1 := by rw [← e]; simp
-  exact List.mem_of_mem_drop (List.mem_of_mem_take this)
-
 /-- Neither a call, a conditional call nor a dispatch. -/
 def noCallSB : Stmt → Bool
   | .call .. | .callIf .. | .dispatch .. => false
   | _ => true
-
-theorem callSF_none {σ : Val} {s : Stmt} (h : noCallSB s = true) : Stmt.callSF σ s = none := by
-  cases s with
-  | call => simp [noCallSB] at h
-  | callIf => simp [noCallSB] at h
-  | dispatch => simp [noCallSB] at h
-  | _ => rfl
 
 theorem dispOk_of_noCall {σ : Val} {s : Stmt} (h : noCallSB s = true) : DispOk σ s := by
   cases s with

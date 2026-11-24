@@ -15,7 +15,7 @@ import LeanVM.Guest.Data.ValNames.«keccak_layer__L»
 /-!
 # `keccak_layer`, complete and placed
 
-`layer_completeAtF`: for a layer's honest data `D` (the claim's projection check, the nonce's
+`layer_completeAtFB` (`LayerCPlacedBE`): for a layer's honest data `D` (the claim's projection check, the nonce's
 grind and the layer's final check holding, `1 ≤ y ≤ 30`), the claim's layout `CL` holding its
 record (`ClaimLay.Ok`), the stream at `ptr bcur`, the next claim's record at `ptr bout` and the
 window tables at `ptr tbE`, on memories defined below `2^κ`, `11 ≤ κ`, `keccak_layer__L{first}`
@@ -27,7 +27,7 @@ the local point, the next claim's lanes and flips).
 The honest valuation (`layerσ`) with the buffers' bases as its oracle (`layerW`) satisfies the
 body (`layer_body_complete`), the inlined `grind_check`'s windows those of the grind's word
 `D.gw first` and its table reads in the window tables (`gcInline_ptrs_of_good`); the eight-round and remainder loops are pure callees loading from the
-layout (`layer_kids`), placed by `completeAtD_of_relIn`; `completeAt_flatOutF` places the rest.
+layout (`layer_kids`), placed by `completeAtDTB_of_relIn`; `completeAt_flatOutFBE` places the rest.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -163,8 +163,8 @@ variable {fs : String → ℕ} {cert : String → V → ℕ}
 
 set_option maxHeartbeats 300000 in
 set_option maxRecDepth 20000 in
-/-- **The layer's honest valuation, placed from `b`**: the obligation `completeAt_flatOutF`
-(and `completeAt_flatOutFB`) asks of the body, on a memory holding the caller's words and the
+/-- **The layer's honest valuation, placed from `b`**: the obligation `completeAt_flatOutFBE`
+asks of the body, on a memory holding the caller's words and the
 buffers. -/
 theorem layer_obl {first : ℕ} (hf : first < 2) {κ : ℕ} (hκ : 11 ≤ κ) (D : LayerData)
     (CL : ClaimLay) (bcur bout tbE : ℕ) {p0 p1 iota st : E}
@@ -415,60 +415,5 @@ theorem exists_and8_drop {α : Type} {p1 p2 p3 p4 p5 p6 p7 p8 : α → Prop}
     ∃ x, p1 x ∧ p2 x ∧ p3 x ∧ p4 x ∧ p5 x ∧ p6 x ∧ p7 x :=
   h.imp fun _ h ↦ ⟨h.1, h.2.1, h.2.2.1, h.2.2.2.1, h.2.2.2.2.1, h.2.2.2.2.2.1, h.2.2.2.2.2.2.1⟩
 
-set_option maxRecDepth 20000 in
-/-- **`keccak_layer` is complete, placed**, for its two specializations. -/
-theorem layer_completeAtF {first : ℕ} (hf : first < 2) {κ : ℕ} (hκ : 11 ≤ κ) (D : LayerData)
-    (CL : ClaimLay) (bcur bout tbE : ℕ) {p0 p1 iota st : E}
-    (hcl : D.cap.length = 5)
-    (hw : first = 1 → (p0, p1) = Keccak.scalarCells D.w0 dsObserve)
-    (hy1 : 1 ≤ D.y) (hy30 : D.y ≤ 30) (hpl : D.product.length = 47)
-    (hpm : D.packMsgs.length = D.y) (hlm : D.localMsgs.length = 11)
-    (hproj : projectedOf D.c D.product + iota * sumE D.c.mu = D.c.value)
-    (hgrind : ((D.s0 first).absorbAll D.product dsObserve).GrindOk sGrindBits D.nonce)
-    (hfin : LayerFinal D.c (D.s0 first) D.product D.nonce D.packMsgs D.localMsgs D.t)
-    (hCL : CL.Ok first D.c D.y) :
-    CompleteAtF fs cert κ (layerName first)
-      (fun fp ↦ layerLin D first CL bcur bout tbE (fp + fs (layerName first)))
-      (D.cap ++ [p0, p1, ptr bcur, gen ^ D.y, gen ^ (D.y / 8), gen ^ (D.y % 8), ptr CL.bclaim,
-        ptr bout, iota, ptr tbE, st])
-      (fun fp rets Lout ↦ rets = D.rets first (ptr bcur) ∧
-        Lout = layerBufs D first (ptr bcur) (fp + fs (layerName first))) := by
-  obtain ⟨fn, hfind, hbody, hparams⟩ := layer_fn hf
-  obtain ⟨hflat, haddrs, halloc, -, -, hloads⟩ := layerPre_kernel hf
-  have hlocL : (D.locPt first).length = 11 := by
-    rw [LayerData.locPt, LayerData.loc, layerLocal, localRunF_length, hlm]
-  refine completeAt_flatOutF (fs := fs) (cert := cert) hfind (layer_loop hf) κ _ _
-    (fun _ ↦ D.rets first (ptr bcur)) _ (hbody.trans (layerT_pre first)) hflat haddrs
-    (layerPre_noLoadIte hf)
-    (layerSizes D) (fun _ ↦ layerOwn D first (ptr bcur)) (fun _ ↦ ?_) (fun _ ↦ ⟨rfl, rfl⟩)
-    (fun fp ↦ layerKids D first CL bcur bout tbE (fp + fs (layerName first))) ?_ ?_ ?_ ?_
-  · -- the buffers' words fit
-    simp only [layerOwn, layerSizes, List.forall₂_cons, List.Forall₂.nil, and_true]
-    refine ⟨by rw [LayerData.chs_length hpm], by rw [recWords_length], by rw [hlocL],
-      by rw [lanesOut_length], by simp [flipsOf]⟩
-  · -- the callees, placed
-    intro fp k hk ht
-    simp only [layerKids, List.mem_cons, List.not_mem_nil, or_false] at hk
-    rcases hk with rfl | rfl
-    · have hne : 1 + gen ^ (D.y / 8) ≠ 0 := by simpa using ht
-      exact completeAtD_of_relIn layerKidS_pure (packLoopName_mem first)
-        fun rd _ hm ↦ (layer_kids hf D CL bcur bout tbE _ hy30 hpl hpm hlm hm).1 hne
-    · have hne : 1 + gen ^ (D.y % 8) ≠ 0 := by simpa using ht
-      exact completeAtD_of_relIn layerKidS_pure (remLoopName_mem first)
-        fun rd _ hm ↦ (layer_kids hf D CL bcur bout tbE _ hy30 hpl hpm hlm hm).2 hne
-  · intro fp k hk _ i hi
-    rw [layerKids_lin k hk] at hi
-    obtain ⟨q, hq, h1, h2⟩ := hi
-    rcases List.mem_append.mp hq with hq | hq
-    · exact Or.inl ⟨q, hq, h1, h2⟩
-    · exact Or.inr ⟨q, hq, h1, h2⟩
-  · intro fp rd hB hLin k hk
-    rw [layerKids_lin k hk]
-    exact Main.memL_append.mpr ⟨hLin, hB⟩
-  · -- the honest valuation
-    intro fp outs hout rd hlow hB hLin
-    rw [hparams, hbody]
-    exact exists_and8_drop (layer_obl hf hκ D CL bcur bout tbE hcl hw hy1 hy30 hpl hpm hlm hproj
-      hgrind hfin hCL _ outs hout rd hlow hB hLin)
 end
 end LeanVM.Guest.B1.VerifySub

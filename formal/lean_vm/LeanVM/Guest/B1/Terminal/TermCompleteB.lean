@@ -51,7 +51,7 @@ variable {fs : String → ℕ} {cert : String → V → ℕ}
 
 /-! ## The callees within their bounds -/
 
-/-- **A prefix chain, complete, placed, within `Beqc`** (`eqc_kid_complete`), `eq_prefix_chain`'s
+/-- **A prefix chain, complete, placed, within `Beqc`**, `eq_prefix_chain`'s
 words at most `Beqc`. -/
 theorem eqc_kid_completeB (κ : ℕ) (hκ : 6 ≤ κ) {b ba bb : ℕ} {s : E} {as bs : List E} {cg : E}
     {L : Main.Layout} (hn : as.length ≤ 40) (hbs : bs.length = as.length) (hcg : cg = gen ^ as.length)
@@ -75,8 +75,8 @@ theorem eqc_kid_completeB (κ : ℕ) (hκ : 6 ≤ κ) {b ba bb : ℕ} {s : E} {a
   · have := hm0 j (by rw [eqChain_length]; omega)
     simpa [eqChain] using this
 
-/-- **The public input's chain's loop, complete, placed, within `m·K15` and its frame**
-(`l15_kid_complete`), `check_opening_terminal_loop0`'s run's words at most `K15` per unit of its
+/-- **The public input's chain's loop, complete, placed, within `m·K15` and its frame**,
+`check_opening_terminal_loop0`'s run's words at most `K15` per unit of its
 end's exponent and its
 one phantom frame. -/
 theorem l15_kid_completeB (κ : ℕ) {b bp m : ℕ} {rm glm : E} {ps : List E} {L : Main.Layout}

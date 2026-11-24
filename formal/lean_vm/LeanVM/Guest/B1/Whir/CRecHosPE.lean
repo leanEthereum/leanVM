@@ -50,13 +50,6 @@ def open_stacked_completeAtBPE_Spec : Prop :=
             (OsOut μ w) (fun rd t => OsPopsT μ r target S root xs os w rd t ∧ t.Every (ExactAt coreProgram rd))
             (osBosAt fs Bnd μ)
 
-theorem open_stacked_completeAtBPE_Spec.toBP (h : open_stacked_completeAtBPE_Spec) :
-    open_stacked_completeAtBP_Spec :=
-  fun μ r h1 h2 h3 h4 fs cert κ Bnd hrf hcons hκ hleaf hfs htl S root target cur tabs xs os w s' roots' hrun hcaps
-    Lin hLin =>
-  (h μ r h1 h2 h3 h4 fs cert κ Bnd hrf hcons hκ hleaf hfs htl S root target cur tabs xs os w s' roots' hrun hcaps
-    Lin hLin).mono le_rfl fun _ _ h => h.1
-
 /-- **`open_stacked` is complete placed within its bound by a tree popping its levels' `level_queries` entries and
 exact at every node.** -/
 theorem open_stacked_completeAtBPE : open_stacked_completeAtBPE_Spec := by

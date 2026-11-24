@@ -26,9 +26,9 @@ For `r` blobs of cells `syms i h` (`128` symbols each) padded to `2^L`, the chal
   running sum after `h` columns.
 * `blobLeaves syms i`: blob `i`'s leaves, its cells' digests; `regionCells syms z i`: its region,
   `641` words: the tree over its leaves (`510`), two zeros, the running sums `0 … 128`.
-* `blobsCells`, `rowbaseCells bb`, `rootsCells`: `da_verify`'s three buffers (the regions, their
-  bases `g^(bb + 641 i)`, the tree over the blob roots and the padding blobs' roots).
-* `readsAt_block`: a block of a buffer of equal blocks; `runSum_succ`, `runSum_zero`,
+* `blobsCells`, `rootsCells`: `da_verify`'s buffers of the regions and of the tree over the blob
+  roots and the padding blobs' roots.
+* `runSum_succ`, `runSum_zero`,
   `runSum_full` (orthogonality).
 -/
 
@@ -63,9 +63,6 @@ def regionCells (i : ℕ) : List E :=
 /-- The regions of the `r` blobs, `641` words each. -/
 def blobsCells : List E := (List.range r).flatMap (regionCells syms z)
 
-/-- The regions' bases at `bb`. -/
-def rowbaseCells (bb : ℕ) : List E := (List.range r).map fun i => gen ^ (bb + 641 * i)
-
 /-- The blob roots and the padding blobs' roots. -/
 def rootLeaves : List (E × E) := (List.range (2 ^ L)).map fun i => digestHalves (blobLeaf r syms i)
 
@@ -83,10 +80,6 @@ theorem length_regionCells (syms : ℕ → ℕ → List E) (z : E) (i : ℕ) :
     length_treeCells (by rw [length_blobLeaves]; norm_num)]
   simp
 
-theorem length_blobsCells (r : ℕ) (syms : ℕ → ℕ → List E) (z : E) :
-    (blobsCells r syms z).length = 641 * r := by
-  rw [blobsCells, length_flatMap_range _ 641 r (length_regionCells syms z), mul_comm]
-
 theorem length_rootLeaves (r L : ℕ) (syms : ℕ → ℕ → List E) : (rootLeaves r L syms).length = 2 ^ L := by
   simp [rootLeaves]
 
@@ -97,26 +90,6 @@ theorem length_rootsCells (r L : ℕ) (syms : ℕ → ℕ → List E) : (rootsCe
   omega
 
 /-! ## Reading blocks -/
-
-/-- **A block of a buffer of equal blocks**: block `i` of `(range n).flatMap f` at `g^(b + m i)`. -/
-theorem readsAt_block {rd : Reader} {b m n : ℕ} {f : ℕ → List E} (hf : ∀ j, (f j).length = m)
-    (h : ReadsAt rd (gen ^ b) ((List.range n).flatMap f)) {i : ℕ} (hi : i < n) :
-    ReadsAt rd (gen ^ (b + m * i)) (f i) := by
-  intro k hk
-  have hk' : k < m := by rw [hf i] at hk; exact hk
-  have hlen := length_flatMap_range f m n hf
-  have hmi : m * i + k < m * n := by
-    calc m * i + k < m * i + m := by omega
-      _ = m * (i + 1) := by ring
-      _ ≤ m * n := Nat.mul_le_mul_left _ hi
-  have hmi' : m * i + k < n * m := by rw [Nat.mul_comm n m]; exact hmi
-  have hl := h (m * i + k) (by rw [hlen]; exact hmi')
-  have hv : ((List.range n).flatMap f)[m * i + k]'(by rw [hlen]; exact hmi') = (f i)[k] := by
-    rw [← List.getD_eq_getElem _ 0, ← List.getD_eq_getElem _ 0]
-    exact flatMap_getD f m hf 0 n i k hi hk'
-  rw [hv] at hl
-  rw [pow_add, loadHolds_mul_gen_pow]
-  exact hl
 
 /-- Word `k` of a buffer read at its base. -/
 theorem loadHolds_of_reads {rd : Reader} {p : E} {xs : List E} (h : ReadsAt rd p xs) {k : ℕ}

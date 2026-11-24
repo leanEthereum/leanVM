@@ -49,10 +49,6 @@ theorem l10_calls : l10Pre.filterMap Main.Stmt.callS =
     [(some (.n 59), name% «verify_tables_loop0», [.n 61, .n 1, .n 2, .n 3, .n 4, .n 5], [])] := by
   decide +kernel
 
-theorem gen_pow_pred_inv {K : ℕ} (hK : 0 < K) : gen ^ K * vtWInvGen = gen ^ (K - 1) := by
-  obtain ⟨m, rfl⟩ : ∃ m, K = m + 1 := ⟨K - 1, by omega⟩
-  rw [pow_succ, mul_assoc, mul_comm gen, vtWInvGen_mul, mul_one, Nat.add_sub_cancel]
-
 /-- **`verify_tables_loop0` loads from `R`**, every iteration `k < K`. -/
 theorem loop10_relIn {rd : Reader} {R : ℕ → Prop} {K : ℕ}
     {rounds tabs rkb cprod : E} (hr : PtrIn R rounds (7 * (K + 1))) (hc : PtrIn R rkb K)

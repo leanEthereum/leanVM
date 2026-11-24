@@ -75,25 +75,6 @@ def vtPads05 : List (List ℕ) :=
     [2, 0, 0, 1747952066141424100, 1654286879329379778],
     [2, 0, 0, 8500057116360352059, 16929593379567477321]]
 
-def vtPads20 : List (List ℕ) :=
-  [[0], [0], [0], [0]]
-
-def vtPads21 : List (List ℕ) :=
-  [[0], [0], [0], [0]]
-
-def vtPads22 : List (List ℕ) :=
-  [[0], [0]]
-
-def vtPads23 : List (List ℕ) :=
-  [[0], [0], [0], [0]]
-
-def vtPads24 : List (List ℕ) :=
-  [[0], [0], [0], [0]]
-
-def vtPads25 : List (List ℕ) :=
-  [[0], [0], [0], [0], [0], [0], [0], [0], [0], [0], [0], [0], [0], [0], [0], [0], [0], [0], [0],
-    [0], [0], [0], [0], [0], [0], [0], [0]]
-
 theorem vtPadTie00 : vtPadTieCheck (refSideC 0 .push) vtPads00
     (paddingRowK (tables.getD 0 default)) = true := by decide +kernel
 

@@ -32,7 +32,7 @@ cap.
 * `oqsOf s cd odd loop N rd σ V`: the function's queries, from its frame `σ` (the odd first query
   at level 0) and the frames `V loop (g^j :: oqLoopArgs s σ) []` of its `N` iterations.
 
-`opening_queries_sound_w_Spec`: under a call relation `C ≤ Rel` that unfolds at `V`
+Under a call relation `C ≤ Rel` that unfolds at `V`
 (`UnfoldsV`), a valuation `σ` holding the body of a deployed specialization, its positions and
 window pointers naming positions (`QueryPosOk`), gives `MeaningOpeningQueriesW` at
 `oqsOf … σ V`.
@@ -98,7 +98,6 @@ def oqsOf (s : Oq) (cd odd : ℕ) (loop : String) (N : ℕ) (rd : Reader) (σ : 
     List QW :=
   (if odd = 1 then [oqQueryW s cd rd (σ (.n 16)) 17 true σ] else []) ++
     (List.range N).flatMap fun j ↦ oqIterOf s cd rd (V loop (gen ^ j :: oqLoopArgs s σ) [])
-
 
 /-- **`opening_queries` is sound with its queries named**, in the program `P`, at the specialization
 `name` (loop helper `loop`, shape `sh`) at a cap depth `1 ≤ cd ≤ 8`: under a call relation

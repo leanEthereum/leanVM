@@ -55,18 +55,6 @@ theorem l10_body {rd : Reader} {N rounds tabs rkb cprod x : E} (e : ℕ)
   exact ⟨cur, l5, claim, l6, a0, m0, a1, m1, a2, m2, a3, m3, a4, m4, c0, r0, c2, r2, c3, r3, n7, n8,
     n9, n10, n11, lrk, l12, l13, cp, lc0, lc1, hK, hnext, trivial⟩
 
-/-- One depth bounds finitely many depth-monotone facts. -/
-theorem l10_depth {P : ℕ → ℕ → Prop} (hmono : ∀ j a b, a ≤ b → P j a → P j b) :
-    ∀ n, (∀ j < n, ∃ d, P j d) → ∃ D, ∀ j < n, P j D
-  | 0, _ => ⟨0, fun j hj => absurd hj (Nat.not_lt_zero j)⟩
-  | n + 1, h => by
-    obtain ⟨D, hD⟩ := l10_depth hmono n fun j hj => h j (by omega)
-    obtain ⟨d, hd⟩ := h n (by omega)
-    refine ⟨max D d, fun j hj => ?_⟩
-    rcases Nat.lt_or_ge j n with hj' | hj'
-    · exact hmono j D _ (le_max_left _ _) (hD j hj')
-    · rw [show j = n by omega]; exact hmono n d _ (le_max_right _ _) hd
-
 /-- **`verify_tables_loop0`, completely**: every iteration's facts give the loop from `1` below
 `g^n`. -/
 theorem l10_complete {rd : Reader} {rounds tabs rkb cprod : E} {n : ℕ} (hn0 : 0 < n)
