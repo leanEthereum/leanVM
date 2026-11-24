@@ -2292,15 +2292,15 @@ theorem programmedGlobalChainTrajectoryMaterial_initialRelation
         chainKey.chainDomain chain step ≠ key.leafDomain := by
       intro chainKey chain step heq
       cases chainKey <;> cases key <;> simp [ChainKey.chainDomain, ChainKey.leafDomain] at heq
-    unfold hashCacheLookup
-    rw [programmedGlobalChainTrajectoryMaterial_none_of_notChain parameter left hleft
-        key.leafDomain hdomain (Concrete.CacheView.keyLeafInput parameter key
-          (Concrete.CacheReplay.keyOneTimePublicKey left.2.2 parameter left.1 key))
-          ((atHashAddress_tweakableHashInput_iff parameter _ _ _).2 rfl),
-      programmedGlobalChainTrajectoryMaterial_none_of_notChain parameter right hright
-        key.leafDomain hdomain (Concrete.CacheView.keyLeafInput parameter key
-          (Concrete.CacheReplay.keyOneTimePublicKey right.2.2 parameter right.1 key))
-          ((atHashAddress_tweakableHashInput_iff parameter _ _ _).2 rfl)]
+    -- Both sides at `Option HashOutput`: `none` at the two inputs' `Range`s would make the kernel
+    -- compare the inputs by evaluating them.
+    have hnone (material : GlobalChainTrajectoryMaterial)
+        (hmaterial : material ∈ support (programmedGlobalChainTrajectoryMaterial parameter)) :
+        hashCacheLookup material.2.2 (Concrete.CacheView.keyLeafInput parameter key
+          (Concrete.CacheReplay.keyOneTimePublicKey material.2.2 parameter material.1 key)) = none :=
+      programmedGlobalChainTrajectoryMaterial_none_of_notChain parameter material hmaterial
+        key.leafDomain hdomain _ ((atHashAddress_tweakableHashInput_iff parameter _ _ _).2 rfl)
+    rw [hnone left hleft, hnone right hright]
 
 structure CoupledGlobalChainKeygenView where
   start : ChainKey → ChainIndex → Digest

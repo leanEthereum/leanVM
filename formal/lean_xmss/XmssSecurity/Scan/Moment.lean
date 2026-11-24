@@ -71,20 +71,21 @@ theorem encoding_step {p : ℝ} {Q V C n F : ℕ} (hp : 1 / 2 ^ 21 ≤ p) (hp' :
   have hsq := sq_nonneg (momentκ * D - (3 - 2 * p) / 2)
   have hκ : momentκ = 1 / 2 ^ 74 := rfl
   have hamgm : (3 - 2 * p) * D - momentκ * D ^ 2 ≤ 9 * 2 ^ 72 := by
-    have h1 : momentκ * ((3 - 2 * p) * D - momentκ * D ^ 2) ≤ 9 / 4 := by nlinarith
+    have h9 : (3 - 2 * p) ^ 2 ≤ 9 := by linarith [mul_nonneg hp0.le (by linarith : (0 : ℝ) ≤ 3 - p)]
+    have h1 : momentκ * ((3 - 2 * p) * D - momentκ * D ^ 2) ≤ 9 / 4 := by linarith
     rw [hκ] at h1 ⊢
     linarith
   have hbud : momentκ * (F - 1) * (1 - p) * u ≤ 2 ^ 74 := by
     have : (F - 1) * (1 - p) * u ≤ 2 ^ 127 * 2 ^ 21 := by
-      have h1 : (F - 1) * (1 - p) ≤ 2 ^ 127 := by nlinarith
+      have h1 : (F - 1) * (1 - p) ≤ 2 ^ 127 := by linarith [mul_nonneg hF1 hp0.le]
       have h2 : 0 ≤ (F - 1) * (1 - p) := mul_nonneg hF1 (by linarith)
       calc (F - 1) * (1 - p) * u ≤ 2 ^ 127 * u := mul_le_mul_of_nonneg_right h1 hu0
         _ ≤ 2 ^ 127 * 2 ^ 21 := by gcongr
     rw [hκ, mul_assoc, mul_assoc, ← mul_assoc ((F : ℝ) - 1)]
     linarith
-  have hlin : (1 - p) * u ≤ 2 ^ 21 := by nlinarith
+  have hlin : (1 - p) * u ≤ 2 ^ 21 := by linarith
   have hK : momentK = 2 ^ 76 := rfl
-  have hCn' : (C : ℝ) - (2 - p) * (2 * n) ≤ -(3 - 2 * p) * n := by nlinarith
+  have hCn' : (C : ℝ) - (2 - p) * (2 * n) ≤ -(3 - 2 * p) * n := by linarith
   have : (3 - 2 * p) * x - (3 - 2 * p) * n = (3 - 2 * p) * D := by rw [hD]; ring
   linarith
 
