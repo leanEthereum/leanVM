@@ -57,6 +57,10 @@ RES_SPLIT = 8
 # a body of more statements than `HON_SPLIT` has its honest valuation's parts checked apart (`honB_of`): in one
 # evaluation its route check is the heaviest declaration of its module
 HON_SPLIT = 2000
+# such a body's pointer check reads its cells from a trie (`RouteFast.lean`) when its loads' pointer indices sum to more
+# than `PTR_TRIE` times its cells: the list walks the trie saves cost a step an index, building the trie costs about
+# `PTR_TRIE` steps a cell
+PTR_TRIE = 64
 # a body with a frame run of more values than `FA_RUN` has its frame run cells at returns checked `FA_B` values at a
 # time (`CoreMode.faRetOk_of_kchunks`): one evaluation over a long run is the heaviest declaration of its module
 FA_RUN = 64
@@ -73,6 +77,34 @@ def nstmts(body):
         elif s[0] == 'match':
             t += sum(nstmts(a) for a in s[2])
     return t
+
+
+def ptr_trie(k):
+    """Whether `k`'s pointer check reads its cells from a trie (`PTR_TRIE`), its cells counted as the variables its
+    body names."""
+    params, body = heap.CORE[k]
+    ptrs, names = [], set()
+
+    def walk(b):
+        for st in b:
+            if st[0] == 'ite':
+                walk(st[2]); walk(st[3])
+            elif st[0] == 'match':
+                for arm in st[2]:
+                    walk(arm)
+            else:
+                if st[0] == 'a' and st[1][0] == 'load':
+                    ptrs.append(st[1][2])
+                stack = [st]
+                while stack:
+                    x = stack.pop()
+                    if isinstance(x, int):
+                        if x < 1 << 20:
+                            names.add(x)
+                    elif isinstance(x, (list, tuple)):
+                        stack.extend(x)
+    walk(body)
+    return sum(ptrs) > PTR_TRIE * len(names)
 
 
 def long_body(k):
@@ -130,28 +162,32 @@ def res_chunks(k, po):
 
 
 def res_block(k, po, p):
-    """The text of `k`'s namespace in the module of its heap certificate (`DataC`, `DataLC` or `Data`), or ''."""
+    """The text of `k`'s namespace in the module of its heap certificate (`DataC`, `DataLC` or `Data`, which
+    `callc.py`, `loopcc.py` and `heap.py` write before this step runs)."""
     for g, m in ((po[k][0], 'DataC'), (po[k][0], 'DataLC'), (p, 'Data')):
         f = os.path.join(GEN, g, m + '.lean')
         if not os.path.exists(f):
             continue
         s = open(f, encoding='utf-8').read()
         i = s.find('namespace LeanVM.Guest.Fn.«%s»\n' % k)
-        if i >= 0 and '\n  res := ' in s[i:s.find('\nend LeanVM.Guest.Fn.«%s»' % k, i)]:
-            return s[i:s.find('\nend LeanVM.Guest.Fn.«%s»' % k, i)]
-    return ''
+        j = s.find('\nend LeanVM.Guest.Fn.«%s»' % k, i)
+        if i >= 0 and '\n  res := ' in s[i:j]:
+            return s[i:j]
+    raise SystemExit(f'core: no heap certificate of {k} in Gen/{po[k][0]}/DataC, DataLC or Gen/{p}/Data (run heap.py first)')
 
 
 def res_tags(k, blk, name=None):
     """`resFamFrom`'s tags (`restag.py`) of `k`'s residual list `name` (a chunk of `res`), else of its inline `res`;
-    `None` when none skips a family or the list is not found."""
+    `None` when none skips a family or `res` is a sum of chunks (decided whole)."""
     import restag
     if name is not None:
         m = re.search(r'\ndef %s : List CoreMode\.CRes :=\n(.*?)\n\n' % name, blk, re.S)
-    else:
-        m = re.search(r'\n  res := (\[.*?\])\n  [a-z]', blk + '\n  z', re.S)
-    if not m:
+    elif '\n  res := (' in blk:
         return None
+    else:
+        m = re.search(r'\n  res := (\[.*?\])\n(?=  [a-z]|\n|$)', blk + '\n', re.S)
+    if not m:
+        raise SystemExit(f'core: no residual list {name or "res"} of {k}')
     ts = restag.tags(k, m.group(1), route.sigs().get(k))
     return ts if ts and any(ts) else None
 
@@ -391,25 +427,26 @@ def chain(items, final):
     return out
 
 
-def align_ctx(k):
+def align_ctx(k, strict=True):
     """`k`'s alignment context as the `bridge` step wrote it: `(module, name)`, the one with its cells packed ahead
-    (`alignCtxP`) for a function aligned over code slices, else `alignCtx`, in its own windows' module or its pack's."""
+    (`alignCtxP`) for a function aligned over code slices, else `alignCtx`, in its own windows' module or its pack's;
+    none (`strict`: an error) when neither exists."""
     own = os.path.join(GUEST, 'Bridge', 'AlignCtx', k, 'Ctx.lean')
     if os.path.exists(own):
         packed = 'alignCtxP' in open(own, encoding='utf-8').read()
         return f'LeanVM.Guest.Bridge.AlignCtx.«{k}».Ctx', 'alignCtxP' if packed else 'alignCtx'
     pack = heap.pack_of()[k][0]
-    if not os.path.exists(os.path.join(GUEST, 'Bridge', 'Align', f'{pack}.lean')):
+    if os.path.exists(os.path.join(GUEST, 'Bridge', 'Align', f'{pack}.lean')):
+        return f'LeanVM.Guest.Bridge.Align.«{pack}»', 'alignCtx'
+    if strict:
         raise SystemExit(f'core: no alignment context for {k}')
-    return f'LeanVM.Guest.Bridge.Align.«{pack}»', 'alignCtx'
+    return None
 
 
 def ctx_module(k, g):
     """The module of `k`'s alignment context (`align_ctx`), else its pairing's, which has it."""
-    try:
-        return align_ctx(k)[0]
-    except SystemExit:
-        return quote(pair_mod(g, k))
+    c = align_ctx(k, strict=False)
+    return c[0] if c else quote(pair_mod(g, k))
 
 
 def long_loop(k, j, hp, frame_mod, gl):
@@ -649,7 +686,7 @@ def main(check=False):
             HEADER(mod=mod, what='The core route\'s checks of `%s` and %d more.' % (ks[0], len(ks) - 1)) +
             ''.join('public import %s\n' % m for m in sorted(imps)) + 'import all Statement.Data.Bytecode\nimport all Statement.Data.AdviceHints\n\nset_option Elab.async false\n' + core_file(ks, body))
         # the route's checks read the core data only, not the core checks: they run beside them
-        rimps = {'LeanVM.Guest.CoreMode.Route', 'LeanVM.Guest.CoreMode.RouteFast', 'LeanVM.Guest.CoreMode.ResTag', fmod}
+        rimps = {'LeanVM.Guest.CoreMode.Route', fmod}
         oks, hons, decls = [], [], []
         for i, k in enumerate(ks):
             j = R[k]['j']
@@ -668,6 +705,8 @@ def main(check=False):
                     # each residual checked against its family only (`ResTag.lean`), not every family before it
                     ts = res_tags(k, blk, c)
                     pf = (f'CoreMode.all_of_tagged (ts := [{", ".join(map(str, ts))}]) {DK}' if ts else 'by decide +kernel')
+                    if ts:
+                        rimps.add('LeanVM.Guest.CoreMode.ResTag')
                     hons.append(f'theorem res{i}_{c} : {fk}.{c}.all {fam} = true := {pf}\n')
                 hons.append(f'theorem res{i}_ok : CoreMode.resOk {fk}.cfun = true := by\n'
                             f'  rw [CoreMode.resOk, show {fk}.cfun.H.res = ({" ++ ".join(fk + "." + c for c in rch)}) from rfl]\n'
@@ -677,6 +716,7 @@ def main(check=False):
             elif rch == [] and k not in LONG:
                 ts = res_tags(k, res_block(k, po, p))
                 if ts:
+                    rimps.add('LeanVM.Guest.CoreMode.ResTag')
                     fk = f'Fn.«{k}»'
                     hons.append(f'theorem res{i}_ok : CoreMode.resOk {fk}.cfun = true := '
                                 f'CoreMode.resOk_of_tagged (ts := [{", ".join(map(str, ts))}]) {DK}\n')
@@ -695,9 +735,12 @@ def main(check=False):
                          ('ret', f'(Bridge.stmtsOf {fn}.body).all (CoreMode.retCellB {x})', 'its returned values\' cells'),
                          ('sel', f'(CoreMode.selGo {x} {fn}.params {fn}.body [] {fn}.body || CoreMode.loopBC {fn})', 'its `match`es\' selectors'),
                          ('rest', f'CoreMode.honRest {x} {fn}', 'the rest of its frame')]
+                trie = ptr_trie(k)
+                if trie:
+                    rimps.add('LeanVM.Guest.CoreMode.RouteFast')
                 for nm, st, doc in parts:
                     # the pointers' cells read from a trie (`RouteFast.lean`), not the cells' list
-                    fast = 'rw [CoreMode.ptrCellB_eq]; ' if nm == 'ptr' else ''
+                    fast = 'rw [CoreMode.ptrCellB_eq]; ' if nm == 'ptr' and trie else ''
                     hons.append(f'theorem hon{i}_{nm} : {st} = true := by {fast}decide +kernel\n')
                 hb = (f'(by rw [CoreMode.honB_of hon{i}_body hon{i}_ptr hon{i}_ret hon{i}_sel hon{i}_rest{"".join(", " + x for x in rw)}]; '
                       f'decide +kernel)')
