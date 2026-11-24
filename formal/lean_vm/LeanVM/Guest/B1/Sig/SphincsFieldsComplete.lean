@@ -77,7 +77,7 @@ theorem eq_eOfNat128_cellNat (x : E) : x = eOfNat128 (cellNat x) := by
   conv_lhs => rw [eq_ofLimbs x]
   rw [eOfNat128, cellNat]
   rw [show (kToNat (x.limb 0) + 2 ^ 64 * kToNat (x.limb 1)) / 2 ^ 64 = kToNat (x.limb 1) by omega,
-    ← ofBits_mod, show (kToNat (x.limb 0) + 2 ^ 64 * kToNat (x.limb 1)) % 2 ^ 64 = kToNat (x.limb 0) by omega,
+    ← K.ofBits_mod, show (kToNat (x.limb 0) + 2 ^ 64 * kToNat (x.limb 1)) % 2 ^ 64 = kToNat (x.limb 0) by omega,
     ofBits_kToNat, ofBits_kToNat]
 
 theorem sFieldsSplit : sBitsHint ++ sBooleans ++ sForsFields ++ sLeafShifts ++ sMdBytes ++ sCheck =

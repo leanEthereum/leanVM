@@ -196,6 +196,13 @@ theorem mul_limbs (a0 a1 b0 b1 : K) :
 /-- `K.ofBits 0 = 0`. -/
 theorem K.ofBits_zero : K.ofBits 0 = 0 := rfl
 
+/-- `K.ofBits 1 = 1`. -/
+theorem K.ofBits_one : K.ofBits 1 = 1 := rfl
+
+/-- `K.ofBits` reads only the low `64` bits. -/
+theorem K.ofBits_mod (n : ℕ) : K.ofBits (n % 2 ^ 64) = K.ofBits n :=
+  congrArg BF64.ofBitVec (BitVec.eq_of_toNat_eq (by simp))
+
 /-- A word below `2^64` is read back exactly. -/
 theorem K.toNat_ofBits {n : ℕ} (hn : n < 2 ^ 64) : (K.ofBits n).toBitVec.toNat = n := by
   simpa [K.ofBits] using hn

@@ -28,8 +28,6 @@ open LeanVM.Parameters
 theorem e_add_eq_zero_iff {a b : E} : a + b = 0 ↔ a = b := by
   rw [add_eq_zero_iff_eq_neg, CharTwo.neg_eq]
 
-theorem ofBits_zero : K.ofBits 0 = 0 := rfl
-
 /-- The word `2^s` is `1 <<< s`. -/
 private theorem ofNat_two_pow_mul {s v : ℕ} :
     BitVec.ofNat 64 (2 ^ s * v) = BitVec.ofNat 64 v <<< s := by

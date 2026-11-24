@@ -159,7 +159,7 @@ theorem sDigests_sound (h : AtomsHold rd σ sDigests) :
 theorem word_eq128 {a b : Nat} (ha : a < 2 ^ 64) :
     word a b = eOfNat128 (a + 2 ^ 64 * b) := by
   unfold word eOfNat128
-  rw [← ofBits_mod (a + 2 ^ 64 * b), show (a + 2 ^ 64 * b) % 2 ^ 64 = a by omega,
+  rw [← K.ofBits_mod (a + 2 ^ 64 * b), show (a + 2 ^ 64 * b) % 2 ^ 64 = a by omega,
     show (a + 2 ^ 64 * b) / 2 ^ 64 = b by omega]
 
 /-- **The message, sound**: the claim's keys and its message's two cells loaded. -/

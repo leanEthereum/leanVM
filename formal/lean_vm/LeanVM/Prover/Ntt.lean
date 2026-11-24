@@ -86,15 +86,10 @@ def normHom (c : ℕ) : K →+ K where
   map_zero' := by simp [normVanishingAt]
   map_add' := normVanishingAt_add c
 
-theorem ofBits_mod (n : ℕ) : K.ofBits (n % 2 ^ 64) = K.ofBits n := by
-  simp only [K.ofBits]
-  congr 1
-  exact BitVec.eq_of_toNat_eq (by simp [BitVec.toNat_ofNat])
-
 /-- **`Ŵ_c(x_n)` from the table.** -/
 theorem hatAt_eq {c : ℕ} (hc : c < 64) (n : ℕ) : hatAt c n = normVanishingAt c (K.ofBits n) := by
   simp only [hatAt]
-  rw [foldl_range_ite, zero_add, hatTable_getD hc, ← ofBits_mod,
+  rw [foldl_range_ite, zero_add, hatTable_getD hc, ← K.ofBits_mod,
     ofBits_eq_sum (Nat.mod_lt _ (by positivity))]
   change _ = normHom c _
   rw [map_sum]

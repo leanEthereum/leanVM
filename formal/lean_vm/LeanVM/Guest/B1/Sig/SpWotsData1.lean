@@ -11,7 +11,6 @@ public import LeanVM.Guest.B1.Sig.SpWotsLayout
 import LeanVM.Guest.B1.Sig.Decide
 public import LeanVM.Guest.B1.Common.Basic
 import LeanVM.Guest.Value.Tower
-import LeanVM.Guest.Value.FieldBits
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«sp_wots»
 
@@ -82,7 +81,7 @@ theorem spPadCell : byteWord 1072 1 + byteWord 1087 0x80 = word 1 (2 ^ 63) := by
   have e1 : byteWord 1072 1 = word 1 0 := rfl
   have e2 : byteWord 1087 0x80 = word 0 (2 ^ 63) := rfl
   rw [e1, e2]
-  simp only [word, Value.ofLimbs_add, Value.ofBits_zero, add_zero, zero_add]
+  simp only [word, Value.ofLimbs_add, K.ofBits_zero, add_zero, zero_add]
 
 theorem spHeadT_length : spHeadT.length = 127 := by decide +kernel
 
