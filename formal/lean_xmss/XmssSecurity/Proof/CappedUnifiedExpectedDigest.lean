@@ -1,12 +1,7 @@
 module
 
 public import XmssSecurity.Proof.CappedEncodingExpectedBound
-public import XmssSecurity.Proof.CappedUnifiedStructuralCollision
-public import XmssSecurity.Proof.CacheReplayEval
-public import XmssSecurity.Proof.DetailedExecution
 public import XmssSecurity.Proof.CappedChain.EncodingQueryBound
-public import XmssSecurity.Proof.IdealStatement
-public import XmssSecurity.Proof.StatementLemmas
 public import XmssSecurity.Proof.LossDecomposition
 
 @[expose] public section

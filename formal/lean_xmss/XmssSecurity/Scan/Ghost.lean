@@ -1,7 +1,6 @@
 module
 
 public import XmssSecurity.Proof.CappedUnifiedExpectedDigest
-public import XmssSecurity.Proof.CappedEncodingGameTrace
 public import XmssSecurity.Scan.Frame
 
 @[expose] public section

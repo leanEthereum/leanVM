@@ -1,7 +1,6 @@
 module
 
 public import XmssSecurity.Proof.CappedEncodingActionTrace
-public import XmssSecurity.Proof.CappedSigningCacheTrace
 public import XmssSecurity.Proof.EncodingEventProbability
 
 @[expose] public section

@@ -1,6 +1,5 @@
 module
 
-public import XmssSecurity.Proof.HashInputLemmas
 public import XmssSecurity.Proof.HashAddress
 import all Init.Data.Sum.Basic
 

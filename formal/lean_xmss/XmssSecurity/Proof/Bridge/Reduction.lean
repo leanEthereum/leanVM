@@ -1,7 +1,6 @@
 module
 
 public import XmssSecurity.Proof.Bridge.Game
-public import XmssSecurity.Proof.Seeded.Presampling
 
 @[expose] public section
 

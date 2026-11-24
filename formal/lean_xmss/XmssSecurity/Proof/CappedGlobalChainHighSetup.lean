@@ -3,7 +3,6 @@ module
 public import XmssSecurity.Proof.CappedGlobalChainOutputUniformity
 public import XmssSecurity.Proof.CappedGlobalCausalSetup
 public import XmssSecurity.Proof.MarginalCoupling
-public import XmssSecurity.Proof.StatementLemmas
 
 @[expose] public section
 

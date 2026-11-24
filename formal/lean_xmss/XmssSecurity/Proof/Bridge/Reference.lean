@@ -3,8 +3,6 @@ module
 public import XmssSecurity.Proof.Deterministic.RequestSampling
 public import XmssSecurity.Proof.Deterministic.ReferenceSource
 public import XmssSecurity.Proof.Deterministic.MemoGame
-public import XmssSecurity.Proof.Deterministic.World
-public import XmssSecurity.Proof.ConsistentQueryBound
 
 @[expose] public section
 

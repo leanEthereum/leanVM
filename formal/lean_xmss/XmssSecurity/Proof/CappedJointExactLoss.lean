@@ -1,8 +1,6 @@
 module
 
 public import XmssSecurity.Proof.CachedSelectionBound
-public import XmssSecurity.Proof.CappedUnifiedExpectedDigest
-public import XmssSecurity.Proof.LossDecomposition
 
 @[expose] public section
 

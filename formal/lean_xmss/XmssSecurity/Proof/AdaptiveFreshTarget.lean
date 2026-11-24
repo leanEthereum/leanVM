@@ -1,7 +1,6 @@
 module
 
 public import XmssSecurity.Proof.HashInputLemmas
-public import XmssSecurity.Proof.StatementLemmas
 public import XmssSecurity.Proof.Execution
 public import XmssSecurity.Proof.RandomOracle
 

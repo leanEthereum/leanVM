@@ -1,15 +1,10 @@
 module
 
-public import XmssSecurity.Proof.CappedGlobalKeygen
 public import XmssSecurity.Proof.CappedGlobalTreeCacheCorrespondence
 public import XmssSecurity.Proof.CappedChain.ChainTracedGame
-public import XmssSecurity.Proof.PrecomputedKeygenCache
 public import XmssSecurity.Proof.CappedGlobalChainOrigin
-public import XmssSecurity.Proof.CappedChain.ChainRevealFiltering
 public import XmssSecurity.Proof.CappedChain.SignatureChainValue
 public import XmssSecurity.Proof.RevealProbeOracleSimulation
-public import XmssSecurity.Proof.CappedChain.CausalSigningKeygenCoupling
-public import XmssSecurity.Proof.StatementLemmas
 
 @[expose] public section
 

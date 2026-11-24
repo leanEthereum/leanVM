@@ -1,7 +1,6 @@
 module
 
 public import XmssSecurity.Proof.HiddenValue
-public import XmssSecurity.Proof.EvalDistEq
 public import VCVio.OracleComp.Constructions.SampleableType
 
 @[expose] public section

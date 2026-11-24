@@ -1,7 +1,6 @@
 module
 
 public import XmssSecurity.Proof.TreeQueryBound
-public import XmssSecurity.Proof.StatementLemmas
 
 @[expose] public section
 

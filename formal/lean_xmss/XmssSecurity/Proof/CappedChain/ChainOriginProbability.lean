@@ -1,7 +1,6 @@
 module
 
 public import XmssSecurity.Proof.CappedChain.ChainEventDecomposition
-public import XmssSecurity.Proof.WinningEventReduction
 
 @[expose] public section
 

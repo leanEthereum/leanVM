@@ -1,10 +1,7 @@
 module
 
 public import XmssSecurity.Proof.CappedExactFirstLaneSourceCoupling
-public import XmssSecurity.Proof.CappedGlobalFirstLaneExperiment
-public import XmssSecurity.Proof.CappedGlobalChainHighReduction
 public import XmssSecurity.Proof.CappedChain.DirectQueryAccounting
-public import XmssSecurity.Proof.StateLens
 public import XmssSecurity.Proof.EagerTraceInvariant
 
 @[expose] public section

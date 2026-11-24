@@ -1,7 +1,6 @@
 module
 
 public import XmssSecurity.Proof.CappedChain.ChainOriginProbability
-public import XmssSecurity.Proof.ChainHiddenTable
 
 @[expose] public section
 

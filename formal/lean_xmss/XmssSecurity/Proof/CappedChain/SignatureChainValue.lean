@@ -1,7 +1,5 @@
 module
 
-public import XmssSecurity.Proof.PrecomputedKeygenCache
-public import XmssSecurity.Proof.ChainOraclePresampling
 public import XmssSecurity.Proof.CappedChain.ChainHiddenTable
 
 @[expose] public section

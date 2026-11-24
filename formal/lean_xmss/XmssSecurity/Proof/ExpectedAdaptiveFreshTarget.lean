@@ -1,7 +1,6 @@
 module
 
 public import XmssSecurity.Proof.AdaptiveFreshTarget
-public import XmssSecurity.Proof.StatementLemmas
 public import XmssSecurity.Proof.ExpectedQueryCount
 
 @[expose] public section

@@ -1,7 +1,6 @@
 module
 
 public import XmssSecurity.Proof.HashInputLemmas
-public import XmssSecurity.Proof.StatementLemmas
 
 @[expose] public section
 

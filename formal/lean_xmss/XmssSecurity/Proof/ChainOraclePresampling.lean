@@ -1,13 +1,10 @@
 module
 
-public import XmssSecurity.Proof.QueryPresence
-public import XmssSecurity.Proof.StatementLemmas
 public import XmssSecurity.Proof.ChainTableUniformity
 public import XmssSecurity.Proof.AdaptiveFreshTarget
 public import XmssSecurity.Proof.RandomOraclePresampling
 public import XmssSecurity.Proof.HiddenValue
 public import XmssSecurity.Proof.UniformFiniteTable
-public import XmssSecurity.Proof.HonestKeygenRun
 public import XmssSecurity.Proof.TopKeygenFacts
 
 @[expose] public section

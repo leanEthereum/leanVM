@@ -1,6 +1,5 @@
 module
 
-public import XmssSecurity.Proof.CappedLeafEventProbability
 public import XmssSecurity.Proof.CappedSuffixEventProbability
 
 @[expose] public section

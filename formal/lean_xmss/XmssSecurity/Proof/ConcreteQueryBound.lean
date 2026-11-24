@@ -1,8 +1,6 @@
 module
 
 public import XmssSecurity.Proof.HashAddress
-public import XmssSecurity.Proof.IdealStatement
-public import XmssSecurity.Proof.StatementLemmas
 
 @[expose] public section
 

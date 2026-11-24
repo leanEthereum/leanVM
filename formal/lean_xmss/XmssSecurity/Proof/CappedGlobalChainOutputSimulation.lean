@@ -1,8 +1,6 @@
 module
 
-public import XmssSecurity.Proof.CappedGlobalKeygen
 public import XmssSecurity.Proof.CappedGlobalTreeCacheCorrespondence
-public import XmssSecurity.Proof.EvalDistEq
 import all Init.Data.Array.Basic
 
 @[expose] public section

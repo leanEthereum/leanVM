@@ -5,7 +5,6 @@ public import XmssSecurity.Proof.CappedGlobalCausalUniformTrace
 public import XmssSecurity.Proof.CappedChain.SourceDirectTrace
 public import XmssSecurity.Proof.CappedChain.ReturnedChainValueCoverage
 public import XmssSecurity.Proof.EncodingHashCacheReplay
-public import XmssSecurity.Proof.RunObservedAppend
 
 @[expose] public section
 

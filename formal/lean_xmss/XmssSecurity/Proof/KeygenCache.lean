@@ -2,7 +2,6 @@ module
 
 public import XmssSecurity.Proof.MerkleQueryBound
 public import XmssSecurity.Proof.Execution
-public import XmssSecurity.Proof.LazyScheme
 
 @[expose] public section
 

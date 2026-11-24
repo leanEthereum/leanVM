@@ -1,7 +1,6 @@
 module
 
 public import XmssSecurity.Proof.CappedEncodingRejection
-public import XmssSecurity.Proof.EvalDistEq
 
 @[expose] public section
 

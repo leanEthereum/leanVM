@@ -1,7 +1,6 @@
 module
 
 public import XmssSecurity.Proof.CappedGlobalCausalSetup
-public import XmssSecurity.Proof.RevealProbeOracleSimulation
 
 @[expose] public section
 

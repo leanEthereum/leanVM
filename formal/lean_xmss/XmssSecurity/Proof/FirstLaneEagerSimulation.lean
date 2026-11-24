@@ -1,7 +1,6 @@
 module
 
 public import XmssSecurity.Proof.FirstLaneOracleSimulation
-public import XmssSecurity.Proof.EncodingOracleSimulation
 public import XmssSecurity.Proof.RevealProbeOracleSimulation
 public import XmssSecurity.Proof.CappedEncodingMonitor
 

@@ -1,7 +1,6 @@
 module
 
 public import XmssSecurity.Proof.CausalAuthenticationPathIndependence
-public import XmssSecurity.Proof.ChainOraclePresampling
 public import XmssSecurity.Proof.MerkleQueryPresence
 public import XmssSecurity.Proof.CausalKeygenCoupling
 public import VCVio.ProgramLogic.Relational.Basic

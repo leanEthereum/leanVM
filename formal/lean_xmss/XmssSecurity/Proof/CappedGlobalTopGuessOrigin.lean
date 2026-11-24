@@ -1,7 +1,6 @@
 module
 
 public import XmssSecurity.Proof.CappedGlobalChainHighCoverage
-public import XmssSecurity.Proof.CappedChain.ChainEventDecomposition
 public import XmssSecurity.Proof.TopStructural
 
 @[expose] public section

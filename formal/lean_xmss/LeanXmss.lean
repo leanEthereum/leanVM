@@ -1,6 +1,5 @@
 module
 
-public import LeanXmss.Scheme
 public import LeanXmss.Statement
 public import Common.Signature
 public import Statement.LeanXmss

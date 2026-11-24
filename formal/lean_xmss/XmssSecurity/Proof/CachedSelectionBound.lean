@@ -1,7 +1,5 @@
 module
 
-public import XmssSecurity.Proof.CappedEncodingExpectedBound
-public import XmssSecurity.Proof.LossDecomposition
 public import XmssSecurity.Scan.PerKey
 
 @[expose] public section

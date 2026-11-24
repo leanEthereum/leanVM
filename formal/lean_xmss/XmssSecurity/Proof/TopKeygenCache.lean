@@ -1,8 +1,6 @@
 module
 
 public import XmssSecurity.Proof.PrecomputedKeyConsistency
-public import XmssSecurity.Proof.ConcreteForgery
-public import XmssSecurity.Proof.TopKeygenQueryBound
 public import XmssSecurity.Proof.TopVerificationQueryPresence
 
 @[expose] public section

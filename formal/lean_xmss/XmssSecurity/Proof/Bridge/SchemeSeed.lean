@@ -1,8 +1,6 @@
 module
 
-public import XmssSecurity.Proof.EvalDistEq
 public import XmssSecurity.Proof.Bridge.Reduction
-public import XmssSecurity.Proof.Seeded.BudgetTransfer
 
 @[expose] public section
 

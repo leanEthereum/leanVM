@@ -1,7 +1,6 @@
 module
 
 public import XmssSecurity.Proof.CappedGlobalChainHighReduction
-public import XmssSecurity.Proof.FirstLaneOracleSimulation
 public import XmssSecurity.Proof.CappedEncodingActionTrace
 public import XmssSecurity.Proof.FirstLaneEagerSimulation
 

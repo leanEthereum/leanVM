@@ -1,7 +1,6 @@
 module
 
 public import XmssSecurity.Proof.CappedGlobalCollisionProbability
-public import XmssSecurity.Proof.CappedLeafEventProbability
 public import XmssSecurity.Proof.GlobalWinningChainValueRevealed
 public import XmssSecurity.Proof.TopStructural
 

@@ -1,7 +1,6 @@
 module
 
 public import XmssSecurity.Proof.CappedGlobalChainHighCoverage
-public import XmssSecurity.Proof.StateLens
 
 @[expose] public section
 

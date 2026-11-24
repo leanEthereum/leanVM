@@ -1,6 +1,5 @@
 module
 
-public import XmssSecurity.Proof.IdealStatement
 public import XmssSecurity.Proof.Wots
 
 @[expose] public section

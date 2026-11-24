@@ -3,9 +3,6 @@ module
 public import XmssSecurity.Proof.Bridge.Translate
 public import XmssSecurity.Proof.Deterministic.TableSigner
 public import XmssSecurity.Proof.Seeded.FiniteTable
-public import XmssSecurity.Proof.Seeded.SeedGuessing
-public import XmssSecurity.Proof.Seeded.CacheCoupling
-public import XmssSecurity.Proof.HashInputLemmas
 
 @[expose] public section
 

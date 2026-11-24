@@ -1,8 +1,6 @@
 module
 
-public import XmssSecurity.Proof.MerkleQueryBound
 public import XmssSecurity.Proof.QueryPresence
-public import XmssSecurity.Proof.StatementLemmas
 
 @[expose] public section
 

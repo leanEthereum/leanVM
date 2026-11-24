@@ -1,6 +1,5 @@
 module
 
-public import XmssSecurity.Proof.ExpectedAdaptiveFreshTarget
 public import XmssSecurity.Proof.CappedLeafEventProbability
 public import XmssSecurity.Proof.VerificationChainQuery
 public import XmssSecurity.Proof.ChainTargetInput

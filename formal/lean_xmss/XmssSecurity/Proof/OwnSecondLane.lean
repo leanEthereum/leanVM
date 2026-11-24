@@ -1,6 +1,5 @@
 module
 
-public import XmssSecurity.Proof.CachedSelectionBound
 public import XmssSecurity.Proof.CappedJointExactLoss
 public import XmssSecurity.Proof.OwnTotal
 

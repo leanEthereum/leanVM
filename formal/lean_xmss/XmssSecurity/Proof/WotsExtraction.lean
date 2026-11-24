@@ -1,6 +1,5 @@
 module
 
-public import XmssSecurity.Proof.IdealStatement
 public import XmssSecurity.Proof.Wots
 public import XmssSecurity.Proof.EncodingLemmas
 

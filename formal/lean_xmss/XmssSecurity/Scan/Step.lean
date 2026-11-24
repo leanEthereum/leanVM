@@ -1,7 +1,6 @@
 module
 
 public import XmssSecurity.Scan.Potential
-public import XmssSecurity.Proof.AdaptiveFreshTarget
 
 @[expose] public section
 
