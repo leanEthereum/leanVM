@@ -23,6 +23,7 @@ concurrency:
 
 env:
   CARGO_TERM_COLOR: never
+  RUSTFLAGS: -C target-cpu=native
   ROUNDS: 5
   AGGREGATE: aggregate --xmss 1400 --log-inv-rate 2
   RECURSION: recursion --n 16 --xmss-per-leaf 1400 --leaf-log-inv-rate 2 --log-inv-rate 1
@@ -35,8 +36,6 @@ jobs:
     defaults:
       run:
         shell: bash
-    env:
-      RUSTFLAGS: -C target-cpu=native
     steps:
       - uses: actions/checkout@v4
         with:
@@ -53,11 +52,11 @@ jobs:
           git checkout --quiet --detach HEAD^1
           build base
           git checkout --quiet --detach "$GITHUB_SHA"
-      # The signers both sides share and each side's leaves, on every thread, before anything is timed.
+      # The signers both sides share (aggregation takes the first of the recursion's) and each side's leaves, on
+      # every thread, before anything is timed.
       - name: Generate the signers and the leaves
         run: |
           for side in base head; do
-            "ab/$side/leanvm-bench" --prover experimental $AGGREGATE --repeat 1 --cooldown 0 > /dev/null
             "ab/$side/leanvm-bench" --prover experimental $RECURSION --repeat 1 --cooldown 0 > /dev/null
           done
       - name: Prove in turns
@@ -68,7 +67,7 @@ jobs:
           bench() {
             local side=$1 name=$2 line seconds gib
             shift 2
-            if ! taskset -c "$cores" "ab/$side/leanvm-bench" --prover experimental "$@" --threads 4 --repeat 3 --cooldown 2 > out.txt 2>&1; then
+            if ! taskset -c "$cores" "ab/$side/leanvm-bench" --prover experimental "$@" --threads 4 --repeat 3 > out.txt 2>&1; then
               cat out.txt >&2
               return 1
             fi

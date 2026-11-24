@@ -46,21 +46,20 @@ jobs:
           for workflow in bench.yml bench-nuc.yml; do
             id=$(gh api "repos/$REPO/actions/workflows/$workflow/runs?head_sha=$HEAD_SHA&event=pull_request&status=completed&per_page=1" --jq '.workflow_runs[0].id // empty')
             [ -n "$id" ] || continue
-            count=$(gh api --paginate "repos/$REPO/actions/runs/$id/artifacts" --jq '.artifacts[] | select(.name | startswith("ab-")) | .name' | wc -l)
+            count=$(gh api "repos/$REPO/actions/runs/$id/artifacts" --jq '[.artifacts[] | select(.name | startswith("ab-"))] | length')
             [ "$count" -gt 0 ] && runs="$runs $id"
           done
           echo "runs=$runs" >> "$GITHUB_OUTPUT"
-          echo "found=$([ -n "$runs" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v4
-        if: steps.results.outputs.found == 'true'
+        if: steps.results.outputs.runs != ''
         with:
           sparse-checkout: .github/scripts
           persist-credentials: false
       - name: Test comment renderer
-        if: steps.results.outputs.found == 'true'
+        if: steps.results.outputs.runs != ''
         run: python3 -m unittest discover -s .github/scripts -p 'test_*.py'
       - name: Download the runs
-        if: steps.results.outputs.found == 'true'
+        if: steps.results.outputs.runs != ''
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
@@ -70,7 +69,7 @@ jobs:
             gh run download "$id" -R "$REPO" -p 'ab-*' -D "runs/$id"
           done
       - name: Comment
-        if: steps.results.outputs.found == 'true'
+        if: steps.results.outputs.runs != ''
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
