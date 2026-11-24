@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.Core
 public import LeanVM.Guest.B1.Common.HashPair
+public import LeanVM.Guest.Ref.Attr
 
 /-!
 # Reference functions
@@ -33,8 +34,18 @@ a `keccak` whose output lands on it are assertions about one word.
   bytes of the input cells (`HashesPair`).
 * `if c != 0: N else: Z` on a word: `Cmd.ifNz c Z N`; `c` is in `K`, as the branch instruction
   asks.
+* `assert a == b`, and a store into a cell written in every arm of a `match`: `Cmd.eq a b`.
+* `assert log x < n`: `Cmd.range` against `k = g^(n-1)`, its complement and the two words it
+  reads named.
+* `match log c`: `Cmd.match_ c arms`, arm `j` at `c = g^j`.
+* One `KECCAK` instruction on cells: `Cmd.keccak`, its own relation (`KeccakWords`); the builtins
+  that lower to chains of them are Lean functions of these (`LeanVM.Guest.Ref.Keccak`).
+* A hint is a name: it emits no command, and the commands that read it constrain it.
 
 `LeanVM.Guest.Ref.Link` ties a compiled specialization to its reference function.
+`simp only [ref_norm]` unfolds a block of commands (`Cmd.SatList`), `unroll` and compile-time
+`if`s included, into the meanings of its commands. `LeanVM.Guest.Ref.Verified` bundles a reference
+function with its meaning.
 -/
 
 namespace LeanVM.Guest.Ref
@@ -59,6 +70,12 @@ def Tm.eval (ρ : X → E) : Tm X → E
   | .add a b => a.eval ρ + b.eval ρ
   | .mul a b => a.eval ρ * b.eval ρ
 
+/-- One `KECCAK` on words (`Atom.keccak`'s relation): thirteen read, one, two or thirteen
+written. -/
+def KeccakWords (ins outs : List E) (inOdd outOdd : Bool) : Prop :=
+  ins.length = 13 ∧ ∃ oc : KeccakOutputCells, outs.length = oc.cellCount ∧
+    KeccakCellsRelation (cells13 ins) inOdd (cells13 outs) outOdd oc
+
 /-- A runtime command. -/
 inductive Cmd (X : Type) where
   /-- The memory word at `p·g^off` is `d`: a read into `d`, or a store of `d`. -/
@@ -67,6 +84,16 @@ inductive Cmd (X : Type) where
   | hash2 (l0 l1 r0 r1 o0 o1 : Tm X)
   /-- A branch on the word `c`: `zero` at `c = 0`, else `nonzero`. -/
   | ifNz (c : Tm X) (zero nonzero : List (Cmd X))
+  /-- `a == b`: an `assert`, or the store of `b` into the cell `a` names. -/
+  | eq (a b : Tm X)
+  /-- `assert log x < n`, `k = g^(n-1)`: `x` and its complement `y`, `k = x·y`, are pointers to the
+  words `t1` and `t2`. -/
+  | range (x y t1 t2 k : Tm X)
+  /-- One `KECCAK` of thirteen read cells into one, two or thirteen written cells, in the given
+  layouts. -/
+  | keccak (ins outs : List (Tm X)) (inOdd outOdd : Bool)
+  /-- `match log c`: arm `j` at `c = g^j`. -/
+  | match_ (c : Tm X) (arms : List (List (Cmd X)))
 
 mutual
 /-- The relation of a command. -/
@@ -76,11 +103,22 @@ def Cmd.Sat (rd : Reader) (ρ : X → E) : Cmd X → Prop
       HashesPair (l0.eval ρ) (l1.eval ρ) (r0.eval ρ) (r1.eval ρ) (o0.eval ρ) (o1.eval ρ)
   | .ifNz c z n =>
       IsInK (c.eval ρ) ∧ (c.eval ρ = 0 → Cmd.SatList rd ρ z) ∧ (c.eval ρ ≠ 0 → Cmd.SatList rd ρ n)
+  | .eq a b => a.eval ρ = b.eval ρ
+  | .range x y t1 t2 k => LoadHolds rd (x.eval ρ) 0 (t1.eval ρ) ∧ k.eval ρ = x.eval ρ * y.eval ρ ∧
+      LoadHolds rd (y.eval ρ) 0 (t2.eval ρ)
+  | .keccak ins outs inOdd outOdd =>
+      KeccakWords (ins.map (Tm.eval ρ)) (outs.map (Tm.eval ρ)) inOdd outOdd
+  | .match_ c arms => Cmd.SatArms rd ρ (c.eval ρ) 0 arms
 
 /-- Every command of a block holds. -/
 def Cmd.SatList (rd : Reader) (ρ : X → E) : List (Cmd X) → Prop
   | [] => True
   | c :: cs => Cmd.Sat rd ρ c ∧ Cmd.SatList rd ρ cs
+
+/-- Arm `j + i` holds at `w = g^(j + i)`, for some arm `i` of the list. -/
+def Cmd.SatArms (rd : Reader) (ρ : X → E) (w : E) : Nat → List (List (Cmd X)) → Prop
+  | _, [] => False
+  | j, a :: as => (w = ofK (addressOfIndex j) ∧ Cmd.SatList rd ρ a) ∨ Cmd.SatArms rd ρ w (j + 1) as
 end
 
 /-- A reference function's runtime stage: its parameters' names, its commands, the words it
@@ -103,27 +141,45 @@ def unroll (lo hi : Nat) (body : Nat → List (Cmd X)) : List (Cmd X) :=
 
 variable {rd : Reader} {ρ : X → E}
 
-theorem Cmd.satList_nil : Cmd.SatList rd ρ [] := by rw [Cmd.SatList]; trivial
+@[ref_norm] theorem Cmd.satList_nil : Cmd.SatList rd ρ [] := trivial
 
-theorem Cmd.satList_cons {c : Cmd X} {cs : List (Cmd X)} :
-    Cmd.SatList rd ρ (c :: cs) ↔ c.Sat rd ρ ∧ Cmd.SatList rd ρ cs := by rw [Cmd.SatList]
+@[ref_norm] theorem Cmd.satList_cons {c : Cmd X} {cs : List (Cmd X)} :
+    Cmd.SatList rd ρ (c :: cs) ↔ c.Sat rd ρ ∧ Cmd.SatList rd ρ cs := Iff.rfl
 
-theorem Cmd.satList_append (as bs : List (Cmd X)) :
+@[ref_norm] theorem Cmd.satList_append (as bs : List (Cmd X)) :
     Cmd.SatList rd ρ (as ++ bs) ↔ Cmd.SatList rd ρ as ∧ Cmd.SatList rd ρ bs := by
-  induction as with
-  | nil => simp [Cmd.SatList]
-  | cons a as ih => simp [Cmd.SatList, ih, and_assoc]
+  induction as <;> simp [Cmd.SatList, *, and_assoc]
 
-theorem Cmd.satList_unroll (lo hi : Nat) (body : Nat → List (Cmd X)) :
+@[ref_norm] theorem Cmd.satList_unroll (lo hi : Nat) (body : Nat → List (Cmd X)) :
     Cmd.SatList rd ρ (unroll lo hi body) ↔ ∀ i, lo ≤ i → i < hi → Cmd.SatList rd ρ (body i) := by
   have h : ∀ l : List Nat, Cmd.SatList rd ρ (l.flatMap body) ↔
       ∀ i ∈ l, Cmd.SatList rd ρ (body i) := fun l ↦ by
-    induction l with
-    | nil => simp [Cmd.SatList]
-    | cons a l ih => simp [Cmd.satList_append, ih]
+    induction l <;> simp [Cmd.SatList, Cmd.satList_append, *]
   rw [unroll, h]
   exact ⟨fun H i h1 h2 ↦ H i (List.mem_range'_1.mpr ⟨h1, by omega⟩),
     fun H i hm ↦ by have := List.mem_range'_1.mp hm; exact H i this.1 (by omega)⟩
+
+/-- A block chosen by a compile-time condition. -/
+@[ref_norm] theorem Cmd.satList_ite {c : Prop} [Decidable c] (a b : List (Cmd X)) :
+    Cmd.SatList rd ρ (if c then a else b) ↔ if c then Cmd.SatList rd ρ a else Cmd.SatList rd ρ b := by
+  split <;> rfl
+
+attribute [ref_norm] Cmd.Sat Tm.eval
+
+/-- **A `match`**: some arm `i` is taken, at `w = g^(j + i)`. -/
+theorem Cmd.satArms_iff {w : E} : ∀ (j : Nat) (arms : List (List (Cmd X))),
+    Cmd.SatArms rd ρ w j arms ↔
+      ∃ i, ∃ h : i < arms.length, w = ofK (addressOfIndex (j + i)) ∧ Cmd.SatList rd ρ arms[i]
+  | j, [] => by simp [Cmd.SatArms]
+  | j, a :: as => by
+    rw [Cmd.SatArms, Cmd.satArms_iff (j + 1) as]
+    constructor
+    · rintro (h | ⟨i, hi, h⟩)
+      · exact ⟨0, by simp, by simpa using h⟩
+      · exact ⟨i + 1, by simpa using hi, by simpa [Nat.add_assoc, Nat.add_comm 1] using h⟩
+    · rintro ⟨_ | i, hi, h⟩
+      · exact .inl (by simpa using h)
+      · exact .inr ⟨i, by simpa using hi, by simpa [Nat.add_assoc, Nat.add_comm 1] using h⟩
 
 end
 end LeanVM.Guest.Ref

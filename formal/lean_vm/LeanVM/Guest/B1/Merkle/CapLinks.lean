@@ -7,21 +7,14 @@
 
 module
 
-public import LeanVM.Guest.B1.Merkle.CapRef
-public import LeanVM.Guest.Pack.P4.Core
-public import LeanVM.Guest.Pack.P6.Core
-public import LeanVM.Guest.Pack.P11.Core
-public import LeanVM.Guest.Pack.P23.Core
-public import LeanVM.Guest.Pack.P42.Core
-public import LeanVM.Guest.Pack.P56.Core
-public import LeanVM.Guest.Pack.P61.Core
+public import LeanVM.Guest.B1.Merkle.CapMaps
 
 /-!
 # `verify_merkle_cap__L2 .. L8`, linked
 
 `capSpecs_linked` is one kernel evaluation of the link check (`LeanVM.Guest.Ref.Link`) per
-deployed depth; with `capRef_sem` it gives `verify_merkle_cap_SpecP` in every program that finds
-the functions.
+deployed depth, against the map `capMap` (`CapMaps.lean`); with `capVerified` it gives
+`verify_merkle_cap_SpecP` in every program that finds the functions.
 -/
 
 namespace LeanVM.Guest.B1
@@ -41,7 +34,7 @@ noncomputable def capSpecs : List (String × Fn × ℕ) :=
     ("verify_merkle_cap__L8", Fn.«verify_merkle_cap__L8».core, 8)]
 
 /-- Every deployed specialization is linked to the reference function at its depth. -/
-theorem capSpecs_linked : (capSpecs.all fun s ↦ Linked s.2.1 (capRef s.2.2)) = true := by
+theorem capSpecs_linked : (capSpecs.all fun s ↦ (capMap s.2.2).check s.2.1 (capRef s.2.2)) := by
   decide +kernel
 
 /-- **`verify_merkle_cap`'s functions are their meaning**, at the deployed cap depths, in every
@@ -50,9 +43,8 @@ theorem verify_merkle_cap_of_linked (P : Program)
     (hfind : ∀ s ∈ capSpecs, P.find? s.1 = some s.2.1) : verify_merkle_cap_SpecP P := by
   intro p hp rd args rets
   obtain ⟨s, hs, rfl⟩ := List.mem_map.mp (show p ∈ capSpecs.map fun s ↦ (s.1, s.2.2) from hp)
-  rw [rel_iff_sem (hfind s hs)]
-  exact (Linked.sem_iff (List.all_eq_true.mp capSpecs_linked s hs) args rets).trans
-    (capRef_sem _ rd args rets)
+  exact capVerified.rel_iff_of_check (hfind s hs) (List.all_eq_true.mp capSpecs_linked s hs)
+    args rets
 
 end
 end LeanVM.Guest.B1

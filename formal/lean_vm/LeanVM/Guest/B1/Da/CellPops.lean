@@ -50,6 +50,9 @@ theorem splicePops_nil (rd : Reader) (σ : Val) : SplicePops rd σ [] [] [] := �
 
 /-! ## The cell check -/
 
+/-- The symbols' hint. -/
+def symHint : Atom := .hint (.witness "da_symbols" (.stack ((List.range 128).map fun j => V.n (j + (val% «da_verify_cell» "sym[0]")))))
+
 /-- `da_verify_cell` pops its symbols first, then nothing, calling nothing. -/
 noncomputable def cellShapeOk : Bool :=
   stmtsEqb ((Fn.body fn% «da_verify_cell»).take (pos% «da_verify_cell» "s@1~0")) [.atom symHint] &&
