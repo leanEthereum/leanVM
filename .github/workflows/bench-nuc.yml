@@ -1,0 +1,105 @@
+name: Bench (NUC)
+
+# bench/bench.sh's two benchmarks on a NUC (Intel Core Ultra 7 155H, AVX2), the self-hosted runner
+# labelled `nuc-155h`: the base and the PR built for that CPU, then proven in turns, `ROUNDS`
+# times each, on 4 threads pinned to 4 performance cores. bench-comment.yml posts what changed,
+# with bench.yml's results.
+#
+# A fork's PR runs once a maintainer approves it. Each job runs in a virtual machine of its own,
+# whose only way out is a proxy to GitHub and crates.io. The NUC is often offline: the job then
+# waits in the queue, and gates nothing.
+
+on:
+  pull_request:
+    # Not `edited`: a description edit would restart, and so cancel, the PR's run.
+    types: [ opened, reopened, synchronize ]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bench-nuc-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: never
+  ROUNDS: 5
+  AGGREGATE: aggregate --xmss 1400 --log-inv-rate 2
+  RECURSION: recursion --n 16 --xmss-per-leaf 1400 --leaf-log-inv-rate 2 --log-inv-rate 1
+
+jobs:
+  ab:
+    name: leanXMSS aggregation and recursion (nuc-155h)
+    runs-on: [ self-hosted, nuc-155h ]
+    timeout-minutes: 180
+    defaults:
+      run:
+        shell: bash
+    env:
+      RUSTFLAGS: -C target-cpu=native
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The merge commit and its first parent, the base.
+          fetch-depth: 2
+      # Both sides build in the checkout, so they share its signers' cache.
+      - name: Build the PR and its base
+        run: |
+          build() {
+            cargo build --release -q -p leanvm-bench
+            mkdir -p "ab/$1" && cp target/release/leanvm-bench "ab/$1/"
+          }
+          build head
+          git checkout --quiet --detach HEAD^1
+          build base
+          git checkout --quiet --detach "$GITHUB_SHA"
+      # The signers both sides share and each side's leaves, on every thread, before anything is timed.
+      - name: Generate the signers and the leaves
+        run: |
+          for side in base head; do
+            "ab/$side/leanvm-bench" --prover experimental $AGGREGATE --repeat 1 --cooldown 0 > /dev/null
+            "ab/$side/leanvm-bench" --prover experimental $RECURSION --repeat 1 --cooldown 0 > /dev/null
+          done
+      - name: Prove in turns
+        run: |
+          # One thread on each of 4 performance cores, which the runner names.
+          cores=${NUC_BENCH_CPUS:?the runner names the cores to pin to}
+          # Proving time and peak memory of one benchmark, as bench/bench.sh reads them, in Bencher Metric Format.
+          bench() {
+            local side=$1 name=$2 line seconds gib
+            shift 2
+            if ! taskset -c "$cores" "ab/$side/leanvm-bench" --prover experimental "$@" --threads 4 --repeat 3 --cooldown 2 > out.txt 2>&1; then
+              cat out.txt >&2
+              return 1
+            fi
+            line=$(grep -E 'proving time +:' out.txt | tail -n 1)
+            seconds=$(sed 's/^[^:]*://' <<< "$line" | grep -oE '[0-9.,]+ s' | head -n 1 | tr -d ', s')
+            gib=$(grep -oE 'peak memory [0-9.,]+' <<< "$line" | awk '{gsub(/,/, "", $3); print $3}')
+            if [ -z "$seconds" ] || [ -z "$gib" ]; then
+              echo "no proving time or peak memory in the report of $name ($side):" >&2
+              cat out.txt >&2
+              return 1
+            fi
+            jq -nc --arg name "$name" --argjson s "$seconds" --argjson g "$gib" \
+              '{($name): {latency: {value: ($s * 1e9)}, "peak-memory": {value: ($g * 1073741824 | floor)}}}'
+          }
+          for round in $(seq "$ROUNDS"); do
+            if [ $((round % 2)) = 1 ]; then order="base head"; else order="head base"; fi
+            for side in $order; do
+              aggregate=$(bench "$side" aggregate-leanxmss-1400-4thread $AGGREGATE)
+              recursion=$(bench "$side" aggregate-leanxmss-1400-16to1-4thread-node $RECURSION)
+              jq -nc --argjson round "$round" --arg side "$side" --argjson a "$aggregate" --argjson r "$recursion" \
+                '{round: $round, side: $side, results: ($a + $r)}' | tee -a runs.jsonl
+            done
+          done
+      - name: Save the runs
+        env:
+          PR: ${{ github.event.number }}
+        run: |
+          cpu=$(lscpu | sed -n 's/^Model name: *//p' | head -n 1)
+          jq -n --argjson pr "$PR" --arg base "$(git rev-parse HEAD^1)" --arg testbed nuc-155h --arg cpu "$cpu" \
+            --slurpfile runs runs.jsonl '{pr: $pr, base: $base, testbed: $testbed, cpu: $cpu, runs: $runs}' > ab.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ab-nuc-155h-leanxmss
+          path: ab.json

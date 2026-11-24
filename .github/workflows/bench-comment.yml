@@ -1,9 +1,10 @@
 name: Bench comment
 
-# Posts on a PR what its Bench run (bench.yml) found: each benchmark's base and PR proven in
-# turns on one runner. A size is shown when it changed; a time when it moved the same way in
-# every round and its median moved by at least 1%. One comment, edited on every run and
-# deleted once nothing is shown; every result is in it, collapsed.
+# Posts on a PR what its Bench runs (bench.yml, bench-nuc.yml) found: each benchmark's base and
+# PR proven in turns on one runner. Each run's completion posts the latest results of both at the
+# PR's commit, so neither waits for the other. A size is shown when it changed; a time when it
+# moved the same way in every round and its median moved by at least 1%. One comment, edited on
+# every run and deleted once nothing is shown; every result is in it, collapsed.
 #
 # It runs from the default branch (GitHub runs a `workflow_run` workflow from nowhere else)
 # with a write token, on artifacts a PR's run wrote, a fork's included:
@@ -12,10 +13,14 @@ name: Bench comment
 
 on:
   workflow_run:
-    workflows: [ Bench ]
+    workflows: [ Bench, Bench (NUC) ]
     types: [ completed ]
 
 permissions: {}
+
+# Both benchmarks' completions edit one comment: one at a time, the later with both results.
+concurrency:
+  group: bench-comment-${{ github.event.workflow_run.head_sha }}
 
 jobs:
   comment:
@@ -34,10 +39,18 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
-          RUN_ID: ${{ github.event.workflow_run.id }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
-          count=$(gh api --paginate "repos/$REPO/actions/runs/$RUN_ID/artifacts" --jq '.artifacts[] | select(.name | startswith("ab-")) | .name' | wc -l)
-          echo "found=$([ "$count" -gt 0 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          # The latest completed run of each benchmark workflow at the PR's commit, if it saved runs.
+          runs=""
+          for workflow in bench.yml bench-nuc.yml; do
+            id=$(gh api "repos/$REPO/actions/workflows/$workflow/runs?head_sha=$HEAD_SHA&event=pull_request&status=completed&per_page=1" --jq '.workflow_runs[0].id // empty')
+            [ -n "$id" ] || continue
+            count=$(gh api --paginate "repos/$REPO/actions/runs/$id/artifacts" --jq '.artifacts[] | select(.name | startswith("ab-")) | .name' | wc -l)
+            [ "$count" -gt 0 ] && runs="$runs $id"
+          done
+          echo "runs=$runs" >> "$GITHUB_OUTPUT"
+          echo "found=$([ -n "$runs" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v4
         if: steps.results.outputs.found == 'true'
         with:
@@ -46,17 +59,20 @@ jobs:
       - name: Test comment renderer
         if: steps.results.outputs.found == 'true'
         run: python3 -m unittest discover -s .github/scripts -p 'test_*.py'
-      - uses: actions/download-artifact@v4
+      - name: Download the runs
         if: steps.results.outputs.found == 'true'
-        with:
-          pattern: ab-*
-          run-id: ${{ github.event.workflow_run.id }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          path: runs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          RUNS: ${{ steps.results.outputs.runs }}
+        run: |
+          for id in $RUNS; do
+            gh run download "$id" -R "$REPO" -p 'ab-*' -D "runs/$id"
+          done
       - name: Comment
         if: steps.results.outputs.found == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
           HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
-        run: python3 .github/scripts/pr_comment.py "$HEAD_SHA" runs/*/ab.json
+        run: python3 .github/scripts/pr_comment.py "$HEAD_SHA" runs/*/*/ab.json
