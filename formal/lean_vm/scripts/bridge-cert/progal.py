@@ -210,7 +210,7 @@ end
 end LeanVM.Guest.Bridge.ProgAl
 ''')
     existing = set(glob.glob(os.path.join(OUT, '*.lean')))
-    stale = genfiles.sync(files, existing, check)
+    stale = genfiles.sync(data.quiet(files), existing, check)
     print(f'bridge-cert: the alignment of {len(lk)} functions over {len(groups)} link modules')
     genfiles.fail_if_stale(stale, check, data.LEAN_VM)
 

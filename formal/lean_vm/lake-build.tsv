@@ -19,7 +19,7 @@ LeanVM.Guest.B2C.ArmBound	40.0	40.0	6400	4900
 LeanVM.Guest.B2C.Chained.K_main_loop2_2	30.0	30.0	4300	3000
 LeanVM.Guest.B2C.Chained.K_main_loop2_3	20.0	20.0	4300	3000
 LeanVM.Guest.B2C.Chained.K_main_loop2_6	20.0	20.0	4300	3000
-LeanVM.Guest.B2C.Cplw.D_main_loop2_37_0	60.0	60.0	3300	1600
+LeanVM.Guest.B2C.Cplw.E_main_loop2_37	60.0	60.0	3300	1600
 LeanVM.Guest.Bridge.AllocCells	30.0	30.0	4400	3200
 LeanVM.Guest.Bridge.AllocChk.B_main_loop2	20.0	20.0	6300	5100
 LeanVM.Guest.Bridge.AllocChk.S_main_loop2	20.0	20.0	5400	4100
