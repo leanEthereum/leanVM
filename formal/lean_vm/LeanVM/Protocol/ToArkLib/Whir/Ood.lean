@@ -67,8 +67,8 @@ private theorem exists_mvPolynomial_evalMle {κ : ℕ} (g : CMlPolynomialEval F 
     · exact (MvPolynomial.totalDegree_X j).le
     · exact (MvPolynomial.totalDegree_sub _ _).trans
         (max_le (by simp) (MvPolynomial.totalDegree_X j).le)
-  · simp [eval_mle_eq_eval, eval, Vector.dotProduct_eq_root_dotProduct, dotProduct,
-      lagrangeBasis_getElem, apply_ite]
+  · simp [eval_mle_eq_eval, eval, Vector.dotProduct_eq_root_dotProduct, dotProduct, apply_ite,
+      lagrangeBasis, Vector.get_eq_getElem]
 
 /-- **Schwartz-Zippel for multilinear extensions.** Two distinct tables on `κ` variables have the
 same multilinear extension at at most `κ |F|^(κ-1)` points. -/
@@ -83,7 +83,7 @@ theorem card_evalMle_eq_le {κ : ℕ} {g g' : CMlPolynomialEval F κ} (hne : g �
   refine le_trans ?_ ((MvPolynomial.card_zeros_le_of_totalDegree_le _ hne0
     ((MvPolynomial.totalDegree_sub _ _).trans (max_le hP hP'))).trans (by simp))
   refine Finset.card_le_card_of_injOn (fun z ↦ z.get) (fun z hz ↦ ?_) fun z₁ _ z₂ _ h ↦ ?_
-  · simp only [coe_filter, Finset.mem_univ, true_and, Set.mem_setOf_eq] at hz ⊢
+  · simp only [coe_filter, Finset.mem_univ, true_and, Set.mem_ofPred_eq] at hz ⊢
     rw [map_sub, hPg, hPg', hz, sub_self]
   · exact Vector.ext fun i hi ↦ congrFun h ⟨i, hi⟩
 

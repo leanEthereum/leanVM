@@ -8,6 +8,7 @@
 module
 
 public import ArkLib.Data.Finset.PairwiseIntersection
+public import Mathlib.Tactic
 
 /-!
 # The Johnson count

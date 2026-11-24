@@ -5,6 +5,7 @@
 -/
 
 import LeanVM.Protocol.ToCompPoly.PowerBatching
+import LeanVM.Protocol.Spine.Seams
 import Mathlib.Data.ZMod.Defs
 
 /-!
