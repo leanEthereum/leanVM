@@ -7,10 +7,10 @@ public import XmssSecurity.Proof.CappedEncodingSourceImpl
 /-!
 # The adversary phase with a ghost query count
 
-The traced handler of `cappedCacheTracedMappedAdversaryImpl`, extended with a count of the
-adversary's own hash queries. Under a hash-query bound the count never reaches the budget
-(`expectedSimulatedCost_overBudget_eq_zero`), and the adversary's encoding queries are counted by the
-source game (`expectedSimulatedCost_advEncoding_le`).
+The traced handler `cappedCacheTracedMappedAdversaryImpl`, extended with a count of the
+adversary's own hash queries (`impl`, `tick`), its steps through the source handler, and the cost
+`overBudget` of a hash query made once the budget is spent. `OwnSecondLane` proves that cost zero
+under the adversary's hash-query bound (`expectedSimulatedCost_overBudget`).
 -/
 
 open OracleComp OracleSpec ENNReal

@@ -8,7 +8,7 @@ public import Common.SimDefs
 /-!
 # The two-oracle model: a hash `H` and a random function `F`
 
-Besides the sponge, a protocol may call the permutation directly: leanVM's Fiat–Shamir duplex
+Besides the sponge, a protocol may call the permutation directly: leanVM's Fiat-Shamir duplex
 (`crates/verifier/src/transcript.rs`) does. Its random-oracle-model proofs use two independent
 oracles: a random oracle `H : Msg → Dg` for the sponge, and a random function `F : S → S` for the
 direct calls (`hfSpec`). In the random-permutation model both are the permutation: `H` the

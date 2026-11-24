@@ -26,7 +26,6 @@ node first: both see the same value. The games:
   its capacity with a capacity already visible.
 * `visImpl`: the combined game's ideal side without the full view: the sponge's path queries are
   made and discarded (`skel`).
-* `visEndImpl`: `visImpl` without those queries.
 * `idealTImpl`: the simulator with its rooted values drawn from `val` (`visFwd`, `visInv`).
 -/
 

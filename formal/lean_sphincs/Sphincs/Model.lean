@@ -22,7 +22,7 @@ presentation only:
   (`treeBytes_eq`: the same bytes below `2^64`), and the model places a FORS node index past its
   tree's width above `2^31`, which no algorithm computes;
 * the model's digest packs the index and the FORS leaves into one bit vector, the statement reads
-  them off the digest's bytes (`digestIndex_eq`, `digestForsLeaves_eq`).
+  them off the digest's bytes (`digestIndex_eq`, `digestLeaves_eq`).
 -/
 
 open OracleComp OracleSpec

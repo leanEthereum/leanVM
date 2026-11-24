@@ -11,7 +11,7 @@ In the shadow world, the worlds disagree only at a direct call breaking the dupl
 (the violation flag) or after a **capacity collision** among the initial state and the fresh
 draws (`B0`): an admissible direct call absorbs a non-final block into the initial state or into
 an earlier answer of `F`, while a disagreement needs its input to be an inverse answer or to end
-a sponge path from another rooted state of the same capacity (`flag_imp`). Under the duplex
+a sponge path from another rooted state of the same capacity (`SInv.flag`). Under the duplex
 discipline the violation flag stays down (`viol_false`), and each fresh draw collides with
 probability at most `q / |C|` (`prEvent_b0_le`).
 -/
