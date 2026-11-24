@@ -57,8 +57,7 @@ SPLIT = 5000
 # a heap certificate of more residual lists than `RES_SPLIT` has each list's families checked apart
 RES_SPLIT = 8
 # a heap certificate with one list of more residuals than `RES_B` has its families checked in slices (`CoreMode.sliceAll`)
-# of weight at most `RES_B`: the kernel's memory grows over one evaluation, by up to about 1 GB for a residual of weight
-# `1`; a residual a range check or a top-level selector bounds (`cheap_res`) is two lookups in tries the slice builds once
+# of weight at most `RES_B`: the kernel's memory grows over one evaluation, with the residuals' weight; a residual a range check or a top-level selector bounds (`cheap_res`) is two lookups in tries the slice builds once
 # (`CoreMode.resFamT`), of weight `1 / RES_CHEAP`
 RES_B, RES_CHEAP = 2, 32
 # a body of more statements than `HON_SPLIT` has its honest valuation's parts checked apart (`honB_of`): in one

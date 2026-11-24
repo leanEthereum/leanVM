@@ -20,7 +20,7 @@ its first top-level `ret`. Per function, in `GenW/<fn>/` (`callc.py`) or `GenWL/
   true` (`winOkF` over `core.body` for a function; one `decide +kernel`: no `ret` (a function's windows: no top-level
   one), no ghost value, the pass from one state to the next); for a `match` split by arms, `W<i>A<t>.lean` hold
   `arms<i>_<t> : armsOkW ..` (the arms' summaries `sum<i>_<t>`) and `W<i>` the join (`joinOk`) and `win<i>` by
-  `winOk_of_arms` (`winOkF_of_arms`);
+  `winOk_of_arms`;
 * `Ok.lean`: `head_ok`, `tail_ok` (a function: `last_ok`, the statements from the last cut on) and
   `Fn.«fn».heap_okW`, the check at the callees' signatures, by `heapOkC_of_wins` (`heapOkC_of_winsF`), which
   `core.py`'s `heap_okC` takes.

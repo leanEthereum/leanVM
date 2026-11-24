@@ -141,6 +141,10 @@ statement() {
       | grep -vE ':[0-9]+:[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import[[:space:]]+((Mathlib|VCVio|CompPoly|FastFields|Statement)\.|all[[:space:]]+Statement\.Data\.)'; then
     fail "Statement imports more than Mathlib, VCVio, CompPoly, fast_fields and itself, or \`import all\` beyond Statement.Data"
   fi
+  if grep -rnE '^[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import([[:space:]]|$)' --include='*.lean' --exclude-dir=.lake fast_fields \
+      | grep -vE ':[0-9]+:[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import[[:space:]]+(Mathlib|CompPoly|FastFields)\.'; then
+    fail "fast_fields imports more than Mathlib, CompPoly and itself"
+  fi
   cache_get Statement
   export_guest
   if once "build:Statement"; then

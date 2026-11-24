@@ -76,7 +76,7 @@ def read(P, st, c, site):
 
 def lin_sub(P, st, r, site, conds):
     """`linSub`: a run `Q·[lo, e(h))` of stride `S`, `h` not over the parameters, a parameter `p` with
-    `p = h^K·m` (an `assert ==`), `K >= S`: inside `Q·[lo, e(p))` of stride 1 (`Res.sub`), that run known or a
+    `p = h^K·m` (an `assert ==`), `K >= S`: inside `Q·[lo, e(p))` of stride 1 (`CRes.sub`), that run known or a
     precondition."""
     Q, S, lo, hi = r
     if not P.iface(Q) or not P.iface(lo) or P.iface(hi) or not Q[0] or hi[1] != 0:
@@ -101,7 +101,7 @@ def lin_sub(P, st, r, site, conds):
 
 
 def derive(P, st):
-    """Runs implied by runs in scope, each a `Res.sub` of index arithmetic (true of all words): `merge`, the `S`
+    """Runs implied by runs in scope, each a `CRes.sub` of index arithmetic (true of all words): `merge`, the `S`
     residues `T·g^d`, `d < S`, of stride `S` over `[lo, hi)` are `T` over `[S·lo, S·hi)`; `concat`, `T` over `[0, A)`
     then `T·A` over `[0, B)` are `T` over `[0, A·B)`; `rename`, a bound `M^k` with `M = p` (an `assert ==`) is `p^k`."""
     from infer import mmul, mpow

@@ -19,7 +19,7 @@ OUT = resgen.OUT
 header = genfiles.header('core-mode/termcall.py')
 
 
-# `expCarry`'s ranges: the kernel's memory grows over a range, by up to about 4 GB a function for the long ones
+# `expCarry`'s ranges: the kernel's memory grows over a range, most for the long functions
 # (`verify_tables` at 11, `open_stacked`'s specializations at 370 to 380), which take a range each
 EXP_RANGES = ([(0, 11), (11, 1), (12, 5), (17, 3), (20, 80), (100, 270)] + [(a, 1) for a in range(370, 381)] +
               [(381, 19), (400, 400), (800, 400), (1200, None)])
