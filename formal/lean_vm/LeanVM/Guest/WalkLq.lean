@@ -41,9 +41,9 @@ theorem semRel_impL {t : ℕ} (ht : t < 2 ^ 32) (l : ℕ) (rd : Reader) (ws : Li
   semRel_impK ht (by decide) l rd ws
 
 /-- The immediate of the word `g^e`. -/
-theorem imm_gpow {l e : ℕ} (h : K.ofBits l = gpowK e) (he : e < 992) :
+theorem imm_gpow {l e : ℕ} (h : isGPow l e = true) (he : e < 992) :
     OffsetInstruction.immediateWord l 0 = Protocol.Verifier.gen ^ e := by
-  rw [Exec.imm_of_ofBits h, gpowK_eq (lt_trans he (by unfold u128Bound; norm_num)),
+  rw [Exec.imm_of_ofBits (isGPow_sound h), gpowK_eq (lt_trans he (by unfold u128Bound; norm_num)),
     ← Value.gen_pow_eq_ofK]
 
 /-- **`level_queries`' cut obligations**, from its certificate's check: its precondition's
@@ -69,7 +69,7 @@ theorem lq_cutsKnown {j n odd base d cd : ℕ} (ho : odd < 2) (hb : base < 2) (h
     simp only [beq_iff_eq, Bool.or_eq_true, Nat.ble_eq, ↓reduceIte] at hq
     exact (oqStartP_of_mainWins (u := 0) hW (by omega) (by omega) ho).1
   rcases hsm t ht with ((⟨⟨⟨ht1, hl0⟩, hlen⟩, h7⟩ | ⟨⟨⟨⟨hb1, ht1⟩, hl0⟩, hlen⟩, h7⟩) | ⟨⟨⟨hb1, ht1⟩, hl0⟩, hlen⟩)
-  · simp only [beq_iff_eq, decide_eq_true_eq] at ht1 hl0 hlen h7
+  · simp only [beq_iff_eq] at ht1 hl0 hlen h7
     rw [ht1, semRel_impL (hlt _ _ (by omega) ho), semRel0_oq (by omega) ho hpd]
     intro hx
     rw [getD_map_lt (by split at hlen <;> omega), imm_gpow hl0 hn] at hx
@@ -81,7 +81,7 @@ theorem lq_cutsKnown {j n odd base d cd : ℕ} (ho : odd < 2) (hb : base < 2) (h
     · simp only [↓reduceIte, beq_iff_eq, Bool.or_eq_true, Nat.ble_eq] at hq hlen
       rw [walkSem_oq3 ho, getD_map_lt (by omega), getD_map_lt (by omega), h7, hx]
       exact oqStartP_of_mainWins hW (by omega) (by omega) ho
-  · simp only [beq_iff_eq, decide_eq_true_eq] at hb1 ht1 hl0 hlen h7
+  · simp only [beq_iff_eq] at hb1 ht1 hl0 hlen h7
     rw [ht1, semRel_impK (hlt _ _ (by decide) (by omega)) (by decide), semRel0_oq (by decide) (by omega) hpd,
       walkSem_oq3 (by omega)]
     intro hx
@@ -92,7 +92,7 @@ theorem lq_cutsKnown {j n odd base d cd : ℕ} (ho : odd < 2) (hb : base < 2) (h
     · rw [getD_map_lt (by omega)] at hu
       have := Value.gen_pow_inj (by omega) (by omega) (hx.symm.trans hu)
       omega
-  · simp only [beq_iff_eq, decide_eq_true_eq] at hb1 ht1 hl0 hlen
+  · simp only [beq_iff_eq] at hb1 ht1 hl0 hlen
     rw [ht1, semRel_impK (by decide) (by decide), semRel0_odd]
     intro hx
     rw [getD_map_lt (by omega)] at hx ⊢

@@ -73,10 +73,12 @@ noncomputable def leafOkB (m : ℕ) (f : String) : Bool :=
     | _ => false
 
 /-- `open_stacked`'s words at the arm `m`, the largest over the rates, its name spelled by `natStr`, by the search
-tree's lookups. -/
+tree's lookups: its frame, the largest buffers over the rates, and its calls, which are the same at every rate
+(`Whir.osBody_rate`), so that the kernel walks the body once. -/
 noncomputable def osCF (m : ℕ) : ℕ :=
-  ((List.range ligNRates).map fun ri ↦ B1.osBos fsFast wSBos ("open_stacked__L" ++ natStr m) (osCfgR m ri)).foldl
-    max 0
+  fsFast ("open_stacked__L" ++ natStr m) +
+    ((List.range ligNRates).map fun ri ↦ (B1.osSizesL (osCfgR m ri)).sum).foldl max 0 +
+    B1.osKidsB fsFast wSBos (osCfg m)
 
 end
 end LeanVM.Guest.Count

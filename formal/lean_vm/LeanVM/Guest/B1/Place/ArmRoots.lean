@@ -75,6 +75,37 @@ theorem calleeIdx_root {j k : ℕ} {g : String} (hj : j ∈ armIdxs) (h : callee
   rw [List.getElem?_eq_getElem hn, Option.map_some, Option.some.injEq] at hs
   exact ⟨mem_armRoots hj (List.mem_of_find?_eq_some h) hn, hname.trans (congrArg some hs)⟩
 
+/-- `l` in chunks of `n`, at most `f` of them. -/
+def chunks {α : Type} (n : ℕ) : ℕ → List α → List (List α)
+  | 0, _ => []
+  | f + 1, l => l.take n :: chunks n f (l.drop n)
+
+theorem chunks_getElem? {α : Type} {n : ℕ} (hn : 0 < n) :
+    ∀ (f : ℕ) (l : List α) (k : ℕ), l.length ≤ n * f → ((chunks n f l)[k / n]?).bind (·[k % n]?) = l[k]?
+  | 0, l, k, h => by
+    obtain rfl : l = [] := List.eq_nil_of_length_eq_zero (by simpa using h)
+    simp [chunks]
+  | f + 1, l, k, h => by
+    by_cases hk : k < n
+    · rw [Nat.div_eq_of_lt hk, Nat.mod_eq_of_lt hk]
+      simp [chunks, hk]
+    · have e : k / n = (k - n) / n + 1 := by
+        rw [← Nat.sub_add_cancel (Nat.le_of_not_lt hk), Nat.add_div_right _ hn, Nat.sub_add_cancel (Nat.le_of_not_lt hk)]
+      have e' : k % n = (k - n) % n := by
+        conv_lhs => rw [← Nat.sub_add_cancel (Nat.le_of_not_lt hk)]
+        exact Nat.add_mod_right _ _
+      rw [chunks, e, List.getElem?_cons_succ, e', chunks_getElem? hn f (l.drop n) (k - n)
+        (by rw [List.length_drop, Nat.mul_succ] at *; omega), List.getElem?_drop,
+        Nat.add_sub_cancel' (Nat.le_of_not_lt hk)]
+
+/-- Function `j` of the core IR, by its chunk of `32`: the kernel walks some `j / 32 + 32` cells where
+`coreProgram[j]?` walks `j`. -/
+noncomputable def coreAt (j : ℕ) : Option Fn :=
+  ((chunks 32 (core_count% / 32 + 1) coreProgram)[j / 32]?).bind (·[j % 32]?)
+
+theorem coreAt_eq (j : ℕ) : coreAt j = coreProgram[j]? :=
+  chunks_getElem? (by decide) _ _ _ (by rw [coreProgram_length]; omega)
+
 /-- Group `i` of the roots: seventy from `70 * i`, or with `last` every one from there. -/
 def armGrp (i : ℕ) (last : Bool := false) : List ℕ :=
   bif last then armRoots.drop (70 * i) else (armRoots.drop (70 * i)).take 70

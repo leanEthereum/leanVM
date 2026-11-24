@@ -4,12 +4,8 @@ LeanVM.Guest.B1.Da.VerifyChk	10.0	10.0	4800	3400
 LeanVM.Guest.B1.Exact.VerifyTables	20.0	20.0	5700	3700
 LeanVM.Guest.B1.KeccakGkr.VkCB	10.0	10.0	4900	3600
 LeanVM.Guest.B1.KeccakGkr.VkCDK	10.0	10.0	4000	2600
-LeanVM.Guest.B1.Place.ArmFree0	20.0	20.0	4100	2700
-LeanVM.Guest.B1.Place.ArmFree1	30.0	30.0	5300	3900
-LeanVM.Guest.B1.Place.ArmFree2	30.0	30.0	5700	4200
-LeanVM.Guest.B1.Place.ArmFree3	30.0	30.0	5200	3800
-LeanVM.Guest.B1.Place.ArmFree4	40.0	40.0	6400	5000
-LeanVM.Guest.B1.Place.ArmFree5	40.0	40.0	6300	4900
+LeanVM.Guest.B1.Place.ArmFree4	30.0	30.0	4800	3400
+LeanVM.Guest.B1.Place.ArmFree5	20.0	20.0	4700	3300
 LeanVM.Guest.B1.Place.ArmMuteAll	30.0	30.0	5200	3900
 LeanVM.Guest.B1.Place.ArmXT	20.0	20.0	4600	3300
 LeanVM.Guest.B1.Place.LqBound	20.0	20.0	5600	4300

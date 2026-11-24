@@ -44,13 +44,13 @@ noncomputable def armMuteOk (name : String) (j : ℕ) : Bool :=
 
 /-- `noWitJ`'s own step on function `j`: no witness hint in its body, its callees indexed. -/
 noncomputable def nwLoc (j : ℕ) : Bool :=
-  match coreProgram[j]? with
+  match coreAt j with
   | some fn => Stmt.noWitList fn.body && (Stmt.blockCallees fn.body).all (fun g => (calleeIdx j g).isSome)
   | none => false
 
 theorem noWitJ_succ (d j : ℕ) :
     noWitJ (d + 1) j = (nwLoc j && (Data.calleesJ j).all fun k ↦ k == j || noWitJ d k) := by
-  rw [noWitJ, nwLoc]
+  rw [noWitJ, nwLoc, coreAt_eq]
   cases coreProgram[j]? <;> rfl
 
 /-- Root `k` names an entry of `lqTable`. -/
