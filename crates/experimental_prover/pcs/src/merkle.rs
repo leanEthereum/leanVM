@@ -27,7 +27,7 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use fiat_shamir::merkle::{Hash, MerklePath};
 use parallel::SendPtr;
 use primitives::field::F64;
-use primitives::hash::{LANES, OUT_LEN, RATE, STATE_LANES, hash_many, hash_many_from_state, zero_prefix_state};
+use primitives::hash::{OUT_LEN, RATE, STATE_LANES, hash_many, hash_many_from_state, lanes, zero_prefix_state};
 use primitives::{cast_slice, cast_slice_mut};
 
 /// Nodes one climb takes at most: 32 KiB of digests, which stay in L1.
@@ -129,7 +129,7 @@ impl MerkleBuilder {
             return unsafe { self.nodes.climb(level, 0, n, n.ilog2() as usize) };
         }
         // Climb while every level still fills whole batches.
-        let height = (n / LANES).max(1).ilog2() as usize;
+        let height = (n / lanes()).max(1).ilog2() as usize;
         // SAFETY: forwarded.
         unsafe { self.nodes.climb(level, first, n, height) };
         let (level, first, n) = (level + height, first >> height, n >> height);
@@ -437,8 +437,9 @@ impl LeafHasher {
             } => {
                 // Whole batches per tile.
                 let per_tile = STAGE_TILE_BYTES / image;
-                let per_tile = if per_tile >= LANES {
-                    per_tile / LANES * LANES
+                let lanes = lanes();
+                let per_tile = if per_tile >= lanes {
+                    per_tile / lanes * lanes
                 } else {
                     per_tile
                 };

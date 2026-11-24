@@ -6,7 +6,7 @@ publish = false
 
 [features]
 default = ["std"]
-std = []
+std = ["keccak256/std"]
 
 [lints]
 workspace = true

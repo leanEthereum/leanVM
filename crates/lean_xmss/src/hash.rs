@@ -99,6 +99,33 @@ pub(crate) fn th_digests(pp: &PublicParam, tw: &Tweak, values: &[Digest]) -> Dig
     th(pp, tw, values.as_flattened())
 }
 
+/// [`th_digests`] of many inputs at once, through the batched hash: the untruncated outputs, in order.
+#[cfg(feature = "std")]
+pub(crate) fn th_many<const K: usize>(
+    pp: &PublicParam,
+    inputs: impl ExactSizeIterator<Item = (Tweak, [Digest; K])>,
+) -> Vec<keccak256::Hash> {
+    let len = PUBLIC_PARAM_LEN + ADDRESS_LEN + K * N;
+    let mut data = Vec::with_capacity(inputs.len() * len);
+    for (tw, payload) in inputs {
+        data.extend_from_slice(pp);
+        data.extend_from_slice(&address(&tw));
+        data.extend_from_slice(payload.as_flattened());
+    }
+    let mut out = vec![[0; keccak256::OUT_LEN]; data.len() / len];
+    keccak256::hash_many(&data, len, out.as_flattened_mut());
+    out
+}
+
+/// [`th_many`], truncated.
+#[cfg(feature = "std")]
+pub(crate) fn th_digests_many<const K: usize>(
+    pp: &PublicParam,
+    inputs: impl ExactSizeIterator<Item = (Tweak, [Digest; K])>,
+) -> Vec<Digest> {
+    th_many(pp, inputs).iter().map(|h| keccak256::truncate(*h)).collect()
+}
+
 /// Two secrets for one hash: the two halves of the untruncated hash of the seed.
 pub(crate) fn th_pair(pp: &PublicParam, tw: &Tweak, seed: &SchemeSeed) -> [Digest; 2] {
     let output = hasher(pp, tw).update(seed.as_bytes()).finalize();

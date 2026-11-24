@@ -45,7 +45,7 @@ Rules:
 - Prover crates contain no verifier, tests included: a verdict goes through `crates/verifier`.
 - A new user-facing item is a re-export in `crates/lean_vm/src/lib.rs`, used in `crates/lean_vm/tests/api.rs`. A `pub` method users should not see is `#[doc(hidden)] pub fn __name`.
 - `formal/`'s Rust helpers build against stable, except `whir-fold-table` (only experimental's `pcs` keeps the WHIR security search).
-- `keccak256` is `no_std`, and so are `lean_xmss` and `lean_sphincs` without their default `std` feature: their `verify` links into a bare-metal program with no allocator (`rust.yml`'s clippy job). Gate on `std` only what holds or builds a `Vec`, a `Mutex` or an `Arc`.
+- `keccak256` is `no_std` without its `std` feature, and so are `lean_xmss` and `lean_sphincs` without their default `std` feature: their `verify` links into a bare-metal program with no allocator (`rust.yml`'s clippy job). Gate on `std` only what holds or builds a `Vec`, a `Mutex` or an `Arc`, or asks the OS for the CPU's features (`keccak256`'s backends, with `lean_xmss`'s `std`).
 
 ## What must change together
 
@@ -56,7 +56,7 @@ Rules:
 - **The layout** (`placements_of`, the schema): both provers and all three verifiers (`crates/verifier`'s `layout.rs`). `col_kappas` stays derived from `col_kappa_sources`.
 - **A rename in the leanVM document**: both provers, `crates/verifier`, the Lean verifier and the guest.
 - **An experimental crate's manifest, a new one, or `keccak256`'s or `fiat_shamir_prover`'s manifest**: `crates/experimental_tiers/generate.sh`, then run it.
-- **A new `cfg(target_feature)` gate in the experimental tree, `keccak256` or `fiat_shamir_prover`**: the feature in `generate.sh`'s `gated` and in a tier; `generate.sh` fails until then.
+- **A new `cfg(target_feature)` gate in the experimental tree, `keccak256` or `fiat_shamir_prover`**: the feature in `generate.sh`'s `gated` and in a tier, or, for an architecture's baseline (`sse2`, `neon`), in its exception list; `generate.sh` fails until then.
 - **The shared crates' public API or their dependencies**: `bindings/` (`bindings-ci.yml`), and `bindings/Cargo.lock` for dependencies.
 - **EthLib's test vectors** (`tests/<crate>/ethlib/` in `lean_xmss` and `lean_sphincs`): both crates' `ethlib/sync.sh <ethlib-commit>`, same commit.
 
