@@ -489,54 +489,16 @@ theorem goodOH_ordinary (hparse : ∀ p call, model.parse (pblk parameter data p
 /-- **Leaf.** A FORS cover with no decided hit is paid by the potential. -/
 theorem goodOH_pure (hw : w ≤ 1) (L : QueryLog SigningSpec) (forgery : Forgery) (verified : Bool) :
     GoodOH parameter data w b0 Fail Qtot Lmax tg initial model L (pure (forgery, L, verified)) := by
-  intro budget s P Ms d R hprep hP hM hD hC
+  intro budget s P Ms d R hprep hP hM hD _
+  have h := goodO_pure parameter data w b0 Fail (Fintype.card Randomness + budget) Lmax tg initial model hw L
+    forgery verified budget s P Ms d R hprep hP hM hD (countInv_card parameter data s budget)
+  have hflag : expectedFlagged tg initial model (pure (forgery, L, verified) : OracleComp CostSpec _) budget s = 0 := by
+    unfold expectedFlagged
+    rw [interp_pure, OracleComp.tsum_prEvent_pure_mul]
+    simp [flaggedCount]
+  rw [hflag, mul_zero, add_zero, interp_pure, OracleComp.tsum_prEvent_pure_mul] at h
   rw [interp_pure, OracleComp.tsum_prEvent_pure_mul]
-  refine le_trans ?_ le_self_add
-  unfold finalValue
-  simp only [Option.elim, List.append_nil]
-  split_ifs with hcov
-  swap
-  · exact bot_le
-  obtain ⟨⟨hvalid, digest, hdig, -, hunsigned, hcovered⟩, hreal⟩ := hcov
-  set q : Pair := (forgery.message, forgery.signature.randomness) with hq
-  unfold HiddenBridge.cachedDigest at hdig
-  cases h0 : pcache parameter data q.1 s q.2 with
-  | none =>
-      have h0' : (Completeness.allSome (α := fun _ => HashOutput) fun call : DigestCall =>
-          s.cache (messageDigestInput parameter data.root forgery.message forgery.signature.randomness
-            call)) = none := h0
-      rw [h0'] at hdig; cases hdig
-  | some a =>
-      have h0' : (Completeness.allSome (α := fun _ => HashOutput) fun call : DigestCall =>
-          s.cache (messageDigestInput parameter data.root forgery.message forgery.signature.randomness
-            call)) = some a := h0
-      rw [h0'] at hdig
-      have hdig' : truncateMessageDigest a = digest := by
-        simpa using hdig
-      subst hdig'
-      have hlanded : LandedIn parameter data s q :=
-        ⟨a firstCall, first_of_pcache parameter data h0, landed_full parameter _⟩
-      have hqP := (hP.mem q).2 hlanded
-      have hv : pview parameter data s q = Lifetime.localDigestView (truncateMessageDigest a) := by
-        simp only [pview, h0, Option.elim, viewOf]
-      unfold potO
-      rw [ite_eq_right (by
-        rintro (h | h)
-        · exact hreal h
-        · exact absurd hvalid (by simp [SigningTranscript.Valid]; omega))]
-      refine le_trans ?_ le_self_add
-      unfold coreO
-      refine le_trans ?_ (le_trans (List.le_sum_of_mem (List.mem_map_of_mem hqP)) (le_self_add.trans le_self_add))
-      unfold candO
-      rw [ite_eq_left (show Unsigned L q from hunsigned)]
-      split_ifs
-      · exact le_rfl
-      · unfold candValueO
-        calc (1 : ℝ≥0∞) ≤ witnessFn (pview parameter data s q) d := by
-              unfold witnessFn
-              rw [hv]
-              exact witness_pos_of_covered hD _ hcovered
-          _ ≤ _ := base_le_termO hw (witness_props _) s Ms L _ d _ _
+  exact h.trans le_self_add
 
 /-- Hash computations lifted onto the raw summand are sequences of ordinary queries. -/
 theorem goodOH_liftRaw (hparse : ∀ p call, model.parse (pblk parameter data p call) = none)
