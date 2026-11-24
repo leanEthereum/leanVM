@@ -39,22 +39,6 @@ def rdS3 (as xs : List E) : KeccakState :=
 /-- `β`'s permutation. -/
 def rdS4 (as xs : List E) : KeccakState := (⟨capOf (rdS3 as xs), []⟩ : Fs).perm
 
-/-- The arithmetic tail's values, from `74`. -/
-def rdTail (as xs : List E) : List E :=
-  let al := rdCell (rdS3 as xs) 0
-  let be := rdCell (rdS4 as xs) 0
-  let u0 := xs.getD 0 0
-  let w := xs.getD 1 0
-  let c0 := xs.getD 2 0
-  let c1 := xs.getD 3 0
-  let claim := as.getD 6 0
-  let a := u0 + claim + al * w + be * (c0 + c1)
-  [be * c0, u0 + be * c0, u0 + claim, al * w, u0 + claim + al * w, c0 + c1, be * (c0 + c1), a,
-    al * a, u0 + be * c0 + al * a,
-    rdCell (rdS4 as xs) 8, rdCell (rdS4 as xs) 9, rdCell (rdS4 as xs) 10, rdCell (rdS4 as xs) 11,
-    rdCell (rdS4 as xs) 12, word 32 0, as.getD 5 0 * word 32 0, as.getD 5 0 * word 32 0,
-    u0 + be * c0 + al * a]
-
 /-! ## The meaning's sponges -/
 
 theorem rdCell_eq (S : KeccakState) (c : Fin 13) : rdCell S c.val = cellsOfState S false c := by

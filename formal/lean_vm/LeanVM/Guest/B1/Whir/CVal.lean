@@ -155,9 +155,6 @@ def segLookup : List (ℕ × (ℕ → E)) → ℕ → E
   | [], _ => 0
   | (n, g) :: rest, j => if j < n then g j else segLookup rest (j - n)
 
-/-- The total length of segments. -/
-def segLen (segs : List (ℕ × (ℕ → E))) : ℕ := (segs.map (·.1)).sum
-
 /-- A block whose outcome holds of every later valuation agreeing below `k'`. -/
 def Stable (k' : ℕ) (Out : Val → Prop) : Prop := ∀ σ σ', Out σ → AgreeBelow k' σ σ' → Out σ'
 

@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Whir.CompleteIface
 
   The completeness interface of `open_stacked` (B1-b): the run it completes on, the hypothesis on
-  that run (openings that agree in the caps), the layout of its own memory.
+  that run (openings that agree in the caps).
 -/
 
 module
@@ -25,9 +25,6 @@ it for the whole proof: `CapsAgree μ r target S xs os root`, at every query ste
 (`Limits.OpeningsAgree`). The guest writes each level's Merkle cap once (write-once memory), so
 openings meeting in the cap must agree there; the Spec checks each opening alone against the
 root.
-
-**The memory.** The function's own memory is one layout `L` of `(exponent, words)` runs within
-`[b, b + n)` (`LayoutWithin`); a memory holds it when it holds every run (`HoldsLayout`).
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -51,14 +48,6 @@ def CapsAgree (μ r : ℕ) (target : E) (S : KeccakState) (xs : List E)
 
 /-- A layout of words: runs `(e, ws)`, word `j` at the address `g^(e + j)`. -/
 abbrev OsLayout : Type := List (ℕ × List E)
-
-/-- The memory holds the layout. -/
-def HoldsLayout (rd : Reader) (L : OsLayout) : Prop :=
-  ∀ q ∈ L, ∀ j (h : j < q.2.length), rd (addressOfIndex (q.1 + j)) = some q.2[j]
-
-/-- The layout lies in the exponents `[b, b + n)`. -/
-def LayoutWithin (L : OsLayout) (b n : ℕ) : Prop :=
-  ∀ q ∈ L, b ≤ q.1 ∧ q.1 + q.2.length ≤ b + n
 
 end
 end LeanVM.Guest.B1.Whir

@@ -103,11 +103,6 @@ def MeaningDaVerifyCell (rd : Reader) : List E → List E → Prop
         [((List.range LeanDa.cellSymbols).map fun e ↦ ws.getD e 0 * syms.getD e 0).sum]
   | _, _ => False
 
-/-- `da_verify_cell`'s core IR gives its meaning. -/
-def da_verify_cell_sound_Spec : Prop :=
-  ∀ (rd : Reader) (args rets : List E),
-    coreProgram.Rel rd "da_verify_cell" args rets → MeaningDaVerifyCell rd args rets
-
 /-! ## `da_levels` -/
 
 /-- The name of `da_levels`' specialization at `2^k` leaves, `da_levels__L{2^k}_L{k}`, for `k` up to

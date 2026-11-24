@@ -410,10 +410,5 @@ theorem layer_obl {first : ℕ} (hf : first < 2) {κ : ℕ} (hκ : 11 ≤ κ) (D
       · exact absurd hsa (by simp)
     all_goals exact absurd hsa (by simp)
 
-theorem exists_and8_drop {α : Type} {p1 p2 p3 p4 p5 p6 p7 p8 : α → Prop}
-    (h : ∃ x, p1 x ∧ p2 x ∧ p3 x ∧ p4 x ∧ p5 x ∧ p6 x ∧ p7 x ∧ p8 x) :
-    ∃ x, p1 x ∧ p2 x ∧ p3 x ∧ p4 x ∧ p5 x ∧ p6 x ∧ p7 x :=
-  h.imp fun _ h ↦ ⟨h.1, h.2.1, h.2.2.1, h.2.2.2.1, h.2.2.2.2.1, h.2.2.2.2.2.1, h.2.2.2.2.2.2.1⟩
-
 end
 end LeanVM.Guest.B1.VerifySub

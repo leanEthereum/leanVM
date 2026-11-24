@@ -46,12 +46,6 @@ def OpenOutW (rd : Reader) (μ r : ℕ) (root : Digest) (fs : List E) (target cu
       ReadsAt rd pt (w.point ++ List.replicate (pointCap - μ) 0) ∧
       ReadsAt rd pt1 (w.point.map (1 + ·) ++ List.replicate (pointCap - μ) 1)
 
-theorem OpenOutW.openOut {rd : Reader} {μ r : ℕ} {root : Digest} {fs : List E} {target cur : E}
-    {rets xs : List E} {os : List (List Opening)} (h : OpenOutW rd μ r root fs target cur rets xs os) :
-    OpenOut rd μ r root fs target cur rets := by
-  obtain ⟨w, s', roots', h1, h2, h3, h4⟩ := h
-  exact ⟨xs, os, w, s', roots', h1, h2, h3, h4⟩
-
 /-! ## The statement -/
 
 /-- **`open_stacked` is sound with its witness `osW`**, in the program `P`: under a call relation `C ≤ Rel` unfolding

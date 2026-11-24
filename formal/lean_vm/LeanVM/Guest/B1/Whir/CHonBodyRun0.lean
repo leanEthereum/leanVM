@@ -13,9 +13,10 @@ public import LeanVM.Guest.B1.Whir.CHonFields0
 # The run's facts for the body
 
 On an accepting run's honest data (`HonRun`): each level's carried capacity has five cells, its
-roots one entry a level before it (`br_Rlen`), its root's height its row's depth (`br_ht`), the
+roots one entry a level before it (`br_Rlen`), the
 next root the message's cells (`br_rootN`), the final level's challenges extend each level's
-(`br_G`), its rounds counted by its row (`br_rl`), some of its positions (`br_q0`); the final lane's length, the closing rounds' words and
+(`br_G`), its rounds counted by its row (`br_rl`), some of its positions (`br_q0`); the final
+lane's length, the closing rounds' words and
 count, the capacity after the positions' squeezes.
 -/
 
@@ -93,23 +94,6 @@ theorem br_dep {l : ℕ} (hl : l < (osCfgR (μ - minOpenLog) (r - 1)).levels.len
     rw [hdepth]
     show _ = μ - (Ls.getD l default).s1.alphas.length + _
     rw [LvAt.s1, roundsSpec_alphas_length, hg, hfold, hcols]
-
-theorem br_ht : ∀ l < (osCfgR (μ - minOpenLog) (r - 1)).levels.length,
-    ((Ls.getD l default).R.getD l default).2.1 = (((osCfgR (μ - minOpenLog) (r - 1)).levels.getD l default)).depth
-  | 0, hl => by
-    rw [hR.start.2.2.1]
-    have hs := hR.cand.2.1
-    show (stackShape μ r).1 = _
-    rw [hs]
-    simp [List.headD_eq_head?_getD, List.head?_eq_getElem?, List.getD_eq_getElem?_getD]
-  | l + 1, hl => by
-    have hy := hR.yr
-    obtain ⟨rw, W, hd, he⟩ := hR.br_Rnext (l := l) (by omega)
-    obtain ⟨-, hfold, hcols, -⟩ := hR.mid (l := l) (by omega)
-    have hshape := (hR.mid (l := l) (by omega)).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1
-    rw [he]
-    show (levelShape (μ - (Ls.getD l default).s1.alphas.length) _ _).1 = _
-    rw [LvAt.s1, roundsSpec_alphas_length, hR.alphas l (by omega), hfold, hcols, hshape]
 
 theorem br_rl : ∀ i < (osCfgR (μ - minOpenLog) (r - 1)).levels.length,
     (Ls.getD i default).rounds.length = (((osCfgR (μ - minOpenLog) (r - 1)).levels.getD i default)).folds := by

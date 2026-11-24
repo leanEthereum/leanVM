@@ -17,7 +17,7 @@ import LeanVM.Guest.Value.FieldBits
 `opening_queries`' blocks are atoms, `match`es of atom arms (a query, `walk_path` inline) and calls (its
 loops). `FlatC ss`: every statement is an atom, a `match` of atom arms or
 a call. `holdsList_flatC`: such a block holds exactly when every statement does (`StmtOkC C`: a call
-holds in the call relation `C`), then `next`. `loop_iffC`: `loop_iff` for a loop whose body's meaning reads the call relation (monotone, reached at a finite depth).
+holds in the call relation `C`), then `next`.
 -/
 
 namespace LeanVM.Guest.B1
@@ -126,60 +126,6 @@ def FlatBodyC (C : CallRel) (rd : Reader) (params : List V) (A : List Stmt) (arg
 theorem FlatBodyC.monoC {C C' : CallRel} (hC : CallRel.Le C C') {params : List V} {A : List Stmt}
     {args : List E} (h : FlatBodyC C rd params A args) : FlatBodyC C' rd params A args :=
   let ⟨σ, hp, hA⟩ := h; ⟨σ, hp, hA.monoC hC⟩
-
-/-- **A `mul_range` loop whose body calls** (`loop_iff` with the body's meaning `B C x` read in
-the call relation `C`, monotone in it and reached at a finite depth). -/
-theorem loop_iffC {P : Core.Program} {f : String} {ps : List E} {N : E}
-    {B : CallRel → E → Prop}
-    (hmono : ∀ {C C' : CallRel} {x : E}, CallRel.Le C C' → B C x → B C' x)
-    (hfin : ∀ {x : E}, B (P.Rel rd) x → ∃ D, B (P.relN rd D) x)
-    (hstep : ∀ d x, P.relN rd (d + 1) f (x :: ps) [] ↔
-      B (P.relN rd d) x ∧ IsInK (x * gen + N) ∧ (x * gen + N ≠ 0 → P.relN rd d f (x * gen :: ps) []))
-    (k : ℕ) :
-    P.Rel rd f (gen ^ k :: ps) [] ↔
-      ∃ m, k < m ∧ N = gen ^ m ∧ (∀ j, k < j → j < m → gen ^ j ≠ N) ∧
-        ∀ j, k ≤ j → j < m → B (P.Rel rd) (gen ^ j) := by
-  constructor
-  · rintro ⟨d, hd⟩
-    induction d generalizing k with
-    | zero => exact hd.elim
-    | succ d ih =>
-      obtain ⟨hB, -, hnext⟩ := (hstep d _).mp hd
-      have hB' := hmono (relN_le_rel P d) hB
-      by_cases h0 : gen ^ k * gen + N = 0
-      · refine ⟨k + 1, by omega, (gen_pow_add_eq_zero_iff k).mp h0, fun j h1 h2 => by omega,
-          fun j h1 h2 => ?_⟩
-        rwa [show j = k by omega]
-      · have := hnext h0
-        rw [gen_pow_mul_gen] at this
-        obtain ⟨m, hm, hN, hfirst, hall⟩ := ih (k + 1) this
-        refine ⟨m, by omega, hN, fun j h1 h2 => ?_, fun j h1 h2 => ?_⟩
-        · rcases Nat.lt_or_ge (k + 1) j with h | h
-          · exact hfirst j h h2
-          · rw [show j = k + 1 by omega]
-            intro he
-            exact h0 ((gen_pow_add_eq_zero_iff k).mpr he.symm)
-        · rcases Nat.lt_or_ge k j with h | h
-          · exact hall j (by omega) h2
-          · rwa [show j = k by omega]
-  · rintro ⟨m, hkm, hN, hfirst, hall⟩
-    obtain ⟨t, rfl⟩ : ∃ t, m = k + 1 + t := ⟨m - k - 1, by omega⟩
-    have hK : ∀ j, IsInK (gen ^ j * gen + N) := fun j => by
-      rw [hN]; exact isInK_add (isInK_mul (gen_pow_isInK j) (by simpa using gen_pow_isInK 1)) (gen_pow_isInK _)
-    suffices h : ∃ d, P.relN rd d f (gen ^ k :: ps) [] from h
-    induction t generalizing k with
-    | zero =>
-      obtain ⟨D, hD⟩ := hfin (hall k le_rfl (by omega))
-      exact ⟨D + 1, (hstep D _).mpr ⟨hD, hK k,
-        fun h => absurd ((gen_pow_add_eq_zero_iff k).mpr hN) h⟩⟩
-    | succ t ih =>
-      obtain ⟨D, hD⟩ := hfin (hall k le_rfl (by omega))
-      obtain ⟨d', hd'⟩ := ih (k + 1) (by omega) (by rw [hN]; congr 1; omega)
-        (fun j h1 h2 => hfirst j (by omega) (by omega)) (fun j h1 h2 => hall j (by omega) (by omega))
-      refine ⟨max D d' + 1, (hstep (max D d') _).mpr ⟨hmono (relN_mono P (le_max_left D d')) hD,
-        hK k, fun _ => ?_⟩⟩
-      rw [gen_pow_mul_gen]
-      exact relN_mono P (le_max_right D d') _ _ _ hd'
 
 end
 end LeanVM.Guest.B1

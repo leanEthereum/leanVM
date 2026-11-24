@@ -33,11 +33,6 @@ def isMulAt (x y z : V) : Atom → Bool
   | .mul d a b => decide (d = x) && decide (a = y) && decide (b = z)
   | _ => false
 
-/-- `x ≠ 0`, by an `assert_ne` through `inv`, `p`. -/
-def isNeAt (x : V) : Atom → Bool
-  | .assertNe d _ _ => decide (d = x)
-  | _ => false
-
 /-- The range check's bound `g^M`, a word of one limb below `g^64`. -/
 theorem word_gMax : word (2 ^ guest_const% DA_MAX_ROWS) 0 = gen ^ guest_const% DA_MAX_ROWS := word_two_pow (by decide)
 

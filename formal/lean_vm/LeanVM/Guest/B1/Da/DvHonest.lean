@@ -26,8 +26,7 @@ For `r` blobs of cells `syms i h` (`128` symbols each) padded to `2^L`, the chal
   running sum after `h` columns.
 * `blobLeaves syms i`: blob `i`'s leaves, its cells' digests; `regionCells syms z i`: its region,
   `641` words: the tree over its leaves (`510`), two zeros, the running sums `0 … 128`.
-* `blobsCells`, `rootsCells`: `da_verify`'s buffers of the regions and of the tree over the blob
-  roots and the padding blobs' roots.
+* `rootsCells`: `da_verify`'s buffer of the tree over the blob roots and the padding blobs' roots.
 * `runSum_succ`, `runSum_zero`,
   `runSum_full` (orthogonality).
 -/
@@ -59,9 +58,6 @@ def blobLeaves (i : ℕ) : List (E × E) := (List.range 128).map fun h => digest
 /-- **Blob `i`'s region**: the tree over its leaves, two zeros, its running sums. -/
 def regionCells (i : ℕ) : List E :=
   treeCells (blobLeaves syms i) 7 ++ [0, 0] ++ (List.range 129).map (runSum syms z i)
-
-/-- The regions of the `r` blobs, `641` words each. -/
-def blobsCells : List E := (List.range r).flatMap (regionCells syms z)
 
 /-- The blob roots and the padding blobs' roots. -/
 def rootLeaves : List (E × E) := (List.range (2 ^ L)).map fun i => digestHalves (blobLeaf r syms i)

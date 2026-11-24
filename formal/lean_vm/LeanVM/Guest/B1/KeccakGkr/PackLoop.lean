@@ -147,12 +147,6 @@ theorem fsNextT_atoms (cu : V) (off b : ℕ) : AllAtoms (fsNextT cu off b) := by
   simp only [fsNextT, fsPackT, List.mem_cons, List.not_mem_nil, or_false] at hs
   rcases hs with rfl | rfl | rfl <;> exact ⟨_, rfl⟩
 
-theorem challengeT_atoms (s0 : V) (b : ℕ) : AllAtoms (challengeT s0 b) := by
-  intro s hs
-  simp only [challengeT, List.mem_cons, List.not_mem_nil, or_false] at hs
-  rcases hs with rfl
-  exact ⟨_, rfl⟩
-
 theorem fsNextT_facts {cu : V} {off b : ℕ} (H : ∀ a, Stmt.atom a ∈ fsNextT cu off b → a.Holds rd σ) :
     LoadHolds rd (σ cu) off (σ (.n b)) ∧ FsPackOk σ (.n b) (b + 1) dsObserve :=
   ((holds_fsNextT (C := fun _ _ _ ↦ True) cu off b True (fun _ ↦ False)).1

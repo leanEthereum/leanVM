@@ -137,11 +137,6 @@ def keccak_plain_rounds_SpecP (P : Program) : Prop :=
   ∀ k0 < 2, ∀ (rd : Reader) (args rets : List E),
     P.Rel rd (plainName k0) args rets → MeaningPlainRounds (plainCount k0) k0 rd args rets
 
-/-- The converse, for completeness, the waiting cells being a scalar's. -/
-def keccak_plain_rounds_complete_SpecP (P : Program) : Prop :=
-  ∀ k0 < 2, ∀ (rd : Reader) (args rets : List E), PlainCellsOk k0 args →
-    MeaningPlainRounds (plainCount k0) k0 rd args rets → P.Rel rd (plainName k0) args rets
-
 /-! ## Claim records -/
 
 /-- The first claim's position weights: bit `z` of lane `l` weighs `lanes[l]·x^z`. -/

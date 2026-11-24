@@ -34,12 +34,6 @@ def cellRets (syms ws : List E) : List E :=
   digestCells (keccak256 (syms.flatMap E.toBytes)) ++
     [((List.range LeanDa.cellSymbols).map fun e ↦ ws.getD e 0 * syms.getD e 0).sum]
 
-/-- `da_verify_cell`'s meaning, for given symbols and weights in memory, gives its core IR. -/
-def da_verify_cell_complete_Spec : Prop :=
-  ∀ (rd : Reader) (lv : E) (syms ws : List E), syms.length = LeanDa.cellSymbols →
-    ws.length = LeanDa.cellSymbols → ReadsAt rd lv ws →
-      coreProgram.Rel rd "da_verify_cell" [lv] (cellRets syms ws)
-
 /-- The oracle of the symbols' hint. -/
 def symOrc (syms : List E) (j : ℕ) : E := syms.getD (j - 1) 0
 

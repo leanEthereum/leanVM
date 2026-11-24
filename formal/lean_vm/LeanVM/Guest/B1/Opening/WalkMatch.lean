@@ -207,11 +207,6 @@ theorem quietF_loadAddr (σ : Val) : QuietF (Ev.loadAddr? σ) := fun a h ↦ by
   | load => simp [Atom.quiet] at h
   | _ => rfl
 
-theorem quietF_run : QuietF Ev.run? := fun a h ↦ by
-  cases a with
-  | frameAddr => simp [Atom.quiet] at h
-  | _ => rfl
-
 /-- **A flat body's buffers, frame addresses and calls** (as `straight_parts`). -/
 theorem flatM_parts (σ : Val) (pre : List Stmt) (h : pre.all Stmt.flatM = true) :
     allocDsts (pre.flatMap (fmEvs σ)) = (pre.filterMap Stmt.allocSz).map Prod.fst ∧

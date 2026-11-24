@@ -104,33 +104,5 @@ def CellBlk (rd : Reader) (w base : E) (k : ℕ) : Prop :=
     LoadHolds rd (base * gen ^ k) 513 (prev + s) ∧
     LoadHolds rd (base * (gen ^ k * gen ^ k)) 0 d0 ∧ LoadHolds rd (base * (gen ^ k * gen ^ k)) 1 d1
 
-set_option maxRecDepth 20000 in
-/-- **One cell**: the loop at `g^k` runs when its block's words hold and, unless `k + 1 = 128`,
-the loop at `g^(k+1)` runs. -/
-theorem cellL_step {w base : E} {k : ℕ} (hk : k < 128) (hb : CellBlk rd w base k)
-    (hn : k + 1 < 128 → coreProgram.Rel rd name% «da_verify_blob_loop0» [gen ^ (k + 1), w, base] []) :
-    coreProgram.Rel rd name% «da_verify_blob_loop0» [gen ^ k, w, base] [] := by
-  obtain ⟨lv, d0, d1, s, prev, hc, h1, h2, h3, h4, h5⟩ := hb
-  have hpar := dv_loops_shape.2.2
-  refine (rel_iff_sem find_c _ _).mpr ⟨Val.ofArgs [gen ^ k, w, base, w * gen ^ k, lv, d0, d1, s,
-    base * gen ^ k, prev, prev + s, gen ^ k * gen ^ k, base * (gen ^ k * gen ^ k), word 2 0,
-    gen ^ k * word 2 0, word 325 0, gen ^ k * word 2 0 + word 325 0, word 2 0, gen ^ k * word 2 0],
-    by rw [hpar]; rfl, ?_⟩
-  rw [dv_loops_body.2.2, cellLBody, holdsList_append]
-  refine holdsList_flat_of cellLPre (by decide) _ _ (fun st hst => ?_) ?_
-  · simp only [cellLPre, List.mem_cons, List.not_mem_nil, or_false] at hst
-    rcases hst with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
-      rfl | rfl | rfl | rfl
-    all_goals simp (config := {failIfUnchanged := false}) only [Stmt.Holds, Atom.Holds, ofArgs_n,
-      List.getD_cons_succ, List.getD_cons_zero, List.map_cons, List.map_nil, and_true]
-    exacts [h1, hc, h2, h3, h4, h5]
-  · have hg : word 2 0 = gen := by rw [show (2 : ℕ) = 2 ^ 1 from rfl, word_two_pow (by norm_num), pow_one]
-    simp only [Stmt.HoldsList, Stmt.Holds, ofArgs_n, List.getD_cons_succ, List.getD_cons_zero,
-      List.map_cons, List.map_nil, hg, word_g128, gen_pow_mul_gen]
-    refine ⟨gen_pow_add_isInK _ _, fun hne => ?_, trivial⟩
-    exact hn (by
-      by_contra hc'
-      exact hne (by rw [show k + 1 = 128 by omega]; exact e_add_eq_zero_iff.mpr rfl))
-
 end
 end LeanVM.Guest.B1.Da
