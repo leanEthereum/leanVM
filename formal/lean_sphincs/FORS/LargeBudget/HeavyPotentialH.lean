@@ -830,7 +830,7 @@ theorem goodHWH_draw (L : QueryLog SigningSpec) (draw : ℕ)
       (0 + wflag tg initial model (next r.1) (budget - 0) r.2) = _
     rw [OracleComp.tsum_prEvent_map_mul]
     simp only [zero_add, Nat.sub_zero]
-  rw [hw, interp_drawH, OracleComp.tsum_prEvent_bind_mul]
+  rw [hw, interp_draw, OracleComp.tsum_prEvent_bind_mul]
   calc _ ≤ ∑' v, Pr{let x ← (liftM (unifSpec.query draw) : ProbComp (Fin (draw + 1)))}[x = v] *
         (weight tg initial s * potH parameter data Qtot w b0 Fail tg initial Lmax s P Ms L d budget +
           b0 * wflag tg initial model (next v) budget s) :=
@@ -985,7 +985,7 @@ theorem goodHWH_ordinary (hparse : ∀ p call, model.parse (pblk parameter data 
   intro budget s P Ms d R hprep hP hM hD hT
   by_cases hb : 1 ≤ budget
   swap
-  · rw [interp_ordinaryHB, ite_eq_right hb, OracleComp.tsum_prEvent_pure_mul, finalValue_abort, mul_zero]
+  · rw [interp_ordinary, ite_eq_right hb, OracleComp.tsum_prEvent_pure_mul, finalValue_abort, mul_zero]
     exact bot_le
   rw [finalValueWH_ordinary parameter data tg initial model R x next budget hb s,
     wflag_ordinary tg initial model x next budget hb s]

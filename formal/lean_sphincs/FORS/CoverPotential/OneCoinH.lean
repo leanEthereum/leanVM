@@ -5,7 +5,8 @@ public import FORS.Reduction.NoRepeat
 public import FORS.CoverPotential.OneCoin
 public import FORS.CoverPotential.GameH
 public import FORS.LargeBudget.HonestCoupling
-public import FORS.SmallBudget.Contact.HonestBase
+public import FORS.CoverPotential.Presample
+public import FORS.LazyRun.HonestRead
 
 @[expose] public section
 
@@ -224,7 +225,7 @@ theorem finalValue_ordinary (R : List Coordinate) (x : HashInput)
       ∑' r, Pr{let y ← ordinaryStep model x s.known s}[y = r] *
         ∑' out, Pr{let x ← interp tg initial model (next r.1) (budget - 1) r.2}[x = out] *
           finalValue parameter data tg initial R out := by
-  rw [interp_ordinaryHB, ite_eq_left hb, OracleComp.tsum_prEvent_bind_mul]
+  rw [interp_ordinary, ite_eq_left hb, OracleComp.tsum_prEvent_bind_mul]
   simp only [OracleComp.tsum_prEvent_map_mul]
   rfl
 
@@ -235,7 +236,7 @@ theorem flagged_ordinary (x : HashInput) (next : HashOutput → OracleComp CostS
         ∑' r, Pr{let y ← ordinaryStep model x s.known s}[y = r] *
           expectedFlagged tg initial model (next r.1) (budget - 1) r.2 := by
   unfold expectedFlagged
-  rw [interp_ordinaryHB, ite_eq_left hb, OracleComp.tsum_prEvent_bind_mul]
+  rw [interp_ordinary, ite_eq_left hb, OracleComp.tsum_prEvent_bind_mul]
   simp only [OracleComp.tsum_prEvent_map_mul, flaggedCount_append, flaggedCount_touch, Nat.cast_add, mul_add,
     tsum_add, ENNReal.tsum_mul_right, OracleComp.tsum_prEvent_eq_one, one_mul]
 
@@ -280,7 +281,7 @@ theorem goodOH_draw (L : QueryLog SigningSpec) (draw : ℕ)
       (liftM (CostSpecH.query (.inl (.inl draw))) >>= next) := by
   intro budget s P Ms d R hprep hP hM hD hC
   unfold expectedFlagged
-  rw [interp_drawH, OracleComp.tsum_prEvent_bind_mul, OracleComp.tsum_prEvent_bind_mul]
+  rw [interp_draw, OracleComp.tsum_prEvent_bind_mul, OracleComp.tsum_prEvent_bind_mul]
   calc _ ≤ ∑' v, Pr{let x ← (liftM (unifSpec.query draw) : ProbComp (Fin (draw + 1)))}[x = v] *
         (potO parameter data w b0 Fail tg initial Lmax s P Ms L d budget +
           b0 * expectedFlagged tg initial model (next v) budget s) :=
@@ -437,7 +438,7 @@ theorem goodOH_ordinary (hparse : ∀ p call, model.parse (pblk parameter data p
   intro budget s P Ms d R hprep hP hM hD hC
   by_cases hb : 1 ≤ budget
   swap
-  · rw [interp_ordinaryHB, ite_eq_right hb, OracleComp.tsum_prEvent_pure_mul, finalValue_abort]
+  · rw [interp_ordinary, ite_eq_right hb, OracleComp.tsum_prEvent_pure_mul, finalValue_abort]
     exact bot_le
   rw [finalValue_ordinary tg initial model parameter data R x next budget hb s,
     flagged_ordinary tg initial model x next budget hb s]

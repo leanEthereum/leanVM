@@ -147,7 +147,6 @@ public import FORS.SmallBudget.Closing
 public import FORS.SmallBudget.ClosingH
 public import FORS.SmallBudget.BridgeH
 public import FORS.SmallBudget.Contact.Bound
-public import FORS.SmallBudget.Contact.HonestBase
 public import FORS.SmallBudget.Contact.NearWitness
 public import FORS.SmallBudget.Contact.PaidPotential
 public import FORS.SmallBudget.Contact.PaidPotentialH
