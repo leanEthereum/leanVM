@@ -173,6 +173,111 @@ noncomputable def stOf (s : DebtState HashInput HashOutput Coordinate) (ρ : Ran
   (s.cache (blk parameter data message ρ)).elim .fresh fun u0 =>
     if Landed parameter (blockIndex u0) then .hit else .miss
 
+/-- **One trial of the scan**, with any continuation, for any value `F` of the result, the reveals
+and the state that a fresh store can only raise. The trial reads the index block alone, so a fresh pair is only
+drawn whole by the final assembly that follows it (`interp_presample_new`). -/
+theorem trial_boundF
+    (hparse : ∀ ρ call, model.parse (pblk parameter data message ρ call) = none)
+    (hkind : ∀ ρ call, tg.kind (pblk parameter data message ρ call) = .none)
+    (reference : DebtState HashInput HashOutput Coordinate) (ρ : Randomness)
+    (gf : Lifetime.KeptDigestView → ℝ≥0∞) (gp : Randomness → Lifetime.KeptDigestView → ℝ≥0∞)
+    (F : Option (Option Signature) → List Coordinate → DebtState HashInput HashOutput Coordinate → ℝ≥0∞)
+    (hFabort : ∀ s', F none [] s' = 0)
+    (hFstore : ∀ r R (s' : DebtState HashInput HashOutput Coordinate) (y : HashInput) (v : HashOutput),
+      s'.cache y = none → F r R s' ≤ F r R (s'.store y v))
+    (hfinish : ∀ (s' : DebtState HashInput HashOutput Coordinate) (u : DigestCall → HashOutput) (b : ℕ),
+      RelatedOff parameter data message reference s' ρ →
+      (∀ call, s'.cache (pblk parameter data message ρ call) = some (u call)) →
+      Landed parameter (blockIndex (u firstCall)) →
+      ∑' out, Pr{let x ← interp tg initial model (finishCostSource parameter data message ρ) b s'}[x = out] *
+          F out.1.1 out.1.2.1 out.2 ≤ pairWeight parameter data message reference gf gp ρ u)
+    (bound : ℝ≥0∞) (state : DebtState HashInput HashOutput Coordinate)
+    (hrel : Related parameter data message reference state)
+    (hinv : PairInv parameter data message state)
+    (hpair : ∀ call, state.cache (pblk parameter data message ρ call) =
+      reference.cache (pblk parameter data message ρ call))
+    (cont : OracleComp CostSpec (Option Signature))
+    (hih : ∀ s', Related parameter data message reference s' → PairInv parameter data message s' →
+      (∀ x, (∀ call, x ≠ pblk parameter data message ρ call) → s'.cache x = state.cache x) → ∀ b,
+        ∑' out, Pr{let x ← interp tg initial model cont b s'}[x = out] * F out.1.1 out.1.2.1 out.2 ≤ bound)
+    (budget : ℕ) :
+    ∑' out, Pr{let x ← (interp tg initial model
+        (liftM (CostSpec.query (.inl (.inr (.inl (blk parameter data message ρ))))) >>= fun first =>
+          if Landed parameter (blockIndex first) then finishCostSource parameter data message ρ
+          else cont) budget state)}[x = out] * F out.1.1 out.1.2.1 out.2 ≤
+      (state.cache (blk parameter data message ρ)).elim
+        (∑' u, Pr{let z ← ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))}[z = u] *
+          (if Landed parameter (blockIndex (u firstCall)) then gf (viewOf u) else bound))
+        (fun u0 => if Landed parameter (blockIndex u0) then poolValue parameter data message reference gp ρ
+          else bound) := by
+  rw [interp_ordinary]
+  split_ifs with h1
+  · rw [ordinaryStep, hparse ρ firstCall]
+    simp only
+    rw [OracleComp.tsum_prEvent_bind_mul]
+    simp only [OracleComp.tsum_prEvent_map_mul]
+    cases hc : state.cache (blk parameter data message ρ) with
+    | some u0 =>
+        rw [readOutside_cached _ state u0 hc, OracleComp.tsum_prEvent_pure_mul]
+        simp only [Option.elim]
+        by_cases hl : Landed parameter (blockIndex u0)
+        · rw [ite_eq_left hl, ite_eq_left hl]
+          obtain ⟨u, hu, hucall⟩ :=
+            pcache_of_isSome parameter data message state ρ ((hinv ρ).2 u0 hc hl)
+          have hu0 : u firstCall = u0 := Option.some_inj.1 ((hucall firstCall).symm.trans hc)
+          have href : reference.cache (blk parameter data message ρ) = some u0 := by
+            rw [← hpair firstCall]; exact hc
+          have hpcsame : pcache parameter data message reference ρ =
+              pcache parameter data message state ρ := by
+            unfold pcache
+            exact congrArg _ (funext fun call => (hpair call).symm)
+          have hpv : poolValue parameter data message reference gp ρ = gp ρ (viewOf u) := by
+            unfold poolValue
+            rw [hpcsame.trans hu]
+            simp only [Option.elim, hu0]
+            rw [ite_eq_left hl]
+          have hpw : pairWeight parameter data message reference gf gp ρ u = gp ρ (viewOf u) := by
+            unfold pairWeight
+            rw [ite_eq_right (by rw [href]; simp)]
+          rw [hpv, ← hpw]
+          exact hfinish state u _ (fun ρ' _ => hrel ρ') hucall (by rw [hu0]; exact hl)
+        · rw [ite_eq_right hl, ite_eq_right hl]
+          exact hih state hrel hinv (fun _ _ => rfl) _
+    | none =>
+        have hfresh : ∀ call, state.cache (pblk parameter data message ρ call) = none := (hinv ρ).1 hc
+        have href : reference.cache (blk parameter data message ρ) = none := by
+          rw [← hpair firstCall]; exact hc
+        rw [readOutside_fresh _ state hc, OracleComp.tsum_prEvent_map_mul]
+        simp only [Option.elim]
+        refine le_trans (interp_presample_new tg initial model (pblk parameter data message ρ)
+          (pblk_injective parameter data message ρ) (hkind ρ) firstCall
+          (fun first => if Landed parameter (blockIndex first) then finishCostSource parameter data message ρ
+            else cont) (budget - 1) state hfresh (fun out => F out.1.1 out.1.2.1 out.2)
+          (fun out y v hy => hFstore _ _ _ y v hy)) ?_
+        rw [tsum_uniform_eq]
+        have hcard : (Fintype.card (DigestCall → HashOutput) : ℝ≥0∞) =
+            (Fintype.card HashOutput : ℝ≥0∞) ^ digestCalls := by
+          rw [Fintype.card_fun, Fintype.card_fin, Nat.cast_pow]
+        rw [hcard]
+        refine mul_le_mul' le_rfl (Finset.sum_le_sum fun u _ => ?_)
+        by_cases hl : Landed parameter (blockIndex (u firstCall))
+        · rw [ite_eq_left hl, ite_eq_left hl]
+          have hall : ∀ call, (storeAll (pblk parameter data message ρ) u state).cache
+              (pblk parameter data message ρ call) = some (u call) :=
+            fun call => storeAll_cache_self _ (pblk_injective parameter data message ρ) u state call
+          have hpw : pairWeight parameter data message reference gf gp ρ u = gf (viewOf u) := by
+            unfold pairWeight
+            rw [ite_eq_left href, ite_eq_left hl]
+          rw [← hpw]
+          exact hfinish _ u _ (relatedOff_storeAll parameter data message reference state hrel ρ u) hall hl
+        · rw [ite_eq_right hl, ite_eq_right hl]
+          exact hih _ (related_storeAll parameter data message reference state hrel ρ hc u hl)
+            (pairInv_storeAll parameter data message state hinv ρ u hl)
+            (fun x hx => storeAll_cache_other _ _ _ _ fun call => Ne.symm (hx call)) _
+  · rw [OracleComp.tsum_prEvent_pure_mul]
+    exact (hFabort state).trans_le zero_le
+
+
 /-- **One trial of the scan**, with any continuation. The trial reads the index block alone, so a
 fresh pair is only drawn whole by the final assembly that follows it (`interp_presample_new`). -/
 theorem trial_boundS
@@ -213,81 +318,18 @@ theorem trial_boundS
   have hfinish : ∀ (s' : DebtState HashInput HashOutput Coordinate) (u : DigestCall → HashOutput) (b : ℕ),
       RelatedOff parameter data message reference s' ρ →
       (∀ call, s'.cache (pblk parameter data message ρ call) = some (u call)) →
+      Landed parameter (blockIndex (u firstCall)) →
       ∑' out, Pr{let x ← interp tg initial model (finishCostSource parameter data message ρ) b s'}[x = out] *
           W out.1.1 out.2 ≤ pairWeight parameter data message reference gf gp ρ u := by
-    intro s' u b hrel' hs'
+    intro s' u b hrel' hs' _
     refine le_trans (tsum_le_tsum fun out => ?_) (finish_boundAll tg initial model parameter data message ρ
       (hparse ρ) s' u hs' _ b)
     by_cases hout : out ∈ support (interp tg initial model (finishCostSource parameter data message ρ) b s')
     · exact mul_le_mul_right (hWfin s' u b hrel' hs' out hout) _
     · rw [(prEvent_eq_zero_of_not_mem_support _) hout, zero_mul, zero_mul]
-  rw [interp_ordinary]
-  split_ifs with h1
-  · rw [ordinaryStep, hparse ρ firstCall]
-    simp only
-    rw [OracleComp.tsum_prEvent_bind_mul]
-    simp only [OracleComp.tsum_prEvent_map_mul]
-    cases hc : state.cache (blk parameter data message ρ) with
-    | some u0 =>
-        rw [readOutside_cached _ state u0 hc, OracleComp.tsum_prEvent_pure_mul]
-        simp only [Option.elim]
-        by_cases hl : Landed parameter (blockIndex u0)
-        · rw [ite_eq_left hl, ite_eq_left hl]
-          obtain ⟨u, hu, hucall⟩ :=
-            pcache_of_isSome parameter data message state ρ ((hinv ρ).2 u0 hc hl)
-          have hu0 : u firstCall = u0 := Option.some_inj.1 ((hucall firstCall).symm.trans hc)
-          have href : reference.cache (blk parameter data message ρ) = some u0 := by
-            rw [← hpair firstCall]; exact hc
-          have hpcsame : pcache parameter data message reference ρ =
-              pcache parameter data message state ρ := by
-            unfold pcache
-            exact congrArg _ (funext fun call => (hpair call).symm)
-          have hpv : poolValue parameter data message reference gp ρ = gp ρ (viewOf u) := by
-            unfold poolValue
-            rw [hpcsame.trans hu]
-            simp only [Option.elim, hu0]
-            rw [ite_eq_left hl]
-          have hpw : pairWeight parameter data message reference gf gp ρ u = gp ρ (viewOf u) := by
-            unfold pairWeight
-            rw [ite_eq_right (by rw [href]; simp)]
-          rw [hpv, ← hpw]
-          exact hfinish state u _ (fun ρ' _ => hrel ρ') hucall
-        · rw [ite_eq_right hl, ite_eq_right hl]
-          exact hih state hrel hinv (fun _ _ => rfl) _
-    | none =>
-        have hfresh : ∀ call, state.cache (pblk parameter data message ρ call) = none := (hinv ρ).1 hc
-        have href : reference.cache (blk parameter data message ρ) = none := by
-          rw [← hpair firstCall]; exact hc
-        rw [readOutside_fresh _ state hc, OracleComp.tsum_prEvent_map_mul]
-        simp only [Option.elim]
-        refine le_trans (interp_presample_new tg initial model (pblk parameter data message ρ)
-          (pblk_injective parameter data message ρ) (hkind ρ) firstCall
-          (fun first => if Landed parameter (blockIndex first) then finishCostSource parameter data message ρ
-            else cont) (budget - 1) state hfresh (fun out => W out.1.1 out.2)
-          (fun out y v hy => hWstore out.1.1 out.2 y v hy)) ?_
-        rw [tsum_uniform_eq]
-        have hcard : (Fintype.card (DigestCall → HashOutput) : ℝ≥0∞) =
-            (Fintype.card HashOutput : ℝ≥0∞) ^ digestCalls := by
-          rw [Fintype.card_fun, Fintype.card_fin, Nat.cast_pow]
-        rw [hcard]
-        refine mul_le_mul' le_rfl (Finset.sum_le_sum fun u _ => ?_)
-        by_cases hl : Landed parameter (blockIndex (u firstCall))
-        · rw [ite_eq_left hl, ite_eq_left hl]
-          have hall : ∀ call, (storeAll (pblk parameter data message ρ) u state).cache
-              (pblk parameter data message ρ call) = some (u call) :=
-            fun call => storeAll_cache_self _ (pblk_injective parameter data message ρ) u state call
-          have hpw : pairWeight parameter data message reference gf gp ρ u = gf (viewOf u) := by
-            unfold pairWeight
-            rw [ite_eq_left href, ite_eq_left hl]
-          rw [← hpw]
-          exact hfinish _ u _ (relatedOff_storeAll parameter data message reference state hrel ρ u) hall
-        · rw [ite_eq_right hl, ite_eq_right hl]
-          exact hih _ (related_storeAll parameter data message reference state hrel ρ hc u hl)
-            (pairInv_storeAll parameter data message state hinv ρ u hl)
-            (fun x hx => storeAll_cache_other _ _ _ _ fun call => Ne.symm (hx call)) _
-  · rw [OracleComp.tsum_prEvent_pure_mul]
-    rw [hWabort]
-    exact zero_le
+  exact trial_boundF tg initial model parameter data message hparse hkind reference ρ gf gp
+    (fun r _ s' => W r s') (fun s' => hWabort s') (fun r _ s' y v hy => hWstore r s' y v hy) hfinish bound state
+    hrel hinv hpair cont hih budget
 
 /-- **The scan from a start.** The weight of the signed pair is at most the walk value over the
 reference cache: a cached landed pair pays its pool value, a fresh pair that lands pays the fresh
