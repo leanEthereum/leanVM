@@ -4,78 +4,84 @@
   "tag-separator": "-",
   "bump-minor-pre-major": true,
   "packages": {
-    "bindings": {
+    ".": {
       "release-type": "simple",
       "package-name": "bindings",
-      "changelog-path": "CHANGELOG.md",
+      "changelog-path": "bindings/CHANGELOG.md",
       "extra-files": [
         {
           "type": "toml",
-          "path": "Cargo.toml",
+          "path": "bindings/Cargo.toml",
           "jsonpath": "$.workspace.package.version"
         },
         {
           "type": "generic",
-          "path": "README.md"
+          "path": "bindings/README.md"
         },
         {
           "type": "generic",
-          "path": "python/README.md"
+          "path": "bindings/python/README.md"
         },
         {
           "type": "generic",
-          "path": "node/README.md"
+          "path": "bindings/node/README.md"
         },
         {
           "type": "generic",
-          "path": "java/README.md"
+          "path": "bindings/java/README.md"
         },
         {
           "type": "generic",
-          "path": "dotnet/README.md"
+          "path": "bindings/dotnet/README.md"
         },
         {
           "type": "generic",
-          "path": "go/README.md"
+          "path": "bindings/go/README.md"
         },
         {
           "type": "generic",
-          "path": "zig/README.md"
+          "path": "bindings/zig/README.md"
         },
         {
           "type": "generic",
-          "path": "nim/README.md"
+          "path": "bindings/nim/README.md"
         },
         {
           "type": "generic",
-          "path": "nim/lean_pq.nimble"
+          "path": "bindings/nim/lean_pq.nimble"
         },
         {
           "type": "generic",
-          "path": "nim/lean_pq/abi.nim"
+          "path": "bindings/nim/lean_pq/abi.nim"
         },
         {
           "type": "toml",
-          "path": "Cargo.lock",
+          "path": "bindings/Cargo.lock",
           "jsonpath": "$.package[?(@.name==='lean-pq' || @.name.value==='lean-pq')].version"
         },
         {
           "type": "toml",
-          "path": "Cargo.lock",
+          "path": "bindings/Cargo.lock",
           "jsonpath": "$.package[?(@.name==='lean-pq-native' || @.name.value==='lean-pq-native')].version"
         },
         {
           "type": "toml",
-          "path": "Cargo.lock",
+          "path": "bindings/Cargo.lock",
           "jsonpath": "$.package[?(@.name==='lean-pq-node' || @.name.value==='lean-pq-node')].version"
         },
         {
           "type": "toml",
-          "path": "Cargo.lock",
+          "path": "bindings/Cargo.lock",
           "jsonpath": "$.package[?(@.name==='py-lean-pq' || @.name.value==='py-lean-pq')].version"
         }
       ],
-      "component": "bindings"
+      "component": "bindings",
+      "exclude-paths": [
+        ".github",
+        "bench",
+        "doc",
+        "formal"
+      ]
     }
   }
 }
