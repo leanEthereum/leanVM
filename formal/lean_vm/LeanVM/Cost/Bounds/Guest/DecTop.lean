@@ -55,9 +55,8 @@ theorem powPairsBy_cost (hP : Includes P Decoder.powPairsByC.costDeps) (b : K) :
         [encodeValue b, encodeValue n, encodeValue j, encodeValue y] ≤ 51 * n + 5
   | 0, j, y, _ => by rw [Decoder.powPairsByC.costEq_zero P hP]
   | n + 1, j, y, h => by
-    rw [Decoder.powPairsByC.costEq_succ P hP,
-      limbs_of_lt (by omega : n + 1 < 2 ^ 64), limbs_of_lt (by omega : j < 2 ^ 64),
-      limbs_of_lt (by omega : j + 1 < 2 ^ 64)]
+    rw [Decoder.powPairsByC.costEq_succ P hP]
+    limbs
     have := powPairsBy_cost hP b n (j + 1) (y * b) (by omega)
     omega
 
@@ -69,12 +68,12 @@ theorem babyTable_cost (hP : Includes P Decoder.babyTableC.costDeps) (b : K) (s 
       74 * (s * Nat.clog 2 s) + 120 * s + 16 := by
   rw [Decoder.babyTableC.costEq P hP, List.length_mergeSort, length_powPairsBy]
   have h1 := powPairsBy_cost P (by includes) b s 0 1 (by omega)
-  have h2 := mergeSortList_cost P (by includes) _ (.closure powTable.c110.lam0.costIdx [])
-    (fun a b ↦ RunsApp.of_spec (powTable.c110.lam0.costSpec P (by includes) a b)) 7
+  have h2 := mergeSortList_cost P (by includes) _ (.closure powTable.lam0.costIdx [])
+    (fun a b ↦ RunsApp.of_spec (powTable.lam0.costSpec P (by includes) a b)) 7
     (fun e ↦ e.1 < 2 ^ 64)
     (fun a b ha hb ↦ by
       simp only [appCost_fn, List.nil_append, List.length_nil]
-      rw [powTable.c110.lam0.costEq P (by includes), limbs_of_lt ha, limbs_of_lt hb]
+      rw [powTable.lam0.costEq P, limbs_of_lt ha, limbs_of_lt hb]
       omega)
     (powPairsBy b s 0 1) (by rw [length_powPairsBy]; omega)
     (fun e he ↦ (mem_powPairsBy_lt b s 0 1 e he).1)

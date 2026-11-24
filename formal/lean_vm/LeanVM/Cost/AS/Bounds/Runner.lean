@@ -22,12 +22,12 @@ public section
 variable (P : MachineProgram)
 
 theorem candidateRunner_cost
-    (hP : Includes P Auto.LeanVM.Extraction.Fast.candidateRunner.c505.costDeps)
+    (hP : Includes P Auto.LeanVM.Extraction.Fast.candidateRunner.costDeps)
     (prog : Semantics.LeanIsaProgram) (input : PublicInput) (layout : LayoutLite)
     (hm : layout.logMemory ≤ 30) (hb : layout.logBytecode ≤ 30)
     (hh : ∀ h ∈ layout.tableLogHeights, h ≤ 30) (hl : layout.tableLogHeights.length ≤ 6)
     (hidx : ∀ c, (layout.placement c).index < 2 ^ 63) (q : Vector K (2 ^ layout.stackLog)) :
-    machineCost P Auto.LeanVM.Extraction.Fast.candidateRunner.c505.costIdx
+    machineCost P Auto.LeanVM.Extraction.Fast.candidateRunner.costIdx
         [encodeValue prog, encodeValue input, encodeValue layout, encodeValue q] ≤
       (74 * layout.logMemory + 121) * 2 ^ layout.logMemory +
         (74 * prog.logSize + 121) * 2 ^ prog.logSize + 73 * prog.logSize + 357 +
@@ -35,8 +35,8 @@ theorem candidateRunner_cost
         45 * 2 ^ layout.logMemory + 1800 := by
   have hls : prog.logSize ≤ 30 := prog.logSize_le
   have hcap := stepCapLite_le layout hm hb hh hl
-  rw [Auto.LeanVM.Extraction.Fast.candidateRunner.c505.costEq P hP,
-    limbs_of_lt (by omega : layout.logMemory < 2 ^ 64)]
+  rw [Auto.LeanVM.Extraction.Fast.candidateRunner.costEq P hP]
+  limbs
   have h1 := powTable_cost P (by includes) layout.logMemory (by omega)
   have h2 := powTable_cost P (by includes) prog.logSize (by omega)
   have h3 := pcFinal_cost P (by includes) prog

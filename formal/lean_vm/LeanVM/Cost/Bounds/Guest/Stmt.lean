@@ -113,7 +113,7 @@ theorem daDigestAtP_cost (hP : Includes P Decoder.daDigestAtPC.costDeps) (p : E)
   rw [Decoder.daDigestAtPC.costEq P hP rd rdV hrd, digestOfCells_cost P (by includes)]
   have := cellAt_cost P hrd hR (by includes) p (2 * k) (by omega)
   have := cellAt_cost P hrd hR (by includes) p (2 * k + 1) hk
-  limbs_one
+  limbs
   omega
 
 /-- The statement's price at `n0`, `n3` declared claims. -/
@@ -204,7 +204,7 @@ theorem aggRounds_cost (hP : Includes P Decoder.aggRoundsC.costDeps) :
       have := memAt_cost P hrd hR (by includes) (σ (.n (val% «aggregate_claims» "bc_msgs"))) (1 + 2 * k) (by omega)
       have := memAt_cost P hrd hR (by includes) (σ (.n (val% «aggregate_claims» "bc_msgs"))) (2 + 2 * k) (by omega)
       have := hS (.n (val% «aggregate_claims» "bc_msgs"))
-      limbs_one
+      limbs
       omega)
   omega
 

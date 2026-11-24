@@ -128,15 +128,15 @@ theorem lvC_limbs (μ R i : ℕ) :
 
 /-- **The descent across levels, its worker, priced.** -/
 theorem descendTraceGo_cost
-    (hP : Includes P Auto.LeanVM.Protocol.Whir.Sound.descendTraceC.c407.costDeps)
+    (hP : Includes P Auto.LeanVM.Protocol.Whir.Sound.descendTraceC.costDeps)
     (μ R : ℕ) (OAs : List AV) (W : ℕ) (hμ : μ < 2 ^ 50) (hR : R < 2 ^ 50)
     (hW : ∀ i x, ((OAs.getD i #[]).getD x #[]).size ≤ W) (hW' : W < 2 ^ 62) :
     ∀ (tr : WhirTrace) (i : ℕ), i + traceDepth tr < 2 ^ 50 → TraceSmall tr →
-      machineCost P Auto.LeanVM.Protocol.Whir.Sound.descendTraceC.c407.costIdx
+      machineCost P Auto.LeanVM.Protocol.Whir.Sound.descendTraceC.costIdx
         [encodeValue μ, encodeValue R, encodeValue OAs, encodeValue tr, encodeValue i] ≤
         traceCostB μ R W tr i
   | .final rounds folded, i, hi, hs => by
-    rw [Auto.LeanVM.Protocol.Whir.Sound.descendTraceC.c407.costEq P hP]
+    rw [Auto.LeanVM.Protocol.Whir.Sound.descendTraceC.costEq P hP]
     obtain ⟨l1, l2, l3, l4, l5, l6, l7, l8, l9⟩ := lvC_limbs μ R i
     simp only [traceCostB]
     have s1 : 1 <<< (lvC μ R i).1 < 2 ^ 64 := by rw [Nat.shiftLeft_eq, one_mul]; exact l4
@@ -155,9 +155,7 @@ theorem descendTraceGo_cost
         encodeValue R, encodeValue i])
       (fun x ↦ RunsApp.of_spec (descendTraceCC.lam0.costSpec P (by includes) folded μ R i x))
       (polyPrice folded.length + 13) (fun x ↦ by
-        rw [appCost_fn]
-        simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-        rw [descendTraceCC.lam0.costEq P (by includes)]
+        cost_app [descendTraceCC.lam0.costEq P]
         have := polyOfAtH_cost P (by includes) folded x folded.length le_rfl hs.2 (by omega)
         omega) 0 (Nat.zero_le _)
     rw [Nat.sub_zero] at c4
@@ -173,12 +171,12 @@ theorem descendTraceGo_cost
     simp only [max_self]
     omega
   | .mid rounds high rest, i, hi, hs => by
-    rw [Auto.LeanVM.Protocol.Whir.Sound.descendTraceC.c407.costEq P hP]
+    rw [Auto.LeanVM.Protocol.Whir.Sound.descendTraceC.costEq P hP]
     simp only [traceCostB]
-    rw [limbs_of_lt (by omega : i + 1 < 2 ^ 64), limbs_of_lt (by omega : i < 2 ^ 64)]
+    limbs
     simp only [traceDepth] at hi
     have ih := descendTraceGo_cost hP μ R OAs W hμ hR hW hW' rest (i + 1) (by omega) hs.2.2
-    rw [Auto.Option.bind.c47.costEq P (by includes) _
+    rw [Auto.Option.bind.costEq P (by includes) _
       (fun T' ↦ if T'.1 = (lvC μ R (i + 1)).2.2.1 ∧ (lvC μ R i).1 =
           (lvC μ R (i + 1)).2.2.1 + (lvC μ R (i + 1)).1 then
         descRevC (2 ^ ((lvC μ R i).1 + (lvC μ R i).2.1)) (2 ^ (lvC μ R i).1 - 1 + (lvC μ R i).2.2.1)
@@ -193,9 +191,7 @@ theorem descendTraceGo_cost
       omega
     · have hT1 := descendTraceC_fst μ R OAs rest (i + 1) hs.2.2 hT
       simp only
-      rw [appCost_fn]
-      simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [descendTraceCC.lam1.costEq P (by includes)]
+      cost_app [descendTraceCC.lam1.costEq P]
       obtain ⟨l1, l2, l3, l4, l5, l6, l7, l8, l9⟩ := lvC_limbs μ R i
       obtain ⟨m1, m2, m3, m4, m5, m6, m7, m8, m9⟩ := lvC_limbs μ R (i + 1)
       have c1 := lvC_cost P (by includes) μ R i (by omega) (by omega) (by omega)

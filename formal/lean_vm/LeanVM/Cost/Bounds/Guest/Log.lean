@@ -47,9 +47,9 @@ theorem powSqE_cost_lt (hP : Includes P Decoder.powSqEC.costDeps) (a : E)
   nlinarith
 
 /-- `a^n` in `K`, `n < 2^k`, `k ≤ 64`: at most `5 + 73·k`. -/
-theorem powSqK_cost_lt (hP : Includes P Auto.LeanVM.Cost.Rewrite.powSq.c116.costDeps) (a : K)
+theorem powSqK_cost_lt (hP : Includes P Auto.LeanVM.Cost.Rewrite.powSq.K.costDeps) (a : K)
     (n k : ℕ) (hk0 : 0 < k) (hk : k ≤ 64) (hn : n < 2 ^ k) :
-    machineCost P Auto.LeanVM.Cost.Rewrite.powSq.c116.costIdx [encodeValue a, encodeValue n] ≤
+    machineCost P Auto.LeanVM.Cost.Rewrite.powSq.K.costIdx [encodeValue a, encodeValue n] ≤
       5 + 73 * k := by
   have h64 : n < 2 ^ 64 := lt_of_lt_of_le hn (Nat.pow_le_pow_right (by norm_num) hk)
   refine (powSq_cost P hP a n h64).trans ?_
@@ -118,7 +118,8 @@ theorem giantSteps_cost (hP : Includes P Decoder.giantStepsC.costDeps) (T : Arra
         encodeValue t, encodeValue k, encodeValue y] ≤ (t + 1) * (findLanePrice T.size + 52)
   | 0, k, y, _ => by rw [Decoder.giantStepsC.costEq_zero P hP]; omega
   | t + 1, k, y, h => by
-    rw [Decoder.giantStepsC.costEq_succ P hP, limbs_of_lt (by omega : t + 1 < 2 ^ 64)]
+    rw [Decoder.giantStepsC.costEq_succ P hP]
+    limbs
     have hf := findLane_cost P (by includes) T hT y.lane.toNat (UInt64.toNat_lt _) 0 T.size
       (by omega) le_rfl
     simp only [Nat.sub_zero] at hf
@@ -128,16 +129,14 @@ theorem giantSteps_cost (hP : Includes P Decoder.giantStepsC.costDeps) (T : Arra
     | none =>
       have := giantSteps_cost hP T hT c s hs t (k + 1) (y * c) (by omega)
       unfold findLanePrice at this
-      simp only [limbs_of_lt (by omega : k < 2 ^ 64), limbs_of_lt (by omega : k + 1 < 2 ^ 64),
-        max_self]
+      simp only [max_self]
       nlinarith
     | some j =>
       have hj := findLane_some_lt T hT _ hb
       have hsk : s * k < 2 ^ 64 := by
         calc s * k < 2 ^ 32 * 2 ^ 32 := Nat.mul_lt_mul_of_lt_of_lt hs (by omega)
           _ = 2 ^ 64 := by norm_num
-      simp only [limbs_of_lt (by omega : k < 2 ^ 64), limbs_of_lt (by omega : s < 2 ^ 64), limbs_of_lt hj,
-        limbs_of_lt hsk, max_self]
+      simp only [limbs_of_lt hj, limbs_of_lt hsk, max_self]
       have := max_le (limbs_le_two (x := j + s * k) (by omega)) (by norm_num : 1 ≤ 2)
       nlinarith
 

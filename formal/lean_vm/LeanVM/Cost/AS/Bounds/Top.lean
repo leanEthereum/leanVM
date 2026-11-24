@@ -182,111 +182,42 @@ theorem extractL_cost (P : MachineProgram) (hP : Includes P extractLC.costDeps) 
     omega
   have hsp1 : SpOk r₁.2.sponge := skelReplayP_spOk _ _ _ r₁ h2 ⟨by simp [startState], by simp [startState]⟩
   have hlb := length_skBodyL lay ρ hlay
-  -- the innermost continuation: the finish
-  have k4 := bind_le P (by includes) _
-    (.closure extractLC.lam0.lam0.lam0.lam0.lam0.costIdx [encodeValue prog, encodeValue input, encodeValue qs,
-      encodeValue (lay, ρ), encodeValue r₂])
-    (fun a ↦ RunsApp.of_spec (extractLC.lam0.lam0.lam0.lam0.lam0.costSpec P (by includes) prog input qs
-      (lay, ρ) r₂ a)) (decBodyL lay ρ r₂.1)
-    (finishPrice D W qs.length prog.logSize lay ρ tr r₂.2.roots + 18 + 10) (fun a ha ↦ by
-      rw [h5] at ha
-      obtain rfl := Option.some.inj ha
-      rw [appCost_fn]
-      simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [extractLC.lam0.lam0.lam0.lam0.lam0.costEq P (by includes)]
-      have := finishL_cost P (by includes) prog input qs D W hW hN true lay ρ tr r₂.2 hF0 (by omega)
-        (by omega) hρ1 hρ2 hroots hsm (by omega)
-      omega)
-  -- the trace's decoder
-  have k3 := bind_le P (by includes) _
-    (.closure extractLC.lam0.lam0.lam0.lam0.costIdx [encodeValue prog, encodeValue input, encodeValue qs,
-      encodeValue (lay, ρ)])
-    (fun a ↦ RunsApp.of_spec (extractLC.lam0.lam0.lam0.lam0.costSpec P (by includes) prog input qs
-      (lay, ρ) a)) (skelReplayP (fwdF (fwdIndex qs)) (skBodyL lay ρ) r₁.2)
-    (1001400000 + finishPrice D W qs.length prog.logSize lay ρ tr r₂.2.roots + 18 + 10 + 6 + 19 + 10) (fun a ha ↦ by
-      rw [h4] at ha
-      obtain rfl := Option.some.inj ha
-      rw [appCost_fn]
-      simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [extractLC.lam0.lam0.lam0.lam0.costEq P (by includes)]
-      have := decBodyL_cost P (by includes) lay ρ r₂.1 hlay hρ2
-      dsimp only at k4 ⊢
-      omega)
-  -- the body's skeleton and its replay
-  have k2 := bind_le P (by includes) _
-    (.closure extractLC.lam0.lam0.lam0.costIdx [encodeValue prog, encodeValue input, encodeValue qs,
-      encodeValue (fwdIndex qs), encodeValue r₁])
-    (fun a ↦ RunsApp.of_spec (extractLC.lam0.lam0.lam0.costSpec P (by includes) prog input qs (fwdIndex qs)
-      r₁ a))
-    (decSizesL (bytecodeWords prog) r₁.1)
-    (1000000000 +
-      (40000 * (2 * (fwdLookupPrice D W + 4) + 34000 + 11 * 40000) + 9) +
-      (1001400000 + finishPrice D W qs.length prog.logSize lay ρ tr r₂.2.roots + 18 + 10 + 6 + 19 + 10) + 6 + 22 + 10)
-    (fun a ha ↦ by
-      rw [h3] at ha
-      obtain rfl := Option.some.inj ha
-      rw [appCost_fn]
-      simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [extractLC.lam0.lam0.lam0.costEq P (by includes)]
-      dsimp only
-      have c1 := skBodyL_cost P (by includes) lay ρ hlay hρ2
-      have c2 := skelReplay_cost P (fwdF (fwdIndex qs)) _ hF _ hB (by includes) 40000 (skBodyL lay ρ) r₁.2
-        (by rw [hr1]; simp; omega) hsp1
-      have c3 := Nat.mul_le_mul_right (2 * (fwdLookupPrice D W + 4) + 34000 + 11 * 40000) hlb
-      omega)
-  -- the announced sizes' decoder
-  have k1 := bind_le P (by includes) _
-    (.closure extractLC.lam0.lam0.costIdx [encodeValue prog, encodeValue input, encodeValue qs,
-      encodeValue (fwdIndex qs)])
-    (fun a ↦ RunsApp.of_spec (extractLC.lam0.lam0.costSpec P (by includes) prog input qs (fwdIndex qs) a))
-    (skelReplayP (fwdF (fwdIndex qs)) skSizes (startState π seed))
-    (bytecodeWordsPrice prog.logSize + (80 * 8 + 8 * (16 * 2 ^ prog.logSize) + 977124100) +
-      (1000000000 +
-        (40000 * (2 * (fwdLookupPrice D W + 4) + 34000 + 11 * 40000) + 9) +
-        (1001400000 + finishPrice D W qs.length prog.logSize lay ρ tr r₂.2.roots + 18 + 10 + 6 + 19 + 10) + 6 + 22 + 10) +
-      6 + 15 + 10)
-    (fun a ha ↦ by
-      rw [h2] at ha
-      obtain rfl := Option.some.inj ha
-      rw [appCost_fn]
-      simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [extractLC.lam0.lam0.costEq P (by includes)]
-      have c1 := bytecodeWordsC_cost P (by includes) prog
-      have c2 := decSizesL_cost P (by includes) (bytecodeWords prog) r₁.1 (by rw [hbl]; omega) (by omega)
-      rw [hbl] at c2
-      omega)
-  -- the replay of the announced sizes
-  have k0 := bind_le P (by includes) _
-    (.closure extractLC.lam0.costIdx [encodeValue prog, encodeValue input, encodeValue qs, encodeValue π,
-      encodeValue (fwdIndex qs)])
-    (fun a ↦ RunsApp.of_spec (extractLC.lam0.costSpec P (by includes) prog input qs π (fwdIndex qs) a))
-    (seedWithHash (Protocol.KeccakHash.keccak256With (fwdF (fwdIndex qs))) (fwdF (fwdIndex qs))
-      (bytecodeWords prog) (publicInputDigest input))
-    (200 + 17 + (8 * (2 * (fwdLookupPrice D W + 4) + 34000 + 11 * 8) + 9) +
-      (bytecodeWordsPrice prog.logSize + (80 * 8 + 8 * (16 * 2 ^ prog.logSize) + 977124100) +
-        (1000000000 +
-          (40000 * (2 * (fwdLookupPrice D W + 4) + 34000 + 11 * 40000) + 9) +
-          (1001400000 + finishPrice D W qs.length prog.logSize lay ρ tr r₂.2.roots + 18 + 10 + 6 + 19 + 10) + 6 + 22 + 10) +
-        6 + 15 + 10) + 6 + 20 + 10)
-    (fun a ha ↦ by
-      rw [h1] at ha
-      obtain rfl := Option.some.inj ha
-      rw [appCost_fn]
-      simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [extractLC.lam0.costEq P (by includes),
-        Auto.LeanVM.Protocol.EndToEnd.Sound.startState.c536.costEq P (by includes)]
-      have hl6 : tables.length = 6 := by decide +kernel
-      rw [hl6, limbs_of_lt (by norm_num : 2 + 6 < 2 ^ 64), limbs_of_lt (by norm_num : 6 < 2 ^ 64)]
-      have c1 := replicate_cost P (by includes) Op.read (2 + 6) (by norm_num)
-      have c2 := skelReplay_cost P (fwdF (fwdIndex qs)) _ hF _ hB (by includes) 8 skSizes
-        (startState π seed) (by simp [startState, hsk]) ⟨by simp [startState], by simp [startState]⟩
-      rw [hsk] at c2
-      omega)
+  -- each step's price on the success path
   have c0 := extractSeed_cost P (by includes) D W hW qs (by omega) (bytecodeWords prog)
     (by rw [hbl]; have : 2 ^ prog.logSize ≤ 2 ^ 30 := hpl; omega) (publicInputDigest input)
   rw [hbl] at c0
   have cp := publicInputDigest_cost P (by includes) input
-  rw [extractLC.costEq P hP]
+  have hl6 : tables.length = 6 := by decide +kernel
+  have c1 := replicate_cost P (by includes) Op.read (2 + 6) (by norm_num)
+  have c2 := skelReplay_cost P (fwdF (fwdIndex qs)) _ hF _ hB (by includes) 8 skSizes
+    (startState π seed) (by simp [startState, hsk]) ⟨by simp [startState], by simp [startState]⟩
+  rw [hsk] at c2
+  have c3 := decSizesL_cost P (by includes) (bytecodeWords prog) r₁.1 (by rw [hbl]; omega) (by omega)
+  rw [hbl] at c3
+  have c4 := skBodyL_cost P (by includes) lay ρ hlay hρ2
+  have c5 := skelReplay_cost P (fwdF (fwdIndex qs)) _ hF _ hB (by includes) 40000 (skBodyL lay ρ) r₁.2
+    (by rw [hr1]; simp; omega) hsp1
+  have c6 := Nat.mul_le_mul_right (2 * (fwdLookupPrice D W + 4) + 34000 + 11 * 40000) hlb
+  have c7 := decBodyL_cost P (by includes) lay ρ r₂.1 hlay hρ2
+  have c8 := finishL_cost P (by includes) prog input qs D W hW hN true lay ρ tr r₂.2 hF0 (by omega)
+    (by omega) hρ1 hρ2 hroots hsm (by omega)
+  -- the five binds on their values
+  rw [extractLC.costEq P hP, bind_some_eq P (by includes)
+    (fun a ↦ RunsApp.of_spec (extractLC.lam0.costSpec P (by includes) prog input qs π (fwdIndex qs) a)) h1]
+  cost_app [extractLC.lam0.costEq P,
+    Auto.LeanVM.Protocol.EndToEnd.Sound.startState.costEq P, hl6,
+    limbs_of_lt (by norm_num : 2 + 6 < 2 ^ 64), limbs_of_lt (by norm_num : 6 < 2 ^ 64), bind_some_eq P (by includes)
+    (fun a ↦ RunsApp.of_spec (extractLC.lam0.lam0.costSpec P (by includes) prog input qs (fwdIndex qs) a)) h2]
+  cost_app [extractLC.lam0.lam0.costEq P, bind_some_eq P (by includes)
+    (fun a ↦ RunsApp.of_spec (extractLC.lam0.lam0.lam0.costSpec P (by includes) prog input qs (fwdIndex qs)
+      r₁ a)) h3]
+  cost_app [extractLC.lam0.lam0.lam0.costEq P, bind_some_eq P (by includes)
+    (fun a ↦ RunsApp.of_spec (extractLC.lam0.lam0.lam0.lam0.costSpec P (by includes) prog input qs
+      (lay, ρ) a)) h4]
+  cost_app [extractLC.lam0.lam0.lam0.lam0.costEq P, bind_some_eq P (by includes)
+    (fun a ↦ RunsApp.of_spec (extractLC.lam0.lam0.lam0.lam0.lam0.costSpec P (by includes) prog input qs
+      (lay, ρ) r₂ a)) h5]
+  cost_app [extractLC.lam0.lam0.lam0.lam0.lam0.costEq P]
   unfold headPrice
   omega
 

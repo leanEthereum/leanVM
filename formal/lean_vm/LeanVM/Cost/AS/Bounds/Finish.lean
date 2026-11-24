@@ -108,19 +108,18 @@ theorem capOf_le (Wd : ℕ) : ∀ (roots : List (LeanVM.Protocol.Digest × ℕ �
     simp only [capOf]
     omega
 
-/-- **The roots' longest lookup** (`capOf.c507`): at most `22` a root. -/
-theorem capOf_cost (hP : Includes P Auto.LeanVM.Extraction.AS.capOf.c507.costDeps) :
+/-- **The roots' longest lookup** (`capOf`): at most `22` a root. -/
+theorem capOf_cost (hP : Includes P Auto.LeanVM.Extraction.AS.capOf.costDeps) :
     ∀ (roots : List (LeanVM.Protocol.Digest × ℕ × ℕ)), (∀ x ∈ roots, x.2.2 < 2 ^ 57) →
-      machineCost P Auto.LeanVM.Extraction.AS.capOf.c507.costIdx [encodeValue roots] ≤
+      machineCost P Auto.LeanVM.Extraction.AS.capOf.costIdx [encodeValue roots] ≤
         22 * roots.length + 3
-  | [], _ => by rw [Auto.LeanVM.Extraction.AS.capOf.c507.costEq_nil P hP]; simp
+  | [], _ => by rw [Auto.LeanVM.Extraction.AS.capOf.costEq_nil P hP]; simp
   | x :: xs, h => by
-    rw [Auto.LeanVM.Extraction.AS.capOf.c507.costEq_cons P hP]
+    rw [Auto.LeanVM.Extraction.AS.capOf.costEq_cons P hP]
     have ih := capOf_cost hP xs fun y hy ↦ h y (List.mem_cons_of_mem _ hy)
     have hx := h x List.mem_cons_self
     have hc := capOf_le (2 ^ 57) xs fun y hy ↦ (h y (List.mem_cons_of_mem _ hy)).le
-    rw [limbs_of_lt (by omega : 8 * x.2.2 < 2 ^ 64), limbs_of_lt (by omega : x.2.2 < 2 ^ 64),
-      limbs_of_lt (by omega : capOf xs < 2 ^ 64)]
+    limbs
     simp only [List.length_cons, max_self]
     split_ifs <;> omega
 
@@ -168,7 +167,7 @@ theorem finishL_cost (hP : Includes P finishLC.costDeps) (prog : Semantics.LeanI
   rw [hl]
   simp (disch := omega) only [limbs_of_lt]
   split_ifs with g1 g2 g3
-  · rw [Auto.Option.bind.c47.costEq P (by includes) _
+  · rw [Auto.Option.bind.costEq P (by includes) _
       (fun T ↦ if T.1 = 6 then candidateRunner prog input lay (stackA lay.stackLog T.2) else none)
       _ (fun T ↦ RunsApp.of_spec (finishLC.lam0.costSpec P (by includes) prog input
         ((b, ((lay, ρ), tr)), s) T))]
@@ -178,9 +177,7 @@ theorem finishL_cost (hP : Includes P finishLC.costDeps) (prog : Semantics.LeanI
       unfold finishPrice transcriptIndexPrice
       omega
     · simp only
-      rw [appCost_fn]
-      simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [finishLC.lam0.costEq P (by includes)]
+      cost_app [finishLC.lam0.costEq P]
       dsimp only
       have hT1 := descendTraceC_fst _ _ _ tr 0 hs hT
       rw [hl, limbs_of_lt (by omega : T.1 < 2 ^ 64), limbs_of_lt (by norm_num : (6 : ℕ) < 2 ^ 64)]

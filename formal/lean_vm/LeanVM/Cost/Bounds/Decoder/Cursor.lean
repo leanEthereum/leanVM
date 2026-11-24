@@ -58,7 +58,7 @@ theorem cursorLength_cost (hP : Includes P cursorLengthC.costDeps) (D : Discrete
   have h1 := limbQuot_cost P (by includes) p q
   have h2 : appCost P (.closure cursorLengthC.lam0.costIdx [encodeValue D])
       [encodeValue (limbQuot p q)] ≤ Lg + 4 := by
-    rw [appCost_fn, List.singleton_append, cursorLengthC.lam0.costEq P (by includes),
+    rw [appCost_fn, List.singleton_append, cursorLengthC.lam0.costEq P,
       List.length_singleton]
     have := hLg (limbQuot p q)
     omega
@@ -75,9 +75,7 @@ theorem cursorLength_cost (hP : Includes P cursorLengthC.costDeps) (D : Discrete
     have hn := hD _ n ho
     have h3 : appCost P (.closure cursorLenWithC.lam0.costIdx
         [encodeValue p, encodeValue q, encodeValue (limbQuot p q)]) [encodeValue n] ≤ 307 := by
-      rw [appCost_fn]
-      simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [cursorLenWithC.lam0.costEq P (by includes), Nat.one_shiftLeft,
+      cost_app [cursorLenWithC.lam0.costEq P, Nat.one_shiftLeft,
         limbs_of_lt hn, limbs_two_pow (by norm_num)]
       simp only [max_self]
       split_ifs <;> omega

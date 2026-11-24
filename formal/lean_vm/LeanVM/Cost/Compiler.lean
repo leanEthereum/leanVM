@@ -509,6 +509,24 @@ def solvePending (pending : Array (MVarId × Array (Nat × Name))) (hP deps : Ex
     let P := (← instantiateMVars (← inferType hP)).appFn!.appArg!
     m.assign (mkAppN (mkConst ``Includes.ofSublist) #[P, deps, l', hP, hs])
 
+/-- `includes`: close `Includes P l'` from a hypothesis `Includes P l` whose bodies hold `l'`'s
+(a callee's `costDeps` from its caller's); implemented in `Cost/Bounds/Basic.lean`. -/
+syntax (name := includesTac) "includes" : tactic
+
+/-- `includes`, as the tactic of an `autoParam`. -/
+def includesAutoParam : Syntax := mkNode ``includesTac #[mkAtom "includes"]
+
+/-- `ty` with its premise `Includes P deps` (its second binder) an `autoParam` closed by
+`includes`, so that a use names the program alone: `f.costEq P`. -/
+def autoIncludes (ty : Expr) : Expr :=
+  match ty with
+  | .forallE n d (.forallE n2 d2 b bi2) bi =>
+    if d2.isAppOf ``Includes then
+      .forallE n d (.forallE n2 (mkApp2 (mkConst ``autoParam [Level.zero]) d2
+        (mkConst ``includesAutoParam)) b bi2) bi
+    else ty
+  | _ => ty
+
 /-- Add a definition with its body exposed (visible to importing modules without `import all`)
 and compile it. -/
 def addExposedDef (n : Name) (ty val : Expr) : MetaM Unit := do
@@ -600,11 +618,44 @@ def branchEqs (name : Name) (binders encXs : Array Expr) (lhs rhs pf : Expr) : M
         | some q => mkEqTrans (← mkExpectedTypeHint pf' (← mkEq lhs' rhs')) q
         | none => mkExpectedTypeHint pf' eq
       let bs := (binders.extract 0 xPos) ++ fields ++ (binders.extract (xPos + 1) binders.size)
-      let ty ← instantiateMVars (← mkForallFVars bs eq)
+      let ty := autoIncludes (← instantiateMVars (← mkForallFVars bs eq))
       let val ← instantiateMVars (← mkLambdaFVars bs proof)
       let cname := ctor.lastComponentAsString
       addDecl <| .thmDecl
         { name := name.str s!"costEq_{cname}", levelParams := [], type := ty, value := val }
+
+/-- A static argument as it is written: constants by their last component, applications spaced,
+products with `×`, literals as numbers. -/
+partial def staticString (e : Expr) : MetaM String := do
+  let e ← instantiateMVars e
+  if let some n ← natLit? e then return toString n
+  let paren (a : Expr) : MetaM String := do
+    let s ← staticString a
+    return if a.getAppNumArgs > 0 && (← natLit? a).isNone then s!"({s})" else s
+  if e.isAppOfArity ``Prod 2 then
+    let a := e.appFn!.appArg!
+    let sa ← staticString a
+    return s!"{if a.isAppOfArity ``Prod 2 then s!"({sa})" else sa} × {← staticString e.appArg!}"
+  match e.getAppFn with
+  | .const c _ =>
+    let args ← e.getAppArgs.filterM fun a ↦ do
+      return !(← isProp (← inferType a)) && (← isClass? (← inferType a)).isNone
+    return " ".intercalate (c.lastComponentAsString :: (← args.mapM paren).toList)
+  | _ => return toString (← ppExpr e)
+
+/-- The stable name of the function `f` compiled at the static arguments `static`:
+`LeanVM.Cost.Auto.f`, followed by the types and values among `static` (not its instances and
+proofs), as written, when there are any (`…SortedMap.insert.«Bytes, Digest»`). -/
+def autoName (f : Name) (info : ConstantInfo) (static : Array Expr) : MetaM Name := do
+  let bis ← forallTelescopeReducing info.type fun xs _ ↦ xs.mapM fun x ↦ x.fvarId!.getBinderInfo
+  let mut keys : Array String := #[]
+  for h : j in [0:static.size] do
+    let a := static[j]
+    if (bis[j]?.map (·.isInstImplicit)).getD false then continue
+    if ← isProp (← inferType a) then continue
+    keys := keys.push (← staticString a)
+  let base := `LeanVM.Cost.Auto ++ f
+  return if keys.isEmpty then base else base.str (", ".intercalate keys.toList)
 
 mutual
 
@@ -1133,7 +1184,8 @@ partial def isRecursive (f : Name) : MetaM Bool := do
 
 /-- Compile the recursive `f` of the call `e`: at its types and instances fixed up to its last
 instance argument (its types otherwise parameters), with the first measure among the sizes of
-its encoded parameters (a natural number itself) that its recursive calls decrease. -/
+its encoded parameters (a natural number itself) that its recursive calls decrease; named
+`autoName f static`, the same in every chain that compiles it. -/
 partial def compileOnDemand (ctx : Ctx) (f : Name) (e : Expr) : MetaM (Option CompiledFn) := do
   let recursive ← isRecursive f
   unless recursive || (← shouldOutline f e) do return none
@@ -1185,7 +1237,10 @@ partial def compileOnDemand (ctx : Ctx) (f : Name) (e : Expr) : MetaM (Option Co
         mkLambdaFVars xs (← Core.betaReduce (mkAppN mReg (static ++ xs)))
       pure (#[m] ++ measures)
     | none => pure measures
-  let name := (`LeanVM.Cost.Auto ++ f).str s!"c{← nextIndex ctx.reserved}"
+  let name ← autoName f info static
+  if (← getEnv).contains (name.str "costIdx") then
+    throwError "compile {f}: {name} is compiled already at other static arguments; compile this \
+      call with `cost_compile` under a name of its own"
   unless recursive do
     let idx ← nextIndex ctx.reserved
     return some (← withLCtx {} {} (compileFn name term idx none ctx.reserved))
@@ -1249,6 +1304,8 @@ partial def localClosure (ctx : Ctx) (f fty : Expr) (arity : Nat) (caps : Array 
   let j ← nextIndex ctx.reserved
   let bodyName := name.str "costBody"
   addExposedDef bodyName (mkConst ``LeanVM.Cost.Term) tj
+  -- its index now, so that the function's own price names it
+  addExposedDef (name.str "costIdx") (mkConst ``Nat) (mkNatLit j)
   -- compiled again, with a spec of its own, once the function's spec exists
   ctx.postLams.modify (·.push (name, lam, j, bodyName, encAt))
   let entry : CompiledFn :=
@@ -1661,7 +1718,8 @@ partial def compileFn (name : Name) (term : Expr) (idx : Nat) (measure? : Option
           let b := name.str "costBody"
           addExposedDef b bodyTy t
           pure b
-      addExposedDef (name.str "costIdx") (mkConst ``Nat) (mkNatLit idx)
+      unless (← getEnv).contains (name.str "costIdx") do
+        addExposedDef (name.str "costIdx") (mkConst ``Nat) (mkNatLit idx)
       let pendingNow ← pending.get
       let deps := mergeDeps (idx, bodyName) (pendingNow.map (·.2))
       let depsE ← depsExpr deps
@@ -1714,7 +1772,7 @@ partial def compileFn (name : Name) (term : Expr) (idx : Nat) (measure? : Option
           -- stated at the parameters themselves (a proof parameter may depend on them)
           pure (mkAppN (mkConst ``RunsBody) #[P, mkNatLit idx, ctx.env, ← mkAppM ``MachineEncoding.encodeValue #[lhs],
             mkAppN (mkConst ``machineCost) #[P, mkNatLit idx, ctx.env]])
-        let specTy ← instantiateMVars (← mkForallFVars binders specBody)
+        let specTy := autoIncludes (← instantiateMVars (← mkForallFVars binders specBody))
         let specName := name.str "costSpec"
         let specVal ← instantiateMVars specVal
         addDecl <| .thmDecl
@@ -1732,7 +1790,7 @@ partial def compileFn (name : Name) (term : Expr) (idx : Nat) (measure? : Option
           | some q => pure (r.expr, ← mkEqTrans pf1 q)
           | none => pure (rhs1, pf1)
         trace[cost.compile] "compile {name} costEq folded"
-        let costTy ← instantiateMVars (← mkForallFVars binders (← mkEq lhs1 rhs2))
+        let costTy := autoIncludes (← instantiateMVars (← mkForallFVars binders (← mkEq lhs1 rhs2)))
         let costVal ← instantiateMVars (← mkLambdaFVars binders pf2)
         addDecl <| .thmDecl
           { name := name.str "costEq", levelParams := [], type := costTy, value := costVal }
