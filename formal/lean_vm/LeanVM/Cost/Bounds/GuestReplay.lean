@@ -8,7 +8,7 @@ public import LeanVM.Cost.Prices
 # Bound: the guest decoder's replay of the run, compiled
 
 The price of the replay `Cost/Decoder/Replay.lean` compiles, **the decoder's big runtime term:
-the run's steps times the step's price**. The step is the extractor's `stepVec` (`stepVec.c135`,
+the run's steps times the step's price**. The step is the extractor's `stepVec` (`stepVec`,
 priced in `Bounds/Step.lean`'s `stepVec_cost`), not compiled again.
 
 * **`statesVec_cost`**: one round per state replayed, each at most the step's price `S` and `46`
@@ -42,7 +42,7 @@ theorem limbs_le_three {x : ℕ} (h : x < 2 ^ 192) : limbCount x ≤ 3 := by
 theorem statesVec_cost (hP : Includes P statesVecC.costDeps)
     (memT codeT : Array (ℕ × ℕ)) (prog : Semantics.LeanIsaProgram) {κ : ℕ} (mem : Vector E (2 ^ κ))
     (fin : Registers K) (S : ℕ)
-    (hS : ∀ r : Registers K, machineCost P Auto.LeanVM.Extraction.Fast.stepVec.c135.costIdx
+    (hS : ∀ r : Registers K, machineCost P Auto.LeanVM.Extraction.Fast.stepVec.costIdx
       [encodeValue memT, encodeValue codeT, encodeValue prog, encodeValue κ, encodeValue mem,
         encodeValue r] ≤ S) :
     ∀ (n : ℕ) (r : Registers K), n ≤ 2 ^ 128 →
@@ -88,7 +88,7 @@ theorem replayStatesOf_cost (hP : Includes P replayStatesOfC.costDeps) (prog :
       (runnerStepPrice κ prog.logSize + 46) *
           (replayStatesOf (powTable κ) (powTable prog.logSize) prog mem).length + 2456 := by
   have hls : prog.logSize ≤ 30 := prog.logSize_le
-  rw [replayStatesOfC.costEq P hP, Auto.LeanVM.Semantics.LeanIsaProgram.pcFinal.c115.costEq P (by includes),
+  rw [replayStatesOfC.costEq P hP, Auto.LeanVM.Semantics.LeanIsaProgram.pcFinal.costEq P (by includes),
     replayFuelC.costEq P (by includes)]
   have h1 := statesVec_cost P (by includes) (powTable κ) (powTable prog.logSize) prog mem
     (Registers.final prog) (runnerStepPrice κ prog.logSize) (fun r ↦ by

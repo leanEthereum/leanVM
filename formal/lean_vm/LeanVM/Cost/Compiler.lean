@@ -606,6 +606,39 @@ def branchEqs (name : Name) (binders encXs : Array Expr) (lhs rhs pf : Expr) : M
       addDecl <| .thmDecl
         { name := name.str s!"costEq_{cname}", levelParams := [], type := ty, value := val }
 
+/-- A static argument as it is written: constants by their last component, applications spaced,
+products with `×`, literals as numbers. -/
+partial def staticString (e : Expr) : MetaM String := do
+  let e ← instantiateMVars e
+  if let some n ← natLit? e then return toString n
+  let paren (a : Expr) : MetaM String := do
+    let s ← staticString a
+    return if a.getAppNumArgs > 0 && (← natLit? a).isNone then s!"({s})" else s
+  if e.isAppOfArity ``Prod 2 then
+    let a := e.appFn!.appArg!
+    let sa ← staticString a
+    return s!"{if a.isAppOfArity ``Prod 2 then s!"({sa})" else sa} × {← staticString e.appArg!}"
+  match e.getAppFn with
+  | .const c _ =>
+    let args ← e.getAppArgs.filterM fun a ↦ do
+      return !(← isProp (← inferType a)) && (← isClass? (← inferType a)).isNone
+    return " ".intercalate (c.lastComponentAsString :: (← args.mapM paren).toList)
+  | _ => return toString (← ppExpr e)
+
+/-- The stable name of the function `f` compiled at the static arguments `static`:
+`LeanVM.Cost.Auto.f`, followed by the types and values among `static` (not its instances and
+proofs), as written, when there are any (`…SortedMap.insert.«Bytes, Digest»`). -/
+def autoName (f : Name) (info : ConstantInfo) (static : Array Expr) : MetaM Name := do
+  let bis ← forallTelescopeReducing info.type fun xs _ ↦ xs.mapM fun x ↦ x.fvarId!.getBinderInfo
+  let mut keys : Array String := #[]
+  for h : j in [0:static.size] do
+    let a := static[j]
+    if (bis[j]?.map (·.isInstImplicit)).getD false then continue
+    if ← isProp (← inferType a) then continue
+    keys := keys.push (← staticString a)
+  let base := `LeanVM.Cost.Auto ++ f
+  return if keys.isEmpty then base else base.str (", ".intercalate keys.toList)
+
 mutual
 
 /-- **The translation** of `e`: its code, its price, and a proof of
@@ -1133,7 +1166,8 @@ partial def isRecursive (f : Name) : MetaM Bool := do
 
 /-- Compile the recursive `f` of the call `e`: at its types and instances fixed up to its last
 instance argument (its types otherwise parameters), with the first measure among the sizes of
-its encoded parameters (a natural number itself) that its recursive calls decrease. -/
+its encoded parameters (a natural number itself) that its recursive calls decrease; named
+`autoName f static`, the same in every chain that compiles it. -/
 partial def compileOnDemand (ctx : Ctx) (f : Name) (e : Expr) : MetaM (Option CompiledFn) := do
   let recursive ← isRecursive f
   unless recursive || (← shouldOutline f e) do return none
@@ -1185,7 +1219,10 @@ partial def compileOnDemand (ctx : Ctx) (f : Name) (e : Expr) : MetaM (Option Co
         mkLambdaFVars xs (← Core.betaReduce (mkAppN mReg (static ++ xs)))
       pure (#[m] ++ measures)
     | none => pure measures
-  let name := (`LeanVM.Cost.Auto ++ f).str s!"c{← nextIndex ctx.reserved}"
+  let name ← autoName f info static
+  if (← getEnv).contains (name.str "costIdx") then
+    throwError "compile {f}: {name} is compiled already at other static arguments; compile this \
+      call with `cost_compile` under a name of its own"
   unless recursive do
     let idx ← nextIndex ctx.reserved
     return some (← withLCtx {} {} (compileFn name term idx none ctx.reserved))
@@ -1249,6 +1286,8 @@ partial def localClosure (ctx : Ctx) (f fty : Expr) (arity : Nat) (caps : Array 
   let j ← nextIndex ctx.reserved
   let bodyName := name.str "costBody"
   addExposedDef bodyName (mkConst ``LeanVM.Cost.Term) tj
+  -- its index now, so that the function's own price names it
+  addExposedDef (name.str "costIdx") (mkConst ``Nat) (mkNatLit j)
   -- compiled again, with a spec of its own, once the function's spec exists
   ctx.postLams.modify (·.push (name, lam, j, bodyName, encAt))
   let entry : CompiledFn :=
@@ -1661,7 +1700,8 @@ partial def compileFn (name : Name) (term : Expr) (idx : Nat) (measure? : Option
           let b := name.str "costBody"
           addExposedDef b bodyTy t
           pure b
-      addExposedDef (name.str "costIdx") (mkConst ``Nat) (mkNatLit idx)
+      unless (← getEnv).contains (name.str "costIdx") do
+        addExposedDef (name.str "costIdx") (mkConst ``Nat) (mkNatLit idx)
       let pendingNow ← pending.get
       let deps := mergeDeps (idx, bodyName) (pendingNow.map (·.2))
       let depsE ← depsExpr deps

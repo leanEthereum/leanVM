@@ -47,9 +47,9 @@ theorem powSqE_cost_lt (hP : Includes P Decoder.powSqEC.costDeps) (a : E)
   nlinarith
 
 /-- `a^n` in `K`, `n < 2^k`, `k ≤ 64`: at most `5 + 73·k`. -/
-theorem powSqK_cost_lt (hP : Includes P Auto.LeanVM.Cost.Rewrite.powSq.c116.costDeps) (a : K)
+theorem powSqK_cost_lt (hP : Includes P Auto.LeanVM.Cost.Rewrite.powSq.K.costDeps) (a : K)
     (n k : ℕ) (hk0 : 0 < k) (hk : k ≤ 64) (hn : n < 2 ^ k) :
-    machineCost P Auto.LeanVM.Cost.Rewrite.powSq.c116.costIdx [encodeValue a, encodeValue n] ≤
+    machineCost P Auto.LeanVM.Cost.Rewrite.powSq.K.costIdx [encodeValue a, encodeValue n] ≤
       5 + 73 * k := by
   have h64 : n < 2 ^ 64 := lt_of_lt_of_le hn (Nat.pow_le_pow_right (by norm_num) hk)
   refine (powSq_cost P hP a n h64).trans ?_

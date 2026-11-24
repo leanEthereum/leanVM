@@ -128,15 +128,15 @@ theorem lvC_limbs (μ R i : ℕ) :
 
 /-- **The descent across levels, its worker, priced.** -/
 theorem descendTraceGo_cost
-    (hP : Includes P Auto.LeanVM.Protocol.Whir.Sound.descendTraceC.c407.costDeps)
+    (hP : Includes P Auto.LeanVM.Protocol.Whir.Sound.descendTraceC.costDeps)
     (μ R : ℕ) (OAs : List AV) (W : ℕ) (hμ : μ < 2 ^ 50) (hR : R < 2 ^ 50)
     (hW : ∀ i x, ((OAs.getD i #[]).getD x #[]).size ≤ W) (hW' : W < 2 ^ 62) :
     ∀ (tr : WhirTrace) (i : ℕ), i + traceDepth tr < 2 ^ 50 → TraceSmall tr →
-      machineCost P Auto.LeanVM.Protocol.Whir.Sound.descendTraceC.c407.costIdx
+      machineCost P Auto.LeanVM.Protocol.Whir.Sound.descendTraceC.costIdx
         [encodeValue μ, encodeValue R, encodeValue OAs, encodeValue tr, encodeValue i] ≤
         traceCostB μ R W tr i
   | .final rounds folded, i, hi, hs => by
-    rw [Auto.LeanVM.Protocol.Whir.Sound.descendTraceC.c407.costEq P hP]
+    rw [Auto.LeanVM.Protocol.Whir.Sound.descendTraceC.costEq P hP]
     obtain ⟨l1, l2, l3, l4, l5, l6, l7, l8, l9⟩ := lvC_limbs μ R i
     simp only [traceCostB]
     have s1 : 1 <<< (lvC μ R i).1 < 2 ^ 64 := by rw [Nat.shiftLeft_eq, one_mul]; exact l4
@@ -173,12 +173,12 @@ theorem descendTraceGo_cost
     simp only [max_self]
     omega
   | .mid rounds high rest, i, hi, hs => by
-    rw [Auto.LeanVM.Protocol.Whir.Sound.descendTraceC.c407.costEq P hP]
+    rw [Auto.LeanVM.Protocol.Whir.Sound.descendTraceC.costEq P hP]
     simp only [traceCostB]
     rw [limbs_of_lt (by omega : i + 1 < 2 ^ 64), limbs_of_lt (by omega : i < 2 ^ 64)]
     simp only [traceDepth] at hi
     have ih := descendTraceGo_cost hP μ R OAs W hμ hR hW hW' rest (i + 1) (by omega) hs.2.2
-    rw [Auto.Option.bind.c47.costEq P (by includes) _
+    rw [Auto.Option.bind.costEq P (by includes) _
       (fun T' ↦ if T'.1 = (lvC μ R (i + 1)).2.2.1 ∧ (lvC μ R i).1 =
           (lvC μ R (i + 1)).2.2.1 + (lvC μ R (i + 1)).1 then
         descRevC (2 ^ ((lvC μ R i).1 + (lvC μ R i).2.1)) (2 ^ (lvC μ R i).1 - 1 + (lvC μ R i).2.2.1)

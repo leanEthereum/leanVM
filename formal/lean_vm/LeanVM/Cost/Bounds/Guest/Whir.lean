@@ -272,7 +272,7 @@ theorem oqVal_cost (hP : Includes P Decoder.oqValC.costDeps) (F : ℕ) (hF : F <
   have := oqRK_cost P hs (by includes) F hF (s.folds - 1) (by have := hs.2.1; omega)
   have := oqRK_le hs F (s.folds - 1)
   have := hs.2.1
-  rw [Decoder.oqValC.costEq P hP, Auto.LeanVM.Guest.B1.oqAcc.c409.costEq P (by includes)]
+  rw [Decoder.oqValC.costEq P hP, Auto.LeanVM.Guest.B1.oqAcc.costEq P (by includes)]
   unfold oqRO
   limbs_one; omega
 
@@ -645,11 +645,11 @@ theorem digestOfCells640_cost (hP : Includes P Decoder.digestOfCellsWC.costDeps)
   omega
 
 omit hrd hR in
-/-- A bit (`testBit.c108`), of a word: at most `9`. -/
-theorem testBit_cost (hP : Includes P Auto.Nat.testBit.c108.costDeps) (q l : ℕ) (hq : q < 2 ^ 64)
+/-- A bit (`testBit`), of a word: at most `9`. -/
+theorem testBit_cost (hP : Includes P Auto.Nat.testBit.costDeps) (q l : ℕ) (hq : q < 2 ^ 64)
     (hl : l < 2 ^ 64) :
-    machineCost P Auto.Nat.testBit.c108.costIdx [encodeValue q, encodeValue l] ≤ 9 := by
-  rw [Auto.Nat.testBit.c108.costEq P hP]
+    machineCost P Auto.Nat.testBit.costIdx [encodeValue q, encodeValue l] ≤ 9 := by
+  rw [Auto.Nat.testBit.costEq P hP]
   have h1 : q >>> l ≤ q := Nat.shiftRight_le q l
   have h2 : 1 &&& q >>> l ≤ 1 := Nat.and_le_left
   limbs_one

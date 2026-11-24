@@ -274,7 +274,7 @@ theorem extractL_cost (P : MachineProgram) (hP : Includes P extractLC.costDeps) 
       rw [appCost_fn]
       simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
       rw [extractLC.lam0.costEq P (by includes),
-        Auto.LeanVM.Protocol.EndToEnd.Sound.startState.c536.costEq P (by includes)]
+        Auto.LeanVM.Protocol.EndToEnd.Sound.startState.costEq P (by includes)]
       have hl6 : tables.length = 6 := by decide +kernel
       rw [hl6, limbs_of_lt (by norm_num : 2 + 6 < 2 ^ 64), limbs_of_lt (by norm_num : 6 < 2 ^ 64)]
       have c1 := replicate_cost P (by includes) Op.read (2 + 6) (by norm_num)
