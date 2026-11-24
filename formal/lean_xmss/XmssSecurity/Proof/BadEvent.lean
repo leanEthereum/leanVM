@@ -6,13 +6,12 @@ public import XmssSecurity.Proof.EncodingLemmas
 
 namespace XmssSecurity
 
-/-- The elementary bad events used by the current classical reduction. -/
+/-- The elementary bad events of the reduction, one per part of a signature a forgery can break. -/
 inductive BadEvent where
   | encoding
   | chain (chain : ChainIndex)
   | suffixCollision (step : Fin verificationChainHashes)
   | leaf
   | merkle (level : Fin treeHeight)
-deriving DecidableEq, Fintype
 
 end XmssSecurity

@@ -16,7 +16,6 @@ inductive Query (Index : Type) where
   | encodingSignAttempt (leafIndex : LeafIndex)
   | probe (index : Index) (target : Digest)
   | reveal (index : Index)
-deriving DecidableEq
 
 @[reducible]
 def World (Index : Type) : OracleSpec (Query Index) :=

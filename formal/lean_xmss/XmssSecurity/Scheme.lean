@@ -96,7 +96,6 @@ def topKeyOf (leafIndex : LeafIndex) : TopIndex :=
 structure PublicKey where
   root : Digest
   parameter : PublicParameter
-deriving DecidableEq
 
 /-- One layer's signature: the randomizer, the `v` chain values and the authentication path. -/
 structure LayerSignature where
@@ -138,7 +137,6 @@ structure TweakFields where
   step : BitVec 3
   hi : BitVec 24
   lo : BitVec 32
-deriving DecidableEq
 
 /-- The 16 address bytes `lo || hi || (tag + 32 * step) || 0^8`: `lo` on 4 bytes, `hi` on 3 bytes,
 each least significant byte first, then the type byte, then 8 zero bytes. -/

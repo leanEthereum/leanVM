@@ -1,7 +1,7 @@
 module
 
 public import XmssSecurity.Proof.Merkle
-public import XmssSecurity.Proof.SecurityBudget
+public import XmssSecurity.Proof.BadEvent
 public import XmssSecurity.Proof.WotsExtraction
 
 @[expose] public section

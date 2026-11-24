@@ -123,7 +123,6 @@ theorem revealQuery_isProbeQueryBoundP (index : Index) (probes : Nat) :
 inductive ObservedAction (Index : Type) where
   | probe (index : Index) (target : Digest)
   | reveal (index : Index) (value : Digest)
-deriving DecidableEq
 
 abbrev ActionTrace (Index : Type) := List (ObservedAction Index)
 
