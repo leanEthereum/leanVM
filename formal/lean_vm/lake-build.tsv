@@ -21,6 +21,7 @@ LeanVM.Guest.Bridge.AllocChk.B_main_loop2	20.0	20.0	6300	5100
 LeanVM.Guest.Bridge.AllocChk.S_main_loop2	20.0	20.0	5400	4100
 LeanVM.Guest.Bridge.AllocChk.W_main_loop2	20.0	20.0	6600	5400
 LeanVM.Guest.Bridge.AllocChk.W_verify_tables	40.0	40.0	5900	4600
+LeanVM.Guest.Bridge.Chk.P33	40.0	30.0	4400	3100
 LeanVM.Guest.Bridge.PairChk.W_verify_tables	20.0	20.0	6100	4800
 LeanVM.Guest.Bridge.WitChk.W_main_loop2	20.0	20.0	5400	4000
 LeanVM.Guest.Budget.VsCount	30.0	30.0	4800	3300

@@ -1259,14 +1259,18 @@ def windows(R, po, shared=frozenset()):
                         continue
                     base = 'LeanVM.Guest.CoreMode.GenW.«%s».A%d' % (k, r)
                     ns = 'LeanVM.Guest.Fn.«%s».Arm%d' % (k, r)
-                    files[os.path.join(GENW, k, 'A%d' % r, 'Def.lean')] = arm_def(k, r, H.sel, po, base, ns)
                     gen = dict(root='LeanVM.Guest.CoreMode.GenW', sub='HeapWG', final='heap_okW', base=base, ns=ns,
                                lpre='a%d_' % r, one=True,
                                pre=f'{hcsig_ref(k)[:-len("sig")]}sig_pre' if in_sigs(k, R[k], shared) else 'sig_pre',
                                data=['LeanVM.Guest.CoreMode.Gen.«%s».DataC' % po[k][0], base + '.Def'],
                                sigw='(fun f ↦ bif f == core.name then hcert.sig else (csigs.lookup f).getD {})')
-                    for name, text in heapwin.one(k, Hr, sigOf, epo, gen):
-                        files[os.path.join(GENW, k, 'A%d' % r, name + '.lean')] = text
+                    d = os.path.join(GENW, k, 'A%d' % r)
+                    arm = {os.path.join(d, 'Def.lean'): arm_def(k, r, H.sel, po, base, ns)}
+                    arm.update((os.path.join(d, name + '.lean'), text) for name, text in heapwin.one(k, Hr, sigOf, epo, gen))
+                    # the arm's definitions in the first module of its context, which imports them
+                    first = 'CxD0' if os.path.join(d, 'CxD0.lean') in arm else 'Cx'
+                    files.update(genfiles.merge(arm, {os.path.join(d, first + '.lean'): (
+                        f'{base}.{first}', None, [os.path.join(d, 'Def.lean'), os.path.join(d, first + '.lean')])}, None))
             continue
         if heapwin.fn_cost(k, H, sigOf) <= heapwin.BUDGET:
             continue
