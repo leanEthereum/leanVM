@@ -2879,6 +2879,18 @@ def gtabText : String := Id.run do
     x := y
   return "[" ++ ",\n  ".intercalate rows.toList ++ "]"
 
+/-- `g^(s·d)` for `d < 1024`, in rows of 32 (`Pow.tabN`). -/
+def gtabRowsText (s : K) : String := Id.run do
+  let mut rows : Array String := #[]
+  let mut y : K := 1
+  for _ in List.range 32 do
+    let mut row : Array String := #[]
+    for _ in List.range 32 do
+      row := row.push (toString y.toBitVec.toNat)
+      y := y * s
+    rows := rows.push ("[" ++ ", ".intercalate row.toList ++ "]")
+  return "[" ++ ",\n  ".intercalate rows.toList ++ "]"
+
 /-- The frame sizes, by compiled function index. -/
 def framesFile (fsz : List ℕ) (jtSlots : ℕ) : String :=
   header "FrameSizes" "The frame size of each compiled function, by index." ++
@@ -2906,6 +2918,12 @@ noncomputable def powTree : PowTree := {top}
 
 /-- `g^(d·16^w)` at row `w`, column `d`, as bits. -/
 def gtab : List (List ℕ) := {gtabText}
+
+/-- `g^d` for `d < 1024`, at row `d / 32`, column `d % 32`, as bits. -/
+def gtabLo : List (List ℕ) := {gtabRowsText g}
+
+/-- `g^(1024·d)` for `d < 1024`, at row `d / 32`, column `d % 32`, as bits. -/
+def gtabHi : List (List ℕ) := {gtabRowsText (g ^ 1024)}
 
 /-- The jump table: slot of `main`'s frame to the pc it holds (`__jump_tables`). -/
 noncomputable def jtTrie : Trie ℕ := {jt}
@@ -2967,6 +2985,33 @@ def coreRef (key : String) : String := s!"Fn.«{key}».core"
 
 /-- The options of a module of generated data: its literals nest deeper than the default allows. -/
 def dataOptions : String := "set_option maxRecDepth 100000\nset_option linter.all false\n\n"
+
+/-- `s` with each numeral outside docstrings, string literals and instructions written `(nat_lit n)`,
+which the elaborator takes as it is, without the `OfNat` instance a numeral costs (the readers of the
+text undo it, `scripts/bridge-cert/data.py`'s `unlit`). An instruction's numerals stay as they are: there
+the longer text costs more to parse than the instances save. -/
+def natLits (s : String) : String :=
+  "\n".intercalate ((s.splitOn "\n").map fun l =>
+    if l.startsWith "/--" || l.startsWith "  (." then l else Id.run do
+      let mut out := ""
+      let mut num := ""
+      let mut prev := ' '
+      let mut inStr := false
+      for c in l.toList do
+        if inStr then
+          out := out.push c
+          inStr := c != '"'
+        else if (c.isDigit && (!num.isEmpty || !(prev.isAlphanum || "_.«'".contains prev))) ||
+            (!num.isEmpty && (c.isAlphanum)) then
+          num := num.push c
+        else
+          if !num.isEmpty then
+            out := out ++ s!"(nat_lit {num})"
+            num := ""
+          inStr := c == '"'
+          out := out.push c
+        prev := c
+      return if num.isEmpty then out else out ++ s!"(nat_lit {num})")
 
 def fnPreamble (key : String) : String :=
   s!"\nnamespace {fnNs key}\n\nopen LeanVM.Guest LeanVM.Guest.Exec\n\n" ++ dataOptions ++ "@[expose] public section\n\n"
@@ -3063,7 +3108,7 @@ def packPerFile : ℕ := 24
 def groupsPerFile : ℕ := perFile
 
 /-- The subtrees of the power tree a module checks. -/
-def powsPerFile : ℕ := 8
+def powsPerFile : ℕ := 16
 
 /-- Set at the top of a module of several kernel checks: elaborated asynchronously, a module of
 several checks of the `B2C` walks keeps the memory of each until the module ends. -/
@@ -3256,7 +3301,7 @@ def checkedFiles (I : Array FnInfo) (packs : List (String × List ℕ)) (obl : L
       String.join (js.map fun j =>
         let k := I[j]!.key
         s!"namespace {fnNs k}\n\nopen LeanVM.Guest LeanVM.Guest.Exec\n\n" ++ dataOptions ++
-          "@[expose] public section\n\n" ++ I[j]!.code ++ I[j]!.cert ++ I[j]!.b2c ++ s!"\nend\nend {fnNs k}\n\n")
+          "@[expose] public section\n\n" ++ natLits (I[j]!.code ++ I[j]!.cert ++ I[j]!.b2c) ++ s!"\nend\nend {fnNs k}\n\n")
     let cs := js.filter fun j => !alone j && !(ownW j).isEmpty
     let checked := packHeader dir "Checked"
         s!"The kernel's checks of the windows of compiled functions {names cs}, over their views of the program." ++
@@ -3293,7 +3338,7 @@ def checkedFiles (I : Array FnInfo) (packs : List (String × List ℕ)) (obl : L
     (powName (c / powsPerFile), checkedHeader (powName (c / powsPerFile)) "The kernel's checks of subtrees of the powers of `g`." ++
       "public import LeanVM.Guest.Pow\n\n" ++ asyncOff ++ "namespace LeanVM.Guest.Checked\n\n@[expose] public section\n\n" ++
       String.join (is.map fun i =>
-        s!"theorem powT{i}_ok : Data.powT{i}.OkW := Exec.PowTree.okW_of_okWB (by decide +kernel)\n\n") ++
+        s!"theorem powT{i}_ok : Data.powT{i}.OkW := Exec.PowTree.okW_of_okMB (by decide +kernel)\n\n") ++
       "end\nend LeanVM.Guest.Checked\n")
   -- each function's `CheckOk` and `Plain`, in modules of `fnBlock` consecutive functions, its
   -- windows over its view linked to `WinOk` there (`Check.Link`)
