@@ -19,7 +19,7 @@ use primitives::bits::bit_transpose_64bytes;
 use primitives::field::{Acc8, F64, F128, F128x8, Weights8, dot_base, msg_lone8_ext, xor_into8};
 
 use super::{RingSwitchOpen, StackClaim};
-use crate::ring_switch::{RingWeight, coordinate_basis};
+use crate::ring_switch::{RingFold, RingWeight, coordinate_basis};
 use crate::tensor_algebra::{DEGREE_E, transpose_s_hat};
 use crate::whir::InitialBasis;
 
@@ -270,62 +270,186 @@ impl Terms {
         self.lane_vars
     }
 
+    /// Prepares pattern block weights and folded ring weights to lift `n_rows` rows of `a` block by block into L1.
+    pub(crate) fn prepare_lift_rows(&self, a: &[F128], n_rows: usize) -> LiftRows<'_> {
+        let n_terms = self.n_terms();
+        let n_patterns = self.patterns.len();
+        let n_blocks = 1usize << (self.lane_vars - self.low_vars);
+        assert!(a.len() >= n_rows * n_terms);
+        let rings: Vec<Vec<_>> = (0..n_rows)
+            .map(|r| {
+                let a_row = &a[r * n_terms..(r + 1) * n_terms];
+                self.rings
+                    .iter()
+                    .filter_map(|ring| {
+                        let weights = *a_row[ring.first..]
+                            .first_chunk::<DEGREE_E>()
+                            .expect("a ring claim has one term per coordinate");
+                        if weights.iter().all(|&w| w == F128::ZERO) {
+                            return None;
+                        }
+                        let vars = ring.point.len().min(self.lane_vars);
+                        let weight = RingWeight::new(weights, ring.point[..vars].to_vec()).fold();
+                        Some((weight, ring.x_offset, 1usize << vars))
+                    })
+                    .collect()
+            })
+            .collect();
+        let stride = n_rows * n_patterns;
+        let gs = if stride == 0 {
+            Vec::new()
+        } else {
+            // SAFETY: the fill writes every element before it reads any.
+            unsafe {
+                primitives::filled_vec(n_blocks * stride, |gs| {
+                    parallel::chunks_mut(gs, stride, |h, block_gs| {
+                        for (r, row_gs) in block_gs.chunks_exact_mut(n_patterns).enumerate() {
+                            let a_row = &a[r * n_terms..(r + 1) * n_terms];
+                            for (g, pattern) in row_gs.iter_mut().zip(&self.patterns) {
+                                *g = pattern.claims.iter().map(|&c| a_row[c] * self.gamma(c)[h]).sum();
+                            }
+                        }
+                    });
+                })
+            }
+        };
+        LiftRows {
+            terms: self,
+            n_rows,
+            n_patterns,
+            gs,
+            rings,
+        }
+    }
+
     /// The weight over one lane block after level 0's rounds, rebuilt from the term table's last row `a`.
     ///
     /// `b[h * 2^m + x] = sum_claims A[c] * gamma_c(h) * pi_c(x) + sum_rings Phi'(e(x))`, where
     /// `Phi'` weighs the ring's coordinates by its 128 terms of `a`.
-    ///
-    /// The setup is each pattern's weight on each block, `sum_c a[c] * gamma_c(h)` over its claims, and the
-    /// ring weights. A block is built at a time, and the dense patterns share one reduction per vector.
     pub(crate) fn lift(&self, a: &[F128]) -> Vec<F128> {
         let block = 1usize << self.low_vars;
-        let rings: Vec<_> = self
-            .rings
-            .iter()
-            .map(|ring| {
-                let vars = ring.point.len().min(self.lane_vars);
-                let weights = *a[ring.first..]
-                    .first_chunk::<DEGREE_E>()
-                    .expect("a ring claim has one term per coordinate");
-                let weight = RingWeight::new(weights, ring.point[..vars].to_vec()).fold();
-                (weight, ring.x_offset, 1usize << vars)
-            })
-            .collect();
-        let n_patterns = self.patterns.len();
-        // SAFETY: the fill writes every element before it reads any.
-        let gs = unsafe {
-            primitives::filled_vec((1 << (self.lane_vars - self.low_vars)) * n_patterns, |gs| {
-                parallel::chunks_mut(gs, n_patterns.max(1), |h, row| {
-                    for (g, pattern) in row.iter_mut().zip(&self.patterns) {
-                        *g = pattern.claims.iter().map(|&c| a[c] * self.gamma(c)[h]).sum();
-                    }
-                });
-            })
-        };
+        let n_blocks = 1usize << (self.lane_vars - self.low_vars);
+        let rows = self.prepare_lift_rows(a, 1);
+        let per = (n_blocks / (8 * parallel::num_threads()).next_power_of_two()).max(1);
         // SAFETY: the fill writes every element before it reads any.
         unsafe {
             primitives::filled_vec(1 << self.lane_vars, |b| {
-                parallel::chunks_mut(b, block, |h, out| {
-                    let live = || {
-                        self.patterns
-                            .iter()
-                            .zip(&gs[h * n_patterns..][..n_patterns])
-                            .filter(|(_, g)| **g != F128::ZERO)
-                    };
-                    for (k, o) in out.as_chunks_mut::<8>().0.iter_mut().enumerate() {
-                        let products = live().map(|(pattern, &g)| pattern.low.table[k].mul_unreduced(F128x8::splat(g)));
-                        *o = products
-                            .reduce(|acc, p| acc ^ p)
-                            .map_or([F128::ZERO; 8], |acc| acc.reduce_lanes().to_array());
-                    }
-                    for (weight, offset, len) in &rings {
-                        let (lo, hi) = ((h * block).max(*offset), ((h + 1) * block).min(offset + len));
-                        if lo < hi {
-                            weight.add_chunk(lo - offset, &mut out[lo - h * block..hi - h * block]);
-                        }
+                parallel::chunks_mut(b, per * block, |t, chunk| {
+                    let mut scratch = rows.scratch();
+                    for (off, out) in chunk.chunks_exact_mut(block).enumerate() {
+                        rows.lift_row(0, t * per + off, out, &mut scratch);
                     }
                 });
             })
+        }
+    }
+}
+
+/// Reusable per-task active-pattern buffer for [`LiftRows::lift_row`].
+#[cfg(all(
+    target_arch = "x86_64",
+    not(all(target_feature = "vpclmulqdq", target_feature = "avx2"))
+))]
+pub(crate) struct LiftScratch<'s>(Vec<(&'s [F128], F128)>);
+
+/// Reusable per-task active-pattern buffer for [`LiftRows::lift_row`].
+#[cfg(not(all(
+    target_arch = "x86_64",
+    not(all(target_feature = "vpclmulqdq", target_feature = "avx2"))
+)))]
+pub(crate) struct LiftScratch<'s>(Vec<(&'s [F128x8], F128x8)>);
+
+/// Prepared per-row pattern weights and active folded ring weights for lifting rows block by block into L1.
+pub(crate) struct LiftRows<'a> {
+    terms: &'a Terms,
+    n_rows: usize,
+    n_patterns: usize,
+    gs: Vec<F128>,
+    rings: Vec<Vec<(RingFold, usize, usize)>>,
+}
+
+impl<'a> LiftRows<'a> {
+    pub(crate) fn scratch(&self) -> LiftScratch<'_> {
+        LiftScratch(Vec::with_capacity(self.n_patterns))
+    }
+
+    /// Rebuilds block `h` of row `r`'s weight into `out`, reusing `scratch` across blocks to avoid allocations.
+    pub(crate) fn lift_row<'s>(&'s self, r: usize, h: usize, out: &mut [F128], scratch: &mut LiftScratch<'s>) {
+        let block = 1usize << self.terms.low_vars;
+        debug_assert_eq!(out.len(), block);
+        scratch.0.clear();
+        #[cfg(all(
+            target_arch = "x86_64",
+            not(all(target_feature = "vpclmulqdq", target_feature = "avx2"))
+        ))]
+        {
+            if self.n_patterns > 0 {
+                let row_gs = &self.gs[(h * self.n_rows + r) * self.n_patterns..][..self.n_patterns];
+                for (pattern, &g) in self.terms.patterns.iter().zip(row_gs) {
+                    if g != F128::ZERO {
+                        scratch.0.push((primitives::cast_slice(&pattern.low.table), g));
+                    }
+                }
+            }
+            match scratch.0.as_slice() {
+                [] => out.fill(F128::ZERO),
+                &[(t0, g0)] => {
+                    for (o, &a0) in out.iter_mut().zip(t0) {
+                        *o = a0 * g0;
+                    }
+                }
+                &[(t0, g0), (t1, g1)] => {
+                    for ((o, &a0), &a1) in out.iter_mut().zip(t0).zip(t1) {
+                        *o = (a0.mul_unreduced(g0) ^ a1.mul_unreduced(g1)).reduce();
+                    }
+                }
+                [(t0, g0), rest @ ..] => {
+                    for (i, o) in out.iter_mut().enumerate() {
+                        let mut acc = t0[i].mul_unreduced(*g0);
+                        for &(tbl, g) in rest {
+                            acc ^= tbl[i].mul_unreduced(g);
+                        }
+                        *o = acc.reduce();
+                    }
+                }
+            }
+        }
+        #[cfg(not(all(
+            target_arch = "x86_64",
+            not(all(target_feature = "vpclmulqdq", target_feature = "avx2"))
+        )))]
+        {
+            if self.n_patterns > 0 {
+                let row_gs = &self.gs[(h * self.n_rows + r) * self.n_patterns..][..self.n_patterns];
+                for (pattern, &g) in self.terms.patterns.iter().zip(row_gs) {
+                    if g != F128::ZERO {
+                        scratch.0.push((&pattern.low.table, F128x8::splat(g)));
+                    }
+                }
+            }
+            match scratch.0.as_slice() {
+                [] => out.fill(F128::ZERO),
+                &[(tbl, gv)] => {
+                    for (k, o) in out.as_chunks_mut::<8>().0.iter_mut().enumerate() {
+                        *o = (tbl[k] * gv).to_array();
+                    }
+                }
+                [(t0, g0), rest @ ..] => {
+                    for (k, o) in out.as_chunks_mut::<8>().0.iter_mut().enumerate() {
+                        let mut acc = t0[k].mul_unreduced(*g0);
+                        for &(tbl, gv) in rest {
+                            acc ^= tbl[k].mul_unreduced(gv);
+                        }
+                        *o = acc.reduce_lanes().to_array();
+                    }
+                }
+            }
+        }
+        for (weight, offset, len) in &self.rings[r] {
+            let (lo, hi) = ((h * block).max(*offset), ((h + 1) * block).min(offset + len));
+            if lo < hi {
+                weight.add_chunk(lo - offset, &mut out[lo - h * block..hi - h * block]);
+            }
         }
     }
 }

@@ -12,7 +12,7 @@ use super::gf2_64x2::{F128, F128Unreduced};
 /// Four `K` elements in one register.
 #[derive(Clone, Copy, Debug)]
 #[repr(transparent)]
-pub struct F64x4(__m256i);
+pub struct F64x4(pub(super) __m256i);
 
 /// Four `E` elements; register `k` is coefficient `k` of lanes `0..4`.
 #[derive(Clone, Copy, Debug)]

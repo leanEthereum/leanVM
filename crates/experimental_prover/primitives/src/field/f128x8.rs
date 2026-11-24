@@ -87,6 +87,13 @@ mod portable {
             self.0
         }
 
+        /// Replace lane 0 with `v`, leaving lanes `1..8` intact.
+        #[inline(always)]
+        pub fn with_lane0(mut self, v: F128) -> Self {
+            self.0[0] = v;
+            self
+        }
+
         #[inline(always)]
         pub fn mul_unreduced(self, rhs: Self) -> Prod8 {
             let ((x0, x1), (y0, y1)) = (halves(&self.0), halves(&rhs.0));
@@ -149,6 +156,21 @@ mod portable {
         #[inline]
         pub fn mul_base_unreduced(self, k: F64x8) -> Prod8 {
             Prod8(core::array::from_fn(|i| self.0[i].mul_base_unreduced(k.0[i])))
+        }
+
+        /// Multiply the even lanes by `k[0, 2, 4, 6]`, leaving the odd lanes untouched.
+        #[inline(always)]
+        pub fn mul_base_even(self, k: F64x8) -> Self {
+            Self([
+                self.0[0].mul_base(k.0[0]),
+                self.0[1],
+                self.0[2].mul_base(k.0[2]),
+                self.0[3],
+                self.0[4].mul_base(k.0[4]),
+                self.0[5],
+                self.0[6].mul_base(k.0[6]),
+                self.0[7],
+            ])
         }
     }
 
@@ -373,6 +395,19 @@ mod avx2 {
             out
         }
 
+        /// Replace lane 0 with `v`, leaving lanes `1..8` intact.
+        #[inline(always)]
+        pub fn with_lane0(self, v: F128) -> Self {
+            // SAFETY: the module's cfg enables avx2.
+            let lo = unsafe {
+                F128x4([
+                    _mm256_blend_epi32::<0x03>(self.0[0].0[0], _mm256_castsi128_si256(_mm_cvtsi64_si128(v.c0 as i64))),
+                    _mm256_blend_epi32::<0x03>(self.0[0].0[1], _mm256_castsi128_si256(_mm_cvtsi64_si128(v.c1 as i64))),
+                ])
+            };
+            Self([lo, self.0[1]])
+        }
+
         #[inline(always)]
         pub fn mul_unreduced(self, rhs: Self) -> Prod8 {
             Prod8(std::array::from_fn(|h| self.0[h].mul_unreduced(rhs.0[h])))
@@ -386,6 +421,28 @@ mod avx2 {
                 p.add(self.0[h], k.0[h]);
                 p
             }))
+        }
+
+        /// Multiply the even lanes by `k[0, 2, 4, 6]`, leaving the odd lanes untouched.
+        #[inline(always)]
+        pub fn mul_base_even(self, k: F64x8) -> Self {
+            let [lo, hi] = self.0.map(|h| h.0);
+            // SAFETY: the module's cfg enables avx2 and vpclmulqdq.
+            unsafe {
+                // Pack lanes `[0, 4, 2, 6]` into one 4-lane product, then blend back without cross-lane shuffles.
+                let a_even = F128x4([_mm256_unpacklo_epi64(lo[0], hi[0]), _mm256_unpacklo_epi64(lo[1], hi[1])]);
+                let k_even = F64x4(_mm256_unpacklo_epi64(k.0[0].0, k.0[1].0));
+                let mut p = Mixed4::ZERO;
+                p.add(a_even, k_even);
+                let p = p.reduce().0;
+                Self([
+                    F128x4([
+                        _mm256_blend_epi32::<0x33>(lo[0], p[0]),
+                        _mm256_blend_epi32::<0x33>(lo[1], p[1]),
+                    ]),
+                    F128x4([_mm256_unpackhi_epi64(p[0], hi[0]), _mm256_unpackhi_epi64(p[1], hi[1])]),
+                ])
+            }
         }
 
         /// `([a0, a2, a4, a6, b0, b2, b4, b6], [a1, a3, a5, a7, b1, b3, b5, b7])`.
@@ -597,6 +654,31 @@ mod avx512 {
                 even: [e0, e1],
                 odd: [o0, o1],
             }
+        }
+
+        /// Multiply the even lanes by `k[0, 2, 4, 6]`, leaving the odd lanes untouched.
+        #[inline(always)]
+        pub fn mul_base_even(self, k: F64x8) -> Self {
+            #[inline]
+            #[target_feature(enable = "avx512f,avx512bw,vpclmulqdq")]
+            fn kernel(lo: __m512i, k: __m512i) -> __m512i {
+                let e0 = _mm512_clmulepi64_epi128::<0x00>(lo, k);
+                let e1 = _mm512_clmulepi64_epi128::<0x01>(lo, k);
+                reduce_lanes512(_mm512_unpacklo_epi64(e0, e1), _mm512_unpackhi_epi64(e0, e1))
+            }
+            // SAFETY: the module is compiled only with the features enabled.
+            Self {
+                lo: unsafe { kernel(self.lo, k.0) },
+                hi: self.hi,
+            }
+        }
+
+        /// Replace lane 0 with `v`, leaving lanes `1..8` intact.
+        #[inline(always)]
+        pub fn with_lane0(self, v: F128) -> Self {
+            // SAFETY: the module is compiled only with avx512f enabled.
+            let lo = unsafe { _mm512_mask_mov_epi64(self.lo, 0x03, _mm512_castsi128_si512(pair(v.c0, v.c1))) };
+            Self { lo, hi: self.hi }
         }
     }
 
@@ -909,6 +991,14 @@ mod tests {
             assert_eq!(
                 xa.mul_base_unreduced(ka).reduce_lanes().to_array(),
                 core::array::from_fn(|j| x0[j].mul_base(k0[j]))
+            );
+            assert_eq!(
+                xa.mul_base_even(ka).to_array(),
+                core::array::from_fn(|j| if j % 2 == 0 { x0[j].mul_base(k0[j]) } else { x0[j] })
+            );
+            assert_eq!(
+                xa.with_lane0(r).to_array(),
+                core::array::from_fn(|j| if j == 0 { r } else { x0[j] })
             );
 
             // Accumulation across calls sums before the one reduction.
