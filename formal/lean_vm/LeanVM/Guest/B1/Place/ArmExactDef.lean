@@ -19,7 +19,7 @@ public import LeanVM.Guest.B1.Bits.MeaningP
 * `isWinHint`: a `windowsExp` hint, as the inlined grind checks (`gcInlineT`) write, pinned by no next atom: their
   exactness comes from the honest valuation (`Whir.WinEx`, from `gcInline_exact_of_vals`), not from the check;
 * `armExactOk name j`: function `j` is named `name`, its computed hints but the window hints are pinned by the next atom, and each of its
-  callees is `armExactS` or exact for free (`exactCallee j`), decided by the kernel per arm (`ArmExact0` to `ArmExact5`; `ArmExactB`, `ArmExactC` by its parts, `armExactOk_of`);
+  callees is `armExactS` or exact for free (`exactCallee j`), decided by the kernel per arm (`ArmExact0` to `ArmExact5`; `ArmExactB`, `ArmExactC` by its parts, the callees forty at a time, `armExactOk_of_chunks`);
 * `armExact_find`: such a function's callees not `armExactS` are exact for free;
   `armExact_every`: so a valid node of it whose window hints are exact and whose `armExactS` callees' predicates give
   `Every` exact is exact at every node.
@@ -51,8 +51,7 @@ noncomputable def armExactOk (name : String) (j : ℕ) : Bool :=
       (Stmt.blockCallees fn.body).all fun g => armExactS g || exactCallee j g
   | none => false
 
-/-- **`armExactOk` from its parts**, the callees' check decided apart (`ArmExactB`, `ArmExactC`, in chunks: one
-kernel check of a large arm's callees at once holds too much memory). -/
+/-- **`armExactOk` from its parts**, the callees' check decided apart. -/
 theorem armExactOk_of {name : String} {j : ℕ} {fn : Fn} (hj : coreProgram[j]? = some fn)
     (hn : (fn.name == name) = true) (hp : Stmt.blockNextOk isComputedNW pinsInverse fn.body = true)
     (hc : (Stmt.blockCallees fn.body).all (fun g => armExactS g || exactCallee j g) = true) :
@@ -67,6 +66,28 @@ theorem all_drop_chunk {α : Type} {p : α → Bool} {l : List α} {n k : ℕ}
     (l.drop (n * k)).all p = true := by
   rw [← List.take_append_drop n (l.drop (n * k)), List.all_append, hc, List.drop_drop, Bool.true_and]
   rwa [Nat.mul_succ] at ht
+
+/-- Function `j`'s callees. -/
+noncomputable def armCallees (j : ℕ) : List String :=
+  ((coreProgram[j]?).map fun fn => Stmt.blockCallees fn.body).getD []
+
+/-- Function `j`'s callee `g` is `armExactS` or exact for free. -/
+noncomputable def armCalleeOk (j : ℕ) (g : String) : Bool := armExactS g || exactCallee j g
+
+/-- Chunk `i` of function `j`'s callees' check: the forty callees from `40 * i`, with `last` every callee from there. -/
+noncomputable def armChunk (j i : ℕ) (last : Bool := false) : Bool :=
+  (bif last then (armCallees j).drop (40 * i) else ((armCallees j).drop (40 * i)).take 40).all (armCalleeOk j)
+
+/-- **`armExactOk` from its parts, the callees in four chunks** (one kernel check of a large arm's callees at once
+holds too much memory). -/
+theorem armExactOk_of_chunks {name : String} {j : ℕ} {fn : Fn} (hj : coreProgram[j]? = some fn)
+    (hn : (fn.name == name) = true) (hp : Stmt.blockNextOk isComputedNW pinsInverse fn.body = true)
+    (h0 : armChunk j 0 = true) (h1 : armChunk j 1 = true) (h2 : armChunk j 2 = true)
+    (h3 : armChunk j 3 true = true) : armExactOk name j = true := by
+  have hl : armCallees j = Stmt.blockCallees fn.body := by simp [armCallees, hj]
+  refine armExactOk_of hj hn hp ?_
+  rw [← hl]
+  exact all_drop_chunk (n := 40) (k := 0) h0 (all_drop_chunk (k := 1) h1 (all_drop_chunk (k := 2) h2 h3))
 
 theorem armExact_find {name : String} {j : ℕ} (h : armExactOk name j = true) :
     ∃ fn, coreProgram.find? name = some fn ∧ Stmt.blockNextOk isComputedNW pinsInverse fn.body = true ∧
