@@ -1,6 +1,8 @@
 module
 
 public import Statement.CostMachine
+public import Statement.LeanVmExtractor
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 
 /-!
 # The cost machine

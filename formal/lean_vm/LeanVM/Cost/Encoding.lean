@@ -1,7 +1,7 @@
 module
 
 public import LeanVM.Cost.Machine
-public import Statement.LeanVm
+public import Statement.LeanVmExtractor
 public import LeanVM.Parameters.Field
 public import CompPoly.Univariate.Basic
 
