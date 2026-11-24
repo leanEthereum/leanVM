@@ -43,7 +43,7 @@ theorem certOf_pows_ok (j : ℕ) : (certOf j).facts.pows.Ok := by
   rw [certOf_pows]
   exact PowTree.ok_of_okW Checked.powTree_ok
 
-theorem functions_length : Data.functions.length = nFns := by decide +kernel
+theorem functions_length : Data.functions.length = nFns := B2C.functions_lengthC
 
 theorem coreProgram_length' : coreProgram.length + 1 = nFns := by
   rw [coreProgram_length]; rfl
