@@ -46,28 +46,8 @@ theorem psiF_newPair {Cmax Lmax : ℕ} (hfair : FairS wbar Cmax Lmax) (hQ : Qtot
   have hM := hB.minv
   obtain ⟨y, rfl⟩ : ∃ y, budget = y + 1 := ⟨budget - 1, by omega⟩
   simp only [Nat.add_sub_cancel]
-  -- the cap term keeps its mean
-  have hlam : pairE (fun u => lam Lmax (livePairs L (addPair K.p P p u)).length y) ≤ lam Lmax ℓ (y + 1) := by
-    by_cases hlive : MsgLive L p.1
-    · have hl : ∀ u, lam Lmax (livePairs L (addPair K.p P p u)).length y =
-          if Landed K.p (blockIndex (u firstCall)) then lam Lmax (ℓ + 1) y else lam Lmax ℓ y := by
-        intro u
-        unfold addPair livePairs
-        split_ifs with hl
-        · rw [List.filter_cons, ite_eq_left (by simpa using hlive), List.length_cons]
-          rfl
-        · rfl
-      simp only [hl]
-      exact le_of_eq (lam_newPair K.p Lmax ℓ y)
-    · have hl : ∀ u, lam Lmax (livePairs L (addPair K.p P p u)).length y = lam Lmax ℓ y := by
-        intro u
-        unfold addPair livePairs
-        split_ifs with hl
-        · rw [List.filter_cons, ite_eq_right (by simpa using hlive)]
-          rfl
-        · rfl
-      simp only [hl, pairE_const]
-      exact lam_mono le_rfl (Nat.le_succ y)
+  have hlam : pairE (fun u => lam Lmax (livePairs L (addPair K.p P p u)).length y) ≤ lam Lmax ℓ (y + 1) :=
+    pairE_lam_addPair K.p Lmax y L P p
   unfold psiF psiCoreF
   rw [pairE_add]
   refine add_le_add ?_ hlam

@@ -857,32 +857,8 @@ theorem new_pair_coreHL (hw : w ≤ 1) (L : QueryLog SigningSpec)
   -- the cap term keeps its mean
   have hlam : pairE (fun u => lam Lmax (livePairs L (addPair parameter P p u)).length (budget - 1)) ≤
       lam Lmax ℓ budget := by
-    by_cases hlive : MsgLive L p.1
-    · have hl : ∀ u : DigestCall → HashOutput,
-          lam Lmax (livePairs L (addPair parameter P p u)).length (budget - 1) =
-          if Landed parameter (blockIndex (u firstCall)) then lam Lmax (ℓ + 1) (budget - 1)
-          else lam Lmax ℓ (budget - 1) := by
-        intro u
-        unfold addPair livePairs
-        split_ifs with hl
-        · rw [List.filter_cons, ite_eq_left (by simpa using hlive), List.length_cons]
-          rfl
-        · rfl
-      simp only [hl]
-      have := lam_newPair parameter Lmax ℓ (budget - 1)
-      rw [Nat.sub_add_cancel hb] at this
-      exact le_of_eq this
-    · have hl : ∀ u : DigestCall → HashOutput,
-          lam Lmax (livePairs L (addPair parameter P p u)).length (budget - 1) =
-            lam Lmax ℓ (budget - 1) := by
-        intro u
-        unfold addPair livePairs
-        split_ifs with hl
-        · rw [List.filter_cons, ite_eq_right (by simpa using hlive)]
-          rfl
-        · rfl
-      simp only [hl, pairE_const]
-      exact lam_mono le_rfl (Nat.sub_le _ _)
+    have h := pairE_lam_addPair parameter Lmax (budget - 1) L P p
+    rwa [Nat.sub_add_cancel hb] at h
   unfold potH
   rw [pairE_add, add_right_comm]
   refine add_le_add ?_ hlam

@@ -391,6 +391,32 @@ theorem lam_newPair (parameter : PublicParameter) (Lmax ℓ k : ℕ) :
         ring
     _ = _ := by rw [hstep, pow_succ]; ring
 
+/-- **The cap term keeps its mean** over the blocks of a new pair. -/
+theorem pairE_lam_addPair (parameter : PublicParameter) (Lmax k : ℕ) (L : QueryLog SigningSpec)
+    (P : List Pair) (p : Pair) :
+    pairE (fun u => lam Lmax (livePairs L (addPair parameter P p u)).length k) ≤
+      lam Lmax (livePairs L P).length (k + 1) := by
+  by_cases hlive : MsgLive L p.1
+  · have hl : ∀ u : DigestCall → HashOutput, lam Lmax (livePairs L (addPair parameter P p u)).length k =
+        if Landed parameter (blockIndex (u firstCall)) then lam Lmax ((livePairs L P).length + 1) k
+        else lam Lmax (livePairs L P).length k := by
+      intro u
+      unfold addPair livePairs
+      split_ifs with hl
+      · rw [List.filter_cons, ite_eq_left (by simpa using hlive), List.length_cons]
+      · rfl
+    simp only [hl]
+    exact le_of_eq (lam_newPair parameter Lmax _ k)
+  · have hl : ∀ u : DigestCall → HashOutput,
+        lam Lmax (livePairs L (addPair parameter P p u)).length k = lam Lmax (livePairs L P).length k := by
+      intro u
+      unfold addPair livePairs
+      split_ifs with hl
+      · rw [List.filter_cons, ite_eq_right (by simpa using hlive)]
+      · rfl
+    simp only [hl, pairE_const]
+    exact lam_mono le_rfl (Nat.le_succ k)
+
 /-- The cached landed pairs of an unsigned message are live items. -/
 theorem landedCount_le {s : State} {P : List Pair} (hP : PInv parameter data s P) (L : QueryLog SigningSpec)
     {m : Message} (hm : MsgLive L m) :
