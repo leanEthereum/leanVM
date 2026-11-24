@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.ExecCore
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.Data.GTab
 
 /-!
 # Powers of `g` by digits

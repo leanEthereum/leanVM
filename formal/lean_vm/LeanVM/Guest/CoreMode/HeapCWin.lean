@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.HeapC
-public import LeanVM.Guest.Memory.StaticCut
+public import LeanVM.Guest.Memory.StaticRun
 
 /-!
 # The heap check in windows

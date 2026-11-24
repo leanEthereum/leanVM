@@ -59,12 +59,13 @@ Done:
 2. **Stable names.** The hand-written proofs name functions by stable name (`fn% «s»`, `idx% «s»`, `name% «s»`, `Guest/CoreRef.lean`), so a renumbering changes no proof; `scripts/guest-changes` and the walk generators read the same keys.
 3. **Core IR in packs.** `guest-core` writes each function's core IR into its pack (`Pack/P{k}/Core.lean`, `Pack/<key>/Core*.lean`), and `Data/Core.lean` lists references to them.
 - **Steps 5, 6 and 8 for Checked and B2C.** The packs hold each function's code, certificate, signature, completeness and sharing data (`Bundle.lean`, `Sig.lean`) and its checks over its own data and view (`Checked*`, `Cplw*`, `Shared*`: `Check.checkWinCF`, `B2C.cplWinD`, `B2C.shareWinD`, defined in the data-free `CheckView`, `B2C/CplCheck`, `ShareCheck`, `ChainCheck`, guarded by `ViewFirewall.lean`); the completeness walk finds a callee among the function's callees (`calleeS`), the context restricted to them (`Glob.restrict`). The glue (`Checked/Link*`, `Checked/Fn*`, `B2C/Cplw/Fn*`, `B2C/Shared/Fn*`) links them to `WinOk`, `CplOk`, `ShareOk` (`Check.Link`, `cplOk_of_link`, `shareOk_of_link`). Still global: `main_loop2`'s split windows and chained `match`es (`Checked/X*`, `F*`, `B2C/Cplw/E*`, `B2C/Shared/T*`, `B2C/Chained/`).
+- **Step 4 in part.** The definitions about any program import no program's data: the powers of `g` (`Pow`, over the digit tables `Data.GTab`; the powers the guest names and its jump table stay in `Data.Pows`), the honest memory (`Memory`; `main`'s jump table cells in `Memory.TableCells`), the checkers' walk by ranges (`Memory.StaticRun`; the families' steps in `StaticCut`) and the heap check in windows (`CoreMode.HeapCWin*`), so no position-free heap window rebuilds on another function's edit; `GenericFirewall.lean` guards them.
 
 Also done: `Statement/Data/`'s bodies hidden, the modules that evaluate them importing all (`formal/AGENTS.md`); the guest's constants in their own module (`Guest/Data/Consts.lean`), so what reads only constants does not rebuild on a body edit.
 
 Not pursued:
 
-4. **Untaint.** Data imports cut out of the generic modules (`Exec`, `ExecC`, `B1.Common.Basic`, `Pow`, ...); with the user's go, `guestProgram` moves in the statement.
+4. **Untaint, the rest.** `Exec` (only `guest_fetches` reads the bytecode), `ExecC` (`fnOf_wellChunked`), `B1.Common.Basic`, ...; `CheckSound` and what needs a claim or a child stay behind `Statement/LeanVmGuest.lean` until, with the user's go, `guestProgram` moves in the statement.
 5. **The rest of the packs.** The Memory and Count data in the packs (Checked's and B2C's are).
 6. **`main_loop2`'s split windows local**, the rest of Checked and B2C: the group checks over the pack's data (`win_lit` on terms), the assemblies as glue.
 7. **Relocation.** Tagged pointers, `Sym.code`/`.ent`, soundness for every `ρ`, `link` and the `g^pc` table in the glue.

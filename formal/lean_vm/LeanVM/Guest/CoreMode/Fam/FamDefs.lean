@@ -12,7 +12,7 @@ public import LeanVM.Guest.CoreMode.Fam.SelDefs
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.CoreMode.Fam.CarryDefs
 public import LeanVM.Guest.ExpTables
-public import LeanVM.Guest.Memory.StaticCut
+public import LeanVM.Guest.Memory.StaticRun
 
 /-!
 # The families' shared checks

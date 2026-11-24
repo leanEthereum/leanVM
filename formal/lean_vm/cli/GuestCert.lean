@@ -2904,19 +2904,12 @@ def framesFile (fsz : List ℕ) (jtSlots : ℕ) : String :=
   "/-- The jump table's slots, one `SET` of `__jump_tables` each (`B2C.jtSets`). -/\n" ++
   s!"abbrev jtSlots : ℕ := {jtSlots}\n" ++ tail
 
-/-- The tables: the powers of `g` the guest names, the digit table and the jump table. -/
-def powsFile (T : Tables) : String :=
-  let ps := (T.pows.toArray.qsort (·.1 < ·.1))
-  let (top, subs) := powTop ps powCut 0
-  let jt := trieLit ((T.jt.toList.mergeSort (·.1 ≤ ·.1)).map fun (s, e) => (s, toString e))
-  header "Pows" "The powers of `g` the guest's constants name, and its jump table." ++
+/-- The digit tables of powers of `g`, the same for every program: `Pow.lean` imports them without the
+guest's data. -/
+def gtabFile : String :=
+  header "GTab" "The digit tables of powers of `g`, the same for every program." ++
   "public import LeanVM.Guest.ExecCore\n" ++ preamble ++
-  String.join (subs.zipIdx.map fun (sub, i) =>
-    s!"/-- Subtree {i} of `powTree`. -/\nnoncomputable def powT{i} : PowTree := {nodeLines (powTreeText sub)}\n\n") ++
-  s!"/-- The powers of `g` the guest's `SET`s name, bits to exponent, a search tree. -/
-noncomputable def powTree : PowTree := {top}
-
-/-- `g^(d·16^w)` at row `w`, column `d`, as bits. -/
+  s!"/-- `g^(d·16^w)` at row `w`, column `d`, as bits. -/
 def gtab : List (List ℕ) := {gtabText}
 
 /-- `g^d` for `d < 1024`, at row `d / 32`, column `d % 32`, as bits. -/
@@ -2924,6 +2917,19 @@ def gtabLo : List (List ℕ) := {gtabRowsText g}
 
 /-- `g^(1024·d)` for `d < 1024`, at row `d / 32`, column `d % 32`, as bits. -/
 def gtabHi : List (List ℕ) := {gtabRowsText (g ^ 1024)}
+" ++ tail
+
+/-- The tables: the powers of `g` the guest names and the jump table. -/
+def powsFile (T : Tables) : String :=
+  let ps := (T.pows.toArray.qsort (·.1 < ·.1))
+  let (top, subs) := powTop ps powCut 0
+  let jt := trieLit ((T.jt.toList.mergeSort (·.1 ≤ ·.1)).map fun (s, e) => (s, toString e))
+  header "Pows" "The powers of `g` the guest's constants name, and its jump table." ++
+  "public import LeanVM.Guest.ExecCore\npublic import LeanVM.Guest.Data.GTab\n" ++ preamble ++
+  String.join (subs.zipIdx.map fun (sub, i) =>
+    s!"/-- Subtree {i} of `powTree`. -/\nnoncomputable def powT{i} : PowTree := {nodeLines (powTreeText sub)}\n\n") ++
+  s!"/-- The powers of `g` the guest's `SET`s name, bits to exponent, a search tree. -/
+noncomputable def powTree : PowTree := {top}
 
 /-- The jump table: slot of `main`'s frame to the pc it holds (`__jump_tables`). -/
 noncomputable def jtTrie : Trie ℕ := {jt}
@@ -3336,7 +3342,8 @@ def checkedFiles (I : Array FnInfo) (packs : List (String × List ℕ)) (obl : L
         s!"semantic relations it assumes. -/\ndef sig : Check.Sig :=\n  {sigText j}\nend\nend {fnNs k}\n\n"))
   let powFiles := (chunksOf powsPerFile (List.range nPow)).map fun (is, c) =>
     (powName (c / powsPerFile), checkedHeader (powName (c / powsPerFile)) "The kernel's checks of subtrees of the powers of `g`." ++
-      "public import LeanVM.Guest.Pow\n\n" ++ asyncOff ++ "namespace LeanVM.Guest.Checked\n\n@[expose] public section\n\n" ++
+      "public import LeanVM.Guest.Pow\npublic import LeanVM.Guest.Data.Pows\n\n" ++ asyncOff ++
+      "namespace LeanVM.Guest.Checked\n\n@[expose] public section\n\n" ++
       String.join (is.map fun i =>
         s!"theorem powT{i}_ok : Data.powT{i}.OkW := Exec.PowTree.okW_of_okMB (by decide +kernel)\n\n") ++
       "end\nend LeanVM.Guest.Checked\n")
@@ -4411,13 +4418,15 @@ noncomputable def certs : List Check.Cert :=
   let nPow := (powTop (T.pows.toArray.qsort (·.1 < ·.1)) powCut 0).2.length
   let checked := checkedFiles infos packs (oblFnsOf semMap P) wins (T.pows.toArray.qsort (·.1 < ·.1)) nPow splits
     (fun j => !kOnly && !special j)
-  let kFiles := (([("Pows", powsFile T), ("FrameSizes", framesFile frames.toList fns[0]!.instructionCount)] ++
+  let kFiles := (([("Pows", powsFile T), ("GTab", gtabFile),
+      ("FrameSizes", framesFile frames.toList fns[0]!.instructionCount)] ++
       [("Cert", index)]).map fun (n, t) => (dataDir / (n ++ ".lean"), t)) ++ fnFiles.toList ++ checked
   if kOnly then return kFiles
   let armsText ← CplK.armsFile P armRows.toList
   let (packed, cplGlue, shareGlue) := B2CPack.files infos packs special cplFns.toList shareStatics shareWins
     frames[1]!
-  return (([("Pows", powsFile T), ("FrameSizes", framesFile frames.toList fns[0]!.instructionCount)] ++
+  return (([("Pows", powsFile T), ("GTab", gtabFile),
+      ("FrameSizes", framesFile frames.toList fns[0]!.instructionCount)] ++
       [("Cert", index), ("Plumb", plumbIndex), ("CplParts", partsIndex), ("Snaps", snapsIndex)]).map fun (n, t) =>
     (dataDir / (n ++ ".lean"), t)) ++ fnFiles.toList ++ checked ++
     sharedFiles (shareStatics.filter (special ·.1)) (shareWins.filter (special ·.1)) P.length shareSplits bigStatics shareGlue

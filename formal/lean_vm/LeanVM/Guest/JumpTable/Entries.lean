@@ -9,6 +9,7 @@ module
 public import LeanVM.Guest.Data.FrameSizes
 public import LeanVM.Guest.Bytecode
 public import LeanVM.Guest.Pow
+public import LeanVM.Guest.Data.Pows
 public import Statement.Data.Bytecode00
 public import LeanVM.Guest.Code
 public import LeanVM.Guest.Memory.Walk
