@@ -1,6 +1,5 @@
 module
 
-public import FORS.Statement
 public import FORS.Scheme.DigestView
 public import Statement.LeanSphincs
 public import Common.WithHash

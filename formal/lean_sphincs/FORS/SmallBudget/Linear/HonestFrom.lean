@@ -2,6 +2,7 @@ module
 
 public import FORS.SmallBudget.Linear.ForsSteps
 public import FORS.LazyRun.HonestReadFrom
+public import FORS.SmallBudget.Linear.Start
 
 @[expose] public section
 

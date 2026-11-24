@@ -1,10 +1,8 @@
 module
 
-public import FORS.SmallBudget.Contact.RevealRate
 public import FORS.SmallBudget.Linear.Payoff
-public import FORS.CoverPotential.Game
-public import FORS.Reduction.NoRepeat
 public import FORS.CoverPotential.OneCoin
+public import FORS.SmallBudget.Contact.RunFacts
 
 @[expose] public section
 

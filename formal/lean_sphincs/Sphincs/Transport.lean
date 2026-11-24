@@ -1,6 +1,6 @@
 module
 
-public import Common.WithHashBridge
+public import Common.WithHash
 
 @[expose] public section
 

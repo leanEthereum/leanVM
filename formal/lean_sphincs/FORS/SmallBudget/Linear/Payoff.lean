@@ -1,6 +1,8 @@
 module
 
 public import FORS.SmallBudget.Linear.Start
+public import FORS.SmallBudget.Linear.Run
+public import FORS.LazyRun.PreparedRun
 
 @[expose] public section
 

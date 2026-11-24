@@ -1,8 +1,8 @@
 module
 
 public import FORS.ScanSigner.AfterSigning
-public import FORS.ScanSigner.Group
 public import FORS.CoverPotential.Presample
+public import FORS.ScanSigner.LoopWalk
 
 @[expose] public section
 

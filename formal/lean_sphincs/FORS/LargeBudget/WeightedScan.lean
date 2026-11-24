@@ -1,7 +1,6 @@
 module
 
 public import FORS.LargeBudget.SurvivalWeight
-public import FORS.ScanSigner.FairShare
 public import FORS.ScanSigner.Scan
 
 @[expose] public section

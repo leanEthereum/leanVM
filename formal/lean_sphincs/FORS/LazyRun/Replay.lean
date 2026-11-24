@@ -1,6 +1,6 @@
 module
 
-public import FORS.LazyRun.InterpreterFacts
+public import FORS.ScanSigner.LazySigner
 
 @[expose] public section
 

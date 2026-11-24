@@ -1,7 +1,6 @@
 module
 
 public import FORS.GraphView.Signer
-public import FORS.GraphView.Secrets
 public import FORS.GraphView.HashCalls
 public import FORS.LazyRun.Cost
 

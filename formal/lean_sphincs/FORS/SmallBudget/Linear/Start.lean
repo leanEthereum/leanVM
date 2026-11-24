@@ -1,6 +1,8 @@
 module
 
-public import FORS.SmallBudget.Linear.Run
+public import FORS.SmallBudget.Linear.Invariant
+public import FORS.Classification.WinRefined
+public import FORS.Classification.Targeting
 
 @[expose] public section
 

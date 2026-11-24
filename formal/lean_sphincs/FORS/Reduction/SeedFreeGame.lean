@@ -1,8 +1,6 @@
 module
 
 public import FORS.Reduction.UntilSeed
-public import FORS.LazyRun.Cost
-public import FORS.Seed.Guess
 
 @[expose] public section
 

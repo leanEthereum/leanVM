@@ -1,6 +1,5 @@
 module
 
-public import FORS.Scheme.Bytes
 public import FORS.Scheme.Encoding
 public import FORS.Scheme.RandomOracle
 

@@ -1,6 +1,5 @@
 module
 
-public import FORS.Classification.Tree
 public import FORS.GraphView.Cache
 
 @[expose] public section

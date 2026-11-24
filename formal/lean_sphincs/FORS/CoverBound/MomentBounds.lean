@@ -2,6 +2,7 @@ module
 
 public import FORS.CoverBound.SecondMoment
 public import Mathlib.Data.List.GetD
+public import FORS.CoverBound.FirstMoment
 
 @[expose] public section
 

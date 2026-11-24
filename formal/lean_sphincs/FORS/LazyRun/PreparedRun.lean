@@ -1,7 +1,7 @@
 module
 
-public import FORS.CoverPotential.Game
 public import FORS.LazyRun.Replay
+public import FORS.CoverPotential.Game
 
 @[expose] public section
 

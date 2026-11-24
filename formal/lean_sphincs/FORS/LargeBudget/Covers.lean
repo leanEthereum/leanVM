@@ -2,6 +2,7 @@ module
 
 public import FORS.CoverBound.HTermOptionJ
 public import FORS.LargeBudget.Route
+public import FORS.CoverPotential.StartValue
 
 @[expose] public section
 

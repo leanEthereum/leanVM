@@ -1,7 +1,6 @@
 module
 
 public import FORS.LazyRun.Saturation
-public import FORS.LazyRun.RichProgram
 
 @[expose] public section
 

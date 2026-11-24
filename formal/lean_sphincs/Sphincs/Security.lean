@@ -1,8 +1,7 @@
 module
 
-public import FORS.Main
-public import Sphincs.Bridge
 public import Sphincs.AdvRpm
+public import FORS.Lifetimes
 
 @[expose] public section
 

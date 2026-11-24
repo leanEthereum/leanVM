@@ -1,8 +1,8 @@
 module
 
-public import FORS.SmallBudget.Contact.PotentialH
-public import FORS.LargeBudget.HonestCoupling
 public import FORS.CoverPotential.OneCoinH
+public import FORS.SmallBudget.Contact.PaidPotentialH
+public import FORS.SmallBudget.Contact.Signing
 
 @[expose] public section
 

@@ -1,8 +1,6 @@
 module
 
-public import FORS.Classification.WinRefined
-public import FORS.SmallBudget.Linear.Payments
-public import FORS.Classification.Targeting
+public import FORS.Classification.RefinedEvents
 
 @[expose] public section
 

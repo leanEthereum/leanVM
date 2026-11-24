@@ -1,6 +1,5 @@
 module
 
-public import FORS.CoverBound.MomentTable
 public import FORS.SmallBudget.Contact.NearWitness
 public import FORS.LargeBudget.Covers
 

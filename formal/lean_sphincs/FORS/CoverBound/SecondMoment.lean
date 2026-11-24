@@ -1,6 +1,6 @@
 module
 
-public import FORS.CoverBound.FirstMoment
+public import FORS.CoverBound.Moments
 
 @[expose] public section
 

@@ -1,10 +1,6 @@
 module
 
 public import FORS.LazyRun.Resample
-public import FORS.LazyRun.Outside
-public import FORS.LazyRun.Cost
-public import FORS.Seed.Guess
-public import FORS.LazyRun.Graph
 
 @[expose] public section
 

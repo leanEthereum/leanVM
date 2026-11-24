@@ -1,6 +1,7 @@
 module
 
 public import FORS.SmallBudget.Contact.Potential
+public import FORS.LazyRun.ExposedUniform
 
 @[expose] public section
 

@@ -1,6 +1,7 @@
 module
 
 public import FORS.Scheme.Domains
+public import VCVio.OracleComp.Constructions.SampleableType.Measure
 
 @[expose] public section
 

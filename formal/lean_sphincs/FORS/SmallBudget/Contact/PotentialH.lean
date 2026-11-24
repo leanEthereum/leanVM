@@ -2,6 +2,7 @@ module
 
 public import FORS.SmallBudget.Contact.PaidPotentialH
 public import FORS.SmallBudget.Contact.Bound
+public import FORS.SmallBudget.Contact.Potential
 
 @[expose] public section
 

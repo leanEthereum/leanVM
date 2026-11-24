@@ -1,8 +1,6 @@
 module
 
 public import FORS.CoverPotential.OneCoin
-public import FORS.Base.Virtual
-public import Mathlib.Analysis.Complex.ExponentialBounds
 
 @[expose] public section
 

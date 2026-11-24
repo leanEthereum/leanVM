@@ -1,6 +1,7 @@
 module
 
 public import FORS.SmallBudget.SampleEvents
+public import FORS.LargeBudget.Covers
 
 @[expose] public section
 

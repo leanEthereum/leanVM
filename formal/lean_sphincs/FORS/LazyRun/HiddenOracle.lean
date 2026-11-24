@@ -1,7 +1,7 @@
 module
 
-public import FORS.LazyRun.UntilHidden
 public import FORS.LazyRun.GraphSampling
+public import FORS.LazyRun.UntilHidden
 
 @[expose] public section
 

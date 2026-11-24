@@ -1,9 +1,8 @@
 module
 
 public import FORS.SmallBudget.Contact.PaidPotential
-public import FORS.CoverPotential.Presample
-public import FORS.LazyRun.HonestRead
 public import FORS.CoverPotential.GameH
+public import FORS.Reduction.NoRepeat
 
 @[expose] public section
 

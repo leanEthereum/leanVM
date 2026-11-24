@@ -1,7 +1,6 @@
 module
 
 public import FORS.GraphView.Cache
-public import FORS.Base.Prelude
 
 @[expose] public section
 

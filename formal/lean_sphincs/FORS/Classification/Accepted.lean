@@ -1,7 +1,5 @@
 module
 
-public import FORS.LazyRun.FixedRun
-public import FORS.Classification.Reference
 public import FORS.Classification.Hidden
 public import FORS.ScanSigner.FairShare
 

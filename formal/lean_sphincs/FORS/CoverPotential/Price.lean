@@ -1,7 +1,7 @@
 module
 
-public import FORS.Base.Virtual
 public import FORS.Scheme.LandedDigest
+public import FORS.Base.Virtual
 
 @[expose] public section
 

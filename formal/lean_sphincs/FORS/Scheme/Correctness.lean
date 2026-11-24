@@ -1,8 +1,8 @@
 module
 
 public import FORS.Scheme.Pruning
-public import FORS.Scheme.DigestView
 public import FORS.Scheme.Landing
+public import FORS.Scheme.DigestView
 
 @[expose] public section
 

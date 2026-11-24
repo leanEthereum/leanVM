@@ -1,12 +1,7 @@
 module
 
-public import FORS.SmallBudget.Contact.Bound
-public import FORS.Classification.WinRefined
-public import FORS.CoverPotential.Game
-public import FORS.Reduction.NoRepeat
-public import FORS.CoverPotential.OneCoin
-public import FORS.CoverPotential.StartValue
-public import FORS.CoverBound.NearOption
+public import FORS.SmallBudget.Contact.Potential
+public import FORS.CoverPotential.FairCoin
 
 @[expose] public section
 
