@@ -85,7 +85,7 @@ type Aggregate struct {
 	handle *C.lpq_aggregate
 }
 
-// Setup starts the prover on threads threads (0: one per core). It fails if the prover already
+// Setup starts the prover on threads threads (0: one per physical core). It fails if the prover already
 // runs with another count.
 func Setup(threads int) error {
 	if threads < 0 {

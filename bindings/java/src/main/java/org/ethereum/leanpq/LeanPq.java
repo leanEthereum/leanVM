@@ -10,7 +10,7 @@ public final class LeanPq {
     private LeanPq() {}
 
     /**
-     * Starts the prover with {@code threads} threads (0: one per core). Throws
+     * Starts the prover with {@code threads} threads (0: one per physical core). Throws
      * {@link LeanPqException} if it already runs with another count.
      */
     public static void setup(int threads) {

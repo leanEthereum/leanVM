@@ -33,7 +33,7 @@ static POOL_OWNER: AtomicU32 = AtomicU32::new(0);
 static GUEST_OWNER: AtomicU32 = AtomicU32::new(0);
 const BUILT: u32 = u32::MAX;
 
-/// Starts the prover pool with `threads` threads (0: one per core) and builds the aggregation
+/// Starts the prover pool with `threads` threads (0: one per physical core) and builds the aggregation
 /// guest, once per process.
 ///
 /// # Errors

@@ -67,7 +67,7 @@ pub enum Error {
     },
 
     /// The prover already runs with another thread count.
-    #[error("the prover already started with {running} threads, not {threads} (0: one per core)")]
+    #[error("the prover already started with {running} threads, not {threads} (0: one per physical core)")]
     SetupThreads {
         /// The thread count it started with.
         running: usize,

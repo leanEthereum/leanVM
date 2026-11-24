@@ -70,7 +70,7 @@ comptime {
     std.debug.assert(@sizeOf(Claim) == 64);
 }
 
-/// Starts the prover on `threads` threads (0: one per core). Fails if the prover already runs
+/// Starts the prover on `threads` threads (0: one per physical core). Fails if the prover already runs
 /// with another count.
 pub fn setup(threads: usize) Error!void {
     try checkStatus(c.lpq_setup(threads));

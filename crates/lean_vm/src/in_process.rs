@@ -20,7 +20,7 @@ pub mod lean_da {
 }
 
 /// Call this function before generating / verifying proofs: it starts the prover's thread pool, with `threads` threads
-/// (0: one per core), picks the experimental prover's CPU tier, and builds the aggregation program.
+/// (0: one per physical core), picks the experimental prover's CPU tier, and builds the aggregation program.
 ///
 /// # Panics
 /// If the pool already runs with another thread count, or `LEANVM_TIER` names a tier this build does not run on this CPU.

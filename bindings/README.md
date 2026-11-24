@@ -46,7 +46,7 @@ lean_vm = { git = "https://github.com/leanEthereum/leanVM.git", features = ["exp
 ## Proving
 
 - Prebuilt packages hold the prover once per CPU tier and run the fastest one the CPU supports, except Python, Java and .NET on Windows. A source build gets the tiers with `RUSTC_WRAPPER` set to the checkout's `scripts/tier-rustc` (not on Windows), or matches them with `RUSTFLAGS="-C target-cpu=native"` on the proving machine.
-- `setup(threads)`, before the first aggregation, starts the prover with `threads` threads (0: one per core); it fails above the machine's parallelism. Proofs run one at a time per process.
+- `setup(threads)`, before the first aggregation, starts the prover with `threads` threads (0: one per physical core); it fails above the machine's parallelism. Proofs run one at a time per process.
 - When the build leaves a faster tier unused on this CPU, the first aggregation prints a warning on stderr, which `LEANVM_TIER` set to the tier it names silences.
 - Except on Windows, the Rust code allocates with jemalloc, which keeps freed pages: a process that aggregated keeps its peak memory.
 

@@ -28,7 +28,7 @@ public static unsafe class LeanPq
     public const int MaxChildren = 16;
 
     /// <summary>
-    /// Starts the prover with <paramref name="threads"/> threads (0: one per core), before the first
+    /// Starts the prover with <paramref name="threads"/> threads (0: one per physical core), before the first
     /// aggregation.
     /// </summary>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="threads"/> is negative.</exception>
