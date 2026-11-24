@@ -435,8 +435,8 @@ theorem randomOracle_query_caches (input : HashInput)
 theorem randomOracle_cache_le {α : Type} (computation : OracleComp HashSpec α)
     (initialCache : QueryCache HashSpec) (result : α × QueryCache HashSpec)
     (hmem : result ∈ support ((simulateQ randomOracle computation).run initialCache)) :
-    initialCache ≤ result.2 := by
-  exact OracleComp.simulateQ_run_preservesInv randomOracle
+    initialCache ≤ result.2 :=
+  OracleComp.simulateQ_run_preservesInv randomOracle
     (fun cache => initialCache ≤ cache)
     (by
       intro input cache hcache queryResult hquery

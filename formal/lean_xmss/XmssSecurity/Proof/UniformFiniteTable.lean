@@ -76,8 +76,8 @@ theorem evalDist_uniformSnocList_eq_reverse_drawList
         _ =ᵈ ((List.reverse <$>
               OracleComp.drawList ($ᵗ α) count) >>= fun prior =>
             ($ᵗ α) >>= fun next =>
-            pure (prior ++ [next])) := by
-          exact ih.bind_left _
+            pure (prior ++ [next])) :=
+          ih.bind_left _
         _ =ᵈ (OracleComp.drawList ($ᵗ α) count >>= fun prior =>
             ($ᵗ α) >>= fun next =>
             pure (prior.reverse ++ [next])) := by
@@ -128,8 +128,8 @@ theorem evalDist_uniformSnocList_eq_uniformFunction
       rw [uniformSnocList]
       calc
         _ =ᵈ ((List.ofFn <$> ($ᵗ (Fin count → α))) >>= fun prior =>
-            ($ᵗ α) >>= fun next => pure (prior ++ [next])) := by
-          exact ih.bind_left _
+            ($ᵗ α) >>= fun next => pure (prior ++ [next])) :=
+          ih.bind_left _
         _ =ᵈ (List.ofFn <$> (finInitLastEquiv α count <$> (do
               let prior ← $ᵗ (Fin count → α)
               let next ← $ᵗ α

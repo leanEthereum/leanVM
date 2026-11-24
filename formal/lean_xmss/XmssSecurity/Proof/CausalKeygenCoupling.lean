@@ -136,8 +136,8 @@ theorem evalDist_chainTrajectory_eq_programmed
         (programmedPrior >>= programmedExtension)
       calc
         (actualPrior >>= actualExtension) =ᵈ
-            (programmedPrior >>= actualExtension) := by
-          exact (ih value cache (by omega) habsent).bind_left _
+            (programmedPrior >>= actualExtension) :=
+          (ih value cache (by omega) habsent).bind_left _
         _ =ᵈ (programmedPrior >>= programmedExtension) := by
           apply OracleComp.EvalDistEq.bind_congr_of_support
           intro prior hprior
@@ -246,8 +246,8 @@ theorem evalDist_fixedSeedChainTrajectories_eq_programmed
           exact habsent key (by simp) step input haddress
       calc
         (actualFirst >>= actualRest) =ᵈ
-            (programmedFirst >>= actualRest) := by
-          exact hfirst.bind_left _
+            (programmedFirst >>= actualRest) :=
+          hfirst.bind_left _
         _ =ᵈ (programmedFirst >>= programmedRest) := by
           apply OracleComp.EvalDistEq.bind_congr_of_support
           intro first hfirstProgrammed

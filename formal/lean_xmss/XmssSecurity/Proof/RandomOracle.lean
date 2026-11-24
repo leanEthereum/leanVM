@@ -59,8 +59,8 @@ def digestFiberEquiv (target : Digest) :
       joinDigest (highDigest output.val) target =
           joinDigest (highDigest output.val) (truncateHash output.val) := by
         rw [output.property]
-      _ = (splitHashOutput output.val).cast hashOutputBits_eq.symm := by
-        exact congrArg (BitVec.cast hashOutputBits_eq.symm)
+      _ = (splitHashOutput output.val).cast hashOutputBits_eq.symm :=
+        congrArg (BitVec.cast hashOutputBits_eq.symm)
           (BitVec.extractLsb'_append_extractLsb' (x := splitHashOutput output.val))
       _ = output.val := by simp [splitHashOutput]
 
@@ -71,8 +71,8 @@ def hashOutputEquivDigestPair : HashOutput ≃ Digest × Digest where
   left_inv output := by
     calc
       joinDigest (highDigest output) (truncateHash output) =
-          (splitHashOutput output).cast hashOutputBits_eq.symm := by
-        exact congrArg (BitVec.cast hashOutputBits_eq.symm)
+          (splitHashOutput output).cast hashOutputBits_eq.symm :=
+        congrArg (BitVec.cast hashOutputBits_eq.symm)
           (BitVec.extractLsb'_append_extractLsb' (x := splitHashOutput output))
       _ = output := by simp [splitHashOutput]
   right_inv halves := by

@@ -264,8 +264,8 @@ theorem applyUniformSignAttemptMonitor_true_probability_le
       let remaining := State.pendingRisk (state.install leafIndex 0)
       let removed := ((state.pending leafIndex).card : ℝ≥0∞) *
         (TargetSum.validDigests.card : ℝ≥0∞)⁻¹
-      have hrisk : remaining + removed = State.pendingRisk state := by
-        exact State.pendingRisk_install_add state leafIndex 0
+      have hrisk : remaining + removed = State.pendingRisk state :=
+        State.pendingRisk_install_add state leafIndex 0
       unfold applyUniformSignAttemptMonitor
       rw [OracleComp.prEvent_bind_eq_tsum, tsum_fintype]
       calc

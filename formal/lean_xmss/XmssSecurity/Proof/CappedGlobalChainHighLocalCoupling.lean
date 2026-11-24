@@ -233,8 +233,8 @@ theorem globalChainInputProbe?_globalChainTableEdgeInput
     globalChainInputProbe? parameter
         (globalChainTableEdgeInput parameter table edge) =
       some ((edge.1, edge.2.1, chainStepDigit edge.2.2),
-        table (edge.1, edge.2.1, chainStepDigit edge.2.2)) := by
-  exact globalChainInputProbe?_keyChainInput parameter edge.2.1 edge.1 edge.2.2
+        table (edge.1, edge.2.1, chainStepDigit edge.2.2)) :=
+  globalChainInputProbe?_keyChainInput parameter edge.2.1 edge.1 edge.2.2
     (table (edge.1, edge.2.1, chainStepDigit edge.2.2))
 
 theorem globalFilteredCausalAttackerHashPlan_eq_reveal_globalEdge
@@ -958,8 +958,8 @@ theorem programmedGlobal_left_endpoint_eq_table
     (leafIndex : ChainKey) (chain : ChainIndex) :
     Concrete.CacheReplay.keyOneTimePublicKey left.cache
         left.secretKey.parameter left.secretKey.keyChainStart leafIndex chain =
-      right.1.2 (chain, leafIndex, chainEndpointDigit) := by
-  exact programmedGlobal_left_chainValue_eq_table left right hrel hleftSupport
+      right.1.2 (chain, leafIndex, chainEndpointDigit) :=
+  programmedGlobal_left_chainValue_eq_table left right hrel hleftSupport
     (chain, leafIndex, chainEndpointDigit)
 
 theorem programmedGlobal_left_leaf_cache_none_of_endpoint_miss

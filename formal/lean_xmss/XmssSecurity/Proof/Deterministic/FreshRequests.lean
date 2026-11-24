@@ -143,8 +143,8 @@ theorem evalDist_table_refresh {α : Type} (request : Request)
     (do let table ← $ᵗ (Request → Tape); next table) =ᵈ (do
         let tape ← $ᵗ Tape
         let table ← $ᵗ (Request → Tape)
-        next (Function.update table request tape)) := by
-  exact (evalDistEq_uniformSample_bind_update request next).symm
+        next (Function.update table request tape)) :=
+  (evalDistEq_uniformSample_bind_update request next).symm
 
 /-- Independent tapes may be sampled when a request first appears. The state can include query costs. -/
 theorem FreshRequests.evalDist_tableRun {α : Type} {used : Set Request}

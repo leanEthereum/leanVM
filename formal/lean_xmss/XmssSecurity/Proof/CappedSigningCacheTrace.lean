@@ -203,8 +203,8 @@ theorem cappedCacheTracedMappedAdversaryImpl_cachesLe
     (hmem : result ∈ support
       ((simulateQ (cappedCacheTracedMappedAdversaryImpl publicKey secretKey)
         computation).run (initialCache, initialTrace))) :
-    result.2.2.CachesLe result.2.1 := by
-  exact OracleComp.simulateQ_run_preservesInv
+    result.2.2.CachesLe result.2.1 :=
+  OracleComp.simulateQ_run_preservesInv
     (cappedCacheTracedMappedAdversaryImpl publicKey secretKey)
     (fun state => state.2.CachesLe state.1)
     (by
@@ -222,8 +222,8 @@ theorem cappedCacheTracedMappedAdversaryImpl_successfulEncodingsCached
     (hmem : result ∈ support
       ((simulateQ (cappedCacheTracedMappedAdversaryImpl publicKey secretKey)
         computation).run (initialCache, initialTrace))) :
-    result.2.2.SuccessfulEncodingsCached secretKey := by
-  exact OracleComp.simulateQ_run_preservesInv
+    result.2.2.SuccessfulEncodingsCached secretKey :=
+  OracleComp.simulateQ_run_preservesInv
     (cappedCacheTracedMappedAdversaryImpl publicKey secretKey)
     (fun state => state.2.SuccessfulEncodingsCached secretKey)
     (by
@@ -241,8 +241,8 @@ theorem cappedCacheTracedMappedAdversaryImpl_preservesOtherValidEncodingInputs
     (hmem : result ∈ support
       ((simulateQ (cappedCacheTracedMappedAdversaryImpl publicKey secretKey)
         computation).run (initialCache, initialTrace))) :
-    result.2.2.PreservesOtherValidEncodingInputs secretKey := by
-  exact OracleComp.simulateQ_run_preservesInv
+    result.2.2.PreservesOtherValidEncodingInputs secretKey :=
+  OracleComp.simulateQ_run_preservesInv
     (cappedCacheTracedMappedAdversaryImpl publicKey secretKey)
     (fun state => state.2.PreservesOtherValidEncodingInputs secretKey)
     (by
@@ -318,8 +318,8 @@ theorem cappedCacheTracedMappedAdversaryImpl_cache_projection
         (simulateQ (cappedCacheTracedMappedAdversaryImpl publicKey secretKey)
           computation).run (initialCache, initialTrace) =
       (simulateQ (cappedUnloggedMappedAdversaryImpl publicKey secretKey)
-        computation).run initialCache := by
-  exact OracleComp.extendState_run_proj_eq
+        computation).run initialCache :=
+  OracleComp.extendState_run_proj_eq
     (cappedUnloggedMappedAdversaryImpl publicKey secretKey) signingCacheTraceUpdate
     computation initialCache initialTrace
 

@@ -218,8 +218,8 @@ theorem globalSigningMonitoredTracedStateRelation_initial
       trajectoryProgrammedGlobalChainKeygen) :
     GlobalSigningMonitoredTracedStateRelation left right.1
       ((left.cache, []), [])
-      (⟨globalFilteredCausalKeygenState right.1.1, []⟩, []) := by
-  exact globalMonitoredTracedStateRelation_initial left right hrel
+      (⟨globalFilteredCausalKeygenState right.1.1, []⟩, []) :=
+  globalMonitoredTracedStateRelation_initial left right hrel
     hleftSupport hrightSupport
 
 theorem evalDist_materializedTrajectoryGlobalChainKeygen_eq_cappedKeygen :

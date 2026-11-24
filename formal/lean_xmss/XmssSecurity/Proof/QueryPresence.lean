@@ -374,12 +374,12 @@ theorem verify_true_leaf_query_cached_in_largerCache
       have hleafResultLe : endpointsCache ≤ leafCache :=
         randomOracle_cache_le (Concrete.leafHash publicKey.parameter leafIndex endpoints :
           OracleComp HashSpec Digest) endpointsCache (leaf, leafCache) hleaf
-      have hendpointsLe : endpointsCache ≤ largerCache := by
-        exact hleafResultLe.trans (hrestLe.trans hle)
+      have hendpointsLe : endpointsCache ≤ largerCache :=
+        hleafResultLe.trans (hrestLe.trans hle)
       obtain ⟨output, hleafCached, _⟩ := tweakableHash_query_cached publicKey.parameter
         (.leaf leafIndex) (Concrete.leafPayload endpoints) endpointsCache leafCache leaf hleaf
-      have hleafLe : leafCache ≤ largerCache := by
-        exact hrestLe.trans hle
+      have hleafLe : leafCache ≤ largerCache :=
+        hrestLe.trans hle
       have hendpointsEval := eval_answerFn_largerCache_eq_of_mem_support
         (Concrete.recoverEndpoints publicKey.parameter leafIndex encoding signature :
           OracleComp HashSpec (ChainIndex → Digest)) digestCache endpointsCache largerCache

@@ -418,8 +418,8 @@ theorem relTriple_coupledGlobalChainKeygen_withBaseHigh_fullCacheStable :
 theorem relTriple_trajectoryProgrammedGlobalChainKeygen_withBaseHigh_stable :
     RelTriple trajectoryProgrammedGlobalChainKeygen
       coupledGlobalChainKeygenWithBaseHighFull
-      ProgrammedGlobalChainKeygenBaseHighStableRelation := by
-  exact relTriple_of_evalDistEq_left
+      ProgrammedGlobalChainKeygenBaseHighStableRelation :=
+  relTriple_of_evalDistEq_left
     evalDist_coupledGlobalChainKeygen_eq_trajectoryProgrammed.symm
     relTriple_coupledGlobalChainKeygen_withBaseHigh_fullCacheStable
 
@@ -704,8 +704,8 @@ theorem GlobalFilteredCausalStateRelation.revealResultState
     (hvalue : right.2 index = value) :
     GlobalFilteredCausalStateRelation left right leftCache
       (globalFilteredCausalRevealResultState secretKey input rightState index value
-        output) := by
-  exact ⟨
+        output) :=
+  ⟨
     hashCachesAgreeOn_globalFilteredCausalRevealResultState hstate.1 secretKey input
       index value output hinput,
     filteredCacheExtension_globalFilteredCausalRevealResultState hstate.2.1 secretKey
@@ -1371,8 +1371,8 @@ theorem globalChainTableEdgeInput_not_signingComparable
       (Concrete.CacheView.keyChainInput parameter edge.2.1 edge.1 edge.2.2
         (table (edge.1, edge.2.1, chainStepDigit edge.2.2))) =
         some ((edge.1, edge.2.1, chainStepDigit edge.2.2),
-          table (edge.1, edge.2.1, chainStepDigit edge.2.2)) := by
-    exact globalChainInputProbe?_keyChainInput parameter edge.2.1 edge.1 edge.2.2
+          table (edge.1, edge.2.1, chainStepDigit edge.2.2)) :=
+    globalChainInputProbe?_keyChainInput parameter edge.2.1 edge.1 edge.2.2
       (table (edge.1, edge.2.1, chainStepDigit edge.2.2))
   unfold globalChainTableEdgeInput at hencoding
   rw [hencoding, globalChainInputProbe?_encodingInput] at hprobe

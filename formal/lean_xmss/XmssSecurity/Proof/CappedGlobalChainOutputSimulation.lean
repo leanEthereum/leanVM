@@ -135,8 +135,8 @@ theorem evalDist_programmedFixedSeedChainTrajectories_eq_output
               (start key chain) cache >>= fun first =>
             programmedFixedSeedChainTrajectoriesFromCache parameter start chain
               steps first.2 keys >>= fun rest =>
-            pure (first.1 :: rest.1, rest.2)) := by
-          exact (evalDist_programmedChainTrajectory_eq_output parameter key chain 0
+            pure (first.1 :: rest.1, rest.2)) :=
+          (evalDist_programmedChainTrajectory_eq_output parameter key chain 0
             steps (start key chain) cache).bind_left _
         _ =ᵈ _ := by
           apply EvalDistEq.bind_right
@@ -190,8 +190,8 @@ theorem evalDist_programmedAllChainTrajectories_eq_output
               chain (chainLength - 1) cache allChainKeys >>= fun first =>
             programmedAllChainTrajectoriesFromCache parameter start first.2
               chains >>= fun rest =>
-            pure (Function.update rest.1 chain first.1, rest.2)) := by
-          exact (evalDist_programmedFixedSeedChainTrajectories_eq_output parameter
+            pure (Function.update rest.1 chain first.1, rest.2)) :=
+          (evalDist_programmedFixedSeedChainTrajectories_eq_output parameter
             start chain (chainLength - 1) allChainKeys cache).bind_left _
         _ =ᵈ _ := by
           apply EvalDistEq.bind_right
@@ -398,8 +398,8 @@ theorem evalDist_outputTrace_bind_snd
     _ =ᵈ (((outputs ++ ·) <$>
           uniformSnocList HashOutput firstCount) >>= fun leftOutputs =>
         (leftOutputs ++ ·) <$>
-          uniformSnocList HashOutput secondCount) := by
-      exact hfirst.bind_left _
+          uniformSnocList HashOutput secondCount) :=
+      hfirst.bind_left _
     _ =ᵈ ((outputs ++ ·) <$>
         (do
           let left ← uniformSnocList HashOutput firstCount
@@ -595,8 +595,8 @@ theorem evalDist_outputChainTrajectoryTrace_snd
           simp [map_eq_bind_pure_comp, bind_assoc]
         _ =ᵈ (((outputs ++ ·) <$>
               uniformSnocList HashOutput steps) >>= fun prior =>
-            ($ᵗ HashOutput) >>= fun output => pure (prior ++ [output])) := by
-          exact (ih value cache outputs (by omega)).bind_left _
+            ($ᵗ HashOutput) >>= fun output => pure (prior ++ [output])) :=
+          (ih value cache outputs (by omega)).bind_left _
         _ =ᵈ ((outputs ++ ·) <$>
               uniformSnocList HashOutput (steps + 1)) := by
           simp [uniformSnocList, map_eq_bind_pure_comp, bind_assoc,

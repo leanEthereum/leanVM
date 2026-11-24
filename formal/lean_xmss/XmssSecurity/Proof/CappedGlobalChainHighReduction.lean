@@ -439,8 +439,8 @@ theorem globalHighDirectForgeryPrimaryProbeTrace_all_probes
     (result : GlobalHighDirectResult) (action :
       RevealProbeOracleSimulation.ObservedAction GlobalChainValueIndex)
     (haction : action ∈ globalHighDirectForgeryPrimaryProbeTrace result) :
-    ∃ index target, action = .probe index target := by
-  exact globalForgeryPrimaryProbeTrace_all_probes _ action haction
+    ∃ index target, action = .probe index target :=
+  globalForgeryPrimaryProbeTrace_all_probes _ action haction
 
 theorem globalHighDirectForgeryPrimaryProbeTrace_agrees
     (table : GlobalChainValueIndex → Digest)

@@ -25,8 +25,8 @@ abbrev FullChainTrajectory := Vector Digest (chainLength - 1 + 1)
 noncomputable def allChainKeys : List ChainKey :=
   Finset.univ.toList
 
-theorem allChainKeys_nodup : allChainKeys.Nodup := by
-  exact Finset.nodup_toList Finset.univ
+theorem allChainKeys_nodup : allChainKeys.Nodup :=
+  Finset.nodup_toList Finset.univ
 
 theorem mem_allChainKeys (key : ChainKey) : key ∈ allChainKeys := by
   simp [allChainKeys]
@@ -56,8 +56,8 @@ noncomputable def chainKeyPosition (key : ChainKey) : Fin allChainKeys.length :=
 
 @[simp]
 theorem allChainKeys_get_chainKeyPosition (key : ChainKey) :
-    allChainKeys.get (chainKeyPosition key) = key := by
-  exact List.idxOf_get (List.idxOf_lt_length_iff.mpr (mem_allChainKeys key))
+    allChainKeys.get (chainKeyPosition key) = key :=
+  List.idxOf_get (List.idxOf_lt_length_iff.mpr (mem_allChainKeys key))
 
 noncomputable def listOfChainValueTable
     (table : ChainValueIndex → Digest) : List FullChainTrajectory :=
@@ -91,8 +91,8 @@ theorem listOfChainValueTable_chainValueTableOfList
       have hindex : index < allChainKeys.length := by
         rw [allChainKeys_length, ← hlength]
         exact hright
-      have hposition : (chainKeyPosition allChainKeys[index]).val = index := by
-        exact List.get_idxOf allChainKeys_nodup ⟨index, hindex⟩
+      have hposition : (chainKeyPosition allChainKeys[index]).val = index :=
+        List.get_idxOf allChainKeys_nodup ⟨index, hindex⟩
       have hvalue :
           values[(chainKeyPosition allChainKeys[index]).val] = values[index] := by
         rw [← Option.some_inj, ← List.getElem?_eq_getElem,

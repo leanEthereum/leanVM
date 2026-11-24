@@ -463,8 +463,8 @@ theorem runObserved_empty_eq_true_of_query_before_sign
       beforeResult.state.signed leafIndex = State.empty.signed leafIndex :=
         replayObserved_state_signed_eq_of_not_mem State.empty before leafIndex hnoBeforeSign
       _ = none := rfl
-  have htailHit : (replayObserved beforeResult.state tail).hit = true := by
-    exact replayObserved_hit_of_query_before_sign beforeResult.state leafIndex queriedOutput
+  have htailHit : (replayObserved beforeResult.state tail).hit = true :=
+    replayObserved_hit_of_query_before_sign beforeResult.state leafIndex queriedOutput
       signedOutput middle after hbeforeSigned hnoMiddleSign hcollision
   change (beforeResult.hit || (replayObserved beforeResult.state tail).hit) = true
   simp [htailHit]
@@ -496,8 +496,8 @@ theorem runObserved_empty_eq_true_of_sign_before_query
       beforeResult.state.signed leafIndex = State.empty.signed leafIndex :=
         replayObserved_state_signed_eq_of_not_mem State.empty before leafIndex hnoBeforeSign
       _ = none := rfl
-  have htailHit : (replayObserved beforeResult.state tail).hit = true := by
-    exact replayObserved_hit_of_sign_before_query beforeResult.state leafIndex signedOutput
+  have htailHit : (replayObserved beforeResult.state tail).hit = true :=
+    replayObserved_hit_of_sign_before_query beforeResult.state leafIndex signedOutput
       queriedOutput middle after hbeforeSigned hnoMiddleSign hcollision
   change (beforeResult.hit || (replayObserved beforeResult.state tail).hit) = true
   simp [htailHit]
@@ -579,8 +579,8 @@ theorem pair_sublist_iff (first second : α) (actions : List α) :
             obtain ⟨before, middle, after, hactions⟩ := ih htail
             exact ⟨action :: before, middle, after, by simp [hactions]⟩
         | cons_cons _ htail =>
-            have hsecond : second ∈ actions := by
-              exact List.singleton_sublist.mp htail
+            have hsecond : second ∈ actions :=
+              List.singleton_sublist.mp htail
             obtain ⟨middle, after, hactions⟩ := List.append_of_mem hsecond
             exact ⟨[], middle, after, by simp [hactions]⟩
   · rintro ⟨before, middle, after, rfl⟩

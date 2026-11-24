@@ -548,8 +548,8 @@ theorem evalDist_run_eq_chainTrajectory_then {α : Type} (parameter : PublicPara
             (simulateQ randomOracle
               (Concrete.chainTrajectory parameter key chain 0 steps
                 (start key chain))).run initialCache) >>= fun chainResult =>
-          (simulateQ randomOracle computation).run chainResult.2) := by
-      exact (evalDist_chainTrajectory_run_cache_eq_keyChainWalk_run_cache parameter key chain 0
+          (simulateQ randomOracle computation).run chainResult.2) :=
+      (evalDist_chainTrajectory_run_cache_eq_keyChainWalk_run_cache parameter key chain 0
         steps (start key chain) initialCache).symm.bind_left _
     _ = _ := by
       simp [map_eq_bind_pure_comp, bind_assoc]

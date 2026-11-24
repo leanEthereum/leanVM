@@ -126,8 +126,8 @@ theorem WinningOutcomeBadEventOccurs.forged_chain_coordinate_not_mem_returned
     hleafIndex, hdigit⟩ | ⟨_, _, _, _, _, _, hkey, _⟩
   swap
   · cases hkey
-  have hleafIndex : request.leafIndex = outcome.forgery.leafIndex := by
-    exact (Sum.inl_injective hleafIndex).symm
+  have hleafIndex : request.leafIndex = outcome.forgery.leafIndex :=
+    (Sum.inl_injective hleafIndex).symm
   have hbackward := hevent.chain_coordinate_lt_returned forgedEncoding
     hforgedDecode request signature signedEncoding hreturned hsignedDecode hleafIndex
   exact (not_lt_of_ge hdigit) hbackward

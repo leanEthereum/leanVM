@@ -896,8 +896,8 @@ theorem globalFirstLaneHashQuery_observation_mem
             result.2.encodingActions := by
           simp [htrace, hfresh]
         have hobservation' : EncodingMonitor.ObservedAction.query leafIndex
-            result.1.1 = observation := by
-          exact Option.some.inj (by simpa [encodingObservation?, hfresh, hleafIndex]
+            result.1.1 = observation :=
+          Option.some.inj (by simpa [encodingObservation?, hfresh, hleafIndex]
             using hobservation)
         simpa [← hobservation'] using haction
       · simp [encodingObservation?, hfresh] at hobservation
@@ -935,8 +935,8 @@ theorem globalFirstLaneSigningQuery_observation_mem
               (by simpa [signedInput] using hfresh)
               (by simpa [signedInput] using hfinal)
             have hobservation' : EncodingMonitor.ObservedAction.sign
-                request.leafIndex hashOutput = observation := by
-              exact Option.some.inj (by simpa [encodingObservation?, signedInput,
+                request.leafIndex hashOutput = observation :=
+              Option.some.inj (by simpa [encodingObservation?, signedInput,
                 hfresh, hfinal, houtput] using hobservation)
             simpa [← hobservation'] using haction
       · simp [encodingObservation?, signedInput, hfresh, houtput]
@@ -1214,8 +1214,8 @@ theorem globalFirstLaneVerifierHashExecution_cache_le
       ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl table)
         (globalFirstLaneVerifierHashExecution keyView edgeHigh hashInput
           state)).run)) :
-    state.cache ≤ result.1.2.cache := by
-  exact globalFirstLaneHashQuery_cache_le table keyView edgeHigh hashInput state result
+    state.cache ≤ result.1.2.cache :=
+  globalFirstLaneHashQuery_cache_le table keyView edgeHigh hashInput state result
     (mem_of_heq_set hresult rfl (by unfold globalFirstLaneVerifierHashExecution; exact HEq.rfl)
       HEq.rfl)
 
@@ -1263,8 +1263,8 @@ theorem globalFirstLaneVerifierHashExecution_simulateQ_cache_le
         ((simulateQ (fun hashInput => StateT.mk
           (globalFirstLaneVerifierHashExecution keyView edgeHigh hashInput))
             computation).run initialState)).run)) :
-    initialState.cache ≤ result.1.2.cache := by
-  exact simulateQ_eagerTrace_state_cache_le table
+    initialState.cache ≤ result.1.2.cache :=
+  simulateQ_eagerTrace_state_cache_le table
     (globalFirstLaneVerifierHashExecution keyView edgeHigh)
       (fun state : GlobalCausalHashState => state.cache)
       (fun hashInput state result h => globalFirstLaneVerifierHashExecution_cache_le table keyView
@@ -1605,8 +1605,8 @@ theorem globalFirstLaneExactTracedVerifier_simulateQ_run_eq_map
         computation).run state =
       (fun result => (result.1, state.withCausalState result.2)) <$>
         (simulateQ (globalFirstLaneVerifierImpl keyView edgeHigh)
-          computation).run state.causalState := by
-  exact globalExactTracedCausalLens.simulateQ_run_eq
+          computation).run state.causalState :=
+  globalExactTracedCausalLens.simulateQ_run_eq
     (globalFirstLaneExactTracedVerifierImpl keyView edgeHigh)
     (globalFirstLaneVerifierImpl keyView edgeHigh)
     (globalFirstLaneExactTracedVerifierImpl_run_eq_map keyView edgeHigh)
@@ -2197,8 +2197,8 @@ theorem globalFirstLaneVerifier_validSignLeafIndices_eq_nil
         ((simulateQ (globalFirstLaneVerifierImpl keyView edgeHigh)
           computation).run state)).run)) :
     CappedEncodingMonitor.validObservedSignLeafIndices
-      result.2.encodingActions = [] := by
-  exact globalFirstLaneVerifier_validSignLeafIndices_eq_nil_of_hashRun table
+      result.2.encodingActions = [] :=
+  globalFirstLaneVerifier_validSignLeafIndices_eq_nil_of_hashRun table
     keyView edgeHigh
       (globalFirstLaneAttackerHashQueryFromHighRun
         (globalChainValueHighTableOfEdges edgeHigh) keyView.secretKey)
@@ -2332,8 +2332,8 @@ theorem map_globalHighMonitored_adversary_exact_query
         (result.1, state.1.trace ++ result.2)) <$>
         (simulateQ (RevealProbeOracleSimulation.eagerTraceImpl base)
           ((globalHighDirectTracedMappedAdversaryImpl keyView edgeHigh
-            input).run (GlobalHighDirectTracedState.mk state.1.causal state.2))).run := by
-  exact map_globalHighMonitored_adversary_full_query keyView base edgeHigh
+            input).run (GlobalHighDirectTracedState.mk state.1.causal state.2))).run :=
+  map_globalHighMonitored_adversary_full_query keyView base edgeHigh
     input state.1 state.2
 
 theorem map_simulate_globalHighMonitored_exact_of_query
@@ -2437,8 +2437,8 @@ theorem map_simulate_globalHighMonitored_verifier_exact
           ((simulateQ
             (globalHighDirectTracedVerifierImpl keyView edgeHigh)
             computation).run
-              (GlobalHighDirectTracedState.mk state.1.causal state.2))).run := by
-  exact map_simulate_globalHighMonitored_verifier_full_projection keyView
+              (GlobalHighDirectTracedState.mk state.1.causal state.2))).run :=
+  map_simulate_globalHighMonitored_verifier_full_projection keyView
     base edgeHigh computation state.1 state.2
 
 theorem map_globalHighMonitoredDetailedExecution_full_projection
@@ -2589,8 +2589,8 @@ theorem globalHighExactEncodingEvent_implies_combinedHit
   apply Or.inl
   have hnodup :
       (CappedEncodingMonitor.validObservedSignLeafIndices
-        trace.encodingActions).Nodup := by
-    exact hvalidSub.nodup hvalid
+        trace.encodingActions).Nodup :=
+    hvalidSub.nodup hvalid
   exact CappedEncodingMonitor.runObserved_empty_eq_true_mono_sublist
     hencodingSub hnodup hhit
 

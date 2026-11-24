@@ -199,8 +199,8 @@ theorem Concrete.CacheReplay.rootTree_cache_unique_merkleAddress
     (hrightP : AtHashAddress parameter (.merkle targetLevel targetNode) right)
     (hleft : cache left = some leftOutput)
     (hright : cache right = some rightOutput) :
-    left = right := by
-  exact Concrete.CacheReplay.cache_unique_of_query_bound_one
+    left = right :=
+  Concrete.CacheReplay.cache_unique_of_query_bound_one
     (Concrete.honestKeygen parameter secret topSecret (fun key _ => pure (topBase key)) :
       OracleComp HashSpec _)
     (AtHashAddress parameter (.merkle targetLevel targetNode)) ∅ cache root

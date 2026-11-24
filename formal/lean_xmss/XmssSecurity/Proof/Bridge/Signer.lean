@@ -160,8 +160,8 @@ theorem erases_otsSignFrom_bottom (h : Prepared seed d result cache) (index : Le
             exact h.chain index chain (encoding chain)
           · exact hsome _ encoding
 
-theorem bottomKey_lt (index : LeafIndex) : (topKeyOf index).val < 2 ^ (32 - 16) := by
-  exact lt_of_lt_of_eq (topKeyOf index).isLt (by norm_num [topLifetime, treeHeight])
+theorem bottomKey_lt (index : LeafIndex) : (topKeyOf index).val < 2 ^ (32 - 16) :=
+  lt_of_lt_of_eq (topKeyOf index).isLt (by norm_num [topLifetime, treeHeight])
 
 theorem signLayer_bottom (secretKey : LeanXmss.SchemeSeedKey) (key :
     LeanXmss.KeyIndex)

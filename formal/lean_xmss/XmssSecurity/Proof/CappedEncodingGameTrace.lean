@@ -39,8 +39,8 @@ theorem cappedEncodingTracedMappedAdversaryImpl_projection
         (simulateQ (cappedEncodingTracedMappedAdversaryImpl publicKey secretKey)
           computation).run (initialState, initialTrace) =
       (simulateQ (cappedCacheTracedMappedAdversaryImpl publicKey secretKey)
-        computation).run initialState := by
-  exact OracleComp.extendState_run_proj_eq
+        computation).run initialState :=
+  OracleComp.extendState_run_proj_eq
     (cappedCacheTracedMappedAdversaryImpl publicKey secretKey)
     (encodingActionTraceUpdate secretKey) computation initialState initialTrace
 

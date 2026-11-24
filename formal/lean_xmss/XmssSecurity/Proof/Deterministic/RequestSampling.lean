@@ -79,8 +79,8 @@ theorem tableRun_requests {α : Type} (hash : QueryImpl HashSpec (StateT State P
     (secretKey : XmssSecurity.SecretKey) (tapes : RandomizerOutputs)
     (computation : OracleComp (OracleWorld + SigningSpec) α) :
     tableRun (worldHandler hash) (requestKernel hash secretKey) tapes computation =
-      simulateQ (worldHandler hash) (runSigning (fun (message : SignRequest) => tableSign tapes secretKey message.leafIndex message.message) computation) := by
-  exact tableRun_lift_requests (worldHandler hash)
+      simulateQ (worldHandler hash) (runSigning (fun (message : SignRequest) => tableSign tapes secretKey message.leafIndex message.message) computation) :=
+  tableRun_lift_requests (worldHandler hash)
     (fun (message : SignRequest) tape => tableSign (fun _ => tape) secretKey message.leafIndex message.message)
     (fun (message : SignRequest) => tableSign tapes secretKey message.leafIndex message.message) tapes
     (fun (message : SignRequest) => (tableSign_own (m := OracleComp HashSpec) tapes secretKey message).symm)
@@ -110,8 +110,8 @@ theorem evalDist_freshRun_of_kernel {α Tape : Type} [SampleableType Tape]
 theorem evalDist_freshRequests {α : Type} (hash : QueryImpl HashSpec (StateT State ProbComp))
     (secretKey : XmssSecurity.SecretKey) (computation : OracleComp (OracleWorld + SigningSpec) α) (state : State) :
     ((freshRun (worldHandler hash) (requestKernel hash secretKey) computation).run state) =ᵈ ((simulateQ ((worldHandler hash) + fun (message : SignRequest) => simulateQ (worldHandler hash)
-        (Concrete.precomputedCappedSign secretKey message.leafIndex message.message)) computation).run state) := by
-  exact evalDist_freshRun_of_kernel (worldHandler hash) (requestKernel hash secretKey)
+        (Concrete.precomputedCappedSign secretKey message.leafIndex message.message)) computation).run state) :=
+  evalDist_freshRun_of_kernel (worldHandler hash) (requestKernel hash secretKey)
     (fun (message : SignRequest) => simulateQ (worldHandler hash)
       (Concrete.precomputedCappedSign secretKey message.leafIndex message.message))
     (fun message state => evalDist_tableSign hash secretKey message.leafIndex message.message state)

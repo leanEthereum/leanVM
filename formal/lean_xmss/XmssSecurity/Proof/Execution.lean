@@ -62,8 +62,8 @@ theorem romImpl_query_cache_le
 theorem xmssRom_cache_le {α : Type} (computation : OracleComp OracleWorld α)
     (initialCache : QueryCache HashSpec) (result : α × QueryCache HashSpec)
     (hmem : result ∈ support ((simulateQ romImpl computation).run initialCache)) :
-    initialCache ≤ result.2 := by
-  exact OracleComp.simulateQ_run_preservesInv romImpl
+    initialCache ≤ result.2 :=
+  OracleComp.simulateQ_run_preservesInv romImpl
     (fun cache => initialCache ≤ cache)
     (by
       intro input cache hcache queryResult hquery

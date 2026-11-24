@@ -36,8 +36,8 @@ theorem returnedChainValueCovered_iff
     (log : QueryLog SigningSpec) (chain : ChainIndex)
     (index : ChainValueIndex) :
     index ∈ ReturnedChainValueCovered cache secretKey log chain ↔
-      ReturnedChainValueIndex cache secretKey log chain index := by
-  exact mem_returnedChainValueIndexList_iff cache secretKey log chain index
+      ReturnedChainValueIndex cache secretKey log chain index :=
+  mem_returnedChainValueIndexList_iff cache secretKey log chain index
 
 theorem returnedChainValueCovered_forwardClosed
     (cache : QueryCache HashSpec) (secretKey : SecretKey)

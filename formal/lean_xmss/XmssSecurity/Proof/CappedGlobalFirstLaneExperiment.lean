@@ -486,15 +486,15 @@ theorem globalFirstLaneOracleImpl_hazardBound
     (input : OracleWorld.Domain) (state : GlobalCausalHashState) :
     ((globalFirstLaneOracleImpl keyView edgeHigh input).run state)
       |>.IsQueryBoundP FirstLaneOracleSimulation.IsHazardQuery
-        (if input matches .inr _ then 1 else 0) := by
-  exact globalFirstLaneOracleExecution_hazardBound keyView edgeHigh input state
+        (if input matches .inr _ then 1 else 0) :=
+  globalFirstLaneOracleExecution_hazardBound keyView edgeHigh input state
 
 theorem globalFirstLaneSigningImpl_hazardBound
     (keyView : ProgrammedGlobalChainKeygenView)
     (request : SigningSpec.Domain) (state : GlobalCausalHashState) :
     ((globalFirstLaneSigningImpl keyView request).run state)
-      |>.IsQueryBoundP FirstLaneOracleSimulation.IsHazardQuery 0 := by
-  exact globalFirstLaneSigningQuery_hazardBound keyView request state
+      |>.IsQueryBoundP FirstLaneOracleSimulation.IsHazardQuery 0 :=
+  globalFirstLaneSigningQuery_hazardBound keyView request state
 
 noncomputable def globalFirstLaneEraseImpl :
     QueryImpl GlobalFirstLaneWorld
@@ -1032,8 +1032,8 @@ theorem globalFirstLaneAttackerHashQueryFromHighRun_eq_lift_of_none
     globalFirstLaneAttackerHashQueryFromHighRun high secretKey input state =
       globalFirstLaneLiftRevealProbe
         ((globalCausalAttackerHashQueryFromHigh high secretKey input).run
-          state) := by
-  exact globalFirstLaneAttackerHashQueryFromHighRun_eq_none high secretKey input
+          state) :=
+  globalFirstLaneAttackerHashQueryFromHighRun_eq_none high secretKey input
     state hleafIndex
 
 theorem globalFirstLaneErase_attackerHashQueryFromHigh
@@ -1072,8 +1072,8 @@ theorem globalFirstLaneErase_signingImpl
     (request : SignRequest) (state : GlobalCausalHashState) :
     GlobalFirstLaneErases
       ((globalFirstLaneSigningImpl keyView request).run state)
-      (globalFilteredCausalSigningQuery keyView request state) := by
-  exact globalFirstLaneErase_signingQuery keyView request state
+      (globalFilteredCausalSigningQuery keyView request state) :=
+  globalFirstLaneErase_signingQuery keyView request state
 
 theorem globalFirstLaneErase_directUniformImpl
     (n : Nat) (state : GlobalCausalHashState) :
@@ -1153,8 +1153,8 @@ theorem cappedBothTracedMappedAdversaryImpl_projection
         (simulateQ (cappedBothTracedMappedAdversaryImpl publicKey secretKey)
           computation).run (initialState, initialTrace) =
       (simulateQ (cappedEncodingTracedMappedAdversaryImpl publicKey secretKey)
-        computation).run initialState := by
-  exact OracleComp.extendState_run_proj_eq
+        computation).run initialState :=
+  OracleComp.extendState_run_proj_eq
     (cappedEncodingTracedMappedAdversaryImpl publicKey secretKey)
     appendAttackerActionTrace computation initialState initialTrace
 
@@ -1258,8 +1258,8 @@ theorem cappedBothTracedMappedAdversaryImpl_logs_eq
     (hmem : result ∈ support
       ((simulateQ (cappedBothTracedMappedAdversaryImpl publicKey secretKey)
         computation).run initialState)) :
-    result.2.1.1.2.toSigningLog = result.2.2.toSigningLog := by
-  exact OracleComp.simulateQ_run_preservesInv
+    result.2.1.1.2.toSigningLog = result.2.2.toSigningLog :=
+  OracleComp.simulateQ_run_preservesInv
     (cappedBothTracedMappedAdversaryImpl publicKey secretKey)
     (fun state => state.1.1.2.toSigningLog = state.2.toSigningLog)
     (by
@@ -1452,8 +1452,8 @@ theorem cappedDetailedGameWithKeygenCacheAndBothTraces_outcome_eq
     (result : CappedBothTraceGameResult)
     (hresult : result ∈ support
       (cappedDetailedGameWithKeygenCacheAndBothTraces adversary)) :
-    result.2.1 = (cappedBothActionProjection result).1.2.1 := by
-  exact cappedDetailedGameAfterKeygenWithBothTraces_outcome_eq_actionTraceOutcome
+    result.2.1 = (cappedBothActionProjection result).1.2.1 :=
+  cappedDetailedGameAfterKeygenWithBothTraces_outcome_eq_actionTraceOutcome
     adversary result.1.1.1 result.1.1.2 result.1.2 result.2
       (cappedDetailedGameWithKeygenCacheAndBothTraces_support_execution
         adversary result hresult)

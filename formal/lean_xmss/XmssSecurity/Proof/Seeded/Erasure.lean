@@ -100,8 +100,8 @@ theorem Erases.lift_hash {α : Type} {known : QueryCache HashSpec}
 
 theorem romImpl_preserves_known (known cache : QueryCache HashSpec) (h : known ≤ cache)
     (input : OracleWorld.Domain) (result : OracleWorld.Range input × QueryCache HashSpec)
-    (hresult : result ∈ support ((romImpl input).run cache)) : known ≤ result.2 := by
-  exact h.trans (romImpl_query_cache_le input cache result hresult)
+    (hresult : result ∈ support ((romImpl input).run cache)) : known ≤ result.2 :=
+  h.trans (romImpl_query_cache_le input cache result hresult)
 
 theorem Erases.evalDist_run {α : Type} {known : QueryCache HashSpec}
     {left right : OracleComp OracleWorld α} (h : Erases (worldKnown known) left right)

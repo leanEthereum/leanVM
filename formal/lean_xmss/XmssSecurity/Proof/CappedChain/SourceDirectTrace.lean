@@ -103,8 +103,8 @@ theorem sourceDirectTracedVerifierImpl_run_eq
     (cache : QueryCache HashSpec) (trace : AttackerActionTrace) :
     (simulateQ sourceDirectTracedVerifierImpl computation).run (cache, trace) =
       (fun result => (result.1, (result.2, trace))) <$>
-        (simulateQ romImpl computation).run cache := by
-  exact (StateLens.fst : StateLens SourceTracedState (QueryCache HashSpec)
+        (simulateQ romImpl computation).run cache :=
+  (StateLens.fst : StateLens SourceTracedState (QueryCache HashSpec)
     ).simulateQ_run_eq sourceDirectTracedVerifierImpl romImpl
     (fun input state => sourceDirectTracedVerifierImpl_query_run_eq
       input state.1 state.2) computation (cache, trace)

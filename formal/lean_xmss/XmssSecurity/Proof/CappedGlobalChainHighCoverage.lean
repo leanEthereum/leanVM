@@ -469,8 +469,8 @@ theorem GlobalCausalRevealsCovered.setCache
     {covered : Set GlobalChainValueIndex} {state : GlobalCausalHashState}
     (hcovered : GlobalCausalRevealsCovered covered state)
     (cache : QueryCache HashSpec) :
-    GlobalCausalRevealsCovered covered { state with cache := cache } := by
-  exact hcovered
+    GlobalCausalRevealsCovered covered { state with cache := cache } :=
+  hcovered
 
 theorem GlobalCausalRevealsCovered.recordedState
     {covered : Set GlobalChainValueIndex} {state : GlobalCausalHashState}
@@ -536,8 +536,8 @@ theorem globalReturnedChainValueCovered_contains_returned
         (request.message, signature.randomness)) = some encoding)
     (chain : ChainIndex) :
     (chain, .inl request.leafIndex, encoding chain) ∈
-      GlobalReturnedChainValueCovered cache secretKey log := by
-  exact returnedChainValueCovered_contains_returned cache secretKey log chain
+      GlobalReturnedChainValueCovered cache secretKey log :=
+  returnedChainValueCovered_contains_returned cache secretKey log chain
     request signature encoding hreturned hdecode
 
 theorem globalReturnedChainValueCovered_contains_returnedTop
@@ -548,8 +548,8 @@ theorem globalReturnedChainValueCovered_contains_returnedTop
     (htop : secretKey.topSigned (topKeyOf request.leafIndex) = some (randomness, topEncoding))
     (chain : ChainIndex) :
     (chain, .inr (topKeyOf request.leafIndex), topEncoding chain) ∈
-      GlobalReturnedChainValueCovered cache secretKey log := by
-  exact returnedChainValueCovered_contains_returnedTop cache secretKey log chain
+      GlobalReturnedChainValueCovered cache secretKey log :=
+  returnedChainValueCovered_contains_returnedTop cache secretKey log chain
     request signature randomness topEncoding hreturned htop
 
 theorem globalReturnedChainValueCovered_of_comparableCaches
@@ -1401,8 +1401,8 @@ theorem simulate_globalHighMonitoredMappedAdversary_support_cache_le
     (hresult : result ∈ support
       ((simulateQ (globalHighMonitoredMappedAdversaryImpl right)
         computation).run state)) :
-    state.1.causal.cache ≤ result.2.1.causal.cache := by
-  exact OracleComp.simulateQ_run_preservesInv
+    state.1.causal.cache ≤ result.2.1.causal.cache :=
+  OracleComp.simulateQ_run_preservesInv
     (globalHighMonitoredMappedAdversaryImpl right)
     (fun current : GlobalMonitoredTracedState =>
       state.1.causal.cache ≤ current.1.causal.cache)
@@ -1419,8 +1419,8 @@ theorem simulate_globalHighMonitoredMappedAdversary_support_trace_le
     (hresult : result ∈ support
       ((simulateQ (globalHighMonitoredMappedAdversaryImpl right)
         computation).run state)) :
-    ∀ action ∈ state.2, action ∈ result.2.2 := by
-  exact OracleComp.simulateQ_run_preservesInv
+    ∀ action ∈ state.2, action ∈ result.2.2 :=
+  OracleComp.simulateQ_run_preservesInv
     (globalHighMonitoredMappedAdversaryImpl right)
     (fun current : GlobalMonitoredTracedState =>
       ∀ action ∈ state.2, action ∈ current.2)
@@ -1583,8 +1583,8 @@ theorem simulate_globalHighMonitoredVerifier_support_cache_le
     (hresult : result ∈ support
       ((simulateQ (globalHighMonitoredVerifierImpl right) computation).run
         state)) :
-    state.1.causal.cache ≤ result.2.1.causal.cache := by
-  exact OracleComp.simulateQ_run_preservesInv
+    state.1.causal.cache ≤ result.2.1.causal.cache :=
+  OracleComp.simulateQ_run_preservesInv
     (globalHighMonitoredVerifierImpl right)
     (fun current : GlobalMonitoredTracedState =>
       state.1.causal.cache ≤ current.1.causal.cache)
@@ -1604,8 +1604,8 @@ theorem simulate_globalHighMonitoredVerifier_support_covered
     (hresult : result ∈ support
       ((simulateQ (globalHighMonitoredVerifierImpl right) computation).run
         state)) :
-    GlobalMonitoredCausalStateCovered covered result.2.1 := by
-  exact OracleComp.simulateQ_run_preservesInv
+    GlobalMonitoredCausalStateCovered covered result.2.1 :=
+  OracleComp.simulateQ_run_preservesInv
     (globalHighMonitoredVerifierImpl right)
     (fun current : GlobalMonitoredTracedState =>
       GlobalMonitoredCausalStateCovered covered current.1)
@@ -1622,8 +1622,8 @@ theorem simulate_globalHighMonitoredVerifier_support_attacker_trace_eq
     (hresult : result ∈ support
       ((simulateQ (globalHighMonitoredVerifierImpl right) computation).run
         state)) :
-    result.2.2 = state.2 := by
-  exact OracleComp.simulateQ_run_preservesInv
+    result.2.2 = state.2 :=
+  OracleComp.simulateQ_run_preservesInv
     (globalHighMonitoredVerifierImpl right)
     (fun current : GlobalMonitoredTracedState => current.2 = state.2)
     (globalHighMonitoredVerifierImpl_preserves_attacker_trace right state.2)

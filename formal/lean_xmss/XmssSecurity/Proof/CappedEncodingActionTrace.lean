@@ -399,8 +399,8 @@ theorem cappedEncodingTracedMappedAdversaryImpl_query_validFreshSigningCollision
       rw [signingCacheTraceUpdate] at htraceEq
       rw [htraceEq]
       intro hnodup entry hentry hcollision
-      have hnodupInitial : initialState.1.2.leafIndices.Nodup := by
-        exact (List.nodup_append.mp (by simpa using hnodup)).1
+      have hnodupInitial : initialState.1.2.leafIndices.Nodup :=
+        (List.nodup_append.mp (by simpa using hnodup)).1
       rw [List.mem_append] at hentry
       rcases hentry with hentry | hentry
       · rw [hsuffix]
@@ -598,8 +598,8 @@ theorem cappedEncodingTracedMappedAdversaryImpl_signLeafIndices_sublist
       ((simulateQ (cappedEncodingTracedMappedAdversaryImpl publicKey secretKey)
         computation).run initialState)) :
     List.Sublist (EncodingMonitor.observedSignLeafIndices result.2.2)
-      result.2.1.2.leafIndices := by
-  exact OracleComp.simulateQ_run_preservesInv
+      result.2.1.2.leafIndices :=
+  OracleComp.simulateQ_run_preservesInv
     (cappedEncodingTracedMappedAdversaryImpl publicKey secretKey)
     (fun state => List.Sublist (EncodingMonitor.observedSignLeafIndices state.2)
       state.1.2.leafIndices)
@@ -627,8 +627,8 @@ theorem cappedEncodingTracedMappedAdversaryImpl_validEncodingCollisionInvariants
         computation).run initialState)) :
     UnsignedEncodingEntriesRepresented secretKey.parameter baseCache result.2.1.1
         result.2.1.2 result.2.2 ∧
-      ValidFreshSigningCollisionsRepresented secretKey result.2.1.2 result.2.2 := by
-  exact OracleComp.simulateQ_run_preservesInv
+      ValidFreshSigningCollisionsRepresented secretKey result.2.1.2 result.2.2 :=
+  OracleComp.simulateQ_run_preservesInv
     (cappedEncodingTracedMappedAdversaryImpl publicKey secretKey)
     (fun state =>
       UnsignedEncodingEntriesRepresented secretKey.parameter baseCache
@@ -661,8 +661,8 @@ theorem cappedEncodingTracedMappedAdversaryImpl_postSigningInvariants
         computation).run initialState)) :
     FreshSigningActionsRepresented secretKey result.2.1.2 result.2.2 ∧
       PostSigningQueriesRepresented secretKey result.2.1.2 result.2.1.1
-        result.2.2 := by
-  exact OracleComp.simulateQ_run_preservesInv
+        result.2.2 :=
+  OracleComp.simulateQ_run_preservesInv
     (cappedEncodingTracedMappedAdversaryImpl publicKey secretKey)
     (fun state =>
       FreshSigningActionsRepresented secretKey state.1.2 state.2 ∧

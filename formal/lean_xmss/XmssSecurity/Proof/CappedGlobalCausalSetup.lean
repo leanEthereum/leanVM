@@ -801,8 +801,8 @@ theorem trajectoryProgrammedGlobalChainKeygen_support_treeCacheStable
     (view : ProgrammedGlobalChainKeygenView)
     (hview : view ∈ support trajectoryProgrammedGlobalChainKeygen) :
     TreeCacheStable view.secretKey.parameter view.secretKey.chainStart
-      view.cache := by
-  exact keygen_support_treeCacheStable view.keyResult
+      view.cache :=
+  keygen_support_treeCacheStable view.keyResult
     (trajectoryProgrammedGlobalChainKeygen_support_keyResult view hview)
 
 theorem trajectoryProgrammedGlobalChainKeygen_support_topCacheStable

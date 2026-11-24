@@ -213,8 +213,8 @@ omit [Fintype Index] in
 theorem StateAgrees.addPending
     {table : Index → Digest} {state : AdaptiveRevealMonitor.State Index}
     (hagrees : StateAgrees table state) (index : Index) (target : Digest) :
-    StateAgrees table (state.addPending index target) := by
-  exact hagrees
+    StateAgrees table (state.addPending index target) :=
+  hagrees
 
 omit [Fintype Index] in
 theorem StateValid.install
@@ -376,8 +376,8 @@ theorem uniformDigest_mem_finset_le (targets : Finset Digest) :
         ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹ := by
   calc
     Pr{let value ← $ᵗ Digest}[value ∈ targets] =
-      Pr{let value ← $ᵗ Digest}[∃ target ∈ targets, value = target] := by
-      exact prEvent_congr _ _ _ fun value => by simp
+      Pr{let value ← $ᵗ Digest}[∃ target ∈ targets, value = target] :=
+      prEvent_congr _ _ _ fun value => by simp
     _ ≤ ∑ target ∈ targets,
         Pr{let value ← $ᵗ Digest}[value = target] :=
       prEvent_exists_finset_le targets ($ᵗ Digest)

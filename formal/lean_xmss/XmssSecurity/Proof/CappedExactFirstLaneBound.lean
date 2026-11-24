@@ -892,8 +892,8 @@ theorem evalDist_globalFirstLaneExactCoupledProjection_eq_eagerExperiment
       (do
         let base ← independentGlobalChainValueTable
         let parameter ← Concrete.samplePublicParameter
-        globalFirstLaneExactCoupledContinuation adversary parameter base) := by
-          exact OracleComp.EvalDistEq.bind_bind_swap
+        globalFirstLaneExactCoupledContinuation adversary parameter base) :=
+          OracleComp.EvalDistEq.bind_bind_swap
             Concrete.samplePublicParameter independentGlobalChainValueTable _
     _ =ᵈ (do
         let base ← independentGlobalChainValueTable
@@ -1190,8 +1190,8 @@ theorem sourceFirstLaneExactGood_to_globalHighRelation
       · exact hkeyView
       · exact hbase
     · exact hedgeHigh
-  have hstate : highResult.2.2 = witness := by
-    exact (globalStateOfFirstLane_eq highResult.2.2 right.2.1.2 right.2.2
+  have hstate : highResult.2.2 = witness :=
+    (globalStateOfFirstLane_eq highResult.2.2 right.2.1.2 right.2.2
       hstateProjection.symm hchain.symm).symm
   refine ⟨highResult, hhighSupport, ?_, hprojection, ?_, ?_⟩
   · refine ⟨?_, ?_⟩
@@ -1513,8 +1513,8 @@ theorem evalDist_globalFirstLaneExactCoupledPublicProjection_eq_eager
             rfl
     _ =ᵈ (appendGlobalFirstLaneExactPublicTrace <$>
         FirstLaneOracleSimulation.eagerExperiment
-          (globalFirstLaneExactTracedProgram adversary)) := by
-      exact (evalDist_globalFirstLaneExactCoupledProjection_eq_eagerExperiment
+          (globalFirstLaneExactTracedProgram adversary)) :=
+      (evalDist_globalFirstLaneExactCoupledProjection_eq_eagerExperiment
         adversary).map appendGlobalFirstLaneExactPublicTrace
 
     _ = _ := by
@@ -1559,8 +1559,8 @@ theorem public_eager_enforcedHit_probability_le
           (some EncodingMonitor.State.empty)
           AdaptiveRevealMonitor.State.empty fuel
           (FirstLaneOracleSimulation.enforceHazardBound fuel
-            (globalFirstLaneExactTracedPublicProgram adversary)))}[hit = true] := by
-      exact FirstLaneOracleSimulation.combinedHit_probability_eq_structuralExperiment
+            (globalFirstLaneExactTracedPublicProgram adversary)))}[hit = true] :=
+      FirstLaneOracleSimulation.combinedHit_probability_eq_structuralExperiment
         fuel (FirstLaneOracleSimulation.enforceHazardBound fuel
           (globalFirstLaneExactTracedPublicProgram adversary))
           (FirstLaneOracleSimulation.enforceHazardBound_isHazardQueryBoundP

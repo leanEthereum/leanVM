@@ -70,8 +70,8 @@ theorem cappedDetailedGameAfterKeygen_unloggedProjection
     let verified ← Concrete.scheme.verify publicKey forgery.leafIndex forgery.message
       forgery.signature
     pure (forgery, verified)
-  have hprojection : Prod.fst <$> loggedAdversary = unloggedAdversary := by
-    exact QueryImpl.fst_map_run_withTraceAppend
+  have hprojection : Prod.fst <$> loggedAdversary = unloggedAdversary :=
+    QueryImpl.fst_map_run_withTraceAppend
       (cappedSourceUnloggedMappedAdversaryImpl publicKey secretKey)
       signingLogFragment (adversary.main publicKey)
   rw [detailedGameAfterKeygen, ←
