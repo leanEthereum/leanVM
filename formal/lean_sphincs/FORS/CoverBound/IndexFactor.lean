@@ -162,7 +162,7 @@ theorem avgN_prod_coords (ψ : κ → Multiset X → ℝ≥0∞) :
   | 0, X0 => rfl
   | n + 1, X0 => by
       simp only [avgN, avgN_prod_coords ψ n, Multiset.map_add, Multiset.map_singleton]
-      exact freshAvg_pi_prod (fun c x => avgN (ψ c) n (X0.map (fun m => m c) + {x}))
+      rw [freshAvg_pi_prod (fun c x => avgN (ψ c) n (X0.map (fun m => m c) + {x}))]
 
 end Coords
 
