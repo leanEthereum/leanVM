@@ -63,12 +63,12 @@ pub(super) struct GatheredPass<'a> {
     /// Rows of a layer-`layer` block, and the rows between the rows of a group.
     block_rows: usize,
     step: usize,
-    /// Words of a group's row, and of the group.
+    /// Words of a group's row.
     width: usize,
-    group_len: usize,
-    /// Residues one task step takes, and the words of its stage.
+    /// Residues one task step takes, and the words of its stage and scratch buffers.
     batch: usize,
     stage_len: usize,
+    scratch_len: usize,
     /// How a finished group drains: in pieces of `piece` words, `piece_stride` apart.
     piece: usize,
     piece_stride: usize,
@@ -90,9 +90,12 @@ impl<'a> GatheredPass<'a> {
         let batch = if staged { BATCH } else { 1 };
         let width = if staged { BATCH * 8 } else { num_ntts };
         // A message that is not lane-major gathers into a stage of one group; replicas gather per block.
+        // The last block transforms `stage` in place, so a single-block pass needs no separate scratch buffer.
         let gathers = matches!(src, Source::Rows(_) | Source::InPlace);
         let group_len = rows * width;
-        let stage_len = if staged || gathers { group_len } else { 0 };
+        let uses_stage = staged || gathers;
+        let stage_len = if uses_stage { group_len } else { 0 };
+        let scratch_len = if !uses_stage || blocks.len() > 1 { group_len } else { 0 };
         let staging = match src {
             Source::Lanes(lanes) => Some(Stage::new(lanes, log_step, block_rows, num_ntts)),
             _ => None,
@@ -112,9 +115,9 @@ impl<'a> GatheredPass<'a> {
             block_rows,
             step,
             width,
-            group_len,
             batch,
             stage_len,
+            scratch_len,
             piece,
             piece_stride,
             stream,
@@ -126,32 +129,58 @@ impl<'a> GatheredPass<'a> {
         let base = win.base();
         let win = &*win;
         parallel::for_each_chunk(self.step / self.batch, |lo, hi| {
-            with_scratch(self.stage_len + self.group_len, |all| {
+            with_scratch(self.stage_len + self.scratch_len, |all| {
                 let (stage, scratch) = all.split_at_mut(self.stage_len);
                 // One fence at the end of the task covers all its streaming stores.
                 let stream = self.stream.then(Stream::new);
                 let stream = stream.as_ref();
-                for t in lo..hi {
-                    match &self.staging {
-                        Some(staging) => {
-                            let r = t * self.batch;
-                            for octet in 0..self.num_ntts / 8 {
+                match &self.staging {
+                    Some(staging) => {
+                        for octet in 0..self.num_ntts / 8 {
+                            for t in lo..hi {
+                                let r = t * self.batch;
                                 staging.fill(stage, r, octet);
                                 for block in self.blocks.clone().rev() {
                                     let dst = win.row(self.block_rows, block, r) + 8 * octet;
-                                    self.group(ntt, scratch, stream, win, base, block, r, Some(&*stage), dst);
+                                    if block == self.blocks.start {
+                                        self.transform_and_drain(ntt, stage, None, stream, base, block, dst);
+                                    } else {
+                                        self.transform_and_drain(ntt, scratch, Some(&*stage), stream, base, block, dst);
+                                    }
                                 }
                             }
                         }
-                        _ => {
-                            let msg = self.message_rows(base, win, t);
-                            if let Some(msg) = msg {
-                                self.gather(stage, msg);
-                            }
-                            for block in self.blocks.clone().rev() {
-                                let dst = win.row(self.block_rows, block, t);
-                                let from = msg.map(|_| &*stage);
-                                self.group(ntt, scratch, stream, win, base, block, t, from, dst);
+                    }
+                    None => {
+                        for t in lo..hi {
+                            match self.message_rows(base, win, t) {
+                                Some(msg) => {
+                                    self.gather(stage, msg);
+                                    for block in self.blocks.clone().rev() {
+                                        let dst = win.row(self.block_rows, block, t);
+                                        if block == self.blocks.start {
+                                            self.transform_and_drain(ntt, stage, None, stream, base, block, dst);
+                                        } else {
+                                            self.transform_and_drain(
+                                                ntt,
+                                                scratch,
+                                                Some(&*stage),
+                                                stream,
+                                                base,
+                                                block,
+                                                dst,
+                                            );
+                                        }
+                                    }
+                                }
+                                None => {
+                                    // Replicas: each block transforms its own rows of the buffer.
+                                    for block in self.blocks.clone().rev() {
+                                        let dst = win.row(self.block_rows, block, t);
+                                        self.gather(scratch, base.0.cast_const().wrapping_add(dst));
+                                        self.transform_and_drain(ntt, scratch, None, stream, base, block, dst);
+                                    }
+                                }
                             }
                         }
                     }
@@ -183,43 +212,50 @@ impl<'a> GatheredPass<'a> {
         }
     }
 
-    /// Transform residue `r`'s group as layer-`layer` block `block`, and send it back to word `dst` on.
-    ///
-    /// The rows are `from` the stage, or gathered from the block's own rows of the buffer.
+    /// Transform a group as layer-`layer` block `block` (in place in `buf`, or copying from `from`) and write it back
+    /// to word `dst` on.
     #[inline(always)]
-    fn group(
+    fn transform_and_drain(
         &self,
         ntt: &AdditiveNttF64,
-        scratch: &mut [F64],
+        buf: &mut [F64],
+        from: Option<&[F64]>,
         stream: Option<&Stream>,
-        win: &Window,
         base: parallel::SendPtr<F64>,
         block: usize,
-        r: usize,
-        from: Option<&[F64]>,
         dst: usize,
     ) {
         let (layer, g, num_ntts, step) = (self.layer, self.g, self.num_ntts, self.step);
-        if from.is_none() {
-            // Replicas: each block transforms its own rows of the buffer.
-            self.gather(
-                scratch,
-                base.0.cast_const().wrapping_add(win.row(self.block_rows, block, r)),
-            );
-        }
-        ntt.run_layers(scratch, from, layer + g, self.width, layer, layer, block, None);
-        // Write the group back: scratch row `i` lands `i * step` rows after word `dst`, in pieces of `piece` words
+        ntt.run_layers(buf, from, layer + g, self.width, layer, layer, block, None);
+        // Write the group back: `buf` row `i` lands `i * step` rows after word `dst`, in pieces of `piece` words
         // `piece_stride` apart. A streaming write moves whole aligned cache lines: `piece` is then 8.
-        for (i, row) in scratch.chunks_exact(self.width).enumerate() {
-            for (k, piece) in row.chunks_exact(self.piece).enumerate() {
-                // SAFETY:
-                // - The group lies inside the buffer, so every piece is in bounds, and line-aligned when streamed.
-                // - Only this group's task writes these rows of the buffer.
-                unsafe {
-                    let at = base.add(dst + i * step * num_ntts + k * self.piece_stride);
-                    match stream {
-                        Some(s) => s.copy_lines(at.cast::<Line>(), &primitives::cast_slice::<F64, Line>(piece)[0]),
-                        None => at.copy_from_nonoverlapping(piece.as_ptr(), self.piece),
+        let row_stride = step * num_ntts;
+        match stream {
+            Some(s) => {
+                let lines = primitives::cast_slice::<F64, Line>(buf);
+                for (i, row) in lines.chunks_exact(self.width / 8).enumerate() {
+                    let row_dst = dst + i * row_stride;
+                    for (k, line) in row.iter().enumerate() {
+                        // SAFETY:
+                        // - The group lies inside the buffer, and every streamed line is 64-byte aligned.
+                        // - Only this group's task writes these rows of the buffer.
+                        unsafe {
+                            s.copy_lines(base.add(row_dst + k * self.piece_stride).cast::<Line>(), line);
+                        }
+                    }
+                }
+            }
+            None => {
+                for (i, row) in buf.chunks_exact(self.width).enumerate() {
+                    let row_dst = dst + i * row_stride;
+                    for (k, piece) in row.chunks_exact(self.piece).enumerate() {
+                        // SAFETY:
+                        // - The group lies inside the buffer, so every piece is in bounds.
+                        // - Only this group's task writes these rows of the buffer.
+                        unsafe {
+                            base.add(row_dst + k * self.piece_stride)
+                                .copy_from_nonoverlapping(piece.as_ptr(), self.piece);
+                        }
                     }
                 }
             }

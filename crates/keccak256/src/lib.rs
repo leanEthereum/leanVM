@@ -93,7 +93,9 @@ pub const END_BIT: u64 = (PAD_LAST as u64) << 56;
 mod lanes;
 pub mod positions;
 
-pub use lanes::{LANES, digest_halves_from, first_nonce, hash_many, hash_many_from_state, keccak_f_many};
+pub use lanes::{
+    LANES, digest_halves_from, first_nonce, hash_many, hash_many_from_state, hash_many_from_state_padded, keccak_f_many,
+};
 
 #[cfg(all(target_arch = "x86_64", target_feature = "avx512f"))]
 mod single_avx512;
@@ -262,6 +264,36 @@ fn hash_from_state(data: &[u8], state: &[u64; STATE_LANES]) -> [u8; OUT_LEN] {
     digest_of(&state)
 }
 
+/// [`hash_from_state`] with `lead_zero_words` leading all-zero 64-bit words prepended to `data` without copying.
+pub(crate) fn hash_from_state_padded(data: &[u8], lead_zero_words: usize, state: &[u64; STATE_LANES]) -> [u8; OUT_LEN] {
+    assert!(
+        lead_zero_words < RATE_LANES,
+        "leading zero words must be less than one rate block"
+    );
+    if lead_zero_words == 0 {
+        return hash_from_state(data, state);
+    }
+    let mut state = *state;
+    let off = 8 * lead_zero_words;
+    let first_cap = RATE - off;
+    if data.len() < first_cap {
+        let mut bytes = [0u8; RATE];
+        bytes[off..off + data.len()].copy_from_slice(data);
+        bytes[off + data.len()] ^= PAD_FIRST;
+        bytes[RATE - 1] ^= PAD_LAST;
+        absorb(&mut state, &block_of(&bytes));
+        return digest_of(&state);
+    }
+    for (s, chunk) in state[lead_zero_words..RATE_LANES]
+        .iter_mut()
+        .zip(data[..first_cap].as_chunks::<8>().0)
+    {
+        *s ^= u64::from_le_bytes(*chunk);
+    }
+    keccak_f(&mut state);
+    hash_from_state(&data[first_cap..], &state)
+}
+
 /// The state [`hash`] of `data` permutes last: every whole block absorbed and the padded final
 /// block XORed in, not yet permuted, so `keccak_f` of it then [`digest_of`] is `hash(data)`.
 ///
@@ -330,6 +362,47 @@ mod tests {
                         let mut plain = vec![0u8; n * OUT_LEN];
                         hash_many(&data, len, &mut plain);
                         assert_eq!(plain, got);
+                    }
+                }
+            }
+        }
+    }
+
+    /// The padded batched hash (leading zero words in the first block, zero-copy) against hashing each whole image.
+    #[test]
+    fn batched_padded_hash_matches_one_shot() {
+        for zero_blocks in [0usize, 1, 3] {
+            let state = zero_prefix_state(zero_blocks);
+            for lead_zero_words in [0usize, 1, 7, 8, 12, 16] {
+                let first_cap = RATE - 8 * lead_zero_words;
+                for len in [
+                    0usize,
+                    1,
+                    7,
+                    8,
+                    first_cap - 1,
+                    first_cap,
+                    first_cap + 1,
+                    first_cap + RATE - 1,
+                    first_cap + RATE,
+                    384,
+                    512,
+                ] {
+                    for n in [1, LANES, 2 * LANES + 1] {
+                        let data: Vec<u8> = (0..n * len)
+                            .map(|i| (i.wrapping_mul(31) + zero_blocks + lead_zero_words) as u8)
+                            .collect();
+                        let mut got = vec![0u8; n * OUT_LEN];
+                        hash_many_from_state_padded(&data, len, lead_zero_words, &state, &mut got);
+                        for i in 0..n {
+                            let mut whole = vec![0u8; zero_blocks * RATE + 8 * lead_zero_words];
+                            whole.extend_from_slice(&data[i * len..(i + 1) * len]);
+                            assert_eq!(
+                                &got[i * OUT_LEN..][..OUT_LEN],
+                                &hash(&whole)[..],
+                                "zb={zero_blocks} lead={lead_zero_words} len={len} n={n}"
+                            );
+                        }
                     }
                 }
             }

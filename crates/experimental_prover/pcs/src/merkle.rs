@@ -26,15 +26,12 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
 use fiat_shamir::merkle::{Hash, MerklePath};
 use parallel::SendPtr;
+use primitives::cast_slice;
 use primitives::field::F64;
-use primitives::hash::{LANES, OUT_LEN, RATE, STATE_LANES, hash_many, hash_many_from_state, zero_prefix_state};
-use primitives::{cast_slice, cast_slice_mut};
+use primitives::hash::{LANES, OUT_LEN, RATE, STATE_LANES, hash_many, hash_many_from_state_padded, zero_prefix_state};
 
 /// Nodes one climb takes at most: 32 KiB of digests, which stay in L1.
 const UNIT: usize = 1 << 10;
-
-/// Staging tile for leaves whose zero padding does not end on a block boundary.
-const STAGE_TILE_BYTES: usize = 16 << 10;
 
 /// A Merkle tree filled one aligned block of leaves at a time, from any thread.
 ///
@@ -385,91 +382,42 @@ impl CutTree {
 
 /// How rows become leaf digests, chosen once from the leaf shape.
 ///
-/// Whole blocks of leading zeros are one sponge state, absorbed once for every leaf.
-enum LeafHasher {
-    /// Past the shared prefix, each row is its own image.
-    Direct {
-        row_bytes: usize,
-        state: [u64; STATE_LANES],
-    },
-    /// The rest of the padding does not fill a block, so rows are zero-extended in a tile first.
-    Staged {
-        row_bytes: usize,
-        image: usize,
-        state: [u64; STATE_LANES],
-    },
+/// Whole blocks of leading zeros are one sponge state absorbed once for every leaf, and any remaining leading zero
+/// words in the next block are skipped directly by [`hash_many_from_state_padded`] without copying the rows.
+struct LeafHasher {
+    row_bytes: usize,
+    lead_zero_words: usize,
+    state: [u64; STATE_LANES],
 }
 
 impl LeafHasher {
     fn new(row_bytes: usize, leaf_bytes: usize) -> Self {
         assert!(0 < row_bytes && row_bytes <= leaf_bytes, "a leaf holds its row");
-        let zero_blocks = (leaf_bytes - row_bytes) / RATE;
+        let pad = leaf_bytes - row_bytes;
+        assert!(pad.is_multiple_of(8), "leading zero padding is whole words");
+        let zero_blocks = pad / RATE;
         let state = zero_prefix_state(zero_blocks);
-        let image = leaf_bytes - zero_blocks * RATE;
-        if image == row_bytes {
-            Self::Direct { row_bytes, state }
-        } else {
-            assert!(image <= STAGE_TILE_BYTES, "a padded leaf fits the tile");
-            Self::Staged {
-                row_bytes,
-                image,
-                state,
-            }
+        let lead_zero_words = (pad % RATE) / 8;
+        Self {
+            row_bytes,
+            lead_zero_words,
+            state,
         }
     }
 
     fn row_bytes(&self) -> usize {
-        match *self {
-            Self::Direct { row_bytes, .. } | Self::Staged { row_bytes, .. } => row_bytes,
-        }
+        self.row_bytes
     }
 
     /// Hash one leaf per row into `out`.
     fn hash(&self, rows: &[u8], out: &mut [MaybeUninit<Hash>]) {
-        match *self {
-            Self::Direct { row_bytes, state } => {
-                hash_many_from_state(rows, row_bytes, &state, digests_as_bytes(out));
-            }
-            Self::Staged {
-                row_bytes,
-                image,
-                state,
-            } => {
-                // Whole batches per tile.
-                let per_tile = STAGE_TILE_BYTES / image;
-                let per_tile = if per_tile >= LANES {
-                    per_tile / LANES * LANES
-                } else {
-                    per_tile
-                };
-                let mut tile = Tile::new();
-                for (out, rows) in out.chunks_mut(per_tile).zip(rows.chunks(per_tile * row_bytes)) {
-                    let images = tile.extend(rows, row_bytes, image);
-                    hash_many_from_state(images, image, &state, digests_as_bytes(out));
-                }
-            }
-        }
-    }
-}
-
-/// A zeroed staging buffer.
-struct Tile([u64; STAGE_TILE_BYTES / 8]);
-
-impl Tile {
-    fn new() -> Self {
-        Self([0; STAGE_TILE_BYTES / 8])
-    }
-
-    /// Lay each `row_bytes` row at the end of its own `image`-byte slot, and return the slots.
-    ///
-    /// The bytes before each row are never written, so they stay zero.
-    fn extend(&mut self, rows: &[u8], row_bytes: usize, image: usize) -> &[u8] {
-        let tile: &mut [u8] = cast_slice_mut(&mut self.0);
-        let n = rows.len() / row_bytes;
-        for (slot, row) in tile.chunks_exact_mut(image).zip(rows.chunks_exact(row_bytes)) {
-            slot[image - row_bytes..].copy_from_slice(row);
-        }
-        &tile[..n * image]
+        hash_many_from_state_padded(
+            rows,
+            self.row_bytes,
+            self.lead_zero_words,
+            &self.state,
+            digests_as_bytes(out),
+        );
     }
 }
 
