@@ -1,7 +1,7 @@
 //go:build cgo
 
 // Package leanpq provides Go bindings for leanXMSS and leanSPHINCS signatures, their recursive
-// aggregation through a leanVM sidecar, and the consensus VRF.
+// aggregation, and the consensus VRF.
 package leanpq
 
 // #cgo CFLAGS: -I${SRCDIR}/internal/native/include
@@ -78,20 +78,20 @@ type VrfKey struct {
 	handle *C.lpq_vrf_key
 }
 
-// Sidecar is a connection to a leanVM sidecar, the separate process that proves and verifies
-// aggregates. It is safe for concurrent use; its calls run one at a time. A broken connection is
-// reopened on the next call. Call Close when finished.
-type Sidecar struct {
-	// Calls hold the read lock and Close the write lock: the native side serializes the calls.
-	mu     sync.RWMutex
-	handle *C.lpq_sidecar
-}
-
 // Aggregate owns a verified recursive proof that each of its claims was signed. Call Close when
 // finished.
 type Aggregate struct {
 	mu     sync.Mutex
 	handle *C.lpq_aggregate
+}
+
+// Setup starts the prover on threads threads (0: one per core). It fails if the prover already
+// runs with another count.
+func Setup(threads int) error {
+	if threads < 0 {
+		return errors.New("leanpq: threads must not be negative")
+	}
+	return call(func() C.int32_t { return C.lpq_setup(C.size_t(threads)) })
 }
 
 // GenerateXmssSecretKey creates a random leanXMSS key.
@@ -409,60 +409,20 @@ func VrfVerify(root [32]byte, slot uint64, proof VrfProof) error {
 	})
 }
 
-// ConnectSidecar connects to the leanVM sidecar listening on the Unix socket socketPath. It fails on
-// platforms without Unix sockets.
-func ConnectSidecar(socketPath string) (*Sidecar, error) {
-	path := []byte(socketPath)
-	var handle *C.lpq_sidecar
-	if err := call(func() C.int32_t {
-		return C.lpq_sidecar_connect(bytesPointer(path), C.size_t(len(path)), &handle)
-	}); err != nil {
-		return nil, err
-	}
-	return &Sidecar{handle: handle}, nil
+// AggregateSignatures proves the union of the children's claims and the raw signatures' claims.
+// Raw signatures are verified first; children are neither consumed nor closed. At least one input
+// is required, and at most 16 children.
+func AggregateSignatures(children []*Aggregate, xmss []XmssSignedMessage, sphincs []SphincsSignedMessage) (*Aggregate, error) {
+	return aggregateSignatures(children, xmss, sphincs, nil, nil, false)
 }
 
-// StartSidecar launches the leanvm-sidecar executable binaryPath on socketPath with threads threads
-// (0: one per core), waits until it listens, and connects to it; Close stops it. Its log goes to
-// socketPath with ".log" appended. It fails when a sidecar already listens on socketPath, and on
-// platforms without Unix sockets.
-func StartSidecar(binaryPath, socketPath string, threads int) (*Sidecar, error) {
-	if threads < 0 {
-		return nil, errors.New("leanpq: threads must not be negative")
-	}
-	binary := []byte(binaryPath)
-	path := []byte(socketPath)
-	var handle *C.lpq_sidecar
-	if err := call(func() C.int32_t {
-		return C.lpq_sidecar_start(bytesPointer(binary), C.size_t(len(binary)), bytesPointer(path), C.size_t(len(path)), C.size_t(threads), &handle)
-	}); err != nil {
-		return nil, err
-	}
-	return &Sidecar{handle: handle}, nil
+// AggregateSignaturesOnly is AggregateSignatures, but the result proves exactly the given claims,
+// in any order, a repeat counting once; each must be one the inputs cover.
+func AggregateSignaturesOnly(children []*Aggregate, xmss []XmssSignedMessage, sphincs []SphincsSignedMessage, xmssClaims, sphincsClaims []Claim) (*Aggregate, error) {
+	return aggregateSignatures(children, xmss, sphincs, xmssClaims, sphincsClaims, true)
 }
 
-// Prover names the prover the sidecar runs, "experimental" or "stable": both make the same proofs.
-func (sidecar *Sidecar) Prover() (string, error) {
-	handle, release, err := sidecar.acquire()
-	if err != nil {
-		return "", err
-	}
-	defer release()
-	prover, err := bufferResult(func(output *C.lpq_buffer) C.int32_t {
-		return C.lpq_sidecar_prover(handle, output)
-	})
-	return string(prover), err
-}
-
-// Aggregate proves the union of the children's claims and the raw signatures' claims. Raw
-// signatures are verified first; children are neither consumed nor closed. At least one input is
-// required, and at most 16 children.
-func (sidecar *Sidecar) Aggregate(children []*Aggregate, xmss []XmssSignedMessage, sphincs []SphincsSignedMessage) (*Aggregate, error) {
-	sidecarHandle, releaseSidecar, err := sidecar.acquire()
-	if err != nil {
-		return nil, err
-	}
-	defer releaseSidecar()
+func aggregateSignatures(children []*Aggregate, xmss []XmssSignedMessage, sphincs []SphincsSignedMessage, xmssClaims, sphincsClaims []Claim, only bool) (*Aggregate, error) {
 	handles, release, err := acquireAggregates(children)
 	if err != nil {
 		return nil, err
@@ -480,10 +440,21 @@ func (sidecar *Sidecar) Aggregate(children []*Aggregate, xmss []XmssSignedMessag
 		sphincsRecords = append(sphincsRecords, sphincs[index].Message[:]...)
 		sphincsRecords = append(sphincsRecords, sphincs[index].Signature[:]...)
 	}
+	xmssClaimRecords := claimRecords(xmssClaims)
+	sphincsClaimRecords := claimRecords(sphincsClaims)
 	var output *C.lpq_aggregate
 	if err := call(func() C.int32_t {
-		return C.lpq_sidecar_aggregate(
-			sidecarHandle,
+		if only {
+			return C.lpq_aggregate_create_only(
+				aggregatePointer(handles), C.size_t(len(handles)),
+				bytesPointer(xmssRecords), C.size_t(len(xmss)),
+				bytesPointer(sphincsRecords), C.size_t(len(sphincs)),
+				bytesPointer(xmssClaimRecords), C.size_t(len(xmssClaims)),
+				bytesPointer(sphincsClaimRecords), C.size_t(len(sphincsClaims)),
+				&output,
+			)
+		}
+		return C.lpq_aggregate_create(
 			aggregatePointer(handles), C.size_t(len(handles)),
 			bytesPointer(xmssRecords), C.size_t(len(xmss)),
 			bytesPointer(sphincsRecords), C.size_t(len(sphincs)),
@@ -495,21 +466,15 @@ func (sidecar *Sidecar) Aggregate(children []*Aggregate, xmss []XmssSignedMessag
 	return &Aggregate{handle: output}, nil
 }
 
-// Verify checks that bytes, from Aggregate.Bytes, prove exactly the given claims, which may be in
-// any order; a repeated claim counts once. The encoding is the proof alone: send the claims
+// AggregateFromBytes checks that bytes, from Aggregate.Bytes, prove exactly the given claims, which
+// may be in any order; a repeated claim counts once. The encoding is the proof alone: send the claims
 // alongside it or have the receiver rebuild them. Any other claim set is rejected.
-func (sidecar *Sidecar) Verify(bytes []byte, xmssClaims, sphincsClaims []Claim) (*Aggregate, error) {
-	sidecarHandle, release, err := sidecar.acquire()
-	if err != nil {
-		return nil, err
-	}
-	defer release()
+func AggregateFromBytes(bytes []byte, xmssClaims, sphincsClaims []Claim) (*Aggregate, error) {
 	xmssRecords := claimRecords(xmssClaims)
 	sphincsRecords := claimRecords(sphincsClaims)
 	var handle *C.lpq_aggregate
 	if err := call(func() C.int32_t {
-		return C.lpq_sidecar_verify(
-			sidecarHandle,
+		return C.lpq_aggregate_from_bytes(
 			bytesPointer(bytes), C.size_t(len(bytes)),
 			bytesPointer(xmssRecords), C.size_t(len(xmssClaims)),
 			bytesPointer(sphincsRecords), C.size_t(len(sphincsClaims)),
@@ -519,38 +484,6 @@ func (sidecar *Sidecar) Verify(bytes []byte, xmssClaims, sphincsClaims []Claim) 
 		return nil, err
 	}
 	return &Aggregate{handle: handle}, nil
-}
-
-// Close stops the sidecar StartSidecar launched at once, failing calls in progress, and closes the
-// connection; it frees the handle once those calls return. Later calls fail. It is safe to call
-// repeatedly.
-func (sidecar *Sidecar) Close() {
-	if sidecar == nil {
-		return
-	}
-	// The native close is safe beside calls in progress; freeing the handle is not.
-	if handle, release, err := sidecar.acquire(); err == nil {
-		C.lpq_sidecar_close(handle)
-		release()
-	}
-	sidecar.mu.Lock()
-	defer sidecar.mu.Unlock()
-	if sidecar.handle != nil {
-		C.lpq_sidecar_destroy(sidecar.handle)
-		sidecar.handle = nil
-	}
-}
-
-func (sidecar *Sidecar) acquire() (*C.lpq_sidecar, func(), error) {
-	if sidecar == nil {
-		return nil, nil, errors.New("leanpq: sidecar is nil")
-	}
-	sidecar.mu.RLock()
-	if sidecar.handle == nil {
-		sidecar.mu.RUnlock()
-		return nil, nil, errClosed("sidecar")
-	}
-	return sidecar.handle, sidecar.mu.RUnlock, nil
 }
 
 // Bytes returns the aggregate's proof encoding, without its claims.

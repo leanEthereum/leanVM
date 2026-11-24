@@ -1,4 +1,4 @@
-//! What the library offers without the `sidecar` feature: proving and verifying here, and LeanDA's encoding.
+//! Proving and verifying, and LeanDA's encoding.
 
 use crate::{AggregateClaims, OutputClaims};
 use ::lean_sphincs::{LeanSphincsPublicKey, LeanSphincsSignature};
@@ -7,7 +7,7 @@ pub use aggregation::{AggregateError, AggregateProof};
 use isa::Prover;
 
 #[cfg(feature = "experimental_prover")]
-type P = experimental_lean_vm_core::ExperimentalProver;
+type P = experimental_dispatch::ExperimentalProver;
 #[cfg(not(feature = "experimental_prover"))]
 type P = stable_lean_vm_core::StableProver;
 

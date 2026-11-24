@@ -33,32 +33,26 @@ lpq.sphincs_verify(sphincs_key.public_key, message, sphincs_sig)
 - leanSPHINCS is stateless and deterministic; a key signs at most `2^30` messages.
 - `to_bytes()` is the key's 32-byte seed, which is secret; `from_bytes` restores the key.
 - `cache_to_bytes()` returns the key's trees, which are not secret; `XmssSecretKey.from_cache_bytes(seed, public_key, cache)` loads the key from them instead of rebuilding them, checking them against the public key.
-- Failures raise `LeanPqError`, inputs of the wrong length `ValueError`. Every call that signs, verifies or reaches the sidecar releases the GIL.
+- Failures raise `LeanPqError`, inputs of the wrong length `ValueError`. Every call that signs, verifies or aggregates releases the GIL.
 
 ## Aggregate
 
-Aggregation runs in a leanVM sidecar, a separate process (Linux and macOS): see [the sidecar](https://github.com/leanEthereum/leanVM/tree/main/bindings#sidecar).
-
 ```python
-import os
+leaf = lpq.aggregate(
+    xmss=[(xmss_key.public_key, message, xmss_sig)],
+    sphincs=[(sphincs_key.public_key, message, sphincs_sig)],
+)
+root = lpq.aggregate(children=[leaf])
+proof = root.to_bytes()
 
-with lpq.Sidecar.connect(os.path.expanduser("~/.leanvm/sidecar.sock")) as sidecar:
-    # or: lpq.Sidecar.start(binary, socket, threads=0), which launches one
-    leaf = sidecar.aggregate(
-        xmss=[(xmss_key.public_key, message, xmss_sig)],
-        sphincs=[(sphincs_key.public_key, message, sphincs_sig)],
-    )
-    root = sidecar.aggregate(children=[leaf])
-    proof = root.to_bytes()
-
-    received = sidecar.verify(proof, root.xmss_claims, root.sphincs_claims)
+received = lpq.Aggregate.from_bytes(proof, root.xmss_claims, root.sphincs_claims)
 ```
 
-- `aggregate(children=(), xmss=(), sphincs=())` verifies raw signatures before proving and takes at most 16 children. The result proves the union of their claims.
+- `aggregate(children=(), xmss=(), sphincs=())` verifies raw signatures before proving and takes at most 16 children. The result proves the union of their claims, or with `xmss_claims` or `sphincs_claims` exactly those claims, in any order, each one the inputs cover; an omitted list means none.
 - `to_bytes()` is the proof alone: send the claims alongside it, or let the receiver rebuild them.
-- `verify(data, xmss_claims, sphincs_claims)` accepts exactly those `(public_key, message)` claims, in any order, and raises `LeanPqError` otherwise. `xmss_claims` and `sphincs_claims` are sorted lists.
-- `Sidecar.start` uses one thread per core for `threads=0`. `close()`, or the `Sidecar` being garbage collected, stops the sidecar it launched, failing a call in progress. `sidecar.prover` is `experimental` or `stable`, which make the same proofs.
-- Share one `Sidecar` per process (a sidecar serves at most 16 connections); it is thread-safe, and its calls run one at a time. A forked child opens its own connection.
+- `Aggregate.from_bytes(data, xmss_claims=(), sphincs_claims=())` accepts exactly those `(public_key, message)` claims, in any order, and raises `LeanPqError` otherwise. `xmss_claims` and `sphincs_claims` are sorted lists.
+- `setup` raises `LeanPqError` if the prover already runs with another thread count. See [Proving](https://github.com/leanEthereum/leanVM/tree/main/bindings#proving).
+- A process forked after the prover started cannot aggregate: give `multiprocessing` the `spawn` or `forkserver` start method.
 
 ## VRF
 
@@ -82,8 +76,6 @@ Needs Rust and [uv](https://docs.astral.sh/uv/). From `bindings/python`:
 uv run --extra dev pytest tests/ -v
 uv run --extra dev python -m mypy.stubtest py_lean_pq --allowlist stubtest_allowlist.txt
 ```
-
-The aggregation tests use the sidecar listening on `LEANVM_SIDECAR_SOCKET`, and start one from the executable at `LEANVM_SIDECAR_BIN`.
 
 ## License
 

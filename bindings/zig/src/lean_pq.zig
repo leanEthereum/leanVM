@@ -3,9 +3,8 @@
 //!
 //! leanXMSS is stateful: a key signs at `2^32` leaf indices, and must never sign two different
 //! messages at the same leaf index. leanSPHINCS is stateless: a key signs at most `2^30` messages.
-//! Public keys and messages are 32 bytes; signatures are fixed-size byte arrays. A leanVM sidecar,
-//! a separate process reached over a Unix socket, proves and verifies aggregates. Secret keys, VRF
-//! keys, sidecars and aggregates own native handles: call `deinit` exactly once on each.
+//! Public keys and messages are 32 bytes; signatures are fixed-size byte arrays. Secret keys, VRF
+//! keys and aggregates own native handles: call `deinit` exactly once on each.
 const std = @import("std");
 
 const c = @cImport({
@@ -22,7 +21,7 @@ pub const sphincs_signature_len = 7740;
 pub const vrf_root_len = 32;
 /// The slot's secret, then its leaf's 31 siblings.
 pub const vrf_proof_len = 1024;
-/// The most child aggregates one `Sidecar.aggregate` call accepts.
+/// The most child aggregates one `Aggregate.create` call accepts.
 pub const max_children = 16;
 
 pub const PublicKey = [public_key_len]u8;
@@ -45,14 +44,14 @@ pub const Error = error{
     TooManyChildren,
 };
 
-/// A raw leanXMSS signature input to `Sidecar.aggregate`. Its layout is the native record.
+/// A raw leanXMSS signature input to `Aggregate.create`. Its layout is the native record.
 pub const XmssSignedMessage = extern struct {
     public_key: PublicKey,
     message: Message,
     signature: XmssSignature,
 };
 
-/// A raw leanSPHINCS signature input to `Sidecar.aggregate`. Its layout is the native record.
+/// A raw leanSPHINCS signature input to `Aggregate.create`. Its layout is the native record.
 pub const SphincsSignedMessage = extern struct {
     public_key: PublicKey,
     message: Message,
@@ -69,6 +68,12 @@ comptime {
     std.debug.assert(@sizeOf(XmssSignedMessage) == 2468);
     std.debug.assert(@sizeOf(SphincsSignedMessage) == 7804);
     std.debug.assert(@sizeOf(Claim) == 64);
+}
+
+/// Starts the prover on `threads` threads (0: one per core). Fails if the prover already runs
+/// with another count.
+pub fn setup(threads: usize) Error!void {
+    try checkStatus(c.lpq_setup(threads));
 }
 
 /// Copies the calling thread's last native error message.
@@ -254,95 +259,76 @@ pub fn vrfVerify(root: VrfRoot, slot: u64, proof: *const VrfProof) Error!void {
     try checkVerification(c.lpq_vrf_verify(&root, root.len, slot, proof, proof.len));
 }
 
-/// A connection to a leanVM sidecar, which proves and verifies aggregates. A sidecar serves at most
-/// 16 connections: share one per process. Calls on one connection run one at a time, and a broken
-/// connection is reopened on the next call. Unix only: on Windows
-/// `connect` and `start` fail with `error.NativeFailure`.
-pub const Sidecar = struct {
-    handle: *c.lpq_sidecar,
-
-    /// Connects to the sidecar listening on the Unix socket at `socket_path`.
-    pub fn connect(socket_path: []const u8) Error!Sidecar {
-        var output: ?*c.lpq_sidecar = null;
-        try checkStatus(c.lpq_sidecar_connect(bytesPtr(socket_path), socket_path.len, &output));
-        return .{ .handle = output orelse return error.InvalidNativeEncoding };
-    }
-
-    /// Launches the `leanvm-sidecar` executable at `binary_path` on `socket_path` with `threads`
-    /// threads (0: one per core), waits until it listens, and connects; `deinit` stops it. Its log
-    /// goes to `socket_path` plus `.log`. Fails when a sidecar already listens there.
-    pub fn start(binary_path: []const u8, socket_path: []const u8, threads: usize) Error!Sidecar {
-        var output: ?*c.lpq_sidecar = null;
-        try checkStatus(c.lpq_sidecar_start(
-            bytesPtr(binary_path),
-            binary_path.len,
-            bytesPtr(socket_path),
-            socket_path.len,
-            threads,
-            &output,
-        ));
-        return .{ .handle = output orelse return error.InvalidNativeEncoding };
-    }
-
-    /// The prover the sidecar runs: `experimental` or `stable`. The caller owns the returned slice.
-    pub fn prover(self: *const Sidecar, allocator: std.mem.Allocator) (Error || std.mem.Allocator.Error)![]u8 {
-        var output: c.lpq_buffer = .{ .data = null, .len = 0 };
-        try checkStatus(c.lpq_sidecar_prover(self.handle, &output));
-        return takeBuffer(allocator, output);
-    }
-
-    /// Stops a sidecar `start` launched at once, failing a call in progress, then closes the
-    /// connection; later calls fail. Safe while another thread is in a call, and twice. `deinit`
-    /// still frees the handle.
-    pub fn close(self: *const Sidecar) Error!void {
-        try checkStatus(c.lpq_sidecar_close(self.handle));
-    }
-
-    /// Closes the connection, stops the sidecar if `start` launched it, and frees the handle. No
-    /// call may be in progress.
-    pub fn deinit(self: *Sidecar) void {
-        c.lpq_sidecar_destroy(self.handle);
-        self.* = undefined;
-    }
+/// A verified proof that each listed public key signed its message.
+pub const Aggregate = struct {
+    handle: *c.lpq_aggregate,
 
     /// Verifies the raw signatures, then proves the union of their claims and the children's.
     /// At least one input is required. Children are neither consumed nor retained.
-    pub fn aggregate(
-        self: *const Sidecar,
+    pub fn create(
         children: []const *const Aggregate,
         xmss: []const XmssSignedMessage,
         sphincs: []const SphincsSignedMessage,
     ) Error!Aggregate {
+        return createWith(children, xmss, sphincs, null);
+    }
+
+    /// `create`, but the result proves exactly `xmss_claims` and `sphincs_claims`, in any order, a
+    /// repeat counting once; each must be one the inputs cover.
+    pub fn createOnly(
+        children: []const *const Aggregate,
+        xmss: []const XmssSignedMessage,
+        sphincs: []const SphincsSignedMessage,
+        xmss_claims: []const Claim,
+        sphincs_claims: []const Claim,
+    ) Error!Aggregate {
+        return createWith(children, xmss, sphincs, .{ xmss_claims, sphincs_claims });
+    }
+
+    fn createWith(
+        children: []const *const Aggregate,
+        xmss: []const XmssSignedMessage,
+        sphincs: []const SphincsSignedMessage,
+        only: ?struct { []const Claim, []const Claim },
+    ) Error!Aggregate {
         if (children.len > max_children) return error.TooManyChildren;
         var handles: [max_children]?*c.lpq_aggregate = undefined;
         for (children, handles[0..children.len]) |child, *handle| handle.* = child.handle;
+        const children_ptr: [*c]const ?*c.lpq_aggregate = if (children.len == 0) null else &handles;
+        const xmss_ptr = bytesPtr(std.mem.sliceAsBytes(xmss));
+        const sphincs_ptr = bytesPtr(std.mem.sliceAsBytes(sphincs));
 
         var output: ?*c.lpq_aggregate = null;
-        try checkStatus(c.lpq_sidecar_aggregate(
-            self.handle,
-            if (children.len == 0) null else &handles,
-            children.len,
-            bytesPtr(std.mem.sliceAsBytes(xmss)),
-            xmss.len,
-            bytesPtr(std.mem.sliceAsBytes(sphincs)),
-            sphincs.len,
-            &output,
-        ));
+        if (only) |claims| {
+            try checkStatus(c.lpq_aggregate_create_only(
+                children_ptr,
+                children.len,
+                xmss_ptr,
+                xmss.len,
+                sphincs_ptr,
+                sphincs.len,
+                bytesPtr(std.mem.sliceAsBytes(claims[0])),
+                claims[0].len,
+                bytesPtr(std.mem.sliceAsBytes(claims[1])),
+                claims[1].len,
+                &output,
+            ));
+        } else {
+            try checkStatus(c.lpq_aggregate_create(children_ptr, children.len, xmss_ptr, xmss.len, sphincs_ptr, sphincs.len, &output));
+        }
         return .{ .handle = output orelse return error.InvalidNativeEncoding };
     }
 
     /// Verifies that a proof from `Aggregate.toBytes` proves exactly `xmss_claims` and
     /// `sphincs_claims`. Claims may come in any order; a repeated claim counts once. Fails with
     /// `error.NativeFailure` for malformed bytes or any other claim set.
-    pub fn verify(
-        self: *const Sidecar,
+    pub fn fromBytes(
         data: []const u8,
         xmss_claims: []const Claim,
         sphincs_claims: []const Claim,
     ) Error!Aggregate {
         var output: ?*c.lpq_aggregate = null;
-        try checkStatus(c.lpq_sidecar_verify(
-            self.handle,
+        try checkStatus(c.lpq_aggregate_from_bytes(
             bytesPtr(data),
             data.len,
             bytesPtr(std.mem.sliceAsBytes(xmss_claims)),
@@ -353,11 +339,6 @@ pub const Sidecar = struct {
         ));
         return .{ .handle = output orelse return error.InvalidNativeEncoding };
     }
-};
-
-/// A verified proof that each listed public key signed its message.
-pub const Aggregate = struct {
-    handle: *c.lpq_aggregate,
 
     pub fn deinit(self: *Aggregate) void {
         c.lpq_aggregate_destroy(self.handle);

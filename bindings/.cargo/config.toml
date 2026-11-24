@@ -3,6 +3,7 @@
 # (wheels, addons, archives, libraries) must run on any machine of their target, so they pin a
 # portable baseline instead: AVX2 and PCLMULQDQ enable the x86_64 carry-less multiplication
 # kernels and are present on every AVX2-capable CPU; the aarch64 targets keep their defaults.
+# On this baseline, scripts/tier-rustc (RUSTC_WRAPPER) adds the experimental prover's CPU tiers, picked at run time.
 #
 # How the root's `target-cpu=native` is overridden. Cargo reads this file and the root's for every
 # command run under bindings/ (it reads config files from the working directory and its ancestors,
@@ -48,3 +49,8 @@ rustflags = ["-C", "target-feature=+avx2,+pclmulqdq"]
 # load without the Visual C++ redistributable.
 [target.x86_64-pc-windows-msvc]
 rustflags = ["-C", "target-feature=+avx2,+pclmulqdq,+crt-static"]
+
+# jemalloc's default configuration, as `allocator`'s `library` feature sets it: a static library's linker drops that
+# setting's unreferenced object.
+[env]
+JEMALLOC_SYS_WITH_MALLOC_CONF = "dirty_decay_ms:-1"

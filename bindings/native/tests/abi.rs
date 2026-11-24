@@ -16,14 +16,7 @@ fn native_abi_signs_verifies_and_aggregates() {
         .name("native-abi-test".to_owned())
         .stack_size(32 * 1024 * 1024)
         .spawn(|| unsafe {
-            // Aggregation goes through the sidecar listening on $LEANVM_SIDECAR_SOCKET.
-            let socket = std::env::var("LEANVM_SIDECAR_SOCKET")
-                .expect("set LEANVM_SIDECAR_SOCKET to the socket of a running leanvm-sidecar");
-            let mut sidecar = ptr::null_mut();
-            assert_eq!(
-                lpq_sidecar_connect(socket.as_ptr(), socket.len(), &mut sidecar),
-                OK
-            );
+            assert_eq!(lpq_setup(0), OK);
             let message = [42u8; 32];
             let other = [43u8; 32];
 
@@ -182,8 +175,7 @@ fn native_abi_signs_verifies_and_aggregates() {
             let sphincs_record = [&sphincs_pk[..], &message, &sphincs_sig].concat();
             let mut aggregate = ptr::null_mut();
             assert_eq!(
-                lpq_sidecar_aggregate(
-                    sidecar,
+                lpq_aggregate_create(
                     ptr::null(),
                     0,
                     xmss_record.as_ptr(),
@@ -204,8 +196,7 @@ fn native_abi_signs_verifies_and_aggregates() {
             let sphincs_claim = [&sphincs_pk[..], &message].concat();
             let mut decoded = ptr::null_mut();
             assert_eq!(
-                lpq_sidecar_verify(
-                    sidecar,
+                lpq_aggregate_from_bytes(
                     aggregate_bytes.as_ptr(),
                     aggregate_bytes.len(),
                     xmss_claim.as_ptr(),
@@ -222,13 +213,59 @@ fn native_abi_signs_verifies_and_aggregates() {
             let mut buffer = LpqBuffer::default();
             assert_eq!(lpq_aggregate_sphincs_claims(decoded, &mut buffer), OK);
             assert_eq!(take(buffer), sphincs_claim);
+
+            // Re-aggregating it can keep only the leanXMSS claim.
+            let mut only = ptr::null_mut();
+            assert_eq!(
+                lpq_aggregate_create_only(
+                    &decoded,
+                    1,
+                    ptr::null(),
+                    0,
+                    ptr::null(),
+                    0,
+                    xmss_claim.as_ptr(),
+                    1,
+                    ptr::null(),
+                    0,
+                    &mut only
+                ),
+                OK
+            );
+            let mut buffer = LpqBuffer::default();
+            assert_eq!(lpq_aggregate_xmss_claims(only, &mut buffer), OK);
+            assert_eq!(take(buffer), xmss_claim);
+            let mut buffer = LpqBuffer::default();
+            assert_eq!(lpq_aggregate_sphincs_claims(only, &mut buffer), OK);
+            assert!(take(buffer).is_empty());
+            lpq_aggregate_destroy(only);
+
+            // A claim the inputs do not cover fails, and leaves no handle.
+            let uncovered = [&xmss_pk[..], &other].concat();
+            let mut rejected = ptr::null_mut();
+            assert_eq!(
+                lpq_aggregate_create_only(
+                    &decoded,
+                    1,
+                    ptr::null(),
+                    0,
+                    ptr::null(),
+                    0,
+                    uncovered.as_ptr(),
+                    1,
+                    ptr::null(),
+                    0,
+                    &mut rejected
+                ),
+                ERROR
+            );
+            assert!(rejected.is_null());
             lpq_aggregate_destroy(decoded);
 
             // The same proof against one claim short fails, and leaves no handle.
             let mut rejected = ptr::null_mut();
             assert_eq!(
-                lpq_sidecar_verify(
-                    sidecar,
+                lpq_aggregate_from_bytes(
                     aggregate_bytes.as_ptr(),
                     aggregate_bytes.len(),
                     xmss_claim.as_ptr(),
@@ -240,7 +277,6 @@ fn native_abi_signs_verifies_and_aggregates() {
                 ERROR
             );
             assert!(rejected.is_null());
-            lpq_sidecar_destroy(sidecar);
         })
         .expect("test thread starts")
         .join()

@@ -23,11 +23,16 @@ typedef struct lpq_xmss_secret_key lpq_xmss_secret_key;
 typedef struct lpq_sphincs_secret_key lpq_sphincs_secret_key;
 typedef struct lpq_aggregate lpq_aggregate;
 typedef struct lpq_vrf_key lpq_vrf_key;
-typedef struct lpq_sidecar lpq_sidecar;
 
 /* Returns 0 on success, 1 for a checked error, and 2 when Rust caught a panic. */
 int32_t lpq_last_error(lpq_buffer *out);
 void lpq_buffer_free(uint8_t *data, size_t len);
+
+/*
+ * Starts the prover with threads threads (0: one per core). Fails above the machine's parallelism,
+ * if it runs with another count, or in a process forked after it started.
+ */
+int32_t lpq_setup(size_t threads);
 
 int32_t lpq_xmss_secret_key_generate(lpq_xmss_secret_key **out);
 int32_t lpq_xmss_secret_key_from_bytes(const uint8_t *data, size_t len, lpq_xmss_secret_key **out);
@@ -57,39 +62,22 @@ void lpq_sphincs_secret_key_destroy(lpq_sphincs_secret_key *key);
 int32_t lpq_sphincs_verify(const uint8_t *public_key, size_t public_key_len, const uint8_t *message, size_t message_len, const uint8_t *signature, size_t signature_len);
 
 /*
- * A connection to the leanVM sidecar listening on the Unix socket at path (len bytes, no NUL). It
- * proves and verifies aggregates; calls on one connection run one at a time, and a broken
- * connection is reopened on the next call. Fails on platforms without Unix sockets.
+ * Raw signatures are concatenated fixed-width records of public key (32) | message (32) |
+ * signature: 2468-byte records for leanXMSS and 7804-byte records for leanSPHINCS. Children are
+ * at most 16 aggregates; the call neither consumes nor retains them.
  */
-int32_t lpq_sidecar_connect(const uint8_t *path, size_t len, lpq_sidecar **out);
+int32_t lpq_aggregate_create(lpq_aggregate *const *children, size_t child_count, const uint8_t *xmss, size_t xmss_count, const uint8_t *sphincs, size_t sphincs_count, lpq_aggregate **out);
 /*
- * Launches the leanvm-sidecar executable at binary on the socket at path with threads threads (0:
- * one per core), waits until it listens, and connects; destroying the handle stops it. Its log
- * goes to the socket path plus ".log".
+ * lpq_aggregate_create, but the result proves exactly these claims, given as lpq_aggregate_from_bytes
+ * takes them; each must be one the inputs cover.
  */
-int32_t lpq_sidecar_start(const uint8_t *binary, size_t binary_len, const uint8_t *path, size_t len, size_t threads, lpq_sidecar **out);
-/* The prover the sidecar runs: "experimental" or "stable" (UTF-8, no NUL). */
-int32_t lpq_sidecar_prover(lpq_sidecar *sidecar, lpq_buffer *out);
+int32_t lpq_aggregate_create_only(lpq_aggregate *const *children, size_t child_count, const uint8_t *xmss, size_t xmss_count, const uint8_t *sphincs, size_t sphincs_count, const uint8_t *xmss_claims, size_t xmss_claim_count, const uint8_t *sphincs_claims, size_t sphincs_claim_count, lpq_aggregate **out);
 /*
- * Stops the sidecar lpq_sidecar_start launched, failing a call in progress, then closes the
- * connection; later calls fail. Safe to call while another thread is in a call, and twice.
+ * Verifies that a proof proves exactly these claims, given as concatenated 64-byte public key (32)
+ * | message (32) records in any order; a repeated claim counts once. A returned handle is always a
+ * verified aggregate.
  */
-int32_t lpq_sidecar_close(lpq_sidecar *sidecar);
-/* Closes, then frees the handle. No call may be in progress. */
-void lpq_sidecar_destroy(lpq_sidecar *sidecar);
-
-/*
- * Proves through the sidecar. Raw signatures are concatenated fixed-width records of public key
- * (32) | message (32) | signature: 2468-byte records for leanXMSS and 7804-byte records for
- * leanSPHINCS. Children are at most 16 aggregates; the call neither consumes nor retains them.
- */
-int32_t lpq_sidecar_aggregate(lpq_sidecar *sidecar, lpq_aggregate *const *children, size_t child_count, const uint8_t *xmss, size_t xmss_count, const uint8_t *sphincs, size_t sphincs_count, lpq_aggregate **out);
-/*
- * Verifies through the sidecar that a proof proves exactly these claims, given as concatenated
- * 64-byte public key (32) | message (32) records in any order; a repeated claim counts once. A
- * returned handle is always a verified aggregate.
- */
-int32_t lpq_sidecar_verify(lpq_sidecar *sidecar, const uint8_t *data, size_t len, const uint8_t *xmss_claims, size_t xmss_count, const uint8_t *sphincs_claims, size_t sphincs_count, lpq_aggregate **out);
+int32_t lpq_aggregate_from_bytes(const uint8_t *data, size_t len, const uint8_t *xmss_claims, size_t xmss_count, const uint8_t *sphincs_claims, size_t sphincs_count, lpq_aggregate **out);
 /* The proof alone, without its claims. */
 int32_t lpq_aggregate_to_bytes(lpq_aggregate *aggregate, lpq_buffer *out);
 /* Claims are concatenated 64-byte public key (32) | message (32) records, strictly sorted. */

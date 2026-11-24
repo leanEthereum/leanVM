@@ -1,7 +1,5 @@
 import os
-import shutil
 import sys
-import tempfile
 
 import py_lean_pq as lpq
 import pytest
@@ -71,37 +69,19 @@ def test_xmss_key_loads_from_its_tree_cache():
         lpq.XmssSecretKey.from_cache_bytes(seed[1:], key.public_key, cache)
 
 
-UNIX = sys.platform != "win32"
-needs_sidecar = pytest.mark.skipif(not UNIX, reason="the sidecar needs Unix sockets")
-
-
-def env(name):
-    value = os.environ.get(name)
-    if not value:
-        pytest.fail(f"set {name} to run the aggregation tests")
-    return value
-
-
-@pytest.fixture(scope="module")
-def sidecar():
-    with lpq.Sidecar.connect(env("LEANVM_SIDECAR_SOCKET")) as sidecar:
-        yield sidecar
-
-
-@needs_sidecar
-def test_aggregates_both_schemes_recursively(sidecar):
+def test_aggregates_both_schemes_recursively():
     first = b"\x11" * 32
     second = b"\x22" * 32
     xmss_key = lpq.XmssSecretKey.from_seed(b"\x05" * 32)
     sphincs_key = lpq.SphincsSecretKey.from_seed(b"\x06" * 32)
 
-    left = sidecar.aggregate(
+    left = lpq.aggregate(
         xmss=[(xmss_key.public_key, first, xmss_key.sign(first, 0))]
     )
-    right = sidecar.aggregate(
+    right = lpq.aggregate(
         sphincs=[(sphincs_key.public_key, second, sphincs_key.sign(second))]
     )
-    root = sidecar.aggregate(
+    root = lpq.aggregate(
         children=[left, right],
         xmss=[(xmss_key.public_key, second, xmss_key.sign(second, 1))],
     )
@@ -112,13 +92,13 @@ def test_aggregates_both_schemes_recursively(sidecar):
     assert root.sphincs_claims == sphincs_claims
 
     proof = root.to_bytes()
-    received = sidecar.verify(proof, root.xmss_claims, root.sphincs_claims)
+    received = lpq.Aggregate.from_bytes(proof, root.xmss_claims, root.sphincs_claims)
     assert received.xmss_claims == xmss_claims
     assert received.sphincs_claims == sphincs_claims
     assert received.to_bytes() == proof
 
     # Claims may arrive in any order, and a duplicate counts once.
-    shuffled = sidecar.verify(
+    shuffled = lpq.Aggregate.from_bytes(
         proof,
         xmss_claims=list(reversed(xmss_claims)) + [xmss_claims[0]],
         sphincs_claims=sphincs_claims,
@@ -128,76 +108,52 @@ def test_aggregates_both_schemes_recursively(sidecar):
     # The proof attests exactly its claims: one short, another message, or other bytes fail.
     rejected = "does not prove the given claims"
     with pytest.raises(lpq.LeanPqError, match=rejected):
-        sidecar.verify(proof, xmss_claims[:1], sphincs_claims)
+        lpq.Aggregate.from_bytes(proof, xmss_claims[:1], sphincs_claims)
     with pytest.raises(lpq.LeanPqError, match=rejected):
-        sidecar.verify(proof, xmss_claims, [(sphincs_key.public_key, first)])
+        lpq.Aggregate.from_bytes(proof, xmss_claims, [(sphincs_key.public_key, first)])
     with pytest.raises(lpq.LeanPqError, match=rejected):
-        sidecar.verify(proof)
+        lpq.Aggregate.from_bytes(proof)
     tampered = bytearray(proof)
     tampered[len(tampered) // 2] ^= 1
     for data in (bytes(tampered), proof[:-1], b""):
-        with pytest.raises(lpq.LeanPqError, match=rejected):
-            sidecar.verify(data, xmss_claims, sphincs_claims)
+        with pytest.raises(lpq.LeanPqError, match="malformed aggregate|does not prove"):
+            lpq.Aggregate.from_bytes(data, xmss_claims, sphincs_claims)
+
+    # Re-aggregating the root can keep only some of its claims, each one it covers.
+    only = lpq.aggregate(children=[root], xmss_claims=[xmss_claims[0]])
+    assert only.xmss_claims == [xmss_claims[0]]
+    assert only.sphincs_claims == []
+    with pytest.raises(lpq.LeanPqError, match="not covered by the inputs"):
+        lpq.aggregate(children=[root], xmss_claims=[(xmss_key.public_key, b"\x33" * 32)])
 
     with pytest.raises(ValueError, match="message must be exactly 32 bytes"):
-        sidecar.verify(proof, [(xmss_key.public_key, b"\x11")])
+        lpq.Aggregate.from_bytes(proof, [(xmss_key.public_key, b"\x11")])
 
 
-@needs_sidecar
-def test_aggregating_nothing_fails(sidecar):
+def test_aggregating_nothing_fails():
     with pytest.raises(lpq.LeanPqError, match="aggregation failed"):
-        sidecar.aggregate()
+        lpq.aggregate()
 
 
-@pytest.fixture
-def directory():
-    # Short: a Unix socket path holds at most 104 bytes on macOS.
-    directory = tempfile.mkdtemp(prefix="lpq")
-    yield directory
-    shutil.rmtree(directory)
+def test_setup_keeps_its_first_thread_count():
+    lpq.setup()
+    with pytest.raises(lpq.LeanPqError, match="already started with 0 threads, not 1"):
+        lpq.setup(1)
 
 
-@needs_sidecar
-def test_starts_and_stops_its_own_sidecar(sidecar, directory):
-    key = lpq.XmssSecretKey.from_seed(b"\x07" * 32)
-    message = b"\x33" * 32
-    proof = sidecar.aggregate(xmss=[(key.public_key, message, key.sign(message, 0))])
-
-    socket = os.path.join(directory, "s.sock")
-    with lpq.Sidecar.start(env("LEANVM_SIDECAR_BIN"), socket, threads=2) as started:
-        assert started.prover in ("experimental", "stable")
-        started.verify(proof.to_bytes(), proof.xmss_claims)
-    # Closing it stopped the sidecar, and a closed one refuses calls.
-    with pytest.raises(lpq.LeanPqError, match="leanVM sidecar"):
-        lpq.Sidecar.connect(socket)
-    with pytest.raises(lpq.LeanPqError, match="closed"):
-        started.verify(proof.to_bytes(), proof.xmss_claims)
-
-
-@needs_sidecar
+@pytest.mark.skipif(sys.platform == "win32", reason="no fork on Windows")
 @pytest.mark.filterwarnings("ignore:This process .* is multi-threaded")
-def test_a_forked_child_opens_its_own_connection(sidecar):
-    key = lpq.XmssSecretKey.from_seed(b"\x08" * 32)
-    message = b"\x44" * 32
-    proof = sidecar.aggregate(xmss=[(key.public_key, message, key.sign(message, 0))])
+def test_aggregating_in_a_child_forked_after_setup_fails():
+    lpq.setup()
     pid = os.fork()
     if pid == 0:
         # Whatever happens, the child must not return into pytest.
         code = 1
         try:
-            sidecar.verify(proof.to_bytes(), proof.xmss_claims)
-            code = 0
+            lpq.aggregate()
+        except lpq.LeanPqError as error:
+            code = 0 if "forked" in str(error) else 3
         finally:
             os._exit(code)
-    # The parent's connection is untouched, and the child's verdict was its own.
-    sidecar.verify(proof.to_bytes(), proof.xmss_claims)
     _, status = os.waitpid(pid, 0)
     assert os.waitstatus_to_exitcode(status) == 0
-    with pytest.raises(lpq.LeanPqError, match="does not prove"):
-        sidecar.verify(proof.to_bytes())
-
-
-def test_connecting_where_no_sidecar_listens_fails(directory):
-    match = "leanVM sidecar" if UNIX else "Unix sockets"
-    with pytest.raises(lpq.LeanPqError, match=match):
-        lpq.Sidecar.connect(os.path.join(directory, "none.sock"))

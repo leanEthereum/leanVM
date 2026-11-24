@@ -44,7 +44,7 @@ try (XmssSecretKey xmss = XmssSecretKey.fromSeed(seed32);
 ```
 
 - Public keys and messages are 32 bytes; signatures are 2404 (leanXMSS) or 7740 (leanSPHINCS) bytes.
-- `XmssSecretKey`, `SphincsSecretKey`, `Sidecar` and `Aggregate` are `AutoCloseable`: use try-with-resources.
+- `XmssSecretKey`, `SphincsSecretKey`, `VrfKey` and `Aggregate` are `AutoCloseable`: use try-with-resources.
 - leanXMSS is stateful: a key has `2^32` leaf indices, and must never sign two messages at the same one. Persist a high-water leaf index next to the key and advance it before publishing a signature. `prepare(leafIndex)` builds a leaf's signing state ahead of time.
 - leanSPHINCS is stateless and deterministic; a key signs at most `2^30` messages.
 - `toBytes()` is the key's 32-byte seed, which is secret; `fromBytes` restores the key.
@@ -67,33 +67,27 @@ A key is a 32-byte seed and the slots `[start, end)`, with `end <= 2^31`: both f
 
 ## Aggregate
 
-Aggregation runs in a leanVM sidecar, a separate process (Linux and macOS): see [the sidecar](../README.md#sidecar).
-
 ```java
-import java.nio.file.Path;
 import java.util.List;
 import org.ethereum.leanpq.*;
 
-Path socket = Path.of(System.getProperty("user.home"), ".leanvm", "sidecar.sock");
-try (Sidecar sidecar = Sidecar.connect(socket); // or Sidecar.start(binary, socket, threads)
-     XmssSecretKey xmss = XmssSecretKey.fromSeed(seed32);
+try (XmssSecretKey xmss = XmssSecretKey.fromSeed(seed32);
      SphincsSecretKey sphincs = SphincsSecretKey.fromSeed(otherSeed32);
-     Aggregate leaf = sidecar.aggregate(
+     Aggregate leaf = LeanPq.aggregate(
          List.of(),
          List.of(new SignedMessage(xmss.publicKey(), message32, xmss.sign(message32, 7))),
          List.of(new SignedMessage(sphincs.publicKey(), message32, sphincs.sign(message32))));
-     Aggregate root = sidecar.aggregate(List.of(leaf), List.of(), List.of());
-     Aggregate received = sidecar.verify(root.toBytes(), root.xmssClaims(), root.sphincsClaims())) {
+     Aggregate root = LeanPq.aggregate(List.of(leaf), List.of(), List.of());
+     Aggregate received = Aggregate.fromBytes(root.toBytes(), root.xmssClaims(), root.sphincsClaims())) {
     List<SignatureClaim> xmssClaims = received.xmssClaims();
 }
 ```
 
 - `aggregate(children, xmss, sphincs)` verifies raw signatures before proving and takes at most 16 children. The result proves the union of their claims.
+- `aggregateOnly(children, xmss, sphincs, xmssClaims, sphincsClaims)` proves exactly the given claims, in any order; each must be one the inputs cover.
 - `toBytes()` is the proof alone: send the claims alongside it, or let the receiver rebuild them.
-- `verify(bytes, xmssClaims, sphincsClaims)` accepts exactly those claims, in any order, and throws `LeanPqException` otherwise; verifying also needs the sidecar. `xmssClaims()` and `sphincsClaims()` are sorted.
-- `Sidecar.start(binary, socket)` launches a sidecar on a socket in a private directory, such as `~/.leanvm/run/sidecar.sock`, with one thread per core, as does `threads` 0. `prover()` is `"experimental"` or `"stable"`, which make the same proofs.
-- A `Sidecar` is safe to share between threads; its calls run one at a time. A sidecar serves at most 16 connections, so share one `Sidecar` per process.
-- `close()` stops a sidecar `start` launched at once, failing calls in progress, and frees the handle once they return; later calls throw `IllegalStateException`. An unreachable started `Sidecar` is stopped when the Cleaner frees it.
+- `Aggregate.fromBytes(bytes, xmssClaims, sphincsClaims)` accepts exactly those claims, in any order, and throws `LeanPqException` otherwise. `xmssClaims()` and `sphincsClaims()` are sorted.
+- `setup` throws `LeanPqException` if the prover already runs with another thread count. See [Proving](https://github.com/leanEthereum/leanVM/tree/main/bindings#proving).
 
 ## Build and test
 
@@ -103,7 +97,7 @@ Needs JDK 25, Gradle 9.1 or newer and Rust. From the repository root:
 gradle -p bindings/java test
 ```
 
-The test task builds the native library itself. The aggregation tests use the sidecar listening on `LEANVM_SIDECAR_SOCKET`, and start one from the executable at `LEANVM_SIDECAR_BIN`. Building the release jar is in [RELEASING.md](../RELEASING.md#maven-central).
+The test task builds the native library itself. Building the release jar is in [RELEASING.md](../RELEASING.md#maven-central).
 
 ## License
 

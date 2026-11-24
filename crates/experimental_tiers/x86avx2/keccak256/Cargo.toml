@@ -1,0 +1,23 @@
+# Written by ../../generate.sh.
+[package]
+name = "keccak256_x86avx2"
+version = "0.1.0"
+edition = "2024"
+publish = false
+autobins = false
+autotests = false
+autobenches = false
+autoexamples = false
+
+[package.metadata.tier]
+target-features = "+avx2,+pclmulqdq"
+
+[lib]
+path = "../../../keccak256/src/lib.rs"
+test = false
+doctest = false
+bench = false
+doc = false
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(leanvm_tier)"] }

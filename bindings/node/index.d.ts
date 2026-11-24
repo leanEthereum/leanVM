@@ -6,18 +6,6 @@ export declare class Aggregate {
   get sphincsClaims(): Array<Claim>
 }
 
-/** A connection to a leanVM sidecar, which proves and verifies aggregates. */
-export declare class Sidecar {
-  /** Proves; the facade's `aggregate` wraps it. */
-  prove(children: Array<Aggregate>, xmss: Array<SignedMessage>, sphincs: Array<SignedMessage>): Promise<Aggregate>
-  /** Verifies; the facade's `verify` wraps it. */
-  check(data: Buffer, xmss: Array<Claim>, sphincs: Array<Claim>): Promise<Aggregate>
-  /** The prover the sidecar runs: `experimental` or `stable`. */
-  get prover(): string
-  /** Stops a sidecar `start` launched, failing a call in progress, and closes the connection. */
-  close(): Promise<void>
-}
-
 export declare class SphincsSecretKey {
   /** SECRET KEY MATERIAL: the seed. */
   toBytes(): Buffer
@@ -42,6 +30,10 @@ export declare class XmssSecretKey {
   sign(message: Buffer, leafIndex: number): Promise<Buffer>
 }
 
+export declare function aggregate(children: Array<Aggregate>, xmss: Array<SignedMessage>, sphincs: Array<SignedMessage>, onlyXmss?: Array<Claim> | undefined | null, onlySphincs?: Array<Claim> | undefined | null): Promise<Aggregate>
+
+export declare function aggregateFromBytes(data: Buffer, xmss: Array<Claim>, sphincs: Array<Claim>): Promise<Aggregate>
+
 /** A `(public key, message)` pair an aggregate proves. */
 export interface Claim {
   publicKey: Buffer
@@ -52,9 +44,7 @@ export declare function generateSphincsSecretKey(): Promise<SphincsSecretKey>
 
 export declare function generateXmssSecretKey(): Promise<XmssSecretKey>
 
-export declare function sidecarConnect(socket: string): Promise<Sidecar>
-
-export declare function sidecarStart(binary: string, socket: string, threads?: number | undefined | null): Promise<Sidecar>
+export declare function setup(threads?: number | undefined | null): Promise<void>
 
 /** A raw signature to aggregate. */
 export interface SignedMessage {

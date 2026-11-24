@@ -22,7 +22,7 @@ zkdsl_compiler.workspace = true
 lean_xmss.workspace = true
 lean_sphincs.workspace = true
 stable_lean_vm_core = { path = "../crates/stable_prover/lean_vm_core" }
-experimental_lean_vm_core = { path = "../crates/experimental_prover/lean_vm_core" }
+experimental_dispatch = { path = "../crates/experimental_dispatch", features = ["cpu_tiers"] }
 allocator.workspace = true
 bench_harness.workspace = true
 rand.workspace = true

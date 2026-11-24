@@ -31,7 +31,7 @@ git -C vendor/leanVM checkout bindings-v0.16.0
 
 The package depends on [`results`](https://github.com/arnetheduck/nim-results); with nimbus-build-system, vendor it too.
 
-The first build downloads the prebuilt archive with curl, for Linux x86_64 and aarch64 (glibc), macOS (universal) and Windows x86_64 (MinGW-w64 gcc, not `--cc:vcc`), so signing and verifying need no Rust. For other targets or offline builds, pass `-d:leanPqNativeDir=DIR` holding your own `liblean_pq_native.a`.
+The first build downloads the prebuilt archive with curl, for Linux x86_64 and aarch64 (glibc), macOS (universal) and Windows x86_64 (MinGW-w64 gcc, not `--cc:vcc`), so no Rust is needed. For other targets or offline builds, pass `-d:leanPqNativeDir=DIR` holding your own `liblean_pq_native.a`.
 
 ## Example
 
@@ -78,34 +78,32 @@ main()
 
 ## Aggregate
 
-Aggregating and verifying an aggregate both run in a leanVM sidecar, on Linux and macOS: see [the sidecar](../README.md#sidecar). With the keys and signatures above (and `import std/os`):
+With the keys and signatures above:
 
 ```nim
 let
-  sidecar = LeanPqSidecar.connect(getHomeDir() / ".leanvm" / "sidecar.sock").expect("sidecar")
-  leaf = sidecar.aggregate(
+  leaf = LeanPqAggregate.init(
     xmss = [XmssSignedMessage(
       publicKey: xmssPublicKey, message: message, signature: xmssSignature)],
     sphincs = [SphincsSignedMessage(
       publicKey: sphincsPublicKey, message: message, signature: sphincsSignature)],
   ).expect("leaf")
-  root = sidecar.aggregate([leaf]).expect("root")
+  root = LeanPqAggregate.init([leaf]).expect("root")
   encoded = root.toBytes().expect("bytes")
-  received = sidecar.verify(
+  received = LeanPqAggregate.fromBytes(
     encoded,
     [LeanPqClaim(publicKey: xmssPublicKey, message: message)],
     [LeanPqClaim(publicKey: sphincsPublicKey, message: message)],
   ).expect("verifies")
 doAssert received.xmssClaims().expect("claims").len == 1
-sidecar.close()
 ```
 
-- `aggregate` verifies raw signatures first and takes at most `MaxAggregateChildren` (16) children, which it neither consumes nor closes.
+- `LeanPqAggregate.init` verifies raw signatures first and takes at most `MaxAggregateChildren` (16) children, which it neither consumes nor closes.
+- `LeanPqAggregate.initOnly` takes the claims the result proves too, in any order; each must be one the inputs cover.
 - `toBytes` is the proof alone: send the claims (`xmssClaims`, `sphincsClaims`) alongside it.
-- `verify` takes the claims in any order (a repeat counts once) and fails for any other set, so every `LeanPqAggregate` is proven.
-- `LeanPqSidecar.start("leanvm-sidecar", getHomeDir() / ".leanvm" / "run" / "sidecar.sock", threads = 0)` launches a sidecar instead (`threads` 0: one per core). The socket's directory must be private to you; `start` creates it so if missing. `prover()` returns `experimental` or `stable`.
-- A sidecar serves at most 16 connections: share one `LeanPqSidecar` per process. Calls on it run one at a time. `close` disconnects and stops a sidecar `start` launched.
-- On Linux, ignore `SIGPIPE` (`signal(SIGPIPE, SIG_IGN)` from `std/posix`), so that a sidecar that dies fails the call instead of killing the program.
+- `LeanPqAggregate.fromBytes` takes the claims in any order (a repeat counts once) and fails for any other set, so every `LeanPqAggregate` is proven.
+- `leanPqSetup(threads)` fails if the prover already runs with another thread count. See [Proving](https://github.com/leanEthereum/leanVM/tree/main/bindings#proving).
+- A process forked after the prover started cannot aggregate.
 
 ## VRF
 
@@ -127,7 +125,7 @@ cd bindings/nim && nimble test
 
 Other platforms stage `aarch64-unknown-linux-gnu` into `native/aarch64-linux-gnu`, `universal2-apple-darwin` into `native/universal-macos` (on macOS), and `x86_64-pc-windows-gnu` into `native/x86_64-windows-gnu`.
 
-Aggregation tests connect to the sidecar at `LEANVM_SIDECAR_SOCKET` and start one from `LEANVM_SIDECAR_BIN`.
+Then build your program with `-d:leanPqNativeDir=DIR`, the absolute path of that directory.
 
 ## License
 

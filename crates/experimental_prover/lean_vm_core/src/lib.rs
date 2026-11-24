@@ -36,6 +36,10 @@ pub mod witness;
 pub use fiat_shamir::SECURITY_BITS;
 pub use prover::ExperimentalProver;
 
+/// Whether `scripts/tier-rustc` compiled this copy with a CPU tier's target features (`crates/experimental_tiers`).
+#[doc(hidden)]
+pub const __TIER: bool = cfg!(leanvm_tier);
+
 /// Below this many parallelizable items a pass runs serially: the fan-out
 /// overhead is not worth it for small inputs. Shared by [`constraints`], [`gkr`], [`leaf`].
 pub(crate) const PAR_THRESHOLD: usize = 1 << 11;

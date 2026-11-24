@@ -1,7 +1,7 @@
 {.used.}
 
 import
-  std/[os, strutils],
+  std/[algorithm, os, strutils],
   unittest2,
   ../lean_pq
 
@@ -9,26 +9,18 @@ func filled(value: byte): array[32, byte] =
   for index in 0 ..< result.len:
     result[index] = value
 
+func claimKey(claim: LeanPqClaim): string =
+  for value in claim.publicKey:
+    result.add char(value)
+  for value in claim.message:
+    result.add char(value)
+
+func sortedClaims(claims: openArray[LeanPqClaim]): seq[LeanPqClaim] =
+  claims.sorted(proc(a, b: LeanPqClaim): int = cmp(claimKey(a), claimKey(b)))
+
 func fromHex(text: string): seq[byte] =
   for index in countup(0, text.len - 1, 2):
     result.add byte(fromHex[uint8](text[index .. index + 1]))
-
-when not defined(windows):
-  import std/algorithm
-
-  func claimKey(claim: LeanPqClaim): string =
-    for value in claim.publicKey:
-      result.add char(value)
-    for value in claim.message:
-      result.add char(value)
-
-  func sortedClaims(claims: openArray[LeanPqClaim]): seq[LeanPqClaim] =
-    claims.sorted(proc(a, b: LeanPqClaim): int = cmp(claimKey(a), claimKey(b)))
-
-  proc requiredEnv(name, meaning: string): string {.raises: [ValueError].} =
-    result = getEnv(name)
-    if result.len == 0:
-      raise newException(ValueError, "set " & name & " to " & meaning)
 
 const
   message = filled(0x42)
@@ -161,8 +153,6 @@ suite "lean_pq":
     check:
       XmssSecretKey.fromBytes([1'u8, 2, 3]).isErr()
       SphincsSecretKey.fromBytes([]).isErr()
-      LeanPqSidecar.start("leanvm-sidecar", "s.sock", threads = -1).error() ==
-        "threads must be >= 0"
 
   test "closed values return errors and close twice":
     let
@@ -183,102 +173,82 @@ suite "lean_pq":
     let nilKey: XmssSecretKey = nil
     nilKey.close()
     check nilKey.toBytes().isErr()
-    let nilSidecar: LeanPqSidecar = nil
-    nilSidecar.close()
-    check nilSidecar.aggregate().error() == "sidecar is closed"
 
-  when defined(windows):
-    test "the sidecar needs Unix sockets":
-      const unsupported = "the leanVM sidecar needs Unix sockets, which this platform lacks"
-      check:
-        LeanPqSidecar.connect("sidecar.sock").error() == unsupported
-        LeanPqSidecar.start("leanvm-sidecar.exe", "sidecar.sock").error() == unsupported
-  else:
-    test "aggregates recursively and round trips through bytes":
-      let
-        sidecar = LeanPqSidecar.connect(requiredEnv(
-          "LEANVM_SIDECAR_SOCKET", "the socket of a running leanvm-sidecar")).expect("sidecar")
-        xmssKey = XmssSecretKey.fromSeed(filled(3)).expect("key")
-        sphincsKey = SphincsSecretKey.fromSeed(filled(4)).expect("key")
-        extraKey = XmssSecretKey.fromSeed(filled(5)).expect("key")
-        xmssPublicKey = xmssKey.publicKey().expect("public key")
-        sphincsPublicKey = sphincsKey.publicKey().expect("public key")
-        extraPublicKey = extraKey.publicKey().expect("public key")
-      check sidecar.prover().expect("prover") in ["experimental", "stable"]
+  test "aggregates recursively and round trips through bytes":
+    let
+      xmssKey = XmssSecretKey.fromSeed(filled(3)).expect("key")
+      sphincsKey = SphincsSecretKey.fromSeed(filled(4)).expect("key")
+      extraKey = XmssSecretKey.fromSeed(filled(5)).expect("key")
+      xmssPublicKey = xmssKey.publicKey().expect("public key")
+      sphincsPublicKey = sphincsKey.publicKey().expect("public key")
+      extraPublicKey = extraKey.publicKey().expect("public key")
 
-      let
-        xmssLeaf = sidecar.aggregate(xmss = [XmssSignedMessage(
-          publicKey: xmssPublicKey, message: message,
-          signature: xmssKey.sign(message, 0).expect("signature"))]).expect("xmss leaf")
-        sphincsLeaf = sidecar.aggregate(sphincs = [SphincsSignedMessage(
-          publicKey: sphincsPublicKey, message: message,
-          signature: sphincsKey.sign(message).expect("signature"))]).expect("sphincs leaf")
-        root = sidecar.aggregate([xmssLeaf, sphincsLeaf], [XmssSignedMessage(
-          publicKey: extraPublicKey, message: otherMessage,
-          signature: extraKey.sign(otherMessage, 0).expect("signature"))]).expect("root")
+    let
+      xmssLeaf = LeanPqAggregate.init(xmss = [XmssSignedMessage(
+        publicKey: xmssPublicKey, message: message,
+        signature: xmssKey.sign(message, 0).expect("signature"))]).expect("xmss leaf")
+      sphincsLeaf = LeanPqAggregate.init(sphincs = [SphincsSignedMessage(
+        publicKey: sphincsPublicKey, message: message,
+        signature: sphincsKey.sign(message).expect("signature"))]).expect("sphincs leaf")
+      root = LeanPqAggregate.init([xmssLeaf, sphincsLeaf], [XmssSignedMessage(
+        publicKey: extraPublicKey, message: otherMessage,
+        signature: extraKey.sign(otherMessage, 0).expect("signature"))]).expect("root")
 
-      let
-        expectedXmss = [
-          LeanPqClaim(publicKey: xmssPublicKey, message: message),
-          LeanPqClaim(publicKey: extraPublicKey, message: otherMessage)]
-        expectedSphincs = [LeanPqClaim(publicKey: sphincsPublicKey, message: message)]
-        encoded = root.toBytes().expect("bytes")
-        restored = sidecar.verify(
-          encoded, root.xmssClaims().expect("claims"), root.sphincsClaims().expect("claims")
-        ).expect("restored")
-      check:
-        restored.xmssClaims().expect("claims") == sortedClaims(expectedXmss)
-        restored.sphincsClaims().expect("claims") == @expectedSphincs
-        restored.toBytes().expect("bytes") == encoded
+    let
+      expectedXmss = [
+        LeanPqClaim(publicKey: xmssPublicKey, message: message),
+        LeanPqClaim(publicKey: extraPublicKey, message: otherMessage)]
+      expectedSphincs = [LeanPqClaim(publicKey: sphincsPublicKey, message: message)]
+      encoded = root.toBytes().expect("bytes")
+      restored = LeanPqAggregate.fromBytes(
+        encoded, root.xmssClaims().expect("claims"), root.sphincsClaims().expect("claims")
+      ).expect("restored")
+    check:
+      restored.xmssClaims().expect("claims") == sortedClaims(expectedXmss)
+      restored.sphincsClaims().expect("claims") == @expectedSphincs
+      restored.toBytes().expect("bytes") == encoded
 
-      # Claims in any order, a repeated claim counting once.
-      let reordered = sidecar.verify(
-        encoded, [expectedXmss[1], expectedXmss[0], expectedXmss[1]], expectedSphincs
-      ).expect("reordered")
-      check reordered.xmssClaims().expect("claims") == sortedClaims(expectedXmss)
+    # Claims in any order, a repeated claim counting once.
+    let reordered = LeanPqAggregate.fromBytes(
+      encoded, [expectedXmss[1], expectedXmss[0], expectedXmss[1]], expectedSphincs
+    ).expect("reordered")
+    check reordered.xmssClaims().expect("claims") == sortedClaims(expectedXmss)
 
-      # The proof attests exactly its claims: one short, one extra or another message fails.
-      check:
-        sidecar.verify(encoded, [expectedXmss[0]], expectedSphincs).isErr()
-        sidecar.verify(encoded, expectedXmss).isErr()
-        sidecar.verify(encoded, expectedXmss, [
-          expectedSphincs[0],
-          LeanPqClaim(publicKey: sphincsPublicKey, message: otherMessage)]).isErr()
-        sidecar.verify(encoded, expectedXmss, [
-          LeanPqClaim(publicKey: sphincsPublicKey, message: otherMessage)]).isErr()
-        sidecar.verify(encoded, expectedSphincs, expectedXmss).isErr()
+    # The proof attests exactly its claims: one short, one extra or another message fails.
+    check:
+      LeanPqAggregate.fromBytes(encoded, [expectedXmss[0]], expectedSphincs).isErr()
+      LeanPqAggregate.fromBytes(encoded, expectedXmss).isErr()
+      LeanPqAggregate.fromBytes(encoded, expectedXmss, [
+        expectedSphincs[0],
+        LeanPqClaim(publicKey: sphincsPublicKey, message: otherMessage)]).isErr()
+      LeanPqAggregate.fromBytes(encoded, expectedXmss, [
+        LeanPqClaim(publicKey: sphincsPublicKey, message: otherMessage)]).isErr()
+      LeanPqAggregate.fromBytes(encoded, expectedSphincs, expectedXmss).isErr()
 
-      var tampered = encoded
-      tampered[tampered.len div 2] = tampered[tampered.len div 2] xor 1
-      check:
-        sidecar.verify(tampered, expectedXmss, expectedSphincs).isErr()
-        sidecar.verify(
-          encoded.toOpenArray(0, encoded.len - 2), expectedXmss, expectedSphincs).isErr()
-        sidecar.verify([0'u8]).isErr()
-        sidecar.aggregate().isErr()
+    # Re-aggregating the root can keep only some of its claims, each one it covers.
+    let only = LeanPqAggregate.initOnly([root], xmssClaims = [expectedXmss[0]]).expect("only")
+    check:
+      only.xmssClaims().expect("claims") == @[expectedXmss[0]]
+      only.sphincsClaims().expect("claims").len == 0
+      LeanPqAggregate.initOnly([root], xmssClaims = [
+        LeanPqClaim(publicKey: xmssPublicKey, message: otherMessage)]).error().contains("not covered by the inputs")
 
-      restored.close()
-      check:
-        restored.toBytes().isErr()
-        sidecar.aggregate([root, restored]).error() == "aggregate is closed"
+    var tampered = encoded
+    tampered[tampered.len div 2] = tampered[tampered.len div 2] xor 1
+    check:
+      LeanPqAggregate.fromBytes(tampered, expectedXmss, expectedSphincs).isErr()
+      LeanPqAggregate.fromBytes(
+        encoded.toOpenArray(0, encoded.len - 2), expectedXmss, expectedSphincs).isErr()
+      LeanPqAggregate.fromBytes([0'u8]).isErr()
+      LeanPqAggregate.init().isErr()
 
-    test "starts and stops its own sidecar":
-      # Short, as macOS limits a socket path to 104 bytes, and missing, so `start` creates it private.
-      let directory = getTempDir() / ("lpq-" & $getCurrentProcessId())
-      defer: removeDir(directory)
-      let
-        socket = directory / "s.sock"
-        sidecar = LeanPqSidecar.start(
-          requiredEnv("LEANVM_SIDECAR_BIN", "a leanvm-sidecar executable"), socket,
-          threads = 2).expect("started")
-      defer: sidecar.close()
-      check:
-        sidecar.prover().expect("prover") in ["experimental", "stable"]
-        # Bytes that are no proof: the sidecar answers that they prove nothing.
-        sidecar.verify([0'u8]).error() == "the aggregate does not prove the given claims"
+    restored.close()
+    check:
+      restored.toBytes().isErr()
+      LeanPqAggregate.init([root, restored]).error() == "aggregate is closed"
 
-      # Closing it stops the sidecar.
-      sidecar.close()
-      check:
-        sidecar.verify([0'u8]).error() == "sidecar is closed"
-        LeanPqSidecar.connect(socket).isErr()
+  test "setup keeps its thread count":
+    check:
+      leanPqSetup(0).isOk()
+      leanPqSetup(0).isOk()
+      leanPqSetup(1).isErr()

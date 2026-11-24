@@ -49,7 +49,7 @@ Locally (from the repository root):
 
 - `gradle -p bindings/java jar` bundles only the host library. `-PleanPqNativeDir=DIR` bundles `DIR/<platform>/` instead; `bindings/java/scripts/build-native.sh <platform> DIR` builds one (Linux: [Zig 0.15.2](https://ziglang.org/download/) and `cargo install cargo-zigbuild`; macOS: a Mac; Windows: Git Bash, the `x86_64-pc-windows-gnu` Rust target, and MinGW-w64 `gcc` and `objdump` on `PATH`).
 - Local builds are `0.0.0-SNAPSHOT`; `-Pversion=X.Y.Z` overrides it.
-- `bindings/java/scripts/consumer-smoke.sh [GRADLE_ARGS...]` publishes the jar to a throwaway repository and signs and verifies through it from a fresh modular project (`GRADLE` names Gradle if it is not on `PATH`).
+- `bindings/java/scripts/consumer-smoke.sh [GRADLE_ARGS...]` publishes the jar to a throwaway repository and signs, verifies and aggregates through it from a fresh modular project (`GRADLE` names Gradle if it is not on `PATH`).
 
 ### One-time setup
 

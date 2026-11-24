@@ -17,21 +17,32 @@ env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
   # Pin the ISA, overriding `target-cpu=native` from .cargo/config.toml, so a cached build runs on any runner.
-  # Haswell has no VPCLMULQDQ or AVX-512, so the tests never reach the arms that need them.
-  # The `isa` job compiles the others.
+  # Haswell has no VPCLMULQDQ or AVX-512: the test job reaches the arms that need them only through the CPU tiers its
+  # runner has, and the `isa` job compiles the others.
   RUSTFLAGS: -C target-cpu=haswell
 
 jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    env:
+      # The prover's CPU tiers above haswell: identical_proofs runs each one this runner's CPU has.
+      RUSTC_WRAPPER: ${{ github.workspace }}/scripts/tier-rustc
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+      - name: The CPU tiers are generate.sh's
+        run: |
+          sh crates/experimental_tiers/generate.sh
+          git status --porcelain crates/experimental_tiers crates/experimental_dispatch
+          test -z "$(git status --porcelain crates/experimental_tiers crates/experimental_dispatch)"
       # The flags live in .cargo/config.toml's aliases
       - name: Test
         run: cargo testall
+      # On any runner: the tiers' GFNI code is compiled whatever CPU runs the tests.
+      - name: Check the CPU tiers are built in
+        run: cargo build --release -p leanvm-bench && sh scripts/check-tiers target/release/leanvm-bench
       - name: Test (the API on the experimental prover)
         run: cargo test --release -p lean_vm --features experimental_prover --test api
       # Without AVX2 the batched Keccak runs its scalar lanes, which no other job reaches.
@@ -52,6 +63,16 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: Test
         run: cargo testall
+      # Built for the generic CPU, so that the AES and SHA3 tiers add to it.
+      # The runner has SHA3, so the armsha3 tier must run: LEANVM_TIER fails otherwise.
+      - name: Test (the CPU tiers)
+        run: |
+          cargo test --release -p leanvm-bench --test identical_proofs
+          cargo build --release -p leanvm-bench
+          LEANVM_TIER=armsha3 target/release/leanvm-bench --prover experimental aggregate --xmss 1
+        env:
+          RUSTFLAGS: -C target-cpu=generic
+          RUSTC_WRAPPER: ${{ github.workspace }}/scripts/tier-rustc
 
   clippy:
     name: Clippy
@@ -65,10 +86,8 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: Clippy
         run: cargo clippyall
-      - name: Clippy (the API and the sidecar on the experimental prover)
-        run: cargo clippy --release -p lean_vm -p leanvm-sidecar --all-targets --features experimental_prover -- -D warnings
-      - name: Clippy (the API in its sidecar mode)
-        run: cargo clippy --release -p lean_vm --all-targets --features sidecar -- -D warnings
+      - name: Clippy (the API on the experimental prover)
+        run: cargo clippy --release -p lean_vm --all-targets --features experimental_prover -- -D warnings
       # The schemes' verifiers in a program without std or an allocator, on a target without std.
       - name: Link the verifiers without std
         working-directory: ${{ runner.temp }}

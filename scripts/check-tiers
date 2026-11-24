@@ -1,0 +1,22 @@
+#!/bin/sh
+# Fails unless each library, archive or wheel holds the CPU tiers' code (scripts/tier-rustc): GFNI instructions on
+# x86_64, SHA3's EOR3 on aarch64, which the portable baselines lack. objdump must read the file's architecture.
+set -eu
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT
+for file in "$@"; do
+    libs=$file
+    case "$file" in
+    *.whl)
+        unzip -q -o -d "$work" "$file" '*.so'
+        libs=$(find "$work" -name '*.so')
+        ;;
+    esac
+    for lib in $libs; do
+        if ! objdump -d "$lib" | grep -qE 'gf2p8|eor3'; then
+            echo "$file: built without the CPU tiers" >&2
+            exit 1
+        fi
+    done
+    rm -rf "${work:?}"/*
+done

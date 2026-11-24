@@ -1,0 +1,27 @@
+# Written by ../../generate.sh.
+[package]
+name = "fiat_shamir_prover_x86v4"
+version = "0.1.0"
+edition = "2024"
+publish = false
+autobins = false
+autotests = false
+autobenches = false
+autoexamples = false
+
+[package.metadata.tier]
+target-features = "+avx2,+bmi1,+bmi2,+fma,+lzcnt,+movbe,+f16c,+popcnt,+pclmulqdq,+avx512f,+avx512bw,+avx512cd,+avx512dq,+avx512vl"
+
+[lib]
+path = "../../../fiat_shamir_prover/src/lib.rs"
+test = false
+doctest = false
+bench = false
+doc = false
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(leanvm_tier)"] }
+
+[dependencies]
+verifier = { path = "../../../verifier" }
+keccak256 = { package = "keccak256_x86v4", path = "../keccak256" }

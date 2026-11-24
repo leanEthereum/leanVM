@@ -1,5 +1,4 @@
-//! The claims an aggregate proof attests, and their byte form: shared by the library, which proves and verifies
-//! them, and the sidecar's client, which builds neither.
+//! The claims an aggregate proof attests, and their byte form.
 
 use lean_sphincs::LeanSphincsPublicKey;
 use lean_xmss::LeanXmssPublicKey;
@@ -34,8 +33,7 @@ pub enum OutputClaims<'a> {
     Only(&'a AggregateClaims),
 }
 
-// The claims' byte form is specified in `bins/leanvm-sidecar/README.md` (Claims). Decoding is canonical: it rejects
-// any other flag and trailing bytes. Order is kept, sorted or not.
+// Decoding is canonical: it rejects any other flag and trailing bytes. Order is kept, sorted or not.
 
 const _: () = assert!(lean_xmss::PUB_KEY_SIZE == 32 && lean_sphincs::PUB_KEY_SIZE == 32);
 const _: () = assert!(lean_xmss::MESSAGE_LEN == 32 && lean_sphincs::MESSAGE_LEN == 32);
@@ -65,7 +63,8 @@ impl AggregateClaims {
         self.lean_xmss.len() + self.lean_sphincs.len()
     }
 
-    /// Encode claims, which [`Self::from_bytes`] reads back.
+    /// Encode claims, which [`Self::from_bytes`] reads back: for leanXMSS, then leanSPHINCS, a little-endian `u64`
+    /// count and that many 32-byte pubkey, 32-byte message pairs; then `0`, or `1` and the 32-byte DA root.
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut out = Vec::new();
         encode_claims(&mut out, &self.lean_xmss, LeanXmssPublicKey::to_bytes);
@@ -94,5 +93,28 @@ impl AggregateClaims {
             lean_sphincs,
             da_commitment,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn bytes_round_trip_and_decode_canonically() {
+        let claims = AggregateClaims {
+            lean_xmss: vec![(LeanXmssPublicKey::from_bytes(&[1; 32]), [2; 32])],
+            lean_sphincs: vec![(LeanSphincsPublicKey::from_bytes(&[3; 32]), [4; 32])],
+            da_commitment: Some([5; 32]),
+        };
+        let bytes = claims.to_bytes();
+        assert_eq!(bytes.len(), 2 * (8 + 64) + 1 + 32);
+        let decoded = AggregateClaims::from_bytes(&bytes).unwrap();
+        assert_eq!(decoded.to_bytes(), bytes);
+        assert!(AggregateClaims::from_bytes(&bytes[..bytes.len() - 1]).is_none());
+        assert!(AggregateClaims::from_bytes(&[bytes.as_slice(), &[0]].concat()).is_none());
+        let mut flag = bytes;
+        flag[2 * (8 + 64)] = 2;
+        assert!(AggregateClaims::from_bytes(&flag).is_none());
     }
 }

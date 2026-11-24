@@ -29,7 +29,7 @@ lpq.sphincsVerify(sphincsKey.publicKey, message, sphincsSig)
 ```
 
 - Public keys and messages are 32-byte `Buffer`s; signatures are 2404 (leanXMSS) or 7740 (leanSPHINCS) bytes.
-- Creating a key, `prepare`, `sign` and every sidecar call return Promises and run off the event loop; `xmssVerify` and `sphincsVerify` are synchronous.
+- Creating a key, `prepare`, `sign`, `setup`, `aggregate` and `Aggregate.fromBytes` return Promises and run off the event loop; `xmssVerify` and `sphincsVerify` are synchronous.
 - leanXMSS is stateful: a key has `2^32` leaf indices, and must never sign two messages at the same one. Persist a high-water leaf index next to the key and advance it before publishing a signature. `prepare(leafIndex)` builds a leaf's signing state ahead of time.
 - leanSPHINCS is stateless and deterministic; a key signs at most `2^30` messages.
 - `toBytes()` is the key's 32-byte seed, which is secret; `fromBytes` restores the key.
@@ -50,31 +50,21 @@ A key is a 32-byte seed and the slots `[start, end)`, with `end <= 2^31`: both f
 
 ## Aggregate
 
-Aggregation runs in a leanVM sidecar, a separate process (Linux and macOS): see [the sidecar](https://github.com/leanEthereum/leanVM/tree/main/bindings#sidecar).
-
 ```js
-const os = require('os')
-
-const sidecar = await lpq.Sidecar.connect(`${os.homedir()}/.leanvm/sidecar.sock`)
-// or: await lpq.Sidecar.start(binary, socket, threads), which launches one
-
-const leaf = await sidecar.aggregate({
+const leaf = await lpq.aggregate({
   xmss: [{ publicKey: xmssKey.publicKey, message, signature: xmssSig }],
   sphincs: [{ publicKey: sphincsKey.publicKey, message, signature: sphincsSig }],
 })
-const root = await sidecar.aggregate({ children: [leaf] })
+const root = await lpq.aggregate({ children: [leaf] })
 const proof = root.toBytes()
 
-const received = await sidecar.verify(proof, { xmss: root.xmssClaims, sphincs: root.sphincsClaims })
-await sidecar.close()
+const received = await lpq.Aggregate.fromBytes(proof, { xmss: root.xmssClaims, sphincs: root.sphincsClaims })
 ```
 
-- `aggregate({ children, xmss, sphincs })` verifies raw signatures before proving and takes at most 16 children. The result proves the union of their claims.
+- `aggregate({ children, xmss, sphincs })` verifies raw signatures before proving and takes at most 16 children. The result proves the union of their claims, or with `only: { xmss, sphincs }` exactly those claims, in any order, each one the inputs cover; an omitted list means none.
 - `toBytes()` is the proof alone: send the claims alongside it, or let the receiver rebuild them.
-- `verify(data, { xmss, sphincs })` accepts exactly those `{ publicKey, message }` claims, in any order, and rejects otherwise; an omitted list means none. `xmssClaims` and `sphincsClaims` are sorted.
-- `Sidecar.start` uses one thread per core when `threads` is 0 or omitted. `close()`, or the `Sidecar` being garbage collected, stops the sidecar it launched, failing a call in progress. `sidecar.prover` is `experimental` or `stable`, which make the same proofs.
-- Share one `Sidecar` per process: a sidecar serves at most 16 connections.
-- Calls on one `Sidecar` run one at a time.
+- `Aggregate.fromBytes(data, { xmss, sphincs })` accepts exactly those `{ publicKey, message }` claims, in any order, and rejects otherwise; an omitted list means none. `xmssClaims` and `sphincsClaims` are sorted.
+- `setup` rejects if the prover already runs with another thread count. See [Proving](https://github.com/leanEthereum/leanVM/tree/main/bindings#proving).
 
 ## Build and test
 
@@ -86,7 +76,7 @@ npm run build
 npm test
 ```
 
-The aggregation tests use the sidecar listening on `LEANVM_SIDECAR_SOCKET`, and start one from the executable at `LEANVM_SIDECAR_BIN`. Publishing is in [RELEASING.md](../RELEASING.md#npm).
+Publishing is in [RELEASING.md](../RELEASING.md#npm).
 
 ## License
 

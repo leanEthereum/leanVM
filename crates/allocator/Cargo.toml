@@ -9,3 +9,7 @@ workspace = true
 
 [dependencies]
 tikv-jemallocator.workspace = true
+
+[features]
+# For a library inside a host program: global-dynamic TLS, so it loads with dlopen, and no huge pages.
+library = ["tikv-jemallocator/disable_initial_exec_tls"]

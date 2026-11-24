@@ -2,9 +2,7 @@
 
 leanXMSS and leanSPHINCS signatures, their aggregation, and the consensus VRF tree, for Python, Node.js, Java, Go, Zig and Nim.
 
-- Signing and verifying signatures run in your process, on every platform.
-- Aggregating, and verifying aggregates, run in the [sidecar](#sidecar), a separate process (Linux and macOS).
-- An aggregate's bytes are the proof only: send its claims (public key, message) alongside.
+An aggregate's bytes are the proof only: send its claims (public key, message) alongside.
 
 ## Install
 
@@ -37,43 +35,22 @@ requires "https://github.com/leanEthereum/leanVM?subdir=bindings/nim#bindings-v0
 ```
 <!-- x-release-please-end -->
 
-Rust: depend on `lean_vm` directly and build with `RUSTFLAGS="-C target-cpu=native"`:
+Rust: depend on `lean_vm` directly, build with `RUSTFLAGS="-C target-cpu=native"` and install jemalloc as [`crates/allocator`](../crates/allocator/src/lib.rs) does:
 
 ```toml
 lean_vm = { git = "https://github.com/leanEthereum/leanVM.git", features = ["experimental_prover"] }
 ```
 
-## Sidecar
+## Proving
 
-`leanvm-sidecar` proves and verifies aggregates; the bindings reach it over a Unix socket. Proving is performance critical, so build it from source for the machine that runs it, at the same release as the bindings (a sidecar of another release is not detected, and its proofs are rejected). It needs a recent stable Rust, a C compiler and `make`:
-
-<!-- x-release-please-start-version -->
-```sh
-RUSTFLAGS="-C target-cpu=native" cargo install --locked --git https://github.com/leanEthereum/leanVM --tag bindings-v0.16.0 leanvm-sidecar --features experimental_prover
-```
-<!-- x-release-please-end -->
-
-This installs `~/.cargo/bin/leanvm-sidecar`; `leanvm-sidecar --version` prints its release. Then either:
-
-- **Run it** (for example as a service) and `Sidecar.connect("<home>/.leanvm/sidecar.sock")`:
-  ```sh
-  mkdir -p -m 700 ~/.leanvm && leanvm-sidecar --socket ~/.leanvm/sidecar.sock
-  ```
-- **Launch it from code**: `Sidecar.start("<home>/.cargo/bin/leanvm-sidecar", "<home>/.leanvm/run/sidecar.sock", threads)` waits until it is ready. Closing the `Sidecar`, dropping it, or the program exiting stops it (a forked child still running keeps it alive). Its socket directory must be private: `start` creates it with mode 0700, and refuses one others can write to.
-
-- `threads` (or `--threads`) caps its threads; 0 means one per core.
-- A sidecar serves at most 16 connections: share one `Sidecar` per process. Its calls run one at a time, and a forked child opens its own connection.
-- On Linux, a C or Nim program should ignore `SIGPIPE`, so a sidecar that dies fails the call instead of killing the program.
-- [`bins/leanvm-sidecar`](../bins/leanvm-sidecar/README.md) documents the sidecar itself.
+- Prebuilt packages hold the prover once per CPU tier and run the fastest one the CPU supports, except Python and Java on Windows. A source build gets the tiers with `RUSTC_WRAPPER` set to the checkout's `scripts/tier-rustc` (not on Windows), or matches them with `RUSTFLAGS="-C target-cpu=native"` on the proving machine.
+- `setup(threads)`, before the first aggregation, starts the prover with `threads` threads (0: one per core); it fails above the machine's parallelism. Proofs run one at a time per process.
+- When the build leaves a faster tier unused on this CPU, the first aggregation prints a warning on stderr, which `LEANVM_TIER` set to the tier it names silences.
+- Except on Windows, the Rust code allocates with jemalloc, which keeps freed pages: a process that aggregated keeps its peak memory.
 
 ## Build and test
 
-Needs Rust. Aggregation tests read a running sidecar's socket from `LEANVM_SIDECAR_SOCKET` and its binary from `LEANVM_SIDECAR_BIN`; from the repository root, this builds and starts one and sets both:
-
-```sh
-cargo build --release -p leanvm-sidecar --features experimental_prover
-export $(sh bindings/scripts/start-sidecar.sh target/release/leanvm-sidecar ~/.leanvm/test)
-```
+Needs Rust.
 
 | Binding | Command, from the repository root |
 | --- | --- |

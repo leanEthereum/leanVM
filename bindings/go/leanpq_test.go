@@ -3,8 +3,6 @@ package leanpq
 import (
 	"bytes"
 	"encoding/hex"
-	"os"
-	"path/filepath"
 	"reflect"
 	"runtime"
 	"strings"
@@ -260,8 +258,6 @@ func TestVrfKeyLoadsFromItsCache(t *testing.T) {
 }
 
 func TestAggregateRecursively(t *testing.T) {
-	sidecar := sharedSidecar(t)
-	assertProver(t, sidecar)
 	first := bytes32(0x11)
 	second := bytes32(0x22)
 	xmssKey := mustXmssKey(t, bytes32(5))
@@ -273,7 +269,7 @@ func TestAggregateRecursively(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	left, err := sidecar.Aggregate(nil, []XmssSignedMessage{{xmssPublicKey, first, firstXmss}}, nil)
+	left, err := AggregateSignatures(nil, []XmssSignedMessage{{xmssPublicKey, first, firstXmss}}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -283,7 +279,7 @@ func TestAggregateRecursively(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	right, err := sidecar.Aggregate(nil, nil, []SphincsSignedMessage{{sphincsPublicKey, first, sphincsSignature}})
+	right, err := AggregateSignatures(nil, nil, []SphincsSignedMessage{{sphincsPublicKey, first, sphincsSignature}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -293,7 +289,7 @@ func TestAggregateRecursively(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	root, err := sidecar.Aggregate(
+	root, err := AggregateSignatures(
 		[]*Aggregate{left, right}, []XmssSignedMessage{{xmssPublicKey, second, secondXmss}}, nil,
 	)
 	if err != nil {
@@ -316,7 +312,7 @@ func TestAggregateRecursively(t *testing.T) {
 	}
 
 	// The receiver rebuilds the claims in any order; a repeated claim counts once.
-	received, err := sidecar.Verify(
+	received, err := AggregateFromBytes(
 		encoded, []Claim{{xmssPublicKey, second}, {xmssPublicKey, first}, {xmssPublicKey, second}}, expectedSphincs,
 	)
 	if err != nil {
@@ -342,11 +338,33 @@ func TestAggregateRecursively(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	roundTrip, err := sidecar.Verify(reencoded, xmssClaims, sphincsClaims)
+	roundTrip, err := AggregateFromBytes(reencoded, xmssClaims, sphincsClaims)
 	if err != nil {
 		t.Fatalf("an aggregate must decode against its own claims: %v", err)
 	}
 	roundTrip.Close()
+
+	// Re-aggregating the root can keep only some of its claims, each one it covers.
+	only, err := AggregateSignaturesOnly([]*Aggregate{root}, nil, nil, expectedXmss[:1], nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer only.Close()
+	onlyXmss, err := only.XmssClaims()
+	if err != nil {
+		t.Fatal(err)
+	}
+	onlySphincs, err := only.SphincsClaims()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(onlyXmss, expectedXmss[:1]) || len(onlySphincs) != 0 {
+		t.Fatalf("claims = %x and %x, want %x and none", onlyXmss, onlySphincs, expectedXmss[:1])
+	}
+	if wrong, err := AggregateSignaturesOnly([]*Aggregate{root}, nil, nil, []Claim{{xmssPublicKey, bytes32(0x33)}}, nil); err == nil || !strings.Contains(err.Error(), "not covered by the inputs") {
+		wrong.Close()
+		t.Fatalf("a claim the inputs do not cover must be rejected, got %v", err)
+	}
 
 	wrongClaims := []struct {
 		name    string
@@ -360,79 +378,45 @@ func TestAggregateRecursively(t *testing.T) {
 		{"claims of the wrong scheme", expectedSphincs, expectedXmss},
 	}
 	for _, claims := range wrongClaims {
-		if wrong, err := sidecar.Verify(encoded, claims.xmss, claims.sphincs); err == nil {
+		if wrong, err := AggregateFromBytes(encoded, claims.xmss, claims.sphincs); err == nil {
 			wrong.Close()
 			t.Fatalf("the proof must be rejected against %s", claims.name)
 		}
 	}
 
 	truncated := encoded[:len(encoded)-1]
-	if wrong, err := sidecar.Verify(truncated, expectedXmss, expectedSphincs); err == nil {
+	if wrong, err := AggregateFromBytes(truncated, expectedXmss, expectedSphincs); err == nil {
 		wrong.Close()
 		t.Fatal("truncated aggregate bytes must be rejected")
 	}
 	tampered := append([]byte(nil), encoded...)
 	tampered[len(tampered)/2] ^= 1
-	if wrong, err := sidecar.Verify(tampered, expectedXmss, expectedSphincs); err == nil {
+	if wrong, err := AggregateFromBytes(tampered, expectedXmss, expectedSphincs); err == nil {
 		wrong.Close()
 		t.Fatal("tampered aggregate bytes must be rejected")
 	}
-	if wrong, err := sidecar.Verify(nil, expectedXmss, expectedSphincs); err == nil {
+	if wrong, err := AggregateFromBytes(nil, expectedXmss, expectedSphincs); err == nil {
 		wrong.Close()
 		t.Fatal("empty aggregate bytes must be rejected")
 	}
 }
 
 func TestRejectsEmptyAggregation(t *testing.T) {
-	if aggregate, err := sharedSidecar(t).Aggregate(nil, nil, nil); err == nil {
+	if aggregate, err := AggregateSignatures(nil, nil, nil); err == nil {
 		aggregate.Close()
 		t.Fatal("an aggregation of nothing must fail")
 	}
 }
 
-func TestStartSidecar(t *testing.T) {
-	sidecar := sharedSidecar(t)
-	binary := environment(t, "LEANVM_SIDECAR_BIN")
-	leaf, claims := proveLeaf(t, sidecar)
-	proof, err := leaf.Bytes()
-	if err != nil {
+func TestSetupKeepsItsThreadCount(t *testing.T) {
+	if err := Setup(0); err != nil {
 		t.Fatal(err)
 	}
-	socket := shortSocketPath(t)
-
-	started, err := StartSidecar(binary, socket, 2)
-	if err != nil {
-		t.Fatal(err)
+	if err := Setup(0); err != nil {
+		t.Fatalf("Setup must accept the running thread count again: %v", err)
 	}
-	defer started.Close()
-	assertProver(t, started)
-	verified, err := started.Verify(proof, claims, nil)
-	if err != nil {
-		t.Fatalf("the started sidecar must verify a proof: %v", err)
-	}
-	verified.Close()
-	if second, err := StartSidecar(binary, socket, 0); err == nil || !strings.Contains(err.Error(), "already listens") {
-		second.Close()
-		t.Fatalf("a second start on the same socket = %v, want an error", err)
-	}
-
-	started.Close()
-	if _, err := started.Verify(proof, claims, nil); err == nil {
-		t.Fatal("a closed sidecar must refuse calls")
-	}
-	if connected, err := ConnectSidecar(socket); err == nil {
-		connected.Close()
-		t.Fatal("Close must stop the sidecar StartSidecar launched")
-	}
-}
-
-func TestConnectWithoutUnixSockets(t *testing.T) {
-	if runtime.GOOS != "windows" {
-		t.Skip("only Windows lacks Unix sockets")
-	}
-	if sidecar, err := ConnectSidecar("sidecar.sock"); err == nil {
-		sidecar.Close()
-		t.Fatal("connecting to a sidecar must fail on Windows")
+	if err := Setup(1); err == nil {
+		t.Fatal("Setup must reject another thread count once the prover runs")
 	}
 }
 
@@ -441,13 +425,6 @@ func TestConcurrentNativeErrors(t *testing.T) {
 	if old := runtime.GOMAXPROCS(0); old < 2 {
 		runtime.GOMAXPROCS(2)
 		defer runtime.GOMAXPROCS(old)
-	}
-
-	// Connecting where nothing listens fails with the same message on every thread.
-	missing := shortSocketPath(t)
-	_, connectError := ConnectSidecar(missing)
-	if connectError == nil {
-		t.Fatal("connecting where no sidecar listens must fail")
 	}
 
 	var workers sync.WaitGroup
@@ -464,10 +441,10 @@ func TestConcurrentNativeErrors(t *testing.T) {
 					t.Errorf("XmssSecretKeyFromBytes error = %v, want %q", err, want)
 					return
 				}
-				sidecar, err := ConnectSidecar(missing)
-				sidecar.Close()
-				if err == nil || err.Error() != connectError.Error() {
-					t.Errorf("ConnectSidecar error = %v, want %q", err, connectError)
+				aggregate, err := AggregateFromBytes([]byte{1, 2, 3}, nil, nil)
+				aggregate.Close()
+				if want := "leanpq: malformed aggregate: the bytes are not a leanVM aggregate proof"; err == nil || err.Error() != want {
+					t.Errorf("AggregateFromBytes error = %v, want %q", err, want)
 					return
 				}
 			}
@@ -475,73 +452,6 @@ func TestConcurrentNativeErrors(t *testing.T) {
 	}
 	close(start)
 	workers.Wait()
-}
-
-var shared struct {
-	once    sync.Once
-	sidecar *Sidecar
-	err     error
-}
-
-// sharedSidecar connects once to the sidecar at LEANVM_SIDECAR_SOCKET, and skips the test on
-// Windows, which cannot reach one.
-func sharedSidecar(t *testing.T) *Sidecar {
-	t.Helper()
-	if runtime.GOOS == "windows" {
-		t.Skip("the leanVM sidecar needs Unix sockets")
-	}
-	socket := environment(t, "LEANVM_SIDECAR_SOCKET")
-	shared.once.Do(func() { shared.sidecar, shared.err = ConnectSidecar(socket) })
-	if shared.err != nil {
-		t.Fatal(shared.err)
-	}
-	return shared.sidecar
-}
-
-// proveLeaf proves one leanXMSS signature, and returns the aggregate and its claims.
-func proveLeaf(t *testing.T, sidecar *Sidecar) (*Aggregate, []Claim) {
-	t.Helper()
-	message := bytes32(0x44)
-	key := mustXmssKey(t, bytes32(7))
-	publicKey := mustXmssPublicKey(t, key)
-	signature, err := key.Sign(message, 0)
-	if err != nil {
-		t.Fatal(err)
-	}
-	leaf, err := sidecar.Aggregate(nil, []XmssSignedMessage{{publicKey, message, signature}}, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(leaf.Close)
-	return leaf, []Claim{{publicKey, message}}
-}
-
-// shortSocketPath returns a socket path in a new directory directly under the system temp dir:
-// macOS limits socket paths to 104 bytes, which t.TempDir's nesting can exceed.
-func shortSocketPath(t *testing.T) string {
-	t.Helper()
-	directory, err := os.MkdirTemp("", "lpq")
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { os.RemoveAll(directory) })
-	return filepath.Join(directory, "s.sock")
-}
-
-func assertProver(t *testing.T, sidecar *Sidecar) {
-	t.Helper()
-	if prover, err := sidecar.Prover(); err != nil || (prover != "experimental" && prover != "stable") {
-		t.Fatalf("Prover() = %q, %v; want experimental or stable", prover, err)
-	}
-}
-
-func environment(t *testing.T, name string) string {
-	t.Helper()
-	value := os.Getenv(name)
-	if value == "" {
-		t.Fatalf("set %s to run the aggregation tests", name)
-	}
-	return value
 }
 
 func mustXmssKey(t *testing.T, seed [32]byte) *XmssSecretKey {

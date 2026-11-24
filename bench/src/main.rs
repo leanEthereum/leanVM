@@ -4,7 +4,7 @@
 static ALLOCATOR: allocator::Jemalloc = allocator::Jemalloc;
 
 use clap::{Parser, Subcommand};
-use experimental_lean_vm_core::ExperimentalProver;
+use experimental_dispatch::ExperimentalProver;
 use stable_lean_vm_core::StableProver;
 
 mod benchmark;
@@ -151,6 +151,9 @@ fn main() {
     let cli = Cli::parse();
     match cli.prover {
         Prover::Stable => run::<StableProver>(cli),
-        Prover::Experimental => run::<ExperimentalProver>(cli),
+        Prover::Experimental => {
+            eprintln!("experimental prover tier: {:?}", experimental_dispatch::tier());
+            run::<ExperimentalProver>(cli)
+        }
     }
 }

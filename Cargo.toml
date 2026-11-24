@@ -14,28 +14,27 @@ members = [
     "crates/claims",
     "crates/aggregation",
     "crates/lean_vm",
-    "crates/sidecar",
     "crates/stable_prover/*",
     "crates/experimental_prover/*",
+    "crates/experimental_dispatch",
     "bench",
-    "bins/*",
 ]
-# The language bindings are their own workspace (bindings/Cargo.toml).
-exclude = ["bindings"]
+# The language bindings are their own workspace (bindings/Cargo.toml). The CPU tiers build only as experimental_dispatch's dependencies.
+exclude = ["bindings", "crates/experimental_tiers"]
 resolver = "3"
 
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
 
+[workspace.lints.rust]
+# `scripts/tier-rustc` sets it on the CPU tiers' copies.
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(leanvm_tier)"] }
+
 # Numeric kernels legitimately index by loop variable and take many arguments.
 [workspace.lints.clippy]
 needless_range_loop = "allow"
 too_many_arguments = "allow"
-
-# With its `sidecar` feature, `lean_vm` still builds its prover, unused; CI's `cargo machete` finds unused dependencies.
-[workspace.lints.cargo]
-unused_dependencies = "allow"
 
 [workspace.dependencies]
 allocator = { path = "crates/allocator" }
@@ -51,7 +50,6 @@ lean_vrf = { path = "crates/lean_vrf" }
 lean_da = { path = "crates/lean_da" }
 claims = { path = "crates/claims" }
 aggregation = { path = "crates/aggregation" }
-sidecar = { path = "crates/sidecar" }
 libc = "0.2"
 rand = "0.9"
 sha3 = "0.11"

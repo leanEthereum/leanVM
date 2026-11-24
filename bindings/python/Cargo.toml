@@ -12,3 +12,6 @@ crate-type = ["cdylib"]
 # maturin enables pyo3/extension-module (pyproject.toml), so plain cargo builds link normally.
 pyo3 = { version = "0.28.3" }
 lean-pq = { workspace = true }
+
+[target.'cfg(unix)'.dependencies]
+allocator = { workspace = true }

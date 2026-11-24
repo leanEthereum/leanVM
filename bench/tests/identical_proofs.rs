@@ -1,13 +1,13 @@
-//! The stable and the experimental prover give the same proof of the same statement, byte for byte: three leaves
-//! (leanXMSS signatures and blobs, leanSPHINCS signatures, both schemes and blobs, with enough signatures of each that
-//! experimental runs both signature loops as parallel segments), a recursion node over them, at the four rates, and a
-//! second-level node over that node, a leaf and a raw signature; the same refusal of a forged signature the native
-//! pre-check misses; and every compiler test program, or the same refusal. Both trees' thread pools live in this one
-//! process, and libtest may run the two tests at once: both pools can then be busy together, and either can take
-//! dispatches from both tests, which its dispatch lock serializes.
+//! The stable prover and the experimental one, in every CPU tier this machine runs, give the same proof of the same
+//! statement, byte for byte: three leaves (leanXMSS signatures and blobs, leanSPHINCS signatures, both schemes and
+//! blobs, with enough signatures of each that experimental runs both signature loops as parallel segments), a recursion
+//! node over them, at the four rates, and a second-level node over that node, a leaf and a raw signature; the same
+//! refusal of a forged signature the native pre-check misses; and every compiler test program, or the same refusal.
+//! Both trees' thread pools live in this one process, and libtest may run the two tests at once: both pools can then be
+//! busy together, and either can take dispatches from both tests, which its dispatch lock serializes.
 
 use aggregation::{AggregateClaims, AggregateError, AggregateProof, OutputClaims, signers_cache};
-use experimental_lean_vm_core::ExperimentalProver;
+use experimental_dispatch::{__tiers_here, __with_tier, ExperimentalProver};
 use isa::{Program, Prover};
 use stable_lean_vm_core::StableProver;
 use verifier::E;
@@ -49,16 +49,23 @@ fn proofs<P: Prover>() -> ([Vec<u8>; 5], Option<AggregateError>) {
 
 #[test]
 fn stable_and_experimental_proofs_are_identical() {
-    let ((experimental, experimental_refusal), (stable, stable_refusal)) =
-        (proofs::<ExperimentalProver>(), proofs::<StableProver>());
-    for (name, (e, s)) in ["left leaf", "right leaf", "mixed leaf", "node", "second-level node"]
-        .iter()
-        .zip(experimental.iter().zip(&stable))
-    {
-        assert!(e == s, "the {name}'s proofs differ ({} and {} bytes)", e.len(), s.len());
-    }
-    assert_eq!(experimental_refusal, stable_refusal);
+    let (stable, stable_refusal) = proofs::<StableProver>();
     assert_eq!(stable_refusal, Some(AggregateError::ProvingFailed));
+    for tier in __tiers_here() {
+        let (experimental, experimental_refusal) = __with_tier(tier, proofs::<ExperimentalProver>);
+        for (name, (e, s)) in ["left leaf", "right leaf", "mixed leaf", "node", "second-level node"]
+            .iter()
+            .zip(experimental.iter().zip(&stable))
+        {
+            assert!(
+                e == s,
+                "{tier:?}: the {name}'s proofs differ ({} and {} bytes)",
+                e.len(),
+                s.len()
+            );
+        }
+        assert_eq!(experimental_refusal, stable_refusal, "{tier:?}");
+    }
 }
 
 /// `program`'s proof at rate `2^-log_inv_rate` on `public_input`, or why there is none.
@@ -109,15 +116,15 @@ fn compiler_programs_prove_identically() {
         let runs = (1..=4).map(|rate| (public_input, rate)).chain([(wrong, 1)]);
         for (input, rate) in runs {
             let annotated = input == public_input;
-            let (experimental, stable) = (
-                prove::<ExperimentalProver>(&program, input, &witness, rate),
-                prove::<StableProver>(&program, input, &witness, rate),
-            );
-            assert!(
-                experimental == stable,
-                "{} at rate {rate}: the provers disagree",
-                path.display()
-            );
+            let stable = prove::<StableProver>(&program, input, &witness, rate);
+            for tier in __tiers_here() {
+                let experimental = __with_tier(tier, || prove::<ExperimentalProver>(&program, input, &witness, rate));
+                let path = path.display();
+                assert!(
+                    experimental == stable,
+                    "{tier:?}: {path} at rate {rate}: the provers disagree"
+                );
+            }
             assert!(!annotated || stable.is_ok(), "{}: {:?}", path.display(), stable.err());
         }
     }

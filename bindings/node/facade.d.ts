@@ -12,6 +12,12 @@ export interface SignedMessage {
 }
 
 /**
+ * Starts the prover with `threads` threads (0, the default: one per core). Rejects when it
+ * already runs with another count.
+ */
+export declare function setup(threads?: number): Promise<void>
+
+/**
  * A stateful leanXMSS secret key with `2^32` leaf indices. Never sign two different messages at
  * the same leaf index.
  */
@@ -81,11 +87,17 @@ export declare function vrfVerify(root: Buffer, slot: number, proof: Buffer): vo
 
 /**
  * A recursive proof that each listed public key signed its message. Every instance has been
- * proven by `Sidecar.aggregate` or verified by `Sidecar.verify`. Its encoding is the proof alone:
+ * proven by `aggregate` or verified by `Aggregate.fromBytes`. Its encoding is the proof alone:
  * send the claims alongside it, or let the receiver rebuild them.
  */
 export declare class Aggregate {
   private constructor()
+  /**
+   * Verifies that a proof proves exactly the given claims, which may come in any order; a repeated
+   * claim counts once. An omitted list means no claims of that scheme. Rejects when the bytes are
+   * not a proof of exactly these claims.
+   */
+  static fromBytes(data: Buffer, claims?: { xmss?: Array<Claim>; sphincs?: Array<Claim> }): Promise<Aggregate>
   /** The proof alone, without its claims. */
   toBytes(): Buffer
   /** Strictly sorted. */
@@ -95,36 +107,13 @@ export declare class Aggregate {
 }
 
 /**
- * A connection to a leanVM sidecar, a separate process that proves and verifies aggregates (Linux
- * and macOS). Its calls run one at a time; a broken connection is reopened on the next call.
+ * Proves every raw signature and every child's claims in one aggregate whose claims are their
+ * union, or exactly `only`'s claims, in any order, each one the inputs cover (an omitted list means
+ * none). Raw signatures are verified first; at most 16 children; empty input is rejected.
  */
-export declare class Sidecar {
-  private constructor()
-  /** Connects to the sidecar listening on the Unix socket at `socket`. */
-  static connect(socket: string): Promise<Sidecar>
-  /**
-   * Launches the leanvm-sidecar executable at `binary` on `socket` with `threads` threads (0, the
-   * default: one per core), waits until it listens, and connects. `close`, or this process
-   * exiting, stops it. Its log goes to the socket path plus `.log`.
-   */
-  static start(binary: string, socket: string, threads?: number): Promise<Sidecar>
-  /** The prover the sidecar runs, `experimental` or `stable`: the same proofs, the first faster. */
-  get prover(): string
-  /**
-   * Proves every raw signature and every child's claims in one aggregate whose claims are their
-   * union. Raw signatures are verified first; at most 16 children; empty input is rejected.
-   */
-  aggregate(input?: {
-    children?: Array<Aggregate>
-    xmss?: Array<SignedMessage>
-    sphincs?: Array<SignedMessage>
-  }): Promise<Aggregate>
-  /**
-   * Verifies that a proof proves exactly the given claims, which may come in any order; a repeated
-   * claim counts once. An omitted list means no claims of that scheme. Rejects when the bytes are
-   * not a proof of exactly these claims.
-   */
-  verify(data: Buffer, claims?: { xmss?: Array<Claim>; sphincs?: Array<Claim> }): Promise<Aggregate>
-  /** Closes the connection, and stops a sidecar `start` launched. */
-  close(): Promise<void>
-}
+export declare function aggregate(input?: {
+  children?: Array<Aggregate>
+  xmss?: Array<SignedMessage>
+  sphincs?: Array<SignedMessage>
+  only?: { xmss?: Array<Claim>; sphincs?: Array<Claim> }
+}): Promise<Aggregate>

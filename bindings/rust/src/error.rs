@@ -66,6 +66,24 @@ pub enum Error {
         slot: u64,
     },
 
+    /// The prover already runs with another thread count.
+    #[error("the prover already started with {running} threads, not {threads} (0: one per core)")]
+    SetupThreads {
+        /// The thread count it started with.
+        running: usize,
+        /// The thread count asked for.
+        threads: usize,
+    },
+
+    /// More threads were asked for than the machine runs in parallel.
+    #[error("{threads} prover threads asked for, but this machine runs at most {max} in parallel")]
+    TooManyThreads {
+        /// The thread count asked for.
+        threads: usize,
+        /// The machine's parallelism.
+        max: usize,
+    },
+
     /// A raw leanXMSS signature handed to aggregation does not verify.
     #[error("leanXMSS input {index} (leaf index {leaf_index}) does not verify")]
     InvalidXmssInput {
@@ -91,34 +109,26 @@ pub enum Error {
         max: usize,
     },
 
-    /// The sidecar refused to aggregate, and says why.
+    /// The prover refused to aggregate, and says why.
     ///
     /// Empty input and too many signers for one proof both land here.
     #[error("aggregation failed: {reason}")]
     Aggregation {
-        /// The sidecar's reason.
+        /// The prover's reason.
         reason: String,
     },
 
-    /// An aggregate proof does not prove the claims it was checked against, or its bytes are not a
-    /// proof.
+    /// The bytes are not an aggregate proof.
+    #[error("malformed aggregate: the bytes are not a leanVM aggregate proof")]
+    MalformedAggregate,
+
+    /// An aggregate proof does not prove the claims it was checked against.
     #[error("the aggregate does not prove the given claims")]
     AggregateRejected,
 
-    /// The sidecar cannot be reached, stopped, or is not a compatible leanVM sidecar.
-    #[error("leanVM sidecar: {reason}")]
-    Sidecar {
-        /// What went wrong.
-        reason: String,
-    },
-
-    /// The [`Sidecar`](crate::Sidecar) was closed.
-    #[error("the sidecar is closed")]
-    SidecarClosed,
-
-    /// This platform has no Unix sockets, so it cannot reach a sidecar.
-    #[error("the leanVM sidecar needs Unix sockets, which this platform lacks")]
-    SidecarUnsupported,
+    /// The process was forked while or after its parent started the prover or built the aggregation guest.
+    #[error("this process was forked while or after its parent started the prover or built its guest: prove in the parent, or in a process started without forking")]
+    ForkedAfterSetup,
 }
 
 /// A fixed-length byte encoding this crate decodes.
