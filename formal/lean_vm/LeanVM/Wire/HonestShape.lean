@@ -300,7 +300,8 @@ theorem wired_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
       refine Wired.no_bind (noCommit_require _) fun _ _ ↦ ?_
       refine Wired.no_bind (noCommit_sumcheck _ _ _) fun r _ ↦ ?_
       obtain ⟨tail, claim⟩ := r
-      exact (Wired.of_noCommitA ((noCommit_iff _).1 (noCommit_require _))).mono fun _ _ _ _ ↦ trivial
+      exact (Wired.of_noCommitA ((noCommit_iff _).1 (noCommit_require _))).mono
+        fun _ _ _ _ ↦ trivial
     | cons next rest' =>
       simp only [levelShape]
       simp only [decide_eq_true_eq] at hnext

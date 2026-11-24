@@ -23,7 +23,7 @@ The verifier's points are lists, the first coordinate the lowest bit of an index
   `eqAt_append`: a point split in two; `sum_eqAt`: the weights sum to one;
 * `eqKernel_snoc`: one more coordinate doubles the kernel; `eqKernel_length`,
   `eqKernel_getD`: `eqKernel pt` lists `eqAt pt w` for `w < 2^|pt|`;
-* `dot_eq_sum`, `dot_eqKernel`: the verifier's inner product as a sum, and with the kernel the
+* `dot_eq_sum_left`, `dot_eqKernel`: the verifier's inner product as a sum, and with the kernel the
   equality-weighted sum (`foldl_add_eq`, `foldl_mul_eq`: folds are sums and products);
 * `sum_range_two_mul`, `sum_range_mul`: sums over a range regrouped, for any commutative monoid.
 
@@ -93,12 +93,10 @@ theorem eqAt_append : ∀ (a b : List E) (w : ℕ),
 /-- The weights at the even and the odd index of a pair. -/
 theorem eqAt_two_mul (r : E) (rs : List E) (w : ℕ) :
     eqAt (r :: rs) (2 * w) = (1 + r) * eqAt rs w ∧ eqAt (r :: rs) (2 * w + 1) = r * eqAt rs w := by
-  rw [eqAt_cons, eqAt_cons]
-  have h1 : 2 * w % 2 = 0 := by omega
-  have h2 : (2 * w + 1) % 2 = 1 := by omega
-  have h3 : 2 * w / 2 = w := by omega
-  have h4 : (2 * w + 1) / 2 = w := by omega
-  simp only [h1, h2, h3, h4, ite_true, zero_ne_one, ite_false, and_self]
+  rw [eqAt_cons, eqAt_cons, ite_eq_right (show ¬2 * w % 2 = 1 by omega),
+    ite_eq_left (show (2 * w + 1) % 2 = 1 by omega), show 2 * w / 2 = w by omega,
+    show (2 * w + 1) / 2 = w by omega]
+  exact ⟨rfl, rfl⟩
 
 /-- The equality weights sum to one. -/
 theorem sum_eqAt : ∀ pt : List E, ∑ w ∈ range (2 ^ pt.length), eqAt pt w = 1
@@ -122,7 +120,7 @@ theorem eqKernel_length (pt : List E) : (eqKernel pt).length = 2 ^ pt.length := 
     rw [eqKernel_snoc, List.length_append, List.length_map, List.length_map, ih,
       List.length_append, List.length_singleton, pow_succ, mul_two]
 
-theorem getD_map_mul (l : List E) (c : E) (w : ℕ) :
+private theorem getD_map_mul (l : List E) (c : E) (w : ℕ) :
     (l.map (· * c)).getD w 0 = l.getD w 0 * c := by
   simp only [List.getD_eq_getElem?_getD, List.getElem?_map]
   cases l[w]? <;> simp
@@ -168,24 +166,28 @@ theorem foldl_mul_eq {M : Type*} [Monoid M] (l : List M) (a : M) :
   | nil => simp
   | cons x l ih => rw [List.foldl_cons, ih, List.prod_cons, mul_assoc]
 
-/-- `dot` of two lists of the same length is the sum of the products. -/
-theorem dot_eq_sum (a b : List E) (h : a.length = b.length) :
+/-- `dot` sums over its left list's indices, the right list read as zero past its end. -/
+theorem dot_eq_sum_left (a b : List E) :
     dot a b = ∑ j ∈ range a.length, a.getD j 0 * b.getD j 0 := by
   rw [dot, foldl_add_eq, zero_add]
   induction a generalizing b with
   | nil => simp
   | cons x a ih =>
     rcases b with _ | ⟨y, b⟩
-    · simp at h
+    · simp
     · simp only [List.zipWith_cons_cons, List.sum_cons, List.length_cons, sum_range_succ',
         List.getD_cons_succ, List.getD_cons_zero]
-      rw [ih b (by simpa using h), add_comm]
+      rw [ih b, add_comm]
+
+/-- `dot` of two lists of the same length is the sum of the products. -/
+theorem dot_eq_sum (a b : List E) (_h : a.length = b.length) :
+    dot a b = ∑ j ∈ range a.length, a.getD j 0 * b.getD j 0 :=
+  dot_eq_sum_left a b
 
 /-- **The verifier's `dot(eq[:n], w)`**: the equality-weighted sum of `w`. -/
 theorem dot_eqKernel (pt w : List E) (hn : w.length ≤ 2 ^ pt.length) :
     dot ((eqKernel pt).take w.length) w = ∑ j ∈ range w.length, eqAt pt j * w.getD j 0 := by
-  rw [dot_eq_sum _ _ (by simp [eqKernel_length, hn]), List.length_take, eqKernel_length,
-    min_eq_left hn]
+  rw [dot_eq_sum_left, List.length_take, eqKernel_length, min_eq_left hn]
   refine sum_congr rfl fun j hj ↦ ?_
   have hj' := mem_range.1 hj
   rw [List.getD_eq_getElem?_getD, List.getElem?_take, ite_eq_left hj',

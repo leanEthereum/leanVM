@@ -27,7 +27,8 @@ challenge binding the low bit:
 
 * `foldsN_eq_sum`: `foldsN s O i = Σ_{j < 2^|s|} eq(s, j)·O(i·2^|s| + j)`, `eq(s, j) = eqAt s j`
   the equality weight of the bits of `j` (characteristic two: `1 + r = 1 − r`), the entries of
-  `eq_kernel(s)` (`eqKernel_getD`), so `dot_eqKernel_eq_foldsN`: `dot(row, eq_kernel(s)) = foldsN s row 0`;
+  `eq_kernel(s)` (`eqKernel_getD`), so `dot_eqKernel_eq_foldsN`:
+  `dot(row, eq_kernel(s)) = foldsN s row 0`;
 * `multilinearEval_eq_foldsN`: `multilinear_eval(t, s) = foldsN s t 0` for a table of `2^|s|`
   entries.
 

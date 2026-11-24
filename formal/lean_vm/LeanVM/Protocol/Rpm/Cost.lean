@@ -734,10 +734,7 @@ theorem isWeightBound_proverVerifier {X : OracleComp KeccakCalls Proof} (prog : 
         have := isTotalQueryBound_leanVm (bytecodeWords prog) (publicInputDigest input) proof
         rw [← verifier_eq] at this
         exact this
-    refine h.mono ?_
-    have hV := leanVmQueryBound_add_three_le
-    unfold completenessQueries
-    exact Nat.add_le_add (Nat.add_le_add_left (Nat.mul_le_mul leanVmCost_le le_rfl) _) (by omega)
+    exact h.mono (Complete.completenessQueries_le fuel)
   exact isWeightBound_of_isTotalQueryBound hashBlocks (2 ^ 30) hN
     ((allQueriesSatisfy_bind hXq fun proof ↦
       allQ_verifier prog input proof).mono fun _ h ↦ hashBlocks_le_of_short h)

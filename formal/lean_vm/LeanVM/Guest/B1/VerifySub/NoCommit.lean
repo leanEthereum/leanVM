@@ -18,9 +18,9 @@ public import LeanVM.Guest.B1.VerifySub.Split
 `query` step. A carried run of such a program keeps the roots and the openings and runs
 on any (`runT_any_of_noCommitA`), so a deployed run of it is a run between grounds on the words it
 reads (`runsG_of_runId`). Every phase of the deferring verifier before its stacked opening but the
-stack's commitment is one: the announced sizes, the out-of-domain sample, the bus's challenges,
-its GKR (`gkrPhase`), the bus's rest, the table sumcheck and the public input
-(`Tables.tablesSeg`), the Keccak reduction (`keccakPhaseClaims`) and the ring switch.
+stack's commitment is one (`LeanVM.Protocol.Verifier.NoCommit` proves it phase by phase); the
+segment `verify_tables` runs, the bus's rest, the table sumcheck and the public input, is one
+here (`noCommit_tablesSeg`).
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -109,7 +109,7 @@ theorem runsG_of_runId {α : Type} {p : VerifierProgram α} (hp : NoCommit p) {s
 theorem tcar_fsOfT (sp : Sponge) : Tables.TCar (Tables.fsOfT sp) sp.ground sp :=
   ⟨rfl, rfl, rfl⟩
 
-/-! ## The phases -/
+/-! ## The tables segment -/
 
 theorem noCommit_tablesSeg (c : BytecodeClaim) (L : Layout) (pi : Digest) (weights : List E)
     (beta : E) (point tv : List E) :

@@ -237,43 +237,10 @@ theorem multilinearEval_eq_sum (m : ℕ) (t p : List E) (ht : t.length = 2 ^ m)
 
 /-! ## The equality kernel -/
 
-private theorem eqKernel_general : ∀ (p out : List E),
-    (p.foldl (fun out r ↦ out.map (· * (1 + r)) ++ out.map (· * r)) out).length =
-      out.length * 2 ^ p.length ∧
-    ∀ i j, i < out.length → j < 2 ^ p.length →
-      (p.foldl (fun out r ↦ out.map (· * (1 + r)) ++ out.map (· * r)) out).getD
-        (i + out.length * j) 0 = out.getD i 0 * eqEval (boolPoint p.length j) p
-  | [], out => by
-    refine ⟨by simp, fun i j hi hj ↦ ?_⟩
-    obtain rfl : j = 0 := by simpa using hj
-    simp
-  | r :: p, out => by
-    obtain ⟨hl, hg⟩ := eqKernel_general p (out.map (· * (1 + r)) ++ out.map (· * r))
-    simp only [List.length_append, List.length_map] at hl hg
-    refine ⟨by rw [List.foldl_cons, hl, List.length_cons, pow_succ]; ring, fun i j hi hj ↦ ?_⟩
-    rw [List.foldl_cons]
-    rw [List.length_cons, pow_succ] at hj
-    rcases Nat.even_or_odd' j with ⟨j', rfl | rfl⟩
-    · have := hg i j' (by omega) (by omega)
-      rw [show i + out.length * (2 * j') = i + (out.length + out.length) * j' by ring, this,
-        List.length_cons, boolPoint_two_mul, eqEval_cons]
-      rw [List.getD_append _ _ _ _ (by simpa using hi)]
-      simp only [List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_eq_getElem hi]
-      simp; ring
-    · have := hg (i + out.length) j' (by omega) (by omega)
-      rw [show i + out.length * (2 * j' + 1) = i + out.length + (out.length + out.length) * j' by
-        ring, this, List.length_cons, boolPoint_two_mul_add_one, eqEval_cons]
-      rw [List.getD_append_right _ _ _ _ (by simp)]
-      simp only [List.length_map, Nat.add_sub_cancel, List.getD_eq_getElem?_getD,
-        List.getElem?_map, List.getElem?_eq_getElem hi]
-      simp only [Option.map_some, Option.getD_some]
-      rw [one_add_one_E, zero_add]; ring
-
 /-- Entry `j` of the equality kernel is `eq(j, p)`. -/
 theorem getD_eqKernel (p : List E) (j : ℕ) (hj : j < 2 ^ p.length) :
     (eqKernel p).getD j 0 = eqEval (boolPoint p.length j) p := by
-  have := (eqKernel_general p [1]).2 0 j (by simp) hj
-  simpa [eqKernel] using this
+  rw [eqKernel_getD, ite_eq_left hj, eqEval_comm, eqEval_boolPoint_eqAt]
 
 /-! ## The round polynomial -/
 

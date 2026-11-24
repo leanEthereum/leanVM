@@ -106,7 +106,8 @@ theorem noCommit_liftOption (o : Option α) : NoCommit (liftOption o) := by
 
 theorem noCommit_sumcheckRoundPoly (count : ℕ) (claim : E) (e : Option E) :
     NoCommit (sumcheckRoundPoly count claim e) := by
-  cases e <;> (unfold sumcheckRoundPoly; simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq])
+  cases e <;>
+    (unfold sumcheckRoundPoly; simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq])
   · exact NoCommit.bind noCommit_readE fun _ ↦ NoCommit.bind (noCommit_readN _) fun _ ↦
       NoCommit.bind (noCommit_grind _) fun _ ↦ noCommit_ret _
   · exact NoCommit.bind (noCommit_readN _) fun _ ↦ NoCommit.bind (noCommit_grind _) fun _ ↦

@@ -78,8 +78,9 @@ theorem RetOK.liftOption (o : Option α) : RetOK (fun a ↦ o = some a) (Verifie
   | some a => exact RetOK.ret rfl
 
 /-- A sequence returns what its continuation returns on a return of its first part. -/
-theorem RetOK.bind {Q' : α → Prop} {Q : β → Prop} {p : VerifierProgram α} {f : α →
-    VerifierProgram β} (hp : RetOK Q' p) (hf : ∀ a, Q' a → RetOK Q (f a)) : RetOK Q (p.bind f) := by
+theorem RetOK.bind {Q' : α → Prop} {Q : β → Prop} {p : VerifierProgram α}
+    {f : α → VerifierProgram β} (hp : RetOK Q' p) (hf : ∀ a, Q' a → RetOK Q (f a)) :
+    RetOK Q (p.bind f) := by
   intro l b hl
   obtain ⟨a, l₁, l₂, -, h1, h2⟩ := after_bind_ret hl
   exact hf a (hp l₁ a h1) l₂ b h2

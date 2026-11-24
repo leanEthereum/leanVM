@@ -110,7 +110,7 @@ theorem eqEval_selector {μ v y : ℕ} (hv : v ≤ μ) (hy : y < 2 ^ μ) (index 
 /-- Entry `j` of the equality kernel is `eq(point, j)`. -/
 theorem eqKernel_getD_eqAt (point : List E) {j : ℕ} (hj : j < 2 ^ point.length) :
     (eqKernel point).getD j 0 = eqAt point j := by
-  rw [getD_eqKernel point j hj, eqEval_comm, eqEval_boolPoint_eqAt]
+  rw [eqKernel_getD, ite_eq_left hj]
 
 /-- The block condition and the offset in the block. -/
 theorem block_ite {μ v y : ℕ} (index : ℕ) (a : ℕ → E) :
