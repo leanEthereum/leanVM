@@ -113,7 +113,7 @@ axioms_in=""
 axioms() { bg "$1: axiom footprint" axioms_of "$@"; }
 axioms_of() {
   local dir=$1 module=$2 t; shift 2
-  { echo "import $module"; for t in "$@"; do echo "#print axioms $t"; done; } > "$log/axioms-$dir.lean"
+  { printf "import %s\n" $module; for t in "$@"; do echo "#print axioms $t"; done; } > "$log/axioms-$dir.lean"
   (cd "${axioms_in:-$dir}" && capped lake env lean "$log/axioms-$dir.lean") | tee "$log/axioms-$dir.txt"
   for t in "$@"; do
     grep -qF "'$t' depends on axioms: [propext, Classical.choice, Quot.sound]" "$log/axioms-$dir.txt" \
@@ -171,7 +171,7 @@ lean_sphincs() {
   cache_get lean_sphincs
   # The kernel-checked tables (`decide +kernel`) are the heavy modules, each within about 3 GB.
   build lean_sphincs '(Sphincs|FORS)/'
-  axioms lean_sphincs Sphincs Sphincs.leanSphincsStronglyUnforgeable FORS.Lifetimes.h26_layered_adversary FORS.h26_layered
+  axioms lean_sphincs "Sphincs FORS" Sphincs.leanSphincsStronglyUnforgeable FORS.Lifetimes.h26_layered_adversary FORS.h26_layered
 }
 
 # LeanDA's security, on Benedikt Wagner's framework for erasure code commitments (b-wagn/fv-pq-da),
