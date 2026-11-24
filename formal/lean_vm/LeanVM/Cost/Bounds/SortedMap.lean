@@ -26,8 +26,11 @@ all. The prices are bounded by a potential (Bentley–Saxe, Tarjan's banker's me
   potential after, at most the potential before plus `A`) pays `(A + 11)·n + 3` from a start of
   potential `0`.
 
-The compiled maps (one `carry` per key and value type) instantiate them: the preimage index and
-the first answers (`Bounds/Transcript.lean`), the replay's three maps.
+The compiled maps (one `searchIn`, `mergeNewer`, `Level.merge` and `carry` per key and value type)
+instantiate them through one bound each, from the compiled recurrence (`searchRec`,
+`mergeNewerRec`, matched by unfolding): `searchIn_cost_of`, `mergeNewer_cost_of`,
+`levelMerge_cost_of`, `carry_amortized_of`; the instances are the preimage index and the first
+answers (`Bounds/Transcript.lean`) and the replay's maps.
 -/
 
 namespace LeanVM.Cost.Bounds
