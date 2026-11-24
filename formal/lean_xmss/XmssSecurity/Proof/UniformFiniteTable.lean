@@ -96,7 +96,6 @@ def finInitLastEquiv (α : Type) (count : Nat) :
     funext index
     cases index using Fin.lastCases <;> simp
 
-set_option maxRecDepth 100000 in
 theorem evalDist_uniformSnocList_eq_uniformFunction
     (α : Type) [Fintype α] [SampleableType α] (count : Nat) :
     (uniformSnocList α count) =ᵈ
@@ -143,7 +142,6 @@ theorem evalDist_uniformSnocList_eq_uniformFunction
           (SampleableType.map_uniformSample_evalDistEq_of_bijective
             (finInitLastEquiv α count).bijective).map _
 
-set_option maxRecDepth 100000 in
 theorem evalDist_drawList_uniform_eq_uniformFunction
     (α : Type) [Fintype α] [SampleableType α] (count : Nat) :
     (OracleComp.drawList ($ᵗ α) count) =ᵈ
@@ -229,7 +227,6 @@ theorem finiteTableOfTape_map
   · rename_i hlength
     exact (hlength (by simp)).elim
 
-set_option maxRecDepth 100000 in
 theorem evalDist_finiteTableOfTape_drawList_eq_uniform
     {ι α : Type} [DecidableEq ι] [Inhabited α] [Fintype α]
     [SampleableType α] [Fintype ι] (order : List ι)

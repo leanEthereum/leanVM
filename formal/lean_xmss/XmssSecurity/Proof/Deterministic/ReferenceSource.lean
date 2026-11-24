@@ -11,8 +11,6 @@ namespace XmssSecurity.Seeded
 
 open DeterministicSigning
 
-set_option backward.isDefEq.respectTransparency false
-
 def runWorldSigning {α : Type} (sign : SignRequest → OracleComp OracleWorld (Option Signature))
     (computation : OracleComp (OracleWorld + SigningSpec) α) : OracleComp OracleWorld α :=
   simulateQ (QueryImpl.ofLift OracleWorld (OracleComp OracleWorld) + sign) computation

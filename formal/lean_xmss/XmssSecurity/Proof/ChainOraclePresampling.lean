@@ -381,7 +381,6 @@ theorem keygenChainValueTable_seedsMatch
   intro key
   simp [keygenChainValueTable]
 
-set_option maxRecDepth 10000 in
 theorem Concrete.keygenChainValueTable_edgesMatch
     (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
     (hkeygen : keyResult ∈ support
@@ -593,8 +592,6 @@ theorem Concrete.fixedSeedChainTrajectoriesFromCache_cons
           parameter start chain steps first.2 keys
         return (first.1 :: rest.1, rest.2)) := rfl
 
-set_option maxRecDepth 100000 in
-set_option linter.constructorNameAsVariable false in
 theorem Concrete.fixedSeedChainTrajectoriesFromCache_support_info
     (parameter : PublicParameter) (start : ChainKey → ChainIndex → Digest)
     (chain : ChainIndex) (steps : Nat) :
@@ -640,8 +637,6 @@ theorem Concrete.fixedSeedChainTrajectoriesFromCache_support_info
                 (start key chain)) cache first.2 rest.2 first.1 hfirst hfirstCacheLe
           · exact hpairs
 
-set_option maxRecDepth 100000 in
-set_option linter.constructorNameAsVariable false in
 theorem Concrete.fixedSeedChainTrajectoriesFromCache_replay_in_largerCache
     (parameter : PublicParameter) (start : ChainKey → ChainIndex → Digest)
     (chain : ChainIndex) (steps : Nat) :

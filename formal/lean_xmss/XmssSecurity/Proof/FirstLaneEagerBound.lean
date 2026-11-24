@@ -511,8 +511,6 @@ theorem runStructural_query_bind
   rw [runStructural, OracleComp.construct_query_bind]
   rfl
 
-set_option maxRecDepth 100000 in
-set_option maxHeartbeats 1000000 in
 theorem evalDist_runObserved_eagerTrace_eq_runStructural
     (table : Index → Digest)
     (encodingState : Option EncodingMonitor.State)
@@ -662,7 +660,6 @@ theorem structuralExperiment_query_bind
   intro base
   exact runStructural_query_bind _ _ _ _ _ _
 
-
 theorem eagerFinalize_true_probability_le
     (encodingState : Option EncodingMonitor.State)
     (chainState : AdaptiveRevealMonitor.State Index)
@@ -680,7 +677,6 @@ theorem eagerFinalize_true_probability_le
   gcongr
   omega
 
-set_option maxRecDepth 100000 in
 theorem structuralExperiment_true_probability_le
     (encodingState : Option EncodingMonitor.State)
     (chainState : AdaptiveRevealMonitor.State Index)
@@ -885,7 +881,6 @@ theorem combinedHit_probability_eq_structuralExperiment
     _ = _ := (evalDist_runObserved_eagerTrace_eq_runStructural table
         (some EncodingMonitor.State.empty)
         AdaptiveRevealMonitor.State.empty fuel computation hbound).prEvent_eq (· = true)
-
 
 theorem structuralExperiment_empty_true_probability_le
     (fuel : Nat) (computation : OracleComp (World Index) α) :

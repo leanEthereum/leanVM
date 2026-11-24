@@ -17,8 +17,6 @@ namespace XmssSecurity.Bridge
 
 open Seeded DeterministicSigning
 
-set_option backward.isDefEq.respectTransparency false
-
 noncomputable opaque bottomSampleable : SampleableType (BottomPos → HashOutput) :=
   SampleableType.ofFintype (BottomPos → HashOutput)
 

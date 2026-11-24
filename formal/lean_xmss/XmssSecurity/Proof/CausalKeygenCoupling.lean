@@ -39,7 +39,6 @@ noncomputable def programmedChainExtension
       (Concrete.CacheView.keyChainInput parameter key chain step values.back)
       sampled.2)
 
-set_option maxRecDepth 100000 in
 theorem evalDist_chainExtension_eq_programmed
     (parameter : PublicParameter) (key : ChainKey) (chain : ChainIndex)
     (step : ChainStep) (values : Vector Digest (n + 1))
@@ -80,9 +79,6 @@ noncomputable def programmedChainTrajectory
       else
         pure (prior.1.push 0, prior.2)
 
-set_option maxHeartbeats 1600000 in
-set_option maxRecDepth 100000 in
-set_option linter.constructorNameAsVariable false in
 theorem evalDist_chainTrajectory_eq_programmed
     (parameter : PublicParameter) (key : ChainKey) (chain : ChainIndex)
     (position : Nat) : ∀ (steps : Nat) (value : Digest)
@@ -190,9 +186,6 @@ theorem programmedFixedSeedChainTrajectoriesFromCache_cons
           chain steps first.2 keys
         pure (first.1 :: rest.1, rest.2)) := rfl
 
-set_option maxHeartbeats 2400000 in
-set_option maxRecDepth 100000 in
-set_option linter.constructorNameAsVariable false in
 theorem evalDist_fixedSeedChainTrajectories_eq_programmed
     (parameter : PublicParameter) (start : ChainKey → ChainIndex → Digest)
     (chain : ChainIndex) (steps : Nat) (hsteps : steps ≤ chainLength - 1) :

@@ -404,7 +404,6 @@ def SourceGlobalHighMonitoredProgramRelation
       GlobalMonitoredTracedStateRelation left.1 right.1.1 left.2.2
         right.2.2) ∨ right.2.2.1.bad right.1.1.2)
 
-
 def GlobalCausalRevealsCovered
     (covered : Set GlobalChainValueIndex)
     (state : GlobalCausalHashState) : Prop :=
@@ -722,8 +721,6 @@ theorem simulate_eagerTrace_globalCausalAttackerHashQueryFromHigh_support_covere
       exact ⟨hcovered.recordedState secretKey input |>.setCache _,
         by simp [GlobalCausalTraceRevealsCovered]⟩
 
-
-
 theorem globalSignatureRevealResult_covered
     (table : GlobalChainValueIndex → Digest)
     (request : SignRequest) (encoding : ChainIndex → Digit)
@@ -836,7 +833,6 @@ theorem globalSignatureFullRevealResult_covered
         covered hfirst.1 (fun chain _ => htopIndices chain)
       exact ⟨hsecond.1, hfirst.2.append hsecond.2⟩
 
-set_option maxRecDepth 100000 in
 theorem simulate_eagerTrace_globalFilteredCausalSigningAttempt_support_covered_of_final
     (table : GlobalChainValueIndex → Digest)
     (keyView : ProgrammedGlobalChainKeygenView)
@@ -917,7 +913,6 @@ theorem simulate_eagerTrace_globalFilteredCausalSigningAttempt_support_covered_o
           encoding initialSignature encodedState covered (hcovered.setCache encoded.2)
             hindices)
 
-set_option maxRecDepth 100000 in
 theorem simulate_eagerTrace_globalFilteredCausalSignBoundedAttempts_support_covered_of_final
     (attempts trial : Nat) (base : Randomness) (table : GlobalChainValueIndex → Digest)
     (keyView : ProgrammedGlobalChainKeygenView)
@@ -990,7 +985,6 @@ theorem simulate_eagerTrace_globalFilteredCausalSignBoundedAttempts_support_cove
           exact ⟨hrestCovered.1,
             hattemptCovered.2.append hrestCovered.2⟩
 
-set_option maxRecDepth 100000 in
 theorem simulate_eagerTrace_globalFilteredCausalSigningQuery_support_covered_of_final
     (table : GlobalChainValueIndex → Digest)
     (keyView : ProgrammedGlobalChainKeygenView)
@@ -1122,8 +1116,6 @@ theorem simulate_eagerTrace_globalCausalAttackerHashQueryFromHigh_support_cache_
           (QueryImpl.withCaching_cache_le uniformSampleImpl input state.cache
             sample hsample')
 
-
-
 def GlobalMonitoredCausalStateCovered
     (covered : Set GlobalChainValueIndex)
     (state : GlobalMonitoredCausalState) : Prop :=
@@ -1194,7 +1186,6 @@ theorem globalHighMonitoredBaseMappedAdversaryImpl_support_cache_le
       (simulate_eagerTrace_globalFilteredCausalSigningQuery_stateExtends
         right.1.2 right.1.1 request state.causal raw hraw).1
 
-set_option maxRecDepth 100000 in
 theorem globalHighMonitoredBaseMappedAdversaryImpl_support_covered_of_final
     (right : (ProgrammedGlobalChainKeygenView ×
       (GlobalChainValueIndex → Digest)) ×
@@ -1292,7 +1283,6 @@ theorem globalHighMonitoredMappedAdversaryImpl_support_cache_le
   exact globalHighMonitoredBaseMappedAdversaryImpl_support_cache_le right
     input state.1 baseResult hbaseResult
 
-set_option maxRecDepth 100000 in
 theorem globalHighMonitoredMappedAdversaryImpl_support_covered_of_final
     (right : (ProgrammedGlobalChainKeygenView ×
       (GlobalChainValueIndex → Digest)) ×
@@ -1415,8 +1405,6 @@ theorem simulate_globalHighMonitoredMappedAdversary_support_trace_le
     (globalHighMonitoredMappedAdversaryImpl_preserves_trace_extension right
       state.2) computation state (by simp) result hresult
 
-set_option maxHeartbeats 2000000 in
-set_option maxRecDepth 1000000 in
 theorem simulate_globalHighMonitoredMappedAdversary_support_covered_of_final
     (right : (ProgrammedGlobalChainKeygenView ×
       (GlobalChainValueIndex → Digest)) ×
@@ -1619,8 +1607,6 @@ theorem simulate_globalHighMonitoredVerifier_support_attacker_trace_eq
     (globalHighMonitoredVerifierImpl_preserves_attacker_trace right state.2)
       computation state rfl result hresult
 
-set_option maxHeartbeats 3000000 in
-set_option maxRecDepth 2000000 in
 theorem globalHighMonitoredDetailedExecution_support_returnedCovered
     (adversary : Adversary)
     (right : (ProgrammedGlobalChainKeygenView ×
@@ -1685,7 +1671,6 @@ theorem globalHighMonitoredDetailedExecution_support_returnedCovered
     (Concrete.scheme.verify right.1.1.publicKey handled.1.leafIndex
       handled.1.message handled.1.signature) handled.2 covered hhandledCovered
         hforward verified hvertified
-
 
 theorem globalRunObserved_eq_true_of_probe_mem_of_no_reveal
     (table : GlobalChainValueIndex → Digest)
@@ -1867,7 +1852,6 @@ theorem globalHighMonitoredProgram_support_info
   exact ⟨coupledGlobalChainKeygenWithBaseHighFull_support_keyView right
     hright, hexecution⟩
 
-set_option maxRecDepth 1000000 in
 theorem sourceGlobal_origin_implies_right_publicObservedHit
     (adversary : Adversary)
     (left : SourceGlobalTracedProgramResult)
@@ -2042,7 +2026,6 @@ noncomputable def GlobalWinningOutcomeTopChainValueHasKeygenOrigin
     (.inr (topKeyOf outcome.forgery.leafIndex), digit) ∉
       returnedChainValueIndices finalCache secretKey outcome.signingLog chain
 
-set_option maxRecDepth 1000000 in
 theorem sourceGlobal_topOrigin_implies_right_publicObservedHit
     (adversary : Adversary)
     (left : SourceGlobalTracedProgramResult)

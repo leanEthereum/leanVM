@@ -10,8 +10,6 @@ open OracleComp OracleSpec
 
 namespace XmssSecurity
 
-set_option maxRecDepth 100000
-
 abbrev EncodingActionTrace := List EncodingMonitor.ObservedAction
 
 def SigningCacheTrace.leafIndices (trace : SigningCacheTrace) : List LeafIndex :=

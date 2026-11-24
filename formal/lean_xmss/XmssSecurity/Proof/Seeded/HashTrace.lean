@@ -9,8 +9,6 @@ open OracleComp OracleSpec
 
 namespace XmssSecurity.Seeded
 
-set_option backward.isDefEq.respectTransparency false
-
 def prependHash (input : OracleWorld.Domain) (inputs : List HashInput) : List HashInput :=
   match input with
   | .inl _ => inputs
@@ -90,6 +88,5 @@ theorem probOutput_stopBefore_none {α : Type} (bad : HashInput → Prop) [Decid
         rw [ih result.1 result.2]
         simp only [bind_pure_comp, simulateQ_map, StateT.run'_eq, StateT.run_map,
           Functor.map_map, traceHits_prepend, hbad, false_or]
-
 
 end XmssSecurity.Seeded

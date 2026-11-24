@@ -11,8 +11,6 @@ open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity
 
-set_option maxRecDepth 100000
-
 noncomputable def Concrete.signBoundedAttemptsContinuation
     (attempts trial : Nat) (secretKey : SecretKey) (leafIndex : LeafIndex) (message : Message)
     (base : Randomness) (result : Option Signature × QueryCache HashSpec) :

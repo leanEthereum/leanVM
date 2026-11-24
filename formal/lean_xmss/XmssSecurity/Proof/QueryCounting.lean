@@ -8,7 +8,6 @@ public import VCVio.OracleComp.QueryTracking.QueryBound
 namespace XmssSecurity.QueryCounting
 
 open _root_.OracleComp OracleSpec
-set_option backward.isDefEq.respectTransparency false
 
 variable {Index : Type} {spec : OracleSpec Index} {Result Next : Type}
   (selected : Index → Prop) [DecidablePred selected]

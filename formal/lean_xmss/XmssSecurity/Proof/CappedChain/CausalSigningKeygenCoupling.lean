@@ -260,8 +260,6 @@ theorem Concrete.precomputedSignAttempt_materialized_run_eq_signAttempt
     rw [hsignature]
     rfl
 
-set_option linter.constructorNameAsVariable false in
-set_option maxRecDepth 100000 in
 theorem Concrete.evalDist_precomputedSignBoundedAttempts_materialized_eq
     (attempts trial : Nat) (base : Randomness)
     (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)

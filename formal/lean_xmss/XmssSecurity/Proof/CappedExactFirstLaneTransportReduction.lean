@@ -14,9 +14,6 @@ open OracleComp.ProgramLogic.Relational
 
 namespace XmssSecurity.CappedChain
 
-set_option maxRecDepth 1000000
-set_option linter.constructorNameAsVariable false
-
 namespace GlobalHighDirectTracedState
 
 abbrev mk (causalState : GlobalCausalHashState)
@@ -2219,9 +2216,6 @@ theorem globalFirstLaneExactTracedVerifier_validSignLeafIndices_eq_nil
     (globalFirstLaneVerifier_validSignLeafIndices_eq_nil table keyView edgeHigh
       computation state.causalState baseResult hbase)
 
-
-set_option maxRecDepth 1000000
-
 theorem globalExactTracedLift_hazardBound
     (keyView : ProgrammedGlobalChainKeygenView)
     (input : (OracleWorld + SigningSpec).Domain)
@@ -2305,10 +2299,6 @@ theorem globalFirstLaneExactTracedVerifierImpl_hazardBound
   intro result _hresult
   exact OracleComp.isQueryBoundP_pure
     (p := FirstLaneOracleSimulation.IsHazardQuery) _ 0
-
-
-set_option maxRecDepth 1000000
-set_option linter.constructorNameAsVariable false
 
 theorem map_globalHighMonitored_adversary_exact_query
     (keyView : ProgrammedGlobalChainKeygenView)
@@ -2435,7 +2425,6 @@ theorem map_simulate_globalHighMonitored_verifier_exact
   exact map_simulate_globalHighMonitored_verifier_full_projection keyView
     base edgeHigh computation state.1 state.2
 
-set_option maxHeartbeats 3000000 in
 theorem map_globalHighMonitoredDetailedExecution_full_projection
     (adversary : Adversary)
     (keyView : ProgrammedGlobalChainKeygenView)
@@ -2520,7 +2509,6 @@ def globalHighMonitoredFullProjection
       (result.2.1, GlobalHighDirectTracedState.mk result.2.2.1.causal
         result.2.2.2)), result.2.2.1.trace))
 
-
 def globalHighDirectExactTracedBaseProjection
     (result : GlobalExactTracedResult) : GlobalHighDirectResult :=
   (result.1, (result.2.1, result.2.2.causalState))
@@ -2541,7 +2529,6 @@ noncomputable def appendGlobalHighDirectExactPublicTrace
   (result.1, (result.2.1, result.2.2 ++
     globalHighDirectExactForgeryPrimaryProbeTrace result.2.1))
 
-
 noncomputable def globalFirstLaneExactTracedPublicProgram
     (adversary : Adversary) :
     OracleComp GlobalFirstLaneWorld GlobalExactTracedResult := do
@@ -2551,7 +2538,6 @@ noncomputable def globalFirstLaneExactTracedPublicProgram
       (globalHighDirectExactForgeryPrimaryProbeTrace result))
   pure result
 
-
 theorem globalHighDirectExactForgeryPrimaryProbeTrace_agrees
     (table : GlobalChainValueIndex → Digest)
     (result : GlobalExactTracedResult) :
@@ -2559,7 +2545,6 @@ theorem globalHighDirectExactForgeryPrimaryProbeTrace_agrees
       (globalHighDirectExactForgeryPrimaryProbeTrace result) := by
   unfold globalHighDirectExactForgeryPrimaryProbeTrace
   exact globalHighDirectForgeryPrimaryProbeTrace_agrees table _
-
 
 theorem globalHighMonitored_fullProjection_public_eq
     (result : GlobalHighMonitoredProgramResult) :
@@ -2597,7 +2582,6 @@ abbrev GlobalFirstLaneExactPublicEagerResult :=
   (GlobalChainValueIndex → Digest) ×
     (GlobalExactTracedResult ×
       FirstLaneOracleSimulation.ActionTrace GlobalChainValueIndex)
-
 
 noncomputable def globalFirstLaneExactPublicEagerExperiment
     (adversary : Adversary) :

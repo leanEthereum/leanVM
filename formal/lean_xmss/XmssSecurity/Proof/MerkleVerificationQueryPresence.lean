@@ -8,8 +8,6 @@ open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity.Concrete.CacheReplay
 
-set_option linter.constructorNameAsVariable false
-
 def verificationAfterEncoding (publicKey : PublicKey) (leafIndex : LeafIndex)
     (signature : Signature) (encoding : Encoding) : OracleComp HashSpec Bool := do
   let endpoints ← Concrete.recoverEndpoints publicKey.parameter leafIndex encoding signature
@@ -329,9 +327,6 @@ theorem authenticationRoot_query_cached_as_in_largerCache
           initialCache currentCache current hcurrent (hcurrentLe.trans hle)
         exact ⟨output, hcurrentLe hcached⟩
 
-
-set_option maxHeartbeats 1200000 in
-set_option linter.constructorNameAsVariable false in
 theorem verify_true_merkle_query_cached_as_in_largerCache
     (publicKey : PublicKey) (leafIndex : LeafIndex) (message : Message) (signature : Signature)
     (encoding : Encoding) (target : MerkleLevel)

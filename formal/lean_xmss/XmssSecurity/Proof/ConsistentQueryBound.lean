@@ -9,7 +9,6 @@ public import XmssSecurity.Proof.IdealStatement
 namespace XmssSecurity
 
 open OracleComp OracleSpec
-set_option backward.isDefEq.respectTransparency false
 
 noncomputable def countHashQueries {α : Type} (computation : OracleComp OracleWorld α) :
     OracleComp OracleWorld (α × Nat) :=

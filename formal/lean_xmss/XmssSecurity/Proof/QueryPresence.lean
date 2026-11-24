@@ -324,7 +324,6 @@ end XmssSecurity
 
 namespace XmssSecurity.Concrete.CacheReplay
 
-set_option linter.constructorNameAsVariable false in
 /-- A supported successful verification caches its exact recovered leaf input in every later cache. -/
 theorem verify_true_leaf_query_cached_in_largerCache
     (publicKey : PublicKey) (leafIndex : LeafIndex) (message : Message) (signature : Signature)

@@ -10,8 +10,6 @@ open OracleComp OracleSpec
 
 namespace XmssSecurity.Seeded
 
-set_option backward.isDefEq.respectTransparency false
-
 theorem cacheQuery_comm (cache : QueryCache HashSpec) (left right : HashInput)
     (h : left ≠ right) (a b : HashOutput) :
     (cache.cacheQuery left a).cacheQuery right b = (cache.cacheQuery right b).cacheQuery left a := by

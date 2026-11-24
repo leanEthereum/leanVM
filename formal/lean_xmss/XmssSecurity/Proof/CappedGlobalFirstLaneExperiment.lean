@@ -224,9 +224,6 @@ noncomputable def globalFirstLaneVerifierImpl
         (OracleComp GlobalFirstLaneWorld)) :=
   globalFirstLaneOracleImpl keyView edgeHigh
 
-
-set_option maxRecDepth 1000000
-
 theorem globalFirstLaneUniformQuery_hazardBound (n : Nat) :
     (FirstLaneOracleSimulation.uniformQuery
       (Index := GlobalChainValueIndex) n).IsQueryBoundP
@@ -481,7 +478,6 @@ theorem globalFirstLaneSigningImpl_hazardBound
       |>.IsQueryBoundP FirstLaneOracleSimulation.IsHazardQuery 0 := by
   exact globalFirstLaneSigningQuery_hazardBound keyView request state
 
-
 noncomputable def globalFirstLaneEraseImpl :
     QueryImpl GlobalFirstLaneWorld
       (OracleComp
@@ -659,7 +655,6 @@ theorem globalFirstLane_globalLeafInputData_encodingInput
     cases key <;> cases hdomain
   · rfl
 
-set_option maxRecDepth 1000000 in
 theorem globalFirstLaneErase_attackerHashQueryFromHigh_encoding_cached
     (high : GlobalChainValueIndex → Digest)
     (secretKey : SecretKey) (leafIndex : LeafIndex) (payload : Message × Randomness)
@@ -689,7 +684,6 @@ theorem globalFirstLaneErase_attackerHashQueryFromHigh_encoding_cached
           state)) = _
   simp [globalFirstLaneErase]
 
-set_option maxRecDepth 1000000 in
 theorem globalFirstLaneErase_attackerHashQueryFromHigh_encoding_fresh_source
     (high : GlobalChainValueIndex → Digest)
     (secretKey : SecretKey) (leafIndex : LeafIndex) (payload : Message × Randomness)
@@ -827,7 +821,6 @@ noncomputable def globalFirstLaneErasedEncodingHashQuery
     ((randomOracle input).run state.cache)
   pure (result.1, state.setCache result.2)
 
-set_option maxRecDepth 1000000 in
 theorem globalFirstLaneErase_encodingHashQuery
     (secretKey : SecretKey) (leafIndex : LeafIndex) (message : Message)
     (randomness : Randomness) (state : GlobalCausalHashState) :
@@ -917,7 +910,6 @@ noncomputable def globalFirstLaneErasedSigningAttemptRaw
           request.leafIndex randomness encoding)).run encoded.2
       pure (some result.1, result.2)
 
-set_option maxRecDepth 1000000 in
 theorem globalFirstLaneErase_signingAttempt_raw
     (keyView : ProgrammedGlobalChainKeygenView)
     (request : SignRequest) (randomness : Randomness) (state : GlobalCausalHashState) :
@@ -1014,7 +1006,6 @@ theorem globalFirstLaneErase_signingQuery
     request state).bind
   exact fun result => GlobalFirstLaneErases.pure _
 
-set_option maxRecDepth 1000000 in
 theorem globalFirstLaneAttackerHashQueryFromHighRun_eq_lift_of_none
     (high : GlobalChainValueIndex → Digest)
     (secretKey : SecretKey) (input : HashInput)
@@ -1027,7 +1018,6 @@ theorem globalFirstLaneAttackerHashQueryFromHighRun_eq_lift_of_none
   exact globalFirstLaneAttackerHashQueryFromHighRun_eq_none high secretKey input
     state hleafIndex
 
-set_option maxRecDepth 100000 in
 theorem globalFirstLaneErase_attackerHashQueryFromHigh
     (high : GlobalChainValueIndex → Digest)
     (secretKey : SecretKey) (input : HashInput)
@@ -1115,9 +1105,6 @@ theorem globalFirstLaneVerifierImpl_hash
   unfold globalFirstLaneVerifierImpl globalFirstLaneOracleImpl
     globalFirstLaneOracleExecution
   rfl
-
-
-set_option maxRecDepth 1000000
 
 def appendAttackerActionTrace
     (input : (OracleWorld + SigningSpec).Domain)
@@ -1474,7 +1461,6 @@ theorem cappedDetailedGameWithKeygenCacheAndBothTraces_encodingProjection_eq
         cappedDetailedGameWithKeygenCacheAndBothTraces adversary =
       cappedDetailedGameWithEncodingTrace adversary :=
   cappedDetailedGameWithKeygenCacheAndBothTraces_encodingProjection adversary
-
 
 theorem simulate_globalFirstLaneEagerTrace_chainProjection
     (table : GlobalChainValueIndex → Digest)

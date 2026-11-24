@@ -10,8 +10,6 @@ open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity.CappedChain
 
-set_option maxRecDepth 100000
-
 theorem keygenChainTargetInput_eq_capped
     (secretKey : SecretKey) (cache : QueryCache HashSpec) :
     keygenChainTargetInput secretKey cache =

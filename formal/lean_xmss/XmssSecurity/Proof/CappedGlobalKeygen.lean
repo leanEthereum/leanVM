@@ -263,7 +263,6 @@ attribute [local semireducible] Concrete.sampleTopSecret in
 theorem Concrete.sampleTopSecret_eq :
     Concrete.sampleTopSecret = $ᵗ (TopIndex → ChainIndex → Digest) := rfl
 
-set_option maxRecDepth 100000 in
 theorem Concrete.evalDist_sampleChainStarts_eq_uniform :
     Concrete.sampleChainStarts =ᵈ ($ᵗ (ChainKey → ChainIndex → Digest)) := by
   have hmap : Concrete.sampleChainStarts =
@@ -648,7 +647,6 @@ noncomputable def uniformGlobalChainKeygenRandomness :
   Prod.mk <$> Concrete.sampleChainStarts <*>
     ($ᵗ GlobalChainEdgeOutputTable)
 
-set_option maxRecDepth 100000 in
 theorem evalDist_uniformGlobalChainKeygenRandomness_eq_uniform :
     uniformGlobalChainKeygenRandomness =ᵈ
       ($ᵗ ((ChainKey → ChainIndex → Digest) × GlobalChainEdgeOutputTable)) := by
@@ -656,7 +654,6 @@ theorem evalDist_uniformGlobalChainKeygenRandomness_eq_uniform :
   exact (prod_seq_evalDistEq_left Concrete.evalDist_sampleChainStarts_eq_uniform _).trans
     uniformSample_prod_evalDistEq_seq.symm
 
-set_option maxRecDepth 100000 in
 theorem evalDist_uniformGlobalChainKeygenRandomness_eq_independent :
     (globalChainKeygenRandomnessView <$>
       ($ᵗ ((ChainKey → ChainIndex → Digest) ×
@@ -722,8 +719,6 @@ theorem Concrete.allChainTrajectoriesFromCache_cons
           first.2 chains
         pure (Function.update rest.1 chain first.1, rest.2)) := rfl
 
-set_option maxRecDepth 100000 in
-set_option linter.constructorNameAsVariable false in
 theorem Concrete.allChainTrajectoriesFromCache_support_info
     (parameter : PublicParameter) (start : ChainKey → ChainIndex → Digest) :
     ∀ (chains : List ChainIndex) (cache : QueryCache HashSpec)
@@ -845,7 +840,6 @@ def AllChainAddressesAbsent
     AtHashAddress parameter (key.chainDomain chain step) input →
       cache input = none
 
-set_option maxRecDepth 100000 in
 theorem Concrete.fixedSeedChainTrajectories_preserves_otherChain_none
     (parameter : PublicParameter) (start : ChainKey → ChainIndex → Digest)
     (selected other : ChainIndex) (hne : selected ≠ other)
@@ -918,8 +912,6 @@ theorem programmedAllChainTrajectoriesFromCache_cons
           first.2 chains
         pure (Function.update rest.1 chain first.1, rest.2)) := rfl
 
-set_option maxHeartbeats 2400000 in
-set_option maxRecDepth 100000 in
 theorem evalDist_allChainTrajectories_eq_programmed
     (parameter : PublicParameter) (start : ChainKey → ChainIndex → Digest) :
     ∀ (chains : List ChainIndex) (cache : QueryCache HashSpec),
@@ -1138,7 +1130,6 @@ theorem evalDist_programmedChainExtension_fst
           ($ᵗ Digest)) := by
       exact evalDist_sampledHashOutputWithDigest_fst_eq_uniform.map _
 
-set_option maxRecDepth 100000 in
 theorem evalDist_programmedChainTrajectory_fst_eq_uniform
     (parameter : PublicParameter) (key : ChainKey) (chain : ChainIndex)
     (position : Nat) : ∀ (steps : Nat) (seed : Digest)
@@ -1251,7 +1242,6 @@ theorem evalDist_uniformFixedChainTrajectories_drawTape
           simp only [List.length_cons]
           simp [Nat.add_mul, Nat.add_comm]
 
-set_option maxRecDepth 100000 in
 theorem evalDist_programmedFixedChainTrajectories_fst_eq_uniform
     (parameter : PublicParameter) (start : ChainKey → ChainIndex → Digest)
     (chain : ChainIndex) (steps : Nat) (hsteps : steps ≤ chainLength - 1) :
@@ -1645,8 +1635,6 @@ theorem evalDist_uniformGlobalTrajectoryEdgeTableTape_eq_drawList :
       evalDist_listOfFn_uniform_eq_drawList
         globalTrajectoryEdgeOrder.length
 
-set_option maxHeartbeats 1000000 in
-set_option maxRecDepth 1000000 in
 theorem evalDist_globalTrajectoryEdgeTableOfTape_drawList_eq_uniform :
     (globalTrajectoryEdgeTableOfTape <$>
       OracleComp.drawList ($ᵗ Digest)
@@ -1729,7 +1717,6 @@ theorem globalTrajectoryEdgeTableOfTape_drawTape
   exact globalTrajectoryEdgeTableOfTape_map
     (globalChainEdgeTableOfTrajectories trajectories)
 
-set_option maxRecDepth 100000 in
 theorem evalDist_uniformAllChainTrajectories_edgeTable_eq_uniform
     (start : ChainKey → ChainIndex → Digest) :
     (globalChainEdgeTableOfTrajectories <$>
@@ -1787,15 +1774,11 @@ noncomputable def sampleSecretGlobalChainMaterial :
   Prod.mk <$> Concrete.sampleChainStarts <*>
     ($ᵗ (GlobalChainEdgeIndex → Digest))
 
-set_option maxHeartbeats 2000000 in
-set_option maxRecDepth 2000000 in
 theorem evalDist_sampleSecretGlobalChainMaterial_eq_independent :
     sampleSecretGlobalChainMaterial =ᵈ independentGlobalChainTableMaterial := by
   rw [sampleSecretGlobalChainMaterial, independentGlobalChainTableMaterial]
   exact prod_seq_evalDistEq_left Concrete.evalDist_sampleChainStarts_eq_uniform _
 
-set_option maxHeartbeats 2000000 in
-set_option maxRecDepth 2000000 in
 theorem evalDist_uniformGlobalChainTableFromTrajectories_eq_uniform :
     uniformGlobalChainTableFromTrajectories =ᵈ ($ᵗ (GlobalChainValueIndex → Digest)) := by
   unfold uniformGlobalChainTableFromTrajectories
@@ -1835,7 +1818,6 @@ theorem evalDist_uniformGlobalChainTableFromTrajectories_eq_uniform :
         globalChainTableMaterialEquiv.symm
       simpa [Functor.map_map] using h.symm
 
-set_option maxRecDepth 100000 in
 theorem evalDist_programmedAllChainTrajectories_fst_eq_uniform
     (parameter : PublicParameter) (start : ChainKey → ChainIndex → Digest) :
     ∀ (chains : List ChainIndex) (cache : QueryCache HashSpec),
@@ -2230,9 +2212,6 @@ def globalChainTrajectoryMaterialBase
       (GlobalChainValueIndex → Digest)) :
     GlobalChainValueIndex → Digest := result.2
 
-set_option maxHeartbeats 2000000 in
-set_option maxRecDepth 1000000 in
-set_option linter.constructorNameAsVariable false in
 theorem evalDist_programmedGlobalChainTrajectoryMaterial_table_eq_base
     (parameter : PublicParameter) :
     (globalChainTrajectoryMaterialTable <$>
@@ -2362,8 +2341,6 @@ noncomputable def coupledGlobalChainKeygen :
   let view ← coupledGlobalChainKeygenExperiment parameter
   pure (view.toProgrammedView parameter)
 
-set_option maxHeartbeats 2000000 in
-set_option maxRecDepth 1000000 in
 theorem evalDist_coupledGlobalChainKeygen_eq_programmedTrajectories :
     coupledGlobalChainKeygen =ᵈ (eraseAllChainTrajectories <$>
         programmedAllChainTrajectoryKeygen) := by

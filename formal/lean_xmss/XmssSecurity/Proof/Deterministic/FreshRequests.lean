@@ -9,8 +9,6 @@ open OracleComp OracleSpec
 
 namespace DeterministicSigning
 
-set_option backward.isDefEq.respectTransparency false
-
 variable {ι : Type} {base : OracleSpec ι} {Request Answer : Type}
 
 /-- Every request is new, on every branch of the computation. -/

@@ -8,8 +8,6 @@ open OracleComp OracleSpec
 
 namespace XmssSecurity.Seeded
 
-set_option backward.isDefEq.respectTransparency false
-
 variable (J R : Type) [Fintype J]
 
 noncomputable def finTableEquiv : (Fin (Fintype.card J) → R) ≃ (J → R) where

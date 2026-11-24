@@ -44,7 +44,6 @@ noncomputable def returnedChainValueIndexList
             chainSuffixValueIndices (.inl entry.1.leafIndex) (encoding chain)) ++
           topSuffixValueIndices secretKey entry.1.leafIndex chain).dedup
 
-set_option maxRecDepth 100000 in
 @[simp]
 theorem mem_returnedChainValueIndexList_iff
     (cache : QueryCache HashSpec) (secretKey : SecretKey)

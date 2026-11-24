@@ -32,7 +32,6 @@ theorem Concrete.chainWalk_queryBound_zero_of_avoids
           (Concrete.digestBytes previous) (havoid steps (by omega) _)
       · simp
 
-set_option maxHeartbeats 800000 in
 theorem Concrete.chainWalk_queryBound_atAddress
     (parameter : PublicParameter) (leafIndex : LeafIndex) (chain : ChainIndex)
     (position steps : Nat) (value : Digest) (targetDomain : HashDomain) :

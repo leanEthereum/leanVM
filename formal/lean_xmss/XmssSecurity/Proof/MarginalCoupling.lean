@@ -53,7 +53,6 @@ theorem generalFiberMass_ne_top
   rw [generalFiberMass_eq_map_apply]
   exact PMF.coe_le_one (p.map f) value
 
-set_option maxHeartbeats 1600000 in
 theorem generalFiberCouplingWeight_sum_right
     (p : PMF α) (q : PMF β) (f : α → γ) (g : β → γ)
     (hmap : p.map f = q.map g) (left : α) :
@@ -108,7 +107,6 @@ theorem generalFiberCouplingWeight_sum_right
           (generalFiberMass_ne_zero_of_apply_ne_zero p f left hleft)
           (generalFiberMass_ne_top p f (f left)), mul_one]
 
-set_option maxHeartbeats 1600000 in
 theorem generalFiberCouplingWeight_sum_left
     (p : PMF α) (q : PMF β) (f : α → γ) (g : β → γ)
     (hmap : p.map f = q.map g) (right : β) :
@@ -161,7 +159,6 @@ theorem generalFiberCouplingWeight_sum_left
           (generalFiberMass_ne_zero_of_apply_ne_zero q g right hright)
           (generalFiberMass_ne_top q g (g right)), mul_one]
 
-set_option maxHeartbeats 1600000 in
 theorem generalFiberCouplingWeight_sum_eq_one
     (p : PMF α) (q : PMF β) (f : α → γ) (g : β → γ)
     (hmap : p.map f = q.map g) :

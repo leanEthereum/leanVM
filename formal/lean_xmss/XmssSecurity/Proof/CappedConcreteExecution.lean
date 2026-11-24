@@ -83,7 +83,6 @@ theorem Concrete.CacheReplay.eval_honestKeygen (cache : QueryCache HashSpec)
             OracleComp HashSpec (Option (Randomness × Encoding)))) := by
   simp [Concrete.honestKeygen, evalWithAnswerFn_bind]
 
-set_option linter.constructorNameAsVariable false in
 /-- Key generation's honest computation, replayed in the final cache, gives the root and the top
 signatures. -/
 theorem capped_detailed_execution_keygen_eval
