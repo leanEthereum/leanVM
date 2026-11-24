@@ -9,6 +9,8 @@ public import XmssSecurity.Proof.CappedEncodingMonitor
 
 open OracleComp OracleSpec
 
+variable {α : Type}
+
 namespace XmssSecurity.FirstLaneOracleSimulation
 
 variable {Index : Type} [Fintype Index] [DecidableEq Index]

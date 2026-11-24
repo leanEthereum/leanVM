@@ -18,6 +18,8 @@ adversary's own count below `2^127`: the ghost count of its queries never passes
 
 open OracleComp OracleSpec ENNReal
 
+variable {n : ℕ}
+
 namespace XmssSecurity
 
 set_option backward.isDefEq.respectTransparency false

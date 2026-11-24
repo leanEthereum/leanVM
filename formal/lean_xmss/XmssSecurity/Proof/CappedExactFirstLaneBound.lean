@@ -11,6 +11,8 @@ open OracleComp OracleSpec ENNReal
 set_option backward.isDefEq.respectTransparency false
 open OracleComp.ProgramLogic.Relational
 
+variable {α : Type}
+
 namespace XmssSecurity.CappedChain
 
 set_option maxRecDepth 1000000
@@ -322,7 +324,7 @@ theorem relTriple_sourceExact_firstLane_action
   · apply Or.inr
     exact ⟨hprojectionFacts.combinedHit_of_bad right.1.2 hbad, htotalCount⟩
 
-def sourceExactVerifierResult
+def sourceExactVerifierResult {input : OracleWorld.Domain}
     (initialState : SourceExactTracedState)
     (result : OracleWorld.Range input × SourceSigningTracedState) :
     OracleWorld.Range input × SourceExactTracedState :=
@@ -822,7 +824,7 @@ theorem globalFirstLaneExactCoupledProgram_projection_eq_parameterFirst
   simp [globalFirstLaneExactCoupledProjection,
     globalFirstLaneExactCoupledContinuation, bind_assoc]
 
-theorem firstLane_eagerTrace_liftProbComp_then_bind
+theorem firstLane_eagerTrace_liftProbComp_then_bind {κ : Type}
     (base : GlobalChainValueIndex → Digest)
     (keygen : ProbComp κ)
     (body : κ → OracleComp GlobalFirstLaneWorld α) :

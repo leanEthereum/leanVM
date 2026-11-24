@@ -6,6 +6,8 @@ public import XmssSecurity.Proof.FirstLaneEagerBound
 
 open OracleComp OracleSpec
 
+variable {α ι : Type} {Key Action Index : Type}
+
 namespace XmssSecurity
 
 def CacheGrowthRepresented

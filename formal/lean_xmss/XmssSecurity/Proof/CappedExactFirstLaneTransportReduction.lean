@@ -12,6 +12,10 @@ public import XmssSecurity.Proof.EagerTraceInvariant
 open OracleComp OracleSpec ENNReal
 open OracleComp.ProgramLogic.Relational
 
+universe u
+
+variable {α ι : Type}
+
 namespace XmssSecurity.CappedChain
 
 set_option maxRecDepth 1000000

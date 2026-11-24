@@ -10,6 +10,8 @@ public import VCVio.OracleComp.SimSemantics.StateT.StateProjection
 open OracleComp OracleSpec
 open OracleComp.ProgramLogic.Relational
 
+variable {α : Type}
+
 namespace XmssSecurity.CappedChain
 
 abbrev SourceSigningTracedState :=

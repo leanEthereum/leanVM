@@ -8,6 +8,8 @@ public import XmssSecurity.Proof.RunObservedAppend
 open OracleComp OracleSpec
 open OracleComp.ProgramLogic.Relational
 
+variable {α : Type}
+
 namespace XmssSecurity
 namespace RevealProbeOracleSimulation
 

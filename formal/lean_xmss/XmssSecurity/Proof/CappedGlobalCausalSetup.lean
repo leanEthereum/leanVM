@@ -175,6 +175,7 @@ noncomputable def revealGlobalSignatureChains
           (state.recordReveal index value)
 
 def globalSignatureRevealResult
+    (table : GlobalChainValueIndex → Digest)
     (request : SignRequest) (encoding : ChainIndex → Digit) :
     List ChainIndex → Signature → GlobalCausalHashState →
       Signature × GlobalCausalHashState
@@ -187,6 +188,7 @@ def globalSignatureRevealResult
         (state.recordReveal index (table index))
 
 def globalSignatureRevealTrace
+    (table : GlobalChainValueIndex → Digest)
     (request : SignRequest) (encoding : ChainIndex → Digit) :
     List ChainIndex →
       RevealProbeOracleSimulation.ActionTrace GlobalChainValueIndex
@@ -319,6 +321,7 @@ noncomputable def revealGlobalSignatureTopChains
           (state.recordReveal index value)
 
 def globalSignatureTopRevealResult
+    (table : GlobalChainValueIndex → Digest)
     (request : SignRequest) (encoding : ChainIndex → Digit) :
     List ChainIndex → Signature → GlobalCausalHashState →
       Signature × GlobalCausalHashState
@@ -331,6 +334,7 @@ def globalSignatureTopRevealResult
         (state.recordReveal index (table index))
 
 def globalSignatureTopRevealTrace
+    (table : GlobalChainValueIndex → Digest)
     (request : SignRequest) (encoding : ChainIndex → Digit) :
     List ChainIndex →
       RevealProbeOracleSimulation.ActionTrace GlobalChainValueIndex

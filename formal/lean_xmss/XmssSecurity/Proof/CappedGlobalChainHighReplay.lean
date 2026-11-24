@@ -8,6 +8,8 @@ public import XmssSecurity.Proof.ObservedTraceMonitor
 open OracleComp OracleSpec
 open OracleComp.ProgramLogic.Relational
 
+variable {α : Type}
+
 namespace XmssSecurity.CappedChain
 
 variable (table : GlobalChainValueIndex → Digest) (keyView : ProgrammedGlobalChainKeygenView)

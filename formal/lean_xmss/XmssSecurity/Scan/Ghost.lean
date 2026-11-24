@@ -17,6 +17,8 @@ source game (`expectedSimulatedCost_advEncoding_le`).
 
 open OracleComp OracleSpec ENNReal
 
+variable {α : Type}
+
 namespace XmssSecurity.Ghost
 
 /-- A hash query of the adversary. -/

@@ -8,6 +8,8 @@ public import XmssSecurity.Proof.StateLens
 open OracleComp OracleSpec
 open OracleComp.ProgramLogic.Relational
 
+variable {α ι : Type} {Index : Type}
+
 namespace XmssSecurity.CappedChain
 
 variable (table : GlobalChainValueIndex → Digest) (keyView : ProgrammedGlobalChainKeygenView)

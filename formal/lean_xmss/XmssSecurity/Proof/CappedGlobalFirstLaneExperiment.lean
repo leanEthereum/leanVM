@@ -10,6 +10,8 @@ public import XmssSecurity.Proof.FirstLaneEagerSimulation
 open OracleComp OracleSpec
 open OracleComp.ProgramLogic.Relational
 
+variable {α : Type}
+
 namespace XmssSecurity.CappedChain
 
 variable (table : GlobalChainValueIndex → Digest) (keyView : ProgrammedGlobalChainKeygenView)
@@ -495,7 +497,10 @@ abbrev GlobalFirstLaneErases
       (RevealProbeOracleSimulation.World GlobalChainValueIndex) α) : Prop :=
   globalFirstLaneErase source = target
 
-theorem GlobalFirstLaneErases.bind
+theorem GlobalFirstLaneErases.bind {β : Type} {source : OracleComp GlobalFirstLaneWorld α}
+    {target : OracleComp (RevealProbeOracleSimulation.World GlobalChainValueIndex) α}
+    {nextSource : α → OracleComp GlobalFirstLaneWorld β}
+    {nextTarget : α → OracleComp (RevealProbeOracleSimulation.World GlobalChainValueIndex) β}
     (hsource : GlobalFirstLaneErases source target)
     (hnext : ∀ result, GlobalFirstLaneErases (nextSource result)
       (nextTarget result)) :
@@ -512,7 +517,7 @@ theorem GlobalFirstLaneErases.pure (result : α) :
   unfold GlobalFirstLaneErases
   simp [globalFirstLaneErase]
 
-theorem globalFirstLaneErases_simulateQ_run
+theorem globalFirstLaneErases_simulateQ_run {ι : Type} {spec : OracleSpec ι} {stateType : Type}
     (sourceImpl : QueryImpl spec
       (StateT stateType (OracleComp GlobalFirstLaneWorld)))
     (targetImpl : QueryImpl spec

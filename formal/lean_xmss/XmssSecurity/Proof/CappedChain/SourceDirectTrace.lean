@@ -7,6 +7,8 @@ public import XmssSecurity.Proof.StateLens
 
 open OracleComp OracleSpec
 
+variable {α : Type}
+
 namespace XmssSecurity.CappedChain
 
 noncomputable def sourceDirectMappedAdversaryImpl

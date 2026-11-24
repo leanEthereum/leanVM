@@ -7,6 +7,8 @@ public import XmssSecurity.Proof.EncodingOracleSimulation
 
 open OracleComp OracleSpec ENNReal
 
+variable {n : ℕ}
+
 namespace XmssSecurity
 
 theorem simulate_chainHash_run_of_fresh

@@ -11,6 +11,8 @@ public import VCVio.ProgramLogic.Relational.FromUnary
 open OracleComp OracleSpec
 open OracleComp.ProgramLogic.Relational
 
+variable {α β ι : Type} {Index σ₁ σ₂ : Type}
+
 namespace XmssSecurity
 
 
