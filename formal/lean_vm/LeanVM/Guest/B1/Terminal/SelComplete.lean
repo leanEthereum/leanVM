@@ -16,7 +16,7 @@ public import LeanVM.Guest.B1.Terminal.Template
 /-!
 # The column selectors, placed
 
-`selector_tables` returns its buffer `stOwn` (`selector_tables_completeAt`). On a memory
+`selector_tables` returns its buffer `stOwn`. On a memory
 holding it and the point's words `stLin`, `selector_tables`' statements hold (`st_holds`), so its
 soundness puts the opening point's eq tables there (`selTabs_of_memL`). The nibble shares
 `exponent_tables` wrote (`GTabsAt`) are the run `gTabW` (`gTabs_of_reads`, `reads_of_gTabs`).

@@ -1,8 +1,7 @@
 /-
   LeanVM.Guest.B2C.RunsFit
 
-  The deployed certificates' frame runs fit their frames (`Lift.RunsFit fs cert`) and meet only at
-  common values (`Lift.RunsApart cert`), from the sharing check's lists (`FnStatic`).
+  The deployed certificates' frame runs fit their frames (`Lift.RunsFit fs cert`), from the sharing check's lists (`FnStatic`).
 -/
 
 module
@@ -11,7 +10,8 @@ public import LeanVM.Guest.B2C.Cells
 public import LeanVM.Guest.B2C.Static
 public import LeanVM.Guest.B2C.Shared
 public import LeanVM.Guest.SoundFacts
-public import LeanVM.Guest.Lift.OqFits
+public import LeanVM.Guest.Memory.LiftPure
+public import LeanVM.Guest.B1.Opening.QueriesPlacedD2
 
 /-!
 # The deployed frame runs

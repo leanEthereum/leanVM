@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Main.CompleteP
 /-!
 # Exact trees with their pops
 
-* `CompleteAtEP … n ps`: `CompleteAtE … n` by a tree popping `ps rd` on the memory `rd` (`toDP`, `toE`);
+* `CompleteAtEP … n ps`: `CompleteAtE … n` by a tree popping `ps rd` on the memory `rd` (`toE`);
 * `completeAtEP_of_node`: every call instance pops `ps`;
 * `CompleteAtOP … Bd ps`: `CompleteAtO … Bd` by a tree popping `ps rd` (`toO`, from `CompleteAtEP` within the bound);
 * `kidsFromInP_of_kidsEP`: callees each `CompleteAtEP` at `ns k` words, placed in sequence (`KidsFromInP`), their total `kidsN`.
@@ -35,11 +35,6 @@ def CompleteAtEP (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (
 
 variable {fs : String → ℕ} {cert : String → V → ℕ} {k : ℕ} {f : String} {Lin : Layout} {args : List E}
   {Out : List E → Layout → Prop} {n : ℕ} {ps : Reader → List Pop}
-
-theorem CompleteAtEP.toDP (h : CompleteAtEP fs cert k f Lin args Out n ps) :
-    CompleteAtDP fs cert k f Lin args Out ps := fun fp =>
-  let ⟨Lown, rets, Lout, ho, hw, hd, hr⟩ := h fp
-  ⟨n, Lown, rets, Lout, ho, hw, hd, hr⟩
 
 theorem CompleteAtEP.toE (h : CompleteAtEP fs cert k f Lin args Out n ps) :
     CompleteAtE fs cert k f Lin args Out n := fun fp =>

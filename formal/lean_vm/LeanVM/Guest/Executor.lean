@@ -37,20 +37,4 @@ def bytecodeShape : List K := List.replicate (2 ^ 23) 0
 def honestAdvice (seed : Digest) (s : NodeStatement) (w : NodeWitness) : Advice :=
   ⟨Data.adviceMainFrame, Data.adviceHints, Hints.honestStreams bytecodeShape seed s w⟩
 
-/-- **The guest's execution on a node**, or where it stops. -/
-def honestExecution (seed : Digest) (s : NodeStatement) (w : NodeWitness) :
-    Except String (Execution guestProgram) :=
-  match execute guestProgram (End.publicInputOf (statementDigest seed s)) (honestAdvice seed s w) with
-  | .ok t => pure t
-  | .error (pc, _) => throw s!"the guest stops at pc {pc}"
-
-/-- `honestExecution` is the executor's execution. -/
-theorem honestExecution_of_execute {seed : Digest} {s : NodeStatement} {w : NodeWitness}
-    {t : Execution guestProgram}
-    (h : execute guestProgram (End.publicInputOf (statementDigest seed s)) (honestAdvice seed s w) = .ok t) :
-    honestExecution seed s w = .ok t := by
-  unfold honestExecution
-  rw [h]
-  rfl
-
 end LeanVM.Guest

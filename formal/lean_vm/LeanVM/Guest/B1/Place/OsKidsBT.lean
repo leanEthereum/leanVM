@@ -112,18 +112,6 @@ def OsCompleteAtPBT (fs : String → ℕ) (cert : String → V → ℕ) (κ : �
     ∀ rd, LowDef κ rd → MemL rd (Lout fp ++ Lown ++ Lin fp) →
       RelAtInT coreProgram fs cert rd (RegionL (Lin fp)) (RegionL (Lout fp)) fp n f args rets (T rd)
 
-theorem OsCompleteAtPBT.toPB {κ : ℕ} {f : String} {Lin : ℕ → Layout} {args rets : List E}
-    {Lout : ℕ → Layout} {T : Reader → Tree → Prop} {B : ℕ} (h : OsCompleteAtPBT fs cert κ f Lin args rets Lout T B) :
-    OsCompleteAtPB fs cert κ f Lin args rets Lout B := fun fp =>
-  let ⟨n, Lown, hW, hD, hn, hr⟩ := h fp
-  ⟨n, Lown, hW, hD, hn, fun rd hl hm => (hr rd hl hm).relAtIn⟩
-
-theorem OsCompleteAtPB.toT {κ : ℕ} {f : String} {Lin : ℕ → Layout} {args rets : List E}
-    {Lout : ℕ → Layout} {B : ℕ} (h : OsCompleteAtPB fs cert κ f Lin args rets Lout B) :
-    OsCompleteAtPBT fs cert κ f Lin args rets Lout (fun _ _ => True) B := fun fp =>
-  let ⟨n, Lown, hW, hD, hn, hr⟩ := h fp
-  ⟨n, Lown, hW, hD, hn, fun rd hl hm => (hr rd hl hm).relAtInT⟩
-
 theorem OsCompleteAtPBT.mono {κ : ℕ} {f : String} {Lin : ℕ → Layout} {args rets : List E}
     {Lout : ℕ → Layout} {T T' : Reader → Tree → Prop} {B B' : ℕ}
     (h : OsCompleteAtPBT fs cert κ f Lin args rets Lout T B) (hB : B ≤ B') (hT : ∀ rd t, T rd t → T' rd t) :

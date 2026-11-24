@@ -21,12 +21,12 @@ values before the outputs, `size = 3`).
 * `walkT`: chain `i` from digit `d`: the hinted start at the base, then steps `d, …, 2`, step `s`
   writing slot `s` of the chain in `walks` (one cell, `walks[o:o + 1]`); the step's constants
   `stride` apart (`size + 1` in the arm that lays out the slots, `size` elsewhere); at `d = 3` the start is hinted into the tip;
-* `armT`, `armsT`, `groupArmsT`, `groupD`, `groupT`: arm `k` of a group's dispatch (the walks at the
+* `armT`, `armsT`, `groupArmsT`, `groupD`: arm `k` of a group's dispatch (the walks at the
   base-4 digits of `k`, then the digit sum folded into the product, in the exponent, and the digits
   into the encoding), the `4^n` arms laid out from `b + 6`, and the group with its hint, its range
   check, what it sets before its dispatch (`pre`: `sp_wots`'s padding run), the `2^63` the compiler
   hoists above an all-`@inline` `match` (`closeLane`, unread: each arm sets its own) and the
-  `match`; `groupT` has its digit word at its base and sets nothing before; `fold` marks the first
+  `match`; `fold` marks the first
   group, each of whose arms sets its product to its power and its encoding to its literal.
 -/
 
@@ -120,12 +120,6 @@ def groupD (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : V) (d : Nat
   (hintW "digits" [.n d] :: rangeS (.n d) (word (2 ^ (4 ^ n - 1)) 0) (d + 1) ++ pre ++
     [cst (b + 5) closeLane, .match_ (.n d) (groupArmsT W first n fold prodIn encIn b).1],
     (groupArmsT W first n fold prodIn encIn b).2)
-
-/-- A group of `n` digits from base `b`: the digit hint, its range check, the hoisted constant and
-the dispatch over the `4^n` digit values (`groupD` with its digit word at its base). -/
-def groupT (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : V) (b : Nat) :
-    List Stmt × Nat :=
-  groupD W first n fold prodIn encIn b [] b
 
 end
 end LeanVM.Guest.B1.Sig

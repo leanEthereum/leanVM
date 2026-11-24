@@ -13,7 +13,6 @@ public import LeanVM.Guest.B1.Da.AtBase
 /-!
 # The honest words of the dual codeword's builders
 
-* `WordAt L i v`: word `i` of the layout `L` is `v`.
 * `zsCells z`: `zs` (`z^(2^j)` for `j < 13`, then `0`); `aboveCells`: `above_top` (zeros);
   `facCells Z top D`: a `da_factors` buffer (node `n`'s factor for `1 ≤ n < 2^D`);
   `offCells Z`: `da_column_offsets`'
@@ -31,10 +30,6 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 @[expose] public section
 
 /-! ## A layout's words -/
-
-/-- **Word `i` of the layout `L` is `v`.** -/
-def WordAt (L : Layout) (i : ℕ) (v : E) : Prop :=
-  ∃ q ∈ L, q.1 ≤ i ∧ i < q.1 + q.2.length ∧ q.2.getD (i - q.1) 0 = v
 
 /-! ## The honest words -/
 

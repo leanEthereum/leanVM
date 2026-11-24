@@ -32,7 +32,7 @@ caller's words `Lin`: `f` holds of `args` and `rets` by a tree placed at `fp` (`
 words, loading from its own data or from `Lin`, its data containing `Lout`. Both layouts lie in
 `[fp, fp + n)` (`Within`), so a caller's honest memory can hold them with its own.
 
-* `kidsFromIn_of_kids'`, `kidsFromIn_of_kidsD`, `kidsFromIn_of_kidsB`: the callees of a caller (`Kid`: callee, taken or not,
+* `kidsFromIn_of_kidsD`, `kidsFromIn_of_kidsB`: the callees of a caller (`Kid`: callee, taken or not,
   arguments, the words it reads, what it returns), each `CompleteAt` and placed at the running
   offsets from `b`, give `KidsFromIn` on every memory holding their layouts;
 * `completeAt_of_rel_pureD`, `completeAt_of_rel_pureB`, `completeAt_of_rel_pureBat`: a function of a pure set whose relation holds on
@@ -233,70 +233,6 @@ theorem OutsIn.mono : ∀ {ks : List Kid} {outs : List (List E × Layout)} {L L'
   | [], _, _, _, _, _ => trivial
   | _ :: _, [], _, _, _, _ => trivial
 
-/-- **The callees at their running offsets**: from `b`, one total `N`, one layout and one result
-per callee serve every memory holding the layouts and the words the callees read. -/
-theorem kidsFromIn_of_kids' (κ : ℕ) : ∀ (ks : List Kid),
-    (∀ k ∈ ks, k.taken = true → CompleteAt fs cert κ k.f k.Lin k.args k.Out) → ∀ b : ℕ,
-    ∃ (N : ℕ) (L : Layout) (outs : List (List E × Layout)), OutsOk ks outs ∧ Within L b N ∧
-      OutsIn ks outs L ∧
-      ∀ (rd : Reader) (σ : Val) (cs : List Call) (R Dacc : ℕ → Prop), CallsMatch σ cs ks outs →
-        LowDef κ rd → MemL rd L → MemL rd (Kid.lins ks) → RegionsOk R Dacc ks outs →
-        KidsFromIn coreProgram fs cert rd σ R Dacc cs b N (fun i => Dacc i ∨ outRegion ks outs i)
-  | [], _, b => ⟨0, [], [], trivial, fun _ h => by simp at h, trivial, fun rd σ cs R Dacc hc _ _ _ _ => by
-      match cs, hc with
-      | [], _ => exact ⟨rfl, fun i hi => hi.elim id fun h => h.elim⟩⟩
-  | k :: ks, hok, b => by
-    by_cases ht : k.taken = true
-    · obtain ⟨n, Lown, rets, Lout, hout, hw, hrel⟩ := hok k (by simp) ht b
-      obtain ⟨N, L, outs, ho, hW, hI, hK⟩ := kidsFromIn_of_kids' κ ks
-        (fun k' hk' => hok k' (by simp [hk'])) (b + n)
-      refine ⟨n + N, Lout ++ Lown ++ L, (rets, Lout) :: outs, ⟨fun _ => hout, ho⟩, ?_,
-        ⟨fun _ q hq => by simp [hq], hI.mono fun q hq => by simp [hq]⟩, ?_⟩
-      · rw [within_append]
-        exact ⟨hw.mono le_rfl (by omega), hW.mono (by omega) (by omega)⟩
-      · intro rd σ cs R Dacc hc hlow hL hLin hRg
-        match cs, hc with
-        | c :: cs, ⟨hf, hct, hcar, hc⟩ =>
-          obtain ⟨hL1, hL2⟩ := Main.memL_append.mp hL
-          simp only [Kid.lins, List.flatMap_cons] at hLin
-          obtain ⟨hLk, hLs⟩ := Main.memL_append.mp hLin
-          obtain ⟨hR1, hR2⟩ := hRg
-          obtain ⟨ha, hr⟩ := hcar ht
-          refine ⟨n, N, RegionL k.Lin, RegionL Lout, rfl, hR1 ht, ?_, ?_⟩
-          · rw [hct]
-            simp only [ht, ↓reduceIte]
-            rw [hf, ha, hr]
-            exact hrel rd hlow (Main.memL_append.mpr ⟨hL1, hLk⟩)
-          · refine kidsFromIn_dend cs _ _ _ ?_ (hK rd σ cs R _ hc hlow hL2 hLs ?_)
-            · intro i hi
-              rcases hi with hi | ⟨_, hi⟩ | hi
-              · exact Or.inl (Or.inl hi)
-              · exact Or.inl (Or.inr ⟨by rw [hct]; exact ht, hi⟩)
-              · exact Or.inr hi
-            · simpa [hct] using hR2
-    · obtain ⟨N, L, outs, ho, hW, hI, hK⟩ := kidsFromIn_of_kids' κ ks
-        (fun k' hk' => hok k' (by simp [hk'])) (b + fs (tailKey k.f))
-      refine ⟨fs (tailKey k.f) + N, L, ([], []) :: outs, ⟨fun h => absurd h ht, ho⟩,
-        hW.mono (by omega) (by omega), ⟨fun h => absurd h ht, hI⟩, ?_⟩
-      intro rd σ cs R Dacc hc hlow hL hLin hRg
-      match cs, hc with
-      | c :: cs, ⟨hf, hct, _, hc⟩ =>
-        simp only [Kid.lins, List.flatMap_cons] at hLin
-        refine ⟨fs (tailKey k.f), N, fun _ => False, fun _ => False, rfl, fun _ h => h.elim, ?_, ?_⟩
-        · have ht' : k.taken = false := by simpa using ht
-          rw [hct, ht']
-          simp only [Bool.false_eq_true, ↓reduceIte]
-          rw [hf]
-        · refine kidsFromIn_dend cs _ _ _ ?_ (hK rd σ cs R _ hc hlow hL (Main.memL_append.mp hLin).2 ?_)
-          · intro i hi
-            rcases hi with hi | ⟨h, _⟩ | hi
-            · exact Or.inl (Or.inl hi)
-            · exact absurd h ht
-            · exact Or.inr hi
-          · have := hRg.2
-            simp only [hct, ht, Bool.false_eq_true, false_and, or_false] at this ⊢
-            exact this
-
 theorem regionsOk_of {R : ℕ → Prop} : ∀ {Dacc : ℕ → Prop} {ks : List Kid} {outs : List (List E × Layout)},
     (∀ k ∈ ks, k.taken = true → ∀ i, RegionL k.Lin i → R i ∨ Dacc i) → RegionsOk R Dacc ks outs
   | _, k :: _, _ :: _, h => ⟨h k List.mem_cons_self, regionsOk_of fun k' hk' ht i hi =>
@@ -447,24 +383,6 @@ def CompleteAtD (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (f
       MemL rd (Lout ++ Lown ++ Lin) →
       RelAtIn coreProgram fs cert rd (RegionL Lin) (RegionL Lout) fp n f args rets
 
-/-- **`f` complete on disjoint layouts**: on every input layout where `Pre` holds. -/
-def CompleteRelD (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (f : String)
-    (Pre : Reader → List E → List E → Prop) : Prop :=
-  ∀ (args rets : List E) (Lin : Layout), (∀ rd, LowDef k rd → MemL rd Lin → Pre rd args rets) →
-    CompleteAtD fs cert k f Lin args (Returns rets)
-
-theorem CompleteAtD.toCompleteAt {k : ℕ} {f : String} {Lin : Layout} {args : List E}
-    {Out : List E → Layout → Prop} (h : CompleteAtD fs cert k f Lin args Out) :
-    CompleteAt fs cert k f Lin args Out := fun fp =>
-  let ⟨n, Lown, rets, Lout, ho, hw, _, hr⟩ := h fp
-  ⟨n, Lown, rets, Lout, ho, hw, hr⟩
-
-theorem CompleteAtD.mono {k k' : ℕ} {f : String} {Lin : Layout} {args : List E}
-    {Out : List E → Layout → Prop} (h : CompleteAtD fs cert k' f Lin args Out) (hk : k' ≤ k) :
-    CompleteAtD fs cert k f Lin args Out := fun fp =>
-  let ⟨n, Lown, rets, Lout, ho, hw, hd, hr⟩ := h fp
-  ⟨n, Lown, rets, Lout, ho, hw, hd, fun rd hl hm => hr rd (hl.mono hk) hm⟩
-
 theorem disj_nil : DisjL [] := List.Pairwise.nil
 
 /-- Two disjoint layouts in consecutive slots are disjoint. -/
@@ -591,21 +509,17 @@ def CompleteAtB (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (f
       MemL rd (Lout ++ Lown ++ Lin) →
       RelAtIn coreProgram fs cert rd (RegionL Lin) (RegionL Lout) fp n f args rets
 
-/-- `CompleteRelD` by trees of at most `B` words. -/
+/-- A relation complete by trees of at most `B` words. -/
 def CompleteRelB (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (f : String)
     (Pre : Reader → List E → List E → Prop) (B : ℕ) : Prop :=
   ∀ (args rets : List E) (Lin : Layout), (∀ rd, LowDef k rd → MemL rd Lin → Pre rd args rets) →
     CompleteAtB fs cert k f Lin args (Returns rets) B
 
-theorem CompleteAtB.toCompleteAtD {k : ℕ} {f : String} {Lin : Layout} {args : List E}
-    {Out : List E → Layout → Prop} {B : ℕ} (h : CompleteAtB fs cert k f Lin args Out B) :
+theorem CompleteAtD.mono {k k' : ℕ} {f : String} {Lin : Layout} {args : List E}
+    {Out : List E → Layout → Prop} (h : CompleteAtD fs cert k' f Lin args Out) (hk : k' ≤ k) :
     CompleteAtD fs cert k f Lin args Out := fun fp =>
-  let ⟨n, Lown, rets, Lout, ho, hw, hd, _, hr⟩ := h fp
-  ⟨n, Lown, rets, Lout, ho, hw, hd, hr⟩
-
-theorem CompleteRelB.toCompleteRelD {k : ℕ} {f : String} {Pre : Reader → List E → List E → Prop}
-    {B : ℕ} (h : CompleteRelB fs cert k f Pre B) : CompleteRelD fs cert k f Pre :=
-  fun args rets Lin hp => (h args rets Lin hp).toCompleteAtD
+  let ⟨n, Lown, rets, Lout, ho, hw, hd, hr⟩ := h fp
+  ⟨n, Lown, rets, Lout, ho, hw, hd, fun rd hl hm => hr rd (hl.mono hk) hm⟩
 
 theorem CompleteAtB.mono {k k' : ℕ} {f : String} {Lin : Layout} {args : List E}
     {Out : List E → Layout → Prop} {B B' : ℕ} (h : CompleteAtB fs cert k' f Lin args Out B)

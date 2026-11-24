@@ -24,7 +24,7 @@ list (a leaf's hints pinned only through memory, exact under its honest valuatio
 
 `exactJ d j`: function `j`'s body passes that check, each of its callees has an index, and each callee index is `j`
 itself (a loop's tail call) or passes `exactJ (d - 1)`. `exactFree g j` adds that function `j` is named `g`, decided
-per function by `decide +kernel` (as `noWitness`); `exactCallee j g` the same of function `j`'s callee `g`. The functions passing it are call-closed (`coreProgram_exactIn`),
+per function by `decide +kernel` (as `noWitJ`); `exactCallee j g` the same of function `j`'s callee `g`. The functions passing it are call-closed (`coreProgram_exactIn`),
 so every valid tree of one is exact on every reader (`every_exact_of_free`).
 -/
 

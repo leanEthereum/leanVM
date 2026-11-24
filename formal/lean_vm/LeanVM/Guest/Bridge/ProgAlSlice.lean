@@ -87,12 +87,6 @@ def packSt : List ℕ → ℕ → ℕ → List ℕ × ℕ × ℕ
   | c :: cs, j, acc => bif Nat.beq j 63 then (fun r ↦ (Nat.add acc (Nat.shiftLeft c (Nat.mul cellBits j)) :: r.1, r.2)) (packSt cs 0 0)
       else packSt cs (Nat.succ j) (Nat.add acc (Nat.shiftLeft c (Nat.mul cellBits j)))
 
-/-- The packing in pieces, each from where the one before stopped: piece `g` from the state `s`
-completes the chunks `o` and stops at `s'`. -/
-def PackOk : ℕ × ℕ → List (List ℕ × List ℕ × (ℕ × ℕ)) → Prop
-  | _, [] => True
-  | s, (g, o, s') :: r => packSt g s.1 s.2 = (o, s'.1, s'.2) ∧ PackOk s' r
-
 end
 
 public section

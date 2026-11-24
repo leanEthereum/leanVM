@@ -576,7 +576,7 @@ theorem vs_dispIdx (D : VsSecData rd w args) : ∀ x fs as rs, Stmt.dispatch x f
   · exact ⟨D.d - 20, by omega, by omega, by rw [h322, gen_pow_eq_ofK]⟩
   · exact ⟨D.m - 20, by omega, by omega, by rw [h278, gen_pow_eq_ofK]⟩
 
-/-- **The dispatches' selectors** name one of their callees (`completeAt_flatDepR`'s `DispOk`). -/
+/-- **The dispatches' selectors** name one of their callees (`completeAt_flatDepRBPR`'s `DispOk`). -/
 theorem vs_dispOk (D : VsSecData rd w args) : ∀ s ∈ vsCPre, DispOk ς s := by
   intro s hs
   cases s with

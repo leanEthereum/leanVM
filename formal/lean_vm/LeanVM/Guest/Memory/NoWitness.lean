@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.Memory.NoWitness
 
-  A decidable check that a guest function has no witness hint in its subtree (`noWitness`), and the functions passing it form a call-closed set (`coreProgram_noWitIn`), so every valid tree of one pops nothing.
+  A decidable check that a guest function has no witness hint in its subtree (`noWitJ`), and the functions passing it form a call-closed set (`coreProgram_noWitIn`), so every valid tree of one pops nothing.
 -/
 
 module
@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Common.Find
 /-!
 # Functions without witness hints
 
-`noWitJ d j`: function `j`'s body has no witness hint, each of its callees has an index (`calleeIdx`), and each callee index (`Data.calleesJ j`, the generated table) is `j` itself (a loop's tail call) or passes `noWitJ (d - 1)`. `noWitness g j` adds that function `j` is named `g`; it is decided by the kernel per function (`by decide +kernel`), its cost the size of the function's subtree. `NoWitG` collects the functions passing it at some depth; it is call-closed (`coreProgram_noWitIn`), so a valid tree of such a function pops `[]` (`pops_nil_of_noWitness`).
+`noWitJ d j`: function `j`'s body has no witness hint, each of its callees has an index (`calleeIdx`), and each callee index (`Data.calleesJ j`, the generated table) is `j` itself (a loop's tail call) or passes `noWitJ (d - 1)`. It is decided by the kernel per function (`by decide +kernel`), its cost the size of the function's subtree. `NoWitG` collects the functions passing it at some depth; it is call-closed (`coreProgram_noWitIn`), so a valid tree of such a function pops `[]` (`pops_nil_of_noWitness`).
 -/
 
 namespace LeanVM.Guest.Memory
@@ -29,10 +29,6 @@ noncomputable def noWitJ : ℕ → ℕ → Bool
     | none => false
     | some fn => Stmt.noWitList fn.body && (Stmt.blockCallees fn.body).all (fun g => (calleeIdx j g).isSome) &&
         (Data.calleesJ j).all fun k => k == j || noWitJ d k
-
-/-- **The check**: function `j` is named `g`, and no witness hint is in its subtree. -/
-noncomputable def noWitness (g : String) (j : ℕ) : Bool :=
-  decide ((coreProgram[j]?).map Fn.name = some g) && noWitJ 8 j
 
 /-- The functions passing the check at some depth. -/
 def NoWitG (g : String) : Prop := ∃ d j, (coreProgram[j]?).map Fn.name = some g ∧ noWitJ d j = true

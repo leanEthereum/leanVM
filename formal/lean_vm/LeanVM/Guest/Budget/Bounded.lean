@@ -8,7 +8,7 @@
 
 module
 
-public import LeanVM.Guest.Budget.Strengthen
+public import LeanVM.Guest.B1.Main.KidsT
 public import LeanVM.Guest.Memory.LiftPure
 
 /-!

@@ -25,11 +25,10 @@ Discharged from it: `init`'s part (`init_X`), `used`, `keepOp` (`keep_X`: the ex
 to the reference step's registers, `runOp_complete` on its reads, `reads_of_runOp`, and the
 reference's part of its modedness; it touches only cells the reference reads, `runOp_used`), the
 taken `JUMP`'s part of `ref` (`ptrPow_X`: the next state's frame is a frame of the tree track,
-an honest instance, below `maxCells`), and `EntryInst` (`entryInst_X`: a frame of the track at a
-function's entry is an instance of it, `trackAt_X` the track's state at a state's own pc and frame).
-`ExecGaps.ofX` assembles `ExecGaps` from what is left.
+an honest instance, below `maxCells`), and a frame of the track at a function's entry is an
+instance of it (`trackAt_X`: the track's state at a state's own pc and frame).
 
-What is left, besides the fields `ExecGaps.ofParts` leaves to other tracks: the program's
+What is left, besides the fields left to other tracks: the program's
 alignments (`ProgAl`, `AlLayout`), the jumps' cells on the track (`JumpCellsAt`), no certificate at
 pc `0`, a `DEREF`'s address (`DerefPow`, what the reference step reads: `derefPow_all`), the
 hints' cells within the reference
@@ -63,8 +62,7 @@ def XOf (Y : Ref → St → Prop) (r : Ref) (s : St) : Prop :=
 
 /-! ## What is left open -/
 
-/-- **What each frame's jumps read**, on every node's reference run: `Bridge.trace_deployed`'s
-premise, at the reference run. -/
+/-- **What each frame's jumps read**, on every node's reference run. -/
 def JumpCellsAt (A : String → FnAl) : Prop :=
   ∀ r : Ref, r.Ok → ∀ pc fp done e st, RefTrack A r pc fp (done, e :: st) → JumpCells r.img A e pc
 
@@ -293,59 +291,7 @@ theorem trackAt_X {Y : Ref → St → Prop} {A : String → FnAl} (hP : ProgAl g
   rw [hpcE, hfpE, ← hst]
   exact h2
 
-/-- **The frame-to-instance map at entries**, at each state of the tracks: a frame of the tree track
-at a function's entry, an instance of it. -/
-theorem entryInst_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {Y : Ref → St → Prop}
-    {A : String → FnAl} (certs : ModeCerts Ks Km E0) (hKs : ∀ K ∈ Ks, K.F.entry ≠ 0)
-    (hP : ProgAl guestProgram coreProgram A) (hmain : entOf A "main" = mainEntry) (hJ : JumpCellsAt A)
-    (hL : AlLayout A) : EntryInst Ks (XOf Y) := by
-  intro r hr K hK s hon hpc
-  obtain ⟨f, hf, -, hentry, -⟩ := certs.fn K hK
-  have hfb := consecutive_bounds functions_consecutive f hf
-  have hge : proLen ≤ s.steps := by
-    rcases hon.1.1 with ⟨hlt, hpcs, -⟩ | ⟨hge, -⟩
-    · have := consecutive_entry functions_consecutive _ f0_mem f hf (by rw [f0_entry']; omega)
-        (by rw [f0_entry']; show f.entryPc < 0 + proLen; omega)
-      rw [f0_entry'] at this
-      exact absurd (hentry.trans this) (hKs K hK)
-    · exact hge
-  have hcode := codeLen_lt
-  obtain ⟨_, _, _, h⟩ := trackAt_X hP hmain hJ hL hr hon hge
-    (by rw [hpc, hentry, guest_logSize]; omega)
-  obtain ⟨e, st', hst, hE, hfp, hat⟩ := h.top
-  refine ⟨e.I, hE.mem, ?_, hfp⟩
-  rw [← hpc]
-  exact (entry_of_atPc hP hL hE hat).2 f hf (by rw [hpc, hentry])
-
 /-! ## The assembly -/
-
-/-- **`ExecGaps` with `X` concrete**: the tracks' invariant `XOf Y`, from the fields of other
-tracks, the program's alignments, the jumps' cells on the tree track, no certificate at pc `0`, a
-`DEREF`'s pointer a power, the hints' cells within the reference, and the hint tracks' invariant
-`Y`. -/
-theorem ExecGaps.ofX {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A : String → FnAl}
-    {Y : Ref → St → Prop}
-    (certs : ModeCerts Ks Km E0) (main : MainOk Km E0) (mainExact : Budget.MainExactHyp)
-    (hintAlloc : ∀ r, r.Ok → ∀ C, Ctx.of guestProgram r.adv = .ok C → ∀ s, OnRun (XOf Y) r s → ∀ pre h post,
-      (C.hints[s.pc]?).getD [] = pre ++ h :: post → ∀ s1, pre.foldlM (runHint C) s = .ok s1 →
-      Moves (refMem r.img) s s1 → isAllocHint h = true → HintIn s1 h → HintOk C (refMem r.img) s1 h)
-    (hintWitness : ∀ r, r.Ok → ∀ C, Ctx.of guestProgram r.adv = .ok C → ∀ s, OnRun (XOf Y) r s → ∀ pre h post,
-      (C.hints[s.pc]?).getD [] = pre ++ h :: post → ∀ s1, pre.foldlM (runHint C) s = .ok s1 →
-      Moves (refMem r.img) s s1 → isWitnessHint h = true → HintIn s1 h → HintOk C (refMem r.img) s1 h)
-    (hintComputed : ∀ r, r.Ok → ∀ C, Ctx.of guestProgram r.adv = .ok C → ∀ s h, OnRun (XOf Y) r s →
-      h ∈ (C.hints[s.pc]?).getD [] → isAllocHint h = false → isWitnessHint h = false → ∀ s1,
-      Moves (refMem r.img) s s1 → HintIn s1 h → HintOk C (refMem r.img) s1 h)
-    (res : ∀ r, r.Ok → ResRef guestProgram r.img r.n Ks (XOf Y r)) (termInst : TermInst Ks)
-    (progAl : ProgAl guestProgram coreProgram A) (mainAt : entOf A "main" = mainEntry) (layout : AlLayout A)
-    (jumpCells : JumpCellsAt A) (entries : ∀ K ∈ Ks, K.F.entry ≠ 0) (derefPow : DerefPow Y)
-    (hintsUsed : HintsUsed Y) (keepY : KeepY Y) (initY : InitY Y) (core : CoreHonAll Ks (XOf Y)) :
-    ExecGaps Ks Km E0 (XOf Y) (fun _ ↦ ProAt) :=
-  ExecGaps.ofParts certs main mainExact hintAlloc hintWitness hintComputed res termInst
-    (entryInst_X certs entries progAl mainAt jumpCells layout)
-    (fun _ hr _ hC _ _ hon hop ↦ ptrPow_X progAl mainAt jumpCells hr hC hon hop)
-    (fun _ hr _ hC _ _ _ _ hon hop e1 hm e ↦
-      keep_X progAl mainAt jumpCells derefPow hintsUsed keepY hr hC hon hop e1 hm e)
-    (fun _ hr _ _ hC hm ↦ init_X initY hr hC hm) (fun _ _ _ hX ↦ hX.2.1) core
 
 end
 

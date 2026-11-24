@@ -12,10 +12,8 @@ public import LeanVM.Guest.B1.Sig.WotsSound
 /-!
 # A codeword's groups
 
-A codeword has `G` groups of three digits and the last chain's group (`cwN`); `cwState W b p`: group
-`p`'s running product's and encoding's cells and its base. The digit values a group's dispatch takes
-are its selector's exponent, `cwK σ p` (`logG`, the unique exponent below the arm count); chain
-`i`'s start `cwStart σ i` is the value its walk hints in that arm. `sum_range_three_mul`,
+A codeword has `G` groups of three digits and the last chain's group (`cwN`). The digit values a group's
+dispatch takes are its selector's exponent (`logG`, the unique exponent below the arm count). `sum_range_three_mul`,
 `digitSum_three`, `digitSum_one`, `eOfNat128_add_shift`: digits summed by group and placed base 4.
 -/
 
@@ -53,31 +51,10 @@ theorem logG_eq {x : E} {k bound : Nat} (hk : k < bound) (hb : bound ≤ 2 ^ 64 
 
 /-! ## The groups of a codeword -/
 
-/-- Group `p` of a codeword from base `b`: its running product's and encoding's cells and its base. -/
-def cwState (W : WotsT) (b : Nat) : Nat → V × V × Nat
-  | 0 => (.n 0, .n 0, b)
-  | p + 1 =>
-      let st := cwState W b p
-      (prodT W (p == 0) 3 st.2.2, encT W (p == 0) 3 st.2.2,
-        (groupT W (3 * p) 3 (p == 0) st.1 st.2.1 st.2.2).2)
-
 /-! ## The codeword -/
 
 /-- The digits of group `p` of a codeword of `G` groups of three and the last chain's. -/
 def cwN (G p : Nat) : Nat := if p < G then 3 else 1
-
-/-- The digit values group `p`'s dispatch takes: its selector's exponent. -/
-noncomputable def cwK (W : WotsT) (G b : Nat) (σ : Val) (p : Nat) : Nat :=
-  logG (σ (.n (cwState W b p).2.2)) (4 ^ cwN G p)
-
-/-- **Chain `i`'s start**: the value its walk hints, in the arm its group's dispatch takes. -/
-noncomputable def cwStart (W : WotsT) (G b : Nat) (σ : Val) (i : Nat) : V :=
-  armStart W (slotsT W (i / 3 == 0) (cwState W b (i / 3)).2.2) (i / 3 == 0) (cwK W G b σ (i / 3))
-    (armBase W (slotsT W (i / 3 == 0) (cwState W b (i / 3)).2.2) (3 * (i / 3)) (cwN G (i / 3))
-      (i / 3 == 0) (cwState W b (i / 3)).1 (cwState W b (i / 3)).2.1
-      (prodT W (i / 3 == 0) (cwN G (i / 3)) (cwState W b (i / 3)).2.2)
-      (encT W (i / 3 == 0) (cwN G (i / 3)) (cwState W b (i / 3)).2.2) 0 (cwK W G b σ (i / 3))
-      ((cwState W b (i / 3)).2.2 + 6)) (i % 3)
 
 /-! ## Sums of digits -/
 

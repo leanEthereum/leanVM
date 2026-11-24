@@ -1270,7 +1270,7 @@ end
 /-! ## A function, by windows
 
 A function is checked in windows, each by its own kernel evaluation: window `i` runs the executor
-from its start (`execWin`) to its end offset and walks its core statements from its start, with
+from its start (`execWinS`) to its end offset and walks its core statements from its start, with
 the facts and bounds the previous window hands on; it ends at the next window's start, a join
 where it hands on what the next needs (`Fx.win`, `handOk`) in an environment holding the next
 one's, or, the last, by the return. A function of one window is `cuts = []`. -/

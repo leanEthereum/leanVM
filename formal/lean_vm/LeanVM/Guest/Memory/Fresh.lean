@@ -24,7 +24,7 @@ its own memory without the program's control, so the honest memory chooses them 
 `atomUses`, `Stmt.usesList`: every value a block names, the temporaries of its range checks and
 touches apart; `Stmt.tmpsList`: those temporaries. A function is `Fn.Fresh` when its temporaries
 are
-distinct and appear nowhere else, nor among its parameters; `idxMask` and `idxNodup` check
+distinct and appear nowhere else, nor among its parameters; `idxMask` checks
 distinctness with bit masks of the values' indices, so that the kernel checks it in time linear in
 the body's size.
 
@@ -142,11 +142,6 @@ def _root_.LeanVM.Guest.Core.Program.temps (P : Core.Program) (f : String) : Lis
 def idxMask : List V → ℕ
   | [] => 0
   | v :: vs => idxMask vs ||| 1 <<< v.idx
-
-/-- The values have distinct indices, none of them in `m`. -/
-def idxNodup : List V → ℕ → Bool
-  | [], _ => true
-  | v :: vs, m => !(m.testBit v.idx) && idxNodup vs (m ||| 1 <<< v.idx)
 
 /-! ## Freshness by ranges
 

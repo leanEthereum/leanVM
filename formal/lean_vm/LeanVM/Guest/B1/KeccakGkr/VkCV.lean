@@ -22,7 +22,7 @@ writes `op` at `z_vals`, `point` at `z_vals·g^39`, the slices at `slices`, and 
 capacity after the slices' full queue is permuted, the cursor past `xs` and the word.
 
 `verify_keccak_completeAtB_fs` (`VkCW`): it holds. The run is read back as a `VkData` (`vkData_of_run`); the
-body is flat (`completeAt_flatG`): its buffers' words (`VkData.own`), its eighteen callees
+body is flat (`completeAt_flatGB`): its buffers' words (`VkData.own`), its eighteen callees
 (`VkData.kids`, complete by `kids_completeB`), its honest valuation on the layout (`body_holds`),
 its frames (`calls_match`) and loads (`loads_in`).
 -/
@@ -66,7 +66,7 @@ variable {fs : String → ℕ} {cert : String → V → ℕ}
 
 open VkData in
 set_option maxRecDepth 20000 in
-/-- **What `completeAt_flatG` asks of `verify_keccak`'s body**, on an honest run's data. -/
+/-- **What `completeAt_flatGB` asks of `verify_keccak`'s body**, on an honest run's data. -/
 theorem vk_obl {D : VkData} (h : D.Ok) (curE chiE olE zvE slE tbE stE fp : ℕ) (fps : List ℕ) (outs : List (List E × Main.Layout))
     (hlen : fps.length = (D.kids fs (fp + fs "verify_keccak") curE chiE olE zvE slE tbE stE).length)
     (hout : OutsOk (atAllG [] (D.kids fs (fp + fs "verify_keccak") curE chiE olE zvE slE tbE stE) fps) outs)

@@ -18,7 +18,7 @@ import LeanVM.Guest.Data.ValNames.«decode_query_windows__L»
 /-!
 # `decode_query_windows`, placed (`guests/lean_ethereum.py`)
 
-**The form** (`QwDecodeAtD`): at every frame pointer
+**The form**: at every frame pointer
 `fp`, for arguments whose loads lie in the caller's words (`QwRegs`: `positions` and `win_ptrs`
 below `128 / d`, the window table `tabs` below `128`; `RegPtrs [(1, 128 / d), (2, 128 / d),
 (3, 128)]` unfolded), on every memory defined below `2^k` where the caller's words hold the
@@ -27,14 +27,13 @@ the `wins` run (`qwPtrAt`), a tree of `fs name` words holds (the word bound: the
 leaf with no `HeapBuf`), its data holding the run of the honest windows (`qwRunL`: `qwRunList`,
 the positions' windows in order, at the certificate's cell of `.n 5`).
 
-**The lift** (`qwDecodeAtD_of`): the honest valuation (`qw_holds`) on the memory; its atoms are of
+**The lift**: the honest valuation (`qw_holds`) on the memory; its atoms are of
 the kinds `QwEnv.Ok` names, so the walk's loads read the caller's words, its `frameAddr`s are
 the run's address and its tails' (`run·g^(r - 5)`, the run's cells consecutive in the frame,
 `RunsConsec`, the certificates' fact as `Lift.RunsFit` is), and `relAtIn_of_walk` places it.
-`qwDecodeAtD_holds`: every deployed specialization (`QueryWindowsAtAll.lean`).
 
-**Exact** (`QwDecodeAtDE`, `qwDecodeAtDE_of`): the same by a tree popping nothing whose every node is exact on the
-memory, its windows the executor's of the word (`QwEnv.Ok`'s hint case); `QwDecodeAtD` is its corollary.
+**Exact** (`QwDecodeAtDE`, `qwDecodeAtDE_of`): the statement, by a tree popping nothing whose every node is exact on
+the memory, its windows the executor's of the word (`QwEnv.Ok`'s hint case).
 -/
 
 namespace LeanVM.Guest.B1
@@ -64,23 +63,7 @@ def QwRegs (d : ℕ) (args : List E) (R : ℕ → Prop) : Prop :=
   ∀ p ∈ [(1, 128 / d), (2, 128 / d), (3, 128)], ∀ t < p.2,
     ∃ i, (args.getD p.1 0).limb 0 * Parameters.addressOfIndex t = Parameters.addressOfIndex i ∧ R i
 
-/-- **`decode_query_windows__L{d}_L{cd}`, placed, on disjoint layouts**: at every frame pointer
-`fp`, on every memory where the caller's words `Lin` hold the window table, the positions at `pos`
-and the pointers `qwPtrAt` at `ptrs`, a tree of `fs name` words holds, its data holding the run
-`qwRunL`, its other words `Lown`, its loads in its data or `Lin`. -/
-def QwDecodeAtD (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (d cd : ℕ) (name : String) :
-    Prop :=
-  ∀ (w pos ptrs tabs : E) (Lin : Layout) (fp : ℕ),
-    QwRegs d [w, pos, ptrs, tabs] (RegionL Lin) →
-    (∀ rd, LowDef k rd → MemL rd Lin → WinTabs rd tabs ∧ ∀ j < 128 / d,
-      LoadHolds rd pos j (eOfNat (qwPosOf d w j)) ∧ LoadHolds rd ptrs j (qwPtrAt cert name fp d cd j)) →
-    ∃ Lown : Layout, Within (qwRunL cert name fp d cd w ++ Lown) fp (fs name) ∧
-      DisjL (qwRunL cert name fp d cd w ++ Lown) ∧
-      ∀ rd, LowDef k rd → MemL rd (qwRunL cert name fp d cd w ++ Lown ++ Lin) →
-        RelAtIn coreProgram fs cert rd (RegionL Lin) (RegionL (qwRunL cert name fp d cd w)) fp
-          (fs name) name [w, pos, ptrs, tabs] []
-
-/-- **`QwDecodeAtD` by a tree popping nothing, every node exact on the memory.** -/
+/-- **`decode_query_windows` complete, placed, by a tree popping nothing, every node exact on the memory.** -/
 def QwDecodeAtDE (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (d cd : ℕ) (name : String) :
     Prop :=
   ∀ (w pos ptrs tabs : E) (Lin : Layout) (fp : ℕ),
@@ -92,12 +75,6 @@ def QwDecodeAtDE (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (
       ∀ rd, LowDef k rd → MemL rd (qwRunL cert name fp d cd w ++ Lown ++ Lin) →
         RelAtInPE coreProgram fs cert rd (ExactAt coreProgram rd) (RegionL Lin)
           (RegionL (qwRunL cert name fp d cd w)) fp (fs name) name [w, pos, ptrs, tabs] [] []
-
-theorem QwDecodeAtDE.toD {fs : String → ℕ} {cert : String → V → ℕ} {k d cd : ℕ} {name : String}
-    (h : QwDecodeAtDE fs cert k d cd name) : QwDecodeAtD fs cert k d cd name :=
-  fun w pos ptrs tabs Lin fp hreg hpre =>
-    let ⟨Lown, hW, hD, hr⟩ := h w pos ptrs tabs Lin fp hreg hpre
-    ⟨Lown, hW, hD, fun rd hl hm => RelAtInT.relAtIn (hr rd hl hm)⟩
 
 /-- **Every frame run's cells are consecutive**: value `k` of a `frameAddr` run of a function's
 body sits `k` cells past the run's first. The certificates' fact (`B2C.FnStatic.run`), as
@@ -301,12 +278,6 @@ theorem qwDecodeAtDE_of {name : String} {d cd : ℕ} (hfit : Lift.RunsFit fs cer
     simp only [qwRunList, List.length_map, List.length_range] at hq2
     exact Or.inl (Or.inr ⟨(V.n (valf% «decode_query_windows» "wins[0]"), 36), hrunEs, by show fp + cert name (.n (valf% «decode_query_windows» "wins[0]")) ≤ i; exact hq1,
       by show i < fp + cert name (.n (valf% «decode_query_windows» "wins[0]")) + 36; omega⟩)
-
-/-- **`decode_query_windows__L{d}_L{cd}` placed** (`qwDecodeAtDE_of` without exactness). -/
-theorem qwDecodeAtD_of {name : String} {d cd : ℕ} (hfit : Lift.RunsFit fs cert)
-    (hcons : RunsConsec cert) (hs : QwShape d cd) (hq : QwIsP coreProgram name (qwBody d cd)) {k : ℕ}
-    (hk : 7 ≤ k) : QwDecodeAtD fs cert k d cd name :=
-  (qwDecodeAtDE_of hfit hcons hs hq hk).toD
 
 end
 end LeanVM.Guest.B1

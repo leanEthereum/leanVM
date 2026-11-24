@@ -106,8 +106,6 @@ theorem os_perm_pick {α : Type} (l : List α) (d : α) (js : List ℕ) (hjs : j
 def osLoutJ (b : ℕ) (sizes : List ℕ) (own : List (List E)) (js : List ℕ) : Layout :=
   js.map fun j => (b + (sizes.take j).sum, own.getD j [])
 
-
-
 /-- **`CompleteAtO` by a tree satisfying a predicate of the memory.** -/
 def CompleteAtOT (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (f : String) (Lin : Layout)
     (args : List E) (Out : List E → Layout → Prop) (Bd : Option ℕ) (T : Reader → Tree → Prop) : Prop :=
@@ -115,12 +113,6 @@ def CompleteAtOT (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (
     Within (Lout ++ Lown) fp n ∧ DisjL (Lout ++ Lown) ∧ (∀ B ∈ Bd, n ≤ B) ∧ ∀ rd, LowDef k rd →
       MemL rd (Lout ++ Lown ++ Lin) →
       RelAtInT coreProgram fs cert rd (RegionL Lin) (RegionL Lout) fp n f args rets (T rd)
-
-theorem CompleteAtOT.toO {k : ℕ} {f : String} {Lin : Layout} {args : List E} {Out : List E → Layout → Prop}
-    {Bd : Option ℕ} {T : Reader → Tree → Prop} (h : CompleteAtOT fs cert k f Lin args Out Bd T) :
-    CompleteAtO fs cert k f Lin args Out Bd := fun fp =>
-  let ⟨n, Lown, rets, Lout, ho, hw, hd, hn, hr⟩ := h fp
-  ⟨n, Lown, rets, Lout, ho, hw, hd, hn, fun rd hl hm => (hr rd hl hm).relAtIn⟩
 
 /-- **A flat function's node**: at a valuation `σ` with `Q σ`, its body's walk returning, its callees' trees
 satisfying `Ts σ rd`. -/

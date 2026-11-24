@@ -10,7 +10,8 @@ public import LeanVM.Guest.B1.Place.Lq
 public import LeanVM.Guest.B1.Place.LpProof
 public import LeanVM.Guest.B1.Place.OsMean
 public import LeanVM.Guest.B1.Place.SqAt
-public import LeanVM.Guest.B1.Opening.QueriesPlacedAll
+public import LeanVM.Guest.B1.Opening.QueriesFns
+public import LeanVM.Guest.B1.Opening.QueriesPlacedD2
 public import LeanVM.Guest.B1.Whir.OqKey
 public import LeanVM.Guest.B1.Whir.DataSpec
 public import LeanVM.Guest.B1.Whir.HelperAll

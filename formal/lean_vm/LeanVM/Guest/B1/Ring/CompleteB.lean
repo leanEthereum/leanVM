@@ -19,7 +19,7 @@ import LeanVM.Guest.Data.ValNames.«ring_switch_weight»
 # The ring switch, placed, within a bound
 
 `rst_completeAtB`: `ring_switch_target` is complete with the size bounded before the memory;
-`rsw_completeAtB`: `rsw_completeAt` likewise. `ring_switch_target`'s only callee is a pure loop, `ring_switch_target_loop0`
+`rsw_completeAtB`: `ring_switch_weight` likewise. `ring_switch_target`'s only callee is a pure loop, `ring_switch_target_loop0`
 called from `1` (its end the constant `g^8`), whose words are a hypothesis (`TotalLeOn`,
 fs-generic; `completeAt_flatDTB`, forgetting the tree's shape); `ring_switch_weight`'s is
 `rs_eq_run` on `count ≤ 34` coordinates, within `Brs` (`rs_completeAtB`, `completeAt_flatGB`).

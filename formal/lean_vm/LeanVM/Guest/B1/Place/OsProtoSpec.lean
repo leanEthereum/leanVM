@@ -65,22 +65,12 @@ open LeanVM.Guest.B1.Whir
 
 /-! ## The buffers -/
 
-/-- The head's buffers' indices in `osSizesL`. -/
-abbrev osIxFmsgA : ℕ := 0
 abbrev osIxRootsA : ℕ := 1
 abbrev osIxFchA : ℕ := 2
 abbrev osIxCoefsA : ℕ := 3
-abbrev osIxBetasA : ℕ := 4
-abbrev osIxMusA : ℕ := 5
 abbrev osIxHsA : ℕ := 6
-abbrev osIxOodzA : ℕ := 7
-abbrev osIxOodScA : ℕ := 8
-abbrev osIxPosTabA : ℕ := 9
 abbrev osIxQposA : ℕ := 10
 abbrev osIxQbpA : ℕ := 11
-
-/-- A non-final level's message `sent`. -/
-def osIxSentA (l : ℕ) : ℕ := 12 + l
 
 /-- The final level's normalized lane, the tail's challenges, the point, `point1`, `basis_d`. -/
 def osIxLaneA (c : OsCfg) : ℕ := 12 + c.yrLevel

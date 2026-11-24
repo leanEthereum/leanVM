@@ -66,8 +66,6 @@ structure Ok (d : QD) (rd : Reader) (coefsv hsp : E) : Prop where
 
 variable (d : QD) {rd : Reader} {σ : Val}
 
-theorem x_eq : d.x = ofK (K.ofBits d.q) := rfl
-
 /-- **The guest's fold of the honest values is the Spec's.** -/
 theorem foldVal_eq (hs : d.s.RowShape) (hrow : d.row.length = rowLen d.s.base d.s.folds)
     (hrl : d.rounds.length = d.s.folds) :

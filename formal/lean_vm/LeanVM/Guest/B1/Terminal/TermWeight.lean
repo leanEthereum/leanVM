@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Terminal.TermWeight
 
   `check_opening_terminal` complete, placed, within its bound, by a tree within its weights: its
-  callees by name within their words (`completeAt_flatDepRBT`), each callee's weight by its
+  callees by name within their words (`completeAt_flatDepRBPR`), each callee's weight by its
   certificate or, `check_opening_terminal_loop0`'s and `ring_switch_weight`'s, by its words.
 -/
 
@@ -20,8 +20,8 @@ import LeanVM.Guest.LitRef
 `termNames D`: the terminal's callees' names, in call order (the column selectors' by the columns'
 sizes `D.KC`). `termWs`: their weight bounds. `term_weight_le`: a node of `Budget.FlatShape` for
 `termNames`, `termBs` weighs at most its frame's weight and `termWs` at each `ω i`.
-`check_opening_terminal_completeAtBW`: `check_opening_terminal_completeAtB` by a tree within those
-weights.
+`check_opening_terminal_completeAtBWE` (`Exact/Terminal.lean`): `check_opening_terminal` within its bound, by a
+tree within those weights.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -109,73 +109,6 @@ theorem term_weight_le {ι : Type} (ω : ι → String → ℕ) (Weqc W15 Wst Wc
     · exact hEqcW i rd' t' args' rets' hn hv' hb'
     · exact hrswW i rd' t' args' rets' hn hv' hb' htot
     · exact hEqcW i rd' t' args' rets' hn hv' hb'
-
-/-- **`check_opening_terminal` is complete, placed, within a bound, by a tree within its weights**
-(`check_opening_terminal_completeAtB` by a node of `Budget.FlatShape`): at each `ω i`, its frame's
-weight, its four prefix chains' `Weqc i`, `check_opening_terminal_loop0`'s `W15 i`,
-`selector_tables`' `Wst i`, each column selector's `Wcs i` and `ring_switch_weight`'s `Wrsw i`, the
-last two by their trees'
-words (`h15W`, `hrswW`). -/
-theorem check_opening_terminal_completeAtBW (κ : ℕ) (hκ : 6 ≤ κ) (B : TermBases)
-    (Lin : Main.Layout)
-    {layout : Layout} {bus : BusResult} {claims : List ColumnClaim} {out : ColumnClaim} {lam : E}
-    {ringPoint coeffs oodPoint x : List E} {rm gmu gzcn glm gtau lamCl inner yr target gm : E} {nc : ℕ}
-    (hnc : nc ≤ 40) (hgz : gzcn = gen ^ nc)
-    (hpre : ∀ rd, LowDef κ rd → MemL rd Lin → TermPre rd layout bus claims out lam ringPoint coeffs
-      oodPoint x (termArgs B rm gmu gzcn glm gtau lamCl inner yr target gm))
-    (hreg : ∀ i, TermRegion B bus.point.length nc (layout.tableLogHeights.getD opKeccak 0)
-      layout.stackLog i → RegionL Lin i)
-    (hbus : bus.point.length ≤ 34)
-    (hfin : (inner + stackWeight layout (openedClaims claims [out]) ringPoint coeffs oodPoint lam x) *
-      yr = target)
-    {Beqc K15 Bcs Brs : ℕ} (hEqc : TotalLe coreProgram fs "eq_prefix_chain" fun _ => Beqc)
-    (hL15 : TotalLeOn coreProgram fs name% «check_opening_terminal_loop0» LoopPre
-      fun a => logG (a.getD 1 0) * K15 + fs name% «check_opening_terminal_loop0»)
-    (hCsF : ∀ κ' < 31, fs (Tables.lName "column_selector" κ') ≤ Bcs)
-    (hrs : RsBound fs Brs)
-    {ι : Type} (ω : ι → String → ℕ) (Weqc W15 Wst Wcs Wrsw : ι → ℕ)
-    (hEqcW : ∀ i, WeightLe coreProgram (ω i) "eq_prefix_chain" fun _ => Weqc i)
-    (hStW : ∀ i, WeightLe coreProgram (ω i) "selector_tables" fun _ => Wst i)
-    (hCsW : ∀ i, ∀ κ' < 31, WeightLe coreProgram (ω i) (Tables.lName "column_selector" κ')
-      fun _ => Wcs i)
-    (h15W : ∀ i (rd : Reader) (t : Tree) (args rets : List E),
-        t.name = name% «check_opening_terminal_loop0» →
-      t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
-      t.total fs ≤ (32 * K15 + fs name% «check_opening_terminal_loop0») → t.weight (ω i) ≤ W15 i)
-    (hrswW : ∀ i (rd : Reader) (t : Tree) (args rets : List E), t.name = "ring_switch_weight" →
-      t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
-      t.total fs ≤ fs "ring_switch_weight" + lit% termRswChain + Brs → t.weight (ω i) ≤ Wrsw i) :
-    CompleteAtDTB fs cert κ "check_opening_terminal" Lin
-      (termArgs B rm gmu gzcn glm gtau lamCl inner yr target gm) (Returns [])
-      (fun t => ∀ i, Budget.WeighsLe coreProgram (ω i)
-        (ω i "check_opening_terminal" + (termWs Weqc W15 Wst Wcs Wrsw i).sum) t)
-      (fs "check_opening_terminal" + 177 + 4 * Beqc + (32 * K15 + fs
-          name% «check_opening_terminal_loop0») +
-        (fs "selector_tables" + 512) + 94 * Bcs + (fs "ring_switch_weight" + lit% termRswChain + Brs)) := by
-  by_cases hex : ∃ rd0, LowDef κ rd0 ∧ MemL rd0 Lin
-  swap
-  · intro fp
-    exact ⟨0, [], [], [], Nat.zero_le _, ⟨rfl, rfl⟩, by simp [Within], disj_nil,
-      fun rd hl hL => absurd ⟨rd, hl, by simpa using hL⟩ hex⟩
-  obtain ⟨rd0, hl0, hm0⟩ := hex
-  obtain ⟨chis, rfl, hchis, S⟩ := term_setup κ B Lin hnc hgz hpre hreg hbus hl0 hm0
-  set D := termD B layout bus out ringPoint coeffs x chis oodPoint rm gmu gzcn glm gtau gm lamCl
-  refine (completeAt_flatDepRBT find_term term_not_loop κ Lin _ [] term_body' term_flat term_addrs
-    (by decide +kernel) [35, 35, 35, 41, 31] (fun _ => termOwn D) (fun _ => S.own)
-    (fun fp => termKids Lin D (fp + fs "check_opening_terminal")) (termNames D)
-    (termBs fs Beqc K15 Bcs Brs) (fun fp => termKids_names Lin D _)
-    (fun fp => termKids_completeB κ hκ Lin D _ S.reg S.zl S.cl S.xl S.τl S.ol S.rl S.cf S.gmu S.gz
-      S.glm S.gtau S.m1 S.m S.KC S.OF S.rd S.odl S.gm S.rdO hEqc hL15 hCsF hrs)
-    (fun fp outs _ => termKids_regions Lin D _ S.reg S.τl S.rl S.cf S.xl outs)
-    (fun fp outs _ rd hl hB hLin hLo => S.mem _ outs rd hl hB hLin hLo)
-    (fun fp outs hlen' ho rd hl hB hLin _ => term_sigma B Lin (fp + fs "check_opening_terminal") outs rd
-      (hpre rd hl hLin) (hchis rd hl hLin) hgz S.cl hreg hbus hfin (by rw [hlen', termKids_length]) ho
-      hB)).mono (le_of_eq ?_) fun t ht i rd' _ _ hv hb =>
-      term_weight_le ω Weqc W15 Wst Wcs Wrsw hEqcW hStW hCsW h15W hrswW S.KC ht hv hb i
-  rw [termBs_sum]
-  simp only [List.sum_cons, List.sum_nil]
-  omega
-
 
 end
 end LeanVM.Guest.B1.VerifySub

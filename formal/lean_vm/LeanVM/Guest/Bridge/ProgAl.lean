@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.Bridge.ProgAl
 
-  The deployed guest's functions align: `ProgAl guestProgram coreProgram alignA`, with `main` entered at `mainEntry`, the premises of `trace_deployed` on the program.
+  The deployed guest's functions align: `ProgAl guestProgram coreProgram alignA`, with `main` entered at `mainEntry`, a premise of the tree track's trace on the program.
 -/
 
 module

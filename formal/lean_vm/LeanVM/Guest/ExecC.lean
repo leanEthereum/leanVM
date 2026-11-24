@@ -13,8 +13,8 @@ public import LeanVM.Guest.FunctionTable
 /-!
 # A window's code, by chunks, for the guest's functions
 
-`execWin` reads a window's code as `f.code.drop a`, a structural walk over the whole flattened
-code before the window, which the kernel pays for at every evaluation. `execWinC` (`CheckView.lean`)
+`execWinS` reads a window's code as `f.code.drop a`, a structural walk over the whole flattened
+code before the window, which the kernel pays for at every evaluation. `execWinCS` (`CheckView.lean`)
 skips whole chunks first (`codeFrom`); for every guest function the two agree, the functions being
 well chunked.
 -/

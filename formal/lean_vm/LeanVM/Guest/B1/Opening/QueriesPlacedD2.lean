@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Opening.QueriesPlacedD0
 /-!
 # `opening_queries`, `CompleteAtB`, one statement
 
-`OqCompleteD fs cert name loop s`: when the frames fit (`OqFits`, trivial), at every cap depth
+`opening_queries`' honest direction: when the frames fit (`OqFits`, trivial), at every cap depth
 `cd ≥ 1` and `odd ≤ base`, on the honest data of a call (`N` iterations, the rounds' challenges,
 the final coefficients, the queries' positions, rows and siblings, the window runs, the caller's
 buffers in `Lin`, the cap and the flags offset to the cap's leaves: `OqStatic`, `OqLinReg`,
@@ -33,27 +33,6 @@ open LeanVM.Guest.B1.Main (MemL RegionL)
 hinted into frame cells), so nothing is asked; kept so the statements reading it stand. -/
 def OqFits (_fs : String → ℕ) (_cert : String → V → ℕ) (_name _loop : String) (_s : Oq) : Prop :=
   True
-
-/-- **`opening_queries`, the specialization `name` of the shape `s`, is `CompleteAtD`.** -/
-def OqCompleteD (fs : String → ℕ) (cert : String → V → ℕ) (name loop : String) (s : Oq) : Prop :=
-  OqFits fs cert name loop s →
-    ∀ (κ : ℕ) (Lin : Main.Layout) (N cd odd : ℕ) (ecap eflags ecoefs ehs epos eqp : ℕ) (lamInv : E)
-      (rounds : List FoldRound) (hsv : List E) (eb qs : ℕ → ℕ) (rows : ℕ → List K)
-      (sibs : ℕ → List Digest), 1 ≤ cd → odd ≤ s.base → N + 1 < ordG → rounds.length = s.folds →
-      (s.final = 1 → hsv.length = s.nHs) →
-      OqStatic s cd rounds hsv qs rows sibs (oqCount odd s.base N) →
-      OqLinReg (RegionL Lin) s cd ecap eflags ecoefs ehs epos eqp eb qs (oqCount odd s.base N) →
-      (∀ rd, LowDef κ rd → MemL rd Lin →
-        OqLinMem rd s cd (ofK (Parameters.addressOfIndex ecap)) (ofK (Parameters.addressOfIndex eflags))
-          (ofK (Parameters.addressOfIndex ecoefs)) (ofK (Parameters.addressOfIndex ehs))
-          (ofK (Parameters.addressOfIndex epos)) (ofK (Parameters.addressOfIndex eqp)) rounds hsv eb
-          qs rows sibs (oqCount odd s.base N)) →
-      CompleteAtD fs cert κ name Lin
-        [ofK (Parameters.addressOfIndex ecap), ofK (Parameters.addressOfIndex eflags), lamInv,
-          ofK (Parameters.addressOfIndex ecoefs), ofK (Parameters.addressOfIndex ehs),
-          ofK (Parameters.addressOfIndex epos), ofK (Parameters.addressOfIndex eqp), gen ^ N, gen ^ odd]
-        (Returns [if s.final = 1 then 0 else
-          oqChain odd s.base lamInv (fun k ↦ foldRow (lanesOf s.base (rows k)) (K.ofBits (qs k)) rounds) N])
 
 /-- `opening_queries`' tree bound: its frame, its chain buffer (`N + 1` cells), its `N`
 iterations' frames and its last loop call's tail frame. -/
@@ -85,13 +64,6 @@ def OqCompleteDB (fs : String → ℕ) (cert : String → V → ℕ) (name loop 
         (Returns [if s.final = 1 then 0 else
           oqChain odd s.base lamInv (fun k ↦ foldRow (lanesOf s.base (rows k)) (K.ofBits (qs k)) rounds) N])
         (oqBound fs name loop N)
-
-theorem OqCompleteDB.toD {fs : String → ℕ} {cert : String → V → ℕ} {name loop : String} {s : Oq}
-    (h : OqCompleteDB fs cert name loop s) : OqCompleteD fs cert name loop s :=
-  fun hfit κ Lin N cd odd ecap eflags ecoefs ehs epos eqp lamInv rounds hsv eb qs rows sibs hcd hodd hN
-      hrl hhl hst hreg hmem ↦
-    (h hfit κ Lin N cd odd ecap eflags ecoefs ehs epos eqp lamInv rounds hsv eb qs rows sibs hcd hodd hN
-      hrl hhl hst hreg hmem).toCompleteAtD
 
 theorem find_name {f : String} {fn : Fn} (h : coreProgram.find? f = some fn) : fn.name = f := by
   unfold Program.find? at h

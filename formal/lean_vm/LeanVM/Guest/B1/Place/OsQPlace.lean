@@ -8,7 +8,8 @@
 module
 
 public import LeanVM.Guest.B1.Place.OsSqGroup
-public import LeanVM.Guest.B1.Opening.QueriesPlacedAll
+public import LeanVM.Guest.B1.Opening.QueriesFns
+public import LeanVM.Guest.B1.Opening.QueriesPlacedD2
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«decode_query_windows__L»
 

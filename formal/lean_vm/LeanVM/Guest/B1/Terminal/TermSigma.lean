@@ -17,7 +17,7 @@ import LeanVM.Guest.Data.ValNames.«check_opening_terminal»
 # The terminal's honest valuation
 
 `termD`: the honest data of `TermPre`'s parameters. `term_sigma`: the evaluated valuation
-(`termW`'s oracle) satisfies what `completeAt_flatDepR` asks: the parameters, the dispatches, the
+(`termW`'s oracle) satisfies what `completeAt_flatDepRBPR` asks: the parameters, the dispatches, the
 body (its claims' blocks by `claimsT_complete`, its head, selectors and tail by `TermEval`), the
 buffers, the frames (`callsMatch_kidsAt`) and the loads. Its last check: the sum the blocks build is
 the opening's weight, as in the soundness proof (`claimsT_sound`, `claimTerm_eq`, `stackWeight_eq`),
@@ -158,7 +158,7 @@ theorem eqChain_value {s : E} {as x : List E} {n : ℕ} (hn : n ≤ as.length)
 set_option maxHeartbeats 1000000 in
 set_option maxRecDepth 4000 in
 /-- **`check_opening_terminal`'s honest valuation**, on a memory holding the caller's words, the
-buffers and the callees' results: what `completeAt_flatDepR` asks of it. -/
+buffers and the callees' results: what `completeAt_flatDepRBPR` asks of it. -/
 theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : BusResult}
     {claims : List ColumnClaim} {out : ColumnClaim} {lam : E}
     {ringPoint coeffs x chis oodPoint : List E}

@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.FlatGI
 
-  `completeAt_flatG`'s obligations on the callees, callee by callee.
+  `completeAt_flatGB`'s obligations on the callees, callee by callee.
 -/
 
 module

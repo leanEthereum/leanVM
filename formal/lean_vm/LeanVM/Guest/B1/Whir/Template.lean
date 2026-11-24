@@ -861,8 +861,8 @@ def osBody (c : OsCfg) : List Stmt :=
 
 `sqLoopBody` (one squeeze and its `decode_query_windows` an iteration, the positions at the
 level's offset) is `level_positions`' loop at offset `0` (`lpLoopBody`, `Whir/HelperT.lean`);
-`resLoopBody` (`resBatch` queries' induced products and high shares chained by `μ = 1/λ` an
-iteration) is the shape of `level_residual`'s batches' loop. -/
+the shape of `level_residual`'s batches' loop chains `resBatch` queries' induced products and high shares by
+`μ = 1/λ` an iteration. -/
 
 /-- The squeeze loop's body, at `x, N, sqz, qpos, qwp, tabs` (values `0 .. 5`):
 the row `sqz·x^5`, its capacity loaded, one squeeze, the next capacity stored, the decoded
@@ -881,20 +881,6 @@ def sqLoopBody (lv : OsLv) (name : String) : List Stmt :=
     [.call ("decode_query_windows__L" ++ natStr lv.depth ++ "_L" ++ natStr lv.capDepth)
       [.n (valf% «level_positions» «_loop0» "nxt[0]"), .n p1.2.2, .n p2.2.2, .n (valf% «level_positions» «_loop0» "tabs")] []] ++
     osLoopTail name 6 e
-
-/-- The residual loop's body, at `xr, N, qpos, basis_d, level_hs, chain, μ` (values
-`0 .. 6`): `xr^resBatch` (`osBatchPow`), the batch's positions at `qpos·g^posOff·xr^resBatch`,
-`h, hh = chain[xr]`, `resBatch` steps, `chain[xr·g] = h, hh`, then the loop's tail. -/
-def resLoopBody (lvl : ℕ) (lv : OsLv) (name : String) : List Stmt :=
-  let pp := osMat 2 lv.posOff 7
-  let x := pp.2.2
-  let y := x + batchLen
-  let st := osResSteps y 3 (lvl * ligColsCap) 4 (lvl * hsStride) lv.vanish lv.logCols lv.folds
-    lv.highBits 6 (List.range resBatch) (y + 3) (y + 4) (y + 5)
-  pp.1 ++ (osBatchPow x).1 ++ [osMul y pp.2.1 (osBatchPow x).2, osMul (y + 1) 5 0,
-    osMul (y + 2) (y + 1) 0, osLd (y + 3) (y + 2) 0, osLd (y + 4) (y + 2) 1] ++ st.1 ++
-    [osLd st.2.1 (y + 2) 2, osLd st.2.2.1 (y + 2) 3] ++
-    osLoopTail name 7 st.2.2.2
 
 end
 end LeanVM.Guest.B1.Whir

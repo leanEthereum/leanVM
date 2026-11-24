@@ -299,15 +299,5 @@ def column_selector_SpecP (P : Program) : Prop :=
   ∀ κ < 31, ∀ μ ≤ 32, ∀ (Lm : MemoryImage μ) args rets,
     P.Rel Lm.read (lName "column_selector" κ) args rets → ColSelOut κ Lm.read args rets
 
-/-- The converse, for completeness: an offset `g^o`, `o < 2^32` a multiple of `2^κ`, the memory
-defined below `2^4` (the digits' range checks), and the opening point's tables at `sel_eq`,
-`sel_g` give the relation, returning the eq weight of `o`'s bits above `κ`. -/
-def column_selector_complete_SpecP (P : Program) : Prop :=
-  ∀ κ < 31, ∀ (rd : Reader) (o : ℕ) (se sg : E) (p p1 : List E), o < 2 ^ 32 → 2 ^ κ ∣ o →
-    p.length = 32 → p1.length = 32 → (∀ i < 16, (rd (addressOfIndex i)).isSome) →
-    EqTabsAt rd se p p1 → GTabsAt rd sg →
-    P.Rel rd (lName "column_selector" κ) [gen ^ o, se, sg]
-      [bitsEq ((List.range (32 - κ)).map fun i ↦ o.testBit (κ + i)) (p.drop κ) (p1.drop κ)]
-
 end
 end LeanVM.Guest.B1.Tables

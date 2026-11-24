@@ -26,7 +26,7 @@ import LeanVM.Guest.Data.ValNames.«da_verify_loop0»
 `da_verify_sound_w`: under a call relation that unfolds at a frame map `Vm` and lies below
 `coreProgram.Rel`, on the count table at its argument, a run of `da_verify` returns the cells of a
 root and a challenge `z` that the witness `dvWit σ Vm` opens (`opens_of`); with `coreProgram.Rel`
-and a frame map by choice, `da_verify_sound_Spec` holds. `da_weights` makes the weights
+and a frame map by choice, `MeaningDaVerify` holds. `da_weights` makes the weights
 the dual codeword of `z` (`ws_sound`, `weightsAt_of`); the witness's row `i` is the symbols of blob
 `i`'s cell checks' frames (`blobSyms`, at the blob loop's iteration `i`, `dvBlobV`), orthogonal to
 the dual codeword, its root at `roots·g^(2i)` (`blob_stepW`); it mentions no hash. The tree is over

@@ -19,7 +19,7 @@ public import LeanVM.Guest.EndExecYAdv
 
 At a state of the tracks past the prologue (no hint runs in it, `hints_pro`), the tree track's top frame is at the state's pc (`trackAt_X`); its function's advice there is the executor's (`HintsAl`), so a computed hint there compiles a hint atom on the frame's path (`Bridge.pair_flow`). The frame is an honest instance (`RefOk.frames`): every value its path names holds at its certificate cell (`FrameHolds.val`), and its node of the honest tree is exact on `rd0` (`Ref.Ok.tree`'s `ExactAt`, through the re-choice of temporaries, `Bridge.every_exact_retemp`, at each placed instance, `Bridge.every_insts`). The function's data check (`PairOk`: `Bridge.pairChk`) puts the atom's frame values at those cells; a buffer it writes or reads is allocated on the path (a power `g^base`, `Inst.nodeAt`) and written whole by a heap hint on it, whose words the reference holds as `rd0` does (`Ref.Ok.hintWords`). Then `HintOk` holds, kind by kind (`Bridge.hintOk_*`).
 
-What is assumed beyond `ExecGaps.ofX`'s premises: `HintsAl` (each function's alignment reads the advice's hints), `PairOk` (each function's computed hints pass the data check), and `ExtraRef` (the reference holds a hint-only cell's value, `log2_ceil_in_the_exponent`'s buffer pointer).
+What is assumed beyond the tracks' premises: `HintsAl` (each function's alignment reads the advice's hints), `PairOk` (each function's computed hints pass the data check), and `ExtraRef` (the reference holds a hint-only cell's value, `log2_ceil_in_the_exponent`'s buffer pointer).
 -/
 
 namespace LeanVM.Guest.EndExec
@@ -156,7 +156,7 @@ theorem buf_ref {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts corePro
   rw [ha', hv0]
   exact ⟨h1, h2⟩
 
-/-- **`ExecGaps.hintComputed` from the tree track**: under `ExecGaps.ofX`'s alignment premises, each
+/-- **`ExecGaps.hintComputed` from the tree track**: under the alignment premises, each
 function's alignment reading the advice's hints, its computed hints passing the data check, and the
 reference holding the hint-only cells' values. -/
 theorem hintComputed_X {Y : Ref → St → Prop} {A : String → FnAl} (hP : ProgAl guestProgram coreProgram A)

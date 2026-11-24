@@ -21,7 +21,7 @@ bases) and `e293 = e137 + 9` (the columns' offsets, `94` words); the function re
 total and the offsets' pointer, and its returned layout is `cpOwn` there (`cpOut`).
 `certify_placement_completeAtBR`: complete on the base, squares and rank-key runs `cpLin`, for
 `κ ≥ 14`, on the honest valuation `cpσ` (`cp_body_holds`), every load in the inputs or the buffers
-(`cp_loads_ok`), within its frame and buffers, by its honest node, its valuation the honest one at its buffers, which the memory holds (`cpQn`); `certify_placement_completeAtB` forgets it. `cp_out_ctx`: the returned offsets satisfy `PCtx`.
+(`cp_loads_ok`), within its frame and buffers, by its honest node, its valuation the honest one at its buffers, which the memory holds (`cpQn`). `cp_out_ctx`: the returned offsets satisfy `PCtx`.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -231,7 +231,7 @@ def cpQn (lm : ℕ) (hs : List ℕ) (ekb esq : ℕ) (rd : Reader) (σ : Val) : P
   ∃ b, σ = cpσ lm hs ekb esq b (b + 9) (b + 9 + 9) (b + 9 + 9 + 9) (b + 9 + 9 + 9 + 9) rd ∧
     MemL rd (bufL b cpSizes (cpOwnL lm hs))
 
-/-- **`certify_placement_completeAtB` by its honest node**: its valuation the honest one at its buffers, which the
+/-- **`certify_placement` complete, placed, within its bound, by its honest node**: its valuation the honest one at its buffers, which the
 memory holds (`cpQn`). -/
 theorem certify_placement_completeAtBR (fs : String → ℕ) (cert : String → V → ℕ) {k : ℕ}
     (hk : 14 ≤ k) {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hlm : lm ≤ 32)
@@ -275,17 +275,6 @@ theorem certify_placement_completeAtBR (fs : String → ℕ) (cert : String → 
   · rw [flatMap_loadsEv _ cpPre cp_noLoadIte]
     intro q hq
     exact cp_loads_ok hl hlm hhs h5 ekb esq _ _ _ _ _ rd hq
-
-/-- **Within its frame and buffers:** `certify_placement` is complete, placed, on its base,
-squares and rank-key runs, at every frame pointer, on memories defined below `2^κ`, `κ ≥ 14`, its
-buffers at the bump allocator's positions, the offsets' returned. -/
-theorem certify_placement_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) {k : ℕ}
-    (hk : 14 ≤ k) {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hlm : lm ≤ 32)
-    (hhs : ∀ h ∈ hs, h < 33) (h5 : hs.getD 5 0 ≤ 27) (ekb esq : ℕ) :
-    CompleteAtDTB fs cert k "certify_placement" (cpLin lm hs ekb esq)
-      [ofK (addressOfIndex ekb), ofK (addressOfIndex esq)] (cpOut lm hs) (fun _ ↦ True)
-      (fs "certify_placement" + cpSizes.sum) :=
-  (certify_placement_completeAtBR fs cert hk hl hlm hhs h5 ekb esq).toDTB fun _ _ _ ↦ trivial
 
 /-- **The returned offsets satisfy `PCtx`** on any memory holding the buffers. -/
 theorem cp_out_ctx {lm : ℕ} {hs : List ℕ} {rets : List E} {L : Layout} (h : cpOut lm hs rets L)

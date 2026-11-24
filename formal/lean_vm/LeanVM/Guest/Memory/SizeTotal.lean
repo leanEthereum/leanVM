@@ -33,11 +33,6 @@ noncomputable def Ev.words (fs : String → ℕ) (σ : Val) (e : Ev) : ℕ :=
     | some c => if c.taken then 0 else fs (tailKey c.f)
     | none => 0
 
-/-- The tails of the untaken calls. -/
-def skipWords (fs : String → ℕ) : List Call → ℕ
-  | [] => 0
-  | c :: cs => (if c.taken then 0 else fs (tailKey c.f)) + skipWords fs cs
-
 /-- The paths of the functions of `S` call only functions of `S`. -/
 def CallsIn (P : Core.Program) (S : String → Prop) : Prop :=
   ∀ f, S f → ∀ fn, P.find? f = some fn → ∀ σ es vs, walk σ fn.body = .ret es vs →

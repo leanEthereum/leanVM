@@ -7,7 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.Tables.FlatLift
-public import LeanVM.Guest.Budget.Strengthen
+public import LeanVM.Guest.B1.Main.KidsT
 public import LeanVM.Guest.Budget.LiftB
 
 /-!

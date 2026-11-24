@@ -15,7 +15,7 @@ public import LeanVM.Guest.Data.NameStrings
 /-!
 # The terminal's words at `B2C.fs`
 
-The hypotheses of `check_opening_terminal_completeAtB`, `rst_completeAtB` and `rsw_completeAtB` at
+The hypotheses of `check_opening_terminal_completeAtBWE`, `rst_completeAtB` and `rsw_completeAtB` at
 `B2C.fs`:
 
 * `eqc_totalLe_fs`: `eq_prefix_chain` within `184` (its certificate);
@@ -27,8 +27,8 @@ The hypotheses of `check_opening_terminal_completeAtB`, `rst_completeAtB` and `r
   (`8 · 354 + 354`);
 * `cs_fs_le`: each `column_selector__L{κ}`, `κ < 31`, within `157` words, its frame
   at most `157` (its certificate is its frame);
-* `rs_bound_fs`: `rs_eq_run` on `c ≤ 34` coordinates within `8526` (`rs_totalLeOn34`:
-  `57 + (25 + 4 · 1641) + 1489 + 384`), as `RsBound`, what
+* `rs_bound_fs`: `rs_eq_run` on `c ≤ 34` coordinates within `8526`
+  (`57 + (25 + 4 · 1641) + 1489 + 384`), as `RsBound`, what
   `rsw_completeAtB` takes.
 -/
 

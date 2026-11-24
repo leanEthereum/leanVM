@@ -23,7 +23,7 @@ public import LeanVM.Guest.Memory.Size
 * `CompleteAtPO … Lin rets Lout Bd`: the same with the words read (`Lin fp`) and the buffers
   handed back (`Lout fp`) depending on the frame pointer `fp`. `level_positions` takes this form:
   the caller's window pointers point into its decoders' frames.
-* `CompleteAtE … n`: complete by a tree of exactly `n` words (`toD`, `toB`).
+* `CompleteAtE … n`: complete by a tree of exactly `n` words (`toB`).
 -/
 
 namespace LeanVM.Guest.B1
@@ -60,11 +60,6 @@ def CompleteAtE (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (f
       RelAtIn coreProgram fs cert rd (RegionL Lin) (RegionL Lout) fp n f args rets
 
 variable {fs : String → ℕ} {cert : String → V → ℕ} {k : ℕ} {f : String}
-
-theorem CompleteAtE.toD {Lin : Layout} {args : List E} {Out : List E → Layout → Prop} {n : ℕ}
-    (h : CompleteAtE fs cert k f Lin args Out n) : CompleteAtD fs cert k f Lin args Out := fun fp ↦
-  let ⟨Lown, rets, Lout, ho, hw, hd, hr⟩ := h fp
-  ⟨n, Lown, rets, Lout, ho, hw, hd, hr⟩
 
 theorem CompleteAtE.toB {Lin : Layout} {args : List E} {Out : List E → Layout → Prop} {n B : ℕ}
     (h : CompleteAtE fs cert k f Lin args Out n) (hn : n ≤ B) :

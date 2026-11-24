@@ -22,7 +22,7 @@ arms laid out from `spL fold B`: so its arms are the shared arms (`armT spW`).
 
 * `spArmK`, `spArmB`, `spArmBase`: arm `k` of the group from `B`, from base `b`; the base of arm
   `k`; the base arm `k + j` starts from;
-* `spState`, `spGroupsT_eq`: group `p`'s running product, encoding and base (`cwState` for `sp_wots`);
+* `spState`, `spGroupsT_eq`: group `p`'s running product, encoding and base for `sp_wots`;
 * `spN`, `spStartAt K i`: group `p`'s digits and the value chain `i`'s start is hinted into when
   group `p` takes arm `K p`;
 * `spZero`, `spR`, `spRen`, `spBody`: the steps without an address constant (chain `0`'s first, in

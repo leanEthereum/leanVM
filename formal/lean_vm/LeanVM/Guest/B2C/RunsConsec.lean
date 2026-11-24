@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Bits.QueryWindowsAt
 
 The sharing check confirms, once per function, that value `k` of a frame run sits `k` cells past
 the run's first (`FnStatic.run`), so the deployed certificates meet `B1.RunsConsec`, the fact
-`decode_query_windows`' placed form reads of its run's tails (`B1.qwDecodeAtD_holds`). A module
+`decode_query_windows`' placed form reads of its run's tails (`B1.qwDecodeAtDE_holds`). A module
 of its own, so the placed proofs never import the certificates.
 -/
 

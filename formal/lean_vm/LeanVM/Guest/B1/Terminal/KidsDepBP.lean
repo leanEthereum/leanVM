@@ -16,8 +16,9 @@ public import LeanVM.Guest.B1.Terminal.KidsDepBT
 
 `KidsDepBP fs cert κ ks Bs Ps`: `KidsDepB` with callee `j`, entered, `CompleteAtDTB` by trees of
 `Ps[j]`. `namedP fs names Bs Ps`: callee `j`'s tree a call of `names[j]` within `Bs[j]` words
-satisfying `Ps[j]`. `kidsFromInT_of_depBPR`, `completeAt_flatDepRBPR`: `kidsFromInT_of_depB`,
-`completeAt_flatDepRBT` with them, the predicates of the memory too.
+satisfying `Ps[j]`. `kidsFromInT_of_depBPR`, `completeAt_flatDepRBPR`: the
+callees composed, and a flat function with them within `fs f + sizes.sum + Bs.sum`, by a node whose callees' trees
+satisfy those predicates, of the memory too.
 
 The same with predicates of the memory (`CompleteAtDTBR`, `Budget/Bounded`; `KidsDepBPR`, `kidsFromInT_of_depBPR`), a tree's pops being read through it: `completeAt_flatDepRBPR` also gives the node's valuation a property `Qn` the obligations prove of it on each memory (the honest valuation, its own buffers held).
 -/
@@ -171,7 +172,7 @@ theorem kidsFromInT_of_depBPR (κ : ℕ) : ∀ (ks : List KidD) (names : List St
             simp only [hct, ht, Bool.false_eq_true, false_and, or_false] at this ⊢
             exact this
 
-/-- **`completeAt_flatDepRBT` with the callees' own predicates of the memory**: within
+/-- **A flat function with dependent callees, by name, with the callees' own predicates of the memory**: within
 `fs f + sizes.sum + Bs.sum`, by a node of `f` whose `j`-th entered callee is a call of `names[j]` within `Bs[j]`
 words satisfying `Ps[j]` on the memory, its valuation satisfying `Qn` there. -/
 theorem completeAt_flatDepRBPR {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)

@@ -71,9 +71,6 @@ def colKappaSrc (c : ℕ) : ℕ :=
 /-- `COL_KAPPA_ADJ[c]`: the bytecode's log size `19`, and `q_keccak`'s slot bits `6`. -/
 def colKappaAdj (c : ℕ) : ℕ := if c = 3 then 19 else if c = 4 then 6 else 0
 
-/-- `N_COL_GROUPS`: the runs of committed columns sharing one `kappa_base` source. -/
-abbrev nColGroups : ℕ := 9
-
 /-- `COL_GROUP_START`: each group's first column, then `N_COMMITTED_COLS`. -/
 def colGroupStart : List ℕ := [0, 3, 4, 5, 18, 31, 38, 52, 66, 94]
 

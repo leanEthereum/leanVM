@@ -32,19 +32,11 @@ theorem Completes.withHolds {lo hi : Nat} {ss : List Stmt} {σ : Val} {P : Val �
   let ⟨σ', he, hp, hh⟩ := h
   ⟨σ', he, ⟨hp, hh True (fun _ => True) trivial⟩, hh⟩
 
-theorem cwState_succ (W : WotsT) (b p : Nat) :
-    (cwState W b (p + 1)).2.2 = (groupT W (3 * p) 3 (p == 0) (cwState W b p).1 (cwState W b p).2.1
-      (cwState W b p).2.2).2 := rfl
-
 theorem Completes.keep {lo hi : Nat} {ss : List Stmt} {σ : Val} {P : Val → Prop} {Q Q' : Val → Prop}
     (h : Completes C rd lo hi ss σ P) (hq : Q σ) (ht : ∀ σ', Ext lo hi σ σ' → Q σ → Q' σ') :
     Completes C rd lo hi ss σ (fun σ' => P σ' ∧ Q' σ') :=
   let ⟨σ', he, hp, hh⟩ := h
   ⟨σ', he, ⟨hp, ht σ' he hq⟩, hh⟩
-
-theorem groupT_snd_eq (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : V) (b : Nat) :
-    (groupT W first n fold prodIn encIn b).2 = armB W first n fold prodIn encIn b (4 ^ n) := by
-  simp only [groupT, groupD, groupArmsT]; rw [armsT_snd]; rfl
 
 /-- **A group completes from any valuation**, its digits `k` loaded at `d` and its arm's starts
 `vals`, its statements `pre` a sequential block on `d + 5 ..< b + 5` after which `good` holds. -/

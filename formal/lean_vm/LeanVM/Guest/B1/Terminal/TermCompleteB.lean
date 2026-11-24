@@ -17,13 +17,13 @@ import LeanVM.Guest.LitRef
 /-!
 # `check_opening_terminal`, within a bound
 
-`check_opening_terminal_completeAtB`: `check_opening_terminal` is complete, placed (the honest
+`check_opening_terminal` is complete, placed (the honest
 direction of `MeaningTerminal`, its hypotheses in `TermComplete`), with the size at most
 
   `fs "check_opening_terminal" + 177 + 4·Beqc + (32·K15 + fs "check_opening_terminal_loop0")
     + (fs "selector_tables" + 512) + 94·Bcs + (fs "ring_switch_weight" + termRswChain + Brs)`
 
-(`completeAt_flatDepRB`, the callees within `termBs`, `termKids_completeB`). The pure callees'
+(`completeAt_flatDepRBPR`, the callees within `termBs`, `termKids_completeB`). The pure callees'
 words are fs-generic hypotheses, in the forms the words certificates give at `B2C.fs`:
 
 * `hEqc`: `eq_prefix_chain` within `Beqc` (`TotalLe`, constant; its certificate: `184`), four calls;
@@ -232,61 +232,11 @@ theorem termKids_completeB (κ : ℕ) (hκ : 6 ≤ κ) (Lin : Main.Layout) (D : 
 
 /-! ## The terminal -/
 
-/-- The terminal's bound (`check_opening_terminal_completeAtB`'s). -/
+/-- The terminal's bound. -/
 def termBound (fs : String → ℕ) (Beqc K15 Bcs Brs : ℕ) : ℕ :=
   fs "check_opening_terminal" + 177 + 4 * Beqc + (32 * K15 + fs
       name% «check_opening_terminal_loop0») +
     (fs "selector_tables" + 512) + 94 * Bcs + (fs "ring_switch_weight" + lit% termRswChain + Brs)
-
-/-- **`check_opening_terminal` is complete, placed, within a bound**, its size at most
-`fs "check_opening_terminal" + 177 + 4·Beqc + (32·K15 + fs "check_opening_terminal_loop0") + (fs
-"selector_tables" + 512) + 94·Bcs + (fs "ring_switch_weight" + termRswChain + Brs)` at every frame pointer,
-before the memory): its frame, its buffers (`35 + 35 + 35 + 41 + 31`) and its callees' bounds
-(`termBs`), the pure
-callees' words by the hypotheses `hEqc`, `hL15`, `hCsF`, `hrs`. -/
-theorem check_opening_terminal_completeAtB (κ : ℕ) (hκ : 6 ≤ κ) (B : TermBases)
-    (Lin : Main.Layout)
-    {layout : Layout} {bus : BusResult} {claims : List ColumnClaim} {out : ColumnClaim} {lam : E}
-    {ringPoint coeffs oodPoint x : List E} {rm gmu gzcn glm gtau lamCl inner yr target gm : E} {nc : ℕ}
-    (hnc : nc ≤ 40) (hgz : gzcn = gen ^ nc)
-    (hpre : ∀ rd, LowDef κ rd → MemL rd Lin → TermPre rd layout bus claims out lam ringPoint coeffs
-      oodPoint x (termArgs B rm gmu gzcn glm gtau lamCl inner yr target gm))
-    (hreg : ∀ i, TermRegion B bus.point.length nc (layout.tableLogHeights.getD opKeccak 0)
-      layout.stackLog i → RegionL Lin i)
-    (hbus : bus.point.length ≤ 34)
-    (hfin : (inner + stackWeight layout (openedClaims claims [out]) ringPoint coeffs oodPoint lam x) *
-      yr = target)
-    {Beqc K15 Bcs Brs : ℕ} (hEqc : TotalLe coreProgram fs "eq_prefix_chain" fun _ => Beqc)
-    (hL15 : TotalLeOn coreProgram fs name% «check_opening_terminal_loop0» LoopPre
-      fun a => logG (a.getD 1 0) * K15 + fs name% «check_opening_terminal_loop0»)
-    (hCsF : ∀ κ' < 31, fs (Tables.lName "column_selector" κ') ≤ Bcs)
-    (hrs : RsBound fs Brs) :
-    CompleteAtB fs cert κ "check_opening_terminal" Lin
-      (termArgs B rm gmu gzcn glm gtau lamCl inner yr target gm) (Returns [])
-      (fs "check_opening_terminal" + 177 + 4 * Beqc + (32 * K15 + fs
-          name% «check_opening_terminal_loop0») +
-        (fs "selector_tables" + 512) + 94 * Bcs + (fs "ring_switch_weight" + lit% termRswChain + Brs)) := by
-  by_cases hex : ∃ rd0, LowDef κ rd0 ∧ MemL rd0 Lin
-  swap
-  · intro fp
-    exact ⟨0, [], [], [], ⟨rfl, rfl⟩, by simp [Within], disj_nil, Nat.zero_le _,
-      fun rd hl hL => absurd ⟨rd, hl, by simpa using hL⟩ hex⟩
-  obtain ⟨rd0, hl0, hm0⟩ := hex
-  obtain ⟨chis, rfl, hchis, S⟩ := term_setup κ B Lin hnc hgz hpre hreg hbus hl0 hm0
-  set D := termD B layout bus out ringPoint coeffs x chis oodPoint rm gmu gzcn glm gtau gm lamCl
-  refine (completeAt_flatDepRB find_term term_not_loop κ Lin _ [] term_body' term_flat term_addrs
-    (by decide +kernel) [35, 35, 35, 41, 31] (fun _ => termOwn D) (fun _ => S.own)
-    (fun fp => termKids Lin D (fp + fs "check_opening_terminal")) (termBs fs Beqc K15 Bcs Brs)
-    (fun fp => termKids_completeB κ hκ Lin D _ S.reg S.zl S.cl S.xl S.τl S.ol S.rl S.cf S.gmu S.gz
-      S.glm S.gtau S.m1 S.m S.KC S.OF S.rd S.odl S.gm S.rdO hEqc hL15 hCsF hrs)
-    (fun fp outs _ => termKids_regions Lin D _ S.reg S.τl S.rl S.cf S.xl outs)
-    (fun fp outs _ rd hl hB hLin hLo => S.mem _ outs rd hl hB hLin hLo)
-    (fun fp outs hlen' ho rd hl hB hLin _ => term_sigma B Lin (fp + fs "check_opening_terminal") outs rd
-      (hpre rd hl hLin) (hchis rd hl hLin) hgz S.cl hreg hbus hfin (by rw [hlen', termKids_length]) ho
-      hB)).mono le_rfl (le_of_eq ?_)
-  rw [termBs_sum]
-  simp only [List.sum_cons, List.sum_nil]
-  omega
 
 end
 end LeanVM.Guest.B1.VerifySub

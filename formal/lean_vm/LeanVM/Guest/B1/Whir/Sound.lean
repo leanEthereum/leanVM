@@ -27,7 +27,7 @@ public import LeanVM.Guest.B1.Eq.FoldFinal
 # `open_stacked`, soundly (TRIAGE G #42)
 
 `open_stacked_sound_w : open_stacked_sound_w_Spec open_stacked_osW`: for every stack log `20 ≤ μ ≤ 30` and rate
-`1 ≤ r ≤ 4`, a call of `open_stacked__L{μ - 20}` on the rate's selector establishes `OpenOut`
+`1 ≤ r ≤ 4`, a call of `open_stacked__L{μ - 20}` on the rate's selector establishes `OpenOutW`
 (at the witness's words and openings): the words it reads and the openings run the Spec's
 `whirOpen μ r target` (the stacked WHIR opening up to its terminal check, `verifyWhir_split`), and
 it returns the terminal's claim, point, glued weight and residual. From the size's core IR

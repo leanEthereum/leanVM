@@ -18,8 +18,8 @@ path (`flEvs`) is its statements' events in turn, a branch contributing its cond
 taken arm's atoms, a dispatch its entered callee (`walk_flat`), so its `HeapBuf`s, `frameAddr`s
 and loads are its top-level statements' and its frames its calls' and dispatches'
 (`flat_parts`). `relAtIn_flat`: the node of a flat body at a valuation satisfying it, by which
-every placed completeness of a flat function proves its run (`completeAt_flatD`, `completeAt_flatOutD`
-here, the variants for other forms of callees elsewhere).
+every placed completeness of a flat function proves its run (`completeAt_flatDTB`, `completeAt_flatOutDTB`,
+the variants for other forms of callees elsewhere).
 -/
 
 namespace LeanVM.Guest.B1
@@ -319,88 +319,6 @@ theorem relAtIn_flat {rd : Reader} {R D Dk : ℕ → Prop} {fp N : ℕ} {f : Str
     · exact ⟨i, hi, Or.inr (Or.inr h)⟩
   · rw [hal]
     exact (hD i hi).imp_left (hown' i)
-
-/-- **A flat function is complete, placed.** -/
-theorem completeAt_flatD {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
-    (hl : coreProgram.loop f = false) (κ : ℕ) (Lin : Layout) (args rets : List E)
-    {pre : List Stmt} {vs : List V} (hb : fn.body = pre ++ [.ret vs])
-    (hst : pre.all Stmt.flat = true) (haddrs : pre.filterMap Main.Stmt.addrS = [])
-    (sizes : List ℕ) (own : ℕ → List (List E))
-    (hown : ∀ fp, List.Forall₂ (fun c s => c.length ≤ s) (own fp) sizes) (kids : ℕ → List Kid)
-    (hkc : ∀ fp, ∀ k ∈ kids fp, k.taken = true → CompleteAtD fs cert κ k.f k.Lin k.args k.Out)
-    (hkr : ∀ fp, ∀ k ∈ kids fp, k.taken = true → ∀ i, RegionL k.Lin i →
-      RegionL Lin i ∨ RegionL (bufL (fp + fs f) sizes (own fp)) i)
-    (hkm : ∀ fp rd, MemL rd (bufL (fp + fs f) sizes (own fp)) → MemL rd Lin → ∀ k ∈ kids fp,
-      MemL rd k.Lin)
-    (hσ : ∀ fp (outs : List (List E × Layout)), OutsOk (kids fp) outs → ∀ rd, LowDef κ rd →
-      MemL rd (bufL (fp + fs f) sizes (own fp)) → MemL rd Lin →
-      ∃ σ : Val, fn.params.map σ = args ∧ (∀ s ∈ pre, DispOk σ s) ∧
-        Stmt.HoldsList (coreProgram.Rel rd) rd σ fn.body False (fun r => r = rets) ∧
-        (pre.filterMap Main.Stmt.allocSz).map (fun x => x.2.elim id fun s => logG (σ s)) = sizes ∧
-        ((pre.filterMap Main.Stmt.allocSz).map Prod.fst).map σ =
-          (bases (fp + fs f) sizes).map (fun b => ofK (addressOfIndex b)) ∧
-        CallsMatch σ ((pre.filterMap (Stmt.callSF σ)).map (Main.mkCall σ)) (kids fp) outs ∧
-        ∀ q ∈ pre.flatMap (loadsEv σ), ∃ i, (σ q.1).limb 0 * addressOfIndex q.2 = addressOfIndex i ∧
-          (RegionL Lin i ∨ RegionL (bufL (fp + fs f) sizes (own fp)) i)) :
-    CompleteAtD fs cert κ f Lin args (Returns rets) := by
-  intro fp
-  obtain ⟨N, L, outs, ho, hW, hD, -, hK⟩ := kidsFromIn_of_kidsD (fs := fs) (cert := cert) κ (kids fp)
-    (hkc fp) (fp + fs f + sizes.sum)
-  refine ⟨fs f + sizes.sum + N, bufL (fp + fs f) sizes (own fp) ++ L, rets, [], ⟨rfl, rfl⟩, ?_,
-    by simpa using disj_append (bufL_disj _ _ _ (hown fp)) hD (bufL_within _ _ _ (hown fp)) hW le_rfl,
-    fun rd hlow hL => ?_⟩
-  · simp only [List.nil_append, within_append]
-    exact ⟨(bufL_within _ _ _ (hown fp)).mono (by omega) (by omega), hW.mono (by omega) (by omega)⟩
-  simp only [List.nil_append] at hL
-  obtain ⟨hLm, hLin⟩ := Main.memL_append.mp hL
-  obtain ⟨hB, hLk⟩ := Main.memL_append.mp hLm
-  obtain ⟨σ, hp, hdo, hh, hsz, hbuf, hcm, hld⟩ := hσ fp outs ho rd hlow hB hLin
-  exact relAtIn_flat (D := RegionL []) hf hl hb hst haddrs (hown fp) hp hdo hh hsz hbuf
-    (hK rd σ _ _ _ hcm hlow hLk (memL_lins (hkm fp rd hB hLin))
-      (regionsOk_of fun k hk ht i hi => Or.inl (hkr fp k hk ht i hi)))
-    (fun q hq => (hld q hq).imp fun _ h => ⟨h.1, h.2.imp_right Or.inl⟩)
-    (fun i hi => by obtain ⟨q, hq, _⟩ := hi; simp at hq)
-
-/-- **`completeAt_flatD` returning its `HeapBuf`s**: the buffers are the function's `Lout`. -/
-theorem completeAt_flatOutD {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
-    (hl : coreProgram.loop f = false) (κ : ℕ) (Lin : Layout) (args : List E) (rets : ℕ → List E)
-    (Out : List E → Layout → Prop)
-    {pre : List Stmt} {vs : List V} (hb : fn.body = pre ++ [.ret vs])
-    (hst : pre.all Stmt.flat = true) (haddrs : pre.filterMap Main.Stmt.addrS = [])
-    (sizes : List ℕ) (own : ℕ → List (List E))
-    (hown : ∀ fp, List.Forall₂ (fun c s => c.length ≤ s) (own fp) sizes)
-    (hout : ∀ fp, Out (rets fp) (bufL (fp + fs f) sizes (own fp))) (kids : ℕ → List Kid)
-    (hkc : ∀ fp, ∀ k ∈ kids fp, k.taken = true → CompleteAtD fs cert κ k.f k.Lin k.args k.Out)
-    (hkr : ∀ fp, ∀ k ∈ kids fp, k.taken = true → ∀ i, RegionL k.Lin i →
-      RegionL Lin i ∨ RegionL (bufL (fp + fs f) sizes (own fp)) i)
-    (hkm : ∀ fp rd, MemL rd (bufL (fp + fs f) sizes (own fp)) → MemL rd Lin → ∀ k ∈ kids fp,
-      MemL rd k.Lin)
-    (hσ : ∀ fp (outs : List (List E × Layout)), OutsOk (kids fp) outs → ∀ rd, LowDef κ rd →
-      MemL rd (bufL (fp + fs f) sizes (own fp)) → MemL rd Lin →
-      ∃ σ : Val, fn.params.map σ = args ∧ (∀ s ∈ pre, DispOk σ s) ∧
-        Stmt.HoldsList (coreProgram.Rel rd) rd σ fn.body False (fun r => r = rets fp) ∧
-        (pre.filterMap Main.Stmt.allocSz).map (fun x => x.2.elim id fun s => logG (σ s)) = sizes ∧
-        ((pre.filterMap Main.Stmt.allocSz).map Prod.fst).map σ =
-          (bases (fp + fs f) sizes).map (fun b => ofK (addressOfIndex b)) ∧
-        CallsMatch σ ((pre.filterMap (Stmt.callSF σ)).map (Main.mkCall σ)) (kids fp) outs ∧
-        ∀ q ∈ pre.flatMap (loadsEv σ), ∃ i, (σ q.1).limb 0 * addressOfIndex q.2 = addressOfIndex i ∧
-          (RegionL Lin i ∨ RegionL (bufL (fp + fs f) sizes (own fp)) i)) :
-    CompleteAtD fs cert κ f Lin args Out := by
-  intro fp
-  obtain ⟨N, L, outs, ho, hW, hD, -, hK⟩ := kidsFromIn_of_kidsD (fs := fs) (cert := cert) κ (kids fp)
-    (hkc fp) (fp + fs f + sizes.sum)
-  refine ⟨fs f + sizes.sum + N, L, rets fp, bufL (fp + fs f) sizes (own fp), hout fp, ?_,
-    disj_append (bufL_disj _ _ _ (hown fp)) hD (bufL_within _ _ _ (hown fp)) hW le_rfl,
-    fun rd hlow hL => ?_⟩
-  · simp only [within_append]
-    exact ⟨(bufL_within _ _ _ (hown fp)).mono (by omega) (by omega), hW.mono (by omega) (by omega)⟩
-  obtain ⟨hLm, hLin⟩ := Main.memL_append.mp hL
-  obtain ⟨hB, hLk⟩ := Main.memL_append.mp hLm
-  obtain ⟨σ, hp, hdo, hh, hsz, hbuf, hcm, hld⟩ := hσ fp outs ho rd hlow hB hLin
-  exact relAtIn_flat hf hl hb hst haddrs (hown fp) hp hdo hh hsz hbuf
-    (hK rd σ _ _ _ hcm hlow hLk (memL_lins (hkm fp rd hB hLin))
-      (regionsOk_of fun k hk ht i hi => Or.inl (hkr fp k hk ht i hi)))
-    (fun q hq => (hld q hq).imp fun _ h => ⟨h.1, h.2.imp_right Or.inl⟩) (fun i hi => Or.inl hi)
 
 end
 end LeanVM.Guest.B1

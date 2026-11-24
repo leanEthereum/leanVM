@@ -15,7 +15,7 @@ public import LeanVM.Guest.Memory.HintsIn
 # Discharging `HonestX`
 
 The executor writes every heap word a hint writes; the honest memory (`honest`) holds only those
-something loads. `honestX_retempH` extends it by the hints' words read off the memory `M` the
+something loads. `honestX` extends it by the hints' words read off the memory `M` the
 tree is valid on (`readerWrites M.read (hintWords …)`), given that every heap hint word is in the
 tree's data (`Tree.HintsIn` at the root, the region empty).
 
@@ -25,7 +25,7 @@ A word of the data is a `HeapBuf` word, in no frame (`frameWrites_not_buf`), or 
 (`DischargeHyps.frame_read`), as every equation does, and no hint word is a temporary's cell
 (`DischargeHyps.temp_not_data`): the hint words agree with the fixed words and join them in the
 re-choice of the temporaries (`honestAt_retempW`), which keeps the heap hint words
-(`heapHintAddrs_congr`: a hint's pointer is a use). `honestX_retempH` admits hint words in the
+(`heapHintAddrs_congr`: a hint's pointer is a use). It admits hint words in the
 header too, which the memory holds as the root's frame does (`DischargeHyps.fixed_hdr`).
 -/
 
@@ -160,74 +160,6 @@ theorem DischargeHyps.temp_not_hdr {τ : Inst × V × K} (hτ : TempsOn P fs H h
   have heq := h.inj hlt (by omega) hx
   have := (h.cert_lt g τ.2.1 hmem).1
   omega
-
-/-- **The honest memory extended by the heap hints' words, a hint writing a header word too**:
-with every heap hint word in the tree's data or a header word (`Tree.HintsIn` at the root, the
-region the header), the temporaries re-chosen, the tree is `HonestAt` and `HonestX` with the
-hints' words read off `M`, each a word of `M`, and its heap hint words are the tree's. -/
-theorem honestX_retempH (hhint : T.HintsIn P fs cert (fun i => i < 2) (0, T.block fs P.loop)) :
-    ∃ ν, HonestAt P fs H C hdr (T.retemp P fs ν (0, T.block fs P.loop)) cert
-        (honest P fs H C hdr (T.retemp P fs ν (0, T.block fs P.loop))).read args rets ∧
-      HonestX P fs H C hdr (T.retemp P fs ν (0, T.block fs P.loop))
-        (honest P fs H C hdr (T.retemp P fs ν (0, T.block fs P.loop))).read args rets
-        (readerWrites M.read (hintWords P fs H hdr T)) ∧
-      hintWords P fs H hdr (T.retemp P fs ν (0, T.block fs P.loop)) ⊆ hintWords P fs H hdr T ∧
-      ∀ a ∈ hintWords P fs H hdr T, ∃ w, M.read a = some w := by
-  have hA : ∀ a ∈ hintWords P fs H hdr T, ∃ i, a = addressOfIndex i ∧
-      (T.Data P fs cert (0, T.block fs P.loop) i ∨ i < 2) := by
-    intro a ha
-    obtain ⟨I, hI, haI⟩ := List.mem_flatMap.mp ha
-    exact hints_insts T _ _ hdr hhint I hI a haI
-  have hlt : ∀ a ∈ hintWords P fs H hdr T, ∃ i, a = addressOfIndex i ∧ i < T.total fs := by
-    intro a ha
-    obtain ⟨i, rfl, hd | hd⟩ := hA a ha
-    · exact ⟨i, rfl, h.data_lt hd⟩
-    · have := h.two_le_total; exact ⟨i, rfl, by omega⟩
-  obtain ⟨ν, hν, hY⟩ := honestAt_retempW h
-    (fun x w => (x, w) ∈ readerWrites M.read (hintWords P fs H hdr T))
-    (fun _ _ _ hw hw' => readerWrites_consistent _ _ _ hw _ hw' rfl)
-    (fun x w w' hw hw' => by
-      obtain ⟨a, ha, he⟩ := List.mem_map.mp hw'
-      simp only [Prod.mk.injEq] at he
-      obtain ⟨rfl, rfl⟩ := he
-      obtain ⟨i, rfl, hd⟩ := hA a ha
-      rw [h.fixed_read_at hd hw]; rfl)
-    (fun τ hτ w hw => by
-      obtain ⟨a, ha, he⟩ := List.mem_map.mp hw
-      obtain ⟨i, hi, hd | hd⟩ := hA a ha
-      · exact h.temp_not_data hτ hd ((congrArg Prod.fst he).symm.trans hi)
-      · exact h.temp_not_hdr hτ hd ((congrArg Prod.fst he).symm.trans hi))
-  have htot : (T.retemp P fs ν (0, T.block fs P.loop)).total fs = T.total fs := total_retemp T _
-  refine ⟨ν, hν, HonestX.mk hν.toHonest ?_ (readerWrites_consistent _ _)
-    (fun a ha b hb hab => hY a ha b.2 (by rw [hab]; exact hb)), ?_, ?_⟩
-  · intro q hq
-    obtain ⟨a, ha, rfl⟩ := List.mem_map.mp hq
-    obtain ⟨i, rfl, hd⟩ := hlt a ha
-    have := le_two_pow_logMem (T.total fs)
-    exact ⟨⟨i, by rw [htot]; omega⟩, rfl⟩
-  · intro a ha
-    obtain ⟨I', hI', haI⟩ := List.mem_flatMap.mp ha
-    obtain ⟨I, hI, -, -, hteq⟩ := insts_retemp (H := H) T _ hdr hdr I' (by rwa [honestInsts_retemp] at hI')
-    refine List.mem_flatMap.mpr ⟨I, hI, ?_⟩
-    unfold Inst.hintAddrs at haI ⊢
-    cases hIt : I.t with
-    | phantom f σ =>
-      rw [hIt, retemp_phantom] at hteq
-      rw [hteq] at haI
-      exact (List.not_mem_nil haI).elim
-    | node f σ bufs kids =>
-      obtain ⟨fn, es, vs, hf, hw, hev⟩ := h.path hI hIt
-      have hag := evAgree_retemp (ν := ν) h.fresh hf (fp := I.fp) hw
-      rw [hIt, retemp_node] at hteq
-      rw [hteq] at haI
-      simp only at haI ⊢
-      rw [events_retemp h.fresh (bufs' := bufs) (ks' := kids), ← hIt, hev, heapHintAddrs_congr hag] at haI
-      rw [← hIt, hev]
-      exact haI
-  · intro a ha
-    obtain ⟨i, rfl, hd⟩ := hlt a ha
-    have := le_two_pow_logMem (T.total fs)
-    exact ⟨_, MemoryImage.read_gpow h.lt_64 M ⟨i, by omega⟩⟩
 
 end Proof
 

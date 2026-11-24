@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Whir.CHonLevelPops
 /-!
 # The levels' steps and their hints
 
-* `honRunS_of`: `honRun_of`, with the run's query steps `lvSteps μ 0 Ls` of its levels;
+* `honRunS_of`: every accepting run with agreeing caps has honest data, with the run's query steps `lvSteps μ 0 Ls` of its levels;
 * `lvSteps_eq_range`: the steps level by level;
 * `lvPops Ls μ r l`: level `l`'s `level_queries` entries at the honest witness (`osHonest`'s);
 * `HonRun.steps_sameStreams`: `stepsHints true` of the levels' steps is, stream by stream, their entries in order.

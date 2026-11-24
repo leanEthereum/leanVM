@@ -15,7 +15,7 @@ public import LeanVM.Guest.Budget.Bounded
 # Flat bodies, placed, by a tree of honest shape
 
 `relAtInT_flat`: `relAtIn_flat` by the node at the valuation, its callees' trees satisfying `Ts`
-(`KidsT`). `completeAt_flatDTB`, `completeAt_flatOutDTB`: `completeAt_flatD`, `completeAt_flatOutD`
+(`KidsT`). `completeAt_flatDTB`, `completeAt_flatOutDTB`: a flat function complete, placed, returning no buffer or one,
 with the callees complete within their bounds by trees satisfying `Ts` (`KidsDTB`) and the
 valuation satisfying `Q`; the tree is then `NodeHonest coreProgram f Q
 (flatCalls pre) (fun _ ↦ sizes) Ts`, its calls the walk's (`flatCalls`). `completeAt_flatDTBR`, `completeAt_flatOutDTBR`: `Q` a property of the memory too (`CompleteAtDTBR`), so the valuation can be tied to the buffers the memory holds.
@@ -183,7 +183,7 @@ theorem completeAt_flatOutDTBR {f : String} {fn : Fn} (hf : coreProgram.find? f 
   exact ⟨_, ht, σ, ks, rfl, hQ, calls_of_walk_flat hf hb hst hdo, (callsMatch_length hcm).trans_le (hkl fp),
     hkT⟩
 
-/-- **`completeAt_flatD` by a node of honest shape, within a bound**: the frame, the `HeapBuf`s and
+/-- **A flat function complete, placed, by a node of honest shape, within a bound**: the frame, the `HeapBuf`s and
 the callees' bounds `Bs` (`kidsBoundL`, at most `KB` at every frame pointer). -/
 theorem completeAt_flatDTB {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
     (hl : coreProgram.loop f = false) (κ : ℕ) (Lin : Layout) (args rets : List E)
@@ -214,7 +214,7 @@ theorem completeAt_flatDTB {f : String} {fn : Fn} (hf : coreProgram.find? f = so
   (completeAt_flatDTBR hf hl κ Lin args rets hb hst haddrs sizes own hown kids (fun _ ↦ Q) Ts Bs KB hkc hKB hkl hkr
     hkm hσ).toDTB fun _ _ h ↦ h
 
-/-- **`completeAt_flatOutD` by a node of honest shape, within a bound.** -/
+/-- **A flat function returning a buffer, complete, placed, by a node of honest shape, within a bound.** -/
 theorem completeAt_flatOutDTB {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
     (hl : coreProgram.loop f = false) (κ : ℕ) (Lin : Layout) (args : List E) (rets : ℕ → List E)
     (Res : List E → Layout → Prop)

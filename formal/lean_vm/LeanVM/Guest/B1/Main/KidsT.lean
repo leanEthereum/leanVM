@@ -17,8 +17,8 @@ public import LeanVM.Guest.Memory.Uniform
 Ts`: `KidsFromIn`, the `j`-th entered callee by a tree satisfying `Ts[j]` (no constraint past
 `Ts`). `KidsT cs Ts ks`: the entered callees' trees satisfy their predicates.
 `relAtInWT_of_walk`: `relAtIn_of_walk` (same proof), its tree the node at the walk's valuation
-with children satisfying `KidsT`; `relAtInWT_of_walk_loop` likewise for a loop iteration
-(`relAtIn_of_walk_loop`), its tail call's tree satisfying `Tt`.
+with children satisfying `KidsT`; `relAtInWT_of_walk_loop` likewise for a loop iteration,
+its tail call's tree satisfying `Tt`.
 `CompleteAtDT … T`: `CompleteAtD` by a tree satisfying `T`. `CompleteAtL … T Bd`: a loop helper
 from an iteration on, its frames at any `fp` and the rest at any `c` past them, its words satisfying
 `Bd`; `completeAtL_tail` the next iteration's or the last phantom.
@@ -254,8 +254,8 @@ theorem kidsT_snoc {c : Call} {T : Tree → Prop} {k : Tree} : ∀ {cs : List Ca
   | _ :: _, _ :: _, _ :: _, h1, h2, h, hc =>
     ⟨h.1, kidsT_snoc (by simpa using h1) (by simpa using h2) h.2 hc⟩
 
-/-- **Composition with regions, a loop iteration, its callees' trees exposed**:
-`relAtIn_of_walk_loop` by the node at the walk's valuation, its children satisfying
+/-- **Composition with regions, a loop iteration, its callees' trees exposed**: by the node at the walk's
+valuation, its children satisfying
 `KidsT (calls es) (Ts ++ [Tt])`: the other callees `Ts`, the tail call `Tt`. -/
 theorem relAtInWT_of_walk_loop (hP : P.Wf) {R D Dk Rt Dt : ℕ → Prop} {fp c Bt m N : ℕ}
     {f : String} {args rets : List E} {fn : Fn} {es : List Ev} {vs : List V} {cs : List Call}
@@ -365,12 +365,6 @@ def CompleteAtDT (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (
       RelAtInT coreProgram fs cert rd (RegionL Lin) (RegionL Lout) fp n f args rets T
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
-
-theorem CompleteAtD.toT {k : ℕ} {f : String} {Lin : Layout} {args : List E}
-    {Out : List E → Layout → Prop} (h : CompleteAtD fs cert k f Lin args Out) :
-    CompleteAtDT fs cert k f Lin args Out fun _ => True := fun fp =>
-  let ⟨n, Lown, rets, Lout, ho, hw, hd, hr⟩ := h fp
-  ⟨n, Lown, rets, Lout, ho, hw, hd, fun rd hl hm => (hr rd hl hm).relAtInT⟩
 
 theorem CompleteAtDT.toD {k : ℕ} {f : String} {Lin : Layout} {args : List E}
     {Out : List E → Layout → Prop} {T : Tree → Prop} (h : CompleteAtDT fs cert k f Lin args Out T) :
