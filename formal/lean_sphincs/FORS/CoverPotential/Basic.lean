@@ -212,6 +212,10 @@ theorem pairE_list_sum {γ : Type} (l : List γ) (F : (DigestCall → HashOutput
       simp only [List.map_cons, List.sum_cons]
       rw [pairE_add, ih]
 
+theorem pairE_eq_sum (F : (DigestCall → HashOutput) → ℝ≥0∞) :
+    pairE F = ((Fintype.card HashOutput : ℝ≥0∞) ^ digestCalls)⁻¹ * ∑ u, F u := by
+  rw [pairE, tsum_uniform_eq, Fintype.card_fun, Fintype.card_fin, Nat.cast_pow]
+
 theorem pairE_landed (parameter : PublicParameter) (F : View → ℝ≥0∞) (C : ℝ≥0∞) :
     pairE (fun u => if Landed parameter (blockIndex (u firstCall)) then F (viewOf u) else C) =
       landing * freshAvg Finset.univ F + (1 - landing) * C :=

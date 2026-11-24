@@ -424,7 +424,6 @@ variable [Params]
 
 open Concrete Completeness _root_.FORS.Security.Graph GraphCorrectness TargetAssignment
 
-set_option backward.isDefEq.respectTransparency false
 attribute [local instance] Classical.propDecidable
 
 

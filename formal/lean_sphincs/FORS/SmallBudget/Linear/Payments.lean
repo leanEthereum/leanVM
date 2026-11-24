@@ -18,7 +18,6 @@ variable [Params]
 
 open HiddenCost HiddenBridge HiddenOutside HiddenReveal
 
-set_option backward.isDefEq.respectTransparency false
 attribute [local instance] Classical.propDecidable
 
 variable {D R A ι : Type} [Fintype ι] [SampleableType R]

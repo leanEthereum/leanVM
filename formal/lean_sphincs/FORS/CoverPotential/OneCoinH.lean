@@ -311,11 +311,6 @@ theorem new_pair_boundO {Cmax : ℕ} (hfair : FairS w Cmax Lmax) (hQ : Qtot ≤ 
   set n := signatureLimit - L.length with hn
   set ℓ := (livePairs L P).length with hℓ
   have hfresh : ∀ call, s.cache (pblk parameter data p call) = none := hP.first p hp0
-  have hpairE : ∀ F : (DigestCall → HashOutput) → ℝ≥0∞,
-      pairE F = ((Fintype.card HashOutput : ℝ≥0∞) ^ digestCalls)⁻¹ * ∑ u, F u := by
-    intro F
-    unfold pairE
-    rw [tsum_uniform_eq, Fintype.card_fun, Fintype.card_fin, Nat.cast_pow]
   -- the final value only grows when a block of the pair is presampled
   have hFmono : ∀ (out : Run HashInput Coordinate HiddenBridge.Outcome × State) (i : DigestCall)
       (v : HashOutput), out.2.cache (pblk parameter data p i) = none →
@@ -339,14 +334,14 @@ theorem new_pair_boundO {Cmax : ℕ} (hfair : FairS w Cmax Lmax) (hQ : Qtot ≤ 
           (s.store (pblk parameter data p c) v))}[z = out] * finalValue parameter data tg initial R out ≤
       pairE (fun u => ∑' out, Pr{let z ← (interp tg initial model (next (u c)) (budget - 1)
         (withPair parameter data s p u))}[z = out] * finalValue parameter data tg initial R out) := by
-    rw [hpairE]
+    rw [pairE_eq_sum]
     exact interp_presample_newF tg initial model (pblk parameter data p)
       (pblk_call_injective parameter data p) hkind c next (budget - 1) s hfresh _ hFmono
   have hcount : pairE (fun u => expectedFlagged tg initial model (next (u c)) (budget - 1)
         (withPair parameter data s p u)) =
       ∑' v, Pr{let z ← ($ᵗ HashOutput : ProbComp HashOutput)}[z = v] *
         expectedFlagged tg initial model (next v) (budget - 1) (s.store (pblk parameter data p c) v) := by
-    rw [hpairE]
+    rw [pairE_eq_sum]
     unfold expectedFlagged
     exact (interp_presample_new_eq tg initial model (pblk parameter data p)
       (pblk_call_injective parameter data p) hkind c next (budget - 1) s hfresh
@@ -625,21 +620,8 @@ theorem goodOH_signH (hparse : ∀ p call, model.parse (pblk parameter data p ca
           (le_refl budget)
         rw [h2, hdisc, canonO_congr h11 h2] at hpot
         have hlam : lam Lmax (livePairs (L ++ [⟨m, r⟩]) (newPairs parameter data m s o1.2 ++ P)).length
-            budget ≤ lam Lmax ℓ budget := by
-          refine lam_mono ?_ le_rfl
-          unfold livePairs
-          rw [List.filter_append]
-          have hnew : (newPairs parameter data m s o1.2).filter
-              (fun q => decide (MsgLive (L ++ [⟨m, r⟩]) q.1)) = [] := by
-            refine List.filter_eq_nil_iff.2 fun q hq => ?_
-            obtain ⟨hqm, _, _⟩ := (mem_newPairs parameter data m s).1 hq
-            simp only [decide_eq_true_eq, msgLive_append, not_and, not_not]
-            exact fun _ => hqm
-          rw [hnew, List.nil_append]
-          refine (List.Sublist.length_le ?_)
-          refine List.monotone_filter_right _ fun q hq => ?_
-          simp only [decide_eq_true_eq, msgLive_append] at hq ⊢
-          exact hq.1
+            budget ≤ lam Lmax ℓ budget :=
+          lam_mono livePairs_sign_length_le le_rfl
         have heq : ∀ o2 : Run HashInput Coordinate HiddenBridge.Outcome × State,
             finalValue parameter data tg initial R
               ((o2.1.1, o1.1.2.1 ++ o2.1.2.1, o1.1.2.2.1 ++ o2.1.2.2.1, o1.1.2.2.2 ++ o2.1.2.2.2), o2.2) =

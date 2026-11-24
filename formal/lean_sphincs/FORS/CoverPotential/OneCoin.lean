@@ -924,6 +924,23 @@ theorem msgLive_append {L : QueryLog SigningSpec} {r : Option Signature} {m' : M
       subst he
       exact fun h' => hq h'.symm
 
+/-- A signing request adds no live pair: its new pairs are of the signed message. -/
+theorem livePairs_sign_length_le {L : QueryLog SigningSpec} {r : Option Signature} {P : List Pair}
+    {s' : State} :
+    (livePairs (L ++ [⟨m, r⟩]) (newPairs parameter data m s s' ++ P)).length ≤ (livePairs L P).length := by
+  unfold livePairs
+  rw [List.filter_append]
+  have hnew : (newPairs parameter data m s s').filter
+      (fun q => decide (MsgLive (L ++ [⟨m, r⟩]) q.1)) = [] := by
+    refine List.filter_eq_nil_iff.2 fun q hq => ?_
+    obtain ⟨hqm, _, _⟩ := (mem_newPairs parameter data m s).1 hq
+    simp only [decide_eq_true_eq, msgLive_append, not_and, not_not]
+    exact fun _ => hqm
+  rw [hnew, List.nil_append]
+  refine List.Sublist.length_le (List.monotone_filter_right _ fun q hq => ?_)
+  simp only [decide_eq_true_eq, msgLive_append] at hq ⊢
+  exact hq.1
+
 /-- After signing, the live messages are the other live messages. -/
 theorem live_after (L : QueryLog SigningSpec) (r : Option Signature) (Ms : List Message) :
     live (L ++ [⟨m, r⟩]) (addMsg Ms m) = restMsgs m L Ms := by

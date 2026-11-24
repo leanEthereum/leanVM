@@ -470,22 +470,8 @@ theorem psiF_sign_at (hparse : ∀ p call, model.parse (pblk K.p data p call) = 
   -- the cap term does not grow
   have hlam : ∀ (o1 : Run HashInput Coordinate (Option Signature) × State) (r : Option Signature),
       lam Lmax (livePairs (L ++ [⟨m, r⟩]) (newPairs K.p data m s o1.2 ++ P)).length
-        (y o1) ≤ lam Lmax ℓ budget := by
-    intro o1 r
-    refine lam_mono ?_ (hy o1)
-    unfold livePairs
-    rw [List.filter_append]
-    have hnew : (newPairs K.p data m s o1.2).filter
-        (fun q => decide (MsgLive (L ++ [⟨m, r⟩]) q.1)) = [] := by
-      refine List.filter_eq_nil_iff.2 fun q hq => ?_
-      obtain ⟨hqm, _, _⟩ := (mem_newPairs K.p data m s).1 hq
-      simp only [decide_eq_true_eq, msgLive_append, not_and, not_not]
-      exact fun _ => hqm
-    rw [hnew, List.nil_append]
-    refine (List.Sublist.length_le ?_)
-    refine List.monotone_filter_right _ fun q hq => ?_
-    simp only [decide_eq_true_eq, msgLive_append] at hq ⊢
-    exact hq.1
+        (y o1) ≤ lam Lmax ℓ budget :=
+    fun o1 _ => lam_mono livePairs_sign_length_le (hy o1)
   set X : Run HashInput Coordinate (Option Signature) × State → ℝ≥0∞ := fun o1 =>
     o1.1.1.elim 0 (fun r => psiCoreF K data wbar κ Fail o1.2 (newPairs K.p data m s o1.2 ++ P) (addMsg Ms m)
       (L ++ [⟨m, r⟩]) (discAfter K.p data m s d o1) (R ++ o1.1.2.1) (y o1)) with hX

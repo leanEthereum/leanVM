@@ -22,7 +22,6 @@ variable [Params]
 
 open HiddenCost HiddenBridge HiddenOutside HiddenReveal
 
-set_option backward.isDefEq.respectTransparency false
 
 variable {D R A ι : Type} [Fintype ι] [SampleableType R] {H : Type} [HonestInputs H D]
 variable (tg : Targeting D R ι) (initial : Cache D R) (model : HiddenRows.Model D R A ι)

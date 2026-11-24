@@ -238,20 +238,12 @@ theorem goodXFH_ordinary (hMp : model.parse = HiddenGraph.parse K.p (candidateAc
     have hfresh : ∀ call, s.cache (pblk K.p data p call) = none := hB.pinv.first p hp0
     have hkind : ∀ call, K.tg.kind (pblk K.p data p call) = .none := fun call =>
       hmsg _ (msgInput_digestInput K.p data.root p.1 p.2 call)
-    have hcard : (Fintype.card (DigestCall → HashOutput) : ℝ≥0∞) =
-        (Fintype.card HashOutput : ℝ≥0∞) ^ digestCalls := by
-      rw [Fintype.card_fun, Fintype.card_fin, Nat.cast_pow]
-    have hpairE : ∀ F : (DigestCall → HashOutput) → ℝ≥0∞,
-        pairE F = ((Fintype.card HashOutput : ℝ≥0∞) ^ digestCalls)⁻¹ * ∑ u, F u := by
-      intro F
-      unfold pairE
-      rw [tsum_uniform_eq, hcard]
     -- the expected number of queries of the class is unchanged by the presampling
     have hcount : pairE (fun u => expCount K model IsF (next (u c)) (budget - 1)
           (withPair K.p data s p u)) =
         ∑' v, Pr{let z ← ($ᵗ HashOutput : ProbComp HashOutput)}[z = v] *
           expCount K model IsF (next v) (budget - 1) (s.store (pblk K.p data p c) v) := by
-      rw [hpairE]
+      rw [pairE_eq_sum]
       unfold expCount
       exact (interp_presample_new_eq K.tg K.initial model (pblk K.p data p)
         (pblk_call_injective K.p data p) hkind c next (budget - 1) s hfresh
@@ -267,7 +259,7 @@ theorem goodXFH_ordinary (hMp : model.parse = HiddenGraph.parse K.p (candidateAc
             (s.store (pblk K.p data p c) v))}[z = out] * G out.1.1 (R ++ out.1.2.1) out.2
         ≤ pairE (fun u => ∑' out, Pr{let z ← (interp K.tg K.initial model (next (u c)) (budget - 1)
             (withPair K.p data s p u))}[z = out] * G out.1.1 (R ++ out.1.2.1) out.2) := by
-          rw [hpairE]
+          rw [pairE_eq_sum]
           exact interp_presample_newH K.tg K.initial model (pblk K.p data p)
             (pblk_call_injective K.p data p) hkind c next (budget - 1) s hfresh
             (fun out => G out.1.1 (R ++ out.1.2.1) out.2) fun out y v hy => hGstore _ _ _ _ _ hy
