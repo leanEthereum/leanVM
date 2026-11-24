@@ -38,7 +38,7 @@ The claims of `def:enc` and §B.2, for `κ + R ≤ 64`:
 * `range_msgPoly`: the `X_j`, `j < 2^κ`, span exactly the polynomials of degree `< 2^κ`;
 * `range_enc`: the range of `Enc_{κ,R}` is ArkLib's `ReedSolomon.code (domain κ R h) (2^κ)`;
 * `enc_injective`: `Enc_{κ,R}` is injective;
-* `enc_ofK`, `isInK_enc_ofK`: a `K`-valued message gives a `K`-valued word.
+* `enc_ofK`: a `K`-valued message gives a `K`-valued word.
 
 The rate `2^-R` is `2^κ / |D_{κ,R}|`; §B.2 assumes `R ≥ 1` (`def:enc` allows `R ≥ 0`), which none
 of the statements here needs.

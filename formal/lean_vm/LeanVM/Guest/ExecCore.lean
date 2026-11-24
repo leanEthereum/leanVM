@@ -51,7 +51,7 @@ between the copies of a term.
 **Soundness** (`exec_sound`): a halting run entering a segment, in a frame its environment holds
 of, satisfies the atoms of the path it takes and leaves by that path's exit with fewer steps left
 (`RunK`, `Exit.Reached`); a path with no branch gives all its atoms at once (`RunK.straight`).
-**Completeness** (`exec_complete`): atoms holding along a path make the run reach the exit's
+**Completeness** (`exec_good`): atoms holding along a path make the run reach the exit's
 registers (`Follows`, `Reach`). **Linking** (`Result.linked`): an exit's successors start
 segments whose environments hold where the exit's does.
 

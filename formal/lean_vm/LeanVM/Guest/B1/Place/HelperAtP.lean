@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Main.CompleteP
 * `CompleteAtEP … n ps`: `CompleteAtE … n` by a tree popping `ps rd` on the memory `rd` (`toDP`, `toE`);
 * `completeAtEP_of_node`: every call instance pops `ps`;
 * `CompleteAtOP … Bd ps`: `CompleteAtO … Bd` by a tree popping `ps rd` (`toO`, from `CompleteAtEP` within the bound);
-* `kidsFromInP_of_kidsEP`: `kidsFromInP_of_kidsD` for callees each `CompleteAtEP` at `ns k` words, their total `kidsN`.
+* `kidsFromInP_of_kidsEP`: callees each `CompleteAtEP` at `ns k` words, placed in sequence (`KidsFromInP`), their total `kidsN`.
 -/
 
 namespace LeanVM.Guest.B1

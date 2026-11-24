@@ -14,7 +14,7 @@ public import LeanVM.Protocol.LeanIsa
 # The leanISA instance with any Keccak region
 
 `leanIsaWith prog s kr` is `leanIsaInstance prog s` with the Keccak region `kr`: the deployed
-instance at `kr = some (keccakRegion prog s)` (`leanIsaWith_some`, by `rfl`), and the
+instance at `kr = some (keccakRegion prog s)` (by `rfl`), and the
 reduction-blind instance at `kr = none`, whose relation has no Keccak predicate
 (`M3Instance.aux` holds of every stack, `aux_none`).
 

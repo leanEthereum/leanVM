@@ -18,7 +18,7 @@ import LeanVM.Protocol.Keccak.Words
 `verify_keccak` (`crates/verifier/src/keccak.rs`) draws the segment challenge `r_seg` and
 five lane challenges, reads `committed` and forms the first claim at the point `(r_pack, r_seg)`
 with instance weights `eq(r_low, ·)` and position weights `eq(r_lane, ℓ)·x^z` (`firstClaim`). On a
-candidate (`firstClaim_true`), the claim's sum is
+candidate (`firstClaim_sum`), the claim's sum is
 
   `Σ_m eq(r_seg, m) Σ_ℓ eq(r_lane, ℓ) · stepMle inst (lane ℓ of segment m's output)`,
 
@@ -26,8 +26,8 @@ a random combination of the fifty lane claims of the two segments (`doc/leanvm`
 §`keccak:segments`, "The first claim"). The candidate is alive after `committed` when that value
 opens the committed middle state (`OpenTrue`) and the first claim holds; before, when the
 mismatch table `startDelta` (the fifty differences between the lanes' claimed and true values)
-has a zero extension at the challenges drawn (`ZeroOn`). `startSpec`: the six challenges escape
-at `L₀/|E|` each.
+has a zero extension at the challenges drawn (`ZeroOn`). The six challenges escape at `L₀/|E|`
+each (`gkrSpec`).
 
 `sum_split`: the claims' (pack, segment) and instance sums are a sum over the steps with the
 equality weights of `(r_low, r_pack)`, the reading of every claim on the committed states.

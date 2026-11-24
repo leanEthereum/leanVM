@@ -70,7 +70,7 @@ most `wireMaxLeafWords`; the positions the queries' distinct ones ascending, at 
 below `2 ^ height`; one leaf per position, each of the leaf width; the row width minimal (some
 `rowWords ≤ leafWords` with every leaf `rowWords` words after `leafWords - rowWords` zeros, and
 `rowWords = 0` or some leaf's word at `leafWords - rowWords` nonzero; hence
-`zeroPrefix leaves = leafWords - rowWords`, `PhaseRead.zeroPrefix_eq`); and, level by level, the
+`zeroPrefix leaves = leafWords - rowWords`, `zeroPrefix_map_paddedLeaf`); and, level by level, the
 carried siblings keyed by `carriedSiblings (levelNodes positions level)`, one list per level. -/
 structure PhaseRead (ph : PrunedPhase) : Prop where
   queries_length_le : ph.queries.length ≤ wireMaxQueries
@@ -172,7 +172,7 @@ theorem drop_paddedLeaf (row : List K) (leafWords : ℕ) :
   List.drop_left' (by simp)
 
 /-- The stream's words, regrouped by two into elements as `readProof` does, are written back as
-the same words (as `LeanVM.Wire.flatMap_toBytes_regroup`, rtglue's). -/
+the same words. -/
 theorem stream_flatMap_toBytes (count : ℕ) (words : List K) (hlength : words.length = 2 * count) :
     ((List.range count).map fun i ↦ E.ofLimbs (words.getD (2 * i) 0)
         (words.getD (2 * i + 1) 0)).flatMap E.toBytes = words.flatMap K.toBytes := by

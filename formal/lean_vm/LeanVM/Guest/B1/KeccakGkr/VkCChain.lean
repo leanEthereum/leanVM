@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.KeccakGkr.VkCHon
 # The layers' chain
 
 From `ChainOk`, layer `k`'s words have their lengths and its two checks hold (`chainOk_at`), and
-the claim and sponge after layer `k` are its `layerClaim` and `layerBeta` (`chainEnd_succ`). For a
+the claim and sponge after layer `k` are its `layerClaim` and `layerBeta` (`layer_succ`). For a
 `VkData` with its run's facts: every claim's point has `τ - 3` coordinates (`chain_point`), the
 sponge before layer `k` is `(layer k).s0` (`chain_s0`), and layer `k` has the facts
 `layer_completeAtFB` takes (`layer_facts`).

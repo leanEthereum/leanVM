@@ -22,7 +22,6 @@ On a valuation satisfying `Fwd.Good` for every statement of a body's evaluation 
 * `good_mul`: a product of older values;
 * `keccak_good`: a `KECCAK` holds, its outputs the permutation's;
 * `fsNextT_good`: `fs_next` reading a word holds, its cells the word's;
-* `holdsList_auto`: a block of pure atoms and hints holds;
 * `good_slice`, `good_ite`: a slice of a body, or an `ite`'s branches, are in its evaluation list.
 -/
 

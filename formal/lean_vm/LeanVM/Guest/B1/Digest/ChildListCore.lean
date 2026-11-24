@@ -14,8 +14,8 @@ import LeanVM.Guest.Data.ValNames.«child_claim_list_last__L»
 /-!
 # The last child claims' honest valuation
 
-`cclAtoms k`: `child_claim_list_last__L{k}`'s atoms, its body those and a return
-(`ccl_split`), placing nothing and not a loop helper. `ccl_core`: from the state after whole
+`cclAtoms k`: `child_claim_list_last__L{k}`'s atoms, its body those and a return,
+placing nothing and not a loop helper (`ccl_shape_all`). `ccl_core`: from the state after whole
 blocks `pre` at `sp = g^sP` and `k` honest records, the body's evaluated valuation (`Fwd.ev`, the
 slots from `slotW`) holds its atoms and returns the digest, and every load reads the state's
 `13` words, a record's mark at `region · g^(os j)`, or a record's four cells at

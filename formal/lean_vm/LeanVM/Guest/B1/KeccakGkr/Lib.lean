@@ -207,8 +207,7 @@ theorem noRetList_flatten_map (f : ℕ → List Stmt) (h : ∀ i, Stmt.noRetList
 /-! ## Facts by position
 
 A body's statements without `ret`, `pre`, hold one by one: the statement at position `k`, found
-by kernel evaluation (`stmtEqb`), holds. `body_pre` splits a body into its statements and its
-final `ret`. -/
+by kernel evaluation (`stmtEqb`), holds. -/
 
 /-! ## Blocks of atoms, by kernel evaluation -/
 

@@ -16,7 +16,7 @@ import LeanVM.Guest.Data.ValNames.«rs_eq_rows__L0»
 # `rs_eq_rows` (lean_ethereum.py)
 
 `rs_eq_rows(row, zs, ps, n)` at `n = 0` returns `row`. Otherwise it reads the `n` coordinates
-`zs[i]`, `ps[i]` (`rrHead`), and for each `k < 64` the row word `row[k]`, multiplies it by
+`zs[i]`, `ps[i]` (`rrHeadBlk`), and for each `k < 64` the row word `row[k]`, multiplies it by
 `zs[i]^(2^k) + ps[i]` for `i < n` (the Frobenius powers squared along `k`, values `rrZ`), and
 stores the product at `row·g^(64 + k)` (`rrRow k`); it returns `row·g^64` (`g^64` the word
 `27`). Row `k`'s values start at `rrS n k`, three a coordinate (two in the last row, which

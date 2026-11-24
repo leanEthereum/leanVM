@@ -19,7 +19,7 @@ push side's blocks `a₀, a₁, a₂` (framework) and `S c` (table blocks, by th
 and the count side's `S c`:
 
 * `vt_total0`, `vt_total1`, `vt_total2`: the sides' totals;
-* `vt_forms0`, `vt_forms1`, `vt_forms2`: table `t`'s form on each side, at any row, is the guest's
+* `vt_forms`: table `t`'s form on each side, at any row, is the guest's
   `vtSideVal` of the table's selectors and baked terms.
 -/
 

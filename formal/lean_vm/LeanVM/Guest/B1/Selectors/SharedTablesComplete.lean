@@ -20,7 +20,7 @@ import LeanVM.Guest.Data.ValNames.«shared_selector_tables_loop0»
 * `shared_selector_tables_loop0`: the valuation `lpVal` gives each value of an iteration at `x =
   g^j` its role: the powers of `x` and the pointers; the eq levels' entries of nibble `j` (`spLvV`)
   and the coordinates and complements each level loads; the `g` table's entries (`spGV`) and the
-  shares each step loads; the next `x`. `lp_complete`: from `g^j`, `j < q`, the iterations run to
+  shares each step loads; the next `x`. `lp_chain`: from `g^j`, `j < q`, the iterations run to
   `g^q`.
 * `shared_selector_tables`: the valuation `ssVal` gives the hint's six bits of `n`, the factors,
   `g^r`, `g^q` (`n = 4q + r`), the pointers of the partial nibble; the loop runs the full nibbles

@@ -21,7 +21,7 @@ public import LeanVM.Guest.B1.Da.LevelsComplete
   conditions are in `K`.
 * `treeCells leaves k`: the cells of `da_levels`' tree over `2^k` leaves, level after level, as
   `TreeMem` reads them (`treeMem_of_reads`), `4·2^k - 2` words (`length_treeCells`).
-* `memL_of_sub`, `reads_of_memL`: a layout's entries.
+* `reads_of_memL`, `regionL_of_mem`: a layout's entries.
 -/
 
 namespace LeanVM.Guest.B1.Da

@@ -19,7 +19,7 @@ The verifier's points are lists, the first coordinate the lowest bit of an index
 * `eqAt pt w = Π_k eq(pt_k, bit k of w)`, defined coordinate by coordinate from the first;
   `eqKernel_getD`: the verifier's `eqKernel pt` lists `eqAt pt w` for `w < 2^|pt|`;
   `sum_eqAt`: the weights sum to one; `eqAt_append`: a point split in two;
-* `bitsE z m`: the hypercube point of index `z`, `eqAt_bitsE`: equality weights at a cube point
+* `bitsE z m`: the hypercube point of index `z`, `eqAt_bitsE_lt`: equality weights at a cube point
   are an indicator;
 * `multilinearEval_eq`, `dot_eqKernel`: the verifier's evaluation and inner product as sums;
 * `polyLE_eqAt`: `eqAt` is affine in each coordinate, so a sum of products of `k` multilinear

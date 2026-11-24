@@ -19,7 +19,7 @@ public import Mathlib.Data.List.GetD
 # The cells of a Keccak state
 
 A canonical cell holds sixteen message bytes, its limb `0` then its limb `1`, each as eight
-little-endian bytes (`cellBytes`; the Rust's `pack_16_bytes`, the Spec's `kBytes`). A Keccak state
+little-endian bytes (`cellBytes`; the Rust's `pack_16_bytes`, the Spec's `E.toBytes`). A Keccak state
 sits in thirteen cells in one of two layouts (`cellLanes`, `Statement/LeanIsa.lean`): lane `l` is
 limb `laneLimbIdx odd l` of cell `laneCellIdx odd l` (`lane_stateOfCells`). The compiler's
 `emit_keccak_message` (`crates/lean_compiler/src/lower/builtins.rs` at leanVM main `40f877dc`)
@@ -31,7 +31,6 @@ is `absorbBlock` (`keccak_block`).
 
 * `leLane_cellsBytes`: lane `l` of the bytes of cells is limb `l % 2` of cell `l / 2`;
 * `lane_stateOfCells`, `limb_cellsOfState`: where each lane sits;
-* `stateOfCells_cellsOfState`: the cells `KECCAK` writes hold the state;
 * `keccak_block`: a `KECCAK` whose inputs are a state's cells plus a block's is `absorbBlock`.
 -/
 

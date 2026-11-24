@@ -25,12 +25,12 @@ the line through limb `ℓ` of the public-input digest's two halves `(h₀, h₁
 `(1 + r)·h₀,ℓ + r·h₁,ℓ` (`pubLimb`), at `(r, 0, …, 0)`. The prover sends nothing. It is a sample
 followed by a return (`publicInputPhase_eq`).
 
-**The fidelity check.** On the leanISA instance no public line is sent (`unsentLines`): the ArkLib
-phase (`publicInputPhase`) reads an empty message and pools, for every line, the value it computes
-from the statement, the line through its two cells. When the instance's statement is the digest's
-(`digestHalves publicInput = (input.word0, input.word1)`, `PublicInput.ofDigest`), those values
-are the program's limbs (`lineValue_eq_pubLimb`): the program's two claims are the phase's two
-line claims (`lineClaim_eq`). No mismatch.
+**The fidelity check.** On the leanISA instance no public line is sent (`LeanIsa.publicLines`):
+the ArkLib phase (`publicInputPhase`) reads an empty message and pools, for every line, the value
+it computes from the statement, the line through its two cells. When the instance's statement is
+the digest's (`digestHalves publicInput = (input.word0, input.word1)`, `PublicInput.ofDigest`),
+those values are the program's limbs (`lineValue_eq_pubLimb`): the program's two claims are the
+phase's two line claims (`lineClaim_eq`). No mismatch.
 
 **The specification** (`pubPhaseSpec`). Doom quantifies over the candidates `C h₀` bound by the
 history (for the leanVM program, the candidates of the level-0 commitment, `Candidates`); `toI`
@@ -43,7 +43,7 @@ reads a candidate as a stack of the instance:
 
 The challenge escapes with average at most `L₀ · 1/|E|` (`pub_escape`) for at most `L₀`
 candidates: for each candidate satisfying the earlier claims, the phase's statement whose
-received claims are true of it (`trueStmt`) is outside the table seam, and the phase's
+received claims are true of it (`trueStmtWith`) is outside the table seam, and the phase's
 round-by-round knowledge soundness on ArkLib's typed framework (`PublicInput.security`, its
 local bound at the challenge) bounds by `1/|E|` the challenges at which its pool is in the
 public seam; a good challenge of the program makes it so (`good_imp_state`).
@@ -284,7 +284,7 @@ theorem card_filter_le_sum_indE {p q : E → Prop} [DecidablePred p] (h : ∀ c,
 open Classical in
 /-- **The public-input phase's specification.** The program's public-input phase, from `PubPre` to
 `PubPost`, with lead `L₀ / |E|` (`L₀` bounding the number of candidates, `1/|E|` the slot's error
-`pubError`) plus the follower's `T`, given the layout's reading of the memory claims
+`pubErrors`) plus the follower's `T`, given the layout's reading of the memory claims
 (`pubLayoutHyp`), the instance's statement read off the digest, and candidates stable along the
 phase. -/
 noncomputable def pubPhaseSpecWith (hlayout : pubLayoutHypWith prog s fl layout toI H)

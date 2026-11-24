@@ -20,7 +20,7 @@ index being coordinate `k`, low bit first) and their multilinear extension `eval
 arbitrary commutative ring `R`. Candidate for CompPoly, beside `CompPoly.Multilinear.Basic`.
 Nothing here transcribes a source.
 
-* **Sums.** `sumCube`, `hadamard`; `evalMle_eq_sumCube_hadamard`: evaluating at `r` is summing the
+* **Sums.** `sumCube`, `hadamard`; `evalMle_eq_sum`: evaluating at `r` is summing the
   table against the Lagrange basis at `r`; `sumCube_lagrangeBasis`: the partition of unity;
   `evalMle_replicate`: a constant table extends to the constant.
 * **Splitting.** `cubeIndex i j = i + 2 ^ k * j` has low bits `i` and high bits `j`;
@@ -28,14 +28,13 @@ Nothing here transcribes a source.
   the Lagrange basis across the split.
 * **Boolean points.** `boolVec j` is the point of the cube with index `j`; the Lagrange basis
   there is an indicator (`lagrangeBasis_boolVec`), so evaluating reads the entry
-  (`evalMle_boolVec`). `boolVec_zero` and `boolVec_onesIndex` name the two corners, and
-  `lagrangeBasis_zero_index`, `lagrangeBasis_onesIndex` give the basis at them as products.
+  (`evalMle_boolVec`). `boolVec_zero`: the point of index zero is the origin.
 * **Slices.** `slice t j` is the subcube of `t` whose high bits are `j`, and `placeSlice t j` is
   the table that holds `t` on that subcube and zero elsewhere. `evalMle_split` writes an
   evaluation as the weighted sum of the slices; `evalMle_append_boolVec` is the selection
-  identity, a Boolean high coordinate selects a slice; `evalMle_placeSlice` and
-  `sumCube_placeSlice` are its converse. `sliceLow t i` is the strided subcube whose low bits
-  are `i`, one entry every `2 ^ k`, and `evalMle_boolVec_append` its selection identity.
+  identity, a Boolean high coordinate selects a slice; `evalMle_placeSlice` is its converse.
+  `sliceLow t i` is the strided subcube whose low bits are `i`, one entry every `2 ^ k`, and
+  `evalMle_boolVec_append` its selection identity.
 * **Low coordinates.** `lowCoords h z` is the low `k` coordinates of a point on `n ≥ k`, and
   `repeatHigh t h` reads a table on `k` variables on `n`, the same in every slice of the high
   coordinates: its extension ignores them (`evalMle_repeatHigh`).

@@ -45,7 +45,7 @@ equations name addresses of the memory, agree among themselves (`Tree.Valid.eqns
 they do on any memory the evaluation is valid on), and agree with the frames where they meet
 (`cross`: an equation in a `HeapBuf` meets no frame, `frameWrites_not_buf`; one in a frame,
 a `StackBuf` read through `frameAddr` or a range check landing there, reads what the frame
-holds; both hold when one memory holds the frames and the equations, `cross_of_read`).
+holds).
 
 **Conclusions.** The image is consistent (`Honest.consistent`); every frame's header, cells
 and certificate values read back at `fp · g^o` (`Honest.read_hdr`, `read_C`), and

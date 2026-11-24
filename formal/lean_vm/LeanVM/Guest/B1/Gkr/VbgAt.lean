@@ -27,7 +27,7 @@ holding the cursor's words, the point and the buffers, its loads land inside the
 capacity, cursor and the values' buffer. The radix-four layers' dispatch loads from `R`
 (`vbg_layers_relIn`), and the point's copy `verify_bus_gkr_loop0` (`vbz_relIn`).
 
-`verify_bus_gkr_completeAtB` (`Gkr/VbgB`): `flat_completeAtOutTB` for `vbgFlat`, the buffers at the
+`verify_bus_gkr_completeAtTB` (`Gkr/VbgB`): `flat_completeAtOutTB` for `vbgFlat`, the buffers at the
 bump allocator's positions from `fp + fs "verify_bus_gkr"`, returned (`VbgOut`: the values' buffer
 is among them).
 -/

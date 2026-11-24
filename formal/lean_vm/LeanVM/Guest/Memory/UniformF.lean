@@ -2,7 +2,7 @@
   LeanVM.Guest.Memory.UniformF
 
   The uniform placed completeness with the caller's words depending on the frame pointer
-  (`CompleteAtF`), and its composition along a caller's calls (`kidsFromIn_of_kidsF`).
+  (`CompleteAtF`), and a callee read at its frame pointer (`KidF`).
 -/
 
 module
@@ -19,9 +19,9 @@ its buffers into its caller's record) reads caller's words that depend on where 
 pointer (a caller ties its record's words to the callee's buffers there). `CompleteAtD` is the
 constant case (`CompleteAtD.toF`).
 
-`kidsFromIn_of_kidsF` composes such callees along a caller's calls as `kidsFromIn_of_kidsD`
-does, and returns the callees' frame pointers `fps`, chosen before the memory, so the caller can
-build its own words (the record) from them: each callee is its `KidF` read at its frame pointer
+`kidsFromIn_of_kidsG` (`B1/KeccakGkr/FlatG.lean`) composes such callees along a caller's calls as
+`kidsFromIn_of_kidsD` does, their frame pointers `fps` chosen before the memory, so the caller can
+build its own words (the record) from them. A `KidF` is a callee read at its frame pointer
 (`KidF.at`).
 -/
 

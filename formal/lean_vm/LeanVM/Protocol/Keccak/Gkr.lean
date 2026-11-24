@@ -38,10 +38,10 @@ position rounds at `L₀·3/|E|` (`h3`), `β` at `L₀·2/|E|` after a grind of 
 `6 + 4 + 6` rounds at `L₀·2/|E|`. At `L₀ = 1` each is within `2^-125`.
 
 `gkrSpec` states it with `Pre := Doomed C (outClaimsTrueMid ∧ midAgree ∧ R)`. A statement in terms
-of `keccakF` of the inputs needs `RegionValid` (the committed middle state is twelve rounds of the
-input at every step), which cannot be dropped from the carried predicate: `inst` is drawn before
-this phase, and a middle state wrong at some step but agreeing with twelve rounds of the input at
-`inst` passes every check here (the phase drawing `inst` charges that, `zeroOn_escape`).
+of `keccakF1600` of the inputs needs `RegionValid` (the committed middle state is twelve rounds of
+the input at every step), which cannot be dropped from the carried predicate: `inst` is drawn
+before this phase, and a middle state wrong at some step but agreeing with twelve rounds of the
+input at `inst` passes every check here (the phase drawing `inst` charges that, `zeroOn_escape`).
 -/
 
 namespace LeanVM.Protocol.KeccakGkr
@@ -244,8 +244,6 @@ noncomputable def gkrSpec (hst : Stable C) (hcard : ∀ h, (C h).ncard ≤ L₀)
       midSpec hst hcard R qk P output hi hs hl committed hT h46 h3
     else Spec.dead.mono (fun _ hd ↦ hl hd.1) (fun _ _ h' ↦ h') le_rfl le_rfl le_rfl
   else Spec.dead.mono (fun _ hd ↦ hs hd.1) (fun _ _ h' ↦ h') le_rfl le_rfl le_rfl
-
-/-! ## The statement against `keccakF` -/
 
 end
 end LeanVM.Protocol.KeccakGkr

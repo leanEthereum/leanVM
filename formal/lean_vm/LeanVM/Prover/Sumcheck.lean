@@ -20,9 +20,6 @@ import Mathlib.Algebra.Polynomial.BigOperators
 * `coeffsOf_eq`: the specification's round message `coeffsOf d f`, chosen classically among the
   coefficient lists of `f`, is any list of `d + 1` coefficients that evaluates as `f` (two
   polynomials of degree at most `d < |E|` that agree everywhere are equal).
-* `corr_sumcheckBy`: the stateful prover `sumcheckBy round fold` makes the moves of the
-  specification's `hSumcheck count claimOf`, given an invariant along the rounds under which the
-  state's coefficients evaluate as the round's claim.
 -/
 
 namespace LeanVM.Prover

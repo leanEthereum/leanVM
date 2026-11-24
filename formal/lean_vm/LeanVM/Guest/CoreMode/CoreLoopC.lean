@@ -810,8 +810,8 @@ theorem gargsW_tail {Cf : CFun} (hg : tailG Cf = true) {σ : Val} {args : List V
   rw [hms]
   simp [ghostMs, valW_baseC, vw]
 
-/-- **A loop's tail call taken**, into frame `s.fp + S` of the honest tree: `tail_next` for a loop
-helper with calls, pointer runs included. -/
+/-- **A loop's tail call taken**, into frame `s.fp + S` of the honest tree, for a loop helper with
+calls, pointer runs included. -/
 theorem tail_nextC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {img : MemoryImage κ} (hκ : κ ≤ 28)
     {s s1 s' : St} (hfp0 : s.fp < maxCells) (hfp1 : s1.fp = s.fp) (hle1 : s.mem ≤ s1.mem)
     (hf' : Fine (refMem img) s') (hle' : s1.mem ≤ s'.mem) (hu' : s'.mem.used ≤ 2 ^ κ) {S : ℕ}

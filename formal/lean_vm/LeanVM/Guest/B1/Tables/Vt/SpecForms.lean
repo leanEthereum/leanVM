@@ -21,7 +21,7 @@ public import LeanVM.Guest.B1.Tables.Vt.FormsTie5
 
 `accumulateSide` adds each block's form, scaled by its selector, to its owner's form of the side
 (`accFold_spec`): evaluated at a table's row, the owner's form is the sum over its blocks of the
-selector times `blockVal`. `vt_side_push` (and `vt_side_pull`, `vt_side_count`): over the side's
+selector times `blockVal`. `vt_tie_sum` (and `vt_count_sum`): over the side's
 blocks with the guest's selectors, the blocks of table `t` sum to `vtSideVal` of the table's baked
 terms, by the kernel-checked tie of the flushes and the baked terms (`vtTie0t`, `vtTie1t`).
 -/

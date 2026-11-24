@@ -28,15 +28,15 @@ This module proves what the round-by-round analysis needs of each:
 * **products of affine factors** are multiaffine (`isMultiaffine_prod`);
 * `eqEval z` (the out-of-domain claim's weight) is multiaffine (`isMultiaffine_eqEval`), and its
   inner product with a message is the message's multilinear extension at `z`
-  (`sum_eqEval_mul_eq_evalMle`);
+  (`sum_eqEval_vec`, `Sound/Escape.lean`);
 * the verifier's `inducedWeight` (`induced_weight`) is the column-weight sum of Annex D
   `lem:colweight` (`inducedWeight_eq_sum`, through `LeanVM.Protocol.Whir.inducedWeight_eq`; the
-  verifier's own `subspaceRoots` is the Annex's roots, `subspaceRoots_eq_closed`), hence
+  verifier's own `subspaceRoots` is the Annex's roots, `subspaceRoots_eq`), hence
   multiaffine (`isMultiaffine_inducedWeight`), and its inner product with a message is the batched
   codeword entries, `Σ_q w_q Enc(G)[x_q]` (`sum_inducedWeight_mul`);
 * the opening weight read at the rotated point, `w(p[ℓ₀:] ++ p[:ℓ₀])`, is multiaffine when `w` is
   the multilinear extension of its cube values (`IsMultilinearFn`, `isMultiaffine_rotL`);
-* `dot(row, eq_kernel(folds))`, the lane fold of an opened row (`enforcedSum`), is the row folded
+* `dot(row, eq_kernel(folds))`, the lane fold of an opened row, is the row folded
   by `foldsN` (`dot_eqKernel`).
 
 `joinMsg` regroups a message split into lanes and message bits into one message on the full

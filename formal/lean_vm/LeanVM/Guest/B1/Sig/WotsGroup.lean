@@ -13,8 +13,8 @@ public import LeanVM.Guest.B1.Sig.WotsArm
 # A group's layout
 
 * `walksT_snd`, `armT_snd`, `armBase_succ`, `armsT_snd`: the bases;
-* `slot_lt`, `slot_ge`: a group's slots lie between its first walk and its product;
-* `armZeroLay`, `armPosLay`: the hypotheses of `armT_ssa`/`armT_canon` for arm `0` and for a later
+* `slot_bounds`, `slot_mono`: a group's slots lie between its first walk and its product;
+* `arm0_lay`, `armPos_lay`: the hypotheses of `armT_ssa`/`armT_vals` for arm `0` and for a later
   arm.
 -/
 

@@ -20,9 +20,8 @@ public import LeanVM.Protocol.EndToEnd.Complete.Gkr
   and the composition of `Corr` along a script whose results have it (the fresh coordinates of a
   step have `step` entries);
 * `corr_sumcheckBy_lt`: the stateful sumcheck makes the specification's moves when the round's
-  coefficients evaluate as the claim while coordinates remain (the variant of `corr_sumcheckBy`
-  whose invariant need not hold after the last round's claim), and it draws one challenge per
-  round;
+  coefficients evaluate as the claim while coordinates remain (the invariant need not hold after
+  the last round's claim), and it draws one challenge per round;
 * `polyEval_mulLine`, `polyEval_addScaled`, `foldLines`, `foldAdd`: coefficient lists;
 * `multilinearEval_affine`: an extension is affine in any one coordinate;
 * `TabInv`: a folded layer, entry `j + 2^h·b` the layer's extension at the child bits `j`, the

@@ -35,7 +35,7 @@ weight section; from the nonce's permutation on, `__L1`'s values are `__L0`'s pl
 * `lastT`, `localRoundsT`, `tReadsT`: the last record read, the eleven position rounds, `t`;
 * `eqfT` (`EqFrame`): the lane weights of the local point;
 * `weightT`: the claim's weights at the local point (first: `lanesEqT`; later: `shiftsT` and
-  `formT`, `keccak_shifts_eq` and `keccak_form`);
+  `formAll`, `keccak_shifts_eq` and `keccak_form`);
 * `tailT`: the final check, the squeeze of `β`, the next claim's record, and its weights where
   `ι` can flip (`lflipT`, `slice_weight`).
 -/

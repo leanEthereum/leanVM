@@ -13,7 +13,7 @@ public import LeanVM.Guest.B2C.CplWalkT
 # The walk, by induction, and the parts of a window
 
 `walk_Z`: the walk of every block from every position gives what `WGood` says, by the cases of
-`CplWalk` and `CplWalkT` (mirroring `CheckSound.walk_sound`). `part_split`: part `k` of window `i`
+`CplWalk` and `CplWalkT` (mirroring `Check.walk_sound`). `part_split`: part `k` of window `i`
 is the body from its start up to where the next part, the next window, or the body ends
 (`nextPos`).
 -/

@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Place.OsMean
 /-!
 # Leaves, exact trees
 
-`total_leaf_eq`: a leaf's valid trees are exactly its frame (`totalLe_leaf`, as an equality).
+`total_leaf_eq`: a leaf's valid trees are exactly its frame.
 `completeAtE_of_relIn`: a pure function loading the caller's words is `CompleteAtE` by exactly the
 words every valid tree of it takes (`completeAtDTB_of_relIn`, exact). `completeAtE_of_leaf`: a leaf
 whose relation is its meaning, its loads in the caller's regions, is `CompleteAtE … (fs f)`

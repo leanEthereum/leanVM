@@ -212,7 +212,7 @@ theorem flatMap_length (F : ℕ → ℕ → E) (m n : ℕ) :
 /-- θ's input weights after ρπ: position `p` of θ's output carries `w` at `rhoPiDst p`. -/
 def gOf (w : List E) (p : ℕ) : E := w.getD (rhoPiDst p) 0
 
-/-- The inner loop of `keccak_linear_transpose`'s first array, writing one lane. -/
+/-- The inner loop of `keccakLinearTranspose`'s first array, writing one lane. -/
 theorem inner_loop (W : ℕ → E) (lane : ℕ) (g : Array E) :
     ∀ Z, ((List.range Z).foldl (fun g z ↦ g.setIfInBounds (64 * lane + z) (W z)) g).size =
         g.size ∧
@@ -227,7 +227,7 @@ theorem inner_loop (W : ℕ → E) (lane : ℕ) (g : Array E) :
     rw [setIfInBounds_getD, hg p, hs]
     split_ifs <;> first | rfl | (exfalso; omega) | (congr 1; omega)
 
-/-- `keccak_linear_transpose`'s first array, lane by lane. -/
+/-- `keccakLinearTranspose`'s first array, lane by lane. -/
 theorem outer_loop (w : List E) :
     ∀ L, L ≤ 25 →
       ((List.range L).foldl (fun g lane ↦ (List.range 64).foldl (fun g z ↦
@@ -262,7 +262,7 @@ theorem outer_loop (w : List E) :
       · rw [ite_eq_left h2, ite_eq_left (by omega)]
       · rw [ite_eq_right h2, ite_eq_right (by omega)]
 
-/-- `keccak_linear_transpose`'s column sums. -/
+/-- `keccakLinearTranspose`'s column sums. -/
 theorem columns_getD (A : Array E) {x z : ℕ} (hx : x < 5) (hz : z < 64) :
     ((List.range 5).flatMap fun x ↦ (List.range 64).map fun z ↦
         sumE ((List.range 5).map fun y ↦ A.getD (64 * (x + 5 * y) + z) 0)).toArray.getD
@@ -272,7 +272,7 @@ theorem columns_getD (A : Array E) {x z : ℕ} (hx : x < 5) (hz : z < 64) :
   rw [sumE_eq_sum, list_sum_range]
   rfl
 
-/-- The list `keccak_linear_transpose` returns, from its first array `A`, in closed form. -/
+/-- The list `keccakLinearTranspose` returns, from its first array `A`, in closed form. -/
 theorem transposeList_getD (A : Array E) (g : ℕ → E) (hA : ∀ p < 1600, A.getD p 0 = g p)
     {p : ℕ} (hp : p < 1600) :
     ((List.range 25).flatMap fun lane ↦ (List.range 64).map fun z ↦
@@ -296,7 +296,7 @@ theorem transposeList_getD (A : Array E) (g : ℕ → E) (hA : ∀ p < 1600, A.g
   rw [hcol _ _ (by omega) (Nat.mod_lt _ (by omega)), hcol _ _ (by omega) (Nat.mod_lt _ (by omega))]
   rfl
 
-/-- **`keccak_linear_transpose` in closed form**: θ's transpose of the weights moved back
+/-- **`keccakLinearTranspose` in closed form**: θ's transpose of the weights moved back
 through ρπ. -/
 theorem keccakLinearTranspose_getD (w : List E) {p : ℕ} (hp : p < 1600) :
     (keccakLinearTranspose w).getD p 0 = thetaT (gOf w) p := by

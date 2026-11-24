@@ -61,7 +61,7 @@ generic in their cells. Namespace `LeanVM.Guest.Value.Keccak` (`KeccakEval` for 
   `pre ++ cellsBytes cells`, `absorbChunks (n + B) zeroState (pre ++ cellsBytes cells)`, ready for
   a `state=` continuation (`keccak_final` with that prefix).
 * `absorbChunks_seed : absorbChunks 1 zeroState (cellsBytes [(digestScalars iv).1,
-   (digestScalars iv).2, (digestScalars pi).1, (digestScalars pi).2]) = keccakF (seedInput iv pi)`
+   (digestScalars iv).2, (digestScalars pi).1, (digestScalars pi).2]) = keccakF1600 (seedInput iv pi)`
   (`verify_sub`'s `keccak_cells(…, final=0)`, with `keccak_chain`).
 * `keccak256_eq_absorbChunks`, `keccak256_append`, `absorbChunks_append`, `padCells_bytes`,
   `digestScalars_digestOf : digestScalars (digestOf S) = (cellsOfState S false 0,
@@ -72,19 +72,19 @@ generic in their cells. Namespace `LeanVM.Guest.Value.Keccak` (`KeccakEval` for 
   `rateCell_past`.
 * `keccak_duplex`: `(∀ c : Fin 13, c.val < 8 → I c = rateCell pending c) →
    (∀ c : Fin 13, 8 ≤ c.val → I c = cellsOfState S false c) → KeccakCells I false O false →
-   O = cellsOfState (keccakF (duplexInput ⟨S, pending⟩)) false`.
-* `squeeze_id`, `absorb_id_full`: the Spec's sponge at `Id`, `keccakF`.
+   O = cellsOfState (keccakF1600 (duplexInput ⟨S, pending⟩)) false`.
+* `squeeze_id`, `absorb_id_full`: the Spec's sponge at `Id`, `keccakF1600`.
 * `challengeOf_cells : challengeOf S = cellsOfState S false 0`;
   `powLane_cells : Keccak.lane S 2 = ((cellsOfState S false 1).limb 0).lane`.
 
 **Constants by kernel evaluation** (`KeccakConst`, `KeccakEval`)
-* `keccakF_zero : keccakF zeroState = keccakFZero` (the `KECCAK` table's padding row).
+* `keccakF_zero : keccakF1600 zeroState = keccakFZero` (the `KECCAK` table's padding row).
 * `batchSeed_eq : Node.batchSeed = batchSeedValue`;
   `aggSeed_cells : litField (aggSeed.getD c 0) = cellsOfState Node.batchSeed false ⟨8 + c, _⟩`.
 * `paddingCell_eq : LeanDa.paddingCellWithHash Da.keccak256Bytes = LeanVM.Protocol.Digest.toBytes daPadCellDigest`,
   `paddingBlobRoot_eq` (the zero codeword's blob root, seven levels of `daPadLevel`),
   `daPadBlob_cells` (`DA_PAD_BLOB_0/1 = digestHalves daPadBlobDigest`).
-* For new constants: `keccakF_eq_iff : keccakF a = b ↔ keccakFN (toNats a) = toNats b` and
+* For new constants: `keccakF_eq_iff : keccakF1600 a = b ↔ keccakFN (toNats a) = toNats b` and
   `keccak256_eq_iff : keccak256 data = d ↔ keccak256N (data.map UInt8.toNat) =
   d.toList.map UInt64.toNat`, then `decide +kernel` (milliseconds a permutation; avoid
   `Vector.ofFn` and `String.toUTF8` in the closed term: their bodies are not exposed to a

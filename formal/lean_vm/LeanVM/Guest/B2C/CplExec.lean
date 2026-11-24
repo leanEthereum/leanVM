@@ -12,11 +12,11 @@ public import LeanVM.Guest.B2C.Count
 /-!
 # Segments along a path
 
-`Exec.exec_complete` reaches the registers a path's exit names but says only that some exit of
+`Exec.exec_good`'s completeness reaches the registers a path's exit names but says only that some exit of
 the segment holds its environment there. B2's completeness walk knows
 which branch the path takes: `Fall` says every item of a path holds with every branch falling
 through, `Taken` that a branch is taken. Then a segment's run reaches its exit's registers, or a
-branch's, with that exit's environment holding (`segZ_fall`, `segZ_taken`), each opcode counted
+branch's, with that exit's environment holding (`SegZ`, `execWinS_z`), each opcode counted
 at most as often as the path's items run it.
 -/
 

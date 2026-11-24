@@ -38,7 +38,7 @@ waiting scalars:
 * `Fs.nonceState s n`, `Fs.grindSqueeze s bits n`, `Fs.GrindOk s bits n`: a grind of `bits` then
   a challenge (`fs_grind_squeeze`): the permutation that absorbs the nonce `n`, its challenge and
   capacity, and its proof of work passing (`runsTo_grindSample`, `Common/Run.lean`);
-* `runId`: the deployed reading of a Spec program (`Compile.run` at `keccak256`, `keccakF`);
+* `runId`: the deployed reading of a Spec program (`Compile.run` at `keccak256`, `keccakF1600`);
 * `RunsTo p s xs a s'`: from any sponge the guest carries as `s`, the Spec program `p` reads
   exactly the stream words `xs`, returns `a` and leaves a sponge the guest carries as `s'`, on any
   rest of the stream, openings and roots; `RunsToG` ends, and `RunsFromG` starts, at a ground

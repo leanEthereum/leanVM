@@ -17,7 +17,7 @@ public import LeanVM.Cost.Prices
   **`getList_cost`**;
 * the first answers' map: **`firstAnswers_cost`**.
 
-The committed leaves themselves are bounded in `AS/Bounds/StepUp.lean` (`leavesOfC_cost_w`, a
+The committed leaves themselves are bounded in `AS/Bounds/StepUp.lean` (`leavesInC_cost`, a
 lookup in the transcript's index `preimageLookup_cost`).
 -/
 

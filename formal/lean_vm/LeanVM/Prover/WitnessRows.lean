@@ -18,7 +18,7 @@ public import LeanVM.Prover.WitnessRun
 `rowIn_powIndex`: through the memory index, a step's raw row is `rowOf`, cell for cell (the typed
 rows of the tables flattened, `xorRow_toArray` and its siblings). `countReads_spec`: the counts
 of a sequence of reads are `g` to the numbers `readExps` gives them, and the counters after them
-`g` to `readBump`. `rowsOf_spec`: over the steps of a valid run, `rowsOf` holds in table `op` the
+`g` to `readBump`. `rowsInv_rowsOf`: over the steps of a valid run, `rowsOf` holds in table `op` the
 raw rows of the rows of `skelRows` of the skeletons with that opcode, and its counters are `g` to
 `skelMemFin` and `skelBcFin`, cell by cell.
 -/

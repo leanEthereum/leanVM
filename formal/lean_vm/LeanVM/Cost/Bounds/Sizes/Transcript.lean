@@ -14,9 +14,8 @@ public import LeanVM.Protocol.Extraction.Fast.Transcript
   keeps at most `N + 1` paths (`replay_paths_length_le`), so at most `N + 1` evaluations, of at
   most `L` bytes each (`keccakEvaluationsFast_length_le`, `keccakEvaluationsFast_mem_length_le`);
   the index is a good map of at most `N + 1` insertions (`transcriptIndex_bounds`).
-* **The committed word** (`subtreeLeavesWith`, `leafAt`): a subtree of height `h` has `2^h`
-  leaves of `w` words each (`subtreeLeavesWith_size`, `subtreeLeavesWith_mem_length`), and every
-  position of the word reads `w` words (`leafAt_length`).
+* **The committed word** (`subtreeLeavesWith`): a subtree of height `h` has `2^h` leaves of `w`
+  words each (`subtreeLeavesWith_size`, `subtreeLeavesWith_mem_length`).
 -/
 
 namespace LeanVM.Cost.Bounds

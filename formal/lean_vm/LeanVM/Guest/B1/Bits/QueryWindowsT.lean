@@ -131,7 +131,7 @@ def qwWindows (d cd base cut at0 : ℕ) : ℕ → ℕ → ℕ → Option V → O
     let rest := qwWindows d cd base cut at0 (i + 1) n r.2.1 r.2.2.1 r.2.2.2
     (r.1 ++ rest.1, rest.2)
 
-/-- Position `j`'s store and its reconstruction term from `k` (`dqPr`), `recon` the sum so far. -/
+/-- Position `j`'s store and its reconstruction term from `k`, `recon` the sum so far. -/
 def qwPr (j base cut d k : ℕ) (lo hi : V) (recon : Option V) : List Stmt × ℕ × Option V :=
   if cut < d then
     ([.atom (.const (.n k) (cbWord cut)), .atom (.mul (.n (k + 1)) (.n k) hi),

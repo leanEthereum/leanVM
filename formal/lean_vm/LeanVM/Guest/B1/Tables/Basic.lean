@@ -22,7 +22,7 @@ families (prefixed `tb`) until the shared `B1/Common` has them:
   holds, compared with a template at its position;
 * `tb_loadHolds_mul_gen_pow`, `tb_loadHolds_unique`, `tbReadsAt_append`: memory runs;
 * `tbSetv`, `tbSetl`, `tb_look`: valuations built block by block;
-* `tb_loop_iff`, `tb_guarded_loop_iff`: `mul_range` loops.
+* `tb_loop_sound`: `mul_range` loops.
 -/
 
 namespace LeanVM.Guest.B1.Tables

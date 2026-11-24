@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Tables.RunF
 
 An accepting run from a carried sponge is the carried run (`RunsTo.toT`), which is deterministic:
 the reads, samples, `require`s, the equality-mode sumcheck (`gkrRun`) and a step of the walk read
-back from it (`runT_readN_some`, `runT_sumcheck5_some`, `gkrStep_inv`).
+back from it (`runT_readN_some`, `runT_sumcheck5_some`, `gkrStep_invT`).
 
 `GkStepD`: a step's words, the rounds' coefficients and the three trees' children; from the
 sponge and the state before it, its rounds (`run`), the sponge after its children (`sb`), the new

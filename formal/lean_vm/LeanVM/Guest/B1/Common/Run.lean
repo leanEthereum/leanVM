@@ -17,9 +17,8 @@ import LeanVM.Protocol.WithHash
 
 * `perm_eq`: the Spec's permutation input of a sponge the guest carries as `s` permutes to
   `s.perm`; `carries_absorb`, `carries_squeeze`: `Fs.absorb` and `Fs.squeeze` are `absorb` and
-  `squeeze` (`Statement/LeanVmVerifier.lean`, at `Id` and `keccakF`) on the carried cells.
-* `RunsTo.bind`, `runsTo_ret`: runs compose (`RunsTo.bindG`, `RunsToG.bindFrom`,
-  `RunsFromG.bind` through a ground challenge); `runsTo_readE`, `runsTo_readN`, `runsTo_sampleE`,
+  `squeeze` (`Statement/LeanVmVerifier.lean`, at `Id` and `keccakF1600`) on the carried cells.
+* `RunsTo.bind`, `runsTo_ret`: runs compose (`RunsToG.bindFrom`, `RunsFromG.bind` through a ground challenge); `runsTo_readE`, `runsTo_readN`, `runsTo_sampleE`,
   `runsTo_sampleN`: the Spec's reads and samples as runs on the carried sponge
   (`Fs.absorb … dsObserve`, `Fs.squeeze`).
 * `runsToG_grind`: a proof of work, the nonce absorbed with `dsPowNonce` and permuted, `powOk`

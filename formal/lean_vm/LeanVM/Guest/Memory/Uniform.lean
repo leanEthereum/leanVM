@@ -32,12 +32,11 @@ caller's words `Lin`: `f` holds of `args` and `rets` by a tree placed at `fp` (`
 words, loading from its own data or from `Lin`, its data containing `Lout`. Both layouts lie in
 `[fp, fp + n)` (`Within`), so a caller's honest memory can hold them with its own.
 
-* `kidsFromIn_of_kids` (`…D`, `…B`): the callees of a caller (`Kid`: callee, taken or not,
+* `kidsFromIn_of_kids'`, `kidsFromIn_of_kidsD`, `kidsFromIn_of_kidsB`: the callees of a caller (`Kid`: callee, taken or not,
   arguments, the words it reads, what it returns), each `CompleteAt` and placed at the running
   offsets from `b`, give `KidsFromIn` on every memory holding their layouts;
-* `completeAt_of_rel_pure` (`…D`, `…B`, `…Bat`): a function of a pure set whose relation holds on
+* `completeAt_of_rel_pureD`, `completeAt_of_rel_pureB`, `completeAt_of_rel_pureBat`: a function of a pure set whose relation holds on
   every memory holding `Lin` is `CompleteAt` with fixed returns and no buffers;
-* `completeAt_leaf` (`…D`, `…B`): a leaf allocating buffers, by its walk;
 * `CompleteAtD`: on pairwise disjoint layouts (`DisjL`); `CompleteAtB`: by a tree of at most `B`
   words.
 
@@ -434,7 +433,7 @@ theorem kidsFromIn_append {rd : Reader} {σ : Val} {R : ℕ → Prop} :
 
 `CompleteAtD` is `CompleteAt` with its layouts pairwise disjoint (`DisjL`), so that a memory
 holding them exists; bump allocation gives it everywhere. The generic lemmas in the `D` form:
-`kidsFromIn_of_kidsD`, `completeAt_leafD`, `completeAt_of_rel_pureD`. -/
+`kidsFromIn_of_kidsD`, `completeAt_of_rel_pureD`. -/
 
 /-- The layout's entries are pairwise disjoint, so some memory holds it. -/
 def DisjL (L : Layout) : Prop :=
@@ -550,7 +549,8 @@ theorem kidsFromIn_of_kidsD (κ : ℕ) : ∀ (ks : List Kid),
             simp only [hct, ht, Bool.false_eq_true, false_and, or_false] at this ⊢
             exact this
 
-/-- `completeAt_of_rel_pure`, on disjoint layouts (no buffer). -/
+/-- A function of a pure set whose relation holds on every memory holding `Lin` is `CompleteAtD`,
+with fixed returns and no buffer. -/
 theorem completeAt_of_rel_pureD {S : List String} (hS : coreProgram.PureIn S) {g : String}
     (hg : g ∈ S) {Lin : Layout} {args rets : List E}
     (h : ∀ rd, MemL rd Lin → coreProgram.Rel rd g args rets) (k : ℕ) :
@@ -687,7 +687,7 @@ theorem kidsFromIn_of_kidsB (κ : ℕ) (bd : Kid → ℕ) : ∀ (ks : List Kid),
             simp only [hct, ht, Bool.false_eq_true, false_and, or_false] at this ⊢
             exact this
 
-/-- `completeAt_of_rel_pure` by a bounded tree: the bound on the valid trees of `g` at the call's
+/-- `completeAt_of_rel_pureD` by a bounded tree: the bound on the valid trees of `g` at the call's
 arguments. -/
 theorem completeAt_of_rel_pureBat {S : List String} (hS : coreProgram.PureIn S) {g : String}
     (hg : g ∈ S) {Lin : Layout} {args rets : List E}
@@ -720,7 +720,7 @@ theorem completeAt_of_rel_pureBat {S : List String} (hS : coreProgram.PureIn S) 
     rfl
   · obtain ⟨q, hq, _⟩ := hi; simp at hq
 
-/-- `completeAt_of_rel_pure` by a bounded tree: the bound on every valid tree of `g`. -/
+/-- `completeAt_of_rel_pureBat`, the bound on every valid tree of `g`. -/
 theorem completeAt_of_rel_pureB {S : List String} (hS : coreProgram.PureIn S) {g : String}
     (hg : g ∈ S) {Lin : Layout} {args rets : List E}
     (h : ∀ rd, MemL rd Lin → coreProgram.Rel rd g args rets) (k : ℕ) {B : List E → ℕ}

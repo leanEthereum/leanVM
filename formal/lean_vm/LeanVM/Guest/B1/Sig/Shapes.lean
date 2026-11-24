@@ -67,7 +67,7 @@ def hiMul : Nat := 2 ^ 32
 def stepMul : Nat := 2 ^ 61
 def lxTop : Nat := 2 ^ 55
 
-/-- A 128-bit literal (`lit_field`). -/
+/-- A 128-bit literal (`litField`). -/
 def lit (c : Nat) : E := word (c % 2 ^ 64) (c / 2 ^ 64 % 2 ^ 64)
 
 /-- The digit sum of `k`'s `n` low base-4 digits (`DIGIT_SUMS`). -/

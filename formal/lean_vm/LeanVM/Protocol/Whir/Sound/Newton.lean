@@ -13,11 +13,11 @@ import Mathlib.Tactic.LinearCombination
 /-!
 # Newton interpolation with one error
 
-`nCoeffs pts`: the Newton coefficients of the points `pts`, each added as
+`nForm pts`: the nodes and Newton coefficients of the points `pts`, each coefficient added as
 `a = (y − P(x)) / ∏(x − xᵢ)` (`O(k²)` for `k` points). The polynomial `nP` of the nodes and the
-coefficients interpolates the points (`nCoeffs_spec`), and its top two coefficients are the last
+coefficients interpolates the points (`nForm_eval`), and its top two coefficients are the last
 coefficient and the one before less the last times the sum of the nodes before the last
-(`coeff_nP_top`, `coeff_nP_sub_two`).
+(`coeff_nP_top`, `coeff_nP_sub`).
 
 **One error** (`locate`): if a polynomial `T` of degree at most `d` disagrees with at most one of
 `d + 3` points of distinct nodes, the interpolant is `T` when its top coefficient is zero, and

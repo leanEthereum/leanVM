@@ -15,8 +15,7 @@ public import LeanVM.Guest.Value.KeccakSponge
 
 * `holdsList_atoms_ret`: a body of atoms then a `ret` holds exactly when every atom does and the
   returned words are the continuation's.
-* `padCells_getD_lt`, `padCells_getD_last`: the cells a whole-cell message of `16 m` bytes is
-  absorbed from are its cells, then the padding cell `0x01 … 0x80` (`padCellWord`).
+* `padCells_getD_lt`: a message cell away from the two padding bytes' cells is absorbed as is.
 * `VDec.vDecEq` (scoped): equality of values by their indices first, for the checkers.
 -/
 

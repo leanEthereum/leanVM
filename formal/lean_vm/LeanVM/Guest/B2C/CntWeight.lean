@@ -2,7 +2,7 @@
   LeanVM.Guest.B2C.CntWeight
 
   The instruction counts as weights: `cnt T op` is `T`'s weight at `pathMax · op` and the jump
-  table's `SET`s, the form `B1.Main.mainComplete_of` takes.
+  table's `SET`s, the form `Budget.mainComplete_of_main` takes.
 -/
 
 module
@@ -13,10 +13,10 @@ public import LeanVM.Guest.Data.NameStrings
 /-!
 # Counts as weights
 
-`cnt_le_weight`: `cnt t op ≤ t.weight (ω op) + jtSets op` (`mainComplete_of`'s and
-`ea_mainComplete`'s `hcnt`, at `jt := jtSets`), whenever each instance's path count is within its
-function's weight `ω op f` (`cnt_le_weight_of`); with no arm counted separately, at
-`ω op := (pathMax · op)`.
+`cnt_le_weight_valid`: `cnt t op ≤ t.weight (ω op) + jtSets op` (`mainComplete_of_main`'s and
+`mainComplete_budget`'s `hcnt`, at `jt := jtSets`), whenever each instance's path count is within
+its function's weight `ω op f`; `cnt_le_weight_arm`: at `ω := ωArm C`, the most a path runs and
+`main_loop2`'s arms within `C`.
 -/
 
 namespace LeanVM.Guest.B2C

@@ -20,12 +20,12 @@ arguments `args`. Each statement of the list satisfies its equations (`Good`, `G
 stores `vtSL` (`vt_good`); the parameters are the arguments (`vt_param`).
 
 By position of `vtPre` (the kernel comparing the statements read): `vt_goodL` (a block's
-equations, as one conjunction), `vt_goodIte` (an `ite`'s branches'), `vt_read` (a read gives the
+equations, as one conjunction), `vt_goodS` (an `ite`'s branches'), `vt_read` (a read gives the
 word the memory holds).
 
 **What holds by evaluation alone** (`autoB`): constants, sums, copies, products of older values,
 hints. `vt_block`: a block's statements satisfy `VSH` when the others (`rest`, a filter the
-kernel computes) do. `vt_loadsBelow`/`vt_bufRead`: every load through a pointer of a buffer whose
+kernel computes) do. `loadsBelow`/`vt_bufLoad`: every load through a pointer of a buffer whose
 words the memory holds stays inside it (one kernel check), a read reads the buffer's word.
 -/
 

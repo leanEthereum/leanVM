@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.XmssScheme
 
-  leanXMSS verification with Keccak-256 (`Node.xmssVerify`) as pure functions of the guest's cells.
+  leanXMSS verification with Keccak-256 (`LeanXmss.verifyWithKeccak`) as pure functions of the guest's cells.
 -/
 
 module
@@ -15,7 +15,7 @@ public import LeanVM.Guest.WithHash
 /-!
 # leanXMSS over cells
 
-`Node.xmssVerify` runs `LeanXmss.Verification.verify` in `Id` with Keccak-256 as the oracle. The
+`LeanXmss.verifyWithKeccak` runs `LeanXmss.Verification.verify` in `Id` with Keccak-256 as the oracle. The
 lemmas
 here are stated for any oracle instance on `Id` with the hypothesis `XQ` that it is Keccak-256: the
 kernel then never compares the instance with another term, which would unfold the hash. Each

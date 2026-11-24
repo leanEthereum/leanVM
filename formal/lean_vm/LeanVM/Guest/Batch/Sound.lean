@@ -17,14 +17,14 @@ public import LeanVM.Guest.AcceptableChild
 lambdas (`λ^(2i)`, `λ^(2i+1)` for child `i`), and runs one sumcheck on the bytecode, deferring one
 claim. `batch_sound`: if the batching accepts and its deferred claim holds, then every child's
 claims hold (its proof's, `BytecodeClaim.Holds`, and its
-statement's, `DeferredBytecodeClaim.HoldsShaped`), or a challenge is bad (`BatchBad`):
+statement's, `DeferredBytecodeClaim.HoldsWithShape`), or a challenge is bad (`BatchBad`):
 
 * **the challenge `λ`**: the children's claims leave nonzero gaps (claimed less true values), and
   the lambdas' combination of them vanishes: `λ` is a root of the nonzero polynomial whose
   coefficients are the gaps, of degree below `2n` (`LeanVM.Guest.Batch.RomSpec` counts them);
 * **a sumcheck round**: a round's challenge is a root of its gap, a nonzero polynomial of degree
   at most two that the round's claim, message and earlier challenges fix (`BadRound`,
-  `badRound_roots`).
+  `round_bad`).
 
 Every bad value is fixed before the challenge is squeezed from the sponge, which absorbed what
 fixes it. `λ` and the rounds' challenges are Keccak-f[1600] outputs computed by the guest: that a

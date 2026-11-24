@@ -20,8 +20,7 @@ with `val x = x.toBitVec.toNat`, `fromNat = K.ofBits`, and `size = 2^64`. Clean'
 never consumes `val` or `size`; only its witness-IR
 bridge does, and for a 64-bit field its `UInt64` truncation is the identity.
 
-`instFiniteFieldK_toField` records that the interface's field structure is CompPoly's by `rfl`,
-so `K` has one field structure. Clean's `FiniteField.toField` is itself an instance, so
+Clean's `FiniteField.toField` is an instance, so
 `tests/LeanVMTests/Parameters/CleanField.lean` guards that instance search for `Field K` still
 lands on CompPoly's.
 

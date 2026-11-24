@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.VkCV
 
-  **`verify_keccak` is complete, placed** (`verify_keccak_completeAt`).
+  **`verify_keccak` is complete, placed**: what its flat body asks (`vk_obl`).
 -/
 
 module
@@ -21,7 +21,7 @@ coordinates and lanes, `z_vals`, the slices' buffer and the window table at `tbE
 writes `op` at `z_vals`, `point` at `z_vals·g^39`, the slices at `slices`, and returns the
 capacity after the slices' full queue is permuted, the cursor past `xs` and the word.
 
-`verify_keccak_completeAt`: it holds. The run is read back as a `VkData` (`vkData_of_run`); the
+`verify_keccak_completeAtB_fs` (`VkCW`): it holds. The run is read back as a `VkData` (`vkData_of_run`); the
 body is flat (`completeAt_flatG`): its buffers' words (`VkData.own`), its eighteen callees
 (`VkData.kids`, complete by `kids_completeB`), its honest valuation on the layout (`body_holds`),
 its frames (`calls_match`) and loads (`loads_in`).

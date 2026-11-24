@@ -15,7 +15,7 @@ public import Statement.LeanDa
 
 Ported from the BLAKE2s-era `B1/Tables/Common` (branch `mumbai`), prefixed `tb`:
 
-* `tb_rc_sound'`, `tb_rc_complete`, `tbRcAux`: `assert log(x) < K` on a memory image of `2^μ`
+* `tb_rc_sound'`, `tbRcAux`: `assert log(x) < K` on a memory image of `2^μ`
   words, `μ ≤ 32` (`rangeCheck_iff`), with a choice of the gadget's auxiliary words for an honest
   valuation.
 * `tb_gen_pow_eq_mul`: products of small g-powers are g-powers of the sums.

@@ -14,9 +14,7 @@ This module gives that code and proves it:
   `carryless`) on two words is CompPoly's `carryLessMul (w := 128)` (the product `BF64.mul`
   reduces);
 * `mulKNat a b`: the product of the elements of lanes `a`, `b`, a straight line of primitives,
-  and `mulKNat_eq`: it is `(a * b).lane.toNat`, below `2^64` (`mulKNat_lt`);
-* `mulKTerm i j`: `mulKNat` as a machine term on the environment's positions `i`, `j`, and
-  `evaluateTerm_mulKTerm`: its value and **a price of at most `21`**.
+  and `mulKNat_eq`: it is `(a * b).lane.toNat`, below `2^64` (`mulKNat_lt`).
 
 **The reduction** is Barrett's, whose constant `⌊x^128 / P⌋` is the modulus
 `P = x^64 + x^4 + x^3 + x + 1` itself (`0x1000000000000001B`, since `x^128 = (x^64 + T)·P + T²`

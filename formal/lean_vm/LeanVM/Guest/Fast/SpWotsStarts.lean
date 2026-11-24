@@ -8,7 +8,7 @@ public import LeanVM.Guest.B1.Sig.SpWotsLayout
 `spStartAt K i` (`B1/Sig/SpWotsLayout.lean`) is where chain `i`'s start is hinted when group
 `i / 3` takes arm `K (i / 3)`: arm `k`'s start at its base `spArmB … k`, a recursion over the arms
 before it. `spArmsStarts` walks a group's arms once, from arm `k` at base `b`, and lists each arm's
-starts (`spArmStarts`); `spArmsStarts_getElem`: its `j`-th entry is arm `k + j`'s, at its base;
+starts (`spArmStarts`); `spArmsStarts_getD`: its `j`-th entry is arm `k + j`'s, at its base;
 `spStartAt_eq_getD`: chain `i`'s start is entry `K (i / 3)`, row `i % 3`, of its group's list from
 arm `0`. The kernel evaluates the lists, one pass a group (`Fast/SpWotsTablesCheck.lean`).
 -/

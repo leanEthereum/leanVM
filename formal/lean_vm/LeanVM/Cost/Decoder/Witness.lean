@@ -17,7 +17,7 @@ import all LeanVM.Guest.Glob
   `decWitStaged` (`Staged.lean`) with each callee's witness off its frame (`Frames.lean`), by
   partial application; `Guest.Fast.decWitN` is the deployed decoder's witness at the frame map
   keyed by index (`decWitN_eq`, `decode_eq_numbered`);
-* **`main`'s valuation** off the reader (`mainVal`: `EndFinal.mainValWith`'s word, by the
+* **`main`'s valuation** off the reader (`mainVal`: `End.mainValWith`'s word, by the
   certificate's cells, read off the packed table, `locAt`).
 -/
 

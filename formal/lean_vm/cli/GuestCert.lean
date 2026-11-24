@@ -29,7 +29,7 @@ names; the completeness data (`Data/Plumb`, `CplParts`, `CplArms`), the sharing 
 `B2C/Shared/`, `B2C/Cplw/`, which link them or check what is not in the packs). `lake exe guest-cert --check` writes nothing
 and fails when the files differ. Run it from `lean_vm`.
 
-Nothing here is trusted: the checker (`Check.checkFn`) validates every certificate, so a wrong
+Nothing here is trusted: the checker (`Check.chkL`) validates every certificate, so a wrong
 cell here makes a check fail, never a false theorem. The cells are inferred by walking the core
 function along a mirror of `Exec.exec` (same segments, items and exits, computed with hash maps),
 matching each core atom with the first instruction that fits the cells known so far, as the

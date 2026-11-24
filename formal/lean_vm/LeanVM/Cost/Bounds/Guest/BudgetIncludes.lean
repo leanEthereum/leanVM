@@ -7,8 +7,7 @@ public import LeanVM.Cost.DecoderSpec
 # The decoder program's inclusions the budget's proof uses
 
 `includes` on the decoder's top's list of bodies (a membership proof per body) takes about a second
-each: each inclusion the budget's proof (`Budget.lean`) uses is a lemma of its own, here, as the
-extractor's (`Bounds/TopIncludes.lean`).
+each: each inclusion the budget's proof (`Budget.lean`) uses is a lemma of its own, here.
 -/
 
 namespace LeanVM.Cost.Bounds.Guest

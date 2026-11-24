@@ -36,7 +36,7 @@ open LeanVM.Protocol.EndToEnd.Complete
 /-! ## A bounded stateful sumcheck -/
 
 /-- **The stateful sumcheck makes the specification's moves**, for at most `N` rounds: as
-`corr_sumcheckBy`, the invariant's round and fold facts needed only before the `N`-th
+`corr_sumcheckBy_lt` (`Prover.GkrRound`), the invariant's round and fold facts needed only before the `N`-th
 challenge; the challenges are as many as the rounds. -/
 theorem corr_sumcheckBy_le {σ : Type} (count : ℕ) (hc : 1 ≤ count) (hc' : count ≤ 2 ^ 128)
     (claimOf : List E → E) (round : σ → List E) (fold : σ → E → σ) (Inv : List E → σ → Prop)

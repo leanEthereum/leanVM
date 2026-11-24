@@ -27,18 +27,16 @@ lemma is its Lemma `lem:subspace`, parts (i) and (ii) proved here; its first sen
 * `subspace i` is `U_i = ⟨e_0, …, e_{i-1}⟩_{F₂}`, the words `K.ofBits v` for `v < 2^i`
   (`ofBits_eq_sum`: the word with bits `v` is `Σ_c v_c e_c`). Below `2^64` the words are distinct
   (`K.ofBits_injOn`), so `|U_i| = 2^i` for `i ≤ 64`.
-* `vanishing i` is `W_i(X) = ∏_{u ∈ U_i} (X + u)`, written as the product over `v < 2^i`
-  (`vanishing_eq_prod_subspace` for `i ≤ 64`); `vanishingAt i a` is its computable evaluation.
+* `vanishing i` is `W_i(X) = ∏_{u ∈ U_i} (X + u)`, written as the product over `v < 2^i`;
+  `vanishingAt i a` is its computable evaluation.
   Monic of degree `2^i` (`vanishing_monic`, `natDegree_vanishing`), with roots exactly `U_i`
   (`vanishingAt_eq_zero_iff`).
 * Lemma `lem:subspace`: (i) `W_{i+1} = W_i·(W_i + W_i(e_i))` (`vanishing_succ`) with
-  `W_i(e_i) ≠ 0` for `i < 64` (`vanishingAt_basisVec_ne_zero`); (ii) `W_i(X + Y) = W_i(X) + W_i(Y)`
-  in `K[X, Y]` (`vanishing_add_bivariate`, from `aeval_vanishing_add` in any commutative
-  `K`-algebra), `W_i(X + a) = W_i(X) + W_i(a)` in `K[X]` (`vanishing_comp_add`), so `W_i` is
-  additive on `K` (`vanishingAt_add`).
+  `W_i(e_i) ≠ 0` for `i < 64` (`vanishingAt_basisVec_ne_zero`); (ii) `W_i(X + a) = W_i(X) + W_i(a)`
+  in `K[X]` (`vanishing_comp_add`), so `W_i` is additive on `K` (`vanishingAt_add`).
 * `normVanishing i` is `Ŵ_i = W_i / W_i(e_i)`, with `Ŵ_i(e_i) = 1` (`normVanishingAt_basisVec`),
   degree `2^i` for `i < 64` (`natDegree_normVanishing`), additive, and `Ŵ_0 = X`
-  (`normVanishing_zero`).
+  (`normVanishingAt_zero`, `Complete/MulX.lean`).
 
 ## Wrong readings excluded
 

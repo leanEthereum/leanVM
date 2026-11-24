@@ -27,7 +27,7 @@ open LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile.Rom
 
 /-! ## The serializers -/
 
-/-- The 16 bytes of a scalar (`E.to_bytes`): its two limbs'. -/
+/-- The 16 bytes of a scalar (`Proof::to_bytes`, `crates/verifier/src/wire.rs`): its two limbs'. -/
 def eBytes (x : E) : Bytes := K.toBytes (x.limb 0) ++ K.toBytes (x.limb 1)
 
 /-! ## Round trips -/
