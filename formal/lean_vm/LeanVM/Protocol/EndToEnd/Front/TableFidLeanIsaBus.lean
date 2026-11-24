@@ -19,6 +19,8 @@ public import LeanVM.Protocol.EndToEnd.Front.InstanceWith
 public import LeanVM.Protocol.TableSumcheck
 public import LeanVM.Protocol.EndToEnd.Front.BusPhase
 public import LeanVM.Protocol.EndToEnd.Complete.BusTables
+import LeanVM.ToMathlib.List
+import LeanVM.ToMathlib.Finset
 
 /-!
 # The bus phase's forms and totals are the protocol's
@@ -112,32 +114,13 @@ def stEquiv : Fin 6 ≃ (leanIsaWith prog s fl).SumcheckTables where
 /-- The opcode table behind a sumcheck table. -/
 @[simp] theorem stEquiv_apply_val (t : Fin 6) : (stEquiv prog s fl t).1 = opIdx t := rfl
 
-/-- A fold of `max` is below a bound above the start and every entry. -/
-theorem foldl_max_le {b : ℕ} : ∀ (l : List ℕ) (init : ℕ), init ≤ b → (∀ x ∈ l, x ≤ b) →
-    l.foldl max init ≤ b
-  | [], _, h, _ => h
-  | x :: l, init, h, hl =>
-    foldl_max_le l _ (max_le h (hl x (by simp))) fun y hy ↦ hl y (by simp [hy])
-
-/-- An entry is below the fold of `max`. -/
-theorem le_foldl_max_of_mem {x : ℕ} : ∀ {l : List ℕ} {init : ℕ}, x ∈ l → x ≤ l.foldl max init
-  | y :: l, init, h => by
-    rw [List.foldl_cons]
-    rcases List.mem_cons.mp h with rfl | h
-    · exact (le_max_right _ _).trans (le_foldl_max_init l _)
-    · exact le_foldl_max_of_mem h
-where
-  le_foldl_max_init : ∀ (l : List ℕ) (init : ℕ), init ≤ l.foldl max init
-    | [], _ => le_rfl
-    | y :: l, init => (le_max_left init y).trans (le_foldl_max_init l _)
-
 /-- **The number of rounds**: `τ_max` is the largest announced log-height. -/
 theorem τmax_leanIsa : (leanIsaWith prog s fl).τmax = (tableLogs s).foldl max 0 := by
   apply le_antisymm
   · refine Finset.sup_le fun j _ ↦ ?_
     obtain ⟨t, rfl⟩ := (stEquiv prog s fl).surjective j
-    exact le_foldl_max_of_mem (List.mem_ofFn.mpr ⟨t, rfl⟩)
-  · refine foldl_max_le _ _ (Nat.zero_le _) fun x hx ↦ ?_
+    exact (List.foldl_max_ge _ _).2 _ (List.mem_ofFn.mpr ⟨t, rfl⟩)
+  · refine List.foldl_max_le _ _ _ (Nat.zero_le _) fun x hx ↦ ?_
     simp only [tableLogs, List.mem_ofFn] at hx
     obtain ⟨t, rfl⟩ := hx
     exact (leanIsaWith prog s fl).τ_le_τmax (stEquiv prog s fl t)
@@ -764,7 +747,7 @@ theorem foldSum_eq (w : List E) (β : E) (fw : List ℕ) (m : ℕ) (blocks : Lis
   rw [foldSum,
     sum_filter_zip t (Complete.blockVal β w · col) _ blocks (by simp [Complete.sideSels])]
   refine Finset.sum_congr rfl fun i hi ↦ ?_
-  rw [Complete.sideSels, Complete.getD_map_range _ _ _ (Finset.mem_range.mp hi)]
+  rw [Complete.sideSels, List.getD_map_range _ (Finset.mem_range.mp hi)]
   rfl
 
 end PyForms
@@ -1342,13 +1325,13 @@ theorem accumulateSide_snd_eq (forms : List (List Form)) (side : ℕ) (fw : List
     rw [Whir.Complete.dot_eq_sum _ _ (by simp [Complete.sideSels, hfps])]
     simp only [Complete.sideSels, List.length_map, List.length_range]
     refine Finset.sum_congr rfl fun i hi ↦ ?_
-    rw [Complete.getD_map_range _ _ _ (Finset.mem_range.mp hi), zero_add]
+    rw [List.getD_map_range _ (Finset.mem_range.mp hi), zero_add]
   have h2 : sumE (Complete.sideSels fw blocks p 0 fw.length ++
       Complete.sideSels fw blocks p fw.length blocks.length) =
       ∑ i ∈ range (fw.length + blocks.length),
         Complete.blockSel (Complete.sideSizes fw blocks) p.length i p := by
     rw [Whir.Complete.sumE_eq, List.sum_append, Complete.sideSels, Complete.sideSels,
-      ← Complete.sum_range_eq_list, ← Complete.sum_range_eq_list, Finset.sum_range_add]
+      ← Finset.sum_range_eq_sum_map_range, ← Finset.sum_range_eq_sum_map_range, Finset.sum_range_add]
     simp only [zero_add]
   have h3 : Complete.padSum w β p
       (List.zip (Complete.sideSels fw blocks p fw.length blocks.length) blocks) =
@@ -1361,7 +1344,7 @@ theorem accumulateSide_snd_eq (forms : List (List Form)) (side : ℕ) (fw : List
         fun x ↦ x.1 * refPad w β p x.2 from funext fun x ↦ by rw [refPad, mul_assoc],
       sum_zip_map _ _ _ (by simp [Complete.sideSels])]
     refine Finset.sum_congr rfl fun i hi ↦ ?_
-    rw [Complete.sideSels, Complete.getD_map_range _ _ _ (Finset.mem_range.mp hi)]
+    rw [Complete.sideSels, List.getD_map_range _ (Finset.mem_range.mp hi)]
   rw [Complete.accumulateSide_snd, h1, h2, h3]
 
 section Totals

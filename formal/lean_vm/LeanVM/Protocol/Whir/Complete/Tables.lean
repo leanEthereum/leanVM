@@ -10,6 +10,8 @@ module
 
 import LeanVM.Protocol.Verifier
 public import LeanVM.Protocol.EndToEnd.Claims
+import LeanVM.ToMathlib.Finset
+import LeanVM.ToMathlib.List
 
 /-!
 # Tables on the cube
@@ -52,25 +54,15 @@ theorem one_add_one_E : (1 : E) + 1 = 0 := by
 
 /-! ## Folds as sums -/
 
-theorem foldl_add_eq (l : List E) (a : E) : l.foldl (· + ·) a = a + l.sum := by
-  induction l generalizing a with
-  | nil => simp
-  | cons x l ih => rw [List.foldl_cons, ih, List.sum_cons, add_assoc]
-
-theorem foldl_mul_eq (l : List E) (a : E) : l.foldl (· * ·) a = a * l.prod := by
-  induction l generalizing a with
-  | nil => simp
-  | cons x l ih => rw [List.foldl_cons, ih, List.prod_cons, mul_assoc]
-
 @[simp] theorem dot_nil_left (u : List E) : dot [] u = 0 := by simp [dot]
 
 @[simp] theorem dot_nil_right (t : List E) : dot t [] = 0 := by simp [dot]
 
 theorem dot_cons (a x : E) (t u : List E) : dot (a :: t) (x :: u) = a * x + dot t u := by
-  simp only [dot, List.zipWith_cons_cons, foldl_add_eq, List.sum_cons, zero_add]
+  simp only [dot, List.zipWith_cons_cons, List.foldl_add_eq_add_sum, List.sum_cons, zero_add]
 
 theorem sumE_eq (l : List E) : sumE l = l.sum := by
-  rw [sumE, foldl_add_eq, zero_add]
+  rw [sumE, List.foldl_add_eq_add_sum, zero_add]
 
 /-- `dot` of two lists of equal length as a sum over the indices. -/
 theorem dot_eq_sum : ∀ (t u : List E), t.length = u.length →
@@ -88,7 +80,7 @@ theorem dot_eq_sum : ∀ (t u : List E), t.length = u.length →
 /-- The equality kernel peels its first coordinate. -/
 theorem eqEval_cons (x z : E) (a b : List E) :
     eqEval (x :: a) (z :: b) = (1 + x + z) * eqEval a b := by
-  simp only [eqEval, List.zipWith_cons_cons, foldl_mul_eq, List.prod_cons, one_mul]
+  simp only [eqEval, List.zipWith_cons_cons, List.foldl_mul_eq_mul_prod, List.prod_cons, one_mul]
 
 /-- The equality kernel is symmetric. -/
 theorem eqEval_comm : ∀ (a b : List E), eqEval a b = eqEval b a
@@ -145,14 +137,6 @@ theorem boolPoint_add (n k y z : ℕ) (hy : y < 2 ^ n) :
     simp
 
 /-! ## Sums over the cube -/
-
-theorem sum_range_two_mul (f : ℕ → E) (n : ℕ) :
-    ∑ i ∈ range (2 * n), f i = ∑ j ∈ range n, (f (2 * j) + f (2 * j + 1)) := by
-  induction n with
-  | zero => simp
-  | succ n ih =>
-    rw [show 2 * (n + 1) = 2 * n + 1 + 1 by ring, sum_range_succ, sum_range_succ, ih,
-      sum_range_succ, add_assoc]
 
 /-- `y + N·z < N·M` for `y < N` and `z < M`. -/
 theorem add_mul_lt {y z N M : ℕ} (hy : y < N) (hz : z < M) : y + N * z < N * M := by
@@ -224,7 +208,7 @@ theorem getD_foldAll : ∀ (r t : List E) (n x : ℕ), t.length = 2 ^ (r.length 
       rw [length_foldPairs, h, List.length_cons, show r.length + 1 + n = r.length + n + 1 by ring,
         pow_succ, Nat.mul_div_cancel _ (by norm_num)]
     rw [getD_foldAll r _ n x hlen hx, List.length_cons, pow_succ, mul_comm (2 ^ r.length) 2,
-      sum_range_two_mul]
+      Finset.sum_range_two_mul]
     refine sum_congr rfl fun j hj ↦ ?_
     have hj' := mem_range.mp hj
     have hlt : j + 2 ^ r.length * x < 2 ^ (r.length + n) := by
@@ -480,7 +464,7 @@ theorem isMultilinearFn_affProd (m : ℕ) : ∀ (a b : ℕ → E), IsMultilinear
     obtain ⟨c, p, rfl⟩ : ∃ c p', p = c :: p' := List.exists_cons_of_length_eq_add_one hp
     have hp' : p.length = m := by simpa using hp
     have h := (isMultilinearFn_iff m _).mp (ih (fun i ↦ a (i + 1)) (fun i ↦ b (i + 1))) p hp'
-    rw [pow_succ, mul_comm, sum_range_two_mul]
+    rw [pow_succ, mul_comm, Finset.sum_range_two_mul]
     simp only [boolPoint_two_mul, boolPoint_two_mul_add_one, affProd, eqEval_cons]
     rw [h, mul_sum]
     refine sum_congr rfl fun x _ ↦ ?_

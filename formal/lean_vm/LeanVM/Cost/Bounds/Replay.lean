@@ -5,6 +5,7 @@ public import LeanVM.Cost.Extractor.Replay
 import all Statement.LeanVmVerifier
 import all Statement.Field
 import all LeanVM.Protocol.Extraction.Fast.AfterRoot
+import LeanVM.ToMathlib.List
 
 /-!
 # Bounds: the layout the verifier's replay builds
@@ -155,22 +156,16 @@ open LeanVM.Parameters.Whir in
 theorem queryTable_rows : ∀ r ∈ queryTable, r.length = 15 ∧ ∀ q ∈ r, q.length ≤ 6 := by
   decide +kernel
 
-theorem getD_mem_or {β : Type} (l : List β) (i : ℕ) (d : β) : l.getD i d ∈ l ∨ l.getD i d = d := by
-  rw [List.getD_eq_getElem?_getD]
-  cases h : l[i]? with
-  | none => exact Or.inr rfl
-  | some r => exact Or.inl (List.mem_of_getElem? h)
-
 open LeanVM.Parameters.Whir in
 theorem queryTable_row_length (i : ℕ) : (queryTable.getD i []).length ≤ 15 := by
-  rcases getD_mem_or queryTable i [] with h | h
+  rcases List.getD_mem_or queryTable i [] with h | h
   · exact le_of_eq (queryTable_rows _ h).1
   · rw [h]; simp
 
 open LeanVM.Parameters.Whir in
 theorem queryTable_queries_length (i j : ℕ) : ((queryTable.getD i []).getD j []).length ≤ 6 := by
-  rcases getD_mem_or (queryTable.getD i []) j [] with h | h
-  · rcases getD_mem_or queryTable i [] with h' | h'
+  rcases List.getD_mem_or (queryTable.getD i []) j [] with h | h
+  · rcases List.getD_mem_or queryTable i [] with h' | h'
     · exact (queryTable_rows _ h').2 _ h
     · rw [h'] at h; simp at h
   · rw [h]; simp
@@ -357,7 +352,7 @@ theorem offsetsInv_step (sizes : List ℕ) (hs : ∀ x ∈ sizes, x ≤ 40) (acc
     OffsetsInv sizes.length (acc.1.set i acc.2, acc.2 + 2 ^ sizes.getD i 0) rest := by
   obtain ⟨h1, h2, h3⟩ := h
   have hsz : sizes.getD i 0 ≤ 40 := by
-    rcases getD_mem_or sizes i 0 with hm | hm
+    rcases List.getD_mem_or sizes i 0 with hm | hm
     · exact hs _ hm
     · rw [hm]; omega
   have hp : 2 ^ sizes.getD i 0 ≤ 2 ^ 40 := Nat.pow_le_pow_right (by norm_num) hsz
@@ -384,7 +379,7 @@ theorem stackOffsets_bounds (sizes : List ℕ) (hn : sizes.length ≤ 200)
     (fun acc i rest h ↦ ⟨offsetsInv_step sizes hs acc i rest h.1, by
       have := offsetsInv_step sizes hs acc i rest h.1
       have hsz : sizes.getD i 0 ≤ 40 := by
-        rcases getD_mem_or sizes i 0 with hm | hm
+        rcases List.getD_mem_or sizes i 0 with hm | hm
         · exact hs _ hm
         · rw [hm]; omega
       have hp : 2 ^ sizes.getD i 0 ≤ 2 ^ 40 := Nat.pow_le_pow_right (by norm_num) hsz
@@ -408,7 +403,7 @@ theorem stackOffsets_cost (hP : Includes P stackOffsetsC.costDeps) (sizes : List
   rw [stackOffsetsC.costEq P hP]
   set n := sizes.length with hnd
   have hsz : ∀ i, sizes.getD i 0 ≤ 40 := fun i ↦ by
-    rcases getD_mem_or sizes i 0 with hm | hm
+    rcases List.getD_mem_or sizes i 0 with hm | hm
     · exact hs _ hm
     · rw [hm]; omega
   have hlen := length_cost P (by includes) sizes (by omega)
@@ -527,7 +522,7 @@ theorem placementsOf_cost (hP : Includes P placementsOfC.costDeps) (kappas : Lis
   rw [placementsOfC.costEq P hP]
   set N := kappas.length with hN
   have hkD : ∀ i, kappas.getD i 0 ≤ 40 := fun i ↦ by
-    rcases getD_mem_or kappas i 0 with hm | hm
+    rcases List.getD_mem_or kappas i 0 with hm | hm
     · exact hk _ hm
     · rw [hm]; omega
   set cap0 := List.filter (fun c ↦ decide ((keccakSlot c).isNone = true ∧ c ∉ keccakOutputColumns))
@@ -622,7 +617,7 @@ theorem placementsOf_cost (hP : Includes P placementsOfC.costDeps) (kappas : Lis
       simp only
       have hv := keccakSlot_lt hsl'
       have hoff : (stackOffsets sizes).1.getD (List.idxOf qkeccak cap0) 0 < 2 ^ 63 := by
-        rcases getD_mem_or (stackOffsets sizes).1 (List.idxOf qkeccak cap0) 0 with hm' | hm'
+        rcases List.getD_mem_or (stackOffsets sizes).1 (List.idxOf qkeccak cap0) 0 with hm' | hm'
         · have := hfst _ hm'; omega
         · rw [hm']; norm_num
       have hvk : v * 2 ^ kappa < 2 ^ 63 := by
@@ -748,7 +743,7 @@ theorem buildLayoutLite_cost (hP : Includes P buildLayoutLiteC.costDeps) (byteco
       obtain ⟨hhl, hhm⟩ := heights_facts tableRows hr30
       have hhl' : heights.length ≤ 6 := hhl
       have hhD : ∀ i, heights.getD i 0 ≤ 30 := fun i ↦ by
-        rcases getD_mem_or heights i 0 with h' | h'
+        rcases List.getD_mem_or heights i 0 with h' | h'
         · exact hhm _ h'
         · rw [h']; omega
       have htf : machineCost P tableLogFloorsC.costIdx [] = 25 := tableLogFloorsC.costEq P (by includes)
@@ -840,7 +835,7 @@ theorem buildLayoutLite_stackLog {bytecode : List K} {logMemory : ℕ} {tableRow
     set heights := List.zipWith (fun rows floor ↦ max (log2Ceil rows) floor) tableRows
       tableLogFloors
     have hhD : ∀ i, heights.getD i 0 ≤ 30 := fun i ↦ by
-      rcases getD_mem_or heights i 0 with h' | h'
+      rcases List.getD_mem_or heights i 0 with h' | h'
       · exact hhm _ h'
       · rw [h']; omega
     obtain ⟨hkl, hkm⟩ := columnKappas_facts logMemory (val - busBits) heights c3
@@ -855,7 +850,7 @@ theorem buildLayoutLite_stackLog {bytecode : List K} {logMemory : ℕ} {tableRow
     obtain ⟨-, hsnd⟩ := stackOffsets_bounds (cols.map (kappas.getD · 0)) (by simp; omega)
       (fun x hx ↦ by
         obtain ⟨i, -, rfl⟩ := List.mem_map.1 hx
-        rcases getD_mem_or kappas i 0 with h' | h'
+        rcases List.getD_mem_or kappas i 0 with h' | h'
         · exact hkm _ h'
         · rw [h']; omega)
     simp only [Whir.minLogStack]

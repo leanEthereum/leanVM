@@ -99,12 +99,5 @@ theorem word_g128 : word 325 0 = gen ^ 128 := by
   rw [word_eOfNat, gen_pow_eq_ofK, eOfNat, ← gpowK_eq (by unfold u128Bound; omega)]
   congr 1
 
-theorem list_sum_range (f : ℕ → E) : ∀ n, ((List.range n).map f).sum = ∑ e ∈ Finset.range n, f e
-  | 0 => rfl
-  | n + 1 => by
-    rw [List.range_succ, List.map_append, List.sum_append, list_sum_range f n,
-      Finset.sum_range_succ]
-    simp
-
 end
 end LeanVM.Guest.B1.Da

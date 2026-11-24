@@ -17,6 +17,7 @@ public import LeanVM.Protocol.ToArkLib.Typed.SampleChallenge
 public import LeanVM.Protocol.Spine.Slots
 import CompPoly.Multivariate.Operations
 import CompPoly.Multivariate.MvPolyEquiv.Eval
+import LeanVM.ToMathlib.List
 
 /-!
 # The bus phase
@@ -276,19 +277,13 @@ private theorem length_filter_finRange {α : Type} (l : List α) (p : α → Boo
   rw [List.filter_map, List.length_map]
   rfl
 
-private theorem sum_flatMap {α : Type} (l : List α) (f : α → List ℕ) :
-    (l.flatMap f).sum = (l.map fun a ↦ (f a).sum).sum := by
-  induction l with
-  | nil => rfl
-  | cons a l ih => rw [List.flatMap_cons, List.sum_append, ih, List.map_cons, List.sum_cons]
-
 /-- The push side's leaves are the instance's count of push leaves. -/
 private theorem leafCount_push : leafCount I 0 = I.pushLeaves := by
   rw [leafCount, M3Instance.pushLeaves]
   change ((sideSources I .push).map _).sum = _
   rw [sideSources, List.map_append, List.sum_append, List.map_map]
   congr 1
-  rw [List.map_flatMap, sum_flatMap]
+  rw [List.map_flatMap, List.sum_flatMap]
   refine congrArg List.sum (List.map_congr_left fun j _ ↦ ?_)
   rw [List.map_map]
   simp only [Function.comp_def, Source.κ, List.map_const', List.sum_replicate, smul_eq_mul]

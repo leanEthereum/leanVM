@@ -13,6 +13,7 @@ public import Mathlib.Algebra.CharP.Two
 import Mathlib.Data.List.GetD
 public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 public import Mathlib.Tactic.Ring
+import LeanVM.ToMathlib.Finset
 
 /-!
 # The linear map over `E` and its transpose
@@ -79,20 +80,10 @@ theorem bitE_Lb (f : ℕ → Bool) (j : ℕ) : bitE (Lb f j) = Llin (fun p ↦ b
 
 /-! ## Reindexing sums -/
 
-theorem sum_range_mul (a b : ℕ) (F : ℕ → E) :
-    ∑ p ∈ range (a * b), F p = ∑ i ∈ range a, ∑ k ∈ range b, F (b * i + k) := by
-  induction a with
-  | zero => simp
-  | succ a ih =>
-    rw [Nat.succ_mul, Finset.sum_range_add, ih, Finset.sum_range_succ]
-    congr 1
-    refine Finset.sum_congr rfl fun k _ ↦ ?_
-    rw [Nat.mul_comm a b]
-
 /-- The positions by column, slice and row. -/
 theorem sum_regroup (F : ℕ → E) :
     ∑ p ∈ range 1600, F p = ∑ x ∈ range 5, ∑ z ∈ range 64, ∑ y ∈ range 5, F (64 * (x + 5 * y) + z) := by
-  rw [show 1600 = 25 * 64 from rfl, sum_range_mul, show 25 = 5 * 5 from rfl, sum_range_mul]
+  rw [show 1600 = 25 * 64 from rfl, Finset.sum_range_mul, show 25 = 5 * 5 from rfl, Finset.sum_range_mul]
   rw [Finset.sum_comm]
   refine Finset.sum_congr rfl fun x _ ↦ ?_
   rw [Finset.sum_comm]
@@ -170,14 +161,6 @@ theorem sumE_eq_sum (l : List E) : sumE l = l.sum := by
   induction l with
   | nil => simp
   | cons x l ih => intro a; rw [List.foldl_cons, ih, List.sum_cons, add_assoc]
-
-theorem list_sum_range (f : ℕ → E) (n : ℕ) :
-    ((List.range n).map f).sum = ∑ y ∈ range n, f y := by
-  induction n with
-  | zero => simp
-  | succ n ih =>
-    rw [List.range_succ, List.map_append, List.sum_append, ih, Finset.sum_range_succ]
-    simp
 
 theorem array_getD_toArray (l : List E) (i : ℕ) : l.toArray.getD i 0 = l.getD i 0 := by
   simp [Array.getD_eq_getD_getElem?, List.getD_eq_getElem?_getD]
@@ -269,7 +252,7 @@ theorem columns_getD (A : Array E) {x z : ℕ} (hx : x < 5) (hz : z < 64) :
       (64 * x + z) 0 = colL (fun p ↦ A.getD p 0) x z := by
   rw [array_getD_toArray, flatMap_getD (fun x z ↦
     sumE ((List.range 5).map fun y ↦ A.getD (64 * (x + 5 * y) + z) 0)) 64 5 x z hx hz]
-  rw [sumE_eq_sum, list_sum_range]
+  rw [sumE_eq_sum, ← Finset.sum_range_eq_sum_map_range]
   rfl
 
 /-- The list `keccakLinearTranspose` returns, from its first array `A`, in closed form. -/

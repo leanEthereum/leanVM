@@ -19,6 +19,7 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«child_claim_list_mono»
 import LeanVM.Guest.Data.ValNames.«child_claim_list_mono_last__L»
 import LeanVM.Guest.B1.Common.Find
+import LeanVM.ToMathlib.List
 
 /-!
 # `child_claim_list_mono`
@@ -293,7 +294,7 @@ theorem mono_step {rd : Reader} (hm : MemOk rd) {f : String} {j m p0 st0 cw ew n
   · have hout' := stLoads_sound hout hat c
     have hw' := hwo c
     rw [hnb] at hw' hout'
-    rw [getD_map_range _ c.isLt, hw', h10] at hout'
+    rw [List.getD_map_range _ c.isLt, hw', h10] at hout'
     exact hout'
   · rw [← h10]
     rw [hcc, hcv, hcw, mul_assoc, ← pow_add] at hlc

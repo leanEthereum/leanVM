@@ -12,6 +12,7 @@ module
 public import LeanVM.Guest.B1.Da.VerifyMath
 public import LeanVM.Guest.B1.Da.PaddingComplete
 public import LeanVM.Protocol.KeccakHash
+import LeanVM.ToMathlib.Finset
 
 /-!
 # A witness, cell by cell
@@ -107,7 +108,7 @@ theorem wDot {w : LeanVM.Da.MatrixWitness} {root : Digest} {z : E} (hw : w.Opens
   rw [he, LeanDa.innerProduct, Finset.sum_congr rfl fun b _ => hfun b,
     Fin.sum_univ_eq_sum_range (fun b => dualAt z b *
       ((List.range 128).flatMap (wSyms w i)).getD b 0) (2 ^ 14),
-    show 2 ^ 14 = 128 * 128 by norm_num, sum_range_mul _ 128 128] at hrow
+    show 2 ^ 14 = 128 * 128 by norm_num, Finset.sum_range_mul 128 128] at hrow
   refine (Finset.sum_congr rfl fun j hj => Finset.sum_congr rfl fun e he => ?_).trans hrow
   have hj' := Finset.mem_range.mp hj
   have he' := Finset.mem_range.mp he

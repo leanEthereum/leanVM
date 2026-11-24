@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.KeccakGkr.VkCG
+import LeanVM.ToMathlib.List
 
 /-!
 # The honest data, read
@@ -50,12 +51,6 @@ theorem flatMap_range_length (f : ℕ → List E) {c : ℕ} : ∀ {s : ℕ}, (�
     simp [h s (by omega)]
     ring
 
-theorem flatMap_eq_range {α : Type} [Inhabited α] (l : List α) (f : α → List E) :
-    l.flatMap f = (List.range l.length).flatMap fun k ↦ f (l.getD k default) := by
-  conv_lhs => rw [show l = (List.range l.length).map (fun k ↦ l.getD k default) from
-    List.ext_getElem (by simp) (fun k h1 h2 ↦ by simp [List.getElem?_eq_getElem h1])]
-  rw [List.flatMap_map]
-
 namespace VkData
 
 variable {D : VkData}
@@ -71,7 +66,7 @@ theorem ltXs_length (h : D.Ok) {s : ℕ} (hs : s < 12) :
 theorem xs_eq (h : D.Ok) : D.xs = [D.committed] ++ (List.range 12).flatMap (fun s ↦ ltXs (D.T s)) ++
     (D.mO.flatMap (fun m ↦ [m.1, m.2]) ++ [D.word] ++ D.mI.flatMap (fun m ↦ [m.1, m.2]) ++
       D.mS.flatMap (fun m ↦ [m.1, m.2]) ++ D.slices) := by
-  rw [xs, flatMap_eq_range D.Ts ltXs, ok_Ts h]
+  rw [xs, ← List.flatMap_range_getD ltXs default D.Ts, ok_Ts h]
   simp only [List.append_assoc]
   rfl
 

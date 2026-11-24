@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Guest.B1.KeccakGkr.InterfaceP
 public import LeanVM.Protocol.Keccak.LayerSum
+import LeanVM.ToMathlib.Finset
 
 /-!
 # The weights' algebra
@@ -94,7 +95,7 @@ theorem firstWeight_eq (loc lanes : List E) (hl : loc.length = 11) :
   have hw : (firstWeights lanes).length = keccakBits := firstWeights_length lanes
   rw [show keccakBits = (firstWeights lanes).length from hw.symm,
     dot_eqKernel loc _ (by rw [hw, hl]; decide), hw, show keccakBits = 25 * 64 from rfl,
-    sum_range_mul]
+    Finset.sum_range_mul]
   have h6 : (loc.take 6).length = 6 := by simp [hl]
   have := sum_eqAt_pow (loc.take 6) gen
   rw [h6] at this

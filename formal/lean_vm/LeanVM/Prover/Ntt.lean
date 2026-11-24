@@ -10,6 +10,8 @@ module
 public import Statement.Prover.Ntt
 public import LeanVM.Protocol.Whir.Complete.Encoding
 import LeanVM.Parameters.Field
+import LeanVM.ToMathlib.Finset
+import LeanVM.ToMathlib.Array
 
 /-!
 # The additive NTT is the encoder
@@ -37,10 +39,6 @@ open LeanVM.Protocol.EndToEnd Finset
 
 /-! ## Arrays -/
 
-theorem getD_ofFn {α : Type} {n : ℕ} (f : Fin n → α) (i : ℕ) (d : α) (hi : i < n) :
-    (Array.ofFn f).getD i d = f ⟨i, hi⟩ := by
-  simp [hi]
-
 theorem getD_map_of_lt {α β : Type} (f : α → β) (a : Array α) (i : ℕ) (d : α) (d' : β)
     (hi : i < a.size) : (a.map f).getD i d' = f (a.getD i d) := by
   simp [hi]
@@ -55,7 +53,7 @@ theorem vanishingAt_zero_left (a : K) : vanishingAt 0 a = a := by simp [vanishin
 
 theorem vanRow_getD : ∀ c, c < 64 → ∀ m, m < 64 → (vanRow c).getD m 0 = vanishingAt c (basisVec m)
   | 0, _, m, hm => by
-    rw [vanRow, getD_ofFn _ _ _ hm, vanishingAt_zero_left]
+    rw [vanRow, Array.getD_ofFn _ hm, vanishingAt_zero_left]
     rfl
   | c + 1, hc, m, hm => by
     simp only [vanRow]
@@ -69,7 +67,7 @@ theorem hatRow_getD {c m : ℕ} (hc : c < 64) (hm : m < 64) :
     vanRow_getD c hc c hc, normVanishingAt]
 
 theorem hatTable_getD {c : ℕ} (hc : c < 64) : hatTable.getD c #[] = hatRow c := by
-  rw [hatTable, getD_ofFn _ _ _ hc]
+  rw [hatTable, Array.getD_ofFn _ hc]
 
 theorem foldl_range_ite (P : ℕ → Bool) (f : ℕ → K) :
     ∀ (n : ℕ) (a : K), (List.range n).foldl (fun acc m ↦ if P m then acc + f m else acc) a =
@@ -100,14 +98,6 @@ theorem hatAt_eq {c : ℕ} (hc : c < 64) (n : ℕ) : hatAt c n = normVanishingAt
 
 /-! ## The monomial-basis fold -/
 
-theorem sum_range_two_mul {M : Type} [AddCommMonoid M] (f : ℕ → M) (n : ℕ) :
-    ∑ i ∈ range (2 * n), f i = ∑ j ∈ range n, (f (2 * j) + f (2 * j + 1)) := by
-  induction n with
-  | zero => simp
-  | succ n ih =>
-    rw [show 2 * (n + 1) = 2 * n + 1 + 1 by ring, sum_range_succ, sum_range_succ, ih,
-      sum_range_succ, add_assoc]
-
 /-- `Σ_{v < 2^n} f(v)·∏_{k < n, v_k} w(k)`: the message `f` on `n` variables evaluated in the
 monomial basis at `w`. -/
 def mono (n : ℕ) (f w : ℕ → K) : K :=
@@ -129,7 +119,7 @@ theorem testBit_two_mul_add_one_succ (v k : ℕ) : (2 * v + 1).testBit (k + 1) =
 theorem mono_succ (n : ℕ) (f w : ℕ → K) :
     mono (n + 1) f w = mono n (fun v ↦ f (2 * v)) (fun k ↦ w (k + 1)) +
       w 0 * mono n (fun v ↦ f (2 * v + 1)) (fun k ↦ w (k + 1)) := by
-  rw [mono, pow_succ, mul_comm, sum_range_two_mul, mono, mono, mul_sum, ← sum_add_distrib]
+  rw [mono, pow_succ, mul_comm, Finset.sum_range_two_mul, mono, mono, mul_sum, ← sum_add_distrib]
   refine sum_congr rfl fun v _ ↦ ?_
   rw [prod_range_succ', prod_range_succ']
   simp only [testBit_two_mul_zero, testBit_two_mul_add_one_zero, testBit_two_mul_succ,
@@ -304,12 +294,12 @@ theorem nttStage_getD {κ N i : ℕ} (hi : i < κ) (hκ : κ ≤ 64) (hκN : κ 
     rw [mul_comm, Nat.mul_add_mod, Nat.mod_eq_of_lt hj]
   rw [stageVal_step hi hκ msg p]
   simp only [nttStage, nttStage.nttStageAt]
-  rw [getD_ofFn _ _ _ hp]
+  rw [Array.getD_ofFn _ hp]
   simp only [← hb, ← hr]
-  rw [getD_ofFn _ _ _ hq]
+  rw [Array.getD_ofFn _ hq]
   simp only
   rw [hqd, hqm, show b * 2 ^ (i + 1) + 2 ^ i + r % 2 ^ i = b * 2 ^ (i + 1) + r % 2 ^ i + 2 ^ i by
-      ring, ha _ hlo, ha _ hhi, stageTwiddles, getD_ofFn _ _ _ hb', hatAt_eq (by omega)]
+      ring, ha _ hlo, ha _ hhi, stageTwiddles, Array.getD_ofFn _ hb', hatAt_eq (by omega)]
   by_cases hri : r < 2 ^ i
   · simp only [hri, ↓reduceIte]; ring
   · simp only [hri, ↓reduceIte]; ring
@@ -320,7 +310,7 @@ theorem ntt_go_getD {κ R : ℕ} (hκ : κ ≤ 64) (msg : ℕ → K) :
       ∀ p < 2 ^ (κ + R), (ntt.go (nttTwiddles (κ + R) κ) κ R i a).getD p 0 = stageVal κ msg 0 p
   | 0, _, a, _, ha, p, hp => by rw [ntt.go]; exact ha p hp
   | i + 1, hi, a, hs, ha, p, hp => by
-    rw [ntt.go, nttTwiddles, getD_ofFn _ _ _ (by omega)]
+    rw [ntt.go, nttTwiddles, Array.getD_ofFn _ (by omega)]
     exact ntt_go_getD hκ msg i (by omega) _ (size_nttStage _ _ _ _)
       (fun q hq ↦ nttStage_getD (by omega) hκ (by omega) msg a ha q hq) p hp
 
@@ -330,7 +320,7 @@ theorem ntt_getD {κ R : ℕ} (hκ : κ ≤ 64) (msg : Array K) {p : ℕ} (hp : 
       encKAt κ (fun u ↦ msg.getD (bitsToNat u) 0) p := by
   rw [ntt, ntt_go_getD hκ (fun v ↦ msg.getD v 0) κ le_rfl _ (by simp) (fun q hq ↦ ?_) p hp,
     stageVal_bottom hκ]
-  rw [getD_ofFn _ _ _ hq, stageVal_top]
+  rw [Array.getD_ofFn _ hq, stageVal_top]
 
 theorem size_ntt_go (tws : Array (Array K)) (κ R : ℕ) :
     ∀ i (a : Array K), a.size = 2 ^ (κ + R) → (ntt.go tws κ R i a).size = 2 ^ (κ + R)
@@ -362,12 +352,12 @@ theorem stackWordFast_eq {μ : ℕ} (hμ : μ ≤ 64) (R : ℕ) (q : Column μ) 
   rw [show (2 : ℕ) ^ 6 = 64 from rfl]
   refine List.map_congr_left fun u hu ↦ ?_
   have hu' : u < 64 := by simpa using hu
-  rw [stackCodes, getD_ofFn _ _ _ hu']
+  rw [stackCodes, Array.getD_ofFn _ hu']
   simp only
   rw [ntt_getD' (by omega)]
   congr 2
   funext x
-  rw [getD_ofFn _ _ _ (bitsToNat_lt x), blockK, vector_getD]
+  rw [Array.getD_ofFn _ (bitsToNat_lt x), blockK, vector_getD]
 
 /-! ## The level words -/
 
@@ -396,12 +386,12 @@ theorem levelCodes_getD {κ k R : ℕ} (hκ : κ ≤ 64) (g : Array E) {j : ℕ}
     (l : Fin 2) (p : ℕ) :
     ((levelCodes κ k R g).getD (2 * j + l) #[]).getD p 0 =
       (if p < 2 ^ (κ + R) then encAt κ (laneMsg κ k g.toList j) p else 0).limb l := by
-  rw [levelCodes, getD_ofFn _ _ _ (by omega)]
+  rw [levelCodes, Array.getD_ofFn _ (by omega)]
   simp only
   rw [ntt_getD' hκ, apply_ite (E.limb · l), limb_encAt, limb_zero]
   congr 2
   funext u
-  rw [getD_ofFn _ _ _ (bitsToNat_lt u), laneMsg, array_getD_toList,
+  rw [Array.getD_ofFn _ (bitsToNat_lt u), laneMsg, array_getD_toList,
     show (2 * j + (l : ℕ)) / 2 = j by omega]
   exact congrArg _ (Fin.ext (show (2 * j + (l : ℕ)) % 2 = l by omega))
 

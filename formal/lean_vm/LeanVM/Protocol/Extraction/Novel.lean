@@ -3,6 +3,7 @@ module
 public import LeanVM.Protocol.Extraction.Defs
 public import CompPoly.Fields.Binary.AdditiveNTT.Coset
 import LeanVM.Parameters.Field
+import LeanVM.ToMathlib.Array
 
 /-!
 # The inverse novel-basis transform is correct (proofs)
@@ -67,13 +68,10 @@ theorem novel_wordBasis {κ j : ℕ} (hκ : κ ≤ 64) (hj : j < 2 ^ κ) (x : K)
 
 /-! ## The stages -/
 
-theorem getD_ofFn {n p : ℕ} (f : Fin n → K) (hp : p < n) : (Array.ofFn f).getD p 0 = f ⟨p, hp⟩ := by
-  simp [Array.getD, hp]
-
 /-- Twiddle `q` of stage `i` is `Ŵ_i` at the first point of block `q`. -/
 theorem novelTwiddles_getD {m i q : ℕ} (hq : q < 2 ^ (m - (i + 1))) :
     (novelTwiddles m i).getD q 0 = twiddle wordBasis 0 i q := by
-  rw [novelTwiddles, getD_ofFn _ hq, twiddle, zero_add, point_wordBasis, normalized_wordBasis,
+  rw [novelTwiddles, Array.getD_ofFn _ hq, twiddle, zero_add, point_wordBasis, normalized_wordBasis,
     normSubspacePoly]
 
 /-- Bit `i` of `p` is set exactly when `p` is in the upper half of its block of `2^(i+1)`. -/
@@ -88,7 +86,7 @@ theorem novelInvStage_getD {m i : ℕ} (him : i < m) (b : Array K) {p : ℕ} (hp
   have hq : p / 2 ^ (i + 1) < 2 ^ (m - (i + 1)) := by
     rw [Nat.div_lt_iff_lt_mul (Nat.two_pow_pos _), ← pow_add, Nat.sub_add_cancel him]
     exact hp
-  rw [novelInvStage, getD_ofFn _ hp]
+  rw [novelInvStage, Array.getD_ofFn _ hp]
   simp only [istage, ibutterfly, smul_eq_mul, novelTwiddles_getD hq, testBit_eq_not_lt]
   split_ifs <;> simp_all
 
@@ -131,7 +129,7 @@ theorem novelInv_eval {κ : ℕ} (hκ : κ ≤ 64) (c : ℕ → K) (y : Array K)
   apply array_ext_getD (by rw [size_novelInv y hsize, Array.size_ofFn])
   intro p hp
   rw [size_novelInv y hsize] at hp
-  rw [getD_ofFn _ hp, novelInv, foldl_novelInvStage_getD y κ le_rfl p hp]
+  rw [Array.getD_ofFn _ hp, novelInv, foldl_novelInvStage_getD y κ le_rfl p hp]
   refine inetwork_ntt wordBasis independent_wordBasis hκ 0 c _ (fun v hv ↦ ?_) hp
   simp only [hy v hv, ntt, novelEval, zero_add, point_wordBasis]
   exact Finset.sum_congr rfl fun j hj ↦ by

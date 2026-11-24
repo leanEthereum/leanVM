@@ -15,6 +15,7 @@ import LeanVM.Protocol.EndToEnd.Complete.Gkr
 import LeanVM.Protocol.EndToEnd.Front.LayoutStack
 import LeanVM.Protocol.EndToEnd.Front.LayoutArith
 import LeanVM.Facts.Verifier
+import LeanVM.ToMathlib.Array
 
 /-!
 # The weight table of the stack claims
@@ -75,7 +76,7 @@ theorem cubePoint_eq (m y : ℕ) : cubePoint m y = boolPoint m y := rfl
 theorem addFull_spec (μ : ℕ) (w : List E → E) (s : E) (acc : Array E) :
     (addFull μ w s acc).size = acc.size ∧
       ∀ y < acc.size, (addFull μ w s acc).getD y 0 = acc.getD y 0 + s * w (boolPoint μ y) :=
-  ⟨by simp [addFull], fun y hy ↦ by rw [addFull, getD_ofFn _ _ _ hy, cubePoint_eq]⟩
+  ⟨by simp [addFull], fun y hy ↦ by rw [addFull, Array.getD_ofFn _ hy, cubePoint_eq]⟩
 
 /-! ## The weights on the cube -/
 
@@ -308,7 +309,7 @@ theorem toList_basisTableA (μ : ℕ) (scales : List E) (claims : List ClaimDesc
   rw [toList_getD_E, basisTable, getD_tableOf _ _ _ hi', basisTableA]
   split
   · rename_i h6
-    rw [getD_ofFn _ _ _ hi']
+    rw [Array.getD_ofFn _ hi']
     simp only
     obtain ⟨n, rfl⟩ : ∃ n, μ = 6 + n := ⟨μ - 6, by omega⟩
     rw [show (6 + n - 6) = n by omega]
@@ -320,7 +321,7 @@ theorem toList_basisTableA (μ : ℕ) (scales : List E) (claims : List ClaimDesc
     rw [Nat.add_comm n 6] at hb
     rw [← hb]
     rfl
-  · rw [getD_ofFn _ _ _ hi']
+  · rw [Array.getD_ofFn _ hi']
     simp only [cubePoint_eq, batchedBasis, List.map_map]
     rfl
 

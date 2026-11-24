@@ -8,13 +8,13 @@ module
 
 public import LeanVM.Guest.Hints
 public import LeanVM.Guest.B1.Merkle.Climb
+import LeanVM.ToMathlib.List
 
 /-!
 # A path's siblings are the hint generator's
 
 * `climbSteps_fst`: the generator's steps from tree index `idx` are, level `l`, the index `idx / 2^l`, the node `climbD` reaches after `l` levels and the sibling;
 * `climbD_mod`: `climbD` reads the position's low bits only;
-* `range_two_mul`: a run of `2n` cells, two at a time;
 * `pathCells_eq_steps`: the `2 pd` sibling cells `pathCell` of a path's first `pd` levels, from leaf `q` of a depth-`D` tree, are the first `pd` steps' siblings.
 -/
 
@@ -52,22 +52,13 @@ theorem climbD_mod : ∀ (ss : List Digest) (x : Digest) (q q' : ℕ),
     rw [climbD_cons, climbD_cons, h2]
     exact climbD_mod ss _ _ _ hd
 
-/-- A run of `2n` cells, two at a time. -/
-theorem range_two_mul {α : Type} (f : ℕ → α) : ∀ n : ℕ,
-    (List.range (2 * n)).map f = (List.range n).flatMap fun l => [f (2 * l), f (2 * l + 1)]
-  | 0 => rfl
-  | n + 1 => by
-    rw [show 2 * (n + 1) = 2 * n + 2 by ring, List.range_add, List.map_append, range_two_mul f n,
-      List.range_succ (n := n), List.flatMap_append]
-    simp [List.range_succ]
-
 /-- **A path's sibling cells are the generator's steps**: the first `pd` levels of the path from
 leaf `q` of a depth-`D` tree, `pd ≤ D`. -/
 theorem pathCells_eq_steps {D pd q : ℕ} (leaf : Digest) (path : List Digest) (hl : pd ≤ path.length) :
     (List.range (2 * pd)).map (pathCell (path.take pd)) =
       ((Hints.climbSteps (2 ^ D + q) leaf path).1.take pd).flatMap Hints.stepSibling := by
   rw [climbSteps_fst, ← List.map_take, List.take_range, min_eq_left hl, List.flatMap_map,
-    range_two_mul]
+    List.map_range_two_mul]
   refine List.flatMap_congr fun l hl' => ?_
   have hlp := List.mem_range.mp hl'
   have hs : (path.take pd)[l]? = path[l]? := by

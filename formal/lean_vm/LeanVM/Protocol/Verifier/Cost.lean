@@ -14,6 +14,7 @@ public import LeanVM.Protocol.Compile.Cost
 import LeanVM.Protocol.Verifier
 public import LeanVM.Protocol.WithHash
 public import LeanVM.Protocol.Verifier.KeccakPack
+import LeanVM.ToMathlib.List
 
 /-!
 # The query cost of the leanVM verifier
@@ -493,14 +494,6 @@ theorem costs_tableTerms (constraintPowers formPowers point : List E) :
     · simp only [List.map_cons, List.sum_cons]; omega
     · simp only [List.map_cons, List.sum_cons]; omega
 
-private theorem foldl_max_le (M : ℕ) : ∀ (l : List ℕ) (acc : ℕ), acc ≤ M → (∀ x ∈ l, x ≤ M) →
-    l.foldl max acc ≤ M
-  | [], _, h, _ => h
-  | x :: xs, acc, h, hl => by
-    simp only [List.foldl_cons]
-    exact foldl_max_le M xs _ (max_le h (hl x List.mem_cons_self))
-      fun y hy ↦ hl y (List.mem_cons_of_mem _ hy)
-
 /-- The widths of the first components of a zip are at most the widths of the list. -/
 theorem sum_width_zip {β : Type} : ∀ (l : List Table) (m : List β),
     ((List.zip l m).map fun r ↦ r.1.width).sum ≤ (l.map Table.width).sum
@@ -518,7 +511,7 @@ theorem costs_tableSumcheck (heights : List ℕ) (busForms : List (List Form))
     VerifierProgram.Costs height
       (tableSumcheckClaims heights busForms constraintPowers formPowers equalityPoint target)
       (30 * roundCost 4 + tableWidthSum) fun cl ↦ ClaimsShort cl := by
-  have hmax := foldl_max_le 30 heights 0 (Nat.zero_le _) hh
+  have hmax := List.foldl_max_le 30 heights 0 (Nat.zero_le _) hh
   have hr4 : roundCost 4 = 12 := rfl
   refine VerifierProgram.Costs.seq (costs_sumcheck _ _ _) (fun r _ ↦ ?_) ?_
   · obtain ⟨challenges, claim⟩ := r

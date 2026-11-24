@@ -10,6 +10,7 @@ public import Statement.Prover.Whir
 public import LeanVM.Prover.Ntt
 public import LeanVM.Prover.Mle
 public import LeanVM.Protocol.Whir.Complete.Opening
+import LeanVM.ToMathlib.Array
 
 /-!
 # The opening's tables
@@ -223,7 +224,7 @@ theorem toList_stackTableA {μ : ℕ} (q : Column μ) :
     (stackTableA μ q.values.toArray).toList = stackTable μ q := by
   refine list_ext_getD (by simp [stackTableA]) fun i hi ↦ ?_
   have hi' : i < 2 ^ μ := by simpa [stackTableA] using hi
-  rw [toList_getD_E, stackTableA, getD_ofFn _ _ _ hi', stackTable,
+  rw [toList_getD_E, stackTableA, Array.getD_ofFn _ hi', stackTable,
     List.getD_eq_getElem _ _ (by simpa using hi'), List.getElem_map, List.getElem_range]
   rfl
 

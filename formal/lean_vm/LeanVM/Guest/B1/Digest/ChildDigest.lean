@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Digest.ChildMono
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«child_claim_list_digest»
 import LeanVM.Guest.Value.FieldBits
+import LeanVM.ToMathlib.List
 
 /-!
 # `child_claim_list_digest`
@@ -73,7 +74,7 @@ theorem childListOut_of_any {rd : Reader} {entries region base limit : E} {n : �
   obtain ⟨h1, h2, h3⟩ := hc j hj
   refine ⟨h1, by simpa using h2, fun c hcc => ?_⟩
   have := h3 c hcc
-  rwa [getD_drop'] at this
+  rwa [List.getD_drop] at this
 
 /-- The gap walk gives `ChildListOut` (every mark `base`, the slots strictly increasing). -/
 theorem childListOut_of_mono {rd : Reader} (hm : MemOk rd) {entries region base limit : E}

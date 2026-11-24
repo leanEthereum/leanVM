@@ -12,6 +12,7 @@ public import LeanVM.Prover.Sumcheck
 public import LeanVM.Prover.Mle
 public import Statement.Prover.Keccak
 public import LeanVM.Protocol.Keccak.Complete
+import LeanVM.ToMathlib.Finset
 
 /-!
 # Tables
@@ -253,7 +254,7 @@ theorem byteSums_getD (v : ℕ → E) {b : ℕ} (hb : b < 256) :
 /-- **A word's bits against the weights `v(64·l + ·)`**, by eight byte tables. -/
 theorem wordDot_laneTabs (v : ℕ → E) (l word : ℕ) :
     wordDot (laneTabs v l) word = ∑ b ∈ range 64, if word.testBit b then v (64 * l + b) else 0 := by
-  rw [wordDot, sumRange_eq, show 64 = 8 * 8 from rfl, sum_range_mul]
+  rw [wordDot, sumRange_eq, show 64 = 8 * 8 from rfl, Finset.sum_range_mul]
   refine Finset.sum_congr rfl fun k hk ↦ ?_
   have hk' := Finset.mem_range.1 hk
   rw [laneTabs, array_getD_ofFn_lt _ hk', byteSums_getD _ (Nat.mod_lt _ (by norm_num))]

@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Prover.Keccak.Rounds
 public import LeanVM.Prover.Keccak.States
+import LeanVM.ToMathlib.List
+import LeanVM.ToMathlib.Finset
 
 /-!
 # The openings
@@ -116,7 +118,7 @@ theorem phiTable_getD (hcol : ColAgree P col' col) (claim : KeccakClaim)
   have hx : i + 16 * (z % 2 ^ P) < 2 ^ (P + 4) := by rw [pow_add]; omega
   rw [eqTable_getD_lt _ (by rw [hpt]; exact hz'), sumRange_eq]
   refine congrArg (eqAt claim.point z * ·) ?_
-  rw [show 1600 = 25 * 64 from rfl, sum_range_mul]
+  rw [show 1600 = 25 * 64 from rfl, Finset.sum_range_mul]
   refine Finset.sum_congr rfl fun l hl ↦ ?_
   have hl' := Finset.mem_range.1 hl
   rw [array_getD_ofFn_lt _ hl', wordDot_laneTabs]
@@ -141,10 +143,6 @@ theorem sliceTable_getD (hcol : ColAgree P col' col) {a : List E} (ha : a.length
 theorem slotWeightOf_eq (segs w : List E) (first count o z : ℕ) :
     slotWeightOf segs w.toArray first count o z = slotW segs w first count o z := by
   simp only [slotWeightOf, slotW, array_getD_toArray]
-
-theorem getD_map_range {α : Type} (f : ℕ → α) {n z : ℕ} (hz : z < n) (d : α) :
-    ((List.range n).map f).getD z d = f z := by
-  simp [List.getD_eq_getElem?_getD, hz]
 
 /-- **The inputs' opening makes the moves of `hInput`.** -/
 theorem corr_input (hcol : ColAgree P col' col) (claim : KeccakClaim)
@@ -196,7 +194,7 @@ theorem corr_input (hcol : ColAgree P col' col) (claim : KeccakClaim)
           tabInv_full (h2'.2.2 z hz).2 hx6]
       rw [← Script.bind_ret (Script.sendList (x.2.pairs.map fun p ↦ p.2.getD 0 0))]
       exact corr_sendList hsl trivial
-    · rw [getD_map_range _ hz]
+    · rw [List.getD_map_range _ hz]
       refine ⟨tabInv_of _ _ 6 (by simp) fun o ho ↦ ?_, tabInv_of _ _ 6 (by simp) fun o ho ↦ ?_⟩
       · beta_reduce
         rw [array_getD_ofFn_lt _ ho, Ws, sum_eqAt_bitsE ho, slotWeightOf_eq]

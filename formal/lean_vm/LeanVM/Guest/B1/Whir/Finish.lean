@@ -50,12 +50,6 @@ theorem prod_getD_range (l : List E) : ∏ t ∈ Finset.range l.length, l.getD t
     simp only [List.getD_cons_succ, List.getD_cons_zero, ih]
     ring
 
-theorem foldl_add_map {α : Type} (f : α → E) : ∀ (l : List α) (a : E),
-    l.foldl (fun w g ↦ w + f g) a = a + (l.map f).sum
-  | [], a => by simp
-  | x :: l, a => by
-    rw [List.foldl_cons, foldl_add_map f l, List.map_cons, List.sum_cons]; ring
-
 theorem readsAt_padded {p : E} {P : List E} {n : ℕ} (f : E → E)
     (h : ∀ i < P.length + n, LoadHolds rd p i (f (P.getD i 0))) :
     ReadsAt rd p (P.map f ++ List.replicate n (f 0)) := by

@@ -18,6 +18,7 @@ public import VCVio.OracleComp.Constructions.SampleableType.Measure
 public import VCVio.OracleComp.QueryTracking.LoggingOracle.Core
 public import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
 public import VCVio.OracleComp.QueryTracking.WriterCost
+import LeanVM.ToMathlib.Finset
 
 /-!
 # The embedding
@@ -305,7 +306,7 @@ theorem projected_eq (mu product : List E) (hmu : mu.length = 16) (G : E[X])
       sumE ((List.zip mu rmfeProject).filterMap fun (m, mask) ↦
         if mask.testBit c then some m else none) * product.getD c 0) =
       ∑ i ∈ range 16, mu.getD i 0 * projE (rmfeProject.getD i 0) G := by
-  rw [sumE_eq_sum, list_sum_range]
+  rw [sumE_eq_sum, ← Finset.sum_range_eq_sum_map_range]
   have h : ∀ c ∈ range productBits, sumE ((List.zip mu rmfeProject).filterMap fun (m, mask) ↦
       if mask.testBit c then some m else none) * product.getD c 0 =
         ∑ i ∈ range 16, mu.getD i 0 * (if (rmfeProject.getD i 0).testBit c then G.coeff c else 0) := by

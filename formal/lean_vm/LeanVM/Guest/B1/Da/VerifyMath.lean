@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Da.Tree
 public import LeanVM.Guest.B1.Da.DualMath
 public import LeanVM.Guest.WithHashBridge
 public import LeanVM.Guest.Value.KeccakConst
+import LeanVM.ToMathlib.Finset
 
 /-!
 # The claim `da_verify` returns is opened
@@ -79,15 +80,6 @@ theorem merkleRoot_congr (H : List UInt8 → Common.DigestBytes) :
     refine merkleRoot_congr H d fun i hi => ?_
     simp only [LeanDa.upWithHash]
     rw [h (2 * i) (by rw [pow_succ]; omega), h (2 * i + 1) (by rw [pow_succ]; omega)]
-
-theorem sum_range_mul (g : ℕ → E) (m : ℕ) : ∀ n,
-    ∑ b ∈ Finset.range (n * m), g b = ∑ j ∈ Finset.range n, ∑ e ∈ Finset.range m, g (m * j + e)
-  | 0 => by simp
-  | n + 1 => by
-    rw [Nat.succ_mul, Finset.sum_range_add, sum_range_mul g m n, Finset.sum_range_succ]
-    congr 1
-    refine Finset.sum_congr rfl fun e _ => ?_
-    rw [mul_comm m n]
 
 /-! ## The digests -/
 
@@ -189,7 +181,7 @@ theorem opens_of {r L : ℕ} {syms : ℕ → ℕ → List E} {z : E} (hr1 : 1 �
       rw [dualAt_eq]
     rw [Finset.sum_congr rfl fun b _ => hfun b, Fin.sum_univ_eq_sum_range (fun b => dualAt z b *
       ((List.range 128).flatMap (syms i)).getD b 0) (2 ^ 14),
-      show 2 ^ 14 = 128 * 128 by norm_num, sum_range_mul _ 128 128]
+      show 2 ^ 14 = 128 * 128 by norm_num, Finset.sum_range_mul 128 128]
     refine (Finset.sum_congr rfl fun h hh => Finset.sum_congr rfl fun e he => ?_).trans (hdot i hi')
     have hh' := Finset.mem_range.mp hh
     have he' := Finset.mem_range.mp he

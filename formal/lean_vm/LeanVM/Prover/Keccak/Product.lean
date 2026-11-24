@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Prover.Keccak.States
+import LeanVM.ToMathlib.Finset
 
 /-!
 # The product polynomial
@@ -189,7 +190,7 @@ theorem gPack_getD (w : Array E) (S : Array ℕ) {c : ℕ} (hc : c < 47) :
     (gPack (weightTabs w) S).getD c 0 = ∑ j ∈ range 1600,
       if (chiProduct (S.getD j 0) (S.getD (keccakAlong j 1) 0)
         (S.getD (keccakAlong j 2) 0)).testBit c then w.getD j 0 else 0 := by
-  rw [gPack, array_getD_ofFn_lt _ hc, sumRange_eq, show 1600 = 200 * 8 from rfl, sum_range_mul]
+  rw [gPack, array_getD_ofFn_lt _ hc, sumRange_eq, show 1600 = 200 * 8 from rfl, Finset.sum_range_mul]
   refine Finset.sum_congr rfl fun q hq ↦ ?_
   have hq' := Finset.mem_range.1 hq
   rw [weightTabs, array_getD_ofFn_lt _ hq', byteSums_getD _ (packBits_lt _ 8)]

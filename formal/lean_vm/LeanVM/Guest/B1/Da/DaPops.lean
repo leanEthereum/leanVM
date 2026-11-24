@@ -16,6 +16,7 @@ public import LeanVM.Guest.B1.Da.Witness
 public import LeanVM.Guest.Hints
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«da_verify»
+import LeanVM.ToMathlib.List
 
 /-!
 # LeanDA's pops
@@ -164,14 +165,6 @@ theorem dv_pops {rd : Reader} {r L : ℕ} {z : E} {Tb : Memory.Tree → Prop} (h
 /-- The cells' entries on a witness, blob by blob. -/
 def daSymPops (w : LeanVM.Da.MatrixWitness) : List Pop := (List.range w.rows.length).flatMap (blobPops (wSyms w))
 
-theorem flatMap_eq_range {α β : Type} (d : α) (f : α → List β) :
-    ∀ l : List α, l.flatMap f = (List.range l.length).flatMap fun i => f (l.getD i d)
-  | [] => rfl
-  | a :: l => by
-    rw [List.flatMap_cons, flatMap_eq_range d f l, List.length_cons, List.range_succ_eq_map, List.flatMap_cons,
-      List.flatMap_map]
-    simp
-
 theorem count_gen {n : ℕ} (_h : n ≤ 1024) : Hints.count n = gen ^ n := by
   rw [Hints.count, LeanVM.Protocol.Verifier.gpow]
 
@@ -181,7 +174,7 @@ theorem daPops_sameStreams (c : LeanVM.Node.DaClaim) (w : LeanVM.Da.MatrixWitnes
       daSymPops w) (Hints.daHints c w) := by
   have e3 : w.rows.flatMap (fun row => (List.range LeanDa.cellsPerRow).map fun j =>
       (("da_symbols" : String), LeanDa.listCell row j)) = daSymPops w := by
-    rw [flatMap_eq_range [] _ w.rows, daSymPops]
+    rw [← List.flatMap_range_getD _ [] w.rows, daSymPops]
     refine List.flatMap_congr fun i hi => List.map_congr_left fun j hj => ?_
     rw [wSyms, ite_eq_left ⟨List.mem_range.mp hi, List.mem_range.mp hj⟩]
   rw [Hints.daHints, count_gen hr, e3]

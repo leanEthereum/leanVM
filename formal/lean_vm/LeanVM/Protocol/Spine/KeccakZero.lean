@@ -9,6 +9,7 @@
 module
 
 public import LeanVM.Protocol.Spine.Instance
+import LeanVM.ToMathlib.Finset
 
 /-!
 # The Keccak predicate along a point
@@ -59,15 +60,6 @@ the remaining cube. -/
 def ZeroOnHi (δ : ℕ → E) (acc : List E) (n : ℕ) : Prop :=
   ∀ v < 2 ^ (n - acc.length), foldHi δ n acc v = 0
 
-/-- A sum over `2 N` indices, by pairs. -/
-theorem sum_range_two_mul (f : ℕ → E) (N : ℕ) :
-    ∑ w ∈ Finset.range (2 * N), f w = ∑ w ∈ Finset.range N, (f (2 * w) + f (2 * w + 1)) := by
-  induction N with
-  | zero => simp
-  | succ N ih =>
-    rw [show 2 * (N + 1) = 2 * N + 1 + 1 by ring, Finset.sum_range_succ, Finset.sum_range_succ,
-      ih, Finset.sum_range_succ, add_assoc]
-
 /-- Nothing bound: the table itself. -/
 theorem foldHi_nil (δ : ℕ → E) (n v : ℕ) : foldHi δ n [] v = δ v := by
   simp [foldHi, eqAt]
@@ -79,7 +71,7 @@ theorem foldHi_cons (δ : ℕ → E) {n : ℕ} (c : E) {acc : List E} (h : acc.l
   obtain ⟨m, h1, h2, h3⟩ : ∃ m, n - (acc.length + 1) = m ∧ n - acc.length = m + 1 ∧
       n - acc.length - 1 = m := ⟨n - (acc.length + 1), rfl, by omega, by omega⟩
   unfold foldHi
-  rw [List.length_cons, h1, h2, Nat.add_sub_cancel, pow_succ, mul_comm _ 2, sum_range_two_mul,
+  rw [List.length_cons, h1, h2, Nat.add_sub_cancel, pow_succ, mul_comm _ 2, Finset.sum_range_two_mul,
     Finset.mul_sum,
     Finset.mul_sum, ← Finset.sum_add_distrib]
   refine Finset.sum_congr rfl fun w _ ↦ ?_

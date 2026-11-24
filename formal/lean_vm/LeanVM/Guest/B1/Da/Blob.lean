@@ -14,6 +14,7 @@ public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«da_verify_blob»
 import LeanVM.Guest.Data.ValNames.«da_verify_blob_loop0»
+import LeanVM.ToMathlib.Finset
 
 /-!
 # `da_verify_blob`
@@ -172,7 +173,7 @@ theorem blob_stepW (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProgram.Rel
     refine ⟨hsl, a, ha, ?_, by rw [← e0]; simpa using hd0, by rw [← e1]; exact hd1⟩
     rw [es] at has
     convert has using 2
-    rw [← list_sum_range]
+    rw [Finset.sum_range_eq_sum_map_range]
     unfold LeanDa.cellSymbols
     refine congrArg _ (List.map_congr_left fun e he ↦ ?_)
     have he' := List.mem_range.mp he
