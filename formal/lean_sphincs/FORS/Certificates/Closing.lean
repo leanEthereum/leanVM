@@ -19,7 +19,6 @@ variable [Params]
 
 open Concrete ForsPrice ForsPotential FORS.Base.H0 FORS.Base.Domination
 
-
 /-! ### The checker -/
 
 /-- The identity mass of a group under the heavy coin, times `2^128`, at subtree height `b` and

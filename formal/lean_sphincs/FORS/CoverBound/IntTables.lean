@@ -14,7 +14,6 @@ namespace FORS.Security.H0
 
 open FORS.Base.H0
 
-
 /-! ### Extension slopes -/
 
 /-- The extension slope of a leaf table with cap `cap`. -/

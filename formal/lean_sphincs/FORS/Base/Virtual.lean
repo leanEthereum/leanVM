@@ -383,7 +383,6 @@ namespace FORS.Base.H0
 
 open Domination
 
-
 variable {V ι : Type} [DecidableEq ι] [Fintype ι] (idx : V → ι)
 
 /-- Number of disclosed views at index `l`. -/

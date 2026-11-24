@@ -20,7 +20,6 @@ variable [Params]
 
 open Concrete Security Security.Short
 
-
 attribute [local irreducible] digestAttemptLimit encodingAttemptLimit
 
 theorem Only.mapM {α β : Type} (φ : α → OracleComp HashSpec β) (h : ∀ a, Short.Only (φ a)) :

@@ -18,7 +18,6 @@ variable [Params]
 
 open Concrete ForsPrice ForsPotential
 
-
 /-- The inverse of the landing probability. -/
 def scanM : ℕ := 2 ^ (totalHeight - subtreeHeight)
 

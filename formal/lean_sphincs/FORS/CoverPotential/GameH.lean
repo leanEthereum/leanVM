@@ -18,7 +18,6 @@ variable [Params]
 
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView
 
-
 section Program
 
 variable (parameter : PublicParameter) (data : PublicData)

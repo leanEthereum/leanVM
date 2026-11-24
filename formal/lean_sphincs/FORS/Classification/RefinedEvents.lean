@@ -22,7 +22,6 @@ open Concrete HiddenGraph
 
 attribute [local instance] Classical.propDecidable
 
-
 section Events
 
 variable (parameter : PublicParameter) (results : OtsKey → Option (Counter × Encoding))

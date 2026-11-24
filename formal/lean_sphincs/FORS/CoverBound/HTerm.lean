@@ -18,7 +18,6 @@ variable [Params]
 
 open Concrete ForsPrice FORS.Base.Domination FORS.Base.H0 H0Avg
 
-
 /-! ### Separable good count functions -/
 
 /-- Monotone, convex along every coordinate, finite, with at most exponential growth. -/

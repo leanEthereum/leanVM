@@ -15,7 +15,6 @@ open ENNReal
 
 namespace FORS.Security.H0
 
-
 /-! ### Lists over a range -/
 
 theorem getD_map_range {α : Type} (f : ℕ → α) (d : α) (N i : ℕ) (hi : i < N) :

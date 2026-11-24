@@ -22,7 +22,6 @@ therefore preserves the freshness hypothesis and multiplies one rejection factor
 
 open OracleComp OracleSpec ENNReal
 
-
 namespace FORS.Completeness
 
 variable [Params]

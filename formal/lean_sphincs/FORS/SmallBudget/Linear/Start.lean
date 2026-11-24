@@ -59,7 +59,6 @@ theorem exposeR_known : ∀ (cs : List Coordinate) (known k : Knowledge Coordina
               simp
             · exact ih2 c' hc'
 
-
 /-- The first-order targeting of the small-budget route: the sample's targets, removed at
 second-order inputs. -/
 noncomputable def targetingA (parameterOutput : HashOutput) (fixed : HiddenGraph.Table) (highs : CoordinateHighs)

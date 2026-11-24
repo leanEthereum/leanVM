@@ -436,7 +436,6 @@ theorem budgetedWinAdv_le_seedFreeH (adversary : Adversary) (q : Nat) (B : ℝ�
             (fun key pair => ((pair.1, key), pair.2)) _ (fun _ _ h => h)) (le_of_eq (mul_one_div _ _))
     _ = B + 2 * (q / (2 : ℝ≥0∞) ^ 256) := by rw [two_mul]
 
-
 /-- **The adversary-count bound.** If the adversary makes at most `q` hash calls of its own on
 every path and the verification at most `V`, and the seed-free capped win of the internalized
 memoizing adversary in the honest-reading game at the count `keygenHashCost + q + V` is at most `B`

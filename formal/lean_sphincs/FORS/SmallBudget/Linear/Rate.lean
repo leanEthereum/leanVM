@@ -26,7 +26,6 @@ theorem three_halves_le {ρ : ℝ} (h : 3 / 2 ≤ ρ) : (1 : ℝ≥0∞) + 2⁻�
   rw [h1]
   exact ENNReal.ofReal_le_ofReal h
 
-
 namespace Ctx
 
 variable (K : Ctx)

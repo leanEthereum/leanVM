@@ -20,15 +20,13 @@ open Concrete Completeness Prefix HiddenGraph HiddenCost HiddenDebt ForsSigner F
 
 attribute [local instance] Classical.propDecidable
 
-
 section LoopV
 
 variable {A : Type} (tg : Targeting HashInput HashOutput Coordinate)
   (initial : HiddenOutside.Cache HashInput HashOutput) (model : HiddenRows.Model HashInput HashOutput A Coordinate)
   (parameter : PublicParameter) (data : PublicData) (message : Message)
 
-/-- **One trial of the scan**, with any continuation. The trial reads the index block alone, so a
-fresh pair is only drawn whole by the final assembly that follows it (`interp_presample_new`). -/
+/-- **One trial of the scan**, with any continuation, for a value of the reveals (`trial_boundF`). -/
 theorem trial_boundV
     (hparse : ∀ ρ call, model.parse (pblk parameter data message ρ call) = none)
     (hkind : ∀ ρ call, tg.kind (pblk parameter data message ρ call) = .none)

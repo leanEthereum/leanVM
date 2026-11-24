@@ -417,7 +417,6 @@ theorem accepted_full_classification (f : QueryImpl HashSpec Id) (pk : PublicKey
 
 end FORS.Security.SignatureWitness
 
-
 namespace FORS.Security.HiddenBridge
 
 variable [Params]
@@ -425,7 +424,6 @@ variable [Params]
 open Concrete Completeness _root_.FORS.Security.Graph GraphCorrectness TargetAssignment
 
 attribute [local instance] Classical.propDecidable
-
 
 /-- The structural reference table of a consistent preparation. -/
 noncomputable def graphTable (f : QueryImpl HashSpec Id) (parameter : PublicParameter)

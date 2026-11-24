@@ -19,7 +19,6 @@ here is probabilistic, and nothing depends on the answers being uniform.
 
 open OracleComp
 
-
 namespace FORS.Completeness
 
 variable [Params]

@@ -48,9 +48,7 @@ namespace FORS.Lifetime
 
 variable [Params]
 
-
 open OracleComp OracleSpec ENNReal Concrete
-
 
 abbrev KeptDigestView := Fin (2 ^ subtreeHeight) × (FTree → FLeaf)
 

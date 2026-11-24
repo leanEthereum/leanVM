@@ -134,7 +134,6 @@ namespace FORS.Security.SeedCoupling
 
 variable [Params]
 
-
 variable (J R : Type) [Fintype J]
 
 noncomputable def finTableEquiv : (Fin (Fintype.card J) → R) ≃ (J → R) where
@@ -193,7 +192,6 @@ namespace FORS.Security.SeedCoupling
 
 variable [Params]
 open SeedModel Completeness
-
 
 noncomputable local instance : SampleableType SecretOutputs := secretOutputsSampleableType
 

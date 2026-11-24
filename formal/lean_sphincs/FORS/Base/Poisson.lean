@@ -23,7 +23,6 @@ namespace FORS.Base.H0
 
 open Domination
 
-
 /-- The H-term operator of the one-coin future. -/
 noncomputable def hTermO {V : Type} (U : Finset V) (w lam : ℝ≥0∞) (N q : ℕ) (f : Multiset V → ℝ≥0∞) : ℝ≥0∞ :=
   creations U lam (fun I => virtualOnce U w f N I 0) q []

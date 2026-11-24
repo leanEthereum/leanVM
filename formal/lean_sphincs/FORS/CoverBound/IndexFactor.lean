@@ -16,7 +16,6 @@ namespace FORS.Security.H0Avg
 
 open FORS.Base.Domination FORS.Base.H0
 
-
 /-! ### Averages over `n` uniform elements -/
 
 section AvgN

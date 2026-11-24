@@ -277,9 +277,8 @@ theorem trial_boundF
   · rw [OracleComp.tsum_prEvent_pure_mul]
     exact (hFabort state).trans_le zero_le
 
-
-/-- **One trial of the scan**, with any continuation. The trial reads the index block alone, so a
-fresh pair is only drawn whole by the final assembly that follows it (`interp_presample_new`). -/
+/-- **One trial of the scan**, with any continuation, for a value of the result and the state
+(`trial_boundF`). -/
 theorem trial_boundS
     (hparse : ∀ ρ call, model.parse (pblk parameter data message ρ call) = none)
     (hkind : ∀ ρ call, tg.kind (pblk parameter data message ρ call) = .none)

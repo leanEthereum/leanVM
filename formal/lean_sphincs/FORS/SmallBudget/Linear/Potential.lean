@@ -210,7 +210,6 @@ theorem fleaf_inj {p : PublicParameter} {f g : FIn} (h : f.input p = g.input p) 
   cases f; cases g
   simp_all
 
-
 namespace Ctx
 
 variable (K : Ctx)

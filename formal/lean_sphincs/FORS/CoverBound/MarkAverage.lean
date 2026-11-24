@@ -19,7 +19,6 @@ open FORS.Base.Domination FORS.Base.H0
 
 variable {ι M : Type} [Fintype ι] [Fintype M] [Nonempty M]
 
-
 /-! ### Averages over uniform marks -/
 
 /-- The average of `f` over independent uniform marks at the listed indices, added to `d`. -/

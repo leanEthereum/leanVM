@@ -200,7 +200,6 @@ theorem fixedHashWorld_lift_hash (f : QueryImpl HashSpec Id) {α : Type}
         ← PMF.monad_pure_eq_pure, pure_bind]
       exact ih (f input)
 
-
 end FORS.Security.Prefix
 
 end

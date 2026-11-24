@@ -19,7 +19,6 @@ variable [Params]
 
 open Concrete ForsPrice FORS.Base.H0 FORS.Base.Domination H0Avg
 
-
 /-- The per-index weight `2^-H` of the cover probability, `H` the total height. -/
 def κQ (H : ℕ) : ℚ := 1 / 2 ^ H
 
@@ -63,7 +62,6 @@ def checkOptF (H b k a : ℕ) (t : PoisT) (o : OptF) : Bool :=
       t.pb (t.n1 + 1) * (o.ht.getD t.n1 0 / (1 - t.r) + o.Jh / (1 - t.r) ^ 2)) ≤ o.Ee) &&
     decide (2 ^ b * o.Eg + sqUp t.P b (1 + o.Ee) / (expLow (o.θ * o.cthr) t.J t.P * eLowQ * o.θ) ≤ o.B) &&
     decide (0 ≤ o.Eg) && decide (0 ≤ o.Ee)
-
 
 theorem checkOptF_parts {H b k a : ℕ} {t : PoisT} {o : OptF} (h : checkOptF H b k a t o = true) :
     0 < o.c1 ∧ 0 < o.θ ∧ 0 ≤ o.cthr ∧ o.θ * o.c1 < 2 ^ o.s ∧ expUp (o.θ * o.c1) o.s t.P ≤ o.eC ∧
@@ -114,7 +112,6 @@ theorem SepGood.one_add {g : ℕ → ℝ≥0∞} (hg : SepGood g) : SepGood (fun
 theorem poisMean_one_add (μ : ℝ≥0) (g : ℕ → ℝ≥0∞) : poisMean μ (fun n => 1 + g n) = 1 + poisMean μ g := by
   unfold poisMean
   simp only [mul_add, mul_one, tsum_add, poisW_tsum]
-
 
 theorem κE_toReal (H b : ℕ) (hH : totalHeight = H) (hb : subtreeHeight = b) : κE.toReal = (κQ H : ℝ) := by
   unfold κE κQ

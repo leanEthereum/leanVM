@@ -19,7 +19,6 @@ open Concrete HiddenGraph HiddenDebt HiddenBridge
 
 attribute [local instance] Classical.propDecidable
 
-
 namespace Ctx
 
 variable (K : Ctx)

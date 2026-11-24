@@ -274,7 +274,6 @@ theorem sample_le_of_rest (hb : 0 < keptHeight topLayer) (adversary : Adversary)
     · exact not_hit_start tg prepared.2 known table hh
     · cases hres
 
-
 /-- **One sample, weighted baseline**, the signer honest. -/
 theorem sample_boundW (hb : 0 < keptHeight topLayer) (adversary : Adversary) (hnr : adversary.NoRepeat) (q : ℕ)
     (hq : q < 2 ^ 256)

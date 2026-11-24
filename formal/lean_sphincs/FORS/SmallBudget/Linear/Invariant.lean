@@ -95,7 +95,6 @@ theorem ofReal_le_two {ρ : ℝ} (h : ρ ≤ 2) : ENNReal.ofReal ρ ≤ 2 := by
   rw [show (2 : ℝ≥0∞) = ENNReal.ofReal 2 by simp]
   exact ENNReal.ofReal_le_ofReal h
 
-
 namespace Ctx
 
 variable (K : Ctx)

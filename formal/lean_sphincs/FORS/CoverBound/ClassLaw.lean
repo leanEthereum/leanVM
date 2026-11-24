@@ -21,7 +21,6 @@ variable [Params]
 
 open Concrete ForsPrice FORS.Base.Domination H0Avg
 
-
 /-! ### The law in integers (what the kernel computes) -/
 
 /-- The numerator over `A^n` of `q0`, all `n` leaves distinct: `A (A - 1) ⋯ (A - n + 1)`. -/

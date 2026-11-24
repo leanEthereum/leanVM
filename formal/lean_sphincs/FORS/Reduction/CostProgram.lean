@@ -17,7 +17,6 @@ variable [Params]
 
 open Concrete Completeness Prefix HiddenGraph SeedCoupling GraphView
 
-
 /-- Randomizer-base derivation outputs (`R0`), by message. -/
 abbrev RTable := Message → HashOutput
 

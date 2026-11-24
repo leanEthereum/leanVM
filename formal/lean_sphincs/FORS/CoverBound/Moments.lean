@@ -18,7 +18,6 @@ variable [Params]
 
 open Concrete
 
-
 /-! ### Real averages -/
 
 section Real

@@ -199,7 +199,6 @@ theorem simulateQ_oracleHash (input : FORS.HashInput) :
   refine congrArg (· <$> _) (funext fun digest ↦ ?_)
   simp only [digestBytesEquivBitVec_apply, LeanVM.Protocol.Digest.toBytes, Vector.toList]
 
-
 /-! ### Binds
 
 The model's computations are in `OracleComp FORS.HashSpec`, the statement's hash spec up to

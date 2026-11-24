@@ -18,7 +18,6 @@ open Concrete HiddenGraph HiddenDebt HiddenBridge HiddenCost EncodingCode
 set_option backward.isDefEq.respectTransparency false
 attribute [local instance] Classical.propDecidable
 
-
 /-! The message-digest input has no address: it is told apart from a tweakable hash input by its
 length, 84 bytes against `48 + payload` (`messageDigestInput_ne_tweakableHashInput`). -/
 

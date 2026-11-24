@@ -16,7 +16,6 @@ namespace FORS.Base.H0
 
 open Domination
 
-
 /-! ### Rounding and exponential bounds -/
 
 /-- Round down to a multiple of `2^-P`. -/

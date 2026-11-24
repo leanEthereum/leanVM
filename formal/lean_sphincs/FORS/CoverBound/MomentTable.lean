@@ -11,7 +11,6 @@ rationals they stand for (`P1tab`, `P2tab`). The kernel computes them from the c
 
 namespace FORS.Security.H0
 
-
 /-- The numerators over `2^128` of the upper bounds of `Ψ1(n)`, `n ≤ 150`. -/
 def P1L (a : ℕ) : List ℕ := (List.range 151).map (p1N a)
 

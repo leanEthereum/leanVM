@@ -18,7 +18,6 @@ open HiddenCost GraphView Stop Concrete Prefix
 
 attribute [local instance] Classical.propDecidable
 
-
 section Fixed
 
 variable (f : HashInput → HashOutput) (table : HiddenGraph.Table)

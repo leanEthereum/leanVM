@@ -98,7 +98,6 @@ section Game
 
 open Completeness SeedModel Graph Assembly Reduce HiddenGraph Internalize GraphView
 
-
 attribute [local instance] sampleCellFintypeInst sampleCellDecEq hiddenTableSampleable highsSampleable
   remainingSampleable
 

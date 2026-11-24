@@ -48,7 +48,6 @@ splitting a uniform table along an injection (`UniformTableSplit.uniform_join`),
 cell of a uniform table (`FiniteGraphSampling.evalDist_table_extract`).
 -/
 
-
 namespace FORS.QueryCap
 
 open _root_.OracleComp OracleSpec

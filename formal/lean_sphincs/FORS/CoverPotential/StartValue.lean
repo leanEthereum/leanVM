@@ -21,7 +21,6 @@ open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForsPrice F
 
 attribute [local instance] Classical.propDecidable
 
-
 section TotalO
 
 open HiddenBridge Completeness SeedModel _root_.FORS.Security.Graph Assembly Reduce Internalize

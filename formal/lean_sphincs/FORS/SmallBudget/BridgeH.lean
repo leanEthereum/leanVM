@@ -221,7 +221,6 @@ theorem seedFree_le_expose (adversary : Adversary) (q : Nat) (steps : Message �
     (sampleProgram adversary q steps parameterOutput fixed highs remaining) _
     (knownAgrees_exposeT table _ _ hagree) event
 
-
 /-- **The seed-free win in the stopped prepared world, with the above-word values exposed.** -/
 theorem seedFree_le_exposeP (adversary : Adversary) (q : Nat) (steps : Message → Randomness) :
     Pr{let z ← AdvCount.seedFreeExperiment (internalize adversary) q steps}[Win z] ≤
@@ -279,7 +278,6 @@ theorem seedFree_le_exposeP (adversary : Adversary) (q : Nat) (steps : Message �
     · rfl
     · rcases outcome with _ | value <;> simp [HiddenReveal.StopOr, Win, RichWin]
   rw [hevent]
-
 
 end FORS.Security.HiddenBridge
 
@@ -426,7 +424,6 @@ theorem stopped_le_interp_exposeV (hb : 0 < keptHeight topLayer) (adversary : Ad
             (((x.2.1.1, x.2.1.2.1), x.2.1.2.2.1), x.2.2.cache)] :=
   stopped_le_interpV hb adversary q hq parameterOutput fixed highs remaining steps prepared hprepared tg known
     (expose_known_support _ fixed prepared.1 known hk).1 (expose_known_support _ fixed prepared.1 known hk).2
-
 
 /-- Averaging a pointwise bound over the support. -/
 theorem tsum_mul_mono_support {α : Type} (mx : ProbComp α) (f g : α → ℝ≥0∞) (h : ∀ x ∈ support mx, f x ≤ g x) :

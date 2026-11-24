@@ -16,7 +16,6 @@ variable [Params]
 
 open Concrete H0Avg FORS.Base.Domination
 
-
 /-! ### The near value of an index -/
 
 open Classical in

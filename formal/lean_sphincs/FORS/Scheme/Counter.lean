@@ -15,7 +15,6 @@ What remains to bound its failure is the share of answers the target-sum code re
 
 open OracleComp OracleSpec ENNReal
 
-
 namespace FORS.Completeness
 
 variable [Params]

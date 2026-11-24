@@ -17,7 +17,6 @@ namespace FORS.Base.H0
 
 open Domination
 
-
 variable {ι : Type} [DecidableEq ι] [Fintype ι]
 
 /-! ### The pointwise split majorant -/

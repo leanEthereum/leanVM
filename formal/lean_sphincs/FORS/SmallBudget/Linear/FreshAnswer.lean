@@ -18,7 +18,6 @@ open Concrete HiddenGraph HiddenDebt HiddenBridge EncodingCode
 
 attribute [local instance] Classical.propDecidable
 
-
 namespace Ctx
 
 variable (K : Ctx)
@@ -41,7 +40,6 @@ theorem sum_single (F F' : FIn → ℝ≥0∞) (f : FIn) (h : ∀ g, g ≠ f →
     ∑ g, F' g = ∑ g, F g + F' f := by
   rw [← Finset.add_sum_erase _ F' (Finset.mem_univ f), ← Finset.add_sum_erase _ F (Finset.mem_univ f), h0,
     zero_add, add_comm, Finset.sum_congr rfl fun g hg => h g (Finset.ne_of_mem_erase hg)]
-
 
 /-- A double sum over FORS leaf queries that changes on the row and the column of one query only. -/
 theorem sum_double_le (G G' : FIn → FIn → ℝ≥0∞) (f : FIn) (h : ∀ g h, g ≠ f → h ≠ f → G' g h = G g h) :

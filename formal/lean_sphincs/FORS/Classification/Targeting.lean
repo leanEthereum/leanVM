@@ -23,7 +23,6 @@ open Concrete Completeness _root_.FORS.Security.Graph GraphCorrectness TargetAss
 set_option backward.isDefEq.respectTransparency false
 attribute [local instance] Classical.propDecidable
 
-
 /-! ### Row addresses of tweak fields -/
 
 theorem address_position_injective {left right : Address} (h : left.position = right.position) :

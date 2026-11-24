@@ -26,7 +26,6 @@ variable [Params]
 
 open Concrete ForsPrice FORS.Base.H0 FORS.Base.Domination H0Avg
 
-
 /-! ### The exponential in integers -/
 
 /-- Iterated squaring of a numerator over `2^P`, rounded up. A plain `Nat.rec` over the `Nat`

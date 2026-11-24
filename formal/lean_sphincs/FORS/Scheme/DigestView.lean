@@ -14,7 +14,6 @@ view by disclosed secrets: the selected leaf of every tree is disclosed.
 
 open OracleComp OracleSpec ENNReal
 
-
 namespace FORS.Concrete
 
 variable [Params]

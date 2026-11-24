@@ -23,7 +23,6 @@ open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForsPrice F
 set_option backward.isDefEq.respectTransparency false
 attribute [local instance] Classical.propDecidable
 
-
 /-- Every tree of the target but `κ` is covered. -/
 def NearSub (target : View) (κ : FTree) (D : Multiset View) : Prop :=
   ∀ κ', κ' ≠ κ → TreeCovered target κ' D
@@ -78,7 +77,6 @@ namespace FORS.Security.H0
 variable [Params]
 
 open Concrete ForsPrice FORS.Base.Domination H0Avg ForsPotential
-
 
 theorem freshAvg_sum' {V β : Type} (U : Finset V) (s : Finset β) (g : β → V → ℝ≥0∞) :
     freshAvg U (fun u => ∑ b ∈ s, g b u) = ∑ b ∈ s, freshAvg U (g b) := by
