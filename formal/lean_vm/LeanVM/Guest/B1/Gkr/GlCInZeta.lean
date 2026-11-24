@@ -65,7 +65,7 @@ theorem vbz_relIn {rd : Reader} {R : ℕ → Prop} {K : ℕ} {zeta row : E}
     rw [hb] at hh
     simp only [l8Body, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil] at hh
     obtain ⟨m4, -, m6, -, c7, m8, a9, c10, m11, ⟨-, hc, -⟩⟩ := hh
-    rw [tb_word_gen] at c7 c10
+    rw [word_gen] at c7 c10
     refine ⟨fun s hs ↦ dispOk_of_noDisp (List.all_eq_true.mp vbz_noDisp s hs),
       loads_via vbz_loads fun pb hpb ↦ ?_, fun c hcm ht ↦ ?_⟩
     · simp only [List.mem_cons, List.not_mem_nil, or_false] at hpb

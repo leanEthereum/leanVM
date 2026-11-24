@@ -123,7 +123,7 @@ include hμ
 
 /-- **All the block selectors.** -/
 theorem vt_sels {σ : Val} (h : VtH Lm.read σ) {point : List E}
-    (hz : TbReadsAt Lm.read (σ (.n (val% «verify_tables» "zeta"))) point) (hmu : σ (.n (val% «verify_tables» "g_bus_mu")) = gen ^ point.length)
+    (hz : ReadsAt Lm.read (σ (.n (val% «verify_tables» "zeta"))) point) (hmu : σ (.n (val% «verify_tables» "g_bus_mu")) = gen ^ point.length)
     (hml : point.length < 33) (hE : ExpTablesAt Lm.read (σ (.n (val% «verify_tables» "g_squares")))) {lm : ℕ}
     (hlm : lm ≤ 32) {τ : ℕ → ℕ} (hτ : ∀ t < 6, τ t < 33)
     (hkb : ∀ i < 8, σ (.n ((val% «verify_tables» "kb[0]") + i)) = gen ^ ([0, lm] ++ vtTauList τ).getD i 0) :
@@ -139,7 +139,7 @@ theorem vt_sels {σ : Val} (h : VtH Lm.read σ) {point : List E}
       (∀ i < 45, σ (.n (vtCountPadData.getD i default).2.2.1) =
         blockSel (vtSizesC τ) point.length i point) ∧
       σ (.n (val% «verify_tables» "selector_sum@150")) = (vtCountPadData.map fun x ↦ σ (.n x.2.2.1)).sum := by
-  have hsq : TbReadsAt Lm.read (σ (.n (val% «verify_tables» "g_squares"))) gSquaresList := hE.1
+  have hsq : ReadsAt Lm.read (σ (.n (val% «verify_tables» "g_squares"))) gSquaresList := hE.1
   obtain ⟨hoP, hoC⟩ := vt_sort hμ Lm h hlm hτ hkb hE
   rw [vt_sizesP_eq] at hoP
   rw [vt_sizesC_eq] at hoC
@@ -177,7 +177,7 @@ theorem vt_sels {σ : Val} (h : VtH Lm.read σ) {point : List E}
     fun t ht => vt_shared hμ Lm h hz hmu hml hz1 hsq ht (hτ t ht) (hkbt t ht)
   -- a table block's selector
   have hblk : ∀ {sizes : List ℕ} {b c w t : ℕ} {prev : Option ℕ} {pos : ℕ},
-      tbStmtsEqb (vtSelT w b t prev)
+      stmtsEqb (vtSelT w b t prev)
         ((vtAt pos).take (vtSelT w b t prev).length) = true →
       t < 6 → sizes.getD c 0 = τ t → (∀ b, (stackOffsets sizes).1.getD b 0 < 2 ^ 62) →
       σ (.n (vtBoffV b)) = gen ^ (stackOffsets sizes).1.getD c 0 →

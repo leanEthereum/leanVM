@@ -100,13 +100,13 @@ theorem selector_tables_completeAt (fs : String → ℕ) (cert : String → V �
       ⟨a, rfl, ha⟩
     · simp [Stmt.loadS] at hq
     · subst h; simp only [Stmt.loadS, Option.some.injEq] at hq; subst hq
-      exact ⟨ept + o, by rw [e0, tb_addr_ofK], Or.inl ⟨(ept, p), by simp [stLin], by omega,
+      exact ⟨ept + o, by rw [e0, limb0_ofK_addressOfIndex_mul], Or.inl ⟨(ept, p), by simp [stLin], by omega,
         by simp [hl]; omega⟩⟩
     · subst h; simp only [Stmt.loadS, Option.some.injEq] at hq; subst hq
-      exact ⟨ept1 + o, by rw [e1, tb_addr_ofK], Or.inl ⟨(ept1, p1), by simp [stLin], by omega,
+      exact ⟨ept1 + o, by rw [e1, limb0_ofK_addressOfIndex_mul], Or.inl ⟨(ept1, p1), by simp [stLin], by omega,
         by simp [hl1]; omega⟩⟩
     · simp only [Stmt.loadS, Option.some.injEq] at hq; subst hq
-      refine ⟨fp + fs f + o, by rw [e2, tb_addr_ofK], Or.inr ?_⟩
+      refine ⟨fp + fs f + o, by rw [e2, limb0_ofK_addressOfIndex_mul], Or.inr ?_⟩
       rw [hbuf fp]
       exact ⟨_, List.mem_cons_self, by omega, by simp [stEqWords]; omega⟩
     · cases a <;> simp [Stmt.loadS, pureB] at hq ha
@@ -170,13 +170,13 @@ theorem selector_tables_completeAtB (fs : String → ℕ) (cert : String → V �
       ⟨a, rfl, ha⟩
     · simp [Stmt.loadS] at hq
     · subst h; simp only [Stmt.loadS, Option.some.injEq] at hq; subst hq
-      exact ⟨ept + o, by rw [e0, tb_addr_ofK], Or.inl ⟨(ept, p), by simp [stLin], by omega,
+      exact ⟨ept + o, by rw [e0, limb0_ofK_addressOfIndex_mul], Or.inl ⟨(ept, p), by simp [stLin], by omega,
         by simp [hl]; omega⟩⟩
     · subst h; simp only [Stmt.loadS, Option.some.injEq] at hq; subst hq
-      exact ⟨ept1 + o, by rw [e1, tb_addr_ofK], Or.inl ⟨(ept1, p1), by simp [stLin], by omega,
+      exact ⟨ept1 + o, by rw [e1, limb0_ofK_addressOfIndex_mul], Or.inl ⟨(ept1, p1), by simp [stLin], by omega,
         by simp [hl1]; omega⟩⟩
     · simp only [Stmt.loadS, Option.some.injEq] at hq; subst hq
-      refine ⟨fp + fs f + o, by rw [e2, tb_addr_ofK], Or.inr ?_⟩
+      refine ⟨fp + fs f + o, by rw [e2, limb0_ofK_addressOfIndex_mul], Or.inr ?_⟩
       rw [hbuf fp]
       exact ⟨_, List.mem_cons_self, by omega, by simp [stEqWords]; omega⟩
     · cases a <;> simp [Stmt.loadS, pureB] at hq ha

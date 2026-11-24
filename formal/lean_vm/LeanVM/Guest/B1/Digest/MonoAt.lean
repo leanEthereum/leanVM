@@ -281,9 +281,9 @@ theorem child_claim_list_mono_completeAtTB (fs : String → ℕ) (cert : String 
     simp only [List.map_cons, List.map_nil, Sum.elim_inr, hV.v15, List.append_nil]
     rw [logG_gen_pow (show 15 * (a + b + 1) < 2 ^ 64 - 1 by omega)]
   have h31 : decide (σ (.n (val% «child_claim_list_mono» "s4#1")) ≠ 0) = decide (a ≠ 0) := by
-    rw [hV.v31]; exact decide_eq_decide.mpr (one_add_gen_ne (by omega))
+    rw [hV.v31]; exact decide_eq_decide.mpr (one_add_gen_pow_ne_zero_iff (by omega))
   have h41 : decide (σ (.n (val% «child_claim_list_mono» "s6#1")) ≠ 0) = decide (b ≠ 0) := by
-    rw [hV.v41]; exact decide_eq_decide.mpr (one_add_gen_ne (by omega))
+    rw [hV.v41]; exact decide_eq_decide.mpr (one_add_gen_pow_ne_zero_iff (by omega))
   have hcalls : calls es = [⟨name% «child_claim_list_mono_loop0», [.n (val% «child_claim_list_mono» "s4#2"), .n (val% «child_claim_list_mono» "bigs"), .n (val% «child_claim_list_mono» "chain"), .n (val% «child_claim_list_mono» "base")], [],
         decide (a ≠ 0)⟩,
       ⟨name% «child_claim_list_mono_loop1», [.n (val% «child_claim_list_mono» "s6#2"), .n (val% «child_claim_list_mono» "groups"), .n (val% «child_claim_list_mono» "mid"), .n (val% «child_claim_list_mono» "base")], [], decide (b ≠ 0)⟩,

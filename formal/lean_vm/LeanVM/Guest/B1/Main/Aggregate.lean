@@ -146,18 +146,18 @@ theorem kid_words {cpi cfresh ccarried : E} {c : ℕ} {cc : ChildClaims}
       · rw [List.getD_append (A2 ++ DeferredBytecodeClaim.cells cc.freshClaim) cc.carriedClaim.cells 0 w
           (by rw [hAF]; exact hb)]
         by_cases hc2 : w < 2
-        · rw [ite_pos' hc2, List.getD_append A2 (DeferredBytecodeClaim.cells cc.freshClaim) 0 w (by rw [hA]; exact hc2),
+        · rw [ite_eq_left hc2, List.getD_append A2 (DeferredBytecodeClaim.cells cc.freshClaim) 0 w (by rw [hA]; exact hc2),
             ← hA2]
           rcases (show w = 0 ∨ w = 1 by omega) with rfl | rfl
           · exact memAt_of_load ((loadHolds_mul_gen_pow rd _ _ _ _).mpr hp0)
           · exact memAt_of_load ((loadHolds_mul_gen_pow rd _ _ _ _).mpr hp1)
-        · rw [ite_neg' hc2, ite_pos' hb,
+        · rw [ite_eq_right hc2, ite_eq_left hb,
             List.getD_append_right A2 (DeferredBytecodeClaim.cells cc.freshClaim) 0 w (by rw [hA]; omega), hA,
             memAt_of_reads hf (by omega)]
-      · rw [ite_neg' (show ¬ w < 2 by omega), ite_neg' hb, ite_pos' ha,
+      · rw [ite_eq_right (show ¬ w < 2 by omega), ite_eq_right hb, ite_eq_left ha,
           List.getD_append_right (A2 ++ DeferredBytecodeClaim.cells cc.freshClaim) cc.carriedClaim.cells 0 w
             (by rw [hAF]; omega), hAF, memAt_of_reads hc (by omega)]
-    · rw [ite_neg' (show ¬ w < 2 by omega), ite_neg' (show ¬ w < 26 by omega), ite_neg' ha,
+    · rw [ite_eq_right (show ¬ w < 2 by omega), ite_eq_right (show ¬ w < 26 by omega), ite_eq_right ha,
         List.getD_append_right (A2 ++ DeferredBytecodeClaim.cells cc.freshClaim ++ cc.carriedClaim.cells) [0, 0] 0 w
           (by rw [hAFC]; omega), hAFC]
       rcases (show w = 50 ∨ w = 51 by omega) with rfl | rfl <;> rfl
@@ -542,8 +542,8 @@ theorem aggregate_claims_val {C : CallRel} {rd : Reader} (hm : MemOk rd)
     rw [hagg, ← memAt_of_load (load_sound hl194 hat), isMul_sound hm193 hat, hN, W]
     rfl
   -- the check
-  rw [batch_fs, ite_pos' hpowOk, hrun, hw, ← h115, assertEq_sound hae hat, isMul_sound hm195 hat]
-  exact ite_pos' rfl
+  rw [batch_fs, ite_eq_left hpowOk, hrun, hw, ← h115, assertEq_sound hae hat, isMul_sound hm195 hat]
+  exact ite_eq_left rfl
 
 /-- **`aggregate_claims`' core IR writes the batching of the children whose words the memory
 holds**, on a memory image. -/

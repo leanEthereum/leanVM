@@ -55,7 +55,7 @@ theorem btNib_ptr {n k : ℕ} (h : Stmt.HoldsList C rd σ (btNibT n k) True kret
     LoadHolds rd (σ (.n (valf% «block_selector_tab» "digits"))) k (σ (.n (btC k))) ∧ σ (.n (btPe k)) = σ (.n (valf% «block_selector_tab» "eq_tab")) * σ (.n (btC k)) ∧
       σ (.n (btPg k)) = σ (.n (valf% «block_selector_tab» "g_tab")) * σ (.n (btC k)) := by
   unfold btNibT at h
-  rw [tb_holdsList_append_noRet rfl] at h
+  rw [holdsList_append_noRet rfl] at h
   obtain ⟨h1, h2⟩ := h
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at h1
   obtain ⟨hld, -, -, hm, -⟩ := h1
@@ -96,12 +96,12 @@ theorem block_selector_tab_relIn {n : ℕ} (hn : n < 34) {rd : Reader} {R : ℕ 
     all_goals
       have h0 : n ≠ 0 := by intro h0; subst h0; simp [btN] at hk
       simp only [btPre, h0, ↓reduceIte] at hpre
-      rw [tb_holdsList_append_noRet (tb_noRetList_flatten_range _ _ (btNibT_noRet n)),
-        tb_holdsList_flatten_range _ _ (btNibT_noRet n)] at hpre
+      rw [holdsList_append_noRet (noRetList_flatten_range _ _ (btNibT_noRet n)),
+        holdsList_flatten_range _ _ (btNibT_noRet n)] at hpre
       obtain ⟨hld, he', hg'⟩ := btNib_ptr (hpre.1 k hk)
       obtain ⟨u, hu, hdu⟩ := hd k hk
       rw [p0] at hld
-      have hc : σ (.n (btC k)) = gen ^ u := tb_loadHolds_unique hld hdu
+      have hc : σ (.n (btC k)) = gen ^ u := loadHolds_unique hld hdu
       have hw4 := btW_le n k
       have h16 : 2 ^ btW n k ≤ 16 :=
         calc 2 ^ btW n k ≤ 2 ^ 4 := Nat.pow_le_pow_right (by norm_num) hw4

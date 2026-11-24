@@ -123,12 +123,12 @@ theorem block_selector_complete_holds : block_selector_complete_Spec := by
     have f0 : F 0 = sb := by simp [hF, bsVal]
     have f1 : F 1 = z1 := by simp [hF, bsVal]
     have f2 : F 2 = ic := by simp [hF, bsVal]
-    refine (tb_rel_pre hf hb (bsPre_noRet n) [sb, z1, ic] [eq, rb]).mpr ⟨fun x ↦ F x.idx,
+    refine (rel_pre hf hb (bsPre_noRet n) [sb, z1, ic] [eq, rb]).mpr ⟨fun x ↦ F x.idx,
       by rw [hp]; simp only [List.map_cons, List.map_nil]; rw [f0, f1, f2], ?_, ?_⟩
     · by_cases h0 : n = 0
       · subst h0
         simp only [bsPre, ↓reduceIte, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
-        simp [hF, bsVal, tb_word_one]
+        simp [hF, bsVal, word_one]
       · simp only [bsPre, h0, ↓reduceIte]
         rw [holdsList_append, holdsList_flatten _ (fun b hb ↦ by
           obtain ⟨t, -, rfl⟩ := List.mem_map.mp hb; exact bsBlk_noRet t)]
@@ -155,7 +155,7 @@ theorem block_selector_complete_holds : block_selector_complete_Spec := by
               e 7 (by norm_num) (by norm_num), e 8 (by norm_num) (by norm_num),
               e 9 (by norm_num) (by norm_num), e 10 (by norm_num) (by norm_num), f0, f1, f2]
             simp only [bsBlk0V, Nat.reduceSub, List.getD_cons_zero, List.getD_cons_succ,
-              bsEqV, bsRbV, tb_word_one]
+              bsEqV, bsRbV, word_one]
             refine ⟨lb, ?_, lb2, lz, ?_, ?_, lc, ?_, ?_⟩ <;> trivial
           · have e : ∀ r, r < 10 → F (10 * k + 1 + r) = bsBlkV bs zs1 cs k r :=
               fun r hr ↦ bsVal_blk sb z1 ic bs zs1 cs hk0 hk hr
@@ -171,7 +171,7 @@ theorem block_selector_complete_holds : block_selector_complete_Spec := by
               f2]
             obtain ⟨k', rfl⟩ : ∃ k', k = k' + 1 := ⟨k - 1, by omega⟩
             simp only [bsBlkV, List.getD_cons_zero, List.getD_cons_succ, bsEqV, bsRbV,
-              tb_word_one, Nat.add_sub_cancel]
+              word_one, Nat.add_sub_cancel]
             refine ⟨lb, ?_, lb2, lz, ?_, ?_, ?_, lc, ?_, ?_, ?_⟩ <;> trivial
         · simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
           rw [show F (bsEq (n - 1)) = bsEqV bs zs1 (n - 1) from

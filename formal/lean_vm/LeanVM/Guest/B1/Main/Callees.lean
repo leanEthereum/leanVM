@@ -122,7 +122,7 @@ theorem callees_exist {bytecode : List K} {sx : Val → LeanXmss.Signature}
       refine ⟨hints, fun _ _ _ _ _ _ hargs _ _ m' h1' h16' hn' => ?_⟩
       simp only [List.cons.injEq, and_true] at hargs
       obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩ := hargs
-      have : m' = m := gen_pow_inj34 (by omega) (by omega) (hn'.symm.trans hn)
+      have : m' = m := gen_pow_inj (by omega) (by omega) (hn'.symm.trans hn)
       subst this
       exact ⟨out, hl, hrd, hb⟩
     · exact ⟨⟨0, [], 0⟩, fun a b c d e t hargs hr hw m h1 h16 hn =>

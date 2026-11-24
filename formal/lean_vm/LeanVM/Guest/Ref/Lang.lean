@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.Core
 public import LeanVM.Guest.B1.Common.HashPair
+public import LeanVM.Guest.Ref.Attr
 
 /-!
 # Reference functions
@@ -42,6 +43,9 @@ a `keccak` whose output lands on it are assertions about one word.
 * A hint is a name: it emits no command, and the commands that read it constrain it.
 
 `LeanVM.Guest.Ref.Link` ties a compiled specialization to its reference function.
+`simp only [ref_norm]` unfolds a block of commands (`Cmd.SatList`), `unroll` and compile-time
+`if`s included, into the meanings of its commands. `LeanVM.Guest.Ref.Verified` bundles a reference
+function with its meaning.
 -/
 
 namespace LeanVM.Guest.Ref
@@ -137,16 +141,16 @@ def unroll (lo hi : Nat) (body : Nat → List (Cmd X)) : List (Cmd X) :=
 
 variable {rd : Reader} {ρ : X → E}
 
-theorem Cmd.satList_nil : Cmd.SatList rd ρ [] := trivial
+@[ref_norm] theorem Cmd.satList_nil : Cmd.SatList rd ρ [] := trivial
 
-theorem Cmd.satList_cons {c : Cmd X} {cs : List (Cmd X)} :
+@[ref_norm] theorem Cmd.satList_cons {c : Cmd X} {cs : List (Cmd X)} :
     Cmd.SatList rd ρ (c :: cs) ↔ c.Sat rd ρ ∧ Cmd.SatList rd ρ cs := Iff.rfl
 
-theorem Cmd.satList_append (as bs : List (Cmd X)) :
+@[ref_norm] theorem Cmd.satList_append (as bs : List (Cmd X)) :
     Cmd.SatList rd ρ (as ++ bs) ↔ Cmd.SatList rd ρ as ∧ Cmd.SatList rd ρ bs := by
   induction as <;> simp [Cmd.SatList, *, and_assoc]
 
-theorem Cmd.satList_unroll (lo hi : Nat) (body : Nat → List (Cmd X)) :
+@[ref_norm] theorem Cmd.satList_unroll (lo hi : Nat) (body : Nat → List (Cmd X)) :
     Cmd.SatList rd ρ (unroll lo hi body) ↔ ∀ i, lo ≤ i → i < hi → Cmd.SatList rd ρ (body i) := by
   have h : ∀ l : List Nat, Cmd.SatList rd ρ (l.flatMap body) ↔
       ∀ i ∈ l, Cmd.SatList rd ρ (body i) := fun l ↦ by
@@ -154,6 +158,13 @@ theorem Cmd.satList_unroll (lo hi : Nat) (body : Nat → List (Cmd X)) :
   rw [unroll, h]
   exact ⟨fun H i h1 h2 ↦ H i (List.mem_range'_1.mpr ⟨h1, by omega⟩),
     fun H i hm ↦ by have := List.mem_range'_1.mp hm; exact H i this.1 (by omega)⟩
+
+/-- A block chosen by a compile-time condition. -/
+@[ref_norm] theorem Cmd.satList_ite {c : Prop} [Decidable c] (a b : List (Cmd X)) :
+    Cmd.SatList rd ρ (if c then a else b) ↔ if c then Cmd.SatList rd ρ a else Cmd.SatList rd ρ b := by
+  split <;> rfl
+
+attribute [ref_norm] Cmd.Sat Tm.eval
 
 /-- **A `match`**: some arm `i` is taken, at `w = g^(j + i)`. -/
 theorem Cmd.satArms_iff {w : E} : ∀ (j : Nat) (arms : List (List (Cmd X))),

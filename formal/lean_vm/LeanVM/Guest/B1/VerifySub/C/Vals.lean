@@ -73,13 +73,13 @@ theorem vsg_mul {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {d x y 
     (hy : y < d) (h : GoodS rd S w σ (.atom (.mul (.n d) (.n x) (.n y)))) :
     σ (.n d) = σ (.n x) * σ (.n y) := by
   simp only [GoodS, Good] at h
-  rwa [ite_pos' (show (V.n x).idx < (V.n d).idx ∧ (V.n y).idx < (V.n d).idx from ⟨hx, hy⟩)] at h
+  rwa [ite_eq_left (show (V.n x).idx < (V.n d).idx ∧ (V.n y).idx < (V.n d).idx from ⟨hx, hy⟩)] at h
 
 theorem vsg_quot {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {d x y : ℕ} (hx : d < x)
     (h : GoodS rd S w σ (.atom (.mul (.n d) (.n x) (.n y)))) :
     σ (.n x) = σ (.n d) * (σ (.n y))⁻¹ := by
   simp only [GoodS, Good] at h
-  rwa [ite_neg' (show ¬((V.n x).idx < (V.n d).idx ∧ (V.n y).idx < (V.n d).idx) from
+  rwa [ite_eq_right (show ¬((V.n x).idx < (V.n d).idx ∧ (V.n y).idx < (V.n d).idx) from
     fun h' ↦ by simp only at h'; omega)] at h
 
 theorem vsg_add {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {d x y : ℕ}

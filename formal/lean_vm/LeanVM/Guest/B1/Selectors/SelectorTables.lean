@@ -69,7 +69,7 @@ def stPre : List Stmt :=
 /-- The function found by name is the template. -/
 noncomputable def stCheck : Bool :=
   match coreProgram.find? "selector_tables" with
-  | some fn => decide (fn.params = [.n (val% «selector_tables» "point"), .n (val% «selector_tables» "point1")]) && tbStmtsEqb fn.body (stPre ++ [.ret [.n (val% «selector_tables» "s2#0")]])
+  | some fn => decide (fn.params = [.n (val% «selector_tables» "point"), .n (val% «selector_tables» "point1")]) && stmtsEqb fn.body (stPre ++ [.ret [.n (val% «selector_tables» "s2#0")]])
   | none => false
 
 theorem stCheck_eq : stCheck = true := by decide +kernel
@@ -81,21 +81,21 @@ theorem stFound : ∃ fn : Fn, coreProgram.find? "selector_tables" = some fn ∧
   split at h
   · rename_i fn hf
     simp only [Bool.and_eq_true, decide_eq_true_eq] at h
-    exact ⟨fn, hf, h.1, tbStmtsEqb_sound h.2⟩
+    exact ⟨fn, hf, h.1, stmtsEqb_sound h.2⟩
   · exact absurd h (by simp)
 
 theorem stLevel_noRet (j w : ℕ) : Stmt.noRetList (stLevel j w) = true := by
-  rw [stLevel, tb_noRetList_append, tb_noRetList_flatten_range _ _ (fun _ => rfl)]; rfl
+  rw [stLevel, noRetList_append, noRetList_flatten_range _ _ (fun _ => rfl)]; rfl
 
 theorem stStores_noRet (j w : ℕ) : Stmt.noRetList (stStores j w) = true :=
-  tb_noRetList_mapAtoms _ _
+  noRetList_mapAtoms _ _
 
 theorem stNib_noRet (j : ℕ) : Stmt.noRetList (stNib j) = true := by
-  simp only [stNib, tb_noRetList_append, stLevel_noRet,
-    tb_noRetList_flatten_range _ _ (stStores_noRet j)]; rfl
+  simp only [stNib, noRetList_append, stLevel_noRet,
+    noRetList_flatten_range _ _ (stStores_noRet j)]; rfl
 
 theorem stPre_noRet : Stmt.noRetList stPre = true := by
-  rw [stPre, tb_noRetList_append, tb_noRetList_append, tb_noRetList_flatten_range _ _ stNib_noRet]
+  rw [stPre, noRetList_append, noRetList_append, noRetList_flatten_range _ _ stNib_noRet]
   rfl
 
 /-! ## The entries -/
@@ -130,7 +130,7 @@ theorem holds_stLevel {j w : ℕ} (h : Stmt.HoldsList C rd σ (stLevel j w) True
     LoadHolds rd (σ (.n (val% «selector_tables» "point1"))) (4 * j + 3 - w) (σ (.n (stM j w - 1))) ∧
     ∀ i < 2 ^ w, σ (.n (stV j w (2 * i))) = σ (.n (stV j (w - 1) i)) * σ (.n (stM j w - 1)) ∧
       σ (.n (stV j w (2 * i + 1))) = σ (.n (stV j (w - 1) i)) * σ (.n (stM j w - 2)) := by
-  rw [stLevel, tb_holdsList_append_noRet rfl, tb_holdsList_flatten_range _ _ (fun _ => rfl)] at h
+  rw [stLevel, holdsList_append_noRet rfl, holdsList_flatten_range _ _ (fun _ => rfl)] at h
   obtain ⟨h1, h2⟩ := h
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at h1
   refine ⟨h1.1, h1.2, fun i hi => ?_⟩
@@ -149,31 +149,31 @@ theorem holds_stNib {j : ℕ} (h : Stmt.HoldsList C rd σ (stNib j) True kret) :
       LoadHolds rd (σ (.n (val% «selector_tables» "sel_eq"))) (32 * j + selEqOff w + i * 2 ^ (3 - w)) (σ (.n (stV j w i)))) := by
   have n0 : Stmt.noRetList [Stmt.atom (.load (.n (stB j)) (.n (val% «selector_tables» "point1")) (4 * j + 3)),
       Stmt.atom (.load (.n (stB j + 1)) (.n (val% «selector_tables» "point")) (4 * j + 3))] = true := rfl
-  rw [stNib, tb_holdsList_append_noRet (by simp only [tb_noRetList_append, stLevel_noRet, n0,
+  rw [stNib, holdsList_append_noRet (by simp only [noRetList_append, stLevel_noRet, n0,
       Bool.and_self]),
-    tb_holdsList_append_noRet (by simp only [tb_noRetList_append, stLevel_noRet, n0,
+    holdsList_append_noRet (by simp only [noRetList_append, stLevel_noRet, n0,
       Bool.and_self]),
-    tb_holdsList_append_noRet (by simp only [tb_noRetList_append, stLevel_noRet, n0,
+    holdsList_append_noRet (by simp only [noRetList_append, stLevel_noRet, n0,
       Bool.and_self]),
-    tb_holdsList_append_noRet n0, tb_holdsList_flatten_range _ _ (stStores_noRet j)] at h
+    holdsList_append_noRet n0, holdsList_flatten_range _ _ (stStores_noRet j)] at h
   obtain ⟨⟨⟨⟨h0, h1⟩, h2⟩, h3⟩, h4⟩ := h
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at h0
   refine ⟨h0, h1, h2, h3, fun w hw i hi => ?_⟩
   have := h4 w hw
-  rw [stStores, tb_holdsList_mapAtoms] at this
+  rw [stStores, holdsList_mapAtoms] at this
   exact this i hi
 
 /-- **The eq levels of nibble `j`**: level `w`'s entry `i` is the table's entry `i·2^(3 - w)`. -/
 theorem stLevels {j : ℕ} (hj : j < 8) {p p1 : List E} (hp : p.length = 32) (hp1 : p1.length = 32)
-    (hpt : TbReadsAt rd (σ (.n (val% «selector_tables» "point"))) p) (hpt1 : TbReadsAt rd (σ (.n (val% «selector_tables» "point1"))) p1)
+    (hpt : ReadsAt rd (σ (.n (val% «selector_tables» "point"))) p) (hpt1 : ReadsAt rd (σ (.n (val% «selector_tables» "point1"))) p1)
     (h : Stmt.HoldsList C rd σ (stNib j) True kret) :
     ∀ w < 4, ∀ i < 2 ^ (w + 1), σ (.n (stV j w i)) = selEqEntry p p1 j w (i * 2 ^ (3 - w)) := by
   obtain ⟨⟨l0, l1⟩, hL1, hL2, hL3, -⟩ := holds_stNib h
-  have hrd : ∀ (q : List E) (pq : E), q.length = 32 → TbReadsAt rd pq q → ∀ s < 4, ∀ x,
+  have hrd : ∀ (q : List E) (pq : E), q.length = 32 → ReadsAt rd pq q → ∀ s < 4, ∀ x,
       LoadHolds rd pq (4 * j + s) x → x = q.getD (4 * j + s) 0 := fun q pq hq hr s hs x hx => by
     have := hr (4 * j + s) (by omega)
     rw [List.getD_eq_getElem _ _ (by omega)]
-    exact tb_loadHolds_unique hx this
+    exact loadHolds_unique hx this
   intro w hw
   induction w with
   | zero =>
@@ -221,13 +221,13 @@ returned buffer holds their strided eq tables. -/
 theorem selector_tables_sound {rd : Reader} {args rets : List E}
     (h : coreProgram.Rel rd "selector_tables" args rets) : SelTablesOut rd args rets := by
   obtain ⟨fn, hf, hp, hb⟩ := stFound
-  obtain ⟨σ, hpar, hpre, hret⟩ := (tb_rel_pre hf hb stPre_noRet args rets).mp h
+  obtain ⟨σ, hpar, hpre, hret⟩ := (rel_pre hf hb stPre_noRet args rets).mp h
   rw [hp] at hpar
   simp only [List.map_cons, List.map_nil] at hpar hret
   subst hpar hret
-  rw [stPre, tb_holdsList_append_noRet (by
-      rw [tb_noRetList_append, tb_noRetList_flatten_range _ _ stNib_noRet]; rfl),
-    tb_holdsList_append_noRet rfl, tb_holdsList_flatten_range _ _ stNib_noRet] at hpre
+  rw [stPre, holdsList_append_noRet (by
+      rw [noRetList_append, noRetList_flatten_range _ _ stNib_noRet]; rfl),
+    holdsList_append_noRet rfl, holdsList_flatten_range _ _ stNib_noRet] at hpre
   obtain ⟨⟨-, hnibs⟩, hcopy⟩ := hpre
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at hcopy
   simp only [SelTablesOut]

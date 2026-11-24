@@ -236,10 +236,10 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
           mPost.flatMap (Main.slEvs σ))))) := by
     unfold mEvs
     by_cases a : m.nd = 1 <;> by_cases b : m.nc = 0
-    · rw [ite_pos' (h338.mpr a), ite_pos' (h404.mpr b), ite_pos' a, ite_pos' b]
-    · rw [ite_pos' (h338.mpr a), ite_neg' (fun h => b (h404.mp h)), ite_pos' a, ite_neg' b]
-    · rw [ite_neg' (fun h => a (h338.mp h)), ite_pos' (h404.mpr b), ite_neg' a, ite_pos' b]
-    · rw [ite_neg' (fun h => a (h338.mp h)), ite_neg' (fun h => b (h404.mp h)), ite_neg' a, ite_neg' b]
+    · rw [ite_eq_left (h338.mpr a), ite_eq_left (h404.mpr b), ite_eq_left a, ite_eq_left b]
+    · rw [ite_eq_left (h338.mpr a), ite_eq_right (fun h => b (h404.mp h)), ite_eq_left a, ite_eq_right b]
+    · rw [ite_eq_right (fun h => a (h338.mp h)), ite_eq_left (h404.mpr b), ite_eq_right a, ite_eq_left b]
+    · rw [ite_eq_right (fun h => a (h338.mp h)), ite_eq_right (fun h => b (h404.mp h)), ite_eq_right a, ite_eq_right b]
   rw [hes] at hw
   obtain ⟨s1, s2, s2', s3, s4, s5, s6⟩ := mBlocks_straight
   obtain ⟨k1, k2, k2', k3, k4, k5, k6⟩ := mBlocks_kind
@@ -436,7 +436,7 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
       · rw [(q6 (by assumption)).1]; rfl
     · split
       · rename_i hnd1
-        rw [ite_pos' hnd1] at hoB
+        rw [ite_eq_left hnd1] at hoB
         have lB0 := hoB.length
         obtain ⟨b1, tb1, rfl, lB1⟩ := exists_of_length_succ lB0
         obtain rfl := List.eq_nil_of_length_eq_zero lB1
@@ -453,7 +453,7 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
           obtain rfl := List.eq_nil_of_length_eq_zero l2
           simp [mOrc, h0']
       · rename_i hnd1
-        rw [ite_neg' hnd1] at hoB
+        rw [ite_eq_right hnd1] at hoB
         have lB := hoB.length
         obtain rfl := List.eq_nil_of_length_eq_zero lB
         trivial
@@ -469,11 +469,11 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
       · rw [(r5 (by assumption)).1]; rfl
     · split
       · rename_i hnc0
-        rw [ite_pos' hnc0] at hoD
+        rw [ite_eq_left hnc0] at hoD
         obtain rfl := List.eq_nil_of_length_eq_zero hoD.length
         trivial
       · rename_i hnc0
-        rw [ite_neg' hnc0] at hoD
+        rw [ite_eq_right hnc0] at hoD
         have lD0 := hoD.length
         obtain ⟨g1, td, rfl, lD1⟩ := exists_of_length_succ lD0
         obtain rfl := List.eq_nil_of_length_eq_zero lD1

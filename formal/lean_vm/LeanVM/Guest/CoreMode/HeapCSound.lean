@@ -708,7 +708,7 @@ theorem tailC_ok (hX : XOk sigOf H rd f σ X) (hself : sigOf f.name = H.sig) (hr
           · by_cases h0 : σ c = 0
             · exfalso
               have hx := hexit h0
-              rw [show σ (V.n 0) = vw σ 0 from rfl, (rep_spec hylo).2, ← ofK_mul', addressOfIndex,
+              rw [show σ (V.n 0) = vw σ 0 from rfl, (rep_spec hylo).2, ← ofK_mul, addressOfIndex,
                 addressOfIndex, ← pow_add, ← addressOfIndex] at hx
               rw [← hx, rep_of (by omega), Option.some.injEq] at hyhi
               omega

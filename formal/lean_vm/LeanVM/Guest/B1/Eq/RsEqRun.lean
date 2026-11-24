@@ -277,7 +277,7 @@ theorem readsAt_drop_take {rd : Reader} {a : E} {xs : List E} (h : ReadsAt rd a 
     ReadsAt rd (a * gen ^ (8 * t)) ((xs.drop (8 * t)).take 8) := by
   refine readsAt_mul_gen_pow.mpr fun i hi ↦ ?_
   simp only [List.length_take, List.length_drop] at hi
-  have := readsAt_getD h (i := 8 * t + i) (by omega)
+  have := readsAt_getD h (k := 8 * t + i) (by omega)
   rwa [List.getD_eq_getElem?_getD, List.getElem?_take_of_lt (by omega), List.getElem?_drop,
     ← List.getD_eq_getElem?_getD]
 
@@ -296,7 +296,7 @@ theorem chunks_of_rows {rd : Reader} {chain z p : E} {count : ℕ} {zs ps c : Li
     intro k hk
     rcases Nat.eq_zero_or_pos t with h0 | h0
     · subst h0
-      have := readsAt_getD (hc (by omega)) (i := k) (by omega)
+      have := readsAt_getD (hc (by omega)) (k := k) (by omega)
       rwa [rsR, Nat.mul_zero, ringRow_nil, Nat.zero_add]
     · have := hr t h0 (by omega) k hk
       rwa [min_eq_left (by omega)] at this
@@ -436,7 +436,7 @@ theorem rs_eq_run_sound (rd : Reader) (args rets : List E)
   refine ⟨8 * q + r, by omega, hcg, σ (.n (val% «rs_eq_run» "chain")), _, _, lz, lp, rz, rp, hone, fun h h1 h2 k hk ↦ ?_, ?_⟩
   · have hrow := rows h h1 h2 k hk
     have hc1 : ((List.range 64).map fun k ↦ (C 0).getD k 0).getD k 0 = 1 := by
-      have := readsAt_getD (rc (by omega)) (i := k) (by rw [lc]; exact hk)
+      have := readsAt_getD (rc (by omega)) (k := k) (by rw [lc]; exact hk)
       exact loadHolds_unique this (hone k hk)
     rwa [hc1] at hrow
   · rw [← hret, h58, h57]

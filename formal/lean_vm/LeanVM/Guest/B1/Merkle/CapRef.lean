@@ -6,7 +6,7 @@
 
 module
 
-public import LeanVM.Guest.Ref.Link
+public import LeanVM.Guest.Ref.Verified
 public import LeanVM.Guest.B1.Merkle.Meaning
 
 /-!
@@ -17,8 +17,8 @@ by line (`LeanVM.Guest.Ref.Lang`): the `Const` depth a Lean argument, each `unro
 each `if const` an `if`, the frame run `runs` and the flags read the names of `CapName`. The
 size of `runs` (the `StackBuf` chosen per depth) is not read: a cell is a name, and a run's size
 constrains nothing.
-`capRef_sem` is its meaning at every depth; `B1/Merkle/CapLinks.lean` ties the deployed
-specializations to it.
+`capRef_sem` is its meaning at every depth, bundled as `capVerified`; `B1/Merkle/CapLinks.lean`
+ties the deployed specializations to it.
 -/
 
 namespace LeanVM.Guest.B1
@@ -100,9 +100,8 @@ theorem capRef_sem (D : ℕ) (rd : Reader) (args rets : List E) :
         fun k _ hk ↦ by omega, fun k _ hk ↦ by omega, rfl⟩
       obtain rfl | rfl : k = 2 ∨ k = 3 := by omega
       exacts [h2, h3]
-    · simp only [capRef, ne_eq, hD, not_false_eq_true, ↓reduceIte, Cmd.satList_append,
-        Cmd.satList_unroll, apply_ite (Cmd.SatList rd ρ), Cmd.satList_cons, Cmd.Sat, Tm.eval,
-        Cmd.satList_nil, and_true, Nat.div_eq_zero_iff_lt hpos] at hb
+    · simp only [capRef, ne_eq, hD, not_false_eq_true, ↓reduceIte, ref_norm, and_true,
+        Nat.div_eq_zero_iff_lt hpos] at hb
       obtain ⟨hA, hB⟩ := hb
       refine ⟨fun k ↦ ρ (.runs (k - 2)), fun k ↦ ρ (.flag k), fun k h2 hk ↦ ?_, fun k h2 hk ↦ ?_,
         fun k h1 hk hf ↦ ?_, fun k h2 hk hf ↦ ?_, by simp [capRef, hD, Tm.eval]⟩
@@ -112,16 +111,16 @@ theorem capRef_sem (D : ℕ) (rd : Reader) (args rets : List E) :
         · have := (hA n (by omega) (by omega)).2
           rwa [show 2 * (n - 1) + 1 = 2 * n + 1 - 2 by omega] at this
       · have := hB k (by omega) hk
-        rw [ite_neg' (by omega)] at this
+        rw [ite_eq_right (by omega)] at this
         exact ⟨this.1, this.2.1⟩
       · have := hB k h1 hk
         by_cases e : k = 1
-        · rw [ite_pos' e] at this
+        · rw [ite_eq_left e] at this
           convert this using 3 <;> omega
-        · rw [ite_neg' e] at this
+        · rw [ite_eq_right e] at this
           convert this.2.2.2 (hf.resolve_left e) using 3 <;> omega
       · have := hB k (by omega) (by omega)
-        rw [ite_neg' (by omega), ite_pos' hk, word_zero] at this
+        rw [ite_eq_right (by omega), ite_eq_left hk, word_zero] at this
         exact this.2.2.1 hf
   · intro hm
     obtain ⟨cap, flags, rfl⟩ : ∃ cap flags, args = [cap, flags] := by
@@ -134,22 +133,24 @@ theorem capRef_sem (D : ℕ) (rd : Reader) (args rets : List E) :
       exact ⟨capVal cap flags cell fl, rfl,
         ⟨hcell 2 le_rfl (by norm_num), hcell 3 (by norm_num) (by norm_num), trivial⟩, rfl⟩
     · refine ⟨capVal cap flags cell fl, rfl, ?_, by simp [capRef, hD, Tm.eval, capVal]⟩
-      simp only [capRef, ne_eq, hD, not_false_eq_true, ↓reduceIte, Cmd.satList_append,
-        Cmd.satList_unroll, apply_ite (Cmd.SatList rd _), Cmd.satList_cons, Cmd.Sat, Tm.eval,
-        Cmd.satList_nil, and_true, Nat.div_eq_zero_iff_lt hpos, capVal]
+      simp only [capRef, ne_eq, hD, not_false_eq_true, ↓reduceIte, ref_norm, and_true,
+        Nat.div_eq_zero_iff_lt hpos, capVal]
       refine ⟨fun n h1 h2 ↦ ⟨?_, ?_⟩, fun n h1 h2 ↦ ?_⟩
       · rw [show 2 * (n - 1) + 2 = 2 * n by omega]
         exact hcell _ (by omega) (by omega)
       · rw [show 2 * (n - 1) + 1 + 2 = 2 * n + 1 by omega]
         exact hcell _ (by omega) (by omega)
       · by_cases e : n = 1
-        · rw [ite_pos' e]
+        · rw [ite_eq_left e]
           convert hhash n h1 h2 (.inl e) using 2 <;> omega
-        · rw [ite_neg' e]
+        · rw [ite_eq_right e]
           refine ⟨(hfl n (by omega) h2).1, (hfl n (by omega) h2).2, fun h0 ↦ ?_, fun hne ↦ ?_⟩
           · split_ifs with h2n
             simpa only [word_zero] using hpin n (by omega) h2n h0
           · convert hhash n h1 h2 (.inr hne) using 2 <;> omega
+
+/-- `verify_merkle_cap`, verified at every cap depth. -/
+def capVerified : Verified ℕ CapName := ⟨capRef, MeaningVerifyMerkleCap, capRef_sem⟩
 
 end
 end LeanVM.Guest.B1

@@ -125,7 +125,7 @@ theorem aggregate_claims_completeAtTBRE (fs : String → ℕ) (cert : String →
   have hcw' : ∀ rd, Main.MemL rd (Own ++ Lin) → ∀ c (hc : c < cs.length),
       ChildWordsAt rd cpi cfresh ccarried c cs[c] :=
     fun rd hm => hcw rd (Main.memL_append.mp hm).2
-  have hne : (1 : E) + gen ^ m ≠ 0 := (one_add_gen_ne (by omega)).mpr (by omega)
+  have hne : (1 : E) + gen ^ m ≠ 0 := (one_add_gen_pow_ne_zero_iff (by omega)).mpr (by omega)
   -- the callees
   let ks : List Kid :=
     [⟨name% «aggregate_claims_loop0», true, [1, gen ^ m, P.absorb, cfresh, P.lf, ccarried, P.lc,

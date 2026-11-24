@@ -95,7 +95,7 @@ theorem loop10_relIn {rd : Reader} {R : ℕ → Prop} {K : ℕ}
     have c60 := A (.const (.n 60) (word 2 0)) (by simp [l10Atoms])
     have m61 := A (.mul (.n 61) (.n 0) (.n 60)) (by simp [l10Atoms])
     simp only [Atom.Holds] at m6 m7 m8 m9 m10 l11 m50 m53 m56 c57 m58 a59 c60 m61
-    rw [tb_word_gen] at c57 c60
+    rw [word_gen] at c57 c60
     have e10 : σ (.n 10) = rounds * gen ^ (7 * k) := by
       rw [m10, m9, m8, m7, m6, p0, p2]; ring
     refine ⟨fun s hs ↦ dispOk_of_noDisp (List.all_eq_true.mp l10_noDisp s hs),

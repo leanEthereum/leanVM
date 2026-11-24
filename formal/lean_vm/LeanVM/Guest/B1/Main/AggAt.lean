@@ -244,9 +244,6 @@ theorem aggSize_ok : aggSizeOk = true := by decide +kernel
 theorem agg_loop : coreProgram.loop "aggregate_claims" = false := by
   rw [Program.loop_of_find? find_aggregate_claims]; decide +kernel
 
-theorem one_add_gen_ne {a : ℕ} (ha : a < 2 ^ 64 - 1) : ((1 : E) + gen ^ a ≠ 0) ↔ a ≠ 0 := by
-  rw [Ne, e_add_eq_zero_iff, eq_comm, gen_pow_eq_one_iff ha]
-
 /-- The buffers' sizes, as the valuation computes them. -/
 theorem agg_sizes {rd : Reader} {σ : Val} {m : ℕ} (hat : ∀ a ∈ atomsIn aggP, a.Holds rd σ)
     (e0 : σ (.n (val% «aggregate_claims» "n_children_g")) = gen ^ m) :

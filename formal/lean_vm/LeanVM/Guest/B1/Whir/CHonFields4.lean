@@ -262,10 +262,10 @@ theorem fld_caps : ∀ l < (osCfgR (μ - minOpenLog) (r - 1)).levels.length,
       rw [hR.height_eq hl, hq, hp]
     refine capH_meaning hlen hok hps hag hcd2 hcdd hne (fun k _ hk ↦ ?_) (fun k _ hk ↦ ?_)
     · rw [← hcdq, e4] at hk
-      have := readsAt_getD' hc (j := k) (by simp only [capW, List.length_map, List.length_range]; exact hk)
+      have := readsAt_getD hc (k := k) (by simp only [capW, List.length_map, List.length_range]; exact hk)
       rwa [hcapG k hk, hcv] at this
     · rw [← hcdq] at hk
-      have := readsAt_getD' hf (j := k) (by simp only [flW, List.length_map, List.length_range]; exact hk)
+      have := readsAt_getD hf (k := k) (by simp only [flW, List.length_map, List.length_range]; exact hk)
       rwa [hflG k hk, hfv] at this
   · have hk' : k < ((Ls.getD l default).qs μ).length := by omega
     have hqlt : ((Ls.getD l default).qs μ).getD k 0 <

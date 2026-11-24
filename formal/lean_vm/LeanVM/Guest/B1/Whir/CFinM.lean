@@ -239,7 +239,7 @@ theorem oodLoads_pinned {c : OsCfg} {tch k : ℕ} {σ : Val} {G T : List E} {rec
         rw [hcl] at ht
         refine ⟨by show 26 < k; omega, (recs.getD (ol - 1) default).z0.getD t 0, fun C rd hH ↦ ?_⟩
         have hR := (hm C rd hH).stored (ol - 1) hi
-        have := readsAt_getD' hR.z0 (by rw [hR.z0len]; exact ht)
+        have := readsAt_getD hR.z0 (by rw [hR.z0len]; exact ht)
         rw [loadHolds_mul_gen_pow] at this
         convert this using 2
         rw [show ol - 1 + 1 = ol by omega]
@@ -263,7 +263,7 @@ theorem oodLoads_pinned {c : OsCfg} {tch k : ℕ} {σ : Val} {G T : List E} {rec
         · simp only [Prod.mk.injEq] at he
           obtain ⟨rfl, rfl⟩ := he
           refine ⟨htch, T.getD (t - ((finLv c (ol - 1)).logCols - c.yrLog)) 0, fun C rd hH ↦ ?_⟩
-          exact readsAt_getD' (hm C rd hH).tchs (by omega)
+          exact readsAt_getD (hm C rd hH).tchs (by omega)
     · rw [hlv] at h
       refine oodLoads_pinned hS htch hk hm rest (ol + 1) (by omega) ?_ (by simpa using h)
       rw [← List.drop_drop, ← hl]; simp
@@ -400,9 +400,9 @@ theorem osFinishA_completeC {c : OsCfg} {st : OsSt} {tch : ℕ} {σ : Val} {G T 
             (by rw [ha1 _ htch]; exact hM.tchs) (0 + j)
           exact this
         · rw [e1, ← finPtC_getD hS]
-          exact readsAt_getD' hM.pt (by rw [finPtC_length c hS]; omega)
+          exact readsAt_getD hM.pt (by rw [finPtC_length c hS]; omega)
         · rw [e2, ← finPt1C_getD hS (by omega)]
-          exact readsAt_getD' hM.pt1 (by rw [finPt1C_length c hS]; omega)
+          exact readsAt_getD hM.pt1 (by rw [finPt1C_length c hS]; omega)
   have s2 := BlkA.seq (M := M) (H := H) (show k0 ≤ P2 by omega) (show P2 ≤ P2 + 6 by omega) s1 fun σ2 _ _ ↦
     finHeaps_complete (M := M) (H := H) (n := n) (p := P2) (σ := σ2) (BD := BD) (LS := LS) (LA := LA) hn6
   have hpos : ∀ lv : OsLv, 1 ≤ lv.prefixLen + c.yrLog := fun _ ↦ by have := hS.ylog; omega
@@ -425,7 +425,7 @@ theorem osFinishA_completeC {c : OsCfg} {st : OsSt} {tch : ℕ} {σ : Val} {G T 
         · obtain ⟨-, eb⟩ := finBdC_get (G := G) (T := T) (recs := recs) hi' (by omega) ht
             (by have := hS.cols i hi'; have := hL.pre; omega)
           rw [e1]
-          have := readsAt_getD' hM.bd (j := i * ligColsCap + t) (by
+          have := readsAt_getD hM.bd (k := i * ligColsCap + t) (by
             rw [(finBdC_get (G := G) (T := T) (recs := recs) hi' (by omega) ht
               (by have := hS.cols i hi'; have := hL.pre; omega)).1]
             have : (i + 1) * ligColsCap ≤ n * ligColsCap := Nat.mul_le_mul_right _ (by omega)
@@ -435,11 +435,11 @@ theorem osFinishA_completeC {c : OsCfg} {st : OsSt} {tch : ℕ} {σ : Val} {G T 
           exact this
         · obtain ⟨hl, eb⟩ := finLsC_get (G := G) (T := T) (recs := recs) hi' (by omega)
           rw [e3]
-          have := readsAt_getD' hM.ls (j := i) (by rw [hl]; omega)
+          have := readsAt_getD hM.ls (k := i) (by rw [hl]; omega)
           rwa [eb] at this
         · obtain ⟨hl, eb⟩ := finLaC_get (G := G) (T := T) (recs := recs) hi' (by omega)
           rw [e5]
-          have := readsAt_getD' hM.la (j := i) (by rw [hl]; omega)
+          have := readsAt_getD hM.la (k := i) (by rw [hl]; omega)
           rwa [eb] at this
   have s4 := BlkA.seq (M := M) (H := H) (show k0 ≤ B by omega) (show B ≤ B + 3 by omega) s3 fun σ4 ha4 _ ↦
     finIch0_complete (M := M) (H := H) (n := n) (b := B) (cl := st.claim) (ICH := ICH) (σ := σ4)
@@ -450,9 +450,9 @@ theorem osFinishA_completeC {c : OsCfg} {st : OsSt} {tch : ℕ} {σ : Val} {G T 
         simp only [Nat.mul_zero, Nat.zero_add, finIch, Finset.range_zero, Finset.sum_empty, add_zero] at g0 g1
         rw [ha4 _ hcl]
         refine ⟨?_, ?_⟩
-        · have := readsAt_getD' hM.ich (j := 0) (by rw [hl]; omega)
+        · have := readsAt_getD hM.ich (k := 0) (by rw [hl]; omega)
           rwa [g0] at this
-        · have := readsAt_getD' hM.ich (j := 1) (by rw [hl]; omega)
+        · have := readsAt_getD hM.ich (k := 1) (by rw [hl]; omega)
           rwa [g1] at this
   have s5 := BlkA.seq (M := M) (H := H) (show k0 ≤ B + 3 by omega) w3 s4
     (B := rs.1) (OutB := fun σ' ↦ AllocsAt σ' rs.1 = [] ∧ (∀ i < mid.length,
@@ -518,14 +518,14 @@ theorem osFinishA_completeC {c : OsCfg} {st : OsSt} {tch : ℕ} {σ : Val} {G T 
           (cl := σ (.n st.claim)) (j := i + 1) (by omega)
         have hich : ∀ j < 2 * n, LoadHolds rd (σ5 (.n (B + 1))) j
             ((finIchC c G T recs li (σ (.n st.claim))).getD j 0) := fun j hj ↦ by
-          rw [eI]; exact readsAt_getD' hM.ich (by rw [hl]; exact hj)
+          rw [eI]; exact readsAt_getD hM.ich (by rw [hl]; exact hj)
         refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
         · rw [ha5 osMus (by show 22 < k0; omega)]; exact hM.mus i hi'
         · have := hich (2 * i) (by omega); rwa [g0] at this
         · have := hich (2 * i + 1) (by omega); rwa [g1] at this
-        · rw [e3]; exact readsAt_getD' hM.ls (by rw [(finLsC_get (G := G) (T := T) (recs := recs) hi' (by omega)).1]; omega)
+        · rw [e3]; exact readsAt_getD hM.ls (by rw [(finLsC_get (G := G) (T := T) (recs := recs) hi' (by omega)).1]; omega)
         · rw [ha5 osBetas (by show 20 < k0; omega)]; exact hR.beta
-        · rw [e5]; exact readsAt_getD' hM.la (by rw [(finLaC_get (G := G) (T := T) (recs := recs) hi' (by omega)).1]; omega)
+        · rw [e5]; exact readsAt_getD hM.la (by rw [(finLaC_get (G := G) (T := T) (recs := recs) hi' (by omega)).1]; omega)
         · rw [ha5 osOodSc (by show 28 < k0; omega)]; exact hR.lam1
         · have := hich (2 * i + 2) (by omega)
           rw [show 2 * i + 2 = 2 * (i + 1) by ring, g2] at this
@@ -583,8 +583,8 @@ theorem osFinishA_completeC {c : OsCfg} {st : OsSt} {tch : ℕ} {σ : Val} {G T 
           (cl := σ (.n st.claim)) (j := y) (by omega)
         rw [eI]
         refine ⟨?_, ?_⟩
-        · have := readsAt_getD' hM.ich (j := 2 * y + 1) (by rw [hl]; omega); rwa [g1] at this
-        · have := readsAt_getD' hM.ich (j := 2 * y) (by rw [hl]; omega); rwa [g0] at this
+        · have := readsAt_getD hM.ich (k := 2 * y + 1) (by rw [hl]; omega); rwa [g1] at this
+        · have := readsAt_getD hM.ich (k := 2 * y) (by rw [hl]; omega); rwa [g0] at this
   have e : (osFinishA c st tch).1 = [.call ("fold_final_msg__L" ++ natStr c.yrLog) [.n osFmsg, .n tch] [.n k0],
       .atom (.hint (.alloc (.n (k0 + 1)) pointCap)), .atom (.hint (.alloc (.n (k0 + 1 + 1)) pointCap))] ++
       pts.1 ++ (osHeap (n * ligColsCap) P2 ++ osHeap n (P2 + 2) ++ osHeap n (P2 + 4)) ++ bs.1 ++

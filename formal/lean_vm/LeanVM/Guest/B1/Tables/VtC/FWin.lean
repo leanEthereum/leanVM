@@ -52,7 +52,7 @@ theorem vt_readM (hl : args.length = 21) {d p : V} {off : ℕ}
 
 /-- The cursor's read. -/
 theorem vtF_evRead (hl : args.length = 21) {evs : List E}
-    (hcur : TbReadsAt rd (vtσ rd w args (.n (val% «verify_tables» "cursor@5"))) evs) (hevl : 153 ≤ evs.length) {k : ℕ}
+    (hcur : ReadsAt rd (vtσ rd w args (.n (val% «verify_tables» "cursor@5"))) evs) (hevl : 153 ≤ evs.length) {k : ℕ}
     (hk : k < 153) :
     LoadHolds rd (vtσ rd w args (.n (val% «verify_tables» "cursor@5"))) k (evs.getD k 0) ∧
       vtσ rd w args (.n (vtEvB k)) = evs.getD k 0 := by
@@ -72,7 +72,7 @@ def vtAirRest (t : ℕ) : List Stmt :=
     .atom (.load (.n (vtAirX t + 4)) (.n (vtAirX t + 3)) 0)]
 
 theorem vtAirT_rest : ∀ t < 6,
-    tbStmtsEqb ((vtAirT t).filter fun s ↦ !autoB s) (vtAirRest t) = true := by
+    stmtsEqb ((vtAirT t).filter fun s ↦ !autoB s) (vtAirRest t) = true := by
   decide +kernel
 
 theorem vtAirX_gt : ∀ t < 6, 2337 < vtAirX t ∧ vtTauV t < vtAirX t := by decide
@@ -116,10 +116,10 @@ theorem vtF_air (hl : args.length = 21) {τs : ℕ → ℕ}
     rw [gd, hgn, hτ, ← pow_sub₀ _ gen_ne_zero (hτn t ht)]
   have hs : ∀ s ∈ vtAirT t, s ∈ vtPre := fun s hs' ↦ vt_mem_slice (blk := vtAirT t) hchk hs'
   have hcpL : LoadHolds rd (σ (.n (vtAirX t + 1))) 0 (cp (n - τs t)) := by
-    rw [gp, ex, tb_loadHolds_mul_gen_pow, Nat.add_zero]; exact hcp _ (by omega)
+    rw [gp, ex, loadHolds_mul_gen_pow, Nat.add_zero]; exact hcp _ (by omega)
   have hpeL : LoadHolds rd (σ (.n (vtAirX t + 3))) 0 (pe (τs t)) := by
-    rw [gq, hτ, tb_loadHolds_mul_gen_pow, Nat.add_zero]; exact hpe _ (hτn t ht)
-  have hfilt := tbStmtsEqb_sound (vtAirT_rest t ht)
+    rw [gq, hτ, loadHolds_mul_gen_pow, Nat.add_zero]; exact hpe _ (hτn t ht)
+  have hfilt := stmtsEqb_sound (vtAirT_rest t ht)
   rw [hfilt]
   intro s hs'
   simp only [vtAirRest, List.mem_cons, List.not_mem_nil, or_false] at hs'
@@ -149,7 +149,7 @@ theorem vtF_airVals (hl : args.length = 21) {τs : ℕ → ℕ}
 
 /-- **Evaluation `k`'s read holds.** -/
 theorem vtF_ev (hl : args.length = 21) {evs : List E}
-    (hcur : TbReadsAt rd (vtσ rd w args (.n (val% «verify_tables» "cursor@5"))) evs) (hevl : 153 ≤ evs.length) {k : ℕ}
+    (hcur : ReadsAt rd (vtσ rd w args (.n (val% «verify_tables» "cursor@5"))) evs) (hevl : 153 ≤ evs.length) {k : ℕ}
     (hk : k < 153) :
     ∀ s ∈ vtEvRest k, VSH (coreProgram.Rel rd) rd (vtσ rd w args) s := by
   obtain ⟨hm, hb⟩ := vtF_evRead (w := w) hl hcur hevl hk
@@ -175,8 +175,8 @@ theorem vtF_perm (hl : args.length = 21) {j : ℕ} (hj : j < 38) :
 challenges' products `cp` and the equality prefix `pe` up to `n`, every statement of
 `x@9 ..< air_acc@6+1` holds. -/
 theorem vtF_window (hl : args.length = 21) {evs : List E} (hevl : 153 ≤ evs.length)
-    (hcur : TbReadsAt rd (vtσ rd w args (.n (val% «verify_tables» "cursor@5"))) evs)
-    {W : List E} (hW : TbReadsAt rd (vtσ rd w args (.n (val% «verify_tables» "fp_w"))) W) (hWl : 16 ≤ W.length)
+    (hcur : ReadsAt rd (vtσ rd w args (.n (val% «verify_tables» "cursor@5"))) evs)
+    {W : List E} (hW : ReadsAt rd (vtσ rd w args (.n (val% «verify_tables» "fp_w"))) W) (hWl : 16 ≤ W.length)
     {τs : ℕ → ℕ} (hkbt : ∀ t < 6, vtσ rd w args (.n ((val% «verify_tables» "kb[2]") + t)) = gen ^ τs t)
     {n : ℕ} (hgn : vtσ rd w args (.n (val% «verify_tables» "g_zc_n")) = gen ^ n) (hτn : ∀ t < 6, τs t ≤ n)
     {cp pe : ℕ → E} (hcp : ∀ j ≤ n, LoadHolds rd (vtσ rd w args (.n (val% «verify_tables» "zc_cprod"))) j (cp j))
@@ -187,7 +187,7 @@ theorem vtF_window (hl : args.length = 21) {evs : List E} (hevl : 153 ≤ evs.le
   cases ha : autoB s
   · cases hr : rdFpw s
     · have hf : s ∈ vtFTags.flatMap vtFTagT := by
-        rw [← tbStmtsEqb_sound vtF_cover]
+        rw [← stmtsEqb_sound vtF_cover]
         exact List.mem_filter.mpr ⟨hs, by simp [ha, hr]⟩
       obtain ⟨q, hq, hsq⟩ := List.mem_flatMap.mp hf
       rcases vtFTags_spec q hq with ⟨h0, hk⟩ | ⟨h1, hj⟩ | ⟨h23, ht⟩

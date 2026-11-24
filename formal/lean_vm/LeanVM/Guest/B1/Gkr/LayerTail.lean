@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Gkr.Layer
-import LeanVM.Guest.B1.Tables.Basic
+import LeanVM.Guest.B1.Tables.Base
 
 /-!
 # A layer's children (`gkr_children`)
@@ -75,7 +75,7 @@ theorem ch_ev {cur : V} {o b0 i : ℕ} (h : Stmt.HoldsList C rd σ (chT cur o b0
       FsPackOk σ (.n (chB b0 i)) (chB b0 i + 1) dsObserve ∧
       σ (.n (chB b0 i + 3)) = σ (.n (chB b0 i)) := by
   unfold chT at h
-  rw [tb_holdsList_append_noRet (by simp [fsNextT, fsPackT]; rfl), holds_fsNextT] at h
+  rw [holdsList_append_noRet (by simp [fsNextT, fsPackT]; rfl), holds_fsNextT] at h
   obtain ⟨⟨⟨hl, hp⟩, -⟩, hc⟩ := h
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at hc
   exact ⟨hl, hp, hc⟩

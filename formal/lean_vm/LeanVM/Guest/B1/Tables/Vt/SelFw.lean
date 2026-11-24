@@ -53,15 +53,15 @@ def vtFwSelT (w b kv : ℕ) (prev : Option ℕ) : List Stmt :=
     .atom (.assertEq (.n (w + 11)) (.n (vtBoffV b)))] ++
   vtFwTail w prev
 
-theorem vtFw0_check : tbStmtsEqb (vtFwSelT 823 0 26 none)
+theorem vtFw0_check : stmtsEqb (vtFwSelT 823 0 26 none)
     ((vtAt 810).take (vtFwSelT 823 0 26 none).length) = true := by
   decide +kernel
 
-theorem vtFw1_check : tbStmtsEqb (vtFwSelT 839 1 27 (some 833))
+theorem vtFw1_check : stmtsEqb (vtFwSelT 839 1 27 (some 833))
     ((vtAt 825).take (vtFwSelT 839 1 27 (some 833)).length) = true := by
   decide +kernel
 
-theorem vtFw2_check : tbStmtsEqb (vtFwSelT 867 2 866 (some 851))
+theorem vtFw2_check : stmtsEqb (vtFwSelT 867 2 866 (some 851))
     ((vtAt 855).take (vtFwSelT 867 2 866 (some 851)).length) = true := by
   decide +kernel
 
@@ -71,7 +71,7 @@ theorem vt_fw2_kappa {rd : Reader} {σ : Val} (h : VtH rd σ) :
   have c := h.atomAt 853 (.const (.n (val% «verify_tables» "kappa_g@2~0")) (word 524288 0)) (by decide +kernel)
   have m := h.atomAt 854 (.mul (.n (val% «verify_tables» "kappa_g@2")) (.n (val% «verify_tables» "kb[0]")) (.n (val% «verify_tables» "kappa_g@2~0"))) (by decide +kernel)
   simp only [Atom.Holds] at c m
-  rw [m, c, show (524288 : ℕ) = 2 ^ 19 by norm_num, tb_word_two_pow (by norm_num)]
+  rw [m, c, show (524288 : ℕ) = 2 ^ 19 by norm_num, word_two_pow (by norm_num)]
 
 theorem vt_eq_plusOne {bs : List Bool} {zs : List E} :
     ((List.zip bs (zs.map (1 + ·))).map fun p ↦ bitE p.1 + p.2).prod = bitsEq bs zs (zs.map (1 + ·)) := by
@@ -94,9 +94,9 @@ include hμ
 
 /-- **A framework block's selector.** -/
 theorem vt_fwblock {σ : Val} (h : VtH Lm.read σ) {w b kv pos : ℕ} {prev : Option ℕ}
-    (hcheck : tbStmtsEqb (vtFwSelT w b kv prev) ((vtAt pos).take (vtFwSelT w b kv prev).length) =
+    (hcheck : stmtsEqb (vtFwSelT w b kv prev) ((vtAt pos).take (vtFwSelT w b kv prev).length) =
       true) {point : List E} (hmu : σ (.n (val% «verify_tables» "g_bus_mu")) = gen ^ point.length) (hml : point.length < 33)
-    (hz1 : TbReadsAt Lm.read (σ (.n (val% «verify_tables» "zeta1"))) (point.map (1 + ·)))
+    (hz1 : ReadsAt Lm.read (σ (.n (val% «verify_tables» "zeta1"))) (point.map (1 + ·)))
     (hidxc : ∀ t < 34, LoadHolds Lm.read (σ (.n (val% «verify_tables» "idxc_tab"))) t (1 + gen ^ 2 ^ t))
     {κ : ℕ} (hκ : σ (.n kv) = gen ^ κ) (hκb : κ < 34)
     {off : ℕ} (hoff : σ (.n (vtBoffV b)) = gen ^ off) (hob : off < 2 ^ 62) :
@@ -125,13 +125,13 @@ theorem vt_fwblock {σ : Val} (h : VtH Lm.read σ) {w b kv pos : ℕ} {prev : Op
   rw [m14, hκ] at hrz1
   rw [m15, hκ] at hrc
   have ez1 : zs1 = (point.map (1 + ·)).drop κ :=
-    tbReadsAt_unique hrz1 (tbReadsAt_drop hz1 κ) (by simp; omega)
-  have hidl : TbReadsAt Lm.read (σ (.n (val% «verify_tables» "idxc_tab"))) vtIdxcList := fun t ht => by
+    readsAt_unique hrz1 (readsAt_drop hz1 κ) (by simp; omega)
+  have hidl : ReadsAt Lm.read (σ (.n (val% «verify_tables» "idxc_tab"))) vtIdxcList := fun t ht => by
     simp only [vtIdxcList, List.length_map, List.length_range] at ht
     simp only [vtIdxcList, List.getElem_map, List.getElem_range]
     exact hidxc t ht
   have ec : cs = (vtIdxcList.drop κ).take d :=
-    tbReadsAt_unique hrc (tbReadsAt_take (tbReadsAt_drop hidl κ) d)
+    readsAt_unique hrc (readsAt_take (readsAt_drop hidl κ) d)
       (by simp [vtIdxcList]; omega)
   rw [ec, vt_idxcProd hbl (by omega)] at hg
   have hoff' : gen ^ (2 ^ κ * vtBitsV bs d) = gen ^ off := by

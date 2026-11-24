@@ -12,7 +12,6 @@ public import LeanVM.Guest.B1.Tables.Vt.AsmTotals
 /-!
 # Assembly helpers
 
-* `vt_readsAt_append`: words at `p`, then words right after them;
 * `vt_foldl_max`: six heights, each at most `n`, one of them `n`, have the largest `n`;
 * `vt_tableHeights_eq`: the heights of six row counts are `vtTauList (vtHt rows)`.
 -/
@@ -23,16 +22,6 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value Lea
 open LeanVM.Protocol LeanVM.Protocol.Verifier
 
 @[expose] public section
-
-theorem vt_readsAt_append {rd : Reader} {p : E} {a b : List E} (ha : TbReadsAt rd p a)
-    (hb : TbReadsAt rd (p * gen ^ a.length) b) : TbReadsAt rd p (a ++ b) := by
-  intro k hk
-  rcases Nat.lt_or_ge k a.length with h1 | h1
-  · rw [List.getElem_append_left h1]; exact ha k h1
-  · rw [List.getElem_append_right h1]
-    have := hb (k - a.length) (by simp at hk; omega)
-    rw [tb_loadHolds_mul_gen_pow] at this
-    rwa [show a.length + (k - a.length) = k by omega] at this
 
 theorem vt_six {α : Type} (l : List α) (h : l.length = 6) (d : α) :
     l = [l.getD 0 d, l.getD 1 d, l.getD 2 d, l.getD 3 d, l.getD 4 d, l.getD 5 d] := by

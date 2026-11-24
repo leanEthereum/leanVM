@@ -265,20 +265,20 @@ theorem l25_step {x : E} {ps : List E} (h : coreProgram.Rel rd name% «aggregate
     by_cases ha : w < 2
     · rw [l25Src_lt2 ha, srcOk_some] at hs'
       have := memAt_of_load (load_sound hs' hat)
-      rw [ite_pos' ha, ← this]
+      rw [ite_eq_left ha, ← this]
       rcases (show w = 0 ∨ w = 1 by omega) with rfl | rfl
-      · rw [ite_pos' rfl, p59]
-      · rw [ite_neg' (show ¬ (1 = 0) by omega), p63]
+      · rw [ite_eq_left rfl, p59]
+      · rw [ite_eq_right (show ¬ (1 = 0) by omega), p63]
     by_cases hb : w < 26
     · rw [l25Src_fresh (by omega) hb, srcOk_some] at hs'
-      rw [ite_neg' ha, ite_pos' hb, ← p50]
+      rw [ite_eq_right ha, ite_eq_left hb, ← p50]
       exact (memAt_of_load (load_sound hs' hat)).symm
     by_cases hc : w < 50
     · rw [l25Src_carried (by omega) hc, srcOk_some] at hs'
-      rw [ite_neg' ha, ite_neg' hb, ite_pos' hc, ← p57]
+      rw [ite_eq_right ha, ite_eq_right hb, ite_eq_left hc, ← p57]
       exact (memAt_of_load (load_sound hs' hat)).symm
     · rw [l25Src_pad (by omega), srcOk_none] at hs'
-      rw [ite_neg' ha, ite_neg' hb, ite_neg' hc, const_sound hs' hat, word_zero]
+      rw [ite_eq_right ha, ite_eq_right hb, ite_eq_right hc, const_sound hs' hat, word_zero]
   rw [← hw, hch, hnb]
   -- the row written
   have hcap : (List.range 5).map (fun i => σ ((s.outs (13 - 1)).getD (8 + i) default)) =

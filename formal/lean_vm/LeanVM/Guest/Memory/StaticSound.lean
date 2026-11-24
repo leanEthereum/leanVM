@@ -1431,8 +1431,6 @@ theorem defAtom_const {d x : V} {w : E} : ∀ {l : List Stmt}, defAtom d l = som
   | .dispatch .. :: l, h => defAtom_const (by simpa [defAtom] using h)
   | .ret .. :: l, h => defAtom_const (by simpa [defAtom] using h)
 
-theorem ofK_mulS (a b : K) : ofK (a * b) = ofK a * ofK b := map_mul (algebraMap K E) a b
-
 theorem gpow_succ' (a : ℕ) : addressOfIndex a * addressOfIndex 1 = addressOfIndex (a + 1) := by
   simp [Parameters.addressOfIndex, pow_add]
 
@@ -1639,7 +1637,7 @@ theorem chk_sound {X : String → Prop} (hchk : CheckedExcept P α cert ω X)
                 have hargs : args = σ p0 :: prest.map σ := by rw [← hp, hps, List.map_cons]
                 have hp0 : σ p0 = ofK (addressOfIndex a0) := by rw [← h0, hargs]; rfl
                 have hi' : σ i' = ofK (addressOfIndex (a0 + 1)) := by
-                  rw [isStep_val hnr hw1 hes1 hst, hp0, ← ofK_mulS, gpow_succ']
+                  rw [isStep_val hnr hw1 hes1 hst, hp0, ← ofK_mul, gpow_succ']
                 have hM : 1 ≤ e - a0 := by omega
                 match ks2, hk2 with
                 | [tk], ⟨htn, htv, _⟩ =>
@@ -1695,8 +1693,8 @@ theorem chk_sound {X : String → Prop} (hchk : CheckedExcept P α cert ω X)
                       apply h0c
                       rw [hcv, e_add_eq_zero_iff]
                       rcases hxy with ⟨hsx, hey⟩ | ⟨hsy, hex⟩
-                      · rw [isStep_val hnr hw1 hes1 hsx, hp0, ← ofK_mulS, gpow_succ', hyv hey, hae']
-                      · rw [isStep_val hnr hw1 hes1 hsy, hp0, ← ofK_mulS, gpow_succ', hyv hex, hae']
+                      · rw [isStep_val hnr hw1 hes1 hsx, hp0, ← ofK_mul, gpow_succ', hyv hey, hae']
+                      · rw [isStep_val hnr hw1 hes1 hsy, hp0, ← ofK_mul, gpow_succ', hyv hex, hae']
                     have hpre'' : ArgsPre pre ((i' :: prest).map σ) := by
                       intro q hq
                       rw [hget q.1 (hpc q hq)]

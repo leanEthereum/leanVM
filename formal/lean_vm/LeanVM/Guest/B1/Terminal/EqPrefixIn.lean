@@ -83,9 +83,9 @@ theorem ep_relIn {n : ℕ} (hn : n ≤ 40) {rd : Reader} {bc ba bb : ℕ} {seed 
       subst hea
       simp only [Lift.EvLeafOk, epLok, Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq] at hok
       rcases hok with (⟨rfl, ho⟩ | ⟨rfl, ho⟩) | ⟨rfl, ho⟩
-      · rw [e0, Main.addr_ofK]; exact ⟨_, rfl, hR _ (Or.inl ⟨by omega, by omega⟩)⟩
-      · rw [e2, Main.addr_ofK]; exact ⟨_, rfl, hR _ (Or.inr (Or.inl ⟨by omega, by omega⟩))⟩
-      · rw [e3, Main.addr_ofK]; exact ⟨_, rfl, hR _ (Or.inr (Or.inr ⟨by omega, by omega⟩))⟩
+      · rw [e0, Value.limb0_ofK_addressOfIndex_mul]; exact ⟨_, rfl, hR _ (Or.inl ⟨by omega, by omega⟩)⟩
+      · rw [e2, Value.limb0_ofK_addressOfIndex_mul]; exact ⟨_, rfl, hR _ (Or.inr (Or.inl ⟨by omega, by omega⟩))⟩
+      · rw [e3, Value.limb0_ofK_addressOfIndex_mul]; exact ⟨_, rfl, hR _ (Or.inr (Or.inr ⟨by omega, by omega⟩))⟩
     | _ => simp [Ev.loadAddr?] at hea
   | _ => simp [Ev.loadAddr?] at hea
 

@@ -218,9 +218,6 @@ theorem holds_atoms {rd : Reader} {σ : Val} {as : List Atom} (h : ∀ a ∈ as,
   obtain ⟨a, ha, rfl⟩ := List.mem_map.mp he
   exact h a ha
 
-theorem gpow_add' (a b : ℕ) : addressOfIndex a * addressOfIndex b = addressOfIndex (a + b) := by
-  simp [Parameters.addressOfIndex, pow_add]
-
 /-! ## Straight bodies with calls -/
 
 /-- A statement's load: its pointer and offset. -/

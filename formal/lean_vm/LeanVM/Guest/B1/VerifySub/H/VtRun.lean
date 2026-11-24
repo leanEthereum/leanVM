@@ -175,7 +175,7 @@ theorem bytecodeAt_claimed' (bytecode : List K) (cl : BytecodeClaim) (pt : List 
     (h : pt = cl.bytecodePoint ∧ v = cl.bytecodeValue) :
     BytecodeAt (claimedBytecodeValue cl) bytecode pt v := by
   intro s
-  simp [claimedBytecodeValue, tbRun, VerifierProgram.require, h, Compile.runWithHash]
+  simp [claimedBytecodeValue, runId, VerifierProgram.require, h, Compile.runWithHash]
   rfl
 
 /-- **An accepting run of `tablesSeg` on a claimed evaluator, read back.** -/

@@ -44,8 +44,8 @@ local notation "σv" => vtσ rd wo args
 /-- **All the block selectors, complete.** -/
 theorem vtc_sels (hl : args.length = 21) (hlow : LowDefB 14 rd) {point : List E}
     (hmu : σv (.n (val% «verify_tables» "g_bus_mu")) = gen ^ point.length) (hml : point.length < 33)
-    (hz1 : TbReadsAt rd (σv (.n (val% «verify_tables» "zeta1"))) (point.map (1 + ·)))
-    (hidxc : TbReadsAt rd (σv (.n (val% «verify_tables» "idxc_tab"))) vtIdxcW) {lm : ℕ} (hlmμ : lm ≤ point.length)
+    (hz1 : ReadsAt rd (σv (.n (val% «verify_tables» "zeta1"))) (point.map (1 + ·)))
+    (hidxc : ReadsAt rd (σv (.n (val% «verify_tables» "idxc_tab"))) vtIdxcW) {lm : ℕ} (hlmμ : lm ≤ point.length)
     (h19 : 19 ≤ point.length) {τ : ℕ → ℕ} (hτμ : ∀ t < 6, τ t ≤ point.length)
     (hkb : ∀ i < 8, σv (.n ((val% «verify_tables» "kb[0]") + i)) = gen ^ ([0, lm] ++ vtTauList τ).getD i 0)
     (hfitP : ((vtSizesP lm τ).map (2 ^ ·)).sum ≤ 2 ^ point.length)
@@ -56,12 +56,12 @@ theorem vtc_sels (hl : args.length = 21) (hlow : LowDefB 14 rd) {point : List E}
     (hrun : ∀ t < 6, RunTables rd (σv (.n (vtEqV t))) (σv (.n (vtGV t)))
       (point.length - τ t) (point.drop (τ t)) ((point.map (1 + ·)).drop (τ t))
       ((gSquaresList.drop (τ t)).take (point.length - τ t)))
-    (hbitsF : ∀ b < 3, TbReadsAt rd (wo (vtFwW b + 6))
+    (hbitsF : ∀ b < 3, ReadsAt rd (wo (vtFwW b + 6))
       (offBits ((stackOffsets (vtSizesP lm τ)).1.getD b 0)))
-    (hdigP : ∀ i < 51, TbReadsAt rd (wo (vtPushSel.getD i default).2.2.1)
+    (hdigP : ∀ i < 51, ReadsAt rd (wo (vtPushSel.getD i default).2.2.1)
       (offDigits ((stackOffsets (vtSizesP lm τ)).1.getD (3 + i) 0)
         (τ (vtPushSel.getD i default).2.2.2.1)))
-    (hdigC : ∀ i < 45, TbReadsAt rd (wo (vtCountSel.getD i default).2.2.1)
+    (hdigC : ∀ i < 45, ReadsAt rd (wo (vtCountSel.getD i default).2.2.1)
       (offDigits ((stackOffsets (vtSizesC τ)).1.getD i 0) (τ (vtCountSel.getD i default).2.2.2.1)))
     (hwF : ∀ b < 3, wo (vtFwW b + 10) = blockSel (vtSizesP lm τ) point.length b point ∧
       wo (vtFwW b + 11) = gen ^ (stackOffsets (vtSizesP lm τ)).1.getD b 0)
@@ -114,7 +114,7 @@ theorem vtc_sels (hl : args.length = 21) (hlow : LowDefB 14 rd) {point : List E}
     rw [vt_mulAt hl 854 (d := 866) (x := 26) (y := 865) (by norm_num) (by norm_num)
         (by decide +kernel), vt_constAt hl 853 (d := .n (val% «verify_tables» "kappa_g@2~0")) (e := word 524288 0)
         (by decide +kernel), show (524288 : ℕ) = 2 ^ 19 by norm_num,
-      tb_word_two_pow (by norm_num), e0, one_mul]
+      word_two_pow (by norm_num), e0, one_mul]
     rfl
   have f0 := vtc_fwblock (wo := wo) hl vtFw0_check (by norm_num) (by norm_num) hmu hml hz1
     hidxc k0 (by simp [vtSizesP]) (hoP 0 (by norm_num)) (halP 0 (by norm_num)) (hobP 0 (by norm_num))
@@ -135,12 +135,12 @@ theorem vtc_sels (hl : args.length = 21) (hlow : LowDefB 14 rd) {point : List E}
   obtain ⟨a2, s2, c2, u2⟩ := f2
   -- a table block's selector
   have hblk : ∀ {sizes : List ℕ} {b c w t : ℕ} {prev : Option ℕ} {pos : ℕ},
-      tbStmtsEqb (vtSelT w b t prev)
+      stmtsEqb (vtSelT w b t prev)
         ((vtAt pos).take (vtSelT w b t prev).length) = true →
       t < 6 → sizes.getD c 0 = τ t → 2 ^ τ t ∣ (stackOffsets sizes).1.getD c 0 →
       (stackOffsets sizes).1.getD c 0 < 2 ^ point.length →
       σv (.n (vtBoffV b)) = gen ^ (stackOffsets sizes).1.getD c 0 →
-      TbReadsAt rd (wo w) (offDigits ((stackOffsets sizes).1.getD c 0) (τ t)) →
+      ReadsAt rd (wo w) (offDigits ((stackOffsets sizes).1.getD c 0) (τ t)) →
       wo (vtSelE w t) = blockSel sizes point.length c point →
       wo (vtSelE w t + 1) = gen ^ (stackOffsets sizes).1.getD c 0 →
       (∀ s ∈ vtSelT w b t prev, VSH (coreProgram.Rel rd) rd σv s) ∧

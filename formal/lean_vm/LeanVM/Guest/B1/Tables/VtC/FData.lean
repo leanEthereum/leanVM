@@ -48,7 +48,7 @@ def vtAirT (t : ℕ) : List Stmt :=
     .atom (.load (.n (vtAirX t + 4)) (.n (vtAirX t + 3)) 0)]
 
 theorem vtAirT_check : ∀ t < 6,
-    tbStmtsEqb (vtAirT t) ((vtAt (vtAirD.getD t (0, 0)).1).take 5) = true := by
+    stmtsEqb (vtAirT t) ((vtAt (vtAirD.getD t (0, 0)).1).take 5) = true := by
   decide +kernel
 
 /-- Evaluation `k`'s statements evaluation alone does not settle. -/
@@ -67,7 +67,7 @@ def vtFTagT : ℕ × ℕ → List Stmt
   | (1, j) => [vtPermT j]
   | (_, t) => (vtAirT t).filter fun s ↦ !autoB s
 
-theorem vtF_cover : tbStmtsEqb (((vtPre.drop vtFLo).take (vtFHi - vtFLo)).filter
+theorem vtF_cover : stmtsEqb (((vtPre.drop vtFLo).take (vtFHi - vtFLo)).filter
     (fun s ↦ !(autoB s || rdFpw s))) (vtFTags.flatMap vtFTagT) = true := by
   simp only [vtPre_drop]; decide +kernel
 

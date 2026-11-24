@@ -14,33 +14,34 @@ public import LeanVM.Guest.Word
 public import LeanVM.Guest.CoreLemmas
 import LeanVM.Guest.Value.Keccak
 public import LeanVM.Guest.Value.Bits
+public import LeanVM.Guest.Value.Gpow
 public import LeanVM.Guest.ExpTables
 public import Mathlib.Data.List.GetD
 
 /-!
 # B1: shared vocabulary
 
-Ported from the BLAKE2s-era `B1/Basic.lean` (its hash-chain runs dropped; the duplex sponge is
-`B1/Common/Sponge.lean`).
-
-* `rel_iff_sem`, `relN_succ_iff`: a function's relation is its body's (`Program.Rel` is a fixed
-  point, `rel_iff`), and at a finite depth its calls are one level shallower.
+* `rel_iff_sem`, `relN_succ_iff`, `rel_pre`: a function's relation is its body's (`Program.Rel` is a
+  fixed point, `rel_iff`), and at a finite depth its calls are one level shallower.
 * `word_*`: the constants the data writes as `word c0 c1`, as the Spec's words (`y`, `y⁻¹`,
   `y·E(t)`, `E(n)`, `g^a`).
 * `ReadsAt rd p xs`: the words `xs` lie in memory from the pointer `p`, word `k` at `p·g^k`;
   `loadHolds_mul_gen_pow`: a load through `p·g^j` at offset `k` is the load at offset `j + k`;
-  `loadHolds_unique`.
+  `loadHolds_unique`, `readsAt_append`, `readsAt_unique`.
 * `setv σ b n f`: `σ` with the values `.n (b + k)`, `k < n`, set to `f k`: how an honest
   valuation is built, block after block (`set_n_in`, `set_n_lt`, `set_n_ge` evaluate it).
-* `loop_iff`, `guarded_loop_iff`: a `mul_range` loop helper, from `g^k` to its end `N`, holds
-  exactly when `N = g^m` for the first `m > k` the loop reaches and its body holds at every `g^j`,
-  `k ≤ j < m`.
-* `stmtsEqb_sound`: a template equal to a function's body by `decide +kernel`.
+* `loop_iff`, `guarded_loop_iff`, `exists_loop_end`: a `mul_range` loop helper, from `g^k` to its end
+  `N`, holds exactly when `N = g^m` for the first `m > k` the loop reaches and its body holds at
+  every `g^j`, `k ≤ j < m`.
+* `stmtsEqb_sound`: a template equal to a function's body by `decide +kernel`; `holds_slice`,
+  `holds_atom`, `holds_call`, `holds_callIf`, `holds_dispatch`: a run of a `ret`-free body's
+  statements holds, compared with a template at its position.
 * `RangeChecked rd x k`: what a range-check atom asks of memory (`rangeCheck_iff` gives its
   meaning on a memory image).
 * `WinTabs rd tabs` (`ExpTables.lean`): the bit-window table `exponent_tables` writes
   (`[g^n] = E(n)`, `n < 2^11`), what `grind_check` and `query_window` read;
   `winTabs_of_expWinTab` reads it through `tabs = q·g^236`.
+* `ite_omega`: rewrites an `if` whose condition `omega` decides.
 -/
 
 namespace LeanVM.Guest.B1
@@ -70,6 +71,20 @@ theorem relN_succ_iff {P : Core.Program} {rd : Reader} {f : String} {fn : Fn}
         Stmt.HoldsList (P.relN rd n) rd σ fn.body False (fun rs => rs = rets) := by
   simp only [Program.relN, h, Option.some.injEq, exists_eq_left', Fn.Sem]
 
+/-- A function whose body is `pre ++ [ret vs]`, `pre` without `ret`: its relation is some
+valuation of its parameters satisfying `pre` and returning `vs`. -/
+theorem rel_pre {P : Core.Program} {rd : Reader} {f : String} {fn : Fn} (hf : P.find? f = some fn)
+    {pre : List Stmt} {vs : List V} (hb : fn.body = pre ++ [.ret vs])
+    (hnr : Stmt.noRetList pre = true) (args rets : List E) :
+    P.Rel rd f args rets ↔
+    ∃ σ : Val, fn.params.map σ = args ∧
+      Stmt.HoldsList (P.Rel rd) rd σ pre True (fun rs => rs = rets) ∧
+      vs.map σ = rets := by
+  rw [rel_iff_sem hf, hb]
+  refine exists_congr fun σ => and_congr Iff.rfl ?_
+  rw [holdsList_append, holdsList_noRet _ hnr]
+  rfl
+
 /-! ## Compile-time words -/
 
 theorem word_eOfNat (n : ℕ) : word n 0 = eOfNat n := by
@@ -92,19 +107,6 @@ theorem word_y : word 0 1 = y := by rw [y_eq]; rfl
 theorem word_y_inv : word 2 1 = y⁻¹ := by rw [y_inv]; rfl
 
 /-! ## Words in `K` -/
-
-theorem isInK_add {a b : E} (ha : IsInK a) (hb : IsInK b) : IsInK (a + b) := by
-  obtain ⟨a, rfl⟩ := (isInK_iff _).mp ha
-  obtain ⟨b, rfl⟩ := (isInK_iff _).mp hb
-  rw [← ofK_add]; exact ofK_isInK _
-
-theorem isInK_mul {a b : E} (ha : IsInK a) (hb : IsInK b) : IsInK (a * b) := by
-  obtain ⟨a, rfl⟩ := (isInK_iff _).mp ha
-  obtain ⟨b, rfl⟩ := (isInK_iff _).mp hb
-  rw [← ofK_mul]; exact ofK_isInK _
-
-theorem gen_pow_isInK (j : ℕ) : IsInK (gen ^ j) := by
-  rw [gen_pow_eq_ofK]; exact ofK_isInK _
 
 theorem isInK_mul_ofK {p : E} {c : K} (hc : c ≠ 0) : IsInK (p * ofK c) ↔ IsInK p := by
   rw [eq_ofLimbs p, ofLimbs_mul_ofK, isInK_ofLimbs_iff, isInK_ofLimbs_iff]
@@ -145,6 +147,54 @@ theorem loadHolds_unique {rd : Reader} {p : E} {k : ℕ} {w w' : E} (h : LoadHol
     (h' : LoadHolds rd p k w') : w = w' :=
   Option.some.inj (h.2.symm.trans h'.2)
 
+/-- Words read at `p·g^a` are words read at `p` from offset `a`. -/
+theorem readsAt_gen_pow_mul {rd : Reader} {p : E} {a : ℕ} {xs : List E} :
+    ReadsAt rd (p * gen ^ a) xs ↔ ∀ k (hk : k < xs.length), LoadHolds rd p (a + k) xs[k] := by
+  simp only [ReadsAt, loadHolds_mul_gen_pow]
+
+/-- Two runs of words, one after the other. -/
+theorem readsAt_append {rd : Reader} {p : E} {xs ys : List E} :
+    ReadsAt rd p (xs ++ ys) ↔ ReadsAt rd p xs ∧ ReadsAt rd (p * gen ^ xs.length) ys := by
+  rw [readsAt_gen_pow_mul]
+  refine ⟨fun h => ⟨fun k hk => ?_, fun k hk => ?_⟩, fun ⟨hx, hy⟩ k hk => ?_⟩
+  · have := h k (by simp; omega)
+    rwa [List.getElem_append_left hk] at this
+  · have := h (xs.length + k) (by simp; omega)
+    rw [List.getElem_append_right (by omega)] at this
+    simpa using this
+  · rw [List.getElem_append]
+    split_ifs with h
+    · exact hx k h
+    · have := hy (k - xs.length) (by simp at hk; omega)
+      rwa [Nat.add_sub_cancel' (by omega)] at this
+
+theorem readsAt_singleton {rd : Reader} {p w : E} : ReadsAt rd p [w] ↔ LoadHolds rd p 0 w :=
+  ⟨fun h => h 0 (by simp), fun h k hk => by
+    obtain rfl : k = 0 := by simpa using hk
+    exact h⟩
+
+theorem readsAt_cons {rd : Reader} {p w : E} {ws : List E} :
+    ReadsAt rd p (w :: ws) ↔ LoadHolds rd p 0 w ∧ ReadsAt rd (p * gen) ws := by
+  rw [show w :: ws = [w] ++ ws from rfl, readsAt_append, readsAt_singleton]
+  simp
+
+theorem readsAt_take {rd : Reader} {p : E} {xs : List E} (h : ReadsAt rd p xs) (n : ℕ) :
+    ReadsAt rd p (xs.take n) := fun k hk ↦ by
+  simp only [List.getElem_take]; exact h k (by simp at hk; omega)
+
+theorem readsAt_drop {rd : Reader} {p : E} {xs : List E} (h : ReadsAt rd p xs) (n : ℕ) :
+    ReadsAt rd (p * gen ^ n) (xs.drop n) := fun k hk ↦ by
+  rw [loadHolds_mul_gen_pow, List.getElem_drop]; exact h _ (by simp at hk; omega)
+
+/-- Two runs of words read at one pointer, of one length, are equal. -/
+theorem readsAt_unique {rd : Reader} {p : E} {l1 l2 : List E} (h1 : ReadsAt rd p l1)
+    (h2 : ReadsAt rd p l2) (hl : l1.length = l2.length) : l1 = l2 :=
+  List.ext_getElem hl fun k hk1 hk2 => loadHolds_unique (h1 k hk1) (h2 k hk2)
+
+theorem readsAt_getD {rd : Reader} {p : E} {xs : List E} (h : ReadsAt rd p xs) {k : ℕ}
+    (hk : k < xs.length) : LoadHolds rd p k (xs.getD k 0) := by
+  rw [List.getD_eq_getElem _ _ hk]; exact h k hk
+
 /-- Blocks without a return, one per index below `n`, hold exactly when each does. -/
 theorem holdsList_range_flatten {C : CallRel} {rd : Reader} {σ : Val} (n : ℕ)
     (blk : ℕ → List Stmt) (h : ∀ i, Stmt.noRetList (blk i) = true) (next : Prop)
@@ -157,6 +207,40 @@ theorem holdsList_range_flatten {C : CallRel} {rd : Reader} {σ : Val} (n : ℕ)
   simp only [List.mem_map, List.mem_range, forall_exists_index, and_imp,
     forall_apply_eq_imp_iff₂]
 
+theorem noRetList_append (a b : List Stmt) :
+    Stmt.noRetList (a ++ b) = (Stmt.noRetList a && Stmt.noRetList b) := by
+  induction a with
+  | nil => simp [Stmt.noRetList]
+  | cons s a ih => simp [Stmt.noRetList, ih, Bool.and_assoc]
+
+theorem noRetList_flatten_range (n : ℕ) (g : ℕ → List Stmt)
+    (hg : ∀ i, Stmt.noRetList (g i) = true) : Stmt.noRetList ((List.range n).map g).flatten = true := by
+  induction n with
+  | zero => rfl
+  | succ n ih =>
+    rw [List.range_succ, List.map_append, List.flatten_append, noRetList_append, ih,
+      List.map_singleton, List.flatten_singleton, hg]; rfl
+
+theorem noRetList_mapAtoms (n : ℕ) (f : ℕ → Atom) :
+    Stmt.noRetList ((List.range n).map fun e ↦ Stmt.atom (f e)) = true := by
+  induction n with
+  | zero => rfl
+  | succ n ih => rw [List.range_succ, List.map_append, noRetList_append, ih]; rfl
+
+/-- Two `ret`-free blocks in sequence. -/
+theorem holdsList_append_noRet {C : CallRel} {rd : Reader} {σ : Val} {kret : List E → Prop}
+    {A B : List Stmt} (ha : Stmt.noRetList A = true) :
+    Stmt.HoldsList C rd σ (A ++ B) True kret ↔
+      Stmt.HoldsList C rd σ A True kret ∧ Stmt.HoldsList C rd σ B True kret := by
+  rw [holdsList_append, holdsList_noRet _ ha]
+
+/-- `ret`-free blocks indexed by `i < n`, in sequence. -/
+theorem holdsList_flatten_range {C : CallRel} {rd : Reader} {σ : Val} {kret : List E → Prop}
+    (n : ℕ) (g : ℕ → List Stmt) (hg : ∀ i, Stmt.noRetList (g i) = true) :
+    Stmt.HoldsList C rd σ ((List.range n).map g).flatten True kret ↔
+      ∀ i < n, Stmt.HoldsList C rd σ (g i) True kret := by
+  rw [holdsList_range_flatten n g hg, and_true]
+
 /-- What a range check `rangeCheck x y t1 t2 k` asks of memory, for some complement and touched
 words: `x` and `k / x` are readable addresses (`rangeCheck_iff` makes it `x = g^e`, `e < K`, on a
 memory image of at most `2^32` words). -/
@@ -168,11 +252,17 @@ theorem WinTabs.lt {rd : Reader} {tabs : E} (h : WinTabs rd tabs) {n : ℕ} (hn 
 
 /-! ## Building valuations -/
 
-theorem ite_pos' {α : Type} {c : Prop} [Decidable c] {a b : α} (h : c) : (if c then a else b) = a := by
-  simp [h]
+/-- `if c then a else b = a` where `c` holds: core's `ite_eq_left`. -/
+alias ite_pos' := ite_eq_left
 
-theorem ite_neg' {α : Type} {c : Prop} [Decidable c] {a b : α} (h : ¬c) : (if c then a else b) = b := by
-  simp [h]
+/-- `if c then a else b = b` where `c` fails: core's `ite_eq_right`. -/
+alias ite_neg' := ite_eq_right
+
+/-- Rewrite the first `if c then a else b` of the goal to `b` or `a`, where `omega` proves `¬c`
+or `c`. -/
+macro "ite_omega" : tactic => `(tactic| first
+  | (rw [ite_eq_right_of_eq_false]; rotate_left; exact eq_false (by omega))
+  | (rw [ite_eq_left_of_eq_true]; rotate_left; exact eq_true (by omega)))
 
 /-- `σ` with the values `.n (b + k)`, `k < n`, set to `f k`. -/
 def setv (σ : Val) (b n : ℕ) (f : ℕ → E) : Val := fun v =>
@@ -220,8 +310,6 @@ macro "b1_look" : tactic =>
 
 /-- The order of `g`. -/
 abbrev ordG : ℕ := 2 ^ 64 - 1
-
-theorem gen_pow_mul_gen (j : ℕ) : gen ^ j * gen = gen ^ (j + 1) := (pow_succ gen j).symm
 
 theorem gen_pow_add_eq_zero_iff {N : E} (j : ℕ) : gen ^ j * gen + N = 0 ↔ N = gen ^ (j + 1) := by
   rw [gen_pow_mul_gen, e_add_eq_zero_iff, eq_comm]
@@ -274,6 +362,31 @@ theorem loop_iff {P : Core.Program} {rd : Reader} {f : String} {ps : List E} {N 
       rw [gen_pow_mul_gen]
       exact ih (k + 1) (by omega) (by rw [hN]; congr 1; omega)
         (fun j h1 h2 => hfirst j (by omega) (by omega)) (fun j h1 h2 => hall j (by omega) (by omega))
+
+/-- **A `mul_range` loop, soundness**: if `f`'s relation at depth `d + 1` gives its body's meaning
+`B x` and the next call, then `f` holding at `g^k` gives `N = g^m` for some `m > k` and `B` at every
+`g^j`, `k ≤ j < m`. -/
+theorem exists_loop_end {P : Core.Program} {rd : Reader} {f : String} {ps : List E} {N : E}
+    {B : E → Prop}
+    (hstep : ∀ d x, P.relN rd (d + 1) f (x :: ps) [] →
+      B x ∧ (x * gen + N ≠ 0 → P.relN rd d f (x * gen :: ps) []))
+    (k : ℕ) (h : P.Rel rd f (gen ^ k :: ps) []) :
+    ∃ m, k < m ∧ N = gen ^ m ∧ ∀ j, k ≤ j → j < m → B (gen ^ j) := by
+  obtain ⟨d, hd⟩ := h
+  induction d generalizing k with
+  | zero => exact hd.elim
+  | succ d ih =>
+    obtain ⟨hB, hnext⟩ := hstep d _ hd
+    by_cases h0 : gen ^ k * gen + N = 0
+    · refine ⟨k + 1, by omega, (gen_pow_add_eq_zero_iff k).mp h0, fun j h1 h2 => ?_⟩
+      rwa [show j = k by omega]
+    · have := hnext h0
+      rw [gen_pow_mul_gen] at this
+      obtain ⟨m, hm, hN, hall⟩ := ih (k + 1) this
+      refine ⟨m, by omega, hN, fun j h1 h2 => ?_⟩
+      rcases Nat.lt_or_ge k j with h | h
+      · exact hall j (by omega) h2
+      · rwa [show j = k by omega]
 
 /-- Below the order of `g`, the first `m > k` the loop reaches is the `m` with `N = g^m`. -/
 theorem first_hit_of_lt {N : E} {k m : ℕ} (hm : m < ordG) (hN : N = gen ^ m) :
@@ -409,6 +522,77 @@ theorem armsEqb_sound : ∀ {s t : List (List Stmt)}, armsEqb s t = true → s =
     rw [stmtsEqb_sound h.1, armsEqb_sound h.2]
   | [], _ :: _, h | _ :: _, [], h => by simp [armsEqb] at h
 end
+
+/-- `ls.flatten.drop n` with the lists' lengths `lens` given (`dropFlatL_eq`): the kernel passes a
+list by comparing `n` with its length, a number, instead of dropping its elements one by one. -/
+def dropFlatL {α : Type} : List ℕ → List (List α) → ℕ → List α
+  | len :: lens, l :: ls, n =>
+    bif Nat.blt n len then l.drop n ++ ls.flatten else dropFlatL lens ls (n - len)
+  | _, _, _ => []
+
+theorem dropFlatL_eq {α : Type} :
+    ∀ (ls : List (List α)) (n : ℕ), dropFlatL (ls.map List.length) ls n = ls.flatten.drop n
+  | [], _ => by simp [dropFlatL]
+  | l :: ls, n => by
+    simp only [List.map_cons, dropFlatL, List.flatten_cons, List.drop_append]
+    by_cases h : n < l.length
+    · simp [Nat.blt_eq.mpr h, Nat.sub_eq_zero_of_le h.le]
+    · rw [Nat.not_lt] at h
+      simp [Nat.blt_eq, Nat.not_lt.mpr h, dropFlatL_eq ls, List.drop_eq_nil_of_le h]
+
+/-! ## Reading a body by position -/
+
+section Slices
+
+variable {C : CallRel} {rd : Reader} {σ : Val} {kret : List E → Prop}
+
+/-- **A run of statements of a body without `ret`** holds: `blk`, equal to the statements at
+position `n`. -/
+theorem holds_slice {pre : List Stmt} (hnr : Stmt.noRetList pre = true)
+    (h : Stmt.HoldsList C rd σ pre True kret) (n : ℕ) (blk : List Stmt)
+    (heq : stmtsEqb blk ((pre.drop n).take blk.length) = true) :
+    Stmt.HoldsList C rd σ blk True kret := by
+  have hsplit : pre = pre.take n ++ (((pre.drop n).take blk.length) ++
+      (pre.drop n).drop blk.length) := by simp
+  rw [hsplit] at h hnr
+  rw [noRetList_append, noRetList_append, Bool.and_eq_true, Bool.and_eq_true] at hnr
+  rw [holdsList_append, holdsList_noRet _ hnr.1, holdsList_append,
+    holdsList_noRet _ hnr.2.1] at h
+  rw [stmtsEqb_sound heq]
+  exact h.2.1
+
+/-- One atom of a body without `ret` holds. -/
+theorem holds_atom {pre : List Stmt} (hnr : Stmt.noRetList pre = true)
+    (h : Stmt.HoldsList C rd σ pre True kret) (n : ℕ) (a : Atom)
+    (heq : stmtsEqb [.atom a] ((pre.drop n).take 1) = true) : a.Holds rd σ := by
+  simpa [Stmt.HoldsList, Stmt.Holds] using holds_slice hnr h n [.atom a] heq
+
+/-- One call of a body without `ret` holds. -/
+theorem holds_call {pre : List Stmt} (hnr : Stmt.noRetList pre = true)
+    (h : Stmt.HoldsList C rd σ pre True kret) (n : ℕ) (f : String) (args rets : List V)
+    (heq : stmtsEqb [.call f args rets] ((pre.drop n).take 1) = true) :
+    C f (args.map σ) (rets.map σ) := by
+  simpa [Stmt.HoldsList, Stmt.Holds] using holds_slice hnr h n [.call f args rets] heq
+
+/-- One conditional call of a body without `ret` holds. -/
+theorem holds_callIf {pre : List Stmt} (hnr : Stmt.noRetList pre = true)
+    (h : Stmt.HoldsList C rd σ pre True kret) (n : ℕ) (c : V) (f : String) (args : List V)
+    (heq : stmtsEqb [.callIf c f args] ((pre.drop n).take 1) = true) :
+    IsInK (σ c) ∧ (σ c ≠ 0 → C f (args.map σ) []) := by
+  simpa only [Stmt.HoldsList, Stmt.Holds, and_true] using
+    holds_slice hnr h n [.callIf c f args] heq
+
+/-- One fused `match` of calls of a body without `ret` holds. -/
+theorem holds_dispatch {pre : List Stmt} (hnr : Stmt.noRetList pre = true)
+    (h : Stmt.HoldsList C rd σ pre True kret) (n : ℕ) (x : V) (fs : List String)
+    (args rets : List V)
+    (heq : stmtsEqb [.dispatch x fs args rets] ((pre.drop n).take 1) = true) :
+    ∃ (j : ℕ) (h : j < fs.length), σ x = ofK (Parameters.addressOfIndex j) ∧
+      C fs[j] (args.map σ) (rets.map σ) := by
+  simpa only [Stmt.HoldsList, Stmt.Holds, and_true] using
+    holds_slice hnr h n [.dispatch x fs args rets] heq
+
+end Slices
 
 /-- The table's window section, read through `tabs = q·g^236`, is `WinTabs`. -/
 theorem winTabs_of_expWinTab {rd : Reader} {q : E} (h : ExpWinTab rd q) :

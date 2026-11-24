@@ -99,7 +99,7 @@ theorem lp_bound (κ : ℕ) {name loop : String} {S d cd : ℕ}
     (Lin := Lin0) rfl fp0
     (fun k hk ↦ ⟨⟨(2048, posW), by simp [hLin0], Nat.le_add_right _ _, by rw [hlP]; exact Nat.add_lt_add_left hk _⟩,
       ⟨(2048 + M, ptrW), by simp [hLin0], Nat.le_add_right _ _, by rw [hlR]; exact Nat.add_lt_add_left hk _⟩⟩)
-    (fun t ht ↦ ⟨t, by rw [Main.addr_ofK, Nat.zero_add],
+    (fun t ht ↦ ⟨t, by rw [Value.limb0_ofK_addressOfIndex_mul, Nat.zero_add],
       ⟨(0, tabW), by simp [hLin0], by omega, by rw [hlT]; omega⟩⟩)
     (fun rd _ hm ↦ by
       have hT0 := hm (0, tabW) (by simp [hLin0])

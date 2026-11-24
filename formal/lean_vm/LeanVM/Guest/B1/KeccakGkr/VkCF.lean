@@ -170,7 +170,7 @@ theorem vkFin_complete (hσ : ∀ v, σ v = σ (.n v.idx)) (hg : ∀ st ∈ vkFi
     rw [eLD z hz, List.getD_eq_getElem _ _ (by omega)]; exact hsl z (by omega)
   rw [k14]
   refine ⟨m6578, by rw [e6578]; exact e_add_self _, c6579, a6580, c6581, c6582, m6583,
-    by rw [e6580, h17]; exact one_add_gen_pow_inK _, fun _ ↦ trivial, ?_⟩
+    by rw [e6580, h17]; exact one_add_gen_pow_isInK _, fun _ ↦ trivial, ?_⟩
   rw [holdsList_map_atoms]
   refine ⟨fun j hj ↦ ecp j hj, ?_⟩
   simp only [List.map_cons, List.map_nil]

@@ -40,11 +40,11 @@ theorem claimPops_of_reads {α : Type} {f : α → List E} {L : List α} (hf : �
   refine congrArg (Prod.mk "claims") (List.ext_getElem (by rw [hf _ (List.getElem_mem hk)]; simp) fun c hc _ => ?_)
   have hc4 : c < 4 := by simpa using hc
   have hlen : (L.flatMap f).length = 4 * L.length := kid_length_flatMap_const L hf
-  have hl := loadHolds_getD hr (k := 4 * k + c) (by omega)
+  have hl := readsAt_getD hr (k := 4 * k + c) (by omega)
   rw [getD_flatMap_uniform L hf k hk c hc4, List.getD_eq_getElem _ _ (by rw [hf _ (List.getElem_mem hk)]; exact hc4)]
     at hl
   obtain ⟨-, hl⟩ := hl
-  rw [gen_pow_eq_ofK, addr_ofK, ← Nat.add_assoc] at hl
+  rw [gen_pow_eq_ofK, limb0_ofK_addressOfIndex_mul, ← Nat.add_assoc] at hl
   simp only [List.getElem_map, List.getElem_range, hl, Option.getD_some]
 
 /-- **A valid tree of `claim_list_digest` of honest shape on a table holding a list's cells** pops the list's
@@ -85,7 +85,7 @@ theorem mainGoalClXR (hL : GuestLimits s w) {SB SK : String → ℕ} {Bv : ℕ �
   have hr := mf_reads fs fp seed s w hM (i := 0) (by omega)
   rw [e] at hr
   rw [hq]
-  exact cl_pops_honest (fun c _ => mf_claimCells_length _ _ _) hn (readsAt_append'.mp hr).1 hv hT.1
+  exact cl_pops_honest (fun c _ => mf_claimCells_length _ _ _) hn (readsAt_append.mp hr).1 hv hT.1
 
 /-- **`MainGoalsRR.cls`**: `claim_list_digest` on the leanSPHINCS list within its bound, by a tree of honest shape
 popping `q.ps`, the list's honest pushes. -/
@@ -107,7 +107,7 @@ theorem mainGoalClSR (hL : GuestLimits s w) {SB SK : String → ℕ} {Bv : ℕ �
   have hr := mf_reads fs fp seed s w hM (i := 1) (by omega)
   rw [e] at hr
   rw [hq]
-  exact cl_pops_honest (fun c _ => mf_claimCells_length _ _ _) hn (readsAt_append'.mp hr).1 hv hT.1
+  exact cl_pops_honest (fun c _ => mf_claimCells_length _ _ _) hn (readsAt_append.mp hr).1 hv hT.1
 
 /-- `MainSegs.cx` for `q.px` the leanXMSS list's pushes. -/
 theorem mainSegs_cx {q : MainPops}

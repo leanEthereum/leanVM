@@ -50,14 +50,14 @@ theorem memL_agree {rd rd' : Reader} {L : Main.Layout} (h : MemL rd L) (h' : Mem
   obtain ⟨q, hq, h1, h2⟩ := hi
   have l := (h q hq (i - q.1) (by omega)).2
   have l' := (h' q hq (i - q.1) (by omega)).2
-  rw [Main.addr_ofK, Nat.add_sub_cancel' h1] at l l'
+  rw [Value.limb0_ofK_addressOfIndex_mul, Nat.add_sub_cancel' h1] at l l'
   exact l.trans l'.symm
 
 theorem readsAt_transfer {rd rd' : Reader} {L : Main.Layout} (h : MemL rd L) (h' : MemL rd' L)
     {b : ℕ} {xs : List E} (hr : ReadsAt rd (ofK (addressOfIndex b)) xs)
     (hreg : ∀ k < xs.length, RegionL L (b + k)) : ReadsAt rd' (ofK (addressOfIndex b)) xs :=
         fun k hk =>
-  ⟨(hr k hk).1, by rw [Main.addr_ofK, ← memL_agree h h' (hreg k hk), ← Main.addr_ofK]; exact (hr k hk).2⟩
+  ⟨(hr k hk).1, by rw [Value.limb0_ofK_addressOfIndex_mul, ← memL_agree h h' (hreg k hk), ← Value.limb0_ofK_addressOfIndex_mul]; exact (hr k hk).2⟩
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 

@@ -189,19 +189,19 @@ theorem rc_side {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {M : �
     (hK : K < M) (hlt : k.idx < y.idx) (hg : Good rd S w σ (.rangeCheck x y t1 t2 k)) :
     Side rd S σ (.rangeCheck x y t1 t2 k) := by
   simp only [Good] at hg
-  rw [ite_pos' hlt] at hg
+  rw [ite_eq_left hlt] at hg
   have hy : σ y = gen ^ (K - e) := by
     rw [hg.2.2, hk, hx, show K = (K - e) + e by omega, pow_add, mul_inv_cancel_right₀
       (pow_ne_zero _ gen_ne_zero), Nat.add_sub_cancel]
   simp only [Side]
-  rw [ite_pos' hlt, hx, hy, gpow_mul_zero, gpow_mul_zero]
+  rw [ite_eq_left hlt, hx, hy, gpow_mul_zero, gpow_mul_zero]
   exact ⟨gen_pow_isInK _, hl _ (by omega), gen_pow_isInK _, hl _ (by omega),
     pow_ne_zero _ gen_ne_zero⟩
 
 theorem good_mul' {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {d x y : ℕ} (hx : x < d)
     (hy : y < d) (h : Good rd S w σ (.mul (.n d) (.n x) (.n y))) : σ (.n d) = σ (.n x) * σ (.n y) := by
   simp only [Good] at h
-  rwa [ite_pos' ⟨hx, hy⟩] at h
+  rwa [ite_eq_left ⟨hx, hy⟩] at h
 
 theorem one_add_ne' {a : ℕ} (ha : a < 2 ^ 64 - 1) (h0 : a ≠ 0) : (1 : E) + gen ^ a ≠ 0 := by
   rw [Ne, e_add_eq_zero_iff, eq_comm, gen_pow_eq_one_iff ha]; exact h0

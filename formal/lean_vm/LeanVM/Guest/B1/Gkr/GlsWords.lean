@@ -18,6 +18,7 @@ import LeanVM.Guest.Data.ValNames.«gkr_last_layers__L»
 import LeanVM.Guest.Data.ValNames.«gkr_layers__L»
 import LeanVM.Guest.Data.ValNames.«gkr_layers__L_loop0»
 import LeanVM.Guest.Data.ValNames.«gkr_layer__L»
+public import LeanVM.ToMathlib.List
 
 /-!
 # The radix-four layers' words
@@ -71,18 +72,9 @@ def glsKL (fs : String → ℕ) (Kg : ℕ → ℕ → ℕ) : ℕ :=
   ((List.range 2).flatMap fun o ↦ (List.range 4).flatMap fun n ↦
     (List.range 4).map fun r ↦ glsB fs Kg o n r).foldl max 0
 
-theorem gw_foldl_max_ge : ∀ (l : List ℕ) (a : ℕ), a ≤ l.foldl max a ∧ ∀ x ∈ l, x ≤ l.foldl max a
-  | [], _ => ⟨le_rfl, fun _ h => by simp at h⟩
-  | y :: l, a => by
-    obtain ⟨h1, h2⟩ := gw_foldl_max_ge l (max a y)
-    refine ⟨le_trans (le_max_left a y) h1, fun x hx => ?_⟩
-    rcases List.mem_cons.mp hx with rfl | hx
-    · exact le_trans (le_max_right a x) h1
-    · exact h2 x hx
-
 theorem glsB_le_KL (fs : String → ℕ) (Kg : ℕ → ℕ → ℕ) {o n r : ℕ} (ho : o < 2) (hn : n ≤ 3)
     (hr : r < 4) : glsB fs Kg o n r ≤ glsKL fs Kg :=
-  (gw_foldl_max_ge _ 0).2 _ (List.mem_flatMap.2 ⟨o, List.mem_range.2 ho, List.mem_flatMap.2
+  (List.foldl_max_ge _ 0).2 _ (List.mem_flatMap.2 ⟨o, List.mem_range.2 ho, List.mem_flatMap.2
     ⟨n, List.mem_range.2 (by omega), List.mem_map.2 ⟨r, List.mem_range.2 hr, rfl⟩⟩⟩)
 
 /-! ## A flat node -/
@@ -114,10 +106,10 @@ theorem gw_dispOk {σ : Val} {l : List Stmt} (h : l.all gwNoDisp = true) : ∀ s
 `cs`, each atom of `as` one of its statements. -/
 noncomputable def gwChk (b : List Stmt) (vr : List V) (cs : List (Option V × String × List V × List V))
     (as : List Atom) : Bool :=
-  tbStmtsEqb b (b.dropLast ++ [.ret vr]) && b.dropLast.all Stmt.flat &&
+  stmtsEqb b (b.dropLast ++ [.ret vr]) && b.dropLast.all Stmt.flat &&
     (b.dropLast.filterMap Main.Stmt.allocSz).isEmpty &&
     decide (b.dropLast.filterMap Main.Stmt.callS = cs) &&
-    as.all fun a ↦ b.dropLast.any fun t ↦ tbStmtsEqb [t] [.atom a]
+    as.all fun a ↦ b.dropLast.any fun t ↦ stmtsEqb [t] [.atom a]
 
 theorem gwChk_sound {b : List Stmt} {vr : List V} {cs : List (Option V × String × List V × List V)}
     {as : List Atom} (h : gwChk b vr cs as = true) :
@@ -126,9 +118,9 @@ theorem gwChk_sound {b : List Stmt} {vr : List V} {cs : List (Option V × String
       ∀ a ∈ as, Stmt.atom a ∈ b.dropLast := by
   simp only [gwChk, Bool.and_eq_true, decide_eq_true_eq, List.isEmpty_iff] at h
   obtain ⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩ := h
-  refine ⟨tbStmtsEqb_sound h1, h2, h3, h4, fun a ha ↦ ?_⟩
+  refine ⟨stmtsEqb_sound h1, h2, h3, h4, fun a ha ↦ ?_⟩
   obtain ⟨t, ht, he⟩ := List.any_eq_true.mp (List.all_eq_true.mp h5 a ha)
-  have := tbStmtsEqb_sound he
+  have := stmtsEqb_sound he
   simp only [List.cons.injEq, and_true] at this
   rwa [← this]
 
@@ -259,7 +251,7 @@ theorem gl_totalLeOn {Kg : ℕ → ℕ → ℕ}
   have e1 := hat _ a1
   have e2 := hat _ a2
   have e3 := hat _ a3
-  simp only [Atom.Holds, tb_word_one] at e1 e2 e3
+  simp only [Atom.Holds, word_one] at e1 e2 e3
   have h3' : σ (.n (valf% «gkr_layer» "x_m")) = gen ^ m := by
     rw [← hpar, hps] at h3
     exact h3
@@ -381,7 +373,7 @@ theorem glsl_total {Kg : ℕ → ℕ → ℕ}
   have e19 := hat _ a19
   have e20 := hat _ a20
   have e21 := hat _ a21
-  simp only [Atom.Holds, tb_word_gen] at e17 e18 e19 e20 e21
+  simp only [Atom.Holds, word_gen] at e17 e18 e19 e20 e21
   have h0' : σ (.n (valf% «gkr_layers» «_loop0» "x_m")) = gen ^ c := by rw [← hpar, hps] at h0; exact h0
   have h1' : σ (.n (valf% «gkr_layers» «_loop0» "bound")) = gen ^ n := by rw [← hpar, hps] at h1; exact h1
   have e21' : σ (.n (valf% «gkr_layers» «_loop0» "s6#4")) = gen ^ (c + 1) := by rw [e21, e20, h0', pow_succ]
@@ -454,7 +446,7 @@ theorem gls_totalLeOn {Kg : ℕ → ℕ → ℕ}
   have e9 := hat (.const (.n (valf% «gkr_layers» "s0#0")) (word 1 0)) (by rw [e]; simp)
   have e10 := hat (.add (.n (valf% «gkr_layers» "s0#1")) (.n (valf% «gkr_layers» "s0#0")) (.n (valf% «gkr_layers» "n_four"))) (by rw [e]; simp)
   have e11 := hat (.const (.n (valf% «gkr_layers» "s0#2")) (word 1 0)) (by rw [e]; simp)
-  simp only [Atom.Holds, tb_word_one] at e9 e10 e11
+  simp only [Atom.Holds, word_one] at e9 e10 e11
   have hlog : logG (σ (.n (valf% «gkr_layers» "rem_g"))) = r := by rw [h4', gen_pow_eq_ofK, logG_spec (by omega)]
   have hlast : [glcLastN 0 o, glcLastN 1 o, glcLastN 2 o, glcLastN 3 o].getD r "" = glcLastN r o := by
     interval_cases r <;> rfl

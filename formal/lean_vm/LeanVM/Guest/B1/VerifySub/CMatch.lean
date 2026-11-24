@@ -304,18 +304,18 @@ theorem vs_honVals {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : 
     rw [S.pool_vals hbl]
     have := hpoolW
     rw [Tables.VtHonest.poolW, List.append_assoc] at this
-    exact (Main.readsAt_append'.1 this).1
+    exact (readsAt_append.1 this).1
   have hpi : ReadsAt rd (w 6 * gen ^ 157) ((S.claims.drop 157).map (·.value)) := by
     rw [S.pi_vals hbl]
     have := hpoolW
     rw [Tables.VtHonest.poolW] at this
-    have h2 := (Main.readsAt_append'.1 this).2
+    have h2 := (readsAt_append.1 this).2
     rwa [List.length_append, List.length_replicate, hx4] at h2
   have hcew : ReadsAt rd (w 617) (((S.claims.drop 4).take 153).map (·.value)) := by
     rw [S.col_vals hbl, (S.evs_eq hbl).1, h582, show 13 + (3 * S.nT + 1) = 14 + 3 * S.nT by omega]
     have hT : ReadsAt rd (ptr (S.cT bs)) S.xsT := subOf_memL hB (S.sub_xsT b hbl)
     rw [← List.take_append_drop (14 + 3 * S.nT) S.xsT] at hT
-    have h2 := (Main.readsAt_append'.1 hT).2
+    have h2 := (readsAt_append.1 hT).2
     rwa [List.length_take, Nat.min_eq_left (by omega), ← vs_ptr_add] at h2
   have hv : ReadsAt rd (w 361) [S.oodV] := by
     rw [wa (i := 7) (a := 361) (by norm_num) rfl]; exact own 7 (by norm_num)

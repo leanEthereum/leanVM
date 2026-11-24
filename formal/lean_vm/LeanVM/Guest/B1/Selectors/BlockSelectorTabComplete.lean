@@ -180,9 +180,9 @@ theorem btk_xeLoad {rd : Reader} {eqt gt : E} {n : ℕ} {zs zs1 gs : List E} (bs
   have h2 := two_le_two_pow hw1
   have hl : 2 ^ btW n k - 2 + btkU n bs k < (eqLevels (nib zs k) (nib zs1 k)).length := by
     rw [eqLevels_length hlen hlen1, pow_succ]; omega
-  have h1 := tbReadsAt_getD ((hrt k (by simpa [btN] using hk)).1) hl
-  rw [tb_loadHolds_mul_gen_pow] at h1
-  rw [tb_loadHolds_mul_gen_pow,
+  have h1 := readsAt_getD ((hrt k (by simpa [btN] using hk)).1) hl
+  rw [loadHolds_mul_gen_pow] at h1
+  rw [loadHolds_mul_gen_pow,
     show btkU n bs k + (32 * k + 2 ^ btW n k - 2) = 32 * k + (2 ^ btW n k - 2 + btkU n bs k) by
       omega]
   exact h1
@@ -194,9 +194,9 @@ theorem btk_xgLoad {rd : Reader} {eqt gt : E} {n : ℕ} {zs zs1 gs : List E} (bs
   have hlen := nib_length hgl hk
   have hl : btkU n bs k < (gTable (nib gs k)).length := by
     rw [gTable_length hlen]; exact btkU_lt n bs k
-  have h1 := tbReadsAt_getD ((hrt k (by simpa [btN] using hk)).2) hl
-  rw [tb_loadHolds_mul_gen_pow] at h1
-  rw [tb_loadHolds_mul_gen_pow, add_comm]
+  have h1 := readsAt_getD ((hrt k (by simpa [btN] using hk)).2) hl
+  rw [loadHolds_mul_gen_pow] at h1
+  rw [loadHolds_mul_gen_pow, add_comm]
   exact h1
 
 /-- Nibble `k`'s eq weight, as a product. -/
@@ -246,15 +246,15 @@ theorem block_selector_tab_complete_holds : block_selector_tab_complete_Spec := 
   have f0 : F 0 = sb := by simp [hF, btkVal]
   have f1 : F 1 = eqt := by simp [hF, btkVal]
   have f2 : F 2 = gt := by simp [hF, btkVal]
-  refine (tb_rel_pre hf hb (btPre_noRet n) [sb, eqt, gt] _).mpr ⟨fun x ↦ F x.idx,
+  refine (rel_pre hf hb (btPre_noRet n) [sb, eqt, gt] _).mpr ⟨fun x ↦ F x.idx,
     by rw [hp]; simp only [List.map_cons, List.map_nil]; rw [f0, f1, f2], ?_, ?_⟩
   · by_cases h0 : n = 0
     · subst h0
       simp only [btPre, ↓reduceIte, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
       simp [hF, btkVal]
     simp only [btPre, h0, ↓reduceIte]
-    rw [tb_holdsList_append_noRet (tb_noRetList_flatten_range _ _ (btNibT_noRet n)),
-      tb_holdsList_flatten_range _ _ (btNibT_noRet n)]
+    rw [holdsList_append_noRet (noRetList_flatten_range _ _ (btNibT_noRet n)),
+      holdsList_flatten_range _ _ (btNibT_noRet n)]
     refine ⟨fun k hk ↦ ?_, ?_⟩
     · -- nibble `k`
       have hw1 := btW_pos hk
@@ -264,7 +264,7 @@ theorem block_selector_tab_complete_holds : block_selector_tab_complete_Spec := 
         calc 2 ^ btW n k ≤ 2 ^ 4 := Nat.pow_le_pow_right (by norm_num) hw4
           _ = 16 := by norm_num
       have hdig : LoadHolds rd sb k (gen ^ btkU n bs k) := by
-        have h := tbReadsAt_getD hbr (k := k) (by simpa [nibDigits, hbl, btN] using hk)
+        have h := readsAt_getD hbr (k := k) (by simpa [nibDigits, hbl, btN] using hk)
         rwa [btk_digit hbl hk] at h
       have hrc : LoadHolds rd (gen ^ btkU n bs k) 0 (cskRd rd (btkU n bs k)) ∧
           word (2 ^ (2 ^ btW n k - 1)) 0 =
@@ -272,7 +272,7 @@ theorem block_selector_tab_complete_holds : block_selector_tab_complete_Spec := 
           LoadHolds rd (gen ^ (2 ^ btW n k - 1 - btkU n bs k)) 0
             (cskRd rd (2 ^ btW n k - 1 - btkU n bs k)) :=
         ⟨csk_load hlow (by omega), by
-          rw [← pow_add, Nat.add_sub_cancel' (by omega), tb_word_two_pow (by omega)],
+          rw [← pow_add, Nat.add_sub_cancel' (by omega), word_two_pow (by omega)],
           csk_load hlow (by omega)⟩
       have hxe := btk_xeLoad bs hzl hz1l hrt hk
       have hxg := btk_xgLoad bs hgl hrt hk
@@ -348,7 +348,7 @@ theorem block_selector_tab_complete_holds : block_selector_tab_complete_Spec := 
       obtain rfl := List.length_eq_zero_iff.mp hzl
       obtain rfl := List.length_eq_zero_iff.mp hz1l
       obtain rfl := List.length_eq_zero_iff.mp hgl
-      simp [btRet, hF, btkVal, bitsEq, bitsPow, tb_word_one]
+      simp [btRet, hF, btkVal, bitsEq, bitsPow, word_one]
     · simp only [btRet, h0, ↓reduceIte, List.map_cons, List.map_nil]
       show [F (btC (btN n)), F (btC (btN n) + 1)] = _
       obtain ⟨h1, h2⟩ := btk_products h0 hbl hzl hz1l hgl

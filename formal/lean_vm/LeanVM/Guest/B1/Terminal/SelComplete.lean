@@ -62,14 +62,14 @@ theorem csk_holdsPre {κ : ℕ} (hκ : κ < 31) {rd : Reader} {o : ℕ} {se sg :
       true_and]
     have e3 : F 3 = word 1 0 := by simp [hF, cskVal]
     have e4 : F 4 = word 1 0 := by simp [hF, cskVal]
-    rw [e3, e4, f0, tb_word_one, pow_zero]
+    rw [e3, e4, f0, word_one, pow_zero]
     exact ⟨rfl, e_add_self 1, rfl⟩
   have hκ' : κ < 32 := by omega
   have hdig := cs_digits hκ' ho (Nat.dvd_trans (Nat.pow_dvd_pow 2 (by omega)) hd)
   have hu : ∀ k < csN κ, cskU κ o k < 16 := fun k _ => Nat.mod_lt _ (by norm_num)
   simp only [csPre, h32, ↓reduceIte, csHint, Stmt.HoldsList, Stmt.Holds, Atom.Holds, true_and]
-  rw [tb_holdsList_append_noRet (tb_noRetList_flatten_range _ _ (csNibT_noRet κ)),
-    tb_holdsList_flatten_range _ _ (csNibT_noRet κ)]
+  rw [holdsList_append_noRet (noRetList_flatten_range _ _ (csNibT_noRet κ)),
+    holdsList_flatten_range _ _ (csNibT_noRet κ)]
   have hN1 : 1 ≤ csN κ := by unfold csN; omega
   refine ⟨fun k hk ↦ ?_, ?_⟩
   · -- nibble `k`
@@ -78,11 +78,11 @@ theorem csk_holdsPre {κ : ℕ} (hκ : κ < 31) {rd : Reader} {o : ℕ} {se sg :
     have hdk := cs_dvd hu (by rw [show 16 ^ (κ / 4) * csDig (cskU κ o) (csN κ) = o from hdig.symm]; exact hd) k hk
     have hxe : LoadHolds rd (se * gen ^ cskU κ o k) (32 * (κ / 4 + k) + Tables.selEqOff (csW κ k - 1))
         (cskXE κ o p p1 k) := by
-      rw [tb_loadHolds_mul_gen_pow, show cskU κ o k + (32 * (κ / 4 + k) + Tables.selEqOff (csW κ k - 1)) =
+      rw [loadHolds_mul_gen_pow, show cskU κ o k + (32 * (κ / 4 + k) + Tables.selEqOff (csW κ k - 1)) =
         32 * (κ / 4 + k) + Tables.selEqOff (csW κ k - 1) + cskU κ o k by omega]
       exact hE _ hj _ (by omega) _ (hu k hk) hdk
     have hxg : LoadHolds rd (sg * gen ^ cskU κ o k) (16 * (κ / 4 + k)) (cskXG κ o k) := by
-      rw [tb_loadHolds_mul_gen_pow, show cskU κ o k + 16 * (κ / 4 + k) =
+      rw [loadHolds_mul_gen_pow, show cskU κ o k + 16 * (κ / 4 + k) =
         16 * (κ / 4 + k) + cskU κ o k by omega]
       exact hG _ hj _ (hu k hk)
     have hrc : LoadHolds rd (gen ^ cskU κ o k) 0 (cskRd rd (cskU κ o k)) ∧
@@ -169,7 +169,7 @@ theorem csk_ret {κ : ℕ} (hκ : κ < 31) {rd : Reader} {o : ℕ} {se sg : E} {
         omega
       simp [this]
     subst ho0
-    have : cskVal 32 0 se sg p p1 rd (csRet 32) = 1 := by simp [cskVal, csRet, tb_word_one]
+    have : cskVal 32 0 se sg p p1 rd (csRet 32) = 1 := by simp [cskVal, csRet, word_one]
     rw [this]
     simp [bitsEq]
   have hκ' : κ < 32 := by omega
@@ -228,12 +228,6 @@ open LeanVM.Guest.Memory
 open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 
 @[expose] public section
-
-theorem cs_addr_mul (b c k : ℕ) : (ofK (addressOfIndex b) * gen ^ c).limb 0 * addressOfIndex k =
-    addressOfIndex (b + c + k) := by
-  have e : ofK (addressOfIndex b) * gen ^ c = ofK (addressOfIndex (b + c)) := by
-    rw [gen_pow_eq_ofK, ← ofK_mul, addressOfIndex, addressOfIndex, addressOfIndex, pow_add]
-  rw [e, Main.addr_ofK]
 
 /-! ## The nibble shares -/
 
@@ -347,19 +341,19 @@ theorem cs_completeAtDTB (k : ℕ) (hk : 4 ≤ k) {κ : ℕ} (hκ : κ < 31) {o 
       refine ⟨ese + Tables.cskU κ o j + (32 * (κ / 4 + j) + Tables.selEqOff (Tables.csW κ j - 1)), ?_,
         Or.inl ⟨(ese, Tables.stEqWords (Tables.stVal ept ept1 ese p p1)), by simp [csLin, Tables.stOwn],
           by omega, by simp [Tables.stEqWords]; omega⟩⟩
-      rw [e]; exact cs_addr_mul _ _ _
+      rw [e]; exact limb0_ofK_mul_gen_pow_mul _ _ _
     · have e : σ (.n (Tables.csC κ j + if j = 0 then 6 else 7)) =
           ofK (addressOfIndex bg) * gen ^ Tables.cskU κ o j := by
         show Tables.cskVal _ _ _ _ _ _ _ (Tables.csC κ j + if j = 0 then 6 else 7) = _
         by_cases hj0 : j = 0
         · subst hj0
-          rw [ite_pos' rfl, Tables.cskVal_at hκ' hj (by simp)]
+          rw [ite_eq_left rfl, Tables.cskVal_at hκ' hj (by simp)]
           simp [Tables.cskRole]
-        · rw [ite_neg' hj0, Tables.cskVal_at hκ' hj (by simp [hj0])]
+        · rw [ite_eq_right hj0, Tables.cskVal_at hκ' hj (by simp [hj0])]
           simp [Tables.cskRole, hj0]
       refine ⟨bg + Tables.cskU κ o j + 16 * (κ / 4 + j), ?_,
         Or.inl ⟨(bg, gTabW), by simp [csLin], by omega, by rw [gTabW_length]; omega⟩⟩
-      rw [e]; exact cs_addr_mul _ _ _
+      rw [e]; exact limb0_ofK_mul_gen_pow_mul _ _ _
 
 /-- **`column_selector__L{κ}` is complete, placed, within its frame** (`cs_completeAtDTB`). -/
 theorem cs_completeAtB (k : ℕ) (hk : 4 ≤ k) {κ : ℕ} (hκ : κ < 31) {o : ℕ} (ho : o < 2 ^ 32)

@@ -80,7 +80,7 @@ theorem lsum_relAtIn {sum loop : String} {Q : ℕ} (hs : FnIs sum (osParams 4) (
     simp only [hvals, List.getD_eq_getElem?_getD, List.getElem?_cons_zero, List.getElem?_cons_succ,
       Option.getD_some, true_and, and_true, implies_true]
     rw [Whir.gw_eq hQu, word_one]
-    refine ⟨?_, ?_, isInK_one_add_gen_pow Q, ?_⟩
+    refine ⟨?_, ?_, one_add_gen_pow_isInK Q, ?_⟩
     · have := hld 0 (by omega); rwa [hz, ← word_zero] at this
     · have := hldP 0 (by omega); rwa [hp0] at this
     · exact hld _ (by omega)
@@ -138,9 +138,9 @@ theorem lsum_relAtIn {sum loop : String} {Q : ℕ} (hs : FnIs sum (osParams 4) (
     rw [hl] at hA
     simp only [List.map_cons, List.map_nil, List.mem_cons, List.not_mem_nil, or_false] at hA
     rcases hA with rfl | rfl | rfl
-    · exact ⟨b + 0, by rw [e5, Main.addr_ofK], Or.inl (hown _ (by omega) (by omega))⟩
-    · exact ⟨b' + 0, by rw [e7, Main.addr_ofK], Or.inl (hown _ (by omega) (by omega))⟩
-    · exact ⟨b + Q, by rw [e5, Main.addr_ofK], Or.inl (hown _ (by omega) (by omega))⟩
+    · exact ⟨b + 0, by rw [e5, Value.limb0_ofK_addressOfIndex_mul], Or.inl (hown _ (by omega) (by omega))⟩
+    · exact ⟨b' + 0, by rw [e7, Value.limb0_ofK_addressOfIndex_mul], Or.inl (hown _ (by omega) (by omega))⟩
+    · exact ⟨b + Q, by rw [e5, Value.limb0_ofK_addressOfIndex_mul], Or.inl (hown _ (by omega) (by omega))⟩
 
 /-! ## The helper, placed -/
 
@@ -345,9 +345,9 @@ theorem lsKey {e : String × ℕ × ℕ × ℕ × ℕ × String × String × Str
     have hACm : ReadsAt rd' (ofK (addressOfIndex b)) AC := hB (b, AC) (by simp [hLb])
     have hPWm : ReadsAt rd' (ofK (addressOfIndex (b + (Q + 1)))) PW := hB (b + (Q + 1), PW) (by simp [hLb])
     refine lsLoop_rel he (pos := p) (cs := cs) (fun k hk ↦ ?_) (fun k hk ↦ ?_) hP' hF' hT'
-    · have := Whir.readsAt_getD' hACm (j := k) (by rw [hACl]; exact Nat.lt_succ_of_le hk)
+    · have := readsAt_getD hACm (k := k) (by rw [hACl]; exact Nat.lt_succ_of_le hk)
       rwa [hAC, lsAccW_get hk] at this
-    · have := Whir.readsAt_getD' hPWm (j := k) (by rw [hPWl]; exact Nat.lt_succ_of_le hk)
+    · have := readsAt_getD hPWm (k := k) (by rw [hPWl]; exact Nat.lt_succ_of_le hk)
       rwa [hPW, lsPwW_get hk] at this
   obtain ⟨m, hm⟩ := lr_relAtIn_pure_uniform (ls_pureIn hloop hrqF) (List.mem_cons_self) fs cert hres
   refine ⟨m, fun rd hl hL ↦ ?_⟩

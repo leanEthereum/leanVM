@@ -110,8 +110,6 @@ theorem kBytes_eq (a : K) : K.toBytes a = leBytes (kToNat a) 8 := by
 /-- The number a cell's two low limbs hold. -/
 def cellNat (x : E) : Nat := kToNat (x.limb 0) + 2 ^ 64 * kToNat (x.limb 1)
 
-theorem kToNat_lt (a : K) : kToNat a < 2 ^ 64 := (a.toBitVec).isLt
-
 theorem cellNat_lt (x : E) : cellNat x < 2 ^ 128 := by
   have h0 := kToNat_lt (x.limb 0)
   have h1 := kToNat_lt (x.limb 1)

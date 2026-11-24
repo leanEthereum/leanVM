@@ -268,7 +268,6 @@ import LeanVM.Guest.B1.Bits.QueryWindowsBody1
 import LeanVM.Guest.B1.Eq.EqTree
 import LeanVM.Guest.B1.Eq.MeaningP
 import LeanVM.Guest.B1.Tables.Base
-import LeanVM.Guest.B1.Tables.Basic
 import LeanVM.Guest.B1.Tables.CoordPadding
 import LeanVM.Guest.B1.Tables.GroupCert
 import LeanVM.Guest.B1.Tables.InterfaceP
@@ -335,6 +334,7 @@ import LeanVM.Guest.B1.Bits.Templates
 import LeanVM.Guest.Ref.Elab
 import LeanVM.Guest.Ref.Keccak
 import LeanVM.Guest.Ref.Link
+import LeanVM.Guest.Ref.Verified
 
 /-! **B1's per-function proofs read their own function's core module alone.** A proof stated for
 every program that finds its function (`Finds`, `CoreFind.lean`), or a check of one function's
@@ -475,7 +475,6 @@ open Lean Elab Command in
     (`LeanVM.Guest.B1.Eq.EqTree, []),
     (`LeanVM.Guest.B1.Eq.MeaningP, []),
     (`LeanVM.Guest.B1.Tables.Base, []),
-    (`LeanVM.Guest.B1.Tables.Basic, []),
     (`LeanVM.Guest.B1.Tables.CoordPadding, []),
     (`LeanVM.Guest.B1.Tables.GroupCert, []),
     (`LeanVM.Guest.B1.Tables.InterfaceP, []),
@@ -542,7 +541,8 @@ open Lean Elab Command in
     (`LeanVM.Guest.Ref.Elab, []),
     (`LeanVM.Guest.Ref.Keccak, []),
     (`LeanVM.Guest.Ref.Lang, []),
-    (`LeanVM.Guest.Ref.Link, [])]
+    (`LeanVM.Guest.Ref.Link, []),
+    (`LeanVM.Guest.Ref.Verified, [])]
   let families : List (Name × Option (List Name) × List Name) := [
     (Q ++ `GPowerP, some [`g_power_of_word], []),
     (Q ++ `MeaningP, some [], []),

@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Placement.Common
 public import LeanVM.Guest.EndExecYPtr
 public import LeanVM.Guest.CoreMode.Fam.ResA
 public import LeanVM.Guest.EndExecW
-public import LeanVM.Guest.B1.Tables.Basic
+public import LeanVM.Guest.B1.Tables.Base
 
 /-!
 # The families' shared checks, sound

@@ -53,12 +53,12 @@ theorem loadHolds_ofK_iff {rd : Reader} {a k b k' : ℕ} {v : E} (h : a + k = b 
     LoadHolds rd (ofK (Parameters.addressOfIndex a)) k v ↔
       LoadHolds rd (ofK (Parameters.addressOfIndex b)) k' v := by
   unfold LoadHolds
-  rw [Main.addr_ofK, Main.addr_ofK, h]
+  rw [Value.limb0_ofK_addressOfIndex_mul, Value.limb0_ofK_addressOfIndex_mul, h]
   simp [ofK_isInK]
 
 theorem limb_ofK_addr (a t : ℕ) :
     (ofK (Parameters.addressOfIndex a)).limb 0 * Parameters.addressOfIndex t =
-      Parameters.addressOfIndex (a + t) := Main.addr_ofK a t
+      Parameters.addressOfIndex (a + t) := Value.limb0_ofK_addressOfIndex_mul a t
 
 /-- A run's word, loaded. -/
 theorem memL_run_load {rd : Reader} {e : ℕ} {ws : List E} (h : MemL rd [(e, ws)]) {k : ℕ}

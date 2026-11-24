@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Prover.Keccak.Rounds
 public import LeanVM.Prover.Keccak.States
+public import LeanVM.ToMathlib.List
 
 /-!
 # The openings
@@ -142,10 +143,6 @@ theorem slotWeightOf_eq (segs w : List E) (first count o z : ℕ) :
     slotWeightOf segs w.toArray first count o z = slotW segs w first count o z := by
   simp only [slotWeightOf, slotW, array_getD_toArray]
 
-theorem getD_map_range {α : Type} (f : ℕ → α) {n z : ℕ} (hz : z < n) (d : α) :
-    ((List.range n).map f).getD z d = f z := by
-  simp [List.getD_eq_getElem?_getD, hz]
-
 /-- **The inputs' opening makes the moves of `hInput`.** -/
 theorem corr_input (hcol : ColAgree P col' col) (claim : KeccakClaim)
     (hshape : ClaimShape P claim) (outs : List ColumnClaim) :
@@ -196,7 +193,7 @@ theorem corr_input (hcol : ColAgree P col' col) (claim : KeccakClaim)
           tabInv_full (h2'.2.2 z hz).2 hx6]
       rw [← Script.bind_ret (Script.sendList (x.2.pairs.map fun p ↦ p.2.getD 0 0))]
       exact corr_sendList hsl trivial
-    · rw [getD_map_range _ hz]
+    · rw [List.getD_map_range _ hz]
       refine ⟨tabInv_of _ _ 6 (by simp) fun o ho ↦ ?_, tabInv_of _ _ 6 (by simp) fun o ho ↦ ?_⟩
       · beta_reduce
         rw [array_getD_ofFn_lt _ ho, Ws, sum_eqAt_bitsE ho, slotWeightOf_eq]

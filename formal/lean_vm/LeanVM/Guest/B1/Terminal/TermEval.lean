@@ -66,8 +66,8 @@ theorem termW_sel (b0 : ℕ) (outs : List (List E × Main.Layout)) {c : ℕ}
   obtain ⟨h1, h2⟩ := selV_bounds c hc
   simp only [claimsStart] at h2
   simp only [termW]
-  rw [ite_neg' (by omega), ite_neg' (by omega), ite_neg' (by omega), ite_neg' (by omega),
-    ite_neg' (by omega), ite_neg' (by omega), ite_neg' (by omega), selOfV_selV hc]
+  rw [ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega),
+    ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega), selOfV_selV hc]
 
 variable {rd : Reader} {S : List Atom} {σ : Val} {R : ℕ → Prop}
 
@@ -149,13 +149,13 @@ theorem head_complete (hS : StoresAtPi S) {b0 : ℕ} {outs : List (List E × Mai
   have s0 : LoadHolds rd (σ (.n (val% «check_opening_terminal» "pi_chain"))) 0 (σ (.n (val% «check_opening_terminal» "s7#0"))) := by
     rw [e26, e27, word_one]
     have := hpk 0 (by omega)
-    rwa [piW_getD (by omega), ite_pos' rfl] at this
+    rwa [piW_getD (by omega), ite_eq_left rfl] at this
   have s1 : LoadHolds rd (σ (.n (val% «check_opening_terminal» "pi_chain"))) 1 (σ (.n (val% «check_opening_terminal» "s8#1"))) := by
     rw [e26, e29, e28, e3]
     have := hpk 1 hm1
-    rwa [piW_getD hm1, ite_neg' (by omega), Finset.Ico_self, Finset.prod_empty, mul_one] at this
+    rwa [piW_getD hm1, ite_eq_right (by omega), Finset.Ico_self, Finset.prod_empty, mul_one] at this
   have a24 : ∀ k ≤ m, AddrIn R (σ (.n (val% «check_opening_terminal» "pi_chain"))) k := fun k hk =>
-    ⟨b0 + 70 + k, by rw [e26, Main.addr_ofK], api k hk⟩
+    ⟨b0 + 70 + k, by rw [e26, Value.limb0_ofK_addressOfIndex_mul], api k hk⟩
   have hw2 : word 2 0 = gen := word_gen
   refine ⟨fun s hs => ?_, fun q hq => ?_, e20, e21, e22, e23, e24, e25, e26,
     by rw [e31, e30, e6], e32, e34, ekb, e43⟩
@@ -201,7 +201,7 @@ theorem head_complete (hS : StoresAtPi S) {b0 : ℕ} {outs : List (List E × Mai
     · exact a24 1 hm1
     · refine ⟨b0 + 70 + m, ?_, api m le_rfl⟩
       show (σ (.n (val% «check_opening_terminal» "pi_eq~0"))).limb 0 * addressOfIndex 0 = _
-      rw [e33, e26, e6, ofK_gpow_mul_gen, Main.addr_ofK, Nat.add_zero]
+      rw [e33, e26, e6, ofK_gpow_mul_gen, Value.limb0_ofK_addressOfIndex_mul, Nat.add_zero]
     all_goals exact akb _ (by decide)
 
 /-! ## The selectors -/
@@ -371,10 +371,10 @@ theorem tail_complete (hS : StoresAtPi S) {b0 : ℕ} {outs : List (List E × Mai
     rcases hq with rfl | rfl
     · refine ⟨b0 + 105 + (τ + 6), ?_, ach⟩
       show (σ (.n (val% «check_opening_terminal» "inner_sum@135~0"))).limb 0 * addressOfIndex 6 = _
-      rw [e10, e0, e7, ofK_gpow_mul_gen, Main.addr_ofK, Nat.add_assoc]
+      rw [e10, e0, e7, ofK_gpow_mul_gen, Value.limb0_ofK_addressOfIndex_mul, Nat.add_assoc]
     · refine ⟨b0 + 146 + n, ?_, aod⟩
       show (σ (.n (val% «check_opening_terminal» "s29#0"))).limb 0 * addressOfIndex 0 = _
-      rw [e19', e16, e19, ofK_gpow_mul_gen, Main.addr_ofK, Nat.add_zero]
+      rw [e19', e16, e19, ofK_gpow_mul_gen, Value.limb0_ofK_addressOfIndex_mul, Nat.add_zero]
 
 end
 end LeanVM.Guest.B1.VerifySub

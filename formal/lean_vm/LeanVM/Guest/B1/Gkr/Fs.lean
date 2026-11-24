@@ -8,6 +8,6 @@
 
 module
 
-public import LeanVM.Guest.B1.Tables.Basic
+public import LeanVM.Guest.B1.Tables.Base
 public import LeanVM.Guest.B1.Common.Run
 public import LeanVM.Guest.B1.Fs.Templates

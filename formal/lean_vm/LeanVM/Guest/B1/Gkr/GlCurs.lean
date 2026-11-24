@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Gkr.GlLayer
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«gkr_layer__L»
-import LeanVM.Guest.B1.Tables.Basic
+import LeanVM.Guest.B1.Tables.Base
 
 /-!
 # A layer's cursors
@@ -62,7 +62,7 @@ theorem gl_curs (hC : CallRel.Le C (coreProgram.Rel rd)) {p o : ℕ} (hp : p < 4
   obtain ⟨hPre, -, hHS, hLC, hTS, -, -, hTail, -⟩ := h
   -- the slot and the head
   have hnr := glPre_noRet
-  have a := fun n a heq => tb_holds_atom (C := C) (rd := rd) (σ := σ) (kret := kret) hnr hPre n a heq
+  have a := fun n a heq => holds_atom (C := C) (rd := rd) (σ := σ) (kret := kret) hnr hPre n a heq
   have m9 := a 0 (.mul (.n (valf% «gkr_layer» "x_layer~0")) (.n (valf% «gkr_layer» "x_j")) (.n (valf% «gkr_layer» "x_j"))) (by decide +kernel)
   have m10 := a 1 (.mul (.n (valf% «gkr_layer» "x_layer")) (.n (valf% «gkr_layer» "x_layer~0")) (.n (valf% «gkr_layer» "start_g"))) (by decide +kernel)
   have m11 := a 2 (.mul (.n (valf% «gkr_layer» "layer~0")) (.n (valf% «gkr_layer» "x_layer")) (.n (valf% «gkr_layer» "x_layer"))) (by decide +kernel)
@@ -75,15 +75,15 @@ theorem gl_curs (hC : CallRel.Le C (coreProgram.Rel rd)) {p o : ℕ} (hp : p < 4
   have c24 := a 15 (.const (.n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[2]")) (word 0 0)) (by decide +kernel)
   have c25 := a 16 (.const (.n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[3]")) (word 0 0)) (by decide +kernel)
   have c26 := a 17 (.const (.n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[4]")) (word 0 0)) (by decide +kernel)
-  simp only [Atom.Holds, tb_word_zero] at m9 m10 m11 m12 m13 m14 m15 l21 c23 c24 c25 c26
+  simp only [Atom.Holds, word_zero] at m9 m10 m11 m12 m13 m14 m15 l21 c23 c24 c25 c26
   have e10 : σ (.n (valf% «gkr_layer» "x_layer")) = gen ^ L := by
     rw [m10, m9, hxj, hsg, ← pow_add, ← pow_add, show j + j + (2 - o) = L by omega]
   have e15 : σ (.n (valf% «gkr_layer» "layer")) = σ (.n (valf% «gkr_layer» "layers")) * gen ^ (10 * L) := by
     rw [m15, m14, m13, m12, m11, e10, ← pow_add, ← pow_add, ← pow_add, ← pow_add]
     ring_nf
   have e21 : σ (.n (valf% «gkr_layer» "s4#0")) = cur := by
-    rw [e15, tb_loadHolds_mul_gen_pow] at l21
-    exact tb_loadHolds_unique l21 hcur
+    rw [e15, loadHolds_mul_gen_pow] at l21
+    exact loadHolds_unique l21 hcur
   obtain ⟨hsc, hscur, hscl⟩ := gl_headStore hp hHS
   rw [e21, show 4 * (2 * p) = 8 * p by ring] at hscur
   have hcall := gl_loopCall hp hLC
@@ -94,17 +94,17 @@ theorem gl_curs (hC : CallRel.Le C (coreProgram.Rel rd)) {p o : ℕ} (hp : p < 4
   have hrec : ∀ i ≤ m, LoadHolds rd (σ (.n (valf% «gkr_layer» "head")) * gen ^ (7 * i)) 5 (cur * gen ^ (8 * p + 32 * i)) := by
     intro i hi
     obtain ⟨cap1, cap2, cur1, cl1, cl2, hc1, hcur1, -, -, -, hcur2, -⟩ := glRun_of_out (RL i hi)
-    obtain rfl := tb_loadHolds_unique hcur1 hscur
-    rw [tb_loadHolds_mul_gen_pow]
+    obtain rfl := loadHolds_unique hcur1 hscur
+    rw [loadHolds_mul_gen_pow]
     convert hcur2 using 1
     ring
   -- the tail's cursor
   obtain ⟨-, -, -, htcur, -⟩ := gl_tailSetup hp hTS
-  rw [hxm, ← pow_mul, mul_comm m 7, tb_loadHolds_mul_gen_pow] at htcur
+  rw [hxm, ← pow_mul, mul_comm m 7, loadHolds_mul_gen_pow] at htcur
   have e77 : σ (.n (80 + glD p)) = cur * gen ^ (8 * p + 32 * m) := by
     have := hrec m le_rfl
-    rw [tb_loadHolds_mul_gen_pow] at this
-    exact tb_loadHolds_unique htcur this
+    rw [loadHolds_mul_gen_pow] at this
+    exact loadHolds_unique htcur this
   -- the next slot
   set τ := σ ∘ glRho p o with hτ
   have tz : ∀ k, k < 58 → τ (.n k) = σ (.n k) := fun k hk => by
@@ -115,7 +115,7 @@ theorem gl_curs (hC : CallRel.Le C (coreProgram.Rel rd)) {p o : ℕ} (hp : p < 4
   have t77 : τ (.n 80) = σ (.n (80 + glD p)) := by
     show σ (glRho p o (.n 80)) = _
     rw [glRho_mid (by omega) (by omega)]
-  rw [tz 15 (by omega), e15, tb_loadHolds_mul_gen_pow, t77, e77, mul_assoc, ← pow_add] at tcur
+  rw [tz 15 (by omega), e15, loadHolds_mul_gen_pow, t77, e77, mul_assoc, ← pow_add] at tcur
   refine ⟨e21, hscur, hcall, hrec, e77, ?_⟩
   rw [show 10 * (L + 2) + 5 = 10 * L + 25 by ring]
   convert tcur using 2

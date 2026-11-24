@@ -34,18 +34,6 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier Finset
 
 variable {rd : Reader}
 
-theorem readsAt_unique {p : E} {xs ys : List E} (h1 : ReadsAt rd p xs) (h2 : ReadsAt rd p ys)
-    (hl : xs.length = ys.length) : xs = ys :=
-  List.ext_getElem hl fun k hk _ ↦ loadHolds_unique (h1 k hk) (h2 k (by omega))
-
-theorem readsAt_take {p : E} {xs : List E} (h : ReadsAt rd p xs) (n : ℕ) :
-    ReadsAt rd p (xs.take n) := fun k hk ↦ by
-  simp only [List.getElem_take]; exact h k (by simp at hk; omega)
-
-theorem readsAt_getD {p : E} {xs : List E} (h : ReadsAt rd p xs) {k : ℕ} (hk : k < xs.length) :
-    LoadHolds rd p k (xs.getD k 0) := by
-  rw [List.getD_eq_getElem _ _ hk]; exact h k hk
-
 theorem x1_getD {x : List E} (hx : x.length ≤ termPointCap) {i : ℕ} (hi : i < termPointCap) :
     ((padPoint x).map (1 + ·)).getD i 0 = 1 + x.getD i 0 := by
   rw [getD_map_one (by rw [padPoint_length hx]; exact hi), padPoint_getD]

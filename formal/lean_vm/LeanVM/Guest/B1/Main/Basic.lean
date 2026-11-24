@@ -48,8 +48,6 @@ theorem toNat_kBytes (a : K) (k : ℕ) (hk : k < 8) :
   rw [this, Nat.shiftRight_eq_div_pow]
   rfl
 
-theorem kToNat_lt (a : K) : kToNat a < 2 ^ 64 := a.toBitVec.isLt
-
 theorem length_cellBytes' (c : E) : (cellBytes c).length = 16 := by
   simp [cellBytes, length_kBytes]
 

@@ -138,7 +138,7 @@ theorem kidTB_hXP (cert : String → V → ℕ) (hl : GuestLimits s w) {c : ℕ}
     rw [loadHolds_mul_gen_pow, Nat.add_zero, show (hKid s w c).base *
       gen ^ (if hMonoX s w c then 0 else j) = gen ^ (hW s w c + if hMonoX s w c then 0 else j) from
         (pow_add _ _ _).symm]
-    have := loadHolds_getD r4 (k := o j) (by rw [kid_length_hCover]; omega)
+    have := readsAt_getD r4 (k := o j) (by rw [kid_length_hCover]; omega)
     rw [kid_hCover_x hlt', show (slotsOf (xPlan s w)).idxOf (o j) = _ from hidx,
       kid_hMarkX_child hc hj] at this
     exact this
@@ -151,7 +151,7 @@ theorem kidTB_hXP (cert : String → V → ℕ) (hl : GuestLimits s w) {c : ℕ}
     obtain ⟨hlt2, -, hget⟩ := slot j hj
     have h2 : o j < (s.claims.xmss ++ (xPlan s w).duplicates).length := hlt2
     obtain ⟨r1, -⟩ := reads_buf fs fp seed s w hM
-    have := loadHolds_getD r1 (k := 4 * o j + i) (by rw [hT]; rw [List.length_append] at h2; omega)
+    have := readsAt_getD r1 (k := 4 * o j + i) (by rw [hT]; rw [List.length_append] at h2; omega)
     rw [getD_flatMap_uniform (f := fun c => claimCells c.1.root c.1.parameter c.2) _
       (fun a _ => kid_length_claimCells _ _ _) (o j) h2 i hi] at this
     have eT : (s.claims.xmss ++ (xPlan s w).duplicates)[o j]'h2 =
@@ -269,7 +269,7 @@ theorem kidTB_hSP (cert : String → V → ℕ) (hl : GuestLimits s w) {c : ℕ}
     rw [loadHolds_mul_gen_pow, Nat.add_zero, hrg, pow_add, loadHolds_mul_gen_pow, show (hKid s w c).base * gen ^ (hKid s w c).ex *
       gen ^ (if hMonoS s w c then 0 else j) =
         gen ^ (hW s w c + hEx w c + if hMonoS s w c then 0 else j) by rw [pow_add, pow_add]; rfl]
-    have := loadHolds_getD r4 (k := s.claims.xmss.length + (xPlan s w).duplicates.length + o j)
+    have := readsAt_getD r4 (k := s.claims.xmss.length + (xPlan s w).duplicates.length + o j)
       (by rw [kid_length_hCover]; omega)
     rw [kid_hCover_s hlt', show (slotsOf (sPlan s w)).idxOf (o j) = _ from hidx,
       kid_hMarkS_child hc hj] at this
@@ -283,7 +283,7 @@ theorem kidTB_hSP (cert : String → V → ℕ) (hl : GuestLimits s w) {c : ℕ}
     obtain ⟨hlt2, -, hget⟩ := slot j hj
     have h2 : o j < (s.claims.sphincs ++ (sPlan s w).duplicates).length := hlt2
     obtain ⟨-, r2, -⟩ := reads_buf fs fp seed s w hM
-    have := loadHolds_getD r2 (k := 4 * o j + i) (by rw [hT]; rw [List.length_append] at h2; omega)
+    have := readsAt_getD r2 (k := 4 * o j + i) (by rw [hT]; rw [List.length_append] at h2; omega)
     rw [getD_flatMap_uniform (f := fun c => claimCells c.1.publicSeed c.1.root c.2) _
       (fun a _ => kid_length_claimCells _ _ _) (o j) h2 i hi] at this
     have eT : (s.claims.sphincs ++ (sPlan s w).duplicates)[o j]'h2 =

@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Placement.InterfaceP
-public import LeanVM.Guest.B1.Tables.Basic
+public import LeanVM.Guest.B1.Tables.Base
 
 /-!
 # The committed columns' sizes

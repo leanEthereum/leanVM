@@ -186,9 +186,9 @@ theorem lq_placed (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ}
     · intro p hp t ht
       simp only [OsKind.spec, merkleCapSpec, List.mem_cons, List.not_mem_nil, or_false] at hp
       rcases hp with rfl | rfl
-      · refine ⟨capE + t, Main.addr_ofK _ _, (capE, capW), List.mem_cons_self, by omega, ?_⟩
+      · refine ⟨capE + t, Value.limb0_ofK_addressOfIndex_mul _ _, (capE, capW), List.mem_cons_self, by omega, ?_⟩
         simp only at ht ⊢; rw [hcapL]; rw [pow_add] at ht; omega
-      · refine ⟨flE + t, Main.addr_ofK _ _, (flE, flW), by simp [hcapsL], by omega, ?_⟩
+      · refine ⟨flE + t, Value.limb0_ofK_addressOfIndex_mul _ _, (flE, flW), by simp [hcapsL], by omega, ?_⟩
         simp only at ht ⊢; rw [hflL]; omega
     · intro rd _ hm
       have h1 : ReadsAt rd CAP capW := hm (capE, capW) List.mem_cons_self

@@ -68,7 +68,7 @@ set_option maxRecDepth 10000 in
 the sponge's capacity after it (`1559 .. 1563`), and the copies of the share and the first round's
 coefficients the round reads. -/
 theorem vt_fresh {rd : Reader} {σ : Val} (h : VtH rd σ) :
-    TbReadsAt rd (σ (.n (val% «verify_tables» "cursor@1"))) (vtFreshWords σ) ∧
+    ReadsAt rd (σ (.n (val% «verify_tables» "cursor@1"))) (vtFreshWords σ) ∧
       σ (.n (val% «verify_tables» "nxt[0]@2")) = (vtFreshFs σ).squeeze.1 ∧
       ((List.range 5).map fun k ↦ σ (.n ((val% «verify_tables» "nxt[8]@2") + k))) = (vtFreshFs σ).squeeze.2.cap ∧
       σ (.n (val% «verify_tables» "bc_msg[0]")) = σ (.n (val% «verify_tables» "x@5")) ∧ σ (.n (val% «verify_tables» "bc_msg[1]")) = σ (.n (val% «verify_tables» "x@6")) ∧ σ (.n (val% «verify_tables» "bc_msg[2]")) = σ (.n (val% «verify_tables» "x@7")) := by
@@ -102,7 +102,7 @@ theorem vt_fresh {rd : Reader} {σ : Val} (h : VtH rd σ) :
   have d43 := h.atomAt 1614 (.copy (.n (val% «verify_tables» "bc_msg[0]")) (.n (val% «verify_tables» "x@5"))) (by decide +kernel)
   have d47 := h.atomAt 1618 (.copy (.n (val% «verify_tables» "bc_msg[1]")) (.n (val% «verify_tables» "x@6"))) (by decide +kernel)
   have d51 := h.atomAt 1622 (.copy (.n (val% «verify_tables» "bc_msg[2]")) (.n (val% «verify_tables» "x@7"))) (by decide +kernel)
-  simp only [Atom.Holds, tb_word_zero] at c20 c21 c22 c23 c24 z6 z7 d43 d47 d51
+  simp only [Atom.Holds, word_zero] at c20 c21 c22 c23 c24 z6 z7 d43 d47 d51
   obtain ⟨hP1, hC1⟩ := vt_keccak k1
   obtain ⟨hP2, hC2⟩ := vt_keccak k2
   have e0 := fsPackT_cells p0

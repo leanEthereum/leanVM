@@ -109,12 +109,6 @@ theorem AtomsOk.evs_holds {P : Atom → Prop} {ss : List Stmt} (h : AtomsOk P ss
 /-- An address of the region `R`. -/
 def OqIn (R : ℕ → Prop) (A : K) : Prop := ∃ i, A = Parameters.addressOfIndex i ∧ R i
 
-theorem addr_gpow (c k off : ℕ) :
-    (ofK (Parameters.addressOfIndex c) * gen ^ k).limb 0 * Parameters.addressOfIndex off =
-      Parameters.addressOfIndex (c + k + off) := by
-  rw [gen_pow_eq_ofK, ← ofK_mul, gpow_add', limb_ofK]
-  simp [gpow_add']
-
 /-- A loop's guard, by kind: no load. -/
 theorem oqGuardA_ok {L : V → ℕ → Prop} {F : V → List V → Prop} (g : ℕ) :
     AtomsOk (AtomKind L F) (oqGuardA g) :=

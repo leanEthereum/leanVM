@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Opening.FoldAlg
+public import LeanVM.ToMathlib.Finset
 
 /-!
 # `novel_eval` in closed form
@@ -38,13 +39,6 @@ theorem getD_nvPair (w : E) : ∀ (l : List E) (m : ℕ),
   | [lo], m + 1 => by simp [nvPair, List.getD_eq_getElem?_getD]
   | [], m => by simp [nvPair]
 
-theorem sum_range_two_mul (f : ℕ → E) : ∀ N : ℕ,
-    ∑ c ∈ Finset.range (2 * N), f c = ∑ c ∈ Finset.range N, (f (2 * c) + f (2 * c + 1))
-  | 0 => by simp
-  | N + 1 => by
-    rw [show 2 * (N + 1) = 2 * N + 1 + 1 by ring, Finset.sum_range_succ, Finset.sum_range_succ,
-      sum_range_two_mul f N, Finset.sum_range_succ, add_assoc]
-
 theorem bitProd_two_mul (ws : ℕ → E) (i k c : ℕ) :
     bitProd ws i (k + 1) (2 * c) = bitProd ws (i + 1) k c := by
   unfold bitProd
@@ -74,7 +68,7 @@ theorem getD_nvTree (ws : ℕ → E) : ∀ (k i : ℕ) (l : List E) (m : ℕ),
       ∑ c ∈ Finset.range (2 ^ k), l.getD (2 ^ k * m + c) 0 * bitProd ws i k c
   | 0, i, l, m => by simp [nvTree, bitProd]
   | k + 1, i, l, m => by
-    rw [nvTree, getD_nvTree ws k (i + 1), pow_succ', sum_range_two_mul]
+    rw [nvTree, getD_nvTree ws k (i + 1), pow_succ', Finset.sum_range_two_mul]
     refine Finset.sum_congr rfl fun c _ ↦ ?_
     rw [getD_nvPair, bitProd_two_mul, bitProd_two_mul_add_one,
       show 2 * (2 ^ k * m + c) = 2 * 2 ^ k * m + 2 * c by ring,

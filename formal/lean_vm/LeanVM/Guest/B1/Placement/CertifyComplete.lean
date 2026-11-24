@@ -236,24 +236,24 @@ theorem cpσ_kb {i : ℕ} (hi : i < 8) :
     cpσ lm hs ekb esq e10 e11 e136 e137 e293 rd (.n (2 + i)) = gen ^ cpEb lm hs i := by
   show cpF lm hs ekb esq e10 e11 e136 e137 e293 rd (2 + i) = _
   unfold cpF
-  rw [tb_ite_neg (by omega), tb_ite_neg (by omega), tb_ite_pos (by omega), Nat.add_sub_cancel_left]
+  rw [ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_left (by omega), Nat.add_sub_cancel_left]
 
 theorem cpσ_grp {gi v : ℕ} (hgi : gi < 9) (h1 : cpB gi ≤ v) (h2 : v < cpBx (gi + 1)) :
     cpσ lm hs ekb esq e10 e11 e136 e137 e293 rd (.n v) = cpGrpV lm hs esq rd gi v := by
   show cpF lm hs ekb esq e10 e11 e136 e137 e293 rd v = _
   obtain ⟨g1, -, g3⟩ := cp_grp_geom gi hgi
   unfold cpF
-  rw [tb_ite_neg (by omega), tb_ite_neg (by omega), tb_ite_neg (by omega), tb_ite_neg (by omega),
-    tb_ite_neg (by omega), tb_ite_pos (by omega), cpGOf_eq gi hgi v (by omega) h1 h2]
+  rw [ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega),
+    ite_eq_right (by omega), ite_eq_left (by omega), cpGOf_eq gi hgi v (by omega) h1 h2]
 
 theorem cpσ_rank0 {j : ℕ} (hj : j < 11) :
     cpσ lm hs ekb esq e10 e11 e136 e137 e293 rd (.n (138 + j)) =
       cpRank0V lm hs e10 e11 e137 rd j := by
   show cpF lm hs ekb esq e10 e11 e136 e137 e293 rd (138 + j) = _
   unfold cpF
-  rw [tb_ite_neg (by omega), tb_ite_neg (by omega), tb_ite_neg (by omega), tb_ite_neg (by omega),
-    tb_ite_neg (by omega), tb_ite_neg (by omega), tb_ite_neg (by omega), tb_ite_neg (by omega),
-    tb_ite_pos (by omega), Nat.add_sub_cancel_left]
+  rw [ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega),
+    ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega),
+    ite_eq_left (by omega), Nat.add_sub_cancel_left]
 
 theorem cpσ_rank {r j : ℕ} (hr1 : 1 ≤ r) (hr : r ≤ 8) (hj : j < 18) :
     cpσ lm hs ekb esq e10 e11 e136 e137 e293 rd (.n (131 + 18 * r + j)) =
@@ -262,18 +262,18 @@ theorem cpσ_rank {r j : ℕ} (hr1 : 1 ≤ r) (hr : r ≤ 8) (hj : j < 18) :
   have e1 : (131 + 18 * r + j - 131) / 18 = r := by omega
   have e2 : (131 + 18 * r + j - 131) % 18 = j := by omega
   unfold cpF
-  rw [tb_ite_neg (by omega), tb_ite_neg (by omega), tb_ite_neg (by omega), tb_ite_neg (by omega),
-    tb_ite_neg (by omega), tb_ite_neg (by omega), tb_ite_neg (by omega), tb_ite_neg (by omega),
-    tb_ite_neg (by omega), tb_ite_pos (by omega), e1, e2]
+  rw [ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega),
+    ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega),
+    ite_eq_right (by omega), ite_eq_left (by omega), e1, e2]
 
 theorem cpσ_col {gi v : ℕ} (hgi : gi < 9) (h1 : cpD gi ≤ v) (h2 : v < cpD (gi + 1)) :
     cpσ lm hs ekb esq e10 e11 e136 e137 e293 rd (.n v) = cpColV lm hs esq gi v := by
   show cpF lm hs ekb esq e10 e11 e136 e137 e293 rd v = _
   obtain ⟨g1, -, g3⟩ := cp_col_geom gi hgi
   unfold cpF
-  rw [tb_ite_neg (by omega), tb_ite_neg (by omega), tb_ite_neg (by omega), tb_ite_neg (by omega),
-    tb_ite_neg (by omega), tb_ite_neg (by omega), tb_ite_neg (by omega), tb_ite_neg (by omega),
-    tb_ite_neg (by omega), tb_ite_neg (by omega), tb_ite_neg (by omega), tb_ite_pos (by omega),
+  rw [ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega),
+    ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega),
+    ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_left (by omega),
     cpCOf_eq gi hgi v (by omega) h1 h2]
 
 /-- Group `gi`'s pointers into the rank keys and the squares. -/
@@ -287,10 +287,10 @@ theorem cpσ_grp_ptrs {gi : ℕ} (hgi : gi < 9) :
   have hZ : cpQ gi + 6 ≤ cpZ gi := by unfold cpZ; split_ifs <;> omega
   constructor
   · rw [cpσ_grp lm hs ekb esq e10 e11 e136 e137 e293 rd hgi (by omega) (by omega), cpGrpV,
-      tb_ite_neg (by omega), tb_ite_pos (by omega), Nat.add_sub_cancel_left]
+      ite_eq_right (by omega), ite_eq_left (by omega), Nat.add_sub_cancel_left]
     rfl
   · rw [cpσ_grp lm hs ekb esq e10 e11 e136 e137 e293 rd hgi (by omega) (by omega), cpGrpV,
-      tb_ite_neg (by omega), tb_ite_neg (by omega), tb_ite_pos rfl]
+      ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_left rfl]
 
 end
 
@@ -443,7 +443,7 @@ noncomputable def cpOffRd (Q : ℕ → ℕ) : Reader := fun x ↦
 theorem cpOffRd_load (Q : ℕ → ℕ) {c : ℕ} (hc : c < 94) :
     LoadHolds (cpOffRd Q) (ofK (addressOfIndex 0)) c (gen ^ Q c) := by
   refine ⟨tb_isInK_ofK _, ?_⟩
-  rw [tb_addr_ofK, Nat.zero_add]
+  rw [limb0_ofK_addressOfIndex_mul, Nat.zero_add]
   have h : ∃ c', c' < 94 ∧ addressOfIndex c' = addressOfIndex c := ⟨c, hc, rfl⟩
   have he : ∀ h' : ∃ c', c' < 94 ∧ addressOfIndex c' = addressOfIndex c,
       Classical.choose h' = c := fun h' ↦ by
@@ -494,7 +494,7 @@ theorem cp_offsets (hl : hs.length = 6) :
       have := cpC0_le gi hgi; unfold cpLen at hj; omega
     have h1 := hoffs _ hc
     rw [← cpKs_eq hl] at h1
-    rw [tb_loadHolds_unique h1 (cpOffRd_load Q hc), hQg gi hgi j hj]
+    rw [loadHolds_unique h1 (cpOffRd_load Q hc), hQg gi hgi j hj]
   · rw [stackTotal, ← cpKs, cpKs_eq hl, List.map_map]
     exact htot
 
@@ -506,7 +506,7 @@ theorem ldef_load {k : ℕ} {rd : Reader} (hlow : LowDefB k rd) {a : ℕ} (ha : 
     LoadHolds rd (gen ^ a) 0 (rdv rd a) := by
   rw [gen_pow_eq_ofK]
   refine ⟨tb_isInK_ofK _, ?_⟩
-  rw [tb_addr_ofK, Nat.add_zero]
+  rw [limb0_ofK_addressOfIndex_mul, Nat.add_zero]
   obtain ⟨v, hv⟩ := Option.isSome_iff_exists.mp (hlow a ha)
   rw [rdv, hv]; rfl
 
@@ -526,7 +526,7 @@ theorem wRankBound_eq : wRankBound = gen ^ 8397 := by
 theorem tb_load_ofK_add {rd : Reader} {a b k : ℕ} {w : E} :
     LoadHolds rd (ofK (addressOfIndex (a + b))) k w ↔
       LoadHolds rd (ofK (addressOfIndex a)) (b + k) w := by
-  simp only [LoadHolds, tb_addr_ofK, tb_isInK_ofK, true_and, Nat.add_assoc]
+  simp only [LoadHolds, limb0_ofK_addressOfIndex_mul, tb_isInK_ofK, true_and, Nat.add_assoc]
 
 section
 variable {lm : ℕ} {hs : List ℕ} {ekb esq e10 e11 e136 e137 e293 : ℕ} {rd : Reader}
@@ -612,7 +612,7 @@ theorem cp_group_holds (hl : hs.length = 6) (hlm : lm ≤ 32) (hhs : ∀ h ∈ h
     fun v h1 h2 ↦ cpσ_grp lm hs ekb esq e10 e11 e136 e137 e293 rd hgi h1 h2
   have vQ : ∀ t, cpQ gi + t < cpZ gi → σ (.n (cpQ gi + t)) = cpGrpQ lm hs esq rd gi t := by
     intro t ht
-    rw [vG _ (by omega) (by omega), cpGrpV, tb_ite_neg (by omega), tb_ite_pos ht,
+    rw [vG _ (by omega) (by omega), cpGrpV, ite_eq_right (by omega), ite_eq_left ht,
       Nat.add_sub_cancel_left]
   have vkb : σ (.n (2 + cpSrc gi)) = gen ^ cpEb lm hs (cpSrc gi) :=
     cpσ_kb lm hs ekb esq e10 e11 e136 e137 e293 rd hsrc
@@ -620,45 +620,45 @@ theorem cp_group_holds (hl : hs.length = 6) (hlm : lm ≤ 32) (hhs : ∀ h ∈ h
     unfold cpKv
     split_ifs with ha
     · rw [vkb, hκe, ha, Nat.add_zero]
-    · have hq : cpQ gi = cpB gi + 2 := by unfold cpQ; rw [tb_ite_neg ha]
-      rw [vG _ (by omega) (by omega), cpGrpV, tb_ite_pos (by omega), tb_ite_neg (by omega)]
+    · have hq : cpQ gi = cpB gi + 2 := by unfold cpQ; rw [ite_eq_right ha]
+      rw [vG _ (by omega) (by omega), cpGrpV, ite_eq_left (by omega), ite_eq_right (by omega)]
   have vZ : σ (.n (cpZ gi)) = ofK (addressOfIndex esq) * gen ^ κ := by
-    rw [vG _ (by omega) (by omega), cpGrpV, tb_ite_neg (by omega), tb_ite_neg (by omega),
-      tb_ite_pos rfl]
+    rw [vG _ (by omega) (by omega), cpGrpV, ite_eq_right (by omega), ite_eq_right (by omega),
+      ite_eq_left rfl]
   have vCh : ∀ j ≤ (cpCh gi).length,
       σ (.n (cpZ gi + 1 + j)) = (gen ^ 2 ^ κ) ^ cpChainExp ((cpCh gi).take j) := by
     intro j hj
-    rw [vG _ (by omega) (by omega), cpGrpV, tb_ite_neg (by omega), tb_ite_neg (by omega),
-      tb_ite_neg (by omega), show cpZ gi + 1 + j - cpZ gi - 1 = j by omega]
+    rw [vG _ (by omega) (by omega), cpGrpV, ite_eq_right (by omega), ite_eq_right (by omega),
+      ite_eq_right (by omega), show cpZ gi + 1 + j - cpZ gi - 1 = j by omega]
   have vKey : σ (.n (cpZ gi - 1)) = cpKey lm hs gi := by
     unfold cpZ
     split_ifs with hc
-    · rw [show cpQ gi + 6 - 1 = cpQ gi + 5 by omega, vQ 5 (by unfold cpZ; rw [tb_ite_pos hc]; omega)]
-      rw [cpKey, cpInvWords_zero gi hgi hc, tb_word_one, mul_one]
+    · rw [show cpQ gi + 6 - 1 = cpQ gi + 5 by omega, vQ 5 (by unfold cpZ; rw [ite_eq_left hc]; omega)]
+      rw [cpKey, cpInvWords_zero gi hgi hc, word_one, mul_one]
       rfl
     · rw [show cpQ gi + 8 - 1 = cpQ gi + 7 by omega,
-        vQ 7 (by unfold cpZ; rw [tb_ite_neg hc]; omega)]
+        vQ 7 (by unfold cpZ; rw [ite_eq_right hc]; omega)]
       rfl
   obtain ⟨c1, c2, c3⟩ := rc_ok hlow (a := κ) (K := 33) (by omega) (by norm_num)
-  rw [cpGroup, tb_holdsList_append_noRet (by
-      simp only [tb_noRetList_append, cpKapS, cpKeyS]; split_ifs <;> rfl),
-    tb_holdsList_append_noRet (by simp only [tb_noRetList_append, cpKapS]; split_ifs <;> rfl),
-    tb_holdsList_append_noRet (by simp only [cpKapS]; split_ifs <;> rfl), cpSizeS,
-    tb_holdsList_append_noRet (by simp only [tb_noRetList_append, cpChain_noRet]; rfl),
-    tb_holdsList_append_noRet rfl]
+  rw [cpGroup, holdsList_append_noRet (by
+      simp only [noRetList_append, cpKapS, cpKeyS]; split_ifs <;> rfl),
+    holdsList_append_noRet (by simp only [noRetList_append, cpKapS]; split_ifs <;> rfl),
+    holdsList_append_noRet (by simp only [cpKapS]; split_ifs <;> rfl), cpSizeS,
+    holdsList_append_noRet (by simp only [noRetList_append, cpChain_noRet]; rfl),
+    holdsList_append_noRet rfl]
   refine ⟨⟨⟨?_, ?_⟩, ?_⟩, ⟨?_, ?_⟩, ?_⟩
   · -- `g^κ = kb[src]·g^adj`
     unfold cpKapS
     split_ifs with ha
     · trivial
-    · have hq : cpQ gi = cpB gi + 2 := by unfold cpQ; rw [tb_ite_neg ha]
+    · have hq : cpQ gi = cpB gi + 2 := by unfold cpQ; rw [ite_eq_right ha]
       have v0 : σ (.n (cpB gi)) = word (2 ^ cpAdj gi) 0 := by
-        rw [vG _ le_rfl (by omega), cpGrpV, tb_ite_pos (by omega), tb_ite_pos rfl]
+        rw [vG _ le_rfl (by omega), cpGrpV, ite_eq_left (by omega), ite_eq_left rfl]
       have v1 : σ (.n (cpB gi + 1)) = gen ^ κ := by
-        rw [vG _ (by omega) (by omega), cpGrpV, tb_ite_pos (by omega), tb_ite_neg (by omega)]
+        rw [vG _ (by omega) (by omega), cpGrpV, ite_eq_left (by omega), ite_eq_right (by omega)]
       simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
       refine ⟨v0, ?_⟩
-      rw [v1, v0, vkb, tb_word_two_pow (by omega), ← pow_add, hκe]
+      rw [v1, v0, vkb, word_two_pow (by omega), ← pow_add, hκe]
   · -- the range check and the rank key
     simp only [cpRcS, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
     have q0 := vQ 0 (by omega)
@@ -674,14 +674,14 @@ theorem cp_group_holds (hl : hs.length = 6) (hlm : lm ≤ 32) (hhs : ∀ h ∈ h
     · rw [q0, vKv, q1, w33_eq, c2]
     · rw [q1, q3]; exact c3
     · rw [q4, vKv]; rfl
-    · rw [q4, q5, tb_loadHolds_mul_gen_pow, add_comm]; exact R.rk κ (by omega)
+    · rw [q4, q5, loadHolds_mul_gen_pow, add_comm]; exact R.rk κ (by omega)
   · -- the key
     unfold cpKeyS
     split_ifs with hc
     · trivial
     · simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
-      have q6 := vQ 6 (by unfold cpZ; rw [tb_ite_neg hc]; omega)
-      have q7 := vQ 7 (by unfold cpZ; rw [tb_ite_neg hc]; omega)
+      have q6 := vQ 6 (by unfold cpZ; rw [ite_eq_right hc]; omega)
+      have q7 := vQ 7 (by unfold cpZ; rw [ite_eq_right hc]; omega)
       have q5 := vQ 5 (by omega)
       simp only [cpGrpQ] at q5 q6 q7
       refine ⟨q6, ?_⟩
@@ -693,10 +693,10 @@ theorem cp_group_holds (hl : hs.length = 6) (hlm : lm ≤ 32) (hhs : ∀ h ∈ h
     · rw [vKey]; exact R.key gi hgi
     · rw [vZ, vKv]; rfl
     · rw [vZ, q1, vCh 0 (by omega), List.take_zero, show cpChainExp [] = 1 from rfl, pow_one,
-        tb_loadHolds_mul_gen_pow, Nat.add_zero]
+        loadHolds_mul_gen_pow, Nat.add_zero]
       exact R.sq κ (by omega)
   · -- the chain
-    rw [cpChain, tb_holdsList_flatten_range _ _ fun _ ↦ rfl]
+    rw [cpChain, holdsList_flatten_range _ _ fun _ ↦ rfl]
     intro j hj
     simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
     have e1 : cpZ gi + 1 + 1 + j = cpZ gi + 1 + (j + 1) := by omega
@@ -729,7 +729,7 @@ theorem cp_rankKey {r : ℕ} (hr : r < 9) :
   · exact ⟨cpσ_rank0 lm hs ekb esq e10 e11 e136 e137 e293 rd (j := 6) (by norm_num),
       cpσ_rank0 lm hs ekb esq e10 e11 e136 e137 e293 rd (j := 10) (by norm_num)⟩
   · have eK : cpRK r = 131 + 18 * r + 6 := by
-      unfold cpRK; rw [tb_ite_neg (by omega)]; omega
+      unfold cpRK; rw [ite_eq_right (by omega)]; omega
     have eT : cpRT r = 131 + 18 * r + 17 := by unfold cpRT; omega
     rw [eK, eT]
     exact ⟨cpσ_rank lm hs ekb esq e10 e11 e136 e137 e293 rd hr0 (by omega) (by norm_num),
@@ -767,12 +767,12 @@ theorem cp_rank (hl : hs.length = 6) (hlm : lm ≤ 32) (hhs : ∀ h ∈ hs, h < 
   refine ⟨R.ord _ (by omega), trivial, ⟨c1, by rw [w8_eq, c2], c3⟩, trivial, ?_, trivial,
     cpKey_step hl hlm hhs h5 (by omega), trivial, ?_, ⟨d1, by rw [wRankBound_eq, d2], d3⟩,
     trivial, ?_, trivial, ?_, ?_⟩
-  · rw [tb_loadHolds_mul_gen_pow, Nat.add_zero]; exact R.key _ hp
+  · rw [loadHolds_mul_gen_pow, Nat.add_zero]; exact R.key _ hp
   · rw [pow_succ, mul_assoc, mul_comm gen wInvGen, wInvGen_mul_gen, mul_one]
-  · rw [tb_loadHolds_mul_gen_pow, Nat.add_zero]
+  · rw [loadHolds_mul_gen_pow, Nat.add_zero]
     have := R.base _ hp
     rwa [cpRho_pi (by omega)] at this
-  · rw [tb_loadHolds_mul_gen_pow, Nat.add_zero]; exact R.size _ hp
+  · rw [loadHolds_mul_gen_pow, Nat.add_zero]; exact R.size _ hp
   · rw [cpGP_succ, pow_add]
 
 /-- Group `gi`'s columns' statements hold. -/
@@ -789,26 +789,26 @@ theorem cp_cols_holds (hl : hs.length = 6) (hlm : lm ≤ 32) (hhs : ∀ h ∈ hs
   have vC : ∀ v, cpD gi ≤ v → v < cpD (gi + 1) → σ (.n v) = cpColV lm hs esq gi v :=
     fun v h1 h2 ↦ cpσ_col lm hs ekb esq e10 e11 e136 e137 e293 rd hgi h1 h2
   have v0 : σ (.n (cpD gi)) = ofK (addressOfIndex esq) * gen ^ cpEb lm hs (cpSrc gi) := by
-    rw [vC _ le_rfl (by omega), cpColV, tb_ite_pos rfl]
+    rw [vC _ le_rfl (by omega), cpColV, ite_eq_left rfl]
   have v1 : σ (.n (cpD gi + 1)) = gen ^ 2 ^ cpKg lm hs gi := by
-    rw [vC _ (by omega) (by omega), cpColV, tb_ite_neg (by omega), tb_ite_pos rfl]
+    rw [vC _ (by omega) (by omega), cpColV, ite_eq_right (by omega), ite_eq_left rfl]
   have vO : ∀ j < cpLen gi, σ (.n (cpD gi + 2 + j)) =
       gen ^ (cpGP lm hs (cpRho lm hs gi) + j * 2 ^ cpKg lm hs gi) := by
     intro j hj
-    rw [vC _ (by omega) (by omega), cpColV, tb_ite_neg (by omega), tb_ite_neg (by omega),
+    rw [vC _ (by omega) (by omega), cpColV, ite_eq_right (by omega), ite_eq_right (by omega),
       show cpD gi + 2 + j - cpD gi - 2 = j by omega]
   have hO : ∀ j < cpLen gi, LoadHolds rd (σ (.n (val% «certify_placement» "col_off_g"))) (cpC0 gi + j) (σ (.n (cpD gi + 2 + j))) := by
     intro j hj
     rw [vO j hj, ← hoffs gi hgi j hj]
     exact R.off _ (by have := cpC0_le gi hgi; unfold cpLen at hj; omega)
-  rw [cpCols, tb_holdsList_append_noRet rfl, tb_holdsList_flatten_range _ _ fun _ ↦ rfl]
+  rw [cpCols, holdsList_append_noRet rfl, holdsList_flatten_range _ _ fun _ ↦ rfl]
   refine ⟨?_, fun j hj ↦ ?_⟩
   · simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
     refine ⟨?_, ?_, ?_, ?_⟩
     · have vkb : σ (.n (2 + cpSrc gi)) = gen ^ cpEb lm hs (cpSrc gi) :=
         cpσ_kb lm hs ekb esq e10 e11 e136 e137 e293 rd hsrc
       rw [v0, vkb]; rfl
-    · rw [v0, v1, tb_loadHolds_mul_gen_pow]; exact R.sq _ hκ
+    · rw [v0, v1, loadHolds_mul_gen_pow]; exact R.sq _ hκ
     · rw [show σ (.n (val% «certify_placement» "group_base")) = ofK (addressOfIndex e137) from rfl,
         show cpD gi + 2 = cpD gi + 2 + 0 from rfl, vO 0 (by omega), Nat.zero_mul, Nat.add_zero]
       exact R.base gi hgi
@@ -854,11 +854,11 @@ theorem cp_body_holds {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hlm : lm 
   rw [holdsList_append, holdsList_noRet _ cpPre_noRet]
   refine ⟨?_, ?_⟩
   · simp only [cpPre, holdsList_append,
-      tb_holdsList_range_flatten 8 (fun i ↦ [Stmt.atom (.load (.n (2 + i)) (.n (val% «certify_placement» "kappa_base")) i)])
+      holdsList_range_flatten 8 (fun i ↦ [Stmt.atom (.load (.n (2 + i)) (.n (val% «certify_placement» "kappa_base")) i)])
         (fun _ ↦ rfl),
-      tb_holdsList_range_flatten 9 cpGroup cpGroup_noRet,
-      tb_holdsList_range_flatten 8 (fun r ↦ cpRank (r + 1)) (fun _ ↦ rfl),
-      tb_holdsList_range_flatten 9 cpCols cpCols_noRet, holds_cpRank, cpRank0,
+      holdsList_range_flatten 9 cpGroup cpGroup_noRet,
+      holdsList_range_flatten 8 (fun r ↦ cpRank (r + 1)) (fun _ ↦ rfl),
+      holdsList_range_flatten 9 cpCols cpCols_noRet, holds_cpRank, cpRank0,
       Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true, true_and]
     refine ⟨fun i hi ↦ ?_, fun gi hgi ↦ cp_group_holds hl hlm hhs h5 hlow R hgi, ?_, r0 1 (by norm_num),
       ⟨?_, ?_, ?_⟩, r0 5 (by norm_num), ?_, r0 7 (by norm_num), r0 8 (by norm_num), ?_,
@@ -876,16 +876,16 @@ theorem cp_body_holds {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hlm : lm 
       exact c3
     · rw [show σ (.n (val% «certify_placement» "key@1~0")) = ofK (addressOfIndex e10) * gen ^ cpPi lm hs 0 from r0 5 (by norm_num),
         show σ (.n (val% «certify_placement» "key@1")) = cpKey lm hs (cpPi lm hs 0) from r0 6 (by norm_num),
-        tb_loadHolds_mul_gen_pow, Nat.add_zero]
+        loadHolds_mul_gen_pow, Nat.add_zero]
       exact R.key _ hp0
     · have h0 := R.base _ hp0
       rw [cpRho_pi (by norm_num), cpGP_zero, pow_zero] at h0
       rw [show σ (.n (val% «certify_placement» "s10.u0.s4#1")) = ofK (addressOfIndex e137) * gen ^ cpPi lm hs 0 from r0 8 (by norm_num),
-        show σ (.n (val% «certify_placement» "s10.u0.s4#0")) = word 1 0 from r0 7 (by norm_num), tb_loadHolds_mul_gen_pow,
-        Nat.add_zero, tb_word_one]
+        show σ (.n (val% «certify_placement» "s10.u0.s4#0")) = word 1 0 from r0 7 (by norm_num), loadHolds_mul_gen_pow,
+        Nat.add_zero, word_one]
       exact h0
     · rw [show σ (.n (val% «certify_placement» "g_total@1~0")) = ofK (addressOfIndex e11) * gen ^ cpPi lm hs 0 from r0 9 (by norm_num),
-        show σ (.n (val% «certify_placement» "g_total@1")) = gen ^ cpGP lm hs 1 from r0 10 (by norm_num), tb_loadHolds_mul_gen_pow,
+        show σ (.n (val% «certify_placement» "g_total@1")) = gen ^ cpGP lm hs 1 from r0 10 (by norm_num), loadHolds_mul_gen_pow,
         Nat.add_zero, cpGP_succ, cpGP_zero, Nat.zero_add]
       exact R.size _ hp0
   · show [σ (.n (val% «certify_placement» "s13#0")), σ (.n (val% «certify_placement» "s13#0[1]"))] = _

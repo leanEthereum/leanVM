@@ -82,17 +82,17 @@ structure VtBHyp (rd : Reader) (wo : ℕ → E) (args : List E) (D : VtBIn) : Pr
   hr : D.rows.length = 6
   hτμ : ∀ t < 6, vtHt D.rows t ≤ D.point.length
   hmu : args.getD 9 0 = gen ^ D.point.length
-  hz : TbReadsAt rd (args.getD 8 0) D.point
+  hz : ReadsAt rd (args.getD 8 0) D.point
   hwl : D.weights.length = 16
-  hW : TbReadsAt rd (args.getD 13 0) D.weights
+  hW : ReadsAt rd (args.getD 13 0) D.weights
   hxl : D.xs.length = 4
   hbl : D.w.length = 10
-  hcur : TbReadsAt rd (args.getD 5 0) (D.xs ++ D.w)
+  hcur : ReadsAt rd (args.getD 5 0) (D.xs ++ D.w)
   hpool : ∀ i < 4, LoadHolds rd (args.getD 15 0) i (D.xs.getD i 0)
   hll : D.leaves.length = 3
-  hleaves : TbReadsAt rd (args.getD 17 0) D.leaves
+  hleaves : ReadsAt rd (args.getD 17 0) D.leaves
   /-- `bc_point` holds the slot sumcheck's honest point. -/
-  hpt : TbReadsAt rd (args.getD 19 0) (vtBcPoint (vtF0 args D.xs) D.w)
+  hpt : ReadsAt rd (args.getD 19 0) (vtBcPoint (vtF0 args D.xs) D.w)
   /-- The earlier statements' values (`vtS_complete`). -/
   ekb : ∀ i < 8, vtσ rd wo args (.n ((val% «verify_tables» "kb[0]") + i)) = gen ^ ([0, D.lm] ++ vtTauList (vtHt D.rows)).getD i 0
   eoP : ∀ x < 54, vtσ rd wo args (.n (vtBoffV x)) =
@@ -107,23 +107,23 @@ structure VtBHyp (rd : Reader) (wo : ℕ → E) (args : List E) (D : VtBIn) : Pr
   hpw : ∀ t < 6, vtσ rd wo args (.n (vtPadV t)) =
     paddingWeight (D.point.take (vtHt D.rows t)) (vtRw D.rows t)
   /-- The own buffers' words. -/
-  hidxc : TbReadsAt rd (wo (val% «verify_tables» "idxc_tab")) vtIdxcW
-  hz1 : TbReadsAt rd (wo (val% «verify_tables» "zeta1")) (D.point.map (1 + ·))
+  hidxc : ReadsAt rd (wo (val% «verify_tables» "idxc_tab")) vtIdxcW
+  hz1 : ReadsAt rd (wo (val% «verify_tables» "zeta1")) (D.point.map (1 + ·))
   hrun : ∀ t < 6, RunTables rd (wo (vtShV t + 11)) (wo (vtShV t + 15))
     (D.point.length - vtHt D.rows t) (D.point.drop (vtHt D.rows t))
     ((D.point.map (1 + ·)).drop (vtHt D.rows t))
     ((gSquaresList.drop (vtHt D.rows t)).take (D.point.length - vtHt D.rows t))
-  hidxB : TbReadsAt rd (wo (val% «verify_tables» "block_index_mle")) (vtIdxBufW D.point D.lm)
+  hidxB : ReadsAt rd (wo (val% «verify_tables» "block_index_mle")) (vtIdxBufW D.point D.lm)
   /-- Each side's blocks fit in the bus cube. -/
   hfitP : ((vtSizesP D.lm (vtHt D.rows)).map (2 ^ ·)).sum ≤ 2 ^ D.point.length
   hfitC : ((vtSizesC (vtHt D.rows)).map (2 ^ ·)).sum ≤ 2 ^ D.point.length
   /-- The offsets' bits and digits at the hinted buffers. -/
-  hbitsF : ∀ b < 3, TbReadsAt rd (wo (vtFwW b + 6))
+  hbitsF : ∀ b < 3, ReadsAt rd (wo (vtFwW b + 6))
     (offBits ((stackOffsets (vtSizesP D.lm (vtHt D.rows))).1.getD b 0))
-  hdigP : ∀ i < 51, TbReadsAt rd (wo (vtPushSel.getD i default).2.2.1)
+  hdigP : ∀ i < 51, ReadsAt rd (wo (vtPushSel.getD i default).2.2.1)
     (offDigits ((stackOffsets (vtSizesP D.lm (vtHt D.rows))).1.getD (3 + i) 0)
       (vtHt D.rows (vtPushSel.getD i default).2.2.2.1))
-  hdigC : ∀ i < 45, TbReadsAt rd (wo (vtCountSel.getD i default).2.2.1)
+  hdigC : ∀ i < 45, ReadsAt rd (wo (vtCountSel.getD i default).2.2.1)
     (offDigits ((stackOffsets (vtSizesC (vtHt D.rows))).1.getD i 0)
       (vtHt D.rows (vtCountSel.getD i default).2.2.2.1))
   /-- The callees' returns. -/

@@ -10,6 +10,7 @@ module
 public import LeanVM.Protocol.Whir.Complete.Tables
 public import LeanVM.Protocol.EndToEnd.Complete.TableMath
 public import Mathlib.Algebra.Polynomial.Roots
+public import LeanVM.ToMathlib.Finset
 
 /-!
 # The Boolean cube
@@ -48,7 +49,7 @@ theorem cubeSum_split {n : ℕ} {f : List E → E} {pre : List E} (h : pre.lengt
   obtain ⟨k, hk⟩ : ∃ k, n - pre.length = k + 1 := ⟨n - pre.length - 1, by omega⟩
   have hk' : n - (pre ++ [(0 : E)]).length = k := by simp; omega
   have hk'' : n - (pre ++ [(1 : E)]).length = k := by simp; omega
-  rw [cubeSum, cubeSum, cubeSum, hk, hk', hk'', pow_succ', Protocol.Verifier.sum_range_two_mul,
+  rw [cubeSum, cubeSum, cubeSum, hk, hk', hk'', pow_succ', Finset.sum_range_two_mul,
     ← sum_add_distrib]
   refine sum_congr rfl fun y _ ↦ ?_
   rw [Protocol.Whir.Complete.boolPoint_two_mul, Protocol.Whir.Complete.boolPoint_two_mul_add_one]

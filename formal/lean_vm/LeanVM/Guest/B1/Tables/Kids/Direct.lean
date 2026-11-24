@@ -49,7 +49,7 @@ def PtrIn (R : ℕ → Prop) (p : E) (B : ℕ) : Prop :=
 
 theorem ptrIn_ofK {R : ℕ → Prop} {b B : ℕ} (h : ∀ i < B, R (b + i)) :
     PtrIn R (ofK (addressOfIndex b)) B :=
-  ⟨tb_isInK_ofK _, fun off hoff ↦ ⟨b + off, Main.addr_ofK b off, h off hoff⟩⟩
+  ⟨tb_isInK_ofK _, fun off hoff ↦ ⟨b + off, Value.limb0_ofK_addressOfIndex_mul b off, h off hoff⟩⟩
 
 theorem ptrIn_mono {R : ℕ → Prop} {p : E} {B B' : ℕ} (h : PtrIn R p B) (hle : B' ≤ B) :
     PtrIn R p B' := ⟨h.1, fun off hoff ↦ h.2 off (by omega)⟩
@@ -58,10 +58,10 @@ theorem ptrIn_mono {R : ℕ → Prop} {p : E} {B B' : ℕ} (h : PtrIn R p B) (hl
 theorem ptrIn_mul {R : ℕ → Prop} {p : E} {j B : ℕ} (h : PtrIn R p (j + B)) :
     PtrIn R (p * gen ^ j) B := by
   have hg : Parameters.addressOfIndex j ≠ 0 := pow_ne_zero _ g_ne_zero
-  refine ⟨by rw [gen_pow_eq_ofK]; exact (tb_isInK_mul_ofK hg).mpr h.1, fun off hoff ↦ ?_⟩
+  refine ⟨by rw [gen_pow_eq_ofK]; exact (isInK_mul_ofK hg).mpr h.1, fun off hoff ↦ ?_⟩
   obtain ⟨i, hi, hr⟩ := h.2 (j + off) (by omega)
   refine ⟨i, ?_, hr⟩
-  rw [gen_pow_eq_ofK, tb_limb0_mul_ofK h.1, mul_assoc, Parameters.addressOfIndex,
+  rw [gen_pow_eq_ofK, limb0_mul_ofK, mul_assoc, Parameters.addressOfIndex,
       Parameters.addressOfIndex,
     ← pow_add]
   exact hi

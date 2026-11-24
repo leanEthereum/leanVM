@@ -42,12 +42,6 @@ theorem noRetList_append' (a b : List Stmt) :
   | nil => simp [Stmt.noRetList]
   | cons s a ih => simp [Stmt.noRetList, ih, Bool.and_assoc]
 
-theorem noRetList_flatten_range (n : ℕ) (f : ℕ → List Stmt) (h : ∀ i, Stmt.noRetList (f i) = true) :
-    Stmt.noRetList ((List.range n).map f).flatten = true := by
-  induction n with
-  | zero => rfl
-  | succ n ih => rw [List.range_succ, List.map_append, List.flatten_append, noRetList_append', ih]; simp [h]
-
 /-- A word of a run of lists, all of one length before the `k`-th. -/
 theorem getD_flatMap_range {α : Type} (len : ℕ) (d : α) :
     ∀ (k : ℕ) (f : ℕ → List α) (m o : ℕ), k < m → (∀ i < k, (f i).length = len) →
@@ -331,11 +325,6 @@ theorem readsAt_range {rd : Reader} {p : E} {n : ℕ} {f : ℕ → E}
     (h : ∀ i < n, LoadHolds rd p i (f i)) : ReadsAt rd p ((List.range n).map f) := fun i hi ↦ by
   simp only [List.length_map, List.length_range] at hi
   simpa using h i hi
-
-theorem readsAt_getD {rd : Reader} {p : E} {xs : List E} (h : ReadsAt rd p xs) {i : ℕ}
-    (hi : i < xs.length) : LoadHolds rd p i (xs.getD i 0) := by
-  rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hi, Option.getD_some]
-  exact h i hi
 
 theorem ringRow_take_length (c : E) (zs ps : List E) (k : ℕ) (n : ℕ) (hz : zs.length = n)
     (hp : ps.length = n) : ringRow c (zs.take n) (ps.take n) k = ringRow c zs ps k := by

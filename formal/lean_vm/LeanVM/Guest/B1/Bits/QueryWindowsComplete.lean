@@ -399,7 +399,7 @@ theorem qwWindow_complete {l : List E} {k : ℕ} (hl : l.length = k) {d cd base 
   unfold qwWindow
   simp only
   by_cases h1 : off + w ≤ cut
-  · rw [ite_pos' h1]
+  · rw [ite_eq_left h1]
     have h := ((qwRead_complete hT hlow hl (c := .n (5 + at0 + i)) (start := base + off) hw hn hnW
       (hpre.mono fun σ h ↦ ⟨h.1, h.2.1⟩)).bind fun m1 hm1 hs1 ↦
       (qwScale_complete (rd := rd) (Q := Q) hm1 off (hs1.mono fun σ h ↦ h.2)).bind fun m2 hm2 hs2 ↦
@@ -407,11 +407,11 @@ theorem qwWindow_complete {l : List E} {k : ℕ} (hl : l.length = k) {d cd base 
           ((((hpre.ext m1).ext m2).and hs2).mono fun σ h ↦ ⟨h.1.2.2.1, h.2.2⟩)).and_stab hpre
     refine h.mono fun σ ⟨⟨⟨hr, _⟩, ⟨hs, _⟩, ha, hav⟩, _, _, _, hhi⟩ ↦ ⟨?_, ?_, ?_⟩
     · exact qwAK_append.mpr ⟨qwAK_append.mpr ⟨hr, hs⟩, ha⟩
-    · rw [hav, qwLoT, ite_pos' h1]
-    · rw [hhi, qwHiT, ite_pos' h1, add_zero]
-  · rw [ite_neg' h1]
+    · rw [hav, qwLoT, ite_eq_left h1]
+    · rw [hhi, qwHiT, ite_eq_left h1, add_zero]
+  · rw [ite_eq_right h1]
     by_cases h2 : off < cut
-    · rw [ite_pos' h2]
+    · rw [ite_eq_left h2]
       have hlt : n % 2 ^ (cut - off) < 2 ^ (cut - off) := Nat.mod_lt _ (by positivity)
       have hdl : n / 2 ^ (cut - off) < 2 ^ (w - (cut - off)) := by
         rw [Nat.div_lt_iff_lt_mul (by positivity), ← Nat.pow_add, Nat.sub_add_cancel (by omega)]
@@ -430,9 +430,9 @@ theorem qwWindow_complete {l : List E} {k : ℕ} (hl : l.length = k) {d cd base 
                 fun σ h ↦ ⟨h.1.2.2.2, h.2.2.2⟩))
       refine h.mono fun σ ⟨⟨hr, _⟩, ⟨hs, _⟩, ⟨ha, hav⟩, hb, hbv⟩ ↦ ⟨?_, ?_, ?_⟩
       · exact qwAK_append.mpr ⟨qwAK_append.mpr ⟨qwAK_append.mpr ⟨hr, hs⟩, ha⟩, hb⟩
-      · rw [hav, qwLoT, ite_neg' h1, ite_pos' h2]
-      · rw [hbv, qwHiT, ite_neg' h1, ite_pos' h2]
-    · rw [ite_neg' h2]
+      · rw [hav, qwLoT, ite_eq_right h1, ite_eq_left h2]
+      · rw [hbv, qwHiT, ite_eq_right h1, ite_eq_left h2]
+    · rw [ite_eq_right h2]
       have h := ((qwRead_complete hT hlow hl (c := .n (5 + at0 + i)) (start := base + off) hw hn hnW
         (hpre.mono fun σ h ↦ ⟨h.1, h.2.1⟩)).bind fun m1 hm1 hs1 ↦
         (qwScale_complete (rd := rd) (Q := Q) hm1 (off - cut) (hs1.mono fun σ h ↦ h.2)).bind
@@ -441,8 +441,8 @@ theorem qwWindow_complete {l : List E} {k : ℕ} (hl : l.length = k) {d cd base 
             ((((hpre.ext m1).ext m2).and hs2).mono fun σ h ↦ ⟨h.1.2.2.2, h.2.2⟩)).and_stab hpre
       refine h.mono fun σ ⟨⟨⟨hr, _⟩, ⟨hs, _⟩, ha, hav⟩, _, _, hlo, _⟩ ↦ ⟨?_, ?_, ?_⟩
       · exact qwAK_append.mpr ⟨qwAK_append.mpr ⟨hr, hs⟩, ha⟩
-      · rw [hlo, qwLoT, ite_neg' h1, ite_neg' h2, add_zero]
-      · rw [hav, qwHiT, ite_neg' h1, ite_neg' h2]
+      · rw [hlo, qwLoT, ite_eq_right h1, ite_eq_right h2, add_zero]
+      · rw [hav, qwHiT, ite_eq_right h1, ite_eq_right h2]
 
 /-! ## A position's windows -/
 
@@ -507,7 +507,7 @@ theorem qwPr_complete {l : List E} {k : ℕ} (hl : l.length = k) {j base cut d :
     rw [(qwPr_sound hA.ah hrec hP hd hd26 hbase hcut hlo hhi).2, hR]
   unfold qwPr
   by_cases hc : cut < d
-  · rw [ite_pos' hc]
+  · rw [ite_eq_left hc]
     have hb0 : base ≠ 0 := by intro h0; rw [h0] at hcut; omega
     obtain ⟨rc, rfl⟩ : ∃ rc, recon = some rc := by
       cases recon with
@@ -544,7 +544,7 @@ theorem qwPr_complete {l : List E} {k : ℕ} (hl : l.length = k) {j base cut d :
       | exact Or.inl ⟨rfl, hj⟩
       | trivial
       | refine ⟨?_, ?_⟩
-  · rw [ite_neg' hc]
+  · rw [ite_eq_right hc]
     have hPc : P < 2 ^ cut := lt_of_lt_of_le hP (Nat.pow_le_pow_right (by decide) (by omega))
     cases recon with
     | none =>
@@ -820,7 +820,7 @@ theorem qw_holds {d cd : ℕ} (hs : QwShape d cd) {rd : Reader} {w pos ptrs tabs
     have hx : j' * qwN d cd + i < 128 / d * qwN d cd := by
       have : (j' + 1) * qwN d cd ≤ 128 / d * qwN d cd := Nat.mul_le_mul_right _ hj'
       nlinarith
-    rw [Nat.add_assoc, g t _ (by omega), ite_pos' hx, qwRunW_at w hi]
+    rw [Nat.add_assoc, g t _ (by omega), ite_eq_left hx, qwRunW_at w hi]
   have hw0 : QwStab l0 fun σ ↦ σ (.n (valf% «decode_query_windows» "squeezed_word")) = w := fun _ ↦ rfl
   have hFA : QwStab l0 fun σ ↦ qwAK rd Q σ [.atom (.frameAddr (.n (valf% «decode_query_windows» "s5#0")) qwRun)] := fun t ↦ by
     obtain ⟨_, _, _, h4, hrK, hf⟩ := hbase t

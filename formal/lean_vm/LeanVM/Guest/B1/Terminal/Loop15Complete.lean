@@ -68,12 +68,6 @@ noncomputable def l15σ (x N ch p a b : E) : Val :=
   B1.Val.ofArgs [x, N, ch, p, ch * x, a, p * x, b, a * b, ch * x, word 2 0, x * word 2 0,
     x * word 2 0 + N, word 2 0, x * word 2 0]
 
-theorem l15_addr (b c k : ℕ) : (ofK (addressOfIndex b) * gen ^ c).limb 0 * addressOfIndex k =
-    addressOfIndex (b + c + k) := by
-  have e : ofK (addressOfIndex b) * gen ^ c = ofK (addressOfIndex (b + c)) := by
-    rw [gen_pow_eq_ofK, ← ofK_mul, addressOfIndex, addressOfIndex, addressOfIndex, pow_add]
-  rw [e, Main.addr_ofK]
-
 /-- **One iteration of `check_opening_terminal_loop0`, loading the chain and the point.** -/
 theorem l15_iter {rd : Reader} {bc bp m : ℕ} {cs ps : List E} (hcl : cs.length = m + 1)
     (hpl : ps.length = m) (hc : ReadsAt rd (ofK (addressOfIndex bc)) cs) (hp : ReadsAt rd (ofK
@@ -131,9 +125,9 @@ theorem l15_iter {rd : Reader} {bc bp m : ℕ} {cs ps : List E} (hcl : cs.length
     rw [loadAddrs_straight σ l15Pre l15_straight, l15_loads] at hA
     simp only [List.map_cons, List.map_nil, List.mem_cons, List.not_mem_nil, or_false] at hA
     rcases hA with rfl | rfl | rfl
-    · refine ⟨bc + k + 0, l15_addr bc k 0, hR _ (Or.inl ⟨by omega, by omega⟩)⟩
-    · refine ⟨bp + k + 0, l15_addr bp k 0, hR _ (Or.inr ⟨by omega, by omega⟩)⟩
-    · refine ⟨bc + k + 1, l15_addr bc k 1, hR _ (Or.inl ⟨by omega, by omega⟩)⟩
+    · refine ⟨bc + k + 0, limb0_ofK_mul_gen_pow_mul bc k 0, hR _ (Or.inl ⟨by omega, by omega⟩)⟩
+    · refine ⟨bp + k + 0, limb0_ofK_mul_gen_pow_mul bp k 0, hR _ (Or.inr ⟨by omega, by omega⟩)⟩
+    · refine ⟨bc + k + 1, limb0_ofK_mul_gen_pow_mul bc k 1, hR _ (Or.inl ⟨by omega, by omega⟩)⟩
   · intro c hc htaken
     rw [(Main.straight_parts σ l15Pre l15_straight).2.2.2, l15_callS] at hc
     simp only [List.map_cons, List.map_nil, List.mem_singleton] at hc

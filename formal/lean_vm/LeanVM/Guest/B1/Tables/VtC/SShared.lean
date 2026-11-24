@@ -35,12 +35,12 @@ def vtIdxcW : List E := (List.range 34).map fun t ↦ 1 + gen ^ 2 ^ t
 
 theorem vtIdxc_word {t : ℕ} (ht : t < 34) :
     word (tbGSquaresBits.getD t 0 ^^^ 1) 0 = 1 + gen ^ 2 ^ t := by
-  rw [tb_word_eOfNat, eOfNat_xor, eOfNat_one, gen_pow_two_pow_eq ht, add_comm]
+  rw [word_eOfNat, eOfNat_xor, eOfNat_one, gen_pow_two_pow_eq ht, add_comm]
 
 variable {rd : Reader} {w : ℕ → E} {args : List E}
 
 /-- **`idxc_tab`'s stores.** -/
-theorem idxc_ok (hl : args.length = 21) (h : TbReadsAt rd (vtσ rd w args (.n (val% «verify_tables» "idxc_tab"))) vtIdxcW) :
+theorem idxc_ok (hl : args.length = 21) (h : ReadsAt rd (vtσ rd w args (.n (val% «verify_tables» "idxc_tab"))) vtIdxcW) :
     ∀ st ∈ vtIdxcT, VSH (coreProgram.Rel rd) rd (vtσ rd w args) st := by
   intro st hst
   have hst' := hst
@@ -66,8 +66,8 @@ theorem idxc_ok (hl : args.length = 21) (h : TbReadsAt rd (vtσ rd w args (.n (v
 /-- **`zeta1`'s `plus_one_run`.** -/
 theorem zeta1_ok (hl : args.length = 21) {point : List E}
     (h9 : vtσ rd w args (.n (val% «verify_tables» "g_bus_mu")) = gen ^ point.length) (hμ : point.length ≤ 33)
-    (hz : TbReadsAt rd (vtσ rd w args (.n (val% «verify_tables» "zeta"))) point)
-    (hz1 : TbReadsAt rd (vtσ rd w args (.n (val% «verify_tables» "zeta1"))) (point.map (1 + ·))) (hw : w 803 = 0) :
+    (hz : ReadsAt rd (vtσ rd w args (.n (val% «verify_tables» "zeta"))) point)
+    (hz1 : ReadsAt rd (vtσ rd w args (.n (val% «verify_tables» "zeta1"))) (point.map (1 + ·))) (hw : w 803 = 0) :
     VSH (coreProgram.Rel rd) rd (vtσ rd w args)
       (.dispatch (.n (val% «verify_tables» "g_bus_mu")) plusOneRunNames [.n (val% «verify_tables» "zeta1"), .n (val% «verify_tables» "zeta")] [.n (val% «verify_tables» "zeta1_done")]) := by
   have hg := vt_goodS (rd := rd) (w := w) hl (vt_mem_slice (blk := [_]) (vtPre_drop (pos% «verify_tables» "zeta1_done") ▸ vtZeta1_check)
@@ -83,8 +83,8 @@ theorem zeta1_ok (hl : args.length = 21) {point : List E}
 
 theorem sh_call {μ τ : ℕ} {point : List E} (hμ : point.length = μ) (hμ33 : μ < 33)
     (hτμ : τ ≤ μ) {eqt gt z z1 gsq : E}
-    (hzv : TbReadsAt rd z (point.drop τ)) (hz1v : TbReadsAt rd z1 ((point.map (1 + ·)).drop τ))
-    (hsqv : TbReadsAt rd gsq ((gSquaresList.drop τ).take (μ - τ)))
+    (hzv : ReadsAt rd z (point.drop τ)) (hz1v : ReadsAt rd z1 ((point.map (1 + ·)).drop τ))
+    (hsqv : ReadsAt rd gsq ((gSquaresList.drop τ).take (μ - τ)))
     (hrun : RunTables rd eqt gt (μ - τ) (point.drop τ) ((point.map (1 + ·)).drop τ)
       ((gSquaresList.drop τ).take (μ - τ)))
     (hpad : RunPads rd eqt gt (μ - τ) (point.drop τ)) :
@@ -97,28 +97,28 @@ theorem vt_good_mul {σ : Val} {S : List Atom} {d x y : ℕ}
     (h : GoodS rd S w σ (fixNe (.atom (.mul (.n d) (.n x) (.n y))))) (hx : x < d) (hy : y < d) :
     σ (.n d) = σ (.n x) * σ (.n y) := by
   simp only [GoodS, fixNe, Good] at h
-  rwa [ite_pos' ⟨hx, hy⟩] at h
+  rwa [ite_eq_left ⟨hx, hy⟩] at h
 
 theorem vt_good_div {σ : Val} {S : List Atom} {d x y : ℕ}
     (h : GoodS rd S w σ (fixNe (.atom (.mul (.n d) (.n x) (.n y))))) (hx : d < x) :
     σ (.n x) = σ (.n d) * (σ (.n y))⁻¹ := by
   simp only [GoodS, fixNe, Good] at h
-  rwa [ite_neg' (show ¬ (x < d ∧ y < d) by omega)] at h
+  rwa [ite_eq_right (show ¬ (x < d ∧ y < d) by omega)] at h
 
 theorem vt_good_rc {σ : Val} {S : List Atom} {x y t1 t2 k : ℕ}
     (h : GoodS rd S w σ (fixNe (.atom (.rangeCheck (.n x) (.n y) (.n t1) (.n t2) (.n k))))) (hk : k < y) :
     σ (.n t1) = rdAt rd (σ (.n x)) 0 ∧ σ (.n t2) = rdAt rd (σ (.n y)) 0 ∧
       σ (.n y) = σ (.n k) * (σ (.n x))⁻¹ := by
   simp only [GoodS, fixNe, Good] at h
-  rwa [ite_pos' hk] at h
+  rwa [ite_eq_left hk] at h
 
-theorem vtShAT_rest : ∀ t < 6, tbStmtsEqb (((vtAt (vtShA t)).take 15).filter (fun s ↦ !autoB s))
+theorem vtShAT_rest : ∀ t < 6, stmtsEqb (((vtAt (vtShA t)).take 15).filter (fun s ↦ !autoB s))
     [.atom (.mul (.n (val% «verify_tables» "g_bus_mu")) (.n (vtShV t)) (.n (28 + t))),
       .atom (.rangeCheck (.n (vtShV t + 1)) (.n (vtShV t + 3)) (.n (vtShV t + 4)) (.n (vtShV t + 5))
         (.n (vtShV t + 2)))] = true := by
   decide +kernel
 
-theorem vtShCT_rest : ∀ t < 6, tbStmtsEqb (((vtAt (vtShC t)).take 4).filter (fun s ↦ !autoB s))
+theorem vtShCT_rest : ∀ t < 6, stmtsEqb (((vtAt (vtShC t)).take 4).filter (fun s ↦ !autoB s))
     [.call "shared_selector_tables" [.n (vtEqV t), .n (vtGV t), .n (vtShZ t), .n (vtShZ t + 1),
       .n (vtShZ t + 2), .n (vtShLen t)] []] = true := by
   decide +kernel
@@ -166,7 +166,7 @@ theorem vtc_shA (hl : args.length = 21) (hlow : LowDefB 14 rd) {t μ τ : ℕ} (
   simp only [fixNe, GoodS, Good] at g1 g2 g4 g9 g10 g13 g14
   have ev : σv (.n v) = gen ^ (μ - τ) := by rw [g0, h9, hkb, gen_pow_div hτμ]
   have ec : σv (.n (v + 1)) = gen ^ (μ - τ) := by rw [g1, ev]
-  have e1 : σv (.n (v + 7)) = gen ^ (μ - τ + 1) := by rw [g5, g4, ec, tb_word_gen, pow_succ]
+  have e1 : σv (.n (v + 7)) = gen ^ (μ - τ + 1) := by rw [g5, g4, ec, word_gen, pow_succ]
   obtain ⟨r1, r2, r3⟩ := g3
   obtain ⟨hrc, -⟩ := rc_holds (κ := 14) hlow r1 r2 r3 ec (by rw [g2, vtW33_gen]) (by omega)
     (by norm_num)
@@ -183,9 +183,9 @@ theorem vtc_shA (hl : args.length = 21) (hlow : LowDefB 14 rd) {t μ τ : ℕ} (
 theorem vtc_shC (hl : args.length = 21) {t μ τ : ℕ} (ht : t < 6) {point : List E}
     (hμ : point.length = μ) (hμ33 : μ < 33) (hτμ : τ ≤ μ) (hkb : σv (.n (28 + t)) = gen ^ τ)
     (hlen : σv (.n (vtShLen t)) = gen ^ (μ - τ))
-    (hz : TbReadsAt rd (σv (.n (val% «verify_tables» "zeta"))) point)
-    (hz1 : TbReadsAt rd (σv (.n (val% «verify_tables» "zeta1"))) (point.map (1 + ·)))
-    (hsq : TbReadsAt rd (σv (.n (val% «verify_tables» "g_squares"))) gSquaresList)
+    (hz : ReadsAt rd (σv (.n (val% «verify_tables» "zeta"))) point)
+    (hz1 : ReadsAt rd (σv (.n (val% «verify_tables» "zeta1"))) (point.map (1 + ·)))
+    (hsq : ReadsAt rd (σv (.n (val% «verify_tables» "g_squares"))) gSquaresList)
     (hrun : RunTables rd (σv (.n (vtEqV t))) (σv (.n (vtGV t))) (μ - τ) (point.drop τ)
       ((point.map (1 + ·)).drop τ) ((gSquaresList.drop τ).take (μ - τ)))
     (hpad : RunPads rd (σv (.n (vtEqV t))) (σv (.n (vtGV t))) (μ - τ) (point.drop τ)) :
@@ -206,8 +206,8 @@ theorem vtc_shC (hl : args.length = 21) {t μ τ : ℕ} (ht : t < 6) {point : Li
   show coreProgram.Rel rd _ _ _
   simp only [List.map_cons, List.map_nil]
   rw [g0, g1, g2, hkb, hlen]
-  exact sh_call hμ hμ33 hτμ (tbReadsAt_drop hz τ) (tbReadsAt_drop hz1 τ)
-    (tbReadsAt_take (tbReadsAt_drop hsq τ) _) hrun hpad
+  exact sh_call hμ hμ33 hτμ (readsAt_drop hz τ) (readsAt_drop hz1 τ)
+    (readsAt_take (readsAt_drop hsq τ) _) hrun hpad
 
 end
 end LeanVM.Guest.B1.Tables

@@ -41,7 +41,7 @@ theorem ptr_mul_gen_limb (b j off : ℕ) : (ptr b * gen ^ j).limb 0 * Parameters
   have e : ptr b * gen ^ j = ofK (Parameters.addressOfIndex (b + j)) := by
     rw [gen_pow_eq_ofK, ← ofK_mul, Parameters.addressOfIndex, Parameters.addressOfIndex,
         Parameters.addressOfIndex, pow_add]
-  rw [e, Main.addr_ofK]
+  rw [e, Value.limb0_ofK_addressOfIndex_mul]
 
 /-- A load at `ptr b·g^j + off` inside an entry `(b, ws)` of a layout. -/
 theorem inR_entry {L : Main.Layout} {b : ℕ} {ws : List E} (hq : (b, ws) ∈ L) {j off : ℕ}

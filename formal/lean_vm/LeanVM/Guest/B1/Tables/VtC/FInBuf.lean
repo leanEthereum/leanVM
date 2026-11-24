@@ -56,13 +56,13 @@ theorem vtF_loadsInBuf (hl : args.length = 21) {bufs : List (E × ℕ)}
     (hpe : BufWin (vtσ rd w args) bufs (.n (val% «verify_tables» "zc_peq")) (n + 1)) :
     LoadsInBuf (vtσ rd w args) bufs ((vtPre.drop (pos% «verify_tables» "x@9")).take (pos% «verify_tables» "nxt[0]@42" - pos% «verify_tables» "x@9")) := by
   intro d p off hs
-  rw [tbStmtsEqb_sound vtF_split] at hs
+  rw [stmtsEqb_sound vtF_split] at hs
   rcases List.mem_append.mp hs with hs | hs
   swap
   · simp at hs
   cases hr : rdFpw (.atom (.load d p off))
   · have hf : Stmt.atom (.load d p off) ∈ vtFTags.flatMap vtFTagT := by
-      rw [← tbStmtsEqb_sound vtF_cover]
+      rw [← stmtsEqb_sound vtF_cover]
       exact List.mem_filter.mpr ⟨hs, by simp [hr, autoB, Fwd.pureB, hintB]⟩
     obtain ⟨q, hq, hsq⟩ := List.mem_flatMap.mp hf
     rcases vtFTags_spec q hq with ⟨h0, hk⟩ | ⟨h1, hj⟩ | ⟨h3, ht⟩
@@ -81,7 +81,7 @@ theorem vtF_loadsInBuf (hl : args.length = 21) {bufs : List (E × ℕ)}
       simp only at h3 ht
       subst h3
       obtain ⟨e1, e3⟩ := vtF_airVals (w := w) hl hkbt hgn hτn ht
-      have hfilt := tbStmtsEqb_sound (vtAirT_rest t ht)
+      have hfilt := stmtsEqb_sound (vtAirT_rest t ht)
       simp only [vtFTagT] at hsq
       rw [hfilt] at hsq
       simp only [vtAirRest, List.mem_cons, List.not_mem_nil, or_false, Stmt.atom.injEq,

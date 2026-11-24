@@ -9,6 +9,7 @@ module
 
 public import Statement.Prover.Ntt
 public import LeanVM.Protocol.Whir.Complete.Encoding
+public import LeanVM.ToMathlib.Finset
 
 /-!
 # The additive NTT is the encoder
@@ -125,7 +126,7 @@ theorem testBit_two_mul_add_one_succ (v k : ℕ) : (2 * v + 1).testBit (k + 1) =
 theorem mono_succ (n : ℕ) (f w : ℕ → K) :
     mono (n + 1) f w = mono n (fun v ↦ f (2 * v)) (fun k ↦ w (k + 1)) +
       w 0 * mono n (fun v ↦ f (2 * v + 1)) (fun k ↦ w (k + 1)) := by
-  rw [mono, pow_succ, mul_comm, Verifier.sum_range_two_mul, mono, mono, mul_sum, ← sum_add_distrib]
+  rw [mono, pow_succ, mul_comm, Finset.sum_range_two_mul, mono, mono, mul_sum, ← sum_add_distrib]
   refine sum_congr rfl fun v _ ↦ ?_
   rw [prod_range_succ', prod_range_succ']
   simp only [testBit_two_mul_zero, testBit_two_mul_add_one_zero, testBit_two_mul_succ,

@@ -158,8 +158,8 @@ theorem holds_of_mem_seq {C : CallRel} {rd : Reader} {σ : Val} {kret : List E �
 
 /-- A statement read at a position of a block is in it. -/
 theorem mem_of_slice {ss : List Stmt} {s : Stmt} {i : ℕ}
-    (h : tbStmtsEqb [s] ((ss.drop i).take 1) = true) : s ∈ ss := by
-  have e := tbStmtsEqb_sound h
+    (h : stmtsEqb [s] ((ss.drop i).take 1) = true) : s ∈ ss := by
+  have e := stmtsEqb_sound h
   have : s ∈ (ss.drop i).take 1 := by rw [← e]; simp
   exact List.mem_of_mem_drop (List.mem_of_mem_take this)
 

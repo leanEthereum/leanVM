@@ -126,12 +126,6 @@ theorem cp_loads {q : V × ℕ} (hq : q ∈ cpPre.filterMap Stmt.loadS) :
     · exact Or.inr (Or.inr ⟨j, hj, h.symm⟩)
   · simp [Stmt.loadS] at hq
 
-theorem cp_limb_mul (b c k : ℕ) : (ofK (addressOfIndex b) * gen ^ c).limb 0 * addressOfIndex k =
-    addressOfIndex (b + c + k) := by
-  have e : ofK (addressOfIndex b) * gen ^ c = ofK (addressOfIndex (b + c)) := by
-    rw [gen_pow_eq_ofK, ← ofK_mul, addressOfIndex, addressOfIndex, addressOfIndex, pow_add]
-  rw [e, tb_addr_ofK]
-
 theorem cp_regionL {L : Layout} {q : ℕ × List E} (hq : q ∈ L) {k : ℕ} (hk : k < q.2.length) :
     RegionL L (q.1 + k) := ⟨q, hq, by omega, by omega⟩
 
@@ -171,59 +165,59 @@ theorem cp_loads_ok {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hlm : lm �
     cpσ_grp_ptrs lm hs ekb esq e10 e11 e136 e137 e293 rd hgi
   rcases cp_loads hq with ⟨i, hi, rfl⟩ | ⟨gi, hgi, rfl | rfl | rfl | rfl⟩ | rfl | rfl | rfl | rfl |
     ⟨r, hr, rfl | rfl | rfl | rfl⟩ | ⟨gi, hgi, rfl | rfl | ⟨j, hj, rfl⟩⟩
-  · exact ⟨ekb + i, tb_addr_ofK _ _, Or.inl (hKb i hi)⟩
+  · exact ⟨ekb + i, limb0_ofK_addressOfIndex_mul _ _, Or.inl (hKb i hi)⟩
   · refine ⟨esq + 178 + cpKg lm hs gi, ?_, Or.inl (hRk _ (hκ gi))⟩
     show (σ (.n (cpQ gi + 4))).limb 0 * addressOfIndex 178 = _
-    rw [(hptr gi hgi).1, cp_limb_mul]
+    rw [(hptr gi hgi).1, limb0_ofK_mul_gen_pow_mul]
     congr 1; omega
-  · exact ⟨e10 + gi, tb_addr_ofK _ _, Or.inr (h10 gi hgi)⟩
+  · exact ⟨e10 + gi, limb0_ofK_addressOfIndex_mul _ _, Or.inr (h10 gi hgi)⟩
   · refine ⟨esq + cpKg lm hs gi, ?_, Or.inl (hSq _ (hκ gi))⟩
     show (σ (.n (cpZ gi))).limb 0 * addressOfIndex 0 = _
-    rw [(hptr gi hgi).2, cp_limb_mul, Nat.add_zero]
-  · exact ⟨e11 + gi, tb_addr_ofK _ _, Or.inr (h11 gi hgi)⟩
-  · exact ⟨e136 + 0, tb_addr_ofK _ _, Or.inr (h136 0 (by norm_num))⟩
+    rw [(hptr gi hgi).2, limb0_ofK_mul_gen_pow_mul, Nat.add_zero]
+  · exact ⟨e11 + gi, limb0_ofK_addressOfIndex_mul _ _, Or.inr (h11 gi hgi)⟩
+  · exact ⟨e136 + 0, limb0_ofK_addressOfIndex_mul _ _, Or.inr (h136 0 (by norm_num))⟩
   · refine ⟨e10 + cpPi lm hs 0, ?_, Or.inr (h10 _ hp0)⟩
     rw [show σ (.n (val% «certify_placement» "key@1~0")) = ofK (addressOfIndex e10) * gen ^ cpPi lm hs 0 from
-      cpσ_rank0 lm hs ekb esq _ _ _ _ _ rd (j := 5) (by norm_num), cp_limb_mul]
+      cpσ_rank0 lm hs ekb esq _ _ _ _ _ rd (j := 5) (by norm_num), limb0_ofK_mul_gen_pow_mul]
     rfl
   · refine ⟨e137 + cpPi lm hs 0, ?_, Or.inr (h137 _ hp0)⟩
     rw [show σ (.n (val% «certify_placement» "s10.u0.s4#1")) = ofK (addressOfIndex e137) * gen ^ cpPi lm hs 0 from
-      cpσ_rank0 lm hs ekb esq _ _ _ _ _ rd (j := 8) (by norm_num), cp_limb_mul]
+      cpσ_rank0 lm hs ekb esq _ _ _ _ _ rd (j := 8) (by norm_num), limb0_ofK_mul_gen_pow_mul]
     rfl
   · refine ⟨e11 + cpPi lm hs 0, ?_, Or.inr (h11 _ hp0)⟩
     rw [show σ (.n (val% «certify_placement» "g_total@1~0")) = ofK (addressOfIndex e11) * gen ^ cpPi lm hs 0 from
-      cpσ_rank0 lm hs ekb esq _ _ _ _ _ rd (j := 9) (by norm_num), cp_limb_mul]
+      cpσ_rank0 lm hs ekb esq _ _ _ _ _ rd (j := 9) (by norm_num), limb0_ofK_mul_gen_pow_mul]
     rfl
-  · exact ⟨e136 + (r + 1), tb_addr_ofK _ _, Or.inr (h136 _ (by omega))⟩
+  · exact ⟨e136 + (r + 1), limb0_ofK_addressOfIndex_mul _ _, Or.inr (h136 _ (by omega))⟩
   · have hp := cpPi_lt (lm := lm) (hs := hs) (r := r + 1) (by omega)
     refine ⟨e10 + cpPi lm hs (r + 1), ?_, Or.inr (h10 _ hp)⟩
     rw [show σ (.n (131 + 18 * (r + 1) + 5)) = ofK (addressOfIndex e10) * gen ^ cpPi lm hs (r + 1)
       from cpσ_rank lm hs ekb esq _ _ _ _ _ rd (r := r + 1) (j := 5) (by omega) (by omega)
-        (by norm_num), cp_limb_mul]
+        (by norm_num), limb0_ofK_mul_gen_pow_mul]
     rfl
   · have hp := cpPi_lt (lm := lm) (hs := hs) (r := r + 1) (by omega)
     refine ⟨e137 + cpPi lm hs (r + 1), ?_, Or.inr (h137 _ hp)⟩
     rw [show σ (.n (131 + 18 * (r + 1) + 14)) =
         ofK (addressOfIndex e137) * gen ^ cpPi lm hs (r + 1)
       from cpσ_rank lm hs ekb esq _ _ _ _ _ rd (r := r + 1) (j := 14) (by omega) (by omega)
-        (by norm_num), cp_limb_mul]
+        (by norm_num), limb0_ofK_mul_gen_pow_mul]
     rfl
   · have hp := cpPi_lt (lm := lm) (hs := hs) (r := r + 1) (by omega)
     refine ⟨e11 + cpPi lm hs (r + 1), ?_, Or.inr (h11 _ hp)⟩
     rw [show σ (.n (131 + 18 * (r + 1) + 15)) =
         ofK (addressOfIndex e11) * gen ^ cpPi lm hs (r + 1)
       from cpσ_rank lm hs ekb esq _ _ _ _ _ rd (r := r + 1) (j := 15) (by omega) (by omega)
-        (by norm_num), cp_limb_mul]
+        (by norm_num), limb0_ofK_mul_gen_pow_mul]
     rfl
   · obtain ⟨g1, g2, -⟩ := cp_col_geom gi hgi
     refine ⟨esq + cpKg lm hs gi, ?_, Or.inl (hSq _ (hκ gi))⟩
     have hc : σ (.n (cpD gi)) = cpColV lm hs esq gi (cpD gi) :=
       cpσ_col lm hs ekb esq e10 e11 e136 e137 e293 rd hgi le_rfl (by omega)
     show (σ (.n (cpD gi))).limb 0 * addressOfIndex (cpAdj gi) = _
-    rw [hc, cpColV, tb_ite_pos rfl, cp_limb_mul, Nat.add_assoc]
+    rw [hc, cpColV, ite_eq_left rfl, limb0_ofK_mul_gen_pow_mul, Nat.add_assoc]
     rfl
-  · exact ⟨e137 + gi, tb_addr_ofK _ _, Or.inr (h137 gi hgi)⟩
-  · refine ⟨e293 + (cpC0 gi + j), tb_addr_ofK _ _, Or.inr (h293 _ ?_)⟩
+  · exact ⟨e137 + gi, limb0_ofK_addressOfIndex_mul _ _, Or.inr (h137 gi hgi)⟩
+  · refine ⟨e293 + (cpC0 gi + j), limb0_ofK_addressOfIndex_mul _ _, Or.inr (h293 _ ?_)⟩
     have := cpC0_le gi hgi; unfold cpLen at hj; omega
 
 /-- **`certify_placement` is complete, placed**: on its base, squares and rank-key runs, at every

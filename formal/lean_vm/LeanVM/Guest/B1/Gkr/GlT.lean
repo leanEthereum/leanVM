@@ -14,7 +14,7 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«gkr_layer__L»
 import LeanVM.Guest.Data.ValNames.«gkr_layer__L_loop0»
 import LeanVM.Guest.Data.ValNames.«gkr_layer__L0_L0»
-public import LeanVM.Guest.B1.Tables.Basic
+public import LeanVM.Guest.B1.Tables.Base
 
 /-!
 # A radix-four layer's templates
@@ -330,7 +330,7 @@ def glLoopName : ℕ → ℕ → String
 /-- A function of `coreProgram` with these parameters and body. -/
 noncomputable def glIs (f : String) (ps : List V) (b : List Stmt) : Bool :=
   match coreProgram.find? f with
-  | some fn => decide (fn.params = ps) && tbStmtsEqb fn.body b
+  | some fn => decide (fn.params = ps) && stmtsEqb fn.body b
   | none => false
 
 theorem glIs_sound {f : String} {ps : List V} {b : List Stmt} (h : glIs f ps b = true) :
@@ -339,7 +339,7 @@ theorem glIs_sound {f : String} {ps : List V} {b : List Stmt} (h : glIs f ps b =
   split at h
   · rename_i fn hf
     simp only [Bool.and_eq_true, decide_eq_true_eq] at h
-    exact ⟨fn, hf, h.1, tbStmtsEqb_sound h.2⟩
+    exact ⟨fn, hf, h.1, stmtsEqb_sound h.2⟩
   · exact absurd h (by simp)
 
 /-- The layer's parameters. -/

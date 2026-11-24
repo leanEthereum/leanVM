@@ -46,8 +46,8 @@ theorem cpσ_136 {lm : ℕ} {hs : List ℕ} {ekb esq e10 e11 e136 e137 e293 : �
     Tables.cpσ lm hs ekb esq e10 e11 e136 e137 e293 rd (.n (val% «certify_placement» "group_order")) = ofK (addressOfIndex e136) := by
   show Tables.cpF lm hs ekb esq e10 e11 e136 e137 e293 rd 136 = _
   unfold Tables.cpF
-  rw [Tables.tb_ite_neg (by omega), Tables.tb_ite_neg (by omega), Tables.tb_ite_neg (by omega),
-    Tables.tb_ite_neg (by omega), Tables.tb_ite_neg (by omega), Tables.tb_ite_neg (by omega), Tables.tb_ite_pos rfl]
+  rw [ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega),
+    ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_left rfl]
 
 /-- **`certify_placement`'s honest node pops its group order**, which its buffer holds. -/
 theorem cp_honest_pops {lm : ℕ} {hs : List ℕ} {ekb esq : ℕ} {rd : Reader} {t : Tree} {args rets : List E}

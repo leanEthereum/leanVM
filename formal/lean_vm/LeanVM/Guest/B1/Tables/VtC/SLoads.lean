@@ -87,7 +87,7 @@ def pfMul (F : List (ℕ × PF)) (x y : ℕ) : Option PF :=
 
 /-- The fact a constant gives: `word (2^k)` for `k ∈ ks`. -/
 def constFact (ks : List ℕ) (c : E) : Option PF :=
-  (ks.find? (fun k ↦ decide (k < 64) && tbEEqb c (word (2 ^ k) 0))).map PF.pw
+  (ks.find? (fun k ↦ decide (k < 64) && eEqb c (word (2 ^ k) 0))).map PF.pw
 
 /-- The fact a load gives: a word of a buffer whose words at `offs` are `g^` at most `c`. -/
 def loadFact (pws : List (ℕ × ℕ × List ℕ)) (p off : ℕ) : Option PF :=
@@ -154,7 +154,7 @@ theorem pfMul_sound {F : List (ℕ × PF)} (hF : ∀ q ∈ F, q.2.Holds σ q.1) 
 theorem constFact_sound {ks : List ℕ} {c : E} {d : ℕ} {f : PF} (hc : σ (.n d) = c)
     (h : constFact ks c = some f) : f.Holds σ d := by
   unfold constFact at h
-  cases hk : ks.find? (fun k ↦ decide (k < 64) && tbEEqb c (word (2 ^ k) 0)) with
+  cases hk : ks.find? (fun k ↦ decide (k < 64) && eEqb c (word (2 ^ k) 0)) with
   | none => rw [hk] at h; simp at h
   | some k =>
     rw [hk] at h
@@ -162,7 +162,7 @@ theorem constFact_sound {ks : List ℕ} {c : E} {d : ℕ} {f : PF} (hc : σ (.n 
     have h1 := List.find?_some hk
     simp only [Bool.and_eq_true, decide_eq_true_eq] at h1
     subst h
-    exact ⟨k, le_rfl, by rw [hc, tbEEqb_sound h1.2, tb_word_two_pow h1.1]⟩
+    exact ⟨k, le_rfl, by rw [hc, eEqb_sound h1.2, word_two_pow h1.1]⟩
 
 theorem ptrAdd_holds {F : List (ℕ × PF)} (hF : ∀ q ∈ F, q.2.Holds σ q.1) {d : V} {fo : Option PF}
     (h : ∀ i f, vIdx d = some i → fo = some f → f.Holds σ i) :
@@ -285,12 +285,12 @@ def vtPwsS : List (ℕ × ℕ × List ℕ) :=
 theorem vtS_ptr_check : ptrRun vtBufsSIdx vtPwsS [0, 19] [] ((vtPre.drop 0).take (pos% «verify_tables» "block_index_mle")) = true := by
   simp only [vtPre_drop]; decide +kernel
 
-theorem pw_of_reads {rd : Reader} {p : E} {ws : List E} (h : TbReadsAt rd p ws) {c : ℕ} {j : ℕ}
+theorem pw_of_reads {rd : Reader} {p : E} {ws : List E} (h : ReadsAt rd p ws) {c : ℕ} {j : ℕ}
     (hj : j < ws.length) (hw : ∃ a ≤ c, ws.getD j 0 = gen ^ a) {v : E} (hl : LoadHolds rd p j v) :
     ∃ a ≤ c, v = gen ^ a := by
   obtain ⟨a, ha, e⟩ := hw
   refine ⟨a, ha, ?_⟩
-  rw [← tb_loadHolds_unique (h j hj) hl, ← e, List.getD_eq_getElem _ _ hj]
+  rw [← loadHolds_unique (h j hj) hl, ← e, List.getD_eq_getElem _ _ hj]
 
 section
 variable {rd : Reader} {w : ℕ → E} {args : List E}
@@ -301,8 +301,8 @@ theorem vtS_loads {bufs : List (E × ℕ)}
     (hV : ∀ s ∈ (vtPre.drop 0).take (pos% «verify_tables» "block_index_mle"), VSH (coreProgram.Rel rd) rd (vtσ rd w args) s)
     (hb : ∀ q ∈ vtBufsSIdx, (vtσ rd w args (.n q.1), q.2) ∈ bufs) {lm : ℕ} (hlm : lm ≤ 32)
     {τ : ℕ → ℕ} (hτ : ∀ t < 6, τ t < 33)
-    (hdims : TbReadsAt rd (vtσ rd w args (.n (val% «verify_tables» "dims_g"))) (gen ^ lm :: (vtTauList τ).map (gen ^ ·)))
-    (hord : TbReadsAt rd (vtσ rd w args (.n (val% «verify_tables» "group_order"))) (vtGOrdW lm τ)) :
+    (hdims : ReadsAt rd (vtσ rd w args (.n (val% «verify_tables» "dims_g"))) (gen ^ lm :: (vtTauList τ).map (gen ^ ·)))
+    (hord : ReadsAt rd (vtσ rd w args (.n (val% «verify_tables» "group_order"))) (vtGOrdW lm τ)) :
     LoadsInBuf (vtσ rd w args) bufs ((vtPre.drop 0).take (pos% «verify_tables» "block_index_mle")) := by
   refine ptrRun_sound hb (fun q hq j hj v hl ↦ ?_) _ [] (by simp) hV vtS_ptr_check
   simp only [vtPwsS, List.mem_cons, List.not_mem_nil, or_false] at hq

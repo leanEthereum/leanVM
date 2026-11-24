@@ -263,7 +263,7 @@ def bound_here(x, text):
     return False
 
 
-TIE_EQ = re.compile(r'^theorem\s+\S+\s*:\s*([a-z][\w\']*)\s*=\s*([^:]*?)\s*:=\s*(?:by\s+decide\b|tbStmtsEqb_sound|stmtsEqb_sound|rfl\b)',
+TIE_EQ = re.compile(r'^theorem\s+\S+\s*:\s*([a-z][\w\']*)\s*=\s*([^:]*?)\s*:=\s*(?:by\s+decide\b|stmtsEqb_sound|rfl\b)',
                     re.M | re.S)
 
 ARGS = [re.compile(r'\bCompletes\w*\s+[^\s()]+\s+[^\s()]+\s+(\d+)\s+(\d+)\b'),

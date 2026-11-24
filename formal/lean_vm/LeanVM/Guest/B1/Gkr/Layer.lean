@@ -35,7 +35,7 @@ def GkSlot (rd : Reader) (layers : E) (L : ℕ) (s : Fs) (cur : E) (st : GkrStat
   s.cap.length = 5 ∧ (∀ j < 5, LoadHolds rd layers (10 * L + j) (s.cap.getD j 0)) ∧ s.pend = [] ∧
     LoadHolds rd layers (10 * L + 5) cur ∧ st.values.length = 3 ∧
     (∀ t < 3, LoadHolds rd layers (10 * L + 6 + t) (st.values.getD t 0)) ∧
-    st.point.length = L ∧ TbReadsAt rd row st.point ∧ LoadHolds rd layers (10 * L + 9) pos
+    st.point.length = L ∧ ReadsAt rd row st.point ∧ LoadHolds rd layers (10 * L + 9) pos
 
 /-- **A layer of two levels**: the radix-four layer `j` at the depth's parity `sh`, from the slot of
 `L = 2j + 2 - sh`, its point in row `j + 1` at `pts`, runs `gkrStep 2` to the slot of `L + 2`, its
@@ -44,7 +44,7 @@ def LyB (rd : Reader) (sh : ℕ) (layers pts : E) (j : ℕ) : Prop :=
   ∀ (s : Fs) (cur : E) (st : GkrState) (pos : E),
     GkSlot rd layers (2 * j + 2 - sh) s cur st (pts * gen ^ (40 * (j + 1))) pos →
     ∃ (xs : List E) (st' : GkrState) (s' : Fs) (pos' : E),
-      RunsTo (gkrStep 2 false st) s xs st' s' ∧ TbReadsAt rd cur xs ∧
+      RunsTo (gkrStep 2 false st) s xs st' s' ∧ ReadsAt rd cur xs ∧
       GkSlot rd layers (2 * j + 2 - sh + 2) s' (cur * gen ^ xs.length) st'
         (pts * gen ^ (40 * (j + 2))) pos'
 

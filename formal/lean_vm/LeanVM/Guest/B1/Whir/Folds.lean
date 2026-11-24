@@ -39,20 +39,6 @@ def OsSt.F (σ : Val) (st : OsSt) : Fs := ⟨st.fs.map fun i ↦ σ (.n i), []�
 /-- The cursor: its base value times `g^co`. -/
 def OsSt.cur (σ : Val) (st : OsSt) : E := σ (.n st.cb) * gen ^ st.co
 
-/-- Words read from `p`, then from past them. -/
-theorem readsAt_append {p : E} {xs ys : List E} (h1 : ReadsAt rd p xs)
-    (h2 : ReadsAt rd (p * gen ^ xs.length) ys) : ReadsAt rd p (xs ++ ys) := by
-  intro k hk
-  by_cases h : k < xs.length
-  · rw [List.getElem_append_left h]; exact h1 k h
-  · rw [List.getElem_append_right (by omega)]
-    have := h2 (k - xs.length) (by simp at hk; omega)
-    rwa [loadHolds_mul_gen_pow, Nat.add_sub_cancel' (by omega)] at this
-
-theorem readsAt_getD' {p : E} {xs : List E} (h : ReadsAt rd p xs) {j : ℕ} (hj : j < xs.length) :
-    LoadHolds rd p j (xs.getD j 0) := by
-  rw [List.getD_eq_getElem _ _ hj]; exact h j hj
-
 /-! ## Materialized pointers in the running state -/
 
 theorem osMatS_val {P : List (ℕ × ℕ × ℕ)} {base off : ℕ} {s : OsSt} (hm : MatsOk σ s.mats)
@@ -207,7 +193,7 @@ theorem osRounds_sound (hgc : GcOk C rd σ) (hwt : WinTabs rd (σ (.n osTabs))) 
     refine ⟨xs0 ++ xs, g0 :: gs, r0 :: rounds, by simp [hx0, hxl]; ring, by simp [hgl],
       by simp [hrl], ?_, ?_, ?_, hfs', by rw [hm', hm0], by rw [hco', hco0]; ring,
       by rw [hcb', hcb0], by rw [hpad', hpad0], ?_, ?_⟩
-    · exact readsAt_append hrd0 (by rw [hx0, ← hcur0]; exact hrd)
+    · exact readsAt_append.mpr ⟨hrd0, by rw [hx0, ← hcur0]; exact hrd⟩
     · have h := hrun0.bind (f := fun p ↦ do
           let (s, round) := p
           let (s, rounds) ← foldRounds n s

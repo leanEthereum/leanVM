@@ -38,7 +38,7 @@ include hμ
 
 /-- **A table block's selector.** -/
 theorem vt_selblock {σ : Val} (h : VtH Lm.read σ) {w b t pos : ℕ} {prev : Option ℕ}
-    (hcheck : tbStmtsEqb (vtSelT w b t prev)
+    (hcheck : stmtsEqb (vtSelT w b t prev)
       ((vtAt pos).take (vtSelT w b t prev).length) = true)
     {point : List E} {d τ : ℕ} (hpl : point.length = d + τ) (hd34 : d + τ ≤ 34)
     (hdv : σ (.n (vtShLen t)) = gen ^ d)

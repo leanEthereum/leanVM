@@ -58,7 +58,7 @@ def haves(ps):
         op, args = parse_atom(IR[p])
         if op == 'load':
             assert args[1] == W_BASE, (p, args)
-            L.append(f'  have e{p} := tb_loadHolds_unique a{p} (hw {args[2]} (by norm_num))')
+            L.append(f'  have e{p} := loadHolds_unique a{p} (hw {args[2]} (by norm_num))')
             eqs.append(f'e{p}')
         else:
             holds.append(f'a{p}'); eqs.append(f'a{p}')
@@ -160,7 +160,7 @@ theorem {name}{t} {hyp} :
 {body}
   simp (config := {{ decide := true }}) only [vtPadTable, {DATA_NAME[name]}, List.filter_cons,
     List.filter_nil, List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, ↓reduceIte,
-    {'' if beta1 == '1' else 'tb_word_one, '}mul_one, add_zero]
+    {'' if beta1 == '1' else 'word_one, '}mul_one, add_zero]
 ''' + wrap([e + ',' for e in eqs[:-1]] + [eqs[-1] + ']'], '  simp only [', '    ') + ('\n' if beta1 == '1' and sum(1 for x in data if x[1] == t) <= 2 else '\n  ring\n')
         out.append(s)
     return out
@@ -242,7 +242,7 @@ theorem vt_push_total {{rd : Reader}} {{σ : Val}} (h : VtH rd σ) :
 ''' + '\n'.join(f'  have a{p} := h.atomAt {p} {atom_text(p)} (by decide +kernel)'
         for p in sorted(cone(push_total, {fw0, pad0, sel0, leaf0}, set()))) + '\n' +
         '  simp only [Atom.Holds] at ' + ' '.join(f'a{p}' for p in sorted(cone(push_total, {fw0, pad0, sel0, leaf0}, set()))) +
-        '\n  rw [' + ', '.join(f'a{p}' for p in sorted(cone(push_total, {fw0, pad0, sel0, leaf0}, set()), reverse=True)) + ', tb_word_one]\n')
+        '\n  rw [' + ', '.join(f'a{p}' for p in sorted(cone(push_total, {fw0, pad0, sel0, leaf0}, set()), reverse=True)) + ', word_one]\n')
     body.append(f'''/-- `push_padding`'s selector sum is the running sum's copy. -/
 theorem vt_push_sel {{rd : Reader}} {{σ : Val}} (h : VtH rd σ) : σ (.n {sel0}) = σ (.n {SEL0_SRC}) := by
   have a := h.atomAt {SEL0_POS} {atom_text(SEL0_POS)} (by decide +kernel)
@@ -265,11 +265,11 @@ def gen_rest():
         '        W 4 * σ (.n 864))) +\n'
         '      σ (.n 880) * (σ (.n 14) + (W 0 * gen ^ 2 + W 1 * σ (.n 883) + W 2)) +\n'
         '      σ (.n 1154) * σ (.n 1540)'), fw0, fwP_leaves, extra=consts,
-        extra_rw='  simp only [tb_word_one, tb_word_gen, vt_word4]\n')
+        extra_rw='  simp only [word_one, word_gen, vt_word4]\n')
     write('PushFw', "`verify_tables`' push side's framework blocks: their fingerprints' accumulator and the\n  bytecode share's public term.",
           'LeanVM.Guest.B1.Tables.Vt.PushPad',
           "# The push side's framework blocks\n\n`vt_push_fw`: the accumulator after the state, memory and bytecode blocks is\n`Σ_f eq_f·(β + Σ_i w_i·coord_i)`, the bytecode block's public slots left out, plus\n`public_eq·S`. " + FW_NOTE,
-          'theorem vt_word4 : word 4 0 = gen ^ 2 := by\n  rw [show (4 : ℕ) = 2 ^ 2 by norm_num, tb_word_two_pow (by norm_num)]\n\n' + fwP)
+          'theorem vt_word4 : word 4 0 = gen ^ 2 := by\n  rw [show (4 : ℕ) = 2 ^ 2 by norm_num, word_two_pow (by norm_num)]\n\n' + fwP)
     # ---- PullTotal ----
     fwQ_leaves = {14, 1155, 1160, 1174, 1162, 1166, 1168, 1170, 1176, 1180, 1297, 1540}
     constsQ = [def_pos(v, 'const') for v in (1156, 1157, 1158, 1161, 1175)]
@@ -279,7 +279,7 @@ def gen_rest():
         '        W 3 * σ (.n 1168) + W 4 * σ (.n 1170))) +\n'
         '      σ (.n 1174) * (σ (.n 14) + (W 0 * gen ^ 2 + W 1 * σ (.n 1176) + W 2 * σ (.n 1180))) +\n'
         '      σ (.n 1297) * σ (.n 1540)'), fw1, fwQ_leaves, extra=constsQ,
-        extra_rw='  simp only [tb_word_one, tb_word_gen, vt_word4]\n')
+        extra_rw='  simp only [word_one, word_gen, vt_word4]\n')
     # the pull side's running selector sum, over the push side's copies
     D2 = defs(def_pos(sel1, 'copy') - 160, def_pos(sel1, 'copy'))
     copies = [835, 852, 880] + [c for _, _, c, _ in push_data]
@@ -294,7 +294,7 @@ theorem vt_pull_total {{rd : Reader}} {{σ : Val}} (h : VtH rd σ) :
     σ (.n {pull_total}) = σ (.n {fw1}) + σ (.n {pad0}) + (1 + σ (.n {sel1})) + σ (.n {leaf1}) := by
 ''' + '\n'.join(f'  have a{p} := h.atomAt {p} {atom_text(p)} (by decide +kernel)' for p in sorted(tot)) +
         '\n  simp only [Atom.Holds] at ' + ' '.join(f'a{p}' for p in sorted(tot)) +
-        '\n  rw [' + ', '.join(f'a{p}' for p in sorted(tot, reverse=True)) + ', tb_word_one]\n')
+        '\n  rw [' + ', '.join(f'a{p}' for p in sorted(tot, reverse=True)) + ', word_one]\n')
     write('PullTotal', "`verify_tables`' pull side total: its framework blocks' fingerprints (with the final memory and\n  bytecode counts), the push side's padding sum, the selector sum and the GKR pull value.",
           'LeanVM.Guest.B1.Tables.Vt.PushFw',
           "# The pull side's total\n\nThe pull side's blocks mirror the push side's: their eq weights are the push blocks' copies, and\ntheir padding sum is the push side's. `vt_pull_total`: `bus_table_total[PULL]`. " + FW_NOTE,
@@ -317,7 +317,7 @@ theorem vt_count_total {{rd : Reader}} {{σ : Val}} (h : VtH rd σ) :
     σ (.n {count_total}) = σ (.n {pad2}) + (1 + σ (.n {sel2})) + σ (.n {leaf2}) := by
 ''' + '\n'.join(f'  have a{p} := h.atomAt {p} {atom_text(p)} (by decide +kernel)' for p in sorted(tot)) +
         '\n  simp only [Atom.Holds] at ' + ' '.join(f'a{p}' for p in sorted(tot)) +
-        '\n  rw [' + ', '.join(f'a{p}' for p in sorted(tot, reverse=True)) + ', tb_word_one]\n')
+        '\n  rw [' + ', '.join(f'a{p}' for p in sorted(tot, reverse=True)) + ', word_one]\n')
     body.append(f'''/-- The count side's selector sum is the running sum's copy. -/
 theorem vt_count_sel {{rd : Reader}} {{σ : Val}} (h : VtH rd σ) : σ (.n {sel2}) = σ (.n {SEL2_SRC}) := by
   have a := h.atomAt {SEL2_POS} {atom_text(SEL2_POS)} (by decide +kernel)

@@ -186,21 +186,21 @@ theorem a0_le (c : ℕ) : S.RX + S.RS ≤ S.a c := S.a_mono (Nat.zero_le c)
 
 /-- A raw writer's mark is its index. -/
 theorem wmark_raw {m : ℕ} (h : m < S.RX + S.RS) : S.wmark m = m := by
-  unfold wmark; rw [ite_pos' h]
+  unfold wmark; rw [ite_eq_left h]
 
 /-- A child's leanXMSS writer's mark. -/
 theorem wmark_x {c m : ℕ} (hc : c < S.NC) (h1 : S.a c ≤ m) (h2 : m < S.a c + S.ex c) :
     S.wmark m = if S.mx c then S.a c else m := by
   have h0 := S.a0_le c
   have hk := S.kid_eq hc h1 (by rw [S.a_succ]; omega)
-  unfold wmark; rw [ite_neg' (by omega), hk, ite_pos' (by omega)]
+  unfold wmark; rw [ite_eq_right (by omega), hk, ite_eq_left (by omega)]
 
 /-- A child's leanSPHINCS writer's mark. -/
 theorem wmark_s {c m : ℕ} (hc : c < S.NC) (h1 : S.a c + S.ex c ≤ m) (h2 : m < S.a (c + 1)) :
     S.wmark m = if S.ms c then S.a c + S.ex c else m := by
   have h0 := S.a0_le c
   have hk := S.kid_eq hc (by omega) h2
-  unfold wmark; rw [ite_neg' (by omega), hk, ite_neg' (by omega)]
+  unfold wmark; rw [ite_eq_right (by omega), hk, ite_eq_right (by omega)]
 
 /-- **A writer's mark lies in its own list's range**: at most its index, and at least the
 list's first index (a raw writer's list is itself). -/
@@ -302,7 +302,7 @@ theorem inj (W : Writers rd cover S LXS LSS sl) :
   have e1 := W.wr m₁ h₁
   rw [h] at e1
   have hmk : S.wmark m₁ = S.wmark m₂ :=
-    gen_pow_inj34 (by have := W.wmark_lt h₁; omega) (by have := W.wmark_lt h₂; omega)
+    gen_pow_inj (by have := W.wmark_lt h₁; omega) (by have := W.wmark_lt h₂; omega)
       (loadHolds_unique e1 (W.wr m₂ h₂))
   rcases Nat.lt_trichotomy m₁ m₂ with hlt | heq | hlt
   · have := W.mono m₁ m₂ hlt h₂ hmk; omega
@@ -326,7 +326,7 @@ theorem uniq_raw (W : Writers rd cover S LXS LSS sl) {s m : ℕ} (hs : s < LXS +
   have ha := S.a0_le S.NC
   obtain ⟨m', hm', rfl⟩ := W.onto s hs
   have hmk : S.wmark m' = m :=
-    gen_pow_inj34 (by have := W.wmark_lt hm'; omega) (by omega)
+    gen_pow_inj (by have := W.wmark_lt hm'; omega) (by omega)
       (loadHolds_unique (W.wr m' hm') hl)
   obtain ⟨-, hraw, hkid⟩ := S.wmark_range (by rw [hT]; exact hm')
   by_cases hr : m' < S.RX + S.RS

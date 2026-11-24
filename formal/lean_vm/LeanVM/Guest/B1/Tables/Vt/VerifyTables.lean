@@ -57,7 +57,7 @@ theorem verify_tables_holds (bc : List K) (hbc : bc.length = 2 ^ 23) :
   obtain ⟨tf, htf⟩ := tb_exists_fun_of_forall (α := ℕ × ℕ) (n := 6)
     (P := fun t p ↦ ∃ zs : List E, p.1 < 31 ∧ LoadHolds Lm.read (σ (.n (val% «verify_tables» "dims_g"))) (t + 1) (gen ^ p.1) ∧
       LoadHolds Lm.read (σ (.n (val% «verify_tables» "table_rows"))) t (eOfNat p.2) ∧ p.2 ≤ 2 ^ p.1 ∧ zs.length = p.1 ∧
-      TbReadsAt Lm.read (σ (.n (val% «verify_tables» "zeta"))) zs ∧ σ (.n (vtPadV t)) = paddingWeight zs p.2 ∧
+      ReadsAt Lm.read (σ (.n (val% «verify_tables» "zeta"))) zs ∧ σ (.n (vtPadV t)) = paddingWeight zs p.2 ∧
       p.1 = max (log2Ceil p.2) (tableLogFloors.getD t 0))
     (fun t ht ↦ by
       obtain ⟨τ, n, zs, h1, h2, h3, h4, h5, h6, h7, h8⟩ := hpads t ht
@@ -81,7 +81,7 @@ theorem verify_tables_holds (bc : List K) (hbc : bc.length = 2 ^ 23) :
     apply List.ext_getElem (by simp [hdsl, vtTauList])
     intro i h1 h2
     have hi : i < 6 := by omega
-    have := tb_loadHolds_unique (hdims (i + 1) (by simp; omega)) (hdim i hi)
+    have := loadHolds_unique (hdims (i + 1) (by simp; omega)) (hdim i hi)
     simp only [List.getElem_cons_succ] at this
     rw [this]
     simp [vtTauList]
@@ -92,7 +92,7 @@ theorem verify_tables_holds (bc : List K) (hbc : bc.length = 2 ^ 23) :
     rcases i with _ | i
     · simpa using k0
     · rw [show 26 + (i + 1) = 27 + i by omega,
-        tb_loadHolds_unique (kl i (by omega)) (hdims i (by simp [vtTauList]; omega))]
+        loadHolds_unique (kl i (by omega)) (hdims i (by simp [vtTauList]; omega))]
       rcases i with _ | i
       · simp
       · have hi6 : i < 6 := by omega
@@ -111,14 +111,14 @@ theorem verify_tables_holds (bc : List K) (hbc : bc.length = 2 ^ 23) :
       paddingWeight (point.take (vtHt rows t)) (vtRw rows t) := fun t ht ↦ by
     obtain ⟨zs, -, -, -, -, hzl, hzr, hpwz, -⟩ := htf t ht
     have hle : (tf t).1 ≤ point.length := by have := hτn t ht; rw [hHt t ht] at this; omega
-    rw [hpwz, hHt t ht, hRw t ht, tbReadsAt_unique hzr (tbReadsAt_take hz (tf t).1) (by simp; omega)]
+    rw [hpwz, hHt t ht, hRw t ht, readsAt_unique hzr (readsAt_take hz (tf t).1) (by simp; omega)]
   -- the GKR leaves
   have hv3 : values = [σ (.n (val% «verify_tables» "s53.u0.s5#0")), σ (.n (val% «verify_tables» "s53.u1.s5#0")), σ (.n (val% «verify_tables» "s53.u2.s5#0"))] := by
     have l0 := h.atomAt 2183 (.load (.n (val% «verify_tables» "s53.u0.s5#0")) (.n (val% «verify_tables» "gkr_leaves")) 0) (by decide +kernel)
     have l1 := h.atomAt 2229 (.load (.n (val% «verify_tables» "s53.u1.s5#0")) (.n (val% «verify_tables» "gkr_leaves")) 1) (by decide +kernel)
     have l2 := h.atomAt 2284 (.load (.n (val% «verify_tables» "s53.u2.s5#0")) (.n (val% «verify_tables» "gkr_leaves")) 2) (by decide +kernel)
     simp only [Atom.Holds] at l0 l1 l2
-    refine tbReadsAt_unique hvals (fun k hk ↦ ?_) (by simp [hvl, nTrees])
+    refine readsAt_unique hvals (fun k hk ↦ ?_) (by simp [hvl, nTrees])
     simp only [List.length_cons, List.length_nil] at hk
     interval_cases k
     · exact l0
@@ -226,7 +226,7 @@ theorem verify_tables_holds (bc : List K) (hbc : bc.length = 2 ^ 23) :
     obtain ⟨t, ht, rfl⟩ := List.mem_map.mp hx
     exact hτ31 t (List.mem_range.mp ht)
   case xsRead =>
-    refine vt_readsAt_append (vt_readsAt_append hfr ?_) (vt_readsAt_append ?_ ?_)
+    refine readsAt_append.mpr ⟨readsAt_append.mpr ⟨hfr, ?_⟩, readsAt_append.mpr ⟨?_, ?_⟩⟩
     · rw [show (vtFreshWords σ).length = 7 from rfl]; exact hys
     · rw [show (vtFreshWords σ ++ (ys ++ [σ (.n (val% «verify_tables» "x@8"))])).length = 14 by simp [hysl, vtFreshWords],
         show (14 : ℕ) = 13 + 1 from rfl, pow_add, ← mul_assoc,

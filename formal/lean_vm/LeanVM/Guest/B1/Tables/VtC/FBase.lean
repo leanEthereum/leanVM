@@ -34,7 +34,7 @@ abbrev vtFHi : ℕ := 5208
 
 /-- **Every block read inside the window holds.** -/
 def VtF (rd : Reader) (σ : Val) : Prop :=
-  ∀ (n : ℕ) (blk : List Stmt), tbStmtsEqb blk ((vtPre.drop n).take blk.length) = true →
+  ∀ (n : ℕ) (blk : List Stmt), stmtsEqb blk ((vtPre.drop n).take blk.length) = true →
     vtFLo ≤ n → n + blk.length ≤ vtFHi →
       ∃ kret : List E → Prop, Stmt.HoldsList (coreProgram.Rel rd) rd σ blk True kret
 
@@ -42,27 +42,27 @@ section
 variable {rd : Reader} {σ : Val}
 
 theorem VtF.slice (h : VtF rd σ) (n : ℕ) (blk : List Stmt)
-    (heq : tbStmtsEqb blk ((vtPre.drop n).take blk.length) = true)
+    (heq : stmtsEqb blk ((vtPre.drop n).take blk.length) = true)
     (hr : vtFLo ≤ n ∧ n + blk.length ≤ vtFHi := by decide) :
     ∃ kret : List E → Prop, Stmt.HoldsList (coreProgram.Rel rd) rd σ blk True kret :=
   h n blk heq hr.1 hr.2
 
 theorem VtF.atom (h : VtF rd σ) (n : ℕ) (a : Atom)
-    (heq : tbStmtsEqb [.atom a] ((vtPre.drop n).take 1) = true)
+    (heq : stmtsEqb [.atom a] ((vtPre.drop n).take 1) = true)
     (hr : vtFLo ≤ n ∧ n + 1 ≤ vtFHi := by decide) : a.Holds rd σ := by
   obtain ⟨_, hs⟩ := h.slice n [.atom a] heq hr
   exact hs.1
 
 /-- `VtF.slice` at `vtAt`, what a kernel check evaluates fast. -/
 theorem VtF.sliceAt (h : VtF rd σ) (n : ℕ) (blk : List Stmt)
-    (heq : tbStmtsEqb blk ((vtAt n).take blk.length) = true)
+    (heq : stmtsEqb blk ((vtAt n).take blk.length) = true)
     (hr : vtFLo ≤ n ∧ n + blk.length ≤ vtFHi := by decide) :
     ∃ kret : List E → Prop, Stmt.HoldsList (coreProgram.Rel rd) rd σ blk True kret :=
   h.slice n blk (vtPre_drop n ▸ heq) hr
 
 /-- `VtF.atom` at `vtAt`, what a kernel check evaluates fast. -/
 theorem VtF.atomAt (h : VtF rd σ) (n : ℕ) (a : Atom)
-    (heq : tbStmtsEqb [.atom a] ((vtAt n).take 1) = true)
+    (heq : stmtsEqb [.atom a] ((vtAt n).take 1) = true)
     (hr : vtFLo ≤ n ∧ n + 1 ≤ vtFHi := by decide) : a.Holds rd σ :=
   h.atom n a (vtPre_drop n ▸ heq) hr
 
@@ -79,7 +79,7 @@ theorem vtF_of_vsh
     (hA : ∀ s ∈ (vtPre.drop vtFLo).take (vtFHi - vtFLo), VSH (coreProgram.Rel rd) rd σ s) :
     VtF rd σ := by
   intro n blk heq h1 h2
-  have e := tbStmtsEqb_sound heq
+  have e := stmtsEqb_sound heq
   have hm : ∀ s ∈ blk, s ∈ (vtPre.drop vtFLo).take (vtFHi - vtFLo) := fun s hs ↦
     mem_take_drop_mono h1 (by omega) (e ▸ hs)
   have hok : blk.all iteOk = true := by

@@ -153,16 +153,16 @@ theorem limbBit_eq (c0 c1 c2 : ℕ) (h0 : c0 < 2 ^ 64) (h1 : c1 < 2 ^ 64) {i : �
   have hr : i % 64 < 64 := Nat.mod_lt _ (by decide)
   have hsplit : i = 64 * (i / 64) + i % 64 := (Nat.div_add_mod i 64).symm
   rcases (show i / 64 = 0 ∨ i / 64 = 1 ∨ i / 64 = 2 by omega) with hq | hq | hq
-  · rw [ite_pos' hq]
+  · rw [ite_eq_left hq]
     conv_rhs => rw [hsplit, hq, Nat.mul_zero, Nat.zero_add]
     rw [show c0 + 2 ^ 64 * c1 + 2 ^ 128 * c2 = c0 + 2 ^ 64 * (c1 + 2 ^ 64 * c2) by ring,
       div_two_pow_mod_two_limb _ _ _ h0 hr]
-  · rw [ite_neg' (by omega), ite_pos' hq]
+  · rw [ite_eq_right (by omega), ite_eq_left hq]
     conv_rhs => rw [hsplit, hq, Nat.mul_one, Nat.pow_add, ← Nat.div_div_eq_div_mul]
     rw [show c0 + 2 ^ 64 * c1 + 2 ^ 128 * c2 = c0 + 2 ^ 64 * (c1 + 2 ^ 64 * c2) by ring,
       Nat.add_mul_div_left _ _ (by positivity), Nat.div_eq_of_lt h0, Nat.zero_add,
       div_two_pow_mod_two_limb _ _ _ h1 hr]
-  · rw [ite_neg' (by omega), ite_neg' (by omega)]
+  · rw [ite_eq_right (by omega), ite_eq_right (by omega)]
     conv_rhs => rw [hsplit, hq, Nat.pow_add, ← Nat.div_div_eq_div_mul]
     rw [show c0 + 2 ^ 64 * c1 + 2 ^ 128 * c2 = (c0 + 2 ^ 64 * c1) + 2 ^ 128 * c2 by ring,
       Nat.add_mul_div_left _ _ (by positivity),

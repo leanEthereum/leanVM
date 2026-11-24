@@ -286,7 +286,7 @@ theorem runW_eq {ws : List E} {b k d S j : ℕ} {u : E} (hu : u = slotW ws b * o
     u * ofK (g ^ k) * ofK (g ^ (S * j + d)) =
       (⟨[(b, 1)], k + d⟩ : CCell).valW (slotW ws) * ofK (addressOfIndex (S * j)) := by
   rw [hu]
-  simp only [CCell.valW, prodW, addressOfIndex, pow_zero, ofK_oneL, mul_one, pow_one, pow_add, ofK_mul']
+  simp only [CCell.valW, prodW, addressOfIndex, pow_zero, ofK_oneL, mul_one, pow_one, pow_add, ofK_mul]
   ring
 
 /-- **A mode run over a caller's cell written is its heap run's cells written**, the links in memory. -/

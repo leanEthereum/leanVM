@@ -198,8 +198,8 @@ theorem readsAt_digests {rd : Reader} {p : E} {L : List Digest}
     (h : ReadsAt rd p (L.flatMap B1.Digest.digestCells)) {k : ℕ} (hk : k < L.length) :
     ReadsAt rd (p * gen ^ (2 * k)) (B1.Digest.digestCells (L.getD k 0)) := by
   have hL : L = L.take k ++ L[k] :: L.drop (k + 1) := by simp
-  rw [hL, List.flatMap_append, List.flatMap_cons, B1.Digest.readsAt_append,
-    B1.Digest.readsAt_append] at h
+  rw [hL, List.flatMap_append, List.flatMap_cons, B1.readsAt_append,
+    B1.readsAt_append] at h
   have hlen : ((L.take k).flatMap B1.Digest.digestCells).length = 2 * k := by
     rw [length_flatMap_const _ _ 2 fun c _ => by simp [B1.Digest.digestCells]]
     simp; omega

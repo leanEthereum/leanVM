@@ -25,10 +25,6 @@ open LeanVM.Parameters LeanVM.Guest.Core
 /-- A path level's sibling: the hinted child at `b`, `b + 1` the node is not (`mSib`). -/
 def sibN (σ : Val) (bit b : ℕ) : E := if σ (.n bit) = 1 then σ (.n b) else σ (.n (b + 1))
 
-theorem getD_map_range {α : Type} {f : ℕ → α} {n l : ℕ} {d : α} (hl : l < n) :
-    ((List.range n).map f).getD l d = f l := by
-  simp [List.getD_eq_getElem?_getD, hl]
-
 /-- A table of rows, each row an array. -/
 def tabA (t : List (List ℕ)) : Array (Array ℕ) := (t.map List.toArray).toArray
 

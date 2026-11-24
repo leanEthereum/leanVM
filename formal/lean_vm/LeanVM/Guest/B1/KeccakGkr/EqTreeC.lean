@@ -115,7 +115,7 @@ theorem eqtree_complete {p o : V} {po b n : ℕ} (hn : 1 ≤ n)
       have u0 : σ (.n (Sb + 3 + 3 * i)) = (eqKernel (rs.take (t' + 1))).getD i 0 :=
         load_val w0 (rdi i hi) (hout _ (by omega) (by omega) i hi)
       simp only [Good, V.n] at w1 w2
-      rw [ite_pos' ⟨by omega, by omega⟩] at w1 w2
+      rw [ite_eq_left ⟨by omega, by omega⟩] at w1 w2
       rw [eqtreeLvlVal_word rs (t' + 1) i j hj, show Sb + (3 + 3 * i + j) = Sb + 3 + 3 * i + j by ring]
       interval_cases j
       · simpa using u0
