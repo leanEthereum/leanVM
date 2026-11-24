@@ -119,8 +119,8 @@ theorem diff_imp_bad_or_EC (sel : (t : (dSpec Msg Dg (SpState Dg E C)).Domain) �
     {z} (hz : z ∈ support ((simulateQ (foldRO (fun t ↦ sel t <$> combStep P iv t)) oa).run
       ((CState.init iv : CState Dg E C Msg), ∅))) :
     z.2.1.diff = true → z.2.1.bad = true ∨ EC P iv z.2.1.vis z.2.2 := by
-  have hI := inv_of_mem_support_run (spec' := unifSpec) _ (fun s ↦ Inv P iv s.1 s.2)
-    (fun t s hs z hz ↦ inv_fold_step P iv sel t s hs hz) oa (inv_init P iv) z hz
+  have hI := simulateQ_run_preserves_inv_of_query (spec' := unifSpec) _ (fun s ↦ Inv P iv s.1 s.2)
+    (fun t s hs z hz ↦ inv_fold_step P iv sel t s hs hz) oa _ (inv_init P iv) z hz
   intro hdiff
   by_contra h
   push Not at h

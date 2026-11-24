@@ -111,16 +111,6 @@ theorem mapM_cost {α β : Type} (f : α → OracleComp spec β) (b : ℕ) (h : 
     rw [List.mapM_cons, List.length_cons, Nat.succ_mul, Nat.add_comm]
     exact (h x).bind fun _ ↦ ((mapM_cost f b h l).bind fun _ ↦ isWeightBound_pure _ w 0).mono le_rfl
 
-/-- `mapM` returns one result per element. -/
-theorem length_of_mem_support_mapM {α β : Type} (f : α → OracleComp spec β) :
-    ∀ (l : List α), ∀ ys ∈ support (l.mapM f), ys.length = l.length
-  | [], ys, h => by simp_all
-  | x :: l, ys, h => by
-    rw [List.mapM_cons] at h
-    simp only [mem_support_bind_iff, support_pure, Set.mem_singleton_iff] at h
-    obtain ⟨_, _, zs, hzs, rfl⟩ := h
-    simp [length_of_mem_support_mapM f l zs hzs]
-
 end Combinators
 
 section Hash

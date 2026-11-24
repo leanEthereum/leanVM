@@ -262,7 +262,7 @@ theorem ofK_novelAt_eq_affProd {κ : ℕ} (hκ : κ ≤ 64) (i : ℕ) (hi : i < 
   refine prod_congr rfl fun k _ ↦ ?_
   rw [testBit_bitsToNat]
   split
-  · rw [← add_assoc, one_add_one_E, zero_add]; rfl
+  · rw [← add_assoc, CharTwo.add_self_eq_zero (1 : E), zero_add]; rfl
   · exact map_one _
 
 /-- The induced weight at a cube point. -/

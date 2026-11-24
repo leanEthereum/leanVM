@@ -20,10 +20,9 @@ Annex B of the leanVM specification (leanVM `127510d1`,
 corollary `thm:johnson-interleaved`: if distinct codewords agree on at most `r n` of `n`
 coordinates, at most `1 / (2 η √r)` codewords agree with a word on `(√r + η) n` coordinates.
 
-* `johnson_count` (`LeanVM.Protocol.ToArkLib.Whir.JohnsonCount`): the double count behind the
-  bound, for a set system. If `L` sets of size `a` in an `n`-set meet pairwise in at most `r`
-  points, then `(|L| a)² ≤ n (|L| a + |L| (|L| - 1) r)`; Cauchy-Schwarz on the incidence counts.
-* `card_mul_johnson_le_of_nonempty`: the real form,
+* `card_mul_johnson_le_of_nonempty`: the real form, from ArkLib's Cauchy-Schwarz incidence count
+  `Finset.card_mul_sq_sub_card_mul_le_of_inter_card_le` (`|L| (a² - n r) ≤ n (a - r)` for `L` sets
+  of at least `a` points of an `n`-set meeting pairwise in at most `r` points):
   `|L| (2 η √r + η²) ≤ 1 - r` when the sets have at least `(√r + η) n` elements and meet in at
   most `r n`; `card_le_johnson` its corollary `|L| ≤ 1 / (2 η √r)` for `r > 0`.
 * `card_iList_le_johnson`: the bound for the list `iList C A O` of
@@ -54,7 +53,7 @@ open Finset ReedSolomon.HiddenDerivative
 
 section SetSystem
 
-variable {ι β : Type*} [Fintype ι] [DecidableEq ι] [DecidableEq β]
+variable {ι β : Type*} [Fintype ι] [DecidableEq ι]
 
 /-- **Johnson bound, real form, nonempty family.** If each of the sets in a nonempty family
 `L` has at least `(√r + η) n` points and two distinct ones meet in at most `r n` points, then
@@ -69,8 +68,9 @@ theorem card_mul_johnson_le_of_nonempty (L : Finset β) (T : β → Finset ι) {
   set m := ⌊r * n⌋₊ with hmDef
   have hnR : (0 : ℝ) < n := by exact_mod_cast hn
   have hrn : 0 ≤ r * n := mul_nonneg hr0 hnR.le
-  have hcount := johnson_count_of_le L T a m (fun b hb ↦ Nat.ceil_le.mpr (ha b hb))
-    fun b hb b' hb' hne ↦ Nat.le_floor (hr b hb b' hb' hne)
+  have hcount : L.card * (a * a - n * m) ≤ n * (a - m) :=
+    Finset.card_mul_sq_sub_card_mul_le_of_inter_card_le L T a m
+      (fun b hb ↦ Nat.ceil_le.mpr (ha b hb)) fun b hb b' hb' hne ↦ Nat.le_floor (hr b hb b' hb' hne)
   obtain ⟨b₀, hb₀⟩ := hL
   have haN : a ≤ n := (Nat.ceil_le.mpr (ha b₀ hb₀)).trans (Finset.card_le_univ _)
   have hL1 : 1 ≤ L.card := Finset.card_pos.mpr ⟨b₀, hb₀⟩
@@ -79,28 +79,32 @@ theorem card_mul_johnson_le_of_nonempty (L : Finset β) (T : β → Finset ι) {
   have haR : (√r + η) * n ≤ (a : ℝ) := Nat.le_ceil _
   have haNR : (a : ℝ) ≤ n := by exact_mod_cast haN
   have hmR : (m : ℝ) ≤ r * n := Nat.floor_le hrn
-  have hcountR : ((L.card : ℝ) * a) ^ 2 ≤
-      n * (L.card * a + L.card * (L.card - 1) * m) := by
-    have := (Nat.cast_le (α := ℝ)).mpr hcount
-    push_cast [Nat.cast_sub hL1] at this
-    linarith
   have hsq : √r * √r = r := Real.mul_self_sqrt hr0
   have hsqnn : 0 ≤ √r := Real.sqrt_nonneg r
   have ha0 : 0 ≤ (√r + η) * n := by positivity
-  -- Divide the count by `|L|`: `|L| a² ≤ n a + (|L| - 1) n m`.
+  have hasq : ((√r + η) * n) ^ 2 ≤ (a : ℝ) ^ 2 := pow_le_pow_left₀ ha0 haR 2
+  have e : ((√r + η) * n) ^ 2 = (r + (2 * η * √r + η ^ 2)) * n ^ 2 := by
+    rw [show ((√r + η) * n) ^ 2 = (√r ^ 2 + (2 * η * √r + η ^ 2)) * n ^ 2 by ring,
+      Real.sq_sqrt hr0]
+  -- The truncated subtractions of the count are exact: `m ≤ r n ≤ √r n ≤ a` and `n m ≤ a²`.
+  have hs1 : √r ≤ 1 := by nlinarith
+  have hma : m ≤ a := by
+    have : r ≤ √r := by nlinarith
+    exact_mod_cast (show (m : ℝ) ≤ a by
+      linarith [mul_le_mul_of_nonneg_right this hnR.le, mul_nonneg hη hnR.le])
+  have hnma : n * m ≤ a * a := by
+    have : (0 : ℝ) ≤ (2 * η * √r + η ^ 2) * n ^ 2 := by positivity
+    exact_mod_cast (show (n : ℝ) * m ≤ a * a by nlinarith [mul_le_mul_of_nonneg_left hmR hnR.le])
+  -- The count over the reals: `|L| a² ≤ n a + (|L| - 1) n m`.
   have hdiv : (L.card : ℝ) * a ^ 2 ≤ n * a + (L.card - 1) * n * (r * n) := by
-    have h₁ : (L.card : ℝ) * (L.card * a ^ 2) ≤ L.card * (n * a + (L.card - 1) * n * m) := by
-      nlinarith
-    have h₂ : (L.card : ℝ) * a ^ 2 ≤ n * a + (L.card - 1) * n * m :=
-      le_of_mul_le_mul_left h₁ (by linarith)
+    have h₂ : (L.card : ℝ) * (a * a - n * m) ≤ n * (a - m) := by
+      have := (Nat.cast_le (α := ℝ)).mpr hcount
+      push_cast [Nat.cast_sub hnma, Nat.cast_sub hma] at this
+      exact this
     have h₃ : ((L.card : ℝ) - 1) * n * m ≤ (L.card - 1) * n * (r * n) :=
       mul_le_mul_of_nonneg_left hmR (mul_nonneg (by linarith) hnR.le)
     linarith
-  have hasq : ((√r + η) * n) ^ 2 ≤ (a : ℝ) ^ 2 := pow_le_pow_left₀ ha0 haR 2
   have hkey : (L.card : ℝ) * ((2 * η * √r + η ^ 2) * n ^ 2) ≤ (1 - r) * n ^ 2 := by
-    have e : ((√r + η) * n) ^ 2 = (r + (2 * η * √r + η ^ 2)) * n ^ 2 := by
-      rw [show ((√r + η) * n) ^ 2 = (√r ^ 2 + (2 * η * √r + η ^ 2)) * n ^ 2 by ring,
-        Real.sq_sqrt hr0]
     have hLa : (L.card : ℝ) * ((r + (2 * η * √r + η ^ 2)) * n ^ 2) ≤ L.card * a ^ 2 := by
       rw [← e]; exact mul_le_mul_of_nonneg_left hasq (by linarith)
     nlinarith

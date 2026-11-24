@@ -72,7 +72,7 @@ theorem mixed_adaptive_truncated_output_fresh_relevant_hit_from_cache_le_expecte
               ∑' sampled, Pr{let x ← (unifSpec.query uniformIndex : ProbComp _)}[x = sampled] *
                 expectedSimulatedQueryCount romImpl (IsRelevantHashQuery relevant)
                   (next sampled) cache := by
-          rw [expectedSimulatedQueryCount_query_bind]
+          rw [expectedSimulatedQueryCount_query_bind_tsum]
           simp only [IsRelevantHashQuery, ↓reduceIte, zero_add]
           change (∑' result, Pr{let x ← ((fun sampled => (sampled, cache)) <$>
                 (unifSpec.query uniformIndex : ProbComp _))}[x = result] *
@@ -108,7 +108,7 @@ theorem mixed_adaptive_truncated_output_fresh_relevant_hit_from_cache_le_expecte
                 (if relevant hashInput then 1 else 0) +
                   expectedSimulatedQueryCount romImpl
                     (IsRelevantHashQuery relevant) (next output) cache := by
-            rw [expectedSimulatedQueryCount_query_bind]
+            rw [expectedSimulatedQueryCount_query_bind_tsum]
             simp only [IsRelevantHashQuery]
             have hhandler :
                 (romImpl (.inr hashInput)).run cache =
@@ -150,7 +150,7 @@ theorem mixed_adaptive_truncated_output_fresh_relevant_hit_from_cache_le_expecte
                     expectedSimulatedQueryCount romImpl
                       (IsRelevantHashQuery relevant) (next output)
                         (cache.cacheQuery hashInput output) := by
-            rw [expectedSimulatedQueryCount_query_bind]
+            rw [expectedSimulatedQueryCount_query_bind_tsum]
             simp only [IsRelevantHashQuery]
             have hhandler : (romImpl (.inr hashInput)).run cache =
                 (fun output : HashOutput =>

@@ -180,35 +180,6 @@ theorem toAlpha_ofFn (v : Fin 16 → E) : toAlpha (List.ofFn v) = v := by
   funext i
   fin_cases i <;> rfl
 
-open Classical in
-/-- **The union bound over candidates**, for any finite type of challenges. -/
-theorem card_exists_le_of {α β : Type} [Fintype α] {C : Set β} (hfin : C.Finite) {L₀ : ℕ}
-    (hcard : C.ncard ≤ L₀) (P : β → α → Prop) {e : ℝ≥0∞}
-    (h : ∀ q ∈ C, (Fintype.card α : ℝ≥0∞)⁻¹ *
-      ((Finset.univ.filter fun c ↦ P q c).card : ℝ≥0∞) ≤ e) :
-    (Fintype.card α : ℝ≥0∞)⁻¹ *
-        ((Finset.univ.filter fun c ↦ ∃ q ∈ C, P q c).card : ℝ≥0∞) ≤ L₀ * e := by
-  let s := hfin.toFinset
-  have hsub : (Finset.univ.filter fun c ↦ ∃ q ∈ C, P q c) ⊆
-      s.biUnion fun q ↦ Finset.univ.filter fun c ↦ P q c := by
-    intro c hc
-    simp only [Finset.mem_filter, Finset.mem_univ, true_and] at hc
-    obtain ⟨q, hq, hp⟩ := hc
-    exact Finset.mem_biUnion.mpr ⟨q, hfin.mem_toFinset.mpr hq, by simpa using hp⟩
-  calc (Fintype.card α : ℝ≥0∞)⁻¹ * ((Finset.univ.filter fun c ↦ ∃ q ∈ C, P q c).card : ℝ≥0∞)
-      ≤ (Fintype.card α : ℝ≥0∞)⁻¹ *
-          ∑ q ∈ s, ((Finset.univ.filter fun c ↦ P q c).card : ℝ≥0∞) := by
-        gcongr
-        exact_mod_cast (Finset.card_le_card hsub).trans Finset.card_biUnion_le
-    _ = ∑ q ∈ s, (Fintype.card α : ℝ≥0∞)⁻¹ *
-          ((Finset.univ.filter fun c ↦ P q c).card : ℝ≥0∞) := Finset.mul_sum _ _ _
-    _ ≤ ∑ _q ∈ s, e := Finset.sum_le_sum fun q hq ↦ h q (hfin.mem_toFinset.mp hq)
-    _ = s.card * e := by rw [Finset.sum_const, nsmul_eq_mul]
-    _ ≤ L₀ * e := by
-        gcongr
-        rw [← Set.ncard_eq_toFinset_card C hfin]
-        exact_mod_cast hcard
-
 /-! ## The fingerprint challenges -/
 
 section Challenges
@@ -277,7 +248,7 @@ noncomputable def abSpec (hI : Bus.Conditions I) {L₀ : ℕ} (hfin : ∀ W, (ca
             rw [← Finset.mul_sum, ← mul_assoc, ← ENNReal.mul_inv (by simp) (by simp), ← hcardT,
               ← Fintype.sum_prod_type', Finset.sum_boole]
         _ ≤ L₀ * (overE (2 ^ I.μBus) : ℝ≥0∞) :=
-            card_exists_le_of (hfin W) (hcard W)
+            card_exists_le (hfin W) (hcard W)
               (fun o ab ↦ (((input, ab), o), ()) ∈ Bus.afterChallenge I)
               fun o ho ↦ ab_card_le I input hI o (hR o ho)
 

@@ -502,7 +502,7 @@ theorem leanDa_membershipSound_rpm : LeanDaMembershipSound := by
       (tailH r (acceptAll r) (proofMatrix r) crs)) ≤
       ((2 * Q + 2 ^ 20 : ℕ) : ℝ≥0∞) * (65 * ((2 * Q + 2 ^ 20 : ℕ) : ℝ≥0∞) / 2 ^ 256) +
         ((Q : ℝ≥0∞) * ((2 ^ 13 - 1) / 2 ^ 138) + (2 ^ 13 - 1) / 2 ^ 128) :=
-    prEvent_bind_le_of_support _ _ _ _ fun crs hcrs ↦ by
+    prEvent_bind_le_of_forall_le_of_support _ _ _ fun crs hcrs ↦ by
       obtain ⟨ha, hg⟩ := isWeightBound_advSim r (acceptAll r) (memAdv r adversary) Q hQ2 crs hcrs
       exact prT_idealT_tailH_le r (acceptAll r) (proofMatrix r) (memAdv r adversary) Q hrM crs
         ha hg

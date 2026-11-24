@@ -116,25 +116,6 @@ theorem run'_simulateQ_evalDistEq_of_inv
     Prod.fst
   simpa [StateT.run'_eq, Functor.map_map, Function.comp_def] using h
 
-omit [AnswerMeasure spec'] in
-/-- Invariants preserved by every step hold on every reachable final state. -/
-theorem inv_of_mem_support_run
-    (impl : QueryImpl spec (StateT σ (OracleComp spec'))) (inv : σ → Prop)
-    (hinv : ∀ t s, inv s → ∀ z ∈ support ((impl t).run s), inv z.2)
-    (oa : OracleComp spec α) {s : σ} (hs : inv s) :
-    ∀ z ∈ support ((simulateQ impl oa).run s), inv z.2 := by
-  induction oa using OracleComp.inductionOn generalizing s with
-  | pure a =>
-    intro z hz
-    simp only [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hz
-    subst hz; exact hs
-  | query_bind t k ih =>
-    intro z hz
-    simp only [simulateQ_bind, simulateQ_query, OracleQuery.input_query,
-      OracleQuery.cont_query, id_map, StateT.run_bind, mem_support_bind_iff] at hz
-    obtain ⟨us, hus, hz⟩ := hz
-    exact ih us.1 (hinv t s hs us hus) z hz
-
 end Projection
 
 section Size

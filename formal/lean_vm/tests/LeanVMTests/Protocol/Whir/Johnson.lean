@@ -1,18 +1,19 @@
 /-
   LeanVMTests.Protocol.Whir.Johnson
 
-  The Johnson double count on a concrete set system, the interleaved Reed-Solomon bound on
+  The integer Johnson count on a concrete set system, the interleaved Reed-Solomon bound on
   four points of `ZMod 5`, and the failure of the bound without the pairwise agreement bound.
 -/
 
 import LeanVM.Protocol.ToArkLib.Whir.Johnson
+import LeanVM.Protocol.ToArkLib.Whir.JohnsonCount
 import Mathlib.Algebra.Field.ZMod
 
 /-!
 # Johnson bound controls
 
-* The three sets `{0,1}, {1,2}, {2,3}` of `Fin 4` meet pairwise in at most one point:
-  `(3·2)² = 36 ≤ 4 (3·2 + 3·2·1) = 48`.
+* The two disjoint pairs `{0,1}, {2,3}` of `Fin 4` attain the integer bound
+  `jl 4 2 0 = 4·2 / 4 = 2`.
 * On four points of `ZMod 5` with `D = 1` (lines) and `η = 1/4`, `ρ₋ = 1/4`, ArkLib's Johnson
   threshold is `⌈(1/2 + 1/4) 4⌉₊ = 3` and every list has at most `1 / (2 · 1/4 · 1/2) = 4`
   members.
@@ -26,15 +27,12 @@ open LeanVM.Protocol.Whir Finset ReedSolomon.HiddenDerivative
 
 private instance : Fact (Nat.Prime 5) := ⟨Nat.prime_five⟩
 
-private def chain : Fin 3 → Finset (Fin 4) := ![{0, 1}, {1, 2}, {2, 3}]
+private def pairs : Fin 2 → Finset (Fin 4) := ![{0, 1}, {2, 3}]
 
-example : ((univ : Finset (Fin 3)).card * 2) ^ 2 ≤ Fintype.card (Fin 4) *
-    ((univ : Finset (Fin 3)).card * 2 +
-      (univ : Finset (Fin 3)).card * ((univ : Finset (Fin 3)).card - 1) * 1) :=
-  johnson_count (univ : Finset (Fin 3)) chain 2 1 (by decide) (by decide)
+example : (univ : Finset (Fin 2)).card ≤ jl (Fintype.card (Fin 4)) 2 0 :=
+  card_le_jl (univ : Finset (Fin 2)) pairs 2 0 (by decide) (by decide) (by simp)
 
-#guard ((univ : Finset (Fin 3)).card * 2) ^ 2 = 36
-#guard Fintype.card (Fin 4) * (3 * 2 + 3 * 2 * 1) = 48
+#guard jl 4 2 0 = 2
 
 private theorem sqrt_quarter : √(1 / 4 : ℝ) = 1 / 2 := by
   rw [show (1 / 4 : ℝ) = (1 / 2) ^ 2 by norm_num]

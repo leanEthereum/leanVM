@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Protocol.Keccak.GkrTail
 public import LeanVM.Protocol.Keccak.Layers
+import LeanVM.Protocol.Compile.SpecRules.Grind
 
 /-!
 # `verifyKeccak` as a specification
@@ -72,7 +73,7 @@ def gkrProg (h : ℕ) (inst output : List E) : VerifierProgram (List ColumnClaim
 theorem verifyKeccak_eq (h : ℕ) (inst output : List E) :
     verifyKeccak h inst output = gkrProg h inst output := by
   unfold verifyKeccak
-  rw [grindingBits_le_eight (show keccakSegmentBits + keccakLaneBits ≤ 8 by decide)]
+  rw [grindingBits_eq_zero_of_le (show keccakSegmentBits + keccakLaneBits ≤ 8 by decide)]
   rfl
 
 /-! ## The committed outputs' check -/
