@@ -3,6 +3,7 @@ module
 public import LeanVM.Cost.Bounds.Guest.Signatures
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_sub»
+import LeanVM.ToMathlib.List
 
 /-!
 # Bounds on the guest decoder's prices: a child's proof
@@ -81,12 +82,12 @@ theorem callOK_getD (m : ℕ) :
 theorem whirTabs_ok : WhirTabsOK whirTabs := by
   refine ⟨gLanes_ok.2, fun m ↦ ?_, fun m ↦ ?_⟩
   · show osWordsTab.toArray.getD m 0 ≤ 206
-    rw [getD_toArray, List.getD_eq_getElem?_getD]
+    rw [List.getD_toArray, List.getD_eq_getElem?_getD]
     cases hk : osWordsTab[m]? with
     | none => simp
     | some x => exact osWordsTab_ok.2 x (List.mem_of_getElem? hk)
   · show (osCallsTab.toArray.getD m []).length ≤ 6 ∧ ∀ c ∈ osCallsTab.toArray.getD m [], CallOK c
-    rw [getD_toArray]
+    rw [List.getD_toArray]
     exact callOK_getD m
 
 /-- **`open_stacked`'s tables, built** (`whirTabsC`): at most `15454`. -/

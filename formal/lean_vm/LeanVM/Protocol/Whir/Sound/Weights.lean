@@ -16,6 +16,7 @@ import LeanVM.Protocol.Whir.SubspaceAt
 public import LeanVM.Protocol.Whir.Sound.Sumcheck
 public import ArkLib.Data.CodingTheory.HiddenDerivative.Parameters.Johnson.FiniteBounds
 public import Mathlib.Tactic
+import LeanVM.ToMathlib.List
 
 /-!
 # The verifier's weights
@@ -83,24 +84,12 @@ theorem isMultiaffine_prod (n : ℕ) (f : ℕ → E → E) (hf : ∀ i, IsAffine
   rw [hf k X]
   ring
 
-/-- `foldl (*)` from `a` is `a` times the product. -/
-theorem foldl_mul_eq (l : List E) (a : E) : l.foldl (· * ·) a = a * l.prod := by
-  induction l generalizing a with
-  | nil => simp
-  | cons b l ih => rw [List.foldl_cons, ih, List.prod_cons, mul_assoc]
-
-/-- `foldl (+)` from `a` is `a` plus the sum. -/
-theorem foldl_add_eq (l : List E) (a : E) : l.foldl (· + ·) a = a + l.sum := by
-  induction l generalizing a with
-  | nil => simp
-  | cons b l ih => rw [List.foldl_cons, ih, List.sum_cons, add_assoc]
-
 /-! ## The out-of-domain weight -/
 
 /-- `eq_eval(z, x)` is the product of its coordinate factors. -/
 theorem eqEval_eq_prod (z x : List E) (h : x.length = z.length) :
     eqEval z x = ∏ i : Fin z.length, (1 + z.getD i 0 + x.getD i 0) := by
-  rw [eqEval, foldl_mul_eq, one_mul]
+  rw [eqEval, List.foldl_mul_eq_mul_prod, one_mul]
   induction z generalizing x with
   | nil => simp
   | cons a z ih =>

@@ -12,6 +12,7 @@ module
 public import LeanVM.Protocol.EndToEnd.Complete.Sumcheck
 import LeanVM.Protocol.Verifier
 public import LeanVM.Protocol.Whir.Complete.Tables
+import LeanVM.ToMathlib.Finset
 
 /-!
 # Multilinear facts for the table sumcheck
@@ -200,7 +201,7 @@ theorem sum_prod_bits : ∀ m : ℕ,
     ∑ z ∈ range (2 ^ m), ∏ v ∈ range m, (boolPoint m z).getD v 0 = 1
   | 0 => by simp
   | m + 1 => by
-    rw [pow_succ, mul_comm, sum_range_two_mul]
+    rw [pow_succ, mul_comm, Finset.sum_range_two_mul]
     rw [← sum_prod_bits m]
     refine sum_congr rfl fun j _ ↦ ?_
     rw [boolPoint_two_mul, boolPoint_two_mul_add_one, prod_range_succ', prod_range_succ']
@@ -286,17 +287,6 @@ theorem prod_weightFactor_boolPoint (e : List E) {h n : ℕ} (hn : h ≤ n) (he 
       Nat.add_sub_cancel_left]
 
 /-! ## The number of rounds -/
-
-/-- `foldl max` bounds its start and every entry. -/
-theorem le_foldl_max : ∀ (l : List ℕ) (init : ℕ), init ≤ l.foldl max init ∧
-    ∀ a ∈ l, a ≤ l.foldl max init
-  | [], init => ⟨le_rfl, by simp⟩
-  | b :: l, init => by
-    obtain ⟨h1, h2⟩ := le_foldl_max l (max init b)
-    refine ⟨(le_max_left _ _).trans h1, fun a ha ↦ ?_⟩
-    rcases List.mem_cons.mp ha with rfl | ha
-    · exact (le_max_right _ _).trans h1
-    · exact h2 a ha
 
 end
 end LeanVM.Protocol.EndToEnd.Complete

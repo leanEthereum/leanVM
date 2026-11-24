@@ -46,8 +46,6 @@ theorem toNat_kBytes (a : K) (k : ℕ) (hk : k < 8) :
   rw [this, Nat.shiftRight_eq_div_pow]
   rfl
 
-theorem kToNat_lt (a : K) : kToNat a < 2 ^ 64 := a.toBitVec.isLt
-
 /-- The bytes of a cell are its 128-bit value's (`Sig.cellVal`). -/
 theorem bytes16_cellVal (a : E) : HashSig.littleEndianBytes 16 (Sig.cellVal a) = cellBytes a := by
   apply List.ext_getElem (by simp [HashSig.littleEndianBytes])

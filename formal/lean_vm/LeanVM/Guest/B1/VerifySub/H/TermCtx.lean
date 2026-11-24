@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.VerifySub.H.Claims
+import LeanVM.ToMathlib.List
 
 /-!
 # The terminal's context
@@ -70,7 +71,7 @@ theorem chiW_length (H : VtHonest) : H.chiW.length = H.n := by
 theorem vsEvTab_lt : ∀ k < 153, vsEvTab k < 6 := by decide +kernel
 
 theorem vtH_n_ex (hr : H.rows.length = 6) : ∃ t < 6, vtHt H.rows t = H.n := by
-  rcases foldl_max_mem (tableHeightsOf H.rows) 0 with h | h
+  rcases List.foldl_max_mem (tableHeightsOf H.rows) 0 with h | h
   · refine ⟨0, by norm_num, ?_⟩
     have := vt_n_ge hr (H := H) (t := 0) (by norm_num)
     have e : H.n = 0 := h
@@ -158,7 +159,7 @@ variable {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs bytecode
 
 /-- The table sumcheck has at most `28` rounds. -/
 theorem nT_le (hbl : bytecode.length = 2 ^ 23) : S.nT ≤ 30 := by
-  rcases Tables.foldl_max_mem S.hs 0 with h | h
+  rcases List.foldl_max_mem S.hs 0 with h | h
   · show S.hs.foldl max 0 ≤ 30
     omega
   · have := (S.hs_bounds hbl).1 _ h

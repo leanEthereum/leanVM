@@ -14,6 +14,7 @@ public import LeanVM.Protocol.Whir.NovelBasis
 public import ArkLib.OracleReduction.OracleInterface
 public import CompPoly.Multilinear.Basic
 public import VCVio.OracleComp.Constructions.SampleableType
+import LeanVM.ToMathlib.Array
 
 /-!
 # Multiplication by `X` in the novel basis
@@ -93,7 +94,7 @@ theorem foldl_xmul (n : ℕ) (hn : n ≤ 63) :
 /-- **The prover's `xmulConsts` are the `A_t`.** -/
 theorem xmulConsts_getD {t : ℕ} (ht : t < 64) : xmulConsts.getD t 0 = AK t := by
   rw [show xmulConsts = Array.ofFn (n := 63 + 1) fun t ↦ AK t from foldl_xmul 63 le_rfl,
-    Enc.getD_ofFn _ _ _ (by omega)]
+    Array.getD_ofFn _ (by omega)]
 
 /-! ## Trailing zeros -/
 

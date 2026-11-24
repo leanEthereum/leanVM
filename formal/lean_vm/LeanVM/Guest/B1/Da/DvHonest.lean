@@ -15,6 +15,7 @@ public import LeanVM.Guest.B1.Da.AtBase
 public import LeanVM.Guest.B1.Da.CellComplete
 public import LeanVM.Guest.B1.Da.LevelsComplete
 public import LeanVM.Guest.B1.Da.Help
+import LeanVM.ToMathlib.Finset
 
 /-!
 # `da_verify`'s honest words
@@ -108,9 +109,9 @@ theorem runSum_full {i : ℕ}
     (hdot : ∑ h ∈ Finset.range 128, ∑ e ∈ Finset.range 128,
       dualAt z (128 * h + e) * (syms i h).getD e 0 = 0) :
     runSum syms z i 128 = 0 := by
-  rw [runSum, list_sum_range]
+  rw [runSum, ← Finset.sum_range_eq_sum_map_range]
   refine (Finset.sum_congr rfl fun h hh => ?_).trans hdot
-  rw [cellDot, list_sum_range]
+  rw [cellDot, ← Finset.sum_range_eq_sum_map_range]
   refine Finset.sum_congr rfl fun e he => ?_
   have he' := Finset.mem_range.mp he
   simp [colWs, List.getD_eq_getElem?_getD, he']

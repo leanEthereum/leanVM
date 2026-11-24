@@ -11,6 +11,8 @@ module
 public import LeanVM.Protocol.EndToEnd.Complete.Sumcheck
 import LeanVM.Protocol.Verifier
 public import LeanVM.Protocol.Whir.Complete.Tables
+import LeanVM.ToMathlib.Finset
+import LeanVM.ToMathlib.List
 
 /-!
 # Completeness of the batched GKR
@@ -309,7 +311,7 @@ theorem stepClaim_split (C₀ C₁ C₂ : List E) (step : ℕ) (p : List E) (c :
   obtain ⟨m, hm⟩ : ∃ m, p.length - pre.length = m + 1 := ⟨p.length - pre.length - 1, by omega⟩
   have hm' : p.length - (pre.length + 1) = m := by omega
   simp only [RoundSplit, stepClaim, List.length_append, List.length_singleton, hm, hm']
-  rw [pow_succ', sum_range_two_mul, List.drop_eq_getElem_cons hk, mul_sum, mul_sum,
+  rw [pow_succ', Finset.sum_range_two_mul, List.drop_eq_getElem_cons hk, mul_sum, mul_sum,
     ← sum_add_distrib]
   refine sum_congr rfl fun j _ ↦ ?_
   rw [boolPoint_two_mul, boolPoint_two_mul_add_one, eqEval_cons, eqEval_cons,
@@ -393,7 +395,7 @@ theorem follows_sendList_readN' (xs : List E) {n : ℕ} (h : xs.length = n) (cs 
 
 /-- `prodE` is the product. -/
 theorem prodE_eq (l : List E) : prodE l = l.prod := by
-  rw [prodE, foldl_mul_eq, one_mul]
+  rw [prodE, List.foldl_mul_eq_mul_prod, one_mul]
 
 /-- **One step keeps the invariant**: from the layers `k + step` levels above the leaves to the
 layers `k` levels above them. Every `require` of the step holds. -/

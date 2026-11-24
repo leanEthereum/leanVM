@@ -14,6 +14,7 @@ public import LeanVM.Protocol.LeanIsa.Bus
 public import LeanVM.Protocol.EndToEnd.Complete.Claims
 public import LeanVM.Protocol.Whir.Complete.Tables
 public import LeanVM.Protocol.EndToEnd.Front.LayoutArith
+import LeanVM.ToMathlib.Finset
 
 /-!
 # The framework blocks
@@ -245,7 +246,7 @@ theorem sum_bytecode_eqEval (w z : List E) :
     ∑ y ∈ range (2 ^ prog.logSize), ((List.range 16).map fun k ↦
         w.getD k 0 * ((bytecodeWords prog).map ofK).getD (y + 2 ^ prog.logSize * k) 0).sum *
         eqEval (boolPoint prog.logSize y) z = bcShare prog w z := by
-  simp only [← sum_range_eq_list, sum_mul, bcShare, bcSlot, mul_sum]
+  simp only [← Finset.sum_range_eq_sum_map_range, sum_mul, bcShare, bcSlot, mul_sum]
   rw [sum_comm]
   exact sum_congr rfl fun k _ ↦ sum_congr rfl fun y _ ↦ by ring
 
@@ -385,7 +386,7 @@ theorem bcTab_getD (β : E) (w : List E) (hw : w.length = 16) (cnt : List E)
       w.getD k 0 * ((bytecodeWords prog).map ofK).getD (i.val + 2 ^ prog.logSize * k) 0).sum =
       ∑ k ∈ range 16, w.getD k 0 * ofK ((instructionSlots (prog.instructions i)).toList.getD k
           0) := by
-    rw [← sum_range_eq_list]
+    rw [← Finset.sum_range_eq_sum_map_range]
     exact sum_congr rfl fun k hk ↦ by rw [getD_bytecodeWords prog i k (mem_range.mp hk)]
   rw [h16]
   simp only [entryList_eq, List.length_cons, List.length_nil, Array.size_append, List.size_toArray]

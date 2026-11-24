@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.KeccakGkr.Algebra
+import LeanVM.ToMathlib.Finset
 
 /-!
 # `keccak_form` as math
@@ -64,7 +65,7 @@ theorem gOf_later (lanes a6 : List E) (ha : a6.length = 6) {l z : ℕ} (hl : l <
 
 theorem sum25_mod (G H : ℕ → E) :
     ∑ l ∈ range 25, G l * H (l % 5) = ∑ x ∈ range 5, (∑ y ∈ range 5, G (x + 5 * y)) * H x := by
-  rw [show (25 : ℕ) = 5 * 5 from rfl, sum_range_mul, Finset.sum_comm]
+  rw [show (25 : ℕ) = 5 * 5 from rfl, Finset.sum_range_mul, Finset.sum_comm]
   refine Finset.sum_congr rfl fun x hx ↦ ?_
   rw [Finset.sum_mul]
   refine Finset.sum_congr rfl fun y _ ↦ ?_
@@ -90,7 +91,7 @@ theorem later_dot (locPt a6 lanes : List E) (hl : locPt.length = 11) (ha : a6.le
   have h6 : (locPt.take 6).length = 6 := by simp [hl]
   rw [show keccakBits = (laterWeights lanes (eqKernel a6)).length from hlen.symm,
     dot_eqKernel locPt _ (by rw [hlen, hl]; decide), hlen, show keccakBits = 25 * 64 from rfl,
-    sum_range_mul]
+    Finset.sum_range_mul]
   set fZ := eqAt (locPt.take 6) with hfZ
   set fL := eqAt (locPt.drop 6) with hfL
   set L := kLane lanes with hL

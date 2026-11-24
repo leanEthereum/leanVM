@@ -9,6 +9,7 @@ module
 
 import LeanVM.Protocol.Keccak.Linear
 public import LeanVM.Protocol.EndToEnd.Complete.Sumcheck
+import LeanVM.ToMathlib.Finset
 
 /-!
 # Multilinear sums
@@ -58,19 +59,10 @@ theorem eqAt_append : ∀ (a b : List E) (w : ℕ), eqAt (a ++ b) w = eqAt a w *
     rw [List.cons_append, eqAt_cons, eqAt_cons, eqAt_append a b, List.length_cons, pow_succ,
       Nat.div_div_eq_div_mul, mul_comm (2 ^ a.length) 2, mul_assoc]
 
-/-- Sums over `2N` indices pair them. -/
-theorem sum_range_two_mul (N : ℕ) (F : ℕ → E) :
-    ∑ w ∈ range (2 * N), F w = ∑ w ∈ range N, (F (2 * w) + F (2 * w + 1)) := by
-  induction N with
-  | zero => simp
-  | succ N ih =>
-    rw [show 2 * (N + 1) = 2 * N + 1 + 1 by ring, Finset.sum_range_succ, Finset.sum_range_succ, ih,
-      Finset.sum_range_succ, add_assoc]
-
 /-- Sums over the cube of `m + 1` coordinates split on the first. -/
 theorem sum_cube_succ (m : ℕ) (F : ℕ → E) :
     ∑ w ∈ range (2 ^ (m + 1)), F w = ∑ w ∈ range (2 ^ m), (F (2 * w) + F (2 * w + 1)) := by
-  rw [pow_succ, mul_comm, sum_range_two_mul]
+  rw [pow_succ, mul_comm, Finset.sum_range_two_mul]
 
 /-- The equality weights sum to one. -/
 theorem sum_eqAt : ∀ pt : List E, ∑ w ∈ range (2 ^ pt.length), eqAt pt w = 1

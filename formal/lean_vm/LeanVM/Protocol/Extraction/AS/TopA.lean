@@ -10,6 +10,7 @@ public import LeanVM.Protocol.Extraction.AS.Top
 public import LeanVM.Protocol.Whir.Sound.StackA
 public import LeanVM.Protocol.Whir.Sound.DescentT
 import LeanVM.Prover.Ntt
+import LeanVM.ToMathlib.Array
 
 /-!
 # The extractor over arrays
@@ -67,7 +68,7 @@ theorem laneO_wordsA (μ R : ℕ) (qs : List (PermutationQuery KeccakState × Ke
       rw [List.getD_eq_getElem?_getD, List.getElem?_mapIdx, List.getElem?_eq_getElem hi]
       rfl
     simp only at h1 ⊢
-    rw [h1, Prover.Enc.getD_ofFn _ _ _ v.isLt, List.getElem?_map, List.getElem?_eq_getElem hi]
+    rw [h1, Array.getD_ofFn _ v.isLt, List.getElem?_map, List.getElem?_eq_getElem hi]
     simp [wordM, Array.getD_eq_getD_getElem?, List.getD_eq_getElem?_getD]
   · have h1 : (roots.mapIdx fun i x ↦ Array.ofFn fun v : Fin (codesOf μ R i).n ↦
         (lanesOf i (leafAt (Fast.leavesOf qs x.2.2 x.2.1 x.1) x.2.1 x.2.2 v)).toArray).getD i #[] =

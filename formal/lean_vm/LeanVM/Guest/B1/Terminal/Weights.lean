@@ -10,6 +10,7 @@ module
 public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Guest.B1.Terminal.EqMath
 public import LeanVM.Guest.B1.Terminal.Sum
+import LeanVM.ToMathlib.List
 
 /-!
 # The claims' weights, factored
@@ -61,7 +62,7 @@ theorem selProd_shift (o κ n : ℕ) (x : List E) :
     selProd (o >>> κ) 0 n (x.drop κ) = selProd o κ n x := by
   unfold selProd
   refine prod_congr rfl fun i _ ↦ ?_
-  rw [Nat.testBit_shiftRight, zero_add, getD_drop']
+  rw [Nat.testBit_shiftRight, zero_add, List.getD_drop]
 
 /-- **The ring switch's claim.** -/
 theorem ringClaim_eq {layout : Layout} {x : List E} {κ o : ℕ} {ringPoint coeffs : List E}

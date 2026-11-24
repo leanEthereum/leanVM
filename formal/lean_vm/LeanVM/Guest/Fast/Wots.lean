@@ -4,6 +4,7 @@ public import LeanVM.Guest.Fast.LogG
 public import LeanVM.Guest.Fast.Numbers
 public import LeanVM.Guest.Fast.Common
 public import LeanVM.Guest.B1.Sig.CodewordComplete
+import LeanVM.ToMathlib.List
 
 /-!
 # A codeword's chain starts, as numbers
@@ -54,7 +55,7 @@ theorem cwCellA_eq (G : ℕ) (sel : List ℕ) (first rest last : List (List ℕ)
     cwCellA gLanes G sel.toArray (tabA first) (tabA rest) (tabA last) σ i =
       cwCell G sel first rest last σ i := by
   unfold cwCellA cwCell
-  simp only [getD_toArray, logGTWith_gLanes]
+  simp only [List.getD_toArray, logGTWith_gLanes]
   split_ifs <;> simp only [offAtA_tabA]
 
 end

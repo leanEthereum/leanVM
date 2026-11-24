@@ -7,6 +7,7 @@ import all LeanVM.Protocol.Extraction.AS.Forward
 import all Statement.Field
 import LeanVM.Protocol.Extraction.AS.TraceShape
 public meta import Lean.Elab.Tactic
+import LeanVM.ToMathlib.List
 
 /-!
 # Bounds: the agreement-set extractor's replay
@@ -1180,12 +1181,6 @@ theorem skLayer_cost (hP : Includes P skLayer.c467.costDeps) (n : ℕ) (hn : n <
 theorem bitLength_cost' (hP : Includes P bitLengthC.costDeps) (n : ℕ) (hn : n < 2 ^ 64 := by omega) :
     machineCost P bitLengthC.costIdx [encodeValue n] ≤ 771 := bitLength_cost P hP n hn
 
-theorem foldl_max_le (M : ℕ) : ∀ (hs : List ℕ) (a : ℕ), a ≤ M → (∀ x ∈ hs, x ≤ M) →
-    hs.foldl max a ≤ M
-  | [], _, ha, _ => ha
-  | x :: hs, a, ha, h => foldl_max_le M hs (max a x) (max_le ha (h x (by simp)))
-      (fun y hy ↦ h y (by simp [hy]))
-
 /-- The largest height (`List.foldl max` with `skTablePhaseL.c461.lam0`): `18·|hs| + 3`. -/
 theorem foldlMax_cost (h1 : Includes P listFoldl.costDeps) (h2 : Includes P Auto.LeanVM.Extraction.AS.skTablePhaseL.c461.lam0.costDeps)
     (hs : List ℕ) (h : ∀ x ∈ hs, x < 2 ^ 63) :
@@ -1201,7 +1196,7 @@ theorem foldlMax_cost (h1 : Includes P listFoldl.costDeps) (h2 : Includes P Auto
   omega
 
 theorem getD_le_of (hs : List ℕ) (i M : ℕ) (h : ∀ x ∈ hs, x ≤ M) : hs.getD i 0 ≤ M := by
-  rcases getD_mem_or hs i 0 with hm | hm
+  rcases List.getD_mem_or hs i 0 with hm | hm
   · exact h _ hm
   · rw [hm]; omega
 
@@ -1217,7 +1212,7 @@ theorem kLen_cost (hP : Includes P kLen.c469.costDeps) (hs : List ℕ) (hl : hs.
   have g := getD_cost_idx P (by includes) hs opKeccak 0 (by omega)
   have f := foldlMax_cost P (by includes) (by includes) hs (fun x hx ↦ by have := h x hx; omega)
   have h1 := getD_le_of hs opKeccak 30 h
-  have h2 := foldl_max_le 30 hs 0 (by omega) h
+  have h2 := List.foldl_max_le 30 hs 0 (by omega) h
   rw [limbs_of_lt (by omega : hs.getD opKeccak 0 < 2 ^ 64),
     limbs_of_lt (by omega : hs.foldl max 0 < 2 ^ 64)]
   split_ifs <;> omega
@@ -1253,7 +1248,7 @@ theorem skTablePhaseL_cost (hP : Includes P Auto.LeanVM.Extraction.AS.skTablePha
     machineCost P Auto.LeanVM.Extraction.AS.skTablePhaseL.c461.costIdx [encodeValue hs] ≤ 100000 := by
   obtain ⟨-, c2, -⟩ := skConsts
   have f := foldlMax_cost P (by includes) (by includes) hs (fun x hx ↦ by have := h x hx; omega)
-  have hm := foldl_max_le 30 hs 0 (by omega) h
+  have hm := List.foldl_max_le 30 hs 0 (by omega) h
   have := grindingBits_le (2 + nTrees - 1) (by omega)
   have htk : (List.take (min hs.length 6) tableWidthsL).length ≤ 6 := by simp [tableWidthsL]
   have hw92 : ∀ w ∈ tableWidthsL, w ≤ 92 := by decide
@@ -1760,7 +1755,7 @@ theorem length_skBodyL (lay : LayoutLite) (ρ : ℕ) (hl : LayOk lay) :
   have := length_skBus _ (pushDepthL_le lay.logMemory lay.logBytecode lay.tableLogHeights
     (by omega) (by omega) h5)
   have := length_skTablePhaseL lay.tableLogHeights
-  have := foldl_max_le 30 lay.tableLogHeights 0 (by omega) h5
+  have := List.foldl_max_le 30 lay.tableLogHeights 0 (by omega) h5
   have := length_skKeccak (kLen lay.tableLogHeights)
   have := kLen_le lay.tableLogHeights 30 h5
   have := length_skRing
@@ -1776,7 +1771,7 @@ theorem length_skBodyHeadL (lay : LayoutLite) (ρ : ℕ) (hl : LayOk lay) :
   have := length_skBus _ (pushDepthL_le lay.logMemory lay.logBytecode lay.tableLogHeights
     (by omega) (by omega) h5)
   have := length_skTablePhaseL lay.tableLogHeights
-  have := foldl_max_le 30 lay.tableLogHeights 0 (by omega) h5
+  have := List.foldl_max_le 30 lay.tableLogHeights 0 (by omega) h5
   have := length_skKeccak (kLen lay.tableLogHeights)
   have := kLen_le lay.tableLogHeights 30 h5
   have := length_skRing
@@ -1789,7 +1784,7 @@ theorem skBodyL_cost (hP : Includes P skBodyLC.costDeps) (lay : LayoutLite) (ρ 
     machineCost P skBodyLC.costIdx [encodeValue lay, encodeValue ρ] ≤ 1000000000 := by
   obtain ⟨h1, h2, h3, h4, h5⟩ := hl
   have hd := pushDepthL_le lay.logMemory lay.logBytecode lay.tableLogHeights (by omega) (by omega) h5
-  have hm := foldl_max_le 30 lay.tableLogHeights 0 (by omega) h5
+  have hm := List.foldl_max_le 30 lay.tableLogHeights 0 (by omega) h5
   have hk := kLen_le lay.tableLogHeights 30 h5
   have c1 := skCommitStack_cost P (by includes) lay.stackLog ρ (by omega) (by omega)
   have c2 := skOod_cost P (by includes) lay.stackLog
@@ -1820,7 +1815,7 @@ theorem skBodyHeadL_cost (hP : Includes P Auto.LeanVM.Extraction.AS.skBodyHeadL.
       encodeValue ρ] ≤ 1000000000 := by
   obtain ⟨h1, h2, h3, h4, h5⟩ := hl
   have hd := pushDepthL_le lay.logMemory lay.logBytecode lay.tableLogHeights (by omega) (by omega) h5
-  have hm := foldl_max_le 30 lay.tableLogHeights 0 (by omega) h5
+  have hm := List.foldl_max_le 30 lay.tableLogHeights 0 (by omega) h5
   have hk := kLen_le lay.tableLogHeights 30 h5
   have c1 := skCommitStack_cost P (by includes) lay.stackLog ρ (by omega) (by omega)
   have c2 := skOod_cost P (by includes) lay.stackLog

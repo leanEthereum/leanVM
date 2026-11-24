@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.B1.Main.MainGoalsHKid
 public import LeanVM.Guest.AcceptableChild
+import LeanVM.ToMathlib.List
 
 /-!
 # The children loop on an honest run
@@ -116,9 +117,6 @@ theorem kid_length_flatMap_const {α : Type} {f : α → List E} {k : ℕ} :
     rw [List.flatMap_cons, List.length_append, h a List.mem_cons_self,
       kid_length_flatMap_const l fun b hb => h b (List.mem_cons_of_mem _ hb), List.length_cons]
     ring
-
-theorem getD_range_map (f : ℕ → E) {n c : ℕ} (hc : c < n) : ((List.range n).map f).getD c 0 = f c := by
-  rw [List.getD_eq_getElem _ _ (by simpa using hc), List.getElem_map, List.getElem_range]
 
 /-! ## `main`'s words -/
 
@@ -236,9 +234,9 @@ theorem kidOk (cert : String → V → ℕ) {bytecode : List K}
     rw [e4] at p4
     refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
     · have := loadHolds_getD r8 (k := c) (by simp; omega)
-      rwa [getD_range_map _ (by omega)] at this
+      rwa [List.getD_map_range _ (by omega)] at this
     · have := loadHolds_getD r8 (k := c + 1) (by simp; omega)
-      rw [getD_range_map _ (by omega), hW1, pow_add, pow_add] at this
+      rw [List.getD_map_range _ (by omega), hW1, pow_add, pow_add] at this
       exact this
     · have := p4 0 (by simp [B1.Digest.digestCells])
       rw [loadHolds_mul_gen_pow, Nat.add_zero] at this

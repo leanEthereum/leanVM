@@ -4,6 +4,7 @@ public import LeanVM.Cost.Bounds.Replay
 public import LeanVM.Cost.Bounds.Runner
 import all Statement.LeanVmVerifier
 import all LeanVM.Protocol.Extraction.Fast.AfterRoot
+import LeanVM.ToMathlib.List
 
 /-!
 # Bounds: the layouts the replay returns
@@ -59,7 +60,7 @@ theorem offsetsFold_le (sizes : List ℕ) (s : ℕ) (hs : ∀ i, sizes.getD i 0 
 theorem stackOffsets_le (sizes : List ℕ) (s : ℕ) (hs : ∀ x ∈ sizes, x ≤ s) :
     ∀ x ∈ (stackOffsets sizes).1, x ≤ 2 ^ s * sizes.length := by
   have hs' : ∀ i, sizes.getD i 0 ≤ s := fun i ↦ by
-    rcases getD_mem_or sizes i 0 with h | h
+    rcases List.getD_mem_or sizes i 0 with h | h
     · exact hs _ h
     · rw [h]; omega
   unfold stackOffsets
@@ -85,7 +86,7 @@ theorem placementsOf_index_lt (kappas : List ℕ) (hn : kappas.length ≤ 165)
   have hcl : cols.length ≤ 165 := (List.length_filter_le _ _).trans (by simp; omega)
   have hoff := stackOffsets_le (cols.map (kappas.getD · 0)) 40 (fun x hx ↦ by
     obtain ⟨i, -, rfl⟩ := List.mem_map.1 hx
-    rcases getD_mem_or kappas i 0 with h | h
+    rcases List.getD_mem_or kappas i 0 with h | h
     · exact hk _ h
     · rw [h]; omega)
   generalize stackOffsets (cols.map (kappas.getD · 0)) = so at hoff
@@ -93,7 +94,7 @@ theorem placementsOf_index_lt (kappas : List ℕ) (hn : kappas.length ≤ 165)
   simp only [List.length_map] at hoff
   have hT : 2 ^ 40 * cols.length ≤ 165 * 2 ^ 40 := by omega
   have hget : ∀ c, offs.getD (cols.idxOf c) 0 ≤ 165 * 2 ^ 40 := fun c ↦ by
-    rcases getD_mem_or offs (cols.idxOf c) 0 with h | h
+    rcases List.getD_mem_or offs (cols.idxOf c) 0 with h | h
     · have := hoff _ h; omega
     · rw [h]; omega
   intro o ho p hp
@@ -150,7 +151,7 @@ theorem buildLayoutLite_facts {bytecode : List K} {logMemory : ℕ} {tableRows :
     set heights := List.zipWith (fun rows floor ↦ max (log2Ceil rows) floor) tableRows
       tableLogFloors
     have hhD : ∀ i, heights.getD i 0 ≤ 30 := fun i ↦ by
-      rcases getD_mem_or heights i 0 with h' | h'
+      rcases List.getD_mem_or heights i 0 with h' | h'
       · exact hhm _ h'
       · rw [h']; omega
     obtain ⟨hkl, hkm⟩ := columnKappas_facts logMemory (val - busBits) heights c3
@@ -160,7 +161,7 @@ theorem buildLayoutLite_facts {bytecode : List K} {logMemory : ℕ} {tableRows :
     refine ⟨⟨c2, c3, by simp only [busBits] at c5 ⊢; omega, hhl, hhm, fun c ↦ ?_⟩, ?_⟩
     · show (((placementsOf (columnKappas logMemory (val - busBits) heights)).1.getD c
         none).getD default).index < 2 ^ 48
-      rcases getD_mem_or (placementsOf (columnKappas logMemory (val - busBits) heights)).1 c
+      rcases List.getD_mem_or (placementsOf (columnKappas logMemory (val - busBits) heights)).1 c
         none with hm | hm
       · generalize hq : (placementsOf (columnKappas logMemory (val - busBits) heights)).1.getD c
           none = q at hm

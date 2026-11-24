@@ -93,14 +93,6 @@ theorem cellsBytes_replicate_zero (n : ℕ) :
 
 /-! ## Lanes of bytes -/
 
-/-- A fold is determined by its steps on the list's elements. -/
-theorem foldl_congr_mem {α β : Type} {f g : α → β → α} :
-    ∀ (l : List β) (a : α), (∀ a b, b ∈ l → f a b = g a b) → l.foldl f a = l.foldl g a
-  | [], _, _ => rfl
-  | b :: l, a, h => by
-    rw [List.foldl_cons, List.foldl_cons, h a b List.mem_cons_self]
-    exact foldl_congr_mem l _ fun a b hb ↦ h a b (List.mem_cons_of_mem _ hb)
-
 /-- Eight little-endian bytes, reassembled: the bytes of `n` below `2^(8m)`. -/
 private theorem foldl_bytes (n : ℕ) :
     ∀ m, m ≤ 8 → (List.range m).foldl
@@ -136,9 +128,8 @@ theorem leLane_wordBytes_append (w : UInt64) (rest : List UInt8) :
       UInt64.toNat_toUInt8, UInt64.toNat_shiftRight, h8,
       Nat.mod_eq_of_lt (show 8 * k < 64 by omega),
       Nat.zero_add, Nat.mul_zero]
-  rw [foldl_congr_mem
-    (g := fun acc k ↦ acc ||| (((w.toNat >>> (8 * k)) % 256) <<< (8 * k)) % 2 ^ 64)
-    _ _ (fun acc k hm ↦ by rw [hk k hm]), foldl_bytes _ 8 le_rfl, Nat.mod_eq_of_lt w.toNat_lt]
+  rw [List.foldl_ext _ (fun acc k ↦ acc ||| (((w.toNat >>> (8 * k)) % 256) <<< (8 * k)) % 2 ^ 64)
+    _ (fun acc k hm ↦ by rw [hk k hm]), foldl_bytes _ 8 le_rfl, Nat.mod_eq_of_lt w.toNat_lt]
 
 /-- A lane past the first reads the bytes past the first eight. -/
 theorem leLane_succ (bs : List UInt8) (l : ℕ) : littleEndianLane bs (l + 1) = littleEndianLane

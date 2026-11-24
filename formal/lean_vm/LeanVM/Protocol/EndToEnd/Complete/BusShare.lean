@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Protocol.EndToEnd.Complete.BusFramework
 public import LeanVM.Protocol.Keccak.Multilinear
+import LeanVM.ToMathlib.Finset
 
 /-!
 # The bytecode's share
@@ -109,7 +110,7 @@ theorem shareClaim_split (w z acc : List E) (hw : w.length = 16) (hacc : acc.len
     ← sum_add_distrib, shareClaim]
   rw [show 2 ^ (4 - acc.length) = 2 * 2 ^ (4 - (acc.length + 1)) by
     rw [← pow_succ', show 4 - (acc.length + 1) + 1 = 4 - acc.length by omega],
-    KeccakGkr.sum_range_two_mul]
+    Finset.sum_range_two_mul]
   refine sum_congr rfl fun i _ ↦ ?_
   simp only [add_zero, mul_one, mul_zero, CharTwo.add_self_eq_zero (1 : E)]
   ring

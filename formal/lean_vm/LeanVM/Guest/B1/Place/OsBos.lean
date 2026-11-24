@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Whir.Template
 public import LeanVM.Guest.Memory.Uniform
+import LeanVM.ToMathlib.List
 
 /-!
 # The frame-size bound of an opening arm
@@ -116,26 +117,15 @@ def osKidsB (fs Bk : String → ℕ) (c : OsCfg) : ℕ := ((osCallees c).map (os
 def osBos (fs Bk : String → ℕ) (name : String) (c : OsCfg) : ℕ :=
   fs name + (osSizesL c).sum + osKidsB fs Bk c
 
-theorem le_foldl_max_init : ∀ (l : List ℕ) (a : ℕ), a ≤ l.foldl max a
-  | [], _ => le_rfl
-  | y :: l, a => le_trans (le_max_left a y) (le_foldl_max_init l (max a y))
-
-theorem le_foldl_max : ∀ {l : List ℕ} {x : ℕ}, x ∈ l → ∀ a : ℕ, x ≤ l.foldl max a
-  | [], _, h, _ => absurd h List.not_mem_nil
-  | y :: l, x, h, a => by
-    rw [List.foldl_cons]
-    rcases List.mem_cons.mp h with rfl | h
-    · exact le_trans (le_max_right a x) (le_foldl_max_init l _)
-    · exact le_foldl_max h _
-
 /-- An entry of a mapped list within its `foldl max`. -/
 theorem le_foldl_max_map {α : Type} (F : α → ℕ) {l : List α} {a : α} (h : a ∈ l) : F a ≤ (l.map F).foldl max 0 :=
-  le_foldl_max (List.mem_map_of_mem h) 0
+  (List.foldl_max_ge _ 0).2 _ (List.mem_map_of_mem h)
 
 /-- **A callee within its statement's bound.** -/
 theorem le_osCallB {fs Bk : String → ℕ} {names : List String} {f : String} (h : f ∈ names) :
     max (fs f) (Bk f) ≤ osCallB fs Bk names :=
-  le_foldl_max (List.mem_map.mpr ⟨f, h, rfl⟩ : max (fs f) (Bk f) ∈ names.map fun f ↦ max (fs f) (Bk f)) 0
+  (List.foldl_max_ge _ 0).2 _
+    (List.mem_map.mpr ⟨f, h, rfl⟩ : max (fs f) (Bk f) ∈ names.map fun f ↦ max (fs f) (Bk f))
 
 end
 end LeanVM.Guest.B1

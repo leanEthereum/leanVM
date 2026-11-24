@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Terminal.InterfaceP
 public import LeanVM.Guest.B1.Eq.MeaningP
+import LeanVM.ToMathlib.List
 
 /-!
 # Equality weights, factored
@@ -34,10 +35,6 @@ def bitF (b : Bool) (z : E) : E := if b then z else 1 + z
 /-- The eq weight of bits `κ .. κ + n` of `o` against the same coordinates of `x`. -/
 def selProd (o κ n : ℕ) (x : List E) : E := ∏ i ∈ range n, bitF (o.testBit (κ + i)) (x.getD (κ + i) 0)
 
-theorem foldl_mul_eq (a : E) : ∀ l : List E, l.foldl (· * ·) a = a * l.prod
-  | [] => by simp
-  | b :: l => by rw [List.foldl_cons, foldl_mul_eq _ l, List.prod_cons, mul_assoc]
-
 theorem zipWith_prod (f : E → E → E) : ∀ l r : List E,
     (List.zipWith f l r).prod = ∏ i ∈ range (min l.length r.length), f (l.getD i 0) (r.getD i 0)
   | [], r => by simp
@@ -53,12 +50,13 @@ theorem zipWith_prod (f : E → E → E) : ∀ l r : List E,
 
 theorem eqEval_prod (l r : List E) :
     eqEval l r = ∏ i ∈ range (min l.length r.length), (1 + l.getD i 0 + r.getD i 0) := by
-  rw [eqEval, foldl_mul_eq, one_mul, zipWith_prod]
+  rw [eqEval, List.foldl_mul_eq_mul_prod, one_mul, zipWith_prod]
 
 theorem eqEval_append {p q xa xb : List E} (h : p.length = xa.length) :
     eqEval (p ++ q) (xa ++ xb) = eqEval p xa * eqEval q xb := by
-  rw [eqEval, eqEval, eqEval, List.zipWith_append h, List.foldl_append, foldl_mul_eq _ (List.zipWith _ q xb),
-    foldl_mul_eq 1 (List.zipWith _ p xa), one_mul, foldl_mul_eq 1, one_mul]
+  rw [eqEval, eqEval, eqEval, List.zipWith_append h, List.foldl_append,
+    List.foldl_mul_eq_mul_prod (List.zipWith _ q xb),
+    List.foldl_mul_eq_mul_prod (List.zipWith _ p xa) 1, one_mul, List.foldl_mul_eq_mul_prod _ 1, one_mul]
 
 theorem shift_mod_two (o b : ℕ) : (o >>> b) % 2 = if o.testBit b then 1 else 0 := by
   rw [Nat.testBit_eq_decide_div_mod_eq, ← Nat.shiftRight_eq_div_pow]
@@ -76,9 +74,6 @@ theorem selectorPoint_getD {o L k : ℕ} (hk : k < L) :
   rw [selectorPoint, List.getD_eq_getElem _ _ (by simpa using hk), List.getElem_map,
     List.getElem_range]
 
-theorem getD_drop' (l : List E) (κ i : ℕ) : (l.drop κ).getD i 0 = l.getD (κ + i) 0 := by
-  simp only [List.getD_eq_getElem?_getD, List.getElem?_drop]
-
 /-- **The bits' weight**: the offset bits of a stacked point against `x` above `κ`. -/
 theorem eqEval_sel (o : ℕ) {L κ : ℕ} {x : List E} (hx : x.length = L) (hκ : κ ≤ L) :
     eqEval ((selectorPoint o L).drop κ) (x.drop κ) = selProd o κ (L - κ) x := by
@@ -86,7 +81,7 @@ theorem eqEval_sel (o : ℕ) {L κ : ℕ} {x : List E} (hx : x.length = L) (hκ 
   simp only [List.length_drop, selectorPoint, List.length_map, List.length_range, hx, min_self]
   refine prod_congr rfl fun i hi ↦ ?_
   have hi' := mem_range.mp hi
-  rw [getD_drop', getD_drop', ← selectorPoint, selectorPoint_getD (by omega), eOfNat_bit]
+  rw [List.getD_drop, List.getD_drop, ← selectorPoint, selectorPoint_getD (by omega), eOfNat_bit]
 
 theorem padPoint_getD (x : List E) (i : ℕ) : (padPoint x).getD i 0 = x.getD i 0 := by
   unfold padPoint
@@ -139,7 +134,7 @@ theorem bitsEq_sel (o : ℕ) {κ : ℕ} (hκ : κ ≤ 32) {x : List E} (hx : x.l
   refine prod_congr rfl fun i hi ↦ ?_
   have hi' := mem_range.mp hi
   rw [List.getD_eq_getElem _ _ (by simp; omega), List.getElem_map, List.getElem_range,
-    getD_drop', getD_drop', getD_take' (by omega), getD_take' (by omega),
+    List.getD_drop, List.getD_drop, getD_take' (by omega), getD_take' (by omega),
     getD_map_one (by rw [hp]; simp only [termPointCap]; omega), padPoint_getD]
   rfl
 
@@ -162,7 +157,7 @@ theorem selProd_pad {o κ L n : ℕ} {x : List E} (hx : x.length = L) (ho : o < 
 theorem prefixProd_eq {as bs x : List E} {n : ℕ} (ha : n ≤ as.length) (hb : n ≤ bs.length)
     (hx : n ≤ x.length) (hbx : ∀ i < n, bs.getD i 0 = 1 + x.getD i 0) :
     prefixProd 1 as bs n = eqEval (as.take n) (x.take n) := by
-  rw [prefixProd, foldl_mul_eq, one_mul, zipWith_prod, eqEval_prod]
+  rw [prefixProd, List.foldl_mul_eq_mul_prod, one_mul, zipWith_prod, eqEval_prod]
   simp only [List.length_take]
   rw [show min (min n as.length) (min n bs.length) = n by omega,
     show min (min n as.length) (min n x.length) = n by omega]

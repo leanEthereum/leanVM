@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Whir.VanishCert
+import LeanVM.ToMathlib.List
 
 /-!
 # The vanishing tables
@@ -83,10 +84,6 @@ theorem lig_run (a : List (ℕ × ℕ)) {vo n : ℕ} (h : vo + n ≤ a.length) :
     List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (show vo + t < a.length by simp at h1; omega),
     Option.getD_some]
 
-theorem getD_range_map {f : ℕ → K} {n t : ℕ} (h : t < n) :
-    ((List.range n).map f).getD t 0 = f t := by
-  simp [List.getD_eq_getElem?_getD, h]
-
 theorem getD_take_lt {l : List K} {n t : ℕ} (h : t < n) : (l.take n).getD t 0 = l.getD t 0 := by
   simp [List.getD_eq_getElem?_getD, h]
 
@@ -98,7 +95,7 @@ theorem vanish_val {vo μ : ℕ} (h : vanishOk vo (μ + 1) = true) :
   obtain ⟨⟨⟨⟨hn, hv⟩, -⟩, h1⟩, -⟩ := h
   rw [← lig_run _ hv] at h1
   have e1 := congrArg (fun l ↦ List.getD l t 0) h1
-  simp only [getD_range_map (show t < μ + 1 by omega), getD_take_lt (show t < μ + 1 by omega)] at e1
+  simp only [List.getD_map_range _ (show t < μ + 1 by omega), getD_take_lt (show t < μ + 1 by omega)] at e1
   rw [vanishVal, e1, subspaceRoots_cert (by omega), getD_take_lt (by omega)]
 
 /-- **The inverses are the roots' inverses.** -/
@@ -109,7 +106,7 @@ theorem vanish_inv {vo μ : ℕ} (h : vanishOk vo (μ + 1) = true) :
   obtain ⟨⟨⟨⟨hn, -⟩, hi⟩, -⟩, h2⟩ := h
   rw [← lig_run _ hi] at h2
   have e2 := congrArg (fun l ↦ List.getD l t 0) h2
-  simp only [getD_range_map (show t < μ + 1 by omega), getD_take_lt (show t < μ + 1 by omega)] at e2
+  simp only [List.getD_map_range _ (show t < μ + 1 by omega), getD_take_lt (show t < μ + 1 by omega)] at e2
   rw [vanishInv, e2, subspaceRoots_cert (by omega), getD_take_lt (by omega)]
   rcases t with _ | s
   · simp

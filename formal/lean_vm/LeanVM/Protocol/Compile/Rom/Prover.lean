@@ -12,6 +12,7 @@ public import LeanVM.Protocol.Compile.Prover
 public import LeanVM.Protocol.Compile.Cost
 public import Statement.Prover.Run
 public import LeanVM.Protocol.WithHash
+import LeanVM.ToMathlib.List
 
 /-!
 # The honest prover against the random oracles
@@ -107,9 +108,6 @@ section Pure
 
 variable (H : Bytes → Digest) (F : KeccakState → KeccakState)
 
-theorem toArray_getD {α : Type} (l : List α) (i : ℕ) (d : α) : l.toArray.getD i d = l.getD i d := by
-  simp [Array.getD_eq_getD_getElem?, List.getD_eq_getElem?_getD]
-
 theorem parentsM_id (level : Array Digest) (n : ℕ) :
     parentsWithHash (m := Id) H level n = (Array.range n).map fun j ↦
       H (digestBytes (level.getD (2 * j) default) ++
@@ -177,7 +175,7 @@ theorem root_buildTreeM_id (height : ℕ) (word : Word) :
     (buildTreeWithHash (m := Id) H height word).root = treeRoot H height word := by
   show ((levelsWithHash (m := Id) H height (leafDigestsWithHash (m := Id) H height word)).toArray.getD height
     #[]).getD 0 default = _
-  simp only [toArray_getD, leafDigestsM_id]
+  simp only [List.getD_toArray, leafDigestsM_id]
   rw [levelsM_id_root]
   rfl
 
@@ -190,7 +188,7 @@ theorem opening_buildTreeM_id (height : ℕ) (word : Word) (q : ℕ) :
     ((levelsWithHash (m := Id) H height (leafDigestsWithHash (m := Id) H height word)).toArray.getD l #[]).getD
       (LeanVM.Prover.sibling (q % 2 ^ height / 2 ^ l)) default⟩ : Opening) =
     ⟨q, word (q % 2 ^ height), _⟩
-  simp only [toArray_getD, leafDigestsM_id]
+  simp only [List.getD_toArray, leafDigestsM_id]
   exact congrArg _ e
 
 theorem searchM_id (bits : ℕ) (o : Bool) (sp : Sponge) :

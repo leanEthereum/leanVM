@@ -12,6 +12,7 @@ import LeanVM.Protocol.Keccak.Words
 import LeanVM.Protocol.Keccak.Layer
 public import LeanVM.Protocol.Keccak.Rounds
 public import LeanVM.Protocol.Keccak.LayerAlg
+import LeanVM.ToMathlib.Finset
 
 /-!
 # Candidates
@@ -131,7 +132,7 @@ theorem foldT_snoc (δ : ℕ → E) (acc : List E) (c : E) (v : ℕ) :
     foldT δ (acc ++ [c]) v = (1 + c) * foldT δ acc (2 * v) + c * foldT δ acc (2 * v + 1) := by
   unfold foldT
   rw [List.length_append, List.length_singleton, pow_succ, mul_comm (2 ^ acc.length) 2,
-    sum_range_mul 2 (2 ^ acc.length), Finset.sum_range_succ, Finset.sum_range_succ,
+    Finset.sum_range_mul 2 (2 ^ acc.length), Finset.sum_range_succ, Finset.sum_range_succ,
     Finset.sum_range_zero, zero_add, Finset.mul_sum, Finset.mul_sum]
   refine congrArg₂ (· + ·) ?_ ?_
   · refine Finset.sum_congr rfl fun w hw ↦ ?_

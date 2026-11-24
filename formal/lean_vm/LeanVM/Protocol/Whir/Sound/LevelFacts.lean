@@ -11,6 +11,7 @@ module
 public import LeanVM.Protocol.Whir.Sound.Folds
 public import LeanVM.Protocol.Whir.Sound.Novel
 import LeanVM.Protocol.Whir.Sound.Queries
+import LeanVM.ToMathlib.List
 
 /-!
 # The level interface's facts
@@ -53,7 +54,7 @@ def batchedOf (index mu : ℕ) (rounds : List FoldRound) (high : List E) (querie
       novelEval high what * ofK (what.getD mu 0))) (List.zip queries words) queryWeights)
 
 theorem sumE_eq_sum (l : List E) : sumE l = l.sum := by
-  rw [sumE, foldl_add_eq, zero_add]
+  rw [sumE, List.foldl_add_eq_add_sum, zero_add]
 
 /-- A batch over zipped queries and rows as a batch over the queries. -/
 theorem sumE_zipWith_zip (G : ℕ × List K → E → E) (F : ℕ → List K → E)

@@ -13,6 +13,7 @@ public import LeanVM.Protocol.Compile.SpecRules.Grind
 import LeanVM.Protocol.Verifier.Phases
 public import LeanVM.Protocol.Verifier.KeccakPack
 public import LeanVM.Protocol.Compile.Spec
+import LeanVM.ToMathlib.List
 
 /-!
 # The prover moves of the leanVM verifier
@@ -685,18 +686,11 @@ theorem moves_whirLevels_le (hB : grindCap ≤ B) (logN laneFolds : ℕ) (evalua
 theorem queryTable_pos : ∀ row ∈ Whir.queryTable, ∀ r ∈ row, ∀ q ∈ r, q ≠ 0 := by
   decide
 
-private theorem getD_mem_or {γ : Type} (l : List (List γ)) (i : ℕ) :
-    l.getD i [] ∈ l ∨ l.getD i [] = [] := by
-  rw [List.getD_eq_getElem?_getD]
-  rcases h : l[i]? with _ | x
-  · exact .inr rfl
-  · exact .inl (List.mem_of_getElem? h)
-
 /-- Every count the table gives a shape is positive. -/
 theorem queryTable_getD_pos (i j : ℕ) : ∀ q ∈ (Whir.queryTable.getD i []).getD j [], q ≠ 0 := by
   intro q hq
-  rcases getD_mem_or Whir.queryTable i with hrow | hrow
-  · rcases getD_mem_or (Whir.queryTable.getD i []) j with hr | hr
+  rcases List.getD_mem_or Whir.queryTable i [] with hrow | hrow
+  · rcases List.getD_mem_or (Whir.queryTable.getD i []) j [] with hr | hr
     · exact queryTable_pos _ hrow _ hr q hq
     · rw [hr] at hq; simp at hq
   · rw [hrow] at hq; simp at hq

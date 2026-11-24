@@ -12,6 +12,7 @@ module
 import LeanVM.Protocol.EndToEnd.Front.LayoutStack
 public import LeanVM.Protocol.Whir.Complete.Tables
 import LeanVM.Protocol.EndToEnd.Front.LayoutArith
+import LeanVM.ToMathlib.Finset
 
 /-!
 # Stacked leaves
@@ -211,11 +212,6 @@ theorem map_range_getElem! (l : List ℕ) : (List.range l.length).map (fun k ↦
   intro i h1 h2
   simp [List.getElem!_eq_getElem?_getD, h2]
 
-/-- A finite sum over the range is the list sum. -/
-theorem sum_range_eq_list (n : ℕ) (H : ℕ → E) :
-    ∑ b ∈ range n, H b = ((List.range n).map H).sum := by
-  rw [← List.toFinset_range, List.sum_toFinset _ (List.nodup_range)]
-
 /-- The pieces of the order, each at its offset: block `b`'s table against `f` at
 `offset + y`. -/
 theorem sum_flatMap_stackOrder (sizes : List ℕ) (tabs : ℕ → List E)
@@ -226,7 +222,7 @@ theorem sum_flatMap_stackOrder (sizes : List ℕ) (tabs : ℕ → List E)
         (tabs b).getD y 0 * f (blockOffset sizes b + y) := by
   have h := sum_flatMap tabs (fun x ↦ f x) (stackOrder sizes) 0
   simp only [zero_add] at h
-  rw [h, sum_range_eq_list]
+  rw [h, Finset.sum_range_eq_sum_map_range]
   set H : ℕ → E := fun b ↦ ∑ y ∈ range (2 ^ sizes.getD b 0),
     (tabs b).getD y 0 * f (blockOffset sizes b + y)
   have hk : ∀ k ∈ List.range (stackOrder sizes).length,

@@ -5,6 +5,7 @@ public import LeanVM.Guest.Glob
 import all LeanVM.Guest.Glob
 import all Statement.Data.Bytecode
 meta import Lean.Elab.Tactic
+import LeanVM.ToMathlib.List
 
 /-!
 # The guest decoder's tables, checked
@@ -41,9 +42,6 @@ theorem getD_map_eq {α β : Type} (f : α → β) (l : List α) (j : ℕ) (d : 
   subst h
   simp [List.getD_eq_getElem?_getD, listElementOrDefault_eq_getD]
 
-theorem toArray_getD {α : Type} (l : List α) (j : ℕ) (d : α) : l.toArray.getD j d = l.getD j d := by
-  simp [Array.getD_eq_getD_getElem?, List.getD_eq_getElem?_getD]
-
 /-- `certOf` keeps the certificate's cells and return count. -/
 theorem certOf_cells_nret (j : ℕ) :
     (certOf j).cells = (listElementOrDefault Data.certs j default).cells ∧
@@ -69,16 +67,16 @@ theorem coreOf_zero_params : (coreOf 0).params.length = 0 := by
   decide +kernel
 
 theorem guestEntries_eq : ∀ j < nFns, guestEntries.getD j 0 = (glob.sig j).entry := fun j _ ↦ by
-  rw [toArray_getD, guestEntriesList_eq, getD_map_eq (d := default) (e := 0)] <;> rfl
+  rw [List.getD_toArray, guestEntriesList_eq, getD_map_eq (d := default) (e := 0)] <;> rfl
 
 theorem guestArgCounts_eq : ∀ j < nFns, guestArgCounts.getD j 0 = (glob.sig j).nargs := fun j _ ↦ by
-  rw [toArray_getD, guestArgCountsList_eq]
+  rw [List.getD_toArray, guestArgCountsList_eq]
   cases j with
   | zero => exact coreOf_zero_params.symm
   | succ k => rw [List.getD_cons_succ, getD_map_eq (d := default) (e := 0)] <;> rfl
 
 theorem guestRetCounts_eq : ∀ j < nFns, guestRetCounts.getD j 0 = (glob.sig j).nret := fun j _ ↦ by
-  rw [toArray_getD, guestRetCountsList_eq, getD_map_eq (d := default) (e := 0)]
+  rw [List.getD_toArray, guestRetCountsList_eq, getD_map_eq (d := default) (e := 0)]
   · exact (certOf_cells_nret j).2.symm
   · rfl
 

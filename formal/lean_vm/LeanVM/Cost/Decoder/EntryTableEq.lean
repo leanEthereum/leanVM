@@ -30,17 +30,10 @@ attribute [local instance] lexOrd
 
 @[expose] public section
 
-theorem foldl_congr_mem {α β : Type} {f g : α → β → α} :
-    ∀ (l : List β) (a : α), (∀ a, ∀ b ∈ l, f a b = g a b) → l.foldl f a = l.foldl g a
-  | [], _, _ => rfl
-  | b :: l, a, h => by
-    rw [List.foldl_cons, List.foldl_cons, h a b List.mem_cons_self]
-    exact foldl_congr_mem l _ fun a b hb ↦ h a b (List.mem_cons_of_mem _ hb)
-
 /-- **The table of entries is the guest's.** -/
 theorem pcTableT_eq : pcTableT = pcTable := by
   unfold pcTableT pcTable
-  refine foldl_congr_mem _ _ fun m j hj ↦ ?_
+  refine List.foldl_ext _ _ _ fun m j hj ↦ ?_
   rw [addEntry, guestEntries_eq j (List.mem_range.mp hj)]
 
 theorem entryKeyT_eq (rd : Reader) (r : Registers K) {j : ℕ} (hj : j < nFns) :
@@ -50,7 +43,7 @@ theorem entryKeyT_eq (rd : Reader) (r : Registers K) {j : ℕ} (hj : j < nFns) :
 theorem fileStateT_eq (pre : ℕ → K → Bool) (rd : Reader) (m : SortedMap CallKey K)
     (r : Registers K) : fileStateT pcTableT pre rd m r = fileState pre rd m r := by
   rw [fileStateT, fileState, pcTableT_eq]
-  refine foldl_congr_mem _ _ fun m j hj ↦ ?_
+  refine List.foldl_ext _ _ _ fun m j hj ↦ ?_
   rw [fileOne, entryKeyT_eq rd r (mem_pcTable.mp hj).1]
 
 /-- **The entry table is the guest's.** -/
