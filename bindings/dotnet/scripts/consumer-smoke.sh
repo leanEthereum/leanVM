@@ -68,7 +68,7 @@ cat > "$consumer/consumer.csproj" <<PROJECT
 </Project>
 PROJECT
 cat > "$consumer/Program.cs" <<'PROGRAM'
-using Ethereum.LeanPq;
+using Ethereum.PostQuantum;
 
 Check(Environment.GetEnvironmentVariable("LEAN_PQ_NATIVE_PATH") is null, "LEAN_PQ_NATIVE_PATH must not be set");
 
@@ -116,6 +116,15 @@ static void Check(bool condition, string message)
     if (!condition)
     {
         throw new InvalidOperationException(message);
+    }
+}
+
+namespace Ethereum.Client
+{
+    // Code in a namespace under Ethereum must reach LeanPq by its simple name.
+    internal static class Names
+    {
+        internal const int PublicKeyLength = LeanPq.PublicKeyLength;
     }
 }
 PROGRAM

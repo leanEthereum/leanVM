@@ -4,7 +4,7 @@
 
 ## Install
 
-NuGet, `Ethereum.LeanPq`, .NET 10:
+NuGet, `Ethereum.LeanPq`, .NET 10. The namespace is `Ethereum.PostQuantum`.
 
 <!-- x-release-please-start-version -->
 ```sh
@@ -18,7 +18,7 @@ dotnet add package Ethereum.LeanPq --version 0.16.0
 ## Sign and verify
 
 ```csharp
-using Ethereum.LeanPq;
+using Ethereum.PostQuantum;
 
 using XmssSecretKey xmss = XmssSecretKey.FromSeed(seed32);
 using SphincsSecretKey sphincs = SphincsSecretKey.FromSeed(otherSeed32);
@@ -41,7 +41,7 @@ bool sphincsValid = LeanPq.SphincsVerify(sphincs.GetPublicKey(), message32, sphi
 ## VRF
 
 ```csharp
-using Ethereum.LeanPq;
+using Ethereum.PostQuantum;
 
 using VrfKey key = VrfKey.FromSeed(seed32, 1000, 2000);
 byte[] root = key.GetRoot();
@@ -55,7 +55,7 @@ A key is a 32-byte seed and the slots `[start, end)`, with `end <= 2^31`: both f
 ## Aggregate
 
 ```csharp
-using Ethereum.LeanPq;
+using Ethereum.PostQuantum;
 
 using XmssSecretKey xmss = XmssSecretKey.FromSeed(seed32);
 using SphincsSecretKey sphincs = SphincsSecretKey.FromSeed(otherSeed32);

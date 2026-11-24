@@ -1,4 +1,4 @@
-namespace Ethereum.LeanPq;
+namespace Ethereum.PostQuantum;
 
 /// <summary>
 /// A stateful leanXMSS secret key that signs at unsigned 32-bit leaf indices. Never sign two

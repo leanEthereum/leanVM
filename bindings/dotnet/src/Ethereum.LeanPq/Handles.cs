@@ -1,6 +1,6 @@
 using Microsoft.Win32.SafeHandles;
 
-namespace Ethereum.LeanPq;
+namespace Ethereum.PostQuantum;
 
 // SafeHandle counts every P/Invoke using it, so a handle disposed on another thread is destroyed
 // only once those calls return; an undisposed one is destroyed by its finalizer.

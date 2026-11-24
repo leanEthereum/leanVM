@@ -1,6 +1,6 @@
 using NUnit.Framework;
 
-namespace Ethereum.LeanPq.Tests;
+namespace Ethereum.PostQuantum.Tests;
 
 public class LeanPqTests
 {

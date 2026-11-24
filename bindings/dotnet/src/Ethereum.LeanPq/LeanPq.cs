@@ -1,4 +1,4 @@
-namespace Ethereum.LeanPq;
+namespace Ethereum.PostQuantum;
 
 /// <summary>Verifies single signatures and VRF proofs, and aggregates signatures.</summary>
 public static unsafe class LeanPq
@@ -102,7 +102,7 @@ public static unsafe class LeanPq
         Prove(children, xmss, sphincs, null, null);
 
     /// <summary>
-    /// <see cref="Aggregate(IReadOnlyList{Ethereum.LeanPq.Aggregate}, IReadOnlyList{SignedMessage}, IReadOnlyList{SignedMessage})"/>,
+    /// <see cref="Aggregate(IReadOnlyList{Ethereum.PostQuantum.Aggregate}, IReadOnlyList{SignedMessage}, IReadOnlyList{SignedMessage})"/>,
     /// but the result proves exactly the given claims, in any order, a repeat counting once; each must
     /// be one the inputs cover.
     /// </summary>
@@ -111,7 +111,7 @@ public static unsafe class LeanPq
     public static Aggregate AggregateOnly(
         IReadOnlyList<Aggregate> children, IReadOnlyList<SignedMessage> xmss, IReadOnlyList<SignedMessage> sphincs,
         IReadOnlyList<SignatureClaim> xmssClaims, IReadOnlyList<SignatureClaim> sphincsClaims) =>
-        Prove(children, xmss, sphincs, Ethereum.LeanPq.Aggregate.ClaimRecords(xmssClaims), Ethereum.LeanPq.Aggregate.ClaimRecords(sphincsClaims));
+        Prove(children, xmss, sphincs, Ethereum.PostQuantum.Aggregate.ClaimRecords(xmssClaims), Ethereum.PostQuantum.Aggregate.ClaimRecords(sphincsClaims));
 
     /// <summary><paramref name="xmssClaims"/> and <paramref name="sphincsClaims"/> are both null to prove every covered claim.</summary>
     private static Aggregate Prove(

@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace Ethereum.LeanPq;
+namespace Ethereum.PostQuantum;
 
 /// <summary>All P/Invoke is confined here; public types never expose native addresses.</summary>
 internal static unsafe partial class Native

@@ -1,4 +1,4 @@
-namespace Ethereum.LeanPq;
+namespace Ethereum.PostQuantum;
 
 /// <summary>A claim proven by an <see cref="Aggregate"/>: the 32-byte public key signed the 32-byte message.</summary>
 public sealed class SignatureClaim : IEquatable<SignatureClaim>

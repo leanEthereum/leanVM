@@ -1,4 +1,4 @@
-namespace Ethereum.LeanPq;
+namespace Ethereum.PostQuantum;
 
 /// <summary>
 /// A stateless leanSPHINCS secret key: its 32-byte seed. It signs at most 2^30 messages, and signing

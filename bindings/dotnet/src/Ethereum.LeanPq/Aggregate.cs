@@ -1,4 +1,4 @@
-namespace Ethereum.LeanPq;
+namespace Ethereum.PostQuantum;
 
 /// <summary>
 /// A verified proof that every listed public key signed its message, across leanXMSS and

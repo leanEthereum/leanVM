@@ -1,4 +1,4 @@
-namespace Ethereum.LeanPq;
+namespace Ethereum.PostQuantum;
 
 /// <summary>
 /// A VRF key: a 32-byte seed and its slots <c>[start, end)</c>, which fix the root, so keep both.

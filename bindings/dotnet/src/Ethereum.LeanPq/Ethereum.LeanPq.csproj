@@ -11,6 +11,8 @@
     <!-- Releases pass -p:Version=X.Y.Z; local builds are 0.0.0-dev. -->
     <Version>0.0.0-dev</Version>
     <PackageId>Ethereum.LeanPq</PackageId>
+    <!-- Not Ethereum.LeanPq: a namespace named like its LeanPq class would hide the class from code in Ethereum.* namespaces. -->
+    <RootNamespace>Ethereum.PostQuantum</RootNamespace>
     <Authors>leanEthereum</Authors>
     <Description>.NET bindings for leanXMSS and leanSPHINCS post-quantum signatures, their leanVM aggregation, and the consensus VRF tree</Description>
     <PackageLicenseExpression>MIT OR Apache-2.0</PackageLicenseExpression>

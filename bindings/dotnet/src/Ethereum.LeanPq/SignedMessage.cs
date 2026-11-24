@@ -1,4 +1,4 @@
-namespace Ethereum.LeanPq;
+namespace Ethereum.PostQuantum;
 
 /// <summary>A raw signature with the 32-byte public key and 32-byte message it signs.</summary>
 public sealed class SignedMessage : IEquatable<SignedMessage>
