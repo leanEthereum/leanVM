@@ -6,6 +6,8 @@ public import VCVio.OracleComp.QueryTracking.QueryBound
 
 @[expose] public section
 
+set_option backward.isDefEq.respectTransparency false
+
 /-! Every hash input of the honest algorithms and of the verifier has at most 2084 bytes (the largest,
 `T_k` of 64 FORS roots, has 1072). Longer adversarial inputs never meet honest work, which lets them
 be simulated privately. -/

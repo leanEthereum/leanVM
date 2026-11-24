@@ -5,6 +5,8 @@ public import FORS.Classification.Encoding
 
 @[expose] public section
 
+set_option backward.isDefEq.respectTransparency false
+
 /-! WOTS+C extraction from the actual verifier trace.
 The exceptional cases remain explicit: leaf or forward-chain output matches, two linked prefix
 edges, two prefix contacts, or a unit-neighbor encoding together with one prefix contact. -/

@@ -22,6 +22,8 @@ open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForsPrice F
 open FORS.LoopWalk Common.LoopWalk
 open FORS.Base.Domination
 
+set_option backward.isDefEq.respectTransparency false
+set_option maxRecDepth 10000
 attribute [local instance] Classical.propDecidable
 
 /-! ### Hitting one leaf -/

@@ -17,6 +17,9 @@ variable [Params]
 
 open Concrete Completeness Prefix HiddenGraph SeedCoupling GraphView
 
+set_option backward.isDefEq.respectTransparency false
+set_option maxRecDepth 10000
+
 /-- Randomizer-base derivation outputs (`R0`), by message. -/
 abbrev RTable := Message → HashOutput
 

@@ -12,6 +12,8 @@ namespace XmssSecurity.Seeded
 
 open DeterministicSigning
 
+set_option backward.isDefEq.respectTransparency false
+
 variable {Request Answer : Type} [DecidableEq Request]
 
 theorem erases_pure_of_resolves {α : Type} {known : QueryCache HashSpec}

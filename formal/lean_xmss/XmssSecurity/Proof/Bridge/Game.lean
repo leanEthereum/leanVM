@@ -21,6 +21,8 @@ namespace XmssSecurity.Bridge
 
 open Seeded DeterministicSigning
 
+set_option backward.isDefEq.respectTransparency false
+
 /-! ## Logged simulations with translated logs -/
 
 theorem Erases.simulateQ_writer_map {ι κ : Type} {source : OracleSpec ι} {target : OracleSpec κ}
@@ -56,6 +58,7 @@ theorem Erases.simulateQ_writer_map {ι κ : Type} {source : OracleSpec ι} {tar
         simp [List.map_append]
       rw [hright]
       exact (h input).bind _ _ fun a => (ih a.1).map _
+
 
 theorem Erases.of_eq {ι : Type} {spec : OracleSpec ι} {α : Type} {known : QueryCache spec}
     {left right : OracleComp spec α} (h : left = right) : Erases known left right :=
@@ -188,6 +191,8 @@ theorem erases_oracles (h : Prepared seed d result cache) (input : (LeanXmss.Ora
       simp only [liftM_hash_map, map_bind, bind_map_left, map_pure, Prod.map_apply, id_eq, List.map_cons,
         List.map_nil]
       rfl
+
+
 
 theorem erases_rest (h : Prepared seed d result cache) (adversary : LeanXmss.Security.Adversary) :
     Erases (worldKnown cache)

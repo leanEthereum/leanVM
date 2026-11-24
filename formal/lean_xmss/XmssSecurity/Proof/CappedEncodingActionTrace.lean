@@ -9,6 +9,8 @@ open OracleComp OracleSpec
 
 namespace XmssSecurity
 
+set_option maxRecDepth 100000
+
 def ValidFreshSigningCollisionsRepresented
     (secretKey : SecretKey) (signingTrace : SigningCacheTrace)
     (actions : EncodingActionTrace) : Prop :=
@@ -444,6 +446,7 @@ theorem cappedEncodingTracedMappedAdversaryImpl_query_validFreshSigningCollision
             rw [hqueryActions]
             simp [List.append_assoc]
 
+
 theorem cappedEncodingTracedMappedAdversaryImpl_query_postSigningQueriesRepresented
     (publicKey : PublicKey) (secretKey : SecretKey)
     (input : (OracleWorld + SigningSpec).Domain)
@@ -630,6 +633,7 @@ theorem cappedEncodingTracedMappedAdversaryImpl_validEncodingCollisionInvariants
             hstate.1 hstate.2 hquery)
     computation initialState ⟨hunsigned, hcollisions⟩ result hmem
 
+
 theorem cappedEncodingTracedMappedAdversaryImpl_postSigningInvariants
     (publicKey : PublicKey) (secretKey : SecretKey)
     (computation : OracleComp (OracleWorld + SigningSpec) α)
@@ -659,6 +663,7 @@ theorem cappedEncodingTracedMappedAdversaryImpl_postSigningInvariants
       · exact cappedEncodingTracedMappedAdversaryImpl_query_postSigningQueriesRepresented
           publicKey secretKey input state queryResult hstate.1 hstate.2 hquery)
     computation initialState ⟨hsignActions, hpostSigning⟩ result hmem
+
 
 theorem cappedDetailedGameAfterKeygenWithEncodingTrace_signLeafIndices_sublist
     (adversary : Adversary)
@@ -740,6 +745,7 @@ theorem cappedDetailedGameAfterKeygenWithEncodingTrace_validFreshSigningCollisio
             [EncodingMonitor.ObservedAction.query forgery.leafIndex output]
   · simpa [appendVerificationEncodingObservation, forgedInput, hfresh] using hrepresented
 
+
 theorem cappedDetailedGameWithEncodingTrace_signLeafIndices_sublist
     (adversary : Adversary)
     (result : GameOutcome ×
@@ -782,6 +788,7 @@ theorem cappedDetailedGameWithEncodingTrace_validFreshSigningCollisionsRepresent
       keyCache (result.1, result.2.1) hprojection).1
   rw [hsecretKey]
   exact hrepresented
+
 
 theorem cappedDetailedGameWithEncodingTrace_signingLeafIndices_nodup_of_winning
     (adversary : Adversary)
@@ -1025,5 +1032,6 @@ theorem cappedDetailedGameWithEncodingTrace_postSigningFreshForgedCollision_moni
         entry.request.leafIndex signedOutput forgedOutput before middle [] hsignedValid
         hforgedValid hdigest
         (by simpa [hactions] using hactionNodup)
+
 
 end XmssSecurity

@@ -6,6 +6,8 @@ public import FORS.Scheme.Correctness
 
 @[expose] public section
 
+set_option backward.isDefEq.respectTransparency false
+
 /-!
 Compression counts of the actual verifier's logged hash inputs, for each of three hashes. An
 addressed input is `PK.seed || ADRS || payload` (`48 + |payload|` bytes), a digest call 84 bytes, and

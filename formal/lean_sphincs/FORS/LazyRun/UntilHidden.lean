@@ -16,6 +16,8 @@ variable [Params]
 
 open HiddenCost Stop GraphView HiddenGraph
 
+set_option backward.isDefEq.respectTransparency false
+set_option maxRecDepth 10000
 attribute [local instance] Classical.propDecidable
 
 section Generic

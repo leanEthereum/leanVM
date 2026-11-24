@@ -9,6 +9,8 @@ open OracleComp ENNReal
 
 namespace XmssSecurity.CappedEncodingMonitor
 
+set_option maxRecDepth 100000
+
 noncomputable def State.pendingRisk
     (state : EncodingMonitor.State) : ℝ≥0∞ :=
   (state.pendingCount : ℝ≥0∞) *
@@ -51,6 +53,7 @@ theorem State.pendingRisk_addPending_le
 private theorem sum_uniformDigest_eq_one :
     ∑ digest : Digest, Pr{let x ← $ᵗ Digest}[x = digest] = 1 := by
   rw [← OracleComp.tsum_prEvent_eq_one ($ᵗ Digest), tsum_fintype]
+
 
 theorem uniformDigest_if_eq_probability_le
     (target : Digest) (resume : Digest → ProbComp Bool) (ε : ℝ≥0∞)
@@ -510,6 +513,7 @@ theorem applyProgrammedQueryMonitor_evalDist_eq
       Rom.evalDist_sampledHashOutputWithDigest_bind_eq_uniform_bind continuation
     _ = _ := rfl
 
+
 theorem applyProgrammedSignAttemptMonitor_evalDist_eq
     (leafIndex : LeafIndex)
     (resume : HashOutput → EncodingMonitor.State → ProbComp Bool)
@@ -549,6 +553,7 @@ theorem applyProgrammedSignAttemptMonitor_evalDist_eq
           continuation (truncateHash output, output)) :=
       Rom.evalDist_sampledHashOutputWithDigest_bind_eq_uniform_bind continuation
     _ = _ := rfl
+
 
 noncomputable def State.applyObserved
     (state : EncodingMonitor.State) : EncodingMonitor.ObservedAction →

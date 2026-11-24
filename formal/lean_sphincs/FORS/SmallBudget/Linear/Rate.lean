@@ -16,6 +16,8 @@ variable [Params]
 
 open Concrete HiddenGraph HiddenDebt HiddenBridge EncodingCode
 
+set_option backward.isDefEq.respectTransparency false
+set_option maxRecDepth 10000
 set_option linter.unusedSectionVars false
 attribute [local instance] Classical.propDecidable
 
@@ -26,6 +28,7 @@ theorem three_halves_le {ρ : ℝ} (h : 3 / 2 ≤ ρ) : (1 : ℝ≥0∞) + 2⁻�
     simp
   rw [h1]
   exact ENNReal.ofReal_le_ofReal h
+
 
 namespace Ctx
 

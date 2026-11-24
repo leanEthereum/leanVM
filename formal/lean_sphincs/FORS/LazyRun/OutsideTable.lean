@@ -19,6 +19,8 @@ variable [Params]
 
 open Eager Short
 
+set_option backward.isDefEq.respectTransparency false
+set_option maxRecDepth 10000
 attribute [local instance] Classical.propDecidable
 noncomputable local instance lazyCoordinateDecEq : DecidableEq HiddenGraph.Coordinate :=
   Classical.decEq _

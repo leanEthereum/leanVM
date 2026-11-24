@@ -22,6 +22,8 @@ open Concrete Completeness Graph GraphCorrectness HiddenGraph Prefix PrunedGraph
 
 attribute [local irreducible] firstEncoding encodingAttemptLimit Seeded.forsKey Seeded.forsOpen
   Seeded.treePath Seeded.signLayer chainWalk sequenceFin encode
+set_option backward.isDefEq.respectTransparency false
+set_option maxRecDepth 10000
 
 /-- The values the graph view fixes: the public key, the roots and paths of the layers' trees, the
 FORS keys and paths, and the step halves of the randomizer walks (`steps m` gives the step

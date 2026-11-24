@@ -17,6 +17,8 @@ namespace XmssSecurity.Bridge
 
 open Seeded DeterministicSigning
 
+set_option backward.isDefEq.respectTransparency false
+
 theorem chainWalk_split (parameter : PublicParameter) (index : LeafIndex) (chain : ChainIndex)
     (start s1 s2 : Nat) (value : Digest) :
     (Concrete.chainWalk parameter index chain start (s1 + s2) value : OracleComp HashSpec Digest) =

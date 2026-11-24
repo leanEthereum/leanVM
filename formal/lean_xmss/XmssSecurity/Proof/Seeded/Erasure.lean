@@ -9,6 +9,8 @@ open OracleComp OracleSpec
 
 namespace XmssSecurity.Seeded
 
+set_option backward.isDefEq.respectTransparency false
+
 variable {ι : Type} {spec : OracleSpec ι}
 
 /-- Remove queries whose answers are already fixed, retaining every other query. -/

@@ -20,6 +20,8 @@ variable [Params]
 
 open Completeness SeedCoupling Short
 
+set_option backward.isDefEq.respectTransparency false
+set_option maxRecDepth 10000
 attribute [local instance] Classical.propDecidable
 
 def LongQuery : OracleWorld.Domain → Prop

@@ -18,6 +18,8 @@ variable [Params]
 
 open Concrete Completeness TargetAssignment
 attribute [local instance] Classical.propDecidable
+set_option backward.isDefEq.respectTransparency false
+set_option maxRecDepth 512
 attribute [local irreducible] canonicalGraphInput canonicalGraphSlots
 
 noncomputable def positionAt (fields : TweakFields) : Option Position :=

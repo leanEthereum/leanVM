@@ -8,6 +8,8 @@ open OracleComp OracleSpec
 
 namespace XmssSecurity.Seeded
 
+set_option backward.isDefEq.respectTransparency false
+
 noncomputable def signRequestEquiv : SignRequest ≃ (LeafIndex × Message) where
   toFun request := (request.leafIndex, request.message)
   invFun pair := ⟨pair.1, pair.2⟩

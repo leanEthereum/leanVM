@@ -18,6 +18,8 @@ variable [Params]
 
 open HiddenCost HiddenBridge HiddenOutside HiddenReveal
 
+set_option backward.isDefEq.respectTransparency false
+set_option maxRecDepth 10000
 attribute [local instance] Classical.propDecidable
 
 variable {D R A ι : Type} [Fintype ι] [SampleableType R]
@@ -57,6 +59,7 @@ theorem interp_drawHB {β : Type} (draw : ℕ)
     rw [show (fun out : Run D ι β × DebtState D R ι =>
         ((out.1.1, out.1.2.1, out.1.2.2.1, out.1.2.2.2), out.2)) = id from rfl, id_map]
   · exact absurd (Nat.zero_le budget) h
+
 
 omit [Fintype ι] in
 theorem presample_costStepH {γ : Type} (x : D) (input : (SourceCostSpec D R ι H).Domain) (state : DebtState D R ι)
@@ -131,6 +134,7 @@ theorem presample_interpH (x : D) (hk : tg.kind x = .none) {α : Type}
 
 /-! ### Presampling only helps monotone final values -/
 
+
 omit [Fintype ι] in
 /-- A final value that can only grow when an untargeted input is presampled at the end. -/
 theorem interp_presample_leH (x : D) (hk : tg.kind x = .none) {α : Type}
@@ -180,6 +184,7 @@ theorem interp_presample_eq (x : D) (hk : tg.kind x = .none) {α : Type}
   rw [ENNReal.tsum_mul_right, presample_mass, one_mul]
 
 /-! ### Storing a family of inputs -/
+
 
 variable [Fintype R]
 
@@ -401,5 +406,6 @@ theorem interp_presample_new_eq {α : Type} {n : ℕ} (x : Fin n → D) (hx : Fu
         conv_lhs => rw [← hu]
         rw [storeAll_perm x hx _ σ state]
         congr 3
+
 
 end FORS.Security.HiddenDebt

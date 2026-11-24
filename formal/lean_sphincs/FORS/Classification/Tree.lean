@@ -6,6 +6,8 @@ public import FORS.Scheme.Bytes
 
 @[expose] public section
 
+set_option backward.isDefEq.respectTransparency false
+
 /-!
 Deterministic Merkle extraction, by a first-divergence argument.
 Two paths reaching the same root either agree, cross into the other path's sibling, or make a

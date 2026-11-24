@@ -20,6 +20,8 @@ variable [Params]
 
 open Concrete Security Security.Short
 
+set_option backward.isDefEq.respectTransparency false
+
 attribute [local irreducible] digestAttemptLimit encodingAttemptLimit
 
 theorem Only.mapM {α β : Type} (φ : α → OracleComp HashSpec β) (h : ∀ a, Short.Only (φ a)) :

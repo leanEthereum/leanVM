@@ -18,6 +18,8 @@ ordinary arithmetic on one large numeral.
 
 open Finset
 
+set_option maxRecDepth 100000
+
 namespace FORS.Completeness
 
 variable [Params]

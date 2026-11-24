@@ -14,6 +14,7 @@ open OracleComp.ProgramLogic.Relational
 
 namespace XmssSecurity.CappedChain
 
+set_option maxRecDepth 1000000
 set_option linter.constructorNameAsVariable false
 
 namespace GlobalHighDirectTracedState
@@ -2107,6 +2108,9 @@ theorem globalFirstLaneExactTracedVerifier_validSignLeafIndices_eq_nil
     (globalFirstLaneVerifier_validSignLeafIndices_eq_nil table keyView edgeHigh
       computation state.causalState baseResult hbase)
 
+
+set_option maxRecDepth 1000000
+
 theorem globalExactTracedLift_hazardBound
     (input : (OracleWorld + SigningSpec).Domain)
     (base : StateT GlobalCausalHashState
@@ -2183,6 +2187,8 @@ theorem globalFirstLaneExactTracedVerifierImpl_hazardBound
   exact OracleComp.isQueryBoundP_pure
     (p := FirstLaneOracleSimulation.IsHazardQuery) _ 0
 
+
+set_option maxRecDepth 1000000
 set_option linter.constructorNameAsVariable false
 
 theorem map_globalHighMonitored_adversary_exact_query
@@ -2392,6 +2398,7 @@ def globalHighMonitoredFullProjection
       (result.2.1, GlobalHighDirectTracedState.mk result.2.2.1.causal
         result.2.2.2)), result.2.2.1.trace))
 
+
 def globalHighDirectExactTracedBaseProjection
     (result : GlobalExactTracedResult) : GlobalHighDirectResult :=
   (result.1, (result.2.1, result.2.2.causalState))
@@ -2412,6 +2419,7 @@ noncomputable def appendGlobalHighDirectExactPublicTrace
   (result.1, (result.2.1, result.2.2 ++
     globalHighDirectExactForgeryPrimaryProbeTrace result.2.1))
 
+
 noncomputable def globalFirstLaneExactTracedPublicProgram
     (adversary : Adversary) :
     OracleComp GlobalFirstLaneWorld GlobalExactTracedResult := do
@@ -2421,12 +2429,14 @@ noncomputable def globalFirstLaneExactTracedPublicProgram
       (globalHighDirectExactForgeryPrimaryProbeTrace result))
   pure result
 
+
 theorem globalHighDirectExactForgeryPrimaryProbeTrace_agrees
     (result : GlobalExactTracedResult) :
     RevealProbeOracleSimulation.TraceAgrees table
       (globalHighDirectExactForgeryPrimaryProbeTrace result) := by
   unfold globalHighDirectExactForgeryPrimaryProbeTrace
   exact globalHighDirectForgeryPrimaryProbeTrace_agrees table _
+
 
 theorem globalHighMonitored_fullProjection_public_eq
     (result : GlobalHighMonitoredProgramResult) :
@@ -2463,6 +2473,7 @@ abbrev GlobalFirstLaneExactPublicEagerResult :=
   (GlobalChainValueIndex → Digest) ×
     (GlobalExactTracedResult ×
       FirstLaneOracleSimulation.ActionTrace GlobalChainValueIndex)
+
 
 noncomputable def globalFirstLaneExactPublicEagerExperiment
     (adversary : Adversary) :

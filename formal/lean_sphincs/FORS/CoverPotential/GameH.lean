@@ -18,6 +18,8 @@ variable [Params]
 
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView
 
+set_option backward.isDefEq.respectTransparency false
+
 section Program
 
 variable (parameter : PublicParameter) (data : PublicData)

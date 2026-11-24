@@ -18,6 +18,8 @@ variable [Params]
 
 open Completeness SeedCoupling Internalize Eager Short SeedModel Graph
 
+set_option backward.isDefEq.respectTransparency false
+set_option maxRecDepth 10000
 attribute [local instance] Classical.propDecidable
 
 theorem OnlyW.counted {α : Type} (selected : OracleWorld.Domain → Prop) [DecidablePred selected]

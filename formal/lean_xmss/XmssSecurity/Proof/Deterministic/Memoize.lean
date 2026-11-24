@@ -8,6 +8,8 @@ open OracleComp OracleSpec
 
 namespace DeterministicSigning
 
+set_option backward.isDefEq.respectTransparency false
+
 variable {ι : Type} {base : OracleSpec ι} {Request Answer : Type} [DecidableEq Request]
 
 /-- Forward the first request and replay its answer on every repetition. -/

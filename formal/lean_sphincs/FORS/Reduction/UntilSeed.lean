@@ -15,6 +15,8 @@ variable [Params]
 
 open Completeness HiddenCost GraphView
 
+set_option backward.isDefEq.respectTransparency false
+set_option maxRecDepth 10000
 attribute [local instance] Classical.propDecidable
 
 /-- Private draws are real; ordinary queries read a fixed function; reveals read a fixed table;

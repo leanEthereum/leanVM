@@ -11,6 +11,8 @@ namespace XmssSecurity.Seeded
 
 open DeterministicSigning
 
+set_option backward.isDefEq.respectTransparency false
+
 noncomputable def memoAdversary (adversary : Adversary) : Adversary where
   main := fun publicKey => memoize (adversary.main publicKey) ∅
 

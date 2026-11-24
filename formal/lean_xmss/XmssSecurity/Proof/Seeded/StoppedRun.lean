@@ -12,6 +12,8 @@ namespace XmssSecurity.Seeded
 
 open Common.RomTable
 
+set_option backward.isDefEq.respectTransparency false
+
 theorem run'_lift_sample_bind {α β : Type} (computation : ProbComp α)
     (next : α → OracleComp OracleWorld β) (cache : QueryCache HashSpec) :
     (simulateQ romImpl ((liftM computation : OracleComp OracleWorld α) >>= next)).run' cache =

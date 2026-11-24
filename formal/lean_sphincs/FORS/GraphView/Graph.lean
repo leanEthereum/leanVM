@@ -16,6 +16,7 @@ namespace FORS.Security.Graph
 variable [Params]
 
 open Concrete Completeness
+set_option backward.isDefEq.respectTransparency false
 
 abbrev CanonicalGraphLabels := Position → HashOutput
 

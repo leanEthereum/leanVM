@@ -20,6 +20,7 @@ variable [Params]
 open Concrete Completeness Prefix HiddenGraph
 attribute [local instance] Classical.propDecidable
 attribute [local irreducible] Seeded.finishSign digestAttemptLimit
+set_option backward.isDefEq.respectTransparency false
 
 noncomputable def fixedSource (f : QueryImpl HashSpec Id) (table : HiddenGraph.Table) :
     QueryImpl HiddenGraph.SourceSpec PMF :=
@@ -42,6 +43,7 @@ namespace FORS.Security.GraphView
 
 variable [Params]
 open Concrete Completeness Prefix PrunedGraph
+set_option backward.isDefEq.respectTransparency false
 attribute [local irreducible] firstEncoding ReferenceChoice.search encodingAttemptLimit
   Seeded.forsKey Seeded.forsOpen Seeded.treePath Seeded.otsSignFrom Seeded.signLayer
   chainWalk sequenceFin encode Seeded.treeRoot Seeded.forsNode

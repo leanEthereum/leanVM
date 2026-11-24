@@ -22,6 +22,7 @@ variable [Params]
 
 open Completeness HiddenCost GraphView Concrete
 
+set_option backward.isDefEq.respectTransparency false
 attribute [local instance] Classical.propDecidable
 attribute [local irreducible] encodingAttemptLimit digestAttemptLimit
 

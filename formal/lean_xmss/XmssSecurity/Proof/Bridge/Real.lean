@@ -19,6 +19,8 @@ namespace XmssSecurity.Bridge
 
 open Seeded DeterministicSigning
 
+set_option backward.isDefEq.respectTransparency false
+
 /-- The hash calls of the real key generation: the seed hash, the parameter and the top tree. -/
 def keygenQueries : Nat := 2 + 2 ^ 16 * (29 + 174 + 1) + 2 ^ 16 - 1
 

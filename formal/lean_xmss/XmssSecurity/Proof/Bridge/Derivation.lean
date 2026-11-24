@@ -24,6 +24,8 @@ namespace XmssSecurity.Bridge
 
 open Seeded DeterministicSigning Common.RomTable
 
+set_option backward.isDefEq.respectTransparency false
+
 /-- A bottom key and a pair of its chains. -/
 abbrev BottomPos := LeafIndex × ChainPair
 /-- A top key and a pair of its chains. -/

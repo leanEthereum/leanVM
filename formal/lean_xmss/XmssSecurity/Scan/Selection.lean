@@ -23,6 +23,8 @@ namespace XmssSecurity.Scan
 
 open Common.LoopWalk
 
+set_option maxRecDepth 100000
+
 /-- The probability that a uniform oracle answer truncates to a valid digest. -/
 noncomputable def landing : ℝ≥0∞ :=
   (TargetSum.validDigests.card : ℝ≥0∞) / 2 ^ digestBits

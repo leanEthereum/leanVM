@@ -19,6 +19,8 @@ variable [Params]
 
 open Concrete HiddenGraph HiddenDebt HiddenBridge HiddenCost HiddenReveal EncodingCode
 
+set_option backward.isDefEq.respectTransparency false
+set_option maxRecDepth 10000
 set_option linter.unusedSectionVars false
 attribute [local instance] Classical.propDecidable
 
@@ -59,6 +61,7 @@ theorem exposeR_known : ∀ (cs : List Coordinate) (known k : Knowledge Coordina
             · rw [ih1 _ _ hself]
               simp
             · exact ih2 c' hc'
+
 
 /-- The first-order targeting of the small-budget route: the sample's targets, removed at
 second-order inputs. -/

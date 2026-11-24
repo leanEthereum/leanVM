@@ -22,6 +22,8 @@ variable [Params]
 
 open HiddenCost HiddenBridge HiddenOutside HiddenReveal
 
+set_option backward.isDefEq.respectTransparency false
+
 variable {D R A ι : Type} [Fintype ι] [SampleableType R] {H : Type} [HonestInputs H D]
 variable (tg : Targeting D R ι) (initial : Cache D R) (model : HiddenRows.Model D R A ι)
 
@@ -65,6 +67,8 @@ open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForsPrice F
   FORS.Base.Domination
 open HiddenBridge PotentialA
 
+set_option backward.isDefEq.respectTransparency false
+set_option maxRecDepth 10000
 set_option linter.constructorNameAsVariable false
 attribute [local instance] Classical.propDecidable
 

@@ -77,6 +77,7 @@ open OracleComp OracleSpec ENNReal
 namespace FORS.Security.Prefix
 
 variable [Params]
+set_option backward.isDefEq.respectTransparency false
 
 /-- Source-side hash calls, excluding private uniform samples. -/
 def SourceHash : OracleWorld.Domain → Prop
@@ -177,6 +178,7 @@ namespace FORS.Security.Prefix
 
 variable [Params]
 open Concrete
+set_option backward.isDefEq.respectTransparency false
 
 attribute [local irreducible] encodingAttemptLimit digestAttemptLimit Seeded.signLayer
   Seeded.forsOpen Seeded.forsKey sequenceFin chainWalk
@@ -199,6 +201,7 @@ theorem fixedHashWorld_lift_hash (f : QueryImpl HashSpec Id) {α : Type}
         show evalWithAnswerFn f (liftM (HashSpec.query input)) = f input from simulateQ_spec_query f input,
         ← PMF.monad_pure_eq_pure, pure_bind]
       exact ih (f input)
+
 
 end FORS.Security.Prefix
 

@@ -18,6 +18,8 @@ namespace XmssSecurity.Ghost
 
 open Partner
 
+set_option maxRecDepth 100000
+
 theorem scan_landing_eq : Scan.landing = Partner.landing := by
   rw [Scan.landing, Partner.landing, div_eq_mul_inv]
   push_cast

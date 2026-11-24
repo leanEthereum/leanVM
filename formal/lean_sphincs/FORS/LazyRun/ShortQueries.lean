@@ -17,6 +17,8 @@ variable [Params]
 
 open Short Internalize GraphView HiddenCost Concrete
 
+set_option backward.isDefEq.respectTransparency false
+set_option maxRecDepth 10000
 attribute [local instance] Classical.propDecidable
 
 def LongCost : CostSpec.Domain → Prop
@@ -271,6 +273,8 @@ variable [Params]
 
 open Completeness SeedModel Graph Assembly Reduce HiddenGraph Eager Internalize
 
+set_option backward.isDefEq.respectTransparency false
+set_option maxRecDepth 10000
 attribute [local instance] Classical.propDecidable
 
 theorem evalDist_stoppedExperiment_lazy {A α : Type}

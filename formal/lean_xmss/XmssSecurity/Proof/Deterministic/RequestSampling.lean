@@ -12,6 +12,9 @@ namespace XmssSecurity.Seeded
 
 open DeterministicSigning
 
+set_option backward.isDefEq.respectTransparency false
+set_option maxRecDepth 4096
+
 noncomputable local instance : SampleableType RandomizerOutputs := randomizerOutputsSampleableType
 
 variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]

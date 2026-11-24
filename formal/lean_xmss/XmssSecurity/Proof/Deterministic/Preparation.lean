@@ -11,6 +11,8 @@ namespace XmssSecurity.Seeded
 
 open DeterministicSigning Common.RomTable
 
+set_option backward.isDefEq.respectTransparency false
+
 /-- Preparing finitely many deterministic computations fixes every result in the final cache. -/
 theorem resolves_sequenceFin {α : Type} {n : Nat} (computations : Fin n → OracleComp HashSpec α)
     (before : QueryCache HashSpec) (result : (Fin n → α) × QueryCache HashSpec)

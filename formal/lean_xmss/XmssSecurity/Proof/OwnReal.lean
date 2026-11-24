@@ -17,6 +17,8 @@ open OracleComp OracleSpec
 
 namespace XmssSecurity.Bridge
 
+set_option backward.isDefEq.respectTransparency false
+
 local notation "RH" => OracleComp LeanXmss.HashSpec
 
 /- A tree node at the literal height `16` unfolds to `2^16` leaves under `whnf`. -/

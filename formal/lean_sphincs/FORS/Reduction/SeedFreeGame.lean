@@ -20,6 +20,8 @@ variable [Params]
 open Completeness SeedCoupling Internalize Eager Short SeedModel Graph Assembly Stop HiddenCost
   GraphView
 
+set_option backward.isDefEq.respectTransparency false
+set_option maxRecDepth 10000
 attribute [local instance] Classical.propDecidable
 
 theorem programGraphCache_congr_base (parameter : PublicParameter)

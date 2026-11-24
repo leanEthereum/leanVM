@@ -19,6 +19,7 @@ variable [Params]
 
 open Concrete HiddenGraph HiddenDebt HiddenBridge HiddenCost HiddenReveal GraphView
 
+set_option backward.isDefEq.respectTransparency false
 attribute [local instance] Classical.propDecidable
 
 /-- A targeting whose untargeted inputs are exactly the message-digest inputs. -/

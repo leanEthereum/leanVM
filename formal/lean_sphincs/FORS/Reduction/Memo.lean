@@ -103,6 +103,7 @@ variable [Params]
 
 open Internalize Short ForsPotential
 
+set_option backward.isDefEq.respectTransparency false
 attribute [local instance] Classical.propDecidable
 
 /-- The answers recorded so far, by message. -/

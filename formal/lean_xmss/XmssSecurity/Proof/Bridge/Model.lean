@@ -21,6 +21,8 @@ namespace XmssSecurity.Bridge
 
 open Seeded DeterministicSigning
 
+set_option backward.isDefEq.respectTransparency false
+
 /-- The model's adversary: the statement's, translated and memoized. -/
 noncomputable def modelAdversary (adversary : LeanXmss.Security.Adversary) : Adversary :=
   memoAdversary (toModelAdversary adversary)

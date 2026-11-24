@@ -12,6 +12,8 @@ namespace XmssSecurity.Seeded
 
 open Common.RomTable
 
+set_option backward.isDefEq.respectTransparency false
+
 theorem hashQueryBound_after_preparation {α β : Type} (computation : OracleComp OracleWorld α)
     (preparation : OracleComp OracleWorld β) (cache : QueryCache HashSpec) (q : Nat)
     (hbound : HashQueryBound computation cache q) (prepared : β × QueryCache HashSpec)

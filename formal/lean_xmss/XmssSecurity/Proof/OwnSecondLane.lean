@@ -20,6 +20,8 @@ open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity
 
+set_option backward.isDefEq.respectTransparency false
+
 section Expected
 
 variable {ι σ : Type} {spec : OracleSpec ι} (implementation : QueryImpl spec (StateT σ ProbComp))

@@ -220,6 +220,9 @@ noncomputable def globalFirstLaneVerifierImpl
         (OracleComp GlobalFirstLaneWorld)) :=
   globalFirstLaneOracleImpl keyView edgeHigh
 
+
+set_option maxRecDepth 1000000
+
 theorem globalFirstLaneUniformQuery_hazardBound (n : Nat) :
     (FirstLaneOracleSimulation.uniformQuery
       (Index := GlobalChainValueIndex) n).IsQueryBoundP
@@ -466,6 +469,7 @@ theorem globalFirstLaneSigningImpl_hazardBound
     ((globalFirstLaneSigningImpl keyView request).run state)
       |>.IsQueryBoundP FirstLaneOracleSimulation.IsHazardQuery 0 := by
   exact globalFirstLaneSigningQuery_hazardBound keyView request state
+
 
 noncomputable def globalFirstLaneEraseImpl :
     QueryImpl GlobalFirstLaneWorld
@@ -1088,6 +1092,9 @@ theorem globalFirstLaneVerifierImpl_hash
     globalFirstLaneOracleExecution
   rfl
 
+
+set_option maxRecDepth 1000000
+
 def appendAttackerActionTrace
     (input : (OracleWorld + SigningSpec).Domain)
     (_initialState : (QueryCache HashSpec × SigningCacheTrace) ×
@@ -1443,6 +1450,7 @@ theorem cappedDetailedGameWithKeygenCacheAndBothTraces_encodingProjection_eq
         cappedDetailedGameWithKeygenCacheAndBothTraces adversary =
       cappedDetailedGameWithEncodingTrace adversary :=
   cappedDetailedGameWithKeygenCacheAndBothTraces_encodingProjection adversary
+
 
 theorem simulate_globalFirstLaneEagerTrace_chainProjection
     (computation : OracleComp GlobalFirstLaneWorld α) :

@@ -26,6 +26,7 @@ variable [Params]
 open Completeness
 
 attribute [local instance] Classical.propDecidable
+set_option backward.isDefEq.respectTransparency false
 
 def Bad (targets : HashInput → Finset Digest) (cache : QueryCache HashSpec) : Prop :=
   ∃ input answer, cache input = some answer ∧ truncateHash answer ∈ targets input

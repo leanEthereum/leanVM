@@ -19,6 +19,7 @@ namespace FORS.Security.GraphView
 
 variable [Params]
 open Concrete Completeness Prefix HiddenGraph HiddenDebt HiddenBridge
+set_option backward.isDefEq.respectTransparency false
 attribute [local irreducible] encodingAttemptLimit
 
 /-- A lazily sampled query caches its answer. -/

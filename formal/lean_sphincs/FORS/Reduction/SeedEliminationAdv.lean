@@ -23,6 +23,8 @@ variable [Params]
 open Completeness SeedCoupling Internalize Eager Short SeedModel _root_.FORS.Security.Graph Assembly Stop
   HiddenCost GraphView Reduce DetValue Det
 
+set_option backward.isDefEq.respectTransparency false
+set_option maxRecDepth 10000
 attribute [local instance] Classical.propDecidable
 attribute [local irreducible] encodingAttemptLimit digestAttemptLimit
 
@@ -434,6 +436,7 @@ theorem budgetedWinAdv_le_seedFreeH (adversary : Adversary) (q : Nat) (B : ℝ�
             (1 / (2 : ℝ≥0∞) ^ 256) randHit_probability_le _ (fun pair => pair.2.2) q hcost
             (fun key pair => ((pair.1, key), pair.2)) _ (fun _ _ h => h)) (le_of_eq (mul_one_div _ _))
     _ = B + 2 * (q / (2 : ℝ≥0∞) ^ 256) := by rw [two_mul]
+
 
 /-- **The adversary-count bound.** If the adversary makes at most `q` hash calls of its own on
 every path and the verification at most `V`, and the seed-free capped win of the internalized

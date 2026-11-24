@@ -22,6 +22,8 @@ variable [Params]
 open Concrete Completeness _root_.FORS.Security.Graph GraphCorrectness TargetAssignment HiddenGraph Assembly SeedModel
   Reduce Eager
 
+set_option backward.isDefEq.respectTransparency false
+set_option maxRecDepth 10000
 set_option linter.constructorNameAsVariable false
 attribute [local instance] Classical.propDecidable
 
@@ -170,6 +172,8 @@ variable [Params]
 open HiddenReveal HiddenCost Eager Short Concrete Stop
 open Completeness SeedModel _root_.FORS.Security.Graph Assembly Reduce HiddenGraph Internalize GraphView
 
+set_option backward.isDefEq.respectTransparency false
+set_option maxRecDepth 10000
 set_option linter.constructorNameAsVariable false
 attribute [local instance] Classical.propDecidable
 
@@ -222,6 +226,7 @@ theorem seedFree_le_expose (adversary : Adversary) (q : Nat) (steps : Message �
     (outsideFn (splitMaterial parameterOutput highs remaining fixed) (splitAnswers highs remaining fixed) outsideTable)
     (sampleProgram adversary q steps parameterOutput fixed highs remaining) _
     (knownAgrees_exposeT table _ _ hagree) event
+
 
 set_option maxRecDepth 100000 in
 /-- **The seed-free win in the stopped prepared world, with the above-word values exposed.** -/
@@ -282,6 +287,7 @@ theorem seedFree_le_exposeP (adversary : Adversary) (q : Nat) (steps : Message �
     · rcases outcome with _ | value <;> simp [HiddenReveal.StopOr, Win, RichWin]
   rw [hevent]
 
+
 end FORS.Security.HiddenBridge
 
 namespace FORS.Security.ForsPotential
@@ -291,6 +297,8 @@ variable [Params]
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForsPrice ForsSigner HiddenReveal FORS.Base.Domination
 open HiddenBridge Completeness SeedModel _root_.FORS.Security.Graph Assembly Reduce Internalize
 
+set_option backward.isDefEq.respectTransparency false
+set_option maxRecDepth 10000
 set_option linter.constructorNameAsVariable false
 attribute [local instance] Classical.propDecidable
 
@@ -431,6 +439,7 @@ theorem stopped_le_interp_exposeV (hb : 0 < keptHeight topLayer) (adversary : Ad
             (((x.2.1.1, x.2.1.2.1), x.2.1.2.2.1), x.2.2.cache)] :=
   stopped_le_interpV hb adversary q hq parameterOutput fixed highs remaining steps prepared hprepared tg known
     (expose_known_support _ fixed prepared.1 known hk).1 (expose_known_support _ fixed prepared.1 known hk).2
+
 
 /-- Averaging a pointwise bound over the support. -/
 theorem tsum_mul_mono_support {α : Type} (mx : ProbComp α) (f g : α → ℝ≥0∞) (h : ∀ x ∈ support mx, f x ≤ g x) :

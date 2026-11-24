@@ -19,6 +19,8 @@ variable [Params]
 
 open Concrete HiddenGraph HiddenCost HiddenDebt
 
+set_option backward.isDefEq.respectTransparency false
+
 /-- The honest form of a charged cost-interface query. -/
 noncomputable def toHonest : QueryImpl CostSpec (OracleComp CostSpecH)
   | .inl (.inl draw) => liftM (CostSpecH.query (.inl (.inl draw)))
@@ -228,6 +230,8 @@ namespace FORS.Security.GraphView
 variable [Params]
 
 open Concrete HiddenGraph HiddenCost HiddenDebt
+
+set_option backward.isDefEq.respectTransparency false
 
 theorem toHonest_liftProb {β : Type} (computation : ProbComp β) :
     simulateQ toHonest (liftM computation : OracleComp CostSpec β) =

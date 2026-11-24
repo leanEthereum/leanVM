@@ -33,6 +33,8 @@ theorem evalDist_independent_uniform_pair
 
 open SeedModel Completeness Common.RomTable
 
+set_option backward.isDefEq.respectTransparency false
+
 noncomputable local instance : SampleableType SecretOutputs := secretOutputsSampleableType
 
 /-- After the parameter response, the secrets' addresses are fixed independently of their own
