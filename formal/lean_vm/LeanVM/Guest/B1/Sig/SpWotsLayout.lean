@@ -146,8 +146,33 @@ def spZero : List Nat :=
   [28, 140, 229, 306, 367, 456, 533, 598, 647, 724, 789, 842, 879, 940, 989, 1026]
 
 /-- The guest's number of the template's value `i`: two fewer for each step without an address
-constant below it. -/
-def spR (i : Nat) : Nat := i - 2 * spZero.countP (· < i)
+constant below it, by a binary search over `spZero` (`spR_eq`). -/
+def spR (i : Nat) : Nat :=
+  bif Nat.blt 533 i then
+    bif Nat.blt 842 i then
+      bif Nat.blt 989 i then (bif Nat.blt 1026 i then i - 32 else i - 30)
+      else bif Nat.blt 940 i then i - 28 else bif Nat.blt 879 i then i - 26 else i - 24
+    else bif Nat.blt 724 i then (bif Nat.blt 789 i then i - 22 else i - 20)
+      else bif Nat.blt 647 i then i - 18 else bif Nat.blt 598 i then i - 16 else i - 14
+  else bif Nat.blt 229 i then
+      bif Nat.blt 367 i then (bif Nat.blt 456 i then i - 12 else i - 10)
+      else bif Nat.blt 306 i then i - 8 else i - 6
+    else bif Nat.blt 28 i then (bif Nat.blt 140 i then i - 4 else i - 2) else i
+
+private theorem spR_eq_low : (List.range 1027).all (fun i ↦ spR i == i - 2 * spZero.countP (· < i)) = true := by
+  decide +kernel
+
+theorem spR_eq (i : Nat) : spR i = i - 2 * spZero.countP (· < i) := by
+  by_cases hi : i < 1027
+  · simpa using List.all_eq_true.mp spR_eq_low i (List.mem_range.mpr hi)
+  have h1 : spZero.countP (· < i) = 16 := by
+    refine (List.countP_eq_length.mpr fun z hz ↦ ?_).trans rfl
+    simp only [spZero, List.mem_cons, List.not_mem_nil, or_false] at hz
+    simp only [decide_eq_true_eq]
+    omega
+  have hb : ∀ z ≤ 1026, Nat.blt z i = true := fun z hz ↦ Nat.blt_eq.mpr (by omega)
+  rw [h1, spR, hb 533 (by norm_num), hb 842 (by norm_num), hb 989 (by norm_num), hb 1026 (by norm_num)]
+  rfl
 
 /-- The guest's numbering, on values. -/
 def spRen (v : V) : V := ⟨v.path, v.tag, spR v.idx⟩

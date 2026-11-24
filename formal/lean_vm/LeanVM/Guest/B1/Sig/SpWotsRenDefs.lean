@@ -45,7 +45,7 @@ theorem spRi_spR {i : Nat} (h : spGaps.testBit i = false) : spRi (spR i) = i := 
     simp only [spZero, List.mem_cons, List.not_mem_nil, or_false] at hz
     simp only [decide_eq_true_eq]
     omega
-  have hR : spR i = i - 32 := by rw [spR, h1]
+  have hR : spR i = i - 32 := by rw [spR_eq, h1]
   have h2 : spZeroR.countP (· < spR i) = 16 := by
     refine (List.countP_eq_length.mpr fun z hz ↦ ?_).trans rfl
     simp only [spZeroR, List.mem_cons, List.not_mem_nil, or_false] at hz

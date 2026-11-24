@@ -227,16 +227,10 @@ theorem sp_wots_soundT {rets : List E}
 /-! ## The guest's numbering -/
 
 theorem spR_small {i : Nat} (hi : i ≤ 28) : spR i = i := by
-  unfold spR spZero
-  rw [show List.countP (fun x => decide (x < i)) [28, 140, 229, 306, 367, 456, 533, 598, 647, 724,
-    789, 842, 879, 940, 989, 1026] = 0 by
-      rw [List.countP_eq_zero]
-      intro a ha
-      simp only [List.mem_cons, List.not_mem_nil, or_false] at ha
-      simp only [decide_eq_true_eq, not_lt]
-      rcases ha with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
-        rfl | rfl | rfl <;> omega]
-  simp
+  have hb : ∀ z, 28 ≤ z → Nat.blt z i = false := fun z hz ↦
+    Bool.eq_false_iff.mpr fun h ↦ by have := Nat.blt_eq.mp h; omega
+  rw [spR, hb 533 (by norm_num), hb 229 (by norm_num), hb 28 le_rfl]
+  rfl
 
 theorem spRen_small {i : Nat} (hi : i ≤ 28) : spRen (.n i) = .n i := by
   simp [spRen, spR_small hi, V.n]
