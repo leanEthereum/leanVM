@@ -4,6 +4,10 @@ version.workspace = true
 edition.workspace = true
 publish = false
 
+[features]
+# The batched entry points take the widest backend the CPU runs, not only the target's.
+std = []
+
 [lints]
 workspace = true
 

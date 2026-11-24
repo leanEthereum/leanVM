@@ -17,8 +17,10 @@ pub fn node(pp: &PublicParam, layer: usize, level: usize, j: u32, children: &[Di
 fn levels(pp: &PublicParam, layer: usize, first: u32, from: usize, to: usize, base: Vec<Digest>) -> Vec<Vec<Digest>> {
     let mut levels = vec![base];
     for level in from + 1..=to {
-        let up = levels.last().unwrap().as_chunks().0.iter().zip(first >> level..);
-        levels.push(up.map(|(children, j)| node(pp, layer, level, j, children)).collect());
+        // As `node` computes them, one batch per level.
+        let up = levels.last().unwrap().as_chunks::<2>().0.iter().zip(first >> level..);
+        let up = up.map(|([l, r], j)| (tweak(TWEAK_NODE, layer_hi(layer, level as u32), j), concat(l, r)));
+        levels.push(th_many(pp, up).iter().map(|h| keccak256::truncate(*h)).collect());
     }
     levels
 }
@@ -27,9 +29,7 @@ fn levels(pp: &PublicParam, layer: usize, first: u32, from: usize, to: usize, ba
 #[cfg(feature = "std")]
 fn subtree(pp: &PublicParam, seed: &SchemeSeed, layer: usize, j: u32) -> Vec<Vec<Digest>> {
     let first = j << CACHED_LEVEL;
-    let leaves = (first..=first | ((1 << CACHED_LEVEL) - 1))
-        .map(|e| wots_public_leaf(pp, seed, layer, e))
-        .collect();
+    let leaves = wots_public_leaves(pp, seed, layer, first..=first | ((1 << CACHED_LEVEL) - 1));
     levels(pp, layer, first, 0, CACHED_LEVEL, leaves)
 }
 

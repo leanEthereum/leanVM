@@ -45,7 +45,7 @@ Rules:
 - Prover crates contain no verifier, tests included: a verdict goes through `crates/verifier`.
 - A new user-facing item is a re-export in `crates/lean_vm/src/lib.rs`, used in `crates/lean_vm/tests/api.rs`. A `pub` method users should not see is `#[doc(hidden)] pub fn __name`.
 - `formal/`'s Rust helpers build against stable, except `whir-fold-table` (only experimental's `pcs` keeps the WHIR security search).
-- `keccak256` is `no_std`, and so are `lean_xmss` and `lean_sphincs` without their default `std` feature: their `verify` links into a bare-metal program with no allocator (`rust.yml`'s clippy job). Gate on `std` only what holds or builds a `Vec`, a `Mutex` or an `Arc`.
+- `keccak256` is `no_std` without its `std` feature, and so are `lean_xmss` and `lean_sphincs` without their default `std` feature: their `verify` links into a bare-metal program with no allocator (`rust.yml`'s clippy job). Gate on `std` only what holds or builds a `Vec`, a `Mutex` or an `Arc`, or asks the OS for the CPU's features (`keccak256`'s backends, with `lean_xmss`'s `std`).
 
 ## What must change together
 

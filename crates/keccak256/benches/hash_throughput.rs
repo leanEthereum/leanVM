@@ -24,9 +24,8 @@ fn run<const LEN: usize>() {
         });
     });
     println!(
-        "{LEN}B -> 32B, {} threads, LANES={}: {:.2} Mhash/s{}",
+        "{LEN}B -> 32B, {} threads: {:.2} Mhash/s{}",
         parallel::num_threads(),
-        keccak256::LANES,
         (TASKS * k * ITERS) as f64 / time.mean() / 1e6,
         time.spread(),
     );

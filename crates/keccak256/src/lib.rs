@@ -7,14 +7,15 @@
 //! - [`hash`] / [`Hasher`], Keccak-256 over bytes, and [`hash_many`], its batched form over equal-length inputs.
 //! - [`positions`], the permutation one bit position at a time, as `keccak_gkr` proves it.
 //!
-//! The batched forms permute [`LANES`] states at once in vector registers (AVX-512, AVX2 or NEON, the only
-//! architecture-specific code here) and are byte-identical to the one-input forms.
+//! The batched forms permute [`lanes`] states at once in vector registers (AVX-512, AVX2 or NEON, the only
+//! architecture-specific code here) and are byte-identical to the one-input forms. With the `std` feature they take the
+//! widest the CPU runs, whatever the build's target features.
 //!
 //! The state is 25 little-endian 64-bit lanes, lane `x + 5y` holding `A[x, y]`. The first `RATE / 8` lanes are the
 //! rate: a message block is XORed into them before each permutation, and the digest is read off the first
 //! `OUT_LEN / 8` of them after the last one.
 
-#![cfg_attr(not(test), no_std)]
+#![cfg_attr(not(any(test, feature = "std")), no_std)]
 
 /// Digest length in bytes. Keccak-256 throughout.
 pub const OUT_LEN: usize = 32;
@@ -93,7 +94,7 @@ pub const END_BIT: u64 = (PAD_LAST as u64) << 56;
 mod lanes;
 pub mod positions;
 
-pub use lanes::{LANES, digest_halves_from, first_nonce, hash_many, hash_many_from_state, keccak_f_many};
+pub use lanes::{digest_halves_from, first_nonce, hash_many, hash_many_from_state, keccak_f_many, lanes};
 
 #[cfg(all(target_arch = "x86_64", target_feature = "avx512f"))]
 mod single_avx512;
@@ -282,6 +283,7 @@ pub fn final_state(data: &[u8]) -> [u64; STATE_LANES] {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use lanes::MAX_WIDTH;
 
     fn pattern(n: usize) -> Vec<u8> {
         (0..n).map(|i| ((i * 7 + 3) & 0xff) as u8).collect()
@@ -313,7 +315,7 @@ mod tests {
         for zero_blocks in [0usize, 1, 3] {
             let state = zero_prefix_state(zero_blocks);
             for len in [0usize, 8, 64, 135, 136, 137, 200, 408, 512] {
-                for n in [1, LANES, 2 * LANES + 1] {
+                for n in [1, MAX_WIDTH, 2 * MAX_WIDTH + 1] {
                     let data: Vec<u8> = (0..n * len).map(|i| (i * 31 + zero_blocks) as u8).collect();
                     let mut got = vec![0u8; n * OUT_LEN];
                     hash_many_from_state(&data, len, &state, &mut got);
@@ -344,7 +346,7 @@ mod tests {
             let mut input = pattern(len);
             input[at..at + 16].fill(0);
             let template = final_state(&input);
-            let values: Vec<u128> = (1..2 * LANES as u128 + 2)
+            let values: Vec<u128> = (1..2 * MAX_WIDTH as u128 + 2)
                 .map(|i| i * 0x9E37_79B9_7F4A_7C15_F39C_C060)
                 .collect();
             let mut got = vec![0; values.len()];
@@ -359,7 +361,7 @@ mod tests {
     /// The batched permutation, whole groups and the remainder, against the scalar one.
     #[test]
     fn keccak_f_many_matches_keccak_f() {
-        let states: Vec<[u64; STATE_LANES]> = (0..2 * LANES as u64 + 1)
+        let states: Vec<[u64; STATE_LANES]> = (0..2 * MAX_WIDTH as u64 + 1)
             .map(|l| core::array::from_fn(|i| (l << 32) ^ (i as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15)))
             .collect();
         let mut got = states.clone();
@@ -375,7 +377,7 @@ mod tests {
     #[test]
     fn first_nonce_matches_keccak_f() {
         let template: [u64; STATE_LANES] = core::array::from_fn(|i| (i as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15));
-        let lanes = LANES as u64;
+        let lanes = MAX_WIDTH as u64;
         for at in [0, 4, 8, 12] {
             let pass = |nonce: u64, mask: u64| {
                 let mut state = template;
@@ -383,7 +385,7 @@ mod tests {
                 keccak_f(&mut state);
                 state[2] & mask == 0
             };
-            let mut offsets = [false; LANES];
+            let mut offsets = [false; MAX_WIDTH];
             for start in 0..256 {
                 for end in start..start + 3 * lanes {
                     let want = (start..end).find(|&nonce| pass(nonce, 0xf));

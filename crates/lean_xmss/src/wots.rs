@@ -140,10 +140,36 @@ pub fn wots_leaf(
     Some((x, wots_leaf_hash(pp, layer, e, &ends)))
 }
 
-/// The leaf of key `e` on `layer`, from the seed: what key generation spends its
-/// hashes on.
-pub(crate) fn wots_public_leaf(pp: &PublicParam, seed: &SchemeSeed, layer: usize, e: u32) -> Digest {
-    let secrets = wots_secrets(pp, seed, layer, e);
-    let ends = core::array::from_fn(|i| chain(pp, layer, e, i, 0, CHAIN_LEN - 1, secrets[i]));
-    wots_leaf_hash(pp, layer, e, &ends)
+/// The leaves of keys `keys` on `layer`, from the seed: what key generation and a
+/// signature's path spend their hashes on. As [`wots_secrets`], [`chain`] and
+/// [`wots_leaf_hash`] compute them, each stage one batch over every key: the
+/// secrets, each chain step, then the leaves.
+#[cfg(feature = "std")]
+pub(crate) fn wots_public_leaves(
+    pp: &PublicParam,
+    seed: &SchemeSeed,
+    layer: usize,
+    keys: core::ops::RangeInclusive<u32>,
+) -> Vec<Digest> {
+    let prf = keys
+        .clone()
+        .flat_map(|e| (0..V as u32 / 2).map(move |t| (tweak(TWEAK_PRF, layer_hi(layer, t), e), *seed.as_bytes())));
+    // Chain `i` of the `k`th key at `k * V + i`, chains `2t` and `2t + 1` the halves of secret hash `t`.
+    let mut values: Vec<Digest> = th_many(pp, prf).iter().flat_map(|h| h.as_chunks().0.to_vec()).collect();
+    for from in 0..CHAIN_LEN - 1 {
+        let steps = values.iter().enumerate().map(|(k, value)| {
+            let e = keys.start() + (k / V) as u32;
+            let i = (k % V) as u128;
+            (
+                tweak(TWEAK_CHAIN, layer_hi(layer, 0), e).step(from),
+                concat(value, &i.to_le_bytes()),
+            )
+        });
+        values = th_many(pp, steps).iter().map(|h| keccak256::truncate(*h)).collect();
+    }
+    let leaves = values.as_chunks::<V>().0.iter().zip(keys).map(|(ends, e)| {
+        let ends: [u8; V * N] = ends.as_flattened().try_into().unwrap();
+        (tweak(TWEAK_LEAF, layer_hi(layer, 0), e), ends)
+    });
+    th_many(pp, leaves).iter().map(|h| keccak256::truncate(*h)).collect()
 }

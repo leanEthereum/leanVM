@@ -1,6 +1,9 @@
-//! The permutation over any lane type, and the batched entry points that permute [`LANES`] states at once, one
-//! vector register per state lane: AVX-512 (eight states), AVX2 (four), NEON (two, with the SHA3 instructions where
-//! the target has them), or one at a time elsewhere. Every batched function is byte-identical to its one-input form.
+//! The permutation over any lane type, and the batched entry points that permute several states at once, one vector
+//! register per state lane: AVX-512 (eight states), AVX2 (four), NEON (two, with the SHA3 instructions where the CPU
+//! has them), or one at a time elsewhere. Every batched function is byte-identical to its one-input form.
+//!
+//! Each entry point takes the widest backend the CPU runs. With the `std` feature it asks the OS, so a build for the
+//! architecture's baseline still uses every backend; without it, the build's target features decide.
 
 use crate::{END_BIT, OUT_LEN, PAD_FIRST, RATE, RATE_LANES, RC, STATE_LANES, hash_from_state, keccak_f};
 use core::ops::Range;
@@ -30,6 +33,112 @@ pub(crate) trait Lane: Copy {
     fn theta_d(c_prev: Self, c_next: Self) -> Self {
         c_prev.xor(c_next.rotl::<1>())
     }
+
+    /// XOR the `words` little-endian words of every input from byte `at` on into `st[..words]`, input `l` at
+    /// `inputs[l * len..]`.
+    #[inline(always)]
+    fn absorb(st: &mut [Self; STATE_LANES], inputs: &[u8], len: usize, at: usize, words: usize) {
+        for (w, lane) in st[..words].iter_mut().enumerate() {
+            *lane = lane.xor(gather(|l| {
+                u64::from_le_bytes(*inputs[l * len + at + 8 * w..].first_chunk().unwrap())
+            }));
+        }
+    }
+
+    /// Every input's digest, the first [`OUT_LEN`] bytes of its state, input `l`'s at `out[l * OUT_LEN..]`.
+    #[inline(always)]
+    fn digests(st: &[Self; STATE_LANES], out: &mut [u8]) {
+        let mut words = [[0; MAX_WIDTH]; OUT_LEN / 8];
+        for (words, &lane) in words.iter_mut().zip(st) {
+            *words = scatter(lane);
+        }
+        for (l, digest) in out.as_chunks_mut::<OUT_LEN>().0.iter_mut().enumerate() {
+            for (w, bytes) in digest.as_chunks_mut::<8>().0.iter_mut().enumerate() {
+                *bytes = words[w][l].to_le_bytes();
+            }
+        }
+    }
+}
+
+/// The widest [`Lane::WIDTH`].
+pub(crate) const MAX_WIDTH: usize = 8;
+
+/// The lane holding `f(l)` in state `l`.
+#[inline(always)]
+fn gather<S: Lane>(f: impl Fn(usize) -> u64) -> S {
+    let mut words = [0; MAX_WIDTH];
+    for (l, word) in words[..S::WIDTH].iter_mut().enumerate() {
+        *word = f(l);
+    }
+    S::load(&words[..S::WIDTH])
+}
+
+/// Every state a copy of `state`.
+#[inline(always)]
+fn splat_all<S: Lane>(state: &[u64; STATE_LANES]) -> [S; STATE_LANES] {
+    let mut st = [S::splat(0); STATE_LANES];
+    for (lane, &x) in st.iter_mut().zip(state) {
+        *lane = S::splat(x);
+    }
+    st
+}
+
+/// Every state's word of `lane`, in the first [`Lane::WIDTH`] entries.
+#[inline(always)]
+fn scatter<S: Lane>(lane: S) -> [u64; MAX_WIDTH] {
+    let mut words = [0; MAX_WIDTH];
+    lane.store(&mut words[..S::WIDTH]);
+    words
+}
+
+// The permutation's pieces are functions, not closures: `dispatch!` enables a backend's target feature on one function,
+// and a closure is a function of its own that LLVM may leave out of line, without the feature, where every vector
+// operation becomes a call.
+
+/// The column parities of `a`.
+#[inline(always)]
+fn parities<S: Lane>(a: &[S; STATE_LANES]) -> [S; 5] {
+    let mut c = [a[0]; 5];
+    for (x, c) in c.iter_mut().enumerate() {
+        *c = S::xor5(a[x], a[x + 5], a[x + 10], a[x + 15], a[x + 20]);
+    }
+    c
+}
+
+/// θ's effect on each column, from the column parities `c`.
+#[inline(always)]
+fn theta<S: Lane>(c: &[S; 5]) -> [S; 5] {
+    let mut d = *c;
+    for (x, d) in d.iter_mut().enumerate() {
+        *d = S::theta_d(c[(x + 4) % 5], c[(x + 1) % 5]);
+    }
+    d
+}
+
+/// Lane `i` of `a` after θ.
+#[inline(always)]
+fn t<S: Lane>(a: &[S; STATE_LANES], d: &[S; 5], i: usize) -> S {
+    a[i].xor(d[i % 5])
+}
+
+/// Output row `y` from the lanes π sends there, each rotated by its ρ: χ, ι on row 0, stored into `out` and folded
+/// into the column parities `c`.
+#[inline(always)]
+fn chi_row<S: Lane>(out: &mut [S; STATE_LANES], c: &mut [S; 5], y: usize, [b0, b1, b2, b3, b4]: [S; 5], rc: u64) {
+    let mut r = [
+        S::chi(b0, b1, b2),
+        S::chi(b1, b2, b3),
+        S::chi(b2, b3, b4),
+        S::chi(b3, b4, b0),
+        S::chi(b4, b0, b1),
+    ];
+    if y == 0 {
+        r[0] = r[0].xor(S::splat(rc));
+    }
+    for x in 0..5 {
+        out[5 * y + x] = r[x];
+        c[x] = if y == 0 { r[x] } else { c[x].xor(r[x]) };
+    }
 }
 
 /// The 24 rounds of θ, ρ, π, χ and ι, on x86. Straight-line, so every rotation is an immediate and every lane a
@@ -46,7 +155,7 @@ const _: () = assert!(RC.len().is_multiple_of(2));
 #[cfg(target_arch = "x86_64")]
 #[inline(always)]
 pub(crate) fn permute<S: Lane>(a: &mut [S; STATE_LANES]) {
-    let mut c: [S; 5] = core::array::from_fn(|x| S::xor5(a[x], a[x + 5], a[x + 10], a[x + 15], a[x + 20]));
+    let mut c = parities(a);
     let mut e = *a;
     for &[rc0, rc1] in RC.as_chunks::<2>().0 {
         round::<S, 5>(a, &mut e, &mut c, rc0);
@@ -59,7 +168,7 @@ pub(crate) fn permute<S: Lane>(a: &mut [S; STATE_LANES]) {
 #[cfg(target_arch = "x86_64")]
 #[inline(always)]
 pub(crate) fn permute_first_row<S: Lane>(a: &mut [S; STATE_LANES]) {
-    let mut c: [S; 5] = core::array::from_fn(|x| S::xor5(a[x], a[x + 5], a[x + 10], a[x + 15], a[x + 20]));
+    let mut c = parities(a);
     let mut e = *a;
     for &[rc0, rc1] in RC[..RC.len() - 2].as_chunks::<2>().0 {
         round::<S, 5>(a, &mut e, &mut c, rc0);
@@ -74,81 +183,78 @@ pub(crate) fn permute_first_row<S: Lane>(a: &mut [S; STATE_LANES]) {
 #[cfg(target_arch = "x86_64")]
 #[inline(always)]
 fn round<S: Lane, const ROWS: usize>(a: &[S; STATE_LANES], out: &mut [S; STATE_LANES], c: &mut [S; 5], rc: u64) {
-    let d: [S; 5] = core::array::from_fn(|x| S::theta_d(c[(x + 4) % 5], c[(x + 1) % 5]));
-    let t = |i: usize| a[i].xor(d[i % 5]);
-    // Row `y` of the output takes the lanes π sends there, each rotated by its ρ.
-    let mut row = |y: usize, [b0, b1, b2, b3, b4]: [S; 5]| {
-        let mut r = [
-            S::chi(b0, b1, b2),
-            S::chi(b1, b2, b3),
-            S::chi(b2, b3, b4),
-            S::chi(b3, b4, b0),
-            S::chi(b4, b0, b1),
-        ];
-        if y == 0 {
-            r[0] = r[0].xor(S::splat(rc));
-        }
-        for x in 0..5 {
-            out[5 * y + x] = r[x];
-            c[x] = if y == 0 { r[x] } else { c[x].xor(r[x]) };
-        }
-    };
-    row(
+    let d = theta(c);
+    chi_row(
+        out,
+        c,
         0,
         [
-            t(0),
-            t(6).rotl::<44>(),
-            t(12).rotl::<43>(),
-            t(18).rotl::<21>(),
-            t(24).rotl::<14>(),
+            t(a, &d, 0),
+            t(a, &d, 6).rotl::<44>(),
+            t(a, &d, 12).rotl::<43>(),
+            t(a, &d, 18).rotl::<21>(),
+            t(a, &d, 24).rotl::<14>(),
         ],
+        rc,
     );
     if ROWS > 1 {
-        row(
+        chi_row(
+            out,
+            c,
             1,
             [
-                t(3).rotl::<28>(),
-                t(9).rotl::<20>(),
-                t(10).rotl::<3>(),
-                t(16).rotl::<45>(),
-                t(22).rotl::<61>(),
+                t(a, &d, 3).rotl::<28>(),
+                t(a, &d, 9).rotl::<20>(),
+                t(a, &d, 10).rotl::<3>(),
+                t(a, &d, 16).rotl::<45>(),
+                t(a, &d, 22).rotl::<61>(),
             ],
+            rc,
         );
     }
     if ROWS > 2 {
-        row(
+        chi_row(
+            out,
+            c,
             2,
             [
-                t(1).rotl::<1>(),
-                t(7).rotl::<6>(),
-                t(13).rotl::<25>(),
-                t(19).rotl::<8>(),
-                t(20).rotl::<18>(),
+                t(a, &d, 1).rotl::<1>(),
+                t(a, &d, 7).rotl::<6>(),
+                t(a, &d, 13).rotl::<25>(),
+                t(a, &d, 19).rotl::<8>(),
+                t(a, &d, 20).rotl::<18>(),
             ],
+            rc,
         );
     }
     if ROWS > 3 {
-        row(
+        chi_row(
+            out,
+            c,
             3,
             [
-                t(4).rotl::<27>(),
-                t(5).rotl::<36>(),
-                t(11).rotl::<10>(),
-                t(17).rotl::<15>(),
-                t(23).rotl::<56>(),
+                t(a, &d, 4).rotl::<27>(),
+                t(a, &d, 5).rotl::<36>(),
+                t(a, &d, 11).rotl::<10>(),
+                t(a, &d, 17).rotl::<15>(),
+                t(a, &d, 23).rotl::<56>(),
             ],
+            rc,
         );
     }
     if ROWS > 4 {
-        row(
+        chi_row(
+            out,
+            c,
             4,
             [
-                t(2).rotl::<62>(),
-                t(8).rotl::<55>(),
-                t(14).rotl::<39>(),
-                t(15).rotl::<41>(),
-                t(21).rotl::<2>(),
+                t(a, &d, 2).rotl::<62>(),
+                t(a, &d, 8).rotl::<55>(),
+                t(a, &d, 14).rotl::<39>(),
+                t(a, &d, 15).rotl::<41>(),
+                t(a, &d, 21).rotl::<2>(),
             ],
+            rc,
         );
     }
 }
@@ -162,34 +268,20 @@ fn round<S: Lane, const ROWS: usize>(a: &[S; STATE_LANES], out: &mut [S; STATE_L
 #[cfg(not(target_arch = "x86_64"))]
 #[inline(always)]
 pub(crate) fn permute<S: Lane>(a: &mut [S; STATE_LANES]) {
-    let mut c: [S; 5] = core::array::from_fn(|x| S::xor5(a[x], a[x + 5], a[x + 10], a[x + 15], a[x + 20]));
+    let mut c = parities(a);
     for &rc in &RC {
-        let d: [S; 5] = core::array::from_fn(|x| S::theta_d(c[(x + 4) % 5], c[(x + 1) % 5]));
-        let t = |i: usize| a[i].xor(d[i % 5]);
+        let d = theta(&c);
         // Row `y` holds the lanes π sends there, each rotated by its ρ.
         #[rustfmt::skip]
         let rows: [[S; 5]; 5] = [
-            [t(0), t(6).rotl::<44>(), t(12).rotl::<43>(), t(18).rotl::<21>(), t(24).rotl::<14>()],
-            [t(3).rotl::<28>(), t(9).rotl::<20>(), t(10).rotl::<3>(), t(16).rotl::<45>(), t(22).rotl::<61>()],
-            [t(1).rotl::<1>(), t(7).rotl::<6>(), t(13).rotl::<25>(), t(19).rotl::<8>(), t(20).rotl::<18>()],
-            [t(4).rotl::<27>(), t(5).rotl::<36>(), t(11).rotl::<10>(), t(17).rotl::<15>(), t(23).rotl::<56>()],
-            [t(2).rotl::<62>(), t(8).rotl::<55>(), t(14).rotl::<39>(), t(15).rotl::<41>(), t(21).rotl::<2>()],
+            [t(a, &d, 0), t(a, &d, 6).rotl::<44>(), t(a, &d, 12).rotl::<43>(), t(a, &d, 18).rotl::<21>(), t(a, &d, 24).rotl::<14>()],
+            [t(a, &d, 3).rotl::<28>(), t(a, &d, 9).rotl::<20>(), t(a, &d, 10).rotl::<3>(), t(a, &d, 16).rotl::<45>(), t(a, &d, 22).rotl::<61>()],
+            [t(a, &d, 1).rotl::<1>(), t(a, &d, 7).rotl::<6>(), t(a, &d, 13).rotl::<25>(), t(a, &d, 19).rotl::<8>(), t(a, &d, 20).rotl::<18>()],
+            [t(a, &d, 4).rotl::<27>(), t(a, &d, 5).rotl::<36>(), t(a, &d, 11).rotl::<10>(), t(a, &d, 17).rotl::<15>(), t(a, &d, 23).rotl::<56>()],
+            [t(a, &d, 2).rotl::<62>(), t(a, &d, 8).rotl::<55>(), t(a, &d, 14).rotl::<39>(), t(a, &d, 15).rotl::<41>(), t(a, &d, 21).rotl::<2>()],
         ];
-        for (y, &[b0, b1, b2, b3, b4]) in rows.iter().enumerate() {
-            let mut row = [
-                S::chi(b0, b1, b2),
-                S::chi(b1, b2, b3),
-                S::chi(b2, b3, b4),
-                S::chi(b3, b4, b0),
-                S::chi(b4, b0, b1),
-            ];
-            if y == 0 {
-                row[0] = row[0].xor(S::splat(rc));
-            }
-            for x in 0..5 {
-                a[5 * y + x] = row[x];
-                c[x] = if y == 0 { row[x] } else { c[x].xor(row[x]) };
-            }
+        for (y, &row) in rows.iter().enumerate() {
+            chi_row(a, &mut c, y, row, rc);
         }
     }
 }
@@ -231,63 +323,137 @@ impl Lane for u64 {
     }
 }
 
-cfg_select! {
-    all(target_arch = "x86_64", target_feature = "avx512f") => {
-        type Backend = x86::Avx512;
-    }
-    all(target_arch = "x86_64", target_feature = "avx2") => {
-        type Backend = x86::Avx2;
-    }
-    target_arch = "aarch64" => {
-        type Backend = arm::Neon;
-    }
-    _ => {
-        type Backend = u64;
-    }
+/// Whether the CPU runs target feature `$f`: the OS's answer with `std`, else whether the build enables it.
+#[cfg(any(
+    all(target_arch = "x86_64", target_feature = "sse2"),
+    all(target_arch = "aarch64", target_feature = "neon")
+))]
+macro_rules! cpu_has {
+    ($f:tt) => {
+        cfg_select! {
+            all(any(feature = "std", test), target_arch = "x86_64") => std::arch::is_x86_feature_detected!($f),
+            all(any(feature = "std", test), target_arch = "aarch64") => std::arch::is_aarch64_feature_detected!($f),
+            _ => cfg!(target_feature = $f),
+        }
+    };
 }
 
-/// States the batched entry points permute together. They take any count and permute the remainder one at a time.
-pub const LANES: usize = Backend::WIDTH;
+/// `$with::<S>(args)` on the widest backend `S` the CPU runs, inlined into a function compiled with its feature. Only
+/// where the architecture's vector registers are in the baseline: a soft-float target (`x86_64-unknown-none`,
+/// `aarch64-unknown-none-softfloat`) cannot enable a vector feature on a function, so it hashes one state at a time.
+macro_rules! dispatch {
+    ($with:ident($($arg:ident: $ty:ty),* $(,)?) $(-> $ret:ty)?) => {
+        cfg_select! {
+            all(target_arch = "x86_64", target_feature = "sse2") => {{
+                #[target_feature(enable = "avx512f")]
+                fn avx512($($arg: $ty),*) $(-> $ret)? {
+                    $with::<x86::Avx512>($($arg),*)
+                }
+                #[target_feature(enable = "avx2")]
+                fn avx2($($arg: $ty),*) $(-> $ret)? {
+                    $with::<x86::Avx2>($($arg),*)
+                }
+                if cpu_has!("avx512f") {
+                    // SAFETY: the CPU runs avx512f.
+                    unsafe { avx512($($arg),*) }
+                } else if cpu_has!("avx2") {
+                    // SAFETY: the CPU runs avx2.
+                    unsafe { avx2($($arg),*) }
+                } else {
+                    $with::<u64>($($arg),*)
+                }
+            }}
+            all(target_arch = "aarch64", target_feature = "neon") => {{
+                #[target_feature(enable = "sha3")]
+                fn sha3($($arg: $ty),*) $(-> $ret)? {
+                    $with::<arm::Neon<true>>($($arg),*)
+                }
+                if cpu_has!("sha3") {
+                    // SAFETY: the CPU runs sha3.
+                    unsafe { sha3($($arg),*) }
+                } else {
+                    $with::<arm::Neon<false>>($($arg),*)
+                }
+            }}
+            _ => $with::<u64>($($arg),*),
+        }
+    };
+}
 
-/// Keccak-f\[1600\] of every state in place, [`LANES`] at a time.
+/// How many states the batched entry points permute at once on this CPU. They take any count, and permute the
+/// remainder one at a time.
+pub fn lanes() -> usize {
+    dispatch!(lanes_with() -> usize)
+}
+
+#[inline(always)]
+fn lanes_with<S: Lane>() -> usize {
+    S::WIDTH
+}
+
+/// Keccak-f\[1600\] of every state in place.
 pub fn keccak_f_many(states: &mut [[u64; STATE_LANES]]) {
-    let (groups, rest) = states.as_chunks_mut::<LANES>();
-    for group in groups {
+    dispatch!(keccak_f_many_with(states: &mut [[u64; STATE_LANES]]))
+}
+
+/// [`keccak_f_many`] on backend `S`, [`Lane::WIDTH`] states at a time and the remainder one at a time.
+#[inline(always)]
+fn keccak_f_many_with<S: Lane>(states: &mut [[u64; STATE_LANES]]) {
+    let mut groups = states.chunks_exact_mut(S::WIDTH);
+    for group in &mut groups {
         // Register `i` holds lane `i` of every state.
-        let mut st: [Backend; STATE_LANES] =
-            core::array::from_fn(|i| Backend::load(&core::array::from_fn::<u64, LANES, _>(|l| group[l][i])));
+        let mut st = splat_all::<S>(&[0; STATE_LANES]);
+        for (i, lane) in st.iter_mut().enumerate() {
+            *lane = gather(|l| group[l][i]);
+        }
         permute(&mut st);
-        for (i, lane) in st.iter().enumerate() {
-            let mut words = [0; LANES];
-            lane.store(&mut words);
-            for (state, word) in group.iter_mut().zip(words) {
+        for (i, &lane) in st.iter().enumerate() {
+            for (state, word) in group.iter_mut().zip(scatter(lane)) {
                 state[i] = word;
             }
         }
     }
-    rest.iter_mut().for_each(keccak_f);
+    groups.into_remainder().iter_mut().for_each(keccak_f);
 }
 
 /// The first of `nonces` that, written into lane `at` of `template`, leaves lane `out` of the permuted state zero under
-/// `mask`, [`LANES`] nonces at a time.
+/// `mask`.
 pub fn first_nonce(template: &[u64; STATE_LANES], at: usize, nonces: Range<u64>, out: usize, mask: u64) -> Option<u64> {
     assert!(
         out < 5,
         "the tested lane is in the first row, all the permutation computes in full"
     );
-    let template: [Backend; STATE_LANES] = core::array::from_fn(|i| Backend::splat(template[i]));
+    dispatch!(
+        first_nonce_with(
+            template: &[u64; STATE_LANES],
+            at: usize,
+            nonces: Range<u64>,
+            out: usize,
+            mask: u64,
+        ) -> Option<u64>
+    )
+}
+
+/// [`first_nonce`] on backend `S`, [`Lane::WIDTH`] nonces at a time.
+#[inline(always)]
+fn first_nonce_with<S: Lane>(
+    template: &[u64; STATE_LANES],
+    at: usize,
+    nonces: Range<u64>,
+    out: usize,
+    mask: u64,
+) -> Option<u64> {
+    let template = splat_all::<S>(template);
     let mut first = nonces.start;
     while first < nonces.end {
         let mut st = template;
-        st[at] = Backend::load(&core::array::from_fn::<u64, LANES, _>(|l| first.wrapping_add(l as u64)));
+        st[at] = gather(|l| first.wrapping_add(l as u64));
         permute_first_row(&mut st);
-        let mut words = [0; LANES];
-        st[out].store(&mut words);
-        let n = (nonces.end - first).min(LANES as u64) as usize;
-        if let Some(l) = words[..n].iter().position(|w| w & mask == 0) {
+        let n = (nonces.end - first).min(S::WIDTH as u64) as usize;
+        if let Some(l) = scatter(st[out])[..n].iter().position(|w| w & mask == 0) {
             return Some(first + l as u64);
         }
-        first = first.saturating_add(LANES as u64);
+        first = first.saturating_add(S::WIDTH as u64);
     }
     None
 }
@@ -302,96 +468,71 @@ pub fn hash_many(data: &[u8], len: usize, out: &mut [u8]) {
 pub fn hash_many_from_state(data: &[u8], len: usize, state: &[u64; STATE_LANES], out: &mut [u8]) {
     let n = out.len() / OUT_LEN;
     assert_eq!((data.len(), out.len()), (n * len, n * OUT_LEN));
-    for (g, digests) in out.as_chunks_mut::<{ LANES * OUT_LEN }>().0.iter_mut().enumerate() {
-        hash_group(&data[g * LANES * len..][..LANES * len], len, state, digests);
+    dispatch!(hash_many_with(data: &[u8], len: usize, state: &[u64; STATE_LANES], out: &mut [u8]))
+}
+
+/// [`hash_many_from_state`] on backend `S`, [`Lane::WIDTH`] inputs at a time and the remainder one at a time.
+#[inline(always)]
+fn hash_many_with<S: Lane>(data: &[u8], len: usize, state: &[u64; STATE_LANES], out: &mut [u8]) {
+    let n = out.len() / OUT_LEN;
+    for (g, digests) in out.chunks_exact_mut(S::WIDTH * OUT_LEN).enumerate() {
+        hash_group::<S>(&data[g * S::WIDTH * len..][..S::WIDTH * len], len, state, digests);
     }
-    for i in n / LANES * LANES..n {
+    for i in n / S::WIDTH * S::WIDTH..n {
         out[i * OUT_LEN..][..OUT_LEN].copy_from_slice(&hash_from_state(&data[i * len..][..len], state));
     }
 }
 
-/// The digests of [`LANES`] inputs of `len` bytes, input `l` at `inputs[l * len..]`.
+/// The digests of [`Lane::WIDTH`] inputs of `len` bytes, input `l` at `inputs[l * len..]`.
 #[inline(always)]
-fn hash_group(inputs: &[u8], len: usize, state: &[u64; STATE_LANES], out: &mut [u8; LANES * OUT_LEN]) {
-    let mut st: [Backend; STATE_LANES] = core::array::from_fn(|i| Backend::splat(state[i]));
+fn hash_group<S: Lane>(inputs: &[u8], len: usize, state: &[u64; STATE_LANES], out: &mut [u8]) {
+    let mut st = splat_all::<S>(state);
     let (blocks, tail) = (len / RATE, len % RATE);
     for b in 0..blocks {
-        absorb(&mut st, inputs, len, b * RATE, RATE_LANES);
+        S::absorb(&mut st, inputs, len, b * RATE, RATE_LANES);
         permute(&mut st);
     }
     // The final block: the tail's whole words, its last partial word, then the padding, the same in every input.
     let (words, part) = (tail / 8, tail % 8);
-    absorb(&mut st, inputs, len, blocks * RATE, words);
+    S::absorb(&mut st, inputs, len, blocks * RATE, words);
     if part > 0 {
-        st[words] = st[words].xor(word(inputs, len, blocks * RATE + 8 * words, part));
+        let at = blocks * RATE + 8 * words;
+        st[words] = st[words].xor(gather(|l| {
+            let mut bytes = [0u8; 8];
+            bytes[..part].copy_from_slice(&inputs[l * len + at..][..part]);
+            u64::from_le_bytes(bytes)
+        }));
     }
-    st[words] = st[words].xor(Backend::splat(u64::from(PAD_FIRST) << (8 * part)));
-    st[RATE_LANES - 1] = st[RATE_LANES - 1].xor(Backend::splat(END_BIT));
+    st[words] = st[words].xor(S::splat(u64::from(PAD_FIRST) << (8 * part)));
+    st[RATE_LANES - 1] = st[RATE_LANES - 1].xor(S::splat(END_BIT));
     permute_first_row(&mut st);
-    digests(&st, out);
-}
-
-/// The first `n < 8` bytes of every input from byte `at` on, as a little-endian word.
-#[inline(always)]
-fn word(inputs: &[u8], len: usize, at: usize, n: usize) -> Backend {
-    Backend::load(&core::array::from_fn::<u64, LANES, _>(|l| {
-        let mut bytes = [0u8; 8];
-        bytes[..n].copy_from_slice(&inputs[l * len + at..][..n]);
-        u64::from_le_bytes(bytes)
-    }))
-}
-
-cfg_select! {
-    all(target_arch = "x86_64", target_feature = "avx512f") => {
-        use x86::{absorb, digests};
-    }
-    target_arch = "aarch64" => {
-        use arm::{absorb, digests};
-    }
-    _ => {
-        /// XOR the `words` little-endian words of every input from byte `at` on into `st[..words]`.
-        #[inline(always)]
-        fn absorb(st: &mut [Backend; STATE_LANES], inputs: &[u8], len: usize, at: usize, words: usize) {
-            for (w, lane) in st[..words].iter_mut().enumerate() {
-                *lane = lane.xor(Backend::load(&core::array::from_fn::<u64, LANES, _>(|l| {
-                    u64::from_le_bytes(*inputs[l * len + at + 8 * w..].first_chunk().unwrap())
-                })));
-            }
-        }
-
-        /// Every input's digest, the first [`OUT_LEN`] bytes of its state, input `l`'s at `out[l * OUT_LEN..]`.
-        #[inline(always)]
-        fn digests(st: &[Backend; STATE_LANES], out: &mut [u8; LANES * OUT_LEN]) {
-            let mut words = [[0u64; LANES]; OUT_LEN / 8];
-            for (lane, words) in st.iter().zip(&mut words) {
-                lane.store(words);
-            }
-            for (l, digest) in out.as_chunks_mut::<OUT_LEN>().0.iter_mut().enumerate() {
-                for (w, bytes) in digest.as_chunks_mut::<8>().0.iter_mut().enumerate() {
-                    *bytes = words[w][l].to_le_bytes();
-                }
-            }
-        }
-    }
+    S::digests(&st, out);
 }
 
 /// The first 128 bits of the digest, little endian, of `template`'s input with `values[i]` XORed into its lanes `at`
-/// and `at + 1`, into `out[i]`, [`LANES`] values at a time. `template` is that input's
-/// [`final_state`](crate::final_state) with those 16 bytes zero, so a value costs one permutation.
+/// and `at + 1`, into `out[i]`. `template` is that input's [`final_state`](crate::final_state) with those 16 bytes
+/// zero, so a value costs one permutation.
 pub fn digest_halves_from(template: &[u64; STATE_LANES], at: usize, values: &[u128], out: &mut [u128]) {
     // The final block ends in padding, so the value stops before its last lane.
     assert!(at + 2 < RATE_LANES && values.len() == out.len());
-    let (groups, rest) = values.as_chunks::<LANES>();
-    for (values, out) in groups.iter().zip(out.as_chunks_mut::<LANES>().0) {
-        let mut st: [Backend; STATE_LANES] = core::array::from_fn(|i| Backend::splat(template[i]));
+    dispatch!(digest_halves_with(template: &[u64; STATE_LANES], at: usize, values: &[u128], out: &mut [u128]))
+}
+
+/// [`digest_halves_from`] on backend `S`, [`Lane::WIDTH`] values at a time and the remainder one at a time.
+#[inline(always)]
+fn digest_halves_with<S: Lane>(template: &[u64; STATE_LANES], at: usize, values: &[u128], out: &mut [u128]) {
+    let groups = values.chunks_exact(S::WIDTH);
+    let rest = groups.remainder();
+    for (values, out) in groups.zip(out.chunks_exact_mut(S::WIDTH)) {
+        let mut st = splat_all::<S>(template);
         for (j, shift) in [(0, 0), (1, 64)] {
-            st[at + j] = st[at + j].xor(Backend::load(&values.map(|v| (v >> shift) as u64)));
+            st[at + j] = st[at + j].xor(gather(|l| (values[l] >> shift) as u64));
         }
         permute_first_row(&mut st);
-        let mut words = [[0u64; LANES]; 2];
-        st[0].store(&mut words[0]);
-        st[1].store(&mut words[1]);
-        *out = core::array::from_fn(|l| u128::from(words[0][l]) | u128::from(words[1][l]) << 64);
+        let (lo, hi) = (scatter(st[0]), scatter(st[1]));
+        for (l, out) in out.iter_mut().enumerate() {
+            *out = u128::from(lo[l]) | u128::from(hi[l]) << 64;
+        }
     }
     for (&value, out) in rest.iter().zip(&mut out[values.len() - rest.len()..]) {
         let mut state = *template;
@@ -402,42 +543,41 @@ pub fn digest_halves_from(template: &[u64; STATE_LANES], at: usize, values: &[u1
     }
 }
 
-#[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
+/// The x86 backends. Their methods run only where their feature is on: inlined into the function `dispatch!`
+/// compiles with it, once the CPU has it.
+#[cfg(all(target_arch = "x86_64", target_feature = "sse2"))]
 mod x86 {
     use super::Lane;
-    #[cfg(target_feature = "avx512f")]
-    use crate::{OUT_LEN, RATE_LANES, STATE_LANES};
+    use crate::{RATE_LANES, STATE_LANES};
     use core::arch::x86_64::*;
 
     /// Four states in a YMM register. No 64-bit rotate before AVX-512, so a rotation is a shift pair.
-    #[cfg(not(target_feature = "avx512f"))]
     #[derive(Clone, Copy)]
     pub(super) struct Avx2(__m256i);
 
-    #[cfg(not(target_feature = "avx512f"))]
     impl Lane for Avx2 {
         const WIDTH: usize = 4;
 
         #[inline(always)]
         fn load(src: &[u64]) -> Self {
             let src: &[u64; 4] = src.try_into().unwrap();
-            // SAFETY: the module's cfg enables avx2, and `src` is 32 readable bytes.
+            // SAFETY: avx2 is on (see the module), and `src` is 32 readable bytes.
             Self(unsafe { _mm256_loadu_si256(src.as_ptr().cast()) })
         }
         #[inline(always)]
         fn store(self, dst: &mut [u64]) {
             let dst: &mut [u64; 4] = dst.try_into().unwrap();
-            // SAFETY: the module's cfg enables avx2, and `dst` is 32 writable bytes.
+            // SAFETY: avx2 is on (see the module), and `dst` is 32 writable bytes.
             unsafe { _mm256_storeu_si256(dst.as_mut_ptr().cast(), self.0) }
         }
         #[inline(always)]
         fn splat(x: u64) -> Self {
-            // SAFETY: the module's cfg enables avx2.
+            // SAFETY: avx2 is on (see the module).
             Self(unsafe { _mm256_set1_epi64x(x as i64) })
         }
         #[inline(always)]
         fn xor(self, o: Self) -> Self {
-            // SAFETY: the module's cfg enables avx2.
+            // SAFETY: avx2 is on (see the module).
             Self(unsafe { _mm256_xor_si256(self.0, o.0) })
         }
         #[inline(always)]
@@ -445,7 +585,7 @@ mod x86 {
             if N == 0 {
                 return self;
             }
-            // SAFETY: the module's cfg enables avx2.
+            // SAFETY: avx2 is on (see the module).
             unsafe {
                 let l = if N == 1 {
                     _mm256_add_epi64(self.0, self.0)
@@ -458,100 +598,96 @@ mod x86 {
         }
         #[inline(always)]
         fn chi(a: Self, b: Self, c: Self) -> Self {
-            // SAFETY: the module's cfg enables avx2.
+            // SAFETY: avx2 is on (see the module).
             Self(unsafe { _mm256_xor_si256(a.0, _mm256_andnot_si256(b.0, c.0)) })
         }
     }
 
     /// Eight states in a ZMM register, with a native rotate and `vpternlogq` for χ and the column parity.
-    #[cfg(target_feature = "avx512f")]
     #[derive(Clone, Copy)]
     pub(super) struct Avx512(__m512i);
 
-    #[cfg(target_feature = "avx512f")]
     impl Lane for Avx512 {
         const WIDTH: usize = 8;
 
         #[inline(always)]
         fn load(src: &[u64]) -> Self {
             let src: &[u64; 8] = src.try_into().unwrap();
-            // SAFETY: the module's cfg enables avx512f, and `src` is 64 readable bytes.
+            // SAFETY: avx512f is on (see the module), and `src` is 64 readable bytes.
             Self(unsafe { _mm512_loadu_si512(src.as_ptr().cast()) })
         }
         #[inline(always)]
         fn store(self, dst: &mut [u64]) {
             let dst: &mut [u64; 8] = dst.try_into().unwrap();
-            // SAFETY: the module's cfg enables avx512f, and `dst` is 64 writable bytes.
+            // SAFETY: avx512f is on (see the module), and `dst` is 64 writable bytes.
             unsafe { _mm512_storeu_si512(dst.as_mut_ptr().cast(), self.0) }
         }
         #[inline(always)]
         fn splat(x: u64) -> Self {
-            // SAFETY: the module's cfg enables avx512f.
+            // SAFETY: avx512f is on (see the module).
             Self(unsafe { _mm512_set1_epi64(x as i64) })
         }
         #[inline(always)]
         fn xor(self, o: Self) -> Self {
-            // SAFETY: the module's cfg enables avx512f.
+            // SAFETY: avx512f is on (see the module).
             Self(unsafe { _mm512_xor_si512(self.0, o.0) })
         }
         #[inline(always)]
         fn rotl<const N: i32>(self) -> Self {
-            // SAFETY: the module's cfg enables avx512f.
+            // SAFETY: avx512f is on (see the module).
             Self(unsafe { _mm512_rol_epi64::<N>(self.0) })
         }
         #[inline(always)]
         fn chi(a: Self, b: Self, c: Self) -> Self {
             // The truth table of `a ^ (!b & c)` over (a, b, c) = (0xF0, 0xCC, 0xAA).
-            // SAFETY: the module's cfg enables avx512f.
+            // SAFETY: avx512f is on (see the module).
             Self(unsafe { _mm512_ternarylogic_epi64::<0xD2>(a.0, b.0, c.0) })
         }
         #[inline(always)]
         fn xor5(a: Self, b: Self, c: Self, d: Self, e: Self) -> Self {
-            // SAFETY: the module's cfg enables avx512f.
+            // SAFETY: avx512f is on (see the module).
             unsafe {
                 let t = _mm512_ternarylogic_epi64::<0x96>(a.0, b.0, c.0);
                 Self(_mm512_ternarylogic_epi64::<0x96>(t, d.0, e.0))
             }
         }
-    }
+        /// `absorb` on eight inputs: each input's words in rows of eight, transposed into one register per
+        /// word.
+        #[inline(always)]
+        fn absorb(st: &mut [Self; STATE_LANES], inputs: &[u8], len: usize, at: usize, words: usize) {
+            assert!(words <= RATE_LANES && at + 8 * words <= len);
+            for g in 0..words.div_ceil(8) {
+                let n = (words - 8 * g).min(8);
+                // SAFETY: avx512f is on (see the module).
+                let mut rows = [unsafe { _mm512_setzero_si512() }; 8];
+                for (l, row) in rows.iter_mut().enumerate() {
+                    let bytes = &inputs[l * len + at + 64 * g..][..8 * n];
+                    // SAFETY: avx512f is on (see the module), and the mask reads the row's `n` words and no others.
+                    *row = unsafe { _mm512_maskz_loadu_epi64(((1u32 << n) - 1) as __mmask8, bytes.as_ptr().cast()) };
+                }
+                for (lane, col) in st[8 * g..8 * g + n].iter_mut().zip(transpose8(rows)) {
+                    *lane = lane.xor(Avx512(col));
+                }
+            }
+        }
 
-    /// The generic `absorb` on eight inputs: each input's words in rows of eight, transposed into one register per
-    /// word.
-    #[cfg(target_feature = "avx512f")]
-    #[inline(always)]
-    pub(super) fn absorb(st: &mut [Avx512; STATE_LANES], inputs: &[u8], len: usize, at: usize, words: usize) {
-        assert!(words <= RATE_LANES && at + 8 * words <= len);
-        for g in 0..words.div_ceil(8) {
-            let n = (words - 8 * g).min(8);
-            let rows: [__m512i; 8] = core::array::from_fn(|l| {
-                let row = &inputs[l * len + at + 64 * g..][..8 * n];
-                // SAFETY: the module's cfg enables avx512f, and the mask reads the row's `n` words and no others.
-                unsafe { _mm512_maskz_loadu_epi64(((1u32 << n) - 1) as __mmask8, row.as_ptr().cast()) }
-            });
-            for (lane, col) in st[8 * g..8 * g + n].iter_mut().zip(transpose8(rows)) {
-                *lane = lane.xor(Avx512(col));
+        /// `digests` on eight inputs: the four digest lanes transposed into rows, two inputs' rows per store.
+        #[inline(always)]
+        fn digests(st: &[Self; STATE_LANES], out: &mut [u8]) {
+            // SAFETY: avx512f is on (see the module).
+            let zero = unsafe { _mm512_setzero_si512() };
+            let rows = transpose8([st[0].0, st[1].0, st[2].0, st[3].0, zero, zero, zero, zero]);
+            for ([first, second], bytes) in rows.as_chunks::<2>().0.iter().zip(out.as_chunks_mut::<64>().0) {
+                // SAFETY: avx512f is on (see the module), and `bytes` is 64 writable bytes.
+                unsafe { _mm512_storeu_si512(bytes.as_mut_ptr().cast(), _mm512_shuffle_i64x2::<0x44>(*first, *second)) }
             }
         }
     }
 
-    /// The generic `digests` on eight inputs: the four digest lanes transposed into rows, two inputs' rows per store.
-    #[cfg(target_feature = "avx512f")]
-    #[inline(always)]
-    pub(super) fn digests(st: &[Avx512; STATE_LANES], out: &mut [u8; 8 * OUT_LEN]) {
-        // SAFETY: the module's cfg enables avx512f.
-        let zero = unsafe { _mm512_setzero_si512() };
-        let rows = transpose8([st[0].0, st[1].0, st[2].0, st[3].0, zero, zero, zero, zero]);
-        for ([first, second], bytes) in rows.as_chunks::<2>().0.iter().zip(out.as_chunks_mut::<64>().0) {
-            // SAFETY: the module's cfg enables avx512f, and `bytes` is 64 writable bytes.
-            unsafe { _mm512_storeu_si512(bytes.as_mut_ptr().cast(), _mm512_shuffle_i64x2::<0x44>(*first, *second)) }
-        }
-    }
-
     /// The 8x8 transpose of 64-bit words: word `j` of row `i` becomes word `i` of row `j`.
-    #[cfg(target_feature = "avx512f")]
     #[inline(always)]
     fn transpose8(r: [__m512i; 8]) -> [__m512i; 8] {
-        // SAFETY: the module's cfg enables avx512f.
+        // SAFETY: avx512f is on (see the module).
         unsafe {
             // Pairs of words, then 128-bit lane picks to finish.
             let (a0, a1) = (_mm512_unpacklo_epi64(r[0], r[1]), _mm512_unpackhi_epi64(r[0], r[1]));
@@ -580,18 +716,19 @@ mod x86 {
     }
 }
 
-#[cfg(target_arch = "aarch64")]
+#[cfg(all(target_arch = "aarch64", target_feature = "neon"))]
 mod arm {
     use super::Lane;
-    use crate::{OUT_LEN, RATE_LANES, STATE_LANES};
+    use crate::{RATE_LANES, STATE_LANES};
     use core::arch::aarch64::*;
 
-    /// Two states in a NEON register. With the SHA3 extension, χ is one `BCAX`, the column parity two `EOR3` and θ's
-    /// rotate-and-XOR one `RAX1`.
+    /// Two states in a NEON register. With `SHA3`, χ is one `BCAX`, the column parity two `EOR3` and θ's
+    /// rotate-and-XOR one `RAX1`, so its methods run only where sha3 is on: inlined into the function `dispatch!`
+    /// compiles with it, once the CPU has it.
     #[derive(Clone, Copy)]
-    pub(super) struct Neon(uint64x2_t);
+    pub(super) struct Neon<const SHA3: bool>(uint64x2_t);
 
-    impl Lane for Neon {
+    impl<const SHA3: bool> Lane for Neon<SHA3> {
         const WIDTH: usize = 2;
 
         #[inline(always)]
@@ -630,65 +767,133 @@ mod arm {
         }
         #[inline(always)]
         fn chi(a: Self, b: Self, c: Self) -> Self {
-            #[cfg(target_feature = "sha3")]
-            // BCAX(a, c, b) = a ^ (c & !b).
-            // SAFETY: the cfg enables sha3.
-            return Self(unsafe { vbcaxq_u64(a.0, c.0, b.0) });
-            #[cfg(not(target_feature = "sha3"))]
+            if SHA3 {
+                // BCAX(a, c, b) = a ^ (c & !b).
+                // SAFETY: sha3 is on (see the type).
+                return Self(unsafe { vbcaxq_u64(a.0, c.0, b.0) });
+            }
             // SAFETY: NEON is in the aarch64 baseline.
             Self(unsafe { veorq_u64(a.0, vbicq_u64(c.0, b.0)) })
         }
-        #[cfg(target_feature = "sha3")]
         #[inline(always)]
         fn xor5(a: Self, b: Self, c: Self, d: Self, e: Self) -> Self {
-            // SAFETY: the cfg enables sha3.
-            Self(unsafe { veor3q_u64(veor3q_u64(a.0, b.0, c.0), d.0, e.0) })
+            if SHA3 {
+                // SAFETY: sha3 is on (see the type).
+                return Self(unsafe { veor3q_u64(veor3q_u64(a.0, b.0, c.0), d.0, e.0) });
+            }
+            a.xor(b).xor(c).xor(d).xor(e)
         }
-        #[cfg(target_feature = "sha3")]
         #[inline(always)]
         fn theta_d(c_prev: Self, c_next: Self) -> Self {
-            // SAFETY: the cfg enables sha3.
-            Self(unsafe { vrax1q_u64(c_prev.0, c_next.0) })
+            if SHA3 {
+                // SAFETY: sha3 is on (see the type).
+                return Self(unsafe { vrax1q_u64(c_prev.0, c_next.0) });
+            }
+            c_prev.xor(c_next.rotl::<1>())
         }
-    }
-
-    /// The generic `absorb` on two inputs: two words of each per load, `ZIP1` and `ZIP2` turning the two rows into
-    /// two lanes.
-    #[inline(always)]
-    pub(super) fn absorb(st: &mut [Neon; STATE_LANES], inputs: &[u8], len: usize, at: usize, words: usize) {
-        assert!(words <= RATE_LANES && at + 8 * words <= len);
-        let (a, b) = (&inputs[at..][..8 * words], &inputs[len + at..][..8 * words]);
-        for (p, (x, y)) in a.as_chunks::<16>().0.iter().zip(b.as_chunks::<16>().0).enumerate() {
-            // SAFETY: `x` and `y` are 16 readable bytes each, and NEON is in the aarch64 baseline.
-            unsafe {
-                let (x, y) = (vld1q_u64(x.as_ptr().cast()), vld1q_u64(y.as_ptr().cast()));
-                st[2 * p] = Neon(veorq_u64(st[2 * p].0, vzip1q_u64(x, y)));
-                st[2 * p + 1] = Neon(veorq_u64(st[2 * p + 1].0, vzip2q_u64(x, y)));
+        /// `absorb` on two inputs: two words of each per load, `ZIP1` and `ZIP2` turning the two rows into
+        /// two lanes.
+        #[inline(always)]
+        fn absorb(st: &mut [Self; STATE_LANES], inputs: &[u8], len: usize, at: usize, words: usize) {
+            assert!(words <= RATE_LANES && at + 8 * words <= len);
+            let (a, b) = (&inputs[at..][..8 * words], &inputs[len + at..][..8 * words]);
+            for (p, (x, y)) in a.as_chunks::<16>().0.iter().zip(b.as_chunks::<16>().0).enumerate() {
+                // SAFETY: `x` and `y` are 16 readable bytes each, and NEON is in the aarch64 baseline.
+                unsafe {
+                    let (x, y) = (vld1q_u64(x.as_ptr().cast()), vld1q_u64(y.as_ptr().cast()));
+                    st[2 * p] = Self(veorq_u64(st[2 * p].0, vzip1q_u64(x, y)));
+                    st[2 * p + 1] = Self(veorq_u64(st[2 * p + 1].0, vzip2q_u64(x, y)));
+                }
+            }
+            if words % 2 == 1 {
+                let w = words - 1;
+                let word = |input: &[u8]| u64::from_le_bytes(*input[8 * w..].first_chunk().unwrap());
+                st[w] = st[w].xor(Self::load(&[word(a), word(b)]));
             }
         }
-        if words % 2 == 1 {
-            let w = words - 1;
-            let word = |input: &[u8]| u64::from_le_bytes(*input[8 * w..].first_chunk().unwrap());
-            st[w] = st[w].xor(Neon::load(&[word(a), word(b)]));
+
+        /// `digests` on two inputs: `ZIP1` of two digest lanes is two words of the first input, `ZIP2` of
+        /// the second.
+        #[inline(always)]
+        fn digests(st: &[Self; STATE_LANES], out: &mut [u8]) {
+            // SAFETY: NEON is in the aarch64 baseline.
+            let halves = unsafe {
+                [
+                    vzip1q_u64(st[0].0, st[1].0),
+                    vzip1q_u64(st[2].0, st[3].0),
+                    vzip2q_u64(st[0].0, st[1].0),
+                    vzip2q_u64(st[2].0, st[3].0),
+                ]
+            };
+            for (bytes, half) in out.as_chunks_mut::<16>().0.iter_mut().zip(halves) {
+                // SAFETY: `bytes` is 16 writable bytes, and NEON is in the aarch64 baseline.
+                unsafe { vst1q_u64(bytes.as_mut_ptr().cast(), half) }
+            }
         }
     }
+}
 
-    /// The generic `digests` on two inputs: `ZIP1` of two digest lanes is two words of the first input, `ZIP2` of
-    /// the second.
-    #[inline(always)]
-    pub(super) fn digests(st: &[Neon; STATE_LANES], out: &mut [u8; 2 * OUT_LEN]) {
-        // SAFETY: NEON is in the aarch64 baseline.
-        let halves = unsafe {
-            [
-                vzip1q_u64(st[0].0, st[1].0),
-                vzip1q_u64(st[2].0, st[3].0),
-                vzip2q_u64(st[0].0, st[1].0),
-                vzip2q_u64(st[2].0, st[3].0),
-            ]
-        };
-        for (bytes, half) in out.as_chunks_mut::<16>().0.iter_mut().zip(halves) {
-            // SAFETY: `bytes` is 16 writable bytes, and NEON is in the aarch64 baseline.
-            unsafe { vst1q_u64(bytes.as_mut_ptr().cast(), half) }
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Every batched entry point on backend `S` against one state at a time: whole groups and a remainder.
+    fn matches_the_scalar_backend<S: Lane>(name: &str) {
+        let w = MAX_WIDTH as u64;
+        let template: [u64; STATE_LANES] = core::array::from_fn(|i| (i as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15));
+
+        let states: Vec<[u64; STATE_LANES]> = (0..2 * w + 1).map(|l| template.map(|x| x ^ (l << 32))).collect();
+        let (mut got, mut want) = (states.clone(), states);
+        keccak_f_many_with::<S>(&mut got);
+        keccak_f_many_with::<u64>(&mut want);
+        assert_eq!(got, want, "{name} keccak_f_many");
+
+        for start in 0..2 * w {
+            for end in start..start + 3 * w {
+                assert_eq!(
+                    first_nonce_with::<S>(&template, 4, start..end, 2, 0xf),
+                    first_nonce_with::<u64>(&template, 4, start..end, 2, 0xf),
+                    "{name} first_nonce {start}..{end}"
+                );
+            }
+        }
+
+        for len in [0usize, 8, 64, 135, 136, 137, 408] {
+            let n = 2 * MAX_WIDTH + 1;
+            let data: Vec<u8> = (0..n * len).map(|i| (i * 31 + len) as u8).collect();
+            let (mut got, mut want) = (vec![0; n * OUT_LEN], vec![0; n * OUT_LEN]);
+            hash_many_with::<S>(&data, len, &template, &mut got);
+            hash_many_with::<u64>(&data, len, &template, &mut want);
+            assert_eq!(got, want, "{name} hash_many {len}");
+        }
+
+        let values: Vec<u128> = (1..4 * MAX_WIDTH as u128 + 4)
+            .map(|i| i * 0x9E37_79B9_7F4A_7C15_F39C_C060)
+            .collect();
+        let (mut got, mut want) = (vec![0; values.len()], vec![0; values.len()]);
+        digest_halves_with::<S>(&template, 3, &values, &mut got);
+        digest_halves_with::<u64>(&template, 3, &values, &mut want);
+        assert_eq!(got, want, "{name} digest_halves_from");
+    }
+
+    /// Every backend this CPU runs, each of which the entry points may pick.
+    #[test]
+    fn every_backend_matches_the_scalar_one() {
+        #[cfg(all(target_arch = "x86_64", target_feature = "sse2"))]
+        {
+            if cpu_has!("avx2") {
+                matches_the_scalar_backend::<x86::Avx2>("avx2");
+            }
+            if cpu_has!("avx512f") {
+                matches_the_scalar_backend::<x86::Avx512>("avx512f");
+            }
+        }
+        #[cfg(all(target_arch = "aarch64", target_feature = "neon"))]
+        {
+            matches_the_scalar_backend::<arm::Neon<false>>("neon");
+            if cpu_has!("sha3") {
+                matches_the_scalar_backend::<arm::Neon<true>>("sha3");
+            }
         }
     }
 }

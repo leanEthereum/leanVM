@@ -19,7 +19,8 @@ x86avx2 x86_64 +avx2,+pclmulqdq
 armsha3 aarch64 +aes,+sha3
 armaes aarch64 +aes
 "
-# The features the copied sources gate code on, per architecture; `avx` and `ssse3` come with `avx2`.
+# The features the copied sources gate code on, per architecture; `avx` and `ssse3` come with `avx2`, and `sse2` and
+# `neon` are in every target's baseline but soft-float ones, which no tier is.
 gated="
 x86_64 avx2 pclmulqdq bmi2 vpclmulqdq gfni avx512f avx512bw avx512vbmi
 aarch64 aes sha3
@@ -39,7 +40,7 @@ copied=$(echo "$crates" | cut -d' ' -f1)
 sources=$(echo "$crates" | awk 'NF { print "../" $2 "/src" }')
 found=$(grep -rhoE 'target_feature *= *"[a-z0-9_.]+"' $sources | sed 's/.*"\(.*\)"/\1/' | sort -u)
 for feature in $found; do
-    case " avx ssse3 $(echo $gated) " in
+    case " avx ssse3 sse2 neon $(echo $gated) " in
     *" $feature "*) ;;
     *) echo "the sources gate on $feature: add it to a tier and to \$gated" >&2 && exit 1 ;;
     esac
@@ -100,6 +101,7 @@ echo "$tiers" | while read -r tier arch features; do
             done
             # Features the sources gate code on, never enabled in a copy.
             case "$name" in
+            keccak256) printf '\n[features]\nstd = []\n' ;;
             experimental_primitives) printf '\n[features]\ntest-util = []\n' ;;
             experimental_keccak_gkr) printf '\n[features]\nbench = []\n' ;;
             esac

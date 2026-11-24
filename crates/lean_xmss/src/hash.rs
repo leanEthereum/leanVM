@@ -99,6 +99,32 @@ pub(crate) fn th_digests(pp: &PublicParam, tw: &Tweak, values: &[Digest]) -> Dig
     th(pp, tw, values.as_flattened())
 }
 
+/// `Th` of many equal-length inputs at once, through the batched hash: the untruncated outputs, in order.
+#[cfg(feature = "std")]
+pub(crate) fn th_many<const L: usize>(
+    pp: &PublicParam,
+    inputs: impl Iterator<Item = (Tweak, [u8; L])>,
+) -> Vec<keccak256::Hash> {
+    let len = PUBLIC_PARAM_LEN + ADDRESS_LEN + L;
+    let mut data = Vec::new();
+    for (tw, payload) in inputs {
+        data.extend_from_slice(pp);
+        data.extend_from_slice(&address(&tw));
+        data.extend_from_slice(&payload);
+    }
+    let mut out = vec![[0; keccak256::OUT_LEN]; data.len() / len];
+    keccak256::hash_many(&data, len, out.as_flattened_mut());
+    out
+}
+
+/// Two digests, one after the other, as a hash payload.
+pub(crate) fn concat(a: &Digest, b: &Digest) -> [u8; 2 * N] {
+    let mut out = [0; 2 * N];
+    out[..N].copy_from_slice(a);
+    out[N..].copy_from_slice(b);
+    out
+}
+
 /// Two secrets for one hash: the two halves of the untruncated hash of the seed.
 pub(crate) fn th_pair(pp: &PublicParam, tw: &Tweak, seed: &SchemeSeed) -> [Digest; 2] {
     let output = hasher(pp, tw).update(seed.as_bytes()).finalize();
