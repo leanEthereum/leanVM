@@ -3,7 +3,8 @@ module
 public import XmssSecurity.Proof.CappedExactFirstLaneTransportReduction
 public import XmssSecurity.Proof.BoundedFirstLaneCoupling
 public import XmssSecurity.Proof.CappedGlobalTopGuessOrigin
-public import VCVio.OracleComp.SimSemantics.StateT.StateProjection
+public import XmssSecurity.Proof.CappedExactFirstLaneSourceCoupling
+public import XmssSecurity.Proof.ConsistentQueryBound
 
 @[expose] public section
 

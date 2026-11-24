@@ -1,6 +1,6 @@
 module
 
-public import XmssSecurity.Proof.ChainTrajectoryUniformity
+public import XmssSecurity.Proof.ChainKey
 
 @[expose] public section
 

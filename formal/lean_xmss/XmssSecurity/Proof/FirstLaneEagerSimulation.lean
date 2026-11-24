@@ -3,6 +3,7 @@ module
 public import XmssSecurity.Proof.FirstLaneOracleSimulation
 public import XmssSecurity.Proof.RevealProbeOracleSimulation
 public import XmssSecurity.Proof.CappedEncodingMonitor
+public import XmssSecurity.Proof.EncodingActionTrace
 
 @[expose] public section
 

@@ -1,6 +1,5 @@
 module
 
-public import XmssSecurity.Proof.CappedEncodingEventProbability
 public import XmssSecurity.Proof.CappedUnifiedStructuralCollision
 
 @[expose] public section

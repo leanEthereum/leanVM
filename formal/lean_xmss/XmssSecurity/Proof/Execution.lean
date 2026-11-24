@@ -1,8 +1,6 @@
 module
 
-public import XmssSecurity.Proof.IdealStatement
-public import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
-public import VCVio.OracleComp.SimSemantics.StateT.PreservesInv
+public import XmssSecurity.Proof.RandomizedStatement
 
 @[expose] public section
 

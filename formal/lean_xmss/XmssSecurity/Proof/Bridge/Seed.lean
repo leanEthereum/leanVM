@@ -1,6 +1,7 @@
 module
 
 public import XmssSecurity.Proof.Bridge.Reduction
+public import XmssSecurity.Proof.Seeded.AdaptiveSeedGuessing
 
 @[expose] public section
 

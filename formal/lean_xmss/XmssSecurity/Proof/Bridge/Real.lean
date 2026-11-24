@@ -1,7 +1,7 @@
 module
 
 public import XmssSecurity.Proof.Bridge.Resolution
-public import Common.WithHash
+public import XmssSecurity.Proof.Deterministic.MemoErasure
 
 @[expose] public section
 

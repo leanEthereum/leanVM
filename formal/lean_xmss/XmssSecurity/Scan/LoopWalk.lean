@@ -2,8 +2,6 @@ module
 
 public import Mathlib.GroupTheory.Perm.Basic
 public import Mathlib.Basic.ENNReal.BigOperators
-public import Mathlib.Data.Fintype.BigOperators
-public import Mathlib.Algebra.BigOperators.Ring.Finset
 
 @[expose] public section
 

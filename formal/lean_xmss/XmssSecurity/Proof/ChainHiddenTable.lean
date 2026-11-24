@@ -1,6 +1,5 @@
 module
 
-public import XmssSecurity.Proof.ChainInputTrace
 public import XmssSecurity.Proof.WinningEventReduction
 public import XmssSecurity.Proof.ChainKey
 

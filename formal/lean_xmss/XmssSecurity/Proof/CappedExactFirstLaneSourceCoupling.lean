@@ -2,7 +2,6 @@ module
 
 public import XmssSecurity.Proof.CappedExactFirstLane
 public import XmssSecurity.Proof.CappedGlobalFirstLaneExperiment
-public import VCVio.OracleComp.SimSemantics.StateT.StateProjection
 
 @[expose] public section
 

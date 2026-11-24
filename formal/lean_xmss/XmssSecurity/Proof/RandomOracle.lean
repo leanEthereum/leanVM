@@ -1,9 +1,9 @@
 module
 
-public import XmssSecurity.Proof.IdealStatement
 public import XmssSecurity.Proof.EvalDistEq
 public import VCVio.OracleComp.QueryTracking.RandomOracle.DeferredSampling
 public import VCVio.OracleComp.QueryTracking.Unpredictability
+public import XmssSecurity.Scheme
 
 @[expose] public section
 

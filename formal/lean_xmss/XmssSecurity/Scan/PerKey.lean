@@ -1,6 +1,7 @@
 module
 
 public import XmssSecurity.Scan.Phase
+public import XmssSecurity.Scan.Frame
 
 @[expose] public section
 

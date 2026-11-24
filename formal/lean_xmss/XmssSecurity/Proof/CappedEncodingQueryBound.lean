@@ -1,6 +1,6 @@
 module
 
-public import XmssSecurity.Proof.CappedSigningCacheTrace
+public import XmssSecurity.Proof.SigningCacheTrace
 
 @[expose] public section
 

@@ -2,6 +2,8 @@ module
 
 public import XmssSecurity.Proof.Bridge.Real
 public import XmssSecurity.Proof.OwnTotal
+public import LeanXmss.Statement
+public import XmssSecurity.Proof.Deterministic.Preparation
 
 @[expose] public section
 

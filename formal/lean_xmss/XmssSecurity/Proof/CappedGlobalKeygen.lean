@@ -1,8 +1,9 @@
 module
 
-public import XmssSecurity.Proof.CappedChain.ChainRevealFiltering
 public import XmssSecurity.Proof.HashOutputHigh
 public import XmssSecurity.Proof.CausalTreeCoupling
+public import XmssSecurity.Proof.CausalKeygenCoupling
+public import XmssSecurity.Proof.ChainTableUniformity
 
 @[expose] public section
 

@@ -1,6 +1,7 @@
 module
 
 public import XmssSecurity.Proof.HonestKeygenRun
+public import XmssSecurity.Proof.KeygenCache
 
 @[expose] public section
 

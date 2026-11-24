@@ -1,6 +1,8 @@
 module
 
-public import XmssSecurity.Scan.PerKey
+public import XmssSecurity.Proof.WinningEventReduction
+public import XmssSecurity.Scan.Ghost
+public import XmssSecurity.Scan.Ledger
 
 @[expose] public section
 

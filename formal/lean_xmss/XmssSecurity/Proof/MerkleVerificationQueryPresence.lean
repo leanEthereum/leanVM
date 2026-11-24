@@ -1,6 +1,6 @@
 module
 
-public import XmssSecurity.Proof.MerkleQueryPresence
+public import XmssSecurity.Proof.QueryPresence
 
 @[expose] public section
 

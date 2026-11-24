@@ -1,7 +1,6 @@
 module
 
-public import XmssSecurity.Proof.CappedUnifiedExpectedDigest
-public import XmssSecurity.Scan.Frame
+public import XmssSecurity.Proof.CappedEncodingExpectedBound
 
 @[expose] public section
 

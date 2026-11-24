@@ -1,6 +1,7 @@
 module
 
 public import XmssSecurity.Proof.HashAddress
+public import XmssSecurity.Proof.CacheReplayEval
 
 @[expose] public section
 

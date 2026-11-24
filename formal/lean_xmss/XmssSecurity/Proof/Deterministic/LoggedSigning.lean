@@ -1,7 +1,7 @@
 module
 
-public import XmssSecurity.Proof.Deterministic.Preparation
 public import XmssSecurity.Proof.Deterministic.MemoLog
+public import XmssSecurity.Proof.Deterministic.MemoErasure
 
 @[expose] public section
 

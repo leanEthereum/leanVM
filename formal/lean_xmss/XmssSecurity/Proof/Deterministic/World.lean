@@ -1,6 +1,6 @@
 module
 
-public import XmssSecurity.Proof.RandomizedStatement
+public import XmssSecurity.Scheme
 
 @[expose] public section
 

@@ -1,7 +1,7 @@
 module
 
 public import VCVio.OracleComp.Constructions.SampleableType
-public import XmssSecurity.Proof.HashInputLemmas
+public import XmssSecurity.Scheme
 
 @[expose] public section
 

@@ -1,6 +1,6 @@
 module
 
-public import XmssSecurity.Proof.FirstLaneEagerBound
+public import XmssSecurity.Proof.FirstLaneEagerSimulation
 
 @[expose] public section
 

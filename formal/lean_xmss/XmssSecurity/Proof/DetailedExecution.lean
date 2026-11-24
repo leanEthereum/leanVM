@@ -1,7 +1,6 @@
 module
 
 public import XmssSecurity.Proof.Execution
-public import XmssSecurity.Proof.ConsistentQueryBound
 
 @[expose] public section
 

@@ -1,6 +1,7 @@
 module
 
-public import XmssSecurity.Proof.Deterministic.Preparation
+public import XmssSecurity.Proof.Deterministic.Replay
+public import XmssSecurity.Proof.Seeded.Erasure
 
 @[expose] public section
 

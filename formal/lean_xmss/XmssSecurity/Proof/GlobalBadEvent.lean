@@ -1,6 +1,6 @@
 module
 
-public import XmssSecurity.Proof.CappedSigningLogReplay
+public import XmssSecurity.Proof.OutcomeClassification
 
 @[expose] public section
 

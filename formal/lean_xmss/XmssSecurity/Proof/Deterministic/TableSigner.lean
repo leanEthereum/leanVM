@@ -1,6 +1,6 @@
 module
 
-public import XmssSecurity.Proof.Seeded.Erasure
+public import XmssSecurity.Proof.IdealStatement
 
 @[expose] public section
 

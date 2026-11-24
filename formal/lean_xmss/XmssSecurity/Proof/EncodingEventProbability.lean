@@ -1,7 +1,8 @@
 module
 
-public import XmssSecurity.Proof.EncodingTargetMap
 public import XmssSecurity.Proof.SigningCacheTrace
+public import XmssSecurity.Proof.HashInputLemmas
+public import XmssSecurity.Proof.WinningEventReduction
 
 @[expose] public section
 

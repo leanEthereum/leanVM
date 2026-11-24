@@ -1,6 +1,7 @@
 module
 
 public import XmssSecurity.Proof.ConcreteQueryBound
+public import XmssSecurity.Proof.CacheQuerySupport
 
 @[expose] public section
 

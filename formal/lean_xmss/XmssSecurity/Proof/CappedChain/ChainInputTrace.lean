@@ -1,8 +1,7 @@
 module
 
-public import XmssSecurity.Proof.CappedChain.EncodingQueryBound
 public import XmssSecurity.Proof.ChainInputTrace
-public import VCVio.OracleComp.QueryTracking.QueryBound
+public import XmssSecurity.Proof.SigningCacheTrace
 
 @[expose] public section
 

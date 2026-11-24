@@ -1,8 +1,7 @@
 module
 
-public import XmssSecurity.Proof.EvalDistEq
-public import XmssSecurity.Proof.IdealStatement
 public import VCVio.OracleComp.Constructions.SampleableType
+public import XmssSecurity.Scheme
 
 @[expose] public section
 

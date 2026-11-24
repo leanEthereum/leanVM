@@ -2,7 +2,6 @@ module
 
 public import XmssSecurity.Proof.FirstLaneEagerBound
 public import XmssSecurity.Proof.FirstLaneHazardEnforcement
-public import XmssSecurity.Proof.MarginalCoupling
 public import XmssSecurity.Proof.CacheAgreement
 public import VCVio.ProgramLogic.Relational.FromUnary
 

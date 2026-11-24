@@ -3,6 +3,7 @@ module
 public import XmssSecurity.Proof.GlobalBadEvent
 public import XmssSecurity.Proof.CappedSuffixEventProbability
 public import XmssSecurity.Proof.CappedMerkleEventProbability
+public import XmssSecurity.Proof.ExpectedAdaptiveFreshTarget
 
 @[expose] public section
 

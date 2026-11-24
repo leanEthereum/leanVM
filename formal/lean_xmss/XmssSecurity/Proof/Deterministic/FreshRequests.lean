@@ -1,7 +1,9 @@
 module
 
-public import XmssSecurity.Proof.RandomizedStatement
 public import XmssSecurity.Proof.EvalDistEq
+public import VCVio.OracleComp.QueryTracking.LoggingOracle.Core
+public import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
+public import VCVio.OracleComp.QueryTracking.WriterCost
 
 @[expose] public section
 

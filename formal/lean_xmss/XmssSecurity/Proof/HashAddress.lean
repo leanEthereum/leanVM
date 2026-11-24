@@ -1,6 +1,5 @@
 module
 
-public import XmssSecurity.Proof.CacheQuerySupport
 public import XmssSecurity.Proof.HashInputLemmas
 
 @[expose] public section

@@ -6,7 +6,6 @@ public import XmssSecurity.Proof.RunObservedAppend
 @[expose] public section
 
 open OracleComp OracleSpec
-open OracleComp.ProgramLogic.Relational
 
 namespace XmssSecurity
 namespace RevealProbeOracleSimulation

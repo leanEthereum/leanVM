@@ -3,7 +3,6 @@ module
 public import XmssSecurity.Proof.CappedConcreteExecution
 public import XmssSecurity.Proof.PrecomputedBoundedSign
 public import XmssSecurity.Proof.SigningLogConsistency
-public import XmssSecurity.Proof.WinningEventReduction
 
 @[expose] public section
 

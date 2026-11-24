@@ -1,7 +1,7 @@
 module
 
-public import XmssSecurity.Proof.EncodingActionTrace
 public import VCVio.OracleComp.Constructions.SampleableType
+public import XmssSecurity.Scheme
 
 @[expose] public section
 

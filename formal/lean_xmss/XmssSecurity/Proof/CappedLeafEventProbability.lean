@@ -1,8 +1,8 @@
 module
 
-public import XmssSecurity.Proof.ExpectedAdaptiveFreshTarget
 public import XmssSecurity.Proof.CappedDetailedQueryPresence
 public import XmssSecurity.Proof.CappedSigningLogReplay
+public import XmssSecurity.Proof.AdaptiveFreshTarget
 
 @[expose] public section
 

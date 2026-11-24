@@ -2,6 +2,9 @@ module
 
 public import XmssSecurity.Proof.CappedJointExactLoss
 public import XmssSecurity.Proof.OwnTotal
+public import XmssSecurity.Proof.CachedSelectionBound
+public import XmssSecurity.Proof.CappedUnifiedExpectedDigest
+public import XmssSecurity.Scan.PerKey
 
 @[expose] public section
 

@@ -1,7 +1,7 @@
 module
 
-public import XmssSecurity.Proof.RandomizedStatement
 public import XmssSecurity.Proof.UniformFiniteTable
+public import XmssSecurity.Scheme
 
 @[expose] public section
 

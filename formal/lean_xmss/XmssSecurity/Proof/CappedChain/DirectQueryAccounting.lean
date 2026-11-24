@@ -1,6 +1,6 @@
 module
 
-public import XmssSecurity.Proof.CappedChain.SourceDirectTrace
+public import XmssSecurity.Proof.CappedChain.ChainInputTrace
 
 @[expose] public section
 

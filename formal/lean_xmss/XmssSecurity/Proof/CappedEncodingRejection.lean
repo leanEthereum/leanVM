@@ -1,6 +1,6 @@
 module
 
-public import XmssSecurity.Proof.EncodingOracleSimulation
+public import XmssSecurity.Proof.EncodingLemmas
 
 @[expose] public section
 

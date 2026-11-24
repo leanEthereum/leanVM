@@ -1,11 +1,10 @@
 module
 
-public import XmssSecurity.Proof.ChainTableUniformity
-public import XmssSecurity.Proof.AdaptiveFreshTarget
 public import XmssSecurity.Proof.RandomOraclePresampling
-public import XmssSecurity.Proof.HiddenValue
 public import XmssSecurity.Proof.UniformFiniteTable
 public import XmssSecurity.Proof.TopKeygenFacts
+public import XmssSecurity.Proof.ChainHiddenTable
+public import XmssSecurity.Proof.ChainTrajectoryUniformity
 
 @[expose] public section
 
@@ -17,8 +16,6 @@ chain trajectory and then runs key generation from the warmed cache.
 -/
 
 open OracleComp OracleSpec ENNReal
-open OracleComp.ProgramLogic
-open OracleComp.ProgramLogic.Relational
 
 namespace XmssSecurity.Concrete.CacheReplay
 

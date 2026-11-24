@@ -1,7 +1,8 @@
 module
 
-public import XmssSecurity.Proof.CacheReplayEval
 public import XmssSecurity.Proof.Execution
+public import XmssSecurity.Proof.EvalDistEq
+public import XmssSecurity.Proof.LazyScheme
 
 @[expose] public section
 

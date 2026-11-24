@@ -1,6 +1,7 @@
 module
 
 public import XmssSecurity.Proof.Deterministic.TranscriptReduction
+public import XmssSecurity.Proof.Deterministic.Preparation
 
 @[expose] public section
 

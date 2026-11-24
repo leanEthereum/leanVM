@@ -1,8 +1,7 @@
 module
 
-public import XmssSecurity.Proof.EncodingTargetMap
-public import XmssSecurity.Proof.SigningRandomnessUniformity
 public import Mathlib.Data.Set.Card.Arithmetic
+public import XmssSecurity.Proof.LazyScheme
 
 @[expose] public section
 

@@ -1,7 +1,9 @@
 module
 
-public import XmssSecurity.Proof.EvalDistEq
-public import XmssSecurity.Proof.Seeded.KeyDerivation
+public import VCVio.EvalDist.Monad.UniformTable
+public import VCVio.OracleComp.Constructions.SampleableType.Measure
+public import VCVio.OracleComp.EvalDist.Sum
+public import XmssSecurity.Proof.HashInputLemmas
 
 @[expose] public section
 

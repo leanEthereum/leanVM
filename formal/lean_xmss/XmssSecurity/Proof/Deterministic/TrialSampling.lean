@@ -2,8 +2,8 @@ module
 
 public import XmssSecurity.Proof.Deterministic.TableSigner
 public import XmssSecurity.Proof.Deterministic.World
-public import XmssSecurity.Proof.RandomOracle
 public import XmssSecurity.Proof.UniformFiniteTable
+public import XmssSecurity.Proof.StatementLemmas
 
 @[expose] public section
 

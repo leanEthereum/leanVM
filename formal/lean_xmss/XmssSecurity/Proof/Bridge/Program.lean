@@ -1,6 +1,8 @@
 module
 
 public import XmssSecurity.Proof.Bridge.Derivation
+public import XmssSecurity.Proof.Bridge.Basic
+public import XmssSecurity.Proof.Seeded.FiniteTable
 
 @[expose] public section
 

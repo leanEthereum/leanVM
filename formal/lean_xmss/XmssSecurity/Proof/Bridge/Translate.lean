@@ -1,8 +1,7 @@
 module
 
-public import XmssSecurity.Proof.Bridge.Basic
-public import LeanXmss.Statement
-public import Common.WithHash
+public import LeanXmss.Scheme
+public import XmssSecurity.Scheme
 
 @[expose] public section
 

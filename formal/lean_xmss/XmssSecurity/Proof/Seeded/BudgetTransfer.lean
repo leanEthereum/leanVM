@@ -1,6 +1,7 @@
 module
 
-public import XmssSecurity.Proof.Seeded.AdaptiveSeedGuessing
+public import XmssSecurity.Proof.Seeded.HashTrace
+public import XmssSecurity.Proof.Seeded.SeedGuessing
 
 @[expose] public section
 

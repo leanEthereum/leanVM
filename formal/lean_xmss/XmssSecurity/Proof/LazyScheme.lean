@@ -1,7 +1,6 @@
 module
 
-public import XmssSecurity.Proof.EvalDistEq
-public import XmssSecurity.Proof.StatementLemmas
+public import XmssSecurity.Proof.IdealStatement
 
 @[expose] public section
 

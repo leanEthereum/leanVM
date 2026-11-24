@@ -1,7 +1,7 @@
 module
 
-public import XmssSecurity.Proof.CappedEncodingMonitor
 public import XmssSecurity.Proof.CappedSigningCacheTrace
+public import XmssSecurity.Proof.EncodingActionTrace
 
 @[expose] public section
 

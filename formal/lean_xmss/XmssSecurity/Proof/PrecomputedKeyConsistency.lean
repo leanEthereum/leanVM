@@ -1,8 +1,8 @@
 module
 
 public import XmssSecurity.Proof.CappedChain.TreeCacheStable
-public import XmssSecurity.Proof.MerkleQueryPresence
 public import XmssSecurity.Proof.PrecomputedKeygenCache
+public import XmssSecurity.Proof.QueryPresence
 
 @[expose] public section
 

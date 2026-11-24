@@ -2,6 +2,7 @@ module
 
 public import XmssSecurity.Proof.PrecomputedKeyConsistency
 public import XmssSecurity.Proof.TopVerificationQueryPresence
+public import XmssSecurity.Proof.MerkleQueryPresence
 
 @[expose] public section
 

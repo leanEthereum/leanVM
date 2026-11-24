@@ -1,7 +1,6 @@
 module
 
 public import XmssSecurity.Proof.EncodingLemmas
-public import XmssSecurity.Proof.RandomOracle
 
 @[expose] public section
 

@@ -2,7 +2,6 @@ module
 
 public import VCVio.OracleComp.QueryTracking.RandomOracle.DeferredSampling
 public import VCVio.OracleComp.Constructions.SampleableType
-public import VCVio.OracleComp.Constructions.SampleableType.Measure
 public import XmssSecurity.Proof.EvalDistEq
 
 @[expose] public section

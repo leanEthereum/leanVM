@@ -1,6 +1,8 @@
 module
 
 public import XmssSecurity.Proof.UnifiedBadEvent
+public import XmssSecurity.Proof.CappedEncodingActionTrace
+public import XmssSecurity.Proof.CappedEncodingEventProbability
 
 @[expose] public section
 

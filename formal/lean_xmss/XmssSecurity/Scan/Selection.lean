@@ -3,6 +3,9 @@ module
 public import XmssSecurity.Proof.PrecomputedBoundedSignProbability
 public import XmssSecurity.Proof.CappedEncodingRejection
 public import XmssSecurity.Scan.LoopWalk
+public import XmssSecurity.Proof.EncodingOracleSimulation
+public import XmssSecurity.Proof.RandomOracle
+public import XmssSecurity.Proof.SigningRandomnessUniformity
 
 @[expose] public section
 

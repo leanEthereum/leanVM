@@ -4,6 +4,7 @@ public import VCVio.OracleComp.SimSemantics.StateT.Measure
 public import XmssSecurity.Proof.Bridge.Naturality
 public import XmssSecurity.Proof.Bridge.Program
 public import XmssSecurity.Proof.RandomOracle
+public import XmssSecurity.Proof.Deterministic.FreshRequests
 
 @[expose] public section
 

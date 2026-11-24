@@ -1,7 +1,7 @@
 module
 
-public import XmssSecurity.Proof.CappedChain.ChainHiddenTable
 public import XmssSecurity.Proof.CappedChain.ChainInputTrace
+public import XmssSecurity.Proof.ChainHiddenTable
 
 @[expose] public section
 

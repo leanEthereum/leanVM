@@ -1,7 +1,7 @@
 module
 
 public import XmssSecurity.Proof.CappedGlobalKeygen
-public import XmssSecurity.Proof.CappedChain.CausalSigningKeygenCoupling
+public import XmssSecurity.Proof.CappedConcreteExecution
 
 @[expose] public section
 

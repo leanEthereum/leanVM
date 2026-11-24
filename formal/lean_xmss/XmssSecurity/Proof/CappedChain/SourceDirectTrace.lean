@@ -2,6 +2,7 @@ module
 
 public import XmssSecurity.Proof.CappedChain.ChainInputTrace
 public import XmssSecurity.Proof.StateLens
+public import XmssSecurity.Proof.CappedChain.EncodingQueryBound
 
 @[expose] public section
 

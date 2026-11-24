@@ -1,6 +1,6 @@
 module
 
-public import XmssSecurity.Proof.KeygenCache
+public import XmssSecurity.Proof.TreeQueryBound
 
 @[expose] public section
 

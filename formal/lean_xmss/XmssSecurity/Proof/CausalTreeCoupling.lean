@@ -2,6 +2,8 @@ module
 
 public import XmssSecurity.Proof.TreeCacheVocabulary
 public import XmssSecurity.Proof.CacheAgreement
+public import XmssSecurity.Proof.ChainOraclePresampling
+public import XmssSecurity.Proof.EncodingOracleSimulation
 
 @[expose] public section
 

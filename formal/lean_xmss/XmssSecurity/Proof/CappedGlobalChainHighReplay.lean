@@ -2,6 +2,7 @@ module
 
 public import XmssSecurity.Proof.CappedGlobalChainHighLocalCoupling
 public import XmssSecurity.Proof.ObservedTraceMonitor
+public import XmssSecurity.Proof.CappedChain.KeygenUnaddressedCache
 
 @[expose] public section
 

@@ -1,6 +1,6 @@
 module
 
-public import XmssSecurity.Proof.IdealStatement
+public import XmssSecurity.Statement
 
 @[expose] public section
 

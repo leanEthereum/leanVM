@@ -1,8 +1,7 @@
 module
 
 public import XmssSecurity.Proof.CappedEncodingExpectedBound
-public import XmssSecurity.Proof.CappedChain.EncodingQueryBound
-public import XmssSecurity.Proof.LossDecomposition
+public import XmssSecurity.Proof.CappedUnifiedStructuralCollision
 
 @[expose] public section
 

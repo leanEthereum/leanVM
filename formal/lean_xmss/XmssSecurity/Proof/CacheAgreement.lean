@@ -1,9 +1,7 @@
 module
 
-public import XmssSecurity.Proof.CausalAuthenticationPathIndependence
-public import XmssSecurity.Proof.MerkleQueryPresence
-public import XmssSecurity.Proof.CausalKeygenCoupling
 public import VCVio.ProgramLogic.Relational.Basic
+public import XmssSecurity.Scheme
 
 @[expose] public section
 

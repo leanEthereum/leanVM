@@ -1,6 +1,6 @@
 module
 
-public import XmssSecurity.Proof.AdaptiveLeafIndexCollision
+public import XmssSecurity.Scheme
 
 @[expose] public section
 

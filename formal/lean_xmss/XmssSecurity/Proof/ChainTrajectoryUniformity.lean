@@ -1,7 +1,7 @@
 module
 
-public import XmssSecurity.Proof.ConcreteQueryBound
 public import XmssSecurity.Proof.ChainKey
+public import XmssSecurity.Proof.CacheReplayEval
 
 @[expose] public section
 

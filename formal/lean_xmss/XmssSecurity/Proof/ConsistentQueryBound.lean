@@ -2,7 +2,7 @@ module
 
 public import XmssSecurity.Proof.QueryCounting
 public import VCVio.OracleComp.QueryTracking.SubSpec
-public import XmssSecurity.Proof.IdealStatement
+public import XmssSecurity.Proof.RandomizedStatement
 
 @[expose] public section
 

@@ -1,7 +1,7 @@
 module
 
-public import XmssSecurity.Proof.CappedEncodingQueryBound
 public import VCVio.OracleComp.QueryTracking.SubSpec
+public import XmssSecurity.Proof.IdealStatement
 
 @[expose] public section
 

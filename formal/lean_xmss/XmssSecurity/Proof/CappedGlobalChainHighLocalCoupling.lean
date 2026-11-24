@@ -2,7 +2,6 @@ module
 
 public import VCVio.ProgramLogic.Relational.FromUnary
 public import XmssSecurity.Proof.CappedGlobalChainHighSetup
-public import XmssSecurity.Proof.CappedChain.KeygenUnaddressedCache
 public import XmssSecurity.Proof.RunObservedAppend
 
 @[expose] public section

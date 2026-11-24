@@ -1,7 +1,6 @@
 module
 
 public import XmssSecurity.Scan.Moment
-public import Mathlib.Basic.ENNReal.Real
 public import Mathlib.Basic.ENNReal.Operations
 
 @[expose] public section

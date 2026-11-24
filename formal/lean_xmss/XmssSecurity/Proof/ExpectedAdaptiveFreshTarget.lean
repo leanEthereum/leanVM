@@ -2,6 +2,8 @@ module
 
 public import XmssSecurity.Proof.AdaptiveFreshTarget
 public import XmssSecurity.Proof.ExpectedQueryCount
+public import XmssSecurity.Proof.Execution
+public import XmssSecurity.Proof.HashInputLemmas
 
 @[expose] public section
 

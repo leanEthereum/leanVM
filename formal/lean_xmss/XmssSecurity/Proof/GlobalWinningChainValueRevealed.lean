@@ -1,6 +1,5 @@
 module
 
-public import XmssSecurity.Proof.GlobalBadEvent
 public import XmssSecurity.Proof.CappedChain.ChainEventDecomposition
 
 @[expose] public section

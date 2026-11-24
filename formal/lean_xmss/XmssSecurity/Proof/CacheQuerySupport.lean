@@ -1,7 +1,6 @@
 module
 
-public import XmssSecurity.Proof.CacheReplayEval
-public import VCVio.OracleComp.QueryTracking.QueryBound
+public import XmssSecurity.Scheme
 
 @[expose] public section
 

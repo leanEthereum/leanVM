@@ -1,8 +1,8 @@
 module
 
 public import XmssSecurity.Proof.CappedEncodingQueryBound
-public import XmssSecurity.Proof.ExpectedQueryCount
 public import XmssSecurity.Proof.EncodingTargetMap
+public import XmssSecurity.Proof.CappedSigningCacheTrace
 
 @[expose] public section
 

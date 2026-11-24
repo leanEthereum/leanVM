@@ -1,7 +1,8 @@
 module
 
 public import XmssSecurity.Proof.CappedEncodingGameTrace
-public import VCVio.OracleComp.SimSemantics.StateT.PreservesInv
+public import XmssSecurity.Proof.CappedEncodingMonitor
+public import XmssSecurity.Proof.WinningEventReduction
 
 @[expose] public section
 
