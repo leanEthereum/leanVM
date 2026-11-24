@@ -368,24 +368,6 @@ theorem guestDecoderPriceAt_le_budget_add {M κ steps : ℕ} (hκ : κ ≤ 30) (
       rw [e1, e2]
       omega
 
-/-- **At counts at most the memory's size, the price is within the statement's budget**, at the
-guest's `ℓ = 19`, a memory of at most `2^30` words and fewer than `2^128` steps
-(`guestDecoderPriceAt_le_budget_add`, each count's share within `(2^23 + 2^14·log₂(steps + 1))`
-a word of the memory). -/
-theorem guestDecoderPriceAt_le_budget {M κ steps : ℕ} (hκ : κ ≤ 30) (hs : steps < 2 ^ 128)
-    (hM : M ≤ 2 ^ κ) :
-    guestDecoderPriceAt M κ 19 steps ≤ (steps + 1) * (2 ^ 21 + 2 ^ 13 * Nat.log2 (steps + 1)) +
-      (70 * κ + 374 + 2 ^ 23 + 2 ^ 14 * Nat.log2 (steps + 1)) * 2 ^ κ +
-      2 ^ 37 * (Nat.log2 (steps + 1) + 16) := by
-  have h := guestDecoderPriceAt_le_budget_add (M := M) hκ hs
-  generalize Nat.log2 (steps + 1) = lg at h ⊢
-  have h1 : (6476658 + 9032 * lg) * M ≤ (2 ^ 23 + 2 ^ 14 * lg) * 2 ^ κ :=
-    Nat.mul_le_mul (by omega) hM
-  have e : (70 * κ + 374 + 2 ^ 23 + 2 ^ 14 * lg) * 2 ^ κ =
-      (70 * κ + 374) * 2 ^ κ + (2 ^ 23 + 2 ^ 14 * lg) * 2 ^ κ := by ring
-  rw [e]
-  omega
-
 /-- **On every valid execution of the guest, the decoder program's price is within its
 budget**: within the exact price at counts below `2^κ` (`decoderPrice_le_exact`), within the
 budget (`guestDecoderPriceAt_le_budget_add` at `M = 2^κ`: `κ ≤ 30` and fewer than `2^128` steps on

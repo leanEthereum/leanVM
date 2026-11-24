@@ -24,8 +24,7 @@ an application of the frame map `Vn` (a frame's valuation at a variable), the bl
   2303726)·2^k + 19`);
 * **`dvWitN_cost_maxRows`**: one logarithm (`GLogBound P D G`), the count clamped to `DA_MAX_ROWS`
   (`daRowCount`, `daRowCount_cost`: `7`), the rows: at most `S + G + dvWitNRowsPrice DA_LOG_MAX_ROWS F S + 22`
-  on every input; `dvWitN_cost`: below `S + G + dvWitNAtPrice F S + 14`, `dvWitNAtPrice F S =
-  dvWitNRowsPrice 34 F S`; `dvWitN_cost_of_le`: at a clamped count `≤ 2^k`,
+  on every input; `dvWitN_cost_of_le`: at a clamped count `≤ 2^k`,
   `S + G + dvWitNRowsPrice k F S + 22`.
 -/
 
@@ -239,19 +238,6 @@ theorem dvWitN_cost_maxRows (D : LeanVM.Extraction.Fast.DiscreteLogTables)
       S + G + dvWitNRowsPrice (guest_const% DA_LOG_MAX_ROWS) F S + 22 :=
   dvWitN_cost_of_le P hVn hF hσ hS D hP hG (guest_const% DA_LOG_MAX_ROWS) (by norm_num) (by norm_num)
     ((Decoder.daRowCount_le _).trans (by norm_num))
-
-/-- **`da_verify`'s witness** (`dvWitNC`), the logarithm's tables `D` given: at most
-`S + G + dvWitNAtPrice F S + 14` (`dvWitN_cost_maxRows`, below the price at `2^34` rows). -/
-theorem dvWitN_cost (D : LeanVM.Extraction.Fast.DiscreteLogTables)
-    (hP : Includes P Decoder.dvWitNC.costDeps) (hG : GLogBound P D G) :
-    machineCost P Decoder.dvWitNC.costIdx [encodeValue D, σV, VnV] ≤
-      S + G + dvWitNAtPrice F S + 14 := by
-  have := dvWitN_cost_maxRows P hVn hF hσ hS D hP hG
-  have e : dvWitNRowsPrice (guest_const% DA_LOG_MAX_ROWS) F S + 8 ≤ dvWitNAtPrice F S := by
-    unfold dvWitNAtPrice dvWitNRowsPrice
-    norm_num
-    nlinarith
-  omega
 
 end Val
 

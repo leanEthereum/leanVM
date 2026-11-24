@@ -25,8 +25,7 @@ logarithm's baby-step tables `D` given. Parametric in what the test calls:
 The bounds, bottom-up: `readIs_cost` (`20`), `gpowAt_cost` (`17`),
 `symValAt_cost`, `envOne_cost`,
 `readPowBelow_cost`, `bndOne_cost`, `memAt_cost`, `memCell_cost`, `memOne_cost`,
-`wordWith_cost` (by squaring, for the entry table),
-`powSqE_cost` (a power in `E` by squaring, `11 + 606·(log₂ n + 1)`), then
+`wordWith_cost` (by squaring, for the entry table), then
 
 * **`fnPreTest_cost`**: an entry's test at most `fnPrePrice R B t` (`PreTestDefs.lean`);
 * **`preTestAt_cost`**: function `j`'s test at most `fnPrePrice R B (T.getD j none) + 19`;
@@ -59,27 +58,6 @@ theorem powSqW_cost (hP : Includes P Auto.LeanVM.Cost.Rewrite.powSq.c116.costDep
   have h2 := log2_lt_of hW ho
   unfold psAt
   omega
-
-/-- A power in `E` by squaring (`powSqEC`): at most `11 + 606·(log₂ n + 1)`. -/
-theorem powSqE_cost (hP : Includes P powSqEC.costDeps) (a : E) (n : ℕ)
-    (hn : n < 2 ^ 64) :
-    machineCost P powSqEC.costIdx [encodeValue a, encodeValue n] ≤
-      11 + 606 * (Nat.log2 n + 1) := by
-  have := le_of_halving (fun x : E × ℕ ↦ x.2 < 2 ^ 64) (fun x ↦ x.2)
-    (fun x ↦ machineCost P powSqEC.costIdx
-      [encodeValue x.1, encodeValue x.2]) 606 11
-    (fun x hx h0 ↦ by
-      rw [powSqEC.costEq P hP, h0]
-      simp)
-    (fun x hx hpos ↦ by
-      right
-      refine ⟨(x.1 * x.1, x.2 / 2), by dsimp only; omega, le_refl _, ?_⟩
-      rw [powSqEC.costEq P hP, limbs_of_lt hx,
-        limbs_of_lt (by omega : x.2 % 2 < 2 ^ 64)]
-      simp only [show x.2 ≠ 0 by omega, ↓reduceIte]
-      split_ifs <;> omega)
-    (a, n) hn
-  simpa using this
 
 /-- The lanes' scan (`twoPowScanC`) over `m` shifts from `e`, `e + m ≤ 63`: `20` per shift and
 `5`, on words. -/

@@ -20,12 +20,11 @@ tables of at most `2^30` rows (the layout's checks in `buildLayoutLite`), and th
   (`(S + 41)·n + 19` for fuel `n`, `S` a step's price);
 * **`runWithTables_cost`**: one stack, `(runnerStepPrice κ ℓ + 41)·stepCapLite + 45·2^κ + 1738`, with
   `runnerStepPrice κ ℓ = 366000 + 36ℓ + 936κ` (`stepVec_cost`, `Bounds/Step.lean`); at the worst shape
-  **`runWithTables_cost_worst`**: `395201·2^35 + 45·2^30 + 1738 ≈ 2^53.59`;
-* **`runner_cost`**: the tables and at most `1 + 2^12` stacks: at most `runnerBudget ≈ 2^65.59`.
+  **`runWithTables_cost_worst`**: `395201·2^35 + 45·2^30 + 1738 ≈ 2^53.59`.
 
 Hypotheses: placements' offsets below `2^63` (`(layout.placement c).index < 2^63`, so an offset
 plus an address of a memory of at most `2^62` words is a word) and the layout's
-sizes above; `afterRootLite`'s layouts meet them (`afterRootLite_facts`, offsets below `2^48`,
+sizes above; `buildLayoutLite`'s layouts meet them (`buildLayoutLite_facts`, offsets below `2^48`,
 `Bounds/Layout.lean`).
 -/
 
@@ -424,44 +423,6 @@ theorem runWithTables_cost_worst (hP : Includes P runWithTablesC.costDeps) (prog
   omega
 
 end Loop
-
-/-! ## The runner -/
-
-/-- The runner's budget at the worst shape: the tables, and `1 + 2^12` stacks. -/
-@[expose] def runnerBudget : ℕ :=
-  (4682 * 2 ^ 30 + 2547) + (2 ^ 12 + 1) * (395201 * 2 ^ 35 + 45 * 2 ^ 30 + 1738)
-
-/-- **The runner** at the worst shape: its tables once, and at most `1 + 2^12` candidate stacks
-(at most one from the fast path, at most `2^12` from the decoder): at most `runnerBudget`
-(`≈ 2^65.59`). -/
-theorem runner_cost (hT : Includes P runnerTablesC.costDeps) (hW : Includes P runWithTablesC.costDeps)
-    (prog : Semantics.LeanIsaProgram) (input : PublicInput) (layout : LayoutLite)
-    (hm : layout.logMemory ≤ 30) (hb : layout.logBytecode ≤ 30)
-    (hh : ∀ h ∈ layout.tableLogHeights, h ≤ 30) (hl : layout.tableLogHeights.length ≤ 6)
-    (hidx : ∀ c, (layout.placement c).index < 2 ^ 63) (qs : List (Vector K (2 ^ layout.stackLog)))
-    (hqs : qs.length ≤ 2 ^ 12 + 1) :
-    machineCost P runnerTablesC.costIdx [encodeValue prog, encodeValue layout] +
-        (qs.map fun q ↦ machineCost P runWithTablesC.costIdx
-          [encodeValue (runnerTables prog layout), encodeValue prog, encodeValue input, encodeValue layout, encodeValue q]).sum ≤
-      runnerBudget := by
-  have hls : prog.logSize ≤ 30 := prog.logSize_le
-  have h1 := runnerTables_cost P hT prog layout hm hb hh hl
-  have hm2 : (74 * layout.logMemory + 121) * 2 ^ layout.logMemory ≤ (74 * 30 + 121) * 2 ^ 30 :=
-    Nat.mul_le_mul (by omega) (Nat.pow_le_pow_right (by norm_num) hm)
-  have hl2 : (74 * prog.logSize + 121) * 2 ^ prog.logSize ≤ (74 * 30 + 121) * 2 ^ 30 :=
-    Nat.mul_le_mul (by omega) (Nat.pow_le_pow_right (by norm_num) hls)
-  have h2 : (qs.map fun q ↦ machineCost P runWithTablesC.costIdx
-      [encodeValue (runnerTables prog layout), encodeValue prog, encodeValue input, encodeValue layout, encodeValue q]).sum ≤
-      qs.length * (395201 * 2 ^ 35 + 45 * 2 ^ 30 + 1738) := by
-    have := List.sum_le_length_nsmul (qs.map fun q ↦ machineCost P runWithTablesC.costIdx
-      [encodeValue (runnerTables prog layout), encodeValue prog, encodeValue input, encodeValue layout, encodeValue q])
-      (395201 * 2 ^ 35 + 45 * 2 ^ 30 + 1738) (fun x hx ↦ by
-        obtain ⟨q, _, rfl⟩ := List.mem_map.1 hx
-        exact runWithTables_cost_worst P hW prog input layout hm hb hh hl hidx q)
-    simpa using this
-  have h3 := Nat.mul_le_mul_right (395201 * 2 ^ 35 + 45 * 2 ^ 30 + 1738) hqs
-  unfold runnerBudget
-  omega
 
 end
 

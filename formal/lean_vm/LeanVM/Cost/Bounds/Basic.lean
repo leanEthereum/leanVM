@@ -32,8 +32,8 @@ of a callee composes because it is a theorem about `machineCost P j …` for eve
 holding `j`'s bodies (`Includes P j.costDeps`), as the spec is; `includes` derives that premise
 from the caller's.
 
-Here: the tactics `includes`, `cost_facts`, `cost_simp`; `limbCount` of word-sized numbers; products
-of sizes as atoms (`affine_mul_le`); the recurrence solvers (`le_of_halving` for a binary search,
+Here: the tactics `includes`, `cost_facts`, `cost_simp`; `limbCount` of word-sized numbers; the
+recurrence solvers (`le_of_halving` for a binary search,
 `le_of_doubling` for a binary tree); the bounds of the library's polymorphic functions
 (`listZipWith_le`, `listFoldl_le`), proved once for every element type and closure, and of an
 on-demand `List.map` by its recurrence (`listMap_le`).
@@ -235,12 +235,6 @@ macro_rules
     max_self, max_limbs_one, max_one_limbs] at $loc)
 
 allow_unused_tactic LeanVM.Cost.Bounds.costSimp LeanVM.Cost.Bounds.costSimpAt
-
-/-- A price affine in `D`, paid `n ≤ C` times, with `D·C` an atom: `omega` reads the result (the
-bounds state products of sizes as such atoms, so a sum of bounds stays linear). -/
-theorem affine_mul_le (a b D n C : ℕ) (h : n ≤ C) : (a * D + b) * n ≤ a * (D * C) + b * C := by
-  have := Nat.mul_le_mul_left (a * D + b) h
-  nlinarith
 
 /-! ## Recurrence solvers -/
 

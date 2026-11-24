@@ -317,29 +317,6 @@ theorem ladder_head {μ R : ℕ} {lv : Level} {rest : List Level}
     rw [← h.1]
     exact ⟨rfl, rfl⟩
 
-open LeanVM.Protocol.Compile in
-/-- **Reading the stack's root**: the ladder, then the root at its first level: at most
-`3838 + 11·|roots|`. -/
-theorem commitStackPure_cost (hP : Includes P commitStackPureC.costDeps) (logN R : ℕ) (s : VerifierProgramState)
-    (hN : logN < 2 ^ 63) (hR : R < 2 ^ 60) (hs : s.sponge.pending.length ≤ 4) :
-    machineCost P commitStackPureC.costIdx [encodeValue logN, encodeValue R, encodeValue s] ≤ 11 * s.roots.length + 3838 := by
-  rw [commitStackPureC.costEq P hP]
-  have hl := ladder_cost P (by includes) logN R (by omega) (by omega)
-  cases hla : LeanVM.Parameters.Whir.ladder logN R with
-  | none => simp only; omega
-  | some levels =>
-    cases levels with
-    | nil => simp only; omega
-    | cons lv rest =>
-      obtain ⟨hf, hr⟩ := ladder_head hla
-      simp only [hf, hr, LeanVM.Parameters.Whir.initialFold]
-      have hc := commitPure_cost P (by includes) (logN - 6 + R) (2 ^ 6) s hs
-      rw [limbs_of_lt (by omega : logN < 2 ^ 64), limbs_of_lt (by norm_num : (6 : ℕ) < 2 ^ 64),
-        limbs_of_lt (by omega : logN - 6 + R < 2 ^ 64),
-        limbs_of_lt (by omega : logN - 6 < 2 ^ 64), limbs_of_lt (by omega : R < 2 ^ 64),
-        limbs_of_lt (by norm_num : 1 <<< 6 < 2 ^ 64)]
-      omega
-
 /-! ## Logarithms -/
 
 theorem log2_lt_64 {n : ℕ} (hn : n < 2 ^ 64) : Nat.log2 n < 64 := by
@@ -991,97 +968,6 @@ theorem buildLayoutLite_stackLog {bytecode : List K} {logMemory : ℕ} {tableRow
         · rw [h']; omega)
     simp only [Whir.minLogStack]
     omega
-
-open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier in
-/-- **The announced sizes**: eight scalars read, the layout built: `8` per bytecode word and at
-most `977124710`. -/
-theorem readSizesLite_cost (hP : Includes P readSizesLiteC.costDeps) (bytecode : List K)
-    (s : VerifierProgramState) (hb : bytecode.length < 2 ^ 63) (hs : s.sponge.pending.length ≤ 4) :
-    machineCost P readSizesLiteC.costIdx [encodeValue bytecode, encodeValue s] ≤
-      8 * bytecode.length + 977124710 := by
-  rw [readSizesLiteC.costEq P hP, FastLib.tablesLength, limbs_of_lt (by norm_num : (6 : ℕ) < 2 ^ 64)]
-  have hr := readPure_cost P (by includes) 8 s (by norm_num) hs
-  rw [show (2 + 6 : ℕ) = 8 from rfl, limbs_of_lt (by norm_num : (8 : ℕ) < 2 ^ 64), Auto.Option.bind.c47.costEq P (by includes) _ _ _
-    (fun r ↦ RunsApp.of_spec (readSizesLiteC.lam0.costSpec P (by includes) bytecode r))]
-  cases hrp : readPure 8 s with
-  | none => simp only; omega
-  | some r =>
-    obtain ⟨xs, s'⟩ := r
-    obtain ⟨hxl, -, -⟩ := readPure_some 8 s xs s' hrp
-    simp only [appCost_fn, List.length_cons, List.length_nil, List.cons_append, List.nil_append]
-    rw [readSizesLiteC.lam0.costEq P (by includes)]
-    simp only [FastLib.tablesLength]
-    have hall := all_cost P (by includes) (fun value : E ↦ decide (value.limb 1 = 0))
-      (.closure readSizesLiteC.lam0.lam0.costIdx [])
-      (fun v ↦ RunsApp.of_spec (readSizesLiteC.lam0.lam0.costSpec P (by includes) v)) 9 xs
-      (fun v _ ↦ by
-        rw [appCost_fn, List.length_nil, Nat.add_zero, List.nil_append, readSizesLiteC.lam0.lam0.costEq P (by includes)]
-        omega)
-    have hd := drop_cost_length P (by includes) 1 xs (by norm_num)
-    have ht := take_cost_length P (by includes) 6 (List.drop 1 xs) (by norm_num)
-    have hm := map_cost P (by includes) (fun value : E ↦ kToNat (value.limb 0))
-      (.closure readSizesLiteC.lam0.lam1.costIdx [])
-      (fun v ↦ RunsApp.of_spec (readSizesLiteC.lam0.lam1.costSpec P (by includes) v)) 2
-      (List.take 6 (List.drop 1 xs))
-      (fun v _ ↦ by rw [appCost_fn, List.length_nil, Nat.add_zero, List.nil_append, readSizesLiteC.lam0.lam1.costEq P (by includes)])
-    have hrv := reverseAux_cost P (by includes) xs []
-    have hbl := buildLayoutLite_cost P (by includes) bytecode (kToNat ((xs.headD 0).limb 0))
-      (List.map (fun value ↦ kToNat (value.limb 0)) (List.take 6 (List.drop 1 xs))) hb
-      (kToNat_lt _) (fun r hr' ↦ by
-        obtain ⟨v, -, rfl⟩ := List.mem_map.1 hr'
-        exact kToNat_lt _) (by simp)
-    have hbind : ∀ o : Option LayoutLite, (∀ L, o = some L → L.stackLog ≤ 64) →
-        machineCost P Auto.Option.bind.c47.costIdx [encodeValue o, MachineValue.closure readSizesLiteC.lam0.lam2.costIdx
-          [encodeValue (xs, s'), encodeValue (kToNat ((xs.getLastD 0).limb 0))]] ≤ 34 := by
-      intro o ho
-      rw [Auto.Option.bind.c47.costEq P (by includes) _ _ _
-        (fun L ↦ RunsApp.of_spec (readSizesLiteC.lam0.lam2.costSpec P (by includes) (xs, s') _ L))]
-      cases o with
-      | none => simp
-      | some L =>
-        have hL := ho L rfl
-        simp only [appCost_fn, List.length_cons, List.length_nil, List.cons_append, List.nil_append]
-        rw [readSizesLiteC.lam0.lam2.costEq P (by includes),
-          limbs_of_lt (by omega : L.stackLog < 2 ^ 64), limbs_of_lt (by simp [Whir.minLogStack]),
-          limbs_of_lt (by simp [Whir.maxLogStack])]
-        simp only [max_self]
-        split_ifs <;> omega
-    have hbd := hbind (buildLayoutLite bytecode (kToNat ((xs.headD 0).limb 0))
-      (List.map (fun value ↦ kToNat (value.limb 0)) (List.take 6 (List.drop 1 xs))))
-      (fun L hL ↦ buildLayoutLite_stackLog hL)
-    have hdl : (List.drop 1 xs).length = 7 := by simp [hxl]
-    have htl : (List.take 6 (List.drop 1 xs)).length = 6 := by rw [List.length_take, hdl]; rfl
-    rw [hxl] at hall hd hrv
-    rw [hdl] at ht
-    rw [htl] at hm
-    have hk := kToNat_lt ((xs.getLastD 0).limb 0)
-    rw [limbs_of_lt hk]
-    obtain ⟨x0, t, rfl⟩ : ∃ x0 t, xs = x0 :: t := List.exists_cons_of_ne_nil (by
-      intro h; rw [h] at hxl; simp at hxl)
-    obtain ⟨y0, u, hy⟩ : ∃ y0 u, (x0 :: t).reverse = y0 :: u :=
-      List.exists_cons_of_ne_nil (by simp)
-    rw [hy]
-    simp only
-    split_ifs <;> omega
-
-open LeanVM.Protocol.Compile in
-theorem readSizesLite_some {bytecode : List K} {s s' : VerifierProgramState} {L : LayoutLite}
-    {R : ℕ}
-    (h : readSizesLite bytecode s = some ((L, R), s')) :
-    R ≤ 4 ∧ L.stackLog ≤ 30 ∧ s'.roots = s.roots ∧
-      (s.sponge.pending.length ≤ 4 → s'.sponge.pending.length ≤ 4) := by
-  unfold readSizesLite at h
-  obtain ⟨r, hr, h⟩ := Option.bind_eq_some_iff.1 h
-  obtain ⟨-, hroots, hpend⟩ := readPure_some _ s r.1 r.2 hr
-  split_ifs at h
-  dsimp only at h
-  split_ifs at h with h2
-  obtain ⟨L', -, hl⟩ := Option.bind_eq_some_iff.1 h
-  split_ifs at hl with h3
-  simp only [Option.some.injEq, Prod.mk.injEq] at hl
-  obtain ⟨⟨rfl, rfl⟩, rfl⟩ := hl
-  simp only [LeanVM.Parameters.Whir.maxLogStack] at h3
-  exact ⟨h2.2, h3.2, hroots, hpend⟩
 
 end
 

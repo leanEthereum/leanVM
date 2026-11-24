@@ -8,18 +8,17 @@ import all LeanVM.Protocol.Extraction.Fast.AfterRoot
 /-!
 # Bounds: the layouts the replay returns
 
-The runner's bound (`runner_cost`, `Bounds/Runner.lean`) assumes of the layout what
+The runner's bounds (`Bounds/Runner.lean`) assume of the layout what
 `buildLayoutLite`'s checks give: `κ = logMemory ≤ 30`, `logBytecode ≤ 30`, at most six tables of
 log-height at most `30`, and every placement's offset a word. Here they are proved for every
-layout `afterRootLite` returns:
+layout `buildLayoutLite` returns:
 
 * `stackOffsets_le`: blocks of log-size at most `s`: every offset at most `2^s·n`, `n` blocks
   (the running total; `stackOffsets_bounds`' `2^63` was the word room left for the sum);
 * `placementsOf_index_lt`: at most `165` columns of log-size at most `40` (`columnKappas`: `30`
   but `q_keccak`'s `36`): every placement's offset below `2^48`: a block's offset is at most
   `165·2^40`, a Keccak slot's `q_keccak`'s offset plus a slot (below `64`) of `2^κ` words;
-* **`buildLayoutLite_facts`**, **`afterRootLite_facts`**: the layout's fields (`LayoutFacts`), the
-  stack's log-size in `[16, 30]` and the rate's in `[1, 4]`.
+* **`buildLayoutLite_facts`**: the layout's fields (`LayoutFacts`).
 -/
 
 namespace LeanVM.Cost.Bounds
@@ -190,26 +189,6 @@ theorem readSizesLite_layout {bytecode : List K} {s s' :
   obtain ⟨⟨rfl, rfl⟩, rfl⟩ := hl
   simp only [Whir.minLogStack, Whir.maxLogStack] at h3
   exact ⟨⟨_, _, hL'⟩, h3.1, h3.2, h2.1, h2.2⟩
-
-/-- **`afterRootLite`'s layouts** meet `LayoutFacts`; the stack's log-size is in `[16, 30]`, the
-rate's in `[1, 4]`, and the bytecode has `2^(ℓ + 4)` words. -/
-theorem afterRootLite_facts {bytecode : List K} {π : LeanVM.Protocol.Compile.Proof}
-    {L : LayoutLite} {R : ℕ} {st : LeanVM.Protocol.Compile.VerifierProgramState}
-    (h : afterRootLite bytecode π = some ((L, R), st)) :
-    LayoutFacts L ∧ 16 ≤ L.stackLog ∧ L.stackLog ≤ 30 ∧ 1 ≤ R ∧ R ≤ 4 ∧
-      log2Strict bytecode.length = some (L.logBytecode + busBits) := by
-  unfold afterRootLite at h
-  cases hr : readSizesLite bytecode (initialState π) with
-  | none => rw [hr] at h; simp at h
-  | some r =>
-    rw [hr, Option.bind_some] at h
-    obtain ⟨t, -, ht⟩ := Option.map_eq_some_iff.1 h
-    obtain ⟨⟨L', R'⟩, s'⟩ := r
-    simp only [Prod.mk.injEq] at ht
-    obtain ⟨⟨rfl, rfl⟩, -⟩ := ht
-    obtain ⟨⟨lm, rows, hb⟩, h1, h2, h3, h4⟩ := readSizesLite_layout hr
-    obtain ⟨hf, hl⟩ := buildLayoutLite_facts hb
-    exact ⟨hf, h1, h2, h3, h4, hl⟩
 
 end
 

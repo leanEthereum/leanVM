@@ -21,8 +21,7 @@ decoder's top level builds once, then `gLogAt` (below `2^34`, else `0`):
   hypothesis every bound of the decoder takes; **`gLog_bound`**: `GLogBound P discreteLogTables
   gLogPrice`, `gLogPrice = 122435 ≈ 2^16.90` (the exponents' bits priced at `64`);
 * `gLogD_lt`: every count the decoder reads is below `2^34`;
-* `powSqE_cost_lt`: `a^n` in `E` by squaring (`powSqEC`, `Bounds/Decoder/PreTest.lean`'s
-  `powSqE_cost`), `n < 2^k`: `11 + 606·k`; `powSqK_cost_lt`: `5 + 73·k`.
+* `powSqK_cost_lt`: `a^n` in `K` by squaring, `n < 2^k`: `5 + 73·k`.
 -/
 
 namespace LeanVM.Cost.Bounds.Guest
@@ -34,7 +33,7 @@ public section
 
 variable (P : MachineProgram)
 
-/-! ## `a^n` in `E` -/
+/-! ## `a^n` in `K` -/
 
 /-- `a^n` in `K`, `n < 2^k`, `k ≤ 64`: at most `5 + 73·k`. -/
 theorem powSqK_cost_lt (hP : Includes P Auto.LeanVM.Cost.Rewrite.powSq.c116.costDeps) (a : K)

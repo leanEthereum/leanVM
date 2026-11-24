@@ -391,16 +391,6 @@ theorem oqMK_cost (hP : Includes P Decoder.oqMKC.costDeps) :
     limbs_one; omega
   · limbs_one; omega
 
-theorem oqBs_cost (hP : Includes P Decoder.oqBsC.costDeps) (kL : ℕ) (hkL : kL < 2 ^ 23) :
-    machineCost P Decoder.oqBsC.costIdx [encodeValue kL, encodeValue (s.B - 1)] ≤ 13 := by
-  have := hs.2.2.2.2.2.2.2.1
-  rw [Decoder.oqBsC.costEq P hP]
-  limbs_one; split_ifs <;> omega
-
-theorem oqBs_lt (kL : ℕ) (hkL : kL < 2 ^ 23) : oqBs kL (s.B - 1) < 2 ^ 24 := by
-  have := hs.2.2.2.2.2.2.2.1
-  unfold oqBs; split_ifs <;> omega
-
 end Shape
 
 /-! ## Consecutive words -/
@@ -620,17 +610,6 @@ theorem digestOfCells640_cost (hP : Includes P Decoder.digestOfCellsWC.costDeps)
       58 := by
   rw [Decoder.digestOfCellsWC.costEq P hP,
     Extractor.digestOfScalarsC.costEq P (by includes)]
-  omega
-
-omit hrd hR in
-/-- A bit (`testBit.c108`), of a word: at most `9`. -/
-theorem testBit_cost (hP : Includes P Auto.Nat.testBit.c108.costDeps) (q l : ℕ) (hq : q < 2 ^ 64)
-    (hl : l < 2 ^ 64) :
-    machineCost P Auto.Nat.testBit.c108.costIdx [encodeValue q, encodeValue l] ≤ 9 := by
-  rw [Auto.Nat.testBit.c108.costEq P hP]
-  have h1 : q >>> l ≤ q := Nat.shiftRight_le q l
-  have h2 : 1 &&& q >>> l ≤ 1 := Nat.and_le_left
-  limbs_one
   omega
 
 /-! ## A query -/
