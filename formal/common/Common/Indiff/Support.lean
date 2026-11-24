@@ -52,14 +52,6 @@ theorem valC_mono {c c' : ACache Msg Dg E C} (h : c ≤ c') {β : List (Dg × E)
     simp [h hd, h ht]
   · exact h hv
 
-/-- The value of a path depends only on the cache at its oracle points. -/
-theorem valC_congr {c c' : ACache Msg Dg E C} (β : List (Dg × E))
-    (h : ∀ t, ValPt (C := C) P β t → c t = c' t) : valC P c β = valC P c' β := by
-  unfold valC
-  split
-  · next m hm => rw [h (.inl m) hm, h (.inr β) rfl]
-  · rw [h (.inr β) rfl]
-
 /-- A random-oracle step at a point keeps the rest of the cache. -/
 theorem roStep_support {ι : Type} [DecidableEq ι] {hs : OracleSpec.{0, 0} ι}
     [∀ t : hs.Domain, SampleableType (hs.Range t)] (t : ι) (c : hs.QueryCache)

@@ -83,12 +83,6 @@ def tCount : (unifSpec + roSpec (List UInt8) DigestBytes).Domain → ℕ
   | .inl _ => 0
   | .inr _ => 1
 
-theorem isWeightBound_zero {ι : Type} {spec : OracleSpec.{0, 0} ι} {α : Type}
-    (X : OracleComp spec α) : QueryCostAtMost X (fun _ ↦ 0) 0 := by
-  induction X using OracleComp.inductionOn with
-  | pure a => trivial
-  | query_bind t k ih => exact (isWeightBound_query_bind_iff _ _ _ _).mpr ⟨le_rfl, fun u ↦ ih u⟩
-
 theorem isWeightBound_walkM {ι : Type} {spec : OracleSpec.{0, 0} ι}
     (H : List UInt8 → OracleComp spec Common.DigestBytes) (w : ι → ℕ) (hH : ∀ a, QueryCostAtMost (H a) w 1)
     (path : List Common.DigestBytes) : ∀ (idx : ℕ) (node : Common.DigestBytes),
@@ -141,7 +135,7 @@ theorem isWeightBound_embG_g {α : Type} (Y : OracleComp (unifSpec + roSpec (Lis
   isWeightBound_simulateQ _ (fun _ ↦ 0) _ (fun t ↦ by
     rcases t with k | a
     · exact isWeightBound_query gwCalls (.inl k)
-    · exact isWeightBound_query gwCalls (.inr (.inl a))) (isWeightBound_zero Y)
+    · exact isWeightBound_query gwCalls (.inr (.inl a))) (QueryCostAtMost.zero_weight Y)
 
 theorem hgCalls_eq : (fun t ↦ hCallsG t + gCalls (Msg := List UInt8) (Dg := DigestBytes)
     (Root := Common.DigestBytes) (Z := Draw) (n := nLabels) t) = hgCalls := by
@@ -174,7 +168,7 @@ theorem isWeightBound_advSim (A : CodeBindingAdvB r Crs Proof) (Q : ℕ)
       (gCalls (Msg := List UInt8) (Dg := DigestBytes) (Root := Common.DigestBytes) (Z := Draw) (n := nLabels)) Q := by
     rw [advSim, StateT.run'_eq]; exact isWeightBound_map _ hSf
   refine ⟨?_, h2⟩
-  have := h1.add h2
+  have := h1.add_weight h2
   rw [hgCalls_eq] at this
   exact this.mono (by omega)
 

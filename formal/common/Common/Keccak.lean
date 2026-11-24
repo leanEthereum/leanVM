@@ -12,8 +12,7 @@ capacity of 64 bytes (`|C| = 2^512`), the Keccak padding and the all-zero initia
 distinguisher making at most `q` calls to Keccak-f[1600] in all (its own forward and inverse
 calls, and the sponge's, one per 136-byte block of every padded message it hashes) tells
 Keccak-256 over a random permutation from a random oracle with the simulator with advantage at
-most `q² / 2^509` (`keccak256_indifferentiable`); the same bound moves ROM games to the RPM
-(`keccak256_transfer`).
+most `q² / 2^509`, and the same bound moves ROM games to the RPM (`keccak256_transfer`).
 
 With direct permutation calls in a duplex (leanVM's Fiat–Shamir transcript), the non-final
 blocks are those whose last byte (byte 135, the top byte of lane 16) has its top bit clear
@@ -71,18 +70,6 @@ theorem keccak_indiffBound_le (q : ℕ) :
     _ = (q ^ 2 : ℝ≥0∞) / 2 ^ 509 := by
         rw [hN, Nat.cast_mul, Nat.cast_pow, Nat.cast_ofNat, mul_comm (2 ^ 509 : ℝ≥0∞),
           ENNReal.mul_div_mul_left _ _ (by norm_num) (by norm_num)]
-
-/-- **Keccak-256 is indifferentiable from a random oracle** in the random-permutation model:
-a distinguisher of cost `q` (`queryCost`) has advantage at most `q² / 2^509`. -/
-theorem keccak256_indifferentiable {α : Type} (D : OracleComp (dSpec (List UInt8) DigestBytes KState) α)
-    (q : ℕ) (hD : QueryCostAtMost D (queryCost (Dg := DigestBytes) keccakPadding) q) (p : α → Prop) :
-    Pr{let a ← realGame keccakPadding KState.zero D}[p a] ≤
-        Pr{let a ← idealGame keccakPadding KState.zero D}[p a] + (q ^ 2 : ℝ≥0∞) / 2 ^ 509 ∧
-      Pr{let a ← idealGame keccakPadding KState.zero D}[p a] ≤
-        Pr{let a ← realGame keccakPadding KState.zero D}[p a] + (q ^ 2 : ℝ≥0∞) / 2 ^ 509 := by
-  obtain ⟨h1, h2⟩ := indifferentiability keccakPadding KState.zero D q hD p
-  exact ⟨h1.trans (by gcongr; exact keccak_indiffBound_le q),
-    h2.trans (by gcongr; exact keccak_indiffBound_le q)⟩
 
 /-- **The ROM-to-RPM transfer for Keccak-256**: for an RPM game with honest parts hashing through
 `H` and an adversary with `H`, `π` and `π⁻¹`, of cost `q` in all, every event has probabilities

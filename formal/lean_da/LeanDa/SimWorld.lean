@@ -96,24 +96,34 @@ variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × Membe
   (ps : Nark (Unit × Common.DigestBytes × MembershipChallenge) (Fin (r * 128) → Cell) Crs
       Proof rel)
 
-/-- **The simulated adversary calls `F` at most `Q` times** for every crs the setup can output,
-when the RPM game makes at most `Q` permutation calls. -/
-theorem isWeightBound_advS2 (A : CodeBindingAdvB r Crs Proof) (Q : ℕ)
+/-- **The simulated adversary weighs at most `Q`** in a weight `w` that each step of the shadow
+world keeps within its query's cost, for every crs the setup can output, when the RPM game makes
+at most `Q` permutation calls. -/
+theorem isWeightBound_advS2_of (w : Rom2.Domain → ℕ)
+    (hw : ∀ t s, QueryCostAtMost ((shadowImpl keccakPadding t).run s) w
+      (queryCost2 (Dg := DigestBytes) keccakPadding t))
+    (A : CodeBindingAdvB r Crs Proof) (Q : ℕ)
     (hQ : QueryCostAtMost (codeBindingGame2 r ps A) permCalls2 Q) (crs : Crs)
     (hcrs : crs ∈ support ps.setup) :
-    QueryCostAtMost (advS2 keccakPadding KState.zero (A ((), crs)))
-      (fCalls (Msg := List UInt8) (Dg := DigestBytes) (St := KState)) Q := by
+    QueryCostAtMost (advS2 keccakPadding KState.zero (A ((), crs))) w Q := by
   rw [permCalls2_eq] at hQ
   have hX : QueryCostAtMost (simulateQ (hInF (E := KRest) (C := KCap)) (liftM ps.setup) >>= fun x ↦
-      advS2 keccakPadding KState.zero (A ((), x)) >>= fun a ↦ codeBindingPost r ps x a)
-      (fCalls (Msg := List UInt8) (Dg := DigestBytes) (St := KState)) Q := by
+      advS2 keccakPadding KState.zero (A ((), x)) >>= fun a ↦ codeBindingPost r ps x a) w Q := by
     rw [← shadow_rpmGame2, StateT.run'_eq]
-    exact isWeightBound_map _ (isWeightBound_run_simulateQ _ _ _ isWeightBound_shadowImpl_f hQ _)
+    exact isWeightBound_map _ (isWeightBound_run_simulateQ _ _ _ hw hQ _)
   rw [simulateQ_liftM_of_coins _ (fun _ ↦ rfl)] at hX
   have hmem : crs ∈ support (liftM ps.setup : OracleComp Rom2 Crs) := by
     change crs ∈ support (OracleComp.liftComp ps.setup _)
     rwa [OracleComp.support_liftComp]
   exact (hX.of_bind_mem_support hmem).of_bind
+
+/-- **The simulated adversary calls `F` at most `Q` times.** -/
+theorem isWeightBound_advS2 (A : CodeBindingAdvB r Crs Proof) (Q : ℕ)
+    (hQ : QueryCostAtMost (codeBindingGame2 r ps A) permCalls2 Q) (crs : Crs)
+    (hcrs : crs ∈ support ps.setup) :
+    QueryCostAtMost (advS2 keccakPadding KState.zero (A ((), crs)))
+      (fCalls (Msg := List UInt8) (Dg := DigestBytes) (St := KState)) Q :=
+  isWeightBound_advS2_of r ps _ isWeightBound_shadowImpl_f A Q hQ crs hcrs
 
 /-! ## Calls of `H` -/
 
@@ -122,23 +132,12 @@ def hCallsG : (unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes Draw
   | .inr (.inl _) => 1
   | _ => 0
 
-/-- **The simulated adversary calls `H` at most `Q` times**, for an RPM adversary of `Q`
-permutation calls. -/
+/-- **The simulated adversary calls `H` at most `Q` times.** -/
 theorem isWeightBound_advS2_h (A : CodeBindingAdvB r Crs Proof) (Q : ℕ)
     (hQ : QueryCostAtMost (codeBindingGame2 r ps A) permCalls2 Q) (crs : Crs)
     (hcrs : crs ∈ support ps.setup) :
-    QueryCostAtMost (advS2 keccakPadding KState.zero (A ((), crs))) hCalls Q := by
-  rw [permCalls2_eq] at hQ
-  have hX : QueryCostAtMost (simulateQ (hInF (E := KRest) (C := KCap)) (liftM ps.setup) >>= fun x ↦
-      advS2 keccakPadding KState.zero (A ((), x)) >>= fun a ↦ codeBindingPost r ps x a)
-      hCalls Q := by
-    rw [← shadow_rpmGame2, StateT.run'_eq]
-    exact isWeightBound_map _ (isWeightBound_run_simulateQ _ _ _ isWeightBound_shadowImpl hQ _)
-  rw [simulateQ_liftM_of_coins _ (fun _ ↦ rfl)] at hX
-  have hmem : crs ∈ support (liftM ps.setup : OracleComp Rom2 Crs) := by
-    change crs ∈ support (OracleComp.liftComp ps.setup _)
-    rwa [OracleComp.support_liftComp]
-  exact (hX.of_bind_mem_support hmem).of_bind
+    QueryCostAtMost (advS2 keccakPadding KState.zero (A ((), crs))) hCalls Q :=
+  isWeightBound_advS2_of r ps _ isWeightBound_shadowImpl A Q hQ crs hcrs
 
 theorem isWeightBound_simImpl_h (t : Rom2.Domain) (s : SimSt Common.DigestBytes KState Common.DigestBytes nLabels) :
     QueryCostAtMost ((simImpl daDuplex hP gaP t).run s) hCallsG (hCalls t) := by

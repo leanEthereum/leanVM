@@ -19,7 +19,7 @@ adversary's), and `F` (the honest parties' direct calls).
 
 * **The real world** (`realGame2`): `H = sponge^π`, `π`, `π⁻¹` and `F = π` for the lazily sampled
   random permutation.
-* **The ideal world** (`idealGame2`): `H` and `F` independent random oracles, and `π`, `π⁻¹`
+* **The ideal world** (the ROM game against `advS2`): `H` and `F` independent random oracles, and `π`, `π⁻¹`
   answered by the simulator `simulator2`, which queries `H` and `F`: a fresh forward query at a
   rooted node whose path pads a message `m` gets `H m` completed by uniform bits; any other fresh
   forward query `π x` gets `F x`; a fresh inverse query a uniform state.
@@ -55,22 +55,6 @@ variable {Dg E C Msg : Type}
   (P : Padding Msg (Dg × E)) [P.Lawful] (iv : SpState Dg E C)
 
 /-! ## The worlds -/
-
-/-- The ideal world of the two-oracle model: coins forwarded, `H` and `F` the random oracles,
-`π` and `π⁻¹` the simulator. -/
-noncomputable def idealImpl2 : QueryImpl (dSpec2 Msg Dg (SpState Dg E C))
-    (StateT (SimState Dg E C) (OracleComp (unifSpec + hfSpec Msg Dg (SpState Dg E C))))
-  | .inl n => liftM (liftM (unifSpec.query n : ProbComp (Fin (n + 1))) :
-      OracleComp (unifSpec + hfSpec Msg Dg (SpState Dg E C)) _)
-  | .inr (.inl m) => liftM (hQuery (Msg := Msg) (Dg := Dg) (E := E) (C := C) m)
-  | .inr (.inr (.inl q)) => simulator2 P q
-  | .inr (.inr (.inr x)) => liftM (fQuery (Msg := Msg) (Dg := Dg) x)
-
-/-- **The ideal world** of the two-oracle model. -/
-noncomputable def idealGame2 {α : Type} (D : OracleComp (dSpec2 Msg Dg (SpState Dg E C)) α) :
-    ProbComp α :=
-  (simulateQ (hfSpec Msg Dg (SpState Dg E C)).romImpl
-    ((simulateQ (idealImpl2 P) D).run' (SimState.init iv))).run' ∅
 
 /-! ## The duplex discipline -/
 

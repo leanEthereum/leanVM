@@ -39,25 +39,6 @@ section Weight
 
 variable {ι ι' : Type} {spec : OracleSpec.{0, 0} ι} {spec' : OracleSpec.{0, 0} ι'} {α : Type}
 
-/-- Nothing weighs nothing. -/
-theorem QueryCostAtMost.zero_weight (oa : OracleComp spec α) :
-    QueryCostAtMost oa (fun _ ↦ 0) 0 := by
-  induction oa using OracleComp.inductionOn with
-  | pure a => trivial
-  | query_bind t k ih =>
-    rw [isWeightBound_query_bind_iff]
-    exact ⟨le_rfl, fun u ↦ ih u⟩
-
-/-- **Two weights' bounds add.** -/
-theorem QueryCostAtMost.add_weight {oa : OracleComp spec α} {w₁ w₂ : ι → ℕ} {a b : ℕ}
-    (h₁ : QueryCostAtMost oa w₁ a) (h₂ : QueryCostAtMost oa w₂ b) :
-    QueryCostAtMost oa (fun t ↦ w₁ t + w₂ t) (a + b) := by
-  induction oa using OracleComp.inductionOn generalizing a b with
-  | pure x => trivial
-  | query_bind t k ih =>
-    rw [isWeightBound_query_bind_iff] at h₁ h₂ ⊢
-    exact ⟨by omega, fun u ↦ (ih u (h₁.2 u) (h₂.2 u)).mono (by omega)⟩
-
 /-- **A weight's bound scales.** -/
 theorem QueryCostAtMost.mul_weight {oa : OracleComp spec α} {w : ι → ℕ} {a : ℕ} (k : ℕ)
     (h : QueryCostAtMost oa w a) : QueryCostAtMost oa (fun t ↦ k * w t) (k * a) := by

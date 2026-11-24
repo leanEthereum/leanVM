@@ -153,7 +153,7 @@ common() {
   cache_get common
   build common 'Common'
   axioms common Common Common.indifferentiability Common.transfer Common.transfer2 \
-    Common.keccak256_indifferentiable Common.keccak256_transfer Common.keccak256_transfer2 \
+    Common.keccak256_transfer Common.keccak256_transfer2 \
     Common.SufCma.rpm_le_romB Common.SufCma.stronglyUnforgeable_of_romBoundAdv \
     Common.SeedDuplex.duplex_le
 }

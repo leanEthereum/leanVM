@@ -20,7 +20,7 @@ for pure ones (`verifyCellM_id`).
 
 **Lanes and bytes.** The sponge's state is the statement's `KState`, `25` lanes of `u64`, read
 on the permutation's `200` bytes: lane `i` is bytes `8 i … 8 i + 7`, little endian
-(`LeanVM.KState.toRpm`), as in Keccak-f[1600] (`Common.keccakF`, `lanesOfBytes`); a lane read as
+(`LeanVM.KState.toRpm`), as in Keccak-f[1600]; a lane read as
 an element of `K` has the bytes `laneBytes` gives it (`laneBytes_toList`). `lanesToState` and
 `stateToLanes` convert, and a duplexing writes the rate lanes `0 … 15` and keeps lanes `16 … 24`, that is bytes
 `128 … 199`: the capacity and the last rate byte `135`, whose top bit no padded block has clear

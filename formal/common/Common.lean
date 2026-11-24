@@ -1,6 +1,5 @@
 import Common.Model
 import Common.Sponge
-import Common.SpongeTests
 import Common.Indiff.Main
 import Common.Transfer
 import Common.Transfer2
@@ -43,21 +42,6 @@ axioms. -/
 #guard_msgs (whitespace := lax) in
 #print axioms Common.transfer
 
-/-- info: 'Common.pathsOf_sound' depends on axioms:
-[propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms Common.pathsOf_sound
-
-/-- info: 'Common.pathsOf_ideal' depends on axioms:
-[propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms Common.pathsOf_ideal
-
-/-- info: 'Common.keccak256_indifferentiable' depends on axioms:
-[propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms Common.keccak256_indifferentiable
-
 /-- info: 'Common.keccak256_transfer' depends on axioms:
 [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
@@ -96,11 +80,6 @@ axioms. -/
 [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Common.runK_relabel
-
-/-- info: 'Common.isWeightBound_relabel_iff' depends on axioms:
-[propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms Common.isWeightBound_relabel_iff
 
 /-- info: 'Common.runK_expand' depends on axioms:
 [propext, Classical.choice, Quot.sound] -/

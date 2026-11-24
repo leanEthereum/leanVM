@@ -9,15 +9,13 @@ public import Statement.RandomPermutation
 /-!
 # A duplex challenge derivation from a seeded state, with branches: the derivation and its simulator
 
-The duplex of `Common.Duplex` (`Common.SimDefs`) shares the answer `y₀` of the label's state among
-the roots, a root absorbed after it. This one starts each root's derivation at a state of its own,
-`first r iv` from the label's hash `iv`, and branches from its answer: `y₀ = F (first r iv)`, then
-`y_j = F (next j y₀)` for `j = 1 … n - 1`, each branch's state written over the rate of `y₀` and
-keeping its capacity. LeanDA derives its challenge so (`membership_challenge`,
-`verifier/src/da.rs`: the transcript seeded with the label's hash and
-the root, then a grind whose nonce `j - 1` is absorbed into a copy of the seeded sponge, branch
-`j`). The first states share the capacity of `init iv`. The simulator recognises a root's first
-state from the label's hash (`dec iv x`), which it records when the label is hashed, and the
+Each root's derivation starts at a state of its own, `first r iv` from the label's hash `iv`, and
+branches from its answer: `y₀ = F (first r iv)`, then `y_j = F (next j y₀)` for `j = 1 … n - 1`,
+each branch's state written over the rate of `y₀` and keeping its capacity. LeanDA derives its
+challenge so (`membership_challenge`, `verifier/src/da.rs`: the transcript seeded with the label's
+hash and the root, then a grind whose nonce `j - 1` is absorbed into a copy of the seeded sponge,
+branch `j`). The first states share the capacity of `init iv`. The simulator recognises a root's
+first state from the label's hash (`dec iv x`), which it records when the label is hashed, and the
 branches of a root once it has programmed the root's first answer.
 -/
 
@@ -72,17 +70,9 @@ end DuplexSpec
 /-- The two-oracle random-oracle model: coins, `H` and `F`. -/
 abbrev Rom2 (Msg Dg St : Type) := unifSpec + hfSpec Msg Dg St
 
-section Programs
-
-variable [DecidableEq Msg] [DecidableEq St]
-
 /-- An `H` query. -/
-abbrev hQ (m : Msg) : OracleComp (Rom2 Msg Dg St) Dg :=
+abbrev hQ [DecidableEq Msg] [DecidableEq St] (m : Msg) : OracleComp (Rom2 Msg Dg St) Dg :=
   liftM ((Rom2 Msg Dg St).query (.inr (.inl m)))
-
-variable (D : DuplexSpec Msg Dg St Root Z W Cp n)
-
-end Programs
 
 /-- The simulator's state: the answered states with their answers and the challenge they were
 programmed with, newest first; the registered branches; the state `init`
