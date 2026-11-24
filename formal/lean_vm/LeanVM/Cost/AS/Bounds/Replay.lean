@@ -82,13 +82,8 @@ theorem levelMergeFwd_cost (hP : Includes P Level.merge.«List UInt64, KeccakSta
     (hws : limbCount (l.weight + l'.weight) ≤ W) :
     machineCost P Level.merge.«List UInt64, KeccakState».costIdx [encodeValue l, encodeValue l'] ≤
       18 + W + (26 * L + 37) * (l.entries.size + l'.entries.size) := by
-  rw [Level.merge.«List UInt64, KeccakState».costEq P hP]
-  have hmx : max (limbCount (l.weight + l'.weight)) (max (limbCount l.weight) (limbCount l'.weight)) ≤ W :=
-    max_le hws (max_le hw hw')
-  have hm := mergeNewerFwd_cost P (by includes) L _ l.entries.toList l'.entries.toList rfl
-    (fun e he ↦ hQ l' (by simp) e (by simpa using he))
-  have hlen := length_mergeNewer_le l.entries.toList l'.entries.toList
-  simp only [Array.length_toList] at hm hlen
+  have := levelMerge_cost_of P Level.merge.«List UInt64, KeccakState».costIdx _ (WordsKey L) (26 * L + 33) W (Level.merge.«List UInt64, KeccakState».costEq P hP)
+    (fun a b _ hb ↦ mergeNewerFwd_cost P (by includes) L _ a b rfl hb) l l' hQ hw hw' hws
   nlinarith
 
 open LeanVM.Cost.Auto.LeanVM.Extraction.Fast in
@@ -102,24 +97,9 @@ theorem carryFwd_amortized (hP : Includes P carry.«List UInt64, KeccakState».c
     machineCost P carry.«List UInt64, KeccakState».costIdx [encodeValue l, encodeValue m.levels] +
         (26 * L + 37) * potential D (carry l m.levels) ≤
       (26 * L + 37) * potential D m.levels + (26 * L + 37) * D + (32 + 2 * W) * (m.levels.length + 1) := by
-  refine insert_amortized (WordsKey L)
-    (fun l ls ↦ machineCost P carry.«List UInt64, KeccakState».costIdx [encodeValue l, encodeValue ls])
-    (32 + 2 * W) (26 * L + 37) D ?_ ?_ ?_ m hm hQ hN l hw hs hk
-  · intro l _; rw [carry.«List UInt64, KeccakState».costEq_nil P hP]; omega
-  · intro l l' ls h1 h2 hne
-    rw [carry.«List UInt64, KeccakState».costEq_cons P hP]
-    have := hW l.weight (by omega)
-    have := hW l'.weight (by omega)
-    simp only [hne, ↓reduceIte]
-    omega
-  · intro l l' ls h1 heq hQ2
-    have := levelMergeFwd_cost P (by includes) L l l' hQ2 W (hW _ (by omega)) (hW _ (by omega))
-      (hW _ (by omega))
-    rw [carry.«List UInt64, KeccakState».costEq_cons P hP]
-    have := hW l.weight (by omega)
-    have := hW l'.weight (by omega)
-    simp only [heq, ↓reduceIte]
-    omega
+  exact carry_amortized_of P _ Level.merge.«List UInt64, KeccakState».costIdx (WordsKey L) (26 * L + 37) D W hW
+    (fun l ↦ (carry.«List UInt64, KeccakState».costEq_nil P hP l).trans_le (by norm_num)) (carry.«List UInt64, KeccakState».costEq_cons P hP)
+    (fun l l' hQ2 ↦ levelMergeFwd_cost P (by includes) L l l' hQ2 W) m hm hQ hN l hw hs hk
 
 open LeanVM.Cost.Auto.LeanVM.Extraction.Fast in
 /-- A lookup in the first forward answers' map (`SortedMap.get?.«List UInt64, KeccakState»`): a binary search per level. -/

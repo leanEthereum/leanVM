@@ -349,6 +349,66 @@ theorem mergeNewer_cost_of (i j c : ℕ) (Q : κ → Prop) (C : ℕ)
       subst hn
       cases o <;> dsimp only <;> nlinarith
 
+/-- **Two levels merged** (`Level.merge` compiled to function `i`, merging their entries with
+function `im`, of price at most `c` per entry and `3`): at most `c + 4` per entry and `18 + W`, `W` a
+bound of the weights' limbs. -/
+theorem levelMerge_cost_of (i im : ℕ) (Q : κ → Prop) (c W : ℕ)
+    (hEq : ∀ l l' : Level κ β, machineCost P i [encodeValue l, encodeValue l'] =
+      max (limbCount (l.weight + l'.weight)) (max (limbCount l.weight) (limbCount l'.weight)) +
+        3 * l.entries.size + 3 * l'.entries.size +
+        machineCost P im [encodeValue l.entries.toList, encodeValue l'.entries.toList] +
+        (mergeNewer l.entries.toList l'.entries.toList).length + 15)
+    (hm : ∀ a b : List (κ × β), (∀ e ∈ a, Q e.1) → (∀ e ∈ b, Q e.1) →
+      machineCost P im [encodeValue a, encodeValue b] ≤ c * (a.length + b.length) + 3)
+    (l l' : Level κ β) (hQ : KeysIn Q [l, l']) (hw : limbCount l.weight ≤ W)
+    (hw' : limbCount l'.weight ≤ W) (hws : limbCount (l.weight + l'.weight) ≤ W) :
+    machineCost P i [encodeValue l, encodeValue l'] ≤
+      18 + W + (c + 4) * (l.entries.size + l'.entries.size) := by
+  rw [hEq]
+  have hmx : max (limbCount (l.weight + l'.weight)) (max (limbCount l.weight) (limbCount l'.weight)) ≤ W :=
+    max_le hws (max_le hw hw')
+  have h := hm l.entries.toList l'.entries.toList (fun e he ↦ hQ l (by simp) e (by simpa using he))
+    (fun e he ↦ hQ l' (by simp) e (by simpa using he))
+  have hlen := length_mergeNewer_le l.entries.toList l'.entries.toList
+  simp only [Array.length_toList] at h hlen
+  nlinarith
+
+/-- **An insertion, amortized** (`carry` compiled to function `i`, merging two levels with function
+`iL` at most `18 + W` and `b` per entry): `b·D + (32 + 2·W)·(levels + 1)` plus the drop of `b` times
+the potential. -/
+theorem carry_amortized_of [Std.TransOrd κ] [Std.LawfulEqOrd κ] (i iL : ℕ) (Q : κ → Prop) (b D W : ℕ)
+    (hW : ∀ x, x ≤ 2 * 2 ^ D → limbCount x ≤ W)
+    (hnil : ∀ l : Level κ β, machineCost P i [encodeValue l, encodeValue ([] : List (Level κ β))] ≤ 32)
+    (hcons : ∀ (l l' : Level κ β) ls, machineCost P i [encodeValue l, encodeValue (l' :: ls)] =
+      (max (limbCount l.weight) (limbCount l'.weight) +
+        if l.weight = l'.weight then
+          machineCost P iL [encodeValue l, encodeValue l'] +
+            machineCost P i [encodeValue (l.merge l'), encodeValue ls] + 5
+        else 9) + 9)
+    (hL : ∀ l l' : Level κ β, KeysIn Q [l, l'] → limbCount l.weight ≤ W → limbCount l'.weight ≤ W →
+      limbCount (l.weight + l'.weight) ≤ W →
+      machineCost P iL [encodeValue l, encodeValue l'] ≤ 18 + W + b * (l.entries.size + l'.entries.size))
+    (m : SortedMap κ β) (hm : smGood m) (hQ : KeysIn Q m.levels) (hN : smWeightSum m < 2 ^ D)
+    (l : Level κ β) (hw : l.weight = 1) (hs : l.entries.size = 1) (hk : ∀ e ∈ l.entries, Q e.1) :
+    machineCost P i [encodeValue l, encodeValue m.levels] + b * potential D (carry l m.levels) ≤
+      b * potential D m.levels + b * D + (32 + 2 * W) * (m.levels.length + 1) := by
+  refine insert_amortized Q (fun l ls ↦ machineCost P i [encodeValue l, encodeValue ls]) (32 + 2 * W) b
+    D ?_ ?_ ?_ m hm hQ hN l hw hs hk
+  · intro l _; have := hnil l; omega
+  · intro l l' ls h1 h2 hne
+    rw [hcons]
+    have := hW l.weight (by omega)
+    have := hW l'.weight (by omega)
+    simp only [hne, ↓reduceIte]
+    omega
+  · intro l l' ls h1 heq hQ2
+    have := hL l l' hQ2 (hW _ (by omega)) (hW _ (by omega)) (hW _ (by omega))
+    rw [hcons]
+    have := hW l.weight (by omega)
+    have := hW l'.weight (by omega)
+    simp only [heq, ↓reduceIte]
+    omega
+
 end Compiled
 
 /-! ## A fold, amortized -/

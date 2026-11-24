@@ -193,15 +193,9 @@ theorem levelMergePre_cost (hP : Includes P levelMergePreC.costDeps)
     (hws : limbCount (l.weight + l'.weight) ≤ W) :
     machineCost P levelMergePreC.costIdx [encodeValue l, encodeValue l'] ≤
       18 + W + 161 * (l.entries.size + l'.entries.size) := by
-  rw [levelMergePreC.costEq P hP]
-  have hmx : max (limbCount (l.weight + l'.weight)) (max (limbCount l.weight) (limbCount l'.weight)) ≤ W :=
-    max_le hws (max_le hw hw')
-  have hm := mergeNewerPre_cost P (by includes) _ l.entries.toList l'.entries.toList rfl
-    (fun e he ↦ hQ l (by simp) e (by simpa using he))
-    (fun e he ↦ hQ l' (by simp) e (by simpa using he))
-  have hlen := length_mergeNewer_le l.entries.toList l'.entries.toList
-  simp only [Array.length_toList] at hm hlen
-  omega
+  have := levelMerge_cost_of P levelMergePreC.costIdx _ PreKey 157 W (levelMergePreC.costEq P hP)
+    (fun a b ha hb ↦ mergeNewerPre_cost P (by includes) _ a b rfl ha hb) l l' hQ hw hw' hws
+  nlinarith
 
 open LeanVM.Cost.Auto.LeanVM.Extraction.Fast in
 /-- **An insertion into the preimage index, amortized** (`carry.«List UInt64 × Nat, Hits»`): `161·D + 40·(levels + 1)`
@@ -212,24 +206,9 @@ theorem carryPre_amortized (hP : Includes P carry.«List UInt64 × Nat, Hits».c
     (hs : l.entries.size = 1) (hk : ∀ e ∈ l.entries, PreKey e.1) :
     machineCost P carry.«List UInt64 × Nat, Hits».costIdx [encodeValue l, encodeValue m.levels] + 161 * potential D (carry l m.levels) ≤
       161 * potential D m.levels + 161 * D + (32 + 2 * W) * (m.levels.length + 1) := by
-  refine insert_amortized PreKey (fun l ls ↦ machineCost P carry.«List UInt64 × Nat, Hits».costIdx [encodeValue l, encodeValue ls])
-    (32 + 2 * W) 161
-    D ?_ ?_ ?_ m hm hQ hN l hw hs hk
-  · intro l _; rw [carry.«List UInt64 × Nat, Hits».costEq_nil P hP]; omega
-  · intro l l' ls h1 h2 hne
-    rw [carry.«List UInt64 × Nat, Hits».costEq_cons P hP]
-    have := hW l.weight (by omega)
-    have := hW l'.weight (by omega)
-    simp only [hne, ↓reduceIte]
-    omega
-  · intro l l' ls h1 heq hQ2
-    have := levelMergePre_cost P (by includes) l l' hQ2 W (hW _ (by omega)) (hW _ (by omega))
-      (hW _ (by omega))
-    rw [carry.«List UInt64 × Nat, Hits».costEq_cons P hP]
-    have := hW l.weight (by omega)
-    have := hW l'.weight (by omega)
-    simp only [heq, ↓reduceIte]
-    omega
+  exact carry_amortized_of P _ levelMergePreC.costIdx PreKey (161) D W hW
+    (fun l ↦ (carry.«List UInt64 × Nat, Hits».costEq_nil P hP l).trans_le (by norm_num)) (carry.«List UInt64 × Nat, Hits».costEq_cons P hP)
+    (fun l l' hQ2 ↦ levelMergePre_cost P (by includes) l l' hQ2 W) m hm hQ hN l hw hs hk
 
 open LeanVM.Cost.Auto.LeanVM.Extraction.Fast in
 /-- A lookup in the preimage index (`getPreC`): a binary search per level. -/
@@ -404,13 +383,8 @@ theorem levelMergeBytes_cost (hP : Includes P levelMergeBytesC.costDeps) (L : �
     (hws : limbCount (l.weight + l'.weight) ≤ W) :
     machineCost P levelMergeBytesC.costIdx [encodeValue l, encodeValue l'] ≤
       18 + W + (26 * L + 37) * (l.entries.size + l'.entries.size) := by
-  rw [levelMergeBytesC.costEq P hP]
-  have hmx : max (limbCount (l.weight + l'.weight)) (max (limbCount l.weight) (limbCount l'.weight)) ≤ W :=
-    max_le hws (max_le hw hw')
-  have hm := mergeNewerBytes_cost P (by includes) L _ l.entries.toList l'.entries.toList rfl
-    (fun e he ↦ hQ l' (by simp) e (by simpa using he))
-  have hlen := length_mergeNewer_le l.entries.toList l'.entries.toList
-  simp only [Array.length_toList] at hm hlen
+  have := levelMerge_cost_of P levelMergeBytesC.costIdx _ (BytesKey L) (26 * L + 33) W (levelMergeBytesC.costEq P hP)
+    (fun a b _ hb ↦ mergeNewerBytes_cost P (by includes) L _ a b rfl hb) l l' hQ hw hw' hws
   nlinarith
 
 open LeanVM.Cost.Auto.LeanVM.Extraction.Fast in
@@ -423,23 +397,9 @@ theorem carryBytes_amortized (hP : Includes P carry.«Bytes, Digest».costDeps) 
     machineCost P carry.«Bytes, Digest».costIdx [encodeValue l, encodeValue m.levels] +
         (26 * L + 37) * potential D (carry l m.levels) ≤
       (26 * L + 37) * potential D m.levels + (26 * L + 37) * D + (32 + 2 * W) * (m.levels.length + 1) := by
-  refine insert_amortized (BytesKey L) (fun l ls ↦ machineCost P carry.«Bytes, Digest».costIdx [encodeValue l, encodeValue ls])
-    (32 + 2 * W) (26 * L + 37) D ?_ ?_ ?_ m hm hQ hN l hw hs hk
-  · intro l _; rw [carry.«Bytes, Digest».costEq_nil P hP]; omega
-  · intro l l' ls h1 h2 hne
-    rw [carry.«Bytes, Digest».costEq_cons P hP]
-    have := hW l.weight (by omega)
-    have := hW l'.weight (by omega)
-    simp only [hne, ↓reduceIte]
-    omega
-  · intro l l' ls h1 heq hQ2
-    have := levelMergeBytes_cost P (by includes) L l l' hQ2 W (hW _ (by omega)) (hW _ (by omega))
-      (hW _ (by omega))
-    rw [carry.«Bytes, Digest».costEq_cons P hP]
-    have := hW l.weight (by omega)
-    have := hW l'.weight (by omega)
-    simp only [heq, ↓reduceIte]
-    omega
+  exact carry_amortized_of P _ levelMergeBytesC.costIdx (BytesKey L) (26 * L + 37) D W hW
+    (fun l ↦ (carry.«Bytes, Digest».costEq_nil P hP l).trans_le (by norm_num)) (carry.«Bytes, Digest».costEq_cons P hP)
+    (fun l l' hQ2 ↦ levelMergeBytes_cost P (by includes) L l l' hQ2 W) m hm hQ hN l hw hs hk
 
 open LeanVM.Cost.Auto.LeanVM.Extraction.Fast in
 /-- A lookup in the first answers' map (`getBytesC`): a binary search per level. -/
@@ -586,13 +546,8 @@ theorem levelMergeU_cost (hP : Includes P Level.merge.«List UInt64, Unit».cost
     (hws : limbCount (l.weight + l'.weight) ≤ W) :
     machineCost P Level.merge.«List UInt64, Unit».costIdx [encodeValue l, encodeValue l'] ≤
       18 + W + (26 * L + 37) * (l.entries.size + l'.entries.size) := by
-  rw [Level.merge.«List UInt64, Unit».costEq P hP]
-  have hmx : max (limbCount (l.weight + l'.weight)) (max (limbCount l.weight) (limbCount l'.weight)) ≤ W :=
-    max_le hws (max_le hw hw')
-  have hm := mergeNewerU_cost P (by includes) L _ l.entries.toList l'.entries.toList rfl
-    (fun e he ↦ hQ l' (by simp) e (by simpa using he))
-  have hlen := length_mergeNewer_le l.entries.toList l'.entries.toList
-  simp only [Array.length_toList] at hm hlen
+  have := levelMerge_cost_of P Level.merge.«List UInt64, Unit».costIdx _ (WordsKey L) (26 * L + 33) W (Level.merge.«List UInt64, Unit».costEq P hP)
+    (fun a b _ hb ↦ mergeNewerU_cost P (by includes) L _ a b rfl hb) l l' hQ hw hw' hws
   nlinarith
 
 open LeanVM.Cost.Auto.LeanVM.Extraction.Fast in
@@ -605,23 +560,9 @@ theorem carryU_amortized (hP : Includes P carry.«List UInt64, Unit».costDeps) 
     machineCost P carry.«List UInt64, Unit».costIdx [encodeValue l, encodeValue m.levels] +
         (26 * L + 37) * potential D (carry l m.levels) ≤
       (26 * L + 37) * potential D m.levels + (26 * L + 37) * D + (32 + 2 * W) * (m.levels.length + 1) := by
-  refine insert_amortized (WordsKey L) (fun l ls ↦ machineCost P carry.«List UInt64, Unit».costIdx [encodeValue l, encodeValue ls])
-    (32 + 2 * W) (26 * L + 37) D ?_ ?_ ?_ m hm hQ hN l hw hs hk
-  · intro l _; rw [carry.«List UInt64, Unit».costEq_nil P hP]; omega
-  · intro l l' ls h1 h2 hne
-    rw [carry.«List UInt64, Unit».costEq_cons P hP]
-    have := hW l.weight (by omega)
-    have := hW l'.weight (by omega)
-    simp only [hne, ↓reduceIte]
-    omega
-  · intro l l' ls h1 heq hQ2
-    have := levelMergeU_cost P (by includes) L l l' hQ2 W (hW _ (by omega)) (hW _ (by omega))
-      (hW _ (by omega))
-    rw [carry.«List UInt64, Unit».costEq_cons P hP]
-    have := hW l.weight (by omega)
-    have := hW l'.weight (by omega)
-    simp only [heq, ↓reduceIte]
-    omega
+  exact carry_amortized_of P _ Level.merge.«List UInt64, Unit».costIdx (WordsKey L) (26 * L + 37) D W hW
+    (fun l ↦ (carry.«List UInt64, Unit».costEq_nil P hP l).trans_le (by norm_num)) (carry.«List UInt64, Unit».costEq_cons P hP)
+    (fun l l' hQ2 ↦ levelMergeU_cost P (by includes) L l l' hQ2 W) m hm hQ hN l hw hs hk
 
 open LeanVM.Cost.Auto.LeanVM.Extraction.Fast in
 /-- A lookup in the replay's map (`SortedMap.get?.«List UInt64, Unit»`): a binary search per level. -/
@@ -682,13 +623,8 @@ theorem levelMergeC_cost (hP : Includes P Level.merge.«List UInt64, KeccakState
     (hws : limbCount (l.weight + l'.weight) ≤ W) :
     machineCost P Level.merge.«List UInt64, KeccakState × Option Bytes».costIdx [encodeValue l, encodeValue l'] ≤
       18 + W + (26 * L + 37) * (l.entries.size + l'.entries.size) := by
-  rw [Level.merge.«List UInt64, KeccakState × Option Bytes».costEq P hP]
-  have hmx : max (limbCount (l.weight + l'.weight)) (max (limbCount l.weight) (limbCount l'.weight)) ≤ W :=
-    max_le hws (max_le hw hw')
-  have hm := mergeNewerC_cost P (by includes) L _ l.entries.toList l'.entries.toList rfl
-    (fun e he ↦ hQ l' (by simp) e (by simpa using he))
-  have hlen := length_mergeNewer_le l.entries.toList l'.entries.toList
-  simp only [Array.length_toList] at hm hlen
+  have := levelMerge_cost_of P Level.merge.«List UInt64, KeccakState × Option Bytes».costIdx _ (WordsKey L) (26 * L + 33) W (Level.merge.«List UInt64, KeccakState × Option Bytes».costEq P hP)
+    (fun a b _ hb ↦ mergeNewerC_cost P (by includes) L _ a b rfl hb) l l' hQ hw hw' hws
   nlinarith
 
 open LeanVM.Cost.Auto.LeanVM.Extraction.Fast in
@@ -701,23 +637,9 @@ theorem carryC_amortized (hP : Includes P carry.«List UInt64, KeccakState × Op
     machineCost P carry.«List UInt64, KeccakState × Option Bytes».costIdx [encodeValue l, encodeValue m.levels] +
         (26 * L + 37) * potential D (carry l m.levels) ≤
       (26 * L + 37) * potential D m.levels + (26 * L + 37) * D + (32 + 2 * W) * (m.levels.length + 1) := by
-  refine insert_amortized (WordsKey L) (fun l ls ↦ machineCost P carry.«List UInt64, KeccakState × Option Bytes».costIdx [encodeValue l, encodeValue ls])
-    (32 + 2 * W) (26 * L + 37) D ?_ ?_ ?_ m hm hQ hN l hw hs hk
-  · intro l _; rw [carry.«List UInt64, KeccakState × Option Bytes».costEq_nil P hP]; omega
-  · intro l l' ls h1 h2 hne
-    rw [carry.«List UInt64, KeccakState × Option Bytes».costEq_cons P hP]
-    have := hW l.weight (by omega)
-    have := hW l'.weight (by omega)
-    simp only [hne, ↓reduceIte]
-    omega
-  · intro l l' ls h1 heq hQ2
-    have := levelMergeC_cost P (by includes) L l l' hQ2 W (hW _ (by omega)) (hW _ (by omega))
-      (hW _ (by omega))
-    rw [carry.«List UInt64, KeccakState × Option Bytes».costEq_cons P hP]
-    have := hW l.weight (by omega)
-    have := hW l'.weight (by omega)
-    simp only [heq, ↓reduceIte]
-    omega
+  exact carry_amortized_of P _ Level.merge.«List UInt64, KeccakState × Option Bytes».costIdx (WordsKey L) (26 * L + 37) D W hW
+    (fun l ↦ (carry.«List UInt64, KeccakState × Option Bytes».costEq_nil P hP l).trans_le (by norm_num)) (carry.«List UInt64, KeccakState × Option Bytes».costEq_cons P hP)
+    (fun l l' hQ2 ↦ levelMergeC_cost P (by includes) L l l' hQ2 W) m hm hQ hN l hw hs hk
 
 open LeanVM.Cost.Auto.LeanVM.Extraction.Fast in
 /-- A lookup in the replay's map (`SortedMap.get?.«List UInt64, KeccakState × Option Bytes»`): a binary search per level. -/

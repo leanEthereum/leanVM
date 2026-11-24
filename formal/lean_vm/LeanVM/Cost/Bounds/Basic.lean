@@ -219,7 +219,7 @@ theorem appCost_fn (P : MachineProgram) (j : ℕ) (us vs : List MachineValue) :
 macro "cost_app " s:Lean.Parser.Tactic.rwRuleSeq : tactic => `(tactic| (
   rw [appCost_fn]
   simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-  rw $s))
+  rw $s:rwRuleSeq))
 
 section Meta
 
