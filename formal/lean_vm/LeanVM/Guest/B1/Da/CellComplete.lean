@@ -73,7 +73,7 @@ theorem da_verify_cell_params : (fn% «da_verify_cell»).params = [.n (val% «da
   rfl
 
 /-- **`da_verify_cell` is complete.** -/
-theorem da_verify_cell_complete : da_verify_cell_complete_Spec := fun rd _ syms ws hsl hwl hr =>
+theorem da_verify_cell_complete : da_verify_cell_complete_Spec := fun _ _ syms ws hsl hwl hr =>
   (cellVerified.rel_iff_of_check (c := ()) find_da_verify_cell cell_linked _ _).mpr
     ⟨syms, ws, hsl, hr, hwl, rfl⟩
 
