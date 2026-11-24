@@ -203,10 +203,17 @@ noncomputable def nameV (kc : ℕ → Option (ℕ × ℕ)) (st : SSt) (v : V) : 
     else bif bitN st.occ c then ⟨st.occ, st.cst, st.keys, st.named, ⟨v.idx, c, none, [], []⟩ :: st.pend⟩
     else ⟨setBit st.occ c, cstAt sh st.cst c (kc v.idx), st.keys, setBit st.named v.idx, st.pend⟩
 
-/-- Name values in order. -/
+/-- Name values in order (a known value left as it is, `nameAll_cons`). -/
 noncomputable def nameAll (kc : ℕ → Option (ℕ × ℕ)) : SSt → List V → SSt
   | st, [] => st
-  | st, v :: vs => (nameV loc sh kc st v).seq fun st ↦ nameAll kc st vs
+  | st, v :: vs => bif isNamed st v.idx then nameAll kc st vs
+      else (nameV loc sh kc st v).seq fun st ↦ nameAll kc st vs
+
+theorem nameAll_cons (kc : ℕ → Option (ℕ × ℕ)) (st : SSt) (v : V) (vs : List V) :
+    nameAll loc sh kc st (v :: vs) = nameAll loc sh kc (nameV loc sh kc st v) vs := by
+  cases h : isNamed st v.idx with
+  | false => simp only [nameAll, h, Bool.cond_false, SSt.seq_eq]
+  | true => simp only [nameAll, h, Bool.cond_true, nameV, Bool.true_or]
 
 /-- The facts an atom gives the pending values. -/
 noncomputable def addFacts (a : Core.Atom) (ps : List PF) : List PF :=
@@ -217,18 +224,19 @@ noncomputable def addFacts (a : Core.Atom) (ps : List PF) : List PF :=
 /-- Value `v` is known and in a frame cell. -/
 noncomputable def knownIn (st : SSt) (v : ℕ) : Bool := isNamed st v && Nat.ble 2 (cellN loc v)
 
-/-- A key `(op, inputs)` of a pending value is one of its cell `c`'s, its inputs known. -/
+/-- A key `(op, inputs)` of a pending value is one of its cell `c`'s, its inputs known (looked up
+last: a cell's keys rarely match). -/
 noncomputable def keyOk (st : SSt) (c : ℕ) (k : ℕ × List ℕ) : Bool :=
-  k.2.all (knownIn loc st) &&
-    ((getF st.keys c).getD []).any fun k' ↦ Nat.beq k'.1 k.1 && k'.2 == keyCells k.1 (k.2.map (cellN loc))
+  (((getF st.keys c).getD []).any fun k' ↦ Nat.beq k'.1 k.1 && k'.2 == keyCells k.1 (k.2.map (cellN loc))) &&
+    k.2.all (knownIn loc st)
 
-/-- A pending value is shown. -/
+/-- A pending value is shown: by a constant, an equal value, or a key, the costliest last. -/
 noncomputable def pfOk (st : SSt) (p : PF) : Bool :=
   (match p.kc, getF st.cst p.c with
     | some x, some y => x == y
     | _, _ => false) ||
-  p.keys.any (keyOk loc st p.c) ||
-  p.eqs.any fun x ↦ isNamed st x && Nat.beq (cellN loc x) p.c
+  (p.eqs.any fun x ↦ isNamed st x && Nat.beq (cellN loc x) p.c) ||
+  p.keys.any (keyOk loc st p.c)
 
 /-- The pending values shown and the others. -/
 noncomputable def splitPend (st : SSt) : List PF → List PF × List PF
