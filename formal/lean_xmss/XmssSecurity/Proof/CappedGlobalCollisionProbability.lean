@@ -54,7 +54,7 @@ theorem globalSuffixCollision_event_afterKeygen_orientation
     (hevent : GlobalOutcomeBadEventOccurs execution.2 execution.1
       .suffixCollision) :
     Rom.AdaptiveFreshDigestCollisionWith keyResult.2 execution.2
-      (CappedSuffix.keygenChainTargetInput keyResult.1.2 keyResult.2) := by
+      (keygenChainTargetInput keyResult.1.2 keyResult.2) := by
   obtain ⟨slot, hslot⟩ := hevent
   exact CappedSuffix.suffixCollision_event_afterKeygen_orientation adversary
     keyResult hkeygen execution hafter slot hslot

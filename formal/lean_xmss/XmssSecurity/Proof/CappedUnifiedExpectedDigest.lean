@@ -15,13 +15,13 @@ open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity
 
-theorem CappedSuffix.keygenChainTargetInput_encodingInput_eq_self
+theorem keygenChainTargetInput_encodingInput_eq_self
     (secretKey : SecretKey) (cache : QueryCache HashSpec)
     (leafIndex : LeafIndex) (payload : Message × Randomness) :
-    CappedSuffix.keygenChainTargetInput secretKey cache
+    keygenChainTargetInput secretKey cache
       (Concrete.CacheView.encodingInput secretKey.parameter leafIndex payload) =
     Concrete.CacheView.encodingInput secretKey.parameter leafIndex payload := by
-  unfold CappedSuffix.keygenChainTargetInput
+  unfold keygenChainTargetInput
   split
   · rename_i h
     obtain ⟨value, hinput⟩ := h.choose_spec
@@ -65,7 +65,7 @@ theorem keygenStructuralTargetInput_encodingInput
       (Concrete.CacheView.encodingInput secretKey.parameter leafIndex payload) =
     Concrete.CacheView.encodingInput secretKey.parameter leafIndex payload := by
   unfold keygenStructuralTargetInput
-  rw [CappedSuffix.keygenChainTargetInput_encodingInput_eq_self,
+  rw [keygenChainTargetInput_encodingInput_eq_self,
     CappedLeaf.keygenLeafTargetInput_encodingInput_eq_self,
     CappedMerkle.keygenMerkleTargetInput_encodingInput_eq_self,
     CappedTop.keygenTopTargetInput_encodingInput]

@@ -18,15 +18,15 @@ noncomputable def keygenStructuralTargetInput
   CappedTop.keygenTopTargetInput secretKey cache
     (CappedMerkle.keygenMerkleTargetInput secretKey cache
       (CappedLeaf.keygenLeafTargetInput secretKey cache
-        (CappedSuffix.keygenChainTargetInput secretKey cache input)))
+        (keygenChainTargetInput secretKey cache input)))
 
-theorem CappedSuffix.keygenChainTargetInput_leafInput_eq_self
+theorem keygenChainTargetInput_leafInput_eq_self
     (secretKey : SecretKey) (cache : QueryCache HashSpec)
     (leafIndex : LeafIndex) (endpoints : ChainIndex → Digest) :
-    CappedSuffix.keygenChainTargetInput secretKey cache
+    keygenChainTargetInput secretKey cache
       (Concrete.CacheView.leafInput secretKey.parameter leafIndex endpoints) =
     Concrete.CacheView.leafInput secretKey.parameter leafIndex endpoints := by
-  unfold CappedSuffix.keygenChainTargetInput
+  unfold keygenChainTargetInput
   split
   · rename_i h
     obtain ⟨value, hinput⟩ := h.choose_spec
@@ -35,13 +35,13 @@ theorem CappedSuffix.keygenChainTargetInput_leafInput_eq_self
     cases hdomain
   · rfl
 
-theorem CappedSuffix.keygenChainTargetInput_merkleInput_eq_self
+theorem keygenChainTargetInput_merkleInput_eq_self
     (secretKey : SecretKey) (cache : QueryCache HashSpec)
     (level : MerkleLevel) (node : MerkleNode) (left right : Digest) :
-    CappedSuffix.keygenChainTargetInput secretKey cache
+    keygenChainTargetInput secretKey cache
       (Concrete.CacheView.merkleInput secretKey.parameter level node left right) =
     Concrete.CacheView.merkleInput secretKey.parameter level node left right := by
-  unfold CappedSuffix.keygenChainTargetInput
+  unfold keygenChainTargetInput
   split
   · rename_i h
     obtain ⟨value, hinput⟩ := h.choose_spec
@@ -119,10 +119,10 @@ theorem keygenStructuralTargetInput_chainInput
     (value : Digest) :
     keygenStructuralTargetInput secretKey cache
       (Concrete.CacheView.chainInput secretKey.parameter leafIndex chain step value) =
-    CappedSuffix.keygenChainTargetInput secretKey cache
+    keygenChainTargetInput secretKey cache
       (Concrete.CacheView.chainInput secretKey.parameter leafIndex chain step value) := by
   unfold keygenStructuralTargetInput
-  rw [CappedSuffix.keygenChainTargetInput_chainInput,
+  rw [keygenChainTargetInput_chainInput,
     CappedLeaf.keygenLeafTargetInput_chainInput_eq_self,
     CappedMerkle.keygenMerkleTargetInput_chainInput_eq_self,
     CappedTop.keygenTopTargetInput_chainInput]
@@ -135,7 +135,7 @@ theorem keygenStructuralTargetInput_leafInput
     CappedLeaf.keygenLeafTargetInput secretKey cache
       (Concrete.CacheView.leafInput secretKey.parameter leafIndex endpoints) := by
   unfold keygenStructuralTargetInput
-  rw [CappedSuffix.keygenChainTargetInput_leafInput_eq_self,
+  rw [keygenChainTargetInput_leafInput_eq_self,
     CappedLeaf.keygenLeafTargetInput_leafInput,
     CappedMerkle.keygenMerkleTargetInput_leafInput_eq_self,
     CappedTop.keygenTopTargetInput_leafInput]
@@ -148,17 +148,17 @@ theorem keygenStructuralTargetInput_merkleInput
     CappedMerkle.keygenMerkleTargetInput secretKey cache
       (Concrete.CacheView.merkleInput secretKey.parameter level node left right) := by
   unfold keygenStructuralTargetInput
-  rw [CappedSuffix.keygenChainTargetInput_merkleInput_eq_self,
+  rw [keygenChainTargetInput_merkleInput_eq_self,
     CappedLeaf.keygenLeafTargetInput_merkleInput_eq_self,
     CappedMerkle.keygenMerkleTargetInput_merkleInput, CappedTop.keygenTopTargetInput_merkleInput]
 
 theorem chainInput_exists_of_keygenChainTargetInput_ne
     (secretKey : SecretKey) (cache : QueryCache HashSpec) (input : HashInput)
-    (hne : CappedSuffix.keygenChainTargetInput secretKey cache input ≠ input) :
+    (hne : keygenChainTargetInput secretKey cache input ≠ input) :
     ∃ address : LeafIndex × ChainIndex × ChainStep, ∃ value,
       input = Concrete.CacheView.chainInput secretKey.parameter address.1
         address.2.1 address.2.2 value := by
-  unfold CappedSuffix.keygenChainTargetInput at hne
+  unfold keygenChainTargetInput at hne
   split at hne
   · assumption
   · exact (hne rfl).elim
@@ -208,11 +208,11 @@ theorem adaptiveFreshChainCollision_implies_structural
     (initialCache finalCache : QueryCache HashSpec)
     (secretKey : SecretKey)
     (hcollision : Rom.AdaptiveFreshDigestCollisionWith initialCache finalCache
-      (CappedSuffix.keygenChainTargetInput secretKey initialCache)) :
+      (keygenChainTargetInput secretKey initialCache)) :
     Rom.AdaptiveFreshDigestCollisionWith initialCache finalCache
       (keygenStructuralTargetInput secretKey initialCache) := by
   apply adaptiveFreshDigestCollisionWith_of_target_eq initialCache finalCache
-    (CappedSuffix.keygenChainTargetInput secretKey initialCache)
+    (keygenChainTargetInput secretKey initialCache)
     (keygenStructuralTargetInput secretKey initialCache) _ hcollision
   intro input hne
   obtain ⟨address, value, rfl⟩ :=
@@ -253,11 +253,11 @@ theorem adaptiveFreshMerkleCollision_implies_structural
   exact keygenStructuralTargetInput_merkleInput secretKey initialCache
     address.1 address.2 left right
 
-theorem CappedSuffix.keygenChainTargetInput_top (secretKey : SecretKey) (cache : QueryCache HashSpec)
+theorem keygenChainTargetInput_top (secretKey : SecretKey) (cache : QueryCache HashSpec)
     (domain : HashDomain) (message : HashInput) (hdomain : domain.isTop = true) :
-    CappedSuffix.keygenChainTargetInput secretKey cache (tweakableHashInput secretKey.parameter domain message) =
+    keygenChainTargetInput secretKey cache (tweakableHashInput secretKey.parameter domain message) =
       tweakableHashInput secretKey.parameter domain message := by
-  unfold CappedSuffix.keygenChainTargetInput
+  unfold keygenChainTargetInput
   split
   · rename_i h
     obtain ⟨_, _, h⟩ := h
@@ -300,7 +300,7 @@ theorem adaptiveFreshTopCollision_implies_structural
   obtain ⟨domain, message, hdomain, rfl⟩ :=
     CappedTop.top_of_keygenTopTargetInput_ne secretKey initialCache input hne
   unfold keygenStructuralTargetInput
-  rw [CappedSuffix.keygenChainTargetInput_top secretKey initialCache domain message hdomain,
+  rw [keygenChainTargetInput_top secretKey initialCache domain message hdomain,
     CappedLeaf.keygenLeafTargetInput_top secretKey initialCache domain message hdomain,
     CappedMerkle.keygenMerkleTargetInput_top secretKey initialCache domain message hdomain]
 
@@ -333,8 +333,7 @@ theorem winningStructuralCollision_afterKeygen_orientation
       hrevealed | hcollision
     · exact (hnotRevealed ⟨chain, ⟨hwin, hchainEvent⟩, hrevealed⟩).elim
     · apply adaptiveFreshChainCollision_implies_structural
-      simpa only [CappedChain.keygenChainTargetInput_eq_capped] using
-        hcollision
+      exact hcollision
   · apply adaptiveFreshChainCollision_implies_structural
     exact globalSuffixCollision_event_afterKeygen_orientation adversary
       keyResult hkeygen execution hafter hsuffix.2

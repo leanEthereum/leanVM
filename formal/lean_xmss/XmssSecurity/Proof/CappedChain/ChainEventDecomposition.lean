@@ -2,27 +2,12 @@ module
 
 public import XmssSecurity.Proof.CappedLeafEventProbability
 public import XmssSecurity.Proof.CappedSuffixEventProbability
-public import XmssSecurity.Proof.ChainTargetInput
 
 @[expose] public section
 
 open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity.CappedChain
-
-theorem keygenChainTargetInput_eq_capped
-    (secretKey : SecretKey) (cache : QueryCache HashSpec) :
-    keygenChainTargetInput secretKey cache =
-      CappedSuffix.keygenChainTargetInput secretKey cache := by
-  funext input
-  by_cases h : ∃ address : LeafIndex × ChainIndex × ChainStep, ∃ value,
-      input = Concrete.CacheView.chainInput secretKey.parameter address.1
-        address.2.1 address.2.2 value
-  · obtain ⟨address, value, rfl⟩ := h
-    rw [XmssSecurity.keygenChainTargetInput_chainInput,
-      CappedSuffix.keygenChainTargetInput_chainInput]
-  · unfold keygenChainTargetInput CappedSuffix.keygenChainTargetInput
-    rfl
 
 noncomputable def OutcomeChainValueRevealed (cache : QueryCache HashSpec)
     (outcome : GameOutcome) (chain : ChainIndex) : Prop :=
@@ -186,7 +171,6 @@ theorem chain_event_afterKeygen_revealed_or_collision
             (execution.1.forgery.message, execution.1.forgery.signature.randomness)) =
           some forgedEncoding := by
         simpa [hleafIndex] using hforgedDecode
-      rw [keygenChainTargetInput_eq_capped]
       exact CappedSuffix.fresh_suffix_witness_afterKeygen_orientation adversary keyResult hkeygen execution
         hafter forgedEncoding hevent.1 hforgedDecode' position hsuffix
   · left
