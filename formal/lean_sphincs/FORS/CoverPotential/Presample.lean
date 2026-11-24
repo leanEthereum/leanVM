@@ -1,6 +1,7 @@
 module
 
 public import FORS.LazyRun.Presample
+import Common.EvalDistEq
 
 @[expose] public section
 
@@ -25,10 +26,6 @@ attribute [local instance] Classical.propDecidable
 variable {D R A ι : Type} [Fintype ι] [SampleableType R]
 attribute [local instance] saturationDecEqCoordinate
 variable (tg : Targeting D R ι) (initial : Cache D R) (model : HiddenRows.Model D R A ι)
-
-omit [Fintype ι] [SampleableType R] in
-private theorem evalDistEq_of_eq {α : Type} {mx my : ProbComp α} (h : mx = my) : mx =ᵈ my :=
-  h ▸ EvalDistEq.rfl
 
 /-- Fix the answer to an outside input in advance. -/
 noncomputable def presample (x : D) (state : DebtState D R ι) : ProbComp (DebtState D R ι) :=
@@ -65,14 +62,14 @@ theorem presample_readOutside {γ : Type} (x y : D) (state : DebtState D R ι)
         simp only [presample_cached y state v hc, readOutside_cached y state v hc, pure_bind, EvalDistEq.refl]
     | none =>
         rw [presample_fresh y state hc, readOutside_fresh y state hc, bind_map_left, bind_map_left]
-        apply evalDistEq_of_eq
+        apply EvalDistEq.of_eq
         refine bind_congr fun u => ?_
         have hst : (state.store y u).cache y = some u := by simp [DebtState.store]
         simp only [readOutside_cached y _ u hst, presample_cached y _ u hst, pure_bind]
   · cases hcx : state.cache x with
     | some v =>
         rw [presample_cached x state v hcx, pure_bind]
-        apply evalDistEq_of_eq
+        apply EvalDistEq.of_eq
         apply bind_congr_of_forall_mem_support
         intro r hr
         rcases readOutside_support y state r hr with h | ⟨_, h⟩
@@ -89,7 +86,7 @@ theorem presample_readOutside {γ : Type} (x y : D) (state : DebtState D R ι)
         cases hcy : state.cache y with
         | some v =>
             rw [readOutside_cached y state v hcy, pure_bind, presample_fresh x state hcx, bind_map_left]
-            apply evalDistEq_of_eq
+            apply EvalDistEq.of_eq
             refine bind_congr fun u => ?_
             rw [readOutside_cached y _ v (by rw [store_cache_ne state x y hxy u]; exact hcy), pure_bind]
         | none =>
@@ -99,7 +96,7 @@ theorem presample_readOutside {γ : Type} (x y : D) (state : DebtState D R ι)
               readOutside_fresh y _ (by rw [store_cache_ne state x y hxy u]; exact hcy)
             simp only [hL, bind_map_left]
             refine (OracleComp.EvalDistEq.bind_bind_swap _ _ _).trans ?_
-            apply evalDistEq_of_eq
+            apply EvalDistEq.of_eq
             refine bind_congr fun v => ?_
             rw [presample_fresh x _ (by rw [store_cache_ne state y x (Ne.symm hxy) v]; exact hcx), bind_map_left]
             refine bind_congr fun u => ?_
@@ -170,7 +167,7 @@ theorem presample_sampleCoordinate {γ : Type} (x : D) (coordinate : ι) (state 
   rw [hcongr]
   simp only [sampleCoordinate, bind_map_left]
   refine (OracleComp.EvalDistEq.bind_bind_swap _ _ _).trans ?_
-  apply evalDistEq_of_eq
+  apply EvalDistEq.of_eq
   refine bind_congr fun r => ?_
   rw [presample_setKnown x state r.2, bind_map_left]
 

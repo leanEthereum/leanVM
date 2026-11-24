@@ -10,7 +10,7 @@ and a uniform table on all remaining short inputs give a prepared cache and a fi
 That answer function agrees with the material and is consistent with the graph labels and their
 surrogate boundary. -/
 
-open OracleComp OracleSpec ENNReal
+open OracleComp OracleSpec ENNReal Common.QueryCount
 
 namespace FORS.Security.Assembly
 
@@ -24,8 +24,8 @@ attribute [local instance] Classical.propDecidable
 
 theorem OnlyW.counted {α : Type} (selected : OracleWorld.Domain → Prop) [DecidablePred selected]
     (oa : OracleComp OracleWorld α) (h : OnlyW oa) :
-    OnlyW (Common.QueryCount.counted selected oa) :=
-  Common.QueryCount.isQueryBoundP_counted _ h
+    OnlyW (counted selected oa) :=
+  isQueryBoundP_counted _ h
 
 /-- `pure` has the same distribution in any two lawful semantics. -/
 theorem evalDistEq_pure {m₁ m₂ : Type → Type} [Monad m₁] [LawfulMonad m₁] [Monad m₂] [LawfulMonad m₂]
@@ -168,7 +168,7 @@ theorem fixedHashWorld_countHashQueries (f : QueryImpl HashSpec Id) {α : Type}
     (oa : OracleComp OracleWorld α) :
     simulateQ (Prefix.fixedHashWorld f) (countHashQueries oa) =
       (simulateQ (Prefix.fixedWorldCost f) oa).run := by
-  rw [countHashQueries, Common.QueryCount.simulate_withCost]
+  rw [countHashQueries, simulate_withCost]
   congr 2
   funext input
   cases input <;> simp only [Prefix.fixedWorldCost, QueryImpl.withAddCost_apply] <;> rfl

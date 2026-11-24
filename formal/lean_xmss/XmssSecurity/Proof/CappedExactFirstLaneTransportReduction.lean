@@ -14,7 +14,7 @@ open OracleComp.ProgramLogic.Relational
 
 universe u
 
-variable {α ι : Type}
+variable {ι : Type*} {α : Type}
 
 namespace XmssSecurity.CappedChain
 

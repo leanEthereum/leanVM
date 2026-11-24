@@ -22,7 +22,7 @@ theorem hashQueryBound_after_preparation {α β : Type} (computation : OracleCom
   intro result hresult
   apply hbound result
   rw [OracleComp.support_eq_of_evalDistEq
-    (evalDist_presample_computation romImpl rfl (countHashQueries computation) preparation cache),
+    (evalDist_presample_computation romImpl (countHashQueries computation) preparation cache),
     mem_support_bind_iff]
   exact ⟨prepared, hprepared, hresult⟩
 

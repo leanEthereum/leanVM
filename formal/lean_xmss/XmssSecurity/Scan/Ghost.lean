@@ -10,9 +10,10 @@ public import XmssSecurity.Scan.Frame
 # The adversary phase with a ghost query count
 
 The traced handler of `cappedCacheTracedMappedAdversaryImpl`, extended with a count of the
-adversary's own hash queries. Under a hash-query bound the count never reaches the budget
-(`expectedSimulatedCost_overBudget_eq_zero`), and the adversary's encoding queries are counted by the
-source game (`expectedSimulatedCost_advEncoding_le`).
+adversary's own hash queries (`impl`), the cost `overBudget` of a hash query made once the budget is
+spent, and the handler's per-query run, support and expectation facts. The budget theorems built on
+them are `Ghost.expectedSimulatedCost_overBudget` and `Ghost.expectedSimulatedQueryCount_source_le`
+in `XmssSecurity.Proof.OwnSecondLane`.
 -/
 
 open OracleComp OracleSpec ENNReal

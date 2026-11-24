@@ -87,7 +87,7 @@ theorem evalDist_innerGame (adversary : LeanXmss.Security.Adversary) :
   rw [innerGame, run'_lift_sample_bind]
   apply EvalDistEq.bind_right
   intro seed
-  refine (evalDist_presample_computation romImpl rfl _ (liftM (preparation seed) : OracleComp OracleWorld _) ∅).trans ?_
+  refine (evalDist_presample_computation romImpl _ (liftM (preparation seed) : OracleComp OracleWorld _) ∅).trans ?_
   rw [lift_hash_romImpl]
   refine ((run_preparation seed).bind_left _).trans ?_
   unfold tableGame

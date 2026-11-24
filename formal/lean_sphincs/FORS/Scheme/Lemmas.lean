@@ -103,7 +103,7 @@ theorem walk_iterate_ne (half y : Randomness) (j : Nat) (hj : j + 1 < 2 ^ 128) :
 /-! ### Bounds of the parameters -/
 
 /-- A bit vector determines the natural it encodes, below the wrap. -/
-theorem ofNat_inj_of_lt' {w a b : Nat} (ha : a < 2 ^ w) (hb : b < 2 ^ w)
+theorem ofNat_inj_of_lt {w a b : Nat} (ha : a < 2 ^ w) (hb : b < 2 ^ w)
     (h : BitVec.ofNat w a = BitVec.ofNat w b) : a = b := by
   have htoNat := congrArg BitVec.toNat h
   rwa [BitVec.toNat_ofNat, BitVec.toNat_ofNat, Nat.mod_eq_of_lt ha, Nat.mod_eq_of_lt hb] at htoNat
@@ -188,6 +188,6 @@ theorem layerByte_injective {lay lay' : Layer} (h : layerByte lay = layerByte la
 /-- The layer word, as encoded, names the layer. -/
 theorem layerByte_ofNat_injective {lay lay' : Layer}
     (h : BitVec.ofNat 32 (layerByte lay) = BitVec.ofNat 32 (layerByte lay')) : lay = lay' :=
-  layerByte_injective (ofNat_inj_of_lt' (layerByte_lt lay) (layerByte_lt lay') h)
+  layerByte_injective (ofNat_inj_of_lt (layerByte_lt lay) (layerByte_lt lay') h)
 
 end FORS
