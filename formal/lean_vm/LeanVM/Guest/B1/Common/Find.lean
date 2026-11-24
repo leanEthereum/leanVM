@@ -16,7 +16,9 @@ The names being distinct (`coreProgram_names_nodup`), the function at position `
 name finds (`coreProgram_find?_at`) and its name's first index is `j` (`coreProgram_indexOf?_at`):
 both from `coreProgram[j]? = some f` and `f.name = n` (by `rfl`, after `n` is known), and for a run of functions
 (`coreProgram_indexOf?_run`) from one kernel evaluation comparing each name with its function's: no
-proof compares a name with the names before it in the kernel.
+proof compares a name with the names before it in the kernel. The run lemma is for statements that
+name the positions `j0 + k` of a contiguous run; a family of specializations checked against a
+template, at positions by stable names, uses `coreRunB` (`Common/Family.lean`).
 -/
 
 namespace LeanVM.Guest
@@ -53,7 +55,8 @@ theorem coreProgram_indexOf?_of_name {n : String} {j : ℕ}
   exact coreProgram_indexOf?_at hf hn
 
 /-- **Functions `j0 .. j0 + n - 1` are the first of their names `name k`**, from one kernel
-evaluation that compares each name with its function's only. -/
+evaluation that compares each name with its function's only. For a run whose positions are not
+part of the statement, `coreRunB_find` (`Common/Family.lean`) finds the functions by name. -/
 theorem coreProgram_indexOf?_run {name : ℕ → String} {j0 n : ℕ}
     (h : (List.range n).all (fun k ↦ coreProgram[j0 + k]?.map (·.name) == some (name k)) = true) :
     ∀ k < n, coreProgram.indexOf? (name k) = some (j0 + k) := fun k hk ↦

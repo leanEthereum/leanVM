@@ -3,6 +3,7 @@ module
 public import LeanVM.Guest.Fast.SpWotsStarts
 public import LeanVM.Guest.Fast.SpWotsTables
 public import LeanVM.Guest.Fast.Numbers
+import Mathlib.Tactic.IntervalCases
 
 /-!
 # `sp_wots`' chain starts are the literal tables', by evaluation
@@ -15,7 +16,9 @@ public import LeanVM.Guest.Fast.Numbers
   table's (`spSel`, `spTabOf`, `Fast/SpWotsTables.lean`);
 * `spSel_eq`: the selectors are the groups' bases, renumbered.
 
-It imports the templates and the tables alone (`Fast/Firewall.lean`).
+The checks over all groups are one kernel evaluation per group (`interval_cases`), so the kernel's
+cache holds one group at a time. It imports the templates and the tables alone
+(`Fast/Firewall.lean`).
 -/
 
 namespace LeanVM.Guest.Fast
@@ -40,7 +43,8 @@ private theorem spStates_step : ∀ p < 21,
      ((.n (spProd (p == 0) 3 st.2.2), .n (spEnc (p == 0) 3 st.2.2),
        (spGroupT (3 * p) 3 (p == 0) st.1 st.2.1 st.2.2).2) : V × V × Nat)) =
       spStates.getD (p + 1) default := by
-  decide +kernel
+  intro p hp
+  interval_cases p <;> decide +kernel
 
 /-- **Group `p`'s state is the recorded one.** -/
 theorem spState_eq : ∀ p < 22, spState p = spStates.getD p default
@@ -60,8 +64,7 @@ theorem spGroupStarts (p : Nat) (hp : p < 22) :
       (List.range (4 ^ spN p)).map fun k ↦ (List.range (spN p)).map fun r ↦
         V.n (spSel.getD p 0 + offAt (spTabOf p) r k) := by
   rw [spState_eq p hp]
-  revert p
-  decide +kernel
+  interval_cases p <;> decide +kernel
 
 end
 end LeanVM.Guest.Fast

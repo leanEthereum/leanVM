@@ -7,7 +7,8 @@
 module
 
 public import LeanVM.Guest.B1.Eq.Meaning
-public import LeanVM.Guest.B1.Common.Family
+public import LeanVM.Guest.B1.Common.Find
+import LeanVM.Guest.B1.Common.Family
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«eq_prefix_chain»
 import LeanVM.Guest.Data.ValNames.«eq_prefix_run__L»
@@ -166,7 +167,8 @@ theorem ep_iff (n : ℕ) {f : Fn} (hfind : coreProgram.find? (eqPrefixRunNames.g
 /-! ## The specializations -/
 
 /-- The deployed `eq_prefix_run__L{n}`, `n ≤ 40`, are the template. -/
-theorem eq_prefix_run_found : coreRunB (idxs% «eq_prefix_run__L» 0 41) (eqPrefixRunNames.getD · "")
+private theorem eq_prefix_run_found :
+    coreRunB (idxs% «eq_prefix_run__L» 0 41) (eqPrefixRunNames.getD · "")
     (shapeB [.n (valf% «eq_prefix_run» "chain"), .n (valf% «eq_prefix_run» "seed"),
       .n (valf% «eq_prefix_run» "a"), .n (valf% «eq_prefix_run» "b1")] epBody) = true := by
   decide +kernel

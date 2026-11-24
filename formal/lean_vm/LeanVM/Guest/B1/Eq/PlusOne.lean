@@ -7,7 +7,8 @@
 module
 
 public import LeanVM.Guest.B1.Eq.Meaning
-public import LeanVM.Guest.B1.Common.Family
+public import LeanVM.Guest.B1.Common.Find
+import LeanVM.Guest.B1.Common.Family
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«plus_one_run__L»
 
@@ -109,8 +110,10 @@ theorem po_iff (n : ℕ) {f : Fn} (hfind : coreProgram.find? (plusOneRunNames.ge
 /-! ## The specializations -/
 
 /-- The deployed `plus_one_run__L{n}`, `n ≤ 33`, are the template. -/
-theorem plus_one_run_found : coreRunB (idxs% «plus_one_run__L» 0 34) (plusOneRunNames.getD · "")
-    (shapeB [.n (valf% «plus_one_run» "out"), .n (valf% «plus_one_run» "src")] poBody) = true := by
+private theorem plus_one_run_found :
+    coreRunB (idxs% «plus_one_run__L» 0 34) (plusOneRunNames.getD · "")
+      (shapeB [.n (valf% «plus_one_run» "out"), .n (valf% «plus_one_run» "src")]
+        poBody) = true := by
   decide +kernel
 
 /-- **`plus_one_run`'s core IR is its meaning**, every specialization. -/

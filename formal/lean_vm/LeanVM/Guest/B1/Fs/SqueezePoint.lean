@@ -7,7 +7,8 @@
 module
 
 public import LeanVM.Guest.B1.Fs.Message
-public import LeanVM.Guest.B1.Common.Family
+public import LeanVM.Guest.B1.Common.Find
+import LeanVM.Guest.B1.Common.Family
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«squeeze_point_from__L»
 
@@ -398,11 +399,12 @@ theorem spf_complete {name : String} {f : Fn} (n : ℕ) (hn : 1 ≤ n)
     rfl
 
 /-- The deployed `squeeze_point_from__L{n}`, `6 ≤ n ≤ 30`, are the template. -/
-theorem spf_found : coreRunB (idxs% «squeeze_point_from__L» 6 31) (fun i ↦ spfName (i + 6))
-    (shapeB [.n (valf% «squeeze_point_from» "fs0"), .n (valf% «squeeze_point_from» "fs1"),
-      .n (valf% «squeeze_point_from» "fs2"), .n (valf% «squeeze_point_from» "fs3"),
-      .n (valf% «squeeze_point_from» "fs4"), .n (valf% «squeeze_point_from» "first"),
-      .n (valf% «squeeze_point_from» "point")] fun i ↦ spfBody (i + 5)) = true := by
+private theorem spf_found :
+    coreRunB (idxs% «squeeze_point_from__L» 6 31) (fun i ↦ spfName (i + 6))
+      (shapeB [.n (valf% «squeeze_point_from» "fs0"), .n (valf% «squeeze_point_from» "fs1"),
+        .n (valf% «squeeze_point_from» "fs2"), .n (valf% «squeeze_point_from» "fs3"),
+        .n (valf% «squeeze_point_from» "fs4"), .n (valf% «squeeze_point_from» "first"),
+        .n (valf% «squeeze_point_from» "point")] fun i ↦ spfBody (i + 5)) = true := by
   decide +kernel
 
 /-- `squeeze_point_from__L{n}`'s core IR is its meaning, for every deployed `n`. -/
@@ -413,7 +415,8 @@ theorem squeeze_point_from_holds : squeeze_point_from_Spec := by
   intro n hn rd args rets
   obtain ⟨i, hi, rfl⟩ := List.mem_map.mp hn
   obtain ⟨_, hf, hp, hb⟩ := coreRunB_shape spf_found (List.mem_range.mp hi)
-  exact ⟨spf_sound _ (by omega) hf hp hb rd args rets, spf_complete _ (by omega) hf hp hb rd args rets⟩
+  exact ⟨spf_sound _ (by omega) hf hp hb rd args rets,
+    spf_complete _ (by omega) hf hp hb rd args rets⟩
 
 end
 end LeanVM.Guest.B1

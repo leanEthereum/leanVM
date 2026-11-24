@@ -11,6 +11,7 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«eq_prefix_chain_rev»
 import LeanVM.Guest.Data.ValNames.«eq_prefix_run_rev__L»
 import LeanVM.Guest.B1.Common.Vc
+import LeanVM.Guest.B1.Common.Family
 
 /-!
 # `eq_prefix_run_rev`, `eq_prefix_chain_rev`
@@ -264,10 +265,11 @@ theorem rv_iff (n : ℕ) {f : Fn} (hfind : coreProgram.find? (eqPrefixRunRevName
 /-! ## The specializations -/
 
 /-- The deployed `eq_prefix_run_rev__L{n}`, `n ≤ 32`, are the template. -/
-theorem eq_prefix_run_rev_found : coreRunB (idxs% «eq_prefix_run_rev__L» 0 33)
-    (eqPrefixRunRevNames.getD · "")
-    (shapeB [.n (valf% «eq_prefix_run_rev» "chain"), .n (valf% «eq_prefix_run_rev» "out"),
-      .n (valf% «eq_prefix_run_rev» "src"), .n (valf% «eq_prefix_run_rev» "b1")] rvBody) = true := by
+private theorem eq_prefix_run_rev_found :
+    coreRunB (idxs% «eq_prefix_run_rev__L» 0 33) (eqPrefixRunRevNames.getD · "")
+      (shapeB [.n (valf% «eq_prefix_run_rev» "chain"), .n (valf% «eq_prefix_run_rev» "out"),
+        .n (valf% «eq_prefix_run_rev» "src"), .n (valf% «eq_prefix_run_rev» "b1")]
+        rvBody) = true := by
   decide +kernel
 
 /-- **`eq_prefix_run_rev`'s core IR is its meaning**, every specialization. -/

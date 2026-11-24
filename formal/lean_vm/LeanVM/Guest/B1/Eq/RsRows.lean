@@ -7,7 +7,8 @@
 module
 
 public import LeanVM.Guest.B1.Eq.Meaning
-public import LeanVM.Guest.B1.Common.Family
+public import LeanVM.Guest.B1.Common.Find
+import LeanVM.Guest.B1.Common.Family
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«rs_eq_rows__L»
 import LeanVM.Guest.Data.ValNames.«rs_eq_rows__L0»
@@ -456,10 +457,11 @@ theorem rr0_iff (rd : Reader) (args rets : List E) :
     exact ⟨setl (Val.ofArgs [row, z, p]) 3 [row], rfl, by b1_look, by b1_look⟩
 
 /-- The deployed `rs_eq_rows__L{n}`, `1 ≤ n ≤ 8`, are the template. -/
-theorem rs_eq_rows_found : coreRunB (idxs% «rs_eq_rows__L» 1 9) (fun i ↦ rsEqRowsNames.getD (i + 1) "")
-    (shapeB [.n (valf% «rs_eq_rows» "row"), .n (valf% «rs_eq_rows» "zs"), .n (valf% «rs_eq_rows» "ps")]
-      fun i ↦ rrBody (i + 1)) = true := by
-  decide +kernel
+private theorem rs_eq_rows_found :
+    coreRunB (idxs% «rs_eq_rows__L» 1 9) (fun i ↦ rsEqRowsNames.getD (i + 1) "")
+      (shapeB [.n (valf% «rs_eq_rows» "row"), .n (valf% «rs_eq_rows» "zs"),
+        .n (valf% «rs_eq_rows» "ps")] fun i ↦ rrBody (i + 1)) = true :=
+  coreRunB_iff.mpr fun i (_ : i < 8) ↦ by interval_cases i <;> decide +kernel
 
 /-- **`rs_eq_rows__L{n}`'s core IR is its meaning**, `n ≤ 8`. -/
 theorem rs_eq_rows_holds : rs_eq_rows_Spec := by
