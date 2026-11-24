@@ -103,7 +103,7 @@ theorem claimOk_sound {rd : Reader} (hm : MemOk rd) {σ : Val} {atoms : List Ato
     · subst h0
       simp only [↓reduceIte, decide_eq_true_eq] at hmk
       rw [hmk, pow_zero, mul_one]
-    · rw [if_neg h0] at hmk
+    · rw [ite_eq_right h0] at hmk
       split at hmk
       · rename_i m c hmc
         simp only [Bool.and_eq_true, decide_eq_true_eq] at hmk

@@ -100,7 +100,7 @@ theorem vt_runTables {rd : Reader} {pe pg : E} {point : List E} {τ : ℕ → �
     have hlt : 32 * j + k < (vtShEqW point τ t).length := by rw [vtShEqW_length]; omega
     have := he (32 * j + k) hlt
     simp only [vtShEqW, List.getElem_map, List.getElem_range] at this
-    rwa [show (32 * j + k) / 32 = j by omega, show (32 * j + k) % 32 = k by omega, if_pos hj,
+    rwa [show (32 * j + k) / 32 = j by omega, show (32 * j + k) % 32 = k by omega, ite_eq_left hj,
       List.getD_eq_getElem _ _ (by rw [eqLevels_length rfl hw1]; exact hk)] at this
   · rw [readsAt_gen_pow_mul]
     intro k hk
@@ -109,7 +109,7 @@ theorem vt_runTables {rd : Reader} {pe pg : E} {point : List E} {τ : ℕ → �
     have hlt : 16 * j + k < (vtShGW point τ t).length := by rw [vtShGW_length]; omega
     have := hg (16 * j + k) hlt
     simp only [vtShGW, List.getElem_map, List.getElem_range] at this
-    rwa [show (16 * j + k) / 16 = j by omega, show (16 * j + k) % 16 = k by omega, if_pos hj,
+    rwa [show (16 * j + k) / 16 = j by omega, show (16 * j + k) % 16 = k by omega, ite_eq_left hj,
       List.getD_eq_getElem _ _ (by rw [gTable_length rfl, hgw]; exact hk)] at this
 
 /-- **Table `t`'s buffers give `RunPads`**: past each nibble's tables, zeros. -/
@@ -131,7 +131,7 @@ theorem vt_runPads {rd : Reader} {pe pg : E} {point : List E} {τ : ℕ → ℕ}
     have hlt : 32 * j + e < (vtShEqW point τ t).length := by rw [vtShEqW_length]; omega
     have := he (32 * j + e) hlt
     simp only [vtShEqW, List.getElem_map, List.getElem_range] at this
-    rwa [show (32 * j + e) / 32 = j by omega, show (32 * j + e) % 32 = e by omega, if_pos hj,
+    rwa [show (32 * j + e) / 32 = j by omega, show (32 * j + e) % 32 = e by omega, ite_eq_left hj,
       List.getD_eq_default _ _ (by rw [eqLevels_length rfl hw1]; exact he1)]
       at this
   · intro u hu1 hu2
@@ -139,7 +139,7 @@ theorem vt_runPads {rd : Reader} {pe pg : E} {point : List E} {τ : ℕ → ℕ}
     have hlt : 16 * j + u < (vtShGW point τ t).length := by rw [vtShGW_length]; omega
     have := hg (16 * j + u) hlt
     simp only [vtShGW, List.getElem_map, List.getElem_range] at this
-    rwa [show (16 * j + u) / 16 = j by omega, show (16 * j + u) % 16 = u by omega, if_pos hj,
+    rwa [show (16 * j + u) / 16 = j by omega, show (16 * j + u) % 16 = u by omega, ite_eq_left hj,
       List.getD_eq_default _ _ (by rw [gTable_length rfl, hgw]; exact hu1)] at this
 
 end

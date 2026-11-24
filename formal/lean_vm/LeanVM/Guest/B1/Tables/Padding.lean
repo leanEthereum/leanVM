@@ -558,37 +558,37 @@ variable {τ : ℕ} {rows zeta : E} {b z : ℕ → E}
 
 theorem pwF_lt4 {i : ℕ} (hi : i < 4) :
     pwF τ rows zeta b z i = [rows, zeta, word (2 ^ τ - 1) 0, rows + word (2 ^ τ - 1) 0].getD i 0 := by
-  rw [pwF, if_pos hi]
+  rw [pwF, ite_eq_left hi]
 
 theorem pwF_bit {k : ℕ} (hk : k ≤ τ) : pwF τ rows zeta b z (4 + k) = b k := by
-  rw [pwF, if_neg (by omega), if_pos (by omega), Nat.add_sub_cancel_left]
+  rw [pwF, ite_eq_right (by omega), ite_eq_left (by omega), Nat.add_sub_cancel_left]
 
 theorem pwF_s0 {r : ℕ} (hr1 : 1 ≤ r) (hr : r < 5) (hτ : 2 ≤ τ) :
     pwF τ rows zeta b z (τ + 4 + r) =
       [0, z 0, b 0 * z 0, b 0 + z 0, padFold b z 1].getD r 0 := by
-  rw [pwF, if_neg (by omega), if_neg (by omega), if_pos (by omega)]
+  rw [pwF, ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_left (by omega)]
   simp only
-  rw [if_pos (by omega), show (τ + 4 + r - (τ + 4)) % 5 = r by omega]
+  rw [ite_eq_left (by omega), show (τ + 4 + r - (τ + 4)) % 5 = r by omega]
 
 theorem pwF_step {k r : ℕ} (hk1 : 1 ≤ k) (hk : k < τ) (hr : r < 5) :
     pwF τ rows zeta b z (τ + 4 + 5 * k + r) = [z k, b k * z k, b k + z k,
       (b k + z k) * padFold b z k, padFold b z (k + 1)].getD r 0 := by
-  rw [pwF, if_neg (by omega), if_neg (by omega), if_pos (by omega)]
+  rw [pwF, ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_left (by omega)]
   simp only
-  rw [if_neg (by omega), show (τ + 4 + 5 * k + r - (τ + 4)) / 5 = k by omega,
+  rw [ite_eq_right (by omega), show (τ + 4 + 5 * k + r - (τ + 4)) / 5 = k by omega,
     show (τ + 4 + 5 * k + r - (τ + 4)) % 5 = r by omega]
 
 theorem pwF_horn {j r : ℕ} (hj : j < τ - 2) (hr : r < 3) :
     pwF τ rows zeta b z (6 * τ + 4 + 3 * j + r) =
       [word 2 0, pwBl b τ j * word 2 0, pwBl b τ (j + 1)].getD r 0 := by
-  rw [pwF, if_neg (by omega), if_neg (by omega), if_neg (by omega), if_pos (by omega)]
+  rw [pwF, ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_left (by omega)]
   simp only
   rw [show (6 * τ + 4 + 3 * j + r - (6 * τ + 4)) / 3 = j by omega,
     show (6 * τ + 4 + 3 * j + r - (6 * τ + 4)) % 3 = r by omega]
 
 theorem pwF_tail (hτ : 2 ≤ τ) (r : ℕ) :
     pwF τ rows zeta b z (9 * τ - 2 + r) = (pwTailVals τ b z).getD r 0 := by
-  rw [pwF, if_neg (by omega), if_neg (by omega), if_neg (by omega), if_neg (by omega),
+  rw [pwF, ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega),
     Nat.add_sub_cancel_left]
 
 theorem pwF_below (hτ : 2 ≤ τ) {j : ℕ} (hj : j ≤ τ - 2) :
@@ -873,7 +873,7 @@ theorem padding_weight_iff {name : String} {f : Fn} (τ : ℕ) (h32 : τ ≤ 32)
       exact pw0_iff hfind hparams hbody rd rows zeta rets
     · obtain rfl : τ = 1 := by omega
       exact pw1_iff hfind hparams hbody rd rows zeta rets
-  · rw [if_neg (by omega), if_neg (by omega)] at hbody
+  · rw [ite_eq_right (by omega), ite_eq_right (by omega)] at hbody
     exact ⟨pw_sound τ h h32 hfind hparams hbody rd rows zeta rets,
       pw_complete τ h h32 hfind hparams hbody rd rows zeta rets⟩
 

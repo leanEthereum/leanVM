@@ -459,7 +459,7 @@ theorem shared_selector_tables_complete_holds : shared_selector_tables_complete_
       · exact (hrt q (by omega)).1
     · rcases Nat.eq_zero_or_pos (n % 4) with h0 | h0
       · rw [h0]; exact readsAt_nil _ _
-      · rw [if_neg (show ¬ n % 4 = 0 by omega)]; exact (hrt q (by omega)).2
+      · rw [ite_eq_right (show ¬ n % 4 = 0 by omega)]; exact (hrt q (by omega)).2
     · show NibPads rd _ _ (n % 4)
       rcases Nat.eq_zero_or_pos (n % 4) with h0 | h0
       · rw [h0]; exact ⟨fun e _ he ↦ absurd he (by omega), fun u _ hu ↦ absurd hu (by omega)⟩

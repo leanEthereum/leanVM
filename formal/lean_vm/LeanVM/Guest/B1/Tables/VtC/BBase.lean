@@ -93,7 +93,7 @@ theorem vtP_honest (hl : args.length = 21) {W : List E} (hW16 : 16 ≤ W.length)
   | mul d x y =>
     simp only [okP, Bool.and_eq_true, decide_eq_true_eq] at hok
     simp only [fixA, GoodS, Good] at hg
-    rw [if_pos hok] at hg
+    rw [ite_eq_left hok] at hg
     exact hg
   | _ => simp [okP] at hok
 

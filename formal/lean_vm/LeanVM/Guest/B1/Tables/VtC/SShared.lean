@@ -97,20 +97,20 @@ theorem vt_good_mul {σ : Val} {S : List Atom} {d x y : ℕ}
     (h : GoodS rd S w σ (fixNe (.atom (.mul (.n d) (.n x) (.n y))))) (hx : x < d) (hy : y < d) :
     σ (.n d) = σ (.n x) * σ (.n y) := by
   simp only [GoodS, fixNe, Good] at h
-  rwa [if_pos ⟨hx, hy⟩] at h
+  rwa [ite_eq_left ⟨hx, hy⟩] at h
 
 theorem vt_good_div {σ : Val} {S : List Atom} {d x y : ℕ}
     (h : GoodS rd S w σ (fixNe (.atom (.mul (.n d) (.n x) (.n y))))) (hx : d < x) :
     σ (.n x) = σ (.n d) * (σ (.n y))⁻¹ := by
   simp only [GoodS, fixNe, Good] at h
-  rwa [if_neg (show ¬ (x < d ∧ y < d) by omega)] at h
+  rwa [ite_eq_right (show ¬ (x < d ∧ y < d) by omega)] at h
 
 theorem vt_good_rc {σ : Val} {S : List Atom} {x y t1 t2 k : ℕ}
     (h : GoodS rd S w σ (fixNe (.atom (.rangeCheck (.n x) (.n y) (.n t1) (.n t2) (.n k))))) (hk : k < y) :
     σ (.n t1) = rdAt rd (σ (.n x)) 0 ∧ σ (.n t2) = rdAt rd (σ (.n y)) 0 ∧
       σ (.n y) = σ (.n k) * (σ (.n x))⁻¹ := by
   simp only [GoodS, fixNe, Good] at h
-  rwa [if_pos hk] at h
+  rwa [ite_eq_left hk] at h
 
 theorem vtShAT_rest : ∀ t < 6, stmtsEqb (((vtAt (vtShA t)).take 15).filter (fun s ↦ !autoB s))
     [.atom (.mul (.n (val% «verify_tables» "g_bus_mu")) (.n (vtShV t)) (.n (28 + t))),

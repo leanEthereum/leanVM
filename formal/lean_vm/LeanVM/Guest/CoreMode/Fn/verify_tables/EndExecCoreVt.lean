@@ -408,7 +408,7 @@ theorem vtI_sound {σ : Core.Val} {s : List ℤ} {as : List Atom} (hb : VtBox s 
   simp only [CoreMode.vtSmall, decide_eq_true_eq] at hs
   have hoff : (0 : ℤ) ≤ ((CoreMode.idxC i).off : ℤ) := by positivity
   refine ⟨by omega, ?_⟩
-  rw [CoreMode.CCell.valW, h1, ← ofK_gpow, ← CoreMode.ofK_mul']
+  rw [CoreMode.CCell.valW, h1, ← ofK_gpow, ← Parameters.ofK_mul]
   rw [show Parameters.g ^ (vtEv F s - ((CoreMode.idxC i).off : ℤ)).toNat * addressOfIndex (CoreMode.idxC i).off =
       addressOfIndex (vtEv F s).toNat by
     rw [addressOfIndex, addressOfIndex, ← pow_add]; congr 1; omega]
@@ -514,7 +514,7 @@ theorem vtSubP1_sound {σ : Core.Val} {s : List ℤ} {as : List Atom} (hb : VtBo
     rw [this, ← ofK_gpow]
   refine ⟨⟨[(B, 1)], co + (vtEv A s).toNat⟩, hall (vtEv A s).toNat (by omega), ?_⟩
   simp only [CoreMode.CCell.addrW, CoreMode.CCell.valW, CoreMode.prodW, pow_one, mul_one, hJ,
-    Parameters.addressOfIndex, ← ofK_gpow, mul_assoc, ← CoreMode.ofK_mul', ← pow_add]
+    Parameters.addressOfIndex, ← ofK_gpow, mul_assoc, ← Parameters.ofK_mul, ← pow_add]
   refine congrArg (·.limb 0) (mul_gpow_congr _ ?_)
   omega
 
@@ -572,7 +572,7 @@ theorem vtExpR_sound {σ : Core.Val} {s : List ℤ} {as : List Atom} (hb : VtBox
         conv_lhs => rw [← List.take_append_drop r.base.bases.length q.base.bases]
         rw [htk]
       rw [hq1, hr1, CoreMode.CCell.valW, CoreMode.CCell.valW, hbs, prodW_append, m1]
-      simp only [one_mul, ← ofK_gpow, Parameters.addressOfIndex, mul_assoc, ← CoreMode.ofK_mul', ← pow_add]
+      simp only [one_mul, ← ofK_gpow, Parameters.addressOfIndex, mul_assoc, ← Parameters.ofK_mul, ← pow_add]
       refine mul_gpow_congr _ ?_
       omega
     · cases h

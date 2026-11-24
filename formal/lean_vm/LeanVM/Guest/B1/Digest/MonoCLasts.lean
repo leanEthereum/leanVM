@@ -80,7 +80,7 @@ theorem rc_holds {S : List Atom} {w : ℕ → E} {σ : Val} {x y t1 t2 kk : V} {
     (hx : σ x = gen ^ a) (hk : σ kk = gen ^ b) (hab : a ≤ b) (hdef : BoundMem rd (b + 1)) :
     (Atom.rangeCheck x y t1 t2 kk).Holds rd σ := by
   simp only [Good] at hg
-  rw [if_pos hky] at hg
+  rw [ite_eq_left hky] at hg
   obtain ⟨h1, h2, h3⟩ := hg
   have hga : gen ^ a ≠ 0 := pow_ne_zero _ gen_ne_zero
   have hyv : σ y = gen ^ (b - a) := by

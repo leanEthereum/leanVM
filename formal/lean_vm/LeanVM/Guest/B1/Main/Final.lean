@@ -149,7 +149,7 @@ theorem main_sound_C {bytecode : List K}
     · have hnil : (decWit σ rd wX wS wD wV wA).children = [] := by
         show (List.range (nKids σ)).map _ = []
         rw [nKids_eq, h6]; rfl
-      rw [if_pos hnil]
+      rw [ite_eq_left hnil]
       show (deferOfCells (readCells rd (σ (.n (val% «main» "defer_stmt"))) 24)).bytecodePoint = _
       rw [hlog]
       unfold deferOfCells
@@ -165,7 +165,7 @@ theorem main_sound_C {bytecode : List K}
         rw [nKids_eq]
         simp only [ne_eq, List.map_eq_nil_iff, List.range_eq_nil]
         exact h6
-      rw [if_neg hne]
+      rw [ite_eq_right hne]
       obtain ⟨htab, hcall⟩ := MF.agg h6
       have hwin : WinTabs rd (σ (.n (val% «main» "s63.e.s0#1"))) := by
         rw [htab, word_g236]; exact winTabs_of_expWinTab MF.win

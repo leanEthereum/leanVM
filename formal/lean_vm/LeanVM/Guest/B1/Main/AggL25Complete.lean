@@ -128,20 +128,20 @@ theorem l25_block {x N absorb cfresh lfT ccarried lcT cpi : E} {st : Fs} (hst : 
     by_cases ha : w < 2
     · rw [l25Src_lt2 ha, srcOk_some] at hs'
       have := memAt_of_load (load_sound hs' hat')
-      rw [if_pos ha, ← this]
+      rw [ite_eq_left ha, ← this]
       rcases (show w = 0 ∨ w = 1 by omega) with rfl | rfl
-      · rw [if_pos rfl, p59]
-      · rw [if_neg (show ¬ (1 = 0) by omega), p63]
+      · rw [ite_eq_left rfl, p59]
+      · rw [ite_eq_right (show ¬ (1 = 0) by omega), p63]
     by_cases hb : w < 26
     · rw [l25Src_fresh (by omega) hb, srcOk_some] at hs'
-      rw [if_neg ha, if_pos hb, ← p50]
+      rw [ite_eq_right ha, ite_eq_left hb, ← p50]
       exact (memAt_of_load (load_sound hs' hat')).symm
     by_cases hc : w < 50
     · rw [l25Src_carried (by omega) hc, srcOk_some] at hs'
-      rw [if_neg ha, if_neg hb, if_pos hc, ← p57]
+      rw [ite_eq_right ha, ite_eq_right hb, ite_eq_left hc, ← p57]
       exact (memAt_of_load (load_sound hs' hat')).symm
     · rw [l25Src_pad (by omega), srcOk_none] at hs'
-      rw [if_neg ha, if_neg hb, if_neg hc, const_sound hs' hat', word_zero]
+      rw [ite_eq_right ha, ite_eq_right hb, ite_eq_right hc, const_sound hs' hat', word_zero]
   rw [hw, hnb] at hch
   have hst' := stOk_absorbAll (l25Words rd cpi cfresh ccarried x) hst
   have hl' := rowW_length hst'

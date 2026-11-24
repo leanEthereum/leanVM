@@ -251,11 +251,11 @@ theorem WinTabs.lt {rd : Reader} {tabs : E} (h : WinTabs rd tabs) {n : ℕ} (hn 
 
 /-! ## Building valuations -/
 
-/-- Core's `if_pos`. -/
+/-- Core's `ite_eq_left`. -/
 theorem ite_pos' {α : Type} {c : Prop} [Decidable c] {a b : α} (h : c) : (if c then a else b) = a := by
   simp [h]
 
-/-- Core's `if_neg`. -/
+/-- Core's `ite_eq_right`. -/
 theorem ite_neg' {α : Type} {c : Prop} [Decidable c] {a b : α} (h : ¬c) : (if c then a else b) = b := by
   simp [h]
 

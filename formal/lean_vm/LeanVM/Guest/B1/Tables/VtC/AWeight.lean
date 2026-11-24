@@ -300,7 +300,7 @@ theorem verify_tables_completeAtTBWR {κ : ℕ} (hκ : 14 ≤ κ) {H : VtHonest}
         gen_pow_eq_ofK] at this
       rw [logG_spec (by omega)] at this
       unfold vtRunB
-      rw [if_neg (show ¬H.n = 0 by omega)]
+      rw [ite_eq_right (show ¬H.n = 0 by omega)]
       exact this
     | dispatch x fs' a rr =>
       simp only [Stmt.callSF, Option.some.injEq] at hst

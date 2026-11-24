@@ -291,7 +291,7 @@ theorem layerA_complete {first : ℕ} (hf : first < 2) (hσ : ∀ v, σ v = σ (
     have e4 := load_val g4 (hS11 _ _) hval
     simp only [Good, V.n] at g2 g3
     have h13 : 13 < accL first := by unfold accL; split <;> norm_num
-    rw [if_pos (by simp; omega)] at g2
+    rw [ite_eq_left (by simp; omega)] at g2
     simp only [residC, List.forall_mem_cons, List.not_mem_nil, IsEmpty.forall_iff, implies_true,
       and_true]
     refine ⟨Or.inr (side_load (hS11 _ _) hkap), Or.inr (side_load (hS11 _ _) hval), Or.inl ?_⟩

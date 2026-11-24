@@ -196,7 +196,7 @@ theorem vt_mulAt (hl : args.length = 21) (n : ℕ) {d x y : ℕ} (hx : x < d) (h
     vtσ rd w args (.n d) = vtσ rd w args (.n x) * vtσ rd w args (.n y) := by
   have h := vt_goodAt (rd := rd) (w := w) hl n _ heq
   simp only [GoodS, fixNe, Good] at h
-  rw [if_pos ⟨hx, hy⟩] at h
+  rw [ite_eq_left ⟨hx, hy⟩] at h
   exact h
 
 /-- **A read at `vtAt`** of a word the memory holds holds, and reads it. -/

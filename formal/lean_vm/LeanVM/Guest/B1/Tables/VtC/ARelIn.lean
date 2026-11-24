@@ -295,13 +295,13 @@ theorem vt_mulF {d x y : ℕ} (hs : Stmt.atom (.mul (.n d) (.n x) (.n y)) ∈ vt
     (h2 : y < d) : σv (.n d) = σv (.n x) * σv (.n y) := by
   have g : GoodS rd vtSL w σv (fixNe (.atom (.mul (.n d) (.n x) (.n y)))) := vt_goodS rfl hs
   simp only [fixNe, GoodS, Good] at g
-  rwa [if_pos (show (V.n x).idx < (V.n d).idx ∧ (V.n y).idx < (V.n d).idx from ⟨h1, h2⟩)] at g
+  rwa [ite_eq_left (show (V.n x).idx < (V.n d).idx ∧ (V.n y).idx < (V.n d).idx from ⟨h1, h2⟩)] at g
 
 theorem vt_mulB {d x y : ℕ} (hs : Stmt.atom (.mul (.n d) (.n x) (.n y)) ∈ vtPre) (h : d < x) :
     σv (.n x) = σv (.n d) * (σv (.n y))⁻¹ := by
   have g : GoodS rd vtSL w σv (fixNe (.atom (.mul (.n d) (.n x) (.n y)))) := vt_goodS rfl hs
   simp only [fixNe, GoodS, Good] at g
-  rwa [if_neg (show ¬((V.n x).idx < (V.n d).idx ∧ (V.n y).idx < (V.n d).idx) from
+  rwa [ite_eq_right (show ¬((V.n x).idx < (V.n d).idx ∧ (V.n y).idx < (V.n d).idx) from
     fun h' ↦ absurd h'.1 (by show ¬x < d; omega))] at g
 
 theorem gen_div {a b : ℕ} (h : b ≤ a) : gen ^ a * (gen ^ b)⁻¹ = gen ^ (a - b) :=

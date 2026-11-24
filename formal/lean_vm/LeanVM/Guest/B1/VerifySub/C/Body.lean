@@ -219,11 +219,11 @@ theorem vs_rc_holds {κ : ℕ} {rd : Reader} {S : List Atom} {w : ℕ → E} {σ
     (Atom.rangeCheck x y t1 t2 k).Holds rd σ := by
   have hy : σ y = gen ^ (c - a) := by
     simp only [Good] at hg
-    rw [if_pos hk] at hg
+    rw [ite_eq_left hk] at hg
     rw [hg.2.2, hkv, hx, ← pow_sub₀ _ gen_ne_zero hac]
   refine holds_of_good hg ?_
   simp only [Side]
-  rw [if_pos hk, hx, hy]
+  rw [ite_eq_left hk, hx, hy]
   exact ⟨gen_pow_isInK a, vs_gen_defined hlow (by omega), gen_pow_isInK _,
     vs_gen_defined hlow (by omega), pow_ne_zero _ gen_ne_zero⟩
 
@@ -232,7 +232,7 @@ theorem vs_quot_holds {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {
     (Atom.mul d x y).Holds rd σ := by
   refine holds_of_good hg ?_
   simp only [Side]
-  rw [if_neg hd]
+  rw [ite_eq_right hd]
   exact hy
 
 /-- `(range n).flatMap F` at `8 p + b`, blocks of eight. -/

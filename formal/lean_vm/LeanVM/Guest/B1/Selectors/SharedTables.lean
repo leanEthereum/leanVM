@@ -309,7 +309,7 @@ theorem shared_selector_tables_holds : shared_selector_tables_Spec := by
     rw [m52, hq4] at rz1'
     rw [m53, hq4] at rg'
     rw [m49, m48, hq16', mul_assoc, ← pow_add, show 16 * q + 16 * q = 32 * q by ring] at reqs
-    rw [m50, hq16', if_neg (show ¬ r = 0 by omega)] at rgs
+    rw [m50, hq16', ite_eq_right (show ¬ r = 0 by omega)] at rgs
     rw [readsAt_unique (tbReadsAt_nib rz q) rz' (by rw [hlen zs hz, hl]),
       readsAt_unique (tbReadsAt_nib rz1 q) rz1' (by rw [hlen zs1 hz1, hl1]),
       readsAt_unique (tbReadsAt_nib rg q) rg' (by rw [hlen gs hg, hlg])]

@@ -400,10 +400,10 @@ theorem lce_completeAtBE (fl : ℕ) (hfl : fl < 34) {name : String} {fn : Fn}
     (kids.map fun _ (t : Tree) => t.pops coreProgram rd = []).map fun T t => T t ∧ t.Every (ExactAt coreProgram rd)
   have hkids : KidsDTBR fs cert κ kids Tk (kids.map fun _ ↦ fs "assert_small_g_power") := by
     by_cases hLf : L = fl
-    · have hex : extra = [] := if_pos hLf
+    · have hex : extra = [] := ite_eq_left hLf
       simp only [kids, Tk, hex, KidsDTBR, List.map_cons, List.map_nil, List.headD_cons, List.tail_cons, asgKid]
       exact ⟨fun _ ↦ asg_completeAtBE κ hκ4 sqE (2 ^ L - N) (by omega), trivial⟩
-    · have hex : extra = [asgKid sqE (N - (2 ^ (L - 1) + 1))] := if_neg hLf
+    · have hex : extra = [asgKid sqE (N - (2 ^ (L - 1) + 1))] := ite_eq_right hLf
       simp only [kids, Tk, hex, KidsDTBR, List.map_cons, List.map_nil, List.headD_cons, List.tail_cons, asgKid]
       exact ⟨fun _ ↦ asg_completeAtBE κ hκ4 sqE (2 ^ L - N) (by omega), fun _ ↦ asg_completeAtBE κ hκ4 sqE
         (N - (2 ^ (L - 1) + 1)) (lt_of_le_of_lt (Nat.sub_le _ _) (lt_trans hN (by norm_num))), trivial⟩
@@ -489,7 +489,7 @@ theorem lce_completeAtBE (fl : ℕ) (hfl : fl < 34) {name : String} {fn : Fn}
     rw [p4]
     by_cases hLf : L = fl
     · have e19 : σ (.n (valf% «log2_ceil_in_the_exponent» "s6#1")) = 0 := h19.2 hLf
-      have hex : extra = [] := if_pos hLf
+      have hex : extra = [] := ite_eq_left hLf
       simp only [e19, ↓reduceIte, kids, hex] at ho ⊢
       obtain ⟨o, rfl⟩ : ∃ o, outs = [o] := by
         match outs, ho with
@@ -497,7 +497,7 @@ theorem lce_completeAtBE (fl : ℕ) (hfl : fl < 34) {name : String} {fn : Fn}
       obtain ⟨ho1, -⟩ := ho
       refine ⟨rfl, rfl, fun _ ↦ ⟨rfl, (ho1 rfl).1.symm⟩, trivial⟩
     · have e19 : σ (.n (valf% «log2_ceil_in_the_exponent» "s6#1")) ≠ 0 := fun h ↦ hLf (h19.1 h)
-      have hex : extra = [asgKid sqE (N - (2 ^ (L - 1) + 1))] := if_neg hLf
+      have hex : extra = [asgKid sqE (N - (2 ^ (L - 1) + 1))] := ite_eq_right hLf
       simp only [e19, ↓reduceIte, kids, hex] at ho ⊢
       obtain ⟨o1, o2, rfl⟩ : ∃ o1 o2, outs = [o1, o2] := by
         match outs, ho with
