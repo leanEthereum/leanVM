@@ -47,7 +47,7 @@ if __name__ == '__main__':
             s = replace_def(s, f'vtBTerms{sd}{t}', '  ' + lit_blocks(blocks(sd, t)))
     open(f, 'w').write(s)
     f = os.path.join(VT_LEAN, 'FormsPad.lean'); s = open(f).read()
-    for sd in (0, 2):
+    for sd in (0,):
         for t in range(6):
             s = replace_def(s, f'vtPads{sd}{t}', wrap([repr(x) for x in pads(sd, t)]))
     cc = []
