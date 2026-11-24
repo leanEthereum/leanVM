@@ -17,7 +17,6 @@ the kernel evaluates the coefficient as a digit of a power.
 
 open Finset
 
-set_option maxRecDepth 100000
 
 namespace LeanXmss.Codeword
 
@@ -99,6 +98,7 @@ theorem sum_lt_175 (x : Encoding) : sum x < 175 := by
   rw [hcard] at this
   omega
 
+set_option maxRecDepth 100000 in
 theorem sum_encoding_pow (B : Nat) :
     ∑ x : Encoding, B ^ (sum x) = ∑ s ∈ range 175, codeCount s * B ^ s := by
   rw [← Finset.sum_fiberwise_of_maps_to (g := sum) (t := range 175)
