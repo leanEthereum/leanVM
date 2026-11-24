@@ -86,6 +86,33 @@ theorem cacheFin_apply {n : Nat} (cache : QueryCache (D →ₒ R))
           · exact fun j h => Fin.succ_ne_zero j (hinj h).symm
       | succ i => exact ih _ _ (fun _ _ h => Fin.succ_injective _ (hinj h)) _ i
 
+variable {J : Type} [Fintype J]
+
+/-- The cache with the table `outputs` recorded at the distinct inputs `inputs`. -/
+noncomputable def cacheTable (cache : QueryCache (D →ₒ R)) (inputs : J → D) (outputs : J → R) :
+    QueryCache (D →ₒ R) :=
+  cacheFin cache (inputs ∘ (Fintype.equivFin J).symm) (outputs ∘ (Fintype.equivFin J).symm)
+
+theorem cacheTable_apply (cache : QueryCache (D →ₒ R)) (inputs : J → D)
+    (hinj : Function.Injective inputs) (outputs : J → R) (j : J) :
+    cacheTable cache inputs outputs (inputs j) = some (outputs j) := by
+  have h := cacheFin_apply cache (inputs ∘ (Fintype.equivFin J).symm)
+    (hinj.comp (Fintype.equivFin J).symm.injective) (outputs ∘ (Fintype.equivFin J).symm)
+    (Fintype.equivFin J j)
+  simp only [Function.comp_apply] at h
+  rw [(Fintype.equivFin J).symm_apply_apply] at h
+  exact h
+
+theorem cacheTable_apply_of_not_mem (cache : QueryCache (D →ₒ R)) (inputs : J → D)
+    (outputs : J → R) (input : D) (hinput : ∀ j, input ≠ inputs j) :
+    cacheTable cache inputs outputs input = cache input :=
+  cacheFin_apply_of_not_mem _ _ _ _ (fun _ => hinput _)
+
+/-- Query the oracle at every `inputs j`, in the order of `Fintype.equivFin J`. -/
+noncomputable def queryTable (inputs : J → D) : OracleComp (D →ₒ R) (J → R) :=
+  (Equiv.arrowCongr (Fintype.equivFin J).symm (Equiv.refl R)) <$> Fin.mOfFn _ fun i =>
+    (liftM ((D →ₒ R).query (inputs ((Fintype.equivFin J).symm i))) : OracleComp (D →ₒ R) R)
+
 variable [SampleableType R]
 
 /-- Distinct fresh inputs give independent uniform outputs and the cache that records them. -/
@@ -133,31 +160,6 @@ theorem evalDist_mOfFn_uniform [Fintype R] (n : Nat) :
       exact SampleableType.map_uniformSample_evalDistEq_of_bijective
         (Fin.consEquiv (fun _ => R)).bijective
 
-variable {J : Type} [Fintype J]
-
-/-- The cache with the table `outputs` recorded at the distinct inputs `inputs`. -/
-noncomputable def cacheTable (cache : QueryCache (D →ₒ R)) (inputs : J → D) (outputs : J → R) :
-    QueryCache (D →ₒ R) :=
-  cacheFin cache (inputs ∘ (Fintype.equivFin J).symm) (outputs ∘ (Fintype.equivFin J).symm)
-
-theorem cacheTable_apply (cache : QueryCache (D →ₒ R)) (inputs : J → D)
-    (hinj : Function.Injective inputs) (outputs : J → R) (j : J) :
-    cacheTable cache inputs outputs (inputs j) = some (outputs j) := by
-  have h := cacheFin_apply cache (inputs ∘ (Fintype.equivFin J).symm)
-    (hinj.comp (Fintype.equivFin J).symm.injective) (outputs ∘ (Fintype.equivFin J).symm)
-    (Fintype.equivFin J j)
-  simpa only [Function.comp_apply, Equiv.symm_apply_apply] using h
-
-theorem cacheTable_apply_of_not_mem (cache : QueryCache (D →ₒ R)) (inputs : J → D)
-    (outputs : J → R) (input : D) (hinput : ∀ j, input ≠ inputs j) :
-    cacheTable cache inputs outputs input = cache input :=
-  cacheFin_apply_of_not_mem _ _ _ _ (fun _ => hinput _)
-
-/-- Query the oracle at every `inputs j`, in the order of `Fintype.equivFin J`. -/
-noncomputable def queryTable (inputs : J → D) : OracleComp (D →ₒ R) (J → R) :=
-  (Equiv.arrowCongr (Fintype.equivFin J).symm (Equiv.refl R)) <$> Fin.mOfFn _ fun i =>
-    (liftM ((D →ₒ R).query (inputs ((Fintype.equivFin J).symm i))) : OracleComp (D →ₒ R) R)
-
 variable [Fintype R] [SampleableType (J → R)]
 
 /-- **Querying a table of distinct fresh inputs** returns a uniform table and the cache that
@@ -190,14 +192,14 @@ section Presample
 variable {D R : Type} [DecidableEq D] [SampleableType R]
 
 local notation "World" => unifSpec + (D →ₒ R)
-local notation "impl" => (D →ₒ R).romImpl
+local notation "rom" => OracleSpec.romImpl (D →ₒ R)
 
 /-- An unobserved query may be sampled early, whether or not the computation later uses it. -/
 theorem evalDist_presample_fresh {α : Type} (computation : OracleComp World α)
     (cache : QueryCache (D →ₒ R)) (target : D) (hfresh : cache target = none) :
-    ((simulateQ impl computation).run' cache) =ᵈ (do
+    ((simulateQ rom computation).run' cache) =ᵈ (do
       let output ← $ᵗ R
-      (simulateQ impl computation).run' (cache.cacheQuery target output)) := by
+      (simulateQ rom computation).run' (cache.cacheQuery target output)) := by
   induction computation using OracleComp.inductionOn generalizing cache with
   | pure value =>
       simp only [simulateQ_pure, StateT.run'_eq, StateT.run_pure, map_pure]
@@ -206,29 +208,29 @@ theorem evalDist_presample_fresh {α : Type} (computation : OracleComp World α)
       cases input with
       | inl input =>
           have hrun (cache : QueryCache (D →ₒ R)) :
-              (simulateQ impl (liftM ((World).query (.inl input)) >>= next)).run' cache =
+              (simulateQ rom (liftM (World.query (.inl input)) >>= next)).run' cache =
                 ((liftM (unifSpec.query input) : ProbComp _) >>= fun answer =>
-                  (simulateQ impl (next answer)).run' cache) := by
+                  (simulateQ rom (next answer)).run' cache) := by
             rw [run'_query_bind]
             change (((fun answer => (answer, cache)) <$>
               (liftM (unifSpec.query input) : ProbComp _)) >>= _) = _
             exact bind_map_left (m := ProbComp) (fun answer => (answer, cache))
               (liftM (unifSpec.query input) : ProbComp _)
-              (fun result => (simulateQ impl (next result.1)).run' result.2)
+              (fun result => (simulateQ rom (next result.1)).run' result.2)
           rw [hrun]
           refine EvalDistEq.trans (my := (do
             let answer ← (liftM (unifSpec.query input) : ProbComp _)
             let output ← $ᵗ R
-            (simulateQ impl (next answer)).run' (cache.cacheQuery target output) : ProbComp _)) ?_ ?_
+            (simulateQ rom (next answer)).run' (cache.cacheQuery target output) : ProbComp _)) ?_ ?_
           · exact EvalDistEq.bind_right _ (fun answer => ih answer cache hfresh)
           · refine (OracleComp.EvalDistEq.bind_bind_swap _ _ _).trans
               (EvalDistEq.bind_right _ fun output => ?_)
             rw [hrun]
       | inr input =>
           have hrun (cache : QueryCache (D →ₒ R)) :
-              (simulateQ impl (liftM ((World).query (.inr input)) >>= next)).run' cache =
+              (simulateQ rom (liftM (World.query (.inr input)) >>= next)).run' cache =
                 ((randomOracle (spec := D →ₒ R) input).run cache >>= fun result =>
-                  (simulateQ impl (next result.1)).run' result.2) := run'_query_bind _ _ _ _
+                  (simulateQ rom (next result.1)).run' result.2) := run'_query_bind _ _ _ _
           by_cases heq : input = target
           · subst target
             rw [hrun, QueryImpl.withCaching_run_none _ hfresh, bind_map_left]
@@ -247,7 +249,7 @@ theorem evalDist_presample_fresh {α : Type} (computation : OracleComp World α)
                 refine EvalDistEq.trans (my := (do
                   let answer ← $ᵗ R
                   let output ← $ᵗ R
-                  (simulateQ impl (next answer)).run'
+                  (simulateQ rom (next answer)).run'
                     ((cache.cacheQuery input answer).cacheQuery target output) : ProbComp _)) ?_ ?_
                 · exact EvalDistEq.bind_right _ (fun answer => ih answer _ (hfresh' answer))
                 · refine (OracleComp.EvalDistEq.bind_bind_swap _ _ _).trans
@@ -260,9 +262,9 @@ theorem evalDist_presample_fresh {α : Type} (computation : OracleComp World α)
 /-- A query run first, its cache kept, leaves the distribution of a computation unchanged. -/
 theorem evalDist_presample_query {α : Type} (computation : OracleComp World α)
     (cache : QueryCache (D →ₒ R)) (target : D) :
-    ((simulateQ impl computation).run' cache) =ᵈ
+    ((simulateQ rom computation).run' cache) =ᵈ
       ((randomOracle (spec := D →ₒ R) target).run cache >>= fun result =>
-        (simulateQ impl computation).run' result.2) := by
+        (simulateQ rom computation).run' result.2) := by
   cases hc : cache target with
   | none =>
       rw [QueryImpl.withCaching_run_none _ hc, bind_map_left]
@@ -270,20 +272,20 @@ theorem evalDist_presample_query {α : Type} (computation : OracleComp World α)
   | some output => rw [QueryImpl.withCaching_run_some _ hc, pure_bind]
 
 /-- **Presampling.** A computation run first, its cache kept, leaves the distribution of another
-computation unchanged. `rom` is the random-oracle model under a scheme's own name. -/
-theorem evalDist_presample_computation (rom : QueryImpl World (StateT (QueryCache (D →ₒ R)) ProbComp))
-    (hrom : rom = impl) {α β : Type} (computation : OracleComp World α)
+computation unchanged. `impl` is the random-oracle model under a scheme's own name. -/
+theorem evalDist_presample_computation (impl : QueryImpl World (StateT (QueryCache (D →ₒ R)) ProbComp))
+    (himpl : impl = rom) {α β : Type} (computation : OracleComp World α)
     (preparation : OracleComp World β) (cache : QueryCache (D →ₒ R)) :
-    ((simulateQ rom computation).run' cache) =ᵈ
-      ((simulateQ rom preparation).run cache >>= fun result =>
-        (simulateQ rom computation).run' result.2) := by
-  subst hrom
+    ((simulateQ impl computation).run' cache) =ᵈ
+      ((simulateQ impl preparation).run cache >>= fun result =>
+        (simulateQ impl computation).run' result.2) := by
+  subst himpl
   induction preparation using OracleComp.inductionOn generalizing cache with
   | pure value => simp
   | query_bind input next ih =>
       simp only [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, bind_assoc]
-      refine EvalDistEq.trans (my := ((impl input).run cache >>= fun result =>
-        (simulateQ impl computation).run' result.2 : ProbComp _)) ?_
+      refine EvalDistEq.trans (my := ((rom input).run cache >>= fun result =>
+        (simulateQ rom computation).run' result.2 : ProbComp _)) ?_
         (EvalDistEq.bind_right _ fun result => ih result.1 result.2)
       cases input with
       | inl input =>
