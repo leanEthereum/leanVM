@@ -185,7 +185,7 @@ theorem gls_sound {o n r : ℕ} (ho : o < 2) (hr : r < 4) (hn : n < 2 ^ 30)
       omega
     have hrel := hloop hne
     rw [c11, h3, h0, h1, h2, h5, h6, h7, h8, ← pow_zero gen] at hrel
-    obtain ⟨m', -, hN, hall⟩ := loop_sound
+    obtain ⟨m', -, hN, hall⟩ := exists_loop_end
       (B := fun x ↦ ∀ p < 4, coreProgram.Rel rd (glName p o) [layers, rounds, pts, x,
         x * x * (x * x) * gen ^ p, start, gmu, tabs, stream] [])
       (fun d x hx => glsl_step ho d x hx) 0 hrel

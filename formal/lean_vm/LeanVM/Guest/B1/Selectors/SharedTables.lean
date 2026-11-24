@@ -271,7 +271,7 @@ theorem shared_selector_tables_holds : shared_selector_tables_Spec := by
     have hrun := hloop hne
     simp only [List.map_cons, List.map_nil] at hrun
     rw [c45, word_one, ← pow_zero gen] at hrun
-    obtain ⟨m, hm0, hN, hall⟩ := loop_sound (fun d x hx => lp_step d x hx) 0 hrun
+    obtain ⟨m, hm0, hN, hall⟩ := exists_loop_end (fun d x hx => lp_step d x hx) 0 hrun
     have hmq : q ≤ m := by
       by_contra hc
       have := gen_pow_inj (by omega) (by omega) (hqg.symm.trans hN)

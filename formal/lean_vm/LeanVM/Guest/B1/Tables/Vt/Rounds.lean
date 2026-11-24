@@ -32,7 +32,7 @@ theorem l10_loop {rd : Reader} {rounds tabs rkb cprod : E} {n : ℕ} (hn0 : 0 < 
     (h : coreProgram.Rel rd name% «verify_tables_loop0» [1, gen ^ n, rounds, tabs, rkb, cprod] []) :
     ∀ j < n, L10B rd rounds tabs rkb cprod (gen ^ j) := by
   rw [← pow_zero gen] at h
-  obtain ⟨m, -, hN, hall⟩ := loop_sound (B := L10B rd rounds tabs rkb cprod)
+  obtain ⟨m, -, hN, hall⟩ := exists_loop_end (B := L10B rd rounds tabs rkb cprod)
     (fun d x hx => l10_step d x hx) 0 h
   have hm : n ≤ m := by
     by_contra hc

@@ -30,7 +30,7 @@ public import Mathlib.Data.List.GetD
   `loadHolds_unique`, `readsAt_append`, `readsAt_unique`.
 * `setv σ b n f`: `σ` with the values `.n (b + k)`, `k < n`, set to `f k`: how an honest
   valuation is built, block after block (`set_n_in`, `set_n_lt`, `set_n_ge` evaluate it).
-* `loop_iff`, `guarded_loop_iff`, `loop_sound`: a `mul_range` loop helper, from `g^k` to its end
+* `loop_iff`, `guarded_loop_iff`, `exists_loop_end`: a `mul_range` loop helper, from `g^k` to its end
   `N`, holds exactly when `N = g^m` for the first `m > k` the loop reaches and its body holds at
   every `g^j`, `k ≤ j < m`.
 * `stmtsEqb_sound`: a template equal to a function's body by `decide +kernel`; `holds_slice`,
@@ -367,7 +367,7 @@ theorem loop_iff {P : Core.Program} {rd : Reader} {f : String} {ps : List E} {N 
 /-- **A `mul_range` loop, soundness**: if `f`'s relation at depth `d + 1` gives its body's meaning
 `B x` and the next call, then `f` holding at `g^k` gives `N = g^m` for some `m > k` and `B` at every
 `g^j`, `k ≤ j < m`. -/
-theorem loop_sound {P : Core.Program} {rd : Reader} {f : String} {ps : List E} {N : E}
+theorem exists_loop_end {P : Core.Program} {rd : Reader} {f : String} {ps : List E} {N : E}
     {B : E → Prop}
     (hstep : ∀ d x, P.relN rd (d + 1) f (x :: ps) [] →
       B x ∧ (x * gen + N ≠ 0 → P.relN rd d f (x * gen :: ps) []))

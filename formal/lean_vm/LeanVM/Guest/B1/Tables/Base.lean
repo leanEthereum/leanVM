@@ -23,7 +23,7 @@ public import LeanVM.Protocol.WithHash
 * `gSquaresList`: the words `g^(2^j)` that `exponent_tables` writes.
 
 Memory runs (`ReadsAt`), runs of the Spec's programs (`runId`, `RunsTo`) and the templates'
-machinery (`stmtsEqb`, `holds_slice`, `loop_sound`, …) are `B1/Common`'s.
+machinery (`stmtsEqb`, `holds_slice`, `exists_loop_end`, …) are `B1/Common`'s.
 -/
 
 namespace LeanVM.Guest.B1.Tables

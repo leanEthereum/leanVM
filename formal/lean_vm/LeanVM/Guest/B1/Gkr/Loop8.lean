@@ -72,7 +72,7 @@ theorem l8_loop {rd : Reader} {N zeta row : E} {m : ℕ} (hN : N = gen ^ m) (hm 
     (hmb : m < 2 ^ 62) (h : coreProgram.Rel rd name% «verify_bus_gkr_loop0» [1, N, zeta, row] [])
     {pt : List E} (hl : pt.length = m) (hpt : ReadsAt rd row pt) : ReadsAt rd zeta pt := by
   rw [← pow_zero gen] at h
-  obtain ⟨m', -, hN', hall⟩ := loop_sound (B := fun x ↦ ∀ w, LoadHolds rd (row * x) 0 w →
+  obtain ⟨m', -, hN', hall⟩ := exists_loop_end (B := fun x ↦ ∀ w, LoadHolds rd (row * x) 0 w →
     LoadHolds rd (zeta * x) 0 w) (fun d x hx => l8_step d x hx) 0 h
   have hmm : m ≤ m' := by
     by_contra hc

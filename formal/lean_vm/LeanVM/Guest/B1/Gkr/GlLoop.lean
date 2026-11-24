@@ -101,7 +101,7 @@ theorem gl_loop_all {p o : ℕ} (hp : p < 4) (ho : o < 2) {xm head qrow nqrow ta
     omega
   have hrun := hcall hne
   rw [← pow_zero gen] at hrun
-  obtain ⟨m', -, hN, hall⟩ := loop_sound (B := fun x ↦ TbGkrRoundsOut 8 1 rd (head * x ^ 7)
+  obtain ⟨m', -, hN, hall⟩ := exists_loop_end (B := fun x ↦ TbGkrRoundsOut 8 1 rd (head * x ^ 7)
     (qrow * x ^ 8)) (fun d x hx => gl_loop_step hp ho hq d x hx) 0 hrun
   have hmm : m ≤ m' := by
     by_contra hc

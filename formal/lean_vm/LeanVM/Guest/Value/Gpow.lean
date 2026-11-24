@@ -54,8 +54,6 @@ theorem limb0_ofK_mul_gen_pow_mul (b e t : ℕ) :
 
 theorem gen_pow_mul_gen (a : ℕ) : gen ^ a * gen = gen ^ (a + 1) := (pow_succ _ _).symm
 
-theorem gen_pow_pow (a b : ℕ) : (gen ^ a) ^ b = gen ^ (b * a) := (pow_mul' _ _ _).symm
-
 /-! ## Membership in `K` -/
 
 theorem isInK_add {a b : E} (ha : IsInK a) (hb : IsInK b) : IsInK (a + b) := by
