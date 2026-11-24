@@ -745,85 +745,32 @@ theorem simulate_eagerTrace_globalCausalAttackerHashQueryFromHigh_support_covere
 
 theorem globalSignatureRevealResult_covered
     (table : GlobalChainValueIndex → Digest)
-    (request : SignRequest) (encoding : ChainIndex → Digit)
+    (key : ChainKey) (encoding : ChainIndex → Digit)
     (chains : List ChainIndex) (signature : Signature)
     (state : GlobalCausalHashState)
     (covered : Set GlobalChainValueIndex)
     (hcovered : GlobalCausalRevealsCovered covered state)
-    (hindices : ∀ chain ∈ chains,
-      (chain, .inl request.leafIndex, encoding chain) ∈ covered) :
+    (hindices : ∀ chain ∈ chains, (chain, key, encoding chain) ∈ covered) :
     GlobalCausalRevealsCovered covered
-        (globalSignatureRevealResult table request encoding chains signature
-          state).2 ∧
+        (globalSignatureRevealResult table key encoding chains signature state).2 ∧
       GlobalCausalTraceRevealsCovered covered
-        (globalSignatureRevealTrace table request encoding chains) := by
+        (globalSignatureRevealTrace table key encoding chains) := by
   induction chains generalizing signature state with
-  | nil =>
-      exact ⟨hcovered, by
-        simp [globalSignatureRevealTrace,
-          GlobalCausalTraceRevealsCovered]⟩
+  | nil => exact ⟨hcovered, by simp [globalSignatureRevealTrace, GlobalCausalTraceRevealsCovered]⟩
   | cons chain chains ih =>
-      let index : GlobalChainValueIndex :=
-        (chain, .inl request.leafIndex, encoding chain)
+      let index : GlobalChainValueIndex := (chain, key, encoding chain)
       have hindex : index ∈ covered := hindices chain (by simp)
-      have htailIndices : ∀ candidate ∈ chains,
-          (candidate, .inl request.leafIndex, encoding candidate) ∈ covered := by
-        intro candidate hcandidate
-        exact hindices candidate (List.mem_cons_of_mem chain hcandidate)
       rw [globalSignatureRevealResult, globalSignatureRevealTrace]
       have htail := ih
-        (replaceSignatureChainValue signature chain (table index))
+        (replaceSignatureChainValue key signature chain (table index))
         (state.recordReveal index (table index))
-        (hcovered.recordReveal index (table index) hindex) htailIndices
-      constructor
-      · exact htail.1
-      · intro candidate value hmem
-        simp only [List.mem_cons] at hmem
-        rcases hmem with hhead | htailMem
-        · cases hhead
-          exact hindex
-        · exact htail.2 candidate value htailMem
-
-theorem globalSignatureTopRevealResult_covered
-    (table : GlobalChainValueIndex → Digest)
-    (request : SignRequest) (encoding : ChainIndex → Digit)
-    (chains : List ChainIndex) (signature : Signature)
-    (state : GlobalCausalHashState)
-    (covered : Set GlobalChainValueIndex)
-    (hcovered : GlobalCausalRevealsCovered covered state)
-    (hindices : ∀ chain ∈ chains,
-      (chain, .inr (topKeyOf request.leafIndex), encoding chain) ∈ covered) :
-    GlobalCausalRevealsCovered covered
-        (globalSignatureTopRevealResult table request encoding chains signature
-          state).2 ∧
-      GlobalCausalTraceRevealsCovered covered
-        (globalSignatureTopRevealTrace table request encoding chains) := by
-  induction chains generalizing signature state with
-  | nil =>
-      exact ⟨hcovered, by
-        simp [globalSignatureTopRevealTrace,
-          GlobalCausalTraceRevealsCovered]⟩
-  | cons chain chains ih =>
-      let index : GlobalChainValueIndex :=
-        (chain, .inr (topKeyOf request.leafIndex), encoding chain)
-      have hindex : index ∈ covered := hindices chain (by simp)
-      have htailIndices : ∀ candidate ∈ chains,
-          (candidate, .inr (topKeyOf request.leafIndex), encoding candidate) ∈ covered := by
-        intro candidate hcandidate
-        exact hindices candidate (List.mem_cons_of_mem chain hcandidate)
-      rw [globalSignatureTopRevealResult, globalSignatureTopRevealTrace]
-      have htail := ih
-        (replaceSignatureTopChainValue signature chain (table index))
-        (state.recordReveal index (table index))
-        (hcovered.recordReveal index (table index) hindex) htailIndices
-      constructor
-      · exact htail.1
-      · intro candidate value hmem
-        simp only [List.mem_cons] at hmem
-        rcases hmem with hhead | htailMem
-        · cases hhead
-          exact hindex
-        · exact htail.2 candidate value htailMem
+        (hcovered.recordReveal index (table index) hindex)
+        (fun candidate hcandidate => hindices candidate (List.mem_cons_of_mem chain hcandidate))
+      refine ⟨htail.1, fun candidate value hmem => ?_⟩
+      rcases List.mem_cons.1 hmem with hhead | htailMem
+      · cases hhead
+        exact hindex
+      · exact htail.2 candidate value htailMem
 
 theorem globalSignatureFullRevealResult_covered
     (table : GlobalChainValueIndex → Digest)
@@ -847,12 +794,12 @@ theorem globalSignatureFullRevealResult_covered
   | some signed =>
       obtain ⟨randomness, topEncoding⟩ := signed
       obtain ⟨hbottom, htopIndices⟩ := hindices randomness topEncoding htop
-      have hfirst := globalSignatureRevealResult_covered table request encoding allChains
-        signature state covered hcovered (fun chain _ => hbottom chain)
-      have hsecond := globalSignatureTopRevealResult_covered table request topEncoding allChains
-        (globalSignatureRevealResult table request encoding allChains signature state).1
-        (globalSignatureRevealResult table request encoding allChains signature state).2
-        covered hfirst.1 (fun chain _ => htopIndices chain)
+      have hfirst := globalSignatureRevealResult_covered table (.inl request.leafIndex) encoding
+        allChains signature state covered hcovered (fun chain _ => hbottom chain)
+      have hsecond := globalSignatureRevealResult_covered table (.inr (topKeyOf request.leafIndex))
+        topEncoding allChains
+        (globalSignatureRevealResult table (.inl request.leafIndex) encoding allChains signature
+          state).1 _ covered hfirst.1 (fun chain _ => htopIndices chain)
       exact ⟨hsecond.1, hfirst.2.append hsecond.2⟩
 
 theorem simulate_eagerTrace_globalFilteredCausalSigningAttempt_support_covered_of_final
