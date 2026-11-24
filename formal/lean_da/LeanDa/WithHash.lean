@@ -37,7 +37,7 @@ symbols of its bytes. The challenge needs only the sponge's seeding and its grin
 public input, no scalar is observed, and each nonce is absorbed into a copy of the seeded sponge
 and permuted (`nonceInput`), the answer's lane `2` its proof of work and lanes `0, 1` the
 challenge it draws. The statement draws the challenge with the leanVM verifier's sponge
-(`Field.lean`'s `Sponge`, `seedInput`, `absorbNonce`, `squeeze`); `membershipChallengeM_eq_withHash`
+(`Verifier/Transcript.lean`'s `Sponge`, `seedInput`, `absorbNonce`, `squeeze`); `membershipChallengeM_eq_withHash`
 (`LeanDa.WithHashBridge`) proves the two the same. -/
 
 /-- Lanes of the rate. -/

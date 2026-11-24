@@ -172,7 +172,7 @@ theorem runPure_readCommitment (height width : ℕ) (s : VerifierProgramState) :
 
 /-! ## Steps 1 and 2 -/
 
-/-- `readAnnouncedSizes bytecode` (`Statement/LeanVmVerifier.lean`), run: the announced sizes, read and
+/-- `readAnnouncedSizes bytecode` (`Statement/Verifier/Lib.lean`), run: the announced sizes, read and
 checked (`sizesOf`), and the layout they give. -/
 @[expose] def readSizesPure (bytecode : List K) (s : VerifierProgramState) :
     Option ((Layout × ℕ) × VerifierProgramState) :=

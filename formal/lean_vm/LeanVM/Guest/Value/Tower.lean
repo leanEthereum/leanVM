@@ -10,7 +10,7 @@ module
 
 public import LeanVM.Parameters.Field
 import LeanVM.Guest.Value.FieldBits
-public import Statement.LeanVmVerifier
+public import Statement.Verifier.Lib
 public import Statement.Fast.Keccak
 public import Statement.Fast.QuadExt
 public import Statement.Fast.FieldWords

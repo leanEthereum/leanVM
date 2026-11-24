@@ -11,7 +11,7 @@ module
 
 import LeanVM.Protocol.EndToEnd.Front.LayoutStack
 public import LeanVM.Protocol.ToCompPoly.AmbientStacking
-public import Statement.LeanVmVerifier
+public import Statement.Verifier.Lib
 import LeanVM.Protocol.EndToEnd.Front.LayoutArith
 public import ArkLib.OracleReduction.OracleInterface
 public import VCVio.OracleComp.Constructions.SampleableType

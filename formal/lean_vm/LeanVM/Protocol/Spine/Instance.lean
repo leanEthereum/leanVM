@@ -6,7 +6,7 @@
 
 module
 
-import Statement.LeanVmVerifier
+import Statement.Verifier.Lib
 import LeanVM.Facts.Verifier
 import Statement.Fast.Keccak
 import Statement.Fast.QuadExt

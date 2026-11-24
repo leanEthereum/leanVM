@@ -15,7 +15,7 @@ import LeanVM.Protocol.WithHash
 /-!
 # The sponge the guest carries
 
-The verifier's transcript (`Statement/LeanVmVerifier.lean`, `Sponge`, `absorb`, `squeeze`, `duplex`) is a
+The verifier's transcript (`Statement/Verifier/Transcript.lean`, `Sponge`, `absorb`, `squeeze`, `duplex`) is a
 duplex over Keccak-f[1600]: a state of 25 lanes and up to four waiting scalars, each with a tag.
 The guest (`guests/lean_ethereum.py`, G below, its Fiat-Shamir section)
 carries between permutations only the capacity, the cells `8..12` of the last permutation's

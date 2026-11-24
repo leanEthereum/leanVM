@@ -23,7 +23,7 @@ import LeanVM.Guest.Data.Consts
 
 `verify_tables(fs0, …, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, table_rows, g_squares,
 fp_w, beta, claim_pool, chi, gkr_leaves, tabs, bc_point, stream)` (`G` the guest
-`guests/lean_ethereum.py` and `V` `Statement/LeanVmVerifier.lean`) settles the bus against the six tables: it certifies each side's blocks'
+`guests/lean_ethereum.py` and `V` `Statement/Verifier/Bus.lean`) settles the bus against the six tables: it certifies each side's blocks'
 offsets by a hinted order of its block groups (`busLayout`), certifies every table's log-height to
 be `max (log2Ceil rows) floor` (by `padding_weight`), reads the framework's four column claims,
 reduces the bytecode's share of its leaf by the slot sumcheck to one value of the stacked bytecode

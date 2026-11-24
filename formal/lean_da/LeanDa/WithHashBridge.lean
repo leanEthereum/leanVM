@@ -82,7 +82,7 @@ end Pure
 
 /-! ## The challenge's sponge
 
-The statement's sponge (`Field.lean`, tags in `ℕ`) runs as the proofs' (`Sponge`, tags in `K`):
+The statement's sponge (`Verifier/Transcript.lean`, tags in `ℕ`) runs as the proofs' (`Sponge`, tags in `K`):
 `toCompile` maps the one to the other, and every step commutes with it. -/
 
 open LeanVM.Protocol.Compile (pendingLanes challengeOf seedInput)

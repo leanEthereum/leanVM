@@ -9,7 +9,7 @@ module
 
 import LeanVM.Protocol.Compile.SpecRules.Basic
 public import LeanVM.Parameters.Field
-public import Statement.LeanVmVerifier
+public import Statement.Verifier.Lib
 import LeanVM.Protocol.Field
 public import ArkLib.OracleReduction.OracleInterface
 public import CompPoly.Multilinear.Basic

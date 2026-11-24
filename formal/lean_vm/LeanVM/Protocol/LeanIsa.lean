@@ -12,7 +12,7 @@ public import LeanVM.Arithmetization.Statement
 public import LeanVM.Protocol.Bus
 public import LeanVM.Protocol.FixedColumns
 public import LeanVM.Protocol.Stack
-public import Statement.LeanVmVerifier
+public import Statement.Verifier.Lib
 
 /-!
 # The leanISA instance

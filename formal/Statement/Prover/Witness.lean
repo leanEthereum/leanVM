@@ -1,6 +1,6 @@
 module
 
-public import Statement.LeanVmVerifier
+public import Statement.Verifier.Lib
 
 /-!
 # The witness of an execution, executable

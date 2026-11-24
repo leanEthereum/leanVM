@@ -57,7 +57,7 @@ right after a proof of work, which permutes nothing, is charged a permutation.
 ## Deployed behaviour
 
 The bound is a statement on the program `leanVmVerifierProgram` as transcribed in
-`Statement.LeanVmVerifier`; it covers every proof, accepted or not.
+`Statement.Verifier.Lib`; it covers every proof, accepted or not.
 -/
 
 namespace LeanVM.Protocol.Verifier

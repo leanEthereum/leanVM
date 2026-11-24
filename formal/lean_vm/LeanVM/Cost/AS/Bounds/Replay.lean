@@ -5,6 +5,7 @@ import all LeanVM.Protocol.Extraction.Fast.SortedMap
 import all LeanVM.Protocol.Extraction.Fast.Lookup
 import all LeanVM.Protocol.Extraction.AS.Forward
 import all Statement.Field
+import all Statement.Verifier.Transcript
 import LeanVM.Protocol.Extraction.AS.TraceShape
 public meta import Lean.Elab.Tactic
 import LeanVM.ToMathlib.List

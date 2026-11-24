@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Protocol.Bus
-public import Statement.LeanVmVerifier
+public import Statement.Verifier.Lib
 
 /-!
 # The padding weight
