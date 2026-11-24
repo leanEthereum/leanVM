@@ -129,16 +129,14 @@ theorem giantSteps_cost (hP : Includes P Decoder.giantStepsC.costDeps) (T : Arra
     | none =>
       have := giantSteps_cost hP T hT c s hs t (k + 1) (y * c) (by omega)
       unfold findLanePrice at this
-      simp only [limbs_of_lt (by omega : k < 2 ^ 64), limbs_of_lt (by omega : k + 1 < 2 ^ 64),
-        max_self]
+      simp only [max_self]
       nlinarith
     | some j =>
       have hj := findLane_some_lt T hT _ hb
       have hsk : s * k < 2 ^ 64 := by
         calc s * k < 2 ^ 32 * 2 ^ 32 := Nat.mul_lt_mul_of_lt_of_lt hs (by omega)
           _ = 2 ^ 64 := by norm_num
-      simp only [limbs_of_lt (by omega : k < 2 ^ 64), limbs_of_lt (by omega : s < 2 ^ 64), limbs_of_lt hj,
-        limbs_of_lt hsk, max_self]
+      simp only [limbs_of_lt hj, limbs_of_lt hsk, max_self]
       have := max_le (limbs_le_two (x := j + s * k) (by omega)) (by norm_num : 1 ≤ 2)
       nlinarith
 

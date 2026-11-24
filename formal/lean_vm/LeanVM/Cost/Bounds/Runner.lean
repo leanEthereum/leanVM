@@ -348,7 +348,6 @@ theorem haltLoopVec_cost (hP : Includes P haltLoopVec.costDeps)
     | none => split_ifs <;> (try dsimp only) <;> nlinarith
     | some r' =>
       have := ih (a + 1) r' (by omega)
-      limbs
       simp only [max_self]
       split_ifs <;> nlinarith
 

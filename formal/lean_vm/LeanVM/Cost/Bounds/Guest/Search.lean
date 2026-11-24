@@ -5,6 +5,7 @@ public import LeanVM.Cost.Bounds.Guest.Basic
 public import LeanVM.Cost.Bounds.SortedMap
 public import LeanVM.Cost.Decoder.Kids
 import all LeanVM.Protocol.Extraction.Fast.SortedMap
+import LeanVM.Guest.Fast.Common
 
 /-!
 # Bounds on the guest decoder's prices: the coverage table's searches
