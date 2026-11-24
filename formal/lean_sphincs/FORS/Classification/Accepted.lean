@@ -553,6 +553,40 @@ theorem rootsMatch_hit (index : Index) (roots : ForsKey) (h : Fors.RootsMatch f 
     rw [Completeness.eval_forsPublicKey] at hroots
     exact hroots
 
+/-- The domain of a FORS node above level `level` of the path of a leaf. -/
+theorem forsDomain_succ (index : Index) (κ : FTree) (leaf : FLeaf) (level : ℕ) (hlevel : level < forsHeight) :
+    Fors.forsDomain index κ (level + 1) (leaf.val / 2 ^ (level + 1)) =
+      HashDomain.forsNode index κ ⟨level, hlevel⟩
+        ⟨leaf.val / 2 ^ (level + 1), (Nat.div_le_self _ _).trans_lt leaf.isLt⟩ := by
+  rw [Fors.forsDomain, dite_eq_left ⟨by omega, by omega⟩]
+  congr 2
+  exact Nat.mod_eq_of_lt ((Nat.div_le_self _ _).trans_lt leaf.isLt)
+
+include hconsistent in
+/-- A FORS node match hits at the node's input. -/
+theorem nodeMatch_hit (index : Index) (leaves : FTree → FLeaf) (opening : FTree → TreeOpening) (κ : FTree)
+    (level : ℕ) (hlevel : level < forsHeight)
+    (h : Fors.NodeMatch f parameter index κ seed (leaves κ) (opening κ).secret (opening κ).path level) :
+    truncateHash (f (merkleInput f parameter (Fors.forsDomain index κ) (leaves κ).val
+        (Fors.extendPath (opening κ).path) (Fors.leafValue f parameter index κ (leaves κ) (opening κ).secret) level)) ∈
+      targets parameter (graphTable f parameter seed labels)
+        (merkleInput f parameter (Fors.forsDomain index κ) (leaves κ).val
+          (Fors.extendPath (opening κ).path) (Fors.leafValue f parameter index κ (leaves κ) (opening κ).secret) level) := by
+  obtain ⟨-, hneq, hout⟩ := h
+  have hcanon : Fors.leafValue f parameter index κ (leaves κ)
+      (Completeness.forsSecretValue f parameter index κ seed (leaves κ)) =
+        Completeness.forsLeafValue f parameter index κ seed (leaves κ) := by
+    rw [Fors.leafValue_canonical, Completeness.forsNodeValue_zero]
+  have hl1 : level + 1 ≤ forsHeight := hlevel
+  rw [hcanon] at hneq hout
+  refine active_hit' f parameter seed labels (forsPosition index κ (level + 1) hl1
+    ⟨(leaves κ).val / 2 ^ (level + 1), (Nat.div_le_self _ _).trans_lt (leaves κ).isLt⟩) trivial _
+    ⟨_, by simp only [merkleInput]; rw [forsDomain_succ index κ (leaves κ) level hlevel]; rfl⟩ ?_ ?_
+  · rw [fors_path_input f parameter seed labels hconsistent index κ _ level hlevel]
+    exact hneq
+  · rw [fors_path_value f parameter seed labels hconsistent index κ _ (level + 1) hl1]
+    exact hout
+
 include hconsistent in
 theorem forsException_hit (index : Index) (leaves : FTree → FLeaf) (opening : FTree → TreeOpening)
     (h : Fors.Exception f parameter index seed leaves opening) :
@@ -564,7 +598,7 @@ theorem forsException_hit (index : Index) (leaves : FTree → FLeaf) (opening : 
       (Completeness.forsSecretValue f parameter index κ seed leaf) =
         Completeness.forsLeafValue f parameter index κ seed leaf := fun κ leaf => by
     rw [Fors.leafValue_canonical, Completeness.forsNodeValue_zero]
-  rcases h with ⟨κ, hne, heq⟩ | ⟨κ, level, hlevel, -, hneq, hout⟩ | hroots
+  rcases h with ⟨κ, hne, heq⟩ | ⟨κ, level, hlevel, hm⟩ | hroots
   · refine ⟨_, queriedInputs_mono_bind_left f _ _ (Fors.leafInput_mem f parameter index leaves opening κ),
       active_hit f parameter seed labels (.fleaf index κ (leaves κ)) trivial _ ?_ ?_,
       ForsSigner.not_msg_tweakable _ _ _ (by rw [bytesLE_length]; omega)⟩
@@ -574,24 +608,10 @@ theorem forsException_hit (index : Index) (leaves : FTree → FLeaf) (opening : 
     · rw [fleaf_value f parameter seed labels hconsistent, ← hcanon, ← heq]
       simp only [Fors.leafValue, forsLeafHash, Completeness.eval_tweakableHash]
       rfl
-  · have hl1 : level + 1 ≤ forsHeight := hlevel
-    rw [hcanon] at hneq hout
-    refine ⟨_, queriedInputs_mono_bind_left f _ _
+  · exact ⟨_, queriedInputs_mono_bind_left f _ _
         (Fors.nodeInput_mem f parameter index leaves opening κ level hlevel),
-      active_hit' f parameter seed labels (forsPosition index κ (level + 1) hl1
-        ⟨(leaves κ).val / 2 ^ (level + 1), (Nat.div_le_self _ _).trans_lt (leaves κ).isLt⟩)
-        trivial _ ?_ ?_ ?_, merkleInput_not_msg _ _ _ _ _ _ _⟩
-    · have hdom : Fors.forsDomain index κ (level + 1) ((leaves κ).val / 2 ^ (level + 1)) =
-          HashDomain.forsNode index κ ⟨level, by omega⟩
-            ⟨(leaves κ).val / 2 ^ (level + 1), (Nat.div_le_self _ _).trans_lt (leaves κ).isLt⟩ := by
-        rw [Fors.forsDomain, dite_eq_left ⟨by omega, by omega⟩]
-        congr 2
-        exact Nat.mod_eq_of_lt ((Nat.div_le_self _ _).trans_lt (leaves κ).isLt)
-      exact ⟨_, by simp only [merkleInput]; rw [hdom]; rfl⟩
-    · rw [fors_path_input f parameter seed labels hconsistent index κ _ level hlevel]
-      exact hneq
-    · rw [fors_path_value f parameter seed labels hconsistent index κ _ (level + 1) hl1]
-      exact hout
+      nodeMatch_hit f parameter seed labels hconsistent index leaves opening κ level hlevel hm,
+      merkleInput_not_msg _ _ _ _ _ _ _⟩
   · exact ⟨_, Fors.rootsInput_mem f parameter index leaves opening,
       rootsMatch_hit f parameter seed labels hconsistent index _ hroots,
       ForsSigner.not_msg_tweakable _ _ _ (by rw [rootsPayload_length]; omega)⟩

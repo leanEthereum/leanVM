@@ -281,31 +281,13 @@ theorem nodeException_hitA (index : Index) (leaves : FTree → FLeaf) (opening :
     ∃ input ∈ queriedInputs f (forsRecover parameter index leaves opening : OracleComp HashSpec ForsKey),
       truncateHash (f input) ∈ targets parameter (graphTable f parameter seed labels) input ∧
       (∀ results, ¬SecondOrderInput parameter results input) ∧ ¬ForsSigner.IsMsgInput input := by
-  obtain ⟨κ, level, hlevel, -, hneq, hout⟩ := h
-  have hcanon : Fors.leafValue f parameter index κ (leaves κ)
-      (Completeness.forsSecretValue f parameter index κ seed (leaves κ)) =
-        Completeness.forsLeafValue f parameter index κ seed (leaves κ) := by
-    rw [Fors.leafValue_canonical, Completeness.forsNodeValue_zero]
-  have hl1 : level + 1 ≤ forsHeight := hlevel
-  rw [hcanon] at hneq hout
-  have hdom : Fors.forsDomain index κ (level + 1) ((leaves κ).val / 2 ^ (level + 1)) =
-      HashDomain.forsNode index κ ⟨level, by omega⟩
-        ⟨(leaves κ).val / 2 ^ (level + 1), (Nat.div_le_self _ _).trans_lt (leaves κ).isLt⟩ := by
-    rw [Fors.forsDomain, dite_eq_left ⟨by omega, by omega⟩]
-    congr 2
-    exact Nat.mod_eq_of_lt ((Nat.div_le_self _ _).trans_lt (leaves κ).isLt)
+  obtain ⟨κ, level, hlevel, hm⟩ := h
   refine ⟨_, Fors.nodeInput_mem f parameter index leaves opening κ level hlevel,
-    active_hit' f parameter seed labels (forsPosition index κ (level + 1) hl1
-      ⟨(leaves κ).val / 2 ^ (level + 1), (Nat.div_le_self _ _).trans_lt (leaves κ).isLt⟩)
-      trivial _ ⟨_, by simp only [merkleInput]; rw [hdom]; rfl⟩ ?_ ?_, fun results => ?_,
+    nodeMatch_hit f parameter seed labels hconsistent index leaves opening κ level hlevel hm, fun results => ?_,
     merkleInput_not_msg _ _ _ _ _ _ _⟩
-  · rw [fors_path_input f parameter seed labels hconsistent index κ _ level hlevel]
-    exact hneq
-  · rw [fors_path_value f parameter seed labels hconsistent index κ _ (level + 1) hl1]
-    exact hout
-  · unfold merkleInput
-    rw [hdom]
-    exact not_secondOrder _ _ _ _ (fun _ _ _ _ _ h => by cases h) (fun _ _ _ h => by cases h)
+  unfold merkleInput
+  rw [forsDomain_succ index κ (leaves κ) level hlevel]
+  exact not_secondOrder _ _ _ _ (fun _ _ _ _ _ h => by cases h) (fun _ _ _ h => by cases h)
 
 include hconsistent in
 /-- A FORS roots match hits at the queried `T_k` input, which is first order. -/
