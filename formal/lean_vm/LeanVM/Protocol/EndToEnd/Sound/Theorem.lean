@@ -26,8 +26,8 @@ statements, for an adversary that chooses the statement, are in
 `LeanVM.Protocol.EndToEnd.Sound.Statements`. Everything is stated against the stacked opening's
 interface `O : OpeningIface` (`Sound.Assemble`); the front phases' is built (`frontIface`).
 
-* `stmtCert_bound`: every escape bound of `stmtCert O prog input` (`Assemble.leanVmCert` with the
-  front phases of `frontIface`), discounted by the proof of work before its group, is at most
+* `stmtCert_bound`: every escape bound of `stmtCert O prog input` (`leanVmCert` with the front
+  phases of `frontIface`), discounted by the proof of work before its group, is at most
   `2^-125`.
 * `extractStack O prog input c π`: **the extractor**. It reads the extracted history of `π` under
   the cache `c`, the announced sizes `(s, ρ)` (the value `readAnnouncedSizes` returned along it; a

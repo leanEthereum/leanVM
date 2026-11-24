@@ -22,8 +22,8 @@ before its first prover move, of `g` at the return. The joint bounds of `Spec.of
 expectations of indicators. This module computes them for the move-free fragments of the WHIR
 verifier (`LeanVM.Protocol.Verifier.verifyWhir`, transcribing `verify_whir`):
 
-* algebra: `retExp_bind` (sequencing is iterated expectation), `retExp_mono`, `retExp_add_le`,
-  `retExp_const_mul`, `retExp_le_const`, and `retExp_commits` (a function of the commitments of the
+* algebra: `retExp_bind` (sequencing is iterated expectation), `retExp_mono`, `retExp_le_add`,
+  `retExp_const_mul`, `retExp_le_one`, and `retExp_commits` (a function of the commitments of the
   history is constant along a group: samples and openings commit nothing);
 * `retExp_sampleN`: `sampleN n` draws a uniform vector of `E^n`;
 * `retExp_sampleQueries_le`: the positions of `sampleQueries depth t` all land in a set `S` with

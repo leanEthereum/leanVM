@@ -837,7 +837,7 @@ theorem mix_ge {B : ℝ≥0∞} {C : View → ℝ≥0∞} (h : ∀ v, B ≤ C v)
         calc B = freshAvg Finset.univ (fun _ : View => B) := (freshAvg_const _ Finset.univ_nonempty _).symm
           _ ≤ _ := freshAvg_mono _ fun v _ => h v
 
-/-- The heavy alternatives of `newPair_cases` are below the old base. -/
+/-- The heavy alternatives of `newPair_casesL` are below the old base. -/
 theorem heavy_alt_le {f : Multiset View → ℝ≥0∞} (hf : Monotone' f) (s : State) (excl : Pair → Prop) (m : Message)
     (rest : List Message) (n : ℕ) (d : Multiset View) {B : List View → ℝ≥0∞}
     (halt : (∀ I, valH parameter data w s excl rest (some m) f n I d = B I) ∨

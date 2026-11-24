@@ -11,10 +11,8 @@ public import LeanVM.Guest.B1.Digest.PairComplete
 public import LeanVM.Guest.B1.Digest.Steps
 
 /-!
-# A list digest's returns, and loads
+# A list digest's loads
 
-* `claimListOut_unique`: the cells of `ClaimListOut` are the memory's, so its returns are
-  determined.
 * `good_load_of_any`: a load among an evaluated block's atoms holds where the block's checks do.
 -/
 

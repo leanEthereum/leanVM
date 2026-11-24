@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Sig.KeccakMsg
 # `verify_sig_lean_sphincs` around its calls
 
 A layer (`sLayerAt l a0 a1 signed`, `sp_layer`) is its counter and its encoding (`sLayerPre`), the
-call of `sp_wots` (`sLayerCall`: `sp_wots(pp, a0, a1, enc)`, its leaf `sLayerLeaf`), then its path
+call of `sp_wots` (`sLayerCall`: `sp_wots(pp, a0, a1, enc)`), then its path
 (`sLayerPath`): `sLayerAt_eq`. So the body (`sBody_split`) is
 
 * `sBlockA`: the digest block, FORS, the bottom layer's counter and encoding;

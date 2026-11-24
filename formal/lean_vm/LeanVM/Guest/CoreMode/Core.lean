@@ -921,7 +921,7 @@ theorem allAnyPos_all {α β : Type} {p : α → β → Bool} {gs : List α} {hs
 /-- **A callee's mode signature `G` holds of its heap signature `h`** at a call of `na` arguments
 and `nr` returned words: its self frame pointer cell (a loop's) small, its header cells entry cells;
 each of its preconditions over the arguments' entry cells one of `h`'s (a run `h`'s run or its
-points `h`'s cells; a run of constant bounds over its caller's cells too, `h`'s over its ghost slots, `hp1s`);
+points `h`'s cells; a run of constant bounds over its caller's cells too, `h`'s over its ghost slots, `rngLIs`);
 each guarantee of `h` one of `G`'s (cells or points over the arguments and returned words, runs `G`'s or its
 loop's, or one of them extended by its next point, `rngXExt`; a run at a cell's word one of `G`'s over one pointer base,
 `rngQIn`; a pointer fact one such of constant bounds gives, `hpRunIn`); each returned word's monomial of `h` one `G` promises

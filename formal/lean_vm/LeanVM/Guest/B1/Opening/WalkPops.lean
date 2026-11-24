@@ -16,8 +16,7 @@ public import LeanVM.Guest.B1.Sig.PopsKit
 * `noWit`, `fallPops_noWit`: a block of atoms none a witness hint pops nothing; `SplicePops.callIf`: a conditional call pops its callee's entries;
 * `oqWalkT_fallPops`: the walk, its windows' words arms of their matches, pops its hinted
   siblings' cells, one `merkle_children` entry;
-* `WD.wpPops w`: the sibling cells `w.pc` of an honest walk, one `merkle_children` entry;
-  `WD.At.walk_fallPops`: an honest walk inline pops `wpPops w`.
+* `WD.wpPops w`: the sibling cells `w.pc` of an honest walk, one `merkle_children` entry.
 -/
 
 namespace LeanVM.Guest.B1

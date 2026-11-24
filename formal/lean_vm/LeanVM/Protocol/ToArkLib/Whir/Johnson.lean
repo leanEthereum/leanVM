@@ -26,7 +26,7 @@ coordinates, at most `1 / (2 η √r)` codewords agree with a word on `(√r + �
 * `card_mul_johnson_le_of_nonempty`: the real form,
   `|L| (2 η √r + η²) ≤ 1 - r` when the sets have at least `(√r + η) n` elements and meet in at
   most `r n`; `card_le_johnson` its corollary `|L| ≤ 1 / (2 η √r)` for `r > 0`.
-* `card_iList_mul_le_johnson`, `card_iList_le_johnson`: the bound for the list `iList C A O` of
+* `card_iList_le_johnson`: the bound for the list `iList C A O` of
   an interleaved word, when distinct interleaved codewords agree on at most `d ≤ r n`
   coordinates and `A ≥ (√r + η) n`.
 * `card_iList_rs_le_johnson`: the interleaved Reed-Solomon instance, with degree bound `D`
@@ -40,8 +40,8 @@ list is empty or the bound still holds), and the alphabet and code are arbitrary
 set-system and list forms. The Annex states the interleaved bound with the rate `k / n`; distinct
 Reed-Solomon codewords agree on at most `k - 1 = D` coordinates, so `ρ₋ = D / n` is valid and
 the rate `k / n` is a weakening. The reduced rate must be positive (`0 < D`) for the form
-`1 / (2 η √ρ₋)`, whose value at `ρ₋ = 0` is `0` in Lean; `card_iList_mul_le_johnson` covers
-`r = 0` with the bound `|L| η² ≤ 1`.
+`1 / (2 η √ρ₋)`, whose value at `ρ₋ = 0` is `0` in Lean; `card_mul_johnson_le_of_nonempty`
+covers `r = 0` with the bound `|L| η² ≤ 1`.
 -/
 
 namespace LeanVM.Protocol.Whir

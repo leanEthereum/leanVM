@@ -18,7 +18,7 @@ import Mathlib.Data.List.GetD
 * `holdsList_append`: a block followed by another is the first with the second as its
   continuation; `holdsList_flatten`: return-free blocks in sequence (an `unroll`'s iterations)
   hold exactly when each holds;
-* `holdsArms_iff`, `holds_match_iff`, `holds_dispatch_iff`: a `match` holds of one arm `j` at
+* `holdsArms_iff`, `holds_match_iff`: a `match` holds of one arm `j` at
   `x = g^j`, `j < arms.length`, the in-range condition a conjunct;
 * `holds_mono`, `relN_mono`, `rel_iff`: the semantics is monotone in the call relation, and
   `Program.Rel` is a fixed point, a call holding exactly when the callee's body does under

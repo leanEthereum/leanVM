@@ -42,11 +42,11 @@ valuation and the frames of its calls.
 **The decoding of a claim.** A cell `c` is the 128-bit value of its two limbs, limb `0` the
 low (`cellVal`); the message is
 the two cells, the first low (`cellPairVal`). `xmssClaimOf a b c d`, `sphincsClaimOf a b c d` are
-the claims of the four cells, as `Node.XmssClaim`, `Node.SphincsClaim`.
+the claims of the four cells, as `Node.LeanXmssClaim`, `Node.LeanSphincsClaim`.
 
 **What a call establishes for a signature** (`XmssOut rd p sig`, `SphincsOut rd p sig`): the four
-words at `p` are a claim that `sig` verifies under Keccak-256 (`Node.xmssVerify`,
-`Node.sphincsVerify`).
+words at `p` are a claim that `sig` verifies under Keccak-256 (`LeanXmss.verifyWithKeccak`,
+`Sphincs.verifyWithKeccak`).
 
 **The statements** (`…_Spec`, each a `Prop`; the proofs land as `…_holds`):
 

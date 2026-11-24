@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Tables.CoordPadding
 
-  A table's padding row (`Table.padding`) with `keccakF` of the zero state evaluated
+  A table's padding row (`Table.padding`) with `keccakF1600` of the zero state evaluated
   (`keccakF_zero`), so that the padding tie (`Vt.FormsPad`) is a kernel evaluation.
 -/
 
@@ -13,7 +13,7 @@ public import LeanVM.Guest.Value.KeccakConst
 /-!
 # The padding row
 
-A table's padding row is zero but for the `KECCAK` table's output lanes, `keccakF` of the zero
+A table's padding row is zero but for the `KECCAK` table's output lanes, `keccakF1600` of the zero
 state. `paddingRow` is the row with that value written out; `padding_eq` (`keccakF_zero`). The
 baked `COORD_PADDING` is tied to it in `Vt.FormsPad`, and `Vt.SpecPad` uses it for the padding sums.
 -/
@@ -25,7 +25,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-/-- `Table.padding` with `keccakF` of zeros evaluated. -/
+/-- `Table.padding` with `keccakF1600` of zeros evaluated. -/
 def paddingRow (t : Table) : List E :=
   (List.range t.width).map fun i ↦
     if t.opcode = opKeccak ∧ keccakOut ≤ i ∧ i < keccakOut + 25 then

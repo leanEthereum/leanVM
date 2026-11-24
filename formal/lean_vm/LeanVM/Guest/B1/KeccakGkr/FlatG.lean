@@ -76,7 +76,7 @@ theorem regionsOk_mono {R R' : ℕ → Prop} (hR : ∀ i, R i → R' i) :
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
-/-- **`kidsFromIn_of_kidsF` for calls reading at the frame pointers so far.** -/
+/-- **`kidsFromIn_of_kidsD` for `CompleteAtF` calls reading at the frame pointers so far.** -/
 theorem kidsFromIn_of_kidsG (κ : ℕ) : ∀ (pre : List ℕ) (ks : List KidG),
     (∀ k ∈ ks, k.taken = true → ∀ ps,
       CompleteAtF fs cert κ k.f (fun p => k.Lin (ps ++ [p])) (k.args ps)

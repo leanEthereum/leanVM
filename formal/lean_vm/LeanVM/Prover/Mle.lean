@@ -18,7 +18,7 @@ public import LeanVM.Protocol.Whir.Complete.Tables
 * `toList_foldPairsA`: a fold on the array is `foldPairs` on its list;
 * `mleA_eq`, `mleK_eq`: the evaluation on the array is `multilinearEval` on its list;
 * `sumRange_eq`: the loop is the sum;
-* `getD_toList`, `toList_ofFn_range`: arrays read as lists.
+* `getD_toList`, `getD_ofFn`: arrays read as lists.
 -/
 
 namespace LeanVM.Prover

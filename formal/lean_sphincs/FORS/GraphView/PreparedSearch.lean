@@ -10,7 +10,7 @@ section
 /-! The preparation's cache covers every key's counter search (`searchCached_preparation`): a
 lazily sampled search caches each trial it makes and goes on only past a trial that encodes
 nothing, and the later searches only grow the cache. With it the honest signer's searches read
-only prepared trials (`HonestSigner.SignerReadsGood.searched`). -/
+only prepared trials (`SignerReadsGood.searched`). -/
 
 open OracleComp OracleSpec
 

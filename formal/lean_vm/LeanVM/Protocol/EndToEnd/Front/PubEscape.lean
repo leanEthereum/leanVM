@@ -22,7 +22,7 @@ and one stack, at every verifier prefix (`IsLocallyBounded`). The front phases' 
 quantifies over the candidates of the level-0 commitment, a finite set of stacks, so a challenge
 escapes it when it escapes for one candidate:
 
-* `avgE_indE_le_of_prEvent`: the probability bounds the average;
+* `avgE_indE_eq_prEvent`: the average is the probability;
 * `avgE_indE_exists_le`: the union bound, `L₀` times the per-candidate bound for at most `L₀`
   candidates;
 * `avgE_le_one`, `avgE_indE_le_one`: an average of probabilities is one.

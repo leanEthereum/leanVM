@@ -25,8 +25,7 @@ address cells from the leaves' bytes and their shifts (`lvals`, `tree_mid`):
   `adrsCell0 0 (layerTreeN T 0)`, `key_b = lvals[0]·2^56` is `adrsCell1 0 (layerLeafN T 0) 0 0`;
 * `sMidAddrs_vals`: `a0_m = 2^24 + tree_mid·2^120 + lvals[24]·2^112`, `key_m =
   lvals[8]·2^56`;
-* `sTopAddrs_vals`: `key_t = tree_mid·2^56 + lvals[24]·2^48`, `a0_t = 2^25`;
-* `layerAddrs`: all three as `sA0Of l`, `sA1Of l`.
+* `sTopAddrs_vals`: `key_t = tree_mid·2^56 + lvals[24]·2^48`, `a0_t = 2^25`.
 
 Field addition is XOR, so a sum of words of disjoint bits is the word of their sum
 (`eOfNat128_shift_add`).

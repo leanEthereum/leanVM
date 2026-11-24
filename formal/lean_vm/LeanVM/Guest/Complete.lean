@@ -48,7 +48,7 @@ placed at the certificates' cells `cert` (`Memory.HonestAt`):
   the discharge of `Honest`);
 * `table`: `main`'s cells hold its jump table (`Memory.tableCells`);
 * `b2`: on the honest memory, `main` runs from its entry at `fp = 1` to the halting registers
-  (the checker's completeness, `exec_complete` and the certificates);
+  (the checker's completeness, `Exec.exec_good` and the certificates);
 * `size`: that run's committed size is at most the tree's cost.
 
 `CompletePiecesWithin` splits the size at a call tree's instruction counts `cnt T op`, and

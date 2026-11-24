@@ -28,7 +28,7 @@ A_s Ŵ_s` (`telescope`), hence for `d` with `s` trailing ones
 Regrouped by the index of the result, this is the rule of `mul_x` (`crates/pcs/src/xmul.rs`):
 `(X h)[0] = 0`, `(X h)[c] = A_t (h[c-1] + h[c+2^t-1])`, `t` the trailing zeros of `c`
 (`trailingZeros`, `trailingZeros_two_pow_mul_odd`); `sum_mxE` is the identity
-`Σ_c (X h)[c] X_c(x) = x Σ_d h[d] X_d(x)`, and `sum_mulXA` its form on the prover's tables.
+`Σ_c (X h)[c] X_c(x) = x Σ_d h[d] X_d(x)`.
 -/
 
 namespace LeanVM.Protocol.Whir.Complete

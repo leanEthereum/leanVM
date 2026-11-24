@@ -17,7 +17,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
 
 @[expose] public section
 
-/-- **`verify_tables`' reads past its table sumcheck's last record's cursor** (`vtSt`):
+/-- **`verify_tables`' reads past its table sumcheck's last record's cursor** (`verify_tables.py`'s `vt_st_sub`):
 the cell `c` words past the cursor, the value `cursor@5`, `c < 153`, one of its stream's, parameter `stream`'s
 `[0, 8192)` (`EndExec.vtStC_inst`). -/
 def vtStC (fn : Fn) : CRes → Bool
@@ -80,7 +80,7 @@ def VtL.add (f g : VtL) (k : ℤ) : VtL := (f.1 + k * g.1, ladd k f.2 g.2)
 def VtL.minv (f : VtL) : ℤ := f.1 + lmin f.2 vtUB
 def VtL.maxv (f : VtL) : ℤ := f.1 + lmax f.2 vtUB
 
-/-- **The slacks' words** (`vtexp.base`): `g_bus_mu` `19 + a`, `g_zc_n` `19 + a - b`, `dims_g[0]` (`kb[1]`)
+/-- **The slacks' words** (`verify_tables.py`'s `base`): `g_bus_mu` `19 + a`, `g_zc_n` `19 + a - b`, `dims_g[0]` (`kb[1]`)
 `19 + a - d`, `dims_g[1 + t]` (`kb[2 + t]`, the values after `kb[1]`) `19 + a - b - c_t`; ghost `GB + j` as
 `kb[1 + j]`, `j < 7`. -/
 def vtBaseN (x : ℕ) : Option VtL :=
@@ -92,7 +92,7 @@ def vtBaseN (x : ℕ) : Option VtL :=
     if i = 0 then 1 else if i = 1 then -1 else if i = y - val% «verify_tables» "kb[1]" + 1 then -1 else 0)
   else none
 
-/-- **A word's form** (`vtexp.form`): a slacks' word, or what a top-level atom makes it of others' (fuel `f`): a constant
+/-- **A word's form** (`verify_tables.py`'s `form`): a slacks' word, or what a top-level atom makes it of others' (fuel `f`): a constant
 `g^k`, a copy, a product, or a quotient `d = v·b` whose form is nonnegative on the box. -/
 noncomputable def vtF (as : List Atom) : ℕ → V → Option VtL
   | 0, _ => none
@@ -118,7 +118,7 @@ noncomputable def vtF (as : List Atom) : ℕ → V → Option VtL
           else none
       | _ => none
 
-/-- The fuel `vtexp.FUEL`. -/
+/-- The fuel (`verify_tables.py`'s `FUEL`). -/
 def vtFuel : ℕ := 4
 
 /-- **A cell's form**: `off + Σ e·F(b)`. -/
@@ -141,7 +141,7 @@ noncomputable def vtArms (as : List Atom) : List (ℕ × ℕ) → VtL → VtL
       | none => f) else f
     | none => f)
 
-/-- The slacks' words whose forms are nonnegative (`vtexp.NNB`). -/
+/-- The slacks' words whose forms are nonnegative (`verify_tables.py`'s `NNB`). -/
 def vtNNB : List ℕ := [val% «verify_tables» "g_bus_mu", val% «verify_tables» "kb[1]", val% «verify_tables» "kb[2]",
   val% «verify_tables» "kb[3]", val% «verify_tables» "kb[4]", val% «verify_tables» "kb[5]", val% «verify_tables» "kb[6]",
   val% «verify_tables» "kb[7]", val% «verify_tables» "g_zc_n"]
@@ -171,7 +171,7 @@ noncomputable def vtSubP (as : List Atom) (arms : List (ℕ × ℕ)) (c : CCell)
   | [(B, 1), (J, 1)] => vtSubP1 as arms c.off B J cs || vtSubP1 as arms c.off J B cs
   | _ => false
 
-/-- **`verify_tables`' exponent family** (`vtexp.holds`): `lt a b` (`F_b - F_a - 1 ≥ 0`), `subR q r` (stride `1`, `q`'s
+/-- **`verify_tables`' exponent family** (`verify_tables.py`'s `holds`): `lt a b` (`F_b - F_a - 1 ≥ 0`), `subR q r` (stride `1`, `q`'s
 base `r`'s times a product `m`, `r`'s bounds hold `F_m + q.off - r.off` past `q`'s), `subP` (`[B]·[J]·g^o` one of
 `[B]·g^(o + t)`, `t < |cs|`, by `e(J) < |cs|`, either base the index), under branch conditions (the arms used). -/
 noncomputable def vtExpR (as : List Atom) (arms : List (ℕ × ℕ)) : CRes → Bool
@@ -192,7 +192,7 @@ noncomputable def vtExpR (as : List Atom) (arms : List (ℕ × ℕ)) : CRes → 
 /-- `verify_tables`' own parameter words as ghost slots: `dims_g[j]`, `j < 7` (`HSig.gw`). -/
 def vtGw : List (CCell × ℕ) := (List.range 7).map fun j ↦ (⟨[(val% «verify_tables» "dims_g", 1)], j⟩, j)
 
-/-- **The top-level atoms of `verify_tables` its exponent family reads** (`vtexp.ATOMS`; `EndExec.vtAtoms_top`). -/
+/-- **The top-level atoms of `verify_tables` its exponent family reads** (`verify_tables.py`'s `ATOMS`; `EndExec.vtAtoms_top`). -/
 def vtAtoms : List Atom :=
   [.const (.n (val% «verify_tables» "kb[0]")) (word 1 0),
     .mul (.n (val% «verify_tables» "g_bus_mu")) (.n (val% «verify_tables» "s17.u0.s0#0")) (.n (val% «verify_tables» "kb[2]")),

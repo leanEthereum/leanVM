@@ -39,7 +39,7 @@ knowledge sound with no check at all. The length is not a check that can be drop
 exists only for a message of that length (`pooledFrom` takes the proof), so no weakened check
 pools a value the prover did not send. When the check passes the verdict is the computed pool
 (`verdict_pooledFrom_of_check`), and the proofs reason about that one, `pooled`. The verifier
-reads the transcript and never the stack: it is a front verifier, `verifierWith` at the check
+reads the transcript and never the stack: it is a front verifier, `phaseWith` at the check
 and the pool, a shape the tests reuse for the verifiers that omit or weaken the check.
 
 The leanISA instance (`LeanVM.Protocol.LeanIsa`) sends no line, as the deployed verifiers do

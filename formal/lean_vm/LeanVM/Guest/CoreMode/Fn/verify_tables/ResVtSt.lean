@@ -1,14 +1,13 @@
 /-
   LeanVM.Guest.CoreMode.Fn.verify_tables.ResVtSt
 
-  `verify_tables`' reads past its table sumcheck's last record's cursor (`vtSt`), sound at the
+  `verify_tables`' reads past its table sumcheck's last record's cursor (`vtStC`), sound at the
   honest frames: they lie inside its stream.
 -/
 
 module
 
 public import LeanVM.Guest.CoreMode.Fn.verify_tables.ResVt
-public import LeanVM.Guest.CoreMode.Fam.SubDefs
 
 /-!
 # `verify_tables`' index
@@ -22,7 +21,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Mode LeanVM.Gu
 open LeanVM.Guest.B1
 open LeanVM.Guest.B2C (idxOf fsN cellJ)
 open LeanVM.Guest.Bridge (FnAl)
-open LeanVM.Guest.Res (stRes topAtoms)
+open LeanVM.Guest.Res (topAtoms)
 open LeanVM.Protocol.Verifier (gen)
 open LeanVM.Prover.Exec
 

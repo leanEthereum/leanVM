@@ -45,9 +45,9 @@ sumcheck proves them all:
    coordinates (`tableOut`).
 
 The sum of the summand over the cube is the batch of the true values, each constraint's extension
-at `ζ` and each side's forms summed (`sum_tableSummand`), so it is the target exactly when the bus
-seam's two claims hold (`tableSummand_target`). In characteristic two the factor
-`(1 − r)(1 − ζ) + rζ` of `eq` is the deployed `1 + ζ + r`.
+at `ζ` and each side's forms summed (`sum_tableSummand`), and the true values are the claimed ones
+exactly when the bus seam's two claims hold (`trueValues_eq_claimed_iff`). In characteristic two
+the factor `(1 − r)(1 − ζ) + rζ` of `eq` is the deployed `1 + ζ + r`.
 
 Perfect completeness of the parts (`batch_complete`, then the rounds' and the final values'),
 from `Seam.bus` to `Seam.table`, needs the degree bound `d ≤ 2`: the slot's rounds are cubic, and

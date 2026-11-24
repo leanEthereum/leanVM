@@ -36,10 +36,10 @@ fresh at `fp` is `RelAtInC` at `(fp, fp + B)` (`RelAtInC.relAtIn`).
 
 **Pure subtrees.** A subtree with no `HeapBuf` and no `frameAddr` has no data, so its loads read
 its region only, wherever it is placed. `Program.RelIn P rd R` is `Program.Rel` by a tree whose
-loads all read `R`, proved along a path by `relIn_of_walk`; `relAtIn_of_relIn_pure` places it
-anywhere, and `relIn_of_rel_noLoads` gives it for free to a call-closed set without loads.
+loads all read `R`, proved along a path by `relIn_of_walk`; such loads are in `R` and the
+subtree's data wherever it is placed (`loadsIn_of_loadsR`).
 
-**At the root** (`loads_classified`): if `main`'s tree is `LoadsIn R` at word `0`, every load
+**At the root** (`loads_insts`): if `main`'s tree is `LoadsIn R` at word `0`, every load
 reads an instance's `HeapBuf`, a cell of an instance's run, or `R` (static data outside every
 frame), which is what the honest memory's discharge needs of loads.
 -/

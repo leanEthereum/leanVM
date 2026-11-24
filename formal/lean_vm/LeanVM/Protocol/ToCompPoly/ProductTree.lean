@@ -22,8 +22,9 @@ of every leaf. `layerTable t m` is the level on `m` variables, for every `m ≤ 
 Contracting `ρ` levels at once, node `x` is the product of its `2 ^ ρ` descendants
 `childIndex ρ c x = c + 2 ^ ρ · x` (`contractPow_getElem`), whose Boolean points are
 `childPoint ρ c (boolVec x) = (bits of c, bits of x)`: the descendants occupy the low
-coordinates. The layer identity a grand-product argument runs sumcheck on,
-`Ṽ_i(r) = Σ_x eq(r, x) ∏_c Ṽ_{i - ρ}(c, x)`, is `evalMle_contractPow`.
+coordinates. A level is `ρ` contractions of the level `ρ` below (`layerTable_contractPow`): on
+the cube, the layer identity a grand-product argument runs sumcheck on,
+`Ṽ_i(r) = Σ_x eq(r, x) ∏_c Ṽ_{i - ρ}(c, x)`.
 
 ## Wrong readings excluded
 

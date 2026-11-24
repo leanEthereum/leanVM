@@ -18,12 +18,12 @@ public import LeanVM.Guest.AcceptableChild
 `MainComplete cert cnt b` is what the completeness of `main` (B1) gives for `NodeRelation` within the
 limits and the caps agreeing: a consistent layout `L`
 in `[2, N)`, `N ≤ 2^30` words within the budget's words, on every memory holding which and the statement's digest at words `0`, `1` `main` holds by
-a tree placed at `0` (`RelAtIn`'s tree, as `honest_of_relAtIn` takes it) within the budget's
+a tree placed at `0` (`RelAtIn`'s tree) within the budget's
 instruction counts. The counts are bounded on that tree, the one completeness builds, not on every
 valid tree: `main`'s and its children's counts are hints, which a valid tree pins only up to
 Keccak-256 collisions. `KFactsAll` is the checker's certificate facts for every tree of `main` (`B1.Main.KFacts`), and `CntRetemp cnt` that the counts do not
 see the temporaries' values (`Tree.retemp`). `honest_of_main` gives
-`CompletePiecesWithin.honest`, by `honestAt_retemp` as in `honest_of_relAtIn`, keeping the tree
+`CompletePiecesWithin.honest`, by `honestAt_retemp`, keeping the tree
 the counts are bounded on.
 -/
 

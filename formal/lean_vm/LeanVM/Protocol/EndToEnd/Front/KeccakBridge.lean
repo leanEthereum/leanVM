@@ -63,7 +63,7 @@ theorem retOK_sumcheck (count : ℕ) : ∀ (eqs : List (Option E)) (claim : E),
   | _ :: eqs, _ => RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦
       (retOK_sumcheck count eqs _).bind fun r hr ↦ RetOK.ret (by simp [hr])
 
-/-- `keccak_open` returns a slot of six challenges. -/
+/-- `keccakOpen` returns a slot of six challenges. -/
 theorem retOK_keccakOpen (logSteps : ℕ) (claim : KeccakClaim) (first count : ℕ) (value : E) :
     RetOK (fun r : List E × List E × E ↦ r.1.length = qkeccakSlotBits)
       (keccakOpen logSteps claim first count value) :=

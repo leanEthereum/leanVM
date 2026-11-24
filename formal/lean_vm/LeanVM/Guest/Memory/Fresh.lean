@@ -30,7 +30,7 @@ the body's size.
 
 Of a path (`walk`): it is the same under two valuations agreeing on the block's uses
 (`walk_congr`); its events name only the block's uses, its temporaries are a sublist of the
-block's, and its returned values are uses (`walk_evs`).
+block's, and its returned values are uses (`walk_within`).
 -/
 
 namespace LeanVM.Guest.Memory

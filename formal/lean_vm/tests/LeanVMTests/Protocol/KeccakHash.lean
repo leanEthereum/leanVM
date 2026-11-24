@@ -13,7 +13,7 @@ bytes), a padding block of its own (136, 272) and the multi-block path. The dige
 verifier's `keccak_hash` at leanVM `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462` (at the pin
 `40f877dc`, `crates/verifier/src/hash.rs`), whose permutation is checked
 independently: run with FIPS 202's padding `0x06` it gives `hashlib.sha3_256` on the same ramps
-(script `vectors.py` of the port). Then `keccakF` on the zero state (Keccak-f[1600]'s
+(script `vectors.py` of the port). Then `keccakF1600` on the zero state (Keccak-f[1600]'s
 well-known `f1258f79…`) and on the lanes `0 … 24`; `hash_pair` and `hash_words` on known
 inputs; a 64-byte message as one permutation of its padded block; a hash chain
 (eight `hash_pair(d, d)` steps from the zero digest); and

@@ -15,7 +15,7 @@ import LeanVM.Guest.Data.ValNames.«keccak_plain_rounds__L»
 /-!
 # `keccak_plain_rounds`' loads
 
-Both specializations are leaf bodies whose loads (by the kernel: `plain_leafOk`) read the cursor
+Both specializations are leaf bodies whose loads (by the kernel: `plain60_leafOk`, `plain41_leafOk`) read the cursor
 (argument `7`) below `2n` and the point (argument `9`) below `n`; so with those words in a region
 `R`, the relation loads from `R` (`keccak_plain_rounds_relIn`).
 -/

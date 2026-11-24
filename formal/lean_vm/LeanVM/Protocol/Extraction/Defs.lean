@@ -28,10 +28,6 @@ not part of the statement:
   equal to it when the cap is large enough (`Halting.haltingRunC_eq_haltingRun`);
 * `stepC`, `runC`, `candidateExecution`: the step, run and a stack's execution with indices
   built per call (`step`, `run` for `κ < 64`).
-
-These were the statement's own definitions before the extractor became computable
-(`committedWord`, `haltingRun`: `Statement/Extractor.lean` at `8e8e4d2f`, verbatim), or the
-specification-level forms of the extractor's pieces.
 -/
 
 namespace LeanVM.Extraction
@@ -41,7 +37,7 @@ open LeanVM.Protocol.Verifier LeanVM.Parameters.Whir
 
 @[expose] public section
 
-/-! ## The code and the candidates (moved here from `Statement/Extractor.lean`, names kept) -/
+/-! ## The code and the candidates -/
 
 /-- The normalized subspace polynomial `Ŵ_i(a) = W_i(a) / W_i(x_{2^i})`. -/
 def normSubspacePoly (i : ℕ) (a : K) : K :=

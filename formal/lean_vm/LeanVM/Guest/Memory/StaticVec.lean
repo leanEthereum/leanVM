@@ -17,7 +17,7 @@ the same preconditions, terms and constants, the numbers apart. A **vector certi
 (`CertV`) holds them all, a number of each replaced by the vector of its coordinates (`Vec`, read
 as zero past its end), and `chkFnV` checks it in one walk of the body, `chkFn`'s with the
 arithmetic done coordinate by coordinate. Coordinate `i` of a vector certificate is a certificate
-(`CertV.proj`), and `StaticVecSound.chkFnV_proj` turns a vector check into the check of each.
+(`CertV.proj`), and `chkFnV_proj` (`StaticVecSound.lean`) turns a vector check into the check of each.
 -/
 
 namespace LeanVM.Guest.Memory

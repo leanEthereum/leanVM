@@ -22,8 +22,8 @@ source.
 
 Two tables of this shape:
 
-* the Lagrange basis `lagrangeBasis w` (`lagrangeBasis_eq_bitProductTable`), whose extension
-  CompPoly writes as the equality kernel (`eqTilde_eq_prod`);
+* the Lagrange basis `lagrangeBasis w`, whose extension CompPoly writes as the equality kernel
+  (`eqTilde_eq_prod`);
 * the geometric table `powersTable a n`, entry `i` being `a ^ i`
   (`powersTable_eq_bitProductTable`, from the binary expansion `pow_eq_prod_testBit`), whose
   extension is `∏ k, ((1 - x_k) + x_k * a ^ 2 ^ k)` (`evalMle_powersTable`).

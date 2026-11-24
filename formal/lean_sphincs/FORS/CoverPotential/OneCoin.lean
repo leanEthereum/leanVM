@@ -1168,7 +1168,8 @@ theorem post_term_leO (hw : w ≤ 1) {f : Multiset View → ℝ≥0∞} (hf : Mo
   rw [hsame]
   exact upper_pointX (grpAll_mono s excl (virtualOnce_mono hf.1 n J) _) d excl out r hr Fail hshape hex
 
-/-- `sign_pointO` with the signer's interpreter budget `bi` apart from the potential's budget `budget`. -/
+/-- **The potential after one signing outcome**, the signer's interpreter budget `bi` apart from the
+potential's budget `budget`. -/
 theorem sign_pointO2 (hparse : ∀ p call, model.parse (pblk parameter data p call) = none)
     (hfail : ∀ ρ digest budget (s1 : State), Prepared initial s1 →
       ∀ out ∈ support (interp tg initial model (finishRest parameter data m ρ digest) budget s1),
@@ -1248,7 +1249,8 @@ theorem sign_pointO2 (hparse : ∀ p call, model.parse (pblk parameter data p ca
     exact post_term_leO tg initial model parameter data w Fail m hw (excess_props b0) hparse hfail bi s Ms L d
       hprep out hout r hr (fun _ => False) (fun _ _ _ h => h) n hk
 
-/-- `sign_expectO` with the signer's interpreter budget `bi` apart from the potential's budget `budget`. -/
+/-- **The signing step in expectation**, for a message signed for the first time, the signer's
+interpreter budget `bi` apart from the potential's budget `budget`. -/
 theorem sign_expectO2 (hparse : ∀ p call, model.parse (pblk parameter data p call) = none)
     (hkind : ∀ p call, tg.kind (pblk parameter data p call) = .none)
     (bi budget : ℕ) (s : State) (P : List Pair) (Ms : List Message)

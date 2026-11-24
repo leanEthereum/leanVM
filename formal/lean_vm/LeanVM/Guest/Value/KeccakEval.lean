@@ -16,17 +16,17 @@ public import LeanVM.Protocol.KeccakAbsorb
 
 The guest bakes constants that are Keccak-f[1600] or Keccak-256 of fixed inputs (`AGG_SEED_*`,
 `DA_PAD_*`, the Keccak table's padding row). Their equations are closed propositions, checked by
-`decide +kernel`. The Spec's `keccakF` evaluates in the kernel through `UInt64`, `BitVec` and
+`decide +kernel`. The Spec's `keccakF1600` evaluates in the kernel through `UInt64`, `BitVec` and
 `Vector` (lists walked by index), about 4 s and 1.2 GB per permutation; Keccak-256 of 2048 bytes
 took 113 s and 24 GB. Here a lane is a natural number below `2^64` and a state a list of
 `25`, the round has its lanes written out (`roundN`, as `Fast.Keccak.roundLanes`), and
 every operation is one the kernel computes on literals by GMP (`Nat.xor`, `Nat.land`,
 `Nat.lor`, the shifts, `%`, `-`).
 
-* `keccakFN_toNats`: `keccakFN (toNats a) = toNats (keccakF a)`, and `toNats_inj`;
+* `keccakFN_toNats`: `keccakFN (toNats a) = toNats (keccakF1600 a)`, and `toNats_inj`;
 * `keccak256N_eq`: `toNats4 (keccak256 data) = keccak256N (data.map UInt8.toNat)`.
 
-A constant is then checked as `keccakF a = b ↔ keccakFN (toNats a) = toNats b`
+A constant is then checked as `keccakF1600 a = b ↔ keccakFN (toNats a) = toNats b`
 (`keccakF_eq_iff`), the right side by `decide +kernel`.
 -/
 
@@ -154,7 +154,7 @@ theorem foldl_toNat {β : Type} (f : UInt64 → β → UInt64) (g : ℕ → β �
     rw [List.foldl_cons, List.foldl_cons, foldl_toNat f g l
       (fun u b hb ↦ h u b (List.mem_cons_of_mem _ hb)), h u b List.mem_cons_self]
 
-/-- **Keccak-f[1600] on natural numbers is `keccakF`.** -/
+/-- **Keccak-f[1600] on natural numbers is `keccakF1600`.** -/
 theorem keccakFN_toNats (a : KeccakState) : keccakFN (toNats a) = toNats (keccakF1600 a) := by
   unfold keccakFN keccakF1600 keccakRCN
   generalize keccakRC = rcs
@@ -167,7 +167,7 @@ theorem toNats_inj {a b : KeccakState} : toNats a = toNats b ↔ a = b := by
   apply Vector.toList_inj.mp
   exact List.map_injective_iff.mpr (fun _ _ h ↦ UInt64.toNat_inj.mp h) h
 
-/-- **A permutation's value, by evaluation**: `keccakF a = b` is the equation of the natural
+/-- **A permutation's value, by evaluation**: `keccakF1600 a = b` is the equation of the natural
 numbers, which `decide +kernel` checks. -/
 theorem keccakF_eq_iff (a b : KeccakState) : keccakF1600 a = b ↔ keccakFN (toNats a) = toNats b := by
   rw [keccakFN_toNats, toNats_inj]

@@ -16,9 +16,9 @@ The calculus bounds a move-free fragment jointly (`Spec.ofNoMove`). This module 
 
 * `NoMoves`: a program whose every node is a sample, an opening, a return or a rejection, closed
   under `bind`; `NoMoves.not_isMove` discharges the hypothesis of `Spec.ofNoMove`.
-* `retExp_sampleQueriesAux_restrict`: the positions `sample_queries` returns are below
-  `2^depth` (chunks are reduced modulo `2^depth`), so an expectation over them only sees such
-  position lists.
+* `retExp_sampleQueriesAux_restrict_len`: the positions `sample_queries` returns are below
+  `2^depth` (chunks are reduced modulo `2^depth`) and as many as requested, so an expectation
+  over them only sees such position lists.
 * `queryFrag depth t i`: the query group `sample_queries`, `λ`, opening of commitment `i`, as one
   fragment returning `(positions, λ, rows)`.
 -/

@@ -165,17 +165,7 @@ def eOfNat128 (n : ℕ) : E := E.ofLimbs (K.ofBits n) (K.ofBits (n / 2 ^ 64))
 /-- `COORD_BASIS[i]` (`placeholder_map`): the `i`-th coordinate basis vector. -/
 def coordBasis (i : ℕ) : E := eOfNat128 (2 ^ i)
 
-theorem ofBits_xor (a b : ℕ) : K.ofBits (a ^^^ b) = K.ofBits a + K.ofBits b := by
-  simp only [K.ofBits, BitVec.ofNat_xor]
-  rfl
-
 theorem ofBits_one : K.ofBits 1 = 1 := rfl
-
-theorem ofBits_inj {a b : ℕ} (ha : a < 2 ^ 64) (hb : b < 2 ^ 64) (h : K.ofBits a = K.ofBits b) :
-    a = b := by
-  have := congrArg (fun z : K ↦ z.toBitVec.toNat) h
-  simp only [K.ofBits, BF64.toBitVec_ofBitVec, BitVec.toNat_ofNat] at this
-  rwa [Nat.mod_eq_of_lt ha, Nat.mod_eq_of_lt hb] at this
 
 theorem kToNat_ofBits (n : ℕ) : kToNat (K.ofBits n) = n % 2 ^ 64 := by
   simp [kToNat, K.ofBits]
@@ -188,20 +178,20 @@ theorem kToNat_lt (a : K) : kToNat a < 2 ^ 64 := a.toBitVec.isLt
 
 theorem eOfNat_eq_ofLimbs (n : ℕ) : eOfNat n = E.ofLimbs (K.ofBits n) 0 := ofK_eq_ofLimbs _
 
-theorem eOfNat_zero : eOfNat 0 = 0 := by rw [eOfNat, ofBits_zero, ofK_zero]
+theorem eOfNat_zero : eOfNat 0 = 0 := by rw [eOfNat, K.ofBits_zero, ofK_zero]
 
 theorem eOfNat_one : eOfNat 1 = 1 := by rw [eOfNat, ofBits_one, ofK_one]
 
 /-- Integer XOR is field addition. -/
 theorem eOfNat_xor (a b : ℕ) : eOfNat (a ^^^ b) = eOfNat a + eOfNat b := by
-  rw [eOfNat, ofBits_xor, ofK_add]
+  rw [eOfNat, K.ofBits_xor, ofK_add]
   rfl
 
 theorem eOfNat_isInK (n : ℕ) : IsInK (eOfNat n) := ofK_isInK _
 
 theorem eOfNat_inj {a b : ℕ} (ha : a < 2 ^ 64) (hb : b < 2 ^ 64) (h : eOfNat a = eOfNat b) :
     a = b :=
-  ofBits_inj ha hb (ofK_injective h)
+  K.ofBits_injOn ha hb (ofK_injective h)
 
 theorem ofBits_mod (n : ℕ) : K.ofBits (n % 2 ^ 64) = K.ofBits n := by
   apply BF64.toBitVec_injective
@@ -215,7 +205,7 @@ theorem eOfNat_add_eq_zero_iff {a b : ℕ} (ha : a < 2 ^ 64) (hb : b < 2 ^ 64) :
   exact ⟨eOfNat_inj ha hb, fun h ↦ h ▸ rfl⟩
 
 theorem eOfNat128_xor (a b : ℕ) : eOfNat128 (a ^^^ b) = eOfNat128 a + eOfNat128 b := by
-  simp only [eOfNat128, Nat.xor_div_two_pow, ofBits_xor, ofLimbs_add]
+  simp only [eOfNat128, Nat.xor_div_two_pow, K.ofBits_xor, ofLimbs_add]
 
 theorem eOfNat128_of_lt {n : ℕ} (h : n < 2 ^ 64) : eOfNat128 n = eOfNat n := by
   rw [eOfNat128, eOfNat_eq_ofLimbs, Nat.div_eq_of_lt h]

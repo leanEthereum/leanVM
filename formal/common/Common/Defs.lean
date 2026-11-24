@@ -240,8 +240,8 @@ def uInt8EquivFin : UInt8 ≃ Fin 256 where
 
 namespace SufCma
 
-/-- **The digest bytes as a bit vector**, little endian: byte `i` is bits `8 i … 8 i + 7`
-(`digestBitVec_extract`); the statement's schemes read Keccak-256's digest so
+/-- **The digest bytes as a bit vector**, little endian: byte `i` is bits `8 i … 8 i + 7`;
+the statement's schemes read Keccak-256's digest so
 (`HashSig.OverPermutation.keccakHash`, `digestBytesEquivBitVec_apply`). -/
 def digestBytesEquivBitVec : DigestBytes ≃ BitVec 256 :=
   (arrayVectorEquivFin UInt8 32).trans <|

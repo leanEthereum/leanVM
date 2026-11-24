@@ -76,7 +76,7 @@ theorem bytesLE_cellPairVal (c d : E) : HashSig.littleEndianBytes 32 (cellPairVa
 /-! ## The target sum -/
 
 theorem xTarget_eq : xTarget = gen ^ 106 := by
-  rw [Value.gen_pow_eq_ofK, xTarget, word, Value.ofBits_zero]
+  rw [Value.gen_pow_eq_ofK, xTarget, word, K.ofBits_zero]
   rw [← ofK_eq_ofLimbs]
   exact congrArg ofK (by decide +kernel)
 

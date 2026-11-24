@@ -13,8 +13,6 @@ public import LeanVM.Guest.B1.Sig.WotsComplete
 # The arms, complete
 
 * `walkSum`, `walkBase_eq`: where a walk starts;
-* `walkLay_zero`, `walkLay_pos`: the walks of arm `0` and of a later arm are laid out
-  (`WalkLay`), their regions apart;
 * `armT_ssa`: an arm is in single-assignment form;
 * `armBase_*`: the arms' bases.
 -/

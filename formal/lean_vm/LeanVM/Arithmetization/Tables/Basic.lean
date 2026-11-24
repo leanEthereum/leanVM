@@ -16,10 +16,10 @@ public import LeanVM.Arithmetization.Channels
 
 Nothing here is transcribed. What the tables share beyond this file lives where it belongs: the limb
 arithmetic (`add_limbs`, `mul_limbs`, `ofK_eq_ofLimbs`, `isInK_ofLimbs`, `ofLimbs_of_isInK`,
-`ofLimbs_eq_zero_iff`, `E.ofCell`) is `LeanVM.Parameters.Field`'s, and reading a
-word of the image back as a row's limbs (`MemoryImage.limbsAt`, `MemoryImage.cellAt`) is
-`LeanVM.Semantics`'s. A row's three-limb column `v` is the word
-`E.ofLimbs v[0] v[1] v[2]`, spelled as `MemPull.Guarantees` spells it.
+`ofLimbs_eq_zero_iff`) is `LeanVM.Parameters.Field`'s, and reading a
+word of the image back as a row's limbs (`MemoryImage.limbsAt`) is
+`LeanVM.Semantics`'s. A row's two-limb column `v` is the word
+`E.ofLimbs v[0] v[1]`, spelled as `MemPull.Guarantees` spells it.
 
 * `rowEnv data` is the prover environment of a row of a table without local witnesses: no
   witness slots, the data, no hints. `*_exec_complete` states completeness in it, and so do the

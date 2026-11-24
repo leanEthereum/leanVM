@@ -170,7 +170,8 @@ variable {A : Type} (tg : Targeting HashInput HashOutput Coordinate) (initial : 
   (parameter : PublicParameter) (data : PublicData) (w b0 : ℝ≥0∞) (Fail : Finset (Fin (2 ^ subtreeHeight)))
   (Qtot : ℕ) (m : Message)
 
-/-- `sign_expectW` with the signer's interpreter budget `bi` apart from the potential's budget `budget`. -/
+/-- **The signing step in expectation, weighted**, for a message signed for the first time, the
+signer's interpreter budget `bi` apart from the potential's budget `budget`. -/
 theorem sign_expectW2 (hparse : ∀ p call, model.parse (pblk parameter data p call) = none)
     (hkind : ∀ p call, tg.kind (pblk parameter data p call) = .none)
     (bi budget : ℕ) (s : State) (P : List Pair) (Ms : List Message)

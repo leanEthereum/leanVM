@@ -21,7 +21,7 @@ The kernel checks it in ranges of functions, walking the function list once per 
 (`RangeOk`: `walkOk` over `(coreProgram.drop a).take n`), never indexing it; ranges join
 (`RangeOk.append`) into the whole program. A call site names its callee: `calleeIdx j g` finds it
 among function `j`'s callees by index (`Data.calleesJ`), its name read off `Data.nameT`, both
-generated (`Memory/GuestCallees`) and checked once (`FamilySound.calleeIdx_spec`), so no check
+generated (`Memory/GuestCallees`) and checked once (`calleeIdx_spec`, `Memory/CalleeIdx.lean`), so no check
 encodes a name. `lookV` and `lookS`, `omLookS` look the certificates and weights up by it; the
 checks of a vector family (`chkV`, the instruction counts by opcode) and of a scalar one
 (`chkS`, the words) are `chkFnV` and `chkFn` with them.

@@ -29,8 +29,9 @@ leaves of these blocks are, row by row, `β` plus the fingerprint of the row's t
   memory limbs' and the counts' extensions there, the index column's `index_mle`, and the
   program's share of the bytecode leaf, `bcShare`, the slot weights against the stacked
   bytecode's slots at the point);
-* `memTab_eq`, `bcTab_eq`, `stateTab_eq`: every leaf is the fingerprint of the instance's boundary
-  tuple of that row (`LeanIsa.boundary`), so the framework's product is the boundary tuples'.
+* `memTab_getD`, `bcTab_getD`, `stateTab_push`, `stateTab_pull`: every leaf is the fingerprint of
+  the instance's boundary tuple of that row (`LeanIsa.boundary`), so the framework's product is the
+  boundary tuples' (`prod_framework_push`, `prod_framework_pull`).
 -/
 
 namespace LeanVM.Protocol.EndToEnd.Complete

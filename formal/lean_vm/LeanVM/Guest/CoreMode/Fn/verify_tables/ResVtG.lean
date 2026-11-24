@@ -13,7 +13,6 @@ public import LeanVM.Guest.CoreMode.Fn.verify_tables.ResVtSt
 public import LeanVM.Guest.CoreMode.Fam.ResExp
 public import LeanVM.Guest.B1.Tables.Vt.Sort
 public import LeanVM.Guest.B1.Tables.Vt.Pads
-public import LeanVM.Guest.CoreMode.Fam.SubDefs
 public import LeanVM.Guest.CoreMode.Fn.verify_tables.ResVtL
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_tables»
@@ -37,7 +36,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Mode LeanVM.Gu
 open LeanVM.Guest.B1 LeanVM.Guest.B1.Tables
 open LeanVM.Guest.B2C (fsN cellJ namedOf)
 open LeanVM.Guest.Bridge (FnAl)
-open LeanVM.Guest.Res (Wit inFr)
+open LeanVM.Guest.Res (Wit)
 open LeanVM.Protocol LeanVM.Protocol.Verifier
 open LeanVM.Prover.Exec
 

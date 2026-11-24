@@ -16,7 +16,7 @@ For a `VkData` `D` with `D.Ok`:
 
 * `D.xs` split (`xs_reads`): the committed word, layer `s`'s words at `lcur s`, the openings'
   rounds, the word and the slices after them.
-* The sponges: after the layers, after each opening, empty (`L_snd`, `O_snd`, …).
+* The sponges: after the layers, after each opening, empty (`L_ok`, `O_ok`, …).
 * `CL_ok`: claim `s`'s record and buffers (`CL`) hold what `ClaimLay.Ok` asks, wherever the
   layers' buffers are.
 -/

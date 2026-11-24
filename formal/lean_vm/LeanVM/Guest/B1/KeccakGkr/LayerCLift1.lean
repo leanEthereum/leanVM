@@ -17,11 +17,12 @@ import LeanVM.Guest.Data.ValNames.«keccak_layer__L»
 /-!
 # A layer's placement facts
 
-`layerPre first odd`: the body but its return (`layerT_pre`); it is flat (`layerPre_flat`), places
-no run (`layerPre_addrs`), allocates the pack challenges (`y` words), the round records (`77`),
-the local point (`11`), the next claim's lanes (`25`) and flips (`7`) (`layerPre_alloc`), calls
-the two pack loops (`layerPre_calls`), and loads only through the pointers `layerGroups` below
-their bounds and the inlined `grind_check`'s table pointers `grindPtrs` (`layerPre_loads`).
+`layerPre first odd`: the body but its return (`layerT_pre`). By the kernel (`layerPre_kernel`), it
+is flat, places no run, allocates the pack challenges (`y` words), the round records (`77`), the
+local point (`11`), the next claim's lanes (`25`) and flips (`7`), dispatches nothing
+(`layerPre_disp`), calls the two pack loops (`layerCalls`, `layerPre_callSF`), and loads only
+through the pointers `layerGroups` below their bounds and the inlined `grind_check`'s table
+pointers `grindPtrs`.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub

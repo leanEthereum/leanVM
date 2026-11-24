@@ -18,7 +18,7 @@ import LeanVM.Guest.Data.ValNames.«decode_query_windows__L»
 /-!
 # `decode_query_windows`, placed (`guests/lean_ethereum.py`)
 
-**The form** (`QwDecodeAtD`, the windowed successor of `OsDecodeAtD`): at every frame pointer
+**The form** (`QwDecodeAtD`): at every frame pointer
 `fp`, for arguments whose loads lie in the caller's words (`QwRegs`: `positions` and `win_ptrs`
 below `128 / d`, the window table `tabs` below `128`; `RegPtrs [(1, 128 / d), (2, 128 / d),
 (3, 128)]` unfolded), on every memory defined below `2^k` where the caller's words hold the

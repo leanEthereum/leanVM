@@ -15,8 +15,8 @@ public import LeanVM.Guest.AcceptableChild
 # Honest openings agree
 
 The tree's node at level `l` and position `j` is `nodeAt l j` (leaves at level `0`). Climbing an
-honest path from leaf `q` for `l` levels reaches `nodeAt l (q / 2^l)` (`climb_take`), and the
-path's `l`-th sibling is `nodeAt l (sibling (q / 2^l))` (`getD_path`). Both are at heap index
+honest path from leaf `q` for `l` levels reaches `nodeAt l (q / 2^l)` (`climbTo_openingAt`), and the
+path's `l`-th sibling is `nodeAt l (sibling (q / 2^l))` (`getD_openingAt`). Both are at heap index
 `2^(ht - l) + j` for their position `j < 2^(ht - l)` (`nodeIs_honest`), and a heap index fixes
 the level and the position (`heap_inj`), so two honest openings giving the same heap index a
 digest give the same digest (`batchAgrees_honest`).

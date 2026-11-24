@@ -26,12 +26,8 @@ registers with `Registers.final prog` at every step. Here the same search for a 
   closure over the stacks), both equal to `candidateExecutionFast`
   (`candidateExecutionFastVec_apply`, `candidateRunner_eq`).
 
-`extractFast` (`Fast/Extract.lean`) and `extractWith` (`Fast/Lookup.lean`) bind
-`let execution := candidateExecutionFast prog input layout` and pass it to `findSome?` over the
-candidate stacks: whether the tables `powTable layout.logMemory`, `powTable prog.logSize` are
-built once or once per stack depends on the compiler sharing the partial application. To build
-them once, bind `let execution := candidateRunner prog input layout` there instead, equal by
-`candidateRunner_eq`.
+The extractor's finish (`finishL`, `Extraction/AS/Lite.lean`) runs `candidateRunner`, so the
+tables `powTable layout.logMemory`, `powTable prog.logSize` are built once, not once per stack.
 -/
 
 namespace LeanVM.Extraction.Fast
@@ -223,8 +219,7 @@ theorem candidateExecutionFastVec_apply (prog : LeanIsaProgram) (input : PublicI
       input layout hl q).symm
 
 /-- **The search over the stacks**: the address tables, the final registers and the step cap
-built once, then a closure over the stacks. `extractFast` should bind
-`let execution := candidateRunner prog input layout` for `findSome?` (`candidateRunner_eq`). -/
+built once, then a closure over the stacks. -/
 @[expose] def candidateRunner (prog : LeanIsaProgram) (input : PublicInput) (layout : LayoutLite) :
     Vector K (2 ^ layout.stackLog) → Option (Execution prog) :=
   if layout.logMemory < 64 then

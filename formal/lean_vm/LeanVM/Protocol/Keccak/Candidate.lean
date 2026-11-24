@@ -25,17 +25,15 @@ lane `ℓ` of the committed state after twelve rounds (`doc/leanvm` §`keccak:se
   `statesAt_round`: depth `d` is the round `12(m + 1) - d - 1` of depth `d + 1`
   (`afterRound`), so a layer's specification applies (`claimTrue_round`).
 * The statements: `outClaimsTrue` (the table's `25` output-lane claims at `inst`, against
-  `keccakF` of the inputs), `outClaimsTrueMid` (against the second segment from the committed
+  `keccakF1600` of the inputs), `outClaimsTrueMid` (against the second segment from the committed
   middle state), `midAgree` (the first segment's output and the committed middle state agree at
   `inst`, lane by lane), `RegionValid` (they agree at every step); `colTrue`, `slicesTrue`: the
-  claims the reduction leaves on `q_keccak`. `outClaims_of_regionValid`: a valid region with
-  true output claims has true middle-state claims.
+  claims the reduction leaves on `q_keccak`.
 * `ZeroOn δ acc n`: the multilinear extension of the table `δ` on `n` bits, with its first
   `|acc|` coordinates bound to `acc`, is identically zero; `zeroOn_escape`: a coordinate drawn
-  uniformly makes a nonzero partial extension zero with probability at most `1/|E|`.
-  `midAgree_iff`, `regionValid_iff`: `midAgree` at `inst` and `RegionValid` are `ZeroOn` of the
-  `25` tables of the middle state's mismatch at `inst` and at `[]`. This is the escape the phase drawing `inst`
-  (the table sumcheck) charges, `h/|E|` per candidate, to turn `RegionValid` into `midAgree`.
+  uniformly makes a nonzero partial extension zero with probability at most `1/|E|`. This is the
+  escape the phase drawing `inst` (the table sumcheck) charges, `h/|E|` per candidate, to turn
+  `RegionValid` into `midAgree`.
 -/
 
 namespace LeanVM.Protocol.KeccakGkr
@@ -82,7 +80,7 @@ def stepMle (pt : List E) (f : ℕ → K) : E := ∑ x ∈ range (2 ^ h), eqAt p
 /-- Lane `l` of a state as a word. -/
 def laneWord (a : KeccakState) (l : ℕ) : K := K.ofLane (Keccak.lane a l)
 
-/-- **The table's output-lane claims** at `inst`: lane `l` of `keccakF` of each step's input. -/
+/-- **The table's output-lane claims** at `inst`: lane `l` of `keccakF1600` of each step's input. -/
 def outClaimsTrue (col : ℕ → K) (inst output : List E) : Prop :=
   ∀ l < 25, stepMle h inst (fun x ↦ laneWord (keccakF1600 (inState h col 0 x)) l) = output.getD l 0
 

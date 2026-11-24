@@ -194,7 +194,7 @@ variable {A : Type} (tg : Targeting HashInput HashOutput Coordinate) (initial : 
 def Writes (c : Coordinate) (x : HashInput) : Prop := ∃ a v, model.parse x = some (a, v) ∧ model.outgoing a = c
 
 /-- A computation over the cost interface with honest reads whose ordinary queries avoid a class
-(`ScanSigner.Avoids` with honest reads; nothing is asked of the honest reads). -/
+(`HiddenDebt.Avoids` with honest reads; nothing is asked of the honest reads). -/
 def AvoidsH {H : Type} (avoid : HashInput → Prop) {α : Type}
     (computation : OracleComp (SourceCostSpec HashInput HashOutput Coordinate H) α) : Prop :=
   OracleComp.construct (fun _ => True)

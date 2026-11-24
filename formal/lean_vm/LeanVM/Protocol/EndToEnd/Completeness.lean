@@ -28,12 +28,12 @@ Keccak-f[1600] of `leanVmVerifierProgram` (`Statement/LeanVmVerifier.lean`), a t
 the Rust verifier `crates/verifier` at leanVM `40f877dc`. The statements here are those of
 `EndToEnd.Complete`, which carry no hypothesis.
 
-* `leanVm_interactiveComplete`: from a witness satisfying leanISA's constraint system at
+* `leanVm_complete`: from a witness satisfying leanISA's constraint system at
   admissible sizes, for a valid rate, an honest strategy makes the verifier program accept
   against every challenge function, committing well-shaped words.
-* `leanVm_complete`: for every hash function and permutation, the compiled honest prover produces
-  a proof the compiled verifier accepts, as soon as its proof-of-work searches find nonces below
-  the fuel; `leanVm_complete_keccak` is the deployed instance.
+* `exists_prove_verifyWith`: for every hash function and permutation, the compiled honest prover
+  produces a proof the compiled verifier accepts, as soon as its proof-of-work searches find nonces
+  below the fuel; `exists_prove_verify` is the deployed instance.
 * `leanVm_complete_of_execution`: from a valid execution of at most `2^30` steps, a witness
   representing it, accepted as above when its sizes are admissible.
 

@@ -11,7 +11,7 @@ public meta import Lean.Elab.Term
 /-!
 # A definition's literal
 
-A size one function's proofs own and another's restate (`B1.expTabWords`, `exponent_tables`' table)
+A size one function's proofs own and another's restate (`B1.expTabN`, `exponent_tables`' table's size)
 is defined once, and the restating sites write `lit% c`: it elaborates to the literal the definition
 evaluates to, so a proof reads exactly as with a hand copy, and a change to the definition reaches
 every site by itself.

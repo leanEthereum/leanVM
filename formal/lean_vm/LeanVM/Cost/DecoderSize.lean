@@ -8,7 +8,7 @@ public import LeanVM.Cost.Decoder.LanesCheck
 /-!
 # The guest decoder's program: its indices and its size, by evaluation
 
-A firewall (`AGENTS.md`), as `Cost/ExtractorSize.lean` is the extractor's: the kernel evaluations
+A firewall (`AGENTS.md`), as `Cost/AS/ProgramSize.lean` is the extractor's: the kernel evaluations
 over the decoder program's bodies, in a module of their own that imports only the program's
 definition with its facts, the compiled top and the row chunks, none of the proofs that use these
 evaluations, so that no edit of those proofs rebuilds them. Through the program's definition and the

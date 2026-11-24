@@ -17,7 +17,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
 
 @[expose] public section
 
-/-- **`verify_sub`'s values' exponent bounds** `(v, lo, hi)` (`EndExec.VsQ`): the tables' log-heights `dims[1..6]`
+/-- **`verify_sub`'s values' exponent bounds** `(v, lo, hi)`: the tables' log-heights `dims[1..6]`
 (`kb[2..7]`, `tau_keccak_g` the keccak table's again), the bus depth `g_bus_mu`, the table sumcheck's depth `g_zc_n`, the
 stack's log `gmv` and less `20`, `size_sel`. -/
 def vsPows : List (ℕ × ℕ × ℕ) :=

@@ -15,8 +15,8 @@ import LeanVM.Guest.Data.ValNames.«verify_sig_lean_sphincs»
 # A layer, complete
 
 Layer `l` of the body (`sLayerAt l (sA0Of l) (sA1Of l) (sSignedOf l)`, from `sLayerBase l`) is the
-counter's four marks hinted (`sp_counter`), read by `sp_from_bytes` (`CounterCompletes`) into
-`sCtrOf l`, then `sHtLayer` (`HtLayerCompletes`). `sLayerAt_complete`: with the marks of
+counter's four marks hinted (`sp_counter`), read by `sp_from_bytes` (`sCtrBlock`) into
+`sCtrOf l`, then `sHtLayer` (`sHtBlock`). `sLayerBlk_complete_vals`: with the marks of
 `BE_32(N)`, the call relation holding of `sp_wots` on the encoding of `N` and a leaf `lv`, the
 layer reaches `pFold` of `pNodeE` from `lv`, and its bytes are read through the byte table.
 -/

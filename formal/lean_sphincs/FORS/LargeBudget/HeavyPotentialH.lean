@@ -90,7 +90,7 @@ theorem heavy_uniqueL {Qtot : ℕ} {L : QueryLog SigningSpec} {s : State} {budge
   unfold TotalInvL at hT
   omega
 
-/-- `heavyMsg_eq_some_iff` for a list of live messages. -/
+/-- Under the total invariant, for a list of live messages: `some h` iff `h` is in the list and heavy. -/
 theorem heavyMsg_eq_some_iffL {Qtot : ℕ} {L : QueryLog SigningSpec} {s : State} {budget : ℕ}
     (hT : TotalInvL parameter data Qtot L s budget) {l : List Message} (hl : ∀ m ∈ l, MsgLive L m) {h : Message} :
     heavyMsg parameter data Qtot s l = some h ↔ h ∈ l ∧ Heavy parameter data Qtot s h :=
@@ -599,8 +599,8 @@ variable {A : Type} (tg : Targeting HashInput HashOutput Coordinate) (initial : 
   (parameter : PublicParameter) (data : PublicData) (Qtot : ℕ) (w b0 : ℝ≥0∞)
   (Fail : Finset (Fin (2 ^ subtreeHeight))) (m : Message)
 
-/-- `sign_pointH` with the signer's interpreter budget `bi` apart from the potential's budget `budget`; it needs
-no count invariant. -/
+/-- **The potential after one signing outcome**, the signer's interpreter budget `bi` apart from the
+potential's budget `budget`; it needs no count invariant. -/
 theorem sign_pointH2 (hparse : ∀ p call, model.parse (pblk parameter data p call) = none)
     (hfail : ∀ ρ digest budget (s1 : State), Prepared initial s1 →
       ∀ out ∈ support (interp tg initial model (finishRest parameter data m ρ digest) budget s1),
@@ -680,7 +680,8 @@ theorem sign_pointH2 (hparse : ∀ p call, model.parse (pblk parameter data p ca
     exact post_term_leH tg initial model parameter data Qtot w Fail m hw (excess_props b0) hparse hfail bi
       s Ms L d hprep out hout r hr (fun _ => False) (fun _ _ _ h => h) n hk
 
-/-- `sign_expectHW` with the signer's interpreter budget `bi` apart from the potential's budget `budget`,
+/-- **The signing step in expectation, weighted**, for a message signed for the first time, the
+signer's interpreter budget `bi` apart from the potential's budget `budget`,
 under the total invariant of the live messages. -/
 theorem sign_expectHW2 (hparse : ∀ p call, model.parse (pblk parameter data p call) = none)
     (hkind : ∀ p call, tg.kind (pblk parameter data p call) = .none)

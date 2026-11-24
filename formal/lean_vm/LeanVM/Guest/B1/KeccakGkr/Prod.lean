@@ -18,7 +18,7 @@ Position `k < 47` (`PPos`): the coefficient read into `a` (`cursor[k]`), with a 
 the permutation of the waiting scalars (`kc`: its thirteen inputs and its first output), the
 coefficient packed (`fs_pack` from `fb`), the reader `Σ_{i ∈ idx} μ_i` (a chain of additions from
 `rb`, `readerT`), the product `r = reader·a` and the running projection `acc = accPrev + r`
-(`prodPosT`). `prodPos_holds` reads the facts off a position.
+(`prodPosT`). `prodPos_facts` reads the facts off a position.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub

@@ -11,9 +11,9 @@ public import LeanVM.Guest.Bridge.AlignDefs
 /-!
 # The alignment pass's invariants
 
-`ZOk body z`: the zipper is its cursor's, `zipOf body` of its key. The pass's steps keep it: past the head (`ZOk.next`), into a sub-block (`ZOk.enter`), the normalization (`normZ_ok`), the hints (`hintsStep_ok`), the jumps (`jumpStep_ok`), so each state of the pass has it (`StOk`, `stepI_ok`). Two zippers so with one cursor are one (`ZOk.eq_of_keyEq`).
+`ZOk body z`: the zipper is its cursor's, `zipOf body` of its key. The pass's steps keep it: past the head (`ZOk.next`), into a sub-block (`ZOk.enter`), the normalization (`normZ_ok`), the hints (`hintsStep_ok`), the jumps (`jumpStep_ok`), so each state of the pass has it (`StOk`, `stepI_ok`). Two zippers so with one cursor are one (`ZOk.eq_of_key`).
 
-What the pass records is apart from the rest (`St.noAcc`, `stepI_noAcc`, `alignGo_noAcc`), so a state is its name rebuilt (`stOfK_keyOfSt`), and the windows of a chain of named states (`Chain`) compose to the whole pass: `alignOk_of_chain`.
+What the pass records is apart from the rest (`alignGo_acc`), so a state is its name rebuilt (`stOfK_keyOfSt`), and the windows of a chain of named states (`Chain`) compose to the whole pass: `alignOk_of_chain`.
 -/
 
 namespace LeanVM.Guest.Bridge

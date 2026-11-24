@@ -26,7 +26,7 @@ public import LeanVM.Guest.B1.Fwd.PureIn
 # The plain callees, bounded
 
 `winTabs_vsExp`: the caller's exponent tables (`vsExpLin`) hold the window table. The callees,
-each `CompleteAtB` within its `vsBsWith` entry: `g_power_of_word` (`gpw_completeAtB`), a
+each `CompleteAtB` within its `vsBsWith` entry: `g_power_of_word` (`vs_gpw_completeAtB`), a
 `bus_grind_check` arm (`busGrind_kidB`),
 `squeeze_point_from` (`spf_kidB`), `opening_message__L1_L1` (`om_kidB`); on an honest child's
 segments, `verify_bus_gkr` (`vbg_kidB`).

@@ -473,7 +473,7 @@ theorem mdPlaces_limbs (i0 : Nat) : ∀ n, mdPlaces i0 n =
     E.ofLimbs (mdPlacesLimb i0 0 n) (mdPlacesLimb i0 1 n)
   | 0 => by
       show (0 : E) = E.ofLimbs 0 0
-      rw [← word_zero, word, ofBits_zero]
+      rw [← word_zero, word, K.ofBits_zero]
   | n + 1 => by
       rw [mdPlaces_succ, mdPlaces_limbs i0 n, mdPlace_limbs, ofLimbs_add]
       rfl

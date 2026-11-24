@@ -6,8 +6,7 @@ public import LeanVM.Guest.Core
 /-!
 # The readers' common pieces
 
-`sibN`, a Merkle path level's sibling (`mSib`, `B1/Sig/Merkle.lean`), and the lemmas reading a
-table built by `List.range`.
+`sibN`, a Merkle path level's sibling, and the lemmas reading a table built by `List.range`.
 
 **Tables as arrays.** A literal table (`Fast/*Tables.lean`) is a list, and a compiled reader that
 names it builds it at each use and walks it to the entry. The readers over tables (`xmssSigOfA`,
@@ -22,7 +21,7 @@ open LeanVM.Parameters LeanVM.Guest.Core
 
 @[expose] public section
 
-/-- A path level's sibling: the hinted child at `b`, `b + 1` the node is not (`mSib`). -/
+/-- A path level's sibling: the hinted child at `b`, `b + 1` the node is not. -/
 def sibN (σ : Val) (bit b : ℕ) : E := if σ (.n bit) = 1 then σ (.n b) else σ (.n (b + 1))
 
 theorem getD_map_range {α : Type} {f : ℕ → α} {n l : ℕ} {d : α} (hl : l < n) :

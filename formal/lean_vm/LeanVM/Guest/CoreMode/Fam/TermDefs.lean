@@ -36,12 +36,6 @@ open LeanVM.Guest.B2C (cellJ fsN)
 (`FnReg.dimFacts`). -/
 abbrev dimFacts : List (String × ℕ × ℕ × List (ℕ × ℕ)) := CoreMode.FnReg.dimFacts
 
-/-- The shape of a dimension residual: `[T]·B` and `[T]` up to `[o] + t`, as `(B, o, t)`. -/
-def dimShape (a b : Mode.Rng) : Option (Mode.Base × ℕ × ℕ) :=
-  match a.q.bs, b.q.bs, b.hi with
-  | [(.fr T, 1), (B, 1)], [(.fr T', 1)], .ex (.fr o) t => if T = T' then some (B, o, t) else none
-  | _, _, _ => none
-
 /-! ## The callers -/
 
 /-- **The callees whose facts are carried and their callers** (`Res.callersG`), each callee's own

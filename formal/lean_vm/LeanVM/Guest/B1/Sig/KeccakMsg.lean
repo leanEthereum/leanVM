@@ -163,7 +163,7 @@ theorem kRunFresh_sound : ∀ {ks : List KC} {b : Nat},
             refine ⟨?_, h.sub fun _ hx => List.mem_cons_of_mem _ hx⟩
             have h0 : σ (.n b) = word 0 0 := h.atom (List.mem_cons_self ..)
             rw [h0]
-            simp only [word, Value.ofBits_zero]
+            simp only [word, K.ofBits_zero]
             exact Value.zero_eq_ofLimbs.symm
         | const c => exact ⟨h.atom (List.mem_cons_self ..), h.sub fun _ hx => List.mem_cons_of_mem _ hx⟩
         | cell o => exact ⟨h.atom (List.mem_cons_self ..), h.sub fun _ hx => List.mem_cons_of_mem _ hx⟩

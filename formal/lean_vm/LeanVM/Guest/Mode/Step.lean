@@ -65,8 +65,8 @@ theorem jump_vals {C : Ctx} {s s' : St} {c d f : ℕ} (hs : s.Good)
 /-! ## Conditions -/
 
 theorem imm_zero : OffsetInstruction.immediateWord 0 0 = 0 :=
-  eq_zero_of_limbs (by simp [OffsetInstruction.immediateWord, show K.ofBits 0 = 0 from rfl])
-    (by simp [OffsetInstruction.immediateWord, show K.ofBits 0 = 0 from rfl])
+  eq_zero_of_limbs (by simp [OffsetInstruction.immediateWord, K.ofBits_zero])
+    (by simp [OffsetInstruction.immediateWord, K.ofBits_zero])
 
 theorem imm_ne_zero {a b : ℕ} (ha : a < 2 ^ 64) (hb : b < 2 ^ 64) (h : ¬(a = 0 ∧ b = 0)) :
     OffsetInstruction.immediateWord a b ≠ 0 := by
@@ -74,7 +74,7 @@ theorem imm_ne_zero {a b : ℕ} (ha : a < 2 ^ 64) (hb : b < 2 ^ 64) (h : ¬(a = 
   have h1 := congrArg (·.limb 0) h0
   have h2 := congrArg (·.limb 1) h0
   simp only [OffsetInstruction.immediateWord, limb_ofLimbs, limb_zero] at h1 h2
-  exact h ⟨Value.ofBits_inj ha (by norm_num) (h1.trans rfl), Value.ofBits_inj hb (by norm_num) (h2.trans rfl)⟩
+  exact h ⟨(K.ofBits_eq_zero_iff ha).mp h1, (K.ofBits_eq_zero_iff hb).mp h2⟩
 
 /-! ## Residuals -/
 

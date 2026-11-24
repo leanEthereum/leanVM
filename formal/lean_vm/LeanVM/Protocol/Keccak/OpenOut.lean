@@ -29,8 +29,9 @@ ending at the slot point `ρ` on `W̃(ρ)·Q̃(ρ)`; the verifier computes `W̃(
 
 * `cube_plainFamily`: a sum over the cube of a summand of degree `d` in each coordinate is a
   plain sumcheck family of degree `d`;
-* `openOutSpec`: the sumcheck as a specification, from doom of `committed = Fo q []` to doom of
-  `value = W̃(ρ)·Q̃_q(ρ)`, with the verifier's `W̃(ρ)`.
+* `Fo`, `Fo_plainFamily`: the sumcheck's family, plain of degree `2`; `Fo_nil`: before the slot
+  challenges it is the middle-state value; `fold_out`: the verifier's slot weight after the fold
+  is `W̃(ρ)`. `Gkr.lean` runs the sumcheck as `sumcheckSpec` on `Fo`.
 -/
 
 namespace LeanVM.Protocol.KeccakGkr

@@ -18,7 +18,7 @@ public import LeanVM.Guest.B1.Opening.CapPlacedE
 /-!
 # `level_queries`, placed with its pops
 
-`LqProof`'s proof with `kidsFromInP_of_kidsD` and `relAtInP_of_walk`: `verify_merkle_cap` pops nothing (`mc_node_pops`, at its body `mcBody`: `mc_body_of_kind`), `opening_queries` its queries' entries (`opening_queries_completeAtDP`), and the body the cap's and the flags' heap words (`lq_splice`, `words_heap_of_reads`).
+`LqProof`'s proof with `kidsFromInP_of_kidsEP` and `relAtInP_of_walk`: `verify_merkle_cap` pops nothing (`mc_node_pops`, at its body `mcBody`: `mc_body_of_kind`), `opening_queries` its queries' entries (`opening_queries_completeAtDP`), and the body the cap's and the flags' heap words (`lq_splice`, `words_heap_of_reads`).
 
 * `LqAtDP`: `LqAtD` popping `lqCapE` then `oqPops` of its `q` queries;
 * `LqAtEP`: `LqAtDP` by a tree of exactly `lqN` words (`toDP`, `toE`);

@@ -22,7 +22,7 @@ buffers the body reads or stores into holding their words (`table_rows`, `dims_g
 challenges, `c_table`, the pooled claims, the deferred claim's cells), and the callees' powers
 of `g` (the rate, the memory's log, the bus depth, the stack's log).
 
-`vsSideA`: the atoms of the body whose side condition is not automatic, by the kernel (reads,
+`vsSidePieces`: the atoms of the body whose side condition is not automatic, by the kernel (reads,
 stores, range checks, two quotients); `vs_sideHolds` proves each from the data, `vs_dispIdx` the
 three dispatches' indices, and `vsCPre_complete`: every statement of `verify_sub` but its `ret`
 holds under the trivial call relation.

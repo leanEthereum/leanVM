@@ -16,7 +16,7 @@ sizes (every count, mark and slot below `2^34`):
   915`; `slotIn_cost`, `countIn_cost`: one or two of them;
 * the coverage table's sorted map at keys `(mark, slot)` (`mergeNewerCover_cost`,
   `levelMergeCover_cost`, `carryCover_amortized`: `Bounds/SortedMap.lean`'s amortized insertion),
-  its insertions (`coverFold_cost`), its levels merged (`flattenLevels_cost`), **`coverTable_cost`**:
+  its insertions (`coverFold_cost`), its levels merged (`flattenFold_cost`), **`coverTable_cost`**:
   at most `coverTablePrice N = 5405·N + 813` for `N ≤ 2^34` pairs;
 * `TableGood`: what the searches need of a table (its marks sorted, both arrays of one size at
   most `2^34`, the entries below `2^34`); `coverTable_good` gives it for every list of fewer

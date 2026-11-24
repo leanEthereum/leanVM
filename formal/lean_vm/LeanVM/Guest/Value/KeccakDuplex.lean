@@ -24,9 +24,8 @@ rate cells, `x` itself and `y·t` (`fs_pack`); a permutation is `keccak(a, b, ou
 (`fs_perm`), lowered as one `KECCAK` in the even layouts whose eight rate cells are the waiting
 cells (zeros past them) and whose cells `8..12` are `sp`'s last five.
 
-* `keccak_duplex`: that `KECCAK` writes the cells of `keccakF (duplexInput ⟨S, pending⟩)`;
-* `duplex_id`, `squeeze_id`, `absorb_id_lt`, `absorb_id_full`: the Spec's operations at
-  `m = Id`, `F = keccakF`;
+* `keccak_duplex`: that `KECCAK` writes the cells of `keccakF1600 (duplexInput ⟨S, pending⟩)`;
+* `squeeze_id`, `absorb_id_full`: the Spec's operations at `m = Id`, `F = keccakF1600`;
 * `challengeOf_cells`: `challenge_from_state` reads `challengeOf`, the state's cell `0`;
 * `powLane_cells`: the proof of work, lane `2`, is the low limb of cell `1` (`grind_check`).
 -/
@@ -126,7 +125,7 @@ theorem stateOfCells_duplex {S : KeccakState} {pending : List (E × ℕ)} {I : F
 /-- **The guest's duplex step is the Spec's** (`keccak(…, cap=sp)`, `fs_perm`,
 `fs_perm_pending`): a `KECCAK` in the even layouts whose rate cells `0..7` are the waiting
 scalars' (`rateCell`) and whose cells `8..12` are those of a state `S` writes the cells of
-`keccakF (duplexInput ⟨S, pending⟩)`. -/
+`keccakF1600 (duplexInput ⟨S, pending⟩)`. -/
 theorem keccak_duplex {S : KeccakState} {pending : List (E × ℕ)} {I O : Fin 13 → E}
     (hrate : ∀ c : Fin 13, c.val < 8 → I c = rateCell pending c)
     (hcap : ∀ c : Fin 13, 8 ≤ c.val → I c = cellsOfState S false c)

@@ -22,8 +22,8 @@ its atom (`chkA`): the next value `.n c` and the ones after it are the defined o
 value is older. `ev rd w l ss` extends the words `l` of the values below `c = l.length` by the
 defined values' words: an atom's rule (`newA`), or the oracle `w` (hints, a call's returns).
 
-`ev_good`: on `Val.ofArgs (ev rd w args ss)`, every atom satisfies `Good`, its defining equations,
-and the parameters keep their words. `holds_of_good`: an atom satisfying `Good` and its side
+`ev_spec`: on `Val.ofArgs (ev rd w args ss)`, every atom satisfies `Good`, its defining equations;
+`ev_params`: the parameters keep their words. `holds_of_good`: an atom satisfying `Good` and its side
 condition `Side` (a pointer in `K` with a defined word, a nonzero divisor, an assertion) holds. A load through an older value into an older value (a store) is in
 `storesOf`; its `Side` is the load itself.
 -/

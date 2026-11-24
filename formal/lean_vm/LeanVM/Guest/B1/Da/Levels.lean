@@ -16,7 +16,7 @@ import LeanVM.Guest.Data.ValNames.«da_levels__L»
 
 `da_levels(tree, n, log_n)` for `n = 2^k`: the nodes of level `lvl` (two cells each) sit at
 `tree·g^(off k lvl)`, `off k lvl = 4·2^k - 4·2^(k - lvl)`, the leaves at level `0`. Level `lvl`'s
-loop (`lvlOk`, one helper per `(k, lvl)`, `lvlTab`) hashes nodes `2p`, `2p + 1` into node `p` of
+loop (`lvlOk`, one helper per `(k, lvl)`) hashes nodes `2p`, `2p + 1` into node `p` of
 the next level for `p < 2^(k - lvl - 1)` (`LvlStep`, `lvl_step`), and the specialization's body
 (`dlOk`) runs the `k` loops in order and returns the cells at `4·2^k - 4`, `4·2^k - 3`.
 `levels_root`: the returned pair is `cellRoot k` of the leaves.
@@ -39,9 +39,6 @@ def isConstPowAt (c : V) (k : ℕ) : Atom → Bool
   | .const d w => decide (d = c) && eEqb w (word (gpowK k).toBitVec.toNat 0)
   | _ => false
 
-theorem ofBits_toNat' (a : K) : K.ofBits a.toBitVec.toNat = a := by
-  simp [K.ofBits, BitVec.ofNat_toNat]
-
 theorem constPow_sound {c : V} {k : ℕ} (h : atoms.any (isConstPowAt c k) = true)
     (hat : ∀ a ∈ atoms, a.Holds rd σ) (hk : k < 2 ^ 64) : σ c = gen ^ k := by
   obtain ⟨a, hp, ha⟩ := any_holds h hat
@@ -50,7 +47,7 @@ theorem constPow_sound {c : V} {k : ℕ} (h : atoms.any (isConstPowAt c k) = tru
   rename_i d w
   obtain ⟨hd, he⟩ := hp
   have e1 : σ d = w := ha
-  rw [← hd, e1, eEqb_sound he, word_eOfNat, eOfNat, ofBits_toNat',
+  rw [← hd, e1, eEqb_sound he, word_eOfNat, eOfNat, K.ofBits_toNat,
     gpowK_eq (by unfold u128Bound; omega), gen_pow_eq_ofK]
 
 /-- `p = tree · g^k · x^e`, by its `MUL` factors. -/

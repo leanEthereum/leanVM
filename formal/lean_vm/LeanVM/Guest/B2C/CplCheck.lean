@@ -21,7 +21,7 @@ statements against its code (`cplResD`), which the kernel evaluates (`Pack/*/Cpl
 every part of every window. The check reads the program only as the function's callees see it
 (`cxOfD`, `cplWinD_congr`), so a check over the function's own view (`Check.Glob.ofSigs`) is the
 check over the whole program's (`Cpl.lean`). This module imports none of the guest's data
-(`CplFirewall.lean`).
+(`ViewFirewall.lean`).
 -/
 
 namespace LeanVM.Guest.B2C

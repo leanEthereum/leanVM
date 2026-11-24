@@ -28,7 +28,7 @@ every slot `k` and finalizes the same keys, every row of the six tables reads on
 nonzero count (`CountsNonzero`), and there are at most `6 · 2^30` rows (`Caps`). So `lookup_sound`
 makes every pulled `(pc, e)` a seed's `(g^k, entry (prog.code k))`. The strong form implies the
 pull's guarantee, that the entry decodes (`decode_entry`), and is what joins a row's instruction
-to the program's fetch (`opRecs_fetch`, through `LeanIsaProgram.fetch_gpow` and `entry_injective`).
+to the program's fetch (`opRecs_step`, through `LeanIsaProgram.fetch_gpow` and `entry_injective`).
 
 ## Wrong readings excluded
 
@@ -216,7 +216,7 @@ theorem bc_pulls_seeded (h : SatisfiedByB prog input w) :
 /-- **Soundness of the bytecode channel** (specification Theorem 6.4 and Corollary 6.5 for the
 bytecode pair), in the strong form: every pulled entry is the public program's at the pulled
 counter (from `BytecodeRowsAreTheProgram prog`). It implies the pull's guarantee, that the entry
-decodes, and is what `constraintSoundness` joins to `execute` by `execute_of_step`. -/
+decodes, and is what `opRecs_step` joins to `execute` by `step_of_fetch_eq_some`. -/
 theorem bytecode_channel_sound (h : SatisfiedByB prog input w) :
     ∀ i ∈ w.interactions, i.channel.name = BytecodePull.name →
       ∀ m : BytecodeMsg K, i.msg = (toElements m).toArray →

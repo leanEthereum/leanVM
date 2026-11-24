@@ -47,9 +47,9 @@ program too (`GuestKnowledgeSoundness`, `Statement/LeanVmGuest.lean`):
 `LeanVM.Cost.compiledGuestWitnessDecoder`, the
 proofs' decoder `LeanVM.Guest.End.decode` compiled (`LeanVM/Cost/Decoder/`, its top `decTopC`),
 within `guestWitnessDecoderSizeBound` (`Cost/DecoderSize.lean`) and computing `decode` on every valid
-execution (`Cost/DecoderSpec.lean`: `decoderProgram_spec`) within its budget, its price within
-`guestDecoderPrice` (`LeanVM.Cost.Bounds.Guest.decoderPriceWithinBudget :
-DecoderPriceWithinBudget`, `Cost/Bounds/Guest/Budget.lean`). `theorems_hold` and
+execution (`Cost/DecoderSpec.lean`: `decoderProgram_spec`) within its budget
+(`LeanVM.Cost.Bounds.Guest.decoderPriceWithinBudget : DecoderPriceWithinBudget`,
+`Cost/Bounds/Guest/Budget.lean`). `theorems_hold` and
 `corollaries_hold` take no hypothesis (the `example` after `theorems_hold` pins the statement).
 Its fields are proved by `theorems_of_decoderSpec`, for any decoder program meeting
 `DecoderProgramSpec` for a decoder whose decodings explain the input (`DecoderExplains`,
