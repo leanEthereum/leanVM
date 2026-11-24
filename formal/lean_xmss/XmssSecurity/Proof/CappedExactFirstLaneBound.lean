@@ -206,8 +206,7 @@ theorem GlobalFirstLaneProjectionFacts.combinedHit_of_bad {Result : Type}
 
 def SourceFirstLaneExactGoodStateRelation
     (left : ProgrammedGlobalChainKeygenView)
-    (right : ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest))
+    (right : KeygenViewWithBase)
     (leftState : SourceExactTracedState)
     (firstLaneState : GlobalHighDirectTracedState)
     (trace : FirstLaneOracleSimulation.ActionTrace
@@ -223,9 +222,7 @@ def SourceFirstLaneExactGoodStateRelation
 theorem relTriple_sourceExact_firstLane_action
     (used : Nat)
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : KeygenViewWithBaseHigh)
     (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
     (hrightSupport : right.1.1 ∈ support
@@ -381,9 +378,7 @@ theorem sourceExactTracedVerifierImpl_run_eq
 
 theorem relTriple_programmed_globalHighMonitored_sourceExact_verifier_action
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : KeygenViewWithBaseHigh)
     (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
     (hrightSupport : right.1.1 ∈ support
@@ -499,9 +494,7 @@ theorem relTriple_globalHighMonitored_firstLane_verifier_action
 theorem relTriple_sourceExact_firstLane_verifier_action
     (used : Nat)
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : KeygenViewWithBaseHigh)
     (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
     (hrightSupport : right.1.1 ∈ support
@@ -614,9 +607,7 @@ theorem relTriple_sourceExact_firstLane_verifier_action
 theorem relTriple_sourceExact_firstLane_verifier_boundedHit
     (countLimit hitLimit used fuel : Nat)
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : KeygenViewWithBaseHigh)
     (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
     (hrightSupport : right.1.1 ∈ support
@@ -703,9 +694,7 @@ def firstLaneAppendVerificationState
 
 theorem SourceFirstLaneExactGoodStateRelation.appendVerification
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : KeygenViewWithBaseHigh)
     (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
     (hrightSupport : right.1.1 ∈ support
@@ -775,9 +764,7 @@ theorem SourceFirstLaneExactGoodStateRelation.appendVerification
   · simpa [firstLaneAppendVerificationState] using hvalidFinal
 
 abbrev GlobalFirstLaneExactCoupledProgramResult :=
-  (((ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest)) ×
+  (KeygenViewWithBaseHigh ×
     (((Forgery × Bool) × GlobalHighDirectTracedState) ×
       FirstLaneOracleSimulation.ActionTrace GlobalChainValueIndex))
 

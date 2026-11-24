@@ -519,9 +519,7 @@ noncomputable def globalHighDirectTracedVerifierImpl
       (globalHighDirectVerifierImpl keyView edgeHigh input).run state.1
 
 theorem globalHighMonitoredMappedAdversaryImpl_support_actionTrace_eq
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : KeygenViewWithBaseHigh)
     (input : (OracleWorld + SigningSpec).Domain)
     (state : GlobalMonitoredTracedState)
     (result : (OracleWorld + SigningSpec).Range input ×
@@ -618,16 +616,12 @@ theorem globalHighDirectTracedVerifierImpl_run_eq
   rfl
 
 noncomputable def globalHighMonitoredVerifierBaseImpl
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest)) :
+    (right : KeygenViewWithBaseHigh) :
     QueryImpl OracleWorld (StateT GlobalMonitoredCausalState ProbComp) :=
   fun input => globalHighMonitoredBaseMappedAdversaryImpl right (.inl input)
 
 theorem globalHighMonitoredVerifierImpl_run_eq
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : KeygenViewWithBaseHigh)
     (computation : OracleComp OracleWorld α)
     (initialState : GlobalMonitoredTracedState) :
     (simulateQ (globalHighMonitoredVerifierImpl right)

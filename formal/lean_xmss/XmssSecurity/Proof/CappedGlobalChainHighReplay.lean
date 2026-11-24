@@ -111,9 +111,7 @@ theorem globalLeaf_not_match_endpoint_miss
 
 theorem programmedGlobal_left_leaf_cache_none_of_hidden_probe_miss
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : KeygenViewWithBaseHigh)
     (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
     (hrightSupport : right.1.1 ∈ support
@@ -138,9 +136,7 @@ theorem programmedGlobal_left_leaf_cache_none_of_hidden_probe_miss
 
 theorem relTriple_programmed_globalFilteredLeafHashQuery_until_hit
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : KeygenViewWithBaseHigh)
     (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
     (hrightSupport : right.1.1 ∈ support
@@ -317,9 +313,7 @@ theorem globalFilteredCausalAttackerHashPlan_eq_ordinaryFresh
 
 theorem relTriple_programmed_globalFilteredOrdinaryHashQuery
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : KeygenViewWithBaseHigh)
     (leftCache : QueryCache HashSpec) (rightState : GlobalCausalHashState)
     (hstate : GlobalFilteredCausalStateRelation left right.1 leftCache
       rightState)
@@ -355,9 +349,7 @@ theorem globalFilteredCausalKeygenState_merkleRetained
 
 theorem programmedGlobal_left_cache_none_of_retained_merkle_miss
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : KeygenViewWithBaseHigh)
     (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
     (hrightSupport : right.1.1 ∈ support
@@ -389,9 +381,7 @@ theorem programmedGlobal_left_cache_none_of_retained_merkle_miss
 
 theorem relTriple_programmed_globalFilteredAttackerHashQuery_until_hit
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : KeygenViewWithBaseHigh)
     (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
     (hrightSupport : right.1.1 ∈ support
@@ -785,8 +775,7 @@ theorem monitorGlobalCausalTrace_run
 
 def GlobalMonitoredFilteredStateRelation
     (left : ProgrammedGlobalChainKeygenView)
-    (right : ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest))
+    (right : KeygenViewWithBase)
     (leftCache : QueryCache HashSpec)
     (rightState : GlobalMonitoredCausalState) : Prop :=
   ∃ monitor, rightState.observed right.2 = some monitor ∧
@@ -798,8 +787,7 @@ def GlobalMonitoredFilteredStateRelation
 
 theorem globalMonitoredFilteredStateRelation_initial
     (left : ProgrammedGlobalChainKeygenView)
-    (right : ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest))
+    (right : KeygenViewWithBase)
     (leftCache : QueryCache HashSpec)
     (rightState : GlobalCausalHashState)
     (hstate : GlobalFilteredCausalStateRelation left right leftCache
@@ -837,8 +825,7 @@ theorem globalFilteredCausalRevealResultState_transition
 
 theorem relTriple_monitorGlobalCausalTrace_of_filtered_until_hit
     (left : ProgrammedGlobalChainKeygenView)
-    (right : ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest))
+    (right : KeygenViewWithBase)
     (leftComputation : ProbComp (α × QueryCache HashSpec))
     (rightComputation : GlobalCausalHashState → ProbComp
       ((α × GlobalCausalHashState) ×
@@ -1063,9 +1050,7 @@ theorem simulate_eagerTrace_globalCausalAttackerHashQueryFromHigh_support_replay
 
 theorem relTriple_programmed_monitoredGlobalAttackerHashQuery_until_hit
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : KeygenViewWithBaseHigh)
     (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
     (hrightSupport : right.1.1 ∈ support
@@ -1239,9 +1224,7 @@ theorem simulate_eagerTrace_globalFilteredCausalSigningQuery_support_replays
 
 theorem relTriple_programmed_monitoredGlobalSigningQuery
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : KeygenViewWithBaseHigh)
     (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
     (hrightSupport : right.1.1 ∈ support

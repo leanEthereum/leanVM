@@ -157,6 +157,12 @@ structure ProgrammedGlobalChainKeygenView where
   cache : QueryCache HashSpec
   table : GlobalChainValueIndex → Digest
 
+/-- A key generation view with a table of chain values: the right side of the keygen coupling. -/
+abbrev KeygenViewWithBase := ProgrammedGlobalChainKeygenView × (GlobalChainValueIndex → Digest)
+
+/-- A `KeygenViewWithBase` with a table of chain step outputs. -/
+abbrev KeygenViewWithBaseHigh := KeygenViewWithBase × (GlobalChainEdgeIndex → Digest)
+
 def globalChainTableEdgeInput
     (parameter : PublicParameter) (table : GlobalChainValueIndex → Digest)
     (edge : GlobalChainEdgeIndex) : HashInput :=
@@ -2397,8 +2403,7 @@ theorem evalDist_coupledGlobalChainKeygen_eq_programmedTrajectories :
 
 def ProgrammedGlobalChainKeygenRelation
     (left : ProgrammedGlobalChainKeygenView)
-    (right : ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) : Prop :=
+    (right : KeygenViewWithBase) : Prop :=
   left.table = right.2 ∧
     left.publicKey = right.1.publicKey ∧
     left.secretKey.topSigned = right.1.secretKey.topSigned ∧

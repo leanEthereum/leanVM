@@ -535,8 +535,7 @@ theorem trajectoryProgrammedGlobalChainKeygen_support_topCacheStable
 
 def ProgrammedGlobalChainKeygenStableRelation
     (left : ProgrammedGlobalChainKeygenView)
-    (right : ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) : Prop :=
+    (right : KeygenViewWithBase) : Prop :=
   ProgrammedGlobalChainKeygenRelation left right ∧
     TreeCacheStable left.secretKey.parameter left.secretKey.chainStart
       left.cache ∧
@@ -569,8 +568,7 @@ theorem LayerSignature.eq_of_fields
 other key generation's signer writes the revealed table values into. -/
 theorem keygenViews_signWithEncoding_eq_globalReveal
     (left : ProgrammedGlobalChainKeygenView)
-    (right : ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest))
+    (right : KeygenViewWithBase)
     (hrel : ProgrammedGlobalChainKeygenStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
     (_hrightSupport : right.1 ∈ support trajectoryProgrammedGlobalChainKeygen)
@@ -736,8 +734,7 @@ theorem GlobalSigningRevealsAgree.globalSignatureFullRevealResult
 
 def ProgrammedGlobalChainKeygenFullCacheRelation
     (left : ProgrammedGlobalChainKeygenView)
-    (right : ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) : Prop :=
+    (right : KeygenViewWithBase) : Prop :=
   ProgrammedGlobalChainKeygenRelation left right ∧
     ∃ leftEndpoints rightEndpoints,
       GlobalTreeCacheCorrespondence left.secretKey.parameter leftEndpoints
@@ -759,8 +756,7 @@ def GlobalTreeSigningCacheRelation
 
 def ProgrammedGlobalChainKeygenFullCacheStableRelation
     (left : ProgrammedGlobalChainKeygenView)
-    (right : ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) : Prop :=
+    (right : KeygenViewWithBase) : Prop :=
   ProgrammedGlobalChainKeygenFullCacheRelation left right ∧
     TreeCacheStable left.secretKey.parameter left.secretKey.chainStart
       left.cache ∧
@@ -774,8 +770,7 @@ def ProgrammedGlobalChainKeygenFullCacheStableRelation
 
 theorem ProgrammedGlobalChainKeygenFullCacheStableRelation.toStable
     {left : ProgrammedGlobalChainKeygenView}
-    {right : ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)}
+    {right : KeygenViewWithBase}
     (hrel : ProgrammedGlobalChainKeygenFullCacheStableRelation left right) :
     ProgrammedGlobalChainKeygenStableRelation left right :=
   ⟨hrel.1.1, hrel.2.1, hrel.2.2.1, hrel.2.2.2.1, hrel.2.2.2.2.1⟩
