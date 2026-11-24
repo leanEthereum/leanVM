@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Protocol.Verifier.Claims
 import LeanVM.Protocol.Compile.SpecRules.Basic
+import LeanVM.Protocol.EndToEnd.Sound.Frame
 
 /-!
 # The returns of the leanVM verifier
@@ -76,21 +77,31 @@ theorem RetOK.liftOption (o : Option α) : RetOK (fun a ↦ o = some a) (Verifie
   | none => exact RetOK.fail
   | some a => exact RetOK.ret rfl
 
-/-- A sequence that returns at once: both parts return. -/
-private theorem bind_eq_ret' {p : VerifierProgram α} {f : α → VerifierProgram β} {b : β} (h : p.bind
-    f = .ret b) :
-    ∃ a, p = .ret a ∧ f a = .ret b := by
-  cases p <;> simp_all [VerifierProgram.bind]
-
 /-- A sequence returns what its continuation returns on a return of its first part. -/
 theorem RetOK.bind {Q' : α → Prop} {Q : β → Prop} {p : VerifierProgram α} {f : α →
-    VerifierProgram β}
-    (hp : RetOK Q' p) (hf : ∀ a, Q' a → RetOK Q (f a)) : RetOK Q (p.bind f) := by
+    VerifierProgram β} (hp : RetOK Q' p) (hf : ∀ a, Q' a → RetOK Q (f a)) : RetOK Q (p.bind f) := by
   intro l b hl
-  rcases VerifierProgram.after_bind_cases f hl with ⟨q, hq, hr⟩ | ⟨a, l₁, l₂, -, h1, -, h2⟩
-  · obtain ⟨a, rfl, hfa⟩ := bind_eq_ret' hr.symm
-    exact hf a (hp l a hq) [] b (by simp [VerifierProgram.after, hfa])
-  · exact hf a (hp l₁ a h1) l₂ b h2
+  obtain ⟨a, l₁, l₂, -, h1, h2⟩ := after_bind_ret hl
+  exact hf a (hp l₁ a h1) l₂ b h2
+
+/-- What every value a program can return satisfies, every return along a history does. -/
+theorem RetOK.of_allRet {Q : α → Prop} {p : VerifierProgram α} (h : Claims.AllRet p Q) :
+    RetOK Q p := by
+  induction h with
+  | ret hq => exact RetOK.ret hq
+  | fail => exact RetOK.fail
+  | read _ ih | sample _ ih | query _ ih =>
+    rintro (_ | ⟨e, l⟩) a hl
+    · simp [VerifierProgram.after] at hl
+    · cases e <;> simp only [VerifierProgram.after, reduceCtorEq] at hl
+      exact ih _ l a hl
+  | grind _ ih | commit _ ih =>
+    rintro (_ | ⟨e, l⟩) a hl
+    · simp [VerifierProgram.after] at hl
+    · cases e <;> simp only [VerifierProgram.after, reduceCtorEq] at hl
+      split at hl
+      · exact ih l a hl
+      · cases hl
 
 /-- A sequence whose continuation's returns satisfy `Q` whatever the first part returns. -/
 theorem RetOK.bind_true {Q : β → Prop} {p : VerifierProgram α} {f : α → VerifierProgram β}
@@ -108,17 +119,8 @@ theorem RetOK.readN : ∀ n : ℕ, RetOK (fun xs : List E ↦ xs.length = n)
 
 /-- The bus phase returns four framework claims, whatever checks the fixed polynomial's value. -/
 theorem retOK_verifyBusBalance (ev : List K → List E → E → VerifierProgram Unit) (layout : Layout) :
-    RetOK (fun bus : BusResult ↦ bus.claims.length ≤ 4) (verifyBusBalance ev layout) := by
-  unfold verifyBusBalance
-  refine RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦
-    RetOK.bind_true fun _ ↦ RetOK.bind_true fun r ↦ ?_
-  obtain ⟨countRoot, point, treeValues⟩ := r
-  refine RetOK.bind_true fun _ ↦ (RetOK.readN 2).bind fun memory hm ↦ RetOK.bind_true fun _ ↦
-    RetOK.bind_true fun _ ↦ RetOK.bind_true fun r ↦ ?_
-  obtain ⟨share, bytecodePoint, value⟩ := r
-  refine RetOK.bind_true fun _ ↦ RetOK.ret ?_
-  simp only [List.length_append, List.length_zipWith, List.length_cons, List.length_nil, hm]
-  omega
+    RetOK (fun bus : BusResult ↦ bus.claims.length ≤ 4) (verifyBusBalance ev layout) :=
+  (RetOK.of_allRet (Claims.allRet_verifyBusBalance ev layout)).mono fun _ h ↦ h.2.2
 
 /-- The tables' row evaluations: one claim per column of each row's table, added to the claims
 so far. -/

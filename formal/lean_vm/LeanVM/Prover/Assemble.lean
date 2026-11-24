@@ -444,14 +444,14 @@ theorem corr_honestScript (hv : ValidExecution prog input t) (hcap : t.committed
   obtain ⟨_, ⟨⟨-, rfl, hpub, -⟩, hpcol⟩, hpmem⟩ := hp
   -- the Keccak phase, beside `keccakPhase`
   have hlanes : lanesOf (bus.claims ++ tableColumnClaims rows ++ pub) =
-      Claims.laneClaims (rows.getD opKeccak ([], [])) := Claims.lanes_eq hbok.2 hpmem hrows
+      Claims.laneClaims (rows.getD opKeccak ([], [])) := Claims.lanes_eq hbok.2.1 hpmem hrows
   have hlen : (rows.getD opKeccak ([], [])).1.length = s.τ 5 := by
     have h := lanes_point_length hbcol hpcol z hz
     rw [hlanes] at h
     exact h
   have hk := hP.keccak _ (trueClaims_append htrue hpub) z
     (lanesOf_honest prog s q hbcol hpcol z hz) []
-  rw [Claims.keccakPhaseClaims_eq hbok.2 hpmem hrows] at hk
+  rw [Claims.keccakPhaseClaims_eq hbok.2.1 hpmem hrows] at hk
   rw [tableLogHeights_verifierLayout, getD_tableLogs_keccak]
   refine Corr.bind (fun kr kr' hk' ↦ ?_) _ _ (corr_alongside _ _ _ []
     (noQuery_hKeccakPhase prog s q _)

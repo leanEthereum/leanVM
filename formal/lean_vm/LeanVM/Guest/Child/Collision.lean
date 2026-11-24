@@ -39,19 +39,13 @@ open LeanVM.Guest.Completeness LeanVM.Guest.B1.VerifySub
 
 /-! ## The deferring program opens in range -/
 
-theorem noCommit_verifyBusBalance_claimed (c : BytecodeClaim) (layout : Layout) :
-    NoCommit (verifyBusBalance (claimedBytecodeValue c) layout) := by
-  rw [verifyBusBalance_split]
-  exact NoCommit.bind (noCommit_require _) fun _ ↦ NoCommit.bind (noCommit_grind _) fun _ ↦
-    NoCommit.bind (noCommit_sampleN _) fun _ ↦ NoCommit.bind noCommit_sampleE fun _ ↦
-    NoCommit.bind (noCommit_gkrPhase _) fun _ ↦ noCommit_busRest c _ _ _ _ _
-
 /-- **The deferring verifier program opens in range**, from no commitment. -/
 theorem inRange_deferringProgram (c : BytecodeClaim) (bytecode : List K) (publicInput : Digest) :
     InRange (deferringVerifierProgram c bytecode publicInput) [] fun _ _ ↦ True := by
   rw [deferredProgram_eq]
   exact InRange.bind (Q := fun _ _ ↦ True)
-    (inRange_verifyExecutionClaims (noCommit_verifyBusBalance_claimed c) _ _) fun _ _ _ ↦ trivial
+    (inRange_verifyExecutionClaims
+      (noCommit_verifyBusBalance (noCommit_claimedBytecodeValue c)) _ _) fun _ _ _ ↦ trivial
 
 /-! ## A query step opens a phase -/
 

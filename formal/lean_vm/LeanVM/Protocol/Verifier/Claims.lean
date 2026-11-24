@@ -249,9 +249,11 @@ theorem allRet_readSizes (bytecode : List K) :
 /-- The framework columns. -/
 abbrev framework : List ℕ := [memory0, memory1, memoryFinalCounters, bytecodeFinalCounters]
 
-/-- What the equality uses of the bus: a form per table, claims on the framework columns. -/
+/-- What the proofs use of the bus: a form per table, at most four claims, on the framework
+columns. -/
 def BusOk (bus : BusResult) : Prop :=
-  bus.forms.length = tables.length ∧ ∀ c ∈ bus.claims, c.column ∈ framework
+  bus.forms.length = tables.length ∧ (∀ c ∈ bus.claims, c.column ∈ framework) ∧
+    bus.claims.length ≤ 4
 
 theorem accumulateSide_length (forms : List (List Form)) (side : ℕ) (blocks : List BusBlock)
     (sideLayout : BusLayout) (fps sideWeights : List E) (sideBeta : E) (point : List E)
@@ -290,7 +292,7 @@ theorem allRet_verifyBusBalance (ev : List K → List E → E → VerifierProgra
   unfold verifyBusBalance
   simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
   allret_chain
-  refine .ret ⟨?_, fun c hc ↦ ?_⟩
+  refine .ret ⟨?_, fun c hc ↦ ?_, ?_⟩
   · simp only [accumulateSide_length, List.length_map]
   · simp only [List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at hc ⊢
     rcases hc with hc | rfl | rfl
@@ -299,6 +301,8 @@ theorem allRet_verifyBusBalance (ev : List K → List E → E → VerifierProgra
       tauto
     · tauto
     · tauto
+  · simp only [List.length_append, List.length_zipWith, List.length_cons, List.length_nil]
+    omega
 
 /-! ## The table sumcheck -/
 
@@ -621,7 +625,7 @@ theorem verifyExecution_claims (ev : List K → List E → E → VerifierProgram
   refine bind_congr (fun rows hr ↦ ?_) _ (allRet_tablePhase hl hb)
   rw [VerifierProgram.ret_bind]
   refine bind_congr (fun pc hpc ↦ ?_) _ (allRet_publicInputPhase x.1 publicInput)
-  rw [keccakPhaseClaims_eq hb.2 hpc hr, VerifierProgram.bind_assoc]
+  rw [keccakPhaseClaims_eq hb.2.1 hpc hr, VerifierProgram.bind_assoc]
   refine bind_congr (fun r hout ↦ ?_) _ (allRet_keccakPhase x.1 rows)
   rw [VerifierProgram.ret_bind]
   refine bind_congr (Q := fun _ ↦ True) (fun rs _ ↦ ?_) _ (allRet_true _)
@@ -629,7 +633,7 @@ theorem verifyExecution_claims (ev : List K → List E → E → VerifierProgram
     intro c hc
     simp only [List.mem_append] at hc
     rcases hc with ((hc | hc) | hc) | hc
-    · have := hb.2 c hc
+    · have := hb.2.1 c hc
       simp only [framework, memory0, memory1, memoryFinalCounters, bytecodeFinalCounters,
         List.mem_cons, List.not_mem_nil, or_false] at this
       omega
