@@ -16,9 +16,7 @@ import LeanVM.Guest.Data.ValNames.«verify_keccak»
 
 `stepCore s b`: step `s` but its call (`stepT = stepCore ++ stepTailT`). `stepKer`: what the
 kernel checks of it (the loads that are not stores, the residual loads' pointers), checked for the
-twelve steps two at a time in `VkCCK/K0.lean` … `VkCCK/K5.lean`, so that the checks build in
-parallel (a module checks its proofs one after another), and gathered in `VkCCK.lean`
-(`step_ker`).
+twelve steps in one evaluation in `VkCCK.lean` (`step_ker`).
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
