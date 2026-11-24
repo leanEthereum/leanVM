@@ -46,10 +46,6 @@ open LeanVM.Parameters LeanVM.Protocol.Verifier LeanVM.Protocol.EndToEnd Finset
 /-- `2 = 0` in `E`. -/
 theorem two_eq_zero_E : (2 : E) = 0 := CharTwo.two_eq_zero
 
-/-- `1 + 1 = 0` in `E`. -/
-theorem one_add_one_E : (1 : E) + 1 = 0 := by
-  rw [one_add_one_eq_two, two_eq_zero_E]
-
 /-! ## Folds as sums -/
 
 theorem foldl_add_eq (l : List E) (a : E) : l.foldl (· + ·) a = a + l.sum := by
@@ -281,7 +277,7 @@ private theorem eqKernel_general : ∀ (p out : List E),
       simp only [List.length_map, Nat.add_sub_cancel, List.getD_eq_getElem?_getD,
         List.getElem?_map, List.getElem?_eq_getElem hi]
       simp only [Option.map_some, Option.getD_some]
-      rw [one_add_one_E, zero_add]; ring
+      rw [CharTwo.add_self_eq_zero (1 : E), zero_add]; ring
 
 /-- The equality kernel has `2^|p|` entries. -/
 theorem length_eqKernel (p : List E) : (eqKernel p).length = 2 ^ p.length := by

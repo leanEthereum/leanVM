@@ -267,9 +267,9 @@ theorem prefix_inv (g : Tab Root Z n) {β : Type} (B : OracleComp (Rom2 Msg Dg S
   simp only [mem_support_bind_iff, support_pure, Set.mem_singleton_iff] at hdc
   obtain ⟨iv, -, rfl⟩ := hdc
   simp only [↓reduceIte] at hw
-  refine inv_of_mem_support_run (tabImpl D g)
+  refine simulateQ_run_preserves_inv_of_query (tabImpl D g)
     (fun sc ↦ GFree sc.2 ∧ (sc.1.bad = true ∨ ∃ iv, Good D g iv sc))
-    (fun t sc h z hz ↦ ⟨gfree_step g t sc h.1 hz, ?_⟩) B
+    (fun t sc h z hz ↦ ⟨gfree_step g t sc h.1 hz, ?_⟩) B _
     ⟨(good_init (D := D) g iv).gfree, Or.inr ⟨iv, good_init g iv⟩⟩ w hw
   rcases h.2 with hb | ⟨iv', hG⟩
   · exact Or.inl (tab_bad_mono g t sc.1 sc.2 h.1 hb hz)

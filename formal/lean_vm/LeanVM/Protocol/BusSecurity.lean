@@ -64,10 +64,6 @@ variable {I : M3Instance}
 
 /-! ## The challenges -/
 
-/-- `|E| = 2^128`, counted with `Nat.card`. -/
-private theorem natCard_E : Nat.card E = 2 ^ 128 := by
-  rw [Nat.card_eq_fintype_card, card_E]
-
 /-- From a stack outside `M3Holds`, at most `2^{μ_bus}·|E|^16` challenges `(α, β)` lead into
 `afterChallenge`: none if an executed count cell is zero (the count product is then zero) or a
 clause no challenge touches fails, a collision of the two products otherwise, whatever the padding
@@ -76,7 +72,7 @@ private theorem card_afterChallenge_le (h : Conditions I) (s : I.Stmt) (o : ∀ 
     (hs : ¬ M3Holds I s (theStack o)) :
     Nat.card {ab : (Fin 16 → E) × E // (((s, ab), o), ()) ∈ afterChallenge I} ≤
       2 ^ I.μBus * (2 ^ 128) ^ 16 := by
-  rw [← natCard_E]
+  rw [← card_E, ← Nat.card_eq_fintype_card]
   by_cases hrest : I.CountsNonzero (theStack o) ∧ I.ConstraintsVanish (theStack o) ∧
       I.PublicLinesHold s (theStack o) ∧ I.aux (theStack o)
   · have hb : ¬ I.Balanced (theStack o) := fun hb ↦
@@ -108,7 +104,7 @@ private theorem card_afterChallenge_le (h : Conditions I) (s : I.Stmt) (o : ∀ 
 private theorem challenge_error_eq :
     ((2 ^ I.μBus * (2 ^ 128) ^ 16 : ℕ) : ℝ≥0) / (Nat.card ((Fin 16 → E) × E) : ℝ≥0) =
       overE (2 ^ I.μBus) := by
-  rw [← natCard_E]
+  rw [← card_E, ← Nat.card_eq_fintype_card]
   have hE : (Nat.card E : ℝ≥0) ≠ 0 := by
     rw [Nat.card_eq_fintype_card]
     exact_mod_cast Fintype.card_ne_zero

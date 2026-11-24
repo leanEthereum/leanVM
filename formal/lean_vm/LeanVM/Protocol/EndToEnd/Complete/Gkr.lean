@@ -78,13 +78,13 @@ theorem eqEval_boolPoint_boolPoint : ∀ (m i j : ℕ), i < 2 ^ m → j < 2 ^ m 
     by_cases hij : i = j
     · subst hij
       rcases Nat.mod_two_eq_zero_or_one i with h | h <;>
-        simp [h, Nat.testBit_zero, one_add_one_E]
+        simp [h, Nat.testBit_zero, CharTwo.add_self_eq_zero]
     · by_cases hh : i / 2 = j / 2
       · have hb : i % 2 ≠ j % 2 := fun hb ↦ hij (by omega)
         simp only [hh, ↓reduceIte, mul_one, hij, Nat.testBit_zero]
         rcases Nat.mod_two_eq_zero_or_one i with h1 | h1 <;>
           rcases Nat.mod_two_eq_zero_or_one j with h2 | h2 <;>
-          simp_all [one_add_one_E]
+          simp_all [CharTwo.add_self_eq_zero]
       · simp [hh, hij]
 
 /-- The extension of a table at a cube point is the table's entry. -/

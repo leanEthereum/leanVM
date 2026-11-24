@@ -169,6 +169,12 @@ def sources (k : Fin 3) : List (Source I) :=
 /-- The number of leaves of a side, before padding. -/
 def leafCount (k : Fin 3) : ℕ := ((sources I k).map fun src ↦ 2 ^ src.κ).sum
 
+/-- A side's leaf count, from its blocks' log-heights. -/
+theorem leafCount_eq (k : Fin 3) :
+    leafCount I k = (((sources I k).map Source.κ).map (2 ^ ·)).sum := by
+  rw [leafCount, List.map_map]
+  rfl
+
 /-- The blocks of a side, largest first, ties in the order of `sources` (a stable sort). -/
 def sorted (k : Fin 3) : List (Source I) :=
   (sources I k).mergeSort fun a b ↦ decide (b.κ ≤ a.κ)

@@ -192,7 +192,7 @@ theorem multilinearEval_boolPoint_getD : ∀ (m : ℕ) (t : List E) (y : ℕ), t
     · have h1 : (2 * j + 1).testBit 0 = true := by simp [Nat.testBit_zero]
       have h2 : (2 * j + 1) / 2 = j := by omega
       simp only [h1, ↓reduceIte, h2]
-      rw [one_add_one_E]
+      rw [CharTwo.add_self_eq_zero (1 : E)]
       ring
 
 /-- Over the cube, the product of all coordinates sums to one: only the all-ones corner. -/

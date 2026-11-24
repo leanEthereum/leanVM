@@ -56,16 +56,10 @@ abbrev leanIsaWith (prog : LeanIsaProgram) (s : Sizes)
 
 variable (prog : LeanIsaProgram) (s : Sizes)
 
-/-- A side's leaf count, from its blocks' log-heights. -/
-theorem leafCount_eq_κ (I : M3Instance) (k : Fin 3) :
-    Bus.leafCount I k = (((Bus.sources I k).map Bus.Source.κ).map (2 ^ ·)).sum := by
-  rw [Bus.leafCount, List.map_map]
-  rfl
-
 /-- **The leaf counts do not depend on the region.** -/
 theorem leafCount_leanIsaWith (fl fl' : Option (KeccakRegion (shape prog s))) (k : Fin 3) :
     Bus.leafCount (leanIsaWith prog s fl) k = Bus.leafCount (leanIsaWith prog s fl') k := by
-  rw [leafCount_eq_κ, leafCount_eq_κ]
+  rw [Bus.leafCount_eq, Bus.leafCount_eq]
   fin_cases k
   · change (((Bus.sideSources _ .push).map Bus.Source.κ).map _).sum =
       (((Bus.sideSources _ .push).map Bus.Source.κ).map _).sum

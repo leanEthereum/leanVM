@@ -47,14 +47,14 @@ theorem prEvent_uniform_E (p : E → Prop) [DecidablePred p] :
   rw [SampleableType.prEvent_uniformSample, div_eq_mul_inv, mul_comm]
 
 open Classical in
-/-- **The union bound over candidates**, counted: the challenges bad for some of at most `L₀`
-candidates, each bad for at most a fraction `e` of the challenges, are at most a fraction
-`L₀ · e`. -/
-theorem card_exists_le {β : Type} {C : Set β} (hfin : C.Finite) {L₀ : ℕ} (hcard : C.ncard ≤ L₀)
-    (P : β → E → Prop) {e : ℝ≥0∞}
-    (h : ∀ q ∈ C, (Fintype.card E : ℝ≥0∞)⁻¹ *
+/-- **The union bound over candidates**, counted, for any finite type of challenges: the
+challenges bad for some of at most `L₀` candidates, each bad for at most a fraction `e` of the
+challenges, are at most a fraction `L₀ · e`. -/
+theorem card_exists_le {α β : Type} [Fintype α] {C : Set β} (hfin : C.Finite) {L₀ : ℕ}
+    (hcard : C.ncard ≤ L₀) (P : β → α → Prop) {e : ℝ≥0∞}
+    (h : ∀ q ∈ C, (Fintype.card α : ℝ≥0∞)⁻¹ *
       ((Finset.univ.filter fun c ↦ P q c).card : ℝ≥0∞) ≤ e) :
-    (Fintype.card E : ℝ≥0∞)⁻¹ *
+    (Fintype.card α : ℝ≥0∞)⁻¹ *
         ((Finset.univ.filter fun c ↦ ∃ q ∈ C, P q c).card : ℝ≥0∞) ≤ L₀ * e := by
   classical
   let s := hfin.toFinset
@@ -64,12 +64,12 @@ theorem card_exists_le {β : Type} {C : Set β} (hfin : C.Finite) {L₀ : ℕ} (
     simp only [Finset.mem_filter, Finset.mem_univ, true_and] at hc
     obtain ⟨q, hq, hp⟩ := hc
     exact Finset.mem_biUnion.mpr ⟨q, hfin.mem_toFinset.mpr hq, by simpa using hp⟩
-  calc (Fintype.card E : ℝ≥0∞)⁻¹ * ((Finset.univ.filter fun c ↦ ∃ q ∈ C, P q c).card : ℝ≥0∞)
-      ≤ (Fintype.card E : ℝ≥0∞)⁻¹ *
+  calc (Fintype.card α : ℝ≥0∞)⁻¹ * ((Finset.univ.filter fun c ↦ ∃ q ∈ C, P q c).card : ℝ≥0∞)
+      ≤ (Fintype.card α : ℝ≥0∞)⁻¹ *
           ∑ q ∈ s, ((Finset.univ.filter fun c ↦ P q c).card : ℝ≥0∞) := by
         gcongr
         exact_mod_cast (Finset.card_le_card hsub).trans Finset.card_biUnion_le
-    _ = ∑ q ∈ s, (Fintype.card E : ℝ≥0∞)⁻¹ *
+    _ = ∑ q ∈ s, (Fintype.card α : ℝ≥0∞)⁻¹ *
           ((Finset.univ.filter fun c ↦ P q c).card : ℝ≥0∞) := Finset.mul_sum _ _ _
     _ ≤ ∑ _q ∈ s, e := Finset.sum_le_sum fun q hq ↦ h q (hfin.mem_toFinset.mp hq)
     _ = s.card * e := by rw [Finset.sum_const, nsmul_eq_mul]

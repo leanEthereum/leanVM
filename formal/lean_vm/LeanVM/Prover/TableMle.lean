@@ -85,7 +85,7 @@ theorem multilinearEval_foldHigh (c : E) (a : Array E) (m : ℕ) (ha : a.size = 
   have h0 : eqEval (boolPoint 1 0) [c] = 1 + c := by
     rw [hb0, eqEval_cons, eqEval_nil_left, mul_one, add_zero]
   have h1 : eqEval (boolPoint 1 1) [c] = c := by
-    rw [hb1, eqEval_cons, eqEval_nil_left, mul_one, one_add_one_E, zero_add]
+    rw [hb1, eqEval_cons, eqEval_nil_left, mul_one, CharTwo.add_self_eq_zero (1 : E), zero_add]
   simp only [toList_getD]
   rw [getD_foldHigh c a y (by omega), hs, boolPoint_add m 1 y 0 hy', boolPoint_add m 1 y 1 hy',
     eqEval_append _ _ _ _ hl, eqEval_append _ _ _ _ hl, h0, h1]

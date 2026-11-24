@@ -227,11 +227,6 @@ theorem sum_map_filter_cons {α : Type} (p : α → Prop) [DecidablePred p] (g :
       (if p y then g y else 0) + ((l.filter fun a ↦ decide (p a)).map g).sum := by
   by_cases h : p y <;> simp [h]
 
-/-- `1 + 1 = 0` in `E`. -/
-private theorem one_add_one_E : (1 : E) + 1 = 0 := by
-  rw [one_add_one_eq_two]
-  exact CharTwo.two_eq_zero
-
 /-- The verifier's tables have the instance's widths. -/
 theorem columns_length : ∀ t : Fin 6, (tables.getD t default).columns.length = width (opIdx t) := by
   decide +kernel
@@ -294,7 +289,8 @@ theorem sum_block_true (hP : (inst prog s).PaddingHonest q) (β : E) (w : List E
     ring
   · simp only [hx, ↓reduceIte, Nat.le_of_not_lt hx, rowVal_padding prog s q hP t x
       (Nat.le_of_not_lt hx)]
-    linear_combination (-(sel * eqEval (boolPoint (s.τ t) x) (p.take (s.τ t)))) * one_add_one_E
+    linear_combination (-(sel * eqEval (boolPoint (s.τ t) x) (p.take (s.τ t)))) *
+      CharTwo.add_self_eq_zero (1 : E)
 
 /-- `padSum` of a cons. -/
 theorem padSum_cons (w : List E) (β : E) (p : List E) (sel : E) (b : BusBlock)

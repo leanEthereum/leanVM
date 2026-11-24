@@ -39,10 +39,6 @@ public section
 
 /-! ## The memory vector -/
 
-theorem vector_get_ofFn {α : Type _} {n : ℕ} (f : Fin n → α) (i : Fin n) :
-    (Vector.ofFn f).get i = f i := by
-  exact Vector.getElem_ofFn i.isLt
-
 theorem layoutLite_logMemory (layout : Verifier.Layout) :
     (layoutLite layout).logMemory = layout.logMemory :=
   rfl
@@ -80,7 +76,7 @@ of `MEMORY_0`, `MEMORY_1` computed once. -/
 
 theorem memoryVec_get (layout : LayoutLite) {μ : ℕ} (q : Vector K (2 ^ μ))
     (i : Fin (2 ^ layout.logMemory)) : (memoryVec layout q).get i = memoryImageLite layout q i := by
-  exact vector_get_ofFn (memoryImageLite layout q) i
+  exact Vector.getElem_ofFn (f := memoryImageLite layout q) i.isLt
 
 theorem memoryVec_get_eq (layout : LayoutLite) {μ : ℕ} (q : Vector K (2 ^ μ)) :
     (memoryVec layout q).get = memoryImageLite layout q :=

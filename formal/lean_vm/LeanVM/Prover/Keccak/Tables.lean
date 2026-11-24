@@ -81,8 +81,6 @@ def Affine (F : List E → E) : Prop :=
   ∀ pre post x, F (pre ++ x :: post) =
     F (pre ++ 0 :: post) + x * (F (pre ++ 0 :: post) + F (pre ++ 1 :: post))
 
-theorem one_add_one_E : (1 : E) + 1 = 0 := CharTwo.add_self_eq_zero 1
-
 /-- **A multilinear extension is affine** in each coordinate. -/
 theorem affine_mle (N : ℕ) (f : ℕ → E) : Affine fun p ↦ ∑ w ∈ range N, eqAt p w * f w := by
   intro pre post x
@@ -92,7 +90,7 @@ theorem affine_mle (N : ℕ) (f : ℕ → E) : Affine fun p ↦ ∑ w ∈ range 
   simp only [eqAt_append, eqAt_cons]
   split_ifs
   · ring
-  · rw [show (1 : E) + 1 = 0 from one_add_one_E]; ring
+  · rw [CharTwo.add_self_eq_zero (1 : E)]; ring
 
 /-- `t` lists `F` at `acc` followed by each point of the remaining cube of `n - |acc|`
 coordinates. -/
