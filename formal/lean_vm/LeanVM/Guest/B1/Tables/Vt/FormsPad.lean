@@ -75,41 +75,37 @@ def vtPads05 : List (List ℕ) :=
     [2, 0, 0, 1747952066141424100, 1654286879329379778],
     [2, 0, 0, 8500057116360352059, 16929593379567477321]]
 
-theorem vtPadTie00 : vtPadTieCheck (refSideC 0 .push) vtPads00
-    (paddingRowK (tables.getD 0 default)) = true := by decide +kernel
+/-! The padding ties of each table, push side and pull side, in one kernel evaluation of its padding row. -/
 
-theorem vtPadTie10 : vtPadTieCheck (refSideC 0 .pull) vtPads00
-    (paddingRowK (tables.getD 0 default)) = true := by decide +kernel
+theorem vtPadTie0 :
+    vtPadTieCheck (refSideC 0 .push) vtPads00 (paddingRowK (tables.getD 0 default)) = true ∧
+      vtPadTieCheck (refSideC 0 .pull) vtPads00 (paddingRowK (tables.getD 0 default)) = true := by
+  decide +kernel
 
-theorem vtPadTie01 : vtPadTieCheck (refSideC 1 .push) vtPads01
-    (paddingRowK (tables.getD 1 default)) = true := by decide +kernel
+theorem vtPadTie1 :
+    vtPadTieCheck (refSideC 1 .push) vtPads01 (paddingRowK (tables.getD 1 default)) = true ∧
+      vtPadTieCheck (refSideC 1 .pull) vtPads01 (paddingRowK (tables.getD 1 default)) = true := by
+  decide +kernel
 
-theorem vtPadTie11 : vtPadTieCheck (refSideC 1 .pull) vtPads01
-    (paddingRowK (tables.getD 1 default)) = true := by decide +kernel
+theorem vtPadTie2 :
+    vtPadTieCheck (refSideC 2 .push) vtPads02 (paddingRowK (tables.getD 2 default)) = true ∧
+      vtPadTieCheck (refSideC 2 .pull) vtPads02 (paddingRowK (tables.getD 2 default)) = true := by
+  decide +kernel
 
-theorem vtPadTie02 : vtPadTieCheck (refSideC 2 .push) vtPads02
-    (paddingRowK (tables.getD 2 default)) = true := by decide +kernel
+theorem vtPadTie3 :
+    vtPadTieCheck (refSideC 3 .push) vtPads03 (paddingRowK (tables.getD 3 default)) = true ∧
+      vtPadTieCheck (refSideC 3 .pull) vtPads03 (paddingRowK (tables.getD 3 default)) = true := by
+  decide +kernel
 
-theorem vtPadTie12 : vtPadTieCheck (refSideC 2 .pull) vtPads02
-    (paddingRowK (tables.getD 2 default)) = true := by decide +kernel
+theorem vtPadTie4 :
+    vtPadTieCheck (refSideC 4 .push) vtPads04 (paddingRowK (tables.getD 4 default)) = true ∧
+      vtPadTieCheck (refSideC 4 .pull) vtPads04 (paddingRowK (tables.getD 4 default)) = true := by
+  decide +kernel
 
-theorem vtPadTie03 : vtPadTieCheck (refSideC 3 .push) vtPads03
-    (paddingRowK (tables.getD 3 default)) = true := by decide +kernel
-
-theorem vtPadTie13 : vtPadTieCheck (refSideC 3 .pull) vtPads03
-    (paddingRowK (tables.getD 3 default)) = true := by decide +kernel
-
-theorem vtPadTie04 : vtPadTieCheck (refSideC 4 .push) vtPads04
-    (paddingRowK (tables.getD 4 default)) = true := by decide +kernel
-
-theorem vtPadTie14 : vtPadTieCheck (refSideC 4 .pull) vtPads04
-    (paddingRowK (tables.getD 4 default)) = true := by decide +kernel
-
-theorem vtPadTie05 : vtPadTieCheck (refSideC 5 .push) vtPads05
-    (paddingRowK (tables.getD 5 default)) = true := by decide +kernel
-
-theorem vtPadTie15 : vtPadTieCheck (refSideC 5 .pull) vtPads05
-    (paddingRowK (tables.getD 5 default)) = true := by decide +kernel
+theorem vtPadTie5 :
+    vtPadTieCheck (refSideC 5 .push) vtPads05 (paddingRowK (tables.getD 5 default)) = true ∧
+      vtPadTieCheck (refSideC 5 .pull) vtPads05 (paddingRowK (tables.getD 5 default)) = true := by
+  decide +kernel
 
 /-- The tables' count columns (`refCountColumns`). -/
 def vtCountCols : List (List ℕ) :=

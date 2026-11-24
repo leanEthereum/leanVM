@@ -30,9 +30,6 @@ open LeanVM.Protocol.KeccakGkr LeanVM.Guest.B1.Fwd Finset
 
 variable {C : CallRel} {rd : Reader} {w : ℕ → E} {σ : Val}
 
-theorem not_mem_of_contains {a : Atom} {S : List Atom} (h : S.contains a = false) : a ∉ S :=
-  fun hm ↦ by rw [List.contains_iff_mem.mpr hm] at h; exact absurd h (by decide)
-
 set_option maxRecDepth 20000 in
 /-- **The slices, completely.** -/
 theorem slices_complete (hσ : ∀ v, σ v = σ (.n v.idx))
@@ -45,7 +42,7 @@ theorem slices_complete (hσ : ∀ v, σ v = σ (.n v.idx))
         (cap5 (slP 1340 16 + 8)).map σ ∧
       ∀ {next : Prop} {kret : List E → Prop}, next →
         Stmt.HoldsList C rd σ (slicesT (.n (val% «verify_keccak» "cursor@16")) 1335 1340) next kret := by
-  obtain ⟨k1, k3⟩ := vkSlices_ker
+  obtain ⟨k1, k3⟩ := vk_ker.2.2.1
   -- each read
   have mR : ∀ z < 64, ∀ st ∈ fsNextT (.n (val% «verify_keccak» "cursor@16")) z (slB 1340 z), st ∈ slicesT (.n (val% «verify_keccak» "cursor@16")) 1335 1340 := by
     intro z hz st h
@@ -60,10 +57,9 @@ theorem slices_complete (hσ : ∀ v, σ v = σ (.n v.idx))
     have hm := mR z hz _ List.mem_cons_self
     have hns : Atom.load (.n (slB 1340 z)) (.n (val% «verify_keccak» "cursor@16")) z ∉ vkSt := by
       have := List.all_eq_true.mp k3 _ (load_mem_resid hm)
-      simp only [slRes, Bool.or_eq_true, Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq,
-        Bool.not_eq_true'] at this
-      rcases this with ⟨-, h⟩ | ⟨⟨⟨h, -⟩, -⟩, -⟩
-      · exact not_mem_of_contains h
+      simp only [slRes, Bool.or_eq_true, Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at this
+      rcases this with ⟨-, h⟩ | ⟨⟨h, -⟩, -⟩
+      · exact not_mem_of_noneIn h _ List.mem_cons_self
       · exact absurd h (by simp)
     obtain ⟨e, -, -⟩ := fsNext_complete (C := C) (fun st h ↦ hg st (mR z hz st h))
       hns (v := slices.getD z 0) (by rw [List.getD_eq_getElem _ _ (by omega)]; exact hcur z (by omega))
@@ -75,10 +71,9 @@ theorem slices_complete (hσ : ∀ v, σ v = σ (.n v.idx))
         have hs := List.all_eq_true.mp k3 a ha
         cases a with
         | load d p off =>
-          simp only [slRes, Bool.or_eq_true, Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq,
-            Bool.not_eq_true'] at hs
-          rcases hs with ⟨⟨rfl, hoff⟩, hns⟩ | ⟨⟨⟨rfl, hoff⟩, rfl⟩, -⟩
-          · exact Or.inr (side_load (not_mem_of_contains hns) (hcur off (by omega)))
+          simp only [slRes, Bool.or_eq_true, Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at hs
+          rcases hs with ⟨⟨rfl, hoff⟩, hns⟩ | ⟨⟨rfl, hoff⟩, rfl⟩
+          · exact Or.inr (side_load (not_mem_of_noneIn hns _ List.mem_cons_self) (hcur off (by omega)))
           · left
             show LoadHolds rd (σ (.n (val% «verify_keccak» "slices"))) off (σ (.n (slB 1340 off)))
             rw [R off hoff, List.getD_eq_getElem _ _ (by omega)]
@@ -114,7 +109,7 @@ theorem vkIn_complete (hσ : ∀ v, σ v = σ (.n v.idx)) (hg : ∀ st ∈ vkInT
         (cap5 1735).map σ ∧
       ∀ {next : Prop} {kret : List E → Prop}, next →
         Stmt.HoldsList (fun _ _ _ ↦ True) rd σ vkInT next kret := by
-  obtain ⟨k1, k2, k3, k5, k6⟩ := vkIn_ker
+  obtain ⟨k1, k2, k3, k5, k6⟩ := vk_ker.2.1
   have mEQ : ∀ st ∈ eqtreeT (.n (val% «verify_keccak» "z_vals")) (.n (val% «verify_keccak» "low_tree")) 39 1206 4, st ∈ vkInT := fun st h ↦ by
     rw [vkInT]; exact List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
       (List.mem_append_left _ (List.mem_append_right _ h))))

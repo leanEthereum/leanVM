@@ -352,9 +352,9 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
   obtain ⟨hHs, hHl, e20, e21, e22, e23, e24, e25, e26, e31, e32, e34, ekb, e43⟩ :=
     head_complete (R := R) hS gH (m := m) (rm := rm) (ps := p1Of x) (kbw := kbWords layout) hlm1
       (by rw [e6, hglm]) e3 h14
-      (by rw [e14]; exact aL _ _ (by simp only [TermRegion]; omega)) (hBuf _ m2)
+      (by rw [e14]; exact aL _ _ (by term_region)) (hBuf _ m2)
       (fun k hk => rB _ ⟨_, m2, by omega, by rw [piW_length]; omega⟩) hkbL
-      (fun i hi => by rw [e8]; exact aL _ _ (by simp only [TermRegion]; omega))
+      (fun i hi => by rw [e8]; exact aL _ _ (by term_region))
   have hkb : ∀ i < 8, σ (.n (kbV i)) = gen ^ kbExp layout i := fun i hi ↦ by
     rw [ekb i hi, kbWords_getD hHL hi]
   have hkapc : ∀ c < Tables.nCommittedCols,
@@ -376,7 +376,7 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
       σ (.n (selV c)) = (outs.getD (4 + c) ([], [])).1.getD 0 0 := fun c hc =>
     sel_complete hS hc (fun s hs => gS s (List.mem_flatMap.mpr ⟨c, List.mem_range.mpr hc, hs⟩))
       (hKC31 c hc) (by rw [e10]; exact hoff' c hc)
-      (by rw [e10]; exact aL _ _ (by simp only [TermRegion]; omega))
+      (by rw [e10]; exact aL _ _ (by term_region))
       (hkapc c hc)
   have hselv : ∀ c < Tables.nCommittedCols, σ (.n (selV c)) =
       selProd ((stackOffsets KC).1.getD c 0) (KC.getD c 0) (layout.stackLog - KC.getD c 0) x := by
@@ -405,11 +405,11 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
     rcases ht with rfl | rfl
     · rw [e24, e13, e7']
       exact ⟨⟨_, (loadHolds_mul_gen_pow _ _ _ _ _).mpr (readsAt_getD hpt (k := τ + k) (by omega))⟩,
-        ⟨B.pt + τ + k, rt_addr_mul _ _ _, Or.inl (hreg _ (by simp only [TermRegion]; omega))⟩⟩
+        ⟨B.pt + τ + k, rt_addr_mul _ _ _, Or.inl (hreg _ (by term_region))⟩⟩
     · rw [e25, e14, e7']
       exact ⟨⟨_, (loadHolds_mul_gen_pow _ _ _ _ _).mpr (readsAt_getD hpt1 (k := τ + k)
         (by simp [padPoint_length hxl40]; omega))⟩,
-        ⟨B.pt1 + τ + k, rt_addr_mul _ _ _, Or.inl (hreg _ (by simp only [TermRegion]; omega))⟩⟩
+        ⟨B.pt1 + τ + k, rt_addr_mul _ _ _, Or.inl (hreg _ (by term_region))⟩⟩
   have hin : ∀ j ∈ List.range Tables.nClaims, ClaimIn rd σ R (kbExp layout) j := by
     intro j hj
     have hj' : j < 159 := List.mem_range.mp hj

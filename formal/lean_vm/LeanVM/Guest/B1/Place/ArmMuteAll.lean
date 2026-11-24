@@ -6,18 +6,21 @@
 
 module
 
-public import LeanVM.Guest.B1.Place.ArmMuteA
-public import LeanVM.Guest.B1.Place.ArmMute6
-public import LeanVM.Guest.B1.Place.ArmMute7
-public import LeanVM.Guest.B1.Place.ArmMute8
-public import LeanVM.Guest.B1.Place.ArmMute9
-public import LeanVM.Guest.B1.Place.ArmMute10
+public import LeanVM.Guest.B1.Place.ArmOkA
+public import LeanVM.Guest.B1.Place.ArmOkB
+public import LeanVM.Guest.B1.Place.ArmFree0
+public import LeanVM.Guest.B1.Place.ArmFree1
+public import LeanVM.Guest.B1.Place.ArmFree2
+public import LeanVM.Guest.B1.Place.ArmFree3
+public import LeanVM.Guest.B1.Place.ArmFree4
+public import LeanVM.Guest.B1.Place.ArmFree5
 public import LeanVM.Guest.B1.Place.OsMean
 
 /-!
 # The arms' callees
 
-* `armMute_all`: the arm `m`'s body is mute in `armS` (`ArmMuteA`, `ArmMute6` to `ArmMute10`);
+* `armMute_all`: the arm `m`'s body is mute in `armS` (`ArmOkA`, `ArmOkB`; the roots by `nwRootsOk`, `ArmFree0` to
+  `ArmFree5`);
 * `lqNameB_of_kind`, `lqNameB_of_lp`, `lqNameB_of_lr`: a named callee's, a `level_positions`' and a `level_residual`'s names are not `level_queries`' (by the kernel, over the tables).
 -/
 
@@ -27,21 +30,24 @@ open LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest.B1 LeanVM.Guest.B1.Whir
 
 @[expose] public section
 
+/-- **Every root names an entry of `lqTable` or has no witness hint in its subtree.** -/
+theorem nwRootsOk : NwRootsOk := nwRootsOk_of armFreeM0 armFreeM1 armFreeM2 armFreeM3 armFreeM4 armFreeM5
+
 /-- **The arm `m`'s body is mute in `armS`.** -/
 theorem armMute_all {m : ℕ} (hm : m < 11) :
     ∃ fn, coreProgram.find? ("open_stacked__L" ++ natStr m) = some fn ∧ Stmt.muteList armS fn.body = true := by
   interval_cases m
-  · exact armMute_find armMute0
-  · exact armMute_find armMute1
-  · exact armMute_find armMute2
-  · exact armMute_find armMute3
-  · exact armMute_find armMute4
-  · exact armMute_find armMute5
-  · exact armMute_find armMute6
-  · exact armMute_find armMute7
-  · exact armMute_find armMute8
-  · exact armMute_find armMute9
-  · exact armMute_find armMute10
+  · exact armMute_find nwRootsOk armOk0.2
+  · exact armMute_find nwRootsOk armOk1.2
+  · exact armMute_find nwRootsOk armOk2.2
+  · exact armMute_find nwRootsOk armOk3.2
+  · exact armMute_find nwRootsOk armOk4.2
+  · exact armMute_find nwRootsOk armOk5.2
+  · exact armMute_find nwRootsOk armOk6.2
+  · exact armMute_find nwRootsOk armOk7.2
+  · exact armMute_find nwRootsOk armOk8.2
+  · exact armMute_find nwRootsOk armOk9.2
+  · exact armMute_find nwRootsOk armOk10.2
 
 theorem lq_not_named : lqTable.all (fun e ↦ (osKindOf e.1).isNone) = true := by decide +kernel
 

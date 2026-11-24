@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Tables.Vt.SpecForms
 
 `accumulateSide`'s `padding_rows` adds, per table block, its selector times the padding weight of
 its owner's rows times its form at the owner's padding row, plus one (`padSum`). By the
-kernel-checked tie of the flushes at the padding rows (`vtPadTie0t`, `vtPadTie1t`), a block's form
+kernel-checked tie of the flushes at the padding rows (`vtPadTie0` to `vtPadTie5`), a block's form
 there is `β + Σ_slot w_slot·pad_slot`, the baked padding values; split by table, the sum is the
 guest's `vtPadSum` (`vt_padSum_push`, `vt_padSum_pull`, `vt_padSum_count`).
 -/
@@ -138,13 +138,13 @@ def vtPadsT (t : ℕ) : List (List ℕ) :=
 
 theorem vt_padTie_push : ∀ t : Fin 6,
     vtPadTieCheck (refSideC t .push) (vtPadsT t) (paddingRowK (tables.getD t default)) = true
-  | 0 => vtPadTie00 | 1 => vtPadTie01 | 2 => vtPadTie02 | 3 => vtPadTie03 | 4 => vtPadTie04
-  | 5 => vtPadTie05
+  | 0 => vtPadTie0.1 | 1 => vtPadTie1.1 | 2 => vtPadTie2.1 | 3 => vtPadTie3.1 | 4 => vtPadTie4.1
+  | 5 => vtPadTie5.1
 
 theorem vt_padTie_pull : ∀ t : Fin 6,
     vtPadTieCheck (refSideC t .pull) (vtPadsT t) (paddingRowK (tables.getD t default)) = true
-  | 0 => vtPadTie10 | 1 => vtPadTie11 | 2 => vtPadTie12 | 3 => vtPadTie13 | 4 => vtPadTie14
-  | 5 => vtPadTie15
+  | 0 => vtPadTie0.2 | 1 => vtPadTie1.2 | 2 => vtPadTie2.2 | 3 => vtPadTie3.2 | 4 => vtPadTie4.2
+  | 5 => vtPadTie5.2
 
 theorem vt_pushPad_data : ∀ t : Fin 6,
     (vtPushPadData.filter fun x ↦ x.2.1 = (t : ℕ)).map (·.2.2.2) = (vtPadsT t).map vtNz := by
