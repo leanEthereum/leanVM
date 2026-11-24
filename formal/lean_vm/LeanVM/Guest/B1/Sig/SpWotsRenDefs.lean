@@ -26,11 +26,36 @@ def spRi (j : Nat) : Nat := j + 2 * spZeroR.countP (· < j)
 /-- The template's numbering, on values. -/
 def spUn (v : V) : V := ⟨v.path, v.tag, spRi v.idx⟩
 
-/-- `spUn` undoes `spRen` at `v`, as a Boolean (`spUnOK_iff`). -/
-def spUnOK (v : V) : Bool := Nat.beq (spRi (spR v.idx)) v.idx
+/-- The values the guest's numbering leaves out, as a bit set: the two after each step without an address
+constant (`spZero`). -/
+def spGaps : Nat := spZero.foldl (fun b z ↦ b ||| 2 ^ (z + 1) ||| 2 ^ (z + 2)) 0
+
+/-- `spUn` undoes `spRen` at `v`, as a Boolean (`spUnOK_iff`): `v` is not left out, one bit read. -/
+def spUnOK (v : V) : Bool := !spGaps.testBit v.idx
+
+private theorem spRi_spR_low :
+    (List.range 1029).all (fun i ↦ spGaps.testBit i || spRi (spR i) == i) = true := by
+  decide +kernel
+
+theorem spRi_spR {i : Nat} (h : spGaps.testBit i = false) : spRi (spR i) = i := by
+  by_cases hi : i < 1029
+  · simpa [h] using List.all_eq_true.mp spRi_spR_low i (List.mem_range.mpr hi)
+  have h1 : spZero.countP (· < i) = 16 := by
+    refine (List.countP_eq_length.mpr fun z hz ↦ ?_).trans rfl
+    simp only [spZero, List.mem_cons, List.not_mem_nil, or_false] at hz
+    simp only [decide_eq_true_eq]
+    omega
+  have hR : spR i = i - 32 := by rw [spR, h1]
+  have h2 : spZeroR.countP (· < spR i) = 16 := by
+    refine (List.countP_eq_length.mpr fun z hz ↦ ?_).trans rfl
+    simp only [spZeroR, List.mem_cons, List.not_mem_nil, or_false] at hz
+    simp only [hR, decide_eq_true_eq]
+    omega
+  rw [spRi, h2, hR]
+  omega
 
 theorem spUnOK_iff {v : V} (h : spUnOK v = true) : spUn (spRen v) = v := by
-  have e : spRi (spR v.idx) = v.idx := Nat.eq_of_beq_eq_true h
+  have e : spRi (spR v.idx) = v.idx := spRi_spR (by simpa [spUnOK] using h)
   cases v
   simp only [spUn, spRen] at e ⊢
   rw [e]
