@@ -219,6 +219,13 @@ theorem bind_le (hP : Includes P Auto.Option.bind.costDeps) (f : α → Option �
   | none => rw [Auto.Option.bind.costEq_none P hP f fVal hf]; omega
   | some a => rw [Auto.Option.bind.costEq_some P hP a f fVal hf]; have := hB a rfl; omega
 
+/-- `Option.bind` (`bind`) where the value bound is `some a`: the closure's price on `a`, and `6`. -/
+theorem bind_some_eq (hP : Includes P Auto.Option.bind.costDeps) {f : α → Option β} {fVal : MachineValue}
+    (hf : ∀ a, RunsApp P fVal [encodeValue a] (encodeValue (f a))) {o : Option α} {a : α} (ho : o = some a) :
+    machineCost P Auto.Option.bind.costIdx [encodeValue o, fVal] = appCost P fVal [encodeValue a] + 6 := by
+  subst ho
+  exact Auto.Option.bind.costEq_some P hP a f fVal hf
+
 /-- `Option.bind` (`bind`): the closure's price and `6` at most. -/
 theorem bind_cost (hP : Includes P Auto.Option.bind.costDeps) (f : α → Option β) (fVal : MachineValue)
     (hf : ∀ a : α, RunsApp P fVal [encodeValue a] (encodeValue (f a))) (B : ℕ) (hB : ∀ a : α, appCost P fVal [encodeValue a] ≤ B)
