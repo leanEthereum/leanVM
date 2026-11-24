@@ -61,18 +61,21 @@ theorem term_params : (fn% «check_opening_terminal»).params = (List.range 20).
   subst hf
   rw [hp]; rfl
 
-theorem term_chk : chk 20 termT = some 1715 := by decide +kernel
-
-theorem term_stores : storesOf 20 termT =
-    [.load (.n (val% «check_opening_terminal» "s7#0")) (.n (val% «check_opening_terminal» "pi_chain")) 0, .load (.n (val% «check_opening_terminal» "s8#1")) (.n (val% «check_opening_terminal» "pi_chain")) 1] := by decide +kernel
-
-theorem term_flat : termPre.all Stmt.flat = true := by decide +kernel
-
-theorem term_addrs : termPre.filterMap Main.Stmt.addrS = [] := by decide +kernel
-
-theorem term_allocs : termPre.filterMap Main.Stmt.allocSz =
-    [(.n (val% «check_opening_terminal» "zeta_eq_chain"), .inl 35), (.n (val% «check_opening_terminal» "chi_eq_chain"), .inl 35), (.n (val% «check_opening_terminal» "pi_chain"), .inl 35), (.n (val% «check_opening_terminal» "out_eq_chain"), .inl 41), (.n (val% «check_opening_terminal» "ood_chain"), .inl 31)] := by
+/-- The body's facts below, by one kernel evaluation of the template. -/
+private theorem term_facts : chk 20 termT = some 1715 ∧ storesOf 20 termT = [.load (.n (val% «check_opening_terminal» "s7#0")) (.n (val% «check_opening_terminal» "pi_chain")) 0, .load (.n (val% «check_opening_terminal» "s8#1")) (.n (val% «check_opening_terminal» "pi_chain")) 1] ∧
+    termPre.all Stmt.flat = true ∧ termPre.filterMap Main.Stmt.addrS = [] ∧
+    termPre.filterMap Main.Stmt.allocSz = [(.n (val% «check_opening_terminal» "zeta_eq_chain"), .inl 35), (.n (val% «check_opening_terminal» "chi_eq_chain"), .inl 35), (.n (val% «check_opening_terminal» "pi_chain"), .inl 35), (.n (val% «check_opening_terminal» "out_eq_chain"), .inl 41), (.n (val% «check_opening_terminal» "ood_chain"), .inl 31)] := by
   decide +kernel
+
+theorem term_chk : chk 20 termT = some 1715 := term_facts.1
+
+theorem term_stores : storesOf 20 termT = [.load (.n (val% «check_opening_terminal» "s7#0")) (.n (val% «check_opening_terminal» "pi_chain")) 0, .load (.n (val% «check_opening_terminal» "s8#1")) (.n (val% «check_opening_terminal» "pi_chain")) 1] := term_facts.2.1
+
+theorem term_flat : termPre.all Stmt.flat = true := term_facts.2.2.1
+
+theorem term_addrs : termPre.filterMap Main.Stmt.addrS = [] := term_facts.2.2.2.1
+
+theorem term_allocs : termPre.filterMap Main.Stmt.allocSz = [(.n (val% «check_opening_terminal» "zeta_eq_chain"), .inl 35), (.n (val% «check_opening_terminal» "chi_eq_chain"), .inl 35), (.n (val% «check_opening_terminal» "pi_chain"), .inl 35), (.n (val% «check_opening_terminal» "out_eq_chain"), .inl 41), (.n (val% «check_opening_terminal» "ood_chain"), .inl 31)] := term_facts.2.2.2.2
 
 theorem term_not_loop : coreProgram.loop "check_opening_terminal" = false := by decide +kernel
 
