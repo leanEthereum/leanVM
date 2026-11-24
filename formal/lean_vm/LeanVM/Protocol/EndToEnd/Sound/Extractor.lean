@@ -159,8 +159,6 @@ end XRun
 
 variable {prog : LeanIsaProgram} {input : PublicInput}
 
-/-! ## The candidates -/
-
 /-! ## The memory image -/
 
 /-- Halting runs of equal images are equal. -/

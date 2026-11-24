@@ -1322,8 +1322,6 @@ theorem heapOkC_soundW {pows : PowTree} (hp : pows.Ok) {sigOf : String → HSig}
 
 end Main
 
-/-! ## `heapOk`'s statement -/
-
 end
 
 end LeanVM.Guest.CoreMode

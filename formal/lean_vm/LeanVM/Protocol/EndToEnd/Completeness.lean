@@ -41,15 +41,3 @@ Completeness is perfect: the only way the honest prover fails is a proof-of-work
 no nonce below the fuel, a search over Keccak-f outputs about which nothing is claimed here (the
 random-oracle model bounds it, `Complete.Rom`).
 -/
-
-namespace LeanVM.Protocol.EndToEnd
-
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Arithmetization LeanVM.Protocol.Compile
-open LeanVM.Protocol.Verifier LeanVM.Protocol.LeanIsa LeanVM.Protocol.EndToEnd.Front
-open LeanVM.Protocol.KeccakHash
-open Air.Flat (EnsembleWitness)
-
-@[expose] public section
-
-end
-end LeanVM.Protocol.EndToEnd

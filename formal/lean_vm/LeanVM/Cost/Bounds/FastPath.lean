@@ -27,8 +27,6 @@ public section
 
 variable (P : MachineProgram)
 
-/-! ## List functions -/
-
 /-! ## Field arithmetic: the subspace polynomial and the inverse -/
 
 /-- A product over `range n` (`prodRange.c103`): `B + 41` per factor, `5` at the end. -/

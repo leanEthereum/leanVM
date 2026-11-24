@@ -102,8 +102,6 @@ theorem pubLimb_eq (publicInput : Digest) (r : E) (ℓ : Fin 2) :
   simp only [pubLimb, multilinearEval, List.foldl, foldPairs, List.headD]
   ring
 
-/-! ## The statement of the instance -/
-
 /-! ## The fidelity of the claims -/
 
 section Fidelity

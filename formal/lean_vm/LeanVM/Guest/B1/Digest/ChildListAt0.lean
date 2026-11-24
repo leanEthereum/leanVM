@@ -304,7 +304,5 @@ theorem clU_big {a q : ℕ} (hq : q ≤ a) : clU a q = 8 * q := by
 theorem clU_grp (a q : ℕ) : clU a (a + q) = 8 * a + q := by
   unfold clU; rw [Nat.min_eq_right (by omega)]; omega
 
-/-! ## The last claims -/
-
 end
 end LeanVM.Guest.B1.Digest

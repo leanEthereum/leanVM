@@ -201,7 +201,5 @@ def ccBufs (_ : ℕ) (_ : Val) : List ℕ := []
 /-- `child_claim_list_any`'s tree of honest shape. -/
 def ccTs (n : ℕ) : List (Tree → Prop) := [fun _ => True, anyHonest n]
 
-/-! ## The nonempty list -/
-
 end
 end LeanVM.Guest.B1.Digest

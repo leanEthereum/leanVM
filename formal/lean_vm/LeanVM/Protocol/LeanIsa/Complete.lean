@@ -587,8 +587,6 @@ theorem witnessOf_stackOf {input : PublicInput} (h : SatisfiedBy prog input w)
     exact (congr (congrArg E.ofLimbs (memLimb_stackOf h hp 0 x))
       (memLimb_stackOf h hp 1 x)).trans (ofLimbs_limb _)
 
-/-! ## The refinement -/
-
 end
 
 end LeanVM.Protocol.LeanIsa

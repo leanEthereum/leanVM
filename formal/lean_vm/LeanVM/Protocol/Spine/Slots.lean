@@ -82,8 +82,6 @@ abbrev pubSlot : Slot :=
 noncomputable abbrev pubErrors : Errors pubSlot.tree pubSlot.roles :=
   (overE 1, fun _ _ ↦ PUnit.unit)
 
-/-! ## Ring switching -/
-
 /-! ## Each slot's errors along a path -/
 
 /-- The bus phase's errors sum to at most `(2^{μ_bus} + (μ_bus + 1)·2 + 2μ_bus² + 3μ_bus + 3)/|E|`

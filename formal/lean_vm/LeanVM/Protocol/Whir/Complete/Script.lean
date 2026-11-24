@@ -41,7 +41,7 @@ Nothing here is specific to WHIR: the module is generic over verifier programs a
 for `LeanVM.Protocol.Compile`, next to `Strategy`, for the honest provers of the other phases.
 -/
 
-namespace LeanVM.Protocol.Whir.Complete
+namespace LeanVM.Prover.Script
 
 open LeanVM.Parameters LeanVM.Protocol.Compile
 
@@ -51,16 +51,6 @@ open LeanVM.Parameters LeanVM.Protocol.Compile
 
 The type `Script` and its moves are the statement's (`Statement/Prover/Script.lean`); the replay
 along a history and the simulation are proofs. -/
-
-end
-
-end LeanVM.Protocol.Whir.Complete
-
-namespace LeanVM.Prover.Script
-
-open LeanVM.Parameters LeanVM.Protocol.Compile
-
-@[expose] public section
 
 variable {α β : Type}
 
