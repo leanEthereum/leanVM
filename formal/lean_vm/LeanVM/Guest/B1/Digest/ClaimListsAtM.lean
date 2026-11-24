@@ -8,7 +8,8 @@
 
 module
 
-public import LeanVM.Guest.B1.Digest.ClaimListsAtTB
+public import LeanVM.Guest.B1.Digest.ClaimListsAtT
+public import LeanVM.Guest.B1.Digest.ClaimListAtTB
 public import LeanVM.Guest.B1.Digest.MonoAt
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«child_claim_list_digest»
@@ -18,6 +19,7 @@ import LeanVM.Guest.Data.ValNames.«child_claim_list_digest»
 
 `ccQH n h`: `ccQ n` with the hint `h` at `v29`. `ccCallsM mono n`, `ccTsM mono n`: `list_split`,
 then `child_claim_list_mono` (by `monoHonest n`) or `child_claim_list_any` (by `anyHonest n`).
+`list_split_nB`: `list_split` on `g^n` within its static bound (a hypothesis, `TotalLe`).
 `ccBM fs SB mono n`: the words, `monoB` or `anyB` after `list_split`. The placed completeness on
 either walk is `ClaimListsAtMP.lean`'s.
 -/
@@ -97,6 +99,18 @@ def ccKidsM (Lin : Main.Layout) (eP rg L n : ℕ) (base : E) (D : Digest) (mono 
 def ccArm (mono : Bool) : List Stmt := if mono then ccMonoArm else ccAnyArm
 
 /-! ## Within bounds -/
+
+/-- `list_split` on `g^n`, within its static bound. -/
+theorem list_split_nB (fs : String → ℕ) (cert : String → V → ℕ) {κ n : ℕ} (hκ : 20 ≤ κ)
+    (hn : n < claimBig * bigFramesCap) {Bls : ℕ}
+    (hT : TotalLe coreProgram fs "list_split" (fun _ => Bls)) :
+    CompleteAtDTB fs cert κ "list_split" [] [gen ^ n]
+      (Returns [gen ^ (n / 136), gen ^ (n % 136 / 17), gen ^ (n % 17)]) (fun _ => True) Bls := by
+  simp only [claimBig, bigFramesCap] at hn
+  have := list_split_completeAtDTB fs cert (a := n / 136) (b := n % 136 / 17) (c := n % 17) hκ
+    (by simp [bigFramesCap]; omega) (by simp [bigGroups]; omega) (by simp [claimGroup]; omega) hT
+  rwa [show claimBig * (n / 136) + claimGroup * (n % 136 / 17) + n % 17 = n by
+    simp [claimBig, claimGroup]; omega] at this
 
 /-- **`child_claim_list_digest`'s words** on `n` claims, on the walk `mono`. -/
 def ccBM (fs : String → ℕ) (SB : String → ℕ) (mono : Bool) (n : ℕ) : ℕ :=
