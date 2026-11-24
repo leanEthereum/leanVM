@@ -1,7 +1,7 @@
 module
 
 public import LeanDa.StraightTree
-public import Common.Duplex.Vec
+public import Common.Duplex.Calls
 public import LeanDa.WithHash
 
 @[expose] public section
@@ -9,7 +9,7 @@ public import LeanDa.WithHash
 /-!
 # The straight-line world and its bad events
 
-The world of the straight-line proof of code binding (`LeanDa.Straight`): `H` and the draws `G`
+The world of the straight-line proof of the membership test's soundness (`LeanDa.Straight`): `H` and the draws `G`
 two lazily sampled random oracles, `G` on a root and a label (`GSpec`, the duplex lemma's world).
 Its caches are **good** (`Good`) when `H` is injective on its cached inputs and, for every root
 `d` and the draw the nonce search would select so far (`FirstValid`: the first cached nonce's draw
@@ -43,7 +43,7 @@ his membership test's soundness.
 set_option linter.unusedSectionVars false
 
 open OracleComp OracleSpec Common Common.SeedDuplex MeasureTheory PqDas
-open Common.Duplex (GSpec hP gaP VSpec toV)
+open Common.Duplex (GSpec hP gaP)
 open scoped ENNReal
 
 namespace Common
@@ -170,12 +170,6 @@ theorem good_empty (r : ℕ) : Good r ∅ :=
 theorem fOf_of_mem {c : GCache} {a : List UInt8} {u : Common.DigestBytes} (h : c (.inl a) = some u) :
     fOf c a = u := by simp [fOf, h]
 
-theorem cache_inl_eq_fOf {c : GCache} {a : List UInt8} (h : a ∈ domH c) :
-    c (.inl a) = some (fOf c a) := by
-  rcases hc : c (.inl a) with _ | u
-  · exact absurd hc h
-  · simp [fOf, hc]
-
 section Insert
 
 variable (c : GCache)
@@ -188,10 +182,6 @@ theorem gcache_inl_inl (a b : List UInt8) (u : Common.DigestBytes) :
 
 theorem gcache_inl_inr (a : List UInt8) (u : Common.DigestBytes) (e : Common.DigestBytes × Fin nLabels) :
     (c.cacheQuery (.inl a) u) (.inr e) = c (.inr e) :=
-  QueryCache.cacheQuery_of_ne _ _ (by simp)
-
-theorem gcache_inr_inl (e : Common.DigestBytes × Fin nLabels) (x : Draw) (a : List UInt8) :
-    (c.cacheQuery (.inr e) x) (.inl a) = c (.inl a) :=
   QueryCache.cacheQuery_of_ne _ _ (by simp)
 
 theorem gcache_inr_inr (e e' : Common.DigestBytes × Fin nLabels) (x : Draw) :
@@ -693,7 +683,6 @@ theorem prob_fresh_step_le {β : Type} {r : ℕ} (hr : r ≤ maxRows) {c : GCach
         OpenBelow (c.cacheQuery (.inr (d, j)) x) d (j.val + 1)] = 0 :=
       prEvent_eq_zero_of_forall_mem_support _ _ fun x _ hx ↦ hO (hopen x hx).1
     rw [h0, h1, mul_zero, add_zero]
-
 
 theorem run_gaP (d : Common.DigestBytes) (j : Fin nLabels) (c : GCache) :
     (simulateQ GW.romImpl (gaP (Msg := List UInt8) (Dg := DigestBytes) d j)).run c =

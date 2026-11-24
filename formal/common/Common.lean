@@ -8,7 +8,7 @@ import Common.Keccak
 import Common.Signature
 import Common.Lanes
 import Common.PiOnly
-import Common.Duplex.Vec
+import Common.Duplex.Calls
 import Common.Linear
 import Common.SeedKey
 import Common.StaticSwap
@@ -117,20 +117,10 @@ axioms. -/
 #guard_msgs (whitespace := lax) in
 #print axioms Common.SeedDuplex.duplex_le
 
-/-- info: 'Common.SeedDuplex.run'_romImpl_evalDistEq_vec' depends on axioms:
-[propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms Common.SeedDuplex.run'_romImpl_evalDistEq_vec
-
 /-- info: 'Common.run'_romImpl_evalDistEq_eager' depends on axioms:
 [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Common.run'_romImpl_evalDistEq_eager
-
-/-- info: 'Common.run'_romImpl_evalDistEq_swap' depends on axioms:
-[propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms Common.run'_romImpl_evalDistEq_swap
 
 /-- info: 'Common.run_rerun' depends on axioms:
 [propext, Classical.choice, Quot.sound] -/

@@ -45,14 +45,14 @@ specified in `doc/leanvm/body/10-ethereum.tex`
   transcribed computably on lists, for `lean_vm` to state the aggregation node's DA claim with:
   `commitCodewords`, the tree of blob trees level by level, which is `commitCells` of the matrix
   (`commitCodewords_eq_commitCells`, `LeanDa.Commitment`); the challenge's sponge (`Sponge`,
-  `membershipChallenge`); the table of the normalized subspace polynomials at the basis
+  `LeanDa.WithHash`); the table of the normalized subspace polynomials at the basis
   (`subspaceEvaluations`, the NTT's `twiddle`) and its subset sums
   (`subspaceAbove`, `vhat`), from which the guest builds `L` (`dualCodeword`, the
   crate's test `dual_codeword`), which `LeanDa.Subspace` proves are `Ŵ_j` and `dualCodewordAt`.
 
 The row count `r` is a parameter. The crate takes `1 ≤ r ≤ maxRows` (`BlobMatrix::build` rejects any other
 count with a `BlobCountError`, `commit.rs`, `lib.rs`);
-the statements hold for `1 ≤ r ≤ maxRows`. So are the hash `H` and the sponge's permutation `P`: the
+the statements hold for `r ≤ maxRows`. So are the hash `H` and the sponge's permutation `P`: the
 crate's are Keccak-256 (Ethereum's: rate `136` bytes, padding `0x01 ‖ 0^* ‖ 0x80`,
 `verifier/src/hash.rs`) and the Keccak-f[1600] it is built on, which `lean_vm` supplies,
 and the statements hold for every `H` and `P`.
@@ -73,21 +73,6 @@ namespace LeanDa
 at `z_j = z^(2^j)` it is `z^u`. -/
 def tensor (z : Fin 13 → E) (u : Fin (2 ^ 13)) : E :=
   ∏ j : Fin 13, if (u : ℕ).testBit j then z j else 1
-
-/-! ## The challenge (`verifier/src/da.rs`)
-
-Drawn from the root by the duplex sponge the security game models as a random oracle, over a
-hash `H` and a permutation `P` of `25` lanes. The crate's are Keccak-256 and Keccak-f[1600]
-(`keccak_f`, `verifier/src/hash.rs`), which `lean_vm` supplies; the definitions hold for
-every `H` and `P`. A lane is a `u64`, read as the element of `K` with its bits, so a scalar's limbs
-are lanes as they are. The rate is lanes `0 … 15`, the capacity lanes `16 … 24`. -/
-
-variable (H : List UInt8 → Common.DigestBytes)
-  (P : LeanVM.Semantics.KeccakState → LeanVM.Semantics.KeccakState)
-
-/-- **The challenge of a root** with a pure hash and permutation (`membership_challenge`). -/
-def membershipChallenge (root : Common.DigestBytes) : Option E :=
-  Id.run (membershipChallengeMWithHash (fun a ↦ pure (H a)) (fun L ↦ pure (P L)) root)
 
 /-! ## The dual codeword as the guest builds it (`vhat` in `aggregation`'s `placeholders.rs`) -/
 

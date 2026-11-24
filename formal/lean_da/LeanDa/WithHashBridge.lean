@@ -12,9 +12,10 @@ its own (`LeanDa.WithHash`). Each statement definition is the hash-parameter one
 Keccak-256 over the permutation (`hashOver π`, `keccakDigestBytes P`), by unfolding, and by
 induction for the recursive ones (`merkleRootWith_id`, `walkM_eq_withHash`,
 `merkleRootM_eq_withHash`); the statement's membership challenge, drawn with the leanVM verifier's
-sponge, is the proofs' duplex's (`membershipChallengeM_eq_withHash`). So the statement's games
-are the hash-parameter ones (`positionBindingGame_eq_withHash`, …), and its end statements follow from those
-(`positionBindingRpm_of_withHash`, …).
+sponge, is the proofs' duplex's (`membershipChallengeM_eq_withHash`).
+
+This module is part of the instantiation of Benedikt Wagner's framework for erasure code
+commitments (`PqDas`, ported from https://github.com/b-wagn/fv-pq-da) with LeanDA.
 -/
 
 @[expose] public section
@@ -203,62 +204,11 @@ theorem relationM_eq_withHash [LawfulMonad m] {r : ℕ} (root : DigestBytes) (c 
 
 end Monadic
 
-/-! ## The games and the end statements -/
+/-! ## The model's hash -/
 
 /-- Keccak-256 over the model's `π` is `keccak256OverPermutation`. -/
 theorem keccakDigestBytes_queryPermutation :
     keccakDigestBytes queryPermutation = keccak256OverPermutation := rfl
-
-theorem relationForPermutation_eq_withHash (r : ℕ) :
-    relationForPermutation r = relationForPermutationWithHash r := by
-  funext π root c
-  simp only [relationForPermutation, relationForPermutationWithHash, relationM_eq_withHash]; rfl
-
-variable (r : ℕ) {Crs Proof : Type} (ps : LeanDaArgument r Crs Proof)
-  (ext : StraightLineExtractor DigestBytes (Fin (r * 128) → Cell) Crs Proof)
-
-theorem positionBindingGame_eq_withHash (A : PositionBindingAdversary r Crs Proof) :
-    positionBindingGame r ps A = positionBindingGameWithHash r ps A := by
-  simp only [positionBindingGame, positionBindingGameWithHash, verifyCellM_eq_withHash,
-    keccakDigestBytes_queryPermutation]
-
-theorem codeBindingGame_eq_withHash (A : CodeBindingAdversary r Crs Proof) :
-    codeBindingGame r ps A = codeBindingGameWithHash r ps A := by
-  simp only [codeBindingGame, codeBindingGameWithHash, verifyCellM_eq_withHash,
-    keccakDigestBytes_queryPermutation]
-
-theorem knowledgeSoundnessGame_eq_withHash (B : KnowledgeSoundnessAdversary Crs Proof) :
-    knowledgeSoundnessGame r ps ext B = knowledgeSoundnessGameWithHash r ps ext B := by
-  simp only [knowledgeSoundnessGame, knowledgeSoundnessGameWithHash, relationM_eq_withHash,
-    keccakDigestBytes_queryPermutation]
-
-theorem completenessExperiment_eq_withHash (π : Equiv.Perm KeccakState) (msg : Fin r → Payload)
-    (p : Fin (r * 128)) :
-    completenessExperiment r π ps msg p = completenessExperimentWithHash r π ps msg p := by
-  simp only [completenessExperiment, completenessExperimentWithHash, commitCells_eq_withHash,
-    openCell_eq_withHash, verifyCellM_eq_withHash]; rfl
-
-/-- **Perfect completeness, from the hash-parameter form.** -/
-theorem perfectlyCompleteRpm_of_withHash (h : PerfectlyCompleteRpmWithHash) :
-    LeanDaPerfectlyComplete := by
-  intro r π Crs Proof ps hr hps msg p
-  rw [completenessExperiment_eq_withHash]
-  exact h r π ps hr (relationForPermutation_eq_withHash r ▸ hps) msg p
-
-/-- **Position binding, from the hash-parameter form.** -/
-theorem positionBindingRpm_of_withHash (h : PositionBindingRpmWithHash) :
-    LeanDaPositionBinding := by
-  intro r Crs Proof ps A Q hQ
-  rw [positionBindingGame_eq_withHash] at hQ ⊢
-  exact h r ps A Q hQ
-
-/-- **Code binding, from the hash-parameter form.** -/
-theorem codeBindingRpm_of_withHash (h : CodeBindingRpmWithHash) : LeanDaCodeBinding := by
-  intro r Crs Proof ps ext c k hks hr hrmax A Q hQ
-  rw [codeBindingGame_eq_withHash] at hQ ⊢
-  refine h r ps ext c k (fun B q hq hq' ↦ ?_) hr hrmax A Q hQ
-  rw [← knowledgeSoundnessGame_eq_withHash] at hq ⊢
-  exact hks B q hq hq'
 
 end LeanDa
 

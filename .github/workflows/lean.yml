@@ -99,7 +99,7 @@ jobs:
       - name: Check the axiom footprint
         working-directory: formal/common
         run: |
-          theorems="Common.indifferentiability Common.transfer Common.transfer2 Common.keccak256_indifferentiable Common.keccak256_transfer Common.keccak256_transfer2 Common.SufCma.rpm_le_romB Common.SufCma.stronglyUnforgeable_of_romBoundAdv Common.SeedDuplex.duplex_le Common.SeedDuplex.duplex_ge"
+          theorems="Common.indifferentiability Common.transfer Common.transfer2 Common.keccak256_indifferentiable Common.keccak256_transfer Common.keccak256_transfer2 Common.SufCma.rpm_le_romB Common.SufCma.stronglyUnforgeable_of_romBoundAdv Common.SeedDuplex.duplex_le"
           { echo 'import Common'; for t in $theorems; do echo "#print axioms $t"; done; } > "$RUNNER_TEMP/axioms.lean"
           lake env lean "$RUNNER_TEMP/axioms.lean" | tee "$RUNNER_TEMP/axioms.txt"
           for t in $theorems; do
@@ -241,12 +241,12 @@ jobs:
         run: |
           lake build 2>&1 | tee "$RUNNER_TEMP/build.log"
           ! grep -E '^warning: (LeanDa|PqDas).*has been deprecated' "$RUNNER_TEMP/build.log"
-      # LeanDA's security is Benedikt Wagner's framework, theorems and proofs
-      # (b-wagn/fv-pq-da), ported and instantiated with LeanDA.
+      # LeanDA's security, on Benedikt Wagner's framework for erasure code commitments
+      # (b-wagn/fv-pq-da), instantiated with LeanDA.
       - name: Check the axiom footprint
         working-directory: formal/lean_da
         run: |
-          theorems="LeanDa.leanDa_perfectlyComplete_rpm LeanDa.leanDa_positionBinding LeanDa.leanDa_codeBinding LeanDa.checker_sound LeanDa.commitCodewords_eq_commitCells LeanDa.dualCodeword_eq_dualCodewordAt LeanDa.membershipChallengeM_id LeanDa.leanDa_positionBinding_rpm LeanDa.leanDa_codeBinding_rpm LeanDa.leanDa_codeBinding_rpm_bound"
+          theorems="LeanDa.leanDa_complete LeanDa.leanDa_positionBinding_rpm LeanDa.leanDa_membershipSound_rpm LeanDa.commitCodewords_eq_commitCells LeanDa.dualCodeword_eq_dualCodewordAt"
           { echo 'import LeanDa'; for t in $theorems; do echo "#print axioms $t"; done; } > "$RUNNER_TEMP/axioms.lean"
           lake env lean "$RUNNER_TEMP/axioms.lean" | tee "$RUNNER_TEMP/axioms.txt"
           for t in $theorems; do

@@ -31,9 +31,10 @@ git = "https://github.com/leanprover-community/mathlib4"
 rev = "v4.36.0"
 
 # The statement files are `Statement/*.lean` (modules `Statement.<Name>`), the generated guest
-# data `Statement/Data/*.lean`, the proved `@[csimp]` lemmas `Statement/Fast/*.lean` that
-# make the compiled definitions fast; the package directory is `Statement/`, so the sources are
-# found from its parent.
+# data `Statement/Data/*.lean`, the proved `@[csimp]` lemmas `Statement/Fast/*.lean` that make the
+# compiled definitions fast, and the proofs of the laws the definitions need
+# `Statement/Lemmas/*.lean`; the package directory is `Statement/`, so the sources are found from
+# its parent.
 [[lean_lib]]
 name = "Statement"
 srcDir = ".."
@@ -43,4 +44,4 @@ globs = ["Statement.Keccak", "Statement.RandomPermutation", "Statement.SufCma", 
   "Statement.LeanVmGuestProver", "Statement.LeanVmGuestCompleteness", "Statement.CostMachine",
   "Statement.Theorems",
   "Statement.Corollaries",
-  "Statement.Data.+", "Statement.Fast.+", "Statement.Prover.+"]
+  "Statement.Data.+", "Statement.Fast.+", "Statement.Lemmas.+", "Statement.Prover.+"]

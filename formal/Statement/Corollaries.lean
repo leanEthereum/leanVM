@@ -44,14 +44,9 @@ execution is extracted, or the decoder program `guestWitnessDecoder`, run on it 
 (`LeanVmGuest.lean`), outputs the encoding of no decoding that explains `statement`
 (`ExplainsStatement`). It composes `KnowledgeSoundness`, `GuestKnowledgeSoundness` and
 `StatementDigestBinds`; its probability is at most the bound of `KnowledgeSoundness`,
-`(Q + 2^14) · 2^-125 + 5 (Q + 2^14)² · 2^-256`, for `Q ≤ 2^128` queries to `π`, `π⁻¹`.
-
-Keccak-256 and Keccak-f[1600] outside the executed program are built from `π`, so the verifier
-seeds its transcript with the IV over `π`; the statement's digest, its seed (`deployedSeed`, the IV
-over the deployed Keccak-f[1600]) and the collisions are of the deployed Keccak-256, which the guest
-program computes. A child's claims carry knowledge only through its fresh claim, which this
-statement does not make true: the root's deferred claim holds, but the batching that ties it to the
-children's fresh claims is sound only outside the circuit (`LeanVmGuest.lean`). -/
+`(Q + 2^14) · 2^-125 + 5 (Q + 2^14)² · 2^-256`, for `Q ≤ 2^128` queries to `π`, `π⁻¹`. The
+digest, the seed and the collisions are of the deployed Keccak-256 (`statement.tex`: two Keccaks
+meet here). -/
 def AggregateSound (guest : LeanIsaProgram) (guestWitnessDecoder : LeanVM.Cost.MachineProgram)
     (extractor : StraightLineExtractor) : Prop :=
   ∀ (adversary : RandomPermutationAdversary) (Q : ℕ),

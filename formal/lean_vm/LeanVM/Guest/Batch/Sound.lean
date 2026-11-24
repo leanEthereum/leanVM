@@ -135,7 +135,7 @@ theorem holds_of_gaps {bytecode : List K} {cs : List ChildClaims}
   have g := fun g hg ↦ hz g (List.mem_flatMap.mpr ⟨c, hc', hg⟩)
   have e1 := sub_eq_zero.mp (g _ (List.mem_cons_self ..))
   have e2 := sub_eq_zero.mp (g _ (List.mem_cons_of_mem _ (List.mem_cons_self ..)))
-  refine ⟨e1.symm, hc c hc', ?_, e2.symm⟩
+  refine ⟨e1.symm, ?_, e2.symm⟩
   rw [hc c hc', hpow]
 
 /-- **The batching is sound, challenge by challenge**: an accepted batching whose deferred claim
@@ -150,9 +150,8 @@ theorem batch_sound {bytecode : List K} {cs : List ChildClaims} {h : BatchingHin
   split_ifs at hb with hpow hfin
   injection hb with hd'
   subst hd'
-  obtain ⟨hlog, hpow, hval⟩ := hd
-  simp only [DeferredBytecodeClaim.HasBytecodeShape] at hlog hpow hval
-  rw [length_rsRun] at hlog hpow
+  obtain ⟨hpow, hval⟩ := hd
+  rw [length_rsRun] at hpow
   set n := h.sumcheckMessages.length
   have hlog' : Nat.log2 bytecode.length = n := by rw [← hpow, Nat.log2_two_pow]
   have hpB : ∀ c ∈ cs, c.freshClaim.bytecodePoint.length = n ∧ c.carriedClaim.bytecodePoint.length = n :=

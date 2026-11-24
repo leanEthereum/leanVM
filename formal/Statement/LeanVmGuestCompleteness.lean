@@ -142,13 +142,11 @@ its proof's claim, its statement's claim. -/
 def childWordCount (bytecodeVariableCount : ℕ) : ℕ :=
   2 + (bytecodeVariableCount + 1) + (bytecodeVariableCount + 1)
 
-/-- A child read off its words (`ChildClaims.words`); `none` where the public input does not
-decode. -/
-def parseChild (bytecodeVariableCount : ℕ) (words : List E) : Option ChildClaims := do
-  let publicInput ← digestFromHalves (words.getD 0 0, words.getD 1 0)
+/-- A child read off its words (`ChildClaims.words`). -/
+def parseChild (bytecodeVariableCount : ℕ) (words : List E) : ChildClaims :=
   let claimWords := words.drop 2
   let carriedWords := claimWords.drop (bytecodeVariableCount + 1)
-  return ⟨publicInput,
+  ⟨digestFromHalves (words.getD 0 0, words.getD 1 0),
     ⟨claimWords.take bytecodeVariableCount, claimWords.getD bytecodeVariableCount 0⟩,
     ⟨carriedWords.take bytecodeVariableCount, carriedWords.getD bytecodeVariableCount 0⟩⟩
 
@@ -157,7 +155,7 @@ def readChild (bytecodeVariableCount : ℕ) : VerifierProgram ChildClaims := do
   let wordCount := childWordCount bytecodeVariableCount
   let words ← VerifierProgram.readScalars (wordCount + zerosToWholeRate wordCount)
   VerifierProgram.require (words.drop wordCount = List.replicate (zerosToWholeRate wordCount) 0)
-  liftOption (parseChild bytecodeVariableCount words)
+  return parseChild bytecodeVariableCount words
 
 /-- Read `childCount` children. -/
 def readChildren (bytecodeVariableCount : ℕ) : (childCount : ℕ) → VerifierProgram (List ChildClaims)
@@ -219,16 +217,8 @@ outputs a proof; the probability that the batching's verifier over `π` (Keccak-
 `π`) accepts it while its stream begins with fewer than `M` children of the bytecode's shapes one
 of whose claims is false is at most `(QA + QV + 1) · max(2M - 3, 8) · 2^-130 + 5 (QA + QV)² · 2^-256`,
 for `QA ≤ 2^128` and the program's query bound `QV = batchingQueryBound bytecode M ≤ 2^96`; the
-adversary's private coins are free. The factor `max(2M - 3, 8) · 2^-130` bounds each query's chance at
-a challenge: a sumcheck round's is bad at no more than `2` values, `2/|E| = 8 · 2^-130`; the
-batching's one challenge `λ` combines the children's `2n` claims, `n < M`, with its powers, a
-nonzero combination of degree at most `2M - 3` vanishes at no more than `2M - 3` values of `λ`, and
-a query reaches `λ` only by passing the proof of work of `batchLambdaGrindBits` bits before it, `2`
-at `maxRecursions = 16`.
-
-This is the batching run outside the circuit, with Keccak-f[1600] = `π`; it does not compose with
-the guest program's in-circuit statements, whose `KECCAK` instruction computes the deployed
-Keccak-f[1600], so soundness across recursion levels does not follow from it. -/
+adversary's private coins are free. This is the batching run outside the circuit, with
+Keccak-f[1600] = `π`; it does not compose with the in-circuit statements (`statement.tex`). -/
 def BatchingSound : Prop :=
   ∀ (M : ℕ) (bytecode : List K), bytecode.length = 2 ^ Nat.log2 bytecode.length →
     M ≤ 2 ^ 64 - 1 →

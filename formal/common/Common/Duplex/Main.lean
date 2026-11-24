@@ -27,7 +27,7 @@ set_option linter.unusedSectionVars false
 
 open OracleComp OracleSpec MeasureTheory
 open Common
-open Common.Duplex (GSpec hP gaP VSpec toV)
+open Common.Duplex (GSpec hP gaP)
 open scoped ENNReal
 
 namespace Common
@@ -351,7 +351,6 @@ theorem tab_le [Inhabited Z] {εc : ℝ≥0∞}
   rw [prEvent_map] at h
   rw [h, ← hc]
 
-
 /-- **The duplex lemma.** In the two-oracle random-oracle model, a computation `B` with at most
 `NB` calls of `F`, then the duplex challenges `chalP` of a root it chose, then a computation
 `post` of the challenges with coins and `H`: its success probability is at most that of the
@@ -388,52 +387,5 @@ theorem duplex_le [Inhabited Z] {εc : ℝ≥0∞}
   refine prEvent_bind_le_add_const _ _ _ _ _ _ fun g ↦ ?_
   rw [run'_simulateQ_foldWith]
   exact tab_le hcap g B NB hB root post
-
-end Common.SeedDuplex
-
-namespace Common.SeedDuplex
-
-variable {Msg Dg St Root Z W Cp : Type} {n : ℕ}
-  [DecidableEq Msg] [DecidableEq St] [DecidableEq Root] [DecidableEq Cp]
-  [SampleableType Dg] [SampleableType St] [SampleableType Z] [SampleableType W]
-  [Fintype St] [Fintype Z] [Fintype W] [Fintype Root] [Nonempty Z]
-  {D : DuplexSpec Msg Dg St Root Z W Cp n}
-
-/-- Two worlds whose events sum to one: one bound on the complements is the reverse bound. -/
-theorem le_add_of_compl {x y : ProbComp Bool} {δ : ℝ≥0∞}
-    (h : Pr{let b ← x}[b = false] ≤ Pr{let b ← y}[b = false] + δ) :
-    Pr{let b ← y}[b = true] ≤ Pr{let b ← x}[b = true] + δ := by
-  have tx := prEvent_add_prEvent_not_eq_prEvent_true x (· = true)
-  have ty := prEvent_add_prEvent_not_eq_prEvent_true y (· = true)
-  rw [OracleComp.prEvent_true_eq_one] at tx ty
-  simp only [Bool.not_eq_true] at tx ty
-  have hfin : Pr{let b ← x}[b = false] ≠ ⊤ := ne_top_of_le_ne_top ENNReal.one_ne_top (prEvent_le_one _)
-  refine (ENNReal.add_le_add_iff_right hfin).mp ?_
-  calc Pr{let b ← y}[b = true] + Pr{let b ← x}[b = false]
-      ≤ Pr{let b ← y}[b = true] + (Pr{let b ← y}[b = false] + δ) := add_le_add le_rfl h
-    _ = 1 + δ := by rw [← add_assoc, ty]
-    _ = Pr{let b ← x}[b = true] + δ + Pr{let b ← x}[b = false] := by rw [← tx]; ring
-
-/-- **The duplex lemma, reversed**: the simulated world's success probability is at most the
-two-oracle world's plus the same `N · (2N · εc)`. It follows from `duplex_le` for the negated
-`post`, the two worlds' successes and failures each summing to one. LeanDA's code binding uses it
-to read Benedikt Wagner's knowledge-soundness term back in the random-permutation model
-(`lean_da`, `LeanDa/KsRpm.lean`). -/
-theorem duplex_ge [Inhabited Z] {εc : ℝ≥0∞}
-    (hcap : ∀ c, Pr{let w ← ($ᵗ W : ProbComp W)}[D.capW w = c] ≤ εc)
-    {β : Type} (B : OracleComp (Rom2 Msg Dg St) β) (NB : ℕ)
-    (hB : QueryCostAtMost B (fCalls (Msg := Msg) (Dg := Dg) (St := St)) NB) (root : β → Root)
-    (post : β → (Fin n → Z) → OracleComp (unifSpec + roSpec Msg Dg) Bool) :
-    Pr{let b ← (simulateQ (GSpec Msg Dg Root Z n).romImpl ((simulateQ (simImpl D hP gaP)
-        (hQ (St := St) D.label >>= fun _ ↦ B)).run' SimSt.init >>= fun b ↦
-          readVec (Msg := Msg) (Dg := Dg) (root b) >>= fun l ↦ simulateQ embG (post b l))).run' ∅}[
-          b = true] ≤
-      Pr{let b ← (simulateQ (hfSpec Msg Dg St).romImpl (B >>= fun b ↦
-        chalP D (root b) >>= fun zs ↦ simulateQ embH (post b (toVec zs)))).run' ∅}[b = true] +
-        (NB + n + 1 : ℕ) * (2 * (NB + n + 1 : ℕ) * εc) := by
-  have h := duplex_le hcap B NB hB root (fun b l ↦ (fun x ↦ !x) <$> post b l)
-  simp only [simulateQ_map, ← map_bind, StateT.run'_eq, StateT.run_map, Functor.map_map] at h
-  refine le_add_of_compl ?_
-  simpa only [StateT.run'_eq, prEvent_map, Function.comp_def, Bool.not_eq_true'] using h
 
 end Common.SeedDuplex

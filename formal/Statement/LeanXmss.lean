@@ -1,9 +1,6 @@
 module
 
 public import Statement.HashSignatures
-public import VCVio.OracleComp.QueryTracking.LoggingOracle.Core
-public import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
-public import VCVio.OracleComp.QueryTracking.WriterCost
 
 /-!
 # leanXMSS
@@ -483,11 +480,7 @@ noncomputable def sufCmaScheme :
     decide (SigningTranscript.NoLeafIndexReused log ∧
       ¬SignerReturnedForgery SigningRequest.message log forgery.message forgery.signature)
 
-/-- The additive constant of leanXMSS's bound, in units of `2^-127`, while `q` counts permutation
-calls: the random-oracle step's `530 = (2 · 384 + 290 + 2) / 2` hash calls (the forgery's
-verification, `384` calls, counted in each of the proof's two lanes; lane 1's `290` forgery probes;
-the two seed guesses), carried over by the transfer, plus its indifferentiability term's one unit,
-rounded up. Key generation needs no payment in this proof. -/
+/-- The additive constant of leanXMSS's bound, in units of `2^-127` (`statement.tex` derives it). -/
 def securitySlack : Nat := 2 ^ 10
 
 /-- **leanXMSS in the random-permutation model**: an adversary that itself makes at most `q` calls

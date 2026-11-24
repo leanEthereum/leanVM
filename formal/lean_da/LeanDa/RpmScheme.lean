@@ -16,7 +16,7 @@ sponge over a permutation `π` of the 200-byte Keccak-f[1600] state, and the cha
 sponge `P` with `π` itself. The definitions of `LeanDa.Scheme` take `H` and `P` as functions; here
 they are transcribed for oracles, in any monad (`Sponge.newWith`, `grindMWithHash`,
 `membershipChallengeMWithHash`, `walkMWithHash`, `verifyCellMWithHash`), and are the scheme's own
-for pure ones (`membershipChallengeM_id`, `verifyCellM_id`).
+for pure ones (`verifyCellM_id`).
 
 **Lanes and bytes.** The sponge's state is the statement's `KState`, `25` lanes of `u64`, read
 on the permutation's `200` bytes: lane `i` is bytes `8 i … 8 i + 7`, little endian
@@ -25,8 +25,7 @@ an element of `K` has the bytes `laneBytes` gives it (`laneBytes_toList`). `lane
 `stateToLanes` convert, and a duplexing writes the rate lanes `0 … 15` and keeps lanes `16 … 24`, that is bytes
 `128 … 199`: the capacity and the last rate byte `135`, whose top bit no padded block has clear
 (`Common.keccakNF`). So every permutation call of the challenges' sponge absorbs a non-final
-block into the zero state or into an earlier answer (`duplexP_membershipChallengeR`,
-`duplexP_membershipChallengeVecR`): the duplex
+block into the zero state or into an earlier answer (`duplexP_membershipChallengeR`): the duplex
 discipline of the two-oracle transfer (`Common.keccak256_transfer2`).
 
 This module is part of the instantiation of Benedikt Wagner's framework for erasure code
@@ -69,11 +68,6 @@ theorem lanesToState_keep {L : Lanes} {y : KState}
 section Pure
 
 variable (H : List UInt8 → Common.DigestBytes) (P : Lanes → Lanes)
-
-/-- **Over pure functions, the challenge is the crate's.** -/
-theorem membershipChallengeM_id (root : Common.DigestBytes) :
-    membershipChallengeMWithHash (m := Id) (fun a ↦ pure (H a)) (fun L ↦ pure (P L)) root =
-      membershipChallenge H P root := rfl
 
 theorem walkM_id (idx : ℕ) (node : Common.DigestBytes) (path : List Common.DigestBytes) :
     walkMWithHash (m := Id) (fun a ↦ pure (H a)) idx node path = walk H idx node path := by
@@ -138,11 +132,6 @@ theorem duplexP_bind {α β : Type} {Q : α → List KState → Prop} {R : β �
     · obtain ⟨hadm, hk⟩ := (duplexP_query_bind_F x k hist).mp hX
       exact (duplexP_query_bind_F x _ hist).mpr ⟨hadm, fun y ↦ ih y (hk y)⟩
 
-theorem duplexP_mono {α : Type} {Q R : α → List KState → Prop} {X : OracleComp Rom2 α}
-    {hist : List KState} (hX : DuplexP Q X hist) (h : ∀ a hist', Q a hist' → R a hist') :
-    DuplexP R X hist := by
-  simpa using duplexP_bind (f := pure) hX fun a hist' hq ↦ duplexP_pure (h a hist' hq)
-
 /-- The duplex discipline is the discipline with the trivial postcondition. -/
 theorem duplex_of_duplexP {α : Type} {X : OracleComp Rom2 α} {hist : List KState}
     {Q : α → List KState → Prop} (hX : DuplexP Q X hist) :
@@ -166,12 +155,6 @@ theorem duplexP_fQuery_bind {α : Type} {post : α → List KState → Prop} (x 
     (hadm : Admissible KState.zero keccakNF hist x) (hk : ∀ y, DuplexP post (k y) (y :: hist)) :
     DuplexP post (fQuery (Msg := List UInt8) (Dg := DigestBytes) x >>= k) hist :=
   (duplexP_query_bind_F x k hist).mpr ⟨hadm, hk⟩
-
-theorem admissible_mono {hist hist' : List KState} {x : KState} (h : hist ⊆ hist')
-    (hx : Admissible KState.zero keccakNF hist x) : Admissible KState.zero keccakNF hist' x := by
-  rcases hx with hx | ⟨y, hy, hxy⟩
-  · exact Or.inl hx
-  · exact Or.inr ⟨y, h hy, hxy⟩
 
 theorem stateToLanes_zero : stateToLanes KState.zero = Vector.replicate 25 0 :=
   LeanVM.Rpm.ofRpm_zero
@@ -214,9 +197,6 @@ theorem duplexP_newM (hist : List KState) (iv publicInput : Common.DigestBytes) 
   obtain ⟨⟨y, hy, rfl⟩, hsub⟩ := h
   exact duplexP_pure ⟨⟨y, hy, rfl⟩, hsub⟩
 
-theorem SpongePost.trans {h₀ h₁ h₂ : List KState} {s : Sponge} (h01 : h₀ ⊆ h₁)
-    (h : SpongePost h₁ s h₂) : SpongePost h₀ s h₂ := ⟨h.1, fun _ ha ↦ h.2 (h01 ha)⟩
-
 /-- A nonce's state is permuted from an earlier answer's lanes. -/
 theorem duplexP_nonceR {hist : List KState} {y : Lanes} (hy : ∃ y' ∈ hist, y = stateToLanes y')
     (nonce : ℕ) :
@@ -239,18 +219,6 @@ theorem duplexP_grindR (y : Lanes) : ∀ (fuel nonce : ℕ) (hist₀ hist : List
       exact duplexP_grindR _ fuel (nonce + 1) hist₀ h₁ (fun _ ha ↦ ho.2 (h0 ha))
         ⟨y', ho.2 hy', rfl⟩
 
-/-- The duplex discipline of the nonces' draws. -/
-theorem duplexP_branchDrawsR (y : Lanes) : ∀ (js : List (Fin nLabels)) (hist₀ hist : List KState),
-    hist₀ ⊆ hist → (∃ y' ∈ hist, y = stateToLanes y') →
-      DuplexP (fun _ hist' ↦ hist₀ ⊆ hist') (branchDrawsM pR y js) hist
-  | [], _, _, h0, _ => duplexP_pure h0
-  | j :: js, hist₀, hist, h0, hy => by
-    unfold branchDrawsM
-    refine duplexP_bind (duplexP_nonceR hy (j.val - 1)) fun o h₁ ho ↦ ?_
-    obtain ⟨y', hy', rfl⟩ := hy
-    exact duplexP_bind (duplexP_branchDrawsR _ js hist₀ h₁ (fun _ ha ↦ ho.2 (h0 ha))
-      ⟨y', ho.2 hy', rfl⟩) fun _ h₂ hs₂ ↦ duplexP_pure hs₂
-
 /-- **The challenge's sponge follows the duplex discipline**: its first call permutes a fresh
 sponge, a non-final block into the zero state, and each nonce's call an earlier answer's lanes. -/
 theorem duplexP_membershipChallengeR (root : Common.DigestBytes) (hist : List KState) :
@@ -259,15 +227,5 @@ theorem duplexP_membershipChallengeR (root : Common.DigestBytes) (hist : List KS
   refine duplexP_hR_bind _ _ hist fun iv ↦ ?_
   refine duplexP_bind (duplexP_newM hist iv _) fun s₁ h₁ hs₁ ↦ ?_
   exact duplexP_grindR _ _ _ hist h₁ hs₁.2 hs₁.1
-
-/-- The duplex discipline of the draws (`membershipChallengeVecM`). -/
-theorem duplexP_membershipChallengeVecR (root : Common.DigestBytes) (hist : List KState) :
-    DuplexP (fun _ hist' ↦ hist ⊆ hist') (membershipChallengeVecM hR pR root) hist := by
-  unfold membershipChallengeVecM
-  generalize Common.SeedDuplex.branchIdx nLabels = js
-  refine duplexP_hR_bind _ _ hist fun iv ↦ ?_
-  refine duplexP_bind (duplexP_newM hist iv _) fun s₁ h₁ hs₁ ↦ ?_
-  exact duplexP_bind (duplexP_branchDrawsR s₁.state js hist h₁ hs₁.2 hs₁.1) fun _ h₂ hs₂ ↦
-    duplexP_pure hs₂
 
 end LeanDa

@@ -101,9 +101,9 @@ namespace Budget
 Keccak-256 and Keccak-f[1600]. -/
 theorem honestProofWithDeployedKeccak_eq_withHash (prog : LeanIsaProgram) (input : PublicInput)
     (t : Execution prog) (ρ fuel : ℕ) :
-    leanVmHonestProver (m := Id) keccakF1600 prog input t ρ fuel =
+    LeanVM.Prover.prove (m := Id) keccakF1600 prog input t ρ fuel =
       honestProofWithDeployedKeccakWithHash proverWithHash prog input t ρ fuel := by
-  simp only [honestProofWithDeployedKeccakWithHash, leanVmHonestProver,
+  simp only [honestProofWithDeployedKeccakWithHash,
     Prover.prove_eq_withHash, proverWithHash, simulateQ_proveWithHash]
   have h1 : implH deployedKeccakCalls = keccak256With (m := Id) keccakF1600 := by funext x; rfl
   have h2 : implF deployedKeccakCalls = keccakF1600 := by funext x; rfl

@@ -5,16 +5,11 @@ public import Statement.RandomPermutation
 /-!
 # The SUF-CMA game
 
-Read third: the SUF-CMA game of a hash-based signature scheme in the random-permutation model
-(`SufCma`): a scheme over `π`, the forgery game, and `bits` bits of security
-(`StronglyUnforgeable`): the adversary's own calls of `π` and `π⁻¹` bound its winning
-probability, the honest parties' hashing (key generation, the signer's answers, the forgery's
-verification) is not charged to it. leanXMSS and leanSPHINCS are stated with it. The game has one
-key; multi-key security is not stated: a guessing reduction would have to simulate the other
-keys' key generation and signing as its own, charged, calls of `π`, so it does not give
-`k · (q + slack) · 2^-127` for `k` keys (a direct multi-key bound, the keys' public parameters
-acting as salts, is plausible but not proved). Messages are 32 bytes: a longer payload needs an
-outer hash, whose collisions are outside the bound.
+The SUF-CMA game of a hash-based signature scheme in the random-permutation model (`SufCma`): a
+scheme over `π`, the forgery game, and `bits` bits of security (`StronglyUnforgeable`): the
+adversary's own calls of `π` and `π⁻¹` bound its winning probability; the honest parties' hashing
+is not charged to it. The game has one key and 32-byte messages (`statement.tex` says what that
+leaves out). leanXMSS and leanSPHINCS are stated with it.
 -/
 
 @[expose] public section

@@ -1,27 +1,24 @@
 module
 
 public import LeanDa.StraightBad
-public import LeanDa.KsRpm
-public import LeanDa.AdvX
+public import LeanDa.RelCheck
+public import LeanDa.SimWorld
 public import LeanDa.WithHash
 
 @[expose] public section
 
 /-!
-# Code binding by a straight-line argument
+# The membership test's soundness by a straight-line argument
 
-The simulated world of code binding (`codeBindingExpG`: `H` and the challenges `G` random
-oracles, the adversary's permutation calls simulated, `LeanDa.RpmCodeBinding`) is bounded without
-Benedikt Wagner's forking step. After the adversary and the challenges of its root, the
-straight-line verdict (`tailH`) commits to the extracted matrix `w` with `H` and, when the
-argument's proof verifies and `w` satisfies the relation, returns whether `w` is not a codeword,
-or else whether the first opening that disagrees with `w` verifies.
+The simulated world (`idealT`, `LeanDa.StraightBound`: `H` and the challenges random oracles, the
+adversary's permutation calls simulated) is bounded without Benedikt Wagner's forking step. It is
+stated for a code-binding adversary, an oracle-free argument `ps` and an extractor `ext`; the
+membership game is the case of an adversary that opens no cell, the argument that accepts
+everything and the extractor that returns its proof (`LeanDa.End`). After the adversary
+and the challenges of its root, the straight-line verdict (`tailH`) commits to the extracted
+matrix `w` with `H` and, when the argument's proof verifies and `w` satisfies the relation, returns
+whether `w` is not a codeword, or else whether the first opening that disagrees with `w` verifies.
 
-* **A code-binding win is a knowledge-soundness break or a straight-line verdict**
-  (`postP_imp`): with `H` from a table, a win whose proof verifies and whose extracted matrix
-  satisfies the relation has an opening that disagrees with a codeword `w`, and it verifies; or
-  `w` is not a codeword. So `Pr[code binding] ≤ Pr[knowledge soundness] + Pr[verdict]`
-  (`prT_cbIdealG_le`), the three read through Wagner's world for each table (`idealT_evalDistEq`).
 * **The verdict is a bad cache** (`not_good_of_tail`): in the world of `LeanDa.StraightBad`, a
   true verdict leaves a cache that is not good: either the draw the nonce search selects was drawn
   when the one matrix committed to the root was not a codeword and passes (with no valid nonce the
@@ -29,18 +26,17 @@ or else whether the first opening that disagrees with `w` verifies.
   opening verifies, `verifyCell_agree`), or a fresh answer of `H` hit a digest already carried
   (the matrix's tree completed after the root's draws).
 * **The bad cache's probability** is at most `N · 65 N / 2^256 + Q · 2^-10 · (2^13 - 1) / 2^128 +
-  (2^13 - 1) / 2^128` (`LeanDa.StraightBound`), `N = 2 Q + 2^20`.
+  (2^13 - 1) / 2^128` (`prT_idealT_tailH_le`, `LeanDa.StraightBound`), `N = 2 Q + 2^20`.
 
 This module is part of the instantiation of Benedikt Wagner's framework for erasure code
 commitments (`PqDas`, ported from https://github.com/b-wagn/fv-pq-da) with LeanDA. The
-straight-line argument replaces his forking step; it is built on his framework, his games, his
-knowledge-soundness reduction and his membership test's soundness.
+straight-line argument replaces his forking step; it is built on his framework and his games.
 -/
 
 set_option linter.unusedSectionVars false
 
 open OracleComp OracleSpec Common Common.SeedDuplex PqDas
-open Common.Duplex (GSpec hP gaP VSpec toV)
+open Common.Duplex (GSpec hP gaP)
 open scoped ENNReal
 
 namespace LeanDa
@@ -82,106 +78,6 @@ noncomputable def tailH (crs : Crs) (out : CbOut r Proof) (l : MembershipChallen
       | none => pure false
     else pure true
   else pure false
-
-open Classical in
-/-- The straight-line verdict with the hash of the table `h`. -/
-noncomputable def tailP (h : HTab) (crs : Crs) (out : CbOut r Proof) (l : MembershipChallenge) :
-    Bool :=
-  if ps.verify crs ((), out.1.1, l) out.1.2 = true ∧
-      commitCellsWithHash (Hh h) (ext crs ((), out.1.1, l) out.1.2) = out.1.1 ∧
-      membershipCheckOpt (selectChal l) (ext crs ((), out.1.1, l) out.1.2) = true then
-    if ext crs ((), out.1.1, l) out.1.2 ∈ (leanDaErasureCode r).code then
-      match firstBad r (ext crs ((), out.1.1, l) out.1.2) out.2 with
-      | some o =>
-        if o.2.2.path.length = 7 + logMaxRows then verifyCell (Hh h) r out.1.1 o.1 o.2.1 o.2.2
-        else false
-      | none => false
-    else true
-  else false
-
-theorem run_tailH_phiG (h : HTab) (crs : Crs) (out : CbOut r Proof) (l : MembershipChallenge) (s :
-    HCache) :
-    (simulateQ (phiG h) (simulateQ embG (tailH r ps ext crs out l))).run s =
-      pure (tailP r ps ext h crs out l, s) := by
-  classical
-  rw [← QueryImpl.simulateQ_compose]
-  have hp : ∀ {α} (a : α), simulateQ (phiG h ∘ₛ embG) (pure a :
-      OracleComp (unifSpec + roSpec (List UInt8) DigestBytes) α) = pure a :=
-    fun a ↦ simulateQ_pure _ a
-  have hb : ∀ {α β} (x : OracleComp (unifSpec + roSpec (List UInt8) DigestBytes) α)
-      (f : α → OracleComp (unifSpec + roSpec (List UInt8) DigestBytes) β),
-      simulateQ (phiG h ∘ₛ embG) (x >>= f) =
-        simulateQ (phiG h ∘ₛ embG) x >>= fun a ↦ simulateQ (phiG h ∘ₛ embG) (f a) :=
-    fun x f ↦ simulateQ_bind _ x f
-  have hHs : ∀ a, shortP a → simulateQ (phiG h ∘ₛ embG) (LeanDa.hH a) =
-      (pure (Hh h a) : StateT HCache (OracleComp WSpec) Common.DigestBytes) := by
-    intro a ha
-    rw [LeanDa.hH, simulateQ_spec_query, QueryImpl.apply_compose]
-    simp only [embG]
-    rw [hP, simulateQ_spec_query]
-    ext s
-    rw [phiG_H_run h a ha]
-    rfl
-  rw [tailH, hb, commitCellsM_map (fun x ↦ simulateQ (phiG h ∘ₛ embG) x) hp hb,
-    commitCellsM_congr hHs,
-    commitCellsM_eval (fun x ↦ x) (fun _ ↦ rfl) (fun _ _ ↦ rfl) (fun a ↦ pure (Hh h a)) (Hh h)
-      (fun _ ↦ rfl), pure_bind]
-  unfold tailP
-  set w := ext crs ((), out.1.1, l) out.1.2
-  by_cases hc : ps.verify crs ((), out.1.1, l) out.1.2 = true ∧ commitCellsWithHash (Hh h) w = out.1.1 ∧
-      membershipCheckOpt (selectChal l) w = true
-  · rw [ite_eq_left hc, ite_eq_left hc]
-    by_cases hw : w ∈ (leanDaErasureCode r).code
-    · rw [ite_eq_left hw, ite_eq_left hw]
-      rcases firstBad r w out.2 with _ | o
-      · simp only [hp]; rfl
-      · by_cases hlen : o.2.2.path.length = 7 + logMaxRows
-        · simp only [ite_eq_left hlen]
-          rw [verifyCellM_map (fun x ↦ simulateQ (phiG h ∘ₛ embG) x) hp hb, verifyCellM_congr hHs,
-            verifyCellM_pure]
-          rfl
-        · simp only [ite_eq_right hlen, hp]; rfl
-    · rw [ite_eq_right hw, ite_eq_right hw, hp]; rfl
-  · rw [ite_eq_right hc, ite_eq_right hc, hp]; rfl
-
-/-- **A code-binding win is a knowledge-soundness break or a true straight-line verdict**, with
-`H` from a table. -/
-theorem postP_imp (h : HTab) (crs : Crs) (out : CbOut r Proof) (l : MembershipChallenge)
-    (hwin : postP r ps h crs out l = true) :
-    ksP r ps ext h crs out l = true ∨ tailP r ps ext h crs out l = true := by
-  classical
-  by_cases hk : ksP r ps ext h crs out l = true
-  · exact Or.inl hk
-  right
-  set w := ext crs ((), out.1.1, l) out.1.2 with hwdef
-  simp only [postP, cbWin, Bool.and_eq_true, Bool.not_eq_true', decide_eq_false_iff_not,
-    List.all_eq_true, List.mem_map, id_eq, forall_exists_index, and_imp,
-    forall_apply_eq_imp_iff₂] at hwin
-  obtain ⟨⟨hall, hver⟩, hinc⟩ := hwin
-  simp only [ksP, hver, Bool.true_and, Bool.not_eq_true', Bool.not_eq_false, Bool.and_eq_true,
-    decide_eq_true_eq, ← hwdef] at hk
-  obtain ⟨hcom, hm⟩ := hk
-  unfold tailP
-  rw [← hwdef, ite_eq_left ⟨hver, hcom, hm⟩]
-  by_cases hw : w ∈ (leanDaErasureCode r).code
-  · rw [ite_eq_left hw]
-    rcases hfb : firstBad r w out.2 with _ | o
-    · exfalso
-      simp only [firstBad] at hfb
-      refine hinc ((leanDaErasureCode r).consistent_iff_exists_codeword _
-          |>.mpr ⟨w, hw, fun p hp ↦ ?_⟩)
-      obtain ⟨o, ho, rfl⟩ := List.mem_map.mp hp
-      have := List.find?_eq_none.mp hfb o ho
-      exact (by simpa using this : o.2.1 = w o.1).symm
-    · simp only [firstBad] at hfb
-      have ho := List.mem_of_find?_eq_some hfb
-      have hv := hall o ho
-      have hlen : o.2.2.path.length = 7 + logMaxRows := by
-        simp only [verifyCell, Bool.and_eq_true, decide_eq_true_eq] at hv
-        exact hv.1
-      simp only [ite_eq_left hlen]
-      exact hv
-  · rw [ite_eq_right hw]
 
 /-! ### Coin-free -/
 

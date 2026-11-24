@@ -297,7 +297,7 @@ namespace LeanVM
 
 /-! ## The statements of `Statement/LeanVm.lean` -/
 
--- `LeanVM.completeness_holds`, for the statement's prover `LeanVM.leanVmHonestProver`, is proved in
+-- `LeanVM.completeness_holds`, for the statement's prover `LeanVM.Prover.prove`, is proved in
 -- `LeanVM/Prover/End.lean` from `completeness_of_spec` (`LeanVM/Prover/Complete.lean`).
 
 /-- Keccak-256 over the deployed Keccak-f[1600] is the deployed Keccak-256, and `common`'s

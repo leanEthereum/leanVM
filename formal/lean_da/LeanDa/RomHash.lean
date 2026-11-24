@@ -2,7 +2,7 @@ module
 
 public import LeanDa.RpmScheme
 public import LeanDa.RpmGames
-public import LeanDa.Security
+public import LeanDa.Code
 public import LeanDa.Defs
 public import Common.Linear
 public import LeanDa.WithHash
@@ -10,25 +10,17 @@ public import LeanDa.WithHash
 @[expose] public section
 
 /-!
-# LeanDA in the random-permutation model
+# Hashing in the two-oracle random-oracle model
 
-Position binding and code binding of LeanDA (`LeanDa.Security`, Benedikt Wagner's framework
-`PqDas`) with Keccak-f[1600] idealized as a uniformly random permutation `π` (`Common`): the hash
-`H` is Keccak-256, the sponge over `π`, and the membership challenges are the deployed duplex over
-`π` (`membershipChallengeWith`), while the adversary queries Keccak-256, `π` and `π⁻¹`. The
-verifier (`verifyRpm`) is the scheme's: the challenges of the root, the argument's verification,
-and the opening's climb hashed with Keccak-256 (`verifyCellWith`). Its permutation calls in the
-challenges' duplex follow the duplex discipline, so the two-oracle transfer
-(`keccak256_transfer2`) moves both games to the two-oracle random-oracle model (`H` a random oracle,
-`F` an independent random function) within `Q² / 2^508` for `Q` permutation calls.
-
-* **Position binding**: there, a win is a collision of `H` among the cached answers, at most
-  `Q² / 2^256` (`prob_hCollision_le`); the end theorem (`leanDa_positionBinding_rpm`,
-  `LeanDa.RpmArg`) runs the argument's verification with the adversary.
-* **Code binding** (`leanDa_codeBinding_rpm`, for an oracle-free argument): the RPM probability is
-  within `Q² / 2^508` of the two-oracle ROM one against the simulated adversary, the first step of
-  Wagner's forking route and of the straight-line proof (`LeanDa.RpmCodeBinding`,
-  `LeanDa.RpmArg`).
+With Keccak-f[1600] idealized as a uniformly random permutation `π` (`Common`), LeanDA's hash `H` is
+Keccak-256, the sponge over `π`, and its membership challenges are the deployed duplex over `π`.
+The verifier's permutation calls in the challenges' duplex follow the duplex discipline, so the
+two-oracle transfer (`keccak256_transfer2`) moves a game to the two-oracle random-oracle model (`H`
+a random oracle, `F` an independent random function) within `Q² / 2^508` for `Q` permutation
+calls. Here is that model's hashing: the climbs' cached inputs (`walkInputs`, `hashInputs_eq`),
+their collisions (`findCollision_mem`, `HCollision`), and the probability of a collision of `H`
+among the cached answers, at most `Q² / 2^256` (`prob_hCollision_le`), position binding's bound
+(`LeanDa.PositionBinding`).
 
 This module is part of the instantiation of Benedikt Wagner's framework for erasure code
 commitments (`PqDas`, ported from https://github.com/b-wagn/fv-pq-da) with LeanDA.
@@ -167,27 +159,7 @@ theorem permCalls2_eq :
 
 section Games
 
-variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × MembershipChallenge → (Fin (r * 128) → Cell) → Bool}
-  (ps : Nark (Unit × Common.DigestBytes × MembershipChallenge) (Fin (r * 128) → Cell) Crs
-      Proof rel)
-
-/-- **A verification's run**: the cache grows, and an accepting verification makes the opening
-verify for the hash function of every later cache, its hash inputs cached. -/
-theorem run_verifyRpm (crs : Crs) (com : Common.DigestBytes × Proof) (p : Fin (r * 128)) (x : Cell)
-    (τ : CellOpening) (c : Cache2) {z : Bool × Cache2}
-    (hz : z ∈ support ((simulateQ (hfSpec (List UInt8) DigestBytes KState).romImpl
-      (verifyRpm hR pR r ps crs com p x τ)).run c)) :
-    c ≤ z.2 ∧ (z.1 = true → ∀ c', z.2 ≤ c' → verifyCell (hOf c') r com.1 p x τ = true ∧
-      ∀ a ∈ hashInputs (hOf c') p (cellBytes x) (τ.path ++ [countBytes r]), c' (.inl a) ≠ none) := by
-  simp only [verifyRpm, simulateQ_bind, StateT.run_bind, mem_support_bind_iff,
-    simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hz
-  obtain ⟨w₁, hw₁, w₂, hw₂, rfl⟩ := hz
-  have hc1 := le_of_mem_support_run _ c hw₁
-  obtain ⟨hc2, hv⟩ := run_verifyCellM r com.1 p x τ _ hw₂
-  refine ⟨hc1.trans hc2, fun hwin c' hc' ↦ ?_⟩
-  obtain ⟨h1, h2⟩ := hv c' hc'
-  simp only [Bool.and_eq_true] at hwin
-  exact ⟨h1 ▸ hwin.2, h2⟩
+variable (r : ℕ) {Crs Proof : Type}
 
 /-- A cached answer is the cache's hash. -/
 theorem cache_eq_hOf {c : Cache2} {a : List UInt8} (h : c (.inl a) ≠ none) :
@@ -195,30 +167,6 @@ theorem cache_eq_hOf {c : Cache2} {a : List UInt8} (h : c (.inl a) ≠ none) :
   rcases hc : c (.inl a) with _ | d
   · exact absurd hc h
   · simp [hOf, hc]
-
-/-- **A win of the position-binding game is a collision of `H` in the final cache.** -/
-theorem posBindingPost_win (crs : Crs)
-    (out : (Common.DigestBytes × Proof) × Fin (r * 128) × Cell × CellOpening × Cell × CellOpening) (c : Cache2)
-    {z : Bool × Cache2}
-    (hz : z ∈ support ((simulateQ (hfSpec (List UInt8) DigestBytes KState).romImpl
-      (posBindingPost r ps crs out)).run c)) (hwin : z.1 = true) : HCollision z.2 := by
-  obtain ⟨com, p, x, τ, x', τ'⟩ := out
-  simp only [posBindingPost, simulateQ_bind, StateT.run_bind, mem_support_bind_iff,
-    simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hz
-  obtain ⟨w₁, hw₁, w₂, hw₂, rfl⟩ := hz
-  simp only [Bool.and_eq_true, decide_eq_true_eq] at hwin
-  obtain ⟨⟨hx, hb⟩, hb'⟩ := hwin
-  obtain ⟨hc2, hv2⟩ := run_verifyRpm r ps crs com p x' τ' _ hw₂
-  obtain ⟨-, hv1⟩ := run_verifyRpm r ps crs com p x τ _ hw₁
-  obtain ⟨hτ, hin⟩ := hv1 hb w₂.2 hc2
-  obtain ⟨hτ', hin'⟩ := hv2 hb' w₂.2 le_rfl
-  obtain ⟨hne, heq⟩ := openingsCollision_spec (hOf w₂.2) hx hτ hτ'
-  simp only [openingsCollision] at hne heq
-  obtain ⟨ha, hb⟩ := findCollision_mem _ _ _ hne
-  show HCollision w₂.2
-  have hca := hin _ ha
-  have hcb := hin' _ hb
-  exact ⟨_, _, hne, hca, by rw [cache_eq_hOf hca, cache_eq_hOf hcb, heq]⟩
 
 /-! ### The duplex discipline of the verifier -/
 
@@ -233,20 +181,6 @@ theorem duplexP_verifyCellM (com : Common.DigestBytes) (p : Fin (r * 128)) (x : 
     (hist : List KState) : DuplexP (fun _ _ ↦ True) (verifyCellMWithHash hR r com p x τ) hist :=
   duplexP_hR_bind _ _ hist fun _ ↦ duplexP_bind (duplexP_walkM _ _ _ hist) fun _ _ _ ↦
     duplexP_pure trivial
-
-theorem duplexP_verifyRpm (crs : Crs) (com : Common.DigestBytes × Proof) (p : Fin (r * 128)) (x : Cell)
-    (τ : CellOpening) (hist : List KState) :
-    DuplexP (fun _ _ ↦ True) (verifyRpm hR pR r ps crs com p x τ) hist :=
-  duplexP_bind (duplexP_membershipChallengeVecR com.1 hist) fun _ hist' _ ↦
-    duplexP_bind (duplexP_verifyCellM r com.1 p x τ hist') fun _ _ _ ↦ duplexP_pure trivial
-
-/-- **The position-binding verifier follows the duplex discipline.** -/
-theorem duplex_posBindingPost (crs : Crs)
-    (out : (Common.DigestBytes × Proof) × Fin (r * 128) × Cell × CellOpening × Cell × CellOpening) :
-    Duplex KState.zero keccakNF (posBindingPost r ps crs out) [] :=
-  duplex_of_duplexP (Q := fun _ _ ↦ True) <|
-    duplexP_bind (duplexP_verifyRpm r ps crs _ _ _ _ []) fun _ hist _ ↦
-      duplexP_bind (duplexP_verifyRpm r ps crs _ _ _ _ hist) fun _ _ _ ↦ duplexP_pure trivial
 
 end Games
 
@@ -431,55 +365,5 @@ theorem prob_hCollision_le {α : Type} (X : OracleComp Rom2 α) (Q : ℕ)
       · exact hkeep _ fun b ↦ by rw [h]
       · exact hkeep _ fun b ↦ by rw [h, cacheQuery_inr_inl]
       · cases h
-
-/-! ## Code binding -/
-
-section CodeBinding
-
-variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × MembershipChallenge → (Fin (r * 128) → Cell) → Bool}
-  (ps : Nark (Unit × Common.DigestBytes × MembershipChallenge) (Fin (r * 128) → Cell) Crs
-      Proof rel)
-
-/-- **The code-binding game in the two-oracle random-oracle model**: `H` a random oracle, the
-challenges' sponge over an independent random function `F`, against the ROM adversary
-`advS2 A` (the RPM adversary with its permutation queries answered by the simulator, which
-queries `H` and `F`). -/
-noncomputable def codeBindingExpRom2 (A : CodeBindingAdvB r Crs Proof) : ProbComp Bool :=
-  romRun2 (simulateQ (hInF (E := KRest) (C := KCap)) (liftM ps.setup) >>= fun crs ↦
-    advS2 keccakPadding KState.zero (A ((), crs)) >>= fun out ↦ codeBindingPost r ps crs out)
-
-theorem duplexP_mapM {β γ : Type} (f : β → OracleComp Rom2 γ)
-    (hf : ∀ b hist, DuplexP (fun _ _ ↦ True) (f b) hist) (l : List β) (hist : List KState) :
-    DuplexP (fun _ _ ↦ True) (l.mapM f) hist := by
-  induction l generalizing hist with
-  | nil => exact duplexP_pure trivial
-  | cons b l ih =>
-    rw [List.mapM_cons]
-    exact duplexP_bind (hf b hist) fun _ hist' _ ↦
-      duplexP_bind (ih hist') fun _ _ _ ↦ duplexP_pure trivial
-
-/-- **The code-binding verifier follows the duplex discipline.** -/
-theorem duplex_codeBindingPost (crs : Crs)
-    (out : (Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × CellOpening)) :
-    Duplex KState.zero keccakNF (codeBindingPost r ps crs out) [] :=
-  duplex_of_duplexP (Q := fun _ _ ↦ True) <|
-    duplexP_bind (duplexP_mapM _ (fun _ hist ↦ duplexP_verifyRpm r ps crs _ _ _ _ hist) _ [])
-      fun _ _ _ ↦ duplexP_pure trivial
-
-/-- **Code binding moves from the random-permutation model to the two-oracle random-oracle
-model.** For every argument `ps` and every adversary whose game, verifications included, makes at
-most `Q` calls of the permutation on every path, the RPM code-binding probability and the
-two-oracle ROM code-binding probability of `advS2 A` differ by at most `Q² / 2^508`. -/
-theorem leanDa_codeBinding_rpm (A : CodeBindingAdvB r Crs Proof) (Q : ℕ)
-    (hQ : QueryCostAtMost (codeBindingGame2 r ps A) permCalls2 Q) :
-    Pr{let b ← codeBindingExpRpm r ps A}[b = true] ≤
-        Pr{let b ← codeBindingExpRom2 r ps A}[b = true] + (Q ^ 2 : ℝ≥0∞) / 2 ^ 508 ∧
-      Pr{let b ← codeBindingExpRom2 r ps A}[b = true] ≤
-        Pr{let b ← codeBindingExpRpm r ps A}[b = true] + (Q ^ 2 : ℝ≥0∞) / 2 ^ 508 := by
-  rw [permCalls2_eq] at hQ
-  exact keccak256_transfer2 (liftM ps.setup) (fun crs ↦ A ((), crs)) (codeBindingPost r ps)
-    (fun x a ↦ duplex_codeBindingPost r ps x a) Q hQ (· = true)
-
-end CodeBinding
 
 end LeanDa

@@ -20,26 +20,27 @@ and its deferred claim), the children's fresh claims (`c.freshClaim`, which `agg
 its replay of the child's proof, `verifier::replay_unchecked`, and which this checks in its own
 replay, `childQueries`: a child whose fresh claim or proof the deferring verifier rejects gets no
 query hints), each child's carried claim (`child_defer`: `c.statement.deferredClaim`, which
-`aggregate` rebuilds from the child proof's `bytecode_point` and its `bytecode_sums`), the batching's
-hints (`w.batchingHints`, `aggregate_deferred_claims`), a leaf's deferred value
+`aggregate` rebuilds from the child proof's `bytecode_point` and its `bytecode_sums`), the
+batching's hints (`w.batchingHints`, `aggregate_deferred_claims`), a leaf's deferred value
 (`DeferredBytecodeClaim::leaf`), a blob matrix's membership challenge (`da_challenge`: the
 `DaClaim`'s `membershipChallenge`, which `aggregate` computes from the matrix's commitment) and the
 slot of the DA digest the node publishes (`da_pick`: `daPick`, from the statement's DA digest, which
 `aggregate` derives from the requested `OutputClaims`, its blobs and its children's claims). The raw
-signatures are taken in the witness's order, repeats included, where `aggregate` sorts them on
-their claims and keeps the first of each (`sorted_claims`). On the statement and witness an `aggregate` run builds, its raw signatures so
-sorted and deduplicated, and of children whose proofs the deferring verifier accepts (the Rust's
-replay checks nothing), the streams are the Rust's, entry for entry (`guest-diff` checks it on real
-aggregations).
+signatures are taken in the witness's order, repeats included, where `aggregate` sorts them on their
+claims and keeps the first of each (`sorted_claims`). On the statement and witness an `aggregate`
+run builds, its raw signatures so sorted and deduplicated, and of children whose proofs the
+deferring verifier accepts (the Rust's replay checks nothing), the streams are the Rust's, entry for
+entry (`guest-diff` checks it on real aggregations).
 
 The advice is `main`'s frame size and the compiler's hints by `pc`, generated data
 (`Statement/Data/AdviceHints*.lean`, the compiler's `CompiledProgram::export_hints`,
-`crates/isa/src/export_hints.rs`), and the witness streams (`guestStreams`): what the guest pops with `hint_witness`, each stream's entries in the order it pops
-them. They are the pushes of `aggregate` (`crates/aggregation/src/`:
-`node.rs`, `hints.rs`, `child.rs`, `deferred.rs`), grouped by stream as `Hints::push` does
-(`honestPushes`, in the order the Rust makes them). Where the Rust replays a child's proof
-(`verifier::replay_unchecked`), this runs the deferring verifier (`deferringVerifierProgram`) and
-records its queries. A signature's hints are its scheme's own definitions over Keccak-f[1600].
+`crates/isa/src/export_hints.rs`), and the witness streams (`guestStreams`): what the guest pops
+with `hint_witness`, each stream's entries in the order it pops them. They are the pushes of
+`aggregate` (`crates/aggregation/src/`: `node.rs`, `hints.rs`, `child.rs`, `deferred.rs`), grouped
+by stream as `Hints::push` does (`honestPushes`, in the order the Rust makes them). Where the Rust
+replays a child's proof (`verifier::replay_unchecked`), this runs the deferring verifier
+(`deferringVerifierProgram`) and records its queries. A signature's hints are its scheme's own
+definitions over Keccak-f[1600].
 
 Nothing about the advice is trusted: an execution the executor returns is valid whatever the
 advice. Choices the witness does not fix are made as the Rust makes them:

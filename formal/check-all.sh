@@ -155,7 +155,7 @@ common() {
   axioms common Common Common.indifferentiability Common.transfer Common.transfer2 \
     Common.keccak256_indifferentiable Common.keccak256_transfer Common.keccak256_transfer2 \
     Common.SufCma.rpm_le_romB Common.SufCma.stronglyUnforgeable_of_romBoundAdv \
-    Common.SeedDuplex.duplex_le Common.SeedDuplex.duplex_ge
+    Common.SeedDuplex.duplex_le
 }
 
 lean_xmss() {
@@ -174,17 +174,15 @@ lean_sphincs() {
   axioms lean_sphincs Sphincs Sphincs.leanSphincsStronglyUnforgeable FORS.Lifetimes.h26_layered_adversary FORS.h26_layered
 }
 
-# LeanDA's security: Benedikt Wagner's framework, theorems and proofs (b-wagn/fv-pq-da), ported
-# and instantiated with LeanDA.
+# LeanDA's security, on Benedikt Wagner's framework for erasure code commitments (b-wagn/fv-pq-da),
+# instantiated with LeanDA.
 lean_da() {
   no_escapes lean_da
   cache_get lean_da
   build lean_da '(LeanDa|PqDas)'
-  axioms lean_da LeanDa LeanDa.leanDa_perfectlyComplete_rpm LeanDa.leanDa_positionBinding \
-    LeanDa.leanDa_codeBinding LeanDa.checker_sound LeanDa.commitCodewords_eq_commitCells \
-    LeanDa.dualCodeword_eq_dualCodewordAt LeanDa.membershipChallengeM_id \
-    LeanDa.leanDa_positionBinding_rpm LeanDa.leanDa_codeBinding_rpm \
-    LeanDa.leanDa_codeBinding_rpm_bound
+  axioms lean_da LeanDa LeanDa.leanDa_complete LeanDa.leanDa_positionBinding_rpm \
+    LeanDa.leanDa_membershipSound_rpm LeanDa.commitCodewords_eq_commitCells \
+    LeanDa.dualCodeword_eq_dualCodewordAt
 }
 
 # Every lean_vm executable, in one build.

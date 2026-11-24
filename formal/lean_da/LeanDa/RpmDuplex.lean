@@ -1,7 +1,7 @@
 module
 
 public import LeanDa.RpmScheme
-public import Common.Duplex.Vec
+public import Common.Duplex.Calls
 public import Common.Rerun
 public import LeanDa.Defs
 public import LeanDa.WithHash
@@ -32,30 +32,18 @@ commitments (`PqDas`, ported from https://github.com/b-wagn/fv-pq-da) with LeanD
 set_option linter.unusedSectionVars false
 
 open OracleComp OracleSpec Common Common.SeedDuplex
-open Common.Duplex (GSpec hP gaP VSpec toV)
+open Common.Duplex (GSpec hP gaP)
 open scoped ENNReal
 
 namespace LeanDa
 
-/-! ## The state as bytes -/
-
-theorem bytesEquiv_apply (y : KState) (i : Fin 200) : bytesEquiv y i = byteAt y i := rfl
-
 /-! ## Splitting the bytes -/
-
-theorem splitEquiv_fst {m k : ℕ} (f : Fin (m + k) → UInt8) (j : Fin m) :
-    (splitEquiv m k f).1 j = f (Fin.castAdd k j) := by
-  simp [splitEquiv, Equiv.sumArrowEquivProdArrow, Equiv.arrowCongr]
 
 theorem daBuild_symm_fst (y : KState) :
     (daBuild.symm y).1 = limbsEquiv fun j : Fin 24 ↦ byteAt y j := by
   simp only [daBuild, Equiv.symm_trans_apply, Equiv.symm_symm, Equiv.prodCongr_symm,
     Equiv.prodCongr_apply, Prod.map_fst]
   congr 1
-
-/-! ## The duplex -/
-
-/-! ## The root's words determine the root -/
 
 /-! ## The challenge of an answer -/
 

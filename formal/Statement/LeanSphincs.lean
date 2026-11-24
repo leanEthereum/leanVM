@@ -1,9 +1,6 @@
 module
 
 public import Statement.HashSignatures
-public import VCVio.OracleComp.QueryTracking.LoggingOracle.Core
-public import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
-public import VCVio.OracleComp.QueryTracking.WriterCost
 
 /-!
 # leanSPHINCS
@@ -861,10 +858,7 @@ section EndStatement
 
 open Common.SufCma
 
-/-- The additive constant of leanSPHINCS's bound, in units of `2^-127`, while `q` counts
-permutation calls: the random-oracle step's `265072` hash calls (key generation's `264193` and the
-forgery's verification's `879`), carried over by the transfer, plus its indifferentiability term's
-one unit, rounded up. -/
+/-- The additive constant of leanSPHINCS's bound, in units of `2^-127` (`statement.tex` derives it). -/
 def securitySlack : Nat := 2 ^ 19
 
 /-- **leanSPHINCS in the random-permutation model**: an adversary that itself makes at most `q`

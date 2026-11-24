@@ -23,8 +23,8 @@ padding rows, `jump_constraints`, `keccak_cell_lanes`, `layout_limb`, the `q_kec
 (`qkeccak_slot`) and output columns; `build_layout` on a sample bytecode and sizes (log-heights,
 stack log-size, every placement, every bus block's shape and flushed tuple at a sample row),
 `bus_layout` of the three sides; `derive_config` on all 56 admissible pairs; `along`,
-`linear_transpose`, `instance_weights`, the slot weights of `open`, the RMFE's factors,
-`RMFE_EMBED`, `RMFE_PROJECT`, the carry-less product and division and the Keccak reduction's
+`linear_transpose`, `instance_weights`, the slot weights of `open`,
+`RMFE_EMBED`, `RMFE_PROJECT`, the carry-less product and the Keccak reduction's
 constants; `KECCAK_RC`, `KECCAK_RHO`, `KECCAK_PI`, `keccak_f`, `keccak_hash` across the block
 boundary, the sponge's `duplex`, `sample` and `absorb_nonce`; `TAG` (`versionTag`), the IV
 (`fiatShamirIv`), the public input's halves, and the Fiat-Shamir seed (`Sponge::new`: Keccak-f of
@@ -134,12 +134,6 @@ def slotProbe (first count : ℕ) : ℕ × Bool × E :=
 /-- The pairs the carry-less product is probed at: a 20-bit and a 12-bit polynomial. -/
 def carrylessInputs : List (ℕ × ℕ) :=
   (List.range 4).map fun i ↦ (fw i 13 % 2 ^ 20, fw i 14 % 2 ^ 12)
-
-/-- The pairs the carry-less division is probed at: a 40-bit dividend by a degree-11 divisor, then
-two small ones. -/
-def divmodInputs : List (ℕ × ℕ) :=
-  (List.range 4).map (fun i ↦ (fw i 13 % 2 ^ 40, fw i 14 % 2 ^ 12 ||| 2 ^ 11)) ++
-    [(0b1011, 0b10), (5, 0b100101)]
 
 /-- The Keccak reduction's and the layout's constants, in the driver's order. -/
 def keccakConstants : List ℕ :=
@@ -764,9 +758,6 @@ def refConfigs : List (ℕ × ℕ × List ℕ × List ℕ × List ℕ) :=
 #guard (slotProbe 1 1) =
     (64, true, (e 0xcc1c5bf753aae3d9 0x9b117bda43b57d11))
 
-#guard (rmfeFactors) =
-    [(0b10, 1), (0b11, 1), (0b1011, 2), (0b1101, 2), (0b100101, 3), (0b101001, 3), (0b101111, 3)]
-
 #guard (rmfeEmbed) =
     [0x40c50b, 0x7f79f2, 0x4b4e0a, 0x72740c, 0x5357da, 0x1d1c9e, 0x4be6e, 0x785246, 0x97cdc,
      0x109e7e, 0x1f1454, 0x213cfc, 0x4cfcc8, 0x775770, 0x187386, 0x818a16]
@@ -778,10 +769,6 @@ def refConfigs : List (ℕ × ℕ × List ℕ × List ℕ × List ℕ) :=
 
 #guard (carrylessInputs.map fun (a, b) ↦ carryless a b) =
     [0xbee80b8, 0x5d073452, 0x436b037e, 0x18ea27ac]
-
-#guard (divmodInputs.map fun (a, f) ↦ carrylessDivmod a f) =
-    [(0x1b08c182, 0x5e5), (0x1d3534da, 0x1c8), (0x95fdc62, 0xbb), (0x3f3d41f, 0x1b9), (0x5, 0x1),
-     (0x0, 0x5)]
 
 #guard (keccakConstants) =
     [12, 2, 1, 6, 9, 1600, 11, 5, 64, 16, 24, 47, 5, 4, 16, 30]

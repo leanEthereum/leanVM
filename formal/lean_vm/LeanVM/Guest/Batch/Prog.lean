@@ -63,7 +63,7 @@ theorem length_childCells {bytecode : List K} {c : ChildClaims} (hc : ChildHasBy
 
 /-- A child of the bytecode's shapes is read back off its words. -/
 theorem parseChild_words {bytecode : List K} {c : ChildClaims} (hc : ChildHasBytecodeShape bytecode c) :
-    parseChild (Nat.log2 bytecode.length) c.words = some c := by
+    parseChild (Nat.log2 bytecode.length) c.words = c := by
   obtain ⟨pi, ⟨bp, bv⟩, ⟨bp', bv'⟩⟩ := c
   obtain ⟨h1, h2⟩ := hc
   simp only [DeferredBytecodeClaim.HasBytecodeShape] at h1 h2
@@ -74,8 +74,9 @@ theorem parseChild_words {bytecode : List K} {c : ChildClaims} (hc : ChildHasByt
 
 /-- The padded words are read back off. -/
 theorem parseChild_childCells {bytecode : List K} {c : ChildClaims} (hc : ChildHasBytecodeShape bytecode c) :
-    parseChild (Nat.log2 bytecode.length) (childCells c) = some c := by
-  rw [← parseChild_words hc, childCells_eq hc]
+    parseChild (Nat.log2 bytecode.length) (childCells c) = c := by
+  refine Eq.trans ?_ (parseChild_words hc)
+  rw [childCells_eq hc]
   obtain ⟨pi, ⟨bp, bv⟩, ⟨bp', bv'⟩⟩ := c
   obtain ⟨h1, h2⟩ := hc
   simp only [DeferredBytecodeClaim.HasBytecodeShape] at h1 h2
@@ -283,10 +284,10 @@ theorem runsTo_readChild {bytecode : List K} {c : ChildClaims} (hc : ChildHasByt
     (f := fun xs ↦ do
       VerifierProgram.require (xs.drop (childWordCount (Nat.log2 bytecode.length)) =
         List.replicate (zerosToWholeRate (childWordCount (Nat.log2 bytecode.length))) 0)
-      liftOption (parseChild (Nat.log2 bytecode.length) xs))
+      return parseChild (Nat.log2 bytecode.length) xs)
     ((runsTo_require (drop_childCells hc) _).bind
-      (f := fun _ ↦ liftOption (parseChild (Nat.log2 bytecode.length) (childCells c)))
-      (by rw [parseChild_childCells hc]; exact runsTo_liftOption c _))
+      (f := fun _ ↦ VerifierProgram.ret (parseChild (Nat.log2 bytecode.length) (childCells c)))
+      (by rw [parseChild_childCells hc]; exact runsTo_ret c _))
   exact h.of_eq (by simp)
 
 /-- Shaped children are read off their cells. -/

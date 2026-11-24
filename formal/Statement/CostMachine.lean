@@ -1,7 +1,6 @@
 module
 
 public import Statement.LeanVm
-public import Mathlib.Data.Nat.Notation
 
 /-!
 # The cost machine and the extractor a program computes
@@ -40,11 +39,8 @@ ARMv8's PMULL; on more limbs, a constant number per limb or pair of limbs.
 
 **The extractor a program computes** (`LeanVM.extractorComputedBy P`, at the end): `P` run on the
 encoded statement, transcript and proof within its size bound and budget, its output parsed as an
-execution (`decodeExecution`, a linear parse). `Statement.Theorems` takes `P` as a parameter. What
-excludes a vacuous statement: `P` is a program (no classical choice), its size bound leaves no room
-for a useful table of witnesses beside the compiled extractor, its only runtime data is its input,
-and its budget is a closed formula, polylogarithmic per query. The guest decoder is a program of the
-same machine (`GuestKnowledgeSoundness`, `LeanVmGuest.lean`).
+execution (`decodeExecution`). The guest decoder is a program of the same machine
+(`LeanVmGuest.lean`). `statement.tex` says what the size bounds and budgets exclude.
 -/
 
 namespace LeanVM.Cost
@@ -87,7 +83,7 @@ inductive PrimitiveOperation where
   | bitwiseAnd | bitwiseOr | bitwiseXor | shiftLeft | shiftRight | add | truncatedSubtract
   | equal | lessThan
   /-- `·`, `/`, `%` (by `0`: `0` and `a`, as Lean's), the carry-less product (the product of
-  `a` and `b` read as polynomials over `GF(2)`: the verifier's `carryless`, whose loop runs once per
+  `a` and `b` read as polynomials over `GF(2)`: `carryless`, whose loop runs once per
   bit of `b`, its fuel). -/
   | multiply | divide | modulo | carrylessMultiply
   /-- An array's size; its entry `i` or a default. -/
@@ -413,19 +409,11 @@ def decodeExecution (program : Semantics.LeanIsaProgram) : MachineValue → Opti
 
 /-- **The extractor's budget**, for a proof announcing a stack of `2^μ` elements
 (`stackLog = μ`) and a transcript of `N = permutationQueryCount` permutation queries: the most the
-extractor's run may cost, in the machine's price (the sum of its steps' prices, each at least `1`,
-so also the most steps it may execute), `2^max(58, 2μ + 9) + (N + 2^30)·(D + 2)²·(2^15 + 2D)`,
-with `D = log₂(N + 2) + 1` the levels of the extractor's sorted tables of the transcript.
-`lean_vm` proves the compiled extractor's price at most this wherever it extracts, at every shape
-the replay admits (stack log-size `16` to `30`, rate exponent `1` to `4`, memory and program
-log-sizes at most `30`): the first term bounds the descent from the final polynomial to level 0's
-stack (each fold round's lanes decoded with at most one error on the columns of their agreement
-set, level 0's descent dominating), level 0's stack, the candidate run and every other price
-independent of the transcript; the second bounds, per query, the transcript's two indexes (its first
-forward answers, and one preimage index every committed root shares) and, per committed leaf
-or hashed block (`2^30` at most), their lookups. It passes `2^128` at about `N = 2^99.7`, where the
-soundness bound is still about `2^-25` (`statement.tex`, *What is not proved*, says what the regime
-leaves out). A proof announcing no layout is given the budget of `μ = 0`. -/
+extractor's run may cost, in the machine's price,
+`2^max(58, 2μ + 9) + (N + 2^30)·(D + 2)²·(2^15 + 2D)`, `D = log₂(N + 2) + 1`. `lean_vm` proves the
+compiled extractor's price within it at every shape the replay admits (stack log-size `16` to `30`,
+rate exponent `1` to `4`, memory and program log-sizes at most `30`). A proof announcing no layout
+is given the budget of `μ = 0`. -/
 def leanVmKnowledgeExtractorBudget (stackLog permutationQueryCount : ℕ) : ℕ :=
   2 ^ max 58 (2 * stackLog + 9) +
     (permutationQueryCount + 2 ^ 30) * (Nat.log2 (permutationQueryCount + 2) + 3) ^ 2 *
@@ -450,11 +438,8 @@ open Common
 
 @[expose] public section
 
-/-- **The bound on the extractor program's size** (`MachineProgram.size`): `25380`, the compiled
-extractor's size (`25260`: its `514` compiled bodies and the entry, at `545` indices, `30` of
-them holes, a literal `0` each) and a slack of `120`, less than one leanXMSS signature's encoding
-(`309`: two layers of `153`, each a randomizer, `58` chain values and a path of `16`, digests of
-two limbs), so the compiled extractor could carry no useful table of witnesses beside its code. -/
+/-- **The bound on the extractor program's size** (`MachineProgram.size`): the compiled extractor's
+size and a slack of `120`, less than one leanXMSS signature's encoding. -/
 def leanVmKnowledgeExtractorSizeBound : ℕ := 25380
 
 /-- **The extractor a program computes**: the program, of size at most
@@ -463,9 +448,7 @@ def leanVmKnowledgeExtractorSizeBound : ℕ := 25380
 queries and the stack size the proof announces (`leanVmKnowledgeExtractorBudget`,
 `announcedStackLog`), its output parsed as an execution (`decodeExecution`);
 `none` if the program is larger, or the run fails, exceeds its budget, or outputs no execution's
-encoding. A larger program extracts nothing, so
-`KnowledgeSoundness (extractorComputedBy knowledgeExtractorProgram)` fails for it: an adversary
-running the honest prover is accepted. -/
+encoding, which an accepted proof makes a break of `KnowledgeSoundness`. -/
 def extractorComputedBy (knowledgeExtractorProgram : Cost.MachineProgram) : StraightLineExtractor :=
   fun program input transcript proof ↦
     (Cost.outputWithin knowledgeExtractorProgram leanVmKnowledgeExtractorSizeBound

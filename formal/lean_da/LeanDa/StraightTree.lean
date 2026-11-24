@@ -1,6 +1,8 @@
 module
 
-public import LeanDa.RpmWagner
+public import LeanDa.SimWorld
+public import Mathlib.Data.Set.Finite.List
+public import LeanDa.Defs
 public import LeanDa.MerkleM
 public import LeanDa.WithHash
 
@@ -9,7 +11,7 @@ public import LeanDa.WithHash
 /-!
 # The commitment's tree, read off the hash calls
 
-For the straight-line proof of code binding (`LeanDa.Straight`): the hash inputs of a commitment
+For the straight-line proof of the membership test's soundness (`LeanDa.Straight`): the hash inputs of a commitment
 (`commitIn`, the cells' bytes, the blob trees' nodes and the nodes of the tree over the blob roots)
 and of an opening's check (`verifyIn`, the cell's bytes and its climb), for a hash function `f`,
 and what they give when `f` is injective on a set holding them.
@@ -457,22 +459,6 @@ theorem merkleRootM_some (d : ℕ) :
       · obtain ⟨u, hu⟩ := hup i hi
         exact (upM_some f hg Lm L hL _ u hu).2.2.2
       · exact h3 a ha
-
-theorem mapM_some {β : Type} (F : β → Option Common.DigestBytes) (F' : β → Common.DigestBytes)
-    (hF : ∀ b u, F b = some u → u = F' b) (l : List β) (ds : List Common.DigestBytes)
-    (h : l.mapM F = some ds) : ds = l.map F' ∧ ∀ b ∈ l, F b ≠ none := by
-  induction l generalizing ds with
-  | nil =>
-    simp only [List.mapM_nil, Option.pure_def, Option.some.injEq] at h
-    exact ⟨h.symm, by simp⟩
-  | cons b l ih =>
-    simp only [List.mapM_cons, Option.bind_eq_bind', Option.pure_def, Option.bind_eq_some_iff, Option.some.injEq] at h
-    obtain ⟨u, hu, ds', hds', rfl⟩ := h
-    obtain ⟨h1, h2⟩ := ih ds' hds'
-    refine ⟨by rw [h1, hF _ _ hu]; rfl, fun b' hb' ↦ ?_⟩
-    rcases List.mem_cons.mp hb' with rfl | hb'
-    · simp [hu]
-    · exact h2 b' hb'
 
 /-- **A commitment over a partial hash that returns** returns the pure commitment, its inputs in
 the hash's domain. -/

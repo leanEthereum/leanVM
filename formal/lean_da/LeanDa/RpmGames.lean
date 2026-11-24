@@ -8,23 +8,16 @@ public import LeanDa.WithHash
 @[expose] public section
 
 /-!
-# The games of the statement in the two-oracle form
-
-`Statement/LeanDa.lean` states LeanDA's games with one oracle specification (`Common.RandomPermutationOracles`, on
-lane states): the adversary and the verifier both query Keccak-256 and `π`, the verifier's sponge
-calling `π` (`hK`, `pK`). Read on byte states (`Common.relabel`), each is the same game on byte
-states (`posBindingGame_relabel`, …: `posBindingGameB`, `hKB`, `pKB`), with the same distribution
-(`Common.runK_relabel`) and cost (`Common.isWeightBound_relabel`). The proofs take those in the
-two-oracle form of `Common.rpmGame2`, the verifier's calls of the permutation direct calls `F`
-(`hR`, `pR`, `LeanDa.Defs`), the form of the two-oracle transfer (`Common.keccak256_transfer2`).
-`Common.toOne` turns a direct call into a `π` query, and each game on bytes is the two-oracle
-game through it (`posBindingGameB_eq`, `codeBindingGameB_eq`, `ksGameB_eq`): the same run
-(`runK_posBindingGame`, …) and the same cost (`isWeightBound_toOne_iff`, each query renamed to
-one of the same cost).
+# The verifier's oracle programs through simulations and relabelings
 
 The verifier's oracle programs are written for any monad, so they commute with a monad morphism
-such as a simulation (`membershipChallengeM_map`, `membershipChallengeVecM_map`, `verifyCellM_map`, `commitCellsM_map`,
-`verifyRpm_map`).
+such as a simulation (`grindM_map`, `membershipChallengeM_map`, `walkM_map`, `verifyCellM_map`,
+`merkleRootM_map`, `commitCellsM_map`). Read on byte states (`Common.relabel`), they are the same
+programs (`relabel_hK`, `relabel_pK`, `relabel_commitCellsM`, `relabel_verifyCellM`,
+`relabel_membershipChallengeM`), and in the two-oracle form of `Common.rpmGame2` the verifier's
+calls of the permutation are direct calls `F` (`toK`), which `Common.toOne` turns back into `π`
+queries (`toOne_rpmGame2`, `isWeightBound_toOne_iff`): the form of the two-oracle transfer
+(`Common.keccak256_transfer2`).
 
 This module is part of the instantiation of Benedikt Wagner's framework for erasure code
 commitments (`PqDas`, ported from https://github.com/b-wagn/fv-pq-da) with LeanDA.
@@ -58,26 +51,11 @@ theorem grindM_map (y : Lanes) : ∀ (fuel nonce : ℕ),
     · exact hpure _
     · exact grindM_map y fuel (nonce + 1)
 
-/-- **The nonces' draws through a monad morphism.** -/
-theorem branchDrawsM_map (y : Lanes) : ∀ js : List (Fin nLabels),
-    φ (branchDrawsM P y js) = branchDrawsM (fun L ↦ φ (P L)) y js
-  | [] => hpure _
-  | j :: js => by
-    simp only [branchDrawsM, hbind, hpure, branchDrawsM_map y js]
-
 /-- **The challenge's sponge through a monad morphism.** -/
 theorem membershipChallengeM_map (root : Common.DigestBytes) :
     φ (membershipChallengeMWithHash H P root) =
       membershipChallengeMWithHash (fun a ↦ φ (H a)) (fun L ↦ φ (P L)) root := by
   simp only [membershipChallengeMWithHash, Sponge.newWith, hbind, hpure, grindM_map φ hpure hbind P]
-
-/-- **The draws through a monad morphism.** -/
-theorem membershipChallengeVecM_map (root : Common.DigestBytes) :
-    φ (membershipChallengeVecM H P root) =
-      membershipChallengeVecM (fun a ↦ φ (H a)) (fun L ↦ φ (P L)) root := by
-  unfold membershipChallengeVecM
-  generalize Common.SeedDuplex.branchIdx nLabels = js
-  simp only [Sponge.newWith, hbind, hpure, branchDrawsM_map φ hpure hbind P]
 
 theorem walkM_map (idx : ℕ) (node : Common.DigestBytes) (path : List Common.DigestBytes) :
     φ (walkMWithHash H idx node path) = walkMWithHash (fun a ↦ φ (H a)) idx node path := by
@@ -89,12 +67,6 @@ theorem walkM_map (idx : ℕ) (node : Common.DigestBytes) (path : List Common.Di
 theorem verifyCellM_map (r : ℕ) (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : CellOpening) :
     φ (verifyCellMWithHash H r com p x τ) = verifyCellMWithHash (fun a ↦ φ (H a)) r com p x τ := by
   simp only [verifyCellMWithHash, hbind, hpure, walkM_map φ hpure hbind]
-
-theorem mapM_map {β γ : Type} (f : β → m γ) (l : List β) :
-    φ (l.mapM f) = l.mapM fun b ↦ φ (f b) := by
-  induction l with
-  | nil => simp [hpure]
-  | cons b l ih => simp only [List.mapM_cons, hbind, ih, hpure]
 
 theorem merkleRootM_map (d : ℕ) : ∀ f : ℕ → m Common.DigestBytes,
     φ (merkleRootMWithHash H d f) = merkleRootMWithHash (fun a ↦ φ (H a)) d fun i ↦ φ (f i) := by
@@ -116,16 +88,6 @@ theorem commitCellsM_map {r : ℕ} (c : Fin (r * 128) → Cell) :
     rfl
   simp only [commitCellsMWithHash, hbind, merkleRootM_map φ hpure hbind, hb]
 
-/-- **The verification through a monad morphism.** -/
-theorem verifyRpm_map (r : ℕ) {Crs Proof : Type}
-    {rel : Unit × Common.DigestBytes × MembershipChallenge → (Fin (r * 128) → Cell) → Bool}
-    (ps : Nark (Unit × Common.DigestBytes × MembershipChallenge) (Fin (r * 128) → Cell) Crs Proof rel) (crs : Crs)
-    (com : Common.DigestBytes × Proof) (p : Fin (r * 128)) (x : Cell) (τ : CellOpening) :
-    φ (verifyRpm H P r ps crs com p x τ) =
-      verifyRpm (fun a ↦ φ (H a)) (fun L ↦ φ (P L)) r ps crs com p x τ := by
-  simp only [verifyRpm, hbind, hpure, membershipChallengeVecM_map φ hpure hbind,
-    verifyCellM_map φ hpure hbind]
-
 end Map
 
 /-! ## Direct calls as `π` queries -/
@@ -141,16 +103,6 @@ theorem toK_hR (a : List UInt8) : simulateQ toK (hR a) = hKB a := by
 theorem toK_pR (L : Lanes) : simulateQ toK (pR L) = pKB L := by
   simp [toK, pR, pKB, lanePerm, fQuery, hq]
   rfl
-
-/-- The verifier's programs through `toK` are those of the games on byte states. -/
-theorem toK_verifyRpm (r : ℕ) {Crs Proof : Type}
-    {rel : Unit × Common.DigestBytes × MembershipChallenge → (Fin (r * 128) → Cell) → Bool}
-    (ps : Nark (Unit × Common.DigestBytes × MembershipChallenge) (Fin (r * 128) → Cell) Crs Proof rel) (crs : Crs)
-    (com : Common.DigestBytes × Proof) (p : Fin (r * 128)) (x : Cell) (τ : CellOpening) :
-    simulateQ toK (verifyRpm hR pR r ps crs com p x τ) = verifyRpm hKB pKB r ps crs com p x τ := by
-  rw [verifyRpm_map (fun x ↦ simulateQ toK x) (fun _ ↦ simulateQ_pure _ _)
-    (fun _ _ ↦ simulateQ_bind _ _ _)]
-  simp only [toK_hR, toK_pR]
 
 theorem toK_membershipChallengeM (root : Common.DigestBytes) :
     simulateQ toK (membershipChallengeMWithHash hR pR root) =
@@ -216,11 +168,7 @@ theorem isWeightBound_toOne_iff {α : Type} (D : OracleComp (dSpec2 (List UInt8)
 
 section Games
 
-variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × MembershipChallenge → (Fin (r * 128) → Cell) → Bool}
-  (ps : Nark (Unit × Common.DigestBytes × MembershipChallenge) (Fin (r * 128) → Cell) Crs
-      Proof rel)
-  (ext : Nark.Extractor (Unit × Common.DigestBytes × MembershipChallenge) (Fin (r * 128) → Cell)
-      Crs Proof)
+variable (r : ℕ) {Crs Proof : Type}
 
 /-! ### The statement's oracles, read on byte states -/
 

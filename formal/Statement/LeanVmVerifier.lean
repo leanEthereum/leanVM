@@ -1718,17 +1718,7 @@ A claim is a weighted sum of the bits of one state per segment, the weight of bi
 `eq(point, (y, m)) · weights[j] · mu[i]`; each layer turns a claim on the states after a round into
 one on the states before it.
 
-**Representation.**
-
-* The Rust tabulates the embedding, `RMFE_EMBED` and `RMFE_PROJECT` (`keccak.rs`); it is
-  derived here (`rmfe`), from integer polynomials over `GF(2)` as natural numbers, bit `i` the
-  coefficient of `x^i`. Their loops are bounded by fuel: `carryless a b` by `b` (each step halves
-  `b`), `carrylessDivmod a f` by the bit length of `a` plus one (each step lowers the bit length of
-  the remainder when `f ≠ 0`; `f = 0` is never passed).
-* A factor's inverse is the first `g` in `1 .. 2^degree - 1` that inverts the cofactor modulo the
-  factor, by `List.find?`, `0` if none (every factor of `rmfeFactors` is irreducible, so one is
-  found).
-* The weight array `g` of `linear_transpose` is an array here, set where the Rust sets it.
+The weight array `g` of `linear_transpose` is an array here, set where the Rust sets it.
 -/
 
 /-! ### Constants (`keccak.rs`) -/
@@ -1740,11 +1730,20 @@ def embedBits : ℕ := 24
 (`keccak.rs`). -/
 def productBits : ℕ := 2 * embedBits - 1
 
-/-- The moduli the embedding is glued from, with the bits each holds. -/
-def rmfeFactors : List (ℕ × ℕ) :=
-  [(0b10, 1), (0b11, 1), (0b1011, 2), (0b1101, 2), (0b100101, 3), (0b101001, 3), (0b101111, 3)]
-
 /-! ### The embedding (`RMFE_EMBED`, `RMFE_PROJECT`, `keccak.rs`) -/
+
+/-- `RMFE_EMBED` (`keccak.rs`): sixteen bits embed in a binary polynomial of degree at most `23`,
+bit `i` of a number the coefficient of `x^i`; entry `i` is the embedding of unit vector `i`. -/
+def rmfeEmbed : List ℕ :=
+  [0x40c50b, 0x7f79f2, 0x4b4e0a, 0x72740c, 0x5357da, 0x1d1c9e, 0x04be6e, 0x785246, 0x097cdc,
+    0x109e7e, 0x1f1454, 0x213cfc, 0x4cfcc8, 0x775770, 0x187386, 0x818a16]
+
+/-- `RMFE_PROJECT` (`keccak.rs`): a product of two embeddings projects to the AND of what they
+embed; bit `i` of the projection is the parity of the product's coefficients in mask `i`. -/
+def rmfeProject : List ℕ :=
+  [0x1, 0x7fffffffffff, 0x274e9d3a74e9, 0x1d3a74e9d3a7, 0x65cb972e5cb9, 0x5cb972e5cb97,
+    0x6690aec7cd21, 0x5d8f9a42bb1f, 0x73485763e690, 0x3750967c6ea1, 0x12cf8dd4259f,
+    0x1ba84b3e3750, 0x0ad0c9f715a1, 0x064fb8ad0c9f, 0x456864fb8ad0, 0x400000000000]
 
 /-- The loop of `carryless`: while `b ≠ 0`, add `a` if `b`'s low bit is set, then shift. -/
 def carrylessAux : (fuel a b out : ℕ) → ℕ
@@ -1753,69 +1752,9 @@ def carrylessAux : (fuel a b out : ℕ) → ℕ
     if b = 0 then out
     else carrylessAux fuel (a <<< 1) (b >>> 1) (if b % 2 = 1 then out ^^^ a else out)
 
-/-- `carryless a b`: the product of two binary polynomials. -/
+/-- `carryless a b`: the product of two binary polynomials, the cost machine's carry-less
+product (`CostMachine.lean`). -/
 def carryless (a b : ℕ) : ℕ := carrylessAux b a b 0
-
-/-- The loop of `carrylessDivmod`: while the remainder is nonzero and no shorter than `f`,
-subtract `f` shifted under its leading bit. -/
-def carrylessDivmodAux : (fuel f quotient a : ℕ) → ℕ × ℕ
-  | 0, _, quotient, a => (quotient, a)
-  | fuel + 1, f, quotient, a =>
-    if a ≠ 0 ∧ bitLength f ≤ bitLength a then
-      let shift := bitLength a - bitLength f
-      carrylessDivmodAux fuel f (quotient ||| (1 <<< shift)) (a ^^^ (f <<< shift))
-    else (quotient, a)
-
-/-- `carrylessDivmod a f`: the quotient and remainder of binary polynomials. -/
-def carrylessDivmod (a f : ℕ) : ℕ × ℕ := carrylessDivmodAux (bitLength a + 1) f 0 a
-
-/-- The parity of the set bits. -/
-def bitParity (n : ℕ) : ℕ := ((List.range (bitLength n)).countP fun i ↦ n.testBit i) % 2
-
-/-- The product of the moduli, by `carryless`. -/
-def rmfeModulus : ℕ :=
-  match rmfeFactors.map Prod.fst with
-  | [] => 0
-  | f :: fs => fs.foldl carryless f
-
-/-- One factor's share of `rmfe`: its bits' embeddings (the residues,
-lifted through the Chinese remainder theorem), and per bit the projection's mask, the product
-coefficients whose parity is the bit. -/
-def rmfeFactor (modulus f bits : ℕ) : List ℕ × List ℕ :=
-  let cofactor := (carrylessDivmod modulus f).1
-  let degree := bitLength f - 1
-  let inverse := (((List.range (2 ^ degree)).drop 1).find? fun g ↦
-    (carrylessDivmod (carryless (carrylessDivmod cofactor f).2 g) f).2 = 1).getD 0
-  let lift := (carrylessDivmod (carryless cofactor inverse) modulus).2
-  -- A residue is the polynomial taking the bits as its values at 0, 1 and infinity.
-  let residues : List ℕ := if bits = 1 then [1] else if bits = 2 then [0b11, 0b10]
-    else [0b011, 0b010, 0b110]
-  let embed := residues.map fun r ↦ (carrylessDivmod (carryless lift r) modulus).2
-  let masks := (List.range productBits).foldl (fun masks c ↦
-    let g := (carrylessDivmod (1 <<< c) f).2
-    let atZero := g % 2
-    let atOne := bitParity g
-    let values : List ℕ := if bits = 1 then [if f = 0b10 then atZero else atOne]
-      else if bits = 2 then [atZero, atOne] else [atZero, atOne, g >>> 4]
-    List.zipWith (fun mask value ↦ mask ||| (value <<< c)) masks values)
-    (List.replicate bits 0)
-  (embed, masks)
-
-/-- The embedding (`keccak.rs`): sixteen bits embed in a binary polynomial of degree at
-most `23`, and a product of two embeddings projects to the AND of what they embed. Each unit
-vector's embedding, and per bit of the projection the product coefficients it is the parity of;
-the last bit rides the leading coefficient, which the residues do not see. -/
-def rmfe : List ℕ × List ℕ :=
-  let (embed, project) := rmfeFactors.foldl (fun (acc : List ℕ × List ℕ) (f, bits) ↦
-    let (e, p) := rmfeFactor rmfeModulus f bits
-    (acc.1 ++ e, acc.2 ++ p)) ([], [])
-  (embed ++ [rmfeModulus], project ++ [1 <<< (productBits - 1)])
-
-/-- `RMFE_EMBED` (`keccak.rs`). -/
-def rmfeEmbed : List ℕ := rmfe.1
-
-/-- `RMFE_PROJECT` (`keccak.rs`). -/
-def rmfeProject : List ℕ := rmfe.2
 
 /-! ### Claims and the round's linear map (`keccak.rs`) -/
 
@@ -2160,7 +2099,9 @@ def computedBytecodeValue (words : List K) (point : List E) (value : E) : Verifi
 /-- What a proof claims of the fixed polynomial, for a verifier that does not evaluate it: the
 bytecode's value at its point, the walk's `bytecode_point` (`Summary`, `lib.rs`). -/
 structure BytecodeClaim where
+  /-- The point the proof's bytecode sumcheck leaves. -/
   bytecodePoint : List E
+  /-- The value the proof claims there. -/
   bytecodeValue : E
 
 /-- The claim `claim` in place of the evaluation: the point the proof's bytecode sumcheck leaves

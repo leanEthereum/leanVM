@@ -156,7 +156,7 @@ theorem guestExecution_complete_on_verified_honest_children (s : NodeStatement) 
     (hon : ∀ child ∈ w.children,
       let input := PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) child.statement)
       (∃ (execution : Execution guestProgram) (ρ : ℕ),
-        LeanVM.leanVmHonestProver (m := Id) keccakF1600 guestProgram input execution ρ (2 ^ 35) =
+        LeanVM.Prover.prove (m := Id) keccakF1600 guestProgram input execution ρ (2 ^ 35) =
           some child.proof) ∧
       leanVmVerifier (m := Id) keccakF1600 guestProgram input child.proof = true) :
     ∃ execution, guestExecution guestProgram s w = .ok execution ∧
@@ -181,10 +181,9 @@ theorem guestProve_complete {guest : LeanIsaProgram} {s : NodeStatement} {w : No
         | some proof => leanVmVerifier Common.queryPermutation guest input proof)}[
         accepted = false] ≤ (2 : ℝ≥0∞)⁻¹ ^ 256 := by
   have hp : guestProve Common.queryPermutation guest s w ρ (2 ^ 35) =
-      leanVmHonestProver Common.queryPermutation guest
+      LeanVM.Prover.prove Common.queryPermutation guest
         (PublicInput.ofDigest (statementDigest (deployedSeed guest) s)) t ρ (2 ^ 35) := by
     simp only [guestProve, he]
-    rfl
   intro input
   rw [hp]
   exact hC _ _ t ρ hv hsz hρ

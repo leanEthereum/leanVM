@@ -105,7 +105,7 @@ theorem after_readChild {bytecode : List K} {c : ChildClaims} (hc : ChildHasByte
       some (.ret c) := by
   simp only [readChild, VerifierProgram.bind_eq]
   rw [VerifierProgram.after_bind_of_after _ _ _ (after_readN' _ (length_childCells hc))]
-  simp [VerifierProgram.require, drop_childCells hc, parseChild_childCells hc, Verifier.liftOption]
+  simp [VerifierProgram.require, drop_childCells hc, parseChild_childCells hc]
 
 /-- The children's reads, along their cells, return them. -/
 theorem after_readChildren {bytecode : List K} :
@@ -170,10 +170,11 @@ theorem eq_of_flatMap_childCells {bytecode : List K} :
     obtain ⟨h1, h2⟩ := List.append_inj h (by
       rw [length_childCells (hs c List.mem_cons_self),
         length_childCells (hs' c' List.mem_cons_self)])
-    have hc : some c = some c' := by
-      rw [← parseChild_childCells (hs c List.mem_cons_self),
-        ← parseChild_childCells (hs' c' List.mem_cons_self), h1]
-    rw [Option.some.inj hc, eq_of_flatMap_childCells (fun x hx ↦ hs x (List.mem_cons_of_mem _ hx))
+    have hc : c = c' := by
+      have h := congrArg (parseChild (Nat.log2 bytecode.length)) h1
+      rwa [parseChild_childCells (hs c List.mem_cons_self),
+        parseChild_childCells (hs' c' List.mem_cons_self)] at h
+    rw [hc, eq_of_flatMap_childCells (fun x hx ↦ hs x (List.mem_cons_of_mem _ hx))
       (fun x hx ↦ hs' x (List.mem_cons_of_mem _ hx)) h2]
 
 /-! ## The batching after its children: one proof of work, before `λ` -/
@@ -391,9 +392,9 @@ theorem costs_readCount (M : ℕ) : Costs 0 (readChildCount M) rateScalars fun n
 
 theorem costs_readChild (nB : ℕ) :
     Costs 0 (readChild nB) (childWordCount nB + zerosToWholeRate (childWordCount nB)) fun _ ↦ True := by
-  refine Costs.seq (Costs.readN _) (fun xs _ ↦ ?_) le_rfl
+  refine Costs.seq (Costs.readN _) (fun _ _ ↦ ?_) le_rfl
   refine Costs.seq (Costs.require _) (fun _ _ ↦ ?_) (Nat.zero_le _)
-  cases parseChild nB xs <;> trivial
+  trivial
 
 theorem costs_readChildren (nB : ℕ) :
     ∀ n, Costs 0 (readChildren nB n) (n * (childWordCount nB + zerosToWholeRate (childWordCount nB)))

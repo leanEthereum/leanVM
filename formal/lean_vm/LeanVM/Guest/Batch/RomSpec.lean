@@ -290,7 +290,7 @@ noncomputable def restSpec {M : ℕ} {bytecode : List K}
         (fun _ h ↦ claimB_ne hb hs (length_lambdaPowers _ _) h) (fun _ _ h ↦ h) le_rfl le_rfl
         le_rfl).bind' fun rb ↦
       endSpec M _ _ fun bv hφ hc ↦ by
-        obtain ⟨-, -, hv⟩ := hc.2
+        obtain ⟨-, hv⟩ := hc.2
         apply hφ
         rw [hc.1, List.nil_append, bytecodePoly, hv]).mono
     (fun _ _ ↦ hg) (fun _ _ h ↦ h) le_rfl zero_le le_rfl

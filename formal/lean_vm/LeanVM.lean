@@ -18,9 +18,7 @@ public import LeanVM.Guest.EndExecHonest
 public import LeanVM.Guest.EndExecFinal
 public import XmssSecurity.Rpm
 public import Sphincs.Security
-public import LeanDa.RpmComplete
-public import LeanDa.PiOnly
-public import LeanDa.RpmArg
+public import LeanDa.End
 public import Statement.Theorems
 public import Statement.Corollaries
 public import LeanVM.Protocol.WithHash
@@ -383,9 +381,9 @@ theorem LeanVM.theorems_of_decoderSpec {decoderProgram : LeanVM.Cost.MachineProg
   batchingSound := LeanVM.Guest.Batch.batch_sound_holds
   leanXmssStronglyUnforgeable := XmssSecurity.leanXmss_rpm_security
   leanSphincsStronglyUnforgeable := Sphincs.leanSphincsStronglyUnforgeable
-  leanDaComplete := LeanDa.leanDa_perfectlyComplete_rpm
+  leanDaComplete := LeanDa.leanDa_complete
   leanDaPositionBinding := LeanDa.leanDa_positionBinding_rpm
-  leanDaCodeBinding := LeanDa.leanDa_codeBinding_rpm_bound
+  leanDaMembershipSound := LeanDa.leanDa_membershipSound_rpm
 
 /-- info: 'LeanVM.theorems_of_decoderSpec' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
@@ -455,7 +453,7 @@ theorem LeanVM.corollaries_of_theorems {extractorProgram decoderProgram : LeanVM
     rintro ⟨t, hx, hv⟩
     obtain ⟨d, hdec, hd, hrel⟩ := h.guestKnowledgeSoundness input t hv
     refine hno ⟨t, d, hx, hdec, ?_⟩
-    rcases h.statementDigestBinds _ _ _ _ _ hrel.hasBytecodeShape hs.1 (hd.trans hpub) with ⟨h1, h2⟩ | hc
+    rcases h.statementDigestBinds _ _ _ _ _ hrel.hasBytecodeShape hs.hasBytecodeShape (hd.trans hpub) with ⟨h1, h2⟩ | hc
     · exact Or.inl ⟨h1, h2, h1 ▸ h2 ▸ hrel⟩
     · exact Or.inr hc
   guestProverComplete s w hrel hlim :=

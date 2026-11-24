@@ -9,8 +9,8 @@ public import Statement.RandomPermutation
 # The simulators of the two-oracle random-oracle model
 
 The two-oracle simulator (`simulator2`) and the simulated adversary (`advS2`), the duplex and its
-simulator (`Duplex.DuplexSpec`, `Duplex.simImpl`), the challenges as a random oracle (`Duplex.GSpec`)
-and as one random oracle of vectors (`Duplex.toV`): the definitions of the proofs' random-oracle
+simulator (`Duplex.DuplexSpec`, `Duplex.simImpl`), the challenges as a random oracle (`Duplex.GSpec`):
+the definitions of the proofs' random-oracle
 models, moved here from `Statement/RandomPermutation.lean` since no end statement names them.
 -/
 
@@ -91,7 +91,7 @@ end Setting2
 
 end Common
 
-/-! ## Named by LeanDA's code-binding bound: the duplex and its simulator -/
+/-! ## Named by LeanDA's membership bound: the duplex and its simulator -/
 
 section
 
@@ -247,7 +247,7 @@ end Common.Duplex
 
 end
 
-/-! ## Named by LeanDA's code-binding bound: the challenges as a random oracle -/
+/-! ## Named by LeanDA's membership bound: the challenges as a random oracle -/
 
 section
 
@@ -278,49 +278,3 @@ end Common.Duplex
 
 end
 
-/-! ## Named by LeanDA's code-binding bound: the challenges as one random oracle of vectors -/
-
-section
-
-set_option linter.unusedSectionVars false
-
-open OracleComp OracleSpec
-open scoped ENNReal
-
-namespace Common
-
-section Swap
-
-variable {ι₁ ι₂ : Type} [DecidableEq ι₁] [DecidableEq ι₂] {hs₁ : OracleSpec.{0, 0} ι₁}
-  {hs₂ : OracleSpec.{0, 0} ι₂} [∀ t : hs₁.Domain, SampleableType (hs₁.Range t)]
-  [∀ t : hs₂.Domain, SampleableType (hs₂.Range t)]
-
-/-- The oracles of a sum, in the other order. -/
-def swapImpl : QueryImpl (unifSpec + (hs₁ + hs₂)) (OracleComp (unifSpec + (hs₂ + hs₁)))
-  | .inl k => liftM ((unifSpec + (hs₂ + hs₁)).query (.inl k))
-  | .inr (.inl t) => liftM ((unifSpec + (hs₂ + hs₁)).query (.inr (.inr t)))
-  | .inr (.inr t) => liftM ((unifSpec + (hs₂ + hs₁)).query (.inr (.inl t)))
-
-end Swap
-
-end Common
-
-namespace Common.Duplex
-
-variable {Msg Dg Root Z : Type} {n : ℕ}
-  [DecidableEq Msg] [DecidableEq Root] [SampleableType Dg] [SampleableType Z]
-  [Fintype Z] [Fintype Root] [Nonempty Z]
-
-/-- `H`, and the challenges as one random oracle of vectors. -/
-abbrev VSpec (Msg Dg Root Z : Type) (n : ℕ) := roSpec Msg Dg + (Root →ₒ (Fin n → Z))
-
-/-- The challenge `(r, j)` read as component `j` of the vector of `r`. -/
-def toV : QueryImpl (unifSpec + GSpec Msg Dg Root Z n) (OracleComp (unifSpec + VSpec Msg Dg Root Z n))
-  | .inl k => liftM ((unifSpec + VSpec Msg Dg Root Z n).query (.inl k))
-  | .inr (.inl m) => liftM ((unifSpec + VSpec Msg Dg Root Z n).query (.inr (.inl m)))
-  | .inr (.inr rj) =>
-      (fun v ↦ v rj.2) <$> liftM ((unifSpec + VSpec Msg Dg Root Z n).query (.inr (.inr rj.1)))
-
-end Common.Duplex
-
-end
