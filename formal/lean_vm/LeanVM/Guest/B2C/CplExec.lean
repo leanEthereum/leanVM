@@ -12,8 +12,8 @@ public import LeanVM.Guest.B2C.Count
 /-!
 # Segments along a path
 
-`Exec.exec_complete` and `B2C.exec_completeC` reach the registers a path's exit names but say
-only that some exit of the segment holds its environment there. B2's completeness walk knows
+`Exec.exec_complete` reaches the registers a path's exit names but says only that some exit of
+the segment holds its environment there. B2's completeness walk knows
 which branch the path takes: `Fall` says every item of a path holds with every branch falling
 through, `Taken` that a branch is taken. Then a segment's run reaches its exit's registers, or a
 branch's, with that exit's environment holding (`segZ_fall`, `segZ_taken`), each opcode counted
@@ -58,11 +58,6 @@ theorem fall_append : ∀ (l₁ l₂ : List Item), Fall L fp (l₁ ++ l₂) ↔ 
   | .ins a :: l₁, l₂ => by simp only [List.cons_append, Fall, fall_append l₁ l₂, and_assoc]
   | .fact _ :: l₁, l₂ => by simp only [List.cons_append, Fall, fall_append l₁ l₂]
   | .branch .. :: l₁, l₂ => by simp only [List.cons_append, Fall, fall_append l₁ l₂, and_assoc]
-
-theorem fall_facts (fs : List Atom) : Fall L fp (fs.map .fact) := by
-  induction fs with
-  | nil => trivial
-  | cons a fs ih => exact ih
 
 theorem branch_not_facts {fs : List Atom} {pre post : List Item} {oc od of : ℕ} {x : Exit} :
     fs.map .fact ≠ pre ++ .branch oc od of x :: post := by
@@ -374,13 +369,6 @@ theorem passZ_good (hctx : Ctx F κ fp) : ∀ (code : List OffsetInstruction) (i
         rcases List.mem_cons.mp hs' with rfl | hs'
         · exact segZ_stop hctx hc hfi hpc hs
         · exact hout' s hs'
-
-/-- **Every segment of a window is complete along every path.** -/
-theorem execWin_z (hctx : Ctx F κ fp) {f : CompiledFunction} (hf : Fetches prog f.entryPc f.code)
-    {a b : ℕ} {env : List (ℕ × Sym)} {s : Seg} (hs : s ∈ (execWin F f a env b).segs) :
-    SegZ L fp prog f.entryPc s :=
-  passZ_good hctx _ a _ [] [] 0 (hf.window a (b - a))
-    (fun _ h ↦ Option.some.inj h ▸ curZ_init a _) (fun _ h ↦ by cases h) s hs
 
 theorem execWinS_z (hctx : Ctx F κ fp) {f : CompiledFunction} (hf : Fetches prog f.entryPc f.code)
     {a b : ℕ} {env : List (ℕ × Sym)} {seeds : List ℕ} {s : Seg} (hs : s ∈ (execWinS F f a env seeds b).segs) :

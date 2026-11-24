@@ -11,13 +11,11 @@ public import LeanVM.Guest.CoreMode.Gen.AnyLink
 public import LeanVM.Guest.CoreMode.Fam.LinkDefs
 public import LeanVM.Guest.CoreMode.Fam.FamDefs
 public import LeanVM.Guest.CoreMode.Fam.TermDefs
-public import LeanVM.Guest.CoreMode.Fam.ExpDefs
 
 /-!
 # The stream reads' sites
 
-A read past a cursor in the proof stream (`stRes`); each reader's are its own (`keccak_layer`'s `stB`, `verify_tables`'
-`vtStB`).
+A read past a cursor in the proof stream (`stRes`); each reader's are its own (`keccak_layer`'s, `verify_tables`').
 -/
 
 namespace LeanVM.Guest.Res

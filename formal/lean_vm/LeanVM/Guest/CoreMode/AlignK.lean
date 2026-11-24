@@ -6,7 +6,7 @@ public import LeanVM.Guest.Bridge.AlignDefs
 # The alignment pass's states from the pairing's
 
 A long function's alignment pass (`Bridge.alignOk`) is checked in windows (`Bridge.winOk`, `Bridge.alignOk_of_chain`)
-from the core route's pairing states at the same offsets (`CoreMode.winOkH`, `scripts/core-mode/pair.py`): the pairing
+from the core route's pairing states at the same offsets (`CoreMode.winOkHS`, `scripts/core-mode/pair.py`): the pairing
 holds its cursors normalized to the next heap event (`PairCtx.nL`), the alignment to the next flow hint or jump
 (`Bridge.normZ`), so the alignment's state is the pairing's with its cursors normalized further (`alignKOf`). Nothing
 is proved of it: each window is decided at the states it names.

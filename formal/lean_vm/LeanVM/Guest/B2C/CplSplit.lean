@@ -410,13 +410,6 @@ theorem cwArmsS_good (X : CX) (J : ℕ) (succ : List ℕ) (se : CW) (key : Optio
           simpa [Nat.add_assoc, Nat.add_comm 1 e] using this
       · simp at h
 
-theorem armTg_none {X : CX} {v : V} (h : chainOf X v.idx = none) (k : ℕ) : armTg X v k = [] := by
-  simp only [armTg, h]
-
-theorem chainPre_none {X : CX} {v : V} (h : chainOf X v.idx = none) (st : CW) (n : ℕ) :
-    chainPre X st v n = true := by
-  simp only [chainPre, h]
-
 theorem armTg_congr (X : CX) {L : CLoc} {A : ℕ → Prop} (hA : ∀ n, A n → X.loc.get? n = L.get? n)
     {v : V} (hy : ∀ ts y b, chainOf X v.idx = some (ts, y, b) → A y) (k : ℕ) :
     armTg X v k = armTg { X with loc := L } v k := by

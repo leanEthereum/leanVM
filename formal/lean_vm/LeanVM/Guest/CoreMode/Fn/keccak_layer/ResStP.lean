@@ -7,7 +7,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.Fn.keccak_layer.ResStL
-public import LeanVM.Guest.CoreMode.Fam.ResA
+public import LeanVM.Guest.CoreMode.Fam.LoopCtr
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«keccak_layer__L»
 
@@ -25,7 +25,7 @@ callee's header names the layer's frame and its arguments are the layer's: the c
 bound `step_g` or `rem_g`, the first record's cursor `48` words past the layer's (`layer_setup`), the
 remainder loop's record `16 (y / 8)` words further (`pack_cur`), and `LayQ` gives the room. A tail
 call keeps the header and steps the counter (`Res.loop_path`); the iteration's step moves the cursor
-(`stLoop_next`). The counter lies below the bound at every instance (`loop_ctr_lt`, `Res.chain`).
+(`stLoop_next`). The counter lies below the bound at every instance (`loop_ctr_lt`).
 -/
 
 namespace LeanVM.Guest.EndExec
@@ -135,39 +135,6 @@ theorem room_step {S q n j : ℕ} (h : j < n) (h' : q + S * (n - j) ≤ 8192) : 
   omega
 
 variable {r : Ref}
-
-/-- **A loop's counter lies below its bound** at an honest instance: `g^j`, `j < n`, the bound `g^n`. -/
-theorem loop_ctr_lt (hr : r.Ok) {J : Inst} (hJ : J ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T)
-    {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree} (hJt : J.t = .node f σ bufs kids)
-    {fn : Fn} (hf : coreProgram.find? f = some fn) (hl : fn.loop = true) (he : Res.endOfFn fn = some none)
-    {rest : List V} (hps : fn.params = .n 0 :: .n 1 :: rest) {n : ℕ} (h1 : σ (.n 1) = gen ^ n) (hn : n < 34) :
-    ∃ j < n, σ (.n 0) = gen ^ j := by
-  obtain ⟨rd, hH, -⟩ := hr.honest
-  have hκ := logMemorySize_le_28 (e := r.exec) hr.size
-  have hfs : ∀ g, 1 ≤ B2C.fs g := Res.fs_pos
-  have hroot : Res.CtrOk coreProgram B2C.fs (r.T.total B2C.fs + 1) r.T := by
-    intro f' σ' _ _ fn' hT' hg hl'
-    have := (progOk_guest.loop f' fn' hg hl').1
-    have hn' := hr.name
-    rw [hT'] at hn'
-    simp only [Tree.name] at hn'
-    subst hn'
-    exact absurd this (by decide)
-  obtain ⟨p0, prest, e1, hps', hσ0, hb⟩ := Res.insts_ctr hfs progOk_guest r.T _ r.hdr hH.valid le_rfl hroot J hJ
-    f σ bufs kids fn hJt hf hl
-  obtain ⟨args, rets, hv⟩ := inst_valid' hr hJ hJt
-  obtain ⟨-, e, he', hs, -⟩ := progOk_guest.loop f fn hf hl
-  obtain rfl : e = none := Option.some.inj (he'.symm.trans he)
-  obtain ⟨m, p0', prest', hps'', hm1, hm2, hm⟩ := Res.chain hfs _ le_rfl hv hf hs
-  rw [hps] at hps' hps''
-  obtain ⟨rfl, rfl⟩ := List.cons.inj hps'
-  obtain ⟨rfl, rfl⟩ := List.cons.inj hps''
-  simp only [Res.endVal, hps, h1] at hm
-  rw [hσ0, Res.ofK_gpow_add, ← Value.gen_pow_eq_ofK] at hm
-  have hT : r.T.total B2C.fs ≤ 2 ^ 28 := (le_two_pow_logMem _).trans (Nat.pow_le_pow_right (by norm_num) hκ)
-  rw [hJt] at hb
-  have := Value.gen_pow_inj (by omega) (by omega) hm
-  exact ⟨e1, by omega, by rw [hσ0, Value.gen_pow_eq_ofK]⟩
 
 /-! ## The layer's calls -/
 
@@ -313,36 +280,12 @@ theorem loopQ_step (hr : r.Ok) :
   · -- a loop's tail call
     obtain rfl : fI = f := (hnI.symm.trans hS).trans hfL.symm
     obtain rfl : fnI = fn := Option.some.inj (hfI.symm.trans (by rw [hfL]; exact hfn))
-    obtain ⟨-, e0, -, hsh, -⟩ := progOk_guest.loop _ fnI hfI hl
-    obtain ⟨p0, prest, c0, i0, es1, hps, hw1, hes, hi0, -⟩ := Res.loop_path hsh hw hh
-    subst hes
-    have hnm : fnI.name = fI := Da.fn_name_of_find hfI
-    rw [Res.loop_calls, hnm] at hci
-    have hi : i = (calls es1).length := by
-      by_contra hne
-      rcases Nat.lt_or_gt_of_ne hne with hlt | hgt
-      · rw [List.getElem?_append_left hlt] at hci
-        have hc1 := walk_callees (σ := σI) (loopBody fnI) (c := c)
-          (by rw [hw1]; exact List.mem_of_getElem? hci)
-        rw [hbc] at hc1
-        exact absurd hc1 List.not_mem_nil
-      · rw [List.getElem?_append_right (by omega), List.getElem?_eq_none (by simp; omega)] at hci
-        cases hci
-    subst hi
-    rw [List.getElem?_append_right le_rfl, Nat.sub_self] at hci
-    simp only [List.getElem?_singleton, ↓reduceIte, Option.some.injEq] at hci
-    subst hci
-    obtain ⟨j, hj⟩ := B2C.idxOf_of_find hfI
-    obtain ⟨i2, hji2, hi2, -, hf', hc', -⟩ := fn_of_idx hj
-    have hcj : coreOf j = fnI := by rw [hc']; exact Option.some.inj (hf'.symm.trans hfI)
-    have hH := B2C.H_eq_kidHdr hIt hj (by rw [hcj]; exact hw) (calls es1).length
-    unfold kidHdr at hH
-    rw [Res.loop_calls, hnm, List.getElem?_append_right le_rfl, Nat.sub_self] at hH
-    simp only [List.getElem?_singleton, ↓reduceIte] at hH
-    rw [ite_eq_left (show (coreOf j).loop = true ∧ _ from ⟨by rw [hcj]; exact hl, by simp⟩)] at hH
+    obtain ⟨i0, p0, prest, hps, hargs, hi0, hH⟩ :=
+      loop_tail_hdr hfI hl (by rw [hbc]; exact List.not_mem_nil) hIt hw hh hci hcf
     -- the parameters: the counter stepped, the rest kept
     rw [hpl] at hps
     obtain ⟨rfl, rfl⟩ := List.cons.inj hps
+    rw [hargs] at hpar
     simp only [loopParams, List.map_cons, List.map_nil, List.cons.injEq] at hpar
     obtain ⟨p0, p1, p2, -, -, -⟩ := hpar
     -- the iteration's cursor

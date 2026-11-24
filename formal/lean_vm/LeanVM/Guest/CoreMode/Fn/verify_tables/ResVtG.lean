@@ -2,7 +2,7 @@
   LeanVM.Guest.CoreMode.Fn.verify_tables.ResVtG
 
   `verify_tables`' block groups at its honest instances: each side's ranks name every group of the
-  side, the groups' keys are nonzero; the groups' bases read in group order (`Res.vtGrpB`) at the
+  side, the groups' keys are nonzero; the groups' bases read in group order at the
   honest frames.
 -/
 
@@ -13,7 +13,7 @@ public import LeanVM.Guest.CoreMode.Fn.verify_tables.ResVtSt
 public import LeanVM.Guest.CoreMode.Fam.ResExp
 public import LeanVM.Guest.B1.Tables.Vt.Sort
 public import LeanVM.Guest.B1.Tables.Vt.Pads
-public import LeanVM.Guest.CoreMode.Fn.verify_tables.SubVt
+public import LeanVM.Guest.CoreMode.Fam.SubDefs
 public import LeanVM.Guest.CoreMode.Fn.verify_tables.ResVtL
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_tables»
@@ -37,7 +37,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Mode LeanVM.Gu
 open LeanVM.Guest.B1 LeanVM.Guest.B1.Tables
 open LeanVM.Guest.B2C (fsN cellJ namedOf)
 open LeanVM.Guest.Bridge (FnAl)
-open LeanVM.Guest.Res (Wit witOk holdsBase inFr vtGrpB vtGrpRes)
+open LeanVM.Guest.Res (Wit inFr)
 open LeanVM.Protocol LeanVM.Protocol.Verifier
 open LeanVM.Prover.Exec
 

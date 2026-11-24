@@ -68,23 +68,6 @@ theorem trieNil_get {α : Type} {t : Exec.Trie α} (h : trieNil t = true) (n : �
   | nil => rfl
   | node => simp [trieNil] at h
 
-theorem tgtIn_of_none {o : ℕ} (ho : o ≠ 0) : ∀ {t : Exec.Trie B2C.Site}, tgtNone t = true → tgtIn o t = false
-  | .nil, _ => rfl
-  | .node v l r, h => by
-    have h' : (siteTgt true 0 v && tgtNone l && tgtNone r) = true := h
-    simp only [Bool.and_eq_true] at h'
-    obtain ⟨⟨hv, hl⟩, hr⟩ := h'
-    show (siteTgt false o v || tgtIn o l || tgtIn o r) = false
-    rw [tgtIn_of_none ho hl, tgtIn_of_none ho hr]
-    cases v with
-    | none => rfl
-    | some s =>
-      simp only [siteTgt, Nat.beq_eq] at hv ⊢
-      simp only [hv, Bool.or_false]
-      cases o with
-      | zero => exact absurd rfl ho
-      | succ n => rfl
-
 theorem has_hasP {t : Exec.Trie Unit} {i : ℕ} : has t i = hasP t i := by
   simp only [has, hasP, Check.getF_eq]
 

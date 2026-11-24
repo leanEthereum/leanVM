@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.Fn.check_opening_terminal.TermQ
+public import LeanVM.Guest.CoreMode.Fn.column_selector.ResCs
 public import LeanVM.Guest.B1.Terminal.TermFacts
 public import LeanVM.Guest.CoreMode.Fam.RefAll
 import LeanVM.Guest.ValRef

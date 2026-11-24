@@ -13,11 +13,11 @@ public import LeanVM.Guest.Bridge.ProgAlSlice
 /-!
 # The pairing's windows over slices
 
-`winOkH` (`PairDefs.lean`) hands each window the whole code and drops the offsets before it, which
-the kernel walks every time; for a long function the walk outweighs a late window. `winOkHS` hands it
-the slice of the code's chunks between two cuts (`Bridge.slice`, built from the chunks it touches),
-and a chain of such windows (`ChainHS`) from the chunks' start to their end is the whole pass
-(`pairOk_of_chainS`, by `Bridge.slice_rest` and `pairGo_append`).
+A window of the pass over the whole code would drop the offsets before it, which the kernel walks
+every time; for a long function the walk outweighs a late window. `winOkHS` hands a window the slice
+of the code's chunks between two cuts (`Bridge.slice`, built from the chunks it touches), and a chain
+of such windows (`ChainHS`) from the chunks' start to their end is the whole pass (`pairOk_of_chainS`,
+by `Bridge.slice_rest` and `pairGo_append`).
 -/
 
 namespace LeanVM.Guest.CoreMode

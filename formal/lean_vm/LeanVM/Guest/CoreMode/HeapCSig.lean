@@ -218,14 +218,6 @@ def GwOk (G : HSig) (rd : Reader) (σ : Val) : Prop :=
 theorem gwOk_nil {G : HSig} (h : G.gw = []) (rd : Reader) (σ : Val) : GwOk G rd σ := fun c j hc ↦ by
   rw [h] at hc; cases hc
 
-theorem callDers_nil {H : HCert} (h : H.gargs = []) (g : String) (args : List V) : callDers H g args = [] := by
-  simp [callDers, gargsOf, h, derKs, nubN]
-
-/-- A call naming no word at a cell: its callee's preconditions. -/
-theorem CallReq.pre {sigOf : String → HSig} {H : HCert} {rd : Reader} {σ : Val} {W : K → Prop} {g : String}
-    {args : List V} (h : CallReq sigOf H rd σ W g args) (hd : callDers H g args = []) : CallPre sigOf H rd σ W g args :=
-  h.2 fun k hk ↦ by rw [hd] at hk; cases hk
-
 /-- What an event needs written in `W`: an atom its reads, an entered call the cells its ghost words read and its
 callee's preconditions at its argument and ghost words (`CallReq`). -/
 def ReqOk (sigOf : String → HSig) (H : HCert) (rd : Reader) (σ : Val) (W : K → Prop) : Ev → Prop

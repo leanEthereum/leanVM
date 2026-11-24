@@ -698,7 +698,7 @@ class Pass:
             if arm_only:
                 return None
             if allow_pre and not self.at_tail and self.iface(c) and (c[0] or self.key == 'main' and 0 <= c[1] < 2 ** 20):
-                # (an absolute cell only for the root: its preconditions are the public input's cells, `preSet_const`)
+                # (an absolute cell only for the root: its preconditions are the public input's cells)
                 if self.loop and any(b == self.sig.ctr for b, _ in c[0]):
                     if c not in self.sig.pre:
                         self.sig.pre.append(c)

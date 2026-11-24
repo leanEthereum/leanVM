@@ -276,12 +276,6 @@ theorem PairCtx.seq_eq {β : Type} (P : PairCtx) (k : PairCtx → β) : P.seq k 
   obtain ⟨X, R, O, S⟩ := P
   simp only [PairCtx.seq, AlignCtx.seq_eq, Exec.Trie.seq_eq]
 
-/-- **A chain of named states**: each window of the pass from one to the next, the last at the end. -/
-@[expose] def ChainH (X : AlignCtx) (H : HCert) (O S : Exec.Trie Unit) (body : List Stmt)
-    (code : List OffsetInstruction) (d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)) : KSt → List KSt → Prop
-  | K, [] => chainEnd code K = true
-  | K, K' :: ks => winOkH X H O S body code d K K' = true ∧ ChainH X H O S body code d K' ks
-
 end
 
 end LeanVM.Guest.CoreMode

@@ -728,8 +728,7 @@ noncomputable def afterC (st : CW) (q r u : ℕ) (fcs : List (ℕ × FC)) (args 
     | none => .error 7
   | .error e => .error e
 
-set_option maxRecDepth 20000
-
+set_option maxRecDepth 20000 in
 mutual
 /-- **The completeness walk** of a block from a position. -/
 noncomputable def cw : List Core.Stmt → CW → RC
