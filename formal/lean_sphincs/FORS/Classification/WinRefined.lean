@@ -268,76 +268,11 @@ theorem treeHit_hitA (hboundary : BoundaryCorrect f parameter seed labels) (pk :
     ∃ input ∈ SignatureWitness.trace f pk message signature,
       truncateHash (f input) ∈ targets parameter (graphTable f parameter seed labels) input ∧
       (∀ results, ¬SecondOrderInput parameter results input) ∧ ¬ForsSigner.IsMsgInput input := by
-  subst hparameter
-  obtain ⟨-, value, -, hrun, hcase⟩ := h
-  generalize hlay : layerUp j = lay at hrun hcase
-  generalize htree : SignatureWitness.keyTree (SignatureWitness.index f pk message signature) lay = tree
-    at hrun hcase
-  generalize hleaf : SignatureWitness.keyLeaf (SignatureWitness.index f pk message signature) lay = leaf
-    at hrun hcase
-  generalize hpath : signaturePath signature lay = path at hrun hcase
-  have hmem : ∀ level, level < layerHeight lay →
-      merkleInput f pk.parameter (fun height index => .node lay tree height index) leaf.val path
-        value level ∈ SignatureWitness.trace f pk message signature := by
-    intro level hlevel
-    apply hrun
-    rw [← merkleFold_treeFold]
-    exact merkleInput_mem f pk.parameter _ leaf.val path value (layerHeight lay) level hlevel
-  have hnode : ∀ level results, ¬SecondOrderInput pk.parameter results
-      (merkleInput f pk.parameter (fun height index => .node lay tree height index) leaf.val path
-        value level) := fun level results => by
-    unfold merkleInput
-    exact not_secondOrder _ _ _ _ (fun _ _ _ _ _ h => by cases h) (fun _ _ _ h => by cases h)
-  rcases hcase with ⟨reference, hreference, level, hlevel, hparent, hne, hout⟩ |
-    ⟨hlaytop, level, hlevel, ⟨hlower, hpositive, hsurrogate⟩, haddress⟩
-  · refine ⟨_, hmem level hlevel, ?_, hnode level, merkleInput_not_msg _ _ _ _ _ _ _⟩
-    have hpos := active_hit f pk.parameter seed labels
-      (treePosition lay tree (level + 1) (hlevel.trans_le (layerHeight_le lay))
-        ⟨reference.val / 2 ^ (level + 1), (Nat.div_le_self _ _).trans_lt reference.isLt⟩)
-      (tree_path_active pk.parameter lay tree reference hreference (level + 1) hlevel)
-      (orderedPayload (leaf.val.testBit level)
-        (merkleValue f pk.parameter (fun height index => .node lay tree height index) leaf.val
-          path value level) (path level))
-      (by
-        rw [tree_path_input f pk.parameter seed labels hconsistent hboundary lay tree reference
-          hreference level hlevel]
-        intro heq
-        apply hne
-        unfold merkleInput
-        rw [hparent]
-        exact heq)
-      (by
-        rw [tree_path_value f pk.parameter seed labels hconsistent hboundary lay tree reference
-          hreference (level + 1) hlevel]
-        change truncateHash (f (tweakableHashInput pk.parameter
-          (.node lay tree (level + 1) (reference.val / 2 ^ (level + 1))) _)) = _
-        rw [← hparent]
-        exact hout)
-    unfold merkleInput
-    rw [hparent]
-    exact hpos
-  · subst hlaytop
-    have htop : tree = rootTree := by
-      rw [← htree]; exact Completeness.treeIndexAt_top _
-    subst htop
-    refine ⟨_, hmem (level - 1) (by omega), ?_, hnode (level - 1), merkleInput_not_msg _ _ _ _ _ _ _⟩
-    have hlevel' : level < maxLayerHeight := hlevel.trans_le (layerHeight_le _)
-    have hentry := PrunedGraph.referenceTable_surrogate pk.parameter (otsSecrets f pk.parameter seed)
-      (ftsSecrets f pk.parameter seed) (surrogates f pk.parameter seed) labels topLayer rootTree
-      ⟨level, hlevel'⟩ hpositive rfl rfl hlower
-    have hinput : merkleInput f pk.parameter (fun height index => .node topLayer rootTree height index)
-        leaf.val path value (level - 1) =
-        tweakableHashInput pk.parameter (.node topLayer rootTree level (boundaryIndex pk.parameter level))
-          (orderedPayload (leaf.val.testBit (level - 1))
-            (merkleValue f pk.parameter (fun height index => .node topLayer rootTree height index)
-              leaf.val path value (level - 1)) (path (level - 1))) := by
-      simp only [merkleInput, Nat.sub_add_cancel hpositive, haddress]
-    rw [hinput]
-    unfold graphTable
-    rw [targets_at_entry _ _ _ _ _ hentry]
-    simp only [reduceCtorEq, ↓reduceIte, Finset.mem_singleton]
-    rw [← hinput]
-    exact hsurrogate
+  obtain ⟨_, _, _, _, _, _, hmem, hhit⟩ :=
+    treeHit_input f parameter seed labels hconsistent hboundary pk hparameter message signature j h
+  refine ⟨_, hmem, hhit, fun results => ?_, merkleInput_not_msg _ _ _ _ _ _ _⟩
+  unfold merkleInput
+  exact not_secondOrder _ _ _ _ (fun _ _ _ _ _ h => by cases h) (fun _ _ _ h => by cases h)
 
 include hconsistent in
 /-- A FORS node match hits at a queried first-order input. -/
