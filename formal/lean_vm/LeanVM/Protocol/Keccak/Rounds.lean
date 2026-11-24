@@ -141,10 +141,6 @@ noncomputable def doomGrind (hst : Stable C) (A : β → Prop) (Q : Prop) (b : �
 theorem discount_le (b : ℕ) (hT : T ≤ εmax) : (2 : ℝ≥0∞)⁻¹ ^ b * T ≤ εmax :=
   le_trans (mul_le_of_le_one_left zero_le (pow_le_one₀ zero_le (by norm_num))) hT
 
-/-- A grind for a numerator at most `8` is of zero bits: `Compile.grindingBits_eq_zero_of_le`,
-under the name the guest's proofs read. -/
-alias grindingBits_le_eight := grindingBits_eq_zero_of_le
-
 /-- The grind before a layer's evaluation point, for the product's degree `46`, is of three
 bits. -/
 theorem grindingBits_product : grindingBits (productBits - 1) = 3 := by

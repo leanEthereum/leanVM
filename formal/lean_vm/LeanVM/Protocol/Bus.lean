@@ -562,19 +562,7 @@ variable {I}
 
 private theorem prod_flatMap {M α β : Type} [CommMonoid M] (l : List α) (f : α → List β)
     (g : β → M) : ((l.flatMap f).map g).prod = (l.map fun a ↦ ((f a).map g).prod).prod := by
-  induction l with
-  | nil => rfl
-  | cons a l ih =>
-    rw [List.flatMap_cons, List.map_append, List.prod_append, ih, List.map_cons, List.prod_cons]
-
-/-- A product over a list splits along a predicate. -/
-private theorem prod_map_filter {M α : Type} [CommMonoid M] (l : List α) (p : α → Bool)
-    (g : α → M) :
-    (l.map g).prod = ((l.filter p).map g).prod * ((l.filter fun a ↦ !p a).map g).prod := by
-  induction l with
-  | nil => simp
-  | cons a l ih =>
-    cases hp : p a <;> simp [hp, ih] <;> ac_rfl
+  rw [List.map_flatMap, List.flatMap_def, List.prod_flatten, List.map_map]; rfl
 
 /-- The padding rows are the rows that are not executed. -/
 private theorem padRows_eq (j : Fin I.ntab) :
@@ -587,7 +575,8 @@ private theorem padRows_eq (j : Fin I.ntab) :
 /-- The executed and padding rows of a table, together. -/
 private theorem prod_rows {M : Type} [CommMonoid M] (j : Fin I.ntab) (g : Fin (2 ^ I.τ j) → M) :
     ∏ x, g x = ((I.executed j).map g).prod * ((padRows j).map g).prod := by
-  rw [Fin.prod_univ_def, prod_map_filter _ fun x ↦ decide (x.val < I.rows j), padRows_eq]
+  rw [Fin.prod_univ_def, ← List.prod_map_filter_mul_prod_map_filter_not fun x ↦ x.val < I.rows j]
+  simp only [Nat.not_lt]
   rfl
 
 /-- A table has as many rows as executed and padding rows. -/
