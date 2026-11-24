@@ -8,7 +8,8 @@ public import FORS.LazyRun.Presample
 interpreted lazy comparison: the lazy oracle would draw the same uniform value on first use. So
 presampling such an input can only help a final value that is monotone in the cache. The
 potentials use this for the digest calls of a pair: a query of one call of a new pair is treated as
-a query of all its calls (`storeAll`, `interp_presample_new`). -/
+a query of all its calls (`storeAll`, `interp_presample_new`). An honest read steps as the raw query
+of its input and touches nothing, so the facts hold with honest reads (`SourceCostSpec D R ι H`). -/
 
 open OracleComp OracleSpec ENNReal
 
@@ -207,13 +208,15 @@ theorem presample_indep {T γ : Type} (x : D) (state : DebtState D R ι) (query 
   simp only [bind_map_left]
   exact OracleComp.EvalDistEq.bind_bind_swap _ _ _
 
+variable {H : Type} [HonestInputs H D]
+
 omit [Fintype ι] in
-theorem presample_costStep {γ : Type} (x : D) (input : (SourceCostSpec D R ι).Domain) (state : DebtState D R ι)
-    (next : (SourceCostSpec D R ι).Range input × DebtState D R ι → ProbComp γ) :
+theorem presample_costStep {γ : Type} (x : D) (input : (SourceCostSpec D R ι H).Domain) (state : DebtState D R ι)
+    (next : (SourceCostSpec D R ι H).Range input × DebtState D R ι → ProbComp γ) :
     (presample x state >>= fun s => costStep model input s >>= next) =ᵈ (costStep model input state >>= fun r => presample x r.2 >>= fun s => next (r.1, s)) := by
   rcases input with (draw | (bytes | coordinate)) | (amount | honest)
   · exact presample_indep x state (liftM (unifSpec.query draw) : ProbComp _) next
-  · have hcongr : (presample x state >>= fun s => costStep (H := Empty) model (.inl (.inr (.inl bytes))) s >>= next) =
+  · have hcongr : (presample x state >>= fun s => costStep (H := H) model (.inl (.inr (.inl bytes))) s >>= next) =
         (presample x state >>= fun s => ordinaryStep model bytes state.known s >>= next) :=
       bind_congr_of_forall_mem_support _ fun s hs => by
         rw [costStep_ordinary, (presample_known x state s hs).1]
@@ -225,12 +228,17 @@ theorem presample_costStep {γ : Type} (x : D) (input : (SourceCostSpec D R ι).
   · change (presample x state >>= fun s => (pure ((), s) : ProbComp _) >>= next) =ᵈ
       ((pure ((), state) : ProbComp _) >>= fun r => presample x r.2 >>= fun s => next (r.1, s))
     simp only [pure_bind, EvalDistEq.refl]
-  · exact Empty.elim honest
+  · have hcongr : (presample x state >>= fun s => costStep (H := H) model (.inr (.inr honest)) s >>= next) =
+        (presample x state >>= fun s => ordinaryStep model (HonestInputs.toInput honest) state.known s >>= next) :=
+      bind_congr_of_forall_mem_support _ fun s hs => by
+        rw [costStep_honest, costStep_ordinary, (presample_known x state s hs).1]
+    rw [hcongr, costStep_honest, costStep_ordinary]
+    exact presample_ordinaryStep model x _ state next
 
 omit [Fintype ι] in
 /-- **Presampling an untargeted input commutes with the interpreter.** -/
 theorem presample_interp (x : D) (hk : tg.kind x = .none) {α : Type}
-    (computation : OracleComp (SourceCostSpec D R ι) α) :
+    (computation : OracleComp (SourceCostSpec D R ι H) α) :
     ∀ budget state, (presample x state >>= fun s => interp tg initial model computation budget s) =ᵈ (interp tg initial model computation budget state >>= fun out =>
         (fun s => (out.1, s)) <$> presample x out.2) := by
   induction computation using OracleComp.inductionOn with
@@ -253,7 +261,7 @@ theorem presample_interp (x : D) (hk : tg.kind x = .none) {α : Type}
           · simp only [touch, realized_presample tg initial x hk state s hs]
           · rfl
           · rfl
-          · exact Empty.elim honest
+          · rfl
         have hcongr : (presample x state >>= fun s => costStep model input s >>= fun result =>
             (fun out => ((out.1.1, revealed input ++ out.1.2.1, recorded input ++ out.1.2.2.1,
               touch tg initial s input ++ out.1.2.2.2), out.2)) <$>
@@ -283,7 +291,7 @@ theorem presample_mass (x : D) (state : DebtState D R ι) :
 omit [Fintype ι] in
 /-- A final value that can only grow when an untargeted input is presampled at the end. -/
 theorem interp_presample_le (x : D) (hk : tg.kind x = .none) {α : Type}
-    (computation : OracleComp (SourceCostSpec D R ι) α) (budget : ℕ) (state : DebtState D R ι)
+    (computation : OracleComp (SourceCostSpec D R ι H) α) (budget : ℕ) (state : DebtState D R ι)
     (F : Run D ι α × DebtState D R ι → ℝ≥0∞)
     (hF : ∀ out (s : DebtState D R ι), s ∈ support (presample x out.2) → F out ≤ F (out.1, s)) :
     ∑' out, Pr{let x ← interp tg initial model computation budget state}[x = out] * F out ≤
@@ -392,7 +400,7 @@ theorem tsum_uniform_eq (G : R → ℝ≥0∞) :
 omit [Fintype ι] in
 /-- Presampling one fresh untargeted input helps a final value monotone under fresh stores. -/
 theorem interp_presample_fresh_le (x : D) (hk : tg.kind x = .none) {α : Type}
-    (computation : OracleComp (SourceCostSpec D R ι) α) (budget : ℕ) (state : DebtState D R ι)
+    (computation : OracleComp (SourceCostSpec D R ι H) α) (budget : ℕ) (state : DebtState D R ι)
     (hx : state.cache x = none) (F : Run D ι α × DebtState D R ι → ℝ≥0∞)
     (hF : ∀ out (y : D) (v : R), out.2.cache y = none → F out ≤ F (out.1, out.2.store y v)) :
     ∑' out, Pr{let z ← interp tg initial model computation budget state}[z = out] * F out ≤
@@ -412,7 +420,7 @@ theorem interp_presample_fresh_le (x : D) (hk : tg.kind x = .none) {α : Type}
 omit [Fintype ι] in
 /-- **Presampling an injective family of fresh untargeted inputs** helps a final value monotone
 under fresh stores. -/
-theorem interp_presampleAll_le {α : Type} (computation : OracleComp (SourceCostSpec D R ι) α) (budget : ℕ)
+theorem interp_presampleAll_le {α : Type} (computation : OracleComp (SourceCostSpec D R ι H) α) (budget : ℕ)
     (F : Run D ι α × DebtState D R ι → ℝ≥0∞)
     (hF : ∀ out (y : D) (v : R), out.2.cache y = none → F out ≤ F (out.1, out.2.store y v)) :
     ∀ {n : ℕ} (x : Fin n → D), Function.Injective x → (∀ i, tg.kind (x i) = .none) →
@@ -458,7 +466,7 @@ omit [Fintype ι] in
 run is at most the run after storing uniform answers at the whole family, for a final value monotone
 under fresh stores. -/
 theorem interp_presample_new {α : Type} {n : ℕ} (x : Fin n → D) (hx : Function.Injective x)
-    (hk : ∀ i, tg.kind (x i) = .none) (c : Fin n) (next : R → OracleComp (SourceCostSpec D R ι) α)
+    (hk : ∀ i, tg.kind (x i) = .none) (c : Fin n) (next : R → OracleComp (SourceCostSpec D R ι H) α)
     (budget : ℕ) (state : DebtState D R ι) (hfresh : ∀ i, state.cache (x i) = none)
     (F : Run D ι α × DebtState D R ι → ℝ≥0∞)
     (hF : ∀ out (y : D) (v : R), out.2.cache y = none → F out ≤ F (out.1, out.2.store y v)) :

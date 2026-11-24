@@ -76,7 +76,7 @@ theorem wflag_presample_eq (x : D) (hk : tg.kind x = .none) {α : Type}
           by_cases hs : s ∈ support (presample x state)
           · rw [hpay s hs]
           · rw [prEvent_eq_zero_of_not_mem_support _ hs, zero_mul, zero_mul]
-        have hcomm := presample_costStepH model x input state (fun r => (pure r : ProbComp _))
+        have hcomm := presample_costStep model x input state (fun r => (pure r : ProbComp _))
         simp only [bind_pure] at hcomm
         rw [hleft, ← OracleComp.tsum_prEvent_bind_mul]
         calc ∑' r, Pr{let z ← presample x state >>= fun s => costStep model input s}[z = r] * K r

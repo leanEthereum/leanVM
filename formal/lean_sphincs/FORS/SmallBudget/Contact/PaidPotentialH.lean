@@ -260,7 +260,7 @@ theorem goodXFH_ordinary (hMp : model.parse = HiddenGraph.parse K.p (candidateAc
         ≤ pairE (fun u => ∑' out, Pr{let z ← (interp K.tg K.initial model (next (u c)) (budget - 1)
             (withPair K.p data s p u))}[z = out] * G out.1.1 (R ++ out.1.2.1) out.2) := by
           rw [pairE_eq_sum]
-          exact interp_presample_newH K.tg K.initial model (pblk K.p data p)
+          exact interp_presample_new K.tg K.initial model (pblk K.p data p)
             (pblk_call_injective K.p data p) hkind c next (budget - 1) s hfresh
             (fun out => G out.1.1 (R ++ out.1.2.1) out.2) fun out y v hy => hGstore _ _ _ _ _ hy
       _ ≤ pairE (fun u => Φ (withPair K.p data s p u) (addPair K.p P p u) (addMsg Ms p.1) L d R (budget - 1) +

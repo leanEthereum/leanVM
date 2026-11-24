@@ -94,7 +94,7 @@ theorem interp_presample_fresh_leF (x : HashInput) (hk : tg.kind x = .none) {α 
     ∑' out, Pr{let z ← interp tg initial model computation budget state}[z = out] * F out ≤
       (Fintype.card HashOutput : ℝ≥0∞)⁻¹ * ∑ v, ∑' out, Pr{let z ← (interp tg initial model
         computation budget (state.store x v))}[z = out] * F out := by
-  refine le_trans (interp_presample_leH tg initial model x hk computation budget state F fun out s hs => ?_) ?_
+  refine le_trans (interp_presample_le tg initial model x hk computation budget state F fun out s hs => ?_) ?_
   · cases hc : out.2.cache x with
     | some w =>
         rw [presample_cached x out.2 w hc, support_pure, Set.mem_singleton_iff] at hs
