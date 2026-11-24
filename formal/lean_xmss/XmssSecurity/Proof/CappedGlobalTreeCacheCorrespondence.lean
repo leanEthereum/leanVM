@@ -1,7 +1,6 @@
 module
 
 public import XmssSecurity.Proof.CappedGlobalKeygen
-public import XmssSecurity.Proof.CappedConcreteExecution
 
 @[expose] public section
 
