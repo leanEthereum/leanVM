@@ -1,7 +1,7 @@
 module
 
 public import Statement.CostMachine
-public import Statement.Fast.FieldWords
+public import FastFields.FieldWords
 
 /-!
 # The product in `GF(2^64)` on the machine

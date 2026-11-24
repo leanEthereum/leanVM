@@ -11,8 +11,8 @@ module
 public import Statement.Verifier.Lib
 public import Statement.Prover.Script
 import Statement.Fast.Keccak
-import Statement.Fast.QuadExt
-import Statement.Fast.FieldWords
+import FastFields.QuadExt
+import FastFields.FieldWords
 import LeanVM.Protocol.Field
 public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 public import Mathlib.Basic.ENNReal.Operations

@@ -1,6 +1,5 @@
 import Statement.LeanSphincs
 import Statement.LeanXmss
-import Statement.Fast.Schemes
 import Statement.Fast.Keccak
 import LeanVM.Cli.Common
 

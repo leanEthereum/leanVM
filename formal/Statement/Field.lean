@@ -3,8 +3,8 @@ module
 public import Statement.Keccak
 public import CompPoly.Fields.Binary.BF64
 public import CompPoly.Fields.Extension
-public import Statement.Fast.FieldWords
-public import Statement.Fast.QuadExt
+public import FastFields.FieldWords
+public import FastFields.QuadExt
 public import Statement.Fast.Keccak
 public import Statement.Lemmas.FieldModulus
 

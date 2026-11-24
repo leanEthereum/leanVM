@@ -13,8 +13,8 @@ public import LeanVM.Protocol.Errors
 import LeanVM.Facts.Verifier
 import LeanVM.Protocol.Extraction.Defs
 import Statement.Fast.Keccak
-import Statement.Fast.QuadExt
-import Statement.Fast.FieldWords
+import FastFields.QuadExt
+import FastFields.FieldWords
 public import VCVio.OracleComp.QueryTracking.RandomOracle.Basic
 public import VCVio.OracleComp.QueryTracking.QueryBound.Basic
 public import VCVio.EvalDist.ProbabilityNotation

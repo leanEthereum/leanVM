@@ -11,8 +11,8 @@ module
 public import Statement.LeanVmGuest
 public import LeanDa.Scheme
 public import Statement.Fast.Keccak
-public import Statement.Fast.QuadExt
-public import Statement.Fast.FieldWords
+public import FastFields.QuadExt
+public import FastFields.FieldWords
 public import LeanDa.WithHashBridge
 public import LeanVM.Guest.WithHash
 

@@ -10,8 +10,8 @@
 module
 
 public import Statement.Field
-public import Statement.Fast.QuadExt
-public import Statement.Fast.FieldWords
+public import FastFields.QuadExt
+public import FastFields.FieldWords
 public import Statement.Fast.Keccak
 public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 public import Statement.Verifier.Lib

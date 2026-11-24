@@ -13,12 +13,12 @@ import LeanVM.Guest.B1.Ring.Interface
 import LeanVM.Guest.B1.Bits.Meaning
 import Statement.LeanVmGuest
 import LeanXmss.Scheme
-import Statement.LeanSphincs
-public import Statement.Fast.Schemes
+public import Statement.LeanSphincs
+public import Statement.LeanXmss
 import LeanDa.Scheme
 public import Statement.Fast.Keccak
-public import Statement.Fast.QuadExt
-public import Statement.Fast.FieldWords
+public import FastFields.QuadExt
+public import FastFields.FieldWords
 public import LeanVM.Guest.B1.Common.Basic
 public import LeanVM.Guest.CoreData
 public import Statement.LeanVmGuestBatching

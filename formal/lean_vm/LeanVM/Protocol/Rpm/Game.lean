@@ -13,8 +13,8 @@ import LeanVM.Protocol.Rpm.Paths
 import LeanVM.Facts.Verifier
 import LeanVM.Protocol.Verifier.Load
 import Statement.Fast.Keccak
-import Statement.Fast.QuadExt
-import Statement.Fast.FieldWords
+import FastFields.QuadExt
+import FastFields.FieldWords
 public import LeanVM.Protocol.Rpm.Coins
 import Common.Keccak
 public import LeanVM.Protocol.WithHash

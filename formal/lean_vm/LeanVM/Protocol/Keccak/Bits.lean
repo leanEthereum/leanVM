@@ -11,8 +11,8 @@ module
 public import Statement.Verifier.Lib
 import LeanVM.Facts.Verifier
 import Statement.Fast.Keccak
-import Statement.Fast.QuadExt
-import Statement.Fast.FieldWords
+import FastFields.QuadExt
+import FastFields.FieldWords
 
 /-!
 # Keccak-f on bits

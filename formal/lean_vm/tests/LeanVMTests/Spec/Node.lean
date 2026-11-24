@@ -1,11 +1,10 @@
 import Statement.LeanVmGuest
 import LeanXmss.Scheme
 import Statement.LeanSphincs
-import Statement.Fast.Schemes
 import LeanDa.Scheme
 import Statement.Fast.Keccak
-import Statement.Fast.QuadExt
-import Statement.Fast.FieldWords
+import FastFields.QuadExt
+import FastFields.FieldWords
 import LeanVM.Facts.Verifier
 import LeanVM.Facts.NodeWith
 import LeanVM.Facts.DaWith

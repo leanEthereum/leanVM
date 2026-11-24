@@ -11,12 +11,12 @@ module
 import LeanVM.Guest.B1.Common.Sponge
 import Statement.LeanVmGuest
 import LeanXmss.Scheme
-import Statement.LeanSphincs
-public import Statement.Fast.Schemes
+public import Statement.LeanSphincs
+public import Statement.LeanXmss
 import LeanDa.Scheme
 public import Statement.Fast.Keccak
-public import Statement.Fast.QuadExt
-public import Statement.Fast.FieldWords
+public import FastFields.QuadExt
+public import FastFields.FieldWords
 public import LeanVM.Guest.B1.Common.Basic
 public import LeanVM.Guest.Value.KeccakLayout
 public import LeanVM.Guest.CoreData

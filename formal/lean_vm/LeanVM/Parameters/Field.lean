@@ -8,8 +8,8 @@
 module
 
 public import Statement.Field
-public import Statement.Fast.QuadExt
-public import Statement.Fast.FieldWords
+public import FastFields.QuadExt
+public import FastFields.FieldWords
 import Mathlib.Tactic.LinearCombination
 
 /-!

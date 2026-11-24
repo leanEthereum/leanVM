@@ -15,8 +15,8 @@ import LeanVM.Protocol.KeccakHash
 import Statement.LeanVm
 import LeanVM.Facts.Verifier
 import Statement.Fast.Keccak
-import Statement.Fast.QuadExt
-import Statement.Fast.FieldWords
+import FastFields.QuadExt
+import FastFields.FieldWords
 import LeanVM.Semantics.Lemmas
 
 /-!
