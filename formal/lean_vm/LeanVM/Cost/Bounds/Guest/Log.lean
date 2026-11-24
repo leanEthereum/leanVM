@@ -166,7 +166,7 @@ theorem phResidue_cost (hP : Includes P Decoder.phResidueC.costDeps) (q p s t : 
       cases o with
       | none => simp
       | some v => exact limbs_le_two (hv v rfl)
-    limbs
+    rw [limbs_of_lt hp]
     generalize bsgs T c s t (x ^ q) = o at hl
     cases o <;> dsimp only at hl ⊢ <;> omega
 
@@ -329,8 +329,7 @@ theorem gLogAt_cost (hP : Includes P Decoder.gLogAtC.costDeps) (o : Option ℕ)
   | none => dsimp only; omega
   | some v =>
     dsimp only
-    rw [limbs_shift (by norm_num), limbs_two_pow (by norm_num)]
-    limbs
+    rw [limbs_shift (by norm_num), limbs_two_pow (by norm_num), limbs_of_lt (ho v rfl)]
     split_ifs <;> omega
 
 theorem discreteLogWith_lt (x : K) (v : ℕ) (h : discreteLogWith discreteLogTables x = some v) :

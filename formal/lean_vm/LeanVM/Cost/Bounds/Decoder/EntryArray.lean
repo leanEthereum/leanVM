@@ -49,8 +49,7 @@ theorem keyCmp_cost (hP : Includes P keyCmpC.costDeps) (a b : CallKey) {L L' : â
   have hcmp := compareCodes_cost P (by includes) (by includes)
   have hc1 := hcmp a.2.1 b.2.1 haa hba
   have hc2 := hcmp a.2.2 b.2.2 har hbr
-  rw [keyCmpC.costEq P hP]
-  limbs
+  rw [keyCmpC.costEq P hP, limbs_of_lt ha1, limbs_of_lt hb1]
   simp only [max_self]
   unfold keyCmpPrice
   generalize machineCost P Auto.List.compareLex.costIdx

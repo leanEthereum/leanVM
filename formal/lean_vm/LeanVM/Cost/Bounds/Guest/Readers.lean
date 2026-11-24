@@ -66,12 +66,11 @@ theorem cellNat_cost (hP : Includes P Decoder.cellNatC.costDeps) (x : E) :
   have h0 := kToNat_lt (x.limb 0)
   have h1 := kToNat_lt (x.limb 1)
   have : (1 : ℕ) <<< 64 = 2 ^ 64 := by norm_num
-  rw [this]
-  limbs
+  rw [this, limbs_of_lt h1]
   have l1 := limbs_le_of_lt (x := 2 ^ 64) (k := 2) (by norm_num) (by norm_num)
   have l2 := limbs_le_of_lt (x := 2 ^ 64 * LeanVM.Protocol.Verifier.kToNat (x.limb 1)) (k := 2)
     (by norm_num) (by rw [show 64 * 2 = 64 + 64 by rfl, pow_add]; exact Nat.mul_lt_mul_of_pos_left h1 (by norm_num))
-  limbs
+  rw [limbs_of_lt h0]
   have l3 := limbs_le_two (x := LeanVM.Protocol.Verifier.kToNat (x.limb 0) +
     2 ^ 64 * LeanVM.Protocol.Verifier.kToNat (x.limb 1)) (by omega)
   omega

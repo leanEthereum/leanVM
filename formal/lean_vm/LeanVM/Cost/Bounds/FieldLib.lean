@@ -58,8 +58,8 @@ theorem powSq_cost (hP : Includes P Auto.LeanVM.Cost.Rewrite.powSq.K.costDeps) (
     (fun x hx hpos ↦ by
       right
       refine ⟨(x.1 * x.1, x.2 / 2), by dsimp only; omega, le_refl _, ?_⟩
-      rw [Auto.LeanVM.Cost.Rewrite.powSq.K.costEq P hP]
-      limbs
+      rw [Auto.LeanVM.Cost.Rewrite.powSq.K.costEq P hP, limbs_of_lt hx,
+        limbs_of_lt (by omega : x.2 % 2 < 2 ^ 64)]
       simp only [show x.2 ≠ 0 by omega, ↓reduceIte]
       split_ifs <;> omega)
     (a, n) hn

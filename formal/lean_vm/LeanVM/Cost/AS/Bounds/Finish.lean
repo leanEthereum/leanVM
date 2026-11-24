@@ -180,8 +180,7 @@ theorem finishL_cost (hP : Includes P finishLC.costDeps) (prog : Semantics.LeanI
       cost_app [finishLC.lam0.costEq P]
       dsimp only
       have hT1 := descendTraceC_fst _ _ _ tr 0 hs hT
-      rw [hl]
-      limbs
+      rw [hl, limbs_of_lt (by omega : T.1 < 2 ^ 64), limbs_of_lt (by norm_num : (6 : ℕ) < 2 ^ 64)]
       have c4 := stackA_cost P (by includes) lay.stackLog T.2 (by omega) (by omega)
       have c5 := candidateRunner_cost P (by includes) prog input lay hF.logMemory_le hF.logBytecode_le
         hF.heights_le hF.heights_length hF.index_lt_word (stackA lay.stackLog T.2)

@@ -513,13 +513,19 @@ def solvePending (pending : Array (MVarId × Array (Nat × Name))) (hP deps : Ex
 (a callee's `costDeps` from its caller's); implemented in `Cost/Bounds/Basic.lean`. -/
 syntax (name := includesTac) "includes" : tactic
 
+/-- `includes`, as the tactic of an `autoParam`. -/
+def includesAutoParam : Syntax := mkNode ``includesTac #[mkAtom "includes"]
+
 /-- `ty` with its premise `Includes P deps` (its second binder) an `autoParam` closed by
 `includes`, so that a use names the program alone: `f.costEq P`. -/
-def autoIncludes (ty : Expr) : MetaM Expr := do
-  let .forallE n d (.forallE n2 d2 b bi2) bi := ty | return ty
-  unless d2.isAppOf ``Includes do return ty
-  let tac ← (Term.declareTacticSyntax (mkNode ``includesTac #[mkAtom "includes"])).run'
-  return .forallE n d (.forallE n2 (mkApp2 (mkConst ``autoParam [Level.zero]) d2 (mkConst tac)) b bi2) bi
+def autoIncludes (ty : Expr) : Expr :=
+  match ty with
+  | .forallE n d (.forallE n2 d2 b bi2) bi =>
+    if d2.isAppOf ``Includes then
+      .forallE n d (.forallE n2 (mkApp2 (mkConst ``autoParam [Level.zero]) d2
+        (mkConst ``includesAutoParam)) b bi2) bi
+    else ty
+  | _ => ty
 
 /-- Add a definition with its body exposed (visible to importing modules without `import all`)
 and compile it. -/
@@ -612,7 +618,7 @@ def branchEqs (name : Name) (binders encXs : Array Expr) (lhs rhs pf : Expr) : M
         | some q => mkEqTrans (← mkExpectedTypeHint pf' (← mkEq lhs' rhs')) q
         | none => mkExpectedTypeHint pf' eq
       let bs := (binders.extract 0 xPos) ++ fields ++ (binders.extract (xPos + 1) binders.size)
-      let ty ← autoIncludes (← instantiateMVars (← mkForallFVars bs eq))
+      let ty := autoIncludes (← instantiateMVars (← mkForallFVars bs eq))
       let val ← instantiateMVars (← mkLambdaFVars bs proof)
       let cname := ctor.lastComponentAsString
       addDecl <| .thmDecl
@@ -1766,7 +1772,7 @@ partial def compileFn (name : Name) (term : Expr) (idx : Nat) (measure? : Option
           -- stated at the parameters themselves (a proof parameter may depend on them)
           pure (mkAppN (mkConst ``RunsBody) #[P, mkNatLit idx, ctx.env, ← mkAppM ``MachineEncoding.encodeValue #[lhs],
             mkAppN (mkConst ``machineCost) #[P, mkNatLit idx, ctx.env]])
-        let specTy ← autoIncludes (← instantiateMVars (← mkForallFVars binders specBody))
+        let specTy := autoIncludes (← instantiateMVars (← mkForallFVars binders specBody))
         let specName := name.str "costSpec"
         let specVal ← instantiateMVars specVal
         addDecl <| .thmDecl
@@ -1784,7 +1790,7 @@ partial def compileFn (name : Name) (term : Expr) (idx : Nat) (measure? : Option
           | some q => pure (r.expr, ← mkEqTrans pf1 q)
           | none => pure (rhs1, pf1)
         trace[cost.compile] "compile {name} costEq folded"
-        let costTy ← autoIncludes (← instantiateMVars (← mkForallFVars binders (← mkEq lhs1 rhs2)))
+        let costTy := autoIncludes (← instantiateMVars (← mkForallFVars binders (← mkEq lhs1 rhs2)))
         let costVal ← instantiateMVars (← mkLambdaFVars binders pf2)
         addDecl <| .thmDecl
           { name := name.str "costEq", levelParams := [], type := costTy, value := costVal }

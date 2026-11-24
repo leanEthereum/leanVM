@@ -69,8 +69,8 @@ theorem pairCmp_cost (hP : Includes P searchInKeyC.lam0.costDeps) (a b : ℕ × 
     machineCost P searchInKeyC.lam0.costIdx [encodeValue a, encodeValue b] ≤ 47 := by
   obtain ⟨a1, a2⟩ := ha
   obtain ⟨b1, b2⟩ := hb
-  rw [searchInKeyC.lam0.costEq P hP]
-  limbs
+  rw [searchInKeyC.lam0.costEq P hP, limbs_of_lt a1, limbs_of_lt b1, limbs_of_lt a2,
+    limbs_of_lt b2]
   simp only [max_self]
   generalize compareOn (fun x ↦ x.1) a b = o1
   cases o1 <;> dsimp only <;> split_ifs <;> omega
@@ -166,7 +166,7 @@ theorem searchInKey_cost (hP : Includes P searchInKeyC.costDeps) (L : ℕ)
       have hc1 := hcmp v.1.2.1 k.2.1 hva hka
       have hc2 := hcmp v.1.2.2 k.2.2 hvr hkr
       dsimp only
-      limbs
+      rw [limbs_of_lt hv1, limbs_of_lt hk1]
       simp only [max_self]
       unfold keyCmpPrice
       generalize machineCost P Auto.List.compareLex.costIdx
@@ -244,7 +244,7 @@ theorem searchInPc_cost (hP : Includes P searchInPcC.costDeps)
       have hv1 : v.1 < 2 ^ 64 := ht v hvt
       have hk1 : k < 2 ^ 64 := hk
       dsimp only
-      limbs
+      rw [limbs_of_lt hv1, limbs_of_lt hk1]
       simp only [max_self]
       generalize compare v.1 k = o2
       cases o2
@@ -285,7 +285,7 @@ theorem mergeNewerPc_cost (hP : Includes P mergeNewerPcC.costDeps) :
       have h2 := ih (a.length + b.length) (by simp at hn; omega) a b rfl ha' hb'
       have h3 := ih (a.length + 1 + b.length) (by simp at hn; omega) (x :: a) b (by simp) ha hb'
       simp only [List.length_cons] at hn h1 h3
-      limbs
+      rw [limbs_of_lt hx1, limbs_of_lt hy1]
       simp only [max_self]
       generalize compare x.1 y.1 = o2
       subst hn

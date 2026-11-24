@@ -74,8 +74,8 @@ theorem powSqE_cost (hP : Includes P powSqEC.costDeps) (a : E) (n : ℕ)
     (fun x hx hpos ↦ by
       right
       refine ⟨(x.1 * x.1, x.2 / 2), by dsimp only; omega, le_refl _, ?_⟩
-      rw [powSqEC.costEq P hP]
-      limbs
+      rw [powSqEC.costEq P hP, limbs_of_lt hx,
+        limbs_of_lt (by omega : x.2 % 2 < 2 ^ 64)]
       simp only [show x.2 ≠ 0 by omega, ↓reduceIte]
       split_ifs <;> omega)
     (a, n) hn
@@ -90,8 +90,8 @@ theorem twoPowScan_cost (hP : Includes P twoPowScanC.costDeps) (w : ℕ) (hw : w
   | m + 1, e, he => by
     have hs : 1 <<< e < 2 ^ 64 := by
       rw [Nat.one_shiftLeft]; exact Nat.pow_lt_pow_right (by norm_num) (by omega)
-    rw [twoPowScanC.costEq_succ P hP]
-    limbs
+    rw [twoPowScanC.costEq_succ P hP, limbs_of_lt (by omega : m + 1 < 2 ^ 64), limbs_of_lt hs,
+      limbs_of_lt (by omega : e < 2 ^ 64), limbs_of_lt (by omega : e + 1 < 2 ^ 64), limbs_of_lt hw]
     have := twoPowScan_cost hP w hw m (e + 1) (by omega)
     simp only [max_self]
     split_ifs <;> omega
@@ -102,8 +102,8 @@ logarithm. -/
 theorem powBelow_cost (hP : Includes P powBelowC.costDeps) (D : DiscreteLogTables) (w : E)
     (n : ℕ) (hn : n ≤ 34) :
     machineCost P powBelowC.costIdx [encodeValue D, encodeValue w, encodeValue n] ≤ 706 := by
-  rw [powBelowC.costEq P hP]
-  limbs
+  rw [powBelowC.costEq P hP, limbs_of_lt (by omega : n < 2 ^ 64),
+    limbs_of_lt (by unfold scanBound; norm_num : scanBound < 2 ^ 64)]
   have := twoPowScan_cost P (by includes) (w.limb 0).lane.toNat (UInt64.toNat_lt _) n 0
     (by omega)
   have hs : n ≤ scanBound := hn
@@ -130,8 +130,9 @@ theorem gpowAt_cost (hP : Includes P gpowAtC.costDeps) (Pw : Array E) (o : ℕ)
     machineCost P gpowAtC.costIdx [encodeValue Pw, encodeValue o] ≤ 17 := by
   have h128 : smallPowBound < 2 ^ 64 := by unfold smallPowBound; norm_num
   have h34 : LeanVM.Guest.B1.sizeBits = 34 := rfl
-  rw [gpowAtC.costEq P hP]
-  limbs
+  rw [gpowAtC.costEq P hP, limbs_of_lt (by omega : o < 2 ^ 64), limbs_of_lt h128,
+    limbs_of_lt (by norm_num [LeanVM.Guest.B1.sizeBits] : LeanVM.Guest.B1.sizeBits < 2 ^ 64),
+    limbs_of_lt (by unfold smallPowBound at h128 ho; omega : LeanVM.Guest.B1.sizeBits + o < 2 ^ 64)]
   simp only [ho, ↓reduceIte, max_self]
   omega
 
@@ -181,8 +182,7 @@ theorem squaresFrom_cost (hP : Includes P squaresFromC.costDeps) :
   | zero => intro x _; rw [squaresFromC.costEq_zero P hP]
   | succ n ih =>
     intro x hn
-    rw [squaresFromC.costEq_succ P hP]
-    limbs
+    rw [squaresFromC.costEq_succ P hP, limbs_of_lt hn]
     have := ih (x * x) (by omega)
     omega
 
@@ -195,8 +195,7 @@ theorem powsFrom_cost (hP : Includes P powsFromC.costDeps) :
   | zero => intro y _; rw [powsFromC.costEq_zero P hP]
   | succ n ih =>
     intro y hn
-    rw [powsFromC.costEq_succ P hP]
-    limbs
+    rw [powsFromC.costEq_succ P hP, limbs_of_lt hn]
     have := ih (y * LeanVM.Parameters.g) (by omega)
     omega
 
@@ -384,8 +383,8 @@ theorem preTestAt_cost (hP : Includes P preTestAtC.costDeps) (T : Array (Option 
     (hT : ∀ s, T.getD j none = some s → FnPreWithin W s) :
     machineCost P preTestAtC.costIdx [encodeValue D, encodeValue T, encodeValue Pw, rdVal,
       encodeValue j, encodeValue fp] ≤ fnPrePrice R B (T.getD j none) + 19 := by
-  rw [preTestAtC.costEq P hP D T Pw rd rdVal hrd]
-  limbs
+  rw [preTestAtC.costEq P hP D T Pw rd rdVal hrd, limbs_of_lt hj,
+    limbs_of_lt (by unfold LeanVM.Guest.nFns; norm_num : LeanVM.Guest.nFns < 2 ^ 64)]
   have := fnPreTest_cost P D rd rdVal hrd R hR B hB (by includes) Pw hW7 fp
     (T.getD j none) hT
   simp only [max_self]

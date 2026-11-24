@@ -546,8 +546,7 @@ theorem lanesOf_cost (hP : Includes P Auto.LeanVM.Protocol.Whir.Sound.lanesOf.co
     (row : List K) (hi : i < 2 ^ 64) :
     machineCost P Auto.LeanVM.Protocol.Whir.Sound.lanesOf.costIdx [encodeValue i, encodeValue row] ≤
       29 * row.length + 15 := by
-  rw [Auto.LeanVM.Protocol.Whir.Sound.lanesOf.costEq P hP]
-  limbs
+  rw [Auto.LeanVM.Protocol.Whir.Sound.lanesOf.costEq P hP, limbs_of_lt hi]
   split_ifs
   · have h1 := reverseAux_cost P (by includes) row []
     have h2 := map_cost P (by includes) _

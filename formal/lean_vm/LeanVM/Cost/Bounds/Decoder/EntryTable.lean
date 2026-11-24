@@ -94,7 +94,9 @@ theorem locAt_cost (hP : Includes P locAtC.costDeps) (j i : ℕ) :
   have hw := guestLanes_lt (s / 4) i
   generalize (guestLanes.getD (s / 4) #[]).getD i 0 = w at hw ⊢
   have h4 : s % 4 < 4 := Nat.mod_lt _ (by norm_num)
-  limbs
+  rw [limbs_of_lt hs, limbs_of_lt hw, limbs_of_lt (show 16 * (s % 4) < 2 ^ 64 by omega),
+    limbs_of_lt (show s % 4 < 2 ^ 64 by omega),
+    limbs_of_lt (show w >>> (16 * (s % 4)) < 2 ^ 64 from lt_of_le_of_lt (Nat.shiftRight_le _ _) hw)]
   omega
 
 /-! ## A state's key -/
@@ -203,8 +205,7 @@ theorem entryKeyT_ok (s : Registers K) {j : ℕ} (hj : j < 2 ^ 64) :
 /-- Whether `j` is a function's index (`isFunctionIndexC`), `j` word-sized: at most `11`. -/
 theorem isFunctionIndex_cost (hP : Includes P isFunctionIndexC.costDeps) (j : ℕ) (hj : j < 2 ^ 64) :
     machineCost P isFunctionIndexC.costIdx [encodeValue j] ≤ 11 := by
-  rw [isFunctionIndexC.costEq P hP]
-  limbs
+  rw [isFunctionIndexC.costEq P hP, limbs_of_lt hj]
   split_ifs <;> omega
 
 include hrd hR in

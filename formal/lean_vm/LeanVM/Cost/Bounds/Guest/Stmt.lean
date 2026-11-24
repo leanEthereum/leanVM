@@ -88,8 +88,7 @@ theorem xmssRun_cost (hP : Includes P Decoder.xmssRunC.costDeps) (step : K) :
         encodeValue n] ≤ (4 * R + 12367) * n + 5
   | 0, x, _ => by rw [Decoder.xmssRunC.costEq_zero P hP rd rdV hrd]; omega
   | n + 1, x, h => by
-    rw [Decoder.xmssRunC.costEq_succ P hP rd rdV hrd]
-    limbs
+    rw [Decoder.xmssRunC.costEq_succ P hP rd rdV hrd, limbs_of_lt h]
     have := xmssRun_cost hP step n (x * step) (by omega)
     have := xmssAtK_cost P hrd hR (by includes) x
     nlinarith
@@ -101,8 +100,7 @@ theorem sphincsRun_cost (hP : Includes P Decoder.sphincsRunC.costDeps) (step : K
         encodeValue n] ≤ (4 * R + 12367) * n + 5
   | 0, x, _ => by rw [Decoder.sphincsRunC.costEq_zero P hP rd rdV hrd]; omega
   | n + 1, x, h => by
-    rw [Decoder.sphincsRunC.costEq_succ P hP rd rdV hrd]
-    limbs
+    rw [Decoder.sphincsRunC.costEq_succ P hP rd rdV hrd, limbs_of_lt h]
     have := sphincsRun_cost hP step n (x * step) (by omega)
     have := sphincsAtK_cost P hrd hR (by includes) x
     nlinarith

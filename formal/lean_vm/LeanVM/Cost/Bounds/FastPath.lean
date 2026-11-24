@@ -43,8 +43,7 @@ theorem prodRange_cost (hP : Includes P Auto.LeanVM.Cost.Rewrite.prodRange.K.cos
   | zero => intro _; rw [Auto.LeanVM.Cost.Rewrite.prodRange.K.costEq_zero P hP f fVal hf]; omega
   | succ n ih =>
     intro hn
-    rw [Auto.LeanVM.Cost.Rewrite.prodRange.K.costEq_succ P hP f fVal hf]
-    limbs
+    rw [Auto.LeanVM.Cost.Rewrite.prodRange.K.costEq_succ P hP f fVal hf, limbs_of_lt hn]
     have := ih (by omega)
     have := hB n (by omega)
     nlinarith
@@ -63,8 +62,7 @@ theorem subspacePoly_cost (hP : Includes P Auto.LeanVM.Extraction.subspacePoly.c
       (by includes) x a)) 6
     (fun a ha ↦ by
       rw [appCost_fn, List.singleton_append,
-        Auto.LeanVM.Extraction.subspacePoly.lam0.costEq P]
-      limbs
+        Auto.LeanVM.Extraction.subspacePoly.lam0.costEq P, limbs_of_lt ha]
       rfl)
     (2 ^ j) (Nat.pow_lt_pow_right (by norm_num) hj)
   omega
@@ -72,8 +70,9 @@ theorem subspacePoly_cost (hP : Includes P Auto.LeanVM.Extraction.subspacePoly.c
 /-- `Nat.testBit` (`testBit`): `9` on words. -/
 theorem testBit_cost (hP : Includes P Auto.Nat.testBit.costDeps) (a b : ℕ) (ha : a < 2 ^ 64)
     (hb : b < 2 ^ 64) : machineCost P Auto.Nat.testBit.costIdx [encodeValue a, encodeValue b] ≤ 9 := by
-  rw [Auto.Nat.testBit.costEq P hP]
-  limbs
+  rw [Auto.Nat.testBit.costEq P hP, limbs_of_lt ha, limbs_of_lt hb,
+    limbs_of_lt (lt_of_le_of_lt (Nat.shiftRight_le a b) ha),
+    limbs_of_lt (lt_of_le_of_lt (Nat.and_le_left (n := 1) (m := a >>> b)) (by norm_num))]
   omega
 
 /-! ## The novel-basis transforms -/

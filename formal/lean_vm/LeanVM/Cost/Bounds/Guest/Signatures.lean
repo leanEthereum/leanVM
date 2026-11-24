@@ -172,7 +172,8 @@ theorem idxBelow_cost (hP : Includes P Decoder.idxBelowC.costDeps) (w : ℕ)
       have ht := hl t (by simp)
       have := idxBelow_cost hP w hw ts (i + 1) k (fun x hx ↦ hl x (by simp [hx])) (by omega)
       dsimp only
-      limbs
+      rw [limbs_of_lt hw, limbs_of_lt ht, limbs_of_lt (by omega : i < 2 ^ 64),
+        limbs_of_lt (by omega : i + 1 < 2 ^ 64)]
       split_ifs <;> omega
 
 /-- **An exponent off the lanes given** (`logGTWithC`), `bound < 2^32`: at most
@@ -198,8 +199,7 @@ theorem sibN_cost (hP : Includes P Decoder.sibNC.costDeps) (bit b : ℕ)
     (hb : b + 1 < 2 ^ 64) :
     machineCost P Decoder.sibNC.costIdx [σV, encodeValue bit, encodeValue b] ≤
       4 * S + 71 := by
-  rw [Decoder.sibNC.costEq P hP σ σV hσ]
-  limbs
+  rw [Decoder.sibNC.costEq P hP σ σV hσ, limbs_of_lt hb, limbs_of_lt (by omega : b < 2 ^ 64)]
   have := hS (.n bit); have := hS (.n b); have := hS (.n (b + 1))
   split_ifs <;> omega
 

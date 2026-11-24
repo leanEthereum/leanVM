@@ -339,8 +339,7 @@ theorem absorbWith_cost (hP : Includes P absorbWith.Option.costDeps)
   induction k with
   | zero =>
     intro s data _ hd
-    rw [absorbWith.Option.costEq P hP π πVal hπ]
-    limbs
+    rw [absorbWith.Option.costEq P hP π πVal hπ, limbs_of_lt (by norm_num : (0 : ℕ) < 2 ^ 64)]
     have h1 := padBlock_cost P (by includes) data (by omega)
     have h2 := absorbBlockWith_cost P (by includes) π πVal hπ B hB s (padBlock data)
     simp only [Nat.rec_zero]
@@ -498,7 +497,8 @@ theorem publicInputDigest_cost (hP : Includes P Auto.LeanVM.publicInputDigest.co
   rw [Auto.LeanVM.publicInputDigest.costEq P hP, Auto.Fin.ofNat.«4».costEq P,
     Auto.Fin.ofNat.«4».costEq P, Auto.Fin.ofNat.«4».costEq P,
     Auto.Fin.ofNat.«4».costEq P]
-  limbs
+  rw [limbs_of_lt (by norm_num : (0 : ℕ) < 2 ^ 64), limbs_of_lt (by norm_num : (1 : ℕ) < 2 ^ 64),
+    limbs_of_lt (by norm_num : (2 : ℕ) < 2 ^ 64), limbs_of_lt (by norm_num : (3 : ℕ) < 2 ^ 64)]
   omega
 
 /-! ## The sponge -/
@@ -585,7 +585,7 @@ theorem pendingLanes_cost (hP : Includes P pendingLanes.costDeps) (sp : Sponge) 
       obtain ⟨e, t⟩ := a
       have := h.2 _ ha
       dsimp only at this ⊢
-      limbs
+      rw [limbs_of_lt this]
       simp)
   refine le_trans (Nat.add_le_add_right (Nat.add_le_add h1 (flatten_cost P (by includes) 4 _ ?_)) _) ?_
   · intro l hl
@@ -641,8 +641,8 @@ theorem absorb_cost (hP : Includes P absorb.Option.costDeps) (sp : Sponge) (x : 
     (h : SpOk sp) :
     machineCost P absorb.Option.costIdx [πVal, encodeValue sp, encodeValue x, encodeValue tag] ≤
       B + 16500 := by
-  rw [absorb.Option.costEq P hP π πVal hπ]
-  limbs
+  rw [absorb.Option.costEq P hP π πVal hπ, limbs_of_lt (by have := h.1; omega : sp.pending.length < 2 ^ 64),
+    limbs_of_lt (by unfold rateScalars; norm_num : rateScalars < 2 ^ 64)]
   have h1 := length_cost P (by includes) sp.pending (by have := h.1; omega)
   have h0 := h.1
   have hr : rateScalars = 4 := rfl
@@ -1035,8 +1035,7 @@ theorem grindingBits_cost (hP : Includes P Auto.LeanVM.Protocol.Compile.grinding
   rw [Auto.LeanVM.Protocol.Compile.grindingBits.costEq P hP]
   have hl1 : limbCount n ≤ 3 := limbs_le_wl (E := 128) (by omega)
   have hs : securityBits = 125 := rfl
-  rw [hs]
-  limbs
+  rw [hs, limbs_of_lt (by norm_num : (125 : ℕ) < 2 ^ 64), limbs_of_lt (by norm_num : 128 - 125 < 2 ^ 64)]
   have hlog : Nat.log2 (n - 1) < 128 := by
     rcases Nat.eq_zero_or_pos (n - 1) with h0 | h0
     · rw [h0]; simp
@@ -1063,8 +1062,7 @@ theorem grindingBits_le (n : ℕ) (hn : n < 2 ^ 128) : grindingBits n ≤ 128 :=
 /-- A grind's skeleton (`skGrind`): at most `11`. -/
 theorem skGrind_cost (hP : Includes P skGrind.costDeps) (bits : ℕ) (hb : bits < 2 ^ 64 := by omega) :
     machineCost P skGrind.costIdx [encodeValue bits] ≤ 11 := by
-  rw [skGrind.costEq P hP]
-  limbs
+  rw [skGrind.costEq P hP, limbs_of_lt hb]
   split_ifs <;> omega
 
 theorem length_skGrind (bits : ℕ) :
@@ -1255,8 +1253,8 @@ theorem foldlMax_cost (h1 : Includes P listFoldl.costDeps) (h2 : Includes P Auto
     (fun a b ↦ RunsApp.of_spec (Auto.LeanVM.Extraction.AS.skTablePhaseL.lam0.costSpec P h2 a b)) 7
     (fun acc ↦ acc < 2 ^ 63) hs 0 (by norm_num)
     (fun acc hacc b hb ↦ ⟨by have := h b hb; omega, by
-      rw [appCost_fn, List.nil_append, Auto.LeanVM.Extraction.AS.skTablePhaseL.lam0.costEq P h2]
-      limbs
+      rw [appCost_fn, List.nil_append, Auto.LeanVM.Extraction.AS.skTablePhaseL.lam0.costEq P h2,
+        limbs_of_lt (by omega : acc < 2 ^ 64), limbs_of_lt (by have := h b hb; omega : b < 2 ^ 64)]
       simp⟩)
   omega
 
@@ -1638,7 +1636,11 @@ theorem sqSamples_cost (hP : Includes P sqSamples.costDeps) (depth : ℕ) (hd : 
     have := sqSamples_le depth fuel (rem - min (128 / depth) rem)
     have : 128 / depth ≤ 128 := Nat.div_le_self _ _
     have : min (128 / depth) rem ≤ 128 := (min_le_left _ _).trans this
-    limbs
+    rw [limbs_of_lt (by omega : fuel + 1 < 2 ^ 64), limbs_of_lt hr, limbs_of_lt hd,
+      limbs_of_lt (by omega : 128 / depth < 2 ^ 64),
+      limbs_of_lt (by omega : min (128 / depth) rem < 2 ^ 64),
+      limbs_of_lt (by omega : 1 + sqSamples depth fuel (rem - min (128 / depth) rem) < 2 ^ 64),
+      limbs_of_lt (by omega : sqSamples depth fuel (rem - min (128 / depth) rem) < 2 ^ 64)]
     split_ifs <;> omega
 
 /-- A level's commitment shape (`levelShape`): at most `11`. -/
@@ -1977,7 +1979,7 @@ theorem decRoundP_cost (hP : Includes P decRoundP.costDeps) (h : List EvP) :
   have := drop_cost P (by includes) (4 + (skGrind Whir.foldGrindingBits).length) h (by omega)
   have := listCases_le (List.drop (4 + (skGrind Whir.foldGrindingBits).length) h) 1 5
   rw [hg] at *
-  limbs
+  rw [limbs_of_lt (by norm_num : 4 + 1 < 2 ^ 64), limbs_of_lt (by norm_num : 1 < 2 ^ 64)]
   omega
 
 /-- The fold rounds' challenges (`decRoundsP`): at most `(500·n + 1100)·n + 7`. -/

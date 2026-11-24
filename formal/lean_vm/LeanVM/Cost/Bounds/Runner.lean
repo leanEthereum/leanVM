@@ -93,8 +93,7 @@ theorem powTable_cost (hP : Includes P powTable.costDeps) (κ : ℕ) (hκ : κ �
     (fun e ↦ e.1 < 2 ^ 64)
     (fun a b ha hb ↦ by
       simp only [appCost_fn, List.nil_append, List.length_nil]
-      rw [powTable.lam0.costEq P]
-      limbs
+      rw [powTable.lam0.costEq P, limbs_of_lt ha, limbs_of_lt hb]
       omega)
     (powPairs (2 ^ κ) 0 1) (by rw [length_powPairs]; exact hN)
     (fun e he ↦ (mem_powPairs _ _ _ e he).1)
@@ -245,7 +244,8 @@ theorem memoryImageLite_cost (hP : Includes P memoryImageLite.costDeps) (layout 
     lt_of_lt_of_le a.isLt (Nat.pow_le_pow_right (by norm_num) hm)
   have hix := fun c ↦ (hidx c).trans (by norm_num : 2 ^ 63 < 2 ^ 64)
   have hs := fun c ↦ (by have := hidx c; omega : (layout.placement c).index + (a : ℕ) < 2 ^ 64)
-  limbs
+  rw [limbs_of_lt (by omega : (a : ℕ) < 2 ^ 64), limbs_of_lt (hix _), limbs_of_lt (hix _),
+    limbs_of_lt (hs _), limbs_of_lt (hs _)]
   simp only [max_self]
   generalize layout.placements.getD LeanVM.Protocol.Verifier.memory0 none = o0
   generalize layout.placements.getD LeanVM.Protocol.Verifier.memory1 none = o1
@@ -269,8 +269,9 @@ theorem boundaryOfStack_cost (hP : Includes P boundaryOfStack.costDeps) (input :
     machineCost P boundaryOfStack.costIdx [encodeValue input, encodeValue layout, encodeValue μ, encodeValue q] ≤ 1429 := by
   rw [boundaryOfStack.costEq P hP]
   obtain ⟨hw0, hw1⟩ := word01_cost P (by includes) (by includes) input
-  rw [hw0, hw1]
-  limbs
+  rw [hw0, hw1, limbs_of_lt (by omega : layout.logMemory < 2 ^ 64),
+    limbs_of_lt (show minLogMem < 2 ^ 64 by unfold minLogMem; norm_num),
+    limbs_of_lt (show maxLogMem < 2 ^ 64 by unfold maxLogMem; norm_num)]
   have hall := memoryImageLite_cost P (by includes) layout hm hidx q
   have h0 := hall ⟨0, Nat.two_pow_pos _⟩
   by_cases hc : minLogMem ≤ layout.logMemory ∧ layout.logMemory ≤ maxLogMem
@@ -300,8 +301,8 @@ theorem memoryVec_cost (hP : Includes P memoryVec.costDeps) (layout : LayoutLite
       have hi := i.isLt
       have hs := fun c ↦ (by have := hidx c; omega : (layout.placement c).index + (i : ℕ) < 2 ^ 64)
       have hix := fun c ↦ (hidx c).trans (by norm_num : 2 ^ 63 < 2 ^ 64)
-      rw [memoryVec.lam0.costEq P]
-      limbs
+      rw [memoryVec.lam0.costEq P, limbs_of_lt (lt_trans i.isLt hN),
+        limbs_of_lt (hix _), limbs_of_lt (hix _), limbs_of_lt (hs _), limbs_of_lt (hs _)]
       simp only [max_self]
       omega) 0 (Nat.zero_le _)
   rw [limbs_shift (by omega)]

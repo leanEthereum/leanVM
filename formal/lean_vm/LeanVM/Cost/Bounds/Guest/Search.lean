@@ -268,7 +268,7 @@ theorem mergeNewerCover_cost (hP : Includes P mergeNewerCoverC.costDeps) :
         ha (fun e he ↦ hb e (by simp [he]))
       simp only [List.length_cons] at hn h1 h3
       unfold CoverKey at hx hy
-      limbs
+      rw [limbs_of_lt hx.1, limbs_of_lt hy.1, limbs_of_lt hx.2, limbs_of_lt hy.2]
       generalize compareOn (fun x ↦ x.1) x.1 y.1 = o1
       generalize compare x.1 y.1 = o2
       cases o1 <;> cases o2 <;> dsimp only <;> split_ifs <;> omega
@@ -280,8 +280,7 @@ theorem levelMergeCover_cost (hP : Includes P levelMergeCoverC.costDeps)
     (hw : l.weight < 2 ^ 64) (hw' : l'.weight < 2 ^ 64) :
     machineCost P levelMergeCoverC.costIdx [encodeValue l, encodeValue l'] ≤
       20 + 60 * (l.entries.size + l'.entries.size) := by
-  rw [levelMergeCoverC.costEq P hP]
-  limbs
+  rw [levelMergeCoverC.costEq P hP, limbs_of_lt hw, limbs_of_lt hw']
   have hm := mergeNewerCover_cost P (by includes) _ l.entries.toList l'.entries.toList rfl
     (fun e he ↦ hQ l (by simp) e (by simpa using he))
     (fun e he ↦ hQ l' (by simp) e (by simpa using he))

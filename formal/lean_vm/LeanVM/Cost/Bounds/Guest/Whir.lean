@@ -451,8 +451,7 @@ theorem wordsFrom_cost (hP : Includes P Decoder.wordsFromC.costDeps) :
         (R + 56) * n + 5
   | 0, a, _ => by rw [Decoder.wordsFromC.costEq_zero P hP rd rdV hrd]; omega
   | n + 1, a, hn => by
-    rw [Decoder.wordsFromC.costEq_succ P hP rd rdV hrd]
-    limbs
+    rw [Decoder.wordsFromC.costEq_succ P hP rd rdV hrd, limbs_of_lt hn]
     have := wordsFrom_cost hP n (a * Parameters.g) (by omega)
     have := hR a
     have : (Option.casesOn (motive := fun _ ↦ ℕ) (rd a) 5 fun _ ↦ 2) ≤ 5 := by
@@ -474,8 +473,7 @@ theorem winLogsFrom_cost (hP : Includes P Decoder.winLogsFromC.costDeps) (lanes 
         [encodeValue lanes, rdV, encodeValue a, encodeValue n] ≤ (R + 3050) * n + 5
   | 0, a, _ => by rw [Decoder.winLogsFromC.costEq_zero P hP lanes rd rdV hrd]; omega
   | n + 1, a, hn => by
-    rw [Decoder.winLogsFromC.costEq_succ P hP lanes rd rdV hrd]
-    limbs
+    rw [Decoder.winLogsFromC.costEq_succ P hP lanes rd rdV hrd, limbs_of_lt hn]
     have := winLogsFrom_cost hP lanes hl n (a * Parameters.g) (by omega)
     have := hR a
     have := logGTWith_cost P (by includes) lanes hl ((rd a).getD 0) 128 (by norm_num)
@@ -853,8 +851,8 @@ theorem oqItersFrom_cost (hP : Includes P Decoder.oqItersFromC.costDeps) (s : Oq
   | 0, x, _ => by
     rw [Decoder.oqItersFromC.costEq_zero P hP s lanes cd loop rd rdV hrd Vn VnV hVn]; omega
   | N + 1, x, hN => by
-    rw [Decoder.oqItersFromC.costEq_succ P hP s lanes cd loop rd rdV hrd Vn VnV hVn]
-    limbs
+    rw [Decoder.oqItersFromC.costEq_succ P hP s lanes cd loop rd rdV hrd Vn VnV hVn,
+      limbs_of_lt hN]
     have hi := oqIterA_cost P hrd hR (frameAt_runs P hVn (by includes) loop (x :: la) [])
       (frameAt_cost P hVn hF (by includes) loop hloop (x :: la) [] (by simp; omega)) (by includes)
       s hs lanes hl cd hcd

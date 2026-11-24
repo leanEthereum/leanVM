@@ -98,8 +98,7 @@ theorem eraseIdx_cost (hP : Includes P Auto.List.eraseIdx.costDeps) {α : Type}
   | [], i, _ => by rw [Auto.List.eraseIdx.costEq P hP]; simp
   | x :: l, 0, _ => by rw [Auto.List.eraseIdx.costEq P hP]; simp [limbCount]
   | x :: l, i + 1, hi => by
-    rw [Auto.List.eraseIdx.costEq P hP]
-    limbs
+    rw [Auto.List.eraseIdx.costEq P hP, limbs_of_lt hi]
     have := eraseIdx_cost hP l i (by omega)
     simp only [List.length_cons]
     omega
