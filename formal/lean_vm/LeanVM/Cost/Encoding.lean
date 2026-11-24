@@ -10,7 +10,7 @@ public import CompPoly.Univariate.Basic
 
 `MachineEncoding α` encodes an `α` as a machine value. The encoding the end statement reads (`MachineEncoding`, its
 instances for the extractor's input and output, `encodeLeanVmKnowledgeExtractorInput`, `decodeExecution`) is the statement's,
-`Statement/CostMachine.lean`; here, the instances only the compiler needs (`UInt8`, `Unit`,
+`Statement/CostMachine.lean` (the class) and `Statement/LeanVmExtractor.lean`; here, the instances only the compiler needs (`UInt8`, `Unit`,
 `Char`, `String`, `Ordering`, `Array`, CompPoly's polynomials, `Id`, subtypes) and the
 proof that decoding inverts encoding (`decodeExecution_enc`).
 -/

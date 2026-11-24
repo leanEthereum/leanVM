@@ -81,7 +81,8 @@ open OracleComp OracleSpec in
 /-- **The guest's prover makes a proof the verifier accepts, or a child's proof exhibits a
 collision.** On every node `GuestExecutionComplete` covers (`NodeRelation` under the deployed seed,
 `DeployedLimits`), unless some child's proof exhibits a Keccak-256 collision (`OpeningsCollide`), in
-the random-permutation model, at an inverse rate `2^ρ`, `1 ≤ ρ ≤ 4`, with `2^35` nonces per proof
+the random-permutation model, at an inverse rate `2^ρ`, `1 ≤ ρ ≤ 4` (`MIN_LOG_INV_RATE`,
+`MAX_LOG_INV_RATE`, `whir.rs`), with `2^35` nonces per proof
 of work: the guest's prover (`LeanVM.Guest.guestProve`, `LeanVmGuestProver.lean`: the advice from
 the statement and the witness, the executor, then the honest prover) makes no proof, or the verifier
 rejects it, with probability at most `2^-256`. From `GuestExecutionComplete` and `Completeness`. -/
@@ -89,7 +90,7 @@ def GuestProverComplete : Prop :=
   ∀ (statement : NodeStatement) (witness : NodeWitness),
     NodeRelation (bytecodeWords guestProgram) (deployedSeed guestProgram) statement witness →
     DeployedLimits statement witness →
-    (∀ ρ : ℕ, Whir.minLogInvRate ≤ ρ ∧ ρ ≤ Whir.maxLogInvRate →
+    (∀ ρ : ℕ, 1 ≤ ρ ∧ ρ ≤ 4 →
       let input := PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) statement)
       Pr{let accepted ← Common.runWithRandomPermutation (do
           match ← guestProve Common.queryPermutation guestProgram statement witness ρ

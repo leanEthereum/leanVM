@@ -1,6 +1,7 @@
 import Statement.Corollaries
 import LeanVM.Protocol.LeanVMRpmAS
 import LeanVM.Guest.ExperimentBridge
+import LeanVM.Protocol.Keccak.RmfeDerive
 
 /-!
 # The end statements against their capped and literal forms
@@ -8,13 +9,14 @@ import LeanVM.Guest.ExperimentBridge
 * **Query counts.** `KnowledgeSoundness` and `AggregateSound` hold for every `Q`, and
   `BatchingSound` for every `QA`; each is equivalent to its form capped at `2^128` queries, past
   which its bound exceeds `1` (`one_le_knowledgeSoundnessBound`, `one_le_batchingBound`).
-* **Named constants.** `Completeness` and `GuestProverComplete` name the rate range
-  `Whir.minLogInvRate .. Whir.maxLogInvRate`; each is its form with `1..4`, and the names are the
-  verifier's own window (`admissible_iff`) and `queryTable`'s rows. LeanDA's shapes `logK`, `logM`,
-  `cellSymbols`, `cellsPerRow` are reducible and unfold to their literals: the definitions they
-  enter are their literal forms by `rfl`, so LeanDA's end statements, which reach the shapes only
-  through those definitions and `Fin (r * cellsPerRow)`, are their literal forms too. As
-  `cellSymbols` and `cellsPerRow` are both `128`, a swap of the two is not caught here.
+* **The rate range.** `Completeness`, `GuestProverComplete`, the verifier's window and the honest
+  prover all read `1..4` (`admissible_iff`, `queryTable_length`, `prove_eq_none_of_rate`).
+* **The RMFE tables.** The statement's literals are the derivation's (`rmfe_eq_literal`).
+* **LeanDA's shapes.** `logK`, `logM`, `cellSymbols`, `cellsPerRow` are reducible and unfold to
+  their literals: the definitions they enter are their literal forms by `rfl`, and so are the end
+  statements, which reach the shapes only through those definitions, `Fin (r * cellsPerRow)` and
+  the adversaries' types (`leanDaPerfectlyComplete_iff_literal`, `leanDa_adversaries_eq_literal`).
+  As `cellSymbols` and `cellsPerRow` are both `128`, no test by `rfl` tells the two apart.
 -/
 
 open scoped ENNReal
@@ -91,55 +93,39 @@ theorem batchingSound_iff_capped : BatchingSoundCapped ↔ BatchingSound :=
       fun hQA ↦ (prEvent_le_one _).trans (one_le_batchingBound hQA),
     fun h M b hb hM A QA hA _ hQV ↦ h M b hb hM A QA hA hQV⟩
 
-/-! ## Named constants -/
+/-! ## The rate range
 
-/-- `Completeness` with the rate range as literals. -/
-def CompletenessLiteral : Prop :=
-  ∀ (program : LeanIsaProgram) (input : PublicInput) (execution : Execution program) (ρ : ℕ),
-    ValidExecution program input execution → execution.committedSize ≤ 2 ^ 30 → 1 ≤ ρ ∧ ρ ≤ 4 →
-    Pr{let v ← completenessExperiment leanVmHonestProver program input execution ρ (2 ^ 35)}[
-        v = false] ≤
-      (2 : ℝ≥0∞)⁻¹ ^ 256
+`Completeness` and `GuestProverComplete` take `1 ≤ ρ ∧ ρ ≤ 4`, the range `MIN_LOG_INV_RATE ..
+MAX_LOG_INV_RATE` of `whir.rs`, as the verifier's window and the honest prover's check do. -/
 
-theorem completeness_iff_literal : CompletenessLiteral ↔ Completeness := Iff.rfl
-
-open LeanVM.Guest LeanVM.Guest.Completeness in
-/-- `GuestProverComplete` with the rate range as literals. -/
-def GuestProverCompleteLiteral : Prop :=
-  ∀ (statement : NodeStatement) (witness : NodeWitness),
-    NodeRelation (bytecodeWords guestProgram) (deployedSeed guestProgram) statement witness →
-    DeployedLimits statement witness →
-    (∀ ρ : ℕ, 1 ≤ ρ ∧ ρ ≤ 4 →
-      let input := PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) statement)
-      Pr{let accepted ← Common.runWithRandomPermutation (do
-          match ← guestProve Common.queryPermutation guestProgram statement witness ρ
-              (2 ^ 35) with
-          | none => pure false
-          | some proof => leanVmVerifier Common.queryPermutation guestProgram input proof)}[
-          accepted = false] ≤ (2 : ℝ≥0∞)⁻¹ ^ 256) ∨
-    ∃ child ∈ witness.children, OpeningsCollide child.proof
-
-theorem guestProverComplete_iff_literal :
-    GuestProverCompleteLiteral ↔ LeanVM.Guest.Completeness.GuestProverComplete := Iff.rfl
-
-/-- The verifier's own window, `Admissible`, is the named one: narrowing a name without the
-verifier's check, or the converse, fails here. -/
+/-- The verifier's window, `Admissible`, is the stacking window and the rate range `1..4`. -/
 theorem admissible_iff (μ ρ : ℕ) :
-    Whir.Admissible μ ρ ↔ Whir.minLogStack ≤ μ ∧ μ ≤ Whir.maxLogStack ∧
-      Whir.minLogInvRate ≤ ρ ∧ ρ ≤ Whir.maxLogInvRate :=
+    Whir.Admissible μ ρ ↔ Whir.minLogStack ≤ μ ∧ μ ≤ Whir.maxLogStack ∧ 1 ≤ ρ ∧ ρ ≤ 4 :=
   Iff.rfl
 
-/-- `queryTable` has one row per rate exponent of the named range. -/
-theorem queryTable_length : Whir.queryTable.length = Whir.maxLogInvRate - Whir.minLogInvRate + 1 :=
+/-- `queryTable` has one row per rate exponent of `1..4`. -/
+theorem queryTable_length : Whir.queryTable.length = 4 :=
   rfl
 
-/-- The rate hypothesis of `Completeness` and `GuestProverComplete` is satisfiable. -/
-theorem rate_range_nonempty : ∃ ρ, Whir.minLogInvRate ≤ ρ ∧ ρ ≤ Whir.maxLogInvRate :=
-  ⟨1, by decide⟩
+/-- Outside `1..4` the honest prover makes no proof: a wider check in `LeanVM.Prover.prove` fails
+here, a narrower one fails `Completeness`. -/
+theorem prove_eq_none_of_rate {m : Type → Type} [Monad m] (F : KeccakState → m KeccakState)
+    (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) {ρ : ℕ} (fuel : ℕ)
+    (h : ¬(1 ≤ ρ ∧ ρ ≤ 4)) : LeanVM.Prover.prove F prog input t ρ fuel = pure none := by
+  unfold LeanVM.Prover.prove
+  split
+  · rfl
+  · exact ite_eq_right h
 
-/-- The rate hypothesis of `GuestProverComplete` is `1 ≤ ρ ≤ 4`. -/
-theorem rate_range_iff (ρ : ℕ) : Whir.minLogInvRate ≤ ρ ∧ ρ ≤ Whir.maxLogInvRate ↔ 1 ≤ ρ ∧ ρ ≤ 4 :=
-  Iff.rfl
+/-! ## The RMFE tables
+
+The statement's `rmfeEmbed` and `rmfeProject` are `RMFE_EMBED` and `RMFE_PROJECT` of
+`crates/verifier/src/keccak.rs`, verbatim; `rmfe_eq` (`LeanVM/Protocol/Keccak/RmfeDerive.lean`)
+proves them the tables the derivation computes. -/
+
+theorem rmfe_eq_literal : rmfe = (rmfeEmbed, rmfeProject) := rmfe_eq
+
+/-! ## LeanDA's shapes -/
 
 open LeanDa in
 theorem leanDa_shapes_eq_literal :
@@ -180,5 +166,31 @@ theorem leanDa_membership_eq_literal (z : E) (b : Fin (2 ^ 14)) :
       (1 + z ^ 2 ^ (j : ℕ) * ι ((AdditiveNTT.normalizedW (ZMod 2) basis
         (Fin.castLE (by omega) j)).eval (point b))) :=
   rfl
+
+open LeanDa in
+/-- `LeanDaPerfectlyComplete` with the shapes as literals. -/
+def LeanDaPerfectlyCompleteLiteral : Prop :=
+  ∀ (r : ℕ) (π : Equiv.Perm KeccakState) {Crs Proof : Type} (argument : LeanDaArgument r Crs Proof),
+    r ≤ maxRows → argument.PerfectlyComplete (relationForPermutation r) →
+      ∀ (message : Fin r → Fin (2 ^ 13) → E) (position : Fin (r * 128)),
+        Pr{let b ← LeanDa.completenessExperiment r π argument message position}[b = true] = 1
+
+theorem leanDaPerfectlyComplete_iff_literal :
+    LeanDaPerfectlyCompleteLiteral ↔ LeanDa.LeanDaPerfectlyComplete :=
+  Iff.rfl
+
+open LeanDa in
+/-- The binding adversaries' types with the shapes as literals: `LeanDaPositionBinding` and
+`LeanDaCodeBinding` reach the shapes through them and through the games, whose positions and cells
+are the definitions above. -/
+theorem leanDa_adversaries_eq_literal (r : ℕ) (Crs Proof : Type) :
+    PositionBindingAdversary r Crs Proof =
+        (Unit × Crs → OracleComp Common.RandomPermutationOracles
+          ((Common.DigestBytes × Proof) × Fin (r * 128) × (Fin 128 → E) × CellOpening ×
+            (Fin 128 → E) × CellOpening)) ∧
+      CodeBindingAdversary r Crs Proof =
+        (Unit × Crs → OracleComp Common.RandomPermutationOracles
+          ((Common.DigestBytes × Proof) × List (Fin (r * 128) × (Fin 128 → E) × CellOpening))) :=
+  ⟨rfl, rfl⟩
 
 end LeanVM.Statement.Windows

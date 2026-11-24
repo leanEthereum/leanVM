@@ -8,7 +8,7 @@ public import Statement.CostMachine
 The closed-form prices `lean_vm` proves of the compiled extractor's parts and of the compiled
 guest decoder (`Cost/Bounds/`, `Cost/AS/Bounds/`), natural-number formulas only. The statement's
 budgets are short upper bounds on them: `leanVmKnowledgeExtractorBudget`
-(`Statement/CostMachine.lean`) above the agreement-set extractor's price wherever it extracts, at
+(`Statement/LeanVmExtractor.lean`) above the agreement-set extractor's price wherever it extracts, at
 the stack size the proof announces (`asPrice_within`, `Cost/AS/End.lean`), and
 `guestWitnessDecoderBudget` (`Statement/LeanVmGuest.lean`) above `guestDecoderPrice` on every valid
 execution (`guestDecoderPrice_le_budget`, `Cost/Bounds/Guest/Budget.lean`).
