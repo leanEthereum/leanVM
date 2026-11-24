@@ -1036,8 +1036,7 @@ theorem grindingBits_cost (hP : Includes P Auto.LeanVM.Protocol.Compile.grinding
   split_ifs with h
   · simp only [limbs_of_lt (by norm_num : (0 : ℕ) < 2 ^ 64)]
     omega
-  · rw [limbs_of_lt (by omega : Nat.log2 (n - 1) + 1 < 2 ^ 64),
-      limbs_of_lt (by omega : Nat.log2 (n - 1) < 2 ^ 64)]
+  · limbs
     simp only [max_self]
     nlinarith
 

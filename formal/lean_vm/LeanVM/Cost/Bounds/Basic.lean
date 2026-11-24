@@ -249,7 +249,9 @@ meta def omegaProof? (ty : Expr) : TacticM (Option Expr) := do
 /-- `limbs`: for every `limbCount t` of the goal that `omega` shows word-sized (`t < 2 ^ 64`), the
 hypothesis `limbCount t = 1`, and the goal rewritten with it (as `rw [limbs_of_lt …]`).
 `limbs [hW]` (`hW : ∀ x, x ≤ B → limbCount x ≤ W`) also adds `limbCount t ≤ W` for each other
-`t` that `omega` shows at most `B`. -/
+`t` that `omega` shows at most `B`. It runs `omega` once per `limbCount` of the goal; a rewrite list
+that needs a rewrite `omega` cannot see first (`limbs_shift`, `limbs_two_pow`) or a fact not in the
+context (`j.isLt`) keeps its `limbs_of_lt (by omega : t < 2 ^ 64)` entries. -/
 syntax (name := limbsTac) "limbs" (" [" term "]")? : tactic
 
 /-- Elaborate `limbs`. -/

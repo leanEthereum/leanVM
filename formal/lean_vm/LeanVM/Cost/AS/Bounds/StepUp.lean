@@ -422,8 +422,8 @@ theorem upAtA_cost (hP : Includes P upAtAC.costDeps) (κ κ' m R : ℕ) (VA' : A
     (fun i ↦ RunsApp.of_spec (upAtAC.lam0.costSpec P (by includes) κ R i))
     ((hatPrice + 28) * 2 ^ (κ + R) + 27)
     (fun i ↦ by
-      cost_app [upAtAC.lam0.costEq P, limbs_of_lt (by omega : κ + R < 2 ^ 64),
-        limbs_of_lt (by omega : κ < 2 ^ 64), limbs_of_lt (by omega : R < 2 ^ 64)]
+      cost_app [upAtAC.lam0.costEq P]
+      limbs
       have := stageTwiddles_cost P (by includes) (κ + R) i (by have := i.isLt; omega) hN
       simp only [max_self]
       omega) 0 (Nat.zero_le _)

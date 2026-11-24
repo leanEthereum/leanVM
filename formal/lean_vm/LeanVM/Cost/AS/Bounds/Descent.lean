@@ -47,8 +47,8 @@ theorem foldCA_cost (hP : Includes P foldCAC.costDeps) (y : E) (r : FoldRound) (
     (ho : o.size < 2 ^ 62) :
     machineCost P foldCAC.costIdx [encodeValue y, encodeValue r, encodeValue o] ≤
       113 * o.size + 320 := by
-  rw [foldCAC.costEq P hP, limbs_of_lt (by omega : o.size + 1 < 2 ^ 64),
-    limbs_of_lt (by omega : o.size < 2 ^ 64), ofFnFrom_length]
+  rw [foldCAC.costEq P hP, ofFnFrom_length]
+  limbs
   have := ofFnFrom_cost P (by includes) (n := (o.size + 1) / 2) (by omega) _
     (.closure foldCAC.lam0.costIdx [encodeValue o, encodeValue (r.alpha + r.beta * y),
       encodeValue (r.beta * y)])
@@ -173,7 +173,8 @@ theorem winPtsC_cost (hP : Includes P winPtsCC.costDeps) {n : ℕ} (d : ℕ) (QA
       encodeValue QA, encodeValue k])
     (fun x ↦ RunsApp.of_spec (winPtsCC.lam0.costSpec P (by includes) QA k x)) 21 (cols.take (d + 3))
     (fun x _ ↦ by
-      cost_app [winPtsCC.lam0.costEq P, limbs_of_lt (by omega : (x : ℕ) < 2 ^ 64)])
+      cost_app [winPtsCC.lam0.costEq P]
+      limbs)
   have hl : (cols.take (d + 3)).length ≤ d + 3 := by simp
   simp only [max_self]
   nlinarith
@@ -235,7 +236,8 @@ theorem valsOf_cost (hP : Includes P valsOfC.costDeps) (n m : ℕ)
         (fun k ↦ RunsApp.of_spec (valsOfC.lam0.lam0.costSpec P (by includes) n m fs x k))
         (206 * L + 41)
         (fun k ↦ by
-          cost_app [valsOfC.lam0.lam0.costEq P, limbs_of_lt (by omega : (x : ℕ) < 2 ^ 64)]
+          cost_app [valsOfC.lam0.lam0.costEq P]
+          limbs
           have h1 := nEvalK_go_cost P (by includes) ((fs.getD k none).getD ([], [])).1
             ((fs.getD k none).getD ([], [])).2 (K.ofBits x)
           have h2 := hL k
@@ -430,9 +432,8 @@ theorem descRevGo_cost (hP : Includes P Auto.LeanVM.Protocol.Whir.Sound.descRevC
         (fun TA ↦ RunsApp.of_spec (Auto.LeanVM.Protocol.Whir.Sound.descRevC.lam0.costSpec P
           (by includes) tail n d A ℓ OA m TA))
         (rec + 24) (fun TA ↦ by
-          cost_app [Auto.LeanVM.Protocol.Whir.Sound.descRevC.lam0.costEq P,
-            limbs_of_lt (by omega : m + 1 < 2 ^ 64),
-            limbs_of_lt (by omega : m < 2 ^ 64)]
+          cost_app [Auto.LeanVM.Protocol.Whir.Sound.descRevC.lam0.costEq P]
+          limbs
           have := ih TA
           omega) (newtonDecC n d m (foldsAC n tail.reverse OA)
             (agreeC n m r VA (foldsAC n tail.reverse OA)))

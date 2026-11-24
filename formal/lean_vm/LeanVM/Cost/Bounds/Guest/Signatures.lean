@@ -223,22 +223,7 @@ theorem cwCellA_cost (hP : Includes P Decoder.cwCellC.costDeps) (lanes : List �
   have h1 := hf (i % 3) (logGTWith lanes (σ (.n (sel.getD (i / 3) 0))) 64)
   have h2 := hr (i % 3) (logGTWith lanes (σ (.n (sel.getD (i / 3) 0))) 64)
   have h3 := hl (i % 3) (logGTWith lanes (σ (.n (sel.getD (i / 3) 0))) 4)
-  split_ifs with c1 c2
-  · rw [limbs_of_lt (by omega : offAtA first (i % 3)
-      (logGTWith lanes (σ (.n (sel.getD (i / 3) 0))) 64) < 2 ^ 64),
-      limbs_of_lt (by omega : sel.getD (i / 3) 0 + offAtA first (i % 3)
-      (logGTWith lanes (σ (.n (sel.getD (i / 3) 0))) 64) < 2 ^ 64)]
-    omega
-  · rw [limbs_of_lt (by omega : offAtA rest (i % 3)
-      (logGTWith lanes (σ (.n (sel.getD (i / 3) 0))) 64) < 2 ^ 64),
-      limbs_of_lt (by omega : sel.getD (i / 3) 0 + offAtA rest (i % 3)
-      (logGTWith lanes (σ (.n (sel.getD (i / 3) 0))) 64) < 2 ^ 64)]
-    omega
-  · rw [limbs_of_lt (by omega : offAtA last (i % 3)
-      (logGTWith lanes (σ (.n (sel.getD (i / 3) 0))) 4) < 2 ^ 64),
-      limbs_of_lt (by omega : sel.getD (i / 3) 0 + offAtA last (i % 3)
-      (logGTWith lanes (σ (.n (sel.getD (i / 3) 0))) 4) < 2 ^ 64)]
-    omega
+  split_ifs with c1 c2 <;> limbs <;> omega
 
 /-! ## leanSPHINCS -/
 
