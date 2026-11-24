@@ -162,6 +162,7 @@ impl Prover for ExperimentalProver {
 
     fn init() {
         base::ExperimentalProver::init();
+        tier();
     }
 
     fn set_num_threads(n: usize) {
