@@ -5,6 +5,15 @@ public import XmssSecurity.Proof.CacheReplayEval
 
 @[expose] public section
 
+/-!
+# Chain trajectories
+
+`Concrete.chainTrajectory` walks a chain from a position and returns every value it passes. Replayed
+from a cache, its entries are the chain's walk (`Concrete.chainTrajectory_getElem`), and it makes
+no query at an address its steps avoid (`Concrete.chainTrajectory_queryBound_zero_of_avoids`).
+`ChainOraclePresampling` presamples key generation's chains with it.
+-/
+
 open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity

@@ -5,6 +5,17 @@ public import XmssSecurity.Proof.CacheReplayEval
 
 @[expose] public section
 
+/-!
+# Query bounds for one chain walk and one leaf
+
+Per hash address, how often the bottom layer's pieces query it: a chain walk queries an address at
+most once and none off its chain (`Concrete.chainWalk_queryBound_atAddress`,
+`Concrete.chainWalk_queryBound_zero_at_other_chain`). A WOTS public key and a leaf query each chain
+step address at most once (`Concrete.leafAt_queryBound_chainAddress`), their own leaf address at
+most once and no other (`Concrete.leafAt_queryBound_leafAddress`), and no Merkle address.
+`Concrete.sequenceFin` combines the chains' bounds, and an encoding hash queries only its own input.
+-/
+
 open OracleComp OracleSpec
 
 namespace XmssSecurity

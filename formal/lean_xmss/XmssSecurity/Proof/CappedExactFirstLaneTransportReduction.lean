@@ -6,6 +6,25 @@ public import XmssSecurity.Proof.CappedGlobalFirstLaneExperiment
 
 @[expose] public section
 
+/-!
+# The exact first lane, transported into the first-lane oracle
+
+`globalFirstLaneExactTracedProgram` is the causal simulation's detailed game, with the attacker's
+action trace, run in the first-lane oracle. It erases to the causal simulation's traced execution
+(`globalHighDirectTracedDetailedExecution`, `globalFirstLaneErase_exactTracedDetailedExecution`),
+and each adversary query costs at most its `directHashActionCost` in hazards, the verifier's at most
+one (`globalFirstLaneExactTracedMappedAdversaryImpl_hazardBound`,
+`globalFirstLaneExactTracedVerifierImpl_hazardBound`). Along its eager trace, every encoding action
+the game's encoding trace records is among the first-lane trace's encoding actions
+(`globalFirstLaneExactTracedMappedAdversaryImpl_query_trace_sublist`), and its valid signed leaf
+indices form a sublist of the signing log's
+(`globalFirstLaneExactTracedMappedAdversary_validSignLeafIndices_sublist`), so a hit of the capped
+encoding monitor on the game's trace is a combined hit
+(`globalHighExactEncodingEvent_implies_combinedHit`). `globalFirstLaneExactPublicEagerExperiment`
+runs the program, then emits the forgery's primary probes, in the eager experiment;
+`CappedExactFirstLaneBound` bounds it.
+-/
+
 open OracleComp OracleSpec ENNReal
 open OracleComp.ProgramLogic.Relational
 

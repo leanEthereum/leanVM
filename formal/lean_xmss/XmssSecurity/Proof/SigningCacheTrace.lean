@@ -4,6 +4,19 @@ public import XmssSecurity.Proof.OutcomeClassification
 
 @[expose] public section
 
+/-!
+# The signing oracle's trace with caches
+
+A `SigningCacheTrace` records, for each signing request, the answer and the hash caches before and
+after it; `signingCacheTraceUpdate` extends it on each query and projects to the signing log
+(`signingCacheTraceUpdate_toSigningLog`, `SigningTranscript.returned_toSigningLog_iff`). Per entry,
+the module names the encoding collisions the proof bounds: a signed digest equal to that of another
+input at the same leaf index already cached (`SigningCacheEntry.PreexistingEncodingCollision`,
+`SigningCacheEntry.FreshSigningEncodingCollision`, `SigningCacheEntry.CachedSelectionCollision`) or
+to that of the forgery's input (`SigningCacheEntry.FreshForgedEncodingCollision`,
+`SigningCacheEntry.PostSigningFreshForgedEncodingCollision`).
+-/
+
 open OracleComp OracleSpec
 
 namespace XmssSecurity

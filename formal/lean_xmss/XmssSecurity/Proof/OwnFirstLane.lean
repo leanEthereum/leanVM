@@ -9,9 +9,8 @@ public import XmssSecurity.Proof.OwnBudget
 # The first lane at the adversary's own budget
 
 `CappedExactFirstLaneBound`'s coupling charges only the adversary's direct hash queries
-(`directHashActionCost`); its budget there was the whole game's hash calls. Here the budget is the
-adversary's own hash queries plus the final verification's (`verifyHashCalls`), so the first lane's
-bound counts no call of the signer.
+(`directHashActionCost`). Its budget here is the adversary's own hash queries plus the final
+verification's (`verifyHashCalls`), so the first lane's bound counts no call of the signer.
 -/
 
 open OracleComp OracleSpec ENNReal

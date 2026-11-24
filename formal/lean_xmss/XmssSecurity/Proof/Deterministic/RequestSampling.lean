@@ -6,6 +6,16 @@ public import XmssSecurity.Proof.Deterministic.TranscriptReduction
 
 @[expose] public section
 
+/-!
+# The table signer is the reference signer on fresh requests
+
+`tableSign` reads its randomizer base from a table of derivation answers, one entry per request
+(`tableSign_own`). On a computation whose signing requests are fresh, a uniform table makes it
+the reference signer `Concrete.precomputedCappedSign`, which samples its base afresh at each request
+(`evalDist_tableRequests`, through `FreshRequests.evalDist_tableRun` and `evalDist_tableSign`). The
+memoized adversary's source game has fresh requests (`freshRequests_sourceGame_memo`).
+-/
+
 open OracleComp OracleSpec
 
 namespace XmssSecurity.Seeded

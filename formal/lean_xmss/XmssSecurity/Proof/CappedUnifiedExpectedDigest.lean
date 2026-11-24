@@ -5,6 +5,18 @@ public import XmssSecurity.Proof.CappedUnifiedStructuralCollision
 
 @[expose] public section
 
+/-!
+# The structural collisions' bound on the source game
+
+`keygenStructuralTargetInput` fixes every encoding input, so an encoding hash query is never a moved
+query (`encodingHashQuery_structuralQuery_disjoint`). The structural collisions' probability is at
+most `expectedPostKeygenStructuralQueries` over `2^digestBits`
+(`winningStructuralCollision_probability_le_expectedPostKeygenStructuralQueries`), the expected
+number of moved queries after key generation counted on the unlogged source game
+(`cappedSourceUnloggedDetailedGameAfterKeygen`), a map of the detailed game and so with the same
+count (`expectedStructuralQueries_detailed_eq_source`).
+-/
+
 open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity

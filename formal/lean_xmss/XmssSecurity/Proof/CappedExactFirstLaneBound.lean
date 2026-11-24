@@ -8,6 +8,23 @@ public import XmssSecurity.Proof.ConsistentQueryBound
 
 @[expose] public section
 
+/-!
+# The exact first lane's pieces: the coupling and the eager bound
+
+The source program (`sourceGlobalExactTracedProgram`) couples step by step with the first-lane
+program run eagerly from a coupled table (`globalFirstLaneExactCoupledProgram`): each adversary
+query keeps `SourceFirstLaneExactGoodStateRelation` and charges its `directHashActionCost` in
+hazards, or produces a combined hit (`relTriple_sourceExact_firstLane_action`), and the final
+verification couples the same way within its hash query bound
+(`relTriple_sourceExact_firstLane_verifier_boundedHit`). A winning exact first-lane event on a
+related pair, with the forgery's `forgeryProbeCount` probes appended, is then a combined hit on the
+trace cut at the fuel (`sourceWinningExactFirstLane_implies_coupled_enforcedHit`). The coupled
+program's public projection is distributed as the eager experiment
+(`coupled_enforcedHit_probability_eq_public_eager`), whose capped hit has probability at most
+`fuel / 2^digestBits` (`public_eager_enforcedHit_probability_le`). `OwnFirstLane` assembles these at
+the adversary's own budget.
+-/
+
 open OracleComp OracleSpec ENNReal
 open OracleComp.ProgramLogic.Relational
 

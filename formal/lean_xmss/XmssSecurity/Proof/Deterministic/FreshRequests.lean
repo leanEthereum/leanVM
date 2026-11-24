@@ -7,6 +7,15 @@ public import VCVio.OracleComp.QueryTracking.WriterCost
 
 @[expose] public section
 
+/-!
+# A random table read only at fresh requests
+
+`FreshRequests used computation` says no branch of the computation repeats a request (nor makes one
+in `used`). For such a computation, answering request `r` with `sign r (table r)` from a uniform
+table (`tableRun`) has the distribution of sampling an independent tape at each request
+(`freshRun`): `FreshRequests.evalDist_tableRun`. The state may carry query costs.
+-/
+
 open OracleComp OracleSpec
 
 namespace DeterministicSigning

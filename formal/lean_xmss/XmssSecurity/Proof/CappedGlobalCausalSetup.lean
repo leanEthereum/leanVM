@@ -9,6 +9,22 @@ public import XmssSecurity.Proof.PrecomputedKeygenCache
 
 @[expose] public section
 
+/-!
+# The causal hash state and the signer's reveals
+
+The causal simulation reads every chain value of key generation (`GlobalChainValueIndex`) as a
+hidden value of `RevealProbeOracleSimulation`. Its state, `GlobalCausalHashState`, holds the random
+oracle's cache, key generation's cache, the values revealed so far and the chain probes the hash
+queries made (`globalCausalRecordedState`). `revealGlobalSignature` reveals the chain values a
+returned signature sends at both layers and writes them into the signature
+(`globalSignatureRevealResult_allChains_chainValue`). `keygenViews_signWithEncoding_eq_globalReveal`
+shows that a signature replayed from one key generation is the other's with the revealed table
+values written in, under the relations defined here (`ProgrammedGlobalChainKeygenStableRelation`,
+`ProgrammedGlobalChainKeygenFullCacheStableRelation`). Key generation with presampled trajectories
+(`trajectoryProgrammedGlobalChainKeygen`) equals both the actual and the coupled key generation in
+distribution.
+-/
+
 open OracleComp OracleSpec
 open OracleComp.ProgramLogic.Relational
 

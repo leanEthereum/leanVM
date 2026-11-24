@@ -4,7 +4,7 @@ public import XmssSecurity.Proof.RandomOraclePresampling
 public import XmssSecurity.Proof.UniformFiniteTable
 public import XmssSecurity.Proof.TopKeygenFacts
 public import XmssSecurity.Proof.ChainHiddenTable
-public import XmssSecurity.Proof.ChainTrajectoryUniformity
+public import XmssSecurity.Proof.ChainTrajectory
 
 @[expose] public section
 

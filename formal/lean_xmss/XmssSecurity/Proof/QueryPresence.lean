@@ -5,6 +5,17 @@ public import XmssSecurity.Proof.KeygenCache
 
 @[expose] public section
 
+/-!
+# Leaf queries cached by key generation and verification
+
+A lazy random-oracle run of a leaf, a bottom tree or the root tree caches the leaf input of every
+leaf it covers, and its replayed WOTS public keys stay the same in every larger cache. So key
+generation caches the honest leaf input at every leaf index (`Concrete.keygen_cache_has_leafInput`)
+and no other leaf input there (`Concrete.keygen_cache_leafInput_eq_none_of_ne`). After a successful
+verification, every larger cache replays its message digest to an encoding and holds the leaf input
+recovered from it (`verify_true_leaf_query_cached_in_largerCache`).
+-/
+
 open OracleComp OracleSpec
 
 namespace XmssSecurity.Concrete.CacheReplay

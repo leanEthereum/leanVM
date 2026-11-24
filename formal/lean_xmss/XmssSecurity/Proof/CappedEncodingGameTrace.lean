@@ -5,6 +5,18 @@ public import XmssSecurity.Proof.EncodingActionTrace
 
 @[expose] public section
 
+/-!
+# The detailed game with its encoding action trace
+
+`cappedDetailedGameWithEncodingTrace` runs the detailed game of the concrete scheme (its capped
+retry signer) with the signing cache trace and, on top, the encoding actions of
+`EncodingActionTrace`: each oracle step appends its observation, and the final verification appends
+the forgery's fresh encoding query. Forgetting the encoding trace gives
+`cappedDetailedGameWithSigningTrace` (`cappedDetailedGameWithEncodingTrace_projection`), and
+forgetting both traces `detailedGameWithCache`
+(`cappedDetailedGameWithEncodingTrace_cache_projection`).
+-/
+
 open OracleComp OracleSpec
 
 namespace XmssSecurity

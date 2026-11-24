@@ -6,6 +6,25 @@ public import XmssSecurity.Proof.FirstLaneEagerSimulation
 
 @[expose] public section
 
+/-!
+# The causal simulation in the first-lane oracle
+
+The adversary's and the signer's oracles of the causal simulation
+(`globalHighDirectOracleExecution`, `globalFilteredCausalSigningQuery`), rewritten into the
+first-lane oracle over the global chain values (`GlobalFirstLaneWorld`): an adversary's fresh hash
+query at an encoding input becomes an encoding query (`globalFirstLaneOracleImpl`), the signer's
+fresh encoding query an encoding signing attempt (`globalFirstLaneSigningImpl`), and every other
+query keeps its reveals and probes. An adversary's hash query costs at most one hazard and a signing
+request none (`globalFirstLaneOracleImpl_hazardBound`, `globalFirstLaneSigningImpl_hazardBound`).
+Answering the encoding queries with uniform outputs (`globalFirstLaneErase`) gives back the causal
+simulation's oracles (`globalFirstLaneOracleErasure`, `globalFirstLaneErase_directSigningImpl`), and
+the eager trace's chain actions are the reveal-probe trace of the erased run
+(`simulate_globalFirstLaneEagerTrace_chainProjection`). On the game side,
+`cappedDetailedGameWithKeygenCacheAndBothTraces` runs the detailed game with both the encoding trace
+and the attacker's action trace, and projects to the game with the encoding trace alone
+(`cappedDetailedGameWithKeygenCacheAndBothTraces_encodingProjection_eq`).
+-/
+
 open OracleComp OracleSpec
 open OracleComp.ProgramLogic.Relational
 

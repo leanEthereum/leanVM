@@ -4,6 +4,17 @@ public import XmssSecurity.Proof.ConcreteForgery
 
 @[expose] public section
 
+/-!
+# Verification read from a cache
+
+`verifyFromCache` runs the verifier with every hash answer read from a query cache (`CacheView`):
+`bottomRootFromCache` recomputes the bottom root a signature reaches, `verifyTopFromCache` checks it
+against the public root through the top layer. `verifyFromCache_eq_true_iff` unfolds acceptance, and
+`sameLeafIndex_badEvent_of_verifyFromCache` turns two distinct accepted signatures at one leaf
+index, with the same top signature and bottom root, into a `SameLeafIndexBadEventOccurs` event in
+the cache.
+-/
+
 open OracleSpec
 
 namespace XmssSecurity.Concrete

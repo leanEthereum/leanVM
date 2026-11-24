@@ -1,8 +1,18 @@
 module
 
-public import XmssSecurity.Proof.CappedSuffixEventProbability
+public import XmssSecurity.Proof.CappedSuffixOrientation
 
 @[expose] public section
+
+/-!
+# A chain event reveals the honest value or collides
+
+After key generation, a chain bad event either makes the forgery's chain value the honest one at
+the forged digit (`OutcomeChainValueRevealed`) or yields an adaptive fresh digest collision with
+the honest chain input at the same address (`keygenChainTargetInput`,
+`chain_event_afterKeygen_revealed_or_collision`). A revealed value is the chain's start at digit
+`0` or an output key generation's cache holds (`chainValueRevealed_afterKeygen_has_origin`).
+-/
 
 open OracleComp OracleSpec ENNReal
 

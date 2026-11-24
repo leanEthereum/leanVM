@@ -11,6 +11,21 @@ public import XmssSecurity.Proof.CappedGlobalChainOrigin
 
 @[expose] public section
 
+/-!
+# The game against the causal simulation, and what a forgery hits
+
+`sourceGlobalTracedProgram` runs the traced game after key generation with presampled trajectories,
+and `globalHighMonitoredProgram` runs the adversary and the verifier against the monitored causal
+simulation; `SourceGlobalHighMonitoredProgramRelation` relates them (equal results and related
+states, or a bad monitored state). Every value the causal simulation reveals is covered by the
+signatures it returned (`globalHighMonitoredDetailedExecution_support_returnedCovered`, with
+`GlobalReturnedChainValueCovered`). So a winning forgery whose bottom or top chain value is the
+hidden honest value at a coordinate no returned signature revealed makes the public trace, followed
+by the forgery's probes (`globalForgeryPrimaryProbeTrace`), hit
+(`sourceGlobal_origin_implies_right_publicObservedHit`,
+`sourceGlobal_topOrigin_implies_right_publicObservedHit`).
+-/
+
 open OracleComp OracleSpec
 open OracleComp.ProgramLogic.Relational
 

@@ -5,6 +5,17 @@ public import XmssSecurity.Proof.DetailedExecution
 
 @[expose] public section
 
+/-!
+# A winning outcome has a cache-level bad event
+
+`ConcreteOutcomeConsistent cache outcome` says that the outcome's public key, verdict and returned
+signatures are what `cache` replays, and that every top signature key generation computed decodes on
+its bottom root. Read in such a cache, a winning outcome has a bad event
+(`winning_outcome_has_badEvent`): a bottom one at a signed or an unsigned leaf index
+(`OutcomeBadEventOccurs`), or a top one, its top signature of the bottom root it reaches being an
+accepted strong forgery (`OutcomeTopBadEventOccurs`, through `top_badEvent_or_honest`).
+-/
+
 open OracleComp OracleSpec ENNReal
 open scoped BigOperators
 

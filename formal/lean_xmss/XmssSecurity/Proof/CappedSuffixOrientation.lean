@@ -1,10 +1,23 @@
 module
 
-public import XmssSecurity.Proof.CappedLeafEventProbability
+public import XmssSecurity.Proof.CappedLeafOrientation
 public import XmssSecurity.Proof.VerificationChainQuery
 public import XmssSecurity.Proof.ChainTargetInput
 
 @[expose] public section
+
+/-!
+# A suffix-collision bad event is a fresh collision with key generation's chain step
+
+After a supported key generation, a bottom suffix-collision bad event of a game at any slot
+(`OutcomeBadEventOccurs` at `.suffixCollision slot`) is an adaptive fresh digest collision between
+key generation's cache and the final cache against `keygenChainTargetInput`, the honest chain step
+input at the same address (`suffixCollision_event_afterKeygen_orientation`, in the sense of
+`Rom.AdaptiveFreshDigestCollisionWith`). At a signed or an unsigned leaf index alike, the forged
+chain step, which verification caches (`detailed_execution_verified_chain_query_cached_as`),
+collides with the honest chain's step at the same address, which key generation cached with no other
+input there (`chainCollision_afterKeygen_orientation`).
+-/
 
 open OracleComp OracleSpec ENNReal
 

@@ -7,6 +7,22 @@ public import XmssSecurity.Proof.ChainTableUniformity
 
 @[expose] public section
 
+/-!
+# Key generation with every chain presampled
+
+`GlobalChainValueIndex` names every chain value of key generation at both layers (a chain, a chain
+key and a digit), and `globalKeygenChainValueTable` reads that table from key generation's cache.
+Key generation (`actualGlobalChainKeygen`) equals in distribution the run that first walks every
+chain, sampling and programming each fresh step, and then runs key generation from the warm cache
+(`evalDist_actualGlobalChainKeygen_eq_programmedAllChainTrajectories`). The table this presampling
+yields is uniform (`evalDist_programmedGlobalChainTrajectoryMaterial_table_eq_uniform`), and uniform
+chain starts and chain outputs give the table and the outputs' high halves (`hashOutputHigh`) as an
+independent uniform pair (`evalDist_globalChainKeygenRandomnessView_eq_independent`).
+`coupledGlobalChainKeygen` and `ProgrammedGlobalChainKeygenRelation` set up the coupling of two key
+generations over different tables that `CappedGlobalTreeCacheCorrespondence` and
+`CappedGlobalCausalSetup` use.
+-/
+
 open OracleComp OracleSpec ENNReal
 open OracleComp.ProgramLogic.Relational
 

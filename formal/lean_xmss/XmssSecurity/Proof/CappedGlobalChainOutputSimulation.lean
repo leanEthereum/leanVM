@@ -5,6 +5,19 @@ import all Init.Data.Array.Basic
 
 @[expose] public section
 
+/-!
+# Presampling every chain from a tape of hash outputs
+
+The programmed presampling of every chain samples a digest pair per step;
+`outputGlobalChainTrajectoryMaterial` samples a whole hash output instead and caches it, with the
+same distribution (`evalDist_programmedGlobalChainTrajectoryMaterial_eq_output`).
+`outputGlobalChainTrajectoryMaterialTrace` also logs those outputs in order: the chain starts and
+the tape are uniform (`evalDist_outputTraceRandomness_eq_uniform`), and the tape, read as a table
+over the chain edges, is what the cache holds at each edge's input
+(`globalChainEdgeOutputTableOfOutputTrace_eq_cached`). `CappedGlobalChainOutputUniformity` uses
+both.
+-/
+
 open OracleComp OracleSpec
 
 namespace XmssSecurity.CappedChain

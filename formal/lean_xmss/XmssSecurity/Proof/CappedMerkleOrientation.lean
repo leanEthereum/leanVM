@@ -1,9 +1,23 @@
 module
 
-public import XmssSecurity.Proof.CappedLeafEventProbability
+public import XmssSecurity.Proof.CappedLeafOrientation
 public import XmssSecurity.Proof.TopKeygenCache
 
 @[expose] public section
+
+/-!
+# A Merkle bad event is a fresh collision with key generation's node
+
+`keygenMerkleTargetInput` sends a Merkle input to the honest input key generation cached at its
+address, made of the two honest children. After a supported key generation, a bottom Merkle bad
+event of a game at any level (`OutcomeBadEventOccurs` at `.merkle level`) is an adaptive fresh
+digest collision between key generation's cache and the final cache against that target
+(`merkle_event_afterKeygen_orientation`, in the sense of `Rom.AdaptiveFreshDigestCollisionWith`):
+verification caches the forged node input at the colliding level
+(`detailed_execution_verified_merkle_query_cached_as`), the other side is the honest path (the
+returned signature's at a signed leaf index, the honest signature's at an unsigned one), and key
+generation cached no other input at that address.
+-/
 
 open OracleComp OracleSpec ENNReal
 

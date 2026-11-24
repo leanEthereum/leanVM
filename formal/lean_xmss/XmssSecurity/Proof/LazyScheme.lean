@@ -4,6 +4,15 @@ public import XmssSecurity.Proof.IdealStatement
 
 @[expose] public section
 
+/-!
+# The scheme without precomputation
+
+`Concrete.keygen` keeps only the parameter, the chain starts and the top signatures
+(`SecretKey.withoutPrecomputation`), and `Concrete.cappedSign` recomputes the chain values, the
+authentication path and the top signature through the oracle at each signing. Erasing the stored
+values of the precomputed key generation gives the lazy one (`erasePrecomputedKeygen_eq_keygen`).
+-/
+
 open OracleComp OracleSpec
 
 namespace XmssSecurity

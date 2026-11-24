@@ -6,6 +6,16 @@ public import XmssSecurity.Proof.RandomizedStatement
 
 @[expose] public section
 
+/-!
+# A hash query bound along the lazy random oracle's runs
+
+`countHashQueries` counts a computation's hash queries, and `HashQueryBound computation cache q`
+says that every run of it under the lazy random oracle from `cache` makes at most `q` of them. The
+bound splits over a bind (`hashQueryBound_bind`, `hashQueryBound_query_bind`): the head's runs stay
+within `q`, and each continuation within what is left from the cache the head ends in. Sampling
+costs nothing (`hashQueryBound_of_sampling_bind`).
+-/
+
 namespace XmssSecurity
 
 open OracleComp OracleSpec

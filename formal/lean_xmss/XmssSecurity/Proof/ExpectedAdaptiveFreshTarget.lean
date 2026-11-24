@@ -7,6 +7,19 @@ public import XmssSecurity.Proof.HashInputLemmas
 
 @[expose] public section
 
+/-!
+# Fresh-target collisions in expectation
+
+In the lazy random oracle, the probability that a fresh query at a relevant input lands on a target
+digest fixed by its input is at most the expected number of relevant queries over `2^digestBits`
+(`mixed_adaptive_truncated_output_fresh_relevant_hit_from_cache_le_expected`). An adaptive
+fresh-target collision is therefore charged only to queries at inputs its target map moves
+(`mixed_adaptiveFreshDigestCollisionWith_le_expected_moved`), also when a randomized prefix chooses
+the cache and the map
+(`mixed_adaptiveFreshDigestCollision_after_prefix_le_expectedMovedContinuation`, which
+`CappedGlobalCollisionProbability` uses).
+-/
+
 open OracleComp ENNReal
 
 namespace XmssSecurity.Rom

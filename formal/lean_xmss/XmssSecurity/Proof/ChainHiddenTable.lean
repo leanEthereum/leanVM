@@ -5,6 +5,17 @@ public import XmssSecurity.Proof.ChainKey
 
 @[expose] public section
 
+/-!
+# Chain coordinates, hidden and returned
+
+A chain coordinate (`ChainValueIndex`) is a chain key of either layer and a digit;
+`keygenChainValueTable` reads the honest chain values from key generation's cache, and
+`returnedChainValueIndices` holds the coordinates the returned signatures send at a chain, with
+every later coordinate on it. A winning chain event's forged coordinate precedes every returned one
+at the forged leaf index (`WinningOutcomeBadEventOccurs.chain_coordinate_lt_returned`), so it is not
+among them (`WinningOutcomeBadEventOccurs.forged_chain_coordinate_not_mem_returned`).
+-/
+
 open OracleSpec
 
 namespace XmssSecurity

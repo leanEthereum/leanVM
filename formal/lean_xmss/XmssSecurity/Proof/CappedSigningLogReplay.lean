@@ -6,6 +6,16 @@ public import XmssSecurity.Proof.SigningLogConsistency
 
 @[expose] public section
 
+/-!
+# The detailed game's final cache replays the returned signatures
+
+`cappedMappedAdversaryImpl` runs the adversary with the lazy random oracle and the capped signer,
+logging the signing queries. Its cache only grows (`cappedMappedAdversary_cache_le`), and every
+signature it returns is what any larger cache replays from the encoding its message digest decodes
+to (`cappedMappedAdversary_signingLog_consistent`). So every execution of `detailedGameWithCache` is
+`ConcreteOutcomeConsistent` in its final cache (`capped_detailed_execution_consistent`).
+-/
+
 open OracleComp OracleSpec ENNReal
 open scoped BigOperators
 

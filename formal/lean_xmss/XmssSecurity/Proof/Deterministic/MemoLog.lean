@@ -4,6 +4,15 @@ public import XmssSecurity.Proof.Deterministic.Memoize
 
 @[expose] public section
 
+/-!
+# The request log under memoization
+
+`withRequestLog` records a computation's requests and their answers, leaving its base queries
+unlogged and its output unchanged (`fst_withRequestLog`), and keeps requests fresh
+(`FreshRequests.withRequestLog`). Under `memoize`, which forwards only a request's first occurrence,
+the forwarded requests form a sublist of the original log (`memoize_log_sublist`).
+-/
+
 open OracleComp OracleSpec
 
 namespace DeterministicSigning

@@ -6,6 +6,16 @@ public import XmssSecurity.Proof.KeygenCache
 
 @[expose] public section
 
+/-!
+# Key generation's cache answers the trees
+
+`TreeCacheStable` says that over any larger cache every valid bottom subtree runs without a fresh
+query and returns its value replayed from the cache, and `TopCacheStable` that the replayed top
+signatures do not change in larger caches. Key generation's cache has both
+(`keygen_support_treeCacheStable`, `keygen_support_topCacheStable`), so authentication paths
+replayed from it stay fixed (`TreeCacheStable.authenticationPath_eq`).
+-/
+
 open OracleComp OracleSpec
 
 namespace XmssSecurity.CappedChain

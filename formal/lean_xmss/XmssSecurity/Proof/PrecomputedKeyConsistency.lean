@@ -6,6 +6,20 @@ public import XmssSecurity.Proof.QueryPresence
 
 @[expose] public section
 
+/-!
+# A precomputed key agrees with its key generation cache
+
+`PrecomputedKeyConsistent` says the precomputed signer's output for any leaf index, randomizer and
+encoding equals its replay `Concrete.CacheReplay.signWithEncoding` from any cache extending the key
+generation cache. Every key of `Concrete.precomputedKeygen` is consistent with its cache
+(`Concrete.precomputedKeygen_support_consistent`), whose support corresponds to that of the lazy
+`Concrete.keygen` (`Concrete.precomputedKeygen_support_oldKeygen`,
+`Concrete.oldKeygen_support_materializedPrecomputedKeygen`). The key generation cache holds no
+bottom encoding input and, per chain and step, exactly the input on the honest walk
+(`Concrete.precomputedKeygen_cache_has_chainInput`,
+`Concrete.precomputedKeygen_cache_chainInput_eq_none_of_ne`).
+-/
+
 open OracleComp OracleSpec
 
 namespace XmssSecurity

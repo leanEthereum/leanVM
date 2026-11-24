@@ -5,6 +5,19 @@ public import XmssSecurity.Proof.PrecomputedSignQueryBound
 
 @[expose] public section
 
+/-!
+# The encoding inputs the precomputed signer caches
+
+Which bottom encoding inputs a run of `Concrete.precomputedCappedSign` adds to the cache. It adds
+none at another leaf index
+(`Concrete.precomputedCappedSign_preserves_other_leafIndex_encodingInput`). A failed attempt
+caches a digest that does not decode, so it never adds an input whose digest decodes in a later
+cache; hence a successful run adds no such input other than its signed one
+(`Concrete.precomputedCappedSign_preserves_later_valid_other_encodingInput`). The signed input
+itself is cached and decodes (`Concrete.precomputedCappedSign_success_encodingInput_cached`,
+`Concrete.precomputedCappedSign_success_decode`).
+-/
+
 open OracleComp OracleSpec
 
 namespace XmssSecurity

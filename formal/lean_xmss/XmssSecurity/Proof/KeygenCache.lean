@@ -6,6 +6,16 @@ public import XmssSecurity.Proof.LazyScheme
 
 @[expose] public section
 
+/-!
+# The cache key generation leaves
+
+The cache of the lazy key generation `Concrete.keygen` is one that `Concrete.honestKeygen` leaves
+from an empty cache (`Concrete.keygen_support_rootTree`). Hence it holds at most one input per
+leaf, chain and Merkle address (`Concrete.keygen_cache_unique_leafAddress`,
+`Concrete.keygen_cache_unique_chainAddress`, `Concrete.keygen_cache_unique_merkleAddress`) and no
+bottom encoding input (`Concrete.keygen_cache_none_encodingInput`).
+-/
+
 open OracleComp OracleSpec
 
 namespace XmssSecurity

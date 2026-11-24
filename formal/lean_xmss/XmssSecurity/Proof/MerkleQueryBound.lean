@@ -4,6 +4,16 @@ public import XmssSecurity.Proof.TreeQueryBound
 
 @[expose] public section
 
+/-!
+# Key generation queries each bottom Merkle address at most once
+
+A bottom tree queries a Merkle address once if the address lies inside it (`MerkleAddressInSubtree`)
+and never otherwise (`Concrete.treeNode_queryBound_merkleAddress`). The bottom trees are disjoint
+and the top layer queries no bottom address, so honest key generation queries each bottom Merkle
+address at most once (`Concrete.rootTree_queryBound_merkleAddress`), and its final cache holds at
+most one input at each (`Concrete.CacheReplay.rootTree_cache_unique_merkleAddress`).
+-/
+
 namespace XmssSecurity
 
 def MerkleAddressInSubtree (targetLevel : MerkleLevel) (targetNode : MerkleNode)

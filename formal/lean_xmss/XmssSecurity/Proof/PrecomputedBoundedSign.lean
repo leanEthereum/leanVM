@@ -4,6 +4,17 @@ public import XmssSecurity.Proof.PrecomputedKeyConsistency
 
 @[expose] public section
 
+/-!
+# A signature of the precomputed signer is a cache replay
+
+A successful run of the capped retry signer comes from one successful attempt whose cache lies
+below the final one (`Concrete.precomputedSignBoundedAttempts_success_origin`). Hence, for a key
+consistent with its key generation cache (`PrecomputedKeyConsistent`), a signature that
+`Concrete.precomputedCappedSign` returns is, in any larger cache, the replay
+`Concrete.CacheReplay.signWithEncoding` of the encoding its digest decodes to
+(`Concrete.precomputedCappedSign_success_replay`).
+-/
+
 open OracleComp OracleSpec
 
 namespace XmssSecurity

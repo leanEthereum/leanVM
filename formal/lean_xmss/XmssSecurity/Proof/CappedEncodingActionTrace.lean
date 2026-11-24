@@ -6,6 +6,21 @@ public import XmssSecurity.Proof.WinningEventReduction
 
 @[expose] public section
 
+/-!
+# Fresh encoding collisions hit the capped encoding monitor
+
+Step by step, the encoding trace of `cappedDetailedGameWithEncodingTrace` records the game's fresh
+encoding entries (`cappedEncodingTracedMappedAdversaryImpl_validEncodingCollisionInvariants`,
+`cappedEncodingTracedMappedAdversaryImpl_postSigningInvariants`), and its signed leaf indices are
+distinct in a run with a winning encoding event
+(`cappedDetailedGameWithEncodingTrace_validSignLeafIndices_nodup_of_winning`). So a fresh signing
+collision (a signature landing on an older valid digest,
+`cappedDetailedGameWithEncodingTrace_freshSigningCollision_monitorHit`) and a decoding forged
+encoding input still fresh at its signature and colliding with it later
+(`cappedDetailedGameWithEncodingTrace_postSigningFreshForgedCollision_monitorHit`) each make the
+capped encoding monitor hit on the trace; `LossDecomposition` uses both.
+-/
+
 open OracleComp OracleSpec
 
 namespace XmssSecurity

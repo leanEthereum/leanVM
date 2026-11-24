@@ -7,6 +7,19 @@ public import XmssSecurity.Proof.CappedChain.CausalSigningKeygenCoupling
 
 @[expose] public section
 
+/-!
+# Coupling key generation and the signer with the causal simulation
+
+`coupledGlobalChainKeygenWithBaseHighFull` draws, beside the coupled key generation, an independent
+base table and a table of high halves. Key generation with presampled trajectories couples with it
+so that its table is the base and its cached chain outputs have the drawn high halves
+(`relTriple_trajectoryProgrammedGlobalChainKeygen_withBaseHigh_stable`). The causal side starts from
+key generation's cache restricted to the inputs `MerkleHashInput` keeps
+(`globalFilteredCausalKeygenState`) and signs with `globalFilteredCausalSigningQuery`, which reveals
+the table values a returned signature sends. It couples with the real signer: equal answers and
+related states (`relTriple_programmed_globalFilteredCausalSigningQuery`).
+-/
+
 open OracleComp OracleSpec
 open OracleComp.ProgramLogic.Relational
 

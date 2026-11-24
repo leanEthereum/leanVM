@@ -7,6 +7,18 @@ public import ToMathlib.MeasureTheory.Measure.Coupling.Maximal
 
 @[expose] public section
 
+/-!
+# Couplings from equal marginals
+
+Two mass functions whose images under `f` and `g` agree have a coupling supported on
+`f a = g b` (`generalFiberCoupling`, which pairs within each fiber proportionally). Through
+`outputPMF`, a relational triple between oracle computations with finite answers is the same as a
+coupling mass function concentrated on the relation (`relTriple_of_pmf`, `exists_pmf_of_relTriple`).
+Hence equal image distributions give a relational triple (`relTriple_of_evalDist_map_eq_general`,
+`relTriple_of_evalDist_map_eq_with_support_general`), and relational triples compose through a
+middle computation (`relTriple_trans_exists`).
+-/
+
 open OracleComp OracleSpec ENNReal
 open OracleComp.ProgramLogic.Relational
 

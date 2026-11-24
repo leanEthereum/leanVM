@@ -5,6 +5,21 @@ public import XmssSecurity.Proof.CappedGlobalFirstLaneExperiment
 
 @[expose] public section
 
+/-!
+# The exact first lane on the source side
+
+The source side of the first lane's coupling: `sourceGlobalExactTracedProgram` presamples key
+generation's chain trajectories (`trajectoryProgrammedGlobalChainKeygen`) and runs the detailed game
+from the programmed key with the encoding trace and the attacker's action trace. Its distribution is
+the game's (`evalDist_sourceGlobalExact_eq_cappedBothTraces`), so the exact first-lane event has the
+same probability on both (`cappedExactFirstLane_probability_eq_sourceGlobalExact`). Each of its
+oracle steps couples with the monitored causal oracle (`globalHighMonitoredMappedAdversaryImpl`,
+`relTriple_programmed_globalHighMonitored_sourceExact_action`), the encoding observations agreeing
+while the signing caches do. The encoding branch of the event, a winning encoding event that is not
+a cached selection, makes the capped encoding monitor hit
+(`cappedExactEncodingBranch_implies_monitorHit`).
+-/
+
 open OracleComp OracleSpec
 open OracleComp.ProgramLogic.Relational
 

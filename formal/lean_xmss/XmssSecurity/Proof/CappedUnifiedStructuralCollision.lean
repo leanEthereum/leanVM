@@ -6,6 +6,19 @@ public import XmssSecurity.Proof.TopStructural
 
 @[expose] public section
 
+/-!
+# The structural collisions as one fresh collision
+
+`keygenStructuralTargetInput` composes the chain, leaf, Merkle and top targets: it sends a chain
+step, leaf, Merkle or top input to the honest input key generation cached at its address, and fixes
+every other input. `WinningStructuralCollisionOccurs` is a winning game's chain event whose value
+was not revealed, its suffix-collision, leaf or Merkle event, or its top event that is not a guess.
+After a supported key generation each is an adaptive fresh digest collision against that one target
+(`winningStructuralCollision_afterKeygen_orientation`), so its probability is at most the expected
+number of moved queries after key generation (queries whose input the target moves) over
+`2^digestBits` (`winningStructuralCollision_probability_le_expectedMovedQueries`).
+-/
+
 open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity

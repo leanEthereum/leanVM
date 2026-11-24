@@ -5,6 +5,20 @@ public import XmssSecurity.Scheme
 
 @[expose] public section
 
+/-!
+# The encoding monitor and its collision pairs
+
+`EncodingMonitor` replays a list of observed actions, each a query or a signature at a leaf index
+with its hash output. Its `State` keeps the digests (`truncateHash` of the output) queried at each
+unsigned leaf index and the digest a signature installs; `runObserved` hits when a query's digest is
+the signed one at its leaf index, or a signature's digest was queried before at its leaf index. With
+distinct signed leaf indices, a hit from `State.empty` is exactly a `HasCollisionPair`, a query and
+a signature at one leaf index with equal digests in either order
+(`runObserved_empty_eq_true_of_collisionPair`, `collisionPair_of_runObserved_empty_eq_true`), so a
+hit persists in every list containing the actions as a sublist, its signed leaf indices still
+distinct (`runObserved_empty_eq_true_mono_sublist`).
+-/
+
 open OracleComp ENNReal
 open scoped BigOperators
 

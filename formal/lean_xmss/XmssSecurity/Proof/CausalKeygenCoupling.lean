@@ -6,6 +6,17 @@ public import XmssSecurity.Proof.RandomOracle
 
 @[expose] public section
 
+/-!
+# Programming fresh chain steps
+
+Where the cache holds no query at a chain's addresses, walking the chain under the random oracle
+(`Concrete.chainTrajectory`) equals in distribution sampling each step's output and programming it
+into the cache (`programmedChainTrajectory`, `evalDist_chainTrajectory_eq_programmed`); likewise
+for one chain index over a list of distinct chain keys
+(`evalDist_fixedSeedChainTrajectories_eq_programmed`). `CappedGlobalKeygen` presamples every chain
+with it.
+-/
+
 open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity

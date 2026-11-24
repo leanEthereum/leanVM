@@ -6,6 +6,18 @@ public import XmssSecurity.Scan.Ledger
 
 @[expose] public section
 
+/-!
+# A cached-selection collision is a pre-signing or a post-signing bad event
+
+The signer selects only inputs whose cached digest, if any, decodes
+(`SigningCacheTrace.SelectedValid`, an invariant of the traced adversary phase). So in a winning
+game, whose signed leaf indices are distinct, a cached-selection collision is `Ghost.PreBad` (a
+first entry selected a cached input partnered in its initial cache) or `Ghost.PostBad` (a later
+query repeated a selected digest) (`cachedSelection_event_le`), both defined in
+`XmssSecurity.Scan.Ledger`. `cappedDetailedGameAfterKeygenWithSigningTrace_eq_map` writes the traced
+game through the ghost-count handler `Ghost.impl`.
+-/
+
 open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity

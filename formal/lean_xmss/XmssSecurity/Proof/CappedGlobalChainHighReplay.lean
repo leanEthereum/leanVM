@@ -6,6 +6,20 @@ public import XmssSecurity.Proof.CappedChain.KeygenUnaddressedCache
 
 @[expose] public section
 
+/-!
+# Coupling the whole query stream with the monitored causal simulation
+
+Every adversary hash query couples with the causal one until the monitor hits
+(`relTriple_programmed_globalFilteredAttackerHashQuery_until_hit`, from its leaf, chain and ordinary
+cases), while key generation's Merkle entries stay in the causal cache
+(`GlobalMerkleKeygenCacheRetained`). `GlobalMonitoredCausalState` carries the causal state with its
+action trace, which is bad when the trace's monitor hits, and `monitorGlobalCausalTrace` runs a step
+on it. `relTriple_programmed_monitoredGlobalAttackerHashQuery_until_hit` and
+`relTriple_programmed_monitoredGlobalSigningQuery` couple the real hash and signing queries with the
+monitored causal ones: equal answers and related states, or a bad state. The `*_replays` theorems
+show each causal step's trace replays its reveals (`ReplaysCausalReveals`).
+-/
+
 open OracleComp OracleSpec
 open OracleComp.ProgramLogic.Relational
 

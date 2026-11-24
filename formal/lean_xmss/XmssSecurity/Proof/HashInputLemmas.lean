@@ -5,6 +5,16 @@ public import XmssSecurity.Proof.EncodingLemmas
 
 @[expose] public section
 
+/-!
+# Hash inputs determine their domain and payload
+
+The byte layout of a tweakable hash input is injective: equal inputs under one parameter have the
+same domain (`domain_eq_of_tweakableHashInput_eq`, through the address fields `hashDomainFields` and
+the domain suffix) and the same payload (`payload_eq_of_tweakableHashInput_eq`), and the encoding,
+leaf and node payloads are injective. The `CacheView` input builders inherit this:
+`encodingInput_eq_iff` separates encoding inputs by leaf index, message and randomness.
+-/
+
 open OracleSpec
 
 namespace XmssSecurity

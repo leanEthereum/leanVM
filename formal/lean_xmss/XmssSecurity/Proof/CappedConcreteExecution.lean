@@ -5,6 +5,17 @@ public import XmssSecurity.Proof.PrecomputedKeygenCache
 
 @[expose] public section
 
+/-!
+# The detailed game's final cache replays its key and its verdict
+
+In every execution of `detailedGameWithCache` the final cache replays the public key
+(`capped_detailed_execution_key_consistent`) and the verdict
+(`capped_detailed_execution_verification_consistent`), and the top signatures key generation
+computed decode in it on their bottom roots (`capped_detailed_execution_topSigned_consistent`).
+Given the same for the returned signatures, the execution is `ConcreteOutcomeConsistent`
+(`capped_detailed_execution_consistent_of_signing`).
+-/
+
 open OracleComp OracleSpec
 
 namespace XmssSecurity

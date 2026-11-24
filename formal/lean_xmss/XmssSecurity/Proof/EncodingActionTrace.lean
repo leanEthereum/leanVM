@@ -6,6 +6,19 @@ public import XmssSecurity.Proof.SigningCacheTrace
 
 @[expose] public section
 
+/-!
+# The encoding actions of a game run
+
+An `EncodingActionTrace` is the list of actions the encoding monitor observes in a run: a fresh hash
+query at an encoding input of some leaf index (`.query`), and a signing request whose encoding input
+was fresh before it and cached after it (`.sign`, with that output). `encodingActionTraceUpdate`
+appends one step's observation, and `appendVerificationEncodingObservation` the forgery's fresh
+encoding query. `FreshSigningActionsRepresented`, `UnsignedEncodingEntriesRepresented` and
+`PostSigningQueriesRepresented` state which cached encoding entries the trace records, and
+`encodingActionTraceUpdate_signLeafIndices_sublist` keeps its signed leaf indices a sublist of the
+signing trace's.
+-/
+
 open OracleComp OracleSpec
 
 namespace XmssSecurity

@@ -7,6 +7,17 @@ public import XmssSecurity.Proof.CausalTreeCoupling
 
 @[expose] public section
 
+/-!
+# Signing from key generation's cache
+
+Over any cache extending key generation's, an honest signature's chain values, authentication path
+and top signature make no fresh query and return their replayed values
+(`Concrete.keygen_signWithEncoding_run_eq_pure`). So capped signing from the precomputation
+materialized from that cache equals capped signing in distribution
+(`Concrete.evalDist_precomputedCappedSign_materialized_eq_cappedSign`), which
+`CappedGlobalChainHighSetup` uses to couple the signer.
+-/
+
 open OracleComp OracleSpec
 open OracleComp.ProgramLogic.Relational
 

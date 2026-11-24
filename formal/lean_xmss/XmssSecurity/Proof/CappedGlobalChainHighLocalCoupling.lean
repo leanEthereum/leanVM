@@ -6,6 +6,20 @@ public import XmssSecurity.Proof.RunObservedAppend
 
 @[expose] public section
 
+/-!
+# The causal simulation's answer to one hash query
+
+`globalFilteredCausalAttackerHashPlan` sorts an adversary hash query
+(`GlobalFilteredCausalHashPlan`): cached; a chain step from a revealed value, answered by revealing
+the next one (`reveal`); a chain step or a leaf input over a hidden value, which probes that value
+first (`probeThenFresh`); a leaf input over revealed endpoints, redirected to key generation's
+answer (`redirect`); or fresh. `globalCausalAttackerHashQueryFromHigh` answers by that plan, the
+high halves read from a table. The `relTriple_programmed_globalFilteredHashQuery_*` theorems couple
+each case with the real random oracle, the probing ones until the monitor hits
+(`relTriple_programmed_globalFilteredChainHashQuery_until_hit` for chain inputs), and
+`programmedGlobal_leaf_cache_pair_of_reveals_match` gives the redirect's answer on both sides.
+-/
+
 open OracleComp OracleSpec
 open OracleComp.ProgramLogic.Relational
 

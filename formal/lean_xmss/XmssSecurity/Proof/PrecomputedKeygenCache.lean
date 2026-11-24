@@ -6,6 +6,18 @@ public import XmssSecurity.Proof.LazyScheme
 
 @[expose] public section
 
+/-!
+# The precomputed key read from the key generation cache
+
+The values `Concrete.precomputedKeygen` stores in the secret key are read from its final cache
+(`Concrete.precomputedKeygen_support_secretKey_uses_finalCache`, through
+`Concrete.materializePrecomputation`), so running the lazy `Concrete.keygen` and filling the key
+from its cache gives the precomputed key generation in distribution
+(`Concrete.evalDist_materialized_keygen_eq_precomputedKeygen`). The logging lemmas before it say
+that a logged run's final cache is its initial cache extended by the log
+(`withQueryLog_finalCache_eq_extendHashCacheWithLog`).
+-/
+
 open OracleComp OracleSpec
 
 namespace XmssSecurity

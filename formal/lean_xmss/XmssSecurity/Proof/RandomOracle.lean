@@ -7,6 +7,19 @@ public import XmssSecurity.Scheme
 
 @[expose] public section
 
+/-!
+# A 256-bit oracle answer as two digest halves
+
+A random-oracle answer is 256 bits, and the scheme keeps its low 128-bit half (`truncateHash`).
+`hashOutputEquivDigestPair` splits an answer into an independent high half and that digest: a
+uniform answer gives two independent uniform halves
+(`evalDist_split_uniformHashOutput_eq_independent`) and a uniform digest
+(`evalDist_truncate_uniformHashOutput`). Choosing the digest first and then a uniform high half
+(`sampledHashOutputWithDigest`) is distributed as a uniform answer with its truncation
+(`evalDist_sampledHashOutputWithDigest_eq_uniform`), which lets a proof program a digest in place
+of an oracle answer. Exactly `2^128` answers truncate to a given digest (`card_matchingOutputs`).
+-/
+
 open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity

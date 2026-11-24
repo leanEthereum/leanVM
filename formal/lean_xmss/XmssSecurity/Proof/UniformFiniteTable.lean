@@ -6,6 +6,16 @@ public import XmssSecurity.Proof.EvalDistEq
 
 @[expose] public section
 
+/-!
+# A uniform table from a tape of uniform draws
+
+`finiteTableOfTape` reads a list of values as a table over a finite index type, in a fixed order
+that lists every index once. Read from independent uniform draws (`drawList`, or `uniformSnocList`,
+which appends one draw at a time), the table is a uniform function
+(`evalDist_finiteTableOfTape_drawList_eq_uniform`,
+`evalDist_finiteTableOfTape_uniformSnoc_eq_uniform`).
+-/
+
 open OracleComp OracleSpec
 
 namespace XmssSecurity

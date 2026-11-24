@@ -7,6 +7,22 @@ public import XmssSecurity.Proof.RandomOracle
 
 @[expose] public section
 
+/-!
+# The encoding monitor for the capped signer
+
+The capped signer installs only digests that decode (`TargetSum.ValidDigest`), so this monitor
+(`CappedEncodingMonitor.runObserved`) is the encoding monitor of `EncodingMonitor` restricted to
+valid digests: it equals that monitor on `validActions` (`runObserved_eq_standard_validActions`) and
+inherits its monotonicity in sublists (`runObserved_empty_eq_true_mono_sublist`). Its probability
+bound is a potential argument: `State.pendingRisk` charges each pending digest one over the number
+of valid digests. Under the bound `fuel · (Fintype.card Digest)⁻¹ + State.pendingRisk`, a uniform
+query (`applyUniformQueryMonitor`) costs one unit of fuel and a uniform signing attempt
+(`applyUniformSignAttemptMonitor`) none, its hit paid by the risk it removes
+(`applyUniformQueryMonitor_true_probability_le`,
+`applyUniformSignAttemptMonitor_true_probability_le`); the programmed and hash-output forms reduce
+to these.
+-/
+
 open OracleComp ENNReal
 
 namespace XmssSecurity.CappedEncodingMonitor

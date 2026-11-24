@@ -8,6 +8,21 @@ import all PolyFun.PFunctor.Handler.Instrumentation
 
 @[expose] public section
 
+/-!
+# The detailed game with the capped signer's cache trace
+
+`cappedCacheTracedMappedAdversaryImpl` runs the adversary with the lazy random oracle and the capped
+signer, recording a `SigningCacheTrace`, and `cappedDetailedGameWithSigningTrace` is the detailed
+game run with it: its caches and its log project to `detailedGameWithCache`
+(`cappedDetailedGameWithSigningTrace_cache_projection`,
+`cappedCacheTracedMappedAdversaryImpl_log_projection_eq_mapped`). Along a run the trace's caches
+stay below the game's, every successful signature's encoding input is cached
+(`cappedDetailedGameWithSigningTrace_invariants`), and a signing never caches another valid encoding
+input that was absent before it (`SigningCacheTrace.PreservesOtherValidEncodingInputs`). So a fresh
+forged-encoding collision whose forged input decodes, at a signing whose own input was fresh, is a
+post-signing one (`SigningCacheEntry.postSigningFreshForgedEncodingCollision_of_valid_fresh`).
+-/
+
 open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity

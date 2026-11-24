@@ -5,6 +5,16 @@ public import VCVio.OracleComp.QueryTracking.RandomOracle.EagerTable
 
 @[expose] public section
 
+/-!
+# Presampling an entry the computation always caches
+
+For a computation run against the lazy random oracle `randomOracle`, if every execution caches a
+given input, sampling that input's answer into the cache first leaves the joint distribution of the
+result and the final cache unchanged (`evalDist_randomOracle_run_eq_presample_of_cached`), and so
+does querying it first and discarding the answer
+(`evalDist_randomOracle_run_eq_query_then_of_cached`).
+-/
+
 open OracleComp OracleSpec
 
 namespace OracleComp

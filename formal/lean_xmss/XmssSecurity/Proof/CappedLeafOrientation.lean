@@ -6,6 +6,19 @@ public import XmssSecurity.Proof.AdaptiveFreshTarget
 
 @[expose] public section
 
+/-!
+# A leaf bad event is a fresh collision with key generation's leaf
+
+`keygenLeafTargetInput` sends a leaf input to the honest leaf input key generation cached at its
+leaf index. After a supported key generation, the bottom leaf bad event of a game
+(`OutcomeBadEventOccurs` at `.leaf`) is an adaptive fresh digest collision between key generation's
+cache and the final cache against that target (`leaf_event_afterKeygen_orientation`, in the sense of
+`Rom.AdaptiveFreshDigestCollisionWith`). At a signed leaf index the signed endpoints are the honest
+WOTS public key (`signed_recoveredEndpoints_eq_oneTimePublicKey`), at an unsigned one the event is a
+collision with it (`fresh_leaf_badEvent_is_collision`), and the forged leaf input, which
+verification caches, is absent after key generation (`leafCollision_afterKeygen_orientation`).
+-/
+
 open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity.CappedLeaf
