@@ -8,7 +8,8 @@ name: Bench
 #
 # The testbeds are GitHub-hosted runners, forks' PRs included. Each pins its ISA:
 # `target-cpu=native` would build for whichever CPU the job lands on, and a cached build then
-# dies of SIGILL on an older one (see rust.yml).
+# dies of SIGILL on an older one (see rust.yml). `ab-nuc` runs on one fixed machine instead,
+# a NUC, and builds for it.
 
 on:
   pull_request:
@@ -115,4 +116,77 @@ jobs:
         if: steps.build.outputs.compare == 'true'
         with:
           name: ab-${{ matrix.testbed.name }}-${{ matrix.benchmark }}
+          path: ab.json
+
+  # A NUC (Intel Core Ultra 7 155H), the self-hosted runner labelled `nuc-155h`: bench/bench.sh's two
+  # benchmarks on 4 threads, one per performance core, base and PR in turns. A fork's PR runs once a
+  # maintainer approves it. The NUC is often offline: the job then waits in the queue, and gates nothing.
+  ab-nuc:
+    name: leanXMSS aggregation and recursion (nuc-155h)
+    runs-on: [ self-hosted, nuc-155h ]
+    timeout-minutes: 180
+    env:
+      RUSTFLAGS: -C target-cpu=native
+      # One thread of each of the job container's 4 performance cores: their siblings stay idle.
+      CORES: 1,3,6,8
+      AGGREGATE: aggregate --xmss 1400 --log-inv-rate 2
+      RECURSION: recursion --n 16 --xmss-per-leaf 1400 --leaf-log-inv-rate 2 --log-inv-rate 1
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The merge commit and its first parent, the base.
+          fetch-depth: 2
+      # Both sides build in the checkout, so they share its signers' cache.
+      - name: Build the PR and its base
+        run: |
+          build() {
+            cargo build --release -q -p leanvm-bench
+            mkdir -p "ab/$1" && cp target/release/leanvm-bench "ab/$1/"
+          }
+          build head
+          git checkout --quiet --detach HEAD^1
+          build base
+          git checkout --quiet --detach "$GITHUB_SHA"
+      # The signers both sides share and each side's leaves, on all 8 threads, before anything is timed.
+      - name: Generate the signers and the leaves
+        run: |
+          for side in base head; do
+            "ab/$side/leanvm-bench" --prover experimental $AGGREGATE --threads 8 --repeat 1 --cooldown 0 > /dev/null
+            "ab/$side/leanvm-bench" --prover experimental $RECURSION --threads 8 --repeat 1 --cooldown 0 > /dev/null
+          done
+      - name: Prove in turns
+        run: |
+          # Proving time and peak memory of one benchmark, as bench/bench.sh reads them, in Bencher Metric Format.
+          bench() {
+            side=$1 name=$2
+            shift 2
+            taskset -c "$CORES" "ab/$side/leanvm-bench" --prover experimental "$@" --threads 4 --repeat 3 --cooldown 2 > out.txt 2>&1 \
+              || { cat out.txt; exit 1; }
+            line=$(grep -E 'proving time +:' out.txt | tail -1)
+            seconds=$(echo "$line" | sed 's/^[^:]*://' | grep -oE '[0-9.,]+ s' | head -1 | tr -d ', s')
+            gib=$(echo "$line" | grep -oE 'peak memory [0-9.,]+' | awk '{gsub(/,/, "", $3); print $3}')
+            jq -nc --arg name "$name" --argjson s "$seconds" --argjson g "$gib" \
+              '{($name): {latency: {value: ($s * 1e9)}, "peak-memory": {value: ($g * 1073741824 | floor)}}}'
+          }
+          for round in $(seq "$ROUNDS"); do
+            if [ $((round % 2)) = 1 ]; then order="base head"; else order="head base"; fi
+            for side in $order; do
+              results=$( {
+                bench "$side" aggregate-leanxmss-1400-4thread $AGGREGATE
+                bench "$side" aggregate-leanxmss-1400-16to1-4thread-node $RECURSION
+              } | jq -sc add)
+              jq -nc --argjson round "$round" --arg side "$side" --argjson results "$results" \
+                '{round: $round, side: $side, results: $results}' | tee -a runs.jsonl
+            done
+          done
+      - name: Save the runs
+        env:
+          PR: ${{ github.event.number }}
+        run: |
+          cpu=$(lscpu | sed -n 's/^Model name: *//p' | head -n1)
+          jq -n --argjson pr "$PR" --arg base "$(git rev-parse HEAD^1)" --arg testbed nuc-155h --arg cpu "$cpu" \
+            --slurpfile runs runs.jsonl '{pr: $pr, base: $base, testbed: $testbed, cpu: $cpu, runs: $runs}' > ab.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ab-nuc-155h-leanxmss
           path: ab.json
