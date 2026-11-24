@@ -245,11 +245,12 @@ meta def omegaProof? (ty : Expr) : TacticM (Option Expr) := do
   catch _ => return none
 
 /-- `limbs`: for every `limbCount t` of the goal that `omega` shows word-sized (`t < 2 ^ 64`), the
-hypothesis `limbCount t = 1`, and the goal rewritten with it (products of limb counts folded).
+hypothesis `limbCount t = 1`, and the goal rewritten with it (as `rw [limbs_of_lt …]`).
 `limbs [hW]` (`hW : ∀ x, x ≤ B → limbCount x ≤ W`) also adds `limbCount t ≤ W` for each other
 `t` that `omega` shows at most `B`. -/
 syntax (name := limbsTac) "limbs" (" [" term "]")? : tactic
 
+/-- Elaborate `limbs`. -/
 @[tactic limbsTac] meta def evalLimbs : Tactic := fun stx ↦ withMainContext do
   let hW? ← if stx[1].isNone then pure none else some <$> elabTerm stx[1][1] none
   let tgt ← instantiateMVars (← getMainTarget)
@@ -267,12 +268,10 @@ syntax (name := limbsTac) "limbs" (" [" term "]")? : tactic
         if let some pf ← omegaProof? hty.bindingDomain! then
           (_, g) ← g.note `hlimbs (mkApp2 hW t pf)
   replaceMainGoal [g]
-  unless eqs.isEmpty do
-    let mut ls : Array (TSyntax ``Lean.Parser.Tactic.simpLemma) := #[]
-    for n in eqs ++ #[mkIdent ``Nat.one_mul, mkIdent ``Nat.mul_one, mkIdent ``max_self] do
-      ls := ls.push (← `(Lean.Parser.Tactic.simpLemma| $n:ident))
-    withMainContext do
-      evalTactic (← `(tactic| simp (config := { failIfUnchanged := false }) only [$ls,*]))
+  withMainContext do
+    for n in eqs do
+      evalTactic (← `(tactic| try rw [$n:ident]))
+    evalTactic (← `(tactic| try with_reducible rfl))
 
 end Meta
 

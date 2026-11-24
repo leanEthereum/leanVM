@@ -3,6 +3,7 @@ module
 public import LeanVM.Cost.Bounds.Basic
 public import LeanVM.Cost.Bounds.Sizes.Transcript
 public import LeanVM.Cost.Prices
+public import LeanVM.Cost.FastLib
 public meta import Lean.Elab.Tactic
 
 /-!
@@ -235,7 +236,7 @@ variable (P : MachineProgram) {κ β : Type} [Ord κ] [MachineEncoding κ] [Mach
 
 /-- The price recurrence of `searchIn` compiled to function `i`, its keys compared by `compareLex`
 (function `j`) with the closure `c`: its `costEq`'s right side. -/
-@[expose] def searchRec (i j c : ℕ) (t : Array (κ × β)) (k : κ) (lo hi : ℕ) : ℕ :=
+@[expose] noncomputable def searchRec (i j c : ℕ) (t : Array (κ × β)) (k : κ) (lo hi : ℕ) : ℕ :=
   (max (limbCount lo) (limbCount hi) +
       if lo < hi then
         ((max (limbCount (lo + hi)) (max (limbCount lo) (limbCount hi)) + limbCount (lo + hi) +
@@ -263,7 +264,7 @@ theorem searchIn_cost_of (i j c : ℕ) (t : Array (κ × β)) (k : κ) (H W C : 
     (hW : ∀ x, x ≤ 2 * H → limbCount x ≤ W) (hts : t.size ≤ H)
     (hEq : ∀ lo hi, machineCost P i [encodeValue t, encodeValue k, encodeValue lo, encodeValue hi] =
       searchRec P i j c t k lo hi)
-    (hcmp : ∀ x, machineCost P j [.closure c [], encodeValue x, encodeValue k] ≤ C) :
+    (hcmp : ∀ x : κ, machineCost P j [.closure c [], encodeValue x, encodeValue k] ≤ C) :
     ∀ lo hi, lo ≤ H → hi ≤ H →
       machineCost P i [encodeValue t, encodeValue k, encodeValue lo, encodeValue hi] ≤
         (C + 33 + 9 * W) * (Nat.log2 (hi - lo) + 2) := by
@@ -309,7 +310,7 @@ theorem searchIn_cost_of (i j c : ℕ) (t : Array (κ × β)) (k : κ) (H W C : 
 
 /-- The price recurrence of `mergeNewer` compiled to function `i` on a nonempty first list, its keys
 compared by `compareLex` (function `j`) with the closure `c`: its `costEq_cons`'s right side. -/
-@[expose] def mergeNewerRec (i j c : ℕ) (x : κ × β) (a b : List (κ × β)) : ℕ :=
+@[expose] noncomputable def mergeNewerRec (i j c : ℕ) (x : κ × β) (a b : List (κ × β)) : ℕ :=
   (List.casesOn (motive := fun _ ↦ ℕ) b 5 fun y b ↦
       machineCost P j [.closure c [], encodeValue x.1, encodeValue y.1] +
         Ordering.casesOn (motive := fun _ ↦ ℕ) (compare x.1 y.1)
@@ -323,7 +324,7 @@ theorem mergeNewer_cost_of (i j c : ℕ) (Q : κ → Prop) (C : ℕ)
     (hnil : ∀ b : List (κ × β), machineCost P i [encodeValue ([] : List (κ × β)), encodeValue b] ≤ 3)
     (hcons : ∀ x (a b : List (κ × β)),
       machineCost P i [encodeValue (x :: a), encodeValue b] = mergeNewerRec P i j c x a b)
-    (hcmp : ∀ x y, Q y → machineCost P j [.closure c [], encodeValue x, encodeValue y] ≤ C) :
+    (hcmp : ∀ x y : κ, Q y → machineCost P j [.closure c [], encodeValue x, encodeValue y] ≤ C) :
     ∀ (n : ℕ) (a b : List (κ × β)), a.length + b.length = n → (∀ e ∈ b, Q e.1) →
       machineCost P i [encodeValue a, encodeValue b] ≤ (C + 26) * n + 3 := by
   intro n
