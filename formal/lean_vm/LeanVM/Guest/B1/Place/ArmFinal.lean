@@ -16,6 +16,7 @@ public import LeanVM.Guest.B1.Whir.Sound
 public import LeanVM.Guest.B1.Place.LpE
 public import LeanVM.Guest.B1.Place.ArmNamedE
 public import LeanVM.Guest.B1.Place.Ls
+public import LeanVM.Guest.B1.Place.KindPre
 
 /-!
 # `open_stacked`, placed, every arm
@@ -62,12 +63,30 @@ def NamesOk (m : ℕ) : Prop :=
   ∀ r < ligNRates, ∀ j < (osCfg m).yrLevel,
     osSlowName (osCfgR m r) (osLvR m r j) ∉ osPosNames m ∧ osSlowName (osCfgR m r) (osLvR m r j) ∉ osResNames m
 
-set_option synthInstance.maxHeartbeats 400000 in
-set_option synthInstance.maxSize 2048 in
-instance (m : ℕ) : Decidable (NamesOk m) := by unfold NamesOk; infer_instance
+theorem osPosNames_hasPre {m : ℕ} {f : String} (h : f ∈ osPosNames m) : HasPre "level_positions__L" f := by
+  obtain ⟨_, -, h⟩ := List.mem_flatMap.mp h
+  obtain ⟨l, -, rfl⟩ := List.mem_map.mp h
+  exact osPositionsName_hasPre _
 
-set_option maxRecDepth 100000 in
-theorem namesOk_all : ∀ m < osArms, NamesOk m := by decide +kernel
+theorem osResNames_hasPre {m : ℕ} {f : String} (h : f ∈ osResNames m) : HasPre "level_residual__L" f := by
+  obtain ⟨l, -, rfl⟩ := List.mem_map.mp h
+  exact osResidualName_hasPre _
+
+/-- **Arm `m`'s callees' names**, at every `m`: their families start apart. -/
+theorem namesOk (m : ℕ) : NamesOk m := by
+  refine ⟨fun f hf hp ↦ ne_of_hasPre apart_pos_res (osPosNames_hasPre hp) (osResNames_hasPre hf) rfl,
+    fun f _ hk ↦ ?_, fun r _ j _ ↦
+      ⟨fun hp ↦ ne_of_hasPre apart_slow_pos (osSlowName_hasPre _ _) (osPosNames_hasPre hp) rfl,
+        fun hp ↦ ne_of_hasPre apart_slow_res (osSlowName_hasPre _ _) (osResNames_hasPre hp) rfl⟩⟩
+  rcases hk with hk | hk
+  · obtain ⟨K, hK⟩ := Option.isSome_iff_exists.mp hk
+    obtain ⟨h1, h2, -⟩ := osKindOf_pre hK
+    exact ⟨fun hp ↦ h1 (osPosNames_hasPre hp), fun hp ↦ h2 (osResNames_hasPre hp)⟩
+  · obtain ⟨e, he, rfl⟩ := List.mem_map.mp hk
+    exact ⟨fun hp ↦ ne_of_hasPre apart_pos_queries (osPosNames_hasPre hp) (lqTable_hasPre e he) rfl,
+      fun hp ↦ ne_of_hasPre apart_res_queries (osResNames_hasPre hp) (lqTable_hasPre e he) rfl⟩
+
+theorem namesOk_all : ∀ m < osArms, NamesOk m := fun m _ ↦ namesOk m
 
 theorem totalLeOn_mono {fs : String → ℕ} {f : String} {Pre Pre' : List E → Prop} {B : List E → ℕ}
     (h : TotalLeOn coreProgram fs f Pre B) (hp : ∀ a, Pre' a → Pre a) : TotalLeOn coreProgram fs f Pre' B :=
