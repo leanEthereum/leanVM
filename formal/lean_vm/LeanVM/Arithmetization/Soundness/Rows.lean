@@ -11,8 +11,8 @@ module
 public import LeanVM.Arithmetization.Completeness.Bus
 public import Statement.LeanIsa
 public import LeanVM.Facts.IsaWith
-public import Statement.Fast.QuadExt
-public import Statement.Fast.FieldWords
+public import FastFields.QuadExt
+public import FastFields.FieldWords
 
 @[expose] public section
 

@@ -10,8 +10,8 @@ module
 public import Statement.LeanVmVerifier
 public import LeanVM.Facts.Verifier
 public import Statement.Fast.Keccak
-public import Statement.Fast.QuadExt
-public import Statement.Fast.FieldWords
+public import FastFields.QuadExt
+public import FastFields.FieldWords
 
 /-!
 # The structure of the WHIR parameters

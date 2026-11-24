@@ -10,8 +10,8 @@ module
 public import Statement.LeanVmVerifier
 import LeanVM.Facts.Verifier
 import Statement.Fast.Keccak
-import Statement.Fast.QuadExt
-import Statement.Fast.FieldWords
+import FastFields.QuadExt
+import FastFields.FieldWords
 
 /-!
 # The verifier on its files

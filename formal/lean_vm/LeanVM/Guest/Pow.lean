@@ -49,7 +49,7 @@ theorem gpowW_eq {e : ℕ} (h : e < 2 ^ 20) : gpowW e = addressOfIndex e := by
 
 The kernel evaluates a product of `K` bit by bit, through `BitVec` and a well-founded fold.
 `mulN` is the product on the words of `K` as `ℕ`, by the loop of `BF64.mulShift`
-(`Statement.Fast.FieldWords`) on `ℕ` operations the kernel evaluates natively (`ofBits_mulN`), and
+(`FastFields.FieldWords`) on `ℕ` operations the kernel evaluates natively (`ofBits_mulN`), and
 `gpowN` is `gpowW` by it (`ofBits_gpowN`). -/
 
 /-- `2^64`. -/

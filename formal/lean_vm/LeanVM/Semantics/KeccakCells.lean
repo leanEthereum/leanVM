@@ -10,8 +10,8 @@ module
 public import LeanVM.Semantics.Lemmas
 public import Statement.LeanIsa
 public import LeanVM.Facts.IsaWith
-public import Statement.Fast.QuadExt
-public import Statement.Fast.FieldWords
+public import FastFields.QuadExt
+public import FastFields.FieldWords
 
 /-!
 # The cells of `KECCAK`

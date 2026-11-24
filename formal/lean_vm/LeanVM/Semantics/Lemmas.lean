@@ -8,8 +8,8 @@
 module
 
 public import Statement.LeanIsa
-public import Statement.Fast.QuadExt
-public import Statement.Fast.FieldWords
+public import FastFields.QuadExt
+public import FastFields.FieldWords
 public import LeanVM.Parameters.Isa
 
 /-!

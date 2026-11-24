@@ -13,8 +13,8 @@ import Statement.LeanVm
 import Common.Transfer
 import LeanVM.Facts.Verifier
 import Statement.Fast.Keccak
-import Statement.Fast.QuadExt
-import Statement.Fast.FieldWords
+import FastFields.QuadExt
+import FastFields.FieldWords
 import Common.Prob
 public import LeanVM.Protocol.WithHash
 import Common.ByteArray

@@ -9,10 +9,9 @@
 module
 
 public import LeanVM.Guest.Batch.Def
-public import Statement.Fast.Schemes
 public import Statement.Fast.Keccak
-public import Statement.Fast.QuadExt
-public import Statement.Fast.FieldWords
+public import FastFields.QuadExt
+public import FastFields.FieldWords
 public import LeanVM.Guest.WithHashBridge
 
 namespace LeanVM.Node

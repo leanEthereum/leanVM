@@ -13,6 +13,7 @@ import Common.SeedKey
 import Common.StaticSwap
 import Common.AdvBudget
 import Common.CostCombinators
+import Common.SequenceFin
 import Common.XmssCost
 import Common.SphincsCost
 import Common.WithHashBridge

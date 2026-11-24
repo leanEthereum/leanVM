@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Sig.Shapes
 public import Common.WithHash
 public import LeanVM.Guest.WithHashBridge
 public import LeanVM.Guest.WithHash
+import Common.SequenceFin
 
 /-!
 # leanXMSS over cells
@@ -65,7 +66,7 @@ theorem tweakableHash_cells (hq : XQ inst) {P : PublicParameter} {dom : HashDoma
 theorem sequenceFin_id {α : Type} : ∀ {n : Nat} (f : Fin n → Id α), sequenceFin f = f
   | 0, f => funext fun i => i.elim0
   | n + 1, f => by
-      simp only [sequenceFin]
+      simp only [Common.sequenceFin_succ]
       have := sequenceFin_id (fun i : Fin n => f i.succ)
       rw [this]
       funext i

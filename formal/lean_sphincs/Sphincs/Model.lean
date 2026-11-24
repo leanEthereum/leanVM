@@ -3,6 +3,7 @@ module
 public import FORS.Scheme.DigestView
 public import Statement.LeanSphincs
 public import Common.WithHash
+import Common.SequenceFin
 
 @[expose] public section
 
@@ -235,7 +236,7 @@ theorem simulateQ_sequenceFin {α : Type} {n : ℕ} (c : Fin n → OracleComp FO
   induction n with
   | zero => simp only [FORS.Concrete.sequenceFin, sequenceFin, sim_pure]
   | succ n ih =>
-    simp only [FORS.Concrete.sequenceFin, sequenceFin, sim_bind, sim_pure, ih]
+    simp only [FORS.Concrete.sequenceFin, Common.sequenceFin_succ, sim_bind, sim_pure, ih]
 
 /-! ## The maps of keys and signatures -/
 

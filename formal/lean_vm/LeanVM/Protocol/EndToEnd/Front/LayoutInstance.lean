@@ -14,8 +14,8 @@ import LeanVM.Protocol.LeanIsa.Read
 import LeanVM.Protocol.Verifier
 import LeanVM.Facts.Verifier
 import Statement.Fast.Keccak
-import Statement.Fast.QuadExt
-import Statement.Fast.FieldWords
+import FastFields.QuadExt
+import FastFields.FieldWords
 public import LeanVM.Protocol.LeanIsa
 public import LeanVM.Protocol.EndToEnd.Claims
 import LeanVM.Protocol.EndToEnd.Front.LayoutArith

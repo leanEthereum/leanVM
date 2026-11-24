@@ -12,8 +12,8 @@ public import LeanVM.Parameters.Field
 import LeanVM.Guest.Value.FieldBits
 public import Statement.LeanVmVerifier
 public import Statement.Fast.Keccak
-public import Statement.Fast.QuadExt
-public import Statement.Fast.FieldWords
+public import FastFields.QuadExt
+public import FastFields.FieldWords
 import CompPoly.Fields.Binary.BF64.Impl
 
 /-!

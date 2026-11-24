@@ -21,7 +21,7 @@ with `mulE` for `E`'s product, proved equal by induction and marked `@[csimp]` (
 `fast_copy_modules p₁ p₂ …` copies, callee-first, every definition of the modules whose name
 starts with one of the prefixes that multiplies in `E` or calls a definition that has or needs a
 copy, except a definition that already compiles as another (a `@[csimp]` lemma of
-`Statement/Fast/`); its callers wait for a recursive one's hand-written copy, so the copies are
+`Statement/Fast/` or `fast_fields`); its callers wait for a recursive one's hand-written copy, so the copies are
 written in rounds. `fast_copy_modules_final` copies them anyway, calling the definition itself;
 `fast_copy_modules_complete` fails instead, if one is left.
 -/
@@ -95,7 +95,7 @@ def copyDecl (c : Name) (force : Bool) : MetaM Bool := do
 already replaced by a `@[csimp]` lemma. -/
 def copyable (env : Environment) (c : Name) : Bool :=
   !c.isInternal && !isMatcherCore env c &&
-    -- One that already compiles as another (`@[csimp]`, `Statement/Fast/`) keeps that.
+    -- One that already compiles as another (`@[csimp]`, `Statement/Fast/`, `fast_fields`) keeps that.
     !(Compiler.CSimp.ext.getState env).map.contains c &&
     match env.find? c with
     | some (.defnInfo _) => true
