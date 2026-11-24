@@ -55,21 +55,17 @@ theorem cl_body : Fn.body fn% «claim_list_digest» =
     clHead ++ .ite (.n (val% «claim_list_digest» "s1#1")) cl23Zero cl23Else :: (clTail ++ [.ret [.n (val% «claim_list_digest» "s3#0"), .n (val% «claim_list_digest» "s3#0[1]")]]) := by
   rw [claim_list_digest_shape]; rfl
 
-set_option maxRecDepth 100000 in
 theorem cl23Zero_straight : cl23Zero.all Main.Stmt.straight = true := by decide +kernel
 
-set_option maxRecDepth 100000 in
 theorem cl23Else_straight : cl23Else.all Main.Stmt.straight = true := by decide +kernel
 
 theorem clHead_straight : clHead.all Main.Stmt.straight = true := rfl
 theorem clTail_straight : clTail.all Main.Stmt.straight = true := rfl
 
-set_option maxRecDepth 100000 in
 theorem cl23Zero_parts : cl23Zero.filterMap Main.Stmt.allocSz = [] ∧
     cl23Zero.filterMap Main.Stmt.addrS = [] ∧ cl23Zero.filterMap Main.Stmt.callS = [] ∧
     cl23Zero.filterMap B1.Stmt.loadS = [] := by decide +kernel
 
-set_option maxRecDepth 100000 in
 theorem cl23Else_parts : cl23Else.filterMap Main.Stmt.allocSz = [] ∧
     cl23Else.filterMap Main.Stmt.addrS = [] ∧
     cl23Else.filterMap Main.Stmt.callS =
@@ -92,22 +88,17 @@ noncomputable def chPost : List Stmt := chainFlat.drop (pos% «claim_list_chain�
 /-- The checks after the call of `claim_list_tail`: `bigs`, `groups`, `rest`, `list_split`'s identity and `n_g`. -/
 noncomputable def chChk : List Stmt := chPost.dropLast.dropLast
 
-set_option maxRecDepth 100000 in
 theorem chainFlat_split : chainFlat = chP1 ++ clDispS :: chPost :=
   stmtsEqb_sound (by decide +kernel)
 
-set_option maxRecDepth 100000 in
 theorem chPost_eq :
     chPost = chChk ++ [.atom (.copy (.n (val% «claim_list_chain» "s13#0")) (.n (val% «claim_list_chain» "d0"))), .atom (.copy (.n (val% «claim_list_chain» "s13#0[1]")) (.n (val% «claim_list_chain» "d1")))] :=
   stmtsEqb_sound (by decide +kernel)
 
-set_option maxRecDepth 100000 in
 theorem chChk_atoms : chChk.all isAtomS = true := by decide +kernel
 
-set_option maxRecDepth 100000 in
 theorem chPost_straight : chPost.all Main.Stmt.straight = true := by decide +kernel
 
-set_option maxRecDepth 100000 in
 theorem chPost_parts : chPost.filterMap Main.Stmt.allocSz = [] ∧ chPost.filterMap Main.Stmt.addrS = [] ∧
     chPost.filterMap Main.Stmt.callS = [] ∧ chPost.filterMap B1.Stmt.loadS = [] := by
   decide +kernel
@@ -116,26 +107,20 @@ theorem chain_body : Fn.body fn% «claim_list_chain» =
     chP1 ++ clDispS :: (chPost ++ [.ret [.n (val% «claim_list_chain» "s13#0"), .n (val% «claim_list_chain» "s13#0[1]")]]) := by
   rw [claim_list_chain_shape, chainFlat_split]; simp
 
-set_option maxRecDepth 100000 in
 theorem chP1_straight : chP1.all Main.Stmt.straight = true := by decide +kernel
 
-set_option maxRecDepth 100000 in
 theorem chP1_allocs : chP1.filterMap Main.Stmt.allocSz = [(.n (val% «claim_list_chain» "chain"), .inr (.n (val% «claim_list_chain» "chain~7")))] := by decide +kernel
 
-set_option maxRecDepth 100000 in
 theorem chP1_addrs : chP1.filterMap Main.Stmt.addrS = [] := by decide +kernel
 
-set_option maxRecDepth 100000 in
 theorem chP1_calls : chP1.filterMap Main.Stmt.callS =
     [(some (.n (val% «claim_list_chain» "s2#1")), name% «claim_list_chain_loop0», [.n (val% «claim_list_chain» "s2#2"), .n (val% «claim_list_chain» "bigs"), .n (val% «claim_list_chain» "chain"), .n (val% «claim_list_chain» "entries_ptr")], []),
       (some (.n (val% «claim_list_chain» "s5#1")), name% «claim_list_chain_loop1», [.n (val% «claim_list_chain» "s5#2"), .n (val% «claim_list_chain» "groups"), .n (val% «claim_list_chain» "mid"), .n (val% «claim_list_chain» "mid_entries")],
           [])] := by decide +kernel
 
-set_option maxRecDepth 100000 in
 theorem chP1_loads : chP1.filterMap B1.Stmt.loadS = (List.range 13).map fun c => (.n (val% «claim_list_chain» "chain"), c) := by
   decide +kernel
 
-set_option maxRecDepth 100000 in
 theorem chP1_kinds : chP1.all (fun s => isAtomS s || stmtEqb s clBigS || stmtEqb s clGrpS) = true := by
   decide +kernel
 
@@ -153,7 +138,6 @@ noncomputable def clzσ (rd : Reader) (entries : E) : Val :=
 
 variable {rd : Reader}
 
-set_option maxRecDepth 20000 in
 /-- **The empty list's valuation**: its atoms hold on a memory defined below `2^20`, where its check of `n_g = 1`
 reads; it returns the empty string's digest. -/
 theorem clz_core (entries : E) (hlow : LowDef 20 rd) :
@@ -246,19 +230,16 @@ structure ChVals (rd : Reader) (σ : Val) (entries : E) (n : ℕ) (chain : E) (D
   v87 : σ (.n (val% «claim_list_chain» "s13#0")) = (digestHalves D).1
   v88 : σ (.n (val% «claim_list_chain» "s13#0[1]")) = (digestHalves D).2
 
-set_option maxRecDepth 100000 in
 theorem ch_size_atoms : ∀ a ∈ [Atom.mul (.n (val% «claim_list_chain» "chain~0")) (.n (val% «claim_list_chain» "bigs")) (.n (val% «claim_list_chain» "groups")), .const (.n (val% «claim_list_chain» "chain~1")) (word 2 0),
     .mul (.n (val% «claim_list_chain» "chain~2")) (.n (val% «claim_list_chain» "chain~0")) (.n (val% «claim_list_chain» "chain~1")), .mul (.n (val% «claim_list_chain» "chain~3")) (.n (val% «claim_list_chain» "chain~2")) (.n (val% «claim_list_chain» "chain~2")), .mul (.n (val% «claim_list_chain» "chain~4")) (.n (val% «claim_list_chain» "chain~3")) (.n (val% «claim_list_chain» "chain~2")),
     .mul (.n (val% «claim_list_chain» "chain~5")) (.n (val% «claim_list_chain» "chain~4")) (.n (val% «claim_list_chain» "chain~4")), .mul (.n (val% «claim_list_chain» "chain~6")) (.n (val% «claim_list_chain» "chain~5")) (.n (val% «claim_list_chain» "chain~5")), .mul (.n (val% «claim_list_chain» "chain~7")) (.n (val% «claim_list_chain» "chain~6")) (.n (val% «claim_list_chain» "chain~2"))],
     a ∈ atomsIn chainFlat := by
   decide +kernel
 
-set_option maxRecDepth 20000 in
 /-- `claim_list_chain`'s check of `list_split`'s identity, over its products: `n_g = rest · bigs^136 · groups^17`. -/
 theorem ch_id_ok : mono2Is ((atomsIn chainFlat).filter pureB) (.n (val% «claim_list_chain» "s11#14")) (.n (val% «claim_list_chain» "rest")) (.n (val% «claim_list_chain» "bigs")) 136 (.n (val% «claim_list_chain» "groups")) 17 = true := by
   decide +kernel
 
-set_option maxRecDepth 20000 in
 /-- **`claim_list_chain`'s valuation**: on a memory holding the zero state at the chain buffer and defined below
 `2^23`, where its checks of `g^a`, `g^b`, `g^c` and `g^n`, `n < 2^23`, read. -/
 theorem chain_core {entries chain : E} {n : ℕ} (D : Digest) (hz0 : StateAt rd chain 0 zeroState)
@@ -433,18 +414,15 @@ theorem clNames_get {r : ℕ} (hr : r < 17) : clNames[r]! = clNames.getD r "" :=
   have h : r < clNames.length := by simp [clNames]; omega
   rw [getElem!_pos clNames r h, List.getD_eq_getElem _ _ h]
 
-set_option maxRecDepth 100000 in
 theorem big_pure : coreProgram.PureIn [name% «claim_list_chain_loop0»] :=
   pure_one (find_of_idx big_idx) (by decide +kernel)
 
-set_option maxRecDepth 100000 in
 theorem grp_pure : coreProgram.PureIn [name% «claim_list_chain_loop1»] :=
   pure_one (find_of_idx grp_idx) (by decide +kernel)
 
 theorem one_add_gen_ne {a : ℕ} (ha : a < 2 ^ 64 - 1) : ((1 : E) + gen ^ a ≠ 0) ↔ a ≠ 0 := by
   rw [Ne, e_add_eq_zero_iff, eq_comm, gen_pow_eq_one_iff ha]
 
-set_option maxRecDepth 100000 in
 theorem cl23Zero_atoms : cl23Zero.all isAtomS = true := by decide +kernel
 
 theorem slOk_atomS {rd : Reader} {σ : Val} {s : Stmt} (hs : isAtomS s = true)
@@ -501,7 +479,6 @@ def clTs (n : ℕ) : List (Tree → Prop) := [fun _ => True, chHonest n]
 
 /-! ## `claim_list_chain`, placed -/
 
-set_option maxRecDepth 20000 in
 /-- **`claim_list_chain` is complete, placed, by a tree of honest shape**: `0 < n < 136 · 2^20` claims' cells at
 `g^eP` among the caller's words, its chain buffer after its frame holding the states after each frame; it returns
 their digest's cells. -/
@@ -721,7 +698,6 @@ theorem cl23Else_eq : cl23Else = [clSplitS, clChainS, .atom (.copy (.n (val% «c
   simp only [clBrOk, Bool.and_eq_true] at hb1
   exact stmtsEqb_sound hb1.1.1.1.1
 
-set_option maxRecDepth 20000 in
 /-- **`claim_list_digest` is complete, placed, by a tree of honest shape**: `n < 136 · 2^20` claims' cells at `g^eP`
 among the caller's words; it returns their digest's cells. -/
 theorem claim_list_digest_completeAtT (fs : String → ℕ) (cert : String → V → ℕ) {Lin : Main.Layout}

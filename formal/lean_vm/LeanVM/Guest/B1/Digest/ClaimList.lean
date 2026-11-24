@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Digest.ClaimList
 
-  B1 for `claim_list_digest` (TRIAGE #88) and `claim_list_chain`: the digest of a declared claim
+  B1 for `claim_list_digest` and `claim_list_chain`: the digest of a declared claim
   list, hashed 136 claims a loop frame, then seventeen, through a heap chain of sponge states.
 -/
 
@@ -45,12 +45,11 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 /-! ## `claim_list_last__L{k}` -/
 
-set_option maxRecDepth 100000 in
 theorem cl_all : ∀ k < 17, clOk k (coreProgram.getD (idx% «claim_list_last__L0» + k) default) =
     true := by
-  decide +kernel
+  intro k hk
+  interval_cases k <;> decide +kernel
 
-set_option maxRecDepth 100000 in
 theorem cl_idx : ∀ k < 17, coreProgram.indexOf? (clNames.getD k "") = some
     (idx% «claim_list_last__L0» + k) :=
   coreProgram_indexOf?_run (by decide +kernel)
@@ -161,7 +160,6 @@ theorem grp_step {rd : Reader} {f : String} {j m c0 st0 ep nb : ℕ}
   refine ⟨(grpSpec m c0 st0 (loopAtoms (coreProgram.getD j default))).vals σ,
     by simp [ChainSpec.vals, grpSpec], by rwa [← hE], by rwa [← h9]⟩
 
-set_option maxRecDepth 100000 in
 theorem big_nb : (grpSpec 136 21 565 (loopAtoms (coreProgram.getD idx% «claim_list_chain_loop0»
     default))).nb = 64 := by
   decide +kernel
@@ -169,7 +167,6 @@ theorem big_nb : (grpSpec 136 21 565 (loopAtoms (coreProgram.getD idx% «claim_l
 -- The big frame loop `claim_list_chain_loop0` (136 claims, 64 blocks): its head here, its sixteen
 -- windows in
 -- `ClaimListBig{q}`.
-set_option maxRecDepth 100000 in
 theorem big_head : grpHead (coreProgram.getD idx% «claim_list_chain_loop0» default)
     name% «claim_list_chain_loop0» 136 21 565 20 = true := by
   decide +kernel
@@ -186,24 +183,20 @@ theorem big_ok : grpOk (coreProgram.getD idx% «claim_list_chain_loop0» default
     (fun i hi => ChainSpec.blocksOk_of_from (hw i hi).1) (by norm_num)
     (fun i hi => loadsWin_of_from (hw i hi).2)
 
-set_option maxRecDepth 100000 in
 theorem big_idx : coreProgram.indexOf? name% «claim_list_chain_loop0» = some
     idx% «claim_list_chain_loop0» :=
   coreProgram_indexOf?_at (j := idx% «claim_list_chain_loop0») rfl
 
 
 -- The group frame loop `claim_list_chain_loop1` (17 claims, 8 blocks).
-set_option maxRecDepth 100000 in
 theorem grp_ok : grpOk (coreProgram.getD idx% «claim_list_chain_loop1» default)
     name% «claim_list_chain_loop1» 17 18 86 17 = true := by
   decide +kernel
 
-set_option maxRecDepth 100000 in
 theorem grp_idx : coreProgram.indexOf? name% «claim_list_chain_loop1» = some
     idx% «claim_list_chain_loop1» :=
   coreProgram_indexOf?_at (j := idx% «claim_list_chain_loop1») rfl
 
-set_option maxRecDepth 100000 in
 theorem grp_nb : (grpSpec 17 18 86 (loopAtoms (coreProgram.getD idx% «claim_list_chain_loop1»
     default))).nb = 8 := by
   decide +kernel
@@ -289,7 +282,6 @@ theorem find_claim_list_chain : coreProgram.find? "claim_list_chain" = some fn% 
 /-- `claim_list_chain`'s body before its `ret`. -/
 noncomputable def chainFlat : List Stmt := (Fn.body fn% «claim_list_chain»).dropLast
 
-set_option maxRecDepth 100000 in
 theorem claim_list_chain_shape : Fn.body fn% «claim_list_chain» = chainFlat ++ [.ret [.n (val% «claim_list_chain» "s13#0"),
     .n (val% «claim_list_chain» "s13#0[1]")]] :=
   stmtsEqb_sound (by decide +kernel)
@@ -319,7 +311,6 @@ noncomputable def chainBodyOk : Bool :=
   (atomsIn chainFlat).any (isCopyAt (.n (val% «claim_list_chain» "s13#0")) (.n (val% «claim_list_chain» "d0"))) &&
   (atomsIn chainFlat).any (isCopyAt (.n (val% «claim_list_chain» "s13#0[1]")) (.n (val% «claim_list_chain» "d1")))
 
-set_option maxRecDepth 100000 in
 theorem chainBody_ok : chainBodyOk = true := by decide +kernel
 
 /-- **`claim_list_chain`**: on `bigs = g^a`, `groups = g^b`, `rest = g^c`, `c < 17`, the digest of the
@@ -415,7 +406,6 @@ noncomputable def cl23Else : List Stmt := match Fn.body fn% «claim_list_digest�
   | [_, _, .ite _ _ n, _, _, _, _] => n
   | _ => []
 
-set_option maxRecDepth 100000 in
 theorem claim_list_digest_shape : Fn.body fn% «claim_list_digest» =
     [.atom (.const (.n (val% «claim_list_digest» "s1#0")) (word 1 0)), .atom (.add (.n (val% «claim_list_digest» "s1#1")) (.n (val% «claim_list_digest» "n_g")) (.n (val% «claim_list_digest» "s1#0"))),
      .ite (.n (val% «claim_list_digest» "s1#1")) cl23Zero cl23Else, .atom (.touch (.n (val% «claim_list_digest» "s2#0")) (.n (val% «claim_list_digest» "n_g"))), .atom (.copy (.n (val% «claim_list_digest» "s3#0")) (.n (val% «claim_list_digest» "digest[0]"))),
@@ -439,10 +429,8 @@ noncomputable def ceOk : Bool :=
   (atomsIn cl23Else).any (isCopyAt (.n (val% «claim_list_digest» "digest[0]")) (.n (val% «claim_list_digest» "d0"))) &&
   (atomsIn cl23Else).any (isCopyAt (.n (val% «claim_list_digest» "digest[1]")) (.n (val% «claim_list_digest» "d1")))
 
-set_option maxRecDepth 100000 in
 theorem cz_ok : czOk = true := by decide +kernel
 
-set_option maxRecDepth 100000 in
 theorem ce_ok : ceOk = true := by decide +kernel
 
 /-- **`claim_list_digest` computes the digest of the claims.** -/
