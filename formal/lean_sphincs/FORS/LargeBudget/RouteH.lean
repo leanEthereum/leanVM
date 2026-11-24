@@ -205,6 +205,76 @@ theorem signerReadsGood_large (parameterOutput : HashOutput) (highs : Coordinate
         Or.inr (hmsg _ ⟨parameter', root, message, randomness, call, rfl⟩).1⟩,
     h.trialParse, h.searched⟩
 
+/-- **One sample from the rest of the game**: the stopped win of one prepared sample is at most any
+bound `X` on a hit or a FORS cover in the rest of the honest game after key generation. -/
+theorem sample_le_of_rest (hb : 0 < keptHeight topLayer) (adversary : Adversary) (q : ℕ) (hq : q < 2 ^ 256)
+    (parameterOutput : HashOutput) (fixed : HiddenGraph.Table) (highs : CoordinateHighs)
+    (remaining : RemainingOutputs) (steps : Message → Randomness)
+    (prepared : (OtsKey → Option (Counter × Encoding)) × QueryCache HashSpec)
+    (hprepared : prepared ∈ support (preparation parameterOutput fixed highs remaining))
+    (tg : Targeting HashInput HashOutput Coordinate)
+    (hhit : ∀ table, tableExtending (knownOf (truncateHash parameterOutput) fixed) table = table →
+      ∀ s : State, Prepared prepared.2 s → Agrees s.known table →
+        (CorrectGuess table s ∨
+          CacheMatch.Bad (digestFreeTargets parameterOutput fixed highs remaining table prepared.1) s.cache) →
+        Hit tg prepared.2 table s)
+    (X : ℝ≥0∞)
+    (hrest : keygenCost ≤ q →
+      Pr{let r ← (interp tg prepared.2 (sampleModel parameterOutput highs)
+          (advProgH (truncateHash parameterOutput) (sampleData parameterOutput fixed highs remaining steps)
+            ((internalize adversary).main
+              ⟨(sampleData parameterOutput fixed highs remaining steps).root, truncateHash parameterOutput⟩) [])
+          (q - keygenCost) (DebtState.start prepared.2 (knownOf (truncateHash parameterOutput) fixed)) >>=
+            fun result => (fun table => (table, result)) <$> completion result.2.known)}[Hit tg prepared.2 r.1 r.2.2 ∨
+        CoverOf (truncateHash parameterOutput) (sampleData parameterOutput fixed highs remaining steps) r.2] ≤ X) :
+    Pr{let x ← (HiddenOutside.stoppedExperiment (sampleModel parameterOutput highs)
+        (erase (trace (richProgramH (internalize adversary) q (truncateHash parameterOutput)
+          (sampleData parameterOutput fixed highs remaining steps))))
+        (knownOf (truncateHash parameterOutput) fixed) prepared.2)}[(HiddenReveal.StopOr RichWin) x] ≤ X := by
+  set param := truncateHash parameterOutput with hparam
+  set data := sampleData parameterOutput fixed highs remaining steps with hdata
+  set known := knownOf param fixed with hknown
+  set model := sampleModel parameterOutput highs with hmodel
+  set start : State := DebtState.start prepared.2 known with hstart
+  refine le_trans (stopped_le_interp hb adversary q hq parameterOutput fixed highs remaining steps prepared hprepared tg) ?_
+  -- a correct guess or a bad cache is a decided hit
+  refine le_trans (prEvent_mono_of_support _ _ (fun r => Hit tg prepared.2 r.1 r.2.2 ∨ CoverOf param data r.2)
+    fun x hx hp => ?_) ?_
+  · rw [mem_support_bind_iff] at hx
+    obtain ⟨out, hout, hx⟩ := hx
+    rw [support_map] at hx
+    obtain ⟨table, htab, rfl⟩ := hx
+    have hext := interp_extends tg prepared.2 model _ q start out hout
+    have hag : Agrees out.2.known table := by
+      unfold completion at htab
+      rw [support_map] at htab
+      obtain ⟨t, _, rfl⟩ := htab
+      exact fun c v hc => completion_known _ c v hc t
+    have hag0 : Agrees known table := fun c v hc => hag c v (hext.2.1 c v hc)
+    rcases hp with hg | hbad | ⟨outcome, hres, hfc⟩
+    · exact Or.inl (hhit table ((agrees_iff_extending known table).1 hag0) out.2
+        (fun i o hi => hext.1 i o hi) hag (Or.inl hg))
+    · exact Or.inl (hhit table ((agrees_iff_extending known table).1 hag0) out.2
+        (fun i o hi => hext.1 i o hi) hag (Or.inr hbad))
+    · exact Or.inr ⟨outcome, hres, hfc⟩
+  -- the keygen tick
+  unfold costGameXH
+  by_cases hK : keygenCost ≤ q
+  · rw [interp_tick_bind tg prepared.2 model _ _ q start hK, bind_map_left]
+    refine le_trans (le_of_eq ?_) (hrest hK)
+    rw [OracleComp.prEvent_bind_eq_tsum, OracleComp.prEvent_bind_eq_tsum]
+    refine tsum_congr fun out => ?_
+    rw [prEvent_map, prEvent_map]
+    rfl
+  · rw [interp_tick_bind_abort tg prepared.2 model _ _ q start hK, pure_bind]
+    refine le_of_eq_of_le (prEvent_eq_zero_of_forall_mem_support _ _ fun x hx hp => ?_) bot_le
+    rw [support_map] at hx
+    obtain ⟨table, _, rfl⟩ := hx
+    rcases hp with hh | ⟨outcome, hres, _⟩
+    · exact not_hit_start tg prepared.2 known table hh
+    · cases hres
+
+
 /-- **One sample, weighted baseline**, the signer honest. -/
 theorem sample_boundW (hb : 0 < keptHeight topLayer) (adversary : Adversary) (hnr : adversary.NoRepeat) (q : ℕ)
     (hq : q < 2 ^ 256)
@@ -238,54 +308,17 @@ theorem sample_boundW (hb : 0 < keptHeight topLayer) (adversary : Adversary) (hn
         (q - keygenCost) + failMass Fail) + signatureLimit * failMass Fail) + lam Lmax 0 (q - keygenCost) := by
   set param := truncateHash parameterOutput with hparam
   set data := sampleData parameterOutput fixed highs remaining steps with hdata
-  set known := knownOf param fixed with hknown
   set model := sampleModel parameterOutput highs with hmodel
-  set start : State := DebtState.start prepared.2 known with hstart
   have hparse : ∀ p call, model.parse (pblk param data p call) = none := fun p call =>
     hcompat.digestParse _ (hmsg _ (msgInput_digestInput param data.root p.1 p.2 call)).2
-  refine le_trans (stopped_le_interp hb adversary q hq parameterOutput fixed highs remaining steps prepared hprepared tg) ?_
-  -- a correct guess or a bad cache is a decided hit
-  refine le_trans (prEvent_mono_of_support _ _ (fun r => Hit tg prepared.2 r.1 r.2.2 ∨ CoverOf param data r.2)
-    fun x hx hp => ?_) ?_
-  · rw [mem_support_bind_iff] at hx
-    obtain ⟨out, hout, hx⟩ := hx
-    rw [support_map] at hx
-    obtain ⟨table, htab, rfl⟩ := hx
-    have hext := interp_extends tg prepared.2 model _ q start out hout
-    have hag : Agrees out.2.known table := by
-      unfold completion at htab
-      rw [support_map] at htab
-      obtain ⟨t, _, rfl⟩ := htab
-      exact fun c v hc => completion_known _ c v hc t
-    have hag0 : Agrees known table := fun c v hc => hag c v (hext.2.1 c v hc)
-    rcases hp with hg | hbad | ⟨outcome, hres, hfc⟩
-    · exact Or.inl (hhit table ((agrees_iff_extending known table).1 hag0) out.2
-        (fun i o hi => hext.1 i o hi) hag (Or.inl hg))
-    · exact Or.inl (hhit table ((agrees_iff_extending known table).1 hag0) out.2
-        (fun i o hi => hext.1 i o hi) hag (Or.inr hbad))
-    · exact Or.inr ⟨outcome, hres, hfc⟩
-  -- the keygen tick
-  unfold costGameXH
-  by_cases hK : keygenCost ≤ q
-  · rw [interp_tick_bind tg prepared.2 model _ _ q start hK, bind_map_left]
-    refine le_trans (le_of_eq ?_) (rest_boundW param data wbar Fail tg prepared.2 model hcompat htrunc hparse
+  exact sample_le_of_rest hb adversary q hq parameterOutput fixed highs remaining steps prepared hprepared tg hhit _
+    fun _ => rest_boundW param data wbar Fail tg prepared.2 model hcompat htrunc hparse
       (fun p call => (hmsg _ (msgInput_digestInput param data.root p.1 p.2 call)).1)
       (fun p call => (hmsg _ (msgInput_digestInput param data.root p.1 p.2 call)).2)
       (fun p call => hclean _ (msgInput_digestInput param data.root p.1 p.2 call)) hfail (q - keygenCost) htotal Lmax hfair
       (signerReadsGood_large parameterOutput highs prepared tg hmsg fixed remaining steps hprepared)
       ((internalize adversary).main ⟨data.root, param⟩)
-      (noRepeat_internalize_adversary adversary hnr _) known)
-    rw [OracleComp.prEvent_bind_eq_tsum, OracleComp.prEvent_bind_eq_tsum]
-    refine tsum_congr fun out => ?_
-    rw [prEvent_map, prEvent_map]
-    rfl
-  · rw [interp_tick_bind_abort tg prepared.2 model _ _ q start hK, pure_bind]
-    refine le_of_eq_of_le (prEvent_eq_zero_of_forall_mem_support _ _ fun x hx hp => ?_) bot_le
-    rw [support_map] at hx
-    obtain ⟨table, _, rfl⟩ := hx
-    rcases hp with hh | ⟨outcome, hres, _⟩
-    · exact not_hit_start tg prepared.2 known table hh
-    · cases hres
+      (noRepeat_internalize_adversary adversary hnr _) (knownOf param fixed)
 
 /-- **Large budgets from the honest seed-free win, weighted baseline.** The seed-free win is at most the
 weighted saturation budget, `q - keygenCost` times the one-coin excess forecast at the baseline
