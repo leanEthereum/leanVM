@@ -14,9 +14,6 @@ namespace XmssSecurity
 
 set_option maxRecDepth 100000
 
-noncomputable local instance precomputedRandomnessSampleable : SampleableType Randomness :=
-  SampleableType.ofFintype Randomness
-
 noncomputable def Concrete.precomputedSignBoundedAttemptsContinuation
     (attempts trial : Nat) (secretKey : SecretKey) (leafIndex : LeafIndex) (message : Message)
     (base : Randomness) (result : Option Signature × QueryCache HashSpec) :

@@ -51,30 +51,12 @@ def uniformForwardImpl : QueryImpl unifSpec (OracleComp (World Index)) :=
 def liftProbComp (computation : ProbComp α) : OracleComp (World Index) α :=
   simulateQ uniformForwardImpl computation
 
-def IsSpecialQuery : (World Index).Domain → Prop
-  | .uniform _ => False
-  | _ => True
-
 def IsHazardQuery : (World Index).Domain → Prop
   | .encodingQuery _ => True
   | .probe _ _ => True
   | _ => False
 
-noncomputable instance (input : Query Index) :
-    Fintype ((World Index).Range input) := by
-  cases input <;> infer_instance
-
-noncomputable instance (input : Query Index) :
-    Inhabited ((World Index).Range input) := by
-  cases input <;> infer_instance
-
-noncomputable instance : DecidablePred (IsSpecialQuery (Index := Index)) :=
-  Classical.decPred _
-
 noncomputable instance : DecidablePred (IsHazardQuery (Index := Index)) :=
   Classical.decPred _
-
-noncomputable instance : UniformAnswerMeasure (World Index) :=
-  UniformAnswerMeasure.ofFiniteNonempty _
 
 end XmssSecurity.FirstLaneOracleSimulation

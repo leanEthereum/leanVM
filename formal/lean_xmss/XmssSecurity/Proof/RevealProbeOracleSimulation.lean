@@ -79,21 +79,10 @@ def liftProbComp (computation : ProbComp α) :
     OracleComp (World Index) α :=
   simulateQ uniformForwardImpl computation
 
-def IsSpecialQuery : (World Index).Domain → Prop
-  | .uniform _ => False
-  | .probe _ _ => True
-  | .reveal _ => True
-
 def IsProbeQuery : (World Index).Domain → Prop
   | .uniform _ => False
   | .probe _ _ => True
   | .reveal _ => False
-
-noncomputable instance : DecidablePred (IsSpecialQuery (Index := Index)) :=
-  fun input => match input with
-  | .uniform _ => isFalse (by simp [IsSpecialQuery])
-  | .probe _ _ => isTrue (by simp [IsSpecialQuery])
-  | .reveal _ => isTrue (by simp [IsSpecialQuery])
 
 noncomputable instance : DecidablePred (IsProbeQuery (Index := Index)) :=
   fun input => match input with
@@ -413,7 +402,6 @@ theorem evalDist_uniformTable_eq_bind_update
       simpa only [bind_assoc, pure_bind] using
         (evalDistEq_uniformSample_bind_update index continuation).symm
     _ = _ := by simp [bind_assoc]
-
 
 set_option maxRecDepth 100000 in
 def observedProbeCount : ActionTrace Index → Nat

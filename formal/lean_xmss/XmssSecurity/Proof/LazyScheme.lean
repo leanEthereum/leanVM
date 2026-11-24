@@ -20,9 +20,6 @@ def SecretKey.withoutPrecomputation
 
 namespace Concrete
 
-noncomputable local instance : SampleableType (LeafIndex → ChainIndex → Digest) :=
-  SampleableType.ofFintype (LeafIndex → ChainIndex → Digest)
-
 noncomputable def keygen : OracleComp OracleWorld (PublicKey × SecretKey) := do
   let parameter ← liftM samplePublicParameter
   let secret ← liftM sampleSecret
@@ -77,14 +74,6 @@ noncomputable def signAttempt {m : Type → Type} [Monad m] [HasQuery HashSpec m
   match TargetSum.decodeDigest digest with
   | none => pure none
   | some encoding => some <$> signWithEncoding secretKey leafIndex randomness encoding
-
-noncomputable def sign (secretKey : SecretKey)
-    (leafIndex : LeafIndex) (message : Message) : OracleComp OracleWorld (Option Signature) := do
-  let randomness ← liftM signingRandomness
-  liftM (signAttempt secretKey leafIndex message randomness :
-    OracleComp HashSpec (Option Signature))
-
-attribute [irreducible] sign
 
 noncomputable def signBoundedAttempts (secretKey : SecretKey) (leafIndex : LeafIndex)
     (message : Message) (base : Randomness) : Nat → Nat → OracleComp OracleWorld (Option Signature)

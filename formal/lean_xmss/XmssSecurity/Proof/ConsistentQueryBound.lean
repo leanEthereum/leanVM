@@ -106,36 +106,10 @@ theorem countHashQueries_forget {α : Type} (computation : OracleComp OracleWorl
     Prod.fst <$> countHashQueries computation = computation :=
   QueryCounting.counted_forget _ computation
 
-theorem countHashQueries_run_forget {α : Type} (computation : OracleComp OracleWorld α)
-    (cache : QueryCache HashSpec) :
-    (fun result => (result.1.1, result.2)) <$>
-      (simulateQ romImpl (countHashQueries computation)).run cache =
-        (simulateQ romImpl computation).run cache := by
-  have h := congrArg (fun c : OracleComp OracleWorld α => (simulateQ romImpl c).run cache)
-    (countHashQueries_forget computation)
-  simpa only [simulateQ_map, StateT.run_map] using h
-
 theorem HashQueryBound.mono {α : Type} {computation : OracleComp OracleWorld α}
     {cache : QueryCache HashSpec} {q r : Nat} (hbound : HashQueryBound computation cache q)
     (hle : q ≤ r) : HashQueryBound computation cache r :=
   fun result hr => (hbound result hr).trans hle
-
-theorem hashQueryBound_bind_run {α β : Type} (first : OracleComp OracleWorld α)
-    (next : α → OracleComp OracleWorld β) (cache : QueryCache HashSpec) (q : Nat)
-    (hbound : HashQueryBound (first >>= next) cache q) (result : α × QueryCache HashSpec)
-    (hr : result ∈ support ((simulateQ romImpl first).run cache)) :
-    ∃ cost, cost ≤ q ∧ HashQueryBound (next result.1) result.2 (q - cost) := by
-  rw [← countHashQueries_run_forget first cache, support_map] at hr
-  obtain ⟨record, hrecord, rfl⟩ := hr
-  exact ⟨record.1.2, hashQueryBound_bind first next cache q hbound record hrecord⟩
-
-theorem hashQueryBound_bind_right {α β : Type} (first : OracleComp OracleWorld α)
-    (next : α → OracleComp OracleWorld β) (cache : QueryCache HashSpec) (q : Nat)
-    (hbound : HashQueryBound (first >>= next) cache q) (result : α × QueryCache HashSpec)
-    (hr : result ∈ support ((simulateQ romImpl first).run cache)) :
-    HashQueryBound (next result.1) result.2 q := by
-  obtain ⟨cost, _, hnext⟩ := hashQueryBound_bind_run first next cache q hbound result hr
-  exact hnext.mono (Nat.sub_le _ _)
 
 theorem hashQueryBound_query_bind {α : Type} (input : OracleWorld.Domain)
     (next : OracleWorld.Range input → OracleComp OracleWorld α) (cache : QueryCache HashSpec) (q : Nat)

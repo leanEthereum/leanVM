@@ -35,9 +35,6 @@ theorem uniform_truncate_probability (target : Digest) :
 
 open OracleSpec
 
-noncomputable local instance : UniformAnswerMeasure HashSpec :=
-  UniformAnswerMeasure.ofFiniteNonempty _
-
 /-- Each fresh query may select its own target digest without adding an index-set loss. The outputs
 are `HashOutput`s, not `HashSpec.Range input`: a witness read off another input's cache entry then
 checks without the kernel comparing the two inputs. -/

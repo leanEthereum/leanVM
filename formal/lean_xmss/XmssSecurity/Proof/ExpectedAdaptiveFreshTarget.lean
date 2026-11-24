@@ -12,9 +12,6 @@ namespace XmssSecurity.Rom
 
 open OracleSpec
 
-noncomputable local instance : UniformAnswerMeasure HashSpec :=
-  UniformAnswerMeasure.ofFiniteNonempty _
-
 def IsRelevantHashQuery (relevant : HashInput → Prop) : OracleWorld.Domain → Prop
   | .inr input => relevant input
   | .inl _ => False

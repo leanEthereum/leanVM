@@ -8,9 +8,6 @@ namespace XmssSecurity
 
 abbrev FullChainTrajectory := Vector Digest (chainLength - 1 + 1)
 
-noncomputable def allLeafIndices : List LeafIndex :=
-  Finset.univ.toList
-
 /-- Every one-time key of both layers, in a fixed order. -/
 noncomputable def allChainKeys : List ChainKey :=
   Finset.univ.toList
@@ -24,6 +21,6 @@ theorem mem_allChainKeys (key : ChainKey) : key ∈ allChainKeys := by
 theorem allChainKeys_length : allChainKeys.length = Fintype.card ChainKey := by
   simp [allChainKeys]
 
-attribute [irreducible] allLeafIndices allChainKeys
+attribute [irreducible] allChainKeys
 
 end XmssSecurity

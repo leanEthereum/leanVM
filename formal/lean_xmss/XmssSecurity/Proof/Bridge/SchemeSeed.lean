@@ -3,7 +3,6 @@ module
 public import XmssSecurity.Proof.EvalDistEq
 public import XmssSecurity.Proof.Bridge.Reduction
 public import XmssSecurity.Proof.Seeded.BudgetTransfer
-public import LeanXmss.Bytes
 
 @[expose] public section
 
@@ -35,7 +34,8 @@ theorem guessBound_keySeedHit : GuessBound KeySeedHit := by
   · obtain ⟨keySeed, hkey⟩ := hexists
     have hevent : KeySeedHit input = fun other => other = keySeed := by
       funext other
-      exact propext ⟨fun h => LeanXmss.seedHashInput_injective (h.symm.trans hkey), fun h => h ▸ hkey⟩
+      exact propext ⟨fun h => bytesLE_injective 32 (List.append_cancel_left (h.symm.trans hkey)),
+        fun h => h ▸ hkey⟩
     rw [hevent]
     simp [sampleMasterSeed, MasterSeed, SampleableType.prEvent_uniformSample_eq_singleton]
   · have hempty : KeySeedHit input = fun _ => False := by

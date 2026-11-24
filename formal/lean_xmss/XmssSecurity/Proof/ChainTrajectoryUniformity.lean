@@ -9,9 +9,6 @@ open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity
 
-noncomputable local instance chainTrajectorySampleableDigest : SampleableType Digest :=
-  SampleableType.ofFintype Digest
-
 @[simp]
 theorem Vector.back_push {n : Nat} (values : Vector α n) (value : α) :
     (values.push value).back = value := by
@@ -131,6 +128,5 @@ theorem Concrete.chainTrajectory_queryBound_zero_of_avoids
             (p := AtHashAddress parameter targetDomain) (values.push next) 0)
       · exact OracleComp.isQueryBoundP_pure
           (p := AtHashAddress parameter targetDomain) (values.push 0) 0
-
 
 end XmssSecurity

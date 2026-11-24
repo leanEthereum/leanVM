@@ -22,9 +22,6 @@ end XmssSecurity
 
 namespace XmssSecurity.Rom
 
-noncomputable local instance : UniformAnswerMeasure HashSpec :=
-  UniformAnswerMeasure.ofFiniteNonempty _
-
 theorem card_hashOutput : Fintype.card HashOutput = 2 ^ hashOutputBits := by
   simp
 

@@ -29,11 +29,6 @@ def ChainsWarm (parameter : PublicParameter) (start : ChainKey → ChainIndex �
     RunsBelow (Concrete.keyChainWalk parameter key chain 0 steps (start key chain) :
       OracleComp HashSpec Digest) cache
 
-theorem ChainsWarm.mono {parameter : PublicParameter} {start : ChainKey → ChainIndex → Digest}
-    {cache larger : QueryCache HashSpec} (hwarm : ChainsWarm parameter start cache)
-    (hle : cache ≤ larger) : ChainsWarm parameter start larger :=
-  fun key chain steps hsteps => (hwarm key chain steps hsteps).mono hle
-
 theorem ChainsWarm.keyChainWalk_run_eq {parameter : PublicParameter}
     {start : ChainKey → ChainIndex → Digest} {warm cache : QueryCache HashSpec}
     (hwarm : ChainsWarm parameter start warm) (hle : warm ≤ cache)

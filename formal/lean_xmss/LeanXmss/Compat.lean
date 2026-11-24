@@ -53,11 +53,6 @@ abbrev deriveKey (parameter : PublicParameter) (domain : KeygenDomain) (seed : M
     m Digest :=
   Verification.thWithHash parameter (keygenDomainFields domain) (littleEndianBytes 32 seed)
 
-/-- One seed derivation, all 32 bytes. -/
-abbrev deriveOutput (parameter : PublicParameter) (domain : KeygenDomain) (seed : MasterSeed) :
-    m HashOutput :=
-  Verification.thPairWithHash parameter (keygenDomainFields domain) (littleEndianBytes 32 seed)
-
 /-- `R0`, the randomizer base of a message, first 16 bytes. -/
 abbrev deriveRandomizer (parameter : PublicParameter) (lay : Layer) (key : KeyIndex)
     (seed : MasterSeed) (message : HashInput) : m Randomizer :=
