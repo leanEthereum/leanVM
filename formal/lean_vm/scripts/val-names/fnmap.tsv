@@ -189,9 +189,6 @@ LeanVM/Guest/B1/Digest/MonoDefs.lean@endOf child_claim_list_mono_last__L
 LeanVM/Guest/B1/Digest/MonoDefs.lean@mlOk child_claim_list_mono_last__L
 LeanVM/Guest/B1/Digest/MonoDefs.lean@monoWinOk child_claim_list_mono_loop0
 LeanVM/Guest/B1/Digest/Range.lean list_split
-LeanVM/Guest/B1/Digest/Statement.lean statement_digest
-LeanVM/Guest/B1/Digest/StatementChk.lean statement_digest
-LeanVM/Guest/B1/Digest/StatementComplete.lean statement_digest
 LeanVM/Guest/B1/Digest/ChildList.lean@childLast_sound child_claim_list_last__L
 LeanVM/Guest/B1/Digest/ChildListCore.lean@ccl_core child_claim_list_last__L
 LeanVM/Guest/B1/Digest/ChildMono.lean@monoLast_sound child_claim_list_mono_last__L
