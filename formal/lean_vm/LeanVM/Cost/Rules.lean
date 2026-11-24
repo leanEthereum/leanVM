@@ -797,7 +797,7 @@ theorem kMul {t u : Term} {a b : K} {c d : ℕ} (h : Runs P env t (encodeValue a
       rw [show MachineValue.constructor 1 [] = .ofBool (decide (p < 2 ^ 64)) by simp [MachineValue.ofBool, show p < 18446744073709551616 from hlt]]
       exact hcmp
     refine (Runs.letIn hP (Runs.case0 (k := 1) hc rfl kMulPadding)).cost_eq ?_
-    limbs
+    rw [limbs_of_lt hlt]
   · have hp1 : limbCount p = 2 := limbs_two (by omega) (by omega)
     have hh1 : 1 ≤ p >>> 64 := by
       rw [Nat.shiftRight_eq_div_pow]; exact (Nat.le_div_iff_mul_le (by positivity)).2 (by omega)
