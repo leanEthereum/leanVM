@@ -168,7 +168,7 @@ theorem osBodyPre_wl (c : OsCfg) (L : List OsLv) :
 theorem osBodyA_rate (m ri : ℕ) : osBodyA (osCfgR m ri) = osBodyA (osCfgR m 0) := by
   have h := (osBody_rate m ri).symm.trans (osBody_rate m 0)
   rw [osBody_eq, osBody_eq] at h
-  exact (List.append_inj' h rfl).1
+  exact (List.append_inj' h (List.length_singleton.trans List.length_singleton.symm)).1
 
 theorem osBodyPre_rate (m ri : ℕ) : osBodyPre (osCfgR m ri) = osBodyPre (osCfgR m 0) := by
   have h : (osLevelsR m ri).map OsLv.rf = (osLevelsR m 0).map OsLv.rf := by
@@ -261,7 +261,7 @@ theorem armLv_10 : ∀ ri < 4, ∀ l < (osCfgR 10 ri).levels.length, LvFacts (os
   decide +kernel
 
 /-- **Every arm's body has its decided facts at every rate.** -/
-theorem armBody_ok {m ri : ℕ} (hm : m < 11) (hri : ri < 4) : BodyOk (osCfgR m ri) := by
+theorem armBody_ok {m ri : ℕ} (hm : m < 11) (_hri : ri < 4) : BodyOk (osCfgR m ri) := by
   interval_cases m
   · exact bodyOk_rate armBody_0 ri
   · exact bodyOk_rate armBody_1 ri
