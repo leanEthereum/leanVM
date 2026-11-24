@@ -17,8 +17,8 @@ import Mathlib.Tactic.IntervalCases
 * `spSel_eq`: the selectors are the groups' bases, renumbered.
 
 The checks over all groups are one kernel evaluation per group (`interval_cases`), so the kernel's
-cache holds one group at a time. It imports the templates and the tables alone
-(`Fast/Firewall.lean`).
+cache holds one group at a time. Apart from a tactic, it imports only the templates and the
+tables (`Fast/Firewall.lean`).
 -/
 
 namespace LeanVM.Guest.Fast
