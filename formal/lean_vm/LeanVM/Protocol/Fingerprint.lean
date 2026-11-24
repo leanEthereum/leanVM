@@ -41,8 +41,7 @@ Over the seventeen formal variables `A_0, …, A_15, X` the product is the polyn
   nonzero polynomial in `α` (constant term `1`) whatever the row holds. A side whose padding rows
   differ from the public one by the tuples `D` has the product `Π_P(α, β) · Π_{d ∈ D}(1 − π_α(d))`
   (`padProduct`); two such sides with `P ≠ Q` and at most `N` leaves each collide at no more than
-  the same `N·|E|^16` challenges, whatever the padding. Honest padding rows, `D` all zero, give
-  the factor `1` (`padProduct_zero`).
+  the same `N·|E|^16` challenges, whatever the padding.
 
 The count tree is not fingerprinted: it weighs its count cells alone, at `β = 0`
 (`bus.rs`, `N_TREES`), and its root `R_c ≠ 0` forces every executed count to be nonzero whatever
@@ -122,18 +121,6 @@ theorem padProduct_eq_eval₂ (α : Fin 16 → E) (β : E) (D : Multiset (Vector
   rw [eval₂_padProductPoly, padProduct]
   exact congrArg Multiset.prod (Multiset.map_congr rfl fun d _ ↦ by
     rw [fingerprint_eq_eval₂, eval₂_fingerprintPoly])
-
-/-- With honest padding rows every padding leaf is `1`. -/
-theorem padProduct_zero (α : Fin 16 → E) {D : Multiset (Vector K 16)}
-    (hD : ∀ d ∈ D, ∀ i : Fin 16, d[i] = 0) : padProduct α D = 1 := by
-  refine Multiset.prod_eq_one fun e he ↦ ?_
-  obtain ⟨d, hd, rfl⟩ := Multiset.mem_map.mp he
-  have : fingerprint α d = 0 := by
-    simp only [fingerprint, Fin.getElem_fin]
-    refine Finset.sum_eq_zero fun i _ ↦ ?_
-    rw [show d[i.val] = 0 from hD d hd i]
-    exact mul_eq_zero_of_right _ (map_zero (algebraMap K E))
-  rw [this, sub_zero]
 
 /-- **Lemma 5.2**: the product polynomial determines the multiset of tuples. -/
 theorem sideProduct_poly_eq_iff (P Q : Multiset (Vector K 16)) :

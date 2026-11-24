@@ -34,7 +34,7 @@ lane `ℓ` of the committed state after twelve rounds (`doc/leanvm` §`keccak:se
   `|acc|` coordinates bound to `acc`, is identically zero; `zeroOn_escape`: a coordinate drawn
   uniformly makes a nonzero partial extension zero with probability at most `1/|E|`.
   `midAgree_iff`, `regionValid_iff`: `midAgree` at `inst` and `RegionValid` are `ZeroOn` of the
-  `25` tables `midDelta` at `inst` and at `[]`. This is the escape the phase drawing `inst`
+  `25` tables of the middle state's mismatch at `inst` and at `[]`. This is the escape the phase drawing `inst`
   (the table sumcheck) charges, `h/|E|` per candidate, to turn `RegionValid` into `midAgree`.
 -/
 
@@ -200,11 +200,6 @@ theorem zeroOn_escape (δ : ℕ → E) {n : ℕ} {acc : List E} (hacc : acc.leng
     Polynomial.eval_zero]
   rw [← this]
   ring
-
-/-- The `25` tables of the middle state's mismatch: lane `l` of the first segment's output
-minus (plus, in characteristic two) the committed middle state's, at each step. -/
-def midDelta (col : ℕ → K) (l x : ℕ) : E :=
-  ofK (laneWord (roundsFrom 0 12 (inState h col 0 x)) l) + ofK (col (x + 2 ^ h * (25 + l)))
 
 end
 end LeanVM.Protocol.KeccakGkr

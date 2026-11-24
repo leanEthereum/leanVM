@@ -337,11 +337,5 @@ theorem roundsFrom_succ {start e : ℕ} (h : start + e < 24) (a : KeccakState) :
   simp only [Option.toList_some, List.foldl_cons, List.foldl_nil]
   rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by omega), Option.getD_some]
 
-/-- `keccakF` is twelve rounds, then the twelve others. -/
-theorem keccakF_eq (a : KeccakState) : keccakF1600 a = roundsFrom 12 12 (roundsFrom 0 12 a) := by
-  unfold keccakF1600 roundsFrom
-  rw [← List.foldl_append]
-  rfl
-
 end
 end LeanVM.Protocol.KeccakGkr

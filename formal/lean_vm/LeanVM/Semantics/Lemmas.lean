@@ -151,11 +151,6 @@ theorem LeanIsaProgram.fetch_eq_some_iff (prog : LeanIsaProgram) {pc : K} {ins :
         prog.instructions i = ins := by
   simp only [LeanIsaProgram.fetch, Option.map_eq_some_iff, gLog?_spec prog.logSize_lt]
 
-/-- A fetch fails exactly at the counters that are no power below `2 ^ logSize`. -/
-theorem LeanIsaProgram.fetch_eq_none_iff (prog : LeanIsaProgram) {pc : K} :
-    prog.fetch pc = none ↔ ∀ i : Fin (2 ^ prog.logSize), pc ≠ addressOfIndex i := by
-  rw [LeanIsaProgram.fetch, Option.map_eq_none_iff, gLog?_eq_none_iff]
-
 /-- Program counter `0` fetches nothing. -/
 theorem LeanIsaProgram.fetch_zero (prog : LeanIsaProgram) : prog.fetch 0 = none := by
   rw [LeanIsaProgram.fetch, gLog?_zero, Option.map_none]

@@ -57,10 +57,8 @@ def projectLit : List ℕ := [1, 140737488355327, 43218598786281, 32136906789799
   101951566367639, 112771593653537, 102871349771039, 126754541004432, 60819261648545,
   20682647020959, 30409630824272, 11891857888673, 6939470531743, 76314673122000, 70368744177664]
 
-set_option maxRecDepth 100000 in
 theorem rmfeEmbed_eq : rmfeEmbed = embedLit := by decide +kernel
 
-set_option maxRecDepth 100000 in
 theorem rmfeProject_eq : rmfeProject = projectLit := by decide +kernel
 
 theorem rmfeEmbed_length : rmfeEmbed.length = 16 := by rw [rmfeEmbed_eq]; rfl
@@ -95,7 +93,6 @@ def rmfeOk (emb proj : List ℕ) : Bool :=
     parityL (proj.getD i 0) (mulGF2 (bitsFrom (emb.getD a 0) 24) (bitsFrom (emb.getD b 0) 24)) ==
       (i == a && a == b)
 
-set_option maxRecDepth 100000 in
 /-- **The embedding lemma**, checked by the kernel on the literals. -/
 theorem rmfeOk_lit : rmfeOk embedLit projectLit = true := by decide +kernel
 

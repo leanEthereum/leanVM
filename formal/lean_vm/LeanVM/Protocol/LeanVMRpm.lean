@@ -46,7 +46,7 @@ transcript (`transcriptHashes_eq_of_mem_support`, `Extract.lean`) and the random
 **Completeness** (`completenessRpm`): the same game with no adversary and, after it, the honest
 prover of `CompletenessRom` followed by the verifier, both following the duplex discipline
 (`duplexVm_honest`), of at most `completenessPermCalls fuel` permutation calls
-(`isWeightBound_honest`): the rejection probability is at most
+(`isWeightBound_romHonest`): the rejection probability is at most
 `completenessError fuel + completenessPermCalls fuel² / 2^508`, below `2^-256` at a fuel of `2^35`
 (`completenessRpm_le`).
 

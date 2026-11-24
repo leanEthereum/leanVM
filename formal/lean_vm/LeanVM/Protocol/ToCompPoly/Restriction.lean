@@ -86,50 +86,6 @@ theorem Partial.update_or (σ τ : Partial R) (i : ℕ) (c : R) :
     simp [Partial.or]
   · simp [Partial.or, Function.update_of_ne hj]
 
-/-- The challenges of `c` from offset `off` on, placed at coordinates `0, 1, …`: the partial point
-a table on the last coordinates of a longer point sees while that point is drawn. -/
-def Partial.ofSuffix (off : ℕ) {j : ℕ} (c : Vector R j) : Partial R :=
-  fun i ↦ if h : off + i < j then some c[off + i] else Option.none
-
-/-- Before the offset is reached, nothing is fixed. -/
-theorem Partial.ofSuffix_of_le (off : ℕ) {j : ℕ} (c : Vector R j) (h : j ≤ off) :
-    Partial.ofSuffix off c = Partial.empty := by
-  funext i
-  simp only [Partial.ofSuffix, Partial.empty]
-  rw [dite_eq_right (by omega)]
-
-/-- A challenge before the offset fixes nothing. -/
-theorem Partial.ofSuffix_push_of_lt (off : ℕ) {j : ℕ} (c : Vector R j) (x : R) (h : j < off) :
-    Partial.ofSuffix off (c.push x) = Partial.ofSuffix off c := by
-  rw [Partial.ofSuffix_of_le _ _ (by omega), Partial.ofSuffix_of_le _ _ h.le]
-
-/-- A challenge past the offset fixes one more coordinate. -/
-theorem Partial.ofSuffix_push_of_le (off : ℕ) {j : ℕ} (c : Vector R j) (x : R) (h : off ≤ j) :
-    Partial.ofSuffix off (c.push x) =
-      Function.update (Partial.ofSuffix off c) (j - off) (some x) := by
-  funext i
-  by_cases hi : i = j - off
-  · subst hi
-    simp only [Partial.ofSuffix, Function.update_self]
-    rw [dite_eq_left (by omega), Vector.getElem_push, dite_eq_right (by omega)]
-  · rw [Function.update_of_ne hi]
-    simp only [Partial.ofSuffix]
-    by_cases hlt : off + i < j
-    · rw [dite_eq_left (by omega), dite_eq_left hlt, Vector.getElem_push, dite_eq_left hlt]
-    · rw [dite_eq_right (by omega), dite_eq_right hlt]
-
-/-- The coordinate the next challenge past the offset will fix is free. -/
-theorem Partial.ofSuffix_next (off : ℕ) {j : ℕ} (c : Vector R j) :
-    Partial.ofSuffix off c (j - off) = Option.none := by
-  simp only [Partial.ofSuffix]
-  rw [dite_eq_right (by omega)]
-
-/-- With every coordinate past the offset drawn, the partial point fixes the suffix. -/
-theorem Partial.ofSuffix_all {k : ℕ} (off : ℕ) (c : Vector R (off + k)) (i : ℕ) (hi : i < k) :
-    Partial.ofSuffix off c i = some c[off + i] := by
-  simp only [Partial.ofSuffix]
-  rw [dite_eq_left (by omega)]
-
 
 variable [CommRing R]
 
@@ -217,39 +173,6 @@ private theorem Partial.point_update_of_le {n : ℕ} (σ : Partial R) (k : ℕ) 
 private theorem Partial.point_set_self {n : ℕ} (σ : Partial R) (k : ℕ) (hk : k < n)
     (b : Fin (2 ^ n)) : (σ.point b).set k ((σ.point b)[k]) = σ.point b :=
   Vector.set_getElem_self hk
-
-/-- Flip bit `k` of a cube index to `β`: the cube point that differs from `b` in coordinate `k`
-at most, and has `β` there. -/
-private def setBitIndex {n : ℕ} (b : Fin (2 ^ n)) (k : ℕ) (hk : k < n) (β : Bool) : Fin (2 ^ n) :=
-  ⟨b.val ^^^ (if b.val.testBit k == β then 0 else 2 ^ k),
-    Nat.xor_lt_two_pow b.isLt (by
-      split
-      · exact Nat.two_pow_pos n
-      · exact Nat.pow_lt_pow_right (by norm_num) hk)⟩
-
-private theorem testBit_setBitIndex {n : ℕ} (b : Fin (2 ^ n)) (k : ℕ) (hk : k < n) (β : Bool)
-    (i : ℕ) : (setBitIndex b k hk β).val.testBit i = if i = k then β else b.val.testBit i := by
-  simp only [setBitIndex, Nat.testBit_xor]
-  by_cases hi : i = k
-  · subst hi
-    simp only [↓reduceIte]
-    split <;> rename_i h
-    · simp_all
-    · cases β <;> cases hb : b.val.testBit i <;> simp_all [Nat.testBit_two_pow_self]
-  · simp only [hi, ↓reduceIte]
-    split <;> simp [Ne.symm hi]
-
-/-- A completion with coordinate `k` free and then set to `0` or `1` is another completion. -/
-private theorem Partial.point_set_bool {n : ℕ} (σ : Partial R) (k : ℕ) (hk : k < n)
-    (hσ : σ k = Option.none) (b : Fin (2 ^ n)) (β : Bool) :
-    (σ.point b).set k (if β then 1 else 0) = σ.point (setBitIndex b k hk β) := by
-  apply Vector.ext
-  intro j hj
-  by_cases hjk : j = k
-  · subst hjk
-    simp [Partial.point, hσ, boolVec, testBit_setBitIndex]
-  · rw [Vector.getElem_set_ne hk hj (Ne.symm hjk)]
-    simp [Partial.point, boolVec, testBit_setBitIndex, hjk]
 
 open scoped Classical in
 /-- **One escape at most.** A table that is not zero on a partial point is zero on it with one

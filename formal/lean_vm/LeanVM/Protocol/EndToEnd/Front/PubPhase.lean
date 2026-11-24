@@ -56,8 +56,7 @@ on `MEM_j` at `linePoint r` holds of its reading `toI`.
 
 **At every Keccak region.** The fidelity and the specification are stated at
 `leanIsaWith prog s fl` (`Front.InstanceWith`): `PubPreWith`, `PubPostWith`, `pubLayoutHypWith`,
-`pubPhaseSpecWith`; `PubPre`, `PubPost`, `pubLayoutHyp`, `trueClaim`, `stackOracle` and
-`pubPhaseSpec` are them at the deployed instance. Without a region (`fl = none`) the Keccak
+`pubPhaseSpecWith`; `PubPre`, `PubPost`, `pubLayoutHyp` and `pubPhaseSpec` are them at the deployed instance. Without a region (`fl = none`) the Keccak
 predicate holds of every stack (`aux_none`).
 -/
 
@@ -335,16 +334,6 @@ abbrev PubPost : List Verifier.ColumnClaim → List Ev → Prop :=
 /-- `pubLayoutHypWith` at the deployed instance. -/
 abbrev pubLayoutHyp : Prop :=
   pubLayoutHypWith prog s (some (LeanIsa.keccakRegion prog s)) layout toI H
-
-/-- `trueClaimWith` at the deployed instance. -/
-abbrev trueClaim :
-    Column (leanIsaInstance prog s).μ → Protocol.ColumnClaim (leanIsaInstance prog s) :=
-  trueClaimWith prog s (some (LeanIsa.keccakRegion prog s))
-
-/-- `stackOracleWith` at the deployed instance. -/
-abbrev stackOracle :
-    Column (leanIsaInstance prog s).μ → ∀ i, TheOracle (leanIsaInstance prog s) i :=
-  stackOracleWith prog s (some (LeanIsa.keccakRegion prog s))
 
 open Classical in
 /-- **The public-input phase's specification** at the deployed instance (`pubPhaseSpecWith`). -/

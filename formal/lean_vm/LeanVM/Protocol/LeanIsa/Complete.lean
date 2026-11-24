@@ -37,9 +37,6 @@ row on the others (`padRow_constraints`); the public lines from the two public w
 region clause from how the honest `QKECCAK` is built: its slots `25 … 49` are the first twelve
 rounds of its slots `0 … 24`, step by step (`keccakHolds_stackOf`).
 
-`leanIsaRefinement` packages the soundness direction as the spine's `Refinement` from `M3Rel` to
-`SatisfiedBy`, the witness map the knowledge transport needs.
-
 A witness's rows may carry cells past their component's width, which no constraint reads and
 the stack drops: the read-back is cell for cell within the width.
 -/
@@ -591,20 +588,6 @@ theorem witnessOf_stackOf {input : PublicInput} (h : SatisfiedBy prog input w)
       (memLimb_stackOf h hp 1 x)).trans (ofLimbs_limb _)
 
 /-! ## The refinement -/
-
-/-- `SatisfiedBy` as a relation on the protocol's statements: the public input, no oracle; its
-witnesses are those of the ensemble at the memory log-size `κ`. -/
-def satisfiedByRel (prog : LeanIsaProgram) (κ : ℕ) :
-    Set ((PublicInput × ∀ i, NoOracle i) × EnsembleWitness (leanIsaEnsemble prog κ)) :=
-  {p | SatisfiedBy prog p.1.1 p.2}
-
-/-- The adaptor as a refinement: on admissible sizes, reading the witness off the stack maps the
-protocol's relation into leanISA's, at the announced memory log-size (leanVM's
-`layout(prog, log_mem, …)` fixes the instance by it). -/
-def leanIsaRefinement (prog : LeanIsaProgram) (s : Sizes) (hs : s.Admissible prog) :
-    Refinement (M3Rel (leanIsaInstance prog s)) (satisfiedByRel prog s.logMem) where
-  map _ q := witnessOf prog s q
-  map_valid _ q h := satisfiedBy_witnessOf prog s q hs h
 
 end
 

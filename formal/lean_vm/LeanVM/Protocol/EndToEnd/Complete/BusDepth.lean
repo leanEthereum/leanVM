@@ -25,8 +25,7 @@ The bus phase (`verify_bus_balance`, `crates/verifier/src/bus.rs`) grinds
   most the stack's committed cells, `3·2^κ + 2^ℓ + 2^(τ_5 + 6) + Σ_t (committed columns of t)·2^τ_t`:
   each table pushes at most as many tuples per row as it commits columns (`pushes_le_committed`).
 * `busDepth_le_leanIsaμ`: so the depth is at most the stack's number of variables, and on
-  admissible sizes at most `30` (`busDepth_le`), the grind at most `27` bits
-  (`busGrindingBits_le`).
+  admissible sizes at most `30` (`busDepth_le`).
 -/
 
 namespace LeanVM.Protocol.EndToEnd.Complete
@@ -98,18 +97,6 @@ theorem busDepth_le_leanIsaμ (prog : LeanIsaProgram) (s : Sizes) :
 theorem busDepth_le {prog : LeanIsaProgram} {s : Sizes} (hs : s.Admissible prog) :
     busDepth prog s ≤ 30 :=
   (busDepth_le_leanIsaμ prog s).trans hs.2.2.2
-
-/-- **On admissible sizes the bus grinds at most `27` bits.** -/
-theorem busGrindingBits_le {prog : LeanIsaProgram} {s : Sizes} (hs : s.Admissible prog) :
-    busGrindingBits (busDepth prog s) ≤ 27 := by
-  have hD := busDepth_le hs
-  unfold busGrindingBits grindingBits securityBits
-  split_ifs with h
-  · omega
-  · have : Nat.log2 (2 ^ busDepth prog s - 1) < busDepth prog s := by
-      rw [Nat.log2_lt (by omega)]
-      omega
-    omega
 
 end
 end LeanVM.Protocol.EndToEnd.Complete

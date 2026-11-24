@@ -156,14 +156,6 @@ structure PublicLine (S : Shape) where
   /-- The column has a cell 1. -/
   pos : 0 < S.τ col.1
 
-/-- Bit `i` of a cell, the coefficient of `x ^ i`, as `0` or `1` in `E`. -/
-def cellBit (a : K) (i : ℕ) : E := if a.toBitVec.getLsbD i then 1 else 0
-
-/-- The table of bit `i` of every cell of a column: the `i`-th of the `64` Boolean tables a
-column of `K` packs (Annex A, §A.1: `q(u) = Σ_i Q_i(u)·x^i`). -/
-def bitTable {n : ℕ} (c : Column n) (i : Fin 64) : CMlPolynomialEval E n :=
-  Vector.ofFn fun u ↦ cellBit (c.values.get u) i
-
 /-- Where the Keccak reduction's committed column sits: a column of height `2 ^ (h + 6)`, `64`
 slots of `2^h` words, slot `l < 25` lane `l` of each step's input state and slot `25 + l` lane `l`
 of its state after twelve rounds (`QKECCAK`, `crates/verifier/src/layout.rs`). -/

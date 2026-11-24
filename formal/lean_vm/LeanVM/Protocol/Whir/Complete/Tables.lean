@@ -251,12 +251,6 @@ theorem multilinearEval_eq_sum (m : ℕ) (t p : List E) (ht : t.length = 2 ^ m)
 
 /-! ## The equality kernel -/
 
-/-- One step of `eqKernel`. -/
-private theorem eqKernel_step (out : List E) (r : E) (p : List E) :
-    p.foldl (fun out r ↦ out.map (· * (1 + r)) ++ out.map (· * r))
-      (out.map (· * (1 + r)) ++ out.map (· * r)) =
-    (r :: p).foldl (fun out r ↦ out.map (· * (1 + r)) ++ out.map (· * r)) out := rfl
-
 private theorem eqKernel_general : ∀ (p out : List E),
     (p.foldl (fun out r ↦ out.map (· * (1 + r)) ++ out.map (· * r)) out).length =
       out.length * 2 ^ p.length ∧
@@ -354,46 +348,6 @@ def axpy (s : E) (W T : List E) : List E := List.zipWith (fun a b ↦ a + s * b)
 theorem length_axpy (s : E) (W T : List E) (h : W.length = T.length) :
     (axpy s W T).length = W.length := by
   simp [axpy, h]
-
-/-- `roundC0` is linear in the weight table. -/
-theorem roundC0_axpy (s : E) : ∀ (W T g : List E), W.length = T.length →
-    roundC0 (axpy s W T) g = roundC0 W g + s * roundC0 T g
-  | [], [], g, _ => by simp [axpy, roundC0]
-  | [], _ :: _, _, h => by simp at h
-  | [_], [], _, h => by simp at h
-  | [_], [_], g, _ => by simp [axpy, roundC0]
-  | [_], _ :: _ :: _, _, h => by simp at h
-  | _ :: _ :: _, [], _, h => by simp at h
-  | _ :: _ :: _, [_], _, h => by simp at h
-  | w0 :: w1 :: ws, t0 :: t1 :: ts, g, h =>
-    match g with
-    | [] => by simp [axpy, roundC0]
-    | [_] => by simp [axpy, roundC0]
-    | g0 :: g1 :: gs => by
-      have ih := roundC0_axpy s ws ts gs (by simpa using h)
-      simp only [axpy] at ih ⊢
-      simp only [List.zipWith_cons_cons, roundC0]
-      rw [ih]; ring
-
-/-- `roundC2` is linear in the weight table. -/
-theorem roundC2_axpy (s : E) : ∀ (W T g : List E), W.length = T.length →
-    roundC2 (axpy s W T) g = roundC2 W g + s * roundC2 T g
-  | [], [], g, _ => by simp [axpy, roundC2]
-  | [], _ :: _, _, h => by simp at h
-  | [_], [], _, h => by simp at h
-  | [_], [_], g, _ => by simp [axpy, roundC2]
-  | [_], _ :: _ :: _, _, h => by simp at h
-  | _ :: _ :: _, [], _, h => by simp at h
-  | _ :: _ :: _, [_], _, h => by simp at h
-  | w0 :: w1 :: ws, t0 :: t1 :: ts, g, h =>
-    match g with
-    | [] => by simp [axpy, roundC2]
-    | [_] => by simp [axpy, roundC2]
-    | g0 :: g1 :: gs => by
-      have ih := roundC2_axpy s ws ts gs (by simpa using h)
-      simp only [axpy] at ih ⊢
-      simp only [List.zipWith_cons_cons, roundC2]
-      rw [ih]; ring
 
 /-- `dot` is linear in its first argument. -/
 theorem dot_axpy (s : E) : ∀ (W T g : List E), W.length = T.length →

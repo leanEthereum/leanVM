@@ -723,8 +723,6 @@ theorem lanes_termsPure (bus : BusResult) (cp fp pt : List E) (hpt : s.τ 5 ≤ 
   congr 1
   omega
 
--- The table heights are `Nat.clog` of the row counts, which unification unfolds.
-set_option maxHeartbeats 800000 in
 variable {prog s q} in
 /-- **The honest prover follows the table phase.** On a stack satisfying `M3Holds`, from a true
 bus result, every check of `tablePhase` passes and every claim it returns is true. -/

@@ -32,8 +32,7 @@ public input `input`.
   `readSizesSpec.bind fun a ↦ (commitStackSpec a).bind fun _ ↦ …`.
 
 Right after the root comes the commitment's OOD sample (`readOod`, `commitOodSpec`): the
-grind, the point `z₀`, the answer `y₀`. Its doom keeps `CommitDoom`, read on the commitments
-(`CommitDoomC`), and adds that the root's candidates are separated at `z₀` (`OodBind`), so that
+grind, the point `z₀`, the answer `y₀`. Its doom keeps `CommitDoom` and adds that the root's candidates are separated at `z₀` (`OodBind`), so that
 the phases after it face the one candidate `oodCands` leaves.
 
 The doom quantifies over the candidates; it says nothing about which candidate the prover had
@@ -87,13 +86,6 @@ theorem CommitDoom.append {prog : LeanIsaProgram} {input : PublicInput}
 
 /-- The first word of a list of commitments. -/
 def firstWordC (cs : List (ℕ × ℕ × Word)) : Option Word := cs.head?.map (·.2.2)
-
-/-- **The commitment's doom on the commitments alone**: `CommitDoom` reads only them. -/
-def CommitDoomC (prog : LeanIsaProgram) (input : PublicInput) (A : ℕ → ℕ → ℕ)
-    (a : Verifier.Layout × ℕ) (cs : List (ℕ × ℕ × Word)) : Prop :=
-  ∃ s W₀, a.1 = verifierLayout prog s ∧ firstWordC cs = some W₀ ∧
-    ∀ q ∈ Candidates (leanIsaμ prog s) a.2 (A (leanIsaμ prog s) a.2) W₀,
-      ¬ M3Holds (leanIsaInstance prog s) input q
 
 /-- The candidates of the first commitment of a list, on `μ` variables at threshold `A`. -/
 def firstCands (μ R A : ℕ) (cs : List (ℕ × ℕ × Word)) : Set (Column μ) :=

@@ -256,20 +256,6 @@ def priorQuery : (tree : Oracle.TypeTree.{0}) → (oracles : tree.OracleDecorati
       priorQuery (next PUnit.unit) (oracles.2 PUnit.unit) (Access.extend access oracles.1) path.2
         (.inl q)
 
-/-- **A prior query is answered by the prior handler**, whatever oracle messages the path sends. -/
-theorem simulateQ_priorQuery : (tree : Oracle.TypeTree.{0}) → (oracles : tree.OracleDecoration) →
-    (access : PFunctor) → (impl : QueryImpl (OracleSpec.ofPFunctor access) Id) →
-    (path : tree.ExecutionPath) → (q : access.A) →
-    simulateQ (Verifier.liftAccessImpl unifSpec _ (implAfter tree oracles access impl path))
-      (priorQuery tree oracles access path.toBranchPath q) = pure (impl q)
-  | .done, _, _, _, _, _ => simulateQ_spec_query _ _
-  | .public _ next, oracles, access, impl, path, q =>
-      simulateQ_priorQuery (next path.1) (oracles.2 path.1) access impl path.2 q
-  | .oracle _ next, oracles, access, impl, path, q =>
-      simulateQ_priorQuery (next PUnit.unit) (oracles.2 PUnit.unit)
-        (Access.extend access oracles.1) (Access.extendImpl access oracles.1 impl path.1) path.2
-        (.inl q)
-
 /-- **Every outcome of an execution against a front fragment is an honest run**, with an output
 of the fragment's leaf at its path, run against the handler after the path. -/
 theorem runs_of_mem_support_leaf : (tree : Oracle.TypeTree.{0}) → (roles : tree.RoleDecoration) →
