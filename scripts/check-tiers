@@ -1,6 +1,7 @@
 #!/bin/sh
 # Fails unless each library, archive or wheel holds the CPU tiers' code (scripts/tier-rustc): GFNI instructions on
-# x86_64, SHA3's EOR3 on aarch64, which the portable baselines lack. objdump must read the file's architecture.
+# x86_64, the AES extension's PMULL on aarch64, which the portable baselines lack (not SHA3's EOR3: keccak256's
+# batched hashes hold it in any build with `std`, for CPUs that have it). objdump must read the file's architecture.
 set -eu
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
@@ -13,7 +14,7 @@ for file in "$@"; do
         ;;
     esac
     for lib in $libs; do
-        if ! objdump -d "$lib" | grep -qE 'gf2p8|eor3'; then
+        if ! objdump -d "$lib" | grep -qE 'gf2p8|pmull'; then
             echo "$file: built without the CPU tiers" >&2
             exit 1
         fi

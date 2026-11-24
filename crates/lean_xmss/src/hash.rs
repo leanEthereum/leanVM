@@ -106,7 +106,7 @@ pub(crate) fn th_many<const L: usize>(
     inputs: impl Iterator<Item = (Tweak, [u8; L])>,
 ) -> Vec<keccak256::Hash> {
     let len = PUBLIC_PARAM_LEN + ADDRESS_LEN + L;
-    let mut data = Vec::new();
+    let mut data = Vec::with_capacity(inputs.size_hint().0 * len);
     for (tw, payload) in inputs {
         data.extend_from_slice(pp);
         data.extend_from_slice(&address(&tw));

@@ -545,8 +545,8 @@ fn digest_halves_with<S: Lane>(template: &[u64; STATE_LANES], at: usize, values:
     }
 }
 
-/// The x86 backends. Their methods run only where their feature is on: inlined into the function `dispatch!`
-/// compiles with it, once the CPU has it.
+/// The x86 backends. Their methods run only once `cpu_has!` has found their feature: inlined into the function
+/// `dispatch!` compiles with it, or out of line in tests.
 #[cfg(all(target_arch = "x86_64", target_feature = "sse2"))]
 mod x86 {
     use super::Lane;
@@ -725,8 +725,8 @@ mod arm {
     use core::arch::aarch64::*;
 
     /// Two states in a NEON register. With `SHA3`, χ is one `BCAX`, the column parity two `EOR3` and θ's
-    /// rotate-and-XOR one `RAX1`, so its methods run only where sha3 is on: inlined into the function `dispatch!`
-    /// compiles with it, once the CPU has it.
+    /// rotate-and-XOR one `RAX1`, so its methods run only once `cpu_has!` has found sha3: inlined into the
+    /// function `dispatch!` compiles with it, or out of line in tests.
     #[derive(Clone, Copy)]
     pub(super) struct Neon<const SHA3: bool>(uint64x2_t);
 

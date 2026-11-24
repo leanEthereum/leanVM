@@ -7,7 +7,7 @@
 //! - [`hash`] / [`Hasher`], Keccak-256 over bytes, and [`hash_many`], its batched form over equal-length inputs.
 //! - [`positions`], the permutation one bit position at a time, as `keccak_gkr` proves it.
 //!
-//! The batched forms permute [`lanes`] states at once in vector registers (AVX-512, AVX2 or NEON, the only
+//! The batched forms permute [`lanes()`] states at once in vector registers (AVX-512, AVX2 or NEON, the only
 //! architecture-specific code here) and are byte-identical to the one-input forms. With the `std` feature they take the
 //! widest the CPU runs, whatever the build's target features.
 //!
