@@ -20,14 +20,14 @@ property of the program alone, with no probability, and it composes through `bin
 (`RetOK.bind`): a sequence returns only what its continuation returns on a value its first part
 returns.
 
-The instances bound the column claims the front phases of `verifyExecutionClaims`
+Every return invariant `Claims.AllRet` proves of a program is one (`RetOK.of_allRet`); the
+instances read the column claims the front phases of `verifyExecutionClaims`
 (`LeanVM.Protocol.Verifier.Claims`, the claim-list form of `Statement/LeanVmVerifier.lean`'s
-`verifyExecution`) return:
+`verifyExecution`) return off them:
 
-* `retOK_verifyBusBalance`: the bus phase returns four framework claims (the two memory limbs'
-  columns and the two final counters);
-* `retOK_busTable`: the bus phase followed by the table sumcheck returns at most `4 + 153 = 157`
-  claims, every one of the six tables contributing one claim per column (`tables_width_sum`);
+* `retOK_busTable`: the bus phase followed by the table sumcheck returns at most
+  `4 + tableWidths.sum` claims: four framework claims (the two memory limbs' columns and the two
+  final counters), then one per column of the six tables (`Claims.tableWidths_sum`: `153`);
 * `retOK_publicInputPhase`: the public-input phase returns two claims, one per memory limb.
 -/
 
@@ -118,82 +118,19 @@ theorem RetOK.readN : ∀ n : ℕ, RetOK (fun xs : List E ↦ xs.length = n)
 
 /-! ## The front phases of the leanVM verifier -/
 
-/-- The bus phase returns four framework claims, whatever checks the fixed polynomial's value. -/
-theorem retOK_verifyBusBalance (ev : List K → List E → E → VerifierProgram Unit) (layout : Layout) :
-    RetOK (fun bus : BusResult ↦ bus.claims.length ≤ 4) (verifyBusBalance ev layout) :=
-  (RetOK.of_allRet (Claims.allRet_verifyBusBalance ev layout)).mono fun _ h ↦ h.2.2
-
-/-- The tables' row evaluations: one claim per column of each row's table, added to the claims
-so far. -/
-theorem retOK_tableTerms (constraintPowers formPowers point : List E) :
-    ∀ (rows : List (Table × ℕ × List Form × E)) (cursor : ℕ) (final : E)
-      (claims : List ColumnClaim),
-      RetOK (fun r : E × List ColumnClaim ↦
-          r.2.length ≤ claims.length + (rows.map fun r ↦ r.1.width).sum)
-        (tableTermsClaims constraintPowers formPowers point rows cursor final claims)
-  | [], _, _, _ => RetOK.ret (by simp)
-  | (table, h, forms, weight) :: rest, cursor, final, claims => by
-    refine (RetOK.readN table.width).bind fun evaluations he ↦
-      (retOK_tableTerms constraintPowers formPowers point rest _ _ _).mono fun r hr ↦ ?_
-    simp only [List.length_append, List.length_map, List.length_zipIdx, he,
-      List.map_cons, List.sum_cons] at hr ⊢
-    omega
-
-/-- A sum over the first components of a zip is at most the sum over the first list. -/
-theorem sum_map_zip_fst_le {α β : Type} (f : α → ℕ) :
-    ∀ (l₁ : List α) (l₂ : List β), ((l₁.zip l₂).map fun r ↦ f r.1).sum ≤ (l₁.map f).sum
-  | [], _ => by simp
-  | _ :: _, [] => by simp
-  | a :: l₁, _ :: l₂ => by
-    simp only [List.zip_cons_cons, List.map_cons, List.sum_cons]
-    exact Nat.add_le_add_left (sum_map_zip_fst_le f l₁ l₂) _
-
-/-- The six tables have `153` columns in all (`KECCAK`'s `92` the widest). -/
-theorem tables_width_sum : (tables.map Table.width).sum = 153 := by decide +kernel
-
-/-- The table sumcheck returns at most `153` claims, one per column of the six tables. -/
-theorem retOK_tableSumcheck (heights : List ℕ) (busForms : List (List Form))
-    (constraintPowers formPowers equalityPoint : List E) (target : E) :
-    RetOK (fun claims : List ColumnClaim ↦ claims.length ≤ 153)
-      (tableSumcheckClaims heights busForms constraintPowers formPowers equalityPoint target) := by
-  unfold tableSumcheckClaims
-  refine RetOK.bind_true fun r ↦ ?_
-  obtain ⟨challenges, claim⟩ := r
-  refine (retOK_tableTerms _ _ _ _ 0 0 []).bind fun r hr ↦ ?_
-  obtain ⟨final, claims⟩ := r
-  refine RetOK.bind_true fun _ ↦ RetOK.ret ?_
-  have hs := sum_map_zip_fst_le Table.width tables (List.zip heights (List.zip busForms
-    (tableWeights heights equalityPoint challenges.reverse)))
-  rw [tables_width_sum] at hs
-  simp only [List.length_nil, Nat.zero_add] at hr
-  omega
-
-/-- The table phase returns the bus's claims and at most `153` more. -/
-theorem retOK_tablePhase (layout : Layout) (bus : BusResult) :
-    RetOK (fun claims : List ColumnClaim ↦ claims.length ≤ bus.claims.length + 153)
-      (tablePhaseClaims layout bus) := by
-  unfold tablePhaseClaims
-  refine RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦
-    (retOK_tableSumcheck _ _ _ _ _ _).bind fun claims hc ↦ RetOK.ret ?_
-  simp only [List.length_append]
-  omega
-
-/-- The bus phase and the table sumcheck return at most `4 + 153 = 157` claims. -/
+/-- The bus phase and the table sumcheck return at most four claims and one per column of the
+tables. -/
 theorem retOK_busTable (ev : List K → List E → E → VerifierProgram Unit) (layout : Layout) :
-    RetOK (fun claims : List ColumnClaim ↦ claims.length ≤ 157)
+    RetOK (fun claims : List ColumnClaim ↦ claims.length ≤ 4 + tableWidths.sum)
       ((verifyBusBalance ev layout).bind (tablePhaseClaims layout)) :=
-  (retOK_verifyBusBalance ev layout).bind fun bus hb ↦
-    (retOK_tablePhase layout bus).mono fun _ h ↦ by omega
+  .of_allRet <| Claims.AllRet.bind (fun bus hb ↦ (Claims.allRet_tablePhaseClaims layout bus).mono
+    fun _ h ↦ by have := hb.2.2; omega) _ (Claims.allRet_verifyBusBalance ev layout)
 
 /-- The public-input phase returns two claims. -/
 theorem retOK_publicInputPhase (layout : Layout) (publicInput : Digest) :
     RetOK (fun claims : List ColumnClaim ↦ claims.length ≤ 2)
-      (publicInputPhase layout publicInput) := by
-  rw [publicInputPhase_eq]
-  refine RetOK.bind_true fun _ ↦ (RetOK.liftOption _).mono fun cl h ↦ ?_
-  rw [publicClaimsOf_spec h]
-  simp only [publicClaims, List.length_zipWith, List.length_cons, List.length_nil]
-  omega
+      (publicInputPhase layout publicInput) :=
+  (RetOK.of_allRet (Claims.allRet_publicInputPhase layout publicInput)).mono fun _ h ↦ h.2
 
 end
 end LeanVM.Protocol.EndToEnd.Sound

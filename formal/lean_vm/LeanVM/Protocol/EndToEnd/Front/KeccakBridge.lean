@@ -47,7 +47,7 @@ namespace LeanVM.Protocol.EndToEnd.Front
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Compile
 open LeanVM.Protocol.Verifier LeanVM.Protocol.LeanIsa CompPoly CMlPolynomialEval
-open LeanVM.Protocol.EndToEnd.Sound (RetOK RetOK.ret RetOK.bind RetOK.bind_true)
+open LeanVM.Protocol.EndToEnd.Sound (RetOK RetOK.ret RetOK.bind RetOK.bind_true RetOK.of_allRet)
 open LeanVM.Protocol.TableSumcheck (Data tableOut)
 open Finset
 open scoped NNReal ENNReal
@@ -98,32 +98,15 @@ theorem retOK_verifyKeccak (logSteps : ℕ) (inst output : List E) (hi : 4 ≤ i
     obtain ⟨slot', weights', value'⟩ := r
     exact RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦ RetOK.ret hcs
 
-/-- The Keccak reduction returns one column claim. -/
-theorem retOK_verifyKeccak_count (logSteps : ℕ) (inst output : List E) :
-    RetOK (fun r : List Verifier.ColumnClaim × List E × List E ↦ r.1.length ≤ 1)
-      (verifyKeccak logSteps inst output) := by
-  unfold verifyKeccak
-  refine RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦
-    RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦ ?_
-  simp only [show 1 < keccakSegments from by decide, ↓reduceIte]
-  refine RetOK.bind_true fun r ↦ ?_
-  obtain ⟨slot, weights, value⟩ := r
-  refine RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦
-    (RetOK.ret (Q := fun cs : List Verifier.ColumnClaim ↦ cs.length ≤ 1) (by simp)).bind
-      fun cs hcs ↦ ?_
-  refine RetOK.bind_true fun r ↦ ?_
-  obtain ⟨low, v⟩ := r
-  refine RetOK.bind_true fun r ↦ ?_
-  obtain ⟨slot', weights', value'⟩ := r
-  exact RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦ RetOK.ret hcs
-
 /-- The Keccak phase returns at most one claim more than it receives. -/
 theorem retOK_keccakPhase (layout : Verifier.Layout) (claims : List Verifier.ColumnClaim) :
     RetOK (fun r : List Verifier.ColumnClaim × List E × List E ↦
       r.1.length ≤ claims.length + 1) (keccakPhaseClaims layout claims) := by
-  refine RetOK.bind_true fun _ ↦ (retOK_verifyKeccak_count _ _ _).bind fun r hr ↦ RetOK.ret ?_
+  refine RetOK.bind_true fun _ ↦
+    (RetOK.of_allRet (Claims.allRet_verifyKeccak _ _ _)).bind fun r hr ↦ RetOK.ret ?_
   simp only [List.length_append]
   have := List.length_filter_le (fun c : Verifier.ColumnClaim ↦ decide (c.column ∉ keccakOutputColumns)) claims
+  have := hr.2
   omega
 
 /-- `sampleN n` returns `n` challenges. -/

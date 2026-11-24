@@ -441,7 +441,7 @@ theorem corr_honestScript (hv : ValidExecution prog input t) (hcap : t.committed
     (corr_sampleE_hPub prog s q) (follows_and_allRet _ _ _ (follows_retOK _ _ _
       (follows_publicInputPhase hq.1 []) (retOK_publicColumns _ _))
       (Claims.allRet_publicInputPhase _ _)))
-  obtain ⟨_, ⟨⟨-, rfl, hpub, -⟩, hpcol⟩, hpmem⟩ := hp
+  obtain ⟨_, ⟨⟨-, rfl, hpub, -⟩, hpcol⟩, hpmem, -⟩ := hp
   -- the Keccak phase, beside `keccakPhase`
   have hlanes : lanesOf (bus.claims ++ tableColumnClaims rows ++ pub) =
       Claims.laneClaims (rows.getD opKeccak ([], [])) := Claims.lanes_eq hbok.2.1 hpmem hrows

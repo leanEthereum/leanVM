@@ -123,7 +123,7 @@ theorem retOK_publicColumns (layout : Verifier.Layout) (publicInput : Digest) :
     RetOK (fun claims : List Verifier.ColumnClaim ↦ ∀ c ∈ claims, c.column < 6)
       (publicInputPhase layout publicInput) :=
   (RetOK.of_allRet (Claims.allRet_publicInputPhase layout publicInput)).mono fun _ h c hc ↦ by
-    have := h c hc
+    have := h.1 c hc
     simp only [memory0, memory1, List.mem_cons, List.not_mem_nil, or_false] at this
     omega
 

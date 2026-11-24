@@ -196,24 +196,33 @@ theorem allRet_liftOption {α : Type} (o : Option α) : AllRet (liftOption o) fu
 
 /-! ## The layout -/
 
+/-- The six tables have `153` columns in all (`KECCAK`'s `92` the widest). -/
+theorem tableWidths_sum : tableWidths.sum = 153 := by decide +kernel
+
+/-- The verifier's columns: the global ones, then each table's. -/
+def columnCount : ℕ := globalColumnCount + tableWidths.sum
+
+theorem columnCount_eq : columnCount = 158 := by decide +kernel
+
 /-- What the equality uses of a layout: six tables, and a placement for every column but the
 `KECCAK` output lanes. -/
 def LayoutOk (layout : Layout) : Prop :=
   layout.tableLogHeights.length = tables.length ∧
-    ∀ c < 158, (layout.placements.getD c none).isSome = decide (c ∉ keccakOutputColumns)
+    ∀ c < columnCount, (layout.placements.getD c none).isSome = decide (c ∉ keccakOutputColumns)
 
 theorem columnKappas_length (logMemory logBytecode : ℕ) (heights : List ℕ) :
-    (columnKappas logMemory logBytecode heights).length = 158 := by
+    (columnKappas logMemory logBytecode heights).length = columnCount := by
   simp only [columnKappas, List.length_append, List.length_cons, List.length_nil,
     List.length_flatMap, List.length_replicate]
   rfl
 
 theorem slotted_not_lane_all :
-    (List.range 158).all (fun c ↦ !(keccakSlot c).isSome || decide (c ∉ keccakOutputColumns)) =
-      true := by
+    (List.range columnCount).all
+      (fun c ↦ !(keccakSlot c).isSome || decide (c ∉ keccakOutputColumns)) = true := by
   decide +kernel
 
-theorem placementsOf_isSome {kappas : List ℕ} (hl : kappas.length = 158) {c : ℕ} (hc : c < 158) :
+theorem placementsOf_isSome {kappas : List ℕ} (hl : kappas.length = columnCount) {c : ℕ}
+    (hc : c < columnCount) :
     ((placementsOf kappas).1.getD c none).isSome = decide (c ∉ keccakOutputColumns) := by
   have hs := List.all_eq_true.mp slotted_not_lane_all c (List.mem_range.mpr hc)
   unfold placementsOf
@@ -431,25 +440,90 @@ theorem tablePhaseClaims_eq (layout : Layout) (bus : BusResult) :
   simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq, VerifierProgram.bind_assoc,
       tableSumcheckClaims_eq, VerifierProgram.ret_bind]
 
+private theorem sum_map_zip_fst_le {α β : Type} (f : α → ℕ) :
+    ∀ (l₁ : List α) (l₂ : List β), ((l₁.zip l₂).map fun r ↦ f r.1).sum ≤ (l₁.map f).sum
+  | [], _ | _ :: _, [] => by simp
+  | a :: l₁, _ :: l₂ => by
+    simpa using Nat.add_le_add_left (sum_map_zip_fst_le f l₁ l₂) (f a)
+
+private theorem sum_map_zip_snd_le {α β : Type} (f : β → ℕ) :
+    ∀ (l₁ : List α) (l₂ : List β), ((l₁.zip l₂).map fun r ↦ f r.2).sum ≤ (l₂.map f).sum
+  | [], _ | _ :: _, [] => by simp
+  | _ :: l₁, b :: l₂ => by
+    simpa using Nat.add_le_add_left (sum_map_zip_snd_le f l₁ l₂) (f b)
+
+theorem length_tableColumnClaims (rows : List (List E × List E)) :
+    (tableColumnClaims rows).length =
+      ((globalColumnBases.zip rows).map fun r ↦ r.2.2.length).sum := by
+  rw [tableColumnClaims, List.length_flatMap]
+  congr 1
+  refine List.map_congr_left fun ⟨_, _, _⟩ _ ↦ ?_
+  simp
+
+/-- The table sumcheck returns at most one claim per column of the tables, whatever the heights
+and forms. -/
+theorem allRet_tableSumcheck_length (heights : List ℕ) (busForms : List (List Form))
+    (cP fP eqPt : List E) (target : E) :
+    AllRet (tableSumcheck heights busForms cP fP eqPt target)
+      fun rows ↦ (tableColumnClaims rows).length ≤ tableWidths.sum := by
+  unfold tableSumcheck
+  simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
+  refine AllRet.bind (fun r _ ↦ ?_) _ (allRet_true _)
+  obtain ⟨chs, cl⟩ := r
+  dsimp only
+  refine AllRet.bind (fun r hr ↦ ?_) _ (allRet_tableTerms cP fP _ _ 0 0)
+  obtain ⟨fin, rows⟩ := r
+  refine AllRet.bind (fun _ _ ↦ .ret ?_) _ (allRet_true _)
+  have hmap : ∀ {zs : List (Table × ℕ × List Form × E)} {rows : List (List E × List E)},
+      List.Forall₂ (fun x (row : List E × List E) ↦ row.2.length = x.1.width) zs rows →
+        rows.map (·.2.length) = zs.map (·.1.width) := by
+    intro zs rows h
+    induction h with
+    | nil => rfl
+    | cons h _ ih => simp [h, ih]
+  have h1 := sum_map_zip_snd_le (fun r : List E × List E ↦ r.2.length) globalColumnBases rows
+  have h2 := sum_map_zip_fst_le Table.width tables
+    (List.zip heights (List.zip busForms (tableWeights heights eqPt chs.reverse)))
+  rw [hmap hr] at h1
+  rw [length_tableColumnClaims, tableWidths]
+  exact h1.trans h2
+
+/-- The table phase returns the bus's claims and at most one claim per column of the tables,
+whatever the layout. -/
+theorem allRet_tablePhaseClaims (layout : Layout) (bus : BusResult) :
+    AllRet (tablePhaseClaims layout bus)
+      fun claims ↦ claims.length ≤ bus.claims.length + tableWidths.sum := by
+  have hp : AllRet (tablePhase layout bus)
+      fun rows ↦ (tableColumnClaims rows).length ≤ tableWidths.sum := by
+    unfold tablePhase
+    simp only [VerifierProgram.bind_eq]
+    exact AllRet.bind (fun _ _ ↦ allRet_tableSumcheck_length _ _ _ _ _ _) _ (allRet_true _)
+  rw [tablePhaseClaims_eq]
+  exact AllRet.bind (fun _ h ↦ .ret (by rw [List.length_append]; omega)) _ hp
+
 /-! ## The public input and the Keccak reduction -/
 
+/-- The public-input phase returns at most two claims, on the memory's two limbs. -/
 theorem allRet_publicInputPhase (layout : Layout) (publicInput : Digest) :
     AllRet (publicInputPhase layout publicInput)
-      fun claims ↦ ∀ c ∈ claims, c.column ∈ [memory0, memory1] := by
+      fun claims ↦ (∀ c ∈ claims, c.column ∈ [memory0, memory1]) ∧ claims.length ≤ 2 := by
   rw [publicInputPhase_eq]
-  refine AllRet.bind (fun _ _ ↦ AllRet.mono (fun cl h c hc ↦ ?_) (allRet_liftOption _)) _ (allRet_true _)
-  rw [publicClaimsOf_spec h] at hc
-  exact zipWith_columns _ _ _ id c hc
+  refine AllRet.bind (fun _ _ ↦ AllRet.mono (fun cl h ↦ ?_) (allRet_liftOption _)) _ (allRet_true _)
+  rw [publicClaimsOf_spec h]
+  refine ⟨fun c hc ↦ zipWith_columns _ _ _ id c hc, ?_⟩
+  simp only [publicClaims, List.length_zipWith, List.length_cons, List.length_nil]
+  omega
 
+/-- The Keccak reduction returns at most one column claim, on `QKECCAK`. -/
 theorem allRet_verifyKeccak (logSteps : ℕ) (inst output : List E) :
-    AllRet (verifyKeccak logSteps inst output) fun r ↦ ∀ c ∈ r.1, c.column = qkeccak := by
+    AllRet (verifyKeccak logSteps inst output)
+      fun r ↦ (∀ c ∈ r.1, c.column = qkeccak) ∧ r.1.length ≤ 1 := by
   have h1 : 1 < keccakSegments := by decide
   unfold verifyKeccak
   simp only [h1, ↓reduceIte, VerifierProgram.bind_eq, VerifierProgram.pure_eq,
       VerifierProgram.ret_bind]
   allret_chain
-  refine .ret ?_
-  intro c hc
+  refine .ret ⟨fun c hc ↦ ?_, by simp⟩
   simp only [List.mem_singleton] at hc
   rw [hc]
 
@@ -457,7 +531,7 @@ theorem allRet_keccakPhase (layout : Layout) (rows : List (List E × List E)) :
     AllRet (keccakPhase layout rows) fun r ↦ ∀ c ∈ r.1, c.column = qkeccak := by
   unfold keccakPhase
   split
-  exact allRet_verifyKeccak _ _ _
+  exact (allRet_verifyKeccak _ _ _).mono fun _ h ↦ h.1
 
 /-! ## The output lanes -/
 
@@ -478,7 +552,7 @@ theorem lanes_filter : ∀ i < tables.length,
   decide +kernel
 
 theorem columns_lt : ∀ i < tables.length,
-    globalColumnBases.getD i 0 + (tables.getD i default).width ≤ 158 := by
+    globalColumnBases.getD i 0 + (tables.getD i default).width ≤ columnCount := by
   decide +kernel
 
 theorem rowsOk_iff {rows : List (List E × List E)} (hr : RowsOk rows) :
@@ -569,7 +643,8 @@ theorem keccakPhaseClaims_eq {layout : Layout} {busClaims publicClaims : List Co
 
 /-! ## The opening -/
 
-theorem onStack_eq {layout : Layout} (hl : LayoutOk layout) {c : ColumnClaim} (hc : c.column < 158) :
+theorem onStack_eq {layout : Layout} (hl : LayoutOk layout) {c : ColumnClaim}
+    (hc : c.column < columnCount) :
     c.onStack layout =
       if c.column ∈ keccakOutputColumns then none else some (c.stackClaim layout) := by
   have h := hl.2 c.column hc
@@ -585,7 +660,7 @@ theorem onStack_eq {layout : Layout} (hl : LayoutOk layout) {c : ColumnClaim} (h
     simp [hn]
 
 theorem filterMap_onStack {layout : Layout} (hl : LayoutOk layout) :
-    ∀ claims : List ColumnClaim, (∀ c ∈ claims, c.column < 158) →
+    ∀ claims : List ColumnClaim, (∀ c ∈ claims, c.column < columnCount) →
       claims.filterMap (·.onStack layout) =
         (claims.filter fun c ↦ c.column ∉ keccakOutputColumns).map (·.stackClaim layout)
   | [], _ => rfl
@@ -595,7 +670,7 @@ theorem filterMap_onStack {layout : Layout} (hl : LayoutOk layout) :
     by_cases hm : c.column ∈ keccakOutputColumns <;> simp [hm]
 
 theorem tableClaims_lt {rows : List (List E × List E)} (hr : RowsOk rows) :
-    ∀ c ∈ tableColumnClaims rows, c.column < 158 := by
+    ∀ c ∈ tableColumnClaims rows, c.column < columnCount := by
   obtain ⟨hlen, hrow⟩ := rowsOk_iff hr
   intro c hc
   rw [tableClaims_range hlen, List.mem_flatMap] at hc
@@ -625,12 +700,13 @@ theorem verifyExecution_claims (ev : List K → List E → E → VerifierProgram
   refine bind_congr (fun rows hr ↦ ?_) _ (allRet_tablePhase hl hb)
   rw [VerifierProgram.ret_bind]
   refine bind_congr (fun pc hpc ↦ ?_) _ (allRet_publicInputPhase x.1 publicInput)
-  rw [keccakPhaseClaims_eq hb.2.1 hpc hr, VerifierProgram.bind_assoc]
+  rw [keccakPhaseClaims_eq hb.2.1 hpc.1 hr, VerifierProgram.bind_assoc]
   refine bind_congr (fun r hout ↦ ?_) _ (allRet_keccakPhase x.1 rows)
   rw [VerifierProgram.ret_bind]
   refine bind_congr (Q := fun _ ↦ True) (fun rs _ ↦ ?_) _ (allRet_true _)
-  have hlt : ∀ c ∈ bus.claims ++ tableColumnClaims rows ++ pc ++ r.1, c.column < 158 := by
+  have hlt : ∀ c ∈ bus.claims ++ tableColumnClaims rows ++ pc ++ r.1, c.column < columnCount := by
     intro c hc
+    have := columnCount_eq
     simp only [List.mem_append] at hc
     rcases hc with ((hc | hc) | hc) | hc
     · have := hb.2.1 c hc
@@ -638,7 +714,7 @@ theorem verifyExecution_claims (ev : List K → List E → E → VerifierProgram
         List.mem_cons, List.not_mem_nil, or_false] at this
       omega
     · exact tableClaims_lt hr c hc
-    · have := hpc c hc
+    · have := hpc.1 c hc
       simp only [memory0, memory1, List.mem_cons, List.not_mem_nil, or_false] at this
       omega
     · rw [hout c hc]; decide
