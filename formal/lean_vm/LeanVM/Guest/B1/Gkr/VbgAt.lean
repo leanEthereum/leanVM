@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Gkr.VbgLoads
 public import LeanVM.Guest.B1.Gkr.GlCInVbg
 public import LeanVM.Guest.B1.Gkr.GlCInZeta
-public import LeanVM.Guest.B1.Tables.FlatLiftOut
+public import LeanVM.Guest.B1.Tables.FlatLiftT
 public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_bus_gkr»
