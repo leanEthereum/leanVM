@@ -10,7 +10,7 @@ open OracleComp OracleSpec ENNReal
 
 namespace QueryImpl
 
-variable {ι : Type} {spec : OracleSpec ι} {α : Type}
+variable {ι : Type*} {spec : OracleSpec ι} {α : Type}
 
 @[simp] theorem run_simulateQ_withTraceAppend_const_empty
     {spec : OracleSpec ι} {m : Type → Type*} [Monad m] [LawfulMonad m] {Log : Type}

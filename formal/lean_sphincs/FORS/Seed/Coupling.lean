@@ -13,23 +13,11 @@ public import VCVio.OracleComp.QueryTracking.RandomOracle.DeferredSampling
 full-output material and its programmed cache. Preparation is not silently counted as part of an
 adversary's existing query budget. -/
 
-open OracleComp OracleSpec
+open OracleComp OracleSpec Common.QueryCount
 
 namespace FORS.Security.SeedCoupling
 
 variable [Params]
-
-theorem evalDist_independent_uniform_pair
-    {α β : Type} [Fintype α] [Fintype β]
-    [SampleableType α] [SampleableType β] [SampleableType (α × β)] :
-    (do
-      let left ← $ᵗ α
-      let right ← $ᵗ β
-      pure (left, right)) =ᵈ ($ᵗ (α × β)) := by
-  refine EvalDistEq.of_forall_prEvent_eq fun p => ?_
-  rw [SampleableType.prEvent_uniformSample_inst_irrel _ (instSampleableTypeProd α β) p,
-    SampleableType.prEvent_uniformSample_prod]
-  simp only [prEvent_norm]
 
 open SeedModel Completeness Common.RomTable
 
@@ -138,7 +126,7 @@ theorem evalDist_prepared_continuation {α : Type} (computation : OracleComp Ora
     (seed : MasterSeed) :
     ((simulateQ romImpl computation).run' ∅) =ᵈ (sampleMaterial >>= fun material =>
         (simulateQ romImpl computation).run' (programCache ∅ seed material)) := by
-  refine (evalDist_presample_computation romImpl rfl computation
+  refine (evalDist_presample_computation romImpl computation
     (liftM (prepareTable seed) : OracleComp OracleWorld Material) ∅).trans ?_
   rw [simulate_lift_hash]
   refine EvalDistEq.trans (my := ((fun material => (material, programCache ∅ seed material)) <$>
@@ -149,11 +137,11 @@ theorem evalDist_prepared_continuation {α : Type} (computation : OracleComp Ora
 /-- Pure instrumentation counts all hash calls, including cached calls, and no private draws. -/
 noncomputable def countHashQueries {α : Type} (computation : OracleComp OracleWorld α) :
     OracleComp OracleWorld (α × Nat) :=
-  Common.QueryCount.counted (fun input : OracleWorld.Domain => input matches .inr _) computation
+  counted (fun input : OracleWorld.Domain => input matches .inr _) computation
 
 theorem simulateQ_countHashQueries {α : Type} (computation : OracleComp OracleWorld α) :
     simulateQ romImpl (countHashQueries computation) = (simulateQ countedOracle computation).run := by
-  rw [countHashQueries, Common.QueryCount.simulate_withCost]
+  rw [countHashQueries, simulate_withCost]
   congr 2
   funext input
   cases input <;> simp only [countedOracle, QueryImpl.withAddCost_apply] <;> rfl

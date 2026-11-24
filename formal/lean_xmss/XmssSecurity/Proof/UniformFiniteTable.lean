@@ -11,16 +11,6 @@ open OracleComp OracleSpec
 
 namespace XmssSecurity
 
-theorem evalDist_independent_uniform_pair
-    {α β : Type} [Fintype α] [Fintype β]
-    [SampleableType α] [SampleableType β] :
-    (do
-      let left ← $ᵗ α
-      let right ← $ᵗ β
-      pure (left, right)) =ᵈ
-    ($ᵗ (α × β)) := by
-  rw [SampleableType.uniformSample_prod_eq_bind]
-
 noncomputable def uniformSnocList
     (α : Type) [SampleableType α] : Nat → ProbComp (List α)
   | 0 => pure []

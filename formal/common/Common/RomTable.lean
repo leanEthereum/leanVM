@@ -5,6 +5,7 @@ public import VCVio.OracleComp.SimSemantics.SimulateQ.FinMOfFn
 public import VCVio.OracleComp.Constructions.SampleableType.Measure
 public import VCVio.OracleComp.EvalDist.Sum
 public import VCVio.EvalDist.Monad.UniformTable
+public import Common.EvalDistEq
 import Common.RomComm
 
 @[expose] public section
@@ -19,7 +20,7 @@ distinct fresh inputs, and move such queries before a computation:
   table `J → R` and the cache that records it (`cacheTable`).
 * `evalDist_presample_computation`: in the random-oracle model `(D →ₒ R).romImpl`, running any
   computation first (and keeping its cache) leaves the output distribution of a later computation
-  unchanged; it takes the model as a scheme names it, with the proof `rfl` that it is this one.
+  unchanged; it takes the model under a scheme's own name, which must unfold to it by `rfl`.
 * `evalDistEq_uniformSample_bind_update`: overwriting one cell of a uniform table with an
   independent uniform value leaves it uniform.
 -/
@@ -28,11 +29,8 @@ open OracleComp OracleSpec
 
 namespace Common.RomTable
 
-private theorem evalDistEq_of_eq {α : Type} {mx my : ProbComp α} (h : mx = my) : mx =ᵈ my :=
-  h ▸ EvalDistEq.rfl
-
 /-- A query through a stateful handler runs the continuation from the reached state. -/
-theorem run'_query_bind {ι σ α : Type} {spec : OracleSpec ι}
+theorem run'_query_bind {ι : Type*} {σ α : Type} {spec : OracleSpec ι}
     (impl : QueryImpl spec (StateT σ ProbComp)) (input : spec.Domain)
     (next : spec.Range input → OracleComp spec α) (state : σ) :
     (simulateQ impl (liftM (spec.query input) >>= next)).run' state =
@@ -176,7 +174,7 @@ theorem evalDist_queryTable_fresh (inputs : J → D) (hinj : Function.Injective 
       (fun _ _ h => (Fintype.equivFin J).symm.injective (hinj h)) cache (fun _ => hfresh _)]
   simp only [bind_pure_comp, Functor.map_map]
   refine ((evalDist_mOfFn_uniform _).map _).trans ?_
-  refine (evalDistEq_of_eq ?_).trans
+  refine (EvalDistEq.of_eq ?_).trans
     ((SampleableType.map_uniformSample_evalDistEq_of_bijective e.bijective).map
       fun outputs => (outputs, cacheTable cache inputs outputs))
   rw [Functor.map_map]
@@ -196,14 +194,15 @@ local notation "World" => unifSpec + (D →ₒ R)
 local notation "rom" => OracleSpec.romImpl (D →ₒ R)
 
 /-- **Presampling.** A computation run first, its cache kept, leaves the distribution of another
-computation unchanged. `impl` is the random-oracle model under a scheme's own name. -/
+computation unchanged. `impl` is the random-oracle model `(D →ₒ R).romImpl` under a scheme's own
+name; `himpl` is closed by `rfl`. -/
 theorem evalDist_presample_computation (impl : QueryImpl World (StateT (QueryCache (D →ₒ R)) ProbComp))
-    (himpl : impl = rom) {α β : Type} (computation : OracleComp World α)
-    (preparation : OracleComp World β) (cache : QueryCache (D →ₒ R)) :
+    {α β : Type} (computation : OracleComp World α)
+    (preparation : OracleComp World β) (cache : QueryCache (D →ₒ R)) (himpl : impl = rom := by rfl) :
     ((simulateQ impl computation).run' cache) =ᵈ
       ((simulateQ impl preparation).run cache >>= fun result =>
         (simulateQ impl computation).run' result.2) := by
-  subst himpl
+  obtain rfl : impl = rom := himpl
   have h := (run_bind_bind_comm computation preparation (fun result _ => pure result) cache).map
     Prod.fst
   simp only [simulateQ_bind, simulateQ_pure, StateT.run_bind, StateT.run_pure, bind_pure, map_bind,

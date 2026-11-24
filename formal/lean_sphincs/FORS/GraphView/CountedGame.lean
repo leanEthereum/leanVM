@@ -12,7 +12,7 @@ section
 signature and its original hash cost on a fixed answer function. Internal graph work is charged
 even when encoding exhausts. -/
 
-open OracleComp OracleSpec
+open OracleComp OracleSpec Common.QueryCount
 
 namespace FORS.Security.GraphView
 
@@ -32,9 +32,9 @@ theorem fixedWorldCost_lift_hash (f : QueryImpl HashSpec Id)
   apply WriterT.ext
   have hcount : (simulateQ (fixedWorldCost f)
       (liftM computation : OracleComp OracleWorld α)).run =
-      simulateQ (fixedHashWorld f) (Common.QueryCount.counted SourceHash
+      simulateQ (fixedHashWorld f) (counted SourceHash
         (liftM computation : OracleComp OracleWorld α)) := by
-    rw [Common.QueryCount.simulate_withCost]
+    rw [simulate_withCost]
     congr 2
     funext input
     cases input <;> simp only [fixedWorldCost, QueryImpl.withAddCost_apply] <;> rfl

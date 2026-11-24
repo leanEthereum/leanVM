@@ -26,12 +26,6 @@ theorem bytesLE_injective {n : Nat} {x y : BitVec (8 * n)} (h : bytesLE n x = by
 theorem bytesLE_length (n : Nat) (x : BitVec (8 * n)) : (bytesLE n x).length = n := by
   simp [bytesLE]
 
-/-- A bit vector determines the natural it encodes, below the wrap. -/
-theorem ofNat_inj_of_lt {w a b : Nat} (ha : a < 2 ^ w) (hb : b < 2 ^ w)
-    (h : BitVec.ofNat w a = BitVec.ofNat w b) : a = b := by
-  have htoNat := congrArg BitVec.toNat h
-  rwa [BitVec.toNat_ofNat, BitVec.toNat_ofNat, Nat.mod_eq_of_lt ha, Nat.mod_eq_of_lt hb] at htoNat
-
 theorem bytesBE_length (n : Nat) (x : BitVec (8 * n)) : (bytesBE n x).length = n := by
   simp [bytesBE]
 

@@ -8,7 +8,7 @@ public import XmssSecurity.Proof.StateLens
 open OracleComp OracleSpec
 open OracleComp.ProgramLogic.Relational
 
-variable {α ι : Type} {Index : Type}
+variable {ι : Type*} {α Index : Type}
 
 namespace XmssSecurity.CappedChain
 

@@ -6,7 +6,7 @@ public import XmssSecurity.Proof.FirstLaneEagerBound
 
 open OracleComp OracleSpec
 
-variable {α ι : Type} {Key Action Index : Type}
+variable {Key : Sort*} {Action : Type*} {ι : Type*} {Index α : Type}
 
 namespace XmssSecurity
 
