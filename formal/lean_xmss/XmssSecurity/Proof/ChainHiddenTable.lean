@@ -97,7 +97,6 @@ theorem mem_returnedChainValueIndices_iff
   classical
   simp only [returnedChainValueIndices, Finset.mem_filter, Finset.mem_univ, true_and]
 
-set_option maxRecDepth 10000 in
 set_option linter.constructorNameAsVariable false in
 theorem WinningOutcomeBadEventOccurs.forged_chain_coordinate_not_mem_returned
     {cache : QueryCache HashSpec} {outcome : GameOutcome} {chain : ChainIndex}
