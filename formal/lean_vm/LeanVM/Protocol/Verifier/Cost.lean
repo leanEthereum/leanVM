@@ -1030,8 +1030,9 @@ theorem leanVmQueryBound_eq : leanVmQueryBound = 13708 := by decide
 /-- The program's cost fits the budget `verifierCost`. -/
 theorem leanVmCost_le : leanVmCost ≤ verifierCost := by decide
 
-/-- The verifier's queries fit the budget `verifierQueries` with three to spare: the agreement-set
-extractor's error adds three terms of at most `2^-125` (`LeanVM.soundnessRpmAS_le_statement`). -/
+/-- The verifier's queries fit the budget `verifierQueries`, leaving room for three more: the
+agreement-set extractor's error adds three terms of at most `2^-125`
+(`LeanVM.soundnessRpmAS_le_statement`). -/
 theorem leanVmQueryBound_add_three_le : leanVmQueryBound + 3 ≤ verifierQueries := by decide
 
 /-- **The compiled leanVM verifier makes at most `leanVmQueryBound` queries** to the random

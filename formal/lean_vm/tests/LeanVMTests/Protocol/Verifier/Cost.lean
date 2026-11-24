@@ -65,6 +65,15 @@ example : ¬ (VerifierProgram.queryOpenings 0 [0, 1]).CostLE 3 31 := fun h ↦ a
 
 example : leanVmQueryBound = 13708 := leanVmQueryBound_eq
 
+/-! The error arithmetic reads the budgets, not these values. -/
+
+example : leanVmCost ≤ LeanVM.verifierCost := leanVmCost_le
+
+example : leanVmQueryBound + 3 ≤ LeanVM.verifierQueries := leanVmQueryBound_add_three_le
+
+/-- The query budget is not loose by a power of two: half of it is too small. -/
+example : ¬ leanVmQueryBound ≤ LeanVM.verifierQueries / 2 := by decide
+
 /-- The WHIR bound is attained, by the ladder at `μ = 28`, rate `1`. -/
 example : whirCost costHeight 28 ((Whir.ladder 28 1).getD []) = whirBound := by
   decide +kernel

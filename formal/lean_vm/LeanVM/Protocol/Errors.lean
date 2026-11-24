@@ -29,8 +29,8 @@ open scoped ENNReal
 /-- The budget of the verifier's oracle queries, to Keccak-256 and Keccak-f together, on every
 statement and proof: the IV, the seed's permutation, the sponge's permutations (one per challenge
 and one per four absorbed scalars) and every Merkle hash of the openings. The proof establishes
-`LeanVM.Protocol.Verifier.leanVmQueryBound` over every admissible shape, within this budget with
-three to spare (`leanVmQueryBound_add_three_le`). -/
+`LeanVM.Protocol.Verifier.leanVmQueryBound` over every admissible shape, within this budget
+leaving room for the agreement-set error's three further terms (`leanVmQueryBound_add_three_le`). -/
 def verifierQueries : ℕ := 2 ^ 14
 
 /-- The budget of the verifier program's cost, in quarters of a query: the proof establishes
