@@ -2879,6 +2879,18 @@ def gtabText : String := Id.run do
     x := y
   return "[" ++ ",\n  ".intercalate rows.toList ++ "]"
 
+/-- `g^(s·d)` for `d < 1024`, in rows of 32 (`Pow.tabN`). -/
+def gtabRowsText (s : K) : String := Id.run do
+  let mut rows : Array String := #[]
+  let mut y : K := 1
+  for _ in List.range 32 do
+    let mut row : Array String := #[]
+    for _ in List.range 32 do
+      row := row.push (toString y.toBitVec.toNat)
+      y := y * s
+    rows := rows.push ("[" ++ ", ".intercalate row.toList ++ "]")
+  return "[" ++ ",\n  ".intercalate rows.toList ++ "]"
+
 /-- The frame sizes, by compiled function index. -/
 def framesFile (fsz : List ℕ) (jtSlots : ℕ) : String :=
   header "FrameSizes" "The frame size of each compiled function, by index." ++
@@ -2906,6 +2918,12 @@ noncomputable def powTree : PowTree := {top}
 
 /-- `g^(d·16^w)` at row `w`, column `d`, as bits. -/
 def gtab : List (List ℕ) := {gtabText}
+
+/-- `g^d` for `d < 1024`, at row `d / 32`, column `d % 32`, as bits. -/
+def gtabLo : List (List ℕ) := {gtabRowsText g}
+
+/-- `g^(1024·d)` for `d < 1024`, at row `d / 32`, column `d % 32`, as bits. -/
+def gtabHi : List (List ℕ) := {gtabRowsText (g ^ 1024)}
 
 /-- The jump table: slot of `main`'s frame to the pc it holds (`__jump_tables`). -/
 noncomputable def jtTrie : Trie ℕ := {jt}
@@ -3063,7 +3081,7 @@ def packPerFile : ℕ := 24
 def groupsPerFile : ℕ := perFile
 
 /-- The subtrees of the power tree a module checks. -/
-def powsPerFile : ℕ := 8
+def powsPerFile : ℕ := 16
 
 /-- Set at the top of a module of several kernel checks: elaborated asynchronously, a module of
 several checks of the `B2C` walks keeps the memory of each until the module ends. -/
@@ -3293,7 +3311,7 @@ def checkedFiles (I : Array FnInfo) (packs : List (String × List ℕ)) (obl : L
     (powName (c / powsPerFile), checkedHeader (powName (c / powsPerFile)) "The kernel's checks of subtrees of the powers of `g`." ++
       "public import LeanVM.Guest.Pow\n\n" ++ asyncOff ++ "namespace LeanVM.Guest.Checked\n\n@[expose] public section\n\n" ++
       String.join (is.map fun i =>
-        s!"theorem powT{i}_ok : Data.powT{i}.OkW := Exec.PowTree.okW_of_okWB (by decide +kernel)\n\n") ++
+        s!"theorem powT{i}_ok : Data.powT{i}.OkW := Exec.PowTree.okW_of_okMB (by decide +kernel)\n\n") ++
       "end\nend LeanVM.Guest.Checked\n")
   -- each function's `CheckOk` and `Plain`, in modules of `fnBlock` consecutive functions, its
   -- windows over its view linked to `WinOk` there (`Check.Link`)
