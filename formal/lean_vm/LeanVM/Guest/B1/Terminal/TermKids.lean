@@ -76,6 +76,22 @@ def TermRegion (B : TermBases) (nz nc τ nm : ℕ) (i : ℕ) : Prop :=
     (B.ct ≤ i ∧ i < B.ct + 64) ∨ (B.pt ≤ i ∧ i < B.pt + 40) ∨ (B.pt1 ≤ i ∧ i < B.pt1 + 40) ∨
     (B.oz ≤ i ∧ i < B.oz + nm)
 
+/-- A goal `TermRegion … i`, one range at a time by `omega` (on the whole disjunction `omega` splits on every
+range). -/
+macro "term_region" : tactic => `(tactic| (unfold TermRegion; first
+  | (left; exact ⟨by omega, by omega⟩)
+  | (iterate 1 right); left; exact ⟨by omega, by omega⟩
+  | (iterate 2 right); left; exact ⟨by omega, by omega⟩
+  | (iterate 3 right); left; exact ⟨by omega, by omega⟩
+  | (iterate 4 right); left; exact ⟨by omega, by omega⟩
+  | (iterate 5 right); left; exact ⟨by omega, by omega⟩
+  | (iterate 6 right); left; exact ⟨by omega, by omega⟩
+  | (iterate 7 right); left; exact ⟨by omega, by omega⟩
+  | (iterate 8 right); left; exact ⟨by omega, by omega⟩
+  | (iterate 9 right); left; exact ⟨by omega, by omega⟩
+  | (iterate 10 right); exact ⟨by omega, by omega⟩
+  | omega))
+
 /-- The honest data the terminal's callees use. -/
 structure TermData where
   B : TermBases
@@ -358,8 +374,8 @@ theorem termKids_regions (Lin : Main.Layout) (D : TermData) (b0 : ℕ)
     simp only [Tables.stLin, List.mem_cons, List.not_mem_nil, or_false] at hq
     refine hreg i ?_
     rcases hq with rfl | rfl
-    · simp only [pt32, List.length_take, hpt] at h; simp only [TermRegion]; omega
-    · simp only [pt132, List.length_take, hpl] at h; simp only [TermRegion]; omega
+    · simp only [pt32, List.length_take, hpt] at h; term_region
+    · simp only [pt132, List.length_take, hpl] at h; term_region
   rw [termBuf_eq]
   refine regionsOk_kidsAt _ _ _ _ fun j hj _ ht i hi => ?_
   unfold kidAt at ht hi
@@ -394,7 +410,7 @@ theorem termKids_regions (Lin : Main.Layout) (D : TermData) (b0 : ℕ)
       simp only [List.mem_cons, List.not_mem_nil, or_false] at hq
       subst hq
       simp only [gTabW_length] at h
-      simp only [TermRegion]; omega
+      term_region
   · rcases regionL_cons_iff hi with h | h
     · exact Or.inl (buf _ (by simp [termBufs]) h)
     · exact Or.inl (Or.inl h)
@@ -402,9 +418,9 @@ theorem termKids_regions (Lin : Main.Layout) (D : TermData) (b0 : ℕ)
     obtain ⟨q, hq, h⟩ := hi
     simp only [List.mem_cons, List.not_mem_nil, or_false] at hq
     rcases hq with rfl | rfl | rfl
-    · simp only [hrl] at h; simp only [TermRegion]; omega
-    · simp only [List.length_take, hpl] at h; simp only [TermRegion]; omega
-    · simp only [hcf] at h; simp only [TermRegion]; omega
+    · simp only [hrl] at h; term_region
+    · simp only [List.length_take, hpl] at h; term_region
+    · simp only [hcf] at h; term_region
   · rcases regionL_cons_iff hi with h | h
     · exact Or.inl (buf _ (by simp [termBufs]) h)
     · exact Or.inl (Or.inl h)

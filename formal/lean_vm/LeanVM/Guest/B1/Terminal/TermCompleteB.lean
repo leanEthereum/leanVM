@@ -167,13 +167,10 @@ theorem termKids_completeB (κ : ℕ) (hκ : 6 ≤ κ) (Lin : Main.Layout) (D : 
       fun pv => ⟨fun _ => ?_, fun h => by simp at h⟩, trivial⟩
     · exact eqc_kid_completeB κ hκ (by omega) (by simp; omega) hgmu
         (fun rd hl hm => ⟨(hrd rd hl hm).1, readsAt_take (hrd rd hl hm).2.2.2 _⟩)
-        (fun i hi => hreg i (by
-          rcases hi with hi | hi
-          · exact Or.inl hi
-          · simp only [TermRegion]; omega)) hEqc
+        (fun i hi => hreg i (by rcases hi with hi | hi <;> term_region)) hEqc
     · exact eqc_kid_completeB κ hκ (by omega) (by simp; omega) hgz
         (fun rd hl hm => ⟨(hrd rd hl hm).2.1, readsAt_take (hrd rd hl hm).2.2.2 _⟩)
-        (fun i hi => hreg i (by simp only [TermRegion]; omega)) hEqc
+        (fun i hi => hreg i (by rcases hi with hi | hi <;> term_region)) hEqc
     · have hne : word 2 0 + D.glm ≠ 0 := by simpa using ht
       have hm2 : 2 ≤ D.m := by
         by_contra h
@@ -182,7 +179,7 @@ theorem termKids_completeB (κ : ℕ) (hκ : 6 ≤ κ) (Lin : Main.Layout) (D : 
         exact e_add_self _
       exact (l15_kid_completeB κ hm2 (by omega) hglm (by omega)
         (fun rd hl hm => (hrd rd hl hm).2.2.2)
-        (fun i hi => hreg i (by simp only [TermRegion]; omega)) hL15).mono le_rfl
+        (fun i hi => hreg i (by term_region)) hL15).mono le_rfl
         (Nat.add_le_add_right (Nat.mul_le_mul_right _ hm) _)
     · exact ((Tables.selector_tables_completeAtB fs cert κ _ _ _ _ (by simp [pt32]; omega)
         (by simp [pt132]; omega)).toCompleteAtB).mono le_rfl (by simp)
@@ -217,7 +214,7 @@ theorem termKids_completeB (κ : ℕ) (hκ : 6 ≤ κ) (Lin : Main.Layout) (D : 
           D.gtau * word 64 0] (Returns []) _
       exact eqc_kid_completeB κ hκ (by omega) (by simp; omega) e
         (fun rd hl hm => ⟨(hrd rd hl hm).2.2.1, readsAt_take (hrd rd hl hm).2.2.2 _⟩)
-        (fun i hi => hreg i (by simp only [TermRegion]; omega)) hEqc
+        (fun i hi => hreg i (by rcases hi with hi | hi <;> term_region)) hEqc
     · have e1 : ofK (addressOfIndex D.B.zv) * word 549755813888 0 = ofK (addressOfIndex (D.B.zv +
         39)) := by
         rw [show (549755813888 : ℕ) = 2 ^ 39 by norm_num, word_two_pow (by decide), ofK_gpow_mul_gen]
@@ -231,7 +228,7 @@ theorem termKids_completeB (κ : ℕ) (hκ : 6 ≤ κ) (Lin : Main.Layout) (D : 
         (by omega)
     · exact eqc_kid_completeB κ hκ (by omega) (by simp; omega) hgm
         (fun rd hl hm => ⟨hrdO rd hl hm, readsAt_take (hrd rd hl hm).2.2.2 _⟩)
-        (fun i hi => hreg i (by simp only [TermRegion]; omega)) hEqc
+        (fun i hi => hreg i (by rcases hi with hi | hi <;> term_region)) hEqc
 
 /-! ## The terminal -/
 
