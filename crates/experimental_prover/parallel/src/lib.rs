@@ -62,6 +62,8 @@ struct Job {
 }
 
 /// Park state for one worker (slot 0, the dispatcher, never parks).
+/// Padded to 128 bytes so adjacent workers do not false-share `parked` during spin/wake.
+#[repr(align(128))]
 struct Worker {
     /// "Currently parked", SeqCst-ordered against [`Pool::generation`].
     parked: AtomicBool,
@@ -106,6 +108,8 @@ struct Pool {
     /// Caught here so it cannot unwind across `worker_main`, which would skip the
     /// exit count and hang the completion spin.
     panic: Mutex<Option<Box<dyn Any + Send>>>,
+    /// Fast flag guarding `panic` so normal dispatches take no mutex.
+    has_panic: AtomicBool,
 }
 
 /// The admission word's top bit, which refuses further workers.
@@ -156,6 +160,7 @@ fn pool() -> &'static Pool {
                 .collect(),
             dispatch: Mutex::new(()),
             panic: Mutex::new(None),
+            has_panic: AtomicBool::new(false),
         }));
         for id in 1..n {
             // Ids past the performance count are the efficiency workers.
@@ -256,6 +261,7 @@ fn drain(pool: &Pool) {
     }));
     if let Err(payload) = result {
         pool.panic.lock().unwrap().get_or_insert(payload); // keep the first
+        pool.has_panic.store(true, Ordering::Release);
     }
 }
 
@@ -319,8 +325,9 @@ pub fn for_each_chunk<F: Fn(usize, usize) + Sync>(n_tasks: usize, f: F) {
     pool.entry.store(0, Ordering::Release);
     pool.generation.fetch_add(1, Ordering::SeqCst); // wake; SeqCst guards the park protocol
 
-    // Wake only the parked workers; the spinning ones see the bump for free.
-    for worker in &pool.workers[1..] {
+    // Wake only as many parked workers as there are extra tasks; spinning ones see the bump for free.
+    let wake = n_tasks.saturating_sub(1).min(pool.workers.len().saturating_sub(1));
+    for worker in &pool.workers[1..=wake] {
         if worker.parked.load(Ordering::SeqCst)
             && let Some(t) = worker.handle.get()
         {
@@ -338,7 +345,12 @@ pub fn for_each_chunk<F: Fn(usize, usize) + Sync>(n_tasks: usize, f: F) {
 
     // Re-raise the first task panic after dropping the guard, so the lock
     // releases cleanly (no poison) and the pool stays usable.
-    let panicked = pool.panic.lock().unwrap().take();
+    let panicked = if pool.has_panic.load(Ordering::Acquire) {
+        pool.has_panic.store(false, Ordering::Relaxed);
+        pool.panic.lock().unwrap().take()
+    } else {
+        None
+    };
     drop(guard);
     if let Some(payload) = panicked {
         resume_unwind(payload);

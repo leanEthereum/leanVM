@@ -67,6 +67,10 @@ pub(crate) unsafe fn level(n: usize) -> Vec<F128> {
     values
 }
 
+/// Minimum output size (in `F128` elements, 4 MiB) before using non-temporal streaming stores.
+/// Smaller outputs stay in L2/L3 cache for the next round.
+const STREAM_MIN_F128: usize = 1 << 18;
+
 /// The level above `current`: the product of each four-tuple, an incomplete last one
 /// padded with the identity.
 fn next_level(current: &[F128]) -> Vec<F128> {
@@ -76,13 +80,17 @@ fn next_level(current: &[F128]) -> Vec<F128> {
     // SAFETY: the products below write `next[..full_rows]`, and the tail its last slot.
     let mut next = unsafe { level(current.len().div_ceil(4)) };
     if full_rows >= PAR_THRESHOLD {
-        // The next level and the GKR read the output long after this pass evicts it.
+        let use_stream = full_rows >= STREAM_MIN_F128;
         parallel::chunks_mut(&mut next[..full_rows], ROWS, |task, destination| {
-            let mut stage = [F128::ZERO; ROWS];
-            let stage = &mut stage[..destination.len()];
             let start = 4 * ROWS * task;
-            products_into(&current[start..start + 4 * stage.len()], stage);
-            Stream::new().copy(destination, stage);
+            if use_stream {
+                let mut stage = [F128::ZERO; ROWS];
+                let stage = &mut stage[..destination.len()];
+                products_into(&current[start..start + 4 * stage.len()], stage);
+                Stream::new().copy(destination, stage);
+            } else {
+                products_into(&current[start..start + 4 * destination.len()], destination);
+            }
         });
     } else {
         products_into(&current[..4 * full_rows], &mut next[..full_rows]);
@@ -254,9 +262,8 @@ fn runs<'a>(range: Range<usize>, ones: &'a [Range<usize>]) -> impl Iterator<Item
 }
 
 /// Whether the scalar kernels, and the leaf builder's products, skip the rows known to
-/// be the identity: they contribute nothing to a round message and fold to the
-/// identity. Not yet measured on aarch64, so it keeps computing them.
-pub(crate) const SKIP_IDENTITY: bool = cfg!(target_arch = "x86_64");
+/// be the identity: they contribute nothing to a round message and fold to the identity.
+pub(crate) const SKIP_IDENTITY: bool = true;
 
 /// Below this logical height a layer runs the scalar kernels.
 #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq"))]
@@ -397,15 +404,23 @@ impl QuaternaryLayerState {
         // Where it does not, the stage buys nothing and costs a real call, the
         // `slot.len()` being one the compiler cannot fold away.
         #[cfg(target_arch = "x86_64")]
+        let use_stream = 4 * full_rows >= STREAM_MIN_F128;
+        #[cfg(target_arch = "x86_64")]
         let window = |base: usize, destination: &mut [F128]| {
-            let stream = Stream::new();
             let mut rows = folded(base, destination.len() / 4);
-            for slot in destination.chunks_mut(8) {
-                let mut both = [F128::ZERO; 8];
-                for (half, row) in both[..slot.len()].chunks_mut(4).zip(&mut rows) {
-                    half.copy_from_slice(&row);
+            if use_stream {
+                let stream = Stream::new();
+                for slot in destination.chunks_mut(8) {
+                    let mut both = [F128::ZERO; 8];
+                    for (half, row) in both[..slot.len()].chunks_mut(4).zip(&mut rows) {
+                        half.copy_from_slice(&row);
+                    }
+                    stream.copy(slot, &both[..slot.len()]);
                 }
-                stream.copy(slot, &both[..slot.len()]);
+            } else {
+                for (slot, row) in destination.chunks_mut(4).zip(rows) {
+                    slot.copy_from_slice(&row);
+                }
             }
         };
         #[cfg(not(target_arch = "x86_64"))]
@@ -438,24 +453,36 @@ impl QuaternaryLayerState {
         self.ones = identity;
     }
 
-    fn fold_and_message_scalar(&mut self, challenge: F128, eq: &SplitEq) -> [F128; 4] {
-        let stored_rows = self.values.len() / 4;
-        let rows = stored_rows.div_ceil(2);
-        // SAFETY: the tasks below write every slot of `next[..4 * rows]` before anything reads it.
-        let mut next: Vec<F128> = unsafe { primitives::uninit_vec(4 * rows) };
-        let values = &self.values;
-        // Rows of the folded layer, and pairs of them, known to be the identity.
-        let identity = coarsen(&self.ones, 1);
-        let identity_pairs = coarsen(&identity, 1);
-        let dst = parallel::SendPtr(next.as_mut_ptr());
-        const PAIRS: usize = 16;
-        let pairs = rows.div_ceil(2);
-        let task = |index: usize| {
+    fn fold_and_message_scalar_all(
+        trees: &mut [QuaternaryLayerState; N_BUS_TREES],
+        challenge: F128,
+        eq: &SplitEq,
+    ) -> [[F128; 4]; N_BUS_TREES] {
+        const PAIRS: usize = 64;
+        let rows: [usize; N_BUS_TREES] = std::array::from_fn(|t| (trees[t].values.len() / 4).div_ceil(2));
+        let pairs: [usize; N_BUS_TREES] = rows.map(|r| r.div_ceil(2));
+        let identities: [Vec<Range<usize>>; N_BUS_TREES] = std::array::from_fn(|t| coarsen(&trees[t].ones, 1));
+        let identity_pairs: [Vec<Range<usize>>; N_BUS_TREES] = std::array::from_fn(|t| coarsen(&identities[t], 1));
+        let mut nexts: [Vec<F128>; N_BUS_TREES] = std::array::from_fn(|t| {
+            // SAFETY: the tasks below write every slot of `next[..4 * rows[t]]` before anything reads it.
+            unsafe { primitives::uninit_vec(4 * rows[t]) }
+        });
+        let dsts: [parallel::SendPtr<F128>; N_BUS_TREES] =
+            std::array::from_fn(|t| parallel::SendPtr(nexts[t].as_mut_ptr()));
+        let use_stream: [bool; N_BUS_TREES] = rows.map(|r| 4 * r >= STREAM_MIN_F128);
+        let tasks: Vec<(usize, usize)> = (0..N_BUS_TREES)
+            .flat_map(|t| (0..pairs[t].div_ceil(PAIRS)).map(move |idx| (t, idx)))
+            .collect();
+        let values: [&[F128]; N_BUS_TREES] = std::array::from_fn(|t| trees[t].values.as_slice());
+
+        let task = |job: usize| {
+            let (t, index) = tasks[job];
             let first = index * PAIRS;
-            let end = (first + PAIRS).min(pairs);
+            let end = (first + PAIRS).min(pairs[t]);
+            let end_row = (2 * end).min(rows[t]);
+            let len = 4 * (end_row - 2 * first);
             let mut stage = [F128::ZERO; 8 * PAIRS];
-            let end_row = (2 * end).min(rows);
-            for (run, one) in runs(2 * first..end_row, &identity) {
+            for (run, one) in runs(2 * first..end_row, &identities[t]) {
                 let staged = &mut stage[4 * (run.start - 2 * first)..4 * (run.end - 2 * first)];
                 if one {
                     staged.fill(F128::ONE);
@@ -463,8 +490,8 @@ impl QuaternaryLayerState {
                 }
                 for (row, out) in run.zip(staged.as_chunks_mut::<4>().0) {
                     let lo = 8 * row;
-                    let left = &values[lo..lo + 4];
-                    let right = values.get(lo + 4..lo + 8).unwrap_or(&[F128::ONE; 4]);
+                    let left = &values[t][lo..lo + 4];
+                    let right = values[t].get(lo + 4..lo + 8).unwrap_or(&[F128::ONE; 4]);
                     let product = mul4(std::array::from_fn(|i| left[i] + right[i]), [challenge; 4]);
                     *out = std::array::from_fn(|i| left[i] + product[i]);
                 }
@@ -472,7 +499,7 @@ impl QuaternaryLayerState {
             let summand = |pair: usize, weight: F128| {
                 let lo = 8 * (pair - first);
                 let left = &stage[lo..lo + 4];
-                let right = if 2 * pair + 1 < rows {
+                let right = if 2 * pair + 1 < rows[t] {
                     &stage[lo + 4..lo + 8]
                 } else {
                     &[F128::ONE; 4]
@@ -480,21 +507,33 @@ impl QuaternaryLayerState {
                 let lines = std::array::from_fn(|i| [left[i], left[i] + right[i]]);
                 quartic_summand(lines, weight)
             };
-            let message = runs(first..end, &identity_pairs)
+            let message = runs(first..end, &identity_pairs[t])
                 .filter(|(_, ones)| !ones)
                 .fold([F128::ZERO; 4], |acc, (run, _)| add4(acc, eq.sum(run, summand)));
-            // The next round reads the destination; this round reads only the local stage.
-            let stream = Stream::new();
-            let len = 4 * (end_row - 2 * first);
-            // SAFETY: tasks own disjoint initialized prefixes of the output, covering every row.
-            unsafe { stream.copy(dst.slice(8 * first, len), &stage[..len]) };
-            message
+            // SAFETY: tasks own disjoint initialized prefixes of each tree's output, covering every row.
+            let out_slice = unsafe { dsts[t].slice(8 * first, len) };
+            if use_stream[t] {
+                Stream::new().copy(out_slice, &stage[..len]);
+            } else {
+                out_slice.copy_from_slice(&stage[..len]);
+            }
+            let mut messages = [[F128::ZERO; 4]; N_BUS_TREES];
+            messages[t] = message;
+            messages
         };
-        let message = sum_tasks(pairs.div_ceil(PAIRS), rows >= PAR_THRESHOLD, task);
-        self.values = next;
-        self.logical_rows /= 2;
-        self.ones = identity;
-        message
+        let add = |a: [[F128; 4]; N_BUS_TREES], b: [[F128; 4]; N_BUS_TREES]| std::array::from_fn(|t| add4(a[t], b[t]));
+        let total_rows: usize = rows.iter().sum();
+        let messages = if total_rows >= PAR_THRESHOLD {
+            parallel::map_reduce(tasks.len(), || [[F128::ZERO; 4]; N_BUS_TREES], task, add)
+        } else {
+            (0..tasks.len()).map(task).fold([[F128::ZERO; 4]; N_BUS_TREES], add)
+        };
+        for ((tree, next), identity) in trees.iter_mut().zip(nexts).zip(identities) {
+            tree.values = next;
+            tree.logical_rows /= 2;
+            tree.ones = identity;
+        }
+        messages
     }
 
     fn children(&self) -> [F128; 4] {
@@ -527,7 +566,7 @@ fn fold_and_message(
             tree.leave_groups();
         }
     }
-    trees.each_mut().map(|tree| tree.fold_and_message_scalar(challenge, eq))
+    QuaternaryLayerState::fold_and_message_scalar_all(trees, challenge, eq)
 }
 
 /// The VPCLMULQDQ kernels: eight pairs of rows at a time, transposed so that every
@@ -740,9 +779,11 @@ mod vertical {
             .collect();
         let r = F128x8::splat(challenge);
         let ones = inputs.each_ref().map(|input| coarsen(input.ones, 1));
+        let use_stream: [bool; N_BUS_TREES] =
+            n_out.map(|n| n * std::mem::size_of::<Group>() >= super::STREAM_MIN_F128 * std::mem::size_of::<F128>());
         let task = |i: usize| {
             let (t, first) = tasks[i];
-            let stream = Stream::new();
+            let stream = use_stream[t].then(Stream::new);
             let mut message = Message::new(eq, first);
             for g in first..(first + TASK).min(n_out[t]) {
                 // Identity rows fold to identity rows, which add nothing, and their
@@ -752,9 +793,15 @@ mod vertical {
                 }
                 let pairs = fold_pairs(&inputs[t].get(2 * g), &inputs[t].get(2 * g + 1), r);
                 message.add(g, &pairs);
-                // The next round reads it, long after this round's pass evicted it.
                 // SAFETY: tasks own disjoint groups of the outputs.
-                unsafe { stream.copy(dst[t].slice(g, 1), std::slice::from_ref(&pairs)) };
+                unsafe {
+                    let slot = dst[t].slice(g, 1);
+                    if let Some(stream) = &stream {
+                        stream.copy(slot, std::slice::from_ref(&pairs));
+                    } else {
+                        slot[0] = pairs;
+                    }
+                }
             }
             let mut messages = [[F128::ZERO; 4]; N_BUS_TREES];
             messages[t] = message.finish();

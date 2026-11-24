@@ -219,9 +219,15 @@ impl LeafBlock {
         let (real_out, padding) = out.split_at_mut(real);
         // A padding row's leaf is the identity, so it leaves the product alone.
         padding.fill(F128::ONE);
-        #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq"))]
+        #[cfg(any(
+            all(target_arch = "x86_64", target_feature = "pclmulqdq"),
+            all(target_arch = "aarch64", target_feature = "aes"),
+        ))]
         let done = self.fill_lanes(z0, real_out, cols);
-        #[cfg(not(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq")))]
+        #[cfg(not(any(
+            all(target_arch = "x86_64", target_feature = "pclmulqdq"),
+            all(target_arch = "aarch64", target_feature = "aes"),
+        )))]
         let done = 0;
         let mut index = g_pow(z0 + done);
         for (i, slot) in real_out.iter_mut().enumerate().skip(done) {
@@ -233,7 +239,10 @@ impl LeafBlock {
 
     /// [`fill`](Self::fill) [`lanes::N`] rows at a time, every term one lane-wise mixed
     /// product; returns how many rows it wrote.
-    #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq"))]
+    #[cfg(any(
+        all(target_arch = "x86_64", target_feature = "pclmulqdq"),
+        all(target_arch = "aarch64", target_feature = "aes"),
+    ))]
     fn fill_lanes(&self, z0: usize, out: &mut [F128], cols: &[&[F64]]) -> usize {
         use lanes::{E, K, Mixed, N};
         let load = |source: &[F64], z: usize| K::load(source[z..z + N].try_into().unwrap());
@@ -262,7 +271,8 @@ impl LeafBlock {
 }
 
 /// The lane-wise kernels [`LeafBlock::fill_lanes`] runs on: eight lanes with AVX-512
-/// ([`primitives::field::x8`]), four without ([`primitives::field::x4`]).
+/// ([`primitives::field::x8`]), four with AVX2+VPCLMULQDQ ([`primitives::field::x4`]), and
+/// two with PCLMULQDQ or ARM64 NEON+AES.
 #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
 mod lanes {
     pub(super) use primitives::field::x8::{F64x8 as K, F128x8 as E, Mixed8 as Mixed};
@@ -277,6 +287,181 @@ mod lanes {
 mod lanes {
     pub(super) use primitives::field::x4::{F64x4 as K, F128x4 as E, Mixed4 as Mixed};
     pub(super) const N: usize = 4;
+}
+#[cfg(all(
+    target_arch = "x86_64",
+    target_feature = "pclmulqdq",
+    not(all(target_feature = "avx2", target_feature = "vpclmulqdq"))
+))]
+mod lanes {
+    use core::arch::x86_64::*;
+    use primitives::field::{F64, F128, F128Unreduced};
+    pub(super) const N: usize = 2;
+
+    #[derive(Clone, Copy)]
+    pub(super) struct K([F64; 2]);
+    impl K {
+        #[inline(always)]
+        pub(super) fn new(v: [F64; 2]) -> Self {
+            Self(v)
+        }
+        #[inline(always)]
+        pub(super) fn splat(v: F64) -> Self {
+            Self([v; 2])
+        }
+        #[inline(always)]
+        pub(super) fn load(v: &[F64; 2]) -> Self {
+            Self(*v)
+        }
+    }
+    impl core::ops::Mul for K {
+        type Output = Self;
+        #[inline(always)]
+        fn mul(self, rhs: Self) -> Self {
+            Self([self.0[0] * rhs.0[0], self.0[1] * rhs.0[1]])
+        }
+    }
+
+    #[derive(Clone, Copy)]
+    pub(super) struct E([F128; 2]);
+    impl E {
+        #[inline(always)]
+        pub(super) fn splat(v: F128) -> Self {
+            Self([v; 2])
+        }
+        #[inline(always)]
+        pub(super) fn load(v: &[F128; 2]) -> Self {
+            Self(*v)
+        }
+        #[inline(always)]
+        pub(super) fn store(self, dst: &mut [F128; 2]) {
+            *dst = self.0;
+        }
+    }
+    impl core::ops::Add for E {
+        type Output = Self;
+        #[inline(always)]
+        fn add(self, rhs: Self) -> Self {
+            Self([self.0[0] + rhs.0[0], self.0[1] + rhs.0[1]])
+        }
+    }
+
+    #[derive(Clone, Copy)]
+    pub(super) struct Mixed([[__m128i; 2]; 2]);
+    impl Mixed {
+        // SAFETY: zero-initialized `__m128i` is valid.
+        pub(super) const ZERO: Self = Self([[unsafe { core::mem::zeroed() }; 2]; 2]);
+
+        #[inline(always)]
+        pub(super) fn add(&mut self, c: E, k: K) {
+            // SAFETY: module cfg enables pclmulqdq.
+            unsafe {
+                let cv = _mm_set_epi64x(c.0[0].c1 as i64, c.0[0].c0 as i64);
+                let kv = _mm_set_epi64x(k.0[1].0 as i64, k.0[0].0 as i64);
+                self.0[0][0] = _mm_xor_si128(self.0[0][0], _mm_clmulepi64_si128::<0x00>(cv, kv));
+                self.0[0][1] = _mm_xor_si128(self.0[0][1], _mm_clmulepi64_si128::<0x01>(cv, kv));
+                self.0[1][0] = _mm_xor_si128(self.0[1][0], _mm_clmulepi64_si128::<0x10>(cv, kv));
+                self.0[1][1] = _mm_xor_si128(self.0[1][1], _mm_clmulepi64_si128::<0x11>(cv, kv));
+            }
+        }
+
+        #[inline(always)]
+        pub(super) fn reduce(self) -> E {
+            let one = |pair: [__m128i; 2]| {
+                // SAFETY: `__m128i` and `u128` have the same size and no invalid bit patterns.
+                let wide = pair.map(|r| unsafe { core::mem::transmute::<__m128i, u128>(r) });
+                F128Unreduced::from_wide(wide).reduce()
+            };
+            E([one(self.0[0]), one(self.0[1])])
+        }
+    }
+}
+#[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
+mod lanes {
+    use core::arch::aarch64::*;
+    use primitives::field::gf2_64::aarch64::{pmull, pmull_hi};
+    use primitives::field::{F64, F128, F128Unreduced};
+    pub(super) const N: usize = 2;
+
+    #[derive(Clone, Copy)]
+    pub(super) struct K([F64; 2]);
+    impl K {
+        #[inline(always)]
+        pub(super) fn new(v: [F64; 2]) -> Self {
+            Self(v)
+        }
+        #[inline(always)]
+        pub(super) fn splat(v: F64) -> Self {
+            Self([v; 2])
+        }
+        #[inline(always)]
+        pub(super) fn load(v: &[F64; 2]) -> Self {
+            Self(*v)
+        }
+    }
+    impl core::ops::Mul for K {
+        type Output = Self;
+        #[inline(always)]
+        fn mul(self, rhs: Self) -> Self {
+            Self([self.0[0] * rhs.0[0], self.0[1] * rhs.0[1]])
+        }
+    }
+
+    #[derive(Clone, Copy)]
+    pub(super) struct E([F128; 2]);
+    impl E {
+        #[inline(always)]
+        pub(super) fn splat(v: F128) -> Self {
+            Self([v; 2])
+        }
+        #[inline(always)]
+        pub(super) fn load(v: &[F128; 2]) -> Self {
+            Self(*v)
+        }
+        #[inline(always)]
+        pub(super) fn store(self, dst: &mut [F128; 2]) {
+            *dst = self.0;
+        }
+    }
+    impl core::ops::Add for E {
+        type Output = Self;
+        #[inline(always)]
+        fn add(self, rhs: Self) -> Self {
+            Self([self.0[0] + rhs.0[0], self.0[1] + rhs.0[1]])
+        }
+    }
+
+    #[derive(Clone, Copy)]
+    pub(super) struct Mixed([[uint64x2_t; 2]; 2]);
+    impl Mixed {
+        // SAFETY: zero-initialized `uint64x2_t` is valid.
+        pub(super) const ZERO: Self = Self([[unsafe { core::mem::zeroed() }; 2]; 2]);
+
+        #[inline(always)]
+        pub(super) fn add(&mut self, c: E, k: K) {
+            // SAFETY: module cfg enables aes (PMULL) and NEON is in the aarch64 baseline.
+            unsafe {
+                let cv = vld1q_u64([c.0[0].c0, c.0[0].c1].as_ptr());
+                let kv = vld1q_u64(k.0.as_ptr().cast());
+                let k0 = vdupq_laneq_u64::<0>(kv);
+                let k1 = vdupq_laneq_u64::<1>(kv);
+                self.0[0][0] = veorq_u64(self.0[0][0], pmull(c.0[0].c0, k.0[0].0));
+                self.0[0][1] = veorq_u64(self.0[0][1], pmull_hi(cv, k0));
+                self.0[1][0] = veorq_u64(self.0[1][0], pmull(c.0[0].c0, k.0[1].0));
+                self.0[1][1] = veorq_u64(self.0[1][1], pmull_hi(cv, k1));
+            }
+        }
+
+        #[inline(always)]
+        pub(super) fn reduce(self) -> E {
+            let one = |pair: [uint64x2_t; 2]| {
+                // SAFETY: `uint64x2_t` and `u128` have the same size and no invalid bit patterns.
+                let wide = pair.map(|r| unsafe { core::mem::transmute::<uint64x2_t, u128>(r) });
+                F128Unreduced::from_wide(wide).reduce()
+            };
+            E([one(self.0[0]), one(self.0[1])])
+        }
+    }
 }
 
 /// `dst[i] = ∏ src[4i..4i+4]`, an incomplete last four-tuple padded with the identity.
