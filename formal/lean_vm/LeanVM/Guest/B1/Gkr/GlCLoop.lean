@@ -16,6 +16,7 @@ public import LeanVM.Guest.CoreData
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«gkr_layer__L_loop0»
 import LeanVM.Guest.B1.Tables.Basic
+import LeanVM.Guest.B1.Common.Find
 
 /-!
 # `gkr_layer__L{p}_L{o}_loop0`, completely
@@ -77,9 +78,11 @@ def glcBody (nm : String) : List Stmt :=
 /-- The loop's parameters. -/
 def glcPar6 : List V := [.n (valf% «gkr_layer» «_loop0» "y"), .n (valf% «gkr_layer» «_loop0» "bound"), .n (valf% «gkr_layer» «_loop0» "head"), .n (valf% «gkr_layer» «_loop0» "qrow"), .n (valf% «gkr_layer» «_loop0» "nqrow"), .n (valf% «gkr_layer» «_loop0» "tabs")]
 
+/-- The loop of `p`, `o` at its index (`glLoopIdx`) is named `glLoopName p o` and has these parameters and body. -/
 noncomputable def glcCheck (p o : ℕ) : Bool :=
-  match coreProgram.find? (glLoopName p o) with
-  | some fn => decide (fn.params = glcPar6) && tbStmtsEqb fn.body (glcBody (glLoopName p o))
+  match coreProgram[glLoopIdx p o]? with
+  | some fn => fn.name == glLoopName p o && decide (fn.params = glcPar6) &&
+      tbStmtsEqb fn.body (glcBody (glLoopName p o))
   | none => false
 
 theorem glc_check : ∀ p < 4, ∀ o < 2, glcCheck p o = true := by decide +kernel
@@ -89,9 +92,9 @@ theorem glcFound {p o : ℕ} (hp : p < 4) (ho : o < 2) : ∃ fn : Fn, coreProgra
   have h := glc_check p hp o ho
   unfold glcCheck at h
   split at h
-  · rename_i fn hf
-    simp only [Bool.and_eq_true, decide_eq_true_eq] at h
-    exact ⟨fn, hf, h.1, tbStmtsEqb_sound h.2⟩
+  · rename_i fn hj
+    simp only [Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at h
+    exact ⟨fn, coreProgram_find?_at hj h.1.1, h.1.2, tbStmtsEqb_sound h.2⟩
   · exact absurd h (by simp)
 
 /-- Every statement of `gkPre true 8` is an atom over values `.n k`, `k ≤ 324`, never the window
