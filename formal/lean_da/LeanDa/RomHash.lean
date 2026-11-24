@@ -191,26 +191,26 @@ def hCalls : Rom2.Domain → ℕ
   | .inr (.inl _) => 1
   | _ => 0
 
-/-- **Each step of the shadow world makes at most one `H` call**, none for a coin or a direct
-call. -/
-theorem isWeightBound_shadowImpl (t : (dSpec2 (List UInt8) DigestBytes KState).Domain)
-    (s : SimState DigestBytes KRest KCap) :
-    QueryCostAtMost ((shadowImpl keccakPadding t).run s) hCalls
+/-- **Each step of the shadow world weighs at most its query's cost**, in a weight that charges
+nothing for coins and at most one for a call of `H` or of `F`. -/
+theorem isWeightBound_shadowImpl_of (w : Rom2.Domain → ℕ) (hu : ∀ n, w (.inl n) = 0)
+    (hH : ∀ a, w (.inr (.inl a)) ≤ 1) (hF : ∀ x, w (.inr (.inr x)) ≤ 1)
+    (t : (dSpec2 (List UInt8) DigestBytes KState).Domain) (s : SimState DigestBytes KRest KCap) :
+    QueryCostAtMost ((shadowImpl keccakPadding t).run s) w
       (queryCost2 (Dg := DigestBytes) keccakPadding t) := by
-  have hu : ∀ {β : Type} (p : ProbComp β), QueryCostAtMost (liftM p : OracleComp Rom2 β) hCalls 0 :=
-    fun p ↦ isWeightBound_liftM_probComp hCalls (fun _ ↦ rfl) p
-  have hF : ∀ x : KState, QueryCostAtMost (fQuery (Msg := List UInt8) (Dg := DigestBytes) x) hCalls 0 :=
-    fun x ↦ isWeightBound_query hCalls (.inr (.inr x))
-  have hH : ∀ a : List UInt8, QueryCostAtMost (hR a) hCalls 1 :=
-    fun a ↦ isWeightBound_query hCalls (.inr (.inl a))
+  have hu' : ∀ {β : Type} (p : ProbComp β), QueryCostAtMost (liftM p : OracleComp Rom2 β) w 0 :=
+    fun p ↦ isWeightBound_liftM_probComp w hu p
+  have hF' : ∀ x : KState, QueryCostAtMost (fQuery (Msg := List UInt8) (Dg := DigestBytes) x) w 1 :=
+    fun x ↦ (isWeightBound_query w (.inr (.inr x))).mono (hF x)
+  have hH' : ∀ a : List UInt8, QueryCostAtMost (hR a) w 1 :=
+    fun a ↦ (isWeightBound_query w (.inr (.inl a))).mono (hH a)
   rcases t with n | m | q | x
   · simp only [shadowImpl, StateT.run_monadLift, monadLift_self]
-    exact (hu _).bind fun _ ↦ isWeightBound_pure _ _ 0
+    exact (hu' _).bind fun _ ↦ isWeightBound_pure _ _ 0
   · simp only [shadowImpl, StateT.run_monadLift, monadLift_self]
-    refine ((hH m).bind fun _ ↦ isWeightBound_pure _ _ 0).mono ?_
-    have := keccakPadding.pad_ne_nil m
+    refine ((hH' m).bind fun _ ↦ isWeightBound_pure _ _ 0).mono ?_
     simp only [queryCost2]
-    exact List.length_pos_iff.mpr this
+    exact List.length_pos_iff.mpr (keccakPadding.pad_ne_nil m)
   · cases q with
     | forward x =>
       simp only [shadowImpl, simulator2, StateT.run_mk]
@@ -220,16 +220,24 @@ theorem isWeightBound_shadowImpl (t : (dSpec2 (List UInt8) DigestBytes KState).D
         · refine (QueryCostAtMost.bind (b := 0) ?_ fun _ ↦ isWeightBound_pure _ _ 0)
           unfold rootedAnswer2
           split
-          · exact ((hH _).bind fun _ ↦ (hu _).bind fun _ ↦ isWeightBound_pure _ _ 0)
-          · exact (hF _).mono (Nat.zero_le _)
-        · exact ((hF _).bind fun _ ↦ isWeightBound_pure _ _ 0).mono (Nat.zero_le _)
+          · exact ((hH' _).bind fun _ ↦ (hu' _).bind fun _ ↦ isWeightBound_pure _ _ 0)
+          · exact hF' _
+        · exact (hF' _).bind fun _ ↦ isWeightBound_pure _ _ 0
     | inverse y =>
       simp only [shadowImpl, simulator2, StateT.run_mk]
       split
       · trivial
-      · exact ((hu _).bind fun _ ↦ isWeightBound_pure _ _ 0).mono (Nat.zero_le _)
+      · exact ((hu' _).bind fun _ ↦ isWeightBound_pure _ _ 0).mono (Nat.zero_le _)
   · simp only [shadowImpl, StateT.run_mk]
-    exact ((hF _).bind fun _ ↦ isWeightBound_pure _ _ 0).mono (Nat.zero_le _)
+    exact (hF' _).bind fun _ ↦ isWeightBound_pure _ _ 0
+
+/-- **Each step of the shadow world makes at most one `H` call**, none for a coin or a direct
+call. -/
+theorem isWeightBound_shadowImpl (t : (dSpec2 (List UInt8) DigestBytes KState).Domain)
+    (s : SimState DigestBytes KRest KCap) :
+    QueryCostAtMost ((shadowImpl keccakPadding t).run s) hCalls
+      (queryCost2 (Dg := DigestBytes) keccakPadding t) :=
+  isWeightBound_shadowImpl_of hCalls (fun _ ↦ rfl) (fun _ ↦ le_rfl) (fun _ ↦ Nat.zero_le _) t s
 
 /-! ## Collisions of `H` in the two-oracle model -/
 
@@ -244,23 +252,11 @@ theorem romImpl2_step (t : Rom2.Domain) (c : Cache2) {z} (hz : z ∈ support
     (((hfSpec (List UInt8) DigestBytes KState).romImpl t).run c)) :
     z.2 = c ∨ (∃ x u, z.2 = c.cacheQuery (.inr x) u) ∨
       (∃ a u, t = .inr (.inl a) ∧ c (.inl a) = none ∧ z.2 = c.cacheQuery (.inl a) u) := by
-  rcases t with n | t
-  · rw [roSim.run_apply_inl] at hz
-    simp only [support_map, Set.mem_image] at hz
-    obtain ⟨_, -, rfl⟩ := hz
-    exact Or.inl rfl
-  · rw [romImpl_inr_run] at hz
-    rcases h : c t with _ | v
-    · rw [roStep_of_none h] at hz
-      simp only [mem_support_bind_iff, support_pure, Set.mem_singleton_iff] at hz
-      obtain ⟨u, -, rfl⟩ := hz
-      rcases t with a | x
-      · exact Or.inr (Or.inr ⟨a, u, rfl, h, rfl⟩)
-      · exact Or.inr (Or.inl ⟨x, u, rfl⟩)
-    · rw [roStep_of_some h] at hz
-      simp only [support_pure, Set.mem_singleton_iff] at hz
-      subst hz
-      exact Or.inl rfl
+  rcases romImpl_step t c hz with h | ⟨s, u, rfl, hs, h⟩
+  · exact Or.inl h
+  · rcases s with a | x
+    · exact Or.inr (Or.inr ⟨a, u, rfl, hs, h⟩)
+    · exact Or.inr (Or.inl ⟨x, u, h⟩)
 
 theorem cacheQuery_inr_inl (c : Cache2) (x : KState) (u : KState) (a : List UInt8) :
     (c.cacheQuery (.inr x) u) (.inl a) = c (.inl a) :=

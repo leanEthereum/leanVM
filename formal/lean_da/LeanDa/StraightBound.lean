@@ -100,7 +100,6 @@ theorem isWeightBound_verifyCellM {ι : Type} {spec : OracleSpec.{0, 0} ι}
   ((hH _).bind fun _ ↦ (isWeightBound_walkM H w hH _ _ _).bind fun _ ↦
     isWeightBound_pure _ _ 0).mono (by simp only [List.length_append, List.length_singleton]; omega)
 
-set_option maxRecDepth 4000 in
 theorem isWeightBound_tailH (crs : Crs) (out : CbOut r Proof) (l : MembershipChallenge) :
     QueryCostAtMost (tailH r ps ext crs out l) tCount (commitCalls r + (9 + logMaxRows)) := by
   classical

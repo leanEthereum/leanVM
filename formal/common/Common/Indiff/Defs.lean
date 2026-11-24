@@ -57,8 +57,6 @@ variable {Dg E C Msg : Type}
   [Fintype Dg] [Fintype E] [Fintype C]
   [SampleableType Dg] [SampleableType E] [SampleableType C]
 
-/-! ## The real world -/
-
 /-! ## The simulator and the ideal world -/
 
 /-- The answer of the simulator at a fresh rooted node with path `β`: when `β` pads a message `m`,

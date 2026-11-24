@@ -60,17 +60,6 @@ noncomputable def simulator2 : QueryImpl (permutationOracleSpec (SpState Dg E C)
           OracleComp (unifSpec + hfSpec Msg Dg (SpState Dg E C)) _)
         pure (x, ⟨(x, y) :: σ.edges, σ.chains⟩)
 
-end Setting
-
-section Setting2
-
-variable {Dg E C Msg : Type}
-  [XorOp Dg] [XorOp E] [XorCancel Dg] [XorCancel E]
-  [DecidableEq Dg] [DecidableEq E] [DecidableEq C] [DecidableEq Msg]
-  [Fintype Dg] [Fintype E] [Fintype C]
-  [SampleableType Dg] [SampleableType E] [SampleableType C]
-  (P : Padding Msg (Dg × E)) [P.Lawful] (iv : SpState Dg E C)
-
 /-- The adversary's oracles in the two-oracle ROM: coins, `H`, and `π`, `π⁻¹` answered by the
 simulator `simulator2` (which queries `H` and `F`). -/
 noncomputable def advImpl2 : QueryImpl (dSpec Msg Dg (SpState Dg E C))
@@ -85,7 +74,7 @@ noncomputable def advS2 {α : Type} (A : OracleComp (dSpec Msg Dg (SpState Dg E 
     OracleComp (unifSpec + hfSpec Msg Dg (SpState Dg E C)) α :=
   (simulateQ (advImpl2 P) A).run' (SimState.init iv)
 
-end Setting2
+end Setting
 
 end Common
 

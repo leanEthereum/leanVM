@@ -95,13 +95,6 @@ theorem prEvent_bind_le_add_const_of_support {α β γ : Type} (mx : ProbComp α
           (∑' x, Pr{let z ← mx}[z = x]) * a := by rw [tsum_add, ENNReal.tsum_mul_right]
     _ ≤ _ := add_le_add le_rfl (mul_le_of_le_one_left' (OracleComp.tsum_prEvent_le_one mx))
 
-/-- Events of binds with pointwise equal events are equal. -/
-theorem prEvent_bind_congr {α β γ : Type} (mx : ProbComp α) (f : α → ProbComp β)
-    (g : α → ProbComp γ) (P : β → Prop) (Q : γ → Prop)
-    (hp : ∀ x, Pr{let y ← f x}[P y] = Pr{let y ← g x}[Q y]) :
-    Pr{let y ← mx >>= f}[P y] = Pr{let y ← mx >>= g}[Q y] := by
-  simp only [OracleComp.prEvent_bind_eq_tsum, hp]
-
 /-- **A discarded first hash query is invisible** in the random oracle model. -/
 theorem run'_hq_bind_evalDistEq {ι : Type} [DecidableEq ι] {hs : OracleSpec.{0, 0} ι}
     [∀ t : hs.Domain, SampleableType (hs.Range t)] {α : Type} (t : ι)

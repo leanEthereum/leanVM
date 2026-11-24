@@ -19,13 +19,12 @@ import Common.WithHashBridge
 import Common.ByteArray
 
 /-! The random-permutation model and the indifferentiability of the sponge (Keccak-256) from a
-random oracle, with one oracle (`H`) or two (`H` and direct permutation calls `F`), the
-transfer of SUF-CMA signature games, the statement's model (`π` and `π⁻¹` alone) as the model with
-a Keccak-256 oracle whose calls are expanded into permutation calls (`Common.PiOnly`), and the duplex lemma: challenges derived by a duplex over
-the random function `F` are a random oracle of the roots, up to capacity collisions
-(`Common.SeedDuplex.duplex_le`). The build
-fails if the axiom footprint of the main theorems ever grows beyond Lean's three standard
-axioms. -/
+random oracle, with one oracle (`H`) or two (`H` and direct permutation calls `F`), the transfer of
+SUF-CMA signature games, the statement's model (`π` and `π⁻¹` alone) as the model with a Keccak-256
+oracle whose calls are expanded into permutation calls (`Common.PiOnly`), and the duplex lemma:
+challenges derived by a duplex over the random function `F` are a random oracle of the roots, up to
+capacity collisions (`Common.SeedDuplex.duplex_le`). The build fails if the axiom footprint of the
+main theorems ever grows beyond Lean's three standard axioms. -/
 
 /-- info: 'Common.indifferentiability' depends on axioms:
 [propext, Classical.choice, Quot.sound] -/

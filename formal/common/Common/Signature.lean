@@ -49,8 +49,6 @@ open scoped ENNReal
 
 namespace Common.SufCma
 
-/-! ## Digests as bit vectors -/
-
 /-! ## Two simulations commute -/
 
 section Commute

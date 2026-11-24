@@ -245,23 +245,11 @@ theorem gStep (t : (unifSpec + GW).Domain) (c : GCache) {z} (hz : z ∈ support
     ((GW.romImpl t).run c)) :
     z.2 = c ∨ (∃ a u, t = .inr (.inl a) ∧ c (.inl a) = none ∧ z.2 = c.cacheQuery (.inl a) u) ∨
       (∃ e x, t = .inr (.inr e) ∧ c (.inr e) = none ∧ z.2 = c.cacheQuery (.inr e) x) := by
-  rcases t with n | t
-  · rw [roSim.run_apply_inl] at hz
-    simp only [support_map, Set.mem_image] at hz
-    obtain ⟨_, -, rfl⟩ := hz
-    exact Or.inl rfl
-  · rw [romImpl_inr_run] at hz
-    rcases h : c t with _ | v
-    · rw [roStep_of_none h] at hz
-      simp only [mem_support_bind_iff, support_pure, Set.mem_singleton_iff] at hz
-      obtain ⟨u, -, rfl⟩ := hz
-      rcases t with a | e
-      · exact Or.inr (Or.inl ⟨a, u, rfl, h, rfl⟩)
-      · exact Or.inr (Or.inr ⟨e, u, rfl, h, rfl⟩)
-    · rw [roStep_of_some h] at hz
-      simp only [support_pure, Set.mem_singleton_iff] at hz
-      subst hz
-      exact Or.inl rfl
+  rcases romImpl_step t c hz with h | ⟨s, u, rfl, hs, h⟩
+  · exact Or.inl h
+  · rcases s with a | e
+    · exact Or.inr (Or.inl ⟨a, u, rfl, hs, h⟩)
+    · exact Or.inr (Or.inr ⟨e, u, rfl, hs, h⟩)
 
 /-- Queries of the world's oracles, one each. -/
 def hgCalls : (unifSpec + GW).Domain → ℕ

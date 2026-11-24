@@ -181,8 +181,7 @@ lean_da() {
   cache_get lean_da
   build lean_da '(LeanDa|PqDas)'
   axioms lean_da LeanDa LeanDa.leanDa_complete LeanDa.leanDa_positionBinding_rpm \
-    LeanDa.leanDa_membershipSound_rpm LeanDa.commitCodewords_eq_commitCells \
-    LeanDa.dualCodeword_eq_dualCodewordAt
+    LeanDa.leanDa_membershipSound_rpm LeanDa.commitCodewords_eq_commitCells
 }
 
 # Every lean_vm executable, in one build.

@@ -69,6 +69,26 @@ theorem le_of_mem_support_roStep (t : ι) (c : hs.QueryCache) {z : hs.Range t ×
     subst hz
     exact ⟨le_rfl, h⟩
 
+/-- **One step of the random-oracle model** keeps the cache or caches one fresh answer. -/
+theorem romImpl_step (t : (unifSpec + hs).Domain) (c : hs.QueryCache) {z}
+    (hz : z ∈ support ((hs.romImpl t).run c)) :
+    z.2 = c ∨ ∃ s u, t = .inr s ∧ c s = none ∧ z.2 = c.cacheQuery s u := by
+  rcases t with n | s
+  · rw [roSim.run_apply_inl] at hz
+    simp only [support_map, Set.mem_image] at hz
+    obtain ⟨_, -, rfl⟩ := hz
+    exact Or.inl rfl
+  · rw [romImpl_inr_run] at hz
+    rcases h : c s with _ | v
+    · rw [roStep_of_none h] at hz
+      simp only [mem_support_bind_iff, support_pure, Set.mem_singleton_iff] at hz
+      obtain ⟨u, -, rfl⟩ := hz
+      exact Or.inr ⟨s, u, rfl, h, rfl⟩
+    · rw [roStep_of_some h] at hz
+      simp only [support_pure, Set.mem_singleton_iff] at hz
+      subst hz
+      exact Or.inl rfl
+
 /-- A random-oracle-model run only adds cached answers. -/
 theorem le_of_mem_support_run (oa : OracleComp (unifSpec + hs) α) (c : hs.QueryCache)
     {z : α × hs.QueryCache} (hz : z ∈ support ((simulateQ hs.romImpl oa).run c)) : c ≤ z.2 := by

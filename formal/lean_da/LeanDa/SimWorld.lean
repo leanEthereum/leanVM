@@ -54,41 +54,8 @@ theorem isWeightBound_shadowImpl_f (t : (dSpec2 (List UInt8) DigestBytes KState)
     (s : SimState DigestBytes KRest KCap) :
     QueryCostAtMost ((shadowImpl keccakPadding t).run s)
       (fCalls (Msg := List UInt8) (Dg := DigestBytes) (St := KState))
-      (queryCost2 (Dg := DigestBytes) keccakPadding t) := by
-  have hu : ∀ {β : Type} (p : ProbComp β), QueryCostAtMost (liftM p : OracleComp Rom2 β)
-      (fCalls (Msg := List UInt8) (Dg := DigestBytes) (St := KState)) 0 :=
-    fun p ↦ isWeightBound_liftM_probComp _ (fun _ ↦ rfl) p
-  have hF : ∀ x : KState, QueryCostAtMost (fQuery (Msg := List UInt8) (Dg := DigestBytes) x)
-      (fCalls (Msg := List UInt8) (Dg := DigestBytes) (St := KState)) 1 :=
-    fun x ↦ isWeightBound_query (spec := Rom2) _ (.inr (.inr x))
-  have hH : ∀ a : List UInt8, QueryCostAtMost (hR a)
-      (fCalls (Msg := List UInt8) (Dg := DigestBytes) (St := KState)) 0 :=
-    fun a ↦ isWeightBound_query (spec := Rom2) _ (.inr (.inl a))
-  rcases t with n | m | q | x
-  · simp only [shadowImpl, StateT.run_monadLift, monadLift_self]
-    exact (hu _).bind fun _ ↦ isWeightBound_pure _ _ 0
-  · simp only [shadowImpl, StateT.run_monadLift, monadLift_self]
-    exact ((hH m).bind fun _ ↦ isWeightBound_pure _ _ 0).mono (Nat.zero_le _)
-  · cases q with
-    | forward x =>
-      simp only [shadowImpl, simulator2, StateT.run_mk]
-      split
-      · trivial
-      · split
-        · refine (QueryCostAtMost.bind (b := 0) ?_ fun _ ↦ isWeightBound_pure _ _ 0)
-          unfold rootedAnswer2
-          split
-          · exact (((hH _).bind fun _ ↦ (hu _).bind fun _ ↦ isWeightBound_pure _ _ 0)).mono
-              (Nat.zero_le _)
-          · exact hF _
-        · exact ((hF _).bind fun _ ↦ isWeightBound_pure _ _ 0)
-    | inverse y =>
-      simp only [shadowImpl, simulator2, StateT.run_mk]
-      split
-      · trivial
-      · exact ((hu _).bind fun _ ↦ isWeightBound_pure _ _ 0).mono (Nat.zero_le _)
-  · simp only [shadowImpl, StateT.run_mk]
-    exact ((hF _).bind fun _ ↦ isWeightBound_pure _ _ 0)
+      (queryCost2 (Dg := DigestBytes) keccakPadding t) :=
+  isWeightBound_shadowImpl_of _ (fun _ ↦ rfl) (fun _ ↦ Nat.zero_le _) (fun _ ↦ le_rfl) t s
 
 section Calls
 

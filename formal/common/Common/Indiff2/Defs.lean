@@ -54,8 +54,6 @@ variable {Dg E C Msg : Type}
   [SampleableType Dg] [SampleableType E] [SampleableType C]
   (P : Padding Msg (Dg × E)) [P.Lawful] (iv : SpState Dg E C)
 
-/-! ## The worlds -/
-
 /-! ## The duplex discipline -/
 
 /-- A direct call at `x` is admissible after the answers `hist` of earlier direct calls: `x`

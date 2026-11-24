@@ -19,8 +19,6 @@ polynomials of `K[X]` of degree below `2^13` over `K`, so their monomials, which
 `E[X]` over `E`: a word orthogonal to every `Xⱼ` on the domain is a codeword
 (`mem_rsCode_of_orthogonal`).
 
-The code is also the image of the systematic encoder (`range_encodeRow`).
-
 This module is part of the instantiation of Benedikt Wagner's framework for erasure code
 commitments (`PqDas`, ported from https://github.com/b-wagn/fv-pq-da) with LeanDA.
 -/
@@ -285,12 +283,6 @@ theorem interpolate_mem (p : Payload) : interpolate p ∈ degreeLT E (2 ^ 13) :=
 theorem encodeRow_mem (p : Payload) : encodeRow p ∈ rsCode :=
   mem_rsCode.mpr ⟨interpolate p, interpolate_mem p, rfl⟩
 
-/-- The payload is the codeword's first half. -/
-theorem encodeRow_systematic (p : Payload) (a : Fin (2 ^ 13)) :
-    encodeRow p (Fin.castLE (by norm_num) a) = p a := by
-  simp only [encodeRow, interpolate, Fin.val_castLE]
-  exact Lagrange.eval_interpolate_at_node p point_injOn (Finset.mem_univ a)
-
 /-- A codeword is the encoding of its first half. -/
 theorem encodeRow_firstHalf {w : Row} (hw : w ∈ rsCode) :
     encodeRow (fun a ↦ w (Fin.castLE (by norm_num) a)) = w := by
@@ -301,13 +293,6 @@ theorem encodeRow_firstHalf {w : Row} (hw : w ∈ rsCode) :
   funext b
   rw [encodeRow, hint]
   rfl
-
-/-- **The code is the image of the encoder.** -/
-theorem range_encodeRow : Set.range encodeRow = rsCode := by
-  ext w
-  constructor
-  · rintro ⟨p, rfl⟩; exact encodeRow_mem p
-  · intro hw; exact ⟨_, encodeRow_firstHalf hw⟩
 
 end
 
