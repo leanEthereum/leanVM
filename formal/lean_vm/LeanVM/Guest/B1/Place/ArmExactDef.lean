@@ -56,14 +56,14 @@ noncomputable def armExactOk (name : String) (j : ℕ) : Bool :=
 
 /-- `exactJ`'s own step on function `j`: its body's computed hints pinned locally, its callees indexed. -/
 noncomputable def exLoc (j : ℕ) : Bool :=
-  match coreProgram[j]? with
+  match coreAt j with
   | some fn => Stmt.blockNextOk isComputed pinsInverse fn.body &&
       (Stmt.blockCallees fn.body).all (fun g => (calleeIdx j g).isSome)
   | none => false
 
 theorem exactJ_succ (d j : ℕ) :
     exactJ (d + 1) j = (exLoc j && (Data.calleesJ j).all fun k ↦ k == j || exactJ d k) := by
-  rw [exactJ, exLoc]
+  rw [exactJ, exLoc, coreAt_eq]
   cases coreProgram[j]? <;> rfl
 
 /-- Root `k`'s name is `armExactS`. -/
