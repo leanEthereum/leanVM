@@ -96,6 +96,7 @@ cargo leanvm-bench --prover stable fibonacci --n <steps>
 
 - `--prover stable|experimental` is required.
 - `recursion` also takes `--sphincs-per-leaf`, `--blobs-per-leaf`, `--leaf-log-inv-rate`.
+- `recursion` proves a leaf once and keeps it in `target/leaves-cache`, as `target/signers-cache` keeps the signers: one file per guest, shape and leaf index, verified when read, so a leaf an earlier protocol proved is proved again.
 - Common: `--log-inv-rate` (1 to 4), `--repeat`, `--cooldown`, `--threads`, `--tracing`.
 - Compare schemes and changes by the reported VM cycle counts.
 - CI (`bench.yml`) compares every PR with its base on an x86-64 and an arm64 testbed. `.github/scripts/pr_comment.py --dry-run` prints the comment a run's artifacts would give.
