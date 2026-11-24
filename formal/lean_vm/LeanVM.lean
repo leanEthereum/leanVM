@@ -5,8 +5,7 @@ public import LeanVM.Protocol.LeanVMRpm
 public import LeanVM.Guest.Batch.Children
 public import LeanVM.Guest.Batch.Rpm
 public import LeanVM.Guest.EndRpm
-public import LeanVM.Guest.Budget.ClosedN
-public import LeanVM.Guest.Budget.Fits
+public import LeanVM.Guest.Budget.Closed
 public import LeanVM.Prover.End
 public import LeanVM.Prover.EndChild
 public import LeanVM.Protocol.Verifier.Defers

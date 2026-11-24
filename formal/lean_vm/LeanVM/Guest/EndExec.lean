@@ -337,7 +337,7 @@ theorem budget_of_limits {seed : Digest} {s : NodeStatement} {w : NodeWitness}
   (Budget.deployedBudget_size_mono (work s w) fun (p : ℕ × ℕ) hp ↦ by
     obtain ⟨ch, hch, rfl⟩ :=
       List.mem_map.mp (show p ∈ w.children.map (childShape bytecode) from hp)
-    obtain ⟨h1, h2, h3, h4⟩ := B1.Main.childShape_bounds Budget.vsCompleteHyp_deployed hok hch
+    obtain ⟨h1, h2, h3, h4⟩ := B1.Main.childShape_bounds End.bytecode_length hok hch
     exact (Budget.vsBoundAt_eq_deployedBvAt h1 h2 h3 h4).le).trans (Budget.size_le hlim)
 
 /-- **The guest's completeness in the random-permutation model, with the executor's execution**:

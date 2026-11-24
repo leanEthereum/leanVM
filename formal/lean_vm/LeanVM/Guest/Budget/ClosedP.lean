@@ -8,7 +8,10 @@
 
 module
 
-public import LeanVM.Guest.Budget.Closed
+public import LeanVM.Guest.Budget.DeployedBudget
+public import LeanVM.Guest.Count.VsWordsOs
+public import LeanVM.Guest.B1.Main.VerifySubGoals
+public import LeanVM.Guest.B2C.RunsConsec
 public import LeanVM.Guest.B1.Whir.CRecHosP
 public import LeanVM.Guest.B1.Main.L5RPops
 public import LeanVM.Guest.B1.Main.MainPopsSR
@@ -18,13 +21,35 @@ public import LeanVM.Guest.B1.Main.MainGoalsHClTBP
 /-!
 # `main` within the deployed budget, with its pops
 
-* `completeAtDTBR_lin_mono`: `completeAtDTB_lin_mono` by a predicate of the memory;
+* `deployedVsT`: child `c`'s `verify_sub` tree at the deployed instance, its stack log among `open_stacked`'s arms;
+* `completeAtDTBR_lin_mono`: a callee's bounded completeness reading fewer words holds reading more;
 * `vs_completeR`: `verify_sub` on a child `VsChildOk` holds of, at its announced stack log and rate, by a tree popping
   its hints, stream by stream (`child_segments_steps`, `verify_sub_completeBTS`);
 * `verifySubGoalsTBR_deployed`: so for each child at the deployed instance (`VerifySubGoalsTBR`, `pvH`);
 * `mainPopsD`: `main`'s callees' honest entries; `ChildListPopsHyp`, `childListPopsHyp`: each child's claim lists'
   digests popping their slots' pushes.
 -/
+
+namespace LeanVM.Guest.Budget
+
+open LeanVM.Guest LeanVM.Guest.Memory LeanVM.Node
+open LeanVM.Guest.End (bytecode)
+open LeanVM.Guest.B1.VerifySub (vsTsAny vkBound)
+
+@[expose] public section
+
+/-- **Child `c`'s `verify_sub` tree at the deployed instance**: its stack log among
+`open_stacked`'s arms, `20` to `30`, its callees calls of their names within their bounds at the
+child's announced stack log and rate (`vsTsAny`). -/
+def deployedVsT (w : NodeWitness) (c : ℕ) (t : Tree) : Prop :=
+  ∀ hc : c < w.children.length,
+    (childShape bytecode w.children[c]).1 - B1.Whir.minOpenLog < B1.Whir.openArms ∧
+      (20 ≤ (childShape bytecode w.children[c]).1 ∧ (childShape bytecode w.children[c]).1 ≤ 30 ∧
+        vsTsAny B2C.fs Count.vsWordsOs vkBound (childShape bytecode w.children[c]).1
+          (childShape bytecode w.children[c]).2 t)
+
+end
+end LeanVM.Guest.Budget
 
 namespace LeanVM.Guest.B1.Main
 
@@ -38,7 +63,7 @@ open LeanVM.Guest.Budget (deployedVsT)
 
 @[expose] public section
 
-/-- **`completeAtDTB_lin_mono` by a predicate of the memory.** -/
+/-- A callee's bounded completeness reading fewer words holds reading more. -/
 theorem completeAtDTBR_lin_mono {fs : String → ℕ} {cert : String → V → ℕ} {κ : ℕ} {f : String}
     {Lin Lin' : Layout} {args : List E} {Out : List E → Layout → Prop} {T : Reader → Tree → Prop} {B : ℕ}
     (hm : ∀ rd, MemL rd Lin' → MemL rd Lin) (hr : ∀ i, RegionL Lin i → RegionL Lin' i)

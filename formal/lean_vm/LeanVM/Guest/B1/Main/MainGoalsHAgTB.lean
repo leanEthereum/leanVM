@@ -3,7 +3,7 @@
 
   `main`'s honest `aggregate_claims` call, by a tree of honest shape (`aggHonest`) popping the
   batching's hints, every node exact (`mainGoalAgTBRE`, by `aggregate_claims_completeAtTBRE`), within
-  its bound before the memory (`aggB`); `mainGoalAgTB`: the honest shape alone.
+  its bound before the memory (`aggB`).
 -/
 
 module
@@ -65,29 +65,6 @@ theorem mainGoalAgTBRE (cert : String → V → ℕ) (SB SK : String → ℕ)
     (by rw [List.length_map]) hrl hb (fun rd hM => hkids_words fs fp hbl hrel hM)
     (fun rd _ hM => hLmain_winTabs fs fp hM) (hLmain_tabsIn fs fp) hdst
   exact this.lowMono (by norm_num)
-
-/-- **`main`'s honest `aggregate_claims` call is complete within `aggB`, by a tree of honest shape**: under `NodeRelation` and `Limits`, for a
-bytecode of `2^bytecodeVars` words. -/
-theorem mainGoalAgTB (cert : String → V → ℕ) (SB SK : String → ℕ)
-    (h25 : TotalLeOn coreProgram fs name% «aggregate_claims_loop0» LoopPre
-      (fun a => logG (a.getD 1 0) * iterK fs SK name% «aggregate_claims_loop0» + fs
-          name% «aggregate_claims_loop0»))
-    (h26 : TotalLeOn coreProgram fs name% «aggregate_claims_loop1» LoopPre
-      (fun a => logG (a.getD 1 0) * iterK fs SK name% «aggregate_claims_loop1» + fs
-          name% «aggregate_claims_loop1»))
-    (h27 : TotalLeOn coreProgram fs name% «aggregate_claims_loop2» LoopPre
-      (fun a => logG (a.getD 1 0) * iterK fs SK name% «aggregate_claims_loop2» + fs
-          name% «aggregate_claims_loop2»))
-    (hbs : TotalLe coreProgram fs "batch_sumcheck__L23" (fun _ => SB "batch_sumcheck__L23"))
-    {bytecode : List K}
-    (hbl : bytecode.length = 2 ^ bytecodeVars) (hrel : NodeRelation bytecode seed s w)
-    (hl : GuestLimits s w) : (hm fs fp seed s w).nc ≠ 0 →
-      CompleteAtDTB fs cert 20 "aggregate_claims" (hLmain fs fp seed s w)
-        [gen ^ (hm fs fp seed s w).nc, (hm fs fp seed s w).a394, (hm fs fp seed s w).a400,
-          (hm fs fp seed s w).a406, (hm fs fp seed s w).a417,
-          (hm fs fp seed s w).et * word 133823759239872512 0] (Returns [])
-        (aggHonest (hm fs fp seed s w).nc) (aggB fs SB SK (hm fs fp seed s w).nc) :=
-  fun h0 => (mainGoalAgTBRE fs fp cert SB SK h25 h26 h27 hbs hbl hrel hl h0).toDTB fun _ _ h => h.1.1
 
 end
 end LeanVM.Guest.B1.Main

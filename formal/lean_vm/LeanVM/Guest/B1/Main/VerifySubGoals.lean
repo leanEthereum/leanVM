@@ -1,33 +1,25 @@
 /-
   LeanVM.Guest.B1.Main.VerifySubGoals
 
-  Each child's `verify_sub` call on `main`'s honest run, within its own words: `verify_sub`'s
-  completeness at the child (its announced stack log and rate), its exponent table
-  `exponent_tables`' and its fresh claim's slot in `main`'s children's fresh claims, moved to
-  `main`'s words.
+  What `verify_sub`'s completeness asks of a child, and the bounds on a child's announced shape.
 -/
 
 module
 
 public import LeanVM.Guest.B1.Main.MainGoalsHL5TB
-public import LeanVM.Guest.B1.Main.MainGoalsDvTB
+public import LeanVM.Guest.B1.Main.MainGoalsDvT
+public import LeanVM.Guest.B1.Main.MainCoverLemmas
 public import LeanVM.Guest.AcceptableChild
 public import LeanVM.Facts.Guest
 public import LeanVM.Guest.B1.VerifySub.CompleteSpec
 public import LeanVM.Guest.B1.Whir.Split
+public import LeanVM.Guest.B1.VerifySub.Segments
+public import LeanVM.Guest.ChildShape
 
 /-!
-# The children's `verify_sub` calls, bounded
+# The children's `verify_sub` calls
 
-`VsCompleteHyp bytecode fs cert κ T B`: `verify_sub`'s completeness at an acceptable child, its
-calls' trees `T μ r` and its bound `B μ r` at the child's announced stack log `μ` and rate `r`, and
-every acceptable child's announced shape an opening arm of the guest (`μ ∈ [22, 28]`,
-`r ∈ [1, 4]`). B1-d's `VerifySub.verify_sub_completeBT` and `child_segments` give it on the
-guest's IR.
-
-`verifySubGoalsTB_of`: for `NodeRelation` within `Limits`, the caps agreeing,
-child `c`'s `verify_sub` call is complete within `B` at its announced stack log and rate
-(`childShape`), by a tree of `T` (`VerifySubGoalsTB`). `childShape_bounds`: every child's
+`VsChildOk bytecode seed c`: what `verify_sub`'s completeness asks of a child. `childShape_bounds`: every child's
 announced stack log is in `[20, 30]` and its rate in `[1, 4]`.
 -/
 
@@ -56,100 +48,19 @@ def VsChildOk (bytecode : List K) (seed : Digest) (c : Child) : Prop :=
       (statementDigest seed c.statement)) (Coverage.childVerifierStart seed c),
       Limits.OpeningsAgree b.1 b.2
 
-/-- **`verify_sub`'s completeness**, its calls' trees `T μ r` and its bound `B μ r` at the child's
-announced stack log `μ` and rate `r` (B1-d's `verify_sub_completeBT`), and every acceptable
-child's announced shape an opening arm (B1-d's `child_segments`). -/
-structure VsCompleteHyp (bytecode : List K) (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ)
-    (T : ℕ → ℕ → Tree → Prop) (B : ℕ → ℕ → ℕ) : Prop where
-  complete : ∀ (seed : Digest) (c : Child) (sqE outE : ℕ) (Lin : Main.Layout),
-    VsChildOk bytecode seed c → (∀ q ∈ vsExpLin sqE, q ∈ Lin) →
-    (outE, DeferredBytecodeClaim.cells c.freshClaim) ∈ Lin →
-    CompleteAtDTB fs cert κ "verify_sub" Lin
-      [(digestHalves (statementDigest seed c.statement)).1,
-        (digestHalves (statementDigest seed c.statement)).2, (digestHalves seed).1,
-        (digestHalves seed).2, ofK (addressOfIndex sqE), ofK (addressOfIndex outE)] (Returns [])
-      (T (childShape bytecode c).1 (childShape bytecode c).2)
-      (B (childShape bytecode c).1 (childShape bytecode c).2)
-  shape : ∀ (seed : Digest) (c : Child), VsChildOk bytecode seed c →
-    20 ≤ (childShape bytecode c).1 ∧ (childShape bytecode c).1 ≤ 30 ∧
-      1 ≤ (childShape bytecode c).2 ∧ (childShape bytecode c).2 ≤ 4
-
 /-- `exponent_tables`' tables are `vsExpLin`'s. -/
 theorem etL_eq (fs : String → ℕ) (fp : ℕ) (d : MainData) :
     vsExpLin (etB fs (mK0 d fs fp)) = etL d fs fp := rfl
 
-/-- **Every child's announced shape is an opening arm of the guest**: its stack log in
-`[20, 30]`, its rate in `[1, 4]`. -/
-theorem childShape_bounds {T : ℕ → ℕ → Tree → Prop} {B : ℕ → ℕ → ℕ} {κ : ℕ}
-    (hvs : VsCompleteHyp bytecode fs cert κ T B) (hok : ChildrenOk bytecode seed w) {ch : Child}
+/-- **Every child's announced stack log is in `[20, 30]` and its rate in `[1, 4]`** (`child_segments`). -/
+theorem childShape_bounds (hbl : bytecode.length = 2 ^ 23) (hok : ChildrenOk bytecode seed w) {ch : Child}
     (hch : ch ∈ w.children) :
     20 ≤ (childShape bytecode ch).1 ∧ (childShape bytecode ch).1 ≤ 30 ∧
-      1 ≤ (childShape bytecode ch).2 ∧ (childShape bytecode ch).2 ≤ 4 :=
-  hvs.shape seed ch ⟨(hok _ hch).stackLogAtLeastMinimum, (hok _ hch).streamWithinCap,
-    (hok _ hch).verifies, (hok _ hch).capsAgree⟩
-
-/-- **Each child's `verify_sub` call on the honest run, within its own bound**: `B` at its
-announced stack log and rate, by a tree of `T`, the child's stack log among `open_stacked`'s
-arms. -/
-theorem verifySubGoalsTB_of {T : ℕ → ℕ → Tree → Prop} {B : ℕ → ℕ → ℕ}
-    (hbl : bytecode.length = 2 ^ 23) (hvs : VsCompleteHyp bytecode fs cert 16 T B)
-    (hr : NodeRelation bytecode seed s w) (hok : ChildrenOk bytecode seed w) :
-    VerifySubGoalsTB fs cert fp seed s w
-      (fun c t => ∀ hc : c < w.children.length,
-        (childShape bytecode w.children[c]).1 - B1.Whir.minOpenLog < B1.Whir.openArms ∧
-          T (childShape bytecode w.children[c]).1 (childShape bytecode w.children[c]).2 t)
-      (fun c => (w.children.map fun ch =>
-        B (childShape bytecode ch).1 (childShape bytecode ch).2).getD c 0) := by
-  intro c hc
-  have hmem := List.getElem_mem hc
-  set e := etB fs (mK0 (hData seed s w) fs fp) with he
-  set outE := hP fs fp seed s w 6 + 24 * c with hout
-  have h := hvs.complete seed w.children[c] e outE
-    (vsExpLin e ++ [(outE, DeferredBytecodeClaim.cells w.children[c].freshClaim)])
-    ⟨(hok _ hmem).stackLogAtLeastMinimum, (hok _ hmem).streamWithinCap,
-      (hok _ hmem).verifies, (hok _ hmem).capsAgree⟩
-    (fun q hq => List.mem_append_left _ hq) (List.mem_append_right _ (List.mem_singleton_self _))
-  have hB : B (childShape bytecode w.children[c]).1
-      (childShape bytecode w.children[c]).2 = (w.children.map fun ch =>
-        B (childShape bytecode ch).1 (childShape bytecode ch).2).getD c 0 := by
-    simp [List.getD_eq_getElem?_getD, hc]
-  rw [hB] at h
-  have hcand := childShape_bounds hvs hok hmem
-  replace h := h.mono (T' := fun t => ∀ hc : c < w.children.length,
-      (childShape bytecode w.children[c]).1 - B1.Whir.minOpenLog < B1.Whir.openArms ∧
-        T (childShape bytecode w.children[c]).1 (childShape bytecode w.children[c]).2 t)
-    le_rfl fun t ht _ => ⟨by unfold B1.Whir.minOpenLog B1.Whir.openArms; omega, ht⟩
-  have hlen : ∀ a ∈ w.children, (DeferredBytecodeClaim.cells a.freshClaim).length = 24 := fun a ha => by
-    simp [DeferredBytecodeClaim.cells, (kid_shapes hbl hr a ha).1, bytecodeVars]
-  have e1 : (hm fs fp seed s w).et = ofK (addressOfIndex e) := gen_pow_eq_ofK _
-  have e3 : (hm fs fp seed s w).a400 * gen ^ (24 * c) = ofK (addressOfIndex outE) := by
-    rw [hout, ← gen_pow_eq_ofK, pow_add]; rfl
-  rw [e1, e3]
-  refine completeAtDTB_lin_mono (fun rd hM q hq => ?_) (fun i hi => ?_) (h.lowMono (by norm_num))
-  · rcases List.mem_append.mp hq with hq | hq
-    · rw [etL_eq] at hq
-      exact hM q (List.mem_append_right _ hq)
-    · rw [List.mem_singleton] at hq
-      subst hq
-      have r7 := reads_hLmain fs fp seed s w hM (i := 6) (by omega)
-      simp only [hOwn, List.getD_cons_succ, List.getD_cons_zero] at r7
-      have := B1.Main.readsAt_flatMap_of w.children hlen r7 c hc
-      rw [← gen_pow_eq_ofK, pow_add]
-      exact this
-  · obtain ⟨q, hq, h1, h2⟩ := hi
-    rcases List.mem_append.mp hq with hq | hq
-    · rw [etL_eq] at hq
-      exact ⟨q, List.mem_append_right _ hq, h1, h2⟩
-    · rw [List.mem_singleton] at hq
-      subst hq
-      simp only [hlen _ hmem] at h2
-      have hk : 24 * c + (i - outE) < ((hOwn seed s w).getD 6 []).length := by
-        simp only [hOwn, List.getD_cons_succ, List.getD_cons_zero]
-        rw [length_flatMap_const _ _ 24 hlen]
-        have : c + 1 ≤ w.children.length := hc
-        omega
-      have := region_buf fs fp seed s w (i := 6) (by omega) hk
-      rwa [show hP fs fp seed s w 6 + (24 * c + (i - outE)) = i by omega] at this
+      1 ≤ (childShape bytecode ch).2 ∧ (childShape bytecode ch).2 ≤ 4 := by
+  obtain ⟨S⟩ := VerifySub.child_segments hbl seed ch (hok _ hch).stackLogAtLeastMinimum (hok _ hch).verifies
+    (hok _ hch).capsAgree
+  rw [childShape_of S.hann]
+  exact ⟨S.hmu20, S.hmu30, S.hr1, S.hr4⟩
 
 end
 end LeanVM.Guest.B1.Main

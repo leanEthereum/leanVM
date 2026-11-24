@@ -21,12 +21,6 @@ The callees' names, bounds and predicates are `VerifySub/BoundsB`'s (`vsNames`, 
 `vsNames μ r (d - 20)`, the bus depth `d`.
 
 `vsPsR`: `verify_sub`'s callees' predicates of the memory, `certify_placement`'s `Pcp`, `verify_tables`' `Pvt` beside its weights, `open_stacked`'s `Pos`. `vs_kidsDepBPR`: the callees within their bounds by trees of them, given `certify_placement`'s, `verify_tables`' and `open_stacked`'s. `verify_sub_completeBTG`: on an honest child, `verify_sub` is complete within the bound at its stack log and rate by a node of `vsTsAny` (`completeAt_flatDepRBPR` with `vs_obligations` and `vs_kidsDepBPR`), its valuation the honest one, its own buffers held (`vsQn`), its valid callees satisfying their predicates by name (`VsKidQ`, `kidsT_valid_mem`).
-
-`verify_sub_completeBT`: on an honest child (`child_segments`), `verify_sub` is complete within
-the bound at its announced stack log and rate (`childShape`), by a node of `vsTsAny`
-(`verify_sub_completeBTG`, every predicate `True`), given `verify_keccak`'s bounded
-completeness (`open_stacked`'s is `open_stacked_completeAtB`).
-`verify_sub_completeBT_fs`: at `B2C.fs`, `verify_keccak` within `vkBound`.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -291,58 +285,6 @@ theorem verify_sub_completeBTG {bytecode : List K} (hbl : bytecode.length = 2 ^ 
   obtain ⟨hl, hkT⟩ := hw fn es vs hf hwk
   obtain ⟨T, hT, hTt⟩ := kidsT_valid_mem _ _ _ hkk hkT hl k hk hkv
   exact vsNames_kidQ W Bvk S.μs S.rate (S.d - 20) _ _ _ rd T hT k hTt
-
-/-- **`verify_sub` is complete on every honest child within its own bound**, by a node whose
-callees are calls of their names within their bounds, at the child's announced stack log and
-rate. -/
-theorem verify_sub_completeBT {bytecode : List K} (hbl : bytecode.length = 2 ^ 23)
-    (hrf : Lift.RunsFit fs cert) (hcons : RunsConsec cert) (W : VsWordsOs fs) {Bvk κ : ℕ}
-    (hκ : 16 ≤ κ) (hvk : VkCompleteAtBK fs cert κ Bvk) (seed : Digest)
-    (c : Child) (sqE outE : ℕ) (Lin : Main.Layout)
-    (hmu : ∀ layout r, Verifier.announcedLayoutAndRate bytecode c.proof.stream = some (layout, r) →
-      Coverage.minChildStackLog ≤ layout.stackLog)
-    (hst : c.proof.stream.length ≤ Coverage.childStreamCap)
-    (hvd : verifyDeferred bytecode seed (statementDigest seed c.statement)
-      c.freshClaim c.proof = true)
-    (hcaps : ∀ b ∈ Limits.queryStepsOf (deferringVerifierProgram c.freshClaim bytecode
-      (statementDigest seed c.statement)) (Coverage.childVerifierStart seed c),
-      Limits.OpeningsAgree b.1 b.2)
-    (hexp : ∀ q ∈ vsExpLin sqE, q ∈ Lin) (hout : (outE, DeferredBytecodeClaim.cells c.freshClaim) ∈ Lin) :
-    CompleteAtDTB fs cert κ "verify_sub" Lin (vsArgs seed c sqE outE) (Returns [])
-      (vsTsAny fs W Bvk (childShape bytecode c).1 (childShape bytecode c).2)
-      (vsBoundAt W Bvk (childShape bytecode c).1 (childShape bytecode c).2) := by
-  obtain ⟨S⟩ := child_segments hbl seed c hmu hvd hcaps
-  rw [childShape_of S.hann]
-  have hd := S.d_bounds hbl
-  obtain ⟨hhs, h5⟩ := S.hs_bounds hbl
-  exact (verify_sub_completeBTG hbl hrf hcons W hκ hvk S sqE outE Lin hst hexp hout
-    (Pcp := fun _ _ ↦ True) (Pvt := fun _ _ ↦ True) (Pos := fun _ _ ↦ True)
-    (fun _ _ ↦ (Tables.certify_placement_completeAtB fs cert (by omega) (heights_length6 S.rowsN S.hrowsL)
-      (S.h30.trans (by norm_num)) (S.hs_lt33 hbl) (show S.hs.getD 5 0 ≤ 27 by omega) _ _).toR)
-    (fun B ↦ (S.vt_kidBW hbl (by omega) W B).toR.mono le_rfl fun _ _ h ↦ ⟨h, trivial⟩)
-    (fun bs _ ↦ (S.os_kidB open_stacked_completeAtB (by omega) hrf hcons W bs sqE).toDTB.toR)).toDTB
-    fun _ _ h ↦ h.1
-
-/-- **`verify_sub` is complete within its own bound by its callees' trees** at the deployed frame
-sizes, `verify_keccak` within `vkBound`. -/
-theorem verify_sub_completeBT_fs {bytecode : List K} (hbl : bytecode.length = 2 ^ 23)
-    {cert : String → V → ℕ} (hrf : Lift.RunsFit LeanVM.Guest.B2C.fs cert)
-    (hcons : RunsConsec cert) (W : VsWordsOs LeanVM.Guest.B2C.fs) {κ : ℕ} (hκ : 16 ≤ κ)
-    (seed : Digest) (c : Child) (sqE outE : ℕ) (Lin : Main.Layout)
-    (hmu : ∀ layout r, Verifier.announcedLayoutAndRate bytecode c.proof.stream = some (layout, r) →
-      Coverage.minChildStackLog ≤ layout.stackLog)
-    (hst : c.proof.stream.length ≤ Coverage.childStreamCap)
-    (hvd : verifyDeferred bytecode seed (statementDigest seed c.statement)
-      c.freshClaim c.proof = true)
-    (hcaps : ∀ b ∈ Limits.queryStepsOf (deferringVerifierProgram c.freshClaim bytecode
-      (statementDigest seed c.statement)) (Coverage.childVerifierStart seed c),
-      Limits.OpeningsAgree b.1 b.2)
-    (hexp : ∀ q ∈ vsExpLin sqE, q ∈ Lin) (hout : (outE, DeferredBytecodeClaim.cells c.freshClaim) ∈ Lin) :
-    CompleteAtDTB LeanVM.Guest.B2C.fs cert κ "verify_sub" Lin (vsArgs seed c sqE outE) (Returns [])
-      (vsTsAny LeanVM.Guest.B2C.fs W vkBound (childShape bytecode c).1 (childShape bytecode c).2)
-      (vsBoundAt W vkBound (childShape bytecode c).1 (childShape bytecode c).2) :=
-  verify_sub_completeBT hbl hrf hcons W hκ (verify_keccak_completeAtB_fs (by omega)) seed c sqE
-    outE Lin hmu hst hvd hcaps hexp hout
 
 end
 end LeanVM.Guest.B1.VerifySub
