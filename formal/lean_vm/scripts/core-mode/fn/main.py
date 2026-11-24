@@ -72,7 +72,7 @@ def tail_words(W, stable):
     n = W.L(stable)
     np_ = len(W.g.fns[W.g.by[n]]['params'])
     for b in sorted(glob.glob(os.path.join(W.g.lv, 'LeanVM', 'Guest', 'Pack', '*', 'Bundle.lean'))):
-        parts = open(b, encoding='utf-8').read().split('\nnamespace LeanVM.Guest.Fn.')
+        parts = re.sub(r'\(nat_lit (\w+)\)', r'\1', open(b, encoding='utf-8').read()).split('\nnamespace LeanVM.Guest.Fn.')
         for blk in parts[1:]:
             if blk.split('\n', 1)[0].strip().strip('«»') == stable:
                 env = re.search(r'env := \[(.*?)\], fpOne', blk).group(1)

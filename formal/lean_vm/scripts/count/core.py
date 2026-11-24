@@ -180,6 +180,7 @@ def load_pmax(D):
     for f in sorted(glob.glob(os.path.join(D, '..', 'Pack', '*', 'Bundle.lean'))):
         cur = None
         for line in open(f, encoding='utf-8'):
+            line = re.sub(r'\(nat_lit (\w+)\)', r'\1', line)
             m = re.match(r'namespace LeanVM\.Guest\.Fn\.«([^»]*)»$', line)
             if m: cur = index[m.group(1)]; continue
             if line.startswith('noncomputable def plumb : B2C.Plumb where'):

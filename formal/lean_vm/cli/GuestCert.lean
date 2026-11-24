@@ -2986,6 +2986,33 @@ def coreRef (key : String) : String := s!"Fn.«{key}».core"
 /-- The options of a module of generated data: its literals nest deeper than the default allows. -/
 def dataOptions : String := "set_option maxRecDepth 100000\nset_option linter.all false\n\n"
 
+/-- `s` with each numeral outside docstrings, string literals and instructions written `(nat_lit n)`,
+which the elaborator takes as it is, without the `OfNat` instance a numeral costs (the readers of the
+text undo it, `scripts/bridge-cert/data.py`'s `unlit`). An instruction's numerals stay as they are: there
+the longer text costs more to parse than the instances save. -/
+def natLits (s : String) : String :=
+  "\n".intercalate ((s.splitOn "\n").map fun l =>
+    if l.startsWith "/--" || l.startsWith "  (." then l else Id.run do
+      let mut out := ""
+      let mut num := ""
+      let mut prev := ' '
+      let mut inStr := false
+      for c in l.toList do
+        if inStr then
+          out := out.push c
+          inStr := c != '"'
+        else if (c.isDigit && (!num.isEmpty || !(prev.isAlphanum || "_.«'".contains prev))) ||
+            (!num.isEmpty && (c.isAlphanum)) then
+          num := num.push c
+        else
+          if !num.isEmpty then
+            out := out ++ s!"(nat_lit {num})"
+            num := ""
+          inStr := c == '"'
+          out := out.push c
+        prev := c
+      return if num.isEmpty then out else out ++ s!"(nat_lit {num})")
+
 def fnPreamble (key : String) : String :=
   s!"\nnamespace {fnNs key}\n\nopen LeanVM.Guest LeanVM.Guest.Exec\n\n" ++ dataOptions ++ "@[expose] public section\n\n"
 
@@ -3274,7 +3301,7 @@ def checkedFiles (I : Array FnInfo) (packs : List (String × List ℕ)) (obl : L
       String.join (js.map fun j =>
         let k := I[j]!.key
         s!"namespace {fnNs k}\n\nopen LeanVM.Guest LeanVM.Guest.Exec\n\n" ++ dataOptions ++
-          "@[expose] public section\n\n" ++ I[j]!.code ++ I[j]!.cert ++ I[j]!.b2c ++ s!"\nend\nend {fnNs k}\n\n")
+          "@[expose] public section\n\n" ++ natLits (I[j]!.code ++ I[j]!.cert ++ I[j]!.b2c) ++ s!"\nend\nend {fnNs k}\n\n")
     let cs := js.filter fun j => !alone j && !(ownW j).isEmpty
     let checked := packHeader dir "Checked"
         s!"The kernel's checks of the windows of compiled functions {names cs}, over their views of the program." ++

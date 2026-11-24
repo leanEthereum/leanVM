@@ -352,6 +352,14 @@ def read_text(p):
     return _TEXTS[p]
 
 
+def unlit(t):
+    """A pack's `Bundle.lean` text with its numerals as written before `(nat_lit n)` (`GuestCert.natLits`)."""
+    return NAT_LIT.sub(r'\1', t)
+
+
+NAT_LIT = re.compile(r'\(nat_lit (\w+)\)')
+
+
 def core_paths():
     """The packs' core modules, by pack and module number (`Core`, `Core1`, `Core2`, ...)."""
     return sorted(glob.glob(ROOT + '/Pack/*/Core*.lean'),
@@ -403,7 +411,7 @@ def bundle_blocks():
     out = {}
     for b in sorted(glob.glob(ROOT + '/Pack/*/Bundle.lean')):
         pack = b.split('/')[-2]
-        for blk in read_text(b).split('\nnamespace LeanVM.Guest.Fn.')[1:]:
+        for blk in unlit(read_text(b)).split('\nnamespace LeanVM.Guest.Fn.')[1:]:
             out[blk.split('\n', 1)[0].strip().strip('«»')] = (pack, blk)
     return out
 
