@@ -335,7 +335,7 @@ theorem mergeNewer_cost_of (i j c : ℕ) (Q : κ → Prop) (C : ℕ)
   | cons x a =>
     rw [hcons, mergeNewerRec]
     cases b with
-    | nil => simp at hn ⊢; nlinarith
+    | nil => simp at hn ⊢; have : 1 ≤ n := (by omega); nlinarith
     | cons y b =>
       dsimp only
       have hc := hcmp x.1 y.1 (hb y (by simp))

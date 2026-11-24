@@ -519,7 +519,7 @@ def autoIncludes (ty : Expr) : MetaM Expr := do
   let .forallE n d (.forallE n2 d2 b bi2) bi := ty | return ty
   unless d2.isAppOf ``Includes do return ty
   let tac ← (Term.declareTacticSyntax (mkNode ``includesTac #[mkAtom "includes"])).run'
-  return .forallE n d (.forallE n2 (mkApp2 (mkConst ``autoParam [levelZero]) d2 (mkConst tac)) b bi2) bi
+  return .forallE n d (.forallE n2 (mkApp2 (mkConst ``autoParam [Level.zero]) d2 (mkConst tac)) b bi2) bi
 
 /-- Add a definition with its body exposed (visible to importing modules without `import all`)
 and compile it. -/

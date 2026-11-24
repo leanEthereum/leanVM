@@ -355,13 +355,14 @@ theorem preimageIndex_cost (hP : Includes P preimageIndexC.costDeps) (D L W : �
 
 open LeanVM.Cost.Auto.LeanVM.Extraction.Fast in
 /-- Byte strings compared (`compareLex` with `searchBytesC.lam0`): `26` per byte of the second. -/
-theorem compareBytes_cost (hP : Includes P searchIn.«Bytes, Digest».costDeps) (a b : List UInt8) :
+theorem compareBytes_cost (hP : Includes P Auto.List.compareLex.costDeps)
+    (hP' : Includes P searchBytesC.lam0.costDeps) (a b : List UInt8) :
     machineCost P Auto.List.compareLex.costIdx [.closure searchBytesC.lam0.costIdx [], encodeValue a, encodeValue b] ≤
       26 * b.length + 7 := by
-  have := compareLex_cost P (by includes) _ (.closure searchBytesC.lam0.costIdx [])
-    (fun a b ↦ RunsApp.of_spec (searchBytesC.lam0.costSpec P (by includes) a b)) 9
+  have := compareLex_cost P hP _ (.closure searchBytesC.lam0.costIdx [])
+    (fun a b ↦ RunsApp.of_spec (searchBytesC.lam0.costSpec P hP' a b)) 9
     (fun a b ↦ by
-      rw [appCost_fn, List.nil_append, List.length_nil, Nat.add_zero, searchBytesC.lam0.costEq P]
+      rw [appCost_fn, List.nil_append, List.length_nil, Nat.add_zero, searchBytesC.lam0.costEq P hP']
       split_ifs <;> omega) a b
   omega
 
@@ -376,7 +377,7 @@ theorem searchBytes_cost (hP : Includes P searchIn.«Bytes, Digest».costDeps)
         (40 + 26 * k.length + 9 * W) * (Nat.log2 (hi - lo) + 2) := by
   intro lo hi hlo hhi
   have := searchIn_cost_of P _ Auto.List.compareLex.costIdx searchBytesC.lam0.costIdx t k H W _ hW hts
-    (searchIn.«Bytes, Digest».costEq P hP t k) (fun x ↦ compareBytes_cost P (by includes) x k) lo hi hlo hhi
+    (searchIn.«Bytes, Digest».costEq P hP t k) (fun x ↦ compareBytes_cost P (by includes) (by includes) x k) lo hi hlo hhi
   rwa [show 26 * k.length + 7 + 33 + 9 * W = 40 + 26 * k.length + 9 * W by omega] at this
 
 /-- Byte-string keys of at most `L` bytes. -/
@@ -392,7 +393,7 @@ theorem mergeNewerBytes_cost (hP : Includes P mergeNewer.«Bytes, Digest».costD
   have := mergeNewer_cost_of P _ Auto.List.compareLex.costIdx searchBytesC.lam0.costIdx (BytesKey L) (26 * L + 7)
     (fun b ↦ (mergeNewer.«Bytes, Digest».costEq_nil P hP b).trans_le (by norm_num))
     (mergeNewer.«Bytes, Digest».costEq_cons P hP)
-    (fun x y hy ↦ by have := compareBytes_cost P (by includes) x y; unfold BytesKey at hy; omega) n a b hn hb
+    (fun x y hy ↦ by have := compareBytes_cost P (by includes) (by includes) x y; unfold BytesKey at hy; omega) n a b hn hb
   rwa [show 26 * L + 7 + 26 = 26 * L + 33 by omega] at this
 
 open LeanVM.Cost.Auto.LeanVM.Extraction.Fast in
