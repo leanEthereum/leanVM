@@ -7,7 +7,7 @@
 module
 
 public import LeanVM.Guest.Memory.Uniform
-public import LeanVM.Guest.B1.Digest.StatementComplete
+public import LeanVM.Guest.B1.Digest.Statement
 public import Statement.LeanVmGuest
 
 /-!
@@ -21,7 +21,7 @@ public import Statement.LeanVmGuest
 namespace LeanVM.Guest.B1.Main
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
-open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Fwd
+open LeanVM.Guest.B1.Digest
 open LeanVM.Guest.B1 (CompleteAtD Returns completeAt_of_rel_pureD)
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Node
 open LeanVM.Guest.Value.Keccak (cellsBytes)
