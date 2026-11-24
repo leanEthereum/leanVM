@@ -339,34 +339,6 @@ theorem forgeAdvantage_internalize (adversary : Adversary) :
 /-! ### The count: at most `keygenHashCost + q + V` on every path -/
 
 omit [Params] in
-theorem counted_le_of_isQueryBoundP {ι : Type} {spec : OracleSpec ι} (selected : ι → Prop)
-    [DecidablePred selected] {α : Type} (oa : OracleComp spec α) (n : Nat) (h : oa.IsQueryBoundP selected n) :
-    ∀ result ∈ support (Common.QueryCount.counted selected oa), result.2 ≤ n := by
-  induction oa using OracleComp.inductionOn generalizing n with
-  | pure value =>
-      intro result hresult
-      rw [Common.QueryCount.counted_pure, support_pure, Set.mem_singleton_iff] at hresult
-      rw [hresult]
-      exact Nat.zero_le _
-  | query_bind input next ih =>
-      rw [isQueryBoundP_query_bind_iff] at h
-      intro result hresult
-      rw [Common.QueryCount.counted_query_bind, mem_support_bind_iff] at hresult
-      obtain ⟨answer, _, hresult⟩ := hresult
-      rw [mem_support_bind_iff] at hresult
-      obtain ⟨tail, htail, hresult⟩ := hresult
-      rw [support_pure, Set.mem_singleton_iff] at hresult
-      have := ih answer _ (h.2 answer) tail htail
-      rw [hresult]
-      by_cases hsel : selected input
-      · simp only [hsel, ↓reduceIte] at this ⊢
-        rcases h.1 with hnot | hpos
-        · exact absurd hsel hnot
-        · omega
-      · simp only [hsel, ↓reduceIte] at this ⊢
-        omega
-
-omit [Params] in
 theorem fst_mem_support_writer_run {ι ι' : Type} {spec : OracleSpec ι} {spec' : OracleSpec ι'} {ω : Type}
     [EmptyCollection ω] [Append ω] [LawfulAppend ω] {β : Type}
     (impl : QueryImpl spec (WriterT ω (OracleComp spec'))) (M : OracleComp spec β) :
@@ -442,12 +414,12 @@ theorem experimentAdv_count_le (adversary : Adversary) (q V : Nat)
   obtain ⟨keys, _, hgame⟩ := hgame
   rw [mem_support_bind_iff] at hgame
   obtain ⟨output, houtput, hverify⟩ := hgame
-  have hcalls := counted_le_of_isQueryBoundP AdvHash _ q (hq keys.1) _
+  have hcalls := Common.QueryCount.counted_le_of_isQueryBoundP AdvHash _ q (hq keys.1) _
     (fst_mem_support_writer_run _ _ output houtput)
   rw [verifyAdv, support_map] at hverify
   obtain ⟨checked, hchecked, rfl⟩ := hverify
   rw [countHashQueries_liftM] at hchecked
-  have hchecks := counted_le_of_isQueryBoundP (fun _ => True) _ V (hV _ _ _) _
+  have hchecks := Common.QueryCount.counted_le_of_isQueryBoundP (fun _ => True) _ V (hV _ _ _) _
     (mem_support_of_mem_support_liftComp _ _ _ hchecked)
   show keygenHashCost + output.1.2 + checked.2 ≤ _
   omega
@@ -455,20 +427,8 @@ theorem experimentAdv_count_le (adversary : Adversary) (q V : Nat)
 /-! ### The internalized game as an average of fixed-function games -/
 
 theorem OnlyAdv.countedAdv {β : Type} (M : OracleComp AdvSpec β) (h : OnlyAdv M) :
-    OnlyAdv (Common.QueryCount.counted AdvHash M) := by
-  induction M using OracleComp.inductionOn with
-  | pure value => rw [Common.QueryCount.counted_pure]; exact isQueryBoundP_pure _ _ _
-  | query_bind input next ih =>
-      rw [OnlyAdv, isQueryBoundP_query_bind_iff] at h
-      rw [Common.QueryCount.counted_query_bind, OnlyAdv, isQueryBoundP_query_bind_iff]
-      refine ⟨h.1, fun answer => ?_⟩
-      have hnext : OnlyAdv (next answer) := by
-        have := h.2 answer
-        split at this <;> simpa [OnlyAdv] using this
-      have hbind : OnlyAdv (Common.QueryCount.counted AdvHash (next answer) >>= fun result =>
-          (pure (result.1, (if AdvHash input then 1 else 0) + result.2) : OracleComp AdvSpec (β × Nat))) :=
-        OnlyAdv.bind (ih answer hnext) (fun _ => by simp [OnlyAdv])
-      split <;> simpa [OnlyAdv] using hbind
+    OnlyAdv (Common.QueryCount.counted AdvHash M) :=
+  Common.QueryCount.isQueryBoundP_counted _ h
 
 theorem OnlyW.gameAfterSeedAdv_internalize (adversary : Adversary) (seed : MasterSeed) :
     OnlyW (gameAfterSeedAdv (internalize adversary) seed) := by

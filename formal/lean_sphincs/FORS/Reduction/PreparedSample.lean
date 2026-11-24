@@ -24,21 +24,8 @@ attribute [local instance] Classical.propDecidable
 
 theorem OnlyW.counted {α : Type} (selected : OracleWorld.Domain → Prop) [DecidablePred selected]
     (oa : OracleComp OracleWorld α) (h : OnlyW oa) :
-    OnlyW (Common.QueryCount.counted selected oa) := by
-  induction oa using OracleComp.inductionOn with
-  | pure value => exact OnlyW.pure' _
-  | query_bind input next ih =>
-      rw [OnlyW, isQueryBoundP_query_bind_iff] at h
-      rw [Common.QueryCount.counted_query_bind, OnlyW, isQueryBoundP_query_bind_iff]
-      refine ⟨h.1, fun answer => ?_⟩
-      have hnext : OnlyW (next answer) := by
-        have := h.2 answer
-        split at this <;> simpa [OnlyW] using this
-      have hbind : OnlyW (Common.QueryCount.counted selected (next answer) >>= fun result =>
-          (pure (result.1, (if selected input then 1 else 0) + result.2) :
-            OracleComp OracleWorld (α × Nat))) :=
-        OnlyW.bind (ih answer hnext) (fun _ => OnlyW.pure' _)
-      split <;> simpa [OnlyW] using hbind
+    OnlyW (Common.QueryCount.counted selected oa) :=
+  Common.QueryCount.isQueryBoundP_counted _ h
 
 /-- `pure` has the same distribution in any two lawful semantics. -/
 theorem evalDistEq_pure {m₁ m₂ : Type → Type} [Monad m₁] [LawfulMonad m₁] [Monad m₂] [LawfulMonad m₂]

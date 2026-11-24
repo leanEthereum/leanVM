@@ -10,7 +10,9 @@ public import VCVio.OracleComp.QueryTracking.QueryBound
 
 `counted selected oa` runs `oa` and also returns how many of its queries satisfy `selected`, as a
 program over the same oracles (`simulate_withCost`: simulating it is simulating `oa` with a cost of
-one per selected query). The schemes count their hash calls with it.
+one per selected query). The schemes count their hash calls with it. A computation within a query
+budget stays within it once counted (`isQueryBoundP_counted`), and its count of the budgeted queries
+is at most the budget (`counted_le_of_isQueryBoundP`).
 -/
 
 namespace Common.QueryCount
@@ -83,5 +85,31 @@ theorem counted_map (computation : OracleComp spec Result) (f : Result → Next)
   rw [show f <$> computation = computation >>= fun result => pure (f result) from
     (bind_pure_comp f computation).symm, counted_bind]
   simp only [counted_pure, Nat.add_zero, bind_pure_comp, map_pure]
+
+/-- Counting adds no query: `counted` keeps every query budget of the computation. -/
+theorem isQueryBoundP_counted {budgeted : Index → Prop} [DecidablePred budgeted] {n : Nat}
+    {computation : OracleComp spec Result} (h : computation.IsQueryBoundP budgeted n) :
+    (counted selected computation).IsQueryBoundP budgeted n := by
+  induction computation using OracleComp.inductionOn generalizing n with
+  | pure result => exact isQueryBoundP_pure _ _ _
+  | query_bind input next ih =>
+      rw [isQueryBoundP_query_bind_iff] at h
+      rw [counted_query_bind, isQueryBoundP_query_bind_iff]
+      exact ⟨h.1, fun answer => by
+        simpa only [Nat.add_zero] using
+          isQueryBoundP_bind (ih answer (h.2 answer)) fun _ _ => isQueryBoundP_pure _ _ 0⟩
+
+/-- Within a budget of `n` selected queries, every run counts at most `n` of them. -/
+theorem counted_le_of_isQueryBoundP (computation : OracleComp spec Result) (n : Nat)
+    (h : computation.IsQueryBoundP selected n) :
+    ∀ result ∈ support (counted selected computation), result.2 ≤ n := by
+  induction computation using OracleComp.inductionOn generalizing n with
+  | pure value => simp [counted_pure]
+  | query_bind input next ih =>
+      rw [isQueryBoundP_query_bind_iff] at h
+      simp only [counted_query_bind, mem_support_bind_iff, support_pure, Set.mem_singleton_iff]
+      rintro _ ⟨answer, -, tail, htail, rfl⟩
+      have := ih answer _ (h.2 answer) tail htail
+      by_cases hsel : selected input <;> simp only [hsel, ↓reduceIte] at this ⊢ <;> grind
 
 end Common.QueryCount
