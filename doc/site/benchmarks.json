@@ -3,6 +3,18 @@
   "proof_kib": { "aggregation": 204, "recursion": 280 },
   "machines": [
     {
+      "name": "ASUS NUC 14 Pro",
+      "cpu": "Intel Core Ultra 7 155H",
+      "cores": 16,
+      "threads": 22,
+      "memory": "32 GB DDR5-5600, 2 × 16 GB Crucial",
+      "simd": "AVX2",
+      "results": {
+        "aggregation": { "4": { "time": 2.377, "ram": 3.16 }, "8": { "time": 1.542, "ram": 3.23 }, "full": { "time": 1.267, "ram": 3.40 } },
+        "recursion": { "4": { "time": 2.218, "ram": 2.76 }, "8": { "time": 1.489, "ram": 2.78 }, "full": { "time": 1.273, "ram": 2.84 } }
+      }
+    },
+    {
       "name": "MacBook Pro M4 Max",
       "cpu": "Apple M4 Max",
       "cores": 16,
@@ -36,18 +48,6 @@
       "results": {
         "aggregation": { "4": { "time": 1.583, "ram": 3.15 }, "8": { "time": 0.921, "ram": 3.22 }, "full": { "time": 0.730, "ram": 3.33 } },
         "recursion": { "4": { "time": 1.492, "ram": 2.75 }, "8": { "time": 0.936, "ram": 2.78 }, "full": { "time": 0.775, "ram": 2.87 } }
-      }
-    },
-    {
-      "name": "Cherry Servers EPYC 9355P",
-      "cpu": "AMD EPYC 9355P",
-      "cores": 32,
-      "threads": 64,
-      "memory": "192 GB DDR5-6400 RDIMM, 12 × 16 GB SK Hynix",
-      "simd": "AVX-512",
-      "results": {
-        "aggregation": { "4": { "time": 0.920, "ram": 3.17 }, "8": { "time": 0.489, "ram": 3.22 }, "full": { "time": 0.202, "ram": 3.50 } },
-        "recursion": { "4": { "time": 0.896, "ram": 2.76 }, "8": { "time": 0.522, "ram": 2.78 }, "full": { "time": 0.281, "ram": 2.96 } }
       }
     }
   ]

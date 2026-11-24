@@ -283,7 +283,6 @@ function render() {
     const name = sub ? [label, " ", el("span", { className: "sub" }, sub, info)] : [label, info];
     return el("tr", {}, el("th", {}, ...name), el("td", { textContent: num(r && r.time, "s") }), el("td", { textContent: num(r && r.ram, "GiB") }), el("td", { textContent: typeof PROOF_KIB[key] === "number" ? `${PROOF_KIB[key]} KiB` : "\u2013" }));
   }));
-  try { localStorage.setItem("leanvm-bench", JSON.stringify(state)); } catch (e) {}
 }
 
 // The subnets figure: signatures into 16 aggregates, which merge into one proof per slot.
@@ -360,12 +359,12 @@ fetch("benchmarks.json", { cache: "no-store" })
       const most = Object.keys(runs).sort((a, b) => rank(a) - rank(b)).pop();
       return (runs[most] || {}).time ?? Infinity;
     };
+    const first = data.machines[0].name;
     data = data.machines.slice().sort((a, b) => speed(b) - speed(a));
     MACHINES = data;
     THREADS = [...new Set(data.flatMap(m => Object.values(m.results).flatMap(Object.keys)))].sort((a, b) => rank(a) - rank(b));
-    let saved = {};
-    try { saved = JSON.parse(localStorage.getItem("leanvm-bench") || "{}"); } catch (e) {}
-    state.machine = data.some(m => m.name === saved.machine) ? saved.machine : data[0].name;
+    // The file's first machine is the default.
+    state.machine = first;
     state.threads = THREADS.includes("8") ? "8" : THREADS[THREADS.length - 1];
     segment("machine", data.map(m => m.name), "machine");
     segment("threads", THREADS, "threads");
