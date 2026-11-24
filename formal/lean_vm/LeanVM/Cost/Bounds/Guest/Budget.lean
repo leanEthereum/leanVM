@@ -118,8 +118,8 @@ theorem frameAtAPrice_le (e n : ℕ) (hn : n ≤ 16) :
     Nat.mul_le_mul_right _ (by omega)
   omega
 
-/-- A frame search of at most `16` words on the sorted array (`frameFpA_cost`), within the
-statement's frame lookup. -/
+/-- A frame search of at most `64` words on the sorted array (`frameFpA_cost`), within four of the
+statement's frame lookups. -/
 theorem frameFpAPrice_le64 (e n : ℕ) (hn : n ≤ 64) :
     (64 * n + 78 + 9 * wl e) * (e + 2) + 27 * n + 49 ≤ 4 * guestDecoderFramePrice e := by
   have hw : wl e = limbsBelowTwoPow (e + 1) := rfl
@@ -133,14 +133,8 @@ theorem frameFpAPrice_le64 (e n : ℕ) (hn : n ≤ 64) :
 /-- A frame search of at most `16` words on the sorted array (`frameFpA_cost`), within the
 statement's frame lookup. -/
 theorem frameFpAPrice_le (e n : ℕ) (hn : n ≤ 16) :
-    (64 * n + 78 + 9 * wl e) * (e + 2) + 27 * n + 49 ≤ guestDecoderFramePrice e := by
-  have hw : wl e = limbsBelowTwoPow (e + 1) := rfl
-  rw [hw]
-  unfold guestDecoderFramePrice guestDecoderEntryTablePositionLimbs
-  have h1 : (64 * n + 78 + 9 * limbsBelowTwoPow (e + 1)) * (e + 2) ≤
-      (64 * 16 + 78 + 9 * limbsBelowTwoPow (e + 1)) * (e + 2) :=
-    Nat.mul_le_mul_right _ (by omega)
-  omega
+    (64 * n + 78 + 9 * wl e) * (e + 2) + 27 * n + 49 ≤ guestDecoderFramePrice e :=
+  le_trans (by omega) (frameAtAPrice_le e n hn)
 
 /-- The replay lists the initial state at least. -/
 theorem replayStatesOf_length_pos (memT codeT : Array (ℕ × ℕ)) (prog :
@@ -367,41 +361,6 @@ theorem guestDecoderPriceAt_le_budget_add {M κ steps : ℕ} (hκ : κ ≤ 30) (
       have e2 : (6476658 + 9032 * lg) * M = 6414234 * M + (9032 * lg + 62424) * M := by ring
       rw [e1, e2]
       omega
-
-/-- **At counts at most the memory's size, the price is within the statement's budget**, at the
-guest's `ℓ = 19`, a memory of at most `2^30` words and fewer than `2^128` steps
-(`guestDecoderPriceAt_le_budget_add`, each count's share within `(2^23 + 2^14·log₂(steps + 1))`
-a word of the memory). -/
-theorem guestDecoderPriceAt_le_budget {M κ steps : ℕ} (hκ : κ ≤ 30) (hs : steps < 2 ^ 128)
-    (hM : M ≤ 2 ^ κ) :
-    guestDecoderPriceAt M κ 19 steps ≤ (steps + 1) * (2 ^ 21 + 2 ^ 13 * Nat.log2 (steps + 1)) +
-      (70 * κ + 374 + 2 ^ 23 + 2 ^ 14 * Nat.log2 (steps + 1)) * 2 ^ κ +
-      2 ^ 37 * (Nat.log2 (steps + 1) + 16) := by
-  have h := guestDecoderPriceAt_le_budget_add (M := M) hκ hs
-  generalize Nat.log2 (steps + 1) = lg at h ⊢
-  have h1 : (6476658 + 9032 * lg) * M ≤ (2 ^ 23 + 2 ^ 14 * lg) * 2 ^ κ :=
-    Nat.mul_le_mul (by omega) hM
-  have e : (70 * κ + 374 + 2 ^ 23 + 2 ^ 14 * lg) * 2 ^ κ =
-      (70 * κ + 374) * 2 ^ κ + (2 ^ 23 + 2 ^ 14 * lg) * 2 ^ κ := by ring
-  rw [e]
-  omega
-
-/-- **On a valid execution of the guest whose counts are at most `M ≤ 2^κ`, the decoder
-program's price is within its budget** (`decoderPrice_le_at`, `guestDecoderPriceAt_le_budget`). -/
-theorem decoderPrice_within_budget_at (M : ℕ) (input : PublicInput)
-    (t : Execution LeanVM.Guest.guestProgram)
-    (hv : ValidExecution LeanVM.Guest.guestProgram input t) (hM : M ≤ 2 ^ t.logMemorySize)
-    (hcv : ValidCounts discreteLogTables (Decoder.mainVal
-      (Decoder.memReader (powTable t.logMemorySize) (Decoder.memoryVector t.memory))) M) :
-    decoderProgramPrice LeanVM.Guest.guestProgram t ≤ guestWitnessDecoderBudget t := by
-  have hκ : t.logMemorySize ≤ 30 := hv.1.2.1
-  have h34 : M ≤ 2 ^ 34 :=
-    hM.trans ((Nat.pow_le_pow_right (by norm_num) hκ).trans (by norm_num))
-  have h := decoderPrice_le_at M h34 input t hv hcv
-  rw [LeanVM.Guest.guest_logSize] at h
-  have hb := guestDecoderPriceAt_le_budget hκ (steps_lt_of_valid hv) hM
-  unfold guestWitnessDecoderBudget
-  omega
 
 /-- **On every valid execution of the guest, the decoder program's price is within its
 budget**: within the exact price at counts below `2^κ` (`decoderPrice_le_exact`), within the

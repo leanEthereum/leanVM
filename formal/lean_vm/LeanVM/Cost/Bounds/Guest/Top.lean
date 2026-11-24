@@ -301,7 +301,7 @@ prices, the signatures' readers' `WX`, `WS` given. -/
 
 /-- **The guest decoder's witness** (`decWitNC`), the logarithm's tables `D` and the readers'
 tables `Tb` given, the leanSPHINCS reader `wS` of price at most `WS`, `da_verify`'s witness at its
-frame at most `DW` (`dvWitN_cost` at `S = F + 9`), the counts within `K N X`, each child's cursor
+frame at most `DW` (`dvWitN_cost_maxRows` at `S = F + 9`), the counts within `K N X`, each child's cursor
 length (at `verify_sub`'s frame of its arguments, `subArgsK`) at most `L`: at most
 `decWitNPrice G R S F C L DW WS K N X`. -/
 theorem decWitN_cost (D : DiscreteLogTables) (Tb : ReaderTabs) (hTb : ReaderTabsOK Tb)

@@ -39,12 +39,6 @@ public section
 
 variable (P : MachineProgram)
 
-theorem listCasesOn_le {α : Type} (l : List α) (a : ℕ) (f : α → List α → ℕ)
-    (hf : ∀ x y, f x y ≤ a) : (List.casesOn (motive := fun _ ↦ ℕ) l a f) ≤ a := by
-  cases l
-  · exact le_rfl
-  · exact hf _ _
-
 /-! ## The levels' shapes -/
 
 /-- A level's shape, all small: level 0 (`base = 1`) is never the final level, a deeper level
@@ -397,32 +391,6 @@ theorem oqMK_cost (hP : Includes P Decoder.oqMKC.costDeps) :
     limbs_one; omega
   · limbs_one; omega
 
-theorem oqBs_cost (hP : Includes P Decoder.oqBsC.costDeps) (kL : ℕ) (hkL : kL < 2 ^ 23) :
-    machineCost P Decoder.oqBsC.costIdx [encodeValue kL, encodeValue (s.B - 1)] ≤ 13 := by
-  have := hs.2.2.2.2.2.2.2.1
-  rw [Decoder.oqBsC.costEq P hP]
-  limbs_one; split_ifs <;> omega
-
-theorem oqBs_lt (kL : ℕ) (hkL : kL < 2 ^ 23) : oqBs kL (s.B - 1) < 2 ^ 24 := by
-  have := hs.2.2.2.2.2.2.2.1
-  unfold oqBs; split_ifs <;> omega
-
-theorem oqOut_lt (kL : ℕ) (hkL : kL < 2 ^ 23) (c : ℕ) (hc : c ≤ 1) :
-    oqOut s kL (s.B - 1) c < 2 ^ 25 := by
-  have := oqBs_lt hs kL hkL
-  unfold oqOut; split_ifs <;> omega
-
-theorem oqOut_cost (hP : Includes P Decoder.oqOutC.costDeps) (kL : ℕ) (hkL : kL < 2 ^ 23) (c : ℕ)
-    (hc : c ≤ 1) :
-    machineCost P Decoder.oqOutC.costIdx
-      [encodeValue s, encodeValue kL, encodeValue (s.B - 1), encodeValue c] ≤ 60 := by
-  have hb := oqBs_cost P hs (by includes) kL hkL
-  have hbl := oqBs_lt hs kL hkL
-  have hB := Oq_B_cost P hs (by includes)
-  have := hs.2.2.2.2.2.2.2.1
-  rw [Decoder.oqOutC.costEq P hP]
-  limbs_one; split_ifs <;> omega
-
 end Shape
 
 /-! ## Consecutive words -/
@@ -642,17 +610,6 @@ theorem digestOfCells640_cost (hP : Includes P Decoder.digestOfCellsWC.costDeps)
       58 := by
   rw [Decoder.digestOfCellsWC.costEq P hP,
     Extractor.digestOfScalarsC.costEq P (by includes)]
-  omega
-
-omit hrd hR in
-/-- A bit (`testBit.c108`), of a word: at most `9`. -/
-theorem testBit_cost (hP : Includes P Auto.Nat.testBit.c108.costDeps) (q l : ℕ) (hq : q < 2 ^ 64)
-    (hl : l < 2 ^ 64) :
-    machineCost P Auto.Nat.testBit.c108.costIdx [encodeValue q, encodeValue l] ≤ 9 := by
-  rw [Auto.Nat.testBit.c108.costEq P hP]
-  have h1 : q >>> l ≤ q := Nat.shiftRight_le q l
-  have h2 : 1 &&& q >>> l ≤ 1 := Nat.and_le_left
-  limbs_one
   omega
 
 /-! ## A query -/
@@ -961,16 +918,6 @@ theorem length_oqsOfA (s : Oq) (lanes : List ℕ) (cd odd loop N : ℕ) (σ : Va
   have := length_oqItersFrom (rd := rd) s lanes cd loop Vn (oqLoopArgs s σ) N 1
   split_ifs <;> simp only [List.length_cons, List.length_nil] <;> omega
 
-omit hrd hR in
-theorem length_flatMap_le {α β : Type} (f : α → List β) (M : ℕ) (hf : ∀ a, (f a).length ≤ M) :
-    ∀ l : List α, (l.flatMap f).length ≤ M * l.length
-  | [] => by simp
-  | a :: l => by
-    rw [List.flatMap_cons, List.length_append, List.length_cons, Nat.mul_succ]
-    have := length_flatMap_le f M hf l
-    have := hf a
-    omega
-
 /-! ## A query's opening -/
 
 omit hrd hR in
@@ -1232,14 +1179,6 @@ theorem levelOsA_cost (hP : Includes P Decoder.levelOsNC.costDeps) (lanes : List
   omega
 
 end Val3
-
-omit hrd hR in
-theorem length_levelOsA (lanes : List ℕ) (σ : Val) (Vn : NFrames) (c : OsCall) (hc : CallOK c) :
-    (levelOsA lanes rd σ Vn c).length ≤ 225 := by
-  unfold levelOsA levelOsF levelOsQ levelOsAt
-  rw [List.length_map]
-  have := hc.2.2.1
-  exact (length_oqsOfA (rd := rd) _ _ _ _ _ _ _ _).trans (by omega)
 
 section Proof
 

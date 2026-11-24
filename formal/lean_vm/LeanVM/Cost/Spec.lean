@@ -293,9 +293,6 @@ def MachineProgram.ofList (l : List (ℕ × Term)) : MachineProgram :=
   let n := (l.map (·.1)).foldr max 0 + 1
   l.foldl (fun P p ↦ P.setIfInBounds p.1 p.2) (Array.replicate n (.literal (.nat 0)))
 
-theorem RunsBody.cost_eq {P : MachineProgram} {f : ℕ} {vs : List MachineValue} {v : MachineValue} {c c' : ℕ}
-    (h : RunsBody P f vs v c) (hc : c = c') : RunsBody P f vs v c' := hc ▸ h
-
 /-! ## The price bounds the fuel -/
 
 /-- A run of price `c` needs at most `c` nested calls. -/

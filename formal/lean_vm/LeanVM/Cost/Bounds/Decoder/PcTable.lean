@@ -194,7 +194,6 @@ theorem addEntry_amortized (hP : Includes P addEntryC.costDeps) (m : SortedMap �
   generalize m.get? (laneCode (addressOfIndex (guestEntries.getD j 0))) = o
   cases o <;> dsimp only <;> unfold pcCode at hget hcarry ⊢ <;> omega
 
-set_option maxRecDepth 100000 in
 /-- **The pc table** (`pcTableTC`), built once: at most `22021176`. -/
 theorem pcTableT_cost (hP : Includes P pcTableTC.costDeps) :
     machineCost P pcTableTC.costIdx [] ≤ 22021176 := by
