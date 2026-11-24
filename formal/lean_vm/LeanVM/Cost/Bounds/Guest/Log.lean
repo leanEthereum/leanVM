@@ -36,16 +36,6 @@ variable (P : MachineProgram)
 
 /-! ## `a^n` in `E` -/
 
-/-- `a^n` in `E`, `n < 2^k`, `k ≤ 64`: at most `11 + 606·k`. -/
-theorem powSqE_cost_lt (hP : Includes P Decoder.powSqEC.costDeps) (a : E)
-    (n k : ℕ) (hk0 : 0 < k) (hk : k ≤ 64) (hn : n < 2 ^ k) :
-    machineCost P Decoder.powSqEC.costIdx [encodeValue a, encodeValue n] ≤
-      11 + 606 * k := by
-  have h64 : n < 2 ^ 64 := lt_of_lt_of_le hn (Nat.pow_le_pow_right (by norm_num) hk)
-  refine (LeanVM.Cost.Bounds.powSqE_cost P hP a n h64).trans ?_
-  have := log2_lt_of hk0 hn
-  nlinarith
-
 /-- `a^n` in `K`, `n < 2^k`, `k ≤ 64`: at most `5 + 73·k`. -/
 theorem powSqK_cost_lt (hP : Includes P Auto.LeanVM.Cost.Rewrite.powSq.c116.costDeps) (a : K)
     (n k : ℕ) (hk0 : 0 < k) (hk : k ≤ 64) (hn : n < 2 ^ k) :

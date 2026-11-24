@@ -12,12 +12,11 @@ This module gives that code and proves it:
 
 * `carryless_eq`: the machine's carry-less product (`carrylessMultiply`, the verifier's
   `carryless`) on two words is CompPoly's `carryLessMul (w := 128)` (the product `BF64.mul`
-  reduces), and below `2^127` (`carryless_lt_two_pow_127`);
+  reduces);
 * `mulKNat a b`: the product of the elements of lanes `a`, `b`, a straight line of primitives,
   and `mulKNat_eq`: it is `(a * b).lane.toNat`, below `2^64` (`mulKNat_lt`);
 * `mulKTerm i j`: `mulKNat` as a machine term on the environment's positions `i`, `j`, and
-  `evaluateTerm_mulKTerm` (on natural numbers) and `evaluateTerm_mulKTerm_encode` (on encoded
-  `K` elements): its value and **a price of at most `21`**.
+  `evaluateTerm_mulKTerm`: its value and **a price of at most `21`**.
 
 **The reduction** is Barrett's, whose constant `⌊x^128 / P⌋` is the modulus
 `P = x^64 + x^4 + x^3 + x + 1` itself (`0x1000000000000001B`, since `x^128 = (x^64 + T)·P + T²`
@@ -191,10 +190,6 @@ theorem carryless_eq (a b : UInt64) :
     carryless a.toNat b.toNat = (carryLessMul (w := 128) a.toBitVec b.toBitVec).toNat := by
   rw [carryless_eq_fold a.toNat b.toNat_lt, carryLessMul_comm, carryLessMul]
   exact (toNat_foldl_carryLessMul b.toBitVec a.toBitVec 64 le_rfl).symm
-
-/-- The carry-less product of two words is below `2^127`. -/
-theorem carryless_lt_two_pow_127 (a b : UInt64) : carryless a.toNat b.toNat < 2 ^ 127 :=
-  carryless_lt (n := 64) (m := 64) a.toNat_lt b.toNat_lt
 
 /-! ## The product by the modulus -/
 
@@ -394,16 +389,6 @@ theorem evaluateTerm_mulKTerm (P : MachineProgram) (n : ℕ) (env : List Machine
   rw [one _ ha, one _ hb, one 64 (by norm_num), one h (lt_of_lt_of_le hh (by norm_num)),
     one q (lt_of_lt_of_le hq (by norm_num))]
   omega
-
-/-- **`mulKTerm` computes the product of two encoded `K` elements at a price of at most
-`21`.** -/
-theorem evaluateTerm_mulKTerm_encode (P : MachineProgram) (n : ℕ) (env : List MachineValue)
-    {i j : ℕ} {a b : K} (hi : env[i]? = some (encodeValue a))
-    (hj : env[j]? = some (encodeValue b)) :
-    ∃ c ≤ 21, evaluateTerm P n env (mulKTerm i j) = some (encodeValue (a * b), c) := by
-  obtain ⟨c, hc, h⟩ := evaluateTerm_mulKTerm P n env (a := a.lane.toNat) (b := b.lane.toNat) hi hj
-    a.lane.toNat_lt b.lane.toNat_lt
-  exact ⟨c, hc, by rw [h, mulKNat_eq]; rfl⟩
 
 end
 

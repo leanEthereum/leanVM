@@ -314,15 +314,6 @@ theorem subtreeLeavesWith_mem_length (pre : Digest → ℕ → Option Bytes) (w 
     · rw [Array.mem_replicate] at hx
       rw [hx.2, List.length_replicate]
 
-/-- **Every position of the committed word reads `w` words.** -/
-theorem leafAt_length (pre : Digest → ℕ → Option Bytes) (w h : ℕ) (d : Digest) (v : ℕ) :
-    (leafAt (subtreeLeavesWith pre w h d) h w v).length = w := by
-  rw [leafAt, Array.getD_eq_getD_getElem?]
-  have hv : v % 2 ^ h < (subtreeLeavesWith pre w h d).size := by
-    rw [subtreeLeavesWith_size]; exact Nat.mod_lt _ (by positivity)
-  rw [Array.getElem?_eq_getElem hv, Option.getD_some]
-  exact subtreeLeavesWith_mem_length pre w h d _ (Array.getElem_mem hv)
-
 end
 
 end LeanVM.Cost.Bounds

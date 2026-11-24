@@ -113,14 +113,6 @@ theorem mainVal_eq : mainVal = LeanVM.Guest.End.mainValWith := by
   unfold mainVal LeanVM.Guest.End.mainValWith
   rw [guestLocs_main]
 
-/-- **`main`'s valuation off the table is the one off its certificate's two lists**, on every
-value. -/
-theorem mainVal_eq_cert (rd : Reader) (v : V) :
-    mainVal rd v = LeanVM.Guest.Located.wordWith rd 1
-      ((LeanVM.Guest.Fn.«main».cert_w0_0 ++ LeanVM.Guest.Fn.«main».cert_w1_0).getD v.idx 0) := by
-  unfold mainVal
-  rw [guestLocs_main, certOf_one_locs]
-
 open LeanVM.Semantics LeanVM.Guest.Located LeanVM.Extraction.Fast LeanVM.Guest.Fast in
 /-- **The deployed decoder through the top's ends**: the address tables (`decoderTables`), the
 reader of the memory vector (`memReader`), the replay (`replayStatesOf`), `main`'s valuation

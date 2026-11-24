@@ -10,9 +10,8 @@ public import LeanVM.Cost.Decoder.Memory
 quotient `q / p` limb by limb (`limbQuotC`, an inverse in `GF(2^64)`), its logarithm, kept when
 at most `2^32` and `q = p · a`.
 
-* **`cursorLength_cost`**: the logarithm (`discreteLogWithC`) at most `Lg`, its logarithms
-  word-sized: at most `Lg + 3214`;
-* **`cursorLenWith_le`**: the length is at most `2^32`, for every logarithm.
+**`cursorLength_cost`**: the logarithm (`discreteLogWithC`) at most `Lg`, its logarithms
+word-sized: at most `Lg + 3214`.
 -/
 
 namespace LeanVM.Cost.Bounds
@@ -22,19 +21,6 @@ open LeanVM.Cost LeanVM.Cost.Decoder LeanVM.Parameters LeanVM.Guest.Fast LeanVM.
 public section
 
 variable (P : MachineProgram)
-
-/-- **The cursor's length is at most `2^32`**, for every logarithm `dl`. -/
-theorem cursorLenWith_le (dl : K → Option ℕ) (p q : E) : cursorLenWith dl p q ≤ 2 ^ 32 := by
-  unfold cursorLenWith
-  dsimp only
-  generalize dl (limbQuot p q) = o
-  rcases o with _ | n
-  · simp
-  · rw [Option.filter_some]
-    split_ifs with h
-    · simp only [decide_eq_true_eq] at h
-      simpa using h.1
-    · simp
 
 /-- The quotient limb by limb (`limbQuotC`): an inverse in `GF(2^64)` and `46`, at most `2869`. -/
 theorem limbQuot_cost (hP : Includes P limbQuotC.costDeps) (p q : E) :

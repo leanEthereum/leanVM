@@ -25,8 +25,8 @@ tables of at most `2^30` rows (the layout's checks in `buildLayoutLite`), and th
 
 Hypotheses: placements' offsets below `2^63` (`(layout.placement c).index < 2^63`, so an offset
 plus an address of a memory of at most `2^62` words is a word) and the layout's
-sizes above; `afterRootLite`'s layouts meet them (`afterRootLite_facts`, offsets below `2^48`) and
-`runner_cost_afterRootLite` discharges them (`Bounds/Layout.lean`).
+sizes above; `afterRootLite`'s layouts meet them (`afterRootLite_facts`, offsets below `2^48`,
+`Bounds/Layout.lean`).
 -/
 
 namespace LeanVM.Cost.Bounds

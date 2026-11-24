@@ -24,8 +24,8 @@ logarithm's baby-step tables `D` given. Parametric in what the test calls:
 
 The bounds, bottom-up: `readIs_cost` (`20`), `gpowAt_cost` (`17`),
 `symValAt_cost`, `envOne_cost`,
-`readPowBelow_cost`, `bndOne_cost`, `memAt_cost`, `memCell_cost`, `memOne_cost`, `wordAt_cost`
-(`wordWith_cost`, by squaring, for the entry table),
+`readPowBelow_cost`, `bndOne_cost`, `memAt_cost`, `memCell_cost`, `memOne_cost`,
+`wordWith_cost` (by squaring, for the entry table),
 `powSqE_cost` (a power in `E` by squaring, `11 + 606·(log₂ n + 1)`), then
 
 * **`fnPreTest_cost`**: an entry's test at most `fnPrePrice R B t` (`PreTestDefs.lean`);
@@ -145,33 +145,6 @@ theorem symValAt_cost (hP : Includes P symValAtC.costDeps) (Pw : Array E) (fp : 
   | zero => dsimp only; omega
   | gp e => have := gpowAt_cost P (by includes) Pw e ha; dsimp only; omega
   | fpg e => have := gpowAt_cost P (by includes) Pw e ha; dsimp only; omega
-
-/-- The sum of an affine price over a list. -/
-theorem sum_map_affine {α : Type} (f : α → ℕ) (a b : ℕ) :
-    ∀ l : List α, (l.map fun x ↦ a * f x + b).sum = a * (l.map f).sum + b * l.length
-  | [] => by simp
-  | x :: l => by
-    simp only [List.map_cons, List.sum_cons, List.length_cons, sum_map_affine f a b l]
-    ring
-
-/-- `List.all` (`all.c173`), the predicate's price depending on the element: its prices and `11`
-per element, `3`. -/
-theorem all_cost_sum (hP : Includes P Auto.List.all.c173.costDeps) {β : Type} [MachineEncoding β]
-    (p : β → Bool) (pVal : MachineValue)
-    (hp : ∀ a, RunsApp P pVal [encodeValue a] (encodeValue (p a))) (B : β → ℕ) :
-    ∀ l : List β, (∀ a ∈ l, appCost P pVal [encodeValue a] ≤ B a) →
-      machineCost P Auto.List.all.c173.costIdx [encodeValue l, pVal] ≤
-        (l.map fun a ↦ B a + 11).sum + 3 := by
-  intro l
-  induction l with
-  | nil => intro _; rw [Auto.List.all.c173.costEq_nil P hP p pVal hp]; simp
-  | cons a l ih =>
-    intro hB
-    rw [Auto.List.all.c173.costEq_cons P hP a l p pVal hp]
-    have h1 := ih fun a' ha ↦ hB a' (by simp [ha])
-    have h2 := hB a (by simp)
-    simp only [List.map_cons, List.sum_cons]
-    split_ifs <;> omega
 
 /-- The squarings (`squaresFromC`): `308` per squaring, `5`. -/
 theorem squaresFrom_cost (hP : Includes P squaresFromC.costDeps) :
@@ -318,18 +291,6 @@ theorem wordWith_cost (hP : Includes P wordWithC.costDeps) (fp : K)
   have := powSqW_cost P (by includes) hW hW64 ho
   have := hR (fp * addressOfIndex o)
   generalize rd (fp * addressOfIndex o) = r
-  cases r <;> dsimp only <;> omega
-
-include hR in
-/-- A frame cell's word (`wordAtC`), its power read off the table: `R + 58`. -/
-theorem wordAt_cost (hP : Includes P wordAtC.costDeps) (Pw : Array E) (hW7 : W ≤ 7) (fp : K)
-    (o : ℕ) (ho : o < 2 ^ W) :
-    machineCost P wordAtC.costIdx [encodeValue Pw, rdVal, encodeValue fp, encodeValue o] ≤
-      R + 58 := by
-  rw [wordAtC.costEq P hP Pw rd rdVal hrd]
-  have := gpowAt_cost P (by includes) Pw o (lt_smallPowBound hW7 ho)
-  have := hR (fp * gpowAt Pw o)
-  generalize rd (fp * gpowAt Pw o) = r
   cases r <;> dsimp only <;> omega
 
 include hR hB in

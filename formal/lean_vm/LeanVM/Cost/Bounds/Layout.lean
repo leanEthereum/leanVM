@@ -19,9 +19,7 @@ layout `afterRootLite` returns:
   but `q_keccak`'s `36`): every placement's offset below `2^48`: a block's offset is at most
   `165·2^40`, a Keccak slot's `q_keccak`'s offset plus a slot (below `64`) of `2^κ` words;
 * **`buildLayoutLite_facts`**, **`afterRootLite_facts`**: the layout's fields (`LayoutFacts`), the
-  stack's log-size in `[16, 30]` and the rate's in `[1, 4]`;
-* **`runner_cost_afterRootLite`**: `runner_cost` on `afterRootLite`'s layouts, its hypotheses
-  discharged: at most `runnerBudget` (`≈ 2^65.59`).
+  stack's log-size in `[16, 30]` and the rate's in `[1, 4]`.
 -/
 
 namespace LeanVM.Cost.Bounds
@@ -212,25 +210,6 @@ theorem afterRootLite_facts {bytecode : List K} {π : LeanVM.Protocol.Compile.Pr
     obtain ⟨⟨lm, rows, hb⟩, h1, h2, h3, h4⟩ := readSizesLite_layout hr
     obtain ⟨hf, hl⟩ := buildLayoutLite_facts hb
     exact ⟨hf, h1, h2, h3, h4, hl⟩
-
-/-! ## The runner on the replay's layouts -/
-
-/-- **The runner on `afterRootLite`'s layouts**: `runner_cost`, its hypotheses on the layout
-discharged (`afterRootLite_facts`): at most `runnerBudget` (`≈ 2^65.59`). -/
-theorem runner_cost_afterRootLite (P : LeanVM.Cost.MachineProgram) (hT : Includes P runnerTablesC.costDeps)
-    (hW : Includes P runWithTablesC.costDeps) (prog : Semantics.LeanIsaProgram) (input :
-        PublicInput)
-    {bytecode : List K} {π : LeanVM.Protocol.Compile.Proof} {L : LayoutLite} {R : ℕ}
-    {st : LeanVM.Protocol.Compile.VerifierProgramState} (h : afterRootLite bytecode π = some ((L,
-        R), st))
-    (qs : List (Vector K (2 ^ L.stackLog))) (hqs : qs.length ≤ 2 ^ 12 + 1) :
-    machineCost P runnerTablesC.costIdx [encodeValue prog, encodeValue L] +
-        (qs.map fun q ↦ machineCost P runWithTablesC.costIdx
-          [encodeValue (runnerTables prog L), encodeValue prog, encodeValue input, encodeValue L, encodeValue q]).sum ≤
-      runnerBudget := by
-  obtain ⟨hf, -⟩ := afterRootLite_facts h
-  exact runner_cost P hT hW prog input L hf.logMemory_le hf.logBytecode_le hf.heights_le
-    hf.heights_length hf.index_lt_word qs hqs
 
 end
 

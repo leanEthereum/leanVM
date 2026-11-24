@@ -386,23 +386,6 @@ theorem guestDecoderPriceAt_le_budget {M κ steps : ℕ} (hκ : κ ≤ 30) (hs :
   rw [e]
   omega
 
-/-- **On a valid execution of the guest whose counts are at most `M ≤ 2^κ`, the decoder
-program's price is within its budget** (`decoderPrice_le_at`, `guestDecoderPriceAt_le_budget`). -/
-theorem decoderPrice_within_budget_at (M : ℕ) (input : PublicInput)
-    (t : Execution LeanVM.Guest.guestProgram)
-    (hv : ValidExecution LeanVM.Guest.guestProgram input t) (hM : M ≤ 2 ^ t.logMemorySize)
-    (hcv : ValidCounts discreteLogTables (Decoder.mainVal
-      (Decoder.memReader (powTable t.logMemorySize) (Decoder.memoryVector t.memory))) M) :
-    decoderProgramPrice LeanVM.Guest.guestProgram t ≤ guestWitnessDecoderBudget t := by
-  have hκ : t.logMemorySize ≤ 30 := hv.1.2.1
-  have h34 : M ≤ 2 ^ 34 :=
-    hM.trans ((Nat.pow_le_pow_right (by norm_num) hκ).trans (by norm_num))
-  have h := decoderPrice_le_at M h34 input t hv hcv
-  rw [LeanVM.Guest.guest_logSize] at h
-  have hb := guestDecoderPriceAt_le_budget hκ (steps_lt_of_valid hv) hM
-  unfold guestWitnessDecoderBudget
-  omega
-
 /-- **On every valid execution of the guest, the decoder program's price is within its
 budget**: within the exact price at counts below `2^κ` (`decoderPrice_le_exact`), within the
 budget (`guestDecoderPriceAt_le_budget_add` at `M = 2^κ`: `κ ≤ 30` and fewer than `2^128` steps on

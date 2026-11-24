@@ -14,8 +14,6 @@ layout's fields the extractor reads (`158` columns: their log-sizes, their place
 stack, sorted by size) and reads the stack's root at the ladder's first level. Its price depends on
 the proof only through those ten scalars, and on the bytecode only through its length:
 
-* **`afterRootLite_cost`**: at most `8·|bytecode| + 977128636` (`≈ 2^29.87` plus `8` per bytecode
-  word), for a bytecode of fewer than `2^63` words;
 * `readSizesLite_cost`: `8·|bytecode| + 977124710`; `buildLayoutLite_cost`:
   `8·|bytecode| + 977122709`; `placementsOf_cost`: `977100324` for at most `200` columns of
   log-size at most `40` (`stackOffsets_cost`: `973716067`, its quadratic merge sort of the blocks
@@ -1084,39 +1082,6 @@ theorem readSizesLite_some {bytecode : List K} {s s' : VerifierProgramState} {L 
   obtain ⟨⟨rfl, rfl⟩, rfl⟩ := hl
   simp only [LeanVM.Parameters.Whir.maxLogStack] at h3
   exact ⟨h2.2, h3.2, hroots, hpend⟩
-
-/-- **The replay up to the stack's root** (`afterRootLite bytecode π`): at most
-`8·|bytecode| + 977128636`, whatever the proof (it reads ten scalars of it). -/
-theorem afterRootLite_cost (hP : Includes P afterRootLiteC.costDeps) (bytecode : List K)
-    (π : LeanVM.Protocol.Compile.Proof) (hb : bytecode.length < 2 ^ 63) :
-    machineCost P afterRootLiteC.costIdx [encodeValue bytecode, encodeValue π] ≤
-      8 * bytecode.length + 977128636 := by
-  rw [afterRootLiteC.costEq P hP, initialStateC.costEq P (by includes)]
-  have hrs := readSizesLite_cost P (by includes) bytecode (initialState π) hb (by simp [initialState])
-  rw [Auto.Option.bind.c47.costEq P (by includes) _ _ _
-    (fun r ↦ RunsApp.of_spec (afterRootLiteC.lam0.costSpec P (by includes) r))]
-  cases hr : readSizesLite bytecode (initialState π) with
-  | none => simp only; omega
-  | some r =>
-    obtain ⟨⟨L, R⟩, s'⟩ := r
-    obtain ⟨hR, hL, hroots, hpend⟩ := readSizesLite_some hr
-    simp only [appCost_fn, List.length_nil, List.nil_append]
-    rw [afterRootLiteC.lam0.costEq P (by includes)]
-    dsimp only
-    have hc := commitStackPure_cost P (by includes) L.stackLog R s' (by omega) (by omega)
-      (hpend (by simp [initialState]))
-    rw [hroots] at hc
-    simp only [initialState, List.length_nil] at hc
-    have hm : machineCost P Auto.Option.map.c90.costIdx [MachineValue.closure afterRootLiteC.lam0.lam0.costIdx
-        [encodeValue ((L, R), s')], encodeValue (commitStackPure L.stackLog R s')] ≤ 16 := by
-      rw [Auto.Option.map.c90.costEq P (by includes) _ _
-        (fun t ↦ RunsApp.of_spec (afterRootLiteC.lam0.lam0.costSpec P (by includes) ((L, R), s') t))]
-      cases commitStackPure L.stackLog R s' with
-      | none => simp
-      | some t =>
-        simp only [appCost_fn, List.length_cons, List.length_nil, List.cons_append, List.nil_append]
-        rw [afterRootLiteC.lam0.lam0.costEq P (by includes)]
-    omega
 
 end
 

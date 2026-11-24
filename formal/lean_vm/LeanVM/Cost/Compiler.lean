@@ -363,7 +363,7 @@ def Ctx.premise (ctx : Ctx) (deps : Array (Nat × Name)) : MetaM Expr := do
 /-- A proof of `goal` (a decrease, a membership) by a tactic. -/
 def proveByTactic (goal : Expr) : MetaM Expr := do
   let mvar ← mkFreshExprSyntheticOpaqueMVar goal
-  let tac ← `(tactic| first | omega | (simp_all; done) | (simp_all; omega) | decreasing_tactic)
+  let tac ← `(tactic| first | omega | (simp_all <;> omega) | decreasing_tactic)
   let remaining ← Term.TermElabM.run' (Tactic.run mvar.mvarId! (Tactic.evalTactic tac))
   unless remaining.isEmpty do throwError "could not prove {goal}"
   instantiateMVars mvar
