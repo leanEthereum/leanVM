@@ -29,15 +29,16 @@ adversary, the verifier rejects with probability at most (`Rom.romComplete`)
 
   `completenessError fuel = Q · (1 - 2^-27 (1 - 2^-64))^fuel`,
 
-`Q = (1 + 1) + 54825 · (2^29 + 2·fuel + 2) + 13708` the queries of the prover and the verifier
-together (`completenessQueries`): the seed's hash and permutation, `leanVmCost = 54825`
+`Q = (1 + 1) + leanVmCost · (2^29 + 2·fuel + 2) + leanVmQueryBound` the queries of the prover and
+the verifier together (`completenessQueries`): the seed's hash and permutation, `leanVmCost`
 moves of the program each costing the prover at most `proverFactor costHeight fuel =
-2^29 + 2·fuel + 2` queries, and the verifier's `leanVmQueryBound = 13708`
-(`romComplete_leanVm`). Every proof of work the honest prover meets has at most `27` bits, the
+2^29 + 2·fuel + 2` queries, and the verifier's `leanVmQueryBound` (`romComplete_leanVm`); within
+the budgets of `LeanVM.Protocol.Errors`, `Q` is at most `LeanVM.completenessQueries fuel`
+(`completenessQueries_le`). Every proof of work the honest prover meets has at most `27` bits, the
 bus's at the widest (`busGrindLE_twentySeven`), WHIR's at most `17`, and the Keccak GKR's before
 `s` also asks its challenge to lie outside `K` (`grindSample`), which a nonce's does with probability
 `1 - 2^-64`. At `fuel = 2^35`, the error is below `2^-257` (`completenessError_two_pow_35_le`):
-`Q ≤ 2^52`, and such a proof of work fails with probability
+`Q ≤ 2^53`, and such a proof of work fails with probability
 `(1 - 2^-27 (1 - 2^-64))^(2^35) ≤ (1 - 2^-28)^(2^36) < 2^-320`.
 -/
 
@@ -68,6 +69,13 @@ noncomputable def honestComp (prog : LeanIsaProgram) (input : PublicInput) (t : 
 hash and permutation, the program's moves at the prover's factor, and the verifier's bound. -/
 def completenessQueries (fuel : ℕ) : ℕ :=
   1 + 1 + leanVmCost * proverFactor costHeight fuel + leanVmQueryBound
+
+/-- The queries fit the budget of the statement's completeness error. -/
+theorem completenessQueries_le (fuel : ℕ) :
+    completenessQueries fuel ≤ LeanVM.completenessQueries fuel := by
+  have hV := leanVmQueryBound_add_three_le
+  unfold completenessQueries LeanVM.completenessQueries
+  exact Nat.add_le_add (Nat.add_le_add_left (Nat.mul_le_mul leanVmCost_le le_rfl) _) (by omega)
 
 /-- **The completeness error** at a fuel of `fuel` nonces per proof of work: every query may
 complete a proof of work of at most `27` bits whose nonces all failed. -/
@@ -172,15 +180,15 @@ theorem romComplete_leanVm {prog : LeanIsaProgram} {input : PublicInput} {t : Ex
   exact romComplete_at hex.choose_spec.choose_spec hfuel
 
 /-- **The numbers**: at a fuel of `2^35` nonces per proof of work, the completeness error is
-below `2^-257`: at most `2^52` queries, each missing a proof of work of at most `27` bits with
+below `2^-257`: at most `2^53` queries, each missing a proof of work of at most `27` bits with
 probability `(1 - 2^-27 (1 - 2^-64))^(2^35) ≤ (1 - 2^-28)^(2^36) ≤ 2^-320` (`missK_le_sq`,
 `missProb_pow_four_le`). -/
 theorem completenessError_two_pow_35_le :
     LeanVM.completenessError (2 ^ 35) ≤ (2 : ℝ≥0∞)⁻¹ ^ 257 := by
-  have hQ : LeanVM.completenessQueries (2 ^ 35) ≤ 2 ^ 52 := by
-    norm_num [LeanVM.completenessQueries]
+  have hQ : LeanVM.completenessQueries (2 ^ 35) ≤ 2 ^ 53 := by
+    norm_num [LeanVM.completenessQueries, LeanVM.verifierCost, LeanVM.verifierQueries]
   have hmiss : (1 - (2 : ℝ≥0∞)⁻¹ ^ 27 * (1 - (2 : ℝ≥0∞)⁻¹ ^ 64)) ^ (2 ^ 35) ≤
-      (2 : ℝ≥0∞)⁻¹ ^ (52 + 268) := by
+      (2 : ℝ≥0∞)⁻¹ ^ (53 + 267) := by
     have h := missProb_pow_four_le 28 64
     rw [show 2 ^ 28 * 4 * 64 = 2 * 2 ^ 35 by norm_num, pow_mul (missProb 28) 2 (2 ^ 35)] at h
     calc (1 - (2 : ℝ≥0∞)⁻¹ ^ 27 * (1 - (2 : ℝ≥0∞)⁻¹ ^ 64)) ^ (2 ^ 35) = missK 27 ^ (2 ^ 35) := rfl
@@ -189,10 +197,10 @@ theorem completenessError_two_pow_35_le :
   unfold LeanVM.completenessError
   calc (LeanVM.completenessQueries (2 ^ 35) : ℝ≥0∞) *
         (1 - (2 : ℝ≥0∞)⁻¹ ^ 27 * (1 - (2 : ℝ≥0∞)⁻¹ ^ 64)) ^ 2 ^ 35
-      ≤ (2 : ℝ≥0∞) ^ 52 * (2 : ℝ≥0∞)⁻¹ ^ (52 + 268) := by
+      ≤ (2 : ℝ≥0∞) ^ 53 * (2 : ℝ≥0∞)⁻¹ ^ (53 + 267) := by
         gcongr
         exact_mod_cast hQ
-    _ = (2 : ℝ≥0∞)⁻¹ ^ 268 := by
+    _ = (2 : ℝ≥0∞)⁻¹ ^ 267 := by
         rw [pow_add, ← mul_assoc, ← mul_pow,
           ENNReal.mul_inv_cancel two_ne_zero ENNReal.ofNat_ne_top, one_pow, one_mul]
     _ ≤ (2 : ℝ≥0∞)⁻¹ ^ 257 :=

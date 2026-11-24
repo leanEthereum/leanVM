@@ -14,6 +14,7 @@ public import LeanVM.Protocol.Compile.Cost
 import LeanVM.Protocol.Verifier
 public import LeanVM.Protocol.WithHash
 public import LeanVM.Protocol.Verifier.KeccakPack
+public import LeanVM.Protocol.Errors
 
 /-!
 # The query cost of the leanVM verifier
@@ -56,8 +57,9 @@ right after a proof of work, which permutes nothing, is charged a permutation.
 ## Deployed behaviour
 
 The bound is a statement on the program `leanVmVerifierProgram` as transcribed in
-`Statement.LeanVmVerifier`,; it covers every proof, accepted or
-not, and the deferring program `deferringVerifierProgram` alike (`costLE_deferringProgram`).
+`Statement.LeanVmVerifier`; it covers every proof, accepted or not. Both fit the budgets of
+`LeanVM.Protocol.Errors` (`leanVmCost_le`, `leanVmQueryBound_add_three_le`), which the error
+arithmetic reads instead of their values.
 -/
 
 namespace LeanVM.Protocol.Verifier
@@ -997,14 +999,6 @@ theorem costLE_leanVmProgram (bytecode : List K) (publicInput : Digest) :
     (costs_verifyExecution _ costs_computedBytecodeValue bytecode publicInput) (fun _ _ ↦
       trivial) le_rfl
 
-/-- **The cost of the deferring verifier program**, as the deployed one's. -/
-theorem costLE_deferringProgram (claim : BytecodeClaim) (bytecode : List K) (publicInput : Digest) :
-    (deferringVerifierProgram claim bytecode publicInput).CostLE costHeight leanVmCost := by
-  rw [deferredProgram_eq]
-  exact VerifierProgram.Costs.seq
-    (costs_verifyExecution _ (costs_claimedBytecodeValue claim) bytecode publicInput) (fun _ _ ↦
-      trivial) le_rfl
-
 /-! ## The seed and the query bound -/
 
 /-- **The leanVM seeding**: the IV, the hash of the version tag and the bytecode, then the
@@ -1033,7 +1027,14 @@ def leanVmQueryBound : ℕ := 1 + 1 + leanVmCost / 4
 /-- The bound, evaluated. -/
 theorem leanVmQueryBound_eq : leanVmQueryBound = 13708 := by decide
 
-/-- **The compiled leanVM verifier makes at most `leanVmQueryBound = 13708` queries** to the random
+/-- The program's cost fits the budget `verifierCost`. -/
+theorem leanVmCost_le : leanVmCost ≤ verifierCost := by decide
+
+/-- The verifier's queries fit the budget `verifierQueries` with three to spare: the agreement-set
+extractor's error adds three terms of at most `2^-125` (`LeanVM.soundnessRpmAS_le_statement`). -/
+theorem leanVmQueryBound_add_three_le : leanVmQueryBound + 3 ≤ verifierQueries := by decide
+
+/-- **The compiled leanVM verifier makes at most `leanVmQueryBound` queries** to the random
 oracles on every proof, for every bytecode and public input: the hypothesis `hV` of `romSound`
 at the leanVM program and seed. -/
 theorem isTotalQueryBound_leanVm (bytecode : List K) (publicInput : Digest) (π : Proof) :

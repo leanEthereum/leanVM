@@ -389,15 +389,15 @@ theorem chain_mem : ∀ (lvs : List Lv) (cfg : List Whir.Level) (κp : ℕ),
 theorem shapeOK_facts {μ R : ℕ} (hok : shapeOK μ R = true) :
     ∃ cfg lv rest, Whir.ladder μ R = some cfg ∧ levelsOf μ R = lv :: rest ∧
       chainChecks μ (lv :: rest) cfg = true ∧ lv.2.1 = R ∧ lv.2.2.1 = 6 ∧
-      degOf lv < lv.2.2.2.1 - lv.2.2.1 ∧ jlStart lv ≤ 166 ∧
+      degOf lv < lv.2.2.2.1 - lv.2.2.1 ∧
       (maxStackedClaims + 1) * jlStart lv ≤ 2 ^ countBits Whir.batchGrindingBits ∧
       (jlStart lv).choose 2 * μ ≤ 2 ^ countBits Whir.oodGrindingBits := by
   unfold shapeOK at hok
   rcases hc : Whir.ladder μ R with _ | cfg <;> rcases hl : levelsOf μ R with _ | ⟨lv, rest⟩ <;>
     rw [hc, hl] at hok <;> simp only [Bool.false_eq_true] at hok
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hok
-  obtain ⟨⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩, h7⟩ := hok
-  exact ⟨cfg, lv, rest, rfl, rfl, h1, h2, h3, h4, h5, h6, h7⟩
+  obtain ⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h6⟩, h7⟩ := hok
+  exact ⟨cfg, lv, rest, rfl, rfl, h1, h2, h3, h4, h6, h7⟩
 
 theorem shapeOK_of_admissible {μ R : ℕ} (h : Whir.Admissible μ R) : shapeOK μ R = true :=
   shapeOK_all μ (Nat.lt_succ_of_le h.2.1) R (Nat.lt_succ_of_le h.2.2.2) h
@@ -462,7 +462,7 @@ theorem level0Facts {μ R : ℕ} (hok : shapeOK μ R = true) :
 /-- The commitment's out-of-domain row: `C(L₀, 2)·μ ≤ 2^(countBits oodGrindingBits)`. -/
 theorem ood_row {μ R : ℕ} (h : Whir.Admissible μ R) :
     (listMax₀ μ R).choose 2 * μ ≤ 2 ^ countBits Whir.oodGrindingBits := by
-  obtain ⟨cfg, lv, rest, -, hl, -, -, -, -, -, -, ho⟩ := shapeOK_facts (shapeOK_of_admissible h)
+  obtain ⟨cfg, lv, rest, -, hl, -, -, -, -, -, ho⟩ := shapeOK_facts (shapeOK_of_admissible h)
   rw [listMax₀, hl]
   exact ho
 
@@ -470,7 +470,7 @@ theorem ood_row {μ R : ℕ} (h : Whir.Admissible μ R) :
 `(maxStackedClaims + 1)·L₀ ≤ 2^(countBits batchGrindingBits)`. -/
 theorem lambda_row {μ R : ℕ} (h : Whir.Admissible μ R) :
     (maxStackedClaims + 1) * listMax₀ μ R ≤ 2 ^ countBits Whir.batchGrindingBits := by
-  obtain ⟨cfg, lv, rest, -, hl, -, -, -, -, -, hlam, -⟩ := shapeOK_facts (shapeOK_of_admissible h)
+  obtain ⟨cfg, lv, rest, -, hl, -, -, -, -, hlam, -⟩ := shapeOK_facts (shapeOK_of_admissible h)
   rw [listMax₀, hl]
   exact hlam
 

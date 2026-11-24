@@ -10,6 +10,7 @@ module
 public import LeanVM.Protocol.EndToEnd.Sound.Theorem
 public import LeanVM.Protocol.WithHash
 public import LeanVM.Protocol.Compile.Rom.Sound
+public import LeanVM.Protocol.ErrorBounds
 import LeanVM.Protocol.EndToEnd.Execution
 
 /-!
@@ -36,8 +37,8 @@ family's seeds put the program at the statement's root history.
   history names the statement and every obligation is `stmtCert`'s.
 
 `leanVm_knowledge` and `leanVm_execution` state knowledge soundness for an adversary of `QA`
-queries that outputs a statement and a proof: with `N = QA + 13708`, the verifier accepts while
-the extractor finds no witness of the adversary's statement with probability at most
+queries that outputs a statement and a proof: with `N = QA + leanVmQueryBound`, the verifier
+accepts while the extractor finds no witness of the adversary's statement with probability at most
 `N · (2^-125 + 5N / 2^256)`, against the stacked opening's interface `O`.
 -/
 
@@ -646,12 +647,14 @@ that outputs a statement and a proof makes the deployed verifier, with Keccak-25
 random oracles,
 accept while `extractStack` does not extract admissible sizes `s` and a stack satisfying
 `M3Holds (leanIsaInstance prog s) input` for the adversary's statement with
-probability at most `(QA + 13708) · (2^-125 + failBound leanVmSeeds (QA + 13708))`. -/
+probability at most `(QA + V) · (2^-125 + failBound leanVmSeeds (QA + V))`,
+`V = leanVmQueryBound`. -/
 theorem leanVm_knowledge (A : OracleComp KeccakCalls (Statement × Proof)) (QA : ℕ)
     (hA : IsTotalQueryBound A QA) :
     Pr{let z ← romExperiment A (verifierFam leanVmSeeds anyProgram)}[z.1.2 = true ∧
       ¬ Extracted O z.1.1.1.1 z.1.1.1.2 z.2 z.1.1.2] ≤
-      ((QA + 13708 : ℕ) : ℝ≥0∞) * ((2 : ℝ≥0∞)⁻¹ ^ 125 + failBound leanVmSeeds (QA + 13708)) := by
+      ((QA + leanVmQueryBound : ℕ) : ℝ≥0∞) *
+      ((2 : ℝ≥0∞)⁻¹ ^ 125 + failBound leanVmSeeds (QA + leanVmQueryBound)) := by
   have h := romSound_of_impG anyProgram (anyCert O) leanVmSeeds (fun x ↦ rootOk_stmtHistory x) εmsg
     (anyCert_bound O) A QA hA leanVmQueryBound isTotalQueryBound_leanVmFam
     (fun z c ↦ ¬ Extracted O z.1.1 z.1.2 c z.2)
@@ -659,13 +662,14 @@ theorem leanVm_knowledge (A : OracleComp KeccakCalls (Statement × Proof)) (QA :
       simp only [leanVmSeeds, nodeAt_stmtHistory] at hv
       obtain ⟨hd, hg⟩ := doomed_of_not_extracted O z.1.1 z.1.2 hv hb
       exact ⟨doomed_of_doomedRun O hv hd, not_anyG_of O hv hg⟩)
-  rwa [leanVmQueryBound_eq] at h
+  exact h
 
 /-- **The extracted witness represents a valid execution, for chosen statements.** An adversary
 of `QA` queries that outputs a statement and a proof makes the deployed verifier accept, for a
 program with well-formed bytecode, while `extractStack` does not extract sizes `s` and a stack
 `q` whose witness represents a valid execution of the adversary's program on its public input,
-with probability at most `(QA + 13708) · (2^-125 + failBound leanVmSeeds (QA + 13708))`. -/
+with probability at most `(QA + V) · (2^-125 + failBound leanVmSeeds (QA + V))`,
+`V = leanVmQueryBound`. -/
 theorem leanVm_execution (A : OracleComp KeccakCalls (Statement × Proof)) (QA : ℕ)
     (hA : IsTotalQueryBound A QA) :
     Pr{let z ← romExperiment A (verifierFam leanVmSeeds anyProgram)}[z.1.2 = true ∧
@@ -674,7 +678,8 @@ theorem leanVm_execution (A : OracleComp KeccakCalls (Statement × Proof)) (QA :
           some (⟨s, q⟩ : Σ s : Sizes, Column (leanIsaμ z.1.1.1.1 s)) ∧
         ∃ t, AssignmentRepresents (witnessOf z.1.1.1.1 s q) t ∧
           ValidExecution z.1.1.1.1 z.1.1.1.2 t] ≤
-      ((QA + 13708 : ℕ) : ℝ≥0∞) * ((2 : ℝ≥0∞)⁻¹ ^ 125 + failBound leanVmSeeds (QA + 13708)) := by
+      ((QA + leanVmQueryBound : ℕ) : ℝ≥0∞) *
+      ((2 : ℝ≥0∞)⁻¹ ^ 125 + failBound leanVmSeeds (QA + leanVmQueryBound)) := by
   have h := romSound_of_impG anyProgram (anyCert O) leanVmSeeds (fun x ↦ rootOk_stmtHistory x) εmsg
     (anyCert_bound O) A QA hA leanVmQueryBound isTotalQueryBound_leanVmFam
     (fun z c ↦ ¬ ∃ (s : Sizes) (q : Column (leanIsaμ z.1.1 s)),
@@ -685,33 +690,28 @@ theorem leanVm_execution (A : OracleComp KeccakCalls (Statement × Proof)) (QA :
       obtain ⟨hd, hg⟩ := doomed_of_not_extracted O z.1.1 z.1.2 hv
         fun ⟨s, q, hx, hs, hM⟩ ↦ hb ⟨s, q, hx, execution_of_extracted hs hM⟩
       exact ⟨doomed_of_doomedRun O hv hd, not_anyG_of O hv hg⟩)
-  rwa [leanVmQueryBound_eq] at h
+  exact h
 
 /-! ## The numbers -/
-
-/-- `2^-k` as `2^(n - k) / 2^n`. -/
-theorem inv_pow_eq_div (k n : ℕ) (h : k ≤ n) :
-    (2 : ℝ≥0∞)⁻¹ ^ k = ((2 ^ (n - k) : ℕ) : ℝ≥0∞) / ((2 ^ n : ℕ) : ℝ≥0∞) := by
-  obtain ⟨m, rfl⟩ := Nat.exists_eq_add_of_le h
-  rw [Nat.add_sub_cancel_left, ENNReal.div_eq_inv_mul, Nat.cast_pow, Nat.cast_pow,
-    Nat.cast_ofNat, pow_add, ENNReal.mul_inv (by simp) (by simp), mul_assoc,
-    ENNReal.inv_mul_cancel (by simp) (by simp), mul_one, ENNReal.inv_pow]
 
 /-- **The numeric bound**: for an adversary of at most `2^64` queries, the bound of the
 knowledge statement is at most `2^-60`. -/
 theorem leanVm_bound_le {QA : ℕ} (hQ : QA ≤ 2 ^ 64) :
-    ((QA + 13708 : ℕ) : ℝ≥0∞) * ((2 : ℝ≥0∞)⁻¹ ^ 125 + failBound leanVmSeeds (QA + 13708)) ≤
+    ((QA + leanVmQueryBound : ℕ) : ℝ≥0∞) *
+      ((2 : ℝ≥0∞)⁻¹ ^ 125 + failBound leanVmSeeds (QA + leanVmQueryBound)) ≤
       (2 : ℝ≥0∞)⁻¹ ^ 60 := by
-  set N := QA + 13708 with hN
+  set N := QA + leanVmQueryBound with hN
   have hfail : failBound leanVmSeeds N = ((5 * N : ℕ) : ℝ≥0∞) / ((2 ^ 256 : ℕ) : ℝ≥0∞) := by
     rw [failBound, Nat.cast_pow, Nat.cast_ofNat]
     rfl
   rw [hfail, inv_pow_eq_div 125 256 (by norm_num), ENNReal.div_add_div_same, ← mul_div_assoc,
     ← Nat.cast_add, ← Nat.cast_mul, inv_pow_eq_div 60 256 (by norm_num)]
   refine ENNReal.div_le_div_right (Nat.cast_le.2 ?_) _
-  have hN' : N ≤ 2 ^ 64 + 13708 := by omega
+  have hV := leanVmQueryBound_add_three_le
+  rw [verifierQueries] at hV
+  have hN' : N ≤ 2 ^ 64 + 2 ^ 14 := by omega
   rw [show 256 - 125 = 131 from rfl, show 256 - 60 = 196 from rfl]
-  calc N * (2 ^ 131 + 5 * N) ≤ (2 ^ 64 + 13708) * (2 ^ 131 + 5 * (2 ^ 64 + 13708)) :=
+  calc N * (2 ^ 131 + 5 * N) ≤ (2 ^ 64 + 2 ^ 14) * (2 ^ 131 + 5 * (2 ^ 64 + 2 ^ 14)) :=
         Nat.mul_le_mul hN' (Nat.add_le_add_left (Nat.mul_le_mul_left 5 hN') _)
     _ ≤ 2 ^ 196 := by norm_num
 

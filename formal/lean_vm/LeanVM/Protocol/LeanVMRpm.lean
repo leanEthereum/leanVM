@@ -40,7 +40,7 @@ the game makes at most `Q + verifierPermCalls` permutation calls (`isWeightBound
 a cost of `q² / 2^508`; there, the adversary's cached Keccak-256 answers are the evaluations of its
 transcript (`transcriptHashes_eq_of_mem_support`, `Extract.lean`) and the random-oracle adversary
 `romAdv` makes at most `Q` oracle queries (`isWeightBound_romAdv`). The bound is
-`soundnessErrorAS Q + (Q + 13708 · 2^30)² / 2^508`, within the end statement's
+`soundnessErrorAS Q + (Q + verifierPermCalls)² / 2^508`, within the end statement's
 (`soundnessRpmAS_le_statement`, `LeanVM.Protocol.LeanVMSoundAS`).
 
 **Completeness** (`completenessRpm`): the same game with no adversary and, after it, the honest
@@ -251,8 +251,8 @@ theorem completenessRpm_at {prog : LeanIsaProgram} {input : PublicInput} {t : Ex
       LeanVM.Protocol.Compile.Rom.verifierComp (leanVmSeed (bytecodeWords prog) (publicInputDigest input))
         (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) :=
     funext fun π ↦ (verifierComp_leanVm _ _ π).symm
-  rw [hV, completenessError_eq]
-  exact EndToEnd.Complete.romComplete_at hw hfuel
+  rw [hV]
+  exact (EndToEnd.Complete.romComplete_at hw hfuel).trans (completenessError_le_bound fuel)
 
 /-- **Completeness in the random-permutation model**, for the honest prover
 `LeanVM.Protocol.EndToEnd.Complete.honestComp`. -/
