@@ -49,7 +49,7 @@ theorem vkOut_complete (hσ : ∀ v, σ v = σ (.n v.idx)) (hg : ∀ st ∈ vkOu
       σ (.n (val% «verify_keccak» "s57#1")) = 1 + σ (.n (val% «verify_keccak» "pack_g")) ∧ σ (.n (val% «verify_keccak» "s57#2")) = 1 ∧ σ (.n (val% «verify_keccak» "s57#4")) = σ (.n (val% «verify_keccak» "z_vals")) * gen ^ 4 ∧
       ∀ {next : Prop} {kret : List E → Prop}, next →
         Stmt.HoldsList (fun _ _ _ ↦ True) rd σ vkOutT next kret := by
-  obtain ⟨k1, k2, k4, k5, k6, k8, k9⟩ := vkOut_ker
+  obtain ⟨k1, k2, k4, k5, k6, k8, k9⟩ := vk_ker.1
   have mFN : ∀ st ∈ fsNextT (.n (val% «verify_keccak» "cursor@14")) 0 (val% «verify_keccak» "x@2"), st ∈ vkOutT := fun st h ↦ by
     rw [vkOutT]; exact List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
       (List.mem_append_left _ (List.mem_append_right _ h))))

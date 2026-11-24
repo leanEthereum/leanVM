@@ -96,7 +96,7 @@ theorem fin_ptrs (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ :
     subst hσd
     exact val_good' h (List.mem_append_right _ hst)
   have gA : ∀ a, Stmt.atom a ∈ vkFinT → Good rd vkSt (D.w B curE) σ a := fun a h ↦ hg _ h
-  have k1 := vkFin_ker.1
+  have k1 := vk_ker.2.2.2.1
   have hrec := last_rec h hm
   rw [outWs_last h, ← h201] at hrec
   have e4977 : σ (.n (val% «verify_keccak» "last_point")) = ptr (ls 11) :=

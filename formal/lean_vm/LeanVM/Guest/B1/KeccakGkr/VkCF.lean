@@ -49,7 +49,7 @@ theorem vkFin_complete (hσ : ∀ v, σ v = σ (.n v.idx)) (hg : ∀ st ∈ vkFi
       ∀ {kret : List E → Prop}, kret [σ (.n (val% «verify_keccak» "nxt[8]@22")), σ (.n (val% «verify_keccak» "nxt[9]@22")), σ (.n (val% «verify_keccak» "nxt[10]@22")), σ (.n (val% «verify_keccak» "nxt[11]@22")),
         σ (.n (val% «verify_keccak» "nxt[12]@22")), σ (.n (val% «verify_keccak» "cursor@16")) * gen ^ 64, σ (.n (val% «verify_keccak» "x@2"))] →
         Stmt.HoldsList (fun _ _ _ ↦ True) rd σ vkFinT False kret := by
-  obtain ⟨k1, k2, k4, k5, k6, k8, k9, k10, k12, k13, k14⟩ := vkFin_ker
+  obtain ⟨k1, k2, k4, k5, k6, k8, k9, k10, k12, k13, k14⟩ := vk_ker.2.2.2
   have mSL : ∀ st ∈ vkFinSL, st ∈ vkFinT := fun st h ↦ by
     rw [vkFinT]
     exact List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
