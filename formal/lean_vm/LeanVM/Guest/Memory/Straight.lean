@@ -315,22 +315,5 @@ theorem walk_straight_fall (σ : Val) : ∀ pre : List Stmt, pre.all Stmt.straig
     simp only [List.all_cons, Bool.and_eq_true] at h
     rw [walk, walk_straight_fall σ pre h.2, walk1_straight σ s h.1, Out.seq, Out.pre, List.flatMap_cons]
 
-/-- A dispatch between straight runs, without a `ret`, falls through with the chosen call. -/
-theorem walk_dispatch_fall (σ : Val) (pre post : List Stmt) (hpre : pre.all Stmt.straight = true)
-    (hpost : post.all Stmt.straight = true) (x : V) (fs : List String) (args rets : List V)
-    {i : ℕ} (hi : i < fs.length) (hfl : fs.length ≤ 2 ^ 64 - 1) (hx : σ x = ofK
-        (addressOfIndex i)) :
-    walk σ (pre ++ .dispatch x fs args rets :: post) =
-      .fall (pre.flatMap (slEvs σ) ++ .call fs[i]! args rets :: post.flatMap (slEvs σ)) := by
-  induction pre with
-  | nil =>
-    rw [List.nil_append, walk, walk1, pick_eq σ x args rets fs 0 i hi (by omega) (by rw [Nat.zero_add]; exact hx),
-      walk_straight_fall σ post hpost]
-    rfl
-  | cons s pre ih =>
-    simp only [List.all_cons, Bool.and_eq_true] at hpre
-    rw [List.cons_append, walk, ih hpre.2, walk1_straight σ s hpre.1, Out.seq, Out.pre,
-      List.flatMap_cons, List.append_assoc]
-
 end
 end LeanVM.Guest.Memory

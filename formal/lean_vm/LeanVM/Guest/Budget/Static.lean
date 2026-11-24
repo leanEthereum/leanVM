@@ -33,7 +33,6 @@ def LoopT (fs : String → ℕ) (f : String) (K : ℕ) : Prop :=
     t.Valid coreProgram rd args rets → t.BufsOk coreProgram → args.getD 0 0 = ofK
         (addressOfIndex a) →
     args.getD 1 0 = ofK (addressOfIndex e) → a < e → e < 2 ^ 64 - 1 → t.total fs ≤ (e - a) * K
-
 /-- A loop's guard `1 + g^e` is nonzero only at `e ≠ 0` (characteristic `2`). -/
 theorem ne_zero_of_guard {e : ℕ} (h : (1 : E) + gen ^ e ≠ 0) : e ≠ 0 := by
   rintro rfl
@@ -59,6 +58,5 @@ theorem LoopT.at {fs : String → ℕ} {f : String} {K : ℕ} (h : LoopT fs f K)
   have := h rd t args rets 0 e hn hv hb (by rw [h0, one_eq_ofK]) (by rw [h1, Value.gen_pow_eq_ofK])
     (by omega) he
   simpa using this
-
 end
 end LeanVM.Guest.Budget

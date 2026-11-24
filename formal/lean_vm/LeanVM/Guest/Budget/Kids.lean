@@ -166,7 +166,6 @@ theorem NodeHonest.total_le {f : String} {Q : Val → Prop} {cs : Val → List C
     ∃ σ, Q σ ∧ t.total fs ≤ fs f + callsT fs (T σ) (cs σ) + (bs σ).sum := by
   obtain ⟨σ, ks, rfl, hQ, hc, hl, hT⟩ := h
   exact ⟨σ, hQ, node_total_le fs (T σ) Ts hv hb hc hl hT (hB σ hQ)⟩
-
 /-! ## Bounds by position
 
 The callees' bounds as a list aligned with the calls (`Ws[i]` for call `i`), the form a chain of

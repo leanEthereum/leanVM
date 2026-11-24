@@ -24,7 +24,7 @@ The chain: a node within the budget has a reference run (`ref_exists`, `EndExecR
 executor run on the guest's advice (`honestAdvice`) follows it (`execute_complete_guest`, the
 invariant `guestInv` and its rule `inv_rule_of_specs`, each function's frame interface `FnSpec`, the
 core route's), so it returns a valid execution committing no
-more cells than the reference, at most `2^30` (`execute_guest_complete`, `honestExecution_complete`).
+more cells than the reference, at most `2^30` (`execute_guest_complete`).
 
 What the chain rests on is `ExecGaps Ks Km E0 X Pro`, for the core route's
 certificates `Ks` (`main`'s `Km`, their program `E0`), the other tracks' invariant `X` (the witness
@@ -329,16 +329,6 @@ theorem execute_guest_complete (G : ExecGaps Ks Km E0 X Pro) :
   intro seed s w hrel hlim hok hbs
   obtain ⟨r, rfl, rfl, rfl, hr⟩ := ref_exists G.mainExact seed s w hrel hlim hok hbs
   exact execute_ref G hr
-
-/-- **`honestExecution` is complete**, under `execute_guest_complete`'s hypotheses. -/
-theorem honestExecution_complete (G : ExecGaps Ks Km E0 X Pro) :
-    ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w → ChildrenOk bytecode seed w →
-      (Budget.deployedBudget (vsBoundAt Count.vsWordsOs vkBound)).size (work s w) ≤ 2 ^ 30 →
-      ∃ t, honestExecution seed s w = .ok t ∧
-        ValidExecution guestProgram (publicInputOf (statementDigest seed s)) t ∧ t.committedSize ≤ 2 ^ 30 :=
-  fun seed s w hrel hlim hok hbs ↦
-    let ⟨t, he, hv, hsz⟩ := execute_guest_complete G seed s w hrel hlim hok hbs
-    ⟨t, honestExecution_of_execute he, hv, hsz⟩
 
 /-- **A node within the deployed limits is within the budget**, its children acceptable. -/
 theorem budget_of_limits {seed : Digest} {s : NodeStatement} {w : NodeWitness}

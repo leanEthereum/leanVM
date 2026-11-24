@@ -130,10 +130,6 @@ theorem ofK_add_y_mul_ofK (a b : K) : ofK a + y * ofK b = E.ofLimbs a b := by
   rw [pack64x2_eq (ofK_isInK a) (ofK_isInK b)]
   simp
 
-/-- `y · E(t)`: the word whose `y` limb is `t` (`Y_TOWER * tag`, a rate cell's tag). -/
-theorem y_mul_ofK (t : K) : y * ofK t = E.ofLimbs 0 t := by
-  rw [← ofK_add_y_mul_ofK, ofK_zero, zero_add]
-
 /-! ## Splitting a word (`split_limbs`) -/
 
 /-- The derived limb `(x + c)·y⁻¹`, in limbs. -/

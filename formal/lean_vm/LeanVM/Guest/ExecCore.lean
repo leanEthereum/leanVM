@@ -52,7 +52,7 @@ between the copies of a term.
 of, satisfies the atoms of the path it takes and leaves by that path's exit with fewer steps left
 (`RunK`, `Exit.Reached`); a path with no branch gives all its atoms at once (`RunK.straight`).
 **Completeness** (`exec_complete`): atoms holding along a path make the run reach the exit's
-registers (`Follows`, `Reach`). **Linking** (`Result.linked_spec`): an exit's successors start
+registers (`Follows`, `Reach`). **Linking** (`Result.linked`): an exit's successors start
 segments whose environments hold where the exit's does.
 
 The definitions are here, apart from their semantics and proofs (`Exec.lean`, which imports the

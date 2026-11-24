@@ -26,7 +26,7 @@ its frame and `σ` its old valuation (`retempVal`).
   (`Tree.ReadsAs`), the re-chosen tree is valid on `rd`;
 * it keeps the name, the size, the `HeapBuf`s, the placement, the data and the loads
   (`name_retemp`, `total_retemp`, `bufsOk_retemp`, `placed_retemp`, `data_retemp`,
-  `loadsIn_retemp`, `loadsR_retemp`).
+  `loadsIn_retemp`).
 -/
 
 namespace LeanVM.Guest.Memory
@@ -605,34 +605,6 @@ theorem loadsInKids_retemp (hF : P.Fresh) : ∀ (ks : List Tree) (σ : Val) (cs 
       · rw [ite_eq_right ht] at hc
         obtain ⟨⟨f, σk, rfl⟩, -⟩ := hc
         rw [retemp_phantom]; exact loadsIn_phantom
-  | _ :: _, _, [], _, _ :: _, h, _ => h.elim
-end
-
-mutual
-theorem loadsR_retemp (hF : P.Fresh) : ∀ (t : Tree) (R : ℕ → Prop) (pos : ℕ × ℕ) {args rets : List E},
-    t.Valid P rd0 args rets → t.LoadsR P R → (t.retemp P fs ν pos).LoadsR P R
-  | .node f σ bufs kids, R, pos, _, _, ⟨fn, hf, _, es, vs, hw, _, _, hk⟩, hl => by
-      rw [Tree.LoadsR, events_node hf hw] at hl
-      rw [retemp_node, Tree.LoadsR, events_retemp hF, events_node hf hw (bufs := bufs) (kids := kids),
-        loadAddrs_congr (evAgree_retemp hF hf hw)]
-      exact ⟨hl.1, loadsRKids_retemp hF kids σ (calls es) R _ hk hl.2⟩
-  | .phantom .., _, pos, _, _, _, _ => by rw [retemp_phantom, Tree.LoadsR]; trivial
-
-theorem loadsRKids_retemp (hF : P.Fresh) : ∀ (ks : List Tree) (σ : Val) (cs : List Call) (R : ℕ → Prop)
-    (ps : List (ℕ × ℕ)), Tree.KidsValid P rd0 σ cs ks → Tree.LoadsRKids P R ks →
-      Tree.LoadsRKids P R (Tree.retempKids P fs ν ps ks)
-  | [], _, _, _, _, _, _ => by rw [retempKids_nil, Tree.LoadsRKids]; trivial
-  | _ :: _, _, _, _, [], _, h => by rw [Tree.retempKids]; exact h
-  | k :: ks, σ, c :: cs, R, p :: ps, ⟨_, hc, hks⟩, hl => by
-      rw [Tree.LoadsRKids] at hl
-      rw [retempKids_cons, Tree.LoadsRKids]
-      refine ⟨?_, loadsRKids_retemp hF ks σ cs R ps hks hl.2⟩
-      by_cases ht : c.taken = true
-      · rw [ite_eq_left ht] at hc
-        exact loadsR_retemp hF k R p hc hl.1
-      · rw [ite_eq_right ht] at hc
-        obtain ⟨⟨f, σk, rfl⟩, -⟩ := hc
-        rw [retemp_phantom, Tree.LoadsR]; trivial
   | _ :: _, _, [], _, _ :: _, h, _ => h.elim
 end
 

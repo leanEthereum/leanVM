@@ -28,9 +28,6 @@ booleanity (`b * b == b`, or the write-once `bits[i] = b * b`) and a reconstruct
   (`bits_of_exponent`, for `hint_decompose_bits_exponent`); together, `g_power_of_word_spec`,
   and `bits_of_exponent_shift` for bits pinned in the exponent and weighed over the coordinate
   basis;
-* `rangeCheck_sound`: the ISA's range check in the exponent (`zkDSL.md` §Range checks) means
-  `x = g^e` with `e < k` (`LogLt`), and `gen_pow_div_eq` reads a range-checked quotient
-  `log(a / b) < k` as `a = b + c`;
 * `log2Ceil_certified` and `verify_log2_ceil_sound`: `verify_log2_ceil`'s two bounds
   pin its hinted log to `max floor (log2Ceil W)` (`Statement/LeanVmVerifier.lean`, `log2Ceil`).
 -/
@@ -219,11 +216,6 @@ theorem g_power_of_word_spec {n : ℕ} (hn : n ≤ 63) {b : ℕ → E} (hb : ∀
   rw [bitsVal_congr (f' := N.testBit) fun j hj ↦ ?_, bitsVal_testBit hN]
   rw [hbits j hj]
   cases N.testBit j <;> simp [bitE]
-
-/-! ## The range check in the exponent -/
-
-/-- `assert log(x) < k` (`zkDSL.md` §Range checks): `x` is `g^e` with `e < k`. -/
-def LogLt (x : E) (k : ℕ) : Prop := ∃ e < k, x = gen ^ e
 
 /-! ## `log2Ceil`, certified by its two bounds (`verify_log2_ceil`) -/
 

@@ -169,8 +169,6 @@ structure CurFacts (X : AlignCtx) (fs : ℕ) (loop : Bool) (P : B2C.Plumb) (body
   ret : ∀ s ∈ P.sites, pendIn code (frames X d) (s.r - X.entry) = false
   cnt : cntL body ≤ (bufsOf X d).length
 
-theorem pendIn_nil (code : List OffsetInstruction) (off : ℕ) : pendIn code [] off = false := rfl
-
 theorem curFacts_of {X : AlignCtx} {fs : ℕ} {loop : Bool} {P : B2C.Plumb} {body : List Stmt}
     {code : List OffsetInstruction} {d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)}
     (h : curChk X fs loop P body code d = true) : CurFacts X fs loop P body code d := by
@@ -248,9 +246,6 @@ theorem chainA_tail {A : String → FnAl} {M : ℕ → E} {e : Ent} {st : List E
   cases st with
   | nil => exact h
   | cons _ _ => exact h.1
-
-theorem chainA_rest {A : String → FnAl} {M : ℕ → E} {e e2 : Ent} {st : List Ent} (h : ChainA A M (e :: e2 :: st)) :
-    ChainA A M (e2 :: st) := h.2.2
 
 theorem tailA_enter {P : Core.Program} (J : Inst) (fn : Fn) : TailA (Ent.enter P J fn) :=
   fun _ hl hk ↦ absurd (List.eq_nil_of_length_eq_zero (Nat.le_zero.mp hl)) hk
@@ -442,8 +437,6 @@ theorem ksum_succ {fs : String → ℕ} {lp : String → Bool} {t : Tree} {nc : 
 theorem kidsC_getElem? {lp : String → Bool} {t : Tree} {nc : ℕ} (h : nc < (t.kidsC lp).length) :
     (t.kidsC lp)[nc]? = t.kids[nc]? := by
   rw [List.getElem?_eq_getElem h, kidsC_getElem h, List.getElem?_eq_getElem]
-
-theorem bif01 (b : Bool) : (bif b then 1 else 0) = if b = true then 1 else 0 := by cases b <;> rfl
 
 /-- `NcTop` past a step within the frame, the same calls made, forward. -/
 theorem ncTop_same {A : String → FnAl} {e e' : Ent} {off off' : ℕ} (hI : e'.I = e.I) (hnc : e'.nc = e.nc)
@@ -727,8 +720,6 @@ theorem curArith_alignA : CurArith alignA := by
     rw [← hend, endCur_ret hnode (fun hl hk ↦ htl hl (by omega) hk), hstep', hnbo, hfrAt, h2, hpd, h1, htake]
     simp only [Inst.curAt, List.take_length, Bool.cond_false, Nat.zero_mul, Nat.add_zero]
     rw [take_map_sum_le (l := e.I.t.kidsC coreProgram.loop) (n := e.nc) (by rw [hkC]; split <;> omega)]
-
-
 
 end
 

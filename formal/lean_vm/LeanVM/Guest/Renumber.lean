@@ -14,14 +14,12 @@ public import Std.Data.HashMap
 # Renumbering a function's values
 
 A value's name only tells two values apart: `Fn.Sem` quantifies over every valuation. So any
-renaming with a left inverse (`Fn.sem_rename`) leaves a function's relation unchanged.
+renaming leaves a function's relation unchanged (`Stmt.holds_rename`).
 
 `Fn.renumber` is the one the guest's data uses: value `n` of `Fn.numbering` (the parameters
 first, then every value in order of first occurrence, `Stmt.valsList`) becomes
 `V.n n = ⟨[], 0, n⟩`, a parameter keeping its position. The numbering is computed with a hash
-map, and the renaming checks it against the table (`renumberV`), so its left inverse
-(`unnumberV`, the table) holds by construction. `Program.rel_map_renumber`: renumbering every
-function leaves `Program.Rel` unchanged.
+map, and the renaming checks it against the table (`renumberV`).
 -/
 
 namespace LeanVM.Guest.Core
@@ -126,21 +124,6 @@ theorem Stmt.holdsArms_rename (r : V → V) (σ : Val) (x : V) : ∀ (arms : Lis
       rfl
 end
 
-/-- A renaming with a left inverse leaves a function's relation unchanged. -/
-theorem Fn.sem_rename {r r' : V → V} (h : ∀ v, r' (r v) = v) (f : Fn) (args rets : List E) :
-    (f.rename r).Sem C rd args rets ↔ f.Sem C rd args rets := by
-  have hc : ∀ σ : Val, (σ ∘ r') ∘ r = σ := fun σ => funext fun v => by simp [h]
-  constructor
-  · rintro ⟨σ, hp, hb⟩
-    refine ⟨σ ∘ r, ?_, ?_⟩
-    · simpa [Fn.rename] using hp
-    · rwa [Fn.rename, Stmt.holdsList_rename] at hb
-  · rintro ⟨σ, hp, hb⟩
-    refine ⟨σ ∘ r', ?_, ?_⟩
-    · simp only [Fn.rename, List.map_map, hc, hp]
-    · rw [Fn.rename, Stmt.holdsList_rename, hc]
-      exact hb
-
 /-! ## The dense numbering -/
 
 def Dest.vals : Dest → List V
@@ -206,52 +189,8 @@ def renumberV (m : Std.HashMap V Nat) (t : Array V) (v : V) : V :=
   | some i => if t[i]? = some v then ⟨[], 0, i⟩ else ⟨.e :: v.path, v.tag, v.idx⟩
   | none => ⟨.e :: v.path, v.tag, v.idx⟩
 
-/-- The value a renumbered name stands for. -/
-def unnumberV (t : Array V) (w : V) : V :=
-  if w.path = [] then t[w.idx]?.getD default else ⟨w.path.tail, w.tag, w.idx⟩
-
-theorem unnumberV_renumberV (m : Std.HashMap V Nat) (t : Array V) (v : V) :
-    unnumberV t (renumberV m t v) = v := by
-  unfold renumberV
-  split
-  · split
-    · next h => simp [unnumberV, h]
-    · simp [unnumberV]
-  · simp [unnumberV]
-
 /-- A function with its values numbered densely. -/
 def Fn.renumber (f : Fn) : Fn := f.rename (renumberV f.numbering.1 f.numbering.2)
-
-theorem Fn.name_renumber (f : Fn) : f.renumber.name = f.name := rfl
-
-theorem Fn.sem_renumber (f : Fn) (args rets : List E) :
-    f.renumber.Sem C rd args rets ↔ f.Sem C rd args rets :=
-  Fn.sem_rename (unnumberV_renumberV _ _) f args rets
-
-theorem Program.find?_map_renumber (P : Program) (n : String) :
-    Program.find? (P.map Fn.renumber) n = (P.find? n).map Fn.renumber := by
-  simp only [Program.find?, List.find?_map]
-  rfl
-
-theorem Program.relN_map_renumber (P : Program) (rd : Reader) :
-    ∀ n, Program.relN (P.map Fn.renumber) rd n = P.relN rd n
-  | 0 => rfl
-  | n + 1 => by
-      funext f args rets
-      simp only [Program.relN, Program.find?_map_renumber, Program.relN_map_renumber P rd n]
-      apply propext
-      constructor
-      · rintro ⟨fn, h, hs⟩
-        obtain ⟨g, hg, rfl⟩ := Option.map_eq_some_iff.mp h
-        exact ⟨g, hg, (Fn.sem_renumber g args rets).mp hs⟩
-      · rintro ⟨g, hg, hs⟩
-        exact ⟨g.renumber, by simp [hg], (Fn.sem_renumber g args rets).mpr hs⟩
-
-/-- Renumbering every function leaves a program's call relation unchanged. -/
-theorem Program.rel_map_renumber (P : Program) (rd : Reader) :
-    Program.Rel (P.map Fn.renumber) rd = P.Rel rd := by
-  funext f args rets
-  simp only [Program.Rel, Program.relN_map_renumber]
 
 end
 end LeanVM.Guest.Core

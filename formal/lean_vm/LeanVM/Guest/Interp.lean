@@ -339,14 +339,6 @@ def execStmt : Nat → Nat → Stmt → IM (Option (List E))
       | .ret vs => return some (← vs.mapM (needV fr))
 end
 
-/-- A small discrete logarithm, by search below `2^bits`. -/
-def dlogSearch (bits : Nat) (a : K) : Option Nat := Id.run do
-  let mut x : K := 1
-  for i in List.range (2 ^ bits) do
-    if x == a then return some i
-    x := x * g
-  return none
-
 /-! ## Discrete logarithms
 
 `g` has order `2^64 - 1`, a product of seven primes, the largest `6700417`: Pohlig-Hellman reduces
@@ -354,7 +346,6 @@ a logarithm to one per prime, each found by baby steps and giant steps. -/
 
 /-- The prime factors of `2^64 - 1`, the order of `g`. -/
 def orderPrimes : List Nat := [3, 5, 17, 257, 641, 65537, 6700417]
-
 /-- Per prime `p` of the order: `p`, the step `m = ⌊√p⌋ + 1`, `h^(-m)` for `h = g^((2^64-1)/p)`
 of order `p`, and `h^j ↦ j` for `j < m`. -/
 structure DlogTables where

@@ -1,21 +1,18 @@
 /-
   LeanVM.Guest.Memory.GuestMainFree
 
-  No function of the guest calls `main` (`coreProgram_callsIn_noMain`), from its memory check
-  (`memAll`).
+  No function of the guest calls `main` (`mainFree_all`), from its memory check (`memAll`).
 -/
 
 module
 
 public import LeanVM.Guest.Memory.GuestMem
-public import LeanVM.Guest.Memory.SizeTransfer
+public import LeanVM.Guest.Memory.SizeTotal
 
 /-!
 # No function of the guest calls `main`
 
-No callee of any function is `main` (`mainFree_all`), so the paths of every function call only
-functions other than `main` (`coreProgram_callsIn_noMain`), and bounds transfer between frame
-sizes agreeing but at `main`.
+No callee of any function is `main` (`mainFree_all`).
 -/
 
 namespace LeanVM.Guest
@@ -36,12 +33,6 @@ theorem mainFree_all : ∀ j < coreProgram.length, mainFreeJ j = true := by
   unfold mainFreeJ
   rw [List.getElem?_eq_getElem hj, List.all_eq_true]
   exact fun g hg => decide_eq_true (memAll_callees memAll hj g hg)
-
-/-- **No path of the guest calls `main`.** -/
-theorem coreProgram_callsIn_noMain : CallsIn coreProgram (· ≠ "main") := by
-  refine callsIn_of_callees fun f _ fn hfn g hg => ?_
-  obtain ⟨j, hj, rfl⟩ := List.mem_iff_getElem.mp (List.mem_of_find?_eq_some hfn)
-  exact memAll_callees memAll hj g hg
 
 end
 end LeanVM.Guest

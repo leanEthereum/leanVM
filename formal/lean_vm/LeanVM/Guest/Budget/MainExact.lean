@@ -13,8 +13,7 @@ public import LeanVM.Guest.B1.KeccakGkr.VkCWE
 # `main` exact
 
 `mainExactHyp`: `MainExactHyp` from `verify_keccak`'s exact form (`verify_keccak_completeAtBE_fs`) through
-`mainExactHypL5_of_vk` and `mainExactHyp_of_l5`. `mainCompletePE_deployed_proved`: `main` complete within the deployed
-budget with its pops, every node exact.
+`mainExactHypL5_of_vk` and `mainExactHyp_of_l5`.
 -/
 
 namespace LeanVM.Guest.Budget
@@ -29,11 +28,6 @@ theorem mainExactHypL5 : MainExactHypL5 :=
 
 /-- **`main`'s families still open, every node exact**: `MainExactHyp`, with no hypothesis. -/
 theorem mainExactHyp : MainExactHyp := mainExactHyp_of_l5 mainExactHypL5
-
-/-- **`main` is complete within the deployed budget with its pops, every node exact.** -/
-theorem mainCompletePE_deployed_proved :
-    MainCompletePE B2C.fs B2C.cert B2C.cnt (deployedBudget (vsBoundAt Count.vsWordsOs vkBound)) :=
-  mainCompletePE_deployed mainExactHyp
 
 end
 end LeanVM.Guest.Budget

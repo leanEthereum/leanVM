@@ -26,7 +26,7 @@ compiler's order by `Data/Core.lean`, which keeps `Data.core{j}` as an abbreviat
 `j`), so that no proof evaluates the expansion; `lake exe guest-core --values f` prints the
 expansion's name of each value of `f`.
 `tests/LeanVMTests/Guest/CoreDataCheck.lean` reads the definitions back and compares them with the
-renumbered expansion. Renumbering changes no relation (`Program.rel_map_renumber`). The data is
+renumbered expansion. The data is
 noncomputable: it is a term for the kernel and the proofs, never compiled.
 
 * `coreProgram[j]? = some Data.core{j}` is `rfl` (under a `maxRecDepth` above the default for a

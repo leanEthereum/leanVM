@@ -302,7 +302,6 @@ theorem Kind.regs_unique {entry : ℕ} {k : Kind} {r r' : Semantics.Registers K}
 
 end Env
 
-
 /-! ## One instruction: soundness and completeness -/
 
 section Step
@@ -598,7 +597,6 @@ theorem jumpExit_eq (F : Facts) (entry len i : ℕ) (st : St) (od of : ℕ) :
 
 end Step
 
-
 /-! ## One instruction against the run -/
 
 section StepRun
@@ -744,7 +742,6 @@ theorem stepI_complete (hctx : Ctx F κ fp) {entry len i : ℕ} {st : St} {ins :
     | _ => simp [OffsetInstruction.isJump] at hj
 
 end StepRun
-
 
 /-! ## Paths: composition -/
 
@@ -1005,7 +1002,6 @@ theorem pass_good (hctx : Ctx F κ fp) : ∀ (code : List OffsetInstruction) (i 
 
 end Pass
 
-
 /-! ## The executor: soundness, completeness, linking -/
 
 section Main
@@ -1048,21 +1044,6 @@ theorem index_get {segs : List Seg} {t : ℕ} {s : Seg} (h : (index segs).get t 
   · exact h
   · simp at h
 
-/-- **Linking**: when the result is linked, every successor of an exit starts a segment whose
-entry environment holds wherever the exit's does. -/
-theorem Result.linked_spec {R : Result} (hl : R.linked = true) {s : Seg} (hs : s ∈ R.segs)
-    {x : Exit} (hx : x ∈ s.exits) {t : ℕ} (ht : t ∈ x.succ) :
-    ∃ s' ∈ R.segs, s'.start = t ∧
-      ∀ {κ : ℕ} (L : MemoryImage κ) (fp : K), EnvHolds L fp x.env → EnvHolds L fp s'.env := by
-  obtain ⟨segs, dead⟩ := R
-  simp only [Result.linked, listSeq_eq, Trie.seq_eq, linkedWith, List.all_eq_true] at hl
-  have h := hl s hs x hx t ht
-  split at h
-  · rename_i s' hs'
-    simp only [Bool.and_eq_true, beq_iff_eq] at h
-    exact ⟨s', index_get hs', h.1, fun L fp he ↦ he.sub h.2⟩
-  · exact absurd h (by simp)
-
 /-- The code of a guest function is fetched at its pcs. -/
 theorem guest_fetches {f : CompiledFunction} (hf : f ∈ Data.functions) : Fetches guestProgram f.entryPc f.code := by
   intro j ins hj
@@ -1074,7 +1055,6 @@ theorem guest_fetches {f : CompiledFunction} (hf : f ∈ Data.functions) : Fetch
   exact ⟨guest_fetch hf hjl, guest_pc_lt hf hjl⟩
 
 end Main
-
 
 /-! ## Straight segments -/
 
@@ -1111,7 +1091,6 @@ theorem RunK.straight {entry k₀ : ℕ} {Q : ℕ → Prop} :
 
 end Straight
 
-
 /-! ## Windows -/
 
 section Windows
@@ -1128,44 +1107,12 @@ theorem Fetches.window {pc : ℕ} {code : List OffsetInstruction} (h : Fetches p
   rw [List.getElem?_drop] at hj
   simpa [Nat.add_assoc] using h (a + j) ins hj
 
-/-- Every segment of a window is good. -/
-theorem execWin_good (hctx : Ctx F κ fp) (hf : Fetches prog f.entryPc f.code) (a : ℕ)
-    (env : List (ℕ × Sym)) (b : ℕ) : ∀ s ∈ (execWin F f a env b).segs, SegGood L fp prog f.entryPc s :=
-  pass_good hctx _ a _ [] [] 0 (hf.window a (b - a))
-    (fun _ h ↦ Option.some.inj h ▸ curGood_init a _) (fun _ h ↦ by cases h)
-
 /-- Every segment of a window entered at several offsets is good. -/
 theorem execWinS_good (hctx : Ctx F κ fp) (hf : Fetches prog f.entryPc f.code) (a : ℕ)
     (env : List (ℕ × Sym)) (seeds : List ℕ) (b : ℕ) :
     ∀ s ∈ (execWinS F f a env seeds b).segs, SegGood L fp prog f.entryPc s :=
   pass_good hctx _ a _ _ [] 0 (hf.window a (b - a))
     (fun _ h ↦ Option.some.inj h ▸ curGood_init a _) (fun _ h ↦ by cases h)
-
-/-- **Linking across windows**: every successor of an exit of a window starts one of its
-segments, or one of the windows `ext`, with an environment holding where the exit's does. -/
-theorem Result.linkedExt_spec {ext : List (ℕ × List (ℕ × Sym))} {R : Result}
-    (hl : R.linkedExt ext = true) {s : Seg} (hs : s ∈ R.segs) {x : Exit} (hx : x ∈ s.exits) {t : ℕ}
-    (ht : t ∈ x.succ) :
-    (∃ s' ∈ R.segs, s'.start = t ∧
-      ∀ {κ : ℕ} (L : MemoryImage κ) (fp : K), EnvHolds L fp x.env → EnvHolds L fp s'.env) ∨
-    ∃ e, (t, e) ∈ ext ∧
-      ∀ {κ : ℕ} (L : MemoryImage κ) (fp : K), EnvHolds L fp x.env → EnvHolds L fp (envOf e) := by
-  obtain ⟨segs, dead⟩ := R
-  simp only [Result.linkedExt, listSeq_eq, Trie.seq_eq, linkedExtWith, List.all_eq_true] at hl
-  have h := hl s hs x hx t ht
-  split at h
-  · rename_i s' hs'
-    simp only [Bool.and_eq_true, beq_iff_eq] at h
-    exact Or.inl ⟨s', index_get hs', h.1, fun L fp he ↦ he.sub h.2⟩
-  · split at h
-    · rename_i e he
-      have hu := List.find?_some he
-      have hmem := List.mem_of_find?_eq_some he
-      obtain ⟨⟨u', e0⟩, hm0, rfl⟩ := List.mem_map.mp hmem
-      simp only [beq_iff_eq] at hu
-      subst hu
-      exact Or.inr ⟨e0, hm0, fun L fp hx' ↦ hx'.sub h⟩
-    · exact absurd h (by simp)
 
 end Windows
 

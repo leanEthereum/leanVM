@@ -73,8 +73,8 @@ generic in their cells. Namespace `LeanVM.Guest.Value.Keccak` (`KeccakEval` for 
 * `keccak_duplex`: `(∀ c : Fin 13, c.val < 8 → I c = rateCell pending c) →
    (∀ c : Fin 13, 8 ≤ c.val → I c = cellsOfState S false c) → KeccakCells I false O false →
    O = cellsOfState (keccakF (duplexInput ⟨S, pending⟩)) false`.
-* `squeeze_id`, `squeeze_id_ground`, `absorb_id_full`: the Spec's sponge at `Id`, `keccakF`.
-* `challengeOf_cells : challengeOf S = cellsOfState S false 0`, `challengeOf_limb0`;
+* `squeeze_id`, `absorb_id_full`: the Spec's sponge at `Id`, `keccakF`.
+* `challengeOf_cells : challengeOf S = cellsOfState S false 0`;
   `powLane_cells : Keccak.lane S 2 = ((cellsOfState S false 1).limb 0).lane`.
 
 **Constants by kernel evaluation** (`KeccakConst`, `KeccakEval`)

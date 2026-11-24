@@ -93,11 +93,6 @@ def PackOk : ℕ × ℕ → List (List ℕ × List ℕ × (ℕ × ℕ)) → Prop
   | _, [] => True
   | s, (g, o, s') :: r => packSt g s.1 s.2 = (o, s'.1, s'.2) ∧ PackOk s' r
 
-/-- Where the pieces stop. -/
-def packEnd : ℕ × ℕ → List (List ℕ × List ℕ × (ℕ × ℕ)) → ℕ × ℕ
-  | s, [] => s
-  | _, (_, _, s') :: r => packEnd s' r
-
 end
 
 public section
@@ -110,15 +105,6 @@ theorem packGo_append : ∀ (l1 l2 : List ℕ) (j acc : ℕ),
     cases Nat.beq j 63
     · simp only [Bool.cond_false]; exact packGo_append cs l2 _ _
     · simp only [Bool.cond_true, List.cons_append]; rw [packGo_append cs l2 0 0]
-
-/-- **The pieces pack the whole.** -/
-theorem packGo_of : ∀ (s : ℕ × ℕ) (r : List (List ℕ × List ℕ × (ℕ × ℕ))), PackOk s r →
-    packGo (r.map (·.1)).flatten s.1 s.2 = (r.map (·.2.1)).flatten ++ [(packEnd s r).2]
-  | s, [], _ => by simp [packGo, packEnd]
-  | s, (g, o, s') :: r, ⟨h, hr⟩ => by
-    simp only [List.map_cons, List.flatten_cons, packEnd, List.append_assoc]
-    rw [packGo_append, h]
-    exact congrArg (o ++ ·) (packGo_of s' r hr)
 
 theorem ofData_eq_ofPacked (locs : List ℕ) (extra : List (ℕ × ℕ)) (entry : ℕ) (main : Bool) (p : B2C.Plumb)
     (pows : PowTree) (jt : Trie ℕ) (ents : List (String × ℕ)) (halt len : ℕ) :

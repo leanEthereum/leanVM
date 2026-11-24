@@ -77,18 +77,6 @@ theorem foldl_ensure_used {B : ℕ} : ∀ (l : List ℕ) (m : Mem), m.used ≤ B
       have := hl c List.mem_cons_self
       simp only [Mem.ensure_used]; omega) fun x hx ↦ hl x (List.mem_cons_of_mem _ hx)
 
-theorem foldlM_put_used {B : ℕ} (f : ℕ × ℕ → E) :
-    ∀ (l : List (ℕ × ℕ)) (m m' : Mem), l.foldlM (fun m x ↦ m.put x.1 (f x)) m = .ok m' → m.used ≤ B →
-      (∀ x ∈ l, x.1 < B) → m'.used ≤ B
-  | [], m, m', e, h, _ => by simp only [List.foldlM_nil, pure_ok] at e; subst e; exact h
-  | x :: l, m, m', e, h, hl => by
-    rw [List.foldlM_cons, bind_ok] at e
-    obtain ⟨m1, e1, e⟩ := e
-    refine foldlM_put_used f l m1 m' e ?_ fun y hy ↦ hl y (List.mem_cons_of_mem _ hy)
-    rw [put_used e1]
-    have := hl x List.mem_cons_self
-    omega
-
 /-! ## What an instruction reads -/
 
 /-- **An instruction the executor completes found its reads written.** -/

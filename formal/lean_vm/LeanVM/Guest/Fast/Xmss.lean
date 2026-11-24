@@ -51,9 +51,6 @@ structure XmssTabs where
 /-- **leanXMSS's tables**, built from the literals. -/
 def xmssTabs : XmssTabs := ⟨gLanes, tabA lxFold, tabA lxRest, tabA lxTail⟩
 
-/-- Layer `layer`'s first value (`sLayer`'s base): `88`, then `62094`. -/
-def lxLayerBase (layer : ℕ) : ℕ := if layer = 0 then 88 else 62094
-
 /-- Layer `layer`'s randomizer cell (`sRho`). -/
 def lxRhoCell (layer : ℕ) : ℕ := if layer = 0 then 88 else 62096
 

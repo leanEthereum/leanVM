@@ -181,13 +181,8 @@ noncomputable def locTrieFrom : List ℕ → ℕ → Trie ℕ → Trie ℕ
   | [], _, t => t
   | c :: cs, k, t => natSeq (k + 1) fun k' ↦ (setF c indexDepth t k).seq fun t ↦ locTrieFrom cs k' t
 
-/-- The cells as a trie, value `k` at key `k`. -/
-noncomputable def locTrie (locs : List ℕ) : Trie ℕ := locTrieFrom locs 0 .nil
-
 /-- The cells of a list of values. -/
 noncomputable def cellsOf (loc : Trie ℕ) (vs : List Core.V) : List ℕ := vs.map (cellOf loc)
-
-
 
 /-! ## Atoms -/
 

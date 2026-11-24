@@ -24,9 +24,9 @@ its own memory without the program's control, so the honest memory chooses them 
 `atomUses`, `Stmt.usesList`: every value a block names, the temporaries of its range checks and
 touches apart; `Stmt.tmpsList`: those temporaries. A function is `Fn.Fresh` when its temporaries
 are
-distinct and appear nowhere else, nor among its parameters; `Fn.freshB` decides it with bit masks
-of the values' indices, so that the kernel checks the guest in time linear in its size
-(`fn_fresh_of_freshB`).
+distinct and appear nowhere else, nor among its parameters; `idxMask` and `idxNodup` check
+distinctness with bit masks of the values' indices, so that the kernel checks it in time linear in
+the body's size.
 
 Of a path (`walk`): it is the same under two valuations agreeing on the block's uses
 (`walk_congr`); its events name only the block's uses, its temporaries are a sublist of the
@@ -148,48 +148,11 @@ def idxNodup : List V → ℕ → Bool
   | [], _ => true
   | v :: vs, m => !(m.testBit v.idx) && idxNodup vs (m ||| 1 <<< v.idx)
 
-/-- **Freshness, decided** on the values' indices. -/
-def _root_.LeanVM.Guest.Core.Fn.freshB (fn : Fn) : Bool :=
-  idxNodup (Stmt.tmpsList fn.body) 0 &&
-    (Stmt.tmpsList fn.body).all fun t => !(idxMask (Stmt.usesList fn.body ++ fn.params)).testBit t.idx
-
-theorem testBit_idxMask {v : V} : ∀ {l : List V}, v ∈ l → (idxMask l).testBit v.idx = true
-  | w :: ws, h => by
-      rw [idxMask, Nat.testBit_or, Bool.or_eq_true]
-      rcases List.mem_cons.mp h with rfl | h
-      · exact Or.inr (by simp [Nat.testBit_shiftLeft])
-      · exact Or.inl (testBit_idxMask h)
-
-theorem idxNodup_spec : ∀ {l : List V} {m : ℕ}, idxNodup l m = true →
-    l.Nodup ∧ ∀ v ∈ l, m.testBit v.idx = false
-  | [], _, _ => ⟨List.nodup_nil, fun _ h => (List.not_mem_nil h).elim⟩
-  | v :: vs, m, h => by
-      simp only [idxNodup, Bool.and_eq_true, Bool.not_eq_true'] at h
-      have hv := h.1
-      obtain ⟨hvs, hm⟩ := idxNodup_spec h.2
-      refine ⟨List.nodup_cons.mpr ⟨fun hmem => ?_, hvs⟩, fun w hw => ?_⟩
-      · have := hm v hmem
-        simp [Nat.testBit_or, Nat.testBit_shiftLeft] at this
-      · rcases List.mem_cons.mp hw with rfl | hw
-        · exact hv
-        · have := hm w hw
-          simp only [Nat.testBit_or, Bool.or_eq_false_iff] at this
-          exact this.1
-
-theorem fn_fresh_of_freshB {fn : Fn} (h : fn.freshB = true) : fn.Fresh := by
-  simp only [Fn.freshB, Bool.and_eq_true, List.all_eq_true, Bool.not_eq_true'] at h
-  refine ⟨(idxNodup_spec h.1).1, fun t ht => ?_⟩
-  have hb := h.2 t ht
-  refine ⟨fun hu => ?_, fun hp => ?_⟩
-  · rw [testBit_idxMask (List.mem_append_left _ hu)] at hb; exact absurd hb (by simp)
-  · rw [testBit_idxMask (List.mem_append_right _ hp)] at hb; exact absurd hb (by simp)
-
 /-! ## Freshness by ranges
 
 A body too large for one kernel check is cut into ranges of its statements: each range's
 temporaries have the indices `ts` and none of the function's temporaries `all` is among its uses
-(`RangeFresh`); the ranges concatenate (`RangeFresh.append`), and a body whose temporaries are
-`all`, distinct and no parameter, is fresh (`fn_fresh_of_rangeFresh`). -/
+(`RangeFresh`); the ranges concatenate (`RangeFresh.append`). -/
 
 theorem usesList_append : ∀ (ss ss' : List Stmt),
     Stmt.usesList (ss ++ ss') = Stmt.usesList ss ++ Stmt.usesList ss'
@@ -223,23 +186,6 @@ theorem RangeFresh.append {ss ss' : List Stmt} {ts ts' all : List ℕ} (h : Rang
   intro t ht
   rw [usesList_append, idxMask_append, Nat.testBit_or, h1 t ht, h2 t ht]
   rfl
-
-/-- **A body certified by ranges is fresh**: its temporaries are `all`, distinct, and no
-parameter. -/
-theorem fn_fresh_of_rangeFresh {fn : Fn} {all : List ℕ} (h : RangeFresh fn.body all all)
-    (hnd : all.Nodup) (hp : (all.all fun t => !(idxMask fn.params).testBit t) = true) :
-    fn.Fresh := by
-  have h2 := h.2
-  simp only [List.all_eq_true, Bool.not_eq_true'] at h2 hp
-  have hidx : ∀ t ∈ Stmt.tmpsList fn.body, t.idx ∈ all := fun t ht => by
-    rw [← h.1]; exact List.mem_map_of_mem ht
-  refine ⟨List.Nodup.of_map V.idx (by rw [h.1]; exact hnd), fun t ht => ⟨fun hu => ?_, fun hpm => ?_⟩⟩
-  · have := h2 _ (hidx t ht)
-    rw [testBit_idxMask hu] at this
-    exact absurd this (by simp)
-  · have := hp _ (hidx t ht)
-    rw [testBit_idxMask hpm] at this
-    exact absurd this (by simp)
 
 /-! ## Paths -/
 

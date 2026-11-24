@@ -144,13 +144,6 @@ theorem squeeze_id (sp : Compile.Sponge) (hg : sp.ground = none) :
   subst hg
   rfl
 
-/-- `squeeze` returns a ground challenge and clears it. -/
-theorem squeeze_id_ground (sp : Compile.Sponge) (c : E) (hg : sp.ground = some c) :
-    Compile.squeeze (m := Id) keccakF1600 sp = (c, { sp with ground := none }) := by
-  obtain ⟨st, p, g⟩ := sp
-  subst hg
-  rfl
-
 /-- `absorb` at a full queue permutes first. -/
 theorem absorb_id_full (sp : Compile.Sponge) (x : E) (t : ℕ) (h : sp.pending.length = 4) :
     Compile.absorb (m := Id) keccakF1600 sp x t =
@@ -166,11 +159,6 @@ theorem absorb_id_full (sp : Compile.Sponge) (x : E) (t : ℕ) (h : sp.pending.l
 theorem challengeOf_cells (S : KeccakState) : Compile.challengeOf S = cellsOfState S false 0 := by
   simp [Compile.challengeOf, cellsOfState, cellLanes]
 
-/-- The first limb of a challenge is cell `0`'s. -/
-theorem challengeOf_limb0 (S : KeccakState) :
-    (Compile.challengeOf S).limb 0 = (cellsOfState S false 0).limb 0 := by
-  rw [challengeOf_cells]
-
 /-- **The proof of work** (`absorbNonce`'s lane `2`) is the low limb of cell `1` (`grind_check`
 reads it from `nxt[1]`). -/
 theorem powLane_cells (S : KeccakState) : Keccak.lane S 2 = ((cellsOfState S false 1).limb 0).lane := by
@@ -178,6 +166,5 @@ theorem powLane_cells (S : KeccakState) : Keccak.lane S 2 = ((cellsOfState S fal
 
 /-- A `K` literal's lane. -/
 @[simp] theorem ofLane_toUInt64 (t : ℕ) : K.ofLane t.toUInt64 = K.ofBits t := rfl
-
 end
 end LeanVM.Guest.Value.Keccak

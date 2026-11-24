@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Main.MainPushes
 /-!
 # `main` within the budget, with its pops
 
-`MainCompleteP`: `MainComplete`, the tree popping `Hints.honestPushes`, stream by stream (`SameStreams`); `MainCompleteP.toMainComplete`. `MainSegs`: `main`'s callees' entries against their segments of the honest pushes (`main_pops_honest`'s hypotheses).
+`MainCompleteP`: `MainComplete`, the tree popping `Hints.honestPushes`, stream by stream (`SameStreams`). `MainSegs`: `main`'s callees' entries against their segments of the honest pushes (`main_pops_honest`'s hypotheses).
 
 `mainComplete_of_boundsP`, `mainComplete_of_mainP`, `mainComplete_budgetP`: `mainComplete_of_bounds`, `mainComplete_of_main`, `mainComplete_budget` with the pops, from `main_honest_budgetBR` (route S `MainPopsS`, route R `MainGoalsRR`), the callees' entries against their segments.
 -/
@@ -46,13 +46,6 @@ def MainCompleteP (fs : String → ℕ) (cert : String → V → ℕ) (cnt : Tre
             (∀ op, cnt t op ≤ (b.instrs op).eval (work s w)) ∧
             SameStreams (t.pops coreProgram rd)
               (Hints.honestPushes bytecode seed s w)
-
-theorem MainCompleteP.toMainComplete {fs : String → ℕ} {cert : String → V → ℕ} {cnt : Tree → Opcode → ℕ}
-    {b : Budget} (h : MainCompleteP fs cert cnt b) : MainComplete fs cert cnt b := fun seed s w h1 h2 h3 h4 =>
-  let ⟨N, L, a1, a2, a3, a4, hr⟩ := h seed s w h1 h2 h3 h4
-  ⟨N, L, a1, a2, a3, a4, fun rd hl hL h0 h1 =>
-    let ⟨t, b1, b2, b3, b4, b5, b6, b7, _⟩ := hr rd hl hL h0 h1
-    ⟨t, b1, b2, b3, b4, b5, b6, b7⟩⟩
 
 /-- **`main`'s callees' entries against their segments of the honest pushes** on the memory `rd`, a loop not
 entered popping `[]`. -/

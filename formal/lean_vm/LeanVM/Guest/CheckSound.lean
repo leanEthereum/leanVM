@@ -807,7 +807,7 @@ section Segs
 variable {κ : ℕ} {L : MemoryImage κ} {fp : K} {f : CompiledFunction} {X : Fx}
 
 /-- What a walk assumes of its context: the executor's facts hold of the frame, the code is the
-program's, the segments are good (an executor's, `exec_good`, `execWin_good`), and the index and
+program's, the segments are good (an executor's, `exec_good`), and the index and
 links are theirs. -/
 structure WalkHyp (L : MemoryImage κ) (fp : K) (f : CompiledFunction) (X : Fx) : Prop where
   ctx : Exec.Ctx X.F κ fp

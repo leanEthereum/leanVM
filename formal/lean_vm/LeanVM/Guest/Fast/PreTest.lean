@@ -271,14 +271,6 @@ theorem memTestWith_eq_all (rd : Reader) (fp : K) (mem : List (ℕ × ℕ × ℕ
   rw [powBelow_eq]
   rfl
 
-/-- The squarings are the powers `x^(2^j)`. -/
-theorem squaresFrom_getD : ∀ (n : ℕ) (x : E) (j : ℕ), j < n → (squaresFrom x n).getD j 0 = x ^ 2 ^ j
-  | 0, _, _, h => absurd h (Nat.not_lt_zero _)
-  | n + 1, x, 0, _ => by simp [squaresFrom]
-  | n + 1, x, j + 1, h => by
-    rw [squaresFrom, List.getD_cons_succ, squaresFrom_getD n (x * x) j (by omega), ← sq, ← pow_mul,
-      pow_succ, mul_comm 2]
-
 /-- **The test of an entry `fnPreOf s` is the three tests of `s`.** -/
 theorem fnPreTest_fnPreOf (rd : Reader) (fp : K) (s : Sig) :
     fnPreTest discreteLogTables genPows rd fp (fnPreOf s) =
