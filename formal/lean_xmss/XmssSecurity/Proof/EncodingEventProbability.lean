@@ -15,7 +15,7 @@ signing trace, its colliding input was cached before that signature or was fresh
 installed it (`winning_encoding_event_trace_temporal_decomposition`), so the event is a cached
 selection with a colliding input, a fresh selection landing on an older digest, or a fresh selection
 hit by a later digest (`winning_encoding_event_trace_monitor_decomposition`, which
-`CappedEncodingEventProbability` uses).
+`LossDecomposition` uses).
 -/
 
 open OracleComp OracleSpec ENNReal

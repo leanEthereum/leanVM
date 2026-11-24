@@ -1,12 +1,18 @@
 module
 
-public import XmssSecurity.Proof.CappedChain.ChainOriginProbability
+public import XmssSecurity.Proof.CappedChain.ChainEventDecomposition
 
 @[expose] public section
 
 open OracleSpec
 
 namespace XmssSecurity.CappedChain
+
+noncomputable def WinningOutcomeChainValueHasKeygenOrigin
+    (keygenCache finalCache : QueryCache HashSpec) (secretKey : SecretKey)
+    (outcome : GameOutcome) (chain : ChainIndex) : Prop :=
+  WinningOutcomeBadEventOccurs finalCache outcome (.chain chain) ∧
+    OutcomeChainValueHasKeygenOrigin keygenCache finalCache secretKey outcome chain
 
 theorem outcomeChainValueHasKeygenOrigin_eq_table
     (keygenCache finalCache : QueryCache HashSpec) (secretKey : SecretKey)

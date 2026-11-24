@@ -1,7 +1,6 @@
 module
 
 public import XmssSecurity.Proof.ChainHiddenTable
-public import XmssSecurity.Proof.ChainTrajectoryComposition
 public import Init.Data.Vector.OfFn
 
 @[expose] public section
@@ -10,6 +9,22 @@ open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity
 
+abbrev FullChainTrajectory := Vector Digest (chainLength - 1 + 1)
+
+/-- Every one-time key of both layers, in a fixed order. -/
+noncomputable def allChainKeys : List ChainKey :=
+  Finset.univ.toList
+
+theorem allChainKeys_nodup : allChainKeys.Nodup := by
+  exact Finset.nodup_toList Finset.univ
+
+theorem mem_allChainKeys (key : ChainKey) : key ∈ allChainKeys := by
+  simp [allChainKeys]
+
+theorem allChainKeys_length : allChainKeys.length = Fintype.card ChainKey := by
+  simp [allChainKeys]
+
+attribute [irreducible] allChainKeys
 
 theorem fullChainTrajectory_length_eq : chainLength - 1 + 1 = chainLength := by
   decide
