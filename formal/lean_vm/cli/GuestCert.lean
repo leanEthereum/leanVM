@@ -4282,12 +4282,12 @@ def files (P : Core.Program) (keys : Array String) (coreAt : String → String) 
     let sts := snapsOf.getD j []
     pt ++ s!"\n/-- `{fns[j]!.name}`: its frame size (`B2C.fsN`). -/\ndef fs : ℕ := {fsz}\n\n" ++
       s!"/-- `{fns[j]!.name}`: its completeness walk's parts (`Data.cplParts`). -/\n" ++
-      s!"def parts : List (List (List ℕ)) := {parts}\n\n" ++
+      s!"noncomputable def parts : List (List (List ℕ)) := data% {parts}\n\n" ++
       (if armed j then "" else
         s!"/-- `{fns[j]!.name}`: no `match` with its arms counted apart (`Data.cplArms`). -/\n" ++
         "def arms : List (ℕ × List (List ℕ)) := []\n\n") ++
       String.join (sts.zipIdx.map fun (t, k) =>
-        s!"/-- `{fns[j]!.name}`'s window {k + 1} starts from this. -/\nnoncomputable def snap_{k + 1} : B2C.Snap :=\n  {t}\n\n") ++
+        s!"/-- `{fns[j]!.name}`'s window {k + 1} starts from this. -/\nnoncomputable def snap_{k + 1} : B2C.Snap :=\n  data% {t}\n\n") ++
       s!"/-- `{fns[j]!.name}`'s windows after the first start from these (`B2C.snapsOf`). -/\n" ++
       s!"noncomputable def snaps : List B2C.Snap := {listText ((List.range sts.length).map fun k => s!"snap_{k + 1}")}\n"
   for (c, i) in certs.zipIdx do
