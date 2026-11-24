@@ -53,7 +53,7 @@ theorem range_sound {κ : Nat} (hκ : κ ≤ 32) (L : MemoryImage κ) {x y t1 t2
   exact ⟨i, by omega, ex⟩
 
 theorem g255W_eq : g255W = ofK (addressOfIndex 255) := by
-  rw [g255W, word, Value.ofBits_zero, ← ofK_eq_ofLimbs]
+  rw [g255W, word, K.ofBits_zero, ← ofK_eq_ofLimbs]
   exact congrArg ofK (by decide +kernel)
 
 /-- **A byte, sound**: a mark range checked below `256` and read off the byte table at

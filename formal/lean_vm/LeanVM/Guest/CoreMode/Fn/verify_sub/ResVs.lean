@@ -25,7 +25,6 @@ public import LeanVM.Guest.B1.Exact.RsEqRun
 public import LeanVM.Guest.B1.Exact.SharedTables
 public import LeanVM.Guest.CoreMode.Fam.FamDefs
 public import LeanVM.Guest.CoreMode.Fam.ResExp
-public import LeanVM.Guest.CoreMode.Fam.SubDefs
 public import LeanVM.Guest.B1.VerifySub.Lanes
 public import LeanVM.Guest.B1.KeccakGkr.VkHolds
 public import LeanVM.Guest.B1.Bits.Grind

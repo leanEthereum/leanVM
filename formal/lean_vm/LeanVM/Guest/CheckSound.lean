@@ -107,13 +107,10 @@ theorem limb_ofK0 (a : K) : (ofK a).limb 0 = a := by simp
 theorem char2 (a b : E) : a + (a + b) = b := by
   rw [← add_assoc, CharTwo.add_self_eq_zero, zero_add]
 
-theorem ofBits_toNat (a : K) : K.ofBits a.toBitVec.toNat = a := by
-  simp [K.ofBits, BitVec.ofNat_toNat]
-
 theorem eq_imm_of_limbs {x : E} {k0 k1 : ℕ} (h0 : limbNat x 0 = k0) (h1 : limbNat x 1 = k1) :
     x = OffsetInstruction.immediateWord k0 k1 := by
   subst h0 h1
-  rw [OffsetInstruction.immediateWord, limbNat, limbNat, ofBits_toNat, ofBits_toNat, ofLimbs_limb]
+  rw [OffsetInstruction.immediateWord, limbNat, limbNat, K.ofBits_toNat, K.ofBits_toNat, ofLimbs_limb]
 
 end Basic
 

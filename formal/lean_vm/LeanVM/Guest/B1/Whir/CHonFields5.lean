@@ -25,7 +25,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 @[expose] public section
 
 theorem word0_ofK (n : ℕ) : word n 0 = ofK (K.ofBits n) := by
-  simp only [word, Value.ofBits_zero]
+  simp only [word, K.ofBits_zero]
   exact (ofK_eq_ofLimbs _).symm
 
 namespace HonRun

@@ -233,8 +233,6 @@ LeanVM.Guest.CoreMode.Gen.sp_wots.Core	100.0	100.0	5600	3800
 LeanVM.Guest.CoreMode.Gen.sp_wots.Ok	10.0	10.0	4300	3100
 LeanVM.Guest.CoreMode.Gen.sp_wots.Route	50.0	50.0	6000	4100
 LeanVM.Guest.CoreMode.Gen.verify_sig_lean_sphincs.Route	30.0	30.0	5200	3400
-LeanVM.Guest.CoreMode.Gen.verify_tables.Core	130.0	120.0	6900	5000
-LeanVM.Guest.CoreMode.Gen.verify_tables.Route	180.0	180.0	6800	5000
 LeanVM.Guest.CoreMode.GenW.check_opening_terminal.W1	20.0	20.0	4800	3600
 LeanVM.Guest.CoreMode.GenW.check_opening_terminal.W11	10.0	10.0	4500	3300
 LeanVM.Guest.CoreMode.GenW.check_opening_terminal.W12	20.0	20.0	4800	3600
@@ -246,7 +244,6 @@ LeanVM.Guest.CoreMode.GenW.check_opening_terminal.W6	20.0	20.0	4900	3700
 LeanVM.Guest.CoreMode.GenW.da_expand__L13_L7.Ok	20.0	20.0	5400	4100
 LeanVM.Guest.CoreMode.GenW.da_expand__L6_L7.Ok	20.0	20.0	5400	4100
 LeanVM.Guest.CoreMode.GenW.exponent_tables.Ok	10.0	10.0	4600	3300
-LeanVM.Guest.CoreMode.GenW.open_stacked__L10.Ok	20.0	20.0	4300	3100
 LeanVM.Guest.CoreMode.GenW.verify_tables.W72	20.0	20.0	4600	3300
 LeanVM.Guest.CoreMode.Pack.P43.FrameD0W0	20.0	20.0	5100	3600
 LeanVM.Guest.CoreMode.Pack.P43.FrameD0W1	20.0	20.0	5200	3700
@@ -277,7 +274,6 @@ LeanVM.Guest.CoreMode.Pack.P43.FrameD0W9	20.0	20.0	5300	3900
 LeanVM.Guest.CoreMode.Pack.sp_wots.FrameD0W0	20.0	20.0	4600	3200
 LeanVM.Guest.CoreMode.Pack.sp_wots.FrameD0W1	20.0	20.0	4800	3400
 LeanVM.Guest.CoreMode.Pack.sp_wots.FrameD0W2	20.0	20.0	4900	3400
-LeanVM.Guest.CoreMode.Pack.verify_tables.Frame0	20.0	20.0	5500	4200
 LeanVM.Guest.Count.VsBound	20.0	20.0	5100	3600
 LeanVM.Guest.ExecDecodable	20.0	20.0	4500	3100
 LeanVM.Guest.Executor	20.0	20.0	4800	3600

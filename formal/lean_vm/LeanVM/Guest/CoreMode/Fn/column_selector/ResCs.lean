@@ -43,7 +43,7 @@ namespace LeanVM.Guest.EndExec
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Mode LeanVM.Guest.Core LeanVM.Guest.Memory
 open LeanVM.Guest.B2C (idxOf entryOf FrameHolds fsN fn_of_idx cellJ namedOf)
 open LeanVM.Guest.Bridge (FnAl)
-open LeanVM.Guest.Res (inFr topAtoms)
+open LeanVM.Guest.Res (topAtoms)
 open LeanVM.Guest.B1.Tables (csPre csNibT csN csW csC csRb csHint csDig holds_csNib cs_dvd csDig_lt
   prod_gen_pow_csDig csNibT_noRet csPre_noRet csFound csRet csW_bounds GTabsAt lName)
 open LeanVM.Protocol.Verifier (gen)

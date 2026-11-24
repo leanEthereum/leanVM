@@ -8,7 +8,6 @@
 module
 
 public import LeanVM.Guest.CoreMode.Fn.keccak_layer.ResStP
-public import LeanVM.Guest.CoreMode.Fam.SubDefs
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«keccak_layer__L_loop0»
 import LeanVM.Guest.Data.ValNames.«keccak_layer__L_loop1»
@@ -36,7 +35,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Mode LeanVM.Gu
 open LeanVM.Guest.B1 LeanVM.Guest.B1.VerifySub
 open LeanVM.Guest.B2C (idxOf FrameHolds fsN fn_of_idx cellJ namedOf)
 open LeanVM.Guest.Bridge (FnAl)
-open LeanVM.Guest.Res (stRes topAtoms)
+open LeanVM.Guest.Res (topAtoms)
 open LeanVM.Protocol.Verifier (gen)
 open LeanVM.Prover.Exec
 

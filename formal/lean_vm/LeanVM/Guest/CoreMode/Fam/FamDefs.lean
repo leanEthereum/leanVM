@@ -21,9 +21,6 @@ public import LeanVM.Guest.Memory.StaticCut
 on every returning path of the block. `powOf w` (`CarryDefs.lean`): the exponent `e` of a word `w = g^e`
 the guest's table of powers names (`Data.powTree`). `rcBound as v`: a range check of `as` on value `v` against
 a constant of `as`, `g^(N - 1)`, bounds `v`'s exponent below `N`.
-
-`cellLt j w o N`: at function `j`'s frames, cell `o` holds `g^e`, `e < N`: a value of the cell is
-range checked (`rcBound`) or a top-level selector (`topSels`), the cell inside the frame.
 -/
 
 namespace LeanVM.Guest.Res
@@ -75,19 +72,6 @@ returning path, so a family's check scans them, not the whole body. -/
 structure Wit where
   as : List Atom
   ss : List (V × ℕ)
-
-/-- **Cell `o` of function `j` holds `g^e`, `e < N`**: inside the frame, a value of the cell range
-checked on every path, or a selector named on every path. -/
-noncomputable def cellLt (j : ℕ) (w : Wit) (o N : ℕ) : Bool :=
-  decide (2 ≤ o) && decide (o < fsN j) && decide (N ≤ 2 ^ 62) &&
-    (w.as.any (fun
-      | .rangeCheck x _ _ _ _ => cellJ j x == o &&
-          (match rcBound w.as x with
-            | some n => decide (n ≤ N)
-            | none => false)
-      | _ => false) ||
-      w.ss.any fun p => cellJ j p.1 == o && decide (p.2 ≤ N) &&
-        (decide (p.1 ∈ (coreOf j).params) || w.as.any fun a => decide (p.1 ∈ atomUses a)))
 
 end
 

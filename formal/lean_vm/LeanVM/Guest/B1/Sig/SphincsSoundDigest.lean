@@ -224,7 +224,7 @@ theorem high_low_bytes {x : E} {l N : Nat} (hl : l < 2 ^ 16)
   have h0 : x.limb 0 = K.ofBits l + K.ofBits (2 ^ 16 * N) := by
     rw [add_assoc] at hK
     exact (add_eq_zero_iff_eq_neg.mp hK).trans (CharTwo.neg_eq _)
-  rw [cellNat, h0, ← ofBits_xor, Nat.xor_comm, two_pow_mul_xor hl, kToNat_ofBits]
+  rw [cellNat, h0, ← K.ofBits_xor, Nat.xor_comm, two_pow_mul_xor hl, kToNat_ofBits]
   omega
 
 /-- The tree index's high byte's six unused bits, folded most significant first. -/

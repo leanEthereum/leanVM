@@ -29,7 +29,7 @@ thirteen values, a `state=` run) and its blocks' input and output values. `check
 Boolean that the kernel evaluates (`decide +kernel`): every block is a `KECCAK` atom of the list
 in the layouts `inLayout k`, `outLayout B k`, and every input cell is, by an atom of the list,
 the previous output's cell plus the padded message cell (`rateOk`), or the previous output's
-capacity cell (`capOk`). It is sound for every valuation satisfying the atoms:
+capacity cell (`capAt`). It is sound for every valuation satisfying the atoms:
 
 * `chain_final` (`final`): the last output's cells `0`, `1` are the digest of `pre ++` the
   message's bytes, after a prefix `pre` of whole blocks absorbed into the initial state;
@@ -255,7 +255,7 @@ def padNat (len i : ℕ) : ℕ × ℕ :=
   (a.1 ^^^ b.1, a.2 ^^^ b.2)
 
 theorem word_xor (a b c d : ℕ) : word (a ^^^ c) (b ^^^ d) = word a b + word c d := by
-  simp only [word, ofBits_xor, ofLimbs_add]
+  simp only [word, K.ofBits_xor, ofLimbs_add]
 
 theorem word_byteNat (pos v i : ℕ) :
     word (byteNat pos v i).1 (byteNat pos v i).2 = if i = pos / 16 then byteCell pos v else 0 := by

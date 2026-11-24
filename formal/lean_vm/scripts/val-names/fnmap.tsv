@@ -254,10 +254,8 @@ LeanVM/Guest/B1/Exact/VtOwn.lean verify_tables
 # Place: the level functions' proofs over their families
 LeanVM/Guest/B1/Place/LpProof.lean level_positions__L
 LeanVM/Guest/B1/Place/LqProof.lean level_queries__L
-LeanVM/Guest/B1/Place/OsMeanB.lean@round_relIn opening_round
 LeanVM/Guest/B1/Place/OsQPlace.lean@sqEb decode_query_windows__L
 LeanVM/Guest/B1/Place/OsQPlace.lean@sqGroupRuns_mem decode_query_windows__L
-LeanVM/Guest/B1/Place/OsRound.lean opening_round
 LeanVM/Guest/B1/Place/LqExact.lean level_queries__L
 LeanVM/Guest/B1/Place/LqProofP.lean level_queries__L
 LeanVM/Guest/B1/Place/LrLoops.lean@lrLoop1_iter level_residual__L_loop0
@@ -291,8 +289,6 @@ LeanVM/Guest/B1/Whir/HelperT.lean@lrBody level_residual__L
 LeanVM/Guest/B1/Whir/LpSound.lean level_positions__L
 LeanVM/Guest/B1/Whir/LqSound.lean level_queries__L
 LeanVM/Guest/B1/Whir/LrSound.lean@lr_sound level_residual__L
-LeanVM/Guest/B1/Whir/LrSound.lean@lrBody_eq0 level_residual__L
-LeanVM/Guest/B1/Whir/LrSound.lean@lrBody_ne0 level_residual__L
 LeanVM/Guest/B1/Whir/LrSound.lean@lrLoop1_step level_residual__L_loop0
 LeanVM/Guest/B1/Whir/LrSound.lean@lrLoop2_step level_residual__L_loop1
 LeanVM/Guest/B1/Whir/Template.lean@sqLoopBody level_positions__L_loop0
@@ -578,8 +574,6 @@ LeanVM/Guest/B1/Opening/QueriesComplete3.lean@oqPath_complete walk_path__L
 LeanVM/Guest/B1/Opening/QueriesComplete3.lean@oqCap_complete walk_path__L
 LeanVM/Guest/B1/Opening/QueriesComplete3.lean@walk_block walk_path__L
 LeanVM/Guest/B1/KeccakGkr/PackLoop.lean@pkZs keccak_layer__L_loop0
-LeanVM/Guest/B1/Opening/WalkPops.lean@win_fallPops walk_path__L
-LeanVM/Guest/B1/Opening/WalkPops.lean@wp_fallPops walk_path__L
 LeanVM/Guest/B1/Gkr/GlCInZeta.lean@vbz_calls verify_bus_gkr_loop0
 LeanVM/Guest/B1/Gkr/VbgC.lean@vbR7 verify_bus_gkr
 LeanVM/Guest/Exact/SphincsPinned.lean@sBitsAtoms verify_sig_lean_sphincs
@@ -620,7 +614,6 @@ LeanVM/Cost/Bounds/Guest/Valid.lean@cursor_le_stream verify_sub
 LeanVM/Cost/Bounds/Guest/DecTop.lean@sphincsAtFrameT_cost main
 LeanVM/Guest/Budget/MainCount.lean@mainCallW main
 LeanVM/Guest/Budget/MvCount.lean da_pad
-LeanVM/Guest/Fast/Whir.lean@oqIterN opening_queries__L_loop0
 LeanVM/Guest/Fast/Whir.lean@oqIterA opening_queries__L_loop0
 LeanVM/Guest/Fast/Whir.lean@oqsOfN opening_queries__L
 LeanVM/Guest/Fast/Whir.lean@oqsOfA opening_queries__L
@@ -666,6 +659,5 @@ LeanVM/Guest/CoreMode/Fn/verify_tables/ResVtL.lean@l10_next verify_tables_loop0
 LeanVM/Guest/CoreMode/Fn/check_opening_terminal/ResE.lean check_opening_terminal
 LeanVM/Guest/CoreMode/Fam/TermDefs.lean column_selector__L
 LeanVM/Guest/WalkKnown.lean@loop_cutsKnown opening_queries__L_loop0
-LeanVM/Guest/WalkKnown.lean@wp_cutsKnown walk_path__L
 LeanVM/Guest/WalkOs.lean@os_tup open_stacked__L
 LeanVM/Guest/WalkOs.lean@os_cutsKnown open_stacked__L

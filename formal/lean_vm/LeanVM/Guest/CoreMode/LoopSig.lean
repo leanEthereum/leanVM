@@ -73,9 +73,6 @@ def idxK (G : Mode.Sig) : Mode.Idx → Bool
   | .num _ => true
   | i => G.term.any fun p ↦ decide (p.1 = i) || decide (p.2 = i)
 
-/-- A run whose bounds' values exist wherever the termination fact holds. -/
-def rngK (G : Mode.Sig) (r : Mode.Rng) : Bool := idxK G r.lo && idxK G r.hi
-
 /-! ## Over a frame holding the parameters -/
 
 /-- Frame `s.fp`'s parameter cells hold the slots' words `ws`. -/
@@ -236,7 +233,7 @@ theorem mapM_mem {α β : Type} {f : α → Option β} : ∀ {l : List α} {l' :
       · obtain ⟨b', hb', h'⟩ := h2 a' ha'
         exact ⟨b', List.mem_cons_of_mem _ hb', h'⟩
 
-/-- An exponent of a run checked by `rngK` has its value where the termination facts hold. -/
+/-- An exponent checked by `idxK` has its value where the termination facts hold. -/
 theorem idxK_val {G : Mode.Sig} {s : St} (hT : ∀ p ∈ G.term, LTF s p.1 p.2) {i : Mode.Idx}
     (h : idxK G i = true) : ∃ x, IdxVal s i x := by
   cases i with

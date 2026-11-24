@@ -30,7 +30,7 @@ namespace LeanVM.Guest.EndExec
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Mode LeanVM.Guest.Core LeanVM.Guest.Memory
 open LeanVM.Guest.B2C (idxOf entryOf FrameHolds fsN fn_of_idx cellJ namedOf)
 open LeanVM.Guest.Bridge (FnAl)
-open LeanVM.Guest.Res (Wit topAtoms topSels selOf powOf constOf rcBound cellLt inFr)
+open LeanVM.Guest.Res (Wit topAtoms topSels selOf powOf constOf rcBound)
 open LeanVM.Protocol.Verifier (gen)
 open LeanVM.Prover.Exec
 
