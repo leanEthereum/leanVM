@@ -85,18 +85,9 @@ theorem CompleteAtLR.andEvery {T : Reader → Tree → Prop} {Bd : ℕ → Prop}
       let ⟨t, ht, hT⟩ := hr rd hl hm
       ⟨t, ht, hT, hQ rd hl (Main.memL_append.mp hm).2 t rets ht.1 ht.2.1⟩⟩⟩
 
-/-- **A bounded callee with its pops and `Every (Q rd)`**: the `E` form's predicate as one of the memory. -/
-theorem CompleteAtDTBR.withPopsEvery {T : Reader → Tree → Prop} {B : ℕ} {ps : Reader → List Pop}
-    (h : CompleteAtDTBR fs cert k f Lin args Out T B)
-    (hp : ∀ rd, LowDef k rd → MemL rd Lin → ∀ t rets, t.Valid coreProgram rd args rets → T rd t →
-      t.pops coreProgram rd = ps rd) (hQ : EveryOn k f Lin args Q) :
-    CompleteAtDTBR fs cert k f Lin args Out
-      (fun rd t => (T rd t ∧ t.pops coreProgram rd = ps rd) ∧ t.Every (Q rd)) B :=
-  (h.withPops hp).andEvery hQ
-
 /-! ## Leaves -/
 
-/-- **A leaf with its pops and `Every (Q rd)`**: `completeAt_leafB`, its path popping `ps rd` and its valuation
+/-- **A leaf with its pops and `Every (Q rd)`**: a leaf within its budget, its path popping `ps rd` and its valuation
 satisfying `Q rd f`. -/
 theorem completeAt_leafBE {fn : Fn} (hf : coreProgram.find? f = some fn) (hl : coreProgram.loop f = false)
     (k : ℕ) (Lin : Layout) (args rets : List E) (sizes : List ℕ) (ps : Reader → List Pop)

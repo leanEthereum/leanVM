@@ -1115,7 +1115,6 @@ variable {cert : String → Cert} {wl : String → Option ℕ} {α : Bool} {ks :
 
 theorem Acc.zero_add (r : Acc) : Acc.zero.add r = r := by
   simp [Acc.zero, Acc.add, Aff.add]
-
 theorem addAcc_assoc (a b c : Option Acc) :
     Option.addAcc (Option.addAcc a b) c = Option.addAcc a (Option.addAcc b c) := by
   cases a <;> cases b <;> cases c <;> simp [Option.addAcc, Acc.add, Aff.add, Nat.add_assoc]

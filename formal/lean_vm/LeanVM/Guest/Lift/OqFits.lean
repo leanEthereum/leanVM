@@ -34,13 +34,5 @@ def RunsApart (cert : String → V → ℕ) : Prop :=
     ∀ (k : ℕ) (hk : k < (r :: rs).length) (k' : ℕ) (hk' : k' < (r' :: rs').length),
       cert f r + k = cert f r' + k' → (r :: rs)[k] = (r' :: rs')[k']
 
-theorem mem_blockAtoms {a : Atom} : ∀ {ss : List Stmt}, Stmt.atom a ∈ ss → a ∈ blockAtoms ss
-  | [], h => by cases h
-  | s :: ss, h => by
-    rw [blockAtoms, List.mem_append]
-    rcases List.mem_cons.mp h with rfl | h
-    · exact Or.inl (by simp [stmtAtoms])
-    · exact Or.inr (mem_blockAtoms h)
-
 end
 end LeanVM.Guest.Lift

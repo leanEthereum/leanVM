@@ -437,30 +437,6 @@ theorem chkV_of_run {cert : ℕ → CertV} {om : ℕ → Vec} {j : ℕ} {fn : Fn
     (hc : (cert j).final (om j) r = true) : chkV cert om j fn = true :=
   chkFnV_of_run ht hb hc
 
-/-- **A function's scalar check split at its first top-level selector** (`selSplit`): each arm's walk, its result
-passing the certificate's final check. -/
-theorem chkS_of_split {α : Bool} {cert : ℕ → Cert} {om : ℕ → ℕ} {j : ℕ} {fn : Fn} {x n : ℕ}
-    {pre : List (ℕ × ℕ)} {b : Aff} {ks : List (V × ℕ)} (hj : cert j = .stat pre b ks)
-    (hs : topSel fn.body = some (x, n))
-    (hc : (Nat.blt 0 n && Nat.blt n 4611686018427387904 && armLeL x n fn.body) = true)
-    (harms : ∀ r < n, ∃ acc, runB Acc.add Acc.zero (stepS α cert om j fn) (selL x r fn.body) ([], []) = some acc ∧
-      (cert j).final (om j) acc = true) : chkS α cert om j fn = true := by
-  unfold chkS chkFn
-  rw [hj]
-  dsimp only
-  rw [Bool.or_eq_true]; right
-  unfold selSplit
-  rw [hs]
-  dsimp only
-  rw [hc, Bool.true_and, List.all_eq_true]
-  intro r hr
-  obtain ⟨acc, hrun, hfin⟩ := harms r (List.mem_range.mp hr)
-  simp only [stepS, hj, Cert.guard, Cert.ks] at hrun
-  rw [hj] at hfin
-  unfold statB
-  rw [blockR_run, hrun]
-  exact hfin
-
 /-- **A function's vector check split at its first top-level selector** (`selSplit`). -/
 theorem chkV_of_split {cert : ℕ → CertV} {om : ℕ → Vec} {j : ℕ} {fn : Fn} {x n : ℕ}
     {pre : List (ℕ × ℕ)} {b : AffV} {ks : List (V × ℕ)} (hj : cert j = .stat pre b ks)

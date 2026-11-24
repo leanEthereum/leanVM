@@ -26,9 +26,7 @@ path of every instance of `t` is exact.
 `inverse_exact`: the guest follows each `inverse` hint with `assertNe` on the same two values,
 which pins it. `Stmt.blockNextOk p q` is the syntactic form, decided per function by the kernel:
 every atom satisfying `p` is followed, in its block, by an atom `b`
-with `q a b`. `walk_partnered`: then every such atom on a path has its partner on the path;
-`inverse_exact_of_walk`: so every `inverse` hint of a valid instance of such a function is exact,
-on every reader, with no hypothesis on the instance.
+with `q a b`. `walk_partnered`: then every such atom on a path has its partner on the path.
 -/
 
 namespace LeanVM.Guest.Core
@@ -280,27 +278,6 @@ theorem walkArms_partnered (x : V) : ∀ (j : ℕ) (as : List (List Stmt)), Stmt
     · exact walk_partnered a h.1
     · exact walkArms_partnered x (j + 1) as h.2
 end
-
-/-- **On every valid instance of a function whose `inverse` hints are pinned, they are exact.** -/
-theorem inverse_exact_of_walk {P : Core.Program} {rd : Reader} {f : String} {fn : Fn} {bufs : List ℕ}
-    {kids : List Tree} {args rets : List E} (hv : (Tree.node f σ bufs kids).Valid P rd args rets)
-    (hf : P.find? f = some fn) (hpin : Stmt.blockNextOk isInverse pinsInverse fn.body = true)
-    {x i : V} (he : Ev.atom (.hint (.inverse x i)) ∈ (Tree.node f σ bufs kids).events P) :
-    (Hint.inverse x i).Exact rd σ := by
-  obtain ⟨fn', hf', -, es, vs, hw, -, hes, -⟩ := hv
-  rw [hf] at hf'; cases hf'
-  have hev : (Tree.node f σ bufs kids).events P = es := by
-    simp only [Tree.events, Tree.name, Tree.val, hf, hw]
-  rw [hev] at he
-  have hp := walk_partnered (σ := σ) fn.body hpin
-  rw [hw] at hp
-  obtain ⟨b, hb, hq⟩ := hp _ he rfl
-  cases b with
-  | assertNe x' i' p' =>
-    simp only [pinsInverse, Bool.and_eq_true, beq_iff_eq] at hq
-    obtain ⟨rfl, rfl⟩ := hq
-    exact inverse_exact (hes _ hb)
-  | _ => simp [pinsInverse] at hq
 
 end
 end LeanVM.Guest.Memory

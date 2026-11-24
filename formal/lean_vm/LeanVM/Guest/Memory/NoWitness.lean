@@ -37,10 +37,6 @@ noncomputable def noWitness (g : String) (j : ℕ) : Bool :=
 /-- The functions passing the check at some depth. -/
 def NoWitG (g : String) : Prop := ∃ d j, (coreProgram[j]?).map Fn.name = some g ∧ noWitJ d j = true
 
-theorem noWitG_of {g : String} {j : ℕ} (h : noWitness g j = true) : NoWitG g := by
-  simp only [noWitness, Bool.and_eq_true, decide_eq_true_eq] at h
-  exact ⟨8, j, h.1, h.2⟩
-
 /-- **The functions passing the check are call-closed and have no witness hint.** -/
 theorem coreProgram_noWitIn : coreProgram.NoWitIn NoWitG := by
   rintro f ⟨d, j, hn, hj⟩ fn hf

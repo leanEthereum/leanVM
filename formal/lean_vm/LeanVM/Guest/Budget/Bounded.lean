@@ -178,7 +178,6 @@ theorem KidsDTB.toDT {κ : ℕ} : ∀ {ks : List Kid} {Ts : List (Tree → Prop)
     KidsDTB fs cert κ ks Ts Bs → KidsDT fs cert κ ks Ts
   | [], _, _, _ => trivial
   | _ :: _, _, _, ⟨h, hs⟩ => ⟨fun ht => (h ht).toDT, hs.toDT⟩
-
 /-- **The callees at their running offsets, within their bounds**: `kidsFromInT_of_kidsDT` with
 the total at most `kidsBoundL`. -/
 theorem kidsFromInT_of_kidsDTB (κ : ℕ) : ∀ (ks : List Kid) (Ts : List (Tree → Prop)) (Bs : List ℕ),

@@ -20,8 +20,7 @@ Plugged into the readers written over a logarithm:
 
 * `preTest_eq_discreteLog`: `preTest = preTestWith discreteLog`;
 * `gLog_eq_discreteLog`: `B1.Main.gLog = gLogWith discreteLog`;
-* `cursorLen_eq_discreteLog`: `VerifySub.cursorLen = cursorLenWith discreteLog`. `cursorLen`
-  scans `n ≤ 2^32` for `q = p · gen^n`; `cursorLenWith dl` divides `q` by `p` on `p`'s first
+* `cursorLen` scans `n ≤ 2^32` for `q = p · gen^n`; `cursorLenWith dl` divides `q` by `p` on `p`'s first
   nonzero limb (`limbQuot`), takes `dl` of the quotient and checks `n ≤ 2^32` and `q = p · g^n`
   limb by limb; `cursorLenWith_eq`: given any `DiscreteLogSpec dl`, it is `cursorLen`.
 
@@ -136,9 +135,6 @@ theorem cursorLenWith_eq {dl : K → Option ℕ} (hdl : DiscreteLogSpec dl) :
         rw [List.find?_eq_none.2 fun n hn h ↦ hex ⟨n, by simpa [Nat.lt_succ_iff] using hn,
           of_decide_eq_true h⟩]
         rfl
-
-theorem cursorLen_eq_discreteLog : VerifySub.cursorLen = cursorLenWith discreteLog :=
-  (cursorLenWith_eq discreteLog_discreteLogSpec).symm
 
 end
 

@@ -70,9 +70,6 @@ theorem execWinC_eq_of {f : CompiledFunction} (hf : chunked chunkSize f.chunks f
   unfold execWinC execWin codeFrom CompiledFunction.code
   rw [← drop_flatten_chunked (by decide) hf]
 
-theorem execWinCS_nil (F : Facts) (f : CompiledFunction) (a : ℕ) (env : List (ℕ × Sym)) (b : ℕ) :
-    execWinCS F f a env [] b = execWinC F f a env b := rfl
-
 theorem execWinCS_eq_of {f : CompiledFunction} (hf : chunked chunkSize f.chunks f.instructionCount = true)
     (F : Facts) (a : ℕ) (env : List (ℕ × Sym)) (seeds : List ℕ) (b : ℕ) :
     execWinCS F f a env seeds b = execWinS F f a env seeds b := by

@@ -249,15 +249,6 @@ theorem pairsA_get {X : AlignCtx} {fs : ℕ} : ∀ {as : List Core.Hint} {hs : L
   | [], _ :: _, hp, _, _, _ => by simp [pairsA] at hp
   | _ :: _, [], hp, _, _, _ => by simp [pairsA] at hp
 
-theorem pairsA_length {X : AlignCtx} {fs : ℕ} : ∀ {as : List Core.Hint} {hs : List Prover.Exec.Hint}, pairsA X fs as hs = true →
-    as.length = hs.length
-  | [], [], _ => rfl
-  | _ :: _, _ :: _, hp => by
-    simp only [pairsA, Bool.and_eq_true] at hp
-    simp [pairsA_length hp.2]
-  | [], _ :: _, hp => by simp [pairsA] at hp
-  | _ :: _, [], hp => by simp [pairsA] at hp
-
 end
 
 end LeanVM.Guest.Bridge

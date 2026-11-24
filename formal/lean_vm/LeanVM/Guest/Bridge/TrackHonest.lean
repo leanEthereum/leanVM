@@ -13,7 +13,7 @@ public import LeanVM.Guest.Budget.FinalP
 /-!
 # The tree track on the honest tree
 
-`honest_of_mainP`: `End.honest_of_mainH` under `MainCompleteP`, which also gives the tree's pops on the memory B1's tree is valid on (`rd0`) agreeing with the honest pushes, stream by stream; the honest memory's tree, its temporaries re-chosen, pops the same (`pops_retemp`). `track_deployed`: at the deployed instance, the track starts at `main`'s instance, at frame `0`, at its body, nothing done (`trackOk_init`). `honest_closed`: each instance's callees are instances at its callee frames, what a call's move needs (`EntOk.callee`); `honest_alloc`: every frame's allocations land at its instance's bases (`EntOk.alloc_at`).
+`honest_of_mainP`: `End.honest_of_mainH` under `MainCompleteP`, which also gives the tree's pops on the memory B1's tree is valid on (`rd0`) agreeing with the honest pushes, stream by stream; the honest memory's tree, its temporaries re-chosen, pops the same (`pops_retemp`). `honest_closed`: each instance's callees are instances at its callee frames, what a call's move needs (`EntOk.callee`).
 -/
 
 namespace LeanVM.Guest.Bridge
@@ -105,45 +105,6 @@ theorem honest_closed : ∀ I ∈ honestInsts coreProgram fs H hdr T, ∀ (i : �
     ∃ J ∈ honestInsts coreProgram fs H hdr T, J.t = k ∧ I.kidFps[i]? = some J.fp := fun _ hI _ _ hk ↦
   let ⟨J, hJ, h1, h2, _⟩ := honest_kid hI hk
   ⟨J, hJ, h1, h2⟩
-
-/-- **A frame's allocations land at its instance's bases** on the honest tree placed from word `0`. -/
-theorem honest_alloc (h : HonestAt coreProgram fs H C hdr T cert rd [] []) {e : Ent}
-    (he : EntOk coreProgram (honestInsts coreProgram fs H hdr T) e) {d : V}
-    (hd : (allocDsts (e.pre ++ e.es))[e.nb]? = some d) :
-    e.σ d = ofK (addressOfIndex (e.I.cur + (e.I.t.bufs.take e.nb).sum)) ∧ e.nb < e.I.t.bufs.length :=
-  he.alloc_at (insts_placedAt T _ hdr h.placed e.I he.mem)
-    (insts_placed T _ hdr (Nat.zero_add _).le e.I he.mem) hd
-
-/-- **The track on the deployed guest's honest tree**: under `MainCompleteP`, the honest memory's
-tree `T` (as `honest_of_mainP`), whose pops on `rd0` agree with the honest pushes stream by stream,
-and the track at `main`'s instance, at frame `0`, at its body, nothing done. -/
-theorem track_deployed (hm : MainCompleteP B2C.fs B2C.cert B2C.cnt b) :
-    ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w → ChildrenOk bytecode seed w →
-      b.size (work s w) ≤ 2 ^ 30 →
-      ∃ (rd rd0 : Reader) (T : Tree) (X : List Write) (I : Inst) (fn : Fn),
-        HonestAt coreProgram B2C.fs B2C.H B2C.C (hdrOf (statementDigest seed s)) T B2C.cert rd [] [] ∧
-        HonestX coreProgram B2C.fs B2C.H B2C.C (hdrOf (statementDigest seed s)) T rd [] [] X ∧
-        T.name = "main" ∧ I.t = T ∧ I.fp = 0 ∧ I.hdr = hdrOf (statementDigest seed s) ∧
-        TrackOk coreProgram rd0 (honestInsts coreProgram B2C.fs B2C.H (hdrOf (statementDigest seed s)) T) T []
-          [Ent.enter coreProgram I fn] ∧
-        SameStreams (T.pops coreProgram rd0)
-          (Hints.honestPushes bytecode seed s w) := by
-  intro seed s w hrel hlim hok hbs
-  obtain ⟨rd, rd0, T, X, -, hname, hH, hX, -, -, -, hss⟩ :=
-    honest_of_mainP hm B2C.kFactsAll (B2C.cntRetemp coreProgram_fresh) seed s w hrel hlim hok hbs
-  obtain ⟨I, hI, hIt, hfp, hhdr⟩ := root_inst (P := coreProgram) (fs := B2C.fs) (H := B2C.H)
-    (hdr := hdrOf (statementDigest seed s)) (T := T)
-  have hv := hH.valid
-  rw [← hIt] at hv
-  obtain ⟨fn, hf⟩ : ∃ fn, coreProgram.find? I.t.name = some fn := by
-    rcases hIt' : I.t with ⟨f, σ, bufs, kids⟩ | ⟨f, σ⟩
-    · rw [hIt'] at hv
-      obtain ⟨fn, hf, -⟩ := hv
-      exact ⟨fn, hf⟩
-    · rw [hIt'] at hv; exact hv.elim
-  refine ⟨rd, rd0, T, X, I, fn, hH, hX, hname, hIt, hfp, hhdr, ?_, hss⟩
-  have := trackOk_init (rd := rd0) hI hf hv
-  rwa [hIt] at this
 
 end
 

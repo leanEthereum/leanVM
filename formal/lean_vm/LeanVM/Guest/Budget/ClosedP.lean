@@ -23,7 +23,7 @@ public import LeanVM.Guest.B1.Main.MainGoalsHClTBP
   its hints, stream by stream (`child_segments_steps`, `verify_sub_completeBTS`);
 * `verifySubGoalsTBR_deployed`: so for each child at the deployed instance (`VerifySubGoalsTBR`, `pvH`);
 * `mainPopsD`: `main`'s callees' honest entries; `ChildListPopsHyp`, `childListPopsHyp`: each child's claim lists'
-  digests popping their slots' pushes; `mainCompleteP_deployed`: `MainCompleteP` within the deployed budget.
+  digests popping their slots' pushes.
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -171,35 +171,6 @@ def ChildListPopsHyp : Prop :=
 /-- **`ChildListPopsHyp` holds** (`childListGoalsTBR_honest`). -/
 theorem childListPopsHyp : ChildListPopsHyp := fun _ _ _ _ hl =>
   B1.Main.childListGoalsTBR_honest B2C.cert hl Count.mainStatics.ls
-
-/-- **`main` is complete within the deployed budget with its pops**: its tree pops the honest pushes, stream by
-stream. -/
-theorem mainCompleteP_deployed :
-    MainCompleteP B2C.fs B2C.cert B2C.cnt (deployedBudget (vsBoundAt Count.vsWordsOs vkBound)) :=
-  mainComplete_budgetP B2C.fs B2C.cert B2C.cnt (Pvs := deployedVsT) (Q := mainPopsD)
-    (B2C.ωArm B2C.xmssArmC) B2C.jtSets Count.mainCounts (B2C.two_le_fs _)
-    B1.Sig.verify_lean_xmss_complete_holds B1.Sig.sphincs_complete Count.mainStatics
-    (fun _ _ _ _ hl _ => ⟨B1.Main.mainPopsS_l1 hl fun _ => rfl, B1.Main.mainPopsS_l2 hl fun _ => rfl⟩)
-    (fun _ _ _ hr hl hok =>
-      { clx := B1.Main.mainGoalClXR hl Count.mainStatics fun _ => rfl
-        cls := B1.Main.mainGoalClSR hl Count.mainStatics fun _ => rfl
-        l3 := B1.Main.mainGoalsRR_l3 hr hl Count.mainStatics.main fun _ => rfl
-        l4 := B1.Main.mainGoalsRR_l4 hr hl Count.mainStatics.main fun _ => rfl
-        dv := B1.Main.mainGoalsRR_dv B2C.fs B2C.cert 0 hr B2C.runsFit Count.mainStatics fun _ => rfl
-        l5 := B1.Main.mainGoalsRR_l5 bytecode_length hr hl Count.mainStatics
-          (verifySubGoalsTBR_deployed hr hok) (childListPopsHyp _ _ _ hr hl) fun _ => rfl
-        ag := B1.Main.mainGoalsRR_ag B2C.fs B2C.cert 0 bytecode_length hr hl Count.mainStatics fun _ => rfl })
-    (fun _ _ _ hr hl rd =>
-      ⟨B1.Main.mainSegs_cx (fun _ => rfl) rd, B1.Main.mainSegs_cs (fun _ => rfl) rd,
-        B1.Main.mainSegs_d0 (fun _ => rfl) rd, B1.Main.mainSegs_d1 (fun _ => rfl) rd,
-        B1.Main.mainSegs_r2 hr hl (fun _ => rfl) rd, B1.Main.mainSegs_r3 hr hl (fun _ => rfl) rd,
-        B1.Main.mainSegs_da hr (fun _ => rfl) rd, B1.Main.mainSegs_kids hl (fun _ => rfl) rd,
-        B1.Main.mainSegs_agg (fun _ => rfl) rd⟩)
-    (B2C.cnt_le_weight_arm B2C.xmssArmC B2C.xmssArmC_spec) l5C ccS vsCnt
-    fun _ _ _ _ hl op _ _ _ _ _ hv hb hT =>
-      l5_honest_weight_le op hl (fun _ hc _ _ _ _ hP hv hb => by
-        obtain ⟨-, h20, h30, d, hd, hF⟩ := hP hc
-        exact vs_weight_le_deployed op h20 h30 hd hF hv hb) hv hb hT
 
 end
 end LeanVM.Guest.Budget

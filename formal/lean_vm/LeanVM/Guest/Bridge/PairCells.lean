@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.Bridge.PairCells
 
-  `Bridge.Cells`' computed hints' `HintOk` lemmas over destination predicates whose bodies importers see.
+  The computed hints' `HintOk` lemmas, over destination predicates whose bodies importers see.
 -/
 
 module
@@ -11,7 +11,7 @@ public import LeanVM.Guest.Bridge.Cells
 /-!
 # The computed hints' cells, exposed
 
-`Bridge.Cells` states the reference's and the executor's hold on a destination (`DestIn`, `DestMem`) without exposing them, so no importer can build one; `DestR` and `DestM` are the same predicates, exposed, with the same lemmas (`hintOkR_*`).
+The reference's and the executor's hold on a destination, `DestR` and `DestM`, are exposed so that importers can build one; from them, each computed hint's `HintOk` (`hintOkR_*`).
 -/
 
 namespace LeanVM.Guest.Bridge

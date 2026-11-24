@@ -21,8 +21,8 @@ constant case (`CompleteAtD.toF`).
 
 `kidsFromIn_of_kidsF` composes such callees along a caller's calls as `kidsFromIn_of_kidsD`
 does, and returns the callees' frame pointers `fps`, chosen before the memory, so the caller can
-build its own words (the record) from them: the callees are `KidF.atAll ks fps`, each `KidF`
-read at its frame pointer (`KidF.at`).
+build its own words (the record) from them: each callee is its `KidF` read at its frame pointer
+(`KidF.at`).
 -/
 
 namespace LeanVM.Guest.B1
@@ -52,13 +52,8 @@ structure KidF where
 /-- The call placed at `p`. -/
 def KidF.at (k : KidF) (p : ℕ) : Kid := ⟨k.f, k.taken, k.args, k.Lin p, k.Out p⟩
 
-/-- The calls placed at `fps`. -/
-def KidF.atAll (ks : List KidF) (fps : List ℕ) : List Kid := List.zipWith KidF.at ks fps
-
 /-- A call with fixed caller's words. -/
 def Kid.toF (k : Kid) : KidF := ⟨k.f, k.taken, k.args, fun _ => k.Lin, fun _ => k.Out⟩
-
-theorem Kid.toF_at (k : Kid) (p : ℕ) : k.toF.at p = k := rfl
 
 variable {fs : String → ℕ} {cert : String → V → ℕ} {kfB : KidF → ℕ}
 

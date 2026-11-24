@@ -30,12 +30,6 @@ def spArmsStarts (p : Nat) (st : V × V × Nat) : Nat → Nat → Nat → List (
       let a := spArmK (3 * p) (spN p) (p == 0) st.2.2 st.1 st.2.1 k b
       spArmStarts p st k b :: spArmsStarts p st m (k + 1) (if k = 0 then a.2 + 2 else a.2)
 
-theorem spArmsStarts_length (p : Nat) (st : V × V × Nat) :
-    ∀ m k b, (spArmsStarts p st m k b).length = m
-  | 0, _, _ => rfl
-  | m + 1, k, b => by
-      simp [spArmsStarts, spArmsStarts_length p st m]
-
 theorem spArmsStarts_getD (p : Nat) (st : V × V × Nat) :
     ∀ m k b j, j < m →
       (spArmsStarts p st m k b).getD j [] =

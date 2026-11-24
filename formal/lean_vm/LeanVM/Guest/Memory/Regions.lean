@@ -137,11 +137,6 @@ def KidsFromIn (rd : Reader) (σ : Val) (R : ℕ → Prop) :
 
 variable {P fs cert}
 
-theorem RelAtIn.relAt {rd : Reader} {R D : ℕ → Prop} {fp n : ℕ} {f : String} {args rets : List E}
-    (h : RelAtIn P fs cert rd R D fp n f args rets) : RelAt P fs cert rd fp n f args rets :=
-  let ⟨t, hn, hv, hb, hp, ht, _⟩ := h
-  ⟨t, hn, hv, hb, hp, ht⟩
-
 /-- **A loop entered fresh**: its frames at `fp`, the rest right after them. -/
 theorem RelAtInC.relAtIn {rd : Reader} {R D : ℕ → Prop} {fp B n : ℕ} {f : String}
     {args rets : List E} (h : RelAtInC P fs cert rd R D fp (fp + B) B n f args rets) :
@@ -608,43 +603,6 @@ def Stmt.quietArms (S : List String) : List (List Stmt) → Bool
   | a :: as => Stmt.quietList S a && Stmt.quietArms S as
 end
 
-/-- **A call-closed set of quiet functions**: no `HeapBuf` hint, `frameAddr` or load. -/
-def _root_.LeanVM.Guest.Core.Program.QuietIn (P : Core.Program) (S : List String) : Prop :=
-  ∀ g ∈ S, ∀ fn, P.find? g = some fn → Stmt.quietList S fn.body = true
-
-mutual
-theorem quiet_pure : ∀ (s : Stmt), Stmt.quiet S s = true → Stmt.pure S s = true
-  | .atom a, h => by
-      simp only [Stmt.quiet, atomQuiet, Bool.and_eq_true] at h
-      exact h.1
-  | .ite _ z n, h => by
-      simp only [Stmt.quiet, Stmt.pure, Bool.and_eq_true] at h ⊢
-      exact ⟨quietList_pure z h.1, quietList_pure n h.2⟩
-  | .match_ _ arms, h => by
-      simp only [Stmt.quiet, Stmt.pure] at h ⊢
-      exact quietArms_pure arms h
-  | .call .., h => h
-  | .callIf .., h => h
-  | .dispatch .., h => h
-  | .ret _, _ => rfl
-
-theorem quietList_pure : ∀ (ss : List Stmt), Stmt.quietList S ss = true → Stmt.pureList S ss = true
-  | [], _ => rfl
-  | s :: ss, h => by
-      simp only [Stmt.quietList, Stmt.pureList, Bool.and_eq_true] at h ⊢
-      exact ⟨quiet_pure s h.1, quietList_pure ss h.2⟩
-
-theorem quietArms_pure : ∀ (arms : List (List Stmt)), Stmt.quietArms S arms = true →
-    Stmt.pureArms S arms = true
-  | [], _ => rfl
-  | a :: as, h => by
-      simp only [Stmt.quietArms, Stmt.pureArms, Bool.and_eq_true] at h ⊢
-      exact ⟨quietList_pure a h.1, quietArms_pure as h.2⟩
-end
-
-theorem _root_.LeanVM.Guest.Core.Program.QuietIn.pureIn (h : P.QuietIn S) : P.PureIn S :=
-  fun g hg fn hf => quietList_pure fn.body (h g hg fn hf)
-
 /-- An event with a quiet atom. -/
 def Ev.quiet : Ev → Prop
   | .atom a => atomQuiet a = true
@@ -708,45 +666,6 @@ theorem walkArms_quiet (x : V) : ∀ (arms : List (List Stmt)) (j : ℕ), Stmt.q
       split_ifs
       · exact walk_quiet a h.1
       · exact walkArms_quiet x as (j + 1) h.2
-end
-
-theorem loadAddrs_quiet {es : List Ev} (h : ∀ e ∈ es, e.quiet) : loadAddrs σ es = [] := by
-  refine List.filterMap_eq_nil_iff.mpr fun e he => ?_
-  have := h e he
-  rcases e with ⟨_ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _⟩ | _ | _ | _ <;>
-    first | rfl | simp [Ev.quiet, atomQuiet, atomUnplaced] at this
-
-mutual
-/-- A valid tree of a function of a quiet set loads nothing. -/
-theorem loadsR_of_quiet (hS : P.QuietIn S) (R : ℕ → Prop) : ∀ (t : Tree) {args rets : List E},
-    t.Valid P rd args rets → t.name ∈ S → t.LoadsR P R
-  | .node f σ bufs kids, _, _, ⟨fn, hf, _, es, vs, hw, _, _, hk⟩, hn => by
-      have hq : ∀ e ∈ es, e.quiet := by
-        have := walk_quiet (σ := σ) fn.body (hS f hn fn hf)
-        rwa [hw] at this
-      rw [Tree.LoadsR, events_node hf hw, loadAddrs_quiet hq]
-      refine ⟨fun _ h => (List.not_mem_nil h).elim, loadsRKids_of_quiet hS R kids σ (calls es) hk ?_⟩
-      exact calls_pure fun e he => by
-        have := hq e he
-        have hp := walk_pure (σ := σ) fn.body (quietList_pure fn.body (hS f hn fn hf))
-        rw [hw] at hp
-        exact hp e he
-  | .phantom .., _, _, h, _ => h.elim
-
-/-- `loadsR_of_quiet` for the callees. -/
-theorem loadsRKids_of_quiet (hS : P.QuietIn S) (R : ℕ → Prop) : ∀ (ks : List Tree) (σ : Val)
-    (cs : List Call), Tree.KidsValid P rd σ cs ks → (∀ c ∈ cs, c.f ∈ S) → Tree.LoadsRKids P R ks
-  | [], _, _, _, _ => by rw [Tree.LoadsRKids]; trivial
-  | k :: ks, σ, c :: cs, ⟨hn, hc, hks⟩, hS' => by
-      rw [Tree.LoadsRKids]
-      refine ⟨?_, loadsRKids_of_quiet hS R ks σ cs hks fun c' h => hS' c' (List.mem_cons_of_mem _ h)⟩
-      by_cases ht : c.taken = true
-      · rw [ite_eq_left ht] at hc
-        exact loadsR_of_quiet hS R k hc (hn ▸ hS' c List.mem_cons_self)
-      · rw [ite_eq_right ht] at hc
-        obtain ⟨⟨f, σ', rfl⟩, -⟩ := hc
-        rw [Tree.LoadsR]; trivial
-  | _ :: _, _, [], h, _ => h.elim
 end
 
 end Pure

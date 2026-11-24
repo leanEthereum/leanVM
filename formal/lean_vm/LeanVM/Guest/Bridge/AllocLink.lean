@@ -17,7 +17,7 @@ public import LeanVM.Guest.Bridge.AllocFrDefs
 context, frame size, plumbing, body, code and advice; `CurJ j`: its part behind the bump pointer's
 moves (`curChk`), which every function passes. The generated checks (`Bridge/AllocChk/`, by
 `scripts/bridge-cert/alloc.py`) state it over each function's pack data; `allocJ_of` equates the two
-by the `Checked` and `ProgAl` link equations, as `fnAlOk_of` does for the alignment; `curJ_of` likewise.
+by the `Checked` and `ProgAl` link equations, as `fnAlOk_of` does for the alignment.
 -/
 
 namespace LeanVM.Guest.Bridge
@@ -65,22 +65,6 @@ theorem curJ_of_allocJ {j : ℕ} (h : AllocJ j) : CurJ j := by
   simp only [AllocJ, allocChk, allocRest, Bool.and_eq_true] at h
   simp only [CurJ, curChk, Bool.and_eq_true]
   exact ⟨h.2.2, h.1.2⟩
-
-/-- **A function's bump pointer check from its pack's**, as `allocJ_of`. -/
-theorem curJ_of {j : ℕ} {f : CompiledFunction} {cf : Core.Fn} {C : Check.Cert} {P : B2C.Plumb}
-    {ex : List (ℕ × ℕ)} {en : List (String × ℕ)} {d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)} {main : Bool}
-    (hf : fnOf j = f) (hcf : coreOf j = cf) (hC : certOf j = C.withPows Data.powTree) (hP : B2C.plumbOf j = P)
-    (ht : (extraOf j, entsOf j, adviceOf j) = (ex, en, d)) (hm : (j == 1) = main) {n : ℕ}
-    (hn : B2C.fsN j = n)
-    (hb : curBody (AlignCtx.ofData C.locs ex f.entryPc main P Data.powTree Data.jtTrie en alignHalt f.instructionCount)
-      P cf.body f.code d = true)
-    (h : curCode (AlignCtx.ofData C.locs ex f.entryPc main P Data.powTree Data.jtTrie en alignHalt f.instructionCount)
-      n cf.loop P f.code d = true) : CurJ j := by
-  simp only [Prod.mk.injEq] at ht
-  obtain ⟨hex, hen, hd⟩ := ht
-  have hl : (certOf j).locs = C.locs := by rw [hC]; cases C; rfl
-  rw [CurJ, curChk, ctxOf, hl, hex, hen, hd, hf, hcf, hP, hm, hn, hb, h]
-  rfl
 
 /-- **A function's frame sizes check from its pack's**, as `allocJ_of`. -/
 theorem frJ_of {j : ℕ} {f : CompiledFunction} {cf : Core.Fn} {C : Check.Cert} {P : B2C.Plumb}

@@ -114,13 +114,11 @@ theorem Sm.trans {a b c : St} (h1 : Sm a b) (h2 : Sm b c) : Sm a c :=
 
 theorem PtrAt.sm {s s' : St} (h : Sm s s') {c b : ℕ} (hp : PtrAt s c b) : PtrAt s' c b := by
   unfold PtrAt Mem.peek at *; rw [h.1]; exact hp
-
 theorem logOr_sm {s s' : St} {x : K} {b k : ℕ} {f : Fault} (hs : s.Good) (h : s.logOr x b f = .ok (k, s')) :
     Sm s s' ∧ Parameters.g ^ k = x ∧ k < b := by
   obtain ⟨-, h2⟩ := St.logOr_ok hs h
   obtain ⟨D, rfl⟩ := St.logOr_dl h
   exact ⟨⟨rfl, rfl, rfl⟩, h2⟩
-
 
 theorem pop_sm {C : Ctx} {s s' : St} {name : String} {len : ℕ} {v : List E} (h : pop C s name len = .ok (v, s')) :
     Sm s s' ∧ v.length = len := by
@@ -169,7 +167,6 @@ theorem bitsBase_sm {B : ℕ} {s s' : St} {d : BitsDest} {len : ℕ} {what : Str
     obtain ⟨rfl, -⟩ := runAt_ok hc2
     obtain ⟨hsm, hp⟩ := heapBase_sm hs h1
     exact ⟨hsm, fun _ _ hn ↦ by simpa using hn _ hp⟩
-
 
 theorem withMem_used {s s' : St} {f : Mem → Except Fault Mem} (h : s.withMem f = .ok s') :
     ∃ m, f s.mem = .ok m ∧ s'.mem = m ∧ s'.fp = s.fp ∧ s'.nextFree = s.nextFree := by

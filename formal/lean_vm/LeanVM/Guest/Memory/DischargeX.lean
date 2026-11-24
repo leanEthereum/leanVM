@@ -15,7 +15,7 @@ public import LeanVM.Guest.Memory.HintsIn
 # Discharging `HonestX`
 
 The executor writes every heap word a hint writes; the honest memory (`honest`) holds only those
-something loads. `honestX_retemp` extends it by the hints' words read off the memory `M` the
+something loads. `honestX_retempH` extends it by the hints' words read off the memory `M` the
 tree is valid on (`readerWrites M.read (hintWords …)`), given that every heap hint word is in the
 tree's data (`Tree.HintsIn` at the root, the region empty).
 
@@ -111,21 +111,6 @@ theorem DischargeHyps.temp_not_data {τ : Inst × V × K} (hτ : TempsOn P fs H 
     obtain rfl := insts_same hτ.1 hK hF ⟨by omega, by omega⟩
     obtain ⟨rfl, -⟩ : g' = g ∧ σK = σ := by rw [ht] at hKt; cases hKt; exact ⟨rfl, rfl⟩
     exact hrun.2 τ.2.1 hmem (by omega)
-
-/-- **Words read off the memory at words of the data agree with the fixed words.** -/
-theorem DischargeHyps.fixed_reader {A : List K}
-    (hA : ∀ a ∈ A, ∃ i, a = addressOfIndex i ∧ T.Data P fs cert (0, T.block fs P.loop) i) {x : K} {w w' : E}
-    (hw : FixedW P fs cert H C hdr T x w) (hw' : (x, w') ∈ readerWrites M.read A) : w = w' := by
-  obtain ⟨a, ha, he⟩ := List.mem_map.mp hw'
-  simp only [Prod.mk.injEq] at he
-  obtain ⟨rfl, rfl⟩ := he
-  suffices hr : M.read a = some w by rw [hr]; rfl
-  rcases hw with ⟨I, hI, q, hq, hx, rfl, -⟩ | ⟨I, hI, ⟨f, σ, bufs, kids, ht⟩, at', he, -, hq⟩
-  · obtain ⟨i, hi, hd⟩ := hA _ ha
-    rw [hx]
-    exact h.frame_read (honest_mem_frameWrites hI hq) (hx.symm.trans hi) hd
-  · have hqT := eqns_of_insts T _ hdr I hI ⟨f, σ, bufs, kids, ht⟩ at' he _ hq
-    exact h.valid.eqns_read h.lt_64 T _ hqT (h.addr _ hqT)
 
 /-- **A header word read off the memory** agrees with the fixed words. -/
 theorem DischargeHyps.fixed_hdr {i : ℕ} (hi : i < 2) {w : E}
@@ -243,20 +228,6 @@ theorem honestX_retempH (hhint : T.HintsIn P fs cert (fun i => i < 2) (0, T.bloc
     obtain ⟨i, rfl, hd⟩ := hlt a ha
     have := le_two_pow_logMem (T.total fs)
     exact ⟨_, MemoryImage.read_gpow h.lt_64 M ⟨i, by omega⟩⟩
-
-/-- **The honest memory extended by the heap hints' words**: with every heap hint word in the
-tree's data (`Tree.HintsIn` at the root, the region empty), the temporaries re-chosen, the tree is
-`HonestAt` and `HonestX` with the hints' words read off `M`, each a word of `M`, and its heap hint
-words are the tree's. -/
-theorem honestX_retemp (hhint : T.HintsIn P fs cert (fun _ => False) (0, T.block fs P.loop)) :
-    ∃ ν, HonestAt P fs H C hdr (T.retemp P fs ν (0, T.block fs P.loop)) cert
-        (honest P fs H C hdr (T.retemp P fs ν (0, T.block fs P.loop))).read args rets ∧
-      HonestX P fs H C hdr (T.retemp P fs ν (0, T.block fs P.loop))
-        (honest P fs H C hdr (T.retemp P fs ν (0, T.block fs P.loop))).read args rets
-        (readerWrites M.read (hintWords P fs H hdr T)) ∧
-      hintWords P fs H hdr (T.retemp P fs ν (0, T.block fs P.loop)) ⊆ hintWords P fs H hdr T ∧
-      ∀ a ∈ hintWords P fs H hdr T, ∃ w, M.read a = some w :=
-  honestX_retempH h (hintsIn_mono T _ (fun _ h => h.elim) hhint)
 
 end Proof
 

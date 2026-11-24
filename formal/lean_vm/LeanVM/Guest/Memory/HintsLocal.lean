@@ -35,7 +35,6 @@ theorem vEq_spec {a b : V} (h : vEq a b = true) : a = b := by
   simp only [vEq, Bool.and_eq_true, decide_eq_true_eq] at h
   exact h.2
 
-
 /-! ## The recursors' checks -/
 
 theorem atomNoHeap_sound {a : Atom} (h : atomNoHeap a = true) : atomHeapDest? a = none := by
@@ -144,22 +143,6 @@ theorem calleesA_sound {p : String → Bool} : ∀ (as : List (List Stmt)), call
       exact hc.elim (calleesR_sound a h'.1 c) (calleesA_sound as h'.2 c)
 end
 
-theorem quickR_append (p : String → Bool) (l l' : List Stmt) :
-    quickR p (l ++ l') = (quickR p l && quickR p l') := by
-  induction l with
-  | nil => rfl
-  | cons s l ih =>
-      show (quickS p s && quickR p (l ++ l')) = ((quickS p s && quickR p l) && quickR p l')
-      rw [ih, Bool.and_assoc]
-
-theorem calleesR_append (p : String → Bool) (l l' : List Stmt) :
-    calleesR p (l ++ l') = (calleesR p l && calleesR p l') := by
-  induction l with
-  | nil => rfl
-  | cons s l ih =>
-      show (calleesS p s && calleesR p (l ++ l')) = ((calleesS p s && calleesR p l) && calleesR p l')
-      rw [ih, Bool.and_assoc]
-
 /-! ## Paths -/
 
 section Walk
@@ -174,36 +157,7 @@ theorem out_pre_evs (es : List Ev) : ∀ {o : Out}, o ≠ .stuck → (o.pre es).
   | .ret _ _, _ => rfl
   | .stuck, h => absurd rfl h
 
-theorem out_pre_stuck (es : List Ev) : ∀ {o : Out}, o.pre es = .stuck → o = .stuck
-  | .fall _, h => by cases h
-  | .ret _ _, h => by cases h
-  | .stuck, _ => rfl
-
 theorem out_seq_fall {es : List Ev} {k : Out} : (Out.fall es).seq k = k.pre es := rfl
-
-/-- The events of a statement then a block: the statement's, then the block's if it falls through. -/
-theorem walk_cons_evs (s : Stmt) (ss : List Stmt) {e : Ev} (he : e ∈ (walk σ (s :: ss)).evs) :
-    e ∈ (walk1 σ s).evs ∨ ((∃ es, walk1 σ s = .fall es) ∧ e ∈ (walk σ ss).evs) := by
-  rw [walk] at he
-  rcases h1 : walk1 σ s with es | ⟨es, vs⟩ | _ <;> rw [h1] at he
-  · rw [out_seq_fall] at he
-    by_cases hs : walk σ ss = .stuck
-    · rw [hs] at he; exact (List.not_mem_nil he).elim
-    · rw [out_pre_evs _ hs, List.mem_append] at he
-      exact he.imp id fun h => ⟨⟨es, rfl⟩, h⟩
-  · exact Or.inl he
-  · exact (List.not_mem_nil he).elim
-
-theorem walk_cons_sub {s : Stmt} {ss : List Stmt} {E : List Ev}
-    (hE : ∀ e ∈ (walk σ (s :: ss)).evs, e ∈ E) (hf : ∃ es, walk1 σ s = .fall es) :
-    ∀ e ∈ (walk σ ss).evs, e ∈ E := by
-  obtain ⟨es, h1⟩ := hf
-  intro e he
-  apply hE
-  rw [walk, h1, out_seq_fall]
-  have hs : walk σ ss ≠ .stuck := by intro hs; rw [hs] at he; exact List.not_mem_nil he
-  rw [out_pre_evs _ hs]
-  exact List.mem_append_right _ he
 
 /-- **The run after a statement is on the path** when the block's path goes on. -/
 theorem runAtoms_mem : ∀ (ss : List Stmt), walk σ ss ≠ .stuck → AtomsIn (runAtoms ss) (walk σ ss).evs
@@ -234,26 +188,6 @@ theorem runAtoms_mem : ∀ (ss : List Stmt), walk σ ss ≠ .stuck → AtomsIn (
   | .match_ .. :: _, _ => fun _ h => (List.not_mem_nil h).elim
   | .dispatch .. :: _, _ => fun _ h => (List.not_mem_nil h).elim
   | .ret _ :: _, _ => fun _ h => (List.not_mem_nil h).elim
-
-theorem hintsOkA_mem {Γ : List Atom} : ∀ {arms : List (List Stmt)}, hintsOkA Γ arms = true →
-    ∀ a ∈ arms, hintsOkL Γ a = true
-  | [], _, _, h => (List.not_mem_nil h).elim
-  | b :: bs, h, a, ha => by
-      simp only [hintsOkA, Bool.and_eq_true] at h
-      rcases List.mem_cons.mp ha with rfl | ha
-      · exact h.1
-      · exact hintsOkA_mem h.2 a ha
-
-theorem walkArms_cases (x : V) : ∀ (arms : List (List Stmt)) (j : ℕ),
-    walkArms σ x j arms = .stuck ∨ ∃ a ∈ arms, walkArms σ x j arms = walk σ a
-  | [], _ => Or.inl (by rw [walkArms])
-  | a :: as, j => by
-      unfold walkArms
-      split_ifs
-      · exact Or.inr ⟨a, List.mem_cons_self, rfl⟩
-      · rcases walkArms_cases x as (j + 1) with h | ⟨b, hb, h⟩
-        · exact Or.inl h
-        · exact Or.inr ⟨b, List.mem_cons_of_mem _ hb, h⟩
 
 theorem pick_cases' {x : V} {a r : List V} : ∀ (gs : List String) (j : ℕ),
     pick σ x a r j gs = .stuck ∨ ∃ g, pick σ x a r j gs = .fall [.call g a r]
