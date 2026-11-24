@@ -14,7 +14,7 @@ log-height at most `30`, and every placement's offset a word. Here they are prov
 layout `buildLayoutLite` returns:
 
 * `stackOffsets_le`: blocks of log-size at most `s`: every offset at most `2^s·n`, `n` blocks
-  (the running total; `stackOffsets_bounds`' `2^63` was the word room left for the sum);
+  (the running total, sharper than `stackOffsets_bounds`' `2^63`);
 * `placementsOf_index_lt`: at most `165` columns of log-size at most `40` (`columnKappas`: `30`
   but `q_keccak`'s `36`): every placement's offset below `2^48`: a block's offset is at most
   `165·2^40`, a Keccak slot's `q_keccak`'s offset plus a slot (below `64`) of `2^κ` words;
