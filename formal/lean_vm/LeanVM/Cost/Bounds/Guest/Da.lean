@@ -189,9 +189,6 @@ theorem dvRowAt_cost (hP : Includes P Decoder.dvRowAtC.costDeps) (k i : ℕ) (hk
 @[expose] def dvWitNRowsPrice (k F S : ℕ) : ℕ :=
   (33283 * F + 519 * S + 146 * k + 2303726) * 2 ^ k + 19
 
-/-- The witness's price at `r ≤ 2^34` blobs. -/
-@[expose] def dvWitNAtPrice (F S : ℕ) : ℕ := dvWitNRowsPrice 34 F S
-
 /-- **`da_verify`'s witness at `r ≤ 2^k` blobs** (`dvWitNAtC`), `0 < k ≤ 34`: each blob's row,
 its base computed once: at most `dvWitNRowsPrice k F S`. -/
 theorem dvWitNAt_cost (hP : Includes P Decoder.dvWitNAtC.costDeps) (k r : ℕ) (hk0 : 0 < k)

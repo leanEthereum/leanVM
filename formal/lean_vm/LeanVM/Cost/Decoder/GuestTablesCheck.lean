@@ -82,26 +82,13 @@ theorem guestRetCounts_eq : ∀ j < nFns, guestRetCounts.getD j 0 = (glob.sig j)
   · exact (certOf_cells_nret j).2.symm
   · rfl
 
-/-- The entries, argument and return counts, for every function. -/
-theorem guestSig_eq : ∀ j < nFns,
-    guestEntries.getD j 0 = (glob.sig j).entry ∧ guestArgCounts.getD j 0 = (glob.sig j).nargs ∧
-      guestRetCounts.getD j 0 = (glob.sig j).nret :=
-  fun j hj ↦ ⟨guestEntries_eq j hj, guestArgCounts_eq j hj, guestRetCounts_eq j hj⟩
-
 /-- The cells' lists are the certificates', function by function. -/
 theorem guestLocsList_eq : ∀ j < nFns, guestLocsList.getD j [] = (certOf j).locs := fun j _ ↦ by
   rw [guestLocsList_eq_map, getD_map_eq (d := default) (e := []), Check.Cert.locs, Check.Cert.locs,
     (certOf_cells_nret j).1]
   rfl
 
-set_option maxRecDepth 100000 in
 theorem guestLocsList_length : guestLocsList.length = nFns := by decide +kernel
-
-set_option maxRecDepth 100000 in
-theorem guestLocs_eq {j : ℕ} (hj : j < nFns) : (guestLocs.getD j #[]).toList = (certOf j).locs := by
-  rw [← guestLocsList_eq j hj, guestLocs]
-  have hl : j < guestLocsList.length := guestLocsList_length ▸ hj
-  simp [Array.getD_eq_getD_getElem?, List.getD_eq_getElem?_getD, hl]
 
 end
 

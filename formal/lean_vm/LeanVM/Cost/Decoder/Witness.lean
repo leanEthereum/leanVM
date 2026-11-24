@@ -51,7 +51,6 @@ def guestLocsTable : Array (Array ℕ) := guestLocsLit
 
 theorem guestLanes_eq_table : guestLanes = guestLocsTable := rfl
 
-set_option maxRecDepth 100000 in
 cost_compile guestLocsTableC := guestLocsTable
 cost_rewrite guestLanes_eq_table
 

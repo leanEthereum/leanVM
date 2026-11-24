@@ -252,6 +252,37 @@ end Generic
 section ReadCells
 open Auto.LeanVM.Semantics
 
+/-- One cell set in the cells' function, rebuilt (`readFirstCells.c178.lam0.lam0.lam0`, which
+`readCells` shares): at most `384`. -/
+theorem readCellsSet_cost (hP : Includes P readFirstCells.c178.lam0.lam0.lam0.costDeps) (c : Fin 13) (v : E)
+    (rest : Fin 13 → E) :
+    appCost P (.closure readFirstCells.c178.lam0.lam0.lam0.costIdx [encodeValue c, encodeValue v]) [encodeValue rest] ≤
+      384 := by
+  simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
+  rw [readFirstCells.c178.lam0.lam0.lam0.costEq P hP, ofFnFrom_length]
+  have := ofFnFrom_cost P (by includes) (by norm_num) _
+    (.closure readFirstCells.c178.lam0.lam0.lam0.lam0.costIdx [encodeValue c, encodeValue v, encodeValue rest])
+    (fun x ↦ RunsApp.of_spec (readFirstCells.c178.lam0.lam0.lam0.lam0.costSpec P (by includes) c v rest x))
+    11 (fun x ↦ by
+      simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
+      rw [readFirstCells.c178.lam0.lam0.lam0.lam0.costEq P (by includes),
+        limbs_of_lt (by have := x.isLt; omega), limbs_of_lt (by have := c.isLt; omega)]
+      split_ifs <;> omega) 0 (by omega)
+  omega
+
+/-- A cell's value bound into the cells' function (`readFirstCells.c178.lam0.lam0`): at most
+`399`. -/
+theorem readCellsBind_cost (hP : Includes P readFirstCells.c178.lam0.lam0.costDeps) (c : Fin 13)
+    (acc : Option (Fin 13 → E)) (v : E) :
+    appCost P (.closure readFirstCells.c178.lam0.lam0.costIdx [encodeValue c, encodeValue acc]) [encodeValue v] ≤
+      399 := by
+  simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
+  rw [readFirstCells.c178.lam0.lam0.costEq P hP]
+  have := bind_cost P (by includes) _ (.closure readFirstCells.c178.lam0.lam0.lam0.costIdx [encodeValue c, encodeValue v])
+    (fun x ↦ RunsApp.of_spec (readFirstCells.c178.lam0.lam0.lam0.costSpec P (by includes) c v x)) 384
+    (readCellsSet_cost P (by includes) c v) acc
+  omega
+
 variable (read : K → Option E) (readVal : MachineValue) (hread : ∀ a, RunsApp P readVal [encodeValue a] (encodeValue (read a)))
   (R : ℕ) (hR : ∀ a : K, appCost P readVal [encodeValue a] ≤ R)
 
@@ -269,30 +300,6 @@ theorem readCells_cost (hP : Includes P readCells.c185.costDeps) (fp : K) (offse
       simp only [appCost_fn, List.nil_append, List.length_nil]
       rw [readFirstCells.c178.lam1.costEq P (by includes)]; omega) 0 (by omega)
   have h2 := finRangeFrom_cost P (by includes) 13 (by norm_num) 0 (by omega)
-  -- one cell: the inner function rebuilt
-  have hin : ∀ (c : Fin 13) (v : E) (rest : Fin 13 → E),
-      appCost P (.closure readFirstCells.c178.lam0.lam0.lam0.costIdx [encodeValue c, encodeValue v]) [encodeValue rest] ≤ 384 := by
-    intro c v rest
-    simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-    rw [readFirstCells.c178.lam0.lam0.lam0.costEq P (by includes), ofFnFrom_length]
-    have := ofFnFrom_cost P (by includes) (by norm_num) _
-      (.closure readFirstCells.c178.lam0.lam0.lam0.lam0.costIdx [encodeValue c, encodeValue v, encodeValue rest])
-      (fun x ↦ RunsApp.of_spec (readFirstCells.c178.lam0.lam0.lam0.lam0.costSpec P (by includes) c v rest x))
-      11 (fun x ↦ by
-        simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-        rw [readFirstCells.c178.lam0.lam0.lam0.lam0.costEq P (by includes),
-          limbs_of_lt (by have := x.isLt; omega), limbs_of_lt (by have := c.isLt; omega)]
-        split_ifs <;> omega) 0 (by omega)
-    omega
-  have hmid : ∀ (c : Fin 13) (acc : Option (Fin 13 → E)) (v : E),
-      appCost P (.closure readFirstCells.c178.lam0.lam0.costIdx [encodeValue c, encodeValue acc]) [encodeValue v] ≤ 399 := by
-    intro c acc v
-    simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-    rw [readFirstCells.c178.lam0.lam0.costEq P (by includes)]
-    have := bind_cost P (by includes) _ (.closure readFirstCells.c178.lam0.lam0.lam0.costIdx [encodeValue c, encodeValue v])
-      (fun x ↦ RunsApp.of_spec (readFirstCells.c178.lam0.lam0.lam0.costSpec P (by includes) c v x)) 384
-      (hin c v) acc
-    omega
   have h3 := foldr_cost P (by includes) _ (.closure readCells.c185.lam0.costIdx [readVal, encodeValue fp, offsetVal])
     (fun x y ↦ RunsApp.of_spec (readCells.c185.lam0.costSpec P (by includes) read readVal hread fp offset
       offsetVal hoff x y)) (O + R + 447) (some fun _ ↦ 0) (List.finRange 13)
@@ -301,7 +308,7 @@ theorem readCells_cost (hP : Includes P readCells.c185.costDeps) (fp : K) (offse
       rw [readCells.c185.lam0.costEq P (by includes) read readVal hread fp offset offsetVal hoff]
       have := bind_cost P (by includes) _ (.closure readFirstCells.c178.lam0.lam0.costIdx [encodeValue c, encodeValue acc])
         (fun x ↦ RunsApp.of_spec (readFirstCells.c178.lam0.lam0.costSpec P (by includes) c acc x)) 399
-        (hmid c acc) (read (fp * offset c))
+        (readCellsBind_cost P (by includes) c acc) (read (fp * offset c))
       have := hO c
       have := hR (fp * offset c)
       omega)
@@ -325,30 +332,6 @@ theorem readFirstCells_cost (hP : Includes P readFirstCells.c178.costDeps) (fp :
       simp only [appCost_fn, List.nil_append, List.length_nil]
       rw [readFirstCells.c178.lam1.costEq P (by includes)]; omega) 0 (by omega)
   have h2 := finRangeFrom_cost P (by includes) 13 (by norm_num) 0 (by omega)
-  -- one cell: the inner function rebuilt
-  have hin : ∀ (c : Fin 13) (v : E) (rest : Fin 13 → E),
-      appCost P (.closure readFirstCells.c178.lam0.lam0.lam0.costIdx [encodeValue c, encodeValue v]) [encodeValue rest] ≤ 384 := by
-    intro c v rest
-    simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-    rw [readFirstCells.c178.lam0.lam0.lam0.costEq P (by includes), ofFnFrom_length]
-    have := ofFnFrom_cost P (by includes) (by norm_num) _
-      (.closure readFirstCells.c178.lam0.lam0.lam0.lam0.costIdx [encodeValue c, encodeValue v, encodeValue rest])
-      (fun x ↦ RunsApp.of_spec (readFirstCells.c178.lam0.lam0.lam0.lam0.costSpec P (by includes) c v rest x))
-      11 (fun x ↦ by
-        simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-        rw [readFirstCells.c178.lam0.lam0.lam0.lam0.costEq P (by includes),
-          limbs_of_lt (by have := x.isLt; omega), limbs_of_lt (by have := c.isLt; omega)]
-        split_ifs <;> omega) 0 (by omega)
-    omega
-  have hmid : ∀ (c : Fin 13) (acc : Option (Fin 13 → E)) (v : E),
-      appCost P (.closure readFirstCells.c178.lam0.lam0.costIdx [encodeValue c, encodeValue acc]) [encodeValue v] ≤ 399 := by
-    intro c acc v
-    simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-    rw [readFirstCells.c178.lam0.lam0.costEq P (by includes)]
-    have := bind_cost P (by includes) _ (.closure readFirstCells.c178.lam0.lam0.lam0.costIdx [encodeValue c, encodeValue v])
-      (fun x ↦ RunsApp.of_spec (readFirstCells.c178.lam0.lam0.lam0.costSpec P (by includes) c v x)) 384
-      (hin c v) acc
-    omega
   have h3 := foldr_cost P (by includes) _
     (.closure readFirstCells.c178.lam0.costIdx [readVal, encodeValue fp, offsetVal, encodeValue count])
     (fun x y ↦ RunsApp.of_spec (readFirstCells.c178.lam0.costSpec P (by includes) read readVal hread fp
@@ -359,7 +342,7 @@ theorem readFirstCells_cost (hP : Includes P readFirstCells.c178.costDeps) (fp :
         limbs_of_lt (by have := c.isLt; omega), limbs_of_lt (by omega : count < 2 ^ 64)]
       have := bind_cost P (by includes) _ (.closure readFirstCells.c178.lam0.lam0.costIdx [encodeValue c, encodeValue acc])
         (fun x ↦ RunsApp.of_spec (readFirstCells.c178.lam0.lam0.costSpec P (by includes) c acc x)) 399
-        (hmid c acc) (read (fp * offset c))
+        (readCellsBind_cost P (by includes) c acc) (read (fp * offset c))
       have := hO c
       have := hR (fp * offset c)
       split_ifs <;> omega)

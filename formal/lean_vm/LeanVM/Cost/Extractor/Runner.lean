@@ -131,10 +131,9 @@ cost_rewrite executeWith_shared
 -- the runner's tables (`runnerTables`), built once per layout
 cost_compile runnerTablesC := runnerTables
 
--- a stack's execution from the tables (`runWithTables`): the per-stack work only. Its compilation
--- takes about 520000 heartbeats (`#count_heartbeats in`), over the default `200000`: the budget is
--- that, doubled.
-set_option maxHeartbeats 1000000 in
+-- a stack's execution from the tables (`runWithTables`): the per-stack work only; its compilation
+-- needs more than the default heartbeats
+set_option maxHeartbeats 800000 in
 cost_compile runWithTablesC := runWithTables
 
 end

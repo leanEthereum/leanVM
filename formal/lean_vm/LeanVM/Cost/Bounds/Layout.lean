@@ -171,25 +171,6 @@ theorem buildLayoutLite_facts {bytecode : List K} {logMemory : ℕ} {tableRows :
     · show log2Strict bytecode.length = some (val - busBits + busBits)
       rw [Nat.sub_add_cancel c1]; exact hval
 
-/-- `readSizesLite`'s layout is `buildLayoutLite`'s, its stack's log-size in `[16, 30]`, its rate
-in `[1, 4]`. -/
-theorem readSizesLite_layout {bytecode : List K} {s s' :
-    LeanVM.Protocol.Compile.VerifierProgramState}
-    {L : LayoutLite} {R : ℕ} (h : readSizesLite bytecode s = some ((L, R), s')) :
-    (∃ logMemory tableRows, buildLayoutLite bytecode logMemory tableRows = some L) ∧
-      16 ≤ L.stackLog ∧ L.stackLog ≤ 30 ∧ 1 ≤ R ∧ R ≤ 4 := by
-  unfold readSizesLite at h
-  obtain ⟨r, -, h⟩ := Option.bind_eq_some_iff.1 h
-  split_ifs at h
-  dsimp only at h
-  split_ifs at h with h2
-  obtain ⟨L', hL', hl⟩ := Option.bind_eq_some_iff.1 h
-  split_ifs at hl with h3
-  simp only [Option.some.injEq, Prod.mk.injEq] at hl
-  obtain ⟨⟨rfl, rfl⟩, rfl⟩ := hl
-  simp only [Whir.minLogStack, Whir.maxLogStack] at h3
-  exact ⟨⟨_, _, hL'⟩, h3.1, h3.2, h2.1, h2.2⟩
-
 end
 
 end LeanVM.Cost.Bounds

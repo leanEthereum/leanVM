@@ -12,7 +12,7 @@ public meta import Lean.Elab.Tactic
 # Bounds: the agreement-set extractor's replay
 
 * the first forward answers' map (keys of `25` words, values Keccak states), by
-  `Bounds/Transcript.lean`'s maps of word-list keys;
+  `Bounds/Transcript.lean`'s maps of list keys;
 * **`fwdIndex_cost`**: the index of `N ≤ 2^D` queries, `(fwdStepPrice D W + 14)·N + 9`;
   **`fwdF_cost`**: a lookup in a good map,
   `fwdLookupPrice D W`;

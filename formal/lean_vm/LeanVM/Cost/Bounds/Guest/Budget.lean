@@ -118,8 +118,8 @@ theorem frameAtAPrice_le (e n : ℕ) (hn : n ≤ 16) :
     Nat.mul_le_mul_right _ (by omega)
   omega
 
-/-- A frame search of at most `16` words on the sorted array (`frameFpA_cost`), within the
-statement's frame lookup. -/
+/-- A frame search of at most `64` words on the sorted array (`frameFpA_cost`), within four of the
+statement's frame lookups. -/
 theorem frameFpAPrice_le64 (e n : ℕ) (hn : n ≤ 64) :
     (64 * n + 78 + 9 * wl e) * (e + 2) + 27 * n + 49 ≤ 4 * guestDecoderFramePrice e := by
   have hw : wl e = limbsBelowTwoPow (e + 1) := rfl
@@ -133,14 +133,8 @@ theorem frameFpAPrice_le64 (e n : ℕ) (hn : n ≤ 64) :
 /-- A frame search of at most `16` words on the sorted array (`frameFpA_cost`), within the
 statement's frame lookup. -/
 theorem frameFpAPrice_le (e n : ℕ) (hn : n ≤ 16) :
-    (64 * n + 78 + 9 * wl e) * (e + 2) + 27 * n + 49 ≤ guestDecoderFramePrice e := by
-  have hw : wl e = limbsBelowTwoPow (e + 1) := rfl
-  rw [hw]
-  unfold guestDecoderFramePrice guestDecoderEntryTablePositionLimbs
-  have h1 : (64 * n + 78 + 9 * limbsBelowTwoPow (e + 1)) * (e + 2) ≤
-      (64 * 16 + 78 + 9 * limbsBelowTwoPow (e + 1)) * (e + 2) :=
-    Nat.mul_le_mul_right _ (by omega)
-  omega
+    (64 * n + 78 + 9 * wl e) * (e + 2) + 27 * n + 49 ≤ guestDecoderFramePrice e :=
+  le_trans (by omega) (frameAtAPrice_le e n hn)
 
 /-- The replay lists the initial state at least. -/
 theorem replayStatesOf_length_pos (memT codeT : Array (ℕ × ℕ)) (prog :

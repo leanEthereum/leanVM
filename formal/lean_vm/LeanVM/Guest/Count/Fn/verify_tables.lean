@@ -61,8 +61,16 @@ theorem sp_totalLe : ∀ j < 4,
   · rw [show B1.Tables.lName "sel_partial_nibble" 3 = "sel_partial_nibble__L3" by decide]
     exact totalLe_mono (wSB_totalLe (j := wIdx "sel_partial_nibble__L3") (by decide +kernel)) (by unfold kSp; omega)
 
+/-- Every opcode at once: the kernel evaluates each function's count certificates once, not once
+per opcode. -/
+private theorem vtPairs_okW_all : (vtPairs.all fun p =>
+    [Opcode.xor, .mulNative, .setConstant, .deref, .jump, .keccak].all fun op => kuOkB op p.2 p.1) = true := by
+  decide +kernel
+
 theorem vtPairs_okW (op : Opcode) : (vtPairs.all fun p => kuOkB op p.2 p.1) = true := by
-  cases op <;> decide +kernel
+  have h := vtPairs_okW_all
+  simp only [List.all_eq_true] at h ⊢
+  exact fun p hp => h p hp op (by cases op <;> simp)
 
 theorem vt_kids_weightLe (op : Opcode) : ∀ g ∈ B1.Tables.vtKidS, g ≠ (name% verify_tables_loop0) →
     g ≠ (name% shared_selector_tables_loop0) →

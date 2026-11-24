@@ -33,27 +33,8 @@ theorem foldTable_folds : (Protocol.Whir.AffineCombiner.foldTable.all fun row �
 theorem lvC_folds (μ R i : ℕ) : (lvC μ R i).2.2.1 ≤ 6 ∧ (lvC μ R i).2.2.2 < 2 ^ 40 := by
   have hT := foldTable_folds
   simp only [List.all_eq_true, decide_eq_true_eq] at hT
-  have key : ((Protocol.Whir.Params.levelsOf μ R).getD i Protocol.Whir.Params.junkLv).2.2.1 ≤ 6 ∧
-      ((Protocol.Whir.Params.levelsOf μ R).getD i Protocol.Whir.Params.junkLv).2.2.2.1 < 2 ^ 40 := by
-    rw [List.getD_eq_getElem?_getD]
-    cases h : (Protocol.Whir.Params.levelsOf μ R)[i]? with
-    | none => simp [Protocol.Whir.Params.junkLv]
-    | some lv =>
-      simp only [Option.getD_some]
-      have hm := List.mem_of_getElem? h
-      unfold Protocol.Whir.Params.levelsOf at hm
-      rw [List.getD_eq_getElem?_getD] at hm
-      cases h2 : (Protocol.Whir.AffineCombiner.foldTable.getD (R - 1) [])[μ - 16]? with
-      | none => rw [h2] at hm; simp at hm
-      | some lvs =>
-        rw [h2, Option.getD_some] at hm
-        have hm2 := List.mem_of_getElem? h2
-        rw [List.getD_eq_getElem?_getD] at hm2
-        cases h3 : Protocol.Whir.AffineCombiner.foldTable[R - 1]? with
-        | none => rw [h3] at hm2; simp at hm2
-        | some row =>
-          rw [h3, Option.getD_some] at hm2
-          exact hT row (List.mem_of_getElem? h3) lvs hm2 lv hm
+  have key := levelsOf_getD_of_all (fun lv ↦ lv.2.2.1 ≤ 6 ∧ lv.2.2.2.1 < 2 ^ 40) hT
+    (by simp [Protocol.Whir.Params.junkLv]) μ R i
   unfold lvC
   dsimp only
   split_ifs <;> simp only <;> omega
