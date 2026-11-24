@@ -1,6 +1,7 @@
 //! The permutation over any lane type, and the batched entry points that permute several states at once, one vector
-//! register per state lane: AVX-512 (eight states), AVX2 (four), NEON (two, with the SHA3 instructions where the CPU
-//! has them), or one at a time elsewhere. Every batched function is byte-identical to its one-input form.
+//! register per state lane: AVX-512 (eight states), AVX2 (four), NEON on little-endian AArch64 (two, with the SHA3
+//! instructions where the CPU has them), or one at a time elsewhere. Every batched function is byte-identical to its
+//! one-input form.
 //!
 //! Each entry point takes the widest backend the CPU runs. With the `std` feature it asks the OS, so a build for the
 //! architecture's baseline still uses every backend; without it, the build's target features decide.
@@ -326,7 +327,7 @@ impl Lane for u64 {
 /// Whether the CPU runs target feature `$f`: the OS's answer with `std`, else whether the build enables it.
 #[cfg(any(
     all(target_arch = "x86_64", target_feature = "sse2"),
-    all(target_arch = "aarch64", target_feature = "neon")
+    all(target_arch = "aarch64", target_endian = "little", target_feature = "neon")
 ))]
 macro_rules! cpu_has {
     ($f:tt) => {
@@ -340,7 +341,8 @@ macro_rules! cpu_has {
 
 /// `$with::<S>(args)` on the widest backend `S` the CPU runs, inlined into a function compiled with its feature. Only
 /// where the architecture's vector registers are in the baseline: a soft-float target (`x86_64-unknown-none`,
-/// `aarch64-unknown-none-softfloat`) cannot enable a vector feature on a function, so it hashes one state at a time.
+/// `aarch64-unknown-none-softfloat`) cannot enable a vector feature on a function, so it hashes one state at a time,
+/// as big-endian AArch64 does, whose NEON loads would read the input's bytes as big-endian words.
 macro_rules! dispatch {
     ($with:ident($($arg:ident: $ty:ty),* $(,)?) $(-> $ret:ty)?) => {
         cfg_select! {
@@ -363,7 +365,7 @@ macro_rules! dispatch {
                     $with::<u64>($($arg),*)
                 }
             }}
-            all(target_arch = "aarch64", target_feature = "neon") => {{
+            all(target_arch = "aarch64", target_endian = "little", target_feature = "neon") => {{
                 #[target_feature(enable = "sha3")]
                 fn sha3($($arg: $ty),*) $(-> $ret)? {
                     $with::<arm::Neon<true>>($($arg),*)
@@ -716,7 +718,7 @@ mod x86 {
     }
 }
 
-#[cfg(all(target_arch = "aarch64", target_feature = "neon"))]
+#[cfg(all(target_arch = "aarch64", target_endian = "little", target_feature = "neon"))]
 mod arm {
     use super::Lane;
     use crate::{RATE_LANES, STATE_LANES};
@@ -888,7 +890,7 @@ mod tests {
                 matches_the_scalar_backend::<x86::Avx512>("avx512f");
             }
         }
-        #[cfg(all(target_arch = "aarch64", target_feature = "neon"))]
+        #[cfg(all(target_arch = "aarch64", target_endian = "little", target_feature = "neon"))]
         {
             matches_the_scalar_backend::<arm::Neon<false>>("neon");
             if cpu_has!("sha3") {

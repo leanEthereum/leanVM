@@ -173,3 +173,32 @@ pub(crate) fn wots_public_leaves(
     });
     th_many(pp, leaves).iter().map(|h| keccak256::truncate(*h)).collect()
 }
+
+#[cfg(all(test, feature = "std"))]
+mod tests {
+    use super::*;
+
+    /// The leaf of key `e`, one hash input at a time.
+    fn one_key_leaf(pp: &PublicParam, seed: &SchemeSeed, layer: usize, e: u32) -> Digest {
+        let secrets = wots_secrets(pp, seed, layer, e);
+        let ends = core::array::from_fn(|i| chain(pp, layer, e, i, 0, CHAIN_LEN - 1, secrets[i]));
+        wots_leaf_hash(pp, layer, e, &ends)
+    }
+
+    /// Batched leaves equal the one-key computation on both layers: from a first key that is not aligned, for counts
+    /// that are not a whole number of lanes, and up to the last key index.
+    #[test]
+    fn batched_leaves_match_one_key() {
+        let seed = scheme_seed(&[7; 32]);
+        let pp = public_param(&seed);
+        for layer in 0..2 {
+            for keys in [3..=3, 0x1_0005..=0x1_0005 + 17, u32::MAX - 4..=u32::MAX] {
+                let leaves = wots_public_leaves(&pp, &seed, layer, keys.clone());
+                assert_eq!(leaves.len(), keys.clone().count());
+                for (e, leaf) in keys.zip(&leaves) {
+                    assert_eq!(*leaf, one_key_leaf(&pp, &seed, layer, e), "layer {layer}, key {e}");
+                }
+            }
+        }
+    }
+}
