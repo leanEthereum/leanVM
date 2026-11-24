@@ -2,6 +2,7 @@ module
 
 public import Common.Signature
 public import Common.WithHash
+public import Common.CostCombinators
 
 @[expose] public section
 
@@ -56,45 +57,6 @@ theorem simulateQ_keccak256With (impl : QueryImpl spec m) (π : LState → Oracl
   simp only [KeccakHash.keccak256With, simulateQ_bind, simulateQ_pure, simulateQ_absorbWith]
 
 end Absorb
-
-/-- Absorbing `n + 1` blocks over `π`, then `g`: within `Q' + (n + 1)` permutation calls when `g`
-is within `Q'` from every state. -/
-theorem isWeightBound_absorbWith {β : Type} {g : LState → OracleComp RandomPermutationOracles β} {Q' : ℕ}
-    (hg : ∀ s, QueryCostAtMost (g s) permutationCallCost Q') :
-    ∀ (n : ℕ) (s : LState) (d : List UInt8),
-      QueryCostAtMost (KeccakHash.absorbWith queryPermutation n s d >>= g) permutationCallCost (Q' + (n + 1))
-  | 0, s, d => by
-    change QueryCostAtMost (liftM (RandomPermutationOracles.query (.inr (.forward _))) >>= g) permutationCallCost (Q' + 1)
-    rw [isWeightBound_query_bind_iff]
-    exact ⟨by simp [permutationCallCost], fun u ↦ by simpa [permutationCallCost] using hg u⟩
-  | n + 1, s, d => by
-    simp only [KeccakHash.absorbWith, bind_assoc]
-    change QueryCostAtMost (liftM (RandomPermutationOracles.query (.inr (.forward _))) >>= fun s' ↦
-      KeccakHash.absorbWith queryPermutation n s' _ >>= g) permutationCallCost (Q' + (n + 1 + 1))
-    rw [isWeightBound_query_bind_iff]
-    refine ⟨by simp only [permutationCallCost]; omega, fun u ↦ ?_⟩
-    have h := isWeightBound_absorbWith hg n u (d.drop KeccakHash.rate)
-    simpa [permutationCallCost, show Q' + (n + 1 + 1) - 1 = Q' + (n + 1) by omega] using h
-
-/-- Absorbing `n + 1` blocks over `π`, then `g`, within `Q` permutation calls: `n + 1 ≤ Q`, and
-`g` is within the rest from every state (the last call of `π` can answer any). -/
-theorem isWeightBound_absorbWith_inv {β : Type} {g : LState → OracleComp RandomPermutationOracles β} :
-    ∀ (n : ℕ) (s : LState) (d : List UInt8) (Q : ℕ),
-      QueryCostAtMost (KeccakHash.absorbWith queryPermutation n s d >>= g) permutationCallCost Q →
-        n + 1 ≤ Q ∧ ∀ s', QueryCostAtMost (g s') permutationCallCost (Q - (n + 1))
-  | 0, s, d, Q, h => by
-    change QueryCostAtMost (liftM (RandomPermutationOracles.query (.inr (.forward _))) >>= g) permutationCallCost Q at h
-    rw [isWeightBound_query_bind_iff] at h
-    exact ⟨by simpa [permutationCallCost] using h.1, fun s' ↦ by simpa [permutationCallCost] using h.2 s'⟩
-  | n + 1, s, d, Q, h => by
-    simp only [KeccakHash.absorbWith, bind_assoc] at h
-    change QueryCostAtMost (liftM (RandomPermutationOracles.query (.inr (.forward _))) >>= fun s' ↦
-      KeccakHash.absorbWith queryPermutation n s' _ >>= g) permutationCallCost Q at h
-    rw [isWeightBound_query_bind_iff] at h
-    obtain ⟨h1, h2⟩ := isWeightBound_absorbWith_inv n s (d.drop KeccakHash.rate) _ (h.2 s)
-    refine ⟨by simp [permutationCallCost] at h1; omega, fun s' ↦ ?_⟩
-    have := h2 s'
-    simpa [permutationCallCost, show Q - 1 - (n + 1) = Q - (n + 1 + 1) by omega] using this
 
 /-- A state whose first four lanes are the digest's words: Keccak-256's output can be any
 digest. -/
