@@ -6,6 +6,17 @@ public import XmssSecurity.Proof.CappedSigningCacheTrace
 
 @[expose] public section
 
+/-!
+# Encoding hash queries and the capped source implementation
+
+`IsEncodingHashQuery parameter` holds the hash queries at an encoding input of some leaf index
+(`encodingInputLeafIndex?`). The capped adversary's implementation
+`cappedUnloggedMappedAdversaryImpl` is `romImpl` composed with
+`cappedSourceUnloggedMappedAdversaryImpl` (`cappedUnloggedMappedAdversaryImpl_eq_source_compose`,
+`cappedUnloggedMappedAdversary_simulateQ_run_eq_source`). `CappedUnifiedExpectedDigest`,
+`OwnSecondLane` and the `Scan` modules use them.
+-/
+
 open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity.CappedEncodingMonitor

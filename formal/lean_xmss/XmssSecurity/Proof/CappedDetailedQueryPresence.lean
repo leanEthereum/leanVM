@@ -5,6 +5,16 @@ public import XmssSecurity.Proof.QueryPresence
 
 @[expose] public section
 
+/-!
+# A verified forgery's leaf input is cached
+
+In every execution of `detailedGameWithCache` whose forgery verifies, the forgery's digest decodes
+to an encoding and the final cache holds the leaf input of the endpoints recovered from the forged
+chain values (`capped_detailed_execution_verified_leaf_cached`, and
+`capped_detailed_execution_verified_leaf_cached_as` for a given decoding). `CappedLeafOrientation`
+uses it.
+-/
+
 open OracleComp OracleSpec
 
 namespace XmssSecurity

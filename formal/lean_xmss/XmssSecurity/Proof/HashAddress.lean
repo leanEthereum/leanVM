@@ -4,6 +4,15 @@ public import XmssSecurity.Proof.HashInputLemmas
 
 @[expose] public section
 
+/-!
+# Hash addresses
+
+`AtHashAddress parameter domain` holds of the inputs whose 32-byte prefix is the parameter and the
+domain's tweak and which end with the domain's suffix. An input lies at one address at most
+(`atHashAddress_unique`), a tweakable hash input at its own domain's, so one tweakable-hash call
+makes one query at its address and none at any other.
+-/
+
 open OracleComp OracleSpec
 
 namespace XmssSecurity

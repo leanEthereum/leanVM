@@ -4,6 +4,14 @@ public import XmssSecurity.Proof.Deterministic.Inputs
 
 @[expose] public section
 
+/-!
+# Guessing a uniform seed
+
+`GuessBound hit` says each input names a uniform master seed with probability at most `2^-256`, as
+`SeedHit` does (`guessBound_seedHit`). A list of inputs fixed independently of the seed then names
+it with probability at most its length over `2^256` (`probEvent_seedHitLog_le`).
+-/
+
 open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity

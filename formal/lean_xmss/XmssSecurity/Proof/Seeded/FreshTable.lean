@@ -5,6 +5,14 @@ public import XmssSecurity.Scheme
 
 @[expose] public section
 
+/-!
+# Querying fresh inputs in sequence
+
+Querying distinct inputs absent from the cache, one by one, draws independent uniform outputs and
+records them with `cacheFin` (`run_sequenceFin_fresh`), and `n` independent uniform draws are a
+uniform `Fin n` table (`evalDist_sequenceFin_uniform`).
+-/
+
 open OracleComp OracleSpec
 
 namespace XmssSecurity.Seeded

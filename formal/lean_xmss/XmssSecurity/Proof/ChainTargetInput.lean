@@ -4,6 +4,15 @@ public import XmssSecurity.Proof.HashInputLemmas
 
 @[expose] public section
 
+/-!
+# Chain inputs retargeted to key generation's chain values
+
+`keygenChainTargetInput` maps a chain hash input at a leaf index, chain and step to the input at the
+same position whose value is the honest one, walked from the chain's start through the cache
+(`keygenChainTargetInput_chainInput`), and leaves every other input unchanged. It is the target map
+of the suffix-collision orientation (`globalSuffixCollision_event_afterKeygen_orientation`).
+-/
+
 open OracleComp OracleSpec
 
 namespace XmssSecurity

@@ -4,6 +4,17 @@ public import XmssSecurity.Proof.ChainOraclePresampling
 
 @[expose] public section
 
+/-!
+# Writing and replaying a signature's chain values
+
+`replaceSignatureChainValue` and `replaceSignatureTopChainValue` overwrite one bottom or top chain
+value of a signature, as the causal simulation does when it reveals one. Over a cache extending key
+generation's, the chain values of `Concrete.CacheReplay.signWithEncoding` and
+`Concrete.CacheReplay.topPartFromCache` are the honest values `keygenChainValueTable` at the signed
+coordinates (`Concrete.CacheReplay.signWithEncoding_chainValue_eq_keygenChainValueTable`,
+`Concrete.CacheReplay.topPartFromCache_chainValue_eq_keygenChainValueTable`).
+-/
+
 open OracleComp OracleSpec
 
 namespace XmssSecurity.CappedChain

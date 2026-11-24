@@ -6,6 +6,18 @@ public import XmssSecurity.Proof.EncodingEventProbability
 
 @[expose] public section
 
+/-!
+# A winning capped game is a cached selection or a digest bad event
+
+In the capped game with its signing trace, a winning encoding event is a cached-selection collision,
+a fresh signing collision or a post-signing fresh forged collision of one trace entry
+(`cappedWinning_encoding_event_trace_postSigning_decomposition`). With the encoding trace, every
+winning execution is a `WinningCachedSelectionOccurs` or a `WinningDigestBadEventOccurs` (an
+encoding event that hits the capped encoding monitor, a revealed chain value, a structural collision
+or a top guess) (`capped_winning_implies_cachedSelection_or_digestBad`), which
+`CappedExactFirstLane` splits into lanes.
+-/
+
 open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity

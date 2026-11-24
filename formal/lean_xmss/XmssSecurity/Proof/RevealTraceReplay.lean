@@ -4,6 +4,15 @@ public import XmssSecurity.Proof.RevealProbeOracleSimulation
 
 @[expose] public section
 
+/-!
+# Replaying the reveals of an action trace
+
+`ReplaysCausalReveals initial trace final` says that the reveals of `trace`, applied from `initial`,
+set each revealed index to its value and change no other (`CausalRevealTransition`), probes change
+nothing, and the result is `final`. It composes over appended traces
+(`ReplaysCausalReveals.append`).
+-/
+
 open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity

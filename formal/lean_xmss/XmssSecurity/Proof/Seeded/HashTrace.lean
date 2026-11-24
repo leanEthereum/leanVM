@@ -5,6 +5,15 @@ public import XmssSecurity.Proof.ConsistentQueryBound
 
 @[expose] public section
 
+/-!
+# The trace of hash inputs
+
+`traceHashes` logs a computation's hash inputs. The log's length is the count of
+`countHashQueries` (`traceHashes_length`), hence within a `HashQueryBound`
+(`traceHashes_length_le`), and the run stopped before a bad input stops exactly when the log holds
+one (`probOutput_stopBefore_none`).
+-/
+
 open OracleComp OracleSpec
 
 namespace XmssSecurity.Seeded

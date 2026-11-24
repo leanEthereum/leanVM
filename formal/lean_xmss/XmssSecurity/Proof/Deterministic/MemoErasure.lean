@@ -6,6 +6,15 @@ public import XmssSecurity.Proof.Seeded.Erasure
 
 @[expose] public section
 
+/-!
+# Memoization erases known signing queries
+
+`runSigning` answers a computation's requests with a hash computation `sign`. When a cache fixes the
+result of `sign` at every request (`Resolves`), the memoized run is the plain run with only queries
+that cache answers removed (`erases_memoize`), so `Erases.evalDist_run` gives both the same
+distribution.
+-/
+
 open OracleComp OracleSpec
 
 namespace XmssSecurity.Seeded

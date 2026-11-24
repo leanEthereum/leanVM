@@ -5,6 +5,16 @@ public import XmssSecurity.Proof.ChainHiddenTable
 
 @[expose] public section
 
+/-!
+# The returned chain coordinates as a list
+
+`returnedChainValueIndexList` lists the chain coordinates the returned signatures send at a chain of
+either layer, with every later digit on the same chain key (`chainSuffixValueIndices`,
+`topSuffixValueIndices`); its members are exactly the `ReturnedChainValueIndex` coordinates
+(`mem_returnedChainValueIndexList_iff`). A signing action with a signature in an attacker's trace is
+returned in its signing log (`AttackerActionTrace.sign_mem_toSigningLog`).
+-/
+
 namespace XmssSecurity.CappedChain
 
 open OracleSpec

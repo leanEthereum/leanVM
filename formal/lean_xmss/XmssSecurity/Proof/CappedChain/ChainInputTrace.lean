@@ -4,6 +4,16 @@ public import XmssSecurity.Proof.SigningCacheTrace
 
 @[expose] public section
 
+/-!
+# The attacker's action trace
+
+An `AttackerAction` is an adversary hash query or a signing request with its answer, and an
+`AttackerActionTrace` lists them in order. It projects to its hash inputs
+(`AttackerActionTrace.hashInputs`) and to the signing log (`AttackerActionTrace.toSigningLog`);
+`attackerActionFragment` records one oracle query (a uniform query records nothing), with
+`signingLogFragment` as its signing part (`attackerActionFragment_toSigningLog`).
+-/
+
 namespace XmssSecurity
 
 inductive AttackerAction where

@@ -4,6 +4,15 @@ public import XmssSecurity.Scheme
 
 @[expose] public section
 
+/-!
+# The first-lane oracle
+
+`World` is the oracle of the first-lane experiment: uniform samples, encoding queries and encoding
+signing attempts at a leaf index (answered by hash outputs), probes of a table entry against a
+target digest, and reveals of a table entry. Its hazards are the encoding queries and the probes
+(`IsHazardQuery`), and `liftProbComp` lifts a probabilistic computation through its uniform queries.
+-/
+
 open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity.FirstLaneOracleSimulation

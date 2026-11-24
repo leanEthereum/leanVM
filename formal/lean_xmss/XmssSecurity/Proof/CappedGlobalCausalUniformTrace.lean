@@ -4,6 +4,15 @@ public import XmssSecurity.Proof.CappedGlobalCausalSetup
 
 @[expose] public section
 
+/-!
+# Uniform queries of the causal simulation leave no trace
+
+Run eagerly from a table (`RevealProbeOracleSimulation.eagerTraceImpl`), a uniform query of the
+causal simulation (`globalCausalUniformImpl`) is a plain uniform sample: it keeps the causal state
+and logs no action (`simulate_eagerTrace_globalCausalUniformImpl`). `CappedGlobalChainHighCoverage`
+uses it.
+-/
+
 open OracleComp OracleSpec
 
 namespace XmssSecurity.CappedChain

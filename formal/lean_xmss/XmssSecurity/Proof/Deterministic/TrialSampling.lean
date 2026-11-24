@@ -7,6 +7,15 @@ public import XmssSecurity.Proof.StatementLemmas
 
 @[expose] public section
 
+/-!
+# A uniform table entry is a fresh randomizer
+
+Lifted to the oracle world, the table signer's trials are the reference signer's bounded attempts
+(`liftM_tableSignFrom`). The low `randomnessBits` bits of a uniform hash output are a uniform
+randomizer base (`evalDist_randomizer`), so the table signer reading a uniform entry has the
+reference signer's distribution (`evalDist_tableSign`).
+-/
+
 open OracleComp OracleSpec
 
 namespace XmssSecurity.Seeded

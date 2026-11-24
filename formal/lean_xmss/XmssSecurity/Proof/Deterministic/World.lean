@@ -4,6 +4,14 @@ public import XmssSecurity.Scheme
 
 @[expose] public section
 
+/-!
+# Handlers of the oracle world
+
+`worldHandler` answers the oracle world's uniform queries by sampling and its hash queries with a
+given handler. A lifted probabilistic computation runs unchanged under it (`worldHandler_lift_prob`,
+`worldHandler_sampling_bind`).
+-/
+
 open OracleComp OracleSpec
 
 namespace XmssSecurity.Seeded

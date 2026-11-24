@@ -4,6 +4,14 @@ public import XmssSecurity.Proof.ChainOraclePresampling
 
 @[expose] public section
 
+/-!
+# An accepting verification caches its chain steps
+
+If `Concrete.verify` accepts and a cache above its final one decodes the signature's digest to
+`encoding`, that cache holds every chain step verification walks from the signature's chain values
+(`verify_true_chain_query_cached_as_in_largerCache`).
+-/
+
 open OracleComp OracleSpec
 
 namespace XmssSecurity.Concrete.CacheReplay

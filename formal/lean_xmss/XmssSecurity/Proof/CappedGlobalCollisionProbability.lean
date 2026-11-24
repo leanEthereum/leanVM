@@ -7,6 +7,18 @@ public import XmssSecurity.Proof.ExpectedAdaptiveFreshTarget
 
 @[expose] public section
 
+/-!
+# Fresh collisions after key generation, bounded by moved queries
+
+An event of the detailed game that, after every supported key generation, is an adaptive fresh
+digest collision against a target map has probability at most the expected number of queries after
+key generation whose input the map moves, over `2^digestBits`
+(`outcomePredicate_probability_le_expectedMovedQueries_of_afterKeygen_freshCollision`). The global
+suffix-collision and Merkle bad events are such collisions
+(`globalSuffixCollision_event_afterKeygen_orientation`,
+`globalMerkle_event_afterKeygen_orientation`); `CappedUnifiedStructuralCollision` combines them.
+-/
+
 open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity

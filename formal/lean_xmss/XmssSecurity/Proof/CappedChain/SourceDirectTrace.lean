@@ -6,6 +6,16 @@ public import VCVio.OracleComp.QueryTracking.SubSpec
 
 @[expose] public section
 
+/-!
+# The source game's oracles with an action trace
+
+`unloggedMappedAdversaryImpl` answers the adversary's oracle queries with `romImpl` and its signing
+requests with the scheme's signer, keeping no signing log. `actionTracedStateImpl` adds an
+attacker's action trace to a stateful implementation, which gives
+`sourceDirectTracedMappedAdversaryImpl`; the verifier's `sourceDirectTracedVerifierImpl` leaves the
+trace unchanged and runs as `romImpl` on the cache (`sourceDirectTracedVerifierImpl_run_eq`).
+-/
+
 open OracleComp OracleSpec
 
 namespace XmssSecurity.CappedChain

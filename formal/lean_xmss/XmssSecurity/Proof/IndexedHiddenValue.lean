@@ -5,6 +5,14 @@ public import XmssSecurity.Proof.EvalDistEq
 
 @[expose] public section
 
+/-!
+# One coordinate of a uniform table
+
+A coordinate of a uniform table of digests equals any fixed target with probability
+`2^-digestBits` (`uniform_table_coordinate_probability`). `RevealProbeOracleSimulation` uses it to
+bound the probes of hidden values.
+-/
+
 namespace XmssSecurity.HiddenValue
 
 theorem card_digest : Fintype.card Digest = 2 ^ digestBits := by

@@ -5,6 +5,16 @@ public import XmssSecurity.Scheme
 
 @[expose] public section
 
+/-!
+# Caches that agree on a set of inputs
+
+`HashCachesAgreeOn inputs left right` says two hash caches answer alike on every input in `inputs`;
+caching the same answer at one input, or at inputs outside the set, keeps it
+(`HashCachesAgreeOn.cacheQuery`, `HashCachesAgreeOn.cacheQuery_distinct`). A coupling also
+strengthens with the supports of both sides (`relTriple_strengthen_support`,
+`relTriple_with_support`).
+-/
+
 open OracleComp OracleSpec
 open OracleComp.ProgramLogic.Relational
 

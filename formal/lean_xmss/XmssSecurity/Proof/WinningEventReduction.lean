@@ -4,6 +4,15 @@ public import XmssSecurity.Proof.OutcomeClassification
 
 @[expose] public section
 
+/-!
+# Bad events on a winning outcome
+
+`WinningOutcomeBadEventOccurs` is a classified bad event on an outcome that wins the game. It keeps
+what winning gives: a valid signing transcript, hence at most `lifetime` signatures and one per leaf
+index (`SigningTranscript.returned_eq_of_same_leafIndex`), and a forged encoding hash that decodes
+(`WinningOutcomeBadEventOccurs.forgery_decode`).
+-/
+
 open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity

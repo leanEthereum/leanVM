@@ -4,6 +4,17 @@ public import XmssSecurity.Proof.CappedJointExactLoss
 
 @[expose] public section
 
+/-!
+# A win is a first-lane or a second-lane event
+
+`WinningExactFirstLaneBadEventOccurs` is a revealed chain value (`GlobalWinningChainValueRevealed`),
+a top guess (`WinningTopGuessOccurs`), or a winning encoding event that is not a cached selection.
+Every win of the capped game with the encoding trace is that or a second-lane event
+(`capped_winning_implies_exactFirstLane_or_secondLane`), so the forging advantage is at most the sum
+of their probabilities (`capped_forgeAdvantage_le_exactFirstLane_add_secondLane`), which `OwnModel`
+bounds lane by lane.
+-/
+
 open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity

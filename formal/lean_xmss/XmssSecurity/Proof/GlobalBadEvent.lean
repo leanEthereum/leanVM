@@ -4,6 +4,14 @@ public import XmssSecurity.Proof.OutcomeClassification
 
 @[expose] public section
 
+/-!
+# Bad events without their coordinate
+
+`GlobalBadEvent` forgets the chain, slot or level of a bottom `BadEvent` and adds one `top` case for
+every top bad event. A consistent winning outcome has a global bad event
+(`winning_outcome_has_globalBadEvent`, from `winning_outcome_has_badEvent`).
+-/
+
 open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity

@@ -5,6 +5,15 @@ public import XmssSecurity.Proof.LazyScheme
 
 @[expose] public section
 
+/-!
+# One attempt of the bounded signer
+
+Under the lazy random oracle, `attempts + 1` signing attempts run one `Concrete.signAttempt`, then
+`Concrete.signBoundedAttemptsContinuation`, which keeps a signature found and otherwise runs the
+remaining attempts (`Concrete.signBoundedAttempts_run_succ_eq`). `CausalSigningKeygenCoupling` and
+`CappedGlobalChainHighSetup` use this unfolding to couple the signer.
+-/
+
 open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity

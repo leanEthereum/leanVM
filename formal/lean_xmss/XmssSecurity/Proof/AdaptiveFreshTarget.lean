@@ -5,6 +5,15 @@ public import XmssSecurity.Proof.StatementLemmas
 
 @[expose] public section
 
+/-!
+# Truncated outputs and adaptive fresh-target collisions
+
+A uniform hash output truncates to any fixed digest with probability `(2 ^ digestBits)⁻¹`
+(`uniform_truncate_probability`). `AdaptiveFreshDigestCollisionWith` is the event that an input
+absent from an initial cache gets the digest of its target input, which that cache already holds;
+`ExpectedAdaptiveFreshTarget` bounds it.
+-/
+
 open OracleComp ENNReal
 
 namespace XmssSecurity.Rom

@@ -4,6 +4,15 @@ public import XmssSecurity.Proof.HashInputLemmas
 
 @[expose] public section
 
+/-!
+# The leaf index of an encoding input
+
+`encodingInputLeafIndex?` returns the leaf index of an encoding input and `none` on every other
+input. It reads back the leaf index of `Concrete.CacheView.encodingInput`
+(`encodingInputLeafIndex?_encodingInput`), and a `some` comes from an encoding input at that index
+(`exists_encodingInput_of_encodingInputLeafIndex?_eq_some`).
+-/
+
 open OracleSpec
 
 namespace XmssSecurity

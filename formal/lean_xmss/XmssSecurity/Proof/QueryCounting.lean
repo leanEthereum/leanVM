@@ -5,6 +5,15 @@ public import VCVio.OracleComp.QueryTracking.QueryBound
 
 @[expose] public section
 
+/-!
+# Counting selected queries
+
+`counted selected` pairs a computation's result with the number of its queries that satisfy
+`selected`. Simulated, it is the cost of the implementation charging one per selected query
+(`simulate_withCost`); it leaves the result unchanged (`counted_forget`) and adds over a bind
+(`counted_bind`). `ConsistentQueryBound` counts hash queries with it.
+-/
+
 namespace XmssSecurity.QueryCounting
 
 open _root_.OracleComp OracleSpec

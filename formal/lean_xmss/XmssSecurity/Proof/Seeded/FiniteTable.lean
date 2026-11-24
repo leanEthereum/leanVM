@@ -4,6 +4,14 @@ public import XmssSecurity.Proof.Seeded.FreshTable
 
 @[expose] public section
 
+/-!
+# Querying a table of fresh inputs
+
+`queryTable inputs` queries the random oracle at every `inputs j` for `j` in a finite type. On
+distinct inputs absent from the cache it draws a uniform table and records it with `cacheTable`
+(`evalDist_queryTable_fresh`). `Bridge.Program` draws the derivation table with it.
+-/
+
 open OracleComp OracleSpec
 
 namespace XmssSecurity.Seeded

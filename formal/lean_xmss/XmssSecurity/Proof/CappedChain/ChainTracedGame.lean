@@ -4,6 +4,15 @@ public import XmssSecurity.Proof.CappedChain.ChainInputTrace
 
 @[expose] public section
 
+/-!
+# Outcomes and encodings of the action-traced game
+
+`actionTraceOutcome` builds a game outcome from the key pair, the forgery, the verdict and an
+attacker's action trace, taking the trace's signing log (`AttackerActionTrace.toSigningLog`).
+`actionTracedForgeryEncoding` is the encoding the forgery's digest decodes to in the final cache,
+all zeros when it does not decode.
+-/
+
 open OracleComp OracleSpec
 
 namespace XmssSecurity.CappedChain

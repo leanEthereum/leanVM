@@ -4,6 +4,15 @@ public import XmssSecurity.Proof.CappedChain.ChainEventDecomposition
 
 @[expose] public section
 
+/-!
+# A forged chain value from key generation is a table value
+
+`WinningOutcomeChainValueHasKeygenOrigin` is a winning chain bad event whose forged value has its
+origin in key generation (`OutcomeChainValueHasKeygenOrigin`). Such a value is the honest value
+`keygenChainValueTable` at the forged leaf index's coordinate under the forgery's decoded encoding
+(`winningOutcomeChainValueHasKeygenOrigin_eq_table`); `CappedGlobalChainHighCoverage` uses it.
+-/
+
 open OracleSpec
 
 namespace XmssSecurity.CappedChain

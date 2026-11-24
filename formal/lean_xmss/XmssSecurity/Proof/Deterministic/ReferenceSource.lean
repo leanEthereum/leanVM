@@ -4,6 +4,15 @@ public import XmssSecurity.Proof.Deterministic.TranscriptReduction
 
 @[expose] public section
 
+/-!
+# The source game with the reference signer
+
+`runWorldSigning` answers signing requests with an oracle-world computation. With
+`Concrete.precomputedCappedSign` as the signer, the source game is the rest of the security game
+after key generation (`runWorldSigning_sourceGame`), and simulating such a run with a handler
+simulates the computation with the handler and the simulated signer (`simulateQ_runWorldSigning`).
+-/
+
 open OracleComp OracleSpec
 
 namespace XmssSecurity.Seeded

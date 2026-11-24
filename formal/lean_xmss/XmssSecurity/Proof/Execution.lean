@@ -4,6 +4,15 @@ public import XmssSecurity.Proof.RandomizedStatement
 
 @[expose] public section
 
+/-!
+# The security game with its final cache
+
+Under `romImpl` a lifted probabilistic computation leaves the cache unchanged
+(`xmssRom_lift_probComp_cache_eq`) and every computation's final cache extends its initial one
+(`xmssRom_cache_le`). `gameWithCache` runs the security game from the empty cache and keeps its
+final cache, with the same winning probability (`forgeAdvantage_eq_gameWithCache`).
+-/
+
 open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity

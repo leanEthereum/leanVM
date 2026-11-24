@@ -4,6 +4,17 @@ public import XmssSecurity.Proof.CappedChain.ChainRevealFiltering
 
 @[expose] public section
 
+/-!
+# The set of returned chain coordinates
+
+`ReturnedChainValueCovered` is the set of members of `returnedChainValueIndexList`, the same as
+`returnedChainValueIndices` (`returnedChainValueCovered_iff_mem_indices`). It is closed forward
+along each chain key (`ChainValueIndicesForwardClosed`, `returnedChainValueCovered_forwardClosed`)
+and holds the bottom and top coordinates every returned signature sends
+(`returnedChainValueCovered_contains_returned`, `returnedChainValueCovered_contains_returnedTop`);
+`CappedGlobalChainHighCoverage` uses these facts.
+-/
+
 open OracleComp OracleSpec
 
 namespace XmssSecurity.CappedChain

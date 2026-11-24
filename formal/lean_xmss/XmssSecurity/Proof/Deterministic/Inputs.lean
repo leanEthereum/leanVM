@@ -7,6 +7,14 @@ public import XmssSecurity.Proof.HashInputLemmas
 
 @[expose] public section
 
+/-!
+# Hitting the master seed with one input
+
+`DerivationSeedHit` says bytes 32 to 63 of a hash input are the master seed, where every
+seed-derived input carries it. A uniform master seed hits a fixed input with probability at most
+`2^-256` (`probEvent_derivationSeedHit_le`).
+-/
+
 open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity

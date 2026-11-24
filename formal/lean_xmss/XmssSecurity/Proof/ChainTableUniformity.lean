@@ -5,6 +5,16 @@ public import Init.Data.Vector.OfFn
 
 @[expose] public section
 
+/-!
+# Chain value tables as lists of trajectories
+
+`allChainKeys` lists the chain keys of both layers in a fixed order, and a `FullChainTrajectory`
+holds the `chainLength` values of one chain. `listOfChainValueTable` turns a table of chain values
+into one trajectory per key and `chainValueTableOfList` reads a table back from such a list, which
+`listOfChainValueTable` recovers when it has one trajectory per key
+(`listOfChainValueTable_chainValueTableOfList`).
+-/
+
 open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity
