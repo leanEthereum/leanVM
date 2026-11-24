@@ -15,12 +15,12 @@ import LeanVM.Guest.Data.ValNames.«verify_sig_lean_sphincs»
 /-!
 # A layer of an honest signature, complete
 
-`layer_stage`: when the statement's layer `l` reaches `r` from the value of a cell `S`
+`layer_stage_vals`: when the statement's layer `l` reaches `r` from the value of a cell `S`
 (`LayerReaches`), and the valuation holds what the stages before leave (`BottomPost`), layer `l`'s
 key's address cells and `S` where the layer reads them, the layer completes with its root cell
 `layerRootCell` (whose value is `r`), its counter hinted as `BE_32` of the signature's, the call of
-`sp_wots` holding by `SpWotsCalls`, its path hinted as the signature's. `layer_stage_vals` also gives the call's
-arguments and return, the honest call's (`LayerCallAt`).
+`sp_wots` holding by `SpWotsCalls`, its path hinted as the signature's, and the call's arguments and
+return the honest call's (`LayerCallAt`).
 -/
 
 namespace LeanVM.Guest.B1.Sig
@@ -135,23 +135,6 @@ theorem layer_stage_vals (hB : SphincsBlocksComplete) (hC : SpWotsCalls C) (hm :
     exact h
   · simp only [sCallArgs, spCallArgs, sEncOf, List.map_cons, List.map_nil]
     rw [t sPP ⟨2, by have := Sh.digest; omega, rfl⟩, h8, t _ Sh.a1, h6, henc, hpp, ha0, ha1, et, el]
-
-/-- **Layer `l` of an honest signature completes** (`layer_stage_vals` without its call). -/
-theorem layer_stage (hB : SphincsBlocksComplete) (hC : SpWotsCalls C) (hm : MemOK rd 256) {bb : E}
-    (hbb : ByteBits rd bb) {pk : Sphincs.PublicKey} {m : HashSig.Message} {sig : Sphincs.Signature}
-    {l : Nat} (hl : l < 3) {S : E} {r : HashSig.Digest}
-    (hr : LayerReaches pk.publicSeed (digestIdx pk m sig) sig ⟨l, hl⟩ (cellVal S) r)
-    (σ : Val) (h1 : σ (.n (val% «verify_sig_lean_sphincs» "byte_bits")) = bb) (hbot : BottomPost bb pk m sig σ)
-    (ha0 : a0Val σ (sA0Of l) (sAcOf l) = adrsCell0 l (layerTreeN (digestT pk m sig) l))
-    (ha1 : σ (sA1Of l) = adrsCell1 0 (layerLeafN (digestT pk m sig) l) 0 0)
-    (hsg : σ (sSignedOf l) = S) :
-    r = cellVal (layerRootCell pk (digestIdx pk m sig) sig ⟨l, hl⟩ S) ∧
-      Completes C rd (sLayerBase l) (sLayerBlk l).2.1 (sLayerBlk l).1 σ (fun σ' =>
-        σ' (sLayerBlk l).2.2 = layerRootCell pk (digestIdx pk m sig) sig ⟨l, hl⟩ S ∧
-          TablePtrs bb σ' (sLayerBlk l).1 ∧
-          ∀ k, SplicePops rd σ' (sLayerBlk l).1 [k] (layerPops pk m sig ⟨l, hl⟩ S k)) :=
-  let h := layer_stage_vals hB hC hm hbb hl hr σ h1 hbot ha0 ha1 hsg
-  ⟨h.1, h.2.mono le_rfl le_rfl fun _ h => ⟨h.1, h.2.1, h.2.2.1⟩⟩
 
 end
 end LeanVM.Guest.B1.Sig

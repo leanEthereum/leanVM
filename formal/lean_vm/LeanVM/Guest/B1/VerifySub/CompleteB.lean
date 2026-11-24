@@ -104,8 +104,6 @@ theorem busGrind_kid (hbl : bytecode.length = 2 ^ 23) {κ : ℕ} (hκ : 11 ≤ �
   exact (busGrind_kidB (d := S.d - 20) (List.mem_range.2 (by omega)) hκ sqE
     (S.busPow hbl)).mono le_rfl (le_busGrindMax (by omega))
 
-theorem sZ_cap_length : S.sZ.cap.length = 5 := squeezeN_cap_length _ _ (by simp [capOf])
-
 end ChildSegs
 
 /-- **`verify_sub`'s callees on an honest child, each within its bound**, given `verify_tables`',

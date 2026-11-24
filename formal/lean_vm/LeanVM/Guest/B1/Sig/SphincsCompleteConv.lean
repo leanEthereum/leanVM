@@ -24,7 +24,7 @@ key pair's cell plus `FORS_TREE` (`3·2^24`); the statement's bridge reads them 
 they agree (`fAdrE_eqC`), so do the roots (`fRootE_eq`) and the FORS key's hash (`forsKey_eq`, its
 roots listed over `List.range 24` or `List.ofFn`). So spfors's `sForsBlock_complete` gives the
 assembly's `ForsBlockCompletes` (`forsBlockCompletes`); the encoding's cell two ways
-(`encDigestCell_eq_encOf`), so spfors's `sHtLayer_complete` gives `HtLayerCompletes`
+(`encDigestCell_eq_encOf`), so spfors's `sHtLayer_complete_vals` gives `HtLayerCompletes`
 (`htLayerCompletes`); `sphincsBlocksComplete`: both.
 -/
 
@@ -120,7 +120,7 @@ theorem encDigestCell_eq_encOf (pp a0 key signed : E) {N : Nat} (hN : N < 2 ^ 32
     ← leBytes_append _ 4 12, List.take_left' (by simp [leBytes])]
   rfl
 
-/-- **A layer completes after its counter** (`HtLayerCompletes`), from `sHtLayer_complete`. -/
+/-- **A layer completes after its counter** (`HtLayerCompletes`), from `sHtLayer_complete_vals`. -/
 theorem htLayerCompletes : HtLayerCompletes := by
   intro C rd σ l a0 a1 signed ctr b lv e sib hl hb ha0 ha1 hsg hct hp hctr hcall he hbit hval
   obtain ⟨N, hN, hc⟩ := hctr

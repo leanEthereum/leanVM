@@ -398,8 +398,6 @@ variable {a b c : List Pop}
 
 theorem SameStreams.refl (a : List Pop) : SameStreams a a := fun _ => rfl
 
-theorem SameStreams.symm (h : SameStreams a b) : SameStreams b a := fun s => (h s).symm
-
 theorem SameStreams.trans (h : SameStreams a b) (h' : SameStreams b c) : SameStreams a c :=
   fun s => (h s).trans (h' s)
 

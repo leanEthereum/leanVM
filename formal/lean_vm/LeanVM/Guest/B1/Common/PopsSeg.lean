@@ -116,20 +116,6 @@ theorem walk_append_ret {xs ys : List Stmt} {es : List Ev} {vs : List V} (hx : S
   | ret e v => exact absurd hw (hn e v)
   | stuck => rw [hw, Out.seq] at h; cases h
 
-/-- **A block falling through falls through in parts.** -/
-theorem walk_append_fall {xs ys : List Stmt} {es : List Ev} (h : walk σ (xs ++ ys) = .fall es) :
-    ∃ e1 e2, walk σ xs = .fall e1 ∧ walk σ ys = .fall e2 ∧ es = e1 ++ e2 := by
-  rw [walk_append_seq] at h
-  cases hw : walk σ xs with
-  | fall e1 =>
-      rw [hw, Out.seq] at h
-      cases hy : walk σ ys with
-      | fall e2 => rw [hy, Out.pre] at h; cases h; exact ⟨e1, e2, rfl, rfl, rfl⟩
-      | ret _ _ => rw [hy, Out.pre] at h; cases h
-      | stuck => rw [hy, Out.pre] at h; cases h
-  | ret _ _ => rw [hw, Out.seq] at h; cases h
-  | stuck => rw [hw, Out.seq] at h; cases h
-
 end Walk
 
 section Kids
@@ -182,15 +168,6 @@ theorem RetKids.split {xs ys : List Stmt} {ks : List Tree} {ps : List Pop} (h : 
   rw [calls_append'] at hk
   obtain ⟨k1, k2, rfl, hk1, hk2⟩ := kidsValid_split hk
   exact ⟨k1, k2, _, _, rfl, splice_split hk1, ⟨e1, h1, hk1, rfl⟩, ⟨e2, vs, h2, hk2, rfl⟩⟩
-
-/-- **A falling block splits.** -/
-theorem BlockKids.split {xs ys : List Stmt} {ks : List Tree} {ps : List Pop} (h : BlockKids P rd σ (xs ++ ys) ks ps) :
-    ∃ k1 k2 p1 p2, ks = k1 ++ k2 ∧ ps = p1 ++ p2 ∧ BlockKids P rd σ xs k1 p1 ∧ BlockKids P rd σ ys k2 p2 := by
-  obtain ⟨es, hw, hk, rfl⟩ := h
-  obtain ⟨e1, e2, h1, h2, rfl⟩ := walk_append_fall hw
-  rw [calls_append'] at hk
-  obtain ⟨k1, k2, rfl, hk1, hk2⟩ := kidsValid_split hk
-  exact ⟨k1, k2, _, _, rfl, splice_split hk1, ⟨e1, h1, hk1, rfl⟩, ⟨e2, h2, hk2, rfl⟩⟩
 
 theorem splice_mute_kids {S : String → Bool} (hS : MuteIn P S) {es : List Ev} {ks : List Tree}
     (hm : ∀ e ∈ es, Ev.Mute rd σ S e) (hk : Tree.KidsValid P rd σ (calls es) ks) :

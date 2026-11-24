@@ -203,9 +203,6 @@ theorem good_mul' {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {d x 
   simp only [Good] at h
   rwa [ite_pos' ⟨hx, hy⟩] at h
 
-theorem one_add_ne' {a : ℕ} (ha : a < 2 ^ 64 - 1) (h0 : a ≠ 0) : (1 : E) + gen ^ a ≠ 0 := by
-  rw [Ne, e_add_eq_zero_iff, eq_comm, gen_pow_eq_one_iff ha]; exact h0
-
 /-- The values a statement defines from the oracle. -/
 def defsOf : Stmt → List V
   | .atom (.hint (.witness _ (.stack vs))) => vs

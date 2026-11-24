@@ -21,9 +21,7 @@ import LeanVM.Guest.Data.ValNames.«main_loop2»
   that every value it reads lies below the codeword's digits;
 * `SGood`: the values the step reads that its proofs need (the padding run and the powers `g^s`,
   `s < 13`); `sWc_shape`, `sGood_stable`, `sWc_sound`;
-* `Completes.append_in`: a block, then one changing values in a range its predecessor does not
-  read (a window's arm writes its output where arm `0` numbered it);
-* `kecS_complete_at`, `k64_complete_at`: a `KECCAK` writing a run its inputs avoid.
+* `kecS_complete_at`: a `KECCAK` writing a run its inputs avoid.
 -/
 
 namespace LeanVM.Guest.B1.Sig
@@ -121,23 +119,6 @@ theorem sWc_pow {layer b : Nat} {σ : Val} (hg : SGood layer b σ) :
 theorem sWc_pw (layer b : Nat) (hB : 103 ≤ sA layer b) : ∀ j, NBv (sA layer b + 6) ((sWc layer b).power j) :=
   fun j => (sPower_nb j).mono' (by omega)
 
-/-! ## A block inside another's range -/
-
-/-- **Completeness in sequence, the second block inside the range**: a first block completing on
-`lo ..< m`, then one changing only `lo2 ..< hi2` inside `lo ..< hi`, values the first does not
-read. -/
-theorem Completes.append_in {lo m hi lo2 hi2 : Nat} {xs ys : List Stmt} {σ : Val} {P Q : Val → Prop}
-    (hlo : lo ≤ lo2) (hhi2 : hi2 ≤ hi) (hm : m ≤ hi)
-    (hxs : ∀ v ∈ Stmt.valsList xs, ∀ k, lo2 ≤ k → k < hi2 → v ≠ .n k)
-    (h1 : Completes C rd lo m xs σ P) (h2 : ∀ σ', Ext lo m σ σ' → P σ' → Completes C rd lo2 hi2 ys σ' Q) :
-    Completes C rd lo hi (xs ++ ys) σ Q := by
-  obtain ⟨σ1, he1, hp1, hh1⟩ := h1
-  obtain ⟨σ2, he2, hq2, hh2⟩ := h2 σ1 he1 hp1
-  refine ⟨σ2, fun v hv => ?_, hq2, fun next kret hn => ?_⟩
-  · rw [he2 v (fun k h1 h2 => hv k (by omega) (by omega)), he1 v (fun k h1 h2 => hv k h1 (by omega))]
-  · rw [holdsList_append]
-    exact (holdsList_congr xs (fun v hv => (he2 v (hxs v hv)).symm) _ _).mp (hh1 _ kret (hh2 next kret hn))
-
 /-! ## A `KECCAK` writing an earlier run -/
 
 /-- **A `KECCAK` completes** writing the run of its `n` outputs (one, two or thirteen) at `o`, its
@@ -161,64 +142,6 @@ theorem kecS_complete_at (σ : Val) {ins : List V} (o : Nat) {n : Nat} (hn : n =
     List.getElem?_range hco, Option.map_some, Option.getD_some, Function.comp]
   rw [updRun_at σ o _ _ hco, kOut]
   simp [c.isLt]
-
-/-- **A 64-byte `keccak` completes writing the run at `o`**, below its constant or right after it,
-its inputs below its constant and off the run: its constant's range `c ..< c + 1` and
-the run's inside `lo ..< hi`. -/
-theorem k64_complete_at {pad : Nat} {m0 m1 m2 m3 : V} {c o lo hi : Nat} (σ : Val) (hp : PadOK σ pad)
-    (hpc : pad + 5 ≤ lo) (hlc : lo ≤ c) (hch : c + 1 ≤ hi) (hlo : lo ≤ o) (hoh : o + 1 ≤ hi)
-    (hco : c + 1 ≤ o ∨ o + 1 ≤ c)
-    (hm : ∀ v ∈ [m0, m1, m2, m3], NBv c v ∧ ¬ InR o 1 v) :
-    Completes C rd lo hi (k64 pad m0 m1 m2 m3 c o) σ
-      (fun σ' => σ' (.n o) = (hcell [σ m0, σ m1, σ m2, σ m3]).1) := by
-  have hmc : ∀ v ∈ [m0, m1, m2, m3], v ≠ .n c := fun v hv e => by
-    obtain ⟨⟨j, hj, rfl⟩, -⟩ := hm v hv
-    simp only [V.mk.injEq, true_and] at e
-    omega
-  have hcr : ¬ InR o 1 (.n c) := by
-    rintro ⟨j, hj, e⟩; simp only [V.mk.injEq, true_and] at e; omega
-  obtain ⟨σ1, he1, hp1, hh1⟩ := cst_complete (C := C) (rd := rd) σ c (word (2 ^ 63) 0)
-  have hσ1 : ∀ v, v ≠ .n c → σ1 v = σ v := fun v hv => he1 v (fun k h1 h2 e => hv (by rw [e]; congr 1; omega))
-  have hin : ∀ v ∈ [m0, m1, m2, m3, .n pad, .n (pad + 1), .n (pad + 2), .n (pad + 3), .n c, .n (pad + 1),
-      .n (pad + 2), .n (pad + 3), .n (pad + 4)], ¬ InR o 1 v := by
-    intro v hv
-    rcases (k64_ins pad m0 m1 m2 m3 c v).mp hv with h | rfl | ⟨k, hk, rfl⟩
-    · exact (hm v h).2
-    · exact hcr
-    · rintro ⟨j, hj, e⟩; simp only [V.mk.injEq, true_and] at e; omega
-  obtain ⟨q0, q1, q2, q3, q4⟩ := hp
-  have hpk : ∀ k < 5, σ1 (.n (pad + k)) = σ (.n (pad + k)) := fun k hk =>
-    hσ1 _ (by simp only [ne_eq, V.mk.injEq, true_and]; omega)
-  have p0 := hpk 0 (by norm_num)
-  have p1 := hpk 1 (by norm_num)
-  have p2 := hpk 2 (by norm_num)
-  have p3 := hpk 3 (by norm_num)
-  have p4 := hpk 4 (by norm_num)
-  simp only [Nat.add_zero] at p0
-  obtain ⟨σ2, he2, hp2, hh2⟩ := kecS_complete_at (C := C) (rd := rd) σ1 o (.inl rfl) rfl hin false false
-  have hσ2 : ∀ v, ¬ InR o 1 v → σ2 v = σ1 v := fun v hv => he2 v (fun k h1 h2 e => hv ⟨k - o, by omega,
-    by rw [e]; congr 1; omega⟩)
-  have hc2 : σ2 (.n c) = σ1 (.n c) := hσ2 _ hcr
-  have hhold : ∀ next kret, next → Stmt.HoldsList C rd σ2 (k64 pad m0 m1 m2 m3 c o) next kret := by
-    intro next kret hn
-    rw [k64_vals_eq, holdsList_append]
-    refine (holdsList_congr [cst c (word (2 ^ 63) 0)] (fun v hv => ?_) _ _).mp (hh1 _ kret (hh2 next kret hn))
-    simp only [cst, valsList_cons, valsList_nil, Stmt.vals, Atom.vals, List.append_nil,
-      List.mem_singleton] at hv
-    subst hv
-    exact hc2.symm
-  refine ⟨σ2, fun v hv => ?_, ?_, hhold⟩
-  · rw [he2 v (fun k h1 h2 => hv k (by omega) (by omega)), he1 v (fun k h1 h2 => hv k (by omega) (by omega))]
-  · show σ2 (.n o) = _
-    have hk := k64_sound (rd := rd) (σ := σ2) (pad := pad) (m0 := m0) (m1 := m1) (m2 := m2) (m3 := m3)
-      (c := c) (o := o) ⟨by rw [hσ2 _ (hin _ (by simp)), p0]; exact q0,
-        by rw [hσ2 _ (hin _ (by simp)), p1]; exact q1, by rw [hσ2 _ (hin _ (by simp)), p2]; exact q2,
-        by rw [hσ2 _ (hin _ (by simp)), p3]; exact q3, by rw [hσ2 _ (hin _ (by simp)), p4]; exact q4⟩
-      (atomsHold_of_holdsList rfl (hhold True (fun _ => True) trivial))
-    rw [hk]
-    have e : ∀ v ∈ [m0, m1, m2, m3], σ2 v = σ v := fun v hv => by
-      rw [hσ2 v (hm v hv).2, hσ1 v (hmc v hv)]
-    rw [e m0 (by simp), e m1 (by simp), e m2 (by simp), e m3 (by simp)]
 
 end
 end LeanVM.Guest.B1.Sig

@@ -137,11 +137,6 @@ def list_split_sound_Spec : Prop :=
   ∀ (rd : Reader), MemOk rd → ∀ (args rets : List E),
     coreProgram.Rel rd "list_split" args rets → MeaningListSplit args rets
 
-/-- `list_split`'s meaning gives its core IR, on a memory defined below `2^20`. -/
-def list_split_complete_Spec : Prop :=
-  ∀ (rd : Reader), (∀ i < 2 ^ 20, (rd (addressOfIndex i)).isSome) → ∀ (args rets : List E),
-    MeaningListSplitC args rets → coreProgram.Rel rd "list_split" args rets
-
 /-! ## `claim_list_digest` (TRIAGE #88) -/
 
 /-- `rets` is the two cells of the Keccak-256 digest of the `4n` cells of `n` claims at `entries`

@@ -16,7 +16,7 @@ public import LeanVM.Guest.B1.Sig.WotsGroup
 * `armStart_mem`: an arm hints each chain's start;
 * `grpPos`, `grpPos_spec`, `grpPos_ne`: the starts of arm `k` of a group, in the group's range
   above its base and distinct;
-* `sLoad`, `gLoad`: a group's digits and starts loaded.
+* `sLoad`, `gLoadD`: a group's digits and starts loaded.
 -/
 
 namespace LeanVM.Guest.B1.Sig
@@ -245,20 +245,6 @@ theorem gLoadD_spec (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : V)
   · unfold gLoadD
     rw [Function.update_of_ne (hne t ht)]
     exact sLoad_at _ vals σ n (fun a c h1 h2 => grpPos_ne hk h1 h2) t ht
-
-/-- A group's digits `k` and its arm's starts `vals` loaded. -/
-def gLoad (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : V) (b k : Nat) (vals : Nat → E)
-    (σ : Val) : Val :=
-  gLoadD W first n fold prodIn encIn b b k vals σ
-
-/-- **A group's load**: its digits at the base, its starts, changes in its range only. -/
-theorem gLoad_spec (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : V) (b k : Nat)
-    (vals : Nat → E) (σ : Val) (hk : k < 4 ^ n) :
-    Ext b (armB W first n fold prodIn encIn b (4 ^ n)) σ (gLoad W first n fold prodIn encIn b k vals σ) ∧
-      gLoad W first n fold prodIn encIn b k vals σ (.n b) = ofK (addressOfIndex k) ∧
-      ∀ t < n, gLoad W first n fold prodIn encIn b k vals σ (grpPos W first n fold prodIn encIn b k t) =
-        vals t :=
-  gLoadD_spec W first n fold prodIn encIn b b k vals σ hk le_rfl
 
 end
 end LeanVM.Guest.B1.Sig

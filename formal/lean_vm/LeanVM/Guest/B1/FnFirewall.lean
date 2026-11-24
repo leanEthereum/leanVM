@@ -27,7 +27,6 @@ import LeanVM.Guest.B1.Sig.Frame
 import LeanVM.Guest.B1.Sig.FwdComplete
 import LeanVM.Guest.B1.Sig.InterfaceP
 import LeanVM.Guest.B1.Sig.KMsgComplete
-import LeanVM.Guest.B1.Sig.KSeqComplete
 import LeanVM.Guest.B1.Sig.KeccakMsg
 import LeanVM.Guest.B1.Sig.Merkle
 import LeanVM.Guest.B1.Sig.MerkleComplete
@@ -106,7 +105,6 @@ import LeanVM.Guest.B1.Sig.XmssBound
 import LeanVM.Guest.B1.Sig.XmssCore
 import LeanVM.Guest.B1.Sig.XmssGroups
 import LeanVM.Guest.B1.Sig.XmssLayer
-import LeanVM.Guest.B1.Sig.XmssLoop2
 import LeanVM.Guest.B1.Sig.XmssScheme
 import LeanVM.Guest.B1.Sig.XmssSegArms
 import LeanVM.Guest.B1.Sig.XmssSegCodeC
@@ -310,7 +308,6 @@ import LeanVM.Guest.B1.Da.DualMath
 import LeanVM.Guest.B1.Main.FramesP
 import LeanVM.Guest.B1.Main.IterK
 import LeanVM.Guest.B1.Main.Plan
-import LeanVM.Guest.B1.Main.RelAtW
 import LeanVM.Guest.B1.Terminal.Blocks
 import LeanVM.Guest.B1.Terminal.Claims
 import LeanVM.Guest.B1.Terminal.EqMath
@@ -514,7 +511,6 @@ open Lean Elab Command in
     (`LeanVM.Guest.B1.Main.FramesP, []),
     (`LeanVM.Guest.B1.Main.IterK, []),
     (`LeanVM.Guest.B1.Main.Plan, []),
-    (`LeanVM.Guest.B1.Main.RelAtW, []),
     (`LeanVM.Guest.B1.Terminal.Blocks, []),
     (`LeanVM.Guest.B1.Terminal.Claims, []),
     (`LeanVM.Guest.B1.Terminal.EqMath, []),

@@ -92,9 +92,6 @@ def vsRetVars : List (List ℕ) :=
     [608, 609, 610, 611, 612, 613, 614, 615, 616, 617], [625, 626, 627, 628, 629, 630, 631],
     [1432], [1992, 1993, 1994, 1995, 1996], []]
 
-/-- The oracle's values are the allocations' and the returns'. -/
-theorem vsWVars_eq : vsWVars.Perm (vsAllocVars ++ vsRetVars.flatten) := by decide
-
 /-- **The oracle**: an allocation's pointer, a callee's return, a grind's window. -/
 noncomputable def vsW (gw : E × E) (bs : List ℕ) (outs : List (List E × Main.Layout)) (n : ℕ) : E :=
   if n ∈ vsAllocVars then ofK (addressOfIndex (bs.getD (vsAllocVars.idxOf n) 0))

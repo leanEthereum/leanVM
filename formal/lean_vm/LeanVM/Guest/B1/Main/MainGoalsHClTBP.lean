@@ -7,7 +7,9 @@
 
 module
 
-public import LeanVM.Guest.B1.Main.MainGoalsHClTB
+public import LeanVM.Guest.B1.Main.MainGoalsHClT
+public import LeanVM.Guest.B1.Main.ChildListGoalsTB
+public import LeanVM.Guest.AcceptableChild
 public import LeanVM.Guest.B1.Main.L5R
 public import LeanVM.Guest.B1.Digest.ClaimListsAtMP
 public import LeanVM.Guest.B1.Main.MainPushes
@@ -15,10 +17,14 @@ public import LeanVM.Guest.B1.Main.MainPushes
 /-!
 # The children's claim lists, with their pops
 
+* `plan_mono`: a child's slots strictly increase when its list takes the gap walk (`hMonoX`, `hMonoS`);
+  `increasing_getD`, `mStart_le_of`: what the gap walk asks of them;
 * `slotGaps_eq`: the gaps between slots, by index; `ccPops_mono_eq`, `ccPops_any_eq`: a list's entries on either walk
   are its slots' pushes;
-* `kidTB_hXP`, `kidTB_hSP`, `childListGoalsTBR_honest`: `kidTB_hX`, `kidTB_hS`, `childListGoalsTB_honest` by trees
-  popping the slots' pushes.
+* `kidTB_hXP`, `kidTB_hSP`: child `c`'s claim lists' digests within `ccBM fs SB` of its lists' lengths, on
+  the walks the honest prover takes, by trees of honest shape (`ccHonest`) popping the slots' pushes;
+* `childListGoalsTBR_honest`: `ChildListGoalsTBR` with those predicates and bounds; `childListGoalsTB_honest`:
+  `ChildListGoalsTB` with the honest shape alone.
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -36,6 +42,37 @@ open LeanVM.Guest.B1.Digest (ccBM mStart mStart_succ MRec mGap gapPops idxPops c
 @[expose] public section
 
 variable {fs : String → ℕ} {fp : ℕ} {seed : Digest} {s : NodeStatement} {w : NodeWitness}
+
+theorem increasing_getD : ∀ {l : List ℕ}, Hints.increasing l = true → ∀ j, j + 1 < l.length →
+    l.getD j 0 < l.getD (j + 1) 0
+  | [], _, _, hj => by simp at hj
+  | [_], _, _, hj => by simp at hj
+  | _ :: _ :: _, h, 0, _ => by
+    simp only [Hints.increasing, Bool.and_eq_true, decide_eq_true_eq] at h; simpa using h.1
+  | _ :: b :: l, h, j + 1, hj => by
+    simp only [Hints.increasing, Bool.and_eq_true] at h
+    have := increasing_getD h.2 j (by simp at hj ⊢; omega)
+    simpa using this
+
+/-- **A child's slots strictly increase** when its list takes the gap walk: the walk stands at or
+before each. -/
+theorem plan_mono {α : Type} [BEq α] [LawfulBEq α] (D R : List α) (Cs : List (List α)) {c : ℕ}
+    (hc : c < Cs.length)
+    (hm : Hints.increasing ((coveragePlan D R Cs).childSlots.getD c []) = true) :
+    ∀ j < (Cs[c]).length, mStart (fun j => ((coveragePlan D R Cs).childSlots.getD c []).getD j 0) j ≤
+      ((coveragePlan D R Cs).childSlots.getD c []).getD j 0 := by
+  intro j hj
+  rcases j with _ | j
+  · simp [mStart]
+  · simp only [mStart_succ]
+    obtain ⟨hc', hk', -⟩ := plan_child D R Cs hc hj
+    have := increasing_getD hm j (by rw [List.getD_eq_getElem _ _ hc']; exact hk')
+    omega
+
+theorem mStart_le_of {o : ℕ → ℕ} {n L : ℕ} (h : ∀ j < n, o j < L) : mStart o n ≤ L := by
+  rcases n with _ | n
+  · simp [mStart]
+  · rw [mStart_succ]; have := h n (by omega); omega
 
 theorem slotGaps_eq : ∀ (l : List ℕ) (nx : ℕ), Hints.slotGaps nx l =
     (List.range l.length).map fun j => l.getD j 0 - (if j = 0 then nx else l.getD (j - 1) 0 + 1)
@@ -364,6 +401,17 @@ theorem childListGoalsTBR_honest (cert : String → V → ℕ)
       (fun c => ccBM fs SB (hMonoX s w c) (hKid s w c).ex)
       (fun c => ccBM fs SB (hMonoS s w c) (hKid s w c).es) := fun _ hc =>
   ⟨kidTB_hXP cert hl hc hLS, kidTB_hSP cert hl hc hLS⟩
+
+/-- **The children's claim lists' digests on the honest run, by trees of honest shape, within
+`ccBM`.** -/
+theorem childListGoalsTB_honest (cert : String → V → ℕ)
+    (hl : GuestLimits s w) {SB : String → ℕ}
+    (hLS : TotalLe coreProgram fs "list_split" (fun _ => SB "list_split")) :
+    ChildListGoalsTB fs cert fp seed s w (fun c => ccHonest (hKid s w c).ex (hMonoX s w c))
+      (fun c => ccHonest (hKid s w c).es (hMonoS s w c))
+      (fun c => ccBM fs SB (hMonoX s w c) (hKid s w c).ex)
+      (fun c => ccBM fs SB (hMonoS s w c) (hKid s w c).es) := fun _ hc =>
+  ⟨(kidTB_hXP cert hl hc hLS).toDTB fun _ _ h => h.1, (kidTB_hSP cert hl hc hLS).toDTB fun _ _ h => h.1⟩
 
 end
 end LeanVM.Guest.B1.Main

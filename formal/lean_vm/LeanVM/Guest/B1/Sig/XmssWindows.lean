@@ -26,8 +26,6 @@ writes `his[w + 1] · g^8 + k` (the top window `k`) where the hinted `his[w]` is
   `lxNodeConst w r + k >>> (r + 1)` (`his[w + 1]` alone at `r = 7`, the constant alone in the top
   window), is the node's address over the index (`lxNodeAddr`), the root's at index `0`;
 * `lx_bit`: arm `k`'s bit `r` is the index's bit `8w + r`;
-* `lx_layer_idx`: a layer's index cell (`his[0]`, `his[2] + LX_TOP`) is the index's key with the
-  layer's bit;
 * `lxTagCarried`, `lxTagSlot`, `lxTagLog` (`LX_TAG_SLOT`, `LX_TAG_LOG`,
   `crates/aggregation/src/placeholders.rs`): chain `i`'s index cell is the zero cell (`i = 0`),
   `powers[log₂ i]` (a power of two) or carried tag `lxTagSlot i - 1` (`LX_N_TAGS = 51` of them);
@@ -216,17 +214,6 @@ theorem lx_bit (L w r : Nat) (hr : r < 8) :
   generalize L / 2 ^ (8 * w) = M
   interval_cases r <;> norm_num <;> omega
 
-/-! ## The layers' indices -/
-
-/-- **A layer's index cell**: `his[0]` at the bottom, `his[2] + LX_TOP` at the top, the index's key
-on the layer with the top layer's bit `55`. -/
-theorem lx_layer_idx {L : Nat} (hL : L < 2 ^ 32) :
-    eOfNat (L >>> (8 * 0)) = eOfNat (2 ^ 32 * (2 ^ 23 * 0) + L >>> (16 * 0)) ∧
-      eOfNat (L >>> (8 * 2)) + word lxTop 0 = eOfNat (2 ^ 32 * (2 ^ 23 * 1) + L >>> (16 * 1)) := by
-  refine ⟨by simp, ?_⟩
-  rw [word_eq_eOfNat, add_comm, show lxTop = 2 ^ 32 * (2 ^ 23 * 1) by simp [lxTop],
-    eOfNat_add_of_lt (lt_of_le_of_lt (Nat.shiftRight_le _ _) hL)]
-
 /-! ## The chain indices -/
 
 /-- Whether chain `i`'s index is carried as a tag: neither `0` nor a power of two
@@ -239,9 +226,6 @@ def lxTagSlot (i : Nat) : Nat :=
 
 /-- `⌊log₂ i⌋` (`LX_TAG_LOG`), the power a power of two's index is. -/
 def lxTagLog (i : Nat) : Nat := Nat.log2 i
-
-/-- The number of carried tags (`LX_N_TAGS`). -/
-def lxNTags : Nat := ((List.range 58).filter lxTagCarried).length
 
 /-- The carried tags' slots are below `LX_N_TAGS` and distinct. -/
 theorem lxTagSlot_spec : ∀ i < 58, lxTagCarried i = true → 1 ≤ lxTagSlot i ∧ lxTagSlot i ≤ 51 := by

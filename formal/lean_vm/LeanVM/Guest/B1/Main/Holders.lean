@@ -18,7 +18,7 @@ import LeanVM.Guest.Data.ValNames.«main»
 `signatures_held`: the decoded witness (`decWit`) holds the decoded claims (`decStmt`), as
 `SignatureClaimsHeld` asks. The `j`-th raw leanXMSS signature is read at the slot holding the mark
 `j` (`slotOf`, the writer's slot `slOf … j`, `slotOf_lx`; no other writer stores a raw
-signature's mark, `slot_raw`): its writer's check is at that slot (`CalleesW.xmss`), so it
+signature's mark, `slot_raw`): its writer's check is at that slot (`CalleesWC.xmss`), so it
 verifies its slot's claim (`xmss_raw_verify`); likewise for leanSPHINCS at the mark `n_raw_x + j`
 (`sphincs_raw_verify`). A declared claim's slot has its writer `m` (`Writers.onto`); in the
 leanXMSS region the writer is a raw leanXMSS signature (`m < RX`, the `m`-th raw signature, at
@@ -26,7 +26,7 @@ that slot) or a child's claim (the child `kid m`, whose rebuilt list holds the s
 `kidStmt_eq`): `xmss_covered`; likewise for leanSPHINCS.
 
 `da_rel`: the DA digest at the slot `da_pick` is, with the direct DA check, the
-node's own slot, the digest of the claim `da_verify` returns (`CalleesW.da` opens it); without it,
+node's own slot, the digest of the claim `da_verify` returns (`CalleesWC.da` opens it); without it,
 the node's own slot's zeros or child `da_pick`'s digest.
 -/
 

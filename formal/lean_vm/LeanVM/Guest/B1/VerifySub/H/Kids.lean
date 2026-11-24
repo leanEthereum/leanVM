@@ -56,10 +56,6 @@ open LeanVM.Node LeanVM.Guest.Memory
 /-- Buffer `i`'s first word. -/
 def vb (bs : List ℕ) (i : ℕ) : ℕ := bs.getD i 0
 
-/-- The own buffers' sizes, the bus depth `d`. -/
-def vsBufSizes (d : ℕ) : List ℕ :=
-  [159, 8192, 6, 7, 8, d, 30, 1, 16, 34, 4, 78, 64, 16, 64]
-
 /-- What `open_stacked` returns and the buffers it hands back (`Place/OsSpec`'s `OsOut`). -/
 def vsOsOut (μ : ℕ) (w : Whir.WhirEnd) : List E → Main.Layout → Prop := fun rets Lout ↦
   ∃ b b1 : ℕ, rets = [w.target, ptr b, ptr b1, w.inner, w.residual] ∧

@@ -16,7 +16,7 @@ public import LeanVM.Facts.ClaimBytes
 
 * `claimBytes_cells`: the 64 bytes of a signature claim decoded from four cells
   (`Sig.xmssClaimOf`, `Sig.sphincsClaimOf`) are the cells' bytes, limbs `0` and `1` each;
-* `digestBytes_ofCells`, `digestScalars_ofCells'`, `digestOfCells_scalars`: a digest held in two
+* `digestBytes_ofCells`, `digestOfCells_scalars`: a digest held in two
   canonical cells;
 * `xmssListDigest_cells`, `sphincsListDigest_cells`, `daListDigest_cells`: a list of claims read
   off `4n` canonical cells hashes as the cells do;
@@ -49,9 +49,6 @@ theorem toNat_kBytes (a : K) (k : ℕ) (hk : k < 8) :
   rfl
 
 theorem kToNat_lt (a : K) : kToNat a < 2 ^ 64 := a.toBitVec.isLt
-
-theorem length_cellBytes' (c : E) : (cellBytes c).length = 16 := by
-  simp [cellBytes, length_kBytes]
 
 /-- The bytes of a cell are its 128-bit value's (`Sig.cellVal`). -/
 theorem bytes16_cellVal (a : E) : HashSig.littleEndianBytes 16 (Sig.cellVal a) = cellBytes a := by
@@ -131,9 +128,6 @@ theorem claimBytes_cells (a b c d : E) :
 
 theorem digestBytes_ofCells (a b : E) : digestBytes (digestOfCells a b) = cellsBytes [a, b] := by
   simp [digestBytes, digestOfCells, cellsBytes, cellBytes, K.toBytes, List.append_assoc]
-
-theorem digestScalars_ofCells' (a b : E) : digestHalves (digestOfCells a b) = (a, b) :=
-  digestScalars_ofCells a b
 
 theorem digestOfCells_scalars (d : Digest) :
     digestOfCells (digestHalves d).1 (digestHalves d).2 = d := by

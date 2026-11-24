@@ -8,7 +8,8 @@
 module
 
 public import LeanVM.Guest.B1.Main.SoundVX
-public import LeanVM.Guest.B1.Sig.XmssLoop2
+public import LeanVM.Guest.B1.Sig.XmssSegSound
+public import LeanVM.Guest.B1.Sig.XmssSegData
 public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«main»

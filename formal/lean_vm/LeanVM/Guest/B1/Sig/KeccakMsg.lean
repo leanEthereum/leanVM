@@ -17,8 +17,8 @@ public import LeanVM.Guest.Value.Keccak
 `kMsg_sound_cells`: when the statements of `kMsg pad cells len tailRun out b n` hold, the padding
 run holding `[0x01, 0, 0, 0, 0]` (`PadOK`), the output run's first cells, as many of the two as the
 last block writes (`n`), are `digestHalves (keccak256 m)` for `m` the first `len` bytes of the
-message cells' words (`KC.val`), provided the bytes past `len` are zero (`kMsg_sound`: the first,
-`kMsg_sound2`: both). The proof reads off each block's `KECCAK` inputs: from the
+message cells' words (`KC.val`), provided the bytes past `len` are zero (`kMsg_sound`: the first).
+The proof reads off each block's `KECCAK` inputs: from the
 zero state the message cells (`kCell_sound`, `kRun_sound`), after it the previous output XORed with
 them (`kXor_sound`, `kTailXor_sound`), the padding bytes XORed in first (`kXorByte_sound`); and
 applies `keccak_final_digest`.
@@ -646,21 +646,6 @@ theorem kMsg_sound {pad : Nat} (hp : PadOK σ pad) {cells : List KC} {len : Nat}
     σ (.n (kMsg pad cells len tailRun out b n).2.2) =
       (digestHalves (keccak256 ((cellsBytes (cells.map (KC.val σ))).take len))).1 :=
   (kMsg_sound_cells hp htr h hlen hz).1 hn
-
-/-- **A lowered Keccak message into two cells or more computes the Keccak-256 digest**
-(`kMsg_sound_cells`). -/
-theorem kMsg_sound2 {pad : Nat} (hp : PadOK σ pad) {cells : List KC} {len : Nat} {tailRun : Bool}
-    {out : Option Nat} {b n : Nat}
-    (htr : tailRun = true → TailCells (blockOf (kMsgCells cells len b) 0))
-    (h : AtomsHold rd σ (kMsg pad cells len tailRun out b n).1)
-    (hlen : len ≤ 16 * cells.length)
-    (hz : ∀ j, len ≤ j → (cellsBytes (cells.map (KC.val σ))).getD j 0 = 0)
-    (hn : 2 ≤ n := by decide) :
-    (σ (.n (kMsg pad cells len tailRun out b n).2.2),
-        σ (.n ((kMsg pad cells len tailRun out b n).2.2 + 1))) =
-      digestHalves (keccak256 ((cellsBytes (cells.map (KC.val σ))).take len)) := by
-  have h2 := kMsg_sound_cells hp htr h hlen hz
-  rw [h2.1 (by omega), h2.2 hn]
 
 /-! ## Atoms only -/
 

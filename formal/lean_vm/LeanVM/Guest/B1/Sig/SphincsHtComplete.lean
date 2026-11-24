@@ -195,24 +195,5 @@ theorem sLayerBlk_complete_vals (hB : SphincsBlocksComplete) (hm : MemOK rd 256)
     simp only [List.nil_append, List.singleton_append] at h
     exact h
 
-/-- **Layer `l` completes** (`sLayerBlk_complete_vals` without the call's values). -/
-theorem sLayerBlk_complete (hB : SphincsBlocksComplete) (hm : MemOK rd 256) {bb : E}
-    (hbb : ByteBits rd bb) {l : Nat} (hl : l < 3) {N : Nat} (hN : N < 2 ^ 32) {lv : E} {e : Nat}
-    {sib : Nat → E} (σ : Val) (h1 : σ (.n (val% «verify_sig_lean_sphincs» "byte_bits")) = bb) (hp : PadOK σ sPad)
-    (hcall : C "sp_wots" [σ sPP, a0Val σ (sA0Of l) (sAcOf l), σ (sA1Of l),
-      encDigestCell (σ sPP) (a0Val σ (sA0Of l) (sAcOf l)) (σ (sA1Of l) + lit (7 * 2 ^ 24))
-        (σ (sSignedOf l)) (eOfNat (beWordAt 0 N))] [lv])
-    (he : e < 2 ^ sHeightOf l)
-    (hbit : ∀ z < sHeightOf l, σ (sLeafBit (sOffOf l + z)) = if e.testBit z then 1 else 0)
-    (hval : ∀ z < sHeightOf l, σ (sLVal (sOffOf l + z)) = eOfNat (e >>> z)) :
-    Completes C rd (sLayerBase l) (sLayerBlk l).2.1 (sLayerBlk l).1 σ (fun σ' =>
-      σ' (sLayerBlk l).2.2 = pFold (pNodeE (σ sPP) (a0Val σ (sA0Of l) (sAcOf l)) e sib) (sHeightOf l) lv ∧
-        TablePtrs bb σ' (sLayerBlk l).1 ∧
-        ∀ k, SplicePops rd σ' (sLayerBlk l).1 [k] (counterPop N ::
-          (k ++ climbPops "siblings" (pNodeE (σ sPP) (a0Val σ (sA0Of l) (sAcOf l)) e sib) e.testBit sib
-            (sHeightOf l) 0 lv))) :=
-  (sLayerBlk_complete_vals (sib := sib) hB hm hbb hl hN σ h1 hp hcall he hbit hval).mono le_rfl le_rfl
-    fun _ h => ⟨h.1, h.2.1, h.2.2.1⟩
-
 end
 end LeanVM.Guest.B1.Sig

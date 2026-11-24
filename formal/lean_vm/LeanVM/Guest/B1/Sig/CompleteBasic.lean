@@ -86,15 +86,6 @@ theorem mulS_complete (σ : Val) (d : Nat) {x y : V} (hx : ∃ j < d, x = .n j) 
   show upds σ [(d, σ x * σ y)] (.n d) = upds σ [(d, σ x * σ y)] x * upds σ [(d, σ x * σ y)] y
   rw [upds_cons_self, upds_single_ne σ _ (ne_of_nb hx le_rfl), upds_single_ne σ _ (ne_of_nb hy le_rfl)]
 
-theorem copyS_complete (σ : Val) (d : Nat) {x : V} (hx : ∃ j < d, x = .n j) :
-    Completes C rd d (d + 1) [copyS (.n d) x] σ (fun σ' => σ' (.n d) = σ x) := by
-  refine completes_atoms rfl (upds_ext σ [(d, σ x)] (by simp)) (upds_cons_self σ d _ [])
-    (fun a ha => ?_)
-  simp only [copyS, List.mem_singleton, Stmt.atom.injEq] at ha
-  subst ha
-  show upds σ [(d, σ x)] (.n d) = upds σ [(d, σ x)] x
-  rw [upds_cons_self, upds_single_ne σ _ (ne_of_nb hx le_rfl)]
-
 theorem loadS_complete (σ : Val) (d : Nat) {p : V} (hp : ∃ j < d, p = .n j) {off : Nat} {w : E}
     (hl : LoadHolds rd (σ p) off w) :
     Completes C rd d (d + 1) [loadS (.n d) p off] σ (fun σ' => σ' (.n d) = w) := by

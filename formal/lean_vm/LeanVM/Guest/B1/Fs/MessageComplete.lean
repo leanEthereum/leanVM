@@ -67,11 +67,6 @@ def omVals (as xs : List E) (nn : E) (n nonce k : ℕ) : E :=
     (if nonce = 1 then ((stF (as.take 5) xs (omK n)).absorb nn dsPowNonce).perm
       else (stF (as.take 5) xs (omK n)).perm) (as.getD 5 0) (k - (omTail n nonce).2.2)
 
-/-- Decide the next `if` of an unfolded index function by `omega`. -/
-macro "om_if" : tactic => `(tactic| first
-  | (rw [ite_eq_right_of_eq_false]; rotate_left; exact eq_false (by omega))
-  | (rw [ite_eq_left_of_eq_true]; rotate_left; exact eq_true (by omega)))
-
 theorem omW_lt_omE {n p : ℕ} (hp : p < n) : omW p + 2 < omE n := by
   simp only [omW, omE, omK]
   have : p / 4 ≤ (n - 1) / 4 := Nat.div_le_div_right (by omega)
@@ -101,7 +96,6 @@ theorem keccak_of_fs {rd : Reader} {σ : Val} {ins : List V} {O : ℕ} {s : Fs}
     omega
   refine keccakA_of hlen (by simp [run13]) (funext fun c ↦ ?_)
   rw [cells13_run13, hO c, hins, perm_eq_cells _ hs]
-
 
 /-! ## Evaluating the honest valuation -/
 
@@ -205,7 +199,6 @@ theorem grp_getD1 {xs : List E} {g : ℕ} (h : xs.length = 4 * g + 1) :
     simp only [List.length_cons, List.length_nil] at h2
     interval_cases i
     exact (e _ (by omega)).symm
-
 
 theorem stCap_length (cap xs : List E) (hc : cap.length = 5) : ∀ g, (stCap cap xs g).length = 5
   | 0 => hc

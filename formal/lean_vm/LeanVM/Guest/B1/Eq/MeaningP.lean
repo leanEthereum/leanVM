@@ -158,11 +158,6 @@ def MeaningRsEqRun (rd : Reader) : List E → List E → Prop
         rets = [chain * gen ^ (64 * ((count + 7) / 8))]
   | _, _ => False
 
-/-- `rs_eq_run`'s core IR is its meaning. -/
-def rs_eq_run_SpecP (P : Program) : Prop :=
-  ∀ (rd : Reader) (args rets : List E),
-    P.Rel rd "rs_eq_run" args rets ↔ MeaningRsEqRun rd args rets
-
 /-! ## `fold_final_msg` (TRIAGE #29) -/
 
 /-- **`fold_final_msg(msg, point, n)`**: the `2^n` words at `msg` folded at the `n` words at

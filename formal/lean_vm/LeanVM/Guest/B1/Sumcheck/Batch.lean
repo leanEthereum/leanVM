@@ -436,11 +436,6 @@ def bsVals (as : List E) (g : ℕ → E × E) (cl : ℕ → E) (P : ℕ → Kecc
   else if (k - 45) % 26 < 5 then cellsOfState (P (n - 1)) false (bsFin (8 + (k - 45) % 26))
   else cl n
 
-/-- Decide the next `if` of an unfolded index function by `omega`. -/
-macro "bs_if" : tactic => `(tactic| first
-  | (rw [ite_eq_right_of_eq_false]; rotate_left; exact eq_false (by omega))
-  | (rw [ite_eq_left_of_eq_true]; rotate_left; exact eq_true (by omega)))
-
 section
 variable (as : List E) (g : ℕ → E × E) (cl : ℕ → E) (P : ℕ → KeccakState)
 
@@ -448,14 +443,14 @@ theorem bsVals_round {n j i : ℕ} (hj : j + 1 < n) (hi : i < 26) :
     bsVals as g cl P n (45 + 26 * j + i) = bsRoundVal g cl P j i := by
   rw [bsVals, show (45 + 26 * j + i - 45) / 26 = j by omega,
     show (45 + 26 * j + i - 45) % 26 = i by omega]
-  repeat bs_if
+  repeat omega_if
 
 theorem bsVals_suffix {n i : ℕ} (hn : 1 ≤ n) (hi : i < 6) :
     bsVals as g cl P n (19 + 26 * n + i) =
       if i < 5 then cellsOfState (P (n - 1)) false (bsFin (8 + i)) else cl n := by
   rw [bsVals, show (19 + 26 * n + i - 45) / 26 = n - 1 by omega,
     show (19 + 26 * n + i - 45) % 26 = i by omega]
-  repeat bs_if
+  repeat omega_if
 
 theorem bsVals_wordsAt {n j u : ℕ} (hj : j < n) (hu : u < 6) :
     bsVals as g cl P n (bsG j + u) = (bsWordVals (g j)).getD u 0 := by
@@ -463,12 +458,12 @@ theorem bsVals_wordsAt {n j u : ℕ} (hj : j < n) (hu : u < 6) :
   | zero =>
     simp only [bsG]
     rw [bsVals]
-    repeat bs_if
+    repeat omega_if
     congr 1; omega
   | succ i =>
     rw [show bsG (i + 1) + u = 45 + 26 * i + u by simp only [bsG],
       bsVals_round as g cl P hj (by omega), bsRoundVal]
-    repeat bs_if
+    repeat omega_if
 
 theorem bsVals_cellsAt {n j : ℕ} (hj : j < n) (c : Fin 13) :
     bsVals as g cl P n (25 + 26 * j + c.val) = cellsOfState (P j) false c := by
@@ -476,12 +471,12 @@ theorem bsVals_cellsAt {n j : ℕ} (hj : j < n) (c : Fin 13) :
   cases j with
   | zero =>
     rw [bsVals]
-    repeat bs_if
+    repeat omega_if
     congr 1; apply bsFin_eq; omega
   | succ i =>
     rw [show 25 + 26 * (i + 1) + c.val = 45 + 26 * i + (6 + c.val) by ring,
       bsVals_round as g cl P hj (by omega), bsRoundVal]
-    repeat bs_if
+    repeat omega_if
     congr 1; apply bsFin_eq; omega
 
 theorem bsVals_foldAt {n j u : ℕ} (hj : j < n) (hu : u < 7) :
@@ -490,12 +485,12 @@ theorem bsVals_foldAt {n j u : ℕ} (hj : j < n) (hu : u < 7) :
   cases j with
   | zero =>
     rw [bsVals]
-    repeat bs_if
+    repeat omega_if
     congr 1; omega
   | succ i =>
     rw [show 25 + 26 * (i + 1) + 13 + u = 45 + 26 * i + (19 + u) by ring,
       bsVals_round as g cl P hj (by omega), bsRoundVal]
-    repeat bs_if
+    repeat omega_if
     congr 1; omega
 
 end

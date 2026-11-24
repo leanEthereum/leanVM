@@ -16,9 +16,9 @@ import LeanVM.Guest.Data.ValNames.«child_claim_list_digest»
 /-!
 # A child's claim list, placed with its pops
 
-* `kidsT_impD`: callees' predicates weakened; `KidsAtR`, `kidsAtR_of_kidsDTBR`: `KidsAt` by predicates of the memory;
-* `ccTsP`, `cc_nonemptyMP`: `cc_nonemptyM`, its callees' trees popping `ls` and `wp`, its tree popping `ls`, the hint,
-  `wp`;
+* `kidsT_impD`: callees' predicates weakened; `KidsAtR`, `kidsAtR_of_kidsDTBR`: callees complete at their running offsets, by predicates of the memory;
+* `ccTsP`, `cc_nonemptyMP`: the nonempty list placed on either arm, its callees' trees popping `ls` and `wp`, its
+  tree popping `ls`, the hint, `wp`;
 * `ccPopsW`: the list's entries; `child_claim_list_digest_completeAtTBP_any`, `_mono`: the two walks with their pops.
 -/
 
@@ -45,7 +45,7 @@ theorem kidsT_impD : ∀ {cs : List Call} {Ts Ts' : List (Tree → Prop)} {ks : 
   | _ :: _, _ :: _, [], _, _, h => nomatch h
   | _ :: _, [], _ :: _, _, _, h => nomatch h
 
-/-- **`KidsAt` by predicates of the memory.** -/
+/-- **Callees complete at their running offsets**, by predicates of the memory. -/
 def KidsAtR (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) (ks : List Kid)
     (Ts : Reader → List (Tree → Prop)) (P : ℕ → Prop) (b : ℕ) : Prop :=
   ∃ (N : ℕ) (L : Main.Layout) (outs : List (List E × Main.Layout)), P N ∧ OutsOk ks outs ∧
@@ -65,8 +65,8 @@ def ccTsP (mono : Bool) (n : ℕ) (rd : Reader) (ls wp : List Pop) : List (Tree 
   [fun t => t.pops coreProgram rd = ls,
     fun t => (if mono then monoHonest n else anyHonest n) t ∧ t.pops coreProgram rd = wp]
 
-/-- **`cc_nonemptyM` with its pops**: its callees' trees popping `ls`, `wp` on each memory, its tree pops `ls`, the
-hint, `wp`. -/
+/-- **The nonempty list placed on either arm, with its pops**: its callees' trees popping `ls`, `wp` on each
+memory, its tree pops `ls`, the hint, `wp`. -/
 theorem cc_nonemptyMP (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ} {Lin : Main.Layout}
     {eP rg L n : ℕ} {base : E} {D : Digest} (hn0 : n ≠ 0) (hn : n < claimBig * bigFramesCap)
     {mono : Bool} {h : E} (hm : mono = true → h = gen)
@@ -186,8 +186,6 @@ theorem cc_nonemptyMP (fs : String → ℕ) (cert : String → V → ℕ) {κ : 
   · intro A hA
     cases mono <;> simp [hes, loadAddrs, Main.slEvs, ccdHead, ccE4, ccArm, ccAnyArm, ccMonoArm,
       ccdTail, Ev.loadAddr?] at hA
-
-
 
 /-- **A child's claim list's entries**: none for the empty list, else the split, the hint, the walk's `ws`. -/
 noncomputable def ccPopsW (n : ℕ) (h : E) (ws : List Pop) : List Pop :=
@@ -396,7 +394,6 @@ theorem child_claim_list_digest_completeAtTBP_mono (fs : String → ℕ) (cert :
   simp only [kidsBoundL, ccKidsM, List.headD_cons, List.tail_cons, ↓reduceIte] at hN
   simp only [ccBM, show n ≠ 0 by omega, ↓reduceIte]
   omega
-
 
 end
 end LeanVM.Guest.B1.Digest

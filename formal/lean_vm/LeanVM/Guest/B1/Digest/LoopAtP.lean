@@ -2,12 +2,16 @@
   LeanVM.Guest.B1.Digest.LoopAtP
 
   A loop helper whose block is atoms placing nothing, placed within its frames by a tree popping its blocks'
-  entries in order (`loopA_stepAt`, `loopA_completeAtB` with `relAtInP_of_walk_loop`).
+  entries in order (`relAtInP_of_walk_loop`).
 -/
 
 module
 
-public import LeanVM.Guest.B1.Digest.LoopAtB
+public import LeanVM.Guest.B1.Digest.PlacedLib
+public import LeanVM.Guest.B1.Digest.LoopComplete
+public import LeanVM.Guest.B1.Digest.ClaimListCChk
+public import LeanVM.Guest.B1.Main.KidsT
+public import LeanVM.Guest.Budget.Bounded
 public import LeanVM.Guest.B1.Main.RelAtInP
 public import LeanVM.Guest.B1.Main.MainPops
 public import LeanVM.Guest.Budget.BoundedL
@@ -18,9 +22,13 @@ public import LeanVM.Guest.Budget.BoundedL
 * `blockPops rd σ ss`: a block of atoms' entries at `σ` (its skeleton spliced, `Main.spliceS`);
 * `blockPops_wit`: on a valuation evaluated by `Fwd`, a block whose witness hints are `L`'s stack hints pops their
   oracle's words;
-* `LoopBlockInP … bp`: `LoopBlockIn`, the block popping `bp`;
-* `loopA_stepAtP`, `loopA_completeAtBP`: `loopA_stepAt`, `loopA_completeAtB` by trees popping the blocks' entries,
-  iteration by iteration.
+* `LoopBlockInP … bp`: at the counter `g^k`, on every memory defined below `2^κ` holding the caller's words `Lin`,
+  some valuation of the block holds, its loads read `Lin` (its range checks reading below `2^κ` are no loads) and
+  it pops `bp`;
+* `loopA_stepAtP`: a loop helper (`loopShapeF`) whose block is atoms placing nothing is `CompleteAtLR` from the
+  counter `g^k`, `k < m`, given the rest of the loop from `g^(k+1)`, which has its frames right after the
+  iteration's (`relAtInP_of_walk_loop`); `loopA_completeAtBP`: from every counter, by induction from the end,
+  within one frame per iteration and the tail of the call not entered at the end.
 -/
 
 namespace LeanVM.Guest.B1.Digest
@@ -34,6 +42,18 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL memL_append spliceS)
 open LeanVM.Guest.B1.Da (SlOk slEvs_holds)
 
 @[expose] public section
+
+theorem isAtomS_straight : ∀ {ss : List Stmt}, ss.all isAtomS = true → ss.all Main.Stmt.straight = true
+  | [], _ => rfl
+  | s :: ss, h => by
+    simp only [List.all_cons, Bool.and_eq_true] at h ⊢
+    refine ⟨?_, isAtomS_straight h.2⟩
+    cases s <;> simp_all [isAtomS, Main.Stmt.straight]
+
+theorem fn_name_of_find' {f : String} {fn : Fn} (h : coreProgram.find? f = some fn) :
+    fn.name = f := by
+  have := List.find?_some h
+  simpa using this
 
 /-- **A block's entries** at `σ`: its skeleton spliced with no callee. -/
 noncomputable def blockPops (rd : Reader) (σ : Val) (ss : List Stmt) : List Pop :=
@@ -105,7 +125,8 @@ theorem blockPops_wit {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {
 
 variable (fs : String → ℕ) (cert : String → V → ℕ)
 
-/-- **`LoopBlockIn`, the block popping `bp`.** -/
+/-- **A block of a loop of atoms at the counter `g^k`, popping `bp`**: a valuation of it holds, its loads read
+the caller's words and it pops `bp`. -/
 def LoopBlockInP (κ : ℕ) (fn : Fn) (Lin : Layout) (k : ℕ) (N : E) (rest : List E) (bp : List Pop) : Prop :=
   ∀ rd, LowDef κ rd → MemL rd Lin → ∃ σ : Val, fn.params.map σ = gen ^ k :: N :: rest ∧
     (∀ a ∈ atomsIn (loopPre fn), a.Holds rd σ) ∧

@@ -20,8 +20,7 @@ public import LeanVM.Guest.Pack.P45.Core
 `c0`, `c2` at the cursor, absorbs them, and squeezes `r` after the round's grind
 (`ROUND2_GRIND_BITS`, zero bits as deployed: a plain squeeze); `h(0) + h(1) = claim` fixes
 the linear coefficient, so it returns the capacity, the cursor two words on,
-`h(r) = c0 + r (claim + (1 + r) c2)` and `r`. That is one plain round of `sumcheck _ 3`
-(`tailRound_run`).
+`h(r) = c0 + r (claim + (1 + r) c2)` and `r`. That is one plain round of `sumcheck _ 3`.
 
 Its body: the capacity copied, the two stream words read and absorbed, the pad run, the
 permutation (the challenge its first cell), the outputs. `vc` computes its condition, which the
@@ -56,19 +55,6 @@ theorem tail_eval (c0 c2 claim r : E) :
     c0 + r * (claim + (1 + r) * c2) = polyEval [c0, claim + sumE [c2], c2] r := by
   simp only [polyEval, List.foldr, sumE, List.foldl, zero_add, zero_mul]
   ring
-
-/-- **`opening_tail_round` is a plain round of `sumcheck _ 3`.** -/
-theorem tailRound_run (cap : List E) (c0 c2 claim : E) :
-    let s := (⟨cap, []⟩ : Fs).absorbAll [c0, c2] dsObserve
-    RunsTo (sumcheck claim 3 [none]) ⟨cap, []⟩ [c0, c2]
-      ([s.squeeze.1], c0 + s.squeeze.1 * (claim + (1 + s.squeeze.1) * c2)) s.squeeze.2 := by
-  intro s
-  have h := runsTo_sumcheck_cons (runsTo_roundPolyNone ⟨cap, []⟩ claim c0 [c2] 3 rfl (by decide))
-    (runsTo_sumcheck_nil _ (polyEval [c0, claim + sumE [c2], c2]
-      (((⟨cap, []⟩ : Fs).absorb c0 dsObserve).absorbAll [c2] dsObserve).squeeze.1) 3)
-  refine h.of_eq rfl rfl ?_ rfl
-  rw [tail_eval]
-  rfl
 
 theorem word_four : word 4 0 = gen ^ 2 := word_two_pow (a := 2) (by decide)
 

@@ -162,8 +162,6 @@ theorem word_eq128 {a b : Nat} (ha : a < 2 ^ 64) :
   rw [← ofBits_mod (a + 2 ^ 64 * b), show (a + 2 ^ 64 * b) % 2 ^ 64 = a by omega,
     show (a + 2 ^ 64 * b) / 2 ^ 64 = b by omega]
 
-theorem pw_64 : word 0 1 = pw 64 := by simp [pw]
-
 /-- **The message, sound**: the claim's keys and its message's two cells loaded. -/
 theorem sMsg_sound (h : AtomsHold rd σ sMsg) :
     LoadHolds rd (σ (.n (val% «verify_sig_lean_sphincs» "signer"))) 0 (σ sPP) ∧ LoadHolds rd (σ (.n (val% «verify_sig_lean_sphincs» "signer"))) 1 (σ sRoot) ∧
@@ -674,33 +672,6 @@ theorem sDigestBlock_sound_stmt {κ : Nat} (hκ : κ ≤ 32) {L : MemoryImage κ
   have hm : (cellPairVal (σ sM0) (σ sM1)).toNat = msgNat (σ sM0) (σ sM1) := cellPairVal_toNat _ _
   simp only [sphincsClaimOf]
   rw [hmsgDigest_cells, hm, ← hT]
-
-/-! ## What the block holds, in the statement's terms -/
-
-theorem DigestAt.forsBit {T : Nat} (h : DigestAt σ T) {c k : Nat} (hc : c < 24) (hk : k < 10) :
-    σ (sMdBit (10 * c + 9 - k)) = bitE ((Sphincs.digestForsLeaves (digestOf T) ⟨c, hc⟩).val.testBit k) := by
-  rw [h.mdBit (by omega), digestForsLeaves_val h.1, testBit_forsLeafN]
-  simp [hk]
-
-theorem DigestAt.forsVal {T : Nat} (h : DigestAt σ T) {c z : Nat} (hc : c < 24) (hz : z < 10) :
-    σ (sFVal c z) =
-      eOfNat (2 ^ (10 - z) * c + (Sphincs.digestForsLeaves (digestOf T) ⟨c, hc⟩).val >>> z) := by
-  rw [h.2.2.1 c hc z hz, digestForsLeaves_val h.1]
-
-theorem DigestAt.layerBit {T : Nat} (h : DigestAt σ T) {l k : Nat} (hl : l < 3) (hk : k < sLeafLen l) :
-    σ (sLeafBit (8 * l + k)) =
-      bitE ((Sphincs.leafOfIndex ⟨l, hl⟩ (Sphincs.digestIndex (digestOf T))).val.testBit k) := by
-  have h26 : 8 * l + k < 26 := by simp only [sLeafLen] at hk; split_ifs at hk <;> omega
-  rw [h.leafBit h26, leafOfIndex_digest h.1, testBit_layerLeafN]
-  simp [hk, sLeafOff]
-
-theorem DigestAt.layerVal {T : Nat} (h : DigestAt σ T) {l z : Nat} (hl : l < 3) (hz : z < sLeafLen l) :
-    σ (sLVal (8 * l + z)) = eOfNat ((Sphincs.leafOfIndex ⟨l, hl⟩ (Sphincs.digestIndex (digestOf T))).val >>> z) := by
-  rw [show 8 * l + z = sLeafOff l + z from rfl, h.2.2.2.1 l hl z hz, leafOfIndex_digest h.1]
-
-theorem DigestAt.treeMid {T : Nat} (h : DigestAt σ T) :
-    σ sTreeMid = eOfNat ((Sphincs.leafOfIndex ⟨2, by decide⟩ (Sphincs.digestIndex (digestOf T))).val % 2 ^ 8) := by
-  rw [h.2.2.2.2, leafOfIndex_digest h.1, layerLeaf2_low]
 
 end
 end LeanVM.Guest.B1.Sig

@@ -19,7 +19,8 @@ import LeanVM.Guest.Data.ValNames.«aggregate_claims»
 /-!
 # `aggregate_claims` (TRIAGE G #97)
 
-`aggregate_claims_holds : aggregate_claims_sound_Spec`, from `batch_sumcheck__L23`'s meaning
+`aggregate_claims_val`: at a valuation of its body, `aggregate_claims` writes the batching of the
+children whose words the memory holds (`MeaningAggregateClaimsW`), from `batch_sumcheck__L23`'s meaning
 (`batch_sumcheck_holds`) and the inlined grind's (`gcInline_sound`, on the memory image). For
 `n_children_g = g^m`, the hints are the nonce `bc_sumcheck_msgs[0]`, the rounds after it and
 `bc_star_hint` (`aggHints`), and the claim written at `defer_stmt` is the sumcheck's point and
@@ -544,20 +545,6 @@ theorem aggregate_claims_val {C : CallRel} {rd : Reader} (hm : MemOk rd)
   -- the check
   rw [batch_fs, ite_pos' hpowOk, hrun, hw, ← h115, assertEq_sound hae hat, isMul_sound hm195 hat]
   exact ite_pos' rfl
-
-/-- **`aggregate_claims`' core IR writes the batching of the children whose words the memory
-holds**, on a memory image. -/
-theorem aggregate_claims_holds : aggregate_claims_sound_Spec := by
-  intro rd hm args rets hrel
-  obtain ⟨σ, hpar, hb⟩ := (rel_iff_sem find_aggregate_claims _ _).mp hrel
-  have h := aggregate_claims_val hm (fun _ _ _ h => h) hpar hb
-  match args, h with
-  | [ncg, cpi, cfresh, ccarried, dst, tabs], h =>
-    intro hW m hm1 hm16 hN
-    obtain ⟨hr, out, hl, hrd, hb⟩ := h hW m hm1 hm16 hN
-    exact ⟨hr, aggHints rd σ, out, hl, hrd, hb⟩
-  | [], h | [_], h | [_, _], h | [_, _, _], h | [_, _, _, _], h | [_, _, _, _, _], h => exact h.elim
-  | _ :: _ :: _ :: _ :: _ :: _ :: _ :: _, h => exact h.elim
 
 end
 end LeanVM.Guest.B1.Main

@@ -34,12 +34,6 @@ open LeanVM.Parameters LeanVM.Guest
 
 /-- The address types (`hash.rs`). -/
 def adrsWotsHash : Nat := 0
-def adrsWotsPk : Nat := 1
-def adrsTree : Nat := 2
-def adrsForsTree : Nat := 3
-def adrsForsRoots : Nat := 4
-def adrsWotsEnc : Nat := 7
-
 /-- **A big-endian 32-bit word at word slot `k` of a 16-byte half**, as the number it adds to the
 half's cell: its bytes reversed, the low byte at the slot's last byte. -/
 def beWordAt (k w : Nat) : Nat :=

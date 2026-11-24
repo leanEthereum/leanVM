@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.MerkleComplete
 
-  A Merkle path completes: the children hinted in the order of the node's bit, each parent hashed.
+  A 64-byte `keccak` of four cells completes, its output their hash.
 -/
 
 module
@@ -10,11 +10,11 @@ public import LeanVM.Guest.B1.Sig.CodewordComplete
 public import LeanVM.Guest.B1.Sig.KMsgComplete
 
 /-!
-# The Merkle path, complete
+# A path level's hash, complete
 
 * `check_complete`: an atom holding already completes on an empty range;
-* `merkle_level_complete`: one level, its children hinted in order;
-* `merkleT_complete`: the path from `cur`, its node at each level the forward fold `mFold`.
+* `mPair`: a level's children in the order of its bit;
+* `k64_complete`: a 64-byte `keccak` completes, its output the inputs' `hcell`.
 -/
 
 namespace LeanVM.Guest.B1.Sig
@@ -33,22 +33,8 @@ theorem check_complete {a : Atom} {σ : Val} (h : a.Holds rd σ) (lo : Nat) :
     simp only [List.mem_singleton, Stmt.atom.injEq] at hx
     subst hx; exact h)
 
-/-- The address of a level: its constant plus the parent's index. -/
-def mA (σ : Val) (nodeOf : Nat → Option V) (addrOf : Nat → Nat) (l : Nat) : E :=
-  word (addrOf l) 0 + match nodeOf l with
-    | none => 0
-    | some nd => σ nd
-
 /-- A level's children in the order of its bit, from the node and the sibling. -/
 def mPair (bit : Bool) (node sib : E) : E × E := if bit then (sib, node) else (node, sib)
-
-theorem mA_congr {σ σ' : Val} {nodeOf : Nat → Option V} {addrOf : Nat → Nat} {l b : Nat}
-    (hnd : ∀ nd, nodeOf l = some nd → NBv b nd) (hσ : AgreeBelow b σ σ') :
-    mA σ' nodeOf addrOf l = mA σ nodeOf addrOf l := by
-  unfold mA
-  cases h : nodeOf l with
-  | none => rfl
-  | some nd => simp only; rw [hσ.apply (hnd nd h)]
 
 theorem k64_vals_eq (pad : Nat) (m0 m1 m2 m3 : V) (c o : Nat) :
     k64 pad m0 m1 m2 m3 c o = [cst c (word (2 ^ 63) 0)] ++ [kecS [m0, m1, m2, m3, .n pad, .n (pad + 1),
@@ -97,229 +83,6 @@ theorem k64_complete {pad : Nat} {m0 m1 m2 m3 : V} {c : Nat} (σ : Val) (hp : Pa
         rw [hag2.apply ⟨c, by omega, rfl⟩]
         exact hp1
       · exact hk a ha
-
-/-- **One level of a Merkle path completes**, its children hinted in the order of its bit. -/
-theorem merkle_level_complete {pad : Nat} {pp bit cur : V} {b c w : Nat} {nodeL : List Stmt} (σ : Val)
-    (hp : PadOK σ pad) (hpb : pad + 5 ≤ b) (hpp : NBv b pp) (hbit : NBv b bit) (hcur : NBv b cur)
-    (hseq : SeqOK (b + 4) ([cst (b + 4) (word w 0)] ++ nodeL) c) (hcb : b + 5 ≤ c)
-    {Aval : E} (hA : ∀ σ', AgreeBelow b σ σ' → AtomsHold rd σ' ([cst (b + 4) (word w 0)] ++ nodeL) →
-      σ' (.n (c - 1)) = Aval) {bt : Bool}
-    (hbv : σ bit = if bt then 1 else 0) {sib : E}
-    (hh : σ (.n b) = (mPair bt (σ cur) sib).1 ∧ σ (.n (b + 1)) = (mPair bt (σ cur) sib).2) :
-    Completes C rd b (c + 2)
-      ([hintW "siblings" [.n b, .n (b + 1)], addS (.n (b + 2)) cur (.n b),
-          addS (.n (b + 3)) (.n b) (.n (b + 1)), mulS (.n (b + 2)) bit (.n (b + 3)), cst (b + 4) (word w 0)] ++
-        nodeL ++ k64 pad pp (.n (c - 1)) (.n b) (.n (b + 1)) c (c + 1)) σ
-      (fun σ' => σ' (.n (c + 1)) = (hcell [σ pp, Aval, (mPair bt (σ cur) sib).1,
-        (mPair bt (σ cur) sib).2]).1 ∧ σ' (.n b) = σ (.n b) ∧
-        σ' (.n (b + 1)) = σ (.n (b + 1))) := by
-  have hle := hseq.le
-  have hsplit : [hintW "siblings" [.n b, .n (b + 1)], addS (.n (b + 2)) cur (.n b),
-      addS (.n (b + 3)) (.n b) (.n (b + 1)), mulS (.n (b + 2)) bit (.n (b + 3)), cst (b + 4) (word w 0)] ++
-      nodeL ++ k64 pad pp (.n (c - 1)) (.n b) (.n (b + 1)) c (c + 1) =
-      [hintW "siblings" [.n b, .n (b + 1)]] ++ ([addS (.n (b + 2)) cur (.n b),
-        addS (.n (b + 3)) (.n b) (.n (b + 1))] ++ ([mulS (.n (b + 2)) bit (.n (b + 3))] ++
-        (([cst (b + 4) (word w 0)] ++ nodeL) ++ k64 pad pp (.n (c - 1)) (.n b) (.n (b + 1)) c (c + 1)))) := by
-    simp
-  rw [hsplit]
-  have hs2 : SeqOK (b + 2) [addS (.n (b + 2)) cur (.n b), addS (.n (b + 3)) (.n b) (.n (b + 1))] (b + 4) :=
-    ⟨⟨rfl, hcur.mono' (by omega), ⟨b, by omega, rfl⟩⟩, ⟨rfl, ⟨b, by omega, rfl⟩, ⟨b + 1, by omega, rfl⟩⟩, rfl⟩
-  refine Completes.append (m := b + 2) (by omega) (by omega)
-    (by rw [valsList_hint]; exact .cons ⟨b, by omega, rfl⟩ (.cons ⟨b + 1, by omega, rfl⟩ (.nil _)))
-    (hintKeep_complete σ _ _ _ _) (fun σ1 he1 hp1 => ?_)
-  rw [hp1]
-  refine Completes.append (m := b + 4) (by omega) (by omega) hs2.numBelow (seq_completes hs2 σ)
-    (fun σ2 he2 hp2 => ?_)
-  have hag2 : AgreeBelow (b + 2) σ σ2 := he2.agree
-  have e2 : σ2 (.n (b + 2)) = σ2 cur + σ2 (.n b) := hp2.atom (a := .add _ _ _) (by simp [addS])
-  have e3 : σ2 (.n (b + 3)) = σ2 (.n b) + σ2 (.n (b + 1)) := hp2.atom (a := .add _ _ _) (by simp [addS])
-  have hb2 : σ2 (.n b) = σ (.n b) := hag2.apply ⟨b, by omega, rfl⟩
-  have hb12 : σ2 (.n (b + 1)) = σ (.n (b + 1)) := hag2.apply ⟨b + 1, by omega, rfl⟩
-  have hc2 : σ2 cur = σ cur := hag2.apply (hcur.mono' (by omega))
-  have hbit2 : σ2 bit = σ bit := hag2.apply (hbit.mono' (by omega))
-  have hmul : (Atom.mul (.n (b + 2)) bit (.n (b + 3))).Holds rd σ2 := by
-    show σ2 (.n (b + 2)) = σ2 bit * σ2 (.n (b + 3))
-    rw [e2, e3, hb2, hb12, hc2, hbit2, hbv, hh.1, hh.2]
-    cases bt
-    · simp [mPair, e_add_self]
-    · simp [mPair, add_comm]
-  refine Completes.append (m := b + 4) le_rfl (by omega)
-    (by simp only [mulS, valsList_cons, valsList_nil, Stmt.vals, Atom.vals, List.append_nil]
-        exact .cons ⟨b + 2, by omega, rfl⟩ (.cons (hbit.mono' (show b ≤ b + 4 by omega))
-          (.cons ⟨b + 3, by omega, rfl⟩ (.nil _))))
-    (check_complete hmul (b + 4)) (fun σ3 he3 hp3 => ?_)
-  rw [hp3]
-  refine Completes.append (m := c) (by omega) (by omega) hseq.numBelow (seq_completes hseq σ2)
-    (fun σ4 he4 hp4 => ?_)
-  have hag4 : AgreeBelow (b + 4) σ2 σ4 := he4.agree
-  have hag24 : AgreeBelow b σ σ4 := fun j hj => (hag2 j (by omega)).trans (hag4 j (by omega))
-  have hadr : σ4 (.n (c - 1)) = Aval := hA σ4 hag24 hp4
-  have hpad4 : PadOK σ4 pad := hp.congr hpb hag24
-  have h4b : σ4 (.n b) = σ (.n b) := (hag4.apply ⟨b, by omega, rfl⟩).trans hb2
-  have h4b1 : σ4 (.n (b + 1)) = σ (.n (b + 1)) := (hag4.apply ⟨b + 1, by omega, rfl⟩).trans hb12
-  have h4pp : σ4 pp = σ pp := hag24.apply hpp
-  obtain ⟨σ5, he5, hout, hh5⟩ := k64_complete (C := C) (rd := rd) (pad := pad)
-    (m0 := pp) (m1 := .n (c - 1)) (m2 := .n b) (m3 := .n (b + 1)) (c := c) σ4 hpad4 (by omega) (by
-      simp only [List.mem_cons, List.not_mem_nil, or_false]
-      rintro v (rfl | rfl | rfl | rfl)
-      · exact hpp.mono' (by omega)
-      · exact ⟨c - 1, by omega, rfl⟩
-      · exact ⟨b, by omega, rfl⟩
-      · exact ⟨b + 1, by omega, rfl⟩)
-  refine ⟨σ5, he5, ⟨?_, ?_, ?_⟩, hh5⟩
-  · have := hout
-    rw [this, h4pp, hadr, h4b, h4b1, hh.1, hh.2]
-  · rw [he5.apply (Or.inl (by omega)), h4b]
-  · rw [he5.apply (Or.inl (by omega)), h4b1]
-
-theorem merkleT_snd_ge (pad : Nat) (pp : V) (bitOf : Nat → V) (nodeOf : Nat → Option V)
-    (addrOf : Nat → Nat) : ∀ (m l : Nat) (cur : V) (b : Nat), b ≤ (merkleT pad pp bitOf nodeOf addrOf m l cur b).2.1
-  | 0, _, _, _ => le_rfl
-  | m + 1, l, cur, b => by
-      simp only [merkleT]
-      split <;>
-        exact le_trans (Nat.le_trans (Nat.le_add_right b _) (Nat.le_add_right _ 2))
-          (merkleT_snd_ge pad pp bitOf nodeOf addrOf m (l + 1) _ _)
-
-theorem level_numBelow {pad : Nat} {pp bit cur : V} {b c w : Nat} {nodeL : List Stmt}
-    (hpb : pad + 5 ≤ b) (hpp : NBv b pp) (hbit : NBv b bit) (hcur : NBv b cur)
-    (hseq : SeqOK (b + 4) ([cst (b + 4) (word w 0)] ++ nodeL) c) (hcb : b + 5 ≤ c) :
-    NumBelow (c + 2) (Stmt.valsList ([hintW "siblings" [.n b, .n (b + 1)], addS (.n (b + 2)) cur (.n b),
-      addS (.n (b + 3)) (.n b) (.n (b + 1)), mulS (.n (b + 2)) bit (.n (b + 3)), cst (b + 4) (word w 0)] ++
-      nodeL ++ k64 pad pp (.n (c - 1)) (.n b) (.n (b + 1)) c (c + 1))) := by
-  have hn := hseq.numBelow
-  rw [valsList_append] at hn
-  intro x hx
-  simp only [valsList_append, List.mem_append] at hx
-  rcases hx with (hx | hx) | hx
-  · simp only [hintW, addS, mulS, cst, valsList_cons, valsList_nil, Stmt.vals, Atom.vals, Hint.vals,
-      Dest.vals, List.append_nil, List.cons_append, List.nil_append, List.mem_cons, List.not_mem_nil,
-      or_false] at hx
-    rcases hx with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
-    all_goals first | exact ⟨_, by omega, rfl⟩ | exact hcur.mono' (by omega) | exact hbit.mono' (by omega)
-  · obtain ⟨j, hj, rfl⟩ := hn x (List.mem_append_right _ hx)
-    exact ⟨j, by omega, rfl⟩
-  · simp only [k64, cst, kecS, valsList_cons, valsList_nil, Stmt.vals, Atom.vals, List.append_nil,
-      List.cons_append, List.nil_append, List.mem_cons] at hx
-    rcases hx with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | hx
-    all_goals first | exact ⟨_, by omega, rfl⟩ | exact hpp.mono' (by omega) |
-      exact runV_nb (o := c + 1) (n := 1) (by omega) _ hx
-
-/-- **A Merkle path completes**, each level's children loaded in the order of its bit: its node at
-each level the forward fold of the siblings, each level's sibling kept. -/
-theorem merkleT_complete {pad : Nat} {pp : V} {bitOf : Nat → V} {nodeOf : Nat → Option V}
-    {addrOf : Nat → Nat} {bits : Nat → Bool} {sibs : Nat → E} :
-    ∀ (m l : Nat) (cur : V) (b : Nat) (σ : Val), PadOK σ pad → pad + 5 ≤ b → NBv b pp → NBv b cur →
-      (∀ j < m, NBv b (bitOf (l + j)) ∧ σ (bitOf (l + j)) = if bits (l + j) then 1 else 0) →
-      (∀ l' nd, nodeOf l' = some nd → NBv b nd) →
-      Completes C rd b (merkleT pad pp bitOf nodeOf addrOf m l cur b).2.1
-        (merkleT pad pp bitOf nodeOf addrOf m l cur b).1 σ
-        (fun σ' => σ' (merkleT pad pp bitOf nodeOf addrOf m l cur b).2.2 =
-          mFold (σ pp) (mA σ nodeOf addrOf) bits sibs m l (σ cur) ∧
-          ∀ j < m, mSib σ' bitOf (l + j) (mBase nodeOf l j b) = sibs (l + j))
-  | 0, _, cur, b, σ, _, _, _, _, _, _ =>
-      ⟨σ, Ext.refl _ _ _, ⟨rfl, fun j hj => absurd hj (by omega)⟩, fun _ _ hn => hn⟩
-  | m + 1, l, cur, b, σ, hp, hpb, hpp, hcur, hbits, hnodes => by
-      have h0 := hbits 0 (by omega)
-      simp only [Nat.add_zero] at h0
-      -- the level's children, loaded
-      have hextr : Ext b (b + 2) σ (Function.update (Function.update σ (.n b)
-          (mPair (bits l) (σ cur) (sibs l)).1) (.n (b + 1)) (mPair (bits l) (σ cur) (sibs l)).2) :=
-        fun v hv => by
-          rw [Function.update_of_ne (hv (b + 1) (by omega) (by omega)),
-            Function.update_of_ne (hv b le_rfl (by omega))]
-      set σr := Function.update (Function.update σ (.n b) (mPair (bits l) (σ cur) (sibs l)).1) (.n (b + 1))
-        (mPair (bits l) (σ cur) (sibs l)).2 with hσr
-      have hr0 : σr (.n b) = (mPair (bits l) (σ cur) (sibs l)).1 := by
-        rw [hσr, Function.update_of_ne (by simp), Function.update_self]
-      have hr1 : σr (.n (b + 1)) = (mPair (bits l) (σ cur) (sibs l)).2 := by
-        rw [hσr, Function.update_self]
-      have hagr : AgreeBelow b σ σr := hextr.agree
-      have hppr : σr pp = σ pp := hagr.apply hpp
-      have hcurr : σr cur = σ cur := hagr.apply hcur
-      -- the level, then the rest
-      have hall : ∀ (c : Nat) (nodeL : List Stmt), b + 5 ≤ c → mNext nodeOf l b = c + 2 →
-          SeqOK (b + 4) ([cst (b + 4) (word (addrOf l) 0)] ++ nodeL) c →
-          (∀ σ', AgreeBelow b σr σ' → AtomsHold rd σ' ([cst (b + 4) (word (addrOf l) 0)] ++ nodeL) →
-            σ' (.n (c - 1)) = mA σ nodeOf addrOf l) →
-          merkleT pad pp bitOf nodeOf addrOf (m + 1) l cur b =
-            ([hintW "siblings" [.n b, .n (b + 1)], addS (.n (b + 2)) cur (.n b),
-              addS (.n (b + 3)) (.n b) (.n (b + 1)), mulS (.n (b + 2)) (bitOf l) (.n (b + 3)),
-              cst (b + 4) (word (addrOf l) 0)] ++ nodeL ++ k64 pad pp (.n (c - 1)) (.n b) (.n (b + 1)) c (c + 1) ++
-              (merkleT pad pp bitOf nodeOf addrOf m (l + 1) (.n (c + 1)) (c + 2)).1,
-              (merkleT pad pp bitOf nodeOf addrOf m (l + 1) (.n (c + 1)) (c + 2)).2.1,
-              (merkleT pad pp bitOf nodeOf addrOf m (l + 1) (.n (c + 1)) (c + 2)).2.2) →
-          Completes C rd b (merkleT pad pp bitOf nodeOf addrOf (m + 1) l cur b).2.1
-            (merkleT pad pp bitOf nodeOf addrOf (m + 1) l cur b).1 σ
-            (fun σ' => σ' (merkleT pad pp bitOf nodeOf addrOf (m + 1) l cur b).2.2 =
-              mFold (σ pp) (mA σ nodeOf addrOf) bits sibs (m + 1) l (σ cur) ∧
-              ∀ j < m + 1, mSib σ' bitOf (l + j) (mBase nodeOf l j b) = sibs (l + j)) := by
-        intro c nodeL hc hnx hseq hA heq
-        rw [heq]
-        have hge := merkleT_snd_ge pad pp bitOf nodeOf addrOf m (l + 1) (.n (c + 1)) (c + 2)
-        refine Completes.reload (hextr.mono le_rfl (show b + 2 ≤
-          (merkleT pad pp bitOf nodeOf addrOf m (l + 1) (.n (c + 1)) (c + 2)).2.1 by omega)) ?_
-        refine Completes.append (m := c + 2) (by omega) hge
-          (level_numBelow hpb hpp h0.1 hcur hseq hc)
-          (merkle_level_complete (C := C) (rd := rd) (sib := sibs l) σr (hp.congr hpb hagr) hpb hpp h0.1 hcur hseq hc hA
-            (by rw [hagr.apply h0.1]; exact h0.2)
-            ⟨by rw [hr0, hcurr], by rw [hr1, hcurr]⟩)
-          (fun σ1 he1 hp1 => ?_)
-        obtain ⟨hv1, hk0, hk1⟩ := hp1
-        have hag : AgreeBelow b σ σ1 := fun j hj => (hagr j hj).trans (he1.agree j hj)
-        have hpp1 : σ1 pp = σ pp := hag.apply hpp
-        have hA1 : mA σ1 nodeOf addrOf = mA σ nodeOf addrOf :=
-          funext fun l' => mA_congr (fun nd h => hnodes l' nd h) hag
-        have hstep : mFold (σ pp) (mA σ nodeOf addrOf) bits sibs (m + 1) l (σ cur) =
-            mFold (σ1 pp) (mA σ1 nodeOf addrOf) bits sibs m (l + 1) (σ1 (.n (c + 1))) := by
-          rw [hpp1, hA1, hv1, hppr, hcurr, mFold]
-          simp only [mPair]
-          cases bits l <;> rfl
-        have hb1 : ∀ j < m, NBv (c + 2) (bitOf (l + 1 + j)) ∧
-            σ1 (bitOf (l + 1 + j)) = if bits (l + 1 + j) then 1 else 0 := by
-          intro j hj
-          obtain ⟨b1, b2⟩ := hbits (j + 1) (by omega)
-          rw [show l + 1 + j = l + (j + 1) by omega]
-          exact ⟨b1.mono' (by omega), by rw [hag.apply b1]; exact b2⟩
-        have hn1 : ∀ l' nd, nodeOf l' = some nd → NBv (c + 2) nd :=
-          fun l' nd h => (hnodes l' nd h).mono' (by omega)
-        obtain ⟨σ', he', ⟨e1, e3⟩, hh'⟩ := merkleT_complete m (l + 1) (.n (c + 1)) (c + 2) σ1
-          (hp.congr hpb hag) (by omega) (hpp.mono' (by omega)) ⟨c + 1, by omega, rfl⟩ hb1 hn1
-        refine ⟨σ', he', ⟨by rw [e1, hstep], fun j hj => ?_⟩, hh'⟩
-        rcases j with _ | j
-        · simp only [Nat.add_zero, mBase]
-          have hbk : σ' (.n b) = (mPair (bits l) (σ cur) (sibs l)).1 := by
-            rw [he'.apply (Or.inl (by omega)), hk0, hr0]
-          have hbk1 : σ' (.n (b + 1)) = (mPair (bits l) (σ cur) (sibs l)).2 := by
-            rw [he'.apply (Or.inl (by omega)), hk1, hr1]
-          have hbit' : σ' (bitOf l) = if bits l then 1 else 0 := by
-            rw [he'.agree.apply (h0.1.mono' (by omega)), hag.apply h0.1]
-            exact h0.2
-          unfold mSib
-          rw [hbit', hbk, hbk1]
-          cases bits l <;> simp [mPair]
-        · have hb : mBase nodeOf l (j + 1) b = mBase nodeOf (l + 1) j (c + 2) := by
-            simp only [mBase, hnx]
-          rw [hb, show l + (j + 1) = l + 1 + j by omega]
-          exact e3 j (by omega)
-      cases hn : nodeOf l with
-      | none =>
-          refine hall (b + 5) [] (by omega) (by simp [mNext, hn]) ⟨rfl, rfl⟩ (fun σ' _ hat => ?_)
-            (by simp [merkleT, hn])
-          have := hat.atom (a := .const (.n (b + 4)) (word (addrOf l) 0)) (by simp [cst])
-          simp only [mA, hn, add_zero]
-          exact this
-      | some nd =>
-          have hnd := hnodes l nd hn
-          refine hall (b + 6) [addS (.n (b + 5)) (.n (b + 4)) nd] (by omega) (by simp [mNext, hn])
-            ⟨rfl, ⟨rfl, ⟨b + 4, by omega, rfl⟩, hnd.mono' (by omega)⟩, rfl⟩ (fun σ' hag hat => ?_)
-            (by simp [merkleT, hn])
-          have e1 := hat.atom (a := .const (.n (b + 4)) (word (addrOf l) 0)) (by simp [cst])
-          have e2 := hat.atom (a := .add (.n (b + 5)) (.n (b + 4)) nd) (by simp [addS])
-          simp only [Atom.Holds] at e1 e2
-          simp only [mA, hn]
-          show σ' (.n (b + 5)) = _
-          rw [e2, e1, hag.apply hnd, hagr.apply hnd]
 
 end
 end LeanVM.Guest.B1.Sig

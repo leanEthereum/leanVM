@@ -16,7 +16,14 @@ import LeanVM.Guest.Data.ValNames.«child_claim_list_mono»
 
 * `gapTs rd pss`: the callees' trees popping `pss` on `rd`; `nodeHonest_true`, `nodeHonest_pops_noWit`: a node of
   honest shape so forgets them, and, with no witness hint of its own, pops them in order;
-* `child_claim_list_mono_completeAtTBP`: `child_claim_list_mono_completeAtTB` popping its claims' gaps (`monoPss`).
+* `child_claim_list_mono_completeAtTBP`: for `n = 136a + 17b + c < 136 · 2^20` honest claims at
+  strictly increasing slots `o j` (`MRec`: below `L`, every mark `base` at `region · g^(o j)`,
+  cells at `entries · g^(4 o j)`, the walk ending at most at `L < 2^κ`) among the caller's words,
+  `child_claim_list_mono` on `[g^eP, g^rg, base, g^L, g^a, g^b, g^c]` is complete returning the
+  cells' digest: its chain buffer (`monoCells`, `15 (a + b + 1)` words) after its frame, then
+  `child_claim_list_mono_loop0` over the `a` big frames, `child_claim_list_mono_loop1` over the `b`
+  groups (`monoLoop_completeAtBP`), `child_claim_list_mono_last__L{c}` (`mlc_completeAtBP`); by a tree
+  of honest shape `monoHonest n`, within `monoB fs n` words, popping its claims' gaps (`monoPss`).
 -/
 
 namespace LeanVM.Guest.B1.Digest
@@ -74,7 +81,8 @@ theorem mono_noWit : Stmt.noWitList (Fn.body fn% «child_claim_list_mono») = tr
 noncomputable def monoPss (o : ℕ → ℕ) (a b r : ℕ) : List (List Pop) :=
   [gapPops o 0 (136 * a), gapPops o (136 * a) (17 * b), gapPops o (136 * a + 17 * b) r]
 
-/-- **`child_claim_list_mono_completeAtTB` with its pops**: its tree pops its claims' gaps in order. -/
+/-- **`child_claim_list_mono` is complete, placed, by a tree of honest shape popping its claims' gaps in
+order, within its bound.** -/
 theorem child_claim_list_mono_completeAtTBP (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ} (hκ : 20 ≤ κ)
     {Lin : Main.Layout} {eP rg L n : ℕ} {base : E} {o : ℕ → ℕ} {cells : List E}
     (hn : n < claimBig * bigFramesCap) (hl : cells.length = 4 * n) (hLκ : L < 2 ^ κ)
@@ -352,7 +360,6 @@ theorem child_claim_list_mono_completeAtTBP (fs : String → ℕ) (cert : String
     refine ⟨b0 + c, by rw [hV.v16, hchain, limb0_gen_pow_mul], Or.inl ?_⟩
     rw [hal]
     exact hown _ (by omega) (by omega)
-
 
 end
 end LeanVM.Guest.B1.Digest

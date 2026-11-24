@@ -31,7 +31,7 @@ Ported from the BLAKE2s-era `B1/Basic.lean` (its hash-chain runs dropped; the du
   `loadHolds_mul_gen_pow`: a load through `p·g^j` at offset `k` is the load at offset `j + k`;
   `loadHolds_unique`.
 * `setv σ b n f`: `σ` with the values `.n (b + k)`, `k < n`, set to `f k`: how an honest
-  valuation is built, block after block (`set_n_in`, `set_n_lt`, `set_n_ge` evaluate it).
+  valuation is built, block after block (`set_n_in`, `set_n_lt` evaluate it).
 * `loop_iff`, `guarded_loop_iff`: a `mul_range` loop helper, from `g^k` to its end `N`, holds
   exactly when `N = g^m` for the first `m > k` the loop reaches and its body holds at every `g^j`,
   `k ≤ j < m`.
@@ -47,7 +47,6 @@ namespace LeanVM.Guest.B1
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
-
 
 @[expose] public section
 
@@ -140,7 +139,6 @@ theorem loadHolds_mul_gen_pow (rd : Reader) (p : E) (j k : ℕ) (w : E) :
         pow_add]
     exact h
 
-
 theorem loadHolds_unique {rd : Reader} {p : E} {k : ℕ} {w w' : E} (h : LoadHolds rd p k w)
     (h' : LoadHolds rd p k w') : w = w' :=
   Option.some.inj (h.2.symm.trans h'.2)
@@ -193,14 +191,6 @@ theorem set_n_lt {σ : Val} {b n k : ℕ} {f : ℕ → E} (h : k < b) : setv σ 
     exact absurd h'.2.2.1 (by simp only; omega)
   · rfl
 
-theorem set_n_ge {σ : Val} {b n k : ℕ} {f : ℕ → E} (h : b + n ≤ k) :
-    setv σ b n f (.n k) = σ (.n k) := by
-  unfold setv
-  split
-  · rename_i h'
-    exact absurd h'.2.2.2 (by simp only; omega)
-  · rfl
-
 /-- The valuation of a function's arguments, `.n k ↦ args[k]`. -/
 def Val.ofArgs (args : List E) : Val := fun v => args.getD v.idx 0
 
@@ -212,9 +202,14 @@ theorem ofArgs_n (args : List E) (k : ℕ) : Val.ofArgs args (.n k) = args.getD 
 /-- Evaluate a lookup in a valuation built by `setv`/`setl` on `Val.ofArgs`, the side conditions
 by `omega` from the context. -/
 macro "b1_look" : tactic =>
-  `(tactic| simp (disch := omega) only [setl, set_n_lt, set_n_ge, set_n_in, Nat.add_sub_cancel_left,
+  `(tactic| simp (disch := omega) only [setl, set_n_lt, set_n_in, Nat.add_sub_cancel_left,
     ofArgs_n, List.getD_cons_succ, List.getD_cons_zero, List.length_cons, List.length_nil,
     Nat.reduceAdd, Nat.reduceSub, Nat.add_zero, Nat.sub_self, Nat.zero_add])
+
+/-- Decide the next `if` of an unfolded index function by `omega`. -/
+macro "omega_if" : tactic => `(tactic| first
+  | (rw [ite_eq_right_of_eq_false]; rotate_left; exact eq_false (by omega))
+  | (rw [ite_eq_left_of_eq_true]; rotate_left; exact eq_true (by omega)))
 
 /-! ## `mul_range` loops -/
 
