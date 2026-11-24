@@ -59,14 +59,15 @@ Its fields are proved by `theorems_of_decoderSpec`, for any decoder program meet
 whose decodings explain the input by `guest_knowledge`.
 
 **The extractor.** `Statement.Theorems` takes the extractor as a cost-machine program
-(`Statement/CostMachine.lean`): `compiledKnowledgeExtractor` (`Cost/KnowledgeExtractor.lean`), the
-knowledge extractor `transcriptExtractor` (`LeanVM/Protocol/KnowledgeSoundness.lean`, the
-agreement-set extractor of `LeanVM/Protocol/Extraction/AS/Lite.lean`) compiled (`Cost/AS/Top.lean`)
-behind an entry (`Cost/AS/Program.lean`). Its size is within `leanVmKnowledgeExtractorSizeBound`
+(`Statement/CostMachine.lean`, `Statement/LeanVmExtractor.lean`): `compiledKnowledgeExtractor`
+(`Cost/KnowledgeExtractor.lean`), the knowledge extractor `transcriptExtractor`
+(`LeanVM/Protocol/KnowledgeSoundness.lean`, the agreement-set extractor of
+`LeanVM/Protocol/Extraction/AS/Lite.lean`) compiled (`Cost/AS/Top.lean`) behind an entry
+(`Cost/AS/Program.lean`). Its size is within `leanVmKnowledgeExtractorSizeBound`
 (`Cost/AS/ProgramSize.lean`), and the extractor it computes within its budget is
 `transcriptExtractor` (`LeanVM.Cost.extractorOf_extractorProgram`), for which
-`knowledgeSoundness_holds` is proved; its price is within `leanVmKnowledgeExtractorBudget`
-wherever it extracts (`LeanVM.Cost.AS.asPrice_within`, `Cost/AS/End.lean`).
+`knowledgeSoundness_holds` is proved; its price is within `leanVmKnowledgeExtractorBudget` wherever
+it extracts (`LeanVM.Cost.AS.asPrice_within`, `Cost/AS/End.lean`).
 
 Each theorem below proves a proposition of `Statement/` (`statement.tex`), in the
 random-permutation model where an adversary is involved, except the memory-decoder forms
@@ -76,8 +77,9 @@ random-permutation model where an adversary is involved, except the memory-decod
 `Statement.Theorems` itself:
 
 * `LeanVM.knowledgeSoundness_holds : KnowledgeSoundness transcriptExtractor` and
-  `LeanVM.completeness_holds : Completeness` (`Statement/LeanVm.lean`): the verifier, knowledge
-  sound for the straight-line extractor `transcriptExtractor`, and complete;
+  `LeanVM.completeness_holds : Completeness` (`Statement/LeanVm.lean`,
+  `Statement/LeanVmCompleteness.lean`): the verifier, knowledge sound for the straight-line
+  extractor `transcriptExtractor`, and complete;
 * `LeanVM.Guest.End.guest_knowledge : MemoryGuestKnowledge guestProgram decode` (`lean_vm`'s
   definition) and `LeanVM.Guest.Binding.digest_binds : StatementDigestBinds`
   (`Statement/LeanVmGuest.lean`;
@@ -89,7 +91,7 @@ random-permutation model where an adversary is involved, except the memory-decod
   for a decoder program `D` that computes it within its size bound and budget
   (`LeanVM.Guest.End.guestKnowledge_of_decode`), the compiled
   `LeanVM.Cost.compiledGuestWitnessDecoder`;
-* `LeanVM.Guest.Batch.batch_sound_holds : BatchingSound` (`Statement/LeanVmGuestCompleteness.lean`): the
+* `LeanVM.Guest.Batch.batch_sound_holds : BatchingSound` (`Statement/LeanVmGuestBatching.lean`): the
   recursion step, the batching of the children's deferred claims run outside the circuit, sound in
   the random-permutation model (from `batch_rpm`);
 * `LeanVM.Guest.EndExec.guestExecution_complete_holds : GuestExecutionComplete`

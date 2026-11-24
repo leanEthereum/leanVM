@@ -5,13 +5,13 @@ public import LeanVM.Cost.Spec
 /-!
 # The extractor's program: the entry and programs from lists of bodies
 
-The end statement's extractor program (`LeanVM.extractorComputedBy`, `Statement/CostMachine.lean`)
-runs its function `0` on the input `encodeLeanVmKnowledgeExtractorInput prog input T proof` (a
-constructor of four fields): `entryBody j` destructures it, calls function `j` (a compiled
-extractor's top) on the fields and unwraps its optional output. The program is the entry at `0`
-and the bodies the top's spec needs (`MachineProgram.ofList`; the compiler allocates indices from
-`1`): `compiledKnowledgeExtractor` (`Cost/KnowledgeExtractor.lean`) for the agreement-set
-extractor.
+The end statement's extractor program (`LeanVM.extractorComputedBy`,
+`Statement/LeanVmExtractor.lean`) runs its function `0` on the input
+`encodeLeanVmKnowledgeExtractorInput prog input T proof` (a constructor of four fields): `entryBody
+j` destructures it, calls function `j` (a compiled extractor's top) on the fields and unwraps its
+optional output. The program is the entry at `0` and the bodies the top's spec needs
+(`MachineProgram.ofList`; the compiler allocates indices from `1`): `compiledKnowledgeExtractor`
+(`Cost/KnowledgeExtractor.lean`) for the agreement-set extractor.
 
 * `includes_ofList`: a program built by `MachineProgram.ofList` holds its bodies if their indices are
   distinct; `nodup_of_increasing`: they are if they increase (a linear check, by evaluation);

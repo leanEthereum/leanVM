@@ -52,7 +52,7 @@ structure Theorems
   /-- leanVM is complete: the honest prover's (`LeanVM.leanVmHonestProver`, the executable
   `LeanVM.Prover.prove` of `Prover/Prove.lean`) proof of a valid execution of committed size at
   most `2^30`, at an inverse rate `2^ρ` with `1 ≤ ρ ≤ 4` and `2^35` nonces per proof of work, is
-  rejected with probability at most `2^-256` (`LeanVm.lean`). -/
+  rejected with probability at most `2^-256` (`LeanVmCompleteness.lean`). -/
   leanVmCompleteness : LeanVM.Completeness
 
   /-- Every valid execution of the leanISA guest program proves the node statement its public input
@@ -88,7 +88,7 @@ structure Theorems
   /-- The batching run outside the circuit is sound: at most `(QA + QV + 1) · max(2M - 3, 8) ·
   2^-130 + 5 (QA + QV)² · 2^-256` for fewer than `M` children, `QA` queries, `QV ≤ 2^96`, so
   `31 · 2^-130 ≈ 2^-125.05` per query at `M = 17`; it does not compose with the in-circuit
-  statements (`LeanVmGuestCompleteness.lean`). -/
+  statements (`LeanVmGuestBatching.lean`). -/
   batchingSound : LeanVM.Guest.Batch.BatchingSound
   
   /-- leanXMSS is strongly unforgeable, for one key: at most `(q + 2^10) · 2^-127` for an

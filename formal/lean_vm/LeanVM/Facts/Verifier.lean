@@ -1,7 +1,7 @@
 /-
   LeanVM.Facts.Verifier
 
-  Facts about the verifier's definitions (`Statement/LeanVmVerifier.lean`), proved:
+  Facts about the verifier's definitions (`Statement/Verifier/`), proved:
   the `q_keccak` spare slots and the `KECCAK` slot layout, and `pack`; and the verifier's
   definitions no end statement reaches, moved here from the statement, names kept: `yE`,
   `packBits`, `pack`, the deployed seed `seed` and the deployed verifier `verify`.

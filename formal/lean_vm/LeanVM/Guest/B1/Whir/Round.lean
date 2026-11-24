@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Whir.Flat
 /-!
 # `opening_round` (`lean_ethereum.py`, G below)
 
-One fold round of CWYZ26's affine combiner (`foldRound`, `Statement/LeanVmVerifier.lean`): the
+One fold round of CWYZ26's affine combiner (`foldRound`, `Statement/Verifier/Whir.lean`): the
 four scalars `u0, w, c0, c1`, a grind and `α`, then `β`; `α` stored for the point and, with
 `β`, for the queries' row folds, and the claim folded at `α`.
 

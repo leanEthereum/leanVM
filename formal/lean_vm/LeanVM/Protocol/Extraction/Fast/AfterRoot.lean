@@ -187,8 +187,8 @@ theorem runPure_readCommitment (height width : ℕ) (s : VerifierProgramState) :
 
 /-! ## Steps 1 and 2 -/
 
-/-- `readAnnouncedSizes bytecode` (`Statement/LeanVmVerifier.lean`), run: the announced sizes, read and
-checked (`sizesOf`), and the layout they give. -/
+/-- `readAnnouncedSizes bytecode` (`Statement/Verifier/Lib.lean`), run: the announced sizes, read
+and checked (`sizesOf`), and the layout they give. -/
 @[expose] def readSizesPure (bytecode : List K) (s : VerifierProgramState) :
     Option ((Layout × ℕ) × VerifierProgramState) :=
   (readPure (2 + tables.length) s).bind fun r ↦ (sizesOf bytecode r.1).map fun x ↦ (x, r.2)

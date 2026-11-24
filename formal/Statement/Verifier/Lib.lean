@@ -13,6 +13,13 @@ public import Statement.Verifier.RingSwitch
 The program returns `true` where the Rust returns `Ok`; `Transcript::finish`, the check that the
 proof is consumed, is `runProof`'s.
 
+**The bytecode's value.** The proof claims one value of the polynomial the statement fixes (the
+bytecode's multilinear extension) at a point the bus phase derives; the verifier checks that claim
+with a parameter `bytecodeValue : List K → List E → E → VerifierProgram Unit`. The deployed verifier
+evaluates the polynomial (`computedBytecodeValue`). The deferring verifier (`verifyDeferred`), which
+the Rust verifier does not have, instead holds the point and the value to a claim it hands on, as an
+aggregate's in-circuit verifier of its children does (`guests/lean_ethereum.py`, `verify_sub`).
+
 **The seed.** The sponge starts at Keccak-f of `IV ‖ public_input ‖ 0^17`, `IV` the Keccak-256 hash
 of `TAG ‖ bytecode`, the tag `"leanvm-v1"` naming the proof system's version and the bytecode as its
 little-endian words. The seed's input has the capacity lanes zero, Keccak-256's initial state, and

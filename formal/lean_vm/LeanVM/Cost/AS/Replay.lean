@@ -13,7 +13,6 @@ import all LeanVM.Protocol.EndToEnd.Sound.SkelLeaves
 import all Statement.Field
 import all Statement.Keccak
 import all LeanVM.Protocol.RunWithHash
-import all Statement.LeanVmVerifier
 import Statement.Verifier.Lib
 
 /-!

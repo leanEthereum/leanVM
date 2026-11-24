@@ -14,14 +14,15 @@ public import LeanVM.Guest.AcceptableChild
 /-!
 # The batching as a verifier program
 
-`Node.batch` runs on the duplex sponge of the verifier language: `observe` is a read's
-absorption (tag `1`) and `sample` a sample's squeeze. So the batching is a program
-`boundedBatchingProgram M bytecode` (`LeanVM.Protocol.Compile.VerifierProgram`; defined in `Statement/LeanVmGuestCompleteness.lean`,
-with the batching's end statement `BatchingSound`) whose prover sends the count `g^n` and
-three zeros, each child's words and the zeros to a whole rate (`childCells`), the sumcheck's
-messages and the final value, and whose challenges are the lambdas and the sumcheck's challenges.
-It reads the count as the `n < M` with `g^n` the first scalar (`countOf`), checks the padding,
-the final claim, and that the deferred claim holds of `bytecode`, then accepts.
+`Node.batch` runs on the duplex sponge of the verifier language: `observe` is a read's absorption
+(tag `1`) and `sample` a sample's squeeze. So the batching is a program `boundedBatchingProgram M
+bytecode` (`LeanVM.Protocol.Compile.VerifierProgram`; defined in
+`Statement/LeanVmGuestBatching.lean`, with the batching's end statement `BatchingSound`) whose
+prover sends the count `g^n` and three zeros, each child's words and the zeros to a whole rate
+(`childCells`), the sumcheck's messages and the final value, and whose challenges are the lambdas
+and the sumcheck's challenges. It reads the count as the `n < M` with `g^n` the first scalar
+(`countOf`), checks the padding, the final claim, and that the deferred claim holds of `bytecode`,
+then accepts.
 
 `runProof_batchAny`: run with Keccak-256 and Keccak-f[1600] from the batching's seed
 (`batchSeed`), on the stream of the count, children of the bytecode's shapes, the rounds of its

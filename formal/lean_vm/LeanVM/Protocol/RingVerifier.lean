@@ -1,7 +1,7 @@
 /-
   LeanVM.Protocol.RingVerifier
 
-  The statement's ring switching (`ringSwitch` of `Statement/LeanVmVerifier.lean`) on
+  The statement's ring switching (`ringSwitch` of `Statement/Verifier/RingSwitch.lean`) on
   `RingMap`'s definitions: the same map, target, coefficients and weight, and the bad challenges
   of the sixteen it draws counted as one group.
 -/

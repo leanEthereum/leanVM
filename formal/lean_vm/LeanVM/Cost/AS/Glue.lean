@@ -7,7 +7,6 @@ import all LeanVM.Protocol.EndToEnd.Sound.SkelPairs
 import all LeanVM.Protocol.EndToEnd.Sound.SkelWhir
 import all LeanVM.Protocol.EndToEnd.Sound.Avail
 import all LeanVM.Protocol.Extraction.Fast.AfterRoot
-import all Statement.LeanVmVerifier
 import Statement.Verifier.Lib
 import all Statement.CostMachine
 import all Statement.LeanVmExtractor

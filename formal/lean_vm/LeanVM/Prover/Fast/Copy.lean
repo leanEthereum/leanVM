@@ -6,7 +6,7 @@ import LeanVM.Prover.Fast.Sponge
 # Copies of definitions, compiled with `E`'s word-level arithmetic
 
 A `@[csimp]` lemma acts where code is compiled. The statement's prover (`Statement/Prover/`) and
-the verifier's functions it calls (`Statement/LeanVmVerifier.lean`) were compiled with `E`'s
+the verifier's functions it calls (`Statement/Verifier/`) were compiled with `E`'s
 generic product, and their compiled functions call one another, so a lemma here would change
 nothing in them. This module recompiles them. For a definition `f`, `f.fast` is the definition
 whose value is `f`'s with every product `x * y` and power `x ^ n` in `E` replaced by `mulE x y` and

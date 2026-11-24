@@ -1,7 +1,7 @@
 module
 
 public import Statement.Field
-public import Statement.Verifier.Transcript
+public import Statement.Verifier.Sponge
 public import Statement.RandomPermutation
 public import CompPoly.Fields.Binary.BF64
 public import CompPoly.Fields.Binary.AdditiveNTT.NovelPolynomialBasis
@@ -138,7 +138,7 @@ specified in `doc/leanvm/body/10-ethereum.tex`
   `da_verify`). The challenge is drawn
   from the root by leanVM's transcript (`membership_challenge`, `verifier/src/da.rs`): its
   sponge over Keccak-f[1600] seeded with the label's hash as its IV and the root as its public
-  input (`verifier/src/transcript.rs`, `Verifier/Transcript.lean`'s `Sponge`), then a `10`-bit grind
+  input (`verifier/src/transcript.rs`, `Verifier/Sponge.lean`'s `Sponge`), then a `10`-bit grind
   whose nonce is the smallest valid one, not sent, and the ground challenge it draws
   (`absorbNonce`, `transcript.rs`); the end statements draw it by this duplex over the
   permutation (`membershipChallengeWith`). A root none of whose `2^64` nonces is valid has no
@@ -301,8 +301,8 @@ def merklePathWith : ℕ → (ℕ → m DigestBytes) → ℕ → m (List DigestB
 def cellLeavesWith {r : ℕ} (cells : Fin (r * cellsPerRow) → Cell) (i j : ℕ) : m DigestBytes :=
   keccakDigestBytes π (cellBytes (paddedCell cells i j))
 
-/-- **The blob root of padded row `i`**: the Merkle root of its cell digests (`blob_merkle_nodes`; a
-padding row's is `root_of_padding_blob`). -/
+/-- **The blob root of padded row `i`**: the Merkle root of its cell digests, a tree of depth `7`,
+`2 ^ 7 = cellsPerRow` (`blob_merkle_nodes`; a padding row's is `root_of_padding_blob`). -/
 def blobRootWith {r : ℕ} (cells : Fin (r * cellsPerRow) → Cell) (i : ℕ) : m DigestBytes :=
   merkleRootWith π 7 (cellLeavesWith π cells i)
 
@@ -327,10 +327,12 @@ def climbWith : ℕ → DigestBytes → List DigestBytes → m DigestBytes
     let d ← keccakDigestBytes π (if index % 2 = 0 then pairBytes node s else pairBytes s node)
     climbWith (index / 2) d rest
 
-/-- **Verification of a cell opening** (`verify_cell`): a path of `7 + logMaxRows` siblings, then
-the row count's word, climbs from the cell's digest, at index `128 i + j` (the position: `j` in its
-blob's tree, then `i` in the tree over the blob roots), to the commitment. For `r ≤ maxRows` rows the
-last step is at index `0`, the crate's `mix_in_count`. The crate also refuses `r > maxRows` rows. -/
+/-- **Verification of a cell opening** (`verify_cell`): a path of `7 + logMaxRows` siblings
+(`MERKLE_PATH_LEN`, `commit.rs`: a blob's tree, `2 ^ 7 = cellsPerRow`, then the tree over the rows),
+then the row count's word, climbs from the cell's digest, at index `128 i + j` (the position: `j` in
+its blob's tree, then `i` in the tree over the blob roots), to the commitment. For `r ≤ maxRows`
+rows the last step is at index `0`, the crate's `mix_in_count`. The crate also refuses `r > maxRows`
+rows. -/
 def verifyCellWith (r : ℕ) (commitment : DigestBytes) (position : Fin (r * cellsPerRow))
     (cell : Cell) (opening : CellOpening) : m Bool := do
   let d ← keccakDigestBytes π (cellBytes cell)
@@ -339,10 +341,10 @@ def verifyCellWith (r : ℕ) (commitment : DigestBytes) (position : Fin (r * cel
 
 /-! ### The membership challenge (`verifier/src/da.rs`)
 
-Drawn from the root by the duplex sponge of the leanVM verifier (`Verifier/Transcript.lean`: `Sponge`,
-`seedInput`, `absorbNonce`, `squeeze`), over the permutation `π`
-(`verifier/src/transcript.rs`), after a grind whose nonce is not sent: the smallest valid
-one, which anyone deriving the challenge finds. -/
+Drawn from the root by the duplex sponge of the leanVM verifier (`Verifier/Sponge.lean`: `Sponge`,
+`seedInput`, `absorbNonce`, `squeeze`), over the permutation `π` (`verifier/src/transcript.rs`),
+after a grind whose nonce is not sent: the smallest valid one, which anyone deriving the challenge
+finds. -/
 
 /-- `MEMBERSHIP_GRINDING_BITS` (`verifier/src/da.rs`): `grinding_bits(2^13 - 1)`, the bits
 that bring the membership test's error `(2^13 - 1) / 2^128` to `2^-125`,
@@ -400,13 +402,13 @@ def openCell (π : KeccakState → KeccakState) {r : ℕ} (cells : Fin (r * cell
 
 /-- The normalized subspace polynomial `Ŵ_j`, vanishing on the span of `e_0 … e_(j-1)` and one
 at `e_j` (CompPoly's `normalizedW`; `vhat` in `aggregation`'s `placeholders.rs` tabulates it, the NTT's twiddles). -/
-noncomputable def normalizedSubspacePolynomial (j : Fin 13) : K[X] :=
-  AdditiveNTT.normalizedW (ZMod 2) basis (Fin.castLE (by omega) j)
+noncomputable def normalizedSubspacePolynomial (j : Fin logK) : K[X] :=
+  AdditiveNTT.normalizedW (ZMod 2) basis (Fin.castLE (by decide) j)
 
 /-- **The dual codeword of the challenge `z`** (the guest program's
 `da_vector`): `L(x) = ∏_j (1 + z^(2^j) Ŵ_j(x))` on the domain. -/
 noncomputable def dualCodewordAt (z : E) (b : Fin (2 ^ logM)) : E :=
-  ∏ j : Fin 13, (1 + z ^ 2 ^ (j : ℕ) * ι ((normalizedSubspacePolynomial j).eval (point b)))
+  ∏ j : Fin logK, (1 + z ^ 2 ^ (j : ℕ) * ι ((normalizedSubspacePolynomial j).eval (point b)))
 
 /-- The inner product of the dual codeword with a row: `Σ_x L(x) row(x)` (the guest program's `da_verify`). -/
 noncomputable def innerProduct (L : Fin (2 ^ logM) → E) (row : Row) : E := ∑ b, L b * row b
