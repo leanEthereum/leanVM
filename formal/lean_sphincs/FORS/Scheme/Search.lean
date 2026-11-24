@@ -22,8 +22,6 @@ therefore preserves the freshness hypothesis and multiplies one rejection factor
 
 open OracleComp OracleSpec ENNReal
 
-set_option maxRecDepth 10000
-
 namespace FORS.Completeness
 
 variable [Params]

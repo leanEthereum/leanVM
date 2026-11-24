@@ -167,18 +167,6 @@ theorem digit_val {n : Nat} (d : Digest) (i : Fin n) :
     (digestDigits d i).val = d.toNat / 4 ^ i.val % 4 := by
   simp [digestDigits, BitVec.extractLsb', winternitzBits, Nat.shiftRight_eq_div_pow, pow_mul]
 
-theorem encoding_pack (x : Encoding) : (digestDigits (pack x) : Encoding) = x := by
-  funext i
-  apply Fin.ext
-  rw [digit_val, toNat_pack, packNat,
-    digit_of_sum 4 (by decide) (wordDigit x) (wordDigit_lt x) chainCount i.val i.isLt,
-    wordDigit, dite_eq_left i.isLt]
-
-theorem valid_pack {x : Encoding} (hx : sum x = targetSum) : Valid (pack x) := by
-  refine ⟨?_, by rw [encoding_pack]; exact hx⟩
-  rw [toNat_pack]
-  exact Nat.div_eq_of_lt (by simpa [winternitzBits, chainCount] using packNat_lt x)
-
 /-- A codeword is the digest of its digits. -/
 theorem pack_encoding {d : Digest} (hd : Valid d) : pack (digestDigits d) = d := by
   apply BitVec.eq_of_toNat_eq

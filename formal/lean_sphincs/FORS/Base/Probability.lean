@@ -7,6 +7,7 @@ public import VCVio.OracleComp.Constructions.SampleableType.Measure
 public import VCVio.OracleComp.EvalDist.Sum
 public import VCVio.EvalDist.ProbabilityBounds
 public import VCVio.EvalDist.Monad.UniformTable
+public import Common.RomTable
 
 @[expose] public section
 
@@ -105,21 +106,4 @@ theorem uniformSample_bind_update_evalDistEq {D R : Type} [Finite D] [DecidableE
       let u ← ($ᵗ R : ProbComp R)
       let g ← ($ᵗ (D → R) : ProbComp (D → R))
       pure (Function.update g t u)) =ᵈ ($ᵗ (D → R) : ProbComp (D → R)) := by
-  let : MeasurableSpace R := ⊤
-  have h := evalDist_bind_bind_update_map ($ᵗ R) ($ᵗ (D → R))
-    SampleableType.evalDist_uniformSample SampleableType.evalDist_uniformSample t id
-  simp only [id, bind_pure] at h
-  exact EvalDistEq.of_evalDist_eq h
-
-/-- Expose a uniform table cell before running a continuation that reads it. -/
-theorem uniformSample_cell_extract_evalDistEq {D R α : Type} [Finite D] [DecidableEq D] [Finite R]
-    [Nonempty R] [SampleableType R] [SampleableType (D → R)] (t : D)
-    (next : (D → R) → R → ProbComp α) :
-    (do let g ← ($ᵗ (D → R) : ProbComp (D → R)); next g (g t)) =ᵈ (do
-      let u ← ($ᵗ R : ProbComp R)
-      let g ← ($ᵗ (D → R) : ProbComp (D → R))
-      next (Function.update g t u) u) := by
-  let : MeasurableSpace R := ⊤
-  let : MeasurableSpace α := ⊤
-  exact EvalDistEq.of_evalDist_eq <| evalDist_bind_cell_extract ($ᵗ R) ($ᵗ (D → R))
-    SampleableType.evalDist_uniformSample SampleableType.evalDist_uniformSample t next
+  simpa only [bind_pure] using Common.RomTable.evalDistEq_uniformSample_bind_update t pure

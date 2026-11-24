@@ -7,6 +7,8 @@ public import VCVio.OracleComp.SimSemantics.StateT.PreservesInv
 
 open OracleComp OracleSpec
 
+variable {α : Type}
+
 namespace XmssSecurity
 
 set_option maxRecDepth 100000

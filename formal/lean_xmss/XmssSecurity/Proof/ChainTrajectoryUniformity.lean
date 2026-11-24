@@ -13,7 +13,7 @@ noncomputable local instance chainTrajectorySampleableDigest : SampleableType Di
   SampleableType.ofFintype Digest
 
 @[simp]
-theorem Vector.back_push {n : Nat} (values : Vector α n) (value : α) :
+theorem Vector.back_push {α : Type _} {n : Nat} (values : Vector α n) (value : α) :
     (values.push value).back = value := by
   symm
   exact Vector.back_eq_of_push_eq (Vector.push_pop_back (values.push value)).symm

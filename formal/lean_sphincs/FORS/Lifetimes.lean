@@ -34,7 +34,7 @@ theorem h26_layered_adversary (adversary : Security.Adversary) (q : ℕ)
   det_bitsF (by decide) 26 26 24 10 264193 1182000000
     (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) 512487451133699472151040029945233408
     H0.rho_h26_b26 H0.tab_h26_b26 H0.small_h26_b26 H0.near_h26_b26 H0.tab_h26_b26_ok H0.rate_h26_b26_ok H0.small_h26_b26_ok
-    H0.near_h26_b26_ok H0.check_h26_b26_ok [H0.cover_h26_b26_0] [] H0.covers_h26_L_ok 879
+    H0.near_h26_b26_ok H0.check_h26_b26_ok [H0.cover_h26_b26_0] H0.covers_h26_L_ok 879
     (fun pk message signature => h26_verifyCalls ▸ Concrete.verify_calls pk message signature) adversary q hq
 
 end Adversary

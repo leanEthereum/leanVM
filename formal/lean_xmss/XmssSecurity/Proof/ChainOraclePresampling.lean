@@ -23,6 +23,8 @@ open OracleComp OracleSpec ENNReal
 open OracleComp.ProgramLogic
 open OracleComp.ProgramLogic.Relational
 
+variable {α : Type}
+
 namespace XmssSecurity.Concrete.CacheReplay
 
 attribute [local irreducible] Concrete.topTreeNode

@@ -3,7 +3,7 @@ module
 public import XmssSecurity.Proof.PrecomputedBoundedSignProbability
 public import XmssSecurity.Proof.CappedEncodingRejection
 public import XmssSecurity.Proof.RandomOracle
-public import XmssSecurity.Scan.LoopWalk
+public import Common.LoopWalk
 
 @[expose] public section
 
@@ -21,7 +21,7 @@ open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity.Scan
 
-open LoopWalk
+open Common.LoopWalk
 
 set_option maxRecDepth 100000
 

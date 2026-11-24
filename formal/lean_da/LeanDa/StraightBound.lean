@@ -45,18 +45,6 @@ theorem prEvent_bind_le_add_of_support {α β : Type} (mx : ProbComp α) (f g k 
   · rw [← mul_add]; gcongr; exact hp x hx
   · simp [prEvent_eq_zero_of_not_mem_support mx hx]
 
-theorem prEvent_bind_le_of_support {α β : Type} (mx : ProbComp α) (f : α → ProbComp β)
-    (P : β → Prop) (a : ℝ≥0∞) (hp : ∀ x ∈ support mx, Pr{let y ← f x}[P y] ≤ a) :
-    Pr{let y ← mx >>= f}[P y] ≤ a := by
-  simp only [OracleComp.prEvent_bind_eq_tsum]
-  calc ∑' x, Pr{let z ← mx}[z = x] * Pr{let y ← f x}[P y]
-      ≤ ∑' x, Pr{let z ← mx}[z = x] * a := tsum_le_tsum fun x ↦ by
-        by_cases hx : x ∈ support mx
-        · gcongr; exact hp x hx
-        · simp [prEvent_eq_zero_of_not_mem_support mx hx]
-    _ = (∑' x, Pr{let z ← mx}[z = x]) * a := ENNReal.tsum_mul_right
-    _ ≤ a := mul_le_of_le_one_left' (OracleComp.tsum_prEvent_le_one mx)
-
 /-! ## The simulated world with a verdict -/
 
 section Ideal
@@ -354,7 +342,7 @@ theorem codeBindingExpG_le (A : CodeBindingAdvB r Crs Proof) (Q : ℕ) (hr : r �
       (((2 * Q + 2 ^ 20 : ℕ) : ℝ≥0∞) * (65 * ((2 * Q + 2 ^ 20 : ℕ) : ℝ≥0∞) / 2 ^ 256) +
         (Q * ((2 ^ 13 - 1) / 2 ^ 138) + (2 ^ 13 - 1) / 2 ^ 128)) :=
   (prT_codeBindingExpG_le r ps ext A).trans (add_le_add le_rfl
-    (prEvent_bind_le_of_support _ _ _ _ fun crs hcrs ↦
+    (prEvent_bind_le_of_forall_le_of_support _ _ _ fun crs hcrs ↦
       prT_idealT_tailH_le r ps ext A Q hr crs (hA crs hcrs).1 (hA crs hcrs).2))
 
 end Ideal

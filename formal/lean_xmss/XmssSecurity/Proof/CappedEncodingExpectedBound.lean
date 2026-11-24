@@ -8,6 +8,8 @@ public import XmssSecurity.Proof.EncodingTargetMap
 
 open OracleComp OracleSpec ENNReal
 
+variable {α : Type}
+
 namespace XmssSecurity.CappedEncodingMonitor
 
 def IsEncodingHashQuery (parameter : PublicParameter) :

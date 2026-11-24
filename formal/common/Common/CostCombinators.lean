@@ -2,6 +2,7 @@ module
 
 public import Common.PiOnly
 public import Statement.HashSignatures
+import VCVio.EvalDist.List
 
 @[expose] public section
 
@@ -113,13 +114,8 @@ theorem mapM_cost {α β : Type} (f : α → OracleComp spec β) (b : ℕ) (h : 
 
 /-- `mapM` returns one result per element. -/
 theorem length_of_mem_support_mapM {α β : Type} (f : α → OracleComp spec β) :
-    ∀ (l : List α), ∀ ys ∈ support (l.mapM f), ys.length = l.length
-  | [], ys, h => by simp_all
-  | x :: l, ys, h => by
-    rw [List.mapM_cons] at h
-    simp only [mem_support_bind_iff, support_pure, Set.mem_singleton_iff] at h
-    obtain ⟨_, _, zs, hzs, rfl⟩ := h
-    simp [length_of_mem_support_mapM f l zs hzs]
+    ∀ (l : List α), ∀ ys ∈ support (l.mapM f), ys.length = l.length :=
+  List.length_of_mem_support_mapM f
 
 end Combinators
 

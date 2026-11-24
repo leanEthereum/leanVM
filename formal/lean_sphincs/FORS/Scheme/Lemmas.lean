@@ -114,12 +114,6 @@ theorem subtreeHeight_le_total : subtreeHeight ≤ totalHeight := Params.subtree
 
 theorem numLayers_pos : 0 < numLayers := Params.numLayers_pos
 
-/-- The index field lies inside the first digest call. -/
-theorem totalHeight_le_hashOutput : totalHeight ≤ hashOutputBits := by
-  have := totalHeight_le_28
-  unfold hashOutputBits
-  omega
-
 theorem two_pow_totalHeight_le : 2 ^ totalHeight ≤ 2 ^ 28 :=
   Nat.pow_le_pow_right (by decide) totalHeight_le_28
 

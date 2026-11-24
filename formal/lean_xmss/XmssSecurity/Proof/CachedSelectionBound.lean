@@ -8,6 +8,8 @@ public import XmssSecurity.Scan.PerKey
 
 open OracleComp OracleSpec ENNReal
 
+variable {α : Type}
+
 namespace XmssSecurity
 
 /-- Every signature selected an input whose initially cached digest, if any, is valid. -/

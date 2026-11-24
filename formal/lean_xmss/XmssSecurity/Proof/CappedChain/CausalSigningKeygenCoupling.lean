@@ -14,6 +14,8 @@ public import XmssSecurity.Proof.StatementLemmas
 open OracleComp OracleSpec
 open OracleComp.ProgramLogic.Relational
 
+variable {α : Type}
+
 namespace XmssSecurity.CappedChain
 
 theorem simulate_sequenceFin_run_eq_pure

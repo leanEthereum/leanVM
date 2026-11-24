@@ -8,7 +8,11 @@ public import XmssSecurity.Proof.ObservedTraceMonitor
 open OracleComp OracleSpec
 open OracleComp.ProgramLogic.Relational
 
+variable {α : Type}
+
 namespace XmssSecurity.CappedChain
+
+variable (table : GlobalChainValueIndex → Digest) (keyView : ProgrammedGlobalChainKeygenView)
 
 set_option maxRecDepth 1000000
 
@@ -75,7 +79,6 @@ theorem globalFilteredCausalAttackerHashPlan_eq_leafFresh_of_mismatch
 set_option maxRecDepth 1000000
 
 theorem globalLeaf_not_match_endpoint_miss
-    (table : GlobalChainValueIndex → Digest)
     (state : GlobalCausalHashState) (leafIndex : ChainKey)
     (endpoints : ChainIndex → Digest)
     (hreveals : GlobalSigningRevealsAgree table state)
@@ -499,7 +502,6 @@ theorem GlobalMerkleKeygenCacheRetained.cacheQuery_of_none
     exact hretained candidate hmerkle candidateOutput hkeygen
 
 theorem simulate_eagerTrace_globalCausalHashQuery_merkleRetained_of_cache_none
-    (table : GlobalChainValueIndex → Digest)
     (secretKey : SecretKey) (input : HashInput)
     (state : GlobalCausalHashState)
     (hretained : GlobalMerkleKeygenCacheRetained secretKey state)
@@ -624,8 +626,6 @@ theorem GlobalCausalSigningStateExtends.trans
   ⟨hfirst.1.trans hsecond.1, hsecond.2.trans hfirst.2⟩
 
 theorem simulate_eagerTrace_globalFilteredCausalSigningAttempt_stateExtends
-    (table : GlobalChainValueIndex → Digest)
-    (keyView : ProgrammedGlobalChainKeygenView)
     (request : SignRequest) (randomness : Randomness) (state : GlobalCausalHashState)
     (result : (Option Signature × GlobalCausalHashState) ×
       RevealProbeOracleSimulation.ActionTrace GlobalChainValueIndex)
@@ -699,8 +699,6 @@ theorem simulate_eagerTrace_globalFilteredCausalSignBoundedAttempts_stateExtends
             (ih (trial + 1) attemptResult.1.2 rest hrest)
 
 theorem simulate_eagerTrace_globalFilteredCausalSigningQuery_stateExtends
-    (table : GlobalChainValueIndex → Digest)
-    (keyView : ProgrammedGlobalChainKeygenView)
     (request : SignRequest) (state : GlobalCausalHashState)
     (result : (Option Signature × GlobalCausalHashState) ×
       RevealProbeOracleSimulation.ActionTrace GlobalChainValueIndex)
@@ -714,8 +712,6 @@ theorem simulate_eagerTrace_globalFilteredCausalSigningQuery_stateExtends
     signingAttemptLimit 0 base table keyView request state attemptResult hattempt
 
 theorem simulate_eagerTrace_globalFilteredCausalSigningQuery_merkleRetained
-    (table : GlobalChainValueIndex → Digest)
-    (keyView : ProgrammedGlobalChainKeygenView)
     (request : SignRequest) (state : GlobalCausalHashState)
     (hretained : GlobalMerkleKeygenCacheRetained keyView.secretKey state)
     (result : (Option Signature × GlobalCausalHashState) ×
@@ -739,14 +735,12 @@ structure GlobalMonitoredCausalState where
   trace : RevealProbeOracleSimulation.ActionTrace GlobalChainValueIndex
 
 def GlobalMonitoredCausalState.observed
-    (table : GlobalChainValueIndex → Digest)
     (state : GlobalMonitoredCausalState) :
     Option (AdaptiveRevealMonitor.State GlobalChainValueIndex) :=
   RevealProbeOracleSimulation.advanceObserved table
     AdaptiveRevealMonitor.State.empty state.trace
 
 def GlobalMonitoredCausalState.bad
-    (table : GlobalChainValueIndex → Digest)
     (state : GlobalMonitoredCausalState) : Prop :=
   state.observed table = none
 
@@ -761,7 +755,6 @@ def globalMonitoredCausalResult
   })
 
 theorem GlobalMonitoredCausalState.bad_implies_runObserved
-    (table : GlobalChainValueIndex → Digest)
     (state : GlobalMonitoredCausalState)
     (hbad : state.bad table) :
     RevealProbeOracleSimulation.runObserved table
@@ -1122,7 +1115,6 @@ theorem GlobalCausalHashState.recordReveal_transition
     simp [GlobalCausalHashState.recordReveal, Function.update_of_ne hne]
 
 theorem globalSignatureRevealResult_replays
-    (table : GlobalChainValueIndex → Digest)
     (request : SignRequest) (encoding : ChainIndex → Digit)
     (chains : List ChainIndex) (signature : Signature)
     (state : GlobalCausalHashState) :
@@ -1142,7 +1134,6 @@ theorem globalSignatureRevealResult_replays
       · exact ih _ _
 
 theorem globalSignatureTopRevealResult_replays
-    (table : GlobalChainValueIndex → Digest)
     (request : SignRequest) (encoding : ChainIndex → Digit)
     (chains : List ChainIndex) (signature : Signature)
     (state : GlobalCausalHashState) :
@@ -1162,7 +1153,6 @@ theorem globalSignatureTopRevealResult_replays
       · exact ih _ _
 
 theorem globalSignatureFullRevealResult_replays
-    (table : GlobalChainValueIndex → Digest)
     (topSigned : TopIndex → Option (Randomness × Encoding))
     (request : SignRequest) (encoding : ChainIndex → Digit) (signature : Signature)
     (state : GlobalCausalHashState) :
@@ -1178,8 +1168,6 @@ theorem globalSignatureFullRevealResult_replays
         state).append (globalSignatureTopRevealResult_replays table request signed.2 allChains _ _)
 
 theorem simulate_eagerTrace_globalFilteredCausalSigningAttempt_support_replays
-    (table : GlobalChainValueIndex → Digest)
-    (keyView : ProgrammedGlobalChainKeygenView)
     (request : SignRequest) (randomness : Randomness) (state : GlobalCausalHashState)
     (result : (Option Signature × GlobalCausalHashState) ×
       RevealProbeOracleSimulation.ActionTrace GlobalChainValueIndex)
@@ -1248,8 +1236,6 @@ theorem simulate_eagerTrace_globalFilteredCausalSignBoundedAttempts_support_repl
           exact hattemptReplay.append (ih (trial + 1) attemptResult.1.2 rest hrest)
 
 theorem simulate_eagerTrace_globalFilteredCausalSigningQuery_support_replays
-    (table : GlobalChainValueIndex → Digest)
-    (keyView : ProgrammedGlobalChainKeygenView)
     (request : SignRequest) (state : GlobalCausalHashState)
     (result : (Option Signature × GlobalCausalHashState) ×
       RevealProbeOracleSimulation.ActionTrace GlobalChainValueIndex)

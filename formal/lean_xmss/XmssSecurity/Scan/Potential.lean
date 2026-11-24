@@ -18,7 +18,7 @@ open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity.Partner
 
-open LoopWalk
+open Common.LoopWalk LoopWalk
 
 /-- The probability that a fresh uniform output truncates to a valid digest. -/
 noncomputable def landing : ℝ≥0∞ :=

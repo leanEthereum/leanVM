@@ -7,6 +7,8 @@ public import VCVio.ProgramLogic.Relational.Quantitative
 
 open OracleComp OracleSpec ENNReal
 
+variable {α β : Type}
+
 namespace XmssSecurity.FirstLaneOracleSimulation
 
 variable {Index : Type} [Fintype Index] [DecidableEq Index]

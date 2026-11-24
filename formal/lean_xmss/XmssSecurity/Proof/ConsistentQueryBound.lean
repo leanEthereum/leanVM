@@ -1,6 +1,6 @@
 module
 
-public import XmssSecurity.Proof.QueryCounting
+public import Common.QueryCount
 public import VCVio.OracleComp.QueryTracking.SubSpec
 public import XmssSecurity.Proof.IdealStatement
 
@@ -9,11 +9,10 @@ public import XmssSecurity.Proof.IdealStatement
 namespace XmssSecurity
 
 open OracleComp OracleSpec
-set_option backward.isDefEq.respectTransparency false
 
 noncomputable def countHashQueries {α : Type} (computation : OracleComp OracleWorld α) :
     OracleComp OracleWorld (α × Nat) :=
-  QueryCounting.counted (fun input : OracleWorld.Domain => input matches .inr _) computation
+  Common.QueryCount.counted (fun input : OracleWorld.Domain => input matches .inr _) computation
 
 def HashQueryBound {α : Type} (computation : OracleComp OracleWorld α)
     (cache : QueryCache HashSpec) (q : Nat) : Prop :=
@@ -35,7 +34,7 @@ theorem countHashQueries_bind {α β : Type} (first : OracleComp OracleWorld α)
       let a ← countHashQueries first
       let b ← countHashQueries (next a.1)
       pure (b.1, a.2 + b.2)) :=
-  QueryCounting.counted_bind (fun input : OracleWorld.Domain => input matches .inr _) first next
+  Common.QueryCount.counted_bind (fun input : OracleWorld.Domain => input matches .inr _) first next
 
 theorem probComp_support_nonempty {α : Type} (computation : ProbComp α) :
     (support computation).Nonempty := by
@@ -97,45 +96,19 @@ theorem hashQueryBound_of_sampling_bind {α β : Type} (first : ProbComp α)
 
 theorem simulateQ_countHashQueries {α : Type} (computation : OracleComp OracleWorld α) :
     simulateQ romImpl (countHashQueries computation) = (simulateQ countedRomImpl computation).run := by
-  rw [countHashQueries, QueryCounting.simulate_withCost]
+  rw [countHashQueries, Common.QueryCount.simulate_withCost]
   congr 2
   funext input
   cases input <;> simp [countedRomImpl, QueryImpl.withAddCost_apply]
 
 theorem countHashQueries_forget {α : Type} (computation : OracleComp OracleWorld α) :
     Prod.fst <$> countHashQueries computation = computation :=
-  QueryCounting.counted_forget _ computation
-
-theorem countHashQueries_run_forget {α : Type} (computation : OracleComp OracleWorld α)
-    (cache : QueryCache HashSpec) :
-    (fun result => (result.1.1, result.2)) <$>
-      (simulateQ romImpl (countHashQueries computation)).run cache =
-        (simulateQ romImpl computation).run cache := by
-  have h := congrArg (fun c : OracleComp OracleWorld α => (simulateQ romImpl c).run cache)
-    (countHashQueries_forget computation)
-  simpa only [simulateQ_map, StateT.run_map] using h
+  Common.QueryCount.counted_forget _ computation
 
 theorem HashQueryBound.mono {α : Type} {computation : OracleComp OracleWorld α}
     {cache : QueryCache HashSpec} {q r : Nat} (hbound : HashQueryBound computation cache q)
     (hle : q ≤ r) : HashQueryBound computation cache r :=
   fun result hr => (hbound result hr).trans hle
-
-theorem hashQueryBound_bind_run {α β : Type} (first : OracleComp OracleWorld α)
-    (next : α → OracleComp OracleWorld β) (cache : QueryCache HashSpec) (q : Nat)
-    (hbound : HashQueryBound (first >>= next) cache q) (result : α × QueryCache HashSpec)
-    (hr : result ∈ support ((simulateQ romImpl first).run cache)) :
-    ∃ cost, cost ≤ q ∧ HashQueryBound (next result.1) result.2 (q - cost) := by
-  rw [← countHashQueries_run_forget first cache, support_map] at hr
-  obtain ⟨record, hrecord, rfl⟩ := hr
-  exact ⟨record.1.2, hashQueryBound_bind first next cache q hbound record hrecord⟩
-
-theorem hashQueryBound_bind_right {α β : Type} (first : OracleComp OracleWorld α)
-    (next : α → OracleComp OracleWorld β) (cache : QueryCache HashSpec) (q : Nat)
-    (hbound : HashQueryBound (first >>= next) cache q) (result : α × QueryCache HashSpec)
-    (hr : result ∈ support ((simulateQ romImpl first).run cache)) :
-    HashQueryBound (next result.1) result.2 q := by
-  obtain ⟨cost, _, hnext⟩ := hashQueryBound_bind_run first next cache q hbound result hr
-  exact hnext.mono (Nat.sub_le _ _)
 
 theorem hashQueryBound_query_bind {α : Type} (input : OracleWorld.Domain)
     (next : OracleWorld.Range input → OracleComp OracleWorld α) (cache : QueryCache HashSpec) (q : Nat)

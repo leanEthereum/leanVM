@@ -2,12 +2,15 @@ module
 
 public import XmssSecurity.Proof.AdaptiveRevealMonitor
 public import XmssSecurity.Proof.IndexedHiddenValue
+public import Common.RomTable
 
 @[expose] public section
 
 open OracleComp OracleSpec ENNReal
 
 namespace QueryImpl
+
+variable {ι : Type} {spec : OracleSpec ι} {α : Type}
 
 @[simp] theorem run_simulateQ_withTraceAppend_const_empty
     {spec : OracleSpec ι} {m : Type → Type*} [Monad m] [LawfulMonad m] {Log : Type}
@@ -48,7 +51,7 @@ end QueryImpl
 
 namespace XmssSecurity.RevealProbeOracleSimulation
 
-variable {Index : Type} [Fintype Index] [DecidableEq Index]
+variable {Index : Type} [Fintype Index] [DecidableEq Index] {α : Type}
 
 inductive Query (Index : Type) where
   | uniform (n : Nat)
@@ -411,7 +414,7 @@ theorem evalDist_uniformTable_eq_bind_update
           let base ← $ᵗ (Index → Digest)
           pure (Function.update base index value)) >>= continuation) := by
       simpa only [bind_assoc, pure_bind] using
-        (evalDistEq_uniformSample_bind_update index continuation).symm
+        (Common.RomTable.evalDistEq_uniformSample_bind_update index continuation).symm
     _ = _ := by simp [bind_assoc]
 
 

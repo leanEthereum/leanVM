@@ -131,10 +131,6 @@ theorem exp_le_expQN (u : ℚ) (s P : ℕ) (hu : 0 ≤ u) (hus : u < 2 ^ s) :
   push_cast
   rfl
 
-theorem one_le_expUpN_div (un ud s P : ℕ) (hd : 0 < ud) (hus : un < 2 ^ s * ud) :
-    (1 : ℝ) ≤ (expUpN un ud s P : ℝ) / 2 ^ P :=
-  le_trans (Real.one_le_exp (by positivity)) (exp_le_expUpN un ud s P hd hus)
-
 /-- `expUpN` reads `un / ud` only. -/
 theorem expUpN_congr {un ud un' ud' : ℕ} (s P : ℕ) (hd : 0 < ud) (hd' : 0 < ud') (h : un * ud' = un' * ud) :
     expUpN un ud s P = expUpN un' ud' s P := by

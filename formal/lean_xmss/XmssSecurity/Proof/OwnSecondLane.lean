@@ -18,6 +18,8 @@ adversary's own count below `2^127`: the ghost count of its queries never passes
 
 open OracleComp OracleSpec ENNReal
 
+variable {n : ℕ}
+
 namespace XmssSecurity
 
 set_option backward.isDefEq.respectTransparency false
@@ -55,12 +57,6 @@ theorem expectedSimulatedCost_le_of_isQueryBoundP {α : Type} (p : ι → Prop) 
         rw [ite_eq_left hp, ite_eq_left hp]
         exact_mod_cast (show 1 + (n - 1) ≤ n by omega)
       · rw [ite_eq_right hp, ite_eq_right hp, zero_add]
-
-theorem expectedSimulatedQueryCount_le_of_isQueryBoundP {α : Type} (p : ι → Prop) [DecidablePred p]
-    (computation : OracleComp spec α) (n : ℕ) (s : σ) (h : IsQueryBoundP computation p n) :
-    expectedSimulatedQueryCount implementation p computation s ≤ n := by
-  rw [← expectedSimulatedCost_indicator]
-  exact expectedSimulatedCost_le_of_isQueryBoundP implementation p _ (fun _ _ => le_rfl) computation n s h
 
 end Expected
 
@@ -122,7 +118,7 @@ theorem expectedSimulatedQueryCount_liftM_world (P : OracleWorld.Domain → Prop
     expectedSimulatedQueryCount romImpl P (liftM (OracleWorld.query input) : OracleComp OracleWorld _) cache =
       if P input then 1 else 0 := by
   rw [← bind_pure (liftM (OracleWorld.query input) : OracleComp OracleWorld _),
-    expectedSimulatedQueryCount_query_bind]
+    expectedSimulatedQueryCount_query_bind_tsum]
   simp
 
 /-- **The source game's `P`-queries are the adversary's**, when the signer makes none. -/
@@ -140,7 +136,7 @@ theorem expectedSimulatedQueryCount_source_le (P : OracleWorld.Domain → Prop) 
   | pure value => intros; simp
   | query_bind input next ih =>
       intro cache trace k
-      rw [expectedSimulatedCost_query_bind, simulateQ_source_query_bind, expectedSimulatedQueryCount_bind,
+      rw [expectedSimulatedCost_query_bind, simulateQ_source_query_bind, expectedSimulatedQueryCount_bind_tsum,
         impl_run, OracleComp.tsum_prEvent_map_mul]
       refine add_le_add ?_ (tsum_le_tsum fun r => mul_le_mul_right (ih _ _ _ _) _)
       cases input with
@@ -268,7 +264,7 @@ theorem sign_structural_zero (keyResult : (PublicKey × SecretKey) × QueryCache
       (Concrete.scheme.sign keyResult.1.2 request.leafIndex request.message) cache = 0 := by
   refine le_antisymm ?_ zero_le
   have h := expectedSimulatedQueryCount_le_of_isQueryBoundP romImpl (StructuralQuery keyResult)
-    (Concrete.scheme.sign keyResult.1.2 request.leafIndex request.message) 0 cache
+    (Concrete.scheme.sign keyResult.1.2 request.leafIndex request.message) cache 0
     (precomputedCappedSign_zero keyResult.1.2 request.leafIndex request.message _ (fun _ => id)
       fun payload h => h (keygenStructuralTargetInput_encodingInput _ _ _ payload))
   simpa using h
@@ -307,7 +303,7 @@ theorem ownDigestTerm_add_structural_le (q : Nat) (adversary : Adversary) (hown 
   set run := (simulateQ romImpl head).run cache0
   have hgame : cappedSourceUnloggedDetailedGameAfterKeygen adversary publicKey secretKey =
       head >>= verifyCont publicKey := rfl
-  rw [hgame, expectedSimulatedQueryCount_bind]
+  rw [hgame, expectedSimulatedQueryCount_bind_tsum]
   have hhead := Ghost.expectedSimulatedQueryCount_source_le publicKey secretKey
     (StructuralQuery ((publicKey, secretKey), cache0))
     (fun request cache => sign_structural_zero ((publicKey, secretKey), cache0) request cache)

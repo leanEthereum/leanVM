@@ -10,6 +10,8 @@ import all PolyFun.PFunctor.Handler.Instrumentation
 
 open OracleComp OracleSpec ENNReal
 
+variable {α : Type}
+
 namespace XmssSecurity
 
 def SigningCacheEntry.PreservesOtherValidEncodingInputs

@@ -26,7 +26,7 @@ variable [Params]
 open FORS.Base
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForsPrice ForsSigner HiddenBridge
 open PotentialA
-open FORS.LoopWalk
+open FORS.LoopWalk Common.LoopWalk
 
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 10000

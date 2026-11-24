@@ -9,6 +9,8 @@ import all Init.Data.Array.Basic
 
 open OracleComp OracleSpec
 
+variable {α β γ : Type} {n : ℕ}
+
 namespace XmssSecurity.CappedChain
 
 /-- Computations equal in distribution reach the same outputs. -/

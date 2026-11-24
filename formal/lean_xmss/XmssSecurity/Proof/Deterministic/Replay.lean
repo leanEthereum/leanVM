@@ -8,8 +8,6 @@ open OracleComp OracleSpec
 
 namespace DeterministicSigning
 
-set_option backward.isDefEq.respectTransparency false
-
 variable {D R : Type} [DecidableEq D]
 
 /-- All queries along this execution have the stated answers in the cache. -/

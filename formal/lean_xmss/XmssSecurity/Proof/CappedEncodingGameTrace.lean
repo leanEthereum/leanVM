@@ -7,6 +7,8 @@ public import XmssSecurity.Proof.CappedSigningCacheTrace
 
 open OracleComp OracleSpec
 
+variable {α : Type}
+
 namespace XmssSecurity
 
 noncomputable def cappedEncodingTracedMappedAdversaryImpl

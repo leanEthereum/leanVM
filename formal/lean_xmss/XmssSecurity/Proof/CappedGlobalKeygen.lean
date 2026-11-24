@@ -13,6 +13,8 @@ public import XmssSecurity.Proof.TopKeygenFacts
 open OracleComp OracleSpec ENNReal
 open OracleComp.ProgramLogic.Relational
 
+variable {n : ℕ}
+
 namespace XmssSecurity.CappedChain
 
 /-- A uniform pair is the applicative pair of independent uniform coordinates. -/

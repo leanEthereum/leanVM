@@ -7,6 +7,8 @@ public import XmssSecurity.Proof.RunObservedAppend
 
 open OracleComp OracleSpec
 
+variable {α : Type}
+
 namespace QueryImpl
 
 theorem simulateQ_stateHandler_trace

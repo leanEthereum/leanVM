@@ -719,7 +719,7 @@ theorem State.valid_empty : State.Valid EncodingMonitor.State.empty := by
   constructor <;> simp [EncodingMonitor.State.empty]
 
 theorem State.Valid.addPending
-    (hstate : State.Valid state) (leafIndex : LeafIndex) (digest : Digest)
+    {state : EncodingMonitor.State} (hstate : State.Valid state) (leafIndex : LeafIndex) (digest : Digest)
     (hvalid : TargetSum.ValidDigest digest) :
     State.Valid (state.addPending leafIndex digest) := by
   constructor
@@ -733,7 +733,7 @@ theorem State.Valid.addPending
       simpa [EncodingMonitor.State.addPending, heq] using hmem
 
 theorem State.Valid.install
-    (hstate : State.Valid state) (leafIndex : LeafIndex) (digest : Digest)
+    {state : EncodingMonitor.State} (hstate : State.Valid state) (leafIndex : LeafIndex) (digest : Digest)
     (hvalid : TargetSum.ValidDigest digest) :
     State.Valid (state.install leafIndex digest) := by
   constructor
@@ -787,7 +787,7 @@ theorem State.applyObserved_eq_unchanged_of_invalid
       simp [State.applyObserved, hinvalid]
 
 theorem State.Valid.applyObserved
-    (hstate : State.Valid state) (action : EncodingMonitor.ObservedAction)
+    {state : EncodingMonitor.State} (hstate : State.Valid state) (action : EncodingMonitor.ObservedAction)
     (hvalid : ActionValid action)
     (nextState : EncodingMonitor.State) (hit : Bool)
     (happly : State.applyObserved state action = some (nextState, hit)) :

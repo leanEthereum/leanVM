@@ -126,7 +126,7 @@ theorem BlockD.pure' (sk : FORS.Seeded.SecretKey) {β : Type} (value : β) :
     BlockD sk (pure value : OracleComp AdvSpec β) := by
   intro short long
   simp only [leftProgD, rightProgD, simulateQ_pure, StateT.run_pure, WriterT.run_pure, leftRun,
-    rightRun, countShort, countHashQueries, QueryCap.counted_pure,
+    rightRun, countShort, countHashQueries, Common.QueryCount.counted_pure,
     StateT.run_pure, map_pure]
   rfl
 
@@ -211,8 +211,8 @@ theorem BlockD.long (sk : FORS.Seeded.SecretKey) {input : HashInput} (h : ¬IsSh
         simp only [StateT.run, privateRead, hc]
       rw [hread]
       simp only [leftRun, countShort, rightRun, countHashQueries, simulateQ_pure, WriterT.run_pure,
-        QueryCap.counted_pure, StateT.run_pure, map_pure]
-      rw [QueryCap.counted_query, simulateQ_map, simulateQ_spec_query, StateT.run_map]
+        Common.QueryCount.counted_pure, StateT.run_pure, map_pure]
+      rw [Common.QueryCount.counted_query, simulateQ_map, simulateQ_spec_query, StateT.run_map]
       change _ <$> (_ <$> (_ <$> (randomOracle (spec := HashSpec) input).run (merge short long))) =ᵈ _
       rw [QueryImpl.withCaching_run_some _ (hlookup.trans hc)]
       simp [leftView, rightView, ShortQuery, h]

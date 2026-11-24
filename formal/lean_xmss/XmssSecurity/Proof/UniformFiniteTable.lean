@@ -11,19 +11,6 @@ open OracleComp OracleSpec
 
 namespace XmssSecurity
 
-def finHeadTailEquiv (α : Type) (count : Nat) :
-    (α × (Fin count → α)) ≃ (Fin (count + 1) → α) where
-  toFun pair := Fin.cases pair.1 pair.2
-  invFun values := (values 0, fun index => values index.succ)
-  left_inv pair := by
-    apply Prod.ext
-    · simp
-    · funext index
-      simp
-  right_inv values := by
-    funext index
-    cases index using Fin.cases <;> simp
-
 theorem evalDist_independent_uniform_pair
     {α β : Type} [Fintype α] [Fintype β]
     [SampleableType α] [SampleableType β] :
@@ -83,19 +70,6 @@ theorem evalDist_uniformSnocList_eq_reverse_drawList
             OracleComp.drawList ($ᵗ α) (count + 1)) := by
           simp [OracleComp.drawList, map_eq_bind_pure_comp, bind_assoc]
 
-def finInitLastEquiv (α : Type) (count : Nat) :
-    ((Fin count → α) × α) ≃ (Fin (count + 1) → α) where
-  toFun pair := Fin.lastCases pair.2 pair.1
-  invFun values := (fun index => values index.castSucc, values (Fin.last count))
-  left_inv pair := by
-    apply Prod.ext
-    · funext index
-      simp
-    · simp
-  right_inv values := by
-    funext index
-    cases index using Fin.lastCases <;> simp
-
 set_option maxRecDepth 100000 in
 theorem evalDist_uniformSnocList_eq_uniformFunction
     (α : Type) [Fintype α] [SampleableType α] (count : Nat) :
@@ -122,7 +96,7 @@ theorem evalDist_uniformSnocList_eq_uniformFunction
         _ =ᵈ ((List.ofFn <$> ($ᵗ (Fin count → α))) >>= fun prior =>
             ($ᵗ α) >>= fun next => pure (prior ++ [next])) := by
           exact ih.bind_left _
-        _ =ᵈ (List.ofFn <$> (finInitLastEquiv α count <$> (do
+        _ =ᵈ (List.ofFn <$> (((Equiv.prodComm _ _).trans (Fin.snocEquiv fun _ => α)) <$> (do
               let prior ← $ᵗ (Fin count → α)
               let next ← $ᵗ α
               pure (prior, next)))) := by
@@ -135,13 +109,13 @@ theorem evalDist_uniformSnocList_eq_uniformFunction
           intro next
           congr 1
           rw [List.ofFn_succ']
-          simp [finInitLastEquiv]
-        _ =ᵈ (List.ofFn <$> (finInitLastEquiv α count <$>
+          simp [Fin.snocEquiv]
+        _ =ᵈ (List.ofFn <$> (((Equiv.prodComm _ _).trans (Fin.snocEquiv fun _ => α)) <$>
               ($ᵗ ((Fin count → α) × α)))) :=
           (evalDist_independent_uniform_pair.map _).map _
         _ =ᵈ (List.ofFn <$> ($ᵗ (Fin (count + 1) → α))) :=
           (SampleableType.map_uniformSample_evalDistEq_of_bijective
-            (finInitLastEquiv α count).bijective).map _
+            (((Equiv.prodComm _ _).trans (Fin.snocEquiv fun _ => α))).bijective).map _
 
 set_option maxRecDepth 100000 in
 theorem evalDist_drawList_uniform_eq_uniformFunction
@@ -172,17 +146,17 @@ theorem evalDist_drawList_uniform_eq_uniformFunction
           apply EvalDistEq.bind_right
           intro first
           exact ih.bind_left _
-        _ =ᵈ (List.ofFn <$> (finHeadTailEquiv α count <$> (do
+        _ =ᵈ (List.ofFn <$> ((Fin.consEquiv fun _ => α) <$> (do
               let first ← $ᵗ α
               let rest ← $ᵗ (Fin count → α)
               pure (first, rest)))) := by
-          simp [finHeadTailEquiv, map_eq_bind_pure_comp, bind_assoc]
-        _ =ᵈ (List.ofFn <$> (finHeadTailEquiv α count <$>
+          simp [Fin.consEquiv, map_eq_bind_pure_comp, bind_assoc]
+        _ =ᵈ (List.ofFn <$> ((Fin.consEquiv fun _ => α) <$>
               ($ᵗ (α × (Fin count → α))))) :=
           (evalDist_independent_uniform_pair.map _).map _
         _ =ᵈ (List.ofFn <$> ($ᵗ (Fin (count + 1) → α))) :=
           (SampleableType.map_uniformSample_evalDistEq_of_bijective
-            (finHeadTailEquiv α count).bijective).map _
+            ((Fin.consEquiv fun _ => α)).bijective).map _
 
 noncomputable def finiteTableTapeEquiv
     {ι α : Type} [DecidableEq ι] (order : List ι)
