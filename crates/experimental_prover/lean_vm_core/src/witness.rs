@@ -79,6 +79,71 @@ pub fn placements_of(kappas: &[Option<usize>]) -> (Vec<Placement>, StackShape) {
 
 /// Chunk width for the bulk writes below: big enough to amortize the dispatch,
 /// small enough to spread one column across cores.
+/// A run of a column's rows the stack holds as a block: its first row, its log length and where it sits.
+#[derive(Clone, Copy, Debug)]
+pub struct Run {
+    pub start: usize,
+    pub n_vars: usize,
+    pub offset: usize,
+}
+
+/// The committed stack of the columns of these log sizes (`None` virtual), each table column of `rows` rows stacked as
+/// its runs (`verifier::layout::dyadic_pieces`): per column its runs, and the stack's shape. `table` names a column's
+/// table, if it has one. Both sides derive this from the announced sizes alone.
+pub fn runs_of(
+    kappas: &[Option<usize>],
+    table: impl Fn(usize) -> Option<usize>,
+    rows: &[usize],
+) -> (Vec<Vec<Run>>, StackShape) {
+    let pieces: Vec<(usize, u64, usize)> = kappas
+        .iter()
+        .enumerate()
+        .filter_map(|(column, k)| k.map(|kappa| (column, kappa)))
+        .flat_map(|(column, kappa)| {
+            let runs = match table(column) {
+                Some(t) => verifier::layout::dyadic_pieces(rows[t] as u64, kappa),
+                None => vec![(0, kappa)],
+            };
+            runs.into_iter().map(move |(start, log)| (column, start, log))
+        })
+        .collect();
+    let sizes: Vec<usize> = pieces.iter().map(|p| p.2).collect();
+    let (offsets, placed_log) = verifier::stack_offsets(&sizes);
+    let mut runs = vec![Vec::new(); kappas.len()];
+    for ((column, start, n_vars), offset) in pieces.into_iter().zip(offsets) {
+        runs[column].push(Run {
+            start: start as usize,
+            n_vars,
+            offset: offset as usize,
+        });
+    }
+    let mu = placed_log.max(crate::pcs::MIN_STACKED_LOG);
+    let placed: usize = sizes.iter().map(|k| 1 << k).sum();
+    let n_lanes = placed.div_ceil(1 << (mu - crate::pcs::LOG_BATCH)).max(1);
+    (runs, StackShape { mu, n_lanes })
+}
+
+/// The stack of `runs`, each copied from its column's window of `arena` at `placements`, the tail zero.
+pub fn stack_runs(arena: &[F64], placements: &[Placement], runs: &[Vec<Run>], shape: StackShape) -> Vec<F64> {
+    let blocks: Vec<(usize, Run)> = runs
+        .iter()
+        .enumerate()
+        .flat_map(|(column, r)| r.iter().map(move |&run| (column, run)))
+        .collect();
+    let placed: usize = blocks.iter().map(|(_, run)| 1usize << run.n_vars).sum();
+    // SAFETY: the blocks tile `0..placed` (`runs_of`), each written below, and the tail is zeroed.
+    let mut q = unsafe { primitives::uninit_vec::<F64>(shape.committed_len()) };
+    let dst = parallel::SendPtr(q.as_mut_ptr());
+    parallel::for_each(blocks.len(), |b| {
+        let (column, run) = blocks[b];
+        let src = &arena[placements[column].offset + run.start..][..1 << run.n_vars];
+        // SAFETY: block `b` alone writes `run.offset..run.offset + 2^n_vars`, inside `placed`.
+        unsafe { std::ptr::copy_nonoverlapping(src.as_ptr(), dst.add(run.offset), src.len()) };
+    });
+    parallel::chunks_mut(&mut q[placed..], FILL_CHUNK, |_, pad| pad.fill(F64::ZERO));
+    q
+}
+
 const FILL_CHUNK: usize = 1 << 16;
 
 /// The uninitialized stacked witness: [`StackShape::committed_len`] slots, the

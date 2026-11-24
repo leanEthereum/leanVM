@@ -286,7 +286,7 @@ pub fn prove(
     // Memory binds every step's input and output words. Their value columns are
     // virtual: the inputs route to q_keccak through `slot_claims`, the outputs are
     // the reduction's claim on the permutation's output.
-    let mut slots = finish_claims(l, bus.claims, &table_claims, r_pi);
+    let mut slots = finish_claims(l, bus.claims, &table_claims, r_pi, &w.columns(), &mut ps);
     let output = keccak_output_claim(&table_claims);
 
     // Run the Keccak reduction over the witness rebuilt from q_keccak's input
@@ -295,12 +295,13 @@ pub fn prove(
     // one appended to the point claims.
     let keccak_reduction = w.keccak_reduction;
     let witness::Placement { offset, n_vars } = w.layout.placements[QKECCAK];
-    let q_keccak = &w.q[offset..][..1 << n_vars];
+    let q_keccak = &w.arena[offset..][..1 << n_vars];
     let openings = crate::stage!("Keccak reduction", || {
         keccak_reduction.prove(&mut ps, q_keccak, &output)
     });
-    let (ring, outputs) = openings.into_pcs_claims(offset);
+    let (ring, outputs) = openings.into_pcs_claims(w.layout.runs[QKECCAK][0].offset);
     slots.extend(outputs);
+    drop(std::mem::take(&mut w.arena));
     crate::stage!("PCS open", || { pcs::open(&mut ps, committed, w.q, &slots, &ring) });
     Ok((
         ps.into_proof(),
@@ -323,6 +324,8 @@ fn finish_claims(
     bus_claims: Vec<ColumnClaim>,
     table_claims: &[constraints::Claims],
     r_pi: F128,
+    cols: &[&[F64]],
+    ps: &mut ProverState,
 ) -> Vec<pcs::StackClaim> {
     let mut claims = bus_claims;
     let sch = schema();
@@ -341,7 +344,7 @@ fn finish_claims(
         }
     }
     claims.extend(bind_pi_claim(r_pi, l));
-    slot_claims(l, claims)
+    slot_claims(l, claims, cols, ps)
 }
 
 /// The public-input binding (§sec:e2e-pi): each committed `MEM` limb at
@@ -397,26 +400,49 @@ pub fn verify(
 /// `q_keccak` slot evaluation: an ordinary claim on the committed `QKECCAK` column at the
 /// point whose low coords are `r` and whose next `SLOT_LOG` are the slot's bits. No
 /// downstream special-casing: it folds into the one opening like every other point claim.
-fn slot_claims(l: &Layout, claims: Vec<ColumnClaim>) -> Vec<pcs::StackClaim> {
-    claims
-        .into_iter()
-        .map(|c| {
-            // A KECCAK value column (always virtual): its bus claim at instance point
-            // `c.point` is a claim on the slot's `2^n_log` words of QKECCAK.
-            if let Some(KeccakLane::Slot(slot)) = keccak_value(c.col) {
-                return pcs::StackClaim::Point {
-                    offset: l.placements[QKECCAK].offset + (slot << c.point.len()),
-                    low_point: c.point,
-                    value: c.value,
-                };
+///
+/// A column stacked as runs of its rows (`witness::runs_of`) sends each run's evaluation at the claim's low
+/// coordinates, and each becomes a claim on its run's block.
+fn slot_claims(l: &Layout, claims: Vec<ColumnClaim>, cols: &[&[F64]], ps: &mut ProverState) -> Vec<pcs::StackClaim> {
+    let qkeccak = l.runs[QKECCAK][0].offset;
+    let mut out = Vec::with_capacity(claims.len());
+    for c in claims {
+        if keccak_value(c.col).is_none() && !is_whole(l, c.col) {
+            for run in &l.runs[c.col] {
+                let low_point = c.point[..run.n_vars].to_vec();
+                let value =
+                    primitives::multilinear::mle_eval_par(&cols[c.col][run.start..][..1 << run.n_vars], &low_point);
+                ps.add_scalar(value);
+                out.push(pcs::StackClaim::Point {
+                    offset: run.offset,
+                    low_point,
+                    value,
+                });
             }
-            pcs::StackClaim::Point {
-                offset: l.placements[c.col].offset,
-                low_point: c.point,
-                value: c.value,
-            }
-        })
-        .collect()
+            continue;
+        }
+        out.push(slot_claim(l, qkeccak, c));
+    }
+    out
+}
+
+/// Whether column `col` is stacked whole, one run of all its rows.
+fn is_whole(l: &Layout, col: usize) -> bool {
+    matches!(l.runs[col].as_slice(), [run] if run.start == 0 && run.n_vars == l.placements[col].n_vars)
+}
+
+fn slot_claim(l: &Layout, qkeccak: usize, c: ColumnClaim) -> pcs::StackClaim {
+    // A KECCAK value column (always virtual): its bus claim at instance point
+    // `c.point` is a claim on the slot's `2^n_log` words of QKECCAK.
+    let offset = match keccak_value(c.col) {
+        Some(KeccakLane::Slot(slot)) => qkeccak + (slot << c.point.len()),
+        _ => l.runs[c.col][0].offset,
+    };
+    pcs::StackClaim::Point {
+        offset,
+        low_point: c.point,
+        value: c.value,
+    }
 }
 
 #[cfg(test)]

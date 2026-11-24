@@ -196,7 +196,7 @@ pub fn prove(
     // The public input's binding (§sec:e2e-pi) sends nothing: its claims are lines in `r_pi` the verifier evaluates
     // itself, numerator one, so no grind.
     let r_pi = ps.sample();
-    let mut slots = finish_claims(&w.layout, bus.claims, &table_claims, r_pi);
+    let mut slots = finish_claims(&w.layout, bus.claims, &table_claims, r_pi, &w.columns(), &mut ps);
 
     // The Keccak reduction ends on two claims on `q_keccak`, which join the one opening: one ring-switched, one a
     // point claim.
@@ -204,9 +204,9 @@ pub fn prove(
     let output = keccak_output_claim(&table_claims);
     let openings = crate::stage!("Keccak reduction", || {
         w.keccak_reduction
-            .prove(&mut ps, &w.q[offset..][..1 << n_vars], &output)
+            .prove(&mut ps, &w.arena[offset..][..1 << n_vars], &output)
     });
-    let (ring, outputs) = openings.into_pcs_claims(offset);
+    let (ring, outputs) = openings.into_pcs_claims(w.layout.runs[QKECCAK][0].offset);
     slots.extend(outputs);
     crate::stage!("PCS open", || pcs::open(&mut ps, committed, w.q, &slots, &ring));
     Ok((ps.into_proof(), stats))
@@ -223,6 +223,8 @@ fn finish_claims(
     bus_claims: Vec<ColumnClaim>,
     table_claims: &[constraints::Claims],
     r_pi: F128,
+    cols: &[&[F64]],
+    ps: &mut ProverState,
 ) -> Vec<pcs::StackClaim> {
     let bus = bus_claims.into_iter().map(|c| (c.col, c.point));
     let tables = (0..tables::N_TABLES).flat_map(|t| {
@@ -233,9 +235,28 @@ fn finish_claims(
     });
     let pi = pi_point(r_pi, l);
     let pi = [MEMORY_0, MEMORY_1].map(|col| (col, pi.clone()));
-    (bus.chain(tables).chain(pi))
-        .map(|(col, point)| slot_claim(l, col, point))
-        .collect()
+    let mut claims = Vec::new();
+    for (col, point) in bus.chain(tables).chain(pi) {
+        let whole = matches!(l.runs[col].as_slice(), [run] if run.start == 0 && run.n_vars == l.placements[col].n_vars);
+        if keccak_value(col).is_some() || whole {
+            claims.push(slot_claim(l, col, point));
+            continue;
+        }
+        // A column stacked as runs of its rows sends each run's evaluation at the claim's low coordinates, and each
+        // becomes a claim on its run's block.
+        for run in &l.runs[col] {
+            let low_point = point[..run.n_vars].to_vec();
+            ps.add_scalar(primitives::multilinear::mle_eval(
+                &cols[col][run.start..][..1 << run.n_vars],
+                &low_point,
+            ));
+            claims.push(pcs::StackClaim {
+                offset: run.offset,
+                low_point,
+            });
+        }
+    }
+    claims
 }
 
 /// The point of the public-input binding (§sec:e2e-pi): each committed `MEM` limb at
@@ -281,8 +302,8 @@ pub fn verify(
 /// `q_keccak`, which folds into the one opening like every other point claim.
 fn slot_claim(l: &Layout, col: usize, point: Vec<F128>) -> pcs::StackClaim {
     let offset = match keccak_value(col) {
-        Some(KeccakLane::Slot(slot)) => l.placements[QKECCAK].offset + (slot << point.len()),
-        _ => l.placements[col].offset,
+        Some(KeccakLane::Slot(slot)) => l.runs[QKECCAK][0].offset + (slot << point.len()),
+        _ => l.runs[col][0].offset,
     };
     pcs::StackClaim {
         offset,

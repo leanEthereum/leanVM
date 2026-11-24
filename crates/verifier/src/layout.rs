@@ -101,8 +101,11 @@ pub struct Layout<'a> {
     pub push: Vec<BusBlock>,
     pub pull: Vec<BusBlock>,
     pub count: Vec<BusBlock>,
-    /// Where each column sits, `None` for a column nothing commits: the `KECCAK` output lanes.
+    /// Where each column sits whole, `None` for a column stacked as runs or committed nowhere (the `KECCAK` output
+    /// lanes).
     pub placements: Vec<Option<Placement>>,
+    /// A column stacked as runs of its rows: each run's first row and block (`dyadic_pieces`).
+    pub runs: Vec<Option<Vec<(u64, Placement)>>>,
     pub stack_log: usize,
     pub table_log_heights: Vec<usize>,
     pub keccak: KeccakShape,
@@ -527,26 +530,73 @@ fn stacked_blocks(columns: usize) -> Vec<usize> {
         .collect()
 }
 
-/// The stack of columns of these log sizes: each stacked column's offset, and its log size, floored at the PCS minimum.
-fn stack(kappas: &[usize]) -> (BTreeMap<usize, u64>, usize) {
-    let blocks = stacked_blocks(kappas.len());
-    let block_kappas: Vec<usize> = blocks.iter().map(|&column| kappas[column]).collect();
-    let (block_offsets, total_log) = stack_offsets(&block_kappas);
-    (
-        blocks.into_iter().zip(block_offsets).collect(),
-        MIN_STACKED_LOG.max(total_log),
-    )
+/// The least run of rows a table column commits as a block of its own, as a log.
+pub const MIN_PIECE_LOG: usize = 6;
+
+/// The runs of rows a column of a table with `rows` rows and `2^log_height` height commits, `(first row, log length)`:
+/// at most three aligned dyadic runs, largest first, covering the rows. The rows past them are padding, zero, and
+/// committed nowhere. A full table, or a short one, is one run.
+pub fn dyadic_pieces(rows: u64, log_height: usize) -> Vec<(u64, usize)> {
+    if log_height <= MIN_PIECE_LOG || rows >= 1 << log_height {
+        return vec![(0, log_height)];
+    }
+    let mut pieces = Vec::new();
+    let mut start = 0;
+    while start < rows {
+        let rest = rows - start;
+        let log = if pieces.len() == 2 {
+            log2_ceil(rest)
+        } else {
+            rest.ilog2() as usize
+        };
+        let log = log.max(MIN_PIECE_LOG);
+        pieces.push((start, log));
+        start += 1 << log;
+    }
+    pieces
+}
+
+/// The rows of `column` the stack holds as blocks: a table column's dyadic runs, any other column whole.
+fn column_pieces(column: usize, kappa: usize, table_rows: &[u64]) -> Vec<(u64, usize)> {
+    match (0..N_TABLES).rev().find(|&t| column >= GLOBAL_COLUMN_BASES[t]) {
+        Some(t) => dyadic_pieces(table_rows[t], kappa),
+        None => vec![(0, kappa)],
+    }
+}
+
+/// The stack of columns of these log sizes: each stacked column's runs, `(first row, block)`, and the stack's log size,
+/// floored at the PCS minimum.
+fn stack(kappas: &[usize], table_rows: &[u64]) -> (BTreeMap<usize, Vec<(u64, Placement)>>, usize) {
+    let pieces: Vec<(usize, u64, usize)> = stacked_blocks(kappas.len())
+        .into_iter()
+        .flat_map(|column| {
+            let runs = column_pieces(column, kappas[column], table_rows);
+            runs.into_iter().map(move |(start, log)| (column, start, log))
+        })
+        .collect();
+    let sizes: Vec<usize> = pieces.iter().map(|piece| piece.2).collect();
+    let (offsets, total_log) = stack_offsets(&sizes);
+    // An empty table's columns hold no rows but stay stacked, their runs none.
+    let mut stacked: BTreeMap<usize, Vec<(u64, Placement)>> = stacked_blocks(kappas.len())
+        .into_iter()
+        .map(|column| (column, Vec::new()))
+        .collect();
+    for ((column, start, variables), index) in pieces.into_iter().zip(offsets) {
+        stacked
+            .get_mut(&column)
+            .expect("a stacked column")
+            .push((start, Placement { variables, index }));
+    }
+    (stacked, MIN_STACKED_LOG.max(total_log))
 }
 
 /// The stack of the smallest execution of a bytecode of `2^log_bytecode` instructions: the least memory, every table at
-/// its floor. A recursion guest, whose children are proofs of its own bytecode, need open no smaller one.
+/// its floor and empty. A recursion guest, whose children are proofs of its own bytecode, need open no smaller one.
 pub fn min_execution_stacked_log(log_bytecode: usize) -> usize {
-    stack(&column_kappas(
-        &tables(),
-        MIN_LOG_MEMORY,
-        log_bytecode,
-        &TABLE_LOG_FLOORS,
-    ))
+    stack(
+        &column_kappas(&tables(), MIN_LOG_MEMORY, log_bytecode, &TABLE_LOG_FLOORS),
+        &[0; N_TABLES],
+    )
     .1
 }
 
@@ -589,18 +639,26 @@ pub fn build_layout<'a>(
 
     let keccak = keccak_shape(&table_log_heights);
     let kappas = column_kappas(&tables, log_memory, log_bytecode, &table_log_heights);
-    let (offsets, stack_log) = stack(&kappas);
-    let placement = |(column, &kappa): (usize, &usize)| {
-        let index = match qkeccak_slot(column) {
-            Some(slot) => offsets[&QKECCAK] + ((slot as u64) << kappa),
-            None => *offsets.get(&column)?,
-        };
-        Some(Placement {
+    let (stacked, stack_log) = stack(&kappas, table_rows);
+    // A column stacked whole has a placement; one stacked as runs has its runs instead.
+    let whole = |column: usize, kappa: usize| match stacked.get(&column)?.as_slice() {
+        &[(0, placement)] if placement.variables == kappa => Some(placement),
+        _ => None,
+    };
+    let placement = |(column, &kappa): (usize, &usize)| match qkeccak_slot(column) {
+        Some(slot) => Some(Placement {
             variables: kappa,
-            index,
-        })
+            index: whole(QKECCAK, kappas[QKECCAK])?.index + ((slot as u64) << kappa),
+        }),
+        None => whole(column, kappa),
     };
     let placements = kappas.iter().enumerate().map(placement).collect();
+    let runs = (0..kappas.len())
+        .map(|column| match whole(column, kappas[column]) {
+            None => stacked.get(&column).cloned(),
+            Some(_) => None,
+        })
+        .collect();
     Ok(Layout {
         log_memory,
         log_bytecode,
@@ -610,6 +668,7 @@ pub fn build_layout<'a>(
         pull,
         count,
         placements,
+        runs,
         stack_log,
         table_log_heights,
         keccak,

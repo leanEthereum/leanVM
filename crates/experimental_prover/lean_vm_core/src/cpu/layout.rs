@@ -121,10 +121,14 @@ pub struct Layout {
     pub pull: Vec<Block>,
     /// Count channel: read-count columns whose product must be nonzero (§sec:memchan).
     pub count: Vec<Block>,
-    /// Per-column placement (offset + n_vars) in the stacked witness; from the
-    /// columns' log-sizes alone, so reconstructable by the verifier.
+    /// Per-column placement (offset + n_vars) in the arena, where every column lies whole, padding included.
     pub placements: Vec<witness::Placement>,
-    /// The stacked witness's shape: its announced `2^mu` size, plus how many lane
+    /// The arena's shape.
+    pub arena_shape: witness::StackShape,
+    /// Per column, the runs of its rows the committed stack holds (`witness::runs_of`); from the announced sizes
+    /// alone, so reconstructable by the verifier.
+    pub runs: Vec<Vec<witness::Run>>,
+    /// The committed stack's shape: its announced `2^mu` size, plus how many lane
     /// blocks of it the prover actually commits (see [`witness::StackShape`]).
     pub shape: witness::StackShape,
     /// Public input: the first two memory cells `m[0], m[1]` (each a 128-bit
@@ -140,7 +144,10 @@ pub struct Layout {
 /// column at its placed offset, plus the public [`Layout`] (and the sizes needed to
 /// announce it).
 pub(crate) struct Witness {
+    /// The committed stack: every column's runs.
     pub(crate) q: Vec<F64>,
+    /// Every column whole, at its placement: what the bus, the constraints and the Keccak reduction read.
+    pub(crate) arena: Vec<F64>,
     /// The KECCAK output lanes' values as `(global column index, values)`. They carry
     /// data for the bus but are not committed, so they are not in `q`.
     pub(crate) virt: Vec<(usize, Vec<F64>)>,
@@ -163,9 +170,9 @@ impl Witness {
             .iter()
             .enumerate()
             .map(|(i, p)| match keccak_value(i) {
-                Some(KeccakLane::Slot(slot)) => &self.q[q_keccak + slot * steps..][..steps],
+                Some(KeccakLane::Slot(slot)) => &self.arena[q_keccak + slot * steps..][..steps],
                 _ if p.is_virtual() => &[][..],
-                _ => &self.q[p.offset..][..1 << p.n_vars],
+                _ => &self.arena[p.offset..][..1 << p.n_vars],
             })
             .collect();
         for (i, buf) in &self.virt {
@@ -176,12 +183,7 @@ impl Witness {
 
     /// Committed data before the zero-pad to `2^m`: the real witness size.
     pub(crate) fn committed_size(&self) -> usize {
-        self.layout
-            .placements
-            .iter()
-            .filter(|p| !p.is_virtual())
-            .map(|p| 1usize << p.n_vars)
-            .sum()
+        self.layout.runs.iter().flatten().map(|run| 1usize << run.n_vars).sum()
     }
 }
 
@@ -331,12 +333,17 @@ pub(crate) fn layout_of(log_bytecode: usize, log_mem: usize, rows: [usize; table
         count_blocks.extend(table.count_columns().iter().map(|&c| table_block(vec![Col(c)])));
     }
 
-    let (placements, shape) = witness::placements_of(&col_kappas(log_mem, log_bytecode, taus));
+    let kappas = col_kappas(log_mem, log_bytecode, taus);
+    let (placements, arena_shape) = witness::placements_of(&kappas);
+    let table_of = |column: usize| (0..tables::N_TABLES).rev().find(|&t| column >= sch.base[t]);
+    let (runs, shape) = witness::runs_of(&kappas, table_of, &rows);
     Layout {
         push,
         pull,
         count: count_blocks,
         placements,
+        arena_shape,
+        runs,
         shape,
         pi,
         taus,
@@ -384,7 +391,7 @@ pub(crate) fn build(program: &Program, exec: &Execution, l: Layout, keccak_block
     // SAFETY: the allocation is uninitialized. `split_stack` zeroes the pad tail
     // and hands out windows tiling the rest; `fill_table` checks that each table
     // wrote every window it was given, and the shared columns below write theirs.
-    let mut q = unsafe { witness::alloc_stack(l.shape) };
+    let mut q = unsafe { witness::alloc_stack(l.arena_shape) };
     // An output lane is neither in the stack nor in `q_keccak`, so its values need
     // storage of their own: it carries data for the bus. Every other column `q_keccak`
     // carries ([`Witness::columns`]) is filled through the slot window handed out below.
@@ -481,8 +488,15 @@ pub(crate) fn build(program: &Program, exec: &Execution, l: Layout, keccak_block
     // (`execute` already asserts the run halts at the sentinel (pc, fp) =
     // (g^{B-1}, 0), exactly the boundary the public layout derives.)
     drop(windows); // release the borrow of `q` and of the output lanes' buffers
+    let stack = crate::stage!("Stack runs", || witness::stack_runs(
+        &q,
+        &l.placements,
+        &l.runs,
+        l.shape
+    ));
     Witness {
-        q,
+        q: stack,
+        arena: q,
         virt,
         layout: l,
         log_mem,
