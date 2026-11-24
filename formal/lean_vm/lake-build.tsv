@@ -24,6 +24,7 @@ LeanVM.Guest.B1.Place.LqBound	20.0	20.0	5600	4300
 LeanVM.Guest.B1.Tables.VtC.Kids	10.0	10.0	4900	3400
 LeanVM.Guest.B1.VerifySub.NodeShapes	30.0	30.0	5100	3600
 LeanVM.Guest.B2C.ArmBound	40.0	40.0	6400	4900
+LeanVM.Guest.B2C.Cells	110.0	100.0	3500	2500
 LeanVM.Guest.B2C.Chained.K_main_loop2_2	30.0	30.0	4300	3000
 LeanVM.Guest.B2C.Chained.K_main_loop2_3	20.0	20.0	4300	3000
 LeanVM.Guest.B2C.Chained.K_main_loop2_6	20.0	20.0	4300	3000
@@ -275,6 +276,6 @@ LeanVM.Guest.JumpTable.Code	20.0	20.0	4500	3100
 LeanVM.Guest.Lift.XmssLeaf	20.0	20.0	6700	5400
 LeanVM.Guest.Mode.JumpTables	20.0	20.0	4500	3200
 LeanVM.Guest.Pack.P42.Checked	60.0	60.0	2900	1800
-LeanVM.Guest.Pack.P43.Bundle	70.0	90.0	6500	5300
+LeanVM.Guest.Pack.P43.Bundle	70.0	80.0	2400	1300
 LeanVM.Guest.Pack.opening_queries__L1_L6_L32_L24_L0_L0_L0_L0_L0.Shared0	110.0	110.0	4600	3500
 LeanVM.Protocol.Keccak.Rmfe	30.0	30.0	6900	5600
