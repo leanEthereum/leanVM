@@ -14,7 +14,7 @@ public meta import Lean.Elab.Command
 
 `alloc_chk% «k» [«c₀», …]` is `k`'s four allocation checks (`allocShapeOk`, `curBodyOk`, `frOk`
 with its callees `c₀, …` by index, `allocOk`), each `… = true` by the kernel. `align_chk% «k»` is its
-alignment checks (`alignCellsOk`, `alignOk`). Unhygienic: each expands to the text the generators
+plumbing cells' freshness (`alignCellsOk`; its alignment follows from its pairing, `CoreMode.alignOk_of_pairOk`). Unhygienic: each expands to the text the generators
 wrote before, its names resolved where it is written (in `namespace LeanVM.Guest`), so its
 elaboration is the same.
 -/
@@ -40,11 +40,9 @@ macro "alloc_chk% " k:ident "[" cs:ident,* "]" : command => do
         Bridge.allocRest alignCtx fs core.loop plumb core.body code.code $adv = true := by decide +kernel)
 
 set_option hygiene false in
-/-- `align_chk% «k»`: `k`'s plumbing cells are fresh and its code aligns with its body. -/
+/-- `align_chk% «k»`: `k`'s plumbing cells are fresh. -/
 macro "align_chk% " k:ident : command =>
   `(theorem $(fnDot k `alignCellsOk) : Bridge.cellsFresh cert.locs (Bridge.plumbCells plumb) [] = true := by
-      decide +kernel
-    theorem $(fnDot k `alignOk) : Bridge.alignOk alignCtx core.body code.code $(fnDot k `advice) = true := by
       decide +kernel)
 
 end LeanVM.Guest.ChkLit

@@ -431,10 +431,9 @@ noncomputable def alignAt (X : AlignCtx) (body : List Stmt) (code : List OffsetI
 
 /-! ## Windows
 
-A long function's pass is checked in windows of offsets. A state is named by its cursors (`KSt`: the
-offset, the hints consumed, the cursor falling in, the arrivals pending), each zipper rebuilt from the
-body (`zipOf`), and `winOk` runs the pass from one named state over the window's instructions to the
-next. -/
+A long function's pass (the pairing's, `CoreMode/PairSlice.lean`) is checked in windows of offsets. A state is
+named by its cursors (`KSt`: the offset, the hints consumed, the cursor falling in, the arrivals pending), each
+zipper rebuilt from the body (`zipOf`). -/
 
 /-- The enclosing levels of a cursor with their statements after them. -/
 def zUp (body : List Stmt) : List (ℕ × ℕ) → List (ℕ × ℕ × List Stmt)
@@ -468,17 +467,6 @@ def lenTR {α : Type} : List α → ℕ → ℕ
 def keyOfSt (hs : List (ℕ × List Prover.Exec.Hint)) (st : St) : KSt :=
   ⟨st.i, lenTR hs 0 - lenTR st.hs 0, st.cur.map Zip.key, st.pend.map (fun p ↦ (p.1, p.2.key)),
     st.tabs.map fun t ↦ (t.1, t.2.1.key, t.2.2)⟩
-
-/-- **A window of the pass**: from the state `Ka` at offset `Ka.i` over the instructions to offset
-`Kb.i`, the pass reaches `Kb`. -/
-noncomputable def winOk (X : AlignCtx) (body : List Stmt) (code : List OffsetInstruction)
-    (d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)) (Ka Kb : KSt) : Bool :=
-  X.seq fun X ↦ decide ((alignGo X ((code.drop Ka.i).take (Kb.i - Ka.i)) (stOfK body d.2.2 Ka) []).map
-    (fun p ↦ keyOfSt d.2.2 p.1) = some Kb)
-
-/-- The last state of a chain: at the end, no fall-through past it, nothing pending. -/
-def chainEnd (code : List OffsetInstruction) (K : KSt) : Bool :=
-  Nat.beq K.i (lenTR code 0) && K.cur.isNone && K.pend.isEmpty
 
 /-- The checks of `alignOk` but the pass's. -/
 noncomputable def alignPre (X : AlignCtx) (d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)) : Bool :=
