@@ -2,7 +2,8 @@
   LeanVM.Protocol.Keccak.Rmfe
 
   The reverse multiplication-friendly embedding of `verifyKeccak`: the product property of the
-  verifier's `RMFE_EMBED` and `RMFE_PROJECT` checked by the kernel, and its reading over `E`: the projection of a product of two embeddings is the AND of what they embed.
+  verifier's `RMFE_EMBED` and `RMFE_PROJECT` checked by the kernel, and its reading over `E`: the
+  projection of a product of two embeddings is the AND of what they embed.
 -/
 
 module

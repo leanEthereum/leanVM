@@ -3,17 +3,13 @@ import LeanVM.Protocol.LeanVMRpmAS
 import LeanVM.Guest.ExperimentBridge
 
 /-!
-# The statement's changes, old against new
+# The end statements against their capped and literal forms
 
-Each change to an end statement of `Statement/` is checked here: the old definition, restated, is
-equivalent to the new one (a strengthening proved by the proofs' lemmas), or implied by it.
-
-* **Query caps.** `KnowledgeSoundness` and `AggregateSound` held for `Q ≤ 2^128` queries and
-  `BatchingSound` for `QA ≤ 2^128`; past those counts their bounds exceed `1`
-  (`one_le_knowledgeSoundnessBound`, `one_le_batchingBound`), so dropping the caps changes nothing.
-* **Named constants.** The end statements' rate range `1..4` is `Whir.minLogInvRate ..
-  Whir.maxLogInvRate`, and LeanDA's shapes are `logK`, `logM`, `cellSymbols` and `cellsPerRow`: each old form is the new
-  one by `rfl`.
+* **Query counts.** `KnowledgeSoundness` and `AggregateSound` hold for every `Q`, and
+  `BatchingSound` for every `QA`; each is equivalent to its form capped at `2^128` queries, past
+  which its bound exceeds `1` (`one_le_knowledgeSoundnessBound`, `one_le_batchingBound`).
+* **Named constants.** The rate range `Whir.minLogInvRate .. Whir.maxLogInvRate` is `1..4`, and
+  LeanDA's shapes `logK`, `logM`, `cellSymbols`, `cellsPerRow` unfold to their literals, by `rfl`.
 -/
 
 open scoped ENNReal
@@ -24,9 +20,9 @@ namespace LeanVM.Statement.Windows
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
 open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node LeanVM.Guest.Batch
 
-/-! ## Query caps -/
+/-! ## Query counts -/
 
-/-- `KnowledgeSoundness` with its former cap `Q ≤ 2^128`. -/
+/-- `KnowledgeSoundness` capped at `Q ≤ 2^128`. -/
 def KnowledgeSoundnessCapped (extractor : StraightLineExtractor) : Prop :=
   ∀ (adversary : RandomPermutationAdversary) (Q : ℕ),
     Common.QueryCostAtMost adversary Common.permutationCallCost Q → Q ≤ 2 ^ 128 →
@@ -38,10 +34,10 @@ def KnowledgeSoundnessCapped (extractor : StraightLineExtractor) : Prop :=
 theorem knowledgeSoundness_iff_capped (extractor : StraightLineExtractor) :
     KnowledgeSoundnessCapped extractor ↔ KnowledgeSoundness extractor :=
   ⟨fun h A Q hA ↦ (le_or_gt Q (2 ^ 128)).elim (h A Q hA) fun hQ ↦
-      prEvent_le_of_one_le _ (one_le_knowledgeSoundnessBound hQ),
+      (prEvent_le_one _).trans (one_le_knowledgeSoundnessBound hQ),
     fun h A Q hA _ ↦ h A Q hA⟩
 
-/-- `AggregateSound` with its former cap `Q ≤ 2^128`. -/
+/-- `AggregateSound` capped at `Q ≤ 2^128`. -/
 def AggregateSoundCapped (guest : LeanIsaProgram) (guestWitnessDecoder : LeanVM.Cost.MachineProgram)
     (extractor : StraightLineExtractor) : Prop :=
   ∀ (adversary : RandomPermutationAdversary) (Q : ℕ),
@@ -64,10 +60,10 @@ theorem aggregateSound_iff_capped (guest : LeanIsaProgram) (decoder : LeanVM.Cos
     (extractor : StraightLineExtractor) :
     AggregateSoundCapped guest decoder extractor ↔ AggregateSound guest decoder extractor :=
   ⟨fun h A Q hA ↦ (le_or_gt Q (2 ^ 128)).elim (h A Q hA) fun hQ ↦
-      prEvent_le_of_one_le _ (one_le_knowledgeSoundnessBound hQ),
+      (prEvent_le_one _).trans (one_le_knowledgeSoundnessBound hQ),
     fun h A Q hA _ ↦ h A Q hA⟩
 
-/-- `BatchingSound` with its former cap `QA ≤ 2^128`. -/
+/-- `BatchingSound` capped at `QA ≤ 2^128`. -/
 def BatchingSoundCapped : Prop :=
   ∀ (M : ℕ) (bytecode : List K), bytecode.length = 2 ^ Nat.log2 bytecode.length →
     M ≤ 2 ^ 64 - 1 →
@@ -85,8 +81,9 @@ def BatchingSoundCapped : Prop :=
         5 * ((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256
 
 theorem batchingSound_iff_capped : BatchingSoundCapped ↔ BatchingSound :=
-  ⟨fun h M b hb hM A QA hA hQV ↦ (le_or_gt QA (2 ^ 128)).elim (fun hQA ↦ h M b hb hM A QA hA hQA hQV)
-      fun hQA ↦ prEvent_le_of_one_le _ (one_le_batchingBound hQA),
+  ⟨fun h M b hb hM A QA hA hQV ↦ (le_or_gt QA (2 ^ 128)).elim
+      (fun hQA ↦ h M b hb hM A QA hA hQA hQV)
+      fun hQA ↦ (prEvent_le_one _).trans (one_le_batchingBound hQA),
     fun h M b hb hM A QA hA _ hQV ↦ h M b hb hM A QA hA hQV⟩
 
 /-! ## Named constants -/
@@ -105,9 +102,9 @@ theorem completeness_iff_literal : CompletenessLiteral ↔ Completeness := Iff.r
 theorem rate_range_nonempty : ∃ ρ, Whir.minLogInvRate ≤ ρ ∧ ρ ≤ Whir.maxLogInvRate :=
   ⟨1, by decide⟩
 
-theorem guestProverComplete_rate_eq :
-    (∀ ρ : ℕ, Whir.minLogInvRate ≤ ρ ∧ ρ ≤ Whir.maxLogInvRate ↔ 1 ≤ ρ ∧ ρ ≤ 4) :=
-  fun _ ↦ Iff.rfl
+/-- The rate hypothesis of `GuestProverComplete` is `1 ≤ ρ ≤ 4`. -/
+theorem rate_range_iff (ρ : ℕ) : Whir.minLogInvRate ≤ ρ ∧ ρ ≤ Whir.maxLogInvRate ↔ 1 ≤ ρ ∧ ρ ≤ 4 :=
+  Iff.rfl
 
 open LeanDa in
 theorem leanDa_shapes_eq_literal :

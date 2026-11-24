@@ -6,14 +6,7 @@ import all LeanVM.Protocol.Whir.Sound.LowMsgC
 import all LeanVM.Protocol.Whir.Sound.StackA
 import all Statement.Prover.Ntt
 import all Statement.LeanVmVerifier
-import all Statement.Verifier.Transcript
-import all Statement.Verifier.Multilinear
-import all Statement.Verifier.Layout
-import all Statement.Verifier.Bus
-import all Statement.Verifier.Whir
-import all Statement.Verifier.Keccak
-import all Statement.Verifier.RingSwitch
-import all Statement.Verifier.Lib
+import Statement.Verifier.Lib
 import all LeanVM.Protocol.Whir.Sound.State
 import all LeanVM.Protocol.Whir.Sound.DescentC
 import all LeanVM.Protocol.Whir.Params.Check
