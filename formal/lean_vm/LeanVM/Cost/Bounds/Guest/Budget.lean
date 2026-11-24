@@ -40,9 +40,7 @@ the decoder program's price is within `guestDecoderPriceAt (2^κ)` (`Cost/Prices
   (74κ + 121)·2^κ + (74ℓ + 121)·2^ℓ + 42` (`decoderTables_cost`),
   `guestDecoderAddressTablesPrice` (`addressTablesPrice_eq`), and the rest of the constant,
   `topConstPrice`, exactly `guestDecoderWitnessPriceAt M + guestDecoderFrameLookupCountAt M·F` at counts
-  at most `M` (`topConst_eq_at`, each child's cursor at most `8192` words by `valid_cursor`), the
-  `guestDecoderWitnessPriceAtValidCounts + guestDecoderFrameLookupCountAtValidCounts·F` at a valid
-  run's `M = guestDecoderCountBound` (`topConst_le`).
+  at most `M` (`topConst_eq_at`, each child's cursor at most `8192` words by `valid_cursor`).
 -/
 
 namespace LeanVM.Cost.Bounds.Guest
@@ -74,27 +72,9 @@ theorem topConst_eq_at (M F : ℕ) :
     guestDecoderWitnessPriceAt guestDecoderFrameLookupCountAt
   ring
 
-/-- The constant at a valid run's counts (`guestDecoderCountBound`). -/
-theorem topConst_valid_le (F : ℕ) :
-    topConstPrice guestDecoderCountBound (decWitNPrice gLogPrice 1271 (1271 + 1525) (F + 9)
-      (125634 + 5) 8192 (dvFramePrice gLogPrice (F + 9)) (xmssReaderPrice 1271 (4 * F))
-      (sphincsReaderPrice 1271 (1271 + 1525) F) 16 guestDecoderCountBound
-        guestDecoderCountBound) ≤
-      guestDecoderWitnessPriceAtValidCounts + guestDecoderFrameLookupCountAtValidCounts * F :=
-  (topConst_eq_at _ F).le
-
 /-- The address tables' price is the statement's. -/
 theorem addressTablesPrice_eq (κ ℓ : ℕ) :
     addressTablesPrice κ ℓ = guestDecoderAddressTablesPrice κ ℓ := rfl
-
-/-- The constant is the statement's linear form. -/
-theorem topConst_le (F : ℕ) :
-    topConstPrice 65535 (decWitNPrice gLogPrice 1271 (1271 + 1525) (F + 9) (125634 + 5)
-      8192 (dvFramePrice gLogPrice (F + 9)) (xmssReaderPrice 1271 (4 * F))
-      (sphincsReaderPrice 1271 (1271 + 1525) F) 16 65535
-        65535) ≤
-      guestDecoderWitnessPriceAtValidCounts + guestDecoderFrameLookupCountAtValidCounts * F :=
-  topConst_valid_le F
 
 /-- **Filing a state**: the sorted entry array's price per state (`entryArrayStatePrice`) at the
 deployed pc table's lookup (`8313`), two functions a pc, the precondition test and the reader, is
@@ -286,41 +266,6 @@ theorem keyExponent_eq (steps : ℕ) :
     guestDecoderEntryTableKeyExponent steps = Nat.log2 (steps + 1) + 2 := by
   unfold guestDecoderEntryTableKeyExponent
   rw [Nat.log2_two_mul (by omega)]
-
-/-- **The exact price within the statement's budget**, at the guest's `ℓ = 19`, a memory of at
-most `2^30` words and fewer than `2^128` steps: per step `2^21 + 2^13·log₂(steps + 1)` (the
-memory read at `κ ≤ 30`, the positions of at most `3` limbs), the frame lookups at
-`1129·log₂(steps + 1) + 7803` each. -/
-theorem guestDecoderPrice_le_budget {κ steps : ℕ} (hκ : κ ≤ 30) (hs : steps < 2 ^ 128) :
-    guestDecoderPrice κ 19 steps ≤ (steps + 1) * (2 ^ 21 + 2 ^ 13 * Nat.log2 (steps + 1)) +
-      (70 * κ + 374) * 2 ^ κ + 2 ^ 37 * (Nat.log2 (steps + 1) + 16) := by
-  have hlg : Nat.log2 (steps + 1) < 129 :=
-    (Nat.log2_lt (by omega)).2 (lt_of_le_of_lt (Nat.succ_le_of_lt hs) (by norm_num))
-  unfold guestDecoderPrice
-  rw [keyExponent_eq]
-  generalize Nat.log2 (steps + 1) = lg at hlg ⊢
-  have hL : guestDecoderEntryTablePositionLimbs (lg + 2) ≤ 3 := by
-    unfold guestDecoderEntryTablePositionLimbs limbsBelowTwoPow; omega
-  have hstep : runnerStepPrice κ 19 + 46 + guestDecoderStateFilingPrice (lg + 2) ≤
-      2 ^ 21 + 2 ^ 13 * lg := by
-    unfold runnerStepPrice guestDecoderStateFilingPrice guestDecoderPreconditionPrice
-    generalize guestDecoderEntryTablePositionLimbs (lg + 2) = L at hL ⊢
-    nlinarith [Nat.mul_le_mul_right (lg + 2) hL]
-  have hframe : guestDecoderFramePrice (lg + 2) ≤ 1129 * lg + 7803 := by
-    unfold guestDecoderFramePrice
-    generalize guestDecoderEntryTablePositionLimbs (lg + 2) = L at hL ⊢
-    nlinarith [Nat.mul_le_mul_right (lg + 2 + 2) hL]
-  calc _ ≤ (2 ^ 21 + 2 ^ 13 * lg) * (steps + 1) + 18158 + 22021176 +
-          guestDecoderAddressTablesPrice κ 19 + guestDecoderWitnessPriceAtValidCounts +
-          guestDecoderFrameLookupCountAtValidCounts * (1129 * lg + 7803) + 39 := by gcongr
-    _ ≤ _ := by
-      have hκ' : (74 * κ + 121) * 2 ^ κ ≤ (70 * κ + 374) * 2 ^ κ :=
-        Nat.mul_le_mul_right _ (by omega)
-      unfold guestDecoderAddressTablesPrice guestDecoderWitnessPriceAtValidCounts
-        guestDecoderFrameLookupCountAtValidCounts guestDecoderWitnessPriceAt
-        guestDecoderFrameLookupCountAt guestDecoderCountBound
-      rw [Nat.mul_comm _ (steps + 1)]
-      omega
 
 /-- **The price at counts at most `M` beyond the statement's budget**, at the guest's `ℓ = 19`, a
 memory of at most `2^30` words and fewer than `2^128` steps: the budget and
