@@ -19,20 +19,24 @@ OUT = resgen.OUT
 header = genfiles.header('core-mode/termcall.py')
 
 
-# the checks: file stem, the theorems' name, the check of one function, its imports
+# `expCarry`'s ranges: the kernel's memory grows over a range, by up to about 4 GB a function for the long ones
+# (`verify_tables` at 11, `open_stacked`'s specializations at 370 to 380), which take a range each
+EXP_RANGES = ([(0, 11), (11, 1), (12, 5), (17, 3), (20, 80), (100, 270)] + [(a, 1) for a in range(370, 381)] +
+              [(381, 19), (400, 400), (800, 400), (1200, None)])
+# the checks: file stem, the theorems' name, the check of one function, its imports, its ranges
 _TERM = 'LeanVM.Guest.CoreMode.Fam.LinkDefs\npublic import LeanVM.Guest.CoreMode.Fam.TermDefs'
-FAMS = [('TermCallers', 'termCallers', 'callersG termCallers', _TERM),
-        ('GlCallers', 'glCallers', 'callersM glCallers', _TERM),
+FAMS = [('TermCallers', 'termCallers', 'callersG termCallers', _TERM, resgen.RANGES),
+        ('GlCallers', 'glCallers', 'callersM glCallers', _TERM, resgen.RANGES),
         ('ExpCarry', 'expCarry', 'CoreMode.carryExpB CoreMode.FnReg.expCarry',
          'LeanVM.Guest.CoreMode.Fam.LinkDefs\npublic import LeanVM.Guest.CoreMode.Fam.ExpCDefs\n'
-         'public import LeanVM.Guest.CoreMode.Gen.FnData')]
+         'public import LeanVM.Guest.CoreMode.Gen.FnData', EXP_RANGES)]
 
 
 def render():
     files = {}
     n = resgen.coreCount()
-    ranges = [(a, (n - a) if m is None else m) for a, m in resgen.RANGES]
-    for stem, lst, chk, imps in FAMS:
+    for stem, lst, chk, imps, rs in FAMS:
+        ranges = [(a, (n - a) if m is None else m) for a, m in rs]
         mods = []
         for k, (a, m) in enumerate(ranges):
             mod = 'LeanVM.Guest.CoreMode.Gen.%s%d' % (stem, k)
