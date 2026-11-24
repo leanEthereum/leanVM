@@ -26,7 +26,6 @@ variable [Params]
 
 open Concrete ForsPrice FORS.Base.H0 FORS.Base.Domination H0Avg
 
-set_option linter.unusedSectionVars false
 
 /-! ### The exponential in integers -/
 

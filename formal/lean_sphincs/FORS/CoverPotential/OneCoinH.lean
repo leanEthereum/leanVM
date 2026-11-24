@@ -29,9 +29,6 @@ open FORS.Base
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForsPrice ForsSigner
   FORS.Base.Domination
 
-set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
-set_option linter.unusedSectionVars false
 attribute [local instance] Classical.propDecidable
 
 /-! ### The count invariant of the live messages -/
@@ -108,7 +105,6 @@ theorem interp_presample_fresh_leF (x : HashInput) (hk : tg.kind x = .none) {α 
         exact hF out v hc
   · rw [presample_fresh x state hx, OracleComp.tsum_prEvent_map_mul, tsum_uniform_eq]
 
-set_option maxRecDepth 100000 in
 /-- `interp_presampleAll_le` with honest reads. -/
 theorem interp_presampleAll_leF {α : Type} (computation : OracleComp CostSpecH α) (budget : ℕ)
     (F : Run HashInput Coordinate α × State → ℝ≥0∞) :
@@ -155,7 +151,6 @@ theorem interp_presampleAll_leF {α : Type} (computation : OracleComp CostSpecH 
             rw [← Fintype.sum_prod_type']
             exact Fintype.sum_equiv (Fin.consEquiv fun _ => HashOutput) _ _ fun _ => rfl
 
-set_option maxRecDepth 100000 in
 /-- `interp_presample_new` with honest reads. -/
 theorem interp_presample_newF {α : Type} {n : ℕ} (x : Fin n → HashInput) (hx : Function.Injective x)
     (hk : ∀ i, tg.kind (x i) = .none) (c : Fin n) (next : HashOutput → OracleComp CostSpecH α)

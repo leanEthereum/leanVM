@@ -22,9 +22,6 @@ variable [Params]
 open Concrete Completeness _root_.FORS.Security.Graph GraphCorrectness TargetAssignment HiddenGraph Assembly SeedModel
   Reduce Eager
 
-set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
-set_option linter.constructorNameAsVariable false
 attribute [local instance] Classical.propDecidable
 
 attribute [local irreducible] ReferenceChoice.selection encodingAttemptLimit
@@ -172,9 +169,6 @@ variable [Params]
 open HiddenReveal HiddenCost Eager Short Concrete Stop
 open Completeness SeedModel _root_.FORS.Security.Graph Assembly Reduce HiddenGraph Internalize GraphView
 
-set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
-set_option linter.constructorNameAsVariable false
 attribute [local instance] Classical.propDecidable
 
 attribute [local instance] sampleCellFintypeInst sampleCellDecEq hiddenTableSampleable highsSampleable
@@ -228,7 +222,6 @@ theorem seedFree_le_expose (adversary : Adversary) (q : Nat) (steps : Message �
     (knownAgrees_exposeT table _ _ hagree) event
 
 
-set_option maxRecDepth 100000 in
 /-- **The seed-free win in the stopped prepared world, with the above-word values exposed.** -/
 theorem seedFree_le_exposeP (adversary : Adversary) (q : Nat) (steps : Message → Randomness) :
     Pr{let z ← AdvCount.seedFreeExperiment (internalize adversary) q steps}[Win z] ≤
@@ -297,15 +290,11 @@ variable [Params]
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForsPrice ForsSigner HiddenReveal FORS.Base.Domination
 open HiddenBridge Completeness SeedModel _root_.FORS.Security.Graph Assembly Reduce Internalize
 
-set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
-set_option linter.constructorNameAsVariable false
 attribute [local instance] Classical.propDecidable
 
 attribute [local instance] sampleCellFintypeInst sampleCellDecEq hiddenTableSampleable highsSampleable
   remainingSampleable
 
-set_option maxRecDepth 100000 in
 /-- One table, keeping the valid outcome, the signer honest. -/
 theorem stopped_table_leV (hb : 0 < keptHeight topLayer) (adversary : Adversary) (q : ℕ) (hq : q < 2 ^ 256)
     (parameterOutput : HashOutput) (fixed : HiddenGraph.Table) (highs : CoordinateHighs)
@@ -340,7 +329,6 @@ theorem stopped_table_leV (hb : 0 < keptHeight topLayer) (adversary : Adversary)
     simp only [outcomeWins, Bool.and_eq_true, decide_eq_true_eq] at hw
     exact hw.1.1
 
-set_option maxRecDepth 100000 in
 /-- **From the stopped experiment with exposed knowledge to the interpreted run.** -/
 theorem stopped_le_interpV (hb : 0 < keptHeight topLayer) (adversary : Adversary) (q : ℕ) (hq : q < 2 ^ 256)
     (parameterOutput : HashOutput) (fixed : HiddenGraph.Table) (highs : CoordinateHighs)
@@ -417,7 +405,6 @@ theorem stopped_le_interpV (hb : 0 < keptHeight topLayer) (adversary : Adversary
           rw [Functor.map_map]
         rw [hcomp, prEvent_map]
 
-set_option maxRecDepth 100000 in
 /-- **From the stopped experiment with the above-word exposure to the interpreted run.** -/
 theorem stopped_le_interp_exposeV (hb : 0 < keptHeight topLayer) (adversary : Adversary) (q : ℕ) (hq : q < 2 ^ 256)
     (parameterOutput : HashOutput) (fixed : HiddenGraph.Table) (highs : CoordinateHighs)
@@ -449,7 +436,6 @@ theorem tsum_mul_mono_support {α : Type} (mx : ProbComp α) (f g : α → ℝ�
     · exact mul_le_mul_right (h x hx) _
     · rw [(prEvent_eq_zero_of_not_mem_support _) hx, zero_mul, zero_mul]
 
-set_option maxRecDepth 100000 in
 /-- **The small route's program bridge holds**, the signer honest. -/
 theorem smallBridgeH_holds (hb : 0 < keptHeight topLayer) (adversary : Adversary) (q : ℕ) (hq : q < 2 ^ 256)
     (steps : Message → Randomness) : SmallBridgeH (internalize adversary) q steps := by

@@ -15,7 +15,6 @@ their bytes, so uniform calls give the uniform digest law.
 -/
 
 open OracleComp OracleSpec ENNReal
-set_option exponentiation.threshold 512
 
 namespace FORS.Security
 
@@ -49,7 +48,6 @@ namespace FORS.Lifetime
 
 variable [Params]
 
-set_option exponentiation.threshold 512
 
 open OracleComp OracleSpec ENNReal Concrete
 

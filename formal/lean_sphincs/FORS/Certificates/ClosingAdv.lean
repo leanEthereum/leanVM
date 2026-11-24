@@ -23,7 +23,6 @@ open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForsPrice F
   FORS.Base.Domination
 open HiddenBridge PotentialA
 
-set_option maxRecDepth 100000 in
 /-- **127 bits at the adversary's own count**, from the certificates and a verifier making
 at most `V` hash calls on every path. -/
 theorem det_bitsF (hb0 : 0 < keptHeight topLayer) (H b k a K N : ℕ) (hH : totalHeight = H)

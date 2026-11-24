@@ -19,7 +19,6 @@ open FORS.Base.Domination FORS.Base.H0
 
 variable {ι M : Type} [Fintype ι] [Fintype M] [Nonempty M]
 
-set_option linter.unusedSectionVars false
 
 /-! ### Averages over uniform marks -/
 

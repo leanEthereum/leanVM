@@ -16,7 +16,6 @@ variable [Params]
 
 open Concrete H0Avg FORS.Base.Domination
 
-set_option linter.unusedSectionVars false
 
 /-! ### The near value of an index -/
 

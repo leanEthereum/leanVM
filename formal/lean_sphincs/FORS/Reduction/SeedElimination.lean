@@ -24,7 +24,6 @@ open Completeness SeedCoupling Internalize Eager Short SeedModel Graph Assembly 
   GraphView Reduce DetValue
 
 set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
 attribute [local instance] Classical.propDecidable
 
 /-! ### Randomizer-derivation inputs -/

@@ -16,10 +16,6 @@ variable [Params]
 
 open Concrete HiddenGraph HiddenDebt HiddenBridge EncodingCode
 
-set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
-set_option linter.constructorNameAsVariable false
-set_option linter.unusedSectionVars false
 attribute [local instance] Classical.propDecidable
 
 
@@ -311,6 +307,7 @@ theorem markAll_card (l : OtsKey) : ((K.markAll l).card : ℝ≥0∞) ≤ 4032 :
   have : (K.markAll l).card ≤ 4032 := h1.trans h2
   exact_mod_cast this
 
+set_option maxRecDepth 2000 in
 theorem markSet_subset (l : OtsKey) (i : ChainIndex) {t : Digest} (h : t ∈ K.markSet l i) : t ∈ K.markAll l := by
   obtain ⟨word, hw, hd⟩ := mem_decodingDigests.1 h
   exact mem_decodingDigests.2 ⟨word, mem_allUnitNeighbors.2 ⟨i, mem_unitNeighbors.1 hw⟩, hd⟩

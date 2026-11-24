@@ -11,8 +11,6 @@ open OracleComp OracleSpec ENNReal
 namespace FORS.Security.HiddenRows
 
 variable [Params]
-set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
 attribute [local instance] Classical.propDecidable
 
 structure Model (D R A ι : Type) where

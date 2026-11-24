@@ -15,7 +15,6 @@ open ENNReal
 
 namespace FORS.Security.H0
 
-set_option linter.unusedSectionVars false
 
 /-! ### Lists over a range -/
 

@@ -24,7 +24,6 @@ open Completeness SeedCoupling Internalize Eager Short SeedModel _root_.FORS.Sec
   HiddenCost GraphView Reduce DetValue Det
 
 set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
 attribute [local instance] Classical.propDecidable
 attribute [local irreducible] encodingAttemptLimit digestAttemptLimit
 

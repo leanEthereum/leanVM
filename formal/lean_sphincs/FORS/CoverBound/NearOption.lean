@@ -18,7 +18,6 @@ variable [Params]
 
 open Concrete ForsPrice FORS.Base.H0 FORS.Base.Domination H0Avg ForsPotential
 
-set_option linter.unusedSectionVars false
 
 /-- The near bound at `n` from the moment table: the free tree contributes a factor one. -/
 def nBound (H k a n : ℕ) : ℚ := k * κQ H * (P1tab a).getD n 0 ^ (k - 1)

@@ -19,8 +19,6 @@ variable [Params]
 
 open Concrete ForsPrice ForsPotential FORS.Base.H0 FORS.Base.Domination
 
-set_option linter.unusedSectionVars false
-set_option exponentiation.threshold 512
 
 /-! ### The checker -/
 
@@ -322,9 +320,6 @@ open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForsPrice F
   FORS.Base.Domination
 open HiddenBridge PotentialA
 
-set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
-set_option linter.constructorNameAsVariable false
 attribute [local instance] Classical.propDecidable
 
 /-! ### A chain of light covers, then heavy covers -/

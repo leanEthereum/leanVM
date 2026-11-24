@@ -16,8 +16,6 @@ namespace FORS.Base.H0
 
 open Domination
 
-set_option linter.unusedSectionVars false
-set_option exponentiation.threshold 512
 
 /-! ### Rounding and exponential bounds -/
 

@@ -134,7 +134,6 @@ namespace FORS.Security.SeedCoupling
 
 variable [Params]
 
-set_option backward.isDefEq.respectTransparency false
 
 variable (J R : Type) [Fintype J]
 
@@ -195,7 +194,6 @@ namespace FORS.Security.SeedCoupling
 variable [Params]
 open SeedModel Completeness
 
-set_option backward.isDefEq.respectTransparency false
 
 noncomputable local instance : SampleableType SecretOutputs := secretOutputsSampleableType
 

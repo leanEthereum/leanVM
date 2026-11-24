@@ -20,7 +20,6 @@ variable [Params]
 
 open Concrete Security Security.Short
 
-set_option backward.isDefEq.respectTransparency false
 
 attribute [local irreducible] digestAttemptLimit encodingAttemptLimit
 

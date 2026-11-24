@@ -19,7 +19,6 @@ variable [Params]
 
 open Concrete ForsPrice FORS.Base.H0 FORS.Base.Domination H0Avg
 
-set_option linter.unusedSectionVars false
 
 /-- The per-index weight `2^-H` of the cover probability, `H` the total height. -/
 def κQ (H : ℕ) : ℚ := 1 / 2 ^ H

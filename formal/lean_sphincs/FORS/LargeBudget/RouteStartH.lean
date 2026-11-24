@@ -21,8 +21,6 @@ open HiddenReveal HiddenCost Eager Short Concrete Stop
 open Completeness SeedModel _root_.FORS.Security.Graph Assembly Reduce HiddenGraph Internalize GraphView
 
 set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
-set_option linter.constructorNameAsVariable false
 attribute [local instance] Classical.propDecidable
 
 section Until
@@ -312,7 +310,6 @@ theorem seedFree_le_stopped (adversary : Adversary) (q : Nat) (steps : Message �
   rw [hiddenRunH_eq]
   exact h
 
-set_option maxRecDepth 100000 in
 /-- **The honest seed-free win in the stopped prepared world.** -/
 theorem seedFree_le_prep (adversary : Adversary) (q : Nat) (steps : Message → Randomness) :
     Pr{let z ← AdvCount.seedFreeExperiment (internalize adversary) q steps}[Win z] ≤
@@ -371,8 +368,6 @@ open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForsPrice F
 open HiddenBridge Completeness SeedModel _root_.FORS.Security.Graph Assembly Reduce Internalize
 
 set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
-set_option linter.constructorNameAsVariable false
 attribute [local instance] Classical.propDecidable
 attribute [local instance] sampleCellFintypeInst sampleCellDecEq hiddenTableSampleable highsSampleable
   remainingSampleable
@@ -407,7 +402,6 @@ theorem stopped_table_le (hb : 0 < keptHeight topLayer) (adversary : Adversary) 
     · exact Or.inl h
     · exact Or.inr ⟨outcome, rfl, h⟩
 
-set_option maxRecDepth 100000 in
 /-- **From the stopped experiment to the interpreted run**, honest program. -/
 theorem stopped_le_interp (hb : 0 < keptHeight topLayer) (adversary : Adversary) (q : ℕ) (hq : q < 2 ^ 256)
     (parameterOutput : HashOutput) (fixed : HiddenGraph.Table) (highs : CoordinateHighs)

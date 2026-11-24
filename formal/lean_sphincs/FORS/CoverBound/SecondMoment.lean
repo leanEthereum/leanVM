@@ -17,7 +17,6 @@ variable [Params]
 
 open Concrete
 
-set_option linter.unusedSectionVars false
 
 /-- The second moment of the cover fraction of one tree after `n` uniform disclosed leaves. -/
 noncomputable def Ψ2R (n : ℕ) : ℝ :=

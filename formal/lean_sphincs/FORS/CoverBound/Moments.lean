@@ -18,7 +18,6 @@ variable [Params]
 
 open Concrete
 
-set_option linter.unusedSectionVars false
 
 /-! ### Real averages -/
 

@@ -18,7 +18,6 @@ variable [Params]
 
 open Concrete ForsPrice FORS.Base.Domination FORS.Base.H0 H0Avg
 
-set_option linter.unusedSectionVars false
 
 /-! ### Separable good count functions -/
 

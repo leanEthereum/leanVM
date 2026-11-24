@@ -19,7 +19,6 @@ variable [Params]
 
 open Concrete FORS.Base.H0 FORS.Base.Domination H0Avg
 
-set_option linter.unusedSectionVars false
 
 /-! ### The Poisson table -/
 

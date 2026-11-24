@@ -383,7 +383,6 @@ namespace FORS.Base.H0
 
 open Domination
 
-set_option linter.unusedSectionVars false
 
 variable {V ι : Type} [DecidableEq ι] [Fintype ι] (idx : V → ι)
 

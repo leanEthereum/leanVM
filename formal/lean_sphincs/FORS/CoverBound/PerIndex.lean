@@ -21,7 +21,6 @@ variable [Params]
 
 open Concrete ForsPrice FORS.Base.Domination H0Avg
 
-set_option linter.unusedSectionVars false
 
 /-! ### A quadratic bound of the exponential -/
 

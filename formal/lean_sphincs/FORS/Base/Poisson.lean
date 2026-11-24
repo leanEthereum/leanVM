@@ -23,7 +23,6 @@ namespace FORS.Base.H0
 
 open Domination
 
-set_option linter.unusedSectionVars false
 
 /-- The H-term operator of the one-coin future. -/
 noncomputable def hTermO {V : Type} (U : Finset V) (w lam : ℝ≥0∞) (N q : ℕ) (f : Multiset V → ℝ≥0∞) : ℝ≥0∞ :=

@@ -21,7 +21,6 @@ variable [Params]
 
 open Concrete ForsPrice FORS.Base.Domination H0Avg
 
-set_option linter.unusedSectionVars false
 
 /-! ### The law in integers (what the kernel computes) -/
 

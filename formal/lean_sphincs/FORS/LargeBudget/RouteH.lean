@@ -23,9 +23,6 @@ variable [Params]
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForsPrice ForsSigner HiddenReveal FORS.Base.Domination
 
 set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
-set_option linter.unusedSectionVars false
-set_option linter.constructorNameAsVariable false
 attribute [local instance] Classical.propDecidable
 
 /-! ### The honest program's reads are harmless from a prepared state -/
@@ -204,7 +201,6 @@ theorem signerReadsGood_large (parameterOutput : HashOutput) (highs : Coordinate
         Or.inr (hmsg _ ⟨parameter', root, message, randomness, call, rfl⟩).1⟩,
     h.trialParse, h.searched⟩
 
-set_option maxRecDepth 100000 in
 /-- **One sample, weighted baseline**, the signer honest. -/
 theorem sample_boundW (hb : 0 < keptHeight topLayer) (adversary : Adversary) (hnr : adversary.NoRepeat) (q : ℕ)
     (hq : q < 2 ^ 256)
@@ -287,7 +283,6 @@ theorem sample_boundW (hb : 0 < keptHeight topLayer) (adversary : Adversary) (hn
     · exact not_hit_start tg prepared.2 known table hh
     · cases hres
 
-set_option maxRecDepth 100000 in
 /-- **Large budgets from the honest seed-free win, weighted baseline.** The seed-free win is at most the
 weighted saturation budget, `q - keygenCost` times the one-coin excess forecast at the baseline
 `baselineW (q - keygenCost)`, and the failing share of the prepared searches. -/
@@ -344,7 +339,6 @@ theorem large_seedFree_boundW (hb : 0 < keptHeight topLayer) (adversary : Advers
   exact tsum_bound_le _ _ A C _ fun prepared hprepared =>
     hsample parameterOutput fixed highs remaining prepared hprepared
 
-set_option maxRecDepth 100000 in
 /-- **Large budgets, weighted baseline, honest-reading game.** For an adversary making at most `qA`
 hash queries and a verifier making at most `V`, at the budget `q = keygenHashCost + qA + V`: if the
 large-budget inequality `hH0` with the weighted baseline holds at `q`,
