@@ -151,10 +151,21 @@ end Lookup
 
 section Cells
 
+private theorem length_le_utf8ByteSize (s : String) : s.length ≤ s.utf8ByteSize := by
+  induction s using String.push_induction with
+  | empty => simp
+  | push s c ih => simp only [String.utf8ByteSize_push, String.length_push]; have := c.utf8Size_pos; omega
+
+/- The kernel counts a literal's bytes several times faster than its characters, which it decodes. -/
 set_option maxRecDepth 100000 in
-/-- Every function's name is shorter than a tail key. -/
-theorem coreProgram_names_short : coreProgram.all (fun g ↦ Nat.blt g.name.length 256) = true := by
+private theorem coreProgram_names_small :
+    coreProgram.all (fun g ↦ Nat.blt g.name.utf8ByteSize 256) = true := by
   decide +kernel
+
+/-- Every function's name is shorter than a tail key. -/
+theorem coreProgram_names_short : coreProgram.all (fun g ↦ Nat.blt g.name.length 256) = true :=
+  List.all_eq_true.mpr fun g hg ↦ Nat.blt_eq.mpr <| Nat.lt_of_le_of_lt (length_le_utf8ByteSize _)
+    (Nat.blt_eq.mp (List.all_eq_true.mp coreProgram_names_small g hg))
 
 theorem tailKey_length (f : String) : (Memory.tailKey f).length = 256 + f.length := by
   unfold Memory.tailKey
